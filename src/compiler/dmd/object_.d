@@ -108,8 +108,8 @@ class Object
         // BUG: this prevents a compacting GC from working, needs to be fixed
         //return cast(int)cast(void*)this - cast(int)cast(void*)o;
 
-        //throw new Exception("need opCmp for class " ~ this.classinfo.name);
-        return this !is o;
+        throw new Exception("need opCmp for class " ~ this.classinfo.name);
+        //return this !is o;
     }
 
     /**
@@ -250,7 +250,7 @@ class TypeInfo
     hash_t getHash(in void* p) { return cast(hash_t)p; }
 
     /// Compares two instances for equality.
-    equals_t equals(in void* p1, in void* p2) { return cast(int)(p1 == p2); }
+    equals_t equals(in void* p1, in void* p2) { return p1 == p2; }
 
     /// Compares two instances for &lt;, ==, or &gt;.
     int compare(in void* p1, in void* p2) { return 0; }
@@ -263,11 +263,10 @@ class TypeInfo
     {
         size_t n = tsize();
         for (size_t i = 0; i < n; i++)
-        {   byte t;
-
-            t = (cast(byte *)p1)[i];
-            (cast(byte *)p1)[i] = (cast(byte *)p2)[i];
-            (cast(byte *)p2)[i] = t;
+        {
+            byte t = (cast(byte *)p1)[i];
+            (cast(byte*)p1)[i] = (cast(byte*)p2)[i];
+            (cast(byte*)p2)[i] = t;
         }
     }
 
@@ -290,8 +289,8 @@ class TypeInfo_Typedef : TypeInfo
     string toString() { return name; }
 
     equals_t opEquals(Object o)
-    {   TypeInfo_Typedef c;
-
+    {
+        TypeInfo_Typedef c;
         return this is o ||
                ((c = cast(TypeInfo_Typedef)o) !is null &&
                 this.name == c.name &&
@@ -309,12 +308,13 @@ class TypeInfo_Typedef : TypeInfo
     void[] init() { return m_init.length ? m_init : base.init(); }
 
     TypeInfo base;
-    string name;
-    void[] m_init;
+    string   name;
+    void[]   m_init;
 }
 
 class TypeInfo_Enum : TypeInfo_Typedef
 {
+
 }
 
 class TypeInfo_Pointer : TypeInfo
@@ -322,8 +322,8 @@ class TypeInfo_Pointer : TypeInfo
     string toString() { return m_next.toString() ~ "*"; }
 
     equals_t opEquals(Object o)
-    {   TypeInfo_Pointer c;
-
+    {
+        TypeInfo_Pointer c;
         return this is o ||
                 ((c = cast(TypeInfo_Pointer)o) !is null &&
                  this.m_next == c.m_next);
@@ -336,14 +336,14 @@ class TypeInfo_Pointer : TypeInfo
 
     equals_t equals(in void* p1, in void* p2)
     {
-        return cast(int)(*cast(void* *)p1 == *cast(void* *)p2);
+        return *cast(void**)p1 == *cast(void**)p2;
     }
 
     int compare(in void* p1, in void* p2)
     {
-        if (*cast(void* *)p1 < *cast(void* *)p2)
+        if (*cast(void**)p1 < *cast(void**)p2)
             return -1;
-        else if (*cast(void* *)p1 > *cast(void* *)p2)
+        else if (*cast(void**)p1 > *cast(void**)p2)
             return 1;
         else
             return 0;
@@ -355,8 +355,8 @@ class TypeInfo_Pointer : TypeInfo
     }
 
     void swap(void* p1, void* p2)
-    {   void* tmp;
-        tmp = *cast(void**)p1;
+    {
+        void* tmp = *cast(void**)p1;
         *cast(void**)p1 = *cast(void**)p2;
         *cast(void**)p2 = tmp;
     }
@@ -372,15 +372,16 @@ class TypeInfo_Array : TypeInfo
     string toString() { return value.toString() ~ "[]"; }
 
     equals_t opEquals(Object o)
-    {   TypeInfo_Array c;
-
+    {
+        TypeInfo_Array c;
         return this is o ||
                ((c = cast(TypeInfo_Array)o) !is null &&
                 this.value == c.value);
     }
 
     hash_t getHash(in void* p)
-    {   size_t sz = value.tsize();
+    {
+        size_t sz = value.tsize();
         hash_t hash = 0;
         void[] a = *cast(void[]*)p;
         for (size_t i = 0; i < a.length; i++)
@@ -393,14 +394,14 @@ class TypeInfo_Array : TypeInfo
         void[] a1 = *cast(void[]*)p1;
         void[] a2 = *cast(void[]*)p2;
         if (a1.length != a2.length)
-            return 0;
+            return false;
         size_t sz = value.tsize();
         for (size_t i = 0; i < a1.length; i++)
         {
             if (!value.equals(a1.ptr + i * sz, a2.ptr + i * sz))
-                return 0;
+                return false;
         }
-        return 1;
+        return true;
     }
 
     int compare(in void* p1, in void* p2)
@@ -427,8 +428,8 @@ class TypeInfo_Array : TypeInfo
     }
 
     void swap(void* p1, void* p2)
-    {   void[] tmp;
-        tmp = *cast(void[]*)p1;
+    {
+        void[] tmp = *cast(void[]*)p1;
         *cast(void[]*)p1 = *cast(void[]*)p2;
         *cast(void[]*)p2 = tmp;
     }
@@ -438,7 +439,7 @@ class TypeInfo_Array : TypeInfo
     TypeInfo next()
     {
         return value;
-}
+    }
 
     uint flags() { return 1; }
 }
@@ -452,8 +453,8 @@ class TypeInfo_StaticArray : TypeInfo
     }
 
     equals_t opEquals(Object o)
-    {   TypeInfo_StaticArray c;
-
+    {
+        TypeInfo_StaticArray c;
         return this is o ||
                ((c = cast(TypeInfo_StaticArray)o) !is null &&
                 this.len == c.len &&
@@ -461,7 +462,8 @@ class TypeInfo_StaticArray : TypeInfo
     }
 
     hash_t getHash(in void* p)
-    {   size_t sz = value.tsize();
+    {
+        size_t sz = value.tsize();
         hash_t hash = 0;
         for (size_t i = 0; i < len; i++)
             hash += value.getHash(p + i * sz);
@@ -475,9 +477,9 @@ class TypeInfo_StaticArray : TypeInfo
         for (size_t u = 0; u < len; u++)
         {
             if (!value.equals(p1 + u * sz, p2 + u * sz))
-                return 0;
+                return false;
         }
-        return 1;
+        return true;
     }
 
     int compare(in void* p1, in void* p2)
@@ -499,7 +501,8 @@ class TypeInfo_StaticArray : TypeInfo
     }
 
     void swap(void* p1, void* p2)
-    {   void* tmp;
+    {
+        void* tmp;
         size_t sz = value.tsize();
         ubyte[16] buffer;
         void* pbuffer;
@@ -524,7 +527,7 @@ class TypeInfo_StaticArray : TypeInfo
     uint flags() { return value.flags(); }
 
     TypeInfo value;
-    size_t len;
+    size_t   len;
 }
 
 class TypeInfo_AssociativeArray : TypeInfo
@@ -535,8 +538,8 @@ class TypeInfo_AssociativeArray : TypeInfo
     }
 
     equals_t opEquals(Object o)
-    {   TypeInfo_AssociativeArray c;
-
+    {
+        TypeInfo_AssociativeArray c;
         return this is o ||
                 ((c = cast(TypeInfo_AssociativeArray)o) !is null &&
                  this.key == c.key &&
@@ -565,8 +568,8 @@ class TypeInfo_Function : TypeInfo
     }
 
     equals_t opEquals(Object o)
-    {   TypeInfo_Function c;
-
+    {
+        TypeInfo_Function c;
         return this is o ||
                 ((c = cast(TypeInfo_Function)o) !is null &&
                  this.next == c.next);
@@ -590,8 +593,8 @@ class TypeInfo_Delegate : TypeInfo
     }
 
     equals_t opEquals(Object o)
-    {   TypeInfo_Delegate c;
-
+    {
+        TypeInfo_Delegate c;
         return this is o ||
                 ((c = cast(TypeInfo_Delegate)o) !is null &&
                  this.next == c.next);
@@ -600,7 +603,8 @@ class TypeInfo_Delegate : TypeInfo
     // BUG: need to add the rest of the functions
 
     size_t tsize()
-    {   alias int delegate() dg;
+    {
+        alias int delegate() dg;
         return dg.sizeof;
     }
 
@@ -614,8 +618,8 @@ class TypeInfo_Class : TypeInfo
     string toString() { return info.name; }
 
     equals_t opEquals(Object o)
-    {   TypeInfo_Class c;
-
+    {
+        TypeInfo_Class c;
         return this is o ||
                 ((c = cast(TypeInfo_Class)o) !is null &&
                  this.info.name == c.classinfo.name);
@@ -645,7 +649,8 @@ class TypeInfo_Class : TypeInfo
         if (o1 !is o2)
         {
             if (o1)
-            {   if (!o2)
+            {
+                if (!o2)
                     c = 1;
                 else
                     c = o1.opCmp(o2);
@@ -676,8 +681,8 @@ class TypeInfo_Interface : TypeInfo
     string toString() { return info.name; }
 
     equals_t opEquals(Object o)
-    {   TypeInfo_Interface c;
-
+    {
+        TypeInfo_Interface c;
         return this is o ||
                 ((c = cast(TypeInfo_Interface)o) !is null &&
                  this.info.name == c.classinfo.name);
@@ -713,7 +718,8 @@ class TypeInfo_Interface : TypeInfo
         if (o1 != o2)
         {
             if (o1)
-            {   if (!o2)
+            {
+                if (!o2)
                     c = 1;
                 else
                     c = o1.opCmp(o2);
@@ -739,8 +745,8 @@ class TypeInfo_Struct : TypeInfo
     string toString() { return name; }
 
     equals_t opEquals(Object o)
-    {   TypeInfo_Struct s;
-
+    {
+        TypeInfo_Struct s;
         return this is o ||
                 ((s = cast(TypeInfo_Struct)o) !is null &&
                  this.name == s.name &&
@@ -748,62 +754,62 @@ class TypeInfo_Struct : TypeInfo
     }
 
     hash_t getHash(in void* p)
-    {   hash_t h;
-
+    {
         assert(p);
         if (xtoHash)
-        {   debug(PRINTF) printf("getHash() using xtoHash\n");
-            h = (*xtoHash)(p);
+        {
+            debug(PRINTF) printf("getHash() using xtoHash\n");
+            return (*xtoHash)(p);
         }
         else
         {
+            hash_t h;
             debug(PRINTF) printf("getHash() using default hash\n");
             // A sorry hash algorithm.
             // Should use the one for strings.
             // BUG: relies on the GC not moving objects
+            auto q = cast(ubyte*)p;
             for (size_t i = 0; i < init.length; i++)
-            {   h = h * 9 + *cast(ubyte*)p;
-                p++;
+            {
+                h = h * 9 + *q;
+                q++;
             }
+            return h;
         }
-        return h;
     }
 
     equals_t equals(in void* p1, in void* p2)
-    {   int c;
-
+    {
         if (p1 == p2)
-            c = 1;
+            return true;
         else if (!p1 || !p2)
-            c = 0;
+            return false;
         else if (xopEquals)
-            c = (*xopEquals)(p1, p2);
+            return (*xopEquals)(p1, p2);
         else
             // BUG: relies on the GC not moving objects
-            c = (memcmp(p1, p2, init.length) == 0);
-        return c;
+            return memcmp(p1, p2, init.length) == 0;
     }
 
     int compare(in void* p1, in void* p2)
     {
-        int c = 0;
-
         // Regard null references as always being "less than"
         if (p1 != p2)
         {
             if (p1)
-            {   if (!p2)
-                    c = 1;
+            {
+                if (!p2)
+                    return true;
                 else if (xopCmp)
-            c = (*xopCmp)(p2, p1);
+                    return (*xopCmp)(p2, p1);
                 else
                     // BUG: relies on the GC not moving objects
-                    c = memcmp(p1, p2, init.length);
+                    return memcmp(p1, p2, init.length);
             }
             else
-                c = -1;
+                return -1;
         }
-        return c;
+        return 0;
     }
 
     size_t tsize()
@@ -818,10 +824,10 @@ class TypeInfo_Struct : TypeInfo
     string name;
     void[] m_init;      // initializer; init.ptr == null if 0 initialize
 
-    hash_t function(void*)    xtoHash;
-    int function(void*,void*) xopEquals;
-    int function(void*,void*) xopCmp;
-    char[] function(void*)    xtoString;
+    hash_t   function(in void*)           xtoHash;
+    equals_t function(in void*, in void*) xopEquals;
+    int      function(in void*, in void*) xopCmp;
+    char[]   function(in void*)           xtoString;
 
     uint m_flags;
 }
@@ -832,8 +838,7 @@ class TypeInfo_Tuple : TypeInfo
 
     string toString()
     {
-        char[] s;
-        s = "(";
+        string s = "(";
         foreach (i, element; elements)
         {
             if (i)
@@ -898,23 +903,23 @@ class Exception : Object
 {
     interface TraceInfo
     {
-        int opApply( int delegate( inout char[] ) );
+        int opApply( int delegate(inout char[]) );
     }
 
-    char[]      msg;
-    char[]      file;
+    string      msg;
+    string      file;
     size_t      line;
     TraceInfo   info;
     Exception   next;
 
-    this( char[] msg, Exception next = null )
+    this( string msg, Exception next = null )
     {
         this.msg = msg;
         this.next = next;
         this.info = traceContext();
     }
 
-    this( char[] msg, char[] file, size_t line, Exception next = null )
+    this( string msg, string file, size_t line, Exception next = null )
     {
         this(msg, next);
         this.file = file;
@@ -997,7 +1002,7 @@ class ModuleInfo
 
     void function() ictor;      // module static constructor (order independent)
 
-    static int opApply( int delegate( inout ModuleInfo ) dg )
+    static int opApply( int delegate(inout ModuleInfo) dg )
     {
         int ret = 0;
 

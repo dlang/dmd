@@ -58,11 +58,10 @@ class TypeInfo_Af : TypeInfo
             return 0;
         for (size_t u = 0; u < len; u++)
         {
-            int c = TypeInfo_f._equals(s1[u], s2[u]);
-            if (c == 0)
-                return 0;
+            if (!TypeInfo_f._equals(s1[u], s2[u]))
+                return false;
         }
-        return 1;
+        return true;
     }
 
     int compare(in void* p1, in void* p2)

@@ -58,14 +58,13 @@ class TypeInfo_Ar : TypeInfo
         size_t len = s1.length;
 
         if (len != s2.length)
-            return 0;
+            return false;
         for (size_t u = 0; u < len; u++)
         {
-            int c = TypeInfo_r._equals(s1[u], s2[u]);
-            if (c == 0)
-                return 0;
+            if (!TypeInfo_r._equals(s1[u], s2[u]))
+                return false;
         }
-        return 1;
+        return true;
     }
 
     int compare(in void* p1, in void* p2)

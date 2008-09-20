@@ -228,9 +228,8 @@ extern (C) long _adReverseWchar(wchar[] a)
 unittest
 {
     wstring a = "abcd";
-    wstring r;
 
-    r = a.dup.reverse;
+    auto r = a.dup.reverse;
     assert(r == "dcba");
 
     a = "a\U00012356\U00012346c";
@@ -337,7 +336,7 @@ extern (C) long _adSortChar(char[] a)
 {
     if (a.length > 1)
     {
-        dchar[] da = toUTF32(a);
+        dstring da = toUTF32(a);
         da.sort;
         size_t i = 0;
         foreach (dchar d; da)
@@ -359,7 +358,7 @@ extern (C) long _adSortWchar(wchar[] a)
 {
     if (a.length > 1)
     {
-        dchar[] da = toUTF32(a);
+        dstring da = toUTF32(a);
         da.sort;
         size_t i = 0;
         foreach (dchar d; da)

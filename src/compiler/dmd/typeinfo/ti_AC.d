@@ -31,11 +31,11 @@ class TypeInfo_AC : TypeInfo
                 if (o1 is o2 ||
                     (!(o1 is null) && !(o2 is null) && o1.opEquals(o2)))
                     continue;
-                return 0;
+                return false;
             }
-            return 1;
+            return true;
         }
-        return 0;
+        return false;
     }
 
     int compare(in void* p1, in void* p2)

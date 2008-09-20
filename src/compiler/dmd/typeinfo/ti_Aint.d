@@ -72,6 +72,17 @@ class TypeInfo_Ai : TypeInfo
     }
 }
 
+unittest
+{
+    int[][] a = [[5,3,8,7], [2,5,3,8,7]];
+    a.sort;
+    assert(a == [[2,5,3,8,7], [5,3,8,7]]);
+
+    a = [[5,3,8,7], [5,3,8]];
+    a.sort;
+    assert(a == [[5,3,8], [5,3,8,7]]);
+}
+
 // uint[]
 
 class TypeInfo_Ak : TypeInfo_Ai

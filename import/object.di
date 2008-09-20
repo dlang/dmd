@@ -62,7 +62,7 @@ struct OffsetTypeInfo
 class TypeInfo
 {
     hash_t   getHash(in void* p);
-    int      equals(in void* p1, in void* p2);
+    equals_t equals(in void* p1, in void* p2);
     int      compare(in void* p1, in void* p2);
     size_t   tsize();
     void     swap(void* p1, void* p2);
@@ -131,10 +131,10 @@ class TypeInfo_Struct : TypeInfo
     string name;
     void[] m_init;
 
-    uint function(in void*)              xtoHash;
-    equals_t function(in void*,in void*) xopEquals;
-    int function(in void*,in void*)      xopCmp;
-    string function(in void*)            xtoString;
+    uint function(in void*)               xtoHash;
+    equals_t function(in void*, in void*) xopEquals;
+    int function(in void*, in void*)      xopCmp;
+    string function(in void*)             xtoString;
 
     uint m_flags;
 
@@ -167,13 +167,13 @@ class Exception : Object
         string toString();
     }
 
-    char[]      msg;
-    char[]      file;
+    string      msg;
+    string      file;
     size_t      line;
     TraceInfo   info;
     Exception   next;
 
-    this(char[] msg, Exception next = null);
-    this(char[] msg, char[] file, size_t line, Exception next = null);
+    this(string msg, Exception next = null);
+    this(string msg, string file, size_t line, Exception next = null);
     string toString();
 }
