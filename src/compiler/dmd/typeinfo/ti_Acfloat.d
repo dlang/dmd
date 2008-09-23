@@ -29,9 +29,9 @@ private import typeinfo.ti_cfloat;
 
 class TypeInfo_Aq : TypeInfo
 {
-    string toString() { return "cfloat[]"; }
+    override string toString() { return "cfloat[]"; }
 
-    hash_t getHash(in void* p)
+    override hash_t getHash(in void* p)
     {   cfloat[] s = *cast(cfloat[]*)p;
         size_t len = s.length;
         cfloat *str = s.ptr;
@@ -49,7 +49,7 @@ class TypeInfo_Aq : TypeInfo
         return hash;
     }
 
-    equals_t equals(in void* p1, in void* p2)
+    override equals_t equals(in void* p1, in void* p2)
     {
         cfloat[] s1 = *cast(cfloat[]*)p1;
         cfloat[] s2 = *cast(cfloat[]*)p2;
@@ -65,7 +65,7 @@ class TypeInfo_Aq : TypeInfo
         return true;
     }
 
-    int compare(in void* p1, in void* p2)
+    override int compare(in void* p1, in void* p2)
     {
         cfloat[] s1 = *cast(cfloat[]*)p1;
         cfloat[] s2 = *cast(cfloat[]*)p2;
@@ -86,17 +86,17 @@ class TypeInfo_Aq : TypeInfo
         return 0;
     }
 
-    size_t tsize()
+    override size_t tsize()
     {
         return (cfloat[]).sizeof;
     }
 
-    uint flags()
+    override uint flags()
     {
         return 1;
     }
 
-    TypeInfo next()
+    override TypeInfo next()
     {
         return typeid(cfloat);
     }

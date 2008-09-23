@@ -5,17 +5,17 @@ module rt.typeinfo.ti_ptr;
 
 class TypeInfo_P : TypeInfo
 {
-    hash_t getHash(in void* p)
+    override hash_t getHash(in void* p)
     {
         return cast(uint)*cast(void* *)p;
     }
 
-    equals_t equals(in void* p1, in void* p2)
+    override equals_t equals(in void* p1, in void* p2)
     {
         return *cast(void* *)p1 == *cast(void* *)p2;
     }
 
-    int compare(in void* p1, in void* p2)
+    override int compare(in void* p1, in void* p2)
     {
         auto c = *cast(void* *)p1 - *cast(void* *)p2;
         if (c < 0)
@@ -25,12 +25,12 @@ class TypeInfo_P : TypeInfo
         return 0;
     }
 
-    size_t tsize()
+    override size_t tsize()
     {
         return (void*).sizeof;
     }
 
-    void swap(void *p1, void *p2)
+    override void swap(void *p1, void *p2)
     {
         void* t;
 
@@ -39,7 +39,7 @@ class TypeInfo_P : TypeInfo
         *cast(void* *)p2 = t;
     }
 
-    uint flags()
+    override uint flags()
     {
         return 1;
     }

@@ -22,7 +22,7 @@ version = StackGrowsDown;
  */
 class ThreadException : Exception
 {
-    this( char[] msg )
+    this( string msg )
     {
         super( msg );
     }
@@ -34,7 +34,7 @@ class ThreadException : Exception
  */
 class FiberException : Exception
 {
-    this( char[] msg )
+    this( string msg )
     {
         super( msg );
     }

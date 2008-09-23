@@ -42,34 +42,34 @@ extern (C) void thread_joinAll();
  * These functions must be defined for any D program linked
  * against this library.
  */
-extern (C) void onAssertError( char[] file, size_t line );
-extern (C) void onAssertErrorMsg( char[] file, size_t line, char[] msg );
-extern (C) void onArrayBoundsError( char[] file, size_t line );
-extern (C) void onSwitchError( char[] file, size_t line );
+extern (C) void onAssertError( string file, size_t line );
+extern (C) void onAssertErrorMsg( string file, size_t line, string msg );
+extern (C) void onArrayBoundsError( string file, size_t line );
+extern (C) void onSwitchError( string file, size_t line );
 extern (C) bool runModuleUnitTests();
 
 // this function is called from the utf module
-//extern (C) void onUnicodeError( char[] msg, size_t idx );
+//extern (C) void onUnicodeError( string msg, size_t idx );
 
 /***********************************
  * These are internal callbacks for various language errors.
  */
-extern (C) void _d_assert( char[] file, uint line )
+extern (C) void _d_assert( string file, uint line )
 {
     onAssertError( file, line );
 }
 
-extern (C) static void _d_assert_msg( char[] msg, char[] file, uint line )
+extern (C) static void _d_assert_msg( string msg, string file, uint line )
 {
     onAssertErrorMsg( file, line, msg );
 }
 
-extern (C) void _d_array_bounds( char[] file, uint line )
+extern (C) void _d_array_bounds( string file, uint line )
 {
     onArrayBoundsError( file, line );
 }
 
-extern (C) void _d_switch_error( char[] file, uint line )
+extern (C) void _d_switch_error( string file, uint line )
 {
     onSwitchError( file, line );
 }

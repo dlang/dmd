@@ -29,9 +29,9 @@ private import typeinfo.ti_real;
 
 class TypeInfo_Ae : TypeInfo
 {
-    string toString() { return "real[]"; }
+    override string toString() { return "real[]"; }
 
-    hash_t getHash(in void* p)
+    override hash_t getHash(in void* p)
     {   real[] s = *cast(real[]*)p;
         size_t len = s.length;
         auto str = s.ptr;
@@ -50,7 +50,7 @@ class TypeInfo_Ae : TypeInfo
         return hash;
     }
 
-    equals_t equals(in void* p1, in void* p2)
+    override equals_t equals(in void* p1, in void* p2)
     {
         real[] s1 = *cast(real[]*)p1;
         real[] s2 = *cast(real[]*)p2;
@@ -66,7 +66,7 @@ class TypeInfo_Ae : TypeInfo
         return true;
     }
 
-    int compare(in void* p1, in void* p2)
+    override int compare(in void* p1, in void* p2)
     {
         real[] s1 = *cast(real[]*)p1;
         real[] s2 = *cast(real[]*)p2;
@@ -87,17 +87,17 @@ class TypeInfo_Ae : TypeInfo
         return 0;
     }
 
-    size_t tsize()
+    override size_t tsize()
     {
         return (real[]).sizeof;
     }
 
-    uint flags()
+    override uint flags()
     {
         return 1;
     }
 
-    TypeInfo next()
+    override TypeInfo next()
     {
         return typeid(real);
     }
@@ -107,9 +107,9 @@ class TypeInfo_Ae : TypeInfo
 
 class TypeInfo_Aj : TypeInfo_Ae
 {
-    string toString() { return "ireal[]"; }
+    override string toString() { return "ireal[]"; }
 
-    TypeInfo next()
+    override TypeInfo next()
     {
         return typeid(ireal);
     }

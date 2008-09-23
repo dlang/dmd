@@ -8,9 +8,9 @@ private import stdc.string;
 
 class TypeInfo_Ag : TypeInfo
 {
-    string toString() { return "byte[]"; }
+    override string toString() { return "byte[]"; }
 
-    hash_t getHash(in void* p)
+    override hash_t getHash(in void* p)
     {   byte[] s = *cast(byte[]*)p;
         size_t len = s.length;
         byte *str = s.ptr;
@@ -51,7 +51,7 @@ class TypeInfo_Ag : TypeInfo
         return hash;
     }
 
-    equals_t equals(in void* p1, in void* p2)
+    override equals_t equals(in void* p1, in void* p2)
     {
         byte[] s1 = *cast(byte[]*)p1;
         byte[] s2 = *cast(byte[]*)p2;
@@ -60,7 +60,7 @@ class TypeInfo_Ag : TypeInfo
                memcmp(cast(byte *)s1, cast(byte *)s2, s1.length) == 0;
     }
 
-    int compare(in void* p1, in void* p2)
+    override int compare(in void* p1, in void* p2)
     {
         byte[] s1 = *cast(byte[]*)p1;
         byte[] s2 = *cast(byte[]*)p2;
@@ -81,17 +81,17 @@ class TypeInfo_Ag : TypeInfo
         return 0;
     }
 
-    size_t tsize()
+    override size_t tsize()
     {
         return (byte[]).sizeof;
     }
 
-    uint flags()
+    override uint flags()
     {
         return 1;
     }
 
-    TypeInfo next()
+    override TypeInfo next()
     {
         return typeid(byte);
     }
@@ -102,9 +102,9 @@ class TypeInfo_Ag : TypeInfo
 
 class TypeInfo_Ah : TypeInfo_Ag
 {
-    string toString() { return "ubyte[]"; }
+    override string toString() { return "ubyte[]"; }
 
-    int compare(in void* p1, in void* p2)
+    override int compare(in void* p1, in void* p2)
     {
         char[] s1 = *cast(char[]*)p1;
         char[] s2 = *cast(char[]*)p2;
@@ -112,7 +112,7 @@ class TypeInfo_Ah : TypeInfo_Ag
         return dstrcmp(s1, s2);
     }
 
-    TypeInfo next()
+    override TypeInfo next()
     {
         return typeid(ubyte);
     }
@@ -122,9 +122,9 @@ class TypeInfo_Ah : TypeInfo_Ag
 
 class TypeInfo_Av : TypeInfo_Ah
 {
-    string toString() { return "void[]"; }
+    override string toString() { return "void[]"; }
 
-    TypeInfo next()
+    override TypeInfo next()
     {
         return typeid(void);
     }
@@ -134,9 +134,9 @@ class TypeInfo_Av : TypeInfo_Ah
 
 class TypeInfo_Ab : TypeInfo_Ah
 {
-    string toString() { return "bool[]"; }
+    override string toString() { return "bool[]"; }
 
-    TypeInfo next()
+    override TypeInfo next()
     {
         return typeid(bool);
     }
@@ -146,9 +146,9 @@ class TypeInfo_Ab : TypeInfo_Ah
 
 class TypeInfo_Aa : TypeInfo_Ag
 {
-    string toString() { return "char[]"; }
+    override string toString() { return "char[]"; }
 
-    hash_t getHash(in void* p)
+    override hash_t getHash(in void* p)
     {   char[] s = *cast(char[]*)p;
         hash_t hash = 0;
 
@@ -197,7 +197,7 @@ else
         return hash;
     }
 
-    TypeInfo next()
+    override TypeInfo next()
     {
         return typeid(char);
     }

@@ -5,9 +5,9 @@ module rt.typeinfo.ti_real;
 
 class TypeInfo_e : TypeInfo
 {
-    string toString() { return "real"; }
+    override string toString() { return "real"; }
 
-    hash_t getHash(in void* p)
+    override hash_t getHash(in void* p)
     {
         return (cast(uint *)p)[0] + (cast(uint *)p)[1] + (cast(ushort *)p)[4];
     }
@@ -32,22 +32,22 @@ class TypeInfo_e : TypeInfo
         return (d1 == d2) ? 0 : ((d1 < d2) ? -1 : 1);
     }
 
-    equals_t equals(in void* p1, in void* p2)
+    override equals_t equals(in void* p1, in void* p2)
     {
         return _equals(*cast(real *)p1, *cast(real *)p2);
     }
 
-    int compare(in void* p1, in void* p2)
+    override int compare(in void* p1, in void* p2)
     {
         return _compare(*cast(real *)p1, *cast(real *)p2);
     }
 
-    size_t tsize()
+    override size_t tsize()
     {
         return real.sizeof;
     }
 
-    void swap(void *p1, void *p2)
+    override void swap(void *p1, void *p2)
     {
         real t;
 
@@ -56,7 +56,7 @@ class TypeInfo_e : TypeInfo
         *cast(real *)p2 = t;
     }
 
-    void[] init()
+    override void[] init()
     {   static real r;
 
         return (cast(real *)&r)[0 .. 1];

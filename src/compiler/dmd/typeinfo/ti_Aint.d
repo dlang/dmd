@@ -7,9 +7,9 @@ private import stdc.string;
 
 class TypeInfo_Ai : TypeInfo
 {
-    string toString() { return "int[]"; }
+    override string toString() { return "int[]"; }
 
-    hash_t getHash(in void* p)
+    override hash_t getHash(in void* p)
     {   int[] s = *cast(int[]*)p;
         auto len = s.length;
         auto str = s.ptr;
@@ -26,7 +26,7 @@ class TypeInfo_Ai : TypeInfo
         return hash;
     }
 
-    equals_t equals(in void* p1, in void* p2)
+    override equals_t equals(in void* p1, in void* p2)
     {
         int[] s1 = *cast(int[]*)p1;
         int[] s2 = *cast(int[]*)p2;
@@ -35,7 +35,7 @@ class TypeInfo_Ai : TypeInfo
                memcmp(cast(void *)s1, cast(void *)s2, s1.length * int.sizeof) == 0;
     }
 
-    int compare(in void* p1, in void* p2)
+    override int compare(in void* p1, in void* p2)
     {
         int[] s1 = *cast(int[]*)p1;
         int[] s2 = *cast(int[]*)p2;
@@ -56,17 +56,17 @@ class TypeInfo_Ai : TypeInfo
         return 0;
     }
 
-    size_t tsize()
+    override size_t tsize()
     {
         return (int[]).sizeof;
     }
 
-    uint flags()
+    override uint flags()
     {
         return 1;
     }
 
-    TypeInfo next()
+    override TypeInfo next()
     {
         return typeid(int);
     }
@@ -87,9 +87,9 @@ unittest
 
 class TypeInfo_Ak : TypeInfo_Ai
 {
-    string toString() { return "uint[]"; }
+    override string toString() { return "uint[]"; }
 
-    int compare(in void* p1, in void* p2)
+    override int compare(in void* p1, in void* p2)
     {
         uint[] s1 = *cast(uint[]*)p1;
         uint[] s2 = *cast(uint[]*)p2;
@@ -110,7 +110,7 @@ class TypeInfo_Ak : TypeInfo_Ai
         return 0;
     }
 
-    TypeInfo next()
+    override TypeInfo next()
     {
         return typeid(uint);
     }
@@ -120,9 +120,9 @@ class TypeInfo_Ak : TypeInfo_Ai
 
 class TypeInfo_Aw : TypeInfo_Ak
 {
-    string toString() { return "dchar[]"; }
+    override string toString() { return "dchar[]"; }
 
-    TypeInfo next()
+    override TypeInfo next()
     {
         return typeid(dchar);
     }

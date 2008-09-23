@@ -7,9 +7,9 @@ private import stdc.string;
 
 class TypeInfo_Al : TypeInfo
 {
-    string toString() { return "long[]"; }
+    override string toString() { return "long[]"; }
 
-    hash_t getHash(in void* p)
+    override hash_t getHash(in void* p)
     {   long[] s = *cast(long[]*)p;
         size_t len = s.length;
         auto str = s.ptr;
@@ -26,7 +26,7 @@ class TypeInfo_Al : TypeInfo
         return hash;
     }
 
-    equals_t equals(in void* p1, in void* p2)
+    override equals_t equals(in void* p1, in void* p2)
     {
         long[] s1 = *cast(long[]*)p1;
         long[] s2 = *cast(long[]*)p2;
@@ -35,7 +35,7 @@ class TypeInfo_Al : TypeInfo
                memcmp(cast(void *)s1, cast(void *)s2, s1.length * long.sizeof) == 0;
     }
 
-    int compare(in void* p1, in void* p2)
+    override int compare(in void* p1, in void* p2)
     {
         long[] s1 = *cast(long[]*)p1;
         long[] s2 = *cast(long[]*)p2;
@@ -57,17 +57,17 @@ class TypeInfo_Al : TypeInfo
         return 0;
     }
 
-    size_t tsize()
+    override size_t tsize()
     {
         return (long[]).sizeof;
     }
 
-    uint flags()
+    override uint flags()
     {
         return 1;
     }
 
-    TypeInfo next()
+    override TypeInfo next()
     {
         return typeid(long);
     }
@@ -78,9 +78,9 @@ class TypeInfo_Al : TypeInfo
 
 class TypeInfo_Am : TypeInfo_Al
 {
-    string toString() { return "ulong[]"; }
+    override string toString() { return "ulong[]"; }
 
-    int compare(in void* p1, in void* p2)
+    override int compare(in void* p1, in void* p2)
     {
         ulong[] s1 = *cast(ulong[]*)p1;
         ulong[] s2 = *cast(ulong[]*)p2;
@@ -102,7 +102,7 @@ class TypeInfo_Am : TypeInfo_Al
         return 0;
     }
 
-    TypeInfo next()
+    override TypeInfo next()
     {
         return typeid(ulong);
     }

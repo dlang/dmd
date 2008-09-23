@@ -5,19 +5,19 @@ module rt.typeinfo.ti_int;
 
 class TypeInfo_i : TypeInfo
 {
-    string toString() { return "int"; }
+    override string toString() { return "int"; }
 
-    hash_t getHash(in void* p)
+    override hash_t getHash(in void* p)
     {
         return *cast(uint *)p;
     }
 
-    equals_t equals(in void* p1, in void* p2)
+    override equals_t equals(in void* p1, in void* p2)
     {
         return *cast(uint *)p1 == *cast(uint *)p2;
     }
 
-    int compare(in void* p1, in void* p2)
+    override int compare(in void* p1, in void* p2)
     {
         if (*cast(int*) p1 < *cast(int*) p2)
             return -1;
@@ -26,12 +26,12 @@ class TypeInfo_i : TypeInfo
         return 0;
     }
 
-    size_t tsize()
+    override size_t tsize()
     {
         return int.sizeof;
     }
 
-    void swap(void *p1, void *p2)
+    override void swap(void *p1, void *p2)
     {
         int t;
 

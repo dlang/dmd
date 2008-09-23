@@ -4,7 +4,7 @@ module rt.typeinfo.ti_AC;
 
 class TypeInfo_AC : TypeInfo
 {
-    hash_t getHash(in void* p)
+    override hash_t getHash(in void* p)
     {   Object[] s = *cast(Object[]*)p;
         hash_t hash = 0;
 
@@ -16,7 +16,7 @@ class TypeInfo_AC : TypeInfo
         return hash;
     }
 
-    equals_t equals(in void* p1, in void* p2)
+    override equals_t equals(in void* p1, in void* p2)
     {
         Object[] s1 = *cast(Object[]*)p1;
         Object[] s2 = *cast(Object[]*)p2;
@@ -38,7 +38,7 @@ class TypeInfo_AC : TypeInfo
         return false;
     }
 
-    int compare(in void* p1, in void* p2)
+    override int compare(in void* p1, in void* p2)
     {
         Object[] s1 = *cast(Object[]*)p1;
         Object[] s2 = *cast(Object[]*)p2;
@@ -78,17 +78,17 @@ class TypeInfo_AC : TypeInfo
         return c;
     }
 
-    size_t tsize()
+    override size_t tsize()
     {
         return (Object[]).sizeof;
     }
 
-    uint flags()
+    override uint flags()
     {
         return 1;
     }
 
-    TypeInfo next()
+    override TypeInfo next()
     {
         return typeid(Object);
     }

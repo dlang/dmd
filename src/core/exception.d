@@ -11,7 +11,7 @@ module exception;
 
 private
 {
-    alias void  function( char[] file, size_t line, char[] msg = null ) assertHandlerType;
+    alias void  function( string file, size_t line, string msg = null ) assertHandlerType;
 
     assertHandlerType   assertHandler   = null;
 }
@@ -22,7 +22,7 @@ private
  */
 class ArrayBoundsException : Exception
 {
-    this( char[] file, size_t line )
+    this( string file, size_t line )
     {
         super( "Array index out of bounds", file, line );
     }
@@ -34,12 +34,12 @@ class ArrayBoundsException : Exception
  */
 class AssertException : Exception
 {
-    this( char[] file, size_t line )
+    this( string file, size_t line )
     {
         super( "Assertion failure", file, line );
     }
 
-    this( char[] msg, char[] file, size_t line )
+    this( string msg, string file, size_t line )
     {
         super( msg, file, line );
     }
@@ -59,7 +59,7 @@ class FinalizeException : Exception
         info = c;
     }
 
-    string toString()
+    override string toString()
     {
         return "An exception was thrown while finalizing an instance of class " ~ info.name;
     }
@@ -71,12 +71,12 @@ class FinalizeException : Exception
  */
 class OutOfMemoryException : Exception
 {
-    this( char[] file, size_t line )
+    this( string file, size_t line )
     {
         super( "Memory allocation failed", file, line );
     }
 
-    string toString()
+    override string toString()
     {
         return msg ? super.toString() : "Memory allocation failed";
     }
@@ -88,7 +88,7 @@ class OutOfMemoryException : Exception
  */
 class SwitchException : Exception
 {
-    this( char[] file, size_t line )
+    this( string file, size_t line )
     {
         super( "No appropriate switch clause found", file, line );
     }
@@ -102,7 +102,7 @@ class UnicodeException : Exception
 {
     size_t idx;
 
-    this( char[] msg, size_t idx )
+    this( string msg, size_t idx )
     {
         super( msg );
         this.idx = idx;
@@ -141,7 +141,7 @@ void setAssertHandler( assertHandlerType h )
  *  file = The name of the file that signaled this error.
  *  line = The line number on which this error occurred.
  */
-extern (C) void onAssertError( char[] file, size_t line )
+extern (C) void onAssertError( string file, size_t line )
 {
     if( assertHandler is null )
         throw new AssertException( file, line );
@@ -159,7 +159,7 @@ extern (C) void onAssertError( char[] file, size_t line )
  *  line = The line number on which this error occurred.
  *  msg  = An error message supplied by the user.
  */
-extern (C) void onAssertErrorMsg( char[] file, size_t line, char[] msg )
+extern (C) void onAssertErrorMsg( string file, size_t line, string msg )
 {
     if( assertHandler is null )
         throw new AssertException( msg, file, line );
@@ -183,7 +183,7 @@ extern (C) void onAssertErrorMsg( char[] file, size_t line, char[] msg )
  * Throws:
  *  ArrayBoundsException.
  */
-extern (C) void onArrayBoundsError( char[] file, size_t line )
+extern (C) void onArrayBoundsError( string file, size_t line )
 {
     throw new ArrayBoundsException( file, line );
 }
@@ -229,7 +229,7 @@ extern (C) void onOutOfMemoryError()
  * Throws:
  *  SwitchException.
  */
-extern (C) void onSwitchError( char[] file, size_t line )
+extern (C) void onSwitchError( string file, size_t line )
 {
     throw new SwitchException( file, line );
 }
@@ -245,7 +245,7 @@ extern (C) void onSwitchError( char[] file, size_t line )
  * Throws:
  *  UnicodeException.
  */
-extern (C) void onUnicodeError( char[] msg, size_t idx )
+extern (C) void onUnicodeError( string msg, size_t idx )
 {
     throw new UnicodeException( msg, idx );
 }

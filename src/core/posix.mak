@@ -112,6 +112,11 @@ core.doc : $(ALL_DOCS)
 bitmanip.o : bitmanip.d
 	$(DC) -c $(DFLAGS) bitmanip.d -of$@
 
+### thread
+
+thread.o : thread.d
+	$(DC) -c $(DFLAGS) -d -Hf$*.di thread.d -of$@
+
 ######################################################
 
 clean :

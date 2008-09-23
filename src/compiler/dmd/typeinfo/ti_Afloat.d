@@ -29,9 +29,9 @@ private import typeinfo.ti_float;
 
 class TypeInfo_Af : TypeInfo
 {
-    string toString() { return "float[]"; }
+    override string toString() { return "float[]"; }
 
-    hash_t getHash(in void* p)
+    override hash_t getHash(in void* p)
     {   float[] s = *cast(float[]*)p;
         size_t len = s.length;
         auto str = s.ptr;
@@ -48,7 +48,7 @@ class TypeInfo_Af : TypeInfo
         return hash;
     }
 
-    equals_t equals(in void* p1, in void* p2)
+    override equals_t equals(in void* p1, in void* p2)
     {
         float[] s1 = *cast(float[]*)p1;
         float[] s2 = *cast(float[]*)p2;
@@ -64,7 +64,7 @@ class TypeInfo_Af : TypeInfo
         return true;
     }
 
-    int compare(in void* p1, in void* p2)
+    override int compare(in void* p1, in void* p2)
     {
         float[] s1 = *cast(float[]*)p1;
         float[] s2 = *cast(float[]*)p2;
@@ -85,17 +85,17 @@ class TypeInfo_Af : TypeInfo
         return 0;
     }
 
-    size_t tsize()
+    override size_t tsize()
     {
         return (float[]).sizeof;
     }
 
-    uint flags()
+    override uint flags()
     {
         return 1;
     }
 
-    TypeInfo next()
+    override TypeInfo next()
     {
         return typeid(float);
     }
@@ -105,9 +105,9 @@ class TypeInfo_Af : TypeInfo
 
 class TypeInfo_Ao : TypeInfo_Af
 {
-    string toString() { return "ifloat[]"; }
+    override string toString() { return "ifloat[]"; }
 
-    TypeInfo next()
+    override TypeInfo next()
     {
         return typeid(ifloat);
     }

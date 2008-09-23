@@ -47,7 +47,7 @@ version(D_InlineAsm_X86)
     /// Returns vendor string
     char[] vendor()             {return vendorStr;}
     /// Returns processor string
-    char[] processor()          {return processorStr;}
+    string processor()          {return processorStr;}
 
     /// Is MMX supported?
     bool mmx()                  {return (flags&MMX_BIT)!=0;}
@@ -186,8 +186,8 @@ private:
     uint flags, misc, exflags, apic, signature;
     uint _stepping, _model, _family;
 
-    char[12] vendorStr = "";
-    char[] processorStr = "";
+    char[12] vendorStr = 0;
+    string processorStr = "";
 
     uint maxThreads=1;
     uint maxCores=1;
@@ -250,7 +250,7 @@ private:
             return;
 
         // seems many intel processors prepend whitespace
-        processorStr = strip(toString(dst)).dup;
+        processorStr = cast(string)strip(toString(dst)).dup;
     }
 
     private void getFeatureFlags()
@@ -421,9 +421,14 @@ private:
             return stripr(stripl(s));
         }
 
-        string toString(char *s)
+        char[] toString(char* s)
         {
-            return s ? s[0 .. strlen(s)] : cast(char[])null;
+            return s ? s[0 .. strlen(s)] : null;
+        }
+
+        string toString(invariant(char)* s)
+        {
+            return s ? s[0 .. strlen(s)] : null;
         }
     }
 }

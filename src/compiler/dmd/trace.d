@@ -76,10 +76,10 @@ static timer_t trace_ohd;
 static Symbol** psymbols;
 static uint nsymbols;           // number of symbols
 
-static char[] trace_logfilename = "trace.log";
+static string trace_logfilename = "trace.log";
 static FILE* fplog;
 
-static char[] trace_deffilename = "trace.def";
+static string trace_deffilename = "trace.def";
 static FILE* fpdef;
 
 
@@ -90,7 +90,7 @@ static FILE* fpdef;
 //      0       success
 //      !=0     failure
 
-int trace_setlogfilename(char[] name)
+int trace_setlogfilename(string name)
 {
     trace_logfilename = name;
     return 0;
@@ -103,7 +103,7 @@ int trace_setlogfilename(char[] name)
 //      0       success
 //      !=0     failure
 
-int trace_setdeffilename(char[] name)
+int trace_setdeffilename(string name)
 {
     trace_deffilename = name;
     return 0;
@@ -150,7 +150,7 @@ static void stack_free(Stack *s)
 //////////////////////////////////////
 // Qsort() comparison routine for array of pointers to SymPair's.
 
-static int sympair_cmp(void* e1, void* e2)
+static int sympair_cmp(in void* e1, in void* e2)
 {   SymPair** psp1;
     SymPair** psp2;
 
@@ -285,7 +285,7 @@ static void trace_array(Symbol *s)
 //////////////////////////////////////
 // Qsort() comparison routine for array of pointers to Symbol's.
 
-static int symbol_cmp(void* e1, void* e2)
+static int symbol_cmp(in void* e1, in void* e2)
 {   Symbol** ps1;
     Symbol** ps2;
     timer_t diff;

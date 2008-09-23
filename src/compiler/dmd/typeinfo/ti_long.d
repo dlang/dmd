@@ -5,19 +5,19 @@ module rt.typeinfo.ti_long;
 
 class TypeInfo_l : TypeInfo
 {
-    string toString() { return "long"; }
+    override string toString() { return "long"; }
 
-    hash_t getHash(in void* p)
+    override hash_t getHash(in void* p)
     {
         return *cast(uint *)p + (cast(uint *)p)[1];
     }
 
-    equals_t equals(in void* p1, in void* p2)
+    override equals_t equals(in void* p1, in void* p2)
     {
         return *cast(long *)p1 == *cast(long *)p2;
     }
 
-    int compare(in void* p1, in void* p2)
+    override int compare(in void* p1, in void* p2)
     {
         if (*cast(long *)p1 < *cast(long *)p2)
             return -1;
@@ -26,12 +26,12 @@ class TypeInfo_l : TypeInfo
         return 0;
     }
 
-    size_t tsize()
+    override size_t tsize()
     {
         return long.sizeof;
     }
 
-    void swap(void *p1, void *p2)
+    override void swap(void *p1, void *p2)
     {
         long t;
 

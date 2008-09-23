@@ -5,9 +5,9 @@ module rt.typeinfo.ti_creal;
 
 class TypeInfo_c : TypeInfo
 {
-    string toString() { return "creal"; }
+    override string toString() { return "creal"; }
 
-    hash_t getHash(in void* p)
+    override hash_t getHash(in void* p)
     {
         return (cast(uint *)p)[0] + (cast(uint *)p)[1] +
                (cast(uint *)p)[2] + (cast(uint *)p)[3] +
@@ -35,22 +35,22 @@ class TypeInfo_c : TypeInfo
         return result;
     }
 
-    equals_t equals(in void* p1, in void* p2)
+    override equals_t equals(in void* p1, in void* p2)
     {
         return _equals(*cast(creal *)p1, *cast(creal *)p2);
     }
 
-    int compare(in void* p1, in void* p2)
+    override int compare(in void* p1, in void* p2)
     {
         return _compare(*cast(creal *)p1, *cast(creal *)p2);
     }
 
-    size_t tsize()
+    override size_t tsize()
     {
         return creal.sizeof;
     }
 
-    void swap(void *p1, void *p2)
+    override void swap(void *p1, void *p2)
     {
         creal t;
 
@@ -59,7 +59,7 @@ class TypeInfo_c : TypeInfo
         *cast(creal *)p2 = t;
     }
 
-    void[] init()
+    override void[] init()
     {   static creal r;
 
         return (cast(creal *)&r)[0 .. 1];

@@ -5,9 +5,9 @@ module rt.typeinfo.ti_cfloat;
 
 class TypeInfo_q : TypeInfo
 {
-    string toString() { return "cfloat"; }
+    override string toString() { return "cfloat"; }
 
-    hash_t getHash(in void* p)
+    override hash_t getHash(in void* p)
     {
         return (cast(uint *)p)[0] + (cast(uint *)p)[1];
     }
@@ -33,22 +33,22 @@ class TypeInfo_q : TypeInfo
         return result;
     }
 
-    equals_t equals(in void* p1, in void* p2)
+    override equals_t equals(in void* p1, in void* p2)
     {
         return _equals(*cast(cfloat *)p1, *cast(cfloat *)p2);
     }
 
-    int compare(in void* p1, in void* p2)
+    override int compare(in void* p1, in void* p2)
     {
         return _compare(*cast(cfloat *)p1, *cast(cfloat *)p2);
     }
 
-    size_t tsize()
+    override size_t tsize()
     {
         return cfloat.sizeof;
     }
 
-    void swap(void *p1, void *p2)
+    override void swap(void *p1, void *p2)
     {
         cfloat t;
 
@@ -57,7 +57,7 @@ class TypeInfo_q : TypeInfo
         *cast(cfloat *)p2 = t;
     }
 
-    void[] init()
+    override void[] init()
     {   static cfloat r;
 
         return (cast(cfloat *)&r)[0 .. 1];

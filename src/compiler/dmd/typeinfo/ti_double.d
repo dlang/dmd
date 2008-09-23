@@ -5,9 +5,9 @@ module rt.typeinfo.ti_double;
 
 class TypeInfo_d : TypeInfo
 {
-    string toString() { return "double"; }
+    override string toString() { return "double"; }
 
-    hash_t getHash(in void* p)
+    override hash_t getHash(in void* p)
     {
         return (cast(uint *)p)[0] + (cast(uint *)p)[1];
     }
@@ -32,22 +32,22 @@ class TypeInfo_d : TypeInfo
         return (d1 == d2) ? 0 : ((d1 < d2) ? -1 : 1);
     }
 
-    equals_t equals(in void* p1, in void* p2)
+    override equals_t equals(in void* p1, in void* p2)
     {
         return _equals(*cast(double *)p1, *cast(double *)p2);
     }
 
-    int compare(in void* p1, in void* p2)
+    override int compare(in void* p1, in void* p2)
     {
         return _compare(*cast(double *)p1, *cast(double *)p2);
     }
 
-    size_t tsize()
+    override size_t tsize()
     {
         return double.sizeof;
     }
 
-    void swap(void *p1, void *p2)
+    override void swap(void *p1, void *p2)
     {
         double t;
 
@@ -56,7 +56,7 @@ class TypeInfo_d : TypeInfo
         *cast(double *)p2 = t;
     }
 
-    void[] init()
+    override void[] init()
     {   static double r;
 
         return (cast(double *)&r)[0 .. 1];

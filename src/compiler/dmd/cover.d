@@ -222,7 +222,7 @@ bool readFile( char[] name, inout char[] buf )
 {
     version( Windows )
     {
-        wchar*  wnamez  = toUTF16z( name );
+        auto    wnamez  = toUTF16z( name );
         HANDLE  file    = CreateFileW( wnamez,
                                        GENERIC_READ,
                                        FILE_SHARE_READ,

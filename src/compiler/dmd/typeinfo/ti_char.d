@@ -3,29 +3,29 @@ module rt.typeinfo.ti_char;
 
 class TypeInfo_a : TypeInfo
 {
-    string toString() { return "char"; }
+    override string toString() { return "char"; }
 
-    hash_t getHash(in void* p)
+    override hash_t getHash(in void* p)
     {
         return *cast(char *)p;
     }
 
-    equals_t equals(in void* p1, in void* p2)
+    override equals_t equals(in void* p1, in void* p2)
     {
         return *cast(char *)p1 == *cast(char *)p2;
     }
 
-    int compare(in void* p1, in void* p2)
+    override int compare(in void* p1, in void* p2)
     {
         return *cast(char *)p1 - *cast(char *)p2;
     }
 
-    size_t tsize()
+    override size_t tsize()
     {
         return char.sizeof;
     }
 
-    void swap(void *p1, void *p2)
+    override void swap(void *p1, void *p2)
     {
         char t;
 
@@ -34,7 +34,7 @@ class TypeInfo_a : TypeInfo
         *cast(char *)p2 = t;
     }
 
-    void[] init()
+    override void[] init()
     {   static char c;
 
         return (cast(char *)&c)[0 .. 1];

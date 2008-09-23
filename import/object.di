@@ -175,5 +175,5 @@ class Exception : Object
 
     this(string msg, Exception next = null);
     this(string msg, string file, size_t line, Exception next = null);
-    string toString();
+    override string toString();
 }

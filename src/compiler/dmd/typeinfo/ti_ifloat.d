@@ -7,5 +7,5 @@ private import typeinfo.ti_float;
 
 class TypeInfo_o : TypeInfo_f
 {
-    string toString() { return "ifloat"; }
+    override string toString() { return "ifloat"; }
 }

@@ -5,29 +5,29 @@ module rt.typeinfo.ti_void;
 
 class TypeInfo_v : TypeInfo
 {
-    string toString() { return "void"; }
+    override string toString() { return "void"; }
 
-    hash_t getHash(in void* p)
+    override hash_t getHash(in void* p)
     {
         assert(0);
     }
 
-    equals_t equals(in void* p1, in void* p2)
+    override equals_t equals(in void* p1, in void* p2)
     {
         return *cast(byte *)p1 == *cast(byte *)p2;
     }
 
-    int compare(in void* p1, in void* p2)
+    override int compare(in void* p1, in void* p2)
     {
         return *cast(byte *)p1 - *cast(byte *)p2;
     }
 
-    size_t tsize()
+    override size_t tsize()
     {
         return void.sizeof;
     }
 
-    void swap(void *p1, void *p2)
+    override void swap(void *p1, void *p2)
     {
         byte t;
 
@@ -36,7 +36,7 @@ class TypeInfo_v : TypeInfo
         *cast(byte *)p2 = t;
     }
 
-    uint flags()
+    override uint flags()
     {
         return 1;
     }

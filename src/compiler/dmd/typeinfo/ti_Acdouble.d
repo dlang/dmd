@@ -29,9 +29,9 @@ private import typeinfo.ti_cdouble;
 
 class TypeInfo_Ar : TypeInfo
 {
-    string toString() { return "cdouble[]"; }
+    override string toString() { return "cdouble[]"; }
 
-    hash_t getHash(in void* p)
+    override hash_t getHash(in void* p)
     {   cdouble[] s = *cast(cdouble[]*)p;
         size_t len = s.length;
         cdouble *str = s.ptr;
@@ -51,7 +51,7 @@ class TypeInfo_Ar : TypeInfo
         return hash;
     }
 
-    equals_t equals(in void* p1, in void* p2)
+    override equals_t equals(in void* p1, in void* p2)
     {
         cdouble[] s1 = *cast(cdouble[]*)p1;
         cdouble[] s2 = *cast(cdouble[]*)p2;
@@ -67,7 +67,7 @@ class TypeInfo_Ar : TypeInfo
         return true;
     }
 
-    int compare(in void* p1, in void* p2)
+    override int compare(in void* p1, in void* p2)
     {
         cdouble[] s1 = *cast(cdouble[]*)p1;
         cdouble[] s2 = *cast(cdouble[]*)p2;
@@ -88,17 +88,17 @@ class TypeInfo_Ar : TypeInfo
         return 0;
     }
 
-    size_t tsize()
+    override size_t tsize()
     {
         return (cdouble[]).sizeof;
     }
 
-    uint flags()
+    override uint flags()
     {
         return 1;
     }
 
-    TypeInfo next()
+    override TypeInfo next()
     {
         return typeid(cdouble);
     }
