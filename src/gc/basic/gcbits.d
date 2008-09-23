@@ -66,7 +66,7 @@ struct GCBits
         }
     }
 
-    invariant
+    invariant()
     {
         if (data)
         {

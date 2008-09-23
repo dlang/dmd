@@ -261,7 +261,7 @@ class GC
     }
 
 
-    invariant
+    invariant()
     {
         if (gcx)
         {
@@ -1471,7 +1471,7 @@ struct Gcx
     void Invariant() { }
 
 
-    invariant
+    invariant()
     {
         if (inited)
         {
@@ -2807,7 +2807,7 @@ struct Pool
     void Invariant() { }
 
 
-    invariant
+    invariant()
     {
         //mark.Invariant();
         //scan.Invariant();

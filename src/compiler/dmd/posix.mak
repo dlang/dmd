@@ -67,6 +67,7 @@ OBJ_BASE= \
     aApplyR.o \
     adi.o \
     alloca.o \
+    arrayassign.o \
     arraybyte.o \
     arraycast.o \
     arraycat.o \

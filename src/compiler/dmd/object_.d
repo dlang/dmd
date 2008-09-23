@@ -68,9 +68,9 @@ else
 alias size_t hash_t;
 alias int equals_t;
 
-alias char[]  string;
-alias wchar[] wstring;
-alias dchar[] dstring;
+alias invariant(char)[]  string;
+alias invariant(wchar)[] wstring;
+alias invariant(dchar)[] dstring;
 
 /**
  * All D class objects inherit from Object.
@@ -160,9 +160,11 @@ class ClassInfo : Object
     //  2:                      // has no possible pointers into GC memory
     //  4:                      // has offTi[] member
     //  8:                      // has constructors
+    // 16:                      // has xgetMembers member
     void*       deallocator;
     OffsetTypeInfo[] offTi;
     void function(Object) defaultConstructor;   // default Constructor
+    const(MemberInfo[]) function(in char[]) xgetMembers;
 
     /**
      * Search all modules for ClassInfo corresponding to classname.
@@ -196,6 +198,16 @@ class ClassInfo : Object
             defaultConstructor(o);
         }
         return o;
+    }
+    /**
+     * Search for all members with the name 'name'.
+     * If name[] is null, return all members.
+     */
+    const(MemberInfo[]) getMembers(in char[] name)
+    {
+        if (flags & 16 && xgetMembers)
+            return xgetMembers(name);
+        return null;
     }
 }
 
@@ -282,6 +294,10 @@ class TypeInfo
 
     /// Get type information on the contents of the type; null if not available
     OffsetTypeInfo[] offTi() { return null; }
+    /// Run the destructor on the object and all its sub-objects
+    void destroy(void* p) {}
+    /// Run the postblit on the object and all its sub-objects
+    void postblit(void* p) {}
 }
 
 class TypeInfo_Typedef : TypeInfo
@@ -526,6 +542,27 @@ class TypeInfo_StaticArray : TypeInfo
     override TypeInfo next() { return value; }
     override uint flags() { return value.flags(); }
 
+    override void destroy(void* p)
+    {
+        auto sz = value.tsize();
+        p += sz * len;
+        foreach (i; 0 .. len)
+        {
+            p -= sz;
+            value.destroy(p);
+        }
+    }
+
+    override void postblit(void* p)
+    {
+        auto sz = value.tsize();
+        foreach (i; 0 .. len)
+        {
+            value.postblit(p);
+            p += sz;
+        }
+    }
+
     TypeInfo value;
     size_t   len;
 }
@@ -768,7 +805,7 @@ class TypeInfo_Struct : TypeInfo
             // A sorry hash algorithm.
             // Should use the one for strings.
             // BUG: relies on the GC not moving objects
-            auto q = cast(ubyte*)p;
+            auto q = cast(const(ubyte)*)p;
             for (size_t i = 0; i < init.length; i++)
             {
                 h = h * 9 + *q;
@@ -821,6 +858,18 @@ class TypeInfo_Struct : TypeInfo
 
     override uint flags() { return m_flags; }
 
+    override void destroy(void* p)
+    {
+        if (xdtor)
+            (*xdtor)(p);
+    }
+
+    override void postblit(void* p)
+    {
+        if (xpostblit)
+            (*xpostblit)(p);
+    }
+
     string name;
     void[] m_init;      // initializer; init.ptr == null if 0 initialize
 
@@ -830,6 +879,10 @@ class TypeInfo_Struct : TypeInfo
     char[]   function(in void*)           xtoString;
 
     uint m_flags;
+
+    const(MemberInfo[]) function(in char[]) xgetMembers;
+    void function(void*)                    xdtor;
+    void function(void*)                    xpostblit;
 }
 
 class TypeInfo_Tuple : TypeInfo
@@ -891,6 +944,89 @@ class TypeInfo_Tuple : TypeInfo
     {
         assert(0);
     }
+
+    override void destroy(void* p)
+    {
+        assert(0);
+    }
+
+    override void postblit(void* p)
+    {
+        assert(0);
+    }
+}
+
+class TypeInfo_Const : TypeInfo
+{
+    override string toString()
+    {
+        return cast(string) ("const(" ~ base.toString() ~ ")");
+    }
+
+    override equals_t opEquals(Object o) { return base.opEquals(o); }
+    override hash_t getHash(in void *p) { return base.getHash(p); }
+    override equals_t equals(in void *p1, in void *p2) { return base.equals(p1, p2); }
+    override int compare(in void *p1, in void *p2) { return base.compare(p1, p2); }
+    override size_t tsize() { return base.tsize(); }
+    override void swap(void *p1, void *p2) { return base.swap(p1, p2); }
+
+    override TypeInfo next() { return base.next(); }
+    override uint flags() { return base.flags(); }
+    override void[] init() { return base.init(); }
+
+    TypeInfo base;
+}
+
+class TypeInfo_Invariant : TypeInfo_Const
+{
+    override string toString()
+    {
+        return cast(string) ("invariant(" ~ base.toString() ~ ")");
+    }
+}
+
+abstract class MemberInfo
+{
+    string name();
+}
+
+class MemberInfo_field : MemberInfo
+{
+    this(string name, TypeInfo ti, size_t offset)
+    {
+        m_name = name;
+        m_typeinfo = ti;
+        m_offset = offset;
+    }
+
+    override string name() { return m_name; }
+    TypeInfo typeInfo() { return m_typeinfo; }
+    size_t offset() { return m_offset; }
+
+    string   m_name;
+    TypeInfo m_typeinfo;
+    size_t   m_offset;
+}
+
+class MemberInfo_function : MemberInfo
+{
+    this(string name, TypeInfo ti, void* fp, uint flags)
+    {
+        m_name = name;
+        m_typeinfo = ti;
+        m_fp = fp;
+        m_flags = flags;
+    }
+
+    override string name() { return m_name; }
+    TypeInfo typeInfo() { return m_typeinfo; }
+    void* fp() { return m_fp; }
+    uint flags() { return m_flags; }
+
+    string   m_name;
+    TypeInfo m_typeinfo;
+    void*    m_fp;
+    uint     m_flags;
 }
 
 

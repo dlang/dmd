@@ -63,6 +63,7 @@ OBJ_BASE= \
     aApply.obj \
     aApplyR.obj \
     adi.obj \
+    arrayassign.obj \
     arraybyte.obj \
     arraycast.obj \
     arraycat.obj \

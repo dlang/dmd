@@ -234,11 +234,11 @@ version( Windows )
     {
         extern FILE[_NFILE]* _imp___iob;
 
-        const FILE* stdin;
-        const FILE* stdout;
-        const FILE* stderr;
-        const FILE* stdaux;
-        const FILE* stdprn;
+        auto FILE* stdin;
+        auto FILE* stdout;
+        auto FILE* stderr;
+        auto FILE* stdaux;
+        auto FILE* stdprn;
 
         static this()
         {
@@ -253,11 +253,11 @@ version( Windows )
     {
         extern FILE[_NFILE] _iob;
 
-        const FILE* stdin  = &_iob[0];
-        const FILE* stdout = &_iob[1];
-        const FILE* stderr = &_iob[2];
-        const FILE* stdaux = &_iob[3];
-        const FILE* stdprn = &_iob[4];
+        auto FILE* stdin  = &_iob[0];
+        auto FILE* stdout = &_iob[1];
+        auto FILE* stderr = &_iob[2];
+        auto FILE* stdaux = &_iob[3];
+        auto FILE* stdprn = &_iob[4];
     }
 }
 else version( linux )
@@ -279,9 +279,9 @@ else version( darwin )
     extern FILE* __stdoutp;
     extern FILE* __stderrp;
 
-    const FILE* stdin;
-    const FILE* stdout;
-    const FILE* stderr;
+    auto FILE* stdin;
+    auto FILE* stdout;
+    auto FILE* stderr;
 
     static this()
     {
@@ -294,9 +294,9 @@ else version( freebsd )
 {
     extern FILE[3] __sF;
 
-    const FILE* stdin  = &__sF[0];
-    const FILE* stdout = &__sF[1];
-    const FILE* stderr = &__sF[2];
+    auto FILE* stdin  = &__sF[0];
+    auto FILE* stdout = &__sF[1];
+    auto FILE* stderr = &__sF[2];
 }
 else
 {

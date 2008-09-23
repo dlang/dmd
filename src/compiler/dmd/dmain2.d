@@ -74,6 +74,11 @@ extern (C) void _d_switch_error( string file, uint line )
     onSwitchError( file, line );
 }
 
+extern (C) void _d_hidden_func()
+{
+    // TODO: Figure out what to do with this routine
+}
+
 bool _d_isHalting = false;
 
 extern (C) bool rt_isHalting()

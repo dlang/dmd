@@ -6,9 +6,9 @@ alias typeof(cast(void*)0 - cast(void*)0)   ptrdiff_t;
 alias size_t hash_t;
 alias int equals_t;
 
-alias char[]  string;
-alias wchar[] wstring;
-alias dchar[] dstring;
+alias invariant(char)[]  string;
+alias invariant(wchar)[] wstring;
+alias invariant(dchar)[] dstring;
 
 class Object
 {
@@ -45,12 +45,15 @@ class ClassInfo : Object
     //  2:      // has no possible pointers into GC memory
     //  4:      // has offTi[] member
     //  8:      // has constructors
+    // 16:      // has xgetMembers member
     void*       deallocator;
     OffsetTypeInfo[] offTi;
     void*       defaultConstructor;
+    const(MemberInfo[]) function(string) xgetMembers;
 
     static ClassInfo find(in char[] classname);
     Object create();
+    const(MemberInfo[]) getMembers(in char[] classname);
 }
 
 struct OffsetTypeInfo
@@ -71,6 +74,8 @@ class TypeInfo
     uint     flags();
     // 1:    // has possible pointers into GC memory
     OffsetTypeInfo[] offTi();
+    void destroy(void* p);
+    void postblit(void* p);
 }
 
 class TypeInfo_Typedef : TypeInfo
@@ -82,6 +87,7 @@ class TypeInfo_Typedef : TypeInfo
 
 class TypeInfo_Enum : TypeInfo_Typedef
 {
+
 }
 
 class TypeInfo_Pointer : TypeInfo
@@ -138,11 +144,55 @@ class TypeInfo_Struct : TypeInfo
 
     uint m_flags;
 
+    const(MemberInfo[]) function(in char[]) xgetMembers;
+    void function(void*)                    xdtor;
+    void function(void*)                    xpostblit;
 }
 
 class TypeInfo_Tuple : TypeInfo
 {
     TypeInfo[]  elements;
+}
+
+class TypeInfo_Const : TypeInfo
+{
+    TypeInfo next;
+}
+
+class TypeInfo_Invariant : TypeInfo_Const
+{
+
+}
+
+abstract class MemberInfo
+{
+    string name();
+}
+
+class MemberInfo_field : MemberInfo
+{
+    this(string name, TypeInfo ti, size_t offset);
+
+    override string name();
+    TypeInfo typeInfo();
+    size_t offset();
+}
+
+class MemberInfo_function : MemberInfo
+{
+    enum
+    {
+        Virtual = 1,
+        Member  = 2,
+        Static  = 4,
+    }
+
+    this(string name, TypeInfo ti, void* fp, uint flags);
+
+    override string name();
+    TypeInfo typeInfo();
+    void* fp();
+    uint flags();
 }
 
 class ModuleInfo
@@ -163,7 +213,7 @@ class Exception : Object
 {
     interface TraceInfo
     {
-        int opApply( int delegate( inout char[] ) );
+        int opApply( int delegate(inout char[]) );
         string toString();
     }
 
