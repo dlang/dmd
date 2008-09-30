@@ -78,6 +78,7 @@ OBJ_BASE= \
     critical.obj \
     deh.obj \
     dmain2.obj \
+    invariant.obj \
     invariant_.obj \
     lifetime.obj \
     memory.obj \
