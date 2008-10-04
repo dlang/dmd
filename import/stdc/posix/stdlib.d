@@ -101,6 +101,13 @@ else version( darwin )
 
     void* valloc(size_t); // LEGACY non-standard
 }
+else version( freebsd )
+{
+    int setenv(in char*, in char*, int);
+    int unsetenv(in char*);
+
+    void* valloc(size_t); // LEGACY non-standard
+}
 
 //
 // Thread-Safe Functions (TSF)

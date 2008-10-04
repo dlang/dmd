@@ -90,6 +90,7 @@ else version( freebsd )
     alias size_t    ssize_t;
     //time_t (defined in stdc.time)
     alias uint      uid_t;
+    alias uint      fflags_t;
 }
 
 //
@@ -136,12 +137,12 @@ else version( darwin )
 else version( freebsd )
 {
     //clock_t
-    alias ulong fsblkcnt_t;
-    alias ulong fsfilcnt_t;
-    alias long  id_t;
-    // key_t
-    alias c_long   suseconds_t; // C long
-    alias uint  useconds_t; // C unsigned int
+    alias ulong     fsblkcnt_t;
+    alias ulong     fsfilcnt_t;
+    alias long      id_t;
+    alias c_long    key_t;
+    alias c_long    suseconds_t;
+    alias uint      useconds_t;
 }
 
 //
@@ -346,26 +347,18 @@ else version( darwin )
 }
 else version( freebsd )
 {
-    struct pthread;
+    alias int lwpid_t;
 
-    /*
-
-    {
-
-        c_long                  tid;
-        umutex                  lock;
-        umtx_t                  cycle;
-        int                     locklevel; // C int
-        int                     critical_count; // C int
-        int                     sigblock; // C int
-        TAILQ_ENTRY(pthread)    tle;
-        TAILQ_ENTRY(pthread)    gcle;
-        LIST_ENTRY(pthread)     hle;
-        int                     refcount; // C int
-    }
-    */
-
-    alias pthread* pthread_t;
+    alias void* pthread_attr_t;
+    alias void* pthread_cond_t;
+    alias void* pthread_condattr_t;
+    alias void* pthread_key_t;
+    alias void* pthread_mutex_t;
+    alias void* pthread_mutexattr_t;
+    alias void* pthread_once_t;
+    alias void* pthread_rwlock_t;
+    alias void* pthread_rwlockattr_t;
+    alias void* pthread_t;
 }
 
 //
@@ -393,22 +386,8 @@ version( linux )
 }
 else version( freebsd )
 {
-    struct pthread_barrier {
-        umutex                  b_lock;
-        ucond                   b_cv;
-        long                    b_cycle; // volatile
-        int                     b_count; // volatile C int
-        int                     b_waiters;  // volatile C int
-    }
-
-    alias pthread_barrier* pthread_barrier_t;
-
-    struct pthread_barrierattr
-    {
-        int             pshared;
-    }
-
-    alias pthread_barrierattr* pthread_barrierattr_t;
+    alias void* pthread_barrier_t;
+    alias void* pthread_barrierattr_t;
 }
 
 //
@@ -428,9 +407,7 @@ else version( darwin )
 }
 else version( freebsd )
 {
-    private struct pthread_spinlock;
-
-    alias pthread_spinlock* pthread_spinlock_t;
+    alias void* pthread_spinlock_t;
 }
 
 //

@@ -122,7 +122,7 @@ int     tcsendbreak(int, int);
 int     tcsetattr(int, int, in termios*);
 */
 
-version ( darwin)
+version( darwin )
 {
     alias ubyte cc_t;
     alias uint  speed_t;
@@ -231,8 +231,7 @@ version ( darwin)
     int     tcsetattr(int, int, in termios*);
 
 }
-
-version( linux )
+else version( linux )
 {
     alias ubyte cc_t;
     alias uint  speed_t;
@@ -340,6 +339,115 @@ version( linux )
     int     tcgetattr(int, termios*);
     int     tcsendbreak(int, int);
     int     tcsetattr(int, int, in termios*);
+}
+else version ( freebsd )
+{
+    alias ubyte cc_t;
+    alias uint  speed_t;
+    alias uint  tcflag_t;
+
+    const NCCS  = 20;
+
+    struct termios
+    {
+        tcflag_t   c_iflag;
+        tcflag_t   c_oflag;
+        tcflag_t   c_cflag;
+        tcflag_t   c_lflag;
+        cc_t[NCCS] c_cc;
+        speed_t    c_ispeed;
+        speed_t    c_ospeed;
+    }
+
+    const VEOF      = 0;
+    const VEOL      = 1;
+    const VERASE    = 3;
+    const VINTR     = 8;
+    const VKILL     = 5;
+    const VMIN      = 16;
+    const VQUIT     = 9;
+    const VSTART    = 12;
+    const VSTOP     = 13;
+    const VSUSP     = 10;
+    const VTIME     = 17;
+
+    const BRKINT    = 0x0000002;
+    const ICRNL     = 0x0000100;
+    const IGNBRK    = 0x0000001;
+    const IGNCR     = 0x0000080;
+    const IGNPAR    = 0x0000004;
+    const INLCR     = 0x0000040;
+    const INPCK     = 0x0000010;
+    const ISTRIP    = 0x0000020;
+    const IXOFF     = 0x0000400;
+    const IXON      = 0x0000200;
+    const PARMRK    = 0x0000008;
+
+    const OPOST     = 0x0000001;
+
+    const B0        = 0;
+    const B50       = 50;
+    const B75       = 75;
+    const B110      = 110;
+    const B134      = 134;
+    const B150      = 150;
+    const B200      = 200;
+    const B300      = 300;
+    const B600      = 600;
+    const B1200     = 1200;
+    const B1800     = 1800;
+    const B2400     = 2400;
+    const B4800     = 4800;
+    const B9600     = 9600;
+    const B19200    = 19200;
+    const B38400    = 38400;
+
+    const CSIZE     = 0x0000300;
+    const   CS5     = 0x0000000;
+    const   CS6     = 0x0000100;
+    const   CS7     = 0x0000200;
+    const   CS8     = 0x0000300;
+    const CSTOPB    = 0x0000400;
+    const CREAD     = 0x0000800;
+    const PARENB    = 0x0001000;
+    const PARODD    = 0x0002000;
+    const HUPCL     = 0x0004000;
+    const CLOCAL    = 0x0008000;
+
+    const ECHO      = 0x00000008;
+    const ECHOE     = 0x00000002;
+    const ECHOK     = 0x00000004;
+    const ECHONL    = 0x00000010;
+    const ICANON    = 0x00000100;
+    const IEXTEN    = 0x00000400;
+    const ISIG      = 0x00000080;
+    const NOFLSH    = 0x80000000;
+    const TOSTOP    = 0x00400000;
+
+    const TCSANOW   = 0;
+    const TCSADRAIN = 1;
+    const TCSAFLUSH = 2;
+
+    const TCIFLUSH  = 1;
+    const TCOFLUSH  = 2;
+    const TCIOFLUSH = 3;
+
+    const TCIOFF    = 3;
+    const TCION     = 4;
+    const TCOOFF    = 1;
+    const TCOON     = 2;
+
+    speed_t cfgetispeed(in termios*);
+    speed_t cfgetospeed(in termios*);
+    int     cfsetispeed(termios*, speed_t);
+    int     cfsetospeed(termios*, speed_t);
+    int     tcdrain(int);
+    int     tcflow(int, int);
+    int     tcflush(int, int);
+    int     tcgetattr(int, termios*);
+    int     tcsendbreak(int, int);
+    int     tcsetattr(int, int, in termios*);
+
 }
 
 //

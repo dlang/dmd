@@ -150,7 +150,7 @@ else version( darwin )
 }
 else version( freebsd )
 {
-        //SIGABRT (defined in stdc.signal)
+    //SIGABRT (defined in stdc.signal)
     const SIGALRM   = 14;
     const SIGBUS    = 10;
     const SIGCHLD   = 20;
@@ -430,14 +430,6 @@ else version( darwin )
 }
 else version( freebsd )
 {
-    union sigval
-    {
-        int sival_int;
-        void* sival_ptr;
-        int sigval_int;
-        void* sigval_ptr;
-    }
-
     struct sigset_t
     {
         uint __bits[4];
@@ -798,7 +790,28 @@ version( linux )
     int sigtimedwait(in sigset_t*, siginfo_t*, in timespec*);
     int sigwaitinfo(in sigset_t*, siginfo_t*);
 }
+else version( freebsd )
+{
+    struct sigevent
+    {
+        int             sigev_notify;
+        int             sigev_signo;
+        sigval          sigev_value;
+        union  _sigev_un
+        {
+            lwpid_t _threadid;
+            struct _sigev_thread {
+                void function(sigval) _function;
+                void* _attribute;
+            }
+            c_long[8] __spare__;
+        }
+    }
 
+    int sigqueue(pid_t, int, in sigval);
+    int sigtimedwait(in sigset_t*, siginfo_t*, in timespec*);
+    int sigwaitinfo(in sigset_t*, siginfo_t*);
+}
 //
 // Threads (THR)
 //

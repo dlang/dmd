@@ -240,27 +240,39 @@ else version( freebsd )
 {
     struct stat_t
     {
-        dev_t       st_dev;
-        ino_t       st_ino;
-        mode_t      st_mode;
-        nlink_t     st_nlink;
-        uid_t       st_uid;
-        gid_t       st_gid;
-        dev_t       st_rdev;
-        time_t      st_atime;
-        c_long      st_atimensec;
-        time_t      st_mtime;
-        c_long      st_mtimensec;
-        time_t      st_ctime;
-        c_long      st_ctimensec;
+        dev_t   st_dev;
+        ino_t   st_ino;
+        mode_t  st_mode;
+        nlink_t st_nlink;
+        uid_t   st_uid;
+        gid_t   st_gid;
+        dev_t   st_rdev;
+
+        timespec st_atimespec;
+        timespec st_mtimespec;
+        timespec st_ctimespec;
+        time_t st_atime()
+        {
+            return st_atimespec.tv_sec;
+        }
+        time_t st_mtime()
+        {
+            return st_mtimespec.tv_sec;
+        }
+        time_t st_ctime()
+        {
+            return st_ctimespec.tv_sec;
+        }
+
         off_t       st_size;
         blkcnt_t    st_blocks;
         blksize_t   st_blksize;
-        uint        st_flags;
+        fflags_t    st_flags;
         uint        st_gen;
         int         st_lspare;
-        time_t      st_birthtime;
-        c_long      st_birthtimensec;
+        timespec    st_birthtimespec;
+
+        byte[16 - timespec.sizeof] padding;
     }
 
     const S_IRUSR   = 0000400;

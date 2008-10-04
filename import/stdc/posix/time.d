@@ -250,6 +250,8 @@ else version( darwin )
 }
 else version( freebsd )
 {
+    extern c_long timezone;
+
     //tm*   getdate(in char*);
     char* strptime(in char*, in char*, tm*);
 }

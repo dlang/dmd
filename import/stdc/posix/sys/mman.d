@@ -172,7 +172,7 @@ else version( darwin )
 
     int msync(void*, size_t, int);
 }
-else version( darwin )
+else version( freebsd )
 {
     const MAP_SHARED    = 0x0001;
     const MAP_PRIVATE   = 0x0002;

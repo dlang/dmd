@@ -59,7 +59,7 @@ else version( darwin )
 }
 else version( freebsd )
 {
-        clock_t CLOCKS_PER_SEC = 128;
+    clock_t CLOCKS_PER_SEC = 128;
 }
 else
 {
@@ -90,6 +90,10 @@ version( Windows )
     wchar_t* _wstrtime(wchar_t*);
 }
 else version( linux )
+{
+    void tzset();
+}
+else version( freebsd )
 {
     void tzset();
 }
