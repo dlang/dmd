@@ -66,7 +66,7 @@ else
 }
 
 alias size_t hash_t;
-alias int equals_t;
+alias bool equals_t;
 
 alias invariant(char)[]  string;
 alias invariant(wchar)[] wstring;
