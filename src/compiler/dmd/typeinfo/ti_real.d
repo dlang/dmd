@@ -12,7 +12,7 @@ class TypeInfo_e : TypeInfo
         return (cast(uint *)p)[0] + (cast(uint *)p)[1] + (cast(ushort *)p)[4];
     }
 
-    static int _equals(real f1, real f2)
+    static equals_t _equals(real f1, real f2)
     {
         return f1 == f2 ||
                 (f1 !<>= f1 && f2 !<>= f2);

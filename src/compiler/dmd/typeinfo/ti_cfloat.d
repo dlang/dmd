@@ -12,7 +12,7 @@ class TypeInfo_q : TypeInfo
         return (cast(uint *)p)[0] + (cast(uint *)p)[1];
     }
 
-    static int _equals(cfloat f1, cfloat f2)
+    static equals_t _equals(cfloat f1, cfloat f2)
     {
         return f1 == f2;
     }

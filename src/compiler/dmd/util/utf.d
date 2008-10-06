@@ -586,7 +586,7 @@ Checks to see if string is well formed or not. $(D S) can be an array
  */
 void validate(S)(in S s)
 {
-    invariant len = s.length;
+    auto len = s.length;
     for (size_t i = 0; i < len; )
     {
 	decode(s, i);

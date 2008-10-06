@@ -4,7 +4,7 @@ alias typeof(int.sizeof)                    size_t;
 alias typeof(cast(void*)0 - cast(void*)0)   ptrdiff_t;
 
 alias size_t hash_t;
-alias int equals_t;
+alias bool equals_t;
 
 alias invariant(char)[]  string;
 alias invariant(wchar)[] wstring;

@@ -13,7 +13,7 @@ class TypeInfo_r : TypeInfo
                (cast(uint *)p)[2] + (cast(uint *)p)[3];
     }
 
-    static int _equals(cdouble f1, cdouble f2)
+    static equals_t _equals(cdouble f1, cdouble f2)
     {
         return f1 == f2;
     }

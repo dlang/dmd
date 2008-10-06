@@ -14,7 +14,7 @@ class TypeInfo_c : TypeInfo
                (cast(uint *)p)[4];
     }
 
-    static int _equals(creal f1, creal f2)
+    static equals_t _equals(creal f1, creal f2)
     {
         return f1 == f2;
     }
