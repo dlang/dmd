@@ -227,3 +227,6 @@ class Exception : Object
     this(string msg, string file, size_t line, Exception next = null);
     override string toString();
 }
+
+
+alias Exception Error;
