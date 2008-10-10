@@ -84,6 +84,15 @@ private
 /**
  *
  */
+extern (C) void* _d_allocmemory(size_t sz)
+{
+    return gc_malloc(sz);
+}
+
+
+/**
+ *
+ */
 extern (C) Object _d_newclass(ClassInfo ci)
 {
     void* p;
@@ -397,16 +406,7 @@ struct Array
 
 
 /**
- *
- */
-void* _d_allocmemory(size_t nbytes)
-{
-    return gc_malloc(nbytes);
-}
-
-
-/**
- *
+ * This function has been replaced by _d_delarray_t
  */
 extern (C) void _d_delarray(Array *p)
 {
@@ -416,6 +416,36 @@ extern (C) void _d_delarray(Array *p)
 
         if (p.data)
             gc_free(p.data);
+        p.data = null;
+        p.length = 0;
+    }
+}
+
+
+/**
+ *
+ */
+extern (C) void _d_delarray_t(Array *p, TypeInfo ti)
+{
+    if (p)
+    {
+        assert(!p.length || p.data);
+        if (p.data)
+        {
+            if (ti)
+            {
+                // Call destructors on all the sub-objects
+                auto sz = ti.tsize();
+                auto pe = p.data;
+                auto pend = pe + p.length * sz;
+                while (pe != pend)
+                {
+                    pend -= sz;
+                    ti.destroy(pend);
+                }
+            }
+            gc_free(p.data);
+        }
         p.data = null;
         p.length = 0;
     }
