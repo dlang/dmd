@@ -10,8 +10,8 @@
 #   make clean
 #       Delete unneeded files created by build process
 
-LIB_TARGET=druntime-dmd.lib
-LIB_MASK=druntime-dmd*.lib
+LIB_TARGET=druntime.lib
+LIB_MASK=druntime.lib
 
 DIR_CC=core
 DIR_RT=compiler\dmd
