@@ -125,6 +125,23 @@ class Object
         void lock();
         void unlock();
     }
+
+    /******
+     * Create instance of class specified by classname.
+     * The class must either have no constructors or have
+     * a default constructor.
+     * Returns:
+     *   null if failed
+     */
+    static Object factory(string classname)
+    {
+        auto ci = ClassInfo.find(classname);
+        if (ci)
+        {
+            return ci.create();
+        }
+        return null;
+    }
 }
 
 /**
