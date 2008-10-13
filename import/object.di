@@ -22,6 +22,8 @@ class Object
         void lock();
         void unlock();
     }
+
+    static Object factory(string classname);
 }
 
 struct Interface

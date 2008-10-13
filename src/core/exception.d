@@ -30,6 +30,18 @@ class ArrayBoundsException : Exception
 
 
 /**
+ * Thrown on hidden function error.
+ */
+class HiddenFuncException : Exception
+{
+    this(ClassInfo ci)
+    {
+        super("hidden method called for " ~ ci.name);
+    }
+}
+
+
+/**
  * Thrown on an assert error.
  */
 class AssertException : Exception
@@ -248,4 +260,21 @@ extern (C) void onSwitchError( string file, size_t line )
 extern (C) void onUnicodeError( string msg, size_t idx )
 {
     throw new UnicodeException( msg, idx );
+}
+
+/********************************************
+ * Called by the compiler generated code.
+ */
+
+extern (C) void _d_hidden_func()
+{   Object o;
+    asm
+    {
+        mov o, EAX;
+    }
+
+    //printf("_d_hidden_func()\n");
+    auto a = new HiddenFuncException(o.classinfo);
+    //printf("assertion %p created\n", a);
+    throw a;
 }
