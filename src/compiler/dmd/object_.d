@@ -1064,6 +1064,7 @@ class Exception : Object
     size_t      line;
     TraceInfo   info;
     Exception   next;
+    char[]      buffer;
 
     this( string msg, Exception next = null )
     {
@@ -1082,7 +1083,35 @@ class Exception : Object
 
     override string toString()
     {
-        return msg;
+        if (file.length == 0 && line == 0)
+	    return msg;
+	if (buffer.length == 0)
+        {
+	    // Write into buffer[] the following: "file(line): msg"
+	    buffer.length = 4 + file.length + line.sizeof * 3 + msg.length;
+	    auto i = file.length;
+	    buffer[0 .. i] = file[];
+	    buffer[i] = '(';
+	    i++;
+
+	    auto n = line;
+	    auto j = i;
+	    do
+	    {
+		buffer[i] = cast(char)((n % 10) + '0');
+		n /= 10;
+		i++;
+	    } while (n);
+	    buffer[j .. i].reverse;
+	    buffer[i..i+3] = "): "[];
+	    i += 3;
+
+	    buffer[i .. i + msg.length] = msg[];
+	    i += msg.length;
+
+	    buffer = buffer[0 .. i];
+	}
+        return cast(invariant)buffer;
     }
 }
 
