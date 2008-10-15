@@ -66,7 +66,7 @@ private
     extern (C) size_t  gc_sizeOf( void* p );
     extern (C) BlkInfo gc_query( void* p );
 
-    extern (C) void onFinalizeError( ClassInfo c, Exception e );
+    extern (C) void onFinalizeError( ClassInfo c, Throwable e );
     extern (C) void onOutOfMemoryError();
 
     extern (C) void _d_monitordelete(Object h, bool det = true);
@@ -529,7 +529,7 @@ extern (C) void rt_finalize(void* p, bool det = true)
                 if ((cast(void**)p)[1]) // if monitor is not null
                     _d_monitordelete(cast(Object)p, det);
             }
-            catch (Exception e)
+            catch (Throwable e)
             {
                 onFinalizeError(**pc, e);
             }

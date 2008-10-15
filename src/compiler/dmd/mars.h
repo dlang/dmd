@@ -60,7 +60,7 @@ typedef struct ClassInfo
     int flags;
 } ClassInfo;
 
-typedef struct Exception
+typedef struct Throwable
 {
     Object object;
 
@@ -73,8 +73,8 @@ typedef struct Exception
     size_t line;
 
     struct Interface *info;
-    struct Exception *next;
-} Exception;
+    struct Throwable *next;
+} Throwable;
 
 typedef struct Array
 {

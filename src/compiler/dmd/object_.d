@@ -54,7 +54,7 @@ private
 //alias typeof(int.sizeof)                    size_t;
 //alias typeof(cast(void*)0 - cast(void*)0)   ptrdiff_t;
 
-version( X86_64 )
+version(X86_64)
 {
     alias ulong size_t;
     alias long  ptrdiff_t;
@@ -126,7 +126,7 @@ class Object
         void unlock();
     }
 
-    /******
+    /**
      * Create instance of class specified by classname.
      * The class must either have no constructors or have
      * a default constructor.
@@ -216,6 +216,7 @@ class ClassInfo : Object
         }
         return o;
     }
+
     /**
      * Search for all members with the name 'name'.
      * If name[] is null, return all members.
@@ -246,7 +247,8 @@ struct OffsetTypeInfo
 class TypeInfo
 {
     override hash_t toHash()
-    {   hash_t hash;
+    {
+        hash_t hash;
 
         foreach (char c; this.toString())
             hash = hash * 9 + c;
@@ -1048,32 +1050,31 @@ class MemberInfo_function : MemberInfo
 
 
 ///////////////////////////////////////////////////////////////////////////////
-// Exception
+// Throwable
 ///////////////////////////////////////////////////////////////////////////////
 
 
-class Exception : Object
+class Throwable : Object
 {
     interface TraceInfo
     {
-        int opApply( int delegate(inout char[]) );
+        int opApply(int delegate(inout char[]));
     }
 
     string      msg;
     string      file;
     size_t      line;
     TraceInfo   info;
-    Exception   next;
-    char[]      buffer;
+    Throwable   next;
 
-    this( string msg, Exception next = null )
+    this(string msg, Throwable next = null)
     {
         this.msg = msg;
         this.next = next;
         this.info = traceContext();
     }
 
-    this( string msg, string file, size_t line, Exception next = null )
+    this(string msg, string file, size_t line, Throwable next = null)
     {
         this(msg, next);
         this.file = file;
@@ -1083,40 +1084,34 @@ class Exception : Object
 
     override string toString()
     {
-        if (file.length == 0 && line == 0)
-	    return msg;
-	if (buffer.length == 0)
+        char[10] tmp;
+        char[]   buf;
+
+        for (Throwable e = this; e !is null; e = e.next)
         {
-	    // Write into buffer[] the following: "file(line): msg"
-	    buffer.length = 4 + file.length + line.sizeof * 3 + msg.length;
-	    auto i = file.length;
-	    buffer[0 .. i] = file[];
-	    buffer[i] = '(';
-	    i++;
-
-	    auto n = line;
-	    auto j = i;
-	    do
-	    {
-		buffer[i] = cast(char)((n % 10) + '0');
-		n /= 10;
-		i++;
-	    } while (n);
-	    buffer[j .. i].reverse;
-	    buffer[i..i+3] = "): "[];
-	    i += 3;
-
-	    buffer[i .. i + msg.length] = msg[];
-	    i += msg.length;
-
-	    buffer = buffer[0 .. i];
-	}
-        return cast(invariant)buffer;
+            if (e.file)
+            {
+               buf ~= e.classinfo.name ~ "@" ~ e.file ~ "(" ~ tmp.intToString(e.line) ~ "): " ~ e.msg;
+            }
+            else
+            {
+               buf ~= e.classinfo.name ~ ": " ~ e.msg;
+            }
+            if (e.info)
+            {
+                buf ~= "\n----------------";
+                foreach (t; e.info)
+                    buf ~= "\n" ~ t;
+            }
+            if (e.next)
+                buf ~= "\n";
+        }
+        return cast(string) buf;
     }
 }
 
 
-alias Exception.TraceInfo function( void* ptr = null ) TraceHandler;
+alias Throwable.TraceInfo function(void* ptr = null) TraceHandler;
 private TraceHandler traceHandler = null;
 
 
@@ -1126,14 +1121,14 @@ private TraceHandler traceHandler = null;
  * Params:
  *  h = The new trace handler.  Set to null to use the default handler.
  */
-extern (C) void  rt_setTraceHandler( TraceHandler h )
+extern (C) void  rt_setTraceHandler(TraceHandler h)
 {
     traceHandler = h;
 }
 
 
 /**
- * This function will be called when an Exception is constructed.  The
+ * This function will be called when an exception is constructed.  The
  * user-supplied trace handler will be called if one has been supplied,
  * otherwise no trace will be generated.
  *
@@ -1146,11 +1141,39 @@ extern (C) void  rt_setTraceHandler( TraceHandler h )
  *  An object describing the current calling context or null if no handler is
  *  supplied.
  */
-Exception.TraceInfo traceContext( void* ptr = null )
+Throwable.TraceInfo traceContext(void* ptr = null)
 {
-    if( traceHandler is null )
+    if (traceHandler is null)
         return null;
-    return traceHandler( ptr );
+    return traceHandler(ptr);
+}
+
+
+class Exception : Throwable
+{
+    this(string msg, Throwable next = null)
+    {
+        super(msg, next);
+    }
+
+    this(string msg, string file, size_t line, Throwable next = null)
+    {
+        super(msg, file, line, next);
+    }
+}
+
+
+class Error : Throwable
+{
+    this(string msg, Throwable next = null)
+    {
+        super(msg, next);
+    }
+
+    this(string msg, string file, size_t line, Throwable next = null)
+    {
+        super(msg, file, line, next);
+    }
 }
 
 
@@ -1184,14 +1207,14 @@ class ModuleInfo
 
     void function() ictor;      // module static constructor (order independent)
 
-    static int opApply( int delegate(inout ModuleInfo) dg )
+    static int opApply(int delegate(inout ModuleInfo) dg)
     {
         int ret = 0;
 
-        foreach( m; _moduleinfo_array )
+        foreach (m; _moduleinfo_array)
         {
-            ret = dg( m );
-            if( ret )
+            ret = dg(m);
+            if (ret)
                 break;
         }
         return ret;
@@ -1289,7 +1312,7 @@ void _moduleCtor2(ModuleInfo[] mi, int skip)
             if (m.flags & MIctorstart)
             {   if (skip || m.flags & MIstandalone)
                     continue;
-                    throw new Exception( "Cyclic dependency in module " ~ m.name );
+                    throw new Exception("Cyclic dependency in module " ~ m.name);
             }
 
             m.flags |= MIctorstart;

@@ -208,14 +208,14 @@ class ModuleInfo
     void function() dtor;
     void function() unitTest;
 
-    static int opApply( int delegate( inout ModuleInfo ) );
+    static int opApply(int delegate(inout ModuleInfo));
 }
 
-class Exception : Object
+class Throwable : Object
 {
     interface TraceInfo
     {
-        int opApply( int delegate(inout char[]) );
+        int opApply(int delegate(inout char[]));
         string toString();
     }
 
@@ -223,12 +223,23 @@ class Exception : Object
     string      file;
     size_t      line;
     TraceInfo   info;
-    Exception   next;
+    Throwable   next;
 
-    this(string msg, Exception next = null);
-    this(string msg, string file, size_t line, Exception next = null);
+    this(string msg, Throwable next = null);
+    this(string msg, string file, size_t line, Throwable next = null);
     override string toString();
 }
 
 
-alias Exception Error;
+class Exception : Throwable
+{
+    this(string msg, Throwable next = null);
+    this(string msg, string file, size_t line, Throwable next = null);
+}
+
+
+class Error : Throwable
+{
+    this(string msg, Throwable next = null);
+    this(string msg, string file, size_t line, Throwable next = null);
+}

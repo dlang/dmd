@@ -10,10 +10,11 @@
 #   make clean
 #       Delete unneeded files created by build process
 
-LIB_TARGET=druntime.lib
-LIB_MASK=druntime.lib
+LIB_TARGET=druntime-dmd.lib
+DUP_TARGET=druntime.lib
+LIB_MASK=druntime*.lib
 
-DIR_CC=core
+DIR_CC=common
 DIR_RT=compiler\dmd
 DIR_GC=gc\basic
 
@@ -59,6 +60,8 @@ lib : $(ALL_OBJS)
 	cd ..\..
 	$(RM) $(LIB_TARGET)
 	$(LC) -c -n $(LIB_TARGET) $(LIB_CC) $(LIB_RT) $(LIB_GC)
+	$(RM) $(DUP_TARGET)
+	copy $(LIB_TARGET) $(DUP_TARGET)
 
 doc : $(ALL_DOCS)
 	cd $(DIR_CC)

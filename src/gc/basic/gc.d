@@ -24,6 +24,8 @@
  * Authors:   Walter Bright, Sean Kelly
  */
 
+module gc.gc;
+
 private import gcx;
 private import gcstats;
 private import stdc.stdlib;

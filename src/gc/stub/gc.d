@@ -18,6 +18,8 @@
  * Authors:   Sean Kelly
  */
 
+module gc.gc;
+
 private import stdc.stdlib;
 
 private

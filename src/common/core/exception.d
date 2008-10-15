@@ -6,7 +6,7 @@
  * License:   BSD Style, see LICENSE
  * Authors:   Sean Kelly
  */
-module exception;
+module core.exception;
 
 
 private
@@ -25,18 +25,6 @@ class ArrayBoundsException : Exception
     this( string file, size_t line )
     {
         super( "Array index out of bounds", file, line );
-    }
-}
-
-
-/**
- * Thrown on hidden function error.
- */
-class HiddenFuncException : Exception
-{
-    this(ClassInfo ci)
-    {
-        super("hidden method called for " ~ ci.name);
     }
 }
 
@@ -74,6 +62,18 @@ class FinalizeException : Exception
     override string toString()
     {
         return "An exception was thrown while finalizing an instance of class " ~ info.name;
+    }
+}
+
+
+/**
+ * Thrown on hidden function error.
+ */
+class HiddenFuncException : Exception
+{
+    this( ClassInfo ci )
+    {
+        super( "Hidden method called for " ~ ci.name );
     }
 }
 
@@ -217,6 +217,19 @@ extern (C) void onFinalizeError( ClassInfo info, Exception ex )
 
 
 /**
+ * A callback for hidden function errors in D.  A HiddenFuncException will be
+ * thrown.
+ *
+ * Throws:
+ *  HiddenFuncException.
+ */
+extern (C) void onHiddenFuncError( Object o )
+{
+    throw new HiddenFuncException( o.classinfo );
+}
+
+
+/**
  * A callback for out of memory errors in D.  An OutOfMemoryException will be
  * thrown.
  *
@@ -260,21 +273,4 @@ extern (C) void onSwitchError( string file, size_t line )
 extern (C) void onUnicodeError( string msg, size_t idx )
 {
     throw new UnicodeException( msg, idx );
-}
-
-/********************************************
- * Called by the compiler generated code.
- */
-
-extern (C) void _d_hidden_func()
-{   Object o;
-    asm
-    {
-        mov o, EAX;
-    }
-
-    //printf("_d_hidden_func()\n");
-    auto a = new HiddenFuncException(o.classinfo);
-    //printf("assertion %p created\n", a);
-    throw a;
 }

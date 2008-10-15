@@ -23,7 +23,7 @@ private
         import stdc.posix.fcntl;
         import stdc.posix.unistd;
     }
-    import bitmanip;
+    import core.bitmanip;
     import stdc.stdio;
     import util.utf;
 

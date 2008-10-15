@@ -5,7 +5,7 @@
  * License:   BSD Style, see LICENSE
  * Authors:   Sean Kelly
  */
-module thread;
+module core.thread;
 
 
 // this should be true for most architectures
@@ -156,9 +156,6 @@ else version( Posix )
         import stdc.posix.signal;
         import stdc.posix.time;
         import stdc.errno;
-
-        extern (C) int _d_getErrno();
-        alias _d_getErrno getErrno;
 
         version( GNU )
         {

@@ -8,13 +8,13 @@
 #include <errno.h>
 
 
-int _d_getErrno()
+int getErrno()
 {
     return errno;
 }
 
 
-int _d_setErrno( int val )
+int setErrno( int val )
 {
     errno = val;
     return val;

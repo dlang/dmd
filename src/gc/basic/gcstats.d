@@ -24,6 +24,8 @@
  * Authors:   Walter Bright, Sean Kelly
  */
 
+module gc.gcstats;
+
 
 /**
  *

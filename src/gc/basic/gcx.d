@@ -24,6 +24,8 @@
  * Authors:   Walter Bright, David Friedman, Sean Kelly
  */
 
+module gc.gcx;
+
 // D Programming Language Garbage Collector implementation
 
 /************** Debugging ***************************/

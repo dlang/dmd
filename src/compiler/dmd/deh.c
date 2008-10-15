@@ -33,9 +33,11 @@ extern DWORD _except_list;
 
 #include        "mars.h"
 
-extern ClassInfo D9Exception7__ClassZ;
+extern ClassInfo D6object9Throwable7__ClassZ;
+#define _Class_9Throwable D6object9Throwable7__ClassZ;
 
-#define _Class_9Exception D9Exception7__ClassZ
+extern ClassInfo D6object5Error7__ClassZ;
+#define _Class_5Error D6object5Error7__ClassZ
 
 typedef int (__pascal *fp_t)();   // function pointer in ambient memory model
 
@@ -151,11 +153,12 @@ EXCEPTION_DISPOSITION _d_framehandler(
                             ci = **(ClassInfo ***)(exception_record->ExceptionInformation[0]);
                         }
                         else
-                            ci = &_Class_9Exception;
+                            ci = &_Class_9Throwable;
                     }
 
                     if (_d_isbaseof(ci, pcb->type))
-                    {   // Matched the catch type, so we've found the handler.
+                    {
+                        // Matched the catch type, so we've found the handler.
                         int regebp;
 
                         pti = _d_translate_se_to_d_exception(exception_record);
@@ -229,9 +232,9 @@ void __stdcall _d_throw(Object *h)
 
 Object *_d_create_exception_object(ClassInfo *ci, char *msg)
 {
-    Exception *exc;
+    Throwable *exc;
 
-    exc = (Exception *)_d_newclass(ci);
+    exc = (Throwable *)_d_newclass(ci);
     // BUG: what if _d_newclass() throws an out of memory exception?
 
     if (msg)
@@ -257,24 +260,24 @@ Object *_d_translate_se_to_d_exception(EXCEPTION_RECORD *exception_record)
             break;
 
         case STATUS_INTEGER_DIVIDE_BY_ZERO:
-            pti = _d_create_exception_object(&_Class_9Exception, "Integer Divide by Zero");
+            pti = _d_create_exception_object(&_Class_5Error, "Integer Divide by Zero");
             break;
 
         case STATUS_FLOAT_DIVIDE_BY_ZERO:
-            pti = _d_create_exception_object(&_Class_9Exception, "Float Divide by Zero");
+            pti = _d_create_exception_object(&_Class_5Error, "Float Divide by Zero");
             break;
 
         case STATUS_ACCESS_VIOLATION:
-            pti = _d_create_exception_object(&_Class_9Exception, "Access Violation");
+            pti = _d_create_exception_object(&_Class_5Error, "Access Violation");
             break;
 
         case STATUS_STACK_OVERFLOW:
-            pti = _d_create_exception_object(&_Class_9Exception, "Stack Overflow");
+            pti = _d_create_exception_object(&_Class_5Error, "Stack Overflow");
             break;
 
         // convert all other exception codes into a Win32Exception
         default:
-            pti = _d_create_exception_object(&_Class_9Exception, "Win32 Exception");
+            pti = _d_create_exception_object(&_Class_5Error, "Win32 Exception");
             break;
     }
 
@@ -413,9 +416,11 @@ void _d_monitor_epilog(void *x, void *y, Object *h)
 
 #include        "mars.h"
 
-extern ClassInfo D9Exception7__ClassZ;
+extern ClassInfo D6object9Throwable7__ClassZ;
+#define _Class_9Throwable D6object9Throwable7__ClassZ;
 
-#define _Class_9Exception D9Exception7__ClassZ
+extern ClassInfo D6object5Error7__ClassZ;
+#define _Class_5Error D6object5Error7__ClassZ
 
 typedef int (*fp_t)();   // function pointer in ambient memory model
 

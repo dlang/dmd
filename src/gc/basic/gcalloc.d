@@ -24,6 +24,8 @@
  * Authors:   Walter Bright, David Friedman, Sean Kelly
  */
 
+module gc.gcalloc;
+
 
 version (Windows)
 {

@@ -5,7 +5,7 @@
  * License:   BSD Style, see LICENSE
  * Authors:   Walter Bright, Don Clugston, Sean Kelly
  */
-module bitmanip;
+module core.bitmanip;
 
 
 version( DDoc )
@@ -29,7 +29,7 @@ version( DDoc )
      *  The return value is undefined if v is zero.
      * Example:
      * ---
-     * import bitmanip;
+     * import core.bitmanip;
      *
      * int main()
      * {
@@ -84,7 +84,7 @@ version( DDoc )
      *
      * Example:
      * ---
-    import bitmanip;
+    import core.bitmanip;
 
     int main()
     {

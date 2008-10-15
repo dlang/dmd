@@ -5,7 +5,7 @@
  * License:   BSD Style, see LICENSE
  * Authors:   Sean Kelly
  */
-module runtime;
+module core.runtime;
 
 
 private

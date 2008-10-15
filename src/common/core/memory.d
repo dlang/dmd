@@ -6,7 +6,7 @@
  * License:   BSD Style, see LICENSE
  * Authors:   Sean Kelly
  */
-module memory;
+module core.memory;
 
 
 private

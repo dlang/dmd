@@ -11,11 +11,12 @@
 #		Delete unneeded files created by build process
 
 LIB_TARGET=libdruntime-dmd.a
-LIB_MASK=libdruntime-dmd*.a
+DUP_TARGET=libdruntime.a
+LIB_MASK=libdruntime*.a
 
-DIR_CC=../src/core
-DIR_RT=../src/compiler/dmd
-DIR_GC=../src/gc/basic
+DIR_CC=common
+DIR_RT=compiler/dmd
+DIR_GC=gc/basic
 
 CP=cp -f
 RM=rm -f
@@ -47,10 +48,12 @@ lib : $(ALL_OBJS)
 	make -C $(DIR_CC) -fposix.mak lib DC=$(DC) ADD_DFLAGS="$(ADD_DFLAGS)" ADD_CFLAGS="$(ADD_CFLAGS)"
 	make -C $(DIR_RT) -fposix.mak lib DC=$(DC) ADD_DFLAGS="$(ADD_DFLAGS)" ADD_CFLAGS="$(ADD_CFLAGS)"
 	make -C $(DIR_GC) -fposix.mak lib DC=$(DC) ADD_DFLAGS="$(ADD_DFLAGS)" ADD_CFLAGS="$(ADD_CFLAGS)"
-	find . -name "libphobos*.a" | xargs $(RM)
+	$(RM) $(LIB_TARGET)
 	$(LC) $(LIB_TARGET) `find $(DIR_CC) -name "*.o" | xargs echo`
 	$(LC) $(LIB_TARGET) `find $(DIR_RT) -name "*.o" | xargs echo`
 	$(LC) $(LIB_TARGET) `find $(DIR_GC) -name "*.o" | xargs echo`
+	$(RM) $(DUP_TARGET)
+	$(CP) $(LIB_TARGET) $(DUP_TARGET)
 
 doc : $(ALL_DOCS)
 	make -C $(DIR_CC) -fposix.mak doc DC=$(DC)

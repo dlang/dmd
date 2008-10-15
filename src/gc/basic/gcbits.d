@@ -24,10 +24,12 @@
  * Authors:   Walter Bright, David Friedman, Sean Kelly
  */
 
+module gc.gcbits;
+
 
 private
 {
-    import bitmanip;
+    import core.bitmanip;
     import stdc.string;
     import stdc.stdlib;
     extern (C) void onOutOfMemoryError();
