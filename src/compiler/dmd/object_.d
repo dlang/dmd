@@ -1084,7 +1084,7 @@ class Throwable : Object
 
     override string toString()
     {
-        char[10] tmp;
+        char[10] tmp = void;
         char[]   buf;
 
         for (Throwable e = this; e !is null; e = e.next)
