@@ -777,63 +777,88 @@ class Thread
 
 
     /**
-     * Suspends the calling thread for at least the supplied time, up to a
-     * maximum of (uint.max - 1) milliseconds.
+     * Suspends the calling thread for at least the supplied period.  This may
+     * result in multiple OS calls if period is greater than the maximum sleep
+     * duration supported by the operating system.
      *
      * Params:
      *  period = The minimum duration the calling thread should be suspended,
-     *           in seconds.  Sub-second durations are specified as fractional
-     *           values.
+     *           in 100 nanosecond intervals.
      *
      * In:
-     *  period must be less than (uint.max - 1) milliseconds.
+     *  period must be non-negative.
      *
      * Example:
      * ------------------------------------------------------------------------
      *
-     * Thread.sleep( 0.05 ); // sleep for 50 milliseconds
-     * Thread.sleep( 5 );    // sleep for 5 seconds
+     * Thread.sleep( 500 );        // sleep for 50 milliseconds
+     * Thread.sleep( 50_000_000 ); // sleep for 5 seconds
      *
      * ------------------------------------------------------------------------
      */
-    static void sleep( double period )
+    static void sleep( long period )
     in
     {
-        // NOTE: The fractional value added to period is to correct fp error.
-        assert( period * 1000 + 0.1 < uint.max - 1 );
+        assert( period >= 0 );
     }
     body
     {
         version( Win32 )
         {
-            Sleep( cast(uint)( period * 1000 + 0.1 ) );
+            enum : uint
+            {
+                TICKS_PER_MILLI  = 10_000,
+                MAX_SLEEP_MILLIS = uint.max - 1
+            }
+
+            period = period < TICKS_PER_MILLI ?
+                        1 :
+                        period / TICKS_PER_MILLI;
+            while( period > MAX_SLEEP_MILLIS )
+            {
+                Sleep( MAX_SLEEP_MILLIS );
+                period -= MAX_SLEEP_MILLIS;
+            }
+            Sleep( cast(uint) period );
         }
         else version( Posix )
         {
             timespec tin  = void;
             timespec tout = void;
 
-            period += 0.000_000_000_1;
-
-            if( tin.tv_sec.max < period )
+            enum : uint
             {
-                tin.tv_sec  = tin.tv_sec.max;
-                tin.tv_nsec = 0;
+                NANOS_PER_TICK   = 100,
+                TICKS_PER_SECOND = 10_000_000,
             }
-            else
+            enum : typeof(period)
             {
-                tin.tv_sec  = cast(typeof(tin.tv_sec))  period;
-                tin.tv_nsec = cast(typeof(tin.tv_nsec)) ((period % 1.0) * 1_000_000_000);
+                MAX_SLEEP_TICKS = cast(typeof(period)) tin.tv_sec.max * TICKS_PER_SECOND
             }
 
-            while( true )
+            do
             {
-                if( !nanosleep( &tin, &tout ) )
-                    return;
-                if( getErrno() != EINTR )
-                    throw new ThreadException( "Unable to sleep for specified duration" );
-                tin = tout;
-            }
+                if( period > MAX_SLEEP_TICKS )
+                {
+                    tin.tv_sec = tin.tv_sec.max;
+                    tin.tv_nsec = 0;
+                }
+                else
+                {
+                    tin.tv_sec = cast(typeof(tin.tv_sec)) (period / TICKS_PER_SECOND);
+                    tin.tv_nsec = cast(typeof(tin.tv_nsec)) (period % TICKS_PER_SECOND) * NANOS_PER_TICK;
+                }
+                while( true )
+                {
+                    if( !nanosleep( &tin, &tout ) )
+                        return;
+                    if( getErrno() != EINTR )
+                        throw new ThreadException( "Unable to sleep for the specified duration" );
+                    tin = tout;
+                }
+                period -= (cast(typeof(period)) tin.tv_sec) * TICKS_PER_SECOND;
+                period -= (cast(typeof(period)) tin.tv_nsec) / NANOS_PER_TICK;
+            } while( period > 0 );
         }
     }
 
