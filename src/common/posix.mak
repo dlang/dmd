@@ -71,7 +71,7 @@ doc     : core.doc
 OBJ_CORE= \
     core/bitmanip.o \
     core/exception.o \
-    core/memory.o \
+    core/memory_.o \
     core/runtime.o \
     core/thread.o
 
@@ -110,12 +110,17 @@ core.doc : $(ALL_DOCS)
 ### bitmanip
 
 core/bitmanip.o : core/bitmanip.d
-	$(DC) -c $(DFLAGS) bitmanip.d -of$@
+	$(DC) -c $(DFLAGS) core/bitmanip.d -of$@
+
+### memory
+
+core/memory_.o : core/memory.d
+	$(DC) -c $(DFLAGS) -Hf$*.di $< -of$@
 
 ### thread
 
 core/thread.o : core/thread.d
-	$(DC) -c $(DFLAGS) -d -Hf$*.di thread.d -of$@
+	$(DC) -c $(DFLAGS) -d -Hf$*.di core/thread.d -of$@
 
 ######################################################
 
