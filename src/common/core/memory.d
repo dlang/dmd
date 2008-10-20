@@ -47,6 +47,10 @@ private
 
     extern (C) void gc_removeRoot( void* p );
     extern (C) void gc_removeRange( void* p );
+
+    extern (C) void* gc_getHandle();
+    extern (C) void gc_setHandle( void* p );
+    extern (C) void gc_endHandle();
 }
 
 
@@ -440,5 +444,41 @@ struct GC
     static void removeRange( void* p )
     {
         gc_removeRange( p );
+    }
+
+    /**
+     * Get handle to the collector.
+     * The only thing that can be done with this handle is pass it to
+     * setHandle(). getHandle/setHandle/endHandle work together so that
+     * if there are multiple instances of the gc running, only one instance
+     * can be set to run.
+     * The most common case of this is under Windows where a D application
+     * calls functions in a DLL that is implemented in D.
+     */
+
+    static void* getHandle()
+    {
+	return gc_getHandle();
+    }
+
+    /**
+     * Set handle to the collector.
+     * The handle p is an opaque handle, acquired by a call to
+     * getHandle().
+     */
+
+    static void setHandle(void* p)
+    {
+	gc_setHandle(p);
+    }
+
+    /**
+     * Call when done using the collector specified by the
+     * call to setHandle().
+     */
+
+    static void endHandle()
+    {
+	gc_endHandle();
     }
 }

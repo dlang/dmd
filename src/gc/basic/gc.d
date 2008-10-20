@@ -186,3 +186,26 @@ extern (C) void gc_removeRange( void *p )
 {
     _gc.removeRange( p );
 }
+
+extern (C) void* gc_getHandle()
+{
+    return cast(void*)_gc;
+}
+
+extern (C) void gc_setHandle(void* p)
+{
+    void* oldp = gc_getHandle();
+    gc_t g = cast(gc_t)p;
+    if (g.gcversion != gcx.GCVERSION)
+        throw new Error("incompatible gc versions");
+
+    // Add our static data to the new gc
+    GC.scanStaticData(g);
+
+    _gc = g;
+}
+
+extern (C) void gc_endHandle()
+{
+    GC.unscanStaticData(_gc);
+}

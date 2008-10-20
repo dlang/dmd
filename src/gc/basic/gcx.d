@@ -86,6 +86,8 @@ private
 
     extern (C) void* rt_stackBottom();
     extern (C) void* rt_stackTop();
+    extern (C) void* rt_staticDataBottom();
+    extern (C) void* rt_staticDataTop();
 
     extern (C) void rt_finalize( void* p, bool det = true );
 
@@ -1123,6 +1125,21 @@ class GC
         }
     }
 
+
+    static void scanStaticData(gc_t g)
+    {
+        //debug(PRINTF) printf("+GC.scanStaticData()\n");
+        auto pbot = rt_staticDataBottom();
+        auto ptop = rt_staticDataTop();
+        g.addRange(pbot, ptop - pbot);
+        //debug(PRINTF) printf("-GC.scanStaticData()\n");
+    }
+
+    static void unscanStaticData(gc_t g)
+    {
+        auto pbot = rt_staticDataBottom();
+        g.removeRange(pbot);
+    }
 
     /**
      * add p to list of roots

@@ -140,16 +140,45 @@ private
  */
 extern (C) void rt_scanStaticData( scanFn scan )
 {
+    scan(rt_staticDataBottom(), rt_staticDataTop());
+}
+
+/**
+ *
+ */
+extern (C) void* rt_staticDataBottom()
+{
     version( Windows )
     {
-        scan( &_xi_a, &_end );
+        return &_xi_a;
     }
     else version( linux )
     {
-        scan( &__data_start, &_end );
+        return &__data_start;
     }
     else
     {
         static assert( false, "Operating system not supported." );
     }
 }
+
+/**
+ *
+ */
+extern (C) void* rt_staticDataTop()
+{
+    version( Windows )
+    {
+        return &_end;
+    }
+    else version( linux )
+    {
+        return &_end;
+    }
+    else
+    {
+        static assert( false, "Operating system not supported." );
+    }
+}
+
+

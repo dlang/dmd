@@ -23,13 +23,13 @@ ADD_DFLAGS=
 CFLAGS=-O $(ADD_CFLAGS)
 #CFLAGS=-g $(ADD_CFLAGS)
 
-DFLAGS=-release -O -inline -w -nofloat -version=Posix $(ADD_DFLAGS)
-#DFLAGS=-g -w -nofloat -version=Posix $(ADD_DFLAGS)
+DFLAGS=-release -O -inline -w -nofloat $(ADD_DFLAGS)
+#DFLAGS=-g -w -nofloat $(ADD_DFLAGS)
 
-TFLAGS=-O -inline -w -nofloat -version=Posix $(ADD_DFLAGS)
-#TFLAGS=-g -w -nofloat -version=Posix $(ADD_DFLAGS)
+TFLAGS=-O -inline -w -nofloat $(ADD_DFLAGS)
+#TFLAGS=-g -w -nofloat $(ADD_DFLAGS)
 
-DOCFLAGS=-version=DDoc -version=Posix
+DOCFLAGS=-version=DDoc
 
 CC=gcc
 LC=$(AR) -qsv

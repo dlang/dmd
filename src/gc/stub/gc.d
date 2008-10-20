@@ -166,3 +166,17 @@ extern (C) void gc_removeRange( void *p )
 {
 
 }
+
+extern (C) void* gc_getHandle()
+{
+    return null;
+}
+
+extern (C) void gc_setHandle(void* p)
+{
+}
+
+extern (C) void gc_endHandle()
+{
+}
+
