@@ -10,8 +10,8 @@
 #	make clean
 #		Delete unneeded files created by build process
 
-LIB_TARGET=tango-gc-stub.lib
-LIB_MASK=tango-gc-stub*.lib
+LIB_TARGET=druntime-gc-stub.lib
+LIB_MASK=druntime-gc-stub*.lib
 
 CP=xcopy /y
 RM=del /f
@@ -37,7 +37,7 @@ CC=dmc
 LC=lib
 DC=dmd
 
-LIB_DEST=..
+LIB_DEST=..\..\..\lib
 
 .DEFAULT: .asm .c .cpp .d .html .obj
 
@@ -93,3 +93,4 @@ clean :
 install :
 	$(MD) $(LIB_DEST)
 	$(CP) $(LIB_MASK) $(LIB_DEST)\.
+	copy gc.obj $(LIB_DEST)\gcstub.obj

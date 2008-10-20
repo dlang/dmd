@@ -17,6 +17,7 @@ LIB_MASK=druntime*.lib
 DIR_CC=common
 DIR_RT=compiler\dmd
 DIR_GC=gc\basic
+DIR_GC_STUB=gc\stub
 
 LIB_CC=$(DIR_CC)\druntime-core.lib
 LIB_RT=$(DIR_RT)\druntime-rt-dmd.lib
@@ -58,10 +59,14 @@ lib : $(ALL_OBJS)
 	cd $(DIR_GC)
 	make -fwin32.mak lib DC=$(DC) ADD_DFLAGS="$(ADD_DFLAGS)" ADD_CFLAGS="$(ADD_CFLAGS)"
 	cd ..\..
+	cd $(DIR_GC_STUB)
+	make -fwin32.mak lib DC=$(DC) ADD_DFLAGS="$(ADD_DFLAGS)" ADD_CFLAGS="$(ADD_CFLAGS)"
+	cd ..\..
 	$(RM) $(LIB_TARGET)
 	$(LC) -c -n $(LIB_TARGET) $(LIB_CC) $(LIB_RT) $(LIB_GC)
 	$(RM) $(DUP_TARGET)
 	copy $(LIB_TARGET) $(DUP_TARGET)
+
 
 doc : $(ALL_DOCS)
 	cd $(DIR_CC)
@@ -71,6 +76,9 @@ doc : $(ALL_DOCS)
 	make -fwin32.mak doc DC=$(DC)
 	cd ..\..
 	cd $(DIR_GC)
+	make -fwin32.mak doc DC=$(DC)
+	cd ..\..
+	cd $(DIR_GC_STUB)
 	make -fwin32.mak doc DC=$(DC)
 	cd ..\..
 
@@ -89,6 +97,9 @@ clean :
 	cd $(DIR_GC)
 	make -fwin32.mak clean
 	cd ..\..
+	cd $(DIR_GC_STUB)
+	make -fwin32.mak clean
+	cd ..\..
 	$(RM) $(LIB_MASK)
 
 install :
@@ -99,6 +110,9 @@ install :
 	make -fwin32.mak install
 	cd ..\..
 	cd $(DIR_GC)
+	make -fwin32.mak install
+	cd ..\..
+	cd $(DIR_GC_STUB)
 	make -fwin32.mak install
 	cd ..\..
 	$(CP) $(LIB_MASK) $(LIB_DEST)\.
