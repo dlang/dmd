@@ -199,8 +199,20 @@ else version( Posix )
             //       implementation actually requires default initialization
             //       then pthread_cleanup should be restructured to maintain
             //       the current lack of a link dependency.
+            version( linux )
+            {
+                pthread_cleanup cleanup = void;
+                cleanup.push( &thread_cleanupHandler, cast(void*) obj );
+            }
+            else version( darwin )
+            {
             pthread_cleanup cleanup = void;
             cleanup.push( &thread_cleanupHandler, cast(void*) obj );
+            }
+            else
+            {
+                pthread_cleanup_push( &thread_cleanupHandler, cast(void*) obj );
+            }
 
             // NOTE: For some reason this does not always work for threads.
             //obj.m_main.bstack = getStackBottom();
