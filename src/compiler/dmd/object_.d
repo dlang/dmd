@@ -39,10 +39,10 @@ module object;
 
 private
 {
-    import stdc.string;
-    import stdc.stdlib;
+    import core.stdc.string;
+    import core.stdc.stdlib;
     import util.string;
-    debug(PRINTF) import stdc.stdio;
+    debug(PRINTF) import core.stdc.stdio;
 
     extern (C) void onOutOfMemoryError();
     extern (C) Object _d_newclass(ClassInfo ci);

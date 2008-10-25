@@ -30,8 +30,8 @@ module gc.gcbits;
 private
 {
     import core.bitmanip;
-    import stdc.string;
-    import stdc.stdlib;
+    import core.stdc.string;
+    import core.stdc.stdlib;
     extern (C) void onOutOfMemoryError();
 }
 

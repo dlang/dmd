@@ -27,7 +27,7 @@
 
 module rt.switch_;
 
-private import stdc.string;
+private import core.stdc.string;
 
 /******************************************************
  * Support for switch statements switching on strings.

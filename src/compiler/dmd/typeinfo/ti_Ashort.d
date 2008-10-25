@@ -1,7 +1,7 @@
 
 module rt.typeinfo.ti_Ashort;
 
-private import stdc.string;
+private import core.stdc.string;
 
 // short[]
 

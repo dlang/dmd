@@ -22,6 +22,9 @@ private
     alias void delegate( Exception ) ExceptionHandler;
     extern (C) bool rt_init( ExceptionHandler dg = null );
     extern (C) bool rt_term( ExceptionHandler dg = null );
+
+    extern (C) void* rt_loadLibrary( in char[] name );
+    extern (C) void  rt_unloadLibrary( void* ptr );
 }
 
 
@@ -85,6 +88,37 @@ struct Runtime
     static bool isHalting()
     {
         return rt_isHalting();
+    }
+
+
+    /**
+     * Locates a dynamic library with the supplied library name and dynamically
+     * loads it into the caller's address space.  If the library contains a D
+     * runtime it will be integrated with the current runtime.
+     *
+     * Params:
+     *  name = The name of the dynamic library to load.
+     *
+     * Returns:
+     *  A reference to the library or null on error.
+     */
+    static void* loadLibrary( in char[] name )
+    {
+        return rt_loadLibrary( name );
+    }
+
+
+    /**
+     * Unloads the dynamic library referenced by p.  If this library contains a
+     * D runtime then any necessary finalization or cleanup of that runtime
+     * will be performed.
+     *
+     * Params:
+     *  p = A reference to the library to unload.
+     */
+    static void unloadLibrary( void* p )
+    {
+        rt_unloadLibrary( p );
     }
 
 

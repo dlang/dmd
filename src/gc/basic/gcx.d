@@ -52,10 +52,10 @@ private import gcbits;
 private import gcstats;
 private import gcalloc;
 
-private import cstdlib = stdc.stdlib : calloc, free, malloc, realloc;
-private import stdc.string;
+private import cstdlib = core.stdc.stdlib : calloc, free, malloc, realloc;
+private import core.stdc.string;
 
-debug private import stdc.stdio;
+debug private import core.stdc.stdio;
 
 version (GNU)
 {

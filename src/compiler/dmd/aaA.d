@@ -35,8 +35,8 @@ module rt.aaA;
 
 private
 {
-    import stdc.stdarg;
-    import stdc.string;
+    import core.stdc.stdarg;
+    import core.stdc.string;
 
     enum BlkAttr : uint
     {

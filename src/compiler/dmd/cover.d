@@ -17,14 +17,14 @@ module rt.cover;
 private
 {
     version( Windows )
-        import sys.windows.windows;
+        import core.sys.windows.windows;
     else version( Posix )
     {
-        import stdc.posix.fcntl;
-        import stdc.posix.unistd;
+        import core.sys.posix.fcntl;
+        import core.sys.posix.unistd;
     }
     import core.bitmanip;
-    import stdc.stdio;
+    import core.stdc.stdio;
     import util.utf;
 
     struct BitArray

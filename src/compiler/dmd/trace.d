@@ -16,10 +16,10 @@ module rt.trace;
 private
 {
     import util.string;
-    import stdc.ctype;
-    import stdc.stdio;
-    import stdc.string;
-    import stdc.stdlib;
+    import core.stdc.ctype;
+    import core.stdc.stdio;
+    import core.stdc.string;
+    import core.stdc.stdlib;
 }
 
 extern (C):

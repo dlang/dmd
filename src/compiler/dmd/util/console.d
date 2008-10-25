@@ -12,11 +12,11 @@ private
 {
     version (Windows)
     {
-        import sys.windows.windows;
+        import core.sys.windows.windows;
     }
     else version( Posix )
     {
-        import stdc.posix.unistd;
+        import core.sys.posix.unistd;
     }
     import util.string;
 }

@@ -38,9 +38,9 @@ module rt.adi;
 
 private
 {
-    debug(adi) import stdc.stdio;
-    import stdc.string;
-    import stdc.stdlib;
+    debug(adi) import core.stdc.stdio;
+    import core.stdc.string;
+    import core.stdc.stdlib;
     import util.utf;
 
     enum BlkAttr : uint

@@ -12,7 +12,7 @@
 
 module rt.cmath2;
 
-private import stdc.math;
+private import core.stdc.math;
 
 extern (C):
 

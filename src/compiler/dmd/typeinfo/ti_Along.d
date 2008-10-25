@@ -1,7 +1,7 @@
 
 module rt.typeinfo.ti_Along;
 
-private import stdc.string;
+private import core.stdc.string;
 
 // long[]
 

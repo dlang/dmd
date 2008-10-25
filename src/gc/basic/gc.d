@@ -28,7 +28,7 @@ module gc.gc;
 
 private import gcx;
 private import gcstats;
-private import stdc.stdlib;
+private import core.stdc.stdlib;
 
 version=GCCLASS;
 

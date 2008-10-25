@@ -29,10 +29,10 @@ module rt.lifetime;
 
 private
 {
-    import stdc.stdlib;
-    import stdc.string;
-    import stdc.stdarg;
-    debug(PRINTF) import stdc.stdio;
+    import core.stdc.stdlib;
+    import core.stdc.string;
+    import core.stdc.stdarg;
+    debug(PRINTF) import core.stdc.stdio;
 }
 
 

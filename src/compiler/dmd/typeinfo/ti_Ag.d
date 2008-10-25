@@ -2,7 +2,7 @@
 module rt.typeinfo.ti_Ag;
 
 private import util.string;
-private import stdc.string;
+private import core.stdc.string;
 
 // byte[]
 

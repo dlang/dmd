@@ -17,7 +17,7 @@ module rt.qsort2;
 
 //debug=qsort;
 
-private import stdc.stdlib;
+private import core.stdc.stdlib;
 
 struct Array
 {

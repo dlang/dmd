@@ -180,5 +180,3 @@ extern (C) void* rt_staticDataTop()
         static assert( false, "Operating system not supported." );
     }
 }
-
-

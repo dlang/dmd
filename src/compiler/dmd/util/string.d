@@ -8,7 +8,7 @@
  */
 module rt.util.string;
 
-private import stdc.string;
+private import core.stdc.string;
 
 char[] intToString( char[] buf, uint val )
 {

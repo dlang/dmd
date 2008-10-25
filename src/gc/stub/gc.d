@@ -20,7 +20,7 @@
 
 module gc.gc;
 
-private import stdc.stdlib;
+private import core.stdc.stdlib;
 
 private
 {

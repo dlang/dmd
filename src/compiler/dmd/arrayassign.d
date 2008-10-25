@@ -9,9 +9,9 @@ module rt.arrayassign;
 private
 {
     import util.string;
-    import stdc.string;
-    import stdc.stdlib;
-    debug(PRINTF) import stdc.stdio;
+    import core.stdc.string;
+    import core.stdc.stdlib;
+    debug(PRINTF) import core.stdc.stdio;
 }
 
 /**

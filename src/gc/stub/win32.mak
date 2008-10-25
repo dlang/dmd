@@ -23,13 +23,12 @@ ADD_DFLAGS=
 CFLAGS=-mn -6 -r $(ADD_CFLAGS)
 #CFLAGS=-g -mn -6 -r $(ADD_CFLAGS)
 
-### warnings disabled because gcx has issues ###
+DFLAGS=-release -O -inline -w -nofloat $(ADD_DFLAGS)
+#DFLAGS=-g -w -nofloat $(ADD_DFLAGS)
 
-DFLAGS=-release -O -inline $(ADD_DFLAGS)
-#DFLAGS=-g -release $(ADD_DFLAGS)
 
-TFLAGS=-O -inline $(ADD_DFLAGS)
-#TFLAGS=-g $(ADD_DFLAGS)
+TFLAGS=-O -inline -w  -nofloat $(ADD_DFLAGS)
+#TFLAGS=-g -w -nofloat $(ADD_DFLAGS)
 
 DOCFLAGS=-version=DDoc
 

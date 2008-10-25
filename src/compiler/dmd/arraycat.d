@@ -33,8 +33,8 @@ module rt.arraycat;
 
 private
 {
-    import stdc.string;
-    debug import stdc.stdio;
+    import core.stdc.string;
+    debug import core.stdc.stdio;
 }
 
 extern (C):

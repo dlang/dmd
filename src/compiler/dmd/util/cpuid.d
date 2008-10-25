@@ -40,7 +40,7 @@ COPYRIGHT:      Public Domain
 
 module rt.util.cpuid;
 
-private import stdc.string;
+private import core.stdc.string;
 
 version(D_InlineAsm_X86)
 {

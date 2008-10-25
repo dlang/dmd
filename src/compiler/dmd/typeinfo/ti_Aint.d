@@ -1,7 +1,7 @@
 
 module rt.typeinfo.ti_Aint;
 
-private import stdc.string;
+private import core.stdc.string;
 
 // int[]
 

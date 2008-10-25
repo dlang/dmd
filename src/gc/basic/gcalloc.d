@@ -29,7 +29,7 @@ module gc.gcalloc;
 
 version (Windows)
 {
-    private import sys.windows.windows;
+    private import core.sys.windows.windows;
 
     alias int pthread_t;
 
@@ -42,14 +42,14 @@ version (Windows)
 }
 else version (Posix)
 {
-    private import stdc.posix.sys.mman;
-    private import stdc.stdlib;
+    private import core.sys.posix.sys.mman;
+    private import core.stdc.stdlib;
 
     //version = GC_Use_Alloc_MMap;
 }
 else
 {
-    private import stdc.stdlib;
+    private import core.stdc.stdlib;
 
     //version = GC_Use_Alloc_Malloc;
 }

@@ -84,8 +84,8 @@ version( Windows )
 {
     private
     {
-        import stdc.stdint : uintptr_t; // for _beginthreadex decl below
-        import sys.windows.windows;
+        import core.stdc.stdint : uintptr_t; // for _beginthreadex decl below
+        import core.sys.windows.windows;
 
         const DWORD TLS_OUT_OF_INDEXES  = 0xFFFFFFFF;
 
@@ -151,13 +151,14 @@ else version( Posix )
 {
     private
     {
-        import stdc.posix.semaphore;
-        import stdc.posix.pthread;
-        import stdc.posix.signal;
-        import stdc.posix.time;
-        import stdc.errno;
+        import core.sys.posix.semaphore;
+        import core.sys.posix.pthread;
+        import core.sys.posix.signal;
+        import core.sys.posix.time;
+        import core.stdc.errno;
 
         extern (C) int getErrno();
+
         version( GNU )
         {
             import gcc.builtins;
@@ -2256,9 +2257,9 @@ private
 
     version( Posix )
     {
-        import stdc.posix.unistd;   // for sysconf
-        import stdc.posix.sys.mman; // for mmap
-        import stdc.posix.stdlib;   // for malloc, valloc, free
+        import core.sys.posix.unistd;   // for sysconf
+        import core.sys.posix.sys.mman; // for mmap
+        import core.sys.posix.stdlib;   // for malloc, valloc, free
 
         version( AsmX86_Win32 ) {} else
         version( AsmX86_Posix ) {} else
@@ -2270,7 +2271,7 @@ private
             //       a version identifier.  Please note that this is considered
             //       an obsolescent feature according to the POSIX spec, so a
             //       custom solution is still preferred.
-            import stdc.posix.ucontext;
+            import core.sys.posix.ucontext;
         }
     }
 

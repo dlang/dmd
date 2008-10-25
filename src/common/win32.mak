@@ -73,7 +73,7 @@ OBJ_CORE= \
     core\thread.obj
 
 OBJ_STDC= \
-    stdc\errno.obj
+    core\stdc\errno.obj
 
 ALL_OBJS= \
     $(OBJ_CORE) \
