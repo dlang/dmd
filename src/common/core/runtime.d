@@ -24,7 +24,7 @@ private
     extern (C) bool rt_term( ExceptionHandler dg = null );
 
     extern (C) void* rt_loadLibrary( in char[] name );
-    extern (C) void  rt_unloadLibrary( void* ptr );
+    extern (C) bool  rt_unloadLibrary( void* ptr );
 }
 
 
@@ -116,9 +116,9 @@ struct Runtime
      * Params:
      *  p = A reference to the library to unload.
      */
-    static void unloadLibrary( void* p )
+    static bool unloadLibrary( void* p )
     {
-        rt_unloadLibrary( p );
+        return rt_unloadLibrary( p );
     }
 
 

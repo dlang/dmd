@@ -12,6 +12,7 @@ module rt.dmain2;
 
 private
 {
+    import memory;
     import util.console;
     import core.stdc.stddef;
     import core.stdc.stdlib;
@@ -48,15 +49,13 @@ extern (C) void thread_joinAll();
  */
 extern (C)
 {
-    void* gc_getHandle();
-    void  gc_setHandle(void* p);
-    void  gc_clrHandle();
+    void* gc_getProxy();
+    void  gc_setProxy(void* p);
+    void  gc_clrProxy();
 
     alias void* function()      gcGetFn;
     alias void  function(void*) gcSetFn;
     alias void  function()      gcClrFn;
-    alias bool  function(ExceptionHandler dg = null) rtInitFn;
-    alias bool  function(ExceptionHandler dg = null) rtTermFn;
 }
 
 extern (C) void* rt_loadLibrary(in char[] name)
@@ -69,12 +68,9 @@ extern (C) void* rt_loadLibrary(in char[] name)
         void* ptr = LoadLibraryA(temp.ptr);
         if (ptr is null)
             return ptr;
-        gcSetFn  gcSet = cast(gcSetFn) GetProcAddress(ptr, "_gc_setHandle");
-        rtInitFn rtInit = cast(rtInitFn) GetProcAddress(ptr, "_rt_init");
-        if (gcSet is null || rtInit is null)
-            return ptr;
-        gcSet(gc_getHandle());
-        rtInit();
+        gcSetFn gcSet = cast(gcSetFn) GetProcAddress(ptr, "gc_setProxy");
+        if (gcSet !is null)
+            gcSet(gc_getProxy());
         return ptr;
 
     }
@@ -84,18 +80,13 @@ extern (C) void* rt_loadLibrary(in char[] name)
     }
 }
 
-extern (C) void rt_unloadLibrary(void* ptr)
+extern (C) bool rt_unloadLibrary(void* ptr)
 {
     version (Windows)
     {
-        gcClrFn  gcClr  = cast(gcClrFn) GetProcAddress(ptr, "_gc_clrHandle");
-        rtTermFn rtTerm = cast(rtTermFn) GetProcAddress(ptr, "_rt_term");
-
-        if (gcClr !is null && rtTerm !is null)
-        {
-            rtTerm();
+        gcClrFn gcClr  = cast(gcClrFn) GetProcAddress(ptr, "gc_clrProxy");
+        if (gcClr !is null)
             gcClr();
-        }
         return FreeLibrary(ptr) != 0;
     }
     else version (linux)
@@ -178,6 +169,7 @@ extern (C) bool rt_init(ExceptionHandler dg = null)
     try
     {
         gc_init();
+        initStaticDataGC();
         version (Windows)
             _minit();
         _moduleCtor();
@@ -359,6 +351,7 @@ extern (C) int main(int argc, char **argv)
     void runAll()
     {
         gc_init();
+        initStaticDataGC();
         version (Windows)
             _minit();
         _moduleCtor();

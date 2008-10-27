@@ -86,14 +86,8 @@ private
 
     extern (C) void* rt_stackBottom();
     extern (C) void* rt_stackTop();
-    extern (C) void* rt_staticDataBottom();
-    extern (C) void* rt_staticDataTop();
 
     extern (C) void rt_finalize( void* p, bool det = true );
-
-    alias void delegate( void*, void* ) scanFn;
-
-    extern (C) void rt_scanStaticData( scanFn scan );
 
     version (MULTI_THREADED)
     {
@@ -101,6 +95,7 @@ private
         extern (C) void thread_suspendAll();
         extern (C) void thread_resumeAll();
 
+        alias void delegate( void*, void* ) scanFn;
         extern (C) void thread_scanAll( scanFn fn, void* curStackTop = null );
     }
 
@@ -1125,21 +1120,6 @@ class GC
         }
     }
 
-
-    static void scanStaticData(gc_t g)
-    {
-        //debug(PRINTF) printf("+GC.scanStaticData()\n");
-        auto pbot = rt_staticDataBottom();
-        auto ptop = rt_staticDataTop();
-        g.addRange(pbot, ptop - pbot);
-        //debug(PRINTF) printf("-GC.scanStaticData()\n");
-    }
-
-    static void unscanStaticData(gc_t g)
-    {
-        auto pbot = rt_staticDataBottom();
-        g.removeRange(pbot);
-    }
 
     /**
      * add p to list of roots
@@ -2261,8 +2241,6 @@ struct Gcx
             pool = pooltable[n];
             pool.mark.copy(&pool.freebits);
         }
-
-        rt_scanStaticData( &mark );
 
         version (MULTI_THREADED)
         {

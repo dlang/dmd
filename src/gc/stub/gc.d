@@ -57,126 +57,251 @@ extern (C) void gc_term()
 
 extern (C) void gc_enable()
 {
-
+    if( proxy is null )
+        return;
+    return proxy.gc_enable();
 }
 
 extern (C) void gc_disable()
 {
-
+    if( proxy is null )
+        return;
+    return proxy.gc_disable();
 }
 
 extern (C) void gc_collect()
 {
-
+    if( proxy is null )
+        return;
+    return proxy.gc_collect();
 }
 
 extern (C) void gc_minimize()
 {
-
+    if( proxy is null )
+        return;
+    return proxy.gc_minimize();
 }
 
 extern (C) uint gc_getAttr( void* p )
 {
-    return 0;
+    if( proxy is null )
+        return 0;
+    return proxy.gc_getAttr( p );
 }
 
 extern (C) uint gc_setAttr( void* p, uint a )
 {
-    return 0;
+    if( proxy is null )
+        return 0;
+    return proxy.gc_setAttr( p, a );
 }
 
 extern (C) uint gc_clrAttr( void* p, uint a )
 {
-    return 0;
+    if( proxy is null )
+        return 0;
+    return proxy.gc_clrAttr( p, a );
 }
 
 extern (C) void* gc_malloc( size_t sz, uint ba = 0 )
 {
-    void* p = malloc( sz );
+    if( proxy is null )
+    {
+        void* p = malloc( sz );
 
-    if( sz && p is null )
-        onOutOfMemoryError();
-    return p;
+        if( sz && p is null )
+            onOutOfMemoryError();
+        return p;
+    }
+    return proxy.gc_malloc( sz, ba );
 }
 
 extern (C) void* gc_calloc( size_t sz, uint ba = 0 )
 {
-    void* p = calloc( 1, sz );
+    if( proxy is null )
+    {
+        void* p = calloc( 1, sz );
 
-    if( sz && p is null )
-        onOutOfMemoryError();
-    return p;
+        if( sz && p is null )
+            onOutOfMemoryError();
+        return p;
+    }
+    return proxy.gc_calloc( sz, ba );
 }
 
 extern (C) void* gc_realloc( void* p, size_t sz, uint ba = 0 )
 {
-    p = realloc( p, sz );
+    if( proxy is null )
+    {
+        p = realloc( p, sz );
 
-    if( sz && p is null )
-        onOutOfMemoryError();
-    return p;
+        if( sz && p is null )
+            onOutOfMemoryError();
+        return p;
+    }
+    return proxy.gc_realloc( p, sz, ba );
 }
 
 extern (C) size_t gc_extend( void* p, size_t mx, size_t sz )
 {
-    return 0;
+    if( proxy is null )
+        return 0;
+    return proxy.gc_extend( p, mx, sz );
 }
 
 extern (C) size_t gc_reserve( size_t sz )
 {
-    return 0;
+    if( proxy is null )
+        return 0;
+    return proxy.gc_reserve( sz );
 }
 
 extern (C) void gc_free( void* p )
 {
-    free( p );
+    if( proxy is null )
+        return free( p );
+    return proxy.gc_free( p );
 }
 
 extern (C) void* gc_addrOf( void* p )
 {
-    return null;
+    if( proxy is null )
+        return null;
+    return proxy.gc_addrOf( p );
 }
 
 extern (C) size_t gc_sizeOf( void* p )
 {
-    return 0;
+    if( proxy is null )
+        return 0;
+    return proxy.gc_sizeOf( p );
 }
 
 extern (C) BlkInfo gc_query( void* p )
 {
-    return BlkInfo.init;
+    if( proxy is null )
+        return BlkInfo.init;
+    return proxy.gc_query( p );
 }
+
+// TODO: Implement range storage.
+// TODO: Implement root storage.
 
 extern (C) void gc_addRoot( void* p )
 {
-
+    if( proxy is null )
+        return;
+    return proxy.gc_addRoot( p );
 }
 
 extern (C) void gc_addRange( void* p, size_t sz )
 {
-
+    if( proxy is null )
+        return;
+    return proxy.gc_addRange( p, sz );
 }
 
 extern (C) void gc_removeRoot( void *p )
 {
-
+    if( proxy is null )
+        return;
+    return proxy.gc_removeRoot( p );
 }
 
 extern (C) void gc_removeRange( void *p )
 {
-
+    if( proxy is null )
+        return;
+    return proxy.gc_removeRange( p );
 }
 
-extern (C) void* gc_getHandle()
+struct Proxy
 {
-    return null;
+    extern (C) void function() gc_enable;
+    extern (C) void function() gc_disable;
+    extern (C) void function() gc_collect;
+    extern (C) void function() gc_minimize;
+
+    extern (C) uint function(void*) gc_getAttr;
+    extern (C) uint function(void*, uint) gc_setAttr;
+    extern (C) uint function(void*, uint) gc_clrAttr;
+
+    extern (C) void*  function(size_t, uint) gc_malloc;
+    extern (C) void*  function(size_t, uint) gc_calloc;
+    extern (C) void*  function(void*, size_t, uint ba) gc_realloc;
+    extern (C) size_t function(void*, size_t, size_t) gc_extend;
+    extern (C) size_t function(size_t) gc_reserve;
+    extern (C) void   function(void*) gc_free;
+
+    extern (C) void*   function(void*) gc_addrOf;
+    extern (C) size_t  function(void*) gc_sizeOf;
+
+    extern (C) BlkInfo function(void*) gc_query;
+
+    extern (C) void function(void*) gc_addRoot;
+    extern (C) void function(void*, size_t) gc_addRange;
+
+    extern (C) void function(void*) gc_removeRoot;
+    extern (C) void function(void*) gc_removeRange;
 }
 
-extern (C) void gc_setHandle(void* p)
+Proxy  pthis;
+Proxy* proxy;
+
+static this()
 {
+    pthis.gc_enable = &gc_enable;
+    pthis.gc_disable = &gc_disable;
+    pthis.gc_collect = &gc_collect;
+    pthis.gc_minimize = &gc_minimize;
+
+    pthis.gc_getAttr = &gc_getAttr;
+    pthis.gc_setAttr = &gc_setAttr;
+    pthis.gc_clrAttr = &gc_clrAttr;
+
+    pthis.gc_malloc = &gc_malloc;
+    pthis.gc_calloc = &gc_calloc;
+    pthis.gc_realloc = &gc_realloc;
+    pthis.gc_extend = &gc_extend;
+    pthis.gc_reserve = &gc_reserve;
+    pthis.gc_free = &gc_free;
+
+    pthis.gc_addrOf = &gc_addrOf;
+    pthis.gc_sizeOf = &gc_sizeOf;
+
+    pthis.gc_query = &gc_query;
+
+    pthis.gc_addRoot = &gc_addRoot;
+    pthis.gc_addRange = &gc_addRange;
+
+    pthis.gc_removeRoot = &gc_removeRoot;
+    pthis.gc_removeRange = &gc_removeRange;
 }
 
-extern (C) void gc_endHandle()
+extern (C) Proxy* gc_getProxy()
 {
+    return &pthis;
 }
 
+export extern (C) void gc_setProxy( Proxy* p )
+{
+    if( proxy !is null )
+    {
+        // error?
+    }
+    proxy = p;
+    ///foreach range
+    //proxy.addRange();
+    //foreach root
+    //proxy.addRoot()
+}
+
+export extern (C) void gc_clrProxy()
+{
+    // foreach root
+    // proxy.removeRoot();
+    // foreach range
+    // proxy.removeReange();
+    proxy = null;
+}

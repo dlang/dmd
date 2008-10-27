@@ -37,6 +37,8 @@ private
             extern (C) extern void* __libc_stack_end;
         }
     }
+    extern (C) void gc_addRange( void* p, size_t sz );
+    extern (C) void gc_removeRange( void *p );
 }
 
 
@@ -130,50 +132,18 @@ private
             alias __data_start  Data_Start;
             alias _end          Data_End;
     }
-
-    alias void delegate( void*, void* ) scanFn;
 }
 
 
-/**
- *
- */
-extern (C) void rt_scanStaticData( scanFn scan )
-{
-    scan(rt_staticDataBottom(), rt_staticDataTop());
-}
-
-/**
- *
- */
-extern (C) void* rt_staticDataBottom()
+void initStaticDataGC()
 {
     version( Windows )
     {
-        return &_xi_a;
+        gc_addRange( &_xi_a, &_end - &_xi_a );
     }
     else version( linux )
     {
-        return &__data_start;
-    }
-    else
-    {
-        static assert( false, "Operating system not supported." );
-    }
-}
-
-/**
- *
- */
-extern (C) void* rt_staticDataTop()
-{
-    version( Windows )
-    {
-        return &_end;
-    }
-    else version( linux )
-    {
-        return &_end;
+        gc_addRange( &__data_start, &_end - &__data_start );
     }
     else
     {
