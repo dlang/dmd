@@ -20,10 +20,10 @@
 
 module gc.gc;
 
-private import core.stdc.stdlib;
-
 private
 {
+   import core.stdc.stdlib;
+
    enum BlkAttr : uint
     {
         FINALIZE = 0b0000_0001,
@@ -41,6 +41,81 @@ private
 
     extern (C) void thread_init();
     extern (C) void onOutOfMemoryError();
+
+    struct Proxy
+    {
+        extern (C) void function() gc_enable;
+        extern (C) void function() gc_disable;
+        extern (C) void function() gc_collect;
+        extern (C) void function() gc_minimize;
+
+        extern (C) uint function(void*) gc_getAttr;
+        extern (C) uint function(void*, uint) gc_setAttr;
+        extern (C) uint function(void*, uint) gc_clrAttr;
+
+        extern (C) void*  function(size_t, uint) gc_malloc;
+        extern (C) void*  function(size_t, uint) gc_calloc;
+        extern (C) void*  function(void*, size_t, uint ba) gc_realloc;
+        extern (C) size_t function(void*, size_t, size_t) gc_extend;
+        extern (C) size_t function(size_t) gc_reserve;
+        extern (C) void   function(void*) gc_free;
+
+        extern (C) void*   function(void*) gc_addrOf;
+        extern (C) size_t  function(void*) gc_sizeOf;
+
+        extern (C) BlkInfo function(void*) gc_query;
+
+        extern (C) void function(void*) gc_addRoot;
+        extern (C) void function(void*, size_t) gc_addRange;
+
+        extern (C) void function(void*) gc_removeRoot;
+        extern (C) void function(void*) gc_removeRange;
+    }
+
+    Proxy  pthis;
+    Proxy* proxy;
+
+    void initProxy()
+    {
+        pthis.gc_enable = &gc_enable;
+        pthis.gc_disable = &gc_disable;
+        pthis.gc_collect = &gc_collect;
+        pthis.gc_minimize = &gc_minimize;
+
+        pthis.gc_getAttr = &gc_getAttr;
+        pthis.gc_setAttr = &gc_setAttr;
+        pthis.gc_clrAttr = &gc_clrAttr;
+
+        pthis.gc_malloc = &gc_malloc;
+        pthis.gc_calloc = &gc_calloc;
+        pthis.gc_realloc = &gc_realloc;
+        pthis.gc_extend = &gc_extend;
+        pthis.gc_reserve = &gc_reserve;
+        pthis.gc_free = &gc_free;
+
+        pthis.gc_addrOf = &gc_addrOf;
+        pthis.gc_sizeOf = &gc_sizeOf;
+
+        pthis.gc_query = &gc_query;
+
+        pthis.gc_addRoot = &gc_addRoot;
+        pthis.gc_addRange = &gc_addRange;
+
+        pthis.gc_removeRoot = &gc_removeRoot;
+        pthis.gc_removeRange = &gc_removeRange;
+    }
+
+    void** roots  = null;
+    size_t nroots = 0;
+
+    struct Range
+    {
+        void*  pos;
+        size_t len;
+    }
+
+    Range* ranges  = null;
+    size_t nranges = 0;
 }
 
 extern (C) void gc_init()
@@ -48,11 +123,13 @@ extern (C) void gc_init()
     // NOTE: The GC must initialize the thread library before its first
     //       collection, and always before returning from gc_init().
     thread_init();
+    initProxy();
 }
 
 extern (C) void gc_term()
 {
-
+    free( roots );
+    free( ranges );
 }
 
 extern (C) void gc_enable()
@@ -185,98 +262,69 @@ extern (C) BlkInfo gc_query( void* p )
     return proxy.gc_query( p );
 }
 
-// TODO: Implement range storage.
-// TODO: Implement root storage.
-
 extern (C) void gc_addRoot( void* p )
 {
     if( proxy is null )
-        return;
+    {
+        void** r = cast(void**) realloc( roots,
+                                         (nroots+1) * roots[0].sizeof );
+        if( r is null )
+            onOutOfMemoryError();
+        r[nroots++] = p;
+        roots = r;
+
+    }
     return proxy.gc_addRoot( p );
 }
 
 extern (C) void gc_addRange( void* p, size_t sz )
 {
     if( proxy is null )
-        return;
+    {
+        Range* r = cast(Range*) realloc( ranges,
+                                         (nranges+1) * ranges[0].sizeof );
+        if( r is null )
+            onOutOfMemoryError();
+        r[nranges].pos = p;
+        r[nranges].len = sz;
+        ranges = r;
+        ++nranges;
+    }
     return proxy.gc_addRange( p, sz );
 }
 
 extern (C) void gc_removeRoot( void *p )
 {
     if( proxy is null )
-        return;
+    {
+        for( size_t i = 0; i < nroots; ++i )
+        {
+            if( roots[i] is p )
+            {
+                roots[i] = roots[--nroots];
+                return;
+            }
+        }
+        assert( false );
+    }
     return proxy.gc_removeRoot( p );
 }
 
 extern (C) void gc_removeRange( void *p )
 {
     if( proxy is null )
-        return;
+    {
+        for( size_t i = 0; i < nranges; ++i )
+        {
+            if( ranges[i].pos is p )
+            {
+                ranges[i] = ranges[--nranges];
+                return;
+            }
+        }
+        assert( false );
+    }
     return proxy.gc_removeRange( p );
-}
-
-struct Proxy
-{
-    extern (C) void function() gc_enable;
-    extern (C) void function() gc_disable;
-    extern (C) void function() gc_collect;
-    extern (C) void function() gc_minimize;
-
-    extern (C) uint function(void*) gc_getAttr;
-    extern (C) uint function(void*, uint) gc_setAttr;
-    extern (C) uint function(void*, uint) gc_clrAttr;
-
-    extern (C) void*  function(size_t, uint) gc_malloc;
-    extern (C) void*  function(size_t, uint) gc_calloc;
-    extern (C) void*  function(void*, size_t, uint ba) gc_realloc;
-    extern (C) size_t function(void*, size_t, size_t) gc_extend;
-    extern (C) size_t function(size_t) gc_reserve;
-    extern (C) void   function(void*) gc_free;
-
-    extern (C) void*   function(void*) gc_addrOf;
-    extern (C) size_t  function(void*) gc_sizeOf;
-
-    extern (C) BlkInfo function(void*) gc_query;
-
-    extern (C) void function(void*) gc_addRoot;
-    extern (C) void function(void*, size_t) gc_addRange;
-
-    extern (C) void function(void*) gc_removeRoot;
-    extern (C) void function(void*) gc_removeRange;
-}
-
-Proxy  pthis;
-Proxy* proxy;
-
-static this()
-{
-    pthis.gc_enable = &gc_enable;
-    pthis.gc_disable = &gc_disable;
-    pthis.gc_collect = &gc_collect;
-    pthis.gc_minimize = &gc_minimize;
-
-    pthis.gc_getAttr = &gc_getAttr;
-    pthis.gc_setAttr = &gc_setAttr;
-    pthis.gc_clrAttr = &gc_clrAttr;
-
-    pthis.gc_malloc = &gc_malloc;
-    pthis.gc_calloc = &gc_calloc;
-    pthis.gc_realloc = &gc_realloc;
-    pthis.gc_extend = &gc_extend;
-    pthis.gc_reserve = &gc_reserve;
-    pthis.gc_free = &gc_free;
-
-    pthis.gc_addrOf = &gc_addrOf;
-    pthis.gc_sizeOf = &gc_sizeOf;
-
-    pthis.gc_query = &gc_query;
-
-    pthis.gc_addRoot = &gc_addRoot;
-    pthis.gc_addRange = &gc_addRange;
-
-    pthis.gc_removeRoot = &gc_removeRoot;
-    pthis.gc_removeRange = &gc_removeRange;
 }
 
 extern (C) Proxy* gc_getProxy()
@@ -288,20 +336,20 @@ export extern (C) void gc_setProxy( Proxy* p )
 {
     if( proxy !is null )
     {
-        // error?
+        // TODO: Decide if this is an error condition.
     }
     proxy = p;
-    ///foreach range
-    //proxy.addRange();
-    //foreach root
-    //proxy.addRoot()
+    foreach( r; roots[0 .. nroots] )
+        proxy.gc_addRoot( r );
+    foreach( r; ranges[0 .. nranges] )
+        proxy.gc_addRange( r.pos, r.len );
 }
 
 export extern (C) void gc_clrProxy()
 {
-    // foreach root
-    // proxy.removeRoot();
-    // foreach range
-    // proxy.removeReange();
+    foreach( r; ranges[0 .. nranges] )
+        proxy.gc_removeRange( r.pos );
+    foreach( r; roots[0 .. nroots] )
+        proxy.gc_removeRoot( r );
     proxy = null;
 }
