@@ -166,8 +166,8 @@ version( linux )
 {
   static if( __USE_LARGEFILE64 )
   {
-    int   readdir_r64(DIR*, dirent*, dirent**);
-    alias readdir_r64 readdir_r;
+    int   readdir64_r(DIR*, dirent*, dirent**);
+    alias readdir64_r readdir_r;
   }
   else
   {
