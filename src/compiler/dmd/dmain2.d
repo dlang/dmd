@@ -101,7 +101,7 @@ extern (C) bool rt_unloadLibrary(void* ptr)
  */
 extern (C) void onAssertError(string file, size_t line);
 extern (C) void onAssertErrorMsg(string file, size_t line, string msg);
-extern (C) void onArrayBoundsError(string file, size_t line);
+extern (C) void onRangeError(string file, size_t line);
 extern (C) void onHiddenFuncError(Object o);
 extern (C) void onSwitchError(string file, size_t line);
 extern (C) bool runModuleUnitTests();
@@ -124,7 +124,7 @@ extern (C) static void _d_assert_msg(string msg, string file, uint line)
 
 extern (C) void _d_array_bounds(string file, uint line)
 {
-    onArrayBoundsError(file, line);
+    onRangeError(file, line);
 }
 
 extern (C) void _d_switch_error(string file, uint line)

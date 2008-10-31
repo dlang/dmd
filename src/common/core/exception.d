@@ -11,20 +11,20 @@ module core.exception;
 
 private
 {
-    alias void  function( string file, size_t line, string msg = null ) assertHandlerType;
+    alias void function( string file, size_t line, string msg = null ) assertHandlerType;
 
-    assertHandlerType   assertHandler   = null;
+    assertHandlerType assertHandler   = null;
 }
 
 
 /**
- * Thrown on an array bounds error.
+ * Thrown on a range error.
  */
-class ArrayBoundsException : Exception
+class RangeError : Error
 {
     this( string file, size_t line )
     {
-        super( "Array index out of bounds", file, line );
+        super( "Range violation", file, line );
     }
 }
 
@@ -32,7 +32,7 @@ class ArrayBoundsException : Exception
 /**
  * Thrown on an assert error.
  */
-class AssertException : Exception
+class AssertError : Error
 {
     this( string file, size_t line )
     {
@@ -49,7 +49,7 @@ class AssertException : Exception
 /**
  * Thrown on finalize error.
  */
-class FinalizeException : Exception
+class FinalizeError : Error
 {
     ClassInfo   info;
 
@@ -69,7 +69,7 @@ class FinalizeException : Exception
 /**
  * Thrown on hidden function error.
  */
-class HiddenFuncException : Exception
+class HiddenFuncError : Error
 {
     this( ClassInfo ci )
     {
@@ -81,7 +81,7 @@ class HiddenFuncException : Exception
 /**
  * Thrown on an out of memory error.
  */
-class OutOfMemoryException : Exception
+class OutOfMemoryError : Error
 {
     this( string file, size_t line )
     {
@@ -98,7 +98,7 @@ class OutOfMemoryException : Exception
 /**
  * Thrown on a switch error.
  */
-class SwitchException : Exception
+class SwitchError : Error
 {
     this( string file, size_t line )
     {
@@ -146,8 +146,7 @@ void setAssertHandler( assertHandlerType h )
 
 /**
  * A callback for assert errors in D.  The user-supplied assert handler will
- * be called if one has been supplied, otherwise an AssertException will be
- * thrown.
+ * be called if one has been supplied, otherwise an AssertError will be thrown.
  *
  * Params:
  *  file = The name of the file that signaled this error.
@@ -156,15 +155,14 @@ void setAssertHandler( assertHandlerType h )
 extern (C) void onAssertError( string file, size_t line )
 {
     if( assertHandler is null )
-        throw new AssertException( file, line );
+        throw new AssertError( file, line );
     assertHandler( file, line );
 }
 
 
 /**
  * A callback for assert errors in D.  The user-supplied assert handler will
- * be called if one has been supplied, otherwise an AssertException will be
- * thrown.
+ * be called if one has been supplied, otherwise an AssertError will be thrown.
  *
  * Params:
  *  file = The name of the file that signaled this error.
@@ -174,7 +172,7 @@ extern (C) void onAssertError( string file, size_t line )
 extern (C) void onAssertErrorMsg( string file, size_t line, string msg )
 {
     if( assertHandler is null )
-        throw new AssertException( msg, file, line );
+        throw new AssertError( msg, file, line );
     assertHandler( file, line, msg );
 }
 
@@ -185,78 +183,77 @@ extern (C) void onAssertErrorMsg( string file, size_t line, string msg )
 
 
 /**
- * A callback for array bounds errors in D.  An ArrayBoundsException will be
- * thrown.
+ * A callback for array bounds errors in D.  A RangeError will be thrown.
  *
  * Params:
  *  file = The name of the file that signaled this error.
  *  line = The line number on which this error occurred.
  *
  * Throws:
- *  ArrayBoundsException.
+ *  RangeError.
  */
-extern (C) void onArrayBoundsError( string file, size_t line )
+extern (C) void onRangeError( string file, size_t line )
 {
-    throw new ArrayBoundsException( file, line );
+    throw new RangeError( file, line );
 }
 
 
 /**
- * A callback for finalize errors in D.  A FinalizeException will be thrown.
+ * A callback for finalize errors in D.  A FinalizeError will be thrown.
  *
  * Params:
  *  e = The exception thrown during finalization.
  *
  * Throws:
- *  FinalizeException.
+ *  FinalizeError.
  */
 extern (C) void onFinalizeError( ClassInfo info, Exception ex )
 {
-    throw new FinalizeException( info, ex );
+    throw new FinalizeError( info, ex );
 }
 
 
 /**
- * A callback for hidden function errors in D.  A HiddenFuncException will be
+ * A callback for hidden function errors in D.  A HiddenFuncError will be
  * thrown.
  *
  * Throws:
- *  HiddenFuncException.
+ *  HiddenFuncError.
  */
 extern (C) void onHiddenFuncError( Object o )
 {
-    throw new HiddenFuncException( o.classinfo );
+    throw new HiddenFuncError( o.classinfo );
 }
 
 
 /**
- * A callback for out of memory errors in D.  An OutOfMemoryException will be
+ * A callback for out of memory errors in D.  An OutOfMemoryError will be
  * thrown.
  *
  * Throws:
- *  OutOfMemoryException.
+ *  OutOfMemoryError.
  */
 extern (C) void onOutOfMemoryError()
 {
     // NOTE: Since an out of memory condition exists, no allocation must occur
     //       while generating this object.
-    throw cast(OutOfMemoryException) cast(void*) OutOfMemoryException.classinfo.init;
+    throw cast(OutOfMemoryError) cast(void*) OutOfMemoryError.classinfo.init;
 }
 
 
 /**
- * A callback for switch errors in D.  A SwitchException will be thrown.
+ * A callback for switch errors in D.  A SwitchError will be thrown.
  *
  * Params:
  *  file = The name of the file that signaled this error.
  *  line = The line number on which this error occurred.
  *
  * Throws:
- *  SwitchException.
+ *  SwitchError.
  */
 extern (C) void onSwitchError( string file, size_t line )
 {
-    throw new SwitchException( file, line );
+    throw new SwitchError( file, line );
 }
 
 
