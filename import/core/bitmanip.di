@@ -5,7 +5,7 @@
  * License:   BSD Style, see LICENSE
  * Authors:   Walter Bright, Don Clugston, Sean Kelly
  */
-module bitmanip;
+module core.bitmanip;
 
 
 version( DDoc )
