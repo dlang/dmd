@@ -35,7 +35,7 @@ struct Console
         {
             write( 2, val.ptr, val.length );
         }
-        return *this;
+        return this;
     }
 
 

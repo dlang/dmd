@@ -1468,7 +1468,7 @@ struct Gcx
     void initialize()
     {   int dummy;
 
-        (cast(byte*)this)[0 .. Gcx.sizeof] = 0;
+        (cast(byte*)&this)[0 .. Gcx.sizeof] = 0;
         stackBottom = cast(char*)&dummy;
         log_init();
         debug (THREADINVARIANT)
