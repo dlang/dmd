@@ -286,7 +286,7 @@ extern (C) int main(int argc, char **argv)
 
     bool trapExceptions = rt_trapExceptions;
 
-    void tryExec(void delegate() dg)
+    void tryExec(scope void delegate() dg)
     {
 
         if (trapExceptions)
