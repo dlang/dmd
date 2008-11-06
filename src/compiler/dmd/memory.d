@@ -139,11 +139,11 @@ void initStaticDataGC()
 {
     version( Windows )
     {
-        gc_addRange( &_xi_a, &_end - &_xi_a );
+        gc_addRange( &_xi_a, cast(size_t) &_end - cast(size_t) &_xi_a );
     }
     else version( linux )
     {
-        gc_addRange( &__data_start, &_end - &__data_start );
+        gc_addRange( &__data_start, cast(size_t) &_end - cast(size_t) &__data_start );
     }
     else
     {
