@@ -134,7 +134,7 @@ extern (C) long _adReverseChar(char[] a)
 
 unittest
 {
-    auto a = "abcd"c;
+    auto a = "abcd"c[];
 
     auto r = a.dup.reverse;
     //writefln(r);

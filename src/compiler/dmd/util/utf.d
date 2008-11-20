@@ -334,7 +334,7 @@ unittest
     assert(i == 3);
 
     static s4 =
-    [	"\xE2\x89"c,		// too short
+    [	"\xE2\x89"c[],		// too short
 	"\xC0\x8A",
 	"\xE0\x80\x8A",
 	"\xF0\x80\x80\x8A",
@@ -863,7 +863,7 @@ unittest
 {
     debug(utf) printf("utf.toUTF.unittest\n");
 
-    auto c = "hello"c;
+    auto c = "hello"c[];
     auto w = toUTF16(c);
     assert(w == "hello");
     auto d = toUTF32(c);

@@ -10,8 +10,10 @@
 #	make clean
 #		Delete unneeded files created by build process
 
-LIB_TARGET=libdruntime-core.a
-LIB_MASK=libdruntime-core*.a
+LIB_BASE=libdruntime-core
+LIB_BUILD=
+LIB_TARGET=$(LIB_BASE)$(LIB_BUILD).a
+LIB_MASK=$(LIB_BASE)*.a
 
 CP=cp -f
 RM=rm -f
@@ -20,14 +22,17 @@ MD=mkdir -p
 ADD_CFLAGS=
 ADD_DFLAGS=
 
-CFLAGS=-O $(ADD_CFLAGS)
-#CFLAGS=-g $(ADD_CFLAGS)
+CFLAGS_RELEASE=-O $(ADD_CFLAGS)
+CFLAGS_DEBUG=-g $(ADD_CFLAGS)
+CFLAGS=$(CFLAGS_RELEASE)
 
-DFLAGS=-release -O -inline -w -nofloat $(ADD_DFLAGS)
-#DFLAGS=-g -w -nofloat $(ADD_DFLAGS)
+DFLAGS_RELEASE=-release -O -inline -w -nofloat $(ADD_DFLAGS)
+DFLAGS_DEBUG=-debug -g -w -nofloat $(ADD_DFLAGS)
+DFLAGS=$(DFLAGS_RELEASE)
 
-TFLAGS=-O -inline -w -nofloat $(ADD_DFLAGS)
-#TFLAGS=-g -w -nofloat $(ADD_DFLAGS)
+TFLAGS_RELEASE=-O -inline -w  -nofloat $(ADD_DFLAGS)
+TFLAGS_DEBUG=-debug -g -w -nofloat $(ADD_DFLAGS)
+TFLAGS=$(TFLAGS_RELEASE)
 
 DOCFLAGS=-version=DDoc
 
@@ -91,8 +96,20 @@ DOC_CORE= \
     core/runtime.html \
     core/thread.html
 
+######################################################
 
 ALL_DOCS=
+
+######################################################
+
+unittest :
+	make -fposix.mak DC="$(DC)" LIB_BUILD="" DFLAGS="$(DFLAGS_RELEASE) -unittest"
+
+release :
+	make -fposix.mak DC="$(DC)" LIB_BUILD="" DFLAGS="$(DFLAGS_RELEASE)"
+
+debug :
+	make -fposix.mak DC="$(DC)" LIB_BUILD="-d" DFLAGS="$(DFLAGS_DEBUG)"
 
 ######################################################
 

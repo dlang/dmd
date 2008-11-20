@@ -10,21 +10,29 @@
 #	make clean
 #		Delete unneeded files created by build process
 
-LIB_TARGET=libdruntime-rt-dmd.a
-LIB_MASK=libdruntime-rt-dmd*.a
+LIB_BASE=libdruntime-rt-dmd
+LIB_BUILD=
+LIB_TARGET=$(LIB_BASE)$(LIB_BUILD).a
+LIB_MASK=$(LIB_BASE)*.a
 
 CP=cp -f
 RM=rm -f
 MD=mkdir -p
 
-CFLAGS=-O $(ADD_CFLAGS)
-#CFLAGS=-g $(ADD_CFLAGS)
+ADD_CFLAGS=
+ADD_DFLAGS=
 
-DFLAGS=-release -O -inline -w -nofloat $(ADD_DFLAGS)
-#DFLAGS=-g -w -nofloat $(ADD_DFLAGS)
+CFLAGS_RELEASE=-O $(ADD_CFLAGS)
+CFLAGS_DEBUG=-g $(ADD_CFLAGS)
+CFLAGS=$(CFLAGS_RELEASE)
 
-TFLAGS=-O -inline -w -nofloat $(ADD_DFLAGS)
-#TFLAGS=-g -w -nofloat $(ADD_DFLAGS)
+DFLAGS_RELEASE=-release -O -inline -w -nofloat $(ADD_DFLAGS)
+DFLAGS_DEBUG=-debug -g -w -nofloat $(ADD_DFLAGS)
+DFLAGS=$(DFLAGS_RELEASE)
+
+TFLAGS_RELEASE=-O -inline -w  -nofloat $(ADD_DFLAGS)
+TFLAGS_DEBUG=-debug -g -w -nofloat $(ADD_DFLAGS)
+TFLAGS=$(TFLAGS_RELEASE)
 
 DOCFLAGS=-version=DDoc
 
@@ -153,6 +161,17 @@ ALL_OBJS= \
 ######################################################
 
 ALL_DOCS=
+
+######################################################
+
+unittest :
+	make -fposix.mak DC="$(DC)" LIB_BUILD="" DFLAGS="$(DFLAGS_RELEASE) -unittest"
+
+release :
+	make -fposix.mak DC="$(DC)" LIB_BUILD="" DFLAGS="$(DFLAGS_RELEASE)"
+
+debug :
+	make -fposix.mak DC="$(DC)" LIB_BUILD="-d" DFLAGS="$(DFLAGS_DEBUG)"
 
 ######################################################
 

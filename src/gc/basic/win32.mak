@@ -10,8 +10,10 @@
 #	make clean
 #		Delete unneeded files created by build process
 
-LIB_TARGET=druntime-gc-basic.lib
-LIB_MASK=druntime-gc-basic*.lib
+LIB_BASE=druntime-gc-basic
+LIB_BUILD=
+LIB_TARGET=$(LIB_BASE)$(LIB_BUILD).lib
+LIB_MASK=$(LIB_BASE)*.lib
 
 CP=xcopy /y
 RM=del /f
@@ -20,14 +22,17 @@ MD=mkdir
 ADD_CFLAGS=
 ADD_DFLAGS=
 
-CFLAGS=-mn -6 -r $(ADD_CFLAGS)
-#CFLAGS=-g -mn -6 -r $(ADD_CFLAGS)
+CFLAGS_RELEASE=-mn -6 -r $(ADD_CFLAGS)
+CFLAGS_DEBUG=-D -g -mn -6 -r $(ADD_CFLAGS)
+CFLAGS=$(CFLAGS_RELEASE)
 
-DFLAGS=-release -O -inline -w -nofloat $(ADD_DFLAGS)
-#DFLAGS=-g -w -nofloat $(ADD_DFLAGS)
+DFLAGS_RELEASE=-release -O -inline -w -nofloat $(ADD_DFLAGS)
+DFLAGS_DEBUG=-debug -g -w -nofloat $(ADD_DFLAGS)
+DFLAGS=$(DFLAGS_RELEASE)
 
-TFLAGS=-O -inline -w  -nofloat $(ADD_DFLAGS)
-#TFLAGS=-g -w -nofloat $(ADD_DFLAGS)
+TFLAGS_RELEASE=-O -inline -w  -nofloat $(ADD_DFLAGS)
+TFLAGS_DEBUG=-debug -g -w -nofloat $(ADD_DFLAGS)
+TFLAGS=$(TFLAGS_RELEASE)
 
 DOCFLAGS=-version=DDoc
 
@@ -72,6 +77,17 @@ ALL_OBJS= \
 ######################################################
 
 ALL_DOCS=
+
+######################################################
+
+unittest :
+	make -fwin32.mak DC="$(DC)" LIB_BUILD="" DFLAGS="$(DFLAGS_RELEASE) -unittest"
+
+release :
+	make -fwin32.mak DC="$(DC)" LIB_BUILD="" DFLAGS="$(DFLAGS_RELEASE)"
+
+debug :
+	make -fwin32.mak DC="$(DC)" LIB_BUILD="-d" DFLAGS="$(DFLAGS_DEBUG)"
 
 ######################################################
 

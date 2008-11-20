@@ -80,7 +80,7 @@ unittest
 {
     debug(apply) printf("_aApplyRcd1.unittest\n");
 
-    auto s = "hello"c;
+    auto s = "hello"c[];
     int i;
 
     foreach_reverse(dchar d; s)
@@ -144,7 +144,7 @@ unittest
 {
     debug(apply) printf("_aApplyRwd1.unittest\n");
 
-    auto s = "hello"w;
+    auto s = "hello"w[];
     int i;
 
     foreach_reverse(dchar d; s)
@@ -230,7 +230,7 @@ unittest
 {
     debug(apply) printf("_aApplyRcw1.unittest\n");
 
-    auto s = "hello"c;
+    auto s = "hello"c[];
     int i;
 
     foreach_reverse(wchar d; s)
@@ -311,7 +311,7 @@ unittest
 {
     debug(apply) printf("_aApplyRwc1.unittest\n");
 
-    auto s = "hello"w;
+    auto s = "hello"w[];
     int i;
 
     foreach_reverse(char d; s)
@@ -390,7 +390,7 @@ unittest
 {
     debug(apply) printf("_aApplyRdc1.unittest\n");
 
-    auto s = "hello"d;
+    auto s = "hello"d[];
     int i;
 
     foreach_reverse(char d; s)
@@ -462,7 +462,7 @@ unittest
 {
     debug(apply) printf("_aApplyRdw1.unittest\n");
 
-    auto s = "hello"d;
+    auto s = "hello"d[];
     int i;
 
     foreach_reverse(wchar d; s)
@@ -544,7 +544,7 @@ unittest
 {
     debug(apply) printf("_aApplyRcd2.unittest\n");
 
-    auto s = "hello"c;
+    auto s = "hello"c[];
     int i;
 
     foreach_reverse(k, dchar d; s)
@@ -609,7 +609,7 @@ unittest
 {
     debug(apply) printf("_aApplyRwd2.unittest\n");
 
-    auto s = "hello"w;
+    auto s = "hello"w[];
     int i;
 
     foreach_reverse(k, dchar d; s)
@@ -697,7 +697,7 @@ unittest
 {
     debug(apply) printf("_aApplyRcw2.unittest\n");
 
-    auto s = "hello"c;
+    auto s = "hello"c[];
     int i;
 
     foreach_reverse(k, wchar d; s)
@@ -780,7 +780,7 @@ unittest
 {
     debug(apply) printf("_aApplyRwc2.unittest\n");
 
-    auto s = "hello"w;
+    auto s = "hello"w[];
     int i;
 
     foreach_reverse(k, char d; s)
@@ -860,7 +860,7 @@ unittest
 {
     debug(apply) printf("_aApplyRdc2.unittest\n");
 
-    auto s = "hello"d;
+    auto s = "hello"d[];
     int i;
 
     foreach_reverse(k, char d; s)
@@ -934,7 +934,7 @@ unittest
 {
     debug(apply) printf("_aApplyRdw2.unittest\n");
 
-    auto s = "hello"d;
+    auto s = "hello"d[];
     int i;
 
     foreach_reverse(k, wchar d; s)
