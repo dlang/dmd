@@ -55,9 +55,9 @@ ALL_DOCS=
 
 unittest :
 	make -fdmd-win32.mak lib MAKE_LIB="unittest"
-	dmd -unittest main ..\import\core\stdc\stdarg -defaultlib="$(DUP_TARGET)" -debuglib="$(DUP_TARGET)"
+	dmd -unittest unittest ..\import\core\stdc\stdarg -defaultlib="$(DUP_TARGET)" -debuglib="$(DUP_TARGET)"
 	$(RM) stdarg.obj
-	main
+	unittest
 
 release :
 	make -fdmd-win32.mak lib MAKE_LIB="release"
@@ -120,7 +120,7 @@ clean :
 	cd ..\..
 	$(RM) $(LIB_MASK)
 	$(RM) $(DUP_MASK)
-	$(RM) main.exe main.obj main.map
+	$(RM) unittest.exe unittest.obj unittest.map
 
 install :
 	cd $(DIR_CC)

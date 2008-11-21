@@ -27,11 +27,11 @@ CFLAGS_DEBUG=-g $(ADD_CFLAGS)
 CFLAGS=$(CFLAGS_RELEASE)
 
 DFLAGS_RELEASE=-release -O -inline -w -nofloat $(ADD_DFLAGS)
-DFLAGS_DEBUG=-debug -g -w -nofloat $(ADD_DFLAGS)
+DFLAGS_DEBUG=-g -w -nofloat $(ADD_DFLAGS)
 DFLAGS=$(DFLAGS_RELEASE)
 
 TFLAGS_RELEASE=-O -inline -w  -nofloat $(ADD_DFLAGS)
-TFLAGS_DEBUG=-debug -g -w -nofloat $(ADD_DFLAGS)
+TFLAGS_DEBUG=-g -w -nofloat $(ADD_DFLAGS)
 TFLAGS=$(TFLAGS_RELEASE)
 
 DOCFLAGS=-version=DDoc

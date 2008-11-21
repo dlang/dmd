@@ -23,15 +23,15 @@ ADD_CFLAGS=
 ADD_DFLAGS=
 
 CFLAGS_RELEASE=-mn -6 -r $(ADD_CFLAGS)
-CFLAGS_DEBUG=-D -g -mn -6 -r $(ADD_CFLAGS)
+CFLAGS_DEBUG=-g -mn -6 -r $(ADD_CFLAGS)
 CFLAGS=$(CFLAGS_RELEASE)
 
 DFLAGS_RELEASE=-release -O -inline -w -nofloat $(ADD_DFLAGS)
-DFLAGS_DEBUG=-debug -g -w -nofloat $(ADD_DFLAGS)
+DFLAGS_DEBUG=-g -w -nofloat $(ADD_DFLAGS)
 DFLAGS=$(DFLAGS_RELEASE)
 
 TFLAGS_RELEASE=-O -inline -w  -nofloat $(ADD_DFLAGS)
-TFLAGS_DEBUG=-debug -g -w -nofloat $(ADD_DFLAGS)
+TFLAGS_DEBUG=-g -w -nofloat $(ADD_DFLAGS)
 TFLAGS=$(TFLAGS_RELEASE)
 
 DOCFLAGS=-version=DDoc

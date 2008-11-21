@@ -50,9 +50,9 @@ ALL_DOCS=
 
 unittest :
 	make -fdmd-posix.mak lib MAKE_LIB="unittest"
-	dmd -unittest main ../import/core/stdc/stdarg -defaultlib="$(DUP_TARGET)" -debuglib="$(DUP_TARGET)"
+	dmd -unittest unittest ../import/core/stdc/stdarg -defaultlib="$(DUP_TARGET)" -debuglib="$(DUP_TARGET)"
 	$(RM) stdarg.o
-	main
+	unittest
 
 release :
 	make -fdmd-posix.mak lib MAKE_LIB="release"
@@ -89,7 +89,7 @@ clean :
 	make -C $(DIR_GC) -fposix.mak clean
 	$(RM) $(LIB_MASK)
 	$(RM) $(DUP_MASK)
-	$(RM) main main.o
+	$(RM) unittest unittest.o
 
 install :
 	make -C $(DIR_CC) -fposix.mak install
