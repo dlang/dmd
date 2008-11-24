@@ -1,3 +1,6 @@
+/+ Commented out because it produces no output file.
+   Gone back to phobos/std/cover for the moment.
+
 /**
  * Code coverage analyzer.
  *
@@ -371,3 +374,4 @@ char[] expandTabs( char[] string, int tabsize = 8 )
     }
     return result;
 }
++/
