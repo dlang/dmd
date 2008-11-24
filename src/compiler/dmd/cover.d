@@ -1,6 +1,3 @@
-/+ Commented out because it produces no output file.
-   Gone back to phobos/std/cover for the moment.
-
 /**
  * Code coverage analyzer.
  *
@@ -48,14 +45,14 @@ private
 
     struct Cover
     {
-        char[]      filename;
+        string      filename;
         BitArray    valid;
         uint[]      data;
     }
 
     Cover[] gdata;
-    char[]  srcpath;
-    char[]  dstpath;
+    string  srcpath;
+    string  dstpath;
     bool    merge;
 }
 
@@ -66,7 +63,7 @@ private
  * Params:
  *  pathname = The new path name.
  */
-extern (C) void dmd_coverSourcePath( char[] pathname )
+extern (C) void dmd_coverSourcePath( string pathname )
 {
     srcpath = pathname;
 }
@@ -78,7 +75,7 @@ extern (C) void dmd_coverSourcePath( char[] pathname )
  * Params:
  *  pathname = The new path name.
  */
-extern (C) void dmd_coverDestPath( char[] pathname )
+extern (C) void dmd_coverDestPath( string pathname )
 {
     dstpath = pathname;
 }
@@ -105,7 +102,7 @@ extern (C) void dmd_coverSetMerge( bool flag )
  *  valid    = ???
  *  data     = ???
  */
-extern (C) void _d_cover_register( char[] filename, BitArray valid, uint[] data )
+extern (C) void _d_cover_register( string filename, BitArray valid, uint[] data )
 {
     Cover c;
 
@@ -134,7 +131,7 @@ static ~this()
 
         if( merge )
         {
-            if( !readFile( c.filename ~ ".lst", lstbuf ) )
+            if( !readFile( addExt( baseName( c.filename ), "lst" ), lstbuf ) )
                 break;
             splitLines( lstbuf, lstlines );
 
@@ -163,7 +160,7 @@ static ~this()
             }
         }
 
-        FILE* flst = fopen( (c.filename ~ ".lst").ptr, "wb" );
+        FILE* flst = fopen( (addExt( baseName( c.filename ), "lst" )).ptr, "wb" );
 
         if( !flst )
             continue; //throw new Exception( "Error opening file for write: " ~ lstfn );
@@ -208,14 +205,14 @@ static ~this()
 }
 
 
-char[] appendFN( char[] path, char[] name )
+string appendFN( string path, string name )
 {
     version( Windows )
         const char sep = '\\';
     else
         const char sep = '/';
 
-    char[] dest = path;
+    auto dest = path;
 
     if( dest && dest[$ - 1] != sep )
         dest ~= sep;
@@ -224,7 +221,96 @@ char[] appendFN( char[] path, char[] name )
 }
 
 
-bool readFile( char[] name, inout char[] buf )
+string baseName( string name, string ext = null )
+{
+    auto i = name.length;
+    for( ; i > 0; --i )
+    {
+        version( Windows )
+        {
+            if( namev[i - 1] == ':' || name[i - 1] == '\\' )
+                break;
+        }
+        else version( Posix )
+        {
+            if( name[i - 1] == '/' )
+                break;
+        }
+    }
+    return chomp( name[i .. $], ext ? ext : "" );
+}
+
+
+string getExt( string name )
+{
+    auto i = name.length;
+    
+    while( i > 0 )
+    {
+        if( name[i - 1] == '.' )
+            return name[i .. $];
+        --i;
+        version( Windows )
+        {
+            if( name[i] == ':' || name[i] == '\\' )
+                break;
+        }
+        else version( Posix )
+        {
+            if( name[i] == '/' )
+                break;
+        }
+    }
+    return null;
+}
+
+
+string addExt( string name, string ext )
+{
+    auto  existing = getExt( name );
+    
+    if( existing.length == 0 )
+    {
+        if( name.length && name[$ - 1] == '.' )
+            name ~= ext;
+        else
+            name = name ~ "." ~ ext;
+    }
+    else
+    {
+        name = name[0 .. $ - existing.length] ~ ext;
+    }
+    return name;
+}
+
+
+string chomp( string str, string delim = null )
+{
+    if( delim is null )
+    {
+        auto len = str.length;
+        
+        if( len )
+        {
+            auto c = str[len - 1];
+
+            if( c == '\r' )
+                --len;
+            else if( c == '\n' && str[--len - 1] == '\r' )
+                --len;
+        }
+        return str[0 .. len];
+    }
+    else if( str.length >= delim.length )
+    {
+        if( str[$ - delim.length .. $] == delim )
+            return str[0 .. $ - delim.length];
+    }
+    return str;
+}
+
+
+bool readFile( string name, inout char[] buf )
 {
     version( Windows )
     {
@@ -319,17 +405,17 @@ void splitLines( char[] buf, inout char[][] lines )
 }
 
 
-char[] expandTabs( char[] string, int tabsize = 8 )
+char[] expandTabs( char[] str, int tabsize = 8 )
 {
     const dchar LS = '\u2028'; // UTF line separator
     const dchar PS = '\u2029'; // UTF paragraph separator
 
     bool changes = false;
-    char[] result = string;
+    char[] result = str;
     int column;
     int nspaces;
 
-    foreach( size_t i, dchar c; string )
+    foreach( size_t i, dchar c; str )
     {
         switch( c )
         {
@@ -339,9 +425,9 @@ char[] expandTabs( char[] string, int tabsize = 8 )
                 {
                     changes = true;
                     result = null;
-                    result.length = string.length + nspaces - 1;
+                    result.length = str.length + nspaces - 1;
                     result.length = i + nspaces;
-                    result[0 .. i] = string[0 .. i];
+                    result[0 .. i] = str[0 .. i];
                     result[i .. i + nspaces] = ' ';
                 }
                 else
@@ -374,4 +460,4 @@ char[] expandTabs( char[] string, int tabsize = 8 )
     }
     return result;
 }
-+/
+
