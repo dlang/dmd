@@ -78,7 +78,8 @@ OBJ_CORE= \
     core/exception.o \
     core/memory_.o \
     core/runtime.o \
-    core/thread.o
+    core/thread.o \
+    core/vararg.o
 
 OBJ_STDC= \
     core/stdc/errno.o
@@ -94,7 +95,8 @@ DOC_CORE= \
     core/exception.html \
     core/memory.html \
     core/runtime.html \
-    core/thread.html
+    core/thread.html \
+    core/vararg.html
 
 ######################################################
 
@@ -138,6 +140,11 @@ core/memory_.o : core/memory.d
 
 core/thread.o : core/thread.d
 	$(DC) -c $(DFLAGS) -d -Hf$*.di core/thread.d -of$@
+
+### vararg
+
+core/vararg.o : core/vararg.d
+	$(DC) -c $(TFLAGS) -Hf$*.di core/vararg.d -of$@
 
 ######################################################
 

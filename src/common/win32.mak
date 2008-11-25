@@ -75,7 +75,8 @@ OBJ_CORE= \
     core\exception.obj \
     core\memory.obj \
     core\runtime.obj \
-    core\thread.obj
+    core\thread.obj \
+    core\vararg.obj
 
 OBJ_STDC= \
     core\stdc\errno.obj
@@ -91,7 +92,8 @@ DOC_CORE= \
     core\exception.html \
     core\memory.html \
     core\runtime.html \
-    core\thread.html
+    core\thread.html \
+    core\vararg.html
 
 ######################################################
 
@@ -130,6 +132,11 @@ core\bitmanip.obj : core\bitmanip.d
 
 core\thread.obj : core\thread.d
 	$(DC) -c $(DFLAGS) -d -Hf$*.di core\thread.d -of$@
+
+### vararg
+
+core\vararg.obj : core\vararg.d
+	$(DC) -c $(TFLAGS) -Hf$*.di core\vararg.d -of$@
 
 ######################################################
 
