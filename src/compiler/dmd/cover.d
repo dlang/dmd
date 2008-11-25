@@ -160,7 +160,7 @@ static ~this()
             }
         }
 
-        FILE* flst = fopen( (addExt( baseName( c.filename ), "lst" )).ptr, "wb" );
+        FILE* flst = fopen( (addExt( baseName( c.filename ), "lst\0" )).ptr, "wb" );
 
         if( !flst )
             continue; //throw new Exception( "Error opening file for write: " ~ lstfn );
@@ -228,7 +228,7 @@ string baseName( string name, string ext = null )
     {
         version( Windows )
         {
-            if( namev[i - 1] == ':' || name[i - 1] == '\\' )
+            if( name[i - 1] == ':' || name[i - 1] == '\\' )
                 break;
         }
         else version( Posix )
@@ -244,7 +244,7 @@ string baseName( string name, string ext = null )
 string getExt( string name )
 {
     auto i = name.length;
-    
+
     while( i > 0 )
     {
         if( name[i - 1] == '.' )
@@ -268,7 +268,7 @@ string getExt( string name )
 string addExt( string name, string ext )
 {
     auto  existing = getExt( name );
-    
+
     if( existing.length == 0 )
     {
         if( name.length && name[$ - 1] == '.' )
@@ -289,7 +289,7 @@ string chomp( string str, string delim = null )
     if( delim is null )
     {
         auto len = str.length;
-        
+
         if( len )
         {
             auto c = str[len - 1];
@@ -460,4 +460,3 @@ char[] expandTabs( char[] str, int tabsize = 8 )
     }
     return result;
 }
-
