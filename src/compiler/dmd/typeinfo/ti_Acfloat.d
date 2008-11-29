@@ -21,7 +21,7 @@
  *     distribution.
  */
 
-module rt.typeinfo.ti_Acfloat;
+module typeinfo.ti_Acfloat;
 
 private import typeinfo.ti_cfloat;
 

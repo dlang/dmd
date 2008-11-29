@@ -1,4 +1,4 @@
-module rt.typeinfo.ti_AC;
+module typeinfo.ti_AC;
 
 // Object[]
 

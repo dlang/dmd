@@ -21,7 +21,7 @@
  *     distribution.
  */
 
-module rt.typeinfo.ti_C;
+module typeinfo.ti_C;
 
 // Object
 

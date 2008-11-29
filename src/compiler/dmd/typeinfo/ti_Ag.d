@@ -1,5 +1,5 @@
 
-module rt.typeinfo.ti_Ag;
+module typeinfo.ti_Ag;
 
 private import util.string;
 private import core.stdc.string;

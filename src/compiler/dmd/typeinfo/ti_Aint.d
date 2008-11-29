@@ -1,5 +1,5 @@
 
-module rt.typeinfo.ti_Aint;
+module typeinfo.ti_Aint;
 
 private import core.stdc.string;
 

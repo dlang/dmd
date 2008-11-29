@@ -5,7 +5,7 @@
  * License:   Public Domain
  * Authors:   Sean Kelly
  */
-module rt.util.console;
+module util.console;
 
 
 private

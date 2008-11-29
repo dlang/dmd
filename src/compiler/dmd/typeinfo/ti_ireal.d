@@ -1,7 +1,7 @@
 
 // ireal
 
-module rt.typeinfo.ti_ireal;
+module typeinfo.ti_ireal;
 
 private import typeinfo.ti_real;
 

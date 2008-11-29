@@ -1,7 +1,7 @@
 
 // idouble
 
-module rt.typeinfo.ti_idouble;
+module typeinfo.ti_idouble;
 
 private import typeinfo.ti_double;
 

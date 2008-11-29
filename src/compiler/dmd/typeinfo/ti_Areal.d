@@ -21,7 +21,7 @@
  *     distribution.
  */
 
-module rt.typeinfo.ti_Areal;
+module typeinfo.ti_Areal;
 
 private import typeinfo.ti_real;
 

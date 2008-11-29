@@ -1,7 +1,7 @@
 
 // double
 
-module rt.typeinfo.ti_double;
+module typeinfo.ti_double;
 
 class TypeInfo_d : TypeInfo
 {

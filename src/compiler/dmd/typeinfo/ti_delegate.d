@@ -1,7 +1,7 @@
 
 // delegate
 
-module rt.typeinfo.ti_delegate;
+module typeinfo.ti_delegate;
 
 alias void delegate(int) dg;
 

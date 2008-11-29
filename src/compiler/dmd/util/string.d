@@ -6,7 +6,7 @@
  * License:   BSD Style, see LICENSE
  * Authors:   Sean Kelly
  */
-module rt.util.string;
+module util.string;
 
 private import core.stdc.string;
 

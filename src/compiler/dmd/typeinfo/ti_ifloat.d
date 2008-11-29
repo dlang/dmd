@@ -1,7 +1,7 @@
 
 // ifloat
 
-module rt.typeinfo.ti_ifloat;
+module typeinfo.ti_ifloat;
 
 private import typeinfo.ti_float;
 

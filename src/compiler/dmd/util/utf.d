@@ -40,7 +40,7 @@
  *	WIKI = Phobos/StdUtf
  */
 
-module rt.util.utf;
+module util.utf;
 
 
 extern (C) void onUnicodeError( string msg, size_t idx );

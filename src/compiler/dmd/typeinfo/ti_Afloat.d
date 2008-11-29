@@ -21,7 +21,7 @@
  *     distribution.
  */
 
-module rt.typeinfo.ti_Afloat;
+module typeinfo.ti_Afloat;
 
 private import typeinfo.ti_float;
 

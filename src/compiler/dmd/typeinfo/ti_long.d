@@ -1,7 +1,7 @@
 
 // long
 
-module rt.typeinfo.ti_long;
+module typeinfo.ti_long;
 
 class TypeInfo_l : TypeInfo
 {

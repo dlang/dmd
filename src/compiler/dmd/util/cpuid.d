@@ -38,7 +38,7 @@ COPYRIGHT:      Public Domain
  *  Modified by Sean Kelly for use with the D Runtime Project
  */
 
-module rt.util.cpuid;
+module util.cpuid;
 
 private import core.stdc.string;
 

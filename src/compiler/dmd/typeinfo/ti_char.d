@@ -1,5 +1,5 @@
 
-module rt.typeinfo.ti_char;
+module typeinfo.ti_char;
 
 class TypeInfo_a : TypeInfo
 {

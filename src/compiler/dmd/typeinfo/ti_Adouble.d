@@ -21,7 +21,7 @@
  *     distribution.
  */
 
-module rt.typeinfo.ti_Adouble;
+module typeinfo.ti_Adouble;
 
 private import typeinfo.ti_double;
 
