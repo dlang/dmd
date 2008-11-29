@@ -166,6 +166,11 @@ class TypeInfo_Invariant : TypeInfo_Const
 
 }
 
+class TypeInfo_Shared : TypeInfo_Const
+{
+
+}
+
 abstract class MemberInfo
 {
     string name();

@@ -1004,6 +1004,14 @@ class TypeInfo_Invariant : TypeInfo_Const
     }
 }
 
+class TypeInfo_Shared : TypeInfo_Const
+{
+    override string toString()
+    {
+        return cast(string) ("shared(" ~ base.toString() ~ ")");
+    }
+}
+
 abstract class MemberInfo
 {
     string name();
