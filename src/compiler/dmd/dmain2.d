@@ -12,8 +12,8 @@ module rt.dmain2;
 
 private
 {
-    import memory;
-    import util.console;
+    import rt.memory;
+    import rt.util.console;
     import core.stdc.stddef;
     import core.stdc.stdlib;
     import core.stdc.string;

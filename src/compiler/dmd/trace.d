@@ -15,7 +15,7 @@ module rt.trace;
 
 private
 {
-    import util.string;
+    import rt.util.string;
     import core.stdc.ctype;
     import core.stdc.stdio;
     import core.stdc.string;

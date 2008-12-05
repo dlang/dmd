@@ -25,7 +25,7 @@ private
     }
     import core.bitmanip;
     import core.stdc.stdio;
-    import util.utf;
+    import rt.util.utf;
 
     struct BitArray
     {

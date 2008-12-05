@@ -41,7 +41,7 @@ private
 {
     import core.stdc.string;
     import core.stdc.stdlib;
-    import util.string;
+    import rt.util.string;
     debug(PRINTF) import core.stdc.stdio;
 
     extern (C) void onOutOfMemoryError();

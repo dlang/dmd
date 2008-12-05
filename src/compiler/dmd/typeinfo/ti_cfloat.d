@@ -1,7 +1,7 @@
 
 // cfloat
 
-module typeinfo.ti_cfloat;
+module rt.typeinfo.ti_cfloat;
 
 class TypeInfo_q : TypeInfo
 {

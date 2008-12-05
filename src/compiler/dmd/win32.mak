@@ -96,7 +96,7 @@ SRC_BASE= \
 # NOTE: trace.d and cover.d are not necessary for a successful build
 #       as both are used for debugging features (profiling and coverage)
 # NOTE: a pre-compiled minit.obj has been provided in dmd for Win32 and
-#       minit.asm is not used by dmd for linux
+#       minit.asm is not used by dmd for Linux
 
 SRC_UTIL= \
     util\console.d \
@@ -142,11 +142,16 @@ SRC_TI= \
     typeinfo\ti_void.d \
     typeinfo\ti_wchar.d
 
+ALL_SRCS= \
+    $(SRC_BASE) \
+    $(SRC_UTIL) \
+    $(SRC_TI)
+
 ALL_OBJS= \
-	complex.obj \
-	critical.obj \
-	deh.obj \
-	monitor.obj
+    complex.obj \
+    critical.obj \
+    deh.obj \
+    monitor.obj
 
 ######################################################
 
@@ -167,11 +172,15 @@ debug :
 
 dmd.lib : $(LIB_TARGET)
 
-$(LIB_TARGET) : $(ALL_OBJS) $(SRC_BASE) $(SRC_UTIL) $(SRC_TI)
-	$(DC) -lib -of$@ $(DFLAGS) $(ALL_OBJS) $(SRC_BASE) $(SRC_UTIL) $(SRC_TI) minit.obj
+$(LIB_TARGET) : $(ALL_SRCS) $(ALL_OBJS)
+	$(DC) -lib -of$@ $(DFLAGS) $(ALL_SRCS) $(ALL_OBJS) minit.obj
 
 dmd.doc : $(ALL_DOCS)
 	@echo No documentation available.
+
+######################################################
+
+### minit
 
 minit.obj : minit.asm
 	$(CC) -c minit.asm

@@ -69,89 +69,94 @@ doc     : dmd.doc
 
 ######################################################
 
-OBJ_BASE= \
-    aaA.o \
-    aApply.o \
-    aApplyR.o \
-    adi.o \
-    alloca.o \
-    arrayassign.o \
-    arraybyte.o \
-    arraycast.o \
-    arraycat.o \
-    arraydouble.o \
-    arrayfloat.o \
-    arrayint.o \
-    arrayreal.o \
-    arrayshort.o \
-    cast_.o \
-    cmath2.o \
-    complex.o \
-    cover.o \
-    critical.o \
-    deh2.o \
-    dmain2.o \
-    invariant.o \
-    invariant_.o \
-    lifetime.o \
-    llmath.o \
-    memory.o \
-    memset.o \
-    monitor.o \
-    obj.o \
-    object_.o \
-    qsort.o \
-    switch_.o \
-    trace.o
-# NOTE: trace.obj and cover.obj are not necessary for a successful build
+SRC_BASE= \
+    aaA.d \
+    aApply.d \
+    aApplyR.d \
+    adi.d \
+    alloca.d \
+    arrayassign.d \
+    arraybyte.d \
+    arraycast.d \
+    arraycat.d \
+    arraydouble.d \
+    arrayfloat.d \
+    arrayint.d \
+    arrayreal.d \
+    arrayshort.d \
+    cast_.d \
+    cmath2.d \
+    complex.d \
+    cover.d \
+    critical.d \
+    deh2.d \
+    dmain2.d \
+    invariant.d \
+    invariant_.d \
+    lifetime.d \
+    llmath.d \
+    memory.d \
+    memset.d \
+    monitor.d \
+    obj.d \
+    object_.d \
+    qsort.d \
+    switch_.d \
+    trace.d
+# NOTE: trace.o and cover.o are not necessary for a successful build
 #       as both are used for debugging features (profiling and coverage)
 # NOTE: a pre-compiled minit.obj has been provided in dmd for Win32 and
-#       minit.asm is not used by dmd for linux
-# NOTE: deh.o is only needed for Win32, linux uses deh2.o
+#       minit.asm is not used by dmd for Linux
+# NOTE: deh.o is only needed for Win32, Linux uses deh2.o
 
-OBJ_UTIL= \
-    util/console.o \
-    util/cpuid.o \
-    util/ctype.o \
-    util/string.o \
-    util/utf.o
+SRC_UTIL= \
+    util/console.d \
+    util/cpuid.d \
+    util/ctype.d \
+    util/string.d \
+    util/utf.d
 
-OBJ_TI= \
-    typeinfo/ti_AC.o \
-    typeinfo/ti_Acdouble.o \
-    typeinfo/ti_Acfloat.o \
-    typeinfo/ti_Acreal.o \
-    typeinfo/ti_Adouble.o \
-    typeinfo/ti_Afloat.o \
-    typeinfo/ti_Ag.o \
-    typeinfo/ti_Aint.o \
-    typeinfo/ti_Along.o \
-    typeinfo/ti_Areal.o \
-    typeinfo/ti_Ashort.o \
-    typeinfo/ti_byte.o \
-    typeinfo/ti_C.o \
-    typeinfo/ti_cdouble.o \
-    typeinfo/ti_cfloat.o \
-    typeinfo/ti_char.o \
-    typeinfo/ti_creal.o \
-    typeinfo/ti_dchar.o \
-    typeinfo/ti_delegate.o \
-    typeinfo/ti_double.o \
-    typeinfo/ti_float.o \
-    typeinfo/ti_idouble.o \
-    typeinfo/ti_ifloat.o \
-    typeinfo/ti_int.o \
-    typeinfo/ti_ireal.o \
-    typeinfo/ti_long.o \
-    typeinfo/ti_ptr.o \
-    typeinfo/ti_real.o \
-    typeinfo/ti_short.o \
-    typeinfo/ti_ubyte.o \
-    typeinfo/ti_uint.o \
-    typeinfo/ti_ulong.o \
-    typeinfo/ti_ushort.o \
-    typeinfo/ti_void.o \
-    typeinfo/ti_wchar.o
+SRC_TI= \
+    typeinfo/ti_AC.d \
+    typeinfo/ti_Acdouble.d \
+    typeinfo/ti_Acfloat.d \
+    typeinfo/ti_Acreal.d \
+    typeinfo/ti_Adouble.d \
+    typeinfo/ti_Afloat.d \
+    typeinfo/ti_Ag.d \
+    typeinfo/ti_Aint.d \
+    typeinfo/ti_Along.d \
+    typeinfo/ti_Areal.d \
+    typeinfo/ti_Ashort.d \
+    typeinfo/ti_byte.d \
+    typeinfo/ti_C.d \
+    typeinfo/ti_cdouble.d \
+    typeinfo/ti_cfloat.d \
+    typeinfo/ti_char.d \
+    typeinfo/ti_creal.d \
+    typeinfo/ti_dchar.d \
+    typeinfo/ti_delegate.d \
+    typeinfo/ti_double.d \
+    typeinfo/ti_float.d \
+    typeinfo/ti_idouble.d \
+    typeinfo/ti_ifloat.d \
+    typeinfo/ti_int.d \
+    typeinfo/ti_ireal.d \
+    typeinfo/ti_long.d \
+    typeinfo/ti_ptr.d \
+    typeinfo/ti_real.d \
+    typeinfo/ti_short.d \
+    typeinfo/ti_ubyte.d \
+    typeinfo/ti_uint.d \
+    typeinfo/ti_ulong.d \
+    typeinfo/ti_ushort.d \
+    typeinfo/ti_void.d \
+    typeinfo/ti_wchar.d
+
+ALL_SRCS= \
+    $(SRC_BASE) \
+    $(SRC_UTIL) \
+    $(SRC_TI)
 
 ALL_OBJS= \
     $(OBJ_BASE) \
@@ -177,9 +182,8 @@ debug :
 
 dmd.lib : $(LIB_TARGET)
 
-$(LIB_TARGET) : $(ALL_OBJS)
-	$(RM) $@
-	$(LC) $@ $(ALL_OBJS)
+$(LIB_TARGET) : $(ALL_SRCS) $(ALL_OBJS)
+	$(DC) -lib -of$@ $(DFLAGS) $(ALL_SRCS) $(ALL_OBJS)
 
 dmd.doc : $(ALL_DOCS)
 	echo No documentation available.

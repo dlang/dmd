@@ -24,7 +24,7 @@
 
 // Simple ASCII char classification functions
 
-module util.ctype;
+module rt.util.ctype;
 
 int isalnum(dchar c)  { return (c <= 0x7F) ? _ctype[c] & (_ALP|_DIG) : 0; }
 int isalpha(dchar c)  { return (c <= 0x7F) ? _ctype[c] & (_ALP)      : 0; }

@@ -5,7 +5,7 @@
  * License:   Public Domain
  * Authors:   Sean Kelly
  */
-module util.console;
+module rt.util.console;
 
 
 private
@@ -18,7 +18,7 @@ private
     {
         import core.sys.posix.unistd;
     }
-    import util.string;
+    import rt.util.string;
 }
 
 

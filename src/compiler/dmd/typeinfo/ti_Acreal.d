@@ -21,9 +21,9 @@
  *     distribution.
  */
 
-module typeinfo.ti_Acreal;
+module rt.typeinfo.ti_Acreal;
 
-private import typeinfo.ti_creal;
+private import rt.typeinfo.ti_creal;
 
 // creal[]
 

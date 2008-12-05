@@ -1,9 +1,9 @@
 
 // ifloat
 
-module typeinfo.ti_ifloat;
+module rt.typeinfo.ti_ifloat;
 
-private import typeinfo.ti_float;
+private import rt.typeinfo.ti_float;
 
 class TypeInfo_o : TypeInfo_f
 {

@@ -41,7 +41,7 @@ private
     debug(adi) import core.stdc.stdio;
     import core.stdc.string;
     import core.stdc.stdlib;
-    import util.utf;
+    import rt.util.utf;
 
     enum BlkAttr : uint
     {

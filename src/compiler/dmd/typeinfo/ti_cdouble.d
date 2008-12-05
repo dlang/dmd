@@ -1,7 +1,7 @@
 
 // cdouble
 
-module typeinfo.ti_cdouble;
+module rt.typeinfo.ti_cdouble;
 
 class TypeInfo_r : TypeInfo
 {

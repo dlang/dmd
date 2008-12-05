@@ -21,9 +21,9 @@
  *     distribution.
  */
 
-module typeinfo.ti_Acdouble;
+module rt.typeinfo.ti_Acdouble;
 
-private import typeinfo.ti_cdouble;
+private import rt.typeinfo.ti_cdouble;
 
 // cdouble[]
 

@@ -1,5 +1,5 @@
 
-module typeinfo.ti_Ashort;
+module rt.typeinfo.ti_Ashort;
 
 private import core.stdc.string;
 

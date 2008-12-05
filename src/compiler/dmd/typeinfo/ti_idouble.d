@@ -1,9 +1,9 @@
 
 // idouble
 
-module typeinfo.ti_idouble;
+module rt.typeinfo.ti_idouble;
 
-private import typeinfo.ti_double;
+private import rt.typeinfo.ti_double;
 
 class TypeInfo_p : TypeInfo_d
 {

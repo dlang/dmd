@@ -1,7 +1,7 @@
 
 // real
 
-module typeinfo.ti_real;
+module rt.typeinfo.ti_real;
 
 class TypeInfo_e : TypeInfo
 {
