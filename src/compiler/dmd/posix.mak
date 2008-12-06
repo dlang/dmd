@@ -86,9 +86,7 @@ SRC_BASE= \
     arrayshort.d \
     cast_.d \
     cmath2.d \
-    complex.d \
     cover.d \
-    critical.d \
     deh2.d \
     dmain2.d \
     invariant.d \
@@ -97,7 +95,6 @@ SRC_BASE= \
     llmath.d \
     memory.d \
     memset.d \
-    monitor.d \
     obj.d \
     object_.d \
     qsort.d \
@@ -159,9 +156,9 @@ ALL_SRCS= \
     $(SRC_TI)
 
 ALL_OBJS= \
-    $(OBJ_BASE) \
-    $(OBJ_UTIL) \
-    $(OBJ_TI)
+    complex.o \
+    critical.o \
+    monitor.o
 
 ######################################################
 
