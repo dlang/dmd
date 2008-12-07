@@ -74,6 +74,7 @@ doc     : core.doc
 ######################################################
 
 OBJ_CORE= \
+    core/tls.o \
     core/bitmanip.o \
     core/exception.o \
     core/memory_.o \

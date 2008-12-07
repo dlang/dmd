@@ -183,14 +183,16 @@ else version( Posix )
 	/* The memory between the addresses of _tlsstart and _tlsend
 	 * lies all the implicit thread local storage variables for this
 	 * thread for this module.
-	 * These two are magically allocated by the compiler so that
-	 * they will bracket the .tdata and .tbss segments.
-	 * See elfobj.c in the dmd compiler source for details.
+	 * Both are declared in druntime/src/common/core/tls.s
+	 * and rely on the default linker script of:
+	 *  .tdata	: { *(.tdata .tdata.* .gnu.linkonce.td.*) }
+	 *  .tbss	: { *(.tbss .tbss.* .gnu.linkonce.tb.*) *(.tcommon) }
+	 * to group the sections in that order.
 	 */
 	extern (C)
 	{
-	    __thread int _tlsstart;
-	    __thread int _tlsend;
+	    extern __thread int _tlsstart;
+	    extern __thread int _tlsend;
 	}
 
 
