@@ -92,6 +92,16 @@ version( Windows )
         extern (Windows) alias uint function(void*) btex_fptr;
         extern (C) uintptr_t _beginthreadex(void*, uint, btex_fptr, void*, uint, uint*);
 
+	/* The memory between the addresses of _tlsstart and _tlsend
+	 * lies all the implicit thread local storage variables for this
+	 * thread for this module.
+	 * Both are declared in \dm\src\win32\tlsseg.asm
+	 */
+	extern (C)
+	{
+	    extern __thread int _tlsstart;
+	    extern __thread int _tlsend;
+	}
 
         //
         // entry point for Windows threads
@@ -107,6 +117,12 @@ version( Windows )
             obj.m_main.tstack = obj.m_main.bstack;
             Thread.add( &obj.m_main );
             Thread.setThis( obj );
+
+	    /* Save the bounds of the TLS data block
+	     */
+	    void* pstart = cast(void*)&_tlsstart;
+	    void* pend = cast(void*)&_tlsend;
+	    obj.m_tls = pstart[0 .. pend - pstart];
 
             // NOTE: No GC allocations may occur until the stack pointers have
             //       been set and Thread.getThis returns a valid reference to
@@ -163,6 +179,19 @@ else version( Posix )
         {
             import gcc.builtins;
         }
+
+	/* The memory between the addresses of _tlsstart and _tlsend
+	 * lies all the implicit thread local storage variables for this
+	 * thread for this module.
+	 * These two are magically allocated by the compiler so that
+	 * they will bracket the .tdata and .tbss segments.
+	 * See elfobj.c in the dmd compiler source for details.
+	 */
+	extern (C)
+	{
+	    __thread int _tlsstart;
+	    __thread int _tlsend;
+	}
 
 
         //
@@ -239,6 +268,13 @@ else version( Posix )
             assert( obj.m_curr == &obj.m_main );
             Thread.add( &obj.m_main );
             Thread.setThis( obj );
+
+	    /* Save the bounds of the TLS data block
+	     */
+	    void* pstart = cast(void*)&_tlsstart;
+	    void* pend = cast(void*)&_tlsend;
+	    obj.m_tls = pstart[0 .. pend - pstart];
+
 
             // NOTE: No GC allocations may occur until the stack pointers have
             //       been set and Thread.getThis returns a valid reference to
@@ -1120,6 +1156,10 @@ private:
     {
         m_call = Call.NO;
         m_curr = &m_main;
+
+	void* pstart = cast(void*)&_tlsstart;
+	void* pend = cast(void*)&_tlsend;
+	m_tls = pstart[0 .. pend - pstart];
     }
 
 
@@ -1280,6 +1320,7 @@ private:
     Context             m_main;
     Context*            m_curr;
     bool                m_lock;
+    void[]              m_tls;	// spans implicit thread local storage
 
     version( Windows )
     {
@@ -1967,12 +2008,17 @@ body
                 scan( c.bstack, c.tstack + 1 );
         }
     }
-    version( Windows )
+
+    for( Thread t = Thread.sm_tbeg; t; t = t.next )
     {
-        for( Thread t = Thread.sm_tbeg; t; t = t.next )
-        {
+	/* Scan thread local storage.
+	 * The BUG here is that the tls for other modules
+	 * is not scanned.
+	 */
+	scan( t.m_tls.ptr, t.m_tls.ptr + t.m_tls.length );
+
+	version (Windows)
             scan( &t.m_reg[0], &t.m_reg[0] + t.m_reg.length );
-        }
     }
 }
 
