@@ -66,10 +66,10 @@ lib : $(ALL_OBJS)
 	make -C $(DIR_CC) -fposix.mak $(MAKE_LIB) DC=$(DC) ADD_DFLAGS="$(ADD_DFLAGS)" ADD_CFLAGS="$(ADD_CFLAGS)"
 	make -C $(DIR_RT) -fposix.mak $(MAKE_LIB) DC=$(DC) ADD_DFLAGS="$(ADD_DFLAGS)" ADD_CFLAGS="$(ADD_CFLAGS)"
 	make -C $(DIR_GC) -fposix.mak $(MAKE_LIB) DC=$(DC) ADD_DFLAGS="$(ADD_DFLAGS)" ADD_CFLAGS="$(ADD_CFLAGS)"
-	$(RM) $(LIB_TARGET)
-	$(LC) $(LIB_TARGET) `find $(DIR_CC) -name "*.o" | xargs echo`
-	$(LC) $(LIB_TARGET) `find $(DIR_RT) -name "*.o" | xargs echo`
-	$(LC) $(LIB_TARGET) `find $(DIR_GC) -name "*.o" | xargs echo`
+	$(DC) -lib -of$(LIB_TARGET) \
+		$(DIR_CC)/libdruntime-core.a \
+		$(DIR_RT)/libdruntime-rt-dmd.a \
+		$(DIR_GC)/libdruntime-gc-basic.a
 	$(RM) $(DUP_TARGET)
 	$(CP) $(LIB_TARGET) $(DUP_TARGET)
 
