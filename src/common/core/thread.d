@@ -185,17 +185,18 @@ else version( Posix )
             import gcc.builtins;
         }
 
-        // NOTE: The memory between the addresses of _tlsstart and _tlsend is
-        //       the storage for thread-local data in D 2.0.  Both of these are
-        //       defined in threadasm.S and rely on the default linker script
-        //       of:
-        //          .tdata : { *(.tdata .tdata.* .gnu.linkonce.td.*) }
-        //          .tbss  : { *(.tbss .tbss.* .gnu.linkonce.tb.*) *(.tcommon) }
-        //       to group the sections in that order.
-        extern (C)
+        version( DigitalMars )
         {
-            extern __thread size_t _tlsstart;
-            extern __thread size_t _tlsend;
+            extern (C)
+            {
+                extern __thread size_t _tlsstart;
+                extern __thread size_t _tlsend;
+            }
+        }
+        else
+        {
+            size_t _tlsstart;
+            alias  _tlsstart _tlsend;
         }
 
 

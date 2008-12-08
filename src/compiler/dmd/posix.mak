@@ -158,7 +158,8 @@ ALL_SRCS= \
 ALL_OBJS= \
     complex.o \
     critical.o \
-    monitor.o
+    monitor.o \
+    tls.o
 
 ######################################################
 

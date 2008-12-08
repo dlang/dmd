@@ -79,7 +79,6 @@ OBJ_CORE= \
     core/memory_.o \
     core/runtime.o \
     core/thread.o \
-    core/threadasm.o \
     core/vararg.o
 
 OBJ_STDC= \
