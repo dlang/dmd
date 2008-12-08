@@ -99,14 +99,14 @@ version( Windows )
             //       these are defined in dm\src\win32\tlsseg.asm by DMC.
             extern (C)
             {
-                extern __thread size_t _tlsstart;
-                extern __thread size_t _tlsend;
+                extern __thread int _tlsstart;
+                extern __thread int _tlsend;
             }
         }
         else
         {
-            size_t _tlsstart;
-            alias  _tlsstart _tlsend;
+            int   _tlsstart;
+            alias _tlsstart _tlsend;
         }
 
 
@@ -189,14 +189,14 @@ else version( Posix )
         {
             extern (C)
             {
-                extern __thread size_t _tlsstart;
-                extern __thread size_t _tlsend;
+                extern __thread int _tlsstart;
+                extern __thread int _tlsend;
             }
         }
         else
         {
-            size_t _tlsstart;
-            alias  _tlsstart _tlsend;
+            int   _tlsstart;
+            alias _tlsstart _tlsend;
         }
 
 
