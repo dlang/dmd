@@ -74,12 +74,12 @@ doc     : core.doc
 ######################################################
 
 OBJ_CORE= \
-    core/tls.o \
     core/bitmanip.o \
     core/exception.o \
     core/memory_.o \
     core/runtime.o \
     core/thread.o \
+    core/threadasm.o \
     core/vararg.o
 
 OBJ_STDC= \

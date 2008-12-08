@@ -92,16 +92,23 @@ version( Windows )
         extern (Windows) alias uint function(void*) btex_fptr;
         extern (C) uintptr_t _beginthreadex(void*, uint, btex_fptr, void*, uint, uint*);
 
-	/* The memory between the addresses of _tlsstart and _tlsend
-	 * lies all the implicit thread local storage variables for this
-	 * thread for this module.
-	 * Both are declared in \dm\src\win32\tlsseg.asm
-	 */
-	extern (C)
-	{
-	    extern __thread int _tlsstart;
-	    extern __thread int _tlsend;
-	}
+        version( DigitalMars )
+        {
+            // NOTE: The memory between the addresses of _tlsstart and _tlsend
+            //       is the storage for thread-local data in D 2.0.  Both of
+            //       these are defined in dm\src\win32\tlsseg.asm by DMC.
+            extern (C)
+            {
+                extern __thread size_t _tlsstart;
+                extern __thread size_t _tlsend;
+            }
+        }
+        else
+        {
+            size_t _tlsstart;
+            alias  _tlsstart _tlsend;
+        }
+
 
         //
         // entry point for Windows threads
@@ -118,11 +125,9 @@ version( Windows )
             Thread.add( &obj.m_main );
             Thread.setThis( obj );
 
-	    /* Save the bounds of the TLS data block
-	     */
-	    void* pstart = cast(void*)&_tlsstart;
-	    void* pend = cast(void*)&_tlsend;
-	    obj.m_tls = pstart[0 .. pend - pstart];
+            void* pstart = cast(void*) &_tlsstart;
+            void* pend   = cast(void*) &_tlsend;
+            obj.m_tls = pstart[0 .. pend - pstart];
 
             // NOTE: No GC allocations may occur until the stack pointers have
             //       been set and Thread.getThis returns a valid reference to
@@ -180,20 +185,18 @@ else version( Posix )
             import gcc.builtins;
         }
 
-	/* The memory between the addresses of _tlsstart and _tlsend
-	 * lies all the implicit thread local storage variables for this
-	 * thread for this module.
-	 * Both are declared in druntime/src/common/core/tls.s
-	 * and rely on the default linker script of:
-	 *  .tdata	: { *(.tdata .tdata.* .gnu.linkonce.td.*) }
-	 *  .tbss	: { *(.tbss .tbss.* .gnu.linkonce.tb.*) *(.tcommon) }
-	 * to group the sections in that order.
-	 */
-	extern (C)
-	{
-	    extern __thread int _tlsstart;
-	    extern __thread int _tlsend;
-	}
+        // NOTE: The memory between the addresses of _tlsstart and _tlsend is
+        //       the storage for thread-local data in D 2.0.  Both of these are
+        //       defined in threadasm.S and rely on the default linker script
+        //       of:
+        //          .tdata : { *(.tdata .tdata.* .gnu.linkonce.td.*) }
+        //          .tbss  : { *(.tbss .tbss.* .gnu.linkonce.tb.*) *(.tcommon) }
+        //       to group the sections in that order.
+        extern (C)
+        {
+            extern __thread size_t _tlsstart;
+            extern __thread size_t _tlsend;
+        }
 
 
         //
@@ -271,12 +274,9 @@ else version( Posix )
             Thread.add( &obj.m_main );
             Thread.setThis( obj );
 
-	    /* Save the bounds of the TLS data block
-	     */
-	    void* pstart = cast(void*)&_tlsstart;
-	    void* pend = cast(void*)&_tlsend;
-	    obj.m_tls = pstart[0 .. pend - pstart];
-
+            void* pstart = cast(void*) &_tlsstart;
+            void* pend   = cast(void*) &_tlsend;
+            obj.m_tls = pstart[0 .. pend - pstart];
 
             // NOTE: No GC allocations may occur until the stack pointers have
             //       been set and Thread.getThis returns a valid reference to
@@ -1159,9 +1159,9 @@ private:
         m_call = Call.NO;
         m_curr = &m_main;
 
-	void* pstart = cast(void*)&_tlsstart;
-	void* pend = cast(void*)&_tlsend;
-	m_tls = pstart[0 .. pend - pstart];
+        void* pstart = cast(void*) &_tlsstart;
+        void* pend   = cast(void*) &_tlsend;
+        m_tls = pstart[0 .. pend - pstart];
     }
 
 
@@ -1322,7 +1322,7 @@ private:
     Context             m_main;
     Context*            m_curr;
     bool                m_lock;
-    void[]              m_tls;	// spans implicit thread local storage
+    void[]              m_tls;  // spans implicit thread local storage
 
     version( Windows )
     {
@@ -2013,14 +2013,12 @@ body
 
     for( Thread t = Thread.sm_tbeg; t; t = t.next )
     {
-	/* Scan thread local storage.
-	 * The BUG here is that the tls for other modules
-	 * is not scanned.
-	 */
-	scan( t.m_tls.ptr, t.m_tls.ptr + t.m_tls.length );
+        scan( &t.m_tls[0], &t.m_tls[0] + t.m_tls.length );
 
-	version (Windows)
+        version( Windows )
+        {
             scan( &t.m_reg[0], &t.m_reg[0] + t.m_reg.length );
+        }
     }
 }
 
