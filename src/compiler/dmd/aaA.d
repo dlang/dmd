@@ -586,6 +586,7 @@ body
                 if (e)
                     _aaRehash_x(e);
             }
+	    delete aa.b;
 
             newb.nodes = aa.nodes;
             newb.keyti = aa.keyti;
