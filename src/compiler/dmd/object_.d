@@ -41,7 +41,13 @@ private
 {
     import core.stdc.string;
     import core.stdc.stdlib;
-    import rt.util.string;
+    // HACK: This versioning is to provide for the different treatment of
+    //       imports in a normal vs. a -lib build.  It should really be fixed
+    //       correctly before the next release.
+    version (DDoc)
+        import util.string;
+    else
+        import rt.util.string;
     debug(PRINTF) import core.stdc.stdio;
 
     extern (C) void onOutOfMemoryError();
