@@ -17,7 +17,7 @@ _tlsstart:
     .long   3
 
 .globl _tlsend
-    .section .tbss.end,"awT",@nobits
+    .section .tcommon,"awT",@nobits
     .align 4
     .type   _tlsend, @object
     .size   _tlsend, 4
