@@ -100,7 +100,7 @@ DOC_CORE= \
 
 ######################################################
 
-ALL_DOCS=
+ALL_DOCS= $(DOC_CORE)
 
 ######################################################
 
@@ -140,6 +140,9 @@ core/memory_.o : core/memory.d
 
 core/thread.o : core/thread.d
 	$(DC) -c $(DFLAGS) -d -Hf$*.di core/thread.d -of$@
+
+core/thread.html : core/thread.d
+	$(DC) -c -o- $(DOCFLAGS) -d -Df$*.html core/thread.d
 
 ### vararg
 

@@ -11,9 +11,8 @@ goerror(){
     exit 1
 }
 
-make clean -fdmd-posix.mak           || goerror
-make lib doc install -fdmd-posix.mak || goerror
-make clean -fdmd-posix.mak           || goerror
-chmod 644 ../import/*.di             || goerror
+make clean release doc install -fdmd-posix.mak || goerror
+make clean debug install -fdmd-posix.mak       || goerror
+chmod 644 ../import/*.di                       || goerror
 
 export HOME=$OLDHOME
