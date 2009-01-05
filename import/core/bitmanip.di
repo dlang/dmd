@@ -8,7 +8,7 @@
 module core.bitmanip;
 
 
-version( DDoc )
+version( D_DDoc )
 {
     /**
      * Scans the bits in v starting with bit 0, looking
