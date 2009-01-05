@@ -44,7 +44,7 @@ private
     // HACK: This versioning is to provide for the different treatment of
     //       imports in a normal vs. a -lib build.  It should really be fixed
     //       correctly before the next release.
-    version (D_DDoc)
+    version (D_Ddoc)
         import util.string;
     else
         import rt.util.string;

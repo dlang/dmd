@@ -8,7 +8,7 @@
 module core.bitmanip;
 
 
-version( D_DDoc )
+version( D_Ddoc )
 {
     /**
      * Scans the bits in v starting with bit 0, looking
@@ -18,7 +18,6 @@ version( D_DDoc )
      *  The return value is undefined if v is zero.
      */
     int bsf( uint v );
-
 
     /**
      * Scans the bits in v from the most significant bit
