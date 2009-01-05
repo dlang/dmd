@@ -34,7 +34,7 @@ TFLAGS_RELEASE=-O -inline -w  -nofloat $(ADD_DFLAGS)
 TFLAGS_DEBUG=-g -w -nofloat $(ADD_DFLAGS)
 TFLAGS=$(TFLAGS_RELEASE)
 
-DOCFLAGS=-version=DDoc
+DOCFLAGS=
 
 CC=gcc
 LC=$(AR) -qsv
