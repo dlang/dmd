@@ -40,10 +40,30 @@ LIB_DEST=..\lib
 ADD_CFLAGS=
 ADD_DFLAGS=
 
+CFLAGS_RELEASE=-mn -6 -r $(ADD_CFLAGS)
+CFLAGS_DEBUG=-g -mn -6 -r $(ADD_CFLAGS)
+CFLAGS=$(CFLAGS_RELEASE)
+
+DFLAGS_RELEASE=-release -O -inline -w -nofloat $(ADD_DFLAGS)
+DFLAGS_DEBUG=-g -w -nofloat $(ADD_DFLAGS)
+DFLAGS=$(DFLAGS_RELEASE)
+
+TFLAGS_RELEASE=-O -inline -w  -nofloat $(ADD_DFLAGS)
+TFLAGS_DEBUG=-g -w -nofloat $(ADD_DFLAGS)
+TFLAGS=$(TFLAGS_RELEASE)
+
 targets : lib doc
 all     : lib doc
 
 ######################################################
+
+OBJ_CORE= \
+    common\core\bitmanip.obj \
+    common\core\exception.obj \
+    common\core\memory.obj \
+    common\core\runtime.obj \
+    common\core\thread.obj \
+    common\core\vararg.obj
 
 ALL_OBJS=
 
@@ -53,10 +73,8 @@ ALL_DOCS=
 
 ######################################################
 
-unittest :
-	make -fdmd-win32.mak lib MAKE_LIB="unittest"
-	dmd -unittest unittest ..\import\core\stdc\stdarg -defaultlib="$(DUP_TARGET)" -debuglib="$(DUP_TARGET)"
-	$(RM) stdarg.obj
+unittest : release $(OBJ_CORE)
+	$(DC) $(DFLAGS_RELEASE) -L/co -unittest unittest.d $(OBJ_CORE) -defaultlib=$(DUP_TARGET) -debuglib=$(DUP_TARGET)
 	unittest
 
 release :
