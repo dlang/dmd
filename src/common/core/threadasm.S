@@ -1,7 +1,9 @@
 /**
- * Tango Fiber switching assembler code.
+ * Support code for mutithreading.
  *
- * Author: Mikola Lysenko
+ * Copyright: Public Domain
+ * License:   Public Domain
+ * Authors:   Mikola Lysenko
  */
 
 /************************************************************************************
