@@ -2,7 +2,7 @@
  * The exception module defines all system-level exceptions and provides a
  * mechanism to alter system-level error handling.
  *
- * Copyright: Copyright (c) 2005-2008, The D Runtime Project
+ * Copyright: Copyright (C) 2005-2009 Sean Kelly.  All rights reserved.
  * License:   BSD Style, see LICENSE
  * Authors:   Sean Kelly
  */

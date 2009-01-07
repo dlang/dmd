@@ -2886,8 +2886,13 @@ export int wsprintfW(LPWSTR, LPCWSTR, ...);
 
 enum : uint
 {
-    INFINITE = uint.max,
-    WAIT_OBJECT_0 = 0,
+    INFINITE =              uint.max,
+    WAIT_OBJECT_0 =         0,
+    WAIT_ABANDONED_0 =      0x80,
+    WAIT_TIMEOUT =          0x102,
+    WAIT_IO_COMPLETION =    0xc0,
+    WAIT_ABANDONED =        0x80,
+    WAIT_FAILED =           uint.max,
 }
 
 export HANDLE CreateSemaphoreA(LPSECURITY_ATTRIBUTES lpSemaphoreAttributes, LONG lInitialCount, LONG lMaximumCount, LPCTSTR lpName);

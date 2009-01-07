@@ -1,8 +1,8 @@
 /**
  * This module contains a collection of bit-level operations.
  *
- * Copyright: Copyright (c) 2005-2008, The D Runtime Project
- * License:   BSD Style, see LICENSE
+ * Copyright: Public Domain
+ * License:   Public Domain
  * Authors:   Walter Bright, Don Clugston, Sean Kelly
  */
 module core.bitmanip;

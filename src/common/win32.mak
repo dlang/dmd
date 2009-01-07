@@ -81,9 +81,19 @@ OBJ_CORE= \
 OBJ_STDC= \
     core\stdc\errno.obj
 
+OBJ_SYNC= \
+    core\sync\barrier.obj \
+    core\sync\condition.obj \
+    core\sync\config.obj \
+    core\sync\exception.obj \
+    core\sync\mutex.obj \
+    core\sync\rwmutex.obj \
+    core\sync\semaphore.obj
+
 ALL_OBJS= \
     $(OBJ_CORE) \
-    $(OBJ_STDC)
+    $(OBJ_STDC) \
+    $(OBJ_SYNC)
 
 ######################################################
 
@@ -95,9 +105,23 @@ DOC_CORE= \
     core\thread.html \
     core\vararg.html
 
+DOC_STDC=
+
+DOC_SYNC= \
+    core\sync\barrier.html \
+    core\sync\condition.html \
+    core\sync\config.html \
+    core\sync\exception.html \
+    core\sync\mutex.html \
+    core\sync\rwmutex.html \
+    core\sync\semaphore.html
+
 ######################################################
 
-ALL_DOCS= $(DOC_CORE)
+ALL_DOCS= \
+    $(DOC_CORE) \
+    $(DOC_STDC) \
+    $(DOC_SYNC)
 
 ######################################################
 

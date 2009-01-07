@@ -1,7 +1,7 @@
 /**
  * This file contains wrapper functions for macro-defined C rouines.
  *
- * Copyright: Copyright (c) 2005-2008, The D Runtime Project
+ * Copyright: Copyright (C) 2005-2009 Sean Kelly.  All rights reserved.
  * License:   BSD Style, see LICENSE
  * Authors:   Sean Kelly
  */

@@ -1,7 +1,7 @@
 /**
  * The runtime module exposes information specific to the D runtime code.
  *
- * Copyright: Copyright (c) 2005-2008, The D Runtime Project
+ * Copyright: Copyright (C) 2005-2009 Sean Kelly.  All rights reserved.
  * License:   BSD Style, see LICENSE
  * Authors:   Sean Kelly
  */

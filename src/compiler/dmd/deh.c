@@ -275,6 +275,14 @@ Object *_d_translate_se_to_d_exception(EXCEPTION_RECORD *exception_record)
             pti = _d_create_exception_object(&_Class_5Error, "Stack Overflow");
             break;
 
+        case STATUS_DATATYPE_MISALIGNMENT:
+            pti = _d_create_exception_object(&_Class_5Error, "Datatype Misalignment");
+            break;
+
+        case STATUS_ARRAY_BOUNDS_EXCEEDED:
+            pti = _d_create_exception_object(&_Class_5Error, "Array Bounds Exceeded");
+            break;
+
         // convert all other exception codes into a Win32Exception
         default:
             pti = _d_create_exception_object(&_Class_5Error, "Win32 Exception");
