@@ -154,11 +154,11 @@ class Mutex :
      * the lock is acquired if it is not already held, and then the internal
      * counter is incremented by one.
      *
-     * Returns:
-     *  true if the lock was acquired and false if not.
-     *
      * Throws:
      *  SyncException on error.
+     *
+     * Returns:
+     *  true if the lock was acquired and false if not.
      */
     bool tryLock()
     {

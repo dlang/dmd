@@ -15,7 +15,7 @@ version( Posix )
     private import core.sys.posix.sys.time;
 
 
-    void getTimespec( inout timespec t )
+    void mktspec( inout timespec t, long delta = 0 )
     {
         static if( is( typeof( clock_gettime ) ) )
         {
@@ -30,37 +30,25 @@ version( Posix )
             t.tv_sec  = cast(typeof(t.tv_sec))  tv.tv_sec;
             t.tv_nsec = cast(typeof(t.tv_nsec)) tv.tv_usec * 1_000;
         }
-    }
 
+        if( delta == 0 )
+            return;
 
-    void adjTimespec( inout timespec t, double v )
-    {
-        enum
+        enum : uint
         {
-            SECS_TO_NANOS = 1_000_000_000
+            NANOS_PER_TICK   = 100,
+            TICKS_PER_SECOND = 10_000_000,
         }
 
-        // NOTE: The fractional value added to period is to correct fp error.
-        v += 0.000_000_000_1;
-
-        if( t.tv_sec.max - t.tv_sec < v )
+        if( t.tv_sec.max - t.tv_sec < delta / TICKS_PER_SECOND )
         {
             t.tv_sec  = t.tv_sec.max;
             t.tv_nsec = 0;
         }
         else
         {
-            alias typeof(t.tv_sec)  Secs;
-            alias typeof(t.tv_nsec) Nanos;
-
-            t.tv_sec  += cast(Secs) v;
-            auto  ns   = cast(long)((v % 1.0) * SECS_TO_NANOS);
-            if( SECS_TO_NANOS - t.tv_nsec < ns )
-            {
-                t.tv_sec += 1;
-                ns -= SECS_TO_NANOS;
-            }
-            t.tv_nsec += cast(Nanos) ns;
+            t.tv_sec = cast(typeof(t.tv_sec)) (delta / TICKS_PER_SECOND);
+            t.tv_nsec = cast(typeof(t.tv_nsec)) (delta % TICKS_PER_SECOND) * NANOS_PER_TICK;
         }
     }
 }

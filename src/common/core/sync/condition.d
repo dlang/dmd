@@ -132,39 +132,47 @@ class Condition
 
     /**
      * Suspends the calling thread until a notification occurs or until the
-     * supplied time period has elapsed.  The supplied period may be up to a
-     * maximum of (uint.max - 1) milliseconds.
+     * supplied time period has elapsed.
      *
      * Params:
-     *  period = The time to wait, in seconds (fractional values are accepted).
+     *  period = The time to wait, in 100 nanosecond intervals.  This value may
+     *           be adjusted to equal to the maximum wait period supported by
+     *           the target platform if it is too large.
      *
      * In:
-     *  period must be less than (uint.max - 1) milliseconds.
-     *
-     * Returns:
-     *  true if notified before the timeout and false if not.
+     *  period must be non-negative.
      *
      * Throws:
      *  SyncException on error.
+     *
+     * Returns:
+     *  true if notified before the timeout and false if not.
      */
-    bool wait( double period )
+    bool wait( long period )
     in
     {
-        // NOTE: The fractional value added to period is to correct fp error.
-        assert( period * 1000 + 0.1 < uint.max - 1 );
+        assert( period >= 0 );
     }
     body
     {
         version( Win32 )
         {
-            return timedWait( cast(uint)(period * 1000 + 0.1) );
+            enum : uint
+            {
+                TICKS_PER_MILLI = 10_000,
+                MAX_WAIT_MILLIS = uint.max - 1
+            }
+
+            period /= TICKS_PER_MILLI;
+            if( period > MAX_WAIT_MILLIS )
+                period = MAX_WAIT_MILLIS;
+            return timedWait( cast(uint) period );
         }
         else version( Posix )
         {
-            timespec t;
+            timespec t = void;
+            mktspec( t, period );
 
-            getTimespec( t );
-            adjTimespec( t, period );
             int rc = pthread_cond_timedwait( &m_hndl, m_mutexAddr, &t );
             if( !rc )
                 return true;
@@ -526,8 +534,8 @@ version( unittest )
             synchronized( mutex )
             {
                 waiting    = true;
-                alertedOne = condReady.wait( 1 );
-                alertedTwo = condReady.wait( 1 );
+                alertedOne = condReady.wait( 100_000_000 ); // 1s
+                alertedTwo = condReady.wait( 100_000_000 ); // 1s
             }
         }
 
