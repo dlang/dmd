@@ -3,189 +3,66 @@
 # Targets:
 #	make
 #		Same as make all
-#	make lib
-#		Build the common library
+#	make debug
+#		Build the debug version of the library
+#   make release
+#       Build the release version of the library
 #   make doc
 #       Generate documentation
 #	make clean
-#		Delete unneeded files created by build process
+#		Delete all files created by build process
 
-LIB_BASE=libdruntime-core
-LIB_BUILD=
-LIB_TARGET=$(LIB_BASE)$(LIB_BUILD).a
-LIB_MASK=$(LIB_BASE)*.a
+# Essentials
 
-CP=cp -f
-RM=rm -f
-MD=mkdir -p
+LIBDIR=../../lib
+DOCDIR=../../doc
+IMPDIR=../../import/core
+LIBBASENAME=libdruntime-core.a
+MODULES=bitmanip exception memory runtime thread vararg
+BUILDS=debug release unittest
 
-ADD_CFLAGS=
-ADD_DFLAGS=
+# Symbols
 
-CFLAGS_RELEASE=-O $(ADD_CFLAGS)
-CFLAGS_DEBUG=-g $(ADD_CFLAGS)
-CFLAGS=$(CFLAGS_RELEASE)
+DMD=dmd
+DOCFLAGS=-version=DDoc
+DFLAGS_release=-d -release -O -inline -w -nofloat
+DFLAGS_debug=-d -g -w -nofloat
+DFLAGS_unittest=$(DFLAGS_release) -unittest
+CFLAGS_release=-O
+CFLAGS_debug=-g
+CFLAGS_unittest=$(CFLAGS_release)
 
-DFLAGS_RELEASE=-release -O -inline -w -nofloat $(ADD_DFLAGS)
-DFLAGS_DEBUG=-g -w -nofloat $(ADD_DFLAGS)
-DFLAGS=$(DFLAGS_RELEASE)
+# Derived symbols
 
-TFLAGS_RELEASE=-O -inline -w  -nofloat $(ADD_DFLAGS)
-TFLAGS_DEBUG=-g -w -nofloat $(ADD_DFLAGS)
-TFLAGS=$(TFLAGS_RELEASE)
+SRCS=$(addsuffix .d,$(addprefix core/,$(MODULES)))
+DOCS=$(addsuffix .html,$(addprefix $(DOCDIR)/,$(MODULES)))
+IMPORTS=$(addsuffix .di,$(addprefix $(IMPDIR)/,$(MODULES)))
+ALLLIBS=$(addsuffix /$(LIBBASENAME),$(addprefix $(LIBDIR)/,$(BUILDS)))
 
-DOCFLAGS=
+# Patterns
 
-CC=gcc
-LC=$(AR) -qsv
-DC=dmd
+$(LIBDIR)/%/$(LIBBASENAME) : $(SRCS) $(LIBDIR)/%/errno.o
+	$(DMD) $(DFLAGS_$*) -lib -of$@ $^
 
-INC_DEST=../../import
-LIB_DEST=../../lib
-DOC_DEST=../../doc
+$(LIBDIR)/%/errno.o : core/stdc/errno.c
+	@mkdir --parents $(dir $@)
+	$(CC) -c $(CFLAGS_$*) $< -o$@
 
-.SUFFIXES: .s .S .c .cpp .d .html .o
+# Rulez
 
-.s.o:
-	$(CC) -c $(CFLAGS) $< -o$@
+all : $(BUILDS) doc
 
-.S.o:
-	$(CC) -c $(CFLAGS) $< -o$@
+debug : $(LIBDIR)/debug/$(LIBBASENAME) $(IMPORTS)
+release : $(LIBDIR)/release/$(LIBBASENAME) $(IMPORTS)
+unittest : $(LIBDIR)/unittest/$(LIBBASENAME) $(IMPORTS)
+doc : $(DOCS)
 
-.c.o:
-	$(CC) -c $(CFLAGS) $< -o$@
+$(DOCS) : $(SRCS)
+	$(DMD) -c -d -o- $(DOCFLAGS) -Dd$(DOCDIR) $?
 
-.cpp.o:
-	g++ -c $(CFLAGS) $< -o$@
-
-.d.o:
-	$(DC) -c $(DFLAGS) -Hf$*.di $< -of$@
-#	$(DC) -c $(DFLAGS) $< -of$@
-
-.d.html:
-	$(DC) -c -o- $(DOCFLAGS) -Df$*.html $<
-
-targets : lib doc
-all     : lib doc
-core    : lib
-lib     : core.lib
-doc     : core.doc
-
-######################################################
-
-OBJ_CORE= \
-    core/bitmanip.o \
-    core/exception.o \
-    core/memory_.o \
-    core/runtime.o \
-    core/thread.o \
-    core/threadasm.o \
-    core/vararg.o
-
-OBJ_STDC= \
-    core/stdc/errno.o
-
-OBJ_SYNC= \
-    core/sync/barrier.o \
-    core/sync/condition.o \
-    core/sync/config.o \
-    core/sync/exception.o \
-    core/sync/mutex.o \
-    core/sync/rwmutex.o \
-    core/sync/semaphore.o
-
-ALL_OBJS= \
-    $(OBJ_CORE) \
-    $(OBJ_STDC) \
-    $(OBJ_SYNC)
-
-######################################################
-
-DOC_CORE= \
-    core/bitmanip.html \
-    core/exception.html \
-    core/memory.html \
-    core/runtime.html \
-    core/thread.html \
-    core/vararg.html
-
-DOC_STDC=
-
-DOC_SYNC= \
-    core/sync/barrier.html \
-    core/sync/condition.html \
-    core/sync/config.html \
-    core/sync/exception.html \
-    core/sync/mutex.html \
-    core/sync/rwmutex.html \
-    core/sync/semaphore.html
-
-######################################################
-
-ALL_DOCS= \
-    $(DOC_CORE) \
-    $(DOC_STDC) \
-    $(DOC_SYNC)
-
-######################################################
-
-unittest :
-	make -fposix.mak DC="$(DC)" LIB_BUILD="" DFLAGS="$(DFLAGS_RELEASE) -unittest"
-
-release :
-	make -fposix.mak DC="$(DC)" LIB_BUILD="" DFLAGS="$(DFLAGS_RELEASE)"
-
-debug :
-	make -fposix.mak DC="$(DC)" LIB_BUILD="-d" DFLAGS="$(DFLAGS_DEBUG)"
-
-######################################################
-
-core.lib : $(LIB_TARGET)
-
-$(LIB_TARGET) : $(ALL_OBJS)
-	$(RM) $@
-	$(LC) $@ $(ALL_OBJS)
-
-core.doc : $(ALL_DOCS)
-	echo Documentation generated.
-
-######################################################
-
-### bitmanip
-
-core/bitmanip.o : core/bitmanip.d
-	$(DC) -c $(DFLAGS) core/bitmanip.d -of$@
-
-### memory
-
-core/memory_.o : core/memory.d
-	$(DC) -c $(DFLAGS) -Hf$*.di $< -of$@
-
-### thread
-
-core/thread.o : core/thread.d
-	$(DC) -c $(DFLAGS) -d -Hf$*.di core/thread.d -of$@
-
-core/thread.html : core/thread.d
-	$(DC) -c -o- $(DOCFLAGS) -d -Df$*.html core/thread.d
-
-### vararg
-
-core/vararg.o : core/vararg.d
-	$(DC) -c $(TFLAGS) -Hf$*.di core/vararg.d -of$@
-
-######################################################
+$(IMPORTS) : $(SRCS)
+	$(DMD) -c -d -o- -Hd$(IMPDIR) $?
 
 clean :
-	find . -name "*.di" | xargs $(RM)
-	$(RM) $(ALL_OBJS)
-	$(RM) $(ALL_DOCS)
-	find . -name "$(LIB_MASK)" | xargs $(RM)
+	rm -f $(IMPORTS) $(DOCS) $(ALLLIBS)
 
-install :
-	$(MD) $(INC_DEST)
-	find . -name "*.di" -exec cp -f {} $(INC_DEST)/{} \;
-	$(MD) $(DOC_DEST)
-	find . -name "*.html" -exec cp -f {} $(DOC_DEST)/{} \;
-	$(MD) $(LIB_DEST)
-	find . -name "$(LIB_MASK)" -exec cp -f {} $(LIB_DEST)/{} \;

@@ -3,197 +3,80 @@
 # Targets:
 #	make
 #		Same as make all
-#	make lib
-#		Build the compiler runtime library
+#	make debug
+#		Build the debug version of the library
+#   make release
+#       Build the release version of the library
 #   make doc
 #       Generate documentation
 #	make clean
-#		Delete unneeded files created by build process
+#		Delete all files created by build process
 
-LIB_BASE=libdruntime-rt-dmd
-LIB_BUILD=
-LIB_TARGET=$(LIB_BASE)$(LIB_BUILD).a
-LIB_MASK=$(LIB_BASE)*.a
+# Essentials
 
-CP=cp -f
-RM=rm -f
-MD=mkdir -p
+LIBDIR=../../../lib
+DOCDIR=../../../doc
+LIBBASENAME=libdruntime-rt-dmd.a
+MODULES=bitmanip exception memory runtime thread vararg
+BUILDS=debug release unittest
 
-ADD_CFLAGS=
-ADD_DFLAGS=
-
-CFLAGS_RELEASE=-O $(ADD_CFLAGS)
-CFLAGS_DEBUG=-g $(ADD_CFLAGS)
-CFLAGS=$(CFLAGS_RELEASE)
-
-DFLAGS_RELEASE=-release -O -inline -w -nofloat $(ADD_DFLAGS)
-DFLAGS_DEBUG=-g -w -nofloat $(ADD_DFLAGS)
-DFLAGS=$(DFLAGS_RELEASE)
-
-TFLAGS_RELEASE=-O -inline -w  -nofloat $(ADD_DFLAGS)
-TFLAGS_DEBUG=-g -w -nofloat $(ADD_DFLAGS)
-TFLAGS=$(TFLAGS_RELEASE)
-
-DOCFLAGS=
-
-CC=gcc
-LC=$(AR) -qsv
-DC=dmd
-
-LIB_DEST=../../../lib
-
-.SUFFIXES: .s .S .c .cpp .d .html .o
-
-.s.o:
-	$(CC) -c $(CFLAGS) $< -o$@
-
-.S.o:
-	$(CC) -c $(CFLAGS) $< -o$@
-
-.c.o:
-	$(CC) -c $(CFLAGS) $< -o$@
-
-.cpp.o:
-	g++ -c $(CFLAGS) $< -o$@
-
-.d.o:
-	$(DC) -c $(DFLAGS) $< -of$@
-
-.d.html:
-	$(DC) -c -o- $(DOCFLAGS) -Df$*.html dmd.ddoc $<
-
-targets : lib doc
-all     : lib doc
-lib     : dmd.lib
-doc     : dmd.doc
-
-######################################################
-
-SRC_BASE= \
-    aaA.d \
-    aApply.d \
-    aApplyR.d \
-    adi.d \
-    alloca.d \
-    arrayassign.d \
-    arraybyte.d \
-    arraycast.d \
-    arraycat.d \
-    arraydouble.d \
-    arrayfloat.d \
-    arrayint.d \
-    arrayreal.d \
-    arrayshort.d \
-    cast_.d \
-    cmath2.d \
-    cover.d \
-    deh2.d \
-    dmain2.d \
-    invariant.d \
-    invariant_.d \
-    lifetime.d \
-    llmath.d \
-    memory.d \
-    memset.d \
-    obj.d \
-    object_.d \
-    qsort.d \
-    switch_.d \
-    trace.d
+MODULES_BASE=aaA aApply aApplyR adi alloca arrayassign arraybyte	\
+    arraycast arraycat arraydouble arrayfloat arrayint arrayreal	\
+    arrayshort cast_ cmath2 cover deh2 dmain2 invariant invariant_	\
+    lifetime llmath memory memset obj object_ qsort switch_ trace
 # NOTE: trace.o and cover.o are not necessary for a successful build
 #       as both are used for debugging features (profiling and coverage)
 # NOTE: a pre-compiled minit.obj has been provided in dmd for Win32 and
 #       minit.asm is not used by dmd for Linux
 # NOTE: deh.o is only needed for Win32, Linux uses deh2.o
+MODULES_UTIL=$(addprefix util/,console cpuid ctype string utf)
+MODULES_TI=$(addprefix typeinfo/ti_,AC Acdouble Acfloat Acreal Adouble	\
+    Afloat Ag Aint Along Areal Ashort byte C cdouble cfloat char creal	\
+    dchar delegate double float idouble ifloat int ireal long ptr real	\
+    short ubyte uint ulong ushort void wchar)
+C_SRCS=complex.c critical.c monitor.c 
+AS_SRCS=tls.s
 
-SRC_UTIL= \
-    util/console.d \
-    util/cpuid.d \
-    util/ctype.d \
-    util/string.d \
-    util/utf.d
+# Symbols
 
-SRC_TI= \
-    typeinfo/ti_AC.d \
-    typeinfo/ti_Acdouble.d \
-    typeinfo/ti_Acfloat.d \
-    typeinfo/ti_Acreal.d \
-    typeinfo/ti_Adouble.d \
-    typeinfo/ti_Afloat.d \
-    typeinfo/ti_Ag.d \
-    typeinfo/ti_Aint.d \
-    typeinfo/ti_Along.d \
-    typeinfo/ti_Areal.d \
-    typeinfo/ti_Ashort.d \
-    typeinfo/ti_byte.d \
-    typeinfo/ti_C.d \
-    typeinfo/ti_cdouble.d \
-    typeinfo/ti_cfloat.d \
-    typeinfo/ti_char.d \
-    typeinfo/ti_creal.d \
-    typeinfo/ti_dchar.d \
-    typeinfo/ti_delegate.d \
-    typeinfo/ti_double.d \
-    typeinfo/ti_float.d \
-    typeinfo/ti_idouble.d \
-    typeinfo/ti_ifloat.d \
-    typeinfo/ti_int.d \
-    typeinfo/ti_ireal.d \
-    typeinfo/ti_long.d \
-    typeinfo/ti_ptr.d \
-    typeinfo/ti_real.d \
-    typeinfo/ti_short.d \
-    typeinfo/ti_ubyte.d \
-    typeinfo/ti_uint.d \
-    typeinfo/ti_ulong.d \
-    typeinfo/ti_ushort.d \
-    typeinfo/ti_void.d \
-    typeinfo/ti_wchar.d
+DMD=dmd
 
-ALL_SRCS= \
-    $(SRC_BASE) \
-    $(SRC_UTIL) \
-    $(SRC_TI)
+CFLAGS_release=-O
+CFLAGS_debug=-g
+CFLAGS_unittest=$(CFLAGS_release)
 
-ALL_OBJS= \
-    complex.o \
-    critical.o \
-    monitor.o \
-    tls.o
+DFLAGS_release=-release -O -inline -w -nofloat
+DFLAGS_debug=-g -w -nofloat
+DFLAGS_unittest=$(DFLAGS_release) -unittest
 
-######################################################
+# Derived symbols
 
-ALL_DOCS=
+C_OBJS=$(addsuffix .o,$(basename $(C_SRCS)))
+AS_OBJS=$(addsuffix .o,$(basename $(AS_SRCS)))
+ALL_MODULES=$(MODULES_BASE) $(MODULES_UTIL) $(MODULES_TI)
+D_SRCS=$(addsuffix .d,$(ALL_MODULES))
+ALLLIBS=$(addsuffix /$(LIBBASENAME),$(addprefix $(LIBDIR)/,$(BUILDS)))
 
-######################################################
+# Patterns
 
-unittest :
-	make -fposix.mak DC="$(DC)" LIB_BUILD="" DFLAGS="$(DFLAGS_RELEASE) -unittest"
+$(LIBDIR)/%/$(LIBBASENAME) : $(D_SRCS) $(C_SRCS) $(AS_SRCS)
+	$(AS) $(AS_SRCS) -o $(AS_OBJS)
+	$(CC) -c $(CFLAGS_$*) $(C_SRCS)
+	$(DMD) $(DFLAGS_$*) -lib -of$@ $(D_SRCS) $(C_OBJS) $(AS_OBJS)
+	rm $(C_OBJS) $(AS_OBJS)
 
-release :
-	make -fposix.mak DC="$(DC)" LIB_BUILD="" DFLAGS="$(DFLAGS_RELEASE)"
+# Rulez
 
-debug :
-	make -fposix.mak DC="$(DC)" LIB_BUILD="-d" DFLAGS="$(DFLAGS_DEBUG)"
+all : release debug unittest
+release : $(LIBDIR)/release/$(LIBBASENAME)
+debug : $(LIBDIR)/debug/$(LIBBASENAME)
+unittest : $(LIBDIR)/unittest/$(LIBBASENAME)
 
-######################################################
-
-dmd.lib : $(LIB_TARGET)
-
-$(LIB_TARGET) : $(ALL_SRCS) $(ALL_OBJS)
-	$(DC) -lib -of$@ $(DFLAGS) $(ALL_SRCS) $(ALL_OBJS)
-
-dmd.doc : $(ALL_DOCS)
-	echo No documentation available.
+doc :
+	@echo No documentation available for $(LIBBASENAME).
 
 ######################################################
 
 clean :
-	find . -name "*.di" | xargs $(RM)
-	$(RM) $(ALL_OBJS)
-	$(RM) $(ALL_DOCS)
-	$(RM) $(LIB_MASK)
+	rm -f $(ALLLIBS) $(C_OBJS) $(AS_OBJS)
 
-install :
-	$(MD) $(LIB_DEST)
-	$(CP) $(LIB_MASK) $(LIB_DEST)/.
