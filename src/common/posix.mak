@@ -49,6 +49,12 @@ $(LIBDIR)/%/errno.o : core/stdc/errno.c
 	@mkdir --parents $(dir $@)
 	$(CC) -c $(CFLAGS_$*) $< -o$@
 
+$(DOCDIR)/%.html : core/%.d
+	$(DMD) -c -d -o- -Df$@ $<
+
+$(IMPDIR)/%.di : core/%.d
+	$(DMD) -c -d -o- -Hf$@ $<
+
 # Rulez
 
 all : $(BUILDS) doc
@@ -57,12 +63,6 @@ debug : $(LIBDIR)/debug/$(LIBBASENAME) $(IMPORTS)
 release : $(LIBDIR)/release/$(LIBBASENAME) $(IMPORTS)
 unittest : $(LIBDIR)/unittest/$(LIBBASENAME) $(IMPORTS)
 doc : $(DOCS)
-
-$(DOCS) : $(SRCS)
-	$(DMD) -c -d -o- $(DOCFLAGS) -Df$@ $?
-
-$(IMPORTS) : $(SRCS)
-	$(DMD) -c -d -o- -Hf$@ $?
 
 clean :
 	rm -f $(IMPORTS) $(DOCS) $(ALLLIBS)
