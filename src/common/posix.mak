@@ -18,7 +18,8 @@ LIBDIR=../../lib
 DOCDIR=../../doc
 IMPDIR=../../import/core
 LIBBASENAME=libdruntime-core.a
-MODULES=bitmanip exception memory runtime thread vararg
+MODULES=bitmanip exception memory runtime thread vararg \
+	$(addprefix sync/,barrier condition config exception mutex rwmutex semaphore)
 BUILDS=debug release unittest
 
 # Symbols
@@ -58,10 +59,10 @@ unittest : $(LIBDIR)/unittest/$(LIBBASENAME) $(IMPORTS)
 doc : $(DOCS)
 
 $(DOCS) : $(SRCS)
-	$(DMD) -c -d -o- $(DOCFLAGS) -Dd$(DOCDIR) $?
+	$(DMD) -c -d -o- $(DOCFLAGS) -Df$@ $?
 
 $(IMPORTS) : $(SRCS)
-	$(DMD) -c -d -o- -Hd$(IMPDIR) $?
+	$(DMD) -c -d -o- -Hf$@ $?
 
 clean :
 	rm -f $(IMPORTS) $(DOCS) $(ALLLIBS)

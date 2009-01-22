@@ -11,7 +11,6 @@ goerror(){
     exit 1
 }
 
-make clean unittest -fdmd-posix.mak || goerror
-make clean -fdmd-posix.mak          || goerror
+make unittest -fdmd-posix.mak   || goerror
 
 export HOME=$OLDHOME
