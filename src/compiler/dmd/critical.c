@@ -81,6 +81,10 @@ void _STD_critical_term()
 #include        <stdlib.h>
 #include        <pthread.h>
 
+#ifndef PTHREAD_MUTEX_RECURSIVE
+#    define PTHREAD_MUTEX_RECURSIVE PTHREAD_MUTEX_RECURSIVE_NP
+#endif
+
 /******************************************
  * Enter/exit critical section.
  */
@@ -135,7 +139,7 @@ void _STI_critical_init()
     if (!dcs_list)
     {   //printf("_STI_critical_init()\n");
         pthread_mutexattr_init(&_criticals_attr);
-        pthread_mutexattr_settype(&_criticals_attr, PTHREAD_MUTEX_RECURSIVE_NP);
+	pthread_mutexattr_settype(&_criticals_attr, PTHREAD_MUTEX_RECURSIVE);
 
         // The global critical section doesn't need to be recursive
         pthread_mutex_init(&critical_section.cs, 0);
