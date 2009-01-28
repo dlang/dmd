@@ -45,7 +45,7 @@ version( linux )
     if_nameindex_t* if_nameindex();
     void            if_freenameindex(if_nameindex_t*);
 }
-else version( darwin )
+else version( OSX )
 {
     struct if_nameindex_t
     {

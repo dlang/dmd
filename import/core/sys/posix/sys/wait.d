@@ -62,7 +62,7 @@ version( linux )
     extern (D) int  WSTOPSIG( int status )     { return WEXITSTATUS( status );      }
     extern (D) int  WTERMSIG( int status )     { return status & 0x7F;              }
 }
-else version( darwin )
+else version( OSX )
 {
     const WNOHANG       = 1;
     const WUNTRACED     = 2;

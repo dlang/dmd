@@ -105,7 +105,7 @@ else version( freebsd )
     int   shmdt(in void*);
     int   shmget(key_t, size_t, int);
 }
-else version( darwin )
+else version( OSX )
 {
 
 }

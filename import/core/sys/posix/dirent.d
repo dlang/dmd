@@ -71,7 +71,7 @@ version( linux )
         dirent* readdir(DIR*);
     }
 }
-else version( darwin )
+else version( OSX )
 {
     enum
     {
@@ -174,7 +174,7 @@ version( linux )
     int readdir_r(DIR*, dirent*, dirent**);
   }
 }
-else version( darwin )
+else version( OSX )
 {
     int readdir_r(DIR*, dirent*, dirent**);
 }

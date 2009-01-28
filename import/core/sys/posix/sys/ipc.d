@@ -68,7 +68,7 @@ version( linux )
 
     key_t ftok(in char*, int);
 }
-else version( darwin )
+else version( OSX )
 {
 
 }

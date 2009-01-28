@@ -122,7 +122,7 @@ int     tcsendbreak(int, int);
 int     tcsetattr(int, int, in termios*);
 */
 
-version( darwin )
+version( OSX )
 {
     alias ubyte cc_t;
     alias uint  speed_t;

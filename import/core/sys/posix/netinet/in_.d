@@ -83,7 +83,7 @@ version( linux )
     const uint INADDR_ANY       = 0x00000000;
     const uint INADDR_BROADCAST = 0xffffffff;
 }
-else version( darwin )
+else version( OSX )
 {
     private const __SOCK_SIZE__ = 16;
 

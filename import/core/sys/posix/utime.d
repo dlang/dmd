@@ -36,7 +36,7 @@ version( linux )
 
     int utime(in char*, in utimbuf*);
 }
-else version( darwin )
+else version( OSX )
 {
     struct utimbuf
     {

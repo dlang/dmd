@@ -41,7 +41,7 @@ else version( linux )
     const int TMP_MAX       = 238328;
     const int L_tmpnam      = 20;
 }
-else version( darwin )
+else version( OSX )
 {
     const int EOF           = -1;
     const int FOPEN_MAX     = 20;
@@ -132,7 +132,7 @@ struct _iobuf
         char[1] _shortbuf;
         void*   _lock;
     }
-    else version( darwin )
+    else version( OSX )
     {
         ubyte*    _p;
         int       _r;
@@ -273,7 +273,7 @@ else version( linux )
     extern FILE* stdout;
     extern FILE* stderr;
 }
-else version( darwin )
+else version( OSX )
 {
     extern FILE* __stdinp;
     extern FILE* __stdoutp;
@@ -385,7 +385,7 @@ else version( linux )
     int  snprintf(char* s, size_t n, in char* format, ...);
     int  vsnprintf(char* s, size_t n, in char* format, va_list arg);
 }
-else version( darwin )
+else version( OSX )
 {
     void rewind(FILE*);
     void clearerr(FILE*);

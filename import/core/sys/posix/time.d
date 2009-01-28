@@ -34,7 +34,7 @@ version( linux )
 {
     time_t timegm(tm*); // non-standard
 }
-else version( darwin )
+else version( OSX )
 {
     time_t timegm(tm*); // non-standard
 }
@@ -147,7 +147,7 @@ version( linux )
     int timer_getoverrun(timer_t);
     int timer_settime(timer_t, int, in itimerspec*, itimerspec*);
 }
-else version( darwin )
+else version( OSX )
 {
     int nanosleep(in timespec*, timespec*);
 }
@@ -205,7 +205,7 @@ version( linux )
     tm*   gmtime_r(in time_t*, tm*);
     tm*   localtime_r(in time_t*, tm*);
 }
-else version( darwin )
+else version( OSX )
 {
     char* asctime_r(in tm*, char*);
     char* ctime_r(in time_t*, char*);
@@ -241,7 +241,7 @@ version( linux )
     tm*   getdate(in char*);
     char* strptime(in char*, in char*, tm*);
 }
-else version( darwin )
+else version( OSX )
 {
     extern c_long timezone;
 

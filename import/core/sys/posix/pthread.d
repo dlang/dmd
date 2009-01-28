@@ -123,7 +123,7 @@ version( linux )
         PTHREAD_PROCESS_SHARED
     }
 }
-else version( darwin )
+else version( OSX )
 {
     enum
     {
@@ -203,7 +203,7 @@ version( linux )
         }
     }
 }
-else version( darwin )
+else version( OSX )
 {
     alias void function(void*) _pthread_cleanup_routine;
 
@@ -370,7 +370,7 @@ version( linux )
     int pthread_mutexattr_settype(pthread_mutexattr_t*, int);
     int pthread_setconcurrency(int);
 }
-else version( darwin )
+else version( OSX )
 {
     const PTHREAD_MUTEX_NORMAL      = 0;
     const PTHREAD_MUTEX_ERRORCHECK  = 1;
@@ -431,7 +431,7 @@ version( linux )
     int pthread_rwlock_timedrdlock(pthread_rwlock_t*, in timespec*);
     int pthread_rwlock_timedwrlock(pthread_rwlock_t*, in timespec*);
 }
-else version( darwin )
+else version( OSX )
 {
     int pthread_mutex_timedlock(pthread_mutex_t*, timespec*);
     int pthread_rwlock_timedrdlock(pthread_rwlock_t*, in timespec*);
@@ -490,7 +490,7 @@ version( linux )
     int pthread_setschedparam(pthread_t, int, in sched_param*);
     //int pthread_setschedprio(pthread_t, int);
 }
-else version( darwin )
+else version( OSX )
 {
     enum
     {
@@ -548,7 +548,7 @@ version( linux )
     int pthread_attr_setstackaddr(pthread_attr_t*, void*);
     int pthread_attr_setstacksize(pthread_attr_t*, size_t);
 }
-else version( darwin )
+else version( OSX )
 {
     int pthread_attr_getstack(in pthread_attr_t*, void**, size_t*);
     int pthread_attr_getstackaddr(in pthread_attr_t*, void**);

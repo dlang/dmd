@@ -63,7 +63,7 @@ version( linux )
 
     int poll(pollfd*, nfds_t, int);
 }
-else version( darwin )
+else version( OSX )
 {
     struct pollfd
     {

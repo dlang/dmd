@@ -41,7 +41,7 @@ version( linux )
     ssize_t readv(int, in iovec*, int);
     ssize_t writev(int, in iovec*, int);
 }
-else version( darwin )
+else version( OSX )
 {
     struct iovec
     {

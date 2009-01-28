@@ -39,7 +39,7 @@ version( linux )
     void* dlopen(in char*, int);
     void* dlsym(void*, in char*);
 }
-else version( darwin )
+else version( OSX )
 {
     const RTLD_LAZY     = 0x00001;
     const RTLD_NOW      = 0x00002;

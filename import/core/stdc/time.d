@@ -53,7 +53,7 @@ version( Windows )
 {
     clock_t CLOCKS_PER_SEC = 1000;
 }
-else version( darwin )
+else version( OSX )
 {
     clock_t CLOCKS_PER_SEC = 100;
 }

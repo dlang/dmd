@@ -59,7 +59,7 @@ version( linux )
     //time_t (defined in core.stdc.time)
     alias uint      uid_t;
 }
-else version( darwin )
+else version( OSX )
 {
     alias long      blkcnt_t;
     alias int       blksize_t;
@@ -124,7 +124,7 @@ version( linux )
     alias c_long    suseconds_t;
     alias uint      useconds_t;
 }
-else version( darwin )
+else version( OSX )
 {
     //clock_t
     alias uint  fsblkcnt_t;
@@ -247,7 +247,7 @@ version( linux )
 
     alias c_ulong pthread_t;
 }
-else version( darwin )
+else version( OSX )
 {
     private
     {
@@ -401,7 +401,7 @@ version( linux )
 {
     alias int pthread_spinlock_t; // volatile
 }
-else version( darwin )
+else version( OSX )
 {
     struct pthread_spinlock_t;
 }

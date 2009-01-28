@@ -133,7 +133,7 @@ version( linux )
         int   open(in char*, int, ...);
     }
 }
-else version( darwin )
+else version( OSX )
 {
     const F_DUPFD       = 0;
     const F_GETFD       = 1;

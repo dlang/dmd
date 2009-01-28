@@ -195,7 +195,7 @@ else version( linux )
     const EOWNERDEAD        = 130;      // Owner died
     const ENOTRECOVERABLE   = 131;      // State not recoverable
 }
-else version( darwin )
+else version( OSX )
 {
     const EPERM             = 1;        // Operation not permitted
     const ENOENT            = 2;        // No such file or directory

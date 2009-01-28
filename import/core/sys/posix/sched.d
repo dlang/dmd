@@ -50,7 +50,7 @@ version( linux )
     const SCHED_RR      = 2;
     //SCHED_SPORADIC (SS|TSP)
 }
-else version( darwin )
+else version( OSX )
 {
     const SCHED_OTHER   = 1;
     const SCHED_FIFO    = 4;
@@ -94,7 +94,7 @@ version( linux )
 {
     int sched_yield();
 }
-else version( darwin )
+else version( OSX )
 {
     int sched_yield();
 }
@@ -118,7 +118,7 @@ version( linux )
     int sched_get_priority_min(int);
     int sched_rr_get_interval(pid_t, timespec*);
 }
-else version( darwin )
+else version( OSX )
 {
     int sched_get_priority_min(int);
     int sched_get_priority_max(int);

@@ -42,7 +42,7 @@ else version( linux )
 
     alias int fexcept_t;
 }
-else version ( darwin )
+else version ( OSX )
 {
     version ( BigEndian )
     {
@@ -105,7 +105,7 @@ else version( linux )
 {
     fenv_t* FE_DFL_ENV = cast(fenv_t*)(-1);
 }
-else version( darwin )
+else version( OSX )
 {
     private extern fenv_t _FE_DFL_ENV;
     fenv_t* FE_DFL_ENV = &_FE_DFL_ENV;

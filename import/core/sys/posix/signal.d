@@ -124,7 +124,7 @@ version( linux )
     const SIGUSR2   = 12;
     const SIGURG    = 23;
 }
-else version( darwin )
+else version( OSX )
 {
     //SIGABRT (defined in core.stdc.signal)
     const SIGALRM   = 14;
@@ -190,7 +190,7 @@ struct sigaction_t
     sigset_t        sa_mask;
     int             sa_flags;
 
-    version( darwin ) {} else {
+    version( OSX ) {} else {
     void function() sa_restorer;
     }
 }
@@ -376,7 +376,7 @@ version( linux )
     int sigsuspend(in sigset_t*);
     int sigwait(in sigset_t*, int*);
 }
-else version( darwin )
+else version( OSX )
 {
     //SIG_HOLD
 
@@ -719,7 +719,7 @@ version( linux )
         c_long  tv_nsec;
     }
 }
-else version( darwin )
+else version( OSX )
 {
     struct timespec
     {
@@ -826,7 +826,7 @@ version( linux )
     int pthread_kill(pthread_t, int);
     int pthread_sigmask(int, in sigset_t*, sigset_t*);
 }
-else version( darwin )
+else version( OSX )
 {
     int pthread_kill(pthread_t, int);
     int pthread_sigmask(int, in sigset_t*, sigset_t*);

@@ -61,7 +61,7 @@ version( linux )
     char*     inet_ntop(int, in void*, char*, socklen_t);
     int       inet_pton(int, in char*, void*);
 }
-else version( darwin )
+else version( OSX )
 {
     alias uint16_t in_port_t; // TODO: verify
     alias uint32_t in_addr_t; // TODO: verify
@@ -117,7 +117,7 @@ version( linux )
 {
     const INET6_ADDRSTRLEN = 46;
 }
-else version( darwin )
+else version( OSX )
 {
     const INET6_ADDRSTRLEN = 46;
 }

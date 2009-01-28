@@ -428,7 +428,7 @@ version( linux )
         _SC_RAW_SOCKETS
     }
 }
-else version( darwin )
+else version( OSX )
 {
     const F_OK          = 0;
     const R_OK          = 4;
@@ -542,7 +542,7 @@ version( linux )
     int        truncate(in char*, off_t);
   }
 }
-else version (darwin)
+else version( OSX )
 {
     char*      crypt(in char*, in char*);
     char*      ctermid(char*);

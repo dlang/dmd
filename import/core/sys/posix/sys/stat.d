@@ -175,7 +175,7 @@ version( linux )
         extern bool S_TYPEISSHM( stat_t* buf ) { return false; }
     }
 }
-else version( darwin )
+else version( OSX )
 {
     struct stat_t
     {
@@ -383,7 +383,7 @@ version( linux )
 
     int mknod(in char*, mode_t, dev_t);
 }
-else version( darwin )
+else version( OSX )
 {
     const S_IFMT    = 0170000;
     const S_IFBLK   = 0060000;

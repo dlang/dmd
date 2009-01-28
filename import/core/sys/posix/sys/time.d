@@ -65,7 +65,7 @@ version( linux )
     int setitimer(int, in itimerval*, itimerval*);
     int utimes(in char*, in timeval[2]); // LEGACY
 }
-else version( darwin )
+else version( OSX )
 {
     struct timeval
     {

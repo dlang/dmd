@@ -23,7 +23,7 @@ version( linux )
 {
     const TCP_NODELAY = 1;
 }
-else version( darwin )
+else version( OSX )
 {
     const TCP_NODELAY = 1;
 }
