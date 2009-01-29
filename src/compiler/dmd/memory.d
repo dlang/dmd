@@ -38,7 +38,7 @@ private
         }
     }
     extern (C) void gc_addRange( void* p, size_t sz );
-    extern (C) void gc_removeRange( void *p );
+    extern (C) void gc_removeRange( void* p );
 }
 
 
@@ -65,16 +65,20 @@ extern (C) void* rt_stackBottom()
         else
         {
             // See discussion: http://autopackage.org/forums/viewtopic.php?t=22
-                static void** libc_stack_end;
+            static void** libc_stack_end;
 
-                if( libc_stack_end == libc_stack_end.init )
-                {
-                    void* handle = dlopen( null, RTLD_NOW );
-                    libc_stack_end = cast(void**) dlsym( handle, "__libc_stack_end" );
-                    dlclose( handle );
-                }
-                return *libc_stack_end;
+            if( libc_stack_end == libc_stack_end.init )
+            {
+                void* handle = dlopen( null, RTLD_NOW );
+                libc_stack_end = cast(void**) dlsym( handle, "__libc_stack_end" );
+                dlclose( handle );
+            }
+            return *libc_stack_end;
         }
+    }
+    else version( OSX )
+    {
+        return cast(void*) 0xc0000000;
     }
     else
     {
@@ -99,7 +103,7 @@ extern (C) void* rt_stackTop()
     }
     else
     {
-            static assert( false, "Architecture not supported." );
+        static assert( false, "Architecture not supported." );
     }
 }
 
@@ -132,6 +136,10 @@ private
             alias __data_start  Data_Start;
             alias _end          Data_End;
     }
+    else version( OSX )
+    {
+        extern (C) void _d_osx_image_init();
+    }
 }
 
 
@@ -144,6 +152,10 @@ void initStaticDataGC()
     else version( linux )
     {
         gc_addRange( &__data_start, cast(size_t) &_end - cast(size_t) &__data_start );
+    }
+    else version( OSX )
+    {
+        _d_osx_image_init();
     }
     else
     {

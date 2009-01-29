@@ -34,7 +34,7 @@ MODULES_TI=$(addprefix typeinfo/ti_,AC Acdouble Acfloat Acreal Adouble	\
     Afloat Ag Aint Along Areal Ashort byte C cdouble cfloat char creal	\
     dchar delegate double float idouble ifloat int ireal long ptr real	\
     short ubyte uint ulong ushort void wchar)
-C_SRCS=complex.c critical.c monitor.c 
+C_SRCS=complex.c critical.c memory_osx.c monitor.c
 AS_SRCS=tls.s
 
 # Symbols
