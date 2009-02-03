@@ -74,9 +74,9 @@ else
 alias size_t hash_t;
 alias bool equals_t;
 
-alias invariant(char)[]  string;
-alias invariant(wchar)[] wstring;
-alias invariant(dchar)[] dstring;
+alias immutable(char)[]  string;
+alias immutable(wchar)[] wstring;
+alias immutable(dchar)[] dstring;
 
 /**
  * All D class objects inherit from Object.
@@ -1006,7 +1006,7 @@ class TypeInfo_Invariant : TypeInfo_Const
 {
     override string toString()
     {
-        return cast(string) ("invariant(" ~ base.toString() ~ ")");
+        return cast(string) ("immutable(" ~ base.toString() ~ ")");
     }
 }
 

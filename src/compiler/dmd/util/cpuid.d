@@ -426,7 +426,7 @@ private:
             return s ? s[0 .. strlen(s)] : null;
         }
 
-        string toString(invariant(char)* s)
+        string toString(immutable(char)* s)
         {
             return s ? s[0 .. strlen(s)] : null;
         }
