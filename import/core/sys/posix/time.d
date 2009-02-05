@@ -173,7 +173,7 @@ else version( freebsd )
     const CLOCK_REALTIME    = 0;
     const TIMER_ABSTIME     = 0x01;
 
-    alias int clockid_t;
+    //alias int clockid_t;
     alias int timer_t;
 
     int clock_getres(clockid_t, timespec*);
@@ -235,8 +235,8 @@ char* strptime(in char*, in char*, tm*);
 
 version( linux )
 {
-    extern int      daylight;
-    extern c_long   timezone;
+    extern int    daylight;
+    extern c_long timezone;
 
     tm*   getdate(in char*);
     char* strptime(in char*, in char*, tm*);

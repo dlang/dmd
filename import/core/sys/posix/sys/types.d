@@ -332,7 +332,7 @@ else version( OSX )
 
     struct pthread_rwlockattr_t
     {
-        c_long                             __sig;
+        c_long                              __sig;
         byte[__PTHREAD_RWLOCKATTR_SIZE__]   __opaque;
     }
 
@@ -403,7 +403,7 @@ version( linux )
 }
 else version( OSX )
 {
-    struct pthread_spinlock_t;
+    //struct pthread_spinlock_t;
 }
 else version( freebsd )
 {

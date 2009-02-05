@@ -55,14 +55,14 @@ else version( OSX )
     const SCHED_OTHER   = 1;
     const SCHED_FIFO    = 4;
     const SCHED_RR      = 2;
-    // SCHED_SPORADIC seems to be unavailable
+    //SCHED_SPORADIC (SS|TSP)
 
     private const __SCHED_PARAM_SIZE__ = 4;
 
     struct sched_param
     {
-        int                         sched_priority;
-        byte[__SCHED_PARAM_SIZE__]  opaque;
+        int                             sched_priority;
+        byte[__PTHREAD_MUTEX_SIZE__]    __opaque;
     }
 }
 else version( freebsd )
