@@ -46,7 +46,7 @@ $(LIBDIR)/%/$(LIBBASENAME) : $(SRCS) $(LIBDIR)/%/errno.o
 	$(DMD) $(DFLAGS_$*) -lib -of$@ $^
 
 $(LIBDIR)/%/errno.o : core/stdc/errno.c
-	@mkdir --parents $(dir $@)
+	@mkdir -p $(dir $@)
 	$(CC) -c $(CFLAGS_$*) $< -o$@
 
 $(DOCDIR)/%.html : core/%.d
