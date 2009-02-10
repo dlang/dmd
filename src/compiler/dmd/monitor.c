@@ -12,7 +12,7 @@
 #include <assert.h>
 
 #if _WIN32
-#elif linux
+#elif linux || __APPLE__
 #define USE_PTHREADS    1
 #else
 #endif

@@ -292,16 +292,34 @@ extern (Windows) void _d_throw(Object *h)
 
                 void *blockaddr = phi.finally_code;
 
-                asm
-                {
-                    push        EBX             ;
-                    mov         EBX,blockaddr   ;
-                    push        EBP             ;
-                    mov         EBP,regebp      ;
-                    call        EBX             ;
-                    pop         EBP             ;
-                    pop         EBX             ;
-                }
+		version (OSX)
+		{
+		    asm
+		    {
+			sub	ESP,4		; // align stack to 16
+			push	EBX		;
+			mov	EBX,blockaddr	;
+			push	EBP		;
+			mov	EBP,regebp	;
+			call	EBX		;
+			pop	EBP		;
+			pop	EBX		;
+			add	ESP,4		;
+		    }
+		}
+		else
+		{
+		    asm
+		    {
+			push        EBX             ;
+			mov         EBX,blockaddr   ;
+			push        EBP             ;
+			mov         EBP,regebp      ;
+			call        EBX             ;
+			pop         EBP             ;
+			pop         EBX             ;
+		    }
+		}
             }
         }
     }

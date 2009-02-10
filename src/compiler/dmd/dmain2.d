@@ -1,7 +1,7 @@
 /*
  * Placed into the Public Domain.
  * written by Walter Bright
- * www.digitalmars.com
+ * http://www.digitalmars.com
  */
 
 /*
@@ -43,6 +43,12 @@ extern (C) void _moduleCtor();
 extern (C) void _moduleDtor();
 extern (C) void thread_joinAll();
 
+version (OSX)
+{
+    // The bottom of the stack
+    extern (C) void* __osx_stack_end = cast(void*)0xC0000000;
+}
+
 /***********************************
  * These are a temporary means of providing a GC hook for DLL use.  They may be
  * replaced with some other similar functionality later.
@@ -74,9 +80,9 @@ extern (C) void* rt_loadLibrary(in char[] name)
         return ptr;
 
     }
-    else version (linux)
+    else version (Posix)
     {
-        throw new Exception("rt_loadLibrary not yet implemented on linux.");
+        throw new Exception("rt_loadLibrary not yet implemented on Posix.");
     }
 }
 
@@ -89,9 +95,9 @@ extern (C) bool rt_unloadLibrary(void* ptr)
             gcClr();
         return FreeLibrary(ptr) != 0;
     }
-    else version (linux)
+    else version (Posix)
     {
-        throw new Exception("rt_unloadLibrary not yet implemented on linux.");
+        throw new Exception("rt_unloadLibrary not yet implemented on Posix.");
     }
 }
 
@@ -153,7 +159,7 @@ extern (C) bool rt_trapExceptions = true;
 
 void _d_criticalInit()
 {
-    version (linux)
+    version (Posix)
     {
         _STI_monitor_staticctor();
         _STI_critical_init();
@@ -190,7 +196,7 @@ extern (C) bool rt_init(ExceptionHandler dg = null)
 
 void _d_criticalTerm()
 {
-    version (linux)
+    version (Posix)
     {
         _STD_critical_term();
         _STD_monitor_staticdtor();
@@ -239,7 +245,16 @@ extern (C) int main(int argc, char **argv)
     char[][] args;
     int result;
 
-    version (linux)
+    version (OSX)
+    {	/* OSX does not provide a way to get at the top of the
+	 * stack, except for the magic value 0xC0000000.
+	 * But as far as the gc is concerned, argv is at the top
+	 * of the main thread's stack, so save the address of that.
+	 */
+	__osx_stack_end = cast(void*)&argv;
+    }
+
+    version (Posix)
     {
         _STI_monitor_staticctor();
         _STI_critical_init();
@@ -271,7 +286,7 @@ extern (C) int main(int argc, char **argv)
         wargs = null;
         wargc = 0;
     }
-    else version (linux)
+    else version (Posix)
     {
         char[]* am = cast(char[]*) malloc(argc * (char[]).sizeof);
         scope(exit) free(am);
@@ -365,7 +380,7 @@ extern (C) int main(int argc, char **argv)
 
     tryExec(&runAll);
 
-    version (linux)
+    version (Posix)
     {
         _STD_critical_term();
         _STD_monitor_staticdtor();

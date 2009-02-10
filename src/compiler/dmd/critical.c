@@ -8,7 +8,7 @@
 
 #if _WIN32
 
-#include        <windows.h>
+#include	<windows.h>
 
 /******************************************
  * Enter/exit critical section.
@@ -33,14 +33,14 @@ void _d_criticalenter(D_CRITICAL_SECTION *dcs)
 {
     if (!dcs->next)
     {
-        EnterCriticalSection(&critical_section.cs);
-        if (!dcs->next) // if, in the meantime, another thread didn't set it
-        {
-            dcs->next = dcs_list;
-            dcs_list = dcs;
-            InitializeCriticalSection(&dcs->cs);
-        }
-        LeaveCriticalSection(&critical_section.cs);
+	EnterCriticalSection(&critical_section.cs);
+	if (!dcs->next)	// if, in the meantime, another thread didn't set it
+	{
+	    dcs->next = dcs_list;
+	    dcs_list = dcs;
+	    InitializeCriticalSection(&dcs->cs);
+	}
+	LeaveCriticalSection(&critical_section.cs);
     }
     EnterCriticalSection(&dcs->cs);
 }
@@ -53,21 +53,21 @@ void _d_criticalexit(D_CRITICAL_SECTION *dcs)
 void _STI_critical_init()
 {
     if (!inited)
-    {   InitializeCriticalSection(&critical_section.cs);
-        dcs_list = &critical_section;
-        inited = 1;
+    {	InitializeCriticalSection(&critical_section.cs);
+	dcs_list = &critical_section;
+	inited = 1;
     }
 }
 
 void _STD_critical_term()
 {
     if (inited)
-    {   inited = 0;
-        while (dcs_list)
-        {
-            DeleteCriticalSection(&dcs_list->cs);
-            dcs_list = dcs_list->next;
-        }
+    {	inited = 0;
+	while (dcs_list)
+	{
+	    DeleteCriticalSection(&dcs_list->cs);
+	    dcs_list = dcs_list->next;
+	}
     }
 }
 
@@ -75,12 +75,14 @@ void _STD_critical_term()
 
 /* ================================= linux ============================ */
 
-#if linux
+#if linux || __APPLE__
 
-#include        <stdio.h>
-#include        <stdlib.h>
-#include        <pthread.h>
+#include	<stdio.h>
+#include	<stdlib.h>
+#include	<pthread.h>
 
+// PTHREAD_MUTEX_RECURSIVE is the "standard" symbol,
+// while the _NP version is specific to Linux
 #ifndef PTHREAD_MUTEX_RECURSIVE
 #    define PTHREAD_MUTEX_RECURSIVE PTHREAD_MUTEX_RECURSIVE_NP
 #endif
@@ -110,20 +112,20 @@ void _STD_critical_term(void);
 void _d_criticalenter(D_CRITICAL_SECTION *dcs)
 {
     if (!dcs_list)
-    {   _STI_critical_init();
-        atexit(_STD_critical_term);
+    {	_STI_critical_init();
+	atexit(_STD_critical_term);
     }
     //printf("_d_criticalenter(dcs = x%x)\n", dcs);
     if (!dcs->next)
     {
-        pthread_mutex_lock(&critical_section.cs);
-        if (!dcs->next) // if, in the meantime, another thread didn't set it
-        {
-            dcs->next = dcs_list;
-            dcs_list = dcs;
-            pthread_mutex_init(&dcs->cs, &_criticals_attr);
-        }
-        pthread_mutex_unlock(&critical_section.cs);
+	pthread_mutex_lock(&critical_section.cs);
+	if (!dcs->next)	// if, in the meantime, another thread didn't set it
+	{
+	    dcs->next = dcs_list;
+	    dcs_list = dcs;
+	    pthread_mutex_init(&dcs->cs, &_criticals_attr);
+	}
+	pthread_mutex_unlock(&critical_section.cs);
     }
     pthread_mutex_lock(&dcs->cs);
 }
@@ -137,27 +139,28 @@ void _d_criticalexit(D_CRITICAL_SECTION *dcs)
 void _STI_critical_init()
 {
     if (!dcs_list)
-    {   //printf("_STI_critical_init()\n");
-        pthread_mutexattr_init(&_criticals_attr);
+    {	//printf("_STI_critical_init()\n");
+	pthread_mutexattr_init(&_criticals_attr);
 	pthread_mutexattr_settype(&_criticals_attr, PTHREAD_MUTEX_RECURSIVE);
 
-        // The global critical section doesn't need to be recursive
-        pthread_mutex_init(&critical_section.cs, 0);
-        dcs_list = &critical_section;
+	// The global critical section doesn't need to be recursive
+	pthread_mutex_init(&critical_section.cs, 0);
+	dcs_list = &critical_section;
     }
 }
 
 void _STD_critical_term()
 {
     if (dcs_list)
-    {   //printf("_STI_critical_term()\n");
-        while (dcs_list)
-        {
-            //printf("\tlooping... %x\n", dcs_list);
-            pthread_mutex_destroy(&dcs_list->cs);
-            dcs_list = dcs_list->next;
-        }
+    {	//printf("_STI_critical_term()\n");
+	while (dcs_list)
+	{
+	    //printf("\tlooping... %x\n", dcs_list);
+	    pthread_mutex_destroy(&dcs_list->cs);
+	    dcs_list = dcs_list->next;
+	}
     }
 }
 
 #endif
+
