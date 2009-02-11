@@ -8,7 +8,6 @@
 module core.sys.osx.mach.thread_act;
 
 public import core.sys.osx.mach.kern_return;
-public import core.sys.posix.sys.types; // TODO: add ": pthread_t;"
 
 extern (C):
 
@@ -115,7 +114,6 @@ version( i386 )
     alias x86_THREAD_STATE_COUNT    MACHINE_THREAD_STATE_COUNT;
 
     mach_port_t   mach_thread_self();
-    mach_port_t   pthread_mach_thread_np(pthread_t);
     kern_return_t thread_suspend(thread_act_t);
     kern_return_t thread_resume(thread_act_t);
     kern_return_t thread_get_state(thread_act_t, thread_state_flavor_t, thread_state_t*, mach_msg_type_number_t*);

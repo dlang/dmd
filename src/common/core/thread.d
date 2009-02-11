@@ -1691,6 +1691,11 @@ extern (C) void thread_attachThis()
 
         Thread.setThis( thisThread );
     }
+    version( OSX )
+    {
+        thisThread.m_tmach = pthread_mach_thread_np( thisThread.m_addr );
+        assert( thisThread.m_tmach != thisThread.m_tmach.init );
+    }    
 
     Thread.add( thisThread );
     Thread.add( thisContext );
