@@ -305,7 +305,7 @@ extern (C) Proxy* gc_getProxy()
 {
     return &pthis;
 }
-import core.stdc.stdio;
+
 export extern (C) void gc_setProxy( Proxy* p )
 {
     if( proxy !is null )
