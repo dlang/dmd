@@ -344,7 +344,7 @@ bool readFile( string name, inout char[] buf )
         buf.length = pos;
         return true;
     }
-    else version( linux )
+    else version( Posix )
     {
         char[]  namez = new char[name.length + 1];
                         namez[0 .. name.length] = name;

@@ -1,3 +1,5 @@
+#if linux
+
 /* The memory between the addresses of _tlsstart and _tlsend is the storage for
  * thread-local data in D 2.0.  Both of these rely on the default linker script
  * of:
@@ -6,7 +8,7 @@
  * to group the sections in that order.
  */
 
-.file "tls.s"
+.file "tls.S"
 
 .globl _tlsstart
     .section .tdata,"awT",@progbits
@@ -23,3 +25,5 @@ _tlsstart:
     .size   _tlsend, 4
 _tlsend:
     .zero   4
+
+#endif

@@ -1237,11 +1237,11 @@ class ModuleInfo
 
 
 // Windows: this gets initialized by minit.asm
-// linux: this gets initialized in _moduleCtor()
+// Posix: this gets initialized in _moduleCtor()
 extern (C) ModuleInfo[] _moduleinfo_array;
 
 
-version (linux)
+version (Posix)
 {
     // This linked list is created by a compiler generated function inserted
     // into the .ctor list by the compiler.
@@ -1267,7 +1267,7 @@ extern (C) int _fatexit(void*);
 extern (C) void _moduleCtor()
 {
     debug(PRINTF) printf("_moduleCtor()\n");
-    version (linux)
+    version (Posix)
     {
         int len = 0;
         ModuleReference *mr;
@@ -1353,7 +1353,7 @@ void _moduleCtor2(ModuleInfo[] mi, int skip)
  * Destruct the modules.
  */
 
-// Starting the name with "_STD" means under linux a pointer to the
+// Starting the name with "_STD" means under Posix a pointer to the
 // function gets put in the .dtors segment.
 
 extern (C) void _moduleDtor()

@@ -4,7 +4,7 @@
 // www.digitalmars.com
 
 // Runtime support for complex arithmetic code generation
-// (for linux)
+// (for Posix)
 
 /*
  *  Modified by Sean Kelly for use with the D Runtime Project

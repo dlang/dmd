@@ -23,7 +23,7 @@
 
 module rt.deh2;
 
-// Exception handling support for linux
+// Exception handling support for Posix
 
 //debug=1;
 
