@@ -38,9 +38,9 @@ all     : debug release doc unittest $(LIBDIR)/$(LIBBASENAME)
 # 	./unittest
 
 debug release unittest :
-	@$(MAKE) -C $(DIR_CC) --no-print-directory -fposix.mak $@
-	@$(MAKE) -C $(DIR_RT) --no-print-directory -fposix.mak $@
-	@$(MAKE) -C $(DIR_GC) --no-print-directory -fposix.mak $@
+	@$(MAKE) DMD=$(DMD) -C $(DIR_CC) --no-print-directory -fposix.mak $@
+	@$(MAKE) DMD=$(DMD) -C $(DIR_RT) --no-print-directory -fposix.mak $@
+	@$(MAKE) DMD=$(DMD) -C $(DIR_GC) --no-print-directory -fposix.mak $@
 	@$(DMD) -lib -of$(LIBDIR)/$@/$(LIBBASENAME) \
 		$(LIBDIR)/$@/libdruntime-core.a \
 		$(LIBDIR)/$@/libdruntime-rt-dmd.a \
@@ -50,16 +50,16 @@ $(LIBDIR)/$(LIBBASENAME) : $(LIBDIR)/release/$(LIBBASENAME)
 	ln -sf $(realpath $<) $@
 
 doc : $(ALL_DOCS)
-	$(MAKE) -C $(DIR_CC) --no-print-directory -fposix.mak doc
-	$(MAKE) -C $(DIR_RT) --no-print-directory -fposix.mak doc
-	$(MAKE) -C $(DIR_GC) --no-print-directory -fposix.mak doc
+	$(MAKE) DMD=$(DMD) -C $(DIR_CC) --no-print-directory -fposix.mak doc
+	$(MAKE) DMD=$(DMD) -C $(DIR_RT) --no-print-directory -fposix.mak doc
+	$(MAKE) DMD=$(DMD) -C $(DIR_GC) --no-print-directory -fposix.mak doc
 
 ######################################################
 
 clean :
-	$(MAKE) -C $(DIR_CC) --no-print-directory -fposix.mak clean
-	$(MAKE) -C $(DIR_RT) --no-print-directory -fposix.mak clean
-	$(MAKE) -C $(DIR_GC) --no-print-directory -fposix.mak clean
+	$(MAKE) DMD=$(DMD) -C $(DIR_CC) --no-print-directory -fposix.mak clean
+	$(MAKE) DMD=$(DMD) -C $(DIR_RT) --no-print-directory -fposix.mak clean
+	$(MAKE) DMD=$(DMD) -C $(DIR_GC) --no-print-directory -fposix.mak clean
 #find . -name "*.di" | xargs $(RM)
 	rm -rf $(LIBDIR) $(DOCDIR)
 
