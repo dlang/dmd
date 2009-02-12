@@ -7,6 +7,7 @@
  */
 module core.runtime;
 
+//import std.c.stdio;
 
 private
 {
@@ -192,12 +193,15 @@ private:
  */
 extern (C) bool runModuleUnitTests()
 {
+    //printf("runModuleUnitTests()\n");
     if( Runtime.sm_moduleUnitTester is null )
     {
         foreach( m; ModuleInfo )
         {
             if( m.unitTest )
+	    {
                 m.unitTest();
+	    }
         }
         return true;
     }

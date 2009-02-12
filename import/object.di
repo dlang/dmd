@@ -209,12 +209,13 @@ class ModuleInfo
     ClassInfo[]     localClasses;
     uint            flags;
 
-    void*           xgetMembers;
-    void function() ictor;
-
     void function() ctor;
     void function() dtor;
     void function() unitTest;
+
+    void*           xgetMembers;
+
+    void function() ictor;
 
     static int opApply(int delegate(inout ModuleInfo));
 }
