@@ -214,7 +214,6 @@ class ModuleInfo
     void function() unitTest;
 
     void*           xgetMembers;
-
     void function() ictor;
 
     static int opApply(int delegate(inout ModuleInfo));
