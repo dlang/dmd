@@ -193,10 +193,18 @@ else version( Posix )
 
         version( DigitalMars )
         {
-            extern (C)
+            version( linux )
             {
-                extern __thread int _tlsstart;
-                extern __thread int _tlsend;
+                extern (C)
+                {
+                    extern __thread int _tlsstart;
+                    extern __thread int _tlsend;
+                }
+            }
+            else
+            {
+                int   _tlsstart;
+                alias _tlsstart _tlsend;
             }
         }
         else
