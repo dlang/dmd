@@ -78,10 +78,10 @@ unittest : release $(OBJ_CORE)
 	unittest
 
 release :
-	make -fdmd-win32.mak lib MAKE_LIB="release"
+	make -fdmd-win32.mak lib DC=$(DC) MAKE_LIB="release"
 
 debug :
-	make -fdmd-win32.mak lib MAKE_LIB="debug" LIB_BUILD="-d"
+	make -fdmd-win32.mak lib DC=$(DC) MAKE_LIB="debug" LIB_BUILD="-d"
 
 ######################################################
 
