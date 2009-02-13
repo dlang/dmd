@@ -35,7 +35,7 @@ CFLAGS_unittest=$(CFLAGS_release)
 
 # Derived symbols
 
-SRCS=$(addsuffix .d,$(addprefix core/,$(MODULES)))
+SRCS=$(addsuffix .d,$(addprefix core/,$(MODULES))) $(IMPDIR)/stdc/stdio.d
 DOCS=$(addsuffix .html,$(addprefix $(DOCDIR)/,$(MODULES)))
 IMPORTS=$(addsuffix .di,$(addprefix $(IMPDIR)/,$(MODULES)))
 ALLLIBS=$(addsuffix /$(LIBBASENAME),$(addprefix $(LIBDIR)/,$(BUILDS)))

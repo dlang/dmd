@@ -34,8 +34,7 @@ MODULES_TI=$(addprefix typeinfo/ti_,AC Acdouble Acfloat Acreal Adouble	\
     Afloat Ag Aint Along Areal Ashort byte C cdouble cfloat char creal	\
     dchar delegate double float idouble ifloat int ireal long ptr real	\
     short ubyte uint ulong ushort void wchar)
-C_SRCS=complex.c critical.c memory_osx.c monitor.c
-AS_SRCS=tls.S
+C_SRCS=complex.c critical.c memory_osx.c monitor.c tls.S
 
 # Symbols
 
@@ -60,7 +59,6 @@ ALLLIBS=$(addsuffix /$(LIBBASENAME),$(addprefix $(LIBDIR)/,$(BUILDS)))
 # Patterns
 
 $(LIBDIR)/%/$(LIBBASENAME) : $(D_SRCS) $(C_SRCS) $(AS_SRCS)
-	$(CC) -c $(AS_SRCS) -o $(AS_OBJS)
 	$(CC) -c $(CFLAGS_$*) $(C_SRCS)
 	$(DMD) $(DFLAGS_$*) -lib -of$@ $(D_SRCS) $(C_OBJS) $(AS_OBJS)
 	rm $(C_OBJS) $(AS_OBJS)

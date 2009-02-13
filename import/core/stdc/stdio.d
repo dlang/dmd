@@ -43,11 +43,11 @@ else version( linux )
 }
 else version( OSX )
 {
-    const int EOF           = -1;
-    const int FOPEN_MAX     = 20;
-    const int FILENAME_MAX  = 1024;
-    const int TMP_MAX       = 308915776;
-    const int L_tmpnam      = 1024;
+    enum int EOF            = -1;
+    enum int FOPEN_MAX      = 20;
+    enum int FILENAME_MAX   = 1024;
+    enum int TMP_MAX        = 308915776;
+    enum int L_tmpnam       = 1024;
 
     private
     {
@@ -278,17 +278,10 @@ else version( OSX )
     extern FILE* __stdinp;
     extern FILE* __stdoutp;
     extern FILE* __stderrp;
-
-    auto FILE* stdin;
-    auto FILE* stdout;
-    auto FILE* stderr;
-
-    static this()
-    {
-        stdin  = __stdinp;
-        stdout = __stdoutp;
-        stderr = __stderrp;
-    }
+    
+    alias __stdinp  stdin;
+    alias __stdoutp stdout;
+    alias __stderrp stderr;
 }
 else version( freebsd )
 {
