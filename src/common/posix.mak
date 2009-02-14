@@ -29,8 +29,8 @@ DOCFLAGS=-version=DDoc
 DFLAGS_release=-d -release -O -inline -w -nofloat
 DFLAGS_debug=-d -g -w -nofloat
 DFLAGS_unittest=$(DFLAGS_release) -unittest
-CFLAGS_release=-O
-CFLAGS_debug=-g
+CFLAGS_release=-m32 -O
+CFLAGS_debug=-m32 -g
 CFLAGS_unittest=$(CFLAGS_release)
 
 # Derived symbols

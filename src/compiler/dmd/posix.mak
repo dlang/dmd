@@ -40,8 +40,8 @@ C_SRCS=complex.c critical.c memory_osx.c monitor.c tls.S
 
 DMD=dmd
 
-CFLAGS_release=-O
-CFLAGS_debug=-g
+CFLAGS_release=-m32 -O
+CFLAGS_debug=-m32 -g
 CFLAGS_unittest=$(CFLAGS_release)
 
 DFLAGS_release=-release -O -inline -w -nofloat
