@@ -37,8 +37,27 @@ extern (C) void* __alloca(int nbytes)
         push    EBX             ;
         push    EDI             ;
         push    ESI             ;
-        add     EAX,3           ;
-        and     EAX,0xFFFFFFFC  ; // round up to dword
+    }
+
+    version (OSX)
+    {
+    asm
+    {
+	add	EAX,15		;
+	and	EAX,0xFFFFFFF0	; // round up to 16 byte boundary
+    }
+    }
+    else
+    {
+    asm
+    {
+	add	EAX,3		;
+	and	EAX,0xFFFFFFFC	; // round up to dword
+    }
+    }
+
+    asm
+    {
         jnz     Abegin          ;
         mov     EAX,4           ; // allow zero bytes allocation, 0 rounded to dword is 4..
     Abegin:

@@ -3448,3 +3448,17 @@ private:
         tobj.m_curr.tstack = tobj.m_curr.bstack;
     }
 }
+
+version (OSX)
+{
+    /* The Mach-O object file format does not allow for thread local storage
+     * declarations. So, instead we roll our own by putting tls into
+     * the sections __tlsdata and __tlscoal_nt.
+     */
+
+    extern (D)
+    void* ___tls_get_addr(void* p)
+    {
+	return p;
+    }
+}
