@@ -420,11 +420,10 @@ class GC
             return null;
         }
 
-        if (!thread_needLock())
-        {
-            return mallocNoSync(size, bits);
-        }
-        else synchronized (gcLock)
+        // Since a finalizer could launch a new thread, we always need to lock
+        // when collecting.  The safest way to do this is to simply always lock
+        // when allocating.
+        synchronized (gcLock)
         {
             return mallocNoSync(size, bits);
         }
@@ -465,28 +464,14 @@ class GC
             p = gcx.bucket[bin];
             if (p is null)
             {
-                if (!gcx.allocPage(bin) && !gcx.disabled)   // try to find a new page
+                if (!gcx.allocPage(bin) && !gcx.disabled) // try to find a new page
                 {
-                    if (!thread_needLock())
-                    {
-                        /* Then we haven't locked it yet. Be sure
-                         * and lock for a collection, since a finalizer
-                         * may start a new thread.
-                         */
-                        synchronized (gcLock)
-                        {
-                            gcx.fullcollectshell();
-                        }
-                    }
-                    else if (!gcx.fullcollectshell())       // collect to find a new page
-                    {
-                        //gcx.newPool(1);
-                    }
+                    gcx.fullcollectshell();
                 }
                 if (!gcx.bucket[bin] && !gcx.allocPage(bin))
                 {   int result;
 
-                    gcx.newPool(1);         // allocate new pool to find a new page
+                    gcx.newPool(1); // allocate new pool to find a new page
                     result = gcx.allocPage(bin);
                     if (!result)
                         onOutOfMemoryError();
@@ -533,11 +518,10 @@ class GC
             return null;
         }
 
-        if (!thread_needLock())
-        {
-            return callocNoSync(size, bits);
-        }
-        else synchronized (gcLock)
+        // Since a finalizer could launch a new thread, we always need to lock
+        // when collecting.  The safest way to do this is to simply always lock
+        // when allocating.
+        synchronized (gcLock)
         {
             return callocNoSync(size, bits);
         }
@@ -563,11 +547,10 @@ class GC
      */
     void *realloc(void *p, size_t size, uint bits = 0)
     {
-        if (!thread_needLock())
-        {
-            return reallocNoSync(p, size, bits);
-        }
-        else synchronized (gcLock)
+        // Since a finalizer could launch a new thread, we always need to lock
+        // when collecting.  The safest way to do this is to simply always lock
+        // when allocating.
+        synchronized (gcLock)
         {
             return reallocNoSync(p, size, bits);
         }
@@ -1246,11 +1229,9 @@ class GC
     {
         debug(PRINTF) printf("GC.fullCollect()\n");
 
-        if (!thread_needLock())
-        {
-            gcx.fullcollectshell();
-        }
-        else synchronized (gcLock)
+        // Since a finalizer could launch a new thread, we always need to lock
+        // when collecting.
+        synchronized (gcLock)
         {
             gcx.fullcollectshell();
         }
@@ -1273,13 +1254,9 @@ class GC
      */
     void fullCollectNoStack()
     {
-        if (!thread_needLock())
-        {
-            gcx.noStack++;
-            gcx.fullcollectshell();
-            gcx.noStack--;
-        }
-        else synchronized (gcLock)
+        // Since a finalizer could launch a new thread, we always need to lock
+        // when collecting.
+        synchronized (gcLock)
         {
             gcx.noStack++;
             gcx.fullcollectshell();
@@ -2034,7 +2011,7 @@ struct Gcx
         return p;
 
       Lnomemory:
-        return null; // let mallocNoSync handle the error
+        return null; // let caller handle the error
     }
 
 
