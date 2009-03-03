@@ -21,7 +21,7 @@ module std.intrinsic;
  *      The bit number of the first bit set.
  *      The return value is undefined if v is zero.
  */
-int bsf( uint v );
+pure nothrow int bsf( uint v );
 
 
 /**
@@ -52,25 +52,25 @@ int bsf( uint v );
  *  bsf(x21) = 0<br>
  *  bsr(x21) = 5
  */
-int bsr( uint v );
+pure nothrow int bsr( uint v );
 
 
 /**
  * Tests the bit.
  */
-int bt( const uint* p, uint bitnum );
+pure nothrow int bt( in uint* p, uint bitnum );
 
 
 /**
  * Tests and complements the bit.
  */
-int btc( uint* p, uint bitnum );
+nothrow int btc( uint* p, uint bitnum );
 
 
 /**
  * Tests and resets (sets to 0) the bit.
  */
-int btr( uint* p, uint bitnum );
+nothrow int btr( uint* p, uint bitnum );
 
 
 /**
@@ -129,7 +129,7 @@ bt(array, 1) = -1
 array = [0]:x2, [1]:x100
 </pre>
  */
-int bts( uint* p, uint bitnum );
+nothrow int bts( uint* p, uint bitnum );
 
 
 /**
@@ -137,40 +137,40 @@ int bts( uint* p, uint bitnum );
  * byte 3, byte 1 becomes byte 2, byte 2 becomes byte 1, byte 3
  * becomes byte 0.
  */
-uint bswap( uint v );
+pure nothrow uint bswap( uint v );
 
 
 /**
  * Reads I/O port at port_address.
  */
-ubyte inp( uint port_address );
+nothrow ubyte inp( uint port_address );
 
 
 /**
  * ditto
  */
-ushort inpw( uint port_address );
+nothrow ushort inpw( uint port_address );
 
 
 /**
  * ditto
  */
-uint inpl( uint port_address );
+nothrow uint inpl( uint port_address );
 
 
 /**
  * Writes and returns value to I/O port at port_address.
  */
-ubyte outp( uint port_address, ubyte value );
+nothrow ubyte outp( uint port_address, ubyte value );
 
 
 /**
  * ditto
  */
-ushort outpw( uint port_address, ushort value );
+nothrow ushort outpw( uint port_address, ushort value );
 
 
 /**
  * ditto
  */
-uint outpl( uint port_address, uint value );
+nothrow uint outpl( uint port_address, uint value );
