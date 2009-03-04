@@ -461,22 +461,32 @@ class GC
 
         if (bin < B_PAGE)
         {
-            p = gcx.bucket[bin];
-            if (p is null)
-            {
-                if (!gcx.allocPage(bin) && !gcx.disabled) // try to find a new page
-                {
-                    gcx.fullcollectshell();
-                }
-                if (!gcx.bucket[bin] && !gcx.allocPage(bin))
-                {   int result;
+            int  state     = gcx.disabled ? 1 : 0;
+            bool collected = false;
 
-                    gcx.newPool(1); // allocate new pool to find a new page
-                    result = gcx.allocPage(bin);
-                    if (!result)
+            for (p = gcx.bucket[bin];
+                 p is null && !gcx.allocPage(bin);
+                 p = gcx.bucket[bin])
+            {
+                switch (state)
+                {
+                case 0:
+                    gcx.fullcollectshell();
+                    collected = true;
+                    state = 1;
+                    continue;
+                case 1:
+                    gcx.newPool(1);
+                    state = 2;
+                    continue;
+                case 2:
+                    if (collected)
                         onOutOfMemoryError();
+                    state = 0;
+                    continue;
+                default:
+                    assert(false);
                 }
-                p = gcx.bucket[bin];
             }
 
             // Return next item from free list
@@ -1942,10 +1952,11 @@ struct Gcx
         size_t freedpages;
         void*  p;
         int    state;
+        bool   collected = false;
 
         npages = (size + PAGESIZE - 1) / PAGESIZE;
 
-        for (state = 0; ; )
+        for (state = disabled ? 1 : 0; ; )
         {
             // This code could use some refinement when repeatedly
             // allocating very large arrays.
@@ -1962,11 +1973,8 @@ struct Gcx
             switch (state)
             {
             case 0:
-                if (disabled)
-                {   state = 1;
-                    continue;
-                }
                 // Try collecting
+                collected = true;
                 freedpages = fullcollectshell();
                 if (freedpages >= npools * ((POOLSIZE / PAGESIZE) / 4))
                 {   state = 1;
@@ -1989,7 +1997,12 @@ struct Gcx
                 // Allocate new pool
                 pool = newPool(npages);
                 if (!pool)
-                    goto Lnomemory;
+                {
+                    if (collected)
+                        goto Lnomemory;
+                    state = 0;
+                    continue;
+                }
                 pn = pool.allocPages(npages);
                 assert(pn != OPFAIL);
                 goto L1;
