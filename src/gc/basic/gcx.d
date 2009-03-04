@@ -464,9 +464,7 @@ class GC
             int  state     = gcx.disabled ? 1 : 0;
             bool collected = false;
 
-            for (p = gcx.bucket[bin];
-                 p is null && !gcx.allocPage(bin);
-                 p = gcx.bucket[bin])
+            while (!gcx.bucket[bin] && !gcx.allocPage(bin))
             {
                 switch (state)
                 {
@@ -488,6 +486,7 @@ class GC
                     assert(false);
                 }
             }
+            p = gcx.bucket[bin];
 
             // Return next item from free list
             gcx.bucket[bin] = (cast(List*)p).next;
