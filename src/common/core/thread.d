@@ -3291,6 +3291,7 @@ private:
         }
         else version( AsmX86_Posix )
         {
+            push( 0x00000000 );                                     // Pad stack for OSX
             push( cast(size_t) &fiber_entryPoint );                 // EIP
             push( 0x00000000 );                                     // EBP
             push( 0x00000000 );                                     // EAX
