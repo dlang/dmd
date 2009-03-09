@@ -68,47 +68,47 @@ int open(in char*, int, ...);
 */
 version( linux )
 {
-    const F_DUPFD       = 0;
-    const F_GETFD       = 1;
-    const F_SETFD       = 2;
-    const F_GETFL       = 3;
-    const F_SETFL       = 4;
+    enum F_DUPFD        = 0;
+    enum F_GETFD        = 1;
+    enum F_SETFD        = 2;
+    enum F_GETFL        = 3;
+    enum F_SETFL        = 4;
   static if( __USE_FILE_OFFSET64 )
   {
-    const F_GETLK       = 12;
-    const F_SETLK       = 13;
-    const F_SETLKW      = 14;
+    enum F_GETLK        = 12;
+    enum F_SETLK        = 13;
+    enum F_SETLKW       = 14;
   }
   else
   {
-    const F_GETLK       = 5;
-    const F_SETLK       = 6;
-    const F_SETLKW      = 7;
+    enum F_GETLK        = 5;
+    enum F_SETLK        = 6;
+    enum F_SETLKW       = 7;
   }
-    const F_GETOWN      = 9;
-    const F_SETOWN      = 8;
+    enum F_GETOWN       = 9;
+    enum F_SETOWN       = 8;
 
-    const FD_CLOEXEC    = 1;
+    enum FD_CLOEXEC     = 1;
 
-    const F_RDLCK       = 0;
-    const F_UNLCK       = 2;
-    const F_WRLCK       = 1;
+    enum F_RDLCK        = 0;
+    enum F_UNLCK        = 2;
+    enum F_WRLCK        = 1;
 
-    const O_CREAT       = 0100;
-    const O_EXCL        = 0200;
-    const O_NOCTTY      = 0400;
-    const O_TRUNC       = 01000;
+    enum O_CREAT        = 0100;
+    enum O_EXCL         = 0200;
+    enum O_NOCTTY       = 0400;
+    enum O_TRUNC        = 01000;
 
-    const O_APPEND      = 02000;
-    const O_NONBLOCK    = 04000;
-    const O_SYNC        = 010000;
-    const O_DSYNC       = O_SYNC;
-    const O_RSYNC       = O_SYNC;
+    enum O_APPEND       = 02000;
+    enum O_NONBLOCK     = 04000;
+    enum O_SYNC         = 010000;
+    enum O_DSYNC        = O_SYNC;
+    enum O_RSYNC        = O_SYNC;
 
-    const O_ACCMODE     = 0003;
-    const O_RDONLY      = 00;
-    const O_WRONLY      = 01;
-    const O_RDWR        = 02;
+    enum O_ACCMODE      = 0003;
+    enum O_RDONLY       = 00;
+    enum O_WRONLY       = 01;
+    enum O_RDWR         = 02;
 
     struct flock
     {
@@ -135,38 +135,38 @@ version( linux )
 }
 else version( OSX )
 {
-    const F_DUPFD       = 0;
-    const F_GETFD       = 1;
-    const F_SETFD       = 2;
-    const F_GETFL       = 3;
-    const F_SETFL       = 4;
-    const F_GETOWN      = 5;
-    const F_SETOWN      = 6;
-    const F_GETLK       = 7;
-    const F_SETLK       = 8;
-    const F_SETLKW      = 9;
+    enum F_DUPFD        = 0;
+    enum F_GETFD        = 1;
+    enum F_SETFD        = 2;
+    enum F_GETFL        = 3;
+    enum F_SETFL        = 4;
+    enum F_GETOWN       = 5;
+    enum F_SETOWN       = 6;
+    enum F_GETLK        = 7;
+    enum F_SETLK        = 8;
+    enum F_SETLKW       = 9;
 
-    const FD_CLOEXEC    = 1;
+    enum FD_CLOEXEC     = 1;
 
-    const F_RDLCK       = 1;
-    const F_UNLCK       = 2;
-    const F_WRLCK       = 3;
+    enum F_RDLCK        = 1;
+    enum F_UNLCK        = 2;
+    enum F_WRLCK        = 3;
 
-    const O_CREAT       = 0x0200;
-    const O_EXCL        = 0x0800;
-    const O_NOCTTY      = 0;
-    const O_TRUNC       = 0x0400;
+    enum O_CREAT        = 0x0200;
+    enum O_EXCL         = 0x0800;
+    enum O_NOCTTY       = 0;
+    enum O_TRUNC        = 0x0400;
 
-    const O_RDONLY      = 0x0000;
-    const O_WRONLY      = 0x0001;
-    const O_RDWR        = 0x0002;
-    const O_ACCMODE     = 0x0003;
+    enum O_RDONLY       = 0x0000;
+    enum O_WRONLY       = 0x0001;
+    enum O_RDWR         = 0x0002;
+    enum O_ACCMODE      = 0x0003;
 
-    const O_NONBLOCK    = 0x0004;
-    const O_APPEND      = 0x0008;
-    const O_SYNC        = 0x0080;
-    //const O_DSYNC
-    //const O_RSYNC
+    enum O_NONBLOCK     = 0x0004;
+    enum O_APPEND       = 0x0008;
+    enum O_SYNC         = 0x0080;
+    //enum O_DSYNC
+    //enum O_RSYNC
 
     struct flock
     {
@@ -182,38 +182,38 @@ else version( OSX )
 }
 else version( freebsd )
 {
-    const F_DUPFD       = 0;
-    const F_GETFD       = 1;
-    const F_SETFD       = 2;
-    const F_GETFL       = 3;
-    const F_SETFL       = 4;
-    const F_GETOWN      = 5;
-    const F_SETOWN      = 6;
-    const F_GETLK       = 7;
-    const F_SETLK       = 8;
-    const F_SETLKW      = 9;
+    enum F_DUPFD        = 0;
+    enum F_GETFD        = 1;
+    enum F_SETFD        = 2;
+    enum F_GETFL        = 3;
+    enum F_SETFL        = 4;
+    enum F_GETOWN       = 5;
+    enum F_SETOWN       = 6;
+    enum F_GETLK        = 7;
+    enum F_SETLK        = 8;
+    enum F_SETLKW       = 9;
 
-    const FD_CLOEXEC    = 1;
+    enum FD_CLOEXEC     = 1;
 
-    const F_RDLCK       = 1;
-    const F_UNLCK       = 2;
-    const F_WRLCK       = 3;
+    enum F_RDLCK        = 1;
+    enum F_UNLCK        = 2;
+    enum F_WRLCK        = 3;
 
-    const O_CREAT       = 0x0200;
-    const O_EXCL        = 0x0800;
-    const O_NOCTTY      = 0;
-    const O_TRUNC       = 0x0400;
+    enum O_CREAT        = 0x0200;
+    enum O_EXCL         = 0x0800;
+    enum O_NOCTTY       = 0;
+    enum O_TRUNC        = 0x0400;
 
-    const O_RDONLY      = 0x0000;
-    const O_WRONLY      = 0x0001;
-    const O_RDWR        = 0x0002;
-    const O_ACCMODE     = 0x0003;
+    enum O_RDONLY       = 0x0000;
+    enum O_WRONLY       = 0x0001;
+    enum O_RDWR         = 0x0002;
+    enum O_ACCMODE      = 0x0003;
 
-    const O_NONBLOCK    = 0x0004;
-    const O_APPEND      = 0x0008;
-    const O_SYNC        = 0x0080;
-    //const O_DSYNC
-    //const O_RSYNC
+    enum O_NONBLOCK     = 0x0004;
+    enum O_APPEND       = 0x0008;
+    enum O_SYNC         = 0x0080;
+    //enum O_DSYNC
+    //enum O_RSYNC
 
     struct flock
     {

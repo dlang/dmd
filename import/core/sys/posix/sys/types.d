@@ -251,27 +251,27 @@ else version( OSX )
 {
     version( X86_64 )
     {
-        const __PTHREAD_SIZE__              = 1168;
-        const __PTHREAD_ATTR_SIZE__         = 56;
-        const __PTHREAD_MUTEXATTR_SIZE__    = 8;
-        const __PTHREAD_MUTEX_SIZE__        = 56;
-        const __PTHREAD_CONDATTR_SIZE__     = 8;
-        const __PTHREAD_COND_SIZE__         = 40;
-        const __PTHREAD_ONCE_SIZE__         = 8;
-        const __PTHREAD_RWLOCK_SIZE__       = 192;
-        const __PTHREAD_RWLOCKATTR_SIZE__   = 16;
+        enum __PTHREAD_SIZE__               = 1168;
+        enum __PTHREAD_ATTR_SIZE__          = 56;
+        enum __PTHREAD_MUTEXATTR_SIZE__     = 8;
+        enum __PTHREAD_MUTEX_SIZE__         = 56;
+        enum __PTHREAD_CONDATTR_SIZE__      = 8;
+        enum __PTHREAD_COND_SIZE__          = 40;
+        enum __PTHREAD_ONCE_SIZE__          = 8;
+        enum __PTHREAD_RWLOCK_SIZE__        = 192;
+        enum __PTHREAD_RWLOCKATTR_SIZE__    = 16;
     }
     else version( X86 )
     {
-        const __PTHREAD_SIZE__              = 596;
-        const __PTHREAD_ATTR_SIZE__         = 36;
-        const __PTHREAD_MUTEXATTR_SIZE__    = 8;
-        const __PTHREAD_MUTEX_SIZE__        = 40;
-        const __PTHREAD_CONDATTR_SIZE__     = 4;
-        const __PTHREAD_COND_SIZE__         = 24;
-        const __PTHREAD_ONCE_SIZE__         = 4;
-        const __PTHREAD_RWLOCK_SIZE__       = 124;
-        const __PTHREAD_RWLOCKATTR_SIZE__   = 12;
+        enum __PTHREAD_SIZE__               = 596;
+        enum __PTHREAD_ATTR_SIZE__          = 36;
+        enum __PTHREAD_MUTEXATTR_SIZE__     = 8;
+        enum __PTHREAD_MUTEX_SIZE__         = 40;
+        enum __PTHREAD_CONDATTR_SIZE__      = 4;
+        enum __PTHREAD_COND_SIZE__          = 24;
+        enum __PTHREAD_ONCE_SIZE__          = 4;
+        enum __PTHREAD_RWLOCK_SIZE__        = 124;
+        enum __PTHREAD_RWLOCKATTR_SIZE__    = 12;
     }
 
     struct pthread_handler_rec

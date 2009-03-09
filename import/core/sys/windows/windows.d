@@ -29,29 +29,18 @@ extern (Windows)
     alias int LONG;
     alias CHAR *LPSTR;
     alias CHAR *PSTR;
-  version(D_Version2)
-  {
-    mixin("alias const(CHAR) *LPCSTR;");
-    mixin("alias const(CHAR) *PCSTR;");
-  }
-  else
-  {
-    alias CHAR *LPCSTR;
-    alias CHAR *PCSTR;
-  }
+
+    alias const(CHAR)* LPCSTR;
+    alias const(CHAR)* PCSTR;
+
     alias LPSTR LPTCH, PTCH;
     alias LPSTR PTSTR, LPTSTR;
     alias LPCSTR LPCTSTR;
 
     alias WCHAR* LPWSTR;
-  version(D_Version2)
-  {
-    mixin("alias const(WCHAR)* LPCWSTR, PCWSTR;");
-  }
-  else
-  {
-    alias WCHAR* LPCWSTR, PCWSTR;
-  }
+
+    alias const(WCHAR)* LPCWSTR, PCWSTR;
+
     alias uint DWORD;
     alias int BOOL;
     alias ubyte BYTE;
@@ -319,25 +308,12 @@ enum
     TRUNCATE_EXISTING   = 5,
 }
 
-version(D_Version2)
-{
-    mixin("
-    enum
-    {
-        HANDLE INVALID_HANDLE_VALUE = cast(HANDLE)-1,
-        DWORD INVALID_SET_FILE_POINTER = cast(DWORD)-1,
-        DWORD INVALID_FILE_SIZE = cast(DWORD)0xFFFFFFFF,
-    }");
-}
-else
-{
-    const HANDLE INVALID_HANDLE_VALUE = cast(HANDLE)-1;
 
-    enum : DWORD
-    {
-        INVALID_SET_FILE_POINTER = cast(DWORD)-1,
-        INVALID_FILE_SIZE = cast(DWORD)0xFFFFFFFF,
-    }
+enum
+{
+    HANDLE INVALID_HANDLE_VALUE     = cast(HANDLE)-1,
+    DWORD INVALID_SET_FILE_POINTER  = cast(DWORD)-1,
+    DWORD INVALID_FILE_SIZE         = cast(DWORD)0xFFFFFFFF,
 }
 
 struct OVERLAPPED {
@@ -617,33 +593,18 @@ enum
 int MessageBoxA(HWND hWnd, LPCSTR lpText, LPCSTR lpCaption, UINT uType);
 int MessageBoxExA(HWND hWnd, LPCSTR lpText, LPCSTR lpCaption, UINT uType, WORD wLanguageId);
 
-version(D_Version2)
+
+enum : HKEY
 {
-    mixin("
-    enum : HKEY
-    {
-        HKEY_CLASSES_ROOT =           cast(HKEY)(0x80000000),
-        HKEY_CURRENT_USER =           cast(HKEY)(0x80000001),
-        HKEY_LOCAL_MACHINE =          cast(HKEY)(0x80000002),
-        HKEY_USERS =                  cast(HKEY)(0x80000003),
-        HKEY_PERFORMANCE_DATA =       cast(HKEY)(0x80000004),
-        HKEY_PERFORMANCE_TEXT =       cast(HKEY)(0x80000050),
-        HKEY_PERFORMANCE_NLSTEXT =    cast(HKEY)(0x80000060),
-        HKEY_CURRENT_CONFIG =         cast(HKEY)(0x80000005),
-        HKEY_DYN_DATA =               cast(HKEY)(0x80000006),
-    }");
-}
-else
-{
-    const HKEY_CLASSES_ROOT =           cast(HKEY)(0x80000000);
-    const HKEY_CURRENT_USER =           cast(HKEY)(0x80000001);
-    const HKEY_LOCAL_MACHINE =          cast(HKEY)(0x80000002);
-    const HKEY_USERS =                  cast(HKEY)(0x80000003);
-    const HKEY_PERFORMANCE_DATA =       cast(HKEY)(0x80000004);
-    const HKEY_PERFORMANCE_TEXT =       cast(HKEY)(0x80000050);
-    const HKEY_PERFORMANCE_NLSTEXT =    cast(HKEY)(0x80000060);
-    const HKEY_CURRENT_CONFIG =         cast(HKEY)(0x80000005);
-    const HKEY_DYN_DATA =               cast(HKEY)(0x80000006);
+    HKEY_CLASSES_ROOT =           cast(HKEY)(0x80000000),
+    HKEY_CURRENT_USER =           cast(HKEY)(0x80000001),
+    HKEY_LOCAL_MACHINE =          cast(HKEY)(0x80000002),
+    HKEY_USERS =                  cast(HKEY)(0x80000003),
+    HKEY_PERFORMANCE_DATA =       cast(HKEY)(0x80000004),
+    HKEY_PERFORMANCE_TEXT =       cast(HKEY)(0x80000050),
+    HKEY_PERFORMANCE_NLSTEXT =    cast(HKEY)(0x80000060),
+    HKEY_CURRENT_CONFIG =         cast(HKEY)(0x80000005),
+    HKEY_DYN_DATA =               cast(HKEY)(0x80000006),
 }
 
 
@@ -2171,24 +2132,15 @@ export
  HCURSOR LoadCursorW(HINSTANCE hInstance, LPCWSTR lpCursorName);
 }
 
-version(D_Version2)
-{
-    mixin("
-    enum : LPSTR
-    {
-        IDI_APPLICATION =     cast(LPSTR)(32512),
 
-        IDC_ARROW =           cast(LPSTR)(32512),
-        IDC_CROSS =           cast(LPSTR)(32515),
-    }");
-}
-else
+enum : LPSTR
 {
-    const IDI_APPLICATION =     cast(LPSTR)(32512);
+    IDI_APPLICATION =     cast(LPSTR)(32512),
 
-    const IDC_ARROW =           cast(LPSTR)(32512);
-    const IDC_CROSS =           cast(LPSTR)(32515);
+    IDC_ARROW =           cast(LPSTR)(32512),
+    IDC_CROSS =           cast(LPSTR)(32515),
 }
+
 
 /*
  * Color Types
@@ -2248,17 +2200,9 @@ enum : int
 /*
  * Special value for CreateWindow, et al.
  */
-version(D_Version2)
+enum : HWND
 {
-    mixin("
-    enum : HWND
-    {
-        HWND_DESKTOP = cast(HWND)0,
-    }");
-}
-else
-{
-    const HWND_DESKTOP = cast(HWND)0;
+    HWND_DESKTOP = cast(HWND)0,
 }
 
 export ATOM RegisterClassA(WNDCLASSA *lpWndClass);

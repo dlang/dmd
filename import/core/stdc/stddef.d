@@ -20,7 +20,7 @@ version( Windows )
     alias wchar wctype_t;
     alias wchar wctrans_t;
 
-    const wchar WEOF = 0xFFFF;
+    enum wchar WEOF = 0xFFFF;
 }
 else
 {
@@ -29,5 +29,5 @@ else
     alias dchar wctype_t;
     alias dchar wctrans_t;
 
-    const dchar WEOF = 0xFFFF;
+    enum dchar WEOF = 0xFFFF;
 }

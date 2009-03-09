@@ -49,7 +49,7 @@ version( linux )
         in_addr_t s_addr;
     }
 
-    const INET_ADDRSTRLEN = 16;
+    enum INET_ADDRSTRLEN = 16;
 
     uint32_t htonl(uint32_t);
     uint16_t htons(uint16_t);
@@ -71,7 +71,7 @@ else version( OSX )
         in_addr_t s_addr;
     }
 
-    const INET_ADDRSTRLEN = 16;
+    enum INET_ADDRSTRLEN = 16;
 
     uint32_t htonl(uint32_t);
     uint16_t htons(uint16_t);
@@ -93,7 +93,7 @@ else version( freebsd )
         in_addr_t s_addr;
     }
 
-    const INET_ADDRSTRLEN = 16;
+    enum INET_ADDRSTRLEN = 16;
 
     uint32_t htonl(uint32_t);
     uint16_t htons(uint16_t);
@@ -115,13 +115,13 @@ INET6_ADDRSTRLEN // from core.sys.posix.netinet.in_
 
 version( linux )
 {
-    const INET6_ADDRSTRLEN = 46;
+    enum INET6_ADDRSTRLEN = 46;
 }
 else version( OSX )
 {
-    const INET6_ADDRSTRLEN = 46;
+    enum INET6_ADDRSTRLEN = 46;
 }
 else version( freebsd )
 {
-    const INET6_ADDRSTRLEN = 46;
+    enum INET6_ADDRSTRLEN = 46;
 }

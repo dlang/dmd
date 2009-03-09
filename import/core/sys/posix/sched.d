@@ -45,19 +45,19 @@ version( linux )
         int sched_priority;
     }
 
-    const SCHED_OTHER   = 0;
-    const SCHED_FIFO    = 1;
-    const SCHED_RR      = 2;
+    enum SCHED_OTHER    = 0;
+    enum SCHED_FIFO     = 1;
+    enum SCHED_RR       = 2;
     //SCHED_SPORADIC (SS|TSP)
 }
 else version( OSX )
 {
-    const SCHED_OTHER   = 1;
-    const SCHED_FIFO    = 4;
-    const SCHED_RR      = 2;
+    enum SCHED_OTHER    = 1;
+    enum SCHED_FIFO     = 4;
+    enum SCHED_RR       = 2;
     //SCHED_SPORADIC (SS|TSP)
 
-    private const __SCHED_PARAM_SIZE__ = 4;
+    private enum __SCHED_PARAM_SIZE__ = 4;
 
     struct sched_param
     {
@@ -72,9 +72,9 @@ else version( freebsd )
         int sched_priority;
     }
 
-    const SCHED_FIFO    = 1;
-    const SCHED_OTHER   = 2;
-    const SCHED_RR      = 3;
+    enum SCHED_FIFO     = 1;
+    enum SCHED_OTHER    = 2;
+    enum SCHED_RR       = 3;
     //SCHED_SPORADIC (SS|TSP)
 }
 

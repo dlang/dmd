@@ -36,12 +36,12 @@ pid_t waitpid(pid_t, int*, int);
 
 version( linux )
 {
-    const WNOHANG       = 1;
-    const WUNTRACED     = 2;
+    enum WNOHANG        = 1;
+    enum WUNTRACED      = 2;
 
     private
     {
-        const __W_CONTINUED = 0xFFFF;
+        enum __W_CONTINUED = 0xFFFF;
 
         extern (D) int __WTERMSIG( int status ) { return status & 0x7F; }
     }
@@ -64,12 +64,12 @@ version( linux )
 }
 else version( OSX )
 {
-    const WNOHANG       = 1;
-    const WUNTRACED     = 2;
+    enum WNOHANG        = 1;
+    enum WUNTRACED      = 2;
 
     private
     {
-        const _WSTOPPED = 0177;
+        enum _WSTOPPED = 0177;
     }
 
     extern (D) int _WSTATUS(int status)         { return (status & 0177);           }
@@ -86,13 +86,13 @@ else version( OSX )
 }
 else version( freebsd )
 {
-    const WNOHANG       = 1;
-    const WUNTRACED     = 2;
-    const WCONTINUED    = 4;
+    enum WNOHANG        = 1;
+    enum WUNTRACED      = 2;
+    enum WCONTINUED     = 4;
 
     private
     {
-        const _WSTOPPED = 0177;
+        enum _WSTOPPED = 0177;
     }
 
     extern (D) int _WSTATUS(int status)         { return (status & 0177);           }

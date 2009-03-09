@@ -55,9 +55,9 @@ version( linux )
         timeval it_value;
     }
 
-    const ITIMER_REAL       = 0;
-    const ITIMER_VIRTUAL    = 1;
-    const ITIMER_PROF       = 2;
+    enum ITIMER_REAL    = 0;
+    enum ITIMER_VIRTUAL = 1;
+    enum ITIMER_PROF    = 2;
 
     int getitimer(int, itimerval*);
     int gettimeofday(timeval*, void*);

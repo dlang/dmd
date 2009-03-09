@@ -114,8 +114,8 @@ int timer_settime(timer_t, int, in itimerspec*, itimerspec*);
 
 version( linux )
 {
-    const CLOCK_PROCESS_CPUTIME_ID  = 2; // (TMR|CPT)
-    const CLOCK_THREAD_CPUTIME_ID   = 3; // (TMR|TCT)
+    enum CLOCK_PROCESS_CPUTIME_ID   = 2; // (TMR|CPT)
+    enum CLOCK_THREAD_CPUTIME_ID    = 3; // (TMR|TCT)
 
     // NOTE: See above for why this is commented out.
     //
@@ -131,8 +131,8 @@ version( linux )
         timespec it_value;
     }
 
-    const CLOCK_REALTIME    = 0;
-    const TIMER_ABSTIME     = 0x01;
+    enum CLOCK_REALTIME     = 0;
+    enum TIMER_ABSTIME      = 0x01;
 
     alias int clockid_t;
     alias int timer_t;
@@ -153,8 +153,8 @@ else version( OSX )
 }
 else version( freebsd )
 {
-    const CLOCK_PROCESS_CPUTIME_ID  = 2; // (TMR|CPT)
-    const CLOCK_THREAD_CPUTIME_ID   = 3; // (TMR|TCT)
+    enum CLOCK_PROCESS_CPUTIME_ID   = 2; // (TMR|CPT)
+    enum CLOCK_THREAD_CPUTIME_ID    = 3; // (TMR|TCT)
 
     // NOTE: See above for why this is commented out.
     //
@@ -170,8 +170,8 @@ else version( freebsd )
         timespec it_value;
     }
 
-    const CLOCK_REALTIME    = 0;
-    const TIMER_ABSTIME     = 0x01;
+    enum CLOCK_REALTIME     = 0;
+    enum TIMER_ABSTIME      = 0x01;
 
     //alias int clockid_t;
     alias int timer_t;

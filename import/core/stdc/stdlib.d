@@ -31,10 +31,10 @@ struct lldiv_t
          rem;
 }
 
-const EXIT_SUCCESS  = 0;
-const EXIT_FAILURE  = 1;
-const RAND_MAX      = 32767;
-const MB_CUR_MAX    = 1;
+enum EXIT_SUCCESS = 0;
+enum EXIT_FAILURE = 1;
+enum RAND_MAX     = 32767;
+enum MB_CUR_MAX   = 1;
 
 double  atof(in char* nptr);
 int     atoi(in char* nptr);
@@ -93,9 +93,4 @@ size_t  wcstombs(char* s, in wchar_t* pwcs, size_t n);
 version( DigitalMars )
 {
     void* alloca(size_t size);
-}
-else version( GNU )
-{
-    private import gcc.builtins;
-    alias gcc.builtins.__builtin_alloca alloca;
 }

@@ -15,9 +15,9 @@ public import core.sys.posix.sys.types; // for size_t, ssize_t, uid_t, gid_t, of
 
 extern (C):
 
-const STDIN_FILENO  = 0;
-const STDOUT_FILENO = 1;
-const STDERR_FILENO = 2;
+enum STDIN_FILENO  = 0;
+enum STDOUT_FILENO = 1;
+enum STDERR_FILENO = 2;
 
 char*   optarg;
 int     optind;
@@ -115,15 +115,15 @@ else
 
 version( linux )
 {
-    const F_OK          = 0;
-    const R_OK          = 4;
-    const W_OK          = 2;
-    const X_OK          = 1;
+    enum F_OK       = 0;
+    enum R_OK       = 4;
+    enum W_OK       = 2;
+    enum X_OK       = 1;
 
-    const F_ULOCK       = 0;
-    const F_LOCK        = 1;
-    const F_TLOCK       = 2;
-    const F_TEST        = 3;
+    enum F_ULOCK    = 0;
+    enum F_LOCK     = 1;
+    enum F_TLOCK    = 2;
+    enum F_TEST     = 3;
 
     enum
     {
@@ -430,27 +430,27 @@ version( linux )
 }
 else version( OSX )
 {
-    const F_OK          = 0;
-    const R_OK          = 4;
-    const W_OK          = 2;
-    const X_OK          = 1;
+    enum F_OK       = 0;
+    enum R_OK       = 4;
+    enum W_OK       = 2;
+    enum X_OK       = 1;
 
-    const F_ULOCK       = 0;
-    const F_LOCK        = 1;
-    const F_TLOCK       = 2;
-    const F_TEST        = 3;
+    enum F_ULOCK    = 0;
+    enum F_LOCK     = 1;
+    enum F_TLOCK    = 2;
+    enum F_TEST     = 3;
 }
 else version( freebsd )
 {
-    const F_OK          = 0;
-    const R_OK          = 0x04;
-    const W_OK          = 0x02;
-    const X_OK          = 0x01;
+    enum F_OK       = 0;
+    enum R_OK       = 0x04;
+    enum W_OK       = 0x02;
+    enum X_OK       = 0x01;
 
-    const F_ULOCK       = 0;
-    const F_LOCK        = 1;
-    const F_TLOCK       = 2;
-    const F_TEST        = 3;
+    enum F_ULOCK    = 0;
+    enum F_LOCK     = 1;
+    enum F_TLOCK    = 2;
+    enum F_TEST     = 3;
 }
 
 //

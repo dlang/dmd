@@ -15,19 +15,19 @@ extern (C):
 alias float  float_t;
 alias double double_t;
 
-const double HUGE_VAL      = double.infinity;
-const double HUGE_VALF     = float.infinity;
-const double HUGE_VALL     = real.infinity;
+enum double HUGE_VAL      = double.infinity;
+enum double HUGE_VALF     = float.infinity;
+enum double HUGE_VALL     = real.infinity;
 
-const float INFINITY       = float.infinity;
-const float NAN            = float.nan;
+enum float INFINITY       = float.infinity;
+enum float NAN            = float.nan;
 
-const int FP_ILOGB0        = int.min;
-const int FP_ILOGBNAN      = int.min;
+enum int FP_ILOGB0        = int.min;
+enum int FP_ILOGBNAN      = int.min;
 
-const int MATH_ERRNO       = 1;
-const int MATH_ERREXCEPT   = 2;
-const int math_errhandling = MATH_ERRNO | MATH_ERREXCEPT;
+enum int MATH_ERRNO       = 1;
+enum int MATH_ERREXCEPT   = 2;
+enum int math_errhandling = MATH_ERRNO | MATH_ERREXCEPT;
 
 version( none )
 {
@@ -554,7 +554,7 @@ version( freebsd )
     float   log1pf(float x);
     real    log1pl(real x) { return log1p(x); }
 
-    private const real ONE_LN2 = 1 / 0x1.62e42fefa39ef358p-1L;
+    private enum real ONE_LN2 = 1 / 0x1.62e42fefa39ef358p-1L;
     double  log2(double x) { return log(x) * ONE_LN2; }
     float   log2f(float x) { return logf(x) * ONE_LN2; }
     real    log2l(real x)  { return logl(x) * ONE_LN2; }

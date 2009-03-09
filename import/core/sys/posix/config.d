@@ -14,14 +14,14 @@ extern (C):
 
 version( linux )
 {
-  version( none /* X86_64 */ )
+  version( X86_64 )
   {
-    const bool  __USE_LARGEFILE64   = true;
+    enum bool  __USE_LARGEFILE64    = true;
   }
   else
   {
-    const bool  __USE_LARGEFILE64   = false;
+    enum bool  __USE_LARGEFILE64    = false;
   }
-    const bool  __USE_FILE_OFFSET64 = __USE_LARGEFILE64;
-    const bool  __REDIRECT          = false;
+    enum bool  __USE_FILE_OFFSET64  = __USE_LARGEFILE64;
+    enum bool  __REDIRECT           = false;
 }

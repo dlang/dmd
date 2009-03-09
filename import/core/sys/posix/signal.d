@@ -103,74 +103,74 @@ alias __libc_current_sigrtmax SIGRTMAX;
 version( linux )
 {
     //SIGABRT (defined in core.stdc.signal)
-    const SIGALRM   = 14;
-    const SIGBUS    = 7;
-    const SIGCHLD   = 17;
-    const SIGCONT   = 18;
+    enum SIGALRM    = 14;
+    enum SIGBUS     = 7;
+    enum SIGCHLD    = 17;
+    enum SIGCONT    = 18;
     //SIGFPE (defined in core.stdc.signal)
-    const SIGHUP    = 1;
+    enum SIGHUP     = 1;
     //SIGILL (defined in core.stdc.signal)
     //SIGINT (defined in core.stdc.signal)
-    const SIGKILL   = 9;
-    const SIGPIPE   = 13;
-    const SIGQUIT   = 3;
+    enum SIGKILL    = 9;
+    enum SIGPIPE    = 13;
+    enum SIGQUIT    = 3;
     //SIGSEGV (defined in core.stdc.signal)
-    const SIGSTOP   = 19;
+    enum SIGSTOP    = 19;
     //SIGTERM (defined in core.stdc.signal)
-    const SIGTSTP   = 20;
-    const SIGTTIN   = 21;
-    const SIGTTOU   = 22;
-    const SIGUSR1   = 10;
-    const SIGUSR2   = 12;
-    const SIGURG    = 23;
+    enum SIGTSTP    = 20;
+    enum SIGTTIN    = 21;
+    enum SIGTTOU    = 22;
+    enum SIGUSR1    = 10;
+    enum SIGUSR2    = 12;
+    enum SIGURG     = 23;
 }
 else version( OSX )
 {
     //SIGABRT (defined in core.stdc.signal)
-    const SIGALRM   = 14;
-    const SIGBUS    = 10;
-    const SIGCHLD   = 20;
-    const SIGCONT   = 19;
+    enum SIGALRM    = 14;
+    enum SIGBUS     = 10;
+    enum SIGCHLD    = 20;
+    enum SIGCONT    = 19;
     //SIGFPE (defined in core.stdc.signal)
-    const SIGHUP    = 1;
+    enum SIGHUP     = 1;
     //SIGILL (defined in core.stdc.signal)
     //SIGINT (defined in core.stdc.signal)
-    const SIGKILL   = 9;
-    const SIGPIPE   = 13;
-    const SIGQUIT   = 3;
+    enum SIGKILL    = 9;
+    enum SIGPIPE    = 13;
+    enum SIGQUIT    = 3;
     //SIGSEGV (defined in core.stdc.signal)
-    const SIGSTOP   = 17;
+    enum SIGSTOP    = 17;
     //SIGTERM (defined in core.stdc.signal)
-    const SIGTSTP   = 18;
-    const SIGTTIN   = 21;
-    const SIGTTOU   = 22;
-    const SIGUSR1   = 30;
-    const SIGUSR2   = 31;
-    const SIGURG    = 16;
+    enum SIGTSTP    = 18;
+    enum SIGTTIN    = 21;
+    enum SIGTTOU    = 22;
+    enum SIGUSR1    = 30;
+    enum SIGUSR2    = 31;
+    enum SIGURG     = 16;
 }
 else version( freebsd )
 {
     //SIGABRT (defined in core.stdc.signal)
-    const SIGALRM   = 14;
-    const SIGBUS    = 10;
-    const SIGCHLD   = 20;
-    const SIGCONT   = 19;
+    enum SIGALRM    = 14;
+    enum SIGBUS     = 10;
+    enum SIGCHLD    = 20;
+    enum SIGCONT    = 19;
     //SIGFPE (defined in core.stdc.signal)
-    const SIGHUP    = 1;
+    enum SIGHUP     = 1;
     //SIGILL (defined in core.stdc.signal)
     //SIGINT (defined in core.stdc.signal)
-    const SIGKILL   = 9;
-    const SIGPIPE   = 13;
-    const SIGQUIT   = 3;
+    enum SIGKILL    = 9;
+    enum SIGPIPE    = 13;
+    enum SIGQUIT    = 3;
     //SIGSEGV (defined in core.stdc.signal)
-    const SIGSTOP   = 17;
+    enum SIGSTOP    = 17;
     //SIGTERM (defined in core.stdc.signal)
-    const SIGTSTP   = 18;
-    const SIGTTIN   = 21;
-    const SIGTTOU   = 22;
-    const SIGUSR1   = 30;
-    const SIGUSR2   = 31;
-    const SIGURG    = 16;
+    enum SIGTSTP    = 18;
+    enum SIGTTIN    = 21;
+    enum SIGTTOU    = 22;
+    enum SIGUSR1    = 30;
+    enum SIGUSR2    = 31;
+    enum SIGURG     = 16;
 }
 
 struct sigaction_t
@@ -257,9 +257,9 @@ int sigwait(in sigset_t*, int*);
 
 version( linux )
 {
-    const SIG_HOLD = cast(sigfn_t) 1;
+    enum SIG_HOLD = cast(sigfn_t) 1;
 
-    private const _SIGSET_NWORDS = 1024 / (8 * c_ulong.sizeof);
+    private enum _SIGSET_NWORDS = 1024 / (8 * c_ulong.sizeof);
 
     struct sigset_t
     {
@@ -275,21 +275,21 @@ version( linux )
     //SIGSEGV (defined in core.stdc.signal)
     //SIGTERM (defined in core.stdc.signal)
 
-    const SA_NOCLDSTOP  = 1; // (CX|XSI)
+    enum SA_NOCLDSTOP   = 1; // (CX|XSI)
 
-    const SIG_BLOCK     = 0;
-    const SIG_UNBLOCK   = 1;
-    const SIG_SETMASK   = 2;
+    enum SIG_BLOCK      = 0;
+    enum SIG_UNBLOCK    = 1;
+    enum SIG_SETMASK    = 2;
 
-    private const __SI_MAX_SIZE = 128;
+    private enum __SI_MAX_SIZE = 128;
 
     static if( false /* __WORDSIZE == 64 */ )
     {
-        private const __SI_PAD_SIZE = ((__SI_MAX_SIZE / int.sizeof) - 4);
+        private enum __SI_PAD_SIZE = ((__SI_MAX_SIZE / int.sizeof) - 4);
     }
     else
     {
-        private const __SI_PAD_SIZE = ((__SI_MAX_SIZE / int.sizeof) - 3);
+        private enum __SI_PAD_SIZE = ((__SI_MAX_SIZE / int.sizeof) - 3);
     }
 
     struct siginfo_t
@@ -587,24 +587,24 @@ int sigrelse(int);
 
 version( linux )
 {
-    const SIGPOLL       = 29;
-    const SIGPROF       = 27;
-    const SIGSYS        = 31;
-    const SIGTRAP       = 5;
-    const SIGVTALRM     = 26;
-    const SIGXCPU       = 24;
-    const SIGXFSZ       = 25;
+    enum SIGPOLL        = 29;
+    enum SIGPROF        = 27;
+    enum SIGSYS         = 31;
+    enum SIGTRAP        = 5;
+    enum SIGVTALRM      = 26;
+    enum SIGXCPU        = 24;
+    enum SIGXFSZ        = 25;
 
-    const SA_ONSTACK    = 0x08000000;
-    const SA_RESETHAND  = 0x80000000;
-    const SA_RESTART    = 0x10000000;
-    const SA_SIGINFO    = 4;
-    const SA_NOCLDWAIT  = 2;
-    const SA_NODEFER    = 0x40000000;
-    const SS_ONSTACK    = 1;
-    const SS_DISABLE    = 2;
-    const MINSIGSTKSZ   = 2048;
-    const SIGSTKSZ      = 8192;
+    enum SA_ONSTACK     = 0x08000000;
+    enum SA_RESETHAND   = 0x80000000;
+    enum SA_RESTART     = 0x10000000;
+    enum SA_SIGINFO     = 4;
+    enum SA_NOCLDWAIT   = 2;
+    enum SA_NODEFER     = 0x40000000;
+    enum SS_ONSTACK     = 1;
+    enum SS_DISABLE     = 2;
+    enum MINSIGSTKSZ    = 2048;
+    enum SIGSTKSZ       = 8192;
 
     //ucontext_t (defined in core.sys.posix.ucontext)
     //mcontext_t (defined in core.sys.posix.ucontext)
@@ -756,15 +756,15 @@ int sigwaitinfo(in sigset_t*, siginfo_t*);
 
 version( linux )
 {
-    private const __SIGEV_MAX_SIZE = 64;
+    private enum __SIGEV_MAX_SIZE = 64;
 
     static if( false /* __WORDSIZE == 64 */ )
     {
-        private const __SIGEV_PAD_SIZE = ((__SIGEV_MAX_SIZE / int.sizeof) - 4);
+        private enum __SIGEV_PAD_SIZE = ((__SIGEV_MAX_SIZE / int.sizeof) - 4);
     }
     else
     {
-        private const __SIGEV_PAD_SIZE = ((__SIGEV_MAX_SIZE / int.sizeof) - 3);
+        private enum __SIGEV_PAD_SIZE = ((__SIGEV_MAX_SIZE / int.sizeof) - 3);
     }
 
     struct sigevent

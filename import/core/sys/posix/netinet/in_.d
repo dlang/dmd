@@ -59,7 +59,7 @@ ntohs() // from core.sys.posix.arpa.inet
 
 version( linux )
 {
-    private const __SOCK_SIZE__ = 16;
+    private enum __SOCK_SIZE__ = 16;
 
     struct sockaddr_in
     {
@@ -80,12 +80,12 @@ version( linux )
         IPPROTO_UDP  = 17
     }
 
-    const uint INADDR_ANY       = 0x00000000;
-    const uint INADDR_BROADCAST = 0xffffffff;
+    enum uint INADDR_ANY       = 0x00000000;
+    enum uint INADDR_BROADCAST = 0xffffffff;
 }
 else version( OSX )
 {
-    private const __SOCK_SIZE__ = 16;
+    private enum __SOCK_SIZE__ = 16;
 
     struct sockaddr_in
     {
@@ -104,12 +104,12 @@ else version( OSX )
         IPPROTO_UDP  = 17
     }
 
-    const uint INADDR_ANY       = 0x00000000;
-    const uint INADDR_BROADCAST = 0xffffffff;
+    enum uint INADDR_ANY       = 0x00000000;
+    enum uint INADDR_BROADCAST = 0xffffffff;
 }
 else version( freebsd )
 {
-    private const __SOCK_SIZE__ = 16;
+    private enum __SOCK_SIZE__ = 16;
 
     struct sockaddr_in
     {
@@ -128,8 +128,8 @@ else version( freebsd )
         IPPROTO_UDP  = 17
     }
 
-    const uint INADDR_ANY       = 0x00000000;
-    const uint INADDR_BROADCAST = 0xffffffff;
+    enum uint INADDR_ANY       = 0x00000000;
+    enum uint INADDR_BROADCAST = 0xffffffff;
 }
 
 
@@ -323,5 +323,5 @@ IPPROTO_RAW
 
 version (linux )
 {
-    const uint IPPROTO_RAW = 255;
+    enum uint IPPROTO_RAW = 255;
 }

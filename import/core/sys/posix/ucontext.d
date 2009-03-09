@@ -62,7 +62,7 @@ version( linux )
                 uint[24]         padding;
             }
 
-            const NGREG = 23;
+            enum NGREG = 23;
 
             alias c_long            greg_t;
             alias greg_t[NGREG]     gregset_t;
@@ -109,7 +109,7 @@ version( linux )
               c_ulong           status;
             }
 
-            const NGREG = 19;
+            enum NGREG = 19;
 
             alias int               greg_t;
             alias greg_t[NGREG]     gregset_t;

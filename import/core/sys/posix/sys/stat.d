@@ -133,24 +133,24 @@ version( linux )
       }
     }
 
-    const S_IRUSR   = 0400;
-    const S_IWUSR   = 0200;
-    const S_IXUSR   = 0100;
-    const S_IRWXU   = S_IRUSR | S_IWUSR | S_IXUSR;
+    enum S_IRUSR    = 0400;
+    enum S_IWUSR    = 0200;
+    enum S_IXUSR    = 0100;
+    enum S_IRWXU    = S_IRUSR | S_IWUSR | S_IXUSR;
 
-    const S_IRGRP   = S_IRUSR >> 3;
-    const S_IWGRP   = S_IWUSR >> 3;
-    const S_IXGRP   = S_IXUSR >> 3;
-    const S_IRWXG   = S_IRWXU >> 3;
+    enum S_IRGRP    = S_IRUSR >> 3;
+    enum S_IWGRP    = S_IWUSR >> 3;
+    enum S_IXGRP    = S_IXUSR >> 3;
+    enum S_IRWXG    = S_IRWXU >> 3;
 
-    const S_IROTH   = S_IRGRP >> 3;
-    const S_IWOTH   = S_IWGRP >> 3;
-    const S_IXOTH   = S_IXGRP >> 3;
-    const S_IRWXO   = S_IRWXG >> 3;
+    enum S_IROTH    = S_IRGRP >> 3;
+    enum S_IWOTH    = S_IWGRP >> 3;
+    enum S_IXOTH    = S_IXGRP >> 3;
+    enum S_IRWXO    = S_IRWXG >> 3;
 
-    const S_ISUID   = 04000;
-    const S_ISGID   = 02000;
-    const S_ISVTX   = 01000;
+    enum S_ISUID    = 04000;
+    enum S_ISGID    = 02000;
+    enum S_ISVTX    = 01000;
 
     private
     {
@@ -201,24 +201,24 @@ else version( OSX )
         long        st_qspare[2];
     }
 
-    const S_IRUSR   = 0400;
-    const S_IWUSR   = 0200;
-    const S_IXUSR   = 0100;
-    const S_IRWXU   = S_IRUSR | S_IWUSR | S_IXUSR;
+    enum S_IRUSR    = 0400;
+    enum S_IWUSR    = 0200;
+    enum S_IXUSR    = 0100;
+    enum S_IRWXU    = S_IRUSR | S_IWUSR | S_IXUSR;
 
-    const S_IRGRP   = S_IRUSR >> 3;
-    const S_IWGRP   = S_IWUSR >> 3;
-    const S_IXGRP   = S_IXUSR >> 3;
-    const S_IRWXG   = S_IRWXU >> 3;
+    enum S_IRGRP    = S_IRUSR >> 3;
+    enum S_IWGRP    = S_IWUSR >> 3;
+    enum S_IXGRP    = S_IXUSR >> 3;
+    enum S_IRWXG    = S_IRWXU >> 3;
 
-    const S_IROTH   = S_IRGRP >> 3;
-    const S_IWOTH   = S_IWGRP >> 3;
-    const S_IXOTH   = S_IXGRP >> 3;
-    const S_IRWXO   = S_IRWXG >> 3;
+    enum S_IROTH    = S_IRGRP >> 3;
+    enum S_IWOTH    = S_IWGRP >> 3;
+    enum S_IXOTH    = S_IXGRP >> 3;
+    enum S_IRWXO    = S_IRWXG >> 3;
 
-    const S_ISUID   = 04000;
-    const S_ISGID   = 02000;
-    const S_ISVTX   = 01000;
+    enum S_ISUID    = 04000;
+    enum S_ISGID    = 02000;
+    enum S_ISVTX    = 01000;
 
     private
     {
@@ -275,24 +275,24 @@ else version( freebsd )
         byte[16 - timespec.sizeof] padding;
     }
 
-    const S_IRUSR   = 0000400;
-    const S_IWUSR   = 0000200;
-    const S_IXUSR   = 0000100;
-    const S_IRWXU   = 0000700;
+    enum S_IRUSR    = 0000400;
+    enum S_IWUSR    = 0000200;
+    enum S_IXUSR    = 0000100;
+    enum S_IRWXU    = 0000700;
 
-    const S_IRGRP   = 0000040;
-    const S_IWGRP   = 0000020;
-    const S_IXGRP   = 0000010;
-    const S_IRWXG   = 0000070;
+    enum S_IRGRP    = 0000040;
+    enum S_IWGRP    = 0000020;
+    enum S_IXGRP    = 0000010;
+    enum S_IRWXG    = 0000070;
 
-    const S_IROTH   = 0000004;
-    const S_IWOTH   = 0000002;
-    const S_IXOTH   = 0000001;
-    const S_IRWXO   = 0000007;
+    enum S_IROTH    = 0000004;
+    enum S_IWOTH    = 0000002;
+    enum S_IXOTH    = 0000001;
+    enum S_IRWXO    = 0000007;
 
-    const S_ISUID   = 0004000;
-    const S_ISGID   = 0002000;
-    const S_ISVTX   = 0001000;
+    enum S_ISUID    = 0004000;
+    enum S_ISGID    = 0002000;
+    enum S_ISVTX    = 0001000;
 
     private
     {
@@ -372,40 +372,40 @@ int mknod(in 3char*, mode_t, dev_t);
 
 version( linux )
 {
-    const S_IFMT    = 0170000;
-    const S_IFBLK   = 0060000;
-    const S_IFCHR   = 0020000;
-    const S_IFIFO   = 0010000;
-    const S_IFREG   = 0100000;
-    const S_IFDIR   = 0040000;
-    const S_IFLNK   = 0120000;
-    const S_IFSOCK  = 0140000;
+    enum S_IFMT     = 0170000;
+    enum S_IFBLK    = 0060000;
+    enum S_IFCHR    = 0020000;
+    enum S_IFIFO    = 0010000;
+    enum S_IFREG    = 0100000;
+    enum S_IFDIR    = 0040000;
+    enum S_IFLNK    = 0120000;
+    enum S_IFSOCK   = 0140000;
 
     int mknod(in char*, mode_t, dev_t);
 }
 else version( OSX )
 {
-    const S_IFMT    = 0170000;
-    const S_IFBLK   = 0060000;
-    const S_IFCHR   = 0020000;
-    const S_IFIFO   = 0010000;
-    const S_IFREG   = 0100000;
-    const S_IFDIR   = 0040000;
-    const S_IFLNK   = 0120000;
-    const S_IFSOCK  = 0140000;
+    enum S_IFMT     = 0170000;
+    enum S_IFBLK    = 0060000;
+    enum S_IFCHR    = 0020000;
+    enum S_IFIFO    = 0010000;
+    enum S_IFREG    = 0100000;
+    enum S_IFDIR    = 0040000;
+    enum S_IFLNK    = 0120000;
+    enum S_IFSOCK   = 0140000;
 
     int mknod(in char*, mode_t, dev_t);
 }
 else version( freebsd )
 {
-    const S_IFMT    = 0170000;
-    const S_IFBLK   = 0060000;
-    const S_IFCHR   = 0020000;
-    const S_IFIFO   = 0010000;
-    const S_IFREG   = 0100000;
-    const S_IFDIR   = 0040000;
-    const S_IFLNK   = 0120000;
-    const S_IFSOCK  = 0140000;
+    enum S_IFMT     = 0170000;
+    enum S_IFBLK    = 0060000;
+    enum S_IFCHR    = 0020000;
+    enum S_IFIFO    = 0010000;
+    enum S_IFREG    = 0100000;
+    enum S_IFDIR    = 0040000;
+    enum S_IFLNK    = 0120000;
+    enum S_IFSOCK   = 0140000;
 
     int mknod(in char*, mode_t, dev_t);
 }

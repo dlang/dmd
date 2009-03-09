@@ -38,7 +38,7 @@ version( linux )
         char*   if_name;
     }
 
-    const IF_NAMESIZE = 16;
+    enum IF_NAMESIZE = 16;
 
     uint            if_nametoindex(in char*);
     char*           if_indextoname(uint, char*);
@@ -53,7 +53,7 @@ else version( OSX )
         char*   if_name;
     }
 
-    const IF_NAMESIZE = 16;
+    enum IF_NAMESIZE = 16;
 
     uint            if_nametoindex(in char*);
     char*           if_indextoname(uint, char*);
@@ -68,7 +68,7 @@ else version( freebsd )
         char*   if_name;
     }
 
-    const IF_NAMESIZE = 16;
+    enum IF_NAMESIZE = 16;
 
     uint            if_nametoindex(in char*);
     char*           if_indextoname(uint, char*);

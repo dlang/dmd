@@ -34,27 +34,27 @@ POSIX_MADV_DONTNEED
 
 version( linux )
 {
-    const POSIX_MADV_NORMAL     = 0;
-    const POSIX_MADV_RANDOM     = 1;
-    const POSIX_MADV_SEQUENTIAL = 2;
-    const POSIX_MADV_WILLNEED   = 3;
-    const POSIX_MADV_DONTNEED   = 4;
+    enum POSIX_MADV_NORMAL      = 0;
+    enum POSIX_MADV_RANDOM      = 1;
+    enum POSIX_MADV_SEQUENTIAL  = 2;
+    enum POSIX_MADV_WILLNEED    = 3;
+    enum POSIX_MADV_DONTNEED    = 4;
 }
 else version( OSX )
 {
-    const POSIX_MADV_NORMAL     = 0;
-    const POSIX_MADV_RANDOM     = 1;
-    const POSIX_MADV_SEQUENTIAL = 2;
-    const POSIX_MADV_WILLNEED   = 3;
-    const POSIX_MADV_DONTNEED   = 4;
+    enum POSIX_MADV_NORMAL      = 0;
+    enum POSIX_MADV_RANDOM      = 1;
+    enum POSIX_MADV_SEQUENTIAL  = 2;
+    enum POSIX_MADV_WILLNEED    = 3;
+    enum POSIX_MADV_DONTNEED    = 4;
 }
 else version( freebsd )
 {
-    const POSIX_MADV_NORMAL     = 0;
-    const POSIX_MADV_RANDOM     = 1;
-    const POSIX_MADV_SEQUENTIAL = 2;
-    const POSIX_MADV_WILLNEED   = 3;
-    const POSIX_MADV_DONTNEED   = 4;
+    enum POSIX_MADV_NORMAL      = 0;
+    enum POSIX_MADV_RANDOM      = 1;
+    enum POSIX_MADV_SEQUENTIAL  = 2;
+    enum POSIX_MADV_WILLNEED    = 3;
+    enum POSIX_MADV_DONTNEED    = 4;
 }
 
 //
@@ -69,24 +69,24 @@ PROT_NONE
 
 version( linux )
 {
-    const PROT_NONE     = 0x0;
-    const PROT_READ     = 0x1;
-    const PROT_WRITE    = 0x2;
-    const PROT_EXEC     = 0x4;
+    enum PROT_NONE      = 0x0;
+    enum PROT_READ      = 0x1;
+    enum PROT_WRITE     = 0x2;
+    enum PROT_EXEC      = 0x4;
 }
 else version( OSX )
 {
-    const PROT_NONE     = 0x00;
-    const PROT_READ     = 0x01;
-    const PROT_WRITE    = 0x02;
-    const PROT_EXEC     = 0x04;
+    enum PROT_NONE      = 0x00;
+    enum PROT_READ      = 0x01;
+    enum PROT_WRITE     = 0x02;
+    enum PROT_EXEC      = 0x04;
 }
 else version( freebsd )
 {
-    const PROT_NONE     = 0x00;
-    const PROT_READ     = 0x01;
-    const PROT_WRITE    = 0x02;
-    const PROT_EXEC     = 0x04;
+    enum PROT_NONE      = 0x00;
+    enum PROT_READ      = 0x01;
+    enum PROT_WRITE     = 0x02;
+    enum PROT_EXEC      = 0x04;
 }
 
 //
@@ -141,49 +141,49 @@ int msync(void*, size_t, int); (MF|SIO)
 
 version( linux )
 {
-    const MAP_SHARED    = 0x01;
-    const MAP_PRIVATE   = 0x02;
-    const MAP_FIXED     = 0x10;
-    const MAP_ANON      = 0x20; // non-standard
+    enum MAP_SHARED     = 0x01;
+    enum MAP_PRIVATE    = 0x02;
+    enum MAP_FIXED      = 0x10;
+    enum MAP_ANON       = 0x20; // non-standard
 
-    const MAP_FAILED    = cast(void*) -1;
+    enum MAP_FAILED     = cast(void*) -1;
 
     enum
     {
-        MS_ASYNC        = 1,
-        MS_SYNC         = 4,
-        MS_INVALIDATE   = 2
+        MS_ASYNC         = 1,
+        MS_SYNC          = 4,
+        MS_INVALIDATE    = 2
     }
 
     int msync(void*, size_t, int);
 }
 else version( OSX )
 {
-    const MAP_SHARED    = 0x0001;
-    const MAP_PRIVATE   = 0x0002;
-    const MAP_FIXED     = 0x0010;
-    const MAP_ANON      = 0x1000; // non-standard
+    enum MAP_SHARED     = 0x0001;
+    enum MAP_PRIVATE    = 0x0002;
+    enum MAP_FIXED      = 0x0010;
+    enum MAP_ANON       = 0x1000; // non-standard
 
-    const MAP_FAILED    = cast(void*)-1;
+    enum MAP_FAILED     = cast(void*)-1;
 
-    const MS_ASYNC      = 0x0001;
-    const MS_INVALIDATE = 0x0002;
-    const MS_SYNC       = 0x0010;
+    enum MS_ASYNC       = 0x0001;
+    enum MS_INVALIDATE  = 0x0002;
+    enum MS_SYNC        = 0x0010;
 
     int msync(void*, size_t, int);
 }
 else version( freebsd )
 {
-    const MAP_SHARED    = 0x0001;
-    const MAP_PRIVATE   = 0x0002;
-    const MAP_FIXED     = 0x0010;
-    const MAP_ANON      = 0x1000; // non-standard
+    enum MAP_SHARED     = 0x0001;
+    enum MAP_PRIVATE    = 0x0002;
+    enum MAP_FIXED      = 0x0010;
+    enum MAP_ANON       = 0x1000; // non-standard
 
-    const MAP_FAILED    = cast(void*)-1;
+    enum MAP_FAILED     = cast(void*)-1;
 
-    const MS_SYNC       = 0x0000;
-    const MS_ASYNC      = 0x0001;
-    const MS_INVALIDATE = 0x0002;
+    enum MS_SYNC        = 0x0000;
+    enum MS_ASYNC       = 0x0001;
+    enum MS_INVALIDATE  = 0x0002;
 
     int msync(void*, size_t, int);
 }
@@ -201,8 +201,8 @@ int munlockall();
 
 version( linux )
 {
-    const MCL_CURRENT   = 1;
-    const MCL_FUTURE    = 2;
+    enum MCL_CURRENT    = 1;
+    enum MCL_FUTURE     = 2;
 
     int mlockall(int);
     int munlockall();
@@ -210,16 +210,16 @@ version( linux )
 }
 else version( OSX )
 {
-    const MCL_CURRENT   = 0x0001;
-    const MCL_FUTURE    = 0x0002;
+    enum MCL_CURRENT    = 0x0001;
+    enum MCL_FUTURE     = 0x0002;
 
     int mlockall(int);
     int munlockall();
 }
 else version( freebsd )
 {
-    const MCL_CURRENT   = 0x0001;
-    const MCL_FUTURE    = 0x0002;
+    enum MCL_CURRENT    = 0x0001;
+    enum MCL_FUTURE     = 0x0002;
 
     int mlockall(int);
     int munlockall();

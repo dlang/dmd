@@ -445,18 +445,18 @@ else version( freebsd )
 
     private
     {
-        const _SS_ALIGNSIZE = long.sizeof;
-        const uint _SS_MAXSIZE = 128;
-        const _SS_PAD1SIZE = _SS_ALIGNSIZE - ubyte.sizeof - sa_family_t.sizeof;
-        const _SS_PAD2SIZE = _SS_MAXSIZE - ubyte.sizeof - sa_family_t.sizeof - _SS_PAD1SIZE - _SS_ALIGNSIZE;
+        enum _SS_ALIGNSIZE  = long.sizeof;
+        enum _SS_MAXSIZE    = 128;
+        enum _SS_PAD1SIZE   = _SS_ALIGNSIZE - ubyte.sizeof - sa_family_t.sizeof;
+        enum _SS_PAD2SIZE   = _SS_MAXSIZE - ubyte.sizeof - sa_family_t.sizeof - _SS_PAD1SIZE - _SS_ALIGNSIZE;
     }
 
     struct sockaddr_storage
     {
-         ubyte          ss_len;
-         sa_family_t    ss_family;
+         ubyte              ss_len;
+         sa_family_t        ss_family;
          byte[_SS_PAD1SIZE] __ss_pad1;
-         long           __ss_align;
+         long               __ss_align;
          byte[_SS_PAD2SIZE] __ss_pad2;
     }
 

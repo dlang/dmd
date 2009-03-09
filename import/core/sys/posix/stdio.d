@@ -136,7 +136,7 @@ FILE*  popen(in char*, in char*);
 
 version( linux )
 {
-    const L_ctermid = 9;
+    enum L_ctermid = 9;
 
   static if( __USE_FILE_OFFSET64 )
   {
@@ -208,7 +208,7 @@ char*  tempnam(in char*, in char*);
 
 version( linux )
 {
-    const P_tmpdir  = "/tmp";
+    enum P_tmpdir  = "/tmp";
 
     char*  tempnam(in char*, in char*);
 }

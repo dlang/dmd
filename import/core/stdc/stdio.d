@@ -29,11 +29,11 @@ version( Windows )
         _SYS_OPEN    = 20,
         SYS_OPEN     = _SYS_OPEN
     }
-    
-    const int     _NFILE     = 60;
-    const char[]  _P_tmpdir  = "\\";
-    const wchar[] _wP_tmpdir = "\\";
-    const int     L_tmpnam   = _P_tmpdir.length + 12;
+
+    enum int     _NFILE     = 60;
+    enum string  _P_tmpdir  = "\\";
+    enum wstring _wP_tmpdir = "\\";
+    enum int     L_tmpnam   = _P_tmpdir.length + 12;
 }
 else version( linux )
 {
@@ -57,7 +57,7 @@ else version( OSX )
         TMP_MAX      = 308915776,
         L_tmpnam     = 1024,
     }
-    
+
     private
     {
         struct __sbuf
@@ -82,7 +82,7 @@ else version ( freebsd )
         TMP_MAX      = 308915776,
         L_tmpnam     = 1024
     }
-    
+
     private
     {
         struct __sbuf
@@ -242,26 +242,13 @@ version( Windows )
 
     extern void function() _fcloseallp;
 
-    version (GNU)
-    {
-        extern FILE[_NFILE]* _imp___iob;
+    extern FILE[_NFILE] _iob;
 
-        const FILE* stdin  = &(*_imp___iob)[0];
-        const FILE* stdout = &(*_imp___iob)[1];
-        const FILE* stderr = &(*_imp___iob)[2];
-        const FILE* stdaux = &(*_imp___iob)[3];
-        const FILE* stdprn = &(*_imp___iob)[4];
-    }
-    else
-    {
-        extern FILE[_NFILE] _iob;
-
-        auto FILE* stdin  = &_iob[0];
-        auto FILE* stdout = &_iob[1];
-        auto FILE* stderr = &_iob[2];
-        auto FILE* stdaux = &_iob[3];
-        auto FILE* stdprn = &_iob[4];
-    }
+    auto FILE* stdin  = &_iob[0];
+    auto FILE* stdout = &_iob[1];
+    auto FILE* stderr = &_iob[2];
+    auto FILE* stdaux = &_iob[3];
+    auto FILE* stdprn = &_iob[4];
 }
 else version( linux )
 {
@@ -281,7 +268,7 @@ else version( OSX )
     extern FILE* __stdinp;
     extern FILE* __stdoutp;
     extern FILE* __stderrp;
-    
+
     alias __stdinp  stdin;
     alias __stdoutp stdout;
     alias __stderrp stderr;

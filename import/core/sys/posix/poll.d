@@ -50,16 +50,19 @@ version( linux )
 
     alias c_ulong nfds_t;
 
-    const POLLIN        = 0x001;
-    const POLLRDNORM    = 0x040;
-    const POLLRDBAND    = 0x080;
-    const POLLPRI       = 0x002;
-    const POLLOUT       = 0x004;
-    const POLLWRNORM    = 0x100;
-    const POLLWRBAND    = 0x200;
-    const POLLERR       = 0x008;
-    const POLLHUP       = 0x010;
-    const POLLNVAL      = 0x020;
+    enum
+    {
+        POLLIN      = 0x001,
+        POLLRDNORM  = 0x040,
+        POLLRDBAND  = 0x080,
+        POLLPRI     = 0x002,
+        POLLOUT     = 0x004,
+        POLLWRNORM  = 0x100,
+        POLLWRBAND  = 0x200,
+        POLLERR     = 0x008,
+        POLLHUP     = 0x010,
+        POLLNVAL    = 0x020,
+    }
 
     int poll(pollfd*, nfds_t, int);
 }

@@ -21,13 +21,13 @@ TCP_NODELAY
 
 version( linux )
 {
-    const TCP_NODELAY = 1;
+    enum TCP_NODELAY = 1;
 }
 else version( OSX )
 {
-    const TCP_NODELAY = 1;
+    enum TCP_NODELAY = 1;
 }
 else version( freebsd )
 {
-    const TCP_NODELAY = 1;
+    enum TCP_NODELAY = 1;
 }

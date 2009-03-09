@@ -27,27 +27,27 @@ version( linux )
 {
     version( X86_64 )
     {
-        //const JB_BX     = 0;
-        //const JB_BP     = 1;
-        //const JB_12     = 2;
-        //const JB_13     = 3;
-        //const JB_14     = 4;
-        //const JB_15     = 5;
-        //const JB_SP     = 6;
-        //const JB_PC     = 7;
-        //const JB_SIZE   = 64;
+        //enum JB_BX      = 0;
+        //enum JB_BP      = 1;
+        //enum JB_12      = 2;
+        //enum JB_13      = 3;
+        //enum JB_14      = 4;
+        //enum JB_15      = 5;
+        //enum JB_SP      = 6;
+        //enum JB_PC      = 7;
+        //enum JB_SIZE    = 64;
 
         alias long[8] __jmp_buf;
     }
     else version( X86 )
     {
-        //const JB_BX     = 0;
-        //const JB_SI     = 1;
-        //const JB_DI     = 2;
-        //const JB_BP     = 3;
-        //const JB_SP     = 4;
-        //const JB_PC     = 5;
-        //const JB_SIZE   = 24;
+        //enum JB_BX      = 0;
+        //enum JB_SI      = 1;
+        //enum JB_DI      = 2;
+        //enum JB_BP      = 3;
+        //enum JB_SP      = 4;
+        //enum JB_PC      = 5;
+        //enum JB_SIZE    = 24;
 
         alias int[6] __jmp_buf;
     }

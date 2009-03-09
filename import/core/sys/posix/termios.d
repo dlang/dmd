@@ -128,7 +128,7 @@ version( OSX )
     alias uint  speed_t;
     alias uint  tcflag_t;
 
-    const NCCS  = 20;
+    enum NCCS   = 20;
 
     struct termios
     {
@@ -141,83 +141,83 @@ version( OSX )
         speed_t    c_ospeed;
     }
 
-    const VEOF      = 0;
-    const VEOL      = 1;
-    const VERASE    = 3;
-    const VINTR     = 8;
-    const VKILL     = 5;
-    const VMIN      = 16;
-    const VQUIT     = 9;
-    const VSTART    = 12;
-    const VSTOP     = 13;
-    const VSUSP     = 10;
-    const VTIME     = 17;
+    enum VEOF       = 0;
+    enum VEOL       = 1;
+    enum VERASE     = 3;
+    enum VINTR      = 8;
+    enum VKILL      = 5;
+    enum VMIN       = 16;
+    enum VQUIT      = 9;
+    enum VSTART     = 12;
+    enum VSTOP      = 13;
+    enum VSUSP      = 10;
+    enum VTIME      = 17;
 
-    const BRKINT    = 0x0000002;
-    const ICRNL     = 0x0000100;
-    const IGNBRK    = 0x0000001;
-    const IGNCR     = 0x0000080;
-    const IGNPAR    = 0x0000004;
-    const INLCR     = 0x0000040;
-    const INPCK     = 0x0000010;
-    const ISTRIP    = 0x0000020;
-    const IXOFF     = 0x0000400;
-    const IXON      = 0x0000200;
-    const PARMRK    = 0x0000008;
+    enum BRKINT     = 0x0000002;
+    enum ICRNL      = 0x0000100;
+    enum IGNBRK     = 0x0000001;
+    enum IGNCR      = 0x0000080;
+    enum IGNPAR     = 0x0000004;
+    enum INLCR      = 0x0000040;
+    enum INPCK      = 0x0000010;
+    enum ISTRIP     = 0x0000020;
+    enum IXOFF      = 0x0000400;
+    enum IXON       = 0x0000200;
+    enum PARMRK     = 0x0000008;
 
-    const OPOST     = 0x0000001;
+    enum OPOST      = 0x0000001;
 
-    const B0        = 0;
-    const B50       = 50;
-    const B75       = 75;
-    const B110      = 110;
-    const B134      = 134;
-    const B150      = 150;
-    const B200      = 200;
-    const B300      = 300;
-    const B600      = 600;
-    const B1200     = 1200;
-    const B1800     = 1800;
-    const B2400     = 2400;
-    const B4800     = 4800;
-    const B9600     = 9600;
-    const B19200    = 19200;
-    const B38400    = 38400;
+    enum B0         = 0;
+    enum B50        = 50;
+    enum B75        = 75;
+    enum B110       = 110;
+    enum B134       = 134;
+    enum B150       = 150;
+    enum B200       = 200;
+    enum B300       = 300;
+    enum B600       = 600;
+    enum B1200      = 1200;
+    enum B1800      = 1800;
+    enum B2400      = 2400;
+    enum B4800      = 4800;
+    enum B9600      = 9600;
+    enum B19200     = 19200;
+    enum B38400     = 38400;
 
-    const CSIZE     = 0x0000300;
-    const   CS5     = 0x0000000;
-    const   CS6     = 0x0000100;
-    const   CS7     = 0x0000200;
-    const   CS8     = 0x0000300;
-    const CSTOPB    = 0x0000400;
-    const CREAD     = 0x0000800;
-    const PARENB    = 0x0001000;
-    const PARODD    = 0x0002000;
-    const HUPCL     = 0x0004000;
-    const CLOCAL    = 0x0008000;
+    enum CSIZE      = 0x0000300;
+    enum   CS5      = 0x0000000;
+    enum   CS6      = 0x0000100;
+    enum   CS7      = 0x0000200;
+    enum   CS8      = 0x0000300;
+    enum CSTOPB     = 0x0000400;
+    enum CREAD      = 0x0000800;
+    enum PARENB     = 0x0001000;
+    enum PARODD     = 0x0002000;
+    enum HUPCL      = 0x0004000;
+    enum CLOCAL     = 0x0008000;
 
-    const ECHO      = 0x00000008;
-    const ECHOE     = 0x00000002;
-    const ECHOK     = 0x00000004;
-    const ECHONL    = 0x00000010;
-    const ICANON    = 0x00000100;
-    const IEXTEN    = 0x00000400;
-    const ISIG      = 0x00000080;
-    const NOFLSH    = 0x80000000;
-    const TOSTOP    = 0x00400000;
+    enum ECHO       = 0x00000008;
+    enum ECHOE      = 0x00000002;
+    enum ECHOK      = 0x00000004;
+    enum ECHONL     = 0x00000010;
+    enum ICANON     = 0x00000100;
+    enum IEXTEN     = 0x00000400;
+    enum ISIG       = 0x00000080;
+    enum NOFLSH     = 0x80000000;
+    enum TOSTOP     = 0x00400000;
 
-    const TCSANOW   = 0;
-    const TCSADRAIN = 1;
-    const TCSAFLUSH = 2;
+    enum TCSANOW    = 0;
+    enum TCSADRAIN  = 1;
+    enum TCSAFLUSH  = 2;
 
-    const TCIFLUSH  = 1;
-    const TCOFLUSH  = 2;
-    const TCIOFLUSH = 3;
+    enum TCIFLUSH   = 1;
+    enum TCOFLUSH   = 2;
+    enum TCIOFLUSH  = 3;
 
-    const TCIOFF    = 3;
-    const TCION     = 4;
-    const TCOOFF    = 1;
-    const TCOON     = 2;
+    enum TCIOFF     = 3;
+    enum TCION      = 4;
+    enum TCOOFF     = 1;
+    enum TCOON      = 2;
 
     speed_t cfgetispeed(in termios*);
     speed_t cfgetospeed(in termios*);
@@ -237,7 +237,7 @@ else version( linux )
     alias uint  speed_t;
     alias uint  tcflag_t;
 
-    const NCCS  = 32;
+    enum NCCS   = 32;
 
     struct termios
     {
@@ -251,83 +251,83 @@ else version( linux )
         speed_t    c_ospeed;
     }
 
-    const VEOF      = 4;
-    const VEOL      = 11;
-    const VERASE    = 2;
-    const VINTR     = 0;
-    const VKILL     = 3;
-    const VMIN      = 6;
-    const VQUIT     = 1;
-    const VSTART    = 8;
-    const VSTOP     = 9;
-    const VSUSP     = 10;
-    const VTIME     = 5;
+    enum VEOF       = 4;
+    enum VEOL       = 11;
+    enum VERASE     = 2;
+    enum VINTR      = 0;
+    enum VKILL      = 3;
+    enum VMIN       = 6;
+    enum VQUIT      = 1;
+    enum VSTART     = 8;
+    enum VSTOP      = 9;
+    enum VSUSP      = 10;
+    enum VTIME      = 5;
 
-    const BRKINT    = 0000002;
-    const ICRNL     = 0000400;
-    const IGNBRK    = 0000001;
-    const IGNCR     = 0000200;
-    const IGNPAR    = 0000004;
-    const INLCR     = 0000100;
-    const INPCK     = 0000020;
-    const ISTRIP    = 0000040;
-    const IXOFF     = 0010000;
-    const IXON      = 0002000;
-    const PARMRK    = 0000010;
+    enum BRKINT     = 0000002;
+    enum ICRNL      = 0000400;
+    enum IGNBRK     = 0000001;
+    enum IGNCR      = 0000200;
+    enum IGNPAR     = 0000004;
+    enum INLCR      = 0000100;
+    enum INPCK      = 0000020;
+    enum ISTRIP     = 0000040;
+    enum IXOFF      = 0010000;
+    enum IXON       = 0002000;
+    enum PARMRK     = 0000010;
 
-    const OPOST     = 0000001;
+    enum OPOST      = 0000001;
 
-    const B0        = 0000000;
-    const B50       = 0000001;
-    const B75       = 0000002;
-    const B110      = 0000003;
-    const B134      = 0000004;
-    const B150      = 0000005;
-    const B200      = 0000006;
-    const B300      = 0000007;
-    const B600      = 0000010;
-    const B1200     = 0000011;
-    const B1800     = 0000012;
-    const B2400     = 0000013;
-    const B4800     = 0000014;
-    const B9600     = 0000015;
-    const B19200    = 0000016;
-    const B38400    = 0000017;
+    enum B0         = 0000000;
+    enum B50        = 0000001;
+    enum B75        = 0000002;
+    enum B110       = 0000003;
+    enum B134       = 0000004;
+    enum B150       = 0000005;
+    enum B200       = 0000006;
+    enum B300       = 0000007;
+    enum B600       = 0000010;
+    enum B1200      = 0000011;
+    enum B1800      = 0000012;
+    enum B2400      = 0000013;
+    enum B4800      = 0000014;
+    enum B9600      = 0000015;
+    enum B19200     = 0000016;
+    enum B38400     = 0000017;
 
-    const CSIZE     = 0000060;
-    const   CS5     = 0000000;
-    const   CS6     = 0000020;
-    const   CS7     = 0000040;
-    const   CS8     = 0000060;
-    const CSTOPB    = 0000100;
-    const CREAD     = 0000200;
-    const PARENB    = 0000400;
-    const PARODD    = 0001000;
-    const HUPCL     = 0002000;
-    const CLOCAL    = 0004000;
+    enum CSIZE      = 0000060;
+    enum   CS5      = 0000000;
+    enum   CS6      = 0000020;
+    enum   CS7      = 0000040;
+    enum   CS8      = 0000060;
+    enum CSTOPB     = 0000100;
+    enum CREAD      = 0000200;
+    enum PARENB     = 0000400;
+    enum PARODD     = 0001000;
+    enum HUPCL      = 0002000;
+    enum CLOCAL     = 0004000;
 
-    const ECHO      = 0000010;
-    const ECHOE     = 0000020;
-    const ECHOK     = 0000040;
-    const ECHONL    = 0000100;
-    const ICANON    = 0000002;
-    const IEXTEN    = 0100000;
-    const ISIG      = 0000001;
-    const NOFLSH    = 0000200;
-    const TOSTOP    = 0000400;
+    enum ECHO       = 0000010;
+    enum ECHOE      = 0000020;
+    enum ECHOK      = 0000040;
+    enum ECHONL     = 0000100;
+    enum ICANON     = 0000002;
+    enum IEXTEN     = 0100000;
+    enum ISIG       = 0000001;
+    enum NOFLSH     = 0000200;
+    enum TOSTOP     = 0000400;
 
-    const TCSANOW   = 0;
-    const TCSADRAIN = 1;
-    const TCSAFLUSH = 2;
+    enum TCSANOW    = 0;
+    enum TCSADRAIN  = 1;
+    enum TCSAFLUSH  = 2;
 
-    const TCIFLUSH  = 0;
-    const TCOFLUSH  = 1;
-    const TCIOFLUSH = 2;
+    enum TCIFLUSH   = 0;
+    enum TCOFLUSH   = 1;
+    enum TCIOFLUSH  = 2;
 
-    const TCIOFF    = 2;
-    const TCION     = 3;
-    const TCOOFF    = 0;
-    const TCOON     = 1;
+    enum TCIOFF     = 2;
+    enum TCION      = 3;
+    enum TCOOFF     = 0;
+    enum TCOON      = 1;
 
     speed_t cfgetispeed(in termios*);
     speed_t cfgetospeed(in termios*);
@@ -346,7 +346,7 @@ else version ( freebsd )
     alias uint  speed_t;
     alias uint  tcflag_t;
 
-    const NCCS  = 20;
+    enum NCCS   = 20;
 
     struct termios
     {
@@ -359,83 +359,83 @@ else version ( freebsd )
         speed_t    c_ospeed;
     }
 
-    const VEOF      = 0;
-    const VEOL      = 1;
-    const VERASE    = 3;
-    const VINTR     = 8;
-    const VKILL     = 5;
-    const VMIN      = 16;
-    const VQUIT     = 9;
-    const VSTART    = 12;
-    const VSTOP     = 13;
-    const VSUSP     = 10;
-    const VTIME     = 17;
+    enum VEOF       = 0;
+    enum VEOL       = 1;
+    enum VERASE     = 3;
+    enum VINTR      = 8;
+    enum VKILL      = 5;
+    enum VMIN       = 16;
+    enum VQUIT      = 9;
+    enum VSTART     = 12;
+    enum VSTOP      = 13;
+    enum VSUSP      = 10;
+    enum VTIME      = 17;
 
-    const BRKINT    = 0x0000002;
-    const ICRNL     = 0x0000100;
-    const IGNBRK    = 0x0000001;
-    const IGNCR     = 0x0000080;
-    const IGNPAR    = 0x0000004;
-    const INLCR     = 0x0000040;
-    const INPCK     = 0x0000010;
-    const ISTRIP    = 0x0000020;
-    const IXOFF     = 0x0000400;
-    const IXON      = 0x0000200;
-    const PARMRK    = 0x0000008;
+    enum BRKINT     = 0x0000002;
+    enum ICRNL      = 0x0000100;
+    enum IGNBRK     = 0x0000001;
+    enum IGNCR      = 0x0000080;
+    enum IGNPAR     = 0x0000004;
+    enum INLCR      = 0x0000040;
+    enum INPCK      = 0x0000010;
+    enum ISTRIP     = 0x0000020;
+    enum IXOFF      = 0x0000400;
+    enum IXON       = 0x0000200;
+    enum PARMRK     = 0x0000008;
 
-    const OPOST     = 0x0000001;
+    enum OPOST      = 0x0000001;
 
-    const B0        = 0;
-    const B50       = 50;
-    const B75       = 75;
-    const B110      = 110;
-    const B134      = 134;
-    const B150      = 150;
-    const B200      = 200;
-    const B300      = 300;
-    const B600      = 600;
-    const B1200     = 1200;
-    const B1800     = 1800;
-    const B2400     = 2400;
-    const B4800     = 4800;
-    const B9600     = 9600;
-    const B19200    = 19200;
-    const B38400    = 38400;
+    enum B0         = 0;
+    enum B50        = 50;
+    enum B75        = 75;
+    enum B110       = 110;
+    enum B134       = 134;
+    enum B150       = 150;
+    enum B200       = 200;
+    enum B300       = 300;
+    enum B600       = 600;
+    enum B1200      = 1200;
+    enum B1800      = 1800;
+    enum B2400      = 2400;
+    enum B4800      = 4800;
+    enum B9600      = 9600;
+    enum B19200     = 19200;
+    enum B38400     = 38400;
 
-    const CSIZE     = 0x0000300;
-    const   CS5     = 0x0000000;
-    const   CS6     = 0x0000100;
-    const   CS7     = 0x0000200;
-    const   CS8     = 0x0000300;
-    const CSTOPB    = 0x0000400;
-    const CREAD     = 0x0000800;
-    const PARENB    = 0x0001000;
-    const PARODD    = 0x0002000;
-    const HUPCL     = 0x0004000;
-    const CLOCAL    = 0x0008000;
+    enum CSIZE      = 0x0000300;
+    enum   CS5      = 0x0000000;
+    enum   CS6      = 0x0000100;
+    enum   CS7      = 0x0000200;
+    enum   CS8      = 0x0000300;
+    enum CSTOPB     = 0x0000400;
+    enum CREAD      = 0x0000800;
+    enum PARENB     = 0x0001000;
+    enum PARODD     = 0x0002000;
+    enum HUPCL      = 0x0004000;
+    enum CLOCAL     = 0x0008000;
 
-    const ECHO      = 0x00000008;
-    const ECHOE     = 0x00000002;
-    const ECHOK     = 0x00000004;
-    const ECHONL    = 0x00000010;
-    const ICANON    = 0x00000100;
-    const IEXTEN    = 0x00000400;
-    const ISIG      = 0x00000080;
-    const NOFLSH    = 0x80000000;
-    const TOSTOP    = 0x00400000;
+    enum ECHO       = 0x00000008;
+    enum ECHOE      = 0x00000002;
+    enum ECHOK      = 0x00000004;
+    enum ECHONL     = 0x00000010;
+    enum ICANON     = 0x00000100;
+    enum IEXTEN     = 0x00000400;
+    enum ISIG       = 0x00000080;
+    enum NOFLSH     = 0x80000000;
+    enum TOSTOP     = 0x00400000;
 
-    const TCSANOW   = 0;
-    const TCSADRAIN = 1;
-    const TCSAFLUSH = 2;
+    enum TCSANOW    = 0;
+    enum TCSADRAIN  = 1;
+    enum TCSAFLUSH  = 2;
 
-    const TCIFLUSH  = 1;
-    const TCOFLUSH  = 2;
-    const TCIOFLUSH = 3;
+    enum TCIFLUSH   = 1;
+    enum TCOFLUSH   = 2;
+    enum TCIOFLUSH  = 3;
 
-    const TCIOFF    = 3;
-    const TCION     = 4;
-    const TCOOFF    = 1;
-    const TCOON     = 2;
+    enum TCIOFF     = 3;
+    enum TCION      = 4;
+    enum TCOOFF     = 1;
+    enum TCOON      = 2;
 
     speed_t cfgetispeed(in termios*);
     speed_t cfgetospeed(in termios*);
@@ -489,35 +489,35 @@ pid_t   tcgetsid(int);
 
 version( linux )
 {
-    const IXANY     = 0004000;
+    enum IXANY      = 0004000;
 
-    const ONLCR     = 0000004;
-    const OCRNL     = 0000010;
-    const ONOCR     = 0000020;
-    const ONLRET    = 0000040;
-    const OFILL     = 0000100;
-    const NLDLY     = 0000400;
-    const   NL0     = 0000000;
-    const   NL1     = 0000400;
-    const CRDLY     = 0003000;
-    const   CR0     = 0000000;
-    const   CR1     = 0001000;
-    const   CR2     = 0002000;
-    const   CR3     = 0003000;
-    const TABDLY    = 0014000;
-    const   TAB0    = 0000000;
-    const   TAB1    = 0004000;
-    const   TAB2    = 0010000;
-    const   TAB3    = 0014000;
-    const BSDLY     = 0020000;
-    const   BS0     = 0000000;
-    const   BS1     = 0020000;
-    const VTDLY     = 0040000;
-    const   VT0     = 0000000;
-    const   VT1     = 0040000;
-    const FFDLY     = 0100000;
-    const   FF0     = 0000000;
-    const   FF1     = 0100000;
+    enum ONLCR      = 0000004;
+    enum OCRNL      = 0000010;
+    enum ONOCR      = 0000020;
+    enum ONLRET     = 0000040;
+    enum OFILL      = 0000100;
+    enum NLDLY      = 0000400;
+    enum   NL0      = 0000000;
+    enum   NL1      = 0000400;
+    enum CRDLY      = 0003000;
+    enum   CR0      = 0000000;
+    enum   CR1      = 0001000;
+    enum   CR2      = 0002000;
+    enum   CR3      = 0003000;
+    enum TABDLY     = 0014000;
+    enum   TAB0     = 0000000;
+    enum   TAB1     = 0004000;
+    enum   TAB2     = 0010000;
+    enum   TAB3     = 0014000;
+    enum BSDLY      = 0020000;
+    enum   BS0      = 0000000;
+    enum   BS1      = 0020000;
+    enum VTDLY      = 0040000;
+    enum   VT0      = 0000000;
+    enum   VT1      = 0040000;
+    enum FFDLY      = 0100000;
+    enum   FF0      = 0000000;
+    enum   FF1      = 0100000;
 
     pid_t   tcgetsid(int);
 }

@@ -29,10 +29,10 @@ void* dlsym(void*, in char*);
 
 version( linux )
 {
-    const RTLD_LAZY     = 0x00001;
-    const RTLD_NOW      = 0x00002;
-    const RTLD_GLOBAL   = 0x00100;
-    const RTLD_LOCAL    = 0x00000;
+    enum RTLD_LAZY      = 0x00001;
+    enum RTLD_NOW       = 0x00002;
+    enum RTLD_GLOBAL    = 0x00100;
+    enum RTLD_LOCAL     = 0x00000;
 
     int   dlclose(void*);
     char* dlerror();
@@ -41,10 +41,10 @@ version( linux )
 }
 else version( OSX )
 {
-    const RTLD_LAZY     = 0x00001;
-    const RTLD_NOW      = 0x00002;
-    const RTLD_GLOBAL   = 0x00100;
-    const RTLD_LOCAL    = 0x00000;
+    enum RTLD_LAZY      = 0x00001;
+    enum RTLD_NOW       = 0x00002;
+    enum RTLD_GLOBAL    = 0x00100;
+    enum RTLD_LOCAL     = 0x00000;
 
     int   dlclose(void*);
     char* dlerror();
@@ -53,10 +53,10 @@ else version( OSX )
 }
 else version( freebsd )
 {
-    const RTLD_LAZY     = 1;
-    const RTLD_NOW      = 2;
-    const RTLD_GLOBAL   = 0x100;
-    const RTLD_LOCAL    = 0;
+    enum RTLD_LAZY      = 1;
+    enum RTLD_NOW       = 2;
+    enum RTLD_GLOBAL    = 0x100;
+    enum RTLD_LOCAL     = 0;
 
     int   dlclose(void*);
     char* dlerror();

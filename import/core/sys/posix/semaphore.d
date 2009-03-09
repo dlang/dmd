@@ -48,22 +48,22 @@ version( linux )
       void*             __sem_waiting;
     }
 
-    const SEM_FAILED    = cast(sem_t*) null;
+    enum SEM_FAILED = cast(sem_t*) null;
 }
 else version( OSX )
 {
     alias int sem_t;
 
-    const SEM_FAILED    = cast(sem_t*) null;
+    enum SEM_FAILED = cast(sem_t*) null;
 }
 else version( freebsd )
 {
-    const uint SEM_MAGIC = 0x09fa4012;
-    const SEM_USER = 0;
+    enum SEM_MAGIC  = 0x09fa4012;
+    enum SEM_USER   = 0;
 
     alias void* sem_t;
 
-    const SEM_FAILED = cast(sem_t*) null;
+    enum SEM_FAILED = cast(sem_t*) null;
 }
 
 int sem_close(sem_t*);

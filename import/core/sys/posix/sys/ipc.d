@@ -56,15 +56,15 @@ version( linux )
         c_ulong __unused2;
     }
 
-    const IPC_CREAT     = 01000;
-    const IPC_EXCL      = 02000;
-    const IPC_NOWAIT    = 04000;
+    enum IPC_CREAT      = 01000;
+    enum IPC_EXCL       = 02000;
+    enum IPC_NOWAIT     = 04000;
 
-    const key_t IPC_PRIVATE = 0;
+    enum key_t IPC_PRIVATE = 0;
 
-    const IPC_RMID      = 0;
-    const IPC_SET       = 1;
-    const IPC_STAT      = 2;
+    enum IPC_RMID       = 0;
+    enum IPC_SET        = 1;
+    enum IPC_STAT       = 2;
 
     key_t ftok(in char*, int);
 }
@@ -85,15 +85,15 @@ else version( freebsd )
         key_t key;
     }
 
-    const IPC_CREAT     = 01000;
-    const IPC_EXCL      = 02000;
-    const IPC_NOWAIT    = 04000;
+    enum IPC_CREAT      = 01000;
+    enum IPC_EXCL       = 02000;
+    enum IPC_NOWAIT     = 04000;
 
-    const key_t IPC_PRIVATE = 0;
+    enum key_t IPC_PRIVATE = 0;
 
-    const IPC_RMID      = 0;
-    const IPC_SET       = 1;
-    const IPC_STAT      = 2;
+    enum IPC_RMID       = 0;
+    enum IPC_SET        = 1;
+    enum IPC_STAT       = 2;
 
     key_t ftok(in char*, int);
 }
