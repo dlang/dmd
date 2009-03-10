@@ -14,6 +14,13 @@ version( Win32 )
 {
     private import core.sys.windows.windows;
 }
+else version( OSX )
+{
+    private import core.sync.config;
+    private import core.stdc.errno;
+    private import core.sys.posix.time;
+    private import core.sys.osx.mach.semaphore;
+}
 else version( Posix )
 {
     private import core.sync.config;
@@ -62,6 +69,12 @@ class Semaphore
             if( m_hndl == m_hndl.init )
                 throw new SyncException( "Unable to create semaphore" );
         }
+        else version( OSX )
+        {
+            auto rc = semaphore_create( mach_task_self(), &m_hndl, SYNC_POLICY_FIFO, count );
+            if( rc )
+                throw new SyncException( "Unable to create semaphore" );
+        }
         else version( Posix )
         {
             int rc = sem_init( &m_hndl, 0, count );
@@ -77,6 +90,11 @@ class Semaphore
         {
             BOOL rc = CloseHandle( m_hndl );
             assert( rc, "Unable to destroy semaphore" );
+        }
+        else version( OSX )
+        {
+            auto rc = semaphore_destroy( mach_task_self(), m_hndl );
+            assert( !rc, "Unable to destroy semaphore" );
         }
         else version( Posix )
         {
@@ -105,6 +123,18 @@ class Semaphore
             DWORD rc = WaitForSingleObject( m_hndl, INFINITE );
             if( rc != WAIT_OBJECT_0 )
                 throw new SyncException( "Unable to wait for semaphore" );
+        }
+        else version( OSX )
+        {
+            while( true )
+            {
+                auto rc = semaphore_wait( m_hndl );
+                if( !rc )
+                    return;
+                if( rc == KERN_ABORTED && errno == EINTR )
+                    continue;
+                throw new SyncException( "Unable to wait for semaphore" );
+            }
         }
         else version( Posix )
         {
@@ -168,6 +198,51 @@ class Semaphore
                 throw new SyncException( "Unable to wait for semaphore" );
             }
         }
+        else version( OSX )
+        {            
+            mach_timespec_t t = void;
+            (cast(byte*) &t)[0 .. t.sizeof] = 0;
+
+            if( period != 0 )
+            {
+                enum : uint
+                {
+                    NANOS_PER_TICK   = 100,
+                    TICKS_PER_SECOND = 10_000_000,
+                    NANOS_PER_SECOND = NANOS_PER_TICK * TICKS_PER_SECOND,
+                }
+
+                if( t.tv_sec.max - t.tv_sec < period / TICKS_PER_SECOND )
+                {
+                    t.tv_sec  = t.tv_sec.max;
+                    t.tv_nsec = 0;
+                }
+                else
+                {
+                    t.tv_sec += cast(typeof(t.tv_sec)) (period / TICKS_PER_SECOND);
+                    long ns = (period % TICKS_PER_SECOND) * NANOS_PER_TICK;
+                    if( NANOS_PER_SECOND - t.tv_nsec > ns )
+                        t.tv_nsec = cast(typeof(t.tv_nsec)) ns;
+                    else
+                    {
+                        t.tv_sec  += 1;
+                        t.tv_nsec += ns - NANOS_PER_SECOND;
+                    }
+                }
+            }
+            while( true )
+            {
+                auto rc = semaphore_timedwait( m_hndl, t );
+                if( !rc )
+                    return true;
+                if( rc == KERN_OPERATION_TIMED_OUT )
+                    return false;
+                if( rc != KERN_ABORTED || errno != EINTR )
+                    throw new SyncException( "Unable to wait for semaphore" );
+            }
+            // -w trip
+            return false;
+        }
         else version( Posix )
         {
             timespec t = void;
@@ -200,6 +275,12 @@ class Semaphore
         version( Win32 )
         {
             if( !ReleaseSemaphore( m_hndl, 1, null ) )
+                throw new SyncException( "Unable to notify semaphore" );
+        }
+        else version( OSX )
+        {
+            auto rc = semaphore_signal( m_hndl );
+            if( rc )
                 throw new SyncException( "Unable to notify semaphore" );
         }
         else version( Posix )
@@ -235,6 +316,10 @@ class Semaphore
                 throw new SyncException( "Unable to wait for semaphore" );
             }
         }
+        else version( OSX )
+        {
+            return wait( 0 );
+        }
         else version( Posix )
         {
             while( true )
@@ -256,6 +341,10 @@ private:
     version( Win32 )
     {
         HANDLE  m_hndl;
+    }
+    else version( OSX )
+    {
+        semaphore_t m_hndl;
     }
     else version( Posix )
     {
@@ -319,7 +408,7 @@ version( unittest )
                 semaphore.notify();
                 Thread.yield();
             }
-            Thread.sleep( 100_000_000 ); // 1s
+            Thread.sleep( 10_000_000 ); // 1s
             synchronized( synProduced )
             {
                 allProduced = true;

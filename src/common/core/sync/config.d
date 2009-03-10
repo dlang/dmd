@@ -30,7 +30,12 @@ version( Posix )
             t.tv_sec  = cast(typeof(t.tv_sec))  tv.tv_sec;
             t.tv_nsec = cast(typeof(t.tv_nsec)) tv.tv_usec * 1_000;
         }
-
+        mvtspec( t, delta );
+    }
+    
+    
+    void mvtspec( inout timespec t, long delta )
+    {
         if( delta == 0 )
             return;
 
@@ -38,6 +43,7 @@ version( Posix )
         {
             NANOS_PER_TICK   = 100,
             TICKS_PER_SECOND = 10_000_000,
+            NANOS_PER_SECOND = NANOS_PER_TICK * TICKS_PER_SECOND,
         }
 
         if( t.tv_sec.max - t.tv_sec < delta / TICKS_PER_SECOND )
@@ -47,8 +53,15 @@ version( Posix )
         }
         else
         {
-            t.tv_sec = cast(typeof(t.tv_sec)) (delta / TICKS_PER_SECOND);
-            t.tv_nsec = cast(typeof(t.tv_nsec)) (delta % TICKS_PER_SECOND) * NANOS_PER_TICK;
+            t.tv_sec += cast(typeof(t.tv_sec)) (delta / TICKS_PER_SECOND);
+            long ns = (delta % TICKS_PER_SECOND) * NANOS_PER_TICK;
+            if( NANOS_PER_SECOND - t.tv_nsec > ns )
+            {
+                t.tv_nsec = cast(typeof(t.tv_nsec)) ns;
+                return;
+            }
+            t.tv_sec  += 1;
+            t.tv_nsec += cast(typeof(t.tv_nsec)) (ns - NANOS_PER_SECOND);
         }
     }
 }
