@@ -71,7 +71,7 @@ doc     : core.doc
 ######################################################
 
 OBJ_CORE= \
-    core\bitmanip.obj \
+    core\bitop.obj \
     core\exception.obj \
     core\memory.obj \
     core\runtime.obj \
@@ -98,7 +98,7 @@ ALL_OBJS= \
 ######################################################
 
 DOC_CORE= \
-    core\bitmanip.html \
+    core\bitop.html \
     core\exception.html \
     core\memory.html \
     core\runtime.html \
@@ -147,10 +147,10 @@ core.doc : $(ALL_DOCS)
 
 ######################################################
 
-### bitmanip
+### bitop
 
-core\bitmanip.obj : core\bitmanip.d
-	$(DC) -c $(DFLAGS) core\bitmanip.d -of$@
+core\bitop.obj : core\bitop.d
+	$(DC) -c $(DFLAGS) core\bitop.d -of$@
 
 ### thread
 

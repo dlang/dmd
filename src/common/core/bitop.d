@@ -5,7 +5,7 @@
  * License:   Public Domain
  * Authors:   Walter Bright, Don Clugston, Sean Kelly
  */
-module core.bitmanip;
+module core.bitop;
 
 
 version( D_Ddoc )
