@@ -28,7 +28,7 @@ version( D_Ddoc )
      *  The return value is undefined if v is zero.
      * Example:
      * ---
-     * import core.bitmanip;
+     * import core.bitop;
      *
      * int main()
      * {
@@ -83,7 +83,7 @@ version( D_Ddoc )
      *
      * Example:
      * ---
-    import core.bitmanip;
+    import core.bitop;
 
     int main()
     {

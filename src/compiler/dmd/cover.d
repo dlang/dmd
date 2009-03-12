@@ -23,7 +23,7 @@ private
         import core.sys.posix.fcntl;
         import core.sys.posix.unistd;
     }
-    import core.bitmanip;
+    import core.bitop;
     import core.stdc.stdio;
     import rt.util.utf;
 

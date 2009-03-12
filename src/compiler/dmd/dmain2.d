@@ -16,11 +16,12 @@ private
     import rt.util.console;
     import core.stdc.stddef;
     import core.stdc.stdlib;
-    import core.stdc.string;
 }
 
 version (Windows)
 {
+    private import core.stdc.wchar_;
+
     extern (Windows) alias int function() FARPROC;
     extern (Windows) FARPROC    GetProcAddress(void*, in char*);
     extern (Windows) void*      LoadLibraryA(in char*);

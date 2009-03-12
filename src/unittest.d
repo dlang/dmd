@@ -1,4 +1,4 @@
-public import core.bitmanip;
+public import core.bitop;
 public import core.exception;
 public import core.memory;
 public import core.runtime;
@@ -14,7 +14,7 @@ public import core.sync.semaphore;
 void main()
 {
     // Bring in unit test for module by referencing a function in it
-    bsf( 0 ); // bitmanip
+    bsf( 0 ); // bitop
     setAssertHandler( null ); // exception
     GC.enable(); // memory
     Runtime.collectHandler = null; // runtime
