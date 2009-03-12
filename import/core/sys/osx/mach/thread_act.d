@@ -8,6 +8,7 @@
 module core.sys.osx.mach.thread_act;
 
 public import core.sys.osx.mach.kern_return;
+public import core.sys.osx.mach.port;
 
 extern (C):
 
@@ -17,8 +18,6 @@ version( X86_64 )
     version = i386;
 version( i386 )
 {
-    alias uint        natural_t;
-    alias natural_t   mach_port_t;
     alias mach_port_t thread_act_t;
     alias void        thread_state_t;
     alias int         thread_state_flavor_t;
