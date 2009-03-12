@@ -8,8 +8,8 @@
  */
 module core.stdc.inttypes;
 
-public import core.stdc.stddef;
-public import core.stdc.stdint;
+public import core.stdc.stddef; // for wchar_t
+public import core.stdc.stdint; // required by spec
 
 extern (C):
 
@@ -19,229 +19,228 @@ struct imaxdiv_t
                 rem;
 }
 
-version( VerboseC )
+private alias immutable(char)* _cstr;
+
+enum _cstr PRId8            = "hhd";
+enum _cstr PRId16           = "hd";
+enum _cstr PRId32           = "ld";
+enum _cstr PRId64           = "lld";
+
+enum _cstr PRIdLEAST8       = "hhd";
+enum _cstr PRIdLEAST16      = "hd";
+enum _cstr PRIdLEAST32      = "ld";
+enum _cstr PRIdLEAST64      = "lld";
+
+enum _cstr PRIdFAST8        = "hhd";
+enum _cstr PRIdFAST16       = "d";
+enum _cstr PRIdFAST32       = "ld";
+enum _cstr PRIdFAST64       = "lld";
+
+enum _cstr PRIi8            = "hhi";
+enum _cstr PRIi16           = "hi";
+enum _cstr PRIi32           = "li";
+enum _cstr PRIi64           = "lli";
+
+enum _cstr PRIiLEAST8       = "hhi";
+enum _cstr PRIiLEAST16      = "hi";
+enum _cstr PRIiLEAST32      = "li";
+enum _cstr PRIiLEAST64      = "lli";
+
+enum _cstr PRIiFAST8        = "hhi";
+enum _cstr PRIiFAST16       = "i";
+enum _cstr PRIiFAST32       = "li";
+enum _cstr PRIiFAST64       = "lli";
+
+enum _cstr PRIo8            = "hho";
+enum _cstr PRIo16           = "ho";
+enum _cstr PRIo32           = "lo";
+enum _cstr PRIo64           = "llo";
+
+enum _cstr PRIoLEAST8       = "hho";
+enum _cstr PRIoLEAST16      = "ho";
+enum _cstr PRIoLEAST32      = "lo";
+enum _cstr PRIoLEAST64      = "llo";
+
+enum _cstr PRIoFAST8        = "hho";
+enum _cstr PRIoFAST16       = "o";
+enum _cstr PRIoFAST32       = "lo";
+enum _cstr PRIoFAST64       = "llo";
+
+enum _cstr PRIu8            = "hhu";
+enum _cstr PRIu16           = "hu";
+enum _cstr PRIu32           = "lu";
+enum _cstr PRIu64           = "llu";
+
+enum _cstr PRIuLEAST8       = "hhu";
+enum _cstr PRIuLEAST16      = "hu";
+enum _cstr PRIuLEAST32      = "lu";
+enum _cstr PRIuLEAST64      = "llu";
+
+enum _cstr PRIuFAST8        = "hhu";
+enum _cstr PRIuFAST16       = "u";
+enum _cstr PRIuFAST32       = "lu";
+enum _cstr PRIuFAST64       = "llu";
+
+enum _cstr PRIx8            = "hhx";
+enum _cstr PRIx16           = "hx";
+enum _cstr PRIx32           = "lx";
+enum _cstr PRIx64           = "llx";
+
+enum _cstr PRIxLEAST8       = "hhx";
+enum _cstr PRIxLEAST16      = "hx";
+enum _cstr PRIxLEAST32      = "lx";
+enum _cstr PRIxLEAST64      = "llx";
+
+enum _cstr PRIxFAST8        = "hhx";
+enum _cstr PRIxFAST16       = "x";
+enum _cstr PRIxFAST32       = "lx";
+enum _cstr PRIxFAST64       = "llx";
+
+enum _cstr PRIX8            = "hhX";
+enum _cstr PRIX16           = "hX";
+enum _cstr PRIX32           = "lX";
+enum _cstr PRIX64           = "llX";
+
+enum _cstr PRIXLEAST8       = "hhX";
+enum _cstr PRIXLEAST16      = "hX";
+enum _cstr PRIXLEAST32      = "lX";
+enum _cstr PRIXLEAST64      = "llX";
+
+enum _cstr PRIXFAST8        = "hhX";
+enum _cstr PRIXFAST16       = "X";
+enum _cstr PRIXFAST32       = "lX";
+enum _cstr PRIXFAST64       = "llX";
+
+enum _cstr SCNd8            = "hhd";
+enum _cstr SCNd16           = "hd";
+enum _cstr SCNd32           = "ld";
+enum _cstr SCNd64           = "lld";
+
+enum _cstr SCNdLEAST8       = "hhd";
+enum _cstr SCNdLEAST16      = "hd";
+enum _cstr SCNdLEAST32      = "ld";
+enum _cstr SCNdLEAST64      = "lld";
+
+enum _cstr SCNdFAST8        = "hhd";
+enum _cstr SCNdFAST16       = "d";
+enum _cstr SCNdFAST32       = "ld";
+enum _cstr SCNdFAST64       = "lld";
+
+enum _cstr SCNi8            = "hhd";
+enum _cstr SCNi16           = "hi";
+enum _cstr SCNi32           = "li";
+enum _cstr SCNi64           = "lli";
+
+enum _cstr SCNiLEAST8       = "hhd";
+enum _cstr SCNiLEAST16      = "hi";
+enum _cstr SCNiLEAST32      = "li";
+enum _cstr SCNiLEAST64      = "lli";
+
+enum _cstr SCNiFAST8        = "hhd";
+enum _cstr SCNiFAST16       = "i";
+enum _cstr SCNiFAST32       = "li";
+enum _cstr SCNiFAST64       = "lli";
+
+enum _cstr SCNo8            = "hhd";
+enum _cstr SCNo16           = "ho";
+enum _cstr SCNo32           = "lo";
+enum _cstr SCNo64           = "llo";
+
+enum _cstr SCNoLEAST8       = "hhd";
+enum _cstr SCNoLEAST16      = "ho";
+enum _cstr SCNoLEAST32      = "lo";
+enum _cstr SCNoLEAST64      = "llo";
+
+enum _cstr SCNoFAST8        = "hhd";
+enum _cstr SCNoFAST16       = "o";
+enum _cstr SCNoFAST32       = "lo";
+enum _cstr SCNoFAST64       = "llo";
+
+enum _cstr SCNu8            = "hhd";
+enum _cstr SCNu16           = "hu";
+enum _cstr SCNu32           = "lu";
+enum _cstr SCNu64           = "llu";
+
+enum _cstr SCNuLEAST8       = "hhd";
+enum _cstr SCNuLEAST16      = "hu";
+enum _cstr SCNuLEAST32      = "lu";
+enum _cstr SCNuLEAST64      = "llu";
+
+enum _cstr SCNuFAST8        = "hhd";
+enum _cstr SCNuFAST16       = "u";
+enum _cstr SCNuFAST32       = "lu";
+enum _cstr SCNuFAST64       = "llu";
+
+enum _cstr SCNx8            = "hhd";
+enum _cstr SCNx16           = "hx";
+enum _cstr SCNx32           = "lx";
+enum _cstr SCNx64           = "llx";
+
+enum _cstr SCNxLEAST8       = "hhd";
+enum _cstr SCNxLEAST16      = "hx";
+enum _cstr SCNxLEAST32      = "lx";
+enum _cstr SCNxLEAST64      = "llx";
+
+enum _cstr SCNxFAST8        = "hhd";
+enum _cstr SCNxFAST16       = "x";
+enum _cstr SCNxFAST32       = "lx";
+enum _cstr SCNxFAST64       = "llx";
+
+version( X86_64 )
 {
-    enum char* PRId8            = "hhd";
-    enum char* PRId16           = "hd";
-    enum char* PRId32           = "ld";
-    enum char* PRId64           = "lld";
+    enum _cstr PRIdMAX      = PRId64;
+    enum _cstr PRIiMAX      = PRIi64;
+    enum _cstr PRIoMAX      = PRIo64;
+    enum _cstr PRIuMAX      = PRIu64;
+    enum _cstr PRIxMAX      = PRIx64;
+    enum _cstr PRIXMAX      = PRIX64;
 
-    enum char* PRIdLEAST8       = "hhd";
-    enum char* PRIdLEAST16      = "hd";
-    enum char* PRIdLEAST32      = "ld";
-    enum char* PRIdLEAST64      = "lld";
+    enum _cstr SCNdMAX      = SCNd64;
+    enum _cstr SCNiMAX      = SCNi64;
+    enum _cstr SCNoMAX      = SCNo64;
+    enum _cstr SCNuMAX      = SCNu64;
+    enum _cstr SCNxMAX      = SCNx64;
 
-    enum char* PRIdFAST8        = "hhd";
-    enum char* PRIdFAST16       = "d";
-    enum char* PRIdFAST32       = "ld";
-    enum char* PRIdFAST64       = "lld";
+    enum _cstr PRIdPTR      = PRId64;
+    enum _cstr PRIiPTR      = PRIi64;
+    enum _cstr PRIoPTR      = PRIo64;
+    enum _cstr PRIuPTR      = PRIu64;
+    enum _cstr PRIxPTR      = PRIx64;
+    enum _cstr PRIXPTR      = PRIX64;
 
-    enum char* PRIi8            = "hhi";
-    enum char* PRIi16           = "hi";
-    enum char* PRIi32           = "li";
-    enum char* PRIi64           = "lli";
+    enum _cstr SCNdPTR      = SCNd64;
+    enum _cstr SCNiPTR      = SCNi64;
+    enum _cstr SCNoPTR      = SCNo64;
+    enum _cstr SCNuPTR      = SCNu64;
+    enum _cstr SCNxPTR      = SCNx64;
+}
+else
+{
+    enum _cstr PRIdMAX      = PRId32;
+    enum _cstr PRIiMAX      = PRIi32;
+    enum _cstr PRIoMAX      = PRIo32;
+    enum _cstr PRIuMAX      = PRIu32;
+    enum _cstr PRIxMAX      = PRIx32;
+    enum _cstr PRIXMAX      = PRIX32;
 
-    enum char* PRIiLEAST8       = "hhi";
-    enum char* PRIiLEAST16      = "hi";
-    enum char* PRIiLEAST32      = "li";
-    enum char* PRIiLEAST64      = "lli";
+    enum _cstr SCNdMAX      = SCNd32;
+    enum _cstr SCNiMAX      = SCNi32;
+    enum _cstr SCNoMAX      = SCNo32;
+    enum _cstr SCNuMAX      = SCNu32;
+    enum _cstr SCNxMAX      = SCNx32;
 
-    enum char* PRIiFAST8        = "hhi";
-    enum char* PRIiFAST16       = "i";
-    enum char* PRIiFAST32       = "li";
-    enum char* PRIiFAST64       = "lli";
+    enum _cstr PRIdPTR      = PRId32;
+    enum _cstr PRIiPTR      = PRIi32;
+    enum _cstr PRIoPTR      = PRIo32;
+    enum _cstr PRIuPTR      = PRIu32;
+    enum _cstr PRIxPTR      = PRIx32;
+    enum _cstr PRIXPTR      = PRIX32;
 
-    enum char* PRIo8            = "hho";
-    enum char* PRIo16           = "ho";
-    enum char* PRIo32           = "lo";
-    enum char* PRIo64           = "llo";
-
-    enum char* PRIoLEAST8       = "hho";
-    enum char* PRIoLEAST16      = "ho";
-    enum char* PRIoLEAST32      = "lo";
-    enum char* PRIoLEAST64      = "llo";
-
-    enum char* PRIoFAST8        = "hho";
-    enum char* PRIoFAST16       = "o";
-    enum char* PRIoFAST32       = "lo";
-    enum char* PRIoFAST64       = "llo";
-
-    enum char* PRIu8            = "hhu";
-    enum char* PRIu16           = "hu";
-    enum char* PRIu32           = "lu";
-    enum char* PRIu64           = "llu";
-
-    enum char* PRIuLEAST8       = "hhu";
-    enum char* PRIuLEAST16      = "hu";
-    enum char* PRIuLEAST32      = "lu";
-    enum char* PRIuLEAST64      = "llu";
-
-    enum char* PRIuFAST8        = "hhu";
-    enum char* PRIuFAST16       = "u";
-    enum char* PRIuFAST32       = "lu";
-    enum char* PRIuFAST64       = "llu";
-
-    enum char* PRIx8            = "hhx";
-    enum char* PRIx16           = "hx";
-    enum char* PRIx32           = "lx";
-    enum char* PRIx64           = "llx";
-
-    enum char* PRIxLEAST8       = "hhx";
-    enum char* PRIxLEAST16      = "hx";
-    enum char* PRIxLEAST32      = "lx";
-    enum char* PRIxLEAST64      = "llx";
-
-    enum char* PRIxFAST8        = "hhx";
-    enum char* PRIxFAST16       = "x";
-    enum char* PRIxFAST32       = "lx";
-    enum char* PRIxFAST64       = "llx";
-
-    enum char* PRIX8            = "hhX";
-    enum char* PRIX16           = "hX";
-    enum char* PRIX32           = "lX";
-    enum char* PRIX64           = "llX";
-
-    enum char* PRIXLEAST8       = "hhX";
-    enum char* PRIXLEAST16      = "hX";
-    enum char* PRIXLEAST32      = "lX";
-    enum char* PRIXLEAST64      = "llX";
-
-    enum char* PRIXFAST8        = "hhX";
-    enum char* PRIXFAST16       = "X";
-    enum char* PRIXFAST32       = "lX";
-    enum char* PRIXFAST64       = "llX";
-
-    enum char* SCNd8            = "hhd";
-    enum char* SCNd16           = "hd";
-    enum char* SCNd32           = "ld";
-    enum char* SCNd64           = "lld";
-
-    enum char* SCNdLEAST8       = "hhd";
-    enum char* SCNdLEAST16      = "hd";
-    enum char* SCNdLEAST32      = "ld";
-    enum char* SCNdLEAST64      = "lld";
-
-    enum char* SCNdFAST8        = "hhd";
-    enum char* SCNdFAST16       = "d";
-    enum char* SCNdFAST32       = "ld";
-    enum char* SCNdFAST64       = "lld";
-
-    enum char* SCNi8            = "hhd";
-    enum char* SCNi16           = "hi";
-    enum char* SCNi32           = "li";
-    enum char* SCNi64           = "lli";
-
-    enum char* SCNiLEAST8       = "hhd";
-    enum char* SCNiLEAST16      = "hi";
-    enum char* SCNiLEAST32      = "li";
-    enum char* SCNiLEAST64      = "lli";
-
-    enum char* SCNiFAST8        = "hhd";
-    enum char* SCNiFAST16       = "i";
-    enum char* SCNiFAST32       = "li";
-    enum char* SCNiFAST64       = "lli";
-
-    enum char* SCNo8            = "hhd";
-    enum char* SCNo16           = "ho";
-    enum char* SCNo32           = "lo";
-    enum char* SCNo64           = "llo";
-
-    enum char* SCNoLEAST8       = "hhd";
-    enum char* SCNoLEAST16      = "ho";
-    enum char* SCNoLEAST32      = "lo";
-    enum char* SCNoLEAST64      = "llo";
-
-    enum char* SCNoFAST8        = "hhd";
-    enum char* SCNoFAST16       = "o";
-    enum char* SCNoFAST32       = "lo";
-    enum char* SCNoFAST64       = "llo";
-
-    enum char* SCNu8            = "hhd";
-    enum char* SCNu16           = "hu";
-    enum char* SCNu32           = "lu";
-    enum char* SCNu64           = "llu";
-
-    enum char* SCNuLEAST8       = "hhd";
-    enum char* SCNuLEAST16      = "hu";
-    enum char* SCNuLEAST32      = "lu";
-    enum char* SCNuLEAST64      = "llu";
-
-    enum char* SCNuFAST8        = "hhd";
-    enum char* SCNuFAST16       = "u";
-    enum char* SCNuFAST32       = "lu";
-    enum char* SCNuFAST64       = "llu";
-
-    enum char* SCNx8            = "hhd";
-    enum char* SCNx16           = "hx";
-    enum char* SCNx32           = "lx";
-    enum char* SCNx64           = "llx";
-
-    enum char* SCNxLEAST8       = "hhd";
-    enum char* SCNxLEAST16      = "hx";
-    enum char* SCNxLEAST32      = "lx";
-    enum char* SCNxLEAST64      = "llx";
-
-    enum char* SCNxFAST8        = "hhd";
-    enum char* SCNxFAST16       = "x";
-    enum char* SCNxFAST32       = "lx";
-    enum char* SCNxFAST64       = "llx";
-
-  version( X86_64 )
-  {
-    enum char* PRIdMAX          = PRId64;
-    enum char* PRIiMAX          = PRIi64;
-    enum char* PRIoMAX          = PRIo64;
-    enum char* PRIuMAX          = PRIu64;
-    enum char* PRIxMAX          = PRIx64;
-    enum char* PRIXMAX          = PRIX64;
-
-    enum char* SCNdMAX          = SCNd64;
-    enum char* SCNiMAX          = SCNi64;
-    enum char* SCNoMAX          = SCNo64;
-    enum char* SCNuMAX          = SCNu64;
-    enum char* SCNxMAX          = SCNx64;
-
-    enum char* PRIdPTR          = PRId64;
-    enum char* PRIiPTR          = PRIi64;
-    enum char* PRIoPTR          = PRIo64;
-    enum char* PRIuPTR          = PRIu64;
-    enum char* PRIxPTR          = PRIx64;
-    enum char* PRIXPTR          = PRIX64;
-
-    enum char* SCNdPTR          = SCNd64;
-    enum char* SCNiPTR          = SCNi64;
-    enum char* SCNoPTR          = SCNo64;
-    enum char* SCNuPTR          = SCNu64;
-    enum char* SCNxPTR          = SCNx64;
-  }
-  else
-  {
-    enum char* PRIdMAX          = PRId32;
-    enum char* PRIiMAX          = PRIi32;
-    enum char* PRIoMAX          = PRIo32;
-    enum char* PRIuMAX          = PRIu32;
-    enum char* PRIxMAX          = PRIx32;
-    enum char* PRIXMAX          = PRIX32;
-
-    enum char* SCNdMAX          = SCNd32;
-    enum char* SCNiMAX          = SCNi32;
-    enum char* SCNoMAX          = SCNo32;
-    enum char* SCNuMAX          = SCNu32;
-    enum char* SCNxMAX          = SCNx32;
-
-    enum char* PRIdPTR          = PRId32;
-    enum char* PRIiPTR          = PRIi32;
-    enum char* PRIoPTR          = PRIo32;
-    enum char* PRIuPTR          = PRIu32;
-    enum char* PRIxPTR          = PRIx32;
-    enum char* PRIXPTR          = PRIX32;
-
-    enum char* SCNdPTR          = SCNd32;
-    enum char* SCNiPTR          = SCNi32;
-    enum char* SCNoPTR          = SCNo32;
-    enum char* SCNuPTR          = SCNu32;
-    enum char* SCNxPTR          = SCNx32;
-  }
+    enum _cstr SCNdPTR      = SCNd32;
+    enum _cstr SCNiPTR      = SCNi32;
+    enum _cstr SCNoPTR      = SCNo32;
+    enum _cstr SCNuPTR      = SCNu32;
+    enum _cstr SCNxPTR      = SCNx32;
 }
 
 intmax_t  imaxabs(intmax_t j);

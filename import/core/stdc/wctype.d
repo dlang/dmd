@@ -8,9 +8,12 @@
  */
 module core.stdc.wctype;
 
-private import core.stdc.stddef;
+public  import core.stdc.wchar_; // for wint_t, WEOF 
 
 extern (C):
+
+alias wchar_t wctrans_t;
+alias wchar_t wctype_t;
 
 int iswalnum(wint_t wc);
 int iswalpha(wint_t wc);

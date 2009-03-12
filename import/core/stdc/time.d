@@ -9,7 +9,7 @@
 module core.stdc.time;
 
 private import core.stdc.config;
-private import core.stdc.stddef;
+private import core.stdc.stddef; // for wchar_t
 
 extern (C):
 
@@ -75,7 +75,6 @@ char*   ctime(in time_t* timer);
 tm*     gmtime(in time_t* timer);
 tm*     localtime(in time_t* timer);
 size_t  strftime(char* s, size_t maxsize, in char* format, in tm* timeptr);
-size_t  wcsftime(wchar_t* s, size_t maxsize, in wchar_t* format, in tm* timeptr);
 
 version( Windows )
 {
@@ -83,11 +82,6 @@ version( Windows )
     void  _tzset();
     char* _strdate(char* s);
     char* _strtime(char* s);
-
-    wchar_t* _wasctime(tm*);
-    wchar_t* _wctime(time_t*);
-    wchar_t* _wstrdate(wchar_t*);
-    wchar_t* _wstrtime(wchar_t*);
 }
 else version( linux )
 {

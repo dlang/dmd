@@ -15,19 +15,9 @@ extern (C):
 
 version( Windows )
 {
-    alias wchar wint_t;
     alias wchar wchar_t;
-    alias wchar wctype_t;
-    alias wchar wctrans_t;
-
-    enum wchar WEOF = 0xFFFF;
 }
 else
 {
-    alias dchar wint_t;
     alias dchar wchar_t;
-    alias dchar wctype_t;
-    alias dchar wctrans_t;
-
-    enum dchar WEOF = 0xFFFF;
 }

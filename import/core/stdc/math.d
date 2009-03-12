@@ -273,7 +273,7 @@ else version( OSX )
         FP_ZERO        = 3,
         FP_NORMAL      = 4,
         FP_SUBNORMAL   = 5,
-        FP_SUPERNORMAL = 6
+        FP_SUPERNORMAL = 6,
     }
 
     enum
@@ -369,7 +369,7 @@ else version( freebsd )
         FP_NAN       = 0x02,
         FP_NORMAL    = 0x04,
         FP_SUBNORMAL = 0x08,
-        FP_ZERO      = 0x10
+        FP_ZERO      = 0x10,
     }
 
     enum

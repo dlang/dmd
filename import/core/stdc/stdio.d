@@ -10,9 +10,9 @@ module core.stdc.stdio;
 
 private
 {
-    import core.stdc.stdarg;
-    import core.stdc.stddef;
     import core.stdc.config;
+    import core.stdc.stddef; // for size_t
+    import core.stdc.stdarg; // for va_list
 }
 
 extern (C):
@@ -396,33 +396,3 @@ else
 }
 
 void perror(in char* s);
-
-int fwprintf(FILE* stream, in wchar_t* format, ...);
-int fwscanf(FILE* stream, in wchar_t* format, ...);
-int swprintf(wchar_t* s, size_t n, in wchar_t* format, ...);
-int swscanf(in wchar_t* s, in wchar_t* format, ...);
-int vfwprintf(FILE* stream, in wchar_t* format, va_list arg);
-int vfwscanf(FILE* stream, in wchar_t* format, va_list arg);
-int vswprintf(wchar_t* s, size_t n, in wchar_t* format, va_list arg);
-int vswscanf(in wchar_t* s, in wchar_t* format, va_list arg);
-int vwprintf(in wchar_t* format, va_list arg);
-int vwscanf(in wchar_t* format, va_list arg);
-int wprintf(in wchar_t* format, ...);
-int wscanf(in wchar_t* format, ...);
-
-wint_t fgetwc(FILE* stream);
-wint_t fputwc(wchar_t c, FILE* stream);
-
-wchar_t* fgetws(wchar_t* s, int n, FILE* stream);
-int      fputws(in wchar_t* s, FILE* stream);
-
-extern (D)
-{
-    wint_t getwchar()                     { return fgetwc(stdin);     }
-    wint_t putwchar(wchar_t c)            { return fputwc(c,stdout);  }
-    wint_t getwc(FILE* stream)            { return fgetwc(stream);    }
-    wint_t putwc(wchar_t c, FILE* stream) { return fputwc(c, stream); }
-}
-
-wint_t ungetwc(wint_t c, FILE* stream);
-int    fwide(FILE* stream, int mode);
