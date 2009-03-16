@@ -87,10 +87,10 @@ size_t wcsftime(wchar_t* s, size_t maxsize, in wchar_t* format, in tm* timeptr);
 
 version( Windows )
 {
-    wchar_t* _wasctime(tm*);
-    wchar_t* _wctime(time_t*);
-    wchar_t* _wstrdate(wchar_t*);
-    wchar_t* _wstrtime(wchar_t*);    
+    wchar_t* _wasctime(tm*);      // non-standard
+    wchar_t* _wctime(time_t*);	  // non-standard
+    wchar_t* _wstrdate(wchar_t*); // non-standard
+    wchar_t* _wstrtime(wchar_t*); // non-standard
 }
 
 wint_t btowc(int c);

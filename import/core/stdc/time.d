@@ -9,7 +9,7 @@
 module core.stdc.time;
 
 private import core.stdc.config;
-private import core.stdc.stddef; // for wchar_t
+private import core.stdc.stddef; // for size_t
 
 extern (C):
 
@@ -78,16 +78,16 @@ size_t  strftime(char* s, size_t maxsize, in char* format, in tm* timeptr);
 
 version( Windows )
 {
-    void  tzset();
-    void  _tzset();
-    char* _strdate(char* s);
-    char* _strtime(char* s);
+    void  tzset();  		 // non-standard
+    void  _tzset(); 		 // non-standard
+    char* _strdate(char* s); // non-standard
+    char* _strtime(char* s); // non-standard
 }
 else version( linux )
 {
-    void tzset();
+    void tzset(); // non-standard
 }
 else version( freebsd )
 {
-    void tzset();
+    void tzset(); // non-standard
 }

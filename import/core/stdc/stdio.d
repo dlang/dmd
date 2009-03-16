@@ -26,20 +26,19 @@ version( Windows )
         FOPEN_MAX    = 20,
         FILENAME_MAX = 256, // 255 plus NULL
         TMP_MAX      = 32767,
-        _SYS_OPEN    = 20,
-        SYS_OPEN     = _SYS_OPEN
+        SYS_OPEN     = 20,	// non-standard
     }
 
-    enum int     _NFILE     = 60;
-    enum string  _P_tmpdir  = "\\";
-    enum wstring _wP_tmpdir = "\\";
+    enum int     _NFILE     = 60;	// non-standard
+    enum string  _P_tmpdir  = "\\"; // non-standard
+    enum wstring _wP_tmpdir = "\\"; // non-standard
     enum int     L_tmpnam   = _P_tmpdir.length + 12;
 }
 else version( linux )
 {
     enum
     {
-        //BUFSIZ     = 0x4000,
+        BUFSIZ       = 8192,
         EOF          = -1,
         FOPEN_MAX    = 16,
         FILENAME_MAX = 4095,
@@ -51,6 +50,7 @@ else version( OSX )
 {
     enum
     {
+		BUFSIZ		= 1024,
         EOF          = -1,
         FOPEN_MAX    = 20,
         FILENAME_MAX = 1024,
@@ -92,6 +92,7 @@ else version ( freebsd )
         }
         struct __sFILEX
         {
+
         }
     }
 }
@@ -209,17 +210,17 @@ alias _iobuf FILE;
 
 enum
 {
-    _F_RDWR = 0x0003,
-    _F_READ = 0x0001,
-    _F_WRIT = 0x0002,
-    _F_BUF  = 0x0004,
-    _F_LBUF = 0x0008,
-    _F_ERR  = 0x0010,
-    _F_EOF  = 0x0020,
-    _F_BIN  = 0x0040,
-    _F_IN   = 0x0080,
-    _F_OUT  = 0x0100,
-    _F_TERM = 0x0200,
+    _F_RDWR = 0x0003, // non-standard
+    _F_READ = 0x0001, // non-standard
+    _F_WRIT = 0x0002, // non-standard
+    _F_BUF  = 0x0004, // non-standard
+    _F_LBUF = 0x0008, // non-standard
+    _F_ERR  = 0x0010, // non-standard
+    _F_EOF  = 0x0020, // non-standard
+    _F_BIN  = 0x0040, // non-standard
+    _F_IN   = 0x0080, // non-standard
+    _F_OUT  = 0x0100, // non-standard
+    _F_TERM = 0x0200, // non-standard
 }
 
 version( Windows )
@@ -227,22 +228,22 @@ version( Windows )
     enum
     {
         _IOFBF   = 0,
-        _IOREAD  = 1,
-        _IOWRT   = 2,
-        _IONBF   = 4,
-        _IOMYBUF = 8,
-        _IOEOF   = 0x10,
-        _IOERR   = 0x20,
         _IOLBF   = 0x40,
-        _IOSTRG  = 0x40,
-        _IORW    = 0x80,
-        _IOTRAN  = 0x100,
-        _IOAPP   = 0x200,
+		_IONBF   = 4,
+        _IOREAD  = 1,	  // non-standard
+        _IOWRT   = 2,	  // non-standard
+        _IOMYBUF = 8,	  // non-standard	
+        _IOEOF   = 0x10,  // non-standard
+        _IOERR   = 0x20,  // non-standard
+        _IOSTRG  = 0x40,  // non-standard
+        _IORW    = 0x80,  // non-standard
+        _IOTRAN  = 0x100, // non-standard
+        _IOAPP   = 0x200, // non-standard
     }
 
     extern void function() _fcloseallp;
 
-    extern FILE[_NFILE] _iob;
+    private extern FILE[_NFILE] _iob;
 
     auto FILE* stdin  = &_iob[0];
     auto FILE* stdout = &_iob[1];
@@ -265,9 +266,16 @@ else version( linux )
 }
 else version( OSX )
 {
-    extern FILE* __stdinp;
-    extern FILE* __stdoutp;
-    extern FILE* __stderrp;
+	enum
+    {
+        _IOFBF = 0,
+        _IOLBF = 1,
+        _IONBF = 2,
+    }
+
+    private extern FILE* __stdinp;
+    private extern FILE* __stdoutp;
+    private extern FILE* __stderrp;
 
     alias __stdinp  stdin;
     alias __stdoutp stdout;
@@ -275,7 +283,7 @@ else version( OSX )
 }
 else version( freebsd )
 {
-    extern FILE[3] __sF;
+    private extern FILE[3] __sF;
 
     auto FILE* stdin  = &__sF[0];
     auto FILE* stdout = &__sF[1];

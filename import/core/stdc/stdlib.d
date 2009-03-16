@@ -84,5 +84,5 @@ size_t  wcstombs(char* s, in wchar_t* pwcs, size_t n);
 
 version( DigitalMars )
 {
-    void* alloca(size_t size);
+    void* alloca(size_t size); // non-standard
 }

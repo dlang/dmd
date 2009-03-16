@@ -44,12 +44,12 @@ enum LC_TIME           = 2;
 enum LC_COLLATE        = 3;
 enum LC_MONETARY       = 4;
 enum LC_ALL            = 6;
-enum LC_PAPER          = 7;
-enum LC_NAME           = 8;
-enum LC_ADDRESS        = 9;
-enum LC_TELEPHONE      = 10;
-enum LC_MEASUREMENT    = 11;
-enum LC_IDENTIFICATION = 12;
+enum LC_PAPER          = 7;  // non-standard
+enum LC_NAME           = 8;  // non-standard
+enum LC_ADDRESS        = 9;  // non-standard
+enum LC_TELEPHONE      = 10; // non-standard
+enum LC_MEASUREMENT    = 11; // non-standard
+enum LC_IDENTIFICATION = 12; // non-standard
 
 char*  setlocale(int category, in char* locale);
 lconv* localeconv();
