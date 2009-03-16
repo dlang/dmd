@@ -16,6 +16,7 @@ private
     import rt.util.console;
     import core.stdc.stddef;
     import core.stdc.stdlib;
+    import core.stdc.string;
 }
 
 version (Windows)
