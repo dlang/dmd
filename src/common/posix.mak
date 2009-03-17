@@ -51,6 +51,9 @@ $(LIBDIR)/%/errno.o : core/stdc/errno.c
 
 $(DOCDIR)/%.html : core/%.d
 	$(DMD) -c -d -o- -Df$@ $<
+	
+$(IMPDIR)/bitop.di :
+	echo "Skipping bitop.d"
 
 $(IMPDIR)/%.di : core/%.d
 	$(DMD) -c -d -o- -Hf$@ $<
