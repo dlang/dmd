@@ -16,7 +16,7 @@
 
 LIBDIR=../../lib
 DOCDIR=../../doc
-IMPDIR=../../import/core
+IMPDIR=../../import
 LIBBASENAME=libdruntime-core.a
 MODULES=bitop exception memory runtime thread vararg \
 	$(addprefix sync/,barrier condition config exception mutex rwmutex semaphore)
@@ -35,27 +35,26 @@ CFLAGS_unittest=$(CFLAGS_release)
 
 # Derived symbols
 
-SRCS=$(addsuffix .d,$(addprefix core/,$(MODULES))) $(IMPDIR)/stdc/stdio.d
-DOCS=$(addsuffix .html,$(addprefix $(DOCDIR)/,$(MODULES)))
-IMPORTS=$(addsuffix .di,$(addprefix $(IMPDIR)/,$(MODULES)))
+C_SRCS=stdc/errno.c threadasm.S
+C_OBJS=$(addsuffix .o,$(basename $(C_SRCS)))
+AS_OBJS=$(addsuffix .o,$(basename $(AS_SRCS)))
+D_SRCS=$(addsuffix .d,$(addprefix core/,$(MODULES))) \
+	$(addsuffix .d,$(addprefix $(IMPDIR)/core/stdc,stdarg stdio wchar_)
+DOCS=$(addsuffix .html,$(addprefix $(DOCDIR)/core,$(MODULES)))
+IMPORTS=$(addsuffix .di,$(addprefix $(IMPDIR)/core,$(MODULES)))
 ALLLIBS=$(addsuffix /$(LIBBASENAME),$(addprefix $(LIBDIR)/,$(BUILDS)))
 
 # Patterns
 
-$(LIBDIR)/%/$(LIBBASENAME) : $(SRCS) $(LIBDIR)/%/errno.o
-	$(DMD) $(DFLAGS_$*) -lib -of$@ $^
+$(LIBDIR)/%/$(LIBBASENAME) : $(D_SRCS) $(C_SRCS)
+	$(CC) -c $(CFLAGS_$*) $(C_SRCS)
+	$(DMD) $(DFLAGS_$*) -lib -of$@ $(D_SRCS) $(C_OBJS)
+	rm $(C_OBJS)
 
-$(LIBDIR)/%/errno.o : core/stdc/errno.c
-	@mkdir -p $(dir $@)
-	$(CC) -c $(CFLAGS_$*) $< -o$@
-
-$(DOCDIR)/%.html : core/%.d
+$(DOCDIR)/%.html : %.d
 	$(DMD) -c -d -o- -Df$@ $<
-	
-$(IMPDIR)/bitop.di :
-	echo "Skipping bitop.d"
 
-$(IMPDIR)/%.di : core/%.d
+$(IMPDIR)/%.di : %.d
 	$(DMD) -c -d -o- -Hf$@ $<
 
 # Rulez
@@ -69,4 +68,3 @@ doc : $(DOCS)
 
 clean :
 	rm -f $(IMPORTS) $(DOCS) $(ALLLIBS)
-
