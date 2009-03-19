@@ -35,13 +35,13 @@ CFLAGS_unittest=$(CFLAGS_release)
 
 # Derived symbols
 
-C_SRCS=stdc/errno.c threadasm.S
-C_OBJS=$(addsuffix .o,$(basename $(C_SRCS)))
+C_SRCS=core/stdc/errno.c core/threadasm.S
+C_OBJS=errno.o threadasm.o
 AS_OBJS=$(addsuffix .o,$(basename $(AS_SRCS)))
 D_SRCS=$(addsuffix .d,$(addprefix core/,$(MODULES))) \
-	$(addsuffix .d,$(addprefix $(IMPDIR)/core/stdc,stdarg stdio wchar_)
-DOCS=$(addsuffix .html,$(addprefix $(DOCDIR)/core,$(MODULES)))
-IMPORTS=$(addsuffix .di,$(addprefix $(IMPDIR)/core,$(MODULES)))
+	$(addsuffix .d,$(addprefix $(IMPDIR)/core/stdc/,stdarg stdio wchar_))
+DOCS=$(addsuffix .html,$(addprefix $(DOCDIR)/core/,$(MODULES)))
+IMPORTS=$(addsuffix .di,$(addprefix $(IMPDIR)/core/,$(MODULES)))
 ALLLIBS=$(addsuffix /$(LIBBASENAME),$(addprefix $(LIBDIR)/,$(BUILDS)))
 
 # Patterns
