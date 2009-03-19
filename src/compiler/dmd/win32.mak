@@ -115,7 +115,7 @@ CFLAGS_unittest=$(CFLAGS_release)
 # Derived symbols
 
 C_OBJS=complex.obj critical.obj deh.obj monitor.obj
-AS_OBJS=
+AS_OBJS=minit.obj
 ALL_MODULES=$(MODULES_BASE) $(MODULES_UTIL) $(MODULES_TI)
 D_SRCS=$(ALL_MODULES)
 ALLLIBS=\
@@ -128,7 +128,7 @@ ALLLIBS=\
 #$(LIBDIR)\%\$(LIBBASENAME) : $(D_SRCS) $(C_SRCS) $(AS_SRCS)
 #	$(CC) -c $(CFLAGS_$*) $(C_SRCS)
 #	$(DMD) $(DFLAGS_$*) -lib -of$@ $(D_SRCS) $(C_OBJS) $(AS_OBJS)
-#	del $(C_OBJS) $(AS_OBJS)
+#	del $(C_OBJS)
 
 #$(DOCDIR)\%.html : %.d
 #	$(DMD) -c -d -o- -Df$@ $<
@@ -141,21 +141,21 @@ ALLLIBS=\
 $(LIBDIR)\debug\$(LIBBASENAME) : $(D_SRCS) $(C_SRCS) $(AS_SRCS)
 	$(CC) -c $(CFLAGS_debug) $(C_SRCS)
 	$(DMD) $(DFLAGS_debug) -lib -of$@ $(D_SRCS) $(C_OBJS) $(AS_OBJS)
-	del $(C_OBJS) $(AS_OBJS)
+	del $(C_OBJS)
 
 # Patterns - release
 
 $(LIBDIR)\release\$(LIBBASENAME) : $(D_SRCS) $(C_SRCS) $(AS_SRCS)
 	$(CC) -c $(CFLAGS_release) $(C_SRCS)
 	$(DMD) $(DFLAGS_release) -lib -of$@ $(D_SRCS) $(C_OBJS) $(AS_OBJS)
-	del $(C_OBJS) $(AS_OBJS)
+	del $(C_OBJS)
 
 # Patterns - unittest
 
 $(LIBDIR)\unittest\$(LIBBASENAME) : $(D_SRCS) $(C_SRCS) $(AS_SRCS)
 	$(CC) -c $(CFLAGS_unittest) $(C_SRCS)
 	$(DMD) $(DFLAGS_unittest) -lib -of$@ $(D_SRCS) $(C_OBJS) $(AS_OBJS)
-	del $(C_OBJS) $(AS_OBJS)
+	del $(C_OBJS)
 
 # Rulez
 
