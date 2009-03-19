@@ -51,8 +51,8 @@ $(LIBDIR)/$(LIBBASENAME) : $(LIBDIR)/release/$(LIBBASENAME)
 
 doc : $(ALL_DOCS)
 	$(MAKE) DMD=$(DMD) -C $(DIR_CC) --no-print-directory -fposix.mak doc
-	$(MAKE) DMD=$(DMD) -C $(DIR_RT) --no-print-directory -fposix.mak doc
-	$(MAKE) DMD=$(DMD) -C $(DIR_GC) --no-print-directory -fposix.mak doc
+#	$(MAKE) DMD=$(DMD) -C $(DIR_RT) --no-print-directory -fposix.mak doc
+#	$(MAKE) DMD=$(DMD) -C $(DIR_GC) --no-print-directory -fposix.mak doc
 
 ######################################################
 
