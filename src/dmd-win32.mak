@@ -1,157 +1,89 @@
-# Makefile to build the composite D runtime library for Win32
-# Designed to work with DigitalMars make
+# Makefile to build the composite D runtime library for Linux
+# Designed to work with GNU make
 # Targets:
-#   make
-#       Same as make all
-#   make lib
-#       Build the runtime library
+#	make
+#		Same as make all
+#	make debug
+#		Build the debug version of the library
+#   make release
+#       Build the release version of the library
 #   make doc
 #       Generate documentation
-#   make clean
-#       Delete unneeded files created by build process
+#	make clean
+#		Delete all files created by build process
 
-LIB_BASE=druntime-dmd
-LIB_BUILD=
-LIB_TARGET=$(LIB_BASE)$(LIB_BUILD).lib
-LIB_MASK=$(LIB_BASE)*.lib
-DUP_TARGET=druntime$(LIB_BUILD).lib
-DUP_MASK=druntime*.lib
-MAKE_LIB=lib
+# Essentials
+
+LIBDIR=..\lib
+DOCDIR=..\doc
+LIBBASENAME=druntime.lib
 
 DIR_CC=common
 DIR_RT=compiler\dmd
 DIR_GC=gc\basic
-DIR_GC_STUB=gc\stub
 
-LIB_CC=$(DIR_CC)\druntime-core$(LIB_BUILD).lib
-LIB_RT=$(DIR_RT)\druntime-rt-dmd$(LIB_BUILD).lib
-LIB_GC=$(DIR_GC)\druntime-gc-basic$(LIB_BUILD).lib
+# Symbols
 
-CP=xcopy /y
-RM=del /f
-MD=mkdir
+DMD=dmd
 
-CC=dmc
-LC=lib
-DC=dmd
+# Targets
 
-LIB_DEST=..\lib
+all : debug release doc unittest $(LIBDIR)\$(LIBBASENAME)
 
-ADD_CFLAGS=
-ADD_DFLAGS=
+# unittest :
+# 	$(MAKE) -fdmd-posix.mak lib MAKE_LIB="unittest"
+# 	dmd -unittest unittest ../import/core/stdc/stdarg \
+# 		-defaultlib="$(DUP_TARGET)" -debuglib="$(DUP_TARGET)"
+# 	$(RM) stdarg.o
+# 	./unittest
 
-CFLAGS_RELEASE=-mn -6 -r $(ADD_CFLAGS)
-CFLAGS_DEBUG=-g -mn -6 -r $(ADD_CFLAGS)
-CFLAGS=$(CFLAGS_RELEASE)
-
-DFLAGS_RELEASE=-release -O -inline -w -nofloat $(ADD_DFLAGS)
-DFLAGS_DEBUG=-g -w -nofloat $(ADD_DFLAGS)
-DFLAGS=$(DFLAGS_RELEASE)
-
-TFLAGS_RELEASE=-O -inline -w  -nofloat $(ADD_DFLAGS)
-TFLAGS_DEBUG=-g -w -nofloat $(ADD_DFLAGS)
-TFLAGS=$(TFLAGS_RELEASE)
-
-targets : lib doc
-all     : lib doc
-
-######################################################
-
-OBJ_CORE= \
-    common\core\bitmanip.obj \
-    common\core\exception.obj \
-    common\core\memory.obj \
-    common\core\runtime.obj \
-    common\core\thread.obj \
-    common\core\vararg.obj
-
-ALL_OBJS=
-
-######################################################
-
-ALL_DOCS=
-
-######################################################
-
-unittest : release $(OBJ_CORE)
-	$(DC) $(DFLAGS_RELEASE) -L/co -unittest unittest.d $(OBJ_CORE) -defaultlib=$(DUP_TARGET) -debuglib=$(DUP_TARGET)
-	unittest
-
-release :
-	make -fdmd-win32.mak lib DC=$(DC) MAKE_LIB="release"
-
-debug :
-	make -fdmd-win32.mak lib DC=$(DC) MAKE_LIB="debug" LIB_BUILD="-d"
-
-######################################################
-
-lib : $(ALL_OBJS)
+debug release unittest :
 	cd $(DIR_CC)
-	make -fwin32.mak $(MAKE_LIB) DC=$(DC) ADD_DFLAGS="$(ADD_DFLAGS)" ADD_CFLAGS="$(ADD_CFLAGS)"
+	make DMD=$(DMD) -fwin32.mak $@
 	cd ..
 	cd $(DIR_RT)
-	make -fwin32.mak $(MAKE_LIB) DC=$(DC) ADD_DFLAGS="$(ADD_DFLAGS)" ADD_CFLAGS="$(ADD_CFLAGS)"
+	make DMD=$(DMD) -fwin32.mak $@
 	cd ..\..
 	cd $(DIR_GC)
-	make -fwin32.mak $(MAKE_LIB) DC=$(DC) ADD_DFLAGS="$(ADD_DFLAGS)" ADD_CFLAGS="$(ADD_CFLAGS)"
+	make DMD=$(DMD) -fwin32.mak $@
 	cd ..\..
-	cd $(DIR_GC_STUB)
-	make -fwin32.mak $(MAKE_LIB) DC=$(DC) ADD_DFLAGS="$(ADD_DFLAGS)" ADD_CFLAGS="$(ADD_CFLAGS)"
-	cd ..\..
-	$(RM) $(LIB_TARGET)
-	$(LC) -c -n $(LIB_TARGET) $(LIB_CC) $(LIB_RT) $(LIB_GC)
-	$(RM) $(DUP_TARGET)
-	copy $(LIB_TARGET) $(DUP_TARGET)
+	@$(DMD) -lib -of$(LIBDIR)\$@\$(LIBBASENAME) \
+		$(LIBDIR)\$@\druntime_core.lib \
+		$(LIBDIR)\$@\druntime_rt_dmd.lib \
+		$(LIBDIR)\$@\druntime_gc_basic.lib
 
+$(LIBDIR)\$(LIBBASENAME) : $(LIBDIR)\release\$(LIBBASENAME)
+	copy /y $** $@
 
 doc : $(ALL_DOCS)
 	cd $(DIR_CC)
-	make -fwin32.mak doc DC=$(DC)
+	make DMD=$(DMD) -fwin32.mak $@
 	cd ..
-	cd $(DIR_RT)
-	make -fwin32.mak doc DC=$(DC)
-	cd ..\..
-	cd $(DIR_GC)
-	make -fwin32.mak doc DC=$(DC)
-	cd ..\..
-	cd $(DIR_GC_STUB)
-	make -fwin32.mak doc DC=$(DC)
-	cd ..\..
+#	cd $(DIR_RT)
+#	make DMD=$(DMD) -fwin32.mak $@
+#	cd ..\..
+#	cd $(DIR_GC)
+#	make DMD=$(DMD) -fwin32.mak $@
+#	cd ..\..
 
 ######################################################
 
-clean :
-	$(RM) /s *.di
-	$(RM) $(ALL_OBJS)
-	$(RM) $(ALL_DOCS)
+clean : $(ALL_DOCS)
 	cd $(DIR_CC)
-	make -fwin32.mak clean
+	make DMD=$(DMD) -fwin32.mak $@
 	cd ..
 	cd $(DIR_RT)
-	make -fwin32.mak clean
+	make DMD=$(DMD) -fwin32.mak $@
 	cd ..\..
 	cd $(DIR_GC)
-	make -fwin32.mak clean
+	make DMD=$(DMD) -fwin32.mak $@
 	cd ..\..
-	cd $(DIR_GC_STUB)
-	make -fwin32.mak clean
-	cd ..\..
-	$(RM) $(LIB_MASK)
-	$(RM) $(DUP_MASK)
-	$(RM) unittest.exe unittest.obj unittest.map
+#find . -name "*.di" | xargs $(RM)
+#rm -rf $(LIBDIR) $(DOCDIR)
 
-install :
-	cd $(DIR_CC)
-	make -fwin32.mak install
-	cd ..
-	cd $(DIR_RT)
-	make -fwin32.mak install
-	cd ..\..
-	cd $(DIR_GC)
-	make -fwin32.mak install
-	cd ..\..
-	cd $(DIR_GC_STUB)
-	make -fwin32.mak install
-	cd ..\..
-	$(CP) $(LIB_MASK) $(LIB_DEST)\.
-	$(CP) $(DUP_MASK) $(LIB_DEST)\.
+# install :
+# 	make -C $(DIR_CC) --no-print-directory -fposix.mak install
+# 	make -C $(DIR_RT) --no-print-directory -fposix.mak install
+# 	make -C $(DIR_GC) --no-print-directory -fposix.mak install
+# 	$(CP) $(LIB_MASK) $(LIB_DEST)\.
+# 	$(CP) $(DUP_MASK) $(LIB_DEST)\.

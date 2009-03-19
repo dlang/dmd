@@ -1,113 +1,82 @@
-# Makefile to build the garbage collector D library for Win32
-# Designed to work with DigitalMars make
+# Makefile to build the garbage collector D library for Posix
+# Designed to work with GNU make
 # Targets:
 #	make
 #		Same as make all
-#	make lib
-#		Build the garbage collector library
+#	make debug
+#		Build the debug version of the library
+#   make release
+#       Build the release version of the library
 #   make doc
 #       Generate documentation
 #	make clean
-#		Delete unneeded files created by build process
+#		Delete all files created by build process
 
-LIB_BASE=druntime-gc-basic
-LIB_BUILD=
-LIB_TARGET=$(LIB_BASE)$(LIB_BUILD).lib
-LIB_MASK=$(LIB_BASE)*.lib
+# Essentials
 
-CP=xcopy /y
-RM=del /f
-MD=mkdir
+LIBDIR=..\..\..\lib
+DOCDIR=..\..\..\doc
+IMPDIR=..\..\..\import
+LIBBASENAME=druntime_gc_basic.lib
+#MODULES=gc gcalloc gcbits gcstats gcx
+BUILDS=debug release unittest
 
-ADD_CFLAGS=
-ADD_DFLAGS=
-
-CFLAGS_RELEASE=-mn -6 -r $(ADD_CFLAGS)
-CFLAGS_DEBUG=-g -mn -6 -r $(ADD_CFLAGS)
-CFLAGS=$(CFLAGS_RELEASE)
-
-DFLAGS_RELEASE=-release -O -inline -w -nofloat $(ADD_DFLAGS)
-DFLAGS_DEBUG=-g -w -nofloat $(ADD_DFLAGS)
-DFLAGS=$(DFLAGS_RELEASE)
-
-TFLAGS_RELEASE=-O -inline -w  -nofloat $(ADD_DFLAGS)
-TFLAGS_DEBUG=-g -w -nofloat $(ADD_DFLAGS)
-TFLAGS=$(TFLAGS_RELEASE)
-
-DOCFLAGS=
+# Symbols
 
 CC=dmc
-LC=lib
-DC=dmd
+DMD=dmd
+DOCFLAGS=-version=DDoc
+DFLAGS_release=-d -release -O -inline -w -nofloat
+DFLAGS_debug=-d -g -w -nofloat
+DFLAGS_unittest=$(DFLAGS_release) -unittest
+CFLAGS_release=-mn -6 -r
+CFLAGS_debug=-g -mn -6 -r
+CFLAGS_unittest=$(CFLAGS_release)
 
-LIB_DEST=..\..\..\lib
+# Derived symbols
 
-.DEFAULT: .asm .c .cpp .d .html .obj
+SRCS=gc.d gcalloc.d gcbits.d gcstats.d gcx.d
+DOCS=
+IMPORTS=
+ALLLIBS=\
+	$(LIBDIR)\debug\$(LIBBASENAME) \
+	$(LIBDIR)\release\$(LIBBASENAME) \
+	$(LIBDIR)\unittest\$(LIBBASENAME)
 
-.asm.obj:
-	$(CC) -c $<
+# Patterns
 
-.c.obj:
-	$(CC) -c $(CFLAGS) $< -o$@
+#$(LIBDIR)\%\$(LIBBASENAME) : $(SRCS)
+#	$(DMD) $(DFLAGS_$*) -lib -of$@ $^
 
-.cpp.obj:
-	$(CC) -c $(CFLAGS) $< -o$@
+#$(DOCDIR)\%.html : %.d
+#	$(DMD) -c -d -o- -Df$@ $<
 
-.d.obj:
-	$(DC) -c $(DFLAGS) $< -of$@
+#$(IMPDIR)\%.di : %.d
+#	$(DMD) -c -d -o- -Hf$@ $<
 
-.d.html:
-	$(DC) -c -o- $(DOCFLAGS) -Df$*.html $<
-#	$(DC) -c -o- $(DOCFLAGS) -Df$*.html dmd.ddoc $<
+# Patterns - debug
 
-targets : lib doc
-all     : lib doc
-lib     : basic.lib
-doc     : basic.doc
+$(LIBDIR)\debug\$(LIBBASENAME) : $(SRCS)
+	$(DMD) $(DFLAGS_debug) -lib -of$@ $**
 
-######################################################
+# Patterns - release
 
-ALL_OBJS= \
-    gc.obj \
-    gcalloc.obj \
-    gcbits.obj \
-    gcstats.obj \
-    gcx.obj
+$(LIBDIR)\release\$(LIBBASENAME) : $(SRCS)
+	$(DMD) $(DFLAGS_release) -lib -of$@ $**
 
-######################################################
+# Patterns - unittest
 
-ALL_DOCS=
+$(LIBDIR)\unittest\$(LIBBASENAME) : $(SRCS)
+	$(DMD) $(DFLAGS_unittest) -lib -of$@ $**
 
-######################################################
+# Rulez
 
-unittest :
-	make -fwin32.mak DC="$(DC)" LIB_BUILD="" DFLAGS="$(DFLAGS_RELEASE) -unittest"
+all : $(BUILDS) doc
 
-release :
-	make -fwin32.mak DC="$(DC)" LIB_BUILD="" DFLAGS="$(DFLAGS_RELEASE)"
-
-debug :
-	make -fwin32.mak DC="$(DC)" LIB_BUILD="-d" DFLAGS="$(DFLAGS_DEBUG)"
-
-######################################################
-
-basic.lib : $(LIB_TARGET)
-
-$(LIB_TARGET) : $(ALL_OBJS)
-	$(RM) $@
-	$(LC) -c -n $@ $(ALL_OBJS)
-
-basic.doc : $(ALL_DOCS)
-	@echo No documentation available.
-
-######################################################
+debug : $(LIBDIR)\debug\$(LIBBASENAME) $(IMPORTS)
+release : $(LIBDIR)\release\$(LIBBASENAME) $(IMPORTS)
+unittest : $(LIBDIR)\unittest\$(LIBBASENAME) $(IMPORTS)
+#doc : $(DOCS)
 
 clean :
-	$(RM) /s *.di
-	$(RM) $(ALL_OBJS)
-	$(RM) $(ALL_DOCS)
-	$(RM) $(LIB_MASK)
-
-install :
-	$(MD) $(LIB_DEST)
-	$(CP) $(LIB_MASK) $(LIB_DEST)\.
+	rm -f $(IMPORTS) $(DOCS) $(ALLLIBS)

@@ -48,24 +48,14 @@ version = MULTI_THREADED;       // produce multithreaded version
 
 /***************************************************/
 
-private import gcbits;
-private import gcstats;
-private import gcalloc;
+private import gc.gcbits;
+private import gc.gcstats;
+private import gc.gcalloc;
 
 private import cstdlib = core.stdc.stdlib : calloc, free, malloc, realloc;
 private import core.stdc.string;
 
 debug private import core.stdc.stdio;
-
-version (GNU)
-{
-    // BUG: The following import will likely not work, since the gcc
-    //      subdirectory is elsewhere.  Instead, perhaps the functions
-    //      could be declared directly or some other resolution could
-    //      be found.
-    private import gcc.builtins; // for __builtin_unwind_init
-}
-
 
 private
 {

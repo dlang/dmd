@@ -1,182 +1,224 @@
-# Makefile to build the D runtime library core components for Win32
-# Designed to work with DigitalMars make
+# Makefile to build the D runtime library core components for Posix
+# Designed to work with GNU make
 # Targets:
 #	make
 #		Same as make all
-#	make lib
-#		Build the common library
+#	make debug
+#		Build the debug version of the library
+#   make release
+#       Build the release version of the library
 #   make doc
 #       Generate documentation
 #	make clean
-#		Delete unneeded files created by build process
+#		Delete all files created by build process
 
-LIB_BASE=druntime-core
-LIB_BUILD=
-LIB_TARGET=$(LIB_BASE)$(LIB_BUILD).lib
-LIB_MASK=$(LIB_BASE)*.lib
+# Essentials
 
-CP=xcopy /y
-RM=del /f
-MD=mkdir
+LIBDIR=..\..\lib
+DOCDIR=..\..\doc
+IMPDIR=..\..\import
+LIBBASENAME=druntime_core.lib
+#MODULES=bitop exception memory runtime thread vararg \
+#	$(addprefix sync/,barrier condition config exception mutex rwmutex semaphore)
+BUILDS=debug release unittest
 
-ADD_CFLAGS=
-ADD_DFLAGS=
-
-CFLAGS_RELEASE=-mn -6 -r $(ADD_CFLAGS)
-CFLAGS_DEBUG=-g -mn -6 -r $(ADD_CFLAGS)
-CFLAGS=$(CFLAGS_RELEASE)
-
-DFLAGS_RELEASE=-release -O -inline -w -nofloat $(ADD_DFLAGS)
-DFLAGS_DEBUG=-g -w -nofloat $(ADD_DFLAGS)
-DFLAGS=$(DFLAGS_RELEASE)
-
-TFLAGS_RELEASE=-O -inline -w  -nofloat $(ADD_DFLAGS)
-TFLAGS_DEBUG=-g -w -nofloat $(ADD_DFLAGS)
-TFLAGS=$(TFLAGS_RELEASE)
-
-DOCFLAGS=
+# Symbols
 
 CC=dmc
-LC=lib
-DC=dmd
+DMD=dmd
+DOCFLAGS=-version=DDoc
+DFLAGS_release=-d -release -O -inline -w -nofloat
+DFLAGS_debug=-d -g -w -nofloat
+DFLAGS_unittest=$(DFLAGS_release) -unittest
+CFLAGS_release=-mn -6 -r
+CFLAGS_debug=-g -mn -6 -r
+CFLAGS_unittest=$(CFLAGS_release)
 
-INC_DEST=..\..\import
-LIB_DEST=..\..\lib
-DOC_DEST=..\..\doc
+# Derived symbols
 
-.DEFAULT: .asm .c .cpp .d .html .obj
+C_SRCS=core\stdc\errno.c
 
-.asm.obj:
-	$(CC) -c $<
+C_OBJS=errno.obj
 
-.c.obj:
-	$(CC) -c $(CFLAGS) $< -o$@
+D_SRCS=\
+	core\bitop.d \
+	core\exception.d \
+	core\memory.d \
+	core\runtime.d \
+	core\thread.d \
+	core\vararg.d \
+	\
+	core\sync\barrier.d \
+	core\sync\condition.d \
+	core\sync\config.d \
+	core\sync\exception.d \
+	core\sync\mutex.d \
+	core\sync\rwmutex.d \
+	core\sync\semaphore.d \
+	\
+	$(IMPDIR)\core\stdc\math.d \
+	$(IMPDIR)\core\stdc\stdarg.d \
+	$(IMPDIR)\core\stdc\stdio.d \
+	$(IMPDIR)\core\stdc\wchar_.d
 
-.cpp.obj:
-	$(CC) -c $(CFLAGS) $< -o$@
+DOCS=\
+	$(DOCDIR)\core\bitop.html \
+	$(DOCDIR)\core\exception.html \
+	$(DOCDIR)\core\memory.html \
+	$(DOCDIR)\core\runtime.html \
+	$(DOCDIR)\core\thread.html \
+	$(DOCDIR)\core\vararg.html \
+	\
+	$(DOCDIR)\core\sync\barrier.html \
+	$(DOCDIR)\core\sync\condition.html \
+	$(DOCDIR)\core\sync\config.html \
+	$(DOCDIR)\core\sync\exception.html \
+	$(DOCDIR)\core\sync\mutex.html \
+	$(DOCDIR)\core\sync\rwmutex.html \
+	$(DOCDIR)\core\sync\semaphore.html
 
-.d.obj:
-	$(DC) -c $(DFLAGS) -Hf$*.di $< -of$@
-#	$(DC) -c $(DFLAGS) $< -of$@
+IMPORTS=\
+	$(IMPDIR)\core\exception.di \
+	$(IMPDIR)\core\memory.di \
+	$(IMPDIR)\core\runtime.di \
+	$(IMPDIR)\core\thread.di \
+	$(IMPDIR)\core\vararg.di \
+	\
+	$(IMPDIR)\core\sync\barrier.di \
+	$(IMPDIR)\core\sync\condition.di \
+	$(IMPDIR)\core\sync\config.di \
+	$(IMPDIR)\core\sync\exception.di \
+	$(IMPDIR)\core\sync\mutex.di \
+	$(IMPDIR)\core\sync\rwmutex.di \
+	$(IMPDIR)\core\sync\semaphore.di
+	# bitop.di is already published
 
-.d.html:
-	$(DC) -c -o- $(DOCFLAGS) -Df$*.html $<
+ALLLIBS=\
+	$(LIBDIR)\debug\$(LIBBASENAME) \
+	$(LIBDIR)\release\$(LIBBASENAME) \
+	$(LIBDIR)\unittest\$(LIBBASENAME)
 
-targets : lib doc
-all     : lib doc
-core    : lib
-lib     : core.lib
-doc     : core.doc
+# Patterns
 
-######################################################
+#$(LIBDIR)\%\$(LIBBASENAME) : $(D_SRCS) $(C_SRCS)
+#	$(CC) -c $(CFLAGS_$*) $(C_SRCS)
+#	$(DMD) $(DFLAGS_$*) -lib -of$@ $(D_SRCS) $(C_OBJS)
+#	del $(C_OBJS)
 
-OBJ_CORE= \
-    core\bitop.obj \
-    core\exception.obj \
-    core\memory.obj \
-    core\runtime.obj \
-    core\thread.obj \
-    core\vararg.obj
+#$(DOCDIR)\%.html : %.d
+#	$(DMD) -c -d -o- -Df$@ $<
 
-OBJ_STDC= \
-    core\stdc\errno.obj
+#$(IMPDIR)\%.di : %.d
+#	$(DMD) -c -d -o- -Hf$@ $<
 
-OBJ_SYNC= \
-    core\sync\barrier.obj \
-    core\sync\condition.obj \
-    core\sync\config.obj \
-    core\sync\exception.obj \
-    core\sync\mutex.obj \
-    core\sync\rwmutex.obj \
-    core\sync\semaphore.obj
+# Patterns - debug
 
-ALL_OBJS= \
-    $(OBJ_CORE) \
-    $(OBJ_STDC) \
-    $(OBJ_SYNC)
+$(LIBDIR)\debug\$(LIBBASENAME) : $(D_SRCS) $(C_SRCS)
+	$(CC) -c $(CFLAGS_debug) $(C_SRCS)
+	$(DMD) $(DFLAGS_debug) -lib -of$@ $(D_SRCS) $(C_OBJS)
+	del $(C_OBJS)
 
-######################################################
+# Patterns - release
 
-DOC_CORE= \
-    core\bitop.html \
-    core\exception.html \
-    core\memory.html \
-    core\runtime.html \
-    core\thread.html \
-    core\vararg.html
+$(LIBDIR)\release\$(LIBBASENAME) : $(D_SRCS) $(C_SRCS)
+	$(CC) -c $(CFLAGS_release) $(C_SRCS)
+	$(DMD) $(DFLAGS_release) -lib -of$@ $(D_SRCS) $(C_OBJS)
+	del $(C_OBJS)
 
-DOC_STDC=
+# Patterns - unittest
 
-DOC_SYNC= \
-    core\sync\barrier.html \
-    core\sync\condition.html \
-    core\sync\config.html \
-    core\sync\exception.html \
-    core\sync\mutex.html \
-    core\sync\rwmutex.html \
-    core\sync\semaphore.html
+$(LIBDIR)\unittest\$(LIBBASENAME) : $(D_SRCS) $(C_SRCS)
+	$(CC) -c $(CFLAGS_unittest) $(C_SRCS)
+	$(DMD) $(DFLAGS_unittest) -lib -of$@ $(D_SRCS) $(C_OBJS)
+	del $(C_OBJS)
 
-######################################################
+# Patterns - docs
 
-ALL_DOCS= \
-    $(DOC_CORE) \
-    $(DOC_STDC) \
-    $(DOC_SYNC)
+$(DOCDIR)\core\bitop.html : core\bitop.d
+	$(DMD) -c -d -o- -Df$@ $**
 
-######################################################
+$(DOCDIR)\core\exception.html : core\exception.d
+	$(DMD) -c -d -o- -Df$@ $**
 
-unittest :
-	make -fwin32.mak DC="$(DC)" LIB_BUILD="" DFLAGS="$(DFLAGS_RELEASE) -unittest"
+$(DOCDIR)\core\memory.html : core\memory.d
+	$(DMD) -c -d -o- -Df$@ $**
 
-release :
-	make -fwin32.mak DC="$(DC)" LIB_BUILD="" DFLAGS="$(DFLAGS_RELEASE)"
+$(DOCDIR)\core\runtime.html : core\runtime.d
+	$(DMD) -c -d -o- -Df$@ $**
 
-debug :
-	make -fwin32.mak DC="$(DC)" LIB_BUILD="-d" DFLAGS="$(DFLAGS_DEBUG)"
+$(DOCDIR)\core\thread.html : core\thread.d
+	$(DMD) -c -d -o- -Df$@ $**
 
-######################################################
+$(DOCDIR)\core\vararg.html : core\vararg.d
+	$(DMD) -c -d -o- -Df$@ $**
 
-core.lib : $(LIB_TARGET)
+$(DOCDIR)\core\sync\barrier.html : core\sync\barrier.d
+	$(DMD) -c -d -o- -Df$@ $**
 
-$(LIB_TARGET) : $(ALL_OBJS)
-	$(RM) $@
-	$(LC) -c -n $@ $(ALL_OBJS)
+$(DOCDIR)\core\sync\condition.html : core\sync\condition.d
+	$(DMD) -c -d -o- -Df$@ $**
 
-core.doc : $(ALL_DOCS)
-	@echo Documentation generated.
+$(DOCDIR)\core\sync\config.html : core\sync\config.d
+	$(DMD) -c -d -o- -Df$@ $**
 
-######################################################
+$(DOCDIR)\core\sync\exception.html : core\sync\exception.d
+	$(DMD) -c -d -o- -Df$@ $**
 
-### bitop
+$(DOCDIR)\core\sync\mutex.html : core\sync\mutex.d
+	$(DMD) -c -d -o- -Df$@ $**
 
-core\bitop.obj : core\bitop.d
-	$(DC) -c $(DFLAGS) core\bitop.d -of$@
+$(DOCDIR)\core\sync\rwmutex.html : core\sync\rwmutex.d
+	$(DMD) -c -d -o- -Df$@ $**
 
-### thread
+$(DOCDIR)\core\sync\semaphore.html : core\sync\semaphore.d
+	$(DMD) -c -d -o- -Df$@ $**
 
-core\thread.obj : core\thread.d
-	$(DC) -c $(DFLAGS) -d -Hf$*.di core\thread.d -of$@
+# Patterns - imports
 
-core\thread.html : core\thread.d
-	$(DC) -c -o- $(DOCFLAGS) -d -Df$*.html core\thread.d
+$(IMPDIR)\core\exception.di : core\exception.d
+	$(DMD) -c -d -o- -Hf$@ $**
 
-### vararg
+$(IMPDIR)\core\memory.di : core\memory.d
+	$(DMD) -c -d -o- -Hf$@ $**
 
-core\vararg.obj : core\vararg.d
-	$(DC) -c $(TFLAGS) -Hf$*.di core\vararg.d -of$@
+$(IMPDIR)\core\runtime.di : core\runtime.d
+	$(DMD) -c -d -o- -Hf$@ $**
 
-######################################################
+$(IMPDIR)\core\thread.di : core\thread.d
+	$(DMD) -c -d -o- -Hf$@ $**
+
+$(IMPDIR)\core\vararg.di : core\vararg.d
+	$(DMD) -c -d -o- -Hf$@ $**
+
+$(IMPDIR)\core\sync\barrier.di : core\sync\barrier.d
+	$(DMD) -c -d -o- -Hf$@ $**
+
+$(IMPDIR)\core\sync\condition.di : core\sync\condition.d
+	$(DMD) -c -d -o- -Hf$@ $**
+
+$(IMPDIR)\core\sync\config.di : core\sync\config.d
+	$(DMD) -c -d -o- -Hf$@ $**
+
+$(IMPDIR)\core\sync\exception.di : core\sync\exception.d
+	$(DMD) -c -d -o- -Hf$@ $**
+
+$(IMPDIR)\core\sync\mutex.di : core\sync\mutex.d
+	$(DMD) -c -d -o- -Hf$@ $**
+
+$(IMPDIR)\core\sync\rwmutex.di : core\sync\rwmutex.d
+	$(DMD) -c -d -o- -Hf$@ $**
+
+$(IMPDIR)\core\sync\semaphore.di : core\sync\semaphore.d
+	$(DMD) -c -d -o- -Hf$@ $**
+
+# Rulez
+
+all : $(BUILDS) doc
+
+debug : $(LIBDIR)\debug\$(LIBBASENAME) $(IMPORTS)
+release : $(LIBDIR)\release\$(LIBBASENAME) $(IMPORTS)
+unittest : $(LIBDIR)\unittest\$(LIBBASENAME) $(IMPORTS)
+doc : $(DOCS)
 
 clean :
-	$(RM) /s .\*.di
-	$(RM) $(ALL_OBJS)
-	$(RM) $(ALL_DOCS)
-	$(RM) $(LIB_MASK)
-
-install :
-	$(MD) $(INC_DEST)\.
-	$(CP) /s *.di $(INC_DEST)\.
-	$(MD) $(DOC_DEST)
-	$(CP) /s *.html $(DOC_DEST)\.
-	$(MD) $(LIB_DEST)
-	$(CP) $(LIB_MASK) $(LIB_DEST)\.
+	del $(IMPORTS) $(DOCS) $(ALLLIBS)

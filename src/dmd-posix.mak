@@ -28,7 +28,7 @@ DMD=dmd
 
 # Targets
 
-all     : debug release doc unittest $(LIBDIR)/$(LIBBASENAME)
+all : debug release doc unittest $(LIBDIR)/$(LIBBASENAME)
 
 # unittest :
 # 	$(MAKE) -fdmd-posix.mak lib MAKE_LIB="unittest"

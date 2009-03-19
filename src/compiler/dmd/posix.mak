@@ -16,8 +16,9 @@
 
 LIBDIR=../../../lib
 DOCDIR=../../../doc
+IMPDIR=../../../import
 LIBBASENAME=libdruntime-rt-dmd.a
-MODULES=bitmanip exception memory runtime thread vararg
+MODULES=
 BUILDS=debug release unittest
 
 MODULES_BASE=aaA aApply aApplyR adi alloca arrayassign arraybyte	\
@@ -39,14 +40,13 @@ C_SRCS=complex.c critical.c memory_osx.c monitor.c tls.S
 # Symbols
 
 DMD=dmd
-
+DOCFLAGS=-version=DDoc
+DFLAGS_release=-d -release -O -inline -w -nofloat
+DFLAGS_debug=-d -g -w -nofloat
+DFLAGS_unittest=$(DFLAGS_release) -unittest
 CFLAGS_release=-m32 -O
 CFLAGS_debug=-m32 -g
 CFLAGS_unittest=$(CFLAGS_release)
-
-DFLAGS_release=-release -O -inline -w -nofloat
-DFLAGS_debug=-g -w -nofloat
-DFLAGS_unittest=$(DFLAGS_release) -unittest
 
 # Derived symbols
 
@@ -63,18 +63,20 @@ $(LIBDIR)/%/$(LIBBASENAME) : $(D_SRCS) $(C_SRCS) $(AS_SRCS)
 	$(DMD) $(DFLAGS_$*) -lib -of$@ $(D_SRCS) $(C_OBJS) $(AS_OBJS)
 	rm $(C_OBJS) $(AS_OBJS)
 
+$(DOCDIR)/%.html : %.d
+	$(DMD) -c -d -o- -Df$@ $<
+
+$(IMPDIR)/%.di : %.d
+	$(DMD) -c -d -o- -Hf$@ $<
+
 # Rulez
 
-all : release debug unittest
-release : $(LIBDIR)/release/$(LIBBASENAME)
-debug : $(LIBDIR)/debug/$(LIBBASENAME)
-unittest : $(LIBDIR)/unittest/$(LIBBASENAME)
+all : $(BUILDS) doc
 
-doc :
-	@echo No documentation available for $(LIBBASENAME).
-
-######################################################
+debug : $(LIBDIR)/debug/$(LIBBASENAME) $(IMPORTS)
+release : $(LIBDIR)/release/$(LIBBASENAME) $(IMPORTS)
+unittest : $(LIBDIR)/unittest/$(LIBBASENAME) $(IMPORTS)
+#doc : $(DOCS)
 
 clean :
-	rm -f $(ALLLIBS) $(C_OBJS) $(AS_OBJS)
-
+	rm -f $(IMPORTS) $(DOCS) $(ALLLIBS)

@@ -28,8 +28,8 @@ module gc.gc;
 
 private
 {
-    import gcx;
-    import gcstats;
+    import gc.gcx;
+    import gc.gcstats;
     import core.stdc.stdlib;
 
     version = GCCLASS;

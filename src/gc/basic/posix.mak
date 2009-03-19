@@ -16,50 +16,48 @@
 
 LIBDIR=../../../lib
 DOCDIR=../../../doc
-LIBBASENAME=libdruntime-gc-basic
+IMPDIR=../../../import
+LIBBASENAME=libdruntime-gc-basic.a
 MODULES=gc gcalloc gcbits gcstats gcx
 BUILDS=debug release unittest
-GENDIR=generated
 
 # Symbols
 
-CFLAGS_release=-O
-CFLAGS_debug=-g
-CFLAGS_unittest=$(CFLAGS_release)
-
-DFLAGS_release=-release -O -inline -w -nofloat
-DFLAGS_debug=-g -w -nofloat
-DFLAGS_unittest=$(DFLAGS_release) -unittest
-
 DMD=dmd
+DOCFLAGS=-version=DDoc
+DFLAGS_release=-d -release -O -inline -w -nofloat
+DFLAGS_debug=-d -g -w -nofloat
+DFLAGS_unittest=$(DFLAGS_release) -unittest
+CFLAGS_release=-m32 -O
+CFLAGS_debug=-m32 -g
+CFLAGS_unittest=$(CFLAGS_release)
 
 # Derived symbols
 
 SRCS=$(addsuffix .d,$(MODULES))
-OBJS=$(addprefix $(GENDIR)/,$(addsuffix .o,$(MODULES)))
+DOCS=
+IMPORTS=
 ALLLIBS=$(addsuffix /$(LIBBASENAME),$(addprefix $(LIBDIR)/,$(BUILDS)))
 
-######################################################
+# Patterns
 
-$(LIBDIR)/%/$(LIBBASENAME).a : $(SRCS)
-	$(foreach f,$^,$(DMD) $(DFLAGS_$*) -c $f -od$(GENDIR) &&) true
-	$(DMD) $(DFLAGS_$*) -lib -of$@ $(OBJS)
-	rm -rf $(GENDIR)
+$(LIBDIR)/%/$(LIBBASENAME) : $(SRCS)
+	$(DMD) $(DFLAGS_$*) -lib -of$@ $^
 
-%.o : %.d
-	$(CC) -c $(CFLAGS) $< -o $@
+$(DOCDIR)/%.html : %.d
+	$(DMD) -c -d -o- -Df$@ $<
 
-######################################################
+$(IMPDIR)/%.di : %.d
+	$(DMD) -c -d -o- -Hf$@ $<
 
-all : debug release unittest
-debug : $(LIBDIR)/debug/$(LIBBASENAME).a
-release : $(LIBDIR)/release/$(LIBBASENAME).a
-unittest : $(LIBDIR)/unittest/$(LIBBASENAME).a
+# Rulez
 
-doc :
-	@echo No documentation for $(LIBBASENAME).
+all : $(BUILDS) doc
+
+debug : $(LIBDIR)/debug/$(LIBBASENAME) $(IMPORTS)
+release : $(LIBDIR)/release/$(LIBBASENAME) $(IMPORTS)
+unittest : $(LIBDIR)/unittest/$(LIBBASENAME) $(IMPORTS)
+#doc : $(DOCS)
 
 clean :
-	rm -rf $(GENDIR) 
-	rm -f $(ALLLIBS) 
-
+	rm -f $(IMPORTS) $(DOCS) $(ALLLIBS)
