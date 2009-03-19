@@ -125,7 +125,7 @@ ALLLIBS=\
 
 # Patterns
 
-#$(LIBDIR)\%\$(LIBBASENAME) : $(D_SRCS) $(C_SRCS) $(AS_SRCS)
+#$(LIBDIR)\%\$(LIBBASENAME) : $(D_SRCS) $(C_SRCS) $(AS_OBJS)
 #	$(CC) -c $(CFLAGS_$*) $(C_SRCS)
 #	$(DMD) $(DFLAGS_$*) -lib -of$@ $(D_SRCS) $(C_OBJS) $(AS_OBJS)
 #	del $(C_OBJS)
@@ -138,24 +138,29 @@ ALLLIBS=\
 
 # Patterns - debug
 
-$(LIBDIR)\debug\$(LIBBASENAME) : $(D_SRCS) $(C_SRCS) $(AS_SRCS)
+$(LIBDIR)\debug\$(LIBBASENAME) : $(D_SRCS) $(C_SRCS) $(AS_OBJS)
 	$(CC) -c $(CFLAGS_debug) $(C_SRCS)
 	$(DMD) $(DFLAGS_debug) -lib -of$@ $(D_SRCS) $(C_OBJS) $(AS_OBJS)
 	del $(C_OBJS)
 
 # Patterns - release
 
-$(LIBDIR)\release\$(LIBBASENAME) : $(D_SRCS) $(C_SRCS) $(AS_SRCS)
+$(LIBDIR)\release\$(LIBBASENAME) : $(D_SRCS) $(C_SRCS) $(AS_OBJS)
 	$(CC) -c $(CFLAGS_release) $(C_SRCS)
 	$(DMD) $(DFLAGS_release) -lib -of$@ $(D_SRCS) $(C_OBJS) $(AS_OBJS)
 	del $(C_OBJS)
 
 # Patterns - unittest
 
-$(LIBDIR)\unittest\$(LIBBASENAME) : $(D_SRCS) $(C_SRCS) $(AS_SRCS)
+$(LIBDIR)\unittest\$(LIBBASENAME) : $(D_SRCS) $(C_SRCS) $(AS_OBJS)
 	$(CC) -c $(CFLAGS_unittest) $(C_SRCS)
 	$(DMD) $(DFLAGS_unittest) -lib -of$@ $(D_SRCS) $(C_OBJS) $(AS_OBJS)
 	del $(C_OBJS)
+
+# Patterns - asm
+
+minit.obj : minit.asm
+	$(CC) -c $**
 
 # Rulez
 
