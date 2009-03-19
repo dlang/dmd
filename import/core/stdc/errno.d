@@ -8,14 +8,11 @@
  */
 module core.stdc.errno;
 
-private
-{
-    extern (C) int getErrno();
-    extern (C) int setErrno(int);
-}
+extern (C) int getErrno();      // for internal use
+extern (C) int setErrno(int);   // for internal use
 
-int errno()          { return getErrno();      }
-int errno( int val ) { return setErrno( val ); }
+alias getErrno errno;
+alias setErrno errno;
 
 extern (C):
 

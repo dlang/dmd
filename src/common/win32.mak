@@ -36,9 +36,9 @@ CFLAGS_unittest=$(CFLAGS_release)
 
 # Derived symbols
 
-C_SRCS=core\stdc\c_errno.c
+C_SRCS=core\stdc\errno.c
 
-C_OBJS=c_errno.obj
+C_OBJS=errno.obj
 
 D_SRCS=\
 	core\bitop.d \
@@ -56,7 +56,6 @@ D_SRCS=\
 	core\sync\rwmutex.d \
 	core\sync\semaphore.d \
 	\
-	$(IMPDIR)\core\stdc\errno.d \
 	$(IMPDIR)\core\stdc\math.d \
 	$(IMPDIR)\core\stdc\stdarg.d \
 	$(IMPDIR)\core\stdc\stdio.d \
