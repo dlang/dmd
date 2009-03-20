@@ -79,4 +79,4 @@ unittest : $(LIBDIR)\unittest\$(LIBBASENAME) $(IMPORTS)
 #doc : $(DOCS)
 
 clean :
-	rm -f $(IMPORTS) $(DOCS) $(ALLLIBS)
+	del $(IMPORTS) $(DOCS) $(ALLLIBS)
