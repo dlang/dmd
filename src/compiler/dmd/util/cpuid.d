@@ -398,11 +398,11 @@ void getcacheinfoCPUID4()
 		datacache[level].lineSize = (b & 0xFFF)+ 1; // system coherency line size
 		uint line_partitions = ((b >> 12)& 0x3FF) + 1;
 		// Size = number of sets * associativity * cachelinesize * linepartitions
-		// and must convert to Kb, also dividing by the number of cores.
+		// and must convert to Kb, also dividing by the number of hyperthreads using this cache.
 		ulong sz = (datacache[level].associativity< ubyte.max)? number_of_sets *
 			datacache[level].associativity : number_of_sets;		
 		datacache[level].size = cast(uint)(
-				(sz * datacache[level].lineSize * line_partitions ) / (numcores *1024));
+				(sz * datacache[level].lineSize * line_partitions ) / (numthreads *1024));
 		if (level == 0 && (a&0xF)==3) {
 			// Halve the size for unified L1 caches
 			datacache[level].size/=2;
