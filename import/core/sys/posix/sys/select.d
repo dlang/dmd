@@ -131,20 +131,43 @@ else version( OSX )
 
     enum FD_SETSIZE = 1024;
 
+    // TODO: Fix this constant expression once the compiler can handle it.
     struct fd_set
     {
-        int fds_bits[(((FD_SETSIZE) + ((__DARWIN_NFDBITS) - 1)) / (__DARWIN_NFDBITS))];
+        int[(FD_SETSIZE + 31/*(__DARWIN_NFDBITS - 1)*/) / 32/*__DARWIN_NFDBITS*/] fds_bits;
+    }
+    
+    extern (D) void FD_CLR( int fd, fd_set* fdset )
+    {
+        fdset.fds_bits[fd / __DARWIN_NFDBITS] &= ~(1 << (fd % __DARWIN_NFDBITS));
+    }
+
+    extern (D) int  FD_ISSET( int fd, fd_set* fdset )
+    {
+        return fdset.fds_bits[fd / __DARWIN_NFDBITS] & (1 << (fd % __DARWIN_NFDBITS));
+    }
+
+    extern (D) void FD_SET( int fd, fd_set* fdset )
+    {   
+        fdset.fds_bits[fd / __DARWIN_NFDBITS] |= 1 << (fd % __DARWIN_NFDBITS); 
+    }
+
+    extern (D) void FD_ZERO( fd_set* fdset )
+    {
+        fdset.fds_bits[0 .. $] = 0;
     }
 }
 else version( freebsd )
 {
     private
     {
-        enum uint FD_SETSIZE = 1024;
         enum uint _NFDBITS   = c_ulong.sizeof * 8;
     }
+    
+    enum uint FD_SETSIZE = 1024;
+    
     struct fd_set
     {
-        c_ulong fds_bits[((FD_SETSIZE + (_NFDBITS - 1)) / _NFDBITS)];
+        c_ulong fds_bits[(FD_SETSIZE + (_NFDBITS - 1)) / _NFDBITS];
     }
 }

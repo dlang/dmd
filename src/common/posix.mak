@@ -39,7 +39,8 @@ C_SRCS=core/stdc/errno.c core/threadasm.S
 C_OBJS=errno.o threadasm.o
 AS_OBJS=$(addsuffix .o,$(basename $(AS_SRCS)))
 D_SRCS=$(addsuffix .d,$(addprefix core/,$(MODULES))) \
-	$(addsuffix .d,$(addprefix $(IMPDIR)/core/stdc/,math stdarg stdio wchar_))
+	$(addsuffix .d,$(addprefix $(IMPDIR)/core/stdc/,math stdarg stdio wchar_)) \
+	$(addsuffix .d,$(addprefix $(IMPDIR)/core/sys/posix/,netinet/in_ sys/select sys/socket sys/stat sys/wait))
 DOCS=$(addsuffix .html,$(addprefix $(DOCDIR)/core/,$(MODULES)))
 IMPORTS=$(addsuffix .di,$(addprefix $(IMPDIR)/core/,$(MODULES)))
 ALLLIBS=$(addsuffix /$(LIBBASENAME),$(addprefix $(LIBDIR)/,$(BUILDS)))

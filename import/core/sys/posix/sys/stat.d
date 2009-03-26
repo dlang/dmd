@@ -186,12 +186,21 @@ else version( OSX )
         uid_t       st_uid;
         gid_t       st_gid;
         dev_t       st_rdev;
+      static if( false /*!_POSIX_C_SOURCE || _DARWIN_C_SOURCE*/ )
+      {
+          timespec  st_atimespec;
+          timespec  st_mtimespec;
+          timespec  st_ctimespec;          
+      }
+      else
+      {
         time_t      st_atime;
-        c_ulong     st_atimensec;
+        c_long      st_atimensec;
         time_t      st_mtime;
-        c_ulong     st_mtimensec;
+        c_long      st_mtimensec;
         time_t      st_ctime;
-        c_ulong     st_ctimensec;
+        c_long      st_ctimensec;
+      }
         off_t       st_size;
         blkcnt_t    st_blocks;
         blksize_t   st_blksize;
