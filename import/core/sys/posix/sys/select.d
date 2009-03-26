@@ -131,10 +131,9 @@ else version( OSX )
 
     enum FD_SETSIZE = 1024;
 
-    // TODO: Fix this constant expression once the compiler can handle it.
     struct fd_set
     {
-        int[(FD_SETSIZE + 31/*(__DARWIN_NFDBITS - 1)*/) / 32/*__DARWIN_NFDBITS*/] fds_bits;
+        int[(FD_SETSIZE + (__DARWIN_NFDBITS - 1)) / __DARWIN_NFDBITS] fds_bits;
     }
     
     extern (D) void FD_CLR( int fd, fd_set* fdset )
