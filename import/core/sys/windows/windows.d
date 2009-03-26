@@ -77,7 +77,7 @@ version(Win64)
     alias  long * PLONG_PTR;
     alias ulong * PULONG_PTR;
 }
-version(Windows)
+version(Win32)
 {
     alias  int INT_PTR;
     alias uint UINT_PTR;

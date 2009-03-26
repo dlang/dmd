@@ -59,7 +59,9 @@ D_SRCS=\
 	$(IMPDIR)\core\stdc\math.d \
 	$(IMPDIR)\core\stdc\stdarg.d \
 	$(IMPDIR)\core\stdc\stdio.d \
-	$(IMPDIR)\core\stdc\wchar_.d
+	$(IMPDIR)\core\stdc\wchar_.d \
+	\
+	$(IMPDIR)\core\sys\windows\windows.d
 
 DOCS=\
 	$(DOCDIR)\core\bitop.html \
