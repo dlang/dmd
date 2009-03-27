@@ -2,9 +2,14 @@
  * The config module contains utility routines and configuration information
  * specific to this package.
  *
- * Copyright: Copyright (C) 2005-2009 Sean Kelly.  All rights reserved.
- * License:   BSD style: $(LICENSE)
+ * Copyright: Copyright Sean Kelly 2005 - 2009.
+ * License:   <a href="http://www.boost.org/LICENSE_1_0.txt>Boost License 1.0</a>.
  * Authors:   Sean Kelly
+ *
+ *          Copyright Sean Kelly 2005 - 2009.
+ * Distributed under the Boost Software License, Version 1.0.
+ *    (See accompanying file LICENSE_1_0.txt or copy at
+ *          http://www.boost.org/LICENSE_1_0.txt)
  */
 module core.sync.config;
 
@@ -32,8 +37,8 @@ version( Posix )
         }
         mvtspec( t, delta );
     }
-    
-    
+
+
     void mvtspec( inout timespec t, long delta )
     {
         if( delta == 0 )
