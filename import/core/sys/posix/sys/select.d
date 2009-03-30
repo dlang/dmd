@@ -9,7 +9,7 @@
 module core.sys.posix.sys.select;
 
 private import core.sys.posix.config;
-public import core.stdc.time;            // for timespec
+public import core.stdc.time;           // for timespec
 public import core.sys.posix.sys.time;  // for timeval
 public import core.sys.posix.sys.types; // for time_t
 public import core.sys.posix.signal;    // for sigset_t
@@ -135,7 +135,7 @@ else version( OSX )
     {
         int[(FD_SETSIZE + (__DARWIN_NFDBITS - 1)) / __DARWIN_NFDBITS] fds_bits;
     }
-    
+
     extern (D) void FD_CLR( int fd, fd_set* fdset )
     {
         fdset.fds_bits[fd / __DARWIN_NFDBITS] &= ~(1 << (fd % __DARWIN_NFDBITS));
@@ -147,8 +147,8 @@ else version( OSX )
     }
 
     extern (D) void FD_SET( int fd, fd_set* fdset )
-    {   
-        fdset.fds_bits[fd / __DARWIN_NFDBITS] |= 1 << (fd % __DARWIN_NFDBITS); 
+    {
+        fdset.fds_bits[fd / __DARWIN_NFDBITS] |= 1 << (fd % __DARWIN_NFDBITS);
     }
 
     extern (D) void FD_ZERO( fd_set* fdset )
@@ -162,9 +162,9 @@ else version( freebsd )
     {
         enum uint _NFDBITS   = c_ulong.sizeof * 8;
     }
-    
+
     enum uint FD_SETSIZE = 1024;
-    
+
     struct fd_set
     {
         c_ulong fds_bits[(FD_SETSIZE + (_NFDBITS - 1)) / _NFDBITS];
