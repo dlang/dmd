@@ -61,7 +61,8 @@ version( linux )
 
     int getitimer(int, itimerval*);
     int gettimeofday(timeval*, void*);
-    int select(int, fd_set*, fd_set*, fd_set*, timeval*);
+// conflicts with select.d line 122
+//    int select(int, fd_set*, fd_set*, fd_set*, timeval*);
     int setitimer(int, in itimerval*, itimerval*);
     int utimes(in char*, in timeval[2]); // LEGACY
 }
