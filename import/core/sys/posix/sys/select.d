@@ -155,6 +155,7 @@ else version( OSX )
     {
         fdset.fds_bits[0 .. $] = 0;
     }
+    int select(int, fd_set*, fd_set*, fd_set*, timeval*);
 }
 else version( freebsd )
 {
