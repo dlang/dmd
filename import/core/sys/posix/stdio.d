@@ -88,6 +88,8 @@ int    vsscanf(in char*, in char*, va_list arg);
 
 version( linux )
 {
+    static if( __USE_LARGEFILE64 )
+    {
         int   fgetpos64(FILE*, fpos_t *);
         alias fgetpos64 fgetpos;
 
@@ -105,13 +107,16 @@ version( linux )
 
         FILE* tmpfile64();
         alias tmpfile64 tmpfile;
-
+    }
+    else
+    {
         int   fgetpos(FILE*, fpos_t *);
         FILE* fopen(in char*, in char*);
         FILE* freopen(in char*, in char*, FILE*);
         int   fseek(FILE*, c_long, int);
         int   fsetpos(FILE*, in fpos_t*);
         FILE* tmpfile();
+    }
 }
 
 //
@@ -133,14 +138,25 @@ version( linux )
 {
     enum L_ctermid = 9;
 
+  static if( __USE_FILE_OFFSET64 )
+  {
     int   fseeko64(FILE*, off_t, int);
     alias fseeko64 fseeko;
-
+  }
+  else
+  {
     int   fseeko(FILE*, off_t, int);
+  }
 
+  static if( __USE_LARGEFILE64 )
+  {
     off_t ftello64(FILE*);
     alias ftello64 ftello;
+  }
+  else
+  {
     off_t ftello(FILE*);
+  }
 }
 else
 {
