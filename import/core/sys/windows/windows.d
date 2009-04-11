@@ -822,8 +822,10 @@ enum
 }
 
 export void GetSystemTime(SYSTEMTIME* lpSystemTime);
+export BOOL GetFileTime(HANDLE hFile, FILETIME *lpCreationTime, FILETIME *lpLastAccessTime, FILETIME *lpLastWriteTime);
 export void GetSystemTimeAsFileTime(FILETIME* lpSystemTimeAsFileTime);
 export BOOL SetSystemTime(SYSTEMTIME* lpSystemTime);
+export BOOL SetFileTime(HANDLE hFile, in FILETIME *lpCreationTime, in FILETIME *lpLastAccessTime, in FILETIME *lpLastWriteTime);
 export void GetLocalTime(SYSTEMTIME* lpSystemTime);
 export BOOL SetLocalTime(SYSTEMTIME* lpSystemTime);
 export BOOL SystemTimeToTzSpecificLocalTime(TIME_ZONE_INFORMATION* lpTimeZoneInformation, SYSTEMTIME* lpUniversalTime, SYSTEMTIME* lpLocalTime);
