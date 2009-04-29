@@ -1,16 +1,15 @@
-
-/* Trace dynamic profiler.
- * For use with the Digital Mars DMD compiler.
- * Copyright (C) 1995-2006 by Digital Mars
- * All Rights Reserved
- * Written by Walter Bright
- * www.digitalmars.com
+/**
+ * Contains support code for code profiling.
+ *
+ * Copyright: Copyright Digital Mars 1995 - 2009.
+ * License:   <a href="http://www.boost.org/LICENSE_1_0.txt>Boost License 1.0</a>.
+ * Authors:   Walter Bright, Sean Kelly
+ *
+ *          Copyright Digital Mars 1995 - 2009.
+ * Distributed under the Boost Software License, Version 1.0.
+ *    (See accompanying file LICENSE_1_0.txt or copy at
+ *          http://www.boost.org/LICENSE_1_0.txt)
  */
-
-/*
- *  Modified by Sean Kelly for use with the D Runtime Project
- */
-
 module rt.trace;
 
 private

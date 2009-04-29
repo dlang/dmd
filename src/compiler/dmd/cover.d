@@ -1,17 +1,15 @@
 /**
- * Code coverage analyzer.
+ * Implementation of code coverage analyzer.
  *
- * Bugs:
- *      $(UL
- *          $(LI the execution counters are 32 bits in size, and can overflow)
- *          $(LI inline asm statements are not counted)
- *      )
- *
- * Copyright: Copyright (C) 2005-2006 Digital Mars, www.digitalmars.com.  All rights reserved.
- * License:   BSD style: $(LICENSE)
+ * Copyright: Copyright Digital Mars 2000 - 2009.
+ * License:   <a href="http://www.boost.org/LICENSE_1_0.txt>Boost License 1.0</a>.
  * Authors:   Walter Bright, Sean Kelly
+ *
+ *          Copyright Digital Mars 2000 - 2009.
+ * Distributed under the Boost Software License, Version 1.0.
+ *    (See accompanying file LICENSE_1_0.txt or copy at
+ *          http://www.boost.org/LICENSE_1_0.txt)
  */
-
 module rt.cover;
 
 private

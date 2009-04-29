@@ -1,37 +1,15 @@
-//_ adi.d
-
 /**
- * Part of the D programming language runtime library.
- * Dynamic array property support routines
- */
-
-/*
- *  Copyright (C) 2000-2006 by Digital Mars, www.digitalmars.com
- *  Written by Walter Bright
+ * Implementation of dynamic array property support routines.
  *
- *  This software is provided 'as-is', without any express or implied
- *  warranty. In no event will the authors be held liable for any damages
- *  arising from the use of this software.
+ * Copyright: Copyright Digital Mars 2000 - 2009.
+ * License:   <a href="http://www.boost.org/LICENSE_1_0.txt>Boost License 1.0</a>.
+ * Authors:   Walter Bright
  *
- *  Permission is granted to anyone to use this software for any purpose,
- *  including commercial applications, and to alter it and redistribute it
- *  freely, in both source and binary form, subject to the following
- *  restrictions:
- *
- *  o  The origin of this software must not be misrepresented; you must not
- *     claim that you wrote the original software. If you use this software
- *     in a product, an acknowledgment in the product documentation would be
- *     appreciated but is not required.
- *  o  Altered source versions must be plainly marked as such, and must not
- *     be misrepresented as being the original software.
- *  o  This notice may not be removed or altered from any source
- *     distribution.
+ *          Copyright Digital Mars 2000 - 2009.
+ * Distributed under the Boost Software License, Version 1.0.
+ *    (See accompanying file LICENSE_1_0.txt or copy at
+ *          http://www.boost.org/LICENSE_1_0.txt)
  */
-
-/*
- *  Modified by Sean Kelly for use with the D Runtime Project
- */
-
 module rt.adi;
 
 //debug=adi;            // uncomment to turn on debugging printf's
@@ -247,49 +225,49 @@ unittest
  */
 
 extern (C) long _adReverse(Array a, size_t szelem)
-    out (result)
+out (result)
+{
+    assert(result is *cast(long*)(&a));
+}
+body
+{
+    if (a.length >= 2)
     {
-        assert(result is *cast(long*)(&a));
-    }
-    body
-    {
-        if (a.length >= 2)
+        byte*    tmp;
+        byte[16] buffer;
+
+        void* lo = a.ptr;
+        void* hi = a.ptr + (a.length - 1) * szelem;
+
+        tmp = buffer.ptr;
+        if (szelem > 16)
         {
-            byte*    tmp;
-            byte[16] buffer;
-
-            void* lo = a.ptr;
-            void* hi = a.ptr + (a.length - 1) * szelem;
-
-            tmp = buffer.ptr;
-            if (szelem > 16)
-            {
-                //version (Windows)
-                    tmp = cast(byte*) alloca(szelem);
-                //else
-                    //tmp = gc_malloc(szelem);
-            }
-
-            for (; lo < hi; lo += szelem, hi -= szelem)
-            {
-                memcpy(tmp, lo,  szelem);
-                memcpy(lo,  hi,  szelem);
-                memcpy(hi,  tmp, szelem);
-            }
-
-            version (Windows)
-            {
-            }
-            else
-            {
-                //if (szelem > 16)
-                    // BUG: bad code is generate for delete pointer, tries
-                    // to call delclass.
-                    //gc_free(tmp);
-            }
+            //version (Windows)
+                tmp = cast(byte*) alloca(szelem);
+            //else
+                //tmp = gc_malloc(szelem);
         }
-        return *cast(long*)(&a);
+
+        for (; lo < hi; lo += szelem, hi -= szelem)
+        {
+            memcpy(tmp, lo,  szelem);
+            memcpy(lo,  hi,  szelem);
+            memcpy(hi,  tmp, szelem);
+        }
+
+        version (Windows)
+        {
+        }
+        else
+        {
+            //if (szelem > 16)
+                // BUG: bad code is generate for delete pointer, tries
+                // to call delclass.
+                //gc_free(tmp);
+        }
     }
+    return *cast(long*)(&a);
+}
 
 unittest
 {

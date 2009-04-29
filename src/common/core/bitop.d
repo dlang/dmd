@@ -1,9 +1,14 @@
 /**
  * This module contains a collection of bit-level operations.
  *
- * Copyright: Public Domain
- * License:   Public Domain
- * Authors:   Walter Bright, Don Clugston, Sean Kelly
+ * Copyright: Copyright Don Clugston 2005 - 2009.
+ * License:   <a href="http://www.boost.org/LICENSE_1_0.txt>Boost License 1.0</a>.
+ * Authors:   Don Clugston, Sean Kelly, Walter Bright
+ *
+ *          Copyright Don Clugston 2005 - 2009.
+ * Distributed under the Boost Software License, Version 1.0.
+ *    (See accompanying file LICENSE_1_0.txt or copy at
+ *          http://www.boost.org/LICENSE_1_0.txt)
  */
 module core.bitop;
 

@@ -1,29 +1,15 @@
-
-/*
- *  Copyright (C) 2004-2005 by Digital Mars, www.digitalmars.com
- *  Written by Walter Bright
+/**
+ * Simple ASCII char classification functions.
  *
- *  This software is provided 'as-is', without any express or implied
- *  warranty. In no event will the authors be held liable for any damages
- *  arising from the use of this software.
+ * Copyright: Copyright Digital Mars 2004 - 2009.
+ * License:   <a href="http://www.boost.org/LICENSE_1_0.txt>Boost License 1.0</a>.
+ * Authors:   Walter Bright
  *
- *  Permission is granted to anyone to use this software for any purpose,
- *  including commercial applications, and to alter it and redistribute it
- *  freely, in both source and binary form, subject to the following
- *  restrictions:
- *
- *  o  The origin of this software must not be misrepresented; you must not
- *     claim that you wrote the original software. If you use this software
- *     in a product, an acknowledgment in the product documentation would be
- *     appreciated but is not required.
- *  o  Altered source versions must be plainly marked as such, and must not
- *     be misrepresented as being the original software.
- *  o  This notice may not be removed or altered from any source
- *     distribution.
+ *          Copyright Digital Mars 2004 - 2009.
+ * Distributed under the Boost Software License, Version 1.0.
+ *    (See accompanying file LICENSE_1_0.txt or copy at
+ *          http://www.boost.org/LICENSE_1_0.txt)
  */
-
-// Simple ASCII char classification functions
-
 module rt.util.ctype;
 
 int isalnum(dchar c)  { return (c <= 0x7F) ? _ctype[c] & (_ALP|_DIG) : 0; }
@@ -40,24 +26,24 @@ int isprint(dchar c)  { return (c <= 0x7F) ? _ctype[c] & (_ALP|_DIG|_PNC|_BLK) :
 int isascii(dchar c)  { return c <= 0x7F; }
 
 dchar tolower(dchar c)
-    out (result)
-    {
-	assert(!isupper(result));
-    }
-    body
-    {
-	return isupper(c) ? c + (cast(dchar)'a' - 'A') : c;
-    }
+out (result)
+{
+    assert(!isupper(result));
+}
+body
+{
+    return isupper(c) ? c + (cast(dchar)'a' - 'A') : c;
+}
 
 dchar toupper(dchar c)
-    out (result)
-    {
-	assert(!islower(result));
-    }
-    body
-    {
-	return islower(c) ? c - (cast(dchar)'a' - 'A') : c;
-    }
+out (result)
+{
+    assert(!islower(result));
+}
+body
+{
+    return islower(c) ? c - (cast(dchar)'a' - 'A') : c;
+}
 
 private:
 

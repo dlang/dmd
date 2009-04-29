@@ -1,39 +1,43 @@
-// Written in the D programming language
 /** 
- Identify the characteristics of the host CPU, providing information
- about cache sizes and assembly optimisation hints.
- 
- Some of this information was extremely difficult to track down. Some of the
- documents below were found only in cached versions stored by search engines!
-  This code relies on information found in:
+ * Identify the characteristics of the host CPU, providing information
+ * about cache sizes and assembly optimisation hints.
+ *
+ * Some of this information was extremely difficult to track down. Some of the
+ * documents below were found only in cached versions stored by search engines!
+ * This code relies on information found in:
 	
-  - "Intel(R) 64 and IA-32 Architectures Software Developers Manual,
-	  Volume 2A: Instruction Set Reference, A-M" (2007).
-  - "AMD CPUID Specification", Advanced Micro Devices, Rev 2.28 (2008).
-  - "AMD Processor Recognition Application Note For Processors Prior to AMD
-      Family 0Fh Processors", Advanced Micro Devices, Rev 3.13 (2005).
-  - "AMD Geode(TM) GX Processors Data Book",
-      Advanced Micro Devices, Publication ID 31505E, (2005).
-  - "AMD K6 Processor Code Optimisation", Advanced Micro Devices, Rev D (2000).
-  - "Application note 106: Software Customization for the 6x86 Family",
-      Cyrix Corporation, Rev 1.5 (1998)
-  - http://ftp.intron.ac/pub/document/cpu/cpuid.htm
-  - "Geode(TM) GX1 Processor Series Low Power Integrated X86 Solution",
-      National Semiconductor, (2002)
-  - "The VIA Isaiah Architecture", G. Glenn Henry, Centaur Technology, Inc (2008).
-  - http://www.sandpile.org/ia32/cpuid.htm
-  - http://grafi.ii.pw.edu.pl/gbm/x86/cpuid.html
-  - "What every programmer should know about memory",
-     Ulrich Depper, Red Hat, Inc., (2007). 
-   
-AUTHORS:  Don Clugston, Tomas Lindquist Olsen &lt;tomas@famolsen.dk&gt;
-COPYRIGHT:	Public Domain
-
-BUGS:	Currently only works on x86 and Itanium CPUs.
-        Many processors have bugs in their microcode for the CPUID instruction,
-        so sometimes the cache information may be incorrect.
-*/
-
+ * - "Intel(R) 64 and IA-32 Architectures Software Developers Manual,
+ *	  Volume 2A: Instruction Set Reference, A-M" (2007).
+ * - "AMD CPUID Specification", Advanced Micro Devices, Rev 2.28 (2008).
+ * - "AMD Processor Recognition Application Note For Processors Prior to AMD
+ *    Family 0Fh Processors", Advanced Micro Devices, Rev 3.13 (2005).
+ * - "AMD Geode(TM) GX Processors Data Book",
+ *    Advanced Micro Devices, Publication ID 31505E, (2005).
+ * - "AMD K6 Processor Code Optimisation", Advanced Micro Devices, Rev D (2000).
+ * - "Application note 106: Software Customization for the 6x86 Family",
+ *    Cyrix Corporation, Rev 1.5 (1998)
+ * - http://ftp.intron.ac/pub/document/cpu/cpuid.htm
+ * - "Geode(TM) GX1 Processor Series Low Power Integrated X86 Solution",
+ *   National Semiconductor, (2002)
+ * - "The VIA Isaiah Architecture", G. Glenn Henry, Centaur Technology, Inc (2008).
+ * - http://www.sandpile.org/ia32/cpuid.htm
+ * - http://grafi.ii.pw.edu.pl/gbm/x86/cpuid.html
+ * - "What every programmer should know about memory",
+ *    Ulrich Depper, Red Hat, Inc., (2007). 
+ * 
+ * Bugs: Currently only works on x86 and Itanium CPUs.
+ *      Many processors have bugs in their microcode for the CPUID instruction,
+ *      so sometimes the cache information may be incorrect.
+ *
+ * Copyright: Copyright Don Clugston 2007 - 2009.
+ * License:   <a href="http://www.boost.org/LICENSE_1_0.txt>Boost License 1.0</a>.
+ * Authors:   Don Clugston, Tomas Lindquist Olsen &lt;tomas@famolsen.dk&gt;
+ *
+ *          Copyright Don Clugston 2007 - 2009.
+ * Distributed under the Boost Software License, Version 1.0.
+ *    (See accompanying file LICENSE_1_0.txt or copy at
+ *          http://www.boost.org/LICENSE_1_0.txt)
+ */
 module rt.util.cpuid;
 
 // If optimizing for a particular processor, it is generally better

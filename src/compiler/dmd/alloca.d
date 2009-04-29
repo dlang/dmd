@@ -1,9 +1,15 @@
-/*_ _alloca.d
- * Copyright (C) 1990-2003 by Digital Mars, www.digitalmars.com
- * All Rights Reserved
- * Written by Walter Bright
+/**
+ * Implementation of alloca() standard C routine.
+ *
+ * Copyright: Copyright Digital Mars 1990 - 2009.
+ * License:   <a href="http://www.boost.org/LICENSE_1_0.txt>Boost License 1.0</a>.
+ * Authors:   Walter Bright
+ *
+ *          Copyright Digital Mars 1990 - 2009.
+ * Distributed under the Boost Software License, Version 1.0.
+ *    (See accompanying file LICENSE_1_0.txt or copy at
+ *          http://www.boost.org/LICENSE_1_0.txt)
  */
-
 module rt.alloca;
 
 /+
