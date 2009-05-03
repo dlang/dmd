@@ -164,10 +164,12 @@ class ClassInfo : Object
     //  4:                      // has offTi[] member
     //  8:                      // has constructors
     // 16:                      // has xgetMembers member
+    // 32:			// has typeinfo member
     void*       deallocator;
     OffsetTypeInfo[] offTi;
     void function(Object) defaultConstructor;   // default Constructor
     const(MemberInfo[]) function(in char[]) xgetMembers;
+    TypeInfo typeinfo;
 
     /**
      * Search all modules for ClassInfo corresponding to classname.
@@ -406,7 +408,7 @@ class TypeInfo_Array : TypeInfo
         hash_t hash = 0;
         void[] a = *cast(void[]*)p;
         for (size_t i = 0; i < a.length; i++)
-            hash += value.getHash(a.ptr + i * sz);
+            hash += value.getHash(a.ptr + i * sz) * 11;
         return hash;
     }
 

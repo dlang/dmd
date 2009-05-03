@@ -60,6 +60,7 @@ class ClassInfo : Object
     //  4:      // has offTi[] member
     //  8:      // has constructors
     // 16:      // has xgetMembers member
+    // 32:	// has typeinfo member
     void*       deallocator;
     OffsetTypeInfo[] offTi;
     void*       defaultConstructor;
@@ -68,6 +69,7 @@ class ClassInfo : Object
     static ClassInfo find(in char[] classname);
     Object create();
     const(MemberInfo[]) getMembers(in char[] classname);
+    TypeInfo	typeinfo;
 }
 
 struct OffsetTypeInfo

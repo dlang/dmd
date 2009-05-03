@@ -47,7 +47,7 @@ debug release unittest :
 	cd $(DIR_GC)
 	make DMD=$(DMD) -fwin32.mak $@
 	cd ..\..
-	@$(DMD) -lib -of$(LIBDIR)\$@\$(LIBBASENAME) \
+	$(DMD) -lib -of$(LIBDIR)\$@\$(LIBBASENAME) \
 		$(LIBDIR)\$@\druntime_core.lib \
 		$(LIBDIR)\$@\druntime_rt_dmd.lib \
 		$(LIBDIR)\$@\druntime_gc_basic.lib

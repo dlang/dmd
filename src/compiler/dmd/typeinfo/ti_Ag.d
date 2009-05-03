@@ -213,3 +213,16 @@ else
         return typeid(char);
     }
 }
+
+// string
+
+class TypeInfo_Aya : TypeInfo_Aa
+{
+    override string toString() { return "immutable(char)[]"; }
+
+    override TypeInfo next()
+    {
+        return typeid(immutable(char));
+    }
+}
+
