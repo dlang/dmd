@@ -55,7 +55,7 @@ else version( OSX )
 {
     enum
     {
-		BUFSIZ		= 1024,
+	BUFSIZ       = 1024,
         EOF          = -1,
         FOPEN_MAX    = 20,
         FILENAME_MAX = 1024,
@@ -77,7 +77,7 @@ else version( OSX )
         }
     }
 }
-else version ( freebsd )
+else version ( FreeBSD )
 {
     enum
     {
@@ -177,7 +177,7 @@ struct _iobuf
         int       _blksize;
         fpos_t    _offset;
     }
-    else version( freebsd )
+    else version( FreeBSD )
     {
         ubyte*    _p;
         int       _r;
@@ -211,7 +211,7 @@ struct _iobuf
     }
 }
 
-alias _iobuf FILE;
+alias shared(_iobuf) FILE;
 
 enum
 {
@@ -234,7 +234,7 @@ version( Windows )
     {
         _IOFBF   = 0,
         _IOLBF   = 0x40,
-		_IONBF   = 4,
+	_IONBF   = 4,
         _IOREAD  = 1,	  // non-standard
         _IOWRT   = 2,	  // non-standard
         _IOMYBUF = 8,	  // non-standard	
@@ -246,15 +246,15 @@ version( Windows )
         _IOAPP   = 0x200, // non-standard
     }
 
-    extern void function() _fcloseallp;
+    extern shared void function() _fcloseallp;
 
-    private extern FILE[_NFILE] _iob;
+    private extern shared FILE[_NFILE] _iob;
 
-    auto FILE* stdin  = &_iob[0];
-    auto FILE* stdout = &_iob[1];
-    auto FILE* stderr = &_iob[2];
-    auto FILE* stdaux = &_iob[3];
-    auto FILE* stdprn = &_iob[4];
+    shared stdin  = &_iob[0];
+    shared stdout = &_iob[1];
+    shared stderr = &_iob[2];
+    shared stdaux = &_iob[3];
+    shared stdprn = &_iob[4];
 }
 else version( linux )
 {
@@ -265,9 +265,9 @@ else version( linux )
         _IONBF = 2,
     }
 
-    extern FILE* stdin;
-    extern FILE* stdout;
-    extern FILE* stderr;
+    extern shared FILE* stdin;
+    extern shared FILE* stdout;
+    extern shared FILE* stderr;
 }
 else version( OSX )
 {
@@ -278,21 +278,21 @@ else version( OSX )
         _IONBF = 2,
     }
 
-    private extern FILE* __stdinp;
-    private extern FILE* __stdoutp;
-    private extern FILE* __stderrp;
+    private extern shared FILE* __stdinp;
+    private extern shared FILE* __stdoutp;
+    private extern shared FILE* __stderrp;
 
     alias __stdinp  stdin;
     alias __stdoutp stdout;
     alias __stderrp stderr;
 }
-else version( freebsd )
+else version( FreeBSD )
 {
-    private extern FILE[3] __sF;
+    private extern shared FILE[3] __sF;
 
-    auto FILE* stdin  = &__sF[0];
-    auto FILE* stdout = &__sF[1];
-    auto FILE* stderr = &__sF[2];
+    shared stdin  = &__sF[0];
+    shared stdout = &__sF[1];
+    shared stderr = &__sF[2];
 }
 else
 {
@@ -392,7 +392,7 @@ else version( OSX )
     int  snprintf(char* s, size_t n, in char* format, ...);
     int  vsnprintf(char* s, size_t n, in char* format, va_list arg);
 }
-else version( freebsd )
+else version( FreeBSD )
 {
     void rewind(FILE*);
     void clearerr(FILE*);
