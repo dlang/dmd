@@ -31,10 +31,10 @@ version( Windows )
         FOPEN_MAX    = 20,
         FILENAME_MAX = 256, // 255 plus NULL
         TMP_MAX      = 32767,
-        SYS_OPEN     = 20,	// non-standard
+        SYS_OPEN     = 20,      // non-standard
     }
 
-    enum int     _NFILE     = 60;	// non-standard
+    enum int     _NFILE     = 60;       // non-standard
     enum string  _P_tmpdir  = "\\"; // non-standard
     enum wstring _wP_tmpdir = "\\"; // non-standard
     enum int     L_tmpnam   = _P_tmpdir.length + 12;
@@ -55,7 +55,7 @@ else version( OSX )
 {
     enum
     {
-	BUFSIZ       = 1024,
+        BUFSIZ       = 1024,
         EOF          = -1,
         FOPEN_MAX    = 20,
         FILENAME_MAX = 1024,
@@ -234,10 +234,10 @@ version( Windows )
     {
         _IOFBF   = 0,
         _IOLBF   = 0x40,
-	_IONBF   = 4,
-        _IOREAD  = 1,	  // non-standard
-        _IOWRT   = 2,	  // non-standard
-        _IOMYBUF = 8,	  // non-standard	
+        _IONBF   = 4,
+        _IOREAD  = 1,     // non-standard
+        _IOWRT   = 2,     // non-standard
+        _IOMYBUF = 8,     // non-standard       
         _IOEOF   = 0x10,  // non-standard
         _IOERR   = 0x20,  // non-standard
         _IOSTRG  = 0x40,  // non-standard
@@ -271,7 +271,7 @@ else version( linux )
 }
 else version( OSX )
 {
-	enum
+        enum
     {
         _IOFBF = 0,
         _IOLBF = 1,

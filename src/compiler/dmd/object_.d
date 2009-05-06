@@ -164,7 +164,7 @@ class ClassInfo : Object
     //  4:                      // has offTi[] member
     //  8:                      // has constructors
     // 16:                      // has xgetMembers member
-    // 32:			// has typeinfo member
+    // 32:                      // has typeinfo member
     void*       deallocator;
     OffsetTypeInfo[] offTi;
     void function(Object) defaultConstructor;   // default Constructor
