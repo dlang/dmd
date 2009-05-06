@@ -24,7 +24,7 @@ private
     extern (C) void rt_setCollectHandler( CollectHandler h );
     extern (C) void rt_setTraceHandler( TraceHandler h );
 
-    alias void delegate( Exception ) ExceptionHandler;
+    alias void delegate( Throwable ) ExceptionHandler;
     extern (C) bool rt_init( ExceptionHandler dg = null );
     extern (C) bool rt_term( ExceptionHandler dg = null );
 
@@ -57,7 +57,7 @@ struct Runtime
      * Returns:
      *  true if initialization succeeds and false if initialization fails.
      */
-    static bool initialize( void delegate( Exception ) dg = null )
+    static bool initialize( ExceptionHandler dg = null )
     {
         return rt_init( dg );
     }
@@ -76,7 +76,7 @@ struct Runtime
      * Returns:
      *  true if termination succeeds and false if termination fails.
      */
-    static bool terminate( void delegate( Exception ) dg = null )
+    static bool terminate( ExceptionHandler dg = null )
     {
         return rt_term( dg );
     }
