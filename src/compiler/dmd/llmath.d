@@ -282,7 +282,7 @@ C1:     ret                     ;
 
 // Convert ulong to real
 
-private real adjust = cast(real)0x800_0000_0000_0000 * 0x10;
+private __gshared real adjust = cast(real)0x800_0000_0000_0000 * 0x10;
 
 real __U64_LDBL()
 {
@@ -345,7 +345,7 @@ ulong __ULLNGDBL()
 
 // Convert double to ulong
 
-private short roundTo0 = 0xFBF;
+private __gshared short roundTo0 = 0xFBF;
 
 ulong __DBLULLNG()
 {

@@ -18,6 +18,9 @@
  *      .tdata : { *(.tdata .tdata.* .gnu.linkonce.td.*) }
  *      .tbss  : { *(.tbss .tbss.* .gnu.linkonce.tb.*) *(.tcommon) }
  * to group the sections in that order.
+ *
+ * Sadly, this does not work because ld orders .tdata after .tdata.*, despite
+ * what the linker script says.
  */
 
 .file "tls.S"

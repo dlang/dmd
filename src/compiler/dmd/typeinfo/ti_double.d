@@ -68,7 +68,7 @@ class TypeInfo_d : TypeInfo
     }
 
     override void[] init()
-    {   static double r;
+    {   static immutable double r;
 
         return (cast(double *)&r)[0 .. 1];
     }

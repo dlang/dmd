@@ -1108,7 +1108,7 @@ class Throwable : Object
 
 
 alias Throwable.TraceInfo function(void* ptr = null) TraceHandler;
-private TraceHandler traceHandler = null;
+private __gshared TraceHandler traceHandler = null;
 
 
 /**
@@ -1220,7 +1220,7 @@ class ModuleInfo
 
 // Windows: this gets initialized by minit.asm
 // Posix: this gets initialized in _moduleCtor()
-extern (C) ModuleInfo[] _moduleinfo_array;
+extern (C) __gshared ModuleInfo[] _moduleinfo_array;
 
 
 version (linux)
@@ -1233,20 +1233,46 @@ version (linux)
         ModuleInfo       mod;
     }
 
-    extern (C) ModuleReference* _Dmodule_ref;   // start of linked list
+    extern (C) __gshared ModuleReference* _Dmodule_ref;   // start of linked list
+}
+
+version (FreeBSD)
+{
+    // This linked list is created by a compiler generated function inserted
+    // into the .ctor list by the compiler.
+    struct ModuleReference
+    {
+        ModuleReference* next;
+        ModuleInfo       mod;
+    }
+
+    extern (C) __gshared ModuleReference* _Dmodule_ref;   // start of linked list
+}
+
+version (Solaris)
+{
+    // This linked list is created by a compiler generated function inserted
+    // into the .ctor list by the compiler.
+    struct ModuleReference
+    {
+        ModuleReference* next;
+        ModuleInfo       mod;
+    }
+
+    extern (C) __gshared ModuleReference* _Dmodule_ref;   // start of linked list
 }
 
 version (OSX)
 {
     extern (C)
     {
-        extern void* _minfo_beg;
-        extern void* _minfo_end;
+        extern __gshared void* _minfo_beg;
+        extern __gshared void* _minfo_end;
     }
 }
 
-ModuleInfo[] _moduleinfo_dtors;
-uint         _moduleinfo_dtors_i;
+__gshared ModuleInfo[] _moduleinfo_dtors;
+__gshared uint         _moduleinfo_dtors_i;
 
 // Register termination function pointers
 extern (C) int _fatexit(void*);
@@ -1272,7 +1298,37 @@ extern (C) void _moduleCtor()
             len++;
         }
     }
-    
+
+    version (FreeBSD)
+    {
+        int len = 0;
+        ModuleReference *mr;
+
+        for (mr = _Dmodule_ref; mr; mr = mr.next)
+            len++;
+        _moduleinfo_array = new ModuleInfo[len];
+        len = 0;
+        for (mr = _Dmodule_ref; mr; mr = mr.next)
+        {   _moduleinfo_array[len] = mr.mod;
+            len++;
+        }
+    }
+
+    version (Solaris)
+    {
+        int len = 0;
+        ModuleReference *mr;
+
+        for (mr = _Dmodule_ref; mr; mr = mr.next)
+            len++;
+        _moduleinfo_array = new ModuleInfo[len];
+        len = 0;
+        for (mr = _Dmodule_ref; mr; mr = mr.next)
+        {   _moduleinfo_array[len] = mr.mod;
+            len++;
+        }
+    }
+
     version (OSX)
     {
         /* The ModuleInfo references are stored in the special segment

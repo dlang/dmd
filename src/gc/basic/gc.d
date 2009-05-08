@@ -25,7 +25,7 @@ private
     else
         alias GC* gc_t;
 
-    gc_t _gc;
+    __gshared gc_t _gc;
 
     extern (C) void thread_init();
 
@@ -59,8 +59,8 @@ private
         extern (C) void function(void*) gc_removeRange;
     }
 
-    Proxy  pthis;
-    Proxy* proxy;
+    __gshared Proxy  pthis;
+    __gshared Proxy* proxy;
 
     void initProxy()
     {

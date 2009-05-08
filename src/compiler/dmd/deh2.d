@@ -16,8 +16,11 @@ module rt.deh2;
 
 extern (C)
 {
-    extern void* _deh_beg;
-    extern void* _deh_end;
+    extern __gshared
+    {
+	void* _deh_beg;
+	void* _deh_end;
+    }
 
     int _d_isbaseof(ClassInfo oc, ClassInfo c);
 }

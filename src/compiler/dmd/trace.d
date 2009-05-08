@@ -53,7 +53,6 @@ struct Symbol
 
 const ubyte SFvisited = 1;      // visited
 
-static Symbol* root;            // root of symbol table
 
 //////////////////////////////////
 // Build a linked list of these.
@@ -67,20 +66,24 @@ struct Stack
     timer_t subtime;            // time used by all subfunctions
 }
 
-static Stack* stack_freelist;
-static Stack* trace_tos;                // top of stack
-static int trace_inited;                // !=0 if initialized
-static timer_t trace_ohd;
+__gshared			// doesn't work with multithreaded code anyway
+{
+    Symbol* root;            // root of symbol table
 
-static Symbol** psymbols;
-static uint nsymbols;           // number of symbols
+    Stack* stack_freelist;
+    Stack* trace_tos;                // top of stack
+    int trace_inited;                // !=0 if initialized
+    timer_t trace_ohd;
 
-static string trace_logfilename = "trace.log";
-static FILE* fplog;
+    Symbol** psymbols;
+    uint nsymbols;           // number of symbols
 
-static string trace_deffilename = "trace.def";
-static FILE* fpdef;
+    string trace_logfilename = "trace.log";
+    FILE* fplog;
 
+    string trace_deffilename = "trace.def";
+    FILE* fpdef;
+}
 
 ////////////////////////////////////////
 // Set file name for output.
@@ -266,7 +269,8 @@ static void trace_report(Symbol* s)
 // Allocate and fill array of symbols.
 
 static void trace_array(Symbol *s)
-{   static uint u;
+{
+    __gshared uint u;
 
     if (!psymbols)
     {   u = 0;

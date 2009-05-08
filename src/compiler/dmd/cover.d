@@ -48,10 +48,13 @@ private
         uint[]      data;
     }
 
-    Cover[] gdata;
-    string  srcpath;
-    string  dstpath;
-    bool    merge;
+    __gshared
+    {
+	Cover[] gdata;
+	string  srcpath;
+	string  dstpath;
+	bool    merge;
+    }
 }
 
 

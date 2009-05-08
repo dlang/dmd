@@ -152,14 +152,14 @@ extern (C) void _d_hidden_func()
     onHiddenFuncError(o);
 }
 
-bool _d_isHalting = false;
+shared bool _d_isHalting = false;
 
 extern (C) bool rt_isHalting()
 {
     return _d_isHalting;
 }
 
-extern (C) bool rt_trapExceptions = true;
+extern (C) shared bool rt_trapExceptions = true;
 
 void _d_criticalInit()
 {

@@ -18,6 +18,7 @@ private
 {
     alias void function( string file, size_t line, string msg = null ) assertHandlerType;
 
+    // Note that this is set on a per-thread basis (should it be global?)
     assertHandlerType assertHandler   = null;
 }
 

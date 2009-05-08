@@ -76,8 +76,8 @@ private
         extern (C) void function(void*) gc_removeRange;
     }
 
-    Proxy  pthis;
-    Proxy* proxy;
+    __gshared Proxy  pthis;
+    __gshared Proxy* proxy;
 
     void initProxy()
     {
@@ -109,8 +109,8 @@ private
         pthis.gc_removeRange = &gc_removeRange;
     }
 
-    void** roots  = null;
-    size_t nroots = 0;
+    __gshared void** roots  = null;
+    __gshared size_t nroots = 0;
 
     struct Range
     {
@@ -118,8 +118,8 @@ private
         size_t len;
     }
 
-    Range* ranges  = null;
-    size_t nranges = 0;
+    __gshared Range* ranges  = null;
+    __gshared size_t nranges = 0;
 }
 
 extern (C) void gc_init()

@@ -48,7 +48,7 @@ class TypeInfo_u : TypeInfo
     }
 
     override void[] init()
-    {   static wchar c;
+    {   static immutable wchar c;
 
         return (cast(wchar *)&c)[0 .. 1];
     }

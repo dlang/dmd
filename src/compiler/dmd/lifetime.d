@@ -64,7 +64,7 @@ private
     }
 
     alias bool function(Object) CollectHandler;
-    CollectHandler collectHandler = null;
+    __gshared CollectHandler collectHandler = null;
 }
 
 

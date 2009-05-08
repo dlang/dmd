@@ -240,23 +240,31 @@ char* strptime(in char*, in char*, tm*);
 
 version( linux )
 {
-    extern int    daylight;
-    extern c_long timezone;
+    extern __gshared int    daylight;
+    extern __gshared c_long timezone;
 
     tm*   getdate(in char*);
     char* strptime(in char*, in char*, tm*);
 }
 else version( OSX )
 {
-    extern c_long timezone;
+    extern __gshared c_long timezone;
 
     tm*   getdate(in char*);
     char* strptime(in char*, in char*, tm*);
 }
-else version( freebsd )
+else version( FreeBSD )
 {
-    extern c_long timezone;
+    extern __gshared c_long timezone;
 
     //tm*   getdate(in char*);
     char* strptime(in char*, in char*, tm*);
 }
+else version( Solaris )
+{
+    extern __gshared c_long timezone;
+
+    //tm*   getdate(in char*);
+    char* strptime(in char*, in char*, tm*);
+}
+

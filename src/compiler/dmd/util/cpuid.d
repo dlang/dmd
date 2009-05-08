@@ -92,7 +92,7 @@ public:
 	
 	/// The data caches. If there are fewer than 5 physical caches levels,
 	/// the remaining levels are set to uint.max (== entire memory space)
-	CacheInfo[5] datacache;
+	__gshared CacheInfo[5] datacache;
 	/// Does it have an x87 FPU on-chip?
 	bool x87onChip()    {return (features&FPU_BIT)!=0;}
     /// Is MMX supported?
@@ -178,6 +178,7 @@ public:
     /// Does this CPU perform better on Pentium I code than Pentium Pro code?
     bool preferPentium1() { return family < 6 || (family==6 && model < 0xF && !probablyIntel); }
 
+__gshared:
 public:
     /// Processor type (vendor-dependent).
     /// This should be visible ONLY for display purposes.
@@ -280,19 +281,18 @@ version(GNU){
 version(Really_D_InlineAsm_X86) {
 // Note that this code will also work for Itanium in x86 mode.
 
-uint max_cpuid, max_extended_cpuid;
+shared uint max_cpuid, max_extended_cpuid;
 
 // CPUID2: "cache and tlb information"
 void getcacheinfoCPUID2()
 {
-	// CPUID2 is a dog's breakfast. What was Intel thinking???
 	// We are only interested in the data caches
 	void decipherCpuid2(ubyte x) {
 		if (x==0) return;
 		// Values from http://www.sandpile.org/ia32/cpuid.htm.
 		// Includes Itanium and non-Intel CPUs.
 		//
-		ubyte [] ids = [
+		immutable ubyte [47] ids = [
 			0x0A, 0x0C, 0x2C, 0x60, 0x0E, 0x66, 0x67, 0x68,
 			// level 2 cache
 			0x41, 0x42, 0x43, 0x44, 0x45, 0x78, 0x79, 0x7A, 0x7B, 0x7C, 0x7D, 0x7F,
@@ -301,7 +301,7 @@ void getcacheinfoCPUID2()
 		    // level 3 cache
 			0x22, 0x23, 0x25, 0x29, 0x46, 0x47, 0x4A, 0x4B, 0x4C, 0x4D
 		];
-		uint [] sizes = [
+		immutable uint [47] sizes = [
 			8, 16, 32, 16, 24, 8, 16, 32,
 		    128, 256, 512, 1024, 2048, 1024, 128, 256, 512, 1024, 2048, 512,
 		    256, 512, 1024, 2048, 512, 1024, 4096, 6*1024,
@@ -309,7 +309,7 @@ void getcacheinfoCPUID2()
 			512, 1024, 2048, 4096, 4096, 8192, 6*1024, 8192, 12*1024, 16*1024
 		];
 	// CPUBUG: Pentium M reports 0x2C but tests show it is only 4-way associative
-		ubyte [] ways = [
+		immutable ubyte [47] ways = [
 			2, 4, 8, 8, 6, 4, 4, 4,
 		    4, 4, 4, 4, 4, 4, 8, 8, 8, 8, 8, 2,
 		    8, 8, 8, 8, 4, 8, 16, 24,
@@ -450,7 +450,7 @@ void getAMDcacheinfo()
 			mov d6, EDX; // L3 cache info
 		}
 	
-		ubyte [] assocmap = [ 0, 1, 2, 0, 4, 0, 8, 0, 16, 0, 32, 48, 64, 96, 128, 0xFF ];
+		immutable ubyte [] assocmap = [ 0, 1, 2, 0, 4, 0, 8, 0, 16, 0, 32, 48, 64, 96, 128, 0xFF ];
 		datacache[1].size = (c6>>16) & 0xFFFF;
 		datacache[1].associativity = assocmap[(c6>>12)&0xF];
 		datacache[1].lineSize = c6 & 0xFF;
@@ -573,7 +573,7 @@ void cpuidX86()
 	// NS Geode GX1 provides CyrixCPUID2 _and_ does the same wrong behaviour
 	// for CPUID80000005. But Geode GX uses the AMD method
 	
-	// Deal with idiotic Geode GX1 - make it same as MediaGX MMX.
+	// Deal with Geode GX1 - make it same as MediaGX MMX.
 	if (max_extended_cpuid==0x8000_0005 && max_cpuid==2) {		
 		max_extended_cpuid = 0x8000_0004;
 	}

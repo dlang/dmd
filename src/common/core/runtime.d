@@ -177,7 +177,8 @@ struct Runtime
 
 
 private:
-    static ModuleUnitTester sm_moduleUnitTester = null;
+    // Unit tests should only be run in single-threaded
+    __gshared ModuleUnitTester sm_moduleUnitTester = null;
 }
 
 

@@ -71,7 +71,7 @@ class TypeInfo_c : TypeInfo
     }
 
     override void[] init()
-    {   static creal r;
+    {   static immutable creal r;
 
         return (cast(creal *)&r)[0 .. 1];
     }

@@ -68,7 +68,7 @@ class TypeInfo_e : TypeInfo
     }
 
     override void[] init()
-    {   static real r;
+    {   static immutable real r;
 
         return (cast(real *)&r)[0 .. 1];
     }

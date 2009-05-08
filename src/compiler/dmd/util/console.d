@@ -51,4 +51,4 @@ struct Console
     }
 }
 
-Console console;
+__gshared Console console;

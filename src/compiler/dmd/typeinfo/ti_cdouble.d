@@ -70,7 +70,7 @@ class TypeInfo_r : TypeInfo
     }
 
     override void[] init()
-    {   static cdouble r;
+    {   static immutable cdouble r;
 
         return (cast(cdouble *)&r)[0 .. 1];
     }

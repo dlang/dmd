@@ -68,7 +68,7 @@ class TypeInfo_f : TypeInfo
     }
 
     override void[] init()
-    {   static float r;
+    {   static immutable float r;
 
         return (cast(float *)&r)[0 .. 1];
     }

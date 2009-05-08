@@ -16,6 +16,7 @@ private
 {
     import core.stdc.stdarg;
     import core.stdc.string;
+    import core.stdc.stdio;
 
     enum BlkAttr : uint
     {
@@ -32,7 +33,7 @@ private
 
 // Auto-rehash and pre-allocate - Dave Fladebo
 
-static size_t[] prime_list = [
+immutable size_t[] prime_list = [
               97UL,            389UL,
            1_543UL,          6_151UL,
           24_593UL,         98_317UL,
@@ -233,10 +234,14 @@ body
     auto pkey = cast(void *)(&valuesize + 1);
     size_t i;
     aaA *e;
+//printf("keyti = %p\n", keyti);
+//printf("aa = %p\n", aa);
     auto keysize = aligntsize(keyti.tsize());
 
     if (!aa.a)
         aa.a = new BB();
+//printf("aa = %p\n", aa);
+//printf("aa.a = %p\n", aa.a);
     aa.a.keyti = keyti;
 
     if (!aa.a.b.length)
@@ -273,9 +278,10 @@ body
     *pe = e;
 
     auto nodes = ++aa.a.nodes;
-    //printf("length = %d, nodes = %d\n", (*aa.a).length, nodes);
+    //printf("length = %d, nodes = %d\n", aa.a.b.length, nodes);
     if (nodes > aa.a.b.length * 4)
     {
+	//printf("rehash\n");
         _aaRehash(aa,keyti);
     }
 
