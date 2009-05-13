@@ -87,11 +87,11 @@ extern (C) void* rt_stackBottom()
     }
     else version( FreeBSD )
     {
-	return __libc_stack_end;
+        return __libc_stack_end;
     }
     else version( Solaris )
     {
-	return __libc_stack_end;
+        return __libc_stack_end;
     }
     else
     {
@@ -127,29 +127,29 @@ private
     {
         extern (C)
         {
-	    extern __gshared
-	    {
-		int _xi_a;   // &_xi_a just happens to be start of data segment
-		int _edata;  // &_edata is start of BSS segment
-		int _end;    // &_end is past end of BSS
-	    }
+            extern __gshared
+            {
+                int _xi_a;   // &_xi_a just happens to be start of data segment
+                int _edata;  // &_edata is start of BSS segment
+                int _end;    // &_end is past end of BSS
+            }
         }
     }
     else version( linux )
     {
         extern (C)
         {
-	    extern __gshared
-	    {
-		int _data;
-		int __data_start;
-		int _end;
-		int _data_start__;
-		int _data_end__;
-		int _bss_start__;
-		int _bss_end__;
-		int __fini_array_end;
-	    }
+            extern __gshared
+            {
+                int _data;
+                int __data_start;
+                int _end;
+                int _data_start__;
+                int _data_end__;
+                int _bss_start__;
+                int _bss_end__;
+                int __fini_array_end;
+            }
         }
 
             alias __data_start  Data_Start;
@@ -163,22 +163,22 @@ private
     {
         extern (C)
         {
-	    extern __gshared
-	    {
-		int etext;
-		int _end;
-	    }
+            extern __gshared
+            {
+                int etext;
+                int _end;
+            }
         }
     }
     else version( Solaris )
     {
         extern (C)
         {
-	    extern __gshared
-	    {
-		int etext;
-		int _end;
-	    }
+            extern __gshared
+            {
+                int etext;
+                int _end;
+            }
         }
     }
 }

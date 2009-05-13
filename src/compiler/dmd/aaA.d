@@ -234,14 +234,14 @@ body
     auto pkey = cast(void *)(&valuesize + 1);
     size_t i;
     aaA *e;
-//printf("keyti = %p\n", keyti);
-//printf("aa = %p\n", aa);
+    //printf("keyti = %p\n", keyti);
+    //printf("aa = %p\n", aa);
     auto keysize = aligntsize(keyti.tsize());
 
     if (!aa.a)
         aa.a = new BB();
-//printf("aa = %p\n", aa);
-//printf("aa.a = %p\n", aa.a);
+    //printf("aa = %p\n", aa);
+    //printf("aa.a = %p\n", aa.a);
     aa.a.keyti = keyti;
 
     if (!aa.a.b.length)
@@ -281,7 +281,7 @@ body
     //printf("length = %d, nodes = %d\n", aa.a.b.length, nodes);
     if (nodes > aa.a.b.length * 4)
     {
-	//printf("rehash\n");
+        //printf("rehash\n");
         _aaRehash(aa,keyti);
     }
 

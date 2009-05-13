@@ -159,7 +159,9 @@ extern (C) bool rt_isHalting()
     return _d_isHalting;
 }
 
-extern (C) shared bool rt_trapExceptions = true;
+// This variable is only ever set by a debugger on initialization so it should
+// be fine to leave it as __gshared.
+extern (C) __gshared bool rt_trapExceptions = true;
 
 void _d_criticalInit()
 {

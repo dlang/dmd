@@ -177,7 +177,9 @@ struct Runtime
 
 
 private:
-    // Unit tests should only be run in single-threaded
+    // NOTE: This field will only ever be set in a static ctor and should
+    //       never occur within any but the main thread, so it is safe to
+    //       make it __gshared.
     __gshared ModuleUnitTester sm_moduleUnitTester = null;
 }
 

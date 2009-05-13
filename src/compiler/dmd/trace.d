@@ -66,17 +66,17 @@ struct Stack
     timer_t subtime;            // time used by all subfunctions
 }
 
-__gshared			// doesn't work with multithreaded code anyway
+__gshared                       // doesn't work with multithreaded code anyway
 {
-    Symbol* root;            // root of symbol table
+    Symbol* root;               // root of symbol table
 
     Stack* stack_freelist;
-    Stack* trace_tos;                // top of stack
-    int trace_inited;                // !=0 if initialized
+    Stack* trace_tos;           // top of stack
+    int trace_inited;           // !=0 if initialized
     timer_t trace_ohd;
 
     Symbol** psymbols;
-    uint nsymbols;           // number of symbols
+    uint nsymbols;              // number of symbols
 
     string trace_logfilename = "trace.log";
     FILE* fplog;

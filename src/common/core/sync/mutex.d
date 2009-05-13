@@ -205,7 +205,7 @@ private:
     }
     else version( Posix )
     {
-        __gshared pthread_mutexattr_t  sm_attr;
+        __gshared pthread_mutexattr_t   sm_attr;
 
         pthread_mutex_t     m_hndl;
     }

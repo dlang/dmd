@@ -50,10 +50,10 @@ private
 
     __gshared
     {
-	Cover[] gdata;
-	string  srcpath;
-	string  dstpath;
-	bool    merge;
+        Cover[] gdata;
+        string  srcpath;
+        string  dstpath;
+        bool    merge;
     }
 }
 

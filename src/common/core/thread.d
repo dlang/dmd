@@ -116,7 +116,7 @@ version( Windows )
 
 
         //
-        // entry point for Windows threads
+        // Entry point for Windows threads
         //
         extern (Windows) uint thread_entryPoint( void* arg )
         {
@@ -157,7 +157,7 @@ version( Windows )
 
 
         //
-        // copy of the same-named function in phobos.std.thread--it uses the
+        // Copy of the same-named function in phobos.std.thread--it uses the
         // Windows naming convention to be consistent with GetCurrentThreadId
         //
         HANDLE GetCurrentThreadHandle()
@@ -220,7 +220,7 @@ else version( Posix )
 
 
         //
-        // entry point for POSIX threads
+        // Entry point for POSIX threads
         //
         extern (C) void* thread_entryPoint( void* arg )
         {
@@ -321,9 +321,9 @@ else version( Posix )
 
 
         //
-        // used to track the number of suspended threads
+        // Used to track the number of suspended threads
         //
-        __gshared sem_t   suspendCount;
+        __gshared sem_t suspendCount;
 
 
         extern (C) void thread_suspendHandler( int sig )
@@ -1082,7 +1082,6 @@ class Thread
             {
                 if( !set )
                 {
-                    //foreach( Thread t; sm_tbeg ) Bug in GDC 0.24 SVN (r139)
                     for( Thread t = sm_tbeg; t; t = t.next )
                     {
                         t.m_local[key] = null;
@@ -1110,7 +1109,6 @@ class Thread
         synchronized( slock )
         {
             sm_local[key] = false;
-            // foreach( Thread t; sm_tbeg ) Bug in GDC 0.24 SVN (r139)
             for( Thread t = sm_tbeg; t; t = t.next )
             {
                 t.m_local[key] = null;
@@ -1252,10 +1250,10 @@ private:
     //
     // Local storage
     //
-    __gshared bool[LOCAL_MAX]  sm_local;
-    __gshared TLSKey           sm_this;
+    __gshared bool[LOCAL_MAX]   sm_local;
+    __gshared TLSKey            sm_this;
 
-    void*[LOCAL_MAX]        m_local;
+    void*[LOCAL_MAX]            m_local;
 
 
     //
@@ -1444,14 +1442,11 @@ private:
     }
 
 
-    __gshared
-    {
-	Context*     sm_cbeg;
-	size_t       sm_clen;
+    __gshared Context*  sm_cbeg;
+    __gshared size_t    sm_clen;
 
-	Thread       sm_tbeg;
-	size_t       sm_tlen;
-    }
+    __gshared Thread    sm_tbeg;
+    __gshared size_t    sm_tlen;
 
     //
     // Used for ordering threads in the global thread list.
@@ -1772,7 +1767,7 @@ static ~this()
 }
 
 
-// Used for needLock below
+// Used for needLock below.
 private __gshared bool multiThreadedFlag = false;
 
 
@@ -1791,7 +1786,7 @@ extern (C) bool thread_needLock()
 }
 
 
-// Used for suspendAll/resumeAll below
+// Used for suspendAll/resumeAll below.
 private __gshared uint suspendDepth = 0;
 
 
@@ -2556,7 +2551,7 @@ private
 
 
   // NOTE: If AsmPPC_Posix is defined then the context switch routine will
-  //       be defined externally until GDC supports inline PPC ASM.
+  //       be defined externally until inline PPC ASM is supported.
   version( AsmPPC_Posix )
     extern (C) void fiber_switchContext( void** oldp, void* newp );
   else
@@ -3383,7 +3378,7 @@ private:
     }
 
 
-    __gshared Thread.TLSKey    sm_this;
+    __gshared Thread.TLSKey sm_this;
 
 
 private:
@@ -3468,6 +3463,6 @@ version (OSX)
     extern (D)
     void* ___tls_get_addr(void* p)
     {
-	return p;
+        return p;
     }
 }

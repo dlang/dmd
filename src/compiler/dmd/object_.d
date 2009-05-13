@@ -1203,7 +1203,7 @@ class ModuleInfo
 
     void function() ictor;      // module static constructor (order independent)
 
-    void*[4] reserved;		// for future expansion
+    void*[4] reserved;          // for future expansion
 
     static int opApply(int delegate(inout ModuleInfo) dg)
     {

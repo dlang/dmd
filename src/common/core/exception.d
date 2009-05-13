@@ -18,8 +18,11 @@ private
 {
     alias void function( string file, size_t line, string msg = null ) assertHandlerType;
 
-    // Note that this is set on a per-thread basis (should it be global?)
-    assertHandlerType assertHandler   = null;
+    // NOTE: One assert handler is used for all threads.  Thread-local
+    //       behavior should occur within the handler itself.  This delegate
+    //       is __gshared for now based on the assumption that it will only
+    //       set by the main thread during program initialization.
+    __gshared assertHandlerType assertHandler = null;
 }
 
 

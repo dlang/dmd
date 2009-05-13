@@ -550,13 +550,13 @@ body
     byte* newdata = void;
     if (newlength)
     {
-	if (newlength <= p.length)
-	{
-	    p.length = newlength;
-	    newdata = p.data;
-	    return newdata[0 .. newlength];
-	}
-	size_t sizeelem = ti.next.tsize();
+        if (newlength <= p.length)
+        {
+            p.length = newlength;
+            newdata = p.data;
+            return newdata[0 .. newlength];
+        }
+        size_t sizeelem = ti.next.tsize();
         version (D_InlineAsm_X86)
         {
             size_t newsize = void;

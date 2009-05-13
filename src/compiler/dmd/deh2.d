@@ -18,8 +18,8 @@ extern (C)
 {
     extern __gshared
     {
-	void* _deh_beg;
-	void* _deh_end;
+        void* _deh_beg;
+        void* _deh_end;
     }
 
     int _d_isbaseof(ClassInfo oc, ClassInfo c);
