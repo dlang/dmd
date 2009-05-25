@@ -397,7 +397,7 @@ T[] _arrayExpSliceAddass_d(T[] a, T value)
         // SSE2 version is 114% faster
         if (sse2() && a.length >= 8)
         {
-            auto n = cast(T*)((cast(uint)aend) & ~7);
+            auto n = aptr + (a.length & ~7);
             if (aptr < n)
 
             // Unaligned case
@@ -812,7 +812,7 @@ T[] _arrayExpSliceMinass_d(T[] a, T value)
         // SSE2 version is 115% faster
         if (sse2() && a.length >= 8)
         {
-            auto n = cast(T*)((cast(uint)aend) & ~7);
+            auto n = aptr + (a.length & ~7);
             if (aptr < n)
 
             // Unaligned case
@@ -1231,7 +1231,7 @@ T[] _arrayExpSliceMulass_d(T[] a, T value)
         // SSE2 version is 109% faster
         if (sse2() && a.length >= 8)
         {
-            auto n = cast(T*)((cast(uint)aend) & ~7);
+            auto n = aptr + (a.length & ~7);
             if (aptr < n)
 
             // Unaligned case
