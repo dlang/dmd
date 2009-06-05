@@ -47,6 +47,8 @@ debug private import core.stdc.stdio;
 
 private
 {
+    enum USE_CACHE = true;
+
     enum BlkAttr : uint
     {
         FINALIZE = 0b0000_0001,
@@ -756,8 +758,10 @@ class GC
             return 0;
         debug (MEMSTOMP) memset(p + psize, 0xF0, (psz + sz) * PAGESIZE - psize);
         memset(pool.pagetable + pagenum + psz, B_PAGEPLUS, sz);
-        gcx.p_cache = null;
-        gcx.size_cache = 0;
+        if (p == gcx.cached_size_key)
+            gcx.cached_size_val = (psz + sz) * PAGESIZE;
+        if (p == gcx.cached_info_key)
+            gcx.cached_info_val.size = (psz + sz) * PAGESIZE;
         return (psz + sz) * PAGESIZE;
     }
 
@@ -944,9 +948,6 @@ class GC
         }
         else
         {
-            if (p == gcx.p_cache)
-                return gcx.size_cache;
-
             size_t size = gcx.findSize(p);
 
             // Check for interior pointer
@@ -954,13 +955,7 @@ class GC
             // 1) size is a power of 2 for less than PAGESIZE values
             // 2) base of memory pool is aligned on PAGESIZE boundary
             if (cast(size_t)p & (size - 1) & (PAGESIZE - 1))
-                size = 0;
-            else
-            {
-                gcx.p_cache = p;
-                gcx.size_cache = size;
-            }
-
+                return 0;
             return size;
         }
     }
@@ -1401,9 +1396,12 @@ struct Gcx
     {
         void thread_Invariant() { }
     }
-
-    void *p_cache;
-    size_t size_cache;
+    
+    void *cached_size_key;
+    size_t cached_size_val;
+    
+    void *cached_info_key;
+    BlkInfo cached_info_val;
 
     size_t nroots;
     size_t rootdim;
@@ -1727,6 +1725,9 @@ struct Gcx
         Pool*  pool;
         size_t size = 0;
 
+        if (USE_CACHE && p == cached_size_key)
+            return cached_size_val;
+            
         pool = findPool(p);
         if (pool)
         {
@@ -1749,6 +1750,8 @@ struct Gcx
                 }
                 size = (i - pagenum) * PAGESIZE;
             }
+            cached_size_key = p;
+            cached_size_val = size;
         }
         return size;
     }
@@ -1761,6 +1764,9 @@ struct Gcx
     {
         Pool*   pool;
         BlkInfo info;
+        
+        if (USE_CACHE && p == cached_info_key)
+            return cached_info_val;
 
         pool = findPool(p);
         if (pool)
@@ -1813,6 +1819,9 @@ struct Gcx
             ////////////////////////////////////////////////////////////////////
 
             info.attr = getBits(pool, cast(size_t)(offset / 16));
+            
+            cached_info_key = p;
+            cached_info_val = info;
         }
         return info;
     }
@@ -2244,8 +2253,10 @@ struct Gcx
 
         thread_suspendAll();
 
-        p_cache = null;
-        size_cache = 0;
+        cached_size_key = cached_size_key.init;
+        cached_size_val = cached_size_val.init;
+        cached_info_key = cached_info_key.init;
+        cached_info_val = cached_info_val.init;
 
         anychanges = 0;
         for (n = 0; n < npools; n++)
