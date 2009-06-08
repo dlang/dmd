@@ -80,7 +80,7 @@ wchar_t* wcsrchr(in wchar_t* s, wchar_t c);
 size_t   wcsspn(in wchar_t* s1, in wchar_t* s2);
 wchar_t* wcsstr(in wchar_t* s1, in wchar_t* s2);
 wchar_t* wcstok(wchar_t* s1, in wchar_t* s2, wchar_t** ptr);
-size_t   wcslen(wchar_t* s);
+size_t   wcslen(in wchar_t* s);
 
 wchar_t* wmemchr(in wchar_t* s, wchar_t c, size_t n);
 int      wmemcmp(in wchar_t* s1, in wchar_t* s2, size_t n);
