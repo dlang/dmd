@@ -2173,11 +2173,11 @@ body
 
     for( Thread t = Thread.sm_tbeg; t; t = t.next )
     {
-        scan( &t.m_tls[0], &t.m_tls[0] + t.m_tls.length );
+        scan( t.m_tls.ptr, t.m_tls.ptr + t.m_tls.length );
 
         version( Windows )
         {
-            scan( &t.m_reg[0], &t.m_reg[0] + t.m_reg.length );
+            scan( t.m_reg.ptr, t.m_reg.ptr + t.m_reg.length );
         }
     }
 }
