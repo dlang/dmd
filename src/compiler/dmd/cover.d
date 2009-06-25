@@ -452,7 +452,7 @@ char[] expandTabs( char[] str, int tabsize = 8 )
                 if (changes)
                 {
                     if (c <= 0x7F)
-                        result ~= c;
+                        result ~= cast(char)c;
                     else
                         encode(result, c);
                 }
