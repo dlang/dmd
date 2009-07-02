@@ -74,6 +74,7 @@ Type::Type(TY ty, Type *next)
     this->rto = NULL;
     this->arrayof = NULL;
     this->vtinfo = NULL;
+    this->ctype = NULL;
 }
 
 Type *Type::syntaxCopy()
@@ -463,7 +464,10 @@ Expression *Type::getProperty(Loc loc, Identifier *ident)
 	e = getTypeInfo(NULL);
     }
     else if (ident == Id::init)
-	return defaultInit();
+    {
+	e = defaultInit();
+	e->loc = loc;
+    }
     else
     {
 	error(loc, "no property '%s' for type '%s'", ident->toChars(), toChars());
@@ -2568,7 +2572,7 @@ void TypeQualified::resolveHelper(Loc loc, Scope *sc,
 	    // It's not a type, it's an expression
 	    if (v->isConst())
 	    {
-		ExpInitializer *ei = v->init->isExpInitializer();
+		ExpInitializer *ei = v->getExpInitializer();
 		assert(ei);
 		*pe = ei->exp->copy();	// make copy so we can change loc
 		(*pe)->loc = loc;
@@ -3378,7 +3382,7 @@ L1:
     }
     v = s->isVarDeclaration();
     if (v && v->isConst())
-    {	ExpInitializer *ei = v->init->isExpInitializer();
+    {	ExpInitializer *ei = v->getExpInitializer();
 
 	if (ei)
 	    return ei->exp;
@@ -3618,7 +3622,7 @@ L1:
     s = s->toAlias();
     v = s->isVarDeclaration();
     if (v && v->isConst())
-    {	ExpInitializer *ei = v->init->isExpInitializer();
+    {	ExpInitializer *ei = v->getExpInitializer();
 
 	if (ei)
 	    return ei->exp;

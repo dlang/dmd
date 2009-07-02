@@ -126,6 +126,7 @@ struct IntegerExp : Expression
     int isBool(int result);
     int implicitConvTo(Type *t);
     void toCBuffer(OutBuffer *buf);
+    Expression *toLvalue(Expression *e);
     elem *toElem(IRState *irs);
     dt_t **toDt(dt_t **pdt);
 };

@@ -78,7 +78,6 @@ void Module::genmoduleinfo()
     dtdword(&dt, namelen);
     dtabytes(&dt, TYnptr, 0, namelen + 1, name);
 
-    Array aimports;
     Array aclasses;
     int i;
 
@@ -86,26 +85,24 @@ void Module::genmoduleinfo()
     for (i = 0; i < members->dim; i++)
     {
 	Dsymbol *member;
-	Import *im;
 	ClassDeclaration *cd;
 
 	member = (Dsymbol *)members->data[i];
 	//printf("\tmember '%s'\n", member->toChars());
-	im = member->isImport();
-	if (im)
-	{   Module *m = im->mod;
-
-	    if (m->needModuleInfo())
-		aimports.push(m);
-	}
-	else if ((cd = member->isClassDeclaration()) != NULL)
+	if ((cd = member->isClassDeclaration()) != NULL)
 	{
 	    aclasses.push(cd);
 	}
     }
 
     // importedModules[]
-    dtdword(&dt, aimports.dim);
+    int aimports_dim = aimports.dim;
+    for (i = 0; i < aimports.dim; i++)
+    {	Module *m = (Module *)aimports.data[i];
+	if (!m->needModuleInfo())
+	    aimports_dim--;
+    }
+    dtdword(&dt, aimports_dim);
     if (aimports.dim)
 	dtxoff(&dt, csym, sizeof_ModuleInfo, TYnptr);
     else
@@ -142,7 +139,8 @@ void Module::genmoduleinfo()
 	Module *m;
 
 	m = (Module *)aimports.data[i];
-	dtxoff(&dt, m->toSymbol(), 0, TYnptr);
+	if (m->needModuleInfo())
+	    dtxoff(&dt, m->toSymbol(), 0, TYnptr);
     }
 
     for (i = 0; i < aclasses.dim; i++)

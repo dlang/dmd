@@ -76,6 +76,7 @@ Symbol *Dsymbol::toSymbolX(const char *prefix, int sclass, type *t)
 
 Symbol *Dsymbol::toSymbol()
 {
+    printf("Dsymbol::toSymbol() '%s', kind = '%s'\n", toChars(), kind());
     assert(0);		// BUG: implement
     return NULL;
 }

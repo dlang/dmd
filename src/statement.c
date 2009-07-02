@@ -960,7 +960,7 @@ Statement *IfStatement::semantic(Scope *sc)
 
 int IfStatement::usesEH()
 {
-    return ifbody->usesEH() || (elsebody && elsebody->usesEH());
+    return (ifbody && ifbody->usesEH()) || (elsebody && elsebody->usesEH());
 }
 
 void IfStatement::toCBuffer(OutBuffer *buf)
@@ -1020,7 +1020,7 @@ Statement *ConditionalStatement::semantic(Scope *sc)
 
 int ConditionalStatement::usesEH()
 {
-    return ifbody->usesEH() || (elsebody && elsebody->usesEH());
+    return (ifbody && ifbody->usesEH()) || (elsebody && elsebody->usesEH());
 }
 
 void ConditionalStatement::toCBuffer(OutBuffer *buf)

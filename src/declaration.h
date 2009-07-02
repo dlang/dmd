@@ -24,6 +24,7 @@ struct Module;
 struct InlineScanState;
 struct ForeachStatement;
 struct FuncDeclaration;
+struct ExpInitializer;
 
 enum PROT;
 enum LINK;
@@ -154,6 +155,7 @@ struct VarDeclaration : Declaration
     int isImportedSymbol();
     int isDataseg();
     Expression *callAutoDtor();
+    ExpInitializer *getExpInitializer();
 
     Symbol *toSymbol();
     void toObjFile();			// compile to .obj file

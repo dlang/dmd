@@ -138,6 +138,8 @@ void preFunctionArguments(Loc loc, Scope *sc, Array *arguments)
 
 	    arg = resolveProperties(sc, arg);
 	    arguments->data[i] = (void *) arg;
+
+	    arg->rvalue();
 #if 0
 	    if (arg->type->ty == Tfunction)
 	    {
@@ -205,8 +207,8 @@ void functionArguments(Loc loc, Scope *sc, TypeFunction *tf, Array *arguments)
 		// BUG: assignments to inout should also be type 'invariant'
 		arg = arg->modifiableLvalue(sc, NULL);
 
-		if (arg->op == TOKslice)
-		    arg->error("cannot modify slice %s", arg->toChars());
+		//if (arg->op == TOKslice)
+		    //arg->error("cannot modify slice %s", arg->toChars());
 
 		// Don't have a way yet to do a pointer to a bit in array
 		if (arg->op == TOKarray &&
@@ -420,6 +422,8 @@ Expression *Expression::toLvalue(Expression *e)
 {
     if (!e)
 	e = this;
+    else if (!loc.filename)
+	loc = e->loc;
     error("%s is not an lvalue", e->toChars());
     return this;
 }
@@ -694,6 +698,16 @@ Expression *IntegerExp::semantic(Scope *sc)
     }
     else
 	type = type->semantic(loc, sc);
+    return this;
+}
+
+Expression *IntegerExp::toLvalue(Expression *e)
+{
+    if (!e)
+	e = this;
+    else if (!loc.filename)
+	loc = e->loc;
+    error("constant %s is not an lvalue", e->toChars());
     return this;
 }
 
@@ -1144,7 +1158,7 @@ Expression *ThisExp::semantic(Scope *sc)
     printf("ThisExp::semantic()\n");
 #endif
     if (type)
-    {	assert(var);
+    {	assert(global.errors || var);
 	return this;
     }
 
@@ -2327,6 +2341,7 @@ Expression *DotIdExp::semantic(Scope *sc)
 	    assert(0);
 	}
 	error("undefined identifier %s", toChars());
+	type = Type::tvoid;
 	return this;
     }
     else if (e1->type->ty == Tpointer && ident != Id::size &&
@@ -3391,7 +3406,7 @@ Expression *SliceExp::toLvalue(Expression *e)
 
 Expression *SliceExp::modifiableLvalue(Scope *sc, Expression *e)
 {
-    //error("cannot modify range expression %s", toChars());
+    error("slice expression %s is not a modifiable lvalue", toChars());
     return this;
 }
 
@@ -3834,6 +3849,8 @@ Expression *AssignExp::semantic(Scope *sc)
 
 	ale->e1 = ale->e1->modifiableLvalue(sc, NULL);
     }
+    else if (e1->op == TOKslice)
+	;
     else
 	// Try to do a decent error message with the expression
 	// before it got constant folded
@@ -3968,7 +3985,7 @@ Expression *AddAssignExp::semantic(Scope *sc)
 	    e2->checkArithmetic();
 	    if (type->isreal() || type->isimaginary())
 	    {
-		assert(e2->type->isfloating());
+		assert(global.errors || e2->type->isfloating());
 		e2 = e2->castTo(type);
 	    }
 	    e = this;

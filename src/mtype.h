@@ -109,6 +109,8 @@ struct Type : Object
     Type *arrayof;	// array of this type
     TypeInfoDeclaration *vtinfo;	// TypeInfo object for this Type
 
+    type *ctype;	// for back end
+
     #define tvoid	basic[Tvoid]
     #define tint8	basic[Tint8]
     #define tuns8	basic[Tuns8]
@@ -300,6 +302,8 @@ struct TypeDArray : TypeArray
     int implicitConvTo(Type *to);
     Expression *defaultInit();
     int builtinTypeInfo();
+
+    type *toCtype();
 };
 
 struct TypeAArray : TypeArray
@@ -320,6 +324,8 @@ struct TypeAArray : TypeArray
 
     // Back end
     Symbol *aaGetSymbol(char *func, int flags);
+
+    type *toCtype();
 };
 
 struct TypePointer : Type
@@ -333,6 +339,8 @@ struct TypePointer : Type
     int isscalar();
     Expression *defaultInit();
     int isZeroInit();
+
+    type *toCtype();
 };
 
 struct TypeReference : Type
@@ -383,6 +391,8 @@ struct TypeDelegate : Type
     Expression *defaultInit();
     int isZeroInit();
     int checkBoolean();
+
+    type *toCtype();
 };
 
 struct TypeQualified : Type
@@ -547,6 +557,8 @@ struct TypeClass : Type
     int isauto();
     int checkBoolean();
     TypeInfoDeclaration *getTypeInfoDeclaration();
+
+    type *toCtype();
 
     Symbol *toSymbol();
 };

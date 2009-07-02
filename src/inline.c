@@ -78,7 +78,7 @@ int IfStatement::inlineCost(InlineCostState *ics)
      * Otherwise, we can't handle return statements nested in if's.
      */
 
-    if (elsebody &&
+    if (elsebody && ifbody &&
 	ifbody->isReturnStatement() &&
 	elsebody->isReturnStatement())
     {
@@ -89,7 +89,8 @@ int IfStatement::inlineCost(InlineCostState *ics)
     else
     {
 	ics->nested += 1;
-	cost += ifbody->inlineCost(ics);
+	if (ifbody)
+	    cost += ifbody->inlineCost(ics);
 	if (elsebody)
 	    cost += elsebody->inlineCost(ics);
 	ics->nested -= 1;
@@ -287,7 +288,10 @@ Expression *IfStatement::doInline(InlineDoState *ids)
 
     econd = condition->doInline(ids);
     assert(econd);
-    e1 = ifbody->doInline(ids);
+    if (ifbody)
+	e1 = ifbody->doInline(ids);
+    else
+	e1 = NULL;
     if (elsebody)
 	e2 = elsebody->doInline(ids);
     else
@@ -302,10 +306,14 @@ Expression *IfStatement::doInline(InlineDoState *ids)
 	e = new AndAndExp(econd->loc, econd, e1);
 	e->type = Type::tvoid;
     }
+    else if (e2)
+    {
+	e = new OrOrExp(econd->loc, econd, e2);
+	e->type = Type::tvoid;
+    }
     else
     {
-	e = new OrOrExp(econd->loc, econd, e1);
-	e->type = Type::tvoid;
+	e = econd;
     }
     return e;
 }
@@ -571,7 +579,8 @@ Statement *ForeachStatement::inlineScan(InlineScanState *iss)
 Statement *IfStatement::inlineScan(InlineScanState *iss)
 {
     condition = condition->inlineScan(iss);
-    ifbody = ifbody->inlineScan(iss);
+    if (ifbody)
+	ifbody = ifbody->inlineScan(iss);
     if (elsebody)
 	elsebody = elsebody->inlineScan(iss);
     return this;

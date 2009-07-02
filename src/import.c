@@ -77,6 +77,9 @@ void Import::semantic(Scope *sc)
 	mod->semantic();
 	//printf("import '%s', protection = %d for '%s'\n", toChars(), sc->protection, mod->toChars());
 	sc->scopesym->importScope(mod, sc->protection);
+
+	// Modules need a list of each imported module
+	sc->module->aimports.push(mod);
     }
     if (!pkg)
 	pkg = mod;

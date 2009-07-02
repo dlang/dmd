@@ -20,6 +20,7 @@
 #include "module.h"
 #include "id.h"
 
+
 /********************************* Declaration ****************************/
 
 Declaration::Declaration(Identifier *id)
@@ -508,9 +509,7 @@ void VarDeclaration::semantic(Scope *sc)
 	}
 	else
 	{
-	    Expression *e = type->defaultInit();
-	    if (e)
-		init = new ExpInitializer(loc, e);
+	    init = getExpInitializer();
 	}
     }
 
@@ -559,6 +558,23 @@ void VarDeclaration::semantic(Scope *sc)
 	    init = init->semantic(sc, type);
 	}
     }
+}
+
+ExpInitializer *VarDeclaration::getExpInitializer()
+{
+    ExpInitializer *ei;
+
+    if (init)
+	ei = init->isExpInitializer();
+    else
+    {
+	Expression *e = type->defaultInit();
+	if (e)
+	    ei = new ExpInitializer(loc, e);
+	else
+	    ei = NULL;
+    }
+    return ei;
 }
 
 void VarDeclaration::semantic2(Scope *sc)

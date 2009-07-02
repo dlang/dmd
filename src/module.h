@@ -61,6 +61,8 @@ struct Module : Package
 
     Array *decldefs;		// top level declarations for this Module
 
+    Array aimports;		// all imported modules
+
     ModuleInfoDeclaration *vmoduleinfo;
 
     unsigned debuglevel;	// debug level
