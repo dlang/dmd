@@ -310,9 +310,9 @@ Expression *DivExp::constFold()
 	    assert(0);
     }
     else
-    {	integer_t n1;
-	integer_t n2;
-	integer_t n;
+    {	sinteger_t n1;
+	sinteger_t n2;
+	sinteger_t n;
 
 	n1 = e1->toInteger();
 	n2 = e2->toInteger();
@@ -345,9 +345,9 @@ Expression *ModExp::constFold()
 	assert(0);
     }
     else
-    {	integer_t n1;
-	integer_t n2;
-	integer_t n;
+    {	sinteger_t n1;
+	sinteger_t n2;
+	sinteger_t n;
 
 	n1 = e1->toInteger();
 	n2 = e2->toInteger();
