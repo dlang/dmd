@@ -135,7 +135,12 @@ Dsymbol *Dsymbol::toAlias()
 
 Dsymbol *Dsymbol::toParent()
 {
-    Dsymbol *s = parent;
+    return parent ? parent->pastMixin() : NULL;
+}
+
+Dsymbol *Dsymbol::pastMixin()
+{
+    Dsymbol *s = this;
 
     while (s && s->isTemplateMixin())
 	s = s->parent;

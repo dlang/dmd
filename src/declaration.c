@@ -556,6 +556,10 @@ void VarDeclaration::semantic(Scope *sc)
 	else
 	{
 	    init = init->semantic(sc, type);
+	    if (fd && isConst() && !isStatic())
+	    {	// Make it static
+		storage_class |= STCstatic;
+	    }
 	}
     }
 }

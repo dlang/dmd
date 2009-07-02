@@ -992,7 +992,7 @@ int File::mmread()
     if (!ref)
 	mem.free(buffer);
     ref = 2;
-    buffer = MapViewOfFileEx(hFileMap, FILE_MAP_READ,0,0,size,NULL);
+    buffer = (unsigned char *)MapViewOfFileEx(hFileMap, FILE_MAP_READ,0,0,size,NULL);
     if (CloseHandle(hFileMap) != TRUE)
 	goto Lerr;
     if (buffer == NULL)			// mapping view failed
@@ -1713,7 +1713,7 @@ void Bits::set()
     // Clear other bits in last word
     mask = (1 << (bitdim & 31)) - 1;
     if (mask)
-	data[allocdim - 1] &= ~mask;
+	data[allocdim - 1] &= mask;
 }
 
 void Bits::clear()

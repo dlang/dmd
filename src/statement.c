@@ -1703,10 +1703,19 @@ Statement *SynchronizedStatement::syntaxCopy()
 Statement *SynchronizedStatement::semantic(Scope *sc)
 {
     if (exp)
-    {
+    {	ClassDeclaration *cd;
+
 	exp = exp->semantic(sc);
-	if (!exp->type->isClassHandle())
+	cd = exp->type->isClassHandle();
+	if (!cd)
 	    error("can only synchronize on class objects, not '%s'", exp->type->toChars());
+	if (cd->isInterfaceDeclaration())
+	{   Type *t = new TypeIdentifier(0, Id::Object);
+
+	    t = t->semantic(0, sc);
+	    exp = new CastExp(loc, exp, t);
+	    exp = exp->semantic(sc);
+	}
     }
     body = body->semantic(sc);
     return this;

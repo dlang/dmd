@@ -11,9 +11,14 @@
 #include <stdlib.h>
 #include <ctype.h>
 #include <assert.h>
+#include <limits.h>
 
 #if __DMC__
 #include <dos.h>
+#endif
+
+#if linux
+#include <errno.h>
 #endif
 
 #include "mem.h"
@@ -44,7 +49,7 @@ Global::Global()
 
     copyright = "Copyright (c) 1999-2004 by Digital Mars";
     written = "written by Walter Bright";
-    version = "v0.104";
+    version = "v0.105";
     global.structalign = 8;
 
     memset(&params, 0, sizeof(Param));
@@ -275,12 +280,21 @@ int main(int argc, char *argv[])
 		if (p[6] == '=')
 		{
 		    if (isdigit(p[7]))
-			DebugCondition::setGlobalLevel(atoi(p + 7));
+		    {	long level;
+
+			errno = 0;
+			level = strtol(p + 7, &p, 10);
+			if (*p || errno || level > INT_MAX)
+			    goto Lerror;
+			DebugCondition::setGlobalLevel((int)level);
+		    }
 		    else if (isalpha(p[7]))
 			DebugCondition::addGlobalIdent(p + 7);
 		    else
 			goto Lerror;
 		}
+		else if (p[6])
+		    goto Lerror;
 		else
 		    global.params.debuglevel = 1;
 	    }
@@ -320,11 +334,11 @@ int main(int argc, char *argv[])
 	    else
 	    {
 	     Lerror:
-		error("unrecognized switch '%s'",p);
+		error("unrecognized switch '%s'", argv[i]);
 		continue;
 
 	     Lnoarg:
-		error("argument expected for switch '%s'",p);
+		error("argument expected for switch '%s'", argv[i]);
 		continue;
 	    }
 	}
@@ -452,6 +466,15 @@ int main(int argc, char *argv[])
 		name = (char *)mem.malloc((ext - p) + 1);
 		memcpy(name, p, ext - p);
 		name[ext - p] = 0;		// strip extension
+
+		if (name[0] == 0 ||
+		    strcmp(name, "..") == 0 ||
+		    strcmp(name, ".") == 0)
+		{
+		Linvalid:
+		    error("invalid file name '%s'", (char *)files.data[i]);
+		    fatal();
+		}
 	    }
 	    else
 	    {	error("unrecognized file extension %s\n", ext);
@@ -459,7 +482,11 @@ int main(int argc, char *argv[])
 	    }
 	}
 	else
-	    name = p;
+	{   name = p;
+	    if (!*name)
+		goto Linvalid;
+	}
+
 	id = new Identifier(name, 0);
 	m = new Module((char *) files.data[i], id);
 	modules.push(m);

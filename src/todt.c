@@ -49,6 +49,7 @@ dt_t *Initializer::toDt()
     return NULL;
 }
 
+
 dt_t *StructInitializer::toDt()
 {
     Array dts;
@@ -102,6 +103,24 @@ dt_t *StructInitializer::toDt()
 	    {
 		d = v->init->toDt();
 	    }
+	    else if (v->offset >= offset)
+	    {
+		unsigned k;
+		unsigned offset2 = v->offset + v->type->size();
+		// Make sure this field does not overlap any explicitly
+		// initialized field.
+		for (k = j + 1; 1; k++)
+		{
+		    if (k == dts.dim)		// didn't find any overlap
+		    {	v->type->toDt(&d);	// provide default initializer
+			break;
+		    }
+		    VarDeclaration *v2 = (VarDeclaration *)ad->fields.data[k];
+
+		    if (v2->offset < offset2 && dts.data[k])
+			break;			// overlap
+		}
+	    }
 	}
 	if (d)
 	{
@@ -124,8 +143,10 @@ dt_t *StructInitializer::toDt()
     return dt;
 }
 
+
 dt_t *ArrayInitializer::toDt()
 {
+    //printf("ArrayInitializer::toDt('%s')\n", toChars());
     Type *tb = type->toBasetype();
     Type *tn = tb->next->toBasetype();
 
@@ -170,7 +191,7 @@ dt_t *ArrayInitializer::toDt()
 	if (dt)
 	    pdtend = dtcat(pdtend, dt);
 	else
-	    pdtend = dtnzeros(pdtend, size);
+	    pdtend = tn->toDt(pdtend);
     }
     switch (tb->ty)
     {
@@ -212,15 +233,39 @@ dt_t *ArrayInitializer::toDtBit()
     unsigned size;
     unsigned length;
     unsigned i;
+    unsigned tadim;
     dt_t *d;
     dt_t **pdtend;
     Type *tb = type->toBasetype();
 
+    //printf("ArrayInitializer::toDtBit('%s')\n", toChars());
+
     Bits databits;
     Bits initbits;
 
-    databits.resize(dim);
-    initbits.resize(dim);
+    if (tb->ty == Tsarray)
+    {
+	/* The 'dim' for ArrayInitializer is only the maximum dimension
+	 * seen in the initializer, not the type. So, for static arrays,
+	 * use instead the dimension of the type in order
+	 * to get the whole thing.
+	 */
+	integer_t value = ((TypeSArray*)tb)->dim->toInteger();
+	tadim = value;
+	assert(tadim == value);	 // truncation overflow should already be checked
+	databits.resize(tadim);
+	initbits.resize(tadim);
+    }
+    else
+    {
+	databits.resize(dim);
+	initbits.resize(dim);
+    }
+
+    /* The default initializer may be something other than zero.
+     */
+    if (tb->next->defaultInit()->toInteger())
+       databits.set();
 
     size = sizeof(databits.data[0]);
 
@@ -229,23 +274,28 @@ dt_t *ArrayInitializer::toDtBit()
     {	Expression *idx;
 	Initializer *val;
 	Expression *eval;
-	unsigned bitval;
 
 	idx = (Expression *)index.data[i];
 	if (idx)
-	    length = idx->toInteger();
+	{   integer_t value;
+	    value = idx->toInteger();
+	    length = value;
+	    if (length != value)
+	    {	error("index overflow %llu", value);
+		length = 0;
+	    }
+	}
 	assert(length < dim);
 
 	val = (Initializer *)value.data[i];
 	eval = val->toExpression();
-	bitval = eval->toInteger();
 	if (initbits.test(length))
 	    error("duplicate initializations for index %d", length);
 	initbits.set(length);
-	if (bitval & 1)
+	if (eval->toInteger())		// any non-zero value is boolean 'true'
 	    databits.set(length);
 	else
-	    databits.clear(length);
+	    databits.clear(length);	// boolean 'false'
 	length++;
     }
 
@@ -254,10 +304,7 @@ dt_t *ArrayInitializer::toDtBit()
     switch (tb->ty)
     {
 	case Tsarray:
-	{   unsigned tadim;
-	    TypeSArray *ta = (TypeSArray *)tb;
-
-	    tadim = ta->dim->toInteger();
+	{
 	    if (dim > tadim)
 		error("too many initializers %d for array[%d]", dim, tadim);
 	    else
@@ -312,6 +359,7 @@ dt_t **Expression::toDt(dt_t **pdt)
 dt_t **IntegerExp::toDt(dt_t **pdt)
 {   unsigned sz;
 
+    //printf("IntegerExp::toDt() %d\n", op);
     sz = type->size();
     if (value == 0)
 	pdt = dtnzeros(pdt, sz);
@@ -634,23 +682,36 @@ dt_t **Type::toDt(dt_t **pdt)
 dt_t **TypeSArray::toDt(dt_t **pdt)
 {
     int i;
-    int len;
+    unsigned len;
 
     len = dim->toInteger();
     if (len)
     {
 	while (*pdt)
 	    pdt = &((*pdt)->DTnext);
-	next->toDt(pdt);
-	if ((*pdt)->dt == DT_azeros && !(*pdt)->DTnext)
+	if (next->toBasetype()->ty == Tbit)
 	{
-	    (*pdt)->DTazeros *= len;
+	    Bits databits;
+
+	    databits.resize(len);
+	    if (next->defaultInit()->toInteger())
+		databits.set();
+	    pdt = dtnbytes(pdt, databits.allocdim * sizeof(databits.data[0]),
+		(char *)databits.data);
 	}
 	else
 	{
-	    for (i = 1; i < len; i++)
+	    next->toDt(pdt);
+	    if ((*pdt)->dt == DT_azeros && !(*pdt)->DTnext)
 	    {
-		pdt = next->toDt(pdt);
+		(*pdt)->DTazeros *= len;
+	    }
+	    else
+	    {
+		for (i = 1; i < len; i++)
+		{
+		    pdt = next->toDt(pdt);
+		}
 	    }
 	}
     }

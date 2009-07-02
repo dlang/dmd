@@ -234,6 +234,7 @@ MATCH TemplateDeclaration::matchWithInstance(TemplateInstance *ti,
     assert(dim >= ti->tiargs->dim);
 
     // Set up scope for parameters
+    assert(scope);
     ScopeDsymbol *paramsym = new ScopeDsymbol();
     paramsym->parent = scope->parent;
     Scope *paramscope = scope->push(paramsym);
@@ -1522,12 +1523,6 @@ TemplateDeclaration *TemplateInstance::findTemplateDeclaration(Scope *sc)
     else
 	assert(tempdecl->isTemplateDeclaration());
 
-    if (!tempdecl->scope)
-    {
-	error("forward reference to template");
-	return NULL;
-    }
-
     /* Since there can be multiple TemplateDeclaration's with the same
      * name, look for the best match.
      */
@@ -1548,6 +1543,11 @@ TemplateDeclaration *TemplateInstance::findTemplateDeclaration(Scope *sc)
 	    continue;
 
 	dedtypes.setDim(td->parameters->dim);
+	if (!td->scope)
+	{
+	    error("forward reference to template");
+	    return NULL;
+	}
 	m = td->matchWithInstance(this, &dedtypes, 0);
 	if (!m)			// no match at all
 	    continue;

@@ -2454,7 +2454,7 @@ Statement *Parser::parseStatement(int flags)
 	    while (1)
 	    {
 		Type *tb;
-		Identifier *ai;
+		Identifier *ai = NULL;
 		Type *at;
 		enum InOut inout;
 		Argument *a;
@@ -2466,6 +2466,8 @@ Statement *Parser::parseStatement(int flags)
 		}
 		tb = parseBasicType();
 		at = parseDeclarator(tb, &ai);
+		if (!ai)
+		    error("no identifier for declarator");
 		a = new Argument(inout, at, ai, NULL);
 		arguments->push(a);
 		if (token.value == TOKcomma)

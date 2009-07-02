@@ -285,6 +285,7 @@ Expression *createTypeInfoArray(Scope *sc, Expression *args[], int dim)
 	}
 
 	t = Type::typeinfo->type->arrayOf();
+	ai->type = t;
 	v = new VarDeclaration(0, t, id, ai);
 	m->members->push(v);
 	m->symtab->insert(v);

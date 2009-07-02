@@ -2570,7 +2570,7 @@ void TypeQualified::resolveHelper(Loc loc, Scope *sc,
 	if (v)
 	{
 	    // It's not a type, it's an expression
-	    if (v->isConst())
+	    if (v->isConst() && v->getExpInitializer())
 	    {
 		ExpInitializer *ei = v->getExpInitializer();
 		assert(ei);

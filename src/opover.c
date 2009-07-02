@@ -234,6 +234,7 @@ Expression *BinExp::op_overload(Scope *sc)
 	 * and see which is better.
 	 */
 	Expression *e;
+	FuncDeclaration *lastf;
 
 	args1.setDim(1);
 	args1.data[0] = (void*) e1;
@@ -244,6 +245,7 @@ Expression *BinExp::op_overload(Scope *sc)
 	memset(&m, 0, sizeof(m));
 	m.last = MATCHnomatch;
 	overloadResolveX(&m, fd, &args2);
+	lastf = m.lastf;
 	overloadResolveX(&m, fd_r, &args1);
 
 	if (m.count > 1)
@@ -265,10 +267,10 @@ Expression *BinExp::op_overload(Scope *sc)
 	    // Rewrite (e1 ++ e2) as e1.postinc()
 	    // Rewrite (e1 -- e2) as e1.postdec()
 	    e = build_overload(loc, sc, e1, NULL, id);
-	else if (m.lastf->ident == id)
+	else if (lastf && m.lastf == lastf || m.last == MATCHnomatch)
 	    // Rewrite (e1 op e2) as e1.opfunc(e2)
 	    e = build_overload(loc, sc, e1, e2, id);
-	else if (m.lastf->ident == id_r)
+	else
 	    // Rewrite (e1 op e2) as e2.opfunc_r(e1)
 	    e = build_overload(loc, sc, e2, e1, id_r);
 	return e;
@@ -293,6 +295,7 @@ Expression *BinExp::op_overload(Scope *sc)
 	     * and see which is better.
 	     */
 	    Expression *e;
+	    FuncDeclaration *lastf;
 
 	    if (!argsset)
 	    {	args1.setDim(1);
@@ -304,6 +307,7 @@ Expression *BinExp::op_overload(Scope *sc)
 	    memset(&m, 0, sizeof(m));
 	    m.last = MATCHnomatch;
 	    overloadResolveX(&m, fd_r, &args2);
+	    lastf = m.lastf;
 	    overloadResolveX(&m, fd, &args1);
 
 	    if (m.count > 1)
@@ -318,12 +322,13 @@ Expression *BinExp::op_overload(Scope *sc)
 	    {
 		m.lastf = m.anyf;
 	    }
-	    if (m.lastf->ident == id)
-		// Rewrite (e1 op e2) as e2.opfunc(e1)
-		e = build_overload(loc, sc, e2, e1, id);
-	    else if (m.lastf->ident == id_r)
+
+	    if (lastf && m.lastf == lastf || m.last == MATCHnomatch)
 		// Rewrite (e1 op e2) as e1.opfunc_r(e2)
 		e = build_overload(loc, sc, e1, e2, id_r);
+	    else
+		// Rewrite (e1 op e2) as e2.opfunc(e1)
+		e = build_overload(loc, sc, e2, e1, id);
 
 	    // When reversing operands of comparison operators,
 	    // need to reverse the sense of the op
@@ -388,9 +393,10 @@ FuncDeclaration *search_function(AggregateDeclaration *ad, Identifier *funcid)
 
     s = ad->search(funcid, 0);
     if (s)
-    {
-	s = s->toAlias();
-	fd = s->isFuncDeclaration();
+    {	Dsymbol *s2;
+
+	s2 = s->toAlias();
+	fd = s2->isFuncDeclaration();
 	if (fd && fd->type->ty == Tfunction)
 	    return fd;
 

@@ -816,10 +816,36 @@ void VarDeclaration::toObjFile()
 
 		dim = ((TypeSArray *)tb)->dim->toInteger();
 
-		// Duplicate Sdt 'dim-1' times, as we already have the first one
-		while (--dim > 0)
+		if (tb->next->toBasetype()->ty == Tbit)
+		{   integer_t value;
+
+		    value = ie->exp->toInteger();
+		    value = (value & 1) ? ~(integer_t)0 : (integer_t)0;
+		    if (value == 0)
+		    {
+			dtnzeros(&s->Sdt, ((unsigned)dim + 31) / 32 * 4);
+		    }
+		    else
+		    {
+			while (dim >= 32)
+			{
+			    dtnbytes(&s->Sdt, 4, (char *)&value);
+			    dim -= 32;
+			}
+			if (dim)
+			{
+			    value = (1 << dim) - 1;
+			    dtnbytes(&s->Sdt, 4, (char *)&value);
+			}
+		    }
+		}
+		else
 		{
-		    ie->exp->toDt(&s->Sdt);
+		    // Duplicate Sdt 'dim-1' times, as we already have the first one
+		    while (--dim > 0)
+		    {
+			ie->exp->toDt(&s->Sdt);
+		    }
 		}
 	    }
 	}

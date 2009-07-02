@@ -90,6 +90,7 @@ struct Dsymbol : Object
     void error(Loc loc, const char *format, ...);
     void error(const char *format, ...);
     Module *getModule();
+    Dsymbol *pastMixin();
     Dsymbol *toParent();
 
     int dyncast() { return DYNCAST_DSYMBOL; }	// kludge for template.isSymbol()

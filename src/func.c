@@ -1011,7 +1011,8 @@ AggregateDeclaration *FuncDeclaration::isMember2()
 {   //printf("test4\n");
 	    break;
 }
-	if (!s->parent || !s->parent->isTemplateInstance())
+	if (!s->parent ||
+	    (!s->parent->isTemplateInstance()))
 {   //printf("test5\n");
 	    break;
 }

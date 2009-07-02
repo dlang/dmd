@@ -35,7 +35,7 @@ Msgtable msgtable[] =
     { "This", "this" },
     { "ctor", "_ctor" },
     { "dtor", "_dtor" },
-    { "classInvariant", "_invariant" },
+    { "classInvariant", "__invariant" },
     { "unitTest", "_unitTest" },
     { "staticCtor", "_staticCtor" },
     { "staticDtor", "_staticDtor" },

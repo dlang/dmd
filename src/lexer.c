@@ -1525,7 +1525,9 @@ done:
 
 	case FLAGS_decimal:
 	    if (n & 0x8000000000000000LL)
+	    {	    error("signed integer overflow");
 		    result = TOKuns64v;
+	    }
 	    else if (n & 0xFFFFFFFF80000000LL)
 		    result = TOKint64v;
 	    else
@@ -1540,8 +1542,16 @@ done:
 		    result = TOKuns32v;
 	    break;
 
-	case FLAGS_long:
 	case FLAGS_decimal | FLAGS_long:
+	    if (n & 0x8000000000000000LL)
+	    {	    error("signed integer overflow");
+		    result = TOKuns64v;
+	    }
+	    else
+		    result = TOKint64v;
+	    break;
+
+	case FLAGS_long:
 	    if (n & 0x8000000000000000LL)
 		    result = TOKuns64v;
 	    else

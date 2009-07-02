@@ -48,14 +48,18 @@ FuncDeclaration *hasThis(Scope *sc)
 {   FuncDeclaration *fd;
     FuncDeclaration *fdthis;
 
+    //printf("hasThis()\n");
     fdthis = sc->parent->isFuncDeclaration();
+    //printf("fdthis = %p, '%s'\n", fdthis, fdthis ? fdthis->toChars() : "");
 
     // Go upwards until we find the enclosing member function
     fd = fdthis;
     while (1)
     {
 	if (!fd)
+	{   printf("test1\n");
 	    goto Lno;
+	}
 	if (!fd->isNested())
 	    break;
 
@@ -73,7 +77,9 @@ FuncDeclaration *hasThis(Scope *sc)
     }
 
     if (!fd->isThis())
+    {   printf("test2 '%s'\n", fd->toChars());
 	goto Lno;
+    }
 
     assert(fd->vthis);
     return fd;
@@ -621,7 +627,7 @@ integer_t IntegerExp::toInteger()
     {
 	switch (t->ty)
 	{
-	    case Tbit:		value &= 1;			break;
+	    case Tbit:		value = (value != 0);		break;
 	    case Tint8:		value = (d_int8)  value;	break;
 	    case Tchar:
 	    case Tuns8:		value = (d_uns8)  value;	break;
@@ -2797,7 +2803,7 @@ if (arguments && arguments->dim)
 	ClassDeclaration *cd = NULL;
 
 	if (sc->func)
-	    cd = sc->func->parent->isClassDeclaration();
+	    cd = sc->func->toParent()->isClassDeclaration();
 	if (!cd || !cd->baseClass || !sc->func->isCtorDeclaration())
 	{
 	    error("super class constructor call must be in a constructor");
@@ -2832,10 +2838,12 @@ if (arguments && arguments->dim)
 	ClassDeclaration *cd = NULL;
 
 	if (sc->func)
-	    cd = sc->func->parent->isClassDeclaration();
+	    cd = sc->func->toParent()->isClassDeclaration();
 	if (!cd || !sc->func->isCtorDeclaration())
 	{
 	    error("class constructor call must be in a constructor");
+	    type = Type::terror;
+	    return this;
 	}
 	else
 	{
@@ -4519,7 +4527,7 @@ Expression *CatExp::semantic(Scope *sc)
 #endif
 	if (e1->op == TOKstring && e2->op == TOKstring)
 	    e = optimize(WANTvalue);
-	else if (e1->type-equals(e2->type) &&
+	else if (e1->type->equals(e2->type) &&
 		(e1->type->toBasetype()->ty == Tarray ||
 		 e1->type->toBasetype()->ty == Tsarray))
 	{
@@ -4978,6 +4986,11 @@ Expression *CmpExp::semantic(Scope *sc)
     {
 	if (!t1->next->equals(t2->next))
 	    error("array comparison type mismatch, %s vs %s", t1->next->toChars(), t2->next->toChars());
+	e = this;
+    }
+    else if (t1->ty == Tstruct || t2->ty == Tstruct)
+    {
+	error("need member function opCmp() for struct %s to compare", t1->toChars());
 	e = this;
     }
     else

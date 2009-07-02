@@ -172,6 +172,8 @@ char *utf_decodeWchar(unsigned short *s, unsigned len, unsigned *pidx, dchar_t *
 	{   msg = "illegal UTF-16 value";
 	    goto Lerr;
 	}
+	else
+	    i++;
     }
     else
     {
