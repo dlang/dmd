@@ -531,6 +531,7 @@ struct ThrowStatement : Statement
     ThrowStatement(Loc loc, Expression *exp);
     Statement *syntaxCopy();
     Statement *semantic(Scope *sc);
+    void toCBuffer(OutBuffer *buf);
     int fallOffEnd();
 
     Statement *inlineScan(InlineScanState *iss);

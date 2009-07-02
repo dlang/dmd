@@ -1,6 +1,6 @@
 
 
-// Copyright (c) 1999-2004 by Digital Mars
+// Copyright (c) 1999-2005 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // www.digitalmars.com
@@ -37,6 +37,7 @@
 #include "cgcv.h"
 #include "outbuf.h"
 #include "irstate.h"
+
 
 /*******************************************
  * Get a canonicalized form of the TypeInfo for use with the internal
@@ -203,16 +204,29 @@ void TypeInfoStructDeclaration::toDt(dt_t **pdt)
 	tftohash = (TypeFunction *)tftohash->semantic(0, &sc);
     }
 
-    TypeFunction *tfeq;
+    TypeFunction *tfeqptr;
     {
 	Scope sc;
 	Array *arguments = new Array;
 	Argument *arg = new Argument(In, tc->pointerTo(), NULL, NULL);
 
 	arguments->push(arg);
+	tfeqptr = new TypeFunction(arguments, Type::tint32, 0, LINKd);
+	tfeqptr = (TypeFunction *)tfeqptr->semantic(0, &sc);
+    }
+
+#if 0
+    TypeFunction *tfeq;
+    {
+	Scope sc;
+	Array *arguments = new Array;
+	Argument *arg = new Argument(In, tc, NULL, NULL);
+
+	arguments->push(arg);
 	tfeq = new TypeFunction(arguments, Type::tint32, 0, LINKd);
 	tfeq = (TypeFunction *)tfeq->semantic(0, &sc);
     }
+#endif
 
     fdx = search_function(sd, Id::tohash);
     if (fdx)
@@ -226,27 +240,20 @@ void TypeInfoStructDeclaration::toDt(dt_t **pdt)
 	dtdword(pdt, 0);
 
     fdx = search_function(sd, Id::eq);
-    if (fdx)
-    {	fd = fdx->overloadExactMatch(tfeq);
-	if (fd)
-	    dtxoff(pdt, fd->toSymbol(), 0, TYnptr);
-	else
-	    fdx->error("must be declared as extern (D) int %s(%s*)", fdx->toChars(), sd->toChars());
-    }
-    else
-	dtdword(pdt, 0);
-
-    fdx = search_function(sd, Id::cmp);
-    if (fdx)
+    for (int i = 0; i < 2; i++)
     {
-	fd = fdx->overloadExactMatch(tfeq);
-	if (fd)
-	    dtxoff(pdt, fd->toSymbol(), 0, TYnptr);
+	if (fdx)
+	{   fd = fdx->overloadExactMatch(tfeqptr);
+	    if (fd)
+		dtxoff(pdt, fd->toSymbol(), 0, TYnptr);
+	    else
+		fdx->error("must be declared as extern (D) int %s(%s*)", fdx->toChars(), sd->toChars());
+	}
 	else
-	    fdx->error("must be declared as extern (D) int %s(%s*)", fdx->toChars(), sd->toChars());
+	    dtdword(pdt, 0);
+
+	fdx = search_function(sd, Id::cmp);
     }
-    else
-	dtdword(pdt, 0);
 }
 
 void TypeInfoClassDeclaration::toDt(dt_t **pdt)

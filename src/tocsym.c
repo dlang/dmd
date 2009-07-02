@@ -22,6 +22,7 @@
 #include "init.h"
 #include "attrib.h"
 #include "lexer.h"
+#include "dsymbol.h"
 
 #include <mem.h>
 

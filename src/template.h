@@ -123,6 +123,8 @@ struct TemplateValueParameter : TemplateParameter
     Expression *specValue;
     Expression *defaultValue;
 
+    static Expression *edummy;
+
     TemplateValueParameter(Loc loc, Identifier *ident, Type *valType, Expression *specValue, Expression *defaultValue);
 
     TemplateValueParameter *isTemplateValueParameter();
@@ -139,12 +141,17 @@ struct TemplateValueParameter : TemplateParameter
 struct TemplateAliasParameter : TemplateParameter
 {
     /* Syntax:
-     *	ident = defaultAlias
+     *	ident : specAlias = defaultAlias
      */
+
+    Type *specAliasT;
+    Dsymbol *specAlias;
 
     Type *defaultAlias;
 
-    TemplateAliasParameter(Loc loc, Identifier *ident, Type *defaultAlias);
+    static Dsymbol *sdummy;
+
+    TemplateAliasParameter(Loc loc, Identifier *ident, Type *specAliasT, Type *defaultAlias);
 
     TemplateAliasParameter *isTemplateAliasParameter();
     TemplateParameter *syntaxCopy();

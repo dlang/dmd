@@ -1,5 +1,5 @@
 
-// Copyright (c) 1999-2004 by Digital Mars
+// Copyright (c) 1999-2005 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // www.digitalmars.com
@@ -13,9 +13,11 @@
 #include "root.h"
 
 #include "mars.h"
+#include "init.h"
 #include "identifier.h"
 #include "scope.h"
 #include "attrib.h"
+#include "dsymbol.h"
 #include "declaration.h"
 #include "aggregate.h"
 #include "module.h"

@@ -1,5 +1,5 @@
 
-// Copyright (c) 1999-2004 by Digital Mars
+// Copyright (c) 1999-2005 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // www.digitalmars.com
@@ -10,16 +10,16 @@
 #include <stdio.h>
 #include <assert.h>
 
-#include "declaration.h"
 #include "init.h"
+#include "declaration.h"
 #include "attrib.h"
-#include "template.h"
 #include "mtype.h"
+#include "template.h"
 #include "scope.h"
 #include "aggregate.h"
 #include "module.h"
 #include "id.h"
-
+#include "expression.h"
 
 /********************************* Declaration ****************************/
 
@@ -104,20 +104,25 @@ Dsymbol *TypedefDeclaration::syntaxCopy(Dsymbol *s)
 
 void TypedefDeclaration::semantic(Scope *sc)
 {
-    //printf("TypedefDeclaration::semantic()\n");
-    if (!sem)
+    //printf("TypedefDeclaration::semantic(%s) sem = %d\n", toChars(), sem);
+    if (sem == 0)
     {	sem = 1;
 	basetype = basetype->semantic(loc, sc);
+	sem = 2;
 	if (sc->parent->isFuncDeclaration() && init)
 	    semantic2(sc);
+    }
+    else if (sem == 1)
+    {
+	error("circular definition");
     }
 }
 
 void TypedefDeclaration::semantic2(Scope *sc)
 {
     //printf("TypedefDeclaration::semantic2()\n");
-    if (sem == 1)
-    {	sem = 2;
+    if (sem == 2)
+    {	sem = 3;
 	if (init)
 	{
 	    init = init->semantic(sc, basetype);
@@ -389,6 +394,7 @@ void VarDeclaration::semantic(Scope *sc)
     //printf("VarDeclaration::semantic('%s', parent = '%s')\n", toChars(), sc->parent->toChars());
 
     type = type->semantic(loc, sc);
+    type->checkDeprecated(loc, sc);
     linkage = sc->linkage;
     this->parent = sc->parent;
     //printf("this = %p, parent = %p, '%s'\n", this, parent, parent->toChars());
@@ -542,6 +548,7 @@ void VarDeclaration::semantic(Scope *sc)
 	    }
 	    ie->exp = new AssignExp(loc, e1, ie->exp);
 	    ie->exp = ie->exp->semantic(sc);
+	    ie->exp->optimize(WANTvalue);
 	}
 	else
 	{

@@ -322,6 +322,7 @@ Statement *CompoundStatement::semantic(Scope *sc)
 			}
 			body = new CompoundStatement(0, a);
 			s = new TryFinallyStatement(0, body, finalbody);
+			s = s->semantic(sc);
 			statements->data[i + 1] = s;
 			statements->setDim(i + 2);
 		    }
@@ -1300,19 +1301,24 @@ Statement *SwitchStatement::semantic(Scope *sc)
 	}
 
 	// Generate runtime error if the default is hit
-	if (global.params.useSwitchError)
-	{
-	    Array *a = new Array();
-	    CompoundStatement *cs;
+	Array *a = new Array();
+	CompoundStatement *cs;
+	Statement *s;
 
-	    a->reserve(4);
-	    a->push(body);
-	    a->push(new BreakStatement(loc, NULL));
-	    sc->sw->sdefault = new DefaultStatement(loc, new SwitchErrorStatement(loc));
-	    a->push(sc->sw->sdefault);
-	    cs = new CompoundStatement(loc, a);
-	    body = cs;
+	if (global.params.useSwitchError)
+	    s = new SwitchErrorStatement(loc);
+	else
+	{   Expression *e = new HaltExp(loc);
+	    s = new ExpStatement(loc, e);
 	}
+
+	a->reserve(4);
+	a->push(body);
+	a->push(new BreakStatement(loc, NULL));
+	sc->sw->sdefault = new DefaultStatement(loc, s);
+	a->push(sc->sw->sdefault);
+	cs = new CompoundStatement(loc, a);
+	body = cs;
     }
 
     sc->pop();
@@ -1694,6 +1700,14 @@ Statement *ReturnStatement::semantic(Scope *sc)
 	    return new CompoundStatement(loc, s, gs);
 	}
 	return gs;
+    }
+
+    if (exp && tbret->ty == Tvoid)
+    {   Statement *s;
+
+	s = new ExpStatement(loc, exp);
+	exp = NULL;
+	return new CompoundStatement(loc, s, this);
     }
 
     return this;
@@ -2083,7 +2097,8 @@ int TryCatchStatement::fallOffEnd()
     {   Catch *c;
 
 	c = (Catch *)catches->data[i];
-	result |= c->handler->fallOffEnd();
+	if (c->handler)
+	    result |= c->handler->fallOffEnd();
     }
     return result;
 }
@@ -2104,7 +2119,8 @@ Catch *Catch::syntaxCopy()
 {
     Catch *c = new Catch(loc,
 	(type ? type->syntaxCopy() : NULL),
-	ident, handler->syntaxCopy());
+	ident,
+	(handler ? handler->syntaxCopy() : NULL));
     return c;
 }
 
@@ -2174,7 +2190,11 @@ Statement *TryFinallyStatement::semantic(Scope *sc)
 
 void TryFinallyStatement::toCBuffer(OutBuffer *buf)
 {
-    buf->printf("TryFinallyStatement::toCBuffer()");
+    buf->printf("try\n{\n");
+    body->toCBuffer(buf);
+    buf->printf("}\nfinally\n{\n");
+    finalbody->toCBuffer(buf);
+    buf->writeByte('}');
     buf->writenl();
 }
 
@@ -2231,6 +2251,14 @@ Statement *ThrowStatement::semantic(Scope *sc)
 int ThrowStatement::fallOffEnd()
 {
     return FALSE;
+}
+
+void ThrowStatement::toCBuffer(OutBuffer *buf)
+{
+    buf->printf("throw ");
+    exp->toCBuffer(buf);
+    buf->writeByte(';');
+    buf->writenl();
 }
 
 /******************************** VolatileStatement **************************/

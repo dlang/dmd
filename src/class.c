@@ -480,7 +480,7 @@ int ClassDeclaration::isBaseOf(ClassDeclaration *cd, int *poffset)
 
 	/* cd->baseClass might not be set if cd is forward referenced.
 	 */
-	if (!cd->baseClass && cd->baseclasses.dim)
+	if (!cd->baseClass && cd->baseclasses.dim && !cd->isInterfaceDeclaration())
 	{
 	    cd->error("base class is forward referenced by %s", toChars());
 	}

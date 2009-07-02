@@ -16,8 +16,8 @@
 #include "mem.h"
 #include "stringtable.h"
 
-#include "template.h"
 #include "mtype.h"
+#include "template.h"
 #include "init.h"
 #include "expression.h"
 #include "scope.h"
@@ -268,7 +268,7 @@ MATCH TemplateDeclaration::matchWithInstance(TemplateInstance *ti,
 		goto Lnomatch;
 	}
 #if 0
-	printf("\targument [%d] is %s\n", i, oarg->toChars());
+	printf("\targument [%d] is %s\n", i, oarg ? oarg->toChars() : "null");
 	TemplateTypeParameter *ttp = tp->isTemplateTypeParameter();
 	if (ttp)
 	    printf("\tparameter[%d] is %s : %s\n", i, tp->ident->toChars(), ttp->specType ? ttp->specType->toChars() : "");
@@ -276,7 +276,7 @@ MATCH TemplateDeclaration::matchWithInstance(TemplateInstance *ti,
 
 	m2 = tp->matchArg(paramscope, oarg, i, parameters, dedtypes, &sparam);
 	if (m2 == MATCHnomatch)
-	{   //printf("\tmatchArg() failed\n");
+	{   //printf("\tmatchArg() for parameter %i failed\n", i);
 	    goto Lnomatch;
 	}
 
@@ -289,12 +289,15 @@ MATCH TemplateDeclaration::matchWithInstance(TemplateInstance *ti,
 	    goto Lnomatch;
     }
 
-    // Any parameter left without a type gets the type of its corresponding arg
-    for (int i = 0; i < dim; i++)
+    if (!flag)
     {
-	if (!dedtypes->data[i])
-	{   assert(i < ti->tiargs->dim);
-	    dedtypes->data[i] = ti->tiargs->data[i];
+	// Any parameter left without a type gets the type of its corresponding arg
+	for (int i = 0; i < dim; i++)
+	{
+	    if (!dedtypes->data[i])
+	    {   assert(i < ti->tiargs->dim);
+		dedtypes->data[i] = ti->tiargs->data[i];
+	    }
 	}
     }
 
@@ -385,12 +388,12 @@ int TemplateDeclaration::leastAsSpecialized(TemplateDeclaration *td2)
     if (td2->matchWithInstance(&ti, &dedtypes, 1))
     {
 #if LOG_LEASTAS
-	printf("  is least as specialized\n");
+	printf("  matches, so is least as specialized\n");
 #endif
 	return 1;
     }
 #if LOG_LEASTAS
-    printf("  is not as specialized\n");
+    printf("  doesn't match, so is not as specialized\n");
 #endif
     return 0;
 }
@@ -843,11 +846,16 @@ Object *TemplateTypeParameter::defaultArg(Scope *sc)
 
 // alias-parameter
 
-TemplateAliasParameter::TemplateAliasParameter(Loc loc, Identifier *ident, Type *defaultAlias)
+Dsymbol *TemplateAliasParameter::sdummy = NULL;
+
+TemplateAliasParameter::TemplateAliasParameter(Loc loc, Identifier *ident, Type *specAliasT, Type *defaultAlias)
     : TemplateParameter(loc, ident)
 {
     this->ident = ident;
+    this->specAliasT = specAliasT;
     this->defaultAlias = defaultAlias;
+
+    this->specAlias = NULL;
 }
 
 TemplateAliasParameter *TemplateAliasParameter::isTemplateAliasParameter()
@@ -857,7 +865,9 @@ TemplateAliasParameter *TemplateAliasParameter::isTemplateAliasParameter()
 
 TemplateParameter *TemplateAliasParameter::syntaxCopy()
 {
-    TemplateAliasParameter *tp = new TemplateAliasParameter(loc, ident, defaultAlias);
+    TemplateAliasParameter *tp = new TemplateAliasParameter(loc, ident, specAliasT, defaultAlias);
+    if (tp->specAliasT)
+	tp->specAliasT = specAliasT->syntaxCopy();
     if (defaultAlias)
 	tp->defaultAlias = defaultAlias->syntaxCopy();
     return tp;
@@ -870,6 +880,12 @@ void TemplateAliasParameter::semantic(Scope *sc)
     if (!sc->insert(sparam))
 	error(loc, "parameter '%s' multiply defined", ident->toChars());
 
+    if (specAliasT)
+    {
+	specAlias = specAliasT->toDsymbol(sc);
+	if (!specAlias)
+	    error("%s is not a symbol", specAliasT->toChars());
+    }
 #if 0 // Don't do semantic() until instantiation
     if (defaultAlias)
 	defaultAlias = defaultAlias->semantic(loc, sc);
@@ -882,6 +898,9 @@ int TemplateAliasParameter::overloadMatch(TemplateParameter *tp)
 
     if (tap)
     {
+	if (specAlias != tap->specAlias)
+	    goto Lnomatch;
+
 	return 1;			// match
     }
 
@@ -917,6 +936,20 @@ MATCH TemplateAliasParameter::matchArg(Scope *sc,
     if (!sa)
 	goto Lnomatch;
 
+    if (specAlias)
+    {
+	if (!sa || sa == sdummy)
+	    goto Lnomatch;
+	if (sa != specAlias)
+	    goto Lnomatch;
+    }
+    else if (dedtypes->data[i])
+    {   // Must match already deduced symbol
+	Dsymbol *s = (Dsymbol *)dedtypes->data[i];
+
+	if (!sa || s != sa)
+	    goto Lnomatch;
+    }
     dedtypes->data[i] = sa;
 
     *psparam = new AliasDeclaration(loc, ident, sa);
@@ -942,6 +975,11 @@ void TemplateAliasParameter::toCBuffer(OutBuffer *buf)
 {
     buf->writestring("alias ");
     buf->writestring(ident->toChars());
+    if (specAliasT)
+    {
+	buf->writestring(" : ");
+	specAliasT->toCBuffer(buf, NULL);
+    }
     if (defaultAlias)
     {
 	buf->writestring(" = ");
@@ -951,27 +989,37 @@ void TemplateAliasParameter::toCBuffer(OutBuffer *buf)
 
 
 void *TemplateAliasParameter::dummyArg()
-{
-    return NULL;		// not sure what to put here
+{   Dsymbol *s;
+
+    s = specAlias;
+    if (!s)
+    {
+	if (!sdummy)
+	    sdummy = new Dsymbol();
+	s = sdummy;
+    }
+    return (void*)s;
 }
 
 
 Object *TemplateAliasParameter::defaultArg(Scope *sc)
 {
-    Type *t;
+    Dsymbol *s = NULL;
 
-    t = defaultAlias;
-    if (t)
+    if (defaultAlias)
     {
-	t = t->syntaxCopy();
-	t = t->semantic(loc, sc);
+	s = defaultAlias->toDsymbol(sc);
+	if (!s)
+	    error("%s is not a symbol", defaultAlias->toChars());
     }
-    return t;
+    return s;
 }
 
 /* ======================== TemplateValueParameter ========================== */
 
 // value-parameter
+
+Expression *TemplateValueParameter::edummy = NULL;
 
 TemplateValueParameter::TemplateValueParameter(Loc loc, Identifier *ident, Type *valType,
 	Expression *specValue, Expression *defaultValue)
@@ -1070,7 +1118,7 @@ MATCH TemplateValueParameter::matchArg(Scope *sc,
 
     if (specValue)
     {
-	if (!ei)
+	if (!ei || ei == edummy)
 	    goto Lnomatch;
 
 	Expression *e = specValue;
@@ -1130,8 +1178,17 @@ void TemplateValueParameter::toCBuffer(OutBuffer *buf)
 
 
 void *TemplateValueParameter::dummyArg()
-{
-    return (void *)specValue;
+{   Expression *e;
+
+    e = specValue;
+    if (!e)
+    {
+	// Create a dummy value
+	if (!edummy)
+	    edummy = new IntegerExp(0);
+	e = edummy;
+    }
+    return (void *)e;
 }
 
 
@@ -1594,6 +1651,7 @@ TemplateDeclaration *TemplateInstance::findTemplateDeclaration(Scope *sc)
 	// Disambiguate by picking the most specialized TemplateDeclaration
 	int c1 = td->leastAsSpecialized(td_best);
 	int c2 = td_best->leastAsSpecialized(td);
+	//printf("c1 = %d, c2 = %d\n", c1, c2);
 
 	if (c1 && !c2)
 	    goto Ltd;
@@ -1648,6 +1706,7 @@ Identifier *TemplateInstance::genIdent()
 {   OutBuffer buf;
     char *id;
 
+    //printf("TemplateInstance::genIdent('%s')\n", tempdecl->ident->toChars());
     buf.writestring(tempdecl->ident->toChars());
     buf.writeByte('_');
     for (int i = 0; i < tiargs->dim; i++)
@@ -1688,8 +1747,13 @@ Identifier *TemplateInstance::genIdent()
 	    {
 		error("cannot use local '%s' as template parameter", d->toChars());
 	    }
-	    char *p = sa->mangle();
-	    buf.printf("__%u_%s", strlen(p) + 1, p);
+	    if (d && !d->type->deco)
+		error("forward reference of %s", d->toChars());
+	    else
+	    {
+		char *p = sa->mangle();
+		buf.printf("__%u_%s", strlen(p) + 1, p);
+	    }
 	}
 	else
 	    assert(0);

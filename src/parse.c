@@ -16,6 +16,7 @@
 #include "init.h"
 #include "attrib.h"
 #include "debcond.h"
+#include "mtype.h"
 #include "template.h"
 #include "staticassert.h"
 #include "expression.h"
@@ -27,7 +28,6 @@
 #include "aggregate.h"
 #include "enum.h"
 #include "id.h"
-#include "mtype.h"
 #include "version.h"
 
 // How multiple declarations are parsed.
@@ -1130,13 +1130,19 @@ Array *Parser::parseTemplateParameterList()
 		}
 		tp_ident = token.ident;
 		nextToken();
-		if (token.value == TOKassign)	// : Type
+		if (token.value == TOKcolon)	// : Type
+		{
+		    nextToken();
+		    tp_spectype = parseBasicType();
+		    tp_spectype = parseDeclarator(tp_spectype, NULL);
+		}
+		if (token.value == TOKassign)	// = Type
 		{
 		    nextToken();
 		    tp_defaulttype = parseBasicType();
 		    tp_defaulttype = parseDeclarator(tp_defaulttype, NULL);
 		}
-		tp = new TemplateAliasParameter(loc, tp_ident, tp_defaulttype);
+		tp = new TemplateAliasParameter(loc, tp_ident, tp_spectype, tp_defaulttype);
 	    }
 	    else if (t->value == TOKcolon || t->value == TOKassign ||
 		     t->value == TOKcomma || t->value == TOKrparen)
@@ -1153,7 +1159,7 @@ Array *Parser::parseTemplateParameterList()
 		    tp_spectype = parseBasicType();
 		    tp_spectype = parseDeclarator(tp_spectype, NULL);
 		}
-		if (token.value == TOKassign)	// : Type
+		if (token.value == TOKassign)	// = Type
 		{
 		    nextToken();
 		    tp_defaulttype = parseBasicType();

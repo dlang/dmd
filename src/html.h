@@ -27,7 +27,9 @@ struct Html
     void extractCode(OutBuffer *buf);
     void skipTag();
     void skipString();
+    unsigned char *skipWhite(unsigned char *q);
     void scanComment();
+    int isCommentStart();
     int charEntity();
     static int namedEntity(unsigned char *p, int length);
 };

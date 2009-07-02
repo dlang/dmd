@@ -752,7 +752,8 @@ Statement *TryCatchStatement::inlineScan(InlineScanState *iss)
 	for (int i = 0; i < catches->dim; i++)
 	{   Catch *c = (Catch *)catches->data[i];
 
-	    c->handler = c->handler->inlineScan(iss);
+	    if (c->handler)
+		c->handler = c->handler->inlineScan(iss);
 	}
     }
     return this;

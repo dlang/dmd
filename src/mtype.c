@@ -1,5 +1,5 @@
 
-// Copyright (c) 1999-2004 by Digital Mars
+// Copyright (c) 1999-2005 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // www.digitalmars.com
@@ -171,7 +171,7 @@ void Type::init()
 	basic[basetab[i]] = new TypeBasic(basetab[i]);
     basic[Terror] = basic[Tint32];
 
-    if (global.params.isAMD64)
+    if (global.params.isX86_64)
     {
 	PTRSIZE = 8;
 	if (global.params.isLinux)
@@ -408,6 +408,24 @@ int Type::checkBoolean()
 {
     return isscalar();
 }
+
+/*********************************
+ * Check type to see if it is based on a deprecated symbol.
+ */
+
+void Type::checkDeprecated(Loc loc, Scope *sc)
+{
+    Type *t;
+    Dsymbol *s;
+
+    for (t = this; t; t = t->next)
+    {
+	s = t->toDsymbol(sc);
+	if (s)
+	    s->checkDeprecated(loc, sc);
+    }
+}
+
 
 Expression *Type::defaultInit()
 {
@@ -1246,9 +1264,24 @@ int TypeBasic::implicitConvTo(Type *to)
 	return MATCHnomatch;
     if (to->ty == Tbit)
 	return MATCHnomatch;
-    // Disallow implicit conversion of floating point to integer
-    if (flags & TFLAGSfloating && ((TypeBasic *)to)->flags & TFLAGSintegral)
-	return MATCHnomatch;
+    TypeBasic *tob = (TypeBasic *)to;
+    if (flags & TFLAGSfloating)
+    {
+	// Disallow implicit conversion of floating point to integer
+	if (tob->flags & TFLAGSintegral)
+	    return MATCHnomatch;
+
+	assert(tob->flags & TFLAGSfloating);
+
+	// Disallow implicit conversion from complex to non-complex
+	if (flags & TFLAGScomplex && !(tob->flags & TFLAGScomplex))
+	    return MATCHnomatch;
+
+	// Disallow implicit conversion to-from real and imaginary
+	if ((flags & (TFLAGSreal | TFLAGSimaginary)) !=
+	    (tob->flags & (TFLAGSreal | TFLAGSimaginary)))
+	    return MATCHnomatch;
+    }
     return MATCHconvert;
 }
 
@@ -2827,7 +2860,16 @@ Type *TypeIdentifier::semantic(Loc loc, Scope *sc)
 
     //printf("TypeIdentifier::semantic(%s)\n", toChars());
     resolve(loc, sc, &e, &t, &s);
-    if (!t)
+    if (t)
+    {
+	if (t->ty == Ttypedef)
+	{   TypeTypedef *tt = (TypeTypedef *)t;
+
+	    if (tt->sym->sem == 1)
+		error(loc, "circular reference of typedef %s", tt->toChars());
+	}
+    }
+    else
     {
 #ifdef DEBUG
 	printf("1: ");
@@ -3219,6 +3261,7 @@ char *TypeTypedef::toChars()
 
 Type *TypeTypedef::semantic(Loc loc, Scope *sc)
 {
+    //printf("TypeTypedef::semantic(%s), sem = %d\n", toChars(), sym->sem);
     sym->semantic(sc);
     return merge();
 }

@@ -13,6 +13,7 @@
 #include "root.h"
 #include "identifier.h"
 #include "mars.h"
+#include "lexer.h"
 
 Identifier::Identifier(const char *string, int value)
 {

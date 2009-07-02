@@ -1,5 +1,5 @@
 
-// Copyright (c) 1999-2004 by Digital Mars
+// Copyright (c) 1999-2005 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // www.digitalmars.com
@@ -10,10 +10,13 @@
 #include <stdio.h>
 #include <assert.h>
 
+#include "id.h"
+#include "init.h"
 #include "declaration.h"
 #include "identifier.h"
 #include "expression.h"
 #include "debcond.h"
+#include "module.h"
 
 int findCondition(Array *ids, Identifier *ident)
 {
@@ -112,7 +115,7 @@ void VersionCondition::checkPredefined(char *ident)
 {
     static char* reserved[] =
     {
-	"DigitalMars", "X86", "AMD64",
+	"DigitalMars", "X86", "X86_64",
 	"Windows", "Win32", "Win64",
 	"linux",
 	"LittleEndian", "BigEndian",

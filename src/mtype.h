@@ -192,6 +192,7 @@ struct Type : Object
     virtual int isauto();
     virtual int isString();
     virtual int checkBoolean();	// if can be converted to boolean value
+    void checkDeprecated(Loc loc, Scope *sc);
     Type *pointerTo();
     Type *referenceTo();
     Type *arrayOf();

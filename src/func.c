@@ -11,8 +11,8 @@
 #include <assert.h>
 
 #include "mars.h"
-#include "declaration.h"
 #include "init.h"
+#include "declaration.h"
 #include "attrib.h"
 #include "expression.h"
 #include "scope.h"
@@ -636,7 +636,8 @@ void FuncDeclaration::semantic3(Scope *sc)
 	    else if (type->next->ty != Tvoid && !inlineAsm)
 	    {
 		if (offend)
-		{
+		{   Expression *e;
+
 		    if (global.params.warnings)
 		    {	printf("warning - ");
 			error("no return at end of function");
@@ -647,11 +648,13 @@ void FuncDeclaration::semantic3(Scope *sc)
 		    {   /* Add an assert(0); where the missing return
 			 * should be.
 			 */
-			Expression *e = new AssertExp(endloc, new IntegerExp(0, 0, Type::tint32));
-			e = e->semantic(sc2);
-			Statement *s = new ExpStatement(0, e);
-			fbody = new CompoundStatement(0, fbody, s);
+			e = new AssertExp(endloc, new IntegerExp(0, 0, Type::tint32));
 		    }
+		    else
+			e = new HaltExp(endloc);
+		    e = e->semantic(sc2);
+		    Statement *s = new ExpStatement(0, e);
+		    fbody = new CompoundStatement(0, fbody, s);
 		}
 	    }
 	}

@@ -18,6 +18,7 @@
 #include <errno.h>
 #include <wchar.h>
 
+#include "mars.h"
 #include "html.h"
 
 #include <assert.h>

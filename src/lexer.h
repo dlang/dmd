@@ -102,6 +102,7 @@ enum TOK
 	// Leaf operators
 	TOKidentifier,	TOKstring,
 	TOKthis,	TOKsuper,
+	TOKhalt,
 
 	// Basic types
 	TOKvoid,

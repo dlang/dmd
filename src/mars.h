@@ -25,7 +25,7 @@ struct Param
     char symdebug;	// insert debug symbolic information
     char optimize;	// run optimizer
     char cpu;		// target CPU
-    char isAMD64;	// generate AMD64 bit code
+    char isX86_64;	// generate X86_64 bit code
     char isLinux;	// generate code for linux
     char scheduler;	// which scheduler to use
     char useDeprecated;	// allow use of deprecated features

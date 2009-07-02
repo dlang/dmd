@@ -59,6 +59,7 @@ Msgtable msgtable[] =
     { "delegate" },
     { "line" },
     { "empty", "" },
+    { "p" },
 
     { "TypeInfo" },
     { "TypeInfo_Class" },

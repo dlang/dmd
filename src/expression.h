@@ -408,6 +408,15 @@ struct TypeidExp : Expression
     void toCBuffer(OutBuffer *buf);
 };
 
+struct HaltExp : Expression
+{
+    HaltExp(Loc loc);
+    Expression *semantic(Scope *sc);
+    void toCBuffer(OutBuffer *buf);
+
+    elem *toElem(IRState *irs);
+};
+
 /****************************************************************/
 
 struct UnaExp : Expression

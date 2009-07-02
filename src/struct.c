@@ -1,5 +1,5 @@
 
-// Copyright (c) 1999-2004 by Digital Mars
+// Copyright (c) 1999-2005 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // www.digitalmars.com
@@ -15,6 +15,9 @@
 #include "scope.h"
 #include "mtype.h"
 #include "declaration.h"
+#include "module.h"
+#include "id.h"
+#include "statement.h"
 
 /********************************* AggregateDeclaration ****************************/
 
@@ -147,6 +150,8 @@ void AggregateDeclaration::addField(Scope *sc, VarDeclaration *v)
     unsigned memalignsize;	// size of member for alignment purposes
     unsigned xalign;		// alignment boundaries
 
+    //printf("AggregateDeclaration::addField('%s')\n", v->toChars());
+
     // Check for forward referenced types which will fail the size() call
     Type *t = v->type->toBasetype();
     if (t->ty == Tstruct /*&& isStructDeclaration()*/)
@@ -167,8 +172,11 @@ void AggregateDeclaration::addField(Scope *sc, VarDeclaration *v)
     sc->offset += memsize;
     if (sc->offset > structsize)
 	structsize = sc->offset;
+    if (sc->structalign < memalignsize)
+	memalignsize = sc->structalign;
     if (alignsize < memalignsize)
 	alignsize = memalignsize;
+    //printf("\talignsize = %d\n", alignsize);
 
     v->storage_class |= STCfield;
     //printf(" addField '%s' to '%s' at offset %d\n", v->toChars(), toChars(), v->offset);
@@ -253,6 +261,63 @@ void StructDeclaration::semantic(Scope *sc)
 	if (sizeok == 2)
 	    break;
     }
+
+    /* The TypeInfo_Struct is expecting an opEquals and opCmp with
+     * a parameter that is a pointer to the struct. But if there
+     * isn't one, but is an opEquals or opCmp with a value, write
+     * another that is a shell around the value:
+     *	int opCmp(struct *p) { return opCmp(*p); }
+     */
+
+    TypeFunction *tfeqptr;
+    {
+	Array *arguments = new Array;
+	Argument *arg = new Argument(In, handle, Id::p, NULL);
+
+	arguments->push(arg);
+	tfeqptr = new TypeFunction(arguments, Type::tint32, 0, LINKd);
+	tfeqptr = (TypeFunction *)tfeqptr->semantic(0, sc);
+    }
+
+    TypeFunction *tfeq;
+    {
+	Array *arguments = new Array;
+	Argument *arg = new Argument(In, type, NULL, NULL);
+
+	arguments->push(arg);
+	tfeq = new TypeFunction(arguments, Type::tint32, 0, LINKd);
+	tfeq = (TypeFunction *)tfeq->semantic(0, sc);
+    }
+
+    Identifier *id = Id::eq;
+    for (int i = 0; i < 2; i++)
+    {
+	FuncDeclaration *fdx = search_function(this, id);
+	if (fdx)
+	{   FuncDeclaration *fd = fdx->overloadExactMatch(tfeqptr);
+	    if (!fd)
+	    {	fd = fdx->overloadExactMatch(tfeq);
+		if (fd)
+		{   // Create the thunk, fdptr
+		    FuncDeclaration *fdptr = new FuncDeclaration(loc, loc, fdx->ident, STCundefined, tfeqptr);
+		    Expression *e = new IdentifierExp(loc, Id::p);
+		    e = new PtrExp(loc, e);
+		    Array *args = new Array();
+		    args->push(e);
+		    e = new IdentifierExp(loc, id);
+		    e = new CallExp(loc, e, args);
+		    fdptr->fbody = new ReturnStatement(loc, e);
+		    members->push(fdptr);
+		    fdptr->addMember(this);
+		    fdptr->semantic(sc2);
+		}
+	    }
+	}
+
+	id = Id::cmp;
+    }
+
+
     sc2->pop();
 
     if (sizeok == 2)
@@ -276,9 +341,12 @@ void StructDeclaration::semantic(Scope *sc)
 	alignsize = 1;
     }
 
-    sizeok = 1;
+    // Round struct size up to next alignsize boundary.
+    // This will ensure that arrays of structs will get their internals
+    // aligned properly.
+    structsize = (structsize + alignsize - 1) & ~(alignsize - 1);
 
-    AggregateDeclaration *sd;
+    sizeok = 1;
 
     //printf("-StructDeclaration::semantic(this=%p, '%s')\n", this, toChars());
 
@@ -312,7 +380,6 @@ void StructDeclaration::semantic(Scope *sc)
     inv =    (InvariantDeclaration *)search(Id::classInvariant, 0);
     aggNew =       (NewDeclaration *)search(Id::classNew,       0);
     aggDelete = (DeleteDeclaration *)search(Id::classDelete,    0);
-
 
     if (sc->func)
     {

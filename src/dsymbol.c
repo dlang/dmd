@@ -22,7 +22,8 @@
 #include "expression.h"
 #include "statement.h"
 #include "declaration.h"
-
+#include "id.h"
+#include "scope.h"
 
 /****************************** Dsymbol ******************************/
 
@@ -329,6 +330,26 @@ void Dsymbol::error(Loc loc, const char *format, ...)
     global.errors++;
 
     //fatal();
+}
+
+void Dsymbol::checkDeprecated(Loc loc, Scope *sc)
+{
+    if (!global.params.useDeprecated && isDeprecated())
+    {
+	// Don't complain if we're inside a deprecated symbol's scope
+	for (Dsymbol *sp = sc->parent; sp; sp = sp->parent)
+	{   if (sp->isDeprecated())
+		return;
+	}
+
+	for (; sc; sc = sc->enclosing)
+	{
+	    if (sc->scopesym && sc->scopesym->isDeprecated())
+		return;
+	}
+
+	error(loc, "is deprecated");
+    }
 }
 
 /**********************************

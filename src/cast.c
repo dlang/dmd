@@ -99,28 +99,34 @@ int IntegerExp::implicitConvTo(Type *t)
     if (type->equals(t))
 	return MATCHexact;
 
-    switch (type->toBasetype()->ty)
+    enum TY ty = type->toBasetype()->ty;
+    switch (ty)
     {
 	case Tbit:
 	    value &= 1;
+	    ty = Tint32;
 	    break;
 
 	case Tint8:
 	    value = (signed char)value;
+	    ty = Tint32;
 	    break;
 
 	case Tchar:
 	case Tuns8:
 	    value &= 0xFF;
+	    ty = Tint32;
 	    break;
 
 	case Tint16:
 	    value = (short)value;
+	    ty = Tint32;
 	    break;
 
 	case Tuns16:
 	case Twchar:
 	    value &= 0xFFFF;
+	    ty = Tint32;
 	    break;
 
 	case Tint32:
@@ -130,6 +136,7 @@ int IntegerExp::implicitConvTo(Type *t)
 	case Tuns32:
 	case Tdchar:
 	    value &= 0xFFFFFFFF;
+	    ty = Tuns32;
 	    break;
 
 	default:
@@ -137,7 +144,8 @@ int IntegerExp::implicitConvTo(Type *t)
     }
 
     // Only allow conversion if no change in value
-    switch (t->toBasetype()->ty)
+    enum TY toty = t->toBasetype()->ty;
+    switch (toty)
     {
 	case Tbit:
 	    if (value & ~1)
@@ -167,12 +175,18 @@ int IntegerExp::implicitConvTo(Type *t)
 	    goto Lyes;
 
 	case Tint32:
-	    if ((int)value != value)
+	    if (ty == Tuns32)
+	    {
+	    }
+	    else if ((int)value != value)
 		goto Lno;
 	    goto Lyes;
 
 	case Tuns32:
-	    if ((unsigned)value != value)
+	    if (ty == Tint32)
+	    {
+	    }
+	    else if ((unsigned)value != value)
 		goto Lno;
 	    goto Lyes;
 

@@ -17,14 +17,15 @@
 #include "../root/mem.h"
 #endif
 
-#include "declaration.h"
 #include "init.h"
+#include "declaration.h"
 #include "attrib.h"
 #include "debcond.h"
 #include "scope.h"
 #include "id.h"
 #include "expression.h"
 #include "dsymbol.h"
+#include "aggregate.h"
 
 extern void obj_includelib(char *name);
 

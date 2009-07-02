@@ -38,6 +38,7 @@ extern "C" long double strtold(const char *p,char **endp);
 #include "utf.h"
 #include "identifier.h"
 #include "id.h"
+#include "module.h"
 
 #if _WIN32 && __DMC__
 // from \dm\src\include\setlocal.h
@@ -1768,37 +1769,29 @@ done:
     p--;
 
     stringbuffer.writeByte(0);
-    errno = 0;
 
 #if _WIN32 && __DMC__
     char *save = __locale_decpoint;
     __locale_decpoint = ".";
 #endif
+    t->float80value = strtold((char *)stringbuffer.data, NULL);
+    errno = 0;
     switch (*p)
     {
 	case 'F':
 	case 'f':
-#if 0
-	    t->float80value = strtod((char *)stringbuffer.data, NULL);
-#else
-	    t->float80value = strtof((char *)stringbuffer.data, NULL);
-#endif
+	    strtof((char *)stringbuffer.data, NULL);
 	    result = TOKfloat32v;
 	    p++;
 	    break;
 
 	default:
-	    t->float80value = strtod((char *)stringbuffer.data, NULL);
+	    strtod((char *)stringbuffer.data, NULL);
 	    result = TOKfloat64v;
 	    break;
 
 	case 'L':
 	case 'l':
-#if 0
-	    t->float80value = strtod((char *)stringbuffer.data, NULL);
-#else
-	    t->float80value = strtold((char *)stringbuffer.data, NULL);
-#endif
 	    result = TOKfloat80v;
 	    p++;
 	    break;

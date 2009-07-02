@@ -1,5 +1,5 @@
 
-// Copyright (c) 1999-2004 by Digital Mars
+// Copyright (c) 1999-2005 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // www.digitalmars.com
@@ -21,10 +21,11 @@
 #include "attrib.h"
 #include "scope.h"
 #include "id.h"
+#include "mtype.h"
 #include "declaration.h"
 #include "aggregate.h"
 #include "expression.h"
-#include "mtype.h"
+#include "module.h"
 
 #define LOG 0
 

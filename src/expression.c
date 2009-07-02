@@ -256,6 +256,7 @@ void functionArguments(Loc loc, Scope *sc, TypeFunction *tf, Array *arguments)
 		arg = arg->castTo(tb->next->arrayOf());
 	    }
 	}
+	arg = arg->optimize(WANTvalue);
 	arguments->data[i] = (void *) arg;
     }
 
@@ -462,22 +463,7 @@ void Expression::checkArithmetic()
 
 void Expression::checkDeprecated(Scope *sc, Dsymbol *s)
 {
-    if (!global.params.useDeprecated && s->isDeprecated())
-    {
-	// Don't complain if we're inside a deprecated symbol's scope
-	for (Dsymbol *sp = sc->parent; sp; sp = sp->parent)
-	{   if (sp->isDeprecated())
-		return;
-	}
-
-	for (; sc; sc = sc->enclosing)
-	{
-	    if (sc->scopesym && sc->scopesym->isDeprecated())
-		return;
-	}
-
-	error("%s %s is deprecated", s->kind(), s->toChars());
-    }
+    s->checkDeprecated(loc, sc);
 }
 
 /*****************************
@@ -1815,7 +1801,7 @@ Expression *SymOffExp::semantic(Scope *sc)
 #if LOGSEMANTIC
     printf("SymOffExp::semantic('%s')\n", toChars());
 #endif
-    var->semantic(sc);
+    //var->semantic(sc);
     type = var->type->pointerTo();
     return this;
 }
@@ -1838,7 +1824,7 @@ void SymOffExp::toCBuffer(OutBuffer *buf)
 VarExp::VarExp(Loc loc, Declaration *var)
 	: Expression(loc, TOKvar, sizeof(VarExp))
 {
-    //printf("VarExp('%s')\n", var->toChars());
+    //printf("VarExp(this = %p, '%s')\n", this, var->toChars());
     this->var = var;
     this->type = var->type;
 }
@@ -2103,6 +2089,27 @@ void TypeidExp::toCBuffer(OutBuffer *buf)
 
 /************************************************************/
 
+HaltExp::HaltExp(Loc loc)
+	: Expression(loc, TOKhalt, sizeof(HaltExp))
+{
+}
+
+Expression *HaltExp::semantic(Scope *sc)
+{
+#if LOGSEMANTIC
+    printf("HaltExp::semantic()\n");
+#endif
+    type = Type::tvoid;
+    return this;
+}
+
+void HaltExp::toCBuffer(OutBuffer *buf)
+{
+    buf->writestring("halt");
+}
+
+/************************************************************/
+
 UnaExp::UnaExp(Loc loc, enum TOK op, int size, Expression *e1)
 	: Expression(loc, op, size)
 {
@@ -2260,6 +2267,11 @@ Expression *AssertExp::semantic(Scope *sc)
     e1 = resolveProperties(sc, e1);
     // BUG: see if we can do compile time elimination of the Assert
     e1 = e1->checkToBoolean();
+    if (!global.params.useAssert && e1->isBool(FALSE))
+    {	Expression *e = new HaltExp(loc);
+	e = e->semantic(sc);
+	return e;
+    }
     type = Type::tvoid;
     return this;
 }
@@ -4605,12 +4617,15 @@ Expression *MinExp::semantic(Scope *sc)
 	else if (t2->isintegral())
 	    e = scaleFactor();
 	else
-	    error("incompatible types for -");
+	{   error("incompatible types for -");
+	    return new IntegerExp(0);
+	}
     }
     else if (t2->ty == Tpointer)
     {
 	type = e2->type;
 	error("can't subtract pointer from %s", e1->type->toChars());
+	return new IntegerExp(0);
     }
     else
     {

@@ -49,7 +49,7 @@ Global::Global()
 
     copyright = "Copyright (c) 1999-2005 by Digital Mars";
     written = "written by Walter Bright";
-    version = "v0.119";
+    version = "v0.120";
     global.structalign = 8;
 
     memset(&params, 0, sizeof(Param));
@@ -129,7 +129,6 @@ Usage:\n\
   -c             do not link\n\
   -d             allow deprecated features\n\
   -g             add symbolic debug info\n\
-  -gt            add trace profiling hooks\n\
   -v             verbose\n\
   -O             optimize\n\
   -odobjdir      write object files to directory objdir\n\
@@ -141,6 +140,7 @@ Usage:\n\
   -debug=level   compile in debug code <= level\n\
   -debug=ident   compile in debug code identified by ident\n\
   -inline        do function inlining\n\
+  -profile	 profile runtime performance of generated code\n\
   -release	 compile release version\n\
   -unittest      compile in unit tests\n\
   -version=level compile in version code >= level\n\
@@ -228,6 +228,10 @@ int main(int argc, char *argv[])
 	    else if (strcmp(p + 1, "g") == 0)
 		global.params.symdebug = 1;
 	    else if (strcmp(p + 1, "gt") == 0)
+	    {	error("use -profile instead of -gt\n");
+		global.params.trace = 1;
+	    }
+	    else if (strcmp(p + 1, "profile") == 0)
 		global.params.trace = 1;
 	    else if (strcmp(p + 1, "v") == 0)
 		global.params.verbose = 1;
