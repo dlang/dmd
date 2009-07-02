@@ -306,7 +306,7 @@ void Module::parse()
 	    le = 0;
 	    goto Lutf32;
 	}
-	else if (buflen >= 3 && buf[0] == 0xEF && buf[1] == 0xBB && buf[0] == 0xBF)
+	else if (buflen >= 3 && buf[0] == 0xEF && buf[1] == 0xBB && buf[2] == 0xBF)
 	{   // UTF-8
 
 	    buf += 3;

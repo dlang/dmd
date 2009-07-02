@@ -1832,6 +1832,7 @@ static Keyword keywords[] =
     {	"finally",	TOKfinally	},
     {	"with",		TOKwith		},
     {	"asm",		TOKasm		},
+    {	"foreach",	TOKforeach	},
 
     {	"struct",	TOKstruct	},
     {	"class",	TOKclass	},

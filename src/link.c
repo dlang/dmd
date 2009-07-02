@@ -176,6 +176,12 @@ int runLINK()
     argv.push((void *)"-lpthread");
     argv.push((void *)"-lm");
 
+    for (i = 0; i < global.params.linkswitches->dim; i++)
+    {
+	argv.push((void *)"-Xlinker");
+	argv.push((void *) global.params.linkswitches->data[i]);
+    }
+
     // Print it
     for (i = 0; i < argv.dim; i++)
 	printf("%s ", (char *)argv.data[i]);

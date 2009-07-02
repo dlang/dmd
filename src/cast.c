@@ -222,14 +222,8 @@ int AddrExp::implicitConvTo(Type *t)
 	{
 	    ve = (VarExp *)e1;
 	    f = ve->var->isFuncDeclaration();
-	    for (; f; f = f->overnext)
-	    {
-		if (t->next->equals(f->type))
-		{
-		    result = MATCHexact;
-		    break;
-		}
-	    }
+	    if (f && f->overloadExactMatch(t->next))
+		result = MATCHexact;
 	}
     }
     //printf("\tresult = %d\n", result);
@@ -254,16 +248,9 @@ int DelegateExp::implicitConvTo(Type *t)
 	t = t->toBasetype();
 	if (type->ty == Tdelegate && type->next->ty == Tfunction &&
 	    t->ty == Tdelegate && t->next->ty == Tfunction)
-	{   FuncDeclaration *f;
-
-	    for (f = func; f; f = f->overnext)
-	    {
-		if (t->next->equals(f->type))
-		{
-		    result = 2;
-		    break;
-		}
-	    }
+	{
+	    if (func && func->overloadExactMatch(t->next))
+		result = 2;
 	}
     }
     return result;
@@ -556,9 +543,10 @@ Expression *AddrExp::castTo(Type *t)
 	{
 	    ve = (VarExp *)e1;
 	    f = ve->var->isFuncDeclaration();
-	    for (; f; f = f->overnext)
+	    if (f)
 	    {
-		if (tb->next->equals(f->type))
+		f = f->overloadExactMatch(tb->next);
+		if (f)
 		{
 		    e = new VarExp(loc, f);
 		    e->type = f->type;
@@ -594,9 +582,10 @@ Expression *DelegateExp::castTo(Type *t)
 	if (type->ty == Tdelegate && type->next->ty == Tfunction &&
 	    tb->ty == Tdelegate && tb->next->ty == Tfunction)
 	{
-	    for (f = func; f; f = f->overnext)
+	    if (func)
 	    {
-		if (tb->next->equals(f->type))
+		f = func->overloadExactMatch(tb->next);
+		if (f)
 		{
 		    e = new DelegateExp(loc, e1, f);
 		    e->type = t;

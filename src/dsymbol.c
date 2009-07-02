@@ -130,6 +130,7 @@ Dsymbol *Dsymbol::search(Identifier *ident, int flags)
 
 int Dsymbol::overloadInsert(Dsymbol *s)
 {
+    printf("Dsymbol::overloadInsert('%s')\n", s->toChars());
     return FALSE;
 }
 

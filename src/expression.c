@@ -54,6 +54,11 @@ void preFunctionArguments(Loc loc, Scope *sc, Array *arguments)
 	for (int i = 0; i < arguments->dim; i++)
 	{   Expression *arg = (Expression *)arguments->data[i];
 
+	    if (!arg->type)
+	    {
+		arg->error("%s is not an expression", arg->toChars());
+		arg = new IntegerExp(arg->loc, 0, Type::tint32);
+	    }
 	    if (arg->type->ty == Tfunction)
 	    {
 		arg = new AddrExp(arg->loc, arg);

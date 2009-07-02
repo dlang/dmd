@@ -528,78 +528,165 @@ void FuncDeclaration::toCBuffer(OutBuffer *buf)
 }
 
 
-/**********************************
+/****************************************************
  * Overload this FuncDeclaration with the new one f.
  * Return !=0 if successful; i.e. no conflict.
  */
 
 int FuncDeclaration::overloadInsert(Dsymbol *s)
 {
-    FuncDeclaration **pf;
     FuncDeclaration *f;
-    TypeFunction *tf1;
+    AliasDeclaration *a;
 
     //printf("FuncDeclaration::overloadInsert(%s)\n", s->toChars());
+    a = s->isAliasDeclaration();
+    if (a)
+    {
+	if (overnext)
+	    return overnext->overloadInsert(a);
+	overnext = a;
+	return TRUE;
+    }
     f = s->isFuncDeclaration();
     if (!f)
 	return FALSE;
-    tf1 = (TypeFunction *)f->type;
-    FuncDeclaration *pthis = this;
-    for (pf = &pthis; *pf; pf = &(*pf)->overnext)
+
+    if (type && f->type &&	// can be NULL for overloaded constructors
+	f->type->covariant(type))
     {
-	// If f matches *pf, then it's a conflict
-	MATCH match;
-	TypeFunction *tf2;
-	Array *args1;
-	Array *args2;
-	unsigned u;
-
-	tf2 = (TypeFunction *)(*pf)->type;
-	if (!tf1 || !tf2)		// happens with overloaded constructors
-	    continue;
-	if (tf1->varargs != tf2->varargs)
-	    continue;
-
-	args1 = tf1->arguments;
-	args2 = tf2->arguments;
-
-	if (args1->dim != args2->dim)
-	    continue;
-
-	for (u = 0; u < args1->dim; u++)
-	{   Argument *a1 = (Argument *)args1->data[u];
-	    Argument *a2 = (Argument *)args2->data[u];
-
-	    //printf("a1->type = %s\n", a1->type->toChars());
-	    //printf("a2->type = %s\n", a2->type->toChars());
-	    if (!a1->type->equals(a2->type))
-		goto Lcontinue;
-	}
-	//printf("false: conflict\n");
+	//printf("\tfalse: conflict\n");
 	return FALSE;
-
-     Lcontinue:
-	;
     }
 
-    *pf = f;
-    //printf("true: no conflict\n");
+    if (overnext)
+	return overnext->overloadInsert(f);
+    overnext = f;
+    //printf("\ttrue: no conflict\n");
     return TRUE;
+}
+
+/********************************************
+ * Find function in overload list that exactly matches t.
+ */
+
+FuncDeclaration *FuncDeclaration::overloadExactMatch(Type *t)
+{
+    FuncDeclaration *f;
+    Declaration *d;
+    Declaration *next;
+
+    for (d = this; d; d = next)
+    {	FuncAliasDeclaration *fa = d->isFuncAliasDeclaration();
+
+	if (fa)
+	{
+	    FuncDeclaration *f2 = fa->funcalias->overloadExactMatch(t);
+	    if (f2)
+		return f2;
+	    next = fa->overnext;
+	}
+	else
+	{
+	    AliasDeclaration *a = d->isAliasDeclaration();
+
+	    if (a)
+	    {
+		Dsymbol *s = a->toAlias();
+		next = s->isDeclaration();
+		if (next == a)
+		    break;
+	    }
+	    else
+	    {
+		f = d->isFuncDeclaration();
+		if (!f)
+		    break;		// BUG: should print error message?
+		if (t->equals(d->type))
+		    return f;
+		next = f->overnext;
+	    }
+	}
+    }
+    return NULL;
 }
 
 /********************************************
  * Decide which function matches the arguments best.
  */
 
+struct Match
+{
+    int count;
+    MATCH last;
+    FuncDeclaration *lastf;
+    FuncDeclaration *nextf;
+    FuncDeclaration *anyf;
+};
+
+// Recursive helper function
+
+static void overloadResolveX(Match *m, FuncDeclaration *f, Array *arguments)
+{
+    MATCH match;
+    Declaration *d;
+    Declaration *next;
+
+    for (d = f; d; d = next)
+    {
+	FuncDeclaration *f;
+	FuncAliasDeclaration *fa;
+	AliasDeclaration *a;
+
+	fa = d->isFuncAliasDeclaration();
+	if (fa)
+	{
+	    overloadResolveX(m, fa->funcalias, arguments);
+	    next = fa->overnext;
+	}
+	else if ((f = d->isFuncDeclaration()) != NULL)
+	{
+	    next = f->overnext;
+	    if (f == m->lastf)
+		continue;			// skip duplicates
+	    else
+	    {
+		TypeFunction *tf;
+
+		m->anyf = f;
+		tf = (TypeFunction *)f->type;
+		match = (MATCH) tf->callMatch(arguments);
+		//printf("match = %d\n", match);
+		if (match != MATCHnomatch)
+		{
+		    if (match > m->last)
+		    {
+			m->last = match;
+			m->lastf = f;
+			m->count = 1;
+		    }
+		    else if (match == m->last)
+		    {   m->nextf = f;
+			m->count++;
+		    }
+		}
+	    }
+	}
+	else if ((a = d->isAliasDeclaration()) != NULL)
+	{
+	    Dsymbol *s = a->toAlias();
+	    next = s->isDeclaration();
+	    if (next == a)
+		break;
+	}
+	else
+	    assert(0);
+    }
+}
+
 FuncDeclaration *FuncDeclaration::overloadResolve(Loc loc, Array *arguments)
 {
-    FuncDeclaration *f;
-    FuncDeclaration *lastf = NULL;
-    FuncDeclaration *nextf;
     TypeFunction *tf;
-    MATCH match;
-    MATCH lastmatch = MATCHnomatch;
-    int matchcount = 0;
+    Match m;
 
 #if 0
 printf("FuncDeclaration::overloadResolve()\n");
@@ -617,31 +704,15 @@ if (arguments)
 }
 #endif
 
-    for (f = this; f; f = f->overnext)
-    {
-	tf = (TypeFunction *)f->type;
-	match = (MATCH) tf->callMatch(arguments);
-	//printf("match = %d\n", match);
-	if (match != MATCHnomatch)
-	{
-	    if (match > lastmatch)
-	    {
-		lastmatch = match;
-		lastf = f;
-		matchcount = 1;
-	    }
-	    else if (match == lastmatch)
-	    {   nextf = f;
-		matchcount++;
-	    }
-	}
-    }
+    memset(&m, 0, sizeof(m));
+    m.last = MATCHnomatch;
+    overloadResolveX(&m, this, arguments);
 
-    if (matchcount == 1)		// exactly one match
+    if (m.count == 1)		// exactly one match
     {
-	return lastf;
+	return m.lastf;
     }
-    else if (lastmatch == MATCHnomatch)
+    else if (m.last == MATCHnomatch)
     {
 	OutBuffer tbuf;
 	tf = (TypeFunction *)type;
@@ -688,15 +759,15 @@ if (arguments)
 
 	error(loc, "(%s) does not match argument types (%s)",
 	    tbuf.toChars(), buf.toChars());
-	return this;
+	return m.anyf;		// as long as it's not a FuncAliasDeclaration
     }
     else
     {
 	error(loc, "overloads %s and %s both match argument list for %s",
-		lastf->type->toChars(),
-		nextf->type->toChars(),
-		lastf->toChars());
-	return lastf;
+		m.lastf->type->toChars(),
+		m.nextf->type->toChars(),
+		m.lastf->toChars());
+	return m.lastf;
     }
 }
 
@@ -900,6 +971,18 @@ char *FuncDeclaration::kind()
 {
     return "function";
 }
+
+/****************************** FuncAliasDeclaration ************************/
+
+// Used as a way to import a set of functions from another scope into this one.
+
+FuncAliasDeclaration::FuncAliasDeclaration(FuncDeclaration *funcalias)
+    : FuncDeclaration(funcalias->loc, funcalias->endloc, funcalias->ident,
+	(enum STC)funcalias->storage_class, funcalias->type)
+{
+    this->funcalias = funcalias;
+}
+
 
 /****************************** FuncLiteralDeclaration ************************/
 

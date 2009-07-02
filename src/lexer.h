@@ -123,7 +123,7 @@ enum TOK
 	TOKif, TOKelse, TOKwhile, TOKfor, TOKdo, TOKswitch,
 	TOKcase, TOKdefault, TOKbreak, TOKcontinue, TOKwith,
 	TOKsynchronized, TOKreturn, TOKgoto, TOKtry, TOKcatch, TOKfinally,
-	TOKasm,
+	TOKasm, TOKforeach,
 
 	// Contracts
 	TOKbody, TOKinvariant,

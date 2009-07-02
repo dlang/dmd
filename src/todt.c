@@ -125,7 +125,10 @@ dt_t *StructInitializer::toDt()
 
 dt_t *ArrayInitializer::toDt()
 {
-    if (type->next->ty == Tbit)
+    Type *tb = type->toBasetype();
+    Type *tn = tb->next->toBasetype();
+
+    if (tn->ty == Tbit)
 	return toDtBit();
 
     Array dts;
@@ -139,7 +142,7 @@ dt_t *ArrayInitializer::toDt()
     dts.setDim(dim);
     dts.zero();
 
-    size = type->next->size();
+    size = tn->size();
 
     length = 0;
     for (i = 0; i < index.dim; i++)
@@ -168,11 +171,11 @@ dt_t *ArrayInitializer::toDt()
 	else
 	    pdtend = dtnzeros(pdtend, size);
     }
-    switch (type->ty)
+    switch (tb->ty)
     {
 	case Tsarray:
 	{   unsigned tadim;
-	    TypeSArray *ta = (TypeSArray *)type;
+	    TypeSArray *ta = (TypeSArray *)tb;
 
 	    tadim = ta->dim->toInteger();
 	    if (dim < tadim)
@@ -191,7 +194,7 @@ dt_t *ArrayInitializer::toDt()
 	    outdata(s);
 
 	    d = NULL;
-	    if (type->ty == Tarray)
+	    if (tb->ty == Tarray)
 		dtdword(&d, dim);
 	    dtxoff(&d, s, 0, TYnptr);
 	    break;
@@ -210,6 +213,7 @@ dt_t *ArrayInitializer::toDtBit()
     unsigned i;
     dt_t *d;
     dt_t **pdtend;
+    Type *tb = type->toBasetype();
 
     Bits databits;
     Bits initbits;
@@ -246,11 +250,11 @@ dt_t *ArrayInitializer::toDtBit()
 
     d = NULL;
     pdtend = dtnbytes(&d, databits.allocdim * size, (char *)databits.data);
-    switch (type->ty)
+    switch (tb->ty)
     {
 	case Tsarray:
 	{   unsigned tadim;
-	    TypeSArray *ta = (TypeSArray *)type;
+	    TypeSArray *ta = (TypeSArray *)tb;
 
 	    tadim = ta->dim->toInteger();
 	    if (dim > tadim)
@@ -273,7 +277,7 @@ dt_t *ArrayInitializer::toDtBit()
 	    outdata(s);
 
 	    d = NULL;
-	    if (type->ty == Tarray)
+	    if (tb->ty == Tarray)
 		dtdword(&d, dim);
 	    dtxoff(&d, s, 0, TYnptr);
 	    break;

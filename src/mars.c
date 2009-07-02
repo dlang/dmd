@@ -40,7 +40,7 @@ Global::Global()
 
     copyright = "Copyright (c) 1999-2003 by Digital Mars";
     written = "written by Walter Bright";
-    version = "Beta v0.69";
+    version = "Beta v0.70";
     global.structalign = 8;
 
     memset(&params, 0, sizeof(Param));
@@ -226,12 +226,12 @@ int main(int argc, char *argv[])
 		{
 		    case 'd':
 			if (!p[3])
-			    goto Lerror;
+			    goto Lnoarg;
 			global.params.objdir = p + 3;
 			break;
 		    case 'f':
 			if (!p[3])
-			    goto Lerror;
+			    goto Lnoarg;
 			global.params.objname = p + 3;
 			break;
 		    case 'p':
@@ -239,6 +239,11 @@ int main(int argc, char *argv[])
 			    goto Lerror;
 			global.params.preservePaths = 1;
 			break;
+
+		    case 0:
+			error("-o no longer supported, use -of or -od");
+			break;
+
 		    default:
 			goto Lerror;
 		}
@@ -308,6 +313,11 @@ int main(int argc, char *argv[])
 	    {
 	     Lerror:
 		error("unrecognized switch '%s'",p);
+		continue;
+
+	     Lnoarg:
+		error("argument expected for switch '%s'",p);
+		continue;
 	    }
 	}
 	else

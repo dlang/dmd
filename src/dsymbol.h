@@ -1,5 +1,5 @@
 
-// Copyright (c) 1999-2002 by Digital Mars
+// Copyright (c) 1999-2003 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // www.digitalmars.com
@@ -21,11 +21,13 @@ struct Identifier;
 struct Scope;
 struct DsymbolTable;
 struct Declaration;
+struct AliasDeclaration;
 struct AggregateDeclaration;
 struct ClassDeclaration;
 struct InterfaceDeclaration;
 struct StructDeclaration;
 struct FuncDeclaration;
+struct FuncAliasDeclaration;
 struct CtorDeclaration;
 struct DtorDeclaration;
 struct InvariantDeclaration;
@@ -124,8 +126,10 @@ struct Dsymbol : Object
     virtual TemplateDeclaration *isTemplateDeclaration() { return NULL; }
     virtual TemplateInstance *isTemplateInstance() { return NULL; }
     virtual Declaration *isDeclaration() { return NULL; }
+    virtual AliasDeclaration *isAliasDeclaration() { return NULL; }
     virtual AggregateDeclaration *isAggregateDeclaration() { return NULL; }
     virtual FuncDeclaration *isFuncDeclaration() { return NULL; }
+    virtual FuncAliasDeclaration *isFuncAliasDeclaration() { return NULL; }
     virtual CtorDeclaration *isCtorDeclaration() { return NULL; }
     virtual DtorDeclaration *isDtorDeclaration() { return NULL; }
     virtual InvariantDeclaration *isInvariantDeclaration() { return NULL; }
@@ -158,7 +162,7 @@ struct ScopeDsymbol : Dsymbol
     void importScope(ScopeDsymbol *s, enum PROT protection);
     int isforwardRef();
     void defineRef(Dsymbol *s);
-    void multiplyDefined(Dsymbol *s1, Dsymbol *s2);
+    static void multiplyDefined(Dsymbol *s1, Dsymbol *s2);
     Dsymbol *nameCollision(Dsymbol *s);
     char *kind();
 

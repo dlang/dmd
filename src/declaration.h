@@ -101,15 +101,19 @@ struct TypedefDeclaration : Declaration
 struct AliasDeclaration : Declaration
 {
     Dsymbol *aliassym;
+    Dsymbol *overnext;		// next in overload list
 
     AliasDeclaration(Loc loc, Identifier *ident, Type *type);
     AliasDeclaration(Loc loc, Identifier *ident, Dsymbol *s);
     Dsymbol *syntaxCopy(Dsymbol *);
     void semantic(Scope *sc);
+    int overloadInsert(Dsymbol *s);
     char *kind();
     Type *getType();
     Dsymbol *toAlias();
     void toCBuffer(OutBuffer *buf);
+
+    AliasDeclaration *isAliasDeclaration() { return this; }
 };
 
 struct VarDeclaration : Declaration
@@ -209,7 +213,7 @@ struct FuncDeclaration : Declaration
     VarDeclaration *vthis;		// 'this' parameter
     Array *parameters;			// Array of VarDeclaration's for parameters
     DsymbolTable *labtab;		// statement label symbol table
-    FuncDeclaration *overnext;		// next in overload list
+    Declaration *overnext;		// next in overload list
     Loc endloc;				// location of closing curly bracket
     int vtblIndex;			// for member functions, index into vtbl[]
     int naked;				// !=0 if naked
@@ -229,6 +233,7 @@ struct FuncDeclaration : Declaration
     void toHBuffer(OutBuffer *buf);
     void toCBuffer(OutBuffer *buf);
     int overloadInsert(Dsymbol *s);
+    FuncDeclaration *overloadExactMatch(Type *t);
     FuncDeclaration *overloadResolve(Loc loc, Array *arguments);
     LabelDsymbol *searchLabel(Identifier *ident);
     AggregateDeclaration *isThis();
@@ -260,6 +265,15 @@ struct FuncDeclaration : Declaration
     void toObjFile();			// compile to .obj file
 
     FuncDeclaration *isFuncDeclaration() { return this; }
+};
+
+struct FuncAliasDeclaration : FuncDeclaration
+{
+    FuncDeclaration *funcalias;
+
+    FuncAliasDeclaration(FuncDeclaration *funcalias);
+
+    FuncAliasDeclaration *isFuncAliasDeclaration() { return this; }
 };
 
 struct FuncLiteralDeclaration : FuncDeclaration

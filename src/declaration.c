@@ -146,9 +146,11 @@ void TypedefDeclaration::toCBuffer(OutBuffer *buf)
 AliasDeclaration::AliasDeclaration(Loc loc, Identifier *id, Type *type)
     : Declaration(id)
 {
+    //printf("AliasDeclaration(id = '%s')\n", id->toChars());
     this->loc = loc;
     this->type = type;
     this->aliassym = NULL;
+    this->overnext = NULL;
 }
 
 AliasDeclaration::AliasDeclaration(Loc loc, Identifier *id, Dsymbol *s)
@@ -157,6 +159,7 @@ AliasDeclaration::AliasDeclaration(Loc loc, Identifier *id, Dsymbol *s)
     this->loc = loc;
     this->type = NULL;
     this->aliassym = s;
+    this->overnext = NULL;
 }
 
 Dsymbol *AliasDeclaration::syntaxCopy(Dsymbol *s)
@@ -188,10 +191,11 @@ void AliasDeclaration::semantic(Scope *sc)
     // type. If it is a symbol, then aliassym is set and type is NULL -
     // toAlias() will return aliasssym.
 
+    Dsymbol *s;
+
     if (type->ty == Tident)
     {
 	TypeIdentifier *ti = (TypeIdentifier *)type;
-	Dsymbol *s;
 	Dsymbol *scopesym;
 	Identifier *id = (Identifier *)ti->idents.data[0];
 
@@ -207,9 +211,7 @@ void AliasDeclaration::semantic(Scope *sc)
 		    goto L1;		// it must be a type
 		s = s->toAlias();
 	    }
-	    type = NULL;
-	    aliassym = s;
-	    return;
+	    goto L2;
 	}
     }
     else if (type->ty == Tinstance)
@@ -218,7 +220,6 @@ void AliasDeclaration::semantic(Scope *sc)
 	//	alias instance TFoo(int).bar.abc def;
 
 	TypeInstance *ti = (TypeInstance *)type;
-	Dsymbol *s;
 	Dsymbol *scopesym;
 
 	s = ti->tempinst;
@@ -238,13 +239,46 @@ void AliasDeclaration::semantic(Scope *sc)
 		    goto L1;		// it must be a type
 		s = s->toAlias();
 	    }
-	    type = NULL;
-	    aliassym = s;
-	    return;
+	    goto L2;
 	}
     }
   L1:
     type = type->semantic(loc, sc);
+    return;
+
+  L2:
+    type = NULL;
+    FuncDeclaration *f = s->isFuncDeclaration();
+    if (f)
+    {
+	if (overnext)
+	{
+	    FuncAliasDeclaration *fa = new FuncAliasDeclaration(f);
+	    if (!fa->overloadInsert(overnext))
+		ScopeDsymbol::multiplyDefined(f, overnext);
+	    overnext = NULL;
+	    s = fa;
+	}
+    }
+    if (overnext)
+	ScopeDsymbol::multiplyDefined(s, overnext);
+    aliassym = s;
+}
+
+int AliasDeclaration::overloadInsert(Dsymbol *s)
+{
+    /* Don't know yet what the aliased symbol is, so assume it can
+     * be overloaded and check later for correctness.
+     */
+
+    if (overnext == NULL)
+    {	overnext = s;
+	return TRUE;
+    }
+    else
+    {
+	return overnext->overloadInsert(s);
+    }
 }
 
 char *AliasDeclaration::kind()

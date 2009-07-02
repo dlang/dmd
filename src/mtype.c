@@ -1927,6 +1927,7 @@ int Type::covariant(Type *t)
 	goto Lnotcovariant;
     if (t1->next->implicitConvTo(t2->next))
 	goto Lcovariant;
+    goto Lnotcovariant;
     }
 
 Lcovariant:
