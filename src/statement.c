@@ -573,14 +573,7 @@ ForeachStatement::ForeachStatement(Loc loc, Array *arguments,
 
 Statement *ForeachStatement::syntaxCopy()
 {
-    Array *args = new Array();
-    args->setDim(arguments->dim);
-    for (int i = 0; i < arguments->dim; i++)
-    {
-	Argument *arg = (Argument *)arguments->data[i];
-	Argument *a = new Argument(arg->type->syntaxCopy(), arg->ident, arg->inout);
-	args->data[i] = (void *)a;
-    }
+    Array *args = Argument::arraySyntaxCopy(arguments);
     Expression *exp = aggr->syntaxCopy();
     ForeachStatement *s = new ForeachStatement(loc, args, exp, body->syntaxCopy());
     return s;
@@ -745,7 +738,7 @@ Statement *ForeachStatement::semantic(Scope *sc)
 		    s = new DeclarationStatement(0, v);
 		    body = new CompoundStatement(loc, s, body);
 		}
-		a = new Argument(arg->type, id, InOut);
+		a = new Argument(InOut, arg->type, id, NULL);
 		args->push(a);
 	    }
 	    t = new TypeFunction(args, Type::tint32, 0, LINKd);

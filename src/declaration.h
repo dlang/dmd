@@ -23,9 +23,12 @@ struct Initializer;
 struct Module;
 struct InlineScanState;
 struct ForeachStatement;
+struct FuncDeclaration;
+
 enum PROT;
 enum LINK;
 enum TOK;
+enum MATCH;
 
 enum STC
 {
@@ -45,6 +48,17 @@ enum STC
     STCout          = 0x1000,		// out parameter
     STCforeach      = 0x2000,		// variable for foreach loop
 };
+
+struct Match
+{
+    int count;			// number of matches found
+    MATCH last;			// match level of lastf
+    FuncDeclaration *lastf;	// last matching function we found
+    FuncDeclaration *nextf;	// current matching function
+    FuncDeclaration *anyf;	// pick a func, any func, to use for error recovery
+};
+
+void overloadResolveX(Match *m, FuncDeclaration *f, Array *arguments);
 
 /**************************************************************/
 
@@ -217,7 +231,7 @@ struct FuncDeclaration : Declaration
     DsymbolTable *localsymtab;		// used to prevent symbols in different
 					// scopes from having the same name
     VarDeclaration *vthis;		// 'this' parameter
-    Array *parameters;			// Array of VarDeclaration's for parameters
+    Array *parameters;			// Array of Argument's for parameters
     DsymbolTable *labtab;		// statement label symbol table
     Declaration *overnext;		// next in overload list
     Loc endloc;				// location of closing curly bracket

@@ -1937,6 +1937,7 @@ static Keyword keywords[] =
     {	"align",	TOKalign	},
     {	"extern",	TOKextern	},
     {	"private",	TOKprivate	},
+    {	"package",	TOKpackage	},
     {	"protected",	TOKprotected	},
     {	"public",	TOKpublic	},
     {	"export",	TOKexport	},

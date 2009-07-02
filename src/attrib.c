@@ -312,6 +312,7 @@ void ProtDeclaration::toCBuffer(OutBuffer *buf)
     switch (protection)
     {
 	case PROTprivate:	p = "private";		break;
+	case PROTpackage:	p = "package";		break;
 	case PROTprotected:	p = "protected";	break;
 	case PROTpublic:	p = "public";		break;
 	case PROTexport:	p = "export";		break;

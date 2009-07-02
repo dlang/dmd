@@ -93,21 +93,22 @@ struct UnionDeclaration : StructDeclaration
 struct BaseClass
 {
     Type *type;				// (before semantic processing)
-    ClassDeclaration *base;
     enum PROT protection;		// protection for the base interface
+
+    ClassDeclaration *base;
     int offset;				// 'this' pointer offset
     Array vtbl;				// for interfaces: Array of FuncDeclaration's
 					// making up the vtbl[]
 
-    BaseClass(Type *type, enum PROT protection)
-    {
-	this->type = type;
-	this->protection = protection;
-	base = NULL;
-	offset = 0;
-    }
+    int baseInterfaces_dim;
+    BaseClass *baseInterfaces;		// if BaseClass is an interface, these
+					// are a copy of the InterfaceDeclaration::interfaces
+
+    BaseClass();
+    BaseClass(Type *type, enum PROT protection);
 
     int fillVtbl(ClassDeclaration *cd, Array *vtbl, int newinstance);
+    void copyBaseInterfaces(Array *);
 };
 
 #define CLASSINFO_SIZE 	0x3C		// value of ClassInfo.size
@@ -130,6 +131,9 @@ struct ClassDeclaration : AggregateDeclaration
     BaseClass **interfaces;		// interfaces[interfaces_dim] for this class
 					// (does not include baseClass)
 
+    Array *vtblInterfaces;		// array of base interfaces that have
+					// their own vtbl[]
+
     ClassInfoDeclaration *vclassinfo;	// the ClassInfo object for this ClassDeclaration
     int com;				// !=0 if this is a COM class
     int isauto;				// !=0 if this is an auto class
@@ -139,7 +143,10 @@ struct ClassDeclaration : AggregateDeclaration
     Dsymbol *syntaxCopy(Dsymbol *s);
     void semantic(Scope *sc);
     void toCBuffer(OutBuffer *buf);
+
+    #define OFFSET_RUNTIME 0x76543210
     virtual int isBaseOf(ClassDeclaration *cd, int *poffset);
+
     Dsymbol *search(Identifier *ident, int flags);
     FuncDeclaration *findFunc(Identifier *ident, TypeFunction *tf);
     void interfaceSemantic(Scope *sc);
@@ -153,6 +160,7 @@ struct ClassDeclaration : AggregateDeclaration
     int hasPrivateAccess(Dsymbol *smember);	// does smember have private access to members of this class?
     void accessCheck(Loc loc, Scope *sc, Dsymbol *smember);
     int isFriendOf(ClassDeclaration *cd);
+    int hasPackageAccess(Scope *sc);
 
     // Back end
     void toObjFile();			// compile to .obj file
@@ -173,6 +181,7 @@ struct InterfaceDeclaration : ClassDeclaration
     Dsymbol *syntaxCopy(Dsymbol *s);
     void semantic(Scope *sc);
     int isBaseOf(ClassDeclaration *cd, int *poffset);
+    int isBaseOf(BaseClass *bc, int *poffset);
     char *kind();
     int vtblOffset();
 

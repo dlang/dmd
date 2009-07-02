@@ -277,6 +277,7 @@ Array *Parser::parseDeclDefs(int once)
 
 
 	    case TOKprivate:	prot = PROTprivate;	goto Lprot;
+	    case TOKpackage:	prot = PROTpackage;	goto Lprot;
 	    case TOKprotected:	prot = PROTprotected;	goto Lprot;
 	    case TOKpublic:	prot = PROTpublic;	goto Lprot;
 	    case TOKexport:	prot = PROTexport;	goto Lprot;
@@ -763,11 +764,9 @@ DeleteDeclaration *Parser::parseDelete()
 
 Array *Parser::parseParameters(int *pvarargs)
 {
-    Array *arguments;
-    int varargs;
-
-    arguments = new Array();
-    varargs = 0;
+    Array *arguments = new Array();
+    int varargs = 0;
+    int hasdefault = 0;
 
     check(TOKlparen);
     while (1)
@@ -776,6 +775,7 @@ Array *Parser::parseParameters(int *pvarargs)
 	Type *at;
 	Argument *a;
 	enum InOut inout;
+	Expression *ae;
 
 	ai = NULL;
 	inout = In;			// parameter is "in" by default
@@ -808,7 +808,17 @@ Array *Parser::parseParameters(int *pvarargs)
 	    L1:
 		tb = parseBasicType();
 		at = parseDeclarator(tb, &ai);
-		a = new Argument(at, ai, inout);
+		if (token.value == TOKassign)	// = defaultArg
+		{   nextToken();
+		    ae = parseAssignExp();
+		    hasdefault = 1;
+		}
+		else
+		{   if (hasdefault)
+			error("default argument expected for parameter '%s'", ai->toChars());
+		    ae = NULL;
+		}
+		a = new Argument(inout, at, ai, ae);
 		arguments->push(a);
 		if (token.value == TOKcomma)
 		{   nextToken();
@@ -941,6 +951,9 @@ Dsymbol *Parser::parseAggregate()
 			    break;
 			case TOKprivate:
 			    protection = PROTprivate;
+			    continue;
+			case TOKpackage:
+			    protection = PROTpackage;
 			    continue;
 			case TOKprotected:
 			    protection = PROTprotected;
@@ -2169,6 +2182,7 @@ Statement *Parser::parseStatement(int flags)
 	    }
 	    // fallthrough to TOKdot
 	case TOKdot:
+	case TOKtypeof:
 	    if (isDeclaration(&token, 2, TOKreserved, NULL))
 		goto Ldeclaration;
 	    else
@@ -2269,7 +2283,7 @@ Statement *Parser::parseStatement(int flags)
 	case TOKalias:
 	case TOKconst:
 	case TOKauto:
-	case TOKtypeof:
+//	case TOKtypeof:
 	Ldeclaration:
 	{   Array *a;
 
@@ -2443,7 +2457,7 @@ Statement *Parser::parseStatement(int flags)
 		}
 		tb = parseBasicType();
 		at = parseDeclarator(tb, &ai);
-		a = new Argument(at, ai, inout);
+		a = new Argument(inout, at, ai, NULL);
 		arguments->push(a);
 		if (token.value == TOKcomma)
 		{   nextToken();
@@ -3660,11 +3674,11 @@ Expression *Parser::parsePostExp(Expression *e)
 		}
 		else
 		{
-		    index = parseExpression();
+		    index = parseAssignExp();
 		    if (token.value == TOKrange)
 		    {	// array[lwr .. upr]
 			nextToken();
-			upr = parseExpression();
+			upr = parseAssignExp();
 			e = new SliceExp(loc, e, index, upr);
 		    }
 		    else

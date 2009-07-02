@@ -65,22 +65,16 @@ enum PROT ClassDeclaration::getAccess(Dsymbol *smember)
 		    access = PROTnone;	// private members of base class not accessible
 		    break;
 
+		case PROTpackage:
 		case PROTprotected:
 		case PROTpublic:
 		case PROTexport:
-		    // If access is not to be left unchanged
-		    //if (!list_inlist(b->BCpublics,smember))
-		    {   // Modify access based on derivation access
-			switch (b->protection)
-			{   case PROTprivate:
-			    case PROTprotected:
-				access = b->protection;
-				break;
-			}
-		    }
+		    // If access is to be tightened
+		    if (b->protection < access)
+			access = b->protection;
 
 		    // Pick path with loosest access
-		    if (access_ret == PROTnone || access < access_ret)
+		    if (access > access_ret)
 			access_ret = access;
 		    break;
 
@@ -167,6 +161,7 @@ void ClassDeclaration::accessCheck(Loc loc, Scope *sc, Dsymbol *smember)
 
     FuncDeclaration *f = sc->func;
     ClassDeclaration *cdscope = sc->getClassScope();
+    enum PROT access;
 
 #if LOG
     printf("ClassDeclaration::accessCheck() for %s.%s in function %s() in scope %s\n",
@@ -187,26 +182,35 @@ void ClassDeclaration::accessCheck(Loc loc, Scope *sc, Dsymbol *smember)
     //assert(smember->parent->isBaseOf(this, NULL));
 
     if (smember->toParent() == this)
-    {
-	result = smember->prot() >= PROTpublic ||
+    {	enum PROT access = smember->prot();
+
+	result = access >= PROTpublic ||
 		hasPrivateAccess(f) ||
-		isFriendOf(cdscope);
+		isFriendOf(cdscope) ||
+		(access == PROTpackage && hasPackageAccess(sc));
 #if LOG
 	printf("result1 = %d\n", result);
 #endif
     }
-    else if (this->getAccess(smember) >= PROTpublic)
+    else if ((access = this->getAccess(smember)) >= PROTpublic)
     {
 	result = 1;
 #if LOG
 	printf("result2 = %d\n", result);
 #endif
     }
+    else if (access == PROTpackage && hasPackageAccess(sc))
+    {
+	result = 1;
+#if LOG
+	printf("result3 = %d\n", result);
+#endif
+    }
     else
     {
 	result = accessCheckX(smember, f, this, cdscope);
 #if LOG
-	printf("result3 = %d\n", result);
+	printf("result4 = %d\n", result);
 #endif
     }
     if (!result)
@@ -247,6 +251,42 @@ int ClassDeclaration::isFriendOf(ClassDeclaration *cd)
 
 #if LOG
     printf("\tnot friend\n");
+#endif
+    return 0;
+}
+
+/****************************************
+ * Determine if scope sc has package level access to 'this'.
+ */
+
+int ClassDeclaration::hasPackageAccess(Scope *sc)
+{
+#if LOG
+    printf("ClassDeclaration::hasPackageAccess(this = '%s', sc = '%p')\n", toChars(), sc);
+#endif
+    Dsymbol *mthis;
+
+    for (mthis = this; mthis; mthis = mthis->parent)
+    {
+	if (mthis->isPackage() && !mthis->isModule())
+	    break;
+    }
+#if LOG
+    if (mthis)
+	printf("\tthis is in package '%s'\n", mthis->toChars());
+#endif
+
+    if (mthis && mthis == sc->module->parent)
+    {
+#if LOG
+	printf("\t'this' is in same package as cd\n");
+#endif
+	return 1;
+    }
+
+
+#if LOG
+    printf("\tno package access\n");
 #endif
     return 0;
 }

@@ -135,7 +135,7 @@ Expression *CastExp::optimize(int result)
 
 	cdfrom = e1->type->isClassHandle();
 	cdto   = type->isClassHandle();
-	if (cdto->isBaseOf(cdfrom, &offset))
+	if (cdto->isBaseOf(cdfrom, &offset) && offset == 0)
 	{
 	    e1->type = type;
 	    return e1;

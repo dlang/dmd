@@ -1957,20 +1957,7 @@ TypeFunction::TypeFunction(Array *arguments, Type *treturn, int varargs, enum LI
 Type *TypeFunction::syntaxCopy()
 {
     Type *treturn = next->syntaxCopy();
-    Array *args = NULL;
-    if (arguments)
-    {
-	args = new Array();
-	args->setDim(arguments->dim);
-	for (int i = 0; i < args->dim; i++)
-	{   Argument *arg;
-	    Argument *a;
-
-	    arg = (Argument *)arguments->data[i];
-	    a = new Argument(arg->type->syntaxCopy(), arg->ident, arg->inout);
-	    args->data[i] = (void *)a;
-	}
-    }
+    Array *args = Argument::arraySyntaxCopy(arguments);
     Type *t = new TypeFunction(args, treturn, varargs, linkage);
     return t;
 }
@@ -2134,6 +2121,11 @@ void TypeFunction::argsToCBuffer(OutBuffer *buf)
 		buf->writestring("inout ");
 	    argbuf.reset();
 	    arg->type->toCBuffer2(&argbuf, arg->ident);
+	    if (arg->defaultArg)
+	    {
+		argbuf.writestring(" = ");
+		arg->defaultArg->toCBuffer(&argbuf);
+	    }
 	    buf->write(&argbuf);
 	}
 	if (varargs)
@@ -2177,12 +2169,21 @@ Type *TypeFunction::semantic(Loc loc, Scope *sc)
 	    }
 	    if (t->ty == Tvoid)
 		error(loc, "cannot have parameter of type %s", arg->type->toChars());
+
+	    if (arg->defaultArg)
+	    {
+		arg->defaultArg = arg->defaultArg->semantic(sc);
+		arg->defaultArg = resolveProperties(sc, arg->defaultArg);
+		arg->defaultArg = arg->defaultArg->implicitCastTo(arg->type);
+	    }
 	}
     }
     deco = merge()->deco;
 
-    // Don't return merge(), because arg identifiers can be different
-    // even though the types match
+    /* Don't return merge(), because arg identifiers and default args
+     * can be different
+     * even though the types match
+     */
     return this;
 }
 
@@ -2209,9 +2210,7 @@ int TypeFunction::callMatch(Array *toargs)
     nargst = toargs ? toargs->dim : 0;
     if (nargsf == nargst)
 	;
-    else if (nargsf > nargst)
-	goto Nomatch;			// not enough args; no match
-    else
+    else if (nargst > nargsf)
     {
 	if (!varargs)
 	    goto Nomatch;		// too many args; no match
@@ -2224,8 +2223,15 @@ int TypeFunction::callMatch(Array *toargs)
 	Expression *ae;
 
 	// BUG: what about out and inout?
+
 	af = (Argument *)arguments->data[u];
 	assert(af);
+	if (u >= nargst)
+	{
+	    if (af->defaultArg)
+		continue;
+	    goto Nomatch;		// not enough arguments
+	}
 	ae = (Expression *)toargs->data[u];
 	assert(ae);
 	m = ae->implicitConvTo(af->type);
@@ -3683,9 +3689,37 @@ int TypeClass::checkBoolean()
 
 /***************************** Argument *****************************/
 
-Argument::Argument(Type *type, Identifier *ident, enum InOut inout)
+Argument::Argument(enum InOut inout, Type *type, Identifier *ident, Expression *defaultArg)
 {
     this->type = type;
     this->ident = ident;
     this->inout = inout;
+    this->defaultArg = defaultArg;
 }
+
+Argument *Argument::syntaxCopy()
+{
+    Argument *a = new Argument(inout,
+		type->syntaxCopy(),
+		ident,
+		defaultArg ? defaultArg->syntaxCopy() : NULL);
+    return a;
+}
+
+Array *Argument::arraySyntaxCopy(Array *args)
+{   Array *a = NULL;
+
+    if (args)
+    {
+	a = new Array();
+	a->setDim(args->dim);
+	for (int i = 0; i < a->dim; i++)
+	{   Argument *arg = (Argument *)args->data[i];
+
+	    arg = arg->syntaxCopy();
+	    a->data[i] = (void *)arg;
+	}
+    }
+    return a;
+}
+

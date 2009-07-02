@@ -120,7 +120,7 @@ enum TOK
 	TOKalign, TOKextern, TOKprivate, TOKprotected, TOKpublic, TOKexport,
 	TOKstatic, /*TOKvirtual,*/ TOKfinal, TOKconst, TOKabstract, TOKvolatile,
 	TOKdebug, TOKdeprecated, TOKin, TOKout, TOKinout,
-	TOKauto,
+	TOKauto, TOKpackage,
 
 	// Statements
 	TOKif, TOKelse, TOKwhile, TOKfor, TOKdo, TOKswitch,

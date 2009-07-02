@@ -108,22 +108,37 @@ void functionArguments(Loc loc, Scope *sc, TypeFunction *tf, Array *arguments)
 {
     unsigned nargs;
     unsigned nproto;
+    unsigned n;
 
     nargs = arguments ? arguments->dim : 0;
     nproto = tf->arguments ? tf->arguments->dim : 0;
 
-    if (nargs != nproto)
-    {
-	if (nargs < nproto || !tf->varargs)
-	    error(loc, "expected %d arguments, not %d\n", nproto, nargs);
-    }
+    if (nargs > nproto && !tf->varargs)
+	error(loc, "expected %d arguments, not %d\n", nproto, nargs);
 
-    for (int i = 0; i < nargs; i++)
-    {   Expression *arg = (Expression *)arguments->data[i];
+    n = (nargs > nproto) ? nargs : nproto;	// maximum
+
+    for (int i = 0; i < n; i++)
+    {
+	Expression *arg;
+	Argument *p;
+
+	if (i < nargs)
+	    arg = (Expression *)arguments->data[i];
 
 	if (i < nproto)
 	{
 	    Argument *p = (Argument *)tf->arguments->data[i];
+
+	    if (i >= nargs)
+	    {
+		if (!p->defaultArg)
+		{   error(loc, "expected %d arguments, not %d\n", nproto, nargs);
+		    break;
+		}
+		arg = p->defaultArg->copy();
+		arguments->push(arg);
+	    }
 
 	    arg = arg->implicitCastTo(p->type);
 	    if (p->inout == Out || p->inout == InOut)

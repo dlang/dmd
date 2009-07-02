@@ -544,11 +544,19 @@ enum InOut { In, Out, InOut };
 
 struct Argument : Object
 {
+    enum InOut inout;
     Type *type;
     Identifier *ident;
-    enum InOut inout;
+    Expression *defaultArg;
 
-    Argument(Type *type, Identifier *ident, enum InOut inout);
+    Argument(enum InOut inout, Type *type, Identifier *ident, Expression *defaultArg);
+    Argument *syntaxCopy();
+    static Array *arraySyntaxCopy(Array *args);
 };
+
+extern int PTRSIZE;
+extern int REALSIZE;
+extern int Tsize_t;
+extern int Tptrdiff_t;
 
 #endif /* DMD_MTYPE_H */

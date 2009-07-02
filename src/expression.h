@@ -839,6 +839,7 @@ struct AddExp : BinExp
     // For operator overloading
     int isCommutative();
     Identifier *opId();
+    Identifier *opId_r();
 
     elem *toElem(IRState *irs);
 };
@@ -878,6 +879,7 @@ struct MulExp : BinExp
     // For operator overloading
     int isCommutative();
     Identifier *opId();
+    Identifier *opId_r();
 
     elem *toElem(IRState *irs);
 };
@@ -956,6 +958,7 @@ struct AndExp : BinExp
     // For operator overloading
     int isCommutative();
     Identifier *opId();
+    Identifier *opId_r();
 
     elem *toElem(IRState *irs);
 };
@@ -969,6 +972,7 @@ struct OrExp : BinExp
     // For operator overloading
     int isCommutative();
     Identifier *opId();
+    Identifier *opId_r();
 
     elem *toElem(IRState *irs);
 };
@@ -982,6 +986,7 @@ struct XorExp : BinExp
     // For operator overloading
     int isCommutative();
     Identifier *opId();
+    Identifier *opId_r();
 
     elem *toElem(IRState *irs);
 };

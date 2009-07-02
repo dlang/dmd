@@ -752,18 +752,9 @@ FuncDeclaration *FuncDeclaration::overloadExactMatch(Type *t)
  * Decide which function matches the arguments best.
  */
 
-struct Match
-{
-    int count;			// number of matches found
-    MATCH last;			// match level of lastf
-    FuncDeclaration *lastf;	// last matching function we found
-    FuncDeclaration *nextf;	// current matching function
-    FuncDeclaration *anyf;	// pick a func, any func, to use for error recovery
-};
-
 // Recursive helper function
 
-static void overloadResolveX(Match *m, FuncDeclaration *f, Array *arguments)
+void overloadResolveX(Match *m, FuncDeclaration *f, Array *arguments)
 {
     MATCH match;
     Declaration *d;
@@ -797,15 +788,31 @@ static void overloadResolveX(Match *m, FuncDeclaration *f, Array *arguments)
 		if (match != MATCHnomatch)
 		{
 		    if (match > m->last)
-		    {
-			m->last = match;
-			m->lastf = f;
-			m->count = 1;
-		    }
-		    else if (match == m->last)
-		    {   m->nextf = f;
-			m->count++;
-		    }
+			goto LfIsBetter;
+
+		    if (match < m->last)
+			goto LlastIsBetter;
+
+		    /* See if one of the matches overrides the other.
+		     */
+		    if (m->lastf->overrides(f))
+			goto LlastIsBetter;
+		    else if (f->overrides(m->lastf))
+			goto LfIsBetter;
+
+		Lambiguous:
+		    m->nextf = f;
+		    m->count++;
+		    continue;
+
+		LfIsBetter:
+		    m->last = match;
+		    m->lastf = f;
+		    m->count = 1;
+		    continue;
+
+		LlastIsBetter:
+		    continue;
 		}
 	    }
 	}
@@ -854,27 +861,7 @@ if (arguments)
     {
 	OutBuffer tbuf;
 	tf = (TypeFunction *)type;
-	if (tf->arguments)
-	{   int i;
-	    OutBuffer argbuf;
-
-	    for (i = 0; i < tf->arguments->dim; i++)
-	    {   Argument *arg;
-
-		arg = (Argument *)tf->arguments->data[i];
-		argbuf.reset();
-		arg->type->toCBuffer2(&argbuf, arg->ident);
-		if (i)
-		    tbuf.writeByte(',');
-		tbuf.write(&argbuf);
-	    }
-	    if (tf->varargs)
-	    {
-		if (i)
-		    tbuf.writeByte(',');
-		tbuf.writestring("...");
-	    }
-	}
+	tf->argsToCBuffer(&tbuf);
 
 	OutBuffer buf;
 
@@ -895,19 +882,12 @@ if (arguments)
 	    }
 	}
 
-	error(loc, "(%s) does not match argument types (%s)",
+	error(loc, "%s does not match argument types (%s)",
 	    tbuf.toChars(), buf.toChars());
 	return m.anyf;		// as long as it's not a FuncAliasDeclaration
     }
     else
     {
-	/* See if one of the matches overrides the other.
-	 */
-	if (m.lastf->overrides(m.nextf))
-	    return m.lastf;
-	else if (m.nextf->overrides(m.lastf))
-	    return m.nextf;
-
 	error(loc, "overloads %s and %s both match argument list for %s",
 		m.lastf->type->toChars(),
 		m.nextf->type->toChars(),
@@ -1062,7 +1042,7 @@ int FuncDeclaration::isVirtual()
     //printf("FuncDeclaration::isVirtual(%s)\n", toChars());
     //printf("%p %d %d %d %d\n", isMember(), isStatic(), protection == PROTprivate, isCtorDeclaration(), linkage != LINKd);
     return isMember() &&
-	!(isStatic() || protection == PROTprivate) &&
+	!(isStatic() || protection == PROTprivate || protection == PROTpackage) &&
 	toParent()->isClassDeclaration();
 }
 
@@ -1214,19 +1194,7 @@ Dsymbol *CtorDeclaration::syntaxCopy(Dsymbol *s)
     f->fbody    = fbody    ? fbody->syntaxCopy()    : NULL;
     assert(!fthrows); // deprecated
 
-    if (arguments)
-    {
-	f->arguments = new Array();
-	f->arguments->setDim(arguments->dim);
-	for (int i = 0; i < arguments->dim; i++)
-	{   Argument *arg;
-	    Argument *a;
-
-	    arg = (Argument *)arguments->data[i];
-	    a = new Argument(arg->type->syntaxCopy(), arg->ident, arg->inout);
-	    f->arguments->data[i] = (void *)a;
-	}
-    }
+    f->arguments = Argument::arraySyntaxCopy(arguments);
 
     return f;
 }
@@ -1605,19 +1573,7 @@ Dsymbol *NewDeclaration::syntaxCopy(Dsymbol *s)
 
     FuncDeclaration::syntaxCopy(f);
 
-    if (arguments)
-    {
-	f->arguments = new Array();
-	f->arguments->setDim(arguments->dim);
-	for (int i = 0; i < arguments->dim; i++)
-	{   Argument *arg;
-	    Argument *a;
-
-	    arg = (Argument *)arguments->data[i];
-	    a = new Argument(arg->type->syntaxCopy(), arg->ident, arg->inout);
-	    f->arguments->data[i] = (void *)a;
-	}
-    }
+    f->arguments = Argument::arraySyntaxCopy(arguments);
 
     return f;
 }
@@ -1696,19 +1652,7 @@ Dsymbol *DeleteDeclaration::syntaxCopy(Dsymbol *s)
 
     FuncDeclaration::syntaxCopy(f);
 
-    if (arguments)
-    {
-	f->arguments = new Array();
-	f->arguments->setDim(arguments->dim);
-	for (int i = 0; i < arguments->dim; i++)
-	{   Argument *arg;
-	    Argument *a;
-
-	    arg = (Argument *)arguments->data[i];
-	    a = new Argument(arg->type->syntaxCopy(), arg->ident, arg->inout);
-	    f->arguments->data[i] = (void *)a;
-	}
-    }
+    f->arguments = Argument::arraySyntaxCopy(arguments);
 
     return f;
 }

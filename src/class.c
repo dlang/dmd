@@ -41,6 +41,8 @@ ClassDeclaration::ClassDeclaration(Loc loc, Identifier *id, Array *baseclasses)
     interfaces_dim = 0;
     interfaces = NULL;
 
+    vtblInterfaces = NULL;
+
     //printf("ClassDeclaration(%s), dim = %d\n", id->toChars(), this->baseclasses.dim);
 
     // For forward references
@@ -278,13 +280,22 @@ void ClassDeclaration::semantic(Scope *sc)
 #endif
 
     // Allocate instance of each new interface
-    for (i = 0; i < interfaces_dim; i++)
+    for (i = 0; i < vtblInterfaces->dim; i++)
     {
-	unsigned thissize = 4;
-	BaseClass *b = interfaces[i];
+	BaseClass *b = (BaseClass *)vtblInterfaces->data[i];
+	unsigned thissize = PTRSIZE;
 
 	alignmember(structalign, thissize, &sc->offset);
+	assert(b->offset == 0);
 	b->offset = sc->offset;
+
+	// Take care of single inheritance offsets
+	while (b->baseInterfaces_dim)
+	{
+	    b = &b->baseInterfaces[0];
+	    b->offset = sc->offset;
+	}
+
 	sc->offset += thissize;
 	if (alignsize < thissize)
 	    alignsize = thissize;
@@ -295,9 +306,9 @@ void ClassDeclaration::semantic(Scope *sc)
     sc->pop();
 
     // Fill in base class vtbl[]s
-    for (i = 0; i < interfaces_dim; i++)
+    for (i = 0; i < vtblInterfaces->dim; i++)
     {
-	BaseClass *b = interfaces[i];
+	BaseClass *b = (BaseClass *)vtblInterfaces->data[i];
 
 	b->fillVtbl(this, &b->vtbl, 1);
     }
@@ -429,6 +440,9 @@ FuncDeclaration *ClassDeclaration::findFunc(Identifier *ident, TypeFunction *tf)
 void ClassDeclaration::interfaceSemantic(Scope *sc)
 {   int i;
 
+    vtblInterfaces = new Array();
+    vtblInterfaces->reserve(interfaces_dim);
+
     for (i = 0; i < interfaces_dim; i++)
     {
 	BaseClass *b = interfaces[i];
@@ -452,6 +466,9 @@ void ClassDeclaration::interfaceSemantic(Scope *sc)
 	    if (b->base->isCOMclass())
 		com = 1;
 	}
+
+	vtblInterfaces->push(b);
+	b->copyBaseInterfaces(vtblInterfaces);
     }
 }
 
@@ -551,6 +568,13 @@ void InterfaceDeclaration::semantic(Scope *sc)
     for (i = 0; i < interfaces_dim; i++)
     {	BaseClass *b = interfaces[i];
 
+	// Skip if b has already appeared
+	for (int k = 0; k < i; k++)
+	{
+	    if (b == interfaces[i])
+		goto Lcontinue;
+	}
+
 	// Copy vtbl[] from base class
 	if (b->base->vtblOffset())
 	{   int d = b->base->vtbl.dim;
@@ -560,6 +584,9 @@ void InterfaceDeclaration::semantic(Scope *sc)
 	}
 	else
 	    vtbl.append(&b->base->vtbl);
+
+      Lcontinue:
+	;
     }
 
     for (i = 0; i < members->dim; i++)
@@ -588,13 +615,19 @@ void InterfaceDeclaration::semantic(Scope *sc)
 /*******************************************
  * Determine if 'this' is a base class of cd.
  * (Actually, if it is an interface supported by cd)
+ * Output:
+ *	*poffset	offset to start of class
+ *			OFFSET_RUNTIME	must determine offset at runtime
+ * Returns:
+ *	0	not a base
+ *	1	is a base
  */
 
 int InterfaceDeclaration::isBaseOf(ClassDeclaration *cd, int *poffset)
 {
     unsigned j;
 
-    //printf("InterfaceDeclaration::isBaseOf('%s')\n", cd->toChars());
+    //printf("InterfaceDeclaration::isBaseOf(cd = '%s')\n", cd->toChars());
     assert(!baseClass);
     for (j = 0; j < cd->interfaces_dim; j++)
     {
@@ -602,20 +635,17 @@ int InterfaceDeclaration::isBaseOf(ClassDeclaration *cd, int *poffset)
 
 	if (this == b->base)
 	{
+	    //printf("\tfound at offset %d\n", b->offset);
 	    if (poffset)
-		*poffset = b->offset;
+	    {	*poffset = b->offset;
+		if (j && cd->isInterfaceDeclaration())
+		    *poffset = OFFSET_RUNTIME;
+	    }
 	    return 1;
 	}
-    }
-
-    for (j = 0; j < cd->interfaces_dim; j++)
-    {
-	BaseClass *b = cd->interfaces[j];
-
-	if (isBaseOf(b->base, poffset))
-	{
-	    if (poffset)
-		*poffset += b->offset;
+	if (isBaseOf(b, poffset))
+	{   if (j && poffset && cd->isInterfaceDeclaration())
+		*poffset = OFFSET_RUNTIME;
 	    return 1;
 	}
     }
@@ -628,6 +658,30 @@ int InterfaceDeclaration::isBaseOf(ClassDeclaration *cd, int *poffset)
     return 0;
 }
 
+
+int InterfaceDeclaration::isBaseOf(BaseClass *bc, int *poffset)
+{
+    //printf("InterfaceDeclaration::isBaseOf(bc = '%s')\n", bc->base->toChars());
+    for (unsigned j = 0; j < bc->baseInterfaces_dim; j++)
+    {
+	BaseClass *b = &bc->baseInterfaces[j];
+
+	if (this == b->base)
+	{
+	    if (poffset)
+	    {	*poffset = b->offset;
+	    }
+	    return 1;
+	}
+	if (isBaseOf(b, poffset))
+	{
+	    return 1;
+	}
+    }
+    if (poffset)
+	*poffset = 0;
+    return 0;
+}
 
 /****************************************
  * Determine if slot 0 of the vtbl[] is reserved for something else.
@@ -653,6 +707,22 @@ char *InterfaceDeclaration::kind()
 
 
 /******************************** BaseClass *****************************/
+
+BaseClass::BaseClass()
+{
+    memset(this, 0, sizeof(BaseClass));
+}
+
+BaseClass::BaseClass(Type *type, enum PROT protection)
+{
+    this->type = type;
+    this->protection = protection;
+    base = NULL;
+    offset = 0;
+
+    baseInterfaces_dim = 0;
+    baseInterfaces = NULL;
+}
 
 /****************************************
  * Fill in vtbl[] for base class based on member functions of class cd.
@@ -719,4 +789,23 @@ int BaseClass::fillVtbl(ClassDeclaration *cd, Array *vtbl, int newinstance)
     }
 
     return result;
+}
+
+void BaseClass::copyBaseInterfaces(Array *vtblInterfaces)
+{
+    baseInterfaces_dim = base->interfaces_dim;
+    baseInterfaces = (BaseClass *)mem.calloc(baseInterfaces_dim, sizeof(BaseClass));
+
+    for (int i = 0; i < baseInterfaces_dim; i++)
+    {
+	BaseClass *b = &baseInterfaces[i];
+	BaseClass *b2 = base->interfaces[i];
+
+	assert(b2->vtbl.dim == 0);	// should not be filled yet
+	memcpy(b, b2, sizeof(BaseClass));
+
+	if (i)				// single inheritance is i==0
+	    vtblInterfaces->push(b);	// only need for M.I.
+	b->copyBaseInterfaces(vtblInterfaces);
+    }
 }

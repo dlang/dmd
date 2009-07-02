@@ -547,8 +547,8 @@ void ClassDeclaration::toDt2(dt_t **pdt, ClassDeclaration *cd)
     // Interface vptr initializations
     toSymbol();						// define csym
 
-    for (i = 0; i < interfaces_dim; i++)
-    {	BaseClass *b = interfaces[i];
+    for (i = 0; i < vtblInterfaces->dim; i++)
+    {	BaseClass *b = (BaseClass *)vtblInterfaces->data[i];
 
 #if 1 || INTERFACE_VIRTUAL
 	for (ClassDeclaration *cd2 = cd; 1; cd2 = cd2->baseClass)
