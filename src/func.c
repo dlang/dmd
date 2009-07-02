@@ -448,7 +448,7 @@ void FuncDeclaration::semantic3(Scope *sc)
 
 		    // Insert implicit super() at start of fbody
 		    Expression *e1 = new SuperExp(0);
-		    Expression *e = new CallExp(0, e1, NULL);
+		    Expression *e = new CallExp(0, e1);
 		    e = e->semantic(sc2);
 		    Statement *s = new ExpStatement(0, e);
 		    fbody = new CompoundStatement(0, s, fbody);

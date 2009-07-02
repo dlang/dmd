@@ -31,6 +31,7 @@ struct InlineDoState;
 struct InlineScanState;
 struct Expression;
 struct Declaration;
+struct AggregateDeclaration;
 
 // Back end
 struct IRState;
@@ -38,6 +39,7 @@ struct elem;
 struct dt_t;
 
 void accessCheck(Loc loc, Scope *sc, Expression *e, Declaration *d);
+FuncDeclaration *search_function(AggregateDeclaration *ad, Identifier *funcid);
 
 struct Expression : Object
 {
@@ -393,6 +395,7 @@ struct BinExp : Expression
     BinExp(Loc loc, enum TOK op, int size, Expression *e1, Expression *e2);
     Expression *syntaxCopy();
     Expression *semantic(Scope *sc);
+    Expression *semanticp(Scope *sc);
     Expression *commonSemanticAssign(Scope *sc);
     void toCBuffer(OutBuffer *buf);
     Expression *scaleFactor();
@@ -478,6 +481,10 @@ struct CallExp : UnaExp
     Array *arguments;		// Array of Expression's
 
     CallExp(Loc loc, Expression *e, Array *arguments);
+    CallExp(Loc loc, Expression *e);
+    CallExp(Loc loc, Expression *e, Expression *earg1);
+    CallExp(Loc loc, Expression *e, Expression *earg1, Expression *earg2);
+
     Expression *syntaxCopy();
     Expression *semantic(Scope *sc);
     void toCBuffer(OutBuffer *buf);
@@ -574,12 +581,12 @@ struct CastExp : UnaExp
 };
 
 
-struct ArrayRangeExp : UnaExp
+struct SliceExp : UnaExp
 {
     Expression *upr;		// NULL if implicit 0
     Expression *lwr;		// NULL if implicit [length - 1]
 
-    ArrayRangeExp(Loc loc, Expression *e1, Expression *lwr, Expression *upr);
+    SliceExp(Loc loc, Expression *e1, Expression *lwr, Expression *upr);
     Expression *syntaxCopy();
     Expression *semantic(Scope *sc);
     Expression *toLvalue();
@@ -612,12 +619,16 @@ struct CommaExp : BinExp
     elem *toElem(IRState *irs);
 };
 
-struct ArrayExp : BinExp
+struct IndexExp : BinExp
 {
-    ArrayExp(Loc loc, Expression *e1, Expression *e2);
+    IndexExp(Loc loc, Expression *e1, Expression *e2);
     Expression *semantic(Scope *sc);
     Expression *toLvalue();
     void toCBuffer(OutBuffer *buf);
+
+    // For operator overloading
+    Identifier *opId();
+
     elem *toElem(IRState *irs);
 };
 

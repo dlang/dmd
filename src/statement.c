@@ -10,6 +10,7 @@
 #include "statement.h"
 #include "debcond.h"
 #include "init.h"
+#include "staticassert.h"
 
 #include "mem.h"
 
@@ -880,6 +881,32 @@ void ConditionalStatement::toCBuffer(OutBuffer *buf)
 {
     buf->printf("ConditionalStatement::toCBuffer()");
     buf->writenl();
+}
+
+
+/******************************** StaticAssertStatement ***************************/
+
+StaticAssertStatement::StaticAssertStatement(StaticAssert *sa)
+    : Statement(sa->loc)
+{
+    this->sa = sa;
+}
+
+Statement *StaticAssertStatement::syntaxCopy()
+{
+    StaticAssertStatement *s = new StaticAssertStatement((StaticAssert *)sa->syntaxCopy(NULL));
+    return s;
+}
+
+Statement *StaticAssertStatement::semantic(Scope *sc)
+{
+    sa->semantic2(sc);
+    return NULL;
+}
+
+void StaticAssertStatement::toCBuffer(OutBuffer *buf)
+{
+    sa->toCBuffer(buf);
 }
 
 

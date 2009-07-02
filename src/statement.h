@@ -35,6 +35,7 @@ struct InlineScanState;
 struct ReturnStatement;
 struct CompoundStatement;
 struct Argument;
+struct StaticAssert;
 
 // Back end
 struct IRState;
@@ -258,6 +259,17 @@ struct ConditionalStatement : Statement
     Statement *syntaxCopy();
     Statement *semantic(Scope *sc);
     int usesEH();
+
+    void toCBuffer(OutBuffer *buf);
+};
+
+struct StaticAssertStatement : Statement
+{
+    StaticAssert *sa;
+
+    StaticAssertStatement(StaticAssert *sa);
+    Statement *syntaxCopy();
+    Statement *semantic(Scope *sc);
 
     void toCBuffer(OutBuffer *buf);
 };

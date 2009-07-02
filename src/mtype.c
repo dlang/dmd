@@ -1340,7 +1340,8 @@ int TypeSArray::implicitConvTo(Type *to)
 
     // Allow implicit conversion of static array to pointer or dynamic array
     if ((to->ty == Tpointer || to->ty == Tarray) &&
-	(to->next->ty == Tvoid || next->equals(to->next) || to->next->isBaseOf(next)))
+	(to->next->ty == Tvoid || next->equals(to->next)
+	 /*|| to->next->isBaseOf(next)*/))
     {
 	return 1;
     }
@@ -1464,7 +1465,7 @@ int TypeDArray::implicitConvTo(Type *to)
     //printf("TypeDArray::implicitConvTo()\n");
 
     // Allow implicit conversion of array to pointer
-    if (to->ty == Tpointer && (to->next->ty == Tvoid || next->equals(to->next) || to->next->isBaseOf(next)))
+    if (to->ty == Tpointer && (to->next->ty == Tvoid || next->equals(to->next) /*|| to->next->isBaseOf(next)*/))
     {
 	return MATCHconvert;
     }
@@ -1748,8 +1749,10 @@ int TypePointer::implicitConvTo(Type *to)
 	if (to->next->ty == Tvoid)
 	    return MATCHconvert;
 
+#if 0
 	if (to->next->isBaseOf(next))
 	    return MATCHconvert;
+#endif
 
 	if (next->ty == Tfunction && to->next->ty == Tfunction)
 	{   TypeFunction *tf;

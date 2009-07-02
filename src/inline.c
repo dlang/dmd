@@ -142,7 +142,7 @@ int CallExp::inlineCost(InlineCostState *ics)
 }
 
 
-int ArrayRangeExp::inlineCost(InlineCostState *ics)
+int SliceExp::inlineCost(InlineCostState *ics)
 {   int cost;
 
     cost = 1 + e1->inlineCost(ics);
@@ -364,9 +364,9 @@ Expression *CallExp::doInline(InlineDoState *ids)
 }
 
 
-Expression *ArrayRangeExp::doInline(InlineDoState *ids)
+Expression *SliceExp::doInline(InlineDoState *ids)
 {
-    ArrayRangeExp *are = (ArrayRangeExp *)copy();
+    SliceExp *are = (SliceExp *)copy();
 
     are->e1 = e1->doInline(ids);
     if (lwr)
@@ -651,7 +651,7 @@ Expression *CallExp::inlineScan(InlineScanState *iss)
 }
 
 
-Expression *ArrayRangeExp::inlineScan(InlineScanState *iss)
+Expression *SliceExp::inlineScan(InlineScanState *iss)
 {
     e1 = e1->inlineScan(iss);
     if (lwr)

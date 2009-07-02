@@ -25,7 +25,6 @@
 #include "expression.h"
 
 static Expression *build_overload(Loc loc, Scope *sc, Expression *ethis, Expression *earg, Identifier *id);
-static FuncDeclaration *search_function(AggregateDeclaration *ad, Identifier *funcid);
 
 /******************************** Expression **************************/
 
@@ -125,6 +124,7 @@ Identifier *EqualExp::opId()   { return Id::eq; }
 int CmpExp::isCommutative()  { return TRUE; }
 Identifier *CmpExp::opId()   { return Id::cmp; }
 
+Identifier *IndexExp::opId()	{ return Id::index; }
 
 
 /************************************
@@ -270,15 +270,11 @@ static Expression *build_overload(Loc loc, Scope *sc, Expression *ethis, Express
     //earg->type->print();
     e = new DotIdExp(loc, ethis, id);
 
-    Array *arguments = NULL;
     if (earg)
-    {
-	arguments = new Array();
-	arguments->setDim(1);
-	arguments->data[0] = (void *)earg;
-    }
+	e = new CallExp(loc, e, earg);
+    else
+	e = new CallExp(loc, e);
 
-    e = new CallExp(loc, e, arguments);
     e = e->semantic(sc);
     return e;
 }
@@ -287,7 +283,7 @@ static Expression *build_overload(Loc loc, Scope *sc, Expression *ethis, Express
  * Search for function funcid in aggregate ad.
  */
 
-static FuncDeclaration *search_function(AggregateDeclaration *ad, Identifier *funcid)
+FuncDeclaration *search_function(AggregateDeclaration *ad, Identifier *funcid)
 {
     Dsymbol *s;
     FuncDeclaration *fd;

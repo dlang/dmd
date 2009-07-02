@@ -38,6 +38,7 @@ struct Module;
 struct ModuleDeclaration;
 struct TemplateDeclaration;
 struct TemplateInstance;
+struct StaticAssert;
 
 struct Parser : Lexer
 {
@@ -52,6 +53,7 @@ struct Parser : Lexer
     Array *parseBlock();
     TemplateDeclaration *parseTemplateDeclaration();
     TemplateInstance *parseTemplateInstance();
+    StaticAssert *parseStaticAssert();
     DebugCondition *parseDebugCondition();
     VersionCondition *parseVersionCondition();
     CtorDeclaration *parseCtor();

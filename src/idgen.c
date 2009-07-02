@@ -127,6 +127,9 @@ Msgtable msgtable[] =
     { "catass" },
     { "postinc" },
     { "postdec" },
+    { "index", "opIndex" },
+    { "slice", "opSlice" },
+    { "call", "opCall" },
 
     { "classNew", "new" },
     { "classDelete", "delete" },

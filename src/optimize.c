@@ -65,7 +65,7 @@ Expression *AddrExp::optimize(int result)
     }
     if (e1->op == TOKarray)
     {	// Convert &array[n] to #array+n
-	ArrayExp *ae = (ArrayExp *)e1;
+	IndexExp *ae = (IndexExp *)e1;
 
 	if (ae->e2->op == TOKint64 && ae->e1->op == TOKvar)
 	{

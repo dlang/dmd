@@ -1,5 +1,5 @@
 
-// Copyright (c) 1999-2002 by Digital Mars
+// Copyright (c) 1999-2003 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // www.digitalmars.com
@@ -15,6 +15,7 @@
 #include "attrib.h"
 #include "debcond.h"
 #include "template.h"
+#include "staticassert.h"
 
 // How multiple declarations are parsed.
 // If 1, treat as C.
@@ -221,6 +222,8 @@ Array *Parser::parseDeclDefs(int once)
 		    s = parseStaticCtor();
 		else if (token.value == TOKtilde)
 		    s = parseStaticDtor();
+		else if (token.value == TOKassert)
+		    s = parseStaticAssert();
 		else
 		{   stc = STCstatic;
 		    goto Lstc2;
@@ -479,6 +482,24 @@ Array *Parser::parseBlock()
 	    break;
     }
     return a;
+}
+
+/**********************************
+ * Parse a static assertion.
+ */
+
+StaticAssert *Parser::parseStaticAssert()
+{
+    Loc loc = this->loc;
+    Expression *exp;
+
+    //printf("parseStaticAssert()\n");
+    nextToken();
+    check(TOKlparen);
+    exp = parseExpression();
+    check(TOKrparen);
+    check(TOKsemicolon);
+    return new StaticAssert(loc, exp);
 }
 
 /**************************************
@@ -1997,11 +2018,24 @@ Statement *Parser::parseStatement(int flags)
 	    }
 	    break;
 
+	case TOKstatic:
+	{   // Look ahead to see if it's static assert()
+	    Token *t;
+
+	    t = peek(&token);
+	    if (t->value == TOKassert)
+	    {
+		nextToken();
+		s = new StaticAssertStatement(parseStaticAssert());
+		break;
+	    }
+	    goto Ldeclaration;
+	}
+
 	CASE_BASIC_TYPES:
 	case TOKtypedef:
 	case TOKalias:
 	case TOKconst:
-	case TOKstatic:
 	case TOKauto:
 	Ldeclaration:
 	{   Array *a;
@@ -3180,7 +3214,7 @@ Expression *Parser::parsePostExp(Expression *e)
 		nextToken();
 		if (token.value == TOKrbracket)
 		{   // array[]
-		    e = new ArrayRangeExp(loc, e, NULL, NULL);
+		    e = new SliceExp(loc, e, NULL, NULL);
 		    nextToken();
 		}
 		else
@@ -3190,11 +3224,11 @@ Expression *Parser::parsePostExp(Expression *e)
 		    {	// array[lwr .. upr]
 			nextToken();
 			upr = parseExpression();
-			e = new ArrayRangeExp(loc, e, index, upr);
+			e = new SliceExp(loc, e, index, upr);
 		    }
 		    else
 		    {	// array[index]
-			e = new ArrayExp(loc, e, index);
+			e = new IndexExp(loc, e, index);
 		    }
 		    check(TOKrbracket);
 		}

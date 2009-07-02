@@ -495,7 +495,7 @@ void VarDeclaration::semantic(Scope *sc)
 		    dim *= ((TypeSArray *)t)->dim->toInteger();
 		    e1->type = new TypeSArray(t->next, new IntegerExp(0, dim, Type::tindex));
 		}
-		e1 = new ArrayRangeExp(loc, e1, NULL, NULL);
+		e1 = new SliceExp(loc, e1, NULL, NULL);
 	    }
 	    ie->exp = new AssignExp(loc, e1, ie->exp);
 	    ie->exp = ie->exp->semantic(sc);
