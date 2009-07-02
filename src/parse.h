@@ -1,5 +1,5 @@
 
-// Copyright (c) 1999-2002 by Digital Mars
+// Copyright (c) 1999-2003 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // www.digitalmars.com
@@ -52,7 +52,9 @@ struct Parser : Lexer
     Array *parseDeclDefs(int once);
     Array *parseBlock();
     TemplateDeclaration *parseTemplateDeclaration();
+    Array *parseTemplateParameterList();
     TemplateInstance *parseTemplateInstance();
+    void parseTemplateArgumentList(TemplateInstance *tempinst);
     StaticAssert *parseStaticAssert();
     DebugCondition *parseDebugCondition();
     VersionCondition *parseVersionCondition();
@@ -66,7 +68,7 @@ struct Parser : Lexer
     DeleteDeclaration *parseDelete();
     Array *parseParameters(int *pvarargs);
     EnumDeclaration *parseEnum();
-    AggregateDeclaration *parseAggregate();
+    Dsymbol *parseAggregate();
     Import *parseImport(Array *decldefs);
     Type *parseBasicType();
     Type *parseBasicType2(Type *t);
@@ -76,12 +78,14 @@ struct Parser : Lexer
     Statement *parseStatement(int flags);
     Initializer *parseInitializer();
     void check(enum TOK value);
+    void check(enum TOK value, char *string);
     int isDeclaration(Token *t, int needId, enum TOK endtok, Token **pt);
     int isBasicType(Token **pt);
     int isDeclarator(Token **pt, int *haveId, enum TOK endtok);
     int isParameters(Token **pt);
     int isExpression(Token **pt);
     int isTemplateInstance(Token *t, Token **pt);
+    int skipParens(Token *t, Token **pt);
 
     Expression *parseExpression();
     Expression *parsePrimaryExp();

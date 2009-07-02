@@ -302,6 +302,7 @@ dt_t *ExpInitializer::toDt()
 
 dt_t **Expression::toDt(dt_t **pdt)
 {
+    printf("Expression::toDt() %d\n", op);
     error("non-constant expression %s", toChars());
     return pdt;
 }

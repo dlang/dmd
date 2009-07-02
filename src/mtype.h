@@ -82,6 +82,7 @@ enum TY
 
     Terror,
     Tinstance,
+    Ttypeof,
     TMAX
 };
 
@@ -138,6 +139,9 @@ struct Type : Object
     #define tvoidptr	tint32		// size for void*
     #define terror	basic[Terror]	// for error recovery
 
+    #define tsize_t	tuns32		// matches size_t alias
+    #define tptrdiff_t	tint32		// matches ptrdiff_t alias
+
     static ClassDeclaration *typeinfo;
 
     static Type *basic[TMAX];
@@ -153,7 +157,7 @@ struct Type : Object
     Type(TY ty, Type *next);
     virtual Type *syntaxCopy();
     int equals(Object *o);
-    int compare(Object *o) { return 6; } // kludge for template.isType()
+    int dyncast() { return DYNCAST_TYPE; } // kludge for template.isType()
     int covariant(Type *t);
     char *toChars();
     static void init();
@@ -179,6 +183,7 @@ struct Type : Object
     Type *pointerTo();
     Type *referenceTo();
     Type *arrayOf();
+    virtual Dsymbol *toDsymbol(Scope *sc);
     virtual Type *toBasetype();
     virtual int isBaseOf(Type *t);
     virtual int implicitConvTo(Type *to);
@@ -191,6 +196,7 @@ struct Type : Object
     virtual dt_t **toDt(dt_t **pdt);
     Identifier *getTypeInfoIdent();
     virtual MATCH deduceType(Type *tparam, Array *parameters, Array *atypes);
+    virtual void resolve(Loc loc, Scope *sc, Expression **pe, Type **pt, Dsymbol **ps);
 
     static void error(Loc loc, const char *format, ...);
 
@@ -368,40 +374,58 @@ struct TypeDelegate : Type
     int checkBoolean();
 };
 
-struct TypeIdentifier : Type
+struct TypeQualified : Type
 {
     Loc loc;
     Array idents;	// array of Identifier's representing ident.ident.ident etc.
 
+    TypeQualified(TY ty, Loc loc);
+    void syntaxCopyHelper(TypeQualified *t);
+    void addIdent(Identifier *ident);
+    void toCBuffer2Helper(OutBuffer *buf, Identifier *ident);
+    unsigned size();
+    void resolveHelper(Loc loc, Scope *sc, Dsymbol *s, Dsymbol *scopesym,
+	Expression **pe, Type **pt, Dsymbol **ps);
+};
+
+struct TypeIdentifier : TypeQualified
+{
+    Identifier *ident;
+
     TypeIdentifier(Loc loc, Identifier *ident);
     Type *syntaxCopy();
-    void addIdent(Identifier *ident);
-    unsigned size();
     //char *toChars();
     void toCBuffer2(OutBuffer *buf, Identifier *ident);
-    void resolve(Scope *sc, Expression **pe, Type **pt);
+    void resolve(Loc loc, Scope *sc, Expression **pe, Type **pt, Dsymbol **ps);
+    Dsymbol *toDsymbol(Scope *sc);
     Type *semantic(Loc loc, Scope *sc);
     MATCH deduceType(Type *tparam, Array *parameters, Array *atypes);
 };
 
 /* Similar to TypeIdentifier, but with a TemplateInstance as the root
  */
-struct TypeInstance : Type
+struct TypeInstance : TypeQualified
 {
-    Loc loc;
     TemplateInstance *tempinst;
-    Array idents;	// array of Identifier's representing tempinst.ident.ident.ident etc.
 
     TypeInstance(Loc loc, TemplateInstance *tempinst);
     Type *syntaxCopy();
-    void addIdent(Identifier *ident);
-    unsigned size();
     //char *toChars();
     //void toDecoBuffer(OutBuffer *buf);
     void toCBuffer2(OutBuffer *buf, Identifier *ident);
-    void resolve(Scope *sc, Expression **pe, Type **pt);
+    void resolve(Loc loc, Scope *sc, Expression **pe, Type **pt, Dsymbol **ps);
     Type *semantic(Loc loc, Scope *sc);
     MATCH deduceType(Type *tparam, Array *parameters, Array *atypes);
+};
+
+struct TypeTypeof : TypeQualified
+{
+    Expression *exp;
+
+    TypeTypeof(Loc loc, Expression *exp);
+    Type *syntaxCopy();
+    void toCBuffer2(OutBuffer *buf, Identifier *ident);
+    Type *semantic(Loc loc, Scope *sc);
 };
 
 struct TypeStruct : Type
@@ -413,6 +437,7 @@ struct TypeStruct : Type
     unsigned alignsize();
     char *toChars();
     Type *semantic(Loc loc, Scope *sc);
+    Dsymbol *toDsymbol(Scope *sc);
     void toDecoBuffer(OutBuffer *buf);
     void toTypeInfoBuffer(OutBuffer *buf);
     void toCBuffer2(OutBuffer *buf, Identifier *ident);
@@ -435,6 +460,7 @@ struct TypeEnum : Type
     unsigned alignsize();
     char *toChars();
     Type *semantic(Loc loc, Scope *sc);
+    Dsymbol *toDsymbol(Scope *sc);
     void toDecoBuffer(OutBuffer *buf);
     void toTypeInfoBuffer(OutBuffer *buf);
     void toCBuffer2(OutBuffer *buf, Identifier *ident);
@@ -462,6 +488,7 @@ struct TypeTypedef : Type
     unsigned alignsize();
     char *toChars();
     Type *semantic(Loc loc, Scope *sc);
+    Dsymbol *toDsymbol(Scope *sc);
     void toDecoBuffer(OutBuffer *buf);
     void toTypeInfoBuffer(OutBuffer *buf);
     void toCBuffer2(OutBuffer *buf, Identifier *ident);
@@ -490,6 +517,7 @@ struct TypeClass : Type
     unsigned size();
     char *toChars();
     Type *semantic(Loc loc, Scope *sc);
+    Dsymbol *toDsymbol(Scope *sc);
     void toDecoBuffer(OutBuffer *buf);
     void toCBuffer2(OutBuffer *buf, Identifier *ident);
     Expression *dotExp(Scope *sc, Expression *e, Identifier *ident);

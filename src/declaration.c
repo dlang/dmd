@@ -156,6 +156,7 @@ AliasDeclaration::AliasDeclaration(Loc loc, Identifier *id, Type *type)
 AliasDeclaration::AliasDeclaration(Loc loc, Identifier *id, Dsymbol *s)
     : Declaration(id)
 {
+    assert(s != this);
     this->loc = loc;
     this->type = NULL;
     this->aliassym = s;
@@ -184,7 +185,7 @@ void AliasDeclaration::semantic(Scope *sc)
 
     // Given:
     //	alias foo.bar.abc def;
-    // it is not knownable from the syntax whether this is an alias
+    // it is not knowable from the syntax whether this is an alias
     // for a type or an alias for a symbol. It is up to the semantic()
     // pass to distinguish.
     // If it is a type, then type is set and getType() will return that
@@ -196,23 +197,10 @@ void AliasDeclaration::semantic(Scope *sc)
     if (type->ty == Tident)
     {
 	TypeIdentifier *ti = (TypeIdentifier *)type;
-	Dsymbol *scopesym;
-	Identifier *id = (Identifier *)ti->idents.data[0];
 
-	s = sc->search(id, &scopesym);
+	s = ti->toDsymbol(sc);
 	if (s)
-	{
-	    s = s->toAlias();
-	    for (int i = 1; i < ti->idents.dim; i++)
-	    {
-		id = (Identifier *)ti->idents.data[i];
-		s = s->search(id, 0);
-		if (!s)			// failed to find a symbol
-		    goto L1;		// it must be a type
-		s = s->toAlias();
-	    }
-	    goto L2;
-	}
+	    goto L2;			// it's a symbolic alias
     }
     else if (type->ty == Tinstance)
     {
@@ -220,7 +208,6 @@ void AliasDeclaration::semantic(Scope *sc)
 	//	alias instance TFoo(int).bar.abc def;
 
 	TypeInstance *ti = (TypeInstance *)type;
-	Dsymbol *scopesym;
 
 	s = ti->tempinst;
 	if (s)
@@ -262,6 +249,7 @@ void AliasDeclaration::semantic(Scope *sc)
     }
     if (overnext)
 	ScopeDsymbol::multiplyDefined(s, overnext);
+    assert(s != this);
     aliassym = s;
 }
 
@@ -293,6 +281,9 @@ Type *AliasDeclaration::getType()
 
 Dsymbol *AliasDeclaration::toAlias()
 {
+#ifdef DEBUG
+    assert(this != aliassym);
+#endif
     return aliassym ? aliassym->toAlias() : this;
 }
 
@@ -316,6 +307,12 @@ void AliasDeclaration::toCBuffer(OutBuffer *buf)
 VarDeclaration::VarDeclaration(Loc loc, Type *type, Identifier *id, Initializer *init)
     : Declaration(id)
 {
+#ifdef DEBUG
+    if (!type)
+    {	printf("VarDeclaration('%s')\n", id->toChars());
+	*(char*)0=0;
+    }
+#endif
     assert(type);
     this->type = type;
     this->init = init;

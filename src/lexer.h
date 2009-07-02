@@ -56,11 +56,13 @@ enum TOK
 	TOKnew,		TOKdelete,
 	TOKstar,	TOKsymoff,
 	TOKvar,		TOKdotvar,
+	TOKdotti,
 	TOKdottype,	TOKrange,
 	TOKarraylength,	TOKversion,
 	TOKmodule,	TOKdollar,
 	TOKtemplate,	TOKinstance,
-	TOKdeclaration,
+	TOKdeclaration,	TOKtypeof,
+	TOKpragma,	TOKdsymbol,
 
 	// Operators
 	TOKlt,		TOKgt,

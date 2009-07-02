@@ -1,5 +1,5 @@
 
-// Copyright (c) 1999-2002 by Digital Mars
+// Copyright (c) 1999-2003 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // www.digitalmars.com
@@ -24,6 +24,7 @@ struct TemplateParameter;
 struct Type;
 struct Scope;
 struct Expression;
+struct AliasDeclaration;
 enum MATCH;
 
 struct TemplateDeclaration : ScopeDsymbol
@@ -57,22 +58,35 @@ struct TemplateParameter
      * For value-parameter:
      *	template Foo(valType ident)	// specValue is set to NULL
      *	template Foo(valType ident : specValue)
+     * For alias-parameter:
+     *	template Foo(alias ident)
      */
 
     Identifier *ident;
 
     /* if valType!=NULL
      *	it's a value-parameter
+     * else if isalias
+     *	it's an alias-parameter
      * else
      *	it's a type-parameter
      */
 
+    // type-parameter
     Type *specType;	// type parameter: if !=NULL, this is the type specialization
 
+    TemplateParameter(Identifier *ident, Type *specType);
+
+    // value-parameter
     Type *valType;
     Expression *specValue;
 
-    TemplateParameter(Identifier *ident, Type *specType, Type *valType, Expression *specValue);
+    TemplateParameter(Identifier *ident, Type *valType, Expression *specValue);
+
+    // alias-parameter
+    int isalias;
+
+    TemplateParameter(Identifier *ident);
 };
 
 struct TemplateInstance : ScopeDsymbol
@@ -87,6 +101,8 @@ struct TemplateInstance : ScopeDsymbol
     TemplateInstance *inst;		// refer to existing instance
     Array tdtypes;		// types corresponding to TemplateDeclaration.parameters
     ScopeDsymbol *argsym;	// argument symbol table
+    AliasDeclaration *aliasdecl;	// !=NULL if instance is an alias for its
+					// sole member
 
     TemplateInstance(Identifier *temp_id);
     Dsymbol *syntaxCopy(Dsymbol *);
@@ -104,6 +120,7 @@ struct TemplateInstance : ScopeDsymbol
     void toObjFile();			// compile to .obj file
 
     TemplateInstance *isTemplateInstance() { return this; }
+    AliasDeclaration *isAliasDeclaration();
 };
 
 #endif /* DMD_TEMPLATE_H */

@@ -45,3 +45,7 @@ void Identifier::print()
     printf("%s",string);
 }
 
+int Identifier::dyncast()
+{
+    return DYNCAST_IDENTIFIER;
+}

@@ -326,6 +326,80 @@ void AlignDeclaration::toCBuffer(OutBuffer *buf)
     AttribDeclaration::toCBuffer(buf);
 }
 
+/********************************* PragmaDeclaration ****************************/
+
+PragmaDeclaration::PragmaDeclaration(Identifier *ident, Array *args, Array *decl)
+	: AttribDeclaration(decl)
+{
+    this->ident = ident;
+    this->args = args;
+}
+
+Dsymbol *PragmaDeclaration::syntaxCopy(Dsymbol *s)
+{
+    PragmaDeclaration *pd;
+
+    assert(!s);
+    pd = new PragmaDeclaration(ident,
+	Expression::arraySyntaxCopy(args), Dsymbol::arraySyntaxCopy(decl));
+    return pd;
+}
+
+void PragmaDeclaration::semantic(Scope *sc)
+{
+    //printf("\tPragmaDeclaration::semantic '%s'\n",toChars());
+    if (ident == Id::msg)
+    {
+	if (args)
+	{
+	    for (size_t i = 0; i < args->dim; i++)
+	    {
+		Expression *e = (Expression *)args->data[i];
+
+		e = e->semantic(sc);
+		if (e->op == TOKstring)
+		{
+		    StringExp *se = (StringExp *)e;
+		    printf("%.*s", se->len, se->string);
+		}
+		else
+		    error("string expected for pragma msg, not '%s'", e->toChars());
+	    }
+	    printf("\n");
+	}
+    }
+    else
+	error("unrecognized pragma(%s)", ident->toChars());
+
+    if (decl)
+    {
+	for (unsigned i = 0; i < decl->dim; i++)
+	{
+	    Dsymbol *s = (Dsymbol *)decl->data[i];
+
+	    s->semantic(sc);
+	}
+    }
+}
+
+
+void PragmaDeclaration::toCBuffer(OutBuffer *buf)
+{
+    buf->printf("pragma(%s", ident->toChars());
+    if (args)
+    {
+	for (size_t i = 0; i < args->dim; i++)
+	{
+	    Expression *e = (Expression *)args->data[i];
+
+	    buf->printf(", %s", e->toChars());
+	}
+    }
+    buf->writestring(")");
+    AttribDeclaration::toCBuffer(buf);
+}
+
+
 /********************************* DebugDeclaration ****************************/
 
 DebugDeclaration::DebugDeclaration(Condition *condition, Array *decl, Array *elsedecl)

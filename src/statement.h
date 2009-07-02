@@ -265,6 +265,20 @@ struct ConditionalStatement : Statement
     void toCBuffer(OutBuffer *buf);
 };
 
+struct PragmaStatement : Statement
+{
+    Identifier *ident;
+    Array *args;		// array of Expression's
+    Statement *body;
+
+    PragmaStatement(Loc loc, Identifier *ident, Array *args, Statement *body);
+    Statement *syntaxCopy();
+    Statement *semantic(Scope *sc);
+    int usesEH();
+
+    void toCBuffer(OutBuffer *buf);
+};
+
 struct StaticAssertStatement : Statement
 {
     StaticAssert *sa;
@@ -282,6 +296,7 @@ struct SwitchStatement : Statement
     Statement *body;
     DefaultStatement *sdefault;
 
+    Array gotoCases;		// array of unresolved GotoCaseStatement's
     Array *cases;		// array of CaseStatement's
 
     SwitchStatement(Loc loc, Expression *c, Statement *b);
@@ -300,6 +315,7 @@ struct CaseStatement : Statement
     Expression *exp;
     Statement *statement;
     int index;		// which case it is (since we sort this)
+    block *cblock;	// back end: label for the block
 
     CaseStatement(Loc loc, Expression *exp, Statement *s);
     Statement *syntaxCopy();
@@ -322,6 +338,29 @@ struct DefaultStatement : Statement
     int usesEH();
 
     Statement *inlineScan(InlineScanState *iss);
+
+    void toIR(IRState *irs);
+};
+
+struct GotoDefaultStatement : Statement
+{
+    SwitchStatement *sw;
+
+    GotoDefaultStatement(Loc loc);
+    Statement *syntaxCopy();
+    Statement *semantic(Scope *sc);
+
+    void toIR(IRState *irs);
+};
+
+struct GotoCaseStatement : Statement
+{
+    Expression *exp;		// NULL, or which case to goto
+    CaseStatement *cs;		// case statement it resolves to
+
+    GotoCaseStatement(Loc loc, Expression *exp);
+    Statement *syntaxCopy();
+    Statement *semantic(Scope *sc);
 
     void toIR(IRState *irs);
 };

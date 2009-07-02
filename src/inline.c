@@ -1,5 +1,5 @@
 
-// Copyright (c) 1999-2002 by Digital Mars
+// Copyright (c) 1999-2003 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // www.digitalmars.com
@@ -22,6 +22,7 @@
 struct InlineCostState
 {
     int nested;
+    FuncDeclaration *fd;
 };
 
 const int COST_MAX = 250;
@@ -73,7 +74,7 @@ int IfStatement::inlineCost(InlineCostState *ics)
     {
 	cost += ifbody->inlineCost(ics);
 	cost += elsebody->inlineCost(ics);
-printf("cost = %d\n", cost);
+	//printf("cost = %d\n", cost);
     }
     else
     {
@@ -101,6 +102,28 @@ int Expression::inlineCost(InlineCostState *ics)
     return 1;
 }
 
+int ThisExp::inlineCost(InlineCostState *ics)
+{
+    FuncDeclaration *fd = ics->fd;
+    if (fd->isNested())
+	return COST_MAX;
+    return 1;
+}
+
+int SuperExp::inlineCost(InlineCostState *ics)
+{
+    FuncDeclaration *fd = ics->fd;
+    if (fd->isNested())
+	return COST_MAX;
+    return 1;
+}
+
+int FuncExp::inlineCost(InlineCostState *ics)
+{
+    // Right now, this makes the function be output to the .obj file twice.
+    return COST_MAX;
+}
+
 int DeclarationExp::inlineCost(InlineCostState *ics)
 {   int cost = 0;
     VarDeclaration *vd;
@@ -112,6 +135,14 @@ int DeclarationExp::inlineCost(InlineCostState *ics)
 	    return COST_MAX;
 	cost += 1;		// should scan initializer (vd->init)
     }
+
+    // These can contain functions, which when copied, get output twice.
+    if (declaration->isStructDeclaration() ||
+	declaration->isClassDeclaration() ||
+	declaration->isFuncDeclaration())
+	return COST_MAX;
+
+    //printf("DeclarationExp::inlineCost('%s')\n", toChars());
     return cost;
 }
 
@@ -187,6 +218,9 @@ Expression *Statement::doInline(InlineDoState *ids)
 
 Expression *ExpStatement::doInline(InlineDoState *ids)
 {
+#if LOG
+    if (exp) printf("ExpStatement::doInline() '%s'\n", exp->toChars());
+#endif
     return exp ? exp->doInline(ids) : NULL;
 }
 
@@ -247,10 +281,33 @@ Expression *ReturnStatement::doInline(InlineDoState *ids)
     return exp ? exp->doInline(ids) : 0;
 }
 
-/* -------------------------- */
+/* --------------------------------------------------------------- */
+
+/******************************
+ * Perform doInline() on an array of Expressions.
+ */
+
+Array *arrayExpressiondoInline(Array *a, InlineDoState *ids)
+{   Array *newa = NULL;
+
+    if (a)
+    {
+	newa = new Array();
+	newa->setDim(a->dim);
+
+	for (int i = 0; i < a->dim; i++)
+	{   Expression *e = (Expression *)a->data[i];
+
+	    e = e->doInline(ids);
+	    newa->data[i] = (void *)e;
+	}
+    }
+    return newa;
+}
 
 Expression *Expression::doInline(InlineDoState *ids)
 {
+    //printf("Expression::doInline(%s): %s\n", Token::toChars(op), toChars());
     return copy();
 }
 
@@ -258,6 +315,7 @@ Expression *VarExp::doInline(InlineDoState *ids)
 {
     int i;
 
+    //printf("VarExp::doInline(%s)\n", toChars());
     for (i = 0; i < ids->from.dim; i++)
     {
 	if (var == (Declaration *)ids->from.data[i])
@@ -293,6 +351,7 @@ Expression *DeclarationExp::doInline(InlineDoState *ids)
 {   DeclarationExp *de = (DeclarationExp *)copy();
     VarDeclaration *vd;
 
+    //printf("DeclarationExp::doInline(%s)\n", toChars());
     vd = declaration->isVarDeclaration();
     if (vd)
     {
@@ -324,6 +383,16 @@ Expression *DeclarationExp::doInline(InlineDoState *ids)
     return de;
 }
 
+Expression *NewExp::doInline(InlineDoState *ids)
+{
+    //printf("NewExp::doInline(): %s\n", toChars());
+    NewExp *ne = (NewExp *)copy();
+
+    ne->newargs = arrayExpressiondoInline(ne->newargs, ids);
+    ne->arguments = arrayExpressiondoInline(ne->arguments, ids);
+    return ne;
+}
+
 Expression *UnaExp::doInline(InlineDoState *ids)
 {
     UnaExp *ue = (UnaExp *)copy();
@@ -347,19 +416,7 @@ Expression *CallExp::doInline(InlineDoState *ids)
 
     ce = (CallExp *)copy();
     ce->e1 = e1->doInline(ids);
-    if (arguments)
-    {
-	ce->arguments = new Array();
-	ce->arguments->setDim(arguments->dim);
-
-	for (int i = 0; i < arguments->dim; i++)
-	{
-	    Expression *e = (Expression *)arguments->data[i];
-
-	    e = e->doInline(ids);
-	    ce->arguments->data[i] = (void *)e;
-	}
-    }
+    ce->arguments = arrayExpressiondoInline(arguments, ids);
     return ce;
 }
 
@@ -731,10 +788,29 @@ int FuncDeclaration::canInline()
 	nestedFrameRef ||	// no nested references to this frame
 	(isVirtual() && !isFinal())
        )
+    {
 	goto Lno;
+    }
+
+    /* If any parameters are Tsarray's (which are passed by reference)
+     * or out parameters (also passed by reference), don't do inlining.
+     */
+    if (parameters)
+    {
+	for (int i = 0; i < parameters->dim; i++)
+	{
+	    VarDeclaration *v = (VarDeclaration *)parameters->data[i];
+	    if (v->isOut() || v->type->toBasetype()->ty == Tsarray)
+		goto Lno;
+	}
+    }
+
     memset(&ics, 0, sizeof(ics));
+    ics.fd = this;
     cost = fbody->inlineCost(&ics);
-    //printf("cost = %d\n", cost);
+#if LOG
+    printf("cost = %d\n", cost);
+#endif
     if (cost >= COST_MAX)
 	goto Lno;
 

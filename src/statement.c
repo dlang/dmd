@@ -953,6 +953,70 @@ void ConditionalStatement::toCBuffer(OutBuffer *buf)
 }
 
 
+/******************************** PragmaStatement ***************************/
+
+PragmaStatement::PragmaStatement(Loc loc, Identifier *ident, Array *args, Statement *body)
+    : Statement(loc)
+{
+    this->ident = ident;
+    this->args = args;
+    this->body = body;
+}
+
+Statement *PragmaStatement::syntaxCopy()
+{
+    Statement *b = NULL;
+    if (body)
+	b = body->syntaxCopy();
+    PragmaStatement *s = new PragmaStatement(loc,
+		ident, Expression::arraySyntaxCopy(args), b);
+    return s;
+}
+
+Statement *PragmaStatement::semantic(Scope *sc)
+{
+    if (ident == Id::msg)
+    {
+        if (args)
+        {
+            for (size_t i = 0; i < args->dim; i++)
+            {
+                Expression *e = (Expression *)args->data[i];
+
+                e = e->semantic(sc);
+                if (e->op == TOKstring)
+                {
+                    StringExp *se = (StringExp *)e;
+                    printf("%.*s", se->len, se->string);
+                }
+                else
+                    error("string expected for pragma msg, not '%s'", e->toChars());
+            }
+            printf("\n");
+        }
+    }
+    else
+        error("unrecognized pragma(%s)", ident->toChars());
+
+    if (body)
+    {
+	body = body->semantic(sc);
+    }
+    return body;
+}
+
+int PragmaStatement::usesEH()
+{
+    return body && body->usesEH();
+}
+
+void PragmaStatement::toCBuffer(OutBuffer *buf)
+{
+    buf->printf("PragmaStatement::toCBuffer()");
+    buf->writenl();
+}
+
+
 /******************************** StaticAssertStatement ***************************/
 
 StaticAssertStatement::StaticAssertStatement(StaticAssert *sa)
@@ -1022,6 +1086,34 @@ Statement *SwitchStatement::semantic(Scope *sc)
     body = body->semantic(sc);
     sc->noctor--;
 
+    // Resolve any goto case's with exp
+    for (int i = 0; i < gotoCases.dim; i++)
+    {
+	GotoCaseStatement *gcs = (GotoCaseStatement *)gotoCases.data[i];
+
+	if (!gcs->exp)
+	{
+	    gcs->error("no case statement following goto case;");
+	    break;
+	}
+
+	for (int j = 0; 1; j++)
+	{
+	    if (j == cases->dim)
+	    {
+		gcs->error("case %s not found", gcs->exp->toChars());
+		break;
+	    }
+	    CaseStatement *cs = (CaseStatement *)cases->data[j];
+
+	    if (cs->exp->equals(gcs->exp))
+	    {
+		gcs->cs = cs;
+		break;
+	    }
+	}
+    }
+
     if (!sc->sw->sdefault && global.params.useSwitchError)
     {
 	Array *a = new Array();
@@ -1057,6 +1149,7 @@ CaseStatement::CaseStatement(Loc loc, Expression *exp, Statement *s)
 {
     this->exp = exp;
     this->statement = s;
+    cblock = NULL;
 }
 
 Statement *CaseStatement::syntaxCopy()
@@ -1066,16 +1159,18 @@ Statement *CaseStatement::syntaxCopy()
 }
 
 Statement *CaseStatement::semantic(Scope *sc)
-{
+{   SwitchStatement *sw = sc->sw;
+
     exp = exp->semantic(sc);
-    if (sc->sw)
-    {
-	exp = exp->implicitCastTo(sc->sw->condition->type);
+    if (sw)
+    {	int i;
+
+	exp = exp->implicitCastTo(sw->condition->type);
 	exp = exp->constFold();
 
-	for (int i = 0; i < sc->sw->cases->dim; i++)
+	for (i = 0; i < sw->cases->dim; i++)
 	{
-	    CaseStatement *cs = (CaseStatement *)sc->sw->cases->data[i];
+	    CaseStatement *cs = (CaseStatement *)sw->cases->data[i];
 
 	    if (cs->exp->equals(exp))
 	    {	error("duplicate case %s in switch statement", exp->toChars());
@@ -1083,7 +1178,19 @@ Statement *CaseStatement::semantic(Scope *sc)
 	    }
 	}
 
-	sc->sw->cases->push(this);
+	sw->cases->push(this);
+
+	// Resolve any goto case's with no exp to this case statement
+	for (i = 0; i < sw->gotoCases.dim; i++)
+	{
+	    GotoCaseStatement *gcs = (GotoCaseStatement *)sw->gotoCases.data[i];
+
+	    if (!gcs->exp)
+	    {
+		gcs->cs = this;
+		sw->gotoCases.remove(i);	// remove from array
+	    }
+	}
     }
     else
 	error("case not in switch statement");
@@ -1135,6 +1242,63 @@ Statement *DefaultStatement::semantic(Scope *sc)
 int DefaultStatement::usesEH()
 {
     return statement->usesEH();
+}
+
+/******************************** GotoDefaultStatement ***************************/
+
+GotoDefaultStatement::GotoDefaultStatement(Loc loc)
+    : Statement(loc)
+{
+    sw = NULL;
+}
+
+Statement *GotoDefaultStatement::syntaxCopy()
+{
+    GotoDefaultStatement *s = new GotoDefaultStatement(loc);
+    return s;
+}
+
+Statement *GotoDefaultStatement::semantic(Scope *sc)
+{
+    sw = sc->sw;
+    if (!sw)
+	error("goto default not in switch statement");
+    return this;
+}
+
+/******************************** GotoCaseStatement ***************************/
+
+GotoCaseStatement::GotoCaseStatement(Loc loc, Expression *exp)
+    : Statement(loc)
+{
+    cs = NULL;
+    this->exp = exp;
+}
+
+Statement *GotoCaseStatement::syntaxCopy()
+{
+    Expression *e = exp ? exp->syntaxCopy() : NULL;
+    GotoCaseStatement *s = new GotoCaseStatement(loc, e);
+    return s;
+}
+
+Statement *GotoCaseStatement::semantic(Scope *sc)
+{
+    if (exp)
+	exp = exp->semantic(sc);
+
+    if (!sc->sw)
+	error("goto case not in switch statement");
+    else
+    {
+	sc->sw->gotoCases.push(this);
+	if (exp)
+	{
+	    exp = exp->implicitCastTo(sc->sw->condition->type);
+	    exp = exp->constFold();
+	}
+    }
+    return this;
 }
 
 /******************************** SwitchErrorStatement ***************************/

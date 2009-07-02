@@ -197,6 +197,11 @@ dchar *Object::toDchars()
 #endif
 }
 
+int Object::dyncast()
+{
+    return 0;
+}
+
 void Object::toBuffer(OutBuffer *b)
 {
     b->writestring("Object");

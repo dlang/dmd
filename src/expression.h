@@ -32,6 +32,7 @@ struct InlineScanState;
 struct Expression;
 struct Declaration;
 struct AggregateDeclaration;
+struct TemplateInstance;
 
 // Back end
 struct IRState;
@@ -54,7 +55,7 @@ struct Expression : Object
     virtual Expression *syntaxCopy();
     virtual Expression *semantic(Scope *sc);
 
-    int compare(Object *o) { return 5; }	// kludge for template.isExpression()
+    int dyncast() { return DYNCAST_EXPRESSION; }	// kludge for template.isExpression()
 
     void print();
     char *toChars();
@@ -197,6 +198,18 @@ struct IdentifierExp : Expression
     Expression *toLvalue();
 };
 
+struct DsymbolExp : Expression
+{
+    Dsymbol *s;
+
+    DsymbolExp(Loc loc, Dsymbol *s);
+    Expression *semantic(Scope *sc);
+    char *toChars();
+    void dump(int indent);
+    void toCBuffer(OutBuffer *buf);
+    Expression *toLvalue();
+};
+
 struct ThisExp : Expression
 {
     Declaration *var;
@@ -207,7 +220,7 @@ struct ThisExp : Expression
     void toCBuffer(OutBuffer *buf);
     Expression *toLvalue();
 
-    //int inlineCost(InlineCostState *ics);
+    int inlineCost(InlineCostState *ics);
     Expression *doInline(InlineDoState *ids);
     //Expression *inlineScan(InlineScanState *iss);
 
@@ -220,7 +233,7 @@ struct SuperExp : ThisExp
     Expression *semantic(Scope *sc);
     void toCBuffer(OutBuffer *buf);
 
-    //int inlineCost(InlineCostState *ics);
+    int inlineCost(InlineCostState *ics);
     Expression *doInline(InlineDoState *ids);
     //Expression *inlineScan(InlineScanState *iss);
 };
@@ -296,6 +309,10 @@ struct NewExp : Expression
     Expression *semantic(Scope *sc);
     elem *toElem(IRState *irs);
     void toCBuffer(OutBuffer *buf);
+
+    //int inlineCost(InlineCostState *ics);
+    Expression *doInline(InlineDoState *ids);
+    //Expression *inlineScan(InlineScanState *iss);
 };
 
 // Offset from symbol
@@ -321,6 +338,7 @@ struct VarExp : Expression
     Declaration *var;
 
     VarExp(Loc loc, Declaration *var);
+    int equals(Object *o);
     Expression *semantic(Scope *sc);
     void dump(int indent);
     char *toChars();
@@ -346,7 +364,7 @@ struct FuncExp : Expression
     void toCBuffer(OutBuffer *buf);
     elem *toElem(IRState *irs);
 
-    //int inlineCost(InlineCostState *ics);
+    int inlineCost(InlineCostState *ics);
     //Expression *doInline(InlineDoState *ids);
     //Expression *inlineScan(InlineScanState *iss);
 };
@@ -443,6 +461,16 @@ struct DotVarExp : UnaExp
     void toCBuffer(OutBuffer *buf);
     void dump(int indent);
     elem *toElem(IRState *irs);
+};
+
+struct DotTemplateInstanceExp : UnaExp
+{
+    TemplateInstance *ti;
+
+    DotTemplateInstanceExp(Loc loc, Expression *e, TemplateInstance *ti);
+    Expression *semantic(Scope *sc);
+    void toCBuffer(OutBuffer *buf);
+    void dump(int indent);
 };
 
 struct DelegateExp : UnaExp

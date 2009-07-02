@@ -27,6 +27,7 @@ struct Identifier : Object
     int compare(Object *o);
     void print();
     char *toChars();
+    int dyncast();
 };
 
 #endif /* DMD_IDENTIFIER_H */

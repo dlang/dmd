@@ -34,6 +34,18 @@ char *Import::kind()
     return "import";
 }
 
+
+Dsymbol *Import::syntaxCopy(Dsymbol *s)
+{
+    assert(!s);
+
+    Import *si;
+
+    si = new Import(loc, packages, id);
+    return si;
+}
+
+
 void Import::semantic(Scope *sc)
 {
     DsymbolTable *dst;

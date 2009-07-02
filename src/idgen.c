@@ -41,6 +41,8 @@ Msgtable msgtable[] =
     { "staticDtor", "_staticDtor" },
     { "init" },
     { "size" },
+    { "__sizeof", "sizeof" },
+    { "alignof" },
     { "length" },
     { "offset" },
     { "ModuleInfo" },
@@ -175,6 +177,9 @@ Msgtable msgtable[] =
 
     // For foreach
     { "apply", "opApply" },
+
+    // For pragma's
+    { "msg" },
 };
 
 

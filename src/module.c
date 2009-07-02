@@ -146,7 +146,7 @@ Module *Module::load(Loc loc, Array *packages, Identifier *ident)
 
 void Module::read()
 {
-    //printf("Module::read() file '%s'\n",srcfile->toChars());
+    //printf("Module::read('%s') file '%s'\n", toChars(), srcfile->toChars());
     srcfile->readv();
 }
 

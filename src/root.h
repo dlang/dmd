@@ -81,9 +81,16 @@ struct Object
     virtual void toBuffer(OutBuffer *buf);
 
     /**
+     * Used as a replacement for dynamic_cast. Returns a unique number
+     * defined by the library user. For Object, the return value is 0.
+     */
+    virtual int dyncast();
+
+    /**
      * Marks pointers for garbage collector by calling mem.mark() for all pointers into heap.
      */
-    virtual void mark();
+    /*virtual*/		// not used, disable for now
+	void mark();
 };
 
 struct String : Object

@@ -1,5 +1,5 @@
 
-// Copyright (c) 1999-2002 by Digital Mars
+// Copyright (c) 1999-2003 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // www.digitalmars.com
@@ -14,6 +14,7 @@
 #include "mars.h"
 #include "mtype.h"
 #include "expression.h"
+#include "template.h"
 
 static void indent(int indent)
 {
@@ -46,6 +47,12 @@ void IdentifierExp::dump(int i)
     printf("%p %s type=%s\n", this, ident->toChars(), type_print(type));
 }
 
+void DsymbolExp::dump(int i)
+{
+    indent(i);
+    printf("%p %s type=%s\n", this, s->toChars(), type_print(type));
+}
+
 void VarExp::dump(int i)
 {
     indent(i);
@@ -64,6 +71,14 @@ void DotVarExp::dump(int i)
 {
     indent(i);
     printf("%p %s type=%s var='%s' e1=%p\n", this, Token::toChars(op), type_print(type), var->toChars(), e1);
+    if (e1)
+	e1->dump(i + 2);
+}
+
+void DotTemplateInstanceExp::dump(int i)
+{
+    indent(i);
+    printf("%p %s type=%s ti='%s' e1=%p\n", this, Token::toChars(op), type_print(type), ti->toChars(), e1);
     if (e1)
 	e1->dump(i + 2);
 }

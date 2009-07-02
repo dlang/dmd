@@ -82,6 +82,16 @@ struct AlignDeclaration : AttribDeclaration
     void toCBuffer(OutBuffer *buf);
 };
 
+struct PragmaDeclaration : AttribDeclaration
+{   Identifier *ident;
+    Array *args;		// array of Expression's
+
+    PragmaDeclaration(Identifier *ident, Array *args, Array *decl);
+    Dsymbol *syntaxCopy(Dsymbol *s);
+    void semantic(Scope *sc);
+    void toCBuffer(OutBuffer *buf);
+};
+
 struct DebugDeclaration : AttribDeclaration
 {
     Condition *condition;

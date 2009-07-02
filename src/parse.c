@@ -292,6 +292,31 @@ Array *Parser::parseDeclDefs(int once)
 		break;
 	    }
 
+	    case TOKpragma:
+	    {	Identifier *ident;
+		Array *args = NULL;
+
+		nextToken();
+		check(TOKlparen);
+		if (token.value != TOKidentifier)
+		{   error("pragma(identifier expected");
+		    goto Lerror;
+		}
+		ident = token.ident;
+		nextToken();
+		if (token.value == TOKcomma)
+		    args = parseArguments();	// pragma(identifier, args...)
+		else
+		    check(TOKrparen);		// pragma(identifier)
+
+		if (token.value == TOKsemicolon)
+		    a = NULL;
+		else
+		    a = parseBlock();
+		s = new PragmaDeclaration(ident, args, a);
+		break;
+	    }
+
 	    case TOKextern:
 	    {	enum LINK link = LINKdefault;
 		enum LINK linksave;
@@ -432,6 +457,7 @@ Array *Parser::parseDeclDefs(int once)
 
 	    default:
 		error("Declaration expected, not '%s'\n",token.toChars());
+	    Lerror:
 		while (token.value != TOKsemicolon && token.value != TOKeof)
 		    nextToken();
 		nextToken();
@@ -845,10 +871,11 @@ EnumDeclaration *Parser::parseEnum()
     return e;
 }
 
-AggregateDeclaration *Parser::parseAggregate()
+Dsymbol *Parser::parseAggregate()
 {   AggregateDeclaration *a;
     enum TOK tok;
     Identifier *id;
+    Array *tpl = NULL;
 
     //printf("Parser::parseAggregate()\n");
     tok = token.value;
@@ -859,6 +886,13 @@ AggregateDeclaration *Parser::parseAggregate()
     else
     {	id = token.ident;
 	nextToken();
+    }
+
+    if (token.value == TOKlparen)
+    {	// Class template declaration.
+
+	// Gather template parameter list
+	tpl = parseTemplateParameterList();
     }
 
     switch (tok)
@@ -939,6 +973,17 @@ AggregateDeclaration *Parser::parseAggregate()
 	nextToken();
     }
 
+    if (tpl)
+    {	Array *decldefs;
+	TemplateDeclaration *tempdecl;
+
+	// Wrap a template around the aggregate declaration
+	decldefs = new Array();
+	decldefs->push(a);
+	tempdecl = new TemplateDeclaration(loc, id, tpl, decldefs);
+	return tempdecl;
+    }
+
     return a;
 }
 
@@ -961,66 +1006,9 @@ TemplateDeclaration *Parser::parseTemplateDeclaration()
     }
     id = token.ident;
     nextToken();
-    if (token.value != TOKlparen)
-    {   error("parenthesized TemplateParameterList expected following TemplateIdentifier '%s'", id->toChars());
+    tpl = parseTemplateParameterList();
+    if (!tpl)
 	goto Lerr;
-    }
-    tpl = new Array();
-    nextToken();
-
-    // Get TemplateParameterList
-    if (token.value != TOKrparen)
-    {
-	while (1)
-	{   TemplateParameter *tp;
-	    Identifier *tp_ident = NULL;
-	    Type *tp_spectype = NULL;
-	    Type *tp_valtype = NULL;
-	    Expression *tp_specvalue = NULL;
-	    Token *t;
-
-	    // Get TemplateParameter
-
-	    // First, look ahead to see if it is a TypeParameter or a ValueParameter
-	    t = peek(&token);
-	    if (t->value == TOKcolon || t->value == TOKcomma || t->value == TOKrparen)
-	    {	// TypeParameter
-		if (token.value != TOKidentifier)
-		{   error("Identifier expected for template parameter");
-		    goto Lerr;
-		}
-		tp_ident = token.ident;
-		nextToken();
-		if (token.value == TOKcolon)	// : Type
-		{
-		    nextToken();
-		    tp_spectype = parseBasicType();
-		    tp_spectype = parseDeclarator(tp_spectype, NULL);
-		}
-	    }
-	    else
-	    {	// ValueParameter
-		tp_valtype = parseBasicType();
-		tp_valtype = parseDeclarator(tp_valtype, &tp_ident);
-		if (!tp_ident)
-		{
-		    error("no identifier for template value parameter");
-		    goto Lerr;
-		}
-		if (token.value == TOKcolon)	// : AssignExpression
-		{
-		    nextToken();
-		    tp_specvalue = parseAssignExp();
-		}
-	    }
-	    tp = new TemplateParameter(tp_ident, tp_spectype, tp_valtype, tp_specvalue);
-	    tpl->push(tp);
-	    if (token.value != TOKcomma)
-		break;
-	    nextToken();
-	}
-    }
-    check(TOKrparen);
 
     if (token.value != TOKlcurly)
     {	error("members of template declaration expected");
@@ -1044,6 +1032,91 @@ Lerr:
     return NULL;
 }
 
+/******************************************
+ * Parse template parameter list.
+ */
+
+Array *Parser::parseTemplateParameterList()
+{
+    Array *tpl;
+
+    if (token.value != TOKlparen)
+    {   error("parenthesized TemplateParameterList expected following TemplateIdentifier");
+	goto Lerr;
+    }
+    tpl = new Array();
+    nextToken();
+
+    // Get TemplateParameterList
+    if (token.value != TOKrparen)
+    {
+	while (1)
+	{   TemplateParameter *tp;
+	    Identifier *tp_ident = NULL;
+	    Type *tp_spectype = NULL;
+	    Type *tp_valtype = NULL;
+	    Expression *tp_specvalue = NULL;
+	    Token *t;
+
+	    // Get TemplateParameter
+
+	    // First, look ahead to see if it is a TypeParameter or a ValueParameter
+	    t = peek(&token);
+	    if (token.value == TOKalias)
+	    {	// AliasParameter
+		nextToken();
+		if (token.value != TOKidentifier)
+		{   error("Identifier expected for template parameter");
+		    goto Lerr;
+		}
+		tp_ident = token.ident;
+		nextToken();
+		tp = new TemplateParameter(tp_ident);
+	    }
+	    else if (t->value == TOKcolon || t->value == TOKcomma || t->value == TOKrparen)
+	    {	// TypeParameter
+		if (token.value != TOKidentifier)
+		{   error("Identifier expected for template parameter");
+		    goto Lerr;
+		}
+		tp_ident = token.ident;
+		nextToken();
+		if (token.value == TOKcolon)	// : Type
+		{
+		    nextToken();
+		    tp_spectype = parseBasicType();
+		    tp_spectype = parseDeclarator(tp_spectype, NULL);
+		}
+		tp = new TemplateParameter(tp_ident, tp_spectype);
+	    }
+	    else
+	    {	// ValueParameter
+		tp_valtype = parseBasicType();
+		tp_valtype = parseDeclarator(tp_valtype, &tp_ident);
+		if (!tp_ident)
+		{
+		    error("no identifier for template value parameter");
+		    goto Lerr;
+		}
+		if (token.value == TOKcolon)	// : AssignExpression
+		{
+		    nextToken();
+		    tp_specvalue = parseAssignExp();
+		}
+		tp = new TemplateParameter(tp_ident, tp_valtype, tp_specvalue);
+	    }
+	    tpl->push(tp);
+	    if (token.value != TOKcomma)
+		break;
+	    nextToken();
+	}
+    }
+    check(TOKrparen);
+    return tpl;
+
+Lerr:
+    return NULL;
+}
 
 /**************************************
  * Parse a TemplateInstance.
@@ -1079,9 +1152,27 @@ TemplateInstance *Parser::parseTemplateInstance()
 	}
 	nextToken();
     }
+    parseTemplateArgumentList(tempinst);
+
+    return tempinst;
+
+Lerr:
+    return NULL;
+}
+
+/******************************************
+ * Parse template argument list.
+ * Input:
+ * 	current token is opening '('
+ * Output:
+ *	current token is one after closing ')'
+ */
+
+void Parser::parseTemplateArgumentList(TemplateInstance *tempinst)
+{
     if (token.value != TOKlparen)
-    {   error("parenthesized TemplateArgumentList expected following TemplateIdentifier");
-	goto Lerr;
+    {   error("parenthesized TemplateArgumentList expected following TemplateIdentifier %s", tempinst->ident->toChars());
+	return;
     }
     nextToken();
 
@@ -1112,14 +1203,8 @@ TemplateInstance *Parser::parseTemplateInstance()
 	    nextToken();
 	}
     }
-    check(TOKrparen);
-
-    return tempinst;
-
-Lerr:
-    return NULL;
+    check(TOKrparen, "template argument list");
 }
-
 
 Import *Parser::parseImport(Array *decldefs)
 {   Import *s;
@@ -1170,6 +1255,8 @@ Import *Parser::parseImport(Array *decldefs)
 Type *Parser::parseBasicType()
 {   Type *t;
     Identifier *id;
+    TypeQualified *tid;
+    TemplateInstance *tempinst;
 
     //printf("parseBasicType()\n");
     switch (token.value)
@@ -1181,54 +1268,64 @@ Type *Parser::parseBasicType()
 	case TOKidentifier:
 	    id = token.ident;
 	    nextToken();
+	    if (token.value == TOKnot)
+	    {
+		nextToken();
+		tempinst = new TemplateInstance(id);
+		parseTemplateArgumentList(tempinst);
+		tid = new TypeInstance(loc, tempinst);
+		goto Lident2;
+	    }
 	Lident:
-	{
-	    TypeIdentifier *ti;
-
-	    ti = new TypeIdentifier(loc, id);
+	    tid = new TypeIdentifier(loc, id);
+	Lident2:
 	    while (token.value == TOKdot)
 	    {	nextToken();
-		if (token.value == TOKidentifier)
-		    ti->addIdent(token.ident);
-		else
+		if (token.value != TOKidentifier)
 		{   error("identifier expected following '.' instead of '%s'", token.toChars());
 		    break;
 		}
+		id = token.ident;
 		nextToken();
+		if (token.value == TOKnot)
+		{
+		    nextToken();
+		    tempinst = new TemplateInstance(id);
+		    parseTemplateArgumentList(tempinst);
+		    tid->addIdent((Identifier *)tempinst);
+		}
+		else
+		    tid->addIdent(id);
 	    }
-	    t = ti;
+	    t = tid;
 	    break;
-	}
 
 	case TOKdot:
 	    id = Id::empty;
 	    goto Lident;
 
 	case TOKinstance:
-	{   TemplateInstance *tempinst;
-	    TypeInstance *ti;
-
+	{
 	    tempinst = parseTemplateInstance();
 	    if (!tempinst)		// if error
 	    {	t = Type::tvoid;
 		break;
 	    }
 
-	    ti = new TypeInstance(loc, tempinst);
-	    while (token.value == TOKdot)
-	    {	nextToken();
-		if (token.value == TOKidentifier)
-		{   //printf("adding ident '%s'\n", token.ident->toChars());
-		    ti->addIdent(token.ident);
-		}
-		else
-		{   error("identifier expected following '.' instead of '%s'", token.toChars());
-		    break;
-		}
-		nextToken();
-	    }
-	    t = ti;
-	    break;
+	    tid = new TypeInstance(loc, tempinst);
+	    goto Lident2;
+	}
+
+	case TOKtypeof:
+	{   Expression *exp;
+	    TypeTypeof *tt;
+
+	    nextToken();
+	    check(TOKlparen);
+	    exp = parseExpression();
+	    check(TOKrparen);
+	    tid = new TypeTypeof(loc, exp);
+	    goto Lident2;
 	}
 
 	default:
@@ -1829,7 +1926,7 @@ Initializer *Parser::parseInitializer()
 			is->addInit(NULL, value);
 			comma = 1;
 			continue;
-			//error("found %s instead of field initializer", token.toChars());
+			//error("found '%s' instead of field initializer", token.toChars());
 			//break;
 		}
 		break;
@@ -1885,7 +1982,7 @@ Initializer *Parser::parseInitializer()
 			break;
 
 		    case TOKeof:
-			error("found %s instead of array initializer", token.toChars());
+			error("found '%s' instead of array initializer", token.toChars());
 			break;
 		}
 		break;
@@ -1934,17 +2031,9 @@ Statement *Parser::parseStatement(int flags)
 	    // fallthrough to TOKdot
 	case TOKdot:
 	    if (isDeclaration(&token, 2, TOKreserved, NULL))
-	    {
 		goto Ldeclaration;
-
-	    }
 	    else
-	    {   Expression *exp;
-
-		exp = parseExpression();
-		check(TOKsemicolon);
-		s = new ExpStatement(loc, exp);
-	    }
+		goto Lexp;
 	    break;
 
 	case TOKassert:
@@ -1984,7 +2073,7 @@ Statement *Parser::parseStatement(int flags)
 	{   Expression *exp;
 
 	    exp = parseExpression();
-	    check(TOKsemicolon);
+	    check(TOKsemicolon, "statement");
 	    s = new ExpStatement(loc, exp);
 	    break;
 	}
@@ -2041,6 +2130,7 @@ Statement *Parser::parseStatement(int flags)
 	case TOKalias:
 	case TOKconst:
 	case TOKauto:
+	case TOKtypeof:
 	Ldeclaration:
 	{   Array *a;
 
@@ -2163,7 +2253,7 @@ Statement *Parser::parseStatement(int flags)
 	    else
 	    {
 		condition = parseExpression();
-		check(TOKsemicolon);
+		check(TOKsemicolon, "for condition");
 	    }
 	    if (token.value == TOKrparen)
 	    {	increment = NULL;
@@ -2298,6 +2388,28 @@ Statement *Parser::parseStatement(int flags)
 	    break;
 	}
 
+	case TOKpragma:
+	{   Identifier *ident;
+	    Array *args = NULL;
+	    Statement *body;
+
+	    nextToken();
+	    check(TOKlparen);
+	    if (token.value != TOKidentifier)
+	    {   error("pragma(identifier expected");
+		goto Lerror;
+	    }
+	    ident = token.ident;
+	    nextToken();
+	    if (token.value == TOKcomma)
+		args = parseArguments();	// pragma(identifier, args...);
+	    else
+		check(TOKrparen);		// pragma(identifier);
+	    body = parseStatement(PSsemi);
+	    s = new PragmaStatement(loc, ident, args, body);
+	    break;
+	}
+
 	case TOKswitch:
 	{   Expression *condition;
 	    Statement *body;
@@ -2314,9 +2426,16 @@ Statement *Parser::parseStatement(int flags)
 	case TOKcase:
 	{   Expression *exp;
 	    Array *statements;
+	    Array cases;	// array of Expression's
 
-	    nextToken();
-	    exp = parseExpression();
+	    while (1)
+	    {
+		nextToken();
+		exp = parseAssignExp();
+		cases.push(exp);
+		if (token.value != TOKcomma)
+		    break;
+	    }
 	    check(TOKcolon);
 
 	    statements = new Array();
@@ -2328,7 +2447,13 @@ Statement *Parser::parseStatement(int flags)
 	    }
 	    s = new CompoundStatement(loc, statements);
 	    s = new ScopeStatement(loc, s);
-	    s = new CaseStatement(loc, exp, s);
+
+	    // Keep cases in order by building the case statements backwards
+	    for (int i = cases.dim; i; i--)
+	    {
+		exp = (Expression *)cases.data[i - 1];
+		s = new CaseStatement(loc, exp, s);
+	    }
 	    break;
 	}
 
@@ -2360,7 +2485,7 @@ Statement *Parser::parseStatement(int flags)
 		exp = NULL;
 	    else
 		exp = parseExpression();
-	    check(TOKsemicolon);
+	    check(TOKsemicolon, "return statement");
 	    s = new ReturnStatement(loc, exp);
 	    break;
 	}
@@ -2375,7 +2500,7 @@ Statement *Parser::parseStatement(int flags)
 	    }
 	    else
 		ident = NULL;
-	    check(TOKsemicolon);
+	    check(TOKsemicolon, "break statement");
 	    s = new BreakStatement(loc, ident);
 	    break;
 	}
@@ -2390,7 +2515,7 @@ Statement *Parser::parseStatement(int flags)
 	    }
 	    else
 		ident = NULL;
-	    check(TOKsemicolon);
+	    check(TOKsemicolon, "continue statement");
 	    s = new ContinueStatement(loc, ident);
 	    break;
 	}
@@ -2399,16 +2524,33 @@ Statement *Parser::parseStatement(int flags)
 	{   Identifier *ident;
 
 	    nextToken();
-	    if (token.value != TOKidentifier)
-	    {	error("Identifier expected following goto");
-		ident = NULL;
+	    if (token.value == TOKdefault)
+	    {
+		nextToken();
+		s = new GotoDefaultStatement(loc);
+	    }
+	    else if (token.value == TOKcase)
+	    {
+		Expression *exp = NULL;
+
+		nextToken();
+		if (token.value != TOKsemicolon)
+		    exp = parseExpression();
+		s = new GotoCaseStatement(loc, exp);
 	    }
 	    else
-	    {	ident = token.ident;
-		nextToken();
+	    {
+		if (token.value != TOKidentifier)
+		{   error("Identifier expected following goto");
+		    ident = NULL;
+		}
+		else
+		{   ident = token.ident;
+		    nextToken();
+		}
+		s = new GotoStatement(loc, ident);
 	    }
-	    check(TOKsemicolon);
-	    s = new GotoStatement(loc, ident);
+	    check(TOKsemicolon, "goto statement");
 	    break;
 	}
 
@@ -2500,7 +2642,7 @@ Statement *Parser::parseStatement(int flags)
 
 	    nextToken();
 	    exp = parseExpression();
-	    check(TOKsemicolon);
+	    check(TOKsemicolon, "throw statement");
 	    s = new ThrowStatement(loc, exp);
 	    break;
 	}
@@ -2595,6 +2737,7 @@ Statement *Parser::parseStatement(int flags)
 
 	default:
 	    error("found '%s' instead of statement", token.toChars());
+	Lerror:
 	    while (token.value != TOKsemicolon && token.value != TOKeof)
 		nextToken();
 	    nextToken();
@@ -2609,6 +2752,14 @@ void Parser::check(enum TOK value)
 {
     if (token.value != value)
 	error("found '%s' when expecting '%s'", token.toChars(), Token::toChars(value));
+    nextToken();
+}
+
+void Parser::check(enum TOK value, char *string)
+{
+    if (token.value != value)
+	error("found '%s' when expecting '%s' following '%s'",
+	    token.toChars(), Token::toChars(value), string);
     nextToken();
 }
 
@@ -2644,6 +2795,7 @@ int Parser::isBasicType(Token **pt)
     // This code parallels parseBasicType()
     Token *t = *pt;
     Token *t2;
+    int parens;
 
     switch (t->value)
     {
@@ -2652,14 +2804,31 @@ int Parser::isBasicType(Token **pt)
 	    break;
 
 	case TOKidentifier:
+	    t = peek(t);
+	    if (t->value == TOKnot)
+	    {
+		goto L4;
+	    }
+	    goto L3;
 	    while (1)
 	    {
+	L2:
 		t = peek(t);
+	L3:
 		if (t->value == TOKdot)
 		{
 	Ldot:
 		    t = peek(t);
 		    if (t->value != TOKidentifier)
+			goto Lfalse;
+		    t = peek(t);
+		    if (t->value != TOKnot)
+			goto L3;
+	L4:
+		    t = peek(t);
+		    if (t->value != TOKlparen)
+			goto Lfalse;
+		    if (!skipParens(t, &t))
 			goto Lfalse;
 		}
 		else
@@ -2681,6 +2850,16 @@ int Parser::isBasicType(Token **pt)
 	    if (t->value == TOKdot)
 		goto Ldot;
 	    goto Lfalse;
+
+	case TOKtypeof:
+	    /* typeof(exp).identifier...
+	     */
+	    t = peek(t);
+	    if (t->value != TOKlparen)
+		goto Lfalse;
+	    if (!skipParens(t, &t))
+		goto Lfalse;
+	    goto L2;
 
 	default:
 	    goto Lfalse;
@@ -2923,23 +3102,19 @@ int Parser::isTemplateInstance(Token *t, Token **pt)
 
     // Skip over the template arguments
     while (1)
-    {   int parencnt = 0;
-
+    {
 	while (1)
 	{
 	    t = peek(t);
 	    switch (t->value)
 	    {
 		case TOKlparen:
-		    ++parencnt;
+		    if (!skipParens(t, &t))
+			goto Lfalse;
 		    continue;
 		case TOKrparen:
-		    if (--parencnt < 0)
-			break;
-		    continue;
+		    break;
 		case TOKcomma:
-		    if (parencnt)
-			continue;
 		    break;
 		case TOKeof:
 		case TOKsemicolon:
@@ -2964,19 +3139,80 @@ Lfalse:
     return 0;
 }
 
+/*******************************************
+ * Skip parens, brackets.
+ * Input:
+ *	t is on opening (
+ * Output:
+ *	*pt is set to closing token, which is ')' on success
+ * Returns:
+ *	!=0	successful
+ *	0	some parsing error
+ */
+
+int Parser::skipParens(Token *t, Token **pt)
+{
+    int parens = 0;
+
+    while (1)
+    {
+	switch (t->value)
+	{
+	    case TOKlparen:
+		parens++;
+		break;
+
+	    case TOKrparen:
+		parens--;
+		if (parens < 0)
+		    goto Lfalse;
+		if (parens == 0)
+		    goto Ldone;
+		break;
+
+	    case TOKeof:
+	    case TOKsemicolon:
+		goto Lfalse;
+
+	     default:
+		break;
+	}
+	t = peek(t);
+    }
+
+  Ldone:
+    if (*pt)
+	*pt = t;
+    return 1;
+
+  Lfalse:
+    return 0;
+}
 
 /********************************* Expression Parser ***************************/
 
 Expression *Parser::parsePrimaryExp()
 {   Expression *e;
     Type *t;
+    Identifier *id;
     Loc loc = this->loc;
 
     switch (token.value)
     {
 	case TOKidentifier:
-	    e = new IdentifierExp(loc, token.ident);
+	    id = token.ident;
 	    nextToken();
+	    if (token.value == TOKnot)
+	    {	// identifier!(template-argument-list)
+		TemplateInstance *tempinst;
+
+		tempinst = new TemplateInstance(id);
+		nextToken();
+		parseTemplateArgumentList(tempinst);
+		e = new ScopeExp(loc, tempinst);
+	    }
+	    else
+		e = new IdentifierExp(loc, id);
 	    break;
 
 	case TOKdot:
@@ -3106,18 +3342,30 @@ Expression *Parser::parsePrimaryExp()
 
 	CASE_BASIC_TYPES_X(t):
 	    nextToken();
-	    check(TOKdot);
+	L1:
+	    check(TOKdot, t->toChars());
 	    if (token.value != TOKidentifier)
-	    {   error("Identifier expected following struct");
-		return NULL;
+	    {   error("found '%s' when expecting identifier following '%s.'", token.toChars(), t->toChars());
+		goto Lerr;
 	    }
 	    e = new TypeDotIdExp(loc, t, token.ident);
 	    nextToken();
 	    break;
 
-	case TOKassert:
+	case TOKtypeof:
+	{   Expression *exp;
+
 	    nextToken();
 	    check(TOKlparen);
+	    exp = parseExpression();
+	    check(TOKrparen);
+	    t = new TypeTypeof(loc, exp);
+	    goto L1;
+	}
+
+	case TOKassert:
+	    nextToken();
+	    check(TOKlparen, "assert");
 	    e = parseAssignExp();
 	    check(TOKrparen);
 	    e = new AssertExp(loc, e);
@@ -3125,23 +3373,11 @@ Expression *Parser::parsePrimaryExp()
 
 	case TOKinstance:
 	{   TemplateInstance *tempinst;
-	    TypeInstance *ti;
 
 	    tempinst = parseTemplateInstance();
 	    if (!tempinst)
 		return NULL;
 	    e = new ScopeExp(loc, tempinst);
-#if 0
-	    ti = new TypeInstance(loc, tempinst);
-	    check(TOKdot);
-	    if (token.value != TOKidentifier)
-	    {   error("Identifier expected following struct");
-		return NULL;
-	    }
-	    ti->addIdent(token.ident);
-	    e = new TypeExp(loc, ti);
-	    nextToken();
-#endif
 	    break;
 	}
 
@@ -3175,7 +3411,9 @@ Expression *Parser::parsePrimaryExp()
 
 	default:
 	    error("expression expected, not '%s'", token.toChars());
-	    e = NULL;
+	Lerr:
+	    // Anything for e, as long as it's not NULL
+	    e = new IntegerExp(loc, 0, Type::tint32);
 	    nextToken();
 	    break;
     }
@@ -3194,11 +3432,26 @@ Expression *Parser::parsePostExp(Expression *e)
 	    case TOKdot:
 		nextToken();
 		if (token.value == TOKidentifier)
-		    e = new DotIdExp(loc, e, token.ident);
+		{   Identifier *id = token.ident;
+
+		    nextToken();
+		    if (token.value == TOKnot)
+		    {   // identifier!(template-argument-list)
+			TemplateInstance *tempinst;
+
+			tempinst = new TemplateInstance(id);
+			nextToken();
+			parseTemplateArgumentList(tempinst);
+			e = new DotTemplateInstanceExp(loc, e, tempinst);
+		    }
+		    else
+			e = new DotIdExp(loc, e, id);
+		    continue;
+		}
 		else
 		    error("identifier expected following '.', not '%s'", token.toChars());
 		break;
-
+#if 0
 	    case TOKarrow:
 		nextToken();
 		if (token.value == TOKidentifier)
@@ -3206,6 +3459,7 @@ Expression *Parser::parsePostExp(Expression *e)
 		else
 		    error("identifier expected following '->', not '%s'", token.toChars());
 		break;
+#endif
 
 	    case TOKplusplus:
 		e = new PostIncExp(loc, e);
@@ -3320,7 +3574,7 @@ Expression *Parser::parseUnaryExp()
 	case TOKnew:
 	{   Type *t;
 	    Array *newargs;
-	    Array *arguments;
+	    Array *arguments = NULL;
 
 	    nextToken();
 	    newargs = NULL;
@@ -3341,10 +3595,10 @@ Expression *Parser::parseUnaryExp()
 		    TypeIdentifier *ti = (TypeIdentifier *)index;
 		    int i;
 		    Expression *e;
-		    Identifier *id = (Identifier *)ti->idents.data[0];
+		    Identifier *id = ti->ident;
 
 		    e = new IdentifierExp(loc, id);
-		    for (i = 1; i < ti->idents.dim; i++)
+		    for (i = 0; i < ti->idents.dim; i++)
 		    {
 			id = (Identifier *)ti->idents.data[i];
 			e = new DotIdExp(loc, e, id);
@@ -3369,7 +3623,7 @@ Expression *Parser::parseUnaryExp()
 		arguments->push(e);
 		t = new TypeDArray(t->next);
 	    }
-	    else
+	    else if (token.value == TOKlparen)
 	    {
 		arguments = parseArguments();
 	    }
@@ -3391,7 +3645,7 @@ Expression *Parser::parseUnaryExp()
 		t = parseDeclarator(t, NULL);
 		t = new TypeDArray(t);
 	    }
-	    else
+	    else if (token.value == TOKlparen)
 		arguments = parseArguments();
 #endif
 	    e = new NewExp(loc, newargs, t, arguments);
@@ -3415,6 +3669,7 @@ Expression *Parser::parseUnaryExp()
 		{   error("Identifier expected following cast(type).");
 		    return NULL;
 		}
+		// cast(type).ident
 		e = new TypeDotIdExp(loc, t, token.ident);
 		nextToken();
 	    }
@@ -3472,7 +3727,8 @@ Expression *Parser::parseUnaryExp()
 		    case TOKadd:
 		    case TOKfunction:
 		    case TOKdelegate:
-		    CASE_BASIC_TYPES:
+		    case TOKtypeof:
+		    CASE_BASIC_TYPES:		// (type)int.size
 		    {	// (type) una_exp
 			Type *t;
 
@@ -3511,6 +3767,7 @@ Expression *Parser::parseUnaryExp()
 	    e = parsePrimaryExp();
 	    break;
     }
+    assert(e);
     return e;
 }
 
@@ -3816,7 +4073,7 @@ Array *Parser::parseArguments()
     Expression *arg;
 
     arguments = new Array();
-    if (token.value == TOKlparen)
+    //if (token.value == TOKlparen)
     {
 	nextToken();
 	if (token.value != TOKrparen)

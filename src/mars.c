@@ -38,9 +38,9 @@ Global::Global()
 #error "fix this"
 #endif
 
-    copyright = "Copyright (c) 1999-2003 by Digital Mars";
+    copyright = "Copyright (c) 1999-2004 by Digital Mars";
     written = "written by Walter Bright";
-    version = "v0.76";
+    version = "v0.77";
     global.structalign = 8;
 
     memset(&params, 0, sizeof(Param));
@@ -179,8 +179,9 @@ int main(int argc, char *argv[])
     // Predefine version identifiers
     VersionCondition::addIdent("DigitalMars");
 #if _WIN32
+    VersionCondition::addIdent("Windows");
     VersionCondition::addIdent("Win32");
-#endif /* _WIN32 */
+#endif
 #if linux
     VersionCondition::addIdent("linux");
 #endif /* linux */
@@ -305,6 +306,8 @@ int main(int argc, char *argv[])
 		global.params.debugr = 1;
 	    else if (strcmp(p + 1, "-x") == 0)
 		global.params.debugx = 1;
+	    else if (strcmp(p + 1, "-y") == 0)
+		global.params.debugy = 1;
 	    else if (p[1] == 'L')
 	    {
 		global.params.linkswitches->push(p + 2);
@@ -383,6 +386,16 @@ int main(int argc, char *argv[])
 	char *name;
 
 	p = (char *) files.data[i];
+
+#if _WIN32
+	// Convert / to \ so linker will work
+	for (int i = 0; p[i]; i++)
+	{
+	    if (p[i] == '/')
+		p[i] = '\\';
+	}
+#endif
+
 	p = FileName::name(p);		// strip path
 	ext = FileName::ext(p);
 	if (ext)

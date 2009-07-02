@@ -764,131 +764,23 @@ Expression *IdentifierExp::semantic(Scope *sc)
     Dsymbol *s;
     Dsymbol *scopesym;
 
+    //printf("IdentifierExp::semantic('%s')\n", ident->toChars());
     s = sc->search(ident, &scopesym);
     if (s)
-    {
-	EnumMember *em;
-	Expression *e;
-	VarDeclaration *v;
-	FuncDeclaration *f;
-	Declaration *d;
-	ClassDeclaration *cd;
-	ClassDeclaration *thiscd = NULL;
+    {	Expression *e;
 	WithScopeSymbol *withsym;
-	Import *imp;
-	Type *t;
-
-	//printf("'%s' is a symbol\n", toChars());
-	s = s->toAlias();
-	checkDeprecated(s);
 
 	// See if it was a with class
 	withsym = scopesym->isWithScopeSymbol();
 	if (withsym)
 	{
 	    // Same as wthis.ident
-	    Expression *e = new VarExp(loc, withsym->withstate->wthis);
+	    e = new VarExp(loc, withsym->withstate->wthis);
 	    e = new DotIdExp(loc, e, ident);
-	    return e->semantic(sc);
 	}
-
-	if (sc->func)
-	    thiscd = sc->func->parent->isClassDeclaration();
-
-	if (s->needThis())
-	{
-	    // Supply an implicit 'this', as in
-	    //	  this.ident
-
-	    DotVarExp *de;
-
-	    de = new DotVarExp(loc, new ThisExp(loc), s->isDeclaration());
-	    return de->semantic(sc);
-	}
-
-	em = s->isEnumMember();
-	if (em)
-	{
-	    e = em->value;
-	    e = e->semantic(sc);
-	    return e;
-	}
-	v = s->isVarDeclaration();
-	if (v)
-	{
-	    //printf("Identifier '%s' is a variable, type '%s'\n", toChars(), v->type->toChars());
-	    if (!type)
-		type = v->type;
-	    if (v->isConst() && type->ty != Tsarray)
-	    {
-		if (v->init)
-		{
-		    ExpInitializer *ei = v->init->isExpInitializer();
-		    if (ei)
-		    {
-			e = ei->exp->copy();	// make copy so we can change loc
-			e = e->implicitCastTo(type);
-			e->loc = loc;
-			return e;
-		    }
-		}
-		else
-		{
-		    e = type->defaultInit();
-		    e->loc = loc;
-		    return e;
-		}
-	    }
-	    e = new VarExp(loc, v);
-	    e->type = type;
-	    e = e->semantic(sc);
-	    return e->deref();
-	}
-	f = s->isFuncDeclaration();
-	if (f)
-	{
-	    //printf("it's a function\n");
-	    return new VarExp(loc, f);
-	}
-	cd = s->isClassDeclaration();
-	if (cd && thiscd && cd->isBaseOf(thiscd, NULL) && sc->func->needThis())
-	{
-	    // We need to add an implicit 'this' if cd is this class or a base class.
-	    DotTypeExp *dte;
-
-	    dte = new DotTypeExp(loc, new ThisExp(loc), s);
-	    return dte->semantic(sc);
-	}
-	imp = s->isImport();
-	if (imp)
-	{
-	    ScopeExp *ie;
-
-	    ie = new ScopeExp(loc, imp->pkg);
-	    return ie->semantic(sc);
-	}
-	Module *mod = s->isModule();
-	if (mod)
-	{
-	    ScopeExp *ie;
-
-	    ie = new ScopeExp(loc, mod);
-	    return ie->semantic(sc);
-	}
-
-	t = s->getType();
-	if (t)
-	{
-	    return new TypeExp(loc, t);
-	}
-
-	TemplateInstance *ti = s->isTemplateInstance();
-	if (ti)
-	{
-	    return new ScopeExp(loc, ti);
-	}
-
-	error("%s '%s' is not a variable", s->kind(), s->toChars());
+	else
+	    e = new DsymbolExp(loc, s);
+	return e->semantic(sc);
     }
     error("undefined identifier %s", ident->toChars());
     return this;
@@ -905,6 +797,158 @@ void IdentifierExp::toCBuffer(OutBuffer *buf)
 }
 
 Expression *IdentifierExp::toLvalue()
+{
+#if 0
+    tym = tybasic(e1->ET->Tty);
+    if (!(tyscalar(tym) ||
+	  tym == TYstruct ||
+	  tym == TYarray && e->Eoper == TOKaddr))
+	    synerr(EM_lvalue);	// lvalue expected
+#endif
+    return this;
+}
+
+/******************************** DsymbolExp **************************/
+
+DsymbolExp::DsymbolExp(Loc loc, Dsymbol *s)
+	: Expression(loc, TOKdsymbol, sizeof(DsymbolExp))
+{
+    this->s = s;
+}
+
+Expression *DsymbolExp::semantic(Scope *sc)
+{
+    //printf("DsymbolExp::semantic('%s')\n", s->toChars());
+
+Lagain:
+    EnumMember *em;
+    Expression *e;
+    VarDeclaration *v;
+    FuncDeclaration *f;
+    Declaration *d;
+    ClassDeclaration *cd;
+    ClassDeclaration *thiscd = NULL;
+    Import *imp;
+    Type *t;
+
+    //printf("'%s' is a symbol\n", toChars());
+    s = s->toAlias();
+    checkDeprecated(s);
+
+    if (sc->func)
+	thiscd = sc->func->parent->isClassDeclaration();
+
+    if (s->needThis())
+    {
+	// Supply an implicit 'this', as in
+	//	  this.ident
+
+	DotVarExp *de;
+
+	de = new DotVarExp(loc, new ThisExp(loc), s->isDeclaration());
+	return de->semantic(sc);
+    }
+
+    em = s->isEnumMember();
+    if (em)
+    {
+	e = em->value;
+	e = e->semantic(sc);
+	return e;
+    }
+    v = s->isVarDeclaration();
+    if (v)
+    {
+	//printf("Identifier '%s' is a variable, type '%s'\n", toChars(), v->type->toChars());
+	if (!type)
+	    type = v->type;
+	if (v->isConst() && type->ty != Tsarray)
+	{
+	    if (v->init)
+	    {
+		ExpInitializer *ei = v->init->isExpInitializer();
+		if (ei)
+		{
+		    e = ei->exp->copy();	// make copy so we can change loc
+		    e = e->implicitCastTo(type);
+		    e->loc = loc;
+		    return e;
+		}
+	    }
+	    else
+	    {
+		e = type->defaultInit();
+		e->loc = loc;
+		return e;
+	    }
+	}
+	e = new VarExp(loc, v);
+	e->type = type;
+	e = e->semantic(sc);
+	return e->deref();
+    }
+    f = s->isFuncDeclaration();
+    if (f)
+    {
+	//printf("it's a function\n");
+	return new VarExp(loc, f);
+    }
+    cd = s->isClassDeclaration();
+    if (cd && thiscd && cd->isBaseOf(thiscd, NULL) && sc->func->needThis())
+    {
+	// We need to add an implicit 'this' if cd is this class or a base class.
+	DotTypeExp *dte;
+
+	dte = new DotTypeExp(loc, new ThisExp(loc), s);
+	return dte->semantic(sc);
+    }
+    imp = s->isImport();
+    if (imp)
+    {
+	ScopeExp *ie;
+
+	ie = new ScopeExp(loc, imp->pkg);
+	return ie->semantic(sc);
+    }
+    Module *mod = s->isModule();
+    if (mod)
+    {
+	ScopeExp *ie;
+
+	ie = new ScopeExp(loc, mod);
+	return ie->semantic(sc);
+    }
+
+    t = s->getType();
+    if (t)
+    {
+	return new TypeExp(loc, t);
+    }
+
+    TemplateInstance *ti = s->isTemplateInstance();
+    if (ti)
+    {   ti->semantic(sc);
+	s = ti->inst->toAlias();
+	if (!s->isTemplateInstance())
+	    goto Lagain;
+	return new ScopeExp(loc, ti);
+    }
+
+    error("%s '%s' is not a variable", s->kind(), s->toChars());
+    return this;
+}
+
+char *DsymbolExp::toChars()
+{
+    return s->toChars();
+}
+
+void DsymbolExp::toCBuffer(OutBuffer *buf)
+{
+    buf->writestring(s->toChars());
+}
+
+Expression *DsymbolExp::toLvalue()
 {
 #if 0
     tym = tybasic(e1->ET->Tty);
@@ -1197,7 +1241,14 @@ void StringExp::toCBuffer(OutBuffer *buf)
     buf->writeByte('"');
 }
 
-/************************************************************/
+/************************ TypeDotIdExp ************************************/
+
+/* Things like:
+ *	int.size
+ *	foo.size
+ *	(foo).size
+ *	cast(foo).size
+ */
 
 TypeDotIdExp::TypeDotIdExp(Loc loc, Type *type, Identifier *ident)
     : Expression(loc, TOKtypedot, sizeof(TypeDotIdExp))
@@ -1264,9 +1315,27 @@ Expression *ScopeExp::semantic(Scope *sc)
     //printf("ScopeExp::semantic()\n");
     ti = sds->isTemplateInstance();
     if (ti)
+#if 0
     {	ti->semantic(sc);
 	sds = ti->inst;
     }
+#else
+    {	Dsymbol *s;
+	ti->semantic(sc);
+	s = ti->inst->toAlias();
+	sds = s->isScopeDsymbol();
+	if (!sds)
+	{
+	    Expression *e = new DsymbolExp(loc, s);
+	    return e->semantic(sc);
+	}
+    }
+    else
+    {
+	//printf("sds = %s, '%s'\n", sds->kind(), sds->toChars());
+	sds->semantic(sc);
+    }
+#endif
     return this;
 }
 
@@ -1476,8 +1545,20 @@ int SymOffExp::isConst()
 VarExp::VarExp(Loc loc, Declaration *var)
 	: Expression(loc, TOKvar, sizeof(VarExp))
 {
+    //printf("VarExp('%s')\n", var->toChars());
     this->var = var;
     this->type = var->type;
+}
+
+int VarExp::equals(Object *o)
+{   VarExp *ne;
+
+    if (this == o ||
+	(((Expression *)o)->op == TOKvar &&
+	 ((ne = (VarExp *)o), type->equals(ne->type)) &&
+	 var == ne->var))
+	return 1;
+    return 0;
 }
 
 Expression *VarExp::semantic(Scope *sc)
@@ -1810,7 +1891,9 @@ Expression *DotIdExp::semantic(Scope *sc)
 {   Expression *e;
 
     //printf("DotIdExp::semantic('%s')\n", toChars());
+    //printf("e1->op = %d, '%s'\n", e1->op, Token::toChars(e1->op));
     UnaExp::semantic(sc);
+
     e1 = resolveProperties(sc, e1);
     if (e1->op == TOKimport)	// also used for template alias's
     {
@@ -1881,7 +1964,9 @@ Expression *DotIdExp::semantic(Scope *sc)
 	error("undefined identifier %s", toChars());
 	return this;
     }
-    else if (e1->type->ty == Tpointer && ident != Id::size && ident != Id::init)
+    else if (e1->type->ty == Tpointer && ident != Id::size &&
+	     ident != Id::init && ident != Id::__sizeof &&
+	     ident != Id::alignof)
     {
 	e = new PtrExp(loc, e1);
 	e->type = e1->type->next;
@@ -1937,6 +2022,67 @@ void DotVarExp::toCBuffer(OutBuffer *buf)
     e1->toCBuffer(buf);
     buf->writeByte('.');
     buf->writestring(var->toChars());
+}
+
+/************************************************************/
+
+/* Things like:
+ *	foo.bar!(args)
+ */
+
+DotTemplateInstanceExp::DotTemplateInstanceExp(Loc loc, Expression *e, TemplateInstance *ti)
+	: UnaExp(loc, TOKdotti, sizeof(DotTemplateInstanceExp), e)
+{
+    //printf("DotTemplateInstanceExp()\n");
+    this->ti = ti;
+}
+
+Expression *DotTemplateInstanceExp::semantic(Scope *sc)
+{   Dsymbol *s;
+    TemplateDeclaration *td;
+    Expression *e;
+    Identifier *id;
+
+    //printf("DotTemplateInstanceExp::semantic(%p)\n", this);
+    e1 = e1->semantic(sc);
+    if (e1->op == TOKimport)
+    {
+	s = ((ScopeExp *)e1)->sds;
+    }
+    else
+    {
+	error("template %s is not a member of %s", ti->ident->toChars(), e1->toChars());
+	goto Lerr;
+    }
+
+    assert(s);
+    id = (Identifier *)ti->idents.data[0];
+    s = s->search(id, 0);
+    if (!s)
+    {	error("template identifier %s is not a member of %s", id->toChars(), s->ident->toChars());
+	goto Lerr;
+    }
+    s = s->toAlias();
+    td = s->isTemplateDeclaration();
+    if (!td)
+    {
+	error("%s is not a template", id->toChars());
+	goto Lerr;
+    }
+    ti->tempdecl = td;
+    e = new ScopeExp(loc, ti);
+    e = e->semantic(sc);
+    return e;
+
+Lerr:
+    return new IntegerExp(0);
+}
+
+void DotTemplateInstanceExp::toCBuffer(OutBuffer *buf)
+{
+    e1->toCBuffer(buf);
+    buf->writeByte('.');
+    ti->toCBuffer(buf);
 }
 
 /************************************************************/
@@ -2312,6 +2458,7 @@ AddrExp::AddrExp(Loc loc, Expression *e)
 
 Expression *AddrExp::semantic(Scope *sc)
 {
+    //printf("AddrExp::semantic(), type = %p\n", type);
     if (!type)
     {
 	UnaExp::semantic(sc);
@@ -3027,6 +3174,7 @@ Expression *AssignExp::semantic(Scope *sc)
 {   Type *t1;
 
     //printf("AssignExp::semantic() "); print();
+    //printf("e1->op = %d, '%s'\n", e1->op, Token::toChars(e1->op));
 
     /* Look for operator overloading of a[]=value.
      * Do it before semantic() otherwise the a[] will have been

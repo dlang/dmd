@@ -57,6 +57,7 @@ struct Param
     char debugr;
     char debugw;
     char debugx;
+    char debugy;
 
     // Linker stuff
     Array *objfiles;
@@ -169,6 +170,15 @@ enum LINK
     LINKcpp,
     LINKwindows,
     LINKpascal,
+};
+
+enum DYNCAST
+{
+    DYNCAST_OBJECT,
+    DYNCAST_EXPRESSION,
+    DYNCAST_DSYMBOL,
+    DYNCAST_TYPE,
+    DYNCAST_IDENTIFIER,
 };
 
 void error(Loc loc, const char *format, ...);

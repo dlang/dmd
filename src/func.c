@@ -232,6 +232,37 @@ void FuncDeclaration::semantic(Scope *sc)
 
     L1: ;
     }
+
+    if (isMain())
+    {
+	// Check parameters to see if they are either () or (char[][] args)
+	if (f->arguments)
+	{
+	    switch (f->arguments->dim)
+	    {
+		case 0:
+		    break;
+
+		case 1:
+		{
+		    Argument *arg0 = (Argument *)f->arguments->data[0];
+		    if (arg0->type->ty != Tarray ||
+			arg0->type->next->ty != Tarray ||
+			arg0->type->next->next->ty != Tchar)
+			goto Lmainerr;
+		    break;
+		}
+
+		default:
+		    goto Lmainerr;
+	    }
+	}
+	if (f->varargs)
+	{
+	Lmainerr:
+	    error("parameters must be main() or main(char[][] args)");
+	}
+    }
 }
 
 // Do the semantic analysis on the internals of the function.
@@ -865,17 +896,20 @@ void FuncDeclaration::appendState(Statement *s)
 
 int FuncDeclaration::isMain()
 {
-    return ident && strcmp(ident->toChars(), "main") == 0 && linkage != LINKc;
+    return ident && strcmp(ident->toChars(), "main") == 0 &&
+	linkage != LINKc && !isMember();
 }
 
 int FuncDeclaration::isWinMain()
 {
-    return ident && strcmp(ident->toChars(), "WinMain") == 0 && linkage != LINKc;
+    return ident && strcmp(ident->toChars(), "WinMain") == 0 &&
+	linkage != LINKc && !isMember();
 }
 
 int FuncDeclaration::isDllMain()
 {
-    return ident && strcmp(ident->toChars(), "DllMain") == 0 && linkage != LINKc;
+    return ident && strcmp(ident->toChars(), "DllMain") == 0 &&
+	linkage != LINKc && !isMember();
 }
 
 int FuncDeclaration::isExport()
@@ -896,7 +930,8 @@ int FuncDeclaration::isVirtual()
 {
     //printf("FuncDeclaration::isVirtual(%s)\n", toChars());
     //printf("%d %d %d %d\n", isStatic(), protection == PROTprivate, isCtorDeclaration(), linkage != LINKd);
-    return !(isStatic() || protection == PROTprivate) &&
+    return isMember() &&
+	!(isStatic() || protection == PROTprivate) &&
 	!parent->isStructDeclaration();
 }
 

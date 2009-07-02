@@ -32,6 +32,8 @@ struct Package : ScopeDsymbol
     static DsymbolTable *resolve(Array *packages, Dsymbol **pparent, Package **ppkg);
 
     Package *isPackage() { return this; }
+
+    virtual void semantic(Scope *sc) { }
 };
 
 struct Module : Package

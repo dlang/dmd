@@ -946,7 +946,9 @@ TOK Lexer::hexStringConstant(Token *t)
 
 	    case '"':
 		if (n & 1)
+		{   error("odd number (%d) of hex characters in hex string", n);
 		    stringbuffer.writeByte(v);
+		}
 		t->len = stringbuffer.offset;
 		stringbuffer.writeByte(0);
 		t->ustring = (unsigned char *)mem.malloc(stringbuffer.offset);
@@ -1849,6 +1851,8 @@ static Keyword keywords[] =
     {	"delete",	TOKdelete	},
     {	"throw",	TOKthrow	},
     {	"module",	TOKmodule	},
+    {	"pragma",	TOKpragma	},
+    {	"typeof",	TOKtypeof	},
 
     {	"template",	TOKtemplate	},
     {	"instance",	TOKinstance	},
@@ -2023,6 +2027,7 @@ void Lexer::initKeywords()
     Token::tochars[TOKorass]		= "|=";
 
      // For debugging
+    Token::tochars[TOKdotti]		= "dotti";
     Token::tochars[TOKdotvar]		= "dotvar";
     Token::tochars[TOKsymoff]		= "symoff";
 }

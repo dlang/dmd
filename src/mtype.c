@@ -34,6 +34,9 @@ static double zero = 0;
 #define LOGDOTEXP	0	// log ::dotExp()
 #define LOGDEFAULTINIT	0	// log ::defaultInit()
 
+#define PTRSIZE		4
+#define REALSIZE	10
+
 /***************************** Type *****************************/
 
 ClassDeclaration *Type::typeinfo;
@@ -122,6 +125,7 @@ void Type::init()
 
     mangleChar[Tinstance] = '@';
     mangleChar[Terror] = '@';
+    mangleChar[Ttypeof] = '@';
 
     for (i = 0; i < TMAX; i++)
     {	if (!mangleChar[i])
@@ -193,6 +197,11 @@ Type *Type::arrayOf()
 	arrayof = t->merge();
     }
     return arrayof;
+}
+
+Dsymbol *Type::toDsymbol(Scope *sc)
+{
+    return NULL;
 }
 
 /*******************************
@@ -384,9 +393,13 @@ int Type::implicitConvTo(Type *to)
 Expression *Type::getProperty(Loc loc, Identifier *ident)
 {   Expression *e;
 
-    if (ident == Id::size)
+    if (ident == Id::size || ident == Id::__sizeof)
     {
-	e = new IntegerExp(loc, size(), Type::tint32);
+	e = new IntegerExp(loc, size(), Type::tsize_t);
+    }
+    else if (ident == Id::alignof)
+    {
+	e = new IntegerExp(loc, alignsize(), Type::tsize_t);
     }
     else if (ident == Id::typeinfo)
     {
@@ -487,6 +500,17 @@ Identifier *Type::getTypeInfoIdent()
 TypeBasic *Type::isTypeBasic()
 {
     return NULL;
+}
+
+
+void Type::resolve(Loc loc, Scope *sc, Expression **pe, Type **pt, Dsymbol **ps)
+{
+    Type *t;
+
+    t = semantic(loc, sc);
+    *pt = t;
+    *pe = NULL;
+    *ps = NULL;
 }
 
 /* ============================= TypeBasic =========================== */
@@ -669,13 +693,13 @@ unsigned TypeBasic::size()
 			size = 8;	break;
 	case Tfloat80:
 	case Timaginary80:
-			size = 10;	break;
+			size = REALSIZE;	break;
 	case Tcomplex32:
-			size = 8;	break;
+			size = 8;		break;
 	case Tcomplex64:
-			size = 16;	break;
+			size = 16;		break;
 	case Tcomplex80:
-			size = 20;	break;
+			size = REALSIZE * 2;	break;
 
 	case Tvoid:
 	    //size = Type::size();	// error message
@@ -1265,7 +1289,7 @@ unsigned TypeSArray::size()
     sz = dim->toInteger();
     if (next->ty == Tbit)		// if array of bits
     {
-	sz = (sz + 31) / 8;		// size in bytes, rounded up to dwords
+	sz = ((sz + 31) & ~31) / 8;	// size in bytes, rounded up to dwords
     }
     else
 	sz *= next->size();
@@ -1281,6 +1305,7 @@ Type *TypeSArray::semantic(Loc loc, Scope *sc)
 {
     if (dim)
     {	dim = dim->semantic(sc);
+	dim = dim->castTo(tsize_t);
 	dim = dim->constFold();
 	if (dim->op == TOKint64 && (long long)dim->toInteger() < 0)
 	    error(loc, "negative index %lld for static array", dim->toInteger());
@@ -1399,14 +1424,14 @@ Type *TypeDArray::syntaxCopy()
 unsigned TypeDArray::size()
 {
     //printf("TypeDArray::size()\n");
-    return 8;
+    return PTRSIZE * 2;
 }
 
 unsigned TypeDArray::alignsize()
 {
-    // A DArray consists of two dwords, so align it on dword
+    // A DArray consists of two ptr-sized values, so align it on pointer size
     // boundary
-    return 4;
+    return PTRSIZE;
 }
 
 Type *TypeDArray::semantic(Loc loc, Scope *sc)
@@ -1456,7 +1481,7 @@ Expression *TypeDArray::dotExp(Scope *sc, Expression *e, Identifier *ident)
 	    return new IntegerExp(se->loc, se->len, Type::tindex);
 	}
 	e = new ArrayLengthExp(0, e);
-	e->type = Type::tindex;
+	e->type = Type::tsize_t;
 	return e;
     }
     else
@@ -1526,7 +1551,7 @@ Type *TypeAArray::syntaxCopy()
 
 unsigned TypeAArray::size()
 {
-    return 8;
+    return PTRSIZE * 2;
 }
 
 
@@ -1536,11 +1561,11 @@ Type *TypeAArray::semantic(Loc loc, Scope *sc)
     // in reality it was an expression.
     if (index->ty == Tident)
     {
-	TypeIdentifier *ti = (TypeIdentifier *)index;
 	Expression *e;
 	Type *t;
+	Dsymbol *s;
 
-	ti->resolve(sc, &e, &t);
+	index->resolve(loc, sc, &e, &t, &s);
 	if (e)
 	{   // It was an expression -
 	    // Rewrite as a static array
@@ -1549,8 +1574,10 @@ Type *TypeAArray::semantic(Loc loc, Scope *sc)
 	    tsa = new TypeSArray(next, e);
 	    return tsa->semantic(loc,sc);
 	}
-	assert(t);
-	index = t;
+	else if (t)
+	    index = t;
+	else
+	    index->error(loc, "index is not a type or an expression");
     }
     else
 	index = index->semantic(loc,sc);
@@ -1608,7 +1635,7 @@ Expression *TypeAArray::dotExp(Scope *sc, Expression *e, Identifier *ident)
 	FuncDeclaration *fd;
 	Array *arguments;
 
-	fd = FuncDeclaration::genCfunc(Type::tindex, "_aaLen");
+	fd = FuncDeclaration::genCfunc(Type::tsize_t, "_aaLen");
 	ec = new VarExp(0, fd);
 	arguments = new Array();
 	arguments->push(e);
@@ -1739,7 +1766,7 @@ Type *TypePointer::semantic(Loc loc, Scope *sc)
 
 unsigned TypePointer::size()
 {
-    return 4;
+    return PTRSIZE;
 }
 
 void TypePointer::toCBuffer2(OutBuffer *buf, Identifier *ident)
@@ -1824,7 +1851,7 @@ Type *TypeReference::syntaxCopy()
 
 unsigned TypeReference::size()
 {
-    return 4;
+    return PTRSIZE;
 }
 
 void TypeReference::toCBuffer2(OutBuffer *buf, Identifier *ident)
@@ -2045,6 +2072,8 @@ void TypeFunction::argsToCBuffer(OutBuffer *buf)
 	for (i = 0; i < arguments->dim; i++)
 	{   Argument *arg;
 
+	    if (i)
+		buf->writeByte(',');
 	    arg = (Argument *)arguments->data[i];
 	    if (arg->inout == Out)
 		buf->writestring("out ");
@@ -2052,8 +2081,6 @@ void TypeFunction::argsToCBuffer(OutBuffer *buf)
 		buf->writestring("inout ");
 	    argbuf.reset();
 	    arg->type->toCBuffer2(&argbuf, arg->ident);
-	    if (i)
-		buf->writeByte(',');
 	    buf->write(&argbuf);
 	}
 	if (varargs)
@@ -2195,7 +2222,7 @@ Type *TypeDelegate::semantic(Loc loc, Scope *sc)
 
 unsigned TypeDelegate::size()
 {
-    return 8;
+    return PTRSIZE * 2;
 }
 
 void TypeDelegate::toCBuffer2(OutBuffer *buf, Identifier *ident)
@@ -2242,222 +2269,33 @@ int TypeDelegate::checkBoolean()
     return TRUE;
 }
 
-/***************************** TypeIdentifier *****************************/
 
-TypeIdentifier::TypeIdentifier(Loc loc, Identifier *ident)
-    : Type(Tident, NULL)
+
+/***************************** TypeQualified *****************************/
+
+TypeQualified::TypeQualified(TY ty, Loc loc)
+    : Type(ty, NULL)
 {
     this->loc = loc;
-    this->idents.push(ident);
 }
 
-
-Type *TypeIdentifier::syntaxCopy()
+void TypeQualified::syntaxCopyHelper(TypeQualified *t)
 {
-    TypeIdentifier *t;
-
-    t = new TypeIdentifier(loc, (Identifier *)idents.data[0]);
-    t->idents.setDim(idents.dim);
+    idents.setDim(t->idents.dim);
     for (int i = 0; i < idents.dim; i++)
-	t->idents.data[i] = idents.data[i];
-    return t;
+	idents.data[i] = t->idents.data[i];
 }
 
 
-void TypeIdentifier::addIdent(Identifier *ident)
+void TypeQualified::addIdent(Identifier *ident)
 {
     idents.push(ident);
 }
 
-void TypeIdentifier::toCBuffer2(OutBuffer *buf, Identifier *ident)
+void TypeQualified::toCBuffer2Helper(OutBuffer *buf, Identifier *ident)
 {
     int i;
 
-    for (i = idents.dim; i--;)
-    {	Identifier *id = (Identifier *)idents.data[i];
-
-	buf->prependstring(id->toChars());
-	if (i)
-	    buf->prependbyte('.');
-    }
-    if (ident)
-    {	buf->writeByte(' ');
-	buf->writestring(ident->toChars());
-    }
-}
-
-/*************************************
- * Takes an array of Identifiers and figures out if
- * it represents a Type or an Expression.
- * Output:
- *	if expression, *pe is set
- *	if type, *pt is set
- */
-
-void TypeIdentifier::resolve(Scope *sc, Expression **pe, Type **pt)
-{   Dsymbol *s;
-    Dsymbol *scopesym;
-    Identifier *id;
-    int i;
-    VarDeclaration *v;
-    EnumMember *em;
-    Type *t;
-    Expression *e;
-
-    id = (Identifier *)idents.data[0];
-    //printf("TypeIdentifier::resolve(sc = %p, idents = '%s')\n", sc, toChars());
-    *pe = NULL;
-    *pt = NULL;
-    s = sc->search(id, &scopesym);
-    if (s)
-    {
-	//printf("\ts = '%s' %p\n",s->toChars(), s);
-
-
-	s = s->toAlias();
-	for (i = 1; i < idents.dim; i++)
-	{   Dsymbol *sm;
-
-	    id = (Identifier *)idents.data[i];
-	    sm = s->search(id, 0);
-	    if (!sm)
-	    {
-		t = s->getType();
-		if (t)
-		{
-		    e = t->getProperty(0, id);
-		    i++;
-		    for (; i < idents.dim; i++)
-		    {
-			id = (Identifier *)idents.data[i];
-			e = e->type->dotExp(sc, e, id);
-		    }
-		    *pe = e;
-		}
-		else
-		    error(loc, "identifier '%s' of '%s' is not defined", id->toChars(), toChars());
-		return;
-	    }
-	    s = sm->toAlias();
-	}
-
-	v = s->isVarDeclaration();
-	if (v)
-	{
-	    // It's not a type, it's an expression
-	    if (v->isConst())
-	    {
-		ExpInitializer *ei = v->init->isExpInitializer();
-		assert(ei);
-		*pe = ei->exp->copy();	// make copy so we can change loc
-		(*pe)->loc = loc;
-	    }
-	    else
-	    {
-		*pe = new VarExp(loc, v);
-		assert(!scopesym->isWithScopeSymbol());	// BUG: should handle this
-	    }
-	    return;
-	}
-	em = s->isEnumMember();
-	if (em)
-	{
-	    // It's not a type, it's an expression
-	    *pe = em->value->copy();
-	    return;
-	}
-
-L1:
-	t = s->getType();
-	if (!t)
-	{
-	    // If the symbol is an import, try looking inside the import
-	    Import *si;
-
-	    si = s->isImport();
-	    if (si)
-	    {
-		s = si->search(id, 0);
-		if (s)
-		    goto L1;
-		s = si;
-	    }
-	    s->error("is used as a type");
-	}
-	if (t->ty == Tident && t != this)
-	{
-	    ((TypeIdentifier *)t)->resolve(sc, pe, &t);
-	}
-	*pt = t->merge();
-    }
-    if (!s)
-	error(loc, "identifier '%s' is not defined", toChars());
-}
-
-Type *TypeIdentifier::semantic(Loc loc, Scope *sc)
-{
-    Type *t;
-    Expression *e;
-    Identifier *id;
-
-    //printf("TypeIdentifier::semantic(%s)\n", toChars());
-    resolve(sc, &e, &t);
-    if (!t)
-    {
-	id = (Identifier *)idents.data[0];
-	error(loc, "%s is used as a type", id->toChars());
-	t = this->merge();
-    }
-    return t;
-}
-
-unsigned TypeIdentifier::size()
-{
-    error(loc, "size of type %s is not known", toChars());
-    return 1;
-}
-
-/***************************** TypeInstance *****************************/
-
-TypeInstance::TypeInstance(Loc loc, TemplateInstance *tempinst)
-    : Type(Tinstance, NULL)
-{
-    this->loc = loc;
-    this->tempinst = tempinst;
-}
-
-Type *TypeInstance::syntaxCopy()
-{
-    TypeInstance *t;
-
-    t = new TypeInstance(loc, (TemplateInstance *)tempinst->syntaxCopy(NULL));
-    t->idents.setDim(idents.dim);
-    for (int i = 0; i < idents.dim; i++)
-	t->idents.data[i] = idents.data[i];
-    return t;
-}
-
-
-void TypeInstance::addIdent(Identifier *ident)
-{
-    idents.push(ident);
-}
-
-#if 0
-void TypeInstance::toDecoBuffer(OutBuffer *buf)
-{
-    printf("TypeInstance::toDecoBuffer()\n");
-    buf->writeByte(mangleChar[ty]);
-    if (next)
-	next->toDecoBuffer(buf);
-}
-#endif
-
-void TypeInstance::toCBuffer2(OutBuffer *buf, Identifier *ident)
-{
-    int i;
-
-    tempinst->toCBuffer(buf);
     for (i = 0; i < idents.dim; i++)
     {	Identifier *id = (Identifier *)idents.data[i];
 
@@ -2470,11 +2308,23 @@ void TypeInstance::toCBuffer2(OutBuffer *buf, Identifier *ident)
     }
 }
 
-void TypeInstance::resolve(Scope *sc, Expression **pe, Type **pt)
+unsigned TypeQualified::size()
 {
-    // Note close similarity to TypeIdentifier::resolve()
+    error(loc, "size of type %s is not known", toChars());
+    return 1;
+}
 
-    Dsymbol *s;
+/*************************************
+ * Takes an array of Identifiers and figures out if
+ * it represents a Type or an Expression.
+ * Output:
+ *	if expression, *pe is set
+ *	if type, *pt is set
+ */
+
+void TypeQualified::resolveHelper(Loc loc, Scope *sc, Dsymbol *s, Dsymbol *scopesym,
+	Expression **pe, Type **pt, Dsymbol **ps)
+{
     Identifier *id;
     int i;
     VarDeclaration *v;
@@ -2482,27 +2332,44 @@ void TypeInstance::resolve(Scope *sc, Expression **pe, Type **pt)
     Type *t;
     Expression *e;
 
+    //printf("TypeQualified::resolve(sc = %p, idents = '%s')\n", sc, toChars());
     *pe = NULL;
     *pt = NULL;
-
-    if (!idents.dim)
-    {
-	error(loc, "template instance '%s' has no identifier", toChars());
-	return;
-    }
-    id = (Identifier *)idents.data[0];
-    //printf("TypeInstance::resolve(sc = %p, idents = '%s')\n", sc, id->toChars());
-    s = tempinst;
+    *ps = NULL;
     if (s)
     {
-	//printf("\ts = '%s' %p\n",s->toChars(), s);
-	s->semantic(sc);
+	//printf("\t1: s = '%s' %p, kind = '%s'\n",s->toChars(), s, s->kind());
 	s = s->toAlias();
+	//printf("\t2: s = '%s' %p, kind = '%s'\n",s->toChars(), s, s->kind());
 	for (i = 0; i < idents.dim; i++)
 	{   Dsymbol *sm;
 
 	    id = (Identifier *)idents.data[i];
-	    sm = s->search(id, 0);
+	    if (id->dyncast() != DYNCAST_IDENTIFIER)
+	    {
+		// It's a template instance
+		//printf("\ttemplate instance id\n");
+		TemplateDeclaration *td;
+		TemplateInstance *ti = (TemplateInstance *)id;
+		id = (Identifier *)ti->idents.data[0];
+		sm = s->search(id, 0);
+		if (!sm)
+		{   error(loc, "template identifier %s is not a member of %s", id->toChars(), s->toChars());
+		    return;
+		}
+		sm = sm->toAlias();
+		td = sm->isTemplateDeclaration();
+		if (!td)
+		{
+		    error(loc, "%s is not a template", id->toChars());
+		    return;
+		}
+		ti->tempdecl = td;
+		ti->semantic(sc);
+		sm = ti->toAlias();
+	    }
+	    else
+		sm = s->search(id, 0);
 	    if (!sm)
 	    {
 		t = s->getType();
@@ -2536,7 +2403,10 @@ void TypeInstance::resolve(Scope *sc, Expression **pe, Type **pt)
 		(*pe)->loc = loc;
 	    }
 	    else
+	    {
 		*pe = new VarExp(loc, v);
+		assert(!scopesym || !scopesym->isWithScopeSymbol());	// BUG: should handle this
+	    }
 	    return;
 	}
 	em = s->isEnumMember();
@@ -2562,11 +2432,12 @@ L1:
 		    goto L1;
 		s = si;
 	    }
-	    s->error("is used as a type");
+	    *ps = s;
+	    return;
 	}
 	if (t->ty == Tident && t != this)
 	{
-	    ((TypeInstance *)t)->resolve(sc, pe, &t);
+	    ((TypeIdentifier *)t)->resolve(loc, sc, pe, &t, ps);
 	}
 	*pt = t->merge();
     }
@@ -2574,28 +2445,200 @@ L1:
 	error(loc, "identifier '%s' is not defined", toChars());
 }
 
-Type *TypeInstance::semantic(Loc loc, Scope *sc)
+/***************************** TypeIdentifier *****************************/
+
+TypeIdentifier::TypeIdentifier(Loc loc, Identifier *ident)
+    : TypeQualified(Tident, loc)
+{
+    this->ident = ident;
+}
+
+
+Type *TypeIdentifier::syntaxCopy()
+{
+    TypeIdentifier *t;
+
+    t = new TypeIdentifier(loc, ident);
+    t->syntaxCopyHelper(this);
+    return t;
+}
+
+
+void TypeIdentifier::toCBuffer2(OutBuffer *buf, Identifier *ident)
+{
+    buf->writestring(this->ident->toChars());
+    toCBuffer2Helper(buf, ident);
+}
+
+/*************************************
+ * Takes an array of Identifiers and figures out if
+ * it represents a Type or an Expression.
+ * Output:
+ *	if expression, *pe is set
+ *	if type, *pt is set
+ */
+
+void TypeIdentifier::resolve(Loc loc, Scope *sc, Expression **pe, Type **pt, Dsymbol **ps)
+{   Dsymbol *s;
+    Dsymbol *scopesym;
+
+    //printf("TypeIdentifier::resolve(sc = %p, idents = '%s')\n", sc, toChars());
+    s = sc->search(ident, &scopesym);
+    resolveHelper(loc, sc, s, scopesym, pe, pt, ps);
+}
+
+/*****************************************
+ * See if type resolves to a symbol, if so,
+ * return that symbol.
+ */
+
+Dsymbol *TypeIdentifier::toDsymbol(Scope *sc)
+{
+    Dsymbol *s;
+    Dsymbol *scopesym;
+
+    if (!sc)
+	return NULL;
+    s = sc->search(ident, &scopesym);
+    if (s)
+    {
+	s = s->toAlias();
+	for (int i = 0; i < idents.dim; i++)
+	{   Identifier *id;
+
+	    id = (Identifier *)idents.data[i];
+	    s = s->search(id, 0);
+	    if (!s)                 // failed to find a symbol
+		break;
+	    s = s->toAlias();
+	}
+    }
+    return s;
+}
+
+Type *TypeIdentifier::semantic(Loc loc, Scope *sc)
 {
     Type *t;
     Expression *e;
-    Identifier *id;
+    Dsymbol *s;
 
-    //printf("TypeInstance::semantic(%s)\n", toChars());
-    resolve(sc, &e, &t);
+    //printf("TypeIdentifier::semantic(%s)\n", toChars());
+    resolve(loc, sc, &e, &t, &s);
     if (!t)
     {
-	id = (Identifier *)idents.data[0];
-	error(loc, "%s is used as a type", id->toChars());
+	error(loc, "%s is used as a type", toChars());
 	t = tvoid;
     }
     return t;
 }
 
-unsigned TypeInstance::size()
+/***************************** TypeInstance *****************************/
+
+TypeInstance::TypeInstance(Loc loc, TemplateInstance *tempinst)
+    : TypeQualified(Tinstance, loc)
 {
-    error(loc, "size of type %s is not known", toChars());
-    return 1;
+    this->tempinst = tempinst;
 }
+
+Type *TypeInstance::syntaxCopy()
+{
+    TypeInstance *t;
+
+    t = new TypeInstance(loc, (TemplateInstance *)tempinst->syntaxCopy(NULL));
+    t->syntaxCopyHelper(this);
+    return t;
+}
+
+
+void TypeInstance::toCBuffer2(OutBuffer *buf, Identifier *ident)
+{
+    tempinst->toCBuffer(buf);
+    toCBuffer2Helper(buf, ident);
+}
+
+void TypeInstance::resolve(Loc loc, Scope *sc, Expression **pe, Type **pt, Dsymbol **ps)
+{
+    // Note close similarity to TypeIdentifier::resolve()
+
+    Dsymbol *s;
+
+    *pe = NULL;
+    *pt = NULL;
+    *ps = NULL;
+
+#if 0
+    if (!idents.dim)
+    {
+	error(loc, "template instance '%s' has no identifier", toChars());
+	return;
+    }
+#endif
+    //id = (Identifier *)idents.data[0];
+    //printf("TypeInstance::resolve(sc = %p, idents = '%s')\n", sc, id->toChars());
+    s = tempinst;
+    if (s)
+	s->semantic(sc);
+    resolveHelper(loc, sc, s, NULL, pe, pt, ps);
+    //printf("pt = '%s'\n", (*pt)->toChars());
+}
+
+Type *TypeInstance::semantic(Loc loc, Scope *sc)
+{
+    Type *t;
+    Expression *e;
+    Dsymbol *s;
+
+    //printf("TypeInstance::semantic(%s)\n", toChars());
+    resolve(loc, sc, &e, &t, &s);
+    if (!t)
+    {
+	error(loc, "%s is used as a type", toChars());
+	t = tvoid;
+    }
+    return t;
+}
+
+
+/***************************** TypeTypeof *****************************/
+
+TypeTypeof::TypeTypeof(Loc loc, Expression *exp)
+	: TypeQualified(Ttypeof, loc)
+{
+    this->exp = exp;
+}
+
+Type *TypeTypeof::syntaxCopy()
+{
+    TypeTypeof *t;
+
+    t = new TypeTypeof(loc, exp->syntaxCopy());
+    t->syntaxCopyHelper(this);
+    return t;
+}
+
+
+void TypeTypeof::toCBuffer2(OutBuffer *buf, Identifier *ident)
+{
+    buf->writestring("typeof(");
+    exp->toCBuffer(buf);
+    buf->writeByte(')');
+    toCBuffer2Helper(buf, ident);
+}
+
+Type *TypeTypeof::semantic(Loc loc, Scope *sc)
+{   Expression *e;
+    Type *t;
+
+    exp = exp->semantic(sc);
+    t = exp->type;
+
+    if (idents.dim)
+    {
+	assert(0);	// BUG: not implemented
+    }
+    return t;
+}
+
 
 /***************************** TypeEnum *****************************/
 
@@ -2630,6 +2673,11 @@ unsigned TypeEnum::alignsize()
 {
     assert(sym->memtype);
     return sym->memtype->alignsize();
+}
+
+Dsymbol *TypeEnum::toDsymbol(Scope *sc)
+{
+    return sym;
 }
 
 Type *TypeEnum::toBasetype()
@@ -2780,6 +2828,11 @@ unsigned TypeTypedef::size()
 unsigned TypeTypedef::alignsize()
 {
     return sym->basetype->alignsize();
+}
+
+Dsymbol *TypeTypedef::toDsymbol(Scope *sc)
+{
+    return sym;
 }
 
 void TypeTypedef::toDecoBuffer(OutBuffer *buf)
@@ -2942,6 +2995,11 @@ unsigned TypeStruct::alignsize()
     return sz;
 }
 
+Dsymbol *TypeStruct::toDsymbol(Scope *sc)
+{
+    return sym;
+}
+
 void TypeStruct::toDecoBuffer(OutBuffer *buf)
 {   unsigned len;
     char *name;
@@ -3089,7 +3147,12 @@ Type *TypeClass::semantic(Loc loc, Scope *sc)
 
 unsigned TypeClass::size()
 {
-    return 4;
+    return PTRSIZE;
+}
+
+Dsymbol *TypeClass::toDsymbol(Scope *sc)
+{
+    return sym;
 }
 
 void TypeClass::toDecoBuffer(OutBuffer *buf)

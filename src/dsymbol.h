@@ -82,6 +82,8 @@ struct Dsymbol : Object
     void error(const char *format, ...);
     Module *getModule();
 
+    int dyncast() { return DYNCAST_DSYMBOL; }	// kludge for template.isSymbol()
+
     static Array *arraySyntaxCopy(Array *a);
 
     virtual char *kind();
