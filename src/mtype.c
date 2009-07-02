@@ -1,11 +1,14 @@
 
-// Copyright (c) 1999-2003 by Digital Mars
+// Copyright (c) 1999-2004 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // www.digitalmars.com
 // License for redistribution is by either the Artistic License
 // in artistic.txt, or the GNU General Public License in gnu.txt.
 // See the included readme.txt for details.
+
+#include <stdio.h>
+#include <assert.h>
 
 #ifdef __DMC__
 #include <fp.h>
@@ -14,7 +17,10 @@
 #include <float.h>
 #include <complex.h>
 
-#if __GNUC__
+#ifdef __APPLE__
+#include <math.h>
+static double zero = 0;
+#elif __GNUC__
 #include <math.h>
 #include <bits/nan.h>
 #include <bits/mathdef.h>
@@ -30,6 +36,11 @@ static double zero = 0;
 #include "attrib.h"
 #include "declaration.h"
 #include "template.h"
+#include "id.h"
+#include "enum.h"
+#include "import.h"
+#include "aggregate.h"
+
 
 #define LOGDOTEXP	0	// log ::dotExp()
 #define LOGDEFAULTINIT	0	// log ::defaultInit()
@@ -1147,6 +1158,9 @@ int TypeBasic::implicitConvTo(Type *to)
     if (ty == Tvoid || to->ty == Tvoid)
 	return MATCHnomatch;
     if (to->ty == Tbit)
+	return MATCHnomatch;
+    // Disallow implicit conversion of floating point to integer
+    if (flags & TFLAGSfloating && ((TypeBasic *)to)->flags & TFLAGSintegral)
 	return MATCHnomatch;
     return MATCHconvert;
 }
@@ -2452,7 +2466,10 @@ L1:
 	*pt = t->merge();
     }
     if (!s)
-	error(loc, "identifier '%s' is not defined", toChars());
+    {
+*(char*)0=0;
+	error(loc, "1: identifier '%s' is not defined", toChars());
+    }
 }
 
 /***************************** TypeIdentifier *****************************/
@@ -2539,9 +2556,10 @@ Type *TypeIdentifier::semantic(Loc loc, Scope *sc)
 #ifdef DEBUG
 	printf("1: ");
 #endif
-printf("aliasdecl = %p\n", ((TemplateInstance *)s)->aliasdecl);
 	if (s)
+	{
 	    s->error(loc, "is used as a type");
+	}
 	else
 	    error(loc, "%s is used as a type", toChars());
 	t = tvoid;
@@ -2996,14 +3014,19 @@ TypeStruct::TypeStruct(StructDeclaration *sym)
 
 char *TypeStruct::toChars()
 {
-printf("sym.parent: %s, deco = %s\n", sym->parent->toChars(), deco);
+    //printf("sym.parent: %s, deco = %s\n", sym->parent->toChars(), deco);
     return sym->toChars();
 }
 
 Type *TypeStruct::semantic(Loc loc, Scope *sc)
 {
     //printf("TypeStruct::semantic('%s')\n", sym->toChars());
-    sym->semantic(sc);
+
+    /* Cannot do semantic for sym because scope chain may not
+     * be right.
+     */
+    //sym->semantic(sc);
+
     return merge();
 }
 
@@ -3281,7 +3304,11 @@ Expression *TypeClass::dotExp(Scope *sc, Expression *e, Identifier *ident)
     }
 
     d = s->isDeclaration();
-    assert(d);
+    if (!d)
+    {
+	e->error("%s.%s is not a declaration", e->toChars(), s->toChars());
+	return new IntegerExp(e->loc, 1, Type::tint32);
+    }
 
     if (e->op == TOKtype)
     {

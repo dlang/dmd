@@ -1,11 +1,14 @@
 
-// Copyright (c) 1999-2002 by Digital Mars
+// Copyright (c) 1999-2004 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // www.digitalmars.com
 // License for redistribution is by either the Artistic License
 // in artistic.txt, or the GNU General Public License in gnu.txt.
 // See the included readme.txt for details.
+
+#include <stdio.h>
+#include <assert.h>
 
 #if _WIN32
 #include "mem.h"
@@ -16,6 +19,8 @@
 #include "expression.h"
 #include "mtype.h"
 #include "utf.h"
+#include "declaration.h"
+#include "aggregate.h"
 
 /* ==================== implicitCast ====================== */
 

@@ -9,12 +9,20 @@
 
 #include <stdio.h>
 #include <string.h>
+#include <assert.h>
 
 #include "mem.h"
 
 #include "mars.h"
 #include "dsymbol.h"
 #include "aggregate.h"
+#include "identifier.h"
+#include "module.h"
+#include "mtype.h"
+#include "expression.h"
+#include "statement.h"
+#include "declaration.h"
+
 
 /****************************** Dsymbol ******************************/
 

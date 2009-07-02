@@ -1,5 +1,5 @@
 
-// Copyright (c) 1999-2002 by Digital Mars
+// Copyright (c) 1999-2004 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // www.digitalmars.com
@@ -7,10 +7,19 @@
 // in artistic.txt, or the GNU General Public License in gnu.txt.
 // See the included readme.txt for details.
 
+#include <stdio.h>
+#include <assert.h>
+
 #include "root.h"
+
+#include "mars.h"
 #include "identifier.h"
 #include "scope.h"
 #include "attrib.h"
+#include "declaration.h"
+#include "aggregate.h"
+#include "module.h"
+#include "id.h"
 
 Scope *Scope::freelist = NULL;
 

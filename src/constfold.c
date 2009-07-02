@@ -1,5 +1,5 @@
 
-// Copyright (c) 1999-2003 by Digital Mars
+// Copyright (c) 1999-2004 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // www.digitalmars.com
@@ -8,6 +8,8 @@
 // See the included readme.txt for details.
 
 #include <stdio.h>
+#include <stdlib.h>
+#include <assert.h>
 #include <math.h>
 
 #if __DMC__

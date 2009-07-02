@@ -1,6 +1,6 @@
 
 
-// Copyright (c) 1999-2002 by Digital Mars
+// Copyright (c) 1999-2004 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // www.digitalmars.com
@@ -8,21 +8,31 @@
 // in artistic.txt, or the GNU General Public License in gnu.txt.
 // See the included readme.txt for details.
 
+#include <stdio.h>
+#include <stdlib.h>
+#include <assert.h>
 
 #include "root.h"
 #include "mem.h"
 
 #include "enum.h"
-#include "aggregate.h"
 #include "init.h"
 #include "attrib.h"
+#include "declaration.h"
+#include "aggregate.h"
+#include "id.h"
+#include "mtype.h"
+#include "scope.h"
+#include "module.h"
+#include "expression.h"
+#include "statement.h"
 
 /********************************* ClassDeclaration ****************************/
 
 ClassDeclaration *ClassDeclaration::classinfo;
 
-ClassDeclaration::ClassDeclaration(Identifier *id, Array *baseclasses)
-    : AggregateDeclaration(id)
+ClassDeclaration::ClassDeclaration(Loc loc, Identifier *id, Array *baseclasses)
+    : AggregateDeclaration(loc, id)
 {
     if (baseclasses)
 	this->baseclasses = *baseclasses;
@@ -73,7 +83,7 @@ Dsymbol *ClassDeclaration::syntaxCopy(Dsymbol *s)
     if (s)
 	cd = (ClassDeclaration *)s;
     else
-	cd = new ClassDeclaration(ident, NULL);
+	cd = new ClassDeclaration(loc, ident, NULL);
 
     cd->baseclasses.setDim(this->baseclasses.dim);
     for (int i = 0; i < cd->baseclasses.dim; i++)
@@ -442,8 +452,8 @@ char *ClassDeclaration::kind()
 
 /********************************* InterfaceDeclaration ****************************/
 
-InterfaceDeclaration::InterfaceDeclaration(Identifier *id, Array *baseclasses)
-    : ClassDeclaration(id, baseclasses)
+InterfaceDeclaration::InterfaceDeclaration(Loc loc, Identifier *id, Array *baseclasses)
+    : ClassDeclaration(loc, id, baseclasses)
 {
     com = 0;
     if (id == Id::IUnknown)		// IUnknown is the root of all COM objects
@@ -457,7 +467,7 @@ Dsymbol *InterfaceDeclaration::syntaxCopy(Dsymbol *s)
     if (s)
 	id = (InterfaceDeclaration *)s;
     else
-	id = new InterfaceDeclaration(ident, NULL);
+	id = new InterfaceDeclaration(loc, ident, NULL);
 
     ClassDeclaration::syntaxCopy(id);
     return id;
@@ -626,8 +636,9 @@ int BaseClass::fillVtbl(ClassDeclaration *cd, Array *vtbl, int newinstance)
 	{
 	    //printf("            not found\n");
 	    // BUG: should mark this class as abstract?
-	    cd->error("interface function %s.%s is not implemented",
-		id->toChars(), ifd->ident->toChars());
+	    if (!cd->isAbstract())
+		cd->error("1interface function %s.%s is not implemented",
+		    id->toChars(), ifd->ident->toChars());
 	    fd = NULL;
 	}
 	if (vtbl)

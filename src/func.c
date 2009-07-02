@@ -1,5 +1,5 @@
 
-// Copyright (c) 1999-2002 by Digital Mars
+// Copyright (c) 1999-2004 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // www.digitalmars.com
@@ -7,10 +7,23 @@
 // in artistic.txt, or the GNU General Public License in gnu.txt.
 // See the included readme.txt for details.
 
+#include <stdio.h>
+#include <assert.h>
+
+#include "mars.h"
 #include "declaration.h"
 #include "init.h"
 #include "attrib.h"
 #include "expression.h"
+#include "scope.h"
+#include "mtype.h"
+#include "aggregate.h"
+#include "identifier.h"
+#include "id.h"
+#include "module.h"
+#include "statement.h"
+#include "template.h"
+
 
 /********************************* FuncDeclaration ****************************/
 
@@ -233,6 +246,32 @@ void FuncDeclaration::semantic(Scope *sc)
     L1: ;
     }
 
+    /* Do not allow template instances to add virtual functions
+     * to a class.
+     */
+    if (!(isStatic() || protection == PROTprivate))
+    {
+	TemplateInstance *ti = parent->isTemplateInstance();
+	if (ti)
+	{
+	    // Take care of nested templates
+	    while (1)
+	    {
+		TemplateInstance *ti2 = ti->tempdecl->parent->isTemplateInstance();
+		if (!ti2)
+		    break;
+		ti = ti2;
+	    }
+
+	    // If it's a member template
+	    ClassDeclaration *cd = ti->tempdecl->isClassMember();
+	    if (cd)
+	    {
+		error("cannot use template to add virtual function to class '%s'", cd->toChars());
+	    }
+	}
+    }
+
     if (isMain())
     {
 	// Check parameters to see if they are either () or (char[][] args)
@@ -274,6 +313,7 @@ void FuncDeclaration::semantic3(Scope *sc)
     //printf("FuncDeclaration::semantic3('%s.%s', sc = %p)\n", parent->toChars(), toChars(), sc);
     //fflush(stdout);
     //{ static int x; if (++x == 2) *(char*)0=0; }
+    //printf("\tlinkage = %d\n", sc->linkage);
 
     //printf(" sc->incontract = %d\n", sc->incontract);
     if (semanticRun)
@@ -315,6 +355,7 @@ void FuncDeclaration::semantic3(Scope *sc)
 	sc2->sbreak = NULL;
 	sc2->scontinue = NULL;
 	sc2->fes = fes;
+	sc2->linkage = LINKd;
 
 	// Declare 'this'
 	ad = isThis();
@@ -960,7 +1001,10 @@ int FuncDeclaration::isNested()
 
 int FuncDeclaration::needThis()
 {
-    return !isStatic() && isMember();
+    //printf("FuncDeclaration::needThis() '%s'\n", toChars());
+    int i = !isStatic() && isMember();
+    //printf("\t%d\n", i);
+    return i;
 }
 
 int FuncDeclaration::addPreInvariant()

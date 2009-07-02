@@ -1,5 +1,5 @@
 
-// Copyright (c) 1999-2002 by Digital Mars
+// Copyright (c) 1999-2004 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // www.digitalmars.com
@@ -7,10 +7,18 @@
 // in artistic.txt, or the GNU General Public License in gnu.txt.
 // See the included readme.txt for details.
 
+#include <stdio.h>
+#include <assert.h>
+
 #include "declaration.h"
 #include "init.h"
 #include "attrib.h"
 #include "template.h"
+#include "mtype.h"
+#include "scope.h"
+#include "aggregate.h"
+#include "module.h"
+#include "id.h"
 
 /********************************* Declaration ****************************/
 
@@ -424,6 +432,26 @@ void VarDeclaration::semantic(Scope *sc)
 	if (id)
 	{
 	    error("field not allowed in interface");
+	}
+
+	TemplateInstance *ti = parent->isTemplateInstance();
+	if (ti)
+	{
+	    // Take care of nested templates
+	    while (1)
+	    {
+		TemplateInstance *ti2 = ti->tempdecl->parent->isTemplateInstance();
+		if (!ti2)
+		    break;
+		ti = ti2;
+	    }
+
+	    // If it's a member template
+	    AggregateDeclaration *ad = ti->tempdecl->isMember();
+	    if (ad)
+	    {
+		error("cannot use template to add field to aggregate '%s'", ad->toChars());
+	    }
 	}
     }
 

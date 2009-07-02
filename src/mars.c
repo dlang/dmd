@@ -7,8 +7,10 @@
 // in artistic.txt, or the GNU General Public License in gnu.txt.
 // See the included readme.txt for details.
 
+#include <stdio.h>
 #include <stdlib.h>
 #include <ctype.h>
+#include <assert.h>
 
 #if __DMC__
 #include <dos.h>
@@ -20,6 +22,8 @@
 #include "mars.h"
 #include "module.h"
 #include "mtype.h"
+#include "id.h"
+#include "debcond.h"
 
 void getenv_setargv(const char *envvar, int *pargc, char** *pargv);
 
@@ -40,7 +44,7 @@ Global::Global()
 
     copyright = "Copyright (c) 1999-2004 by Digital Mars";
     written = "written by Walter Bright";
-    version = "v0.79";
+    version = "v0.80";
     global.structalign = 8;
 
     memset(&params, 0, sizeof(Param));
@@ -112,7 +116,7 @@ void usage()
     printf("Digital Mars D Compiler %s\n%s %s\n",
 	global.version, global.copyright, global.written);
     printf("\
-www.digitalmars.com/d/index.html\n\
+Documentation: www.digitalmars.com/d/index.html\n\
 Usage:\n\
   dmd files.d ... { -switch }\n\
 \n\

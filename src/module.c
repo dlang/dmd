@@ -1,5 +1,5 @@
 
-// Copyright (c) 1999-2002 by Digital Mars
+// Copyright (c) 1999-2004 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // www.digitalmars.com
@@ -7,8 +7,18 @@
 // in artistic.txt, or the GNU General Public License in gnu.txt.
 // See the included readme.txt for details.
 
+#include <stdio.h>
+#include <stdlib.h>
+#include <assert.h>
+
 #include "mars.h"
 #include "module.h"
+#include "parse.h"
+#include "scope.h"
+#include "identifier.h"
+#include "id.h"
+#include "import.h"
+#include "dsymbol.h"
 
 #define MARS 1
 #include "html.h"
@@ -172,7 +182,7 @@ inline unsigned readlongLE(unsigned *p)
     return ((unsigned char *)p)[0] |
 	(((unsigned char *)p)[1] << 8) |
 	(((unsigned char *)p)[2] << 16) |
-	(((unsigned char *)p)[3] << 24));
+	(((unsigned char *)p)[3] << 24);
 #endif
 }
 

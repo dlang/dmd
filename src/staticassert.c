@@ -7,9 +7,13 @@
 // in artistic.txt, or the GNU General Public License in gnu.txt.
 // See the included readme.txt for details.
 
+#include <stdio.h>
+#include <assert.h>
+
 #include "dsymbol.h"
 #include "staticassert.h"
 #include "expression.h"
+#include "id.h"
 
 /********************************* AttribDeclaration ****************************/
 

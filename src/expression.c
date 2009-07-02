@@ -25,6 +25,16 @@
 #include "expression.h"
 #include "template.h"
 #include "utf.h"
+#include "enum.h"
+#include "scope.h"
+#include "statement.h"
+#include "declaration.h"
+#include "aggregate.h"
+#include "import.h"
+#include "id.h"
+#include "dsymbol.h"
+#include "module.h"
+
 
 /***************************************
  * Pull out any properties.
@@ -1069,6 +1079,9 @@ Expression *SuperExp::semantic(Scope *sc)
     if (!fd->isThis())
 	goto Lerr;
 
+    assert(fd->vthis);
+    var = fd->vthis;
+    assert(var->parent);
     cd = fd->parent->isClassDeclaration();
     assert(cd);
     if (!cd->baseClass)
@@ -1336,7 +1349,7 @@ Lagain:
 	    //printf("s = %s, '%s'\n", s->kind(), s->toChars());
 	    Expression *e = new DsymbolExp(loc, s);
 	    e = e->semantic(sc);
-	    //printf("-ScopeExp::semantic()\n");
+	    //printf("-1ScopeExp::semantic()\n");
 	    return e;
 	}
 	if (sds2 != sds)
@@ -1352,7 +1365,7 @@ Lagain:
 	sds->semantic(sc);
     }
 #endif
-    //printf("-ScopeExp::semantic()\n");
+    //printf("-2ScopeExp::semantic()\n");
     return this;
 }
 
@@ -2078,16 +2091,31 @@ Expression *DotTemplateInstanceExp::semantic(Scope *sc)
     TemplateDeclaration *td;
     Expression *e;
     Identifier *id;
+    Type *t1;
 
     //printf("DotTemplateInstanceExp::semantic(%p)\n", this);
     e1 = e1->semantic(sc);
+    t1 = e1->type;
+    if (t1)
+	t1 = t1->toBasetype();
     if (e1->op == TOKimport)
     {
 	s = ((ScopeExp *)e1)->sds;
     }
+    else if (e1->op == TOKtype)
+    {
+	s = t1->isClassHandle();
+	if (!s)
+	    goto L1;
+    }
+    else if (t1 && (t1->ty == Tstruct || t1->ty == Tclass))
+    {
+	s = t1->toDsymbol(sc);
+    }
     else
     {
-	error("template %s is not a member of %s", ti->ident->toChars(), e1->toChars());
+      L1:
+	error("template %s is not a member of %s", ti->toChars(), e1->toChars());
 	goto Lerr;
     }
 
@@ -2098,6 +2126,7 @@ Expression *DotTemplateInstanceExp::semantic(Scope *sc)
     {	error("template identifier %s is not a member of %s", id->toChars(), s->ident->toChars());
 	goto Lerr;
     }
+    s->semantic(sc);
     s = s->toAlias();
     td = s->isTemplateDeclaration();
     if (!td)
@@ -2926,9 +2955,10 @@ Expression *SliceExp::semantic(Scope *sc)
 	    e = e->semantic(sc);
 	    return e;
         }
+	goto Lerror;
     }
     else
-	error("incompatible types for array[range], had %s[]", e1->type->toChars());
+	goto Lerror;
 
     if (t->next->toBasetype()->ty == Tvoid)
 	error("cannot have array of %s", t->next->toChars());
@@ -2945,6 +2975,11 @@ Expression *SliceExp::semantic(Scope *sc)
     }
 
     type = t->next->arrayOf();
+    return e;
+
+Lerror:
+    error("%s cannot be sliced with []", e1->type->toChars());
+    type = Type::terror;
     return e;
 }
 

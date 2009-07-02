@@ -10,6 +10,8 @@
 #ifndef INIT_H
 #define INIT_H
 
+#include "root.h"
+
 #include "mars.h"
 
 struct Identifier;

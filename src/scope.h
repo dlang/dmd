@@ -19,10 +19,12 @@ struct ScopeDsymbol;
 struct Array;
 struct Identifier;
 struct Module;
+struct Statement;
 struct SwitchStatement;
 struct LabelStatement;
 struct ForeachStatement;
 struct ClassDeclaration;
+struct FuncDeclaration;
 enum LINK;
 enum PROT;
 

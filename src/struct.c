@@ -1,5 +1,5 @@
 
-// Copyright (c) 1999-2002 by Digital Mars
+// Copyright (c) 1999-2004 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // www.digitalmars.com
@@ -7,14 +7,22 @@
 // in artistic.txt, or the GNU General Public License in gnu.txt.
 // See the included readme.txt for details.
 
+#include <stdio.h>
+#include <assert.h>
+
 #include "root.h"
 #include "aggregate.h"
+#include "scope.h"
+#include "mtype.h"
+#include "declaration.h"
 
 /********************************* AggregateDeclaration ****************************/
 
-AggregateDeclaration::AggregateDeclaration(Identifier *id)
+AggregateDeclaration::AggregateDeclaration(Loc loc, Identifier *id)
     : ScopeDsymbol(id)
 {
+    this->loc = loc;
+
     type = NULL;
     handle = NULL;
     structsize = 0;		// size of struct
@@ -125,8 +133,8 @@ void AggregateDeclaration::alignmember(unsigned salign, unsigned size, unsigned 
 
 /********************************* StructDeclaration ****************************/
 
-StructDeclaration::StructDeclaration(Identifier *id)
-    : AggregateDeclaration(id)
+StructDeclaration::StructDeclaration(Loc loc, Identifier *id)
+    : AggregateDeclaration(loc, id)
 {
     zeroInit = 0;	// assume false until we do semantic processing
 
@@ -141,7 +149,7 @@ Dsymbol *StructDeclaration::syntaxCopy(Dsymbol *s)
     if (s)
 	sd = (StructDeclaration *)s;
     else
-	sd = new StructDeclaration(ident);
+	sd = new StructDeclaration(loc, ident);
     ScopeDsymbol::syntaxCopy(sd);
     return sd;
 }
@@ -166,7 +174,7 @@ void StructDeclaration::semantic(Scope *sc)
 	    for (i = 0; i < members->dim; i++)
 	    {
 		Dsymbol *s = (Dsymbol *)members->data[i];
-//printf("adding member '%s' to '%s'\n", s->toChars(), this->toChars());
+		//printf("adding member '%s' to '%s'\n", s->toChars(), this->toChars());
 		s->addMember(this);
 	    }
 	}
@@ -296,8 +304,8 @@ char *StructDeclaration::kind()
 
 /********************************* UnionDeclaration ****************************/
 
-UnionDeclaration::UnionDeclaration(Identifier *id)
-    : StructDeclaration(id)
+UnionDeclaration::UnionDeclaration(Loc loc, Identifier *id)
+    : StructDeclaration(loc, id)
 {
 }
 
@@ -308,7 +316,7 @@ Dsymbol *UnionDeclaration::syntaxCopy(Dsymbol *s)
     if (s)
 	ud = (UnionDeclaration *)s;
     else
-	ud = new UnionDeclaration(ident);
+	ud = new UnionDeclaration(loc, ident);
     StructDeclaration::syntaxCopy(ud);
     return ud;
 }

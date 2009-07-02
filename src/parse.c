@@ -1,5 +1,5 @@
 
-// Copyright (c) 1999-2003 by Digital Mars
+// Copyright (c) 1999-2004 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // www.digitalmars.com
@@ -7,6 +7,8 @@
 // in artistic.txt, or the GNU General Public License in gnu.txt.
 // See the included readme.txt for details.
 
+#include <stdio.h>
+#include <assert.h>
 
 #include "mem.h"
 #include "lexer.h"
@@ -16,6 +18,17 @@
 #include "debcond.h"
 #include "template.h"
 #include "staticassert.h"
+#include "expression.h"
+#include "statement.h"
+#include "module.h"
+#include "dsymbol.h"
+#include "import.h"
+#include "declaration.h"
+#include "aggregate.h"
+#include "enum.h"
+#include "id.h"
+#include "mtype.h"
+#include "version.h"
 
 // How multiple declarations are parsed.
 // If 1, treat as C.
@@ -945,18 +958,18 @@ Dsymbol *Parser::parseAggregate()
 	    }
 
 	    if (tok == TOKclass)
-		a = new ClassDeclaration(id, baseclasses);
+		a = new ClassDeclaration(loc, id, baseclasses);
 	    else
-		a = new InterfaceDeclaration(id, baseclasses);
+		a = new InterfaceDeclaration(loc, id, baseclasses);
 	    break;
 	}
 
 	case TOKstruct:
-	    a = new StructDeclaration(id);
+	    a = new StructDeclaration(loc, id);
 	    break;
 
 	case TOKunion:
-	    a = new UnionDeclaration(id);
+	    a = new UnionDeclaration(loc, id);
 	    break;
 
 	default:
@@ -1795,6 +1808,8 @@ void Parser::parseContracts(FuncDeclaration *f)
     Type *tb;
     enum LINK linksave = linkage;
 
+    // The following is irrelevant, as it is overridden by sc->linkage in
+    // TypeFunction::semantic
     linkage = LINKd;		// nested functions have D linkage
 L1:
     switch (token.value)
@@ -2924,8 +2939,23 @@ int Parser::isDeclarator(Token **pt, int *haveId, enum TOK endtok)
 
 	    case TOKlparen:
 		t = peek(t);
+
 		if (t->value == TOKrparen)
-		    return FALSE;
+		    return FALSE;		// () is not a declarator
+
+		/* Regard ( identifier ) as not a declarator
+		 * BUG: what about ( *identifier ) in
+		 *	f(*p)(x);
+		 * where f is a class instance with overloaded () ?
+		 * Should we just disallow C-style function pointer declarations?
+		 */
+		if (t->value == TOKidentifier)
+		{   Token *t2 = peek(t);
+		    if (t2->value == TOKrparen)
+			return FALSE;
+		}
+
+
 		if (!isDeclarator(&t, haveId, TOKrparen))
 		    return FALSE;
 		t = peek(t);

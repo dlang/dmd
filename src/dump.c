@@ -13,6 +13,7 @@
 
 #include "mars.h"
 #include "mtype.h"
+#include "declaration.h"
 #include "expression.h"
 #include "template.h"
 

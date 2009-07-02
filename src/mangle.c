@@ -1,5 +1,5 @@
 
-// Copyright (c) 1999-2003 by Digital Mars
+// Copyright (c) 1999-2004 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // www.digitalmars.com
@@ -10,13 +10,16 @@
 #include <stdio.h>
 #include <string.h>
 #include <ctype.h>
+#include <assert.h>
 
 #include "root.h"
 
 #include "declaration.h"
+#include "aggregate.h"
 #include "mtype.h"
 #include "attrib.h"
 #include "template.h"
+#include "id.h"
 
 char *Declaration::mangle()
 #if __DMC__

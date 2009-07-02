@@ -48,7 +48,7 @@ struct AggregateDeclaration : ScopeDsymbol
     DeleteDeclaration *aggDelete;	// deallocator
 
 
-    AggregateDeclaration(Identifier *id);
+    AggregateDeclaration(Loc loc, Identifier *id);
     void semantic2(Scope *sc);
     void semantic3(Scope *sc);
     void inlineScan();
@@ -68,7 +68,7 @@ struct StructDeclaration : AggregateDeclaration
 {
     int zeroInit;		// !=0 if initialize with 0 fill
 
-    StructDeclaration(Identifier *id);
+    StructDeclaration(Loc loc, Identifier *id);
     Dsymbol *syntaxCopy(Dsymbol *s);
     void semantic(Scope *sc);
     void toCBuffer(OutBuffer *buf);
@@ -84,7 +84,7 @@ struct StructDeclaration : AggregateDeclaration
 
 struct UnionDeclaration : StructDeclaration
 {
-    UnionDeclaration(Identifier *id);
+    UnionDeclaration(Loc loc, Identifier *id);
     Dsymbol *syntaxCopy(Dsymbol *s);
     int isUnion();
     char *kind();
@@ -134,7 +134,7 @@ struct ClassDeclaration : AggregateDeclaration
     int com;				// !=0 if this is a COM class
     int isauto;				// !=0 if this is an auto class
 
-    ClassDeclaration(Identifier *id, Array *baseclasses);
+    ClassDeclaration(Loc loc, Identifier *id, Array *baseclasses);
     Dsymbol *syntaxCopy(Dsymbol *s);
     void semantic(Scope *sc);
     void toCBuffer(OutBuffer *buf);
@@ -167,7 +167,7 @@ struct ClassDeclaration : AggregateDeclaration
 
 struct InterfaceDeclaration : ClassDeclaration
 {
-    InterfaceDeclaration(Identifier *id, Array *baseclasses);
+    InterfaceDeclaration(Loc loc, Identifier *id, Array *baseclasses);
     Dsymbol *syntaxCopy(Dsymbol *s);
     void semantic(Scope *sc);
     int isBaseOf(ClassDeclaration *cd, int *poffset);

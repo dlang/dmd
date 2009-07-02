@@ -17,6 +17,8 @@
 #include "root.h"
 #include "stringtable.h"
 
+#include "mars.h"
+
 struct Identifier;
 struct Scope;
 struct DsymbolTable;

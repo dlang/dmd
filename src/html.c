@@ -156,14 +156,14 @@ void Html::skipTag()
 	TSrest,		// following tag name
     };
     enum TagState state = TStagstart;
-    int not;
+    int nottag;
     unsigned char *tagstart = NULL;
     int taglen = 0;
 
     p++;
-    not = 0;
+    nottag = 0;
     if (*p == '/')
-    {	not = 1;
+    {	nottag = 1;
 	p++;
     }
     while (1)
@@ -240,9 +240,9 @@ void Html::skipTag()
     }
 
     // See if we parsed a <code> or </code> tag
-    if (taglen && memicmp(tagstart, "CODE", taglen) == 0)
+    if (taglen && memicmp((char *)tagstart, "CODE", taglen) == 0)
     {
-	if (not)
+	if (nottag)
 	{   inCode--;
 	    if (inCode < 0)
 		inCode = 0;		// ignore extra </code>'s
@@ -533,7 +533,7 @@ int Html::namedEntity(unsigned char *p, int length)
     for (i = 0; i < sizeof(names) / sizeof(names[0]); i++)
     {
 	// Do case insensitive compare
-	if (memicmp(names[i].name, p, length) == 0)
+	if (memicmp(names[i].name, (char *)p, length) == 0)
 	    return names[i].value;
     }
     error("unrecognized character entity");

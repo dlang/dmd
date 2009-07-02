@@ -1,5 +1,5 @@
 
-// Copyright (c) 1999-2003 by Digital Mars
+// Copyright (c) 1999-2004 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // www.digitalmars.com
@@ -7,13 +7,23 @@
 // in artistic.txt, or the GNU General Public License in gnu.txt.
 // See the included readme.txt for details.
 
+#include <stdio.h>
+#include <stdlib.h>
+#include <assert.h>
+
+#include "mem.h"
+
 #include "statement.h"
 #include "expression.h"
 #include "debcond.h"
 #include "init.h"
 #include "staticassert.h"
+#include "mtype.h"
+#include "scope.h"
+#include "declaration.h"
+#include "aggregate.h"
+#include "id.h"
 
-#include "mem.h"
 
 /******************************** Statement ***************************/
 
@@ -1421,6 +1431,7 @@ Statement *ReturnStatement::semantic(Scope *sc)
 
 	if (exp)
 	{   exp = exp->semantic(sc);
+	    exp = resolveProperties(sc, exp);
 	    exp = exp->implicitCastTo(fdx->type->next);
 	}
 	if (!exp || exp->op == TOKint64 || exp->op == TOKfloat64 ||
@@ -1468,7 +1479,7 @@ Statement *ReturnStatement::semantic(Scope *sc)
     {
 	if (fd->isCtorDeclaration())
 	{
-	    // Constructors implicity do:
+	    // Constructors implicitly do:
 	    //	return this;
 	    if (exp && exp->op != TOKthis)
 		error("cannot return expression from constructor");
@@ -1484,12 +1495,14 @@ Statement *ReturnStatement::semantic(Scope *sc)
 		assert(fd->vresult);
 		VarExp *v = new VarExp(0, fd->vresult);
 
+		exp = resolveProperties(sc, exp);
 		exp = new AssignExp(loc, v, exp);
 		exp = exp->semantic(sc);
 	    }
 	    else
 	    {
 		exp = exp->semantic(sc);
+		exp = resolveProperties(sc, exp);
 		exp = exp->implicitCastTo(fd->type->next);
 	    }
 	}

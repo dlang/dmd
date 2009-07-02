@@ -558,7 +558,7 @@ void ClassDeclaration::toDt2(dt_t **pdt, ClassDeclaration *cd)
 	    {
 		if (offset < b->offset)
 		    dtnzeros(pdt, b->offset - offset);
-		dtxoff(pdt, cd2->csym, csymoffset, TYnptr);
+		dtxoff(pdt, cd2->toSymbol(), csymoffset, TYnptr);
 		break;
 	    }
 	}

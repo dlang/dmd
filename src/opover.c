@@ -23,6 +23,9 @@
 #include "mtype.h"
 #include "init.h"
 #include "expression.h"
+#include "id.h"
+#include "declaration.h"
+#include "aggregate.h"
 
 static Expression *build_overload(Loc loc, Scope *sc, Expression *ethis, Expression *earg, Identifier *id);
 

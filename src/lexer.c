@@ -16,6 +16,7 @@
 #include <errno.h>
 #include <wchar.h>
 #include <stdlib.h>
+#include <assert.h>
 
 #if __GNUC__
 extern "C" long double strtold(const char *p,char **endp);
@@ -29,8 +30,12 @@ extern "C" long double strtold(const char *p,char **endp);
 #error "fix this"
 #endif
 
+#include "stringtable.h"
+
 #include "lexer.h"
 #include "utf.h"
+#include "identifier.h"
+#include "id.h"
 
 #if _WIN32 && __DMC__
 // from \dm\src\include\setlocal.h

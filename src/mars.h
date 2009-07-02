@@ -92,15 +92,18 @@ extern Global global;
 //#define stricmp strcasecmp
 #endif
 
-typedef unsigned long long integer_t;
-typedef long double real_t;
-
 #ifdef __DMC__
 typedef _Complex long double complex_t;
 #else
 #include "complex_t.h"
+#ifdef __APPLE__
+#include "complex.h"
+#define integer_t dmd_integer_t
+#endif
 #endif
 
+typedef unsigned long long integer_t;
+typedef long double real_t;
 
 typedef signed char		d_int8;
 typedef unsigned char		d_uns8;

@@ -7,11 +7,15 @@
 // in artistic.txt, or the GNU General Public License in gnu.txt.
 // See the included readme.txt for details.
 
+#include <stdio.h>
+#include <assert.h>
+
 #include "root.h"
 #include "dsymbol.h"
 #include "import.h"
 #include "identifier.h"
 #include "module.h"
+#include "scope.h"
 
 /********************************* Import ****************************/
 

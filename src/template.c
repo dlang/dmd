@@ -9,13 +9,25 @@
 
 // Handle template implementation
 
+#include <stdio.h>
+#include <assert.h>
+
 #include "root.h"
 #include "mem.h"
+#include "stringtable.h"
 
 #include "template.h"
 #include "mtype.h"
 #include "init.h"
 #include "expression.h"
+#include "scope.h"
+#include "module.h"
+#include "aggregate.h"
+#include "declaration.h"
+#include "dsymbol.h"
+#include "mars.h"
+#include "dsymbol.h"
+#include "identifier.h"
 
 #define LOG	0
 
@@ -88,8 +100,13 @@ void TemplateDeclaration::semantic(Scope *sc)
 #if LOG
     printf("TemplateDeclaration::semantic(this = %p, id = '%s')\n", this, ident->toChars());
 #endif
+    if (scope)
+	return;		// semantic() already run
+
     if (sc->func)
-	error("cannot declare template at function scope");
+    {
+	error("cannot declare template at function scope %s", sc->func->toChars());
+    }
 
     if (global.params.useArrayBounds && sc->module)
     {
@@ -1211,7 +1228,9 @@ void TemplateInstance::semantic(Scope *sc)
 	int i;
 
 	if (sc->scopesym->members)
+	{
 	    a = sc->scopesym->members;
+	}
 	else
 	{
 	    a = sc->module->members;
@@ -1349,8 +1368,10 @@ void TemplateInstance::semantic(Scope *sc)
 
 	semantic2(sc2);
 
-    if (sc->parent->isFuncDeclaration())
+    if (sc->func)
+    {
 	semantic3(sc2);
+    }
 
     sc2->pop();
 

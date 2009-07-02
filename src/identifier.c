@@ -12,6 +12,7 @@
 
 #include "root.h"
 #include "identifier.h"
+#include "mars.h"
 
 Identifier::Identifier(const char *string, int value)
 {

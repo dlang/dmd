@@ -1,5 +1,5 @@
 
-// Copyright (c) 1999-2002 by Digital Mars
+// Copyright (c) 1999-2004 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // www.digitalmars.com
@@ -7,10 +7,19 @@
 // in artistic.txt, or the GNU General Public License in gnu.txt.
 // See the included readme.txt for details.
 
+#include <stdio.h>
+#include <stdlib.h>
+#include <assert.h>
+
 #include "declaration.h"
 #include "init.h"
 #include "attrib.h"
 #include "debcond.h"
+#include "scope.h"
+#include "id.h"
+#include "expression.h"
+#include "dsymbol.h"
+
 
 /********************************* AttribDeclaration ****************************/
 
@@ -106,9 +115,12 @@ char *AttribDeclaration::kind()
 }
 
 Dsymbol *AttribDeclaration::oneMember()
-{
+{   Dsymbol *s;
+
     if (decl && decl->dim == 1)
-	return (Dsymbol *)decl->data[0];
+    {	s = (Dsymbol *)decl->data[0];
+	return s->oneMember();
+    }
     return NULL;
 }
 
@@ -204,6 +216,27 @@ void LinkDeclaration::semantic(Scope *sc)
 	    Dsymbol *s = (Dsymbol *)decl->data[i];
 
 	    s->semantic(sc);
+	}
+	sc->linkage = linkage_save;
+    }
+    else
+    {
+	sc->linkage = linkage;
+    }
+}
+
+void LinkDeclaration::semantic3(Scope *sc)
+{
+    //printf("LinkDeclaration::semantic3(linkage = %d, decl = %p)\n", linkage, decl);
+    if (decl)
+    {	enum LINK linkage_save = sc->linkage;
+
+	sc->linkage = linkage;
+	for (unsigned i = 0; i < decl->dim; i++)
+	{
+	    Dsymbol *s = (Dsymbol *)decl->data[i];
+
+	    s->semantic3(sc);
 	}
 	sc->linkage = linkage_save;
     }

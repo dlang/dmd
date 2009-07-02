@@ -1,5 +1,5 @@
 
-// Copyright (c) 1999-2003 by Digital Mars
+// Copyright (c) 1999-2004 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // www.digitalmars.com
@@ -8,6 +8,10 @@
 // See the included readme.txt for details.
 
 
+#include <stdio.h>
+#include <stdlib.h>
+#include <assert.h>
+
 #include "root.h"
 #include "mem.h"
 
@@ -15,6 +19,12 @@
 #include "aggregate.h"
 #include "init.h"
 #include "attrib.h"
+#include "scope.h"
+#include "id.h"
+#include "declaration.h"
+#include "aggregate.h"
+#include "expression.h"
+#include "mtype.h"
 
 #define LOG 0
 
@@ -289,10 +299,12 @@ void accessCheck(Loc loc, Scope *sc, Expression *e, Declaration *d)
 	ClassDeclaration *cd;
 
 	cd = (ClassDeclaration *)(((TypeClass *)e->type)->sym);
+#if 0
 	if (e->op == TOKsuper)
 	{
 	    cd = sc->func->parent->isClassDeclaration();
 	}
+#endif
 	cd->accessCheck(loc, sc, d);
     }
 }

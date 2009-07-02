@@ -11,7 +11,17 @@
 
 #define LOG 0
 
+#include <stdio.h>
+#include <stdlib.h>
+#include <assert.h>
+
+#include "id.h"
 #include "init.h"
+#include "declaration.h"
+#include "aggregate.h"
+#include "expression.h"
+#include "statement.h"
+#include "mtype.h"
 
 /* ========== Compute cost of inlining =============== */
 

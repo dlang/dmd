@@ -59,6 +59,7 @@ struct LinkDeclaration : AttribDeclaration
     LinkDeclaration(enum LINK p, Array *decl);
     Dsymbol *syntaxCopy(Dsymbol *s);
     void semantic(Scope *sc);
+    void semantic3(Scope *sc);
     void toCBuffer(OutBuffer *buf);
     char *toChars();
 };
