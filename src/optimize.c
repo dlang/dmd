@@ -218,20 +218,22 @@ Expression *CatExp::optimize(int result)
     else if (e1->op == TOKstring && e2->op == TOKstring)
     {
 	// Concatenate the strings
-	wchar_t *s;
+	void *s;
 	StringExp *es1 = (StringExp *)e1;
 	StringExp *es2 = (StringExp *)e2;
 	StringExp *es;
 	Type *t;
 
-	s = (wchar_t *) mem.malloc((es1->len + es2->len + 1) * sizeof(s[0]));
-	memcpy(s, es1->string, es1->len * sizeof(s[0]));
-	memcpy(s + es1->len, es2->string, es2->len * sizeof(s[0]));
+	assert(es1->sz == es2->sz);
+	s = mem.malloc((es1->len + es2->len + 1) * es1->sz);
+	memcpy(s, es1->string, es1->len * es1->sz);
+	memcpy((unsigned char *)s + es1->len, es2->string, es2->len * es1->sz);
 
 	// Add terminating 0
-	s[es1->len + es2->len] = 0;
+	memset((unsigned char *)s + es1->len + es2->len, 0, es1->sz);
 
 	es = new StringExp(loc, s, es1->len + es2->len);
+	es->sz = es1->sz;
 	es->committed = es1->committed | es2->committed;
 	if (es1->committed)
 	    t = es1->type;

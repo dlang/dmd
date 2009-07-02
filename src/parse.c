@@ -429,6 +429,9 @@ Array *Parser::parseDeclDefs(int once)
 
 	    default:
 		error("Declaration expected, not '%s'\n",token.toChars());
+		while (token.value != TOKsemicolon && token.value != TOKeof)
+		    nextToken();
+		nextToken();
 		s = NULL;
 		continue;
 	}
@@ -1205,6 +1208,7 @@ Type *Parser::parseBasicType()
 
 	default:
 	    error("basic type expected, not %s", token.toChars());
+	    t = Type::tint32;
 	    break;
     }
     return t;
@@ -1612,7 +1616,7 @@ Array *Parser::parseDeclaration()
 		    continue;
 
 		default:
-		    error("semicolon expected 3");
+		    error("semicolon expected to close %s declaration", Token::toChars(tok));
 		    break;
 	    }
 	}
@@ -1931,6 +1935,9 @@ Statement *Parser::parseStatement(int flags)
 	case TOKimaginary32v:
 	case TOKimaginary64v:
 	case TOKimaginary80v:
+	case TOKcharv:
+	case TOKwcharv:
+	case TOKdcharv:
 	case TOKnull:
 	case TOKtrue:
 	case TOKfalse:
@@ -2969,8 +2976,23 @@ Expression *Parser::parsePrimaryExp()
 	    nextToken();
 	    break;
 
+	case TOKcharv:
+	    e = new IntegerExp(loc, token.uns32value, Type::tchar);
+	    nextToken();
+	    break;
+
+	case TOKwcharv:
+	    e = new IntegerExp(loc, token.uns32value, Type::twchar);
+	    nextToken();
+	    break;
+
+	case TOKdcharv:
+	    e = new IntegerExp(loc, token.uns32value, Type::tdchar);
+	    nextToken();
+	    break;
+
 	case TOKstring:
-	{   wchar_t *s;
+	{   unsigned char *s;
 	    unsigned len;
 
 	    // cat adjacent strings
@@ -2982,14 +3004,14 @@ Expression *Parser::parsePrimaryExp()
 		if (token.value == TOKstring)
 		{   unsigned len1;
 		    unsigned len2;
-		    wchar_t *s2;
+		    unsigned char *s2;
 
 		    len1 = len;
 		    len2 = token.len;
 		    len = len1 + len2;
-		    s2 = (wchar_t *)mem.malloc((len + 1) * sizeof(wchar_t));
-		    memcpy(s2, s, len1 * sizeof(wchar_t));
-		    memcpy(s2 + len1, token.ustring, (len2 + 1) * sizeof(wchar_t));
+		    s2 = (unsigned char *)mem.malloc((len + 1) * sizeof(unsigned char));
+		    memcpy(s2, s, len1 * sizeof(unsigned char));
+		    memcpy(s2 + len1, token.ustring, (len2 + 1) * sizeof(unsigned char));
 		    s = s2;
 		}
 		else
@@ -3357,6 +3379,9 @@ Expression *Parser::parseUnaryExp()
 		    case TOKnull:
 		    case TOKtrue:
 		    case TOKfalse:
+		    case TOKcharv:
+		    case TOKwcharv:
+		    case TOKdcharv:
 		    case TOKstring:
 		    case TOKand:
 		    case TOKmul:

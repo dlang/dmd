@@ -1,5 +1,5 @@
 
-// Copyright (c) 1999-2002 by Digital Mars
+// Copyright (c) 1999-2003 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // www.digitalmars.com
@@ -38,7 +38,7 @@ char *Declaration::mangle()
 	char *id;
 	Dsymbol *s;
 
-	//printf("Declaration::mangle(parent = %p)\n", parent);
+	//printf("Declaration::mangle(this = %p, '%s', parent = '%s')\n", this, toChars(), parent ? parent->toChars() : "null");
 	if (!parent || parent->isModule())	// if at global scope
 	{
 	    // If it's not a D declaration, no mangling
@@ -62,9 +62,26 @@ char *Declaration::mangle()
 	s = this;
 	do
 	{
-	    buf.prependstring("_");
+	    //printf("s = %p, '%s', parent = %p\n", s, s->toChars(), s->parent);
+#if 1
 	    if (s->ident)
+	    {	id = s->ident->toChars();
+		int len = strlen(id);
+		char tmp[sizeof(len) * 3 + 1];
+		buf.prependstring(id);
+		sprintf(tmp, "%d", len);
+		buf.prependstring(tmp);
+	    }
+	    else
+		buf.prependstring("0");
+#else
+	    if (s->ident)
+	    {	buf.prependstring("_");
 		buf.prependstring(s->ident->toChars());
+	    }
+	    else
+		buf.prependstring("_");
+#endif
 	    s = s->parent;
 	} while (s);
 
@@ -93,118 +110,65 @@ char *FuncDeclaration::mangle()
 
 char *StructDeclaration::mangle()
 {
-    char *id;
-
     //printf("StructDeclaration::mangle() '%s'\n", toChars());
-    if (parent)
-    {
-	OutBuffer buf;
-
-	//printf("  parent = '%s', kind = '%s'\n", parent->mangle(), parent->kind());
-	buf.writestring(parent->mangle());
-	buf.writestring("_");
-	buf.writestring(ident ? ident->toChars() : toChars());
-	id = buf.toChars();
-	buf.data = NULL;
-    }
-    else
-	id = ident ? ident->toChars() : toChars();
-    return id;
+    return Dsymbol::mangle();
 }
 
 
 char *TypedefDeclaration::mangle()
 {
-    char *id;
-
     //printf("TypedefDeclaration::mangle() '%s'\n", toChars());
-    if (parent)
-    {
-	OutBuffer buf;
-
-	//printf("  parent = '%s', kind = '%s'\n", parent->mangle(), parent->kind());
-	buf.writestring(parent->mangle());
-	buf.writestring("_");
-	buf.writestring(ident ? ident->toChars() : toChars());
-	id = buf.toChars();
-	buf.data = NULL;
-    }
-    else
-	id = ident ? ident->toChars() : toChars();
-    return id;
+    return Dsymbol::mangle();
 }
 
 
 char *ClassDeclaration::mangle()
 {
-    char *id;
-#if 1
-    id = ident ? ident->toChars() : toChars();
-    if (parent)
-    {
-	/* These are reserved to the compiler, so keep simple
-	 * names for them.
-	 */
-	if (ident == Id::TypeInfo   ||
-	    ident == Id::Exception  ||
-	    ident == Id::Object     ||
-	    ident == Id::ClassInfo  ||
-	    ident == Id::ModuleInfo ||
-	    memcmp(id, "TypeInfo_", 9) == 0
-	   )
-	    return id;
+    Dsymbol *parentsave = parent;
 
-	OutBuffer buf;
+    /* These are reserved to the compiler, so keep simple
+     * names for them.
+     */
+    if (ident == Id::TypeInfo   ||
+	ident == Id::Exception  ||
+	ident == Id::Object     ||
+	ident == Id::ClassInfo  ||
+	ident == Id::ModuleInfo ||
+	memcmp(ident->toChars(), "TypeInfo_", 9) == 0
+       )
+	parent = NULL;
 
-	//printf("  parent = '%s', kind = '%s'\n", parent->mangle(), parent->kind());
-	buf.writestring(parent->mangle());
-	buf.writestring("_");
-	buf.writestring(id);
-	id = buf.toChars();
-	buf.data = NULL;
-    }
+    char *id = Dsymbol::mangle();
+    parent = parentsave;
     return id;
-#else
-    OutBuffer buf;
-    Dsymbol *s;
-
-    s = this;
-    while (1)
-    {
-	buf.prependstring(s->ident ? s->ident->toChars() : s->toChars());
-	s = s->parent;
-	if (!s ||
-	    (!s->isTemplateInstance() &&
-		!s->isClassDeclaration()))
-	    break;
-	buf.prependstring("_");
-    }
-
-    id = buf.toChars();
-    buf.data = NULL;
-    return id;
-#endif
 }
 
 
 char *TemplateInstance::mangle()
 {
-    char *id;
-
-    if (parent)
-    {
-	OutBuffer buf;
-
-	buf.writestring(parent->mangle());
-	buf.writestring("_");
-	buf.writestring(ident ? ident->toChars() : toChars());
-	id = buf.toChars();
-	buf.data = NULL;
-    }
-    else
-	id = ident ? ident->toChars() : toChars();
-    return id;
+    return Dsymbol::mangle();
 }
 
+
+
+char *Dsymbol::mangle()
+{
+    OutBuffer buf;
+    char *id;
+
+    //printf("Dsymbol::mangle() '%s'\n", toChars());
+    id = ident ? ident->toChars() : toChars();
+    if (parent)
+    {
+	//printf("  parent = '%s', kind = '%s'\n", parent->mangle(), parent->kind());
+	buf.writestring(parent->mangle());
+    }
+    buf.printf("%d%s", strlen(id), id);
+    //buf.writestring("_");
+    //buf.writestring(id);
+    id = buf.toChars();
+    buf.data = NULL;
+    return id;
+}
 
 

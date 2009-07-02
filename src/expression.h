@@ -76,7 +76,7 @@ struct Expression : Object
     void checkIntegral();
     void checkArithmetic();
     void checkDeprecated(Dsymbol *s);
-    virtual void checkBoolean();
+    virtual Expression *checkToBoolean();
     Expression *checkToPointer();
     Expression *addressOf();
     Expression *deref();
@@ -235,11 +235,12 @@ struct NullExp : Expression
 
 struct StringExp : Expression
 {
-    wchar_t *string;
-    unsigned len;
-    int committed;	// !=0 if type is committed
+    void *string;	// char, wchar, or dchar data
+    unsigned len;	// number of chars, wchars, or dchars
+    unsigned char sz;	// 1: char, 2: wchar, 4: dchar
+    unsigned char committed;	// !=0 if type is committed
 
-    StringExp(Loc loc, wchar_t *s, unsigned len);
+    StringExp(Loc loc, void *s, unsigned len);
     char *toChars();
     Expression *semantic(Scope *sc);
     int implicitConvTo(Type *t);
@@ -553,7 +554,7 @@ struct DeleteExp : UnaExp
 {
     DeleteExp(Loc loc, Expression *e);
     Expression *semantic(Scope *sc);
-    void checkBoolean();
+    Expression *checkToBoolean();
     elem *toElem(IRState *irs);
 };
 
@@ -641,7 +642,7 @@ struct AssignExp : BinExp
 {
     AssignExp(Loc loc, Expression *e1, Expression *e2);
     Expression *semantic(Scope *sc);
-    void checkBoolean();
+    Expression *checkToBoolean();
     elem *toElem(IRState *irs);
 };
 
@@ -936,7 +937,7 @@ struct OrOrExp : BinExp
 {
     OrOrExp(Loc loc, Expression *e1, Expression *e2);
     Expression *semantic(Scope *sc);
-    void checkBoolean();
+    Expression *checkToBoolean();
     int isBit();
     Expression *constFold();
     Expression *optimize(int result);
@@ -947,7 +948,7 @@ struct AndAndExp : BinExp
 {
     AndAndExp(Loc loc, Expression *e1, Expression *e2);
     Expression *semantic(Scope *sc);
-    void checkBoolean();
+    Expression *checkToBoolean();
     int isBit();
     Expression *constFold();
     Expression *optimize(int result);
@@ -1015,7 +1016,7 @@ struct CondExp : BinExp
     Expression *optimize(int result);
     Expression *constFold();
     Expression *toLvalue();
-    void checkBoolean();
+    Expression *checkToBoolean();
     void toCBuffer(OutBuffer *buf);
     int implicitConvTo(Type *t);
     Expression *castTo(Type *t);

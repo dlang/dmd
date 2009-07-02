@@ -24,6 +24,7 @@
 #include "init.h"
 #include "expression.h"
 #include "template.h"
+#include "utf.h"
 
 /******************************
  * Perform semantic() on an array of Expressions.
@@ -90,6 +91,11 @@ void functionArguments(Loc loc, Scope *sc, TypeFunction *tf, Array *arguments)
 		// BUG: should check that argument to inout is type 'invariant'
 		// BUG: assignments to inout should also be type 'invariant'
 		arg = arg->modifiableLvalue(sc);
+
+		// Don't have a way yet to do a pointer to a bit in array
+		if (arg->op == TOKarray &&
+		    arg->type->toBasetype()->ty == Tbit)
+		    error("cannot have out or inout argument of bit in array");
 	    }
 	    // Convert static arrays to pointers
 	    if (arg->type->ty == Tsarray)
@@ -301,12 +307,13 @@ void Expression::checkDeprecated(Dsymbol *s)
  * Check that expression can be tested for true or false.
  */
 
-void Expression::checkBoolean()
+Expression *Expression::checkToBoolean()
 {
     // Default is 'yes' - do nothing
 
     if (!type->checkBoolean())
 	error("%s does not have a boolean value", type->toChars());
+    return this;
 }
 
 /****************************
@@ -440,6 +447,7 @@ integer_t IntegerExp::toInteger()
 	    case Tuns16:	value = (d_uns16) value;	break;
 	    case Tint32:	value = (d_int32) value;	break;
 	    case Tpointer:
+	    case Tdchar:
 	    case Tuns32:	value = (d_uns32) value;	break;
 	    case Tint64:	value = (d_int64) value;	break;
 	    case Tuns64:	value = (d_uns64) value;	break;
@@ -1035,11 +1043,12 @@ void NullExp::toCBuffer(OutBuffer *buf)
 
 /******************************** StringExp **************************/
 
-StringExp::StringExp(Loc loc, wchar_t *string, unsigned len)
+StringExp::StringExp(Loc loc, void *string, unsigned len)
 	: Expression(loc, TOKstring, sizeof(StringExp))
 {
     this->string = string;
     this->len = len;
+    this->sz = 1;
     this->committed = 0;
 }
 
@@ -1059,7 +1068,7 @@ Expression *StringExp::semantic(Scope *sc)
     //printf("StringExp::semantic()\n");
     if (!type)
     {
-	type = new TypeSArray(Type::twchar, new IntegerExp(loc, len, Type::tindex));
+	type = new TypeSArray(Type::tchar, new IntegerExp(loc, len, Type::tindex));
 	type = type->semantic(loc, sc);
     }
     return this;
@@ -1069,18 +1078,32 @@ int StringExp::compare(Object *obj)
 {
     // Used to sort case statement expressions so we can do an efficient lookup
     StringExp *se2 = (StringExp *)(obj);
-    assert(se2->op == TOKstring);
 
-    wchar_t *s1 = string;
-    wchar_t *s2 = se2->string;
+    // This is a kludge so isExpression() in template.c will return 5
+    // for StringExp's.
+    if (!se2)
+	return 5;
+
+    assert(se2->op == TOKstring);
 
     int len1 = len;
     int len2 = se2->len;
 
     if (len1 == len2)
-	return wcscmp(s1, s2);
-    else
-	return len1 - len2;
+    {
+	switch (sz)
+	{
+	    case 1:
+		return strcmp((char *)string, (char *)se2->string);
+	    case 2:
+		return wcscmp((wchar_t *)string, (wchar_t *)se2->string);
+	    case 4:
+		/* not implemented */
+	    default:
+		assert(0);
+	}
+    }
+    return len1 - len2;
 }
 
 int StringExp::isBool(int result)
@@ -1089,13 +1112,29 @@ int StringExp::isBool(int result)
 }
 
 void StringExp::toCBuffer(OutBuffer *buf)
-{   wchar_t *s;
+{   unsigned i;
 
     buf->writeByte('"');
-    for (s = string; 1; s++)
-    {	wchar_t c;
+    for (i = 0; i < len;)
+    {	unsigned c;
+	char *p;
 
-	c = *s;
+	switch (sz)
+	{
+	    case 1:
+		p = utf_decodeChar((unsigned char *)string, len, &i, &c);
+		break;
+	    case 2:
+		p = utf_decodeWchar((unsigned short *)string, len, &i, &c);
+		break;
+	    case 4:
+		p = NULL;
+		c = ((unsigned *)string)[i];
+		i++;
+		break;
+	    default:
+		assert(0);
+	}
 	switch (c)
 	{
 	    case 0:
@@ -1106,12 +1145,12 @@ void StringExp::toCBuffer(OutBuffer *buf)
 	    default:
 		if (isprint(c))
 		    buf->writeByte(c);
-		else if (c & ~0xFF)
-		{
-		    buf->printf("\\u%04x", c);
-		}
-		else
+		else if (c <= 0x7F)
 		    buf->printf("\\x%02x", c);
+		else if (c <= 0xFFFF)
+		    buf->printf("\\u%04x", c);
+		else
+		    buf->printf("\\U%08x", c);
 		continue;
 	}
 	break;
@@ -1685,7 +1724,7 @@ Expression *AssertExp::semantic(Scope *sc)
 {
     UnaExp::semantic(sc);
     // BUG: see if we can do compile time elimination of the Assert
-    e1->checkBoolean();
+    e1 = e1->checkToBoolean();
     type = Type::tvoid;
     return this;
 }
@@ -2188,6 +2227,11 @@ Expression *AddrExp::semantic(Scope *sc)
 		return e;
 	    }
 	}
+	else if (e1->op == TOKarray)
+	{
+	    if (e1->type->toBasetype()->ty == Tbit)
+		error("cannot take address of bit in array");
+	}
     }
     return this;
 }
@@ -2313,7 +2357,7 @@ NotExp::NotExp(Loc loc, Expression *e)
 Expression *NotExp::semantic(Scope *sc)
 {
     UnaExp::semantic(sc);
-    e1->checkBoolean();
+    e1 = e1->checkToBoolean();
     type = Type::tboolean;
     return this;
 }
@@ -2336,7 +2380,7 @@ BoolExp::BoolExp(Loc loc, Expression *e, Type *t)
 Expression *BoolExp::semantic(Scope *sc)
 {
     UnaExp::semantic(sc);
-    e1->checkBoolean();
+    e1 = e1->checkToBoolean();
     type = Type::tboolean;
     return this;
 }
@@ -2401,9 +2445,10 @@ Expression *DeleteExp::semantic(Scope *sc)
     return this;
 }
 
-void DeleteExp::checkBoolean()
+Expression *DeleteExp::checkToBoolean()
 {
     error("delete does not give a boolean result");
+    return this;
 }
 
 
@@ -2821,18 +2866,20 @@ Expression *AssignExp::semantic(Scope *sc)
     }
 
     if (e1->op == TOKrange &&
-	!(e1->type->next->equals(e2->type->next) ||
-	  (e1->type->next->ty == Tchar && e2->op == TOKstring))
+	!(e1->type->next->equals(e2->type->next) /*||
+	  (e1->type->next->ty == Tchar && e2->op == TOKstring)*/)
        )
     {	// memset
 	e2 = e2->implicitCastTo(e1->type->next);
     }
+#if 0
     else if (e1->op == TOKrange &&
 	     e2->op == TOKstring &&
 	     ((StringExp *)e2)->len == 1)
     {	// memset
 	e2 = e2->implicitCastTo(e1->type->next);
     }
+#endif
     else if (e1->type->ty == Tsarray)
     {
 	error("cannot assign to static array %s", e1->toChars());
@@ -2846,13 +2893,14 @@ Expression *AssignExp::semantic(Scope *sc)
     return this;
 }
 
-void AssignExp::checkBoolean()
+Expression *AssignExp::checkToBoolean()
 {
     // Things like:
     //	if (a = b) ...
     // are usually mistakes.
 
     error("'=' does not give a boolean result");
+    return this;
 }
 
 /************************************************************/
@@ -3720,16 +3768,17 @@ Expression *OrOrExp::semantic(Scope *sc)
 
     e1 = e1->checkToPointer();
     e2 = e2->checkToPointer();
-    e1->checkBoolean();
+    e1 = e1->checkToBoolean();
     type = Type::tboolean;
     if (e1->type->ty == Tvoid)
 	type = Type::tvoid;
     return this;
 }
 
-void OrOrExp::checkBoolean()
+Expression *OrOrExp::checkToBoolean()
 {
-    e2->checkBoolean();
+    e2 = e2->checkToBoolean();
+    return this;
 }
 
 int OrOrExp::isBit()
@@ -3757,16 +3806,17 @@ Expression *AndAndExp::semantic(Scope *sc)
 
     e1 = e1->checkToPointer();
     e2 = e2->checkToPointer();
-    e1->checkBoolean();
+    e1 = e1->checkToBoolean();
     type = Type::tboolean;
     if (e1->type->ty == Tvoid)
 	type = Type::tvoid;
     return this;
 }
 
-void AndAndExp::checkBoolean()
+Expression *AndAndExp::checkToBoolean()
 {
-    e2->checkBoolean();
+    e2 = e2->checkToBoolean();
+    return this;
 }
 
 int AndAndExp::isBit()
@@ -3786,13 +3836,14 @@ Expression *InExp::semantic(Scope *sc)
 {
     BinExp::semantic(sc);
     type = Type::tboolean;
-    if (e2->type->ty != Taarray)
+    Type *t2b = e2->type->toBasetype();
+    if (t2b->ty != Taarray)
     {
 	error("rvalue of in expression must be an associative array, not %s", e2->type->toChars());
     }
     else
     {
-	TypeAArray *ta = (TypeAArray *)e2->type;
+	TypeAArray *ta = (TypeAArray *)t2b;
 
 	// Convert key to type of key
 	e1 = e1->implicitCastTo(ta->index);
@@ -3976,7 +4027,7 @@ Expression *CondExp::semantic(Scope *sc)
 
 
     econd = econd->checkToPointer();
-    econd->checkBoolean();
+    econd = econd->checkToBoolean();
     // If either operand is void, the result is void
     t1 = e1->type;
     t2 = e2->type;
@@ -4010,10 +4061,11 @@ Expression *CondExp::toLvalue()
     return e;
 }
 
-void CondExp::checkBoolean()
+Expression *CondExp::checkToBoolean()
 {
-    e1->checkBoolean();
-    e2->checkBoolean();
+    e1 = e1->checkToBoolean();
+    e2 = e2->checkToBoolean();
+    return this;
 }
 
 void CondExp::toCBuffer(OutBuffer *buf)

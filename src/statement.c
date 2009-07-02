@@ -408,7 +408,7 @@ Statement *WhileStatement::syntaxCopy()
 Statement *WhileStatement::semantic(Scope *sc)
 {
     condition = condition->semantic(sc);
-    condition->checkBoolean();
+    condition = condition->checkToBoolean();
 
     sc->noctor++;
     body = body->semanticScope(sc, this, this);
@@ -454,7 +454,7 @@ Statement *DoStatement::semantic(Scope *sc)
     body = body->semanticScope(sc, this, this);
     sc->noctor--;
     condition = condition->semantic(sc);
-    condition->checkBoolean();
+    condition = condition->checkToBoolean();
     return this;
 }
 
@@ -512,7 +512,7 @@ Statement *ForStatement::semantic(Scope *sc)
 	condition = new IntegerExp(loc, 1, Type::tboolean);
     sc->noctor++;
     condition = condition->semantic(sc);
-    condition->checkBoolean();
+    condition = condition->checkToBoolean();
     if (increment)
 	increment = increment->semantic(sc);
 
@@ -562,7 +562,7 @@ Statement *IfStatement::syntaxCopy()
 Statement *IfStatement::semantic(Scope *sc)
 {
     condition = condition->semantic(sc);
-    condition->checkBoolean();
+    condition = condition->checkToBoolean();
 
     // If we can short-circuit evaluate the if statement, don't do the
     // semantic analysis of the skipped code.

@@ -420,43 +420,39 @@ dt_t **NullExp::toDt(dt_t **pdt)
 
 dt_t **StringExp::toDt(dt_t **pdt)
 {
-    // BUG: should implement some form of static string pooling
-    if (type->ty == Tarray)
-    {
-	dtdword(pdt, len);
-	if (type->next->ty == Tascii)
-	    pdt = dtabytes(pdt, TYnptr, 0, len + 1, wchar2ascii(string, len));
-	else
-	    pdt = dtabytes(pdt, TYnptr, 0, (len + 1) * 2, (char *)string);
-    }
-    else if (type->ty == Tsarray)
-    {	TypeSArray *tsa = (TypeSArray *)type;
-	integer_t dim;
+    Type *t = type->toBasetype();
 
-	if (type->next->ty == Tascii)
-	    pdt = dtnbytes(pdt, len, wchar2ascii(string, len));
-	else
-	    pdt = dtnbytes(pdt, len * sizeof(wchar_t), (char *)string);
-	if (tsa->dim)
-	{
-	    dim = tsa->dim->toInteger();
-	    if (len < dim)
-	    {
-		// Pad remainder with 0
-		pdt = dtnzeros(pdt, (dim - len) * tsa->next->size());
-	    }
-	}
-    }
-    else if (type->ty == Tpointer)
+    // BUG: should implement some form of static string pooling
+    switch (t->ty)
     {
-	if (type->next->ty == Tascii)
-	    pdt = dtabytes(pdt, TYnptr, 0, len + 1, wchar2ascii(string, len));
-	else
-	    pdt = dtabytes(pdt, TYnptr, 0, (len + 1) * 2, (char *)string);
-    }
-    else
-    {	printf("StringExp::toDt(type = %s)\n", type->toChars());
-	assert(0);
+	case Tarray:
+	    dtdword(pdt, len);
+	    pdt = dtabytes(pdt, TYnptr, 0, (len + 1) * sz, (char *)string);
+	    break;
+
+	case Tsarray:
+	{   TypeSArray *tsa = (TypeSArray *)type;
+	    integer_t dim;
+
+	    pdt = dtnbytes(pdt, len * sz, (char *)string);
+	    if (tsa->dim)
+	    {
+		dim = tsa->dim->toInteger();
+		if (len < dim)
+		{
+		    // Pad remainder with 0
+		    pdt = dtnzeros(pdt, (dim - len) * tsa->next->size());
+		}
+	    }
+	    break;
+	}
+	case Tpointer:
+	    pdt = dtabytes(pdt, TYnptr, 0, (len + 1) * sz, (char *)string);
+	    break;
+
+	default:
+	    printf("StringExp::toDt(type = %s)\n", type->toChars());
+	    assert(0);
     }
     return pdt;
 }

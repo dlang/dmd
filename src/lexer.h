@@ -92,6 +92,9 @@ enum TOK
 	TOKfloat32v, TOKfloat64v, TOKfloat80v,
 	TOKimaginary32v, TOKimaginary64v, TOKimaginary80v,
 
+	// Char constants
+	TOKcharv, TOKwcharv, TOKdcharv,
+
 	// Leaf operators
 	TOKidentifier,	TOKstring,
 	TOKthis,	TOKsuper,
@@ -105,7 +108,7 @@ enum TOK
 	TOKfloat32, TOKfloat64, TOKfloat80,
 	TOKimaginary32, TOKimaginary64, TOKimaginary80,
 	TOKcomplex32, TOKcomplex64, TOKcomplex80,
-	TOKascii, TOKwchar, TOKbit,
+	TOKchar, TOKwchar, TOKdchar, TOKbit,
 
 	// Aggregates
 	TOKstruct, TOKclass, TOKinterface, TOKunion, TOKenum, TOKimport,
@@ -132,8 +135,8 @@ enum TOK
 };
 
 #define CASE_BASIC_TYPES			\
-	case TOKwchar:				\
-	case TOKbit: case TOKascii:		\
+	case TOKwchar: case TOKdchar:		\
+	case TOKbit: case TOKchar:		\
 	case TOKint8: case TOKuns8:		\
 	case TOKint16: case TOKuns16:		\
 	case TOKint32: case TOKuns32:		\
@@ -163,8 +166,9 @@ enum TOK
 	case TOKcomplex64: t = Type::tcomplex64; goto LabelX;	\
 	case TOKcomplex80: t = Type::tcomplex80; goto LabelX;	\
 	case TOKbit:	 t = Type::tbit;     goto LabelX;	\
-	case TOKascii:	 t = Type::tascii;    goto LabelX;	\
+	case TOKchar:	 t = Type::tchar;    goto LabelX;	\
 	case TOKwchar:	 t = Type::twchar; goto LabelX;	\
+	case TOKdchar:	 t = Type::tdchar; goto LabelX;	\
 	LabelX
 
 struct Token
@@ -183,9 +187,8 @@ struct Token
 	// Floats
 	d_float80 float80value;
 
-	//char *string;		// ascii string
 	struct
-	{   wchar_t *ustring;	// wchar string
+	{   unsigned char *ustring;	// UTF8 string
 	    unsigned len;
 	};
 	Identifier *ident;
@@ -221,7 +224,8 @@ struct Lexer
     void scan(Token *t);
     Token *peek(Token *t);
     unsigned escapeSequence();
-    TOK wysiwygStringConstant(Token *t, int wide);
+    TOK wysiwygStringConstant(Token *t, int tc);
+    TOK hexStringConstant(Token *t);
     TOK escapeStringConstant(Token *t, int wide);
     TOK charConstant(Token *t, int wide);
     unsigned wchar(unsigned u);

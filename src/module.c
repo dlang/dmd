@@ -63,9 +63,12 @@ Module::Module(char *filename, Identifier *ident)
     char *argobj;
     if (global.params.objname)
 	argobj = global.params.objname;
+    else if (global.params.preservePaths)
+	argobj = filename;
     else
 	argobj = FileName::name(filename);
-    argobj = FileName::combine(global.params.objdir, argobj);
+    if (!FileName::absolute(argobj))
+	argobj = FileName::combine(global.params.objdir, argobj);
     objfilename = FileName::forceExt(argobj, global.obj_ext);
 
     symfilename = FileName::forceExt(filename, global.sym_ext);
@@ -323,13 +326,16 @@ void Module::parse()
     members = p.parseModule();
     md = p.md;
 
+    DsymbolTable *dst;
+
     if (md)
-	this->ident = md->id;
+    {	this->ident = md->id;
+	dst = Package::resolve(md->packages, &this->parent, NULL);
+    }
+    else
+	dst = modules;
 
     // Update global list of modules
-    DsymbolTable *dst = md ? Package::resolve(md->packages, &this->parent, NULL)
-			   : modules;
-
     if (!dst->insert(this))
     {
 	if (md)
@@ -342,6 +348,7 @@ void Module::parse()
 void Module::semantic()
 {   int i;
 
+    //printf("Module::semantic('%s'): parent = %p\n", toChars(), parent);
     if (semanticdone)
 	return;
     semanticdone = 1;
@@ -379,11 +386,13 @@ void Module::semantic()
 
     sc = sc->pop();
     sc->pop();
+    //printf("-Module::semantic('%s'): parent = %p\n", toChars(), parent);
 }
 
 void Module::semantic2()
 {   int i;
 
+    //printf("Module::semantic2('%s'): parent = %p\n", toChars(), parent);
     if (semanticdone >= 2)
 	return;
     assert(semanticdone == 1);
@@ -405,11 +414,13 @@ void Module::semantic2()
 
     sc = sc->pop();
     sc->pop();
+    //printf("-Module::semantic2('%s'): parent = %p\n", toChars(), parent);
 }
 
 void Module::semantic3()
 {   int i;
 
+    //printf("Module::semantic3('%s'): parent = %p\n", toChars(), parent);
     if (semanticdone >= 3)
 	return;
     assert(semanticdone == 2);
@@ -554,6 +565,7 @@ DsymbolTable *Package::resolve(Array *packages, Dsymbol **pparent, Package **ppk
     DsymbolTable *dst = Module::modules;
     Dsymbol *parent = NULL;
 
+    //printf("Package::resolve()\n");
     if (ppkg)
 	*ppkg = NULL;
 
@@ -586,8 +598,10 @@ DsymbolTable *Package::resolve(Array *packages, Dsymbol **pparent, Package **ppk
 	    if (ppkg && !*ppkg)
 		*ppkg = (Package *)p;
 	}
+	if (pparent)
+	{
+	    *pparent = parent;
+	}
     }
-    if (pparent)
-	*pparent = parent;
     return dst;
 }

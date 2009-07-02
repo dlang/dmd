@@ -40,7 +40,7 @@ Global::Global()
 
     copyright = "Copyright (c) 1999-2003 by Digital Mars";
     written = "written by Walter Bright";
-    version = "Beta v0.68";
+    version = "Beta v0.69";
     global.structalign = 8;
 
     memset(&params, 0, sizeof(Param));
@@ -123,8 +123,9 @@ Usage:\n\
   -gt            add trace profiling hooks\n\
   -v             verbose\n\
   -O             optimize\n\
-  -oobjdir       write object files to directory objdir\n\
-  -o filename	 name output file\n\
+  -odobjdir      write object files to directory objdir\n\
+  -offilename	 name output file to filename\n\
+  -op            do not strip paths from source file\n\
   -Ipath         where to look for imports\n\
   -Llinkerflag   pass linkerflag to link\n\
   -debug         compile in debug code\n\
@@ -221,15 +222,26 @@ int main(int argc, char *argv[])
 		global.params.optimize = 1;
 	    else if (p[1] == 'o')
 	    {
-		if (p[2])
-		    global.params.objdir = p + 2;
-		else if (i + 1 < argc)
-		{   // -o filename
-		    global.params.objdir = argv[i + 1];
-		    i++;
+		switch (p[2])
+		{
+		    case 'd':
+			if (!p[3])
+			    goto Lerror;
+			global.params.objdir = p + 3;
+			break;
+		    case 'f':
+			if (!p[3])
+			    goto Lerror;
+			global.params.objname = p + 3;
+			break;
+		    case 'p':
+			if (p[3])
+			    goto Lerror;
+			global.params.preservePaths = 1;
+			break;
+		    default:
+			goto Lerror;
 		}
-		else
-		    goto Lerror;
 	    }
 	    else if (strcmp(p + 1, "inline") == 0)
 		global.params.useInline = 1;
@@ -319,35 +331,17 @@ int main(int argc, char *argv[])
 	global.params.useSwitchError = 0;
     }
 
-    if (global.params.objdir)
+    if (global.params.link)
     {
-	if (global.params.link)
+	global.params.exefile = global.params.objname;
+	global.params.objname = NULL;
+    }
+    else
+    {
+	if (global.params.objname && files.dim > 1)
 	{
-	    global.params.exefile = global.params.objdir;
-	    global.params.objdir = NULL;
-	}
-	else
-	{
-	    // Check to see if it is really an obj file name spec
-	    char *e = FileName::ext(global.params.objdir);
-
-#if _WIN32
-	    if (e && stricmp(e, global.obj_ext) == 0)
-#elif linux
-	    if (e && strcmp(e, global.obj_ext) == 0)
-#else
-#error "fix this"
-#endif
-	    {
-		global.params.objname = global.params.objdir;
-		global.params.objdir = NULL;
-
-		if (files.dim > 1)
-		{
-		    error("multiple source files, but only one .obj name");
-		    fatal();
-		}
-	    }
+	    error("multiple source files, but only one .obj name");
+	    fatal();
 	}
     }
 

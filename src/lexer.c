@@ -30,6 +30,7 @@ extern "C" long double strtold(const char *p,char **endp);
 #endif
 
 #include "lexer.h"
+#include "utf.h"
 
 #if _WIN32 && __DMC__
 // from \dm\src\include\setlocal.h
@@ -74,6 +75,9 @@ char *Token::toChars()
 	    break;
 
 	case TOKuns32v:
+	case TOKcharv:
+	case TOKwcharv:
+	case TOKdcharv:
 	    sprintf(buffer,"%luU",uns32value);
 	    break;
 
@@ -114,8 +118,7 @@ char *Token::toChars()
 #if CSTRINGS
 	    p = string;
 #else
-	    // Convert wchar string to ascii
-	    p = wchar2ascii(ustring, len);
+	    p = (char *)ustring;
 #endif
 	    break;
 
@@ -293,11 +296,27 @@ void Lexer::scan(Token *t)
 		}
 #else
 	    case '\'':
-		t->value = wysiwygStringConstant(t,1);
+		t->value = charConstant(t,0);
 		return;
 
+	    case 'r':
+		if (p[1] != '"')
+		    goto case_ident;
+		p++;
+	    case '`':
+		t->value = wysiwygStringConstant(t, *p);
+		return;
+
+	    case 'x':
+		if (p[1] != '"')
+		    goto case_ident;
+		p++;
+		t->value = hexStringConstant(t);
+		return;
+
+
 	    case '"':
-		t->value = escapeStringConstant(t,1);
+		t->value = escapeStringConstant(t,0);
 		return;
 
 	    case '\\':			// escaped string literal
@@ -307,18 +326,12 @@ void Lexer::scan(Token *t)
 		do
 		{
 		    p++;
-		    if (*p == 'u' || *p == 'U')
-		    {	c = wchar(*p);
-			stringbuffer.writeUTF16(c);
-		    }
-		    else
-		    {	c = escapeSequence();
-			stringbuffer.writewchar(c);
-		    }
+		    c = escapeSequence();
+		    stringbuffer.writeUTF8(c);
 		} while (*p == '\\');
-		t->len = stringbuffer.offset / sizeof(d_wchar);
-		stringbuffer.writewchar(0);
-		t->ustring = (wchar_t *)mem.malloc(stringbuffer.offset);
+		t->len = stringbuffer.offset;
+		stringbuffer.writeByte(0);
+		t->ustring = (unsigned char *)mem.malloc(stringbuffer.offset);
 		memcpy(t->ustring, stringbuffer.data, stringbuffer.offset);
 		t->value = TOKstring;
 		return;
@@ -330,8 +343,8 @@ void Lexer::scan(Token *t)
 	    case 'a':  	case 'b':   case 'c':   case 'd':   case 'e':
 	    case 'f':  	case 'g':   case 'h':   case 'i':   case 'j':
 	    case 'k':  	            case 'm':   case 'n':   case 'o':
-	    case 'p':  	case 'q':   case 'r':   case 's':   case 't':
-	    case 'u':  	case 'v':   case 'w':   case 'x':   case 'y':
+	    case 'p':  	case 'q': /*case 'r':*/ case 's':   case 't':
+	    case 'u':  	case 'v':   case 'w': /*case 'x':*/ case 'y':
 	    case 'z':
 	    case 'A':  	case 'B':   case 'C':   case 'D':   case 'E':
 	    case 'F':  	case 'G':   case 'H':   case 'I':   case 'J':
@@ -340,6 +353,7 @@ void Lexer::scan(Token *t)
 	    case 'U':  	case 'V':   case 'W':   case 'X':   case 'Y':
 	    case 'Z':
 	    case '_':
+	    case_ident:
 	    {   unsigned char c;
 		StringValue *sv;
 		Identifier *id;
@@ -812,7 +826,7 @@ unsigned Lexer::escapeSequence()
 /**************************************
  */
 
-TOK Lexer::wysiwygStringConstant(Token *t, int wide)
+TOK Lexer::wysiwygStringConstant(Token *t, int tc)
 {   unsigned c;
     Loc start = loc;
 
@@ -837,21 +851,92 @@ TOK Lexer::wysiwygStringConstant(Token *t, int wide)
 	    case 0:
 	    case 0x1A:
 		error("unterminated string constant starting at %s", start.toChars());
-		t->ustring = L"";
+		t->ustring = (unsigned char *)"";
 		t->len = 0;
 		return TOKstring;
 
-	    case '\'':
-		t->len = stringbuffer.offset / sizeof(d_wchar);
-		stringbuffer.writewchar(0);
-		t->ustring = (wchar_t *)mem.malloc(stringbuffer.offset);
+	    case '"':
+	    case '`':
+		if (c == tc)
+		{
+		    t->len = stringbuffer.offset;
+		    stringbuffer.writeByte(0);
+		    t->ustring = (unsigned char *)mem.malloc(stringbuffer.offset);
+		    memcpy(t->ustring, stringbuffer.data, stringbuffer.offset);
+		    return TOKstring;
+		}
+		break;
+	}
+	stringbuffer.writeByte(c);
+    }
+}
+
+/**************************************
+ * Lex hex strings:
+ *	x"0A ae 34FE BD"
+ */
+
+TOK Lexer::hexStringConstant(Token *t)
+{   unsigned c;
+    Loc start = loc;
+    unsigned n = 0;
+    unsigned v;
+
+    p++;
+    stringbuffer.reset();
+    while (1)
+    {
+	c = *p++;
+	switch (c)
+	{
+	    case ' ':
+	    case '\t':
+	    case '\v':
+	    case '\f':
+		continue;			// skip white space
+
+	    case '\r':
+		if (*p == '\n')
+		    continue;			// ignore
+		// Treat isolated '\r' as if it were a '\n'
+	    case '\n':
+		loc.linnum++;
+		continue;
+
+	    case 0:
+	    case 0x1A:
+		error("unterminated string constant starting at %s", start.toChars());
+		t->ustring = (unsigned char *)"";
+		t->len = 0;
+		return TOKstring;
+
+	    case '"':
+		if (n & 1)
+		    stringbuffer.writeByte(v);
+		t->len = stringbuffer.offset;
+		stringbuffer.writeByte(0);
+		t->ustring = (unsigned char *)mem.malloc(stringbuffer.offset);
 		memcpy(t->ustring, stringbuffer.data, stringbuffer.offset);
 		return TOKstring;
+
+	    default:
+		if (c >= '0' && c <= '9')
+		    c -= '0';
+		else if (c >= 'a' && c <= 'f')
+		    c -= 'a' - 10;
+		else if (c >= 'A' && c <= 'F')
+		    c -= 'A' - 10;
+		else
+		    error("non-hex character '%c'", c);
+		if (n & 1)
+		{   v = (v << 4) | c;
+		    stringbuffer.writeByte(v);
+		}
+		else
+		    v = c;
+		n++;
+		break;
 	}
-	if (wide)
-	    stringbuffer.writewchar(c);
-	else
-	    stringbuffer.writeByte(c);
     }
 }
 
@@ -870,16 +955,18 @@ TOK Lexer::escapeStringConstant(Token *t, int wide)
 	switch (c)
 	{
 	    case '\\':
-		if (*p == 'u' || *p == 'U')
-		{   c = wchar(*p);
-		    if (wide)
-			stringbuffer.writeUTF16(c);
-		    else
+		switch (*p)
+		{
+		    case 'u':
+		    case 'U':
+			c = escapeSequence();
 			stringbuffer.writeUTF8(c);
-		    continue;
+			continue;
+
+		    default:
+			c = escapeSequence();
+			break;
 		}
-		else
-		    c = escapeSequence();
 		break;
 
 	    case '\n':
@@ -894,9 +981,9 @@ TOK Lexer::escapeStringConstant(Token *t, int wide)
 		break;
 
 	    case '"':
-		t->len = stringbuffer.offset / sizeof(d_wchar);
-		stringbuffer.writewchar(0);
-		t->ustring = (wchar_t *)mem.malloc(stringbuffer.offset);
+		t->len = stringbuffer.offset;
+		stringbuffer.writeByte(0);
+		t->ustring = (unsigned char *)mem.malloc(stringbuffer.offset);
 		memcpy(t->ustring, stringbuffer.data, stringbuffer.offset);
 		return TOKstring;
 
@@ -904,14 +991,11 @@ TOK Lexer::escapeStringConstant(Token *t, int wide)
 	    case 0x1A:
 		p--;
 		error("unterminated string constant starting at %s", start.toChars());
-		t->ustring = L"";
+		t->ustring = (unsigned char *)"";
 		t->len = 0;
 		return TOKstring;
 	}
-	if (wide)
-	    stringbuffer.writewchar(c);
-	else
-	    stringbuffer.writeByte(c);
+	stringbuffer.writeByte(c);
     }
 }
 
@@ -919,51 +1003,80 @@ TOK Lexer::escapeStringConstant(Token *t, int wide)
  */
 
 TOK Lexer::charConstant(Token *t, int wide)
-{   integer_t n;
+{
     unsigned c;
-    unsigned ndigits;
+    TOK tk = TOKcharv;
 
+    //printf("Lexer::charConstant\n");
     p++;
-    n = 0;
-    ndigits = 0;
-    while (1)
+    c = *p++;
+    switch (c)
     {
-	c = *p++;
-	switch (c)
-	{
-	    case '\'':
-		t->uns64value = n;
-		if (ndigits > 8)
-		    error("More than 8 bytes in character constant");
-		return (ndigits <= 4) ? TOKuns32 : TOKuns64;
+	case '\\':
+	    switch (*p)
+	    {
+		case 'u':
+		    t->uns64value = escapeSequence();
+		    tk = TOKwcharv;
+		    break;
 
-	    case '\\':
-		if (*p == 'u' || *p == 'U')
-		    c = wchar(*p);
+		case 'U':
+		    t->uns64value = escapeSequence();
+		    tk = TOKdcharv;
+		    break;
+
+		default:
+		    t->uns64value = escapeSequence();
+		    break;
+	    }
+	    break;
+
+	case '\n':
+	    loc.linnum++;
+	case '\r':
+	case 0:
+	case 0x1A:
+	case '\'':
+	    error("unterminated character constant");
+	    return tk;
+
+	default:
+	    if (c & 0x80)
+	    {	unsigned idx = 0;
+		unsigned ndigits = 1;
+		unsigned char octet[6];
+		char *s;
+
+		octet[0] = c;
+		while (*p & 0x80)
+		{
+		    if (ndigits >= 6)
+		    {
+			error("invalid UTF-8 sequence");
+			break;
+		    }
+		    octet[ndigits] = *p;
+		    ndigits++;
+		    p++;
+		}
+		s = utf_decodeChar(octet, ndigits, &idx, &c);
+		if (s || idx != ndigits)
+		    error(s);
+		if (c < 0xD800 || (c >= 0xE000 && c < 0xFFFE))
+		    tk = TOKwcharv;
 		else
-		    c = escapeSequence();
-		break;
-
-	    case '\n':
-		loc.linnum++;
-	    case '\r':
-	    case 0:
-	    case 0x1A:
-		error("unterminated character constant");
-		return TOKuns32;
-	}
-	if (wide)
-	{
-	    ndigits += sizeof(d_wchar);
-	    n <<= sizeof(d_wchar) * 8;
-	}
-	else
-	{
-	    ndigits++;
-	    n <<= 8;
-	}
-	n |= c;
+		    tk = TOKdcharv;
+	    }
+	    t->uns64value = c;
+	    break;
     }
+
+    if (*p != '\'')
+    {	error("unterminated character constant");
+	return tk;
+    }
+    p++;
+    return tk;
 }
 
 /***************************************
@@ -1096,6 +1209,11 @@ TOK Lexer::number(Token *t)
 			state = STATE_hexh;
 			break;
 #endif
+		    case '_':
+			state = STATE_octal;
+			p++;
+			continue;
+
 		    default:
 			goto done;
 		}
@@ -1110,9 +1228,14 @@ TOK Lexer::number(Token *t)
 		       )
 			goto hexh;
 #endif
+		    if (c == '_')		// ignore embedded _
+		    {	p++;
+			continue;
+		    }
 		    if (c == '.' && p[1] != '.')
 			goto real;
-		    if (c == 'i' || c == 'f' || c == 'F' || c == 'e' || c == 'E')
+		    else if (c == 'i' || c == 'f' || c == 'F' ||
+			     c == 'e' || c == 'E')
 		    {
 	    real:	// It's a real number. Back up and rescan as a real
 			p = start;
@@ -1126,6 +1249,10 @@ TOK Lexer::number(Token *t)
 	    case STATE_hex:
 		if (!ishex(c))
 		{
+		    if (c == '_')		// ignore embedded _
+		    {	p++;
+			continue;
+		    }
 		    if (c == '.' && p[1] != '.')
 			goto real;
 		    if (c == 'P' || c == 'p' || c == 'i')
@@ -1172,6 +1299,10 @@ TOK Lexer::number(Token *t)
 		       )
 			goto hexh;
 #endif
+		    if (c == '_')		// ignore embedded _
+		    {	p++;
+			continue;
+		    }
 		    if (c == '.' && p[1] != '.')
 			goto real;
 		    if (c == 'i')
@@ -1195,6 +1326,10 @@ TOK Lexer::number(Token *t)
 		       )
 			goto hexh;
 #endif
+		    if (c == '_')		// ignore embedded _
+		    {	p++;
+			continue;
+		    }
 		    if (state == STATE_binary0)
 		    {	error("binary digit expected");
 			state = STATE_error;
@@ -1237,10 +1372,15 @@ done:
 	char *p = (char *)stringbuffer.data;
 	int r = 10, d;
 
-	if (*p == '0' && (p [1] == 'x' || p [1] == 'X'))
-	    p += 2, r = 16;
-	else if (*p == '0' && isdigit (p [1]))
-	    p += 1, r = 8;
+	if (*p == '0')
+	{
+	    if (p[1] == 'x' || p[1] == 'X')
+		p += 2, r = 16;
+	    else if (p[1] == 'b' || p[1] == 'B')
+		p += 2, r = 2;
+	    else if (isdigit(p[1]))
+		p += 1, r = 8;
+	}
 
 	n = 0;
 	while (1)
@@ -1262,7 +1402,7 @@ done:
 	    }
 
 	    n = n * r + d;
-	    p ++;
+	    p++;
 	}
 #endif
     }
@@ -1385,6 +1525,7 @@ __body
     stringbuffer.reset();
     dblstate = 0;
     hex = 0;
+Lnext:
     while (1)
     {
 	// Get next char from input
@@ -1410,7 +1551,10 @@ __body
 		case 3:			// digits to right of .
 		case 7:			// continuing exponent digits
 		    if (!isdigit(c) && !(hex && isxdigit(c)))
-		    {   dblstate++;
+		    {
+			if (c == '_')
+			    goto Lnext;	// ignore embedded '_'
+			dblstate++;
 			continue;
 		    }
 		    break;
@@ -1655,8 +1799,9 @@ static Keyword keywords[] =
     {	"real",		TOKfloat80	},
 
     {	"bit",		TOKbit		},
-    {	"char",		TOKascii	},	// obsolete
+    {	"char",		TOKchar	},
     {	"wchar",	TOKwchar	},
+    {	"dchar",	TOKdchar	},
 
     {	"ifloat",	TOKimaginary32	},
     {	"idouble",	TOKimaginary64	},

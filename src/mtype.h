@@ -78,6 +78,7 @@ enum TY
     Tbit,
     Tchar,
     Twchar,
+    Tdchar,
 
     Terror,
     Tinstance,
@@ -126,8 +127,9 @@ struct Type : Object
     #define tcomplex80	basic[Tcomplex80]
 
     #define tbit	basic[Tbit]
-    #define tascii	basic[Tascii]
+    #define tchar	basic[Tchar]
     #define twchar	basic[Twchar]
+    #define tdchar	basic[Tdchar]
 
     // Some special types
     #define tshiftcnt	tint32		// right side of shift expression

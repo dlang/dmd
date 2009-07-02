@@ -38,6 +38,7 @@ FuncDeclaration::FuncDeclaration(Loc loc, Loc endloc, Identifier *id, enum STC s
     naked = 0;
     inlineStatus = ILSuninitialized;
     inlineNest = 0;
+    inlineAsm = 0;
     semanticRun = 0;
     nestedFrameRef = 0;
 }
@@ -451,7 +452,8 @@ void FuncDeclaration::semantic3(Scope *sc)
 		error("function expected to return a value of type %s", type->next->toChars());
 	    else if (global.params.useAssert &&
 		     !global.params.useInline &&
-		     type->next->ty != Tvoid)
+		     type->next->ty != Tvoid &&
+		     !inlineAsm)
 	    {
 		Expression *e = new AssertExp(endloc, new IntegerExp(0, 0, Type::tint32));
 		e = e->semantic(sc2);

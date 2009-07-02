@@ -15,6 +15,7 @@
 
 #include "expression.h"
 #include "mtype.h"
+#include "utf.h"
 
 /* ==================== implicitCast ====================== */
 
@@ -97,6 +98,7 @@ int IntegerExp::implicitConvTo(Type *t)
 	    goto Lyes;
 
 	case Tuns32:
+	case Tdchar:
 	    if ((unsigned)value != value)
 		goto Lno;
 	    goto Lyes;
@@ -164,7 +166,6 @@ int NullExp::implicitConvTo(Type *t)
 
 int StringExp::implicitConvTo(Type *t)
 {   MATCH m;
-    int u;
 
     //printf("StringExp::implicitConvTo()\n");
     if (!committed && t->ty == Tpointer && t->next->ty == Tvoid)
@@ -174,46 +175,23 @@ int StringExp::implicitConvTo(Type *t)
     m = (MATCH)type->implicitConvTo(t);
     if (m)
 	return m;
-    u = wcharIsAscii(string, len);
-    if ((type->ty == Tsarray || type->ty == Tarray) && type->next->ty == Twchar)
+    if (type->ty == Tsarray || type->ty == Tarray || type->ty == Tpointer)
     {
-	switch (t->ty)
+	if (type->next->ty == Tchar)
 	{
-	    case Tsarray:
-	    case Tarray:
-	    case Tpointer:
-		if (t->next->ty == Tascii)
-		{
-		    if (u)
+	    switch (t->ty)
+	    {
+		case Tsarray:
+		case Tarray:
+		case Tpointer:
+		    if (t->next->ty == Tchar)
 			return MATCHexact;
-		}
-		else if (t->next->ty == Twchar)
-		    return MATCHexact;
-		break;
-
-	    case Tascii:
-		if (len == 1 && u)
-		    return MATCHexact;
-		break;
-
-	    case Twchar:
-		if (len == 1)
-		    return MATCHexact;
-		break;
-
-	    case Tint8:
-	    case Tuns8:
-		if (len == 1 && u)
-		    return MATCHconvert;
-		break;
-
-	    case Tint16:
-	    case Tuns16:
-	    case Tint32:
-	    case Tuns32:
-		if (len == 1)
-		    return MATCHconvert;
-		break;
+		    else if (t->next->ty == Twchar)
+			return MATCHexact;
+		    else if (t->next->ty == Tdchar)
+			return MATCHexact;
+		    break;
+	    }
 	}
     }
 
@@ -379,101 +357,179 @@ Expression *StringExp::castTo(Type *t)
     if (!committed)
     {
 	// Copy when committing the type
-	wchar_t *s;
+	void *s;
 
-	s = (wchar_t *)mem.malloc((len + 1) * sizeof(s[0]));
-	memcpy(s, string, len * sizeof(s[0]));
-	s[len] = 0;
+	s = (unsigned char *)mem.malloc((len + 1) * sz);
+	memcpy(s, string, (len + 1) * sz);
 	se = new StringExp(loc, s, len);
 	se->type = type;
+	se->sz = sz;
 	se->committed = 1;	// it now has a firm type
 	unique = 1;		// this is the only instance
     }
     tb = t->toBasetype();
     se->type = type->toBasetype();
-    if (tb != se->type)
+    if (tb == se->type)
+    {	se->type = t;
+	return se;
+    }
+
+    if (tb->ty != Tsarray && tb->ty != Tarray && tb->ty != Tpointer)
+	goto Lcast;
+    if (se->type->ty != Tsarray && se->type->ty != Tarray && se->type->ty != Tpointer)
+	goto Lcast;
+
+    int tfty;
+    int ttty;
+    char *p;
+    unsigned u;
+    unsigned c;
+    unsigned newlen;
+
+#define X(tf,tt)	((tf) * 256 + (tt))
     {
-	if (se->type->ty == Tsarray && tb->ty == Tsarray)
-	{
-	    int dim1 = ((TypeSArray *)se->type)->dim->toInteger();
-	    int dim2 = ((TypeSArray *)tb)->dim->toInteger();
+    OutBuffer buffer;
+    newlen = 0;
+    tfty = se->type->next->toBasetype()->ty;
+    ttty = tb->next->toBasetype()->ty;
+    switch (X(tfty, ttty))
+    {
+	case X(Tchar, Tchar):
+	case X(Twchar,Twchar):
+	case X(Tdchar,Tdchar):
+	    break;
 
-	    assert(dim1 == se->len);
-
-	    //printf("dim from = %d, to = %d\n", dim1, dim2);
-
-	    if (dim2 != se->len)
+	case X(Tchar, Twchar):
+	    for (u = 0; u < len;)
 	    {
-		if (unique && dim2 < se->len)
-		{   se->len = dim2;
-		    se->string[dim2] = 0;
-		}
+		p = utf_decodeChar((unsigned char *)se->string, len, &u, &c);
+		if (p)
+		    error(p);
 		else
-		{
-		    // Copy when changing the string literal
-		    wchar_t *s;
-		    int d;
+		    buffer.writeUTF16(c);
+		newlen++;
+	    }
+	    buffer.writeUTF16(0);
+	    goto L1;
 
-		    d = (dim2 < se->len) ? dim2 : se->len;
-		    s = (wchar_t *)mem.malloc((dim2 + 1) * sizeof(s[0]));
-		    memcpy(s, se->string, d * sizeof(s[0]));
-		    memset(s + d, 0, dim2 + 1 - d);
-		    se = new StringExp(loc, s, dim2);
-		    se->committed = 1;	// it now has a firm type
-		    se->type = type->toBasetype();
-		}
-	    }
-	}
-	if (se->type->ty == Tarray && se->type->next->ty == Twchar)
-	{
-	    switch (tb->ty)
+	case X(Tchar, Tdchar):
+	    for (u = 0; u < len;)
 	    {
-		case Tsarray:
-		    if (se->len != ((TypeSArray *)tb)->dim->toInteger())
-			break;
-		case Tarray:
-		case Tpointer:
-		    if (tb->next->ty == Tchar || tb->next->ty == Twchar)
-		    {
-			se->type = t;
-			return se;
-		    }
-		    break;
+		p = utf_decodeChar((unsigned char *)se->string, len, &u, &c);
+		if (p)
+		    error(p);
+		buffer.write4(c);
+		newlen++;
 	    }
-	}
-	if (se->type->ty == Tsarray && se->type->next->ty == Twchar)
-	{
-	    switch (tb->ty)
-	    {
-		case Tsarray:
-		case Tarray:
-		case Tpointer:
-		    if (tb->next->ty == Tchar || tb->next->ty == Twchar)
-		    {
-			se->type = t;
-			return se;
-		    }
-		    break;
+	    buffer.write4(0);
+	    goto L1;
 
-		case Tascii:
-		case Twchar:
-		case Tint8:
-		case Tuns8:
-		case Tint16:
-		case Tuns16:
-		case Tint32:
-		case Tuns32:
-		case Tint64:
-		case Tuns64:
-		    return new IntegerExp(loc, se->string[0], t);
+	case X(Twchar,Tchar):
+	    for (u = 0; u < len;)
+	    {
+		p = utf_decodeWchar((unsigned short *)se->string, len, &u, &c);
+		if (p)
+		    error(p);
+		else
+		    buffer.writeUTF8(c);
+		newlen++;
+	    }
+	    buffer.writeUTF8(0);
+	    goto L1;
+
+	case X(Twchar,Tdchar):
+	    for (u = 0; u < len;)
+	    {
+		p = utf_decodeWchar((unsigned short *)se->string, len, &u, &c);
+		if (p)
+		    error(p);
+		buffer.write4(c);
+		newlen++;
+	    }
+	    buffer.write4(0);
+	    goto L1;
+
+	case X(Tdchar,Tchar):
+	    for (u = 0; u < len; u++)
+	    {
+		c = ((unsigned *)se->string)[u];
+		if (!utf_isValidDchar(c))
+		    error("invalid UCS-32 char \\U%08x", c);
+		else
+		    buffer.writeUTF8(c);
+		newlen++;
+	    }
+	    buffer.writeUTF8(0);
+	    goto L1;
+
+	case X(Tdchar,Twchar):
+	    for (u = 0; u < len; u++)
+	    {
+		c = ((unsigned *)se->string)[u];
+		if (!utf_isValidDchar(c))
+		    error("invalid UCS-32 char \\U%08x", c);
+		else
+		    buffer.writeUTF16(c);
+		newlen++;
+	    }
+	    buffer.writeUTF16(0);
+	    goto L1;
+
+	L1:
+	    if (!unique)
+		se = new StringExp(loc, NULL, 0);
+	    se->string = buffer.extractData();
+	    se->len = newlen;
+	    se->sz = tb->next->size();
+	    break;
+
+	default:
+	    goto Lcast;
+    }
+    }
+#undef X
+
+    // See if need to truncate or extend the literal
+    if (tb->ty == Tsarray)
+    {
+	int dim2 = ((TypeSArray *)tb)->dim->toInteger();
+
+	//printf("dim from = %d, to = %d\n", se->len, dim2);
+
+	// Changing dimensions
+	if (dim2 != se->len)
+	{
+	    unsigned newsz = se->sz;
+
+	    if (unique && dim2 < se->len)
+	    {   se->len = dim2;
+		// Add terminating 0
+		memset((unsigned char *)se->string + dim2 * newsz, 0, newsz);
+	    }
+	    else
+	    {
+		// Copy when changing the string literal
+		void *s;
+		int d;
+
+		d = (dim2 < se->len) ? dim2 : se->len;
+		s = (unsigned char *)mem.malloc((dim2 + 1) * newsz);
+		memcpy(s, se->string, d * newsz);
+		// Extend with 0, add terminating 0
+		memset((char *)s + d * newsz, 0, (dim2 + 1 - d) * newsz);
+		se = new StringExp(loc, s, dim2);
+		se->committed = 1;	// it now has a firm type
+		se->sz = newsz;
 	    }
 	}
-	Expression *e = new CastExp(loc, se, t);
-	e->type = t;
-	return e;
     }
     se->type = t;
     return se;
+
+Lcast:
+    Expression *e = new CastExp(loc, se, t);
+    e->type = t;
+    return e;
 }
 
 Expression *AddrExp::castTo(Type *t)
@@ -803,6 +859,10 @@ Expression *Expression::integralPromotions()
 	case Tascii:
 	case Twchar:
 	    e = e->castTo(Type::tint32);
+	    break;
+
+	case Tdchar:
+	    e = e->castTo(Type::tuns32);
 	    break;
     }
     return e;

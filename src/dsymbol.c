@@ -202,28 +202,6 @@ int Dsymbol::needThis()
     return FALSE;
 }
 
-char *Dsymbol::mangle()
-{
-//    return Dsymbol::toChars();
-    char *id;
-
-    //printf("Dsymbol::mangle() '%s'\n", toChars());
-    if (parent)
-    {
-	OutBuffer buf;
-
-	//printf("  parent = '%s', kind = '%s'\n", parent->mangle(), parent->kind());
-	buf.writestring(parent->mangle());
-	buf.writestring("_");
-	buf.writestring(ident ? ident->toChars() : toChars());
-	id = buf.toChars();
-	buf.data = NULL;
-    }
-    else
-	id = ident ? ident->toChars() : toChars();
-    return id;
-}
-
 void Dsymbol::addMember(ScopeDsymbol *sd)
 {
     //printf("Dsymbol::addMember(this = %p, '%s' scopesym = '%s')\n", this, toChars(), sd->toChars());
@@ -461,6 +439,8 @@ void ScopeDsymbol::defineRef(Dsymbol *s)
 
 void ScopeDsymbol::multiplyDefined(Dsymbol *s1, Dsymbol *s2)
 {
+    //printf("s1 = '%s'\n", s1->toChars());
+    //printf("s2 = '%s', parent = %p\n", s2->toChars(), s2->parent);
 #if 1
     s1->error("conflicts with %s.%s at %s",
 	s2->parent->toChars(), s2->toChars(),

@@ -118,6 +118,7 @@ void Type::init()
     mangleChar[Tbit] = 'b';
     mangleChar[Tascii] = 'a';
     mangleChar[Twchar] = 'u';
+    mangleChar[Tdchar] = 'w';
 
     mangleChar[Tinstance] = '@';
     mangleChar[Terror] = '@';
@@ -135,7 +136,7 @@ void Type::init()
 	  Timaginary32, Timaginary64, Timaginary80,
 	  Tcomplex32, Tcomplex64, Tcomplex80,
 	  Tbit,
-	  Tascii, Twchar };
+	  Tascii, Twchar, Tdchar };
 
     for (i = 0; i < sizeof(basetab) / sizeof(basetab[0]); i++)
 	basic[basetab[i]] = new TypeBasic(basetab[i]);
@@ -463,15 +464,17 @@ void Type::error(Loc loc, const char *format, ...)
 
 Identifier *Type::getTypeInfoIdent()
 {
-    // _init_TypeInfo_%s
+    // _init_10TypeInfo_%s
     OutBuffer buf;
     Identifier *id;
     char *name;
+    int len;
 
     toTypeInfoBuffer(&buf);
-    name = (char *)alloca(15 + buf.offset + 1);
+    name = (char *)alloca(15 + sizeof(len) * 3 + buf.offset + 1);
     buf.writeByte(0);
-    sprintf(name, "_init_TypeInfo_%s", buf.data);
+    len = strlen((char *)buf.data);
+    sprintf(name, "_init_%dTypeInfo_%s", 9 + len, buf.data);
     id = Lexer::idPool(name);
     return id;
 }
@@ -594,13 +597,18 @@ TypeBasic::TypeBasic(TY ty)
 			flags |= TFLAGSintegral | TFLAGSunsigned;
 			break;
 
-	case Tascii:	d = Token::toChars(TOKascii);
+	case Tascii:	d = Token::toChars(TOKchar);
 			c = "char";
 			flags |= TFLAGSintegral | TFLAGSunsigned;
 			break;
 
 	case Twchar:	d = Token::toChars(TOKwchar);
 			c = "wchar";
+			flags |= TFLAGSintegral | TFLAGSunsigned;
+			break;
+
+	case Tdchar:	d = Token::toChars(TOKdchar);
+			c = "dchar";
 			flags |= TFLAGSintegral | TFLAGSunsigned;
 			break;
 
@@ -671,7 +679,8 @@ unsigned TypeBasic::size()
 
 	case Tbit:	size = 1;		break;
 	case Tascii:	size = 1;		break;
-	case Twchar:	size = sizeof(d_wchar);	break;
+	case Twchar:	size = 2;		break;
+	case Tdchar:	size = 4;		break;
 
 	default:
 	    assert(0);
@@ -721,6 +730,7 @@ Expression *TypeBasic::getProperty(Loc loc, Identifier *ident)
 	    case Tbit:		ivalue = 1;		goto Livalue;
 	    case Tascii:	ivalue = 0xFF;		goto Livalue;
 	    case Twchar:	ivalue = 0xFFFFUL;	goto Livalue;
+	    case Tdchar:	ivalue = 0x10FFFFUL;	goto Livalue;
 
 	    case Tcomplex32:
 	    case Timaginary32:
@@ -748,6 +758,7 @@ Expression *TypeBasic::getProperty(Loc loc, Identifier *ident)
 	    case Tbit:		ivalue = 0;		goto Livalue;
 	    case Tascii:	ivalue = 0;		goto Livalue;
 	    case Twchar:	ivalue = 0;		goto Livalue;
+	    case Tdchar:	ivalue = 0;		goto Livalue;
 
 	    case Tcomplex32:
 	    case Timaginary32:
@@ -1308,7 +1319,7 @@ Expression *TypeSArray::dotExp(Scope *sc, Expression *e, Identifier *ident)
 
 int TypeSArray::isString()
 {
-    return next->ty == Tascii || next->ty == Twchar;
+    return next->ty == Tascii || next->ty == Twchar || next->ty == Tdchar;
 }
 
 unsigned TypeSArray::memalign(unsigned salign)
@@ -1438,7 +1449,7 @@ Expression *TypeDArray::dotExp(Scope *sc, Expression *e, Identifier *ident)
 
 int TypeDArray::isString()
 {
-    return next->ty == Tascii || next->ty == Twchar;
+    return next->ty == Tascii || next->ty == Twchar || next->ty == Tdchar;
 }
 
 int TypeDArray::implicitConvTo(Type *to)
@@ -2060,8 +2071,8 @@ Type *TypeFunction::semantic(Loc loc, Scope *sc)
 	    t = arg->type->toBasetype();
 	    if (arg->inout != In)
 	    {
-		if (t->ty == Tbit || t->ty == Tsarray)
-		    error(loc, "cannot have out parameter of type %s", t->toChars());
+		if (t->ty == Tsarray)
+		    error(loc, "cannot have out or inout parameter of type %s", t->toChars());
 	    }
 	    if (t->ty == Tvoid)
 		error(loc, "cannot have parameter of type %s", arg->type->toChars());
@@ -2754,8 +2765,9 @@ void TypeTypedef::toDecoBuffer(OutBuffer *buf)
     char *name;
 
     name = sym->mangle();
-    len = strlen(name);
-    buf->printf("%c%d%s", mangleChar[ty], len, name);
+    //len = strlen(name);
+    //buf->printf("%c%d%s", mangleChar[ty], len, name);
+    buf->printf("%c%s", mangleChar[ty], name);
 }
 
 void TypeTypedef::toTypeInfoBuffer(OutBuffer *buf)
@@ -2910,11 +2922,12 @@ unsigned TypeStruct::alignsize()
 
 void TypeStruct::toDecoBuffer(OutBuffer *buf)
 {   unsigned len;
-    char *p;
+    char *name;
 
-    p = sym->mangle();
-    len = strlen(p);
-    buf->printf("%c%d%s", mangleChar[ty], len, p);
+    name = sym->mangle();
+    //len = strlen(name);
+    //buf->printf("%c%d%s", mangleChar[ty], len, name);
+    buf->printf("%c%s", mangleChar[ty], name);
 }
 
 void TypeStruct::toTypeInfoBuffer(OutBuffer *buf)
@@ -3062,8 +3075,9 @@ void TypeClass::toDecoBuffer(OutBuffer *buf)
     char *name;
 
     name = sym->mangle();
-    len = strlen(name);
-    buf->printf("%c%d%s", mangleChar[ty], len, name);
+    //len = strlen(name);
+    //buf->printf("%c%d%s", mangleChar[ty], len, name);
+    buf->printf("%c%s", mangleChar[ty], name);
 }
 
 void TypeClass::toCBuffer2(OutBuffer *buf, Identifier *ident)

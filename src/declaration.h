@@ -213,6 +213,7 @@ struct FuncDeclaration : Declaration
     Loc endloc;				// location of closing curly bracket
     int vtblIndex;			// for member functions, index into vtbl[]
     int naked;				// !=0 if naked
+    int inlineAsm;			// !=0 if has inline assembler
     ILS inlineStatus;
     int inlineNest;			// !=0 if nested inline
     int semanticRun;			// !=0 if semantic3() had been run

@@ -107,13 +107,14 @@ Scope::Scope(Module *module)
 Scope *Scope::createGlobal(Module *module)
 {
     Scope *sc;
+    Dsymbol *p = module->parent;
 
     sc = new Scope();
     sc->module = module;
     sc->scopesym = new ScopeDsymbol();
     sc->scopesym->symtab = new DsymbolTable();
     module->addMember(sc->scopesym);
-    module->parent = NULL;
+    module->parent = p;		// got changed by addMember()
 
     sc = sc->push(module);
     sc->parent = module;
