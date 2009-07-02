@@ -245,6 +245,7 @@ struct FuncDeclaration : Declaration
     FuncDeclaration *overloadResolve(Loc loc, Array *arguments);
     LabelDsymbol *searchLabel(Identifier *ident);
     AggregateDeclaration *isThis();
+    AggregateDeclaration *isMember2();
     int getLevel(FuncDeclaration *fd);	// lexical nesting level difference
     void appendExp(Expression *e);
     void appendState(Statement *s);

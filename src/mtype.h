@@ -439,6 +439,7 @@ struct TypeStruct : Type
     d_uns64 size();
     unsigned alignsize();
     char *toChars();
+    Type *syntaxCopy();
     Type *semantic(Loc loc, Scope *sc);
     Dsymbol *toDsymbol(Scope *sc);
     void toDecoBuffer(OutBuffer *buf);
@@ -519,6 +520,7 @@ struct TypeClass : Type
     TypeClass(ClassDeclaration *sym);
     d_uns64 size();
     char *toChars();
+    Type *syntaxCopy();
     Type *semantic(Loc loc, Scope *sc);
     Dsymbol *toDsymbol(Scope *sc);
     void toDecoBuffer(OutBuffer *buf);

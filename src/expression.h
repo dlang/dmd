@@ -641,6 +641,12 @@ struct ArrayLengthExp : UnaExp
 
 /****************************************************************/
 
+struct DotExp : BinExp
+{
+    DotExp(Loc loc, Expression *e1, Expression *e2);
+    Expression *semantic(Scope *sc);
+};
+
 struct CommaExp : BinExp
 {
     CommaExp(Loc loc, Expression *e1, Expression *e2);

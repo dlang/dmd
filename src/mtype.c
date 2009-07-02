@@ -76,6 +76,7 @@ Type::Type(TY ty, Type *next)
 Type *Type::syntaxCopy()
 {
     print();
+    printf("ty = %d\n", ty);
     assert(0);
     return this;
 }
@@ -3046,6 +3047,11 @@ char *TypeStruct::toChars()
     return sym->toChars();
 }
 
+Type *TypeStruct::syntaxCopy()
+{
+    return this;
+}
+
 Type *TypeStruct::semantic(Loc loc, Scope *sc)
 {
     //printf("TypeStruct::semantic('%s')\n", sym->toChars());
@@ -3223,6 +3229,11 @@ char *TypeClass::toChars()
     return sym->toChars();
 }
 
+Type *TypeClass::syntaxCopy()
+{
+    return this;
+}
+
 Type *TypeClass::semantic(Loc loc, Scope *sc)
 {
     //printf("TypeClass::semantic(%s)\n", sym->toChars());
@@ -3297,14 +3308,20 @@ Expression *TypeClass::dotExp(Scope *sc, Expression *e, Identifier *ident)
 		    sym->vclassinfo = new ClassInfoDeclaration(sym);
 		e = new VarExp(e->loc, sym->vclassinfo);
 		e = e->addressOf();
-		e->type = t;		// do this so we don't get redundant dereference
+		e->type = t;	// do this so we don't get redundant dereference
 	    }
 	    else
 	    {
-		if (sym->isInterfaceDeclaration())
-		    error(e->loc, "no .classinfo for interface objects");
 		e = new PtrExp(e->loc, e);
 		e->type = t->pointerTo();
+		if (sym->isInterfaceDeclaration())
+		{
+		    if (sym->isCOMclass())
+			error(e->loc, "no .classinfo for COM interface objects");
+		    e->type = e->type->pointerTo();
+		    e = new PtrExp(e->loc, e);
+		    e->type = t->pointerTo();
+		}
 		e = new PtrExp(e->loc, e, t);
 	    }
 	    return e;

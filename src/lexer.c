@@ -2031,6 +2031,7 @@ void Lexer::initKeywords()
     Token::tochars[TOKorass]		= "|=";
 
      // For debugging
+    Token::tochars[TOKdotexp]		= "dotexp";
     Token::tochars[TOKdotti]		= "dotti";
     Token::tochars[TOKdotvar]		= "dotvar";
     Token::tochars[TOKsymoff]		= "symoff";

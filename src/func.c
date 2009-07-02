@@ -95,6 +95,7 @@ void FuncDeclaration::semantic(Scope *sc)
     parent = sc->scopesym;
     protection = sc->protection;
     storage_class |= sc->stc;
+    //printf("storage_class = x%x\n", storage_class);
 
     if (isConst() || isAuto())
 	error("functions cannot be const or auto");
@@ -909,9 +910,35 @@ LabelDsymbol *FuncDeclaration::searchLabel(Identifier *ident)
 AggregateDeclaration *FuncDeclaration::isThis()
 {   AggregateDeclaration *ad;
 
+    //printf("+FuncDeclaration::isThis() '%s'\n", toChars());
     ad = NULL;
     if ((storage_class & STCstatic) == 0)
-	ad = isMember();
+    {
+	ad = isMember2();
+    }
+    //printf("-FuncDeclaration::isThis() %p\n", ad);
+    return ad;
+}
+
+AggregateDeclaration *FuncDeclaration::isMember2()
+{   AggregateDeclaration *ad;
+
+    //printf("+FuncDeclaration::isMember2() '%s'\n", toChars());
+    ad = NULL;
+    for (Dsymbol *s = this; s; s = s->parent)
+    {
+//printf("\ts = '%s', parent = '%s', kind = %s\n", s->toChars(), s->parent->toChars(), s->parent->kind());
+	ad = s->isMember();
+	if (ad)
+{   //printf("test4\n");
+	    break;
+}
+	if (!s->parent || !s->parent->isTemplateInstance())
+{   //printf("test5\n");
+	    break;
+}
+    }
+    //printf("-FuncDeclaration::isMember2() %p\n", ad);
     return ad;
 }
 
@@ -1004,7 +1031,7 @@ int FuncDeclaration::isVirtual()
     //printf("%d %d %d %d\n", isStatic(), protection == PROTprivate, isCtorDeclaration(), linkage != LINKd);
     return isMember() &&
 	!(isStatic() || protection == PROTprivate) &&
-	!parent->isStructDeclaration();
+	parent->isClassDeclaration();
 }
 
 int FuncDeclaration::isAbstract()
@@ -1030,7 +1057,7 @@ int FuncDeclaration::isNested()
 int FuncDeclaration::needThis()
 {
     //printf("FuncDeclaration::needThis() '%s'\n", toChars());
-    int i = !isStatic() && isMember();
+    int i = isThis() != NULL;
     //printf("\t%d\n", i);
     return i;
 }

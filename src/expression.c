@@ -1004,7 +1004,19 @@ Expression *ThisExp::semantic(Scope *sc)
 	    goto Lerr;
 	if (!fd->isNested())
 	    break;
+
 	nested = 1;
+
+	Dsymbol *parent = fd->parent;
+	while (parent)
+	{
+	    TemplateInstance *ti = parent->isTemplateInstance();
+	    if (ti)
+		parent = ti->parent;
+	    else
+		break;
+	}
+
 	fd = fd->parent->isFuncDeclaration();
     }
 
@@ -1921,6 +1933,8 @@ DotIdExp::DotIdExp(Loc loc, Expression *e, Identifier *ident)
 
 Expression *DotIdExp::semantic(Scope *sc)
 {   Expression *e;
+    Expression *eleft;
+    Expression *eright;
 
     //printf("DotIdExp::semantic(this = %p, '%s')\n", this, toChars());
     //printf("e1->op = %d, '%s'\n", e1->op, Token::toChars(e1->op));
@@ -1930,10 +1944,22 @@ Expression *DotIdExp::semantic(Scope *sc)
     UnaExp::semantic(sc);
 
     e1 = resolveProperties(sc, e1);
-    if (e1->op == TOKimport)	// also used for template alias's
+
+    if (e1->op == TOKdotexp)
+    {
+	DotExp *de = (DotExp *)e1;
+	eleft = de->e1;
+	eright = de->e2;
+    }
+    else
+    {
+	eleft = NULL;
+	eright = e1;
+    }
+    if (eright->op == TOKimport)	// also used for template alias's
     {
 	Dsymbol *s;
-	ScopeExp *ie = (ScopeExp *)e1;
+	ScopeExp *ie = (ScopeExp *)eright;
 
 	s = ie->sds->search(ident, 0);
 	if (s)
@@ -1969,7 +1995,18 @@ Expression *DotIdExp::semantic(Scope *sc)
 			}
 		    }
 		}
-		e = new VarExp(loc, v);
+		if (v->needThis() && eleft)
+		{   e = new DotVarExp(loc, eleft, v);
+		    e = e->semantic(sc);
+		}
+		else
+		{
+		    e = new VarExp(loc, v);
+		    if (eleft)
+		    {	e = new CommaExp(loc, eleft, e);
+			e->type = v->type;
+		    }
+		}
 		return e->deref();
 	    }
 
@@ -1977,14 +2014,29 @@ Expression *DotIdExp::semantic(Scope *sc)
 	    if (f)
 	    {
 		//printf("it's a function\n");
-		return new VarExp(loc, f);
+		if (f->needThis() && eleft)
+		{   e = new DotVarExp(loc, eleft, f);
+		    e = e->semantic(sc);
+		}
+		else
+		{
+		    e = new VarExp(loc, f);
+		    if (eleft)
+		    {	e = new CommaExp(loc, eleft, e);
+			e->type = f->type;
+		    }
+		}
+		return e;
 	    }
 
 	    ScopeDsymbol *sds = s->isScopeDsymbol();
 	    if (sds)
 	    {
 		//printf("it's a ScopeDsymbol\n");
-		return new ScopeExp(loc, sds);
+		e = new ScopeExp(loc, sds);
+		if (eleft)
+		    e = new DotExp(loc, eleft, e);
+		return e;
 	    }
 
 	    Import *imp = s->isImport();
@@ -2088,16 +2140,21 @@ Expression *DotTemplateInstanceExp::syntaxCopy()
 
 Expression *DotTemplateInstanceExp::semantic(Scope *sc)
 {   Dsymbol *s;
+    Dsymbol *s2;
     TemplateDeclaration *td;
     Expression *e;
     Identifier *id;
     Type *t1;
+    Expression *eleft = NULL;
 
     //printf("DotTemplateInstanceExp::semantic(%p)\n", this);
+    //e1->print();
+    //print();
     e1 = e1->semantic(sc);
     t1 = e1->type;
     if (t1)
 	t1 = t1->toBasetype();
+    //t1->print();
     if (e1->op == TOKimport)
     {
 	s = ((ScopeExp *)e1)->sds;
@@ -2111,6 +2168,15 @@ Expression *DotTemplateInstanceExp::semantic(Scope *sc)
     else if (t1 && (t1->ty == Tstruct || t1->ty == Tclass))
     {
 	s = t1->toDsymbol(sc);
+	eleft = e1;
+    }
+    else if (t1 && t1->ty == Tpointer)
+    {
+	t1 = t1->next->toBasetype();
+	if (t1->ty != Tstruct)
+	    goto L1;
+	s = t1->toDsymbol(sc);
+	eleft = e1;
     }
     else
     {
@@ -2121,11 +2187,12 @@ Expression *DotTemplateInstanceExp::semantic(Scope *sc)
 
     assert(s);
     id = (Identifier *)ti->idents.data[0];
-    s = s->search(id, 0);
-    if (!s)
+    s2 = s->search(id, 0);
+    if (!s2)
     {	error("template identifier %s is not a member of %s", id->toChars(), s->ident->toChars());
 	goto Lerr;
     }
+    s = s2;
     s->semantic(sc);
     s = s->toAlias();
     td = s->isTemplateDeclaration();
@@ -2136,6 +2203,8 @@ Expression *DotTemplateInstanceExp::semantic(Scope *sc)
     }
     ti->tempdecl = td;
     e = new ScopeExp(loc, ti);
+    if (eleft)
+	e = new DotExp(loc, eleft, e);
     e = e->semantic(sc);
     return e;
 
@@ -2327,6 +2396,7 @@ if (arguments && arguments->dim)
     }
     else
 	UnaExp::semantic(sc);
+
 
     t1 = NULL;
     if (e1->type)
@@ -2741,13 +2811,16 @@ Expression *DeleteExp::semantic(Scope *sc)
     e1 = e1->toLvalue();
     type = Type::tvoid;
 
-#if 0
     tb = e1->type->toBasetype();
     if (tb->ty == Tclass)
     {
 	TypeClass *tc = (TypeClass *)tb;
 	ClassDeclaration *cd = tc->sym;
 
+	if (cd->isInterfaceDeclaration() && cd->isCOMclass())
+	    error("cannot delete instance of COM interface %s", cd->toChars());
+
+#if 0
 	if (cd->aggDelete)
 	{   FuncDeclaration *f = cd->aggDelete;
 	    Expression *e;
@@ -2771,8 +2844,8 @@ Expression *DeleteExp::semantic(Scope *sc)
 	    e = new CallExp(loc, ec, e);
 	    return e->semantic(sc);
 	}
-    }
 #endif
+    }
     return this;
 }
 
@@ -3036,6 +3109,22 @@ void ArrayLengthExp::toCBuffer(OutBuffer *buf)
     e1->toCBuffer(buf);
     buf->writestring(".length");
 }
+
+/************************* DotExp ***********************************/
+
+DotExp::DotExp(Loc loc, Expression *e1, Expression *e2)
+	: BinExp(loc, TOKdotexp, sizeof(DotExp), e1, e2)
+{
+}
+
+Expression *DotExp::semantic(Scope *sc)
+{
+    //printf("DotExp::semantic() %s\n", toChars());
+    e1 = e1->semantic(sc);
+    e2 = e2->semantic(sc);
+    return this;
+}
+
 
 /************************* CommaExp ***********************************/
 

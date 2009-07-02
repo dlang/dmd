@@ -65,6 +65,9 @@ void EnumDeclaration::semantic(Scope *sc)
 	memtype = Type::tint32;
     parent = sc->scopesym;
     memtype = memtype->semantic(loc, sc);
+    if (!memtype->isintegral())
+	error("EnumBaseType must be integral type, not %s", memtype->toChars());
+
     t = isAnonymous() ? memtype : type;
     symtab = new DsymbolTable();
     sce = sc->push(this);

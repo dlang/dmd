@@ -165,7 +165,7 @@ Array *Parser::parseDeclDefs(int once)
 		s = (Dsymbol *)parseTemplateDeclaration();
 		break;
 
-	    case TOKinstance:
+	    case TOKinstance:		// Deprecated
 		if (isDeclaration(&token, 2, TOKreserved, NULL))
 		{
 		    //printf("it's a declaration\n");
@@ -1070,7 +1070,9 @@ Array *Parser::parseTemplateParameterList()
 	    Identifier *tp_ident = NULL;
 	    Type *tp_spectype = NULL;
 	    Type *tp_valtype = NULL;
+	    Type *tp_defaulttype = NULL;
 	    Expression *tp_specvalue = NULL;
+	    Expression *tp_defaultvalue = NULL;
 	    Token *t;
 
 	    // Get TemplateParameter
@@ -1086,9 +1088,16 @@ Array *Parser::parseTemplateParameterList()
 		}
 		tp_ident = token.ident;
 		nextToken();
-		tp = new TemplateParameter(tp_ident);
+		if (token.value == TOKassign)	// : Type
+		{
+		    nextToken();
+		    tp_defaulttype = parseBasicType();
+		    tp_defaulttype = parseDeclarator(tp_defaulttype, NULL);
+		}
+		tp = new TemplateAliasParameter(loc, tp_ident, tp_defaulttype);
 	    }
-	    else if (t->value == TOKcolon || t->value == TOKcomma || t->value == TOKrparen)
+	    else if (t->value == TOKcolon || t->value == TOKassign ||
+		     t->value == TOKcomma || t->value == TOKrparen)
 	    {	// TypeParameter
 		if (token.value != TOKidentifier)
 		{   error("Identifier expected for template parameter");
@@ -1102,7 +1111,13 @@ Array *Parser::parseTemplateParameterList()
 		    tp_spectype = parseBasicType();
 		    tp_spectype = parseDeclarator(tp_spectype, NULL);
 		}
-		tp = new TemplateParameter(tp_ident, tp_spectype);
+		if (token.value == TOKassign)	// : Type
+		{
+		    nextToken();
+		    tp_defaulttype = parseBasicType();
+		    tp_defaulttype = parseDeclarator(tp_defaulttype, NULL);
+		}
+		tp = new TemplateTypeParameter(loc, tp_ident, tp_spectype, tp_defaulttype);
 	    }
 	    else
 	    {	// ValueParameter
@@ -1113,12 +1128,17 @@ Array *Parser::parseTemplateParameterList()
 		    error("no identifier for template value parameter");
 		    goto Lerr;
 		}
-		if (token.value == TOKcolon)	// : AssignExpression
+		if (token.value == TOKcolon)	// : CondExpression
 		{
 		    nextToken();
-		    tp_specvalue = parseAssignExp();
+		    tp_specvalue = parseCondExp();
 		}
-		tp = new TemplateParameter(tp_ident, tp_valtype, tp_specvalue);
+		if (token.value == TOKassign)	// = CondExpression
+		{
+		    nextToken();
+		    tp_defaultvalue = parseCondExp();
+		}
+		tp = new TemplateValueParameter(loc, tp_ident, tp_valtype, tp_specvalue, tp_defaultvalue);
 	    }
 	    tpl->push(tp);
 	    if (token.value != TOKcomma)
@@ -1323,7 +1343,7 @@ Type *Parser::parseBasicType()
 	    goto Lident;
 
 	case TOKinstance:
-	{
+	{   // Deprecated
 	    tempinst = parseTemplateInstance();
 	    if (!tempinst)		// if error
 	    {	t = Type::tvoid;
@@ -2098,7 +2118,7 @@ Statement *Parser::parseStatement(int flags)
 	    break;
 	}
 
-	case TOKinstance:
+	case TOKinstance:	// Deprecated
 	    /* Three cases:
 	     *	1) Declaration
 	     *	2) Template Instance Alias
@@ -2859,7 +2879,7 @@ int Parser::isBasicType(Token **pt)
 	case TOKdot:
 	    goto Ldot;
 
-	case TOKinstance:
+	case TOKinstance:	// Deprecated
 	    // Handle cases like:
 	    //	instance Foo(int).bar x;
 	    // But remember that:
@@ -3406,7 +3426,7 @@ Expression *Parser::parsePrimaryExp()
 	    e = new AssertExp(loc, e);
 	    break;
 
-	case TOKinstance:
+	case TOKinstance:	// Deprecated
 	{   TemplateInstance *tempinst;
 
 	    tempinst = parseTemplateInstance();

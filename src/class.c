@@ -467,6 +467,20 @@ int ClassDeclaration::isAbstract()
     return FALSE;
 }
 
+/****************************************
+ * Determine if slot 0 of the vtbl[] is reserved for something else.
+ * For class objects, yes, this is where the classinfo ptr goes.
+ * For COM interfaces, no.
+ * For non-COM interfaces, yes, this is where the Interface ptr goes.
+ */
+
+int ClassDeclaration::vtblOffset()
+{
+    return 1;
+}
+
+/****************************************
+ */
 
 char *ClassDeclaration::kind()
 {
@@ -510,22 +524,27 @@ void InterfaceDeclaration::semantic(Scope *sc)
 	return;
     symtab = new DsymbolTable();
 
-#if INTERFACE_OFFSET
-    vtbl.push(this);		// leave room at vtbl[0] for classinfo
-#endif
-
     interfaces_dim = baseclasses.dim;
     interfaces = (BaseClass **)baseclasses.data;
 
     interfaceSemantic(sc);
+
+    if (vtblOffset())
+	vtbl.push(this);		// leave room at vtbl[0] for classinfo
 
     // Cat together the vtbl[]'s from base interfaces
     for (i = 0; i < interfaces_dim; i++)
     {	BaseClass *b = interfaces[i];
 
 	// Copy vtbl[] from base class
-	vtbl.append(&b->base->vtbl);
-	assert(!INTERFACE_OFFSET);
+	if (b->base->vtblOffset())
+	{   int d = b->base->vtbl.dim;
+	    vtbl.reserve(d - 1);
+	    for (int j = 1; j < d; j++)
+		vtbl.push(b->base->vtbl.data[j]);
+	}
+	else
+	    vtbl.append(&b->base->vtbl);
     }
 
     for (i = 0; i < members->dim; i++)
@@ -590,6 +609,20 @@ int InterfaceDeclaration::isBaseOf(ClassDeclaration *cd, int *poffset)
 }
 
 
+/****************************************
+ * Determine if slot 0 of the vtbl[] is reserved for something else.
+ * For class objects, yes, this is where the classinfo ptr goes.
+ * For COM interfaces, no.
+ * For non-COM interfaces, yes, this is where the Interface ptr goes.
+ */
+
+int InterfaceDeclaration::vtblOffset()
+{
+    if (isCOMclass())
+	return 0;
+    return 1;
+}
+
 /*******************************************
  */
 
@@ -621,12 +654,9 @@ int BaseClass::fillVtbl(ClassDeclaration *cd, Array *vtbl, int newinstance)
     //printf("BaseClass::fillVtbl('%s')\n", base->toChars());
     if (vtbl)
 	vtbl->setDim(base->vtbl.dim);
-#if INTERFACE_OFFSET
+
     // first entry is ClassInfo reference
-    for (j = 1; j < base->vtbl.dim; j++)
-#else
-    for (j = 0; j < base->vtbl.dim; j++)
-#endif
+    for (j = base->vtblOffset(); j < base->vtbl.dim; j++)
     {
 	FuncDeclaration *ifd = ((Dsymbol *)base->vtbl.data[j])->isFuncDeclaration();
 	FuncDeclaration *fd;

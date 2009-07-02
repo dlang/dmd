@@ -56,7 +56,7 @@ enum TOK
 	TOKnew,		TOKdelete,
 	TOKstar,	TOKsymoff,
 	TOKvar,		TOKdotvar,
-	TOKdotti,
+	TOKdotti,	TOKdotexp,
 	TOKdottype,	TOKrange,
 	TOKarraylength,	TOKversion,
 	TOKmodule,	TOKdollar,

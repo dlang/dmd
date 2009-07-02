@@ -1,5 +1,5 @@
 
-// Copyright (c) 1999-2003 by Digital Mars
+// Copyright (c) 1999-2004 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // www.digitalmars.com
@@ -21,6 +21,9 @@ struct OutBuffer;
 struct Identifier;
 struct TemplateInstance;
 struct TemplateParameter;
+struct TemplateTypeParameter;
+struct TemplateValueParameter;
+struct TemplateAliasParameter;
 struct Type;
 struct Scope;
 struct Expression;
@@ -44,7 +47,6 @@ struct TemplateDeclaration : ScopeDsymbol
     char *toChars();
 
     MATCH matchWithInstance(TemplateInstance *ti, Array *atypes, int flag);
-    MATCH matchType(Type *tiarg, int i, Array *atypes);
     int leastAsSpecialized(TemplateDeclaration *td2);
 
     TemplateDeclaration *isTemplateDeclaration() { return this; }
@@ -62,33 +64,86 @@ struct TemplateParameter
      *	template Foo(alias ident)
      */
 
+    Loc loc;
     Identifier *ident;
 
-    /* if valType!=NULL
-     *	it's a value-parameter
-     * else if isalias
-     *	it's an alias-parameter
-     * else
-     *	it's a type-parameter
+    TemplateParameter(Loc loc, Identifier *ident);
+
+    virtual TemplateTypeParameter  *isTemplateTypeParameter();
+    virtual TemplateValueParameter *isTemplateValueParameter();
+    virtual TemplateAliasParameter *isTemplateAliasParameter();
+
+    virtual TemplateParameter *syntaxCopy() = 0;
+    virtual void semantic(Scope *) = 0;
+    virtual void print(Object *oarg, Object *oded) = 0;
+    virtual void toCBuffer(OutBuffer *buf) = 0;
+    virtual Object *defaultArg(Scope *sc) = 0;
+
+    /* If TemplateParameter's match as far as overloading goes.
      */
+    virtual int overloadMatch(TemplateParameter *) = 0;
 
-    // type-parameter
+    /* Match actual argument against parameter.
+     */
+    virtual MATCH matchArg(Scope *sc, Object *oarg, int i, Array *parameters, Array *dedtypes, Declaration **psparam) = 0;
+
+    /* Create dummy argument based on parameter.
+     */
+    virtual void *dummyArg() = 0;
+};
+
+struct TemplateTypeParameter : TemplateParameter
+{
     Type *specType;	// type parameter: if !=NULL, this is the type specialization
+    Type *defaultType;
 
-    TemplateParameter(Identifier *ident, Type *specType);
+    TemplateTypeParameter(Loc loc, Identifier *ident, Type *specType, Type *defaultType);
 
-    // value-parameter
+    TemplateTypeParameter *isTemplateTypeParameter();
+    TemplateParameter *syntaxCopy();
+    void semantic(Scope *);
+    void print(Object *oarg, Object *oded);
+    void toCBuffer(OutBuffer *buf);
+    Object *defaultArg(Scope *sc);
+    int overloadMatch(TemplateParameter *);
+    MATCH matchArg(Scope *sc, Object *oarg, int i, Array *parameters, Array *dedtypes, Declaration **psparam);
+    void *dummyArg();
+};
+
+struct TemplateValueParameter : TemplateParameter
+{
     Type *valType;
     Expression *specValue;
+    Expression *defaultValue;
 
-    TemplateParameter(Identifier *ident, Type *valType, Expression *specValue);
+    TemplateValueParameter(Loc loc, Identifier *ident, Type *valType, Expression *specValue, Expression *defaultValue);
 
-    // alias-parameter
-    int isalias;
-
-    TemplateParameter(Identifier *ident);
-
+    TemplateValueParameter *isTemplateValueParameter();
     TemplateParameter *syntaxCopy();
+    void semantic(Scope *);
+    void print(Object *oarg, Object *oded);
+    void toCBuffer(OutBuffer *buf);
+    Object *defaultArg(Scope *sc);
+    int overloadMatch(TemplateParameter *);
+    MATCH matchArg(Scope *sc, Object *oarg, int i, Array *parameters, Array *dedtypes, Declaration **psparam);
+    void *dummyArg();
+};
+
+struct TemplateAliasParameter : TemplateParameter
+{
+    Type *defaultAlias;
+
+    TemplateAliasParameter(Loc loc, Identifier *ident, Type *defaultAlias);
+
+    TemplateAliasParameter *isTemplateAliasParameter();
+    TemplateParameter *syntaxCopy();
+    void semantic(Scope *);
+    void print(Object *oarg, Object *oded);
+    void toCBuffer(OutBuffer *buf);
+    Object *defaultArg(Scope *sc);
+    int overloadMatch(TemplateParameter *);
+    MATCH matchArg(Scope *sc, Object *oarg, int i, Array *parameters, Array *dedtypes, Declaration **psparam);
+    void *dummyArg();
 };
 
 struct TemplateInstance : ScopeDsymbol
