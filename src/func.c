@@ -86,8 +86,10 @@ void FuncDeclaration::semantic(Scope *sc)
     if (isConst() || isAuto())
 	error("functions cannot be const or auto");
 
+#if 0
     if (isAbstract() && fbody)
 	error("abstract functions cannot have bodies");
+#endif
 
 #if 0
     if (isStaticConstructor() || isStaticDestructor())
@@ -953,6 +955,9 @@ FuncDeclaration *FuncDeclaration::genCfunc(Type *treturn, char *name)
     Dsymbol *s;
     Identifier *id;
     static DsymbolTable *st = NULL;
+
+    //printf("genCfunc(name = '%s')\n", name);
+    //printf("treturn\n\t"); treturn->print();
 
     id = Lexer::idPool(name);
 

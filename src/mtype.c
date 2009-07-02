@@ -360,6 +360,11 @@ int Type::isZeroInit()
     return 0;		// assume not
 }
 
+int Type::isBaseOf(Type *t)
+{
+    return 0;		// assume not
+}
+
 /********************************
  * Determine if 'this' can be implicitly converted
  * to type 'to'.
@@ -1266,6 +1271,8 @@ Type *TypeSArray::semantic(Loc loc, Scope *sc)
     if (dim)
     {	dim = dim->semantic(sc);
 	dim = dim->constFold();
+	if (dim->op == TOKint64 && (long long)dim->toInteger() < 0)
+	    error(loc, "negative index %lld for static array", dim->toInteger());
     }
     next = next->semantic(loc,sc);
     switch (next->ty)
@@ -1333,7 +1340,7 @@ int TypeSArray::implicitConvTo(Type *to)
 
     // Allow implicit conversion of static array to pointer or dynamic array
     if ((to->ty == Tpointer || to->ty == Tarray) &&
-	(to->next->ty == Tvoid || next->equals(to->next)))
+	(to->next->ty == Tvoid || next->equals(to->next) || to->next->isBaseOf(next)))
     {
 	return 1;
     }
@@ -1457,10 +1464,12 @@ int TypeDArray::implicitConvTo(Type *to)
     //printf("TypeDArray::implicitConvTo()\n");
 
     // Allow implicit conversion of array to pointer
-    if (to->ty == Tpointer && (to->next->ty == Tvoid || next->equals(to->next)))
+    if (to->ty == Tpointer && (to->next->ty == Tvoid || next->equals(to->next) || to->next->isBaseOf(next)))
     {
-	return 1;
+	return MATCHconvert;
     }
+    if (to->ty == Tarray && to->next->isBaseOf(next))
+	return MATCHconvert;
     return Type::implicitConvTo(to);
 }
 
@@ -1639,7 +1648,7 @@ Expression *TypeAArray::dotExp(Scope *sc, Expression *e, Identifier *ident)
 	FuncDeclaration *fd;
 	Array *arguments;
 
-	fd = FuncDeclaration::genCfunc(this, "_aaRehash");
+	fd = FuncDeclaration::genCfunc(Type::tint64, "_aaRehash");
 	ec = new VarExp(0, fd);
 	arguments = new Array();
 	arguments->push(e->addressOf());
@@ -1738,17 +1747,10 @@ int TypePointer::implicitConvTo(Type *to)
     {
 	if (to->next->ty == Tvoid)
 	    return MATCHconvert;
-#if 0
-	if (next->ty == Tclass && to->next->ty == Tclass)
-	{   ClassDeclaration *cd;
-	    ClassDeclaration *cdto;
 
-	    cd   = ((TypeClass *)next)->sym;
-	    cdto = ((TypeClass *)to->next)->sym;
-	    if (cdto->isBaseOf(cd))
-		return 1;
-	}
-#endif
+	if (to->next->isBaseOf(next))
+	    return MATCHconvert;
+
 	if (next->ty == Tfunction && to->next->ty == Tfunction)
 	{   TypeFunction *tf;
 	    TypeFunction *tfto;
@@ -2129,6 +2131,7 @@ int TypeFunction::callMatch(Array *toargs)
 	ae = (Expression *)toargs->data[u];
 	assert(ae);
 	m = ae->implicitConvTo(af->type);
+	//printf("\tm = %d\n", m);
 	if (m == 0)
 	    goto Nomatch;		// no match for this argument
 	if (m < match)
@@ -3221,6 +3224,17 @@ int TypeClass::isauto()
     return sym->isauto;
 }
 
+int TypeClass::isBaseOf(Type *t)
+{
+    if (t->ty == Tclass)
+    {   ClassDeclaration *cd;
+
+	cd   = ((TypeClass *)t)->sym;
+	if (sym->isBaseOf(cd, NULL))
+	    return 1;
+    }
+    return 0;
+}
 
 int TypeClass::implicitConvTo(Type *to)
 {

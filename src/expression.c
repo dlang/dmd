@@ -1371,6 +1371,8 @@ Expression *NewExp::semantic(Scope *sc)
 
 	arg = (Expression *)arguments->data[0];
 	arg = arg->implicitCastTo(Type::tindex);
+	if (arg->op == TOKint64 && (long long)arg->toInteger() < 0)
+	    error("negative array index %s", arg->toChars());
 	arguments->data[0] = (void *) arg;
     }
     else
@@ -1593,6 +1595,15 @@ Expression *DeclarationExp::syntaxCopy()
 Expression *DeclarationExp::semantic(Scope *sc)
 {
     //printf("DeclarationExp::semantic() %s\n", toChars());
+
+    if (declaration->isVarDeclaration())
+    {	// Do semantic() on initializer first, so:
+	//	int a = a;
+	// will be illegal.
+	declaration->semantic(sc);
+	declaration->parent = sc->parent;
+    }
+
     //printf("inserting '%s' %p into sc = %p\n", declaration->toChars(), declaration, sc);
     // Insert into both local scope and function scope.
     // Must be unique in both.
@@ -1602,8 +1613,10 @@ Expression *DeclarationExp::semantic(Scope *sc)
 	    (declaration->isFuncDeclaration() && !sc->func->localsymtab->insert(declaration)))
 	    error("declaration %s.%s is already defined", sc->func->toChars(), declaration->toChars());
     }
-    declaration->semantic(sc);
-    declaration->parent = sc->parent;
+    if (!declaration->isVarDeclaration())
+    {	declaration->semantic(sc);
+	declaration->parent = sc->parent;
+    }
     if (!global.errors)
     {
 	declaration->semantic2(sc);

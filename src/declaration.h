@@ -98,6 +98,8 @@ struct TypedefDeclaration : Declaration
     char *kind();
     Type *getType();
     void toCBuffer(OutBuffer *buf);
+
+    TypedefDeclaration *isTypedefDeclaration() { return this; }
 };
 
 struct AliasDeclaration : Declaration

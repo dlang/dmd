@@ -21,6 +21,7 @@ struct Identifier;
 struct Scope;
 struct DsymbolTable;
 struct Declaration;
+struct TypedefDeclaration;
 struct AliasDeclaration;
 struct AggregateDeclaration;
 struct ClassDeclaration;
@@ -126,6 +127,7 @@ struct Dsymbol : Object
     virtual TemplateDeclaration *isTemplateDeclaration() { return NULL; }
     virtual TemplateInstance *isTemplateInstance() { return NULL; }
     virtual Declaration *isDeclaration() { return NULL; }
+    virtual TypedefDeclaration *isTypedefDeclaration() { return NULL; }
     virtual AliasDeclaration *isAliasDeclaration() { return NULL; }
     virtual AggregateDeclaration *isAggregateDeclaration() { return NULL; }
     virtual FuncDeclaration *isFuncDeclaration() { return NULL; }

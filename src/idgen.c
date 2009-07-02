@@ -83,6 +83,8 @@ Msgtable msgtable[] =
     { "dup" },
 
     // For inline assembler
+    { "___out", "out" },
+    { "___in", "in" },
     { "__int", "int" },
     { "__dollar", "$" },
     { "__LOCAL_SIZE" },

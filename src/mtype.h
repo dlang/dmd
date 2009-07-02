@@ -1,5 +1,5 @@
 
-// Copyright (c) 1999-2002 by Digital Mars
+// Copyright (c) 1999-2003 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // www.digitalmars.com
@@ -180,6 +180,7 @@ struct Type : Object
     Type *referenceTo();
     Type *arrayOf();
     virtual Type *toBasetype();
+    virtual int isBaseOf(Type *t);
     virtual int implicitConvTo(Type *to);
     virtual ClassDeclaration *isClassHandle();
     virtual Expression *getProperty(Loc loc, Identifier *ident);
@@ -493,6 +494,7 @@ struct TypeClass : Type
     void toCBuffer2(OutBuffer *buf, Identifier *ident);
     Expression *dotExp(Scope *sc, Expression *e, Identifier *ident);
     ClassDeclaration *isClassHandle();
+    int isBaseOf(Type *t);
     int implicitConvTo(Type *to);
     Expression *defaultInit();
     int isZeroInit();
