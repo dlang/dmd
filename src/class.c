@@ -287,7 +287,9 @@ void ClassDeclaration::semantic(Scope *sc)
 	alignsize = 4;
     }
     structsize = sc->offset;
-    for (i = 0; i < members->dim; i++)
+    Scope scsave = *sc;
+    int members_dim = members->dim;
+    for (i = 0; i < members_dim; i++)
     {
 	Dsymbol *s = (Dsymbol *)members->data[i];
 	s->semantic(sc);
@@ -318,11 +320,12 @@ void ClassDeclaration::semantic(Scope *sc)
     //    this() { }
     if (!ctor && baseClass && baseClass->ctor)
     {
-	//printf("Creating default this(){} for class %s\n", toChars());
+	printf("Creating default this(){} for class %s\n", toChars());
 	ctor = new CtorDeclaration(0, 0, NULL, 0);
 	ctor->fbody = new CompoundStatement(0, new Array());
 	members->push(ctor);
 	ctor->addMember(this);
+	*sc = scsave;
 	ctor->semantic(sc);
     }
 

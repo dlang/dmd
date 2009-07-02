@@ -49,7 +49,7 @@ Global::Global()
 
     copyright = "Copyright (c) 1999-2004 by Digital Mars";
     written = "written by Walter Bright";
-    version = "v0.106";
+    version = "v0.107";
     global.structalign = 8;
 
     memset(&params, 0, sizeof(Param));

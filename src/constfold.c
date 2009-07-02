@@ -27,27 +27,32 @@ static real_t zero;	// work around DMC bug for now
 int Expression::isConst()
 {
     //printf("Expression::isConst(): %s\n", toChars());
-    return FALSE;
+    return 0;
 }
 
 int IntegerExp::isConst()
 {
-    return TRUE;
+    return 1;
 }
 
 int RealExp::isConst()
 {
-    return TRUE;
+    return 1;
 }
 
 int ImaginaryExp::isConst()
 {
-    return TRUE;
+    return 1;
 }
 
 int ComplexExp::isConst()
 {
-    return TRUE;
+    return 1;
+}
+
+int SymOffExp::isConst()
+{
+    return 2;
 }
 
 /* ================================== constFold() ============================== */
@@ -123,7 +128,8 @@ Expression *CastExp::constFold()
 	return new ComplexExp(loc, e1->toComplex(), type);
     if (type->isscalar())
 	return new IntegerExp(loc, e1->toInteger(), type);
-    error("cannot cast %s to %s", e1->type->toChars(), type->toChars());
+    if (type->toBasetype()->ty != Tvoid)
+	error("cannot cast %s to %s", e1->type->toChars(), type->toChars());
     return this;
 }
 
@@ -134,6 +140,8 @@ Expression *AddExp::constFold()
     //printf("AddExp::constFold(%s)\n", toChars());
     e1 = e1->constFold();
     e2 = e2->constFold();
+    if (e1->op == TOKsymoff && e2->op == TOKsymoff)
+	return this;
     if (type->isreal())
     {
 	e = new RealExp(loc, e1->toReal() + e2->toReal(), type);
@@ -169,6 +177,8 @@ Expression *MinExp::constFold()
 
     e1 = e1->constFold();
     e2 = e2->constFold();
+    if (e2->op == TOKsymoff)
+	return this;
     if (type->isreal())
     {
 	e = new RealExp(loc, e1->toReal() - e2->toReal(), type);
@@ -188,7 +198,9 @@ Expression *MinExp::constFold()
 	e->type = type;
     }
     else
+    {
 	e = new IntegerExp(loc, e1->toInteger() - e2->toInteger(), type);
+    }
     return e;
 }
 

@@ -230,7 +230,9 @@ void StorageClassDeclaration::semantic(Scope *sc)
     if (decl)
     {	unsigned stc_save = sc->stc;
 
-	sc->stc = stc;
+	if (stc & (STCauto | STCstatic | STCextern))
+	    sc->stc &= ~(STCauto | STCstatic | STCextern);
+	sc->stc |= stc;
 	for (unsigned i = 0; i < decl->dim; i++)
 	{
 	    Dsymbol *s = (Dsymbol *)decl->data[i];

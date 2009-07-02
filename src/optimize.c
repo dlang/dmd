@@ -30,7 +30,7 @@ Expression *UnaExp::optimize(int result)
 {   Expression *e;
 
     e1 = e1->optimize(result);
-    if (e1->isConst())
+    if (e1->isConst() == 1)
 	e = constFold();
     else
 	e = this;
@@ -150,6 +150,30 @@ Expression *BinExp::optimize(int result)
 
     e1 = e1->optimize(result);
     e2 = e2->optimize(result);
+    if (e1->isConst() == 1 && e2->isConst() == 1)
+	e = constFold();
+    else
+	e = this;
+    return e;
+}
+
+Expression *AddExp::optimize(int result)
+{   Expression *e;
+
+    e1 = e1->optimize(result);
+    e2 = e2->optimize(result);
+    if (e1->isConst() && e2->isConst())
+	e = constFold();
+    else
+	e = this;
+    return e;
+}
+
+Expression *MinExp::optimize(int result)
+{   Expression *e;
+
+    e1 = e1->optimize(result);
+    e2 = e2->optimize(result);
     if (e1->isConst() && e2->isConst())
 	e = constFold();
     else
@@ -179,12 +203,12 @@ Expression *AndAndExp::optimize(int result)
     e1 = e1->optimize(WANTflags);
     e2 = e2->optimize(WANTflags);
     e = this;
-    if (e1->isConst())
+    if (e1->isBool(FALSE))
+	e = new IntegerExp(loc, 0, type);
+    else if (e1->isConst())
     {
 	if (e2->isConst())
 	    e = constFold();
-	else if (e1->isBool(FALSE))
-	    e = new IntegerExp(loc, 0, type);
 	else if (e1->isBool(TRUE))
 	    e = new BoolExp(loc, e2, type);
     }
@@ -197,12 +221,12 @@ Expression *OrOrExp::optimize(int result)
     e1 = e1->optimize(WANTflags);
     e2 = e2->optimize(WANTflags);
     e = this;
-    if (e1->isConst())
+    if (e1->isBool(TRUE))
+	e = new IntegerExp(loc, 1, type);
+    else if (e1->isConst())
     {
 	if (e2->isConst())
 	    e = constFold();
-	else if (e1->isBool(TRUE))
-	    e = new IntegerExp(loc, 1, type);
 	else if (e1->isBool(FALSE))
 	    e = new BoolExp(loc, e2, type);
     }
@@ -215,9 +239,7 @@ Expression *CatExp::optimize(int result)
     //printf("CatExp::optimize(%d)\n", result);
     e1 = e1->optimize(result);
     e2 = e2->optimize(result);
-    if (e1->isConst() && e2->isConst())
-	e = constFold();
-    else if (e1->op == TOKstring && e2->op == TOKstring)
+    if (e1->op == TOKstring && e2->op == TOKstring)
     {
 	// Concatenate the strings
 	void *s;

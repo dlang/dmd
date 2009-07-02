@@ -368,6 +368,7 @@ Dsymbol *VarDeclaration::syntaxCopy(Dsymbol *s)
 
 	sv = new VarDeclaration(loc, type->syntaxCopy(), ident, init);
 	sv->storage_class = storage_class;
+	//sv->storage_class |= storage_class & STCauto;
     }
     return sv;
 }
@@ -382,6 +383,7 @@ void VarDeclaration::semantic(Scope *sc)
     //printf("this = %p, parent = %p, '%s'\n", this, parent, parent->toChars());
     protection = sc->protection;
     storage_class |= sc->stc;
+    //printf("sc->stc = %x\n", sc->stc);
     //printf("storage_class = %x\n", storage_class);
 
     Dsymbol *parent = toParent();
@@ -448,7 +450,7 @@ void VarDeclaration::semantic(Scope *sc)
 		cd->alignsize = memalignsize;
 
 	    storage_class |= STCfield;
-	    //printf("2 Adding '%s' to '%s'\n", this->toChars(), cd->toChars());
+	    //printf("2 Adding '%s' to '%s', offset %d\n", this->toChars(), cd->toChars(), offset);
 	    cd->fields.push(this);
 	}
 
@@ -727,6 +729,7 @@ Dsymbol *TypeInfoDeclaration::syntaxCopy(Dsymbol *s)
 
 void TypeInfoDeclaration::semantic(Scope *sc)
 {
+    assert(linkage == LINKc);
 }
 
 /***************************** TypeInfoClassDeclaration ***********************/

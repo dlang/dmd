@@ -16,6 +16,22 @@ enum TY impcnvResult[TMAX][TMAX];
 enum TY impcnvType1[TMAX][TMAX];
 enum TY impcnvType2[TMAX][TMAX];
 
+int integral_promotion(int t)
+{
+    switch (t)
+    {
+	case Tchar:
+	case Twchar:
+	case Tbit:
+	case Tint8:
+	case Tuns8:
+	case Tint16:
+	case Tuns16:	return Tint32;
+	case Tdchar:	return Tuns32;
+	default:	return t;
+    }
+}
+
 void init()
 {   int i, j;
 
@@ -40,9 +56,9 @@ void init()
     X(Tbit,Tint16,  Tint32,Tint32,  Tint32)
     X(Tbit,Tuns16,  Tint32,Tint32,  Tint32)
     X(Tbit,Tint32,  Tint32,Tint32,  Tint32)
-    X(Tbit,Tuns32,  Tint32,Tuns32,  Tint32)
+    X(Tbit,Tuns32,  Tuns32,Tuns32,  Tuns32)
     X(Tbit,Tint64,  Tint64,Tint64,  Tint64)
-    X(Tbit,Tuns64,  Tint64,Tuns64,  Tint64)
+    X(Tbit,Tuns64,  Tuns64,Tuns64,  Tuns64)
 
     X(Tbit,Tfloat32,     Tfloat32,Tfloat32,     Tfloat32)
     X(Tbit,Tfloat64,     Tfloat64,Tfloat64,     Tfloat64)
@@ -56,15 +72,14 @@ void init()
 
     /* ======================= */
 
-    X(Tint8,Tbit,    Tint32,Tint32,  Tint32)
     X(Tint8,Tint8,   Tint32,Tint32,  Tint32)
     X(Tint8,Tuns8,   Tint32,Tint32,  Tint32)
     X(Tint8,Tint16,  Tint32,Tint32,  Tint32)
     X(Tint8,Tuns16,  Tint32,Tint32,  Tint32)
     X(Tint8,Tint32,  Tint32,Tint32,  Tint32)
-    X(Tint8,Tuns32,  Tint32,Tuns32,  Tint32)
+    X(Tint8,Tuns32,  Tuns32,Tuns32,  Tuns32)
     X(Tint8,Tint64,  Tint64,Tint64,  Tint64)
-    X(Tint8,Tuns64,  Tint64,Tuns64,  Tint64)
+    X(Tint8,Tuns64,  Tuns64,Tuns64,  Tuns64)
 
     X(Tint8,Tfloat32,     Tfloat32,Tfloat32,     Tfloat32)
     X(Tint8,Tfloat64,     Tfloat64,Tfloat64,     Tfloat64)
@@ -78,15 +93,13 @@ void init()
 
     /* ======================= */
 
-    X(Tuns8,Tbit,    Tint32,Tint32,  Tint32)
-    X(Tuns8,Tint8,   Tint32,Tint32,  Tint32)
     X(Tuns8,Tuns8,   Tint32,Tint32,  Tint32)
     X(Tuns8,Tint16,  Tint32,Tint32,  Tint32)
     X(Tuns8,Tuns16,  Tint32,Tint32,  Tint32)
     X(Tuns8,Tint32,  Tint32,Tint32,  Tint32)
-    X(Tuns8,Tuns32,  Tint32,Tuns32,  Tint32)
+    X(Tuns8,Tuns32,  Tuns32,Tuns32,  Tuns32)
     X(Tuns8,Tint64,  Tint64,Tint64,  Tint64)
-    X(Tuns8,Tuns64,  Tint64,Tuns64,  Tint64)
+    X(Tuns8,Tuns64,  Tuns64,Tuns64,  Tuns64)
 
     X(Tuns8,Tfloat32,     Tfloat32,Tfloat32,     Tfloat32)
     X(Tuns8,Tfloat64,     Tfloat64,Tfloat64,     Tfloat64)
@@ -100,15 +113,12 @@ void init()
 
     /* ======================= */
 
-    X(Tint16,Tbit,    Tint32,Tint32,  Tint32)
-    X(Tint16,Tint8,   Tint32,Tint32,  Tint32)
-    X(Tint16,Tuns8,   Tint32,Tint32,  Tint32)
     X(Tint16,Tint16,  Tint32,Tint32,  Tint32)
     X(Tint16,Tuns16,  Tint32,Tint32,  Tint32)
     X(Tint16,Tint32,  Tint32,Tint32,  Tint32)
-    X(Tint16,Tuns32,  Tint32,Tuns32,  Tint32)
+    X(Tint16,Tuns32,  Tuns32,Tuns32,  Tuns32)
     X(Tint16,Tint64,  Tint64,Tint64,  Tint64)
-    X(Tint16,Tuns64,  Tint64,Tuns64,  Tint64)
+    X(Tint16,Tuns64,  Tuns64,Tuns64,  Tuns64)
 
     X(Tint16,Tfloat32,     Tfloat32,Tfloat32,     Tfloat32)
     X(Tint16,Tfloat64,     Tfloat64,Tfloat64,     Tfloat64)
@@ -122,15 +132,11 @@ void init()
 
     /* ======================= */
 
-    X(Tuns16,Tbit,    Tint32,Tint32,  Tint32)
-    X(Tuns16,Tint8,   Tint32,Tint32,  Tint32)
-    X(Tuns16,Tuns8,   Tint32,Tint32,  Tint32)
-    X(Tuns16,Tint16,  Tint32,Tint32,  Tint32)
     X(Tuns16,Tuns16,  Tint32,Tint32,  Tint32)
     X(Tuns16,Tint32,  Tint32,Tint32,  Tint32)
-    X(Tuns16,Tuns32,  Tint32,Tuns32,  Tint32)
+    X(Tuns16,Tuns32,  Tuns32,Tuns32,  Tuns32)
     X(Tuns16,Tint64,  Tint64,Tint64,  Tint64)
-    X(Tuns16,Tuns64,  Tint64,Tuns64,  Tint64)
+    X(Tuns16,Tuns64,  Tuns64,Tuns64,  Tuns64)
 
     X(Tuns16,Tfloat32,     Tfloat32,Tfloat32,     Tfloat32)
     X(Tuns16,Tfloat64,     Tfloat64,Tfloat64,     Tfloat64)
@@ -144,15 +150,10 @@ void init()
 
     /* ======================= */
 
-    X(Tint32,Tbit,    Tint32,Tint32,  Tint32)
-    X(Tint32,Tint8,   Tint32,Tint32,  Tint32)
-    X(Tint32,Tuns8,   Tint32,Tint32,  Tint32)
-    X(Tint32,Tint16,  Tint32,Tint32,  Tint32)
-    X(Tint32,Tuns16,  Tint32,Tint32,  Tint32)
     X(Tint32,Tint32,  Tint32,Tint32,  Tint32)
-    X(Tint32,Tuns32,  Tint32,Tuns32,  Tint32)
+    X(Tint32,Tuns32,  Tuns32,Tuns32,  Tuns32)
     X(Tint32,Tint64,  Tint64,Tint64,  Tint64)
-    X(Tint32,Tuns64,  Tint64,Tuns64,  Tint64)
+    X(Tint32,Tuns64,  Tuns64,Tuns64,  Tuns64)
 
     X(Tint32,Tfloat32,     Tfloat32,Tfloat32,     Tfloat32)
     X(Tint32,Tfloat64,     Tfloat64,Tfloat64,     Tfloat64)
@@ -166,15 +167,9 @@ void init()
 
     /* ======================= */
 
-    X(Tuns32,Tbit,    Tuns32,Tint32,  Tint32)
-    X(Tuns32,Tint8,   Tuns32,Tint32,  Tint32)
-    X(Tuns32,Tuns8,   Tuns32,Tint32,  Tint32)
-    X(Tuns32,Tint16,  Tuns32,Tint32,  Tint32)
-    X(Tuns32,Tuns16,  Tuns32,Tint32,  Tint32)
-    X(Tuns32,Tint32,  Tuns32,Tint32,  Tint32)
-    X(Tuns32,Tuns32,  Tuns32,Tuns32,  Tint32)
-    X(Tuns32,Tint64,  Tuns64,Tint64,  Tint64)
-    X(Tuns32,Tuns64,  Tuns64,Tuns64,  Tint64)
+    X(Tuns32,Tuns32,  Tuns32,Tuns32,  Tuns32)
+    X(Tuns32,Tint64,  Tint64,Tint64,  Tint64)
+    X(Tuns32,Tuns64,  Tuns64,Tuns64,  Tuns64)
 
     X(Tuns32,Tfloat32,     Tfloat32,Tfloat32,     Tfloat32)
     X(Tuns32,Tfloat64,     Tfloat64,Tfloat64,     Tfloat64)
@@ -188,15 +183,8 @@ void init()
 
     /* ======================= */
 
-    X(Tint64,Tbit,    Tint64,Tint64,  Tint64)
-    X(Tint64,Tint8,   Tint64,Tint64,  Tint64)
-    X(Tint64,Tuns8,   Tint64,Tint64,  Tint64)
-    X(Tint64,Tint16,  Tint64,Tint64,  Tint64)
-    X(Tint64,Tuns16,  Tint64,Tint64,  Tint64)
-    X(Tint64,Tint32,  Tint64,Tint64,  Tint64)
-    X(Tint64,Tuns32,  Tint64,Tint64,  Tint64)
     X(Tint64,Tint64,  Tint64,Tint64,  Tint64)
-    X(Tint64,Tuns64,  Tint64,Tuns64,  Tint64)
+    X(Tint64,Tuns64,  Tuns64,Tuns64,  Tuns64)
 
     X(Tint64,Tfloat32,     Tfloat32,Tfloat32,     Tfloat32)
     X(Tint64,Tfloat64,     Tfloat64,Tfloat64,     Tfloat64)
@@ -210,14 +198,6 @@ void init()
 
     /* ======================= */
 
-    X(Tuns64,Tbit,    Tuns64,Tint64,  Tint64)
-    X(Tuns64,Tint8,   Tuns64,Tint64,  Tint64)
-    X(Tuns64,Tuns8,   Tuns64,Tint64,  Tint64)
-    X(Tuns64,Tint16,  Tuns64,Tint64,  Tint64)
-    X(Tuns64,Tuns16,  Tuns64,Tint64,  Tint64)
-    X(Tuns64,Tint32,  Tuns64,Tint64,  Tint64)
-    X(Tuns64,Tuns32,  Tuns64,Tint64,  Tint64)
-    X(Tuns64,Tint64,  Tuns64,Tint64,  Tint64)
     X(Tuns64,Tuns64,  Tuns64,Tuns64,  Tuns64)
 
     X(Tuns64,Tfloat32,     Tfloat32,Tfloat32,     Tfloat32)
@@ -231,16 +211,6 @@ void init()
     X(Tuns64,Tcomplex80,   Tfloat80,Tcomplex80,   Tcomplex80)
 
     /* ======================= */
-
-    X(Tfloat32,Tbit,    Tfloat32,Tfloat32,  Tfloat32)
-    X(Tfloat32,Tint8,   Tfloat32,Tfloat32,  Tfloat32)
-    X(Tfloat32,Tuns8,   Tfloat32,Tfloat32,  Tfloat32)
-    X(Tfloat32,Tint16,  Tfloat32,Tfloat32,  Tfloat32)
-    X(Tfloat32,Tuns16,  Tfloat32,Tfloat32,  Tfloat32)
-    X(Tfloat32,Tint32,  Tfloat32,Tfloat32,  Tfloat32)
-    X(Tfloat32,Tuns32,  Tfloat32,Tfloat32,  Tfloat32)
-    X(Tfloat32,Tint64,  Tfloat32,Tfloat32,  Tfloat32)
-    X(Tfloat32,Tuns64,  Tfloat32,Tfloat32,  Tfloat32)
 
     X(Tfloat32,Tfloat32,  Tfloat32,Tfloat32, Tfloat32)
     X(Tfloat32,Tfloat64,  Tfloat64,Tfloat64, Tfloat64)
@@ -256,17 +226,6 @@ void init()
 
     /* ======================= */
 
-    X(Tfloat64,Tbit,    Tfloat64,Tfloat64,  Tfloat64)
-    X(Tfloat64,Tint8,   Tfloat64,Tfloat64,  Tfloat64)
-    X(Tfloat64,Tuns8,   Tfloat64,Tfloat64,  Tfloat64)
-    X(Tfloat64,Tint16,  Tfloat64,Tfloat64,  Tfloat64)
-    X(Tfloat64,Tuns16,  Tfloat64,Tfloat64,  Tfloat64)
-    X(Tfloat64,Tint32,  Tfloat64,Tfloat64,  Tfloat64)
-    X(Tfloat64,Tuns32,  Tfloat64,Tfloat64,  Tfloat64)
-    X(Tfloat64,Tint64,  Tfloat64,Tfloat64,  Tfloat64)
-    X(Tfloat64,Tuns64,  Tfloat64,Tfloat64,  Tfloat64)
-
-    X(Tfloat64,Tfloat32,  Tfloat64,Tfloat64, Tfloat64)
     X(Tfloat64,Tfloat64,  Tfloat64,Tfloat64, Tfloat64)
     X(Tfloat64,Tfloat80,  Tfloat80,Tfloat80, Tfloat80)
 
@@ -280,18 +239,6 @@ void init()
 
     /* ======================= */
 
-    X(Tfloat80,Tbit,    Tfloat80,Tfloat80,  Tfloat80)
-    X(Tfloat80,Tint8,   Tfloat80,Tfloat80,  Tfloat80)
-    X(Tfloat80,Tuns8,   Tfloat80,Tfloat80,  Tfloat80)
-    X(Tfloat80,Tint16,  Tfloat80,Tfloat80,  Tfloat80)
-    X(Tfloat80,Tuns16,  Tfloat80,Tfloat80,  Tfloat80)
-    X(Tfloat80,Tint32,  Tfloat80,Tfloat80,  Tfloat80)
-    X(Tfloat80,Tuns32,  Tfloat80,Tfloat80,  Tfloat80)
-    X(Tfloat80,Tint64,  Tfloat80,Tfloat80,  Tfloat80)
-    X(Tfloat80,Tuns64,  Tfloat80,Tfloat80,  Tfloat80)
-
-    X(Tfloat80,Tfloat32,  Tfloat80,Tfloat80, Tfloat80)
-    X(Tfloat80,Tfloat64,  Tfloat80,Tfloat80, Tfloat80)
     X(Tfloat80,Tfloat80,  Tfloat80,Tfloat80, Tfloat80)
 
     X(Tfloat80,Timaginary32,  Tfloat80,Timaginary80, Tfloat80)
@@ -304,20 +251,6 @@ void init()
 
     /* ======================= */
 
-    X(Timaginary32,Tbit,    Timaginary32,Tfloat32,  Tfloat32)
-    X(Timaginary32,Tint8,   Timaginary32,Tfloat32,  Tfloat32)
-    X(Timaginary32,Tuns8,   Timaginary32,Tfloat32,  Tfloat32)
-    X(Timaginary32,Tint16,  Timaginary32,Tfloat32,  Tfloat32)
-    X(Timaginary32,Tuns16,  Timaginary32,Tfloat32,  Tfloat32)
-    X(Timaginary32,Tint32,  Timaginary32,Tfloat32,  Tfloat32)
-    X(Timaginary32,Tuns32,  Timaginary32,Tfloat32,  Tfloat32)
-    X(Timaginary32,Tint64,  Timaginary32,Tfloat32,  Tfloat32)
-    X(Timaginary32,Tuns64,  Timaginary32,Tfloat32,  Tfloat32)
-
-    X(Timaginary32,Tfloat32,  Timaginary32,Tfloat32, Tfloat32)
-    X(Timaginary32,Tfloat64,  Timaginary64,Tfloat64, Tfloat64)
-    X(Timaginary32,Tfloat80,  Timaginary80,Tfloat80, Tfloat80)
-
     X(Timaginary32,Timaginary32,  Timaginary32,Timaginary32, Timaginary32)
     X(Timaginary32,Timaginary64,  Timaginary64,Timaginary64, Timaginary64)
     X(Timaginary32,Timaginary80,  Timaginary80,Timaginary80, Timaginary80)
@@ -328,21 +261,6 @@ void init()
 
     /* ======================= */
 
-    X(Timaginary64,Tbit,    Timaginary64,Tfloat64,  Tfloat64)
-    X(Timaginary64,Tint8,   Timaginary64,Tfloat64,  Tfloat64)
-    X(Timaginary64,Tuns8,   Timaginary64,Tfloat64,  Tfloat64)
-    X(Timaginary64,Tint16,  Timaginary64,Tfloat64,  Tfloat64)
-    X(Timaginary64,Tuns16,  Timaginary64,Tfloat64,  Tfloat64)
-    X(Timaginary64,Tint32,  Timaginary64,Tfloat64,  Tfloat64)
-    X(Timaginary64,Tuns32,  Timaginary64,Tfloat64,  Tfloat64)
-    X(Timaginary64,Tint64,  Timaginary64,Tfloat64,  Tfloat64)
-    X(Timaginary64,Tuns64,  Timaginary64,Tfloat64,  Tfloat64)
-
-    X(Timaginary64,Tfloat32,  Timaginary64,Tfloat64, Tfloat64)
-    X(Timaginary64,Tfloat64,  Timaginary64,Tfloat64, Tfloat64)
-    X(Timaginary64,Tfloat80,  Timaginary80,Tfloat80, Tfloat80)
-
-    X(Timaginary64,Timaginary32,  Timaginary64,Timaginary64, Timaginary64)
     X(Timaginary64,Timaginary64,  Timaginary64,Timaginary64, Timaginary64)
     X(Timaginary64,Timaginary80,  Timaginary80,Timaginary80, Timaginary80)
 
@@ -352,22 +270,6 @@ void init()
 
     /* ======================= */
 
-    X(Timaginary80,Tbit,    Timaginary80,Tfloat80,  Tfloat80)
-    X(Timaginary80,Tint8,   Timaginary80,Tfloat80,  Tfloat80)
-    X(Timaginary80,Tuns8,   Timaginary80,Tfloat80,  Tfloat80)
-    X(Timaginary80,Tint16,  Timaginary80,Tfloat80,  Tfloat80)
-    X(Timaginary80,Tuns16,  Timaginary80,Tfloat80,  Tfloat80)
-    X(Timaginary80,Tint32,  Timaginary80,Tfloat80,  Tfloat80)
-    X(Timaginary80,Tuns32,  Timaginary80,Tfloat80,  Tfloat80)
-    X(Timaginary80,Tint64,  Timaginary80,Tfloat80,  Tfloat80)
-    X(Timaginary80,Tuns64,  Timaginary80,Tfloat80,  Tfloat80)
-
-    X(Timaginary80,Tfloat32,  Timaginary80,Tfloat80, Tfloat80)
-    X(Timaginary80,Tfloat64,  Timaginary80,Tfloat80, Tfloat80)
-    X(Timaginary80,Tfloat80,  Timaginary80,Tfloat80, Tfloat80)
-
-    X(Timaginary80,Timaginary32,  Timaginary80,Timaginary80, Timaginary80)
-    X(Timaginary80,Timaginary64,  Timaginary80,Timaginary80, Timaginary80)
     X(Timaginary80,Timaginary80,  Timaginary80,Timaginary80, Timaginary80)
 
     X(Timaginary80,Tcomplex32,  Timaginary80,Tcomplex80, Tcomplex80)
@@ -376,75 +278,29 @@ void init()
 
     /* ======================= */
 
-    X(Tcomplex32,Tbit,    Tcomplex32,Tfloat32,  Tcomplex32)
-    X(Tcomplex32,Tint8,   Tcomplex32,Tfloat32,  Tcomplex32)
-    X(Tcomplex32,Tuns8,   Tcomplex32,Tfloat32,  Tcomplex32)
-    X(Tcomplex32,Tint16,  Tcomplex32,Tfloat32,  Tcomplex32)
-    X(Tcomplex32,Tuns16,  Tcomplex32,Tfloat32,  Tcomplex32)
-    X(Tcomplex32,Tint32,  Tcomplex32,Tfloat32,  Tcomplex32)
-    X(Tcomplex32,Tuns32,  Tcomplex32,Tfloat32,  Tcomplex32)
-    X(Tcomplex32,Tint64,  Tcomplex32,Tfloat32,  Tcomplex32)
-    X(Tcomplex32,Tuns64,  Tcomplex32,Tfloat32,  Tcomplex32)
-
-    X(Tcomplex32,Tfloat32,  Tcomplex32,Tfloat32, Tcomplex32)
-    X(Tcomplex32,Tfloat64,  Tcomplex64,Tfloat64, Tcomplex64)
-    X(Tcomplex32,Tfloat80,  Tcomplex80,Tfloat80, Tcomplex80)
-
-    X(Tcomplex32,Timaginary32,  Tcomplex32,Timaginary32, Tcomplex32)
-    X(Tcomplex32,Timaginary64,  Tcomplex64,Timaginary64, Tcomplex64)
-    X(Tcomplex32,Timaginary80,  Tcomplex80,Timaginary80, Tcomplex80)
-
     X(Tcomplex32,Tcomplex32,  Tcomplex32,Tcomplex32, Tcomplex32)
     X(Tcomplex32,Tcomplex64,  Tcomplex64,Tcomplex64, Tcomplex64)
     X(Tcomplex32,Tcomplex80,  Tcomplex80,Tcomplex80, Tcomplex80)
 
     /* ======================= */
 
-    X(Tcomplex64,Tbit,    Tcomplex64,Tfloat64,  Tcomplex64)
-    X(Tcomplex64,Tint8,   Tcomplex64,Tfloat64,  Tcomplex64)
-    X(Tcomplex64,Tuns8,   Tcomplex64,Tfloat64,  Tcomplex64)
-    X(Tcomplex64,Tint16,  Tcomplex64,Tfloat64,  Tcomplex64)
-    X(Tcomplex64,Tuns16,  Tcomplex64,Tfloat64,  Tcomplex64)
-    X(Tcomplex64,Tint32,  Tcomplex64,Tfloat64,  Tcomplex64)
-    X(Tcomplex64,Tuns32,  Tcomplex64,Tfloat64,  Tcomplex64)
-    X(Tcomplex64,Tint64,  Tcomplex64,Tfloat64,  Tcomplex64)
-    X(Tcomplex64,Tuns64,  Tcomplex64,Tfloat64,  Tcomplex64)
-
-    X(Tcomplex64,Tfloat32,  Tcomplex64,Tfloat64, Tcomplex64)
-    X(Tcomplex64,Tfloat64,  Tcomplex64,Tfloat64, Tcomplex64)
-    X(Tcomplex64,Tfloat80,  Tcomplex80,Tfloat80, Tcomplex80)
-
-    X(Tcomplex64,Timaginary32,  Tcomplex64,Timaginary64, Tcomplex64)
-    X(Tcomplex64,Timaginary64,  Tcomplex64,Timaginary64, Tcomplex64)
-    X(Tcomplex64,Timaginary80,  Tcomplex80,Timaginary80, Tcomplex80)
-
-    X(Tcomplex64,Tcomplex32,  Tcomplex64,Tcomplex64, Tcomplex64)
     X(Tcomplex64,Tcomplex64,  Tcomplex64,Tcomplex64, Tcomplex64)
     X(Tcomplex64,Tcomplex80,  Tcomplex80,Tcomplex80, Tcomplex80)
 
     /* ======================= */
 
-    X(Tcomplex80,Tbit,    Tcomplex80,Tfloat80,  Tcomplex80)
-    X(Tcomplex80,Tint8,   Tcomplex80,Tfloat80,  Tcomplex80)
-    X(Tcomplex80,Tuns8,   Tcomplex80,Tfloat80,  Tcomplex80)
-    X(Tcomplex80,Tint16,  Tcomplex80,Tfloat80,  Tcomplex80)
-    X(Tcomplex80,Tuns16,  Tcomplex80,Tfloat80,  Tcomplex80)
-    X(Tcomplex80,Tint32,  Tcomplex80,Tfloat80,  Tcomplex80)
-    X(Tcomplex80,Tuns32,  Tcomplex80,Tfloat80,  Tcomplex80)
-    X(Tcomplex80,Tint64,  Tcomplex80,Tfloat80,  Tcomplex80)
-    X(Tcomplex80,Tuns64,  Tcomplex80,Tfloat80,  Tcomplex80)
-
-    X(Tcomplex80,Tfloat32,  Tcomplex80,Tfloat80, Tcomplex80)
-    X(Tcomplex80,Tfloat64,  Tcomplex80,Tfloat80, Tcomplex80)
-    X(Tcomplex80,Tfloat80,  Tcomplex80,Tfloat80, Tcomplex80)
-
-    X(Tcomplex80,Timaginary32,  Tcomplex80,Timaginary80, Tcomplex80)
-    X(Tcomplex80,Timaginary64,  Tcomplex80,Timaginary80, Tcomplex80)
-    X(Tcomplex80,Timaginary80,  Tcomplex80,Timaginary80, Tcomplex80)
-
-    X(Tcomplex80,Tcomplex32,  Tcomplex80,Tcomplex80, Tcomplex80)
-    X(Tcomplex80,Tcomplex64,  Tcomplex80,Tcomplex80, Tcomplex80)
     X(Tcomplex80,Tcomplex80,  Tcomplex80,Tcomplex80, Tcomplex80)
+
+    for (i = 0; i < TMAX; i++)
+	for (j = 0; j < TMAX; j++)
+	{
+	    if (impcnvResult[i][j] == Terror)
+	    {
+		impcnvResult[i][j] = impcnvResult[j][i];
+		impcnvType1[i][j] = impcnvType2[j][i];
+		impcnvType2[i][j] = impcnvType1[j][i];
+	    }
+	}
 }
 
 int main()

@@ -120,8 +120,9 @@ typedef float			d_float32;
 typedef double			d_float64;
 typedef long double		d_float80;
 
-// Note: this will be 2 bytes on Win32 systems, and 4 bytes under linux.
-typedef wchar_t			d_wchar;
+typedef d_uns8			d_char;
+typedef d_uns16			d_wchar;
+typedef d_uns32			d_dchar;
 
 // Modify OutBuffer::writewchar to write the correct size of wchar
 #if _WIN32

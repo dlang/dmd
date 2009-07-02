@@ -496,6 +496,13 @@ Expression *Type::dotExp(Scope *sc, Expression *e, Identifier *ident)
     {
 	if (ident == Id::offset)
 	{
+	    if (!global.params.useDeprecated)
+		error(e->loc, ".offset deprecated, use .offsetof");
+	    goto Loffset;
+	}
+	else if (ident == Id::offsetof)
+	{
+	  Loffset:
 	    if (v->storage_class & STCfield)
 	    {
 		e = new IntegerExp(e->loc, v->offset, Type::tint32);
@@ -1482,6 +1489,10 @@ Expression *TypeSArray::dotExp(Scope *sc, Expression *e, Identifier *ident)
     {
 	e = dim;
     }
+    else if (ident == Id::ptr)
+    {
+	e = e->castTo(next->pointerTo());
+    }
     else
     {
 	e = TypeArray::dotExp(sc, e, ident);
@@ -1611,6 +1622,11 @@ Expression *TypeDArray::dotExp(Scope *sc, Expression *e, Identifier *ident)
 	}
 	e = new ArrayLengthExp(e->loc, e);
 	e->type = Type::tsize_t;
+	return e;
+    }
+    else if (ident == Id::ptr)
+    {
+	e = e->castTo(next->pointerTo());
 	return e;
     }
     else

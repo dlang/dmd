@@ -77,7 +77,7 @@ FuncDeclaration *hasThis(Scope *sc)
     }
 
     if (!fd->isThis())
-    {   printf("test2 '%s'\n", fd->toChars());
+    {   //printf("test2 '%s'\n", fd->toChars());
 	goto Lno;
     }
 
@@ -391,7 +391,7 @@ Expression *Expression::combine(Expression *e1, Expression *e2)
 integer_t Expression::toInteger()
 {
     //printf("Expression %s\n", Token::toChars(op));
-//*(char*)0=0;
+*(char*)0=0;
     error("Integer constant expression expected instead of %s", toChars());
     return 0;
 }
@@ -1314,6 +1314,20 @@ StringExp::StringExp(Loc loc, void *string, unsigned len)
     this->committed = 0;
 }
 
+int StringExp::equals(Object *o)
+{
+    //printf("StringExp::equals('%s')\n", o->toChars());
+    if (o && o->dyncast() == DYNCAST_EXPRESSION)
+    {	Expression *e = (Expression *)o;
+
+	if (e->op == TOKstring)
+	{
+	    return compare(o) == 0;
+	}
+    }
+    return FALSE;
+}
+
 char *StringExp::toChars()
 {
     OutBuffer buf;
@@ -1359,10 +1373,32 @@ int StringExp::compare(Object *obj)
 	{
 	    case 1:
 		return strcmp((char *)string, (char *)se2->string);
+
 	    case 2:
-		return wcscmp((wchar_t *)string, (wchar_t *)se2->string);
+	    {	unsigned u;
+		d_wchar *s1 = (d_wchar *)string;
+		d_wchar *s2 = (d_wchar *)se2->string;
+
+		for (u = 0; u < len; u++)
+		{
+		    if (s1[u] != s2[u])
+			return s1[u] - s2[u];
+		}
+	    }
+
 	    case 4:
-		/* not implemented */
+	    {	unsigned u;
+		d_dchar *s1 = (d_dchar *)string;
+		d_dchar *s2 = (d_dchar *)se2->string;
+
+		for (u = 0; u < len; u++)
+		{
+		    if (s1[u] != s2[u])
+			return s1[u] - s2[u];
+		}
+	    }
+	    break;
+
 	    default:
 		assert(0);
 	}
@@ -1748,17 +1784,17 @@ Expression *SymOffExp::semantic(Scope *sc)
     return this;
 }
 
+int SymOffExp::isBool(int result)
+{
+    return result ? TRUE : FALSE;
+}
+
 void SymOffExp::toCBuffer(OutBuffer *buf)
 {
     if (offset)
 	buf->printf("(&%s+%u)", var->toChars(), offset);
     else
 	buf->printf("&%s", var->toChars());
-}
-
-int SymOffExp::isConst()
-{
-    return TRUE;
 }
 
 /******************************** VarExp **************************/
@@ -2582,6 +2618,7 @@ Expression *DotTypeExp::semantic(Scope *sc)
 #if LOGSEMANTIC
     printf("DotTypeExp::semantic('%s')\n", toChars());
 #endif
+    UnaExp::semantic(sc);
     return this;
 }
 
@@ -4928,11 +4965,12 @@ Expression *InExp::semantic(Scope *sc)
 	return this;
 
     BinExp::semanticp(sc);
-    type = Type::tboolean;
+    //type = Type::tboolean;
     Type *t2b = e2->type->toBasetype();
     if (t2b->ty != Taarray)
     {
 	error("rvalue of in expression must be an associative array, not %s", e2->type->toChars());
+	type = Type::terror;
     }
     else
     {
@@ -4940,13 +4978,16 @@ Expression *InExp::semantic(Scope *sc)
 
 	// Convert key to type of key
 	e1 = e1->implicitCastTo(ta->index);
+
+	// Return type is pointer to value
+	type = ta->next->pointerTo();
     }
     return this;
 }
 
 int InExp::isBit()
 {
-    return TRUE;
+    return FALSE;
 }
 
 

@@ -155,6 +155,7 @@ Symbol *VarDeclaration::toSymbol()
 	    t = type->toCParamtype();
 	else
 	    t = type->toCtype();
+	t->Tcount++;
 
 	if (isDataseg())
 	{
@@ -214,7 +215,6 @@ Symbol *VarDeclaration::toSymbol()
 		assert(0);
 	}
 	type_setmangle(&t, m);
-	t->Tcount++;
 	s->Stype = t;
 
 	csym = s;
@@ -243,7 +243,7 @@ Symbol *ModuleInfoDeclaration::toSymbol()
 
 Symbol *TypeInfoDeclaration::toSymbol()
 {
-    //printf("TypeInfoDeclaration::toSymbol(%s)\n", toChars());
+    //printf("TypeInfoDeclaration::toSymbol(%s), linkage = %d\n", toChars(), linkage);
     return VarDeclaration::toSymbol();
 }
 

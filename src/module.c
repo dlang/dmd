@@ -207,6 +207,7 @@ void Module::parse()
     unsigned char *buf;
     unsigned buflen;
     unsigned le;
+    unsigned bom;
 
     //printf("Module::parse()\n");
 
@@ -227,6 +228,7 @@ void Module::parse()
 	 * EF BB BF	UTF-8
 	 */
 
+	bom = 1;		// assume there's a BOM
 	if (buf[0] == 0xFF && buf[1] == 0xFE)
 	{
 	    if (buflen >= 4 && buf[2] == 0 && buf[3] == 0)
@@ -244,7 +246,7 @@ void Module::parse()
 		}
 
 		dbuf.reserve(buflen / 4);
-		while (++pu < pumax)
+		for (pu += bom; pu < pumax; pu++)
 		{   unsigned u;
 
 		    u = le ? readlongLE(pu) : readlongBE(pu);
@@ -279,7 +281,7 @@ void Module::parse()
 		}
 
 		dbuf.reserve(buflen / 2);
-		while (++pu < pumax)
+		for (pu += bom; pu < pumax; pu++)
 		{   unsigned u;
 
 		    u = le ? readwordLE(pu) : readwordBE(pu);
@@ -340,6 +342,7 @@ void Module::parse()
 	     * figure out the encoding.
 	     */
 
+	    bom = 0;
 	    if (buflen >= 4)
 	    {   if (buf[1] == 0 && buf[2] == 0 && buf[3] == 0)
 		{   // UTF-32LE

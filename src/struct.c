@@ -204,49 +204,56 @@ void StructDeclaration::semantic(Scope *sc)
 
     AggregateDeclaration *sd;
 
-    if (isAnonymous() &&
-	(sd = isMember()) != NULL)
+    if (isAnonymous())
     {	// Anonymous structures aren't independent, all their members are
 	// added to the enclosing struct.
 	unsigned offset;
 	int isunionsave;
 
-	// Align size of enclosing struct
-	sd->alignmember(structalign, alignsize, &sd->structsize);
-
-	// Add members to enclosing struct
-	for (i = 0; i < members->dim; i++)
+	sd = isMember();
+	if (!sd)
 	{
-	    Dsymbol *s = (Dsymbol *)members->data[i];
-	    VarDeclaration *vd = s->isVarDeclaration();
-	    if (vd && vd->storage_class & STCfield)
-	    {
-		vd->addMember(sd);
-		if (!sd->isUnionDeclaration())
-		    vd->offset += sd->structsize;
-		sd->fields.push(vd);
-		sd->members->push(s);
-	    }
-	    else if (!s->isAnonymous())
-	    {
-		sd->members->push(s);
-	    }
-	}
-
-	if (sd->isUnionDeclaration())
-	{
-	    if (structsize > sd->structsize)
-		sd->structsize = structsize;
-	    sc->offset = 0;
+	    error("anonymous struct can only be member of an aggregate");
 	}
 	else
 	{
-	    sd->structsize += structsize;
-	    sc->offset = sd->structsize;
-	}
+	    // Align size of enclosing struct
+	    sd->alignmember(structalign, alignsize, &sd->structsize);
 
-	if (sd->alignsize < alignsize)
-	    sd->alignsize = alignsize;
+	    // Add members to enclosing struct
+	    for (i = 0; i < members->dim; i++)
+	    {
+		Dsymbol *s = (Dsymbol *)members->data[i];
+		VarDeclaration *vd = s->isVarDeclaration();
+		if (vd && vd->storage_class & STCfield)
+		{
+		    vd->addMember(sd);
+		    if (!sd->isUnionDeclaration())
+			vd->offset += sd->structsize;
+		    sd->fields.push(vd);
+		    sd->members->push(s);
+		}
+		else if (!s->isAnonymous())
+		{
+		    sd->members->push(s);
+		}
+	    }
+
+	    if (sd->isUnionDeclaration())
+	    {
+		if (structsize > sd->structsize)
+		    sd->structsize = structsize;
+		sc->offset = 0;
+	    }
+	    else
+	    {
+		sd->structsize += structsize;
+		sc->offset = sd->structsize;
+	    }
+
+	    if (sd->alignsize < alignsize)
+		sd->alignsize = alignsize;
+	}
     }
     //printf("-StructDeclaration::semantic(this=%p, '%s')\n", this, toChars());
 

@@ -1249,6 +1249,7 @@ Statement *CaseStatement::semantic(Scope *sc)
 	{
 	    CaseStatement *cs = (CaseStatement *)sw->cases->data[i];
 
+	    //printf("comparing '%s' with '%s'\n", exp->toChars(), cs->exp->toChars());
 	    if (cs->exp->equals(exp))
 	    {	error("duplicate case %s in switch statement", exp->toChars());
 		break;

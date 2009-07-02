@@ -62,14 +62,60 @@ int Expression::implicitConvTo(Type *t)
     }
     if (t->ty == Tbit && isBit())
 	return MATCHconvert;
+    Expression *e = optimize(WANTvalue | WANTflags);
+    if (e != this)
+    {	//printf("optimzed to %s\n", e->toChars());
+	return e->implicitConvTo(t);
+    }
     return type->implicitConvTo(t);
 }
 
 
 int IntegerExp::implicitConvTo(Type *t)
 {
+#if 0
+    printf("IntegerExp::implicitConvTo(this=%s, type=%s, t=%s)\n",
+	toChars(), type->toChars(), t->toChars());
+#endif
     if (type->equals(t))
 	return MATCHexact;
+
+    switch (type->toBasetype()->ty)
+    {
+	case Tbit:
+	    value &= 1;
+	    break;
+
+	case Tint8:
+	    value = (signed char)value;
+	    break;
+
+	case Tchar:
+	case Tuns8:
+	    value &= 0xFF;
+	    break;
+
+	case Tint16:
+	    value = (short)value;
+	    break;
+
+	case Tuns16:
+	case Twchar:
+	    value &= 0xFFFF;
+	    break;
+
+	case Tint32:
+	    value = (int)value;
+	    break;
+
+	case Tuns32:
+	case Tdchar:
+	    value &= 0xFFFFFFFF;
+	    break;
+
+	default:
+	    break;
+    }
 
     // Only allow conversion if no change in value
     switch(t->ty)
@@ -84,8 +130,9 @@ int IntegerExp::implicitConvTo(Type *t)
 		goto Lno;
 	    goto Lyes;
 
-	case Tascii:
+	case Tchar:
 	case Tuns8:
+	    //printf("value = %llu %llu\n", (integer_t)(unsigned char)value, value);
 	    if ((unsigned char)value != value)
 		goto Lno;
 	    goto Lyes;
@@ -106,40 +153,74 @@ int IntegerExp::implicitConvTo(Type *t)
 	    goto Lyes;
 
 	case Tuns32:
-	case Tdchar:
 	    if ((unsigned)value != value)
 		goto Lno;
 	    goto Lyes;
 
+	case Tdchar:
+	    if (value > 0x10FFFFUL)
+		goto Lno;
+	    goto Lyes;
+
 	case Twchar:
-	    if ((wchar_t)value != value)
+	    if ((unsigned short)value != value)
 		goto Lno;
 	    goto Lyes;
 
 	case Tfloat32:
 	case Tcomplex32:
 	{
-	    volatile float f = (float)value;
-	    if (f != value)
-		goto Lno;
+	    volatile float f;
+	    if (type->isunsigned())
+	    {
+		f = (float)value;
+		if (f != value)
+		    goto Lno;
+	    }
+	    else
+	    {
+		f = (float)(long long)value;
+		if (f != (long long)value)
+		    goto Lno;
+	    }
 	    goto Lyes;
 	}
 
 	case Tfloat64:
 	case Tcomplex64:
 	{
-	    volatile double d = (double)value;
-	    if (d != value)
-		goto Lno;
+	    volatile double f;
+	    if (type->isunsigned())
+	    {
+		f = (double)value;
+		if (f != value)
+		    goto Lno;
+	    }
+	    else
+	    {
+		f = (double)(long long)value;
+		if (f != (long long)value)
+		    goto Lno;
+	    }
 	    goto Lyes;
 	}
 
 	case Tfloat80:
 	case Tcomplex80:
 	{
-	    volatile long double ld = (long double)value;
-	    if (ld != value)
-		goto Lno;
+	    volatile long double f;
+	    if (type->isunsigned())
+	    {
+		f = (long double)value;
+		if (f != value)
+		    goto Lno;
+	    }
+	    else
+	    {
+		f = (long double)(long long)value;
+		if (f != (long long)value)
+		    goto Lno;
+	    }
 	    goto Lyes;
 	}
     }
@@ -297,6 +378,10 @@ Expression *Expression::castTo(Type *t)
 {   Expression *e;
     Type *tb;
 
+#if 0
+    printf("Expression::castTo(this=%s, type=%s, t=%s)\n",
+	toChars(), type->toChars(), t->toChars());
+#endif
     e = this;
     tb = t->toBasetype();
     type = type->toBasetype();
@@ -750,17 +835,32 @@ Expression *BinExp::typeCombine()
     }
     else if (t1->isintegral() && t2->isintegral())
     {
-	if (t1->ty > t2->ty)
+	//printf("t1 = %s, t2 = %s\n", t1->toChars(), t2->toChars());
+	int sz1 = t1->size();
+	int sz2 = t2->size();
+	int sign1 = t1->isunsigned() == 0;
+	int sign2 = t2->isunsigned() == 0;
+
+	if (sign1 == sign2)
 	{
-	    if (t1->ty >= Tuns32)
-		e2 = e2->castTo(t1);
+	    if (sz1 < sz2)
+		goto Lt2;
+	    else
+		goto Lt1;
+	}
+	if (!sign1)
+	{
+	    if (sz1 >= sz2)
+		goto Lt1;
+	    else
+		goto Lt2;
 	}
 	else
 	{
-	    if (t2->ty >= Tuns32)
-	    {	e1 = e1->castTo(t2);
-		t = t2;
-	    }
+	    if (sz2 >= sz1)
+		goto Lt2;
+	    else
+		goto Lt1;
 	}
     }
     else if (t1->ty == Tpointer && t2->ty == Tpointer)
@@ -801,13 +901,11 @@ Expression *BinExp::typeCombine()
     }
     else if ((t1->ty == Tsarray || t1->ty == Tarray) && t1->implicitConvTo(t2))
     {
-	e1 = e1->castTo(t2);
-	t = t2;
+	goto Lt2;
     }
     else if ((t2->ty == Tsarray || t2->ty == Tarray) && t2->implicitConvTo(t1))
     {
-	e2 = e2->castTo(t1);
-	t = t1;
+	goto Lt1;
     }
     else if (t1->ty == Tclass || t2->ty == Tclass)
     {	int i1;
@@ -827,26 +925,22 @@ Expression *BinExp::typeCombine()
 
 	if (i2)
 	{
-	    e1 = e1->castTo(t2);
-	    t = t2;
+	    goto Lt2;
 	}
 	else if (i1)
 	{
-	    e2 = e2->castTo(t1);
-	    t = t1;
+	    goto Lt1;
 	}
 	else
 	    goto Lincompatible;
     }
     else if ((e1->op == TOKstring || e1->op == TOKnull) && e1->implicitConvTo(t2))
     {
-	e1 = e1->castTo(t2);
-	t = t2;
+	goto Lt2;
     }
     else if ((e2->op == TOKstring || e2->op == TOKnull) && e2->implicitConvTo(t1))
     {
-	e2 = e2->castTo(t1);
-	t = t1;
+	goto Lt1;
     }
     else if (t1->ty == Tsarray && t2->ty == Tsarray &&
 	     e2->implicitConvTo(t1->next->arrayOf()))
@@ -869,10 +963,22 @@ Expression *BinExp::typeCombine()
 	 e1->toChars(), Token::toChars(op), e2->toChars(),
 	 t1->toChars(), t2->toChars());
     }
+Lret:
     if (!type)
 	type = t;
     //dump(0);
     return this;
+
+
+Lt1:
+    e2 = e2->castTo(t1);
+    t = t1;
+    goto Lret;
+
+Lt2:
+    e1 = e1->castTo(t2);
+    t = t2;
+    goto Lret;
 }
 
 /***********************************
@@ -895,7 +1001,7 @@ Expression *Expression::integralPromotions()
 	case Tint16:
 	case Tuns16:
 	case Tbit:
-	case Tascii:
+	case Tchar:
 	case Twchar:
 	    e = e->castTo(Type::tint32);
 	    break;

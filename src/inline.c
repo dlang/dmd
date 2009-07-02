@@ -353,6 +353,24 @@ Expression *Expression::doInline(InlineDoState *ids)
     return copy();
 }
 
+Expression *SymOffExp::doInline(InlineDoState *ids)
+{
+    int i;
+
+    //printf("SymOffExp::doInline(%s)\n", toChars());
+    for (i = 0; i < ids->from.dim; i++)
+    {
+	if (var == (Declaration *)ids->from.data[i])
+	{
+	    SymOffExp *se = (SymOffExp *)copy();
+
+	    se->var = (Declaration *)ids->to.data[i];
+	    return se;
+	}
+    }
+    return this;
+}
+
 Expression *VarExp::doInline(InlineDoState *ids)
 {
     int i;
@@ -986,6 +1004,8 @@ Expression *FuncDeclaration::doInline(InlineScanState *iss, Expression *ethis, A
 	    vto->storage_class |= vfrom->storage_class & (STCin | STCout);
 	    vto->linkage = vfrom->linkage;
 	    vto->parent = iss->fd;
+	    //printf("vto = '%s', vto->storage_class = x%x\n", vto->toChars(), vto->storage_class);
+	    //printf("vto->parent = '%s'\n", iss->fd->toChars());
 
 	    ve = new VarExp(vto->loc, vto);
 	    ve->type = vto->type;

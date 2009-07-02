@@ -259,6 +259,7 @@ struct StringExp : Expression
     unsigned char committed;	// !=0 if type is committed
 
     StringExp(Loc loc, void *s, unsigned len);
+    int equals(Object *o);
     char *toChars();
     Expression *semantic(Scope *sc);
     int implicitConvTo(Type *t);
@@ -328,6 +329,8 @@ struct SymOffExp : Expression
     Expression *semantic(Scope *sc);
     void toCBuffer(OutBuffer *buf);
     int isConst();
+    int isBool(int result);
+    Expression *doInline(InlineDoState *ids);
 
     elem *toElem(IRState *irs);
     dt_t **toDt(dt_t **pdt);
@@ -878,6 +881,7 @@ struct AddExp : BinExp
     AddExp(Loc loc, Expression *e1, Expression *e2);
     Expression *semantic(Scope *sc);
     Expression *constFold();
+    Expression *optimize(int result);
 
     // For operator overloading
     int isCommutative();
@@ -892,6 +896,7 @@ struct MinExp : BinExp
     MinExp(Loc loc, Expression *e1, Expression *e2);
     Expression *semantic(Scope *sc);
     Expression *constFold();
+    Expression *optimize(int result);
 
     // For operator overloading
     Identifier *opId();
