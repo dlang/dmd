@@ -190,6 +190,7 @@ enum DYNCAST
 
 void error(Loc loc, const char *format, ...);
 void fatal();
+void err_nomem();
 int runLINK();
 void inifile(char *argv0, char *inifile);
 

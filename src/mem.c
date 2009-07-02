@@ -127,7 +127,12 @@ void Mem::mark(void *pointer)
 
 void * operator new(size_t m_size)
 {   
-   return malloc(m_size);
+    void *p = malloc(m_size);
+    if (p)
+	return p;
+    printf("Error: out of memory\n");
+    exit(EXIT_FAILURE);
+    return p;
 }
 
 void operator delete(void *p)

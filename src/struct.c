@@ -309,8 +309,10 @@ void StructDeclaration::semantic(Scope *sc)
 		    e = new IdentifierExp(loc, id);
 		    e = new CallExp(loc, e, args);
 		    fdptr->fbody = new ReturnStatement(loc, e);
-		    members->push(fdptr);
-		    fdptr->addMember(this);
+		    ScopeDsymbol *s = fdx->parent->isScopeDsymbol();
+		    assert(s);
+		    s->members->push(fdptr);
+		    fdptr->addMember(s);
 		    fdptr->semantic(sc2);
 		}
 	    }

@@ -69,7 +69,7 @@ ClassDeclaration::ClassDeclaration(Loc loc, Identifier *id, Array *baseclasses)
 	Module::moduleinfo = this;
 
     // BUG: What if this is the wrong TypeInfo, i.e. it is nested?
-    if (id->toChars()[0] == 'T')
+    if (id && id->toChars()[0] == 'T')
     {
 	if (!Type::typeinfo && id == Id::TypeInfo)
 	    Type::typeinfo = this;
@@ -193,12 +193,16 @@ void ClassDeclaration::semantic(Scope *sc)
 		;
 	    else
 	    {
-		if (tc->sym == this)
+		for (ClassDeclaration *cdb = tc->sym; cdb; cdb = cdb->baseClass)
 		{
-		    error("base class same as class");
-		    baseclasses.remove(0);
+		    if (cdb == this)
+		    {
+			error("circular inheritance");
+			baseclasses.remove(0);
+			goto L7;
+		    }
 		}
-		else if (!tc->sym->symtab || tc->sym->scope)
+		if (!tc->sym->symtab || tc->sym->scope)
 		{
 		    //error("forward reference of base class %s", baseClass->toChars());
 		    // Forward reference of base class, try again later
@@ -212,6 +216,7 @@ void ClassDeclaration::semantic(Scope *sc)
 		{   baseClass = tc->sym;
 		    b->base = baseClass;
 		}
+	     L7: ;
 	    }
 	}
     }
@@ -817,7 +822,7 @@ int InterfaceDeclaration::isBaseOf(ClassDeclaration *cd, int *poffset)
 {
     unsigned j;
 
-    //printf("InterfaceDeclaration::isBaseOf(cd = '%s')\n", cd->toChars());
+    //printf("%s.InterfaceDeclaration::isBaseOf(cd = '%s')\n", toChars(), cd->toChars());
     assert(!baseClass);
     for (j = 0; j < cd->interfaces_dim; j++)
     {
@@ -851,7 +856,7 @@ int InterfaceDeclaration::isBaseOf(ClassDeclaration *cd, int *poffset)
 
 int InterfaceDeclaration::isBaseOf(BaseClass *bc, int *poffset)
 {
-    //printf("InterfaceDeclaration::isBaseOf(bc = '%s')\n", bc->base->toChars());
+    //printf("%s.InterfaceDeclaration::isBaseOf(bc = '%s')\n", toChars(), bc->base->toChars());
     for (unsigned j = 0; j < bc->baseInterfaces_dim; j++)
     {
 	BaseClass *b = &bc->baseInterfaces[j];
@@ -984,9 +989,14 @@ int BaseClass::fillVtbl(ClassDeclaration *cd, Array *vtbl, int newinstance)
 
 void BaseClass::copyBaseInterfaces(Array *vtblInterfaces)
 {
+    if (baseInterfaces_dim)
+    {	error("circular inheritance of interface");
+	return;
+    }
     baseInterfaces_dim = base->interfaces_dim;
     baseInterfaces = (BaseClass *)mem.calloc(baseInterfaces_dim, sizeof(BaseClass));
 
+    //printf("%s.copyBaseInterfaces()\n", base->toChars());
     for (int i = 0; i < baseInterfaces_dim; i++)
     {
 	BaseClass *b = &baseInterfaces[i];

@@ -294,7 +294,10 @@ void Dsymbol::error(const char *format, ...)
 	printf("%s: ", p);
     mem.free(p);
 
-    printf("%s %s ", kind(), toPrettyChars());
+    if (isAnonymous())
+	printf("%s ", kind());
+    else
+	printf("%s %s ", kind(), toPrettyChars());
 
     va_list ap;
     va_start(ap, format);

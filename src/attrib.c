@@ -443,9 +443,10 @@ void AlignDeclaration::toCBuffer(OutBuffer *buf)
 
 /********************************* AnonDeclaration ****************************/
 
-AnonDeclaration::AnonDeclaration(int isunion, Array *decl)
+AnonDeclaration::AnonDeclaration(Loc loc, int isunion, Array *decl)
 	: AttribDeclaration(decl)
 {
+    this->loc = loc;
     this->isunion = isunion;
 }
 
@@ -454,7 +455,7 @@ Dsymbol *AnonDeclaration::syntaxCopy(Dsymbol *s)
     AnonDeclaration *ad;
 
     assert(!s);
-    ad = new AnonDeclaration(isunion, Dsymbol::arraySyntaxCopy(decl));
+    ad = new AnonDeclaration(loc, isunion, Dsymbol::arraySyntaxCopy(decl));
     return ad;
 }
 

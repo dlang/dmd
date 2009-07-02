@@ -49,33 +49,54 @@ Dsymbol *Import::syntaxCopy(Dsymbol *s)
     return si;
 }
 
-
-void Import::semantic(Scope *sc)
+void Import::load()
 {
     DsymbolTable *dst;
     Dsymbol *s;
 
-    //printf("Import::semantic('%s')\n", toChars());
+    //printf("Import::load('%s')\n", toChars());
 
     // See if existing module
     dst = Package::resolve(packages, NULL, &pkg);
 
     s = dst->lookup(id);
-    if (s && !s->isModule())
-	error("package and module have the same name");
-    else
+    if (s)
     {
-	mod = (Module *)s;
-	if (!mod)
-	{
-	    // Load module
-	    mod = Module::load(loc, packages, id);
+	if (s->isModule())
+	    mod = (Module *)s;
+	else
+	    error("package and module have the same name");
+    }
+
+    if (!mod)
+    {
+	// Load module
+	mod = Module::load(loc, packages, id);
+	dst->insert(id, mod);		// id may be different from mod->ident,
+					// if so then insert alias
+    }
+    if (!pkg)
+	pkg = mod;
+    mod->semantic();
+
+    //printf("-Import::load('%s'), pkg = %p\n", toChars(), pkg);
+}
+
+
+void Import::semantic(Scope *sc)
+{
+    //printf("Import::semantic('%s')\n", toChars());
+
+    load();
+
+    if (mod)
+    {
+	if (mod->loc.linnum != 0)
+	    /* If the line number is not 0, then this is not
+	     * a 'root' module, i.e. it was not specified on the command line.
+	     */
 	    mod->importedFrom = sc->module->importedFrom;
-	    dst->insert(id, mod);		// id may be different from mod->ident,
-						// if so then insert alias
-	}
-	mod->semantic();
-	//printf("import '%s', protection = %d for '%s'\n", toChars(), sc->protection, mod->toChars());
+
 	sc->scopesym->importScope(mod, sc->protection);
 
 	// Modules need a list of each imported module
@@ -84,11 +105,7 @@ void Import::semantic(Scope *sc)
 	if (mod->needmoduleinfo)
 	    sc->module->needmoduleinfo = 1;
     }
-    if (!pkg)
-	pkg = mod;
-
-//    if (sc->module)
-//	sc->module->needmoduleinfo = 1;
+    //printf("-Import::semantic('%s'), pkg = %p\n", toChars(), pkg);
 }
 
 void Import::semantic2(Scope *sc)
@@ -100,6 +117,11 @@ void Import::semantic2(Scope *sc)
 
 Dsymbol *Import::search(Identifier *ident, int flags)
 {
+    //printf("%s.Import::search(ident = '%s', flags = x%x)\n", toChars(), ident->toChars(), flags);
+
+    if (!pkg)
+	load();
+
     // Forward it to the package/module
     return pkg->search(ident, flags);
 }

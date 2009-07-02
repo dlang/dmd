@@ -400,9 +400,9 @@ Array *Parser::parseDeclDefs(int once)
 		{
 		    nextToken();
 		    if (token.value == TOKidentifier)
-			s = new DebugSymbol(token.ident);
+			s = new DebugSymbol(loc, token.ident);
 		    else if (token.value == TOKint32v)
-			s = new DebugSymbol((unsigned)token.uns64value);
+			s = new DebugSymbol(loc, (unsigned)token.uns64value);
 		    else
 		    {	error("identifier or integer expected, not %s", token.toChars());
 			s = NULL;
@@ -441,9 +441,9 @@ Array *Parser::parseDeclDefs(int once)
 		{
 		    nextToken();
 		    if (token.value == TOKidentifier)
-			s = new VersionSymbol(token.ident);
+			s = new VersionSymbol(loc, token.ident);
 		    else if (token.value == TOKint32v)
-			s = new VersionSymbol((unsigned)token.uns64value);
+			s = new VersionSymbol(loc, (unsigned)token.uns64value);
 		    else
 		    {	error("identifier or integer expected, not %s", token.toChars());
 			s = NULL;
@@ -930,6 +930,7 @@ Dsymbol *Parser::parseAggregate()
 	}
     }
 
+    Loc loc = this->loc;
     switch (tok)
     {	case TOKclass:
 	case TOKinterface:
@@ -1020,7 +1021,7 @@ Dsymbol *Parser::parseAggregate()
 	{
 	    /* Anonymous structs/unions are more like attributes.
 	     */
-	    return new AnonDeclaration(anon - 1, decl);
+	    return new AnonDeclaration(loc, anon - 1, decl);
 	}
 	else
 	    a->members = decl;
@@ -1902,7 +1903,7 @@ Array *Parser::parseDeclaration()
 		init = parseInitializer();
 	    }
 	    if (tok == TOKtypedef)
-		v = new TypedefDeclaration(ident, t, init);
+		v = new TypedefDeclaration(loc, ident, t, init);
 	    else
 	    {	if (init)
 		    error("alias cannot have initializer");

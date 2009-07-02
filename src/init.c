@@ -257,9 +257,14 @@ Initializer *ArrayInitializer::semantic(Scope *sc, Type *t)
 	val = val->semantic(sc, t->next);
 	value.data[i] = (void *)val;
 	length++;
+	if (length == 0)
+	    error("array dimension overflow");
 	if (length > dim)
 	    dim = length;
     }
+    unsigned long amax = 0x80000000;
+    if ((unsigned long) dim * t->next->size() >= amax)
+	error(loc, "array dimension %u exceeds max of %lu", dim, amax / t->next->size());
     return this;
 }
 

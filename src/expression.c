@@ -77,7 +77,7 @@ FuncDeclaration *hasThis(Scope *sc)
     }
 
     if (!fd->isThis())
-    {   //printf("test2 '%s'\n", fd->toChars());
+    {   //printf("test '%s'\n", fd->toChars());
 	goto Lno;
     }
 
@@ -3383,36 +3383,51 @@ Expression *DeleteExp::semantic(Scope *sc)
     type = Type::tvoid;
 
     tb = e1->type->toBasetype();
-    if (tb->ty == Tclass)
-    {
-	TypeClass *tc = (TypeClass *)tb;
-	ClassDeclaration *cd = tc->sym;
+    switch (tb->ty)
+    {	case Tclass:
+	{   TypeClass *tc = (TypeClass *)tb;
+	    ClassDeclaration *cd = tc->sym;
 
-	if (cd->isInterfaceDeclaration() && cd->isCOMclass())
-	    error("cannot delete instance of COM interface %s", cd->toChars());
-    }
-    else if (tb->ty == Tpointer)
-    {
-	tb = tb->next->toBasetype();
-	if (tb->ty == Tstruct)
-	{
-	    TypeStruct *ts = (TypeStruct *)tb;
-	    StructDeclaration *sd = ts->sym;
-	    FuncDeclaration *f = sd->aggDelete;
-
-	    if (f)
-	    {
-		Expression *e;
-		Expression *ec;
-		Type *tpv = Type::tvoid->pointerTo();
-
-		e = e1;
-		e->type = tpv;
-		ec = new VarExp(loc, f);
-		e = new CallExp(loc, ec, e);
-		return e->semantic(sc);
-	    }
+	    if (cd->isInterfaceDeclaration() && cd->isCOMclass())
+		error("cannot delete instance of COM interface %s", cd->toChars());
+	    break;
 	}
+	case Tpointer:
+	    tb = tb->next->toBasetype();
+	    if (tb->ty == Tstruct)
+	    {
+		TypeStruct *ts = (TypeStruct *)tb;
+		StructDeclaration *sd = ts->sym;
+		FuncDeclaration *f = sd->aggDelete;
+
+		if (f)
+		{
+		    Expression *e;
+		    Expression *ec;
+		    Type *tpv = Type::tvoid->pointerTo();
+
+		    e = e1;
+		    e->type = tpv;
+		    ec = new VarExp(loc, f);
+		    e = new CallExp(loc, ec, e);
+		    return e->semantic(sc);
+		}
+	    }
+	    break;
+
+	case Tarray:
+	    break;
+
+	default:
+	    if (e1->op == TOKindex)
+	    {
+		IndexExp *ae = (IndexExp *)(e1);
+		Type *tb1 = ae->e1->type->toBasetype();
+		if (tb1->ty == Taarray)
+		    break;
+	    }
+	    error("cannot delete type %s", e1->type->toChars());
+	    break;
     }
     return this;
 }
@@ -4711,7 +4726,8 @@ Expression *CatExp::semantic(Scope *sc)
 	 */
 
 	typeCombine();
-
+	if (type->toBasetype()->ty == Tsarray)
+	    type = type->toBasetype()->next->arrayOf();
 #if 0
 	e1->type->print();
 	e2->type->print();
@@ -5195,6 +5211,11 @@ Expression *CmpExp::semantic(Scope *sc)
     {
 	error("need member function opCmp() for struct %s to compare", t1->toChars());
 	e = this;
+    }
+    else if (t1->iscomplex() || t2->iscomplex())
+    {
+	error("compare not defined for complex operands");
+	e = new IntegerExp(0);
     }
     else
 	e = this;

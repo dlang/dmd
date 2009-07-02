@@ -1894,12 +1894,16 @@ void Lexer::pragma()
 	    case '\n':
 	    Lnewline:
 		loc.linnum = linnum;
+		if (filespec)
+		    loc.filename = filespec;
 		return;
 
 	    case '\r':
 		p++;
 		if (*p != '\n')
-		    loc.linnum = linnum;
+		{   p--;
+		    goto Lnewline;
+		}
 		continue;
 
 	    case ' ':
@@ -1929,7 +1933,6 @@ void Lexer::pragma()
 			case '"':
 			    stringbuffer.writeByte(0);
 			    filespec = mem.strdup((char *)stringbuffer.data);
-			    loc.filename = filespec;
 			    p++;
 			    break;
 

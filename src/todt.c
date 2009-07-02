@@ -175,8 +175,9 @@ dt_t *ArrayInitializer::toDt()
 	idx = (Expression *)index.data[i];
 	if (idx)
 	    length = idx->toInteger();
-	//printf("index[%d] = %p, length = %d\n", i, idx, length);
+	//printf("index[%d] = %p, length = %u, dim = %u\n", i, idx, length, dim);
 
+	assert(length < dim);
 	val = (Initializer *)value.data[i];
 	dt = val->toDt();
 	if (dts.data[length])
@@ -723,9 +724,15 @@ dt_t **TypeSArray::toDt(dt_t **pdt)
 	else
 	{
 	    next->toDt(pdt);
+	    dt_optimize(*pdt);
 	    if ((*pdt)->dt == DT_azeros && !(*pdt)->DTnext)
 	    {
 		(*pdt)->DTazeros *= len;
+	    }
+	    else if ((*pdt)->dt == DT_1byte && (*pdt)->DTonebyte == 0 && !(*pdt)->DTnext)
+	    {
+		(*pdt)->dt = DT_azeros;
+		(*pdt)->DTazeros = len;
 	    }
 	    else
 	    {

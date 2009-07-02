@@ -33,6 +33,7 @@ struct Import : Dsymbol
     Import(Loc loc, Array *packages, Identifier *id);
     char *kind();
     Dsymbol *syntaxCopy(Dsymbol *s);	// copy only syntax trees
+    void load();
     void semantic(Scope *sc);
     void semantic2(Scope *sc);
     Dsymbol *search(Identifier *ident, int flags);

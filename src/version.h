@@ -22,8 +22,8 @@ struct DebugSymbol : Dsymbol
 {
     unsigned level;
 
-    DebugSymbol(Identifier *ident);
-    DebugSymbol(unsigned level);
+    DebugSymbol(Loc loc, Identifier *ident);
+    DebugSymbol(Loc loc, unsigned level);
     Dsymbol *syntaxCopy(Dsymbol *);
 
     void addMember(ScopeDsymbol *s);
@@ -36,8 +36,8 @@ struct VersionSymbol : Dsymbol
 {
     unsigned level;
 
-    VersionSymbol(Identifier *ident);
-    VersionSymbol(unsigned level);
+    VersionSymbol(Loc loc, Identifier *ident);
+    VersionSymbol(Loc loc, unsigned level);
     Dsymbol *syntaxCopy(Dsymbol *);
 
     void addMember(ScopeDsymbol *s);

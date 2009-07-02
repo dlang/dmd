@@ -19,21 +19,23 @@
 
 /* ================================================== */
 
-DebugSymbol::DebugSymbol(Identifier *ident)
+DebugSymbol::DebugSymbol(Loc loc, Identifier *ident)
     : Dsymbol(ident)
 {
+    this->loc = loc;
 }
 
-DebugSymbol::DebugSymbol(unsigned level)
+DebugSymbol::DebugSymbol(Loc loc, unsigned level)
     : Dsymbol()
 {
     this->level = level;
+    this->loc = loc;
 }
 
 Dsymbol *DebugSymbol::syntaxCopy(Dsymbol *s)
 {
     assert(!s);
-    DebugSymbol *ds = new DebugSymbol(ident);
+    DebugSymbol *ds = new DebugSymbol(loc, ident);
     ds->level = level;
     return ds;
 }
@@ -89,21 +91,23 @@ char *DebugSymbol::kind()
 
 /* ================================================== */
 
-VersionSymbol::VersionSymbol(Identifier *ident)
+VersionSymbol::VersionSymbol(Loc loc, Identifier *ident)
     : Dsymbol(ident)
 {
+    this->loc = loc;
 }
 
-VersionSymbol::VersionSymbol(unsigned level)
+VersionSymbol::VersionSymbol(Loc loc, unsigned level)
     : Dsymbol()
 {
     this->level = level;
+    this->loc = loc;
 }
 
 Dsymbol *VersionSymbol::syntaxCopy(Dsymbol *s)
 {
     assert(!s);
-    VersionSymbol *ds = new VersionSymbol(ident);
+    VersionSymbol *ds = new VersionSymbol(loc, ident);
     ds->level = level;
     return ds;
 }
@@ -118,7 +122,7 @@ void VersionSymbol::addMember(ScopeDsymbol *sd)
     m = sd->isModule();
     if (ident)
     {
-	VersionCondition::checkPredefined(ident->toChars());
+	VersionCondition::checkPredefined(loc, ident->toChars());
 	if (!m)
 	    error("declaration must be at module level");
 	else

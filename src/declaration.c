@@ -79,13 +79,14 @@ enum PROT Declaration::prot()
 
 /********************************* TypedefDeclaration ****************************/
 
-TypedefDeclaration::TypedefDeclaration(Identifier *id, Type *basetype, Initializer *init)
+TypedefDeclaration::TypedefDeclaration(Loc loc, Identifier *id, Type *basetype, Initializer *init)
     : Declaration(id)
 {
     this->type = new TypeTypedef(this);
     this->basetype = basetype->toBasetype();
     this->init = init;
     this->sem = 0;
+    this->loc = loc;
 }
 
 Dsymbol *TypedefDeclaration::syntaxCopy(Dsymbol *s)
@@ -98,7 +99,7 @@ Dsymbol *TypedefDeclaration::syntaxCopy(Dsymbol *s)
 
     assert(!s);
     TypedefDeclaration *st;
-    st = new TypedefDeclaration(ident, basetype, init);
+    st = new TypedefDeclaration(loc, ident, basetype, init);
     return st;
 }
 

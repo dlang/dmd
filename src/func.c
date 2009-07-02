@@ -736,7 +736,7 @@ void FuncDeclaration::semantic3(Scope *sc)
 		    }
 		    if (inv)
 		    {
-			e = new DsymbolExp(0, ad->inv);
+			e = new DsymbolExp(0, inv);
 			e = new CallExp(0, e);
 			e = e->semantic(sc2);
 		    }
@@ -1044,6 +1044,7 @@ if (arguments)
 	    error(loc, "%s does not match argument types (%s)",
 		Argument::argsTypesToChars(tf->arguments, tf->varargs),
 		buf.toChars());
+*(char*)0=0;
 	    return m.anyf;		// as long as it's not a FuncAliasDeclaration
 	}
 	else
@@ -1685,7 +1686,7 @@ void InvariantDeclaration::semantic(Scope *sc)
 	error("invariants only are for struct/union/class definitions");
 	return;
     }
-    else if (ad->inv)
+    else if (ad->inv && ad->inv != this)
     {
 	error("more than one invariant for %s", ad->toChars());
     }

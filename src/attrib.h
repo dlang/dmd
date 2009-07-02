@@ -91,7 +91,7 @@ struct AnonDeclaration : AttribDeclaration
 {
     int isunion;
 
-    AnonDeclaration(int isunion, Array *decl);
+    AnonDeclaration(Loc loc, int isunion, Array *decl);
     Dsymbol *syntaxCopy(Dsymbol *s);
     void semantic(Scope *sc);
     void toCBuffer(OutBuffer *buf);

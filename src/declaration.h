@@ -110,7 +110,7 @@ struct TypedefDeclaration : Declaration
 				// 2: semantic() has been run
 				// 3: semantic2() has been run
 
-    TypedefDeclaration(Identifier *ident, Type *basetype, Initializer *init);
+    TypedefDeclaration(Loc loc, Identifier *ident, Type *basetype, Initializer *init);
     Dsymbol *syntaxCopy(Dsymbol *);
     void semantic(Scope *sc);
     void semantic2(Scope *sc);

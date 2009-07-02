@@ -373,6 +373,12 @@ void Html::scanComment()
     int scangt = 0;
 
     //printf("scanComment()\n");
+    if (*p == '\n')
+    {	linnum++;
+	// Always extract new lines, so that D lexer counts the
+	// lines right.
+	dbuf->writeByte(*p);
+    }
     while (1)
     {
 	//scangt = 1;			// IE 5.0 compatibility

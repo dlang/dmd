@@ -43,7 +43,7 @@ struct DebugCondition : Condition
 struct VersionCondition : Condition
 {
     static void setGlobalLevel(unsigned level);
-    static void checkPredefined(char *ident);
+    static void checkPredefined(Loc loc, char *ident);
     static void addGlobalIdent(char *ident);
     static void addPredefinedGlobalIdent(char *ident);
 
