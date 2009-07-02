@@ -38,27 +38,12 @@ unsigned Declaration::size()
     return type->size();
 }
 
-int Declaration::isConstructor()
-{
-    return FALSE;
-}
-
 int Declaration::isStaticConstructor()
 {
     return FALSE;
 }
 
 int Declaration::isStaticDestructor()
-{
-    return FALSE;
-}
-
-int Declaration::isUnitTest()
-{
-    return FALSE;
-}
-
-int Declaration::isNew()
 {
     return FALSE;
 }
@@ -114,11 +99,21 @@ void TypedefDeclaration::semantic(Scope *sc)
     if (!sem)
     {	sem = 1;
 	basetype = basetype->semantic(loc, sc);
+	if (sc->parent->isFuncDeclaration() && init)
+	    semantic2(sc);
+    }
+}
+
+void TypedefDeclaration::semantic2(Scope *sc)
+{
+    //printf("TypedefDeclaration::semantic2()\n");
+    if (sem == 1)
+    {	sem = 2;
 	if (init)
 	{
 	    init = init->semantic(sc, basetype);
 
-	    ExpInitializer *ie = dynamic_cast<ExpInitializer *>(init);
+	    ExpInitializer *ie = init->isExpInitializer();
 	    if (ie)
 	    {
 		if (ie->exp->type == basetype)
@@ -177,6 +172,7 @@ Dsymbol *AliasDeclaration::syntaxCopy(Dsymbol *s)
 
 void AliasDeclaration::semantic(Scope *sc)
 {
+    //printf("AliasDeclaration::semantic() %s\n", toChars());
     if (aliassym)
     {
 	aliassym->semantic(sc);
@@ -289,6 +285,7 @@ VarDeclaration::VarDeclaration(Loc loc, Type *type, Identifier *id, Initializer 
     this->loc = loc;
     offset = 0;
     noauto = 0;
+    nestedref = 0;
 }
 
 Dsymbol *VarDeclaration::syntaxCopy(Dsymbol *s)
@@ -313,9 +310,12 @@ void VarDeclaration::semantic(Scope *sc)
     //printf("VarDeclaration::semantic('%s')\n", toChars());
     type = type->semantic(loc, sc);
     linkage = sc->linkage;
-    parent = sc->scopesym;
+    parent = sc->parent;
+    //printf("this = %p, parent = %p, '%s'\n", this, parent, parent->toChars());
     protection = sc->protection;
     storage_class |= sc->stc;
+
+    FuncDeclaration *fd = parent->isFuncDeclaration();
 
     if (type->ty == Tvoid)
 	error("voids have no value");
@@ -332,7 +332,7 @@ void VarDeclaration::semantic(Scope *sc)
     }
     else
     {
-	StructDeclaration *sd = dynamic_cast<StructDeclaration *>(parent);
+	StructDeclaration *sd = parent->isStructDeclaration();
 	if (sd)
 	{
 	    unsigned memsize;		// size of member
@@ -355,7 +355,7 @@ void VarDeclaration::semantic(Scope *sc)
 	    sd->fields.push(this);
 	}
 
-	ClassDeclaration *cd = dynamic_cast<ClassDeclaration *>(parent);
+	ClassDeclaration *cd = parent->isClassDeclaration();
 	if (cd)
 	{
 	    unsigned memsize;
@@ -379,16 +379,16 @@ void VarDeclaration::semantic(Scope *sc)
 	    cd->fields.push(this);
 	}
 
-	InterfaceDeclaration *id = dynamic_cast<InterfaceDeclaration *>(parent);
+	InterfaceDeclaration *id = parent->isInterfaceDeclaration();
 	if (id)
 	{
-	    error("field %s not allowed in interface", toChars());
+	    error("field not allowed in interface");
 	}
     }
 
     if (type->isauto() && !noauto)
     {
-	if (storage_class & (STCfield | STCout | STCstatic) || !sc->func)
+	if (storage_class & (STCfield | STCout | STCstatic) || !fd)
 	{
 	    error("globals, statics, fields, inout and out parameters cannot be auto");
 	}
@@ -400,7 +400,7 @@ void VarDeclaration::semantic(Scope *sc)
 	}
     }
 
-    if (!init && !sc->inunion && !isStatic() && !isConst() && sc->func &&
+    if (!init && !sc->inunion && !isStatic() && !isConst() && fd &&
 	!(storage_class & (STCfield | STCparameter)))
     {
 	// Provide a default initializer
@@ -411,7 +411,7 @@ void VarDeclaration::semantic(Scope *sc)
     }
 
     // If inside function, there is no semantic3() call
-    if (sc->func && init)
+    if (fd && init)
     {
 	// If local variable, use AssignExp to handle all the various
 	// possibilities.
@@ -422,8 +422,8 @@ void VarDeclaration::semantic(Scope *sc)
 	    Type *t;
 	    int dim;
 
-	    //printf("sc->func = '%s', var = '%s'\n", sc->func->toChars(), toChars());
-	    ie = dynamic_cast<ExpInitializer *>(init);
+	    //printf("fd = '%s', var = '%s'\n", fd->toChars(), toChars());
+	    ie = init->isExpInitializer();
 	    if (!ie)
 	    {
 		error("is not a static and cannot have static initializer");
@@ -460,7 +460,7 @@ void VarDeclaration::semantic(Scope *sc)
 void VarDeclaration::semantic2(Scope *sc)
 {
     //printf("VarDeclaration::semantic2('%s')\n", toChars());
-    if (init)
+    if (init && !sc->parent->isFuncDeclaration())
     {	init = init->semantic(sc, type);
     }
 }
@@ -486,9 +486,9 @@ int VarDeclaration::needThis()
     return storage_class & STCfield;
 }
 
-int VarDeclaration::isImport()
+int VarDeclaration::isImportedSymbol()
 {
-    if (protection == PROTexport && !init && (isStatic() || isConst() || dynamic_cast<Module *>(parent)))
+    if (protection == PROTexport && !init && (isStatic() || isConst() || parent->isModule()))
 	return TRUE;
     return FALSE;
 }
@@ -500,8 +500,8 @@ int VarDeclaration::isImport()
 int VarDeclaration::isDataseg()
 {
     return (storage_class & (STCstatic | STCconst) ||
-	   dynamic_cast<Module *>(parent) ||
-	   dynamic_cast<TemplateInstance *>(parent));
+	   parent->isModule() ||
+	   parent->isTemplateInstance());
 }
 
 /******************************************

@@ -107,19 +107,24 @@ void ClassDeclaration::semantic(Scope *sc)
     if (baseclasses.dim)
     {	TypeClass *tc;
 	BaseClass *b;
+	Type *tb;
 
 	b = (BaseClass *)baseclasses.data[0];
 	b->type = b->type->semantic(loc, sc);
-	tc = dynamic_cast<TypeClass *>(b->type->toBasetype());
-	if (!tc)
+	tb = b->type->toBasetype();
+	if (tb->ty != Tclass)
 	    error("base type must be class or interface, not %s", b->type->toChars());
-	else if (tc->sym->isInterface())
-	     ;
 	else
-	{   baseClass = tc->sym;
-	    b->base = baseClass;
-	    if (!baseClass->symtab)
-		error("forward reference of base class %s", baseClass->toChars());
+	{
+	    tc = (TypeClass *)(tb);
+	    if (tc->sym->isInterfaceDeclaration())
+		;
+	    else
+	    {   baseClass = tc->sym;
+		b->base = baseClass;
+		if (!baseClass->symtab)
+		    error("forward reference of base class %s", baseClass->toChars());
+	    }
 	}
     }
 
@@ -135,10 +140,10 @@ void ClassDeclaration::semantic(Scope *sc)
 	bt = tbase->semantic(loc, sc)->toBasetype();
 	b = new BaseClass(bt, PROTpublic);
 	baseclasses.shift(b);
-	tc = dynamic_cast<TypeClass *>(b->type);
-	assert(tc);
+	assert(b->type->ty == Tclass);
+	tc = (TypeClass *)(b->type);
 	baseClass = tc->sym;
-	assert(!baseClass->isInterface());
+	assert(!baseClass->isInterfaceDeclaration());
 	b->base = baseClass;
     }
 
@@ -172,6 +177,7 @@ void ClassDeclaration::semantic(Scope *sc)
 
     sc = sc->push(this);
     sc->stc &= ~(STCauto | STCstatic);
+    sc->parent = this;
 
     for (i = 0; i < members->dim; i++)
     {
@@ -285,7 +291,7 @@ void ClassDeclaration::defineRef(Dsymbol *s)
     ClassDeclaration *cd;
 
     AggregateDeclaration::defineRef(s);
-    cd = dynamic_cast<ClassDeclaration *>(s);
+    cd = s->isClassDeclaration();
     baseType = cd->baseType;
     cd->baseType = NULL;
 }
@@ -383,8 +389,11 @@ void ClassDeclaration::interfaceSemantic(Scope *sc)
 	InterfaceDeclaration *id;
 
 	t = b->type->semantic(loc, sc)->toBasetype();
-	tc = dynamic_cast<TypeClass *>(t);
-	if (!tc || !tc->sym->isInterface())
+	if (t->ty == Tclass)
+	    tc = (TypeClass *)(t);
+	else
+	    tc = NULL;
+	if (!tc || !tc->sym->isInterfaceDeclaration())
 	    error("'%s' must be an interface", t->toChars());
 	else
 	{
@@ -404,6 +413,25 @@ void ClassDeclaration::interfaceSemantic(Scope *sc)
 int ClassDeclaration::isCOMclass()
 {
     return com;
+}
+
+
+/****************************************
+ */
+
+int ClassDeclaration::isAbstract()
+{
+    for (int i = 1; i < vtbl.dim; i++)
+    {
+	FuncDeclaration *fd = ((Dsymbol *)vtbl.data[i])->isFuncDeclaration();
+
+	//printf("\tvtbl[%d] = %p\n", i, fd);
+	if (!fd || fd->isAbstract())
+	{
+	    return TRUE;
+	}
+    }
+    return FALSE;
 }
 
 
@@ -474,6 +502,7 @@ void InterfaceDeclaration::semantic(Scope *sc)
     }
 
     sc = sc->push(this);
+    sc->parent = this;
     if (isCOMclass())
 	sc->linkage = LINKwindows;
     sc->structalign = 8;
@@ -531,11 +560,6 @@ int InterfaceDeclaration::isBaseOf(ClassDeclaration *cd, int *poffset)
 /*******************************************
  */
 
-int InterfaceDeclaration::isInterface()
-{
-    return 1;
-}
-
 char *InterfaceDeclaration::kind()
 {
     return "interface";
@@ -571,14 +595,16 @@ int BaseClass::fillVtbl(ClassDeclaration *cd, Array *vtbl, int newinstance)
     for (j = 0; j < base->vtbl.dim; j++)
 #endif
     {
-	FuncDeclaration *ifd = dynamic_cast<FuncDeclaration *>((Object *)base->vtbl.data[j]);
+	FuncDeclaration *ifd = ((Dsymbol *)base->vtbl.data[j])->isFuncDeclaration();
 	FuncDeclaration *fd;
+	TypeFunction *tf;
 
 	//printf("        vtbl[%d] is '%s'\n", j, ifd ? ifd->toChars() : "null");
 
 	assert(ifd);
 	// Find corresponding function in this class
-	fd = cd->findFunc(ifd->ident, dynamic_cast<TypeFunction *>(ifd->type));
+	tf = (ifd->type->ty == Tfunction) ? (TypeFunction *)(ifd->type) : NULL;
+	fd = cd->findFunc(ifd->ident, tf);
 	if (fd && !fd->isAbstract())
 	{
 	    //printf("            found\n");

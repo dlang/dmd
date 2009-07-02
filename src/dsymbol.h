@@ -7,7 +7,12 @@
 // in artistic.txt, or the GNU General Public License in gnu.txt.
 // See the included readme.txt for details.
 
+#ifndef DMD_DSYMBOL_H
+#define DMD_DSYMBOL_H
+
+#ifdef __DMC__
 #pragma once
+#endif /* __DMC__ */
 
 #include "root.h"
 #include "stringtable.h"
@@ -15,15 +20,32 @@
 struct Identifier;
 struct Scope;
 struct DsymbolTable;
+struct Declaration;
 struct AggregateDeclaration;
 struct ClassDeclaration;
+struct InterfaceDeclaration;
 struct StructDeclaration;
+struct FuncDeclaration;
+struct CtorDeclaration;
+struct DtorDeclaration;
+struct InvariantDeclaration;
+struct UnitTestDeclaration;
+struct NewDeclaration;
+struct VarDeclaration;
+struct VersionDeclaration;
 struct Symbol;
+struct Package;
 struct Module;
+struct Import;
 struct Type;
 struct WithStatement;
 struct LabelDsymbol;
 struct ScopeDsymbol;
+struct TemplateDeclaration;
+struct TemplateInstance;
+struct EnumMember;
+struct ScopeDsymbol;
+struct WithScopeSymbol;
 
 struct TYPE;
 
@@ -75,9 +97,10 @@ struct Dsymbol : Object
     virtual AggregateDeclaration *isThis();	// is a 'this' required to access the member
     virtual ClassDeclaration *isClassMember();	// are we a member of a class?
     virtual int isExport();			// is Dsymbol exported?
-    virtual int isImport();			// is Dsymbol imported?
+    virtual int isImportedSymbol();			// is Dsymbol imported?
     virtual int isDeprecated();			// is Dsymbol deprecated?
-    virtual LabelDsymbol *isLabel();		// is this a LabelDsymbol()?
+    virtual LabelDsymbol *isLabel();		// is this a LabelDsymbol?
+    virtual AggregateDeclaration *isMember();	// is this symbol a member of an AggregateDeclaration?
     virtual Type *getType();			// is this a type?
     virtual char *mangle();
     virtual int needThis();			// need a 'this' pointer?
@@ -93,6 +116,29 @@ struct Dsymbol : Object
     static Symbol *toImport(Symbol *s);		// to backend import symbol
 
     Symbol *toSymbolX(const char *prefix, int sclass, TYPE *t);	// helper
+
+    // Eliminate need for dynamic_cast
+    virtual Package *isPackage() { return NULL; }
+    virtual Module *isModule() { return NULL; }
+    virtual EnumMember *isEnumMember() { return NULL; }
+    virtual TemplateDeclaration *isTemplateDeclaration() { return NULL; }
+    virtual TemplateInstance *isTemplateInstance() { return NULL; }
+    virtual Declaration *isDeclaration() { return NULL; }
+    virtual AggregateDeclaration *isAggregateDeclaration() { return NULL; }
+    virtual FuncDeclaration *isFuncDeclaration() { return NULL; }
+    virtual CtorDeclaration *isCtorDeclaration() { return NULL; }
+    virtual DtorDeclaration *isDtorDeclaration() { return NULL; }
+    virtual InvariantDeclaration *isInvariantDeclaration() { return NULL; }
+    virtual UnitTestDeclaration *isUnitTestDeclaration() { return NULL; }
+    virtual NewDeclaration *isNewDeclaration() { return NULL; }
+    virtual VarDeclaration *isVarDeclaration() { return NULL; }
+    virtual ClassDeclaration *isClassDeclaration() { return NULL; }
+    virtual StructDeclaration *isStructDeclaration() { return NULL; }
+    virtual InterfaceDeclaration *isInterfaceDeclaration() { return NULL; }
+    virtual VersionDeclaration *isVersionDeclaration() { return NULL; }
+    virtual ScopeDsymbol *isScopeDsymbol() { return NULL; }
+    virtual WithScopeSymbol *isWithScopeSymbol() { return NULL; }
+    virtual Import *isImport() { return NULL; }
 };
 
 // Dsymbol that generates a scope
@@ -113,6 +159,8 @@ struct ScopeDsymbol : Dsymbol
     void multiplyDefined(Dsymbol *s1, Dsymbol *s2);
     Dsymbol *nameCollision(Dsymbol *s);
     char *kind();
+
+    ScopeDsymbol *isScopeDsymbol() { return this; }
 };
 
 // With statement scope
@@ -123,6 +171,8 @@ struct WithScopeSymbol : ScopeDsymbol
 
     WithScopeSymbol(WithStatement *withstate);
     Dsymbol *search(Identifier *ident);
+
+    WithScopeSymbol *isWithScopeSymbol() { return this; }
 };
 
 // Table of Dsymbol's
@@ -145,3 +195,4 @@ struct DsymbolTable : Object
     Dsymbol *insert(Identifier *ident, Dsymbol *s);	// when ident and s are not the same
 };
 
+#endif /* DMD_DSYMBOL_H */

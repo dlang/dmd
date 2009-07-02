@@ -7,7 +7,11 @@
 // in artistic.txt, or the GNU General Public License in gnu.txt.
 // See the included readme.txt for details.
 
+#if _WIN32
 #include "mem.h"
+#elif linux
+#include "../root/mem.h"
+#endif
 
 #include "expression.h"
 #include "mtype.h"
@@ -24,12 +28,12 @@ Expression *Expression::implicitCastTo(Type *t)
     //printf("implicitCastTo()\n");
     if (implicitConvTo(t))
 	return castTo(t);
-//type->print();
-//type->next->print();
-//t->print();
-//t->next->print();
-
-//*(char*)0=0;
+#if 0
+print();
+type->print();
+printf("to:\n");
+t->print();
+#endif
     error("cannot implicitly convert %s to %s", type->toChars(), t->toChars());
     return castTo(t);
 }
@@ -51,6 +55,7 @@ int Expression::implicitConvTo(Type *t)
 	return MATCHconvert;
     return type->implicitConvTo(t);
 }
+
 
 int IntegerExp::implicitConvTo(Type *t)
 {
@@ -103,24 +108,30 @@ int IntegerExp::implicitConvTo(Type *t)
 
 	case Tfloat32:
 	case Tcomplex32:
+	{
 	    volatile float f = (float)value;
 	    if (f != value)
 		goto Lno;
 	    goto Lyes;
+	}
 
 	case Tfloat64:
 	case Tcomplex64:
+	{
 	    volatile double d = (double)value;
 	    if (d != value)
 		goto Lno;
 	    goto Lyes;
+	}
 
 	case Tfloat80:
 	case Tcomplex80:
+	{
 	    volatile long double ld = (long double)value;
 	    if (ld != value)
 		goto Lno;
 	    goto Lyes;
+	}
     }
     return Expression::implicitConvTo(t);
 
@@ -232,7 +243,7 @@ int AddrExp::implicitConvTo(Type *t)
 	    e1->op == TOKvar)
 	{
 	    ve = (VarExp *)e1;
-	    f = dynamic_cast<FuncDeclaration *>(ve->var);
+	    f = ve->var->isFuncDeclaration();
 	    for (; f; f = f->overnext)
 	    {
 		if (t->next->equals(f->type))
@@ -488,7 +499,7 @@ Expression *AddrExp::castTo(Type *t)
 	    e1->op == TOKvar)
 	{
 	    ve = (VarExp *)e1;
-	    f = dynamic_cast<FuncDeclaration *>(ve->var);
+	    f = ve->var->isFuncDeclaration();
 	    for (; f; f = f->overnext)
 	    {
 		if (tb->next->equals(f->type))
@@ -641,6 +652,13 @@ Expression *BinExp::typeCombine()
 	t2 = Type::basic[ty2];
 	e1 = e1->castTo(t1);
 	e2 = e2->castTo(t2);
+#if 0
+	if (type != Type::basic[ty])
+	{   t = type;
+	    type = Type::basic[ty];
+	    return castTo(t);
+	}
+#endif
 	//printf("after typeCombine():\n");
 	//dump(0);
 	//printf("ty = %d, ty1 = %d, ty2 = %d\n", ty, ty1, ty2);
@@ -711,15 +729,34 @@ Expression *BinExp::typeCombine()
 	e2 = e2->castTo(t1);
 	t = t1;
     }
-    else if (t1->ty == Tclass && t1->implicitConvTo(t2))
-    {
-	e1 = e1->castTo(t2);
-	t = t2;
-    }
-    else if (t2->ty == Tclass && t2->implicitConvTo(t1))
-    {
-	e2 = e2->castTo(t1);
-	t = t1;
+    else if (t1->ty == Tclass || t2->ty == Tclass)
+    {	int i1;
+	int i2;
+
+	i1 = e2->implicitConvTo(t1);
+	i2 = e1->implicitConvTo(t2);
+
+	if (i1 && i2)
+	{
+	    // We have the case of class vs. void*, so pick class
+	    if (t1->ty == Tpointer)
+		i1 = 0;
+	    else if (t2->ty == Tpointer)
+		i2 = 0;
+	}
+
+	if (i2)
+	{
+	    e1 = e1->castTo(t2);
+	    t = t2;
+	}
+	else if (i1)
+	{
+	    e2 = e2->castTo(t1);
+	    t = t1;
+	}
+	else
+	    goto Lincompatible;
     }
     else if ((e1->op == TOKstring || e1->op == TOKnull) && e1->implicitConvTo(t2))
     {

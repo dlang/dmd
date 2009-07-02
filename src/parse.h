@@ -7,8 +7,12 @@
 // in artistic.txt, or the GNU General Public License in gnu.txt.
 // See the included readme.txt for details.
 
+#ifndef DMD_PARSE_H
+#define DMD_PARSE_H
 
+#ifdef __DMC__
 #pragma once
+#endif /* __DMC__ */
 
 #include "lexer.h"
 #include "enum.h"
@@ -75,6 +79,7 @@ struct Parser : Lexer
     int isDeclarator(Token **pt, int *haveId, enum TOK endtok);
     int isParameters(Token **pt);
     int isExpression(Token **pt);
+    int isTemplateInstance(Token *t, Token **pt);
 
     Expression *parseExpression();
     Expression *parsePrimaryExp();
@@ -96,3 +101,4 @@ struct Parser : Lexer
     Array *parseArguments();
 };
 
+#endif /* DMD_PARSE_H */

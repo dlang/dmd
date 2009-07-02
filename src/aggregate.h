@@ -7,7 +7,12 @@
 // in artistic.txt, or the GNU General Public License in gnu.txt.
 // See the included readme.txt for details.
 
+#ifndef DMD_AGGREGATE_H
+#define DMD_AGGREGATE_H
+
+#ifdef __DMC__
 #pragma once
+#endif /* __DMC__ */
 
 #include "root.h"
 #include "dsymbol.h"
@@ -50,12 +55,13 @@ struct AggregateDeclaration : ScopeDsymbol
     unsigned size();
     static void alignmember(unsigned salign, unsigned size, unsigned *poffset);
     Type *getType();
-    virtual int isInterface();
 
     // Back end
     Symbol *stag;		// tag symbol for debug data
     Symbol *sinit;
     Symbol *toInitializer();
+
+    AggregateDeclaration *isAggregateDeclaration() { return this; }
 };
 
 struct StructDeclaration : AggregateDeclaration
@@ -70,6 +76,8 @@ struct StructDeclaration : AggregateDeclaration
 
     void toObjFile();			// compile to .obj file
     void toDt(dt_t **pdt);
+
+    StructDeclaration *isStructDeclaration() { return this; }
 };
 
 struct UnionDeclaration : StructDeclaration
@@ -133,6 +141,7 @@ struct ClassDeclaration : AggregateDeclaration
     FuncDeclaration *findFunc(Identifier *ident, TypeFunction *tf);
     void interfaceSemantic(Scope *sc);
     int isCOMclass();
+    int isAbstract();
     char *kind();
     char *mangle();
 
@@ -150,6 +159,8 @@ struct ClassDeclaration : AggregateDeclaration
     void toDt2(dt_t **pdt, ClassDeclaration *cd);
 
     Symbol *vtblsym;
+
+    ClassDeclaration *isClassDeclaration() { return (ClassDeclaration *)this; }
 };
 
 struct InterfaceDeclaration : ClassDeclaration
@@ -158,9 +169,12 @@ struct InterfaceDeclaration : ClassDeclaration
     Dsymbol *syntaxCopy(Dsymbol *s);
     void semantic(Scope *sc);
     int isBaseOf(ClassDeclaration *cd, int *poffset);
-    int isInterface();
     char *kind();
 
     void toObjFile();			// compile to .obj file
     Symbol *toSymbol();
+
+    InterfaceDeclaration *isInterfaceDeclaration() { return this; }
 };
+
+#endif /* DMD_AGGREGATE_H */

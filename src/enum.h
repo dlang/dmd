@@ -7,7 +7,12 @@
 // in artistic.txt, or the GNU General Public License in gnu.txt.
 // See the included readme.txt for details.
 
+#ifndef DMD_ENUM_H
+#define DMD_ENUM_H
+
+#ifdef __DMC__
 #pragma once
+#endif /* __DMC__ */
 
 #include "root.h"
 #include "dsymbol.h"
@@ -42,5 +47,8 @@ struct EnumMember : Dsymbol
     Dsymbol *syntaxCopy(Dsymbol *s);
     void toCBuffer(OutBuffer *buf);
     char *kind();
+
+    EnumMember *isEnumMember() { return this; }
 };
 
+#endif /* DMD_ENUM_H */

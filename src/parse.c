@@ -33,6 +33,16 @@
 //	cast(type)(expression)
 #define DCASTSYNTAX	1
 
+// Support C array declarations, such as
+//	int a[3][4];
+#define CARRAYDECL	1
+
+// Support left-to-right array declarations
+#define LTORARRAYDECL	1
+
+// Suppor references
+#define REFERENCES	0
+
 /************************************
  * These control how parseStatement() works.
  */
@@ -1191,13 +1201,42 @@ Type *Parser::parseBasicType2(Type *t)
 		nextToken();
 		continue;
 
-#if 0 // unused
+#if REFERENCES
 	    case TOKand:
 		t = new TypeReference(t);
 		nextToken();
 		continue;
 #endif
 	    case TOKlbracket:
+#if LTORARRAYDECL
+		// Handle []. Make sure things like
+		//     int[3][1] a;
+		// is (array[1] of array[3] of int)
+		nextToken();
+		if (token.value == TOKrbracket)
+		{
+		    t = new TypeDArray(t);			// []
+		    nextToken();
+		}
+		else if (isDeclaration(&token, 0, TOKrbracket, NULL))
+		{   // It's an associative array declaration
+		    Type *index;
+
+		    //printf("it's an associative array\n");
+		    index = parseBasicType();
+		    index = parseDeclarator(index, NULL);	// [ type ]
+		    t = new TypeAArray(t, index);
+		    check(TOKrbracket);
+		}
+		else
+		{
+		    //printf("it's [expression]\n");
+		    e = parseExpression();			// [ expression ]
+		    t = new TypeSArray(t,e);
+		    check(TOKrbracket);
+		}
+		continue;
+#else
 		// Handle []. Make sure things like
 		//     int[3][1] a;
 		// is (array[3] of array[1] of int)
@@ -1234,17 +1273,24 @@ Type *Parser::parseBasicType2(Type *t)
 		}
 		t = ts;
 		continue;
+#endif
 
 	    case TOKdelegate:
+	    case TOKfunction:
 	    {	// Handle delegate declaration:
 		//	t delegate(parameter list)
+		//	t function(parameter list)
 		Array *arguments;
 		int varargs;
+		enum TOK save = token.value;
 
 		nextToken();
 		arguments = parseParameters(&varargs);
 		t = new TypeFunction(arguments, t, varargs, linkage);
-		t = new TypeDelegate(t);
+		if (save == TOKdelegate)
+		    t = new TypeDelegate(t);
+		else
+		    t = new TypePointer(t);	// pointer to function
 		continue;
 	    }
 
@@ -1273,12 +1319,43 @@ Type *Parser::parseDeclarator(Type *t, Identifier **pident)
 		nextToken();
 		continue;
 
+#if REFERENCES
 	    case TOKand:
 		t = new TypeReference(t);
 		nextToken();
 		continue;
+#endif
 
 	    case TOKlbracket:
+#if LTORARRAYDECL
+		// Handle []. Make sure things like
+		//     int[3][1] a;
+		// is (array[1] of array[3] of int)
+		nextToken();
+		if (token.value == TOKrbracket)
+		{
+		    t = new TypeDArray(t);			// []
+		    nextToken();
+		}
+		else if (isDeclaration(&token, 0, TOKrbracket, NULL))
+		{   // It's an associative array declaration
+		    Type *index;
+
+		    //printf("it's an associative array\n");
+		    index = parseBasicType();
+		    index = parseDeclarator(index, NULL);	// [ type ]
+		    t = new TypeAArray(t, index);
+		    check(TOKrbracket);
+		}
+		else
+		{
+		    //printf("it's [expression]\n");
+		    e = parseExpression();			// [ expression ]
+		    t = new TypeSArray(t,e);
+		    check(TOKrbracket);
+		}
+		continue;
+#else
 		// Handle []. Make sure things like
 		//     int[3][1] a;
 		// is (array[3] of array[1] of int)
@@ -1314,6 +1391,7 @@ Type *Parser::parseDeclarator(Type *t, Identifier **pident)
 		}
 		t = ts;
 		continue;
+#endif
 
 	    case TOKidentifier:
 		if (pident)
@@ -1331,15 +1409,21 @@ Type *Parser::parseDeclarator(Type *t, Identifier **pident)
 		break;
 
 	    case TOKdelegate:
+	    case TOKfunction:
 	    {	// Handle delegate declaration:
 		//	t delegate(parameter list)
+		//	t function(parameter list)
 		Array *arguments;
 		int varargs;
+		enum TOK save = token.value;
 
 		nextToken();
 		arguments = parseParameters(&varargs);
 		t = new TypeFunction(arguments, t, varargs, linkage);
-		t = new TypeDelegate(t);
+		if (save == TOKdelegate)
+		    t = new TypeDelegate(t);
+		else
+		    t = new TypePointer(t);	// pointer to function
 		continue;
 	    }
 	    default:
@@ -1353,6 +1437,7 @@ Type *Parser::parseDeclarator(Type *t, Identifier **pident)
     {
 	switch (token.value)
 	{
+#if CARRAYDECL
 	    case TOKlbracket:
 		// This is the old C-style post [] syntax.
 		// Should we disallow it?
@@ -1383,7 +1468,7 @@ Type *Parser::parseDeclarator(Type *t, Identifier **pident)
 		    ;
 		*pt = ta;
 		continue;
-
+#endif
 	    case TOKlparen:
 	    {	Array *arguments;
 		int varargs;
@@ -1447,7 +1532,7 @@ Array *Parser::parseDeclaration()
 	    L1:
 		if (storage_class & sc)
 		    error("redundant storage class '%s'", token.toChars());
-		storage_class |= sc;
+		storage_class = (STC) (storage_class | sc);
 		nextToken();
 		continue;
 	}
@@ -1704,8 +1789,13 @@ Initializer *Parser::parseInitializer()
 		{
 		    default:
 			if (comma == 1)
-			    error("comma expected separating array initializers, not %s", token.toChars());
+			{   error("comma expected separating array initializers, not %s", token.toChars());
+			    nextToken();
+			    break;
+			}
 			e = parseAssignExp();
+			if (!e)
+			    break;
 			if (token.value == TOKcolon)
 			{
 			    nextToken();
@@ -1807,7 +1897,9 @@ Statement *Parser::parseStatement(int flags)
 	case TOKfloat32v:
 	case TOKfloat64v:
 	case TOKfloat80v:
-	case TOKimaginaryv:
+	case TOKimaginary32v:
+	case TOKimaginary64v:
+	case TOKimaginary80v:
 	case TOKnull:
 	case TOKtrue:
 	case TOKfalse:
@@ -1823,6 +1915,9 @@ Statement *Parser::parseStatement(int flags)
 	case TOKminusminus:
 	case TOKnew:
 	case TOKdelete:
+	case TOKdelegate:
+	case TOKfunction:
+	Lexp:
 	{   Expression *exp;
 
 	    exp = parseExpression();
@@ -1832,6 +1927,11 @@ Statement *Parser::parseStatement(int flags)
 	}
 
 	case TOKinstance:
+	    /* Three cases:
+	     *	1) Declaration
+	     *	2) Template Instance Alias
+	     *	3) Expression
+	     */
 	    if (isDeclaration(&token, 2, TOKreserved, NULL))
 	    {
 		//printf("it's a declaration\n");
@@ -1839,22 +1939,23 @@ Statement *Parser::parseStatement(int flags)
 	    }
 	    else
 	    {
-		TemplateInstance *ti;
+		if (isTemplateInstance(&token, &t) && t->value == TOKidentifier)
+		{   // case 2
+		    TemplateInstance *ti;
+		    AliasDeclaration *a;
 
-		//printf("it's an alias\n");
-		s = NULL;
-		ti = parseTemplateInstance();
-		if (ti)
-		{   if (token.value == TOKidentifier)
-		    {	AliasDeclaration *a;
+		    ti = parseTemplateInstance();
+		    assert(ti);
+		    assert(token.value == TOKidentifier);
 
-			a = new AliasDeclaration(loc, token.ident, ti);
-			s = new DeclarationStatement(loc, a);
-			nextToken();
-		    }
+		    a = new AliasDeclaration(loc, token.ident, ti);
+		    s = new DeclarationStatement(loc, a);
+		    nextToken();
+		    if (token.value != TOKsemicolon)
+			error("';' expected after template instance, not %s", token.toChars());
 		}
-		if (token.value != TOKsemicolon)
-		    error("';' expected after template instance");
+		else
+		    goto Lexp;		// case 3
 	    }
 	    break;
 
@@ -1936,7 +2037,7 @@ Statement *Parser::parseStatement(int flags)
 	    check(TOKlparen);
 	    condition = parseExpression();
 	    check(TOKrparen);
-	    body = parseStatement(0);
+	    body = parseStatement(PSscope);
 	    s = new WhileStatement(loc, condition, body);
 	    break;
 	}
@@ -1953,7 +2054,7 @@ Statement *Parser::parseStatement(int flags)
 	    Expression *condition;
 
 	    nextToken();
-	    body = parseStatement(0);
+	    body = parseStatement(PSscope);
 	    check(TOKwhile);
 	    check(TOKlparen);
 	    condition = parseExpression();
@@ -2227,7 +2328,7 @@ Statement *Parser::parseStatement(int flags)
 	    Statement *finalbody = NULL;
 
 	    nextToken();
-	    body = parseStatement(0);
+	    body = parseStatement(PSscope);
 	    while (token.value == TOKcatch)
 	    {
 		Statement *handler;
@@ -2373,6 +2474,9 @@ Statement *Parser::parseStatement(int flags)
 
 	default:
 	    error("found '%s' instead of statement", token.toChars());
+	    while (token.value != TOKsemicolon && token.value != TOKeof)
+		nextToken();
+	    nextToken();
 	    s = NULL;
 	    break;
     }
@@ -2427,12 +2531,12 @@ int Parser::isBasicType(Token **pt)
 	    break;
 
 	case TOKidentifier:
-	Ldot:
 	    while (1)
 	    {
 		t = peek(t);
 		if (t->value == TOKdot)
 		{
+	Ldot:
 		    t = peek(t);
 		    if (t->value != TOKidentifier)
 			goto Lfalse;
@@ -2448,60 +2552,11 @@ int Parser::isBasicType(Token **pt)
 	    // But remember that:
 	    //	instance Foo(int) x;
 	    // is not a type, but is an AliasDeclaration declaration.
-	    t = peek(t);
-	    if (t->value != TOKidentifier)
-		goto Lfalse;
-	    t = peek(t);
-	    while (t->value == TOKdot)
-	    {
-		t = peek(t);
-		if (t->value != TOKidentifier)
-		    goto Lfalse;
-		t = peek(t);
-	    }
-	    if (t->value != TOKlparen)
-		goto Lfalse;
-
-	    // Skip over the template arguments
-	    while (1)
-	    {	int parencnt = 0;
-
-		while (1)
-		{
-		    t = peek(t);
-		    switch (t->value)
-		    {
-			case TOKlparen:
-			    ++parencnt;
-			    continue;
-			case TOKrparen:
-			    if (--parencnt < 0)
-				break;
-			    continue;
-			case TOKcomma:
-			    if (parencnt)
-				continue;
-			    break;
-			case TOKeof:
-			case TOKsemicolon:
-			    goto Lfalse;
-			default:
-			    continue;
-		    }
-		    break;
-		}
-
-		if (t->value != TOKcomma)
-		    break;
-	    }
-	    if (t->value != TOKrparen)
-		goto Lfalse;
-	    t2 = peek(t);
-
-	    // If it has a trailing . it is a type
-	    if (t2->value != TOKdot)
-		goto Lfalse;
-	    goto Ldot;
+	    if (!isTemplateInstance(t, &t))
+		goto Lfalse;		// invalid syntax for template instance
+	    if (t->value == TOKdot)
+		goto Ldot;
+	    goto Lfalse;
 
 	default:
 	    goto Lfalse;
@@ -2570,6 +2625,7 @@ int Parser::isDeclarator(Token **pt, int *haveId, enum TOK endtok)
 		break;
 
 	    case TOKdelegate:
+	    case TOKfunction:
 		t = peek(t);
 		if (!isParameters(&t))
 		    return FALSE;
@@ -2582,6 +2638,7 @@ int Parser::isDeclarator(Token **pt, int *haveId, enum TOK endtok)
     {
 	switch (t->value)
 	{
+#if CARRAYDECL
 	    case TOKlbracket:
 		parens = FALSE;
 		t = peek(t);
@@ -2603,6 +2660,7 @@ int Parser::isDeclarator(Token **pt, int *haveId, enum TOK endtok)
 		    t = peek(t);
 		}
 		continue;
+#endif
 
 	    case TOKlparen:
 		parens = FALSE;
@@ -2706,6 +2764,76 @@ int Parser::isExpression(Token **pt)
     return TRUE;
 }
 
+/**********************************************
+ * Skip over
+ *	instance foo.bar(parameters...)
+ * Output:
+ *	if (pt), *pt is set to the token following the closing )
+ * Returns:
+ *	1	it's valid instance syntax
+ *	0	invalid instance syntax
+ */
+
+int Parser::isTemplateInstance(Token *t, Token **pt)
+{
+    t = peek(t);
+    if (t->value != TOKidentifier)
+	goto Lfalse;
+    t = peek(t);
+    while (t->value == TOKdot)
+    {
+	t = peek(t);
+	if (t->value != TOKidentifier)
+	    goto Lfalse;
+	t = peek(t);
+    }
+    if (t->value != TOKlparen)
+	goto Lfalse;
+
+    // Skip over the template arguments
+    while (1)
+    {   int parencnt = 0;
+
+	while (1)
+	{
+	    t = peek(t);
+	    switch (t->value)
+	    {
+		case TOKlparen:
+		    ++parencnt;
+		    continue;
+		case TOKrparen:
+		    if (--parencnt < 0)
+			break;
+		    continue;
+		case TOKcomma:
+		    if (parencnt)
+			continue;
+		    break;
+		case TOKeof:
+		case TOKsemicolon:
+		    goto Lfalse;
+		default:
+		    continue;
+	    }
+	    break;
+	}
+
+	if (t->value != TOKcomma)
+	    break;
+    }
+    if (t->value != TOKrparen)
+	goto Lfalse;
+    t = peek(t);
+    if (pt)
+	*pt = t;
+    return 1;
+
+Lfalse:
+    return 0;
+}
+
+
 /********************************* Expression Parser ***************************/
 
 Expression *Parser::parsePrimaryExp()
@@ -2765,7 +2893,17 @@ Expression *Parser::parsePrimaryExp()
 	    nextToken();
 	    break;
 
-	case TOKimaginaryv:
+	case TOKimaginary32v:
+	    e = new ImaginaryExp(loc, token.float80value, Type::timaginary32);
+	    nextToken();
+	    break;
+
+	case TOKimaginary64v:
+	    e = new ImaginaryExp(loc, token.float80value, Type::timaginary64);
+	    nextToken();
+	    break;
+
+	case TOKimaginary80v:
 	    e = new ImaginaryExp(loc, token.float80value, Type::timaginary80);
 	    nextToken();
 	    break;
@@ -2853,6 +2991,34 @@ Expression *Parser::parsePrimaryExp()
 	    e = new TypeExp(loc, ti);
 	    nextToken();
 #endif
+	    break;
+	}
+
+	case TOKfunction:
+	case TOKdelegate:
+	{
+	    /* function type(parameters) { body }
+	     * delegate type(parameters) { body }
+	     */
+	    Array *arguments;
+	    int varargs;
+	    FuncLiteralDeclaration *fd;
+	    Type *t;
+	    enum TOK save = token.value;
+
+	    nextToken();
+	    if (token.value == TOKlparen)
+		t = Type::tvoid;		// default to void return type
+	    else
+	    {
+		t = parseBasicType();
+		t = parseBasicType2(t);		// function return type
+	    }
+	    arguments = parseParameters(&varargs);
+	    t = new TypeFunction(arguments, t, varargs, linkage);
+	    fd = new FuncLiteralDeclaration(loc, 0, t, save);
+	    parseContracts(fd);
+	    e = new FuncExp(loc, fd);
 	    break;
 	}
 
@@ -3012,13 +3178,59 @@ Expression *Parser::parseUnaryExp()
 		newargs = parseArguments();
 	    }
 
+#if LTORARRAYDECL
+	    t = parseBasicType();
+	    t = parseBasicType2(t);
+	    if (t->ty == Taarray)
+	    {
+		Type *index = ((TypeAArray *)t)->index;
+
+		if (index->ty == Tident)
+		{
+		    TypeIdentifier *ti = (TypeIdentifier *)index;
+		    int i;
+		    Expression *e;
+		    Identifier *id = (Identifier *)ti->idents.data[0];
+
+		    e = new IdentifierExp(loc, id);
+		    for (i = 1; i < ti->idents.dim; i++)
+		    {
+			id = (Identifier *)ti->idents.data[i];
+			e = new DotIdExp(loc, e, id);
+		    }
+
+		    arguments = new Array();
+		    arguments->push(e);
+		    t = new TypeDArray(t->next);
+		}
+		else
+		{
+		    error("need size of rightmost array, not type %s", index->toChars());
+		    return new NullExp(loc);
+		}
+	    }
+	    else if (t->ty == Tsarray)
+	    {
+		TypeSArray *tsa = (TypeSArray *)t;
+		Expression *e = tsa->dim;
+
+		arguments = new Array();
+		arguments->push(e);
+		t = new TypeDArray(t->next);
+	    }
+	    else
+	    {
+		arguments = parseArguments();
+	    }
+#else
 	    t = parseBasicType();
 	    while (token.value == TOKmul)
 	    {	t = new TypePointer(t);
 		nextToken();
 	    }
 	    if (token.value == TOKlbracket)
-	    {	Expression *e;
+	    {
+		Expression *e;
 
 		nextToken();
 		e = parseAssignExp();
@@ -3030,6 +3242,7 @@ Expression *Parser::parseUnaryExp()
 	    }
 	    else
 		arguments = parseArguments();
+#endif
 	    e = new NewExp(loc, newargs, t, arguments);
 	    break;
 	}
@@ -3092,7 +3305,9 @@ Expression *Parser::parseUnaryExp()
 		    case TOKfloat32v:
 		    case TOKfloat64v:
 		    case TOKfloat80v:
-		    case TOKimaginaryv:
+		    case TOKimaginary32v:
+		    case TOKimaginary64v:
+		    case TOKimaginary80v:
 		    case TOKnull:
 		    case TOKtrue:
 		    case TOKfalse:
@@ -3101,6 +3316,8 @@ Expression *Parser::parseUnaryExp()
 		    case TOKmul:
 		    case TOKmin:
 		    case TOKadd:
+		    case TOKfunction:
+		    case TOKdelegate:
 		    CASE_BASIC_TYPES:
 		    {	// (type) una_exp
 			Type *t;

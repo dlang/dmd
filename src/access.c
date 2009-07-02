@@ -226,6 +226,15 @@ int ClassDeclaration::isFriendOf(ClassDeclaration *cd)
 	return 1;
     }
 
+    if (cd && cd->parent == this)
+    {
+#if LOG
+	printf("\tcd is nested in this\n");
+#endif
+	return 1;
+    }
+
+
 #if LOG
     printf("\tnot friend\n");
 #endif
@@ -269,7 +278,7 @@ void accessCheck(Loc loc, Scope *sc, Expression *e, Declaration *d)
 	cd = (ClassDeclaration *)(((TypeClass *)e->type)->sym);
 	if (e->op == TOKsuper)
 	{
-	    cd = dynamic_cast<ClassDeclaration *>(sc->func->parent);
+	    cd = sc->func->parent->isClassDeclaration();
 	}
 	cd->accessCheck(loc, sc, d);
     }

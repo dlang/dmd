@@ -124,7 +124,7 @@ void error(const char *format, ...)
     exit(EXIT_FAILURE);
 }
 
-#if UNICODE
+#if M_UNICODE
 void error(const dchar *format, ...)
 {
     va_list ap;
@@ -190,7 +190,7 @@ char *Object::toChars()
 
 dchar *Object::toDchars()
 {
-#if UNICODE
+#if M_UNICODE
     return L"Object";
 #else
     return toChars();
@@ -382,6 +382,12 @@ Array *FileName::splitPath(const char *path)
 
 		    case '\r':
 			continue;	// ignore carriage returns
+
+#if linux
+		    case '~':
+			buf.writestring(getenv("HOME"));
+			continue;
+#endif
 
 		    case ' ':
 		    case '\t':		// tabs in filenames?
@@ -749,7 +755,13 @@ char *FileName::searchPath(Array *path, char *name, int cwd)
 int FileName::exists(const char *name)
 {
 #if linux
-    return 0;
+    struct stat st;
+
+    if (stat(name, &st) < 0)
+	return 0;
+    if (S_ISDIR(st.st_mode))
+	return 2;
+    return 1;
 #endif
 #if _WIN32
     DWORD dw;
@@ -1176,7 +1188,7 @@ int File::exists()
 void File::remove()
 {
 #if linux
-    assert(0);	// implement
+    ::remove(this->name->toChars());
 #endif
 #if _WIN32
     DeleteFileA(this->name->toChars());
@@ -1344,7 +1356,7 @@ void OutBuffer::writestring(char *string)
 
 void OutBuffer::writedstring(const char *string)
 {
-#if UNICODE
+#if M_UNICODE
     for (; *string; string++)
     {
 	writedchar(*string);
@@ -1356,7 +1368,7 @@ void OutBuffer::writedstring(const char *string)
 
 void OutBuffer::writedstring(const wchar_t *string)
 {
-#if UNICODE
+#if M_UNICODE
     write(string,wcslen(string) * sizeof(wchar_t));
 #else
     for (; *string; string++)
@@ -1379,13 +1391,13 @@ void OutBuffer::prependstring(char *string)
 void OutBuffer::writenl()
 {
 #if _WIN32
-#if UNICODE
+#if M_UNICODE
     write4(0x000A000D);		// newline is CR,LF on Microsoft OS's
 #else
     writeword(0x0A0D);		// newline is CR,LF on Microsoft OS's
 #endif
 #else
-#if UNICODE
+#if M_UNICODE
     writeword('\n');
 #else
     writeByte('\n');
@@ -1561,8 +1573,8 @@ void OutBuffer::vprintf(const char *format, va_list args)
     write(p,count);
 }
 
-#if UNICODE
-void OutBuffer::vprintf(const unsigned short *format, va_list args)
+#if M_UNICODE
+void OutBuffer::vprintf(const wchar_t *format, va_list args)
 {
     dchar buffer[128];
     dchar *p;
@@ -1602,8 +1614,8 @@ void OutBuffer::printf(const char *format, ...)
     va_end(ap);
 }
 
-#if UNICODE
-void OutBuffer::printf(const unsigned short *format, ...)
+#if M_UNICODE
+void OutBuffer::printf(const wchar_t *format, ...)
 {
     va_list ap;
     va_start(ap, format);

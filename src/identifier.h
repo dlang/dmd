@@ -7,7 +7,12 @@
 // in artistic.txt, or the GNU General Public License in gnu.txt.
 // See the included readme.txt for details.
 
+#ifndef DMD_IDENTIFIER_H
+#define DMD_IDENTIFIER_H
+
+#ifdef __DMC__
 #pragma once
+#endif /* __DMC__ */
 
 #include "root.h"
 
@@ -23,3 +28,5 @@ struct Identifier : Object
     void print();
     char *toChars();
 };
+
+#endif /* DMD_IDENTIFIER_H */

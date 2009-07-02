@@ -7,7 +7,12 @@
 // in artistic.txt, or the GNU General Public License in gnu.txt.
 // See the included readme.txt for details.
 
+#ifndef DMD_MARS_H
+#define DMD_MARS_H
+
+#ifdef __DMC__
 #pragma once
+#endif /* __DMC__ */
 
 struct Array;
 
@@ -47,6 +52,7 @@ struct Param
     char debuga;
     char debugb;
     char debugc;
+    char debugf;
     char debugr;
     char debugw;
     char debugx;
@@ -64,6 +70,7 @@ struct Global
 {
     char *mars_ext;
     char *sym_ext;
+    char *obj_ext;
     char *copyright;
     char *written;
     Array *path;	// Array of char*'s which form the import lookup path
@@ -78,9 +85,20 @@ struct Global
 
 extern Global global;
 
+#if __GNUC__
+//#define memicmp strncasecmp
+//#define stricmp strcasecmp
+#endif
+
 typedef unsigned long long integer_t;
 typedef long double real_t;
+
+#ifdef __DMC__
 typedef _Complex long double complex_t;
+#else
+#include "complex_t.h"
+#endif
+
 
 typedef signed char		d_int8;
 typedef unsigned char		d_uns8;
@@ -157,3 +175,4 @@ void fatal();
 int runLINK();
 void inifile(char *argv0, char *inifile);
 
+#endif /* DMD_MARS_H */

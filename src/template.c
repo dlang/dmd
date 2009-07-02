@@ -19,6 +19,29 @@
 
 #define LOG	0
 
+/********************************************
+ * These two functions substitute for dynamic_cast.
+ * They make use of the fact that Object::compare() is not used for
+ * Type and Expression, and use that slot in the vtbl[] instead for
+ * a simple way to tell which it is.
+ */
+
+static Expression *isExpression(Object *o)
+{
+    //return dynamic_cast<Expression *>(o);
+    if (!o || o->compare(NULL) != 5)
+	return NULL;
+    return (Expression *)o;
+}
+
+static Type *isType(Object *o)
+{
+    //return dynamic_cast<Type *>(o);
+    if (!o || o->compare(NULL) != 6)
+	return NULL;
+    return (Type *)o;
+}
+
 /* ======================== TemplateDeclaration ============================= */
 
 TemplateDeclaration::TemplateDeclaration(Loc loc, Identifier *id, Array *parameters, Array *decldefs)
@@ -46,17 +69,20 @@ void TemplateDeclaration::semantic(Scope *sc)
     this->scope = sc;
     sc->setNoFree();
 
+    // Set up scope for parameters
+    ScopeDsymbol *paramsym = new ScopeDsymbol();
+    paramsym->parent = sc->parent;
+    Scope *paramscope = sc->push(paramsym);
+
+
     for (int i = 0; i < parameters->dim; i++)
     {
 	TemplateParameter *tp = (TemplateParameter *)parameters->data[i];
 
-	// Check for duplicate parameters
-	for (int j = i + 1; j < parameters->dim; j++)
-	{
-	    TemplateParameter *tp2 = (TemplateParameter *)parameters->data[j];
-	    if (tp->ident->equals(tp2->ident))
-		error("parameter '%s' multiply defined", tp->ident->toChars());
-	}
+	TypeIdentifier *ti = new TypeIdentifier(loc, tp->ident);
+	AliasDeclaration *sparam = new AliasDeclaration(loc, tp->ident, ti);
+	if (!paramscope->insert(sparam))
+	    error("parameter '%s' multiply defined", tp->ident->toChars());
 
 	if (tp->valType)
 	{
@@ -74,7 +100,14 @@ void TemplateDeclaration::semantic(Scope *sc)
 	    tp->specValue = e;
 	    e->toInteger();
 	}
+
+	if (tp->specType)
+	{
+	    tp->specType = tp->specType->semantic(loc, paramscope);
+	}
     }
+
+    paramscope->pop();
 
     /* BUG: should check:
      *	o no virtual functions or non-static data members of classes
@@ -87,7 +120,7 @@ char *TemplateDeclaration::kind()
 }
 
 /**********************************
- * Overload this TemplateDeclaration with the new one td.
+ * Overload existing TemplateDeclaration 'this' with the new one 's'.
  * Return !=0 if successful; i.e. no conflict.
  */
 
@@ -96,8 +129,10 @@ int TemplateDeclaration::overloadInsert(Dsymbol *s)
     TemplateDeclaration **pf;
     TemplateDeclaration *f;
 
-    //printf("TemplateDeclaration::overloadInsert(%s)\n", s->toChars());
-    f = dynamic_cast<TemplateDeclaration *>(s);
+#if LOG
+    printf("TemplateDeclaration::overloadInsert(%s)\n", s->toChars());
+#endif
+    f = s->isTemplateDeclaration();
     if (!f)
 	return FALSE;
     TemplateDeclaration *pthis = this;
@@ -122,13 +157,17 @@ int TemplateDeclaration::overloadInsert(Dsymbol *s)
 		goto Lcontinue;
 
 	    if (p1->valType != p2->valType)
-		goto Lcontinue;
-
+	    {
+		if (p1->valType && !p1->valType->equals(p2->valType))
+		    goto Lcontinue;
+	    }
 	    if (p1->specValue != p2->specValue)
 		goto Lcontinue;
 	}
 
-	//printf("false: conflict\n");
+#if LOG
+	printf("\tfalse: conflict\n");
+#endif
 	return FALSE;
 
      Lcontinue:
@@ -137,7 +176,9 @@ int TemplateDeclaration::overloadInsert(Dsymbol *s)
 
 
     *pf = f;
-    //printf("true: no conflict\n");
+#if LOG
+    printf("\ttrue: no conflict\n");
+#endif
     return TRUE;
 }
 
@@ -152,6 +193,9 @@ MATCH TemplateDeclaration::matchWithInstance(TemplateInstance *ti, Array *dedtyp
 {   MATCH m;
     int dim = dedtypes->dim;
 
+#if LOG
+    printf("TemplateDeclaration::matchWithInstance()\n");
+#endif
     dedtypes->zero();
 
     assert(dim == parameters->dim);
@@ -165,7 +209,7 @@ MATCH TemplateDeclaration::matchWithInstance(TemplateInstance *ti, Array *dedtyp
 
 	if (tp->valType)
 	{
-	    Expression *ei = dynamic_cast<Expression *>((Object *)ti->tiargs.data[i]);
+	    Expression *ei = isExpression((Object *)ti->tiargs.data[i]);
 	    if (!ei && ti->tiargs.data[i])
 		goto Lnomatch;
 
@@ -185,12 +229,13 @@ MATCH TemplateDeclaration::matchWithInstance(TemplateInstance *ti, Array *dedtyp
 	}
 	else
 	{
-	    Type *ta = dynamic_cast<Type *>((Object *)ti->tiargs.data[i]);
+	    Type *ta = isType((Object *)ti->tiargs.data[i]);
 	    if (!ta)
 		goto Lnomatch;
 
 	    if (tp->specType)
 	    {
+		//printf("calling matchType()\n");
 		m2 = matchType(ta, i, dedtypes);
 		if (m2 == MATCHnomatch)
 		    goto Lnomatch;
@@ -299,11 +344,16 @@ MATCH TemplateDeclaration::matchType(Type *tiarg, int i, Array *dedtypes)
 	    return MATCHnomatch;
     }
 
+    //printf("tiarg: %d, ", tiarg->ty); tiarg->print();
+    //printf("tp->specType: %d, ", tp->specType->ty); tp->specType->print();
+
+#if 0
     // Allow a derived class as a conversion match from a base class.
     if (tiarg->ty == Tclass && tp->specType->ty == Tclass)
     {
 	return (MATCH) tiarg->implicitConvTo(tp->specType);
     }
+#endif
 
     m = tiarg->deduceType(tp->specType, parameters, dedtypes);
 
@@ -435,6 +485,9 @@ char *TemplateDeclaration::toChars()
 
 MATCH Type::deduceType(Type *tparam, Array *parameters, Array *dedtypes)
 {
+    //printf("Type::deduceType()\n");
+    //printf("\tthis   = %d, ", ty); print();
+    //printf("\ttparam = %d, ", tparam->ty); tparam->print();
     if (!tparam)
 	goto Lnomatch;
 
@@ -445,6 +498,7 @@ MATCH Type::deduceType(Type *tparam, Array *parameters, Array *dedtypes)
     {
 	TypeIdentifier *tident = (TypeIdentifier *)tparam;
 
+	//printf("\ttident = '%s'\n", tident->toChars());
 	if (tident->idents.dim > 1)
 	    goto Lnomatch;
 
@@ -619,13 +673,20 @@ MATCH TypeTypedef::deduceType(Type *tparam, Array *parameters, Array *dedtypes)
 
 MATCH TypeClass::deduceType(Type *tparam, Array *parameters, Array *dedtypes)
 {
+    //printf("TypeClass::deduceType()\n");
+
     // Extra check
     if (tparam && tparam->ty == Tclass)
     {
 	TypeClass *tp = (TypeClass *)tparam;
 
+#if 1
+	//printf("\t%d\n", (MATCH) implicitConvTo(tp));
+	return (MATCH) implicitConvTo(tp);
+#else
 	if (sym != tp->sym)
 	    return MATCHnomatch;
+#endif
     }
     return Type::deduceType(tparam, parameters, dedtypes);
 }
@@ -670,12 +731,12 @@ Dsymbol *TemplateInstance::syntaxCopy(Dsymbol *s)
     ti->tiargs.setDim(tiargs.dim);
     for (i = 0; i < tiargs.dim; i++)
     {
-	Type *ta = dynamic_cast<Type *>((Object *)tiargs.data[i]);
+	Type *ta = isType((Object *)tiargs.data[i]);
 	if (ta)
 	    ti->tiargs.data[i] = ta->syntaxCopy();
 	else
 	{
-	    Expression *ea = dynamic_cast<Expression *>((Object *)tiargs.data[i]);
+	    Expression *ea = isExpression((Object *)tiargs.data[i]);
 	    assert(ea);
 	    ti->tiargs.data[i] = ea->syntaxCopy();
 	}
@@ -707,7 +768,7 @@ void TemplateInstance::semantic(Scope *sc)
 
     // Run semantic on each argument
     for (int j = 0; j < tiargs.dim; j++)
-    {   Type *ta = dynamic_cast<Type *>((Object *)tiargs.data[j]);
+    {   Type *ta = isType((Object *)tiargs.data[j]);
 	Expression *ea;
 
 	if (ta)
@@ -729,7 +790,7 @@ void TemplateInstance::semantic(Scope *sc)
 	}
 	else
 	{
-	    ea = dynamic_cast<Expression *>((Object *)tiargs.data[j]);
+	    ea = isExpression((Object *)tiargs.data[j]);
 	    assert(ea);
 	    ea = ea->semantic(sc);
 	    ea = ea->constFold();
@@ -745,6 +806,9 @@ void TemplateInstance::semantic(Scope *sc)
     s = sc->search(id, &scopesym);
     if (s)
     {
+#if LOG
+	printf("It's an instance of '%s'\n", s->toChars());
+#endif
 	s = s->toAlias();
 	for (i = 1; i < idents.dim; i++)
 	{   Dsymbol *sm;
@@ -766,7 +830,7 @@ void TemplateInstance::semantic(Scope *sc)
 
     /* It should be a TemplateDeclaration, not some other symbol
      */
-    tempdecl = dynamic_cast<TemplateDeclaration *>(s);
+    tempdecl = s->isTemplateDeclaration();
     if (!tempdecl)
     {
 	error("%s is not a template declaration", id->toChars());
@@ -796,23 +860,27 @@ void TemplateInstance::semantic(Scope *sc)
 	if (!m)			// no match at all
 	    continue;
 
+#if 0
 	if (m < m_best)
 	    goto Ltd_best;
-	if (m == m_best)
-	{
-	    // Disambiguate by picking the most specialized TemplateDeclaration
-	    int c1 = td->leastAsSpecialized(td_best);
-	    int c2 = td_best->leastAsSpecialized(td);
-
-	    if (c1 && !c2)
-		goto Ltd;
-	    else if (!c1 && c2)
-		goto Ltd_best;
-	    else
-		goto Lambig;
-	}
-	else
+	if (m > m_best)
 	    goto Ltd;
+#else
+	if (!m_best)
+	    goto Ltd;
+#endif
+	{
+	// Disambiguate by picking the most specialized TemplateDeclaration
+	int c1 = td->leastAsSpecialized(td_best);
+	int c2 = td_best->leastAsSpecialized(td);
+
+	if (c1 && !c2)
+	    goto Ltd;
+	else if (!c1 && c2)
+	    goto Ltd_best;
+	else
+	    goto Lambig;
+	}
 
       Lambig:		// td_best and td are ambiguous
 	td_ambig = td;
@@ -841,6 +909,9 @@ void TemplateInstance::semantic(Scope *sc)
     /* The best match is td_best
      */
     tempdecl = td_best;
+#if LOG
+    printf("\tIt's a match with template declaration '%s'\n", tempdecl->toChars());
+#endif
 
     /* See if there is an existing TemplateInstantiation that already
      * implements the typeargs. If so, just refer to that one instead.
@@ -854,8 +925,8 @@ void TemplateInstance::semantic(Scope *sc)
 	assert(tiargs.dim == ti->tiargs.dim);
 
 	for (int j = 0; j < tiargs.dim; j++)
-	{   Type *t1 = dynamic_cast<Type *>((Object *)tiargs.data[j]);
-	    Type *t2 = dynamic_cast<Type *>((Object *)ti->tiargs.data[j]);
+	{   Type *t1 = isType((Object *)tiargs.data[j]);
+	    Type *t2 = isType((Object *)ti->tiargs.data[j]);
 
 	    if (t1)
 	    {
@@ -864,8 +935,8 @@ void TemplateInstance::semantic(Scope *sc)
 	    }
 	    else
 	    {
-		Expression *e1 = dynamic_cast<Expression *>((Object *)tiargs.data[j]);
-		Expression *e2 = dynamic_cast<Expression *>((Object *)ti->tiargs.data[j]);
+		Expression *e1 = isExpression((Object *)tiargs.data[j]);
+		Expression *e2 = isExpression((Object *)ti->tiargs.data[j]);
 
 		assert(e1);
 		if (!e1->equals(e2))
@@ -902,7 +973,7 @@ void TemplateInstance::semantic(Scope *sc)
 	buf.writeByte('_');
 	for (int i = 0; i < tiargs.dim; i++)
 	{
-	    Type *ta = dynamic_cast<Type *>((Object *)tiargs.data[i]);
+	    Type *ta = isType((Object *)tiargs.data[i]);
 	    if (ta)
 	    {
 		assert(ta->deco);
@@ -910,7 +981,7 @@ void TemplateInstance::semantic(Scope *sc)
 	    }
 	    else
 	    {
-		Expression *ea = dynamic_cast<Expression *>((Object *)tiargs.data[i]);
+		Expression *ea = isExpression((Object *)tiargs.data[i]);
 		assert(ea);
 		buf.writeByte('_');
 		buf.printf("%u", ea->toInteger());
@@ -960,14 +1031,14 @@ void TemplateInstance::semantic(Scope *sc)
     printf("\tcreate scope for template parameters '%s'\n", toChars());
 #endif
     argsym = new ScopeDsymbol();
-    argsym->parent = scope->scopesym;
+    argsym->parent = scope->parent;
     scope = scope->push(argsym);
 
     // Declare each template parameter as an alias for the argument type
     for (int i = 0; i < tiargs.dim; i++)
     {
 	TemplateParameter *tp = (TemplateParameter *)tempdecl->parameters->data[i];
-	Type *targ = dynamic_cast<Type *>((Object *)tiargs.data[i]);
+	Type *targ = isType((Object *)tiargs.data[i]);
 	Dsymbol *s;
 
 	if (targ)
@@ -978,7 +1049,7 @@ void TemplateInstance::semantic(Scope *sc)
 	    s = sarg;
 	}
 	else
-	{   Expression *ea = dynamic_cast<Expression *>((Object *)tiargs.data[i]);
+	{   Expression *ea = isExpression((Object *)tiargs.data[i]);
 	    assert(ea);
 
 	    Initializer *init = new ExpInitializer(loc, ea);
@@ -997,7 +1068,9 @@ void TemplateInstance::semantic(Scope *sc)
     for (int i = 0; i < members->dim; i++)
     {
 	Dsymbol *s = (Dsymbol *)members->data[i];
-	//printf("\tadding member '%s' %p to '%s'\n", s->toChars(), s, this->toChars());
+#if LOG
+	printf("\tadding member '%s' %p to '%s'\n", s->toChars(), s, this->toChars());
+#endif
 	s->addMember(this);
     }
 
@@ -1007,6 +1080,7 @@ void TemplateInstance::semantic(Scope *sc)
 #endif
     Scope *sc2;
     sc2 = scope->push(this);
+    sc2->parent = this;
     for (int i = 0; i < members->dim; i++)
     {
 	Dsymbol *s = (Dsymbol *)members->data[i];
@@ -1109,11 +1183,11 @@ void TemplateInstance::toCBuffer(OutBuffer *buf)
     {
 	if (i)
 	    buf->writeByte(',');
-	Type *t = dynamic_cast<Type *>((Object *)tiargs.data[i]);
+	Type *t = isType((Object *)tiargs.data[i]);
 	if (t)
 	    t->toCBuffer(buf, NULL);
 	else
-	{   Expression *e = dynamic_cast<Expression *>((Object *)tiargs.data[i]);
+	{   Expression *e = isExpression((Object *)tiargs.data[i]);
 	    assert(e);
 	    e->toCBuffer(buf);
 	}
@@ -1124,6 +1198,10 @@ void TemplateInstance::toCBuffer(OutBuffer *buf)
 
 Dsymbol *TemplateInstance::toAlias()
 {
+    if (!inst)
+    {	error("cannot resolve forward reference");
+	return this;
+    }
     return inst;
 }
 

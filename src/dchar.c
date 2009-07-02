@@ -15,7 +15,7 @@
 #include "dchar.h"
 #include "mem.h"
 
-#if UNICODE
+#if M_UNICODE
 
 // Converts a char string to Unicode
 

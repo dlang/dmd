@@ -7,16 +7,18 @@
 // in artistic.txt, or the GNU General Public License in gnu.txt.
 // See the included readme.txt for details.
 
-#ifndef EXPRESSION_H
-#define EXPRESSION_H
+#ifndef DMD_EXPRESSION_H
+#define DMD_EXPRESSION_H
 
 #include "mars.h"
 #include "identifier.h"
+#include "lexer.h"
 
 struct Type;
 struct Scope;
 struct VarDeclaration;
 struct FuncDeclaration;
+struct FuncLiteralDeclaration;
 struct Declaration;
 struct CtorDeclaration;
 struct NewDeclaration;
@@ -33,7 +35,6 @@ struct Declaration;
 // Back end
 struct IRState;
 struct elem;
-enum OPER;
 struct dt_t;
 
 void accessCheck(Loc loc, Scope *sc, Expression *e, Declaration *d);
@@ -49,6 +50,8 @@ struct Expression : Object
     Expression *copy();
     virtual Expression *syntaxCopy();
     virtual Expression *semantic(Scope *sc);
+
+    int compare(Object *o) { return 5; }	// kludge for template.isExpression()
 
     void print();
     char *toChars();
@@ -192,6 +195,8 @@ struct IdentifierExp : Expression
 
 struct ThisExp : Expression
 {
+    Declaration *var;
+
     ThisExp(Loc loc);
     Expression *semantic(Scope *sc);
     int isBool(int result);
@@ -205,18 +210,15 @@ struct ThisExp : Expression
     elem *toElem(IRState *irs);
 };
 
-struct SuperExp : Expression
+struct SuperExp : ThisExp
 {
     SuperExp(Loc loc);
     Expression *semantic(Scope *sc);
-    int isBool(int result);
     void toCBuffer(OutBuffer *buf);
 
     //int inlineCost(InlineCostState *ics);
     Expression *doInline(InlineDoState *ids);
     //Expression *inlineScan(InlineScanState *iss);
-
-    elem *toElem(IRState *irs);
 };
 
 struct NullExp : Expression
@@ -271,6 +273,7 @@ struct ScopeExp : Expression
     ScopeDsymbol *sds;
 
     ScopeExp(Loc loc, ScopeDsymbol *sds);
+    Expression *syntaxCopy();
     Expression *semantic(Scope *sc);
     elem *toElem(IRState *irs);
     void toCBuffer(OutBuffer *buf);
@@ -306,6 +309,8 @@ struct SymOffExp : Expression
     dt_t **toDt(dt_t **pdt);
 };
 
+// Variable
+
 struct VarExp : Expression
 {
     Declaration *var;
@@ -323,6 +328,25 @@ struct VarExp : Expression
     Expression *doInline(InlineDoState *ids);
     //Expression *inlineScan(InlineScanState *iss);
 };
+
+// Function/Delegate literal
+
+struct FuncExp : Expression
+{
+    FuncLiteralDeclaration *fd;
+
+    FuncExp(Loc loc, FuncLiteralDeclaration *fd);
+    Expression *semantic(Scope *sc);
+    char *toChars();
+    void toCBuffer(OutBuffer *buf);
+    elem *toElem(IRState *irs);
+
+    //int inlineCost(InlineCostState *ics);
+    //Expression *doInline(InlineDoState *ids);
+    //Expression *inlineScan(InlineScanState *iss);
+};
+
+// Declaration of a symbol
 
 struct DeclarationExp : Expression
 {
@@ -381,7 +405,7 @@ struct BinExp : Expression
 
     Expression *op_overload(Scope *sc);
 
-    elem *toElemBin(IRState *irs, enum OPER op);
+    elem *toElemBin(IRState *irs, int op);
 };
 
 /****************************************************************/
@@ -1001,5 +1025,4 @@ struct CondExp : BinExp
     elem *toElem(IRState *irs);
 };
 
-
-#endif
+#endif /* DMD_EXPRESSION_H */

@@ -18,6 +18,7 @@ struct Scope;
 struct Type;
 struct dt_t;
 struct AggregateDeclaration;
+struct ExpInitializer;
 
 struct Initializer : Object
 {
@@ -32,6 +33,8 @@ struct Initializer : Object
     static Array *arraySyntaxCopy(Array *ai);
 
     virtual dt_t *toDt();
+
+    virtual ExpInitializer *isExpInitializer() { return NULL; }
 };
 
 struct StructInitializer : Initializer
@@ -79,6 +82,8 @@ struct ExpInitializer : Initializer
     void toCBuffer(OutBuffer *buf);
 
     dt_t *toDt();
+
+    virtual ExpInitializer *isExpInitializer() { return this; }
 };
 
 #endif

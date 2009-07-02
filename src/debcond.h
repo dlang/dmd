@@ -7,6 +7,9 @@
 // in artistic.txt, or the GNU General Public License in gnu.txt.
 // See the included readme.txt for details.
 
+#ifndef DMD_DEBCOND_H
+#define DMD_DEBCOND_H
+
 struct Expression;
 struct Identifier;
 struct OutBuffer;
@@ -44,3 +47,4 @@ struct VersionCondition : Condition
     int include();
 };
 
+#endif /* DMD_DEBCOND_H */

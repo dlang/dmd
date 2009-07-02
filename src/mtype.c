@@ -1,5 +1,5 @@
 
-// Copyright (c) 1999-2002 by Digital Mars
+// Copyright (c) 1999-2003 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // www.digitalmars.com
@@ -7,9 +7,19 @@
 // in artistic.txt, or the GNU General Public License in gnu.txt.
 // See the included readme.txt for details.
 
+#ifdef __DMC__
 #include <fp.h>
+#endif
+
 #include <float.h>
 #include <complex.h>
+
+#if __GNUC__
+#include <math.h>
+#include <bits/nan.h>
+#include <bits/mathdef.h>
+static double zero = 0;
+#endif
 
 #include "mem.h"
 
@@ -21,7 +31,8 @@
 #include "declaration.h"
 #include "template.h"
 
-#define LOGDOTEXP 0	// log ::dotExp()
+#define LOGDOTEXP	0	// log ::dotExp()
+#define LOGDEFAULTINIT	0	// log ::defaultInit()
 
 /***************************** Type *****************************/
 
@@ -52,9 +63,9 @@ Type *Type::syntaxCopy()
 int Type::equals(Object *o)
 {   Type *t;
 
+    t = (Type *)o;
     if (this == o ||
-	((t = dynamic_cast<Type *>(o)) != NULL &&
-	 deco == t->deco) &&			// deco strings are unique
+	(t && deco == t->deco) &&		// deco strings are unique
 	 deco != NULL)				// and semantic() has been run
     {
 	return 1;
@@ -62,6 +73,7 @@ int Type::equals(Object *o)
     //if (deco && t && t->deco) printf("deco = '%s', t->deco = '%s'\n", deco, t->deco);
     return 0;
 }
+
 
 void Type::init()
 {   int i;
@@ -336,6 +348,9 @@ int Type::checkBoolean()
 
 Expression *Type::defaultInit()
 {
+#if LOGDEFAULTINIT
+    printf("Type::defaultInit() '%s'\n", toChars());
+#endif
     return NULL;
 }
 
@@ -388,12 +403,12 @@ Expression *Type::dotExp(Scope *sc, Expression *e, Identifier *ident)
     if (e->op == TOKdotvar)
     {
 	DotVarExp *dv = (DotVarExp *)e;
-	v = dynamic_cast<VarDeclaration *>(dv->var);
+	v = dv->var->isVarDeclaration();
     }
     else if (e->op == TOKvar)
     {
 	VarExp *ve = (VarExp *)e;
-	v = dynamic_cast<VarDeclaration *>(ve->var);
+	v = ve->var->isVarDeclaration();
     }
     if (v)
     {
@@ -454,6 +469,11 @@ Identifier *Type::getTypeInfoIdent()
     sprintf(name, "_init_TypeInfo_%s", buf.data);
     id = Lexer::idPool(name);
     return id;
+}
+
+TypeBasic *Type::isTypeBasic()
+{
+    return NULL;
 }
 
 /* ============================= TypeBasic =========================== */
@@ -529,37 +549,37 @@ TypeBasic::TypeBasic(TY ty)
 			break;
 
 	case Tfloat80:	d = Token::toChars(TOKfloat80);
-			c = "extended";
+			c = "real";
 			flags |= TFLAGSfloating | TFLAGSreal;
 			break;
 
-	case Timaginary32: d = Token::toChars(TOKimaginary);
-			c = "imaginary32";
+	case Timaginary32: d = Token::toChars(TOKimaginary32);
+			c = "ifloat";
 			flags |= TFLAGSfloating | TFLAGSimaginary;
 			break;
 
-	case Timaginary64: d = Token::toChars(TOKimaginary);
-			c = "imaginary64";
+	case Timaginary64: d = Token::toChars(TOKimaginary64);
+			c = "idouble";
 			flags |= TFLAGSfloating | TFLAGSimaginary;
 			break;
 
-	case Timaginary80: d = Token::toChars(TOKimaginary);
-			c = "imaginary";
+	case Timaginary80: d = Token::toChars(TOKimaginary80);
+			c = "ireal";
 			flags |= TFLAGSfloating | TFLAGSimaginary;
 			break;
 
-	case Tcomplex32: d = Token::toChars(TOKcomplex);
-			c = "complex32";
+	case Tcomplex32: d = Token::toChars(TOKcomplex32);
+			c = "cfloat";
 			flags |= TFLAGSfloating | TFLAGScomplex;
 			break;
 
-	case Tcomplex64: d = Token::toChars(TOKcomplex);
-			c = "complex64";
+	case Tcomplex64: d = Token::toChars(TOKcomplex64);
+			c = "cdouble";
 			flags |= TFLAGSfloating | TFLAGScomplex;
 			break;
 
-	case Tcomplex80: d = Token::toChars(TOKcomplex);
-			c = "complex";
+	case Tcomplex80: d = Token::toChars(TOKcomplex80);
+			c = "creal";
 			flags |= TFLAGSfloating | TFLAGScomplex;
 			break;
 
@@ -747,7 +767,9 @@ Expression *TypeBasic::getProperty(Loc loc, Identifier *ident)
 	    case Timaginary80:
 	    case Tfloat32:
 	    case Tfloat64:
-	    case Tfloat80:	fvalue = NAN;		goto Lfvalue;
+	    case Tfloat80:
+		fvalue = NAN;
+		goto Lfvalue;
 	}
     }
     else if (ident == Id::infinity)
@@ -762,7 +784,13 @@ Expression *TypeBasic::getProperty(Loc loc, Identifier *ident)
 	    case Timaginary80:
 	    case Tfloat32:
 	    case Tfloat64:
-	    case Tfloat80:	fvalue = INFINITY;	goto Lfvalue;
+	    case Tfloat80:
+#if __GNUC__
+		fvalue = 1 / zero;
+#else
+		fvalue = INFINITY;
+#endif
+		goto Lfvalue;
 	}
     }
     else if (ident == Id::dig)
@@ -884,7 +912,17 @@ Lfvalue:
     else if (isimaginary())
 	e = new ImaginaryExp(0, fvalue, this);
     else
-	e = new ComplexExp(0, fvalue + fvalue * I, this);
+    {
+	complex_t cvalue;
+
+#if __DMC__
+	cvalue = fvalue + fvalue * I;
+#else
+	cvalue.re = fvalue;
+	cvalue.im = fvalue;
+#endif
+	e = new ComplexExp(0, cvalue, this);
+    }
     return e;
 
 Lint:
@@ -965,6 +1003,9 @@ Expression *TypeBasic::dotExp(Scope *sc, Expression *e, Identifier *ident)
 
 Expression *TypeBasic::defaultInit()
 {
+#if LOGDEFAULTINIT
+    printf("TypeBasic::defaultInit() '%s'\n", toChars());
+#endif
     switch (ty)
     {
 	case Timaginary32:
@@ -1027,13 +1068,18 @@ int TypeBasic::implicitConvTo(Type *to)
     //printf("TypeBasic::implicitConvTo()\n");
     if (this == to)
 	return MATCHexact;
-    if (!dynamic_cast<TypeBasic *>(to))
+    if (!to->isTypeBasic())
 	return MATCHnomatch;
     if (ty == Tvoid || to->ty == Tvoid)
 	return MATCHnomatch;
     if (to->ty == Tbit)
 	return MATCHnomatch;
     return MATCHconvert;
+}
+
+TypeBasic *TypeBasic::isTypeBasic()
+{
+    return (TypeBasic *)this;
 }
 
 /***************************** TypeArray *****************************/
@@ -1097,6 +1143,15 @@ Expression *TypeArray::dotExp(Scope *sc, Expression *e, Identifier *ident)
 void TypeArray::toCBuffer2(OutBuffer *buf, Identifier *ident)
 {
 #if 1
+    OutBuffer buf2;
+    toPrettyBracket(&buf2);
+    buf->prependstring(buf2.toChars());
+    if (ident)
+    {
+	buf->writestring(ident->toChars());
+    }
+    next->toCBuffer2(buf, NULL);
+#elif 1
     // The D way
     Type *t;
     OutBuffer buf2;
@@ -1264,6 +1319,9 @@ int TypeSArray::implicitConvTo(Type *to)
 
 Expression *TypeSArray::defaultInit()
 {
+#if LOGDEFAULTINIT
+    printf("TypeSArray::defaultInit() '%s'\n", toChars());
+#endif
     return next->defaultInit();
 }
 
@@ -1374,6 +1432,9 @@ int TypeDArray::implicitConvTo(Type *to)
 
 Expression *TypeDArray::defaultInit()
 {
+#if LOGDEFAULTINIT
+    printf("TypeDArray::defaultInit() '%s'\n", toChars());
+#endif
     Expression *e;
     e = new NullExp(0);
     e->type = this;
@@ -1576,6 +1637,9 @@ void TypeAArray::toPrettyBracket(OutBuffer *buf)
 
 Expression *TypeAArray::defaultInit()
 {
+#if LOGDEFAULTINIT
+    printf("TypeAArray::defaultInit() '%s'\n", toChars());
+#endif
     Expression *e;
     e = new NullExp(0);
     e->type = this;
@@ -1642,8 +1706,8 @@ int TypePointer::implicitConvTo(Type *to)
 	{   ClassDeclaration *cd;
 	    ClassDeclaration *cdto;
 
-	    cd   = dynamic_cast<TypeClass *>(next)->sym;
-	    cdto = dynamic_cast<TypeClass *>(to->next)->sym;
+	    cd   = ((TypeClass *)next)->sym;
+	    cdto = ((TypeClass *)to->next)->sym;
 	    if (cdto->isBaseOf(cd))
 		return 1;
 	}
@@ -1652,8 +1716,8 @@ int TypePointer::implicitConvTo(Type *to)
 	{   TypeFunction *tf;
 	    TypeFunction *tfto;
 
-	    tf   = dynamic_cast<TypeFunction *>(next);
-	    tfto = dynamic_cast<TypeFunction *>(to->next);
+	    tf   = (TypeFunction *)(next);
+	    tfto = (TypeFunction *)(to->next);
 	    return tfto->equals(tf) ? MATCHexact : MATCHnomatch;
 	}
     }
@@ -1667,6 +1731,9 @@ int TypePointer::isscalar()
 
 Expression *TypePointer::defaultInit()
 {
+#if LOGDEFAULTINIT
+    printf("TypePointer::defaultInit() '%s'\n", toChars());
+#endif
     Expression *e;
     e = new NullExp(0);
     e->type = this;
@@ -1721,6 +1788,9 @@ Expression *TypeReference::dotExp(Scope *sc, Expression *e, Identifier *ident)
 
 Expression *TypeReference::defaultInit()
 {
+#if LOGDEFAULTINIT
+    printf("TypeReference::defaultInit() '%s'\n", toChars());
+#endif
     Expression *e;
     e = new NullExp(0);
     e->type = this;
@@ -1759,6 +1829,68 @@ Type *TypeFunction::syntaxCopy()
     return t;
 }
 
+/*******************************
+ * Returns:
+ *	0	types are distinct
+ *	1	this is covariant with t
+ *	2	arguments match as far as overloading goes,
+ *		but types are not covariant
+ */
+
+int Type::covariant(Type *t)
+{
+    int inoutmismatch = 0;
+
+    if (equals(t))
+	goto Lcovariant;
+    if (ty != Tfunction || t->ty != Tfunction)
+	goto Ldistinct;
+
+    {
+    TypeFunction *t1 = (TypeFunction *)this;
+    TypeFunction *t2 = (TypeFunction *)t;
+
+    if (t1->varargs != t2->varargs)
+	goto Ldistinct;
+
+    if (t1->arguments && t2->arguments)
+    {
+	if (t1->arguments->dim != t2->arguments->dim)
+	    goto Ldistinct;
+
+	for (int i = 0; i < t1->arguments->dim; i++)
+	{   Argument *arg1 = (Argument *)t1->arguments->data[i];
+	    Argument *arg2 = (Argument *)t2->arguments->data[i];
+
+	    if (!arg1->type->equals(arg2->type))
+		goto Ldistinct;
+	    if (arg1->inout != arg2->inout)
+		inoutmismatch = 1;
+	}
+    }
+    else if (t1->arguments != t2->arguments)
+	goto Ldistinct;
+
+    // The argument lists match
+    if (inoutmismatch)
+	goto Lnotcovariant;
+    if (t1->linkage != t2->linkage)
+	goto Lnotcovariant;
+    if (t1->next->ty != Tclass || t2->next->ty != Tclass)
+	goto Lnotcovariant;
+    if (t1->next->implicitConvTo(t2->next))
+	goto Lcovariant;
+    }
+
+Lcovariant:
+    return 1;
+
+Ldistinct:
+    return 0;
+
+Lnotcovariant:
+    return 2;
+}
 
 void TypeFunction::toDecoBuffer(OutBuffer *buf)
 {   unsigned char mc;
@@ -1782,7 +1914,18 @@ void TypeFunction::toDecoBuffer(OutBuffer *buf)
 	{   Argument *arg;
 
 	    arg = (Argument *)arguments->data[i];
-	    // BUG: what about out and inout parameters?
+	    switch (arg->inout)
+	    {	case In:
+		    break;
+		case Out:
+		    buf->writeByte('J');
+		    break;
+		case InOut:
+		    buf->writeByte('K');
+		    break;
+		default:
+		    assert(0);
+	    }
 	    arg->type->toDecoBuffer(buf);
 	}
     }
@@ -1806,7 +1949,8 @@ void TypeFunction::toCBuffer2(OutBuffer *buf, Identifier *ident)
     }
 
     if (buf->offset)
-    {	if (p)
+    {
+	if (p)
 	    buf->prependstring(p);
 	buf->bracket('(', ')');
 	assert(!ident);
@@ -1820,6 +1964,12 @@ void TypeFunction::toCBuffer2(OutBuffer *buf, Identifier *ident)
 	    buf->writestring(ident->toChars());
 	}
     }
+    argsToCBuffer(buf);
+    next->toCBuffer2(buf, NULL);
+}
+
+void TypeFunction::argsToCBuffer(OutBuffer *buf)
+{
     buf->writeByte('(');
     if (arguments)
     {	int i;
@@ -1829,11 +1979,11 @@ void TypeFunction::toCBuffer2(OutBuffer *buf, Identifier *ident)
 	{   Argument *arg;
 
 	    arg = (Argument *)arguments->data[i];
-	    argbuf.reset();
 	    if (arg->inout == Out)
-		argbuf.writestring("out ");
+		buf->writestring("out ");
 	    else if (arg->inout == InOut)
-		argbuf.writestring("inout ");
+		buf->writestring("inout ");
+	    argbuf.reset();
 	    arg->type->toCBuffer2(&argbuf, arg->ident);
 	    if (i)
 		buf->writeByte(',');
@@ -1847,7 +1997,6 @@ void TypeFunction::toCBuffer2(OutBuffer *buf, Identifier *ident)
 	}
     }
     buf->writeByte(')');
-    next->toCBuffer2(buf, NULL);
 }
 
 Type *TypeFunction::semantic(Loc loc, Scope *sc)
@@ -1938,6 +2087,7 @@ int TypeFunction::callMatch(Array *toargs)
 	    match = m;			// pick worst match
     }
 
+    //printf("match = %d\n", match);
     return match;
 
 Nomatch:
@@ -1981,15 +2131,32 @@ unsigned TypeDelegate::size()
 
 void TypeDelegate::toCBuffer2(OutBuffer *buf, Identifier *ident)
 {
+#if 1
+    OutBuffer args;
+    TypeFunction *tf = (TypeFunction *)next;
+
+    tf->argsToCBuffer(&args);
+    buf->prependstring(args.toChars());
+    buf->prependstring(" delegate");
+    if (ident)
+    {
+	buf->writestring(ident->toChars());
+    }
+    next->next->toCBuffer2(buf, NULL);
+#else
     next->toCBuffer2(buf, Id::delegate);
     if (ident)
     {
 	buf->writestring(ident->toChars());
     }
+#endif
 }
 
 Expression *TypeDelegate::defaultInit()
 {
+#if LOGDEFAULTINIT
+    printf("TypeDelegate::defaultInit() '%s'\n", toChars());
+#endif
     Expression *e;
     e = new NullExp(0);
     e->type = this;
@@ -2072,7 +2239,6 @@ void TypeIdentifier::resolve(Scope *sc, Expression **pe, Type **pt)
     {
 	//printf("\ts = '%s' %p\n",s->toChars(), s);
 
-	assert(!dynamic_cast<WithScopeSymbol *>(scopesym));	// BUG: should handle this
 
 	s = s->toAlias();
 	for (i = 1; i < idents.dim; i++)
@@ -2101,22 +2267,25 @@ void TypeIdentifier::resolve(Scope *sc, Expression **pe, Type **pt)
 	    s = sm->toAlias();
 	}
 
-	v = dynamic_cast<VarDeclaration *>(s);
+	v = s->isVarDeclaration();
 	if (v)
 	{
 	    // It's not a type, it's an expression
 	    if (v->isConst())
 	    {
-		ExpInitializer *ei = dynamic_cast<ExpInitializer *>(v->init);
+		ExpInitializer *ei = v->init->isExpInitializer();
 		assert(ei);
 		*pe = ei->exp->copy();	// make copy so we can change loc
 		(*pe)->loc = loc;
 	    }
 	    else
+	    {
 		*pe = new VarExp(loc, v);
+		assert(!scopesym->isWithScopeSymbol());	// BUG: should handle this
+	    }
 	    return;
 	}
-	em = dynamic_cast<EnumMember *>(s);
+	em = s->isEnumMember();
 	if (em)
 	{
 	    // It's not a type, it's an expression
@@ -2131,7 +2300,7 @@ L1:
 	    // If the symbol is an import, try looking inside the import
 	    Import *si;
 
-	    si = dynamic_cast<Import *>(s);
+	    si = s->isImport();
 	    if (si)
 	    {
 		s = si->search(id);
@@ -2239,10 +2408,16 @@ void TypeInstance::resolve(Scope *sc, Expression **pe, Type **pt)
     Type *t;
     Expression *e;
 
-    id = (Identifier *)idents.data[0];
-    //printf("TypeInstance::resolve(sc = %p, idents = '%s')\n", sc, id->toChars());
     *pe = NULL;
     *pt = NULL;
+
+    if (!idents.dim)
+    {
+	error(loc, "template instance '%s' has no identifier", toChars());
+	return;
+    }
+    id = (Identifier *)idents.data[0];
+    //printf("TypeInstance::resolve(sc = %p, idents = '%s')\n", sc, id->toChars());
     s = tempinst;
     if (s)
     {
@@ -2275,13 +2450,13 @@ void TypeInstance::resolve(Scope *sc, Expression **pe, Type **pt)
 	    s = sm->toAlias();
 	}
 
-	v = dynamic_cast<VarDeclaration *>(s);
+	v = s->isVarDeclaration();
 	if (v)
 	{
 	    // It's not a type, it's an expression
 	    if (v->isConst())
 	    {
-		ExpInitializer *ei = dynamic_cast<ExpInitializer *>(v->init);
+		ExpInitializer *ei = v->init->isExpInitializer();
 		assert(ei);
 		*pe = ei->exp->copy();	// make copy so we can change loc
 		(*pe)->loc = loc;
@@ -2290,7 +2465,7 @@ void TypeInstance::resolve(Scope *sc, Expression **pe, Type **pt)
 		*pe = new VarExp(loc, v);
 	    return;
 	}
-	em = dynamic_cast<EnumMember *>(s);
+	em = s->isEnumMember();
 	if (em)
 	{
 	    // It's not a type, it's an expression
@@ -2305,7 +2480,7 @@ L1:
 	    // If the symbol is an import, try looking inside the import
 	    Import *si;
 
-	    si = dynamic_cast<Import *>(s);
+	    si = s->isImport();
 	    if (si)
 	    {
 		s = si->search(id);
@@ -2421,12 +2596,15 @@ Expression *TypeEnum::dotExp(Scope *sc, Expression *e, Identifier *ident)
     Dsymbol *s;
     Expression *em;
 
+#if LOGDOTEXP
+    printf("TypeEnum::dotExp(e = '%s', ident = '%s') '%s'\n", e->toChars(), ident->toChars(), toChars());
+#endif
     s = sym->symtab->lookup(ident);
     if (!s)
     {
 	return getProperty(e->loc, ident);
     }
-    m = dynamic_cast<EnumMember *>(s);
+    m = s->isEnumMember();
     em = m->value->copy();
     em->loc = e->loc;
     return em;
@@ -2486,6 +2664,9 @@ int TypeEnum::implicitConvTo(Type *to)
 
 Expression *TypeEnum::defaultInit()
 {
+#if LOGDEFAULTINIT
+    printf("TypeEnum::defaultInit() '%s'\n", toChars());
+#endif
     // Initialize to first member of enum
     Expression *e;
     e = new IntegerExp(0, sym->defaultval, this);
@@ -2526,7 +2707,7 @@ void TypeTypedef::toDecoBuffer(OutBuffer *buf)
 {   unsigned len;
     char *name;
 
-    name = sym->toChars();
+    name = sym->mangle();
     len = strlen(name);
     buf->printf("%c%d%s", mangleChar[ty], len, name);
 }
@@ -2546,12 +2727,15 @@ void TypeTypedef::toCBuffer2(OutBuffer *buf, Identifier *ident)
 
 Expression *TypeTypedef::dotExp(Scope *sc, Expression *e, Identifier *ident)
 {
+#if LOGDOTEXP
+    printf("TypeTypedef::dotExp(e = '%s', ident = '%s') '%s'\n", e->toChars(), ident->toChars(), toChars());
+#endif
     if (ident == Id::init)
     {
 	if (e->op == TOKvar)
 	{
 	    VarExp *ve = (VarExp *)e;
-	    VarDeclaration *v = dynamic_cast<VarDeclaration *>(ve->var);
+	    VarDeclaration *v = ve->var->isVarDeclaration();
 
 	    assert(v);
 	    if (v->init)
@@ -2617,8 +2801,14 @@ Expression *TypeTypedef::defaultInit()
 {   Expression *e;
     Type *bt;
 
+#if LOGDEFAULTINIT
+    printf("TypeTypedef::defaultInit() '%s'\n", toChars());
+#endif
     if (sym->init)
+    {
+	//sym->init->toExpression()->print();
 	return sym->init->toExpression();
+    }
     bt = sym->basetype;
     e = bt->defaultInit();
     e->type = this;
@@ -2705,9 +2895,9 @@ Expression *TypeStruct::dotExp(Scope *sc, Expression *e, Identifier *ident)
     {
 	return getProperty(e->loc, ident);
     }
-    v = dynamic_cast<VarDeclaration *>(s);
+    v = s->isVarDeclaration();
     if (v && v->isConst())
-    {	ExpInitializer *ei = dynamic_cast<ExpInitializer *>(v->init);
+    {	ExpInitializer *ei = v->init->isExpInitializer();
 
 	if (ei)
 	    return ei->exp;
@@ -2718,14 +2908,14 @@ Expression *TypeStruct::dotExp(Scope *sc, Expression *e, Identifier *ident)
 	return new DotTypeExp(e->loc, e, s);
     }
 
-    EnumMember *em = dynamic_cast<EnumMember *>(s);
+    EnumMember *em = s->isEnumMember();
     if (em)
     {
 	assert(em->value);
 	return em->value->copy();
     }
 
-    d = dynamic_cast<Declaration *>(s);
+    d = s->isDeclaration();
     assert(d);
 
     if (e->op == TOKtype)
@@ -2775,6 +2965,9 @@ Expression *TypeStruct::defaultInit()
 {   Symbol *s;
     Declaration *d;
 
+#if LOGDEFAULTINIT
+    printf("TypeStruct::defaultInit() '%s'\n", toChars());
+#endif
     s = sym->toInitializer();
     d = new SymbolDeclaration(sym->loc, s);
     assert(d);
@@ -2844,7 +3037,7 @@ Expression *TypeClass::dotExp(Scope *sc, Expression *e, Identifier *ident)
 	{
 	    if (cbase->ident->equals(ident))
 	    {
-		e = new DotTypeExp(NULL, e, cbase);
+		e = new DotTypeExp(0, e, cbase);
 		return e;
 	    }
 	}
@@ -2865,7 +3058,7 @@ Expression *TypeClass::dotExp(Scope *sc, Expression *e, Identifier *ident)
 	    }
 	    else
 	    {
-		if (sym->isInterface())
+		if (sym->isInterfaceDeclaration())
 		    error(e->loc, "no .classinfo for interface objects");
 		e = new PtrExp(e->loc, e);
 		e->type = t->pointerTo();
@@ -2876,9 +3069,9 @@ Expression *TypeClass::dotExp(Scope *sc, Expression *e, Identifier *ident)
 
 	return getProperty(e->loc, ident);
     }
-    v = dynamic_cast<VarDeclaration *>(s);
+    v = s->isVarDeclaration();
     if (v && v->isConst())
-    {	ExpInitializer *ei = dynamic_cast<ExpInitializer *>(v->init);
+    {	ExpInitializer *ei = v->init->isExpInitializer();
 
 	assert(ei);
 	return ei->exp;
@@ -2886,17 +3079,19 @@ Expression *TypeClass::dotExp(Scope *sc, Expression *e, Identifier *ident)
 
     if (s->getType())
     {
+	if (e->op == TOKtype)
+	    return new TypeExp(e->loc, s->getType());
 	return new DotTypeExp(e->loc, e, s);
     }
 
-    EnumMember *em = dynamic_cast<EnumMember *>(s);
+    EnumMember *em = s->isEnumMember();
     if (em)
     {
 	assert(em->value);
 	return em->value->copy();
     }
 
-    d = dynamic_cast<Declaration *>(s);
+    d = s->isDeclaration();
     assert(d);
 
     if (e->op == TOKtype)
@@ -2908,7 +3103,7 @@ Expression *TypeClass::dotExp(Scope *sc, Expression *e, Identifier *ident)
 	    if (sc->func)
 	    {
 		ClassDeclaration *thiscd;
-		thiscd = dynamic_cast<ClassDeclaration *>(sc->func->parent);
+		thiscd = sc->func->parent->isClassDeclaration();
 
 		if (thiscd)
 		{
@@ -2973,7 +3168,9 @@ int TypeClass::implicitConvTo(Type *to)
 
 Expression *TypeClass::defaultInit()
 {
-    //printf("TypeClass::defaultInit()\n");
+#if LOGDEFAULTINIT
+    printf("TypeClass::defaultInit() '%s'\n", toChars());
+#endif
     Expression *e;
     e = new NullExp(0);
     e->type = this;

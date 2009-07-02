@@ -39,7 +39,7 @@ char *Declaration::mangle()
 	Dsymbol *s;
 
 	//printf("Declaration::mangle(parent = %p)\n", parent);
-	if (!parent || dynamic_cast<Module *>(parent))	// if at global scope
+	if (!parent || parent->isModule())	// if at global scope
 	{
 	    // If it's not a D declaration, no mangling
 	    switch (linkage)
@@ -113,6 +113,28 @@ char *StructDeclaration::mangle()
 }
 
 
+char *TypedefDeclaration::mangle()
+{
+    char *id;
+
+    //printf("TypedefDeclaration::mangle() '%s'\n", toChars());
+    if (parent)
+    {
+	OutBuffer buf;
+
+	//printf("  parent = '%s', kind = '%s'\n", parent->mangle(), parent->kind());
+	buf.writestring(parent->mangle());
+	buf.writestring("_");
+	buf.writestring(ident ? ident->toChars() : toChars());
+	id = buf.toChars();
+	buf.data = NULL;
+    }
+    else
+	id = ident ? ident->toChars() : toChars();
+    return id;
+}
+
+
 char *ClassDeclaration::mangle()
 {
     OutBuffer buf;
@@ -124,7 +146,9 @@ char *ClassDeclaration::mangle()
     {
 	buf.prependstring(s->ident ? s->ident->toChars() : s->toChars());
 	s = s->parent;
-	if (!s || !dynamic_cast<TemplateInstance *>(s))
+	if (!s ||
+	    (!s->isTemplateInstance() &&
+		!s->isClassDeclaration()))
 	    break;
 	buf.prependstring("_");
     }

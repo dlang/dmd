@@ -28,11 +28,17 @@ struct Lstring
     // No constructors because we want to be able to statically
     // initialize Lstring's, and Lstrings are of variable size.
 
-    #if UNICODE
+    #if M_UNICODE
     #define LSTRING(p,length) { length, L##p }
     #else
     #define LSTRING(p,length) { length, p }
     #endif
+
+#if __GNUC__
+    #define LSTRING_EMPTY() { 0 }
+#else
+    #define LSTRING_EMPTY() LSTRING("", 0)
+#endif
 
     static Lstring *ctor(const dchar *p) { return ctor(p, Dchar::len(p)); }
     static Lstring *ctor(const dchar *p, unsigned length);

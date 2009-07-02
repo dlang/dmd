@@ -27,10 +27,36 @@ void *Scope::operator new(size_t size)
     return ::operator new(size);
 }
 
+Scope::Scope()
+{   // Create root scope
+
+    this->module = NULL;
+    this->scopesym = NULL;
+    this->enclosing = NULL;
+    this->parent = NULL;
+    this->sw = NULL;
+    this->sbreak = NULL;
+    this->scontinue = NULL;
+    this->structalign = global.structalign;
+    this->func = NULL;
+    this->slabel = NULL;
+    this->linkage = LINKd;
+    this->protection = PROTpublic;
+    this->stc = 0;
+    this->offset = 0;
+    this->inunion = 0;
+    this->incontract = 0;
+    this->nofree = 0;
+    this->noctor = 0;
+    this->callSuper = 0;
+    this->flags = 0;
+}
+
 Scope::Scope(Scope *enclosing)
 {
     this->module = enclosing->module;
     this->func   = enclosing->func;
+    this->parent = enclosing->parent;
     this->scopesym = NULL;
     this->sw = enclosing->sw;
     this->sbreak = enclosing->sbreak;
@@ -51,12 +77,14 @@ Scope::Scope(Scope *enclosing)
     assert(this != enclosing);
 }
 
+#if 0
 Scope::Scope(Module *module)
 {   // Create root scope
 
     this->module = module;
     this->scopesym = module;
     this->enclosing = NULL;
+    this->parent = NULL;
     this->sw = NULL;
     this->sbreak = NULL;
     this->scontinue = NULL;
@@ -73,6 +101,23 @@ Scope::Scope(Module *module)
     this->noctor = 0;
     this->callSuper = 0;
     this->flags = 0;
+}
+#endif
+
+Scope *Scope::createGlobal(Module *module)
+{
+    Scope *sc;
+
+    sc = new Scope();
+    sc->module = module;
+    sc->scopesym = new ScopeDsymbol();
+    sc->scopesym->symtab = new DsymbolTable();
+    module->addMember(sc->scopesym);
+    module->parent = NULL;
+
+    sc = sc->push(module);
+    sc->parent = module;
+    return sc;
 }
 
 Scope *Scope::push()
@@ -166,8 +211,10 @@ Dsymbol *Scope::insert(Dsymbol *s)
 
     for (sc = this; sc; sc = sc->enclosing)
     {
+	//printf("\tsc = %p\n", sc);
 	if (sc->scopesym)
 	{
+	    //printf("\t\tsc->scopesym = %p\n", sc->scopesym);
 	    if (!sc->scopesym->symtab)
 		sc->scopesym->symtab = new DsymbolTable();
 	    return sc->scopesym->symtab->insert(s);
@@ -190,7 +237,7 @@ ClassDeclaration *Scope::getClassScope()
 	
 	if (sc->scopesym)
 	{
-	    cd = dynamic_cast<ClassDeclaration *>(sc->scopesym);
+	    cd = sc->scopesym->isClassDeclaration();
 	    if (cd)
 		return cd;
 	}

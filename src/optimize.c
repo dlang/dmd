@@ -38,11 +38,11 @@ Expression *UnaExp::optimize(int result)
 Expression *AddrExp::optimize(int result)
 {   Expression *e;
 
+    //printf("AddrExp::optimize(result = %d) %s\n", result, toChars());
     e1 = e1->optimize(result);
     // Convert &*ex to ex
     if (e1->op == TOKstar)
-    {	Expression *e;
-	Expression *ex;
+    {	Expression *ex;
 
 	ex = ((PtrExp *)e1)->e1;
 	if (type->equals(ex->type))
@@ -61,6 +61,26 @@ Expression *AddrExp::optimize(int result)
 	    e = new SymOffExp(loc, ve->var, 0);
 	    e->type = type;
 	    return e;
+	}
+    }
+    if (e1->op == TOKarray)
+    {	// Convert &array[n] to #array+n
+	ArrayExp *ae = (ArrayExp *)e1;
+
+	if (ae->e2->op == TOKint64 && ae->e1->op == TOKvar)
+	{
+	    integer_t index = ae->e2->toInteger();
+	    VarExp *ve = (VarExp *)ae->e1;
+	    if (ve->type->ty == Tsarray && ve->type->next->ty != Tbit)
+	    {
+		TypeSArray *ts = (TypeSArray *)ve->type;
+		integer_t dim = ts->dim->toInteger();
+		if (index < 0 || index >= dim)
+		    error("array index %lld is out of bounds [0..%lld]", index, dim);
+		e = new SymOffExp(loc, ve->var, index * ts->next->size());
+		e->type = type;
+		return e;
+	    }
 	}
     }
     return this;
@@ -204,7 +224,7 @@ Expression *CatExp::optimize(int result)
 	StringExp *es;
 	Type *t;
 
-	s = mem.malloc((es1->len + es2->len + 1) * sizeof(s[0]));
+	s = (wchar_t *) mem.malloc((es1->len + es2->len + 1) * sizeof(s[0]));
 	memcpy(s, es1->string, es1->len * sizeof(s[0]));
 	memcpy(s + es1->len, es2->string, es2->len * sizeof(s[0]));
 

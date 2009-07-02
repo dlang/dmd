@@ -7,7 +7,12 @@
 // in artistic.txt, or the GNU General Public License in gnu.txt.
 // See the included readme.txt for details.
 
+#ifndef DMD_MODULE_H
+#define DMD_MODULE_H
+
+#ifdef __DMC__
 #pragma once
+#endif /* __DMC__ */
 
 #include "root.h"
 #include "dsymbol.h"
@@ -25,6 +30,8 @@ struct Package : ScopeDsymbol
     char *kind();
 
     static DsymbolTable *resolve(Array *packages, Dsymbol **pparent, Package **ppkg);
+
+    Package *isPackage() { return this; }
 };
 
 struct Module : Package
@@ -87,6 +94,8 @@ struct Module : Package
 
     Symbol *toSymbol();
     void genmoduleinfo();
+
+    Module *isModule() { return this; }
 };
 
 
@@ -100,3 +109,4 @@ struct ModuleDeclaration
     char *toChars();
 };
 
+#endif /* DMD_MODULE_H */

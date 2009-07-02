@@ -12,7 +12,13 @@
 #include <assert.h>
 #include <complex.h>
 
+#if linux
+#include "../root/mem.h"
+#endif
+#if _WIN32
 #include "..\root\mem.h"
+#endif
+
 #include "port.h"
 #include "mtype.h"
 #include "init.h"
@@ -89,13 +95,13 @@ Identifier *UshrExp::opId()   { return Id::ushr; }
 Identifier *UshrExp::opId_r() { return Id::ushr_r; }
 
 int AndExp::isCommutative()  { return TRUE; }
-Identifier *AndExp::opId()   { return Id::and; }
+Identifier *AndExp::opId()   { return Id::iand; }
 
 int OrExp::isCommutative()  { return TRUE; }
-Identifier *OrExp::opId()   { return Id::or; }
+Identifier *OrExp::opId()   { return Id::ior; }
 
 int XorExp::isCommutative()  { return TRUE; }
-Identifier *XorExp::opId()   { return Id::xor; }
+Identifier *XorExp::opId()   { return Id::ixor; }
 
 Identifier *CatExp::opId()   { return Id::cat; }
 Identifier *CatExp::opId_r() { return Id::cat_r; }
@@ -286,7 +292,7 @@ static FuncDeclaration *search_function(AggregateDeclaration *ad, Identifier *fu
     s = ad->search(funcid);
     if (s)
     {
-	fd = dynamic_cast<FuncDeclaration *>(s);
+	fd = s->isFuncDeclaration();
 	if (fd && fd->type->ty == Tfunction)
 	    return fd;
 

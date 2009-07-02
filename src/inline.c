@@ -68,8 +68,8 @@ int IfStatement::inlineCost(InlineCostState *ics)
      */
 
     if (elsebody &&
-	dynamic_cast<ReturnStatement *>(ifbody) &&
-	dynamic_cast<ReturnStatement *>(elsebody))
+	ifbody->isReturnStatement() &&
+	elsebody->isReturnStatement())
     {
 	cost += ifbody->inlineCost(ics);
 	cost += elsebody->inlineCost(ics);
@@ -105,7 +105,7 @@ int DeclarationExp::inlineCost(InlineCostState *ics)
 {   int cost = 0;
     VarDeclaration *vd;
 
-    vd = dynamic_cast<VarDeclaration *>(declaration);
+    vd = declaration->isVarDeclaration();
     if (vd)
     {
 	if (vd->isStatic())
@@ -176,6 +176,7 @@ struct InlineDoState
     VarDeclaration *vthis;
     Array from;		// old Dsymbols
     Array to;		// parallel array of new Dsymbols
+    Dsymbol *parent;	// new parent
 };
 
 Expression *Statement::doInline(InlineDoState *ids)
@@ -202,7 +203,7 @@ Expression *CompoundStatement::doInline(InlineDoState *ids)
 	{
 	    e2 = s->doInline(ids);
 	    e = Expression::combine(e, e2);
-	    if (dynamic_cast<ReturnStatement *>(s))
+	    if (s->isReturnStatement())
 		break;
 	}
     }
@@ -292,7 +293,7 @@ Expression *DeclarationExp::doInline(InlineDoState *ids)
 {   DeclarationExp *de = (DeclarationExp *)copy();
     VarDeclaration *vd;
 
-    vd = dynamic_cast<VarDeclaration *>(declaration);
+    vd = declaration->isVarDeclaration();
     if (vd)
     {
 	if (vd->isStatic() || vd->isConst())
@@ -305,18 +306,19 @@ Expression *DeclarationExp::doInline(InlineDoState *ids)
 
 	    vto = new VarDeclaration(vd->loc, vd->type, vd->ident, vd->init);
 	    *vto = *vd;
+	    vto->parent = ids->parent;
 	    vto->csym = NULL;
 	    vto->isym = NULL;
 
 	    ids->from.push(vd);
 	    ids->to.push(vto);
 
-	    ie = dynamic_cast<ExpInitializer *>(vd->init);
+	    ie = vd->init->isExpInitializer();
 	    assert(ie);
 	    ieto = new ExpInitializer(ie->loc, ie->exp->doInline(ids));
 	    vto->init = ieto;
 
-	    de->declaration = (void *)vto;
+	    de->declaration = (Dsymbol *) (void *)vto;
 	}
     }
     return de;
@@ -619,21 +621,21 @@ Expression *CallExp::inlineScan(InlineScanState *iss)
     if (e1->op == TOKvar)
     {
 	VarExp *ve = (VarExp *)e1;
-	FuncDeclaration *fd = dynamic_cast<FuncDeclaration *>(ve->var);
+	FuncDeclaration *fd = ve->var->isFuncDeclaration();
 
 	if (fd && fd != iss->fd && fd->canInline())
 	{
-	    e = fd->doInline(NULL, arguments);
+	    e = fd->doInline(iss, NULL, arguments);
 	}
     }
     else if (e1->op == TOKdotvar)
     {
 	DotVarExp *dve = (DotVarExp *)e1;
-	FuncDeclaration *fd = dynamic_cast<FuncDeclaration *>(dve->var);
+	FuncDeclaration *fd = dve->var->isFuncDeclaration();
 
 	if (fd && fd != iss->fd && fd->canInline())
 	{
-	    e = fd->doInline(dve->e1, arguments);
+	    e = fd->doInline(iss, dve->e1, arguments);
 	}
     }
 
@@ -704,20 +706,21 @@ int FuncDeclaration::canInline()
 	    assert(0);
     }
 
-    TypeFunction *tf = dynamic_cast<TypeFunction *>(type);
-    assert(tf);
+    assert(type->ty == Tfunction);
+    TypeFunction *tf = (TypeFunction *)(type);
 
     if (
 #if 0
-	isConstructor() ||	// cannot because need to convert:
+	isCtorDeclaration() ||	// cannot because need to convert:
 				//	return;
 				// to:
 				//	return this;
 #endif
 	isSynchronized() ||
-	isImport() ||
+	isImportedSymbol() ||
 	!fbody ||
 	tf->varargs ||		// no variadic parameter lists
+	nestedFrameRef ||	// no nested references to this frame
 	(isVirtual() && !isFinal())
        )
 	goto Lno;
@@ -744,7 +747,7 @@ Lno:
     return 0;
 }
 
-Expression *FuncDeclaration::doInline(Expression *ethis, Array *arguments)
+Expression *FuncDeclaration::doInline(InlineScanState *iss, Expression *ethis, Array *arguments)
 {
     InlineDoState ids;
     DeclarationExp *de;
@@ -755,6 +758,7 @@ Expression *FuncDeclaration::doInline(Expression *ethis, Array *arguments)
 #endif
 
     memset(&ids, 0, sizeof(ids));
+    ids.parent = iss->fd;
 
     // Set up vthis
     if (ethis)
@@ -773,6 +777,7 @@ Expression *FuncDeclaration::doInline(Expression *ethis, Array *arguments)
 	vthis = new VarDeclaration(ethis->loc, ethis->type, Id::This, ei);
 	vthis->storage_class = STCin;
 	vthis->linkage = LINKd;
+	vthis->parent = iss->fd;
 
 	ve = new VarExp(vthis->loc, vthis);
 	ve->type = vthis->type;
@@ -807,6 +812,7 @@ Expression *FuncDeclaration::doInline(Expression *ethis, Array *arguments)
 	    vto = new VarDeclaration(vfrom->loc, vfrom->type, vfrom->ident, ei);
 	    vto->storage_class |= vfrom->storage_class & (STCin | STCout);
 	    vto->linkage = vfrom->linkage;
+	    vto->parent = iss->fd;
 
 	    ve = new VarExp(vto->loc, vto);
 	    ve->type = vto->type;

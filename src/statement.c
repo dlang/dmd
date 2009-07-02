@@ -182,11 +182,10 @@ Statement *DeclarationStatement::callAutoDtor()
 
     if (exp)
     {
-	DeclarationExp *de = dynamic_cast<DeclarationExp *>(exp);
-
-	if (de)
+	if (exp->op == TOKdeclaration)
 	{
-	    VarDeclaration *v = dynamic_cast<VarDeclaration *>(de->declaration);
+	    DeclarationExp *de = (DeclarationExp *)(exp);
+	    VarDeclaration *v = de->declaration->isVarDeclaration();
 	    if (v)
 	    {	Expression *e;
 
@@ -763,13 +762,23 @@ Statement *CaseStatement::semantic(Scope *sc)
     exp = exp->semantic(sc);
     if (sc->sw)
     {
-	sc->sw->cases->push(this);
-	// BUG: should check for duplicate cases
 	exp = exp->implicitCastTo(sc->sw->condition->type);
+	exp = exp->constFold();
+
+	for (int i = 0; i < sc->sw->cases->dim; i++)
+	{
+	    CaseStatement *cs = (CaseStatement *)sc->sw->cases->data[i];
+
+	    if (cs->exp->equals(exp))
+	    {	error("duplicate case %s in switch statement", exp->toChars());
+		break;
+	    }
+	}
+
+	sc->sw->cases->push(this);
     }
     else
 	error("case not in switch statement");
-    exp = exp->constFold();
     statement = statement->semantic(sc);
     return this;
 }
@@ -777,8 +786,7 @@ Statement *CaseStatement::semantic(Scope *sc)
 int CaseStatement::compare(Object *obj)
 {
     // Sort cases so we can do an efficient lookup
-    CaseStatement *cs2 = dynamic_cast<CaseStatement *>(obj);
-    assert(cs2);
+    CaseStatement *cs2 = (CaseStatement *)(obj);
 
     return exp->compare(cs2->exp);
 }
@@ -847,12 +855,14 @@ Statement *ReturnStatement::syntaxCopy()
 
 Statement *ReturnStatement::semantic(Scope *sc)
 {
-    assert(sc->func);
+    FuncDeclaration *fd = sc->parent->isFuncDeclaration();
+
+    assert(fd);
 
     if (sc->incontract)
 	error("return statements cannot be in contracts");
 
-    if (sc->func->type->next->ty == Tvoid)	// if void return
+    if (fd->type->next->ty == Tvoid)	// if void return
     {
 	if (exp)
 	{   error("cannot return value from void function");
@@ -861,7 +871,7 @@ Statement *ReturnStatement::semantic(Scope *sc)
     }
     else
     {
-	if (sc->func->isConstructor())
+	if (fd->isCtorDeclaration())
 	{
 	    // Constructors implicity do:
 	    //	return this;
@@ -872,20 +882,20 @@ Statement *ReturnStatement::semantic(Scope *sc)
 
 	if (exp)
 	{
-	    sc->func->hasReturnExp = 1;
+	    fd->hasReturnExp = 1;
 
-	    if (sc->func->vresult)
+	    if (fd->vresult)
 	    {
-		VarExp *v = new VarExp(0, sc->func->vresult);
+		VarExp *v = new VarExp(0, fd->vresult);
 
 		exp = new AssignExp(loc, v, exp);
 		exp = exp->semantic(sc);
-		assert(sc->func->returnLabel);
+		assert(fd->returnLabel);
 	    }
 	    else
 	    {
 		exp = exp->semantic(sc);
-		exp = exp->implicitCastTo(sc->func->type->next);
+		exp = exp->implicitCastTo(fd->type->next);
 	    }
 	}
 	else
@@ -905,11 +915,11 @@ Statement *ReturnStatement::semantic(Scope *sc)
     sc->callSuper |= CSXreturn;
 
     // See if all returns are instead to be replaced with a goto returnLabel;
-    if (sc->func->returnLabel)
+    if (fd->returnLabel)
     {
 	GotoStatement *gs = new GotoStatement(loc, Id::returnLabel);
 
-	gs->label = sc->func->returnLabel;
+	gs->label = fd->returnLabel;
 	if (exp)
 	{   Statement *s;
 
@@ -1211,6 +1221,7 @@ void Catch::semantic(Scope *sc)
     else if (ident)
     {
 	var = new VarDeclaration(loc, type, ident, NULL);
+	var->parent = sc->parent;
 	sc->insert(var);
     }
     handler = handler->semantic(sc);
@@ -1342,8 +1353,9 @@ Statement *GotoStatement::syntaxCopy()
 }
 
 Statement *GotoStatement::semantic(Scope *sc)
-{
-    label = sc->func->searchLabel(ident);
+{   FuncDeclaration *fd = sc->parent->isFuncDeclaration();
+
+    label = fd->searchLabel(ident);
     if (!label)
 	error("label '%s' not found\n", ident->toChars());
     return this;
@@ -1368,12 +1380,13 @@ Statement *LabelStatement::syntaxCopy()
 
 Statement *LabelStatement::semantic(Scope *sc)
 {   LabelDsymbol *ls;
+    FuncDeclaration *fd = sc->parent->isFuncDeclaration();
 
     sc = sc->push();
     sc->callSuper |= CSXlabel;
     sc->slabel = this;
     statement = statement->semantic(sc);
-    ls = sc->func->searchLabel(ident);
+    ls = fd->searchLabel(ident);
     sc->pop();
     if (ls->statement)
 	error("Label '%s' already defined", ls->toChars());

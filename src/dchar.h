@@ -11,6 +11,10 @@
 #ifndef DCHAR_H
 #define DCHAR_H
 
+#if __GNUC__
+#include "gnuc.h"
+#endif
+
 #if _MSC_VER
     // Disable useless warnings about unreferenced functions
     #pragma warning (disable : 4514)
@@ -22,7 +26,7 @@
 
 // NOTE: All functions accepting pointer arguments must not be NULL
 
-#if UNICODE
+#if M_UNICODE
 
 #include <string.h>
 #include <wchar.h>
@@ -170,7 +174,11 @@ struct Dchar
     static unsigned calcHash(const dchar *str, unsigned len);
 
     // Case insensitive versions
+#ifdef __GNUC__
+    static int icmp(dchar *s1, dchar *s2) { return strcasecmp(s1, s2); }
+#else
     static int icmp(dchar *s1, dchar *s2) { return stricmp(s1, s2); }
+#endif
     static int memicmp(const dchar *s1, const dchar *s2, int nchars) { return ::memicmp(s1, s2, nchars); }
     static unsigned icalcHash(const dchar *str, unsigned len);
 };

@@ -320,7 +320,7 @@ dt_t **RealExp::toDt(dt_t **pdt)
     d_float80 evalue;
 
     //printf("RealExp::toDt(%Lg)\n", value);
-    switch (type->ty)
+    switch (type->toBasetype()->ty)
     {
 	case Tfloat32:
 	    fvalue = value;
@@ -338,6 +338,8 @@ dt_t **RealExp::toDt(dt_t **pdt)
 	    break;
 
 	default:
+	    printf("%s\n", toChars());
+	    type->print();
 	    assert(0);
 	    break;
     }
@@ -350,7 +352,7 @@ dt_t **ImaginaryExp::toDt(dt_t **pdt)
     d_float64 dvalue;
     d_float80 evalue;
 
-    switch (type->ty)
+    switch (type->toBasetype()->ty)
     {
 	case Timaginary32:
 	    fvalue = value;
@@ -380,7 +382,7 @@ dt_t **ComplexExp::toDt(dt_t **pdt)
     d_float64 dvalue;
     d_float80 evalue;
 
-    switch (type->ty)
+    switch (type->toBasetype()->ty)
     {
 	case Tcomplex32:
 	    fvalue = creall(value);
@@ -475,12 +477,16 @@ dt_t **SymOffExp::toDt(dt_t **pdt)
 
 void ClassDeclaration::toDt(dt_t **pdt)
 {
+    //printf("ClassDeclaration::toDt(this = '%s')\n", toChars());
+
     // Put in first two members, the vtbl[] and the monitor
     dtxoff(pdt, toVtblSymbol(), 0, TYnptr);
     dtdword(pdt, 0);			// monitor
 
     // Put in the rest
     toDt2(pdt, this);
+
+    //printf("-ClassDeclaration::toDt(this = '%s')\n", toChars());
 }
 
 void ClassDeclaration::toDt2(dt_t **pdt, ClassDeclaration *cd)
@@ -614,6 +620,7 @@ void StructDeclaration::toDt(dt_t **pdt)
 
 dt_t **Type::toDt(dt_t **pdt)
 {
+    //printf("Type::toDt()\n");
     Expression *e = defaultInit();
     return e->toDt(pdt);
 }
@@ -644,14 +651,24 @@ dt_t **TypeSArray::toDt(dt_t **pdt)
     return pdt;
 }
 
-dt_t **TypeTypedef::toDt(dt_t **pdt)
-{
-    return sym->basetype->toDt(pdt);
-}
-
 dt_t **TypeStruct::toDt(dt_t **pdt)
 {
     sym->toDt(pdt);
+    return pdt;
+}
+
+dt_t **TypeTypedef::toDt(dt_t **pdt)
+{
+    if (sym->init)
+    {
+	dt_t *dt = sym->init->toDt();
+
+	while (*pdt)
+	    pdt = &((*pdt)->DTnext);
+	*pdt = dt;
+	return pdt;
+    }
+    sym->basetype->toDt(pdt);
     return pdt;
 }
 

@@ -25,7 +25,7 @@ static void indent(int indent)
 
 static char *type_print(Type *type)
 {
-    return type ? type->toChars() : "null";
+    return type ? type->toChars() : (char *) "null";
 }
 
 void Expression::dump(int i)

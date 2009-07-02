@@ -1,5 +1,5 @@
 
-// Copyright (c) 1999-2002 by Digital Mars
+// Copyright (c) 1999-2003 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // www.digitalmars.com
@@ -18,49 +18,6 @@
 #include "expression.h"
 
 static real_t zero;	// work around DMC bug for now
-
-/********************
- * Complex numbers
- */
-
-complex_t Complex_div(complex_t x, complex_t y)
-{
-    complex_t q;
-#if __DMC__
-    q = x / y;
-#else
-    long double r;
-    long double den;
-
-    if (fabs(y.re) < fabs(y.im))
-    {
-	r = y.re / y.im;
-	den = y.im + r * y.re;
-	q.re = (x.re * r + x.im) / den;
-	q.im = (x.im * r - x.re) / den;
-    }
-    else
-    {
-	r = y.im / y.re;
-	den = y.re + r * y.im;
-	q.re = (x.re + r * x.im) / den;
-	q.im = (x.im - r * x.re) / den;
-    }
-#endif
-    return q;
-}
-
-complex_t Complex_mul(complex_t x, complex_t y)
-{
-    complex_t q;
-#if __DMC__
-    q = x * y;
-#else
-    q.re = x.re * y.re - x.im * y.im;
-    q.im = x.im * y.re + x.re * y.im;
-#endif
-    return q;
-}
 
 
 /* ================================== isConst() ============================== */
@@ -146,6 +103,12 @@ Expression *CastExp::constFold()
     //printf("CastExp::constFold(%s)\n", toChars());
 
     e1 = e1->constFold();
+    if (e1->op == TOKsymoff && type->size() == e1->type->size())
+    {
+	e1->type = type;
+	return e1;
+    }
+
     if (type->isintegral())
 	return new IntegerExp(loc, e1->toInteger(), type);
     if (type->isreal())
@@ -156,9 +119,8 @@ Expression *CastExp::constFold()
 	return new ComplexExp(loc, e1->toComplex(), type);
     if (type->isscalar())
 	return new IntegerExp(loc, e1->toInteger(), type);
-    type->print();
-    assert(0);
-    return NULL;
+    error("cannot cast %s to %s", e1->type->toChars(), type->toChars());
+    return this;
 }
 
 Expression *AddExp::constFold()

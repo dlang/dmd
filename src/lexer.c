@@ -1,5 +1,5 @@
 
-// Copyright (c) 1999-2002 by Digital Mars
+// Copyright (c) 1999-2003 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // www.digitalmars.com
@@ -15,8 +15,16 @@
 #include <stdarg.h>
 #include <errno.h>
 #include <wchar.h>
+#include <stdlib.h>
 
+#if _WIN32
 #include "..\root\mem.h"
+#elif linux
+#include "../root/mem.h"
+#else
+#error "fix this"
+#endif
+
 #include "lexer.h"
 
 #if _WIN32 && __DMC__
@@ -85,9 +93,18 @@ char *Token::toChars()
 	    sprintf(buffer,"%gL", float80value);
 	    break;
 
-	case TOKimaginaryv:
+	case TOKimaginary32v:
+	    sprintf(buffer,"%Lgfi", float80value);
+	    break;
+
+	case TOKimaginary64v:
+	    sprintf(buffer,"%Lgi", float80value);
+	    break;
+
+	case TOKimaginary80v:
 	    sprintf(buffer,"%gLi", float80value);
 	    break;
+
 
 	case TOKstring:
 #if CSTRINGS
@@ -385,7 +402,7 @@ void Lexer::scan(Token *t)
 
 		    case '/':
 			p++;
-			p = memchr(p, '\n', end - p);
+			p = (unsigned char *) memchr(p, '\n', end - p);
 			if (p == NULL)
 			{
 			    error("// comment does not end in newline");
@@ -1015,6 +1032,7 @@ TOK Lexer::number(Token *t)
     integer_t n;
     TOK result;
 
+    //printf("Lexer::number()\n");
     state = STATE_initial;
     base = 0;
     stringbuffer.reset();
@@ -1032,12 +1050,14 @@ TOK Lexer::number(Token *t)
 		break;
 
 	    case STATE_0:
-		flags &= ~FLAGS_decimal;
+		flags = (FLAGS) (flags & ~FLAGS_decimal);
 		switch (c)
 		{
+#if ZEROH
 		    case 'H':			// 0h
 		    case 'h':
 			goto hexh;
+#endif
 		    case 'X':
 		    case 'x':
 			state = STATE_hex0;
@@ -1046,11 +1066,14 @@ TOK Lexer::number(Token *t)
 			if (p[1] == '.')	// .. is a separate token
 			    goto done;
 		    case 'i':
+		    case 'f':
+		    case 'F':
 			goto real;
+#if ZEROH
 		    case 'E':
 		    case 'e':
 			goto case_hex;
-
+#endif
 		    case 'B':
 		    case 'b':
 			state = STATE_binary0;
@@ -1061,12 +1084,14 @@ TOK Lexer::number(Token *t)
 			state = STATE_octal;
 			break;
 
+#if ZEROH
 		    case '8': case '9': case 'A':
 		    case 'C': case 'D': case 'F':
 		    case 'a': case 'c': case 'd': case 'f':
 		    case_hex:
 			state = STATE_hexh;
 			break;
+#endif
 		    default:
 			goto done;
 		}
@@ -1075,11 +1100,15 @@ TOK Lexer::number(Token *t)
 	    case STATE_decimal:		// reading decimal number
 		if (!isdigit(c))
 		{
-		    if (ishex(c) || c == 'H' || c == 'h')
+#if ZEROH
+		    if (ishex(c)
+			|| c == 'H' || c == 'h'
+		       )
 			goto hexh;
+#endif
 		    if (c == '.' && p[1] != '.')
 			goto real;
-		    if (c == 'i')
+		    if (c == 'i' || c == 'f' || c == 'F' || c == 'e' || c == 'E')
 		    {
 	    real:	// It's a real number. Back up and rescan as a real
 			p = start;
@@ -1104,6 +1133,7 @@ TOK Lexer::number(Token *t)
 		state = STATE_hex;
 		break;
 
+#if ZEROH
 	    hexh:
 		state = STATE_hexh;
 	    case STATE_hexh:		// parse numbers like 0FFh
@@ -1126,12 +1156,18 @@ TOK Lexer::number(Token *t)
 		    }
 		}
 		break;
+#endif
 
 	    case STATE_octal:		// reading octal number
 	    case STATE_octale:		// reading octal number with non-octal digits
 		if (!isoctal(c))
-		{   if (ishex(c) || c == 'H' || c == 'h')
+		{
+#if ZEROH
+		    if (ishex(c)
+			|| c == 'H' || c == 'h'
+		       )
 			goto hexh;
+#endif
 		    if (c == '.' && p[1] != '.')
 			goto real;
 		    if (c == 'i')
@@ -1148,8 +1184,13 @@ TOK Lexer::number(Token *t)
 	    case STATE_binary0:		// starting binary number
 	    case STATE_binary:		// reading binary number
 		if (c != '0' && c != '1')
-		{   if (ishex(c) || c == 'H' || c == 'h')
+		{
+#if ZEROH
+		    if (ishex(c)
+			|| c == 'H' || c == 'h'
+		       )
 			goto hexh;
+#endif
 		    if (state == STATE_binary0)
 		    {	error("binary digit expected");
 			state = STATE_error;
@@ -1177,20 +1218,50 @@ done:
     if (state == STATE_octale)
 	error("Octal digit expected");
 
-    errno = 0;
     if (stringbuffer.offset == 1 && (state == STATE_decimal || state == STATE_0))
 	n = stringbuffer.data[0] - '0';
     else
     {
-	// convert string to integer
+	// Convert string to integer
 #if __DMC__
+	errno = 0;
 	n = strtoull((char *)stringbuffer.data,NULL,base);
+	if (errno == ERANGE)
+	    error("integer overflow");
 #else
-	n = strtoul((char *)stringbuffer.data,NULL,base);
+	// Not everybody implements strtoull()
+	char *p = (char *)stringbuffer.data;
+	int r = 10, d;
+
+	if (*p == '0' && (p [1] == 'x' || p [1] == 'X'))
+	    p += 2, r = 16;
+	else if (*p == '0' && isdigit (p [1]))
+	    p += 1, r = 8;
+
+	n = 0;
+	while (1)
+	{
+	    if (*p >= '0' && *p <= '9')
+		d = *p - '0';
+	    else if (*p >= 'a' && *p <= 'z')
+		d = *p - 'a' + 10;
+	    else if (*p >= 'A' && *p <= 'Z')
+		d = *p - 'A' + 10;
+	    else
+		break;
+	    if (d >= r)
+		break;
+	    if (n * r + d < n)
+	    {
+		error ("integer overflow");
+		break;
+	    }
+
+	    n = n * r + d;
+	    p ++;
+	}
 #endif
     }
-    if (errno == ERANGE)		// if overflow
-	error("integer overflow");
 
     // Parse trailing 'u', 'U', 'l' or 'L' in any combination
     while (1)
@@ -1208,7 +1279,7 @@ done:
 		p++;
 		if (flags & f)
 		    error("unrecognized token");
-		flags |= f;
+		flags = (FLAGS) (flags | f);
 		continue;
 	    default:
 		break;
@@ -1278,20 +1349,35 @@ done:
  */
 
 TOK Lexer::inreal(Token *t)
+#ifdef __DMC__
 __in
 {
     assert(*p == '.' || isdigit(*p));
 }
 __out (result)
 {
-    assert(result == TOKfloat32v || result == TOKfloat64v || result == TOKfloat80v || result == TOKimaginaryv);
+    switch (result)
+    {
+	case TOKfloat32v:
+	case TOKfloat64v:
+	case TOKfloat80v:
+	case TOKimaginary32v:
+	case TOKimaginary64v:
+	case TOKimaginary80v:
+	    break;
+
+	default:
+	    assert(0);
+    }
 }
 __body
+#endif /* __DMC__ */
 {   int dblstate;
     unsigned c;
     char hex;			// is this a hexadecimal-floating-constant?
     TOK result;
 
+    //printf("Lexer::inreal()\n");
     stringbuffer.reset();
     dblstate = 0;
     hex = 0;
@@ -1372,7 +1458,11 @@ done:
     {
 	case 'F':
 	case 'f':
+#if __GNUC__
+	    t->float80value = strtod((char *)stringbuffer.data, NULL);
+#else
 	    t->float80value = strtof((char *)stringbuffer.data, NULL);
+#endif
 	    result = TOKfloat32v;
 	    p++;
 	    break;
@@ -1384,7 +1474,11 @@ done:
 
 	case 'L':
 	case 'l':
+#if __GNUC__
+	    t->float80value = strtod((char *)stringbuffer.data, NULL);
+#else
 	    t->float80value = strtold((char *)stringbuffer.data, NULL);
+#endif
 	    result = TOKfloat80v;
 	    p++;
 	    break;
@@ -1392,7 +1486,18 @@ done:
     if (*p == 'i' || *p == 'I')
     {
 	p++;
-	result = TOKimaginaryv;
+	switch (result)
+	{
+	    case TOKfloat32v:
+		result = TOKimaginary32v;
+		break;
+	    case TOKfloat64v:
+		result = TOKimaginary64v;
+		break;
+	    case TOKfloat80v:
+		result = TOKimaginary80v;
+		break;
+	}
     }
 #if _WIN32 && __DMC__
     __locale_decpoint = save;
@@ -1541,15 +1646,22 @@ static Keyword keywords[] =
     {	"ulong",	TOKuns64	},
     {	"float",	TOKfloat32	},
     {	"double",	TOKfloat64	},
-    {	"extended",	TOKfloat80	},
+    {	"real",		TOKfloat80	},
 
     {	"bit",		TOKbit		},
     {	"char",		TOKascii	},	// obsolete
     {	"wchar",	TOKwchar	},
 
-    {	"imaginary",	TOKimaginary	},
-    {	"complex",	TOKcomplex	},
+    {	"ifloat",	TOKimaginary32	},
+    {	"idouble",	TOKimaginary64	},
+    {	"ireal",	TOKimaginary80	},
+
+    {	"cfloat",	TOKcomplex32	},
+    {	"cdouble",	TOKcomplex64	},
+    {	"creal",	TOKcomplex80	},
+
     {	"delegate",	TOKdelegate	},
+    {	"function",	TOKfunction	},
 
     {	"if",		TOKif		},
     {	"else",		TOKelse		},
@@ -1685,6 +1797,9 @@ void Lexer::initKeywords()
     Token::tochars[TOKcatass]		= "~=";
     Token::tochars[TOKcall]		= "call";
 
+    Token::tochars[TOKorass]		= "|=";
+
      // For debugging
     Token::tochars[TOKdotvar]		= "dotvar";
+    Token::tochars[TOKsymoff]		= "symoff";
 }

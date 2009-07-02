@@ -43,7 +43,7 @@ int Dsymbol::equals(Object *o)
 
     if (this == o)
 	return TRUE;
-    s = dynamic_cast<Dsymbol *>(o);
+    s = (Dsymbol *)(o);
     if (s && ident->equals(s->ident))
 	return TRUE;
     return FALSE;
@@ -65,7 +65,7 @@ Dsymbol *Dsymbol::syntaxCopy(Dsymbol *s)
 
 char *Dsymbol::toChars()
 {
-    return ident ? ident->toChars() : "__anonymous";
+    return ident ? ident->toChars() : (char *)"__anonymous";
 }
 
 char *Dsymbol::locToChars()
@@ -157,7 +157,7 @@ AggregateDeclaration *Dsymbol::isThis()
 
 ClassDeclaration *Dsymbol::isClassMember()	// are we a member of a class?
 {
-    if (parent && dynamic_cast<ClassDeclaration *>(parent))
+    if (parent && parent->isClassDeclaration())
 	return (ClassDeclaration *)parent;
     return NULL;
 }
@@ -172,7 +172,7 @@ int Dsymbol::isExport()
     return FALSE;
 }
 
-int Dsymbol::isImport()
+int Dsymbol::isImportedSymbol()
 {
     return FALSE;
 }
@@ -185,6 +185,11 @@ int Dsymbol::isDeprecated()
 LabelDsymbol *Dsymbol::isLabel()		// is this a LabelDsymbol()?
 {
     return NULL;
+}
+
+AggregateDeclaration *Dsymbol::isMember()	// is this a member of an AggregateDeclaration?
+{
+    return parent ? parent->isAggregateDeclaration() : NULL;
 }
 
 Type *Dsymbol::getType()
@@ -297,7 +302,7 @@ Module *Dsymbol::getModule()
     s = this;
     while (s)
     {
-	m = dynamic_cast<Module *>(s);
+	m = s->isModule();
 	if (m)
 	    return m;
 	s = s->parent;
@@ -395,6 +400,12 @@ Dsymbol *ScopeDsymbol::search(Identifier *ident)
 		break;
 	    }
 	}
+	if (s)
+	{
+	    Declaration *d = s->isDeclaration();
+	    if (d && d->protection == PROTprivate)
+		error("%s.%s is private", d->parent->toChars(), d->toChars());
+	}
     }
     return s;
 }
@@ -431,17 +442,23 @@ void ScopeDsymbol::defineRef(Dsymbol *s)
 {
     ScopeDsymbol *ss;
 
-    ss = dynamic_cast<ScopeDsymbol *>(s);
+    ss = s->isScopeDsymbol();
     members = ss->members;
     ss->members = NULL;
 }
 
 void ScopeDsymbol::multiplyDefined(Dsymbol *s1, Dsymbol *s2)
 {
+#if 1
+    s1->error("conflicts with %s.%s at %s",
+	s2->parent->toChars(), s2->toChars(),
+	s2->locToChars());
+#else
     s1->error("symbol %s.%s conflicts with %s.%s at %s",
 	s1->parent->toChars(), s1->toChars(),
 	s2->parent->toChars(), s2->toChars(),
 	s2->locToChars());
+#endif
 }
 
 Dsymbol *ScopeDsymbol::nameCollision(Dsymbol *s)

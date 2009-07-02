@@ -89,7 +89,7 @@ void **StringTable::search(const dchar *s, unsigned len)
 	else
 	    se = &(*se)->right;
     }
-    //printf("\treturn %p\n",se);
+    //printf("\treturn %p, %p\n",se, (*se));
     return (void **)se;
 }
 

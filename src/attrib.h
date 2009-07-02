@@ -7,7 +7,12 @@
 // in artistic.txt, or the GNU General Public License in gnu.txt.
 // See the included readme.txt for details.
 
+#ifndef DMD_ATTRIB_H
+#define DMD_ATTRIB_H
+
+#ifdef __DMC__
 #pragma once
+#endif /* __DMC__ */
 
 #include "dsymbol.h"
 
@@ -98,6 +103,8 @@ struct VersionDeclaration : DebugDeclaration
 {
     VersionDeclaration(Condition *condition, Array *decl, Array *elsedecl);
     Dsymbol *syntaxCopy(Dsymbol *s);
+
+    VersionDeclaration *isVersionDeclaration() { return this; }
 };
 
-
+#endif /* DMD_ATTRIB_H */

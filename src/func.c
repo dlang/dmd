@@ -28,7 +28,7 @@ FuncDeclaration::FuncDeclaration(Loc loc, Loc endloc, Identifier *id, enum STC s
     returnLabel = NULL;
     fensure = NULL;
     fbody = NULL;
-    symtab = NULL;
+    localsymtab = NULL;
     vthis = NULL;
     parameters = NULL;
     labtab = NULL;
@@ -39,6 +39,7 @@ FuncDeclaration::FuncDeclaration(Loc loc, Loc endloc, Identifier *id, enum STC s
     inlineStatus = ILSuninitialized;
     inlineNest = 0;
     semanticRun = 0;
+    nestedFrameRef = 0;
 }
 
 Dsymbol *FuncDeclaration::syntaxCopy(Dsymbol *s)
@@ -68,11 +69,11 @@ void FuncDeclaration::semantic(Scope *sc)
 
     //printf("FuncDeclaration::semantic(sc = %p, '%s')\n",sc,ident->toChars());
     type = type->semantic(loc, sc);
-    f = dynamic_cast<TypeFunction *>(type);
-    if (!f)
+    if (type->ty != Tfunction)
     {
 	error("%s must be a function", toChars());
     }
+    f = (TypeFunction *)(type);
 
     linkage = sc->linkage;
     parent = sc->scopesym;
@@ -96,31 +97,24 @@ void FuncDeclaration::semantic(Scope *sc)
     }
 #endif
 
-    sd = dynamic_cast<StructDeclaration *>(parent);
+    sd = parent->isStructDeclaration();
     if (sd)
     {
 	// Verify no constructors, destructors, etc.
-	if (isConstructor() ||
-	    dynamic_cast<DtorDeclaration *>(this) ||
-	    //dynamic_cast<InvariantDeclaration *>(this) ||
-	    dynamic_cast<UnitTestDeclaration *>(this)
+	if (isCtorDeclaration() ||
+	    isDtorDeclaration() ||
+	    //isInvariantDeclaration() ||
+	    isUnitTestDeclaration()
 	   )
 	{
 	    error("special member functions not allowed for %ss", sd->kind());
 	}
 
-	InvariantDeclaration *inv;
-	inv = dynamic_cast<InvariantDeclaration *>(this);
-	if (inv)
-	{
-	    sd->inv = inv;
-	}
+	if (!sd->inv)
+	    sd->inv = isInvariantDeclaration();
 
-	if (isNew())
-	{
-	    if (!sd->aggNew)
-		sd->aggNew = (NewDeclaration *)(this);
-	}
+	if (!sd->aggNew)
+	    sd->aggNew = isNewDeclaration();
 
 	if (isDelete())
 	{
@@ -130,28 +124,28 @@ void FuncDeclaration::semantic(Scope *sc)
 	}
     }
 
-    id = dynamic_cast<InterfaceDeclaration *>(parent);
+    id = parent->isInterfaceDeclaration();
     if (id)
     {
 	storage_class |= STCabstract;
 
-	if (isConstructor() ||
-	    dynamic_cast<DtorDeclaration *>(this) ||
-	    dynamic_cast<InvariantDeclaration *>(this) ||
-	    isUnitTest() || isNew() || isDelete())
+	if (isCtorDeclaration() ||
+	    isDtorDeclaration() ||
+	    isInvariantDeclaration() ||
+	    isUnitTestDeclaration() || isNewDeclaration() || isDelete())
 	    error("special function not allowed in interface %s", id->toChars());
 	if (fbody)
 	    error("function body is not abstract in interface %s", id->toChars());
     }
 
-    cd = dynamic_cast<ClassDeclaration *>(parent);
+    cd = parent->isClassDeclaration();
     if (cd)
     {	int vi;
 	CtorDeclaration *ctor;
 	DtorDeclaration *dtor;
 	InvariantDeclaration *inv;
 
-	if (isConstructor())
+	if (isCtorDeclaration())
 	{
 	    ctor = (CtorDeclaration *)this;
 	    if (!cd->ctor)
@@ -159,7 +153,7 @@ void FuncDeclaration::semantic(Scope *sc)
 	    return;
 	}
 
-	dtor = dynamic_cast<DtorDeclaration *>(this);
+	dtor = isDtorDeclaration();
 	if (dtor)
 	{
 	    if (cd->dtor)
@@ -167,13 +161,13 @@ void FuncDeclaration::semantic(Scope *sc)
 	    cd->dtor = dtor;
 	}
 
-	inv = dynamic_cast<InvariantDeclaration *>(this);
+	inv = isInvariantDeclaration();
 	if (inv)
 	{
 	    cd->inv = inv;
 	}
 
-	if (isNew())
+	if (isNewDeclaration())
 	{
 	    if (!cd->aggNew)
 		cd->aggNew = (NewDeclaration *)(this);
@@ -195,21 +189,27 @@ void FuncDeclaration::semantic(Scope *sc)
 	{
 	    for (vi = 0; vi < cd->baseClass->vtbl.dim; vi++)
 	    {
-		FuncDeclaration *fdv = dynamic_cast<FuncDeclaration *>((Object *)cd->vtbl.data[vi]);
+		FuncDeclaration *fdv = ((Dsymbol *)cd->vtbl.data[vi])->isFuncDeclaration();
 
 		// BUG: should give error if argument types match,
 		// but return type does not?
 
 		//printf("\tvtbl[%d]\n", vi);
-		if (fdv && fdv->ident == ident && fdv->type->equals(type))
+		if (fdv && fdv->ident == ident)
 		{
-		    // Override
-		    //printf("\toverride %p with %p\n", fdv, this);
-		    if (fdv->isFinal())
-			error("cannot override final function %s", fdv->toChars());
-		    cd->vtbl.data[vi] = (void *)this;
-		    vtblIndex = vi;
-		    goto L1;
+		    int cov = type->covariant(fdv->type);
+		    if (cov)
+		    {
+			// Override
+			//printf("\toverride %p with %p\n", fdv, this);
+			if (cov == 2)
+			    error("overrides but is not covariant with %s", fdv->toChars());
+			if (fdv->isFinal())
+			    error("cannot override final function %s", fdv->toChars());
+			cd->vtbl.data[vi] = (void *)this;
+			vtblIndex = vi;
+			goto L1;
+		    }
 		}
 	    }
 	}
@@ -240,9 +240,9 @@ void FuncDeclaration::semantic3(Scope *sc)
 	return;
     semanticRun = 1;
 
-    f = dynamic_cast<TypeFunction *>(type);
-    if (!f)
+    if (!type || type->ty != Tfunction)
 	return;
+    f = (TypeFunction *)(type);
 
     // Check the 'throws' clause
     if (fthrows)
@@ -264,10 +264,13 @@ void FuncDeclaration::semantic3(Scope *sc)
 	ScopeDsymbol *ss;
 	Scope *sc2;
 
+	localsymtab = new DsymbolTable();
+
 	ss = new ScopeDsymbol();
 	ss->parent = sc->scopesym;
 	sc2 = sc->push(ss);
 	sc2->func = this;
+	sc2->parent = this;
 	sc2->callSuper = 0;
 
 	// Declare 'this'
@@ -275,12 +278,26 @@ void FuncDeclaration::semantic3(Scope *sc)
 	if (ad)
 	{   VarDeclaration *v;
 
+	    assert(!isNested());	// can't be both member and nested
 	    assert(ad->handle);
 	    v = new ThisDeclaration(ad->handle);
 	    v->storage_class |= STCparameter | STCin;
 	    v->semantic(sc2);
 	    if (!sc2->insert(v))
 		assert(0);
+	    v->parent = this;
+	    vthis = v;
+	}
+	else if (isNested())
+	{
+	    VarDeclaration *v;
+
+	    v = new ThisDeclaration(Type::tvoid->pointerTo());
+	    v->storage_class |= STCparameter | STCin;
+	    v->semantic(sc2);
+	    if (!sc2->insert(v))
+		assert(0);
+	    v->parent = this;
 	    vthis = v;
 	}
 
@@ -311,6 +328,8 @@ void FuncDeclaration::semantic3(Scope *sc)
 			error("parameter %s.%s is already defined", toChars(), v->toChars());
 		    else
 			parameters->push(v);
+		    localsymtab->insert(v);
+		    v->parent = this;
 		}
 	    }
 	}
@@ -359,6 +378,7 @@ void FuncDeclaration::semantic3(Scope *sc)
 		v->semantic(sc2);
 		if (!sc2->insert(v))
 		    error("out result %s is already defined", v->toChars());
+		v->parent = this;
 		vresult = v;
 
 		// vresult gets initialized with the function return value
@@ -405,7 +425,7 @@ void FuncDeclaration::semantic3(Scope *sc)
 	{
 	    fbody = fbody->semantic(sc2);
 
-	    if (isConstructor())
+	    if (isCtorDeclaration())
 	    {
 		ClassDeclaration *cd = isClassMember();
 		//printf("callSuper = x%x\n", sc2->callSuper);
@@ -492,14 +512,17 @@ void FuncDeclaration::toCBuffer(OutBuffer *buf)
     }
 }
 
+#if 0
 Dsymbol *FuncDeclaration::search(Identifier *ident)
 {   Dsymbol *s;
 
+printf("FuncDeclaration::search('%s')\n", ident->toChars());
     s = symtab ? symtab->lookup(ident) : NULL;
     if (!s)
 	Dsymbol::search(ident);
     return s;
 }
+#endif
 
 /**********************************
  * Overload this FuncDeclaration with the new one f.
@@ -513,7 +536,7 @@ int FuncDeclaration::overloadInsert(Dsymbol *s)
     TypeFunction *tf1;
 
     //printf("FuncDeclaration::overloadInsert(%s)\n", s->toChars());
-    f = dynamic_cast<FuncDeclaration *>(s);
+    f = s->isFuncDeclaration();
     if (!f)
 	return FALSE;
     tf1 = (TypeFunction *)f->type;
@@ -696,8 +719,38 @@ AggregateDeclaration *FuncDeclaration::isThis()
 
     ad = NULL;
     if ((storage_class & STCstatic) == 0)
-	ad = dynamic_cast<AggregateDeclaration *>(parent);
+	ad = isMember();
     return ad;
+}
+
+/*****************************************
+ * Determine lexical level difference from 'this' to nested function 'fd'.
+ * Error if this cannot call fd.
+ * Returns:
+ *	0	same level
+ *	-1	increase nesting by 1
+ *	>0	decrease nesting by number
+ */
+
+int FuncDeclaration::getLevel(FuncDeclaration *fd)
+{   int level;
+    FuncDeclaration *thisfd;
+
+    if (fd->parent == this)
+	return -1;
+    thisfd = this;
+    level = 0;
+    while (fd != thisfd && fd->parent != thisfd->parent)
+    {
+	if (!thisfd || !thisfd->isNested())
+	{
+	    error("cannot access frame of function %s", fd->toChars());
+	    break;
+	}
+	thisfd = thisfd->parent->isFuncDeclaration();
+	level++;
+    }
+    return level;
 }
 
 void FuncDeclaration::appendExp(Expression *e)
@@ -716,24 +769,24 @@ void FuncDeclaration::appendState(Statement *s)
 	a = new Array();
 	fbody = new CompoundStatement(0, a);
     }
-    cs = dynamic_cast<CompoundStatement *>(fbody);
+    cs = fbody->isCompoundStatement();
     cs->statements->push(s);
 }
 
 
 int FuncDeclaration::isMain()
 {
-    return strcmp(ident->toChars(), "main") == 0 && linkage != LINKc;
+    return ident && strcmp(ident->toChars(), "main") == 0 && linkage != LINKc;
 }
 
 int FuncDeclaration::isWinMain()
 {
-    return strcmp(ident->toChars(), "WinMain") == 0 && linkage != LINKc;
+    return ident && strcmp(ident->toChars(), "WinMain") == 0 && linkage != LINKc;
 }
 
 int FuncDeclaration::isDllMain()
 {
-    return strcmp(ident->toChars(), "DllMain") == 0 && linkage != LINKc;
+    return ident && strcmp(ident->toChars(), "DllMain") == 0 && linkage != LINKc;
 }
 
 int FuncDeclaration::isExport()
@@ -741,9 +794,9 @@ int FuncDeclaration::isExport()
     return protection == PROTexport;
 }
 
-int FuncDeclaration::isImport()
+int FuncDeclaration::isImportedSymbol()
 {
-    //printf("isImport()\n");
+    //printf("isImportedSymbol()\n");
     //printf("protection = %d\n", protection);
     return (protection == PROTexport) && !fbody;
 }
@@ -753,9 +806,9 @@ int FuncDeclaration::isImport()
 int FuncDeclaration::isVirtual()
 {
     //printf("FuncDeclaration::isVirtual(%s)\n", toChars());
-    //printf("%d %d %d %d\n", isStatic(), protection == PROTprivate, isConstructor(), linkage != LINKd);
+    //printf("%d %d %d %d\n", isStatic(), protection == PROTprivate, isCtorDeclaration(), linkage != LINKd);
     return !(isStatic() || protection == PROTprivate) &&
-	!dynamic_cast<StructDeclaration *>(parent);
+	!parent->isStructDeclaration();
 }
 
 int FuncDeclaration::isAbstract()
@@ -768,16 +821,26 @@ int FuncDeclaration::isCodeseg()
     return TRUE;		// functions are always in the code segment
 }
 
+// Determine if function needs
+// a static frame pointer to its lexically enclosing function
+
+int FuncDeclaration::isNested()
+{
+    //printf("FuncDeclaration::isNested() '%s'\n", toChars());
+    return ((storage_class & STCstatic) == 0) &&
+	   (parent->isFuncDeclaration() != NULL);
+}
+
 int FuncDeclaration::needThis()
 {
-    return !isStatic() && dynamic_cast<AggregateDeclaration *>(parent);
+    return !isStatic() && isMember();
 }
 
 int FuncDeclaration::addPreInvariant()
 {
     AggregateDeclaration *ad = isThis();
     return (ad &&
-	    //dynamic_cast<ClassDeclaration *>(ad) &&
+	    //ad->isClassDeclaration() &&
 	    global.params.useInvariants &&
 	    !naked);
 }
@@ -787,7 +850,7 @@ int FuncDeclaration::addPostInvariant()
     AggregateDeclaration *ad = isThis();
     return (ad &&
 	    ad->inv &&
-	    //dynamic_cast<ClassDeclaration *>(ad) &&
+	    //ad->isClassDeclaration() &&
 	    global.params.useInvariants &&
 	    !naked);
 }
@@ -812,7 +875,7 @@ FuncDeclaration *FuncDeclaration::genCfunc(Type *treturn, char *name)
     s = st->lookup(id);
     if (s)
     {
-	fd = dynamic_cast<FuncDeclaration *>(s);
+	fd = s->isFuncDeclaration();
 	assert(fd);
 	assert(fd->type->next->equals(treturn));
     }
@@ -832,6 +895,21 @@ char *FuncDeclaration::kind()
 {
     return "function";
 }
+
+/****************************** FuncLiteralDeclaration ************************/
+
+FuncLiteralDeclaration::FuncLiteralDeclaration(Loc loc, Loc endloc, Type *type, enum TOK tok)
+    : FuncDeclaration(loc, endloc, NULL, STCundefined, type)
+{
+    this->tok = tok;
+}
+
+int FuncLiteralDeclaration::isNested()
+{
+    //printf("FuncLiteralDeclaration::isNested() '%s'\n", toChars());
+    return (tok == TOKdelegate);
+}
+
 
 /********************************* CtorDeclaration ****************************/
 
@@ -881,7 +959,7 @@ void CtorDeclaration::semantic(Scope *sc)
 
     assert(!(sc->stc & STCstatic));
 
-    cd = dynamic_cast<ClassDeclaration *>(sc->scopesym);
+    cd = sc->scopesym->isClassDeclaration();
     if (!cd)
     {
 	error("constructors only are for class definitions");
@@ -918,11 +996,6 @@ char *CtorDeclaration::kind()
 char *CtorDeclaration::toChars()
 {
     return "this";
-}
-
-int CtorDeclaration::isConstructor()
-{
-    return TRUE;
 }
 
 int CtorDeclaration::isVirtual()
@@ -963,7 +1036,7 @@ void DtorDeclaration::semantic(Scope *sc)
     ClassDeclaration *cd;
     Type *tret;
 
-    cd = dynamic_cast<ClassDeclaration *>(sc->scopesym);
+    cd = sc->scopesym->isClassDeclaration();
     if (!cd)
     {
 	error("destructors only are for class definitions");
@@ -1005,7 +1078,7 @@ void StaticCtorDeclaration::semantic(Scope *sc)
     ClassDeclaration *cd;
     Type *tret;
 
-    cd = dynamic_cast<ClassDeclaration *>(sc->scopesym);
+    cd = sc->scopesym->isClassDeclaration();
     if (!cd)
     {
     }
@@ -1066,7 +1139,7 @@ void StaticDtorDeclaration::semantic(Scope *sc)
     ClassDeclaration *cd;
     Type *tret;
 
-    cd = dynamic_cast<ClassDeclaration *>(sc->scopesym);
+    cd = sc->scopesym->isClassDeclaration();
     if (!cd)
     {
     }
@@ -1128,7 +1201,7 @@ void InvariantDeclaration::semantic(Scope *sc)
     AggregateDeclaration *ad;
     Type *tret;
 
-    ad = dynamic_cast<AggregateDeclaration *>(sc->scopesym);
+    ad = sc->scopesym->isAggregateDeclaration();
     if (!ad)
     {
 	error("invariants only are for struct/union/class definitions");
@@ -1196,22 +1269,19 @@ void UnitTestDeclaration::semantic(Scope *sc)
 
 	type = new TypeFunction(NULL, Type::tvoid, FALSE, LINKd);
 	FuncDeclaration::semantic(sc);
-
-	// We're going to need ModuleInfo
-	Module *m = getModule();
-	if (m)
-	    m->needmoduleinfo = 1;
     }
+
+    // We're going to need ModuleInfo even if the unit tests are not
+    // compiled in, because other modules may import this module and refer
+    // to this ModuleInfo.
+    Module *m = getModule();
+    if (m)
+	m->needmoduleinfo = 1;
 }
 
 AggregateDeclaration *UnitTestDeclaration::isThis()
 {
     return NULL;
-}
-
-int UnitTestDeclaration::isUnitTest()
-{
-    return TRUE;
 }
 
 int UnitTestDeclaration::isVirtual()
@@ -1272,8 +1342,8 @@ void NewDeclaration::semantic(Scope *sc)
 
     //printf("NewDeclaration::semantic()\n");
 
-    cd = dynamic_cast<ClassDeclaration *>(sc->scopesym);
-    if (!cd && !dynamic_cast<StructDeclaration *>(sc->scopesym))
+    cd = sc->scopesym->isClassDeclaration();
+    if (!cd && !sc->scopesym->isStructDeclaration())
     {
 	error("new allocators only are for class or struct definitions");
     }
@@ -1301,11 +1371,6 @@ void NewDeclaration::semantic(Scope *sc)
 char *NewDeclaration::kind()
 {
     return "allocator";
-}
-
-int NewDeclaration::isNew()
-{
-    return TRUE;
 }
 
 int NewDeclaration::isVirtual()
@@ -1365,8 +1430,8 @@ void DeleteDeclaration::semantic(Scope *sc)
 
     //printf("DeleteDeclaration::semantic()\n");
 
-    cd = dynamic_cast<ClassDeclaration *>(sc->scopesym);
-    if (!cd && !dynamic_cast<StructDeclaration *>(sc->scopesym))
+    cd = sc->scopesym->isClassDeclaration();
+    if (!cd && !sc->scopesym->isStructDeclaration())
     {
 	error("new allocators only are for class or struct definitions");
     }

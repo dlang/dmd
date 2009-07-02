@@ -7,7 +7,12 @@
 // in artistic.txt, or the GNU General Public License in gnu.txt.
 // See the included readme.txt for details.
 
+#ifndef DMD_MTYPE_H
+#define DMD_MTYPE_H
+
+#ifdef __DMC__
 #pragma once
+#endif /* __DMC__ */
 
 #include "root.h"
 #include "stringtable.h"
@@ -26,6 +31,8 @@ struct TypeInfoDeclaration;
 struct Dsymbol;
 struct TemplateInstance;
 enum LINK;
+
+struct TypeBasic;
 
 // Back end
 typedef struct TYPE type;
@@ -144,6 +151,8 @@ struct Type : Object
     Type(TY ty, Type *next);
     virtual Type *syntaxCopy();
     int equals(Object *o);
+    int compare(Object *o) { return 6; } // kludge for template.isType()
+    int covariant(Type *t);
     char *toChars();
     static void init();
     virtual unsigned size();
@@ -186,6 +195,9 @@ struct Type : Object
     virtual type *toCtype();
     virtual type *toCParamtype();
     virtual Symbol *toSymbol();
+
+    // For eliminating dynamic_cast
+    virtual TypeBasic *isTypeBasic();
 };
 
 struct TypeBasic : Type
@@ -212,6 +224,9 @@ struct TypeBasic : Type
     int isunsigned();
     int implicitConvTo(Type *to);
     Expression *defaultInit();
+
+    // For eliminating dynamic_cast
+    TypeBasic *isTypeBasic();
 };
 
 struct TypeArray : Type
@@ -324,6 +339,7 @@ struct TypeFunction : Type
     Type *semantic(Loc loc, Scope *sc);
     void toDecoBuffer(OutBuffer *buf);
     void toCBuffer2(OutBuffer *buf, Identifier *ident);
+    void argsToCBuffer(OutBuffer *buf);
     MATCH deduceType(Type *tparam, Array *parameters, Array *atypes);
 
     int callMatch(Array *toargs);
@@ -487,3 +503,5 @@ struct Argument : Object
 
     Argument(Type *type, Identifier *ident, enum InOut inout);
 };
+
+#endif /* DMD_MTYPE_H */

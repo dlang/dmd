@@ -7,11 +7,12 @@
 // in artistic.txt, or the GNU General Public License in gnu.txt.
 // See the included readme.txt for details.
 
+#ifndef DMD_STATEMENT_H
+#define DMD_STATEMENT_H
 
-#ifndef STATEMENT_H
-#define STATEMENT_H
-
+#ifdef __DMC__
 #pragma once
+#endif /* __DMC__ */
 
 #include "root.h"
 
@@ -30,6 +31,8 @@ struct Token;
 struct InlineCostState;
 struct InlineDoState;
 struct InlineScanState;
+struct ReturnStatement;
+struct CompoundStatement;
 
 // Back end
 struct IRState;
@@ -64,6 +67,10 @@ struct Statement : Object
 
     // Back end
     virtual void toIR(IRState *irs);
+
+    // Avoid dynamic_cast
+    virtual CompoundStatement *isCompoundStatement() { return NULL; }
+    virtual ReturnStatement *isReturnStatement() { return NULL; }
 };
 
 struct ExpStatement : Statement
@@ -111,6 +118,8 @@ struct CompoundStatement : Statement
     Statement *inlineScan(InlineScanState *iss);
 
     void toIR(IRState *irs);
+
+    CompoundStatement *isCompoundStatement() { return this; }
 };
 
 #if 0
@@ -297,6 +306,8 @@ struct ReturnStatement : Statement
     Statement *inlineScan(InlineScanState *iss);
 
     void toIR(IRState *irs);
+
+    ReturnStatement *isReturnStatement() { return this; }
 };
 
 struct BreakStatement : Statement
@@ -464,7 +475,7 @@ struct LabelStatement : Statement
 
 struct LabelDsymbol : Dsymbol
 {
-    Statement *statement;
+    LabelStatement *statement;
 
     LabelDsymbol(Identifier *ident);
     LabelDsymbol *isLabel();
@@ -488,4 +499,4 @@ struct AsmStatement : Statement
     void toIR(IRState *irs);
 };
 
-#endif
+#endif /* DMD_STATEMENT_H */

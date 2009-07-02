@@ -7,7 +7,12 @@
 // in artistic.txt, or the GNU General Public License in gnu.txt.
 // See the included readme.txt for details.
 
+#ifndef DMD_DECLARATION_H
+#define DMD_DECLARATION_H
+
+#ifdef __DMC__
 #pragma once
+#endif /* __DMC__ */
 
 #include "dsymbol.h"
 
@@ -16,6 +21,7 @@ struct Statement;
 struct LabelDsymbol;
 struct Initializer;
 struct Module;
+struct InlineScanState;
 enum PROT;
 enum LINK;
 
@@ -53,11 +59,8 @@ struct Declaration : Dsymbol
 
     char *mangle();
     int isStatic() { return storage_class & STCstatic; }
-    virtual int isConstructor();
     virtual int isStaticConstructor();
     virtual int isStaticDestructor();
-    virtual int isUnitTest();
-    virtual int isNew();
     virtual int isDelete();
     virtual int isDataseg();
     virtual int isCodeseg();
@@ -75,6 +78,8 @@ struct Declaration : Dsymbol
     int isInOut() { return (storage_class & (STCin | STCout)) == (STCin | STCout); }
 
     enum PROT prot();
+
+    Declaration *isDeclaration() { return this; }
 };
 
 struct TypedefDeclaration : Declaration
@@ -86,6 +91,8 @@ struct TypedefDeclaration : Declaration
     TypedefDeclaration(Identifier *ident, Type *basetype, Initializer *init);
     Dsymbol *syntaxCopy(Dsymbol *);
     void semantic(Scope *sc);
+    void semantic2(Scope *sc);
+    char *mangle();
     char *kind();
     Type *getType();
     void toCBuffer(OutBuffer *buf);
@@ -110,6 +117,7 @@ struct VarDeclaration : Declaration
     Initializer *init;
     unsigned offset;
     int noauto;			// no auto semantics
+    int nestedref;		// referenced by a lexically nested function
 
     VarDeclaration(Loc loc, Type *t, Identifier *id, Initializer *init);
     Dsymbol *syntaxCopy(Dsymbol *);
@@ -118,12 +126,15 @@ struct VarDeclaration : Declaration
     char *kind();
     void toCBuffer(OutBuffer *buf);
     int needThis();
-    int isImport();
+    int isImportedSymbol();
     int isDataseg();
     Expression *callAutoDtor();
 
     Symbol *toSymbol();
     void toObjFile();			// compile to .obj file
+
+    // Eliminate need for dynamic_cast
+    VarDeclaration *isVarDeclaration() { return (VarDeclaration *)this; }
 };
 
 // This is a shell around a back end symbol
@@ -193,7 +204,8 @@ struct FuncDeclaration : Declaration
     Statement *fensure;
     Statement *fbody;
 
-    DsymbolTable *symtab;
+    DsymbolTable *localsymtab;		// used to prevent symbols in different
+					// scopes from having the same name
     VarDeclaration *vthis;		// 'this' parameter
     Array *parameters;			// Array of VarDeclaration's for parameters
     DsymbolTable *labtab;		// statement label symbol table
@@ -204,6 +216,7 @@ struct FuncDeclaration : Declaration
     ILS inlineStatus;
     int inlineNest;			// !=0 if nested inline
     int semanticRun;			// !=0 if semantic3() had been run
+    int nestedFrameRef;			// !=0 if nested variables referenced frame ptr
 
     // Things that should really go into Scope
     int hasReturnExp;			// if there's a return exp; statement
@@ -214,11 +227,12 @@ struct FuncDeclaration : Declaration
     void semantic3(Scope *sc);
     void toHBuffer(OutBuffer *buf);
     void toCBuffer(OutBuffer *buf);
-    Dsymbol *search(Identifier *ident);
+//    Dsymbol *search(Identifier *ident);
     int overloadInsert(Dsymbol *s);
     FuncDeclaration *overloadResolve(Loc loc, Array *arguments);
     LabelDsymbol *searchLabel(Identifier *ident);
     AggregateDeclaration *isThis();
+    int getLevel(FuncDeclaration *fd);	// lexical nesting level difference
     void appendExp(Expression *e);
     void appendState(Statement *s);
     char *mangle();
@@ -226,16 +240,17 @@ struct FuncDeclaration : Declaration
     int isWinMain();
     int isDllMain();
     int isExport();
-    int isImport();
+    int isImportedSymbol();
     int isAbstract();
     int isCodeseg();
+    virtual int isNested();
     int needThis();
     virtual int isVirtual();
     virtual int addPreInvariant();
     virtual int addPostInvariant();
     void inlineScan();
     int canInline();
-    Expression *doInline(Expression *ethis, Array *arguments);
+    Expression *doInline(InlineScanState *iss, Expression *ethis, Array *arguments);
     char *kind();
 
     static FuncDeclaration *genCfunc(Type *treturn, char *name);
@@ -243,6 +258,16 @@ struct FuncDeclaration : Declaration
     Symbol *toSymbol();
     Symbol *toThunkSymbol(int offset);	// thunk version
     void toObjFile();			// compile to .obj file
+
+    FuncDeclaration *isFuncDeclaration() { return this; }
+};
+
+struct FuncLiteralDeclaration : FuncDeclaration
+{
+    enum TOK tok;			// TOKfunction or TOKdelegate
+
+    FuncLiteralDeclaration(Loc loc, Loc endloc, Type *type, enum TOK tok);
+    int isNested();
 };
 
 struct CtorDeclaration : FuncDeclaration
@@ -254,10 +279,11 @@ struct CtorDeclaration : FuncDeclaration
     void semantic(Scope *sc);
     char *kind();
     char *toChars();
-    int isConstructor();
     int isVirtual();
     int addPreInvariant();
     int addPostInvariant();
+
+    CtorDeclaration *isCtorDeclaration() { return this; }
 };
 
 struct DtorDeclaration : FuncDeclaration
@@ -267,6 +293,8 @@ struct DtorDeclaration : FuncDeclaration
     void semantic(Scope *sc);
     int addPreInvariant();
     int addPostInvariant();
+
+    DtorDeclaration *isDtorDeclaration() { return this; }
 };
 
 struct StaticCtorDeclaration : FuncDeclaration
@@ -301,6 +329,8 @@ struct InvariantDeclaration : FuncDeclaration
     int isVirtual();
     int addPreInvariant();
     int addPostInvariant();
+
+    InvariantDeclaration *isInvariantDeclaration() { return this; }
 };
 
 
@@ -310,10 +340,11 @@ struct UnitTestDeclaration : FuncDeclaration
     Dsymbol *syntaxCopy(Dsymbol *);
     void semantic(Scope *sc);
     AggregateDeclaration *isThis();
-    int isUnitTest();
     int isVirtual();
     int addPreInvariant();
     int addPostInvariant();
+
+    UnitTestDeclaration *isUnitTestDeclaration() { return this; }
 };
 
 struct NewDeclaration : FuncDeclaration
@@ -324,10 +355,11 @@ struct NewDeclaration : FuncDeclaration
     Dsymbol *syntaxCopy(Dsymbol *);
     void semantic(Scope *sc);
     char *kind();
-    int isNew();
     int isVirtual();
     int addPreInvariant();
     int addPostInvariant();
+
+    NewDeclaration *isNewDeclaration() { return this; }
 };
 
 
@@ -344,5 +376,4 @@ struct DeleteDeclaration : FuncDeclaration
     int addPostInvariant();
 };
 
-
-
+#endif /* DMD_DECLARATION_H */

@@ -120,7 +120,11 @@ elem *bit_assign(enum OPER op, elem *eb, elem *ei, elem *ev, int result)
 elem *bit_read(elem *eb, elem *ei, int result)
 {
 #if 1
-    return el_bin(OPbt, TYbit, eb, ei);
+    elem *e;
+
+    e = el_bin(OPbt, TYbit, eb, ei);
+    e = el_bin(OPand, TYbit, e, el_long(TYbit, 1));
+    return e;
 #else
     // eb[ei] => (eb[ei >>> 5] >> (ei & 31)) & 1
     elem *e;

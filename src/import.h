@@ -7,7 +7,12 @@
 // in artistic.txt, or the GNU General Public License in gnu.txt.
 // See the included readme.txt for details.
 
+#ifndef DMD_IMPORT_H
+#define DMD_IMPORT_H
+
+#ifdef __DMC__
 #pragma once
+#endif /* __DMC__ */
 
 #include "dsymbol.h"
 
@@ -32,5 +37,8 @@ struct Import : Dsymbol
     Dsymbol *search(Identifier *ident);
     int overloadInsert(Dsymbol *s);
     void toCBuffer(OutBuffer *buf);
+
+    Import *isImport() { return this; }
 };
 
+#endif /* DMD_IMPORT_H */

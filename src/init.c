@@ -86,11 +86,12 @@ Initializer *StructInitializer::semantic(Scope *sc, Type *t)
     TypeStruct *ts;
     int errors = 0;
 
-    ts = dynamic_cast<TypeStruct *>(t);
-    if (ts)
+    t = t->toBasetype();
+    if (t->ty == Tstruct)
     {	unsigned i;
 	unsigned fieldi = 0;
 
+	ts = (TypeStruct *)t;
 	ad = ts->sym;
 	for (i = 0; i < field.dim; i++)
 	{
@@ -122,7 +123,7 @@ Initializer *StructInitializer::semantic(Scope *sc, Type *t)
 			break;
 		}
 	    }
-	    if (s && (v = dynamic_cast<VarDeclaration *>(s)) != NULL)
+	    if (s && (v = s->isVarDeclaration()) != NULL)
 	    {
 		val = val->semantic(sc, v->type);
 		value.data[i] = (void *)val;
@@ -199,6 +200,7 @@ Initializer *ArrayInitializer::semantic(Scope *sc, Type *t)
     unsigned length;
 
     type = t;
+    t = t->toBasetype();
     switch (t->ty)
     {
 	case Tpointer:
@@ -207,7 +209,7 @@ Initializer *ArrayInitializer::semantic(Scope *sc, Type *t)
 	    break;
 
 	default:
-	    error(loc, "cannot use array to initialize %s", t->toChars());
+	    error(loc, "cannot use array to initialize %s", type->toChars());
 	    return this;
     }
 
@@ -266,12 +268,13 @@ Initializer *ExpInitializer::semantic(Scope *sc, Type *t)
 
     // Look for the case of statically initializing an array
     // with a single member.
-    if (t->ty == Tsarray &&
-	!t->next->equals(exp->type->next) &&
-	exp->implicitConvTo(t->next)
+    Type *tb = t->toBasetype();
+    if (tb->ty == Tsarray &&
+	!tb->next->equals(exp->type->next) &&
+	exp->implicitConvTo(tb->next)
        )
     {
-	t = t->next;
+	t = tb->next;
     }
 
     exp = exp->implicitCastTo(t);

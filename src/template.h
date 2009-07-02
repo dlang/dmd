@@ -7,7 +7,12 @@
 // in artistic.txt, or the GNU General Public License in gnu.txt.
 // See the included readme.txt for details.
 
+#ifndef DMD_TEMPLATE_H
+#define DMD_TEMPLATE_H
+
+#ifdef __DMC__
 #pragma once
+#endif /* __DMC__ */
 
 #include "root.h"
 #include "dsymbol.h"
@@ -40,6 +45,8 @@ struct TemplateDeclaration : ScopeDsymbol
     MATCH matchWithInstance(TemplateInstance *ti, Array *atypes);
     MATCH matchType(Type *tiarg, int i, Array *atypes);
     int leastAsSpecialized(TemplateDeclaration *td2);
+
+    TemplateDeclaration *isTemplateDeclaration() { return this; }
 };
 
 struct TemplateParameter
@@ -95,5 +102,8 @@ struct TemplateInstance : ScopeDsymbol
     char *mangle();
 
     void toObjFile();			// compile to .obj file
+
+    TemplateInstance *isTemplateInstance() { return this; }
 };
 
+#endif /* DMD_TEMPLATE_H */

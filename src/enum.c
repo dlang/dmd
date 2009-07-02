@@ -62,6 +62,7 @@ void EnumDeclaration::semantic(Scope *sc)
     t = isAnonymous() ? memtype : type;
     symtab = new DsymbolTable();
     sc = sc->push(this);
+    sc->parent = this;
     number = 0;
     if (members->dim == 0)
 	error("enum %s must have at least one member", toChars());

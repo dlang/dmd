@@ -7,7 +7,12 @@
 // in artistic.txt, or the GNU General Public License in gnu.txt.
 // See the included readme.txt for details.
 
+#ifndef DMD_SCOPE_H
+#define DMD_SCOPE_H
+
+#ifdef __DMC__
 #pragma once
+#endif /* __DMC__ */
 
 struct Dsymbol;
 struct ScopeDsymbol;
@@ -27,6 +32,7 @@ struct Scope
     Module *module;		// Root module
     ScopeDsymbol *scopesym;	// current symbol
     FuncDeclaration *func;	// function we are in
+    Dsymbol *parent;		// parent to use
     LabelStatement *slabel;	// enclosing labelled statement
     SwitchStatement *sw;	// enclosing switch statement
     Statement *sbreak;		// enclosing statement that supports "break"
@@ -54,7 +60,9 @@ struct Scope
 
     static Scope *freelist;
     static void *operator new(size_t sz);
+    static Scope *createGlobal(Module *module);
 
+    Scope();
     Scope(Module *module);
     Scope(Scope *enclosing);
 
@@ -70,3 +78,5 @@ struct Scope
     ClassDeclaration *getClassScope();
     void setNoFree();
 };
+
+#endif /* DMD_SCOPE_H */

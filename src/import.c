@@ -45,7 +45,7 @@ void Import::semantic(Scope *sc)
     dst = Package::resolve(packages, NULL, &pkg);
 
     s = dst->lookup(id);
-    if (s && !dynamic_cast<Module *>(s))
+    if (s && !s->isModule())
 	error("package and module have the same name");
     else
     {
@@ -78,7 +78,7 @@ Dsymbol *Import::search(Identifier *ident)
 int Import::overloadInsert(Dsymbol *s)
 {
     // Allow multiple imports of the same name
-    return dynamic_cast<Import *>(s) != NULL;
+    return s->isImport() != NULL;
 }
 
 void Import::toCBuffer(OutBuffer *buf)

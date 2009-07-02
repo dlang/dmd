@@ -15,13 +15,18 @@
 #include	<stdarg.h>
 #include	<string.h>
 #include	<stdlib.h>
+
+#if _WIN32
 #include	<process.h>
-//#include	<dos.h>
-//#include	<io.h>
+#endif
 
 #include	"root.h"
 
 #include	"mars.h"
+
+#if linux
+#include	"mem.h"
+#endif
 
 int executecmd(char *cmd, char *args, int useenv);
 int executearg0(char *cmd, char *args);
@@ -32,13 +37,14 @@ int executearg0(char *cmd, char *args);
 
 int runLINK()
 {
+#ifdef __DMC__
     char *p;
     int i;
     int status;
     OutBuffer cmdbuf;
 
-    global.params.libfiles->push("user32");
-    global.params.libfiles->push("kernel32");
+    global.params.libfiles->push((void *) "user32");
+    global.params.libfiles->push((void *) "kernel32");
 
     for (i = 0; i < global.params.objfiles->dim; i++)
     {
@@ -64,7 +70,7 @@ int runLINK()
     {
 	if (i)
 	    cmdbuf.writeByte('+');
-	cmdbuf.writestring(global.params.libfiles->data[i]);
+	cmdbuf.writestring((char *) global.params.libfiles->data[i]);
     }
 
     if (global.params.deffile)
@@ -106,7 +112,7 @@ int runLINK()
     cmdbuf.writestring("/noi");
     for (i = 0; i < global.params.linkswitches->dim; i++)
     {
-	cmdbuf.writestring(global.params.linkswitches->data[i]);
+	cmdbuf.writestring((char *) global.params.linkswitches->data[i]);
     }
     cmdbuf.writeByte(';');
 
@@ -117,6 +123,10 @@ int runLINK()
 	linkcmd = "link";
     status = executecmd(linkcmd, p, 1);
     return status;
+#else
+    printf ("Linker is not yet completed for this version of DMD Linux.\n");
+    return -1;
+#endif
 }
 
 
@@ -161,8 +171,10 @@ int executecmd(char *cmd, char *args, int useenv)
     }
 
     status = executearg0(cmd,args);
+#if _WIN32
     if (status == -1)
 	status = spawnlp(0,cmd,cmd,args,NULL);
+#endif
     if (global.params.verbose)
 	printf("\n");
     if (status)
@@ -197,7 +209,26 @@ int executearg0(char *cmd, char *args)
     file = FileName::replaceName(argv0, cmd);
 
     //printf("spawning '%s'\n",file);
+#if _WIN32
     return spawnl(0,file,file,args,NULL);
+#elif linux
+    char *full;
+    int cmdl = strlen(cmd);
+
+    full = (char*) mem.malloc(cmdl + strlen(args) + 2);
+    if (full == NULL)
+	return 1;
+    strcpy(full, cmd);
+    full [cmdl] = ' ';
+    strcpy(full + cmdl + 1, args);
+
+    int result = system(full);
+
+    mem.free(full);
+    return result;
+#else
+    assert(0);
+#endif
 }
 
 

@@ -14,7 +14,7 @@
 #include "mem.h"
 #include "lstring.h"
 
-Lstring Lstring::zero = LSTRING("", 0);
+Lstring Lstring::zero = LSTRING_EMPTY();
 
 Lstring *Lstring::ctor(const dchar *p, unsigned length)
 {

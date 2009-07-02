@@ -435,7 +435,7 @@ void DebugDeclaration::toObjFile()
 
 void DebugDeclaration::toCBuffer(OutBuffer *buf)
 {
-    if (dynamic_cast<VersionDeclaration *>(this))
+    if (isVersionDeclaration())
 	buf->writestring("version(");
     else
 	buf->writestring("debug(");

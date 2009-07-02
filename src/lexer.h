@@ -8,7 +8,12 @@
 // in artistic.txt, or the GNU General Public License in gnu.txt.
 // See the included readme.txt for details.
 
+#ifndef DMD_LEXER_H
+#define DMD_LEXER_H
+
+#ifdef __DMC__
 #pragma once
+#endif /* __DMC__ */
 
 #include "root.h"
 #include "mars.h"
@@ -85,7 +90,7 @@ enum TOK
 	TOKint32v, TOKuns32v,
 	TOKint64v, TOKuns64v,
 	TOKfloat32v, TOKfloat64v, TOKfloat80v,
-	TOKimaginaryv,
+	TOKimaginary32v, TOKimaginary64v, TOKimaginary80v,
 
 	// Leaf operators
 	TOKidentifier,	TOKstring,
@@ -98,12 +103,13 @@ enum TOK
 	TOKint32, TOKuns32,
 	TOKint64, TOKuns64,
 	TOKfloat32, TOKfloat64, TOKfloat80,
+	TOKimaginary32, TOKimaginary64, TOKimaginary80,
+	TOKcomplex32, TOKcomplex64, TOKcomplex80,
 	TOKascii, TOKwchar, TOKbit,
-	TOKimaginary, TOKcomplex,
 
 	// Aggregates
 	TOKstruct, TOKclass, TOKinterface, TOKunion, TOKenum, TOKimport,
-	TOKtypedef, TOKalias, TOKoverride, TOKdelegate,
+	TOKtypedef, TOKalias, TOKoverride, TOKdelegate, TOKfunction,
 
 	TOKalign, TOKextern, TOKprivate, TOKprotected, TOKpublic, TOKexport,
 	TOKstatic, /*TOKvirtual,*/ TOKfinal, TOKconst, TOKabstract, TOKvolatile,
@@ -126,15 +132,16 @@ enum TOK
 };
 
 #define CASE_BASIC_TYPES			\
-	case TOKvoid: case TOKwchar:		\
+	case TOKwchar:				\
 	case TOKbit: case TOKascii:		\
-	case TOKimaginary: case TOKcomplex:	\
 	case TOKint8: case TOKuns8:		\
 	case TOKint16: case TOKuns16:		\
 	case TOKint32: case TOKuns32:		\
 	case TOKint64: case TOKuns64:		\
-	case TOKfloat32: case TOKfloat64:	\
-	case TOKfloat80
+	case TOKfloat32: case TOKfloat64: case TOKfloat80:		\
+	case TOKimaginary32: case TOKimaginary64: case TOKimaginary80:	\
+	case TOKcomplex32: case TOKcomplex64: case TOKcomplex80:	\
+	case TOKvoid
 
 #define CASE_BASIC_TYPES_X(t)					\
 	case TOKvoid:	 t = Type::tvoid;  goto LabelX;		\
@@ -149,8 +156,12 @@ enum TOK
 	case TOKfloat32: t = Type::tfloat32; goto LabelX;	\
 	case TOKfloat64: t = Type::tfloat64; goto LabelX;	\
 	case TOKfloat80: t = Type::tfloat80; goto LabelX;	\
-	case TOKimaginary: t = Type::timaginary80; goto LabelX;	\
-	case TOKcomplex: t = Type::tcomplex80; goto LabelX;	\
+	case TOKimaginary32: t = Type::timaginary32; goto LabelX;	\
+	case TOKimaginary64: t = Type::timaginary64; goto LabelX;	\
+	case TOKimaginary80: t = Type::timaginary80; goto LabelX;	\
+	case TOKcomplex32: t = Type::tcomplex32; goto LabelX;	\
+	case TOKcomplex64: t = Type::tcomplex64; goto LabelX;	\
+	case TOKcomplex80: t = Type::tcomplex80; goto LabelX;	\
 	case TOKbit:	 t = Type::tbit;     goto LabelX;	\
 	case TOKascii:	 t = Type::tascii;    goto LabelX;	\
 	case TOKwchar:	 t = Type::twchar; goto LabelX;	\
@@ -220,3 +231,4 @@ struct Lexer
     void pragma();
 };
 
+#endif /* DMD_LEXER_H */

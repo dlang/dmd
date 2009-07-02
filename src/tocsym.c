@@ -135,7 +135,7 @@ Symbol *VarDeclaration::toSymbol()
     assert(!needThis());
     if (!csym)
     {	Symbol *s;
-	struct type *t;
+	TYPE *t;
 	const char *id;
 	mangle_t m;
 
@@ -144,6 +144,16 @@ Symbol *VarDeclaration::toSymbol()
 	else
 	    id = ident->toChars();
 	s = symbol_calloc(id);
+
+	if (isParameter())
+	{
+	    if (storage_class & STCout)
+		t = type_fake(TYnptr);
+	    else
+		t = type->toCParamtype();
+	}
+	else
+	    t = type->toCtype();
 
 	if (isDataseg())
 	{
@@ -155,16 +165,18 @@ Symbol *VarDeclaration::toSymbol()
 	{
 	    s->Sclass = SCauto;
 	    s->Sfl = FLauto;
+
+	    if (nestedref)
+	    {
+		/* Symbol is accessed by a nested function. Make sure
+		 * it is not put in a register, and that the optimizer
+		 * assumes it is modified across function calls and pointer
+		 * dereferences.
+		 */
+		//printf("\tnested ref, not register\n");
+		type_setcv(&t, t->Tty | mTYvolatile);
+	    }
 	}
-	if (isParameter())
-	{
-	    if (storage_class & STCout)
-		t = type_fake(TYnptr);
-	    else
-		t = type->toCParamtype();
-	}
-	else
-	    t = type->toCtype();
 	if (storage_class & STCconst)
 	{
 	    // Insert const modifiers
@@ -240,9 +252,8 @@ Symbol *FuncDeclaration::toSymbol()
 {
     if (!csym)
     {	Symbol *s;
-	struct type *t;
+	TYPE *t;
 	const char *id;
-	TypeFunction *tf = dynamic_cast<TypeFunction *>(type);
 
 #if 0
 	id = ident->toChars();
@@ -266,6 +277,7 @@ Symbol *FuncDeclaration::toSymbol()
 		f->Fendline.Slinnum = loc.linnum;
 	    t = type->toCtype();
 	}
+
 	assert(t->Tmangle == 0);
 	if (isMain())
 	{
@@ -356,6 +368,9 @@ Symbol *static_sym()
     s->Sfl = FLextern;
     s->Sflags |= SFLnodebug;
     s->Stype = t;
+#if ELFOBJ // Burton
+    s->Sseg = CDATA;
+#endif /* ELFOBJ */
     slist_add(s);
     return s;
 }
@@ -365,7 +380,7 @@ Symbol *static_sym()
  */
 
 Classsym *fake_classsym(char *name)
-{   struct type *t;
+{   TYPE *t;
     Classsym *scc;
 
     scc = (Classsym *)symbol_calloc("ClassInfo");
@@ -465,7 +480,7 @@ Symbol *ClassDeclaration::toVtblSymbol()
     if (!vtblsym)
     {
 	Symbol *s;
-	struct type *t;
+	TYPE *t;
 
 	if (!csym)
 	    toSymbol();

@@ -66,7 +66,11 @@ Module::Module(char *filename, Identifier *ident)
     else
 	argobj = FileName::name(filename);
     argobj = FileName::combine(global.params.objdir, argobj);
+#if ELFOBJ
+    objfilename = FileName::forceExt(argobj, "o");
+#else
     objfilename = FileName::forceExt(argobj, "obj");
+#endif
 
     symfilename = FileName::forceExt(filename, global.sym_ext);
 
@@ -237,7 +241,7 @@ void Module::parse()
 		}
 		dbuf.writeByte(0);		// add 0 as sentinel for scanner
 		buflen = dbuf.offset - 1;	// don't include sentinel in count
-		buf = dbuf.extractData();
+		buf = (unsigned char *) dbuf.extractData();
 	    }
 	    else
 	    {   // UTF-16LE (X86)
@@ -290,7 +294,7 @@ void Module::parse()
 		}
 		dbuf.writeByte(0);		// add 0 as sentinel for scanner
 		buflen = dbuf.offset - 1;	// don't include sentinel in count
-		buf = dbuf.extractData();
+		buf = (unsigned char *) dbuf.extractData();
 	    }
 	}
 	else if (buf[0] == 0xFE && buf[1] == 0xFF)
@@ -349,7 +353,8 @@ void Module::semantic()
     // Note that modules get their own scope, from scratch.
     // This is so regardless of where in the syntax a module
     // gets imported, it is unaffected by context.
-    Scope *sc = new Scope(this);	// create root scope
+    Scope *sc = Scope::createGlobal(this);	// create root scope
+
     //printf("Module = %p\n", sc->scopesym);
 
     // Add import of "object" if this module isn't "object"
@@ -375,6 +380,8 @@ void Module::semantic()
 	s = (Dsymbol *)members->data[i];
 	s->semantic(sc);
     }
+
+    sc = sc->pop();
     sc->pop();
 }
 
@@ -389,7 +396,7 @@ void Module::semantic2()
     // Note that modules get their own scope, from scratch.
     // This is so regardless of where in the syntax a module
     // gets imported, it is unaffected by context.
-    Scope sc(this);	// create root scope
+    Scope *sc = Scope::createGlobal(this);	// create root scope
     //printf("Module = %p\n", sc.scopesym);
 
     // Pass 2 semantic routines: do initializers and function bodies
@@ -397,8 +404,11 @@ void Module::semantic2()
     {	Dsymbol *s;
 
 	s = (Dsymbol *)members->data[i];
-	s->semantic2(&sc);
+	s->semantic2(sc);
     }
+
+    sc = sc->pop();
+    sc->pop();
 }
 
 void Module::semantic3()
@@ -412,7 +422,7 @@ void Module::semantic3()
     // Note that modules get their own scope, from scratch.
     // This is so regardless of where in the syntax a module
     // gets imported, it is unaffected by context.
-    Scope sc(this);	// create root scope
+    Scope *sc = Scope::createGlobal(this);	// create root scope
     //printf("Module = %p\n", sc.scopesym);
 
     // Pass 3 semantic routines: do initializers and function bodies
@@ -420,8 +430,11 @@ void Module::semantic3()
     {	Dsymbol *s;
 
 	s = (Dsymbol *)members->data[i];
-	s->semantic3(&sc);
+	s->semantic3(sc);
     }
+
+    sc = sc->pop();
+    sc->pop();
 }
 
 void Module::inlineScan()
@@ -565,8 +578,8 @@ DsymbolTable *Package::resolve(Array *packages, Dsymbol **pparent, Package **ppk
 	    }
 	    else
 	    {
-		assert(dynamic_cast<Package *>(p));
-		if (dynamic_cast<Module *>(p))
+		assert(p->isPackage());
+		if (p->isModule())
 		{   p->error("module and package have the same name");
 		    fatal();
 		    break;

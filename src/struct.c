@@ -90,10 +90,6 @@ Type *AggregateDeclaration::getType()
     return type;
 }
 
-int AggregateDeclaration::isInterface()
-{
-    return 0;
-}
 
 /****************************
  * Do byte or word alignment as necessary.
@@ -159,7 +155,7 @@ void StructDeclaration::semantic(Scope *sc)
 	return;
     if (!symtab)			// if not already done semantic()
     {
-	parent = sc->scopesym;
+	parent = sc->parent;
 	handle = type->pointerTo();
 	symtab = new DsymbolTable();
 	structalign = sc->structalign;
@@ -173,8 +169,10 @@ void StructDeclaration::semantic(Scope *sc)
 	    }
 	}
 	sc2 = sc->push(this);
+	sc2->parent = this;
 	if (isUnion())
 	    sc2->inunion = 1;
+	sc2->stc &= ~(STCauto | STCstatic);
 	for (i = 0; i < members->dim; i++)
 	{
 	    Dsymbol *s = (Dsymbol *)members->data[i];
@@ -196,7 +194,7 @@ void StructDeclaration::semantic(Scope *sc)
     AggregateDeclaration *sd;
 
     if (isAnonymous() &&
-	(sd = dynamic_cast<AggregateDeclaration *>(parent)) != NULL)
+	(sd = isMember()) != NULL)
     {	// Anonymous structures aren't independent, all their members are
 	// added to the enclosing struct.
 	unsigned offset;
@@ -210,7 +208,7 @@ void StructDeclaration::semantic(Scope *sc)
 	for (i = 0; i < fields.dim; i++)
 	{
 	    Dsymbol *s = (Dsymbol *)fields.data[i];
-	    VarDeclaration *vd = dynamic_cast<VarDeclaration *>(s);
+	    VarDeclaration *vd = s->isVarDeclaration();
 	    if (vd)
 	    {
 		vd->addMember(sd);
@@ -228,6 +226,12 @@ void StructDeclaration::semantic(Scope *sc)
 	    sd->alignsize = alignsize;
     }
     //printf("-StructDeclaration::semantic(this=%p, '%s')\n", this, toChars());
+
+    if (sc->func)
+    {
+	semantic2(sc);
+	semantic3(sc);
+    }
 }
 
 void StructDeclaration::toCBuffer(OutBuffer *buf)

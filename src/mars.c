@@ -29,9 +29,18 @@ Global::Global()
 {
     mars_ext = "d";
     sym_ext  = "d";
+
+#if _WIN32
+    obj_ext  = "obj";
+#elif linux
+    obj_ext  = "o";
+#else
+#error "fix this"
+#endif
+
     copyright = "Copyright (c) 1999-2003 by Digital Mars";
     written = "written by Walter Bright";
-    version = "Beta v0.53";
+    version = "Beta v0.61";
     global.structalign = 8;
 
     memset(&params, 0, sizeof(Param));
@@ -167,7 +176,12 @@ int main(int argc, char *argv[])
 
     // Predefine version identifiers
     VersionCondition::addIdent("DigitalMars");
+#if _WIN32
     VersionCondition::addIdent("Win32");
+#endif /* _WIN32 */
+#if linux
+    VersionCondition::addIdent("Linux");
+#endif /* linux */
     VersionCondition::addIdent("X86");
     VersionCondition::addIdent("LittleEndian");
     VersionCondition::addIdent("D_InlineAsm");
@@ -252,6 +266,8 @@ int main(int argc, char *argv[])
 		global.params.debugb = 1;
 	    else if (strcmp(p + 1, "-c") == 0)
 		global.params.debugc = 1;
+	    else if (strcmp(p + 1, "-f") == 0)
+		global.params.debugf = 1;
 	    else if (strcmp(p + 1, "-r") == 0)
 		global.params.debugr = 1;
 	    else if (strcmp(p + 1, "-x") == 0)
@@ -292,7 +308,13 @@ int main(int argc, char *argv[])
 	// Check to see if it is really an obj file name spec
 	char *e = FileName::ext(global.params.objdir);
 
-	if (e && stricmp(e, "obj") == 0)	// BUG: WIN32 dependency
+#if _WIN32
+	if (e && stricmp(e, global.obj_ext) == 0)
+#elif linux
+	if (e && strcmp(e, global.obj_ext) == 0)
+#else
+#error "fix this"
+#endif
 	{
 	    global.params.objname = global.params.objdir;
 	    global.params.objdir = NULL;
@@ -332,12 +354,16 @@ int main(int argc, char *argv[])
 	char *ext;
 	char *name;
 
-	p = files.data[i];
+	p = (char *) files.data[i];
 	p = FileName::name(p);		// strip path
 	ext = FileName::ext(p);
 	if (ext)
 	{
+#if ELFOBJ
+	    if (stricmp(ext, "o") == 0)
+#else
 	    if (stricmp(ext, "obj") == 0)
+#endif
 	    {
 		global.params.objfiles->push(files.data[i]);
 		continue;
@@ -383,7 +409,7 @@ int main(int argc, char *argv[])
 	else
 	    name = p;
 	id = new Identifier(name, 0);
-	m = new Module(files.data[i], id);
+	m = new Module((char *) files.data[i], id);
 	modules.push(m);
 
 	global.params.objfiles->push(m->objfile->name->str);
