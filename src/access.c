@@ -314,6 +314,13 @@ int ClassDeclaration::hasPrivateAccess(Dsymbol *smember)
 	}
 
 	// If both are members of the same module, grant access
+	while (1)
+	{   Dsymbol *sp = smember->toParent();
+	    if (sp->isFuncDeclaration() && smember->isFuncDeclaration())
+		smember = sp;
+	    else
+		break;
+	}
 	if (!cd && toParent() == smember->toParent())
 	{
 #if LOG

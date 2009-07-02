@@ -52,6 +52,7 @@ Expression *Type::getInternalTypeInfo()
     Type *t;
     static TypeInfoDeclaration *internalTI[TMAX];
 
+    //printf("Type::getInternalTypeInfo() %s\n", toChars());
     t = toBasetype();
     switch (t->ty)
     {
@@ -79,6 +80,7 @@ Expression *Type::getInternalTypeInfo()
 	default:
 	    break;
     }
+    //printf("\tcalling getTypeInfo() %s\n", t->toChars());
     return t->getTypeInfo(NULL);
 }
 
@@ -91,7 +93,7 @@ Expression *Type::getTypeInfo(Scope *sc)
 {
     Expression *e;
 
-    //printf("Type::getTypeInfo()\n");
+    //printf("Type::getTypeInfo() %s\n", toChars());
     if (!vtinfo)
     {	vtinfo = getTypeInfoDeclaration();
 
@@ -114,6 +116,7 @@ Expression *Type::getTypeInfo(Scope *sc)
 
 TypeInfoDeclaration *Type::getTypeInfoDeclaration()
 {
+    //printf("Type::getTypeInfoDeclaration() %s\n", toChars());
     return new TypeInfoDeclaration(this, 0);
 }
 
@@ -135,7 +138,7 @@ TypeInfoDeclaration *TypeClass::getTypeInfoDeclaration()
 
 void TypeInfoDeclaration::toDt(dt_t **pdt)
 {
-    //printf("TypeInfoDeclaration::toDt()\n");
+    //printf("TypeInfoDeclaration::toDt() %s\n", toChars());
     dtxoff(pdt, Type::typeinfo->toVtblSymbol(), 0, TYnptr); // vtbl for TypeInfo
     dtdword(pdt, 0);			    // monitor
 }
@@ -143,7 +146,7 @@ void TypeInfoDeclaration::toDt(dt_t **pdt)
 void TypeInfoTypedefDeclaration::toDt(dt_t **pdt)
 {
     //printf("TypeInfoTypedefDeclaration::toDt()\n");
-    dtxoff(pdt, Type::typeinfotypedef->toVtblSymbol(), 0, TYnptr); // vtbl for TypeInfoTypedef
+    dtxoff(pdt, Type::typeinfotypedef->toVtblSymbol(), 0, TYnptr); // vtbl for TypeInfo_Typedef
     dtdword(pdt, 0);			    // monitor
 
     assert(tinfo->ty == Ttypedef);

@@ -641,7 +641,7 @@ void StructDeclaration::toDt(dt_t **pdt)
 	VarDeclaration *v = (VarDeclaration *)fields.data[i];
 	Initializer *init;
 
-	//printf("\tmember '%s' voffset %d, offset = %d\n", v->toChars(), v->offset, offset);
+	//printf("\tfield '%s' voffset %d, offset = %d\n", v->toChars(), v->offset, offset);
 	dt = NULL;
 	init = v->init;
 	if (init)

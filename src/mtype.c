@@ -1286,7 +1286,8 @@ Expression *TypeArray::dotExp(Scope *sc, Expression *e, Identifier *ident)
 	e = e->castTo(n->arrayOf());		// convert to dynamic array
 	arguments = new Array();
 	arguments->push(e);
-	arguments->push(n->getInternalTypeInfo());
+	arguments->push(n->ty == Tsarray ? n->getTypeInfo(sc)	// don't convert to dynamic array
+					 : n->getInternalTypeInfo());
 	e = new CallExp(e->loc, ec, arguments);
 	e->type = next->arrayOf();
     }

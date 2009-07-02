@@ -110,6 +110,33 @@ void VersionCondition::setGlobalLevel(unsigned level)
 
 void VersionCondition::addGlobalIdent(char *ident)
 {
+    static char* reserved[] =
+    {
+	"DigitalMars", "X86", "AMD64",
+	"Windows", "Win32", "Win64",
+	"linux",
+	"LittleEndian", "BigEndian",
+	"none",
+    };
+
+    for (unsigned i = 0; i < sizeof(reserved) / sizeof(reserved[0]); i++)
+    {
+	if (strcmp(ident, reserved[i]) == 0)
+	    goto Lerror;
+    }
+
+    if (ident[0] == 'D' && ident[1] == '_')
+	goto Lerror;
+
+    addPredefinedGlobalIdent(ident);
+    return;
+
+  Lerror:
+    error("version identifier '%s' is reserved and cannot be set", ident);
+}
+
+void VersionCondition::addPredefinedGlobalIdent(char *ident)
+{
     if (!global.params.versionids)
 	global.params.versionids = new Array();
     global.params.versionids->push(ident);

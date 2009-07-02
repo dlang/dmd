@@ -85,14 +85,10 @@ void Module::genmoduleinfo()
     for (i = 0; i < members->dim; i++)
     {
 	Dsymbol *member;
-	ClassDeclaration *cd;
 
 	member = (Dsymbol *)members->data[i];
 	//printf("\tmember '%s'\n", member->toChars());
-	if ((cd = member->isClassDeclaration()) != NULL)
-	{
-	    aclasses.push(cd);
-	}
+	member->addLocalClass(&aclasses);
     }
 
     // importedModules[]

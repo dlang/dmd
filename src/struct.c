@@ -183,7 +183,8 @@ void StructDeclaration::semantic(Scope *sc)
 	if (isUnionDeclaration())
 	    sc2->inunion = 1;
 	sc2->stc &= ~(STCauto | STCstatic);
-	for (i = 0; i < members->dim; i++)
+	int members_dim = members->dim;
+	for (i = 0; i < members_dim; i++)
 	{
 	    Dsymbol *s = (Dsymbol *)members->data[i];
 	    s->semantic(sc2);
@@ -214,19 +215,22 @@ void StructDeclaration::semantic(Scope *sc)
 	sd->alignmember(structalign, alignsize, &sd->structsize);
 
 	// Add members to enclosing struct
-	for (i = 0; i < fields.dim; i++)
+	for (i = 0; i < members->dim; i++)
 	{
-	    Dsymbol *s = (Dsymbol *)fields.data[i];
+	    Dsymbol *s = (Dsymbol *)members->data[i];
 	    VarDeclaration *vd = s->isVarDeclaration();
-	    if (vd)
+	    if (vd && vd->storage_class & STCfield)
 	    {
 		vd->addMember(sd);
 		if (!sd->isUnionDeclaration())
 		    vd->offset += sd->structsize;
 		sd->fields.push(vd);
+		sd->members->push(s);
 	    }
-	    else
-		error("only fields allowed in anonymous struct");
+	    else if (!s->isAnonymous())
+	    {
+		sd->members->push(s);
+	    }
 	}
 
 	if (sd->isUnionDeclaration())

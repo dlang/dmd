@@ -245,6 +245,8 @@ void AliasDeclaration::semantic(Scope *sc)
 	}
     }
   L1:
+    if (overnext)
+	ScopeDsymbol::multiplyDefined(this, overnext);
     type = type->semantic(loc, sc);
     this->inSemantic = 0;
     return;
@@ -422,7 +424,7 @@ void VarDeclaration::semantic(Scope *sc)
 		sd->alignsize = memalignsize;
 
 	    storage_class |= STCfield;
-	    //printf("1 Adding '%s' to '%s'\n", this->toChars(), sd->toChars());
+	    //printf("1 Adding '%s' to '%s', offset %d\n", this->toChars(), sd->toChars(), offset);
 	    sd->fields.push(this);
 	}
 

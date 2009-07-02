@@ -33,6 +33,7 @@ struct DebugCondition : Condition
 {
     static void setGlobalLevel(unsigned level);
     static void addGlobalIdent(char *ident);
+    static void addPredefinedGlobalIdent(char *ident);
 
     DebugCondition(Module *mod, unsigned level, Identifier *ident);
 
@@ -43,6 +44,7 @@ struct VersionCondition : Condition
 {
     static void setGlobalLevel(unsigned level);
     static void addGlobalIdent(char *ident);
+    static void addPredefinedGlobalIdent(char *ident);
 
     VersionCondition(Module *mod, unsigned level, Identifier *ident);
 

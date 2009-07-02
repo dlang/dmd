@@ -58,8 +58,8 @@ Msgtable msgtable[] =
     { "empty", "" },
 
     { "TypeInfo" },
-    { "TypeInfoClass" },
-    { "TypeInfoTypedef" },
+    { "TypeInfo_Class" },
+    { "TypeInfo_Typedef" },
     { "_arguments" },
     { "_argptr" },
 

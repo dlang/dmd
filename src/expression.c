@@ -1608,6 +1608,8 @@ Expression *NewExp::semantic(Scope *sc)
 	    member = f->isCtorDeclaration();
 	    assert(member);
 
+	    cd->accessCheck(loc, sc, member);
+
 	    tf = (TypeFunction *)f->type;
 	    type = tf->next;
 

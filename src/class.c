@@ -69,10 +69,10 @@ ClassDeclaration::ClassDeclaration(Loc loc, Identifier *id, Array *baseclasses)
     if (!Type::typeinfo && id == Id::TypeInfo)
 	Type::typeinfo = this;
 
-    if (!Type::typeinfoclass && id == Id::TypeInfoClass)
+    if (!Type::typeinfoclass && id == Id::TypeInfo_Class)
 	Type::typeinfoclass = this;
 
-    if (!Type::typeinfotypedef && id == Id::TypeInfoTypedef)
+    if (!Type::typeinfotypedef && id == Id::TypeInfo_Typedef)
 	Type::typeinfotypedef = this;
 
     com = 0;
@@ -562,6 +562,14 @@ int ClassDeclaration::vtblOffset()
 char *ClassDeclaration::kind()
 {
     return "class";
+}
+
+/****************************************
+ */
+
+void ClassDeclaration::addLocalClass(Array *aclasses)
+{
+    aclasses->push(this);
 }
 
 /********************************* InterfaceDeclaration ****************************/

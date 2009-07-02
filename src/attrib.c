@@ -168,6 +168,25 @@ Dsymbol *AttribDeclaration::oneMember()
     return NULL;
 }
 
+/****************************************
+ */
+
+void AttribDeclaration::addLocalClass(Array *aclasses)
+{   unsigned i;
+    Array *d = include();
+
+    if (d)
+    {
+	for (i = 0; i < d->dim; i++)
+	{   Dsymbol *s;
+
+	    s = (Dsymbol *)d->data[i];
+	    s->addLocalClass(aclasses);
+	}
+    }
+}
+
+
 void AttribDeclaration::toCBuffer(OutBuffer *buf)
 {
     if (decl)

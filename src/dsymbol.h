@@ -123,6 +123,7 @@ struct Dsymbol : Object
     virtual enum PROT prot();
     virtual Dsymbol *syntaxCopy(Dsymbol *s);	// copy only syntax trees
     virtual Dsymbol *oneMember() { return this; }
+    virtual void addLocalClass(Array *) { }
 
     // Backend
 

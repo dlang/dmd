@@ -111,6 +111,8 @@ Expression *CastExp::constFold()
 	return e1;
     }
 
+    if (type->toBasetype()->ty == Tbit)
+	return new IntegerExp(loc, e1->toInteger() != 0, type);
     if (type->isintegral())
 	return new IntegerExp(loc, e1->toInteger(), type);
     if (type->isreal())

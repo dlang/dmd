@@ -38,6 +38,7 @@ struct AttribDeclaration : Dsymbol
     void inlineScan();
     char *kind();
     Dsymbol *oneMember();
+    void addLocalClass(Array *);
     void toCBuffer(OutBuffer *buf);
 
     void toObjFile();			// compile to .obj file

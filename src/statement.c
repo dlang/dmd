@@ -1839,7 +1839,7 @@ Statement *TryCatchStatement::syntaxCopy()
 
 Statement *TryCatchStatement::semantic(Scope *sc)
 {
-    body = body->semanticScope(sc, this, NULL);
+    body = body->semanticScope(sc, NULL /*this*/, NULL);
 
     for (int i = 0; i < catches->dim; i++)
     {   Catch *c;

@@ -49,7 +49,7 @@ Global::Global()
 
     copyright = "Copyright (c) 1999-2004 by Digital Mars";
     written = "written by Walter Bright";
-    version = "v0.105";
+    version = "v0.106";
     global.structalign = 8;
 
     memset(&params, 0, sizeof(Param));
@@ -186,18 +186,19 @@ int main(int argc, char *argv[])
     global.params.objfiles = new Array();
 
     // Predefine version identifiers
-    VersionCondition::addGlobalIdent("DigitalMars");
+    VersionCondition::addPredefinedGlobalIdent("DigitalMars");
 #if _WIN32
-    VersionCondition::addGlobalIdent("Windows");
-    VersionCondition::addGlobalIdent("Win32");
+    VersionCondition::addPredefinedGlobalIdent("Windows");
+    VersionCondition::addPredefinedGlobalIdent("Win32");
 #endif
 #if linux
-    VersionCondition::addGlobalIdent("linux");
+    VersionCondition::addPredefinedGlobalIdent("linux");
     global.params.isLinux = 1;
 #endif /* linux */
-    VersionCondition::addGlobalIdent("X86");
-    VersionCondition::addGlobalIdent("LittleEndian");
-    VersionCondition::addGlobalIdent("D_InlineAsm");
+    VersionCondition::addPredefinedGlobalIdent("X86");
+    VersionCondition::addPredefinedGlobalIdent("LittleEndian");
+    VersionCondition::addPredefinedGlobalIdent("D_InlineAsm");
+    VersionCondition::addPredefinedGlobalIdent("all");
 
 #if _WIN32
     inifile(argv[0], "sc.ini");
@@ -288,7 +289,7 @@ int main(int argc, char *argv[])
 			    goto Lerror;
 			DebugCondition::setGlobalLevel((int)level);
 		    }
-		    else if (isalpha(p[7]))
+		    else if (isalpha(p[7]) || p[7] == '_')
 			DebugCondition::addGlobalIdent(p + 7);
 		    else
 			goto Lerror;
@@ -306,8 +307,15 @@ int main(int argc, char *argv[])
 		if (p[8] == '=')
 		{
 		    if (isdigit(p[9]))
-			VersionCondition::setGlobalLevel(atoi(p + 9));
-		    else if (isalpha(p[9]))
+		    {	long level;
+
+			errno = 0;
+			level = strtol(p + 9, &p, 10);
+			if (*p || errno || level > INT_MAX)
+			    goto Lerror;
+			VersionCondition::setGlobalLevel((int)level);
+		    }
+		    else if (isalpha(p[9]) || p[9] == '_')
 			VersionCondition::addGlobalIdent(p + 9);
 		    else
 			goto Lerror;

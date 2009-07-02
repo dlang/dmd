@@ -162,6 +162,7 @@ struct ClassDeclaration : AggregateDeclaration
     void accessCheck(Loc loc, Scope *sc, Dsymbol *smember);
     int isFriendOf(ClassDeclaration *cd);
     int hasPackageAccess(Scope *sc);
+    void addLocalClass(Array *);
 
     // Back end
     void toObjFile();			// compile to .obj file
