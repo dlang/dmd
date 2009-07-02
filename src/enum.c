@@ -17,13 +17,14 @@
 
 /********************************* EnumDeclaration ****************************/
 
-EnumDeclaration::EnumDeclaration(Identifier *id, Type *memtype)
+EnumDeclaration::EnumDeclaration(Loc loc, Identifier *id, Type *memtype)
     : ScopeDsymbol(id)
 {
+    this->loc = loc;
     type = new TypeEnum(this);
     this->memtype = memtype;
     maxval = 0;
-    minval = 0x7FFFFFFF;		// BUG: long long max?
+    minval = 0;
     defaultval = 0;
 }
 
@@ -39,14 +40,14 @@ Dsymbol *EnumDeclaration::syntaxCopy(Dsymbol *s)
 	ed->memtype = t;
     }
     else
-	ed = new EnumDeclaration(ident, t);
+	ed = new EnumDeclaration(loc, ident, t);
     ScopeDsymbol::syntaxCopy(ed);
     return ed;
 }
 
 void EnumDeclaration::semantic(Scope *sc)
 {   int i;
-    integer_t number;
+    uinteger_t number;
     Type *t;
     Scope *sce;
 
@@ -58,7 +59,7 @@ void EnumDeclaration::semantic(Scope *sc)
     parent = sc->scopesym;
     memtype = memtype->semantic(loc, sc);
     if (!memtype->isintegral())
-	error("EnumBaseType must be integral type, not %s", memtype->toChars());
+	error("base type must be of integral type, not %s", memtype->toChars());
 
     t = isAnonymous() ? memtype : type;
     symtab = new DsymbolTable();
@@ -69,6 +70,7 @@ void EnumDeclaration::semantic(Scope *sc)
 	return;
     if (members->dim == 0)
 	error("enum %s must have at least one member", toChars());
+    int first = 1;
     for (i = 0; i < members->dim; i++)
     {
 	EnumMember *em = ((Dsymbol *)members->data[i])->isEnumMember();
@@ -106,15 +108,30 @@ void EnumDeclaration::semantic(Scope *sc)
 	else
 	    em->addMember(this);
 
-	if (number < minval)
-	    minval = number;
-	if (number > maxval)
-	    maxval = number;
-	if (i == 0)
+	if (first)
+	{   first = 0;
 	    defaultval = number;
+	    minval = number;
+	    maxval = number;
+	}
+	else if (memtype->isunsigned())
+	{
+	    if (number < minval)
+		minval = number;
+	    if (number > maxval)
+		maxval = number;
+	}
+	else
+	{
+	    if ((sinteger_t)number < (sinteger_t)minval)
+		minval = number;
+	    if ((sinteger_t)number > (sinteger_t)maxval)
+		maxval = number;
+	}
 
 	number++;
     }
+    //printf("defaultval = %lld\n", defaultval);
 
     sce->pop();
     //members->print();

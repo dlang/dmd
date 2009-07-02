@@ -29,7 +29,7 @@ struct EnumDeclaration : ScopeDsymbol
     integer_t minval;
     integer_t defaultval;	// default initializer
 
-    EnumDeclaration(Identifier *id, Type *memtype);
+    EnumDeclaration(Loc loc, Identifier *id, Type *memtype);
     Dsymbol *syntaxCopy(Dsymbol *s);
     void semantic(Scope *sc);
     Dsymbol *oneMember();

@@ -1044,7 +1044,6 @@ if (arguments)
 	    error(loc, "%s does not match argument types (%s)",
 		Argument::argsTypesToChars(tf->arguments, tf->varargs),
 		buf.toChars());
-*(char*)0=0;
 	    return m.anyf;		// as long as it's not a FuncAliasDeclaration
 	}
 	else

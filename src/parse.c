@@ -844,6 +844,7 @@ EnumDeclaration *Parser::parseEnum()
 {   EnumDeclaration *e;
     Identifier *id;
     Type *t;
+    Loc loc = this->loc;
 
     //printf("Parser::parseEnum()\n");
     nextToken();
@@ -862,7 +863,7 @@ EnumDeclaration *Parser::parseEnum()
     else
 	t = NULL;
 
-    e = new EnumDeclaration(id, t);
+    e = new EnumDeclaration(loc, id, t);
     if (token.value == TOKsemicolon && id)
  	nextToken();
     else if (token.value == TOKlcurly)

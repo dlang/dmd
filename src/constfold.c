@@ -120,7 +120,12 @@ Expression *CastExp::constFold()
     if (tb->ty == Tbit)
 	return new IntegerExp(loc, e1->toInteger() != 0, type);
     if (type->isintegral())
-	return new IntegerExp(loc, e1->toInteger(), type);
+    {
+	if (type->isunsigned())
+	    return new IntegerExp(loc, e1->toUInteger(), type);
+	else
+	    return new IntegerExp(loc, e1->toInteger(), type);
+    }
     if (tb->isreal())
     {	real_t value = e1->toReal();
 
@@ -375,23 +380,35 @@ Expression *ShrExp::constFold()
     switch (e1->type->toBasetype()->ty)
     {
 	case Tint8:
-	case Tuns8:
 		value = (d_int8)(value) >> count;
 		break;
 
+	case Tuns8:
+		value = (d_uns8)(value) >> count;
+		break;
+
 	case Tint16:
-	case Tuns16:
 		value = (d_int16)(value) >> count;
 		break;
 
+	case Tuns16:
+		value = (d_uns16)(value) >> count;
+		break;
+
 	case Tint32:
-	case Tuns32:
 		value = (d_int32)(value) >> count;
 		break;
 
+	case Tuns32:
+		value = (d_uns32)(value) >> count;
+		break;
+
 	case Tint64:
-	case Tuns64:
 		value = (d_int64)(value) >> count;
+		break;
+
+	case Tuns64:
+		value = (d_uns64)(value) >> count;
 		break;
 
 	default:

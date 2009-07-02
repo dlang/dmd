@@ -105,7 +105,13 @@ typedef _Complex long double complex_t;
 #endif
 #endif
 
+// Be careful not to care about sign with integer_t
 typedef unsigned long long integer_t;
+
+// Signed and unsigned variants
+typedef long long sinteger_t;
+typedef unsigned long long uinteger_t;
+
 typedef long double real_t;
 
 typedef signed char		d_int8;

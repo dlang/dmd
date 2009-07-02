@@ -595,7 +595,10 @@ void InterfaceDeclaration::toObjFile()
 
     //printf("InterfaceDeclaration::toObjFile('%s')\n", toChars());
 
-    if (members && global.params.symdebug)
+    if (!members)
+	return;
+
+    if (global.params.symdebug)
 	toDebug();
 
     if (parent && parent->isTemplateInstance())

@@ -1489,6 +1489,7 @@ Type *TypeSArray::semantic(Loc loc, Scope *sc)
 {
     //printf("TypeSArray::semantic() %s\n", toChars());
     next = next->semantic(loc,sc);
+    Type *tbn = next->toBasetype();
     if (dim)
     {	integer_t n, n2;
 
@@ -1501,22 +1502,25 @@ Type *TypeSArray::semantic(Loc loc, Scope *sc)
 
 	if (d1 != d2)
 	    goto Loverflow;
-	if (next->ty == Tbit && (d2 + 31) < d2)
+
+	if (tbn->ty == Tbit && (d2 + 31) < d2)
 	    goto Loverflow;
-	else if (next->isintegral() ||
-		 next->isfloating() ||
-		 next->ty == Tpointer ||
-		 next->ty == Tarray ||
-		 next->ty == Tsarray ||
-		 next->ty == Taarray ||
-		 next->ty == Tclass)
+	else if (tbn->isintegral() ||
+		 tbn->isfloating() ||
+		 tbn->ty == Tpointer ||
+		 tbn->ty == Tarray ||
+		 tbn->ty == Tsarray ||
+		 tbn->ty == Taarray ||
+		 tbn->ty == Tclass)
 	{
 	    /* Only do this for types that don't need to have semantic()
 	     * run on them for the size, since they may be forward referenced.
 	     */
-	    n = next->size(loc);
+	    n = tbn->size(loc);
 	    n2 = n * d2;
 	    if ((int)n2 < 0)
+		goto Loverflow;
+	    if (n2 >= 0x1000000)	// put a 'reasonable' limit on it
 		goto Loverflow;
 	    if (n && n2 / n != d2)
 	    {
@@ -1526,15 +1530,15 @@ Type *TypeSArray::semantic(Loc loc, Scope *sc)
 	    }
 	}
     }
-    switch (next->ty)
+    switch (tbn->ty)
     {
 	case Tfunction:
 	case Tnone:
-	    error(loc, "can't have array of %s", next->toChars());
+	    error(loc, "can't have array of %s", tbn->toChars());
 	    break;
     }
-    if (next->isauto())
-	error(loc, "cannot have array of auto %s", next->toChars());
+    if (tbn->isauto())
+	error(loc, "cannot have array of auto %s", tbn->toChars());
     return merge();
 }
 
@@ -3198,6 +3202,10 @@ Expression *TypeEnum::getProperty(Loc loc, Identifier *ident)
     else if (ident == Id::min)
     {
 	e = new IntegerExp(0, sym->minval, this);
+    }
+    else if (ident == Id::init)
+    {
+	e = defaultInit();
     }
     else
     {

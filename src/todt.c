@@ -1,5 +1,5 @@
 
-// Copyright (c) 1999-2002 by Digital Mars
+// Copyright (c) 1999-2005 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // www.digitalmars.com
@@ -186,6 +186,8 @@ dt_t *ArrayInitializer::toDt()
 	length++;
     }
 
+    Expression *edefault = tb->next->defaultInit();
+
     d = NULL;
     pdtend = &d;
     for (i = 0; i < dim; i++)
@@ -194,7 +196,7 @@ dt_t *ArrayInitializer::toDt()
 	if (dt)
 	    pdtend = dtcat(pdtend, dt);
 	else
-	    pdtend = tn->toDt(pdtend);
+	    pdtend = edefault->toDt(pdtend);
     }
     switch (tb->ty)
     {
@@ -204,7 +206,16 @@ dt_t *ArrayInitializer::toDt()
 
 	    tadim = ta->dim->toInteger();
 	    if (dim < tadim)
-		pdtend = dtnzeros(pdtend, size * (tadim - dim));	// pad out end of array
+	    {
+		if (edefault->isBool(FALSE))
+		    // pad out end of array
+		    pdtend = dtnzeros(pdtend, size * (tadim - dim));
+		else
+		{
+		    for (i = dim; i < tadim; i++)
+			pdtend = edefault->toDt(pdtend);
+		}
+	    }
 	    else if (dim > tadim)
 		error("too many initializers %d for array[%d]", dim, tadim);
 	    break;
@@ -353,7 +364,9 @@ dt_t *ExpInitializer::toDt()
 
 dt_t **Expression::toDt(dt_t **pdt)
 {
-    //printf("Expression::toDt() %d\n", op);
+#ifdef DEBUG
+    printf("Expression::toDt() %d\n", op);
+#endif
     error("non-constant expression %s", toChars());
     pdt = dtnzeros(pdt, 1);
     return pdt;
@@ -522,7 +535,11 @@ dt_t **SymOffExp::toDt(dt_t **pdt)
     //printf("SymOffExp::toDt('%s')\n", var->toChars());
     assert(var);
     if (!(var->isDataseg() || var->isCodeseg()) || var->needThis())
-    {	error("non-constant expression %s", toChars());
+    {
+#ifdef DEBUG
+	printf("SymOffExp::toDt()\n");
+#endif
+	error("non-constant expression %s", toChars());
 	return pdt;
     }
     s = var->toSymbol();
@@ -541,6 +558,9 @@ dt_t **VarExp::toDt(dt_t **pdt)
 	*pdtend = v->init->toDt();
 	return pdt;
     }
+#ifdef DEBUG
+    printf("VarExp::toDt() %d\n", op);
+#endif
     error("non-constant expression %s", toChars());
     pdt = dtnzeros(pdt, 1);
     return pdt;
@@ -592,7 +612,7 @@ void ClassDeclaration::toDt2(dt_t **pdt, ClassDeclaration *cd)
 	VarDeclaration *v = (VarDeclaration *)fields.data[i];
 	Initializer *init;
 
-	//printf("\t\tv->offset = %d, offset = %d\n", v->offset, offset);
+	//printf("\t\tv = '%s' v->offset = %2d, offset = %2d\n", v->toChars(), v->offset, offset);
 	dt = NULL;
 	init = v->init;
 	if (init)
@@ -600,7 +620,9 @@ void ClassDeclaration::toDt2(dt_t **pdt, ClassDeclaration *cd)
 	    dt = init->toDt();
 	}
 	else if (v->offset >= offset)
+	{   //printf("\t\tdefault initializer\n");
 	    v->type->toDt(&dt);
+	}
 	if (dt)
 	{
 	    if (v->offset < offset)
@@ -706,39 +728,50 @@ dt_t **TypeSArray::toDt(dt_t **pdt)
     int i;
     unsigned len;
 
+    //printf("TypeSArray::toDt()\n");
     len = dim->toInteger();
     if (len)
     {
 	while (*pdt)
 	    pdt = &((*pdt)->DTnext);
-	if (next->toBasetype()->ty == Tbit)
+	Expression *e = next->defaultInit();
+	Type *tbn = next->toBasetype();
+	if (tbn->ty == Tbit)
 	{
 	    Bits databits;
 
 	    databits.resize(len);
-	    if (next->defaultInit()->toInteger())
+	    if (e->toInteger())
 		databits.set();
 	    pdt = dtnbytes(pdt, databits.allocdim * sizeof(databits.data[0]),
 		(char *)databits.data);
 	}
 	else
 	{
-	    next->toDt(pdt);
+	    if (tbn->ty == Tstruct)
+		next->toDt(pdt);
+	    else
+		e->toDt(pdt);
 	    dt_optimize(*pdt);
 	    if ((*pdt)->dt == DT_azeros && !(*pdt)->DTnext)
 	    {
 		(*pdt)->DTazeros *= len;
+		pdt = &((*pdt)->DTnext);
 	    }
 	    else if ((*pdt)->dt == DT_1byte && (*pdt)->DTonebyte == 0 && !(*pdt)->DTnext)
 	    {
 		(*pdt)->dt = DT_azeros;
 		(*pdt)->DTazeros = len;
+		pdt = &((*pdt)->DTnext);
 	    }
 	    else
 	    {
 		for (i = 1; i < len; i++)
 		{
-		    pdt = next->toDt(pdt);
+		    if (tbn->ty == Tstruct)
+			pdt = next->toDt(pdt);
+		    else
+			pdt = e->toDt(pdt);
 		}
 	    }
 	}

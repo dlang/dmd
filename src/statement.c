@@ -623,7 +623,8 @@ int ForStatement::usesEH()
 
 int ForStatement::fallOffEnd()
 {
-    body->fallOffEnd();
+    if (body)
+	body->fallOffEnd();
     return TRUE;
 }
 
@@ -969,7 +970,8 @@ int ForeachStatement::usesEH()
 
 int ForeachStatement::fallOffEnd()
 {
-    body->fallOffEnd();
+    if (body)
+	body->fallOffEnd();
     return TRUE;
 }
 

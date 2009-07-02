@@ -83,7 +83,7 @@ struct Module : Package
     static Module *load(Loc loc, Array *packages, Identifier *ident);
 
     char *kind();
-    void read();	// read file
+    void read(Loc loc);	// read file
     void parse();	// syntactic parse
     void semantic();	// semantic analysis
     void semantic2();	// pass 2 semantic analysis

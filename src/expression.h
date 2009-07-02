@@ -67,6 +67,7 @@ struct Expression : Object
     static Array *arraySyntaxCopy(Array *exps);
 
     virtual integer_t toInteger();
+    virtual uinteger_t toUInteger();
     virtual real_t toReal();
     virtual real_t toImaginary();
     virtual complex_t toComplex();
@@ -122,6 +123,7 @@ struct IntegerExp : Expression
     integer_t toInteger();
     real_t toReal();
     real_t toImaginary();
+    complex_t toComplex();
     int isConst();
     int isBool(int result);
     int implicitConvTo(Type *t);
@@ -139,6 +141,7 @@ struct RealExp : Expression
     Expression *semantic(Scope *sc);
     char *toChars();
     integer_t toInteger();
+    uinteger_t toUInteger();
     real_t toReal();
     real_t toImaginary();
     complex_t toComplex();
@@ -175,6 +178,7 @@ struct ComplexExp : Expression
     Expression *semantic(Scope *sc);
     char *toChars();
     integer_t toInteger();
+    uinteger_t toUInteger();
     real_t toReal();
     real_t toImaginary();
     complex_t toComplex();

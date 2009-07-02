@@ -49,7 +49,7 @@ Global::Global()
 
     copyright = "Copyright (c) 1999-2005 by Digital Mars";
     written = "written by Walter Bright";
-    version = "v0.122";
+    version = "v0.123";
     global.structalign = 8;
 
     memset(&params, 0, sizeof(Param));
@@ -521,7 +521,7 @@ int main(int argc, char *argv[])
 	if (global.params.verbose)
 	    printf("parse     %s\n", m->toChars());
 	m->deleteObjFile();
-	m->read();
+	m->read(0);
 	m->parse();
     }
     if (global.errors)

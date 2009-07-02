@@ -204,6 +204,9 @@ void AliasDeclaration::semantic(Scope *sc)
     }
     this->inSemantic = 1;
 
+    if (storage_class & STCconst)
+	error("cannot be const");
+
     storage_class |= sc->stc & STCdeprecated;
 
     // Given:
@@ -653,7 +656,7 @@ Expression *VarDeclaration::callAutoDtor()
 	     cd;
 	     cd = cd->baseClass)
 	{
-	    if (cd->dtor)
+	    //if (cd->dtor)
 	    {   FuncDeclaration *fd;
 		Expression *efd;
 		Expression *ec;

@@ -242,6 +242,26 @@ void Lexer::error(const char *format, ...)
 	fatal();
 }
 
+void Lexer::error(Loc loc, const char *format, ...)
+{
+    char *p = loc.toChars();
+    if (*p)
+	printf("%s: ", p);
+    mem.free(p);
+
+    va_list ap;
+    va_start(ap, format);
+    vprintf(format, ap);
+    va_end(ap);
+
+    printf("\n");
+    fflush(stdout);
+
+    global.errors++;
+    if (global.errors > 20)	// moderate blizzard of cascading messages
+	fatal();
+}
+
 TOK Lexer::nextToken()
 {   Token *t;
 
@@ -1875,15 +1895,17 @@ void Lexer::pragma()
     Token tok;
     int linnum;
     char *filespec = NULL;
+    Loc loc = this->loc;
 
     scan(&tok);
     if (tok.value != TOKidentifier || tok.ident != Id::line)
 	goto Lerr;
 
     scan(&tok);
-    if (tok.value != TOKint32v)
+    if (tok.value == TOKint32v || tok.value == TOKint64v)
+	linnum = tok.uns64value - 1;
+    else
 	goto Lerr;
-    linnum = tok.uns64value - 1;
 
     while (1)
     {
@@ -1912,6 +1934,14 @@ void Lexer::pragma()
 	    case '\f':
 		p++;
 		continue;			// skip white space
+
+	    case '_':
+		if (memcmp(p, "__FILE__", 8) == 0)
+		{
+		    p += 8;
+		    filespec = mem.strdup(loc.filename ? loc.filename : mod->ident->toChars());
+		}
+		continue;
 
 	    case '"':
 		if (filespec)
@@ -1961,7 +1991,7 @@ void Lexer::pragma()
     }
 
 Lerr:
-    error("#line integer [\"filespec\"]\\n expected");
+    error(loc, "#line integer [\"filespec\"]\\n expected");
 }
 
 

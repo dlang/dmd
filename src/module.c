@@ -160,16 +160,19 @@ Module *Module::load(Loc loc, Array *packages, Identifier *ident)
     // BUG: the sym file is actually a source file that is
     // parsed. Someday make it a real symbol table
     m->srcfile = m->symfile;
-    m->read();
+    m->read(loc);
     m->parse();
 
     return m;
 }
 
-void Module::read()
+void Module::read(Loc loc)
 {
     //printf("Module::read('%s') file '%s'\n", toChars(), srcfile->toChars());
-    srcfile->readv();
+    if (srcfile->read())
+    {	error(loc, "cannot read file '%s'", srcfile->toChars());
+	fatal();
+    }
 }
 
 inline unsigned readwordLE(unsigned short *p)

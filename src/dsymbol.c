@@ -279,8 +279,8 @@ void Dsymbol::addMember(ScopeDsymbol *sd)
 	}
 	if (sd->isAggregateDeclaration() || sd->isEnumDeclaration())
 	{
-	    if (ident == Id::__sizeof)
-		error(".sizeof property cannot be redefined");
+	    if (ident == Id::__sizeof || ident == Id::alignof)
+		error(".%s property cannot be redefined", ident->toChars());
 	}
     }
 }

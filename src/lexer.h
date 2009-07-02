@@ -240,6 +240,7 @@ struct Lexer
     TOK number(Token *t);
     TOK inreal(Token *t);
     void error(const char *format, ...);
+    void error(Loc loc, const char *format, ...);
     void pragma();
     unsigned decodeUTF();
 };

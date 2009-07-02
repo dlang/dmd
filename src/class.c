@@ -57,7 +57,7 @@ ClassDeclaration::ClassDeclaration(Loc loc, Identifier *id, Array *baseclasses)
     vtblsym = NULL;
     vclassinfo = NULL;
 
-    if (id == Id::__sizeof)
+    if (id == Id::__sizeof || id == Id::alignof)
 	error("illegal class name");
 
     // BUG: What if this is the wrong ClassInfo, i.e. it is nested?
@@ -493,6 +493,25 @@ void ClassDeclaration::defineRef(Dsymbol *s)
 }
 #endif
 
+/*********************************************
+ * Determine if 'this' is a base class of cd.
+ * This is used to detect circular inheritance only.
+ */
+
+int ClassDeclaration::isBaseOf2(ClassDeclaration *cd)
+{
+    if (!cd)
+	return 0;
+    //printf("ClassDeclaration::isBaseOf(this = '%s', cd = '%s')\n", toChars(), cd->toChars());
+    for (int i = 0; i < cd->baseclasses.dim; i++)
+    {	BaseClass *b = (BaseClass *)cd->baseclasses.data[i];
+
+	if (b->base == this || isBaseOf2(b->base))
+	    return 1;
+    }
+    return 0;
+}
+
 /*******************************************
  * Determine if 'this' is a base class of cd.
  */
@@ -723,16 +742,16 @@ void InterfaceDeclaration::semantic(Scope *sc)
 	    tc = NULL;
 	if (!tc || !tc->sym->isInterfaceDeclaration())
 	{
-	    error("base type must be interface, not %s", b->type->toChars());
+	    //error("base type must be interface, not %s", b->type->toChars());
 	    baseclasses.remove(i);
 	    continue;
 	}
 	else
 	{
 	    b->base = tc->sym;
-	    if (b->base == this)
+	    if (b->base == this || isBaseOf2(b->base))
 	    {
-		error("base interface same as interface");
+		error("circular inheritance of interface");
 		baseclasses.remove(i);
 		continue;
 	    }
@@ -740,7 +759,7 @@ void InterfaceDeclaration::semantic(Scope *sc)
 	    {
 		//error("forward reference of base class %s", baseClass->toChars());
 		// Forward reference of base, try again later
-		//printf("\ttry later, forward reference of base %s\n", baseClass->toChars());
+		//printf("\ttry later, forward reference of base %s\n", b->base->toChars());
 		scope = scx ? scx : new Scope(*sc);
 		scope->setNoFree();
 		scope->module->addDeferredSemantic(this);
@@ -772,12 +791,17 @@ void InterfaceDeclaration::semantic(Scope *sc)
 	// Copy vtbl[] from base class
 	if (b->base->vtblOffset())
 	{   int d = b->base->vtbl.dim;
-	    vtbl.reserve(d - 1);
-	    for (int j = 1; j < d; j++)
-		vtbl.push(b->base->vtbl.data[j]);
+	    if (d > 1)
+	    {
+		vtbl.reserve(d - 1);
+		for (int j = 1; j < d; j++)
+		    vtbl.push(b->base->vtbl.data[j]);
+	    }
 	}
 	else
+	{
 	    vtbl.append(&b->base->vtbl);
+	}
 
       Lcontinue:
 	;
@@ -828,6 +852,7 @@ int InterfaceDeclaration::isBaseOf(ClassDeclaration *cd, int *poffset)
     {
 	BaseClass *b = cd->interfaces[j];
 
+	//printf("\tbase %s\n", b->base->toChars());
 	if (this == b->base)
 	{
 	    //printf("\tfound at offset %d\n", b->offset);
@@ -989,10 +1014,10 @@ int BaseClass::fillVtbl(ClassDeclaration *cd, Array *vtbl, int newinstance)
 
 void BaseClass::copyBaseInterfaces(Array *vtblInterfaces)
 {
+    //printf("+copyBaseInterfaces(), %s\n", base->toChars());
     if (baseInterfaces_dim)
-    {	error("circular inheritance of interface");
 	return;
-    }
+
     baseInterfaces_dim = base->interfaces_dim;
     baseInterfaces = (BaseClass *)mem.calloc(baseInterfaces_dim, sizeof(BaseClass));
 
@@ -1009,4 +1034,5 @@ void BaseClass::copyBaseInterfaces(Array *vtblInterfaces)
 	    vtblInterfaces->push(b);	// only need for M.I.
 	b->copyBaseInterfaces(vtblInterfaces);
     }
+    //printf("-copyBaseInterfaces\n");
 }

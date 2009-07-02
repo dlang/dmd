@@ -396,6 +396,12 @@ integer_t Expression::toInteger()
     return 0;
 }
 
+uinteger_t Expression::toUInteger()
+{
+    //printf("Expression %s\n", Token::toChars(op));
+    return (uinteger_t)toInteger();
+}
+
 real_t Expression::toReal()
 {
     error("Floating point constant expression expected instead of %s", toChars());
@@ -676,6 +682,11 @@ real_t IntegerExp::toImaginary()
     return (real_t) 0;
 }
 
+complex_t IntegerExp::toComplex()
+{
+    return toReal();
+}
+
 int IntegerExp::isBool(int result)
 {
     return result ? value != 0 : value == 0;
@@ -707,7 +718,7 @@ Expression *IntegerExp::toLvalue(Expression *e)
 	e = this;
     else if (!loc.filename)
 	loc = e->loc;
-    error("constant %s is not an lvalue", e->toChars());
+    e->error("constant %s is not an lvalue", e->toChars());
     return this;
 }
 
@@ -748,7 +759,12 @@ char *RealExp::toChars()
 
 integer_t RealExp::toInteger()
 {
-    return (integer_t) value;
+    return (sinteger_t) value;
+}
+
+uinteger_t RealExp::toUInteger()
+{
+    return (uinteger_t) value;
 }
 
 real_t RealExp::toReal()
@@ -871,7 +887,12 @@ char *ComplexExp::toChars()
 
 integer_t ComplexExp::toInteger()
 {
-    return (integer_t) value;
+    return (sinteger_t) value;
+}
+
+uinteger_t ComplexExp::toUInteger()
+{
+    return (uinteger_t) value;
 }
 
 real_t ComplexExp::toReal()
@@ -4190,14 +4211,14 @@ Expression *AddAssignExp::semantic(Scope *sc)
 	}
 	else
 	{
-	    typeCombine();
 	    type = e1->type;
+	    typeCombine();
 	    e1->checkArithmetic();
 	    e2->checkArithmetic();
 	    if (type->isreal() || type->isimaginary())
 	    {
 		assert(global.errors || e2->type->isfloating());
-		e2 = e2->castTo(type);
+		e2 = e2->castTo(e1->type);
 	    }
 	    e = this;
 	}
@@ -4231,14 +4252,14 @@ Expression *MinAssignExp::semantic(Scope *sc)
 	e = scaleFactor();
     else
     {
-	typeCombine();
 	type = e1->type;
+	typeCombine();
 	e1->checkArithmetic();
 	e2->checkArithmetic();
 	if (type->isreal() || type->isimaginary())
 	{
 	    assert(e2->type->isfloating());
-	    e2 = e2->castTo(type);
+	    e2 = e2->castTo(e1->type);
 	}
 	e = this;
     }
@@ -4384,7 +4405,16 @@ Expression *DivAssignExp::semantic(Scope *sc)
 	Type *t2;
 
 	t1 = e1->type;
-	if (t1->isreal() || t1->isimaginary())
+	if (t1->isreal())
+	{   // x/iv = i(-x/v)
+	    // Therefore, the result is 0
+	    e2 = new CommaExp(loc, e2, new RealExp(loc, 0, t1));
+	    e2->type = t1;
+	    e = new AssignExp(loc, e1, e2);
+	    e->type = t1;
+	    return e;
+	}
+	else if (t1->isimaginary())
 	{   Expression *e;
 
 	    switch (t1->ty)
@@ -4712,12 +4742,6 @@ Expression *CatExp::semantic(Scope *sc)
 	Type *tb1 = e1->type->toBasetype();
 	Type *tb2 = e2->type->toBasetype();
 
-#if 0
-	if (tb1->ty == Tsarray)
-	    e1 = e1->castTo(tb1->next->arrayOf());
-	if (tb2->ty == Tsarray)
-	    e2 = e2->castTo(tb2->next->arrayOf());
-#endif
 
 	/* BUG: Should handle things like:
 	 *	char c;
@@ -4725,7 +4749,25 @@ Expression *CatExp::semantic(Scope *sc)
 	 *	' ' ~ c;
 	 */
 
+#if 0
+	e1->type->print();
+	e2->type->print();
+#endif
+	if ((tb1->ty == Tsarray || tb1->ty == Tarray) &&
+	    e2->type->equals(tb1->next))
+	{
+	    type = tb1->next->arrayOf();
+	    return this;
+	}
+	else if ((tb2->ty == Tsarray || tb2->ty == Tarray) &&
+	    e1->type->equals(tb2->next))
+	{
+	    type = tb2->next->arrayOf();
+	    return this;
+	}
+
 	typeCombine();
+
 	if (type->toBasetype()->ty == Tsarray)
 	    type = type->toBasetype()->next->arrayOf();
 #if 0
@@ -5212,11 +5254,13 @@ Expression *CmpExp::semantic(Scope *sc)
 	error("need member function opCmp() for struct %s to compare", t1->toChars());
 	e = this;
     }
+#if 0
     else if (t1->iscomplex() || t2->iscomplex())
     {
 	error("compare not defined for complex operands");
 	e = new IntegerExp(0);
     }
+#endif
     else
 	e = this;
     return e;

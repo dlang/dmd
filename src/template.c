@@ -2043,6 +2043,7 @@ void TemplateMixin::semantic(Scope *sc)
 #if LOG
     printf("\tdo semantic\n");
 #endif
+
     // Run semantic on each argument, place results in tiargs[]
     semanticTiargs(sc);
 
@@ -2134,6 +2135,50 @@ void TemplateMixin::semantic(Scope *sc)
 
     inst = this;
     parent = sc->parent;
+
+    /* Detect recursive mixin instantiations.
+     */
+    for (Dsymbol *s = parent; s; s = s->parent)
+    {
+	//printf("\ts = '%s'\n", s->toChars());
+	TemplateMixin *tm = s->isTemplateMixin();
+	if (!tm || tempdecl != tm->tempdecl)
+	    continue;
+
+	for (int i = 0; i < tiargs->dim; i++)
+	{   Object *o = (Object *)tiargs->data[i];
+	    Type *ta = isType(o);
+	    Expression *ea = isExpression(o);
+	    Dsymbol *sa = isDsymbol(o);
+	    Object *tmo = (Object *)tm->tiargs->data[i];
+	    if (ta)
+	    {
+		Type *tmta = isType(tmo);
+		if (!tmta)
+		    goto Lcontinue;
+		if (!ta->equals(tmta))
+		    goto Lcontinue;
+	    }
+	    else if (ea)
+	    {	Expression *tme = isExpression(tmo);
+		if (!tme || !ea->equals(tme))
+		    goto Lcontinue;
+	    }
+	    else if (sa)
+	    {
+		Dsymbol *tmsa = isDsymbol(tmo);
+		if (sa != tmsa)
+		    goto Lcontinue;
+	    }
+	    else
+		assert(0);
+	}
+	error("recursive mixin instantiation");
+	return;
+
+    Lcontinue:
+	continue;
+    }
 
     // Copy the syntax trees from the TemplateDeclaration
     members = Dsymbol::arraySyntaxCopy(tempdecl->members);
