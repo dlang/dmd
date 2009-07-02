@@ -1015,8 +1015,8 @@ int BaseClass::fillVtbl(ClassDeclaration *cd, Array *vtbl, int newinstance)
 void BaseClass::copyBaseInterfaces(Array *vtblInterfaces)
 {
     //printf("+copyBaseInterfaces(), %s\n", base->toChars());
-    if (baseInterfaces_dim)
-	return;
+//    if (baseInterfaces_dim)
+//	return;
 
     baseInterfaces_dim = base->interfaces_dim;
     baseInterfaces = (BaseClass *)mem.calloc(baseInterfaces_dim, sizeof(BaseClass));

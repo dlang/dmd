@@ -3079,7 +3079,7 @@ Lagain:
 	    e1 = e;
 	}
 	else
-	{   error("function expected before (), not '%s'", e1->type->toChars());
+	{   error("function expected before (), not %s of type %s", e1->toChars(), e1->type->toChars());
 	    type = Type::terror;
 	    return this;
 	}

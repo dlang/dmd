@@ -253,6 +253,7 @@ Condition *IftypeCondition::syntaxCopy()
 
 int IftypeCondition::include(Scope *sc, ScopeDsymbol *sd)
 {
+    //printf("IftypeCondition::include()\n");
     if (inc == 0)
     {
 	if (!sc)
@@ -311,7 +312,10 @@ int IftypeCondition::include(Scope *sc, ScopeDsymbol *sd)
 	    /* Evaluate to TRUE if targ matches tspec
 	     */
 	    tspec = tspec->semantic(loc, sc);
-	    if (targ->equals(tspec))
+	    //printf("targ  = %s\n", targ->toChars());
+	    //printf("tspec = %s\n", tspec->toChars());
+	    //if (targ->equals(tspec))
+	    if (targ->implicitConvTo(tspec))
 		inc = 1;
 	    else
 		inc = 2;
