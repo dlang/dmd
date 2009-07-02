@@ -3754,7 +3754,7 @@ Expression *Parser::parsePrimaryExp()
 	    }
 	    else
 	    {   error("(type identifier : specialization) expected following is");
-		return NULL;
+		goto Lerr;
 	    }
 	    e = new IftypeExp(loc, targ, ident, tok, tspec, tok2);
 	    break;
@@ -3773,7 +3773,7 @@ Expression *Parser::parsePrimaryExp()
 
 	    tempinst = parseTemplateInstance();
 	    if (!tempinst)
-		return NULL;
+		goto Lerr;
 	    e = new ScopeExp(loc, tempinst);
 	    break;
 	}

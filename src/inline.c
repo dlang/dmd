@@ -1,5 +1,5 @@
 
-// Copyright (c) 1999-2004 by Digital Mars
+// Copyright (c) 1999-2005 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // www.digitalmars.com
@@ -264,6 +264,7 @@ Expression *CompoundStatement::doInline(InlineDoState *ids)
 {
     Expression *e = NULL;
 
+    //printf("CompoundStatement::doInline() %d\n", statements->dim);
     for (int i = 0; i < statements->dim; i++)
     {	Statement *s;
 	Expression *e2;
@@ -321,6 +322,7 @@ Expression *IfStatement::doInline(InlineDoState *ids)
 
 Expression *ReturnStatement::doInline(InlineDoState *ids)
 {
+    //printf("ReturnStatement::doInline() '%s'\n", exp ? exp->toChars() : "");
     return exp ? exp->doInline(ids) : 0;
 }
 
@@ -857,7 +859,17 @@ Expression *CallExp::inlineScan(InlineScanState *iss)
 
 	if (fd && fd != iss->fd && fd->canInline(1))
 	{
-	    e = fd->doInline(iss, dve->e1, arguments);
+	    if (dve->e1->op == TOKcall &&
+		dve->e1->type->toBasetype()->ty == Tstruct)
+	    {
+		/* To create ethis, we'll need to take the address
+		 * of dve->e1, but this won't work if dve->e1 is
+		 * a function call.
+		 */
+		;
+	    }
+	    else
+		e = fd->doInline(iss, dve->e1, arguments);
 	}
     }
 

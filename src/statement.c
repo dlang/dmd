@@ -342,6 +342,24 @@ Array *CompoundStatement::flatten()
     return statements;
 }
 
+ReturnStatement *CompoundStatement::isReturnStatement()
+{   int i;
+    ReturnStatement *rs = NULL;
+
+    for (i = 0; i < statements->dim; i++)
+    {	Statement *s;
+
+	s = (Statement *) statements->data[i];
+	if (s)
+	{
+	    rs = s->isReturnStatement();
+	    if (rs)
+		break;
+	}
+    }
+    return rs;
+}
+
 void CompoundStatement::toCBuffer(OutBuffer *buf)
 {   int i;
 
@@ -1964,6 +1982,7 @@ Statement *WithStatement::semantic(Scope *sc)
 {   ScopeDsymbol *sym;
     Initializer *init;
 
+    //printf("WithStatement::semantic()\n");
     exp = exp->semantic(sc);
     if (exp->op == TOKimport)
     {	ScopeExp *es = (ScopeExp *)exp;

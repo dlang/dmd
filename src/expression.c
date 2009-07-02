@@ -269,7 +269,7 @@ void functionArguments(Loc loc, Scope *sc, TypeFunction *tf, Array *arguments)
 			break;
 		    }
 		    default:
-			assert(0);
+			break;
 		}
 		arg = arg->semantic(sc);
 		//printf("\targ = '%s'\n", arg->toChars());
@@ -514,6 +514,7 @@ Expression *Expression::toLvalue(Expression *e)
     else if (!loc.filename)
 	loc = e->loc;
     error("%s is not an lvalue", e->toChars());
+*(char*)0=0;
     return this;
 }
 

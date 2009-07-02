@@ -1489,6 +1489,7 @@ void TemplateInstance::semantic(Scope *sc)
     {
 	Dsymbol *s = (Dsymbol *)members->data[i];
 	s->semantic(sc2);
+	sc2->module->runDeferredSemantic();
     }
 
     /* The problem is when to parse the initializer for a variable.

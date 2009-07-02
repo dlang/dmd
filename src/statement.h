@@ -122,6 +122,7 @@ struct CompoundStatement : Statement
     int usesEH();
     int fallOffEnd();
     Array *flatten();
+    ReturnStatement *isReturnStatement();
 
     int inlineCost(InlineCostState *ics);
     Expression *doInline(InlineDoState *ids);
