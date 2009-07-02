@@ -121,6 +121,9 @@ void functionArguments(Loc loc, Scope *sc, TypeFunction *tf, Array *arguments)
 		// BUG: assignments to inout should also be type 'invariant'
 		arg = arg->modifiableLvalue(sc);
 
+		if (arg->op == TOKrange)
+		    arg->error("cannot modify slice %s", arg->toChars());
+
 		// Don't have a way yet to do a pointer to a bit in array
 		if (arg->op == TOKarray &&
 		    arg->type->toBasetype()->ty == Tbit)

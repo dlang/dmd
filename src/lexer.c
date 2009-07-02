@@ -37,8 +37,34 @@ extern "C" long double strtold(const char *p,char **endp);
 extern "C" char * __cdecl __locale_decpoint;
 #endif
 
-#define isoctal(c)	('0' <= (c) && (c) <= '7')
-#define ishex(c)	(isdigit(c) || ('a' <= (c) && (c) <= 'f') || ('A' <= (c) && (c) <= 'F'))
+extern int isUniAlpha(unsigned u);
+
+/********************************************
+ * Do our own char maps
+ */
+
+static unsigned char cmtable[256];
+
+const int CMoctal =	0x1;
+const int CMhex =	0x2;
+const int CMidchar =	0x4;
+
+inline unsigned char isoctal (unsigned char c) { return cmtable[c] & CMoctal; }
+inline unsigned char ishex   (unsigned char c) { return cmtable[c] & CMhex; }
+inline unsigned char isidchar(unsigned char c) { return cmtable[c] & CMidchar; }
+
+static void cmtable_init()
+{
+    for (unsigned c = 0; c < sizeof(cmtable) / sizeof(cmtable[0]); c++)
+    {
+	if ('0' <= c && c <= '7')
+	    cmtable[c] |= CMoctal;
+	if (isdigit(c) || ('a' <= c && c <= 'f') || ('A' <= c && c <= 'F'))
+	    cmtable[c] |= CMhex;
+	if (isalnum(c) || c == '_')
+	    cmtable[c] |= CMidchar;
+    }
+}
 
 
 /******************************************************/
@@ -361,7 +387,7 @@ void Lexer::scan(Token *t)
 		do
 		{
 		    c = *++p;
-		} while (isalnum(c) || c == '_');
+		} while (isidchar(c) || (c & 0x80 && isUniIdent(c)));
 		sv = stringtable.update((char *)t->ptr, p - t->ptr);
 		id = (Identifier *) sv->ptrvalue;
 		if (!id)
@@ -721,12 +747,20 @@ void Lexer::scan(Token *t)
 		continue;
 
 	    default:
-		if (isprint(*p))
-		    error("unsupported char '%c'", *p);
+	    {	unsigned char c = *p;
+
+		if (c & 0x80)
+		{   // Check for start of unicode identifier
+		    if (isUniIdent(c))
+			goto case_ident;
+		}
+		if (isprint(c))
+		    error("unsupported char '%c'", c);
 		else
-		    error("unsupported char 0x%02x", *p);
+		    error("unsupported char 0x%02x", c);
 		p++;
 		continue;
+	    }
 	}
     }
 }
@@ -1738,6 +1772,40 @@ Lerr:
     error("#line integer [\"filespec\"]\\n expected");
 }
 
+/*********************************************
+ * If c is the start of a Unicode identifier char,
+ * advance p past that character and return non-zero.
+ */
+
+int Lexer::isUniIdent(unsigned char c)
+{
+    unsigned char *s = p;
+    unsigned len;
+    unsigned idx;
+    dchar_t u;
+    char *msg;
+
+    // Check length of remaining string up to 6 UTF-8 characters
+    for (len = 1; len < 6 && s[len]; len++)
+	;
+
+    idx = 0;
+    msg = utf_decodeChar(s, len, &idx, &u);
+    p += idx - 1;
+    if (msg)
+    {
+	error(msg);
+	return 0;
+    }
+
+    if (isUniAlpha(u))
+    {
+	return 1;
+    }
+
+    return 0;
+}
+
 /********************************************
  * Create an identifier in the string table.
  */
@@ -1873,6 +1941,8 @@ void Lexer::initKeywords()
 {   StringValue *sv;
     unsigned u;
     enum TOK v;
+
+    cmtable_init();
 
     for (u = 0; u < sizeof(keywords) / sizeof(keywords[0]); u++)
     {	char *s;

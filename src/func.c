@@ -69,7 +69,7 @@ void FuncDeclaration::semantic(Scope *sc)
     ClassDeclaration *cd;
     InterfaceDeclaration *id;
 
-    //printf("FuncDeclaration::semantic(sc = %p, '%s')\n",sc,ident->toChars());
+    //printf("FuncDeclaration::semantic(sc = %p, '%s', linkage = %d)\n",sc,ident->toChars(), sc->linkage);
 
     type = type->semantic(loc, sc);
     if (type->ty != Tfunction)
@@ -902,7 +902,7 @@ int FuncDeclaration::isVirtual()
 
 int FuncDeclaration::isAbstract()
 {
-    return storage_class & STCabstract;
+    return storage_class & STCabstract && !fbody;
 }
 
 int FuncDeclaration::isCodeseg()
@@ -1165,7 +1165,7 @@ int DtorDeclaration::addPostInvariant()
 /********************************* StaticCtorDeclaration ****************************/
 
 StaticCtorDeclaration::StaticCtorDeclaration(Loc loc, Loc endloc)
-    : FuncDeclaration(loc, endloc, Id::staticCtor, STCundefined, NULL)
+    : FuncDeclaration(loc, endloc, Id::staticCtor, STCstatic, NULL)
 {
 }
 
@@ -1226,7 +1226,7 @@ int StaticCtorDeclaration::addPostInvariant()
 /********************************* StaticDtorDeclaration ****************************/
 
 StaticDtorDeclaration::StaticDtorDeclaration(Loc loc, Loc endloc)
-    : FuncDeclaration(loc, endloc, Id::staticDtor, STCundefined, NULL)
+    : FuncDeclaration(loc, endloc, Id::staticDtor, STCstatic, NULL)
 {
 }
 

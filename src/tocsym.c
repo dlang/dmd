@@ -145,13 +145,10 @@ Symbol *VarDeclaration::toSymbol()
 	    id = ident->toChars();
 	s = symbol_calloc(id);
 
-	if (isParameter())
-	{
-	    if (storage_class & STCout)
-		t = type_fake(TYnptr);
-	    else
-		t = type->toCParamtype();
-	}
+	if (storage_class & STCout)
+	    t = type_fake(TYnptr);
+	else if (isParameter())
+	    t = type->toCParamtype();
 	else
 	    t = type->toCtype();
 

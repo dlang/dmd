@@ -38,7 +38,7 @@ char *Declaration::mangle()
 	char *id;
 	Dsymbol *s;
 
-	//printf("Declaration::mangle(this = %p, '%s', parent = '%s')\n", this, toChars(), parent ? parent->toChars() : "null");
+	//printf("Declaration::mangle(this = %p, '%s', parent = '%s', linkage = %d)\n", this, toChars(), parent ? parent->toChars() : "null", linkage);
 	if (!parent || parent->isModule())	// if at global scope
 	{
 	    // If it's not a D declaration, no mangling

@@ -1,5 +1,5 @@
 
-// Copyright (c) 1999-2002 by Digital Mars
+// Copyright (c) 1999-2003 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // www.digitalmars.com
@@ -8,6 +8,7 @@
 // See the included readme.txt for details.
 
 #include "statement.h"
+#include "expression.h"
 #include "debcond.h"
 #include "init.h"
 #include "staticassert.h"
@@ -244,7 +245,7 @@ Statement *CompoundStatement::syntaxCopy()
 Statement *CompoundStatement::semantic(Scope *sc)
 {   Statement *s;
 
-    //printf("CompoundStatement::semantic(sc = %p)\n", sc);
+    //printf("CompoundStatement::semantic(this = %p, sc = %p)\n", this, sc);
     for (int i = 0; i < statements->dim; i++)
     {
       L1:
@@ -256,6 +257,8 @@ Statement *CompoundStatement::semantic(Scope *sc)
 	    {
 		statements->remove(i);
 		statements->insert(i, a);
+		if (i >= statements->dim)
+		    break;
 		goto L1;
 	    }
 
@@ -409,6 +412,7 @@ Statement *WhileStatement::syntaxCopy()
 Statement *WhileStatement::semantic(Scope *sc)
 {
     condition = condition->semantic(sc);
+    condition = resolveProperties(sc, condition);
     condition = condition->checkToBoolean();
 
     sc->noctor++;
@@ -455,6 +459,7 @@ Statement *DoStatement::semantic(Scope *sc)
     body = body->semanticScope(sc, this, this);
     sc->noctor--;
     condition = condition->semantic(sc);
+    condition = resolveProperties(sc, condition);
     condition = condition->checkToBoolean();
     return this;
 }
@@ -513,6 +518,7 @@ Statement *ForStatement::semantic(Scope *sc)
 	condition = new IntegerExp(loc, 1, Type::tboolean);
     sc->noctor++;
     condition = condition->semantic(sc);
+    condition = resolveProperties(sc, condition);
     condition = condition->checkToBoolean();
     if (increment)
 	increment = increment->semantic(sc);
@@ -773,6 +779,7 @@ Statement *IfStatement::syntaxCopy()
 Statement *IfStatement::semantic(Scope *sc)
 {
     condition = condition->semantic(sc);
+    condition = resolveProperties(sc, condition);
     condition = condition->checkToBoolean();
 
     // If we can short-circuit evaluate the if statement, don't do the

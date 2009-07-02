@@ -474,7 +474,11 @@ Array *Parser::parseBlock()
 
 	case TOKcolon:
 	    nextToken();
+#if 1
+	    a = NULL;
+#else
 	    a = parseDeclDefs(0);	// grab declarations up to closing curly bracket
+#endif
 	    break;
 
 	default:

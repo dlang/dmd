@@ -69,7 +69,10 @@ Module::Module(char *filename, Identifier *ident)
 	argobj = FileName::name(filename);
     if (!FileName::absolute(argobj))
 	argobj = FileName::combine(global.params.objdir, argobj);
-    objfilename = FileName::forceExt(argobj, global.obj_ext);
+    if (global.params.objname)
+	objfilename = new FileName(argobj, 0);
+    else
+	objfilename = FileName::forceExt(argobj, global.obj_ext);
 
     symfilename = FileName::forceExt(filename, global.sym_ext);
 
@@ -358,7 +361,7 @@ void Module::semantic()
     // gets imported, it is unaffected by context.
     Scope *sc = Scope::createGlobal(this);	// create root scope
 
-    //printf("Module = %p\n", sc->scopesym);
+    //printf("Module = %p, linkage = %d\n", sc->scopesym, sc->linkage);
 
     // Add import of "object" if this module isn't "object"
     if (ident != Id::object)

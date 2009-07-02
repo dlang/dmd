@@ -38,6 +38,7 @@ struct IRState;
 struct elem;
 struct dt_t;
 
+Expression *resolveProperties(Scope *sc, Expression *e);
 void accessCheck(Loc loc, Scope *sc, Expression *e, Declaration *d);
 FuncDeclaration *search_function(AggregateDeclaration *ad, Identifier *funcid);
 

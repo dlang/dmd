@@ -123,7 +123,11 @@ Initializer *StructInitializer::semantic(Scope *sc, Type *t)
 		// Find out which field index it is
 		for (fieldi = 0; 1; fieldi++)
 		{
-		    assert(fieldi < ad->fields.dim);
+		    if (fieldi >= ad->fields.dim)
+		    {
+			s->error("is not a per-instance initializable field");
+			break;
+		    }
 		    if (s == (Dsymbol *)ad->fields.data[fieldi])
 			break;
 		}
@@ -273,10 +277,28 @@ Initializer *ExpInitializer::semantic(Scope *sc, Type *t)
 {
     //printf("ExpInitializer::semantic(%s), type = %s\n", exp->toChars(), t->toChars());
     exp = exp->semantic(sc);
+    Type *tb = t->toBasetype();
+
+    /* Look for case of initializing a static array with a too-short
+     * string literal, such as:
+     *	char[5] foo = "abc";
+     * Allow this by doing an explicit cast, which will lengthen the string
+     * literal.
+     */
+    if (exp->op == TOKstring && tb->ty == Tsarray && exp->type->ty == Tsarray)
+    {	StringExp *se = (StringExp *)exp;
+
+	if (!se->committed && se->type->ty == Tsarray &&
+	    ((TypeSArray *)se->type)->dim->toInteger() <
+	    ((TypeSArray *)t)->dim->toInteger())
+	{
+	    exp = se->castTo(t);
+	    goto L1;
+	}
+    }
 
     // Look for the case of statically initializing an array
     // with a single member.
-    Type *tb = t->toBasetype();
     if (tb->ty == Tsarray &&
 	!tb->next->equals(exp->type->next) &&
 	exp->implicitConvTo(tb->next)
@@ -286,6 +308,7 @@ Initializer *ExpInitializer::semantic(Scope *sc, Type *t)
     }
 
     exp = exp->implicitCastTo(t);
+L1:
     exp = exp->optimize(WANTvalue);
     return this;
 }

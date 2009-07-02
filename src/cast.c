@@ -158,7 +158,8 @@ int NullExp::implicitConvTo(Type *t)
 	if (t->ty == Ttypedef)
 	    t = ((TypeTypedef *)t)->sym->basetype;
 	if (t->ty == Tpointer || t->ty == Tarray ||
-	    t->ty == Taarray  || t->ty == Tclass)
+	    t->ty == Taarray  || t->ty == Tclass ||
+	    t->ty == Tdelegate)
 	    return 1;
     }
     return type->implicitConvTo(t);
@@ -181,6 +182,10 @@ int StringExp::implicitConvTo(Type *t)
 	    switch (t->ty)
 	    {
 		case Tsarray:
+		    if (type->ty == Tsarray &&
+			((TypeSArray *)type)->dim->toInteger() !=
+			((TypeSArray *)t)->dim->toInteger())
+			return MATCHnomatch;
 		case Tarray:
 		case Tpointer:
 		    if (t->next->ty == Tchar)
@@ -320,7 +325,8 @@ Expression *NullExp::castTo(Type *t)
     {
 	// NULL implicitly converts to any pointer type or dynamic array
 	if (type->ty == Tpointer && type->next->ty == Tvoid &&
-	    (tb->ty == Tpointer || tb->ty == Tarray || tb->ty == Taarray))
+	    (tb->ty == Tpointer || tb->ty == Tarray || tb->ty == Taarray ||
+	     tb->ty == Tdelegate))
 	{
 	}
 	else
@@ -818,6 +824,20 @@ Expression *BinExp::typeCombine()
 	e2 = e2->castTo(t1);
 	t = t1;
     }
+    else if (t1->ty == Tsarray && t2->ty == Tsarray &&
+	     e2->implicitConvTo(t1->next->arrayOf()))
+    {
+	t = t1->next->arrayOf();
+	e1 = e1->castTo(t);
+	e2 = e2->castTo(t);
+    }
+    else if (t1->ty == Tsarray && t2->ty == Tsarray &&
+	     e1->implicitConvTo(t2->next->arrayOf()))
+    {
+	t = t2->next->arrayOf();
+	e1 = e1->castTo(t);
+	e2 = e2->castTo(t);
+    }
     else
     {
      Lincompatible:
@@ -827,6 +847,7 @@ Expression *BinExp::typeCombine()
     }
     if (!type)
 	type = t;
+    //dump(0);
     return this;
 }
 

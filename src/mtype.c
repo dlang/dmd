@@ -2059,6 +2059,7 @@ Type *TypeFunction::semantic(Loc loc, Scope *sc)
 	//printf("already done\n");
 	return this;
     }
+    linkage = sc->linkage;
     next = next->semantic(loc,sc);
     if (next->toBasetype()->ty == Tsarray)
 	error(loc, "functions cannot return static array %s", next->toChars());
@@ -3127,7 +3128,7 @@ Expression *TypeClass::dotExp(Scope *sc, Expression *e, Identifier *ident)
 
 	    assert(ClassDeclaration::classinfo);
 	    t = ClassDeclaration::classinfo->type;
-	    if (e->op == TOKtype)
+	    if (e->op == TOKtype || e->op == TOKdottype)
 	    {
 		if (!sym->vclassinfo)
 		    sym->vclassinfo = new ClassInfoDeclaration(sym);

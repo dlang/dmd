@@ -172,6 +172,7 @@ void StorageClassDeclaration::toCBuffer(OutBuffer *buf)
 LinkDeclaration::LinkDeclaration(enum LINK p, Array *decl)
 	: AttribDeclaration(decl)
 {
+    //printf("LinkDeclaration(linkage = %d, decl = %p)\n", p, decl);
     linkage = p;
 }
 
@@ -186,6 +187,7 @@ Dsymbol *LinkDeclaration::syntaxCopy(Dsymbol *s)
 
 void LinkDeclaration::semantic(Scope *sc)
 {
+    //printf("LinkDeclaration::semantic(linkage = %d, decl = %p)\n", linkage, decl);
     if (decl)
     {	enum LINK linkage_save = sc->linkage;
 
@@ -199,7 +201,9 @@ void LinkDeclaration::semantic(Scope *sc)
 	sc->linkage = linkage_save;
     }
     else
+    {
 	sc->linkage = linkage;
+    }
 }
 
 void LinkDeclaration::toCBuffer(OutBuffer *buf)
