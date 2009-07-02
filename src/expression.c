@@ -3713,7 +3713,10 @@ MinExp::MinExp(Loc loc, Expression *e1, Expression *e2)
 
 Expression *MinExp::semantic(Scope *sc)
 {   Expression *e;
+    Type *t1;
+    Type *t2;
 
+    //printf("MinExp::semantic() %s\n", toChars());
     if (type)
 	return this;
 
@@ -3724,9 +3727,11 @@ Expression *MinExp::semantic(Scope *sc)
 	return e;
 
     e = this;
-    if (e1->type->ty == Tpointer)
+    t1 = e1->type->toBasetype();
+    t2 = e2->type->toBasetype();
+    if (t1->ty == Tpointer)
     {
-	if (e2->type->ty == Tpointer)
+	if (t2->ty == Tpointer)
 	{   // Need to divide the result by the stride
 	    // Replace (ptr - ptr) with (ptr - ptr) / stride
 	    d_int32 stride;
@@ -3734,25 +3739,28 @@ Expression *MinExp::semantic(Scope *sc)
 
 	    typeCombine();		// make sure pointer types are compatible
 	    type = Type::tint32;
-	    stride = e2->type->next->size();
+	    stride = t2->next->size();
 	    e = new DivExp(loc, this, new IntegerExp(0, stride, Type::tint32));
 	    e->type = Type::tint32;
 	    return e;
 	}
-	else if (e2->type->isintegral())
+	else if (t2->isintegral())
 	    e = scaleFactor();
 	else
 	    error("incompatible types for -");
     }
-    else if (e2->type->ty == Tpointer)
+    else if (t2->ty == Tpointer)
     {
 	type = e2->type;
 	error("can't subtract pointer from %s", e1->type->toChars());
     }
     else
-    {	typeCombine();
-	if ((e1->type->isreal() && e2->type->isimaginary()) ||
-	    (e1->type->isimaginary() && e2->type->isreal()))
+    {
+	typeCombine();
+	t1 = e1->type->toBasetype();
+	t2 = e2->type->toBasetype();
+	if ((t1->isreal() && t2->isimaginary()) ||
+	    (t1->isimaginary() && t2->isreal()))
 	{
 	    switch (type->ty)
 	    {

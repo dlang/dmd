@@ -2631,6 +2631,11 @@ Type *TypeTypeof::semantic(Loc loc, Scope *sc)
 
     exp = exp->semantic(sc);
     t = exp->type;
+    if (!t)
+    {
+	error(loc, "expression (%s) has no type", exp->toChars());
+	t = tvoid;
+    }
 
     if (idents.dim)
     {
@@ -3036,6 +3041,11 @@ Expression *TypeStruct::dotExp(Scope *sc, Expression *e, Identifier *ident)
 #if LOGDOTEXP
     printf("TypeStruct::dotExp(e = '%s', ident = '%s')\n", e->toChars(), ident->toChars());
 #endif
+    if (!sym->members)
+    {
+	error(e->loc, "struct %s is forward referenced", sym->toChars());
+	return new IntegerExp(e->loc, 0, Type::tint32);
+    }
     s = sym->symtab->lookup(ident);
     if (!s)
     {
@@ -3285,6 +3295,17 @@ Expression *TypeClass::dotExp(Scope *sc, Expression *e, Identifier *ident)
 	VarExp *ve;
 
 	accessCheck(e->loc, sc, e, d);
+	ve = new VarExp(e->loc, d);
+	e = new CommaExp(e->loc, e, ve);
+	e->type = d->type;
+	return e;
+    }
+
+    if (d->parent->isModule())
+    {
+	// (e, d)
+	VarExp *ve;
+
 	ve = new VarExp(e->loc, d);
 	e = new CommaExp(e->loc, e, ve);
 	e->type = d->type;

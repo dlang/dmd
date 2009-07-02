@@ -723,7 +723,10 @@ Expression *BinExp::typeCombine()
 
     t = t1;
     if (t1 == t2)
-	;
+    {
+	if (t1->ty == Tstruct && (op == TOKmin || op == TOKadd))
+	    goto Lincompatible;
+    }
     else if (t1->isintegral() && t2->isintegral())
     {
 	if (t1->ty > t2->ty)

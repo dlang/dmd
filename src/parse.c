@@ -183,6 +183,7 @@ Array *Parser::parseDeclDefs(int once)
 	    case TOKalias:
 	    case TOKtypedef:
 	    case TOKidentifier:
+	    case TOKtypeof:
 	    Ldeclaration:
 		a = parseDeclaration();
 		decldefs->append(a);
@@ -1170,8 +1171,11 @@ Lerr:
 
 void Parser::parseTemplateArgumentList(TemplateInstance *tempinst)
 {
+    assert(tempinst);
+//    assert(tempinst->ident);
     if (token.value != TOKlparen)
-    {   error("parenthesized TemplateArgumentList expected following TemplateIdentifier %s", tempinst->ident->toChars());
+    {   error("!(TemplateArgumentList) expected following TemplateIdentifier '%s'",
+		((Identifier *)tempinst->idents.data[0])->toChars());
 	return;
     }
     nextToken();

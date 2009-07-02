@@ -225,6 +225,7 @@ void Dsymbol::addMember(ScopeDsymbol *sd)
 
 void Dsymbol::error(const char *format, ...)
 {
+    //printf("Dsymbol::error()\n");
     char *p = locToChars();
 
     if (*p)
@@ -511,6 +512,10 @@ DsymbolTable::~DsymbolTable()
 Dsymbol *DsymbolTable::lookup(Identifier *ident)
 {   StringValue *sv;
 
+#ifdef DEBUG
+    assert(ident);
+    assert(tab);
+#endif
     sv = tab->lookup(ident->toChars(),strlen(ident->toChars()));
     return (Dsymbol *)(sv ? sv->ptrvalue : NULL);
 }

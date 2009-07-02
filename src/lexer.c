@@ -449,7 +449,6 @@ void Lexer::scan(Token *t)
 			p = (unsigned char *) memchr(p, '\n', end - p);
 			if (p == NULL)
 			{
-			    error("// comment does not end in newline");
 			    p = end;
 			    t->value = TOKeof;
 			    return;

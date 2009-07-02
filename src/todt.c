@@ -59,6 +59,7 @@ dt_t *StructInitializer::toDt()
     dt_t **pdtend;
     unsigned offset;
 
+    //printf("StructInitializer::toDt()\n");
     dts.setDim(ad->fields.dim);
     dts.zero();
 
@@ -302,7 +303,7 @@ dt_t *ExpInitializer::toDt()
 
 dt_t **Expression::toDt(dt_t **pdt)
 {
-    printf("Expression::toDt() %d\n", op);
+    //printf("Expression::toDt() %d\n", op);
     error("non-constant expression %s", toChars());
     return pdt;
 }
@@ -639,7 +640,7 @@ dt_t **TypeSArray::toDt(dt_t **pdt)
 	while (*pdt)
 	    pdt = &((*pdt)->DTnext);
 	next->toDt(pdt);
-	if ((*pdt)->dt == DT_azeros)
+	if ((*pdt)->dt == DT_azeros && !(*pdt)->DTnext)
 	{
 	    (*pdt)->DTazeros *= len;
 	}

@@ -1320,7 +1320,6 @@ void TemplateInstance::toCBuffer(OutBuffer *buf)
 {
     int i;
 
-    buf->writestring("instance ");
     for (i = 0; i < idents.dim; i++)
     {	Identifier *id = (Identifier *)idents.data[i];
 
@@ -1328,7 +1327,7 @@ void TemplateInstance::toCBuffer(OutBuffer *buf)
 	    buf->writeByte('.');
 	buf->writestring(id->toChars());
     }
-    buf->writeByte('(');
+    buf->writestring("!(");
     for (i = 0; i < tiargs.dim; i++)
     {
 	if (i)
@@ -1377,7 +1376,7 @@ AliasDeclaration *TemplateInstance::isAliasDeclaration()
 
 char *TemplateInstance::kind()
 {
-    return "instance";
+    return "template instance";
 }
 
 char *TemplateInstance::toChars()
@@ -1388,6 +1387,7 @@ char *TemplateInstance::toChars()
     toCBuffer(&buf);
     s = buf.toChars();
     buf.data = NULL;
-    return s + 9;	// kludge to skip over 'instance '
+    return s;
+    //return s + 9;	// kludge to skip over 'instance '
 }
 
