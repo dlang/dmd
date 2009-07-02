@@ -55,6 +55,7 @@ FuncDeclaration::FuncDeclaration(Loc loc, Loc endloc, Identifier *id, enum STC s
     inlineAsm = 0;
     semanticRun = 0;
     nestedFrameRef = 0;
+    introducing = 0;
     fes = NULL;
 }
 
@@ -254,8 +255,10 @@ void FuncDeclaration::semantic(Scope *sc)
 	    }
 	}
 
+	// This is an 'introducing' function.
 	// Append to end of vtbl[]
 	//printf("\tappend with %p\n", this);
+	introducing = 1;
 	vi = cd->vtbl.dim;
 	cd->vtbl.push(this);
 	vtblIndex = vi;

@@ -77,6 +77,7 @@ struct StructDeclaration : AggregateDeclaration
 
     void toObjFile();			// compile to .obj file
     void toDt(dt_t **pdt);
+    void toDebug();			// to symbolic debug info
 
     StructDeclaration *isStructDeclaration() { return this; }
 };
@@ -164,6 +165,7 @@ struct ClassDeclaration : AggregateDeclaration
 
     // Back end
     void toObjFile();			// compile to .obj file
+    void toDebug();
     unsigned baseVtblOffset(BaseClass *bc);
     Symbol *toSymbol();
     Symbol *toVtblSymbol();

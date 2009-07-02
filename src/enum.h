@@ -37,6 +37,10 @@ struct EnumDeclaration : ScopeDsymbol
     void toCBuffer(OutBuffer *buf);
     Type *getType();
     char *kind();
+
+    void toObjFile();			// compile to .obj file
+    void toDebug();
+    int cvMember(unsigned char *p);
 };
 
 

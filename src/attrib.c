@@ -29,22 +29,39 @@ AttribDeclaration::AttribDeclaration(Array *decl)
     this->decl = decl;
 }
 
-int AttribDeclaration::include()
+Array *AttribDeclaration::include()
 {
-    return TRUE;
+    return decl;
 }
 
 void AttribDeclaration::addMember(ScopeDsymbol *sd)
 {
     unsigned i;
+    Array *d = include();
 
-    if (include() && decl)
+    if (d)
     {
-	for (i = 0; i < decl->dim; i++)
+	for (i = 0; i < d->dim; i++)
 	{   Dsymbol *s;
 
-	    s = (Dsymbol *)decl->data[i];
+	    s = (Dsymbol *)d->data[i];
 	    s->addMember(sd);
+	}
+    }
+}
+
+void AttribDeclaration::semantic(Scope *sc)
+{
+    Array *d = include();
+
+    //printf("\tAttribDeclaration::semantic '%s'\n",toChars());
+    if (d)
+    {
+	for (unsigned i = 0; i < d->dim; i++)
+	{
+	    Dsymbol *s = (Dsymbol *)d->data[i];
+
+	    s->semantic(sc);
 	}
     }
 }
@@ -52,13 +69,14 @@ void AttribDeclaration::addMember(ScopeDsymbol *sd)
 void AttribDeclaration::semantic2(Scope *sc)
 {
     unsigned i;
+    Array *d = include();
 
-    if (include() && decl)
+    if (d)
     {
-	for (i = 0; i < decl->dim; i++)
+	for (i = 0; i < d->dim; i++)
 	{   Dsymbol *s;
 
-	    s = (Dsymbol *)decl->data[i];
+	    s = (Dsymbol *)d->data[i];
 	    s->semantic2(sc);
 	}
     }
@@ -67,13 +85,14 @@ void AttribDeclaration::semantic2(Scope *sc)
 void AttribDeclaration::semantic3(Scope *sc)
 {
     unsigned i;
+    Array *d = include();
 
-    if (include() && decl)
+    if (d)
     {
-	for (i = 0; i < decl->dim; i++)
+	for (i = 0; i < d->dim; i++)
 	{   Dsymbol *s;
 
-	    s = (Dsymbol *)decl->data[i];
+	    s = (Dsymbol *)d->data[i];
 	    s->semantic3(sc);
 	}
     }
@@ -82,13 +101,14 @@ void AttribDeclaration::semantic3(Scope *sc)
 void AttribDeclaration::inlineScan()
 {
     unsigned i;
+    Array *d = include();
 
-    if (include() && decl)
+    if (d)
     {
-	for (i = 0; i < decl->dim; i++)
+	for (i = 0; i < d->dim; i++)
 	{   Dsymbol *s;
 
-	    s = (Dsymbol *)decl->data[i];
+	    s = (Dsymbol *)d->data[i];
 	    s->inlineScan();
 	}
     }
@@ -97,16 +117,35 @@ void AttribDeclaration::inlineScan()
 void AttribDeclaration::toObjFile()
 {
     unsigned i;
+    Array *d = include();
 
-    if (include() && decl)
+    if (d)
     {
-	for (i = 0; i < decl->dim; i++)
+	for (i = 0; i < d->dim; i++)
 	{   Dsymbol *s;
 
-	    s = (Dsymbol *)decl->data[i];
+	    s = (Dsymbol *)d->data[i];
 	    s->toObjFile();
 	}
     }
+}
+
+int AttribDeclaration::cvMember(unsigned char *p)
+{
+    unsigned i;
+    int nwritten = 0;
+    Array *d = include();
+
+    if (d)
+    {
+	for (i = 0; i < d->dim; i++)
+	{   Dsymbol *s;
+
+	    s = (Dsymbol *)d->data[i];
+	    nwritten += s->cvMember(p);
+	}
+    }
+    return nwritten;
 }
 
 char *AttribDeclaration::kind()
@@ -116,9 +155,10 @@ char *AttribDeclaration::kind()
 
 Dsymbol *AttribDeclaration::oneMember()
 {   Dsymbol *s;
+    Array *d = include();
 
-    if (decl && decl->dim == 1)
-    {	s = (Dsymbol *)decl->data[0];
+    if (d && d->dim == 1)
+    {	s = (Dsymbol *)d->data[0];
 	return s->oneMember();
     }
     return NULL;
@@ -465,92 +505,12 @@ Dsymbol *DebugDeclaration::syntaxCopy(Dsymbol *s)
 
 // Decide if debug code should be included
 
-int DebugDeclaration::include()
+Array *DebugDeclaration::include()
 {
     assert(condition);
-    return condition->include();
+    return condition->include() ? decl : elsedecl;
 }
 
-void DebugDeclaration::addMember(ScopeDsymbol *sd)
-{
-    unsigned i;
-    Array *d = include() ? decl : elsedecl;
-
-    if (d)
-    {
-	for (i = 0; i < d->dim; i++)
-	{   Dsymbol *s;
-
-	    s = (Dsymbol *)d->data[i];
-	    s->addMember(sd);
-	}
-    }
-}
-
-void DebugDeclaration::semantic(Scope *sc)
-{
-    Array *d = include() ? decl : elsedecl;
-
-    //printf("\tDebugDeclaration::semantic '%s'\n",toChars());
-    if (d)
-    {
-	for (unsigned i = 0; i < d->dim; i++)
-	{
-	    Dsymbol *s = (Dsymbol *)d->data[i];
-
-	    s->semantic(sc);
-	}
-    }
-}
-
-
-void DebugDeclaration::semantic2(Scope *sc)
-{
-    unsigned i;
-    Array *d = include() ? decl : elsedecl;
-
-    if (d)
-    {
-	for (i = 0; i < d->dim; i++)
-	{   Dsymbol *s;
-
-	    s = (Dsymbol *)d->data[i];
-	    s->semantic2(sc);
-	}
-    }
-}
-
-void DebugDeclaration::semantic3(Scope *sc)
-{
-    unsigned i;
-    Array *d = include() ? decl : elsedecl;
-
-    if (d)
-    {
-	for (i = 0; i < d->dim; i++)
-	{   Dsymbol *s;
-
-	    s = (Dsymbol *)d->data[i];
-	    s->semantic3(sc);
-	}
-    }
-}
-
-void DebugDeclaration::toObjFile()
-{
-    unsigned i;
-    Array *d = include() ? decl : elsedecl;
-
-    if (d)
-    {
-	for (i = 0; i < d->dim; i++)
-	{   Dsymbol *s;
-
-	    s = (Dsymbol *)d->data[i];
-	    s->toObjFile();
-	}
-    }
-}
 
 void DebugDeclaration::toCBuffer(OutBuffer *buf)
 {

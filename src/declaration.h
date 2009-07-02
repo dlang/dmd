@@ -116,6 +116,10 @@ struct TypedefDeclaration : Declaration
     Type *getType();
     void toCBuffer(OutBuffer *buf);
 
+    void toObjFile();			// compile to .obj file
+    void toDebug();
+    int cvMember(unsigned char *p);
+
     TypedefDeclaration *isTypedefDeclaration() { return this; }
 };
 
@@ -159,6 +163,7 @@ struct VarDeclaration : Declaration
 
     Symbol *toSymbol();
     void toObjFile();			// compile to .obj file
+    int cvMember(unsigned char *p);
 
     // Eliminate need for dynamic_cast
     VarDeclaration *isVarDeclaration() { return (VarDeclaration *)this; }
@@ -262,6 +267,7 @@ struct FuncDeclaration : Declaration
     int inlineNest;			// !=0 if nested inline
     int semanticRun;			// !=0 if semantic3() had been run
     int nestedFrameRef;			// !=0 if nested variables referenced frame ptr
+    int introducing;			// !=0 if 'introducing' function
     ForeachStatement *fes;		// if foreach body, this is the foreach
 
     // Things that should really go into Scope
@@ -306,6 +312,7 @@ struct FuncDeclaration : Declaration
     Symbol *toSymbol();
     Symbol *toThunkSymbol(int offset);	// thunk version
     void toObjFile();			// compile to .obj file
+    int cvMember(unsigned char *p);
 
     FuncDeclaration *isFuncDeclaration() { return this; }
 };

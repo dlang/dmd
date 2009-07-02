@@ -1950,7 +1950,8 @@ Expression *DeclarationExp::semantic(Scope *sc)
     {
 	if (!sc->insert(declaration) ||
 	    (declaration->isFuncDeclaration() && !sc->func->localsymtab->insert(declaration)))
-	    error("declaration %s.%s is already defined", sc->func->toChars(), declaration->toChars());
+	    //error("declaration %s.%s is already defined", sc->func->toChars(), declaration->toChars());
+	    error("declaration %s is already defined", declaration->toPrettyChars());
     }
     if (!declaration->isVarDeclaration())
     {	declaration->semantic(sc);

@@ -30,8 +30,9 @@ struct AttribDeclaration : Dsymbol
     Array *decl;	// array of Dsymbol's
 
     AttribDeclaration(Array *decl);
-    virtual int include();
+    virtual Array *include();
     void addMember(ScopeDsymbol *s);
+    void semantic(Scope *sc);
     void semantic2(Scope *sc);
     void semantic3(Scope *sc);
     void inlineScan();
@@ -40,6 +41,7 @@ struct AttribDeclaration : Dsymbol
     void toCBuffer(OutBuffer *buf);
 
     void toObjFile();			// compile to .obj file
+    int cvMember(unsigned char *p);
 };
 
 struct StorageClassDeclaration: AttribDeclaration
@@ -101,14 +103,8 @@ struct DebugDeclaration : AttribDeclaration
 
     DebugDeclaration(Condition *condition, Array *decl, Array *elsedecl);
     Dsymbol *syntaxCopy(Dsymbol *s);
-    int include();
-    void addMember(ScopeDsymbol *s);
-    void semantic(Scope *sc);
-    void semantic2(Scope *sc);
-    void semantic3(Scope *sc);
+    Array *include();
     void toCBuffer(OutBuffer *buf);
-
-    void toObjFile();			// compile to .obj file
 };
 
 struct VersionDeclaration : DebugDeclaration

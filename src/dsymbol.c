@@ -76,6 +76,36 @@ char *Dsymbol::toChars()
     return ident ? ident->toChars() : (char *)"__anonymous";
 }
 
+char *Dsymbol::toPrettyChars()
+{   Dsymbol *p;
+    char *s;
+    char *q;
+    size_t len;
+
+    if (!parent)
+	return toChars();
+
+    len = 0;
+    for (p = this; p; p = p->parent)
+	len += strlen(p->toChars()) + 1;
+
+    s = (char *)mem.malloc(len);
+    q = s + len - 1;
+    *q = 0;
+    for (p = this; 1; p = p->parent)
+    {
+	char *t = p->toChars();
+	len = strlen(t);
+	q -= len;
+	memcpy(q, t, len);
+	if (q == s)
+	    break;
+	q--;
+	*q = '.';
+    }
+    return s;
+}
+
 char *Dsymbol::locToChars()
 {
     OutBuffer buf;
@@ -251,7 +281,7 @@ void Dsymbol::error(const char *format, ...)
 	printf("%s: ", p);
     mem.free(p);
 
-    printf("%s %s ", kind(), toChars());
+    printf("%s %s ", kind(), toPrettyChars());
 
     va_list ap;
     va_start(ap, format);
@@ -274,7 +304,7 @@ void Dsymbol::error(Loc loc, const char *format, ...)
 	printf("%s: ", p);
     mem.free(p);
 
-    printf("%s %s ", kind(), toChars());
+    printf("%s %s ", kind(), toPrettyChars());
 
     va_list ap;
     va_start(ap, format);
@@ -411,7 +441,7 @@ Dsymbol *ScopeDsymbol::search(Identifier *ident, int flags)
 	{
 	    Declaration *d = s->isDeclaration();
 	    if (d && d->protection == PROTprivate)
-		error("%s.%s is private", d->parent->toChars(), d->toChars());
+		error("%s is private", d->toPrettyChars());
 	}
     }
     return s;
@@ -465,13 +495,13 @@ void ScopeDsymbol::multiplyDefined(Dsymbol *s1, Dsymbol *s2)
     //printf("s1 = '%s'\n", s1->toChars());
     //printf("s2 = '%s', parent = %p\n", s2->toChars(), s2->parent);
 #if 1
-    s1->error("conflicts with %s.%s at %s",
-	s2->parent->toChars(), s2->toChars(),
+    s1->error("conflicts with %s at %s",
+	s2->toPrettyChars(),
 	s2->locToChars());
 #else
-    s1->error("symbol %s.%s conflicts with %s.%s at %s",
-	s1->parent->toChars(), s1->toChars(),
-	s2->parent->toChars(), s2->toChars(),
+    s1->error("symbol %s conflicts with %s at %s",
+	s1->toPrettyChars(),
+	s2->toPrettyChars(),
 	s2->locToChars());
 #endif
 }

@@ -184,6 +184,9 @@ void ClassDeclaration::toObjFile()
     if (!members)
 	return;
 
+    if (global.params.symdebug)
+	toDebug();
+
     assert(!scope);	// semantic() should have been run to completion
 
     if (parent && parent->isTemplateInstance())
@@ -591,6 +594,9 @@ void InterfaceDeclaration::toObjFile()
 
     //printf("InterfaceDeclaration::toObjFile('%s')\n", toChars());
 
+    if (members && global.params.symdebug)
+	toDebug();
+
     if (parent && parent->isTemplateInstance())
 	scclass = SCcomdat;
     else
@@ -721,6 +727,8 @@ void StructDeclaration::toObjFile()
     // do not output forward referenced structs's
     if (!isAnonymous() && members)
     {
+	if (global.params.symdebug)
+	    toDebug();
 
 	// Generate static initializer
 	toInitializer();
@@ -850,4 +858,25 @@ void VarDeclaration::toObjFile()
 	    obj_export(s,0);
     }
 }
+
+/* ================================================================== */
+
+void TypedefDeclaration::toObjFile()
+{
+    //printf("TypedefDeclaration::toObjFile('%s')\n", toChars());
+
+    if (global.params.symdebug)
+	toDebug();
+}
+
+/* ================================================================== */
+
+void EnumDeclaration::toObjFile()
+{
+    //printf("EnumDeclaration::toObjFile('%s')\n", toChars());
+
+    if (global.params.symdebug)
+	toDebug();
+}
+
 
