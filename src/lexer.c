@@ -2119,6 +2119,17 @@ void Lexer::getDocComment(Token *t, unsigned lineComment)
 	    break;
     }
 
+    /* Remove trailing row of ****'s or ++++'s
+     */
+    if (ct != '/')
+    {
+	for (; q < qend; qend--)
+	{
+	    if (qend[-1] != ct)
+		break;
+	}
+    }
+
     for (; q < qend; q++)
     {
 	unsigned char c = *q;

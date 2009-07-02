@@ -1,5 +1,5 @@
 
-// Copyright (c) 1999-2004 by Digital Mars
+// Copyright (c) 1999-2005 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // www.digitalmars.com
@@ -19,6 +19,7 @@ struct Array;
 // Put command line switches in here
 struct Param
 {
+    char obj;		// write object file
     char link;		// perform link
     char trace;		// insert profiling hooks
     char quiet;		// suppress non-error messages
@@ -50,6 +51,7 @@ struct Param
     char doDocComments;	// process embedded documentation comments
     char *docdir;	// write documentation file to docdir directory
     char *docname;	// write documentation file to docname
+    Array *ddocfiles;	// macro include files for Ddoc
 
     unsigned debuglevel;	// debug level
     Array *debugids;		// debug identifiers
@@ -81,7 +83,8 @@ struct Global
     char *mars_ext;
     char *sym_ext;
     char *obj_ext;
-    char *doc_ext;
+    char *doc_ext;	// for Ddoc generated files
+    char *ddoc_ext;	// for Ddoc macro include files
     char *copyright;
     char *written;
     Array *path;	// Array of char*'s which form the import lookup path

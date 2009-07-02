@@ -284,6 +284,7 @@ struct OutBuffer : Object
     void printf(const unsigned short *format, ...);
 #endif
     void bracket(char left, char right);
+    unsigned OutBuffer::bracket(unsigned i, char *left, unsigned j, char *right);
     void spread(unsigned offset, unsigned nbytes);
     void insert(unsigned offset, const void *data, unsigned nbytes);
     void remove(unsigned offset, unsigned nbytes);

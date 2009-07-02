@@ -37,6 +37,7 @@ struct AggregateDeclaration : ScopeDsymbol
 {
     Type *type;
     unsigned storage_class;
+    enum PROT protection;
     Type *handle;		// 'this' type
     unsigned structsize;	// size of struct
     unsigned alignsize;		// size of struct for alignment purposes
@@ -74,6 +75,8 @@ struct AggregateDeclaration : ScopeDsymbol
     int hasPackageAccess(Scope *sc);
     int hasPrivateAccess(Dsymbol *smember);	// does smember have private access to members of this class?
     void accessCheck(Loc loc, Scope *sc, Dsymbol *smember);
+
+    enum PROT prot();
 
     // Back end
     Symbol *stag;		// tag symbol for debug data

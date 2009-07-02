@@ -27,6 +27,7 @@ AggregateDeclaration::AggregateDeclaration(Loc loc, Identifier *id)
     this->loc = loc;
 
     storage_class = 0;
+    protection = PROTpublic;
     type = NULL;
     handle = NULL;
     structsize = 0;		// size of struct
@@ -41,6 +42,11 @@ AggregateDeclaration::AggregateDeclaration(Loc loc, Identifier *id)
     stag = NULL;
     sinit = NULL;
     scope = NULL;
+}
+
+enum PROT AggregateDeclaration::prot()
+{
+    return protection;
 }
 
 void AggregateDeclaration::semantic2(Scope *sc)
@@ -234,6 +240,7 @@ void StructDeclaration::semantic(Scope *sc)
     parent = sc->parent;
     handle = type->pointerTo();
     structalign = sc->structalign;
+    protection = sc->protection;
     assert(!isAnonymous());
     if (sc->stc & STCabstract)
 	error("structs, unions cannot be abstract");

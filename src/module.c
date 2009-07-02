@@ -135,7 +135,8 @@ Module::Module(char *filename, Identifier *ident, int doDocComment)
 
 void Module::deleteObjFile()
 {
-    objfile->remove();
+    if (global.params.obj)
+	objfile->remove();
     if (docfile)
 	docfile->remove();
 }

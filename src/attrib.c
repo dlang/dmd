@@ -784,7 +784,7 @@ void ConditionalDeclaration::addComment(unsigned char *comment)
 		{   Dsymbol *s;
 
 		    s = (Dsymbol *)d->data[i];
-		    printf("ConditionalDeclaration::addComment %s\n", s->toChars());
+		    //printf("ConditionalDeclaration::addComment %s\n", s->toChars());
 		    s->addComment(comment);
 		}
 	    }

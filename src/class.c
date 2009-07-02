@@ -313,6 +313,7 @@ void ClassDeclaration::semantic(Scope *sc)
 	vtbl.push(this);		// leave room for classinfo as first member
     }
 
+    protection = sc->protection;
     storage_class |= sc->stc;
 
     if (sizeok == 0)

@@ -1638,6 +1638,21 @@ void OutBuffer::bracket(char left, char right)
     offset += 2;
 }
 
+/******************
+ * Insert left at i, and right at j.
+ * Return index just past right.
+ */
+
+unsigned OutBuffer::bracket(unsigned i, char *left, unsigned j, char *right)
+{
+    size_t leftlen = strlen(left);
+    size_t rightlen = strlen(right);
+    reserve(leftlen + rightlen);
+    insert(i, left, leftlen);
+    insert(j + leftlen, right, rightlen);
+    return j + leftlen + rightlen;
+}
+
 void OutBuffer::spread(unsigned offset, unsigned nbytes)
 {
     reserve(nbytes);

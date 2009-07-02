@@ -39,6 +39,7 @@ Global::Global()
     mars_ext = "d";
     sym_ext  = "d";
     doc_ext  = "html";
+    ddoc_ext = "ddoc";
 
 #if _WIN32
     obj_ext  = "obj";
@@ -50,7 +51,7 @@ Global::Global()
 
     copyright = "Copyright (c) 1999-2005 by Digital Mars";
     written = "written by Walter Bright";
-    version = "v0.132";
+    version = "v0.133";
     global.structalign = 8;
 
     memset(&params, 0, sizeof(Param));
@@ -142,6 +143,7 @@ Usage:\n\
   -inline        do function inlining\n\
   -Llinkerflag   pass linkerflag to link\n\
   -O             optimize\n\
+  -o-            do not write object file\n\
   -odobjdir      write object files to directory objdir\n\
   -offilename	 name output file to filename\n\
   -op            do not strip paths from source file\n\
@@ -188,10 +190,12 @@ int main(int argc, char *argv[])
     global.params.useArrayBounds = 1;
     global.params.useSwitchError = 1;
     global.params.useInline = 0;
+    global.params.obj = 1;
 
     global.params.linkswitches = new Array();
     global.params.libfiles = new Array();
     global.params.objfiles = new Array();
+    global.params.ddocfiles = new Array();
 
     // Predefine version identifiers
     VersionCondition::addPredefinedGlobalIdent("DigitalMars");
@@ -252,16 +256,22 @@ int main(int argc, char *argv[])
 	    {
 		switch (p[2])
 		{
+		    case '-':
+			global.params.obj = 0;
+			break;
+
 		    case 'd':
 			if (!p[3])
 			    goto Lnoarg;
 			global.params.objdir = p + 3;
 			break;
+
 		    case 'f':
 			if (!p[3])
 			    goto Lnoarg;
 			global.params.objname = p + 3;
 			break;
+
 		    case 'p':
 			if (p[3])
 			    goto Lerror;
@@ -414,6 +424,9 @@ int main(int argc, char *argv[])
     if (global.params.useUnitTests)
 	global.params.useAssert = 1;
 
+    if (!global.params.obj)
+	global.params.link = 0;
+
     if (global.params.link)
     {
 	global.params.exefile = global.params.objname;
@@ -471,9 +484,9 @@ int main(int argc, char *argv[])
 	if (ext)
 	{
 #if TARGET_LINUX
-	    if (strcmp(ext, "o") == 0)
+	    if (strcmp(ext, global.obj_ext) == 0)
 #else
-	    if (stricmp(ext, "obj") == 0)
+	    if (stricmp(ext, global.obj_ext) == 0)
 #endif
 	    {
 		global.params.objfiles->push(files.data[i]);
@@ -487,6 +500,12 @@ int main(int argc, char *argv[])
 #endif
 	    {
 		global.params.libfiles->push(files.data[i]);
+		continue;
+	    }
+
+	    if (strcmp(ext, global.ddoc_ext) == 0)
+	    {
+		global.params.ddocfiles->push(files.data[i]);
 		continue;
 	    }
 
@@ -510,7 +529,7 @@ int main(int argc, char *argv[])
 	    }
 #endif
 
-	    if (stricmp(ext, "d") == 0 ||
+	    if (stricmp(ext, global.mars_ext) == 0 ||
 		stricmp(ext, "htm") == 0 ||
 		stricmp(ext, "html") == 0)
 	    {
@@ -613,7 +632,8 @@ int main(int argc, char *argv[])
 	m = (Module *)modules.data[i];
 	if (global.params.verbose)
 	    printf("code      %s\n", m->toChars());
-	m->genobjfile();
+	if (global.params.obj)
+	    m->genobjfile();
 	if (global.errors)
 	    m->deleteObjFile();
 	else

@@ -425,11 +425,17 @@ Array *Dsymbol::arraySyntaxCopy(Array *a)
 
 void Dsymbol::addComment(unsigned char *comment)
 {
-    //if (comment)
-	//printf("adding comment '%s' to symbol %p '%s'\n", comment, this, toChars());
+//    if (comment)
+//	printf("adding comment '%s' to symbol %p '%s'\n", comment, this, toChars());
 
     if (!this->comment)
 	this->comment = comment;
+#if 1
+    else if (comment && strcmp((char *)comment, (char *)this->comment))
+    {	// Concatenate the two
+	this->comment = Lexer::combineComments(this->comment, comment);
+    }
+#endif
 }
 
 
