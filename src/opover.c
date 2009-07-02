@@ -188,6 +188,8 @@ Expression *UnaExp::op_overload(Scope *sc)
 
 Expression *BinExp::op_overload(Scope *sc)
 {
+    //printf("BinExp::op_overload() (%s)\n", toChars());
+
     AggregateDeclaration *ad;
     Type *t1 = e1->type->toBasetype();
     Type *t2 = e2->type->toBasetype();
@@ -278,6 +280,8 @@ Expression *BinExp::op_overload(Scope *sc)
 
     if (isCommutative())
     {
+	fd = NULL;
+	fd_r = NULL;
 	if (ad1 && id_r)
 	{
 	    fd_r = search_function(ad1, id_r);
@@ -323,7 +327,8 @@ Expression *BinExp::op_overload(Scope *sc)
 		m.lastf = m.anyf;
 	    }
 
-	    if (lastf && m.lastf == lastf || m.last == MATCHnomatch)
+	    if (lastf && m.lastf == lastf ||
+		id_r && m.last == MATCHnomatch)
 		// Rewrite (e1 op e2) as e1.opfunc_r(e2)
 		e = build_overload(loc, sc, e1, e2, id_r);
 	    else

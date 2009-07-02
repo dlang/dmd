@@ -184,6 +184,7 @@ ArrayInitializer::ArrayInitializer(Loc loc)
 {
     dim = 0;
     type = NULL;
+    sem = 0;
 }
 
 Initializer *ArrayInitializer::syntaxCopy()
@@ -220,6 +221,10 @@ Initializer *ArrayInitializer::semantic(Scope *sc, Type *t)
 {   unsigned i;
     unsigned length;
 
+    //printf("ArrayInitializer::semantic(%s)\n", t->toChars());
+    if (sem)				// if semantic() already run
+	return this;
+    sem = 1;
     type = t;
     t = t->toBasetype();
     switch (t->ty)

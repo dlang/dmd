@@ -1440,6 +1440,19 @@ Statement *ReturnStatement::semantic(Scope *sc)
 	    sc->fes->cases.push(this);
 	    s = new ReturnStatement(0, new IntegerExp(sc->fes->cases.dim + 1));
 	}
+	else if (fdx->type->next->toBasetype() == Type::tvoid)
+	{
+	    Statement *s1;
+	    Statement *s2;
+
+	    s = new ReturnStatement(0, NULL);
+	    sc->fes->cases.push(s);
+
+	    // Construct: { exp; return cases.dim + 1; }
+	    s1 = new ExpStatement(loc, exp);
+	    s2 = new ReturnStatement(0, new IntegerExp(sc->fes->cases.dim + 1));
+	    s = new CompoundStatement(loc, s1, s2);
+	}
 	else
 	{
 	    VarExp *v;
@@ -2098,6 +2111,10 @@ Array *LabelStatement::flatten()
     a = statement->flatten();
     if (a)
     {
+	if (!a->dim)
+	{
+	    a->push(new ExpStatement(loc, NULL));
+	}
 	Statement *s = (Statement *)a->data[0];
 
 	s = new LabelStatement(loc, ident, s);

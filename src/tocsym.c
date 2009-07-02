@@ -1,5 +1,5 @@
 
-// Copyright (c) 1999-2002 by Digital Mars
+// Copyright (c) 1999-2005 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // www.digitalmars.com
@@ -136,6 +136,7 @@ Symbol *Dsymbol::toImport(Symbol *sym)
 Symbol *VarDeclaration::toSymbol()
 {
     //printf("VarDeclaration::toSymbol(%s)\n", toChars());
+    //if (needThis()) *(char*)0=0;
     assert(!needThis());
     if (!csym)
     {	Symbol *s;

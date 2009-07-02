@@ -418,6 +418,7 @@ struct TypeIdentifier : TypeQualified
     TypeIdentifier(Loc loc, Identifier *ident);
     Type *syntaxCopy();
     //char *toChars();
+    void toDecoBuffer(OutBuffer *buf);
     void toCBuffer2(OutBuffer *buf, Identifier *ident);
     void resolve(Loc loc, Scope *sc, Expression **pe, Type **pt, Dsymbol **ps);
     Dsymbol *toDsymbol(Scope *sc);

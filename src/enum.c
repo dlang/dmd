@@ -65,9 +65,10 @@ void EnumDeclaration::semantic(Scope *sc)
     sce = sc->push(this);
     sce->parent = this;
     number = 0;
+    if (!members)		// enum ident;
+	return;
     if (members->dim == 0)
 	error("enum %s must have at least one member", toChars());
-
     for (i = 0; i < members->dim; i++)
     {
 	EnumMember *em = ((Dsymbol *)members->data[i])->isEnumMember();
@@ -114,13 +115,14 @@ void EnumDeclaration::semantic(Scope *sc)
 
 	number++;
     }
+
     sce->pop();
     //members->print();
 }
 
 Dsymbol *EnumDeclaration::oneMember()
 {
-    if (isAnonymous() && members->dim)
+    if (isAnonymous() && members && members->dim)
     {
 	Dsymbol *s = (Dsymbol *)members->data[0];
 	s = s->oneMember();
@@ -152,6 +154,12 @@ void EnumDeclaration::toCBuffer(OutBuffer *buf)
     {
 	buf->writestring(": ");
 	memtype->toCBuffer(buf, NULL);
+    }
+    if (!members)
+    {
+	buf->writeByte(';');
+	buf->writenl();
+	return;
     }
     buf->writenl();
     buf->writeByte('{');

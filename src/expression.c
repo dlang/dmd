@@ -57,7 +57,7 @@ FuncDeclaration *hasThis(Scope *sc)
     while (1)
     {
 	if (!fd)
-	{   printf("test1\n");
+	{   //printf("test1\n");
 	    goto Lno;
 	}
 	if (!fd->isNested())
@@ -445,10 +445,13 @@ void Expression::checkScalar()
 	error("'%s' is not a scalar, it is a %s", toChars(), type->toChars());
 }
 
-void Expression::checkIntegral()
+Expression *Expression::checkIntegral()
 {
     if (!type->isintegral())
-	error("'%s' is not of integral type, it is a %s", toChars(), type->toChars());
+    {	error("'%s' is not of integral type, it is a %s", toChars(), type->toChars());
+	return new IntegerExp(0);
+    }
+    return this;
 }
 
 void Expression::checkArithmetic()
@@ -2905,7 +2908,10 @@ if (arguments && arguments->dim)
 	{
 	    f = cd->baseClass->ctor;
 	    if (!f)
-		error("no super class constructor for %s", cd->baseClass->toChars());
+	    {	error("no super class constructor for %s", cd->baseClass->toChars());
+		type = Type::terror;
+		return this;
+	    }
 	    else
 	    {
 #if 0
@@ -3226,7 +3232,7 @@ Expression *ComExp::semantic(Scope *sc)
 	if (e)
 	    return e;
 
-	e1->checkIntegral();
+	e1 = e1->checkIntegral();
 	type = e1->type;
     }
     return this;
@@ -4330,7 +4336,7 @@ Expression *ShlAssignExp::semantic(Scope *sc)
     type = e1->type;
     typeCombine();
     e1->checkIntegral();
-    e2->checkIntegral();
+    e2 = e2->checkIntegral();
     e2 = e2->castTo(Type::tshiftcnt);
     return this;
 }
@@ -4357,7 +4363,7 @@ Expression *ShrAssignExp::semantic(Scope *sc)
     type = e1->type;
     typeCombine();
     e1->checkIntegral();
-    e2->checkIntegral();
+    e2 = e2->checkIntegral();
     e2 = e2->castTo(Type::tshiftcnt);
     return this;
 }
@@ -4384,7 +4390,7 @@ Expression *UshrAssignExp::semantic(Scope *sc)
     type = e1->type;
     typeCombine();
     e1->checkIntegral();
-    e2->checkIntegral();
+    e2 = e2->checkIntegral();
     e2 = e2->castTo(Type::tshiftcnt);
     return this;
 }
@@ -4806,8 +4812,8 @@ Expression *ShlExp::semantic(Scope *sc)
 	e = op_overload(sc);
 	if (e)
 	    return e;
-	e1->checkIntegral();
-	e2->checkIntegral();
+	e1 = e1->checkIntegral();
+	e2 = e2->checkIntegral();
 	e1 = e1->integralPromotions();
 	e2 = e2->castTo(Type::tshiftcnt);
 	type = e1->type;
@@ -4830,8 +4836,8 @@ Expression *ShrExp::semantic(Scope *sc)
 	e = op_overload(sc);
 	if (e)
 	    return e;
-	e1->checkIntegral();
-	e2->checkIntegral();
+	e1 = e1->checkIntegral();
+	e2 = e2->checkIntegral();
 	e1 = e1->integralPromotions();
 	e2 = e2->castTo(Type::tshiftcnt);
 	type = e1->type;
@@ -4854,8 +4860,8 @@ Expression *UshrExp::semantic(Scope *sc)
 	e = op_overload(sc);
 	if (e)
 	    return e;
-	e1->checkIntegral();
-	e2->checkIntegral();
+	e1 = e1->checkIntegral();
+	e2 = e2->checkIntegral();
 	e1 = e1->integralPromotions();
 	e2 = e2->castTo(Type::tshiftcnt);
 	type = e1->type;

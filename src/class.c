@@ -124,7 +124,7 @@ void ClassDeclaration::semantic(Scope *sc)
 	handle = handle->semantic(loc, sc);
     }
     if (!members)			// if forward reference
-    {	printf("\tclass '%s' is forward referenced\n", toChars());
+    {	//printf("\tclass '%s' is forward referenced\n", toChars());
 	return;
     }
     if (symtab)
@@ -481,7 +481,7 @@ Dsymbol *ClassDeclaration::search(Identifier *ident, int flags)
 
     if (!members || !symtab || scope)
     {	error("is forward referenced when looking for '%s'", ident->toChars());
-*(char*)0=0;
+	//*(char*)0=0;
 	return NULL;
     }
 

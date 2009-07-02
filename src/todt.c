@@ -161,6 +161,7 @@ dt_t *ArrayInitializer::toDt()
     dt_t *d;
     dt_t **pdtend;
 
+    //printf("dim = %d\n", dim);
     dts.setDim(dim);
     dts.zero();
 
@@ -174,6 +175,7 @@ dt_t *ArrayInitializer::toDt()
 	idx = (Expression *)index.data[i];
 	if (idx)
 	    length = idx->toInteger();
+	//printf("index[%d] = %p, length = %d\n", i, idx, length);
 
 	val = (Initializer *)value.data[i];
 	dt = val->toDt();
@@ -518,9 +520,11 @@ dt_t **SymOffExp::toDt(dt_t **pdt)
 
     //printf("SymOffExp::toDt('%s')\n", var->toChars());
     assert(var);
+    if (!(var->isDataseg() || var->isCodeseg()) || var->needThis())
+    {	error("non-constant expression %s", toChars());
+	return pdt;
+    }
     s = var->toSymbol();
-    if (!(var->isDataseg() || var->isCodeseg()))
-	error("non-constant expression %s", toChars());
     return dtxoff(pdt, s, offset, TYnptr);
 }
 

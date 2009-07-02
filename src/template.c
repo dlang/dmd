@@ -1,5 +1,5 @@
 
-// Copyright (c) 1999-2004 by Digital Mars
+// Copyright (c) 1999-2005 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // www.digitalmars.com
@@ -67,6 +67,18 @@ TemplateDeclaration::TemplateDeclaration(Loc loc, Identifier *id, Array *paramet
 {
 #if LOG
     printf("TemplateDeclaration(this = %p, id = '%s')\n", this, id->toChars());
+#endif
+#if 0
+    if (parameters)
+	for (int i = 0; i < parameters->dim; i++)
+	{   TemplateParameter *tp = (TemplateParameter *)parameters->data[i];
+	    TemplateTypeParameter *ttp = tp->isTemplateTypeParameter();
+
+	    if (ttp)
+	    {
+		printf("\tparameter[%d] = %s : %s\n", i, tp->ident->toChars(), ttp->specType ? ttp->specType->toChars() : "");
+	    }
+	}
 #endif
     this->loc = loc;
     this->parameters = parameters;
@@ -255,10 +267,18 @@ MATCH TemplateDeclaration::matchWithInstance(TemplateInstance *ti,
 	    if (!oarg)
 		goto Lnomatch;
 	}
+#if 0
+	printf("\targument [%d] is %s\n", i, oarg->toChars());
+	TemplateTypeParameter *ttp = tp->isTemplateTypeParameter();
+	if (ttp)
+	    printf("\tparameter[%d] is %s : %s\n", i, tp->ident->toChars(), ttp->specType ? ttp->specType->toChars() : "");
+#endif
 
 	m2 = tp->matchArg(paramscope, oarg, i, parameters, dedtypes, &sparam);
 	if (m2 == MATCHnomatch)
+	{   //printf("\tmatchArg() failed\n");
 	    goto Lnomatch;
+	}
 
 	if (m2 < m)
 	    m = m2;
@@ -674,14 +694,16 @@ TemplateParameter *TemplateTypeParameter::syntaxCopy()
 
 void TemplateTypeParameter::semantic(Scope *sc)
 {
-    //printf("TemplateTypeParameter::semantic()\n");
+    //printf("TemplateTypeParameter::semantic('%s')\n", ident->toChars());
     TypeIdentifier *ti = new TypeIdentifier(loc, ident);
     Declaration *sparam = new AliasDeclaration(loc, ident, ti);
     if (!sc->insert(sparam))
 	error(loc, "parameter '%s' multiply defined", ident->toChars());
 
     if (specType)
+    {
 	specType = specType->semantic(loc, sc);
+    }
 #if 0 // Don't do semantic() until instantiation
     if (defaultType)
     {
@@ -713,6 +735,8 @@ Lnomatch:
 MATCH TemplateTypeParameter::matchArg(Scope *sc, Object *oarg,
 	int i, Array *parameters, Array *dedtypes, Declaration **psparam)
 {
+    //printf("TemplateTypeParameter::matchArg()\n");
+
     Type *t;
     MATCH m = MATCHexact;
     Type *ta = isType(oarg);
@@ -723,10 +747,12 @@ MATCH TemplateTypeParameter::matchArg(Scope *sc, Object *oarg,
 
     if (specType)
     {
-	//printf("calling deduceType()\n");
+	//printf("\tcalling deduceType(), specType is %s\n", specType->toChars());
 	MATCH m2 = ta->deduceType(specType, parameters, dedtypes);
 	if (m2 == MATCHnomatch)
+	{   //printf("\tfailed deduceType\n");
 	    goto Lnomatch;
+	}
 
 	if (m2 < m)
 	    m = m2;

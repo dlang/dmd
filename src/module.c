@@ -467,7 +467,16 @@ void Module::semantic()
 void Module::semantic2()
 {   int i;
 
-    assert(!deferred.dim);
+    if (deferred.dim)
+    {
+	for (int i = 0; i < deferred.dim; i++)
+	{
+	    Dsymbol *sd = (Dsymbol *)deferred.data[i];
+
+	    sd->error("unable to resolve forward reference");
+	}
+	return;
+    }
     //printf("Module::semantic2('%s'): parent = %p\n", toChars(), parent);
     if (semanticdone >= 2)
 	return;
@@ -618,7 +627,7 @@ void Module::addDeferredSemantic(Dsymbol *s)
 	    return;
     }
 
-//    printf("Module::addDeferredSemantic('%s')\n", s->toChars());
+    //printf("Module::addDeferredSemantic('%s')\n", s->toChars());
     deferred.push(s);
 }
 
@@ -633,7 +642,7 @@ void Module::runDeferredSemantic()
     static int nested;
     if (nested)
 	return;
-//    if (deferred.dim) printf("Module::runDeferredSemantic('%s'), len = %d\n", toChars(), deferred.dim);
+    //if (deferred.dim) printf("Module::runDeferredSemantic('%s'), len = %d\n", toChars(), deferred.dim);
     nested++;
 
     do

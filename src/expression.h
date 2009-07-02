@@ -77,7 +77,7 @@ struct Expression : Object
     virtual int implicitConvTo(Type *t);
     virtual Expression *castTo(Type *t);
     void checkScalar();
-    void checkIntegral();
+    Expression *checkIntegral();
     void checkArithmetic();
     void checkDeprecated(Scope *sc, Dsymbol *s);
     virtual Expression *checkToBoolean();

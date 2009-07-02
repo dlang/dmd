@@ -387,6 +387,7 @@ Expression *createTypeInfoArray(Scope *sc, Expression *args[], int dim)
 	sc = sc->push();
 	sc->linkage = LINKc;
 	sc->stc = STCstatic | STCcomdat;
+	ai->semantic(sc, t);
 	v->semantic(sc);
 	v->parent = m;
 	sc = sc->pop();

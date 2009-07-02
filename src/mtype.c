@@ -2684,6 +2684,15 @@ Type *TypeIdentifier::syntaxCopy()
     return t;
 }
 
+void TypeIdentifier::toDecoBuffer(OutBuffer *buf)
+{   unsigned len;
+    char *name;
+
+    name = ident->toChars();
+    //len = strlen(name);
+    //buf->printf("%c%d%s", mangleChar[ty], len, name);
+    buf->printf("%c%s", mangleChar[ty], name);
+}
 
 void TypeIdentifier::toCBuffer2(OutBuffer *buf, Identifier *ident)
 {
@@ -3017,7 +3026,11 @@ d_uns64 TypeEnum::size(Loc loc)
 
 unsigned TypeEnum::alignsize()
 {
-    assert(sym->memtype);
+    if (!sym->memtype)
+    {
+	error(0, "enum %s is forward referenced", sym->toChars());
+	return 4;
+    }
     return sym->memtype->alignsize();
 }
 
