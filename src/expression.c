@@ -231,15 +231,19 @@ void functionArguments(Loc loc, Scope *sc, TypeFunction *tf, Array *arguments)
 		    case Tsarray:
 		    case Tarray:
 		    {	// Create a static array variable v of type arg->type
-			Identifier *id = Lexer::idPool("__arrayArg");
+			char name[10+6+1];
+			static int idn;
+			sprintf(name, "__arrayArg%d", ++idn);
+			Identifier *id = Lexer::idPool(name);
 			Type *t = new TypeSArray(tb->next, new IntegerExp(nargs - i));
 			t = t->semantic(loc, sc);
-			VarDeclaration *v = new VarDeclaration(loc, t, id, NULL);
+			VarDeclaration *v = new VarDeclaration(loc, t, id, new VoidInitializer(loc));
 			v->semantic(sc);
 			v->parent = sc->parent;
 			//sc->insert(v);
 
-			Expression *c = NULL;
+			Expression *c = new DeclarationExp(0, v);
+			c->type = v->type;
 
 			for (int u = i; u < nargs; u++)
 			{   Expression *a = (Expression *)arguments->data[u];
@@ -2688,6 +2692,9 @@ Expression *BinExp::commonSemanticAssign(Scope *sc)
 	typeCombine();
 	e1->checkArithmetic();
 	e2->checkArithmetic();
+
+	if (op == TOKmodass && e2->type->iscomplex())
+	    error("cannot perform modulo complex arithmetic");
     }
     return this;
 }
@@ -4883,7 +4890,7 @@ Expression *CatAssignExp::semantic(Scope *sc)
     Type *tb1 = e1->type->toBasetype();
     Type *tb2 = e2->type->toBasetype();
 
-    if ((tb1->ty == Tarray || tb1->ty == Tsarray) &&
+    if ((tb1->ty == Tarray) &&
 	(tb2->ty == Tarray || tb2->ty == Tsarray) &&
 	e2->implicitConvTo(e1->type)
 	//e1->type->next->equals(e2->type->next)
@@ -4893,7 +4900,7 @@ Expression *CatAssignExp::semantic(Scope *sc)
 	type = e1->type;
 	e = this;
     }
-    else if ((tb1->ty == Tarray || tb1->ty == Tsarray) &&
+    else if ((tb1->ty == Tarray) &&
 	e2->implicitConvTo(tb1->next)
        )
     {	// Append element
@@ -4903,7 +4910,7 @@ Expression *CatAssignExp::semantic(Scope *sc)
     }
     else
     {
-	error("Can only concatenate arrays, not %s ~= %s", tb1->toChars(), tb2->toChars());
+	error("Can only append to dynamic arrays, not %s ~= %s", tb1->toChars(), tb2->toChars());
 	type = Type::tint32;
 	e = this;
     }
@@ -5533,6 +5540,11 @@ Expression *ModExp::semantic(Scope *sc)
     typeCombine();
     e1->checkArithmetic();
     e2->checkArithmetic();
+    if (type->isfloating())
+    {	type = e1->type;
+	if (e2->type->iscomplex())
+	    error("cannot perform modulo complex arithmetic");
+    }
     return this;
 }
 
@@ -5851,7 +5863,10 @@ Expression *CmpExp::semantic(Scope *sc)
     else if (t1->ty == Tstruct || t2->ty == Tstruct ||
 	     (t1->ty == Tclass && t2->ty == Tclass))
     {
-	error("need member function opCmp() for %s %s to compare", t1->toDsymbol(sc)->kind(), t1->toChars());
+	if (t2->ty == Tstruct)
+	    error("need member function opCmp() for %s %s to compare", t2->toDsymbol(sc)->kind(), t2->toChars());
+	else
+	    error("need member function opCmp() for %s %s to compare", t1->toDsymbol(sc)->kind(), t1->toChars());
 	e = this;
     }
 #if 1

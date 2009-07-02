@@ -214,6 +214,7 @@ Condition *StaticIfCondition::syntaxCopy()
 
 int StaticIfCondition::include(Scope *sc, ScopeDsymbol *s)
 {
+    //printf("StaticIfCondition::include()\n");
     if (inc == 0)
     {
 	if (!sc)
@@ -223,7 +224,7 @@ int StaticIfCondition::include(Scope *sc, ScopeDsymbol *s)
 	    return 0;
 	}
 
-	sc = sc->push();
+	sc = sc->push(sc->scopesym);
 	sc->sd = s;
 	sc->flags |= SCOPEstaticif;
 	Expression *e = exp->semantic(sc);

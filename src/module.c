@@ -42,7 +42,6 @@ Module::Module(char *filename, Identifier *ident, int doDocComment)
     FileName *hfilename;
     FileName *objfilename;
     FileName *symfilename;
-    FileName *docfilename;
 
 //    printf("Module::Module(filename = '%s', ident = '%s')\n", filename, ident->toChars());
     this->arg = filename;
@@ -103,35 +102,43 @@ Module::Module(char *filename, Identifier *ident, int doDocComment)
     else
 	objfilename = FileName::forceExt(argobj, global.obj_ext);
 
-    if (doDocComment)
-    {
-	char *argdoc;
-	if (global.params.docname)
-	    argdoc = global.params.docname;
-	else if (global.params.preservePaths)
-	    argdoc = filename;
-	else
-	    argdoc = FileName::name(filename);
-	if (!FileName::absolute(argdoc))
-	    argdoc = FileName::combine(global.params.docdir, argdoc);
-	if (global.params.docname)
-	    docfilename = new FileName(argdoc, 0);
-	else
-	    docfilename = FileName::forceExt(argdoc, global.doc_ext);
-
-	if (docfilename->equals(srcfilename))
-	{   error("Source file and documentation file have same name '%s'", srcfilename->toChars());
-	    fatal();
-	}
-
-	docfile = new File(docfilename);
-    }
-
     symfilename = FileName::forceExt(filename, global.sym_ext);
 
     srcfile = new File(srcfilename);
+
+    if (doDocComment)
+    {
+	setDocfile();
+    }
+
     objfile = new File(objfilename);
     symfile = new File(symfilename);
+}
+
+void Module::setDocfile()
+{
+    FileName *docfilename;
+    char *argdoc;
+
+    if (global.params.docname)
+	argdoc = global.params.docname;
+    else if (global.params.preservePaths)
+	argdoc = (char *)arg;
+    else
+	argdoc = FileName::name((char *)arg);
+    if (!FileName::absolute(argdoc))
+	argdoc = FileName::combine(global.params.docdir, argdoc);
+    if (global.params.docname)
+	docfilename = new FileName(argdoc, 0);
+    else
+	docfilename = FileName::forceExt(argdoc, global.doc_ext);
+
+    if (docfilename->equals(srcfile->name))
+    {   error("Source file and documentation file have same name '%s'", srcfile->name->str);
+	fatal();
+    }
+
+    docfile = new File(docfilename);
 }
 
 void Module::deleteObjFile()
@@ -421,6 +428,8 @@ void Module::parse()
     {
 	comment = buf + 4;
 	isDocFile = 1;
+	if (!docfile)
+	    setDocfile();
 	return;
     }
     if (isHtml)
@@ -569,6 +578,7 @@ void Module::semantic3()
     {	Dsymbol *s;
 
 	s = (Dsymbol *)members->data[i];
+	//printf("Module %s: %s.semantic3()\n", toChars(), s->toChars());
 	s->semantic3(sc);
     }
 

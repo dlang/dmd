@@ -700,6 +700,7 @@ void FuncDeclaration::semantic3(Scope *sc)
 		    }
 		    else
 			e = new HaltExp(endloc);
+		    e = new CommaExp(0, e, type->next->defaultInit());
 		    e = e->semantic(sc2);
 		    Statement *s = new ExpStatement(0, e);
 		    fbody = new CompoundStatement(0, fbody, s);
@@ -871,7 +872,13 @@ int FuncDeclaration::overloadInsert(Dsymbol *s)
     {
 	if (overnext)
 	    return overnext->overloadInsert(a);
+	if (!a->aliassym && a->type->ty != Tident && a->type->ty != Tinstance)
+	{
+	    //printf("\ta = '%s'\n", a->type->toChars());
+	    return FALSE;
+	}
 	overnext = a;
+	//printf("\ttrue: no conflict\n");
 	return TRUE;
     }
     f = s->isFuncDeclaration();
@@ -1284,7 +1291,8 @@ int FuncDeclaration::isCodeseg()
 
 int FuncDeclaration::isNested()
 {
-//    if (!toParent()) printf("FuncDeclaration::isNested('%s') parent=%p\n", toChars(), parent);
+    //if (!toParent())
+	//printf("FuncDeclaration::isNested('%s') parent=%p\n", toChars(), parent);
     //printf("\ttoParent() = '%s'\n", toParent()->toChars());
     return ((storage_class & STCstatic) == 0) &&
 	   (toParent()->isFuncDeclaration() != NULL);

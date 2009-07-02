@@ -249,6 +249,7 @@ void Module::gendocfile()
 	emitMemberComments(sc);
     }
 
+    //printf("BODY= '%.*s'\n", buf.offset, buf.data);
     Macro::define(&macrotable, (unsigned char *)"BODY", 4, buf.data, buf.offset);
 
     OutBuffer buf2;
@@ -288,6 +289,7 @@ void Module::gendocfile()
     }
 
     // Transfer image to file
+    assert(docfile);
     docfile->setbuffer(buf.data, buf.offset);
     docfile->ref = 1;
     docfile->writev();
@@ -402,6 +404,7 @@ void Declaration::emitComment(Scope *sc)
 	emitDitto(sc);
 	return;
     }
+    dc->pmacrotable = &sc->module->macrotable;
 
     buf->writestring(ddoc_decl_s);
 	o = buf->offset;
@@ -431,6 +434,7 @@ void AggregateDeclaration::emitComment(Scope *sc)
 	emitDitto(sc);
 	return;
     }
+    dc->pmacrotable = &sc->module->macrotable;
 
     buf->writestring(ddoc_decl_s);
     toDocBuffer(buf);
@@ -460,6 +464,7 @@ void TemplateDeclaration::emitComment(Scope *sc)
 	emitDitto(sc);
 	return;
     }
+    dc->pmacrotable = &sc->module->macrotable;
 
     ScopeDsymbol *ss = this;
 
@@ -497,6 +502,8 @@ void EnumDeclaration::emitComment(Scope *sc)
 	}
 	return;
     }
+    if (isAnonymous())
+	return;
 
     OutBuffer *buf = sc->docbuf;
     DocComment *dc = DocComment::parse(sc, this, comment);
@@ -506,6 +513,7 @@ void EnumDeclaration::emitComment(Scope *sc)
 	emitDitto(sc);
 	return;
     }
+    dc->pmacrotable = &sc->module->macrotable;
 
     buf->writestring(ddoc_decl_s);
 	toDocBuffer(buf);
@@ -535,6 +543,7 @@ void EnumMember::emitComment(Scope *sc)
 	emitDitto(sc);
 	return;
     }
+    dc->pmacrotable = &sc->module->macrotable;
 
     buf->writestring(ddoc_decl_s);
 	o = buf->offset;

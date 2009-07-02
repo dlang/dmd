@@ -334,15 +334,58 @@ Expression *ModExp::constFold()
 
     e1 = e1->constFold();
     e2 = e2->constFold();
-    if (type->isreal())
-    {	real_t c;
-
-	c = fmodl(e1->toReal(), e2->toReal());
-	e = new RealExp(loc, c, type);
-    }
-    else if (type->isfloating())
+    if (type->isfloating())
     {
-	assert(0);
+#if 1
+	complex_t c;
+
+	if (e2->type->isreal())
+	{   real_t r2 = e2->toReal();
+
+#ifdef __DMC__
+	    c = fmodl(e1->toReal(), r2) + fmodl(e1->toImaginary(), r2) * I;
+#else
+	    c = complex_t(fmodl(e1->toReal(), r2), fmodl(e1->toImaginary(), r2));
+#endif
+	}
+	else if (e2->type->isimaginary())
+	{   real_t i2 = e2->toImaginary();
+
+#ifdef __DMC__
+	    c = fmodl(e1->toReal(), i2) + fmodl(e1->toImaginary(), i2) * I;
+#else
+	    c = complex_t(fmodl(e1->toReal(), i2), fmodl(e1->toImaginary(), i2));
+#endif
+	}
+	else
+	    assert(0);
+
+	if (type->isreal())
+	    e = new RealExp(loc, creall(c), type);
+	else if (type->isimaginary())
+	    e = new ImaginaryExp(loc, cimagl(c), type);
+	else if (type->iscomplex())
+	    e = new ComplexExp(loc, c, type);
+	else
+	    assert(0);
+#else
+	if (type->isreal())
+	{   real_t c;
+
+	    c = fmodl(e1->toReal(), e2->toReal());
+	    e = new RealExp(loc, c, type);
+	}
+	else if (type->isimaginary())
+	{   real_t c;
+
+	    c = fmodl(e1->toImaginary(), e2->toImaginary());
+	    e = new RealExp(loc, c, type);
+	}
+	else
+	{
+	    assert(0);
+	}
+#endif
     }
     else
     {	sinteger_t n1;

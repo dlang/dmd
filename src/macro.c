@@ -77,6 +77,7 @@ Macro *Macro::define(Macro **ptable, unsigned char *name, size_t namelen, unsign
 
     Macro *table;
 
+    //assert(ptable);
     for (table = *ptable; table; table = table->next)
     {
 	if (table->namelen == namelen &&
@@ -325,7 +326,6 @@ void Macro::expand(OutBuffer *buf, unsigned start, unsigned *pend,
 
 	u++;
     }
-    mem.free(arg);
 
     /* Second pass - replace other macros
      */
@@ -394,6 +394,7 @@ void Macro::expand(OutBuffer *buf, unsigned start, unsigned *pend,
 		    {
 			//printf("\tmacro '%.*s'(%.*s) = '%.*s'\n", m->namelen, m->name, marglen, marg, m->textlen, m->text);
 #if 1
+			marg = memdup(marg, marglen);
 			// Insert replacement text
 			buf->spread(v + 1, 2 + m->textlen + 2);
 			buf->data[v + 1] = 0xFF;
@@ -430,6 +431,7 @@ void Macro::expand(OutBuffer *buf, unsigned start, unsigned *pend,
 			end -= v + 1 - u;
 			u += mend - (v + 1);
 #endif
+			mem.free(marg);
 			//printf("u = %d, end = %d\n", u, end);
 			//printf("#%.*s#\n", end - u, &buf->data[u]);
 			continue;
@@ -446,6 +448,7 @@ void Macro::expand(OutBuffer *buf, unsigned start, unsigned *pend,
 	}
 	u++;
     }
+    mem.free(arg);
     *pend = end;
     nest--;
 }

@@ -1,5 +1,5 @@
 
-// Copyright (c) 1999-2004 by Digital Mars
+// Copyright (c) 1999-2005 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // www.digitalmars.com
@@ -89,6 +89,7 @@ struct Module : Package
     static Module *load(Loc loc, Array *packages, Identifier *ident);
 
     char *kind();
+    void setDocfile();	// set docfile member
     void read(Loc loc);	// read file
     void parse();	// syntactic parse
     void semantic();	// semantic analysis

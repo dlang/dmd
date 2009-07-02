@@ -1274,7 +1274,12 @@ int TypeBasic::implicitConvTo(Type *to)
     if (to->ty == Tbit)
 	return MATCHnomatch;
     TypeBasic *tob = (TypeBasic *)to;
-    if (flags & TFLAGSfloating)
+    if (flags & TFLAGSintegral)
+    {
+	if (tob->flags & TFLAGSimaginary)
+	    return MATCHnomatch;
+    }
+    else if (flags & TFLAGSfloating)
     {
 	// Disallow implicit conversion of floating point to integer
 	if (tob->flags & TFLAGSintegral)

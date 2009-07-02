@@ -435,11 +435,17 @@ Expression *DeclarationExp::doInline(InlineDoState *ids)
 	    ids->from.push(vd);
 	    ids->to.push(vto);
 
-	    ie = vd->init->isExpInitializer();
-	    assert(ie);
-	    ieto = new ExpInitializer(ie->loc, ie->exp->doInline(ids));
-	    vto->init = ieto;
-
+	    if (vd->init->isVoidInitializer())
+	    {
+		vto->init = new VoidInitializer(vd->init->loc);
+	    }
+	    else
+	    {
+		ie = vd->init->isExpInitializer();
+		assert(ie);
+		ieto = new ExpInitializer(ie->loc, ie->exp->doInline(ids));
+		vto->init = ieto;
+	    }
 	    de->declaration = (Dsymbol *) (void *)vto;
 	}
     }

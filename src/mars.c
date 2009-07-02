@@ -51,7 +51,7 @@ Global::Global()
 
     copyright = "Copyright (c) 1999-2005 by Digital Mars";
     written = "written by Walter Bright";
-    version = "v0.135";
+    version = "v0.136";
     global.structalign = 8;
 
     memset(&params, 0, sizeof(Param));
@@ -592,6 +592,9 @@ int main(int argc, char *argv[])
 		    break;
 		}
 	    }
+
+	    if (global.params.objfiles->dim == 0)
+		global.params.link = 0;
 	}
     }
     if (global.errors)

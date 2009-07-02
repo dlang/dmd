@@ -1864,12 +1864,13 @@ printf("\tmember '%s', kind = '%s'\n", s->toChars(), s->kind());
 void TemplateInstance::semantic3(Scope *sc)
 {   int i;
 
+#if LOG
+    printf("TemplateInstance::semantic3('%s'), semanticdone = %d\n", toChars(), semanticdone);
+#endif
+//if (toChars()[0] == 'D') *(char*)0=0;
     if (semanticdone >= 3)
 	return;
     semanticdone = 3;
-#if LOG
-    printf("TemplateInstance::semantic3('%s')\n", toChars());
-#endif
     if (members)
     {
 	sc = tempdecl->scope;
