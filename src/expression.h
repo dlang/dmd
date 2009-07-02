@@ -427,6 +427,7 @@ struct BinExp : Expression
     Expression *semantic(Scope *sc);
     Expression *semanticp(Scope *sc);
     Expression *commonSemanticAssign(Scope *sc);
+    Expression *commonSemanticAssignIntegral(Scope *sc);
     void toCBuffer(OutBuffer *buf);
     Expression *scaleFactor();
     Expression *typeCombine();

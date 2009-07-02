@@ -105,12 +105,15 @@ Symbol *Dsymbol::toImport(Symbol *sym)
     Symbol *s;
     type *t;
 
+    //printf("Dsymbol::toImport('%s')\n", sym->Sident);
     n = sym->Sident;
     id = (char *) alloca(6 + strlen(n) + 5 + 1);
     if (sym->Stype->Tmangle == mTYman_std)
     {
 	sprintf(id,"_imp__%s@%d",n,type_paramsize(sym->Stype));
     }
+    else if (sym->Stype->Tmangle == mTYman_d)
+	sprintf(id,"_imp_%s",n);
     else
 	sprintf(id,"_imp__%s",n);
     t = type_alloc(TYnptr | mTYconst);

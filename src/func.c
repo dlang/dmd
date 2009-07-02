@@ -819,13 +819,13 @@ FuncDeclaration *FuncDeclaration::overloadExactMatch(Type *t)
 
 // Recursive helper function
 
-void overloadResolveX(Match *m, FuncDeclaration *f, Array *arguments)
+void overloadResolveX(Match *m, FuncDeclaration *fstart, Array *arguments)
 {
     MATCH match;
     Declaration *d;
     Declaration *next;
 
-    for (d = f; d; d = next)
+    for (d = fstart; d; d = next)
     {
 	FuncDeclaration *f;
 	FuncAliasDeclaration *fa;
@@ -886,6 +886,8 @@ void overloadResolveX(Match *m, FuncDeclaration *f, Array *arguments)
 	    Dsymbol *s = a->toAlias();
 	    next = s->isDeclaration();
 	    if (next == a)
+		break;
+	    if (next == fstart)
 		break;
 	}
 	else
@@ -1211,6 +1213,7 @@ FuncAliasDeclaration::FuncAliasDeclaration(FuncDeclaration *funcalias)
     : FuncDeclaration(funcalias->loc, funcalias->endloc, funcalias->ident,
 	(enum STC)funcalias->storage_class, funcalias->type)
 {
+    assert(funcalias != this);
     this->funcalias = funcalias;
 }
 
@@ -1272,7 +1275,8 @@ void CtorDeclaration::semantic(Scope *sc)
 
     //printf("CtorDeclaration::semantic()\n");
 
-    assert(!(sc->stc & STCstatic));
+    sc = sc->push();
+    sc->stc &= ~STCstatic;		// not a static constructor
 
     parent = sc->parent;
     Dsymbol *parent = toParent();
@@ -1303,6 +1307,8 @@ void CtorDeclaration::semantic(Scope *sc)
     }
 
     FuncDeclaration::semantic(sc);
+
+    sc->pop();
 }
 
 char *CtorDeclaration::kind()
@@ -1353,6 +1359,9 @@ void DtorDeclaration::semantic(Scope *sc)
     ClassDeclaration *cd;
     Type *tret;
 
+    sc = sc->push();
+    sc->stc &= ~STCstatic;		// not a static destructor
+
     parent = sc->parent;
     Dsymbol *parent = toParent();
     cd = parent->isClassDeclaration();
@@ -1363,6 +1372,8 @@ void DtorDeclaration::semantic(Scope *sc)
     type = new TypeFunction(NULL, Type::tvoid, FALSE, LINKd);
 
     FuncDeclaration::semantic(sc);
+
+    sc->pop();
 }
 
 int DtorDeclaration::overloadInsert(Dsymbol *s)

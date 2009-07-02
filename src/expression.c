@@ -354,7 +354,7 @@ void Expression::error(const char *format, ...)
     fflush(stdout);
 
     global.errors++;
-    fatal();
+    //fatal();
 }
 
 void Expression::rvalue()
@@ -451,8 +451,8 @@ void Expression::checkDeprecated(Scope *sc, Dsymbol *s)
     if (!global.params.useDeprecated && s->isDeprecated())
     {
 	// Don't complain if we're inside a deprecated symbol's scope
-	for (Dsymbol *s = sc->parent; s; s = s->parent)
-	{   if (s->isDeprecated())
+	for (Dsymbol *sp = sc->parent; sp; sp = sp->parent)
+	{   if (sp->isDeprecated())
 		return;
 	}
 
@@ -923,6 +923,7 @@ Expression *IdentifierExp::semantic(Scope *sc)
 	return e->semantic(sc);
     }
     error("undefined identifier %s", ident->toChars());
+    type = Type::terror;
     return this;
 }
 
@@ -974,8 +975,10 @@ Lagain:
     Import *imp;
     Type *t;
 
-    //printf("'%s' is a symbol\n", toChars());
+    //printf("DsymbolExp:: '%s' is a symbol\n", toChars());
+    //printf("s = '%s', s->kind = '%s'\n", s->toChars(), s->kind());
     s = s->toAlias();
+    //printf("s = '%s', s->kind = '%s'\n", s->toChars(), s->kind());
     if (!s->isFuncDeclaration())
 	checkDeprecated(sc, s);
 
@@ -1186,6 +1189,7 @@ Expression *SuperExp::semantic(Scope *sc)
 {   FuncDeclaration *fd;
     FuncDeclaration *fdthis;
     ClassDeclaration *cd;
+    Dsymbol *s;
 
 #if LOGSEMANTIC
     printf("SuperExp::semantic('%s')\n", toChars());
@@ -1200,7 +1204,13 @@ Expression *SuperExp::semantic(Scope *sc)
     assert(fd->vthis);
     var = fd->vthis;
     assert(var->parent);
-    cd = fd->toParent()->isClassDeclaration();
+
+    s = fd->toParent();
+    while (s && s->isTemplateInstance())
+	s = s->toParent();
+    assert(s);
+    cd = s->isClassDeclaration();
+//printf("parent is %s %s\n", fd->toParent()->kind(), fd->toParent()->toChars());
     assert(cd);
     if (!cd->baseClass)
     {
@@ -1651,6 +1661,10 @@ Expression *NewExp::semantic(Scope *sc)
 	    error("negative array index %s", arg->toChars());
 	arguments->data[0] = (void *) arg;
     }
+    else if (tb->isscalar())
+    {
+	type = type->pointerTo();
+    }
     else
     {
 	error("new can only create structs, dynamic arrays or class objects, not %s's", type->toChars());
@@ -1748,7 +1762,7 @@ Expression *VarExp::semantic(Scope *sc)
     VarDeclaration *v = var->isVarDeclaration();
     if (v)
     {
-	if (v->isConst() && type->toBasetype()->ty != Tsarray)
+	if (v->isConst() && type->toBasetype()->ty != Tsarray && v->init)
 	{
 	    ExpInitializer *ei = v->init->isExpInitializer();
 	    if (ei)
@@ -2035,12 +2049,17 @@ Expression *BinExp::semantic(Scope *sc)
 #endif
     e1 = e1->semantic(sc);
     if (!e1->type)
+    {
 	error("%s has no value", e1->toChars());
+	e1->type = Type::terror;
+    }
     e2 = e2->semantic(sc);
     if (!e2->type)
     {
 	error("%s has no value", e2->toChars());
+	e2->type = Type::terror;
     }
+    assert(e1->type);
     return this;
 }
 
@@ -2077,6 +2096,29 @@ Expression *BinExp::commonSemanticAssign(Scope *sc)
     }
     return this;
 }
+
+Expression *BinExp::commonSemanticAssignIntegral(Scope *sc)
+{   Expression *e;
+
+    if (!type)
+    {
+	BinExp::semantic(sc);
+	e2 = resolveProperties(sc, e2);
+
+	e = op_overload(sc);
+	if (e)
+	    return e;
+
+	e1 = e1->modifiableLvalue(sc, NULL);
+	e1->checkScalar();
+	type = e1->type;
+	typeCombine();
+	e1->checkIntegral();
+	e2->checkIntegral();
+    }
+    return this;
+}
+
 
 void BinExp::toCBuffer(OutBuffer *buf)
 {
@@ -2180,17 +2222,26 @@ Expression *DotIdExp::semantic(Scope *sc)
 		type = v->type;
 		if (v->isConst())
 		{
-		    ExpInitializer *ei = v->init->isExpInitializer();
-		    if (ei)
+		    if (v->init)
 		    {
-//printf("\tei: %p (%s)\n", ei->exp, ei->exp->toChars());
-//ei->exp = ei->exp->semantic(sc);
-			if (ei->exp->type == type)
+			ExpInitializer *ei = v->init->isExpInitializer();
+			if (ei)
 			{
-			    e = ei->exp->copy();	// make copy so we can change loc
-			    e->loc = loc;
-			    return e;
+    //printf("\tei: %p (%s)\n", ei->exp, ei->exp->toChars());
+    //ei->exp = ei->exp->semantic(sc);
+			    if (ei->exp->type == type)
+			    {
+				e = ei->exp->copy();	// make copy so we can change loc
+				e->loc = loc;
+				return e;
+			    }
 			}
+		    }
+		    else if (type->isscalar())
+		    {
+			e = type->defaultInit();
+			e->loc = loc;
+			return e;
 		    }
 		}
 		if (v->needThis())
@@ -2313,7 +2364,8 @@ Expression *DotVarExp::semantic(Scope *sc)
 	type = var->type;
 	assert(type);
 
-	accessCheck(loc, sc, e1, var);
+	if (!var->isFuncDeclaration())	// do access check after overload resolution
+	    accessCheck(loc, sc, e1, var);
     }
     return this;
 }
@@ -2690,8 +2742,18 @@ if (arguments && arguments->dim)
 	assert(f);
 	f = f->overloadResolve(loc, arguments);
 	checkDeprecated(sc, f);
-	dve->var = f;
-	e1->type = f->type;
+	accessCheck(loc, sc, dve->e1, f);
+	if (!f->needThis())
+	{
+	    VarExp *ve = new VarExp(loc, f);
+	    e1 = new CommaExp(loc, dve->e1, ve);
+	    e1->type = f->type;
+	}
+	else
+	{
+	    dve->var = f;
+	    e1->type = f->type;
+	}
 	t1 = e1->type;
     }
     else if (e1->op == TOKsuper)
@@ -2767,6 +2829,7 @@ if (arguments && arguments->dim)
     else if (!t1)
     {
 	error("function expected before (), not '%s'", e1->toChars());
+	type = Type::terror;
 	return this;
     }
     else if (t1->ty != Tfunction)
@@ -2787,6 +2850,7 @@ if (arguments && arguments->dim)
 	}
 	else
 	{   error("function expected before (), not '%s'", e1->type->toChars());
+	    type = Type::terror;
 	    return this;
 	}
     }
@@ -3215,6 +3279,8 @@ Expression *SliceExp::semantic(Scope *sc)
     Type *t = e1->type->toBasetype();
     if (t->ty == Tpointer)
     {
+	if (!lwr || !upr)
+	    error("need upper and lower bound to slice pointer");
     }
     else if (t->ty == Tarray)
     {
@@ -3690,6 +3756,7 @@ Expression *AssignExp::semantic(Scope *sc)
     BinExp::semantic(sc);
     e2 = resolveProperties(sc, e2);
 
+    assert(e1->type);
     t1 = e1->type->toBasetype();
     if (t1->ty == Tfunction)
     {	// Rewrite f=value to f(value)
@@ -3713,11 +3780,12 @@ Expression *AssignExp::semantic(Scope *sc)
 	e1 = e1->modifiableLvalue(sc, e1old);
 
     if (e1->op == TOKrange &&
-	!(e1->type->next->equals(e2->type->next) /*||
-	  (e1->type->next->ty == Tchar && e2->op == TOKstring)*/)
+	t1->next &&
+	!(t1->next->equals(e2->type->next) /*||
+	  (t1->next->ty == Tchar && e2->op == TOKstring)*/)
        )
     {	// memset
-	e2 = e2->implicitCastTo(e1->type->next);
+	e2 = e2->implicitCastTo(t1->next);
     }
 #if 0
     else if (e1->op == TOKrange &&
@@ -3727,7 +3795,7 @@ Expression *AssignExp::semantic(Scope *sc)
 	e2 = e2->implicitCastTo(e1->type->next);
     }
 #endif
-    else if (e1->type->toBasetype()->ty == Tsarray)
+    else if (t1->ty == Tsarray)
     {
 	error("cannot assign to static array %s", e1->toChars());
     }
@@ -4107,7 +4175,7 @@ AndAssignExp::AndAssignExp(Loc loc, Expression *e1, Expression *e2)
 
 Expression *AndAssignExp::semantic(Scope *sc)
 {
-    return commonSemanticAssign(sc);
+    return commonSemanticAssignIntegral(sc);
 }
 
 /************************************************************/
@@ -4119,7 +4187,7 @@ OrAssignExp::OrAssignExp(Loc loc, Expression *e1, Expression *e2)
 
 Expression *OrAssignExp::semantic(Scope *sc)
 {
-    return commonSemanticAssign(sc);
+    return commonSemanticAssignIntegral(sc);
 }
 
 /************************************************************/
@@ -4131,7 +4199,7 @@ XorAssignExp::XorAssignExp(Loc loc, Expression *e1, Expression *e2)
 
 Expression *XorAssignExp::semantic(Scope *sc)
 {
-    return commonSemanticAssign(sc);
+    return commonSemanticAssignIntegral(sc);
 }
 
 /************************* AddExp *****************************/

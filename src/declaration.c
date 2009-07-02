@@ -264,7 +264,11 @@ void AliasDeclaration::semantic(Scope *sc)
     }
     if (overnext)
 	ScopeDsymbol::multiplyDefined(s, overnext);
-    assert(s != this);
+    if (s == this)
+    {
+	assert(global.errors);
+	s = NULL;
+    }
     aliassym = s;
     this->inSemantic = 0;
 }
@@ -298,12 +302,13 @@ Type *AliasDeclaration::getType()
 
 Dsymbol *AliasDeclaration::toAlias()
 {
-#ifdef DEBUG
+    //printf("AliasDeclaration::toAlias('%s', this = %p, aliassym = %p, kind = '%s')\n", toChars(), this, aliassym, aliassym->kind());
     assert(this != aliassym);
-#endif
+    //static int count; if (++count == 10) *(char*)0=0;
     if (inSemantic)
 	error("recursive alias declaration");
-    return aliassym ? aliassym->toAlias() : this;
+    Dsymbol *s = aliassym ? aliassym->toAlias() : this;
+    return s;
 }
 
 void AliasDeclaration::toCBuffer(OutBuffer *buf)
@@ -510,11 +515,11 @@ void VarDeclaration::semantic(Scope *sc)
     }
 
     // If inside function, there is no semantic3() call
-    if (fd && init)
+    if (sc->func && init)
     {
 	// If local variable, use AssignExp to handle all the various
 	// possibilities.
-	if (!isStatic() && !isConst())
+	if (fd && !isStatic() && !isConst())
 	{
 	    ExpInitializer *ie;
 	    Expression *e1;

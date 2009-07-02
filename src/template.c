@@ -1192,7 +1192,12 @@ void TemplateInstance::semantic(Scope *sc)
 	return;
     }
 
-    assert(semanticdone == 0);
+    if (semanticdone != 0)
+    {
+	error(loc, "recursive template expansion");
+//	inst = this;
+	return;
+    }
     semanticdone = 1;
 
 #if LOG
@@ -1287,6 +1292,7 @@ void TemplateInstance::semantic(Scope *sc)
 #if LOG
     printf("\timplement template instance '%s'\n", toChars());
 #endif
+    unsigned errorsave = global.errors;
     inst = this;
     tempdecl->instances.push(this);
     parent = tempdecl->parent;
@@ -1416,6 +1422,11 @@ void TemplateInstance::semantic(Scope *sc)
     sc2->pop();
 
     scope->pop();
+
+    // Give additional context info if error occurred during instantiation
+    if (global.errors != errorsave)
+	error("error instantiating");
+
 #if LOG
     printf("-TemplateInstance::semantic('%s', this=%p)\n", toChars(), this);
 #endif
@@ -1503,7 +1514,7 @@ TemplateDeclaration *TemplateInstance::findTemplateDeclaration(Scope *sc)
 	tempdecl = s->isTemplateDeclaration();
 	if (!tempdecl)
 	{
-	    error("%s is not a template declaration", id->toChars());
+	    error("%s is not a template declaration, it is a %s", id->toChars(), s->kind());
 	    return NULL;
 	}
     }
@@ -1617,8 +1628,10 @@ Identifier *TemplateInstance::genIdent()
 	Dsymbol *sa = isDsymbol(o);
 	if (ta)
 	{
-	    assert(ta->deco);
-	    buf.writestring(ta->deco);
+	    if (ta->deco)
+		buf.writestring(ta->deco);
+	    else
+		assert(global.errors);
 	}
 	else if (ea)
 	{
@@ -1658,6 +1671,7 @@ Identifier *TemplateInstance::genIdent()
 
 void TemplateInstance::declareParameters(Scope *scope)
 {
+    //printf("TemplateInstance::declareParameters()\n");
     for (int i = 0; i < tdtypes.dim; i++)
     {
 	TemplateParameter *tp = (TemplateParameter *)tempdecl->parameters->data[i];
@@ -1677,6 +1691,7 @@ void TemplateInstance::declareParameters(Scope *scope)
 	}
 	else if (sa)
 	{
+	    //printf("Alias %s %s;\n", sa->ident->toChars(), tp->ident->toChars());
 	    s = new AliasDeclaration(0, tp->ident, sa);
 	}
 	else if (ea)
@@ -1798,33 +1813,41 @@ void TemplateInstance::toCBuffer(OutBuffer *buf)
 	buf->writestring(id->toChars());
     }
     buf->writestring("!(");
-    for (i = 0; i < tiargs->dim; i++)
+    if (nest)
+	buf->writestring("...");
+    else
     {
-	if (i)
-	    buf->writeByte(',');
-	Object *oarg = (Object *)tiargs->data[i];
-	Type *t = isType(oarg);
-	Expression *e = isExpression(oarg);
-	Dsymbol *s = isDsymbol(oarg);
-	if (t)
-	    t->toCBuffer(buf, NULL);
-	else if (e)
-	    e->toCBuffer(buf);
-	else if (s)
+	nest++;
+	for (i = 0; i < tiargs->dim; i++)
 	{
-	    buf->writestring(s->ident->toChars());
-	}
-	else if (!oarg)
-	{
-	    buf->writestring("NULL");
-	}
-	else
-	{
+	    if (i)
+		buf->writeByte(',');
+	    Object *oarg = (Object *)tiargs->data[i];
+	    Type *t = isType(oarg);
+	    Expression *e = isExpression(oarg);
+	    Dsymbol *s = isDsymbol(oarg);
+	    if (t)
+		t->toCBuffer(buf, NULL);
+	    else if (e)
+		e->toCBuffer(buf);
+	    else if (s)
+	    {
+		char *p = s->ident ? s->ident->toChars() : s->toChars();
+		buf->writestring(p);
+	    }
+	    else if (!oarg)
+	    {
+		buf->writestring("NULL");
+	    }
+	    else
+	    {
 #ifdef DEBUG
-	    printf("tiargs[%d] = %p\n", i, oarg);
+		printf("tiargs[%d] = %p\n", i, oarg);
 #endif
-	    assert(0);
+		assert(0);
+	    }
 	}
+	nest--;
     }
     buf->writeByte(')');
 }

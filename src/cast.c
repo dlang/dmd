@@ -41,7 +41,7 @@ printf("to:\n");
 t->print();
 #endif
 //*(char*)0=0;
-    error("cannot implicitly convert %s to %s", type->toChars(), t->toChars());
+    error("cannot implicitly convert expression %s of type %s to %s", toChars(), type->toChars(), t->toChars());
     return castTo(t);
 }
 
@@ -57,7 +57,9 @@ int Expression::implicitConvTo(Type *t)
 	toChars(), type->toChars(), t->toChars());
 #endif
     if (!type)
-	error("%s is not an expression", toChars());
+    {	error("%s is not an expression", toChars());
+	type = Type::terror;
+    }
     if (t->ty == Tbit && isBit())
 	return MATCHconvert;
     return type->implicitConvTo(t);

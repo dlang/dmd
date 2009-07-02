@@ -172,6 +172,7 @@ struct TemplateInstance : ScopeDsymbol
     AliasDeclaration *aliasdecl;	// !=NULL if instance is an alias for its
 					// sole member
     int semanticdone;	// has semantic() been done?
+    int nest;		// for recursion detection
 
     TemplateInstance(Loc loc, Identifier *temp_id);
     Dsymbol *syntaxCopy(Dsymbol *);

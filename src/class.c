@@ -361,13 +361,15 @@ void ClassDeclaration::semantic(Scope *sc)
 
     sc->pop();
 
+#if 0 // Do not call until toObjfile() because of forward references
     // Fill in base class vtbl[]s
     for (i = 0; i < vtblInterfaces->dim; i++)
     {
 	BaseClass *b = (BaseClass *)vtblInterfaces->data[i];
 
-	b->fillVtbl(this, &b->vtbl, 1);
+	//b->fillVtbl(this, &b->vtbl, 1);
     }
+#endif
     //printf("-ClassDeclaration::semantic(%s), type = %p\n", toChars(), type);
 }
 
@@ -706,6 +708,7 @@ void InterfaceDeclaration::semantic(Scope *sc)
     }
     //members->print();
     sc->pop();
+    //printf("-InterfaceDeclaration::semantic(%s), type = %p\n", toChars(), type);
 }
 
 
@@ -838,7 +841,7 @@ int BaseClass::fillVtbl(ClassDeclaration *cd, Array *vtbl, int newinstance)
     int j;
     int result = 0;
 
-    //printf("BaseClass::fillVtbl('%s')\n", base->toChars());
+    //printf("BaseClass::fillVtbl(this='%s', cd='%s')\n", base->toChars(), cd->toChars());
     if (vtbl)
 	vtbl->setDim(base->vtbl.dim);
 

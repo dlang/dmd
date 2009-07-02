@@ -165,6 +165,7 @@ void Type::init()
 
     for (i = 0; i < sizeof(basetab) / sizeof(basetab[0]); i++)
 	basic[basetab[i]] = new TypeBasic(basetab[i]);
+    basic[Terror] = basic[Tint32];
 
     if (global.params.isAMD64)
     {
@@ -2528,6 +2529,8 @@ void TypeQualified::resolveHelper(Loc loc, Scope *sc,
 		}
 #endif
 		t = s->getType();
+		if (!t && s->isDeclaration())
+		    t = s->isDeclaration()->type;
 		if (t)
 		{
 //<<>>
@@ -2907,6 +2910,7 @@ Type *TypeTypeof::semantic(Loc loc, Scope *sc)
     }
     else
     {
+
 	exp = exp->semantic(sc);
 	t = exp->type;
 	if (!t)
@@ -3396,10 +3400,16 @@ L1:
 	return de;
     }
 
+    if (s->isTemplateDeclaration())
+    {
+	s->error("templates don't have properties");
+	return e;
+    }
+
     d = s->isDeclaration();
 #ifdef DEBUG
     if (!d)
-	printf("d = '%s'\n", s->toChars());
+	printf("d = %s '%s'\n", s->kind(), s->toChars());
 #endif
     assert(d);
 
