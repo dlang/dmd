@@ -554,7 +554,7 @@ int ForStatement::hasContinue()
 
 int ForStatement::usesEH()
 {
-    return init->usesEH() || body->usesEH();
+    return (init && init->usesEH()) || body->usesEH();
 }
 
 /******************************** ForeachStatement ***************************/
@@ -1413,6 +1413,8 @@ Statement *ReturnStatement::semantic(Scope *sc)
 {
     FuncDeclaration *fd = sc->parent->isFuncDeclaration();
     FuncDeclaration *fdx = fd;
+    Type *tret = fd->type->next;
+    Type *tbret = tret->toBasetype();
 
     Scope *scx = sc;
     if (sc->fes)
@@ -1468,47 +1470,37 @@ Statement *ReturnStatement::semantic(Scope *sc)
     if (sc->incontract)
 	error("return statements cannot be in contracts");
 
-    if (fd->type->next->ty == Tvoid)	// if void return
+    if (fd->isCtorDeclaration())
     {
-	if (exp)
-	{   error("cannot return value from void function");
-	    exp = NULL;
-	}
+	// Constructors implicitly do:
+	//	return this;
+	if (exp && exp->op != TOKthis)
+	    error("cannot return expression from constructor");
+	exp = new ThisExp(0);
     }
-    else
+
+    if (exp)
     {
-	if (fd->isCtorDeclaration())
+	fd->hasReturnExp = 1;
+
+	if (fd->returnLabel && tbret->ty != Tvoid)
 	{
-	    // Constructors implicitly do:
-	    //	return this;
-	    if (exp && exp->op != TOKthis)
-		error("cannot return expression from constructor");
-	    exp = new ThisExp(0);
-	}
+	    assert(fd->vresult);
+	    VarExp *v = new VarExp(0, fd->vresult);
 
-	if (exp)
-	{
-	    fd->hasReturnExp = 1;
-
-	    if (fd->returnLabel)
-	    {
-		assert(fd->vresult);
-		VarExp *v = new VarExp(0, fd->vresult);
-
-		exp = resolveProperties(sc, exp);
-		exp = new AssignExp(loc, v, exp);
-		exp = exp->semantic(sc);
-	    }
-	    else
-	    {
-		exp = exp->semantic(sc);
-		exp = resolveProperties(sc, exp);
-		exp = exp->implicitCastTo(fd->type->next);
-	    }
+	    exp = resolveProperties(sc, exp);
+	    exp = new AssignExp(loc, v, exp);
+	    exp = exp->semantic(sc);
 	}
 	else
-	    error("return value expected");
+	{
+	    exp = exp->semantic(sc);
+	    exp = resolveProperties(sc, exp);
+	    exp = exp->implicitCastTo(tret);
+	}
     }
+    else if (tbret->ty != Tvoid)	// if non-void return
+	error("return expression expected");
 
     /* BUG: need to issue an error on:
      *	this

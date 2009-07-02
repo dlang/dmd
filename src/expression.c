@@ -1104,6 +1104,17 @@ Expression *SuperExp::semantic(Scope *sc)
 	if (!fd->isNested())
 	    break;
 	nested = 1;
+
+	Dsymbol *parent = fd->parent;
+	while (parent)
+	{
+	    TemplateInstance *ti = parent->isTemplateInstance();
+	    if (ti)
+		parent = ti->parent;
+	    else
+		break;
+	}
+
 	fd = fd->parent->isFuncDeclaration();
     }
 
@@ -1113,7 +1124,7 @@ Expression *SuperExp::semantic(Scope *sc)
     assert(fd->vthis);
     var = fd->vthis;
     assert(var->parent);
-    cd = fd->parent->isClassDeclaration();
+    cd = fd->toParent()->isClassDeclaration();
     assert(cd);
     if (!cd->baseClass)
     {
@@ -1317,8 +1328,12 @@ Expression *TypeDotIdExp::semantic(Scope *sc)
 #if LOGSEMANTIC
     printf("TypeDotIdExp::semantic()\n");
 #endif
+#if 0
     type = type->semantic(loc, sc);
     e = type->getProperty(loc, ident);
+#else
+    e = new DotIdExp(loc, new TypeExp(loc, type), ident);
+#endif
     e = e->semantic(sc);
     return e;
 }
@@ -3006,66 +3021,12 @@ Expression *CastExp::semantic(Scope *sc)
     e1 = resolveProperties(sc, e1);
     to = to->semantic(loc, sc);
 
-#if 0
-    if (e1->type->ty == Tfunction)
+    e = op_overload(sc);
+    if (e)
     {
-	e1 = e1->addressOf();
-	e1 = e1->semantic(sc);
+	return e->implicitCastTo(to);
     }
-#endif
     return e1->castTo(to);
-#if 0
-    type = to;
-
-    // Do (type *) cast of (type [])
-    if (to->ty == Tpointer &&
-	e1->type->ty == Tarray
-       )
-    {
-	return this;
-#if 0
-	// e1 -> *(&e1 + 4)
-	//printf("Converting [] to *\n");
-
-	e = new AddrExp(loc, e1);
-	e->type = e1->type->next->pointerTo()->pointerTo();
-
-	b = new AddExp(loc, e, new IntegerExp(loc, 4, Type::tint32));
-	b->type = e->type;
-
-	u = new PtrExp(loc, b);
-	u->type = type;
-
-	return u;
-#endif
-    }
-
-    if (e1->op == TOKstring)
-    {
-	return e1->castTo(to);
-    }
-
-    // Do (type *) cast of (type [dim])
-    if (to->ty == Tpointer &&
-	e1->type->ty == Tsarray
-       )
-    {
-	//printf("Converting [dim] to *\n");
-
-	e = new AddrExp(loc, e1);
-	e->type = type;
-
-	return e;
-    }
-
-
-    if (e1->op == TOKnull)
-    {
-	return e1->castTo(to);
-    }
-
-    return this;
-#endif
 }
 
 void CastExp::toCBuffer(OutBuffer *buf)

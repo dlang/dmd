@@ -427,7 +427,11 @@ int Type::implicitConvTo(Type *to)
 {
     //printf("Type::implicitConvTo(this=%p, to=%p)\n", this, to);
     //printf("\tthis->next=%p, to->next=%p\n", this->next, to->next);
-    return (this == to) ? 2 : 0;
+    if (this == to)
+	return MATCHexact;
+    if (to->ty == Tvoid)
+	return 1;
+    return 0;
 }
 
 Expression *Type::getProperty(Loc loc, Identifier *ident)
@@ -452,7 +456,8 @@ Expression *Type::getProperty(Loc loc, Identifier *ident)
     else if (ident == Id::init)
 	return defaultInit();
     else
-    {	error(loc, "no property '%s' for type '%s'", ident->toChars(), toChars());
+    {
+	error(loc, "no property '%s' for type '%s'", ident->toChars(), toChars());
 	e = new IntegerExp(loc, 1, Type::tint32);
     }
     return e;
@@ -703,7 +708,6 @@ char *TypeBasic::toChars()
 
 void TypeBasic::toCBuffer2(OutBuffer *buf, Identifier *ident)
 {
-    //buf->prependbyte(' ');
     buf->prependstring(cstring);
     if (ident)
     {	buf->writeByte(' ');
@@ -1183,9 +1187,11 @@ int TypeBasic::implicitConvTo(Type *to)
     //printf("TypeBasic::implicitConvTo()\n");
     if (this == to)
 	return MATCHexact;
+    if (to->ty == Tvoid)
+	return MATCHconvert;
     if (!to->isTypeBasic())
 	return MATCHnomatch;
-    if (ty == Tvoid || to->ty == Tvoid)
+    if (ty == Tvoid /*|| to->ty == Tvoid*/)
 	return MATCHnomatch;
     if (to->ty == Tbit)
 	return MATCHnomatch;
@@ -1815,6 +1821,7 @@ d_uns64 TypePointer::size()
 
 void TypePointer::toCBuffer2(OutBuffer *buf, Identifier *ident)
 {
+    //printf("TypePointer::toCBuffer2() next = %d\n", next->ty);
     buf->prependstring("*");
     if (ident)
     {
@@ -1848,6 +1855,8 @@ int TypePointer::implicitConvTo(Type *to)
 	    return tfto->equals(tf) ? MATCHexact : MATCHnomatch;
 	}
     }
+    if (to->ty == Tvoid)
+	return MATCHconvert;
     return MATCHnomatch;
 }
 
@@ -2354,11 +2363,14 @@ void TypeQualified::toCBuffer2Helper(OutBuffer *buf, Identifier *ident)
     {	Identifier *id = (Identifier *)idents.data[i];
 
 	buf->writeByte('.');
-	buf->writestring(id->toChars());
-    }
-    if (ident)
-    {	buf->writeByte(' ');
-	buf->writestring(ident->toChars());
+
+	if (id->dyncast() != DYNCAST_IDENTIFIER)
+	{
+	    TemplateInstance *ti = (TemplateInstance *)id;
+	    ti->toCBuffer(buf);
+	}
+	else
+	    buf->writestring(id->toChars());
     }
 }
 
@@ -2523,8 +2535,15 @@ Type *TypeIdentifier::syntaxCopy()
 
 void TypeIdentifier::toCBuffer2(OutBuffer *buf, Identifier *ident)
 {
-    buf->writestring(this->ident->toChars());
-    toCBuffer2Helper(buf, ident);
+    OutBuffer tmp;
+
+    tmp.writestring(this->ident->toChars());
+    toCBuffer2Helper(&tmp, NULL);
+    buf->prependstring(tmp.toChars());
+    if (ident)
+    {	buf->writeByte(' ');
+	buf->writestring(ident->toChars());
+    }
 }
 
 /*************************************
@@ -2562,10 +2581,36 @@ Dsymbol *TypeIdentifier::toDsymbol(Scope *sc)
 	s = s->toAlias();
 	for (int i = 0; i < idents.dim; i++)
 	{   Identifier *id;
+	    Dsymbol *sm;
 
 	    id = (Identifier *)idents.data[i];
-	    assert(id->dyncast() == DYNCAST_IDENTIFIER);
-	    s = s->search(id, 0);
+	    if (id->dyncast() != DYNCAST_IDENTIFIER)
+	    {
+		// It's a template instance
+		//printf("\ttemplate instance id\n");
+		TemplateDeclaration *td;
+		TemplateInstance *ti = (TemplateInstance *)id;
+		id = (Identifier *)ti->idents.data[0];
+		sm = s->search(id, 0);
+		if (!sm)
+		{   error(loc, "template identifier %s is not a member of %s", id->toChars(), s->toChars());
+		    break;
+		}
+		sm = sm->toAlias();
+		td = sm->isTemplateDeclaration();
+		if (!td)
+		{
+		    error(loc, "%s is not a template", id->toChars());
+		    break;
+		}
+		ti->tempdecl = td;
+		ti->semantic(sc);
+		sm = ti->toAlias();
+	    }
+	    else
+		sm = s->search(id, 0);
+	    s = sm;
+
 	    if (!s)                 // failed to find a symbol
 		break;
 	    s = s->toAlias();
@@ -2618,8 +2663,15 @@ Type *TypeInstance::syntaxCopy()
 
 void TypeInstance::toCBuffer2(OutBuffer *buf, Identifier *ident)
 {
-    tempinst->toCBuffer(buf);
-    toCBuffer2Helper(buf, ident);
+    OutBuffer tmp;
+
+    tempinst->toCBuffer(&tmp);
+    toCBuffer2Helper(&tmp, NULL);
+    buf->prependstring(tmp.toChars());
+    if (ident)
+    {	buf->writeByte(' ');
+	buf->writestring(ident->toChars());
+    }
 }
 
 void TypeInstance::resolve(Loc loc, Scope *sc, Expression **pe, Type **pt, Dsymbol **ps)
@@ -2695,30 +2747,88 @@ Dsymbol *TypeTypeof::toDsymbol(Scope *sc)
 
 void TypeTypeof::toCBuffer2(OutBuffer *buf, Identifier *ident)
 {
-    buf->writestring("typeof(");
-    exp->toCBuffer(buf);
-    buf->writeByte(')');
-    toCBuffer2Helper(buf, ident);
+    OutBuffer tmp;
+
+    tmp.writestring("typeof(");
+    exp->toCBuffer(&tmp);
+    tmp.writeByte(')');
+    toCBuffer2Helper(&tmp, NULL);
+    buf->prependstring(tmp.toChars());
+    if (ident)
+    {	buf->writeByte(' ');
+	buf->writestring(ident->toChars());
+    }
 }
 
 Type *TypeTypeof::semantic(Loc loc, Scope *sc)
 {   Expression *e;
     Type *t;
 
-    exp = exp->semantic(sc);
-    t = exp->type;
-    if (!t)
+    //printf("TypeTypeof::semantic()\n");
+
+    /* Special case for typeof(this) and typeof(super) since both
+     * should work even if they are not inside a non-static member function
+     */
+    if (exp->op == TOKthis || exp->op == TOKsuper)
     {
-	error(loc, "expression (%s) has no type", exp->toChars());
-	t = tvoid;
+	// Find enclosing struct or class
+	for (Dsymbol *s = sc->parent; 1; s = s->parent)
+	{
+	    ClassDeclaration *cd;
+	    StructDeclaration *sd;
+
+	    if (!s)
+	    {
+		error(loc, "%s is not in a struct or class scope", exp->toChars());
+		goto Lerr;
+	    }
+	    cd = s->isClassDeclaration();
+	    if (cd)
+	    {
+		if (exp->op == TOKsuper)
+		{
+		    cd = cd->baseClass;
+		    if (!cd)
+		    {	error(loc, "class %s has no 'super'", s->toChars());
+			goto Lerr;
+		    }
+		}
+		t = cd->type;
+		break;
+	    }
+	    sd = s->isStructDeclaration();
+	    if (sd)
+	    {
+		if (exp->op == TOKsuper)
+		{
+		    error(loc, "struct %s has no 'super'", sd->toChars());
+		    goto Lerr;
+		}
+		t = sd->type->pointerTo();
+		break;
+	    }
+	}
+    }
+    else
+    {
+	exp = exp->semantic(sc);
+	t = exp->type;
+	if (!t)
+	{
+	    error(loc, "expression (%s) has no type", exp->toChars());
+	    goto Lerr;
+	}
     }
 
     if (idents.dim)
     {
 	error(loc, ".property not implemented for typeof");
-	t = tvoid;
+	goto Lerr;
     }
     return t;
+
+Lerr:
+    return tvoid;
 }
 
 
@@ -2934,10 +3044,12 @@ void TypeTypedef::toTypeInfoBuffer(OutBuffer *buf)
 
 void TypeTypedef::toCBuffer2(OutBuffer *buf, Identifier *ident)
 {
-    buf->prependbyte(' ');
+    //printf("TypeTypedef::toCBuffer2() '%s'\n", sym->toChars());
     buf->prependstring(sym->toChars());
     if (ident)
+    {	buf->writeByte(' ');
 	buf->writestring(ident->toChars());
+    }
 }
 
 Expression *TypeTypedef::dotExp(Scope *sc, Expression *e, Identifier *ident)
@@ -3134,7 +3246,22 @@ Expression *TypeStruct::dotExp(Scope *sc, Expression *e, Identifier *ident)
 	error(e->loc, "struct %s is forward referenced", sym->toChars());
 	return new IntegerExp(e->loc, 0, Type::tint32);
     }
+
+    if (e->op == TOKdotexp)
+    {	DotExp *de = (DotExp *)e;
+
+	if (de->e1->op == TOKimport)
+	{
+	    ScopeExp *se = (ScopeExp *)de->e1;
+
+	    s = se->sds->search(ident, 0);
+	    e = de->e1;
+	    goto L1;
+	}
+    }
+
     s = sym->search(ident, 0);
+L1:
     if (!s)
     {
 	return getProperty(e->loc, ident);
@@ -3157,6 +3284,15 @@ Expression *TypeStruct::dotExp(Scope *sc, Expression *e, Identifier *ident)
     {
 	assert(em->value);
 	return em->value->copy();
+    }
+
+    TemplateMixin *tm = s->isTemplateMixin();
+    if (tm)
+    {	Expression *de;
+
+	de = new DotExp(e->loc, e, new ScopeExp(e->loc, tm));
+	de->type = e->type;
+	return de;
     }
 
     d = s->isDeclaration();
@@ -3295,7 +3431,22 @@ Expression *TypeClass::dotExp(Scope *sc, Expression *e, Identifier *ident)
 #if LOGDOTEXP
     printf("TypeClass::dotExp(e='%s', ident='%s')\n", e->toChars(), ident->toChars());
 #endif
+
+    if (e->op == TOKdotexp)
+    {	DotExp *de = (DotExp *)e;
+
+	if (de->e1->op == TOKimport)
+	{
+	    ScopeExp *se = (ScopeExp *)de->e1;
+
+	    s = se->sds->search(ident, 0);
+	    e = de->e1;
+	    goto L1;
+	}
+    }
+
     s = sym->search(ident, 0);
+L1:
     if (!s)
     {
 	// See if it's a base class
@@ -3364,10 +3515,19 @@ Expression *TypeClass::dotExp(Scope *sc, Expression *e, Identifier *ident)
 	return em->value->copy();
     }
 
+    TemplateMixin *tm = s->isTemplateMixin();
+    if (tm)
+    {	Expression *de;
+
+	de = new DotExp(e->loc, e, new ScopeExp(e->loc, tm));
+	de->type = e->type;
+	return de;
+    }
+
     d = s->isDeclaration();
     if (!d)
     {
-	e->error("%s.%s is not a declaration", e->toChars(), s->toChars());
+	e->error("%s.%s is not a declaration", e->toChars(), ident->toChars());
 	return new IntegerExp(e->loc, 1, Type::tint32);
     }
 
@@ -3385,7 +3545,16 @@ Expression *TypeClass::dotExp(Scope *sc, Expression *e, Identifier *ident)
 		if (thiscd)
 		{
 		    ClassDeclaration *cd = e->type->isClassHandle();
-		    if (!cd || !cd->isBaseOf(thiscd, NULL))
+
+		    if (cd == thiscd)
+		    {
+			e = new ThisExp(e->loc);
+			e = new DotTypeExp(e->loc, e, cd);
+			de = new DotVarExp(e->loc, e, d);
+			e = de->semantic(sc);
+			return e;
+		    }
+		    else if (!cd || !cd->isBaseOf(thiscd, NULL))
 			e->error("'this' is required, but %s is not a base class of %s", e->type->toChars(), thiscd->toChars());
 		}
 	    }
@@ -3450,18 +3619,22 @@ int TypeClass::isBaseOf(Type *t)
 
 int TypeClass::implicitConvTo(Type *to)
 {
-    //printf("TypeClass::implicitConvTo()\n");
+    //printf("TypeClass::implicitConvTo('%s')\n", to->toChars());
     if (this == to)
 	return 2;
 
     ClassDeclaration *cdto = to->isClassHandle();
     if (cdto && cdto->isBaseOf(sym, NULL))
+    {	//printf("is base\n");
 	return 1;
+    }
 
     // Allow conversion to (void *)
     if (to->ty == Tpointer && to->next->ty == Tvoid)
 	return 1;
 
+    if (to->ty == Tvoid)
+	return MATCHconvert;
     return 0;
 }
 

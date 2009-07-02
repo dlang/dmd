@@ -610,6 +610,9 @@ struct CastExp : UnaExp
     void toCBuffer(OutBuffer *buf);
     Expression *constFold();
     elem *toElem(IRState *irs);
+
+    // For operator overloading
+    Identifier *opId();
 };
 
 

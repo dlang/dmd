@@ -68,6 +68,8 @@ Identifier *NegExp::opId()   { return Id::neg; }
 
 Identifier *ComExp::opId()   { return Id::com; }
 
+Identifier *CastExp::opId()   { return Id::cast; }
+
 Identifier *PostIncExp::opId() { return Id::postinc; }
 
 Identifier *PostDecExp::opId() { return Id::postdec; }

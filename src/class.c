@@ -594,6 +594,7 @@ int InterfaceDeclaration::isBaseOf(ClassDeclaration *cd, int *poffset)
 {
     unsigned j;
 
+    //printf("InterfaceDeclaration::isBaseOf('%s')\n", cd->toChars());
     assert(!baseClass);
     for (j = 0; j < cd->interfaces_dim; j++)
     {
@@ -612,7 +613,11 @@ int InterfaceDeclaration::isBaseOf(ClassDeclaration *cd, int *poffset)
 	BaseClass *b = cd->interfaces[j];
 
 	if (isBaseOf(b->base, poffset))
+	{
+	    if (poffset)
+		*poffset += b->offset;
 	    return 1;
+	}
     }
 
     if (cd->baseClass && isBaseOf(cd->baseClass, poffset))
