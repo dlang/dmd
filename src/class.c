@@ -236,6 +236,25 @@ void ClassDeclaration::semantic(Scope *sc)
     }
     //members->print();
 
+    /* Look for special member functions.
+     * They must be in this class, not in a base class.
+     */
+    ctor = (CtorDeclaration *)search(Id::ctor, 0);
+    if (ctor && ctor->toParent() != this)
+	ctor = NULL;
+
+    dtor = (DtorDeclaration *)search(Id::dtor, 0);
+    if (dtor && dtor->toParent() != this)
+	dtor = NULL;
+
+    inv = (InvariantDeclaration *)search(Id::classInvariant, 0);
+    if (inv && inv->toParent() != this)
+	inv = NULL;
+
+    // Can be in base class
+    aggNew    = (NewDeclaration *)search(Id::classNew, 0);
+    aggDelete = (DeleteDeclaration *)search(Id::classDelete, 0);
+
     // If this class has no constructor, but base class does, create
     // a constructor:
     //    this() { }
@@ -249,12 +268,14 @@ void ClassDeclaration::semantic(Scope *sc)
 	ctor->semantic(sc);
     }
 
+#if 0
     if (baseClass)
     {	if (!aggDelete)
 	    aggDelete = baseClass->aggDelete;
 	if (!aggNew)
 	    aggNew = baseClass->aggNew;
     }
+#endif
 
     // Allocate instance of each new interface
     for (i = 0; i < interfaces_dim; i++)
@@ -357,7 +378,7 @@ Dsymbol *ClassDeclaration::search(Identifier *ident, int flags)
 	return NULL;
     }
 
-    s = symtab->lookup(ident);
+    s = ScopeDsymbol::search(ident, flags);
     if (!s)
     {
 	// Search bases classes in depth-first, left to right order
@@ -379,12 +400,6 @@ Dsymbol *ClassDeclaration::search(Identifier *ident, int flags)
 			break;
 		}
 	    }
-	}
-
-	if (!s && imports)
-	{
-	    // Look in imports
-	    s = ScopeDsymbol::search(ident, flags);
 	}
     }
     return s;
@@ -677,12 +692,12 @@ int BaseClass::fillVtbl(ClassDeclaration *cd, Array *vtbl, int newinstance)
 
 	    // Check that it is current
 	    if (newinstance &&
-		fd->parent != cd &&
-		ifd->parent == base)
+		fd->toParent() != cd &&
+		ifd->toParent() == base)
 		cd->error("interface function %s.%s is not implemented",
 		    id->toChars(), ifd->ident->toChars());
 
-	    if (fd->parent == cd)
+	    if (fd->toParent() == cd)
 		result = 1;
 	}
 	else

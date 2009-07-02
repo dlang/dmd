@@ -82,7 +82,11 @@ void FuncDeclaration::semantic(Scope *sc)
     ClassDeclaration *cd;
     InterfaceDeclaration *id;
 
-    //printf("FuncDeclaration::semantic(sc = %p, '%s', linkage = %d)\n", sc, toChars(), sc->linkage);
+#if 0
+    printf("FuncDeclaration::semantic(sc = %p, this = %p, '%s', linkage = %d)\n", sc, this, toChars(), sc->linkage);
+    if (isFuncLiteralDeclaration())
+	printf("\tFuncLiteralDeclaration()\n");
+#endif
 
     type = type->semantic(loc, sc);
     if (type->ty != Tfunction)
@@ -131,6 +135,7 @@ void FuncDeclaration::semantic(Scope *sc)
 	    error("special member functions not allowed for %ss", sd->kind());
 	}
 
+#if 0
 	if (!sd->inv)
 	    sd->inv = isInvariantDeclaration();
 
@@ -143,6 +148,7 @@ void FuncDeclaration::semantic(Scope *sc)
 		error("multiple delete's for struct %s", sd->toChars());
 	    sd->aggDelete = (DeleteDeclaration *)(this);
 	}
+#endif
     }
 
     id = parent->isInterfaceDeclaration();
@@ -168,12 +174,13 @@ void FuncDeclaration::semantic(Scope *sc)
 
 	if (isCtorDeclaration())
 	{
-	    ctor = (CtorDeclaration *)this;
-	    if (!cd->ctor)
-		cd->ctor = ctor;
+//	    ctor = (CtorDeclaration *)this;
+//	    if (!cd->ctor)
+//		cd->ctor = ctor;
 	    return;
 	}
 
+#if 0
 	dtor = isDtorDeclaration();
 	if (dtor)
 	{
@@ -200,6 +207,7 @@ void FuncDeclaration::semantic(Scope *sc)
 		error("multiple delete's for class %s", cd->toChars());
 	    cd->aggDelete = (DeleteDeclaration *)(this);
 	}
+#endif
 
 	// if static function, do not put in vtbl[]
 	if (!isVirtual())
@@ -227,6 +235,16 @@ void FuncDeclaration::semantic(Scope *sc)
 			    error("overrides but is not covariant with %s", fdv->toChars());
 			if (fdv->isFinal())
 			    error("cannot override final function %s", fdv->toChars());
+			if (fdv->toParent() == parent)
+			{
+			    // If both are mixins, then error.
+			    // If either is not, the one that is not overrides
+			    // the other.
+			    if (fdv->parent->isClassDeclaration())
+				goto L1;
+			    if (!this->parent->isClassDeclaration())
+				error("multiple overrides of same function");
+			}
 			cd->vtbl.data[vi] = (void *)this;
 			vtblIndex = vi;
 			goto L1;
@@ -365,15 +383,23 @@ void FuncDeclaration::semantic3(Scope *sc)
 	if (ad)
 	{   VarDeclaration *v;
 
-	    assert(!isNested());	// can't be both member and nested
-	    assert(ad->handle);
-	    v = new ThisDeclaration(ad->handle);
-	    v->storage_class |= STCparameter | STCin;
-	    v->semantic(sc2);
-	    if (!sc2->insert(v))
-		assert(0);
-	    v->parent = this;
-	    vthis = v;
+	    if (isFuncLiteralDeclaration() && isNested())
+	    {
+		error("literals cannot be class members");
+		ad = NULL;
+	    }
+	    else
+	    {
+		assert(!isNested());	// can't be both member and nested
+		assert(ad->handle);
+		v = new ThisDeclaration(ad->handle);
+		v->storage_class |= STCparameter | STCin;
+		v->semantic(sc2);
+		if (!sc2->insert(v))
+		    assert(0);
+		v->parent = this;
+		vthis = v;
+	    }
 	}
 	else if (isNested())
 	{
@@ -1160,6 +1186,12 @@ int FuncLiteralDeclaration::isNested()
     return (tok == TOKdelegate);
 }
 
+char *FuncLiteralDeclaration::kind()
+{
+    // GCC requires the (char*) casts
+    return (tok == TOKdelegate) ? (char*)"delegate" : (char*)"function";
+}
+
 
 /********************************* CtorDeclaration ****************************/
 
@@ -1288,7 +1320,9 @@ void DtorDeclaration::semantic(Scope *sc)
     ClassDeclaration *cd;
     Type *tret;
 
-    cd = sc->scopesym->isClassDeclaration();
+    parent = sc->parent;
+    Dsymbol *parent = toParent();
+    cd = parent->isClassDeclaration();
     if (!cd)
     {
 	error("destructors only are for class definitions");
@@ -1453,7 +1487,9 @@ void InvariantDeclaration::semantic(Scope *sc)
     AggregateDeclaration *ad;
     Type *tret;
 
-    ad = sc->scopesym->isAggregateDeclaration();
+    parent = sc->parent;
+    Dsymbol *parent = toParent();
+    ad = parent->isAggregateDeclaration();
     if (!ad)
     {
 	error("invariants only are for struct/union/class definitions");
@@ -1594,8 +1630,10 @@ void NewDeclaration::semantic(Scope *sc)
 
     //printf("NewDeclaration::semantic()\n");
 
-    cd = sc->scopesym->isClassDeclaration();
-    if (!cd && !sc->scopesym->isStructDeclaration())
+    parent = sc->parent;
+    Dsymbol *parent = toParent();
+    cd = parent->isClassDeclaration();
+    if (!cd && !parent->isStructDeclaration())
     {
 	error("new allocators only are for class or struct definitions");
     }
@@ -1682,8 +1720,10 @@ void DeleteDeclaration::semantic(Scope *sc)
 
     //printf("DeleteDeclaration::semantic()\n");
 
-    cd = sc->scopesym->isClassDeclaration();
-    if (!cd && !sc->scopesym->isStructDeclaration())
+    parent = sc->parent;
+    Dsymbol *parent = toParent();
+    cd = parent->isClassDeclaration();
+    if (!cd && !parent->isStructDeclaration())
     {
 	error("new allocators only are for class or struct definitions");
     }

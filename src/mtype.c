@@ -3380,7 +3380,7 @@ Expression *TypeClass::dotExp(Scope *sc, Expression *e, Identifier *ident)
 	    if (sc->func)
 	    {
 		ClassDeclaration *thiscd;
-		thiscd = sc->func->parent->isClassDeclaration();
+		thiscd = sc->func->toParent()->isClassDeclaration();
 
 		if (thiscd)
 		{
@@ -3411,7 +3411,7 @@ Expression *TypeClass::dotExp(Scope *sc, Expression *e, Identifier *ident)
 	return e;
     }
 
-    if (d->parent->isModule())
+    if (d->toParent()->isModule())
     {
 	// (e, d)
 	VarExp *ve;

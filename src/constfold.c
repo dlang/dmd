@@ -435,25 +435,75 @@ Expression *CmpExp::constFold()
 	r1 = e1->toImaginary();
 	r2 = e2->toImaginary();
      L1:
+#if __DMC__
+	// DMC is the only compiler I know of that handles NAN arguments
+	// correctly in comparisons.
 	switch (op)
 	{
-	    case TOKlt:	n = r1 <  r2;	break;
-	    case TOKle:	n = r1 <= r2;	break;
-	    case TOKgt:	n = r1 >  r2;	break;
-	    case TOKge:	n = r1 >= r2;	break;
-#if __DMC__
-	    case TOKleg: n = r1 <>= r2;	break;
-	    case TOKlg:	 n = r1 <> r2;	break;
-	    case TOKunord: n = r1 !<>= r2; break;
-	    case TOKue:	 n = r1 !<> r2;	break;
-	    case TOKug:	 n = r1 !<= r2; break;
-	    case TOKuge: n = r1 !< r2;	break;
-	    case TOKul:	 n = r1 !>= r2;	break;
-	    case TOKule: n = r1 !> r2;	break;
-#endif
+	    case TOKlt:	   n = r1 <  r2;	break;
+	    case TOKle:	   n = r1 <= r2;	break;
+	    case TOKgt:	   n = r1 >  r2;	break;
+	    case TOKge:	   n = r1 >= r2;	break;
+
+	    case TOKleg:   n = r1 <>=  r2;	break;
+	    case TOKlg:	   n = r1 <>   r2;	break;
+	    case TOKunord: n = r1 !<>= r2;	break;
+	    case TOKue:	   n = r1 !<>  r2;	break;
+	    case TOKug:	   n = r1 !<=  r2;	break;
+	    case TOKuge:   n = r1 !<   r2;	break;
+	    case TOKul:	   n = r1 !>=  r2;	break;
+	    case TOKule:   n = r1 !>   r2;	break;
+
 	    default:
 		assert(0);
 	}
+#else
+	// Don't rely on compiler, handle NAN arguments separately
+	if (isnan(r1) || isnan(r2))	// if unordered
+	{
+	    switch (op)
+	    {
+		case TOKlt:	n = 0;	break;
+		case TOKle:	n = 0;	break;
+		case TOKgt:	n = 0;	break;
+		case TOKge:	n = 0;	break;
+
+		case TOKleg:	n = 0;	break;
+		case TOKlg:	n = 0;	break;
+		case TOKunord:	n = 1;	break;
+		case TOKue:	n = 1;	break;
+		case TOKug:	n = 1;	break;
+		case TOKuge:	n = 1;	break;
+		case TOKul:	n = 1;	break;
+		case TOKule:	n = 1;	break;
+
+		default:
+		    assert(0);
+	    }
+	}
+	else
+	{
+	    switch (op)
+	    {
+		case TOKlt:	n = r1 <  r2;	break;
+		case TOKle:	n = r1 <= r2;	break;
+		case TOKgt:	n = r1 >  r2;	break;
+		case TOKge:	n = r1 >= r2;	break;
+
+		case TOKleg:	n = 1;		break;
+		case TOKlg:	n = r1 != r2;	break;
+		case TOKunord:	n = 0;		break;
+		case TOKue:	n = r1 == r2;	break;
+		case TOKug:	n = r1 >  r2;	break;
+		case TOKuge:	n = r1 >= r2;	break;
+		case TOKul:	n = r1 <  r2;	break;
+		case TOKule:	n = r1 <= r2;	break;
+
+		default:
+		    assert(0);
+	    }
+	}
+#endif
     }
     else if (e1->type->iscomplex())
     {
@@ -473,6 +523,16 @@ Expression *CmpExp::constFold()
 		case TOKle:	n = ((d_uns64) n1) <= ((d_uns64) n2);	break;
 		case TOKgt:	n = ((d_uns64) n1) >  ((d_uns64) n2);	break;
 		case TOKge:	n = ((d_uns64) n1) >= ((d_uns64) n2);	break;
+
+		case TOKleg:	n = 1;					break;
+		case TOKlg:	n = ((d_uns64) n1) != ((d_uns64) n2);	break;
+		case TOKunord:	n = 0;					break;
+		case TOKue:	n = ((d_uns64) n1) == ((d_uns64) n2);	break;
+		case TOKug:	n = ((d_uns64) n1) >  ((d_uns64) n2);	break;
+		case TOKuge:	n = ((d_uns64) n1) >= ((d_uns64) n2);	break;
+		case TOKul:	n = ((d_uns64) n1) <  ((d_uns64) n2);	break;
+		case TOKule:	n = ((d_uns64) n1) <= ((d_uns64) n2);	break;
+
 		default:
 		    assert(0);
 	    }
@@ -485,6 +545,16 @@ Expression *CmpExp::constFold()
 		case TOKle:	n = n1 <= n2;	break;
 		case TOKgt:	n = n1 >  n2;	break;
 		case TOKge:	n = n1 >= n2;	break;
+
+		case TOKleg:	n = 1;		break;
+		case TOKlg:	n = n1 != n2;	break;
+		case TOKunord:	n = 0;		break;
+		case TOKue:	n = n1 == n2;	break;
+		case TOKug:	n = n1 >  n2;	break;
+		case TOKuge:	n = n1 >= n2;	break;
+		case TOKul:	n = n1 <  n2;	break;
+		case TOKule:	n = n1 <= n2;	break;
+
 		default:
 		    assert(0);
 	    }
@@ -495,10 +565,37 @@ Expression *CmpExp::constFold()
 
 Expression *EqualExp::constFold()
 {   int cmp;
+    real_t r1;
+    real_t r2;
 
+    assert(op == TOKequal || op == TOKnotequal);
     e1 = e1->constFold();
     e2 = e2->constFold();
-    if (e1->type->isfloating())
+    if (e1->type->isreal())
+    {
+	r1 = e1->toReal();
+	r2 = e2->toReal();
+	goto L1;
+    }
+    else if (e1->type->isimaginary())
+    {
+	r1 = e1->toImaginary();
+	r2 = e2->toImaginary();
+     L1:
+#if __DMC__
+	cmp = (r1 == r2);
+#else
+	if (isnan(r1) || isnan(r2))	// if unordered
+	{
+	    cmp = 0;
+	}
+	else
+	{
+	    cmp = (r1 == r2);
+	}
+#endif
+    }
+    else if (e1->type->iscomplex())
     {
 	cmp = e1->toComplex() == e2->toComplex();
     }

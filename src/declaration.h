@@ -294,6 +294,7 @@ struct FuncLiteralDeclaration : FuncDeclaration
     int isNested();
 
     FuncLiteralDeclaration *isFuncLiteralDeclaration() { return this; }
+    char *kind();
 };
 
 struct CtorDeclaration : FuncDeclaration

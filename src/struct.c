@@ -271,6 +271,13 @@ void StructDeclaration::semantic(Scope *sc)
 	}
     }
 
+    /* Look for special member functions.
+     */
+    inv =    (InvariantDeclaration *)search(Id::classInvariant, 0);
+    aggNew =       (NewDeclaration *)search(Id::classNew,       0);
+    aggDelete = (DeleteDeclaration *)search(Id::classDelete,    0);
+
+
     if (sc->func)
     {
 	semantic2(sc);

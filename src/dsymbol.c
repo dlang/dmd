@@ -263,7 +263,7 @@ void Dsymbol::error(const char *format, ...)
 
     global.errors++;
 
-    fatal();
+    //fatal();
 }
 
 void Dsymbol::error(Loc loc, const char *format, ...)
@@ -286,7 +286,7 @@ void Dsymbol::error(Loc loc, const char *format, ...)
 
     global.errors++;
 
-    fatal();
+    //fatal();
 }
 
 /**********************************
