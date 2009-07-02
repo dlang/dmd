@@ -17,6 +17,10 @@
 #include <wchar.h>
 #include <stdlib.h>
 
+#if __GNUC__
+extern "C" long double strtold(const char *p,char **endp);
+#endif
+
 #if _WIN32
 #include "..\root\mem.h"
 #elif linux
@@ -1474,7 +1478,7 @@ done:
 
 	case 'L':
 	case 'l':
-#if __GNUC__
+#if 0
 	    t->float80value = strtod((char *)stringbuffer.data, NULL);
 #else
 	    t->float80value = strtold((char *)stringbuffer.data, NULL);
@@ -1502,8 +1506,10 @@ done:
 #if _WIN32 && __DMC__
     __locale_decpoint = save;
 #endif
+#if !__GNUC__
     if (errno == ERANGE)
 	error("number is not representable");
+#endif
     return result;
 }
 

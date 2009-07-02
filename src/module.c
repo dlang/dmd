@@ -66,11 +66,7 @@ Module::Module(char *filename, Identifier *ident)
     else
 	argobj = FileName::name(filename);
     argobj = FileName::combine(global.params.objdir, argobj);
-#if ELFOBJ
-    objfilename = FileName::forceExt(argobj, "o");
-#else
-    objfilename = FileName::forceExt(argobj, "obj");
-#endif
+    objfilename = FileName::forceExt(argobj, global.obj_ext);
 
     symfilename = FileName::forceExt(filename, global.sym_ext);
 

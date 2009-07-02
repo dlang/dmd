@@ -226,6 +226,9 @@ void AliasDeclaration::semantic(Scope *sc)
 	{
 	    s->semantic(sc);
 	    s = s->toAlias();
+	    if (sc->parent->isFuncDeclaration())
+		s->semantic2(sc);
+
 	    for (int i = 0; i < ti->idents.dim; i++)
 	    {	Identifier *id;
 

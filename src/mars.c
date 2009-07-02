@@ -40,7 +40,7 @@ Global::Global()
 
     copyright = "Copyright (c) 1999-2003 by Digital Mars";
     written = "written by Walter Bright";
-    version = "Beta v0.61";
+    version = "Beta v0.63";
     global.structalign = 8;
 
     memset(&params, 0, sizeof(Param));
@@ -180,13 +180,18 @@ int main(int argc, char *argv[])
     VersionCondition::addIdent("Win32");
 #endif /* _WIN32 */
 #if linux
-    VersionCondition::addIdent("Linux");
+    VersionCondition::addIdent("linux");
 #endif /* linux */
     VersionCondition::addIdent("X86");
     VersionCondition::addIdent("LittleEndian");
     VersionCondition::addIdent("D_InlineAsm");
 
+#if _WIN32
     inifile(argv[0], "sc.ini");
+#endif
+#if linux
+    inifile(argv[0], "dmd.conf");
+#endif
     getenv_setargv("DFLAGS", &argc, &argv);
 
 #if 0
@@ -206,7 +211,11 @@ int main(int argc, char *argv[])
 	    else if (strcmp(p + 1, "c") == 0)
 		global.params.link = 0;
 	    else if (strcmp(p + 1, "g") == 0)
+#if TARGET_LINUX
+		;
+#else
 		global.params.symdebug = 1;
+#endif
 	    else if (strcmp(p + 1, "gt") == 0)
 		global.params.trace = 1;
 	    else if (strcmp(p + 1, "v") == 0)

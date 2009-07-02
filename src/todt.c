@@ -414,7 +414,7 @@ dt_t **ComplexExp::toDt(dt_t **pdt)
 
 dt_t **NullExp::toDt(dt_t **pdt)
 {
-    //assert(type);
+    assert(type);
     return dtnzeros(pdt, type->size());
 }
 

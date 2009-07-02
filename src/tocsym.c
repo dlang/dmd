@@ -369,7 +369,7 @@ Symbol *static_sym()
     s->Sflags |= SFLnodebug;
     s->Stype = t;
 #if ELFOBJ // Burton
-    s->Sseg = CDATA;
+    s->Sseg = DATA;
 #endif /* ELFOBJ */
     slist_add(s);
     return s;
