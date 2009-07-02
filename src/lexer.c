@@ -2097,6 +2097,7 @@ void Lexer::initKeywords()
     Token::tochars[TOKdotexp]		= "dotexp";
     Token::tochars[TOKdotti]		= "dotti";
     Token::tochars[TOKdotvar]		= "dotvar";
+    Token::tochars[TOKdottype]		= "dottype";
     Token::tochars[TOKsymoff]		= "symoff";
     Token::tochars[TOKtypedot]		= "typedot";
     Token::tochars[TOKarraylength]	= "arraylength";

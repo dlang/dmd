@@ -53,7 +53,12 @@ struct Module : Package
     unsigned errors;	// if any errors in file
     int isHtml;		// if it is an HTML file
     int needmoduleinfo;
+
     int insearch;
+    Identifier *searchCacheIdent;
+    Dsymbol *searchCacheSymbol;	// cached value of search
+    int searchCacheFlags;	// cached flags
+
     int semanticdone;		// has semantic() been done?
     Module *importedFrom;	// module from command line we're imported from,
 				// i.e. a module that will be taken all the

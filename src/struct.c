@@ -35,6 +35,7 @@ AggregateDeclaration::AggregateDeclaration(Loc loc, Identifier *id)
 
     stag = NULL;
     sinit = NULL;
+    scope = NULL;
 }
 
 void AggregateDeclaration::semantic2(Scope *sc)
@@ -83,13 +84,15 @@ void AggregateDeclaration::inlineScan()
     }
 }
 
-unsigned AggregateDeclaration::size()
+unsigned AggregateDeclaration::size(Loc loc)
 {
     //printf("AggregateDeclaration::size() = %d\n", structsize);
     if (!members)
-	error("unknown size");
-    if (!sizeok)
-	error("no size yet for forward reference");
+	error(loc, "unknown size");
+    if (sizeok != 1)
+    {	error(loc, "no size yet for forward reference");
+	//*(char*)0=0;
+    }
     return structsize;
 }
 
@@ -138,7 +141,19 @@ void AggregateDeclaration::addField(Scope *sc, VarDeclaration *v)
     unsigned memalignsize;	// size of member for alignment purposes
     unsigned xalign;		// alignment boundaries
 
-    memsize = v->type->size();
+    // Check for forward referenced types which will fail the size() call
+    Type *t = v->type->toBasetype();
+    if (t->ty == Tstruct /*&& isStructDeclaration()*/)
+    {	TypeStruct *ts = (TypeStruct *)t;
+
+	if (ts->sym->sizeok != 1)
+	{
+	    sizeok = 2;		// cannot finish; flag as forward referenced
+	    return;
+	}
+    }
+
+    memsize = v->type->size(loc);
     memalignsize = v->type->alignsize();
     xalign = v->type->memalign(sc->structalign);
     alignmember(xalign, memalignsize, &sc->offset);
@@ -183,104 +198,82 @@ void StructDeclaration::semantic(Scope *sc)
     Scope *sc2;
 
     //printf("+StructDeclaration::semantic(this=%p, '%s')\n", this, toChars());
-    if (!type)
-	type = new TypeStruct(this);
+    assert(type);
     if (!members)			// if forward reference
 	return;
-    if (!symtab)			// if not already done semantic()
+
+    if (symtab)
+    {   if (!scope)
+            return;             // semantic() already completed
+    }
+    else
+        symtab = new DsymbolTable();
+
+    Scope *scx = NULL;
+    if (scope)
+    {   sc = scope;
+        scx = scope;            // save so we don't make redundant copies
+        scope = NULL;
+    }
+
+    parent = sc->parent;
+    handle = type->pointerTo();
+    structalign = sc->structalign;
+    assert(!isAnonymous());
+
+    if (sizeok == 0)		// if not already done the addMember step
     {
-	parent = sc->parent;
-	handle = type->pointerTo();
-	symtab = new DsymbolTable();
-	structalign = sc->structalign;
-	if (!isAnonymous())
-	{
-	    for (i = 0; i < members->dim; i++)
-	    {
-		Dsymbol *s = (Dsymbol *)members->data[i];
-		//printf("adding member '%s' to '%s'\n", s->toChars(), this->toChars());
-		s->addMember(this);
-	    }
-	}
-	sc2 = sc->push(this);
-	sc2->parent = this;
-	if (isUnionDeclaration())
-	    sc2->inunion = 1;
-	sc2->stc &= ~(STCauto | STCstatic);
-	int members_dim = members->dim;
-	for (i = 0; i < members_dim; i++)
+	for (i = 0; i < members->dim; i++)
 	{
 	    Dsymbol *s = (Dsymbol *)members->data[i];
-	    s->semantic(sc2);
-	    if (isUnionDeclaration())
-		sc2->offset = 0;
+	    //printf("adding member '%s' to '%s'\n", s->toChars(), this->toChars());
+	    s->addMember(this);
 	}
-	sc2->pop();
-
-	// 0 sized struct's are set to 1 byte
-	if (structsize == 0)
-	{
-	    structsize = 1;
-	    alignsize = 1;
-	}
-	sizeok = 1;
     }
+
+    sizeok = 0;
+    sc2 = sc->push(this);
+    sc2->parent = this;
+    if (isUnionDeclaration())
+	sc2->inunion = 1;
+    sc2->stc &= ~(STCauto | STCstatic);
+    int members_dim = members->dim;
+    for (i = 0; i < members_dim; i++)
+    {
+	Dsymbol *s = (Dsymbol *)members->data[i];
+	s->semantic(sc2);
+	if (isUnionDeclaration())
+	    sc2->offset = 0;
+	if (sizeok == 2)
+	    break;
+    }
+    sc2->pop();
+
+    if (sizeok == 2)
+    {	// semantic() failed because of forward references.
+	// Unwind what we did, and defer it for later
+	fields.setDim(0);
+	structsize = 0;
+	alignsize = 0;
+	structalign = 0;
+
+	scope = scx ? scx : new Scope(*sc);
+	scope->setNoFree();
+	scope->module->addDeferredSemantic(this);
+	return;
+    }
+
+    // 0 sized struct's are set to 1 byte
+    if (structsize == 0)
+    {
+	structsize = 1;
+	alignsize = 1;
+    }
+
+    sizeok = 1;
 
     AggregateDeclaration *sd;
 
-#if 0
-    if (isAnonymous())
-    {	// Anonymous structures aren't independent, all their members are
-	// added to the enclosing struct.
-	unsigned offset;
-	int isunionsave;
-
-	sd = isMember();
-	if (!sd)
-	{
-	    error("anonymous struct can only be member of an aggregate");
-	}
-	else
-	{
-	    // Align size of enclosing struct
-	    sd->alignmember(structalign, alignsize, &sd->structsize);
-
-	    // Add members to enclosing struct
-	    for (i = 0; i < members->dim; i++)
-	    {
-		Dsymbol *s = (Dsymbol *)members->data[i];
-		VarDeclaration *vd = s->isVarDeclaration();
-		if (vd && vd->storage_class & STCfield)
-		{
-		    vd->addMember(sd);
-		    if (!sd->isUnionDeclaration())
-			vd->offset += sd->structsize;
-		    sd->fields.push(vd);
-		    sd->members->push(s);
-		}
-		else if (!s->isAnonymous())
-		{
-		    sd->members->push(s);
-		}
-	    }
-
-	    if (sd->isUnionDeclaration())
-	    {
-		if (structsize > sd->structsize)
-		    sd->structsize = structsize;
-		sc->offset = 0;
-	    }
-	    else
-	    {
-		sd->structsize += structsize;
-		sc->offset = sd->structsize;
-	    }
-
-	    if (sd->alignsize < alignsize)
-		sd->alignsize = alignsize;
-	}
-    }
-#endif
     //printf("-StructDeclaration::semantic(this=%p, '%s')\n", this, toChars());
 
     // Determine if struct is all zeros or not

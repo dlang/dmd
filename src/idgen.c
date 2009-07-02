@@ -61,6 +61,7 @@ Msgtable msgtable[] =
 
     { "TypeInfo" },
     { "TypeInfo_Class" },
+    { "TypeInfo_Struct" },
     { "TypeInfo_Typedef" },
     { "_arguments" },
     { "_argptr" },
@@ -155,6 +156,9 @@ Msgtable msgtable[] =
 
     // For pragma's
     { "msg" },
+
+    // For toHash
+    { "tohash", "toHash" },
 
     // Special functions
     { "alloca" },

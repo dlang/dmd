@@ -479,7 +479,7 @@ Array *Parser::parseDeclDefs(int once)
 		continue;
 
 	    default:
-		error("Declaration expected, not '%s'\n",token.toChars());
+		error("Declaration expected, not '%s'",token.toChars());
 	    Lerror:
 		while (token.value != TOKsemicolon && token.value != TOKeof)
 		    nextToken();
@@ -1880,7 +1880,7 @@ Array *Parser::parseDeclaration()
 	    error("multiple declarations must have the same type, not %s and %s",
 		tfirst->toChars(), t->toChars());
 	if (!ident)
-	    error("no identifier for declarator");
+	    error("no identifier for declarator %s", t->toChars());
 
 	if (tok == TOKtypedef || tok == TOKalias)
 	{   Declaration *v;
@@ -2484,7 +2484,7 @@ Statement *Parser::parseStatement(int flags)
 		tb = parseBasicType();
 		at = parseDeclarator(tb, &ai);
 		if (!ai)
-		    error("no identifier for declarator");
+		    error("no identifier for declarator %s", at->toChars());
 		a = new Argument(inout, at, ai, NULL);
 		arguments->push(a);
 		if (token.value == TOKcomma)

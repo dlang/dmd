@@ -1633,7 +1633,9 @@ Expression *NewExp::semantic(Scope *sc)
     //printf("tb: %s, deco = %s\n", tb->toChars(), tb->deco);
 
     arrayExpressionSemantic(newargs, sc);
+    preFunctionArguments(loc, sc, newargs);
     arrayExpressionSemantic(arguments, sc);
+    preFunctionArguments(loc, sc, arguments);
 
     if (tb->ty == Tclass)
     {	ClassDeclaration *cd;
@@ -1676,7 +1678,7 @@ Expression *NewExp::semantic(Scope *sc)
 	    f = cd->aggNew;
 
 	    // Prepend the uint size argument to newargs[]
-	    e = new IntegerExp(loc, cd->size(), Type::tuns32);
+	    e = new IntegerExp(loc, cd->size(loc), Type::tuns32);
 	    if (!newargs)
 		newargs = new Array();
 	    newargs->shift(e);
@@ -1708,7 +1710,7 @@ Expression *NewExp::semantic(Scope *sc)
 	    Expression *e;
 
 	    // Prepend the uint size argument to newargs[]
-	    e = new IntegerExp(loc, sd->size(), Type::tuns32);
+	    e = new IntegerExp(loc, sd->size(loc), Type::tuns32);
 	    if (!newargs)
 		newargs = new Array();
 	    newargs->shift(e);
@@ -2271,29 +2273,32 @@ Expression *DotIdExp::semantic(Scope *sc)
 	AggregateDeclaration *ad;
 
 	ad = sc->getStructClassScope();
-	cd = ad->isClassDeclaration();
-	if (cd)
+	if (ad)
 	{
-	    if (e1->op == TOKthis)
-	    {
-		e = new TypeDotIdExp(loc, cd->type, ident);
-		return e->semantic(sc);
-	    }
-	    else if (cd->baseClass && e1->op == TOKsuper)
-	    {
-		e = new TypeDotIdExp(loc, cd->baseClass->type, ident);
-		return e->semantic(sc);
-	    }
-	}
-	else
-	{
-	    sd = ad->isStructDeclaration();
-	    if (sd)
+	    cd = ad->isClassDeclaration();
+	    if (cd)
 	    {
 		if (e1->op == TOKthis)
 		{
-		    e = new TypeDotIdExp(loc, sd->type, ident);
+		    e = new TypeDotIdExp(loc, cd->type, ident);
 		    return e->semantic(sc);
+		}
+		else if (cd->baseClass && e1->op == TOKsuper)
+		{
+		    e = new TypeDotIdExp(loc, cd->baseClass->type, ident);
+		    return e->semantic(sc);
+		}
+	    }
+	    else
+	    {
+		sd = ad->isStructDeclaration();
+		if (sd)
+		{
+		    if (e1->op == TOKthis)
+		    {
+			e = new TypeDotIdExp(loc, sd->type, ident);
+			return e->semantic(sc);
+		    }
 		}
 	    }
 	}
@@ -4942,6 +4947,9 @@ Expression *OrOrExp::semantic(Scope *sc)
     e2 = e2->semantic(sc);
     sc->mergeCallSuper(loc, cs1);
 
+    e1 = resolveProperties(sc, e1);
+    e2 = resolveProperties(sc, e2);
+
     e1 = e1->checkToPointer();
     e2 = e2->checkToPointer();
     e1 = e1->checkToBoolean();
@@ -4979,6 +4987,9 @@ Expression *AndAndExp::semantic(Scope *sc)
     cs1 = sc->callSuper;
     e2 = e2->semantic(sc);
     sc->mergeCallSuper(loc, cs1);
+
+    e1 = resolveProperties(sc, e1);
+    e2 = resolveProperties(sc, e2);
 
     e1 = e1->checkToPointer();
     e2 = e2->checkToPointer();

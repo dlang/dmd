@@ -46,7 +46,7 @@
  * so we can use the custom internal ones more.
  */
 
-Expression *Type::getInternalTypeInfo()
+Expression *Type::getInternalTypeInfo(Scope *sc)
 {   TypeInfoDeclaration *tid;
     Expression *e;
     Type *t;
@@ -81,7 +81,7 @@ Expression *Type::getInternalTypeInfo()
 	    break;
     }
     //printf("\tcalling getTypeInfo() %s\n", t->toChars());
-    return t->getTypeInfo(NULL);
+    return t->getTypeInfo(sc);
 }
 
 
@@ -125,6 +125,11 @@ TypeInfoDeclaration *TypeTypedef::getTypeInfoDeclaration()
     return new TypeInfoTypedefDeclaration(this);
 }
 
+TypeInfoDeclaration *TypeStruct::getTypeInfoDeclaration()
+{
+    return new TypeInfoStructDeclaration(this);
+}
+
 TypeInfoDeclaration *TypeClass::getTypeInfoDeclaration()
 {
     return new TypeInfoClassDeclaration(this);
@@ -155,6 +160,93 @@ void TypeInfoTypedefDeclaration::toDt(dt_t **pdt)
 
     tc->sym->basetype->getTypeInfo(NULL);
     dtxoff(pdt, tc->sym->basetype->vtinfo->toSymbol(), 0, TYnptr);	// TypeInfo for basetype
+}
+
+void TypeInfoStructDeclaration::toDt(dt_t **pdt)
+{
+    //printf("TypeInfoStructDeclaration::toDt() '%s'\n", toChars());
+
+    dtxoff(pdt, Type::typeinfostruct->toVtblSymbol(), 0, TYnptr); // vtbl for TypeInfo_Struct
+    dtdword(pdt, 0);			    // monitor
+
+    assert(tinfo->ty == Tstruct);
+
+    TypeStruct *tc = (TypeStruct *)tinfo;
+    StructDeclaration *sd = tc->sym;
+
+    /* Put out:
+     *	char[] name;
+     *	uint xsize;
+     *	uint function(void*) xtoHash;
+     *	int function(void*,void*) xopEquals;
+     *	int function(void*,void*) xopCmp;
+     */
+
+    char *name = sd->toPrettyChars();
+    size_t namelen = strlen(name);
+    dtdword(pdt, namelen);
+    dtabytes(pdt, TYnptr, 0, namelen + 1, name);
+
+    dtdword(pdt, sd->structsize);	// xsize
+
+    FuncDeclaration *fd;
+    FuncDeclaration *fdx;
+    TypeFunction *tf;
+    Type *ta;
+
+    static TypeFunction *tftohash;
+
+    if (!tftohash)
+    {
+	Scope sc;
+	tftohash = new TypeFunction(NULL, Type::tuns32, 0, LINKd);
+	tftohash = (TypeFunction *)tftohash->semantic(0, &sc);
+    }
+
+    TypeFunction *tfeq;
+    {
+	Scope sc;
+	Array *arguments = new Array;
+	Argument *arg = new Argument(In, tc->pointerTo(), NULL, NULL);
+
+	arguments->push(arg);
+	tfeq = new TypeFunction(arguments, Type::tint32, 0, LINKd);
+	tfeq = (TypeFunction *)tfeq->semantic(0, &sc);
+    }
+
+    fdx = search_function(sd, Id::tohash);
+    if (fdx)
+    {	fd = fdx->overloadExactMatch(tftohash);
+	if (fd)
+	    dtxoff(pdt, fd->toSymbol(), 0, TYnptr);
+	else
+	    fdx->error("must be declared as extern (D) uint toHash()");
+    }
+    else
+	dtdword(pdt, 0);
+
+    fdx = search_function(sd, Id::eq);
+    if (fdx)
+    {	fd = fdx->overloadExactMatch(tfeq);
+	if (fd)
+	    dtxoff(pdt, fd->toSymbol(), 0, TYnptr);
+	else
+	    fdx->error("must be declared as extern (D) int %s(%s*)", fdx->toChars(), sd->toChars());
+    }
+    else
+	dtdword(pdt, 0);
+
+    fdx = search_function(sd, Id::cmp);
+    if (fdx)
+    {
+	fd = fdx->overloadExactMatch(tfeq);
+	if (fd)
+	    dtxoff(pdt, fd->toSymbol(), 0, TYnptr);
+	else
+	    fdx->error("must be declared as extern (D) int %s(%s*)", fdx->toChars(), sd->toChars());
+    }
+    else
+	dtdword(pdt, 0);
 }
 
 void TypeInfoClassDeclaration::toDt(dt_t **pdt)

@@ -26,6 +26,7 @@ struct Declaration;
 struct TypedefDeclaration;
 struct AliasDeclaration;
 struct AggregateDeclaration;
+struct EnumDeclaration;
 struct ClassDeclaration;
 struct InterfaceDeclaration;
 struct StructDeclaration;
@@ -107,7 +108,7 @@ struct Dsymbol : Object
     virtual Dsymbol *search(Identifier *ident, int flags);
     virtual int overloadInsert(Dsymbol *s);
     virtual void toCBuffer(OutBuffer *buf);
-    virtual unsigned size();
+    virtual unsigned size(Loc loc);
     virtual int isforwardRef();
     virtual void defineRef(Dsymbol *s);
     virtual AggregateDeclaration *isThis();	// is a 'this' required to access the member
@@ -165,6 +166,7 @@ struct Dsymbol : Object
     virtual WithScopeSymbol *isWithScopeSymbol() { return NULL; }
     virtual ArrayScopeSymbol *isArrayScopeSymbol() { return NULL; }
     virtual Import *isImport() { return NULL; }
+    virtual EnumDeclaration *isEnumDeclaration() { return NULL; }
 };
 
 // Dsymbol that generates a scope

@@ -58,6 +58,7 @@ int Tptrdiff_t = Tint32;
 
 ClassDeclaration *Type::typeinfo;
 ClassDeclaration *Type::typeinfoclass;
+ClassDeclaration *Type::typeinfostruct;
 ClassDeclaration *Type::typeinfotypedef;
 
 Type *Type::basic[TMAX];
@@ -189,15 +190,18 @@ void Type::init()
 
 d_uns64 Type::size()
 {
-    Loc loc;
+    return size(0);
+}
 
+d_uns64 Type::size(Loc loc)
+{
     error(loc, "no size for type %s", toChars());
     return 0;
 }
 
 unsigned Type::alignsize()
 {
-    return size();
+    return size(0);
 }
 
 Type *Type::semantic(Loc loc, Scope *sc)
@@ -446,13 +450,13 @@ Expression *Type::getProperty(Loc loc, Identifier *ident)
 
     if (ident == Id::__sizeof)
     {
-	e = new IntegerExp(loc, size(), Type::tsize_t);
+	e = new IntegerExp(loc, size(loc), Type::tsize_t);
     }
     else if (ident == Id::size)
     {
 	if (!global.params.useDeprecated)
 	    error(loc, ".size property is deprecated, use .sizeof");
-	e = new IntegerExp(loc, size(), Type::tsize_t);
+	e = new IntegerExp(loc, size(loc), Type::tsize_t);
     }
     else if (ident == Id::alignof)
     {
@@ -543,7 +547,7 @@ void Type::error(Loc loc, const char *format, ...)
     fflush(stdout);
 
     global.errors++;
-    fatal();
+    //fatal();
 }
 
 Identifier *Type::getTypeInfoIdent(int internal)
@@ -743,7 +747,7 @@ void TypeBasic::toCBuffer2(OutBuffer *buf, Identifier *ident)
     }
 }
 
-d_uns64 TypeBasic::size()
+d_uns64 TypeBasic::size(Loc loc)
 {   unsigned size;
 
     //printf("TypeBasic::size()\n");
@@ -803,7 +807,7 @@ unsigned TypeBasic::alignsize()
 	    break;
 
 	default:
-	    sz = size();
+	    sz = size(0);
 	    break;
     }
     return sz;
@@ -1266,7 +1270,7 @@ Expression *TypeArray::dotExp(Scope *sc, Expression *e, Identifier *ident)
 	Expression *ec;
 	FuncDeclaration *fd;
 	Array *arguments;
-	int size = next->size();
+	int size = next->size(e->loc);
 	char *nm;
 	static char *name[2][2] = { { "_adReverse", "_adDup" },
 				    { "_adReverseBit", "_adDupBit" } };
@@ -1295,7 +1299,7 @@ Expression *TypeArray::dotExp(Scope *sc, Expression *e, Identifier *ident)
 	arguments = new Array();
 	arguments->push(e);
 	arguments->push(n->ty == Tsarray ? n->getTypeInfo(sc)	// don't convert to dynamic array
-					 : n->getInternalTypeInfo());
+					 : n->getInternalTypeInfo(sc));
 	e = new CallExp(e->loc, ec, arguments);
 	e->type = next->arrayOf();
     }
@@ -1374,11 +1378,11 @@ Type *TypeSArray::syntaxCopy()
     return t;
 }
 
-d_uns64 TypeSArray::size()
+d_uns64 TypeSArray::size(Loc loc)
 {   integer_t sz;
 
     if (!dim)
-	return Type::size();
+	return Type::size(loc);
     sz = dim->toInteger();
     if (next->toBasetype()->ty == Tbit)		// if array of bits
     {
@@ -1398,7 +1402,7 @@ d_uns64 TypeSArray::size()
     return sz;
 
 Loverflow:
-    error(0, "index %lld overflow for static array", sz);
+    error(loc, "index %lld overflow for static array", sz);
     return 1;
 }
 
@@ -1436,7 +1440,7 @@ Type *TypeSArray::semantic(Loc loc, Scope *sc)
 	    /* Only do this for types that don't need to have semantic()
 	     * run on them for the size, since they may be forward referenced.
 	     */
-	    n = next->size();
+	    n = next->size(loc);
 	    n2 = n * d2;
 	    if ((int)n2 < 0)
 		goto Loverflow;
@@ -1562,7 +1566,7 @@ Type *TypeDArray::syntaxCopy()
     return t;
 }
 
-d_uns64 TypeDArray::size()
+d_uns64 TypeDArray::size(Loc loc)
 {
     //printf("TypeDArray::size()\n");
     return PTRSIZE * 2;
@@ -1576,17 +1580,21 @@ unsigned TypeDArray::alignsize()
 }
 
 Type *TypeDArray::semantic(Loc loc, Scope *sc)
-{
-    next = next->semantic(loc,sc);
-    switch (next->ty)
+{   Type *tn = next;
+
+    tn = next->semantic(loc,sc);
+    switch (tn->ty)
     {
 	case Tfunction:
 	case Tnone:
-	    error(loc, "can't have array of %s", next->toChars());
+	    error(loc, "can't have array of %s", tn->toChars());
 	    break;
     }
-    if (next->isauto())
-	error(loc, "cannot have array of auto %s", next->toChars());
+    if (tn->isauto())
+	error(loc, "cannot have array of auto %s", tn->toChars());
+    if (next != tn)
+	//deco = NULL;			// redo
+	return tn->arrayOf();
     return merge();
 }
 
@@ -1695,7 +1703,7 @@ Type *TypeAArray::syntaxCopy()
     return t;
 }
 
-d_uns64 TypeAArray::size()
+d_uns64 TypeAArray::size(Loc loc)
 {
     return PTRSIZE * 2;
 }
@@ -1796,7 +1804,7 @@ Expression *TypeAArray::dotExp(Scope *sc, Expression *e, Identifier *ident)
 	FuncDeclaration *fd;
 	Array *arguments;
 	char aakeys[7+3*sizeof(int)+1];
-	int size = key->size();
+	int size = key->size(e->loc);
 
 	assert(size);
 #if 0
@@ -1827,8 +1835,8 @@ Expression *TypeAArray::dotExp(Scope *sc, Expression *e, Identifier *ident)
 	ec = new VarExp(0, fd);
 	arguments = new Array();
 	arguments->push(e);
-	arguments->push(new IntegerExp(0, key->size(), Type::tint32));
-	arguments->push(new IntegerExp(0, next->size(), Type::tint32));
+	arguments->push(new IntegerExp(0, key->size(e->loc), Type::tint32));
+	arguments->push(new IntegerExp(0, next->size(e->loc), Type::tint32));
 	e = new CallExp(e->loc, ec, arguments);
 	e->type = next->arrayOf();
     }
@@ -1842,7 +1850,7 @@ Expression *TypeAArray::dotExp(Scope *sc, Expression *e, Identifier *ident)
 	ec = new VarExp(0, fd);
 	arguments = new Array();
 	arguments->push(e->addressOf());
-	arguments->push(key->getInternalTypeInfo());
+	arguments->push(key->getInternalTypeInfo(sc));
 	e = new CallExp(e->loc, ec, arguments);
 	e->type = this;
     }
@@ -1912,7 +1920,7 @@ Type *TypePointer::semantic(Loc loc, Scope *sc)
 }
 
 
-d_uns64 TypePointer::size()
+d_uns64 TypePointer::size(Loc loc)
 {
     return PTRSIZE;
 }
@@ -2000,7 +2008,7 @@ Type *TypeReference::syntaxCopy()
     return t;
 }
 
-d_uns64 TypeReference::size()
+d_uns64 TypeReference::size(Loc loc)
 {
     return PTRSIZE;
 }
@@ -2107,9 +2115,15 @@ int Type::covariant(Type *t)
 	goto Lnotcovariant;
     if (t1->linkage != t2->linkage)
 	goto Lnotcovariant;
-    if (t1->next->ty != Tclass || t2->next->ty != Tclass)
+
+    Type *t1n = t1->next;
+    Type *t2n = t2->next;
+
+    if (t1n->equals(t2n))
+	goto Lcovariant;
+    if (t1n->ty != Tclass || t2n->ty != Tclass)
 	goto Lnotcovariant;
-    if (t1->next->implicitConvTo(t2->next))
+    if (t1n->implicitConvTo(t2n))
 	goto Lcovariant;
     goto Lnotcovariant;
     }
@@ -2380,7 +2394,7 @@ Type *TypeDelegate::semantic(Loc loc, Scope *sc)
     return merge();
 }
 
-d_uns64 TypeDelegate::size()
+d_uns64 TypeDelegate::size(Loc loc)
 {
     return PTRSIZE * 2;
 }
@@ -2481,9 +2495,9 @@ void TypeQualified::toCBuffer2Helper(OutBuffer *buf, Identifier *ident)
     }
 }
 
-d_uns64 TypeQualified::size()
+d_uns64 TypeQualified::size(Loc loc)
 {
-    error(loc, "size of type %s is not known", toChars());
+    error(this->loc, "size of type %s is not known", toChars());
     return 1;
 }
 
@@ -2778,6 +2792,7 @@ Type *TypeIdentifier::semantic(Loc loc, Scope *sc)
 	    error(loc, "%s is used as a type", toChars());
 	t = tvoid;
     }
+    //t->print();
     return t;
 }
 
@@ -2990,14 +3005,14 @@ Type *TypeEnum::semantic(Loc loc, Scope *sc)
     return merge();
 }
 
-d_uns64 TypeEnum::size()
+d_uns64 TypeEnum::size(Loc loc)
 {
     if (!sym->memtype)
     {
-	error(0, "enum %s is forward referenced", sym->toChars());
+	error(loc, "enum %s is forward referenced", sym->toChars());
 	return 4;
     }
-    return sym->memtype->size();
+    return sym->memtype->size(loc);
 }
 
 unsigned TypeEnum::alignsize()
@@ -3156,9 +3171,9 @@ Type *TypeTypedef::semantic(Loc loc, Scope *sc)
     return merge();
 }
 
-d_uns64 TypeTypedef::size()
+d_uns64 TypeTypedef::size(Loc loc)
 {
-    return sym->basetype->size();
+    return sym->basetype->size(loc);
 }
 
 unsigned TypeTypedef::alignsize()
@@ -3329,15 +3344,15 @@ Type *TypeStruct::semantic(Loc loc, Scope *sc)
     return merge();
 }
 
-d_uns64 TypeStruct::size()
+d_uns64 TypeStruct::size(Loc loc)
 {
-    return sym->size();
+    return sym->size(loc);
 }
 
 unsigned TypeStruct::alignsize()
 {   unsigned sz;
 
-    sym->size();		// give error for forward references
+    sym->size(0);		// give error for forward references
     sz = sym->alignsize;
     if (sz > sym->structalign)
 	sz = sym->structalign;
@@ -3491,7 +3506,7 @@ L1:
 
 unsigned TypeStruct::memalign(unsigned salign)
 {
-    sym->size();		// give error for forward references
+    sym->size(0);		// give error for forward references
     return sym->structalign;
 }
 
@@ -3541,7 +3556,7 @@ Type *TypeClass::semantic(Loc loc, Scope *sc)
     return merge();
 }
 
-d_uns64 TypeClass::size()
+d_uns64 TypeClass::size(Loc loc)
 {
     return PTRSIZE;
 }

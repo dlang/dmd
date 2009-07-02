@@ -43,7 +43,7 @@ Module::Module(char *filename, Identifier *ident)
     FileName *objfilename;
     FileName *symfilename;
 
-    //printf("Module::Module(filename = '%s', ident = '%s')\n", filename, ident->toChars());
+//    printf("Module::Module(filename = '%s', ident = '%s')\n", filename, ident->toChars());
     this->arg = filename;
     md = NULL;
     errors = 0;
@@ -51,6 +51,9 @@ Module::Module(char *filename, Identifier *ident)
     isHtml = 0;
     needmoduleinfo = 0;
     insearch = 0;
+    searchCacheIdent = NULL;
+    searchCacheSymbol = NULL;
+    searchCacheFlags = 0;
     semanticdone = 0;
     decldefs = NULL;
     vmoduleinfo = NULL;
@@ -417,9 +420,10 @@ void Module::parse()
 void Module::semantic()
 {   int i;
 
-    //printf("Module::semantic('%s'): parent = %p\n", toChars(), parent);
     if (semanticdone)
 	return;
+
+    //printf("+Module::semantic(this = %p, '%s'): parent = %p\n", this, toChars(), parent);
     semanticdone = 1;
 
     // Note that modules get their own scope, from scratch.
@@ -450,19 +454,20 @@ void Module::semantic()
     {	Dsymbol *s;
 
 	s = (Dsymbol *)members->data[i];
+	//printf("\tModule('%s'): '%s'.semantic()\n", toChars(), s->toChars());
 	s->semantic(sc);
-
 	runDeferredSemantic();
     }
 
     sc = sc->pop();
     sc->pop();
-    //printf("-Module::semantic('%s'): parent = %p\n", toChars(), parent);
+    //printf("-Module::semantic(this = %p, '%s'): parent = %p\n", this, toChars(), parent);
 }
 
 void Module::semantic2()
 {   int i;
 
+    assert(!deferred.dim);
     //printf("Module::semantic2('%s'): parent = %p\n", toChars(), parent);
     if (semanticdone >= 2)
 	return;
@@ -580,11 +585,17 @@ Dsymbol *Module::search(Identifier *ident, int flags)
     Dsymbol *s;
     if (insearch)
 	s = NULL;
+    else if (searchCacheIdent == ident && searchCacheFlags == flags)
+	s = searchCacheSymbol;
     else
     {
 	insearch = 1;
 	s = ScopeDsymbol::search(ident, flags);
 	insearch = 0;
+
+	searchCacheIdent = ident;
+	searchCacheSymbol = s;
+	searchCacheFlags = flags;
     }
     return s;
 }
@@ -595,6 +606,16 @@ Dsymbol *Module::search(Identifier *ident, int flags)
 
 void Module::addDeferredSemantic(Dsymbol *s)
 {
+    // Don't add it if it is already there
+    for (int i = 0; i < deferred.dim; i++)
+    {
+	Dsymbol *sd = (Dsymbol *)deferred.data[i];
+
+	if (sd == s)
+	    return;
+    }
+
+//    printf("Module::addDeferredSemantic('%s')\n", s->toChars());
     deferred.push(s);
 }
 
@@ -604,12 +625,12 @@ void Module::addDeferredSemantic(Dsymbol *s)
 
 void Module::runDeferredSemantic()
 {
-    int len;
-    int newlen;
+    size_t len;
 
     static int nested;
     if (nested)
 	return;
+//    if (deferred.dim) printf("Module::runDeferredSemantic('%s'), len = %d\n", toChars(), deferred.dim);
     nested++;
 
     do
@@ -618,18 +639,27 @@ void Module::runDeferredSemantic()
 	if (!len)
 	    break;
 
+	Dsymbol **todo;
+	Dsymbol *tmp;
+	if (len == 1)
+	{
+	    todo = &tmp;
+	}
+	else
+	{
+	    todo = (Dsymbol **)alloca(len * sizeof(Dsymbol *));
+	    assert(todo);
+	}
+	memcpy(todo, deferred.data, len * sizeof(Dsymbol *));
+	deferred.setDim(0);
+
 	for (int i = 0; i < len; i++)
 	{
-	    Dsymbol *s = (Dsymbol *)deferred.data[i];
+	    Dsymbol *s = todo[i];
 
 	    s->semantic(NULL);
 	}
-
-	newlen = deferred.dim - len;
-	memmove(deferred.data, deferred.data + len,
-	    newlen * sizeof(deferred.data[0]));
-	deferred.setDim(newlen);
-    } while (newlen < len);
+    } while (deferred.dim < len);	// while making progress
     nested--;
 }
 

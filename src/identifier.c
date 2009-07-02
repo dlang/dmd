@@ -19,6 +19,7 @@ Identifier::Identifier(const char *string, int value)
     //printf("Identifier('%s', %d)\n", string, value);
     this->string = string;
     this->value = value;
+    this->len = strlen(string);
 }
 
 unsigned Identifier::hashCode()
@@ -28,12 +29,12 @@ unsigned Identifier::hashCode()
 
 int Identifier::equals(Object *o)
 {
-    return this == o || strcmp(string,o->toChars()) == 0;
+    return this == o || memcmp(string,o->toChars(),len+1) == 0;
 }
 
 int Identifier::compare(Object *o)
 {
-    return strcmp(string,o->toChars());
+    return memcmp(string, o->toChars(), len + 1);
 }
 
 char *Identifier::toChars()

@@ -85,12 +85,13 @@ void FuncDeclaration::semantic(Scope *sc)
     InterfaceDeclaration *id;
 
 #if 0
-    printf("FuncDeclaration::semantic(sc = %p, this = %p, '%s', linkage = %d)\n", sc, this, toChars(), sc->linkage);
+    printf("FuncDeclaration::semantic(sc = %p, this = %p, '%s', linkage = %d)\n", sc, this, toPrettyChars(), sc->linkage);
     if (isFuncLiteralDeclaration())
 	printf("\tFuncLiteralDeclaration()\n");
 #endif
 
     type = type->semantic(loc, sc);
+    //type->print();
     if (type->ty != Tfunction)
     {
 	error("%s must be a function", toChars());
@@ -234,9 +235,15 @@ void FuncDeclaration::semantic(Scope *sc)
 			// Override
 			//printf("\toverride %p with %p\n", fdv, this);
 			if (cov == 2)
-			    error("overrides but is not covariant with %s", fdv->toChars());
+			{
+			    //type->print();
+			    //fdv->type->print();
+			    //printf("%s %s\n", type->deco, fdv->type->deco);
+			    error("of type %s overrides but is not covariant with %s of type %s",
+				type->toChars(), fdv->toPrettyChars(), fdv->type->toChars());
+			}
 			if (fdv->isFinal())
-			    error("cannot override final function %s", fdv->toChars());
+			    error("cannot override final function %s", fdv->toPrettyChars());
 			if (fdv->toParent() == parent)
 			{
 			    // If both are mixins, then error.
@@ -336,6 +343,11 @@ void FuncDeclaration::semantic3(Scope *sc)
     AggregateDeclaration *ad;
     VarDeclaration *argptr = NULL;
 
+    if (!parent)
+    {
+	printf("FuncDeclaration::semantic3(%s '%s', sc = %p)\n", kind(), toChars(), sc);
+	assert(0);
+    }
     //printf("FuncDeclaration::semantic3('%s.%s', sc = %p)\n", parent->toChars(), toChars(), sc);
     //fflush(stdout);
     //{ static int x; if (++x == 2) *(char*)0=0; }
@@ -1132,7 +1144,7 @@ int FuncDeclaration::isCodeseg()
 
 int FuncDeclaration::isNested()
 {
-    //printf("FuncDeclaration::isNested() '%s'\n", toChars());
+//    if (!toParent()) printf("FuncDeclaration::isNested('%s') parent=%p\n", toChars(), parent);
     //printf("\ttoParent() = '%s'\n", toParent()->toChars());
     return ((storage_class & STCstatic) == 0) &&
 	   (toParent()->isFuncDeclaration() != NULL);

@@ -41,7 +41,7 @@ char *Declaration::kind()
     return "declaration";
 }
 
-unsigned Declaration::size()
+unsigned Declaration::size(Loc loc)
 {
     assert(type);
     return type->size();
@@ -704,6 +704,13 @@ Dsymbol *TypeInfoDeclaration::syntaxCopy(Dsymbol *s)
 void TypeInfoDeclaration::semantic(Scope *sc)
 {
     assert(linkage == LINKc);
+}
+
+/***************************** TypeInfoStructDeclaration ***********************/
+
+TypeInfoStructDeclaration::TypeInfoStructDeclaration(Type *tinfo)
+    : TypeInfoDeclaration(tinfo, 0)
+{
 }
 
 /***************************** TypeInfoClassDeclaration ***********************/

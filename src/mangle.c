@@ -137,6 +137,7 @@ char *ClassDeclaration::mangle()
      * names for them.
      */
     if (ident == Id::TypeInfo   ||
+	ident == Id::TypeInfo_Struct   ||
 	ident == Id::TypeInfo_Class    ||
 	ident == Id::TypeInfo_Typedef  ||
 	ident == Id::Exception  ||

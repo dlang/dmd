@@ -31,12 +31,13 @@ struct EnumDeclaration : ScopeDsymbol
 
     EnumDeclaration(Identifier *id, Type *memtype);
     Dsymbol *syntaxCopy(Dsymbol *s);
-    void addMember(ScopeDsymbol *s);
     void semantic(Scope *sc);
     Dsymbol *oneMember();
     void toCBuffer(OutBuffer *buf);
     Type *getType();
     char *kind();
+
+    EnumDeclaration *isEnumDeclaration() { return this; }
 
     void toObjFile();			// compile to .obj file
     void toDebug();

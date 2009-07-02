@@ -57,6 +57,9 @@ ClassDeclaration::ClassDeclaration(Loc loc, Identifier *id, Array *baseclasses)
     vtblsym = NULL;
     vclassinfo = NULL;
 
+    if (id == Id::__sizeof)
+	error("illegal class name");
+
     // BUG: What if this is the wrong ClassInfo, i.e. it is nested?
     if (!classinfo && id == Id::ClassInfo)
 	classinfo = this;
@@ -72,6 +75,9 @@ ClassDeclaration::ClassDeclaration(Loc loc, Identifier *id, Array *baseclasses)
     if (!Type::typeinfoclass && id == Id::TypeInfo_Class)
 	Type::typeinfoclass = this;
 
+    if (!Type::typeinfostruct && id == Id::TypeInfo_Struct)
+	Type::typeinfostruct = this;
+
     if (!Type::typeinfotypedef && id == Id::TypeInfo_Typedef)
 	Type::typeinfotypedef = this;
 
@@ -81,7 +87,6 @@ ClassDeclaration::ClassDeclaration(Loc loc, Identifier *id, Array *baseclasses)
 	com = 1;
 #endif
     isauto = 0;
-    scope = NULL;
 }
 
 Dsymbol *ClassDeclaration::syntaxCopy(Dsymbol *s)
@@ -110,7 +115,7 @@ void ClassDeclaration::semantic(Scope *sc)
 {   int i;
     unsigned offset;
 
-    //printf("ClassDeclaration::semantic(%s), type = %p\n", toChars(), type);
+    //printf("ClassDeclaration::semantic(%s), type = %p, sizeok = %d\n", toChars(), type, sizeok);
 
     //{ static int n;  if (++n == 20) *(char*)0=0; }
 
@@ -119,12 +124,14 @@ void ClassDeclaration::semantic(Scope *sc)
 	handle = handle->semantic(loc, sc);
     }
     if (!members)			// if forward reference
-    {	//printf("\tclass '%s' is forward referenced\n", toChars());
+    {	printf("\tclass '%s' is forward referenced\n", toChars());
 	return;
     }
     if (symtab)
     {	if (!scope)
+	{   //printf("\tsemantic for '%s' is already completed\n", toChars());
 	    return;		// semantic() already completed
+	}
     }
     else
 	symtab = new DsymbolTable();
@@ -165,7 +172,7 @@ void ClassDeclaration::semantic(Scope *sc)
 		{
 		    //error("forward reference of base class %s", baseClass->toChars());
 		    // Forward reference of base class, try again later
-		    //printf("\ttry later, forward reference of base class %s\n", baseClass->toChars());
+		    //printf("\ttry later, forward reference of base class %s\n", tc->sym->toChars());
 		    scope = scx ? scx : new Scope(*sc);
 		    scope->setNoFree();
 		    scope->module->addDeferredSemantic(this);
@@ -255,23 +262,27 @@ void ClassDeclaration::semantic(Scope *sc)
     else
     {
 	// No base class, so this is the root of the class heirarchy
+	vtbl.setDim(0);
 	vtbl.push(this);		// leave room for classinfo as first member
+    }
+
+    if (sizeok == 0)
+    {
+	interfaceSemantic(sc);
+
+	for (i = 0; i < members->dim; i++)
+	{
+	    Dsymbol *s = (Dsymbol *)members->data[i];
+	    s->addMember(this);
+	}
     }
 
     if (sc->stc & STCauto)
 	isauto = 1;
 
-    interfaceSemantic(sc);
-
     sc = sc->push(this);
     sc->stc &= ~(STCauto | STCstatic);
     sc->parent = this;
-
-    for (i = 0; i < members->dim; i++)
-    {
-	Dsymbol *s = (Dsymbol *)members->data[i];
-	s->addMember(this);
-    }
 
     if (isCOMclass())
 	sc->linkage = LINKwindows;
@@ -289,11 +300,31 @@ void ClassDeclaration::semantic(Scope *sc)
     structsize = sc->offset;
     Scope scsave = *sc;
     int members_dim = members->dim;
+    sizeok = 0;
     for (i = 0; i < members_dim; i++)
     {
 	Dsymbol *s = (Dsymbol *)members->data[i];
 	s->semantic(sc);
     }
+
+    if (sizeok == 2)
+    {	// semantic() failed because of forward references.
+	// Unwind what we did, and defer it for later
+	fields.setDim(0);
+	structsize = 0;
+	alignsize = 0;
+	structalign = 0;
+
+	sc->pop();
+
+	scope = scx ? scx : new Scope(*sc);
+	scope->setNoFree();
+	scope->module->addDeferredSemantic(this);
+	return;
+    }
+
+    //printf("\tsemantic('%s') successful\n", toChars());
+
     structsize = sc->offset;
     //members->print();
 

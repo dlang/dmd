@@ -39,6 +39,8 @@ print();
 type->print();
 printf("to:\n");
 t->print();
+printf("%p %p %s %s\n", type->deco, t->deco, type->deco, t->deco);
+printf("%p %p %p\n", type->next->arrayOf(), type, t);
 #endif
 //*(char*)0=0;
     error("cannot implicitly convert expression %s of type %s to %s", toChars(), type->toChars(), t->toChars());

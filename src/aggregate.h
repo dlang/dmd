@@ -42,6 +42,10 @@ struct AggregateDeclaration : ScopeDsymbol
     unsigned structalign;	// struct member alignment in effect
     Array fields;		// VarDeclaration fields
     unsigned sizeok;		// set when structsize contains valid data
+				// 0: no size
+				// 1: size is correct
+				// 2: cannot determine size; fwd referenced
+    Scope *scope;		// !=NULL means context to use
 
     // Special member functions
     InvariantDeclaration *inv;		// invariant
@@ -53,7 +57,7 @@ struct AggregateDeclaration : ScopeDsymbol
     void semantic2(Scope *sc);
     void semantic3(Scope *sc);
     void inlineScan();
-    unsigned size();
+    unsigned size(Loc loc);
     static void alignmember(unsigned salign, unsigned size, unsigned *poffset);
     Type *getType();
     void addField(Scope *sc, VarDeclaration *v);
@@ -150,7 +154,6 @@ struct ClassDeclaration : AggregateDeclaration
     ClassInfoDeclaration *vclassinfo;	// the ClassInfo object for this ClassDeclaration
     int com;				// !=0 if this is a COM class
     int isauto;				// !=0 if this is an auto class
-    Scope *scope;			// !=NULL means context to use
 
     ClassDeclaration(Loc loc, Identifier *id, Array *baseclasses);
     Dsymbol *syntaxCopy(Dsymbol *s);

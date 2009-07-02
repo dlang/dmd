@@ -149,6 +149,7 @@ struct Type : Object
 
     static ClassDeclaration *typeinfo;
     static ClassDeclaration *typeinfoclass;
+    static ClassDeclaration *typeinfostruct;
     static ClassDeclaration *typeinfotypedef;
 
     static Type *basic[TMAX];
@@ -168,7 +169,8 @@ struct Type : Object
     int covariant(Type *t);
     char *toChars();
     static void init();
-    virtual d_uns64 size();
+    d_uns64 size();
+    virtual d_uns64 size(Loc loc);
     virtual unsigned alignsize();
     virtual Type *semantic(Loc loc, Scope *sc);
     virtual void toDecoBuffer(OutBuffer *buf);
@@ -204,7 +206,7 @@ struct Type : Object
     Identifier *getTypeInfoIdent(int internal);
     virtual MATCH deduceType(Type *tparam, Array *parameters, Array *atypes);
     virtual void resolve(Loc loc, Scope *sc, Expression **pe, Type **pt, Dsymbol **ps);
-    Expression *getInternalTypeInfo();
+    Expression *getInternalTypeInfo(Scope *sc);
     Expression *getTypeInfo(Scope *sc);
     virtual TypeInfoDeclaration *getTypeInfoDeclaration();
     virtual int builtinTypeInfo();
@@ -229,7 +231,7 @@ struct TypeBasic : Type
 
     TypeBasic(TY ty);
     Type *syntaxCopy();
-    d_uns64 size();
+    d_uns64 size(Loc loc);
     unsigned alignsize();
     Expression *getProperty(Loc loc, Identifier *ident);
     Expression *dotExp(Scope *sc, Expression *e, Identifier *ident);
@@ -267,7 +269,7 @@ struct TypeSArray : TypeArray
 
     TypeSArray(Type *t, Expression *dim);
     Type *syntaxCopy();
-    d_uns64 size();
+    d_uns64 size(Loc loc);
     unsigned alignsize();
     Type *semantic(Loc loc, Scope *sc);
     void toDecoBuffer(OutBuffer *buf);
@@ -290,7 +292,7 @@ struct TypeDArray : TypeArray
 {
     TypeDArray(Type *t);
     Type *syntaxCopy();
-    d_uns64 size();
+    d_uns64 size(Loc loc);
     unsigned alignsize();
     Type *semantic(Loc loc, Scope *sc);
     void toDecoBuffer(OutBuffer *buf);
@@ -313,7 +315,7 @@ struct TypeAArray : TypeArray
 
     TypeAArray(Type *t, Type *index);
     Type *syntaxCopy();
-    d_uns64 size();
+    d_uns64 size(Loc loc);
     Type *semantic(Loc loc, Scope *sc);
     void toDecoBuffer(OutBuffer *buf);
     void toPrettyBracket(OutBuffer *buf);
@@ -333,7 +335,7 @@ struct TypePointer : Type
     TypePointer(Type *t);
     Type *syntaxCopy();
     Type *semantic(Loc loc, Scope *sc);
-    d_uns64 size();
+    d_uns64 size(Loc loc);
     void toCBuffer2(OutBuffer *buf, Identifier *ident);
     int implicitConvTo(Type *to);
     int isscalar();
@@ -347,7 +349,7 @@ struct TypeReference : Type
 {
     TypeReference(Type *t);
     Type *syntaxCopy();
-    d_uns64 size();
+    d_uns64 size(Loc loc);
     void toCBuffer2(OutBuffer *buf, Identifier *ident);
     Expression *dotExp(Scope *sc, Expression *e, Identifier *ident);
     Expression *defaultInit();
@@ -386,7 +388,7 @@ struct TypeDelegate : Type
     TypeDelegate(Type *t);
     Type *syntaxCopy();
     Type *semantic(Loc loc, Scope *sc);
-    d_uns64 size();
+    d_uns64 size(Loc loc);
     void toCBuffer2(OutBuffer *buf, Identifier *ident);
     Expression *defaultInit();
     int isZeroInit();
@@ -404,7 +406,7 @@ struct TypeQualified : Type
     void syntaxCopyHelper(TypeQualified *t);
     void addIdent(Identifier *ident);
     void toCBuffer2Helper(OutBuffer *buf, Identifier *ident);
-    d_uns64 size();
+    d_uns64 size(Loc loc);
     void resolveHelper(Loc loc, Scope *sc, Dsymbol *s, Dsymbol *scopesym,
 	Expression **pe, Type **pt, Dsymbol **ps);
 };
@@ -455,7 +457,7 @@ struct TypeStruct : Type
     StructDeclaration *sym;
 
     TypeStruct(StructDeclaration *sym);
-    d_uns64 size();
+    d_uns64 size(Loc loc);
     unsigned alignsize();
     char *toChars();
     Type *syntaxCopy();
@@ -470,6 +472,7 @@ struct TypeStruct : Type
     int isZeroInit();
     dt_t **toDt(dt_t **pdt);
     MATCH deduceType(Type *tparam, Array *parameters, Array *atypes);
+    TypeInfoDeclaration *getTypeInfoDeclaration();
 
     type *toCtype();
 };
@@ -479,7 +482,7 @@ struct TypeEnum : Type
     EnumDeclaration *sym;
 
     TypeEnum(EnumDeclaration *sym);
-    d_uns64 size();
+    d_uns64 size(Loc loc);
     unsigned alignsize();
     char *toChars();
     Type *semantic(Loc loc, Scope *sc);
@@ -508,7 +511,7 @@ struct TypeTypedef : Type
 
     TypeTypedef(TypedefDeclaration *sym);
     Type *syntaxCopy();
-    d_uns64 size();
+    d_uns64 size(Loc loc);
     unsigned alignsize();
     char *toChars();
     Type *semantic(Loc loc, Scope *sc);
@@ -540,7 +543,7 @@ struct TypeClass : Type
     ClassDeclaration *sym;
 
     TypeClass(ClassDeclaration *sym);
-    d_uns64 size();
+    d_uns64 size(Loc loc);
     char *toChars();
     Type *syntaxCopy();
     Type *semantic(Loc loc, Scope *sc);

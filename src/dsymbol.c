@@ -192,7 +192,7 @@ void Dsymbol::toCBuffer(OutBuffer *buf)
     buf->writenl();
 }
 
-unsigned Dsymbol::size()
+unsigned Dsymbol::size(Loc loc)
 {
     error("Dsymbol '%s' has no size\n", toChars());
     return 0;
@@ -273,6 +273,11 @@ void Dsymbol::addMember(ScopeDsymbol *sd)
 	    {
 		sd->multiplyDefined(this, s2);
 	    }
+	}
+	if (sd->isAggregateDeclaration() || sd->isEnumDeclaration())
+	{
+	    if (ident == Id::__sizeof)
+		error(".sizeof property cannot be redefined");
 	}
     }
 }
@@ -611,7 +616,7 @@ Dsymbol *DsymbolTable::lookup(Identifier *ident)
     assert(ident);
     assert(tab);
 //#endif
-    sv = tab->lookup(ident->toChars(),strlen(ident->toChars()));
+    sv = tab->lookup((char*)ident->string, ident->len);
     return (Dsymbol *)(sv ? sv->ptrvalue : NULL);
 }
 
@@ -625,7 +630,7 @@ Dsymbol *DsymbolTable::insert(Dsymbol *s)
     assert(ident);
     assert(tab);
 #endif
-    sv = tab->insert(ident->toChars(),strlen(ident->toChars()));
+    sv = tab->insert(ident->toChars(), ident->len);
     if (!sv)
 	return NULL;		// already in table
     sv->ptrvalue = s;
@@ -636,7 +641,7 @@ Dsymbol *DsymbolTable::insert(Identifier *ident, Dsymbol *s)
 {   StringValue *sv;
 
     //printf("DsymbolTable::insert()\n");
-    sv = tab->insert(ident->toChars(),strlen(ident->toChars()));
+    sv = tab->insert(ident->toChars(), ident->len);
     if (!sv)
 	return NULL;		// already in table
     sv->ptrvalue = s;
@@ -648,7 +653,7 @@ Dsymbol *DsymbolTable::update(Dsymbol *s)
     Identifier *ident;
 
     ident = s->ident;
-    sv = tab->update(ident->toChars(),strlen(ident->toChars()));
+    sv = tab->update(ident->toChars(), ident->len);
     sv->ptrvalue = s;
     return s;
 }

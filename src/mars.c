@@ -49,7 +49,7 @@ Global::Global()
 
     copyright = "Copyright (c) 1999-2004 by Digital Mars";
     written = "written by Walter Bright";
-    version = "v0.109";
+    version = "v0.110";
     global.structalign = 8;
 
     memset(&params, 0, sizeof(Param));
@@ -570,6 +570,8 @@ int main(int argc, char *argv[])
 	    printf("code      %s\n", m->toChars());
 	m->genobjfile();
 //	m->gensymfile();
+	if (global.errors)
+	    m->deleteObjFile();
     }
 
     backend_term();

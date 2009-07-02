@@ -44,14 +44,6 @@ Dsymbol *EnumDeclaration::syntaxCopy(Dsymbol *s)
     return ed;
 }
 
-void EnumDeclaration::addMember(ScopeDsymbol *sd)
-{   int i;
-
-    //printf("EnumDeclaration::addMember(sd = %p, '%s')\n", sd, sd->toChars());
-    if (!isAnonymous())
-	Dsymbol::addMember(sd);
-}
-
 void EnumDeclaration::semantic(Scope *sc)
 {   int i;
     integer_t number;

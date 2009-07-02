@@ -591,6 +591,7 @@ Statement *ForeachStatement::semantic(Scope *sc)
     Type *tnv = NULL;
 
     aggr = aggr->semantic(sc);
+    aggr = resolveProperties(sc, aggr);
 
     sym = new ScopeDsymbol();
     sym->parent = sc->scopesym;
@@ -1141,6 +1142,7 @@ Statement *SwitchStatement::syntaxCopy()
 Statement *SwitchStatement::semantic(Scope *sc)
 {
     condition = condition->semantic(sc);
+    condition = resolveProperties(sc, condition);
     if (condition->type->isString())
     {
 	// If it's not an array, cast it to one
@@ -1970,6 +1972,7 @@ Statement *ThrowStatement::semantic(Scope *sc)
     if (sc->incontract)
 	error("Throw statements cannot be in contracts");
     exp = exp->semantic(sc);
+    exp = resolveProperties(sc, exp);
     if (!exp->type->isClassHandle())
 	error("can only throw class objects, not type %s", exp->type->toChars());
     return this;

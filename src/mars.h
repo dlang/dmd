@@ -150,7 +150,7 @@ struct Loc
 
     Loc(int x)
     {
-	linnum = 0;
+	linnum = x;
 	filename = NULL;
     }
 

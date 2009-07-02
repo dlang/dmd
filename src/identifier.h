@@ -20,6 +20,7 @@ struct Identifier : Object
 {
     int value;
     const char *string;
+    unsigned len;
 
     Identifier(const char *string, int value);
     int equals(Object *o);

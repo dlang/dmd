@@ -74,7 +74,7 @@ struct Declaration : Dsymbol
     Declaration(Identifier *id);
     void semantic(Scope *sc);
     char *kind();
-    unsigned size();
+    unsigned size(Loc loc);
 
     char *mangle();
     int isStatic() { return storage_class & STCstatic; }
@@ -213,6 +213,13 @@ struct TypeInfoDeclaration : VarDeclaration
     Symbol *toSymbol();
     void toObjFile();			// compile to .obj file
     virtual void toDt(dt_t **pdt);
+};
+
+struct TypeInfoStructDeclaration : TypeInfoDeclaration
+{
+    TypeInfoStructDeclaration(Type *tinfo);
+
+    void toDt(dt_t **pdt);
 };
 
 struct TypeInfoClassDeclaration : TypeInfoDeclaration
