@@ -43,6 +43,7 @@ struct AttribDeclaration : Dsymbol
     void checkCtorConstInit();
     void addLocalClass(Array *);
     void toCBuffer(OutBuffer *buf);
+    AttribDeclaration *isAttribDeclaration() { return this; }
 
     void toObjFile();			// compile to .obj file
     int cvMember(unsigned char *p);

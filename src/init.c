@@ -37,6 +37,12 @@ Initializer *Initializer::semantic(Scope *sc, Type *t)
     return this;
 }
 
+Type *Initializer::inferType(Scope *sc)
+{
+    error(loc, "cannot infer type from initializer");
+    return Type::terror;
+}
+
 Array *Initializer::arraySyntaxCopy(Array *ai)
 {   Array *a = NULL;
 
@@ -367,6 +373,12 @@ L1:
     exp = exp->optimize(WANTvalue);
     //printf("-ExpInitializer::semantic(): "); exp->print();
     return this;
+}
+
+Type *ExpInitializer::inferType(Scope *sc)
+{
+    exp = exp->semantic(sc);
+    return exp->type;
 }
 
 Expression *ExpInitializer::toExpression()

@@ -30,6 +30,7 @@ struct Initializer : Object
     Initializer(Loc loc);
     virtual Initializer *syntaxCopy();
     virtual Initializer *semantic(Scope *sc, Type *t);
+    virtual Type *inferType(Scope *sc);
     virtual Expression *toExpression() = 0;
     virtual void toCBuffer(OutBuffer *buf) = 0;
 
@@ -98,6 +99,7 @@ struct ExpInitializer : Initializer
     ExpInitializer(Loc loc, Expression *exp);
     Initializer *syntaxCopy();
     Initializer *semantic(Scope *sc, Type *t);
+    Type *inferType(Scope *sc);
     Expression *toExpression();
     void toCBuffer(OutBuffer *buf);
 

@@ -1457,7 +1457,6 @@ TOK Lexer::number(Token *t)
     int base;
     unsigned c;
     unsigned char *start;
-    integer_t n;
     TOK result;
 
     //printf("Lexer::number()\n");
@@ -1669,6 +1668,8 @@ done:
     if (state == STATE_octale)
 	error("Octal digit expected");
 
+    uinteger_t n;			// unsigned >=64 bit integer type
+
     if (stringbuffer.offset == 1 && (state == STATE_decimal || state == STATE_0))
 	n = stringbuffer.data[0] - '0';
     else
@@ -1717,6 +1718,9 @@ done:
 	    p++;
 	}
 #endif
+	if (sizeof(n) > 8 &&
+	    n > 0xFFFFFFFFFFFFFFFFULL)	// if n needs more than 64 bits
+	    error("integer overflow");
     }
 
     // Parse trailing 'u', 'U', 'l' or 'L' in any combination
@@ -1743,7 +1747,6 @@ done:
 	break;
     }
 
-    assert(sizeof(long) == 4);	// some dependencies
     switch (flags)
     {
 	case 0:

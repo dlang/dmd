@@ -42,6 +42,7 @@ struct InvariantDeclaration;
 struct UnitTestDeclaration;
 struct NewDeclaration;
 struct VarDeclaration;
+struct AttribDeclaration;
 struct Symbol;
 struct Package;
 struct Module;
@@ -179,6 +180,7 @@ struct Dsymbol : Object
     virtual Import *isImport() { return NULL; }
     virtual EnumDeclaration *isEnumDeclaration() { return NULL; }
     virtual SymbolDeclaration *isSymbolDeclaration() { return NULL; }
+    virtual AttribDeclaration *isAttribDeclaration() { return NULL; }
 };
 
 // Dsymbol that generates a scope

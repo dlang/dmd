@@ -34,6 +34,7 @@
 #include "id.h"
 #include "dsymbol.h"
 #include "module.h"
+#include "attrib.h"
 
 Expression *createTypeInfoArray(Scope *sc, Expression *args[], int dim);
 
@@ -1820,7 +1821,7 @@ Expression *NewExp::semantic(Scope *sc)
 
 #if LOGSEMANTIC
     printf("NewExp::semantic() %s\n", toChars());
-    //printf("type: %s\n", type->toChars());
+    printf("type: %s\n", type->toChars());
 #endif
     type = type->semantic(loc, sc);
     tb = type->toBasetype();
@@ -1913,6 +1914,9 @@ Expression *NewExp::semantic(Scope *sc)
 	FuncDeclaration *f = sd->aggNew;
 	TypeFunction *tf;
 
+	if (arguments && arguments->dim)
+	    error("no constructor for %s", type->toChars());
+
 	if (f)
 	{
 	    Expression *e;
@@ -1951,6 +1955,9 @@ Expression *NewExp::semantic(Scope *sc)
     }
     else if (tb->isscalar())
     {
+	if (arguments && arguments->dim)
+	    error("no constructor for %s", type->toChars());
+
 	type = type->pointerTo();
     }
     else
@@ -2298,27 +2305,40 @@ Expression *DeclarationExp::semantic(Scope *sc)
     printf("DeclarationExp::semantic() %s\n", toChars());
 #endif
 
-    if (declaration->isVarDeclaration())
+    /* This is here to support extern(linkage) declaration,
+     * where the extern(linkage) winds up being an AttribDeclaration
+     * wrapper.
+     */
+    Dsymbol *s = declaration;
+
+    AttribDeclaration *ad = declaration->isAttribDeclaration();
+    if (ad)
+    {
+	if (ad->decl && ad->decl->dim == 1)
+	    s = (Dsymbol *)ad->decl->data[0];
+    }
+
+    if (s->isVarDeclaration())
     {	// Do semantic() on initializer first, so:
 	//	int a = a;
 	// will be illegal.
 	declaration->semantic(sc);
-	declaration->parent = sc->parent;
+	s->parent = sc->parent;
     }
 
-    //printf("inserting '%s' %p into sc = %p\n", declaration->toChars(), declaration, sc);
+    //printf("inserting '%s' %p into sc = %p\n", s->toChars(), s, sc);
     // Insert into both local scope and function scope.
     // Must be unique in both.
-    if (declaration->ident)
+    if (s->ident)
     {
-	if (!sc->insert(declaration) ||
-	    (declaration->isFuncDeclaration() && !sc->func->localsymtab->insert(declaration)))
-	    //error("declaration %s.%s is already defined", sc->func->toChars(), declaration->toChars());
-	    error("declaration %s is already defined", declaration->toPrettyChars());
+	if (!sc->insert(s) ||
+	    (s->isFuncDeclaration() && !sc->func->localsymtab->insert(s)))
+	    //error("declaration %s.%s is already defined", sc->func->toChars(), s->toChars());
+	    error("declaration %s is already defined", s->toPrettyChars());
     }
-    if (!declaration->isVarDeclaration())
+    if (!s->isVarDeclaration())
     {	declaration->semantic(sc);
-	declaration->parent = sc->parent;
+	s->parent = sc->parent;
     }
     if (!global.errors)
     {
@@ -2518,6 +2538,7 @@ Expression *IftypeExp::semantic(Scope *sc)
 
 	Array dedtypes;
 	dedtypes.setDim(1);
+	dedtypes.data[0] = NULL;
 
 	m = targ->deduceType(tspec, &parameters, &dedtypes);
 	if (m == MATCHnomatch ||
@@ -2525,6 +2546,7 @@ Expression *IftypeExp::semantic(Scope *sc)
 	    goto Lno;
 	else
 	{
+	    assert(dedtypes.dim == 1);
 	    tded = (Type *)dedtypes.data[0];
 	    if (!tded)
 		tded = targ;

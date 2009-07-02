@@ -282,12 +282,51 @@ Array *Parser::parseDeclDefs(int once)
 		    case TOKabstract:	  stc |= STCabstract;	 goto Lstc;
 		    case TOKsynchronized: stc |= STCsynchronized; goto Lstc;
 		    case TOKdeprecated:   stc |= STCdeprecated;	 goto Lstc;
+		    default:
+			break;
 		}
-		a = parseBlock();
-		s = new StorageClassDeclaration(stc, a);
+
+		/* Look for auto initializers:
+		 *	storage_class identifier = initializer;
+		 */
+		if (token.value == TOKidentifier &&
+		    peek(&token)->value == TOKassign)
+		{
+		    a = new Array();
+		    Identifier *ident = token.ident;
+		    nextToken();
+		    nextToken();
+		    Initializer *init = parseInitializer();
+		    VarDeclaration *v = new VarDeclaration(loc, NULL, ident, init);
+		    v->storage_class = stc;
+		    a->push(v);
+		    if (token.value == TOKsemicolon)
+		    {
+			nextToken();
+			addComment(v, comment);
+		    }
+		    else
+			error("semicolon expected following auto declaration, not '%s'", token.toChars());
+		}
+		else
+		{   a = parseBlock();
+		    s = new StorageClassDeclaration(stc, a);
+		}
 		break;
 
-
+	    case TOKextern:
+		if (peek(&token)->value != TOKlparen)
+		{   stc = STCextern;
+		    goto Lstc;
+		}
+	    {
+		enum LINK linksave = linkage;
+		linkage = parseLinkage();
+		a = parseBlock();
+		s = new LinkDeclaration(linkage, a);
+		linkage = linksave;
+		break;
+	    }
 	    case TOKprivate:	prot = PROTprivate;	goto Lprot;
 	    case TOKpackage:	prot = PROTpackage;	goto Lprot;
 	    case TOKprotected:	prot = PROTprotected;	goto Lprot;
@@ -347,58 +386,6 @@ Array *Parser::parseDeclDefs(int once)
 		else
 		    a = parseBlock();
 		s = new PragmaDeclaration(loc, ident, args, a);
-		break;
-	    }
-
-	    case TOKextern:
-	    {	enum LINK link = LINKdefault;
-		enum LINK linksave;
-
-		s = NULL;
-		nextToken();
-		if (token.value == TOKlparen)
-		{
-		    nextToken();
-		    if (token.value == TOKidentifier)
-		    {   Identifier *id = token.ident;
-
-			nextToken();
-			if (id == Id::Windows)
-			    link = LINKwindows;
-			else if (id == Id::Pascal)
-			    link = LINKpascal;
-			else if (id == Id::D)
-			    link = LINKd;
-			else if (id == Id::C)
-			{
-			    link = LINKc;
-			    if (token.value == TOKplusplus)
-			    {   link = LINKcpp;
-				nextToken();
-			    }
-			}
-			else
-			{
-			    error("valid linkage identifiers are D, C, C++, Pascal, Windows");
-			    link = LINKd;
-			    break;
-			}
-		    }
-		    else
-		    {
-			link = LINKd;		// default
-		    }
-		    check(TOKrparen);
-		}
-		else
-		{   stc = STCextern;
-		    goto Lstc2;
-		}
-		linksave = linkage;
-		linkage = link;
-		a = parseBlock();
-		linkage = linksave;
-		s = new LinkDeclaration(link, a);
 		break;
 	    }
 
@@ -543,6 +530,50 @@ StaticAssert *Parser::parseStaticAssert()
     check(TOKrparen);
     check(TOKsemicolon);
     return new StaticAssert(loc, exp);
+}
+
+
+/***********************************
+ * Parse extern (linkage)
+ * The parser is on the 'extern' token.
+ */
+
+enum LINK Parser::parseLinkage()
+{
+    enum LINK link = LINKdefault;
+    nextToken();
+    assert(token.value == TOKlparen);
+    nextToken();
+    if (token.value == TOKidentifier)
+    {   Identifier *id = token.ident;
+
+	nextToken();
+	if (id == Id::Windows)
+	    link = LINKwindows;
+	else if (id == Id::Pascal)
+	    link = LINKpascal;
+	else if (id == Id::D)
+	    link = LINKd;
+	else if (id == Id::C)
+	{
+	    link = LINKc;
+	    if (token.value == TOKplusplus)
+	    {   link = LINKcpp;
+		nextToken();
+	    }
+	}
+	else
+	{
+	    error("valid linkage identifiers are D, C, C++, Pascal, Windows");
+	    link = LINKd;
+	}
+    }
+    else
+    {
+	link = LINKd;		// default
+    }
+    check(TOKrparen);
+    return link;
 }
 
 /**************************************
@@ -1935,7 +1966,7 @@ Type *Parser::parseDeclarator(Type *t, Identifier **pident)
 Array *Parser::parseDeclaration()
 {
     enum STC storage_class;
-    enum STC sc;
+    enum STC stc;
     Type *ts;
     Type *t;
     Type *tfirst;
@@ -1943,6 +1974,7 @@ Array *Parser::parseDeclaration()
     Array *a;
     enum TOK tok;
     unsigned char *comment = token.blockComment;
+    enum LINK link = linkage;
 
     //printf("parseDeclaration()\n");
     switch (token.value)
@@ -1963,25 +1995,61 @@ Array *Parser::parseDeclaration()
     {
 	switch (token.value)
 	{
-	    case TOKconst:	sc = STCconst;		goto L1;
-	    case TOKstatic:	sc = STCstatic;		goto L1;
-	    case TOKfinal:	sc = STCfinal;		goto L1;
-	    case TOKauto:	sc = STCauto;		goto L1;
-	    case TOKoverride:	sc = STCoverride;	goto L1;
-	    case TOKabstract:	sc = STCabstract;	goto L1;
-	    case TOKsynchronized: sc = STCsynchronized;	goto L1;
-	    case TOKdeprecated: sc = STCdeprecated;	goto L1;
+	    case TOKconst:	stc = STCconst;		 goto L1;
+	    case TOKstatic:	stc = STCstatic;	 goto L1;
+	    case TOKfinal:	stc = STCfinal;		 goto L1;
+	    case TOKauto:	stc = STCauto;		 goto L1;
+	    case TOKoverride:	stc = STCoverride;	 goto L1;
+	    case TOKabstract:	stc = STCabstract;	 goto L1;
+	    case TOKsynchronized: stc = STCsynchronized; goto L1;
+	    case TOKdeprecated: stc = STCdeprecated;	 goto L1;
 	    L1:
-		if (storage_class & sc)
+		if (storage_class & stc)
 		    error("redundant storage class '%s'", token.toChars());
-		storage_class = (STC) (storage_class | sc);
+		storage_class = (STC) (storage_class | stc);
 		nextToken();
 		continue;
+
+	    case TOKextern:
+		if (peek(&token)->value != TOKlparen)
+		{   stc = STCextern;
+		    goto L1;
+		}
+
+		link = parseLinkage();
+		continue;
+
+	    default:
+		break;
 	}
 	break;
     }
 
     a = new Array();
+
+    /* Look for auto initializers:
+     *	storage_class identifier = initializer;
+     */
+    if (storage_class &&
+	token.value == TOKidentifier &&
+	peek(&token)->value == TOKassign)
+    {
+	ident = token.ident;
+	nextToken();
+	nextToken();
+	Initializer *init = parseInitializer();
+	VarDeclaration *v = new VarDeclaration(loc, NULL, ident, init);
+	v->storage_class = storage_class;
+	a->push(v);
+	if (token.value == TOKsemicolon)
+	{
+	    nextToken();
+	    addComment(v, comment);
+	}
+	else
+	    error("semicolon expected following auto declaration, not '%s'", token.toChars());
+	return a;
+    }
 
     if (token.value == TOKclass)
     {	AggregateDeclaration *s;
@@ -2051,10 +2119,20 @@ Array *Parser::parseDeclaration()
 	{   FuncDeclaration *f;
 
 	    f = new FuncDeclaration(loc, 0, ident, storage_class, t);
-	    a->push(f);
 	    addComment(f, comment);
 	    parseContracts(f);
 	    addComment(f, NULL);
+	    if (link == linkage)
+	    {
+		a->push(f);
+	    }
+	    else
+	    {
+		Array *ax = new Array();
+		ax->push(f);
+		Dsymbol *s = new LinkDeclaration(link, ax);
+		a->push(s);
+	    }
 	}
 	else
 	{   VarDeclaration *v;
@@ -2465,6 +2543,7 @@ Statement *Parser::parseStatement(int flags)
 	case TOKalias:
 	case TOKconst:
 	case TOKauto:
+	case TOKextern:
 //	case TOKtypeof:
 	Ldeclaration:
 	{   Array *a;

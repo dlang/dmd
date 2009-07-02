@@ -785,7 +785,7 @@ void VarDeclaration::toObjFile()
 
     //printf("VarDeclaration::toObjFile(%p '%s') protection %d\n", this, toChars(), protection);
 
-    if (isDataseg())
+    if (isDataseg() && !(storage_class & STCextern))
     {
 	s = toSymbol();
 	sz = type->size();

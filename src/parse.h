@@ -58,6 +58,7 @@ struct Parser : Lexer
     Dsymbol *parseMixin();
     Array *parseTemplateArgumentList();
     StaticAssert *parseStaticAssert();
+    enum LINK parseLinkage();
     Condition *parseDebugCondition();
     Condition *parseVersionCondition();
     Condition *parseStaticIfCondition();

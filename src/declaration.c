@@ -161,7 +161,8 @@ void TypedefDeclaration::toCBuffer(OutBuffer *buf)
 AliasDeclaration::AliasDeclaration(Loc loc, Identifier *id, Type *type)
     : Declaration(id)
 {
-    //printf("AliasDeclaration(id = '%s')\n", id->toChars());
+    //printf("AliasDeclaration(id = '%s', type = %p)\n", id->toChars(), type);
+    //printf("type = '%s'\n", type->toChars());
     this->loc = loc;
     this->type = type;
     this->aliassym = NULL;
@@ -173,6 +174,7 @@ AliasDeclaration::AliasDeclaration(Loc loc, Identifier *id, Type *type)
 AliasDeclaration::AliasDeclaration(Loc loc, Identifier *id, Dsymbol *s)
     : Declaration(id)
 {
+    //printf("AliasDeclaration(id = '%s', s = %p)\n", id->toChars(), s);
     assert(s != this);
     this->loc = loc;
     this->type = NULL;
@@ -355,12 +357,12 @@ VarDeclaration::VarDeclaration(Loc loc, Type *type, Identifier *id, Initializer 
     : Declaration(id)
 {
 #ifdef DEBUG
-    if (!type)
+    if (!type && !init)
     {	printf("VarDeclaration('%s')\n", id->toChars());
 	*(char*)0=0;
     }
 #endif
-    assert(type);
+    assert(type || init);
     this->type = type;
     this->init = init;
     this->loc = loc;
@@ -388,9 +390,8 @@ Dsymbol *VarDeclaration::syntaxCopy(Dsymbol *s)
 	    //init->isExpInitializer()->exp->dump(0);
 	}
 
-	sv = new VarDeclaration(loc, type->syntaxCopy(), ident, init);
+	sv = new VarDeclaration(loc, type ? type->syntaxCopy() : NULL, ident, init);
 	sv->storage_class = storage_class;
-	//sv->storage_class |= storage_class & STCauto;
     }
     return sv;
 }
@@ -399,13 +400,28 @@ void VarDeclaration::semantic(Scope *sc)
 {
     //printf("VarDeclaration::semantic('%s', parent = '%s')\n", toChars(), sc->parent->toChars());
 
-    type = type->semantic(loc, sc);
+    storage_class |= sc->stc;
+    if (storage_class & STCextern && init)
+	error("extern symbols cannot have initializers");
+
+    /* If auto type inference, do the inference
+     */
+    if (!type)
+    {	type = init->inferType(sc);
+
+	/* This is a kludge to support the existing syntax for RAII
+	 * declarations.
+	 */
+	storage_class &= ~STCauto;
+    }
+    else
+	type = type->semantic(loc, sc);
+
     type->checkDeprecated(loc, sc);
     linkage = sc->linkage;
     this->parent = sc->parent;
     //printf("this = %p, parent = %p, '%s'\n", this, parent, parent->toChars());
     protection = sc->protection;
-    storage_class |= sc->stc;
     //printf("sc->stc = %x\n", sc->stc);
     //printf("storage_class = %x\n", storage_class);
 
