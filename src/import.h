@@ -34,7 +34,7 @@ struct Import : Dsymbol
     char *kind();
     void semantic(Scope *sc);
     void semantic2(Scope *sc);
-    Dsymbol *search(Identifier *ident);
+    Dsymbol *search(Identifier *ident, int flags);
     int overloadInsert(Dsymbol *s);
     void toCBuffer(OutBuffer *buf);
 

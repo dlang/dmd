@@ -289,7 +289,7 @@ static FuncDeclaration *search_function(AggregateDeclaration *ad, Identifier *fu
     Dsymbol *s;
     FuncDeclaration *fd;
 
-    s = ad->search(funcid);
+    s = ad->search(funcid, 0);
     if (s)
     {
 	fd = s->isFuncDeclaration();

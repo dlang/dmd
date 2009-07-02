@@ -184,6 +184,7 @@ struct Type : Object
     virtual Expression *dotExp(Scope *sc, Expression *e, Identifier *ident);
     virtual unsigned memalign(unsigned salign);
     virtual Expression *defaultInit();
+    virtual int isZeroInit();		// if initializer is 0
     virtual dt_t **toDt(dt_t **pdt);
     Identifier *getTypeInfoIdent();
     virtual MATCH deduceType(Type *tparam, Array *parameters, Array *atypes);
@@ -224,6 +225,7 @@ struct TypeBasic : Type
     int isunsigned();
     int implicitConvTo(Type *to);
     Expression *defaultInit();
+    int isZeroInit();
 
     // For eliminating dynamic_cast
     TypeBasic *isTypeBasic();
@@ -310,6 +312,7 @@ struct TypePointer : Type
     int implicitConvTo(Type *to);
     int isscalar();
     Expression *defaultInit();
+    int isZeroInit();
 };
 
 struct TypeReference : Type
@@ -320,6 +323,7 @@ struct TypeReference : Type
     void toCBuffer2(OutBuffer *buf, Identifier *ident);
     Expression *dotExp(Scope *sc, Expression *e, Identifier *ident);
     Expression *defaultInit();
+    int isZeroInit();
 };
 
 enum RET
@@ -357,6 +361,7 @@ struct TypeDelegate : Type
     unsigned size();
     void toCBuffer2(OutBuffer *buf, Identifier *ident);
     Expression *defaultInit();
+    int isZeroInit();
     int checkBoolean();
 };
 
@@ -411,6 +416,7 @@ struct TypeStruct : Type
     Expression *dotExp(Scope *sc, Expression *e, Identifier *ident);
     unsigned memalign(unsigned salign);
     Expression *defaultInit();
+    int isZeroInit();
     dt_t **toDt(dt_t **pdt);
     MATCH deduceType(Type *tparam, Array *parameters, Array *atypes);
 
@@ -438,6 +444,7 @@ struct TypeEnum : Type
     int implicitConvTo(Type *to);
     Type *toBasetype();
     Expression *defaultInit();
+    int isZeroInit();
     MATCH deduceType(Type *tparam, Array *parameters, Array *atypes);
 
     type *toCtype();
@@ -465,6 +472,7 @@ struct TypeTypedef : Type
     Type *toBasetype();
     int implicitConvTo(Type *to);
     Expression *defaultInit();
+    int isZeroInit();
     dt_t **toDt(dt_t **pdt);
     MATCH deduceType(Type *tparam, Array *parameters, Array *atypes);
 
@@ -485,6 +493,7 @@ struct TypeClass : Type
     ClassDeclaration *isClassHandle();
     int implicitConvTo(Type *to);
     Expression *defaultInit();
+    int isZeroInit();
     Expression *getProperty(Loc loc, Identifier *ident);
     MATCH deduceType(Type *tparam, Array *parameters, Array *atypes);
     int isauto();

@@ -489,7 +489,7 @@ int Module::needModuleInfo()
     return needmoduleinfo;
 }
 
-Dsymbol *Module::search(Identifier *ident)
+Dsymbol *Module::search(Identifier *ident, int flags)
 {
     /* Since modules can be circularly referenced,
      * need to stop infinite recursive searches.
@@ -501,7 +501,7 @@ Dsymbol *Module::search(Identifier *ident)
     else
     {
 	insearch = 1;
-	s = ScopeDsymbol::search(ident);
+	s = ScopeDsymbol::search(ident, flags);
 	insearch = 0;
     }
     return s;

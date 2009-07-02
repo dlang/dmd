@@ -73,7 +73,8 @@ void EnumDeclaration::semantic(Scope *sc)
 
 	//printf("Inserting '%s' into table\n",em->toChars());
 	if (isAnonymous())
-	    em->addMember((ScopeDsymbol *)parent);
+	    //em->addMember((ScopeDsymbol *)parent);
+	    sc->enclosing->insert(em);
 	else
 	    em->addMember(this);
 	e = em->value;

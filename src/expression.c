@@ -1217,7 +1217,7 @@ Expression *NewExp::semantic(Scope *sc)
     //printf("type: %s\n", type->toChars());
     type = type->semantic(loc, sc);
     tb = type->toBasetype();
-    //printf("tb: %s\n", tb->toChars());
+    //printf("tb: %s, deco = %s\n", tb->toChars(), tb->deco);
 
     arrayExpressionSemantic(newargs, sc);
     arrayExpressionSemantic(arguments, sc);
@@ -1530,9 +1530,12 @@ Expression *DeclarationExp::semantic(Scope *sc)
     //printf("inserting '%s' %p into sc = %p\n", declaration->toChars(), declaration, sc);
     // Insert into both local scope and function scope.
     // Must be unique in both.
-    if (!sc->insert(declaration) ||
-	(declaration->isFuncDeclaration() && !sc->func->localsymtab->insert(declaration)))
-	error("declaration %s.%s is already defined", sc->func->toChars(), declaration->toChars());
+    if (declaration->ident)
+    {
+	if (!sc->insert(declaration) ||
+	    (declaration->isFuncDeclaration() && !sc->func->localsymtab->insert(declaration)))
+	    error("declaration %s.%s is already defined", sc->func->toChars(), declaration->toChars());
+    }
     declaration->semantic(sc);
     declaration->parent = sc->parent;
     if (!global.errors)
@@ -1576,6 +1579,8 @@ Expression *UnaExp::syntaxCopy()
 Expression *UnaExp::semantic(Scope *sc)
 {
     e1 = e1->semantic(sc);
+//    if (!e1->type)
+//	error("%s has no value", e1->toChars());
     return this;
 }
 
@@ -1607,7 +1612,11 @@ Expression *BinExp::semantic(Scope *sc)
 {
     //printf("BinExp::semantic() %s\n", toChars());
     e1 = e1->semantic(sc);
+    if (!e1->type)
+	error("%s has no value", e1->toChars());
     e2 = e2->semantic(sc);
+    if (!e2->type)
+	error("%s has no value", e2->toChars());
     return this;
 }
 
@@ -1691,7 +1700,7 @@ Expression *DotIdExp::semantic(Scope *sc)
 	Dsymbol *s;
 	ScopeExp *ie = (ScopeExp *)e1;
 
-	s = ie->sds->search(ident);
+	s = ie->sds->search(ident, 0);
 	if (s)
 	{
 	    s = s->toAlias();
@@ -1743,7 +1752,7 @@ Expression *DotIdExp::semantic(Scope *sc)
 	error("undefined identifier %s", toChars());
 	return this;
     }
-    else if (e1->type->ty == Tpointer && ident != Id::size)
+    else if (e1->type->ty == Tpointer && ident != Id::size && ident != Id::init)
     {
 	e = new PtrExp(loc, e1);
 	e->type = e1->type->next;

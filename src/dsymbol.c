@@ -120,7 +120,7 @@ void Dsymbol::inlineScan()
     // Most Dsymbols have no further semantic analysis needed
 }
 
-Dsymbol *Dsymbol::search(Identifier *ident)
+Dsymbol *Dsymbol::search(Identifier *ident, int flags)
 {
     //printf("Dsymbol::search(this=%p,%s, ident='%s')\n", this, toChars(), ident->toChars());
     return NULL;
@@ -349,6 +349,7 @@ ScopeDsymbol::ScopeDsymbol()
     members = NULL;
     symtab = NULL;
     imports = NULL;
+    prots = NULL;
 }
 
 ScopeDsymbol::ScopeDsymbol(Identifier *id)
@@ -357,6 +358,7 @@ ScopeDsymbol::ScopeDsymbol(Identifier *id)
     members = NULL;
     symtab = NULL;
     imports = NULL;
+    prots = NULL;
 }
 
 Dsymbol *ScopeDsymbol::syntaxCopy(Dsymbol *s)
@@ -372,11 +374,11 @@ Dsymbol *ScopeDsymbol::syntaxCopy(Dsymbol *s)
     return sd;
 }
 
-Dsymbol *ScopeDsymbol::search(Identifier *ident)
+Dsymbol *ScopeDsymbol::search(Identifier *ident, int flags)
 {   Dsymbol *s;
     int i;
 
-    //printf("%s->ScopeDsymbol::search(ident='%s')\n", toChars(), ident->toChars());
+    //printf("%s->ScopeDsymbol::search(ident='%s', flags=x%x)\n", toChars(), ident->toChars(), flags);
     // Look in symbols declared in this module
     s = symtab ? symtab->lookup(ident) : NULL;
     if (s)
@@ -390,8 +392,12 @@ Dsymbol *ScopeDsymbol::search(Identifier *ident)
 	{   ScopeDsymbol *ss = (ScopeDsymbol *)imports->data[i];
 	    Dsymbol *s2;
 
-	    //printf("\tscanning import '%s'\n", ss->toChars());
-	    s2 = ss->search(ident);
+	    // If private import, don't search it
+	    if (flags & 1 && prots[i] == PROTprivate)
+		continue;
+
+	    //printf("\tscanning import '%s', prots = %d, isModule = %p, isImport = %p\n", ss->toChars(), prots[i], ss->isModule(), ss->isImport());
+	    s2 = ss->search(ident, ss->isModule() ? 1 : 0);
 	    if (!s)
 		s = s2;
 	    else if (s2 && s != s2)
@@ -410,9 +416,9 @@ Dsymbol *ScopeDsymbol::search(Identifier *ident)
     return s;
 }
 
-void ScopeDsymbol::importScope(ScopeDsymbol *s)
+void ScopeDsymbol::importScope(ScopeDsymbol *s, enum PROT protection)
 {
-    //printf("%s->ScopeDsymbol::importScope(%s)\n", toChars(), s->toChars());
+    //printf("%s->ScopeDsymbol::importScope(%s, %d)\n", toChars(), s->toChars(), protection);
 
     // No circular or redundant import's
     if (s != this)
@@ -426,10 +432,16 @@ void ScopeDsymbol::importScope(ScopeDsymbol *s)
 
 		ss = (ScopeDsymbol *) imports->data[i];
 		if (ss == s)
+		{
+		    if (protection > prots[i])
+			prots[i] = protection;	// upgrade access
 		    return;
+		}
 	    }
 	}
 	imports->push(s);
+	prots = (unsigned char *)mem.realloc(prots, imports->dim * sizeof(prots[0]));
+	prots[imports->dim - 1] = protection;
     }
 }
 
@@ -497,10 +509,10 @@ WithScopeSymbol::WithScopeSymbol(WithStatement *withstate)
     this->withstate = withstate;
 }
 
-Dsymbol *WithScopeSymbol::search(Identifier *ident)
+Dsymbol *WithScopeSymbol::search(Identifier *ident, int flags)
 {
     // Acts as proxy to the with class declaration
-    return withstate->exp->type->isClassHandle()->search(ident);
+    return withstate->exp->type->isClassHandle()->search(ident, 0);
 }
 
 /****************************** DsymbolTable ******************************/

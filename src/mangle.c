@@ -137,8 +137,35 @@ char *TypedefDeclaration::mangle()
 
 char *ClassDeclaration::mangle()
 {
-    OutBuffer buf;
     char *id;
+#if 1
+    id = ident ? ident->toChars() : toChars();
+    if (parent)
+    {
+	/* These are reserved to the compiler, so keep simple
+	 * names for them.
+	 */
+	if (ident == Id::TypeInfo   ||
+	    ident == Id::Exception  ||
+	    ident == Id::Object     ||
+	    ident == Id::ClassInfo  ||
+	    ident == Id::ModuleInfo ||
+	    memcmp(id, "TypeInfo_", 9) == 0
+	   )
+	    return id;
+
+	OutBuffer buf;
+
+	//printf("  parent = '%s', kind = '%s'\n", parent->mangle(), parent->kind());
+	buf.writestring(parent->mangle());
+	buf.writestring("_");
+	buf.writestring(id);
+	id = buf.toChars();
+	buf.data = NULL;
+    }
+    return id;
+#else
+    OutBuffer buf;
     Dsymbol *s;
 
     s = this;
@@ -156,6 +183,7 @@ char *ClassDeclaration::mangle()
     id = buf.toChars();
     buf.data = NULL;
     return id;
+#endif
 }
 
 

@@ -20,6 +20,12 @@
 #include	<process.h>
 #endif
 
+#if linux
+#include	<sys/types.h>
+#include	<sys/wait.h>
+#include	<unistd.h>
+#endif
+
 #include	"root.h"
 
 #include	"mars.h"
@@ -37,7 +43,7 @@ int executearg0(char *cmd, char *args);
 
 int runLINK()
 {
-#ifdef __DMC__
+#if _WIN32
     char *p;
     int i;
     int status;
@@ -123,8 +129,75 @@ int runLINK()
 	linkcmd = "link";
     status = executecmd(linkcmd, p, 1);
     return status;
+#elif linux
+    pid_t childpid;
+    int i;
+    int status;
+
+    // Build argv[]
+    Array argv;
+
+    argv.push((void *)"gcc");
+    argv.insert(1, global.params.objfiles);
+
+    // None of that a.out stuff. Use explicit exe file name, or
+    // generate one from name of first source file.
+    argv.push((void *)"-o");
+    if (global.params.exefile)
+    {
+	argv.push(global.params.exefile);
+    }
+    else
+    {	// Generate exe file name from first obj name
+	char *n = (char *)global.params.objfiles->data[0];
+	char *e;
+	char *ex;
+
+	n = FileName::name(n);
+	e = FileName::ext(n);
+	if (e)
+	{
+	    e--;			// back up over '.'
+	    ex = (char *)mem.malloc(e - n + 1);
+	    memcpy(ex, n, e - n);
+	    ex[e - n] = 0;
+	}
+	else
+	    ex = (char *)"a.out";	// no extension, so give up
+	argv.push(ex);
+    }
+
+    argv.insert(argv.dim, global.params.libfiles);
+
+    if (global.params.symdebug)
+	argv.push((void *)"-g");
+
+    argv.push((void *)"-lphobos");	// turns into /usr/lib/libphobos.a
+    argv.push((void *)"-lpthread");
+    argv.push((void *)"-lm");
+
+    // Print it
+    for (i = 0; i < argv.dim; i++)
+	printf("%s ", (char *)argv.data[i]);
+    printf("\n");
+    fflush(stdout);
+
+    argv.push(NULL);
+    childpid = fork();
+    if (childpid == 0)
+    {
+	execvp((char *)argv.data[0], (char **)argv.data);
+	perror((char *)argv.data[0]);		// failed to execute
+	return -1;
+    }
+
+    waitpid(childpid, &status, 0);
+
+    if (status)
+	printf("--- errorlevel %d\n", status);
+    return status;
 #else
-    printf ("Linker is not yet completed for this version of DMD Linux.\n");
+    printf ("Linking is not yet supported for this version of DMD.\n");
     return -1;
 #endif
 }
@@ -137,6 +210,7 @@ int runLINK()
  *	useenv	if cmd knows about _CMDLINE environment variable
  */
 
+#if _WIN32
 int executecmd(char *cmd, char *args, int useenv)
 {
     int status;
@@ -186,6 +260,7 @@ int executecmd(char *cmd, char *args, int useenv)
     }
     return status;
 }
+#endif
 
 /**************************************
  * Attempt to find command to execute by first looking in the directory
@@ -195,6 +270,7 @@ int executecmd(char *cmd, char *args, int useenv)
  *	!=-1	exit status from command
  */
 
+#if _WIN32
 int executearg0(char *cmd, char *args)
 {
     char *file;
@@ -230,5 +306,5 @@ int executearg0(char *cmd, char *args)
     assert(0);
 #endif
 }
-
+#endif
 

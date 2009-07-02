@@ -88,7 +88,7 @@ struct Dsymbol : Object
     virtual void semantic2(Scope *sc);
     virtual void semantic3(Scope *sc);
     virtual void inlineScan();
-    virtual Dsymbol *search(Identifier *ident);
+    virtual Dsymbol *search(Identifier *ident, int flags);
     virtual int overloadInsert(Dsymbol *s);
     virtual void toCBuffer(OutBuffer *buf);
     virtual unsigned size();
@@ -147,13 +147,15 @@ struct ScopeDsymbol : Dsymbol
 {
     Array *members;		// all Dsymbol's in this scope
     DsymbolTable *symtab;	// members[] sorted into table
+
     Array *imports;		// imported ScopeDsymbol's
+    unsigned char *prots;	// PROT for each import
 
     ScopeDsymbol();
     ScopeDsymbol(Identifier *id);
     Dsymbol *syntaxCopy(Dsymbol *s);
-    Dsymbol *search(Identifier *ident);
-    void importScope(ScopeDsymbol *s);
+    Dsymbol *search(Identifier *ident, int flags);
+    void importScope(ScopeDsymbol *s, enum PROT protection);
     int isforwardRef();
     void defineRef(Dsymbol *s);
     void multiplyDefined(Dsymbol *s1, Dsymbol *s2);
@@ -170,7 +172,7 @@ struct WithScopeSymbol : ScopeDsymbol
     WithStatement *withstate;
 
     WithScopeSymbol(WithStatement *withstate);
-    Dsymbol *search(Identifier *ident);
+    Dsymbol *search(Identifier *ident, int flags);
 
     WithScopeSymbol *isWithScopeSymbol() { return this; }
 };

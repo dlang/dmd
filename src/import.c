@@ -58,7 +58,8 @@ void Import::semantic(Scope *sc)
 						// if so then insert alias
 	}
 	mod->semantic();
-	sc->scopesym->importScope(mod);
+	//printf("import '%s', protection = %d for '%s'\n", toChars(), sc->protection, mod->toChars());
+	sc->scopesym->importScope(mod, sc->protection);
     }
     if (!pkg)
 	pkg = mod;
@@ -69,10 +70,10 @@ void Import::semantic2(Scope *sc)
     mod->semantic2();
 }
 
-Dsymbol *Import::search(Identifier *ident)
+Dsymbol *Import::search(Identifier *ident, int flags)
 {
     // Forward it to the package/module
-    return pkg->search(ident);
+    return pkg->search(ident, flags);
 }
 
 int Import::overloadInsert(Dsymbol *s)

@@ -192,7 +192,7 @@ Dsymbol *Scope::search(Identifier *ident, Dsymbol **pscopesym)
 	if (sc->scopesym)
 	{
 	    //printf("\tlooking in scopesym '%s'\n", sc->scopesym->toChars());
-	    s = sc->scopesym->search(ident);
+	    s = sc->scopesym->search(ident, 0);
 	    if (s)
 	    {
 		//printf("\tfound %s.%s\n", s->parent ? s->parent->toChars() : "", s->toChars());

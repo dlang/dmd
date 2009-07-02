@@ -361,13 +361,15 @@ Statement *ScopeStatement::semantic(Scope *sc)
 	}
 
 	statement = statement->semantic(sc);
-
-	Statement *finalbody;
-	finalbody = statement->callAutoDtor();
-	if (finalbody)
+	if (statement)
 	{
-	    //printf("adding finalbody\n");
-	    statement = new CompoundStatement(loc, statement, finalbody);
+	    Statement *finalbody;
+	    finalbody = statement->callAutoDtor();
+	    if (finalbody)
+	    {
+		//printf("adding finalbody\n");
+		statement = new CompoundStatement(loc, statement, finalbody);
+	    }
 	}
 
 	sc->pop();

@@ -48,6 +48,7 @@ Msgtable msgtable[] =
     { "classinfo" },
     { "TypeInfo" },
     { "typeinfo" },
+    { "Exception" },
     { "withSym", "__withSym" },
     { "result", "__result" },
     { "returnLabel", "__returnLabel" },

@@ -246,3 +246,19 @@ Expression *CatExp::optimize(int result)
 }
 
 
+Expression *CondExp::optimize(int result)
+{   Expression *e;
+
+    econd = econd->optimize(WANTflags);
+    e1 = e1->optimize(result);
+    e2 = e2->optimize(result);
+    if (econd->isBool(TRUE))
+	e = e1;
+    else if (econd->isBool(FALSE))
+	e = e2;
+    else
+	e = this;
+    return e;
+}
+
+

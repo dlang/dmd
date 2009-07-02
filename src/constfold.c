@@ -528,3 +528,15 @@ Expression *IdentityExp::constFold()
 }
 
 
+Expression *CondExp::constFold()
+{
+    int n;
+
+    econd = econd->constFold();
+    if (econd->type->isfloating())
+	n = econd->toComplex() != 0;
+    else
+	n = econd->toInteger() != 0;
+    return n ? e1 : e2;
+}
+

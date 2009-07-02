@@ -1638,7 +1638,9 @@ Array *Parser::parseDeclaration()
 void Parser::parseContracts(FuncDeclaration *f)
 {
     Type *tb;
+    enum LINK linksave = linkage;
 
+    linkage = LINKd;		// nested functions have D linkage
 L1:
     switch (token.value)
     {
@@ -1713,6 +1715,7 @@ L1:
 	    error("semicolon expected following function declaration");
 	    break;
     }
+    linkage = linksave;
 }
 
 /*****************************************
@@ -1870,7 +1873,7 @@ Statement *Parser::parseStatement(int flags)
 		ident = token.ident;
 		nextToken();
 		nextToken();
-		s = parseStatement(PSsemi | PSscope);
+		s = parseStatement(PSsemi);
 		s = new LabelStatement(loc, ident, s);
 	    }
 	    else if (isDeclaration(&token, 2, TOKreserved, NULL))

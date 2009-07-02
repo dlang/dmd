@@ -66,6 +66,8 @@ struct AggregateDeclaration : ScopeDsymbol
 
 struct StructDeclaration : AggregateDeclaration
 {
+    int zeroInit;		// !=0 if initialize with 0 fill
+
     StructDeclaration(Identifier *id);
     Dsymbol *syntaxCopy(Dsymbol *s);
     void semantic(Scope *sc);
@@ -137,7 +139,7 @@ struct ClassDeclaration : AggregateDeclaration
     void semantic(Scope *sc);
     void toCBuffer(OutBuffer *buf);
     virtual int isBaseOf(ClassDeclaration *cd, int *poffset);
-    Dsymbol *search(Identifier *ident);
+    Dsymbol *search(Identifier *ident, int flags);
     FuncDeclaration *findFunc(Identifier *ident, TypeFunction *tf);
     void interfaceSemantic(Scope *sc);
     int isCOMclass();

@@ -71,7 +71,7 @@ struct Module : Package
     void genobjfile();
     void gensymfile();
     int needModuleInfo();
-    Dsymbol *search(Identifier *ident);
+    Dsymbol *search(Identifier *ident, int flags);
     void deleteObjFile();
 
     // Back end

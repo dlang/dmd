@@ -248,6 +248,7 @@ void ArrayInitializer::toCBuffer(OutBuffer *buf)
 {
 }
 
+
 /********************************** ExpInitializer ************************************/
 
 ExpInitializer::ExpInitializer(Loc loc, Expression *exp)
@@ -292,5 +293,6 @@ void ExpInitializer::toCBuffer(OutBuffer *buf)
 {
     exp->toCBuffer(buf);
 }
+
 
 

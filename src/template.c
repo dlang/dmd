@@ -47,6 +47,9 @@ static Type *isType(Object *o)
 TemplateDeclaration::TemplateDeclaration(Loc loc, Identifier *id, Array *parameters, Array *decldefs)
     : ScopeDsymbol(id)
 {
+#if LOG
+    printf("TemplateDeclaration(this = %p, id = '%s')\n", this, id->toChars());
+#endif
     this->loc = loc;
     this->parameters = parameters;
     this->members = decldefs;
@@ -64,6 +67,20 @@ void TemplateDeclaration::semantic(Scope *sc)
 {
     if (sc->func)
 	error("cannot declare template at function scope");
+
+    if (global.params.useArrayBounds && sc->module)
+    {
+	// Generate this function as it may be used
+	// when template is instantiated in other modules
+	sc->module->toModuleArray();
+    }
+
+    if (global.params.useAssert && sc->module)
+    {
+	// Generate this function as it may be used
+	// when template is instantiated in other modules
+	sc->module->toModuleAssert();
+    }
 
     // Remember Scope for later instantiations
     this->scope = sc;
@@ -130,7 +147,7 @@ int TemplateDeclaration::overloadInsert(Dsymbol *s)
     TemplateDeclaration *f;
 
 #if LOG
-    printf("TemplateDeclaration::overloadInsert(%s)\n", s->toChars());
+    printf("TemplateDeclaration::overloadInsert('%s')\n", s->toChars());
 #endif
     f = s->isTemplateDeclaration();
     if (!f)
@@ -194,7 +211,7 @@ MATCH TemplateDeclaration::matchWithInstance(TemplateInstance *ti, Array *dedtyp
     int dim = dedtypes->dim;
 
 #if LOG
-    printf("TemplateDeclaration::matchWithInstance()\n");
+    printf("TemplateDeclaration::matchWithInstance(this = %p, ti = %p)\n", this, ti);
 #endif
     dedtypes->zero();
 
@@ -302,13 +319,18 @@ MATCH TemplateDeclaration::matchWithInstance(TemplateInstance *ti, Array *dedtyp
 	}
     }
     else
-	printf(" no match\n");
+	goto Lnomatch;
 #endif
 
+#if LOG
+    printf(" match = %d\n", m);
+#endif
     return m;
 
 Lnomatch:
-    //printf(" no match\n");
+#if LOG
+    printf(" no match\n");
+#endif
     return MATCHnomatch;
 }
 
@@ -707,7 +729,7 @@ TemplateInstance::TemplateInstance(Identifier *ident)
     : ScopeDsymbol(NULL)
 {
 #if LOG
-    printf("TemplateInstance(ident = '%s')\n", ident ? ident->toChars() : "null");
+    printf("TemplateInstance(this = %p, ident = '%s')\n", this, ident ? ident->toChars() : "null");
 #endif
     this->idents.push(ident);
     this->tempdecl = NULL;
@@ -814,7 +836,7 @@ void TemplateInstance::semantic(Scope *sc)
 	{   Dsymbol *sm;
 
 	    id = (Identifier *)idents.data[i];
-	    sm = s->search(id);
+	    sm = s->search(id, 0);
 	    if (!sm)
 	    {
 		s = NULL;
@@ -1044,8 +1066,10 @@ void TemplateInstance::semantic(Scope *sc)
 	if (targ)
 	{
 	    AliasDeclaration *sarg;
+	    Type *tded = isType((Object *)tdtypes.data[i]);
 
-	    sarg = new AliasDeclaration(0, tp->ident, targ);
+	    assert(tded);
+	    sarg = new AliasDeclaration(0, tp->ident, tded);
 	    s = sarg;
 	}
 	else

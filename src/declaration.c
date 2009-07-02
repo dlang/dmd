@@ -202,7 +202,7 @@ void AliasDeclaration::semantic(Scope *sc)
 	    for (int i = 1; i < ti->idents.dim; i++)
 	    {
 		id = (Identifier *)ti->idents.data[i];
-		s = s->search(id);
+		s = s->search(id, 0);
 		if (!s)			// failed to find a symbol
 		    goto L1;		// it must be a type
 		s = s->toAlias();
@@ -233,7 +233,7 @@ void AliasDeclaration::semantic(Scope *sc)
 	    {	Identifier *id;
 
 		id = (Identifier *)ti->idents.data[i];
-		s = s->search(id);
+		s = s->search(id, 0);
 		if (!s)			// failed to find a symbol
 		    goto L1;		// it must be a type
 		s = s->toAlias();
@@ -408,9 +408,22 @@ void VarDeclaration::semantic(Scope *sc)
     {
 	// Provide a default initializer
 	//printf("Providing default initializer for '%s'\n", toChars());
-	Expression *e = type->defaultInit();
-	if (e)
+	if (type->ty == Tstruct &&
+	    ((TypeStruct *)type)->sym->zeroInit == 1)
+	{
+	    Expression *e = new IntegerExp(loc, 0, Type::tint32);
+	    Expression *e1 = new VarExp(loc, this);
+	    e = new AssignExp(loc, e1, e);
+	    e->type = e1->type;
 	    init = new ExpInitializer(loc, e);
+	    return;
+	}
+	else
+	{
+	    Expression *e = type->defaultInit();
+	    if (e)
+		init = new ExpInitializer(loc, e);
+	}
     }
 
     // If inside function, there is no semantic3() call

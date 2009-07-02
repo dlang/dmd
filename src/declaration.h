@@ -227,7 +227,6 @@ struct FuncDeclaration : Declaration
     void semantic3(Scope *sc);
     void toHBuffer(OutBuffer *buf);
     void toCBuffer(OutBuffer *buf);
-//    Dsymbol *search(Identifier *ident);
     int overloadInsert(Dsymbol *s);
     FuncDeclaration *overloadResolve(Loc loc, Array *arguments);
     LabelDsymbol *searchLabel(Identifier *ident);

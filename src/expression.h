@@ -1012,6 +1012,8 @@ struct CondExp : BinExp
     CondExp(Loc loc, Expression *econd, Expression *e1, Expression *e2);
     Expression *syntaxCopy();
     Expression *semantic(Scope *sc);
+    Expression *optimize(int result);
+    Expression *constFold();
     Expression *toLvalue();
     void checkBoolean();
     void toCBuffer(OutBuffer *buf);

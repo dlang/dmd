@@ -128,6 +128,8 @@ void AggregateDeclaration::alignmember(unsigned salign, unsigned size, unsigned 
 StructDeclaration::StructDeclaration(Identifier *id)
     : AggregateDeclaration(id)
 {
+    zeroInit = 0;	// assume false until we do semantic processing
+
     // For forward references
     type = new TypeStruct(this);
 }
@@ -199,7 +201,6 @@ void StructDeclaration::semantic(Scope *sc)
 	// added to the enclosing struct.
 	unsigned offset;
 	int isunionsave;
-	int i;
 
 	// Align size of enclosing struct
 	sd->alignmember(structalign, alignsize, &sd->structsize);
@@ -226,6 +227,31 @@ void StructDeclaration::semantic(Scope *sc)
 	    sd->alignsize = alignsize;
     }
     //printf("-StructDeclaration::semantic(this=%p, '%s')\n", this, toChars());
+
+    // Determine if struct is all zeros or not
+    zeroInit = 1;
+    for (i = 0; i < fields.dim; i++)
+    {
+	Dsymbol *s = (Dsymbol *)fields.data[i];
+	VarDeclaration *vd = s->isVarDeclaration();
+	if (vd)
+	{
+	    if (vd->init)
+	    {
+		// Should examine init to see if it is really all 0's
+		zeroInit = 0;
+		break;
+	    }
+	    else
+	    {
+		if (!vd->type->isZeroInit())
+		{
+		    zeroInit = 0;
+		    break;
+		}
+	    }
+	}
+    }
 
     if (sc->func)
     {

@@ -40,7 +40,7 @@ Global::Global()
 
     copyright = "Copyright (c) 1999-2003 by Digital Mars";
     written = "written by Walter Bright";
-    version = "Beta v0.63";
+    version = "Beta v0.65";
     global.structalign = 8;
 
     memset(&params, 0, sizeof(Param));
@@ -123,7 +123,8 @@ Usage:\n\
   -gt            add trace profiling hooks\n\
   -v             verbose\n\
   -O             optimize\n\
-  -oobjdir       write .obj files to directory objdir\n\
+  -oobjdir       write object files to directory objdir\n\
+  -o filename	 name output file\n\
   -Ipath         where to look for imports\n\
   -Llinkerflag   pass linkerflag to link\n\
   -debug         compile in debug code\n\
@@ -190,7 +191,7 @@ int main(int argc, char *argv[])
     inifile(argv[0], "sc.ini");
 #endif
 #if linux
-    inifile(argv[0], "dmd.conf");
+    inifile(argv[0], "/etc/dmd.conf");
 #endif
     getenv_setargv("DFLAGS", &argc, &argv);
 
@@ -211,11 +212,7 @@ int main(int argc, char *argv[])
 	    else if (strcmp(p + 1, "c") == 0)
 		global.params.link = 0;
 	    else if (strcmp(p + 1, "g") == 0)
-#if TARGET_LINUX
-		;
-#else
 		global.params.symdebug = 1;
-#endif
 	    else if (strcmp(p + 1, "gt") == 0)
 		global.params.trace = 1;
 	    else if (strcmp(p + 1, "v") == 0)
@@ -223,7 +220,17 @@ int main(int argc, char *argv[])
 	    else if (strcmp(p + 1, "O") == 0)
 		global.params.optimize = 1;
 	    else if (p[1] == 'o')
-		global.params.objdir = p + 2;
+	    {
+		if (p[2])
+		    global.params.objdir = p + 2;
+		else if (i + 1 < argc)
+		{   // -o filename
+		    global.params.objdir = argv[i + 1];
+		    i++;
+		}
+		else
+		    goto Lerror;
+	    }
 	    else if (strcmp(p + 1, "inline") == 0)
 		global.params.useInline = 1;
 	    else if (strcmp(p + 1, "release") == 0)
@@ -314,24 +321,32 @@ int main(int argc, char *argv[])
 
     if (global.params.objdir)
     {
-	// Check to see if it is really an obj file name spec
-	char *e = FileName::ext(global.params.objdir);
+	if (global.params.link)
+	{
+	    global.params.exefile = global.params.objdir;
+	    global.params.objdir = NULL;
+	}
+	else
+	{
+	    // Check to see if it is really an obj file name spec
+	    char *e = FileName::ext(global.params.objdir);
 
 #if _WIN32
-	if (e && stricmp(e, global.obj_ext) == 0)
+	    if (e && stricmp(e, global.obj_ext) == 0)
 #elif linux
-	if (e && strcmp(e, global.obj_ext) == 0)
+	    if (e && strcmp(e, global.obj_ext) == 0)
 #else
 #error "fix this"
 #endif
-	{
-	    global.params.objname = global.params.objdir;
-	    global.params.objdir = NULL;
-
-	    if (files.dim > 1)
 	    {
-		error("multiple source files, but only one .obj name");
-		fatal();
+		global.params.objname = global.params.objdir;
+		global.params.objdir = NULL;
+
+		if (files.dim > 1)
+		{
+		    error("multiple source files, but only one .obj name");
+		    fatal();
+		}
 	    }
 	}
     }
@@ -368,8 +383,8 @@ int main(int argc, char *argv[])
 	ext = FileName::ext(p);
 	if (ext)
 	{
-#if ELFOBJ
-	    if (stricmp(ext, "o") == 0)
+#if TARGET_LINUX
+	    if (strcmp(ext, "o") == 0)
 #else
 	    if (stricmp(ext, "obj") == 0)
 #endif
@@ -378,12 +393,17 @@ int main(int argc, char *argv[])
 		continue;
 	    }
 
+#if TARGET_LINUX
+	    if (strcmp(ext, "a") == 0)
+#else
 	    if (stricmp(ext, "lib") == 0)
+#endif
 	    {
 		global.params.libfiles->push(files.data[i]);
 		continue;
 	    }
 
+#if !TARGET_LINUX
 	    if (stricmp(ext, "res") == 0)
 	    {
 		global.params.resfile = (char *)files.data[i];
@@ -401,6 +421,7 @@ int main(int argc, char *argv[])
 		global.params.exefile = (char *)files.data[i];
 		continue;
 	    }
+#endif
 
 	    if (stricmp(ext, "d") == 0 || stricmp(ext, "html") == 0)
 	    {

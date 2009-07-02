@@ -68,6 +68,7 @@ void FuncDeclaration::semantic(Scope *sc)
     InterfaceDeclaration *id;
 
     //printf("FuncDeclaration::semantic(sc = %p, '%s')\n",sc,ident->toChars());
+
     type = type->semantic(loc, sc);
     if (type->ty != Tfunction)
     {
@@ -236,6 +237,7 @@ void FuncDeclaration::semantic3(Scope *sc)
     AggregateDeclaration *ad;
 
     //printf("FuncDeclaration::semantic3('%s.%s', sc = %p)\n", parent->toChars(), toChars(), sc);
+    //printf(" sc->incontract = %d\n", sc->incontract);
     if (semanticRun)
 	return;
     semanticRun = 1;
@@ -375,7 +377,9 @@ void FuncDeclaration::semantic3(Scope *sc)
 
 		v = new VarDeclaration(loc, type->next, outId, NULL);
 		v->noauto = 1;
+		sc2->incontract--;
 		v->semantic(sc2);
+		sc2->incontract++;
 		if (!sc2->insert(v))
 		    error("out result %s is already defined", v->toChars());
 		v->parent = this;
@@ -512,17 +516,6 @@ void FuncDeclaration::toCBuffer(OutBuffer *buf)
     }
 }
 
-#if 0
-Dsymbol *FuncDeclaration::search(Identifier *ident)
-{   Dsymbol *s;
-
-printf("FuncDeclaration::search('%s')\n", ident->toChars());
-    s = symtab ? symtab->lookup(ident) : NULL;
-    if (!s)
-	Dsymbol::search(ident);
-    return s;
-}
-#endif
 
 /**********************************
  * Overload this FuncDeclaration with the new one f.
@@ -728,7 +721,7 @@ AggregateDeclaration *FuncDeclaration::isThis()
  * Error if this cannot call fd.
  * Returns:
  *	0	same level
- *	-1	increase nesting by 1
+ *	-1	increase nesting by 1 (fd is nested within 'this')
  *	>0	decrease nesting by number
  */
 

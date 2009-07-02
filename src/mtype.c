@@ -354,6 +354,11 @@ Expression *Type::defaultInit()
     return NULL;
 }
 
+int Type::isZeroInit()
+{
+    return 0;		// assume not
+}
+
 /********************************
  * Determine if 'this' can be implicitly converted
  * to type 'to'.
@@ -1020,6 +1025,24 @@ Expression *TypeBasic::defaultInit()
 	    return getProperty(0, Id::nan);
     }
     return new IntegerExp(0, 0, this);
+}
+
+int TypeBasic::isZeroInit()
+{
+    switch (ty)
+    {
+	case Timaginary32:
+	case Timaginary64:
+	case Timaginary80:
+	case Tfloat32:
+	case Tfloat64:
+	case Tfloat80:
+	case Tcomplex32:
+	case Tcomplex64:
+	case Tcomplex80:
+	    return 0;		// no
+    }
+    return 1;			// yes
 }
 
 int TypeBasic::isbit()
@@ -1740,6 +1763,11 @@ Expression *TypePointer::defaultInit()
     return e;
 }
 
+int TypePointer::isZeroInit()
+{
+    return 1;
+}
+
 
 /***************************** TypeReference *****************************/
 
@@ -1795,6 +1823,11 @@ Expression *TypeReference::defaultInit()
     e = new NullExp(0);
     e->type = this;
     return e;
+}
+
+int TypeReference::isZeroInit()
+{
+    return 1;
 }
 
 
@@ -2163,6 +2196,11 @@ Expression *TypeDelegate::defaultInit()
     return e;
 }
 
+int TypeDelegate::isZeroInit()
+{
+    return 1;
+}
+
 int TypeDelegate::checkBoolean()
 {
     return TRUE;
@@ -2245,7 +2283,7 @@ void TypeIdentifier::resolve(Scope *sc, Expression **pe, Type **pt)
 	{   Dsymbol *sm;
 
 	    id = (Identifier *)idents.data[i];
-	    sm = s->search(id);
+	    sm = s->search(id, 0);
 	    if (!sm)
 	    {
 		t = s->getType();
@@ -2303,7 +2341,7 @@ L1:
 	    si = s->isImport();
 	    if (si)
 	    {
-		s = si->search(id);
+		s = si->search(id, 0);
 		if (s)
 		    goto L1;
 		s = si;
@@ -2428,7 +2466,7 @@ void TypeInstance::resolve(Scope *sc, Expression **pe, Type **pt)
 	{   Dsymbol *sm;
 
 	    id = (Identifier *)idents.data[i];
-	    sm = s->search(id);
+	    sm = s->search(id, 0);
 	    if (!sm)
 	    {
 		t = s->getType();
@@ -2483,7 +2521,7 @@ L1:
 	    si = s->isImport();
 	    if (si)
 	    {
-		s = si->search(id);
+		s = si->search(id, 0);
 		if (s)
 		    goto L1;
 		s = si;
@@ -2673,6 +2711,11 @@ Expression *TypeEnum::defaultInit()
     return e;
 }
 
+int TypeEnum::isZeroInit()
+{
+    return (sym->defaultval == 0);
+}
+
 
 /***************************** TypeTypedef *****************************/
 
@@ -2818,6 +2861,13 @@ Expression *TypeTypedef::defaultInit()
 	bt = bt->next->toBasetype();
     }
     return e;
+}
+
+int TypeTypedef::isZeroInit()
+{
+    if (sym->init)
+	return 0;		// assume not
+    return sym->basetype->isZeroInit();
 }
 
 /***************************** TypeStruct *****************************/
@@ -2975,6 +3025,11 @@ Expression *TypeStruct::defaultInit()
     return new VarExp(sym->loc, d);
 }
 
+int TypeStruct::isZeroInit()
+{
+    return sym->zeroInit;
+}
+
 
 /***************************** TypeClass *****************************/
 
@@ -3028,7 +3083,7 @@ Expression *TypeClass::dotExp(Scope *sc, Expression *e, Identifier *ident)
 #if LOGDOTEXP
     printf("TypeClass::dotExp(e='%s', ident='%s')\n", e->toChars(), ident->toChars());
 #endif
-    s = sym->search(ident);
+    s = sym->search(ident, 0);
     if (!s)
     {
 	// See if it's a base class
@@ -3175,6 +3230,11 @@ Expression *TypeClass::defaultInit()
     e = new NullExp(0);
     e->type = this;
     return e;
+}
+
+int TypeClass::isZeroInit()
+{
+    return 1;
 }
 
 Expression *TypeClass::getProperty(Loc loc, Identifier *ident)

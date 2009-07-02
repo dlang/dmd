@@ -314,7 +314,7 @@ int ClassDeclaration::isBaseOf(ClassDeclaration *cd, int *poffset)
     return 0;
 }
 
-Dsymbol *ClassDeclaration::search(Identifier *ident)
+Dsymbol *ClassDeclaration::search(Identifier *ident, int flags)
 {
     Dsymbol *s;
 
@@ -341,7 +341,7 @@ Dsymbol *ClassDeclaration::search(Identifier *ident)
 		    error("base %s is forward referenced", b->base->ident->toChars());
 		else
 		{
-		    s = b->base->search(ident);
+		    s = b->base->search(ident, flags);
 		    if (s)
 			break;
 		}
@@ -351,7 +351,7 @@ Dsymbol *ClassDeclaration::search(Identifier *ident)
 	if (!s && imports)
 	{
 	    // Look in imports
-	    s = ScopeDsymbol::search(ident);
+	    s = ScopeDsymbol::search(ident, flags);
 	}
     }
     return s;
