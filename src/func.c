@@ -400,6 +400,7 @@ void FuncDeclaration::semantic3(Scope *sc)
 	sc2->callSuper = 0;
 	sc2->sbreak = NULL;
 	sc2->scontinue = NULL;
+	sc2->sw = NULL;
 	sc2->fes = fes;
 	sc2->linkage = LINKd;
 

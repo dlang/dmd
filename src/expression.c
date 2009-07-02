@@ -5848,9 +5848,10 @@ Expression *CmpExp::semantic(Scope *sc)
 	    error("array comparison type mismatch, %s vs %s", t1->next->toChars(), t2->next->toChars());
 	e = this;
     }
-    else if (t1->ty == Tstruct || t2->ty == Tstruct)
+    else if (t1->ty == Tstruct || t2->ty == Tstruct ||
+	     (t1->ty == Tclass && t2->ty == Tclass))
     {
-	error("need member function opCmp() for struct %s to compare", t1->toChars());
+	error("need member function opCmp() for %s %s to compare", t1->toDsymbol(sc)->kind(), t1->toChars());
 	e = this;
     }
 #if 1

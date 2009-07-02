@@ -597,8 +597,8 @@ Expression *CmpExp::constFold()
 	assert(0);
     }
     else
-    {	integer_t n1;
-	integer_t n2;
+    {	sinteger_t n1;
+	sinteger_t n2;
 
 	n1 = e1->toInteger();
 	n2 = e2->toInteger();

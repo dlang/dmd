@@ -53,6 +53,10 @@ enum PROT StructDeclaration::getAccess(Dsymbol *smember)
     {
 	access_ret = smember->prot();
     }
+    else if (smember->isDeclaration()->isStatic())
+    {
+	access_ret = smember->prot();
+    }
     return access_ret;
 }
 
@@ -72,6 +76,11 @@ enum PROT ClassDeclaration::getAccess(Dsymbol *smember)
     {
 	enum PROT access;
 	int i;
+
+	if (smember->isDeclaration()->isStatic())
+	{
+	    access_ret = smember->prot();
+	}
 
 	for (i = 0; i < baseclasses.dim; i++)
 	{   BaseClass *b = (BaseClass *)baseclasses.data[i];
