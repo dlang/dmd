@@ -1,5 +1,5 @@
 
-// Copyright (c) 1999-2003 by Digital Mars
+// Copyright (c) 1999-2005 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // www.digitalmars.com
@@ -28,12 +28,12 @@ struct CtorDeclaration;
 struct DtorDeclaration;
 struct StaticCtorDeclaration;
 struct StaticDtorDeclaration;
+struct ConditionalDeclaration;
 struct InvariantDeclaration;
 struct UnitTestDeclaration;
 struct NewDeclaration;
 struct DeleteDeclaration;
-struct DebugCondition;
-struct VersionCondition;
+struct Condition;
 struct Module;
 struct ModuleDeclaration;
 struct TemplateDeclaration;
@@ -58,8 +58,10 @@ struct Parser : Lexer
     Dsymbol *parseMixin();
     Array *parseTemplateArgumentList();
     StaticAssert *parseStaticAssert();
-    DebugCondition *parseDebugCondition();
-    VersionCondition *parseVersionCondition();
+    Condition *parseDebugCondition();
+    Condition *parseVersionCondition();
+    Condition *parseStaticIfCondition();
+    Condition *parseIftypeCondition();
     CtorDeclaration *parseCtor();
     DtorDeclaration *parseDtor();
     StaticCtorDeclaration *parseStaticCtor();

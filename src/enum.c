@@ -101,12 +101,12 @@ void EnumDeclaration::semantic(Scope *sc)
 
 	// Add to symbol table only after evaluating 'value'
 	if (isAnonymous())
-	{   //em->addMember((ScopeDsymbol *)parent);
+	{
 	    sce->enclosing->insert(em);
 	    em->parent = sce->enclosing->parent;
 	}
 	else
-	    em->addMember(this);
+	    em->addMember(sc, this);
 
 	if (first)
 	{   first = 0;

@@ -28,7 +28,7 @@
 #include "module.h"
 #include "mtype.h"
 #include "id.h"
-#include "debcond.h"
+#include "cond.h"
 
 void getenv_setargv(const char *envvar, int *pargc, char** *pargv);
 
@@ -49,7 +49,7 @@ Global::Global()
 
     copyright = "Copyright (c) 1999-2005 by Digital Mars";
     written = "written by Walter Bright";
-    version = "v0.123";
+    version = "v0.124";
     global.structalign = 8;
 
     memset(&params, 0, sizeof(Param));
@@ -128,21 +128,22 @@ Usage:\n\
   files.d        D source files\n\
   -c             do not link\n\
   -d             allow deprecated features\n\
+  -debug         compile in debug code\n\
+  -debug=level   compile in debug code <= level\n\
+  -debug=ident   compile in debug code identified by ident\n\
   -g             add symbolic debug info\n\
-  -v             verbose\n\
+  -Ipath         where to look for imports\n\
+  -inline        do function inlining\n\
+  -Llinkerflag   pass linkerflag to link\n\
   -O             optimize\n\
   -odobjdir      write object files to directory objdir\n\
   -offilename	 name output file to filename\n\
   -op            do not strip paths from source file\n\
-  -Ipath         where to look for imports\n\
-  -Llinkerflag   pass linkerflag to link\n\
-  -debug         compile in debug code\n\
-  -debug=level   compile in debug code <= level\n\
-  -debug=ident   compile in debug code identified by ident\n\
-  -inline        do function inlining\n\
   -profile	 profile runtime performance of generated code\n\
+  -quiet         suppress unnecessary messages\n\
   -release	 compile release version\n\
   -unittest      compile in unit tests\n\
+  -v             verbose\n\
   -version=level compile in version code >= level\n\
   -version=ident compile in version code identified by ident\n\
   -w             enable warnings\n\
@@ -269,6 +270,8 @@ int main(int argc, char *argv[])
 	    }
 	    else if (strcmp(p + 1, "inline") == 0)
 		global.params.useInline = 1;
+	    else if (strcmp(p + 1, "quiet") == 0)
+		global.params.quiet = 1;
 	    else if (strcmp(p + 1, "release") == 0)
 		global.params.release = 1;
 	    else if (strcmp(p + 1, "unittest") == 0)

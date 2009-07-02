@@ -25,6 +25,7 @@ struct InlineScanState;
 struct ForeachStatement;
 struct FuncDeclaration;
 struct ExpInitializer;
+struct StructDeclaration;
 
 enum PROT;
 enum LINK;
@@ -178,10 +179,14 @@ struct VarDeclaration : Declaration
 struct SymbolDeclaration : Declaration
 {
     Symbol *sym;
+    StructDeclaration *dsym;
 
-    SymbolDeclaration(Loc loc, Symbol *s);
+    SymbolDeclaration(Loc loc, Symbol *s, StructDeclaration *dsym);
 
     Symbol *toSymbol();
+
+    // Eliminate need for dynamic_cast
+    SymbolDeclaration *isSymbolDeclaration() { return (SymbolDeclaration *)this; }
 };
 
 struct ClassInfoDeclaration : VarDeclaration

@@ -1072,6 +1072,8 @@ TOK Lexer::wysiwygStringConstant(Token *t, int tc)
 		    p++;
 		    if (u == PS || u == LS)
 			loc.linnum++;
+		    stringbuffer.writeUTF8(u);
+		    continue;
 		}
 		break;
 	}
@@ -1915,9 +1917,9 @@ void Lexer::pragma()
 	    case 0x1A:
 	    case '\n':
 	    Lnewline:
-		loc.linnum = linnum;
+		this->loc.linnum = linnum;
 		if (filespec)
-		    loc.filename = filespec;
+		    this->loc.filename = filespec;
 		return;
 
 	    case '\r':
@@ -2074,6 +2076,7 @@ static Keyword keywords[] =
     {	"pragma",	TOKpragma	},
     {	"typeof",	TOKtypeof	},
     {	"typeid",	TOKtypeid	},
+    {	"iftype",	TOKiftype	},
 
     {	"template",	TOKtemplate	},
     {	"instance",	TOKinstance	},

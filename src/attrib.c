@@ -20,7 +20,7 @@
 #include "init.h"
 #include "declaration.h"
 #include "attrib.h"
-#include "debcond.h"
+#include "cond.h"
 #include "scope.h"
 #include "id.h"
 #include "expression.h"
@@ -28,6 +28,7 @@
 #include "aggregate.h"
 
 extern void obj_includelib(char *name);
+
 
 /********************************* AttribDeclaration ****************************/
 
@@ -37,15 +38,15 @@ AttribDeclaration::AttribDeclaration(Array *decl)
     this->decl = decl;
 }
 
-Array *AttribDeclaration::include()
+Array *AttribDeclaration::include(Scope *sc, ScopeDsymbol *sd)
 {
     return decl;
 }
 
-void AttribDeclaration::addMember(ScopeDsymbol *sd)
+void AttribDeclaration::addMember(Scope *sc, ScopeDsymbol *sd)
 {
     unsigned i;
-    Array *d = include();
+    Array *d = include(sc, sd);
 
     if (d)
     {
@@ -53,14 +54,14 @@ void AttribDeclaration::addMember(ScopeDsymbol *sd)
 	{   Dsymbol *s;
 
 	    s = (Dsymbol *)d->data[i];
-	    s->addMember(sd);
+	    s->addMember(sc, sd);
 	}
     }
 }
 
 void AttribDeclaration::semantic(Scope *sc)
 {
-    Array *d = include();
+    Array *d = include(sc, NULL);
 
     //printf("\tAttribDeclaration::semantic '%s'\n",toChars());
     if (d)
@@ -77,7 +78,7 @@ void AttribDeclaration::semantic(Scope *sc)
 void AttribDeclaration::semantic2(Scope *sc)
 {
     unsigned i;
-    Array *d = include();
+    Array *d = include(sc, NULL);
 
     if (d)
     {
@@ -93,7 +94,7 @@ void AttribDeclaration::semantic2(Scope *sc)
 void AttribDeclaration::semantic3(Scope *sc)
 {
     unsigned i;
-    Array *d = include();
+    Array *d = include(sc, NULL);
 
     if (d)
     {
@@ -109,7 +110,7 @@ void AttribDeclaration::semantic3(Scope *sc)
 void AttribDeclaration::inlineScan()
 {
     unsigned i;
-    Array *d = include();
+    Array *d = include(NULL, NULL);
 
     if (d)
     {
@@ -126,7 +127,7 @@ void AttribDeclaration::inlineScan()
 void AttribDeclaration::toObjFile()
 {
     unsigned i;
-    Array *d = include();
+    Array *d = include(NULL, NULL);
 
     if (d)
     {
@@ -144,7 +145,7 @@ int AttribDeclaration::cvMember(unsigned char *p)
     unsigned i;
     int nwritten = 0;
     int n;
-    Array *d = include();
+    Array *d = include(NULL, NULL);
 
     if (d)
     {
@@ -168,7 +169,7 @@ char *AttribDeclaration::kind()
 
 Dsymbol *AttribDeclaration::oneMember()
 {   Dsymbol *s;
-    Array *d = include();
+    Array *d = include(NULL, NULL);
 
     if (d && d->dim == 1)
     {	s = (Dsymbol *)d->data[0];
@@ -182,7 +183,7 @@ Dsymbol *AttribDeclaration::oneMember()
 
 void AttribDeclaration::addLocalClass(Array *aclasses)
 {   unsigned i;
-    Array *d = include();
+    Array *d = include(NULL, NULL);
 
     if (d)
     {
@@ -667,45 +668,40 @@ void PragmaDeclaration::toCBuffer(OutBuffer *buf)
 }
 
 
-/********************************* DebugDeclaration ****************************/
+/********************************* ConditionalDeclaration ****************************/
 
-DebugDeclaration::DebugDeclaration(Condition *condition, Array *decl, Array *elsedecl)
+ConditionalDeclaration::ConditionalDeclaration(Condition *condition, Array *decl, Array *elsedecl)
 	: AttribDeclaration(decl)
 {
-    //printf("DebugDeclaration::DebugDeclaration()\n");
+    //printf("ConditionalDeclaration::ConditionalDeclaration()\n");
     this->condition = condition;
     this->elsedecl = elsedecl;
 }
 
-Dsymbol *DebugDeclaration::syntaxCopy(Dsymbol *s)
+Dsymbol *ConditionalDeclaration::syntaxCopy(Dsymbol *s)
 {
-    DebugDeclaration *dd;
+    ConditionalDeclaration *dd;
 
     assert(!s);
-    dd = new DebugDeclaration(condition,
+    dd = new ConditionalDeclaration(condition->syntaxCopy(),
 	Dsymbol::arraySyntaxCopy(decl),
 	Dsymbol::arraySyntaxCopy(elsedecl));
     return dd;
 }
 
 
-// Decide if debug code should be included
+// Decide if 'then' or 'else' code should be included
 
-Array *DebugDeclaration::include()
+Array *ConditionalDeclaration::include(Scope *sc, ScopeDsymbol *sd)
 {
     assert(condition);
-    return condition->include() ? decl : elsedecl;
+    return condition->include(sc, sd) ? decl : elsedecl;
 }
 
 
-void DebugDeclaration::toCBuffer(OutBuffer *buf)
+void ConditionalDeclaration::toCBuffer(OutBuffer *buf)
 {
-    if (isVersionDeclaration())
-	buf->writestring("version(");
-    else
-	buf->writestring("debug(");
     condition->toCBuffer(buf);
-    buf->writeByte(')');
     if (decl || elsedecl)
     {
 	buf->writenl();
@@ -742,26 +738,6 @@ void DebugDeclaration::toCBuffer(OutBuffer *buf)
     else
 	buf->writeByte(':');
     buf->writenl();
-}
-
-
-/********************************* VersionDeclaration ****************************/
-
-VersionDeclaration::VersionDeclaration(Condition *condition, Array *decl, Array *elsedecl)
-	: DebugDeclaration(condition, decl, elsedecl)
-{
-    //printf("VersionDeclaration::VersionDeclaration()\n");
-}
-
-Dsymbol *VersionDeclaration::syntaxCopy(Dsymbol *s)
-{
-    VersionDeclaration *vd;
-
-    assert(!s);
-    vd = new VersionDeclaration(condition,
-	Dsymbol::arraySyntaxCopy(decl),
-	Dsymbol::arraySyntaxCopy(elsedecl));
-    return vd;
 }
 
 

@@ -107,7 +107,7 @@ Scope *Scope::createGlobal(Module *module)
     Dsymbol *m = module;
     while (m->parent)
 	m = m->parent;
-    m->addMember(sc->scopesym);
+    m->addMember(NULL, sc->scopesym);
     m->parent = NULL;			// got changed by addMember()
 
     // Create the module scope underneath the global scope

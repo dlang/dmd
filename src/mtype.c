@@ -484,8 +484,7 @@ Expression *Type::getProperty(Loc loc, Identifier *ident)
     }
     else if (ident == Id::size)
     {
-	if (!global.params.useDeprecated)
-	    error(loc, ".size property is deprecated, use .sizeof");
+	error(loc, ".size property should be replaced with .sizeof");
 	e = new IntegerExp(loc, size(loc), Type::tsize_t);
     }
     else if (ident == Id::alignof)
@@ -3643,7 +3642,7 @@ Expression *TypeStruct::defaultInit()
     printf("TypeStruct::defaultInit() '%s'\n", toChars());
 #endif
     s = sym->toInitializer();
-    d = new SymbolDeclaration(sym->loc, s);
+    d = new SymbolDeclaration(sym->loc, s, sym);
     assert(d);
     d->type = this;
     return new VarExp(sym->loc, d);

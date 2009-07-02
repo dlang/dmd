@@ -351,6 +351,10 @@ Expression *ModExp::constFold()
 
 	n1 = e1->toInteger();
 	n2 = e2->toInteger();
+	if (n2 == 0)
+	{   error("divide by 0");
+	    n2 = 1;
+	}
 	if (isunsigned())
 	    n = ((d_uns64) n1) % ((d_uns64) n2);
 	else
@@ -504,6 +508,7 @@ Expression *CmpExp::constFold()
     real_t r1;
     real_t r2;
 
+    //printf("CmpExp::constFold()\n");
     e1 = e1->constFold();
     e2 = e2->constFold();
     if (e1->type->isreal())

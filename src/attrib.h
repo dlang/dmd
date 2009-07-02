@@ -30,8 +30,8 @@ struct AttribDeclaration : Dsymbol
     Array *decl;	// array of Dsymbol's
 
     AttribDeclaration(Array *decl);
-    virtual Array *include();
-    void addMember(ScopeDsymbol *s);
+    virtual Array *include(Scope *sc, ScopeDsymbol *s);
+    void addMember(Scope *sc, ScopeDsymbol *s);
     void semantic(Scope *sc);
     void semantic2(Scope *sc);
     void semantic3(Scope *sc);
@@ -110,23 +110,15 @@ struct PragmaDeclaration : AttribDeclaration
     void toObjFile();			// compile to .obj file
 };
 
-struct DebugDeclaration : AttribDeclaration
+struct ConditionalDeclaration : AttribDeclaration
 {
     Condition *condition;
     Array *elsedecl;	// array of Dsymbol's for else block
 
-    DebugDeclaration(Condition *condition, Array *decl, Array *elsedecl);
+    ConditionalDeclaration(Condition *condition, Array *decl, Array *elsedecl);
     Dsymbol *syntaxCopy(Dsymbol *s);
-    Array *include();
+    Array *include(Scope *sc, ScopeDsymbol *s);
     void toCBuffer(OutBuffer *buf);
-};
-
-struct VersionDeclaration : DebugDeclaration
-{
-    VersionDeclaration(Condition *condition, Array *decl, Array *elsedecl);
-    Dsymbol *syntaxCopy(Dsymbol *s);
-
-    VersionDeclaration *isVersionDeclaration() { return this; }
 };
 
 #endif /* DMD_ATTRIB_H */

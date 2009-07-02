@@ -308,7 +308,7 @@ void ClassDeclaration::semantic(Scope *sc)
 	for (i = 0; i < members->dim; i++)
 	{
 	    Dsymbol *s = (Dsymbol *)members->data[i];
-	    s->addMember(this);
+	    s->addMember(sc, this);
 	}
     }
 
@@ -395,7 +395,7 @@ void ClassDeclaration::semantic(Scope *sc)
 	ctor = new CtorDeclaration(0, 0, NULL, 0);
 	ctor->fbody = new CompoundStatement(0, new Array());
 	members->push(ctor);
-	ctor->addMember(this);
+	ctor->addMember(sc, this);
 	*sc = scsave;
 	sc->offset = structsize;
 	ctor->semantic(sc);
@@ -810,7 +810,7 @@ void InterfaceDeclaration::semantic(Scope *sc)
     for (i = 0; i < members->dim; i++)
     {
 	Dsymbol *s = (Dsymbol *)members->data[i];
-	s->addMember(this);
+	s->addMember(sc, this);
     }
 
     sc = sc->push(this);

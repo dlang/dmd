@@ -549,17 +549,23 @@ dt_t **SymOffExp::toDt(dt_t **pdt)
 dt_t **VarExp::toDt(dt_t **pdt)
 {
     //printf("VarExp::toDt() %d\n", op);
+    for (; *pdt; pdt = &((*pdt)->DTnext))
+	;
+
     VarDeclaration *v = var->isVarDeclaration();
     if (v && v->isConst() && type->toBasetype()->ty != Tsarray && v->init)
-    {	dt_t **pdtend;
-
-	for (pdtend = pdt; *pdtend; pdtend = &((*pdtend)->DTnext))
-	    ;
-	*pdtend = v->init->toDt();
+    {
+	*pdt = v->init->toDt();
+	return pdt;
+    }
+    SymbolDeclaration *sd = var->isSymbolDeclaration();
+    if (sd && sd->dsym)
+    {
+	sd->dsym->toDt(pdt);
 	return pdt;
     }
 #ifdef DEBUG
-    printf("VarExp::toDt() %d\n", op);
+    printf("VarExp::toDt(), kind = %s\n", var->kind());
 #endif
     error("non-constant expression %s", toChars());
     pdt = dtnzeros(pdt, 1);
@@ -734,8 +740,16 @@ dt_t **TypeSArray::toDt(dt_t **pdt)
     {
 	while (*pdt)
 	    pdt = &((*pdt)->DTnext);
-	Expression *e = next->defaultInit();
-	Type *tbn = next->toBasetype();
+	Type *tnext = next;
+	Type *tbn = tnext->toBasetype();
+	while (tbn->ty == Tsarray)
+	{   TypeSArray *tsa = (TypeSArray *)tbn;
+
+	    len *= tsa->dim->toInteger();
+	    tnext = tbn->next;
+	    tbn = tnext->toBasetype();
+	}
+	Expression *e = tnext->defaultInit();
 	if (tbn->ty == Tbit)
 	{
 	    Bits databits;
@@ -749,7 +763,7 @@ dt_t **TypeSArray::toDt(dt_t **pdt)
 	else
 	{
 	    if (tbn->ty == Tstruct)
-		next->toDt(pdt);
+		tnext->toDt(pdt);
 	    else
 		e->toDt(pdt);
 	    dt_optimize(*pdt);
@@ -769,7 +783,7 @@ dt_t **TypeSArray::toDt(dt_t **pdt)
 		for (i = 1; i < len; i++)
 		{
 		    if (tbn->ty == Tstruct)
-			pdt = next->toDt(pdt);
+			pdt = tnext->toDt(pdt);
 		    else
 			pdt = e->toDt(pdt);
 		}

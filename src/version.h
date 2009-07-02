@@ -26,7 +26,7 @@ struct DebugSymbol : Dsymbol
     DebugSymbol(Loc loc, unsigned level);
     Dsymbol *syntaxCopy(Dsymbol *);
 
-    void addMember(ScopeDsymbol *s);
+    void addMember(Scope *sc, ScopeDsymbol *s);
     void semantic(Scope *sc);
     void toCBuffer(OutBuffer *buf);
     char *kind();
@@ -40,7 +40,7 @@ struct VersionSymbol : Dsymbol
     VersionSymbol(Loc loc, unsigned level);
     Dsymbol *syntaxCopy(Dsymbol *);
 
-    void addMember(ScopeDsymbol *s);
+    void addMember(Scope *sc, ScopeDsymbol *s);
     void semantic(Scope *sc);
     void toCBuffer(OutBuffer *buf);
     char *kind();

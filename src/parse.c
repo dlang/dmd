@@ -15,7 +15,7 @@
 #include "parse.h"
 #include "init.h"
 #include "attrib.h"
-#include "debcond.h"
+#include "cond.h"
 #include "mtype.h"
 #include "template.h"
 #include "staticassert.h"
@@ -138,8 +138,10 @@ Array *Parser::parseDeclDefs(int once)
 {   Dsymbol *s;
     Array *decldefs;
     Array *a;
+    Array *aelse;
     enum PROT prot;
     unsigned stc;
+    Condition *condition;
 
     //printf("Parser::parseDeclDefs()\n");
     decldefs = new Array();
@@ -245,6 +247,10 @@ Array *Parser::parseDeclDefs(int once)
 		    s = parseStaticDtor();
 		else if (token.value == TOKassert)
 		    s = parseStaticAssert();
+		else if (token.value == TOKif)
+		{   condition = parseStaticIfCondition();
+		    goto Lcondition;
+		}
 		else
 		{   stc = STCstatic;
 		    goto Lstc2;
@@ -392,9 +398,6 @@ Array *Parser::parseDeclDefs(int once)
 	    }
 
 	    case TOKdebug:
-	    {	DebugCondition *condition;
-		Array *aelse;
-
 		nextToken();
 		if (token.value == TOKassign)
 		{
@@ -414,28 +417,10 @@ Array *Parser::parseDeclDefs(int once)
 		    break;
 		}
 
-		if (token.value == TOKlparen)
-		{
-		    nextToken();
-		    condition = parseDebugCondition();
-		    check(TOKrparen);
-		}
-		else
-		    condition = new DebugCondition(mod, 1, NULL);
-		a = parseBlock();
-		aelse = NULL;
-		if (token.value == TOKelse)
-		{   nextToken();
-		    aelse = parseBlock();
-		}
-		s = new DebugDeclaration(condition, a, aelse);
-		break;
-	    }
+		condition = parseDebugCondition();
+		goto Lcondition;
 
 	    case TOKversion:
-	    {	VersionCondition *condition;
-		Array *aelse;
-
 		nextToken();
 		if (token.value == TOKassign)
 		{
@@ -454,26 +439,22 @@ Array *Parser::parseDeclDefs(int once)
 		    nextToken();
 		    break;
 		}
+		condition = parseVersionCondition();
+		goto Lcondition;
 
-		if (token.value == TOKlparen)
-		{
-		    nextToken();
-		    condition = parseVersionCondition();
-		    check(TOKrparen);
-		}
-		else
-		{   error("(condition) expected following version");
-		    condition = NULL;
-		}
+	    case TOKiftype:
+		condition = parseIftypeCondition();
+		goto Lcondition;
+
+	    Lcondition:
 		a = parseBlock();
 		aelse = NULL;
 		if (token.value == TOKelse)
 		{   nextToken();
 		    aelse = parseBlock();
 		}
-		s = new VersionDeclaration(condition, a, aelse);
+		s = new ConditionalDeclaration(condition, a, aelse);
 		break;
-	    }
 
 	    case TOKsemicolon:		// empty declaration
 		nextToken();
@@ -493,6 +474,7 @@ Array *Parser::parseDeclDefs(int once)
     } while (!once);
     return decldefs;
 }
+
 
 /********************************************
  * Parse declarations after an align, protection, or extern decl.
@@ -560,40 +542,132 @@ StaticAssert *Parser::parseStaticAssert()
  * Parse a debug conditional
  */
 
-DebugCondition *Parser::parseDebugCondition()
+Condition *Parser::parseDebugCondition()
 {
-    unsigned level = 1;
-    Identifier *id = NULL;
+    Condition *c;
 
-    if (token.value == TOKidentifier)
-	id = token.ident;
-    else if (token.value == TOKint32v)
-	level = (unsigned)token.uns64value;
+    if (token.value == TOKlparen)
+    {
+	nextToken();
+	unsigned level = 1;
+	Identifier *id = NULL;
+
+	if (token.value == TOKidentifier)
+	    id = token.ident;
+	else if (token.value == TOKint32v)
+	    level = (unsigned)token.uns64value;
+	else
+	    error("identifier or integer expected, not %s", token.toChars());
+	nextToken();
+	check(TOKrparen);
+	c = new DebugCondition(mod, level, id);
+    }
     else
-	error("identifier or integer expected, not %s", token.toChars());
-    nextToken();
+	c = new DebugCondition(mod, 1, NULL);
+    return c;
 
-    return new DebugCondition(mod, level, id);
 }
 
 /**************************************
  * Parse a version conditional
  */
 
-VersionCondition *Parser::parseVersionCondition()
+Condition *Parser::parseVersionCondition()
 {
-    unsigned level = 1;
-    Identifier *id = NULL;
+    Condition *c;
 
-    if (token.value == TOKidentifier)
-	id = token.ident;
-    else if (token.value == TOKint32v)
-	level = (unsigned)token.uns64value;
+    if (token.value == TOKlparen)
+    {
+	unsigned level = 1;
+	Identifier *id = NULL;
+
+	nextToken();
+	if (token.value == TOKidentifier)
+	    id = token.ident;
+	else if (token.value == TOKint32v)
+	    level = (unsigned)token.uns64value;
+	else
+	    error("identifier or integer expected, not %s", token.toChars());
+	nextToken();
+	check(TOKrparen);
+
+	c = new VersionCondition(mod, level, id);
+    }
     else
-	error("identifier or integer expected, not %s", token.toChars());
-    nextToken();
+    {   error("(condition) expected following version");
+	c = NULL;
+    }
+    return c;
 
-    return new VersionCondition(mod, level, id);
+}
+
+/***********************************************
+ *	static if (expression)
+ *	    body
+ *	else
+ *	    body
+ */
+
+Condition *Parser::parseStaticIfCondition()
+{   Expression *exp;
+    Condition *condition;
+    Array *aif;
+    Array *aelse;
+    Loc loc = this->loc;
+
+    nextToken();
+    if (token.value == TOKlparen)
+    {
+	nextToken();
+	exp = parseAssignExp();
+	check(TOKrparen);
+    }
+    else
+    {   error("(expression) expected following static if");
+	exp = NULL;
+    }
+    condition = new StaticIfCondition(loc, exp);
+    return condition;
+}
+
+
+/***********************************************
+ *	iftype (type identifier : specialization)
+ *	    body
+ *	else
+ *	    body
+ */
+
+Condition *Parser::parseIftypeCondition()
+{
+    Type *targ;
+    Identifier *ident = NULL;
+    Type *tspec = NULL;
+    Loc loc = this->loc;
+
+    nextToken();
+    if (token.value == TOKlparen)
+    {
+	nextToken();
+	targ = parseBasicType();
+	targ = parseDeclarator(targ, &ident);
+	if (token.value == TOKcolon)
+	{
+	    nextToken();
+	    tspec = parseBasicType();
+	    tspec = parseDeclarator(tspec, NULL);
+	}
+	check(TOKrparen);
+
+	if (!ident && !tspec)
+	    error("expected either Identifier or TypeSpecialization or both");
+    }
+    else
+    {   error("(type identifier : specialization) expected following iftype");
+	return NULL;
+    }
+    Condition *condition = new IftypeCondition(loc, targ, ident, tspec);
+    return condition;
 }
 
 /*****************************************
@@ -2193,6 +2267,9 @@ Initializer *Parser::parseInitializer()
 Statement *Parser::parseStatement(int flags)
 {   Statement *s;
     Token *t;
+    Condition *condition;
+    Statement *ifbody;
+    Statement *elsebody;
     Loc loc = this->loc;
 
     //printf("parseStatement()\n");
@@ -2302,7 +2379,7 @@ Statement *Parser::parseStatement(int flags)
 	    break;
 
 	case TOKstatic:
-	{   // Look ahead to see if it's static assert()
+	{   // Look ahead to see if it's static assert() or static if()
 	    Token *t;
 
 	    t = peek(&token);
@@ -2311,6 +2388,12 @@ Statement *Parser::parseStatement(int flags)
 		nextToken();
 		s = new StaticAssertStatement(parseStaticAssert());
 		break;
+	    }
+	    if (t->value == TOKif)
+	    {
+		nextToken();
+		condition = parseStaticIfCondition();
+		goto Lcondition;
 	    }
 	    goto Ldeclaration;
 	}
@@ -2535,58 +2618,29 @@ Statement *Parser::parseStatement(int flags)
 	}
 
 	case TOKdebug:
-	{   Condition *condition;
-	    Statement *ifbody;
-	    Statement *elsebody;
-
 	    nextToken();
-	    if (token.value == TOKlparen)
-	    {
-		nextToken();
-		condition = parseDebugCondition();
-		check(TOKrparen);
-	    }
-	    else
-		condition = new DebugCondition(mod, 1, NULL);
-	    ifbody = parseStatement(PSsemi);
-	    if (token.value == TOKelse)
-	    {
-		nextToken();
-		elsebody = parseStatement(PSsemi);
-	    }
-	    else
-		elsebody = NULL;
-	    s = new ConditionalStatement(loc, condition, ifbody, elsebody);
-	    break;
-	}
+	    condition = parseDebugCondition();
+	    goto Lcondition;
 
 	case TOKversion:
-	{   Condition *condition;
-	    Statement *ifbody;
-	    Statement *elsebody;
-
 	    nextToken();
-	    if (token.value == TOKlparen)
-	    {
-		nextToken();
-		condition = parseVersionCondition();
-		check(TOKrparen);
-	    }
-	    else
-	    {	error("(condition) expected after version");
-		condition = NULL;
-	    }
+	    condition = parseVersionCondition();
+	    goto Lcondition;
+
+	case TOKiftype:
+	    condition = parseIftypeCondition();
+	    goto Lcondition;
+
+	Lcondition:
 	    ifbody = parseStatement(PSsemi);
+	    elsebody = NULL;
 	    if (token.value == TOKelse)
 	    {
 		nextToken();
 		elsebody = parseStatement(PSsemi);
 	    }
-	    else
-		elsebody = NULL;
 	    s = new ConditionalStatement(loc, condition, ifbody, elsebody);
 	    break;
-	}
 
 	case TOKpragma:
 	{   Identifier *ident;
@@ -2916,6 +2970,7 @@ Statement *Parser::parseStatement(int flags)
 			continue;
 
 		    case TOKeof:
+			/* { */
 			error("matching '}' expected, not end of file");
 			break;
 

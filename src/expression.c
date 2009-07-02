@@ -2512,7 +2512,7 @@ Expression *DotIdExp::semantic(Scope *sc)
 	type = Type::tvoid;
 	return this;
     }
-    else if (e1->type->ty == Tpointer && ident != Id::size &&
+    else if (e1->type->ty == Tpointer &&
 	     ident != Id::init && ident != Id::__sizeof &&
 	     ident != Id::alignof && ident != Id::offsetof)
     {
@@ -5254,7 +5254,7 @@ Expression *CmpExp::semantic(Scope *sc)
 	error("need member function opCmp() for struct %s to compare", t1->toChars());
 	e = this;
     }
-#if 0
+#if 1
     else if (t1->iscomplex() || t2->iscomplex())
     {
 	error("compare not defined for complex operands");

@@ -21,6 +21,7 @@ struct Param
 {
     char link;		// perform link
     char trace;		// insert profiling hooks
+    char quiet;		// suppress non-error messages
     char verbose;	// verbose compile
     char symdebug;	// insert debug symbolic information
     char optimize;	// run optimizer

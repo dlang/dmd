@@ -37,7 +37,7 @@
 #include "import.h"
 #include "module.h"
 #include "id.h"
-#include "debcond.h"
+#include "cond.h"
 #include "version.h"
 
 #endif /* DMD_TOTAL_H */

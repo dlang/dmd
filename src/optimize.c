@@ -23,6 +23,7 @@
 
 Expression *Expression::optimize(int result)
 {
+    //printf("Expression::optimize(result = %d) %s\n", result, toChars());
     return this;
 }
 
@@ -156,6 +157,7 @@ Expression *CastExp::optimize(int result)
 Expression *BinExp::optimize(int result)
 {   Expression *e;
 
+    //printf("BinExp::optimize(result = %d) %s\n", result, toChars());
     e1 = e1->optimize(result);
     e2 = e2->optimize(result);
     if (e1->isConst() == 1 && e2->isConst() == 1)

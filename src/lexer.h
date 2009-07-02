@@ -64,6 +64,7 @@ enum TOK
 	TOKdeclaration,	TOKtypeof,
 	TOKpragma,	TOKdsymbol,
 	TOKtypeid,	TOKuadd,
+	TOKiftype,
 
 	// Operators
 	TOKlt,		TOKgt,

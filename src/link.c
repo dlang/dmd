@@ -182,11 +182,14 @@ int runLINK()
 	argv.push((void *) global.params.linkswitches->data[i]);
     }
 
-    // Print it
-    for (i = 0; i < argv.dim; i++)
-	printf("%s ", (char *)argv.data[i]);
-    printf("\n");
-    fflush(stdout);
+    if (!global.params.quiet)
+    {
+	// Print it
+	for (i = 0; i < argv.dim; i++)
+	    printf("%s ", (char *)argv.data[i]);
+	printf("\n");
+	fflush(stdout);
+    }
 
     argv.push(NULL);
     childpid = fork();

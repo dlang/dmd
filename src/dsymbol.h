@@ -40,7 +40,6 @@ struct InvariantDeclaration;
 struct UnitTestDeclaration;
 struct NewDeclaration;
 struct VarDeclaration;
-struct VersionDeclaration;
 struct Symbol;
 struct Package;
 struct Module;
@@ -56,6 +55,7 @@ struct EnumMember;
 struct ScopeDsymbol;
 struct WithScopeSymbol;
 struct ArrayScopeSymbol;
+struct SymbolDeclaration;
 struct Expression;
 
 struct TYPE;
@@ -101,7 +101,7 @@ struct Dsymbol : Object
 
     virtual char *kind();
     virtual Dsymbol *toAlias();			// resolve real symbol
-    virtual void addMember(ScopeDsymbol *s);
+    virtual void addMember(Scope *sc, ScopeDsymbol *s);
     virtual void semantic(Scope *sc);
     virtual void semantic2(Scope *sc);
     virtual void semantic3(Scope *sc);
@@ -162,12 +162,12 @@ struct Dsymbol : Object
     virtual StructDeclaration *isStructDeclaration() { return NULL; }
     virtual UnionDeclaration *isUnionDeclaration() { return NULL; }
     virtual InterfaceDeclaration *isInterfaceDeclaration() { return NULL; }
-    virtual VersionDeclaration *isVersionDeclaration() { return NULL; }
     virtual ScopeDsymbol *isScopeDsymbol() { return NULL; }
     virtual WithScopeSymbol *isWithScopeSymbol() { return NULL; }
     virtual ArrayScopeSymbol *isArrayScopeSymbol() { return NULL; }
     virtual Import *isImport() { return NULL; }
     virtual EnumDeclaration *isEnumDeclaration() { return NULL; }
+    virtual SymbolDeclaration *isSymbolDeclaration() { return NULL; }
 };
 
 // Dsymbol that generates a scope

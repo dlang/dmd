@@ -13,11 +13,16 @@
 
 #include "identifier.h"
 #include "dsymbol.h"
-#include "debcond.h"
+#include "cond.h"
 #include "version.h"
 #include "module.h"
 
 /* ================================================== */
+
+/* DebugSymbol's happen for statements like:
+ *	debug = identifier;
+ *	debug = integer;
+ */
 
 DebugSymbol::DebugSymbol(Loc loc, Identifier *ident)
     : Dsymbol(ident)
@@ -40,7 +45,7 @@ Dsymbol *DebugSymbol::syntaxCopy(Dsymbol *s)
     return ds;
 }
 
-void DebugSymbol::addMember(ScopeDsymbol *sd)
+void DebugSymbol::addMember(Scope *sc, ScopeDsymbol *sd)
 {
     //printf("DebugSymbol::addMember('%s') %s\n", sd->toChars(), toChars());
     Module *m;
@@ -91,6 +96,11 @@ char *DebugSymbol::kind()
 
 /* ================================================== */
 
+/* VersionSymbol's happen for statements like:
+ *	version = identifier;
+ *	version = integer;
+ */
+
 VersionSymbol::VersionSymbol(Loc loc, Identifier *ident)
     : Dsymbol(ident)
 {
@@ -112,7 +122,7 @@ Dsymbol *VersionSymbol::syntaxCopy(Dsymbol *s)
     return ds;
 }
 
-void VersionSymbol::addMember(ScopeDsymbol *sd)
+void VersionSymbol::addMember(Scope *sc, ScopeDsymbol *sd)
 {
     //printf("VersionSymbol::addMember('%s') %s\n", sd->toChars(), toChars());
     Module *m;

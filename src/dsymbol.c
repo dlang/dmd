@@ -260,7 +260,7 @@ int Dsymbol::needThis()
     return FALSE;
 }
 
-void Dsymbol::addMember(ScopeDsymbol *sd)
+void Dsymbol::addMember(Scope *sc, ScopeDsymbol *sd)
 {
     //printf("Dsymbol::addMember(this = %p, '%s' scopesym = '%s')\n", this, toChars(), sd->toChars());
     //printf("Dsymbol::addMember(this = %p, '%s' sd = %p, sd->symtab = %p)\n", this, toChars(), sd, sd->symtab);

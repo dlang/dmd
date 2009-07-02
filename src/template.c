@@ -1443,7 +1443,7 @@ void TemplateInstance::semantic(Scope *sc)
 #if LOG
 	printf("\tadding member '%s' %p to '%s'\n", s->toChars(), s, this->toChars());
 #endif
-	s->addMember(this);
+	s->addMember(scope, this);
     }
 
     /* See if there is only one member of template instance, and that
@@ -2187,34 +2187,8 @@ void TemplateMixin::semantic(Scope *sc)
 
     symtab = new DsymbolTable();
 
-    // Add members to enclosing scope, as well as this scope
-    for (unsigned i = 0; i < members->dim; i++)
-    {   Dsymbol *s;
-
-	s = (Dsymbol *)members->data[i];
-	s->addMember(this);
-	//sc->insert(s);
-	//printf("sc->parent = %p, sc->scopesym = %p\n", sc->parent, sc->scopesym);
-	//printf("s->parent = %s\n", s->parent->toChars());
-	if (isAnonymous())
-	{
-#if 0
-	    if (sc->parent != sc->scopesym)
-	    {
-		if (!sc->insert(s))
-		    error("%s is multiply defined", s->toChars());
-	    }
-	    else
-		s->addMember((ScopeDsymbol *)sc->parent);
-#endif
-	    //s->parent = parent;
-	}
-    }
-
-//    if (isAnonymous())
     {
 	ScopeDsymbol *sds = (ScopeDsymbol *)sc->scopesym;
-
 	sds->importScope(this, PROTpublic);
     }
 
@@ -2222,17 +2196,26 @@ void TemplateMixin::semantic(Scope *sc)
     printf("\tcreate scope for template parameters '%s'\n", toChars());
 #endif
     Scope *scx = sc;
-//    if (!isAnonymous())
-    {
-	scx = sc->push(this);
-	scx->parent = this;
-    }
+    scx = sc->push(this);
+    scx->parent = this;
+
     argsym = new ScopeDsymbol();
     argsym->parent = scx->parent;
     Scope *scope = scx->push(argsym);
 
     // Declare each template parameter as an alias for the argument type
     declareParameters(scope);
+
+    // Add members to enclosing scope, as well as this scope
+    for (unsigned i = 0; i < members->dim; i++)
+    {   Dsymbol *s;
+
+	s = (Dsymbol *)members->data[i];
+	s->addMember(scope, this);
+	//sc->insert(s);
+	//printf("sc->parent = %p, sc->scopesym = %p\n", sc->parent, sc->scopesym);
+	//printf("s->parent = %s\n", s->parent->toChars());
+    }
 
     // Do semantic() analysis on template instance members
 #if LOG

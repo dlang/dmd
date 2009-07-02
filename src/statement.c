@@ -15,7 +15,7 @@
 
 #include "statement.h"
 #include "expression.h"
-#include "debcond.h"
+#include "cond.h"
 #include "init.h"
 #include "staticassert.h"
 #include "mtype.h"
@@ -1004,41 +1004,18 @@ Statement *IfStatement::semantic(Scope *sc)
     // semantic analysis of the skipped code.
     // This feature allows a limited form of conditional compilation.
     condition = condition->optimize(WANTflags);
-#if 0
-    /* Don't do this because of:
-     *	if (0) { Label: ... ; } else { ... ; goto Label; }
-     */
-    if (condition->isBool(FALSE))
-    {	Statement *s;
 
-	s = new ExpStatement(loc, condition);
-	if (elsebody)
-	{   elsebody = elsebody->semanticScope(sc, NULL, NULL);
-	    s = new CompoundStatement(loc, s, elsebody);
-	}
-	return s;
-    }
-    else if (condition->isBool(TRUE))
-    {	Statement *s;
+    // Evaluate at runtime
+    unsigned cs0 = sc->callSuper;
+    unsigned cs1;
 
-	s = new ExpStatement(loc, condition);
-	ifbody = ifbody->semanticScope(sc, NULL, NULL);
-	s = new CompoundStatement(loc, s, ifbody);
-	return s;
-    }
-    else
-#endif
-    {	// Evaluate at runtime
-	unsigned cs0 = sc->callSuper;
-	unsigned cs1;
+    ifbody = ifbody->semanticScope(sc, NULL, NULL);
+    cs1 = sc->callSuper;
+    sc->callSuper = cs0;
+    if (elsebody)
+	elsebody = elsebody->semanticScope(sc, NULL, NULL);
+    sc->mergeCallSuper(loc, cs1);
 
-	ifbody = ifbody->semanticScope(sc, NULL, NULL);
-	cs1 = sc->callSuper;
-	sc->callSuper = cs0;
-	if (elsebody)
-	    elsebody = elsebody->semanticScope(sc, NULL, NULL);
-	sc->mergeCallSuper(loc, cs1);
-    }
     return this;
 }
 
@@ -1078,7 +1055,7 @@ Statement *ConditionalStatement::syntaxCopy()
     if (elsebody)
 	e = elsebody->syntaxCopy();
     ConditionalStatement *s = new ConditionalStatement(loc,
-		condition, ifbody->syntaxCopy(), e);
+		condition->syntaxCopy(), ifbody->syntaxCopy(), e);
     return s;
 }
 
@@ -1089,26 +1066,17 @@ Statement *ConditionalStatement::semantic(Scope *sc)
     // If we can short-circuit evaluate the if statement, don't do the
     // semantic analysis of the skipped code.
     // This feature allows a limited form of conditional compilation.
-    if (condition->isBool(FALSE))
-    {
-	if (elsebody)
-	    elsebody = elsebody->semantic(sc);
-	return elsebody;
-    }
-    else if (condition->isBool(TRUE))
+    if (condition->include(sc, NULL))
     {
 	ifbody = ifbody->semantic(sc);
 	return ifbody;
     }
     else
-    {	Statement *s;
-
-	// Evaluate at runtime
-	s = new IfStatement(loc, condition->toExpr(), ifbody, elsebody);
-	s = s->semantic(sc);
-	return s;
+    {
+	if (elsebody)
+	    elsebody = elsebody->semantic(sc);
+	return elsebody;
     }
-    return this;
 }
 
 int ConditionalStatement::usesEH()
@@ -1118,6 +1086,8 @@ int ConditionalStatement::usesEH()
 
 void ConditionalStatement::toCBuffer(OutBuffer *buf)
 {
+    condition->toCBuffer(buf);
+    buf->writenl();
     buf->printf("ConditionalStatement::toCBuffer()");
     buf->writenl();
 }
