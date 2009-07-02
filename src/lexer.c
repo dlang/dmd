@@ -1882,6 +1882,7 @@ static Keyword keywords[] =
     {	"delegate",	TOKdelegate	},
     {	"function",	TOKfunction	},
 
+    {	"is",		TOKidentity	},
     {	"if",		TOKif		},
     {	"else",		TOKelse		},
     {	"while",	TOKwhile	},
@@ -1977,7 +1978,7 @@ void Lexer::initKeywords()
     Token::tochars[TOKge]		= ">=";
     Token::tochars[TOKequal]		= "==";
     Token::tochars[TOKnotequal]		= "!=";
-    Token::tochars[TOKidentity]		= "===";
+//    Token::tochars[TOKidentity]		= "===";
     Token::tochars[TOKnotidentity]	= "!==";
 
     Token::tochars[TOKunord]		= "!<>=";

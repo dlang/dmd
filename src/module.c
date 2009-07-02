@@ -344,7 +344,7 @@ void Module::parse()
 	if (md)
 	    error(loc, "is in multiple packages %s", md->toChars());
 	else
-	     assert(0);			// must not be multiply defined
+	    error(loc, "is in multiply defined");
     }
 }
 
