@@ -401,7 +401,7 @@ void Lexer::scan(Token *t)
 		do
 		{
 		    c = *++p;
-		} while (isidchar(c) || (c & 0x80 && isUniIdent(c)));
+		} while (isidchar(c) || (c & 0x80 && isUniAlpha(decodeUTF())));
 		sv = stringtable.update((char *)t->ptr, p - t->ptr);
 		id = (Identifier *) sv->ptrvalue;
 		if (!id)
@@ -477,8 +477,8 @@ void Lexer::scan(Token *t)
 			while (1)
 			{
 			    while (1)
-			    {
-				switch (*p)
+			    {	unsigned char c = *p;
+				switch (c)
 				{
 				    case '/':
 					break;
@@ -502,6 +502,8 @@ void Lexer::scan(Token *t)
 					return;
 
 				    default:
+					if (c & 0x80)
+					    decodeUTF();
 					p++;
 					continue;
 				}
@@ -515,8 +517,8 @@ void Lexer::scan(Token *t)
 
 		    case '/':
 			while (1)
-			{
-			    switch (*++p)
+			{   unsigned char c = *++p;
+			    switch (c)
 			    {
 				case '\n':
 				    break;
@@ -533,6 +535,8 @@ void Lexer::scan(Token *t)
 				    return;
 
 				default:
+				    if (c & 0x80)
+					decodeUTF();
 				    continue;
 			    }
 			    break;
@@ -547,8 +551,8 @@ void Lexer::scan(Token *t)
 			p++;
 			nest = 1;
 			while (1)
-			{
-			    switch (*p)
+			{   unsigned char c = *p;
+			    switch (c)
 			    {
 				case '/':
 				    p++;
@@ -588,6 +592,8 @@ void Lexer::scan(Token *t)
 				    return;
 
 				default:
+				    if (c & 0x80)
+					decodeUTF();
 				    p++;
 				    continue;
 			    }
@@ -840,7 +846,7 @@ void Lexer::scan(Token *t)
 
 		if (c & 0x80)
 		{   // Check for start of unicode identifier
-		    if (isUniIdent(c))
+		    if (isUniAlpha(decodeUTF()))
 			goto case_ident;
 		}
 		if (isprint(c))
@@ -938,7 +944,8 @@ unsigned Lexer::escapeSequence()
 			    break;
 
 			default:
-			    if (isalpha(*p))
+			    if (isalpha(*p) ||
+				(p != idstart + 1 && isdigit(*p)))
 				continue;
 			    error("unterminated named entity");
 			    break;
@@ -1152,31 +1159,10 @@ TOK Lexer::escapeStringConstant(Token *t, int wide)
 
 	    default:
 		if (c & 0x80)
-		{   unsigned char octet[6];
-		    unsigned idx = 0;
-		    unsigned ndigits = 1;
-		    char *s;
-
-		    octet[0] = c;
-		    while (*p & 0x80)
-		    {
-			if (*p & 0x40)
-			    break;
-			if (ndigits >= 6)
-			{
-			Lutferr:
-			    error("invalid UTF character sequence");
-			    break;
-			}
-			octet[ndigits] = *p;
-			ndigits++;
-			p++;
-		    }
-		    s = utf_decodeChar(octet, ndigits, &idx, &c);
-		    if (s || idx != ndigits)
-		    {	error(s);
-			break;
-		    }
+		{
+		    p--;
+		    c = decodeUTF();
+		    p++;
 		    stringbuffer.writeUTF8(c);
 		    continue;
 		}
@@ -1230,26 +1216,10 @@ TOK Lexer::charConstant(Token *t, int wide)
 
 	default:
 	    if (c & 0x80)
-	    {	unsigned idx = 0;
-		unsigned ndigits = 1;
-		unsigned char octet[6];
-		char *s;
-
-		octet[0] = c;
-		while (*p & 0x80)
-		{
-		    if (ndigits >= 6)
-		    {
-			error("invalid UTF-8 sequence");
-			break;
-		    }
-		    octet[ndigits] = *p;
-		    ndigits++;
-		    p++;
-		}
-		s = utf_decodeChar(octet, ndigits, &idx, &c);
-		if (s || idx != ndigits)
-		    error(s);
+	    {
+		p--;
+		c = decodeUTF();
+		p++;
 		if (c < 0xD800 || (c >= 0xE000 && c < 0xFFFE))
 		    tk = TOKwcharv;
 		else
@@ -1943,18 +1913,25 @@ Lerr:
     error("#line integer [\"filespec\"]\\n expected");
 }
 
-/*********************************************
- * If c is the start of a Unicode identifier char,
- * advance p past that character and return non-zero.
+
+/********************************************
+ * Decode UTF character.
+ * Issue error messages for invalid sequences.
+ * Return decoded character, advance p to last character in UTF sequence.
  */
 
-int Lexer::isUniIdent(unsigned char c)
+unsigned Lexer::decodeUTF()
 {
+    dchar_t u;
+    unsigned char c;
     unsigned char *s = p;
     unsigned len;
     unsigned idx;
-    dchar_t u;
     char *msg;
+
+    c = *s;
+    if (!(c & 0x80))
+	return c;
 
     // Check length of remaining string up to 6 UTF-8 characters
     for (len = 1; len < 6 && s[len]; len++)
@@ -1966,15 +1943,8 @@ int Lexer::isUniIdent(unsigned char c)
     if (msg)
     {
 	error(msg);
-	return 0;
     }
-
-    if (isUniAlpha(u))
-    {
-	return 1;
-    }
-
-    return 0;
+    return u;
 }
 
 /********************************************
@@ -2221,4 +2191,5 @@ void Lexer::initKeywords()
     Token::tochars[TOKsymoff]		= "symoff";
     Token::tochars[TOKtypedot]		= "typedot";
     Token::tochars[TOKarraylength]	= "arraylength";
+    Token::tochars[TOKstring]		= "string";
 }

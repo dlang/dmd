@@ -108,7 +108,7 @@ void VersionCondition::setGlobalLevel(unsigned level)
     global.params.versionlevel = level;
 }
 
-void VersionCondition::addGlobalIdent(char *ident)
+void VersionCondition::checkPredefined(char *ident)
 {
     static char* reserved[] =
     {
@@ -129,11 +129,16 @@ void VersionCondition::addGlobalIdent(char *ident)
     if (ident[0] == 'D' && ident[1] == '_')
 	goto Lerror;
 
-    addPredefinedGlobalIdent(ident);
     return;
 
   Lerror:
     error("version identifier '%s' is reserved and cannot be set", ident);
+}
+
+void VersionCondition::addGlobalIdent(char *ident)
+{
+    checkPredefined(ident);
+    addPredefinedGlobalIdent(ident);
 }
 
 void VersionCondition::addPredefinedGlobalIdent(char *ident)

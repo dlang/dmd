@@ -240,7 +240,7 @@ struct Lexer
     TOK inreal(Token *t);
     void error(const char *format, ...);
     void pragma();
-    int isUniIdent(unsigned char c);
+    unsigned decodeUTF();
 };
 
 #endif /* DMD_LEXER_H */

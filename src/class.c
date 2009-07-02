@@ -470,12 +470,21 @@ void ClassDeclaration::defineRef(Dsymbol *s)
 
 int ClassDeclaration::isBaseOf(ClassDeclaration *cd, int *poffset)
 {
+    //printf("ClassDeclaration::isBaseOf(this = '%s', cd = '%s')\n", toChars(), cd->toChars());
     if (poffset)
 	*poffset = 0;
     while (cd)
     {
 	if (this == cd->baseClass)
 	    return 1;
+
+	/* cd->baseClass might not be set if cd is forward referenced.
+	 */
+	if (!cd->baseClass && cd->baseclasses.dim)
+	{
+	    cd->error("base class is forward referenced by %s", toChars());
+	}
+
 	cd = cd->baseClass;
     }
     return 0;
@@ -872,6 +881,7 @@ BaseClass::BaseClass()
 
 BaseClass::BaseClass(Type *type, enum PROT protection)
 {
+    //printf("BaseClass(this = %p, '%s')\n", this, type->toChars());
     this->type = type;
     this->protection = protection;
     base = NULL;

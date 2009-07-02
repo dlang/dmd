@@ -1,5 +1,5 @@
 
-// Copyright (c) 1999-2004 by Digital Mars
+// Copyright (c) 1999-2005 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // www.digitalmars.com
@@ -280,6 +280,8 @@ void FuncDeclaration::semantic(Scope *sc)
 
     L1: ;
     }
+    else if (isOverride() && !parent->isTemplateInstance())
+	error("override only applies to class member functions");
 
     /* Do not allow template instances to add virtual functions
      * to a class.
@@ -559,14 +561,31 @@ void FuncDeclaration::semantic3(Scope *sc)
 	    // Postcondition invariant
 	    if (addPostInvariant())
 	    {
-		ThisExp *v = new ThisExp(0);
-		v->type = vthis->type;
-		AssertExp *e = new AssertExp(0, v);
-		ExpStatement *s = new ExpStatement(0, e);
-		if (fensure)
-		    fensure = new CompoundStatement(0, s, fensure);
+		Expression *e = NULL;
+		if (isCtorDeclaration())
+		{
+		    // Call invariant directly only if it exists
+		    if (ad->inv)
+		    {
+			e = new DsymbolExp(0, ad->inv);
+			e = new CallExp(0, e);
+			e = e->semantic(sc2);
+		    }
+		}
 		else
-		    fensure = s;
+		{   // Call invariant virtually
+		    ThisExp *v = new ThisExp(0);
+		    v->type = vthis->type;
+		    e = new AssertExp(0, v);
+		}
+		if (e)
+		{
+		    ExpStatement *s = new ExpStatement(0, e);
+		    if (fensure)
+			fensure = new CompoundStatement(0, s, fensure);
+		    else
+			fensure = s;
+		}
 	    }
 
 	    if (fensure)
@@ -685,15 +704,28 @@ void FuncDeclaration::semantic3(Scope *sc)
 	    // Precondition invariant
 	    if (addPreInvariant())
 	    {
-#if 1
-		ThisExp *v = new ThisExp(0);
-		v->type = vthis->type;
-#else
-		VarExp *v = new VarExp(0, vthis);
-#endif
-		AssertExp *e = new AssertExp(0, v);
-		ExpStatement *s = new ExpStatement(0, e);
-		a->push(s);
+		Expression *e = NULL;
+		if (isDtorDeclaration())
+		{
+		    // Call invariant directly only if it exists
+		    if (ad->inv)
+		    {
+			e = new DsymbolExp(0, ad->inv);
+			e = new CallExp(0, e);
+			e = e->semantic(sc2);
+		    }
+		}
+		else
+		{   // Call invariant virtually
+		    ThisExp *v = new ThisExp(0);
+		    v->type = vthis->type;
+		    e = new AssertExp(0, v);
+		}
+		if (e)
+		{
+		    ExpStatement *s = new ExpStatement(0, e);
+		    a->push(s);
+		}
 	    }
 
 	    if (fbody)
@@ -1089,7 +1121,7 @@ int FuncDeclaration::getLevel(Loc loc, FuncDeclaration *fd)
 	if (!thisfd || !thisfd->isNested())
 	{
 	    error(loc, "cannot access frame of function %s", fd->toChars());
-	    break;
+	    return 1;
 	}
 	s = thisfd->toParent();
 	thisfd = s->isFuncDeclaration();
@@ -1197,6 +1229,7 @@ int FuncDeclaration::addPreInvariant()
     return (ad &&
 	    //ad->isClassDeclaration() &&
 	    global.params.useInvariants &&
+	    (protection == PROTpublic || protection == PROTexport) &&
 	    !naked);
 }
 
@@ -1207,6 +1240,7 @@ int FuncDeclaration::addPostInvariant()
 	    ad->inv &&
 	    //ad->isClassDeclaration() &&
 	    global.params.useInvariants &&
+	    (protection == PROTpublic || protection == PROTexport) &&
 	    !naked);
 }
 

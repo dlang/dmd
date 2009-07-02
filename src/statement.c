@@ -1632,6 +1632,8 @@ Statement *ReturnStatement::semantic(Scope *sc)
 
     if (sc->incontract)
 	error("return statements cannot be in contracts");
+    if (sc->tf)
+	error("return statements cannot be in finally bodies");
 
     if (fd->isCtorDeclaration())
     {
@@ -1762,6 +1764,8 @@ Statement *BreakStatement::semantic(Scope *sc)
 
 		if (!s->hasBreak())
 		    error("label '%s' has no break", ident->toChars());
+		if (ls->tf != sc->tf)
+		    error("cannot break out of finally block");
 		return this;
 	    }
 	}
@@ -1837,6 +1841,8 @@ Statement *ContinueStatement::semantic(Scope *sc)
 
 		if (!s->hasContinue())
 		    error("label '%s' has no continue", ident->toChars());
+		if (ls->tf != sc->tf)
+		    error("cannot continue out of finally block");
 		return this;
 	    }
 	}
@@ -2043,6 +2049,16 @@ Statement *TryCatchStatement::semantic(Scope *sc)
 
 	c = (Catch *)catches->data[i];
 	c->semantic(sc);
+
+	// Determine if current catch 'hides' any previous catches
+	for (int j = 0; j < i; j++)
+	{   Catch *cj = (Catch *)catches->data[j];
+	    char *si = c->loc.toChars();
+	    char *sj = cj->loc.toChars();
+
+	    if (c->type->implicitConvTo(cj->type))
+		error("catch at %s hides catch at %s", sj, si);
+	}
     }
     return this;
 }
@@ -2076,6 +2092,7 @@ int TryCatchStatement::fallOffEnd()
 
 Catch::Catch(Loc loc, Type *t, Identifier *id, Statement *handler)
 {
+    //printf("Catch(loc = %s)\n", loc.toChars());
     this->loc = loc;
     this->type = t;
     this->ident = id;
@@ -2095,6 +2112,17 @@ void Catch::semantic(Scope *sc)
 {   ScopeDsymbol *sym;
 
     //printf("Catch::semantic()\n");
+
+    if (sc->tf)
+    {
+	/* This is because the _d_local_unwind() gets the stack munged
+	 * up on this. The workaround is to place any try-catches into
+	 * a separate function, and call that.
+	 * To fix, have the compiler automatically convert the finally
+	 * body into a nested function.
+	 */
+	error(loc, "cannot put catch statement inside finally block");
+    }
 
     sym = new ScopeDsymbol();
     sym->parent = sc->scopesym;
@@ -2135,7 +2163,12 @@ Statement *TryFinallyStatement::syntaxCopy()
 Statement *TryFinallyStatement::semantic(Scope *sc)
 {
     body = body->semantic(sc);
+    sc = sc->push();
+    sc->tf = this;
+    sc->sbreak = NULL;
+    sc->scontinue = NULL;	// no break or continue out of finally block
     finalbody = finalbody->semantic(sc);
+    sc->pop();
     return this;
 }
 
@@ -2190,7 +2223,7 @@ Statement *ThrowStatement::semantic(Scope *sc)
 	error("Throw statements cannot be in contracts");
     exp = exp->semantic(sc);
     exp = resolveProperties(sc, exp);
-    if (!exp->type->isClassHandle())
+    if (!exp->type->toBasetype()->isClassHandle())
 	error("can only throw class objects, not type %s", exp->type->toChars());
     return this;
 }
@@ -2251,6 +2284,7 @@ GotoStatement::GotoStatement(Loc loc, Identifier *ident)
 {
     this->ident = ident;
     this->label = NULL;
+    this->tf = NULL;
 }
 
 Statement *GotoStatement::syntaxCopy()
@@ -2263,6 +2297,7 @@ Statement *GotoStatement::semantic(Scope *sc)
 {   FuncDeclaration *fd = sc->parent->isFuncDeclaration();
 
     //printf("GotoStatement::semantic()\n");
+    tf = sc->tf;
     label = fd->searchLabel(ident);
     if (!label->statement && sc->fes)
     {
@@ -2280,6 +2315,8 @@ Statement *GotoStatement::semantic(Scope *sc)
 	sc->fes->gotos.push(s);		// 'look at this later' list
 	return s;
     }
+    if (label->statement && label->statement->tf != sc->tf)
+	error("cannot goto in or out of finally block");
     return this;
 }
 
@@ -2295,6 +2332,7 @@ LabelStatement::LabelStatement(Loc loc, Identifier *ident, Statement *statement)
 {
     this->ident = ident;
     this->statement = statement;
+    this->tf = NULL;
     this->lblock = NULL;
     this->isReturnLabel = 0;
 }
@@ -2309,17 +2347,19 @@ Statement *LabelStatement::semantic(Scope *sc)
 {   LabelDsymbol *ls;
     FuncDeclaration *fd = sc->parent->isFuncDeclaration();
 
+    //printf("LabelStatement::semantic()\n");
+    ls = fd->searchLabel(ident);
+    if (ls->statement)
+	error("Label '%s' already defined", ls->toChars());
+    else
+	ls->statement = this;
+    tf = sc->tf;
     sc = sc->push();
     sc->scopesym = sc->enclosing->scopesym;
     sc->callSuper |= CSXlabel;
     sc->slabel = this;
     statement = statement->semantic(sc);
-    ls = fd->searchLabel(ident);
     sc->pop();
-    if (ls->statement)
-	error("Label '%s' already defined", ls->toChars());
-    else
-	ls->statement = this;
     return this;
 }
 

@@ -101,6 +101,7 @@ void VersionSymbol::addMember(ScopeDsymbol *sd)
     m = sd->isModule();
     if (ident)
     {
+	VersionCondition::checkPredefined(ident->toChars());
 	if (!m)
 	    error("declaration must be at module level");
 	else
@@ -136,7 +137,7 @@ void VersionSymbol::toCBuffer(OutBuffer *buf)
 
 char *VersionSymbol::kind()
 {
-    return "kind";
+    return "version";
 }
 
 

@@ -1671,6 +1671,12 @@ Identifier *TemplateInstance::genIdent()
 		ea = NULL;
 		goto Lsa;
 	    }
+	    if (ea->op == TOKfunction)
+	    {
+		sa = ((FuncExp *)ea)->fd;
+		ea = NULL;
+		goto Lsa;
+	    }
 	    buf.writeByte('_');
 	    buf.printf("%u", ea->toInteger());
 	}
@@ -1678,7 +1684,7 @@ Identifier *TemplateInstance::genIdent()
 	{
 	  Lsa:
 	    Declaration *d = sa->isDeclaration();
-	    if (d && !d->isDataseg() && !d->isFuncDeclaration())
+	    if (d && !d->isDataseg() && !d->isFuncDeclaration() && !isTemplateMixin())
 	    {
 		error("cannot use local '%s' as template parameter", d->toChars());
 	    }
@@ -1930,6 +1936,7 @@ TemplateMixin::TemplateMixin(Loc loc, Identifier *ident, TypeTypeof *tqual,
 	Array *idents, Array *tiargs)
 	: TemplateInstance(loc, (Identifier *)idents->data[idents->dim - 1])
 {
+    //printf("TemplateMixin(ident = '%s')\n", ident ? ident->toChars() : "");
     this->ident = ident;
     this->tqual = tqual;
     this->idents = idents;
@@ -2058,8 +2065,8 @@ void TemplateMixin::semantic(Scope *sc)
 	return;		// error recovery
     }
 
-//    if (!ident)
-//	ident = genIdent();
+    if (!ident)
+	ident = genIdent();
 
     inst = this;
     parent = sc->parent;

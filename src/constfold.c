@@ -328,7 +328,7 @@ Expression *ShrExp::constFold()
     e2 = e2->constFold();
     value = e1->toInteger();
     count = e2->toInteger();
-    switch (e1->type->ty)
+    switch (e1->type->toBasetype()->ty)
     {
 	case Tint8:
 	case Tuns8:
@@ -349,6 +349,9 @@ Expression *ShrExp::constFold()
 	case Tuns64:
 		value = (d_int64)(value) >> count;
 		break;
+
+	default:
+		assert(0);
     }
     return new IntegerExp(loc, value, type);
 }
@@ -362,7 +365,7 @@ Expression *UshrExp::constFold()
     e2 = e2->constFold();
     value = e1->toInteger();
     count = e2->toInteger();
-    switch (e1->type->ty)
+    switch (e1->type->toBasetype()->ty)
     {
 	case Tint8:
 	case Tuns8:
@@ -383,6 +386,9 @@ Expression *UshrExp::constFold()
 	case Tuns64:
 		value = (d_uns64)(value) >> count;
 		break;
+
+	default:
+		assert(0);
     }
     return new IntegerExp(loc, value, type);
 }

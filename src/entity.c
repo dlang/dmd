@@ -56,7 +56,7 @@ static NameId names[] =
     "dagger",	8224,
     "Dagger",	8225,
     "permil",	8240,
-    "lsquo",	8249,
+    "lsaquo",	8249,
     "rsaquo",	8250,
     "euro",	8364,
 

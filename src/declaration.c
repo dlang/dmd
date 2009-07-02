@@ -422,6 +422,10 @@ void VarDeclaration::semantic(Scope *sc)
     {
 	error("variable %s cannot be synchronized", toChars());
     }
+    else if (isOverride())
+    {
+	error("override cannot be applied to variable");
+    }
     else
     {
 	AnonymousAggregateDeclaration *aad = sc->anonAgg;
@@ -472,7 +476,7 @@ void VarDeclaration::semantic(Scope *sc)
 
 	if (!(storage_class & STCauto))
 	{
-	    if (!(storage_class & STCparameter))
+	    if (!(storage_class & STCparameter) && ident != Id::withSym)
 		error("reference to auto class must be auto");
 	}
     }

@@ -41,6 +41,8 @@ static double zero = 0;
 #include "import.h"
 #include "aggregate.h"
 
+FuncDeclaration *hasThis(Scope *sc);
+
 
 #define LOGDOTEXP	0	// log ::dotExp()
 #define LOGDEFAULTINIT	0	// log ::defaultInit()
@@ -1939,7 +1941,10 @@ Type *TypePointer::syntaxCopy()
 Type *TypePointer::semantic(Loc loc, Scope *sc)
 {
     //printf("TypePointer::semantic()\n");
-    next = next->semantic(loc,sc);
+    Type *n = next->semantic(loc, sc);
+    if (n != next)
+	deco = NULL;
+    next = n;
     return merge();
 }
 
@@ -3472,6 +3477,8 @@ L1:
     {
 	return getProperty(e->loc, ident);
     }
+    s = s->toAlias();
+
     v = s->isVarDeclaration();
     if (v && v->isConst())
     {	ExpInitializer *ei = v->getExpInitializer();
@@ -3482,7 +3489,8 @@ L1:
 
     if (s->getType())
     {
-	return new DotTypeExp(e->loc, e, s);
+	//return new DotTypeExp(e->loc, e, s);
+	return new TypeExp(e->loc, s->getType());
     }
 
     EnumMember *em = s->isEnumMember();
@@ -3537,6 +3545,9 @@ L1:
 
     if (v)
     {
+	if (v->toParent() != sym)
+	    sym->error(e->loc, "'%s' is not a member", v->toChars());
+
 	// *(&e + offset)
 	b = new AddrExp(e->loc, e);
 	b->type = e->type->pointerTo();
@@ -3587,7 +3598,7 @@ TypeClass::TypeClass(ClassDeclaration *sym)
 
 char *TypeClass::toChars()
 {
-    return sym->toChars();
+    return sym->toPrettyChars();
 }
 
 Type *TypeClass::syntaxCopy()
@@ -3618,6 +3629,7 @@ void TypeClass::toDecoBuffer(OutBuffer *buf)
     char *name;
 
     name = sym->mangle();
+    //printf("TypeClass::toDecoBuffer('%s') = '%s'\n", toChars(), name);
     //len = strlen(name);
     //buf->printf("%c%d%s", mangleChar[ty], len, name);
     buf->printf("%c%s", mangleChar[ty], name);
@@ -3722,9 +3734,9 @@ L1:
 
     if (s->getType())
     {
-	if (e->op == TOKtype)
+//	if (e->op == TOKtype)
 	    return new TypeExp(e->loc, s->getType());
-	return new DotTypeExp(e->loc, e, s);
+//	return new DotTypeExp(e->loc, e, s);
     }
 
     EnumMember *em = s->isEnumMember();
@@ -3754,7 +3766,7 @@ L1:
     {
 	VarExp *ve;
 
-	if (d->needThis())
+	if (d->needThis() && (hasThis(sc) || !d->isFuncDeclaration()))
 	{
 	    if (sc->func)
 	    {

@@ -557,6 +557,7 @@ struct GotoStatement : Statement
 {
     Identifier *ident;
     LabelDsymbol *label;
+    TryFinallyStatement *tf;
 
     GotoStatement(Loc loc, Identifier *ident);
     Statement *syntaxCopy();
@@ -570,6 +571,7 @@ struct LabelStatement : Statement
 {
     Identifier *ident;
     Statement *statement;
+    TryFinallyStatement *tf;
     block *lblock;		// back end
     int isReturnLabel;
 

@@ -55,7 +55,8 @@ type->print();
 printf("to:\n");
 t->print();
 printf("%p %p %s %s\n", type->deco, t->deco, type->deco, t->deco);
-printf("%p %p %p\n", type->next->arrayOf(), type, t);
+//printf("%p %p %p\n", type->next->arrayOf(), type, t);
+fflush(stdout);
 #endif
 //*(char*)0=0;
     error("cannot implicitly convert expression (%s) of type %s to %s",
@@ -275,7 +276,7 @@ int NullExp::implicitConvTo(Type *t)
 int StringExp::implicitConvTo(Type *t)
 {   MATCH m;
 
-    //printf("StringExp::implicitConvTo()\n");
+    //printf("StringExp::implicitConvTo(), committed = %d\n", committed);
     if (!committed)
     {
     if (!committed && t->ty == Tpointer && t->next->ty == Tvoid)
@@ -455,7 +456,8 @@ Expression *StringExp::castTo(Type *t)
     Type *tb;
     int unique;
 
-    //printf("StringExp::castTo()\n");
+    //printf("StringExp::castTo('%s')\n", string);
+    //if (((char*)string)[0] == 'd') *(char*)0=0;
     if (!committed && t->ty == Tpointer && t->next->ty == Tvoid)
     {
 	error("cannot convert string literal to void*");
@@ -956,6 +958,7 @@ Expression *BinExp::typeCombine()
     {
 	goto Lt2;
     }
+//else if (e2->op == TOKstring) { printf("test2\n"); }
     else if ((e2->op == TOKstring || e2->op == TOKnull) && e2->implicitConvTo(t1))
     {
 	goto Lt1;

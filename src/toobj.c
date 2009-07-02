@@ -740,6 +740,11 @@ void StructDeclaration::toObjFile()
 	sinit->Sfl = FLdata;
 	toDt(&sinit->Sdt);
 
+#if !ELFOBJ
+	/* ELF comdef's generate multiple
+	 * definition errors for them from the gnu linker.
+	 * Need to figure out how to generate proper comdef's for ELF.
+	 */
 	// See if we can convert a comdat to a comdef,
 	// which saves on exe file space.
 	if (sinit->Sclass == SCcomdat &&
@@ -749,6 +754,7 @@ void StructDeclaration::toObjFile()
 	    sinit->Sclass = SCglobal;
 	    sinit->Sdt->dt = DT_common;
 	}
+#endif
 
 #if ELFOBJ // Burton
 	sinit->Sseg = CDATA;

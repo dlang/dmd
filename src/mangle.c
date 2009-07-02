@@ -70,29 +70,33 @@ char *Declaration::mangle()
 	do
 	{
 	    //printf("s = %p, '%s', parent = %p\n", s, s->toChars(), s->parent);
-#if 1
 	    if (s->ident)
-	    {	id = s->ident->toChars();
-		int len = strlen(id);
-		char tmp[sizeof(len) * 3 + 1];
-		buf.prependstring(id);
-		sprintf(tmp, "%d", len);
-		buf.prependstring(tmp);
+	    {
+		FuncDeclaration *fd = s->isFuncDeclaration();
+		if (s != this && fd)
+		{
+		    id = fd->mangle();
+		    buf.prependstring(id);
+		    goto L1;
+		}
+		else
+		{
+		    id = s->ident->toChars();
+		    int len = strlen(id);
+		    char tmp[sizeof(len) * 3 + 1];
+		    buf.prependstring(id);
+		    sprintf(tmp, "%d", len);
+		    buf.prependstring(tmp);
+		}
 	    }
 	    else
 		buf.prependstring("0");
-#else
-	    if (s->ident)
-	    {	buf.prependstring("_");
-		buf.prependstring(s->ident->toChars());
-	    }
-	    else
-		buf.prependstring("_");
-#endif
 	    s = s->parent;
 	} while (s);
 
 	buf.prependstring("_D");
+    L1:
+	//printf("deco = '%s'\n", type->deco);
 	buf.writestring(type->deco);
 
 	id = buf.toChars();
@@ -158,6 +162,7 @@ char *ClassDeclaration::mangle()
 
 char *TemplateInstance::mangle()
 {
+    //printf("TemplateInstance::mangle() '%s'\n", toChars());
     return Dsymbol::mangle();
 }
 

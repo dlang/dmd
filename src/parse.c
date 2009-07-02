@@ -1,5 +1,5 @@
 
-// Copyright (c) 1999-2004 by Digital Mars
+// Copyright (c) 1999-2005 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // www.digitalmars.com
@@ -1281,12 +1281,12 @@ Dsymbol *Parser::parseMixin()
 	    goto Lerr;
 	}
 	id = token.ident;
+	nextToken();
     }
 
     idents = new Array();
     while (1)
     {
-	nextToken();
 	tiargs = NULL;
 	if (token.value == TOKnot)
 	{
@@ -1311,6 +1311,7 @@ Dsymbol *Parser::parseMixin()
 	    break;
 	}
 	id = token.ident;
+	nextToken();
     }
     idents->push(id);
 
@@ -2788,6 +2789,7 @@ Statement *Parser::parseStatement(int flags)
 		Catch *c;
 		Type *t;
 		Identifier *id;
+		Loc loc = this->loc;
 
 		nextToken();
 		if (token.value == TOKlcurly)
@@ -3183,6 +3185,7 @@ int Parser::isDeclarator(Token **pt, int *haveId, enum TOK endtok)
 	    case TOKcomma:
 	    case TOKsemicolon:
 	    case TOKlcurly:
+	    case TOKin:
 		// The !parens is to disallow unnecessary parentheses
 		if (!parens && (endtok == TOKreserved || endtok == t->value))
 		{   *pt = t;
@@ -4016,8 +4019,7 @@ Expression *Parser::parseUnaryExp()
 			{
 			    e = parseUnaryExp();
 			    e = new CastExp(loc, e, t);
-			    if (!global.params.useDeprecated)
-				error("C style cast deprecated, use %s", e->toChars());
+			    error("C style cast illegal, use %s", e->toChars());
 			}
 			return e;
 		    }

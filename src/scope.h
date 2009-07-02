@@ -21,6 +21,7 @@ struct Identifier;
 struct Module;
 struct Statement;
 struct SwitchStatement;
+struct TryFinallyStatement;
 struct LabelStatement;
 struct ForeachStatement;
 struct ClassDeclaration;
@@ -40,6 +41,7 @@ struct Scope
     Dsymbol *parent;		// parent to use
     LabelStatement *slabel;	// enclosing labelled statement
     SwitchStatement *sw;	// enclosing switch statement
+    TryFinallyStatement *tf;	// enclosing try finally statement
     Statement *sbreak;		// enclosing statement that supports "break"
     Statement *scontinue;	// enclosing statement that supports "continue"
     ForeachStatement *fes;	// if nested function for ForeachStatement, this is it

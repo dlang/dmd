@@ -57,7 +57,7 @@ FuncDeclaration *hasThis(Scope *sc)
     while (1)
     {
 	if (!fd)
-	{   //printf("test1\n");
+	{
 	    goto Lno;
 	}
 	if (!fd->isNested())
@@ -1037,8 +1037,8 @@ Lagain:
     if (sc->func)
 	thiscd = sc->func->parent->isClassDeclaration();
 
-    // This should happen after overload resolution for functions, not before
-    if (s->needThis() && hasThis(sc))
+    // BUG: This should happen after overload resolution for functions, not before
+    if (s->needThis() && hasThis(sc) /*&& !s->isFuncDeclaration()*/)
     {
 	// Supply an implicit 'this', as in
 	//	  this.ident
@@ -1072,8 +1072,6 @@ Lagain:
 		    e = ei->exp->copy();	// make copy so we can change loc
 		    if (e->op == TOKstring || !e->type)
 			e = e->semantic(sc);
-//printf("test5\n");
-//e->print();
 		    e = e->implicitCastTo(type);
 		    e->loc = loc;
 		    return e;
@@ -1274,7 +1272,8 @@ Expression *SuperExp::semantic(Scope *sc)
     assert(s);
     cd = s->isClassDeclaration();
 //printf("parent is %s %s\n", fd->toParent()->kind(), fd->toParent()->toChars());
-    assert(cd);
+    if (!cd)
+	goto Lerr;
     if (!cd->baseClass)
     {
 	error("no base class for %s", cd->toChars());
@@ -1297,7 +1296,7 @@ Expression *SuperExp::semantic(Scope *sc)
 
 
 Lerr:
-    error("'super' is only allowed in non-static member functions");
+    error("'super' is only allowed in non-static class member functions");
     type = Type::tint32;
     return this;
 }
@@ -1647,7 +1646,7 @@ Expression *NewExp::semantic(Scope *sc)
     Type *tb;
 
 #if LOGSEMANTIC
-    printf("NewExp::semantic()\n");
+    printf("NewExp::semantic() %s\n", toChars());
     //printf("type: %s\n", type->toChars());
 #endif
     type = type->semantic(loc, sc);
@@ -2517,8 +2516,25 @@ Expression *DotVarExp::semantic(Scope *sc)
 	type = var->type;
 	assert(type);
 
-	if (!var->isFuncDeclaration())	// do access check after overload resolution
+	if (!var->isFuncDeclaration())	// do checks after overload resolution
+	{
+	    AggregateDeclaration *ad = var->parent->isAggregateDeclaration();
+	    Type *t = e1->type;
+
+	    if (ad && !(t->ty == Tpointer && t->next->ty == Tstruct &&
+		((TypeStruct *)t->next)->sym == ad))
+	    {
+		ClassDeclaration *cd = ad->isClassDeclaration();
+
+		if (!cd ||
+		    t->ty != Tclass ||
+		    !(((TypeClass *)t)->sym == cd || cd->isBaseOf(((TypeClass *)t)->sym, NULL))
+		   )
+		    error("this for %s needs to be type %s not type %s",
+			var->toChars(), ad->toChars(), t->toChars());
+	    }
 	    accessCheck(loc, sc, e1, var);
+	}
     }
     return this;
 }
@@ -2827,6 +2843,7 @@ if (arguments && arguments->dim)
 	}
     }
 
+Lagain:
     if (e1->op == TOKthis || e1->op == TOKsuper)
     {
 	// semantic() run later for these
@@ -2913,7 +2930,7 @@ if (arguments && arguments->dim)
 	    if (ad && cd && ad->isClassDeclaration() && ad != cd &&
 		dve->e1->op != TOKsuper)
 	    {
-		dve->e1 = new CastExp(loc, dve->e1, ad->type);
+		dve->e1 = dve->e1->castTo(ad->type); //new CastExp(loc, dve->e1, ad->type);
 		dve->e1 = dve->e1->semantic(sc);
 	    }
 	}
@@ -3033,6 +3050,16 @@ if (arguments && arguments->dim)
 	assert(f);
 	f = f->overloadResolve(loc, arguments);
 	checkDeprecated(sc, f);
+
+	if (f->needThis() && hasThis(sc))
+	{
+	    // Supply an implicit 'this', as in
+	    //	  this.ident
+
+	    e1 = new DotVarExp(loc, new ThisExp(loc), f);
+	    goto Lagain;
+	}
+
 	ve->var = f;
 	ve->type = f->type;
 	t1 = f->type;
@@ -3391,6 +3418,9 @@ Expression *CastExp::semantic(Scope *sc)
 #if LOGSEMANTIC
     printf("CastExp::semantic('%s')\n", toChars());
 #endif
+
+//static int x; assert(++x < 10);
+
     if (type)
 	return this;
     UnaExp::semantic(sc);
@@ -4636,10 +4666,12 @@ Expression *CatExp::semantic(Scope *sc)
 	Type *tb1 = e1->type->toBasetype();
 	Type *tb2 = e2->type->toBasetype();
 
+#if 0
 	if (tb1->ty == Tsarray)
 	    e1 = e1->castTo(tb1->next->arrayOf());
 	if (tb2->ty == Tsarray)
 	    e2 = e2->castTo(tb2->next->arrayOf());
+#endif
 
 	/* BUG: Should handle things like:
 	 *	char c;
@@ -4648,6 +4680,7 @@ Expression *CatExp::semantic(Scope *sc)
 	 */
 
 	typeCombine();
+
 #if 0
 	e1->type->print();
 	e2->type->print();
