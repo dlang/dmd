@@ -1,5 +1,5 @@
 
-// Copyright (c) 1999-2004 by Digital Mars
+// Copyright (c) 1999-2005 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // www.digitalmars.com
@@ -51,6 +51,7 @@ enum STC
     STCforeach      = 0x2000,		// variable for foreach loop
     STCcomdat       = 0x4000,		// should go into COMDAT record
     STCvariadic     = 0x8000,		// variadic function argument
+    STCctorinit     = 0x10000,		// can only be set inside constructor
 };
 
 struct Match
@@ -85,17 +86,18 @@ struct Declaration : Dsymbol
     virtual int isDelete();
     virtual int isDataseg();
     virtual int isCodeseg();
-    int isFinal() { return storage_class & STCfinal; }
-    int isAbstract() { return storage_class & STCabstract; }
-    int isConst() { return storage_class & STCconst; }
-    int isAuto() { return storage_class & STCauto; }
+    int isCtorinit()     { return storage_class & STCctorinit; }
+    int isFinal()        { return storage_class & STCfinal; }
+    int isAbstract()     { return storage_class & STCabstract; }
+    int isConst()        { return storage_class & STCconst; }
+    int isAuto()         { return storage_class & STCauto; }
     int isSynchronized() { return storage_class & STCsynchronized; }
-    int isParameter() { return storage_class & STCparameter; }
-    int isDeprecated() { return storage_class & STCdeprecated; }
-    int isOverride() { return storage_class & STCoverride; }
+    int isParameter()    { return storage_class & STCparameter; }
+    int isDeprecated()   { return storage_class & STCdeprecated; }
+    int isOverride()     { return storage_class & STCoverride; }
 
-    int isIn() { return storage_class & STCin; }
-    int isOut() { return storage_class & STCout; }
+    int isIn()    { return storage_class & STCin; }
+    int isOut()   { return storage_class & STCout; }
     int isInOut() { return (storage_class & (STCin | STCout)) == (STCin | STCout); }
 
     enum PROT prot();
@@ -154,6 +156,7 @@ struct VarDeclaration : Declaration
     int noauto;			// no auto semantics
     int nestedref;		// referenced by a lexically nested function
     int inuse;
+    int ctorinit;		// it has been initialized in a ctor
 
     VarDeclaration(Loc loc, Type *t, Identifier *id, Initializer *init);
     Dsymbol *syntaxCopy(Dsymbol *);
@@ -166,6 +169,7 @@ struct VarDeclaration : Declaration
     int isDataseg();
     Expression *callAutoDtor();
     ExpInitializer *getExpInitializer();
+    void checkCtorConstInit();
 
     Symbol *toSymbol();
     void toObjFile();			// compile to .obj file
@@ -444,6 +448,8 @@ struct StaticCtorDeclaration : FuncDeclaration
     int isVirtual();
     int addPreInvariant();
     int addPostInvariant();
+
+    StaticCtorDeclaration *isStaticCtorDeclaration() { return this; }
 };
 
 struct StaticDtorDeclaration : FuncDeclaration
@@ -456,6 +462,8 @@ struct StaticDtorDeclaration : FuncDeclaration
     int isVirtual();
     int addPreInvariant();
     int addPostInvariant();
+
+    StaticDtorDeclaration *isStaticDtorDeclaration() { return this; }
 };
 
 struct InvariantDeclaration : FuncDeclaration

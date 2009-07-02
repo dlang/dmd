@@ -38,6 +38,7 @@ struct AttribDeclaration : Dsymbol
     void inlineScan();
     char *kind();
     Dsymbol *oneMember();
+    void checkCtorConstInit();
     void addLocalClass(Array *);
     void toCBuffer(OutBuffer *buf);
 

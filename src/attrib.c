@@ -178,6 +178,22 @@ Dsymbol *AttribDeclaration::oneMember()
     return NULL;
 }
 
+void AttribDeclaration::checkCtorConstInit()
+{
+    unsigned i;
+    Array *d = include(NULL, NULL);
+
+    if (d)
+    {
+	for (i = 0; i < d->dim; i++)
+	{   Dsymbol *s;
+
+	    s = (Dsymbol *)d->data[i];
+	    s->checkCtorConstInit();
+	}
+    }
+}
+
 /****************************************
  */
 

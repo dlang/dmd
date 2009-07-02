@@ -514,7 +514,6 @@ Expression *Expression::toLvalue(Expression *e)
     else if (!loc.filename)
 	loc = e->loc;
     error("%s is not an lvalue", e->toChars());
-*(char*)0=0;
     return this;
 }
 
@@ -1447,6 +1446,17 @@ StringExp::StringExp(Loc loc, void *string, unsigned len)
     this->len = len;
     this->sz = 1;
     this->committed = 0;
+    this->postfix = 0;
+}
+
+StringExp::StringExp(Loc loc, void *string, unsigned len, unsigned char postfix)
+	: Expression(loc, TOKstring, sizeof(StringExp))
+{
+    this->string = string;
+    this->len = len;
+    this->sz = 1;
+    this->committed = 0;
+    this->postfix = postfix;
 }
 
 int StringExp::equals(Object *o)
@@ -1480,8 +1490,62 @@ Expression *StringExp::semantic(Scope *sc)
     printf("StringExp::semantic()\n");
 #endif
     if (!type)
-    {
-	type = new TypeSArray(Type::tchar, new IntegerExp(loc, len, Type::tindex));
+    {	OutBuffer buffer;
+	unsigned newlen = 0;
+	char *p;
+	unsigned u;
+	unsigned c;
+
+	switch (postfix)
+	{
+	    case 'd':
+		for (u = 0; u < len;)
+		{
+		    p = utf_decodeChar((unsigned char *)string, len, &u, &c);
+		    if (p)
+		    {	error(p);
+			break;
+		    }
+		    else
+		    {	buffer.write4(c);
+			newlen++;
+		    }
+		}
+		buffer.write4(0);
+		string = buffer.extractData();
+		len = newlen;
+		sz = 4;
+		type = new TypeSArray(Type::tdchar, new IntegerExp(loc, len, Type::tindex));
+		committed = 1;
+		break;
+
+	    case 'w':
+		for (u = 0; u < len;)
+		{
+		    p = utf_decodeChar((unsigned char *)string, len, &u, &c);
+		    if (p)
+		    {	error(p);
+			break;
+		    }
+		    else
+		    {	buffer.writeUTF16(c);
+			newlen++;
+		    }
+		}
+		buffer.writeUTF16(0);
+		string = buffer.extractData();
+		len = newlen;
+		sz = 2;
+		type = new TypeSArray(Type::twchar, new IntegerExp(loc, len, Type::tindex));
+		committed = 1;
+		break;
+
+	    case 'c':
+		committed = 1;
+	    default:
+		type = new TypeSArray(Type::tchar, new IntegerExp(loc, len, Type::tindex));
+		break;
+	}
 	type = type->semantic(loc, sc);
     }
     return this;
@@ -1591,6 +1655,8 @@ void StringExp::toCBuffer(OutBuffer *buf)
 	break;
     }
     buf->writeByte('"');
+    if (postfix)
+	buf->writeByte(postfix);
 }
 
 /************************ TypeDotIdExp ************************************/
@@ -2123,6 +2189,24 @@ Expression *VarExp::modifiableLvalue(Scope *sc, Expression *e)
 
     if (var->isConst())
 	error("cannot modify const variable '%s'", var->toChars());
+
+    if (var->isCtorinit())
+    {	// It's only modifiable if inside the right constructor
+	if (sc->func &&
+	    ((sc->func->isCtorDeclaration() && var->storage_class & STCfield) ||
+	     (sc->func->isStaticCtorDeclaration() && !(var->storage_class & STCfield))) &&
+	    sc->func->toParent() == var->toParent())
+	{
+	    VarDeclaration *v = var->isVarDeclaration();
+	    assert(v);
+	    v->ctorinit = 1;
+	    //printf("setting ctorinit\n");
+	}
+	else
+	{
+	    error("can only initialize const %s inside constructor", var->toChars());
+	}
+    }
 
     // See if this expression is a modifiable lvalue (i.e. not const)
     return toLvalue(e);
@@ -2969,6 +3053,33 @@ Expression *DotVarExp::semantic(Scope *sc)
 
 Expression *DotVarExp::toLvalue(Expression *e)
 {
+    //printf("DotVarExp::toLvalue(%s)\n", toChars());
+    return this;
+}
+
+Expression *DotVarExp::modifiableLvalue(Scope *sc, Expression *e)
+{
+    //printf("DotVarExp::modifiableLvalue(%s)\n", toChars());
+
+    if (var->isCtorinit())
+    {	// It's only modifiable if inside the right constructor
+	if (sc->func &&
+	    ((sc->func->isCtorDeclaration() && var->storage_class & STCfield) ||
+	     (sc->func->isStaticCtorDeclaration() && !(var->storage_class & STCfield))) &&
+	    sc->func->toParent() == var->toParent() &&
+	    e1->op == TOKthis
+	   )
+	{
+	    VarDeclaration *v = var->isVarDeclaration();
+	    assert(v);
+	    v->ctorinit = 1;
+	    //printf("setting ctorinit\n");
+	}
+	else
+	{
+	    error("can only initialize const %s inside constructor", var->toChars());
+	}
+    }
     return this;
 }
 
@@ -4259,6 +4370,12 @@ void CommaExp::checkEscape()
 Expression *CommaExp::toLvalue(Expression *e)
 {
     e2 = e2->toLvalue(NULL);
+    return this;
+}
+
+Expression *CommaExp::modifiableLvalue(Scope *sc, Expression *e)
+{
+    e2 = e2->modifiableLvalue(sc, e);
     return this;
 }
 
@@ -5937,6 +6054,12 @@ Expression *CondExp::toLvalue(Expression *ex)
 
     type = e2->type;
     return e;
+}
+
+Expression *CondExp::modifiableLvalue(Scope *sc, Expression *e)
+{
+    error("conditional expression %s is not a modifiable lvalue", toChars());
+    return this;
 }
 
 void CondExp::checkEscape()

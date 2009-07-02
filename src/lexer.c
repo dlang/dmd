@@ -403,6 +403,7 @@ void Lexer::scan(Token *t)
 		stringbuffer.writeByte(0);
 		t->ustring = (unsigned char *)mem.malloc(stringbuffer.offset);
 		memcpy(t->ustring, stringbuffer.data, stringbuffer.offset);
+		t->postfix = 0;
 		t->value = TOKstring;
 		return;
 	    }
@@ -486,6 +487,7 @@ void Lexer::scan(Token *t)
 			t->value = TOKstring;
 			t->ustring = (unsigned char *)timestamp;
 		     Llen:
+			t->postfix = 0;
 			t->len = strlen((char *)t->ustring);
 		    }
 		}
@@ -1057,6 +1059,7 @@ TOK Lexer::wysiwygStringConstant(Token *t, int tc)
 		error("unterminated string constant starting at %s", start.toChars());
 		t->ustring = (unsigned char *)"";
 		t->len = 0;
+		t->postfix = 0;
 		return TOKstring;
 
 	    case '"':
@@ -1067,6 +1070,7 @@ TOK Lexer::wysiwygStringConstant(Token *t, int tc)
 		    stringbuffer.writeByte(0);
 		    t->ustring = (unsigned char *)mem.malloc(stringbuffer.offset);
 		    memcpy(t->ustring, stringbuffer.data, stringbuffer.offset);
+		    stringPostfix(t);
 		    return TOKstring;
 		}
 		break;
@@ -1124,6 +1128,7 @@ TOK Lexer::hexStringConstant(Token *t)
 		error("unterminated string constant starting at %s", start.toChars());
 		t->ustring = (unsigned char *)"";
 		t->len = 0;
+		t->postfix = 0;
 		return TOKstring;
 
 	    case '"':
@@ -1135,6 +1140,7 @@ TOK Lexer::hexStringConstant(Token *t)
 		stringbuffer.writeByte(0);
 		t->ustring = (unsigned char *)mem.malloc(stringbuffer.offset);
 		memcpy(t->ustring, stringbuffer.data, stringbuffer.offset);
+		stringPostfix(t);
 		return TOKstring;
 
 	    default:
@@ -1213,6 +1219,7 @@ TOK Lexer::escapeStringConstant(Token *t, int wide)
 		stringbuffer.writeByte(0);
 		t->ustring = (unsigned char *)mem.malloc(stringbuffer.offset);
 		memcpy(t->ustring, stringbuffer.data, stringbuffer.offset);
+		stringPostfix(t);
 		return TOKstring;
 
 	    case 0:
@@ -1221,6 +1228,7 @@ TOK Lexer::escapeStringConstant(Token *t, int wide)
 		error("unterminated string constant starting at %s", start.toChars());
 		t->ustring = (unsigned char *)"";
 		t->len = 0;
+		t->postfix = 0;
 		return TOKstring;
 
 	    default:
@@ -1308,6 +1316,27 @@ TOK Lexer::charConstant(Token *t, int wide)
     }
     p++;
     return tk;
+}
+
+/***************************************
+ * Get postfix of string literal.
+ */
+
+void Lexer::stringPostfix(Token *t)
+{
+    switch (*p)
+    {
+	case 'c':
+	case 'w':
+	case 'd':
+	    t->postfix = *p;
+	    p++;
+	    break;
+
+	default:
+	    t->postfix = 0;
+	    break;
+    }
 }
 
 /***************************************

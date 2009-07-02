@@ -3641,11 +3641,14 @@ L1:
 	return new VarExp(e->loc, d);
     }
 
-    if (d->isStatic())
+    if (d->isDataseg())
     {
 	// (e, d)
-	b = new VarExp(e->loc, d);
-	e = new CommaExp(e->loc, e, b);
+	VarExp *ve;
+
+	accessCheck(e->loc, sc, e, d);
+	ve = new VarExp(e->loc, d);
+	e = new CommaExp(e->loc, e, ve);
 	e->type = d->type;
 	return e;
     }
@@ -3656,6 +3659,7 @@ L1:
 	    sym->error(e->loc, "'%s' is not a member", v->toChars());
 
 	// *(&e + offset)
+	accessCheck(e->loc, sc, e, d);
 	b = new AddrExp(e->loc, e);
 	b->type = e->type->pointerTo();
 	b = new AddExp(e->loc, b, new IntegerExp(e->loc, v->offset, Type::tint32));

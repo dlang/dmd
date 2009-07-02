@@ -49,7 +49,7 @@ Global::Global()
 
     copyright = "Copyright (c) 1999-2005 by Digital Mars";
     written = "written by Walter Bright";
-    version = "v0.128";
+    version = "v0.129";
     global.structalign = 8;
 
     memset(&params, 0, sizeof(Param));
@@ -230,6 +230,8 @@ int main(int argc, char *argv[])
 		global.params.link = 0;
 	    else if (strcmp(p + 1, "g") == 0)
 		global.params.symdebug = 1;
+	    else if (strcmp(p + 1, "gc") == 0)
+		global.params.symdebug = 2;
 	    else if (strcmp(p + 1, "gt") == 0)
 	    {	error("use -profile instead of -gt\n");
 		global.params.trace = 1;

@@ -65,6 +65,13 @@ struct AggregateDeclaration : ScopeDsymbol
     void addField(Scope *sc, VarDeclaration *v);
     int isDeprecated();		// is aggregate deprecated?
 
+    // For access checking
+    virtual PROT getAccess(Dsymbol *smember);	// determine access to smember
+    int isFriendOf(AggregateDeclaration *cd);
+    int hasPackageAccess(Scope *sc);
+    int hasPrivateAccess(Dsymbol *smember);	// does smember have private access to members of this class?
+    void accessCheck(Loc loc, Scope *sc, Dsymbol *smember);
+
     // Back end
     Symbol *stag;		// tag symbol for debug data
     Symbol *sinit;
@@ -93,6 +100,8 @@ struct StructDeclaration : AggregateDeclaration
     void toCBuffer(OutBuffer *buf);
     char *mangle();
     char *kind();
+
+    PROT getAccess(Dsymbol *smember);	// determine access to smember
 
     void toObjFile();			// compile to .obj file
     void toDt(dt_t **pdt);
@@ -182,10 +191,7 @@ struct ClassDeclaration : AggregateDeclaration
     char *mangle();
 
     PROT getAccess(Dsymbol *smember);	// determine access to smember
-    int hasPrivateAccess(Dsymbol *smember);	// does smember have private access to members of this class?
-    void accessCheck(Loc loc, Scope *sc, Dsymbol *smember);
-    int isFriendOf(ClassDeclaration *cd);
-    int hasPackageAccess(Scope *sc);
+
     void addLocalClass(Array *);
 
     // Back end

@@ -368,6 +368,7 @@ VarDeclaration::VarDeclaration(Loc loc, Type *type, Identifier *id, Initializer 
     noauto = 0;
     nestedref = 0;
     inuse = 0;
+    ctorinit = 0;
 }
 
 Dsymbol *VarDeclaration::syntaxCopy(Dsymbol *s)
@@ -422,6 +423,10 @@ void VarDeclaration::semantic(Scope *sc)
 	type = Type::terror;
 	tb = type;
     }
+
+    if (storage_class & STCconst && !init && !fd)
+	// Initialize by constructor only
+	storage_class = (storage_class & ~STCconst) | STCctorinit;
 
     if (isConst())
     {
@@ -627,6 +632,12 @@ int VarDeclaration::isImportedSymbol()
     if (protection == PROTexport && !init && (isStatic() || isConst() || parent->isModule()))
 	return TRUE;
     return FALSE;
+}
+
+void VarDeclaration::checkCtorConstInit()
+{
+    if (ctorinit == 0 && isCtorinit() && !(storage_class & STCfield))
+	error("missing initializer in static constructor for const variable");
 }
 
 /*******************************

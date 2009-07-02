@@ -36,6 +36,8 @@ struct FuncAliasDeclaration;
 struct FuncLiteralDeclaration;
 struct CtorDeclaration;
 struct DtorDeclaration;
+struct StaticCtorDeclaration;
+struct StaticDtorDeclaration;
 struct InvariantDeclaration;
 struct UnitTestDeclaration;
 struct NewDeclaration;
@@ -126,6 +128,7 @@ struct Dsymbol : Object
     virtual Dsymbol *syntaxCopy(Dsymbol *s);	// copy only syntax trees
     virtual Dsymbol *oneMember() { return this; }
     virtual void addLocalClass(Array *) { }
+    virtual void checkCtorConstInit() { }
 
     // Backend
 
@@ -154,6 +157,8 @@ struct Dsymbol : Object
     virtual FuncLiteralDeclaration *isFuncLiteralDeclaration() { return NULL; }
     virtual CtorDeclaration *isCtorDeclaration() { return NULL; }
     virtual DtorDeclaration *isDtorDeclaration() { return NULL; }
+    virtual StaticCtorDeclaration *isStaticCtorDeclaration() { return NULL; }
+    virtual StaticDtorDeclaration *isStaticDtorDeclaration() { return NULL; }
     virtual InvariantDeclaration *isInvariantDeclaration() { return NULL; }
     virtual UnitTestDeclaration *isUnitTestDeclaration() { return NULL; }
     virtual NewDeclaration *isNewDeclaration() { return NULL; }

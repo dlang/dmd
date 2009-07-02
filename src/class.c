@@ -373,6 +373,7 @@ void ClassDeclaration::semantic(Scope *sc)
     sc = sc->push(this);
     sc->stc &= ~(STCauto | STCstatic | STCabstract);
     sc->parent = this;
+    sc->inunion = 0;
 
     if (isCOMclass())
 	sc->linkage = LINKwindows;

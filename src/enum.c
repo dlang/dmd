@@ -102,8 +102,17 @@ void EnumDeclaration::semantic(Scope *sc)
 	// Add to symbol table only after evaluating 'value'
 	if (isAnonymous())
 	{
-	    sce->enclosing->insert(em);
-	    em->parent = sce->enclosing->parent;
+	    //sce->enclosing->insert(em);
+	    for (Scope *scx = sce->enclosing; scx; scx = scx->enclosing)
+	    {
+		if (scx->scopesym)
+		{
+		    if (!scx->scopesym->symtab)
+			scx->scopesym->symtab = new DsymbolTable();
+		    em->addMember(sce, scx->scopesym);
+		    break;
+		}
+	    }
 	}
 	else
 	    em->addMember(sc, this);

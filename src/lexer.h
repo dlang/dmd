@@ -199,6 +199,7 @@ struct Token
 	struct
 	{   unsigned char *ustring;	// UTF8 string
 	    unsigned len;
+	    unsigned char postfix;	// 'c', 'w', 'd'
 	};
 	Identifier *ident;
     };
@@ -238,6 +239,7 @@ struct Lexer
     TOK hexStringConstant(Token *t);
     TOK escapeStringConstant(Token *t, int wide);
     TOK charConstant(Token *t, int wide);
+    void stringPostfix(Token *t);
     unsigned wchar(unsigned u);
     TOK number(Token *t);
     TOK inreal(Token *t);

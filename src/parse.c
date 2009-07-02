@@ -3651,10 +3651,12 @@ Expression *Parser::parsePrimaryExp()
 	case TOKstring:
 	{   unsigned char *s;
 	    unsigned len;
+	    unsigned char postfix;
 
 	    // cat adjacent strings
 	    s = token.ustring;
 	    len = token.len;
+	    postfix = token.postfix;
 	    while (1)
 	    {
 		nextToken();
@@ -3662,6 +3664,12 @@ Expression *Parser::parsePrimaryExp()
 		{   unsigned len1;
 		    unsigned len2;
 		    unsigned char *s2;
+
+		    if (token.postfix)
+		    {	if (token.postfix != postfix)
+			    error("mismatched string literal postfixes '%c' and '%c'", postfix, token.postfix);
+			postfix = token.postfix;
+		    }
 
 		    len1 = len;
 		    len2 = token.len;
@@ -3674,7 +3682,7 @@ Expression *Parser::parsePrimaryExp()
 		else
 		    break;
 	    }
-	    e = new StringExp(loc, s, len);
+	    e = new StringExp(loc, s, len, postfix);
 	    break;
 	}
 

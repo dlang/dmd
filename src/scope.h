@@ -52,6 +52,7 @@ struct Scope
     int incontract;		// we're inside contract code
     int nofree;			// set if shouldn't free it
     int noctor;			// set if constructor calls aren't allowed
+
     unsigned callSuper;		// primitive flow analysis for constructors
 #define	CSXthis_ctor	1	// called this()
 #define CSXsuper_ctor	2	// called super()
@@ -65,6 +66,7 @@ struct Scope
     enum LINK linkage;		// linkage for external functions
     enum PROT protection;	// protection for class members
     unsigned stc;		// storage class
+
     unsigned flags;
 #define SCOPEctor	1	// constructor type
 #define SCOPEstaticif	2	// inside static if

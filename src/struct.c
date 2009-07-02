@@ -250,10 +250,12 @@ void StructDeclaration::semantic(Scope *sc)
 
     sizeok = 0;
     sc2 = sc->push(this);
+    sc2->stc = 0;
     sc2->parent = this;
     if (isUnionDeclaration())
 	sc2->inunion = 1;
-    sc2->stc = 0;
+    sc2->protection = PROTpublic;
+
     int members_dim = members->dim;
     for (i = 0; i < members_dim; i++)
     {

@@ -615,18 +615,50 @@ void FuncDeclaration::semantic3(Scope *sc)
 	sc2->incontract--;
 
 	if (fbody)
-	{
+	{   ClassDeclaration *cd = isClassMember();
+
+	    if (isCtorDeclaration() && cd)
+	    {
+		for (int i = 0; i < cd->fields.dim; i++)
+		{   VarDeclaration *v = (VarDeclaration *)cd->fields.data[i];
+
+		    v->ctorinit = 0;
+		}
+	    }
+
 	    fbody = fbody->semantic(sc2);
 	    int offend = fbody ? fbody->fallOffEnd() : TRUE;
 
-	    if (isCtorDeclaration())
+	    if (isStaticCtorDeclaration())
+	    {	/* It's a static constructor. Ensure that all
+		 * ctor consts were initialized.
+		 */
+
+		ScopeDsymbol *ad = toParent()->isScopeDsymbol();
+		assert(ad);
+		for (int i = 0; i < ad->members->dim; i++)
+		{   Dsymbol *s = (Dsymbol *)ad->members->data[i];
+
+		    s->checkCtorConstInit();
+		}
+	    }
+
+	    if (isCtorDeclaration() && cd)
 	    {
-		ClassDeclaration *cd = isClassMember();
 		//printf("callSuper = x%x\n", sc2->callSuper);
 
-		assert(cd || global.errors);
+		// Verify that all the ctorinit fields got initialized
+		if (!(sc->callSuper & CSXthis_ctor))
+		{
+		    for (int i = 0; i < cd->fields.dim; i++)
+		    {   VarDeclaration *v = (VarDeclaration *)cd->fields.data[i];
 
-		if (cd && !(sc2->callSuper & CSXany_ctor) &&
+			if (v->ctorinit == 0 && v->isCtorinit())
+			    error("missing initializer for const field %s", v->toChars());
+		    }
+		}
+
+		if (!(sc2->callSuper & CSXany_ctor) &&
 		    cd->baseClass && cd->baseClass->ctor)
 		{
 		    sc2->callSuper = 0;
@@ -1565,13 +1597,8 @@ Dsymbol *StaticCtorDeclaration::syntaxCopy(Dsymbol *s)
 
 void StaticCtorDeclaration::semantic(Scope *sc)
 {
-    ClassDeclaration *cd;
-    Type *tret;
+    //printf("StaticCtorDeclaration::semantic()\n");
 
-    cd = sc->scopesym->isClassDeclaration();
-    if (!cd)
-    {
-    }
     type = new TypeFunction(NULL, Type::tvoid, FALSE, LINKd);
 
     FuncDeclaration::semantic(sc);

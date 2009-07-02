@@ -268,7 +268,9 @@ struct StringExp : Expression
     unsigned len;	// number of chars, wchars, or dchars
     unsigned char sz;	// 1: char, 2: wchar, 4: dchar
     unsigned char committed;	// !=0 if type is committed
+    unsigned char postfix;	// 'c', 'w', 'd'
 
+    StringExp(Loc loc, void *s, unsigned len, unsigned char postfix);
     StringExp(Loc loc, void *s, unsigned len);
     int equals(Object *o);
     char *toChars();
@@ -528,6 +530,7 @@ struct DotVarExp : UnaExp
     DotVarExp(Loc loc, Expression *e, Declaration *var);
     Expression *semantic(Scope *sc);
     Expression *toLvalue(Expression *e);
+    Expression *modifiableLvalue(Scope *sc, Expression *e);
     void toCBuffer(OutBuffer *buf);
     void dump(int indent);
     elem *toElem(IRState *irs);
@@ -758,6 +761,7 @@ struct CommaExp : BinExp
     Expression *semantic(Scope *sc);
     void checkEscape();
     Expression *toLvalue(Expression *e);
+    Expression *modifiableLvalue(Scope *sc, Expression *e);
     int isBool(int result);
     Expression *optimize(int result);
     elem *toElem(IRState *irs);
@@ -1188,6 +1192,7 @@ struct CondExp : BinExp
     Expression *constFold();
     void checkEscape();
     Expression *toLvalue(Expression *e);
+    Expression *modifiableLvalue(Scope *sc, Expression *e);
     Expression *checkToBoolean();
     void toCBuffer(OutBuffer *buf);
     int implicitConvTo(Type *t);
