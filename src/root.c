@@ -884,7 +884,7 @@ int File::read()
     len = size;
 
     // Always store a wchar ^Z past end of buffer so scanner has a sentinel
-    buffer[size] = 0x1A;
+    buffer[size] = 0;		// ^Z is obsolete, use 0
     buffer[size + 1] = 0;
     return 0;
 
@@ -939,7 +939,7 @@ err1:
     len = size;
 
     // Always store a wchar ^Z past end of buffer so scanner has a sentinel
-    buffer[size] = 0x1A;
+    buffer[size] = 0;		// ^Z is obsolete, use 0
     buffer[size + 1] = 0;
     return 0;
 
@@ -1661,10 +1661,15 @@ void OutBuffer::spread(unsigned offset, unsigned nbytes)
     this->offset += nbytes;
 }
 
-void OutBuffer::insert(unsigned offset, const void *p, unsigned nbytes)
+/****************************************
+ * Returns: offset + nbytes
+ */
+
+unsigned OutBuffer::insert(unsigned offset, const void *p, unsigned nbytes)
 {
     spread(offset, nbytes);
     memmove(data + offset, p, nbytes);
+    return offset + nbytes;
 }
 
 void OutBuffer::remove(unsigned offset, unsigned nbytes)

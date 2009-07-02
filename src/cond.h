@@ -84,7 +84,6 @@ struct IftypeCondition : Condition
 {
     /* iftype (targ id tok tspec)
      */
-    Loc loc;
     Type *targ;
     Identifier *id;	// can be NULL
     enum TOK tok;	// ':' or '=='

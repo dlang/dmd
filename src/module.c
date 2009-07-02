@@ -50,6 +50,7 @@ Module::Module(char *filename, Identifier *ident, int doDocComment)
     errors = 0;
     members = NULL;
     isHtml = 0;
+    isDocFile = 0;
     needmoduleinfo = 0;
     insearch = 0;
     searchCacheIdent = NULL;
@@ -413,6 +414,15 @@ void Module::parse()
 	}
     }
 
+    /* If it starts with the string "Ddoc", then it's a documentation
+     * source file.
+     */
+    if (buflen >= 4 && memcmp(buf, "Ddoc", 4) == 0)
+    {
+	comment = buf + 4;
+	isDocFile = 1;
+	return;
+    }
     if (isHtml)
     {
 	OutBuffer *dbuf = new OutBuffer();

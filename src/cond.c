@@ -277,7 +277,6 @@ int IftypeCondition::include(Scope *sc, ScopeDsymbol *sd)
     {
 	if (!sc)
 	{
-*(char*)0=0;
 	    error(loc, "iftype conditional cannot be at global scope");
 	    inc = 2;
 	    return 0;

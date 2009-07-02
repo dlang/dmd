@@ -172,7 +172,7 @@ unsigned extractArgN(unsigned char *p, unsigned end, unsigned char **pmarg, unsi
 		{
 		    if (c == instring)
 			instring = 0;
-		    else
+		    else if (!instring)
 			instring = c;
 		}
 		continue;

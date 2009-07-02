@@ -54,6 +54,7 @@ struct Module : Package
     File *docfile;	// output documentation file
     unsigned errors;	// if any errors in file
     int isHtml;		// if it is an HTML file
+    int isDocFile;	// if it is a documentation input file, not D source
     int needmoduleinfo;
 
     int insearch;

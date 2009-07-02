@@ -193,18 +193,21 @@ Token *Lexer::freelist = NULL;
 StringTable Lexer::stringtable;
 OutBuffer Lexer::stringbuffer;
 
-Lexer::Lexer(Module *mod, unsigned char *base, unsigned length, int doDocComment)
+Lexer::Lexer(Module *mod,
+	unsigned char *base, unsigned begoffset, unsigned endoffset,
+	int doDocComment, int commentToken)
     : loc(mod, 1)
 {
     //printf("Lexer::Lexer(%p,%d)\n",base,length);
     //printf("lexer.mod = %p, %p\n", mod, this->loc.mod);
     memset(&token,0,sizeof(token));
     this->base = base;
-    this->end  = base + length;
-    p = base;
+    this->end  = base + endoffset;
+    p = base + begoffset;
     this->mod = mod;
     this->doDocComment = doDocComment;
     this->anyToken = 0;
+    this->commentToken = commentToken;
     //initKeywords();
 }
 
@@ -226,7 +229,7 @@ unsigned Lexer::locToLine(Loc loc)
 
 void Lexer::error(const char *format, ...)
 {
-    if (!global.gag)
+    if (mod && !global.gag)
     {
 	char *p = loc.toChars();
 	if (*p)
@@ -249,7 +252,7 @@ void Lexer::error(const char *format, ...)
 
 void Lexer::error(Loc loc, const char *format, ...)
 {
-    if (!global.gag)
+    if (mod && !global.gag)
     {
 	char *p = loc.toChars();
 	if (*p)
@@ -467,13 +470,13 @@ void Lexer::scan(Token *t)
 			sprintf(timestamp, "%.24s", p);
 		    }
 
-		    if (id == Id::FILE)
+		    if (mod && id == Id::FILE)
 		    {
 			t->value = TOKstring;
 			t->ustring = (unsigned char *)(loc.filename ? loc.filename : mod->ident->toChars());
 			goto Llen;
 		    }
-		    else if (id == Id::LINE)
+		    else if (mod && id == Id::LINE)
 		    {
 			t->value = TOKint64v;
 			t->uns64value = loc.linnum;
@@ -557,7 +560,12 @@ void Lexer::scan(Token *t)
 			    if (p[-2] == '*' && p - 3 != t->ptr)
 				break;
 			}
-			if (doDocComment && t->ptr[2] == '*' && p - 4 != t->ptr)
+			if (commentToken)
+			{
+			    t->value = TOKcomment;
+			    return;
+			}
+			else if (doDocComment && t->ptr[2] == '*' && p - 4 != t->ptr)
 			{   // if /** but not /**/
 			    getDocComment(t, lastLine == linnum);
 			}
@@ -579,6 +587,12 @@ void Lexer::scan(Token *t)
 
 				case 0:
 				case 0x1A:
+				    if (commentToken)
+				    {
+					p = end;
+					t->value = TOKcomment;
+					return;
+				    }
 				    if (doDocComment && t->ptr[2] == '/')
 					getDocComment(t, lastLine == linnum);
 				    p = end;
@@ -596,6 +610,13 @@ void Lexer::scan(Token *t)
 			    break;
 			}
 
+			if (commentToken)
+			{
+			    p++;
+			    loc.linnum++;
+			    t->value = TOKcomment;
+			    return;
+			}
 			if (doDocComment && t->ptr[2] == '/')
 			    getDocComment(t, lastLine == linnum);
 
@@ -660,6 +681,11 @@ void Lexer::scan(Token *t)
 				    continue;
 			    }
 			    break;
+			}
+			if (commentToken)
+			{
+			    t->value = TOKcomment;
+			    return;
 			}
 			if (doDocComment && t->ptr[2] == '+' && p - 4 != t->ptr)
 			{   // if /++ but not /++/
@@ -1998,7 +2024,7 @@ void Lexer::pragma()
 		continue;			// skip white space
 
 	    case '_':
-		if (memcmp(p, "__FILE__", 8) == 0)
+		if (mod && memcmp(p, "__FILE__", 8) == 0)
 		{
 		    p += 8;
 		    filespec = mem.strdup(loc.filename ? loc.filename : mod->ident->toChars());
@@ -2368,6 +2394,16 @@ static Keyword keywords[] =
     {	"unittest",	TOKunittest	},
     {	"version",	TOKversion	},
 };
+
+int Token::isKeyword()
+{
+    for (unsigned u = 0; u < sizeof(keywords) / sizeof(keywords[0]); u++)
+    {
+	if (keywords[u].value == value)
+	    return 1;
+    }
+    return 0;
+}
 
 void Lexer::initKeywords()
 {   StringValue *sv;

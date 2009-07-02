@@ -71,7 +71,7 @@ enum ParseStatementFlags
 
 
 Parser::Parser(Module *module, unsigned char *base, unsigned length, int doDocComment)
-    : Lexer(module, base, length, doDocComment)
+    : Lexer(module, base, 0, length, doDocComment, 0)
 {
     //printf("Parser::Parser()\n");
     md = NULL;

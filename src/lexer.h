@@ -65,7 +65,7 @@ enum TOK
 	TOKpragma,	TOKdsymbol,
 	TOKtypeid,	TOKuadd,
 	TOKiftype,	TOKremove,
-	TOKnewanonclass,
+	TOKnewanonclass, TOKcomment,
 
 	// Operators
 	TOKlt,		TOKgt,
@@ -203,12 +203,14 @@ struct Token
 	    unsigned len;
 	    unsigned char postfix;	// 'c', 'w', 'd'
 	};
+
 	Identifier *ident;
     };
 
     static char *tochars[TOKMAX];
     static void *operator new(size_t sz);
 
+    int isKeyword();
     void print();
     char *toChars();
     static char *toChars(enum TOK);
@@ -229,8 +231,11 @@ struct Lexer
     Module *mod;
     int doDocComment;		// collect doc comment information
     int anyToken;		// !=0 means seen at least one token
+    int commentToken;		// !=0 means comments are TOKcomment's
 
-    Lexer(Module *mod, unsigned char *base, unsigned length, int doDocComment);
+    Lexer(Module *mod,
+	unsigned char *base, unsigned begoffset, unsigned endoffset,
+	int doDocComment, int commentToken);
 
     static void initKeywords();
     static Identifier *idPool(const char *s);

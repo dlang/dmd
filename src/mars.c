@@ -51,7 +51,7 @@ Global::Global()
 
     copyright = "Copyright (c) 1999-2005 by Digital Mars";
     written = "written by Walter Bright";
-    version = "v0.134";
+    version = "v0.135";
     global.structalign = 8;
 
     memset(&params, 0, sizeof(Param));
@@ -575,6 +575,24 @@ int main(int argc, char *argv[])
 	m->deleteObjFile();
 	m->read(0);
 	m->parse();
+	if (m->isDocFile)
+	{
+	    m->gendocfile();
+
+	    // Remove m from list of modules
+	    modules.remove(i);
+	    i--;
+
+	    // Remove m's object file from list of object files
+	    for (int j = 0; j < global.params.objfiles->dim; j++)
+	    {
+		if (m->objfile->name->str == global.params.objfiles->data[j])
+		{
+		    global.params.objfiles->remove(j);
+		    break;
+		}
+	    }
+	}
     }
     if (global.errors)
 	fatal();
