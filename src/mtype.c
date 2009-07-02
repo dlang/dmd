@@ -2767,7 +2767,7 @@ L1:
 	    if (si)
 	    {
 		s = si->search(s->ident, 0);
-		if (s)
+		if (s && s != si)
 		    goto L1;
 		s = si;
 	    }

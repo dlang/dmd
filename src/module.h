@@ -72,9 +72,11 @@ struct Module : Package
 
     unsigned debuglevel;	// debug level
     Array *debugids;		// debug identifiers
+    Array *debugidsNot;		// forward referenced debug identifiers
 
     unsigned versionlevel;	// version level
     Array *versionids;		// version identifiers
+    Array *versionidsNot;	// forward referenced version identifiers
 
 
     Module(char *arg, Identifier *ident);

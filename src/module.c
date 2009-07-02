@@ -68,8 +68,10 @@ Module::Module(char *filename, Identifier *ident)
 
     debuglevel = 0;
     debugids = NULL;
+    debugidsNot = NULL;
     versionlevel = 0;
     versionids = NULL;
+    versionidsNot = NULL;
 
     srcfilename = FileName::defaultExt(filename, global.mars_ext);
     if (!srcfilename->equalsExt(global.mars_ext))
@@ -598,6 +600,7 @@ Dsymbol *Module::search(Identifier *ident, int flags)
      * need to stop infinite recursive searches.
      */
 
+    //printf("%s Module::search('%s', flags = %d) insearch = %d\n", toChars(), ident->toChars(), flags, insearch);
     Dsymbol *s;
     if (insearch)
 	s = NULL;

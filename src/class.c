@@ -623,7 +623,9 @@ Dsymbol *ClassDeclaration::search(Identifier *ident, int flags)
 		else
 		{
 		    s = b->base->search(ident, flags);
-		    if (s)
+		    if (s == this)	// happens if s is nested in this and derives from this
+			s = NULL;
+		    else if (s)
 			break;
 		}
 	    }

@@ -172,7 +172,7 @@ dt_t *ArrayInitializer::toDt()
     dt_t *d;
     dt_t **pdtend;
 
-    //printf("dim = %d\n", dim);
+    //printf("\tdim = %d\n", dim);
     dts.setDim(dim);
     dts.zero();
 
@@ -186,7 +186,7 @@ dt_t *ArrayInitializer::toDt()
 	idx = (Expression *)index.data[i];
 	if (idx)
 	    length = idx->toInteger();
-	//printf("index[%d] = %p, length = %u, dim = %u\n", i, idx, length, dim);
+	//printf("\tindex[%d] = %p, length = %u, dim = %u\n", i, idx, length, dim);
 
 	assert(length < dim);
 	val = (Initializer *)value.data[i];
@@ -199,6 +199,13 @@ dt_t *ArrayInitializer::toDt()
 
     Expression *edefault = tb->next->defaultInit();
 
+    unsigned n = 1;
+    for (Type *tbn = tn; tbn->ty == Tsarray; tbn = tbn->next->toBasetype())
+    {	TypeSArray *tsa = (TypeSArray *)tbn;
+
+	n *= tsa->dim->toInteger();
+    }
+
     d = NULL;
     pdtend = &d;
     for (i = 0; i < dim; i++)
@@ -207,7 +214,10 @@ dt_t *ArrayInitializer::toDt()
 	if (dt)
 	    pdtend = dtcat(pdtend, dt);
 	else
-	    pdtend = edefault->toDt(pdtend);
+	{
+	    for (int j = 0; j < n; j++)
+		pdtend = edefault->toDt(pdtend);
+	}
     }
     switch (tb->ty)
     {
@@ -224,7 +234,9 @@ dt_t *ArrayInitializer::toDt()
 		else
 		{
 		    for (i = dim; i < tadim; i++)
-			pdtend = edefault->toDt(pdtend);
+		    {	for (int j = 0; j < n; j++)
+			    pdtend = edefault->toDt(pdtend);
+		    }
 		}
 	    }
 	    else if (dim > tadim)

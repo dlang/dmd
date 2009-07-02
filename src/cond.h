@@ -18,6 +18,8 @@ struct Scope;
 struct ScopeDsymbol;
 enum TOK;
 
+int findCondition(Array *ids, Identifier *ident);
+
 struct Condition
 {
     Loc loc;

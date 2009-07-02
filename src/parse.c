@@ -2286,10 +2286,16 @@ Initializer *Parser::parseInitializer()
 	    return ia;
 
 	case TOKvoid:
-	    nextToken();
-	    return new VoidInitializer(loc);
+	    t = peek(&token);
+	    if (t->value == TOKsemicolon)
+	    {
+		nextToken();
+		return new VoidInitializer(loc);
+	    }
+	    goto Lexpression;
 
 	default:
+	Lexpression:
 	    e = parseAssignExp();
 	    ie = new ExpInitializer(loc, e);
 	    return ie;

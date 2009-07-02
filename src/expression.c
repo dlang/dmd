@@ -1782,7 +1782,7 @@ Expression *NewExp::semantic(Scope *sc)
 
 	    if (cdn)
 	    {
-		if (sc->func->isThis() != cdn)
+		if (!sc->func || sc->func->isThis() != cdn)
 		    error("no 'this' for nested class %s", cd->toChars());
 	    }
 	}
@@ -2944,6 +2944,15 @@ Expression *DotVarExp::semantic(Scope *sc)
 
 			e1 = new DotVarExp(loc, e1, tcd->vthis);
 			e1 = e1->semantic(sc);
+
+			// Skip over nested functions, and get the enclosing
+			// class type.
+			Dsymbol *s = tcd->toParent();
+			while (s && s->isFuncDeclaration())
+			    s = s->toParent();
+			if (s && s->isClassDeclaration())
+			    e1->type = s->isClassDeclaration()->type;
+
 			goto L1;
 		    }
 		    error("this for %s needs to be type %s not type %s",
@@ -2953,6 +2962,7 @@ Expression *DotVarExp::semantic(Scope *sc)
 	    accessCheck(loc, sc, e1, var);
 	}
     }
+    //printf("-DotVarExp::semantic('%s')\n", toChars());
     return this;
 }
 
@@ -3873,8 +3883,6 @@ Expression *DeleteExp::semantic(Scope *sc)
 	default:
 	    if (e1->op == TOKindex)
 	    {
-		if (!global.params.useDeprecated)
-		    error("delete aa[key] deprecated, use aa.remove(key)");
 		IndexExp *ae = (IndexExp *)(e1);
 		Type *tb1 = ae->e1->type->toBasetype();
 		if (tb1->ty == Taarray)
@@ -3883,6 +3891,17 @@ Expression *DeleteExp::semantic(Scope *sc)
 	    error("cannot delete type %s", e1->type->toChars());
 	    break;
     }
+
+    if (e1->op == TOKindex)
+    {
+	IndexExp *ae = (IndexExp *)(e1);
+	Type *tb1 = ae->e1->type->toBasetype();
+	if (tb1->ty == Taarray)
+	{   if (!global.params.useDeprecated)
+		error("delete aa[key] deprecated, use aa.remove(key)");
+	}
+    }
+
     return this;
 }
 

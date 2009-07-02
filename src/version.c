@@ -59,6 +59,8 @@ void DebugSymbol::addMember(Scope *sc, ScopeDsymbol *sd)
 	    error("declaration must be at module level");
 	else
 	{
+	    if (findCondition(m->debugidsNot, ident))
+		error("defined after use");
 	    if (!m->debugids)
 		m->debugids = new Array();
 	    m->debugids->push(ident->toChars());
@@ -137,6 +139,8 @@ void VersionSymbol::addMember(Scope *sc, ScopeDsymbol *sd)
 	    error("declaration must be at module level");
 	else
 	{
+	    if (findCondition(m->versionidsNot, ident))
+		error("defined after use");
 	    if (!m->versionids)
 		m->versionids = new Array();
 	    m->versionids->push(ident->toChars());

@@ -550,7 +550,11 @@ void VarDeclaration::semantic(Scope *sc)
 		    t = t->next->toBasetype();
 		    if (t->ty != Tsarray)
 			break;
-		    dim *= ((TypeSArray *)t)->dim->toInteger();
+		    if (t->next->toBasetype()->ty == Tbit)
+			// t->size() gives size in bytes, convert to bits
+			dim *= t->size() * 8;
+		    else
+			dim *= ((TypeSArray *)t)->dim->toInteger();
 		    e1->type = new TypeSArray(t->next, new IntegerExp(0, dim, Type::tindex));
 		}
 		e1 = new SliceExp(loc, e1, NULL, NULL);

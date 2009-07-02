@@ -91,6 +91,11 @@ int DebugCondition::include(Scope *sc, ScopeDsymbol *s)
 		inc = 1;
 	    else if (findCondition(global.params.debugids, ident))
 		inc = 1;
+	    else
+	    {	if (!mod->debugidsNot)
+		    mod->debugidsNot = new Array();
+		mod->debugidsNot->push(ident->toChars());
+	    }
 	}
 	else if (level <= global.params.debuglevel || level <= mod->debuglevel)
 	    inc = 1;
@@ -162,6 +167,7 @@ VersionCondition::VersionCondition(Module *mod, unsigned level, Identifier *iden
 int VersionCondition::include(Scope *sc, ScopeDsymbol *s)
 {
     //printf("VersionCondition::include() level = %d, versionlevel = %d\n", level, global.params.versionlevel);
+    //if (ident) printf("\tident = '%s'\n", ident->toChars());
     if (inc == 0)
     {
 	inc = 2;
@@ -171,6 +177,11 @@ int VersionCondition::include(Scope *sc, ScopeDsymbol *s)
 		inc = 1;
 	    else if (findCondition(global.params.versionids, ident))
 		inc = 1;
+	    else
+	    {	if (!mod->versionidsNot)
+		    mod->versionidsNot = new Array();
+		mod->versionidsNot->push(ident->toChars());
+	    }
 	}
 	else if (level <= global.params.versionlevel || level <= mod->versionlevel)
 	    inc = 1;
