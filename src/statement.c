@@ -584,6 +584,9 @@ Statement *ForeachStatement::semantic(Scope *sc)
     int i;
     TypeAArray *taa = NULL;
 
+    Type *tn = NULL;
+    Type *tnv = NULL;
+
     aggr = aggr->semantic(sc);
 
     sym = new ScopeDsymbol();
@@ -602,6 +605,32 @@ Statement *ForeachStatement::semantic(Scope *sc)
 		error("only one or two arguments for array foreach");
 		break;
 	    }
+
+	    /* Look for special case of parsing char types out of char type
+	     * array.
+	     */
+	    tn = tab->next->toBasetype();
+	    if (tn->ty == Tchar || tn->ty == Twchar || tn->ty == Tdchar)
+	    {	Argument *arg;
+
+		i = (dim == 1) ? 0 : 1;	// index of value
+		arg = (Argument *)arguments->data[i];
+		arg->type = arg->type->semantic(loc, sc);
+		tnv = arg->type->toBasetype();
+		if (tnv->ty != tn->ty &&
+		    (tnv->ty == Tchar || tnv->ty == Twchar || tnv->ty == Tdchar))
+		{
+		    if (arg->inout == InOut)
+			error("foreach: value of UTF conversion cannot be inout");
+		    if (dim == 2)
+		    {	arg = (Argument *)arguments->data[0];
+			if (arg->inout == InOut)
+			    error("foreach: key cannot be inout");
+		    }
+		    goto Lapply;
+		}
+	    }
+
 	    for (i = 0; i < dim; i++)
 	    {	// Declare args
 		Argument *arg = (Argument *)arguments->data[i];
@@ -618,9 +647,10 @@ Statement *ForeachStatement::semantic(Scope *sc)
 		if (!sc->insert(var))
 		    assert(0);
 
-		value = var;
 		if (dim == 2 && i == 0)
 		    key = var;
+		else
+		    value = var;
 	    }
 
 	    sc->sbreak = this;
@@ -634,6 +664,9 @@ Statement *ForeachStatement::semantic(Scope *sc)
 		else
 		    error("foreach: %s is not an array of %s", tab->toChars(), value->type->toChars());
 	    }
+
+	    if (value->storage_class & STCout && value->type->toBasetype()->ty == Tbit)
+		error("foreach: value cannot be out and type bit");
 
 	    if (key && key->type->ty != Tint32 && key->type->ty != Tuns32)
 	    {
@@ -653,6 +686,7 @@ Statement *ForeachStatement::semantic(Scope *sc)
 	    }
 	case Tclass:
 	case Tstruct:
+	Lapply:
 	{   FuncDeclaration *fdapply;
 	    Array *args;
 	    Expression *ec;
@@ -749,6 +783,46 @@ Statement *ForeachStatement::semantic(Scope *sc)
 		args = new Array();
 		args->push(aggr);
 		args->push(new IntegerExp(0, taa->key->size(), Type::tint32));
+		args->push(flde);
+		e = new CallExp(loc, ec, args);
+		e->type = Type::tindex;	// don't run semantic() on e
+	    }
+	    else if (tab->ty == Tarray || tab->ty == Tsarray)
+	    {
+		/* Call:
+		 *	_aApply(aggr, flde)
+		 */
+		static char fntab[9][3] =
+		{ "cc","cw","cd",
+		  "wc","cc","wd",
+		  "dc","dw","dd"
+		};
+		char fdname[10 + 1];
+		int flag;
+
+		switch (tn->ty)
+		{
+		    case Tchar:		flag = 0; break;
+		    case Twchar:	flag = 3; break;
+		    case Tdchar:	flag = 6; break;
+		    default:		assert(0);
+		}
+		switch (tnv->ty)
+		{
+		    case Tchar:		flag += 0; break;
+		    case Twchar:	flag += 1; break;
+		    case Tdchar:	flag += 2; break;
+		    default:		assert(0);
+		}
+		int j = sprintf(fdname, "_aApply%.*s%d", 2, fntab[flag], dim);
+		assert(j < sizeof(fdname));
+		fdapply = FuncDeclaration::genCfunc(Type::tindex, fdname);
+
+		ec = new VarExp(0, fdapply);
+		args = new Array();
+		if (tab->ty == Tsarray)
+		   aggr = aggr->castTo(tn->arrayOf());
+		args->push(aggr);
 		args->push(flde);
 		e = new CallExp(loc, ec, args);
 		e->type = Type::tindex;	// don't run semantic() on e

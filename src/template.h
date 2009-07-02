@@ -43,7 +43,7 @@ struct TemplateDeclaration : ScopeDsymbol
     char *kind();
     char *toChars();
 
-    MATCH matchWithInstance(TemplateInstance *ti, Array *atypes);
+    MATCH matchWithInstance(TemplateInstance *ti, Array *atypes, int flag);
     MATCH matchType(Type *tiarg, int i, Array *atypes);
     int leastAsSpecialized(TemplateDeclaration *td2);
 
@@ -87,15 +87,17 @@ struct TemplateParameter
     int isalias;
 
     TemplateParameter(Identifier *ident);
+
+    TemplateParameter *syntaxCopy();
 };
 
 struct TemplateInstance : ScopeDsymbol
 {
     /* Given:
-     *	instance foo.bar.abc(int, char, 10)
+     *	instance foo.bar.abc(int, char, 10*10)
      */
     Array idents;		// Array of Identifiers [foo, bar, abc]
-    Array tiargs;		// Array of Types/Expressions of template instance arguments [int, char, 10]
+    Array tiargs;		// Array of Types/Expressions of template instance arguments [int, char, 10*10]
 
     TemplateDeclaration *tempdecl;	// referenced by foo.bar.abc
     TemplateInstance *inst;		// refer to existing instance
@@ -103,6 +105,7 @@ struct TemplateInstance : ScopeDsymbol
     ScopeDsymbol *argsym;	// argument symbol table
     AliasDeclaration *aliasdecl;	// !=NULL if instance is an alias for its
 					// sole member
+    int semanticdone;	// has semantic() been done?
 
     TemplateInstance(Identifier *temp_id);
     Dsymbol *syntaxCopy(Dsymbol *);

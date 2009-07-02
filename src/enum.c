@@ -51,6 +51,7 @@ void EnumDeclaration::semantic(Scope *sc)
 {   int i;
     integer_t number;
     Type *t;
+    Scope *sce;
 
     //printf("EnumDeclaration::semantic(sd = %p, '%s')\n", sc->scopesym, sc->scopesym->toChars());
     if (symtab)			// if already done
@@ -61,28 +62,29 @@ void EnumDeclaration::semantic(Scope *sc)
     memtype = memtype->semantic(loc, sc);
     t = isAnonymous() ? memtype : type;
     symtab = new DsymbolTable();
-    sc = sc->push(this);
-    sc->parent = this;
+    sce = sc->push(this);
+    sce->parent = this;
     number = 0;
     if (members->dim == 0)
 	error("enum %s must have at least one member", toChars());
+
     for (i = 0; i < members->dim; i++)
     {
-	EnumMember *em = (EnumMember *)members->data[i];
+	EnumMember *em = ((Dsymbol *)members->data[i])->isEnumMember();
 	Expression *e;
 
-	//printf("Inserting '%s' into table\n",em->toChars());
-	if (isAnonymous())
-	{   //em->addMember((ScopeDsymbol *)parent);
-	    sc->enclosing->insert(em);
-	    em->parent = sc->enclosing->parent;
-	}
-	else
-	    em->addMember(this);
+	if (!em)
+	    /* The e->semantic(sce) can insert other symbols, such as
+	     * template instances and function literals.
+	     */
+	    continue;
+
+	//printf("Enum member '%s'\n",em->toChars());
 	e = em->value;
 	if (e)
 	{
-	    e = e->semantic(sc);
+	    assert(e->dyncast() == DYNCAST_EXPRESSION);
+	    e = e->semantic(sce);
 	    e = e->implicitCastTo(memtype);
 	    e = e->optimize(WANTvalue);
 	    number = e->toInteger();
@@ -93,6 +95,16 @@ void EnumDeclaration::semantic(Scope *sc)
 	    e = new IntegerExp(em->loc, number, t);
 	}
 	em->value = e;
+
+	// Add to symbol table only after evaluating 'value'
+	if (isAnonymous())
+	{   //em->addMember((ScopeDsymbol *)parent);
+	    sce->enclosing->insert(em);
+	    em->parent = sce->enclosing->parent;
+	}
+	else
+	    em->addMember(this);
+
 	if (number < minval)
 	    minval = number;
 	if (number > maxval)
@@ -102,8 +114,30 @@ void EnumDeclaration::semantic(Scope *sc)
 
 	number++;
     }
+    sce->pop();
     //members->print();
-    sc->pop();
+}
+
+Dsymbol *EnumDeclaration::oneMember()
+{
+    if (isAnonymous() && members->dim)
+    {
+	Dsymbol *s = (Dsymbol *)members->data[0];
+	s = s->oneMember();
+
+        // Ignore any additional template instance symbols
+        for (int j = 1; j < members->dim; j++)
+        {   Dsymbol *sx = (Dsymbol *)members->data[j];
+            if (sx->isTemplateInstance())
+                continue;
+            s = NULL;
+            break;
+        }
+
+	if (s)
+	    return s;
+    }
+    return this;
 }
 
 void EnumDeclaration::toCBuffer(OutBuffer *buf)
@@ -124,7 +158,9 @@ void EnumDeclaration::toCBuffer(OutBuffer *buf)
     buf->writenl();
     for (i = 0; i < members->dim; i++)
     {
-	EnumMember *em = (EnumMember *)members->data[i];
+	EnumMember *em = ((Dsymbol *)members->data[i])->isEnumMember();
+	if (!em)
+	    continue;
 	buf->writestring("    ");
 	em->toCBuffer(buf);
 	buf->writeByte(',');

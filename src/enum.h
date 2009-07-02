@@ -33,6 +33,7 @@ struct EnumDeclaration : ScopeDsymbol
     Dsymbol *syntaxCopy(Dsymbol *s);
     void addMember(ScopeDsymbol *s);
     void semantic(Scope *sc);
+    Dsymbol *oneMember();
     void toCBuffer(OutBuffer *buf);
     Type *getType();
     char *kind();

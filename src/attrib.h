@@ -36,6 +36,7 @@ struct AttribDeclaration : Dsymbol
     void semantic3(Scope *sc);
     void inlineScan();
     char *kind();
+    Dsymbol *oneMember();
     void toCBuffer(OutBuffer *buf);
 
     void toObjFile();			// compile to .obj file

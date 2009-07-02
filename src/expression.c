@@ -178,6 +178,8 @@ Expression::Expression(Loc loc, enum TOK op, int size)
 
 Expression *Expression::syntaxCopy()
 {
+    //printf("Expression::syntaxCopy()\n");
+    //dump(0);
     return copy();
 }
 
@@ -870,6 +872,9 @@ Lagain:
 		if (ei)
 		{
 		    e = ei->exp->copy();	// make copy so we can change loc
+//e = e->semantic(sc);
+//printf("test5\n");
+//e->print();
 		    e = e->implicitCastTo(type);
 		    e->loc = loc;
 		    return e;
@@ -1311,8 +1316,10 @@ Expression *ScopeExp::syntaxCopy()
 Expression *ScopeExp::semantic(Scope *sc)
 {
     TemplateInstance *ti;
+    ScopeDsymbol *sds2;
 
-    //printf("ScopeExp::semantic()\n");
+    //printf("+ScopeExp::semantic('%s')\n", toChars());
+Lagain:
     ti = sds->isTemplateInstance();
     if (ti)
 #if 0
@@ -1323,12 +1330,21 @@ Expression *ScopeExp::semantic(Scope *sc)
     {	Dsymbol *s;
 	ti->semantic(sc);
 	s = ti->inst->toAlias();
-	sds = s->isScopeDsymbol();
-	if (!sds)
+	sds2 = s->isScopeDsymbol();
+	if (!sds2)
 	{
+	    //printf("s = %s, '%s'\n", s->kind(), s->toChars());
 	    Expression *e = new DsymbolExp(loc, s);
-	    return e->semantic(sc);
+	    e = e->semantic(sc);
+	    //printf("-ScopeExp::semantic()\n");
+	    return e;
 	}
+	if (sds2 != sds)
+	{
+	    sds = sds2;
+	    goto Lagain;
+	}
+	//printf("sds = %s, '%s'\n", sds->kind(), sds->toChars());
     }
     else
     {
@@ -1336,6 +1352,7 @@ Expression *ScopeExp::semantic(Scope *sc)
 	sds->semantic(sc);
     }
 #endif
+    //printf("-ScopeExp::semantic()\n");
     return this;
 }
 
@@ -1803,7 +1820,9 @@ Expression *BinExp::semantic(Scope *sc)
 	error("%s has no value", e1->toChars());
     e2 = e2->semantic(sc);
     if (!e2->type)
+    {
 	error("%s has no value", e2->toChars());
+    }
     return this;
 }
 
@@ -1890,8 +1909,11 @@ DotIdExp::DotIdExp(Loc loc, Expression *e, Identifier *ident)
 Expression *DotIdExp::semantic(Scope *sc)
 {   Expression *e;
 
-    //printf("DotIdExp::semantic('%s')\n", toChars());
+    //printf("DotIdExp::semantic(this = %p, '%s')\n", this, toChars());
     //printf("e1->op = %d, '%s'\n", e1->op, Token::toChars(e1->op));
+
+//{ static int z; fflush(stdout); if (++z == 10) *(char*)0=0; }
+
     UnaExp::semantic(sc);
 
     e1 = resolveProperties(sc, e1);
@@ -1917,15 +1939,21 @@ Expression *DotIdExp::semantic(Scope *sc)
 	    VarDeclaration *v = s->isVarDeclaration();
 	    if (v)
 	    {
-		//printf("Identifier '%s' is a variable, type '%s'\n", toChars(), v->type->toChars());
+		//printf("DotIdExp:: Identifier '%s' is a variable, type '%s'\n", toChars(), v->type->toChars());
 		type = v->type;
 		if (v->isConst())
 		{
 		    ExpInitializer *ei = v->init->isExpInitializer();
-		    if (ei && ei->exp->type == type)
-		    {   e = ei->exp->copy();	// make copy so we can change loc
-			e->loc = loc;
-			return e;
+		    if (ei)
+		    {
+//printf("\tei: %p (%s)\n", ei->exp, ei->exp->toChars());
+//ei->exp = ei->exp->semantic(sc);
+			if (ei->exp->type == type)
+			{
+			    e = ei->exp->copy();	// make copy so we can change loc
+			    e->loc = loc;
+			    return e;
+			}
 		    }
 		}
 		e = new VarExp(loc, v);
@@ -2035,6 +2063,14 @@ DotTemplateInstanceExp::DotTemplateInstanceExp(Loc loc, Expression *e, TemplateI
 {
     //printf("DotTemplateInstanceExp()\n");
     this->ti = ti;
+}
+
+Expression *DotTemplateInstanceExp::syntaxCopy()
+{
+    DotTemplateInstanceExp *de = new DotTemplateInstanceExp(loc,
+	e1->syntaxCopy(),
+	(TemplateInstance *)ti->syntaxCopy(NULL));
+    return de;
 }
 
 Expression *DotTemplateInstanceExp::semantic(Scope *sc)

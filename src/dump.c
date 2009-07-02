@@ -44,7 +44,7 @@ void IntegerExp::dump(int i)
 void IdentifierExp::dump(int i)
 {
     indent(i);
-    printf("%p %s type=%s\n", this, ident->toChars(), type_print(type));
+    printf("%p ident '%s' type=%s\n", this, ident->toChars(), type_print(type));
 }
 
 void DsymbolExp::dump(int i)

@@ -151,6 +151,7 @@ AliasDeclaration::AliasDeclaration(Loc loc, Identifier *id, Type *type)
     this->type = type;
     this->aliassym = NULL;
     this->overnext = NULL;
+    assert(type);
 }
 
 AliasDeclaration::AliasDeclaration(Loc loc, Identifier *id, Dsymbol *s)
@@ -161,6 +162,7 @@ AliasDeclaration::AliasDeclaration(Loc loc, Identifier *id, Dsymbol *s)
     this->type = NULL;
     this->aliassym = s;
     this->overnext = NULL;
+    assert(s);
 }
 
 Dsymbol *AliasDeclaration::syntaxCopy(Dsymbol *s)
@@ -324,6 +326,8 @@ VarDeclaration::VarDeclaration(Loc loc, Type *type, Identifier *id, Initializer 
 
 Dsymbol *VarDeclaration::syntaxCopy(Dsymbol *s)
 {
+    //printf("VarDeclaration::syntaxCopy(%s)\n", toChars());
+
     VarDeclaration *sv;
     if (s)
     {	sv = (VarDeclaration *)s;
@@ -332,7 +336,10 @@ Dsymbol *VarDeclaration::syntaxCopy(Dsymbol *s)
     {
 	Initializer *init = NULL;
 	if (this->init)
-	    init = this->init->syntaxCopy();
+	{   init = this->init->syntaxCopy();
+	    //init->isExpInitializer()->exp->print();
+	    //init->isExpInitializer()->exp->dump(0);
+	}
 
 	sv = new VarDeclaration(loc, type->syntaxCopy(), ident, init);
     }

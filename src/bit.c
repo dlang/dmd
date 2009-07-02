@@ -54,6 +54,8 @@ elem *bit_assign(enum OPER op, elem *eb, elem *ei, elem *ev, int result)
     es = el_bin(OPbts, TYbit, eb, ei);
     er = el_copytree(es);
     er->Eoper = OPbtr;
+    es = el_bin(OPcomma, TYbit, es, el_long(TYbit, 1));
+    er = el_bin(OPcomma, TYbit, er, el_long(TYbit, 0));
 
     e = el_bin(OPcolon, TYvoid, es, er);
     e = el_bin(OPcond, ev->Ety, ev, e);

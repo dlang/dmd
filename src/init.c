@@ -310,6 +310,7 @@ Initializer *ExpInitializer::semantic(Scope *sc, Type *t)
     exp = exp->implicitCastTo(t);
 L1:
     exp = exp->optimize(WANTvalue);
+    //printf("-ExpInitializer::semantic(): "); exp->print();
     return this;
 }
 

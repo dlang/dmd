@@ -111,6 +111,7 @@ struct Dsymbol : Object
     virtual int needThis();			// need a 'this' pointer?
     virtual enum PROT prot();
     virtual Dsymbol *syntaxCopy(Dsymbol *s);	// copy only syntax trees
+    virtual Dsymbol *oneMember() { return this; }
 
     // Backend
 

@@ -105,6 +105,13 @@ char *AttribDeclaration::kind()
     return "attribute";
 }
 
+Dsymbol *AttribDeclaration::oneMember()
+{
+    if (decl && decl->dim == 1)
+	return (Dsymbol *)decl->data[0];
+    return NULL;
+}
+
 void AttribDeclaration::toCBuffer(OutBuffer *buf)
 {
     if (decl)

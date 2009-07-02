@@ -184,6 +184,7 @@ Array *Parser::parseDeclDefs(int once)
 	    case TOKtypedef:
 	    case TOKidentifier:
 	    case TOKtypeof:
+	    case TOKdot:
 	    Ldeclaration:
 		a = parseDeclaration();
 		decldefs->append(a);

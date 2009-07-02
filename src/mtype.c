@@ -270,7 +270,7 @@ void Type::toCBuffer2(OutBuffer *buf, Identifier *ident)
 Type *Type::merge()
 {   Type *t;
 
-    //printf("merge()\n");
+    //printf("merge(%s)\n", toChars());
     t = this;
     if (!deco)
     {
@@ -2283,7 +2283,17 @@ void TypeQualified::syntaxCopyHelper(TypeQualified *t)
 {
     idents.setDim(t->idents.dim);
     for (int i = 0; i < idents.dim; i++)
-	idents.data[i] = t->idents.data[i];
+    {
+	Identifier *id = (Identifier *)t->idents.data[i];
+	if (id->dyncast() != DYNCAST_IDENTIFIER)
+	{
+	    TemplateInstance *ti = (TemplateInstance *)id;
+
+	    ti = (TemplateInstance *)ti->syntaxCopy(NULL);
+	    id = (Identifier *)ti;
+	}
+	idents.data[i] = id;
+    }
 }
 
 
@@ -2526,7 +2536,14 @@ Type *TypeIdentifier::semantic(Loc loc, Scope *sc)
     resolve(loc, sc, &e, &t, &s);
     if (!t)
     {
-	error(loc, "%s is used as a type", toChars());
+#ifdef DEBUG
+	printf("1: ");
+#endif
+printf("aliasdecl = %p\n", ((TemplateInstance *)s)->aliasdecl);
+	if (s)
+	    s->error(loc, "is used as a type");
+	else
+	    error(loc, "%s is used as a type", toChars());
 	t = tvoid;
     }
     return t;
@@ -2592,6 +2609,9 @@ Type *TypeInstance::semantic(Loc loc, Scope *sc)
     resolve(loc, sc, &e, &t, &s);
     if (!t)
     {
+#ifdef DEBUG
+	printf("2: ");
+#endif
 	error(loc, "%s is used as a type", toChars());
 	t = tvoid;
     }
@@ -2639,7 +2659,8 @@ Type *TypeTypeof::semantic(Loc loc, Scope *sc)
 
     if (idents.dim)
     {
-	assert(0);	// BUG: not implemented
+	error(loc, ".property not implemented for typeof");
+	t = tvoid;
     }
     return t;
 }
@@ -2975,6 +2996,7 @@ TypeStruct::TypeStruct(StructDeclaration *sym)
 
 char *TypeStruct::toChars()
 {
+printf("sym.parent: %s, deco = %s\n", sym->parent->toChars(), deco);
     return sym->toChars();
 }
 

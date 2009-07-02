@@ -468,6 +468,7 @@ struct DotTemplateInstanceExp : UnaExp
     TemplateInstance *ti;
 
     DotTemplateInstanceExp(Loc loc, Expression *e, TemplateInstance *ti);
+    Expression *syntaxCopy();
     Expression *semantic(Scope *sc);
     void toCBuffer(OutBuffer *buf);
     void dump(int indent);

@@ -272,6 +272,9 @@ void FuncDeclaration::semantic3(Scope *sc)
     AggregateDeclaration *ad;
 
     //printf("FuncDeclaration::semantic3('%s.%s', sc = %p)\n", parent->toChars(), toChars(), sc);
+    //fflush(stdout);
+    //{ static int x; if (++x == 2) *(char*)0=0; }
+
     //printf(" sc->incontract = %d\n", sc->incontract);
     if (semanticRun)
 	return;

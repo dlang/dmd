@@ -1,5 +1,5 @@
 
-// Copyright (c) 1999-2003 by Digital Mars
+// Copyright (c) 1999-2004 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // www.digitalmars.com
@@ -64,12 +64,30 @@ TemplateDeclaration::TemplateDeclaration(Loc loc, Identifier *id, Array *paramet
 
 Dsymbol *TemplateDeclaration::syntaxCopy(Dsymbol *)
 {
-    assert(0);
-    return NULL;
+    TemplateDeclaration *td;
+    Array *p;
+    Array *d;
+
+    p = NULL;
+    if (parameters)
+    {
+	p = new Array();
+	p->setDim(parameters->dim);
+	for (int i = 0; i < p->dim; i++)
+	{   TemplateParameter *tp = (TemplateParameter *)parameters->data[i];
+	    p->data[i] = (void *)tp->syntaxCopy();
+	}
+    }
+    d = Dsymbol::arraySyntaxCopy(members);
+    td = new TemplateDeclaration(loc, ident, p, d);
+    return td;
 }
 
 void TemplateDeclaration::semantic(Scope *sc)
 {
+#if LOG
+    printf("TemplateDeclaration::semantic(this = %p, id = '%s')\n", this, ident->toChars());
+#endif
     if (sc->func)
 	error("cannot declare template at function scope");
 
@@ -100,27 +118,37 @@ void TemplateDeclaration::semantic(Scope *sc)
     for (int i = 0; i < parameters->dim; i++)
     {
 	TemplateParameter *tp = (TemplateParameter *)parameters->data[i];
-
-	TypeIdentifier *ti = new TypeIdentifier(loc, tp->ident);
-	AliasDeclaration *sparam = new AliasDeclaration(loc, tp->ident, ti);
-	if (!paramscope->insert(sparam))
-	    error("parameter '%s' multiply defined", tp->ident->toChars());
+	Declaration *sparam;
 
 	if (tp->valType)
 	{
+	    //printf("valType\n");
+	    sparam = new VarDeclaration(loc, tp->valType, tp->ident, NULL);
+	    if (!paramscope->insert(sparam))
+		error("parameter '%s' multiply defined", tp->ident->toChars());
+
+	    sparam->semantic(paramscope);
 	    tp->valType = tp->valType->semantic(loc, sc);
 	    if (!tp->valType->isintegral())
 		error("integral type expected for value-parameter, not %s", tp->valType->toChars());
+	}
+	else
+	{
+	    TypeIdentifier *ti = new TypeIdentifier(loc, tp->ident);
+	    sparam = new AliasDeclaration(loc, tp->ident, ti);
+	    if (!paramscope->insert(sparam))
+		error("parameter '%s' multiply defined", tp->ident->toChars());
 	}
 
 	if (tp->specValue)
 	{   Expression *e = tp->specValue;
 
-	    e = e->semantic(sc);
+	    e = e->semantic(paramscope);
 	    e = e->implicitCastTo(tp->valType);
 	    e = e->constFold();
-	    tp->specValue = e;
-	    e->toInteger();
+	    if (e->op == TOKint64)
+		tp->specValue = e;
+	    //e->toInteger();
 	}
 
 	if (tp->specType)
@@ -211,11 +239,13 @@ int TemplateDeclaration::overloadInsert(Dsymbol *s)
  * Given that ti is an instance of this TemplateDeclaration,
  * deduce the types of the parameters to this, and store
  * those deduced types in dedtypes[].
+ * Input:
+ *	flag	1: don't do semantic() because of dummy types
  * Return match level.
  */
 
 MATCH TemplateDeclaration::matchWithInstance(TemplateInstance *ti,
-	Array *dedtypes)
+	Array *dedtypes, int flag)
 {   MATCH m;
     int dim = dedtypes->dim;
 
@@ -227,12 +257,18 @@ MATCH TemplateDeclaration::matchWithInstance(TemplateInstance *ti,
     assert(dim == parameters->dim);
     assert(dim == ti->tiargs.dim);
 
+    // Set up scope for parameters
+    ScopeDsymbol *paramsym = new ScopeDsymbol();
+    paramsym->parent = scope->parent;
+    Scope *paramscope = scope->push(paramsym);
+
     // Attempt type deduction
     m = MATCHexact;
     for (int i = 0; i < dim; i++)
     {	MATCH m2;
 	TemplateParameter *tp = (TemplateParameter *)parameters->data[i];
 	Object *oarg = (Object *)ti->tiargs.data[i];
+	Declaration *sparam;
 
 	if (tp->valType)
 	{
@@ -242,7 +278,14 @@ MATCH TemplateDeclaration::matchWithInstance(TemplateInstance *ti,
 
 	    if (tp->specValue)
 	    {
-		if (!ei || !ei->equals(tp->specValue))
+		if (!ei)
+		    goto Lnomatch;
+
+		Expression *e = tp->specValue;
+		e = e->semantic(paramscope);
+		e = e->implicitCastTo(tp->valType);
+		e = e->constFold();
+		if (!ei->equals(e))
 		    goto Lnomatch;
 	    }
 	    else if (dedtypes->data[i])
@@ -253,6 +296,10 @@ MATCH TemplateDeclaration::matchWithInstance(TemplateInstance *ti,
 		    goto Lnomatch;
 	    }
 	    dedtypes->data[i] = ei;
+
+	    Initializer *init = new ExpInitializer(loc, ei);
+	    sparam = new VarDeclaration(loc, tp->valType, tp->ident, init);
+	    sparam->storage_class = STCconst;
 	}
 	else if (tp->isalias)
 	{
@@ -279,6 +326,8 @@ MATCH TemplateDeclaration::matchWithInstance(TemplateInstance *ti,
 		goto Lnomatch;
 
 	    dedtypes->data[i] = sa;
+
+	    sparam = new AliasDeclaration(loc, tp->ident, sa);
 	}
 	else
 	{
@@ -307,7 +356,15 @@ MATCH TemplateDeclaration::matchWithInstance(TemplateInstance *ti,
 	    {
 		dedtypes->data[i] = ta;
 	    }
+	    Type *t = (Type *)dedtypes->data[i];
+	    if (!t)
+		t = ta;
+	    sparam = new AliasDeclaration(loc, tp->ident, t);
 	}
+	if (!flag)
+	    sparam->semantic(paramscope);
+	if (!paramscope->insert(sparam))
+	    goto Lnomatch;
     }
 
     // Any parameter left without a type gets the type of its corresponding arg
@@ -367,13 +424,17 @@ MATCH TemplateDeclaration::matchWithInstance(TemplateInstance *ti,
 #if LOG
     printf(" match = %d\n", m);
 #endif
-    return m;
+    goto Lret;
 
 Lnomatch:
 #if LOG
     printf(" no match\n");
 #endif
-    return MATCHnomatch;
+    m = MATCHnomatch;
+
+Lret:
+    paramscope->pop();
+    return m;
 }
 
 /************************************************
@@ -485,7 +546,7 @@ int TemplateDeclaration::leastAsSpecialized(TemplateDeclaration *td2)
     dedtypes.setDim(parameters->dim);
 
     // Attempt a type deduction
-    if (td2->matchWithInstance(&ti, &dedtypes))
+    if (td2->matchWithInstance(&ti, &dedtypes, 1))
     {
 #if LOG_LEASTAS
 	printf("  is least as specialized\n");
@@ -770,29 +831,43 @@ MATCH TypeClass::deduceType(Type *tparam, Array *parameters, Array *dedtypes)
 
 TemplateParameter::TemplateParameter(Identifier *ident, Type *specType)
 {
-     this->ident = ident;
-     this->specType = specType;
-     this->valType = NULL;
-     this->specValue = NULL;
-     this->isalias = 0;
+    this->ident = ident;
+    this->specType = specType;
+    this->valType = NULL;
+    this->specValue = NULL;
+    this->isalias = 0;
 }
 
 TemplateParameter::TemplateParameter(Identifier *ident)
 {
-     this->ident = ident;
-     this->specType = NULL;
-     this->valType = NULL;
-     this->specValue = NULL;
-     this->isalias = 1;
+    this->ident = ident;
+    this->specType = NULL;
+    this->valType = NULL;
+    this->specValue = NULL;
+    this->isalias = 1;
 }
 
 TemplateParameter::TemplateParameter(Identifier *ident, Type *valType, Expression *specValue)
 {
-     this->ident = ident;
-     this->specType = NULL;
-     this->valType = valType;
-     this->specValue = specValue;
-     this->isalias = 0;
+    this->ident = ident;
+    this->specType = NULL;
+    this->valType = valType;
+    this->specValue = specValue;
+    this->isalias = 0;
+}
+
+TemplateParameter *TemplateParameter::syntaxCopy()
+{
+    TemplateParameter *tp = new TemplateParameter(ident);
+
+    if (specType)
+	tp->specType = specType->syntaxCopy();
+    if (valType)
+	tp->valType = valType->syntaxCopy();
+    if (specValue)
+	tp->specValue = specValue->syntaxCopy();
+    tp->isalias = isalias;
+    return tp;
 }
 
 /* ======================== TemplateInstance ================================ */
@@ -808,6 +883,7 @@ TemplateInstance::TemplateInstance(Identifier *ident)
     this->inst = NULL;
     this->argsym = NULL;
     this->aliasdecl = NULL;
+    this->semanticdone = 0;
 }
 
 
@@ -849,14 +925,25 @@ void TemplateInstance::addIdent(Identifier *ident)
 
 void TemplateInstance::semantic(Scope *sc)
 {
+#if LOG
+    printf("+TemplateInstance::semantic('%s', this=%p)\n", toChars(), this);
+#endif
     if (inst)		// if semantic() was already run
+    {
+#if LOG
+    printf("-TemplateInstance::semantic('%s', this=%p)\n", inst->toChars(), inst);
+#endif
 	return;
+    }
+
+    assert(semanticdone == 0);
+    semanticdone = 1;
 
 #if LOG
-    printf("TemplateInstance::semantic('%s', this=%p)\n", toChars(), this);
+    printf("\tdo semantic\n");
 #endif
 
-    // Run semantic on each argument
+    // Run semantic on each argument, place results in tiargs[]
     for (int j = 0; j < tiargs.dim; j++)
     {   Type *ta = isType((Object *)tiargs.data[j]);
 	Expression *ea;
@@ -953,7 +1040,7 @@ void TemplateInstance::semantic(Scope *sc)
 	if (td->parameters->dim != tiargs.dim)
 	    continue;
 
-	m = td->matchWithInstance(this, &dedtypes);
+	m = td->matchWithInstance(this, &dedtypes, 0);
 	if (!m)			// no match at all
 	    continue;
 
@@ -1018,7 +1105,7 @@ void TemplateInstance::semantic(Scope *sc)
     {
 	TemplateInstance *ti = (TemplateInstance *)tempdecl->instances.data[i];
 #if LOG
-	printf("\tchecking for match with instance %d: '%s'\n", i, ti->toChars());
+	printf("\tchecking for match with instance %d (%p): '%s'\n", i, ti, ti->toChars());
 #endif
 	assert(tiargs.dim == ti->tiargs.dim);
 
@@ -1094,11 +1181,18 @@ void TemplateInstance::semantic(Scope *sc)
 	    }
 	    else if (ea)
 	    {
+		if (ea->op == TOKvar)
+		{
+		    sa = ((VarExp *)ea)->var;
+		    ea = NULL;
+		    goto Lsa;
+		}
 		buf.writeByte('_');
-		//buf.printf("%u", ea->toInteger());
+		buf.printf("%u", ea->toInteger());
 	    }
 	    else if (sa)
 	    {
+	      Lsa:
 		char *p = sa->mangle();
 		buf.printf("__%u_%s", strlen(p) + 1, p);
 	    }
@@ -1202,6 +1296,38 @@ void TemplateInstance::semantic(Scope *sc)
 	s->addMember(this);
     }
 
+    /* See if there is only one member of template instance, and that
+     * member has the same name as the template instance.
+     * If so, this template instance becomes an alias for that member.
+     */
+    //printf("members->dim = %d\n", members->dim);
+    if (members->dim)
+    {
+	Dsymbol *s = (Dsymbol *)members->data[0];
+	s = s->oneMember();
+
+	// Ignore any additional template instance symbols
+	for (int j = 1; j < members->dim; j++)
+	{   Dsymbol *sx = (Dsymbol *)members->data[j];
+	    if (sx->isTemplateInstance())
+		continue;
+	    s = NULL;
+	    break;
+	}
+
+	if (s)
+	{
+	    //printf("s->kind = '%s'\n", s->kind());
+	    //s->print();
+	    //printf("'%s', '%s'\n", s->ident->toChars(), tempdecl->ident->toChars());
+	    if (s->ident && s->ident->equals(tempdecl->ident))
+	    {
+		//printf("setting aliasdecl\n");
+		aliasdecl = new AliasDeclaration(loc, s->ident, s);
+	    }
+	}
+    }
+
     // Do semantic() analysis on template instance members
 #if LOG
     printf("\tdo semantic() on template instance members '%s'\n", toChars());
@@ -1215,37 +1341,33 @@ void TemplateInstance::semantic(Scope *sc)
 	s->semantic(sc2);
     }
 
-    if (sc->parent->isFuncDeclaration())
+    /* The problem is when to parse the initializer for a variable.
+     * Perhaps VarDeclaration::semantic() should do it like it does
+     * for initializers inside a function.
+     */
+//    if (sc->parent->isFuncDeclaration())
+
 	semantic2(sc2);
+
+    if (sc->parent->isFuncDeclaration())
+	semantic3(sc2);
 
     sc2->pop();
 
     scope->pop();
-
-    /* See if there is only one member of template instance, and that
-     * member has the same name as the template instance.
-     * If so, this template instance becomes an alias for that member.
-     */
-    //printf("members->dim = %d\n", members->dim);
-    if (members->dim == 1)
-    {
-	Dsymbol *s = (Dsymbol *)members->data[0];
-
-	//s->print();
-	//printf("'%s', '%s'\n", s->ident->toChars(), tempdecl->ident->toChars());
-	if (s->ident && s->ident->equals(tempdecl->ident))
-	{
-	    //printf("setting aliasdecl\n");
-	    aliasdecl = new AliasDeclaration(loc, s->ident, s);
-	}
-    }
+#if LOG
+    printf("-TemplateInstance::semantic('%s', this=%p)\n", toChars(), this);
+#endif
 }
 
 void TemplateInstance::semantic2(Scope *sc)
 {   int i;
 
+    if (semanticdone >= 2)
+	return;
+    semanticdone = 2;
 #if LOG
-    printf("TemplateInstance::semantic2('%s')\n", toChars());
+    printf("+TemplateInstance::semantic2('%s')\n", toChars());
 #endif
     if (members)
     {
@@ -1256,16 +1378,25 @@ void TemplateInstance::semantic2(Scope *sc)
 	for (i = 0; i < members->dim; i++)
 	{
 	    Dsymbol *s = (Dsymbol *)members->data[i];
+#if LOG
+printf("\tmember '%s', kind = '%s'\n", s->toChars(), s->kind());
+#endif
 	    s->semantic2(sc);
 	}
 	sc = sc->pop();
 	sc->pop();
     }
+#if LOG
+    printf("-TemplateInstance::semantic2('%s')\n", toChars());
+#endif
 }
 
 void TemplateInstance::semantic3(Scope *sc)
 {   int i;
 
+    if (semanticdone >= 3)
+	return;
+    semanticdone = 3;
 #if LOG
     printf("TemplateInstance::semantic3('%s')\n", toChars());
 #endif

@@ -188,11 +188,11 @@ Dsymbol *Scope::search(Identifier *ident, Dsymbol **pscopesym)
 	assert(sc != sc->enclosing);
 	if (sc->scopesym)
 	{
-	    //printf("\tlooking in scopesym '%s'\n", sc->scopesym->toChars());
+	    //printf("\tlooking in scopesym '%s', kind = '%s'\n", sc->scopesym->toChars(), sc->scopesym->kind());
 	    s = sc->scopesym->search(ident, 0);
 	    if (s)
 	    {
-		//printf("\tfound %s.%s\n", s->parent ? s->parent->toChars() : "", s->toChars());
+		//printf("\tfound %s.%s, kind = '%s'\n", s->parent ? s->parent->toChars() : "", s->toChars(), s->kind());
 		if (pscopesym)
 		    *pscopesym = sc->scopesym;
 		return s;
