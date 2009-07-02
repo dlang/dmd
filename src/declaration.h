@@ -79,6 +79,9 @@ struct Declaration : Dsymbol
     char *kind();
     unsigned size(Loc loc);
 
+    void emitComment(Scope *sc);
+    void toDocBuffer(OutBuffer *buf);
+
     char *mangle();
     int isStatic() { return storage_class & STCstatic; }
     virtual int isStaticConstructor();
@@ -123,6 +126,8 @@ struct TypedefDeclaration : Declaration
     Type *getType();
     void toCBuffer(OutBuffer *buf);
 
+    void toDocBuffer(OutBuffer *buf);
+
     void toObjFile();			// compile to .obj file
     void toDebug();
     int cvMember(unsigned char *p);
@@ -145,6 +150,8 @@ struct AliasDeclaration : Declaration
     Type *getType();
     Dsymbol *toAlias();
     void toCBuffer(OutBuffer *buf);
+
+    void toDocBuffer(OutBuffer *buf);
 
     AliasDeclaration *isAliasDeclaration() { return this; }
 };
@@ -202,6 +209,8 @@ struct ClassInfoDeclaration : VarDeclaration
     Dsymbol *syntaxCopy(Dsymbol *);
     void semantic(Scope *sc);
 
+    void emitComment(Scope *sc);
+
     Symbol *toSymbol();
 };
 
@@ -213,6 +222,8 @@ struct ModuleInfoDeclaration : VarDeclaration
     Dsymbol *syntaxCopy(Dsymbol *);
     void semantic(Scope *sc);
 
+    void emitComment(Scope *sc);
+
     Symbol *toSymbol();
 };
 
@@ -223,6 +234,8 @@ struct TypeInfoDeclaration : VarDeclaration
     TypeInfoDeclaration(Type *tinfo, int internal);
     Dsymbol *syntaxCopy(Dsymbol *);
     void semantic(Scope *sc);
+
+    void emitComment(Scope *sc);
 
     Symbol *toSymbol();
     void toObjFile();			// compile to .obj file
@@ -422,6 +435,7 @@ struct CtorDeclaration : FuncDeclaration
     int isVirtual();
     int addPreInvariant();
     int addPostInvariant();
+    void toDocBuffer(OutBuffer *buf);
 
     CtorDeclaration *isCtorDeclaration() { return this; }
 };
@@ -434,6 +448,7 @@ struct DtorDeclaration : FuncDeclaration
     int addPreInvariant();
     int addPostInvariant();
     int overloadInsert(Dsymbol *s);
+    void emitComment(Scope *sc);
 
     DtorDeclaration *isDtorDeclaration() { return this; }
 };
@@ -448,6 +463,7 @@ struct StaticCtorDeclaration : FuncDeclaration
     int isVirtual();
     int addPreInvariant();
     int addPostInvariant();
+    void emitComment(Scope *sc);
 
     StaticCtorDeclaration *isStaticCtorDeclaration() { return this; }
 };
@@ -462,6 +478,7 @@ struct StaticDtorDeclaration : FuncDeclaration
     int isVirtual();
     int addPreInvariant();
     int addPostInvariant();
+    void emitComment(Scope *sc);
 
     StaticDtorDeclaration *isStaticDtorDeclaration() { return this; }
 };
@@ -474,6 +491,7 @@ struct InvariantDeclaration : FuncDeclaration
     int isVirtual();
     int addPreInvariant();
     int addPostInvariant();
+    void emitComment(Scope *sc);
 
     InvariantDeclaration *isInvariantDeclaration() { return this; }
 };

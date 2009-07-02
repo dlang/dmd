@@ -1,5 +1,5 @@
 
-// Copyright (c) 1999-2004 by Digital Mars
+// Copyright (c) 1999-2005 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // www.digitalmars.com
@@ -37,6 +37,7 @@ struct TemplateDeclaration : ScopeDsymbol
 
     TemplateDeclaration *overnext;	// next overloaded TemplateDeclaration
     Scope *scope;
+    Dsymbol *onemember;		// if !=NULL then one member of this template
 
     TemplateDeclaration(Loc loc, Identifier *id, Array *parameters, Array *decldefs);
     Dsymbol *syntaxCopy(Dsymbol *);
@@ -45,6 +46,9 @@ struct TemplateDeclaration : ScopeDsymbol
     void toCBuffer(OutBuffer *buf);
     char *kind();
     char *toChars();
+
+    void emitComment(Scope *sc);
+//    void toDocBuffer(OutBuffer *buf);
 
     MATCH matchWithInstance(TemplateInstance *ti, Array *atypes, int flag);
     int leastAsSpecialized(TemplateDeclaration *td2);

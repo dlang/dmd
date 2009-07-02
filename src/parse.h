@@ -47,7 +47,7 @@ struct Parser : Lexer
     Loc endloc;			// set to location of last right curly
     int inBrackets;		// inside [] of array index or slice
 
-    Parser(Module *module, unsigned char *base, unsigned length);
+    Parser(Module *module, unsigned char *base, unsigned length, int doDocComment);
 
     Array *parseModule();
     Array *parseDeclDefs(int once);
@@ -112,6 +112,8 @@ struct Parser : Lexer
     Array *parseArguments();
 
     Expression *parseNewExp();
+
+    void addComment(Dsymbol *s, unsigned char *blockComment);
 };
 
 #endif /* DMD_PARSE_H */

@@ -34,7 +34,7 @@ void Module::init()
     modules = new DsymbolTable();
 }
 
-Module::Module(char *filename, Identifier *ident)
+Module::Module(char *filename, Identifier *ident, int doDocComment)
 	: Package(ident)
 {
     FileName *srcfilename;
@@ -42,6 +42,7 @@ Module::Module(char *filename, Identifier *ident)
     FileName *hfilename;
     FileName *objfilename;
     FileName *symfilename;
+    FileName *docfilename;
 
 //    printf("Module::Module(filename = '%s', ident = '%s')\n", filename, ident->toChars());
     this->arg = filename;
@@ -65,6 +66,7 @@ Module::Module(char *filename, Identifier *ident)
     sfilename = NULL;
     importedFrom = this;
     srcfile = NULL;
+    docfile = NULL;
 
     debuglevel = 0;
     debugids = NULL;
@@ -72,6 +74,8 @@ Module::Module(char *filename, Identifier *ident)
     versionlevel = 0;
     versionids = NULL;
     versionidsNot = NULL;
+
+    macrotable = NULL;
 
     srcfilename = FileName::defaultExt(filename, global.mars_ext);
     if (!srcfilename->equalsExt(global.mars_ext))
@@ -98,6 +102,30 @@ Module::Module(char *filename, Identifier *ident)
     else
 	objfilename = FileName::forceExt(argobj, global.obj_ext);
 
+    if (doDocComment)
+    {
+	char *argdoc;
+	if (global.params.docname)
+	    argdoc = global.params.docname;
+	else if (global.params.preservePaths)
+	    argdoc = filename;
+	else
+	    argdoc = FileName::name(filename);
+	if (!FileName::absolute(argdoc))
+	    argdoc = FileName::combine(global.params.docdir, argdoc);
+	if (global.params.docname)
+	    docfilename = new FileName(argdoc, 0);
+	else
+	    docfilename = FileName::forceExt(argdoc, global.doc_ext);
+
+	if (docfilename->equals(srcfilename))
+	{   error("Source file and documentation file have same name '%s'", srcfilename->toChars());
+	    fatal();
+	}
+
+	docfile = new File(docfilename);
+    }
+
     symfilename = FileName::forceExt(filename, global.sym_ext);
 
     srcfile = new File(srcfilename);
@@ -108,6 +136,8 @@ Module::Module(char *filename, Identifier *ident)
 void Module::deleteObjFile()
 {
     objfile->remove();
+    if (docfile)
+	docfile->remove();
 }
 
 Module::~Module()
@@ -150,7 +180,7 @@ Module *Module::load(Loc loc, Array *packages, Identifier *ident)
 	filename = (char *)buf.extractData();
     }
 
-    m = new Module(filename, ident);
+    m = new Module(filename, ident, 0);
     m->loc = loc;
 
     // Find the sym file
@@ -390,7 +420,7 @@ void Module::parse()
 	buf = dbuf->data;
 	buflen = dbuf->offset;
     }
-    Parser p(this, buf, buflen);
+    Parser p(this, buf, buflen, docfile != NULL);
     members = p.parseModule();
     md = p.md;
 
@@ -558,6 +588,9 @@ void Module::inlineScan()
 	s->inlineScan();
     }
 }
+
+/****************************************************
+ */
 
 void Module::gensymfile()
 {

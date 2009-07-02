@@ -65,6 +65,9 @@ Scope::Scope()
     this->callSuper = 0;
     this->flags = 0;
     this->anonAgg = NULL;
+    this->lastdc = NULL;
+    this->lastoffset = 0;
+    this->docbuf = NULL;
 }
 
 Scope::Scope(Scope *enclosing)
@@ -93,6 +96,9 @@ Scope::Scope(Scope *enclosing)
     this->callSuper = enclosing->callSuper;
     this->flags = 0;
     this->anonAgg = NULL;
+    this->lastdc = NULL;
+    this->lastoffset = 0;
+    this->docbuf = enclosing->docbuf;
     assert(this != enclosing);
 }
 

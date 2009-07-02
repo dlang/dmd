@@ -38,6 +38,7 @@ Global::Global()
 {
     mars_ext = "d";
     sym_ext  = "d";
+    doc_ext  = "html";
 
 #if _WIN32
     obj_ext  = "obj";
@@ -49,7 +50,7 @@ Global::Global()
 
     copyright = "Copyright (c) 1999-2005 by Digital Mars";
     written = "written by Walter Bright";
-    version = "v0.131";
+    version = "v0.132";
     global.structalign = 8;
 
     memset(&params, 0, sizeof(Param));
@@ -129,6 +130,9 @@ Usage:\n\
 \n\
   files.d        D source files\n\
   -c             do not link\n\
+  -D             generate documentation\n\
+  -Dddocdir      write documentation file to docdir directory\n\
+  -Dffilename    write documentation file to filename\n\
   -d             allow deprecated features\n\
   -debug         compile in debug code\n\
   -debug=level   compile in debug code <= level\n\
@@ -266,6 +270,28 @@ int main(int argc, char *argv[])
 
 		    case 0:
 			error("-o no longer supported, use -of or -od");
+			break;
+
+		    default:
+			goto Lerror;
+		}
+	    }
+	    else if (p[1] == 'D')
+	    {	global.params.doDocComments = 1;
+		switch (p[2])
+		{
+		    case 'd':
+			if (!p[3])
+			    goto Lnoarg;
+			global.params.docdir = p + 3;
+			break;
+		    case 'f':
+			if (!p[3])
+			    goto Lnoarg;
+			global.params.docname = p + 3;
+			break;
+
+		    case 0:
 			break;
 
 		    default:
@@ -515,7 +541,7 @@ int main(int argc, char *argv[])
 	}
 
 	id = new Identifier(name, 0);
-	m = new Module((char *) files.data[i], id);
+	m = new Module((char *) files.data[i], id, global.params.doDocComments);
 	modules.push(m);
 
 	global.params.objfiles->push(m->objfile->name->str);
@@ -588,9 +614,14 @@ int main(int argc, char *argv[])
 	if (global.params.verbose)
 	    printf("code      %s\n", m->toChars());
 	m->genobjfile();
-//	m->gensymfile();
 	if (global.errors)
 	    m->deleteObjFile();
+	else
+	{
+	    //m->gensymfile();
+	    if (global.params.doDocComments)
+		m->gendocfile();
+	}
     }
 
     backend_term();

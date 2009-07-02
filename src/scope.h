@@ -1,5 +1,5 @@
 
-// Copyright (c) 1999-2002 by Digital Mars
+// Copyright (c) 1999-2005 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // www.digitalmars.com
@@ -28,6 +28,7 @@ struct ClassDeclaration;
 struct AggregateDeclaration;
 struct AnonymousAggregateDeclaration;
 struct FuncDeclaration;
+struct DocComment;
 enum LINK;
 enum PROT;
 
@@ -72,6 +73,10 @@ struct Scope
 #define SCOPEstaticif	2	// inside static if
 
     AnonymousAggregateDeclaration *anonAgg;	// for temporary analysis
+
+    DocComment *lastdc;		// documentation comment for last symbol at this scope
+    unsigned lastoffset;	// offset in docbuf of where to insert next dec
+    OutBuffer *docbuf;		// buffer for documentation output
 
     static Scope *freelist;
     static void *operator new(size_t sz);

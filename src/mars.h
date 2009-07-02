@@ -47,6 +47,10 @@ struct Param
     char *objdir;	// .obj file output directory
     char *objname;	// .obj file output name
 
+    char doDocComments;	// process embedded documentation comments
+    char *docdir;	// write documentation file to docdir directory
+    char *docname;	// write documentation file to docname
+
     unsigned debuglevel;	// debug level
     Array *debugids;		// debug identifiers
 
@@ -77,6 +81,7 @@ struct Global
     char *mars_ext;
     char *sym_ext;
     char *obj_ext;
+    char *doc_ext;
     char *copyright;
     char *written;
     Array *path;	// Array of char*'s which form the import lookup path

@@ -37,6 +37,9 @@ struct EnumDeclaration : ScopeDsymbol
     Type *getType();
     char *kind();
 
+    void emitComment(Scope *sc);
+    void toDocBuffer(OutBuffer *buf);
+
     EnumDeclaration *isEnumDeclaration() { return this; }
 
     void toObjFile();			// compile to .obj file
@@ -53,6 +56,9 @@ struct EnumMember : Dsymbol
     Dsymbol *syntaxCopy(Dsymbol *s);
     void toCBuffer(OutBuffer *buf);
     char *kind();
+
+    void emitComment(Scope *sc);
+    void toDocBuffer(OutBuffer *buf);
 
     EnumMember *isEnumMember() { return this; }
 };

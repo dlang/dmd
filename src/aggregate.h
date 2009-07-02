@@ -65,6 +65,9 @@ struct AggregateDeclaration : ScopeDsymbol
     void addField(Scope *sc, VarDeclaration *v);
     int isDeprecated();		// is aggregate deprecated?
 
+    void emitComment(Scope *sc);
+    void toDocBuffer(OutBuffer *buf);
+
     // For access checking
     virtual PROT getAccess(Dsymbol *smember);	// determine access to smember
     int isFriendOf(AggregateDeclaration *cd);
@@ -189,6 +192,7 @@ struct ClassDeclaration : AggregateDeclaration
     virtual int vtblOffset();
     char *kind();
     char *mangle();
+    void toDocBuffer(OutBuffer *buf);
 
     PROT getAccess(Dsymbol *smember);	// determine access to smember
 

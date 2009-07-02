@@ -285,6 +285,8 @@ struct OutBuffer : Object
 #endif
     void bracket(char left, char right);
     void spread(unsigned offset, unsigned nbytes);
+    void insert(unsigned offset, const void *data, unsigned nbytes);
+    void remove(unsigned offset, unsigned nbytes);
     char *toChars();
     char *extractString();
 };

@@ -70,8 +70,8 @@ enum ParseStatementFlags
 };
 
 
-Parser::Parser(Module *module, unsigned char *base, unsigned length)
-    : Lexer(module, base, length)
+Parser::Parser(Module *module, unsigned char *base, unsigned length, int doDocComment)
+    : Lexer(module, base, length, doDocComment)
 {
     //printf("Parser::Parser()\n");
     md = NULL;
@@ -88,6 +88,8 @@ Array *Parser::parseModule()
     // ModuleDeclation leads off
     if (token.value == TOKmodule)
     {
+	unsigned char *comment = token.blockComment;
+
 	nextToken();
 	if (token.value != TOKidentifier)
 	{   error("Identifier expected following module");
@@ -117,6 +119,7 @@ Array *Parser::parseModule()
 	    if (token.value != TOKsemicolon)
 		error("';' expected following module declaration instead of %s", token.toChars());
 	    nextToken();
+	    addComment(mod, comment);
 	}
     }
 
@@ -142,11 +145,13 @@ Array *Parser::parseDeclDefs(int once)
     enum PROT prot;
     unsigned stc;
     Condition *condition;
+    unsigned char *comment;
 
     //printf("Parser::parseDeclDefs()\n");
     decldefs = new Array();
     do
     {
+	comment = token.blockComment;
 	switch (token.value)
 	{
 	    case TOKenum:
@@ -470,7 +475,9 @@ Array *Parser::parseDeclDefs(int once)
 		continue;
 	}
 	if (s)
-	    decldefs->push(s);
+	{   decldefs->push(s);
+	    addComment(s, comment);
+	}
     } while (!once);
     return decldefs;
 }
@@ -961,6 +968,7 @@ EnumDeclaration *Parser::parseEnum()
 	//printf("enum definition\n");
 	e->members = new Array();
 	nextToken();
+	unsigned char *comment = token.blockComment;
 	while (token.value != TOKrcurly)
 	{
 	    if (token.value == TOKidentifier)
@@ -982,6 +990,7 @@ EnumDeclaration *Parser::parseEnum()
 		    ;
 		else
 		    check(TOKcomma);
+		addComment(em, comment);
 	    }
 	    else
 	    {	error("enum member expected");
@@ -1933,6 +1942,7 @@ Array *Parser::parseDeclaration()
     Identifier *ident;
     Array *a;
     enum TOK tok;
+    unsigned char *comment = token.blockComment;
 
     //printf("parseDeclaration()\n");
     switch (token.value)
@@ -1979,6 +1989,7 @@ Array *Parser::parseDeclaration()
 	s = (AggregateDeclaration *)parseAggregate();
 	s->storage_class |= storage_class;
 	a->push(s);
+	addComment(s, comment);
 	return a;
     }
 
@@ -2023,10 +2034,12 @@ Array *Parser::parseDeclaration()
 	    switch (token.value)
 	    {   case TOKsemicolon:
 		    nextToken();
+		    addComment(v, comment);
 		    break;
 
 		case TOKcomma:
 		    nextToken();
+		    addComment(v, comment);
 		    continue;
 
 		default:
@@ -2039,7 +2052,9 @@ Array *Parser::parseDeclaration()
 
 	    f = new FuncDeclaration(loc, 0, ident, storage_class, t);
 	    a->push(f);
+	    addComment(f, comment);
 	    parseContracts(f);
+	    addComment(f, NULL);
 	}
 	else
 	{   VarDeclaration *v;
@@ -2057,10 +2072,12 @@ Array *Parser::parseDeclaration()
 	    switch (token.value)
 	    {   case TOKsemicolon:
 		    nextToken();
+		    addComment(v, comment);
 		    break;
 
 		case TOKcomma:
 		    nextToken();
+		    addComment(v, comment);
 		    continue;
 
 		default:
@@ -4587,6 +4604,15 @@ Expression *Parser::parseNewExp()
     e = new NewExp(loc, newargs, t, arguments);
     return e;
 }
+
+/**********************************************
+ */
+
+void Parser::addComment(Dsymbol *s, unsigned char *blockComment)
+{
+    s->addComment(combineComments(blockComment, token.lineComment));
+}
+
 
 /********************************* ***************************/
 

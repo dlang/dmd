@@ -124,6 +124,49 @@ void AttribDeclaration::inlineScan()
     }
 }
 
+void AttribDeclaration::addComment(unsigned char *comment)
+{
+    if (comment)
+    {
+	unsigned i;
+	Array *d = include(NULL, NULL);
+
+	if (d)
+	{
+	    for (i = 0; i < d->dim; i++)
+	    {   Dsymbol *s;
+
+		s = (Dsymbol *)d->data[i];
+		//printf("AttribDeclaration::addComment %s\n", s->toChars());
+		s->addComment(comment);
+	    }
+	}
+    }
+}
+
+void AttribDeclaration::emitComment(Scope *sc)
+{
+    /* If generating doc comment, skip this because if we're inside
+     * a template, then include(NULL, NULL) will fail.
+     */
+//    if (sc->docbuf)
+//	return;
+
+    unsigned i;
+    Array *d = include(NULL, NULL);
+
+    if (d)
+    {
+	for (i = 0; i < d->dim; i++)
+	{   Dsymbol *s;
+
+	    s = (Dsymbol *)d->data[i];
+	    //printf("AttribDeclaration::emitComment %s\n", s->toChars());
+	    s->emitComment(sc);
+	}
+    }
+}
+
 void AttribDeclaration::toObjFile()
 {
     unsigned i;
@@ -168,7 +211,8 @@ char *AttribDeclaration::kind()
 }
 
 Dsymbol *AttribDeclaration::oneMember()
-{   Dsymbol *s;
+{
+    Dsymbol *s;
     Array *d = include(NULL, NULL);
 
     if (d && d->dim == 1)
@@ -706,6 +750,11 @@ Dsymbol *ConditionalDeclaration::syntaxCopy(Dsymbol *s)
 }
 
 
+Dsymbol *ConditionalDeclaration::oneMember()
+{
+    return NULL;
+}
+
 // Decide if 'then' or 'else' code should be included
 
 Array *ConditionalDeclaration::include(Scope *sc, ScopeDsymbol *sd)
@@ -714,6 +763,35 @@ Array *ConditionalDeclaration::include(Scope *sc, ScopeDsymbol *sd)
     return condition->include(sc, sd) ? decl : elsedecl;
 }
 
+
+void ConditionalDeclaration::addComment(unsigned char *comment)
+{
+    /* Because addComment is called by the parser, if we called
+     * include() it would define a version before it was used.
+     * But it's no problem to drill down to both decl and elsedecl,
+     * so that's the workaround.
+     */
+
+    if (comment)
+    {
+	Array *d = decl;
+
+	for (int j = 0; j < 2; j++)
+	{
+	    if (d)
+	    {
+		for (unsigned i = 0; i < d->dim; i++)
+		{   Dsymbol *s;
+
+		    s = (Dsymbol *)d->data[i];
+		    printf("ConditionalDeclaration::addComment %s\n", s->toChars());
+		    s->addComment(comment);
+		}
+	    }
+	    d = elsedecl;
+	}
+    }
+}
 
 void ConditionalDeclaration::toCBuffer(OutBuffer *buf)
 {

@@ -85,6 +85,7 @@ TemplateDeclaration::TemplateDeclaration(Loc loc, Identifier *id, Array *paramet
     this->members = decldefs;
     this->overnext = NULL;
     this->scope = NULL;
+    this->onemember = NULL;
 }
 
 Dsymbol *TemplateDeclaration::syntaxCopy(Dsymbol *)
@@ -155,6 +156,17 @@ void TemplateDeclaration::semantic(Scope *sc)
 
     paramscope->pop();
 
+    if (members && members->dim)
+    {
+	Dsymbol *s = (Dsymbol *)members->data[0];
+	s = s->oneMember();
+	if (s && s->ident && s->ident->equals(ident))
+	{
+	    onemember = s;
+	    s->parent = this;
+	}
+    }
+
     /* BUG: should check:
      *	o no virtual functions or non-static data members of classes
      */
@@ -162,7 +174,9 @@ void TemplateDeclaration::semantic(Scope *sc)
 
 char *TemplateDeclaration::kind()
 {
-    return "template";
+    return (onemember && onemember->isAggregateDeclaration())
+		? onemember->kind()
+		: (char *)"template";
 }
 
 /**********************************
@@ -402,7 +416,8 @@ void TemplateDeclaration::toCBuffer(OutBuffer *buf)
 {
     int i;
 
-    buf->writestring("template ");
+    buf->writestring(kind());
+    buf->writeByte(' ');
     buf->writestring(ident->toChars());
     buf->writeByte('(');
     for (i = 0; i < parameters->dim; i++)
@@ -424,7 +439,7 @@ char *TemplateDeclaration::toChars()
     toCBuffer(&buf);
     s = buf.toChars();
     buf.data = NULL;
-    return s + 9;	// kludge to skip over 'template '
+    return s + strlen(kind()) + 1;	// kludge to skip over 'template '
 }
 
 /* ======================== Type ============================================ */

@@ -36,6 +36,8 @@ struct AttribDeclaration : Dsymbol
     void semantic2(Scope *sc);
     void semantic3(Scope *sc);
     void inlineScan();
+    void addComment(unsigned char *comment);
+    void emitComment(Scope *sc);
     char *kind();
     Dsymbol *oneMember();
     void checkCtorConstInit();
@@ -118,7 +120,9 @@ struct ConditionalDeclaration : AttribDeclaration
 
     ConditionalDeclaration(Condition *condition, Array *decl, Array *elsedecl);
     Dsymbol *syntaxCopy(Dsymbol *s);
+    Dsymbol *oneMember();
     Array *include(Scope *sc, ScopeDsymbol *s);
+    void addComment(unsigned char *comment);
     void toCBuffer(OutBuffer *buf);
 };
 

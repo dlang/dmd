@@ -81,6 +81,7 @@ struct Dsymbol : Object
     Dsymbol *parent;
     Symbol *csym;		// symbol for code generator
     Symbol *isym;		// import version of csym
+    unsigned char *comment;	// documentation comment for this Dsymbol
     Loc loc;			// where defined
 
     Dsymbol();
@@ -111,6 +112,7 @@ struct Dsymbol : Object
     virtual Dsymbol *search(Identifier *ident, int flags);
     virtual int overloadInsert(Dsymbol *s);
     virtual void toCBuffer(OutBuffer *buf);
+    virtual void toDocBuffer(OutBuffer *buf);
     virtual unsigned size(Loc loc);
     virtual int isforwardRef();
     virtual void defineRef(Dsymbol *s);
@@ -129,6 +131,10 @@ struct Dsymbol : Object
     virtual Dsymbol *oneMember() { return this; }
     virtual void addLocalClass(Array *) { }
     virtual void checkCtorConstInit() { }
+
+    virtual void addComment(unsigned char *comment);
+    virtual void emitComment(Scope *sc);
+    void emitDitto(Scope *sc);
 
     // Backend
 
@@ -195,6 +201,8 @@ struct ScopeDsymbol : Dsymbol
     static void multiplyDefined(Dsymbol *s1, Dsymbol *s2);
     Dsymbol *nameCollision(Dsymbol *s);
     char *kind();
+
+    void emitMemberComments(Scope *sc);
 
     ScopeDsymbol *isScopeDsymbol() { return this; }
 };

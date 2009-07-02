@@ -178,7 +178,8 @@ int VersionCondition::include(Scope *sc, ScopeDsymbol *s)
 	    else if (findCondition(global.params.versionids, ident))
 		inc = 1;
 	    else
-	    {	if (!mod->versionidsNot)
+	    {
+		if (!mod->versionidsNot)
 		    mod->versionidsNot = new Array();
 		mod->versionidsNot->push(ident->toChars());
 	    }
@@ -276,6 +277,7 @@ int IftypeCondition::include(Scope *sc, ScopeDsymbol *sd)
     {
 	if (!sc)
 	{
+*(char*)0=0;
 	    error(loc, "iftype conditional cannot be at global scope");
 	    inc = 2;
 	    return 0;

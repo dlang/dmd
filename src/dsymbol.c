@@ -36,6 +36,7 @@ Dsymbol::Dsymbol()
     this->csym = NULL;
     this->isym = NULL;
     this->loc = 0;
+    this->comment = NULL;
 }
 
 Dsymbol::Dsymbol(Identifier *ident)
@@ -47,6 +48,7 @@ Dsymbol::Dsymbol(Identifier *ident)
     this->csym = NULL;
     this->isym = NULL;
     this->loc = 0;
+    this->comment = NULL;
 }
 
 int Dsymbol::equals(Object *o)
@@ -414,6 +416,22 @@ Array *Dsymbol::arraySyntaxCopy(Array *a)
     }
     return b;
 }
+
+
+/****************************************
+ * Add documentation comment to Dsymbol.
+ * Ignore NULL comments.
+ */
+
+void Dsymbol::addComment(unsigned char *comment)
+{
+    //if (comment)
+	//printf("adding comment '%s' to symbol %p '%s'\n", comment, this, toChars());
+
+    if (!this->comment)
+	this->comment = comment;
+}
+
 
 /********************************* ScopeDsymbol ****************************/
 

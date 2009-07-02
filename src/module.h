@@ -20,6 +20,7 @@
 struct ModuleInfoDeclaration;
 struct ClassDeclaration;
 struct ModuleDeclaration;
+struct Macro;
 
 // Back end
 struct elem;
@@ -50,6 +51,7 @@ struct Module : Package
     File *srcfile;	// input source file
     File *objfile;	// output .obj file
     File *symfile;	// output symbol file
+    File *docfile;	// output documentation file
     unsigned errors;	// if any errors in file
     int isHtml;		// if it is an HTML file
     int needmoduleinfo;
@@ -78,8 +80,9 @@ struct Module : Package
     Array *versionids;		// version identifiers
     Array *versionidsNot;	// forward referenced version identifiers
 
+    Macro *macrotable;		// document comment macros
 
-    Module(char *arg, Identifier *ident);
+    Module(char *arg, Identifier *ident, int doDocComment);
     ~Module();
 
     static Module *load(Loc loc, Array *packages, Identifier *ident);
@@ -93,6 +96,7 @@ struct Module : Package
     void inlineScan();	// scan for functions to inline
     void genobjfile();
     void gensymfile();
+    void gendocfile();
     int needModuleInfo();
     Dsymbol *search(Identifier *ident, int flags);
     void deleteObjFile();

@@ -185,6 +185,8 @@ struct Token
     Token *next;
     unsigned char *ptr;		// pointer to first character of this token within buffer
     enum TOK value;
+    unsigned char *blockComment; // doc comment string prior to this token
+    unsigned char *lineComment;	 // doc comment for previous token
     union
     {
 	// Integers
@@ -225,8 +227,10 @@ struct Lexer
     unsigned char *p;		// current character
     Token token;
     Module *mod;
+    int doDocComment;		// collect doc comment information
+    int anyToken;		// !=0 means seen at least one token
 
-    Lexer(Module *mod, unsigned char *base, unsigned length);
+    Lexer(Module *mod, unsigned char *base, unsigned length, int doDocComment);
 
     static void initKeywords();
     static Identifier *idPool(const char *s);
@@ -247,6 +251,9 @@ struct Lexer
     void error(Loc loc, const char *format, ...);
     void pragma();
     unsigned decodeUTF();
+    void getDocComment(Token *t, unsigned lineComment);
+
+    static unsigned char *combineComments(unsigned char *c1, unsigned char *c2);
 };
 
 #endif /* DMD_LEXER_H */

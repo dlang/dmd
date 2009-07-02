@@ -315,7 +315,6 @@ void Type::toCBuffer(OutBuffer *buf, Identifier *ident)
 
 void Type::toCBuffer2(OutBuffer *buf, Identifier *ident)
 {
-//    buf->prependbyte(' ');
     buf->prependstring(toChars());
     if (ident)
     {	buf->writeByte(' ');

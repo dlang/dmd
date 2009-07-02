@@ -79,7 +79,7 @@ static void cmtable_init()
 }
 
 
-/******************************************************/
+/************************* Token **********************************************/
 
 char *Token::tochars[TOKMAX];
 
@@ -187,13 +187,13 @@ char *Token::toChars(enum TOK value)
     return p;
 }
 
-/******************************************************/
+/*************************** Lexer ********************************************/
 
 Token *Lexer::freelist = NULL;
 StringTable Lexer::stringtable;
 OutBuffer Lexer::stringbuffer;
 
-Lexer::Lexer(Module *mod, unsigned char *base, unsigned length)
+Lexer::Lexer(Module *mod, unsigned char *base, unsigned length, int doDocComment)
     : loc(mod, 1)
 {
     //printf("Lexer::Lexer(%p,%d)\n",base,length);
@@ -203,6 +203,8 @@ Lexer::Lexer(Module *mod, unsigned char *base, unsigned length)
     this->end  = base + length;
     p = base;
     this->mod = mod;
+    this->doDocComment = doDocComment;
+    this->anyToken = 0;
     //initKeywords();
 }
 
@@ -307,6 +309,11 @@ Token *Lexer::peek(Token *ct)
 
 void Lexer::scan(Token *t)
 {
+    unsigned lastLine = loc.linnum;
+    unsigned linnum;
+
+    t->blockComment = NULL;
+    t->lineComment = NULL;
     while (1)
     {
 	t->ptr = p;
@@ -441,6 +448,7 @@ void Lexer::scan(Token *t)
 		}
 		t->ident = id;
 		t->value = (enum TOK) id->value;
+		anyToken = 1;
 		if (*t->ptr == '_')	// if special identifier token
 		{
 		    static char date[11+1];
@@ -506,6 +514,7 @@ void Lexer::scan(Token *t)
 
 		    case '*':
 			p++;
+			linnum = loc.linnum;
 			while (1)
 			{
 			    while (1)
@@ -548,9 +557,14 @@ void Lexer::scan(Token *t)
 			    if (p[-2] == '*' && p - 3 != t->ptr)
 				break;
 			}
+			if (doDocComment && t->ptr[2] == '*' && p - 4 != t->ptr)
+			{   // if /** but not /**/
+			    getDocComment(t, lastLine == linnum);
+			}
 			continue;
 
-		    case '/':
+		    case '/':		// do // style comments
+			linnum = loc.linnum;
 			while (1)
 			{   unsigned char c = *++p;
 			    switch (c)
@@ -565,6 +579,8 @@ void Lexer::scan(Token *t)
 
 				case 0:
 				case 0x1A:
+				    if (doDocComment && t->ptr[2] == '/')
+					getDocComment(t, lastLine == linnum);
 				    p = end;
 				    t->value = TOKeof;
 				    return;
@@ -579,6 +595,10 @@ void Lexer::scan(Token *t)
 			    }
 			    break;
 			}
+
+			if (doDocComment && t->ptr[2] == '/')
+			    getDocComment(t, lastLine == linnum);
+
 			p++;
 			loc.linnum++;
 			continue;
@@ -586,6 +606,7 @@ void Lexer::scan(Token *t)
 		    case '+':
 		    {	int nest;
 
+			linnum = loc.linnum;
 			p++;
 			nest = 1;
 			while (1)
@@ -639,6 +660,10 @@ void Lexer::scan(Token *t)
 				    continue;
 			    }
 			    break;
+			}
+			if (doDocComment && t->ptr[2] == '+' && p - 4 != t->ptr)
+			{   // if /++ but not /++/
+			    getDocComment(t, lastLine == linnum);
 			}
 			continue;
 		    }
@@ -2063,6 +2088,134 @@ unsigned Lexer::decodeUTF()
 	error(msg);
     }
     return u;
+}
+
+
+/***************************************************
+ * Parse doc comment embedded between t->ptr and p.
+ * Remove trailing blanks and tabs from lines.
+ * Replace all newlines with \n.
+ * Remove leading comment character from each line.
+ * Decide if it's a lineComment or a blockComment.
+ * Append to previous one for this token.
+ */
+
+void Lexer::getDocComment(Token *t, unsigned lineComment)
+{
+    OutBuffer buf;
+    unsigned char ct = t->ptr[2];
+    unsigned char *q = t->ptr + 3;	// start of comment text
+    int linestart = 0;
+
+    unsigned char *qend = p;
+    if (ct == '*' || ct == '+')
+	qend -= 2;
+
+    /* Scan over initial row of ****'s or ++++'s or ////'s
+     */
+    for (; q < qend; q++)
+    {
+	if (*q != ct)
+	    break;
+    }
+
+    for (; q < qend; q++)
+    {
+	unsigned char c = *q;
+
+	switch (c)
+	{
+	    case '*':
+	    case '+':
+		if (linestart && c == ct)
+		{   linestart = 0;
+		    /* Trim preceding whitespace up to preceding \n
+		     */
+		    while (buf.offset && (buf.data[buf.offset - 1] == ' ' || buf.data[buf.offset - 1] == '\t'))
+			buf.offset--;
+		    continue;
+		}
+		break;
+
+	    case ' ':
+	    case '\t':
+		break;
+
+	    case '\r':
+		if (q[1] == '\n')
+		    continue;		// skip the \r
+		goto Lnewline;
+
+	    default:
+		if (c == 226)
+		{
+		    // If LS or PS
+		    if (q[1] == 128 &&
+			(q[2] == 168 || q[2] == 169))
+		    {
+			q += 2;
+			goto Lnewline;
+		    }
+		}
+		linestart = 0;
+		break;
+
+	    Lnewline:
+		c = '\n';		// replace all newlines with \n
+	    case '\n':
+		linestart = 1;
+
+		/* Trim trailing whitespace
+		 */
+		while (buf.offset && (buf.data[buf.offset - 1] == ' ' || buf.data[buf.offset - 1] == '\t'))
+		    buf.offset--;
+
+		break;
+	}
+	buf.writeByte(c);
+    }
+
+    // Always end with a newline
+    if (!buf.offset || buf.data[buf.offset - 1] != '\n')
+	buf.writeByte('\n');
+
+    buf.writeByte(0);
+
+    // It's a line comment if the start of the doc comment comes
+    // after other non-whitespace on the same line.
+    unsigned char** dc = (lineComment && anyToken)
+			 ? &t->lineComment
+			 : &t->blockComment;
+
+    // Combine with previous doc comment, if any
+    if (*dc)
+	*dc = combineComments(*dc, (unsigned char *)buf.data);
+    else
+	*dc = (unsigned char *)buf.extractData();
+}
+
+/********************************************
+ * Combine two document comments into one.
+ */
+
+unsigned char *Lexer::combineComments(unsigned char *c1, unsigned char *c2)
+{
+    unsigned char *c = c2;
+
+    if (c1)
+    {	c = c1;
+	if (c2)
+	{   size_t len1 = strlen((char *)c1);
+	    size_t len2 = strlen((char *)c2);
+
+	    c = (unsigned char *)mem.malloc(len1 + 1 + len2 + 1);
+	    memcpy(c, c1, len1);
+	    c[len1] = '\n';
+	    memcpy(c + len1 + 1, c2, len2);
+	    c[len1 + 1 + len2] = 0;
+	}
+    }
+    return c;
 }
 
 /********************************************

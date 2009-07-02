@@ -1646,6 +1646,18 @@ void OutBuffer::spread(unsigned offset, unsigned nbytes)
     this->offset += nbytes;
 }
 
+void OutBuffer::insert(unsigned offset, const void *p, unsigned nbytes)
+{
+    spread(offset, nbytes);
+    memmove(data + offset, p, nbytes);
+}
+
+void OutBuffer::remove(unsigned offset, unsigned nbytes)
+{
+    memmove(data + offset, data + offset + nbytes, this->offset - (offset + nbytes));
+    this->offset -= nbytes;
+}
+
 char *OutBuffer::toChars()
 {
     writeByte(0);
