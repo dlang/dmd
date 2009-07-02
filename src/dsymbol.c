@@ -288,25 +288,27 @@ void Dsymbol::addMember(Scope *sc, ScopeDsymbol *sd)
 void Dsymbol::error(const char *format, ...)
 {
     //printf("Dsymbol::error()\n");
-    char *p = locToChars();
+    if (!global.gag)
+    {
+	char *p = locToChars();
 
-    if (*p)
-	printf("%s: ", p);
-    mem.free(p);
+	if (*p)
+	    printf("%s: ", p);
+	mem.free(p);
 
-    if (isAnonymous())
-	printf("%s ", kind());
-    else
-	printf("%s %s ", kind(), toPrettyChars());
+	if (isAnonymous())
+	    printf("%s ", kind());
+	else
+	    printf("%s %s ", kind(), toPrettyChars());
 
-    va_list ap;
-    va_start(ap, format);
-    vprintf(format, ap);
-    va_end(ap);
+	va_list ap;
+	va_start(ap, format);
+	vprintf(format, ap);
+	va_end(ap);
 
-    printf("\n");
-    fflush(stdout);
-
+	printf("\n");
+	fflush(stdout);
+    }
     global.errors++;
 
     //fatal();
@@ -314,23 +316,26 @@ void Dsymbol::error(const char *format, ...)
 
 void Dsymbol::error(Loc loc, const char *format, ...)
 {
-    char *p = loc.toChars();
-    if (!*p)
-	p = locToChars();
+    if (!global.gag)
+    {
+	char *p = loc.toChars();
+	if (!*p)
+	    p = locToChars();
 
-    if (*p)
-	printf("%s: ", p);
-    mem.free(p);
+	if (*p)
+	    printf("%s: ", p);
+	mem.free(p);
 
-    printf("%s %s ", kind(), toPrettyChars());
+	printf("%s %s ", kind(), toPrettyChars());
 
-    va_list ap;
-    va_start(ap, format);
-    vprintf(format, ap);
-    va_end(ap);
+	va_list ap;
+	va_start(ap, format);
+	vprintf(format, ap);
+	va_end(ap);
 
-    printf("\n");
-    fflush(stdout);
+	printf("\n");
+	fflush(stdout);
+    }
 
     global.errors++;
 

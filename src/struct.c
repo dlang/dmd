@@ -26,6 +26,7 @@ AggregateDeclaration::AggregateDeclaration(Loc loc, Identifier *id)
 {
     this->loc = loc;
 
+    storage_class = 0;
     type = NULL;
     handle = NULL;
     structsize = 0;		// size of struct

@@ -144,7 +144,7 @@ Symbol *VarDeclaration::toSymbol()
     {	Symbol *s;
 	TYPE *t;
 	const char *id;
-	mangle_t m;
+	mangle_t m = 0;
 
 	if (isDataseg())
 	    id = mangle();

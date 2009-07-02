@@ -224,42 +224,48 @@ unsigned Lexer::locToLine(Loc loc)
 
 void Lexer::error(const char *format, ...)
 {
-    char *p = loc.toChars();
-    if (*p)
-	printf("%s: ", p);
-    mem.free(p);
+    if (!global.gag)
+    {
+	char *p = loc.toChars();
+	if (*p)
+	    printf("%s: ", p);
+	mem.free(p);
 
-    va_list ap;
-    va_start(ap, format);
-    vprintf(format, ap);
-    va_end(ap);
+	va_list ap;
+	va_start(ap, format);
+	vprintf(format, ap);
+	va_end(ap);
 
-    printf("\n");
-    fflush(stdout);
+	printf("\n");
+	fflush(stdout);
 
+	if (global.errors >= 20)	// moderate blizzard of cascading messages
+	    fatal();
+    }
     global.errors++;
-    if (global.errors > 20)	// moderate blizzard of cascading messages
-	fatal();
 }
 
 void Lexer::error(Loc loc, const char *format, ...)
 {
-    char *p = loc.toChars();
-    if (*p)
-	printf("%s: ", p);
-    mem.free(p);
+    if (!global.gag)
+    {
+	char *p = loc.toChars();
+	if (*p)
+	    printf("%s: ", p);
+	mem.free(p);
 
-    va_list ap;
-    va_start(ap, format);
-    vprintf(format, ap);
-    va_end(ap);
+	va_list ap;
+	va_start(ap, format);
+	vprintf(format, ap);
+	va_end(ap);
 
-    printf("\n");
-    fflush(stdout);
+	printf("\n");
+	fflush(stdout);
 
+	if (global.errors >= 20)	// moderate blizzard of cascading messages
+	    fatal();
+    }
     global.errors++;
-    if (global.errors > 20)	// moderate blizzard of cascading messages
-	fatal();
 }
 
 TOK Lexer::nextToken()
@@ -2112,7 +2118,7 @@ static Keyword keywords[] =
     {	"delegate",	TOKdelegate	},
     {	"function",	TOKfunction	},
 
-    {	"is",		TOKidentity	},
+    {	"is",		TOKis		},
     {	"if",		TOKif		},
     {	"else",		TOKelse		},
     {	"while",	TOKwhile	},
@@ -2210,7 +2216,7 @@ void Lexer::initKeywords()
     Token::tochars[TOKge]		= ">=";
     Token::tochars[TOKequal]		= "==";
     Token::tochars[TOKnotequal]		= "!=";
-//    Token::tochars[TOKidentity]		= "===";
+    Token::tochars[TOKidentity]		= "===";
     Token::tochars[TOKnotidentity]	= "!==";
 
     Token::tochars[TOKunord]		= "!<>=";

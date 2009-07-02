@@ -67,15 +67,18 @@ Html::Html(const char *sourcename, unsigned char *base, unsigned length)
 
 void Html::error(const char *format, ...)
 {
-    printf("%s(%d) : HTML Error: ", sourcename, linnum);
+    if (!global.gag)
+    {
+	printf("%s(%d) : HTML Error: ", sourcename, linnum);
 
-    va_list ap;
-    va_start(ap, format);
-    vprintf(format, ap);
-    va_end(ap);
+	va_list ap;
+	va_start(ap, format);
+	vprintf(format, ap);
+	va_end(ap);
 
-    printf("\n");
-    fflush(stdout);
+	printf("\n");
+	fflush(stdout);
+    }
 
     global.errors++;
 }

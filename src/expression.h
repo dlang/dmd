@@ -1,5 +1,5 @@
 
-// Copyright (c) 1999-2002 by Digital Mars
+// Copyright (c) 1999-2005 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // www.digitalmars.com
@@ -33,6 +33,7 @@ struct Expression;
 struct Declaration;
 struct AggregateDeclaration;
 struct TemplateInstance;
+struct ClassDeclaration;
 
 // Back end
 struct IRState;
@@ -77,6 +78,7 @@ struct Expression : Object
     Expression *implicitCastTo(Type *t);
     virtual int implicitConvTo(Type *t);
     virtual Expression *castTo(Type *t);
+    virtual void checkEscape();
     void checkScalar();
     Expression *checkIntegral();
     void checkArithmetic();
@@ -327,6 +329,18 @@ struct NewExp : Expression
     //Expression *inlineScan(InlineScanState *iss);
 };
 
+struct NewAnonClassExp : Expression
+{
+    Array *newargs;		// Array of Expression's to call new operator
+    Array *arguments;		// Array of Expression's to call class constructor
+    ClassDeclaration *cd;	// class being instantiated
+
+    NewAnonClassExp(Loc loc, Array *newargs, ClassDeclaration *cd, Array *arguments);
+    Expression *syntaxCopy();
+    Expression *semantic(Scope *sc);
+    void toCBuffer(OutBuffer *buf);
+};
+
 // Offset from symbol
 
 struct SymOffExp : Expression
@@ -336,6 +350,7 @@ struct SymOffExp : Expression
 
     SymOffExp(Loc loc, Declaration *var, unsigned offset);
     Expression *semantic(Scope *sc);
+    void checkEscape();
     void toCBuffer(OutBuffer *buf);
     int isConst();
     int isBool(int result);
@@ -357,6 +372,7 @@ struct VarExp : Expression
     void dump(int indent);
     char *toChars();
     void toCBuffer(OutBuffer *buf);
+    void checkEscape();
     Expression *toLvalue(Expression *e);
     Expression *modifiableLvalue(Scope *sc, Expression *e);
     elem *toElem(IRState *irs);
@@ -419,6 +435,23 @@ struct HaltExp : Expression
     void toCBuffer(OutBuffer *buf);
 
     elem *toElem(IRState *irs);
+};
+
+struct IftypeExp : Expression
+{
+    /* is(targ id tok tspec)
+     * is(targ id == tok2)
+     */
+    Type *targ;
+    Identifier *id;	// can be NULL
+    enum TOK tok;	// ':' or '=='
+    Type *tspec;	// can be NULL
+    enum TOK tok2;	// 'struct', 'union', 'typedef', etc.
+
+    IftypeExp(Loc loc, Type *targ, Identifier *id, enum TOK tok, Type *tspec, enum TOK tok2);
+    Expression *syntaxCopy();
+    Expression *semantic(Scope *sc);
+    void toCBuffer(OutBuffer *buf);
 };
 
 /****************************************************************/
@@ -671,6 +704,7 @@ struct SliceExp : UnaExp
     SliceExp(Loc loc, Expression *e1, Expression *lwr, Expression *upr);
     Expression *syntaxCopy();
     Expression *semantic(Scope *sc);
+    void checkEscape();
     Expression *toLvalue(Expression *e);
     Expression *modifiableLvalue(Scope *sc, Expression *e);
     void toCBuffer(OutBuffer *buf);
@@ -722,6 +756,7 @@ struct CommaExp : BinExp
 {
     CommaExp(Loc loc, Expression *e1, Expression *e2);
     Expression *semantic(Scope *sc);
+    void checkEscape();
     Expression *toLvalue(Expression *e);
     int isBool(int result);
     Expression *optimize(int result);
@@ -731,10 +766,12 @@ struct CommaExp : BinExp
 struct IndexExp : BinExp
 {
     VarDeclaration *lengthVar;
+    int modifiable;
 
     IndexExp(Loc loc, Expression *e1, Expression *e2);
     Expression *semantic(Scope *sc);
     Expression *toLvalue(Expression *e);
+    Expression *modifiableLvalue(Scope *sc, Expression *e);
     void toCBuffer(OutBuffer *buf);
     Expression *doInline(InlineDoState *ids);
 
@@ -1105,6 +1142,12 @@ struct InExp : BinExp
     elem *toElem(IRState *irs);
 };
 
+struct RemoveExp : BinExp
+{
+    RemoveExp(Loc loc, Expression *e1, Expression *e2);
+    elem *toElem(IRState *irs);
+};
+
 // == and !=
 
 struct EqualExp : BinExp
@@ -1143,6 +1186,7 @@ struct CondExp : BinExp
     Expression *semantic(Scope *sc);
     Expression *optimize(int result);
     Expression *constFold();
+    void checkEscape();
     Expression *toLvalue(Expression *e);
     Expression *checkToBoolean();
     void toCBuffer(OutBuffer *buf);

@@ -112,6 +112,8 @@ ClassDeclaration::ClassDeclaration(Loc loc, Identifier *id, Array *baseclasses)
 #endif
     isauto = 0;
     isabstract = 0;
+    isnested = 0;
+    vthis = NULL;
 }
 
 Dsymbol *ClassDeclaration::syntaxCopy(Dsymbol *s)
@@ -123,6 +125,8 @@ Dsymbol *ClassDeclaration::syntaxCopy(Dsymbol *s)
 	cd = (ClassDeclaration *)s;
     else
 	cd = new ClassDeclaration(loc, ident, NULL);
+
+    cd->storage_class |= storage_class;
 
     cd->baseclasses.setDim(this->baseclasses.dim);
     for (int i = 0; i < cd->baseclasses.dim; i++)
@@ -142,8 +146,15 @@ void ClassDeclaration::semantic(Scope *sc)
 
     //printf("ClassDeclaration::semantic(%s), type = %p, sizeok = %d, this = %p\n", toChars(), type, sizeok, this);
     //printf("parent = %p, '%s'\n", sc->parent, sc->parent ? sc->parent->toChars() : "");
+    //printf("sc->stc = %x\n", sc->stc);
 
     //{ static int n;  if (++n == 20) *(char*)0=0; }
+
+    if (!ident)		// if anonymous class
+    {	char *id = "__anonclass";
+
+	ident = Identifier::generateId(id);
+    }
 
     if (!scope)
     {
@@ -293,6 +304,7 @@ void ClassDeclaration::semantic(Scope *sc)
 	// Inherit properties from base class
 	com = baseClass->isCOMclass();
 	isauto = baseClass->isauto;
+	vthis = baseClass->vthis;
     }
     else
     {
@@ -300,6 +312,8 @@ void ClassDeclaration::semantic(Scope *sc)
 	vtbl.setDim(0);
 	vtbl.push(this);		// leave room for classinfo as first member
     }
+
+    storage_class |= sc->stc;
 
     if (sizeok == 0)
     {
@@ -310,13 +324,50 @@ void ClassDeclaration::semantic(Scope *sc)
 	    Dsymbol *s = (Dsymbol *)members->data[i];
 	    s->addMember(sc, this);
 	}
+
+	/* If this is a nested class, add the hidden 'this'
+	 * member which is a pointer to the enclosing scope.
+	 */
+	if (vthis)		// if inheriting from nested class
+	{   // Use the base class's 'this' member
+	    isnested = 1;
+	    if (storage_class & STCstatic)
+		error("static class cannot inherit from nested class %s", baseClass->toChars());
+	    if (toParent() != baseClass->toParent())
+		error("super class %s is nested within %s, not %s",
+			baseClass->toChars(),
+			baseClass->toParent()->toChars(),
+			toParent()->toChars());
+	}
+	else if (!(storage_class & STCstatic))
+	{   Dsymbol *s = toParent();
+	    ClassDeclaration *cd = s->isClassDeclaration();
+	    FuncDeclaration *fd = s->isFuncDeclaration();
+
+
+	    if (cd || fd)
+	    {   isnested = 1;
+		Type *t;
+		if (cd)
+		    t = cd->type;
+		else if (fd)
+		{   t = new TypePointer(Type::tvoid);
+		    t = t->semantic(0, sc);
+		}
+		else
+		    assert(0);
+		assert(!vthis);
+		vthis = new ThisDeclaration(t);
+		members->push(vthis);
+	    }
+	}
     }
 
-    if (sc->stc & STCauto)
+    if (storage_class & STCauto)
 	isauto = 1;
-    if (sc->stc & STCabstract)
+    if (storage_class & STCabstract)
 	isabstract = 1;
-    if (sc->stc & STCdeprecated)
+    if (storage_class & STCdeprecated)
 	isdeprecated = 1;
 
     sc = sc->push(this);
@@ -331,6 +382,8 @@ void ClassDeclaration::semantic(Scope *sc)
     if (baseClass)
     {	sc->offset = baseClass->structsize;
 	alignsize = baseClass->alignsize;
+//	if (isnested)
+//	    sc->offset += PTRSIZE;	// room for uplevel context pointer
     }
     else
     {	sc->offset = 8;		// allow room for vptr[] and monitor
@@ -648,6 +701,16 @@ int ClassDeclaration::isAbstract()
 	}
     }
     return FALSE;
+}
+
+/****************************************
+ * Returns !=0 if there's an extra member which is the 'this'
+ * pointer to the enclosing context (enclosing class or function)
+ */
+
+int ClassDeclaration::isNested()
+{
+    return isnested;
 }
 
 /****************************************

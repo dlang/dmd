@@ -566,21 +566,22 @@ unsigned Type::memalign(unsigned salign)
 
 void Type::error(Loc loc, const char *format, ...)
 {
-    char *p = loc.toChars();
-    if (*p)
-	printf("%s: ", p);
-    mem.free(p);
+    if (!global.gag)
+    {
+	char *p = loc.toChars();
+	if (*p)
+	    printf("%s: ", p);
+	mem.free(p);
 
-    va_list ap;
-    va_start(ap, format);
-    vprintf(format, ap);
-    va_end(ap);
+	va_list ap;
+	va_start(ap, format);
+	vprintf(format, ap);
+	va_end(ap);
 
-    printf("\n");
-    fflush(stdout);
-
+	printf("\n");
+	fflush(stdout);
+    }
     global.errors++;
-    //fatal();
 }
 
 Identifier *Type::getTypeInfoIdent(int internal)
@@ -2255,7 +2256,7 @@ void TypeFunction::toDecoBuffer(OutBuffer *buf)
 	    arg->type->toDecoBuffer(buf);
 	}
     }
-    buf->writeByte(varargs ? 'Y' : 'Z');		// mark end of arg list
+    buf->writeByte('Z' - varargs);	// mark end of arg list
     next->toDecoBuffer(buf);
 }
 
@@ -2322,7 +2323,7 @@ void TypeFunction::argsToCBuffer(OutBuffer *buf)
 	}
 	if (varargs)
 	{
-	    if (i)
+	    if (i && varargs == 1)
 		buf->writeByte(',');
 	    buf->writestring("...");
 	}
@@ -2372,8 +2373,8 @@ Type *TypeFunction::semantic(Loc loc, Scope *sc)
     }
     deco = merge()->deco;
 
-    if (varargs && linkage != LINKd && !(arguments && arguments->dim))
-	error(loc, "variadic functions with non-C linkage must have at least one parameter");
+    if (varargs == 1 && linkage != LINKd && !(arguments && arguments->dim))
+	error(loc, "variadic functions with non-D linkage must have at least one parameter");
 
     /* Don't return merge(), because arg identifiers and default args
      * can be different
@@ -2383,7 +2384,7 @@ Type *TypeFunction::semantic(Loc loc, Scope *sc)
 }
 
 /********************************
- * Assume 'toargs' are being matched to function 'this'
+ * 'args' are being matched to function 'this'
  * Determine match level.
  * Returns:
  *	0	no match
@@ -2391,52 +2392,92 @@ Type *TypeFunction::semantic(Loc loc, Scope *sc)
  *	2	exact match
  */
 
-int TypeFunction::callMatch(Array *toargs)
+int TypeFunction::callMatch(Array *args)
 {
     unsigned u;
-    unsigned nargsf;
-    unsigned nargst;
+    unsigned nparams;
+    unsigned nargs;
     int match;
 
     //printf("TypeFunction::callMatch()\n");
     match = 2;				// assume exact match
 
-    nargsf = arguments ? arguments->dim : 0;
-    nargst = toargs ? toargs->dim : 0;
-    if (nargsf == nargst)
+    nparams = arguments ? arguments->dim : 0;
+    nargs = args ? args->dim : 0;
+    if (nparams == nargs)
 	;
-    else if (nargst > nargsf)
+    else if (nargs > nparams)
     {
-	if (!varargs)
+	if (varargs == 0)
 	    goto Nomatch;		// too many args; no match
 	match = 1;			// match ... with a "conversion" match level
     }
 
-    for (u = 0; u < nargsf; u++)
+    for (u = 0; u < nparams; u++)
     {	int m;
-	Argument *af;
-	Expression *ae;
+	Argument *p;
+	Expression *arg;
 
 	// BUG: what about out and inout?
 
-	af = (Argument *)arguments->data[u];
-	assert(af);
-	if (u >= nargst)
+	p = (Argument *)arguments->data[u];
+	assert(p);
+	if (u >= nargs)
 	{
-	    if (af->defaultArg)
+	    if (p->defaultArg)
 		continue;
+	    if (varargs == 2 && u + 1 == nparams)
+		goto L1;
 	    goto Nomatch;		// not enough arguments
 	}
-	ae = (Expression *)toargs->data[u];
-	assert(ae);
-	m = ae->implicitConvTo(af->type);
+	arg = (Expression *)args->data[u];
+	assert(arg);
+	m = arg->implicitConvTo(p->type);
 	//printf("\tm = %d\n", m);
-	if (m == 0)
-	    goto Nomatch;		// no match for this argument
+	if (m == 0)			// if no match
+	{
+	  L1:
+	    if (varargs == 2 && u + 1 == nparams)	// if last varargs param
+	    {	Type *tb = p->type->toBasetype();
+		TypeSArray *tsa;
+		integer_t sz;
+
+		switch (tb->ty)
+		{
+		    case Tsarray:
+			tsa = (TypeSArray *)tb;
+			sz = tsa->dim->toInteger();
+			if (sz != nargs - u)
+			    goto Nomatch;
+		    case Tarray:
+			for (; u < nargs; u++)
+			{
+			    arg = (Expression *)args->data[u];
+			    assert(arg);
+			    m = arg->implicitConvTo(tb->next);
+			    if (m == 0)
+				goto Nomatch;
+			    if (m < match)
+				match = m;
+			}
+			goto Ldone;
+
+		    case Tclass:
+			// Should see if there's a constructor match?
+			// Or just leave it ambiguous?
+			goto Ldone;
+
+		    default:
+			goto Nomatch;
+		}
+	    }
+	    goto Nomatch;
+	}
 	if (m < match)
 	    match = m;			// pick worst match
     }
 
+Ldone:
     //printf("match = %d\n", match);
     return match;
 
@@ -4016,7 +4057,7 @@ char *Argument::argsTypesToChars(Array *args, int varargs)
 	}
 	if (varargs)
 	{
-	    if (i)
+	    if (i && varargs == 1)
 		buf->writeByte(',');
 	    buf->writestring("...");
 	}

@@ -519,7 +519,7 @@ void VarDeclaration::semantic(Scope *sc)
     }
 
     // If inside function, there is no semantic3() call
-    if (sc->func && init)
+    if (sc->func && init && !init->isVoidInitializer())
     {
 	// If local variable, use AssignExp to handle all the various
 	// possibilities.

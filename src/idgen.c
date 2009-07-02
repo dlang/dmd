@@ -44,6 +44,7 @@ Msgtable msgtable[] =
     { "__sizeof", "sizeof" },
     { "alignof" },
     { "length" },
+    { "remove" },
     { "ptr" },
     { "dollar", "__dollar" },
     { "offset" },

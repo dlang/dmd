@@ -50,6 +50,17 @@ dt_t *Initializer::toDt()
 }
 
 
+dt_t *VoidInitializer::toDt()
+{   /* Void initializers are set to 0, just because we need something
+     * to set them to in the static data segment.
+     */
+    dt_t *dt = NULL;
+
+    dtnzeros(&dt, type->size());
+    return dt;
+}
+
+
 dt_t *StructInitializer::toDt()
 {
     Array dts;

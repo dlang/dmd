@@ -16,6 +16,7 @@ struct OutBuffer;
 struct Module;
 struct Scope;
 struct ScopeDsymbol;
+enum TOK;
 
 struct Condition
 {
@@ -79,14 +80,15 @@ struct StaticIfCondition : Condition
 
 struct IftypeCondition : Condition
 {
-    /* iftype (targ id : tspec)
+    /* iftype (targ id tok tspec)
      */
     Loc loc;
     Type *targ;
     Identifier *id;	// can be NULL
+    enum TOK tok;	// ':' or '=='
     Type *tspec;	// can be NULL
 
-    IftypeCondition(Loc loc, Type *targ, Identifier *id, Type *tspec);
+    IftypeCondition(Loc loc, Type *targ, Identifier *id, enum TOK tok, Type *tspec);
     Condition *syntaxCopy();
     int include(Scope *sc, ScopeDsymbol *s);
     void toCBuffer(OutBuffer *buf);

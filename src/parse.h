@@ -73,6 +73,7 @@ struct Parser : Lexer
     Array *parseParameters(int *pvarargs);
     EnumDeclaration *parseEnum();
     Dsymbol *parseAggregate();
+    Array *parseBaseClasses();
     Import *parseImport(Array *decldefs);
     Type *parseBasicType();
     Type *parseBasicType2(Type *t);
@@ -109,6 +110,8 @@ struct Parser : Lexer
     Expression *parseAssignExp();
 
     Array *parseArguments();
+
+    Expression *parseNewExp();
 };
 
 #endif /* DMD_PARSE_H */

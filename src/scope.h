@@ -37,6 +37,8 @@ struct Scope
 
     Module *module;		// Root module
     ScopeDsymbol *scopesym;	// current symbol
+    ScopeDsymbol *sd;		// if in static if, and declaring new symbols,
+				// sd gets the addMember()
     FuncDeclaration *func;	// function we are in
     Dsymbol *parent;		// parent to use
     LabelStatement *slabel;	// enclosing labelled statement
@@ -65,6 +67,7 @@ struct Scope
     unsigned stc;		// storage class
     unsigned flags;
 #define SCOPEctor	1	// constructor type
+#define SCOPEstaticif	2	// inside static if
 
     AnonymousAggregateDeclaration *anonAgg;	// for temporary analysis
 

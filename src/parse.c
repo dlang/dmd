@@ -643,6 +643,7 @@ Condition *Parser::parseIftypeCondition()
     Type *targ;
     Identifier *ident = NULL;
     Type *tspec = NULL;
+    enum TOK tok = TOKreserved;
     Loc loc = this->loc;
 
     nextToken();
@@ -651,22 +652,24 @@ Condition *Parser::parseIftypeCondition()
 	nextToken();
 	targ = parseBasicType();
 	targ = parseDeclarator(targ, &ident);
-	if (token.value == TOKcolon)
+	if (token.value == TOKcolon || token.value == TOKequal)
 	{
+	    tok = token.value;
 	    nextToken();
 	    tspec = parseBasicType();
 	    tspec = parseDeclarator(tspec, NULL);
 	}
 	check(TOKrparen);
-
-	if (!ident && !tspec)
-	    error("expected either Identifier or TypeSpecialization or both");
     }
     else
     {   error("(type identifier : specialization) expected following iftype");
 	return NULL;
     }
-    Condition *condition = new IftypeCondition(loc, targ, ident, tspec);
+    Condition *condition = new IftypeCondition(loc, targ, ident, tok, tspec);
+
+    if (!global.params.useDeprecated)
+	error("iftype(condition) is deprecated, use static if (is(condition))");
+
     return condition;
 }
 
@@ -885,6 +888,7 @@ Array *Parser::parseParameters(int *pvarargs)
 	    L1:
 		tb = parseBasicType();
 		at = parseDeclarator(tb, &ai);
+		ae = NULL;
 		if (token.value == TOKassign)	// = defaultArg
 		{   nextToken();
 		    ae = parseAssignExp();
@@ -894,7 +898,19 @@ Array *Parser::parseParameters(int *pvarargs)
 		{   if (hasdefault)
 			error("default argument expected for %s",
 				ai ? ai->toChars() : at->toChars());
-		    ae = NULL;
+		}
+		if (token.value == TOKdotdotdot)
+		{   /* This is:
+		     *	at ai ...
+		     */
+
+		    if (inout != In)
+			error("variadic argument cannot be out or inout");
+		    varargs = 2;
+		    a = new Argument(inout, at, ai, ae);
+		    arguments->push(a);
+		    nextToken();
+		    break;
 		}
 		a = new Argument(inout, at, ai, ae);
 		arguments->push(a);
@@ -1010,48 +1026,16 @@ Dsymbol *Parser::parseAggregate()
     {	case TOKclass:
 	case TOKinterface:
 	{
-	    Array *baseclasses = NULL;
-	    BaseClass *b;
-
 	    if (!id)
 		error("anonymous classes not allowed");
 
 	    // Collect base class(es)
-	    b = NULL;
+	    Array *baseclasses = NULL;
 	    if (token.value == TOKcolon)
-	    {   enum PROT protection = PROTpublic;
+	    {
+		nextToken();
+		baseclasses = parseBaseClasses();
 
-		baseclasses = new Array();
-		while (1)
-		{
-		    nextToken();
-		    switch (token.value)
-		    {
-			case TOKidentifier:
-			case TOKinstance:
-			    break;
-			case TOKprivate:
-			    protection = PROTprivate;
-			    continue;
-			case TOKpackage:
-			    protection = PROTpackage;
-			    continue;
-			case TOKprotected:
-			    protection = PROTprotected;
-			    continue;
-			case TOKpublic:
-			    protection = PROTpublic;
-			    continue;
-			default:
-			    error("base classes expected following ':'");
-			    return NULL;
-		    }
-		    b = new BaseClass(parseBasicType(), protection);
-		    baseclasses->push(b);
-		    if (token.value != TOKcomma)
-			break;
-		    protection = PROTpublic;
-		}
 		if (token.value != TOKlcurly)
 		    error("members expected");
 	    }
@@ -1119,6 +1103,46 @@ Dsymbol *Parser::parseAggregate()
     }
 
     return a;
+}
+
+/*******************************************
+ */
+
+Array *Parser::parseBaseClasses()
+{
+    enum PROT protection = PROTpublic;
+    Array *baseclasses = new Array();
+
+    for (; 1; nextToken())
+    {
+	switch (token.value)
+	{
+	    case TOKidentifier:
+	    case TOKinstance:
+		break;
+	    case TOKprivate:
+		protection = PROTprivate;
+		continue;
+	    case TOKpackage:
+		protection = PROTpackage;
+		continue;
+	    case TOKprotected:
+		protection = PROTprotected;
+		continue;
+	    case TOKpublic:
+		protection = PROTpublic;
+		continue;
+	    default:
+		error("base classes expected");
+		return NULL;
+	}
+	BaseClass *b = new BaseClass(parseBasicType(), protection);
+	baseclasses->push(b);
+	if (token.value != TOKcomma)
+	    break;
+	protection = PROTpublic;
+    }
+    return baseclasses;
 }
 
 /**************************************
@@ -1948,6 +1972,16 @@ Array *Parser::parseDeclaration()
     }
 
     a = new Array();
+
+    if (token.value == TOKclass)
+    {	AggregateDeclaration *s;
+
+	s = (AggregateDeclaration *)parseAggregate();
+	s->storage_class |= storage_class;
+	a->push(s);
+	return a;
+    }
+
     ts = parseBasicType();
     ts = parseBasicType2(ts);
     tfirst = NULL;
@@ -2251,6 +2285,10 @@ Initializer *Parser::parseInitializer()
 	    }
 	    return ia;
 
+	case TOKvoid:
+	    nextToken();
+	    return new VoidInitializer(loc);
+
 	default:
 	    e = parseAssignExp();
 	    ie = new ExpInitializer(loc, e);
@@ -2336,6 +2374,7 @@ Statement *Parser::parseStatement(int flags)
 	case TOKdelegate:
 	case TOKfunction:
 	case TOKtypeid:
+	case TOKis:
 	Lexp:
 	{   Expression *exp;
 
@@ -3488,7 +3527,7 @@ Expression *Parser::parsePrimaryExp()
 	case TOKidentifier:
 	    id = token.ident;
 	    nextToken();
-	    if (token.value == TOKnot)
+	    if (token.value == TOKnot && peek(&token)->value == TOKlparen)
 	    {	// identifier!(template-argument-list)
 		TemplateInstance *tempinst;
 
@@ -3668,6 +3707,53 @@ Expression *Parser::parsePrimaryExp()
 	    break;
 	}
 
+	case TOKis:
+	{   Type *targ;
+	    Identifier *ident = NULL;
+	    Type *tspec = NULL;
+	    enum TOK tok = TOKreserved;
+	    enum TOK tok2 = TOKreserved;
+	    Loc loc = this->loc;
+
+	    nextToken();
+	    if (token.value == TOKlparen)
+	    {
+		nextToken();
+		targ = parseBasicType();
+		targ = parseDeclarator(targ, &ident);
+		if (token.value == TOKcolon || token.value == TOKequal)
+		{
+		    tok = token.value;
+		    nextToken();
+		    if (tok == TOKequal &&
+			(token.value == TOKtypedef ||
+			 token.value == TOKstruct ||
+			 token.value == TOKunion ||
+			 token.value == TOKclass ||
+			 token.value == TOKenum ||
+			 token.value == TOKinterface ||
+			 token.value == TOKfunction ||
+			 token.value == TOKdelegate))
+		    {
+			tok2 = token.value;
+			nextToken();
+		    }
+		    else
+		    {
+			tspec = parseBasicType();
+			tspec = parseDeclarator(tspec, NULL);
+		    }
+		}
+		check(TOKrparen);
+	    }
+	    else
+	    {   error("(type identifier : specialization) expected following is");
+		return NULL;
+	    }
+	    e = new IftypeExp(loc, targ, ident, tok, tspec, tok2);
+	    break;
+	}
+
 	case TOKassert:
 	    nextToken();
 	    check(TOKlparen, "assert");
@@ -3749,7 +3835,7 @@ Expression *Parser::parsePostExp(Expression *e)
 		{   Identifier *id = token.ident;
 
 		    nextToken();
-		    if (token.value == TOKnot)
+		    if (token.value == TOKnot && peek(&token)->value == TOKlparen)
 		    {   // identifier!(template-argument-list)
 			TemplateInstance *tempinst;
 
@@ -3904,85 +3990,9 @@ Expression *Parser::parseUnaryExp()
 	    break;
 
 	case TOKnew:
-	{   Type *t;
-	    Array *newargs;
-	    Array *arguments = NULL;
-
-	    nextToken();
-	    newargs = NULL;
-	    if (token.value == TOKlparen)
-	    {
-		newargs = parseArguments();
-	    }
-
-#if LTORARRAYDECL
-	    t = parseBasicType();
-	    t = parseBasicType2(t);
-	    if (t->ty == Taarray)
-	    {
-		Type *index = ((TypeAArray *)t)->index;
-
-		if (index->ty == Tident)
-		{
-		    TypeIdentifier *ti = (TypeIdentifier *)index;
-		    int i;
-		    Expression *e;
-		    Identifier *id = ti->ident;
-
-		    e = new IdentifierExp(loc, id);
-		    for (i = 0; i < ti->idents.dim; i++)
-		    {
-			id = (Identifier *)ti->idents.data[i];
-			e = new DotIdExp(loc, e, id);
-		    }
-
-		    arguments = new Array();
-		    arguments->push(e);
-		    t = new TypeDArray(t->next);
-		}
-		else
-		{
-		    error("need size of rightmost array, not type %s", index->toChars());
-		    return new NullExp(loc);
-		}
-	    }
-	    else if (t->ty == Tsarray)
-	    {
-		TypeSArray *tsa = (TypeSArray *)t;
-		Expression *e = tsa->dim;
-
-		arguments = new Array();
-		arguments->push(e);
-		t = new TypeDArray(t->next);
-	    }
-	    else if (token.value == TOKlparen)
-	    {
-		arguments = parseArguments();
-	    }
-#else
-	    t = parseBasicType();
-	    while (token.value == TOKmul)
-	    {	t = new TypePointer(t);
-		nextToken();
-	    }
-	    if (token.value == TOKlbracket)
-	    {
-		Expression *e;
-
-		nextToken();
-		e = parseAssignExp();
-		arguments = new Array();
-		arguments->push(e);
-		check(TOKrbracket);
-		t = parseDeclarator(t, NULL);
-		t = new TypeDArray(t);
-	    }
-	    else if (token.value == TOKlparen)
-		arguments = parseArguments();
-#endif
-	    e = new NewExp(loc, newargs, t, arguments);
+	    e = parseNewExp();
 	    break;
-	}
+
 #if DCASTSYNTAX
 	case TOKcast:				// cast(type) expression
 	{   Type *t;
@@ -4216,6 +4226,7 @@ Expression *Parser::parseRelExp()
 Expression *Parser::parseEqualExp()
 {   Expression *e;
     Expression *e2;
+    Token *t;
     Loc loc = this->loc;
 
     e = parseRelExp();
@@ -4232,7 +4243,29 @@ Expression *Parser::parseEqualExp()
 		continue;
 
 	    case TOKidentity:
+		if (!global.params.useDeprecated)
+		    error("'===' is deprecated, use 'is' instead");
+		goto L1;
+
 	    case TOKnotidentity:
+		if (!global.params.useDeprecated)
+		    error("'!==' is deprecated, use '!is' instead");
+		goto L1;
+
+	    case TOKis:
+		value = TOKidentity;
+		goto L1;
+
+	    case TOKnot:
+		// Attempt to identify '!is'
+		t = peek(&token);
+		if (t->value != TOKis)
+		    break;
+		nextToken();
+		value = TOKnotidentity;
+		goto L1;
+
+	    L1:
 		nextToken();
 		e2 = parseRelExp();
 		e = new IdentityExp(value, loc, e, e2);
@@ -4423,6 +4456,122 @@ Array *Parser::parseArguments()
 	check(TOKrparen);
     }
     return arguments;
+}
+
+/*******************************************
+ */
+
+Expression *Parser::parseNewExp()
+{   Type *t;
+    Array *newargs;
+    Array *arguments = NULL;
+    Expression *e;
+    Loc loc = this->loc;
+
+    nextToken();
+    newargs = NULL;
+    if (token.value == TOKlparen)
+    {
+	newargs = parseArguments();
+    }
+
+    // An anonymous nested class starts with "class"
+    if (token.value == TOKclass)
+    {
+	nextToken();
+	if (token.value == TOKlparen)
+	    arguments = parseArguments();
+
+	Array *baseclasses = parseBaseClasses();
+	Identifier *id = NULL;
+	ClassDeclaration *cd = new ClassDeclaration(loc, id, baseclasses);
+
+	if (token.value != TOKlcurly)
+	{   error("{ members } expected for anonymous class");
+	    cd->members = NULL;
+	}
+	else
+	{
+	    nextToken();
+	    Array *decl = parseDeclDefs(0);
+	    if (token.value != TOKrcurly)
+		error("class member expected");
+	    nextToken();
+	    cd->members = decl;
+	}
+
+	e = new NewAnonClassExp(loc, newargs, cd, arguments);
+
+	return e;
+    }
+
+#if LTORARRAYDECL
+    t = parseBasicType();
+    t = parseBasicType2(t);
+    if (t->ty == Taarray)
+    {
+	Type *index = ((TypeAArray *)t)->index;
+
+	if (index->ty == Tident)
+	{
+	    TypeIdentifier *ti = (TypeIdentifier *)index;
+	    int i;
+	    Expression *e;
+	    Identifier *id = ti->ident;
+
+	    e = new IdentifierExp(loc, id);
+	    for (i = 0; i < ti->idents.dim; i++)
+	    {
+		id = (Identifier *)ti->idents.data[i];
+		e = new DotIdExp(loc, e, id);
+	    }
+
+	    arguments = new Array();
+	    arguments->push(e);
+	    t = new TypeDArray(t->next);
+	}
+	else
+	{
+	    error("need size of rightmost array, not type %s", index->toChars());
+	    return new NullExp(loc);
+	}
+    }
+    else if (t->ty == Tsarray)
+    {
+	TypeSArray *tsa = (TypeSArray *)t;
+	Expression *e = tsa->dim;
+
+	arguments = new Array();
+	arguments->push(e);
+	t = new TypeDArray(t->next);
+    }
+    else if (token.value == TOKlparen)
+    {
+	arguments = parseArguments();
+    }
+#else
+    t = parseBasicType();
+    while (token.value == TOKmul)
+    {   t = new TypePointer(t);
+	nextToken();
+    }
+    if (token.value == TOKlbracket)
+    {
+	Expression *e;
+
+	nextToken();
+	e = parseAssignExp();
+	arguments = new Array();
+	arguments->push(e);
+	check(TOKrbracket);
+	t = parseDeclarator(t, NULL);
+	t = new TypeDArray(t);
+    }
+    else if (token.value == TOKlparen)
+	arguments = parseArguments();
+#endif
+    e = new NewExp(loc, newargs, t, arguments);
+    return e;
 }
 
 /********************************* ***************************/

@@ -1,5 +1,5 @@
 
-// Copyright (c) 1999-2004 by Digital Mars
+// Copyright (c) 1999-2005 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // www.digitalmars.com
@@ -173,17 +173,20 @@ void functionArguments(Loc loc, Scope *sc, TypeFunction *tf, Array *arguments)
     unsigned nargs;
     unsigned nproto;
     unsigned n;
+    int done;
     Type *tb;
 
+    //printf("functionArguments()\n");
     assert(arguments);
     nargs = arguments ? arguments->dim : 0;
     nproto = tf->arguments ? tf->arguments->dim : 0;
 
-    if (nargs > nproto && !tf->varargs)
+    if (nargs > nproto && tf->varargs == 0)
 	error(loc, "expected %d arguments, not %d\n", nproto, nargs);
 
     n = (nargs > nproto) ? nargs : nproto;	// maximum
 
+    done = 0;
     for (int i = 0; i < n; i++)
     {
 	Expression *arg;
@@ -191,21 +194,90 @@ void functionArguments(Loc loc, Scope *sc, TypeFunction *tf, Array *arguments)
 
 	if (i < nargs)
 	    arg = (Expression *)arguments->data[i];
+	else
+	    arg = NULL;
 
 	if (i < nproto)
 	{
 	    Argument *p = (Argument *)tf->arguments->data[i];
 
-	    if (i >= nargs)
+	    if (!arg)
 	    {
 		if (!p->defaultArg)
-		{   error(loc, "expected %d arguments, not %d\n", nproto, nargs);
+		{
+		    if (tf->varargs == 2 && i + 1 == nproto)
+			goto L2;
+		    error(loc, "expected %d arguments, not %d\n", nproto, nargs);
 		    break;
 		}
 		arg = p->defaultArg->copy();
 		arguments->push(arg);
+		nargs++;
 	    }
 
+	    if (tf->varargs == 2 && i + 1 == nproto)
+	    {
+		//printf("\t\tvarargs == 2, p->type = '%s'\n", p->type->toChars());
+		if (arg->implicitConvTo(p->type))
+		{
+		    if (nargs != nproto)
+		        error(loc, "expected %d arguments, not %d\n", nproto, nargs);
+		    goto L1;
+		}
+	     L2:
+		Type *tb = p->type->toBasetype();
+		switch (tb->ty)
+		{
+		    case Tsarray:
+		    case Tarray:
+		    {	// Create a static array variable v of type arg->type
+			Identifier *id = Lexer::idPool("__arrayArg");
+			Type *t = new TypeSArray(tb->next, new IntegerExp(nargs - i));
+			t = t->semantic(loc, sc);
+			VarDeclaration *v = new VarDeclaration(loc, t, id, NULL);
+			v->semantic(sc);
+			v->parent = sc->parent;
+			//sc->insert(v);
+
+			Expression *c = NULL;
+
+			for (int u = i; u < nargs; u++)
+			{   Expression *a = (Expression *)arguments->data[u];
+			    Expression *e = new VarExp(loc, v);
+
+			    e = new IndexExp(loc, e, new IntegerExp(u + 1 - nproto));
+			    e = new AssignExp(loc, e, a);
+			    if (c)
+				c = new CommaExp(loc, c, e);
+			    else
+				c = e;
+			}
+			arg = new VarExp(loc, v);
+			if (c)
+			    arg = new CommaExp(loc, c, arg);
+			break;
+		    }
+		    case Tclass:
+		    {	/* Set arg to be:
+			 *	new Tclass(arg0, arg1, ..., argn)
+			 */
+			Array *args = new Array();
+			args->setDim(nargs - i);
+			for (int u = i; u < nargs; u++)
+			    args->data[u - i] = arguments->data[u];
+			arg = new NewExp(loc, NULL, p->type, args);
+			break;
+		    }
+		    default:
+			assert(0);
+		}
+		arg = arg->semantic(sc);
+		//printf("\targ = '%s'\n", arg->toChars());
+		arguments->setDim(i + 1);
+		done = 1;
+	    }
+
+	L1:
 	    arg = arg->implicitCastTo(p->type);
 	    if (p->inout == Out || p->inout == InOut)
 	    {
@@ -258,10 +330,12 @@ void functionArguments(Loc loc, Scope *sc, TypeFunction *tf, Array *arguments)
 	}
 	arg = arg->optimize(WANTvalue);
 	arguments->data[i] = (void *) arg;
+	if (done)
+	    break;
     }
 
     // If D linkage and variadic, add _arguments[] as first argument
-    if (tf->linkage == LINKd && tf->varargs)
+    if (tf->linkage == LINKd && tf->varargs == 1)
     {
 	Expression *e;
 
@@ -350,19 +424,22 @@ char *Expression::toChars()
 
 void Expression::error(const char *format, ...)
 {
-    char *p = loc.toChars();
+    if (!global.gag)
+    {
+	char *p = loc.toChars();
 
-    if (*p)
-	printf("%s: ", p);
-    mem.free(p);
+	if (*p)
+	    printf("%s: ", p);
+	mem.free(p);
 
-    va_list ap;
-    va_start(ap, format);
-    vprintf(format, ap);
-    va_end(ap);
+	va_list ap;
+	va_start(ap, format);
+	vprintf(format, ap);
+	va_end(ap);
 
-    printf("\n");
-    fflush(stdout);
+	printf("\n");
+	fflush(stdout);
+    }
 
     global.errors++;
     //fatal();
@@ -444,6 +521,15 @@ Expression *Expression::modifiableLvalue(Scope *sc, Expression *e)
 {
     // See if this expression is a modifiable lvalue (i.e. not const)
     return toLvalue(e);
+}
+
+/************************************
+ * Detect cases where pointers to the stack can 'escape' the
+ * lifetime of the stack frame.
+ */
+
+void Expression::checkEscape()
+{
 }
 
 void Expression::checkScalar()
@@ -1215,7 +1301,7 @@ Expression *ThisExp::semantic(Scope *sc)
     }
 
     fdthis = sc->parent->isFuncDeclaration();
-    fd = hasThis(sc);
+    fd = hasThis(sc);	// fd is the uplevel function with the 'this' variable
     if (!fd)
 	goto Lerr;
 
@@ -1229,6 +1315,7 @@ Expression *ThisExp::semantic(Scope *sc)
 	fd->vthis->nestedref = 1;
 	fd->nestedFrameRef = 1;
     }
+
     sc->callSuper |= CSXthis;
     return this;
 
@@ -1686,6 +1773,19 @@ Expression *NewExp::semantic(Scope *sc)
 	if (cd->isAbstract())
 	    error("cannot create instance of abstract class %s", cd->toChars());
 	checkDeprecated(sc, cd);
+	if (cd->isNested())
+	{   /* We need a 'this' pointer for the nested class.
+	     * Ensure we have the right one.
+	     */
+	    Dsymbol *s = cd->toParent();
+	    ClassDeclaration *cdn = s->isClassDeclaration();
+
+	    if (cdn)
+	    {
+		if (sc->func->isThis() != cdn)
+		    error("no 'this' for nested class %s", cd->toChars());
+	    }
+	}
 	f = cd->ctor;
 	if (f)
 	{
@@ -1735,7 +1835,6 @@ Expression *NewExp::semantic(Scope *sc)
 	}
 
     }
-#if 1
     else if (tb->ty == Tstruct)
     {
 	TypeStruct *ts = (TypeStruct *)tb;
@@ -1769,7 +1868,6 @@ Expression *NewExp::semantic(Scope *sc)
 
 	type = type->pointerTo();
     }
-#endif
     else if (tb->ty == Tarray && (arguments && arguments->dim))
     {	Expression *arg;
 
@@ -1815,6 +1913,61 @@ void NewExp::toCBuffer(OutBuffer *buf)
     }
 }
 
+/********************** NewAnonClassExp **************************************/
+
+NewAnonClassExp::NewAnonClassExp(Loc loc, Array *newargs, ClassDeclaration *cd, Array *arguments)
+    : Expression(loc, TOKnewanonclass, sizeof(NewAnonClassExp))
+{
+    this->newargs = newargs;
+    this->cd = cd;
+    this->arguments = arguments;
+}
+
+Expression *NewAnonClassExp::syntaxCopy()
+{
+    return new NewAnonClassExp(loc,
+	arraySyntaxCopy(newargs),
+	(ClassDeclaration *)cd->syntaxCopy(NULL),
+	arraySyntaxCopy(arguments));
+}
+
+
+Expression *NewAnonClassExp::semantic(Scope *sc)
+{
+#if LOGSEMANTIC
+    printf("NewAnonClassExp::semantic() %s\n", toChars());
+    //printf("type: %s\n", type->toChars());
+#endif
+
+    Expression *d = new DeclarationExp(loc, cd);
+    d = d->semantic(sc);
+
+    Expression *n = new NewExp(loc, newargs, cd->type, arguments);
+
+    Expression *c = new CommaExp(loc, d, n);
+    return c->semantic(sc);
+}
+
+void NewAnonClassExp::toCBuffer(OutBuffer *buf)
+{   int i;
+
+    buf->writestring("new");
+    if (newargs && newargs->dim)
+    {
+	buf->writeByte('(');
+	argsToCBuffer(buf, newargs);
+	buf->writeByte(')');
+    }
+    buf->writestring(" class");
+    if (arguments && arguments->dim)
+    {
+	buf->writeByte('(');
+	argsToCBuffer(buf, arguments);
+	buf->writeByte(')');
+    }
+    buf->writestring(" { }");
+}
+
 /********************** SymOffExp **************************************/
 
 SymOffExp::SymOffExp(Loc loc, Declaration *var, unsigned offset)
@@ -1838,6 +1991,16 @@ Expression *SymOffExp::semantic(Scope *sc)
 int SymOffExp::isBool(int result)
 {
     return result ? TRUE : FALSE;
+}
+
+void SymOffExp::checkEscape()
+{
+    VarDeclaration *v = var->isVarDeclaration();
+    if (v)
+    {
+	if (!v->isDataseg())
+	    error("escaping reference to local %s", v->toChars());
+    }
 }
 
 void SymOffExp::toCBuffer(OutBuffer *buf)
@@ -1896,9 +2059,8 @@ Expression *VarExp::semantic(Scope *sc)
 	    FuncDeclaration *fdthis = sc->parent->isFuncDeclaration();
 
 	    if (fdv && fdthis)
-	    {	int level;
-
-		level = fdthis->getLevel(loc, fdv);
+	    {
+		fdthis->getLevel(loc, fdv);	// check for access
 		v->nestedref = 1;
 		fdv->nestedFrameRef = 1;
 	    }
@@ -1923,6 +2085,18 @@ char *VarExp::toChars()
 void VarExp::toCBuffer(OutBuffer *buf)
 {
     buf->writestring(var->toChars());
+}
+
+void VarExp::checkEscape()
+{
+    VarDeclaration *v = var->isVarDeclaration();
+    if (v)
+    {
+	if (v->isAuto() && !v->noauto)
+	    error("escaping reference to auto local %s", v->toChars());
+	else if (v->storage_class & STCvariadic)
+	    error("escaping reference to variadic parameter %s", v->toChars());
+    }
 }
 
 Expression *VarExp::toLvalue(Expression *e)
@@ -2136,6 +2310,196 @@ void HaltExp::toCBuffer(OutBuffer *buf)
 {
     buf->writestring("halt");
 }
+
+/************************************************************/
+
+IftypeExp::IftypeExp(Loc loc, Type *targ, Identifier *id, enum TOK tok,
+	Type *tspec, enum TOK tok2)
+	: Expression(loc, TOKis, sizeof(IftypeExp))
+{
+    this->targ = targ;
+    this->id = id;
+    this->tok = tok;
+    this->tspec = tspec;
+    this->tok2 = tok2;
+}
+
+Expression *IftypeExp::syntaxCopy()
+{
+    return new IftypeExp(loc,
+	targ->syntaxCopy(),
+	id,
+	tok,
+	tspec ? tspec->syntaxCopy() : NULL,
+	tok2);
+}
+
+Expression *IftypeExp::semantic(Scope *sc)
+{   Type *tded;
+
+    if (id && !(sc->flags & SCOPEstaticif))
+	error("can only declare type aliases within static if conditionals");
+
+    unsigned errors = global.errors;
+    global.gag++;			// suppress printing of error messages
+    targ = targ->semantic(loc, sc);
+    global.gag--;
+    if (errors != global.errors)	// if any errors happened
+    {					// then condition is false
+	global.errors = errors;
+	goto Lno;
+    }
+    else if (tok2 != TOKreserved)
+    {
+	switch (tok2)
+	{
+	    case TOKtypedef:
+		if (targ->ty != Ttypedef)
+		    goto Lno;
+		tded = ((TypeTypedef *)targ)->sym->basetype;
+		break;
+
+	    case TOKstruct:
+		if (targ->ty != Tstruct)
+		    goto Lno;
+		if (((TypeStruct *)targ)->sym->isUnionDeclaration())
+		    goto Lno;
+		tded = targ;
+		break;
+
+	    case TOKunion:
+		if (targ->ty != Tstruct)
+		    goto Lno;
+		if (!((TypeStruct *)targ)->sym->isUnionDeclaration())
+		    goto Lno;
+		tded = targ;
+		break;
+
+	    case TOKclass:
+		if (targ->ty != Tclass)
+		    goto Lno;
+		if (((TypeClass *)targ)->sym->isInterfaceDeclaration())
+		    goto Lno;
+		tded = targ;
+		break;
+
+	    case TOKinterface:
+		if (targ->ty != Tclass)
+		    goto Lno;
+		if (!((TypeClass *)targ)->sym->isInterfaceDeclaration())
+		    goto Lno;
+		tded = targ;
+		break;
+
+	    case TOKenum:
+		if (targ->ty != Tenum)
+		    goto Lno;
+		tded = ((TypeEnum *)targ)->sym->memtype;
+		break;
+
+	    case TOKfunction:
+		if (targ->ty != Tfunction)
+		    goto Lno;
+		tded = targ->next;
+		break;
+
+	    case TOKdelegate:
+		if (targ->ty != Tdelegate)
+		    goto Lno;
+		tded = targ->next;
+		break;
+
+	    default:
+		assert(0);
+	}
+	goto Lyes;
+    }
+    else if (id && tspec)
+    {
+	/* Evaluate to TRUE if targ matches tspec.
+	 * If TRUE, declare id as an alias for the specialized type.
+	 */
+
+	MATCH m;
+	TemplateTypeParameter tp(loc, id, NULL, NULL);
+
+	Array parameters;
+	parameters.setDim(1);
+	parameters.data[0] = (void *)&tp;
+
+	Array dedtypes;
+	dedtypes.setDim(1);
+
+	m = targ->deduceType(tspec, &parameters, &dedtypes);
+	if (m == MATCHnomatch ||
+	    (m != MATCHexact && tok == TOKequal))
+	    goto Lno;
+	else
+	{
+	    tded = (Type *)dedtypes.data[0];
+	    if (!tded)
+		tded = targ;
+	    goto Lyes;
+	}
+    }
+    else if (id)
+    {
+	/* Declare id as an alias for type targ. Evaluate to TRUE
+	 */
+	tded = targ;
+	goto Lyes;
+    }
+    else if (tspec)
+    {
+	/* Evaluate to TRUE if targ matches tspec
+	 */
+	tspec = tspec->semantic(loc, sc);
+	//printf("targ  = %s\n", targ->toChars());
+	//printf("tspec = %s\n", tspec->toChars());
+	if (tok == TOKcolon)
+	{   if (targ->implicitConvTo(tspec))
+		goto Lyes;
+	    else
+		goto Lno;
+	}
+	else /* == */
+	{   if (targ->equals(tspec))
+		goto Lyes;
+	    else
+		goto Lno;
+	}
+    }
+
+Lyes:
+    if (id)
+    {
+	Dsymbol *s = new AliasDeclaration(loc, id, tded);
+	s->semantic(sc);
+	sc->insert(s);
+	if (sc->sd)
+	    s->addMember(sc, sc->sd);
+    }
+    return new IntegerExp(1);
+
+Lno:
+    return new IntegerExp(0);
+}
+
+void IftypeExp::toCBuffer(OutBuffer *buf)
+{
+    buf->writestring("is(");
+    targ->toCBuffer(buf, id);
+    if (tspec)
+    {
+	if (tok == TOKcolon)
+	    buf->writestring(" : ");
+	else
+	    buf->writestring(" == ");
+	tspec->toCBuffer(buf, NULL);
+    }
+    buf->writeByte(')');
+}
+
 
 /************************************************************/
 
@@ -2557,22 +2921,34 @@ Expression *DotVarExp::semantic(Scope *sc)
 	type = var->type;
 	assert(type);
 
-	if (!var->isFuncDeclaration())	// do checks after overload resolution
+	if (!var->isFuncDeclaration())	// for functions, do checks after overload resolution
 	{
-	    AggregateDeclaration *ad = var->parent->isAggregateDeclaration();
+	    AggregateDeclaration *ad = var->toParent()->isAggregateDeclaration();
+	L1:
 	    Type *t = e1->type;
 
-	    if (ad && !(t->ty == Tpointer && t->next->ty == Tstruct &&
-		((TypeStruct *)t->next)->sym == ad))
+	    if (ad &&
+		!(t->ty == Tpointer && t->next->ty == Tstruct &&
+		  ((TypeStruct *)t->next)->sym == ad)
+	       )
 	    {
 		ClassDeclaration *cd = ad->isClassDeclaration();
+		ClassDeclaration *tcd = t->isClassHandle();
 
-		if (!cd ||
-		    t->ty != Tclass ||
-		    !(((TypeClass *)t)->sym == cd || cd->isBaseOf(((TypeClass *)t)->sym, NULL))
+		if (!cd || !tcd ||
+		    !(tcd == cd || cd->isBaseOf(tcd, NULL))
 		   )
+		{
+		    if (tcd && tcd->isNested())
+		    {	// Try again with outer scope
+
+			e1 = new DotVarExp(loc, e1, tcd->vthis);
+			e1 = e1->semantic(sc);
+			goto L1;
+		    }
 		    error("this for %s needs to be type %s not type %s",
 			var->toChars(), ad->toChars(), t->toChars());
+		}
 	    }
 	    accessCheck(loc, sc, e1, var);
 	}
@@ -2863,7 +3239,10 @@ if (arguments && arguments->dim)
 }
 #endif
 
-    // Transform array.id(args) into id(array,args)
+    /* Transform:
+     *	array.id(args) into id(array,args)
+     *	aa.remove(arg) into delete aa[arg]
+     */
     if (e1->op == TOKdot)
     {
 	// BUG: we should handle array.a.b.c.e(args) too
@@ -2874,7 +3253,24 @@ if (arguments && arguments->dim)
 	if (dotid->e1->type)
 	{
 	    TY e1ty = dotid->e1->type->toBasetype()->ty;
-	    if (e1ty == Tarray || e1ty == Tsarray || e1ty == Taarray)
+	    if (e1ty == Taarray && dotid->ident == Id::remove)
+	    {
+		if (!arguments || arguments->dim != 1)
+		{   error("expected key as argument to aa.remove()");
+		    goto Lagain;
+		}
+		Expression *key = (Expression *)arguments->data[0];
+		key = key->semantic(sc);
+		key = resolveProperties(sc, key);
+		key->rvalue();
+
+		TypeAArray *taa = (TypeAArray *)dotid->e1->type->toBasetype();
+		key = key->implicitCastTo(taa->index);
+		key = key->implicitCastTo(taa->key);
+
+		return new RemoveExp(loc, dotid->e1, key);
+	    }
+	    else if (e1ty == Tarray || e1ty == Tsarray || e1ty == Taarray)
 	    {
 		if (!arguments)
 		    arguments = new Array();
@@ -2952,6 +3348,41 @@ Lagain:
 	f = dve->var->isFuncDeclaration();
 	assert(f);
 	f = f->overloadResolve(loc, arguments);
+
+	/* Now that we have the right function f, we need to get the
+	 * right 'this' pointer if f is in an outer class, but our
+	 * existing 'this' pointer is in an inner class.
+	 * This code is analogous to that used for variables
+	 * in DotVarExp::semantic().
+	 */
+	AggregateDeclaration *ad = f->toParent()->isAggregateDeclaration();
+    L10:
+	Type *t = dve->e1->type;
+	if (f->needThis() && ad &&
+	    !(t->ty == Tpointer && t->next->ty == Tstruct &&
+	      ((TypeStruct *)t->next)->sym == ad) &&
+	    !(t->ty == Tstruct && ((TypeStruct *)t)->sym == ad)
+	   )
+	{
+	    ClassDeclaration *cd = ad->isClassDeclaration();
+	    ClassDeclaration *tcd = t->isClassHandle();
+
+	    if (!cd || !tcd ||
+		!(tcd == cd || cd->isBaseOf(tcd, NULL))
+	       )
+	    {
+		if (tcd && tcd->isNested())
+		{   // Try again with outer scope
+
+		    dve->e1 = new DotVarExp(loc, dve->e1, tcd->vthis);
+		    dve->e1 = dve->e1->semantic(sc);
+		    goto L10;
+		}
+		error("this for %s needs to be type %s not type %s",
+		    f->toChars(), ad->toChars(), t->toChars());
+	    }
+	}
+
 	checkDeprecated(sc, f);
 	accessCheck(loc, sc, dve->e1, f);
 	if (!f->needThis())
@@ -3442,6 +3873,8 @@ Expression *DeleteExp::semantic(Scope *sc)
 	default:
 	    if (e1->op == TOKindex)
 	    {
+		if (!global.params.useDeprecated)
+		    error("delete aa[key] deprecated, use aa.remove(key)");
 		IndexExp *ae = (IndexExp *)(e1);
 		Type *tb1 = ae->e1->type->toBasetype();
 		if (tb1->ty == Taarray)
@@ -3629,6 +4062,11 @@ Lerror:
     return e;
 }
 
+void SliceExp::checkEscape()
+{
+    e1->checkEscape();
+}
+
 Expression *SliceExp::toLvalue(Expression *e)
 {
     return this;
@@ -3793,6 +4231,11 @@ Expression *CommaExp::semantic(Scope *sc)
     return this;
 }
 
+void CommaExp::checkEscape()
+{
+    e2->checkEscape();
+}
+
 Expression *CommaExp::toLvalue(Expression *e)
 {
     e2 = e2->toLvalue(NULL);
@@ -3812,6 +4255,7 @@ IndexExp::IndexExp(Loc loc, Expression *e1, Expression *e2)
 	: BinExp(loc, TOKindex, sizeof(IndexExp), e1, e2)
 {
     lengthVar = NULL;
+    modifiable = 0;	// assume it is an rvalue
 }
 
 Expression *IndexExp::semantic(Scope *sc)
@@ -3887,7 +4331,6 @@ Expression *IndexExp::semantic(Scope *sc)
 	case Taarray:
 	{   TypeAArray *taa = (TypeAArray *)t1;
 
-	    e1 = e1->modifiableLvalue(sc, e1);
 	    e2 = e2->implicitCastTo(taa->index);	// type checking
 	    e2 = e2->implicitCastTo(taa->key);		// actual argument type
 	    type = taa->next;
@@ -3908,6 +4351,14 @@ Expression *IndexExp::toLvalue(Expression *e)
 //    if (type && type->toBasetype()->ty == Tvoid)
 //	error("voids have no value");
     return this;
+}
+
+Expression *IndexExp::modifiableLvalue(Scope *sc, Expression *e)
+{
+    modifiable = 1;
+    if (e1->type->toBasetype()->ty == Taarray)
+	e1 = e1->modifiableLvalue(sc, e1);
+    return toLvalue(e);
 }
 
 void IndexExp::toCBuffer(OutBuffer *buf)
@@ -5211,6 +5662,17 @@ int InExp::isBit()
 
 /************************************************************/
 
+/* This deletes the key e1 from the associative array e2
+ */
+
+RemoveExp::RemoveExp(Loc loc, Expression *e1, Expression *e2)
+	: BinExp(loc, TOKremove, sizeof(RemoveExp), e1, e2)
+{
+    type = Type::tvoid;
+}
+
+/************************************************************/
+
 CmpExp::CmpExp(enum TOK op, Loc loc, Expression *e1, Expression *e2)
 	: BinExp(loc, op, sizeof(CmpExp), e1, e2)
 {
@@ -5456,6 +5918,13 @@ Expression *CondExp::toLvalue(Expression *ex)
     type = e2->type;
     return e;
 }
+
+void CondExp::checkEscape()
+{
+    e1->checkEscape();
+    e2->checkEscape();
+}
+
 
 Expression *CondExp::checkToBoolean()
 {

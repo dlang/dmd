@@ -18,6 +18,7 @@
 #include "cond.h"
 #include "module.h"
 #include "template.h"
+#include "lexer.h"
 
 int findCondition(Array *ids, Identifier *ident)
 {
@@ -210,7 +211,11 @@ int StaticIfCondition::include(Scope *sc, ScopeDsymbol *s)
 	    return 0;
 	}
 
+	sc = sc->push();
+	sc->sd = s;
+	sc->flags |= SCOPEstaticif;
 	Expression *e = exp->semantic(sc);
+	sc->pop();
 	e = e->optimize(WANTvalue);
 	if (e->isBool(TRUE))
 	    inc = 1;
@@ -235,11 +240,12 @@ void StaticIfCondition::toCBuffer(OutBuffer *buf)
 
 /**************************** IftypeCondition *******************************/
 
-IftypeCondition::IftypeCondition(Loc loc, Type *targ, Identifier *id, Type *tspec)
+IftypeCondition::IftypeCondition(Loc loc, Type *targ, Identifier *id, enum TOK tok, Type *tspec)
     : Condition(loc)
 {
     this->targ = targ;
     this->id = id;
+    this->tok = tok;
     this->tspec = tspec;
 }
 
@@ -248,6 +254,7 @@ Condition *IftypeCondition::syntaxCopy()
     return new IftypeCondition(loc,
 	targ->syntaxCopy(),
 	id,
+	tok,
 	tspec ? tspec->syntaxCopy() : NULL);
 }
 
@@ -262,9 +269,15 @@ int IftypeCondition::include(Scope *sc, ScopeDsymbol *sd)
 	    inc = 2;
 	    return 0;
 	}
+	unsigned errors = global.errors;
+	global.gag++;			// suppress printing of error messages
 	targ = targ->semantic(loc, sc);
-
-	if (id && tspec)
+	global.gag--;
+	if (errors != global.errors)	// if any errors happened
+	{   inc = 2;			// then condition is false
+	    global.errors = errors;
+	}
+	else if (id && tspec)
 	{
 	    /* Evaluate to TRUE if targ matches tspec.
 	     * If TRUE, declare id as an alias for the specialized type.
@@ -281,7 +294,8 @@ int IftypeCondition::include(Scope *sc, ScopeDsymbol *sd)
 	    dedtypes.setDim(1);
 
 	    m = targ->deduceType(tspec, &parameters, &dedtypes);
-	    if (m == MATCHnomatch)
+	    if (m == MATCHnomatch ||
+		(m != MATCHexact && tok == TOKequal))
 		inc = 2;
 	    else
 	    {
@@ -314,14 +328,21 @@ int IftypeCondition::include(Scope *sc, ScopeDsymbol *sd)
 	    tspec = tspec->semantic(loc, sc);
 	    //printf("targ  = %s\n", targ->toChars());
 	    //printf("tspec = %s\n", tspec->toChars());
-	    //if (targ->equals(tspec))
-	    if (targ->implicitConvTo(tspec))
-		inc = 1;
-	    else
-		inc = 2;
+	    if (tok == TOKcolon)
+	    {   if (targ->implicitConvTo(tspec))
+		    inc = 1;
+		else
+		    inc = 2;
+	    }
+	    else /* == */
+	    {	if (targ->equals(tspec))
+		    inc = 1;
+		else
+		    inc = 2;
+	    }
 	}
 	else
-	     assert(0);
+	     inc = 1;
 	//printf("inc = %d\n", inc);
     }
     return (inc == 1);
@@ -333,7 +354,10 @@ void IftypeCondition::toCBuffer(OutBuffer *buf)
     targ->toCBuffer(buf, id);
     if (tspec)
     {
-	buf->writestring(" : ");
+	if (tok == TOKcolon)
+	    buf->writestring(" : ");
+	else
+	    buf->writestring(" == ");
 	tspec->toCBuffer(buf, NULL);
     }
     buf->writeByte(')');

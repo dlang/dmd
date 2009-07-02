@@ -1,5 +1,5 @@
 
-// Copyright (c) 1999-2004 by Digital Mars
+// Copyright (c) 1999-2005 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // www.digitalmars.com
@@ -20,6 +20,7 @@ struct Scope;
 struct Type;
 struct dt_t;
 struct AggregateDeclaration;
+struct VoidInitializer;
 struct ExpInitializer;
 
 struct Initializer : Object
@@ -36,7 +37,23 @@ struct Initializer : Object
 
     virtual dt_t *toDt();
 
-    virtual ExpInitializer *isExpInitializer() { return NULL; }
+    virtual VoidInitializer *isVoidInitializer() { return NULL; }
+    virtual ExpInitializer  *isExpInitializer()  { return NULL; }
+};
+
+struct VoidInitializer : Initializer
+{
+    Type *type;		// type that this will initialize to
+
+    VoidInitializer(Loc loc);
+    Initializer *syntaxCopy();
+    Initializer *semantic(Scope *sc, Type *t);
+    Expression *toExpression();
+    void toCBuffer(OutBuffer *buf);
+
+    dt_t *toDt();
+
+    virtual VoidInitializer *isVoidInitializer() { return this; }
 };
 
 struct StructInitializer : Initializer

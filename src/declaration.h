@@ -50,6 +50,7 @@ enum STC
     STCout          = 0x1000,		// out parameter
     STCforeach      = 0x2000,		// variable for foreach loop
     STCcomdat       = 0x4000,		// should go into COMDAT record
+    STCvariadic     = 0x8000,		// variadic function argument
 };
 
 struct Match

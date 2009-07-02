@@ -440,7 +440,7 @@ void FuncDeclaration::semantic3(Scope *sc)
 	}
 
 	// Declare hidden variable _arguments[] and _argptr
-	if (f->varargs)
+	if (f->varargs == 1)
 	{   Type *t;
 
 	    if (f->linkage == LINKd)
@@ -479,6 +479,8 @@ void FuncDeclaration::semantic3(Scope *sc)
 		{
 		    v = new VarDeclaration(0, arg->type, arg->ident, NULL);
 		    v->storage_class |= STCparameter;
+		    if (f->varargs == 2 && i + 1 == f->arguments->dim)
+			v->storage_class |= STCvariadic;
 		    switch (arg->inout)
 		    {	case In:    v->storage_class |= STCin;		break;
 			case Out:   v->storage_class |= STCout;		break;
@@ -1133,27 +1135,43 @@ AggregateDeclaration *FuncDeclaration::isMember2()
 
 int FuncDeclaration::getLevel(Loc loc, FuncDeclaration *fd)
 {   int level;
-    FuncDeclaration *thisfd;
     Dsymbol *s;
     Dsymbol *fdparent;
 
+    //printf("FuncDeclaration::getLevel(fd = '%s')\n", fd->toChars());
     fdparent = fd->toParent();
     if (fdparent == this)
 	return -1;
-    thisfd = this;
+    s = this;
     level = 0;
-    while (fd != thisfd && fdparent != thisfd->toParent())
+    while (fd != s && fdparent != s->toParent())
     {
-	if (!thisfd || !thisfd->isNested())
-	{
-	    error(loc, "cannot access frame of function %s", fd->toChars());
-	    return 1;
+	//printf("\ts = '%s'\n", s->toChars());
+	FuncDeclaration *thisfd = s->isFuncDeclaration();
+	if (thisfd)
+	{   if (!thisfd->isNested() && !thisfd->vthis)
+		goto Lerr;
 	}
-	s = thisfd->toParent();
-	thisfd = s->isFuncDeclaration();
+	else
+	{
+	    ClassDeclaration *thiscd = s->isClassDeclaration();
+	    if (thiscd)
+	    {	if (!thiscd->isNested())
+		    goto Lerr;
+	    }
+	    else
+		goto Lerr;
+	}
+
+	s = s->toParent();
+	assert(s);
 	level++;
     }
     return level;
+
+Lerr:
+    error(loc, "cannot access frame of function %s", fd->toChars());
+    return 1;
 }
 
 void FuncDeclaration::appendExp(Expression *e)

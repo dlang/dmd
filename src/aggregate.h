@@ -36,6 +36,7 @@ struct dt_t;
 struct AggregateDeclaration : ScopeDsymbol
 {
     Type *type;
+    unsigned storage_class;
     Type *handle;		// 'this' type
     unsigned structsize;	// size of struct
     unsigned alignsize;		// size of struct for alignment purposes
@@ -158,6 +159,9 @@ struct ClassDeclaration : AggregateDeclaration
     int isauto;				// !=0 if this is an auto class
     int isabstract;			// !=0 if abstract class
 
+    int isnested;			// !=0 if is nested
+    VarDeclaration *vthis;		// 'this' parameter if this class is nested
+
     ClassDeclaration(Loc loc, Identifier *id, Array *baseclasses);
     Dsymbol *syntaxCopy(Dsymbol *s);
     void semantic(Scope *sc);
@@ -170,6 +174,7 @@ struct ClassDeclaration : AggregateDeclaration
     Dsymbol *search(Identifier *ident, int flags);
     FuncDeclaration *findFunc(Identifier *ident, TypeFunction *tf);
     void interfaceSemantic(Scope *sc);
+    int isNested();
     int isCOMclass();
     int isAbstract();
     virtual int vtblOffset();

@@ -85,6 +85,7 @@ struct Global
 
     Param params;
     unsigned errors;	// number of errors reported so far
+    unsigned gag;	// !=0 means gag reporting of errors
 
     Global();
 };

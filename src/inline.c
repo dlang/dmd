@@ -968,7 +968,7 @@ int FuncDeclaration::canInline(int hasthis)
 	isSynchronized() ||
 	isImportedSymbol() ||
 	!fbody ||
-	tf->varargs ||		// no variadic parameter lists
+	tf->varargs == 1 ||	// no variadic parameter lists
 	nestedFrameRef ||	// no nested references to this frame
 	(isVirtual() && !isFinal())
        )

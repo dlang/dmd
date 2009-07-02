@@ -859,16 +859,16 @@ void VarDeclaration::toObjFile()
 		}
 	    }
 	}
+	else if (storage_class & STCextern)
+	{
+	    s->Sclass = SCextern;
+	    s->Sfl = FLextern;
+	    s->Sdt = NULL;
+	    // BUG: if isExport(), shouldn't we make it dllimport?
+	    return;
+	}
 	else
 	{
-	    if (storage_class & STCextern)
-	    {
-		s->Sclass = SCextern;
-		s->Sfl = FLextern;
-		s->Sdt = NULL;
-		// BUG: if isExport(), shouldn't we make it dllimport?
-		return;
-	    }
 	    type->toDt(&s->Sdt);
 	}
 	dt_optimize(s->Sdt);

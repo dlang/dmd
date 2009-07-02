@@ -81,21 +81,22 @@ Statement *Statement::semanticScope(Scope *sc, Statement *sbreak, Statement *sco
 
 void Statement::error(const char *format, ...)
 {
-    char *p = loc.toChars();
-    if (*p)
-	printf("%s: ", p);
-    mem.free(p);
+    if (!global.gag)
+    {
+	char *p = loc.toChars();
+	if (*p)
+	    printf("%s: ", p);
+	mem.free(p);
 
-    va_list ap;
-    va_start(ap, format);
-    vprintf(format, ap);
-    va_end(ap);
+	va_list ap;
+	va_start(ap, format);
+	vprintf(format, ap);
+	va_end(ap);
 
-    printf("\n");
-    fflush(stdout);
-
+	printf("\n");
+	fflush(stdout);
+    }
     global.errors++;
-    fatal();
 }
 
 int Statement::hasBreak()
@@ -1661,6 +1662,10 @@ Statement *ReturnStatement::semantic(Scope *sc)
 	    if (tbret->ty != Tvoid)
 		exp = exp->implicitCastTo(tret);
 	}
+	exp = exp->optimize(WANTvalue);
+	//exp->dump(0);
+	//exp->print();
+	exp->checkEscape();
     }
     else if (tbret->ty != Tvoid)	// if non-void return
 	error("return expression expected");

@@ -49,7 +49,7 @@ Global::Global()
 
     copyright = "Copyright (c) 1999-2005 by Digital Mars";
     written = "written by Walter Bright";
-    version = "v0.125";
+    version = "v0.126";
     global.structalign = 8;
 
     memset(&params, 0, sizeof(Param));
@@ -83,20 +83,22 @@ Loc::Loc(Module *mod, unsigned linnum)
 
 void error(Loc loc, const char *format, ...)
 {
-    char *p = loc.toChars();
+    if (!global.gag)
+    {
+	char *p = loc.toChars();
 
-    if (*p)
-	printf("%s: ", p);
-    mem.free(p);
+	if (*p)
+	    printf("%s: ", p);
+	mem.free(p);
 
-    va_list ap;
-    va_start(ap, format);
-    printf("Error: ");
-    vprintf(format, ap);
-    va_end( ap );
-    printf("\n");
-    fflush(stdout);
-
+	va_list ap;
+	va_start(ap, format);
+	printf("Error: ");
+	vprintf(format, ap);
+	va_end( ap );
+	printf("\n");
+	fflush(stdout);
+    }
     global.errors++;
 }
 

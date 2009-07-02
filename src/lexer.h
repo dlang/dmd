@@ -64,14 +64,15 @@ enum TOK
 	TOKdeclaration,	TOKtypeof,
 	TOKpragma,	TOKdsymbol,
 	TOKtypeid,	TOKuadd,
-	TOKiftype,
+	TOKiftype,	TOKremove,
+	TOKnewanonclass,
 
 	// Operators
 	TOKlt,		TOKgt,
 	TOKle,		TOKge,
 	TOKequal,	TOKnotequal,
 	TOKidentity,	TOKnotidentity,
-	TOKindex,
+	TOKindex,	TOKis,
 
 	// NCEG floating point compares
 	// !<>=     <>    <>=    !>     !>=   !<     !<=   !<>

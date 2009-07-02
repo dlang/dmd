@@ -380,7 +380,8 @@ enum RET
 struct TypeFunction : Type
 {
     Array *arguments;	// Array of Argument's
-    int varargs;	// if variable number of arguments
+    int varargs;	// 1: T t, ...) style for variable number of arguments
+			// 2: T t ...) style for variable number of arguments
     enum LINK linkage;	// calling convention
 
     TypeFunction(Array *arguments, Type *treturn, int varargs, enum LINK linkage);

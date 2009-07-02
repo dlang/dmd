@@ -43,6 +43,7 @@ Scope::Scope()
 
     this->module = NULL;
     this->scopesym = NULL;
+    this->sd = NULL;
     this->enclosing = NULL;
     this->parent = NULL;
     this->sw = NULL;
@@ -72,6 +73,7 @@ Scope::Scope(Scope *enclosing)
     this->func   = enclosing->func;
     this->parent = enclosing->parent;
     this->scopesym = NULL;
+    this->sd = NULL;
     this->sw = enclosing->sw;
     this->tf = enclosing->tf;
     this->sbreak = enclosing->sbreak;

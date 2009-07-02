@@ -20,7 +20,7 @@
 #include "mtype.h"
 
 
-/********************************** Initializer ************************************/
+/********************************** Initializer *******************************/
 
 Initializer::Initializer(Loc loc)
 {
@@ -29,8 +29,7 @@ Initializer::Initializer(Loc loc)
 
 Initializer *Initializer::syntaxCopy()
 {
-    assert(0);	// BUG: implement
-    return NULL;
+    return this;
 }
 
 Initializer *Initializer::semantic(Scope *sc, Type *t)
@@ -55,7 +54,42 @@ Array *Initializer::arraySyntaxCopy(Array *ai)
     return a;
 }
 
-/********************************** StructInitializer ************************************/
+/********************************** VoidInitializer ***************************/
+
+VoidInitializer::VoidInitializer(Loc loc)
+    : Initializer(loc)
+{
+    type = NULL;
+}
+
+
+Initializer *VoidInitializer::syntaxCopy()
+{
+    return new VoidInitializer(loc);
+}
+
+
+Initializer *VoidInitializer::semantic(Scope *sc, Type *t)
+{
+    type = t;
+    return this;
+}
+
+
+Expression *VoidInitializer::toExpression()
+{
+    assert(0);
+    return NULL;
+}
+
+
+void VoidInitializer::toCBuffer(OutBuffer *buf)
+{
+    buf->writestring("void");
+}
+
+
+/********************************** StructInitializer *************************/
 
 StructInitializer::StructInitializer(Loc loc)
     : Initializer(loc)
