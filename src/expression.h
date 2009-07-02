@@ -199,6 +199,11 @@ struct IdentifierExp : Expression
     Expression *toLvalue(Expression *e);
 };
 
+struct DollarExp : IdentifierExp
+{
+    DollarExp(Loc loc);
+};
+
 struct DsymbolExp : Expression
 {
     Dsymbol *s;

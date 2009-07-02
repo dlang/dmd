@@ -29,5 +29,5 @@ struct Html
     void skipString();
     void scanComment();
     int charEntity();
-    int namedEntity(unsigned char *p, int length);
+    static int namedEntity(unsigned char *p, int length);
 };

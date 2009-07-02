@@ -45,6 +45,7 @@ Msgtable msgtable[] =
     { "alignof" },
     { "length" },
     { "ptr" },
+    { "dollar", "__dollar" },
     { "offset" },
     { "offsetof" },
     { "ModuleInfo" },
@@ -65,6 +66,12 @@ Msgtable msgtable[] =
     { "TypeInfo_Typedef" },
     { "_arguments" },
     { "_argptr" },
+
+    { "LINE", "__LINE__" },
+    { "FILE", "__FILE__" },
+    { "DATE", "__DATE__" },
+    { "TIME", "__TIME__" },
+    { "TIMESTAMP", "__TIMESTAMP__" },
 
     { "nan" },
     { "infinity" },

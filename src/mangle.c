@@ -31,7 +31,7 @@ char *Declaration::mangle()
 	//printf("mangle: '%s' => '%s'\n", toChars(), result);
 	for (int i = 0; i < len; i++)
 	{
-	    assert(result[i] == '_' || isalnum(result[i]));
+	    assert(result[i] == '_' || isalnum(result[i]) || result[i] & 0x80);
 	}
     }
     __body

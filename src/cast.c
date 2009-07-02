@@ -31,9 +31,24 @@
 
 Expression *Expression::implicitCastTo(Type *t)
 {
-    //printf("implicitCastTo()\n");
+    //printf("implicitCastTo(%s) => %s\n", type->toChars(), t->toChars());
     if (implicitConvTo(t))
+    {
+	if (global.params.warnings &&
+	    Type::impcnvWarn[type->toBasetype()->ty][t->toBasetype()->ty] &&
+	    op != TOKint64)
+	{
+	    Expression *e = optimize(WANTflags | WANTvalue);
+
+	    if (e->op == TOKint64)
+		return e->implicitCastTo(t);
+
+	    printf("warning - ");
+	    error("implicit conversion of expression (%s) of type %s to %s can cause loss of data",
+		toChars(), type->toChars(), t->toChars());
+	}
 	return castTo(t);
+    }
 #if 0
 print();
 type->print();
@@ -43,7 +58,8 @@ printf("%p %p %s %s\n", type->deco, t->deco, type->deco, t->deco);
 printf("%p %p %p\n", type->next->arrayOf(), type, t);
 #endif
 //*(char*)0=0;
-    error("cannot implicitly convert expression %s of type %s to %s", toChars(), type->toChars(), t->toChars());
+    error("cannot implicitly convert expression (%s) of type %s to %s",
+	toChars(), type->toChars(), t->toChars());
     return castTo(t);
 }
 
@@ -120,7 +136,7 @@ int IntegerExp::implicitConvTo(Type *t)
     }
 
     // Only allow conversion if no change in value
-    switch(t->ty)
+    switch (t->toBasetype()->ty)
     {
 	case Tbit:
 	    if (value & ~1)

@@ -115,6 +115,20 @@ int Statement::usesEH()
     return FALSE;
 }
 
+// TRUE if statement may fall off the end without a throw or return
+
+int Statement::fallOffEnd()
+{
+    return TRUE;
+}
+
+// TRUE if statement 'comes from' somewhere else, like a goto
+
+int Statement::comeFrom()
+{
+    return FALSE;
+}
+
 /****************************************
  * If this statement has code that needs to run in a finally clause
  * at the end of the current scope, return that code in the form of
@@ -167,6 +181,17 @@ Statement *ExpStatement::semantic(Scope *sc)
     if (exp)
 	exp = exp->semantic(sc);
     return this;
+}
+
+int ExpStatement::fallOffEnd()
+{
+    if (exp && exp->op == TOKassert)
+    {	AssertExp *a = (AssertExp *)exp;
+
+	if (a->e1->isBool(FALSE))	// if it's an assert(0)
+	    return FALSE;
+    }
+    return TRUE;
 }
 
 /******************************** DeclarationStatement ***************************/
@@ -338,6 +363,26 @@ int CompoundStatement::usesEH()
     return FALSE;
 }
 
+int CompoundStatement::fallOffEnd()
+{   int falloff = TRUE;
+
+    //printf("CompoundStatement::fallOffEnd()\n");
+    for (int i = 0; i < statements->dim; i++)
+    {	Statement *s = (Statement *)statements->data[i];
+
+	if (!s)
+	    continue;
+
+	if (!falloff && global.params.warnings && !s->comeFrom())
+	{
+	    printf("warning - ");
+	    s->error("statement is not reachable");
+	}
+	falloff = s->fallOffEnd();
+    }
+    return falloff;
+}
+
 
 /******************************** ScopeStatement ***************************/
 
@@ -389,6 +434,11 @@ Statement *ScopeStatement::semantic(Scope *sc)
 	sc->pop();
     }
     return this;
+}
+
+int ScopeStatement::fallOffEnd()
+{
+    return statement ? statement->fallOffEnd() : TRUE;
 }
 
 void ScopeStatement::toCBuffer(OutBuffer *buf)
@@ -447,6 +497,12 @@ int WhileStatement::usesEH()
     return body->usesEH();
 }
 
+int WhileStatement::fallOffEnd()
+{
+    body->fallOffEnd();
+    return TRUE;
+}
+
 /******************************** DoStatement ***************************/
 
 DoStatement::DoStatement(Loc loc, Statement *b, Expression *c)
@@ -487,6 +543,12 @@ int DoStatement::hasContinue()
 int DoStatement::usesEH()
 {
     return body->usesEH();
+}
+
+int DoStatement::fallOffEnd()
+{
+    body->fallOffEnd();
+    return TRUE;
 }
 
 /******************************** ForStatement ***************************/
@@ -555,6 +617,12 @@ int ForStatement::hasContinue()
 int ForStatement::usesEH()
 {
     return (init && init->usesEH()) || body->usesEH();
+}
+
+int ForStatement::fallOffEnd()
+{
+    body->fallOffEnd();
+    return TRUE;
 }
 
 /******************************** ForeachStatement ***************************/
@@ -897,6 +965,12 @@ int ForeachStatement::usesEH()
     return body->usesEH();
 }
 
+int ForeachStatement::fallOffEnd()
+{
+    body->fallOffEnd();
+    return TRUE;
+}
+
 /******************************** IfStatement ***************************/
 
 IfStatement::IfStatement(Loc loc, Expression *condition, Statement *ifbody, Statement *elsebody)
@@ -963,6 +1037,15 @@ int IfStatement::usesEH()
 {
     return (ifbody && ifbody->usesEH()) || (elsebody && elsebody->usesEH());
 }
+
+int IfStatement::fallOffEnd()
+{
+    if ((!ifbody || !ifbody->fallOffEnd()) &&
+	(!elsebody || !elsebody->fallOffEnd()))
+	return FALSE;
+    return TRUE;
+}
+
 
 void IfStatement::toCBuffer(OutBuffer *buf)
 {
@@ -1088,6 +1171,13 @@ int PragmaStatement::usesEH()
     return body && body->usesEH();
 }
 
+int PragmaStatement::fallOffEnd()
+{
+    if (body)
+	return body->fallOffEnd();
+    return TRUE;
+}
+
 void PragmaStatement::toCBuffer(OutBuffer *buf)
 {
     buf->printf("PragmaStatement::toCBuffer()");
@@ -1193,18 +1283,27 @@ Statement *SwitchStatement::semantic(Scope *sc)
 	}
     }
 
-    if (!sc->sw->sdefault && global.params.useSwitchError)
+    if (!sc->sw->sdefault)
     {
-	Array *a = new Array();
-	CompoundStatement *cs;
+	if (global.params.warnings)
+	{   printf("warning - ");
+	    error("switch statement has no default");
+	}
 
-	a->reserve(4);
-	a->push(body);
-	a->push(new BreakStatement(loc, NULL));
-	sc->sw->sdefault = new DefaultStatement(loc, new SwitchErrorStatement(loc));
-	a->push(sc->sw->sdefault);
-	cs = new CompoundStatement(loc, a);
-	body = cs;
+	// Generate runtime error if the default is hit
+	if (global.params.useSwitchError)
+	{
+	    Array *a = new Array();
+	    CompoundStatement *cs;
+
+	    a->reserve(4);
+	    a->push(body);
+	    a->push(new BreakStatement(loc, NULL));
+	    sc->sw->sdefault = new DefaultStatement(loc, new SwitchErrorStatement(loc));
+	    a->push(sc->sw->sdefault);
+	    cs = new CompoundStatement(loc, a);
+	    body = cs;
+	}
     }
 
     sc->pop();
@@ -1219,6 +1318,12 @@ int SwitchStatement::hasBreak()
 int SwitchStatement::usesEH()
 {
     return body->usesEH();
+}
+
+int SwitchStatement::fallOffEnd()
+{
+    body->fallOffEnd();
+    return TRUE;
 }
 
 /******************************** CaseStatement ***************************/
@@ -1296,6 +1401,16 @@ int CaseStatement::usesEH()
     return statement->usesEH();
 }
 
+int CaseStatement::fallOffEnd()
+{
+    return statement->fallOffEnd();
+}
+
+int CaseStatement::comeFrom()
+{
+    return TRUE;
+}
+
 /******************************** DefaultStatement ***************************/
 
 DefaultStatement::DefaultStatement(Loc loc, Statement *s)
@@ -1329,6 +1444,16 @@ int DefaultStatement::usesEH()
     return statement->usesEH();
 }
 
+int DefaultStatement::fallOffEnd()
+{
+    return statement->fallOffEnd();
+}
+
+int DefaultStatement::comeFrom()
+{
+    return TRUE;
+}
+
 /******************************** GotoDefaultStatement ***************************/
 
 GotoDefaultStatement::GotoDefaultStatement(Loc loc)
@@ -1349,6 +1474,11 @@ Statement *GotoDefaultStatement::semantic(Scope *sc)
     if (!sw)
 	error("goto default not in switch statement");
     return this;
+}
+
+int GotoDefaultStatement::fallOffEnd()
+{
+    return FALSE;
 }
 
 /******************************** GotoCaseStatement ***************************/
@@ -1386,11 +1516,21 @@ Statement *GotoCaseStatement::semantic(Scope *sc)
     return this;
 }
 
+int GotoCaseStatement::fallOffEnd()
+{
+    return FALSE;
+}
+
 /******************************** SwitchErrorStatement ***************************/
 
 SwitchErrorStatement::SwitchErrorStatement(Loc loc)
     : Statement(loc)
 {
+}
+
+int SwitchErrorStatement::fallOffEnd()
+{
+    return FALSE;
 }
 
 /******************************** ReturnStatement ***************************/
@@ -1510,7 +1650,8 @@ Statement *ReturnStatement::semantic(Scope *sc)
 	{
 	    exp = exp->semantic(sc);
 	    exp = resolveProperties(sc, exp);
-	    exp = exp->implicitCastTo(tret);
+	    if (tbret->ty != Tvoid)
+		exp = exp->implicitCastTo(tret);
 	}
     }
     else if (tbret->ty != Tvoid)	// if non-void return
@@ -1545,6 +1686,11 @@ Statement *ReturnStatement::semantic(Scope *sc)
     }
 
     return this;
+}
+
+int ReturnStatement::fallOffEnd()
+{
+    return FALSE;
 }
 
 void ReturnStatement::toCBuffer(OutBuffer *buf)
@@ -1626,6 +1772,11 @@ Statement *BreakStatement::semantic(Scope *sc)
     return this;
 }
 
+int BreakStatement::fallOffEnd()
+{
+    return FALSE;
+}
+
 /******************************** ContinueStatement ***************************/
 
 ContinueStatement::ContinueStatement(Loc loc, Identifier *ident)
@@ -1696,6 +1847,11 @@ Statement *ContinueStatement::semantic(Scope *sc)
     return this;
 }
 
+int ContinueStatement::fallOffEnd()
+{
+    return FALSE;
+}
+
 /******************************** SynchronizedStatement ***************************/
 
 SynchronizedStatement::SynchronizedStatement(Loc loc, Expression *exp, Statement *body)
@@ -1756,6 +1912,11 @@ int SynchronizedStatement::hasContinue()
 int SynchronizedStatement::usesEH()
 {
     return TRUE;
+}
+
+int SynchronizedStatement::fallOffEnd()
+{
+    return body->fallOffEnd();
 }
 
 /******************************** WithStatement ***************************/
@@ -1835,6 +1996,11 @@ int WithStatement::usesEH()
     return body->usesEH();
 }
 
+int WithStatement::fallOffEnd()
+{
+    return body->fallOffEnd();
+}
+
 /******************************** TryCatchStatement ***************************/
 
 TryCatchStatement::TryCatchStatement(Loc loc, Statement *body, Array *catches)
@@ -1880,6 +2046,17 @@ int TryCatchStatement::hasBreak()
 int TryCatchStatement::usesEH()
 {
     return TRUE;
+}
+
+int TryCatchStatement::fallOffEnd()
+{
+    for (int i = 0; i < catches->dim; i++)
+    {   Catch *c;
+
+	c = (Catch *)catches->data[i];
+	c->handler->fallOffEnd();
+    }
+    return body->fallOffEnd();
 }
 
 /******************************** Catch ***************************/
@@ -1970,6 +2147,15 @@ int TryFinallyStatement::usesEH()
     return TRUE;
 }
 
+int TryFinallyStatement::fallOffEnd()
+{   int result;
+
+    result = body->fallOffEnd();
+    if (finalbody)
+	result = finalbody->fallOffEnd();
+    return result;
+}
+
 /******************************** ThrowStatement ***************************/
 
 ThrowStatement::ThrowStatement(Loc loc, Expression *exp)
@@ -1994,6 +2180,11 @@ Statement *ThrowStatement::semantic(Scope *sc)
     if (!exp->type->isClassHandle())
 	error("can only throw class objects, not type %s", exp->type->toChars());
     return this;
+}
+
+int ThrowStatement::fallOffEnd()
+{
+    return FALSE;
 }
 
 /******************************** VolatileStatement **************************/
@@ -2031,6 +2222,11 @@ Array *VolatileStatement::flatten()
     }
 
     return a;
+}
+
+int VolatileStatement::fallOffEnd()
+{
+    return statement->fallOffEnd();
 }
 
 
@@ -2072,6 +2268,11 @@ Statement *GotoStatement::semantic(Scope *sc)
 	return s;
     }
     return this;
+}
+
+int GotoStatement::fallOffEnd()
+{
+    return FALSE;
 }
 
 /******************************** LabelStatement ***************************/
@@ -2134,6 +2335,17 @@ int LabelStatement::usesEH()
 {
     return statement->usesEH();
 }
+
+int LabelStatement::fallOffEnd()
+{
+    return statement ? statement->fallOffEnd() : TRUE;
+}
+
+int LabelStatement::comeFrom()
+{
+    return TRUE;
+}
+
 
 /******************************** LabelDsymbol ***************************/
 

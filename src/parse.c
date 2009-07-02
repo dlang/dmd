@@ -77,6 +77,7 @@ Parser::Parser(Module *module, unsigned char *base, unsigned length)
     md = NULL;
     linkage = LINKd;
     endloc = 0;
+    inBrackets = 0;
     nextToken();		// start up the scanner
 }
 
@@ -3419,6 +3420,13 @@ Expression *Parser::parsePrimaryExp()
 		e = new IdentifierExp(loc, id);
 	    break;
 
+	case TOKdollar:
+	    if (!inBrackets)
+		error("'$' is valid only inside [] of index or slice");
+	    e = new DollarExp(loc);
+	    nextToken();
+	    break;
+
 	case TOKdot:
 	    // Signal global scope '.' operator with "" identifier
 	    e = new IdentifierExp(loc, Id::empty);
@@ -3706,6 +3714,7 @@ Expression *Parser::parsePostExp(Expression *e)
 		Expression *index;
 		Expression *upr;
 
+		inBrackets++;
 		nextToken();
 		if (token.value == TOKrbracket)
 		{   // array[]
@@ -3741,6 +3750,7 @@ Expression *Parser::parsePostExp(Expression *e)
 			e = new ArrayExp(loc, e, arguments);
 		    }
 		    check(TOKrbracket);
+		    inBrackets--;
 		}
 		continue;
 	    }

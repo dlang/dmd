@@ -571,7 +571,7 @@ ArrayScopeSymbol::ArrayScopeSymbol(Expression *e)
 
 Dsymbol *ArrayScopeSymbol::search(Identifier *ident, int flags)
 {
-    if (ident == Id::length)
+    if (ident == Id::length || ident == Id::dollar)
     {	VarDeclaration **pvar;
 
 	if (exp->op == TOKindex)
@@ -590,7 +590,7 @@ Dsymbol *ArrayScopeSymbol::search(Identifier *ident, int flags)
 	    return NULL;
 	if (!*pvar)
 	{
-	    VarDeclaration *v = new VarDeclaration(0, Type::tsize_t, Id::length, NULL);
+	    VarDeclaration *v = new VarDeclaration(0, Type::tsize_t, Id::dollar, NULL);
 
 	    *pvar = v;
 	}
@@ -598,6 +598,7 @@ Dsymbol *ArrayScopeSymbol::search(Identifier *ident, int flags)
     }
     return NULL;
 }
+
 
 /****************************** DsymbolTable ******************************/
 

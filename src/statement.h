@@ -61,6 +61,8 @@ struct Statement : Object
     virtual int hasBreak();
     virtual int hasContinue();
     virtual int usesEH();
+    virtual int fallOffEnd();
+    virtual int comeFrom();
     virtual Statement *callAutoDtor();
     virtual Array *flatten();
 
@@ -85,6 +87,7 @@ struct ExpStatement : Statement
     Statement *syntaxCopy();
     void toCBuffer(OutBuffer *buf);
     Statement *semantic(Scope *sc);
+    int fallOffEnd();
 
     int inlineCost(InlineCostState *ics);
     Expression *doInline(InlineDoState *ids);
@@ -117,6 +120,7 @@ struct CompoundStatement : Statement
     void toCBuffer(OutBuffer *buf);
     Statement *semantic(Scope *sc);
     int usesEH();
+    int fallOffEnd();
     Array *flatten();
 
     int inlineCost(InlineCostState *ics);
@@ -151,6 +155,7 @@ struct ScopeStatement : Statement
     Statement *syntaxCopy();
     void toCBuffer(OutBuffer *buf);
     Statement *semantic(Scope *sc);
+    int fallOffEnd();
 
     Statement *inlineScan(InlineScanState *iss);
 
@@ -168,6 +173,7 @@ struct WhileStatement : Statement
     int hasBreak();
     int hasContinue();
     int usesEH();
+    int fallOffEnd();
 
     Statement *inlineScan(InlineScanState *iss);
 
@@ -185,6 +191,7 @@ struct DoStatement : Statement
     int hasBreak();
     int hasContinue();
     int usesEH();
+    int fallOffEnd();
 
     Statement *inlineScan(InlineScanState *iss);
 
@@ -204,6 +211,7 @@ struct ForStatement : Statement
     int hasBreak();
     int hasContinue();
     int usesEH();
+    int fallOffEnd();
 
     Statement *inlineScan(InlineScanState *iss);
 
@@ -228,6 +236,7 @@ struct ForeachStatement : Statement
     int hasBreak();
     int hasContinue();
     int usesEH();
+    int fallOffEnd();
 
     Statement *inlineScan(InlineScanState *iss);
 
@@ -245,6 +254,7 @@ struct IfStatement : Statement
     Statement *semantic(Scope *sc);
     void toCBuffer(OutBuffer *buf);
     int usesEH();
+    int fallOffEnd();
 
     int inlineCost(InlineCostState *ics);
     Expression *doInline(InlineDoState *ids);
@@ -277,6 +287,7 @@ struct PragmaStatement : Statement
     Statement *syntaxCopy();
     Statement *semantic(Scope *sc);
     int usesEH();
+    int fallOffEnd();
 
     void toCBuffer(OutBuffer *buf);
 };
@@ -306,6 +317,7 @@ struct SwitchStatement : Statement
     Statement *semantic(Scope *sc);
     int hasBreak();
     int usesEH();
+    int fallOffEnd();
 
     Statement *inlineScan(InlineScanState *iss);
 
@@ -324,6 +336,8 @@ struct CaseStatement : Statement
     Statement *semantic(Scope *sc);
     int compare(Object *obj);
     int usesEH();
+    int fallOffEnd();
+    int comeFrom();
 
     Statement *inlineScan(InlineScanState *iss);
 
@@ -338,6 +352,8 @@ struct DefaultStatement : Statement
     Statement *syntaxCopy();
     Statement *semantic(Scope *sc);
     int usesEH();
+    int fallOffEnd();
+    int comeFrom();
 
     Statement *inlineScan(InlineScanState *iss);
 
@@ -351,6 +367,7 @@ struct GotoDefaultStatement : Statement
     GotoDefaultStatement(Loc loc);
     Statement *syntaxCopy();
     Statement *semantic(Scope *sc);
+    int fallOffEnd();
 
     void toIR(IRState *irs);
 };
@@ -363,6 +380,7 @@ struct GotoCaseStatement : Statement
     GotoCaseStatement(Loc loc, Expression *exp);
     Statement *syntaxCopy();
     Statement *semantic(Scope *sc);
+    int fallOffEnd();
 
     void toIR(IRState *irs);
 };
@@ -370,6 +388,7 @@ struct GotoCaseStatement : Statement
 struct SwitchErrorStatement : Statement
 {
     SwitchErrorStatement(Loc loc);
+    int fallOffEnd();
 
     void toIR(IRState *irs);
 };
@@ -382,6 +401,7 @@ struct ReturnStatement : Statement
     Statement *syntaxCopy();
     void toCBuffer(OutBuffer *buf);
     Statement *semantic(Scope *sc);
+    int fallOffEnd();
 
     int inlineCost(InlineCostState *ics);
     Expression *doInline(InlineDoState *ids);
@@ -399,6 +419,7 @@ struct BreakStatement : Statement
     BreakStatement(Loc loc, Identifier *ident);
     Statement *syntaxCopy();
     Statement *semantic(Scope *sc);
+    int fallOffEnd();
 
     void toIR(IRState *irs);
 };
@@ -410,6 +431,7 @@ struct ContinueStatement : Statement
     ContinueStatement(Loc loc, Identifier *ident);
     Statement *syntaxCopy();
     Statement *semantic(Scope *sc);
+    int fallOffEnd();
 
     void toIR(IRState *irs);
 };
@@ -425,6 +447,7 @@ struct SynchronizedStatement : Statement
     int hasBreak();
     int hasContinue();
     int usesEH();
+    int fallOffEnd();
 
     Statement *inlineScan(InlineScanState *iss);
 
@@ -445,6 +468,7 @@ struct WithStatement : Statement
     Statement *semantic(Scope *sc);
     void toCBuffer(OutBuffer *buf);
     int usesEH();
+    int fallOffEnd();
 
     Statement *inlineScan(InlineScanState *iss);
 
@@ -461,6 +485,7 @@ struct TryCatchStatement : Statement
     Statement *semantic(Scope *sc);
     int hasBreak();
     int usesEH();
+    int fallOffEnd();
 
     Statement *inlineScan(InlineScanState *iss);
 
@@ -492,6 +517,7 @@ struct TryFinallyStatement : Statement
     int hasBreak();
     int hasContinue();
     int usesEH();
+    int fallOffEnd();
 
     Statement *inlineScan(InlineScanState *iss);
 
@@ -505,6 +531,7 @@ struct ThrowStatement : Statement
     ThrowStatement(Loc loc, Expression *exp);
     Statement *syntaxCopy();
     Statement *semantic(Scope *sc);
+    int fallOffEnd();
 
     Statement *inlineScan(InlineScanState *iss);
 
@@ -519,6 +546,7 @@ struct VolatileStatement : Statement
     Statement *syntaxCopy();
     Statement *semantic(Scope *sc);
     Array *flatten();
+    int fallOffEnd();
 
     Statement *inlineScan(InlineScanState *iss);
 
@@ -533,6 +561,7 @@ struct GotoStatement : Statement
     GotoStatement(Loc loc, Identifier *ident);
     Statement *syntaxCopy();
     Statement *semantic(Scope *sc);
+    int fallOffEnd();
 
     void toIR(IRState *irs);
 };
@@ -549,6 +578,8 @@ struct LabelStatement : Statement
     Statement *semantic(Scope *sc);
     Array *flatten();
     int usesEH();
+    int fallOffEnd();
+    int comeFrom();
 
     Statement *inlineScan(InlineScanState *iss);
 
@@ -575,6 +606,7 @@ struct AsmStatement : Statement
     AsmStatement(Loc loc, Token *tokens);
     Statement *syntaxCopy();
     Statement *semantic(Scope *sc);
+    int comeFrom();
 
     void toCBuffer(OutBuffer *buf);
 

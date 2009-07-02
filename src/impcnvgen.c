@@ -15,6 +15,7 @@
 enum TY impcnvResult[TMAX][TMAX];
 enum TY impcnvType1[TMAX][TMAX];
 enum TY impcnvType2[TMAX][TMAX];
+int impcnvWarn[TMAX][TMAX];
 
 int integral_promotion(int t)
 {
@@ -41,6 +42,7 @@ void init()
 	{   impcnvResult[i][j] = Terror;
 	    impcnvType1[i][j] = Terror;
 	    impcnvType2[i][j] = Terror;
+	    impcnvWarn[i][j] = 0;
 	}
 
 #define X(t1,t2, nt1,nt2, rt)		\
@@ -291,6 +293,57 @@ void init()
 
     X(Tcomplex80,Tcomplex80,  Tcomplex80,Tcomplex80, Tcomplex80)
 
+#undef X
+
+#define Y(t1,t2)	impcnvWarn[t1][t2] = 1;
+    Y(Tint8, Tbit)
+    Y(Tuns8, Tbit)
+    Y(Tint16, Tbit)
+    Y(Tuns16, Tbit)
+    Y(Tint32, Tbit)
+    Y(Tuns32, Tbit)
+    Y(Tint64, Tbit)
+    Y(Tuns64, Tbit)
+
+    Y(Tuns8, Tint8)
+    Y(Tint16, Tint8)
+    Y(Tuns16, Tint8)
+    Y(Tint32, Tint8)
+    Y(Tuns32, Tint8)
+    Y(Tint64, Tint8)
+    Y(Tuns64, Tint8)
+
+    Y(Tint8, Tuns8)
+    Y(Tint16, Tuns8)
+    Y(Tuns16, Tuns8)
+    Y(Tint32, Tuns8)
+    Y(Tuns32, Tuns8)
+    Y(Tint64, Tuns8)
+    Y(Tuns64, Tuns8)
+
+    Y(Tuns16, Tint16)
+    Y(Tint32, Tint16)
+    Y(Tuns32, Tint16)
+    Y(Tint64, Tint16)
+    Y(Tuns64, Tint16)
+
+    Y(Tint16, Tuns16)
+    Y(Tint32, Tuns16)
+    Y(Tuns32, Tuns16)
+    Y(Tint64, Tuns16)
+    Y(Tuns64, Tuns16)
+
+//    Y(Tuns32, Tint32)
+    Y(Tint64, Tint32)
+    Y(Tuns64, Tint32)
+
+//    Y(Tint32, Tuns32)
+    Y(Tint64, Tuns32)
+    Y(Tuns64, Tuns32)
+
+    Y(Tint64, Tuns64)
+    Y(Tuns64, Tint64)
+
     for (i = 0; i < TMAX; i++)
 	for (j = 0; j < TMAX; j++)
 	{
@@ -343,6 +396,17 @@ int main()
 	for (j = 0; j < TMAX; j++)
 	{
 	    fprintf(fp, "%d,",impcnvType2[i][j]);
+	}
+	fprintf(fp, "\n");
+    }
+    fprintf(fp,"};\n");
+
+    fprintf(fp,"unsigned char Type::impcnvWarn[TMAX][TMAX] =\n{\n");
+    for (i = 0; i < TMAX; i++)
+    {
+	for (j = 0; j < TMAX; j++)
+	{
+	    fprintf(fp, "%d,",impcnvWarn[i][j]);
 	}
 	fprintf(fp, "\n");
     }

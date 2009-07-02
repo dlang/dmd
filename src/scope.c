@@ -93,15 +93,20 @@ Scope::Scope(Scope *enclosing)
 Scope *Scope::createGlobal(Module *module)
 {
     Scope *sc;
-    Dsymbol *p = module->parent;
 
     sc = new Scope();
     sc->module = module;
     sc->scopesym = new ScopeDsymbol();
     sc->scopesym->symtab = new DsymbolTable();
-    module->addMember(sc->scopesym);
-    module->parent = p;		// got changed by addMember()
 
+    // Add top level package as member of this global scope
+    Dsymbol *m = module;
+    while (m->parent)
+	m = m->parent;
+    m->addMember(sc->scopesym);
+    m->parent = NULL;			// got changed by addMember()
+
+    // Create the module scope underneath the global scope
     sc = sc->push(module);
     sc->parent = module;
     return sc;
@@ -203,6 +208,16 @@ Dsymbol *Scope::search(Identifier *ident, Dsymbol **pscopesym)
 	    s = sc->scopesym->search(ident, 0);
 	    if (s)
 	    {
+		if (global.params.warnings &&
+		    ident == Id::length &&
+		    sc->scopesym->isArrayScopeSymbol() &&
+		    sc->enclosing &&
+		    sc->enclosing->search(ident, NULL))
+		{
+		    printf("warning - ");
+		    error("array 'length' hides other 'length' name in outer scope");
+		}
+
 		//printf("\tfound %s.%s, kind = '%s'\n", s->parent ? s->parent->toChars() : "", s->toChars(), s->kind());
 		if (pscopesym)
 		    *pscopesym = sc->scopesym;

@@ -1,5 +1,5 @@
 
-// Copyright (c) 1999-2003 by Digital Mars
+// Copyright (c) 1999-2005 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // www.digitalmars.com
@@ -17,8 +17,10 @@
 #include <wchar.h>
 #include <stdlib.h>
 #include <assert.h>
+#include <sys/time.h>
 
 #if __GNUC__
+#include <time.h>
 extern "C" long double strtold(const char *p,char **endp);
 #endif
 
@@ -43,6 +45,7 @@ extern "C" char * __cdecl __locale_decpoint;
 #endif
 
 extern int isUniAlpha(unsigned u);
+extern int HtmlNamedEntity(unsigned char *p, int length);
 
 /********************************************
  * Do our own char maps
@@ -289,8 +292,13 @@ void Lexer::scan(Token *t)
 	    case '\t':
 	    case '\v':
 	    case '\f':
+		p++;
+		continue;			// skip white space
+
 	    case '\r':
 		p++;
+		if (*p != '\n')			// if CR stands by itself
+		    loc.linnum++;
 		continue;			// skip white space
 
 	    case '\n':
@@ -402,6 +410,55 @@ void Lexer::scan(Token *t)
 		}
 		t->ident = id;
 		t->value = (enum TOK) id->value;
+		if (*t->ptr == '_')	// if special identifier token
+		{
+		    static char date[11+1];
+		    static char time[8+1];
+		    static char timestamp[24+1];
+
+		    if (!date[0])	// lazy evaluation
+		    {   time_t t;
+			char *p;
+
+			::time(&t);
+			p = ctime(&t);
+			assert(p);
+			sprintf(date, "%.6s %.4s", p + 4, p + 20);
+			sprintf(time, "%.8s", p + 11);
+			sprintf(timestamp, "%.24s", p);
+		    }
+
+		    if (id == Id::FILE)
+		    {
+			t->value = TOKstring;
+			t->ustring = (unsigned char *)(loc.filename ? loc.filename : mod->ident->toChars());
+			goto Llen;
+		    }
+		    else if (id == Id::LINE)
+		    {
+			t->value = TOKint64v;
+			t->uns64value = loc.linnum;
+		    }
+		    else if (id == Id::DATE)
+		    {
+			t->value = TOKstring;
+			t->ustring = (unsigned char *)date;
+			goto Llen;
+		    }
+		    else if (id == Id::TIME)
+		    {
+			t->value = TOKstring;
+			t->ustring = (unsigned char *)time;
+			goto Llen;
+		    }
+		    else if (id == Id::TIMESTAMP)
+		    {
+			t->value = TOKstring;
+			t->ustring = (unsigned char *)timestamp;
+		     Llen:
+			t->len = strlen((char *)t->ustring);
+		    }
+		}
 		//printf("t->value = %d\n",t->value);
 		return;
 	    }
@@ -431,6 +488,12 @@ void Lexer::scan(Token *t)
 					p++;
 					continue;
 
+				    case '\r':
+					p++;
+					if (*p != '\n')
+					    loc.linnum++;
+					continue;
+
 				    case 0:
 				    case 0x1A:
 					error("unterminated /* */ comment");
@@ -451,13 +514,28 @@ void Lexer::scan(Token *t)
 			continue;
 
 		    case '/':
-			p++;
-			p = (unsigned char *) memchr(p, '\n', end - p);
-			if (p == NULL)
+			while (1)
 			{
-			    p = end;
-			    t->value = TOKeof;
-			    return;
+			    switch (*++p)
+			    {
+				case '\n':
+				    break;
+
+				case '\r':
+				    if (p[1] == '\n')
+					p++;
+				    break;
+
+				case 0:
+				case 0x1A:
+				    p = end;
+				    t->value = TOKeof;
+				    return;
+
+				default:
+				    continue;
+			    }
+			    break;
 			}
 			p++;
 			loc.linnum++;
@@ -489,6 +567,12 @@ void Lexer::scan(Token *t)
 					if (--nest == 0)
 					    break;
 				    }
+				    continue;
+
+				case '\r':
+				    p++;
+				    if (*p != '\n')
+					loc.linnum++;
 				    continue;
 
 				case '\n':
@@ -839,6 +923,30 @@ unsigned Lexer::escapeSequence()
 		    error("undefined escape hex sequence \\%c\n",c);
 		break;
 
+	case '&':			// named character entity
+		for (unsigned char *idstart = ++p; 1; p++)
+		{
+		    switch (*p)
+		    {
+			case ';':
+			    c = HtmlNamedEntity(idstart, p - idstart);
+			    if (c == ~0)
+			    {   error("unnamed character entity &%.*s;", p - idstart, idstart);
+				c = ' ';
+			    }
+			    p++;
+			    break;
+
+			default:
+			    if (isalpha(*p))
+				continue;
+			    error("unterminated named entity");
+			    break;
+		    }
+		    break;
+		}
+		break;
+
 	case 0:
 	case 0x1A:			// end of file
 		c = '\\';
@@ -1005,6 +1113,7 @@ TOK Lexer::escapeStringConstant(Token *t, int wide)
 		{
 		    case 'u':
 		    case 'U':
+		    case '&':
 			c = escapeSequence();
 			stringbuffer.writeUTF8(c);
 			continue;
@@ -1099,6 +1208,7 @@ TOK Lexer::charConstant(Token *t, int wide)
 		    break;
 
 		case 'U':
+		case '&':
 		    t->uns64value = escapeSequence();
 		    tk = TOKdcharv;
 		    break;
@@ -1776,11 +1886,16 @@ void Lexer::pragma()
 		loc.linnum = linnum;
 		return;
 
+	    case '\r':
+		p++;
+		if (*p != '\n')
+		    loc.linnum = linnum;
+		continue;
+
 	    case ' ':
 	    case '\t':
 	    case '\v':
 	    case '\f':
-	    case '\r':
 		p++;
 		continue;			// skip white space
 
@@ -2069,6 +2184,7 @@ void Lexer::initKeywords()
     Token::tochars[TOKaddress]		= "#";
     Token::tochars[TOKstar]		= "*";
     Token::tochars[TOKtilde]		= "~";
+    Token::tochars[TOKdollar]		= "$";
     Token::tochars[TOKcast]		= "cast";
     Token::tochars[TOKplusplus]		= "++";
     Token::tochars[TOKminusminus]	= "--";

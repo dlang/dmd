@@ -39,6 +39,7 @@ struct Param
     char useInline;	// inline expand functions
     char release;	// build release version
     char preservePaths;	// !=0 means don't strip path from source file
+    char warnings;	// enable warnings
 
     char *argv0;	// program name
     Array *imppath;	// array of char*'s of where to look for import modules

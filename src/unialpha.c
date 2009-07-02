@@ -187,7 +187,7 @@ int isUniAlpha(unsigned u)
 	{ 0x0D66, 0x0D6F },
 	{ 0x0E01, 0x0E3A },
 	{ 0x0E40, 0x0E5B },
-	{ 0x0E50, 0x0E59 },
+//	{ 0x0E50, 0x0E59 },
 	{ 0x0E81, 0x0E82 },
 	{ 0x0E84, 0x0E84 },
 	{ 0x0E87, 0x0E88 },
@@ -272,6 +272,7 @@ int isUniAlpha(unsigned u)
 #ifdef DEBUG
     for (int i = 0; i < sizeof(table) / sizeof(table[0]); i++)
     {
+	//printf("%x\n", table[i][0]);
 	assert(table[i][0] <= table[i][1]);
 	if (i < sizeof(table) / sizeof(table[0]) - 1)
 	    assert(table[i][1] < table[i + 1][0]);

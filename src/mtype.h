@@ -162,6 +162,9 @@ struct Type : Object
     static unsigned char impcnvType1[TMAX][TMAX];
     static unsigned char impcnvType2[TMAX][TMAX];
 
+    // If !=0, give warning on implicit conversion
+    static unsigned char impcnvWarn[TMAX][TMAX];
+
     Type(TY ty, Type *next);
     virtual Type *syntaxCopy();
     int equals(Object *o);

@@ -991,6 +991,13 @@ Expression *IdentifierExp::toLvalue(Expression *e)
     return this;
 }
 
+/******************************** DollarExp **************************/
+
+DollarExp::DollarExp(Loc loc)
+	: IdentifierExp(loc, Id::dollar)
+{
+}
+
 /******************************** DsymbolExp **************************/
 
 DsymbolExp::DsymbolExp(Loc loc, Dsymbol *s)
@@ -1015,6 +1022,7 @@ Lagain:
     ClassDeclaration *cd;
     ClassDeclaration *thiscd = NULL;
     Import *imp;
+    Package *pkg;
     Type *t;
 
     //printf("DsymbolExp:: '%s' is a symbol\n", toChars());
@@ -1106,6 +1114,14 @@ Lagain:
 	ScopeExp *ie;
 
 	ie = new ScopeExp(loc, imp->pkg);
+	return ie->semantic(sc);
+    }
+    pkg = s->isPackage();
+    if (pkg)
+    {
+	ScopeExp *ie;
+
+	ie = new ScopeExp(loc, pkg);
 	return ie->semantic(sc);
     }
     Module *mod = s->isModule();

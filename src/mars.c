@@ -49,7 +49,7 @@ Global::Global()
 
     copyright = "Copyright (c) 1999-2005 by Digital Mars";
     written = "written by Walter Bright";
-    version = "v0.114";
+    version = "v0.116";
     global.structalign = 8;
 
     memset(&params, 0, sizeof(Param));
@@ -145,6 +145,7 @@ Usage:\n\
   -unittest      compile in unit tests\n\
   -version=level compile in version code >= level\n\
   -version=ident compile in version code identified by ident\n\
+  -w             enable warnings\n\
 ");
 }
 
@@ -230,6 +231,8 @@ int main(int argc, char *argv[])
 		global.params.trace = 1;
 	    else if (strcmp(p + 1, "v") == 0)
 		global.params.verbose = 1;
+	    else if (strcmp(p + 1, "w") == 0)
+		global.params.warnings = 1;
 	    else if (strcmp(p + 1, "O") == 0)
 		global.params.optimize = 1;
 	    else if (p[1] == 'o')
@@ -470,7 +473,9 @@ int main(int argc, char *argv[])
 	    }
 #endif
 
-	    if (stricmp(ext, "d") == 0 || stricmp(ext, "html") == 0)
+	    if (stricmp(ext, "d") == 0 ||
+		stricmp(ext, "htm") == 0 ||
+		stricmp(ext, "html") == 0)
 	    {
 		ext--;			// skip onto '.'
 		assert(*ext == '.');

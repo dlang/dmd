@@ -1,11 +1,12 @@
 
-// Copyright (c) 1999-2002 by Digital Mars
+// Copyright (c) 1999-2005 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // www.digitalmars.com
 // License for redistribution is by either the Artistic License
 // in artistic.txt, or the GNU General Public License in gnu.txt.
 // See the included readme.txt for details.
+
 
 /* HTML parser
  */
@@ -17,8 +18,17 @@
 #include <errno.h>
 #include <wchar.h>
 
-#include "root.h"
 #include "html.h"
+
+#include <assert.h>
+#include "root.h"
+#include "../mars/mars.h"
+
+#if __GNUC__
+int memicmp(const char *s1, const char *s2, int n);
+#endif
+
+extern int HtmlNamedEntity(unsigned char *p, int length);
 
 /**********************************
  * Determine if beginning of tag identifier
@@ -40,11 +50,12 @@ inline int istag(int c)
 
 Html::Html(const char *sourcename, unsigned char *base, unsigned length)
 {
+    //printf("Html::Html()\n");
     this->sourcename = sourcename;
     this->base = base;
     p = base;
     end = base + length;
-    linnum = 0;
+    linnum = 1;
     dbuf = NULL;
     inCode = 0;
 }
@@ -66,7 +77,6 @@ void Html::error(const char *format, ...)
     fflush(stdout);
 
     global.errors++;
-    fatal();
 }
 
 /**********************************************
@@ -76,27 +86,32 @@ void Html::error(const char *format, ...)
 
 void Html::extractCode(OutBuffer *buf)
 {
+    //printf("Html::extractCode()\n");
     dbuf = buf;			// save for other routines
     buf->reserve(end - p);
     inCode = 0;
     while (1)
     {
+	//printf("p = %p, *p = x%x\n", p, *p);
 	switch (*p)
 	{
+#if 0 // strings are not recognized outside of tags
 	    case '"':
 	    case '\'':
 		skipString();
 		continue;
-
+#endif
 	    case '<':
-		if (p[1] == '!' && p[2] == '-' && p[3] == '-')
+		if (p[1] == '!' && isCommentStart())
 		{   // Comments start with <!--
-		    p += 4;
 		    scanComment();
 		}
-		else if ((p[1] == '/' && istagstart(p[2])) ||
-			 istagstart(p[1]))
+		else if (p[1] == '/' && istagstart(*skipWhite(p + 2)))
 		    skipTag();
+		else if (istagstart(*skipWhite(p + 1)))
+		    skipTag();
+		else
+		    goto Ldefault;
 		continue;
 
 	    case 0:
@@ -106,34 +121,36 @@ void Html::extractCode(OutBuffer *buf)
 	    case '&':
 		if (inCode)
 		{   // Translate character entity into ascii for D parser
-		    // BUG: wchar?
 		    int c;
 
 		    c = charEntity();
-		    buf->writeByte(c);		// BUG: wchar
+		    buf->writeUTF8(c);
 		}
 		else
 		    p++;
 		continue;
 
+	    case '\r':
+		if (p[1] == '\n')
+		    goto Ldefault;
 	    case '\n':
 		linnum++;
 		// Always extract new lines, so that D lexer counts the
 		// lines right.
-		buf->writeByte(*p);		// BUG: wchar
+		buf->writeByte(*p);
 		p++;
 		continue;
 
 	    default:
+	    Ldefault:
 		if (inCode)
-		    buf->writeByte(*p);		// BUG: wchar
+		    buf->writeByte(*p);
 		p++;
 		continue;
 	}
 	break;
     }
     buf->writeByte(0);				// ending sentinel
-						// BUG: wchar
     //printf("D code is: '%s'\n", (char *)buf->data);
 }
 
@@ -156,14 +173,14 @@ void Html::skipTag()
 	TSrest,		// following tag name
     };
     enum TagState state = TStagstart;
-    int nottag;
+    int inot;
     unsigned char *tagstart = NULL;
     int taglen = 0;
 
     p++;
-    nottag = 0;
+    inot = 0;
     if (*p == '/')
-    {	nottag = 1;
+    {	inot = 1;
 	p++;
     }
     while (1)
@@ -181,13 +198,15 @@ void Html::skipTag()
 		continue;
 
 	    case '<':
-		if (p[1] == '!' && p[2] == '-' && p[3] == '-')
+		if (p[1] == '!' && isCommentStart())
 		{   // Comments start with <!--
-		    p += 4;
 		    scanComment();
 		}
-		else if ((p[1] == '/' && istagstart(p[2])) ||
-			 istagstart(p[1]))
+		else if (p[1] == '/' && istagstart(*skipWhite(p + 2)))
+		{   error("nested tag");
+		    skipTag();
+		}
+		else if (istagstart(*skipWhite(p + 1)))
 		{   error("nested tag");
 		    skipTag();
 		}
@@ -200,16 +219,28 @@ void Html::skipTag()
 		error("end of file before end of tag");
 		break;		// end of file
 
+	    case '\r':
+		if (p[1] == '\n')
+		    goto Ldefault;
 	    case '\n':
 		linnum++;
 		// Always extract new lines, so that code lexer counts the
 		// lines right.
-		dbuf->writeByte(*p);		// BUG: wchar
+		dbuf->writeByte(*p);
 		state = TSrest;			// end of tag
 		p++;
 		continue;
 
+	    case ' ':
+	    case '\t':
+	    case '\f':
+	    case '\v':
+		if (state == TStagstart)
+		{   p++;
+		    continue;
+		}
 	    default:
+	    Ldefault:
 		switch (state)
 		{
 		    case TStagstart:		// start of tag name
@@ -240,9 +271,9 @@ void Html::skipTag()
     }
 
     // See if we parsed a <code> or </code> tag
-    if (taglen && memicmp((char *)tagstart, "CODE", taglen) == 0)
+    if (taglen && memicmp((char *) tagstart, (char *) "CODE", taglen) == 0)
     {
-	if (nottag)
+	if (inot)
 	{   inCode--;
 	    if (inCode < 0)
 		inCode = 0;		// ignore extra </code>'s
@@ -273,11 +304,14 @@ void Html::skipString()
 		}
 		continue;
 
+	    case '\r':
+		if (p[1] == '\n')
+		    goto Ldefault;
 	    case '\n':
 		linnum++;
 		// Always extract new lines, so that D lexer counts the
 		// lines right.
-		dbuf->writeByte(*p);		// BUG: wchar
+		dbuf->writeByte(*p);
 		continue;
 
 	    case 0:
@@ -287,10 +321,38 @@ void Html::skipString()
 		break;
 
 	    default:
+	    Ldefault:
 		continue;
 	}
 	break;
     }
+}
+
+/*********************************
+ * If p points to any white space, skip it
+ * and return pointer just past it.
+ */
+
+unsigned char *Html::skipWhite(unsigned char *q)
+{
+    for (; 1; q++)
+    {
+	switch (*q)
+	{
+	    case ' ':
+	    case '\t':
+	    case '\f':
+	    case '\v':
+	    case '\r':
+	    case '\n':
+		continue;
+
+	    default:
+		break;
+	}
+	break;
+    }
+    return q;
 }
 
 /***************************************************
@@ -309,9 +371,10 @@ void Html::scanComment()
     // the -- and the > of a comment close.
     int scangt = 0;
 
+    //printf("scanComment()\n");
     while (1)
     {
-	scangt = 1;			// IE 5.0 compatibility
+	//scangt = 1;			// IE 5.0 compatibility
 	p++;
 	switch (*p)
 	{
@@ -323,6 +386,7 @@ void Html::scanComment()
 			p += 3;
 			break;
 		    }
+		    p++;
 		    scangt = 1;
 		}
 		else
@@ -339,17 +403,19 @@ void Html::scanComment()
 
 	    case ' ':
 	    case '\t':
-	    case '\r':
 	    case '\f':
 	    case '\v':
 		// skip white space
 		continue;
 
+	    case '\r':
+		if (p[1] == '\n')
+		    goto Ldefault;
 	    case '\n':
 		linnum++;		// remember to count lines
 		// Always extract new lines, so that D lexer counts the
 		// lines right.
-		dbuf->writeByte(*p);		// BUG: wchar
+		dbuf->writeByte(*p);
 		continue;
 
 	    case 0:
@@ -358,12 +424,72 @@ void Html::scanComment()
 		break;
 
 	    default:
+	    Ldefault:
 		scangt = 0;		// it's not -->
 		continue;
 	}
 	break;
     }
+    //printf("*p = '%c'\n", *p);
 }
+
+/********************************************
+ * Determine if we are at the start of a comment.
+ * Input:
+ *	p is on the opening '<'
+ * Returns:
+ *	0 if not start of a comment
+ * 	1 if start of a comment, p is adjusted to point past --
+ */
+
+int Html::isCommentStart()
+#ifdef __DMC__
+    __out(result)
+    {
+	if (result == 0)
+	    ;
+	else if (result == 1)
+	{
+	    assert(p[-2] == '-' && p[-1] == '-');
+	}
+	else
+	    assert(0);
+    }
+    __body
+#endif /* __DMC__ */
+    {	unsigned char *s;
+
+	if (p[0] == '<' && p[1] == '!')
+	{
+	    for (s = p + 2; 1; s++)
+	    {
+		switch (*s)
+		{
+		    case ' ':
+		    case '\t':
+		    case '\r':
+		    case '\f':
+		    case '\v':
+			// skip white space, even though spec says no
+			// white space is allowed
+			continue;
+
+		    case '-':
+			if (s[1] == '-')
+			{
+			    p = s + 2;
+			    return 1;
+			}
+			goto No;
+
+		    default:
+			goto No;
+		}
+	    }
+	}
+    No:
+	return 0;
+    }
 
 /********************************************
  * Convert an HTML character entity into a character.
@@ -379,7 +505,9 @@ int Html::charEntity()
 {   int c = 0;
     int v;
     int hex;
+    unsigned char *pstart = p;
 
+    //printf("Html::charEntity('%c')\n", *p);
     if (p[1] == '#')
     {
 	p++;
@@ -389,7 +517,8 @@ int Html::charEntity()
 	}
 	else
 	    hex = 0;
-
+	if (p[1] == ';')
+	    goto Linvalid;
 	while (1)
 	{
 	    p++;
@@ -398,7 +527,7 @@ int Html::charEntity()
 		case 0:
 		case 0x1a:
 		    error("end of file before end of character entity");
-		    break;
+		    goto Lignore;
 
 		case '\n':
 		case '\r':
@@ -435,20 +564,20 @@ int Html::charEntity()
 			c = (c << 4) + v;
 		    else
 			c = (c * 10) + v;
-		    if (c > 0xFFFF)
+		    if (c > 0x10FFFF)
+		    {
 			error("character entity out of range");
+			goto Lignore;
+		    }
 		    continue;
 
 		default:
 		Linvalid:
 		    error("invalid numeric character reference");
-		    break;
+		    goto Lignore;
 	    }
+	    break;
 	}
-
-	// Kludge to convert non-breaking space to ascii space
-	if (c == 160)
-	    c = 32;
     }
     else
     {
@@ -469,12 +598,16 @@ int Html::charEntity()
 		case '\r':
 		case '<':	// tag start
 		    // Termination is assumed
-		    c = namedEntity(idstart, p - idstart);
+		    c = HtmlNamedEntity(idstart, p - idstart);
+		    if (c == -1)
+			goto Lignore;
 		    break;
 
 		case ';':
 		    // Termination is explicit
-		    c = namedEntity(idstart, p - idstart);
+		    c = HtmlNamedEntity(idstart, p - idstart);
+		    if (c == -1)
+			goto Lignore;
 		    p++;
 		    break;
 
@@ -484,58 +617,16 @@ int Html::charEntity()
 	    break;
 	}
     }
+
+    // Kludge to convert non-breaking space to ascii space
+    if (c == 160)
+	c = ' ';
+
     return c;
+
+Lignore:
+    //printf("Lignore\n");
+    p = pstart + 1;
+    return '&';
 }
 
-/*********************************************
- * Convert from named entity to its encoding.
- */
-
-struct NameId
-{
-    char *name;
-    int value;
-};
-
-static NameId names[] =
-{
-    "quot",	34,
-    "amp",	38,
-    "lt",	60,
-    "gt",	62,
-//    "nbsp",	160,
-    "nbsp",	32,		// make non-breaking space appear as space
-    "iexcl",	161,
-    "cent",	162,
-    "pound",	163,
-    "curren",	164,
-    "yen",	165,
-    "brvbar",	166,
-    "sect",	167,
-    "uml",	168,
-    "copy",	169,
-    "ordf",	170,
-    "laquo",	171,
-    "not",	172,
-    "shy",	173,
-    "reg",	174,
-
-    // BUG: This is only a partial list.
-    // For the rest, consult:
-    // http://www.w3.org/TR/1999/REC-html401-19991224/sgml/entities.html
-};
-
-int Html::namedEntity(unsigned char *p, int length)
-{
-    int i;
-
-    // BUG: this is a dumb, slow linear search
-    for (i = 0; i < sizeof(names) / sizeof(names[0]); i++)
-    {
-	// Do case insensitive compare
-	if (memicmp(names[i].name, (char *)p, length) == 0)
-	    return names[i].value;
-    }
-    error("unrecognized character entity");
-    return 0;
-}

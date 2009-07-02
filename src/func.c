@@ -580,6 +580,7 @@ void FuncDeclaration::semantic3(Scope *sc)
 	if (fbody)
 	{
 	    fbody = fbody->semantic(sc2);
+	    int offend = fbody ? fbody->fallOffEnd() : TRUE;
 
 	    if (isCtorDeclaration())
 	    {
@@ -606,17 +607,28 @@ void FuncDeclaration::semantic3(Scope *sc)
 		fbody = new CompoundStatement(0, fbody, s);
 		assert(!returnLabel);
 	    }
-	    else if (!hasReturnExp && type->next->ty != Tvoid)
-		error("function expected to return a value of type %s", type->next->toChars());
-	    else if (global.params.useAssert &&
-		     !global.params.useInline &&
-		     type->next->ty != Tvoid &&
-		     !inlineAsm)
+//	    else if (!hasReturnExp && type->next->ty != Tvoid)
+//		error("expected to return a value of type %s", type->next->toChars());
+	    else if (type->next->ty != Tvoid && !inlineAsm)
 	    {
-		Expression *e = new AssertExp(endloc, new IntegerExp(0, 0, Type::tint32));
-		e = e->semantic(sc2);
-		Statement *s = new ExpStatement(0, e);
-		fbody = new CompoundStatement(0, fbody, s);
+		if (offend)
+		{
+		    if (global.params.warnings)
+		    {	printf("warning - ");
+			error("no return at end of function");
+		    }
+
+		    if (global.params.useAssert &&
+			!global.params.useInline)
+		    {   /* Add an assert(0); where the missing return
+			 * should be.
+			 */
+			Expression *e = new AssertExp(endloc, new IntegerExp(0, 0, Type::tint32));
+			e = e->semantic(sc2);
+			Statement *s = new ExpStatement(0, e);
+			fbody = new CompoundStatement(0, fbody, s);
+		    }
+		}
 	    }
 	}
 
@@ -1105,7 +1117,7 @@ void FuncDeclaration::appendState(Statement *s)
 int FuncDeclaration::isMain()
 {
     return ident && strcmp(ident->toChars(), "main") == 0 &&
-	linkage != LINKc && !isMember();
+	linkage != LINKc && !isMember() && !isNested();
 }
 
 int FuncDeclaration::isWinMain()

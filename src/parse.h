@@ -45,6 +45,7 @@ struct Parser : Lexer
     ModuleDeclaration *md;
     enum LINK linkage;
     Loc endloc;			// set to location of last right curly
+    int inBrackets;		// inside [] of array index or slice
 
     Parser(Module *module, unsigned char *base, unsigned length);
 

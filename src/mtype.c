@@ -1308,19 +1308,22 @@ Expression *TypeArray::dotExp(Scope *sc, Expression *e, Identifier *ident)
 	e = new CallExp(e->loc, ec, arguments);
 	e->type = next->arrayOf();
     }
-    else if (ident == Id::sort && n->ty != Tbit)
+    else if (ident == Id::sort)
     {
 	Expression *ec;
 	FuncDeclaration *fd;
 	Array *arguments;
 
-	fd = FuncDeclaration::genCfunc(tint32->arrayOf(), "_adSort");
+	fd = FuncDeclaration::genCfunc(tint32->arrayOf(),
+		(char*)(n->ty == Tbit ? "_adSortBit" : "_adSort"));
 	ec = new VarExp(0, fd);
 	e = e->castTo(n->arrayOf());		// convert to dynamic array
 	arguments = new Array();
 	arguments->push(e);
-	arguments->push(n->ty == Tsarray ? n->getTypeInfo(sc)	// don't convert to dynamic array
-					 : n->getInternalTypeInfo(sc));
+	if (next->ty != Tbit)
+	    arguments->push(n->ty == Tsarray
+			? n->getTypeInfo(sc)	// don't convert to dynamic array
+			: n->getInternalTypeInfo(sc));
 	e = new CallExp(e->loc, ec, arguments);
 	e->type = next->arrayOf();
     }
