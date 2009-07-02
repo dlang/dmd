@@ -407,6 +407,8 @@ dt_t **IntegerExp::toDt(dt_t **pdt)
     return pdt;
 }
 
+static char zeropad[2];
+
 dt_t **RealExp::toDt(dt_t **pdt)
 {
     d_float32 fvalue;
@@ -429,6 +431,9 @@ dt_t **RealExp::toDt(dt_t **pdt)
 	case Tfloat80:
 	    evalue = value;
 	    pdt = dtnbytes(pdt,10,(char *)&evalue);
+#if TARGET_LINUX
+	    pdt = dtnbytes(pdt,2,zeropad);
+#endif
 	    break;
 
 	default:
@@ -461,6 +466,9 @@ dt_t **ImaginaryExp::toDt(dt_t **pdt)
 	case Timaginary80:
 	    evalue = value;
 	    pdt = dtnbytes(pdt,10,(char *)&evalue);
+#if TARGET_LINUX
+	    pdt = dtnbytes(pdt,2,zeropad);
+#endif
 	    break;
 
 	default:
@@ -495,8 +503,14 @@ dt_t **ComplexExp::toDt(dt_t **pdt)
 	case Tcomplex80:
 	    evalue = creall(value);
 	    pdt = dtnbytes(pdt,10,(char *)&evalue);
+#if TARGET_LINUX
+	    pdt = dtnbytes(pdt,2,zeropad);
+#endif
 	    evalue = cimagl(value);
 	    pdt = dtnbytes(pdt,10,(char *)&evalue);
+#if TARGET_LINUX
+	    pdt = dtnbytes(pdt,2,zeropad);
+#endif
 	    break;
 
 	default:

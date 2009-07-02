@@ -52,7 +52,11 @@ FuncDeclaration *hasThis(Scope *sc);
  */
 
 int PTRSIZE = 4;
+#if TARGET_LINUX
+int REALSIZE = 12;
+#else
 int REALSIZE = 10;
+#endif
 int Tsize_t = Tuns32;
 int Tptrdiff_t = Tint32;
 
@@ -191,7 +195,11 @@ void Type::init()
     else
     {
 	PTRSIZE = 4;
+#if TARGET_LINUX
+	REALSIZE = 12;
+#else
 	REALSIZE = 10;
+#endif
 	Tsize_t = Tuns32;
 	Tptrdiff_t = Tint32;
     }
