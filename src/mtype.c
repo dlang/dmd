@@ -519,6 +519,10 @@ Expression *Type::dotExp(Scope *sc, Expression *e, Identifier *ident)
 	    if (v->init)
 	    {
 		e = v->init->toExpression();
+		if (e->op == TOKassign)
+		{
+		    e = ((AssignExp *)e)->e2;
+		}
 		return e;
 	    }
 	}
@@ -1265,7 +1269,24 @@ Expression *TypeArray::dotExp(Scope *sc, Expression *e, Identifier *ident)
 #if LOGDOTEXP
     printf("TypeArray::dotExp(e = '%s', ident = '%s')\n", e->toChars(), ident->toChars());
 #endif
-    if (ident == Id::reverse || ident == Id::dup)
+    if (ident == Id::reverse && (n->ty == Tchar || n->ty == Twchar))
+    {
+	Expression *ec;
+	FuncDeclaration *fd;
+	Array *arguments;
+	char *nm;
+	static char *name[2] = { "_adReverseChar", "_adReverseWchar" };
+
+	nm = name[n->ty == Twchar];
+	fd = FuncDeclaration::genCfunc(Type::tindex, nm);
+	ec = new VarExp(0, fd);
+	e = e->castTo(n->arrayOf());		// convert to dynamic array
+	arguments = new Array();
+	arguments->push(e);
+	e = new CallExp(e->loc, ec, arguments);
+	e->type = next->arrayOf();
+    }
+    else if (ident == Id::reverse || ident == Id::dup)
     {
 	Expression *ec;
 	FuncDeclaration *fd;
@@ -2612,8 +2633,18 @@ void TypeQualified::resolveHelper(Loc loc, Scope *sc,
 	    }
 	    else
 	    {
-		*pe = new VarExp(loc, v);
-		assert(!scopesym || !scopesym->isWithScopeSymbol());	// BUG: should handle this
+#if 0
+		WithScopeSymbol *withsym;
+		if (scopesym && (withsym = scopesym->isWithScopeSymbol()) != NULL)
+		{
+		    // Same as wthis.ident
+		    e = new VarExp(loc, withsym->withstate->wthis);
+		    e = new DotIdExp(loc, e, ident);
+		    //assert(0);	// BUG: should handle this
+		}
+		else
+#endif
+		    *pe = new VarExp(loc, v);
 	    }
 	    return;
 	}
@@ -3880,5 +3911,37 @@ Array *Argument::arraySyntaxCopy(Array *args)
 	}
     }
     return a;
+}
+
+char *Argument::argsTypesToChars(Array *args, int varargs)
+{   OutBuffer *buf;
+
+    buf = new OutBuffer();
+
+    buf->writeByte('(');
+    if (args)
+    {	int i;
+	OutBuffer argbuf;
+
+	for (i = 0; i < args->dim; i++)
+	{   Argument *arg;
+
+	    if (i)
+		buf->writeByte(',');
+	    arg = (Argument *)args->data[i];
+	    argbuf.reset();
+	    arg->type->toCBuffer2(&argbuf, NULL);
+	    buf->write(&argbuf);
+	}
+	if (varargs)
+	{
+	    if (i)
+		buf->writeByte(',');
+	    buf->writestring("...");
+	}
+    }
+    buf->writeByte(')');
+
+    return buf->toChars();
 }
 

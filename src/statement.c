@@ -1246,6 +1246,11 @@ Statement *CaseStatement::semantic(Scope *sc)
 
 	exp = exp->implicitCastTo(sw->condition->type);
 	exp = exp->constFold();
+	if (exp->op != TOKstring && exp->op != TOKint64)
+	{
+	    error("case must be a string or an integral constant, not %s", exp->toChars());
+	    exp = new IntegerExp(0);
+	}
 
 	for (i = 0; i < sw->cases->dim; i++)
 	{

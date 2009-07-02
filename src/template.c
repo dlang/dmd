@@ -1477,9 +1477,12 @@ void TemplateInstance::semanticTiargs(Scope *sc)
 		tiargs->data[j] = ea;
 	    else if (sa)
 		tiargs->data[j] = sa;
-	    else
-	    {	assert(ta);
+	    else if (ta)
 		tiargs->data[j] = ta;
+	    else
+	    {
+		assert(global.errors);
+		tiargs->data[j] = Type::terror;
 	    }
 	}
 	else

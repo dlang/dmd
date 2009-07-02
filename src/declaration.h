@@ -293,7 +293,7 @@ struct FuncDeclaration : Declaration
     LabelDsymbol *searchLabel(Identifier *ident);
     AggregateDeclaration *isThis();
     AggregateDeclaration *isMember2();
-    int getLevel(FuncDeclaration *fd);	// lexical nesting level difference
+    int getLevel(Loc loc, FuncDeclaration *fd);	// lexical nesting level difference
     void appendExp(Expression *e);
     void appendState(Statement *s);
     char *mangle();
@@ -310,7 +310,7 @@ struct FuncDeclaration : Declaration
     virtual int addPreInvariant();
     virtual int addPostInvariant();
     void inlineScan();
-    int canInline();
+    int canInline(int hasthis);
     Expression *doInline(InlineScanState *iss, Expression *ethis, Array *arguments);
     char *kind();
 

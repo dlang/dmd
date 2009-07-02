@@ -32,6 +32,7 @@
 struct InlineCostState
 {
     int nested;
+    int hasthis;
     FuncDeclaration *fd;
 };
 
@@ -130,7 +131,7 @@ int Expression::inlineCost(InlineCostState *ics)
 int ThisExp::inlineCost(InlineCostState *ics)
 {
     FuncDeclaration *fd = ics->fd;
-    if (fd->isNested())
+    if (fd->isNested() || !ics->hasthis)
 	return COST_MAX;
     return 1;
 }
@@ -138,7 +139,7 @@ int ThisExp::inlineCost(InlineCostState *ics)
 int SuperExp::inlineCost(InlineCostState *ics)
 {
     FuncDeclaration *fd = ics->fd;
-    if (fd->isNested())
+    if (fd->isNested() || !ics->hasthis)
 	return COST_MAX;
     return 1;
 }
@@ -843,7 +844,7 @@ Expression *CallExp::inlineScan(InlineScanState *iss)
 	VarExp *ve = (VarExp *)e1;
 	FuncDeclaration *fd = ve->var->isFuncDeclaration();
 
-	if (fd && fd != iss->fd && fd->canInline())
+	if (fd && fd != iss->fd && fd->canInline(0))
 	{
 	    e = fd->doInline(iss, NULL, arguments);
 	}
@@ -853,7 +854,7 @@ Expression *CallExp::inlineScan(InlineScanState *iss)
 	DotVarExp *dve = (DotVarExp *)e1;
 	FuncDeclaration *fd = dve->var->isFuncDeclaration();
 
-	if (fd && fd != iss->fd && fd->canInline())
+	if (fd && fd != iss->fd && fd->canInline(1))
 	{
 	    e = fd->doInline(iss, dve->e1, arguments);
 	}
@@ -913,7 +914,7 @@ void FuncDeclaration::inlineScan()
     }
 }
 
-int FuncDeclaration::canInline()
+int FuncDeclaration::canInline(int hasthis)
 {
     InlineCostState ics;
     int cost;
@@ -988,6 +989,7 @@ int FuncDeclaration::canInline()
     }
 
     memset(&ics, 0, sizeof(ics));
+    ics.hasthis = hasthis;
     ics.fd = this;
     cost = fbody->inlineCost(&ics);
 #if CANINLINE_LOG

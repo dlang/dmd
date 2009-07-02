@@ -309,6 +309,8 @@ void Dsymbol::error(const char *format, ...)
 void Dsymbol::error(Loc loc, const char *format, ...)
 {
     char *p = loc.toChars();
+    if (!*p)
+	p = locToChars();
 
     if (*p)
 	printf("%s: ", p);

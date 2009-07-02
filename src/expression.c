@@ -1059,7 +1059,7 @@ Lagain:
 		if (ei)
 		{
 		    e = ei->exp->copy();	// make copy so we can change loc
-		    if (e->op == TOKstring)
+		    if (e->op == TOKstring || !e->type)
 			e = e->semantic(sc);
 //printf("test5\n");
 //e->print();
@@ -1193,7 +1193,7 @@ Expression *ThisExp::semantic(Scope *sc)
     type = var->type;
     if (fd != fdthis)		// if nested
     {
-	fdthis->getLevel(fd);
+	fdthis->getLevel(loc, fd);
 	fd->vthis->nestedref = 1;
 	fd->nestedFrameRef = 1;
     }
@@ -1268,7 +1268,7 @@ Expression *SuperExp::semantic(Scope *sc)
 
     if (fd != fdthis)
     {
-	fdthis->getLevel(fd);
+	fdthis->getLevel(loc, fd);
 	fd->vthis->nestedref = 1;
 	fd->nestedFrameRef = 1;
     }
@@ -1863,7 +1863,7 @@ Expression *VarExp::semantic(Scope *sc)
 	    if (fdv && fdthis)
 	    {	int level;
 
-		level = fdthis->getLevel(fdv);
+		level = fdthis->getLevel(loc, fdv);
 		v->nestedref = 1;
 		fdv->nestedFrameRef = 1;
 	    }
@@ -3949,6 +3949,8 @@ Expression *AssignExp::semantic(Scope *sc)
 	e = e->semantic(sc);
 	return e;
     }
+
+    e2->rvalue();
 
     if (e1->op == TOKarraylength)
     {

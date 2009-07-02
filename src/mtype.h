@@ -1,5 +1,5 @@
 
-// Copyright (c) 1999-2003 by Digital Mars
+// Copyright (c) 1999-2005 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // www.digitalmars.com
@@ -579,6 +579,7 @@ struct Argument : Object
     Argument(enum InOut inout, Type *type, Identifier *ident, Expression *defaultArg);
     Argument *syntaxCopy();
     static Array *arraySyntaxCopy(Array *args);
+    static char *argsTypesToChars(Array *args, int varargs);
 };
 
 extern int PTRSIZE;

@@ -906,7 +906,9 @@ void overloadResolveX(Match *m, FuncDeclaration *fstart, Array *arguments)
 		break;
 	}
 	else
-	    assert(0);
+	{   d->error("is aliased to a function");
+	    break;
+	}
     }
 }
 
@@ -939,12 +941,8 @@ if (arguments)
     {
 	return m.lastf;
     }
-    else if (m.last == MATCHnomatch)
+    else
     {
-	OutBuffer tbuf;
-	tf = (TypeFunction *)type;
-	tf->argsToCBuffer(&tbuf);
-
 	OutBuffer buf;
 
 	if (arguments)
@@ -952,7 +950,7 @@ if (arguments)
 	    OutBuffer argbuf;
 
 	    for (i = 0; i < arguments->dim; i++)
-	    {	Expression *arg;
+	    {   Expression *arg;
 
 		arg = (Expression *)arguments->data[i];
 		argbuf.reset();
@@ -964,17 +962,33 @@ if (arguments)
 	    }
 	}
 
-	error(loc, "%s does not match argument types (%s)",
-	    tbuf.toChars(), buf.toChars());
-	return m.anyf;		// as long as it's not a FuncAliasDeclaration
-    }
-    else
-    {
-	error(loc, "overloads %s and %s both match argument list for %s",
-		m.lastf->type->toChars(),
-		m.nextf->type->toChars(),
-		m.lastf->toChars());
-	return m.lastf;
+	if (m.last == MATCHnomatch)
+	{
+	    tf = (TypeFunction *)type;
+
+	    error(loc, "%s does not match argument types (%s)",
+		Argument::argsTypesToChars(tf->arguments, tf->varargs),
+		buf.toChars());
+	    return m.anyf;		// as long as it's not a FuncAliasDeclaration
+	}
+	else
+	{
+#if 1
+	    TypeFunction *t1 = (TypeFunction *)m.lastf->type;
+	    TypeFunction *t2 = (TypeFunction *)m.nextf->type;
+
+	    error(loc, "called with argument types:\n\t(%s)\nmatches both:\n\t%s%s\nand:\n\t%s%s",
+		    buf.toChars(),
+		    m.lastf->toPrettyChars(), Argument::argsTypesToChars(t1->arguments, t1->varargs),
+		    m.nextf->toPrettyChars(), Argument::argsTypesToChars(t2->arguments, t2->varargs));
+#else
+	    error(loc, "overloads %s and %s both match argument list for %s",
+		    m.lastf->type->toChars(),
+		    m.nextf->type->toChars(),
+		    m.lastf->toChars());
+#endif
+	    return m.lastf;
+	}
     }
 }
 
@@ -1042,7 +1056,7 @@ AggregateDeclaration *FuncDeclaration::isMember2()
  *	>0	decrease nesting by number
  */
 
-int FuncDeclaration::getLevel(FuncDeclaration *fd)
+int FuncDeclaration::getLevel(Loc loc, FuncDeclaration *fd)
 {   int level;
     FuncDeclaration *thisfd;
     Dsymbol *s;
@@ -1057,7 +1071,7 @@ int FuncDeclaration::getLevel(FuncDeclaration *fd)
     {
 	if (!thisfd || !thisfd->isNested())
 	{
-	    error("cannot access frame of function %s", fd->toChars());
+	    error(loc, "cannot access frame of function %s", fd->toChars());
 	    break;
 	}
 	s = thisfd->toParent();
@@ -1240,7 +1254,15 @@ FuncLiteralDeclaration::FuncLiteralDeclaration(Loc loc, Loc endloc, Type *type,
 	enum TOK tok, ForeachStatement *fes)
     : FuncDeclaration(loc, endloc, NULL, STCundefined, type)
 {
-    this->ident = Identifier::generateId("__funclit");
+    char *id;
+
+    if (fes)
+	id = "__foreachbody";
+    else if (tok == TOKdelegate)
+	id = "__dgliteral";
+    else
+	id = "__funcliteral";
+    this->ident = Identifier::generateId(id);
     this->tok = tok;
     this->fes = fes;
 }

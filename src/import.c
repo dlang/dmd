@@ -80,14 +80,22 @@ void Import::semantic(Scope *sc)
 
 	// Modules need a list of each imported module
 	sc->module->aimports.push(mod);
+
+	if (mod->needmoduleinfo)
+	    sc->module->needmoduleinfo = 1;
     }
     if (!pkg)
 	pkg = mod;
+
+//    if (sc->module)
+//	sc->module->needmoduleinfo = 1;
 }
 
 void Import::semantic2(Scope *sc)
 {
     mod->semantic2();
+    if (mod->needmoduleinfo)
+	sc->module->needmoduleinfo = 1;
 }
 
 Dsymbol *Import::search(Identifier *ident, int flags)

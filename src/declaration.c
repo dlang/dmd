@@ -400,9 +400,15 @@ void VarDeclaration::semantic(Scope *sc)
 
     Type *tb = type->toBasetype();
     if (tb->ty == Tvoid)
-	error("voids have no value");
+    {	error("voids have no value");
+	type = Type::terror;
+	tb = type;
+    }
     if (tb->ty == Tfunction)
-	error("cannot be declared to be a function %s", tb->toChars());
+    {	error("cannot be declared to be a function");
+	type = Type::terror;
+	tb = type;
+    }
 
     if (isConst())
     {

@@ -36,6 +36,8 @@
 #include "outbuf.h"
 #include "irstate.h"
 
+void obj_lzext(Symbol *s1,Symbol *s2);
+
 /* ================================================================== */
 
 // Put out instance of ModuleInfo for this Module
@@ -136,7 +138,10 @@ void Module::genmoduleinfo()
 
 	m = (Module *)aimports.data[i];
 	if (m->needModuleInfo())
-	    dtxoff(&dt, m->toSymbol(), 0, TYnptr);
+	{   Symbol *s = m->toSymbol();
+	    s->Sflags |= SFLweak;
+	    dtxoff(&dt, s, 0, TYnptr);
+	}
     }
 
     for (i = 0; i < aclasses.dim; i++)
