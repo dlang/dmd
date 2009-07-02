@@ -35,6 +35,7 @@ Dsymbol::Dsymbol()
     this->parent = NULL;
     this->csym = NULL;
     this->isym = NULL;
+    this->loc = 0;
 }
 
 Dsymbol::Dsymbol(Identifier *ident)
@@ -45,6 +46,7 @@ Dsymbol::Dsymbol(Identifier *ident)
     this->parent = NULL;
     this->csym = NULL;
     this->isym = NULL;
+    this->loc = 0;
 }
 
 int Dsymbol::equals(Object *o)
@@ -114,7 +116,7 @@ char *Dsymbol::locToChars()
 
     Module *m = getModule();
 
-    if (m)
+    if (m && m->srcfile)
 	loc.filename = m->srcfile->toChars();
     return loc.toChars();
 }
@@ -636,10 +638,10 @@ DsymbolTable::~DsymbolTable()
 Dsymbol *DsymbolTable::lookup(Identifier *ident)
 {   StringValue *sv;
 
-//#ifdef DEBUG
+#ifdef DEBUG
     assert(ident);
     assert(tab);
-//#endif
+#endif
     sv = tab->lookup((char*)ident->string, ident->len);
     return (Dsymbol *)(sv ? sv->ptrvalue : NULL);
 }

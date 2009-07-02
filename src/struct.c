@@ -234,6 +234,8 @@ void StructDeclaration::semantic(Scope *sc)
     handle = type->pointerTo();
     structalign = sc->structalign;
     assert(!isAnonymous());
+    if (sc->stc & STCabstract)
+	error("structs, unions cannot be abstract");
 
     if (sizeok == 0)		// if not already done the addMember step
     {
@@ -250,7 +252,7 @@ void StructDeclaration::semantic(Scope *sc)
     sc2->parent = this;
     if (isUnionDeclaration())
 	sc2->inunion = 1;
-    sc2->stc &= ~(STCauto | STCstatic);
+    sc2->stc = 0;
     int members_dim = members->dim;
     for (i = 0; i < members_dim; i++)
     {

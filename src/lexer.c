@@ -48,6 +48,9 @@ extern "C" char * __cdecl __locale_decpoint;
 extern int isUniAlpha(unsigned u);
 extern int HtmlNamedEntity(unsigned char *p, int length);
 
+#define LS 0x2028	// UTF line separator
+#define PS 0x2029	// UTF paragraph separator
+
 /********************************************
  * Do our own char maps
  */
@@ -504,7 +507,10 @@ void Lexer::scan(Token *t)
 
 				    default:
 					if (c & 0x80)
-					    decodeUTF();
+					{   unsigned u = decodeUTF();
+					    if (u == PS || u == LS)
+						loc.linnum++;
+					}
 					p++;
 					continue;
 				}
@@ -537,7 +543,10 @@ void Lexer::scan(Token *t)
 
 				default:
 				    if (c & 0x80)
-					decodeUTF();
+				    {   unsigned u = decodeUTF();
+					if (u == PS || u == LS)
+					    break;
+				    }
 				    continue;
 			    }
 			    break;
@@ -594,7 +603,10 @@ void Lexer::scan(Token *t)
 
 				default:
 				    if (c & 0x80)
-					decodeUTF();
+				    {   unsigned u = decodeUTF();
+					if (u == PS || u == LS)
+					    loc.linnum++;
+				    }
 				    p++;
 				    continue;
 			    }
@@ -846,9 +858,18 @@ void Lexer::scan(Token *t)
 	    {	unsigned char c = *p;
 
 		if (c & 0x80)
-		{   // Check for start of unicode identifier
-		    if (isUniAlpha(decodeUTF()))
+		{   unsigned u = decodeUTF();
+
+		    // Check for start of unicode identifier
+		    if (isUniAlpha(u))
 			goto case_ident;
+
+		    if (u == PS || u == LS)
+		    {
+			loc.linnum++;
+			p++;
+			continue;
+		    }
 		}
 		if (isprint(c))
 		    error("unsupported char '%c'", c);
@@ -1025,6 +1046,13 @@ TOK Lexer::wysiwygStringConstant(Token *t, int tc)
 		break;
 
 	    default:
+		if (c & 0x80)
+		{   p--;
+		    unsigned u = decodeUTF();
+		    p++;
+		    if (u == PS || u == LS)
+			loc.linnum++;
+		}
 		break;
 	}
 	stringbuffer.writeByte(c);
@@ -1088,6 +1116,15 @@ TOK Lexer::hexStringConstant(Token *t)
 		    c -= 'a' - 10;
 		else if (c >= 'A' && c <= 'F')
 		    c -= 'A' - 10;
+		else if (c & 0x80)
+		{   p--;
+		    unsigned u = decodeUTF();
+		    p++;
+		    if (u == PS || u == LS)
+			loc.linnum++;
+		    else
+			error("non-hex character \\u%x", u);
+		}
 		else
 		    error("non-hex character '%c'", c);
 		if (n & 1)
@@ -1163,6 +1200,10 @@ TOK Lexer::escapeStringConstant(Token *t, int wide)
 		{
 		    p--;
 		    c = decodeUTF();
+		    if (c == LS || c == PS)
+		    {	c = '\n';
+			loc.linnum++;
+		    }
 		    p++;
 		    stringbuffer.writeUTF8(c);
 		    continue;
@@ -1207,6 +1248,7 @@ TOK Lexer::charConstant(Token *t, int wide)
 	    break;
 
 	case '\n':
+	L1:
 	    loc.linnum++;
 	case '\r':
 	case 0:
@@ -1221,6 +1263,8 @@ TOK Lexer::charConstant(Token *t, int wide)
 		p--;
 		c = decodeUTF();
 		p++;
+		if (c == LS || c == PS)
+		    goto L1;
 		if (c < 0xD800 || (c >= 0xE000 && c < 0xFFFE))
 		    tk = TOKwcharv;
 		else
@@ -1848,6 +1892,7 @@ void Lexer::pragma()
 	    case 0:
 	    case 0x1A:
 	    case '\n':
+	    Lnewline:
 		loc.linnum = linnum;
 		return;
 
@@ -1889,6 +1934,11 @@ void Lexer::pragma()
 			    break;
 
 			default:
+			    if (c & 0x80)
+			    {   unsigned u = decodeUTF();
+				if (u == PS || u == LS)
+				    goto Lerr;
+			    }
 			    stringbuffer.writeByte(c);
 			    p++;
 			    continue;
@@ -1898,6 +1948,11 @@ void Lexer::pragma()
 		continue;
 
 	    default:
+		if (*p & 0x80)
+		{   unsigned u = decodeUTF();
+		    if (u == PS || u == LS)
+			goto Lnewline;
+		}
 		goto Lerr;
 	}
     }

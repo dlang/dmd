@@ -120,7 +120,8 @@ Initializer *StructInitializer::semantic(Scope *sc, Type *t)
 	    }
 	    else
 	    {
-		s = ad->symtab->lookup(id);
+		//s = ad->symtab->lookup(id);
+		s = ad->search(id, 0);
 		if (!s)
 		{
 		    error("'%s' is not a member of '%s'", id->toChars(), t->toChars());

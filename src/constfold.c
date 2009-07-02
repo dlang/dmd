@@ -311,6 +311,10 @@ Expression *DivExp::constFold()
 
 	n1 = e1->toInteger();
 	n2 = e2->toInteger();
+	if (n2 == 0)
+	{   error("divide by 0");
+	    n2 = 1;
+	}
 	if (isunsigned())
 	    n = ((d_uns64) n1) / ((d_uns64) n2);
 	else

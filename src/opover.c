@@ -400,7 +400,9 @@ FuncDeclaration *search_function(AggregateDeclaration *ad, Identifier *funcid)
     if (s)
     {	Dsymbol *s2;
 
+	//printf("search_function: s = '%s'\n", s->kind());
 	s2 = s->toAlias();
+	//printf("search_function: s2 = '%s'\n", s2->kind());
 	fd = s2->isFuncDeclaration();
 	if (fd && fd->type->ty == Tfunction)
 	    return fd;

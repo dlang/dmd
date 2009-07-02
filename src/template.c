@@ -1291,7 +1291,7 @@ void TemplateInstance::semantic(Scope *sc)
     semanticTiargs(sc);
 
     tempdecl = findTemplateDeclaration(sc);
-    if (!tempdecl)
+    if (!tempdecl || global.errors)
     {	inst = this;
 	return;		// error recovery
     }

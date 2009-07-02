@@ -99,13 +99,14 @@ struct AnonDeclaration : AttribDeclaration
 };
 
 struct PragmaDeclaration : AttribDeclaration
-{   Identifier *ident;
+{
     Array *args;		// array of Expression's
 
-    PragmaDeclaration(Identifier *ident, Array *args, Array *decl);
+    PragmaDeclaration(Loc loc, Identifier *ident, Array *args, Array *decl);
     Dsymbol *syntaxCopy(Dsymbol *s);
     void semantic(Scope *sc);
     void toCBuffer(OutBuffer *buf);
+    char *kind();
     void toObjFile();			// compile to .obj file
 };
 

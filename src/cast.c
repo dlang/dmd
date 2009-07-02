@@ -933,6 +933,16 @@ Expression *BinExp::typeCombine()
 	else
 	    goto Lincompatible;
     }
+    else if ((t1->ty == Tsarray || t1->ty == Tarray) &&
+	     e2->op == TOKnull && t2->ty == Tpointer && t2->next->ty == Tvoid)
+    {
+	goto Lx1;
+    }
+    else if ((t2->ty == Tsarray || t2->ty == Tarray) &&
+	     e1->op == TOKnull && t1->ty == Tpointer && t1->next->ty == Tvoid)
+    {
+	goto Lx2;
+    }
     else if ((t1->ty == Tsarray || t1->ty == Tarray) && t1->implicitConvTo(t2))
     {
 	goto Lt2;
@@ -980,6 +990,7 @@ Expression *BinExp::typeCombine()
     else if (t1->ty == Tsarray && t2->ty == Tsarray &&
 	     e2->implicitConvTo(t1->next->arrayOf()))
     {
+     Lx1:
 	t = t1->next->arrayOf();
 	e1 = e1->castTo(t);
 	e2 = e2->castTo(t);
@@ -987,6 +998,7 @@ Expression *BinExp::typeCombine()
     else if (t1->ty == Tsarray && t2->ty == Tsarray &&
 	     e1->implicitConvTo(t2->next->arrayOf()))
     {
+     Lx2:
 	t = t2->next->arrayOf();
 	e1 = e1->castTo(t);
 	e2 = e2->castTo(t);

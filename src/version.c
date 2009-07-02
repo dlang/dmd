@@ -30,6 +30,14 @@ DebugSymbol::DebugSymbol(unsigned level)
     this->level = level;
 }
 
+Dsymbol *DebugSymbol::syntaxCopy(Dsymbol *s)
+{
+    assert(!s);
+    DebugSymbol *ds = new DebugSymbol(ident);
+    ds->level = level;
+    return ds;
+}
+
 void DebugSymbol::addMember(ScopeDsymbol *sd)
 {
     //printf("DebugSymbol::addMember('%s') %s\n", sd->toChars(), toChars());
@@ -90,6 +98,14 @@ VersionSymbol::VersionSymbol(unsigned level)
     : Dsymbol()
 {
     this->level = level;
+}
+
+Dsymbol *VersionSymbol::syntaxCopy(Dsymbol *s)
+{
+    assert(!s);
+    VersionSymbol *ds = new VersionSymbol(ident);
+    ds->level = level;
+    return ds;
 }
 
 void VersionSymbol::addMember(ScopeDsymbol *sd)

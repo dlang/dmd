@@ -363,6 +363,7 @@ VarDeclaration::VarDeclaration(Loc loc, Type *type, Identifier *id, Initializer 
     offset = 0;
     noauto = 0;
     nestedref = 0;
+    inuse = 0;
 }
 
 Dsymbol *VarDeclaration::syntaxCopy(Dsymbol *s)
@@ -431,6 +432,10 @@ void VarDeclaration::semantic(Scope *sc)
     else if (isOverride())
     {
 	error("override cannot be applied to variable");
+    }
+    else if (isAbstract())
+    {
+	error("abstract cannot be applied to variable");
     }
     else
     {
@@ -582,7 +587,9 @@ void VarDeclaration::semantic2(Scope *sc)
 {
     //printf("VarDeclaration::semantic2('%s')\n", toChars());
     if (init && !sc->parent->isFuncDeclaration())
-    {	init = init->semantic(sc, type);
+    {	inuse = 1;
+	init = init->semantic(sc, type);
+	inuse = 0;
     }
 }
 
@@ -739,9 +746,58 @@ TypeInfoClassDeclaration::TypeInfoClassDeclaration(Type *tinfo)
 {
 }
 
-/***************************** TypeInfoTypedefDeclaration ***********************/
+/***************************** TypeInfoTypedefDeclaration *********************/
 
 TypeInfoTypedefDeclaration::TypeInfoTypedefDeclaration(Type *tinfo)
+    : TypeInfoDeclaration(tinfo, 0)
+{
+}
+
+/***************************** TypeInfoPointerDeclaration *********************/
+
+TypeInfoPointerDeclaration::TypeInfoPointerDeclaration(Type *tinfo)
+    : TypeInfoDeclaration(tinfo, 0)
+{
+}
+
+/***************************** TypeInfoArrayDeclaration ***********************/
+
+TypeInfoArrayDeclaration::TypeInfoArrayDeclaration(Type *tinfo)
+    : TypeInfoDeclaration(tinfo, 0)
+{
+}
+
+/***************************** TypeInfoStaticArrayDeclaration *****************/
+
+TypeInfoStaticArrayDeclaration::TypeInfoStaticArrayDeclaration(Type *tinfo)
+    : TypeInfoDeclaration(tinfo, 0)
+{
+}
+
+/***************************** TypeInfoAssociativeArrayDeclaration ************/
+
+TypeInfoAssociativeArrayDeclaration::TypeInfoAssociativeArrayDeclaration(Type *tinfo)
+    : TypeInfoDeclaration(tinfo, 0)
+{
+}
+
+/***************************** TypeInfoEnumDeclaration ***********************/
+
+TypeInfoEnumDeclaration::TypeInfoEnumDeclaration(Type *tinfo)
+    : TypeInfoDeclaration(tinfo, 0)
+{
+}
+
+/***************************** TypeInfoFunctionDeclaration ********************/
+
+TypeInfoFunctionDeclaration::TypeInfoFunctionDeclaration(Type *tinfo)
+    : TypeInfoDeclaration(tinfo, 0)
+{
+}
+
+/***************************** TypeInfoDelegateDeclaration ********************/
+
+TypeInfoDelegateDeclaration::TypeInfoDelegateDeclaration(Type *tinfo)
     : TypeInfoDeclaration(tinfo, 0)
 {
 }

@@ -64,6 +64,7 @@ Module::Module(char *filename, Identifier *ident)
     stest = NULL;
     sfilename = NULL;
     importedFrom = this;
+    srcfile = NULL;
 
     debuglevel = 0;
     debugids = NULL;

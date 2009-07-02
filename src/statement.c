@@ -325,6 +325,7 @@ Statement *CompoundStatement::semantic(Scope *sc)
 			s = s->semantic(sc);
 			statements->data[i + 1] = s;
 			statements->setDim(i + 2);
+			break;
 		    }
 		}
 	    }
@@ -1141,7 +1142,7 @@ Statement *PragmaStatement::syntaxCopy()
 }
 
 Statement *PragmaStatement::semantic(Scope *sc)
-{
+{   // Should be merged with PragmaDeclaration
     if (ident == Id::msg)
     {
         if (args)
@@ -1157,10 +1158,24 @@ Statement *PragmaStatement::semantic(Scope *sc)
                     printf("%.*s", se->len, se->string);
                 }
                 else
-                    error("string expected for pragma msg, not '%s'", e->toChars());
+		    error("string expected for message, not '%s'", e->toChars());
             }
             printf("\n");
         }
+    }
+    else if (ident == Id::lib)
+    {
+	if (!args || args->dim != 1)
+	    error("string expected for library name");
+	else
+	{
+	    Expression *e = (Expression *)args->data[0];
+
+	    e = e->semantic(sc);
+	    args->data[0] = (void *)e;
+	    if (e->op != TOKstring)
+		error("string expected for library name, not '%s'", e->toChars());
+	}
     }
     else
         error("unrecognized pragma(%s)", ident->toChars());
@@ -1237,6 +1252,8 @@ Statement *SwitchStatement::syntaxCopy()
 
 Statement *SwitchStatement::semantic(Scope *sc)
 {
+    //printf("SwitchStatement::semantic(%p)\n", this);
+    assert(!cases);		// ensure semantic() is only run once
     condition = condition->semantic(sc);
     condition = resolveProperties(sc, condition);
     if (condition->type->isString())
@@ -1445,7 +1462,9 @@ Statement *DefaultStatement::semantic(Scope *sc)
     if (sc->sw)
     {
 	if (sc->sw->sdefault)
+	{
 	    error("switch statement already has a default");
+	}
 	sc->sw->sdefault = this;
     }
     else

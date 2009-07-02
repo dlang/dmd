@@ -69,17 +69,41 @@ ClassDeclaration::ClassDeclaration(Loc loc, Identifier *id, Array *baseclasses)
 	Module::moduleinfo = this;
 
     // BUG: What if this is the wrong TypeInfo, i.e. it is nested?
-    if (!Type::typeinfo && id == Id::TypeInfo)
-	Type::typeinfo = this;
+    if (id->toChars()[0] == 'T')
+    {
+	if (!Type::typeinfo && id == Id::TypeInfo)
+	    Type::typeinfo = this;
 
-    if (!Type::typeinfoclass && id == Id::TypeInfo_Class)
-	Type::typeinfoclass = this;
+	if (!Type::typeinfoclass && id == Id::TypeInfo_Class)
+	    Type::typeinfoclass = this;
 
-    if (!Type::typeinfostruct && id == Id::TypeInfo_Struct)
-	Type::typeinfostruct = this;
+	if (!Type::typeinfostruct && id == Id::TypeInfo_Struct)
+	    Type::typeinfostruct = this;
 
-    if (!Type::typeinfotypedef && id == Id::TypeInfo_Typedef)
-	Type::typeinfotypedef = this;
+	if (!Type::typeinfotypedef && id == Id::TypeInfo_Typedef)
+	    Type::typeinfotypedef = this;
+
+	if (!Type::typeinfopointer && id == Id::TypeInfo_Pointer)
+	    Type::typeinfopointer = this;
+
+	if (!Type::typeinfoarray && id == Id::TypeInfo_Array)
+	    Type::typeinfoarray = this;
+
+	if (!Type::typeinfostaticarray && id == Id::TypeInfo_StaticArray)
+	    Type::typeinfostaticarray = this;
+
+	if (!Type::typeinfoassociativearray && id == Id::TypeInfo_AssociativeArray)
+	    Type::typeinfoassociativearray = this;
+
+	if (!Type::typeinfoenum && id == Id::TypeInfo_Enum)
+	    Type::typeinfoenum = this;
+
+	if (!Type::typeinfofunction && id == Id::TypeInfo_Function)
+	    Type::typeinfofunction = this;
+
+	if (!Type::typeinfodelegate && id == Id::TypeInfo_Delegate)
+	    Type::typeinfodelegate = this;
+    }
 
     com = 0;
 #if 0
@@ -349,9 +373,9 @@ void ClassDeclaration::semantic(Scope *sc)
     if (dtor && dtor->toParent() != this)
 	dtor = NULL;
 
-    inv = (InvariantDeclaration *)search(Id::classInvariant, 0);
-    if (inv && inv->toParent() != this)
-	inv = NULL;
+//    inv = (InvariantDeclaration *)search(Id::classInvariant, 0);
+//    if (inv && inv->toParent() != this)
+//	inv = NULL;
 
     // Can be in base class
     aggNew    = (NewDeclaration *)search(Id::classNew, 0);

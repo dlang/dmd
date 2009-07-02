@@ -335,7 +335,7 @@ Array *Parser::parseDeclDefs(int once)
 		    a = NULL;
 		else
 		    a = parseBlock();
-		s = new PragmaDeclaration(ident, args, a);
+		s = new PragmaDeclaration(loc, ident, args, a);
 		break;
 	    }
 
@@ -818,7 +818,8 @@ Array *Parser::parseParameters(int *pvarargs)
 		}
 		else
 		{   if (hasdefault)
-			error("default argument expected for parameter '%s'", ai->toChars());
+			error("default argument expected for %s",
+				ai ? ai->toChars() : at->toChars());
 		    ae = NULL;
 		}
 		a = new Argument(inout, at, ai, ae);

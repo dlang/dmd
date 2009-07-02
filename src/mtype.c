@@ -62,6 +62,13 @@ ClassDeclaration *Type::typeinfo;
 ClassDeclaration *Type::typeinfoclass;
 ClassDeclaration *Type::typeinfostruct;
 ClassDeclaration *Type::typeinfotypedef;
+ClassDeclaration *Type::typeinfopointer;
+ClassDeclaration *Type::typeinfoarray;
+ClassDeclaration *Type::typeinfostaticarray;
+ClassDeclaration *Type::typeinfoassociativearray;
+ClassDeclaration *Type::typeinfoenum;
+ClassDeclaration *Type::typeinfofunction;
+ClassDeclaration *Type::typeinfodelegate;
 
 Type *Type::basic[TMAX];
 unsigned char Type::mangleChar[TMAX];
@@ -468,6 +475,9 @@ int Type::implicitConvTo(Type *to)
 Expression *Type::getProperty(Loc loc, Identifier *ident)
 {   Expression *e;
 
+#if LOGDOTEXP
+    printf("Type::getProperty(type = '%s', ident = '%s')\n", toChars(), ident->toChars());
+#endif
     if (ident == Id::__sizeof)
     {
 	e = new IntegerExp(loc, size(loc), Type::tsize_t);
@@ -1276,6 +1286,11 @@ int TypeBasic::implicitConvTo(Type *to)
 	// Disallow implicit conversion from complex to non-complex
 	if (flags & TFLAGScomplex && !(tob->flags & TFLAGScomplex))
 	    return MATCHnomatch;
+
+	// Allow implicit conversion of real or imaginary to complex
+	if (flags & (TFLAGSreal | TFLAGSimaginary) &&
+	    tob->flags & TFLAGScomplex)
+	    return MATCHconvert;
 
 	// Disallow implicit conversion to-from real and imaginary
 	if ((flags & (TFLAGSreal | TFLAGSimaginary)) !=
@@ -2806,8 +2821,10 @@ Dsymbol *TypeIdentifier::toDsymbol(Scope *sc)
     Dsymbol *s;
     Dsymbol *scopesym;
 
+    //printf("TypeIdentifier::toDsymbol('%s')\n", toChars());
     if (!sc)
 	return NULL;
+    //printf("ident = '%s'\n", ident->toChars());
     s = sc->search(ident, &scopesym);
     if (s)
     {
@@ -2817,6 +2834,7 @@ Dsymbol *TypeIdentifier::toDsymbol(Scope *sc)
 	    Dsymbol *sm;
 
 	    id = (Identifier *)idents.data[i];
+	    //printf("\tid = '%s'\n", id->toChars());
 	    if (id->dyncast() != DYNCAST_IDENTIFIER)
 	    {
 		// It's a template instance
@@ -3131,12 +3149,10 @@ Type *TypeEnum::toBasetype()
 }
 
 void TypeEnum::toDecoBuffer(OutBuffer *buf)
-{   unsigned len;
-    char *name;
+{   char *name;
 
-    name = sym->toChars();
-    len = strlen(name);
-    buf->printf("%c%d%s", mangleChar[ty], len, name);
+    name = sym->mangle();
+    buf->printf("%c%s", mangleChar[ty], name);
 }
 
 void TypeEnum::toTypeInfoBuffer(OutBuffer *buf)

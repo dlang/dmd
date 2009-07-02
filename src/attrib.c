@@ -556,9 +556,10 @@ char *AnonDeclaration::kind()
 
 /********************************* PragmaDeclaration ****************************/
 
-PragmaDeclaration::PragmaDeclaration(Identifier *ident, Array *args, Array *decl)
+PragmaDeclaration::PragmaDeclaration(Loc loc, Identifier *ident, Array *args, Array *decl)
 	: AttribDeclaration(decl)
 {
+    this->loc = loc;
     this->ident = ident;
     this->args = args;
 }
@@ -568,13 +569,14 @@ Dsymbol *PragmaDeclaration::syntaxCopy(Dsymbol *s)
     PragmaDeclaration *pd;
 
     assert(!s);
-    pd = new PragmaDeclaration(ident,
+    pd = new PragmaDeclaration(loc, ident,
 	Expression::arraySyntaxCopy(args), Dsymbol::arraySyntaxCopy(decl));
     return pd;
 }
 
 void PragmaDeclaration::semantic(Scope *sc)
-{
+{   // Should be merged with PragmaStatement
+
     //printf("\tPragmaDeclaration::semantic '%s'\n",toChars());
     if (ident == Id::msg)
     {
@@ -591,7 +593,7 @@ void PragmaDeclaration::semantic(Scope *sc)
 		    printf("%.*s", se->len, se->string);
 		}
 		else
-		    error("string expected for pragma msg, not '%s'", e->toChars());
+		    error("string expected for message, not '%s'", e->toChars());
 	    }
 	    printf("\n");
 	}
@@ -599,7 +601,7 @@ void PragmaDeclaration::semantic(Scope *sc)
     else if (ident == Id::lib)
     {
 	if (!args || args->dim != 1)
-	    error("string argument expected for pragma(lib, \"libname\")");
+	    error("string expected for library name");
 	else
 	{
 	    Expression *e = (Expression *)args->data[0];
@@ -607,7 +609,7 @@ void PragmaDeclaration::semantic(Scope *sc)
 	    e = e->semantic(sc);
 	    args->data[0] = (void *)e;
 	    if (e->op != TOKstring)
-		error("string expected for pragma msg, not '%s'", e->toChars());
+		error("string expected for library name, not '%s'", e->toChars());
 	}
     }
     else
@@ -622,6 +624,11 @@ void PragmaDeclaration::semantic(Scope *sc)
 	    s->semantic(sc);
 	}
     }
+}
+
+char *PragmaDeclaration::kind()
+{
+    return "pragma";
 }
 
 void PragmaDeclaration::toObjFile()

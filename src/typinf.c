@@ -1,5 +1,4 @@
 
-
 // Copyright (c) 1999-2005 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
@@ -126,6 +125,26 @@ TypeInfoDeclaration *TypeTypedef::getTypeInfoDeclaration()
     return new TypeInfoTypedefDeclaration(this);
 }
 
+TypeInfoDeclaration *TypePointer::getTypeInfoDeclaration()
+{
+    return new TypeInfoPointerDeclaration(this);
+}
+
+TypeInfoDeclaration *TypeDArray::getTypeInfoDeclaration()
+{
+    return new TypeInfoArrayDeclaration(this);
+}
+
+TypeInfoDeclaration *TypeSArray::getTypeInfoDeclaration()
+{
+    return new TypeInfoStaticArrayDeclaration(this);
+}
+
+TypeInfoDeclaration *TypeAArray::getTypeInfoDeclaration()
+{
+    return new TypeInfoAssociativeArrayDeclaration(this);
+}
+
 TypeInfoDeclaration *TypeStruct::getTypeInfoDeclaration()
 {
     return new TypeInfoStructDeclaration(this);
@@ -134,6 +153,21 @@ TypeInfoDeclaration *TypeStruct::getTypeInfoDeclaration()
 TypeInfoDeclaration *TypeClass::getTypeInfoDeclaration()
 {
     return new TypeInfoClassDeclaration(this);
+}
+
+TypeInfoDeclaration *TypeEnum::getTypeInfoDeclaration()
+{
+    return new TypeInfoEnumDeclaration(this);
+}
+
+TypeInfoDeclaration *TypeFunction::getTypeInfoDeclaration()
+{
+    return new TypeInfoFunctionDeclaration(this);
+}
+
+TypeInfoDeclaration *TypeDelegate::getTypeInfoDeclaration()
+{
+    return new TypeInfoDelegateDeclaration(this);
 }
 
 
@@ -158,9 +192,134 @@ void TypeInfoTypedefDeclaration::toDt(dt_t **pdt)
     assert(tinfo->ty == Ttypedef);
 
     TypeTypedef *tc = (TypeTypedef *)tinfo;
+    TypedefDeclaration *sd = tc->sym;
 
-    tc->sym->basetype->getTypeInfo(NULL);
-    dtxoff(pdt, tc->sym->basetype->vtinfo->toSymbol(), 0, TYnptr);	// TypeInfo for basetype
+    /* Put out:
+     *	TypeInfo base;
+     *	char[] name;
+     */
+
+    sd->basetype->getTypeInfo(NULL);
+    dtxoff(pdt, sd->basetype->vtinfo->toSymbol(), 0, TYnptr);	// TypeInfo for basetype
+
+    char *name = sd->toPrettyChars();
+    size_t namelen = strlen(name);
+    dtdword(pdt, namelen);
+    dtabytes(pdt, TYnptr, 0, namelen + 1, name);
+}
+
+void TypeInfoEnumDeclaration::toDt(dt_t **pdt)
+{
+    //printf("TypeInfoEnumDeclaration::toDt()\n");
+    dtxoff(pdt, Type::typeinfoenum->toVtblSymbol(), 0, TYnptr); // vtbl for TypeInfo_Enum
+    dtdword(pdt, 0);			    // monitor
+
+    assert(tinfo->ty == Tenum);
+
+    TypeEnum *tc = (TypeEnum *)tinfo;
+    EnumDeclaration *sd = tc->sym;
+
+    /* Put out:
+     *	TypeInfo base;
+     *	char[] name;
+     */
+
+    sd->memtype->getTypeInfo(NULL);
+    dtxoff(pdt, sd->memtype->vtinfo->toSymbol(), 0, TYnptr);	// TypeInfo for enum members
+
+    char *name = sd->toPrettyChars();
+    size_t namelen = strlen(name);
+    dtdword(pdt, namelen);
+    dtabytes(pdt, TYnptr, 0, namelen + 1, name);
+}
+
+void TypeInfoPointerDeclaration::toDt(dt_t **pdt)
+{
+    //printf("TypeInfoPointerDeclaration::toDt()\n");
+    dtxoff(pdt, Type::typeinfopointer->toVtblSymbol(), 0, TYnptr); // vtbl for TypeInfo_Pointer
+    dtdword(pdt, 0);			    // monitor
+
+    assert(tinfo->ty == Tpointer);
+
+    TypePointer *tc = (TypePointer *)tinfo;
+
+    tc->next->getTypeInfo(NULL);
+    dtxoff(pdt, tc->next->vtinfo->toSymbol(), 0, TYnptr); // TypeInfo for type being pointed to
+}
+
+void TypeInfoArrayDeclaration::toDt(dt_t **pdt)
+{
+    //printf("TypeInfoArrayDeclaration::toDt()\n");
+    dtxoff(pdt, Type::typeinfoarray->toVtblSymbol(), 0, TYnptr); // vtbl for TypeInfo_Array
+    dtdword(pdt, 0);			    // monitor
+
+    assert(tinfo->ty == Tarray);
+
+    TypeDArray *tc = (TypeDArray *)tinfo;
+
+    tc->next->getTypeInfo(NULL);
+    dtxoff(pdt, tc->next->vtinfo->toSymbol(), 0, TYnptr); // TypeInfo for array of type
+}
+
+void TypeInfoStaticArrayDeclaration::toDt(dt_t **pdt)
+{
+    //printf("TypeInfoStaticArrayDeclaration::toDt()\n");
+    dtxoff(pdt, Type::typeinfostaticarray->toVtblSymbol(), 0, TYnptr); // vtbl for TypeInfo_StaticArray
+    dtdword(pdt, 0);			    // monitor
+
+    assert(tinfo->ty == Tsarray);
+
+    TypeSArray *tc = (TypeSArray *)tinfo;
+
+    tc->next->getTypeInfo(NULL);
+    dtxoff(pdt, tc->next->vtinfo->toSymbol(), 0, TYnptr); // TypeInfo for array of type
+
+    dtdword(pdt, tc->dim->toInteger());		// length
+}
+
+void TypeInfoAssociativeArrayDeclaration::toDt(dt_t **pdt)
+{
+    //printf("TypeInfoAssociativeArrayDeclaration::toDt()\n");
+    dtxoff(pdt, Type::typeinfoassociativearray->toVtblSymbol(), 0, TYnptr); // vtbl for TypeInfo_AssociativeArray
+    dtdword(pdt, 0);			    // monitor
+
+    assert(tinfo->ty == Taarray);
+
+    TypeAArray *tc = (TypeAArray *)tinfo;
+
+    tc->next->getTypeInfo(NULL);
+    dtxoff(pdt, tc->next->vtinfo->toSymbol(), 0, TYnptr); // TypeInfo for array of type
+
+    tc->index->getTypeInfo(NULL);
+    dtxoff(pdt, tc->index->vtinfo->toSymbol(), 0, TYnptr); // TypeInfo for array of type
+}
+
+void TypeInfoFunctionDeclaration::toDt(dt_t **pdt)
+{
+    //printf("TypeInfoFunctionDeclaration::toDt()\n");
+    dtxoff(pdt, Type::typeinfofunction->toVtblSymbol(), 0, TYnptr); // vtbl for TypeInfo_Function
+    dtdword(pdt, 0);			    // monitor
+
+    assert(tinfo->ty == Tfunction);
+
+    TypeFunction *tc = (TypeFunction *)tinfo;
+
+    tc->next->getTypeInfo(NULL);
+    dtxoff(pdt, tc->next->vtinfo->toSymbol(), 0, TYnptr); // TypeInfo for function return value
+}
+
+void TypeInfoDelegateDeclaration::toDt(dt_t **pdt)
+{
+    //printf("TypeInfoDelegateDeclaration::toDt()\n");
+    dtxoff(pdt, Type::typeinfodelegate->toVtblSymbol(), 0, TYnptr); // vtbl for TypeInfo_Delegate
+    dtdword(pdt, 0);			    // monitor
+
+    assert(tinfo->ty == Tdelegate);
+
+    TypeDelegate *tc = (TypeDelegate *)tinfo;
+
+    tc->next->next->getTypeInfo(NULL);
+    dtxoff(pdt, tc->next->next->vtinfo->toSymbol(), 0, TYnptr); // TypeInfo for delegate return value
 }
 
 void TypeInfoStructDeclaration::toDt(dt_t **pdt)
@@ -234,7 +393,8 @@ void TypeInfoStructDeclaration::toDt(dt_t **pdt)
 	if (fd)
 	    dtxoff(pdt, fd->toSymbol(), 0, TYnptr);
 	else
-	    fdx->error("must be declared as extern (D) uint toHash()");
+	    //fdx->error("must be declared as extern (D) uint toHash()");
+	    dtdword(pdt, 0);
     }
     else
 	dtdword(pdt, 0);
@@ -247,7 +407,8 @@ void TypeInfoStructDeclaration::toDt(dt_t **pdt)
 	    if (fd)
 		dtxoff(pdt, fd->toSymbol(), 0, TYnptr);
 	    else
-		fdx->error("must be declared as extern (D) int %s(%s*)", fdx->toChars(), sd->toChars());
+		//fdx->error("must be declared as extern (D) int %s(%s*)", fdx->toChars(), sd->toChars());
+		dtdword(pdt, 0);
 	}
 	else
 	    dtdword(pdt, 0);

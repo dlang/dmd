@@ -265,7 +265,8 @@ Symbol *FuncDeclaration::toSymbol()
 	id = mangle();
 #endif
 	//printf("FuncDeclaration::toSymbol(%s)\n", toChars());
-	//printf("id = '%s'\n", id);
+	//printf("\tid = '%s'\n", id);
+	//printf("\ttype = %s\n", type->toChars());
 	s = symbol_calloc(id);
 	slist_add(s);
 
@@ -282,7 +283,7 @@ Symbol *FuncDeclaration::toSymbol()
 	    t = type->toCtype();
 	}
 
-	assert(t->Tmangle == 0);
+	mangle_t msave = t->Tmangle;
 	if (isMain())
 	{
 	    t->Tty = TYnfunc;
@@ -317,6 +318,8 @@ Symbol *FuncDeclaration::toSymbol()
 		    assert(0);
 	    }
 	}
+	if (msave)
+	    assert(msave == t->Tmangle);
 	//printf("Tty = %d, mangle = x%x\n", t->Tty, t->Tmangle);
 	t->Tcount++;
 	s->Stype = t;

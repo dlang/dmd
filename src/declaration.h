@@ -151,6 +151,7 @@ struct VarDeclaration : Declaration
     unsigned offset;
     int noauto;			// no auto semantics
     int nestedref;		// referenced by a lexically nested function
+    int inuse;
 
     VarDeclaration(Loc loc, Type *t, Identifier *id, Initializer *init);
     Dsymbol *syntaxCopy(Dsymbol *);
@@ -235,6 +236,55 @@ struct TypeInfoClassDeclaration : TypeInfoDeclaration
 struct TypeInfoTypedefDeclaration : TypeInfoDeclaration
 {
     TypeInfoTypedefDeclaration(Type *tinfo);
+
+    void toDt(dt_t **pdt);
+};
+
+struct TypeInfoPointerDeclaration : TypeInfoDeclaration
+{
+    TypeInfoPointerDeclaration(Type *tinfo);
+
+    void toDt(dt_t **pdt);
+};
+
+struct TypeInfoArrayDeclaration : TypeInfoDeclaration
+{
+    TypeInfoArrayDeclaration(Type *tinfo);
+
+    void toDt(dt_t **pdt);
+};
+
+struct TypeInfoStaticArrayDeclaration : TypeInfoDeclaration
+{
+    TypeInfoStaticArrayDeclaration(Type *tinfo);
+
+    void toDt(dt_t **pdt);
+};
+
+struct TypeInfoAssociativeArrayDeclaration : TypeInfoDeclaration
+{
+    TypeInfoAssociativeArrayDeclaration(Type *tinfo);
+
+    void toDt(dt_t **pdt);
+};
+
+struct TypeInfoEnumDeclaration : TypeInfoDeclaration
+{
+    TypeInfoEnumDeclaration(Type *tinfo);
+
+    void toDt(dt_t **pdt);
+};
+
+struct TypeInfoFunctionDeclaration : TypeInfoDeclaration
+{
+    TypeInfoFunctionDeclaration(Type *tinfo);
+
+    void toDt(dt_t **pdt);
+};
+
+struct TypeInfoDelegateDeclaration : TypeInfoDeclaration
+{
+    TypeInfoDelegateDeclaration(Type *tinfo);
 
     void toDt(dt_t **pdt);
 };

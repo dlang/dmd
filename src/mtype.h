@@ -151,6 +151,13 @@ struct Type : Object
     static ClassDeclaration *typeinfoclass;
     static ClassDeclaration *typeinfostruct;
     static ClassDeclaration *typeinfotypedef;
+    static ClassDeclaration *typeinfopointer;
+    static ClassDeclaration *typeinfoarray;
+    static ClassDeclaration *typeinfostaticarray;
+    static ClassDeclaration *typeinfoassociativearray;
+    static ClassDeclaration *typeinfoenum;
+    static ClassDeclaration *typeinfofunction;
+    static ClassDeclaration *typeinfodelegate;
 
     static Type *basic[TMAX];
     static unsigned char mangleChar[TMAX];
@@ -286,6 +293,7 @@ struct TypeSArray : TypeArray
     Expression *defaultInit();
     dt_t **toDt(dt_t **pdt);
     MATCH deduceType(Type *tparam, Array *parameters, Array *atypes);
+    TypeInfoDeclaration *getTypeInfoDeclaration();
 
     type *toCtype();
     type *toCParamtype();
@@ -308,6 +316,7 @@ struct TypeDArray : TypeArray
     int implicitConvTo(Type *to);
     Expression *defaultInit();
     int builtinTypeInfo();
+    TypeInfoDeclaration *getTypeInfoDeclaration();
 
     type *toCtype();
 };
@@ -327,6 +336,7 @@ struct TypeAArray : TypeArray
     Expression *defaultInit();
     MATCH deduceType(Type *tparam, Array *parameters, Array *atypes);
     int checkBoolean();
+    TypeInfoDeclaration *getTypeInfoDeclaration();
 
     // Back end
     Symbol *aaGetSymbol(char *func, int flags);
@@ -345,6 +355,7 @@ struct TypePointer : Type
     int isscalar();
     Expression *defaultInit();
     int isZeroInit();
+    TypeInfoDeclaration *getTypeInfoDeclaration();
 
     type *toCtype();
 };
@@ -379,6 +390,7 @@ struct TypeFunction : Type
     void toCBuffer2(OutBuffer *buf, Identifier *ident);
     void argsToCBuffer(OutBuffer *buf);
     MATCH deduceType(Type *tparam, Array *parameters, Array *atypes);
+    TypeInfoDeclaration *getTypeInfoDeclaration();
 
     int callMatch(Array *toargs);
     type *toCtype();
@@ -397,6 +409,7 @@ struct TypeDelegate : Type
     Expression *defaultInit();
     int isZeroInit();
     int checkBoolean();
+    TypeInfoDeclaration *getTypeInfoDeclaration();
 
     type *toCtype();
 };
@@ -506,6 +519,7 @@ struct TypeEnum : Type
     Expression *defaultInit();
     int isZeroInit();
     MATCH deduceType(Type *tparam, Array *parameters, Array *atypes);
+    TypeInfoDeclaration *getTypeInfoDeclaration();
 
     type *toCtype();
 };

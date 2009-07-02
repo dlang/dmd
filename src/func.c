@@ -133,9 +133,9 @@ void FuncDeclaration::semantic(Scope *sc)
     {
 	// Verify no constructors, destructors, etc.
 	if (isCtorDeclaration() ||
-	    isDtorDeclaration() ||
-	    //isInvariantDeclaration() ||
-	    isUnitTestDeclaration()
+	    isDtorDeclaration()
+	    //|| isInvariantDeclaration()
+	    //|| isUnitTestDeclaration()
 	   )
 	{
 	    error("special member functions not allowed for %ss", sd->kind());
@@ -214,6 +214,9 @@ void FuncDeclaration::semantic(Scope *sc)
 	    cd->aggDelete = (DeleteDeclaration *)(this);
 	}
 #endif
+
+	if (storage_class & STCabstract)
+	    cd->isabstract = 1;
 
 	// if static function, do not put in vtbl[]
 	if (!isVirtual())
@@ -565,9 +568,19 @@ void FuncDeclaration::semantic3(Scope *sc)
 		if (isCtorDeclaration())
 		{
 		    // Call invariant directly only if it exists
-		    if (ad->inv)
+		    InvariantDeclaration *inv = ad->inv;
+		    ClassDeclaration *cd = ad->isClassDeclaration();
+
+		    while (!inv && cd)
 		    {
-			e = new DsymbolExp(0, ad->inv);
+			cd = cd->baseClass;
+			if (!cd)
+			    break;
+			inv = cd->inv;
+		    }
+		    if (inv)
+		    {
+			e = new DsymbolExp(0, inv);
 			e = new CallExp(0, e);
 			e = e->semantic(sc2);
 		    }
@@ -711,7 +724,17 @@ void FuncDeclaration::semantic3(Scope *sc)
 		if (isDtorDeclaration())
 		{
 		    // Call invariant directly only if it exists
-		    if (ad->inv)
+		    InvariantDeclaration *inv = ad->inv;
+		    ClassDeclaration *cd = ad->isClassDeclaration();
+
+		    while (!inv && cd)
+		    {
+			cd = cd->baseClass;
+			if (!cd)
+			    break;
+			inv = cd->inv;
+		    }
+		    if (inv)
 		    {
 			e = new DsymbolExp(0, ad->inv);
 			e = new CallExp(0, e);
@@ -1660,7 +1683,13 @@ void InvariantDeclaration::semantic(Scope *sc)
     if (!ad)
     {
 	error("invariants only are for struct/union/class definitions");
+	return;
     }
+    else if (ad->inv)
+    {
+	error("more than one invariant for %s", ad->toChars());
+    }
+    ad->inv = this;
     type = new TypeFunction(NULL, Type::tvoid, FALSE, LINKd);
 
     sc->incontract++;
@@ -1696,7 +1725,7 @@ static Identifier *unitTestId()
     static int n;
     char buffer[8+3*4+1];
 
-    sprintf(buffer,"unittest%d", n);
+    sprintf(buffer,"__unittest%d", n);
     n++;
     return Lexer::idPool(buffer);
 }

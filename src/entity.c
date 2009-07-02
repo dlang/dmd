@@ -293,7 +293,8 @@ int HtmlNamedEntity(unsigned char *p, int length)
     for (i = 0; i < sizeof(names) / sizeof(names[0]); i++)
     {
 	// Entries are case sensitive
-	if (memcmp(names[i].name, (char *)p, length) == 0)
+	if (memcmp(names[i].name, (char *)p, length) == 0 &&
+	    !names[i].name[length])
 	    return names[i].value;
     }
     return -1;

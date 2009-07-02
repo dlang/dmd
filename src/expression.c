@@ -1011,8 +1011,10 @@ Lagain:
     Package *pkg;
     Type *t;
 
-    //printf("DsymbolExp:: '%s' is a symbol\n", toChars());
+    //printf("DsymbolExp:: %p '%s' is a symbol\n", this, toChars());
     //printf("s = '%s', s->kind = '%s'\n", s->toChars(), s->kind());
+    if (type)
+	return this;
     if (!s->isFuncDeclaration())	// functions are checked after overloading
 	checkDeprecated(sc, s);
     s = s->toAlias();
@@ -1052,6 +1054,12 @@ Lagain:
 	{
 	    if (v->init)
 	    {
+		if (v->inuse)
+		{
+		    error("circular reference to '%s'", v->toChars());
+		    type = Type::tint32;
+		    return this;
+		}
 		ExpInitializer *ei = v->init->isExpInitializer();
 		if (ei)
 		{
@@ -2485,7 +2493,7 @@ Expression *DotIdExp::semantic(Scope *sc)
     }
     else if (e1->type->ty == Tpointer && ident != Id::size &&
 	     ident != Id::init && ident != Id::__sizeof &&
-	     ident != Id::alignof)
+	     ident != Id::alignof && ident != Id::offsetof)
     {
 	e = new PtrExp(loc, e1);
 	e->type = e1->type->next;
@@ -2958,6 +2966,8 @@ Lagain:
 	if (!cd || !cd->baseClass || !sc->func->isCtorDeclaration())
 	{
 	    error("super class constructor call must be in a constructor");
+	    type = Type::terror;
+	    return this;
 	}
 	else
 	{
@@ -3117,6 +3127,12 @@ Expression *AddrExp::semantic(Scope *sc)
     {
 	UnaExp::semantic(sc);
 	e1 = e1->toLvalue(NULL);
+	if (!e1->type)
+	{
+	    error("cannot take address of %s", e1->toChars());
+	    type = Type::tint32;
+	    return this;
+	}
 	type = e1->type->pointerTo();
 
 	// See if this should really be a delegate
@@ -3552,12 +3568,12 @@ Expression *SliceExp::semantic(Scope *sc)
     if (lwr)
     {	lwr = lwr->semantic(sc);
 	lwr = resolveProperties(sc, lwr);
-	lwr = lwr->castTo(Type::tindex);	// BUG: implicitCast?
+	lwr = lwr->implicitCastTo(Type::tindex);
     }
     if (upr)
     {	upr = upr->semantic(sc);
 	upr = resolveProperties(sc, upr);
-	upr = upr->castTo(Type::tindex);
+	upr = upr->implicitCastTo(Type::tindex);
     }
 
     if (t->ty == Tsarray || t->ty == Tarray)
@@ -4263,7 +4279,7 @@ Expression *CatAssignExp::semantic(Scope *sc)
     }
     else
     {
-	error("Can only concatenate arrays");
+	error("Can only concatenate arrays, not %s ~= %s", tb1->toChars(), tb2->toChars());
 	type = Type::tint32;
 	e = this;
     }
