@@ -320,7 +320,7 @@ void ClassDeclaration::semantic(Scope *sc)
     //    this() { }
     if (!ctor && baseClass && baseClass->ctor)
     {
-	printf("Creating default this(){} for class %s\n", toChars());
+	//printf("Creating default this(){} for class %s\n", toChars());
 	ctor = new CtorDeclaration(0, 0, NULL, 0);
 	ctor->fbody = new CompoundStatement(0, new Array());
 	members->push(ctor);

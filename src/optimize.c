@@ -142,7 +142,14 @@ Expression *CastExp::optimize(int result)
 	}
     }
 
-    return UnaExp::optimize(result);
+    Expression *e;
+
+    e1 = e1->optimize(result);
+    if (e1->isConst())
+	e = constFold();
+    else
+	e = this;
+    return e;
 }
 
 Expression *BinExp::optimize(int result)
