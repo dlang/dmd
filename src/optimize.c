@@ -1,0 +1,228 @@
+
+// Copyright (c) 1999-2002 by Digital Mars
+// All Rights Reserved
+// written by Walter Bright
+// www.digitalmars.com
+// License for redistribution is by either the Artistic License
+// in artistic.txt, or the GNU General Public License in gnu.txt.
+// See the included readme.txt for details.
+
+#include <stdio.h>
+#include <ctype.h>
+
+#include "mem.h"
+#include "root.h"
+
+#include "lexer.h"
+#include "mtype.h"
+#include "expression.h"
+
+
+
+Expression *Expression::optimize(int result)
+{
+    return this;
+}
+
+Expression *UnaExp::optimize(int result)
+{   Expression *e;
+
+    e1 = e1->optimize(result);
+    if (e1->isConst())
+	e = constFold();
+    else
+	e = this;
+    return e;
+}
+
+Expression *AddrExp::optimize(int result)
+{   Expression *e;
+
+    e1 = e1->optimize(result);
+    // Convert &*ex to ex
+    if (e1->op == TOKstar)
+    {	Expression *e;
+	Expression *ex;
+
+	ex = ((PtrExp *)e1)->e1;
+	if (type->equals(ex->type))
+	    e = ex;
+	else
+	{
+	    e = ex->copy();
+	    e->type = type;
+	}
+	return e;
+    }
+    if (e1->op == TOKvar)
+    {	VarExp *ve = (VarExp *)e1;
+	if (!ve->var->isOut())
+	{
+	    e = new SymOffExp(loc, ve->var, 0);
+	    e->type = type;
+	    return e;
+	}
+    }
+    return this;
+}
+
+Expression *PtrExp::optimize(int result)
+{
+    e1 = e1->optimize(result);
+    // Convert *&ex to ex
+    if (e1->op == TOKaddress)
+    {	Expression *e;
+	Expression *ex;
+
+	ex = ((AddrExp *)e1)->e1;
+	if (type->equals(ex->type))
+	    e = ex;
+	else
+	{
+	    e = ex->copy();
+	    e->type = type;
+	}
+	return e;
+    }
+    return this;
+}
+
+Expression *CastExp::optimize(int result)
+{
+    if (e1->op == TOKstring &&
+	(type->ty == Tpointer || type->ty == Tarray) &&
+	type->next->equals(e1->type->next)
+       )
+    {
+	e1->type = type;
+	return e1;
+    }
+    if (e1->op == TOKnull &&
+	(type->ty == Tpointer || type->ty == Tclass))
+    {
+	e1->type = type;
+	return e1;
+    }
+
+    if (result == WANTflags && type->ty == Tclass && e1->type->ty == Tclass)
+    {
+	// See if we can remove an unnecessary cast
+	ClassDeclaration *cdfrom;
+	ClassDeclaration *cdto;
+	int offset;
+
+	cdfrom = e1->type->isClassHandle();
+	cdto   = type->isClassHandle();
+	if (cdto->isBaseOf(cdfrom, &offset))
+	{
+	    e1->type = type;
+	    return e1;
+	}
+    }
+
+    return UnaExp::optimize(result);
+}
+
+Expression *BinExp::optimize(int result)
+{   Expression *e;
+
+    e1 = e1->optimize(result);
+    e2 = e2->optimize(result);
+    if (e1->isConst() && e2->isConst())
+	e = constFold();
+    else
+	e = this;
+    return e;
+}
+
+Expression *CommaExp::optimize(int result)
+{   Expression *e;
+
+    e1 = e1->optimize(0);
+    e2 = e2->optimize(result);
+    if (!e1)
+    {
+	e = e2;
+	if (e)
+	    e->type = type;
+    }
+    else
+	e = this;
+    return e;
+}
+
+Expression *AndAndExp::optimize(int result)
+{   Expression *e;
+
+    e1 = e1->optimize(WANTflags);
+    e2 = e2->optimize(WANTflags);
+    e = this;
+    if (e1->isConst())
+    {
+	if (e2->isConst())
+	    e = constFold();
+	else if (e1->isBool(FALSE))
+	    e = new IntegerExp(loc, 0, type);
+	else if (e1->isBool(TRUE))
+	    e = new BoolExp(loc, e2, type);
+    }
+    return e;
+}
+
+Expression *OrOrExp::optimize(int result)
+{   Expression *e;
+
+    e1 = e1->optimize(WANTflags);
+    e2 = e2->optimize(WANTflags);
+    e = this;
+    if (e1->isConst())
+    {
+	if (e2->isConst())
+	    e = constFold();
+	else if (e1->isBool(TRUE))
+	    e = new IntegerExp(loc, 1, type);
+	else if (e1->isBool(FALSE))
+	    e = new BoolExp(loc, e2, type);
+    }
+    return e;
+}
+
+Expression *CatExp::optimize(int result)
+{   Expression *e;
+
+    //printf("CatExp::optimize(%d)\n", result);
+    e1 = e1->optimize(result);
+    e2 = e2->optimize(result);
+    if (e1->isConst() && e2->isConst())
+	e = constFold();
+    else if (e1->op == TOKstring && e2->op == TOKstring)
+    {
+	// Concatenate the strings
+	wchar_t *s;
+	StringExp *es1 = (StringExp *)e1;
+	StringExp *es2 = (StringExp *)e2;
+	StringExp *es;
+	Type *t;
+
+	s = mem.malloc((es1->len + es2->len + 1) * sizeof(s[0]));
+	memcpy(s, es1->string, es1->len * sizeof(s[0]));
+	memcpy(s + es1->len, es2->string, es2->len * sizeof(s[0]));
+
+	// Add terminating 0
+	s[es1->len + es2->len] = 0;
+
+	es = new StringExp(loc, s, es1->len + es2->len);
+	es->committed = es1->committed | es2->committed;
+	if (es1->committed)
+	    t = es1->type;
+	else
+	    t = es2->type;
+	es->type = new TypeSArray(t->next, new IntegerExp(0, es1->len + es2->len, Type::tindex));
+	e = es;
+    }
+    else
+	e = this;
+    return e;
+}
+
+

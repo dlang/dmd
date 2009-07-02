@@ -1,0 +1,293 @@
+
+// Copyright (c) 1999-2002 by Digital Mars
+// All Rights Reserved
+// written by Walter Bright
+// www.digitalmars.com
+// License for redistribution is by either the Artistic License
+// in artistic.txt, or the GNU General Public License in gnu.txt.
+// See the included readme.txt for details.
+
+#include "mars.h"
+#include "init.h"
+#include "expression.h"
+#include "identifier.h"
+#include "declaration.h"
+
+/********************************** Initializer ************************************/
+
+Initializer::Initializer(Loc loc)
+{
+    this->loc = loc;
+}
+
+Initializer *Initializer::syntaxCopy()
+{
+    assert(0);	// BUG: implement
+    return NULL;
+}
+
+Initializer *Initializer::semantic(Scope *sc, Type *t)
+{
+    return this;
+}
+
+Array *Initializer::arraySyntaxCopy(Array *ai)
+{   Array *a = NULL;
+
+    if (ai)
+    {
+	a = new Array();
+	a->setDim(ai->dim);
+	for (int i = 0; i < a->dim; i++)
+	{   Initializer *e = (Initializer *)ai->data[i];
+
+	    e = e->syntaxCopy();
+	    a->data[i] = e;
+	}
+    }
+    return a;
+}
+
+/********************************** StructInitializer ************************************/
+
+StructInitializer::StructInitializer(Loc loc)
+    : Initializer(loc)
+{
+    ad = NULL;
+}
+
+Initializer *StructInitializer::syntaxCopy()
+{
+    StructInitializer *ai = new StructInitializer(loc);
+
+    assert(field.dim == value.dim);
+    ai->field.setDim(field.dim);
+    ai->value.setDim(value.dim);
+    for (int i = 0; i < field.dim; i++)
+    {    
+	ai->field.data[i] = field.data[i];
+
+	Initializer *init = (Initializer *)value.data[i];
+	init = init->syntaxCopy();
+	ai->value.data[i] = init;
+    }
+    return ai;
+}
+
+void StructInitializer::addInit(Identifier *field, Initializer *value)
+{
+    //printf("StructInitializer::addInit(field = %p, value = %p)\n", field, value);
+    this->field.push(field);
+    this->value.push(value);
+}
+
+Initializer *StructInitializer::semantic(Scope *sc, Type *t)
+{
+    TypeStruct *ts;
+    int errors = 0;
+
+    ts = dynamic_cast<TypeStruct *>(t);
+    if (ts)
+    {	unsigned i;
+	unsigned fieldi = 0;
+
+	ad = ts->sym;
+	for (i = 0; i < field.dim; i++)
+	{
+	    Identifier *id = (Identifier *)field.data[i];
+	    Initializer *val = (Initializer *)value.data[i];
+	    Dsymbol *s;
+	    VarDeclaration *v;
+
+	    if (id == NULL)
+	    {
+		if (fieldi >= ad->fields.dim)
+		{   error(loc, "too many initializers for %s", ad->toChars());
+		    continue;
+		}
+		else
+		{
+		    s = (Dsymbol *)ad->fields.data[fieldi];
+		}
+	    }
+	    else
+	    {
+		s = ad->symtab->lookup(id);
+
+		// Find out which field index it is
+		for (fieldi = 0; 1; fieldi++)
+		{
+		    assert(fieldi < ad->fields.dim);
+		    if (s == (Dsymbol *)ad->fields.data[fieldi])
+			break;
+		}
+	    }
+	    if (s && (v = dynamic_cast<VarDeclaration *>(s)) != NULL)
+	    {
+		val = val->semantic(sc, v->type);
+		value.data[i] = (void *)val;
+		field.data[i] = (void *)v;
+	    }
+	    else
+	    {	error(loc, "%s is not a field of %s", id ? id->toChars() : s->toChars(), ad->toChars());
+		errors = 1;
+	    }
+	    fieldi++;
+	}
+    }
+    else
+    {
+	error(loc, "a struct is not a valid initializer for a %s", t->toChars());
+	errors = 1;
+    }
+    if (errors)
+    {
+	field.setDim(0);
+	value.setDim(0);
+    }
+    return this;
+}
+
+
+Expression *StructInitializer::toExpression()
+{
+    assert(0);
+    return NULL;
+}
+
+
+void StructInitializer::toCBuffer(OutBuffer *buf)
+{
+}
+
+/********************************** ArrayInitializer ************************************/
+
+ArrayInitializer::ArrayInitializer(Loc loc)
+    : Initializer(loc)
+{
+}
+
+Initializer *ArrayInitializer::syntaxCopy()
+{
+    ArrayInitializer *ai = new ArrayInitializer(loc);
+
+    assert(index.dim == value.dim);
+    ai->index.setDim(index.dim);
+    ai->value.setDim(value.dim);
+    for (int i = 0; i < ai->dim; i++)
+    {	Expression *e = (Expression *)index.data[i];
+	e = e->syntaxCopy();
+	ai->index.data[i] = e;
+
+	Initializer *init = (Initializer *)value.data[i];
+	init = init->syntaxCopy();
+	ai->value.data[i] = init;
+    }
+    return ai;
+}
+
+void ArrayInitializer::addInit(Expression *index, Initializer *value)
+{
+    this->index.push(index);
+    this->value.push(value);
+    dim = 0;
+    type = NULL;
+}
+
+Initializer *ArrayInitializer::semantic(Scope *sc, Type *t)
+{   unsigned i;
+    unsigned length;
+
+    type = t;
+    switch (t->ty)
+    {
+	case Tpointer:
+	case Tsarray:
+	case Tarray:
+	    break;
+
+	default:
+	    error(loc, "cannot use array to initialize %s", t->toChars());
+	    return this;
+    }
+
+    length = 0;
+    for (i = 0; i < index.dim; i++)
+    {	Expression *idx;
+	Initializer *val;
+
+	idx = (Expression *)index.data[i];
+	if (idx)
+	{   idx = idx->semantic(sc);
+	    idx = idx->optimize(WANTvalue);
+	    index.data[i] = (void *)idx;
+	    length = idx->toInteger();
+	}
+
+	val = (Initializer *)value.data[i];
+	val = val->semantic(sc, t->next);
+	value.data[i] = (void *)val;
+	length++;
+	if (length > dim)
+	    dim = length;
+    }
+    return this;
+}
+
+
+Expression *ArrayInitializer::toExpression()
+{
+    assert(0);
+    return NULL;
+}
+
+
+void ArrayInitializer::toCBuffer(OutBuffer *buf)
+{
+}
+
+/********************************** ExpInitializer ************************************/
+
+ExpInitializer::ExpInitializer(Loc loc, Expression *exp)
+    : Initializer(loc)
+{
+    this->exp = exp;
+}
+
+Initializer *ExpInitializer::syntaxCopy()
+{
+    return new ExpInitializer(loc, exp->syntaxCopy());
+}
+
+Initializer *ExpInitializer::semantic(Scope *sc, Type *t)
+{
+    //printf("ExpInitializer::semantic(%s), type = %s\n", exp->toChars(), t->toChars());
+    exp = exp->semantic(sc);
+
+    // Look for the case of statically initializing an array
+    // with a single member.
+    if (t->ty == Tsarray &&
+	!t->next->equals(exp->type->next) &&
+	exp->implicitConvTo(t->next)
+       )
+    {
+	t = t->next;
+    }
+
+    exp = exp->implicitCastTo(t);
+    exp = exp->optimize(WANTvalue);
+    return this;
+}
+
+Expression *ExpInitializer::toExpression()
+{
+    return exp;
+}
+
+
+void ExpInitializer::toCBuffer(OutBuffer *buf)
+{
+    exp->toCBuffer(buf);
+}
+
+
