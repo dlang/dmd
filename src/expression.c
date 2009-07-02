@@ -446,10 +446,24 @@ void Expression::checkArithmetic()
 	error("'%s' is not an arithmetic type", toChars());
 }
 
-void Expression::checkDeprecated(Dsymbol *s)
+void Expression::checkDeprecated(Scope *sc, Dsymbol *s)
 {
     if (!global.params.useDeprecated && s->isDeprecated())
+    {
+	// Don't complain if we're inside a deprecated symbol's scope
+	for (Dsymbol *s = sc->parent; s; s = s->parent)
+	{   if (s->isDeprecated())
+		return;
+	}
+
+	for (; sc; sc = sc->enclosing)
+	{
+	    if (sc->scopesym && sc->scopesym->isDeprecated())
+		return;
+	}
+
 	error("%s %s is deprecated", s->kind(), s->toChars());
+    }
 }
 
 /*****************************
@@ -962,7 +976,8 @@ Lagain:
 
     //printf("'%s' is a symbol\n", toChars());
     s = s->toAlias();
-    checkDeprecated(s);
+    if (!s->isFuncDeclaration())
+	checkDeprecated(sc, s);
 
     if (sc->func)
 	thiscd = sc->func->parent->isClassDeclaration();
@@ -2148,7 +2163,7 @@ Expression *DotIdExp::semantic(Scope *sc)
 	if (s)
 	{
 	    s = s->toAlias();
-	    checkDeprecated(s);
+	    checkDeprecated(sc, s);
 
 	    EnumMember *em = s->isEnumMember();
 	    if (em)
@@ -2674,6 +2689,7 @@ if (arguments && arguments->dim)
 	f = dve->var->isFuncDeclaration();
 	assert(f);
 	f = f->overloadResolve(loc, arguments);
+	checkDeprecated(sc, f);
 	dve->var = f;
 	e1->type = f->type;
 	t1 = e1->type;
@@ -2782,6 +2798,7 @@ if (arguments && arguments->dim)
 	f = ve->var->isFuncDeclaration();
 	assert(f);
 	f = f->overloadResolve(loc, arguments);
+	checkDeprecated(sc, f);
 	ve->var = f;
 	ve->type = f->type;
 	t1 = f->type;
@@ -2959,6 +2976,29 @@ Expression *NegExp::semantic(Scope *sc)
 	type = e1->type;
     }
     return this;
+}
+
+/************************************************************/
+
+UAddExp::UAddExp(Loc loc, Expression *e)
+	: UnaExp(loc, TOKuadd, sizeof(UAddExp), e)
+{
+}
+
+Expression *UAddExp::semantic(Scope *sc)
+{   Expression *e;
+
+#if LOGSEMANTIC
+    printf("UAddExp::semantic('%s')\n", toChars());
+#endif
+    assert(!type);
+    UnaExp::semantic(sc);
+    e1 = resolveProperties(sc, e1);
+    e = op_overload(sc);
+    if (e)
+	return e;
+    e1->checkArithmetic();
+    return e1;
 }
 
 /************************************************************/

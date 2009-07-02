@@ -96,6 +96,7 @@ Msgtable msgtable[] =
     { "__LOCAL_SIZE" },
 
     // For operator overloads
+    { "uadd",	 "opPos" },
     { "neg",     "opNeg" },
     { "com",     "opCom" },
     { "add",     "opAdd" },

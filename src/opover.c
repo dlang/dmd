@@ -64,6 +64,8 @@ Identifier *Expression::opId_r()
 
 /************************* Operators *****************************/
 
+Identifier *UAddExp::opId()   { return Id::uadd; }
+
 Identifier *NegExp::opId()   { return Id::neg; }
 
 Identifier *ComExp::opId()   { return Id::com; }

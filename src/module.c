@@ -327,6 +327,41 @@ void Module::parse()
 	    buf += 3;
 	    buflen -= 3;
 	}
+	else
+	{
+	    /* There is no BOM. Make use of Arcane Jill's insight that
+	     * the first char of D source must be ASCII to
+	     * figure out the encoding.
+	     */
+
+	    if (buflen >= 4)
+	    {   if (buf[1] == 0 && buf[2] == 0 && buf[3] == 0)
+		{   // UTF-32LE
+		    le = 1;
+		    goto Lutf32;
+		}
+		else if (buf[0] == 0 && buf[1] == 0 && buf[2] == 0)
+		{   // UTF-32BE
+		    le = 0;
+		    goto Lutf32;
+		}
+	    }
+	    if (buflen >= 2)
+	    {
+		if (buf[1] == 0)
+		{   // UTF-16LE
+		    le = 1;
+		    goto Lutf16;
+		}
+		else if (buf[0] == 0)
+		{   // UTF-16BE
+		    le = 0;
+		    goto Lutf16;
+		}
+	    }
+
+	    // It's UTF-8
+	}
     }
 
     if (isHtml)

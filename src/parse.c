@@ -3768,6 +3768,7 @@ Expression *Parser::parseUnaryExp()
 	case TOKadd:
 	    nextToken();
 	    e = parseUnaryExp();
+	    e = new UAddExp(loc, e);
 	    break;
 
 	case TOKnot:

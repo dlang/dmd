@@ -1300,7 +1300,7 @@ void TemplateInstance::semantic(Scope *sc)
     {	Array *a;
 	int i;
 
-	if (sc->scopesym->members)
+	if (sc->scopesym && sc->scopesym->members)
 	{
 	    //printf("\tadding to %s %s\n", sc->scopesym->kind(), sc->scopesym->toChars());
 	    a = sc->scopesym->members;

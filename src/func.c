@@ -754,9 +754,10 @@ int FuncDeclaration::overloadInsert(Dsymbol *s)
 	return FALSE;
 
     if (type && f->type &&	// can be NULL for overloaded constructors
-	f->type->covariant(type))
+	f->type->covariant(type) &&
+	!isFuncAliasDeclaration())
     {
-	//printf("\tfalse: conflict\n");
+	//printf("\tfalse: conflict %s\n", kind());
 	return FALSE;
     }
 

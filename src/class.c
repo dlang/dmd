@@ -155,14 +155,13 @@ void ClassDeclaration::semantic(Scope *sc)
 	    if (tc->sym->isInterfaceDeclaration())
 		;
 	    else
-	    {   baseClass = tc->sym;
-		b->base = baseClass;
-		if (b->base == this)
+	    {
+		if (tc->sym == this)
 		{
 		    error("base class same as class");
 		    baseclasses.remove(0);
 		}
-		if (!baseClass->symtab || baseClass->scope)
+		else if (!tc->sym->symtab || tc->sym->scope)
 		{
 		    //error("forward reference of base class %s", baseClass->toChars());
 		    // Forward reference of base class, try again later
@@ -172,9 +171,50 @@ void ClassDeclaration::semantic(Scope *sc)
 		    scope->module->addDeferredSemantic(this);
 		    return;
 		}
+		else
+		{   baseClass = tc->sym;
+		    b->base = baseClass;
+		}
 	    }
 	}
     }
+
+    // Check for errors, handle forward references
+    for (i = (baseClass ? 1 : 0); i < baseclasses.dim; )
+    {	TypeClass *tc;
+	BaseClass *b;
+	Type *tb;
+
+	b = (BaseClass *)baseclasses.data[i];
+	b->type = b->type->semantic(loc, sc);
+	tb = b->type->toBasetype();
+	if (tb->ty == Tclass)
+	    tc = (TypeClass *)tb;
+	else
+	    tc = NULL;
+	if (!tc || !tc->sym->isInterfaceDeclaration())
+	{
+	    error("base type must be interface, not %s", b->type->toChars());
+	    baseclasses.remove(i);
+	    continue;
+	}
+	else
+	{
+	    b->base = tc->sym;
+	    if (!b->base->symtab || b->base->scope)
+	    {
+		//error("forward reference of base class %s", baseClass->toChars());
+		// Forward reference of base, try again later
+		//printf("\ttry later, forward reference of base %s\n", baseClass->toChars());
+		scope = scx ? scx : new Scope(*sc);
+		scope->setNoFree();
+		scope->module->addDeferredSemantic(this);
+		return;
+	    }
+	}
+	i++;
+    }
+
 
     // If no base class, and this is not an Object, use Object as base class
     if (!baseClass && ident != Id::Object)
@@ -464,26 +504,11 @@ void ClassDeclaration::interfaceSemantic(Scope *sc)
     for (i = 0; i < interfaces_dim; i++)
     {
 	BaseClass *b = interfaces[i];
-	Type *t;
-	TypeClass *tc;
-	InterfaceDeclaration *id;
 
-	t = b->type->semantic(loc, sc)->toBasetype();
-	if (t->ty == Tclass)
-	    tc = (TypeClass *)(t);
-	else
-	    tc = NULL;
-	if (!tc || !tc->sym->isInterfaceDeclaration())
-	    error("'%s' must be an interface", t->toChars());
-	else
-	{
-	    b->base = tc->sym;
-
-	    // If this is an interface, and it derives from a COM interface,
-	    // then this is a COM interface too.
-	    if (b->base->isCOMclass())
-		com = 1;
-	}
+	// If this is an interface, and it derives from a COM interface,
+	// then this is a COM interface too.
+	if (b->base->isCOMclass())
+	    com = 1;
 
 	vtblInterfaces->push(b);
 	b->copyBaseInterfaces(vtblInterfaces);
@@ -564,15 +589,69 @@ void InterfaceDeclaration::semantic(Scope *sc)
 {   int i;
 
     //printf("InterfaceDeclaration::semantic(%s), type = %p\n", toChars(), type);
-    type = type->semantic(loc, sc);
-    handle = handle->semantic(loc, sc);
+    if (!scope)
+    {	type = type->semantic(loc, sc);
+	handle = handle->semantic(loc, sc);
+    }
     if (!members)			// if forward reference
     {	//printf("\tinterface '%s' is forward referenced\n", toChars());
 	return;
     }
     if (symtab)			// if already done
-	return;
-    symtab = new DsymbolTable();
+    {	if (!scope)
+	    return;
+    }
+    else
+	symtab = new DsymbolTable();
+
+    Scope *scx = NULL;
+    if (scope)
+    {	sc = scope;
+	scx = scope;		// save so we don't make redundant copies
+	scope = NULL;
+    }
+
+    // Check for errors, handle forward references
+    for (i = 0; i < baseclasses.dim; )
+    {	TypeClass *tc;
+	BaseClass *b;
+	Type *tb;
+
+	b = (BaseClass *)baseclasses.data[i];
+	b->type = b->type->semantic(loc, sc);
+	tb = b->type->toBasetype();
+	if (tb->ty == Tclass)
+	    tc = (TypeClass *)tb;
+	else
+	    tc = NULL;
+	if (!tc || !tc->sym->isInterfaceDeclaration())
+	{
+	    error("base type must be interface, not %s", b->type->toChars());
+	    baseclasses.remove(i);
+	    continue;
+	}
+	else
+	{
+	    b->base = tc->sym;
+	    if (b->base == this)
+	    {
+		error("base interface same as interface");
+		baseclasses.remove(i);
+		continue;
+	    }
+	    if (!b->base->symtab || b->base->scope)
+	    {
+		//error("forward reference of base class %s", baseClass->toChars());
+		// Forward reference of base, try again later
+		//printf("\ttry later, forward reference of base %s\n", baseClass->toChars());
+		scope = scx ? scx : new Scope(*sc);
+		scope->setNoFree();
+		scope->module->addDeferredSemantic(this);
+		return;
+	    }
+	}
+	i++;
+    }
 
     interfaces_dim = baseclasses.dim;
     interfaces = (BaseClass **)baseclasses.data;

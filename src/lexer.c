@@ -2063,6 +2063,7 @@ void Lexer::initKeywords()
     Token::tochars[TOKtype]		= "type";
     Token::tochars[TOKquestion]		= "?";
     Token::tochars[TOKneg]		= "neg";
+    Token::tochars[TOKuadd]		= "uadd";
     Token::tochars[TOKvar]		= "var";
     Token::tochars[TOKaddass]		= "+=";
     Token::tochars[TOKcat]		= "~";

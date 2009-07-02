@@ -275,6 +275,7 @@ int AliasDeclaration::overloadInsert(Dsymbol *s)
      * be overloaded and check later for correctness.
      */
 
+    //printf("AliasDeclaration::overloadInsert('%s')\n", s->toChars());
     if (overnext == NULL)
     {	overnext = s;
 	return TRUE;

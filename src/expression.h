@@ -79,7 +79,7 @@ struct Expression : Object
     void checkScalar();
     void checkIntegral();
     void checkArithmetic();
-    void checkDeprecated(Dsymbol *s);
+    void checkDeprecated(Scope *sc, Dsymbol *s);
     virtual Expression *checkToBoolean();
     Expression *checkToPointer();
     Expression *addressOf();
@@ -570,6 +570,15 @@ struct NegExp : UnaExp
     Identifier *opId();
 
     elem *toElem(IRState *irs);
+};
+
+struct UAddExp : UnaExp
+{
+    UAddExp(Loc loc, Expression *e);
+    Expression *semantic(Scope *sc);
+
+    // For operator overloading
+    Identifier *opId();
 };
 
 struct ComExp : UnaExp
