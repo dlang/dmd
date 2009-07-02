@@ -1,5 +1,5 @@
 
-// Copyright (c) 1999-2002 by Digital Mars
+// Copyright (c) 1999-2003 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // www.digitalmars.com
@@ -256,12 +256,25 @@ int ClassDeclaration::hasPrivateAccess(Dsymbol *smember)
 #endif
 
 	if (this == cd)		// smember is a member of this class
+	{
+#if LOG
+	    printf("\tyes 1\n");
+#endif
 	    return 1;		// so we get private access
+	}
 
 	// If both are members of the same module, grant access
 	if (!cd && parent == smember->parent)
+	{
+#if LOG
+	    printf("\tyes 2\n");
+#endif
 	    return 1;
+	}
     }
+#if LOG
+    printf("\tno\n");
+#endif
     return 0;
 }
 

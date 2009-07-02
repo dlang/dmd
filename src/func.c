@@ -449,6 +449,15 @@ void FuncDeclaration::semantic3(Scope *sc)
 	    }
 	    else if (!hasReturnExp && type->next->ty != Tvoid)
 		error("function expected to return a value of type %s", type->next->toChars());
+	    else if (global.params.useAssert &&
+		     !global.params.useInline &&
+		     type->next->ty != Tvoid)
+	    {
+		Expression *e = new AssertExp(endloc, new IntegerExp(0, 0, Type::tint32));
+		e = e->semantic(sc2);
+		Statement *s = new ExpStatement(0, e);
+		fbody = new CompoundStatement(0, fbody, s);
+	    }
 	}
 
 	{
@@ -591,6 +600,7 @@ FuncDeclaration *FuncDeclaration::overloadResolve(Loc loc, Array *arguments)
     int matchcount = 0;
 
 #if 0
+printf("FuncDeclaration::overloadResolve()\n");
 if (arguments)
 {   int i;
 

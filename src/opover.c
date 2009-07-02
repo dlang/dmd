@@ -265,6 +265,9 @@ static Expression *build_overload(Loc loc, Scope *sc, Expression *ethis, Express
 {
     Expression *e;
 
+    //printf("build_overload(id = '%s')\n", id->toChars());
+    //earg->print();
+    //earg->type->print();
     e = new DotIdExp(loc, ethis, id);
 
     Array *arguments = NULL;

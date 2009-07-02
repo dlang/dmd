@@ -1526,19 +1526,22 @@ Type *TypeAArray::semantic(Loc loc, Scope *sc)
     key = index->toBasetype();
     switch (key->ty)
     {
-	case Tsarray:
-	    // Convert to Tarray
-	    key = key->next->arrayOf();
-	    break;
-
-	case Tbit:
+#if 0
 	case Tint8:
 	case Tuns8:
 	case Tint16:
 	case Tuns16:
 	    key = tint32;
 	    break;
+#endif
 
+	case Tsarray:
+#if 0
+	    // Convert to Tarray
+	    key = key->next->arrayOf();
+	    break;
+#endif
+	case Tbit:
 	case Tfunction:
 	case Tvoid:
 	case Tnone:
@@ -1602,7 +1605,7 @@ Expression *TypeAArray::dotExp(Scope *sc, Expression *e, Identifier *ident)
 	if (size)
 	    arguments->push(new IntegerExp(0, size, Type::tint32));
 	e = new CallExp(e->loc, ec, arguments);
-	e->type = key->arrayOf();
+	e->type = index->arrayOf();
     }
     else if (ident == Id::values)
     {

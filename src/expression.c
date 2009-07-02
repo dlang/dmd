@@ -774,13 +774,20 @@ Expression *IdentifierExp::semantic(Scope *sc)
 		type = v->type;
 	    if (v->isConst() && type->ty != Tsarray)
 	    {
-//printf("\tisConst()\n");
-		ExpInitializer *ei = v->init->isExpInitializer();
-		if (ei)
+		if (v->init)
 		{
-//printf("\tei\n");
-		    e = ei->exp->copy();	// make copy so we can change loc
-		    e = e->implicitCastTo(type);
+		    ExpInitializer *ei = v->init->isExpInitializer();
+		    if (ei)
+		    {
+			e = ei->exp->copy();	// make copy so we can change loc
+			e = e->implicitCastTo(type);
+			e->loc = loc;
+			return e;
+		    }
+		}
+		else
+		{
+		    e = type->defaultInit();
 		    e->loc = loc;
 		    return e;
 		}
@@ -1050,9 +1057,11 @@ char *StringExp::toChars()
 Expression *StringExp::semantic(Scope *sc)
 {
     //printf("StringExp::semantic()\n");
-    type = new TypeSArray(Type::twchar, new IntegerExp(loc, len, Type::tindex));
-    type = type->semantic(loc, sc);
-    assert(type);
+    if (!type)
+    {
+	type = new TypeSArray(Type::twchar, new IntegerExp(loc, len, Type::tindex));
+	type = type->semantic(loc, sc);
+    }
     return this;
 }
 
@@ -1278,7 +1287,7 @@ Expression *NewExp::semantic(Scope *sc)
 	}
 
     }
-#if 0
+#if 1
     else if (tb->ty == Tstruct)
     {
 	TypeStruct *ts = (TypeStruct *)tb;
@@ -1294,6 +1303,8 @@ Expression *NewExp::semantic(Scope *sc)
 	    args->push(e);
 
 	    f = f->overloadResolve(loc, args);
+	    allocator = f->isNewDeclaration();
+	    assert(allocator);
 	    e = new VarExp(loc, f);
 	    e = new CallExp(loc, e, args);
 	    e = e->semantic(sc);
@@ -1313,7 +1324,7 @@ Expression *NewExp::semantic(Scope *sc)
     }
     else
     {
-	error("new can only create arrays or class objects, not %s's", type->toChars());
+	error("new can only create structs, arrays or class objects, not %s's", type->toChars());
 	type = type->pointerTo();
     }
 
@@ -1448,11 +1459,15 @@ Expression *VarExp::toLvalue()
 
 Expression *VarExp::modifiableLvalue(Scope *sc)
 {
+    //printf("VarExp::modifiableLvalue('%s')\n", var->toChars());
     if (sc->incontract && var->isParameter())
 	error("cannot modify parameter '%s' in contract", var->toChars());
 
     if (type && type->ty == Tsarray)
 	error("cannot change reference to static array '%s'", var->toChars());
+
+    if (var->isConst())
+	error("cannot modify const variable '%s'", var->toChars());
 
     // See if this expression is a modifiable lvalue (i.e. not const)
     return toLvalue();
@@ -1924,6 +1939,14 @@ Expression *CallExp::semantic(Scope *sc)
     //printf("CallExp::semantic(): %s\n", toChars());
     if (type)
 	return this;		// semantic() already run
+#if 0
+if (arguments && arguments->dim)
+{
+    Expression *earg = (Expression *)arguments->data[0];
+    earg->print();
+    if (earg->type) earg->type->print();
+}
+#endif
 
     // Transform array.id(args) into id(array,args)
     if (e1->op == TOKdot)
@@ -2530,6 +2553,9 @@ Expression *ArrayRangeExp::semantic(Scope *sc)
     else
 	error("incompatible types for array[range], had %s[]", e1->type->toChars());
 
+    if (t->next->toBasetype()->ty == Tvoid)
+	error("cannot have array of %s", t->next->toChars());
+
     type = t->next->arrayOf();
     return e;
 }
@@ -2541,7 +2567,7 @@ Expression *ArrayRangeExp::toLvalue()
 
 Expression *ArrayRangeExp::modifiableLvalue(Scope *sc)
 {
-    error("cannot modify range expression %s", toChars());
+    //error("cannot modify range expression %s", toChars());
     return this;
 }
 
@@ -2786,7 +2812,7 @@ Expression *AssignExp::semantic(Scope *sc)
 	ale->e1 = ale->e1->modifiableLvalue(sc);
     }
     else
-	e1 = e1->toLvalue();
+	e1 = e1->modifiableLvalue(sc);
 
     if (e2->type->ty == Tfunction)
     {

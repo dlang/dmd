@@ -974,6 +974,11 @@ TemplateDeclaration *Parser::parseTemplateDeclaration()
 	    {	// ValueParameter
 		tp_valtype = parseBasicType();
 		tp_valtype = parseDeclarator(tp_valtype, &tp_ident);
+		if (!tp_ident)
+		{
+		    error("no identifier for template value parameter");
+		    goto Lerr;
+		}
 		if (token.value == TOKcolon)	// : AssignExpression
 		{
 		    nextToken();
@@ -1667,6 +1672,7 @@ L1:
 	    if (f->frequire || f->fensure)
 		error("must use body keyword after in or out");
 	    f->fbody = parseStatement(PSsemi);
+	    f->endloc = endloc;
 	    break;
 
 	case TOKbody:
@@ -2736,6 +2742,10 @@ int Parser::isParameters(Token **pt)
 		t = peek(t);
 		break;
 
+	    case TOKin:
+	    case TOKout:
+	    case TOKinout:
+		t = peek(t);
 	    default:
 		if (!isBasicType(&t))
 		    return FALSE;

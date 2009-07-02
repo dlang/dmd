@@ -465,9 +465,11 @@ dt_t **SymOffExp::toDt(dt_t **pdt)
 {
     Symbol *s;
 
-    //printf("SymOffExp::toDt()\n");
+    //printf("SymOffExp::toDt('%s')\n", var->toChars());
     assert(var);
     s = var->toSymbol();
+    if (!(var->isDataseg() || var->isCodeseg()))
+	error("non-constant expression %s", toChars());
     return dtxoff(pdt, s, offset, TYnptr);
 }
 

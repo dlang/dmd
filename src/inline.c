@@ -833,6 +833,8 @@ Expression *FuncDeclaration::doInline(InlineScanState *iss, Expression *ethis, A
     inlineNest++;
     Expression *eb = fbody->doInline(&ids);
     inlineNest--;
+//eb->type->print();
+//eb->print();
     return Expression::combine(e, eb);
 }
 

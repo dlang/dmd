@@ -114,6 +114,11 @@ Initializer *StructInitializer::semantic(Scope *sc, Type *t)
 	    else
 	    {
 		s = ad->symtab->lookup(id);
+		if (!s)
+		{
+		    error("'%s' is not a member of '%s'", id->toChars(), t->toChars());
+		    continue;
+		}
 
 		// Find out which field index it is
 		for (fieldi = 0; 1; fieldi++)
@@ -166,6 +171,8 @@ void StructInitializer::toCBuffer(OutBuffer *buf)
 ArrayInitializer::ArrayInitializer(Loc loc)
     : Initializer(loc)
 {
+    dim = 0;
+    type = NULL;
 }
 
 Initializer *ArrayInitializer::syntaxCopy()
