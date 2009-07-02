@@ -274,6 +274,10 @@ void functionArguments(Loc loc, Scope *sc, TypeFunction *tf, Array *arguments)
 			break;
 		    }
 		    default:
+			if (!arg)
+			{   error(loc, "not enough arguments");
+			    return;
+		        }
 			break;
 		}
 		arg = arg->semantic(sc);
@@ -505,6 +509,11 @@ complex_t Expression::toComplex()
 void Expression::toCBuffer(OutBuffer *buf)
 {
     buf->writestring(Token::toChars(op));
+}
+
+void Expression::toMangleBuffer(OutBuffer *buf)
+{
+    assert(0);
 }
 
 /*******************************
@@ -829,6 +838,14 @@ void IntegerExp::toCBuffer(OutBuffer *buf)
 	buf->printf("%lld", value);
 }
 
+void IntegerExp::toMangleBuffer(OutBuffer *buf)
+{
+    if ((sinteger_t)value < 0)
+	buf->printf("N%lld", -value);
+    else
+	buf->printf("%lld", value);
+}
+
 /******************************** RealExp **************************/
 
 RealExp::RealExp(Loc loc, real_t value, Type *type)
@@ -841,36 +858,40 @@ RealExp::RealExp(Loc loc, real_t value, Type *type)
 
 char *RealExp::toChars()
 {
-    static char buffer[sizeof(value) * 3 + 8 + 1];
+    static char buffer[sizeof(value) * 3 + 8 + 1 + 1];
 
-    sprintf(buffer, "%Lg", value);
+    sprintf(buffer, type->isimaginary() ? "%Lgi" : "%Lg", value);
     assert(strlen(buffer) < sizeof(buffer));
     return buffer;
 }
 
 integer_t RealExp::toInteger()
 {
-    return (sinteger_t) value;
+    return (sinteger_t) toReal();
 }
 
 uinteger_t RealExp::toUInteger()
 {
-    return (uinteger_t) value;
+    return (uinteger_t) toReal();
 }
 
 real_t RealExp::toReal()
 {
-    return value;
+    return type->isreal() ? value : 0;
 }
 
 real_t RealExp::toImaginary()
 {
-    return 0;
+    return type->isreal() ? 0 : value;
 }
 
 complex_t RealExp::toComplex()
 {
-    return value;
+#ifdef __DMC__
+    return toReal() + toImaginary() * I;
+#else
+    return complex_t(toReal(), toImaginary());
+#endif
 }
 
 Expression *RealExp::semantic(Scope *sc)
@@ -891,69 +912,17 @@ int RealExp::isBool(int result)
 void RealExp::toCBuffer(OutBuffer *buf)
 {
     buf->printf("%Lg", value);
+    if (type->isimaginary())
+	buf->writeByte('i');
 }
 
 
-/******************************** ImaginaryExp **************************/
-
-ImaginaryExp::ImaginaryExp(Loc loc, real_t value, Type *type)
-	: Expression(loc, TOKimaginary80, sizeof(ImaginaryExp))
+void RealExp::toMangleBuffer(OutBuffer *buf)
 {
-    this->value = value;
-    this->type = type;
-}
-
-char *ImaginaryExp::toChars()
-{
-    static char buffer[sizeof(value) * 3 + 8 + 1];
-
-    sprintf(buffer, "%Lgi", value);
-    assert(strlen(buffer) < sizeof(buffer));
-    return buffer;
-}
-
-integer_t ImaginaryExp::toInteger()
-{
-    return 0;
-}
-
-real_t ImaginaryExp::toReal()
-{
-    return 0;
-}
-
-real_t ImaginaryExp::toImaginary()
-{
-    return value;
-}
-
-complex_t ImaginaryExp::toComplex()
-{
-#ifdef __DMC__
-    return value * I;
-#else
-    return complex_t(0, value);
-#endif
-}
-
-Expression *ImaginaryExp::semantic(Scope *sc)
-{
-    if (!type)
-	type = Type::timaginary80;
-    else
-	type = type->semantic(loc, sc);
-    return this;
-}
-
-int ImaginaryExp::isBool(int result)
-{
-    return result ? (value != 0)
-		  : (value == 0);
-}
-
-void ImaginaryExp::toCBuffer(OutBuffer *buf)
-{
-    buf->printf("%Lgi", value);
+    unsigned char *p = (unsigned char *)&value;
+    buf->writeByte('e');
+    for (int i = 0; i < REALSIZE-REALPAD; i++)
+	buf->printf("%02x", p[i]);
 }
 
 
@@ -978,17 +947,17 @@ char *ComplexExp::toChars()
 
 integer_t ComplexExp::toInteger()
 {
-    return (sinteger_t) value;
+    return (sinteger_t) toReal();
 }
 
 uinteger_t ComplexExp::toUInteger()
 {
-    return (uinteger_t) value;
+    return (uinteger_t) toReal();
 }
 
 real_t ComplexExp::toReal()
 {
-    return (real_t) value;
+    return creall(value);
 }
 
 real_t ComplexExp::toImaginary()
@@ -1021,6 +990,18 @@ void ComplexExp::toCBuffer(OutBuffer *buf)
     buf->printf("(%Lg+%Lgi)", creall(value), cimagl(value));
 }
 
+void ComplexExp::toMangleBuffer(OutBuffer *buf)
+{
+    buf->writeByte('c');
+    real_t r = toReal();
+    for (int j = 0; j < 2; j++)
+    {
+	unsigned char *p = (unsigned char *)&r;
+	for (int i = 0; i < REALSIZE-REALPAD; i++)
+	    buf->printf("%02x", p[i]);
+	r = toImaginary();
+    }
+}
 
 /******************************** IdentifierExp **************************/
 
@@ -1161,7 +1142,12 @@ Lagain:
     {
 	//printf("Identifier '%s' is a variable, type '%s'\n", toChars(), v->type->toChars());
 	if (!type)
-	    type = v->type;
+	{   type = v->type;
+	    if (!v->type)
+	    {	error("forward reference of %s", v->toChars());
+		type = Type::terror;
+	    }
+	}
 	if (v->isConst() && type->toBasetype()->ty != Tsarray)
 	{
 	    if (v->init)
@@ -1442,6 +1428,11 @@ void NullExp::toCBuffer(OutBuffer *buf)
     buf->writestring("null");
 }
 
+void NullExp::toMangleBuffer(OutBuffer *buf)
+{
+    buf->writeByte('n');
+}
+
 /******************************** StringExp **************************/
 
 StringExp::StringExp(Loc loc, void *string, unsigned len)
@@ -1662,6 +1653,58 @@ void StringExp::toCBuffer(OutBuffer *buf)
     buf->writeByte('"');
     if (postfix)
 	buf->writeByte(postfix);
+}
+
+void StringExp::toMangleBuffer(OutBuffer *buf)
+{   char m;
+    OutBuffer tmp;
+    char *p;
+    unsigned c;
+    unsigned u;
+    unsigned char *q;
+    unsigned qlen;
+
+    /* Write string in UTF-8 format
+     */
+    switch (sz)
+    {	case 1:
+	    m = 'a';
+	    q = (unsigned char *)string;
+	    qlen = len;
+	    break;
+	case 2:
+	    m = 'w';
+	    for (u = 0; u < len; )
+	    {
+                p = utf_decodeWchar((unsigned short *)string, len, &u, &c);
+                if (p)
+                    error(p);
+                else
+                    tmp.writeUTF8(c);
+	    }
+	    q = tmp.data;
+	    qlen = tmp.offset;
+	    break;
+	case 4:
+	    m = 'd';
+            for (u = 0; u < len; u++)
+            {
+                c = ((unsigned *)string)[u];
+                if (!utf_isValidDchar(c))
+                    error("invalid UCS-32 char \\U%08x", c);
+                else
+                    tmp.writeUTF8(c);
+            }
+	    q = tmp.data;
+	    qlen = tmp.offset;
+	    break;
+	default:
+	    assert(0);
+    }
+    buf->writeByte(m);
+    buf->printf("%d_", qlen);
+    for (size_t i = 0; i < qlen; i++)
+	buf->printf("%02x", q[i]);
 }
 
 /************************ TypeDotIdExp ************************************/
@@ -3008,7 +3051,7 @@ Expression *DotIdExp::semantic(Scope *sc)
 
 void DotIdExp::toCBuffer(OutBuffer *buf)
 {
-    //printf("DotIdExp::toCbuffer()\n");
+    //printf("DotIdExp::toCBuffer()\n");
     e1->toCBuffer(buf);
     buf->writeByte('.');
     buf->writestring(ident->toChars());
@@ -5458,6 +5501,7 @@ Expression *MulExp::semantic(Scope *sc)
 		    case Timaginary80:	type = Type::tfloat80;	break;
 		    default:		assert(0);
 		}
+
 		// iy * iv = -yv
 		e1->type = type;
 		e2->type = type;

@@ -54,8 +54,10 @@ FuncDeclaration *hasThis(Scope *sc);
 int PTRSIZE = 4;
 #if TARGET_LINUX
 int REALSIZE = 12;
+int REALPAD = 2;
 #else
 int REALSIZE = 10;
+int REALPAD = 0;
 #endif
 int Tsize_t = Tuns32;
 int Tptrdiff_t = Tint32;
@@ -197,8 +199,10 @@ void Type::init()
 	PTRSIZE = 4;
 #if TARGET_LINUX
 	REALSIZE = 12;
+	REALPAD = 2;
 #else
 	REALSIZE = 10;
+	REALPAD = 0;
 #endif
 	Tsize_t = Tuns32;
 	Tptrdiff_t = Tint32;
@@ -1081,10 +1085,8 @@ Livalue:
     return e;
 
 Lfvalue:
-    if (isreal())
+    if (isreal() || isimaginary())
 	e = new RealExp(0, fvalue, this);
-    else if (isimaginary())
-	e = new ImaginaryExp(0, fvalue, this);
     else
     {
 	complex_t cvalue;
@@ -1598,7 +1600,8 @@ Expression *TypeSArray::dotExp(Scope *sc, Expression *e, Identifier *ident)
 
 int TypeSArray::isString()
 {
-    return next->ty == Tascii || next->ty == Twchar || next->ty == Tdchar;
+    TY nty = next->toBasetype()->ty;
+    return nty == Tchar || nty == Twchar || nty == Tdchar;
 }
 
 unsigned TypeSArray::memalign(unsigned salign)
@@ -1738,7 +1741,8 @@ Expression *TypeDArray::dotExp(Scope *sc, Expression *e, Identifier *ident)
 
 int TypeDArray::isString()
 {
-    return next->ty == Tascii || next->ty == Twchar || next->ty == Tdchar;
+    TY nty = next->toBasetype()->ty;
+    return nty == Tchar || nty == Twchar || nty == Tdchar;
 }
 
 int TypeDArray::implicitConvTo(Type *to)
@@ -2242,7 +2246,7 @@ void TypeFunction::toDecoBuffer(OutBuffer *buf)
 	case LINKc:		mc = 'U';	break;
 	case LINKwindows:	mc = 'W';	break;
 	case LINKpascal:	mc = 'V';	break;
-	case LINKcpp:		mc = 'T';	break;
+	case LINKcpp:		mc = 'R';	break;
 	default:
 	    assert(0);
     }

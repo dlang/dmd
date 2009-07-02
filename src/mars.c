@@ -51,7 +51,7 @@ Global::Global()
 
     copyright = "Copyright (c) 1999-2005 by Digital Mars";
     written = "written by Walter Bright";
-    version = "v0.139";
+    version = "v0.140";
     global.structalign = 8;
 
     memset(&params, 0, sizeof(Param));
@@ -383,7 +383,9 @@ int main(int argc, char *argv[])
 	    else if (strcmp(p + 1, "-f") == 0)
 		global.params.debugf = 1;
 	    else if (strcmp(p + 1, "-help") == 0)
-		usage();
+	    {	usage();
+		exit(EXIT_SUCCESS);
+	    }
 	    else if (strcmp(p + 1, "-r") == 0)
 		global.params.debugr = 1;
 	    else if (strcmp(p + 1, "-x") == 0)

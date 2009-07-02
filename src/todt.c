@@ -419,59 +419,27 @@ dt_t **RealExp::toDt(dt_t **pdt)
     switch (type->toBasetype()->ty)
     {
 	case Tfloat32:
-	    fvalue = value;
-	    pdt = dtnbytes(pdt,4,(char *)&fvalue);
-	    break;
-
-	case Tfloat64:
-	    dvalue = value;
-	    pdt = dtnbytes(pdt,8,(char *)&dvalue);
-	    break;
-
-	case Tfloat80:
-	    evalue = value;
-	    pdt = dtnbytes(pdt,10,(char *)&evalue);
-#if TARGET_LINUX
-	    pdt = dtnbytes(pdt,2,zeropad);
-#endif
-	    break;
-
-	default:
-	    printf("%s\n", toChars());
-	    type->print();
-	    assert(0);
-	    break;
-    }
-    return pdt;
-}
-
-dt_t **ImaginaryExp::toDt(dt_t **pdt)
-{
-    d_float32 fvalue;
-    d_float64 dvalue;
-    d_float80 evalue;
-
-    switch (type->toBasetype()->ty)
-    {
 	case Timaginary32:
 	    fvalue = value;
 	    pdt = dtnbytes(pdt,4,(char *)&fvalue);
 	    break;
 
+	case Tfloat64:
 	case Timaginary64:
 	    dvalue = value;
 	    pdt = dtnbytes(pdt,8,(char *)&dvalue);
 	    break;
 
+	case Tfloat80:
 	case Timaginary80:
 	    evalue = value;
-	    pdt = dtnbytes(pdt,10,(char *)&evalue);
-#if TARGET_LINUX
-	    pdt = dtnbytes(pdt,2,zeropad);
-#endif
+	    pdt = dtnbytes(pdt,REALSIZE - REALPAD,(char *)&evalue);
+	    pdt = dtnbytes(pdt,REALPAD,zeropad);
 	    break;
 
 	default:
+	    printf("%s\n", toChars());
+	    type->print();
 	    assert(0);
 	    break;
     }
@@ -502,15 +470,11 @@ dt_t **ComplexExp::toDt(dt_t **pdt)
 
 	case Tcomplex80:
 	    evalue = creall(value);
-	    pdt = dtnbytes(pdt,10,(char *)&evalue);
-#if TARGET_LINUX
-	    pdt = dtnbytes(pdt,2,zeropad);
-#endif
+	    pdt = dtnbytes(pdt,REALSIZE - REALPAD,(char *)&evalue);
+	    pdt = dtnbytes(pdt,REALPAD,zeropad);
 	    evalue = cimagl(value);
-	    pdt = dtnbytes(pdt,10,(char *)&evalue);
-#if TARGET_LINUX
-	    pdt = dtnbytes(pdt,2,zeropad);
-#endif
+	    pdt = dtnbytes(pdt,REALSIZE,(char *)&evalue);
+	    pdt = dtnbytes(pdt,REALSIZE - REALPAD,zeropad);
 	    break;
 
 	default:

@@ -433,9 +433,12 @@ Expression *Expression::castTo(Type *t)
 	    e = new AddrExp(loc, e);
 	}
 	else
+	{
 	    e = new CastExp(loc, e, tb);
+	}
     }
     e->type = t;
+    //printf("Returning: %s\n", e->toChars());
     return e;
 }
 
@@ -698,7 +701,6 @@ Expression *AddrExp::castTo(Type *t)
 	}
 	e = Expression::castTo(t);
     }
-
     e->type = t;
     return e;
 }

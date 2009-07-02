@@ -3694,17 +3694,17 @@ Expression *Parser::parsePrimaryExp()
 	    break;
 
 	case TOKimaginary32v:
-	    e = new ImaginaryExp(loc, token.float80value, Type::timaginary32);
+	    e = new RealExp(loc, token.float80value, Type::timaginary32);
 	    nextToken();
 	    break;
 
 	case TOKimaginary64v:
-	    e = new ImaginaryExp(loc, token.float80value, Type::timaginary64);
+	    e = new RealExp(loc, token.float80value, Type::timaginary64);
 	    nextToken();
 	    break;
 
 	case TOKimaginary80v:
-	    e = new ImaginaryExp(loc, token.float80value, Type::timaginary80);
+	    e = new RealExp(loc, token.float80value, Type::timaginary80);
 	    nextToken();
 	    break;
 

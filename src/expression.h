@@ -73,6 +73,7 @@ struct Expression : Object
     virtual real_t toImaginary();
     virtual complex_t toComplex();
     virtual void toCBuffer(OutBuffer *buf);
+    virtual void toMangleBuffer(OutBuffer *buf);
     virtual Expression *toLvalue(Expression *e);
     virtual Expression *modifiableLvalue(Scope *sc, Expression *e);
     Expression *implicitCastTo(Type *t);
@@ -130,6 +131,7 @@ struct IntegerExp : Expression
     int isBool(int result);
     int implicitConvTo(Type *t);
     void toCBuffer(OutBuffer *buf);
+    void toMangleBuffer(OutBuffer *buf);
     Expression *toLvalue(Expression *e);
     elem *toElem(IRState *irs);
     dt_t **toDt(dt_t **pdt);
@@ -150,24 +152,7 @@ struct RealExp : Expression
     int isConst();
     int isBool(int result);
     void toCBuffer(OutBuffer *buf);
-    elem *toElem(IRState *irs);
-    dt_t **toDt(dt_t **pdt);
-};
-
-struct ImaginaryExp : Expression
-{
-    real_t value;
-
-    ImaginaryExp(Loc loc, real_t value, Type *type);
-    Expression *semantic(Scope *sc);
-    char *toChars();
-    integer_t toInteger();
-    real_t toReal();
-    real_t toImaginary();
-    complex_t toComplex();
-    int isConst();
-    int isBool(int result);
-    void toCBuffer(OutBuffer *buf);
+    void toMangleBuffer(OutBuffer *buf);
     elem *toElem(IRState *irs);
     dt_t **toDt(dt_t **pdt);
 };
@@ -187,6 +172,7 @@ struct ComplexExp : Expression
     int isConst();
     int isBool(int result);
     void toCBuffer(OutBuffer *buf);
+    void toMangleBuffer(OutBuffer *buf);
     elem *toElem(IRState *irs);
     dt_t **toDt(dt_t **pdt);
 };
@@ -256,6 +242,7 @@ struct NullExp : Expression
     Expression *semantic(Scope *sc);
     int isBool(int result);
     void toCBuffer(OutBuffer *buf);
+    void toMangleBuffer(OutBuffer *buf);
     int implicitConvTo(Type *t);
     Expression *castTo(Type *t);
     elem *toElem(IRState *irs);
@@ -280,6 +267,7 @@ struct StringExp : Expression
     int compare(Object *obj);
     int isBool(int result);
     void toCBuffer(OutBuffer *buf);
+    void toMangleBuffer(OutBuffer *buf);
     elem *toElem(IRState *irs);
     dt_t **toDt(dt_t **pdt);
 };

@@ -752,6 +752,14 @@ Dsymbol *ConditionalDeclaration::syntaxCopy(Dsymbol *s)
 
 Dsymbol *ConditionalDeclaration::oneMember()
 {
+    if (condition->inc)
+    {
+	Array *d = condition->include(NULL, NULL) ? decl : elsedecl;
+	if (d && d->dim == 1)
+	{   Dsymbol *s = (Dsymbol *)d->data[0];
+	    return s->oneMember();
+	}
+    }
     return NULL;
 }
 

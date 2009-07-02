@@ -1071,8 +1071,9 @@ void TemplateValueParameter::semantic(Scope *sc)
 
     sparam->semantic(sc);
     valType = valType->semantic(loc, sc);
-    if (!valType->isintegral() && valType->ty != Tident)
-	error(loc, "integral type expected for value-parameter, not %s", valType->toChars());
+    if (!(valType->isintegral() || valType->isfloating() || valType->isString()) &&
+	valType->ty != Tident)
+	error(loc, "arithmetic/string type expected for value-parameter, not %s", valType->toChars());
 
     if (specValue)
     {   Expression *e = specValue;
@@ -1080,7 +1081,8 @@ void TemplateValueParameter::semantic(Scope *sc)
 	e = e->semantic(sc);
 	e = e->implicitCastTo(valType);
 	e = e->constFold();
-	if (e->op == TOKint64)
+	if (e->op == TOKint64 || e->op == TOKfloat64 ||
+	    e->op == TOKcomplex80 || e->op == TOKnull || e->op == TOKstring)
 	    specValue = e;
 	//e->toInteger();
     }
@@ -1200,7 +1202,7 @@ void *TemplateValueParameter::dummyArg()
     {
 	// Create a dummy value
 	if (!edummy)
-	    edummy = new IntegerExp(0);
+	    edummy = valType->defaultInit();
 	e = edummy;
     }
     return (void *)e;
@@ -1723,23 +1725,27 @@ Identifier *TemplateInstance::genIdent()
     char *id;
 
     //printf("TemplateInstance::genIdent('%s')\n", tempdecl->ident->toChars());
-    buf.writestring(tempdecl->ident->toChars());
-    buf.writeByte('_');
+    id = tempdecl->ident->toChars();
+    buf.printf("__T%d%s", strlen(id), id);
     for (int i = 0; i < tiargs->dim; i++)
     {   Object *o = (Object *)tiargs->data[i];
-	//Object *o = (Object *)tdtypes.data[i];
 	Type *ta = isType(o);
 	Expression *ea = isExpression(o);
 	Dsymbol *sa = isDsymbol(o);
 	if (ta)
 	{
+	    buf.writeByte('T');
 	    if (ta->deco)
 		buf.writestring(ta->deco);
 	    else
 		assert(global.errors);
 	}
 	else if (ea)
-	{
+	{   sinteger_t v;
+	    real_t r;
+	    int i;
+	    unsigned char *p;
+
 	    if (ea->op == TOKvar)
 	    {
 		sa = ((VarExp *)ea)->var;
@@ -1752,12 +1758,14 @@ Identifier *TemplateInstance::genIdent()
 		ea = NULL;
 		goto Lsa;
 	    }
-	    buf.writeByte('_');
-	    buf.printf("%u", ea->toInteger());
+	    buf.writeByte('V');
+	    buf.writestring(ea->type->deco);
+	    ea->toMangleBuffer(&buf);
 	}
 	else if (sa)
 	{
 	  Lsa:
+	    buf.writeByte('S');
 	    Declaration *d = sa->isDeclaration();
 	    if (d && !d->isDataseg() && !d->isFuncDeclaration() && !isTemplateMixin())
 	    {
@@ -1768,12 +1776,13 @@ Identifier *TemplateInstance::genIdent()
 	    else
 	    {
 		char *p = sa->mangle();
-		buf.printf("__%u_%s", strlen(p) + 1, p);
+		buf.printf("%d%s", strlen(p), p);
 	    }
 	}
 	else
 	    assert(0);
     }
+    buf.writeByte('Z');
     id = buf.toChars();
     buf.data = NULL;
     return new Identifier(id, TOKidentifier);

@@ -1,5 +1,5 @@
 
-// Copyright (c) 1999-2004 by Digital Mars
+// Copyright (c) 1999-2005 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // www.digitalmars.com
@@ -40,11 +40,6 @@ int RealExp::isConst()
     return 1;
 }
 
-int ImaginaryExp::isConst()
-{
-    return 1;
-}
-
 int ComplexExp::isConst()
 {
     return 1;
@@ -72,9 +67,9 @@ Expression *NegExp::constFold()
 	return e;
     }
     else if (e1->type->isimaginary())
-    {	ImaginaryExp *e;
+    {	RealExp *e;
 
-	e = new ImaginaryExp(loc, -e1->toImaginary(), type);
+	e = new RealExp(loc, -e1->toImaginary(), type);
 	return e;
     }
     else if (e1->type->iscomplex())
@@ -110,13 +105,14 @@ Expression *CastExp::constFold()
     //printf("CastExp::constFold(%s)\n", toChars());
 
     e1 = e1->constFold();
-    if (e1->op == TOKsymoff && type->size() == e1->type->size())
+    if (e1->op == TOKsymoff && type->size() == e1->type->size() &&
+	type->toBasetype()->ty != Tsarray)
     {
 	e1->type = type;
 	return e1;
     }
 
-    Type *tb = type->toBasetype();
+    Type *tb = to->toBasetype();
     if (tb->ty == Tbit)
 	return new IntegerExp(loc, e1->toInteger() != 0, type);
     if (type->isintegral())
@@ -147,7 +143,7 @@ Expression *CastExp::constFold()
 	else if (tb->ty == Timaginary64)
 	    value = (double)value;
 #endif
-	return new ImaginaryExp(loc, value, type);
+	return new RealExp(loc, value, type);
     }
     if (tb->iscomplex())
     {	complex_t value = e1->toComplex();
@@ -174,7 +170,7 @@ Expression *CastExp::constFold()
     if (tb->isscalar())
 	return new IntegerExp(loc, e1->toInteger(), type);
     if (tb->ty != Tvoid)
-	error("cannot cast %s to %s", e1->type->toChars(), type->toChars());
+	error("cannot cast %s to %s", e1->type->toChars(), to->toChars());
     return this;
 }
 
@@ -193,7 +189,7 @@ Expression *AddExp::constFold()
     }
     else if (type->isimaginary())
     {
-	e = new ImaginaryExp(loc, e1->toImaginary() + e2->toImaginary(), type);
+	e = new RealExp(loc, e1->toImaginary() + e2->toImaginary(), type);
     }
     else if (type->iscomplex())
     {
@@ -230,7 +226,7 @@ Expression *MinExp::constFold()
     }
     else if (type->isimaginary())
     {
-	e = new ImaginaryExp(loc, e1->toImaginary() - e2->toImaginary(), type);
+	e = new RealExp(loc, e1->toImaginary() - e2->toImaginary(), type);
     }
     else if (type->iscomplex())
     {
@@ -257,22 +253,55 @@ Expression *MulExp::constFold()
     e2 = e2->constFold();
     if (type->isfloating())
     {	complex_t c;
+	d_float80 r;
 
 	if (e1->type->isreal())
+	{
+#if __DMC__
 	    c = e1->toReal() * e2->toComplex();
+#else
+	    r = e1->toReal();
+	    c = e2->toComplex();
+	    c = complex_t(r * creall(c), r * cimagl(c));
+#endif
+	}
 	else if (e1->type->isimaginary())
-	    c = e1->toImaginary() * e2->toComplex();
+	{
+#if __DMC__
+	    c = e1->toImaginary() * I * e2->toComplex();
+#else
+	    r = e1->toImaginary();
+	    c = e2->toComplex();
+	    c = complex_t(-r * cimagl(c), r * creall(c));
+#endif
+	}
 	else if (e2->type->isreal())
-	    c = e1->toComplex() * e2->toReal();
+	{
+#if __DMC__
+	    c = e2->toReal() * e1->toComplex();
+#else
+	    r = e2->toReal();
+	    c = e1->toComplex();
+	    c = complex_t(r * creall(c), r * cimagl(c));
+#endif
+	}
 	else if (e2->type->isimaginary())
-	    c = e1->toComplex() * e2->toImaginary();
+	{
+#if __DMC__
+	    c = e1->toComplex() * e2->toImaginary() * I;
+#else
+	    r = e2->toImaginary();
+	    c = e1->toComplex();
+	    c = complex_t(-r * cimagl(c), r * creall(c));
+#endif
+	}
 	else
 	    c = e1->toComplex() * e2->toComplex();
 
 	if (type->isreal())
 	    e = new RealExp(loc, creall(c), type);
 	else if (type->isimaginary())
-	    e = new ImaginaryExp(loc, cimagl(c), type);
+	    e = new RealExp(loc, cimagl(c), type);
 	else if (type->iscomplex())
 	    e = new ComplexExp(loc, c, type);
 	else
@@ -288,22 +317,57 @@ Expression *MulExp::constFold()
 Expression *DivExp::constFold()
 {   Expression *e;
 
+    //printf("DivExp::constFold(%s)\n", toChars());
     e1 = e1->constFold();
     e2 = e2->constFold();
     if (type->isfloating())
     {	complex_t c;
+	d_float80 r;
 
+	//e1->type->print();
+	//e2->type->print();
 	if (e2->type->isreal())
+	{
+	    if (e1->type->isreal())
+	    {
+		e = new RealExp(loc, e1->toReal() / e2->toReal(), type);
+		return e;
+	    }
+#if __DMC__
+	    //r = e2->toReal();
+	    //c = e1->toComplex();
+	    //printf("(%Lg + %Lgi) / %Lg\n", creall(c), cimagl(c), r);
+
 	    c = e1->toComplex() / e2->toReal();
+#else
+	    r = e2->toReal();
+	    c = e1->toComplex();
+	    c = complex_t(creall(c) / r, cimagl(c) / r);
+#endif
+	}
 	else if (e2->type->isimaginary())
-	    c = e1->toComplex() / e2->toImaginary();
+	{
+#if __DMC__
+	    //r = e2->toImaginary();
+	    //c = e1->toComplex();
+	    //printf("(%Lg + %Lgi) / %Lgi\n", creall(c), cimagl(c), r);
+
+	    c = e1->toComplex() / (e2->toImaginary() * I);
+#else
+	    r = e2->toImaginary();
+	    c = e1->toComplex();
+	    c = complex_t(cimagl(c) / r, -creall(c) / r);
+#endif
+	}
 	else
+	{
 	    c = e1->toComplex() / e2->toComplex();
+	}
 
 	if (type->isreal())
 	    e = new RealExp(loc, creall(c), type);
 	else if (type->isimaginary())
-	    e = new ImaginaryExp(loc, cimagl(c), type);
+	    e = new RealExp(loc, cimagl(c), type);
 	else if (type->iscomplex())
 	    e = new ComplexExp(loc, c, type);
 	else
@@ -336,7 +400,6 @@ Expression *ModExp::constFold()
     e2 = e2->constFold();
     if (type->isfloating())
     {
-#if 1
 	complex_t c;
 
 	if (e2->type->isreal())
@@ -363,29 +426,11 @@ Expression *ModExp::constFold()
 	if (type->isreal())
 	    e = new RealExp(loc, creall(c), type);
 	else if (type->isimaginary())
-	    e = new ImaginaryExp(loc, cimagl(c), type);
+	    e = new RealExp(loc, cimagl(c), type);
 	else if (type->iscomplex())
 	    e = new ComplexExp(loc, c, type);
 	else
 	    assert(0);
-#else
-	if (type->isreal())
-	{   real_t c;
-
-	    c = fmodl(e1->toReal(), e2->toReal());
-	    e = new RealExp(loc, c, type);
-	}
-	else if (type->isimaginary())
-	{   real_t c;
-
-	    c = fmodl(e1->toImaginary(), e2->toImaginary());
-	    e = new RealExp(loc, c, type);
-	}
-	else
-	{
-	    assert(0);
-	}
-#endif
     }
     else
     {	sinteger_t n1;
