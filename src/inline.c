@@ -1,5 +1,5 @@
 
-// Copyright (c) 1999-2003 by Digital Mars
+// Copyright (c) 1999-2004 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // www.digitalmars.com
@@ -134,6 +134,11 @@ int FuncExp::inlineCost(InlineCostState *ics)
     return COST_MAX;
 }
 
+int DelegateExp::inlineCost(InlineCostState *ics)
+{
+    return COST_MAX;
+}
+
 int DeclarationExp::inlineCost(InlineCostState *ics)
 {   int cost = 0;
     VarDeclaration *vd;
@@ -143,7 +148,18 @@ int DeclarationExp::inlineCost(InlineCostState *ics)
     {
 	if (vd->isStatic())
 	    return COST_MAX;
-	cost += 1;		// should scan initializer (vd->init)
+	cost += 1;
+
+	// Scan initializer (vd->init)
+	if (vd->init)
+	{
+	    ExpInitializer *ie = vd->init->isExpInitializer();
+
+	    if (ie)
+	    {
+		cost += ie->exp->inlineCost(ics);
+	    }
+	}
     }
 
     // These can contain functions, which when copied, get output twice.

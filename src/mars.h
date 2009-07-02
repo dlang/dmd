@@ -1,5 +1,5 @@
 
-// Copyright (c) 1999-2002 by Digital Mars
+// Copyright (c) 1999-2004 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // www.digitalmars.com
@@ -25,6 +25,8 @@ struct Param
     char symdebug;	// insert debug symbolic information
     char optimize;	// run optimizer
     char cpu;		// target CPU
+    char isAMD64;	// generate AMD64 bit code
+    char isLinux;	// generate code for linux
     char scheduler;	// which scheduler to use
     char useDeprecated;	// allow use of deprecated features
     char useAssert;	// generate runtime code for assert()'s

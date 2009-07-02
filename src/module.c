@@ -27,6 +27,8 @@ ClassDeclaration *Module::moduleinfo;
 
 DsymbolTable *Module::modules;
 
+Array Module::deferred;	// deferred Dsymbol's needing semantic() run on them
+
 void Module::init()
 {
     modules = new DsymbolTable();
@@ -395,6 +397,8 @@ void Module::semantic()
 
 	s = (Dsymbol *)members->data[i];
 	s->semantic(sc);
+
+	runDeferredSemantic();
     }
 
     sc = sc->pop();
@@ -531,6 +535,43 @@ Dsymbol *Module::search(Identifier *ident, int flags)
     return s;
 }
 
+/*******************************************
+ * Can't run semantic on s now, try again later.
+ */
+
+void Module::addDeferredSemantic(Dsymbol *s)
+{
+    deferred.push(s);
+}
+
+/******************************************
+ * Run semantic() on deferred symbols.
+ */
+
+void Module::runDeferredSemantic()
+{
+    int len;
+    int newlen;
+
+    do
+    {
+	len = deferred.dim;
+	if (!len)
+	    break;
+
+	for (int i = 0; i < len; i++)
+	{
+	    Dsymbol *s = (Dsymbol *)deferred.data[i];
+
+	    s->semantic(NULL);
+	}
+
+	newlen = deferred.dim - len;
+	memmove(deferred.data, deferred.data + len,
+	    newlen * sizeof(deferred.data[0]));
+	deferred.setDim(newlen);
+    } while (newlen < len);
+}
 
 /* =========================== ModuleDeclaration ===================== */
 

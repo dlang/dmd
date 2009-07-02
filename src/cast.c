@@ -638,14 +638,14 @@ Expression *CondExp::castTo(Type *t)
  */
 
 Expression *BinExp::scaleFactor()
-{   unsigned stride;
+{   d_uns64 stride;
     Type *t1b = e1->type->toBasetype();
     Type *t2b = e2->type->toBasetype();
 
     if (t1b->ty == Tpointer && t2b->isintegral())
     {   // Need to adjust operator by the stride
 	// Replace (ptr + int) with (ptr + (int * stride))
-	Type *t = Type::tint32;
+	Type *t = Type::tptrdiff_t;
 
 	stride = t1b->next->size();
 	if (!t->equals(t2b))
@@ -657,7 +657,7 @@ Expression *BinExp::scaleFactor()
     else if (t2b->ty && t1b->isintegral())
     {   // Need to adjust operator by the stride
 	// Replace (int + ptr) with (ptr + (int * stride))
-	Type *t = Type::tint32;
+	Type *t = Type::tptrdiff_t;
 	Expression *e;
 
 	stride = t2b->next->size();

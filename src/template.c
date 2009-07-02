@@ -122,9 +122,11 @@ void TemplateDeclaration::semantic(Scope *sc)
 	sc->module->toModuleAssert();
     }
 
-    // Remember Scope for later instantiations
-    this->scope = sc;
-    sc->setNoFree();
+    /* Remember Scope for later instantiations, but make
+     * a copy since attributes can change.
+     */
+    this->scope = new Scope(*sc);
+    this->scope->setNoFree();
 
     // Set up scope for parameters
     ScopeDsymbol *paramsym = new ScopeDsymbol();
@@ -1037,6 +1039,12 @@ void TemplateInstance::semantic(Scope *sc)
     }
     else
 	assert(tempdecl->isTemplateDeclaration());
+
+    if (!tempdecl->scope)
+    {
+	error("forward reference to template");
+	return;
+    }
 
     /* Since there can be multiple TemplateDeclaration's with the same
      * name, look for the best match.

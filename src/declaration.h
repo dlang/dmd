@@ -107,6 +107,7 @@ struct AliasDeclaration : Declaration
 {
     Dsymbol *aliassym;
     Dsymbol *overnext;		// next in overload list
+    int inSemantic;
 
     AliasDeclaration(Loc loc, Identifier *ident, Type *type);
     AliasDeclaration(Loc loc, Identifier *ident, Dsymbol *s);
@@ -238,6 +239,7 @@ struct FuncDeclaration : Declaration
     void semantic3(Scope *sc);
     void toHBuffer(OutBuffer *buf);
     void toCBuffer(OutBuffer *buf);
+    int overrides(FuncDeclaration *fd);
     int overloadInsert(Dsymbol *s);
     FuncDeclaration *overloadExactMatch(Type *t);
     FuncDeclaration *overloadResolve(Loc loc, Array *arguments);

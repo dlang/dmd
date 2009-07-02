@@ -72,7 +72,6 @@ struct StructDeclaration : AggregateDeclaration
     Dsymbol *syntaxCopy(Dsymbol *s);
     void semantic(Scope *sc);
     void toCBuffer(OutBuffer *buf);
-    virtual int isUnion();
     char *mangle();
     char *kind();
 
@@ -86,8 +85,9 @@ struct UnionDeclaration : StructDeclaration
 {
     UnionDeclaration(Loc loc, Identifier *id);
     Dsymbol *syntaxCopy(Dsymbol *s);
-    int isUnion();
     char *kind();
+
+    UnionDeclaration *isUnionDeclaration() { return this; }
 };
 
 struct BaseClass
@@ -133,6 +133,7 @@ struct ClassDeclaration : AggregateDeclaration
     ClassInfoDeclaration *vclassinfo;	// the ClassInfo object for this ClassDeclaration
     int com;				// !=0 if this is a COM class
     int isauto;				// !=0 if this is an auto class
+    Scope *scope;			// !=NULL means context to use
 
     ClassDeclaration(Loc loc, Identifier *id, Array *baseclasses);
     Dsymbol *syntaxCopy(Dsymbol *s);

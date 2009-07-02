@@ -180,14 +180,14 @@ void StructDeclaration::semantic(Scope *sc)
 	}
 	sc2 = sc->push(this);
 	sc2->parent = this;
-	if (isUnion())
+	if (isUnionDeclaration())
 	    sc2->inunion = 1;
 	sc2->stc &= ~(STCauto | STCstatic);
 	for (i = 0; i < members->dim; i++)
 	{
 	    Dsymbol *s = (Dsymbol *)members->data[i];
 	    s->semantic(sc2);
-	    if (isUnion())
+	    if (isUnionDeclaration())
 		sc2->offset = 0;
 	}
 	sc2->pop();
@@ -221,15 +221,25 @@ void StructDeclaration::semantic(Scope *sc)
 	    if (vd)
 	    {
 		vd->addMember(sd);
-		vd->offset += sd->structsize;
+		if (!sd->isUnionDeclaration())
+		    vd->offset += sd->structsize;
 		sd->fields.push(vd);
 	    }
 	    else
 		error("only fields allowed in anonymous struct");
 	}
 
-	sd->structsize += structsize;
-	sc->offset = sd->structsize;
+	if (sd->isUnionDeclaration())
+	{
+	    if (structsize > sd->structsize)
+		sd->structsize = structsize;
+	    sc->offset = 0;
+	}
+	else
+	{
+	    sd->structsize += structsize;
+	    sc->offset = sd->structsize;
+	}
 
 	if (sd->alignsize < alignsize)
 	    sd->alignsize = alignsize;
@@ -292,10 +302,6 @@ void StructDeclaration::toCBuffer(OutBuffer *buf)
     buf->writenl();
 }
 
-int StructDeclaration::isUnion()
-{
-    return 0;
-}
 
 char *StructDeclaration::kind()
 {
@@ -321,10 +327,6 @@ Dsymbol *UnionDeclaration::syntaxCopy(Dsymbol *s)
     return ud;
 }
 
-int UnionDeclaration::isUnion()
-{
-    return 1;
-}
 
 char *UnionDeclaration::kind()
 {

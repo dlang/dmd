@@ -188,14 +188,17 @@ ArrayInitializer::ArrayInitializer(Loc loc)
 
 Initializer *ArrayInitializer::syntaxCopy()
 {
+    //printf("ArrayInitializer::syntaxCopy()\n");
+
     ArrayInitializer *ai = new ArrayInitializer(loc);
 
     assert(index.dim == value.dim);
     ai->index.setDim(index.dim);
     ai->value.setDim(value.dim);
-    for (int i = 0; i < ai->dim; i++)
+    for (int i = 0; i < ai->value.dim; i++)
     {	Expression *e = (Expression *)index.data[i];
-	e = e->syntaxCopy();
+	if (e)
+	    e = e->syntaxCopy();
 	ai->index.data[i] = e;
 
 	Initializer *init = (Initializer *)value.data[i];

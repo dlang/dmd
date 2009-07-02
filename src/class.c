@@ -73,6 +73,7 @@ ClassDeclaration::ClassDeclaration(Loc loc, Identifier *id, Array *baseclasses)
 	com = 1;
 #endif
     isauto = 0;
+    scope = NULL;
 }
 
 Dsymbol *ClassDeclaration::syntaxCopy(Dsymbol *s)
@@ -102,16 +103,27 @@ void ClassDeclaration::semantic(Scope *sc)
     unsigned offset;
 
     //printf("ClassDeclaration::semantic(%s), type = %p\n", toChars(), type);
-    type = type->semantic(loc, sc);
-    handle = handle->semantic(loc, sc);
+    if (!scope)
+    {	type = type->semantic(loc, sc);
+	handle = handle->semantic(loc, sc);
+    }
     if (!members)			// if forward reference
     {	//printf("\tclass '%s' is forward referenced\n", toChars());
 	return;
     }
-    if (symtab)			// if already done
-	return;
+    if (symtab)
+    {	if (!scope)
+	    return;		// semantic() already completed
+    }
+    else
+	symtab = new DsymbolTable();
 
-    symtab = new DsymbolTable();
+    Scope *scx = NULL;
+    if (scope)
+    {	sc = scope;
+	scx = scope;		// save so we don't make redundant copies
+	scope = NULL;
+    }
 
     // See if base class is in baseclasses[]
     if (baseclasses.dim)
@@ -133,7 +145,15 @@ void ClassDeclaration::semantic(Scope *sc)
 	    {   baseClass = tc->sym;
 		b->base = baseClass;
 		if (!baseClass->symtab)
-		    error("forward reference of base class %s", baseClass->toChars());
+		{
+		    //error("forward reference of base class %s", baseClass->toChars());
+		    // Forward reference of base class, try again later
+		    //printf("\ttry later\n");
+		    scope = scx ? scx : new Scope(*sc);
+		    scope->setNoFree();
+		    scope->module->addDeferredSemantic(this);
+		    return;
+		}
 	    }
 	}
     }
@@ -329,7 +349,10 @@ Dsymbol *ClassDeclaration::search(Identifier *ident, int flags)
     Dsymbol *s;
 
     //printf("%s.ClassDeclaration::search('%s')\n", toChars(), ident->toChars());
-    if (!members || !symtab)
+    if (scope)
+	semantic(scope);
+
+    if (!members || !symtab || scope)
     {	error("is forward referenced");
 	return NULL;
     }

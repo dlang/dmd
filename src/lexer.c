@@ -1475,9 +1475,9 @@ done:
     switch (flags)
     {
 	case 0:
-	    if (n & 0x8000000000000000)
+	    if (n & 0x8000000000000000LL)
 		    result = TOKuns64v;
-	    else if (n & 0xFFFFFFFF00000000)
+	    else if (n & 0xFFFFFFFF00000000LL)
 		    result = TOKint64v;
 	    else if (n & 0x80000000)
 		    result = TOKuns32v;
@@ -1486,9 +1486,9 @@ done:
 	    break;
 
 	case FLAGS_decimal:
-	    if (n & 0x8000000000000000)
+	    if (n & 0x8000000000000000LL)
 		    result = TOKuns64v;
-	    else if (n & 0xFFFFFFFF80000000)
+	    else if (n & 0xFFFFFFFF80000000LL)
 		    result = TOKint64v;
 	    else
 		    result = TOKint32v;
@@ -1496,7 +1496,7 @@ done:
 
 	case FLAGS_unsigned:
 	case FLAGS_decimal | FLAGS_unsigned:
-	    if (n & 0xFFFFFFFF00000000)
+	    if (n & 0xFFFFFFFF00000000LL)
 		    result = TOKuns64v;
 	    else
 		    result = TOKuns32v;
@@ -1504,7 +1504,7 @@ done:
 
 	case FLAGS_long:
 	case FLAGS_decimal | FLAGS_long:
-	    if (n & 0x8000000000000000)
+	    if (n & 0x8000000000000000LL)
 		    result = TOKuns64v;
 	    else
 		    result = TOKint64v;

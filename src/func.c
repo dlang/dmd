@@ -615,6 +615,27 @@ void FuncDeclaration::toCBuffer(OutBuffer *buf)
     }
 }
 
+/****************************************************
+ * Determine if 'this' overrides fd.
+ * Return !=0 if it does.
+ */
+
+int FuncDeclaration::overrides(FuncDeclaration *fd)
+{   int result = 0;
+
+    if (fd->ident == ident)
+    {
+	int cov = type->covariant(fd->type);
+	if (cov)
+	{   ClassDeclaration *cd1 = parent->isClassDeclaration();
+	    ClassDeclaration *cd2 = fd->parent->isClassDeclaration();
+
+	    if (cd1 && cd2 && cd2->isBaseOf(cd1, NULL))
+		result = 1;
+	}
+    }
+    return result;
+}
 
 /****************************************************
  * Overload this FuncDeclaration with the new one f.
@@ -704,11 +725,11 @@ FuncDeclaration *FuncDeclaration::overloadExactMatch(Type *t)
 
 struct Match
 {
-    int count;
-    MATCH last;
-    FuncDeclaration *lastf;
-    FuncDeclaration *nextf;
-    FuncDeclaration *anyf;
+    int count;			// number of matches found
+    MATCH last;			// match level of lastf
+    FuncDeclaration *lastf;	// last matching function we found
+    FuncDeclaration *nextf;	// current matching function
+    FuncDeclaration *anyf;	// pick a func, any func, to use for error recovery
 };
 
 // Recursive helper function
@@ -786,7 +807,7 @@ if (arguments)
 
 	arg = (Expression *)arguments->data[i];
 	assert(arg->type);
-	printf("%s: ", arg->toChars());
+	printf("\t%s: ", arg->toChars());
 	arg->type->print();
     }
 }
@@ -851,6 +872,13 @@ if (arguments)
     }
     else
     {
+	/* See if one of the matches overrides the other.
+	 */
+	if (m.lastf->overrides(m.nextf))
+	    return m.lastf;
+	else if (m.nextf->overrides(m.lastf))
+	    return m.nextf;
+
 	error(loc, "overloads %s and %s both match argument list for %s",
 		m.lastf->type->toChars(),
 		m.nextf->type->toChars(),

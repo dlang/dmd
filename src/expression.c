@@ -491,7 +491,7 @@ integer_t IntegerExp::toInteger()
 	{
 	    case Tbit:		value &= 1;			break;
 	    case Tint8:		value = (d_int8)  value;	break;
-	    case Tascii:
+	    case Tchar:
 	    case Tuns8:		value = (d_uns8)  value;	break;
 	    case Tint16:	value = (d_int16) value;	break;
 	    case Twchar:
@@ -557,9 +557,9 @@ Expression *IntegerExp::semantic(Scope *sc)
 	// Determine what the type of this number is
 	integer_t number = value;
 
-	if (number & 0x8000000000000000)
+	if (number & 0x8000000000000000LL)
 	    type = Type::tuns64;
-	else if (number & 0xFFFFFFFF80000000)
+	else if (number & 0xFFFFFFFF80000000LL)
 	    type = Type::tint64;
 	else
 	    type = Type::tint32;
@@ -579,7 +579,7 @@ void IntegerExp::toCBuffer(OutBuffer *buf)
 	    buf->printf("cast(%s)", te->sym->toChars());
 	}
     }
-    if (value & 0x8000000000000000)
+    if (value & 0x8000000000000000LL)
 	buf->printf("0x%llx", value);
     else
 	buf->printf("%lld", value);
@@ -2960,9 +2960,6 @@ Expression *SliceExp::semantic(Scope *sc)
     else
 	goto Lerror;
 
-    if (t->next->toBasetype()->ty == Tvoid)
-	error("cannot have array of %s", t->next->toChars());
-
     if (lwr)
     {	lwr = lwr->semantic(sc);
 	lwr = resolveProperties(sc, lwr);
@@ -3805,14 +3802,14 @@ Expression *MinExp::semantic(Scope *sc)
 	if (t2->ty == Tpointer)
 	{   // Need to divide the result by the stride
 	    // Replace (ptr - ptr) with (ptr - ptr) / stride
-	    d_int32 stride;
+	    d_int64 stride;
 	    Expression *e;
 
 	    typeCombine();		// make sure pointer types are compatible
-	    type = Type::tint32;
+	    type = Type::tptrdiff_t;
 	    stride = t2->next->size();
-	    e = new DivExp(loc, this, new IntegerExp(0, stride, Type::tint32));
-	    e->type = Type::tint32;
+	    e = new DivExp(loc, this, new IntegerExp(0, stride, Type::tptrdiff_t));
+	    e->type = Type::tptrdiff_t;
 	    return e;
 	}
 	else if (t2->isintegral())

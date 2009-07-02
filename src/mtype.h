@@ -88,6 +88,9 @@ enum TY
 
 #define Tascii Tchar
 
+extern int Tsize_t;
+extern int Tptrdiff_t;
+
 enum MATCH
 {
     MATCHnomatch,	// no match
@@ -139,8 +142,8 @@ struct Type : Object
     #define tvoidptr	tint32		// size for void*
     #define terror	basic[Terror]	// for error recovery
 
-    #define tsize_t	tuns32		// matches size_t alias
-    #define tptrdiff_t	tint32		// matches ptrdiff_t alias
+    #define tsize_t	basic[Tsize_t]		// matches size_t alias
+    #define tptrdiff_t	basic[Tptrdiff_t]	// matches ptrdiff_t alias
 
     static ClassDeclaration *typeinfo;
 
@@ -161,7 +164,7 @@ struct Type : Object
     int covariant(Type *t);
     char *toChars();
     static void init();
-    virtual unsigned size();
+    virtual d_uns64 size();
     virtual unsigned alignsize();
     virtual Type *semantic(Loc loc, Scope *sc);
     virtual void toDecoBuffer(OutBuffer *buf);
@@ -218,7 +221,7 @@ struct TypeBasic : Type
 
     TypeBasic(TY ty);
     Type *syntaxCopy();
-    unsigned size();
+    d_uns64 size();
     unsigned alignsize();
     Expression *getProperty(Loc loc, Identifier *ident);
     Expression *dotExp(Scope *sc, Expression *e, Identifier *ident);
@@ -255,7 +258,7 @@ struct TypeSArray : TypeArray
 
     TypeSArray(Type *t, Expression *dim);
     Type *syntaxCopy();
-    unsigned size();
+    d_uns64 size();
     unsigned alignsize();
     Type *semantic(Loc loc, Scope *sc);
     void toDecoBuffer(OutBuffer *buf);
@@ -278,7 +281,7 @@ struct TypeDArray : TypeArray
 {
     TypeDArray(Type *t);
     Type *syntaxCopy();
-    unsigned size();
+    d_uns64 size();
     unsigned alignsize();
     Type *semantic(Loc loc, Scope *sc);
     void toDecoBuffer(OutBuffer *buf);
@@ -298,7 +301,7 @@ struct TypeAArray : TypeArray
 
     TypeAArray(Type *t, Type *index);
     Type *syntaxCopy();
-    unsigned size();
+    d_uns64 size();
     Type *semantic(Loc loc, Scope *sc);
     void toDecoBuffer(OutBuffer *buf);
     void toPrettyBracket(OutBuffer *buf);
@@ -316,7 +319,7 @@ struct TypePointer : Type
     TypePointer(Type *t);
     Type *syntaxCopy();
     Type *semantic(Loc loc, Scope *sc);
-    unsigned size();
+    d_uns64 size();
     void toCBuffer2(OutBuffer *buf, Identifier *ident);
     int implicitConvTo(Type *to);
     int isscalar();
@@ -328,7 +331,7 @@ struct TypeReference : Type
 {
     TypeReference(Type *t);
     Type *syntaxCopy();
-    unsigned size();
+    d_uns64 size();
     void toCBuffer2(OutBuffer *buf, Identifier *ident);
     Expression *dotExp(Scope *sc, Expression *e, Identifier *ident);
     Expression *defaultInit();
@@ -367,7 +370,7 @@ struct TypeDelegate : Type
     TypeDelegate(Type *t);
     Type *syntaxCopy();
     Type *semantic(Loc loc, Scope *sc);
-    unsigned size();
+    d_uns64 size();
     void toCBuffer2(OutBuffer *buf, Identifier *ident);
     Expression *defaultInit();
     int isZeroInit();
@@ -383,7 +386,7 @@ struct TypeQualified : Type
     void syntaxCopyHelper(TypeQualified *t);
     void addIdent(Identifier *ident);
     void toCBuffer2Helper(OutBuffer *buf, Identifier *ident);
-    unsigned size();
+    d_uns64 size();
     void resolveHelper(Loc loc, Scope *sc, Dsymbol *s, Dsymbol *scopesym,
 	Expression **pe, Type **pt, Dsymbol **ps);
 };
@@ -433,7 +436,7 @@ struct TypeStruct : Type
     StructDeclaration *sym;
 
     TypeStruct(StructDeclaration *sym);
-    unsigned size();
+    d_uns64 size();
     unsigned alignsize();
     char *toChars();
     Type *semantic(Loc loc, Scope *sc);
@@ -456,7 +459,7 @@ struct TypeEnum : Type
     EnumDeclaration *sym;
 
     TypeEnum(EnumDeclaration *sym);
-    unsigned size();
+    d_uns64 size();
     unsigned alignsize();
     char *toChars();
     Type *semantic(Loc loc, Scope *sc);
@@ -484,7 +487,7 @@ struct TypeTypedef : Type
     TypedefDeclaration *sym;
 
     TypeTypedef(TypedefDeclaration *sym);
-    unsigned size();
+    d_uns64 size();
     unsigned alignsize();
     char *toChars();
     Type *semantic(Loc loc, Scope *sc);
@@ -514,7 +517,7 @@ struct TypeClass : Type
     ClassDeclaration *sym;
 
     TypeClass(ClassDeclaration *sym);
-    unsigned size();
+    d_uns64 size();
     char *toChars();
     Type *semantic(Loc loc, Scope *sc);
     Dsymbol *toDsymbol(Scope *sc);

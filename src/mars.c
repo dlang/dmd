@@ -44,7 +44,7 @@ Global::Global()
 
     copyright = "Copyright (c) 1999-2004 by Digital Mars";
     written = "written by Walter Bright";
-    version = "v0.81";
+    version = "v0.82";
     global.structalign = 8;
 
     memset(&params, 0, sizeof(Param));
@@ -188,6 +188,7 @@ int main(int argc, char *argv[])
 #endif
 #if linux
     VersionCondition::addIdent("linux");
+    global.params.isLinux = 1;
 #endif /* linux */
     VersionCondition::addIdent("X86");
     VersionCondition::addIdent("LittleEndian");

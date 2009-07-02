@@ -484,6 +484,8 @@ struct DelegateExp : UnaExp
     Expression *castTo(Type *t);
     void toCBuffer(OutBuffer *buf);
     void dump(int indent);
+
+    int inlineCost(InlineCostState *ics);
     elem *toElem(IRState *irs);
 };
 

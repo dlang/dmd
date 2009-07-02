@@ -294,6 +294,7 @@ FuncDeclaration *search_function(AggregateDeclaration *ad, Identifier *funcid)
     s = ad->search(funcid, 0);
     if (s)
     {
+	s = s->toAlias();
 	fd = s->isFuncDeclaration();
 	if (fd && fd->type->ty == Tfunction)
 	    return fd;

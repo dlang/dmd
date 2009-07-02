@@ -159,6 +159,7 @@ AliasDeclaration::AliasDeclaration(Loc loc, Identifier *id, Type *type)
     this->type = type;
     this->aliassym = NULL;
     this->overnext = NULL;
+    this->inSemantic = 0;
     assert(type);
 }
 
@@ -170,6 +171,7 @@ AliasDeclaration::AliasDeclaration(Loc loc, Identifier *id, Dsymbol *s)
     this->type = NULL;
     this->aliassym = s;
     this->overnext = NULL;
+    this->inSemantic = 0;
     assert(s);
 }
 
@@ -192,6 +194,7 @@ void AliasDeclaration::semantic(Scope *sc)
 	aliassym->semantic(sc);
 	return;
     }
+    this->inSemantic = 1;
 
     // Given:
     //	alias foo.bar.abc def;
@@ -241,6 +244,7 @@ void AliasDeclaration::semantic(Scope *sc)
     }
   L1:
     type = type->semantic(loc, sc);
+    this->inSemantic = 0;
     return;
 
   L2:
@@ -261,6 +265,7 @@ void AliasDeclaration::semantic(Scope *sc)
 	ScopeDsymbol::multiplyDefined(s, overnext);
     assert(s != this);
     aliassym = s;
+    this->inSemantic = 0;
 }
 
 int AliasDeclaration::overloadInsert(Dsymbol *s)
@@ -294,6 +299,8 @@ Dsymbol *AliasDeclaration::toAlias()
 #ifdef DEBUG
     assert(this != aliassym);
 #endif
+    if (inSemantic)
+	error("recursive alias declaration");
     return aliassym ? aliassym->toAlias() : this;
 }
 

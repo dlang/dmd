@@ -1,5 +1,5 @@
 
-// Copyright (c) 1999-2002 by Digital Mars
+// Copyright (c) 1999-2004 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // www.digitalmars.com
@@ -39,6 +39,7 @@ struct Package : ScopeDsymbol
 struct Module : Package
 {
     static DsymbolTable *modules;	// All modules
+    static Array deferred;	// deferred Dsymbol's needing semantic() run on them
     static void init();
 
     static ClassDeclaration *moduleinfo;
@@ -75,6 +76,8 @@ struct Module : Package
     int needModuleInfo();
     Dsymbol *search(Identifier *ident, int flags);
     void deleteObjFile();
+    void addDeferredSemantic(Dsymbol *s);
+    void runDeferredSemantic();
 
     // Back end
 

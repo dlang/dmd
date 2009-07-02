@@ -29,6 +29,7 @@ struct AggregateDeclaration;
 struct ClassDeclaration;
 struct InterfaceDeclaration;
 struct StructDeclaration;
+struct UnionDeclaration;
 struct FuncDeclaration;
 struct FuncAliasDeclaration;
 struct CtorDeclaration;
@@ -145,6 +146,7 @@ struct Dsymbol : Object
     virtual VarDeclaration *isVarDeclaration() { return NULL; }
     virtual ClassDeclaration *isClassDeclaration() { return NULL; }
     virtual StructDeclaration *isStructDeclaration() { return NULL; }
+    virtual UnionDeclaration *isUnionDeclaration() { return NULL; }
     virtual InterfaceDeclaration *isInterfaceDeclaration() { return NULL; }
     virtual VersionDeclaration *isVersionDeclaration() { return NULL; }
     virtual ScopeDsymbol *isScopeDsymbol() { return NULL; }

@@ -45,8 +45,14 @@ static double zero = 0;
 #define LOGDOTEXP	0	// log ::dotExp()
 #define LOGDEFAULTINIT	0	// log ::defaultInit()
 
-#define PTRSIZE		4
-#define REALSIZE	10
+/* These have default values for 32 bit code, they get
+ * adjusted for 64 bit code.
+ */
+
+int PTRSIZE = 4;
+int REALSIZE = 10;
+int Tsize_t = Tuns32;
+int Tptrdiff_t = Tint32;
 
 /***************************** Type *****************************/
 
@@ -155,9 +161,27 @@ void Type::init()
 
     for (i = 0; i < sizeof(basetab) / sizeof(basetab[0]); i++)
 	basic[basetab[i]] = new TypeBasic(basetab[i]);
+
+    if (global.params.isAMD64)
+    {
+	PTRSIZE = 8;
+	if (global.params.isLinux)
+	    REALSIZE = 10;
+	else
+	    REALSIZE = 8;
+	Tsize_t = Tuns64;
+	Tptrdiff_t = Tint64;
+    }
+    else
+    {
+	PTRSIZE = 4;
+	REALSIZE = 10;
+	Tsize_t = Tuns32;
+	Tptrdiff_t = Tint32;
+    }
 }
 
-unsigned Type::size()
+d_uns64 Type::size()
 {
     Loc loc;
 
@@ -233,7 +257,11 @@ void Type::toDecoBuffer(OutBuffer *buf)
 {
     buf->writeByte(mangleChar[ty]);
     if (next)
+    {
+	assert(next != this);
+	//printf("this = %p, ty = %d, next = %p, ty = %d\n", this, this->ty, next, next->ty);
 	next->toDecoBuffer(buf);
+    }
 }
 
 /********************************
@@ -682,7 +710,7 @@ void TypeBasic::toCBuffer2(OutBuffer *buf, Identifier *ident)
     }
 }
 
-unsigned TypeBasic::size()
+d_uns64 TypeBasic::size()
 {   unsigned size;
 
     //printf("TypeBasic::size()\n");
@@ -726,6 +754,7 @@ unsigned TypeBasic::size()
 	    assert(0);
 	    break;
     }
+    //printf("TypeBasic::size() = %d\n", size);
     return size;
 }
 
@@ -1295,7 +1324,7 @@ Type *TypeSArray::syntaxCopy()
     return t;
 }
 
-unsigned TypeSArray::size()
+d_uns64 TypeSArray::size()
 {   unsigned sz;
 
     if (!dim)
@@ -1303,7 +1332,7 @@ unsigned TypeSArray::size()
     sz = dim->toInteger();
     if (next->ty == Tbit)		// if array of bits
     {
-	sz = ((sz + 31) & ~31) / 8;	// size in bytes, rounded up to dwords
+	sz = ((sz + 31) & ~31) / 8;	// size in bytes, rounded up to 32 bit dwords
     }
     else
 	sz *= next->size();
@@ -1435,7 +1464,7 @@ Type *TypeDArray::syntaxCopy()
     return t;
 }
 
-unsigned TypeDArray::size()
+d_uns64 TypeDArray::size()
 {
     //printf("TypeDArray::size()\n");
     return PTRSIZE * 2;
@@ -1563,7 +1592,7 @@ Type *TypeAArray::syntaxCopy()
     return t;
 }
 
-unsigned TypeAArray::size()
+d_uns64 TypeAArray::size()
 {
     return PTRSIZE * 2;
 }
@@ -1778,7 +1807,7 @@ Type *TypePointer::semantic(Loc loc, Scope *sc)
 }
 
 
-unsigned TypePointer::size()
+d_uns64 TypePointer::size()
 {
     return PTRSIZE;
 }
@@ -1863,7 +1892,7 @@ Type *TypeReference::syntaxCopy()
     return t;
 }
 
-unsigned TypeReference::size()
+d_uns64 TypeReference::size()
 {
     return PTRSIZE;
 }
@@ -2234,7 +2263,7 @@ Type *TypeDelegate::semantic(Loc loc, Scope *sc)
     return merge();
 }
 
-unsigned TypeDelegate::size()
+d_uns64 TypeDelegate::size()
 {
     return PTRSIZE * 2;
 }
@@ -2332,7 +2361,7 @@ void TypeQualified::toCBuffer2Helper(OutBuffer *buf, Identifier *ident)
     }
 }
 
-unsigned TypeQualified::size()
+d_uns64 TypeQualified::size()
 {
     error(loc, "size of type %s is not known", toChars());
     return 1;
@@ -2702,7 +2731,7 @@ Type *TypeEnum::semantic(Loc loc, Scope *sc)
     return merge();
 }
 
-unsigned TypeEnum::size()
+d_uns64 TypeEnum::size()
 {
     if (!sym->memtype)
     {
@@ -2863,7 +2892,7 @@ Type *TypeTypedef::semantic(Loc loc, Scope *sc)
     return merge();
 }
 
-unsigned TypeTypedef::size()
+d_uns64 TypeTypedef::size()
 {
     return sym->basetype->size();
 }
@@ -3029,7 +3058,7 @@ Type *TypeStruct::semantic(Loc loc, Scope *sc)
     return merge();
 }
 
-unsigned TypeStruct::size()
+d_uns64 TypeStruct::size()
 {
     return sym->size();
 }
@@ -3196,10 +3225,13 @@ char *TypeClass::toChars()
 
 Type *TypeClass::semantic(Loc loc, Scope *sc)
 {
+    //printf("TypeClass::semantic(%s)\n", sym->toChars());
+    if (sym->scope)
+	sym->semantic(sym->scope);
     return merge();
 }
 
-unsigned TypeClass::size()
+d_uns64 TypeClass::size()
 {
     return PTRSIZE;
 }
@@ -3284,8 +3316,8 @@ Expression *TypeClass::dotExp(Scope *sc, Expression *e, Identifier *ident)
     if (v && v->isConst())
     {	ExpInitializer *ei = v->init->isExpInitializer();
 
-	assert(ei);
-	return ei->exp;
+	if (ei)
+	    return ei->exp;
     }
 
     if (s->getType())
@@ -3337,7 +3369,7 @@ Expression *TypeClass::dotExp(Scope *sc, Expression *e, Identifier *ident)
 	return ve;
     }
 
-    if (d->isStatic())
+    if (d->isDataseg())
     {
 	// (e, d)
 	VarExp *ve;
