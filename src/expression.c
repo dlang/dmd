@@ -1,5 +1,5 @@
 
-// Copyright (c) 1999-2002 by Digital Mars
+// Copyright (c) 1999-2003 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // www.digitalmars.com
@@ -120,7 +120,7 @@ void functionArguments(Loc loc, Scope *sc, TypeFunction *tf, Array *arguments)
 	    // Convert static arrays to dynamic arrays
 	    if (arg->type->ty == Tsarray)
 	    {
-		arg = arg->castTo(arg->type->arrayOf());
+		arg = arg->castTo(arg->type->next->arrayOf());
 	    }
 	}
 	arguments->data[i] = (void *) arg;
@@ -1746,7 +1746,19 @@ Expression *DotIdExp::semantic(Scope *sc)
 		return new ScopeExp(loc, sds);
 	    }
 
+	    Import *imp = s->isImport();
+	    if (imp)
+	    {
+		ScopeExp *ie;
+
+		ie = new ScopeExp(loc, imp->pkg);
+		return ie->semantic(sc);
+	    }
+
 	    // BUG: handle other cases like in IdentifierExp::semantic()
+#ifdef DEBUG
+	    printf("s = '%s', kind = '%s'\n", s->toChars(), s->kind());
+#endif
 	    assert(0);
 	}
 	error("undefined identifier %s", toChars());

@@ -21,8 +21,8 @@
 
 struct Msgtable
 {
-	char *ident;
-	char *name;
+	char *ident;	// name to use in DMD source
+	char *name;	// name in D executable
 };
 
 Msgtable msgtable[] =
@@ -54,6 +54,7 @@ Msgtable msgtable[] =
     { "returnLabel", "__returnLabel" },
     { "delegate" },
     { "line" },
+    { "empty", "" },
 
     { "nan" },
     { "infinity" },

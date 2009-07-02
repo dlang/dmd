@@ -1019,15 +1019,24 @@ Lerr:
 TemplateInstance *Parser::parseTemplateInstance()
 {
     TemplateInstance *tempinst;
+    Identifier *id;
 
     //printf("parseTemplateInstance()\n");
     nextToken();
-    if (token.value != TOKidentifier)
+    if (token.value == TOKdot)
+    {
+	id = Id::empty;
+    }
+    else if (token.value == TOKidentifier)
+    {	id = token.ident;
+	nextToken();
+    }
+    else
     {   error("TemplateIdentifier expected following instance");
 	goto Lerr;
     }
-    tempinst = new TemplateInstance(token.ident);
-    while (nextToken() == TOKdot)
+    tempinst = new TemplateInstance(id);
+    while (token.value == TOKdot)
     {   nextToken();
 	if (token.value == TOKidentifier)
 	    tempinst->addIdent(token.ident);
@@ -1035,6 +1044,7 @@ TemplateInstance *Parser::parseTemplateInstance()
 	{   error("identifier expected following '.' instead of '%s'", token.toChars());
 	    goto Lerr;
 	}
+	nextToken();
     }
     if (token.value != TOKlparen)
     {   error("parenthesized TemplateArgumentList expected following TemplateIdentifier");
@@ -1126,6 +1136,7 @@ Import *Parser::parseImport(Array *decldefs)
 
 Type *Parser::parseBasicType()
 {   Type *t;
+    Identifier *id;
 
     //printf("parseBasicType()\n");
     switch (token.value)
@@ -1135,11 +1146,14 @@ Type *Parser::parseBasicType()
 	    break;
 
 	case TOKidentifier:
+	    id = token.ident;
+	    nextToken();
+	Lident:
 	{
 	    TypeIdentifier *ti;
 
-	    ti = new TypeIdentifier(loc, token.ident);
-	    while (nextToken() == TOKdot)
+	    ti = new TypeIdentifier(loc, id);
+	    while (token.value == TOKdot)
 	    {	nextToken();
 		if (token.value == TOKidentifier)
 		    ti->addIdent(token.ident);
@@ -1147,10 +1161,15 @@ Type *Parser::parseBasicType()
 		{   error("identifier expected following '.' instead of '%s'", token.toChars());
 		    break;
 		}
+		nextToken();
 	    }
 	    t = ti;
 	    break;
 	}
+
+	case TOKdot:
+	    id = Id::empty;
+	    goto Lident;
 
 	case TOKinstance:
 	{   TemplateInstance *tempinst;
@@ -1875,8 +1894,11 @@ Statement *Parser::parseStatement(int flags)
 		nextToken();
 		s = parseStatement(PSsemi);
 		s = new LabelStatement(loc, ident, s);
+		break;
 	    }
-	    else if (isDeclaration(&token, 2, TOKreserved, NULL))
+	    // fallthrough to TOKdot
+	case TOKdot:
+	    if (isDeclaration(&token, 2, TOKreserved, NULL))
 	    {
 		goto Ldeclaration;
 
@@ -2549,6 +2571,9 @@ int Parser::isBasicType(Token **pt)
 	    }
 	    break;
 
+	case TOKdot:
+	    goto Ldot;
+
 	case TOKinstance:
 	    // Handle cases like:
 	    //	instance Foo(int).bar x;
@@ -2780,9 +2805,12 @@ int Parser::isExpression(Token **pt)
 int Parser::isTemplateInstance(Token *t, Token **pt)
 {
     t = peek(t);
-    if (t->value != TOKidentifier)
-	goto Lfalse;
-    t = peek(t);
+    if (t->value != TOKdot)
+    {
+	if (t->value != TOKidentifier)
+	    goto Lfalse;
+	t = peek(t);
+    }
     while (t->value == TOKdot)
     {
 	t = peek(t);
@@ -2849,6 +2877,11 @@ Expression *Parser::parsePrimaryExp()
 	case TOKidentifier:
 	    e = new IdentifierExp(loc, token.ident);
 	    nextToken();
+	    break;
+
+	case TOKdot:
+	    // Signal global scope '.' operator with "" identifier
+	    e = new IdentifierExp(loc, Id::empty);
 	    break;
 
 	case TOKthis:

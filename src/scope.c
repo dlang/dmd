@@ -186,6 +186,27 @@ Dsymbol *Scope::search(Identifier *ident, Dsymbol **pscopesym)
     Scope *sc;
 
     //printf("Scope::search(%p, '%s')\n", this, ident->toChars());
+    if (ident == Id::empty)
+    {
+	// Look for module scope
+	for (sc = this; sc; sc = sc->enclosing)
+	{
+	    assert(sc != sc->enclosing);
+	    if (sc->scopesym)
+	    {
+		s = sc->scopesym->isModule();
+		if (s)
+		{
+		    //printf("\tfound %s.%s\n", s->parent ? s->parent->toChars() : "", s->toChars());
+		    if (pscopesym)
+			*pscopesym = sc->scopesym;
+		    return s;
+		}
+	    }
+	}
+	return NULL;
+    }
+
     for (sc = this; sc; sc = sc->enclosing)
     {
 	assert(sc != sc->enclosing);
