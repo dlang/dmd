@@ -41,6 +41,7 @@ FuncDeclaration::FuncDeclaration(Loc loc, Loc endloc, Identifier *id, enum STC s
     inlineAsm = 0;
     semanticRun = 0;
     nestedFrameRef = 0;
+    fes = NULL;
 }
 
 Dsymbol *FuncDeclaration::syntaxCopy(Dsymbol *s)
@@ -275,6 +276,9 @@ void FuncDeclaration::semantic3(Scope *sc)
 	sc2->func = this;
 	sc2->parent = this;
 	sc2->callSuper = 0;
+	sc2->sbreak = NULL;
+	sc2->scontinue = NULL;
+	sc2->fes = fes;
 
 	// Declare 'this'
 	ad = isThis();
@@ -447,6 +451,13 @@ void FuncDeclaration::semantic3(Scope *sc)
 		    Statement *s = new ExpStatement(0, e);
 		    fbody = new CompoundStatement(0, s, fbody);
 		}
+	    }
+	    else if (fes)
+	    {	// For foreach(){} body, append a return 0;
+		Expression *e = new IntegerExp(0);
+		Statement *s = new ReturnStatement(0, e);
+		fbody = new CompoundStatement(0, fbody, s);
+		assert(!returnLabel);
 	    }
 	    else if (!hasReturnExp && type->next->ty != Tvoid)
 		error("function expected to return a value of type %s", type->next->toChars());
@@ -986,10 +997,12 @@ FuncAliasDeclaration::FuncAliasDeclaration(FuncDeclaration *funcalias)
 
 /****************************** FuncLiteralDeclaration ************************/
 
-FuncLiteralDeclaration::FuncLiteralDeclaration(Loc loc, Loc endloc, Type *type, enum TOK tok)
+FuncLiteralDeclaration::FuncLiteralDeclaration(Loc loc, Loc endloc, Type *type,
+	enum TOK tok, ForeachStatement *fes)
     : FuncDeclaration(loc, endloc, NULL, STCundefined, type)
 {
     this->tok = tok;
+    this->fes = fes;
 }
 
 int FuncLiteralDeclaration::isNested()

@@ -438,7 +438,7 @@ void VarDeclaration::semantic(Scope *sc)
     }
 
     if (!init && !sc->inunion && !isStatic() && !isConst() && fd &&
-	!(storage_class & (STCfield | STCparameter)))
+	!(storage_class & (STCfield | STCparameter | STCforeach)))
     {
 	// Provide a default initializer
 	//printf("Providing default initializer for '%s'\n", toChars());

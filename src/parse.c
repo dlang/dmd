@@ -2140,6 +2140,39 @@ Statement *Parser::parseStatement(int flags)
 	    break;
 	}
 
+	case TOKforeach:
+	{
+	    Type *tb;
+	    Identifier *ai;
+	    Type *at;
+	    Argument *a;
+	    enum InOut inout;
+
+	    Statement *d;
+	    Statement *body;
+	    Expression *aggr;
+
+	    nextToken();
+	    check(TOKlparen);
+
+	    inout = In;
+	    if (token.value == TOKinout)
+	    {	inout = InOut;
+		nextToken();
+	    }
+	    tb = parseBasicType();
+	    at = parseDeclarator(tb, &ai);
+	    a = new Argument(at, ai, inout);
+
+	    check(TOKsemicolon);
+
+	    aggr = parseExpression();
+	    check(TOKrparen);
+	    body = parseStatement(0);
+	    s = new ForeachStatement(loc, a, aggr, body);
+	    break;
+	}
+
 	case TOKif:
 	{   Expression *condition;
 	    Statement *ifbody;
@@ -3084,7 +3117,7 @@ Expression *Parser::parsePrimaryExp()
 	    }
 	    arguments = parseParameters(&varargs);
 	    t = new TypeFunction(arguments, t, varargs, linkage);
-	    fd = new FuncLiteralDeclaration(loc, 0, t, save);
+	    fd = new FuncLiteralDeclaration(loc, 0, t, save, NULL);
 	    parseContracts(fd);
 	    e = new FuncExp(loc, fd);
 	    break;

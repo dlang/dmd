@@ -37,6 +37,7 @@ Scope::Scope()
     this->sw = NULL;
     this->sbreak = NULL;
     this->scontinue = NULL;
+    this->fes = NULL;
     this->structalign = global.structalign;
     this->func = NULL;
     this->slabel = NULL;
@@ -61,6 +62,7 @@ Scope::Scope(Scope *enclosing)
     this->sw = enclosing->sw;
     this->sbreak = enclosing->sbreak;
     this->scontinue = enclosing->scontinue;
+    this->fes = enclosing->fes;
     this->structalign = enclosing->structalign;
     this->enclosing = enclosing;
     this->slabel = NULL;
@@ -76,33 +78,6 @@ Scope::Scope(Scope *enclosing)
     this->flags = 0;
     assert(this != enclosing);
 }
-
-#if 0
-Scope::Scope(Module *module)
-{   // Create root scope
-
-    this->module = module;
-    this->scopesym = module;
-    this->enclosing = NULL;
-    this->parent = NULL;
-    this->sw = NULL;
-    this->sbreak = NULL;
-    this->scontinue = NULL;
-    this->structalign = global.structalign;
-    this->func = NULL;
-    this->slabel = NULL;
-    this->linkage = LINKd;
-    this->protection = PROTpublic;
-    this->stc = 0;
-    this->offset = 0;
-    this->inunion = 0;
-    this->incontract = 0;
-    this->nofree = 0;
-    this->noctor = 0;
-    this->callSuper = 0;
-    this->flags = 0;
-}
-#endif
 
 Scope *Scope::createGlobal(Module *module)
 {

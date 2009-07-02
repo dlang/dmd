@@ -540,6 +540,216 @@ int ForStatement::usesEH()
     return init->usesEH() || body->usesEH();
 }
 
+/******************************** ForeachStatement ***************************/
+
+ForeachStatement::ForeachStatement(Loc loc, Argument *arg,
+	Expression *aggr, Statement *body)
+    : Statement(loc)
+{
+    this->arg = arg;
+    this->aggr = aggr;
+    this->body = body;
+
+    this->var = NULL;
+}
+
+Statement *ForeachStatement::syntaxCopy()
+{
+    Argument *a = new Argument(arg->type->syntaxCopy(), arg->ident, arg->inout);
+    Expression *exp = aggr->syntaxCopy();
+    ForeachStatement *s = new ForeachStatement(loc, a, exp, body->syntaxCopy());
+    return s;
+}
+
+Statement *ForeachStatement::semantic(Scope *sc)
+{
+    ScopeDsymbol *sym;
+    Statement *s = this;
+
+    aggr = aggr->semantic(sc);
+
+    sym = new ScopeDsymbol();
+    sym->parent = sc->scopesym;
+    sc = sc->push(sym);
+
+    sc->noctor++;
+
+    Type *tab = aggr->type->toBasetype();
+    switch (tab->ty)
+    {
+	case Tarray:
+	case Tsarray:
+	    // Declare arg
+	    var = new VarDeclaration(0, arg->type, arg->ident, NULL);
+	    var->storage_class |= STCforeach;
+	    switch (arg->inout)
+	    {   case In:    var->storage_class |= STCin;          break;
+		case Out:   var->storage_class |= STCout;         break;
+		case InOut: var->storage_class |= STCin | STCout; break;
+	    }
+	    var->semantic(sc);
+	    if (!sc->insert(var))
+		assert(0);
+
+	    sc->sbreak = this;
+	    sc->scontinue = this;
+	    body = body->semantic(sc);
+
+	    if (!var->type->equals(tab->next))
+	    {
+		if (aggr->op == TOKstring)
+		    aggr = aggr->implicitCastTo(var->type->arrayOf());
+		else
+		    error("foreach: %s is not an array of %s", tab->toChars(), var->type->toChars());
+	    }
+	    break;
+
+	case Taarray:
+	case Tclass:
+	case Tstruct:
+	{   FuncDeclaration *fdapply;
+	    Array *arguments;
+	    Expression *ec;
+	    Expression *e;
+	    FuncLiteralDeclaration *fld;
+	    Argument *a;
+	    Type *t;
+	    Expression *flde;
+	    Identifier *id;
+
+	    // Need a variable to hold value from any return statements in body.
+	    if (!sc->func->vresult && sc->func->type->next != Type::tvoid)
+	    {	VarDeclaration *v;
+
+		v = new VarDeclaration(loc, sc->func->type->next, Id::result, NULL);
+		v->noauto = 1;
+		v->semantic(sc);
+		if (!sc->insert(v))
+		    assert(0);
+		v->parent = sc->func;
+		sc->func->vresult = v;
+	    }
+
+	    /* Turn body into the function literal:
+	     *	int delegate(inout T arg) { body }
+	     */
+	    if (arg->inout == InOut)
+		id = arg->ident;
+	    else
+	    {	// Make a copy of the inout argument so it isn't
+		// a reference.
+		VarDeclaration *v;
+		Initializer *ie;
+
+		id = Id::applyArg;
+		ie = new ExpInitializer(0, new IdentifierExp(0, id));
+		v = new VarDeclaration(0, arg->type, arg->ident, ie);
+		s = new DeclarationStatement(0, v);
+		body = new CompoundStatement(loc, s, body);
+	    }
+	    arguments = new Array();
+	    a = new Argument(arg->type, id, InOut);
+	    arguments->push(a);
+	    t = new TypeFunction(arguments, Type::tint32, 0, LINKd);
+	    fld = new FuncLiteralDeclaration(loc, 0, t, TOKdelegate, this);
+	    fld->fbody = body;
+	    flde = new FuncExp(loc, fld);
+	    flde = flde->semantic(sc);
+
+	    // Resolve any forward referenced goto's
+	    for (int i = 0; i < gotos.dim; i++)
+	    {	CompoundStatement *cs = (CompoundStatement *)gotos.data[i];
+		GotoStatement *gs = (GotoStatement *)cs->statements->data[0];
+
+		if (!gs->label->statement)
+		{   // 'Promote' it to this scope, and replace with a return
+		    cases.push(gs);
+		    s = new ReturnStatement(0, new IntegerExp(cases.dim + 1));
+		    cs->statements->data[0] = (void *)s;
+		}
+	    }
+
+	    if (tab->ty == Taarray)
+	    {
+		/* Call:
+		 *	_aaApply(aggr, keysize, flde)
+		 */
+		fdapply = FuncDeclaration::genCfunc(Type::tindex, "_aaApply");
+		ec = new VarExp(0, fdapply);
+		arguments = new Array();
+		arguments->push(aggr);
+		TypeAArray *taa = (TypeAArray *)tab;
+		arguments->push(new IntegerExp(0, taa->key->size(), Type::tint32));
+		arguments->push(flde);
+		e = new CallExp(loc, ec, arguments);
+		e->type = Type::tindex;	// don't run semantic() on e
+	    }
+	    else
+	    {
+		/* Call:
+		 *	aggr.apply(flde)
+		 */
+		ec = new DotIdExp(loc, aggr, Id::apply);
+		arguments = new Array();
+		arguments->push(flde);
+		e = new CallExp(loc, ec, arguments);
+		e = e->semantic(sc);
+		if (e->type != Type::tint32)
+		    error("apply() function for %s must return an int", tab->toChars());
+	    }
+
+	    if (!cases.dim)
+		// Easy case, a clean exit from the loop
+		s = new ExpStatement(loc, e);
+	    else
+	    {	// Construct a switch statement around the return value
+		// of the apply function.
+		Array *a = new Array();
+
+		// default: break; takes care of cases 0 and 1
+		s = new BreakStatement(0, NULL);
+		s = new DefaultStatement(0, s);
+		a->push(s);
+
+		// cases 2...
+		for (int i = 0; i < cases.dim; i++)
+		{
+		    s = (Statement *)cases.data[i];
+		    s = new CaseStatement(0, new IntegerExp(i + 2), s);
+		    a->push(s);
+		}
+
+		s = new CompoundStatement(loc, a);
+		s = new SwitchStatement(loc, e, s);
+		s = s->semantic(sc);
+	    }
+	    break;
+	}
+
+	default:
+	    error("foreach: %s is not an aggregate type", aggr->type->toChars());
+	    break;
+    }
+    sc->noctor--;
+    sc->pop();
+    return s;
+}
+
+int ForeachStatement::hasBreak()
+{
+    return TRUE;
+}
+
+int ForeachStatement::hasContinue()
+{
+    return TRUE;
+}
+
+int ForeachStatement::usesEH()
+{
+    return body->usesEH();
+}
+
 /******************************** IfStatement ***************************/
 
 IfStatement::IfStatement(Loc loc, Expression *condition, Statement *ifbody, Statement *elsebody)
@@ -858,8 +1068,57 @@ Statement *ReturnStatement::syntaxCopy()
 Statement *ReturnStatement::semantic(Scope *sc)
 {
     FuncDeclaration *fd = sc->parent->isFuncDeclaration();
+    FuncDeclaration *fdx = fd;
 
-    assert(fd);
+    Scope *scx = sc;
+    if (sc->fes)
+    {
+	Statement *s;
+
+	// Find scope of function foreach is in
+	for (; 1; scx = scx->enclosing)
+	{
+	    assert(scx);
+	    if (scx->func != fd)
+	    {	fdx = scx->func;
+		break;
+	    }
+	}
+
+	if (exp)
+	{   exp = exp->semantic(sc);
+	    exp = exp->implicitCastTo(fdx->type->next);
+	}
+	if (!exp || exp->op == TOKint64 || exp->op == TOKfloat64 ||
+	    exp->op == TOKimaginary80 || exp->op == TOKcomplex80 ||
+	    exp->op == TOKthis || exp->op == TOKsuper || exp->op == TOKnull ||
+	    exp->op == TOKstring)
+	{
+	    sc->fes->cases.push(this);
+	    s = new ReturnStatement(0, new IntegerExp(sc->fes->cases.dim + 1));
+	}
+	else
+	{
+	    VarExp *v;
+	    Statement *s1;
+	    Statement *s2;
+
+	    // Construct: return vresult;
+	    assert(fdx->vresult);
+	    v = new VarExp(0, fdx->vresult);
+	    s = new ReturnStatement(0, v);
+	    sc->fes->cases.push(s);
+
+	    // Construct: { vresult = exp; return cases.dim + 1; }
+	    v = new VarExp(0, fdx->vresult);
+	    exp = new AssignExp(loc, v, exp);
+	    exp = exp->semantic(sc);
+	    s1 = new ExpStatement(loc, exp);
+	    s2 = new ReturnStatement(0, new IntegerExp(sc->fes->cases.dim + 1));
+	    s = new CompoundStatement(loc, s1, s2);
+	}
+	return s;
+    }
 
     if (sc->incontract)
 	error("return statements cannot be in contracts");
@@ -886,13 +1145,13 @@ Statement *ReturnStatement::semantic(Scope *sc)
 	{
 	    fd->hasReturnExp = 1;
 
-	    if (fd->vresult)
+	    if (fd->returnLabel)
 	    {
+		assert(fd->vresult);
 		VarExp *v = new VarExp(0, fd->vresult);
 
 		exp = new AssignExp(loc, v, exp);
 		exp = exp->semantic(sc);
-		assert(fd->returnLabel);
 	    }
 	    else
 	    {
@@ -911,7 +1170,8 @@ Statement *ReturnStatement::semantic(Scope *sc)
      *	}
      */
 
-    if (sc->callSuper & CSXany_ctor && !(sc->callSuper & (CSXthis_ctor | CSXsuper_ctor)))
+    if (sc->callSuper & CSXany_ctor &&
+	!(sc->callSuper & (CSXthis_ctor | CSXsuper_ctor)))
 	error("return without calling constructor");
 
     sc->callSuper |= CSXreturn;
@@ -962,10 +1222,30 @@ Statement *BreakStatement::semantic(Scope *sc)
     if (ident)
     {
 	Scope *scx;
+	FuncDeclaration *thisfunc = sc->func;
 
 	for (scx = sc; scx; scx = scx->enclosing)
 	{
 	    LabelStatement *ls;
+
+	    if (scx->func != thisfunc)	// if in enclosing function
+	    {
+		if (sc->fes)		// if this is the body of a foreach
+		{
+		    /* Post this statement to the fes, and replace
+		     * it with a return value that caller will put into
+		     * a switch. Caller will figure out where the break
+		     * label actually is.
+		     * Case numbers start with 2, not 0, as 0 is continue
+		     * and 1 is break.
+		     */
+		    Statement *s;
+		    sc->fes->cases.push(this);
+		    s = new ReturnStatement(0, new IntegerExp(sc->fes->cases.dim + 1));
+		    return s;
+		}
+		break;			// can't break to it
+	    }
 
 	    ls = scx->slabel;
 	    if (ls && ls->ident == ident)
@@ -980,7 +1260,16 @@ Statement *BreakStatement::semantic(Scope *sc)
 	error("enclosing label '%s' for break not found", ident->toChars());
     }
     else if (!sc->sbreak)
+    {
+	if (sc->fes)
+	{   Statement *s;
+
+	    // Replace break; with return 1;
+	    s = new ReturnStatement(0, new IntegerExp(1));
+	    return s;
+	}
 	error("break is not inside a loop or switch");
+    }
     return this;
 }
 
@@ -1003,10 +1292,30 @@ Statement *ContinueStatement::semantic(Scope *sc)
     if (ident)
     {
 	Scope *scx;
+	FuncDeclaration *thisfunc = sc->func;
 
 	for (scx = sc; scx; scx = scx->enclosing)
 	{
 	    LabelStatement *ls;
+
+	    if (scx->func != thisfunc)	// if in enclosing function
+	    {
+		if (sc->fes)		// if this is the body of a foreach
+		{
+		    /* Post this statement to the fes, and replace
+		     * it with a return value that caller will put into
+		     * a switch. Caller will figure out where the break
+		     * label actually is.
+		     * Case numbers start with 2, not 0, as 0 is continue
+		     * and 1 is break.
+		     */
+		    Statement *s;
+		    sc->fes->cases.push(this);
+		    s = new ReturnStatement(0, new IntegerExp(sc->fes->cases.dim + 1));
+		    return s;
+		}
+		break;			// can't continue to it
+	    }
 
 	    ls = scx->slabel;
 	    if (ls && ls->ident == ident)
@@ -1021,7 +1330,16 @@ Statement *ContinueStatement::semantic(Scope *sc)
 	error("enclosing label '%s' for continue not found", ident->toChars());
     }
     else if (!sc->scontinue)
+    {
+	if (sc->fes)
+	{   Statement *s;
+
+	    // Replace continue; with return 0;
+	    s = new ReturnStatement(0, new IntegerExp(0));
+	    return s;
+	}
 	error("continue is not inside a loop");
+    }
     return this;
 }
 
@@ -1357,9 +1675,24 @@ Statement *GotoStatement::syntaxCopy()
 Statement *GotoStatement::semantic(Scope *sc)
 {   FuncDeclaration *fd = sc->parent->isFuncDeclaration();
 
+    //printf("GotoStatement::semantic()\n");
     label = fd->searchLabel(ident);
-    if (!label)
-	error("label '%s' not found\n", ident->toChars());
+    if (!label->statement && sc->fes)
+    {
+	/* Either the goto label is forward referenced or it
+	 * is in the function that the enclosing foreach is in.
+	 * Can't know yet, so wrap the goto in a compound statement
+	 * so we can patch it later, and add it to a 'look at this later'
+	 * list.
+	 */
+	Array *a = new Array();
+	Statement *s;
+
+	a->push(this);
+	s = new CompoundStatement(loc, a);
+	sc->fes->gotos.push(s);		// 'look at this later' list
+	return s;
+    }
     return this;
 }
 

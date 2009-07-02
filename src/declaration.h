@@ -22,6 +22,7 @@ struct LabelDsymbol;
 struct Initializer;
 struct Module;
 struct InlineScanState;
+struct ForeachStatement;
 enum PROT;
 enum LINK;
 
@@ -41,6 +42,7 @@ enum STC
     STCdeprecated   = 0x400,
     STCin           = 0x800,		// in parameter
     STCout          = 0x1000,		// out parameter
+    STCforeach      = 0x2000,		// variable for foreach loop
 };
 
 /**************************************************************/
@@ -222,6 +224,7 @@ struct FuncDeclaration : Declaration
     int inlineNest;			// !=0 if nested inline
     int semanticRun;			// !=0 if semantic3() had been run
     int nestedFrameRef;			// !=0 if nested variables referenced frame ptr
+    ForeachStatement *fes;		// if foreach body, this is the foreach
 
     // Things that should really go into Scope
     int hasReturnExp;			// if there's a return exp; statement
@@ -280,7 +283,8 @@ struct FuncLiteralDeclaration : FuncDeclaration
 {
     enum TOK tok;			// TOKfunction or TOKdelegate
 
-    FuncLiteralDeclaration(Loc loc, Loc endloc, Type *type, enum TOK tok);
+    FuncLiteralDeclaration(Loc loc, Loc endloc, Type *type, enum TOK tok,
+	ForeachStatement *fes);
     int isNested();
 };
 

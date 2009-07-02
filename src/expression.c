@@ -416,6 +416,13 @@ IntegerExp::IntegerExp(Loc loc, integer_t value, Type *type)
     this->value = value;
 }
 
+IntegerExp::IntegerExp(integer_t value)
+	: Expression(0, TOKint64, sizeof(IntegerExp))
+{
+    this->type = Type::tint32;
+    this->value = value;
+}
+
 int IntegerExp::equals(Object *o)
 {   IntegerExp *ne;
 

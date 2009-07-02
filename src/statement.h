@@ -23,6 +23,7 @@ struct Scope;
 struct Expression;
 struct LabelDsymbol;
 struct Identifier;
+struct DeclarationStatement;
 struct DefaultStatement;
 struct VarDeclaration;
 struct Condition;
@@ -33,6 +34,7 @@ struct InlineDoState;
 struct InlineScanState;
 struct ReturnStatement;
 struct CompoundStatement;
+struct Argument;
 
 // Back end
 struct IRState;
@@ -69,6 +71,7 @@ struct Statement : Object
     virtual void toIR(IRState *irs);
 
     // Avoid dynamic_cast
+    virtual DeclarationStatement *isDeclarationStatement() { return NULL; }
     virtual CompoundStatement *isCompoundStatement() { return NULL; }
     virtual ReturnStatement *isReturnStatement() { return NULL; }
 };
@@ -99,6 +102,8 @@ struct DeclarationStatement : ExpStatement
     Statement *syntaxCopy();
     void toCBuffer(OutBuffer *buf);
     Statement *callAutoDtor();
+
+    DeclarationStatement *isDeclarationStatement() { return this; }
 };
 
 struct CompoundStatement : Statement
@@ -191,6 +196,28 @@ struct ForStatement : Statement
     Statement *body;
 
     ForStatement(Loc loc, Statement *init, Expression *condition, Expression *increment, Statement *body);
+    Statement *syntaxCopy();
+    Statement *semantic(Scope *sc);
+    int hasBreak();
+    int hasContinue();
+    int usesEH();
+
+    Statement *inlineScan(InlineScanState *iss);
+
+    void toIR(IRState *irs);
+};
+
+struct ForeachStatement : Statement
+{
+    Argument *arg;
+    Expression *aggr;
+    Statement *body;
+
+    VarDeclaration *var;
+    Array cases;	// put breaks, continues, gotos and returns here
+    Array gotos;	// forward referenced goto's go here
+
+    ForeachStatement(Loc loc, Argument *arg, Expression *aggr, Statement *body);
     Statement *syntaxCopy();
     Statement *semantic(Scope *sc);
     int hasBreak();

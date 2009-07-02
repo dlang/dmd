@@ -21,6 +21,7 @@ struct Identifier;
 struct Module;
 struct SwitchStatement;
 struct LabelStatement;
+struct ForeachStatement;
 struct ClassDeclaration;
 enum LINK;
 enum PROT;
@@ -37,6 +38,7 @@ struct Scope
     SwitchStatement *sw;	// enclosing switch statement
     Statement *sbreak;		// enclosing statement that supports "break"
     Statement *scontinue;	// enclosing statement that supports "continue"
+    ForeachStatement *fes;	// if nested function for ForeachStatement, this is it
     unsigned offset;		// next offset to use in aggregate
     int inunion;		// we're processing members of a union
     int incontract;		// we're inside contract code

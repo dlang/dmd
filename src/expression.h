@@ -110,6 +110,7 @@ struct IntegerExp : Expression
     integer_t value;
 
     IntegerExp(Loc loc, integer_t value, Type *type);
+    IntegerExp(integer_t value);
     int equals(Object *o);
     Expression *semantic(Scope *sc);
     char *toChars();

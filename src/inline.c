@@ -452,6 +452,14 @@ Statement *ForStatement::inlineScan(InlineScanState *iss)
 }
 
 
+Statement *ForeachStatement::inlineScan(InlineScanState *iss)
+{
+    aggr = aggr->inlineScan(iss);
+    body = body->inlineScan(iss);
+    return this;
+}
+
+
 Statement *IfStatement::inlineScan(InlineScanState *iss)
 {
     condition = condition->inlineScan(iss);
