@@ -134,6 +134,7 @@ int AttribDeclaration::cvMember(unsigned char *p)
 {
     unsigned i;
     int nwritten = 0;
+    int n;
     Array *d = include();
 
     if (d)
@@ -142,7 +143,10 @@ int AttribDeclaration::cvMember(unsigned char *p)
 	{   Dsymbol *s;
 
 	    s = (Dsymbol *)d->data[i];
-	    nwritten += s->cvMember(p);
+	    n = s->cvMember(p);
+	    if (p)
+		p += n;
+	    nwritten += n;
 	}
     }
     return nwritten;
