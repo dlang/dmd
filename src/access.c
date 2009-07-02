@@ -299,10 +299,13 @@ void accessCheck(Loc loc, Scope *sc, Expression *e, Declaration *d)
 	ClassDeclaration *cd;
 
 	cd = (ClassDeclaration *)(((TypeClass *)e->type)->sym);
-#if 0
+#if 1
 	if (e->op == TOKsuper)
-	{
-	    cd = sc->func->parent->isClassDeclaration();
+	{   ClassDeclaration *cd2;
+
+	    cd2 = sc->func->parent->isClassDeclaration();
+	    if (cd2)
+		cd = cd2;
 	}
 #endif
 	cd->accessCheck(loc, sc, d);

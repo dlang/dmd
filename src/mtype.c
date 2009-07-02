@@ -2349,14 +2349,14 @@ unsigned TypeQualified::size()
 void TypeQualified::resolveHelper(Loc loc, Scope *sc, Dsymbol *s, Dsymbol *scopesym,
 	Expression **pe, Type **pt, Dsymbol **ps)
 {
-    Identifier *id;
+    Identifier *id = NULL;
     int i;
     VarDeclaration *v;
     EnumMember *em;
     Type *t;
     Expression *e;
 
-    //printf("TypeQualified::resolve(sc = %p, idents = '%s')\n", sc, toChars());
+    //printf("TypeQualified::resolveHelper(sc = %p, idents = '%s')\n", sc, toChars());
     *pe = NULL;
     *pt = NULL;
     *ps = NULL;
@@ -2451,7 +2451,7 @@ L1:
 	    si = s->isImport();
 	    if (si)
 	    {
-		s = si->search(id, 0);
+		s = si->search(s->ident, 0);
 		if (s)
 		    goto L1;
 		s = si;
@@ -2467,8 +2467,7 @@ L1:
     }
     if (!s)
     {
-*(char*)0=0;
-	error(loc, "1: identifier '%s' is not defined", toChars());
+	error(loc, "identifier '%s' is not defined", toChars());
     }
 }
 

@@ -138,7 +138,7 @@ Dsymbol *Dsymbol::search(Identifier *ident, int flags)
 
 int Dsymbol::overloadInsert(Dsymbol *s)
 {
-    printf("Dsymbol::overloadInsert('%s')\n", s->toChars());
+    //printf("Dsymbol::overloadInsert('%s')\n", s->toChars());
     return FALSE;
 }
 
@@ -520,10 +520,10 @@ DsymbolTable::~DsymbolTable()
 Dsymbol *DsymbolTable::lookup(Identifier *ident)
 {   StringValue *sv;
 
-#ifdef DEBUG
+//#ifdef DEBUG
     assert(ident);
     assert(tab);
-#endif
+//#endif
     sv = tab->lookup(ident->toChars(),strlen(ident->toChars()));
     return (Dsymbol *)(sv ? sv->ptrvalue : NULL);
 }
