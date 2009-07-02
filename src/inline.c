@@ -484,11 +484,75 @@ Expression *CallExp::doInline(InlineDoState *ids)
 }
 
 
+Expression *IndexExp::doInline(InlineDoState *ids)
+{
+    IndexExp *are = (IndexExp *)copy();
+
+    are->e1 = e1->doInline(ids);
+
+    if (lengthVar)
+    {	//printf("lengthVar\n");
+	VarDeclaration *vd = lengthVar;
+	ExpInitializer *ie;
+	ExpInitializer *ieto;
+	VarDeclaration *vto;
+
+	vto = new VarDeclaration(vd->loc, vd->type, vd->ident, vd->init);
+	*vto = *vd;
+	vto->parent = ids->parent;
+	vto->csym = NULL;
+	vto->isym = NULL;
+
+	ids->from.push(vd);
+	ids->to.push(vto);
+
+	if (vd->init)
+	{
+	    ie = vd->init->isExpInitializer();
+	    assert(ie);
+	    ieto = new ExpInitializer(ie->loc, ie->exp->doInline(ids));
+	    vto->init = ieto;
+	}
+
+	are->lengthVar = (VarDeclaration *) (void *)vto;
+    }
+    are->e2 = e2->doInline(ids);
+    return are;
+}
+
+
 Expression *SliceExp::doInline(InlineDoState *ids)
 {
     SliceExp *are = (SliceExp *)copy();
 
     are->e1 = e1->doInline(ids);
+
+    if (lengthVar)
+    {	//printf("lengthVar\n");
+	VarDeclaration *vd = lengthVar;
+	ExpInitializer *ie;
+	ExpInitializer *ieto;
+	VarDeclaration *vto;
+
+	vto = new VarDeclaration(vd->loc, vd->type, vd->ident, vd->init);
+	*vto = *vd;
+	vto->parent = ids->parent;
+	vto->csym = NULL;
+	vto->isym = NULL;
+
+	ids->from.push(vd);
+	ids->to.push(vto);
+
+	if (vd->init)
+	{
+	    ie = vd->init->isExpInitializer();
+	    assert(ie);
+	    ieto = new ExpInitializer(ie->loc, ie->exp->doInline(ids));
+	    vto->init = ieto;
+	}
+
+	are->lengthVar = (VarDeclaration *) (void *)vto;
+    }
     if (lwr)
 	are->lwr = lwr->doInline(ids);
     if (upr)
@@ -557,6 +621,13 @@ Statement *CompoundStatement::inlineScan(InlineScanState *iss)
     return this;
 }
 
+Statement *ScopeStatement::inlineScan(InlineScanState *iss)
+{
+    if (statement)
+	statement = statement->inlineScan(iss);
+    return this;
+}
+
 Statement *WhileStatement::inlineScan(InlineScanState *iss)
 {
     condition = condition->inlineScan(iss);
@@ -607,6 +678,7 @@ Statement *IfStatement::inlineScan(InlineScanState *iss)
 
 Statement *SwitchStatement::inlineScan(InlineScanState *iss)
 {
+    //printf("SwitchStatement::inlineScan()\n");
     condition = condition->inlineScan(iss);
     body = body->inlineScan(iss);
     if (sdefault)
@@ -626,6 +698,7 @@ Statement *SwitchStatement::inlineScan(InlineScanState *iss)
 
 Statement *CaseStatement::inlineScan(InlineScanState *iss)
 {
+    //printf("CaseStatement::inlineScan()\n");
     exp = exp->inlineScan(iss);
     if (statement)
 	statement = statement->inlineScan(iss);
@@ -845,13 +918,15 @@ int FuncDeclaration::canInline()
     InlineCostState ics;
     int cost;
 
-#if LOG
+#define CANINLINE_LOG 0
+
+#if CANINLINE_LOG
     printf("FuncDeclaration::canInline('%s')\n", toChars());
 #endif
 
     if (inlineNest || !semanticRun)
     {
-#if LOG
+#if CANINLINE_LOG
 	printf("\t1: no, inlineNest = %d, semanticRun = %d\n", inlineNest, semanticRun);
 #endif
 	return 0;
@@ -860,13 +935,13 @@ int FuncDeclaration::canInline()
     switch (inlineStatus)
     {
 	case ILSyes:
-#if LOG
+#if CANINLINE_LOG
 	    printf("\tyes\n");
 #endif
 	    return 1;
 
 	case ILSno:
-#if LOG
+#if CANINLINE_LOG
 	    printf("\t2: no\n");
 #endif
 	    return 0;
@@ -915,7 +990,7 @@ int FuncDeclaration::canInline()
     memset(&ics, 0, sizeof(ics));
     ics.fd = this;
     cost = fbody->inlineCost(&ics);
-#if LOG
+#if CANINLINE_LOG
     printf("cost = %d\n", cost);
 #endif
     if (cost >= COST_MAX)
@@ -925,14 +1000,14 @@ int FuncDeclaration::canInline()
 
 Lyes:
     inlineStatus = ILSyes;
-#if LOG
+#if CANINLINE_LOG
     printf("\tyes\n");
 #endif
     return 1;
 
 Lno:
     inlineStatus = ILSno;
-#if LOG
+#if CANINLINE_LOG
     printf("\tno\n");
 #endif
     return 0;
@@ -1028,6 +1103,7 @@ Expression *FuncDeclaration::doInline(InlineScanState *iss, Expression *ethis, A
     inlineNest--;
 //eb->type->print();
 //eb->print();
+//eb->dump(0);
     return Expression::combine(e, eb);
 }
 

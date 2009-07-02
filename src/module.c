@@ -537,6 +537,9 @@ void Module::inlineScan()
     {	Dsymbol *s;
 
 	s = (Dsymbol *)members->data[i];
+	//if (global.params.verbose)
+	    //printf("inline scan symbol %s\n", s->toChars());
+
 	s->inlineScan();
     }
 }

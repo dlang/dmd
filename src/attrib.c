@@ -109,6 +109,7 @@ void AttribDeclaration::inlineScan()
 	{   Dsymbol *s;
 
 	    s = (Dsymbol *)d->data[i];
+	    //printf("AttribDeclaration::inlineScan %s\n", s->toChars());
 	    s->inlineScan();
 	}
     }

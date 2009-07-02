@@ -79,6 +79,7 @@ void AggregateDeclaration::inlineScan()
 	for (i = 0; i < members->dim; i++)
 	{
 	    Dsymbol *s = (Dsymbol *)members->data[i];
+	    //printf("inline scan aggregate symbol '%s'\n", s->toChars());
 	    s->inlineScan();
 	}
     }

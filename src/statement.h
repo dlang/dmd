@@ -152,6 +152,8 @@ struct ScopeStatement : Statement
     void toCBuffer(OutBuffer *buf);
     Statement *semantic(Scope *sc);
 
+    Statement *inlineScan(InlineScanState *iss);
+
     void toIR(IRState *irs);
 };
 

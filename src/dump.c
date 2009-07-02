@@ -68,6 +68,18 @@ void UnaExp::dump(int i)
 	e1->dump(i + 2);
 }
 
+void SliceExp::dump(int i)
+{
+    indent(i);
+    printf("%p %s type=%s e1=%p\n", this, Token::toChars(op), type_print(type), e1);
+    if (e1)
+	e1->dump(i + 2);
+    if (lwr)
+	lwr->dump(i + 2);
+    if (upr)
+	upr->dump(i + 2);
+}
+
 void DotIdExp::dump(int i)
 {
     indent(i);
