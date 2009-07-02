@@ -3144,6 +3144,15 @@ Lerr:
     return tvoid;
 }
 
+d_uns64 TypeTypeof::size(Loc loc)
+{
+    if (exp->type)
+	return exp->type->size(loc);
+    else
+	return TypeQualified::size(loc);
+}
+
+
 
 /***************************** TypeEnum *****************************/
 

@@ -51,7 +51,7 @@ Global::Global()
 
     copyright = "Copyright (c) 1999-2005 by Digital Mars";
     written = "written by Walter Bright";
-    version = "v0.137";
+    version = "v0.138";
     global.structalign = 8;
 
     memset(&params, 0, sizeof(Param));
@@ -139,6 +139,7 @@ Usage:\n\
   -debug=level   compile in debug code <= level\n\
   -debug=ident   compile in debug code identified by ident\n\
   -g             add symbolic debug info\n\
+  --help         print help\n\
   -Ipath         where to look for imports\n\
   -inline        do function inlining\n\
   -Llinkerflag   pass linkerflag to link\n\
@@ -236,6 +237,8 @@ int main(int argc, char *argv[])
 		global.params.useDeprecated = 1;
 	    else if (strcmp(p + 1, "c") == 0)
 		global.params.link = 0;
+	    else if (strcmp(p + 1, "fPIC") == 0)
+		global.params.pic = 1;
 	    else if (strcmp(p + 1, "g") == 0)
 		global.params.symdebug = 1;
 	    else if (strcmp(p + 1, "gc") == 0)
@@ -379,6 +382,8 @@ int main(int argc, char *argv[])
 		global.params.debugc = 1;
 	    else if (strcmp(p + 1, "-f") == 0)
 		global.params.debugf = 1;
+	    else if (strcmp(p + 1, "--help") == 0)
+		usage();
 	    else if (strcmp(p + 1, "-r") == 0)
 		global.params.debugr = 1;
 	    else if (strcmp(p + 1, "-x") == 0)

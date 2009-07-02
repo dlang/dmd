@@ -469,6 +469,7 @@ struct TypeTypeof : TypeQualified
     Dsymbol *toDsymbol(Scope *sc);
     void toCBuffer2(OutBuffer *buf, Identifier *ident);
     Type *semantic(Loc loc, Scope *sc);
+    d_uns64 size(Loc loc);
 };
 
 struct TypeStruct : Type

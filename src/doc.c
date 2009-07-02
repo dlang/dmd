@@ -147,6 +147,11 @@ DDOC_VERSION   = $(B Version:)$(BR)\n$0$(BR)$(BR)\n\
 DDOC_SECTION_H = $(B $0)$(BR)\n\
 DDOC_SECTION   = $0$(BR)$(BR)\n\
 DDOC_MEMBERS   = $(DL $0)\n\
+DDOC_MODULE_MEMBERS = $(DDOC_MEMBERS $0)\n\
+DDOC_CLASS_MEMBERS  = $(DDOC_MEMBERS $0)\n\
+DDOC_STRUCT_MEMBERS = $(DDOC_MEMBERS $0)\n\
+DDOC_ENUM_MEMBERS   = $(DDOC_MEMBERS $0)\n\
+DDOC_TEMPLATE_MEMBERS = $(DDOC_MEMBERS $0)\n\
 DDOC_PARAMS    = $(B Params:)$(BR)\n$(TABLE $0)$(BR)\n\
 DDOC_PARAM_ROW = $(TR $0)\n\
 DDOC_PARAM_ID  = $(TD $0)\n\
@@ -345,9 +350,21 @@ void ScopeDsymbol::emitMemberComments(Scope *sc)
     OutBuffer *buf = sc->docbuf;
 
     if (members)
-    {
+    {	char *m = "$(DDOC_MEMBERS \n";
+
+	if (isModule())
+	    m = "$(DDOC_MODULE_MEMBERS \n";
+	else if (isClassDeclaration())
+	    m = "$(DDOC_CLASS_MEMBERS \n";
+	else if (isStructDeclaration())
+	    m = "$(DDOC_STRUCT_MEMBERS \n";
+	else if (isEnumDeclaration())
+	    m = "$(DDOC_ENUM_MEMBERS \n";
+	else if (isTemplateDeclaration())
+	    m = "$(DDOC_TEMPLATE_MEMBERS \n";
+
 	// BUG: if no members are actually printed, we should not emit DDOC_MEMBERS
-	buf->writestring("$(DDOC_MEMBERS \n");
+	buf->writestring(m);
 	sc = sc->push(this);
 	for (int i = 0; i < members->dim; i++)
 	{
@@ -469,7 +486,8 @@ void TemplateDeclaration::emitComment(Scope *sc)
     ScopeDsymbol *ss = this;
 
     if (onemember)
-    {	ss = onemember->isAggregateDeclaration();
+    {
+	ss = onemember->isAggregateDeclaration();
 	if (!ss)
 	    ss = this;
     }
@@ -483,7 +501,7 @@ void TemplateDeclaration::emitComment(Scope *sc)
 
     buf->writestring(ddoc_decl_dd_s);
     dc->writeSections(sc, this, buf);
-    emitMemberComments(sc);
+    ss->emitMemberComments(sc);
     buf->writestring(ddoc_decl_dd_e);
 }
 

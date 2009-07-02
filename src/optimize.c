@@ -67,7 +67,7 @@ Expression *AddrExp::optimize(int result)
 	}
     }
     if (e1->op == TOKindex)
-    {	// Convert &array[n] to #array+n
+    {	// Convert &array[n] to &array+n
 	IndexExp *ae = (IndexExp *)e1;
 
 	if (ae->e2->op == TOKint64 && ae->e1->op == TOKvar)
@@ -207,6 +207,84 @@ Expression *CommaExp::optimize(int result)
     return e;
 }
 
+Expression *IndexExp::optimize(int result)
+{   Expression *e;
+
+    //printf("IndexExp::optimize(result = %d) %s\n", result, toChars());
+    e1 = e1->optimize(WANTvalue);
+    e2 = e2->optimize(WANTvalue);
+    e = this;
+    if (e1->op == TOKstring && e2->op == TOKint64)
+    {	StringExp *es1 = (StringExp *)e1;
+	uinteger_t i = e2->toInteger();
+
+	if (i >= es1->len)
+	    error("string index %llu is out of bounds", i);
+	else
+	{   integer_t value;
+
+	    switch (es1->sz)
+	    {
+		case 1:
+		    value = ((unsigned char *)es1->string)[i];
+		    break;
+
+		case 2:
+		    value = ((unsigned short *)es1->string)[i];
+		    break;
+
+		case 4:
+		    value = ((unsigned int *)es1->string)[i];
+		    break;
+
+		default:
+		    assert(0);
+		    break;
+	    }
+	    e = new IntegerExp(loc, value, type);
+	}
+    }
+    return e;
+}
+
+Expression *SliceExp::optimize(int result)
+{   Expression *e;
+
+    //printf("SliceExp::optimize(result = %d) %s\n", result, toChars());
+    e = this;
+    e1 = e1->optimize(WANTvalue);
+    if (!lwr)
+	return e;
+    lwr = lwr->optimize(WANTvalue);
+    upr = upr->optimize(WANTvalue);
+    if (e1->op == TOKstring && lwr->op == TOKint64 && upr->op == TOKint64)
+    {	StringExp *es1 = (StringExp *)e1;
+	uinteger_t ilwr = lwr->toInteger();
+	uinteger_t iupr = upr->toInteger();
+
+	if (iupr > es1->len || ilwr > iupr)
+	    error("string slice [%llu .. %llu] is out of bounds", ilwr, iupr);
+	else
+	{   integer_t value;
+	    void *s;
+	    size_t len = iupr - ilwr;
+	    int sz = es1->sz;
+	    StringExp *es;
+
+	    s = mem.malloc((len + 1) * sz);
+	    memcpy((unsigned char *)s, (unsigned char *)es1->string + ilwr * sz, len * sz);
+	    memset((unsigned char *)s + len * sz, 0, sz);
+
+	    es = new StringExp(loc, s, len, es1->postfix);
+	    es->sz = sz;
+	    es->committed = 1;
+	    es->type = type;
+	    e = es;
+	}
+    }
+    return e;
+}
+
 Expression *AndAndExp::optimize(int result)
 {   Expression *e;
 
@@ -257,23 +335,25 @@ Expression *CatExp::optimize(int result)
 	StringExp *es2 = (StringExp *)e2;
 	StringExp *es;
 	Type *t;
+	size_t len = es1->len + es2->len;
+	int sz = es1->sz;
 
-	assert(es1->sz == es2->sz);
-	s = mem.malloc((es1->len + es2->len + 1) * es1->sz);
-	memcpy(s, es1->string, es1->len * es1->sz);
-	memcpy((unsigned char *)s + es1->len, es2->string, es2->len * es1->sz);
+	assert(sz == es2->sz);
+	s = mem.malloc((len + 1) * sz);
+	memcpy(s, es1->string, es1->len * sz);
+	memcpy((unsigned char *)s + es1->len * sz, es2->string, es2->len * sz);
 
 	// Add terminating 0
-	memset((unsigned char *)s + es1->len + es2->len, 0, es1->sz);
+	memset((unsigned char *)s + len * sz, 0, sz);
 
-	es = new StringExp(loc, s, es1->len + es2->len);
-	es->sz = es1->sz;
+	es = new StringExp(loc, s, len);
+	es->sz = sz;
 	es->committed = es1->committed | es2->committed;
 	if (es1->committed)
 	    t = es1->type;
 	else
 	    t = es2->type;
-	es->type = new TypeSArray(t->next, new IntegerExp(0, es1->len + es2->len, Type::tindex));
+	es->type = new TypeSArray(t->next, new IntegerExp(0, len, Type::tindex));
 	e = es;
     }
     else

@@ -42,6 +42,7 @@ struct Param
     char release;	// build release version
     char preservePaths;	// !=0 means don't strip path from source file
     char warnings;	// enable warnings
+    char pic;		// generate position-independent-code for shared libs
 
     char *argv0;	// program name
     Array *imppath;	// array of char*'s of where to look for import modules

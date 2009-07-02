@@ -711,6 +711,7 @@ struct SliceExp : UnaExp
     Expression *toLvalue(Expression *e);
     Expression *modifiableLvalue(Scope *sc, Expression *e);
     void toCBuffer(OutBuffer *buf);
+    Expression *optimize(int result);
     void dump(int indent);
     elem *toElem(IRState *irs);
 
@@ -777,6 +778,7 @@ struct IndexExp : BinExp
     Expression *toLvalue(Expression *e);
     Expression *modifiableLvalue(Scope *sc, Expression *e);
     void toCBuffer(OutBuffer *buf);
+    Expression *optimize(int result);
     Expression *doInline(InlineDoState *ids);
 
     elem *toElem(IRState *irs);

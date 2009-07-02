@@ -292,20 +292,14 @@ Array *Parser::parseDeclDefs(int once)
 		if (token.value == TOKidentifier &&
 		    peek(&token)->value == TOKassign)
 		{
-		    a = new Array();
 		    Identifier *ident = token.ident;
 		    nextToken();
 		    nextToken();
 		    Initializer *init = parseInitializer();
 		    VarDeclaration *v = new VarDeclaration(loc, NULL, ident, init);
 		    v->storage_class = stc;
-		    a->push(v);
-		    if (token.value == TOKsemicolon)
-		    {
-			nextToken();
-			addComment(v, comment);
-		    }
-		    else
+		    s = v;
+		    if (token.value != TOKsemicolon)
 			error("semicolon expected following auto declaration, not '%s'", token.toChars());
 		}
 		else
