@@ -260,8 +260,8 @@ Initializer *ArrayInitializer::semantic(Scope *sc, Type *t)
 
 Expression *ArrayInitializer::toExpression()
 {
-    assert(0);
-    return NULL;
+    error("array initializers as expressions are not allowed");
+    return new IntegerExp(0);
 }
 
 

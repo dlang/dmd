@@ -68,6 +68,14 @@ void UnaExp::dump(int i)
 	e1->dump(i + 2);
 }
 
+void DotIdExp::dump(int i)
+{
+    indent(i);
+    printf("%p %s type=%s ident=%s e1=%p\n", this, Token::toChars(op), type_print(type), ident->toChars(), e1);
+    if (e1)
+	e1->dump(i + 2);
+}
+
 void DotVarExp::dump(int i)
 {
     indent(i);

@@ -497,6 +497,7 @@ struct TypeTypedef : Type
     TypedefDeclaration *sym;
 
     TypeTypedef(TypedefDeclaration *sym);
+    Type *syntaxCopy();
     d_uns64 size();
     unsigned alignsize();
     char *toChars();
@@ -521,6 +522,7 @@ struct TypeTypedef : Type
     TypeInfoDeclaration *getTypeInfoDeclaration();
 
     type *toCtype();
+    type *toCParamtype();
 };
 
 struct TypeClass : Type

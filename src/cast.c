@@ -40,6 +40,7 @@ type->print();
 printf("to:\n");
 t->print();
 #endif
+//*(char*)0=0;
     error("cannot implicitly convert %s to %s", type->toChars(), t->toChars());
     return castTo(t);
 }

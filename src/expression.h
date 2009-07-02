@@ -274,6 +274,7 @@ struct TypeDotIdExp : Expression
     Identifier *ident;
 
     TypeDotIdExp(Loc loc, Type *type, Identifier *ident);
+    Expression *syntaxCopy();
     Expression *semantic(Scope *sc);
     void toCBuffer(OutBuffer *buf);
     elem *toElem(IRState *irs);
@@ -459,6 +460,7 @@ struct DotIdExp : UnaExp
     DotIdExp(Loc loc, Expression *e, Identifier *ident);
     Expression *semantic(Scope *sc);
     void toCBuffer(OutBuffer *buf);
+    void dump(int i);
 };
 
 struct DotVarExp : UnaExp

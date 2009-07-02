@@ -59,6 +59,9 @@ Expression *Type::getInternalTypeInfo()
 	    t = t->next->arrayOf();	// convert to corresponding dynamic array type
 	    break;
 
+	case Tarray:
+	    if (t->next->ty != Tclass)
+		break;
 	case Tfunction:
 	case Tdelegate:
 	case Tclass:

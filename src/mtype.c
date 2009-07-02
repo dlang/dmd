@@ -543,7 +543,10 @@ Identifier *Type::getTypeInfoIdent(int internal)
 
     //toTypeInfoBuffer(&buf);
     if (internal)
-	buf.writeByte(mangleChar[ty]);
+    {	buf.writeByte(mangleChar[ty]);
+	if (ty == Tarray)
+	    buf.writeByte(mangleChar[next->ty]);
+    }
     else
 	toDecoBuffer(&buf);
     name = (char *)alloca(15 + sizeof(len) * 3 + buf.offset + 1);
@@ -3035,6 +3038,11 @@ TypeTypedef::TypeTypedef(TypedefDeclaration *sym)
     this->sym = sym;
 }
 
+Type *TypeTypedef::syntaxCopy()
+{
+    return this;
+}
+
 char *TypeTypedef::toChars()
 {
     return sym->toChars();
@@ -3533,6 +3541,7 @@ L1:
 	}
 	return getProperty(e->loc, ident);
     }
+    s = s->toAlias();
     v = s->isVarDeclaration();
     if (v && v->isConst())
     {	ExpInitializer *ei = v->init->isExpInitializer();
@@ -3620,7 +3629,7 @@ L1:
 	return e;
     }
 
-    if (d->toParent()->isModule())
+    if (d->parent && d->toParent()->isModule())
     {
 	// (e, d)
 	VarExp *ve;

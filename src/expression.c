@@ -121,7 +121,9 @@ void functionArguments(Loc loc, Scope *sc, TypeFunction *tf, Array *arguments)
     unsigned nargs;
     unsigned nproto;
     unsigned n;
+    Type *tb;
 
+    assert(arguments);
     nargs = arguments ? arguments->dim : 0;
     nproto = tf->arguments ? tf->arguments->dim : 0;
 
@@ -168,7 +170,7 @@ void functionArguments(Loc loc, Scope *sc, TypeFunction *tf, Array *arguments)
 		    error("cannot have out or inout argument of bit in array");
 	    }
 	    // Convert static arrays to pointers
-	    if (arg->type->ty == Tsarray)
+	    if (arg->type->toBasetype()->ty == Tsarray)
 	    {
 		arg = arg->checkToPointer();
 	    }
@@ -176,7 +178,7 @@ void functionArguments(Loc loc, Scope *sc, TypeFunction *tf, Array *arguments)
 	else
 	{
 	    // Promote bytes, words, etc., to ints
-	    arg = arg->integralPromotions();
+//	    arg = arg->integralPromotions();
 
 	    // If not D linkage, promote floats to doubles
 	    if (tf->linkage != LINKd)
@@ -194,9 +196,10 @@ void functionArguments(Loc loc, Scope *sc, TypeFunction *tf, Array *arguments)
 	    }
 
 	    // Convert static arrays to dynamic arrays
-	    if (arg->type->ty == Tsarray)
+	    tb = arg->type->toBasetype();
+	    if (tb->ty == Tsarray)
 	    {
-		arg = arg->castTo(arg->type->next->arrayOf());
+		arg = arg->castTo(tb->next->arrayOf());
 	    }
 	}
 	arguments->data[i] = (void *) arg;
@@ -413,8 +416,13 @@ Expression *Expression::checkToBoolean()
 {
     // Default is 'yes' - do nothing
 
+#ifdef DEBUG
+    if (!type)
+	dump(0);
+#endif
+
     if (!type->checkBoolean())
-	error("%s does not have a boolean value", type->toChars());
+	error("expression %s of type %s does not have a boolean value", toChars(), type->toChars());
     return this;
 }
 
@@ -424,15 +432,17 @@ Expression *Expression::checkToBoolean()
 Expression *Expression::checkToPointer()
 {
     Expression *e;
+    Type *tb;
 
     //printf("Expression::checkToPointer()\n");
     e = this;
 
-    // If C array or function, convert to function pointer
-    if (type->ty == Tsarray)
+    // If C static array, convert to pointer
+    tb = type->toBasetype();
+    if (tb->ty == Tsarray)
     {
 	e = new AddrExp(loc, this);
-	e->type = type->next->pointerTo();
+	e->type = tb->next->pointerTo();
     }
     return e;
 }
@@ -937,7 +947,7 @@ Lagain:
 	//printf("Identifier '%s' is a variable, type '%s'\n", toChars(), v->type->toChars());
 	if (!type)
 	    type = v->type;
-	if (v->isConst() && type->ty != Tsarray)
+	if (v->isConst() && type->toBasetype()->ty != Tsarray)
 	{
 	    if (v->init)
 	    {
@@ -1376,6 +1386,12 @@ TypeDotIdExp::TypeDotIdExp(Loc loc, Type *type, Identifier *ident)
     this->ident = ident;
 }
 
+Expression *TypeDotIdExp::syntaxCopy()
+{
+    TypeDotIdExp *te = new TypeDotIdExp(loc, type->syntaxCopy(), ident);
+    return te;
+}
+
 Expression *TypeDotIdExp::semantic(Scope *sc)
 {   Expression *e;
 
@@ -1543,6 +1559,8 @@ Expression *NewExp::semantic(Scope *sc)
 	    tf = (TypeFunction *)f->type;
 	    type = tf->next;
 
+	    if (!arguments)
+		arguments = new Array();
 	    functionArguments(loc, sc, tf, arguments);
 	}
 	else
@@ -1718,7 +1736,7 @@ Expression *VarExp::semantic(Scope *sc)
     VarDeclaration *v = var->isVarDeclaration();
     if (v)
     {
-	if (v->isConst() && type->ty != Tsarray)
+	if (v->isConst() && type->toBasetype()->ty != Tsarray)
 	{
 	    ExpInitializer *ei = v->init->isExpInitializer();
 	    if (ei)
@@ -1780,7 +1798,7 @@ Expression *VarExp::modifiableLvalue(Scope *sc, Expression *e)
     if (sc->incontract && var->isParameter())
 	error("cannot modify parameter '%s' in contract", var->toChars());
 
-    if (type && type->ty == Tsarray)
+    if (type && type->toBasetype()->ty == Tsarray)
 	error("cannot change reference to static array '%s'", var->toChars());
 
     if (var->isConst())
@@ -2205,6 +2223,7 @@ Expression *DotIdExp::semantic(Scope *sc)
 	    {
 		//printf("it's a ScopeDsymbol\n");
 		e = new ScopeExp(loc, sds);
+		e = e->semantic(sc);
 		if (eleft)
 		    e = new DotExp(loc, eleft, e);
 		return e;
@@ -2576,7 +2595,7 @@ if (arguments && arguments->dim)
 	assert(dotid->e1);
 	if (dotid->e1->type)
 	{
-	    TY e1ty = dotid->e1->type->ty;
+	    TY e1ty = dotid->e1->type->toBasetype()->ty;
 	    if (e1ty == Tarray || e1ty == Tsarray || e1ty == Taarray)
 	    {
 		if (!arguments)
@@ -2774,6 +2793,8 @@ Lcheckargs:
     assert(tf->ty == Tfunction);
     type = tf->next;
 
+    if (!arguments)
+	arguments = new Array();
     functionArguments(loc, sc, tf, arguments);
 
     assert(type);
@@ -3410,6 +3431,8 @@ Expression *IndexExp::semantic(Scope *sc)
 #if LOGSEMANTIC
     printf("IndexExp::semantic('%s')\n", toChars());
 #endif
+    if (type)
+	return this;
     BinExp::semanticp(sc);
     e = this;
 
@@ -3660,7 +3683,7 @@ Expression *AssignExp::semantic(Scope *sc)
 	e2 = e2->implicitCastTo(e1->type->next);
     }
 #endif
-    else if (e1->type->ty == Tsarray)
+    else if (e1->type->toBasetype()->ty == Tsarray)
     {
 	error("cannot assign to static array %s", e1->toChars());
     }
@@ -3704,9 +3727,13 @@ Expression *AddAssignExp::semantic(Scope *sc)
 	return e;
 
     e1 = e1->modifiableLvalue(sc, NULL);
-    if ((e1->type->ty == Tarray || e1->type->ty == Tsarray) &&
-	(e2->type->ty == Tarray || e2->type->ty == Tsarray) &&
-	e1->type->next->equals(e2->type->next)
+
+    Type *tb1 = e1->type->toBasetype();
+    Type *tb2 = e2->type->toBasetype();
+
+    if ((tb1->ty == Tarray || tb1->ty == Tsarray) &&
+	(tb2->ty == Tarray || tb2->ty == Tsarray) &&
+	tb1->next->equals(tb2->next)
        )
     {
 	type = e1->type;
@@ -3715,7 +3742,7 @@ Expression *AddAssignExp::semantic(Scope *sc)
     else
     {
 	e1->checkScalar();
-	if (e1->type->ty == Tpointer && e2->type->isintegral())
+	if (tb1->ty == Tpointer && tb2->isintegral())
 	    e = scaleFactor();
 	else
 	{
@@ -3794,13 +3821,17 @@ Expression *CatAssignExp::semantic(Scope *sc)
     if (e1->op == TOKrange)
     {	SliceExp *se = (SliceExp *)e1;
 
-	if (se->e1->type->ty == Tsarray)
+	if (se->e1->type->toBasetype()->ty == Tsarray)
 	    error("cannot append to static array %s", se->e1->type->toChars());
     }
 
     e1 = e1->modifiableLvalue(sc, NULL);
-    if ((e1->type->ty == Tarray || e1->type->ty == Tsarray) &&
-	(e2->type->ty == Tarray || e2->type->ty == Tsarray) &&
+
+    Type *tb1 = e1->type->toBasetype();
+    Type *tb2 = e2->type->toBasetype();
+
+    if ((tb1->ty == Tarray || tb1->ty == Tsarray) &&
+	(tb2->ty == Tarray || tb2->ty == Tsarray) &&
 	e2->implicitConvTo(e1->type)
 	//e1->type->next->equals(e2->type->next)
        )
@@ -3809,11 +3840,11 @@ Expression *CatAssignExp::semantic(Scope *sc)
 	type = e1->type;
 	e = this;
     }
-    else if ((e1->type->ty == Tarray || e1->type->ty == Tsarray) &&
-	e2->implicitConvTo(e1->type->next)
+    else if ((tb1->ty == Tarray || tb1->ty == Tsarray) &&
+	e2->implicitConvTo(tb1->next)
        )
     {	// Append element
-	e2 = e2->castTo(e1->type->next);
+	e2 = e2->castTo(tb1->next);
 	type = e1->type;
 	e = this;
     }
@@ -4080,16 +4111,19 @@ Expression *AddExp::semantic(Scope *sc)
 	if (e)
 	    return e;
 
-        if ((e1->type->ty == Tarray || e1->type->ty == Tsarray) &&
-            (e2->type->ty == Tarray || e2->type->ty == Tsarray) &&
-            e1->type->next->equals(e2->type->next)
+	Type *tb1 = e1->type->toBasetype();
+	Type *tb2 = e2->type->toBasetype();
+
+        if ((tb1->ty == Tarray || tb1->ty == Tsarray) &&
+            (tb2->ty == Tarray || tb2->ty == Tsarray) &&
+            tb1->next->equals(tb2->next)
            )
         {
             type = e1->type;
             e = this;
         }
-	else if (e1->type->ty == Tpointer && e2->type->isintegral() ||
-	    e2->type->ty == Tpointer && e1->type->isintegral())
+	else if (tb1->ty == Tpointer && e2->type->isintegral() ||
+	    tb2->ty == Tpointer && e1->type->isintegral())
 	    e = scaleFactor();
 	else
 	{
@@ -4097,7 +4131,7 @@ Expression *AddExp::semantic(Scope *sc)
 	    if ((e1->type->isreal() && e2->type->isimaginary()) ||
 		(e1->type->isimaginary() && e2->type->isreal()))
 	    {
-		switch (type->ty)
+		switch (type->toBasetype()->ty)
 		{
 		    case Tfloat32:
 		    case Timaginary32:
@@ -4228,10 +4262,13 @@ Expression *CatExp::semantic(Scope *sc)
 	if (e)
 	    return e;
 
-	if (e1->type->ty == Tsarray)
-	    e1 = e1->castTo(e1->type->next->arrayOf());
-	if (e2->type->ty == Tsarray)
-	    e2 = e2->castTo(e2->type->next->arrayOf());
+	Type *tb1 = e1->type->toBasetype();
+	Type *tb2 = e2->type->toBasetype();
+
+	if (tb1->ty == Tsarray)
+	    e1 = e1->castTo(tb1->next->arrayOf());
+	if (tb2->ty == Tsarray)
+	    e2 = e2->castTo(tb2->next->arrayOf());
 
 	/* BUG: Should handle things like:
 	 *	char c;
@@ -4249,7 +4286,8 @@ Expression *CatExp::semantic(Scope *sc)
 	if (e1->op == TOKstring && e2->op == TOKstring)
 	    e = optimize(WANTvalue);
 	else if (e1->type-equals(e2->type) &&
-		(e1->type->ty == Tarray || e1->type->ty == Tsarray))
+		(e1->type->toBasetype()->ty == Tarray ||
+		 e1->type->toBasetype()->ty == Tsarray))
 	{
 	    e = this;
 	}
