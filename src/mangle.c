@@ -133,6 +133,8 @@ char *ClassDeclaration::mangle()
 {
     Dsymbol *parentsave = parent;
 
+    //printf("ClassDeclaration::mangle() %s.%s\n", parent->toChars(), toChars());
+
     /* These are reserved to the compiler, so keep simple
      * names for them.
      */

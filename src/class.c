@@ -116,14 +116,14 @@ void ClassDeclaration::semantic(Scope *sc)
 {   int i;
     unsigned offset;
 
-    //printf("ClassDeclaration::semantic(%s), type = %p, sizeok = %d\n", toChars(), type, sizeok);
+    //printf("ClassDeclaration::semantic(%s), type = %p, sizeok = %d, this = %p\n", toChars(), type, sizeok, this);
     //printf("parent = %p, '%s'\n", sc->parent, sc->parent ? sc->parent->toChars() : "");
 
     //{ static int n;  if (++n == 20) *(char*)0=0; }
 
     if (!scope)
     {
-	if (sc->parent && !sc->parent->isModule())
+	if (!parent && sc->parent && !sc->parent->isModule())
 	    parent = sc->parent;
 
 	type = type->semantic(loc, sc);
