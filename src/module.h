@@ -54,6 +54,9 @@ struct Module : Package
     int needmoduleinfo;
     int insearch;
     int semanticdone;	// has semantic() been done?
+    Module *importedFrom;	// module from command line we're imported from,
+				// i.e. a module that will be taken all the
+				// way to an object file
 
     Array *decldefs;	// top level declarations for this Module
 

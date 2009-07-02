@@ -901,7 +901,7 @@ FuncDeclaration *FuncDeclaration::overloadResolve(Loc loc, Array *arguments)
     Match m;
 
 #if 0
-printf("FuncDeclaration::overloadResolve()\n");
+printf("FuncDeclaration::overloadResolve('%s')\n", toChars());
 if (arguments)
 {   int i;
 

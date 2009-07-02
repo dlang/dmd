@@ -434,8 +434,8 @@ int Type::implicitConvTo(Type *to)
     //printf("\tthis->next=%p, to->next=%p\n", this->next, to->next);
     if (this == to)
 	return MATCHexact;
-    if (to->ty == Tvoid)
-	return 1;
+//    if (to->ty == Tvoid)
+//	return 1;
     return 0;
 }
 
@@ -466,9 +466,7 @@ Expression *Type::getProperty(Loc loc, Identifier *ident)
 	return defaultInit();
     else
     {
-printf("ty = %d\n", ty);
 	error(loc, "no property '%s' for type '%s'", ident->toChars(), toChars());
-*(char*)0=0;
 	e = new IntegerExp(loc, 1, Type::tint32);
     }
     return e;
@@ -1215,11 +1213,11 @@ int TypeBasic::isscalar()
 
 int TypeBasic::implicitConvTo(Type *to)
 {
-    //printf("TypeBasic::implicitConvTo()\n");
+    //printf("TypeBasic::implicitConvTo(%s)\n", to->toChars());
     if (this == to)
 	return MATCHexact;
     if (to->ty == Tvoid)
-	return MATCHconvert;
+	return MATCHnomatch;
     if (!to->isTypeBasic())
 	return MATCHnomatch;
     if (ty == Tvoid /*|| to->ty == Tvoid*/)
@@ -1351,6 +1349,7 @@ void TypeArray::toCBuffer2(OutBuffer *buf, Identifier *ident)
 TypeSArray::TypeSArray(Type *t, Expression *dim)
     : TypeArray(Tsarray, t)
 {
+    //printf("TypeSArray(%s)\n", dim->toChars());
     this->dim = dim;
 }
 
@@ -1397,6 +1396,7 @@ unsigned TypeSArray::alignsize()
 
 Type *TypeSArray::semantic(Loc loc, Scope *sc)
 {
+    //printf("TypeSArray::semantic() %s\n", toChars());
     next = next->semantic(loc,sc);
     if (dim)
     {	integer_t n, n2;
@@ -1416,6 +1416,7 @@ Type *TypeSArray::semantic(Loc loc, Scope *sc)
 		 next->isfloating() ||
 		 next->ty == Tpointer ||
 		 next->ty == Tarray ||
+		 next->ty == Tsarray ||
 		 next->ty == Taarray ||
 		 next->ty == Tclass)
 	{
@@ -1424,6 +1425,8 @@ Type *TypeSArray::semantic(Loc loc, Scope *sc)
 	     */
 	    n = next->size();
 	    n2 = n * d2;
+	    if ((int)n2 < 0)
+		goto Loverflow;
 	    if (n && n2 / n != d2)
 	    {
 	      Loverflow:
@@ -1462,7 +1465,7 @@ void TypeSArray::toTypeInfoBuffer(OutBuffer *buf)
 
 void TypeSArray::toPrettyBracket(OutBuffer *buf)
 {
-    buf->printf("[%d]", dim->toInteger());
+    buf->printf("[%s]", dim->toChars());
 }
 
 Expression *TypeSArray::dotExp(Scope *sc, Expression *e, Identifier *ident)
@@ -1678,6 +1681,8 @@ d_uns64 TypeAArray::size()
 
 Type *TypeAArray::semantic(Loc loc, Scope *sc)
 {
+    //printf("TypeAArray::semantic()\n");
+
     // Deal with the case where we thought the index was a type, but
     // in reality it was an expression.
     if (index->ty == Tident)
@@ -1926,8 +1931,8 @@ int TypePointer::implicitConvTo(Type *to)
 	    return tfto->equals(tf) ? MATCHexact : MATCHnomatch;
 	}
     }
-    if (to->ty == Tvoid)
-	return MATCHconvert;
+//    if (to->ty == Tvoid)
+//	return MATCHconvert;
     return MATCHnomatch;
 }
 
@@ -3751,8 +3756,8 @@ int TypeClass::implicitConvTo(Type *to)
     if (to->ty == Tpointer && to->next->ty == Tvoid)
 	return 1;
 
-    if (to->ty == Tvoid)
-	return MATCHconvert;
+//    if (to->ty == Tvoid)
+//	return MATCHconvert;
     return 0;
 }
 

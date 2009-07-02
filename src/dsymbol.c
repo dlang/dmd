@@ -518,6 +518,45 @@ Dsymbol *WithScopeSymbol::search(Identifier *ident, int flags)
     return withstate->exp->type->toDsymbol(NULL)->search(ident, 0);
 }
 
+/****************************** ArrayScopeSymbol ******************************/
+
+ArrayScopeSymbol::ArrayScopeSymbol(Expression *e)
+    : ScopeDsymbol()
+{
+    assert(e->op == TOKindex || e->op == TOKslice);
+    exp = e;
+}
+
+Dsymbol *ArrayScopeSymbol::search(Identifier *ident, int flags)
+{
+    if (ident == Id::length)
+    {	VarDeclaration **pvar;
+
+	if (exp->op == TOKindex)
+	{
+	    IndexExp *ie = (IndexExp *)exp;
+
+	    pvar = &ie->lengthVar;
+	}
+	else if (exp->op == TOKslice)
+	{
+	    SliceExp *se = (SliceExp *)exp;
+
+	    pvar = &se->lengthVar;
+	}
+	else
+	    return NULL;
+	if (!*pvar)
+	{
+	    VarDeclaration *v = new VarDeclaration(0, Type::tsize_t, Id::length, NULL);
+
+	    *pvar = v;
+	}
+	return (*pvar);
+    }
+    return NULL;
+}
+
 /****************************** DsymbolTable ******************************/
 
 DsymbolTable::DsymbolTable()

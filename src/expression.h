@@ -642,6 +642,7 @@ struct SliceExp : UnaExp
 {
     Expression *upr;		// NULL if implicit 0
     Expression *lwr;		// NULL if implicit [length - 1]
+    VarDeclaration *lengthVar;
 
     SliceExp(Loc loc, Expression *e1, Expression *lwr, Expression *upr);
     Expression *syntaxCopy();
@@ -704,6 +705,8 @@ struct CommaExp : BinExp
 
 struct IndexExp : BinExp
 {
+    VarDeclaration *lengthVar;
+
     IndexExp(Loc loc, Expression *e1, Expression *e2);
     Expression *semantic(Scope *sc);
     Expression *toLvalue(Expression *e);

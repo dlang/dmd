@@ -57,7 +57,7 @@ enum TOK
 	TOKstar,	TOKsymoff,
 	TOKvar,		TOKdotvar,
 	TOKdotti,	TOKdotexp,
-	TOKdottype,	TOKrange,
+	TOKdottype,	TOKslice,
 	TOKarraylength,	TOKversion,
 	TOKmodule,	TOKdollar,
 	TOKtemplate,	TOKinstance,

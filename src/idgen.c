@@ -153,6 +153,9 @@ Msgtable msgtable[] =
 
     // For pragma's
     { "msg" },
+
+    // Special functions
+    { "alloca" },
 };
 
 

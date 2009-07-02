@@ -529,7 +529,7 @@ void Lexer::scan(Token *t)
 		    }
 		    else
 		    {   p++;
-			t->value = TOKrange;
+			t->value = TOKslice;
 		    }
 		}
 		else
@@ -831,7 +831,7 @@ unsigned Lexer::escapeSequence()
 			}
 		    }
 		    if (ndigits != 2 && !utf_isValidDchar(v))
-			error("invalid UTF character \\U08x", v);
+			error("invalid UTF character \\U%08x", v);
 		    c = v;
 		}
 		else
@@ -2047,7 +2047,7 @@ void Lexer::initKeywords()
     Token::tochars[TOKmul]		= "*";
     Token::tochars[TOKdiv]		= "/";
     Token::tochars[TOKmod]		= "%";
-    Token::tochars[TOKrange]		= "..";
+    Token::tochars[TOKslice]		= "..";
     Token::tochars[TOKdotdotdot]	= "...";
     Token::tochars[TOKand]		= "&";
     Token::tochars[TOKandand]		= "&&";
@@ -2057,6 +2057,7 @@ void Lexer::initKeywords()
     Token::tochars[TOKindex]		= "[]";
     Token::tochars[TOKaddress]		= "#";
     Token::tochars[TOKstar]		= "*";
+    Token::tochars[TOKtilde]		= "~";
     Token::tochars[TOKcast]		= "cast";
     Token::tochars[TOKplusplus]		= "++";
     Token::tochars[TOKminusminus]	= "--";
@@ -2066,8 +2067,17 @@ void Lexer::initKeywords()
     Token::tochars[TOKuadd]		= "uadd";
     Token::tochars[TOKvar]		= "var";
     Token::tochars[TOKaddass]		= "+=";
-    Token::tochars[TOKcat]		= "~";
+    Token::tochars[TOKminass]		= "-=";
+    Token::tochars[TOKmulass]		= "*=";
+    Token::tochars[TOKdivass]		= "/=";
+    Token::tochars[TOKmodass]		= "%=";
+    Token::tochars[TOKshlass]		= "<<=";
+    Token::tochars[TOKshrass]		= ">>=";
+    Token::tochars[TOKushrass]		= ">>>=";
+    Token::tochars[TOKandass]		= "&=";
+    Token::tochars[TOKorass]		= "|=";
     Token::tochars[TOKcatass]		= "~=";
+    Token::tochars[TOKcat]		= "~";
     Token::tochars[TOKcall]		= "call";
 
     Token::tochars[TOKorass]		= "|=";

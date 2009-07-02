@@ -154,7 +154,7 @@ void preFunctionArguments(Loc loc, Scope *sc, Array *arguments)
 /****************************************
  * Now that we know the exact type of the function we're calling,
  * the arguments[] need to be adjusted:
- *	1) implicitly convert argument to the corresponding paramter type
+ *	1) implicitly convert argument to the corresponding parameter type
  *	2) add default arguments for any missing arguments
  *	3) do default promotions on arguments corresponding to ...
  *	4) add hidden _arguments[] argument
@@ -205,7 +205,7 @@ void functionArguments(Loc loc, Scope *sc, TypeFunction *tf, Array *arguments)
 		// BUG: assignments to inout should also be type 'invariant'
 		arg = arg->modifiableLvalue(sc, NULL);
 
-		if (arg->op == TOKrange)
+		if (arg->op == TOKslice)
 		    arg->error("cannot modify slice %s", arg->toChars());
 
 		// Don't have a way yet to do a pointer to a bit in array
@@ -221,12 +221,14 @@ void functionArguments(Loc loc, Scope *sc, TypeFunction *tf, Array *arguments)
 	}
 	else
 	{
-	    // Promote bytes, words, etc., to ints
-//	    arg = arg->integralPromotions();
 
-	    // If not D linkage, promote floats to doubles
+	    // If not D linkage, do promotions
 	    if (tf->linkage != LINKd)
 	    {
+		// Promote bytes, words, etc., to ints
+		arg = arg->integralPromotions();
+
+		// Promote floats to doubles
 		switch (arg->type->ty)
 		{
 		    case Tfloat32:
@@ -919,7 +921,14 @@ Expression *IdentifierExp::semantic(Scope *sc)
 	    e = new DotIdExp(loc, e, ident);
 	}
 	else
+	{
+	    if (!s->parent && scopesym->isArrayScopeSymbol())
+	    {	// Kludge to run semantic() here because
+		// ArrayScopeSymbol::search() doesn't have access to sc.
+		s->semantic(sc);
+	    }
 	    e = new DsymbolExp(loc, s);
+	}
 	return e->semantic(sc);
     }
     error("undefined identifier %s", ident->toChars());
@@ -1017,7 +1026,8 @@ Lagain:
 		if (ei)
 		{
 		    e = ei->exp->copy();	// make copy so we can change loc
-//e = e->semantic(sc);
+		    if (e->op == TOKstring)
+			e = e->semantic(sc);
 //printf("test5\n");
 //e->print();
 		    e = e->implicitCastTo(type);
@@ -2673,17 +2683,6 @@ if (arguments && arguments->dim)
 	}
     }
 
-    if (e1->op == TOKcomma)
-    {
-	CommaExp *ce = (CommaExp *)e1;
-
-	e1 = ce->e2;
-	e1->type = ce->type;
-	ce->e2 = this;
-	ce->type = NULL;
-	return ce->semantic(sc);
-    }
-
     if (e1->op == TOKthis || e1->op == TOKsuper)
     {
 	// semantic() run later for these
@@ -2699,6 +2698,16 @@ if (arguments && arguments->dim)
 	}
     }
 
+    if (e1->op == TOKcomma)
+    {
+	CommaExp *ce = (CommaExp *)e1;
+
+	e1 = ce->e2;
+	e1->type = ce->type;
+	ce->e2 = this;
+	ce->type = NULL;
+	return ce->semantic(sc);
+    }
 
     t1 = NULL;
     if (e1->type)
@@ -2753,6 +2762,15 @@ if (arguments && arguments->dim)
 	{
 	    dve->var = f;
 	    e1->type = f->type;
+
+	    // See if we need to adjust the 'this' pointer
+	    AggregateDeclaration *ad = f->isThis();
+	    ClassDeclaration *cd = dve->e1->type->isClassHandle();
+	    if (ad && cd && ad->isClassDeclaration() && ad != cd)
+	    {
+		dve->e1 = new CastExp(loc, dve->e1, ad->type);
+		dve->e1 = dve->e1->semantic(sc);
+	    }
 	}
 	t1 = e1->type;
     }
@@ -2978,6 +2996,13 @@ Expression *PtrExp::semantic(Scope *sc)
     {
 	case Tpointer:
 	    type = tb->next;
+	    if (type->isbit())
+	    {	Expression *e;
+
+		// Rewrite *p as p[0]
+		e = new IndexExp(loc, e1, new IntegerExp(0));
+		return e->semantic(sc);
+	    }
 	    break;
 
 	case Tsarray:
@@ -3241,10 +3266,11 @@ void CastExp::toCBuffer(OutBuffer *buf)
 /************************************************************/
 
 SliceExp::SliceExp(Loc loc, Expression *e1, Expression *lwr, Expression *upr)
-	: UnaExp(loc, TOKrange, sizeof(SliceExp), e1)
+	: UnaExp(loc, TOKslice, sizeof(SliceExp), e1)
 {
     this->upr = upr;
     this->lwr = lwr;
+    lengthVar = NULL;
 }
 
 Expression *SliceExp::syntaxCopy()
@@ -3264,6 +3290,7 @@ Expression *SliceExp::semantic(Scope *sc)
 {   Expression *e;
     AggregateDeclaration *ad;
     FuncDeclaration *fd;
+    ScopeDsymbol *sym;
 
 #if LOGSEMANTIC
     printf("SliceExp::semantic('%s')\n", toChars());
@@ -3321,6 +3348,13 @@ Expression *SliceExp::semantic(Scope *sc)
     else
 	goto Lerror;
 
+    if (t->ty == Tsarray || t->ty == Tarray)
+    {
+	sym = new ArrayScopeSymbol(this);
+	sym->parent = sc->scopesym;
+	sc = sc->push(sym);
+    }
+
     if (lwr)
     {	lwr = lwr->semantic(sc);
 	lwr = resolveProperties(sc, lwr);
@@ -3331,6 +3365,9 @@ Expression *SliceExp::semantic(Scope *sc)
 	upr = resolveProperties(sc, upr);
 	upr = upr->castTo(Type::tindex);
     }
+
+    if (t->ty == Tsarray || t->ty == Tarray)
+	sc->pop();
 
     type = t->next->arrayOf();
     return e;
@@ -3528,6 +3565,7 @@ int CommaExp::isBool(int result)
 IndexExp::IndexExp(Loc loc, Expression *e1, Expression *e2)
 	: BinExp(loc, TOKindex, sizeof(IndexExp), e1, e2)
 {
+    lengthVar = NULL;
 }
 
 Expression *IndexExp::semantic(Scope *sc)
@@ -3535,18 +3573,38 @@ Expression *IndexExp::semantic(Scope *sc)
     BinExp *b;
     UnaExp *u;
     Type *t1;
+    ScopeDsymbol *sym;
 
 #if LOGSEMANTIC
     printf("IndexExp::semantic('%s')\n", toChars());
 #endif
     if (type)
 	return this;
-    BinExp::semanticp(sc);
+    assert(e1->type);		// semantic() should already be run on it
     e = this;
 
     // Note that unlike C we do not implement the int[ptr]
 
     t1 = e1->type->toBasetype();
+
+    if (t1->ty == Tsarray || t1->ty == Tarray)
+    {	// Create scope for 'length' variable
+	sym = new ArrayScopeSymbol(this);
+	sym->parent = sc->scopesym;
+	sc = sc->push(sym);
+    }
+
+    e2 = e2->semantic(sc);
+    if (!e2->type)
+    {
+	error("%s has no value", e2->toChars());
+	e2->type = Type::terror;
+    }
+    e2 = resolveProperties(sc, e2);
+
+    if (t1->ty == Tsarray || t1->ty == Tarray)
+	sc = sc->pop();
+
     switch (t1->ty)
     {
 	case Tpointer:
@@ -3593,6 +3651,7 @@ Expression *IndexExp::semantic(Scope *sc)
 	default:
 	    error("%s must be an array or pointer type, not %s",
 		e1->toChars(), e1->type->toChars());
+	    type = Type::tint32;
 	    break;
     }
     return e;
@@ -3779,7 +3838,7 @@ Expression *AssignExp::semantic(Scope *sc)
 	// before it got constant folded
 	e1 = e1->modifiableLvalue(sc, e1old);
 
-    if (e1->op == TOKrange &&
+    if (e1->op == TOKslice &&
 	t1->next &&
 	!(t1->next->equals(e2->type->next) /*||
 	  (t1->next->ty == Tchar && e2->op == TOKstring)*/)
@@ -3788,7 +3847,7 @@ Expression *AssignExp::semantic(Scope *sc)
 	e2 = e2->implicitCastTo(t1->next);
     }
 #if 0
-    else if (e1->op == TOKrange &&
+    else if (e1->op == TOKslice &&
 	     e2->op == TOKstring &&
 	     ((StringExp *)e2)->len == 1)
     {	// memset
@@ -3856,6 +3915,50 @@ Expression *AddAssignExp::semantic(Scope *sc)
 	e1->checkScalar();
 	if (tb1->ty == Tpointer && tb2->isintegral())
 	    e = scaleFactor();
+	else if (tb1->ty == Tbit)
+	{
+#if 0
+	    // Need to rethink this
+	    if (e1->op != TOKvar)
+	    {   // Rewrite e1+=e2 to (v=&e1),*v=*v+e2
+		VarDeclaration *v;
+		Expression *ea;
+		Expression *ex;
+
+		char name[6+6+1];
+		Identifier *id;
+		static int idn;
+		sprintf(name, "__name%d", ++idn);
+		id = Lexer::idPool(name);
+
+		v = new VarDeclaration(loc, tb1->pointerTo(), id, NULL);
+		v->semantic(sc);
+		if (!sc->insert(v))
+		    assert(0);
+		v->parent = sc->func;
+
+		ea = new AddrExp(loc, e1);
+		ea = new AssignExp(loc, new VarExp(loc, v), ea);
+
+		ex = new VarExp(loc, v);
+		ex = new PtrExp(loc, ex);
+		e = new AddExp(loc, ex, e2);
+		e = new CastExp(loc, e, e1->type);
+		e = new AssignExp(loc, ex->syntaxCopy(), e);
+
+		e = new CommaExp(loc, ea, e);
+	    }
+	    else
+#endif
+	    {   // Rewrite e1+=e2 to e1=e1+e2
+		// BUG: doesn't account for side effects in e1
+		// BUG: other assignment operators for bits aren't handled at all
+		e = new AddExp(loc, e1, e2);
+		e = new CastExp(loc, e, e1->type);
+		e = new AssignExp(loc, e1->syntaxCopy(), e);
+	    }
+	    e = e->semantic(sc);
+	}
 	else
 	{
 	    typeCombine();
@@ -3930,7 +4033,7 @@ Expression *CatAssignExp::semantic(Scope *sc)
     if (e)
 	return e;
 
-    if (e1->op == TOKrange)
+    if (e1->op == TOKslice)
     {	SliceExp *se = (SliceExp *)e1;
 
 	if (se->e1->type->toBasetype()->ty == Tsarray)

@@ -36,7 +36,7 @@
 #include "dt.h"
 #include "cgcv.h"
 #include "outbuf.h"
-#include "context.h"
+#include "irstate.h"
 
 /*******************************************
  * Get a canonicalized form of the TypeInfo for use with the internal

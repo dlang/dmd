@@ -1308,12 +1308,13 @@ void TemplateInstance::semantic(Scope *sc)
 
 	if (sc->scopesym && sc->scopesym->members)
 	{
-	    //printf("\tadding to %s %s\n", sc->scopesym->kind(), sc->scopesym->toChars());
+	    //printf("\t1: adding to %s %s\n", sc->scopesym->kind(), sc->scopesym->toChars());
 	    a = sc->scopesym->members;
 	}
 	else
 	{
-	    a = sc->module->members;
+	    //printf("\t2: adding to module %s\n", sc->module->importedFrom->toChars());
+	    a = sc->module->importedFrom->members;
 	}
 	for (i = 0; 1; i++)
 	{
@@ -1998,6 +1999,7 @@ void TemplateMixin::semantic(Scope *sc)
 		if (!td)
 		{
 		    error("%s is not a template", id->toChars());
+		    inst = this;
 		    return;
 		}
 		ti->tempdecl = td;
@@ -2009,19 +2011,23 @@ void TemplateMixin::semantic(Scope *sc)
 	if (!s)
 	{
 	    error("is not defined");
+	    inst = this;
 	    return;
 	}
 	tempdecl = s->toAlias()->isTemplateDeclaration();
 	if (!tempdecl)
 	{
 	    error("%s is not a template", s->toChars());
+	    inst = this;
 	    return;
 	}
     }
 
     tempdecl = findTemplateDeclaration(sc);
     if (!tempdecl)
+    {	inst = this;
 	return;		// error recovery
+    }
 
 //    if (!ident)
 //	ident = genIdent();

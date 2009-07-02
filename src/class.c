@@ -880,7 +880,7 @@ int BaseClass::fillVtbl(ClassDeclaration *cd, Array *vtbl, int newinstance)
 	    //printf("            not found\n");
 	    // BUG: should mark this class as abstract?
 	    if (!cd->isAbstract())
-		cd->error("1interface function %s.%s is not implemented",
+		cd->error("interface function %s.%s isn't implemented",
 		    id->toChars(), ifd->ident->toChars());
 	    fd = NULL;
 	}

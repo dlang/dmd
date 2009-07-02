@@ -70,6 +70,7 @@ void Import::semantic(Scope *sc)
 	{
 	    // Load module
 	    mod = Module::load(loc, packages, id);
+	    mod->importedFrom = sc->module->importedFrom;
 	    dst->insert(id, mod);		// id may be different from mod->ident,
 						// if so then insert alias
 	}

@@ -34,7 +34,7 @@
 #include "dt.h"
 #include "cgcv.h"
 #include "outbuf.h"
-#include "context.h"
+#include "irstate.h"
 
 /* ================================================================== */
 

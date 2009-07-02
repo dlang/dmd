@@ -653,7 +653,13 @@ Expression *BinExp::scaleFactor()
 	stride = t1b->next->size();
 	if (!t->equals(t2b))
 	    e2 = e2->castTo(t);
-	e2 = new MulExp(loc, e2, new IntegerExp(0, stride, t));
+	if (t1b->next->isbit())
+	    // BUG: should add runtime check for misaligned offsets
+	    // This perhaps should be done by rewriting as &p[i]
+	    // and letting back end do it.
+	    e2 = new UshrExp(loc, e2, new IntegerExp(0, 3, t));
+	else
+	    e2 = new MulExp(loc, e2, new IntegerExp(0, stride, t));
 	e2->type = t;
 	type = e1->type;
     }
@@ -668,7 +674,11 @@ Expression *BinExp::scaleFactor()
 	    e = e1->castTo(t);
 	else
 	    e = e1;
-	e = new MulExp(loc, e, new IntegerExp(0, stride, t));
+	if (t2b->next->isbit())
+	    // BUG: should add runtime check for misaligned offsets
+	    e = new UshrExp(loc, e, new IntegerExp(0, 3, t));
+	else
+	    e = new MulExp(loc, e, new IntegerExp(0, stride, t));
 	e->type = t;
 	type = e2->type;
 	e1 = e2;
@@ -732,7 +742,8 @@ Expression *BinExp::typeCombine()
     t = t1;
     if (t1 == t2)
     {
-	if (t1->ty == Tstruct && (op == TOKmin || op == TOKadd))
+	if ((t1->ty == Tstruct || t1->ty == Tclass) &&
+	    (op == TOKmin || op == TOKadd))
 	    goto Lincompatible;
     }
     else if (t1->isintegral() && t2->isintegral())

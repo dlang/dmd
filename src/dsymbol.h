@@ -54,6 +54,8 @@ struct TemplateMixin;
 struct EnumMember;
 struct ScopeDsymbol;
 struct WithScopeSymbol;
+struct ArrayScopeSymbol;
+struct Expression;
 
 struct TYPE;
 
@@ -157,6 +159,7 @@ struct Dsymbol : Object
     virtual VersionDeclaration *isVersionDeclaration() { return NULL; }
     virtual ScopeDsymbol *isScopeDsymbol() { return NULL; }
     virtual WithScopeSymbol *isWithScopeSymbol() { return NULL; }
+    virtual ArrayScopeSymbol *isArrayScopeSymbol() { return NULL; }
     virtual Import *isImport() { return NULL; }
 };
 
@@ -194,6 +197,18 @@ struct WithScopeSymbol : ScopeDsymbol
     Dsymbol *search(Identifier *ident, int flags);
 
     WithScopeSymbol *isWithScopeSymbol() { return this; }
+};
+
+// Array Index/Slice scope
+
+struct ArrayScopeSymbol : ScopeDsymbol
+{
+    Expression *exp;	// IndexExp or SliceExp
+
+    ArrayScopeSymbol(Expression *e);
+    Dsymbol *search(Identifier *ident, int flags);
+
+    ArrayScopeSymbol *isArrayScopeSymbol() { return this; }
 };
 
 // Table of Dsymbol's

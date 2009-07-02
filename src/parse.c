@@ -3692,7 +3692,7 @@ Expression *Parser::parsePostExp(Expression *e)
 		else
 		{
 		    index = parseAssignExp();
-		    if (token.value == TOKrange)
+		    if (token.value == TOKslice)
 		    {	// array[lwr .. upr]
 			nextToken();
 			upr = parseAssignExp();

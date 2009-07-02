@@ -60,6 +60,7 @@ Module::Module(char *filename, Identifier *ident)
     sdtor = NULL;
     stest = NULL;
     sfilename = NULL;
+    importedFrom = this;
 
     srcfilename = FileName::defaultExt(filename, global.mars_ext);
     if (!srcfilename->equalsExt(global.mars_ext))
