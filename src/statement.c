@@ -1,5 +1,5 @@
 
-// Copyright (c) 1999-2004 by Digital Mars
+// Copyright (c) 1999-2005 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // www.digitalmars.com
@@ -30,6 +30,11 @@
 Statement::Statement(Loc loc)
     : loc(loc)
 {
+#ifdef _DH
+    // If this is an in{} contract scope statement (skip for determining
+    //  inlineStatus of a function body for header content)
+    incontract = 0;
+#endif
 }
 
 Statement *Statement::syntaxCopy()
@@ -736,6 +741,7 @@ Statement *ForeachStatement::semantic(Scope *sc)
 		{   case In:    var->storage_class |= STCin;          break;
 		    case Out:   var->storage_class |= STCout;         break;
 		    case InOut: var->storage_class |= STCin | STCout; break;
+		    default: assert(0);
 		}
 		var->semantic(sc);
 		if (!sc->insert(var))
@@ -1006,10 +1012,15 @@ IfStatement::IfStatement(Loc loc, Expression *condition, Statement *ifbody, Stat
 
 Statement *IfStatement::syntaxCopy()
 {
+    Statement *i = NULL;
+    if (ifbody)
+        i = ifbody->syntaxCopy();
+
     Statement *e = NULL;
     if (elsebody)
 	e = elsebody->syntaxCopy();
-    IfStatement *s = new IfStatement(loc, condition->syntaxCopy(), ifbody->syntaxCopy(), e);
+
+    IfStatement *s = new IfStatement(loc, condition->syntaxCopy(), i, e);
     return s;
 }
 
@@ -1710,7 +1721,7 @@ Statement *ReturnStatement::semantic(Scope *sc)
 	if (exp)
 	{   Statement *s;
 
-	    s = new ExpStatement(loc, exp);
+	    s = new ExpStatement(0, exp);
 	    return new CompoundStatement(loc, s, gs);
 	}
 	return gs;
@@ -1720,6 +1731,7 @@ Statement *ReturnStatement::semantic(Scope *sc)
     {   Statement *s;
 
 	s = new ExpStatement(loc, exp);
+	loc = 0;
 	exp = NULL;
 	return new CompoundStatement(loc, s, this);
     }
@@ -2286,7 +2298,8 @@ VolatileStatement::VolatileStatement(Loc loc, Statement *statement)
 
 Statement *VolatileStatement::syntaxCopy()
 {
-    VolatileStatement *s = new VolatileStatement(loc, statement);
+    VolatileStatement *s = new VolatileStatement(loc,
+		statement ? statement->syntaxCopy() : NULL);
     return s;
 }
 

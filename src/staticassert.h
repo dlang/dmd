@@ -17,6 +17,9 @@
 #include "dsymbol.h"
 
 struct Expression;
+#ifdef _DH
+struct HdrGenState;
+#endif
 
 struct StaticAssert : Dsymbol
 {
@@ -32,6 +35,9 @@ struct StaticAssert : Dsymbol
     void toObjFile();
     char *kind();
     void toCBuffer(OutBuffer *buf);
+#ifdef _DH
+    void toHBuffer(OutBuffer *buf, HdrGenState *hgs);
+#endif
 };
 
 #endif

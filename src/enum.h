@@ -20,6 +20,9 @@
 struct Identifier;
 struct Type;
 struct Expression;
+#ifdef _DH
+struct HdrGenState;
+#endif
 
 struct EnumDeclaration : ScopeDsymbol
 {
@@ -34,6 +37,9 @@ struct EnumDeclaration : ScopeDsymbol
     void semantic(Scope *sc);
     Dsymbol *oneMember();
     void toCBuffer(OutBuffer *buf);
+#ifdef _DH
+    void toHBuffer(OutBuffer *buf, HdrGenState *hgs);
+#endif
     Type *getType();
     char *kind();
 
@@ -55,6 +61,9 @@ struct EnumMember : Dsymbol
     EnumMember(Loc loc, Identifier *id, Expression *value);
     Dsymbol *syntaxCopy(Dsymbol *s);
     void toCBuffer(OutBuffer *buf);
+#ifdef _DH
+    void toHBuffer(OutBuffer *buf, HdrGenState *hgs);
+#endif
     char *kind();
 
     void emitComment(Scope *sc);

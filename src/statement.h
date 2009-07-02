@@ -36,6 +36,12 @@ struct ReturnStatement;
 struct CompoundStatement;
 struct Argument;
 struct StaticAssert;
+#ifdef _DH
+struct AsmStatement;
+struct GotoStatement;
+struct ScopeStatement;
+struct TryCatchStatement;
+#endif
 
 // Back end
 struct IRState;
@@ -56,6 +62,15 @@ struct Statement : Object
 
     void error(const char *format, ...);
     virtual void toCBuffer(OutBuffer *buf);
+#ifdef _DH
+    virtual void toHBuffer(OutBuffer *buf, HdrGenState *hgs);
+    virtual void toHBuffer2(OutBuffer *buf, HdrGenState *hgs) {}
+    virtual ScopeStatement *isScopeStatement() { return NULL; }
+    virtual TryCatchStatement *isTryCatchStatement() { return NULL; }
+    virtual GotoStatement *isGotoStatement() { return NULL; }
+    virtual AsmStatement *isAsmStatement() { return NULL; }
+    int incontract;
+#endif
     virtual Statement *semantic(Scope *sc);
     Statement *semanticScope(Scope *sc, Statement *sbreak, Statement *scontinue);
     virtual int hasBreak();
@@ -86,6 +101,9 @@ struct ExpStatement : Statement
     ExpStatement(Loc loc, Expression *exp);
     Statement *syntaxCopy();
     void toCBuffer(OutBuffer *buf);
+#ifdef _DH
+    void toHBuffer(OutBuffer *buf, HdrGenState *hgs);
+#endif
     Statement *semantic(Scope *sc);
     int fallOffEnd();
 
@@ -105,6 +123,9 @@ struct DeclarationStatement : ExpStatement
     DeclarationStatement(Loc loc, Expression *exp);
     Statement *syntaxCopy();
     void toCBuffer(OutBuffer *buf);
+#ifdef _DH
+    void toHBuffer(OutBuffer *buf, HdrGenState *hgs);
+#endif
     Statement *callAutoDtor();
 
     DeclarationStatement *isDeclarationStatement() { return this; }
@@ -118,6 +139,9 @@ struct CompoundStatement : Statement
     CompoundStatement(Loc loc, Statement *s1, Statement *s2);
     Statement *syntaxCopy();
     void toCBuffer(OutBuffer *buf);
+#ifdef _DH
+    void toHBuffer(OutBuffer *buf, HdrGenState *hgs);
+#endif
     Statement *semantic(Scope *sc);
     int usesEH();
     int fallOffEnd();
@@ -155,6 +179,11 @@ struct ScopeStatement : Statement
     ScopeStatement(Loc loc, Statement *s);
     Statement *syntaxCopy();
     void toCBuffer(OutBuffer *buf);
+#ifdef _DH
+    void toHBuffer(OutBuffer *buf, HdrGenState *hgs);
+    void toHBuffer2(OutBuffer *buf, HdrGenState *hgs);
+    ScopeStatement *isScopeStatement() { return this; }
+#endif
     Statement *semantic(Scope *sc);
     int fallOffEnd();
 
@@ -175,6 +204,9 @@ struct WhileStatement : Statement
     int hasContinue();
     int usesEH();
     int fallOffEnd();
+#ifdef _DH
+    void toHBuffer(OutBuffer *buf, HdrGenState *hgs);
+#endif
 
     Statement *inlineScan(InlineScanState *iss);
 
@@ -193,6 +225,9 @@ struct DoStatement : Statement
     int hasContinue();
     int usesEH();
     int fallOffEnd();
+#ifdef _DH
+    void toHBuffer(OutBuffer *buf, HdrGenState *hgs);
+#endif
 
     Statement *inlineScan(InlineScanState *iss);
 
@@ -213,6 +248,9 @@ struct ForStatement : Statement
     int hasContinue();
     int usesEH();
     int fallOffEnd();
+#ifdef _DH
+    void toHBuffer(OutBuffer *buf, HdrGenState *hgs);
+#endif
 
     Statement *inlineScan(InlineScanState *iss);
 
@@ -238,6 +276,9 @@ struct ForeachStatement : Statement
     int hasContinue();
     int usesEH();
     int fallOffEnd();
+#ifdef _DH
+    void toHBuffer(OutBuffer *buf, HdrGenState *hgs);
+#endif
 
     Statement *inlineScan(InlineScanState *iss);
 
@@ -254,6 +295,9 @@ struct IfStatement : Statement
     Statement *syntaxCopy();
     Statement *semantic(Scope *sc);
     void toCBuffer(OutBuffer *buf);
+#ifdef _DH
+    void toHBuffer(OutBuffer *buf, HdrGenState *hgs);
+#endif
     int usesEH();
     int fallOffEnd();
 
@@ -276,6 +320,9 @@ struct ConditionalStatement : Statement
     int usesEH();
 
     void toCBuffer(OutBuffer *buf);
+#ifdef _DH
+    void toHBuffer(OutBuffer *buf, HdrGenState *hgs);
+#endif
 };
 
 struct PragmaStatement : Statement
@@ -291,6 +338,9 @@ struct PragmaStatement : Statement
     int fallOffEnd();
 
     void toCBuffer(OutBuffer *buf);
+#ifdef _DH
+    void toHBuffer(OutBuffer *buf, HdrGenState *hgs);
+#endif
 };
 
 struct StaticAssertStatement : Statement
@@ -302,6 +352,9 @@ struct StaticAssertStatement : Statement
     Statement *semantic(Scope *sc);
 
     void toCBuffer(OutBuffer *buf);
+#ifdef _DH
+    void toHBuffer(OutBuffer *buf, HdrGenState *hgs);
+#endif
 };
 
 struct SwitchStatement : Statement
@@ -319,6 +372,9 @@ struct SwitchStatement : Statement
     int hasBreak();
     int usesEH();
     int fallOffEnd();
+#ifdef _DH
+    void toHBuffer(OutBuffer *buf, HdrGenState *hgs);
+#endif
 
     Statement *inlineScan(InlineScanState *iss);
 
@@ -339,6 +395,9 @@ struct CaseStatement : Statement
     int usesEH();
     int fallOffEnd();
     int comeFrom();
+#ifdef _DH
+    void toHBuffer(OutBuffer *buf, HdrGenState *hgs);
+#endif
 
     Statement *inlineScan(InlineScanState *iss);
 
@@ -355,6 +414,9 @@ struct DefaultStatement : Statement
     int usesEH();
     int fallOffEnd();
     int comeFrom();
+#ifdef _DH
+    void toHBuffer(OutBuffer *buf, HdrGenState *hgs);
+#endif
 
     Statement *inlineScan(InlineScanState *iss);
 
@@ -369,6 +431,9 @@ struct GotoDefaultStatement : Statement
     Statement *syntaxCopy();
     Statement *semantic(Scope *sc);
     int fallOffEnd();
+#ifdef _DH
+    void toHBuffer(OutBuffer *buf, HdrGenState *hgs);
+#endif
 
     void toIR(IRState *irs);
 };
@@ -382,6 +447,9 @@ struct GotoCaseStatement : Statement
     Statement *syntaxCopy();
     Statement *semantic(Scope *sc);
     int fallOffEnd();
+#ifdef _DH
+    void toHBuffer(OutBuffer *buf, HdrGenState *hgs);
+#endif
 
     void toIR(IRState *irs);
 };
@@ -390,6 +458,9 @@ struct SwitchErrorStatement : Statement
 {
     SwitchErrorStatement(Loc loc);
     int fallOffEnd();
+#ifdef _DH
+    void toHBuffer(OutBuffer *buf, HdrGenState *hgs);
+#endif
 
     void toIR(IRState *irs);
 };
@@ -401,6 +472,9 @@ struct ReturnStatement : Statement
     ReturnStatement(Loc loc, Expression *exp);
     Statement *syntaxCopy();
     void toCBuffer(OutBuffer *buf);
+#ifdef _DH
+    void toHBuffer(OutBuffer *buf, HdrGenState *hgs);
+#endif
     Statement *semantic(Scope *sc);
     int fallOffEnd();
 
@@ -421,6 +495,9 @@ struct BreakStatement : Statement
     Statement *syntaxCopy();
     Statement *semantic(Scope *sc);
     int fallOffEnd();
+#ifdef _DH
+    void toHBuffer(OutBuffer *buf, HdrGenState *hgs);
+#endif
 
     void toIR(IRState *irs);
 };
@@ -433,6 +510,9 @@ struct ContinueStatement : Statement
     Statement *syntaxCopy();
     Statement *semantic(Scope *sc);
     int fallOffEnd();
+#ifdef _DH
+    void toHBuffer(OutBuffer *buf, HdrGenState *hgs);
+#endif
 
     void toIR(IRState *irs);
 };
@@ -449,6 +529,9 @@ struct SynchronizedStatement : Statement
     int hasContinue();
     int usesEH();
     int fallOffEnd();
+#ifdef _DH
+    void toHBuffer(OutBuffer *buf, HdrGenState *hgs);
+#endif
 
     Statement *inlineScan(InlineScanState *iss);
 
@@ -468,6 +551,9 @@ struct WithStatement : Statement
     Statement *syntaxCopy();
     Statement *semantic(Scope *sc);
     void toCBuffer(OutBuffer *buf);
+#ifdef _DH
+    void toHBuffer(OutBuffer *buf, HdrGenState *hgs);
+#endif
     int usesEH();
     int fallOffEnd();
 
@@ -491,6 +577,10 @@ struct TryCatchStatement : Statement
     Statement *inlineScan(InlineScanState *iss);
 
     void toIR(IRState *irs);
+#ifdef _DH
+    void toHBuffer(OutBuffer *buf, HdrGenState *hgs);
+    TryCatchStatement *isTryCatchStatement() { return this; }
+#endif
 };
 
 struct Catch : Object
@@ -504,6 +594,9 @@ struct Catch : Object
     Catch(Loc loc, Type *t, Identifier *id, Statement *handler);
     Catch *syntaxCopy();
     void semantic(Scope *sc);
+#ifdef _DH
+    void toHBuffer(OutBuffer *buf, HdrGenState *hgs);
+#endif
 };
 
 struct TryFinallyStatement : Statement
@@ -514,6 +607,9 @@ struct TryFinallyStatement : Statement
     TryFinallyStatement(Loc loc, Statement *body, Statement *finalbody);
     Statement *syntaxCopy();
     void toCBuffer(OutBuffer *buf);
+#ifdef _DH
+    void toHBuffer(OutBuffer *buf, HdrGenState *hgs);
+#endif
     Statement *semantic(Scope *sc);
     int hasBreak();
     int hasContinue();
@@ -533,6 +629,9 @@ struct ThrowStatement : Statement
     Statement *syntaxCopy();
     Statement *semantic(Scope *sc);
     void toCBuffer(OutBuffer *buf);
+#ifdef _DH
+    void toHBuffer(OutBuffer *buf, HdrGenState *hgs);
+#endif
     int fallOffEnd();
 
     Statement *inlineScan(InlineScanState *iss);
@@ -549,6 +648,9 @@ struct VolatileStatement : Statement
     Statement *semantic(Scope *sc);
     Array *flatten();
     int fallOffEnd();
+#ifdef _DH
+    void toHBuffer(OutBuffer *buf, HdrGenState *hgs);
+#endif
 
     Statement *inlineScan(InlineScanState *iss);
 
@@ -567,6 +669,10 @@ struct GotoStatement : Statement
     int fallOffEnd();
 
     void toIR(IRState *irs);
+#ifdef _DH
+    void toHBuffer(OutBuffer *buf, HdrGenState *hgs);
+    GotoStatement *isGotoStatement() { return this; }
+#endif
 };
 
 struct LabelStatement : Statement
@@ -584,6 +690,9 @@ struct LabelStatement : Statement
     int usesEH();
     int fallOffEnd();
     int comeFrom();
+#ifdef _DH
+    void toHBuffer(OutBuffer *buf, HdrGenState *hgs);
+#endif
 
     Statement *inlineScan(InlineScanState *iss);
 
@@ -613,6 +722,10 @@ struct AsmStatement : Statement
     int comeFrom();
 
     void toCBuffer(OutBuffer *buf);
+#ifdef _DH
+    void toHBuffer(OutBuffer *buf, HdrGenState *hgs);
+    virtual AsmStatement *isAsmStatement() { return this; }
+#endif
 
     void toIR(IRState *irs);
 };

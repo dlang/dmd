@@ -57,7 +57,7 @@ ClassDeclaration::ClassDeclaration(Loc loc, Identifier *id, Array *baseclasses)
     vtblsym = NULL;
     vclassinfo = NULL;
 
-    if (id == Id::__sizeof || id == Id::alignof)
+    if (id == Id::__sizeof || id == Id::alignof || id == Id::mangleof)
 	error("illegal class name");
 
     // BUG: What if this is the wrong ClassInfo, i.e. it is nested?

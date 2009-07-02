@@ -43,6 +43,7 @@ struct Param
     char preservePaths;	// !=0 means don't strip path from source file
     char warnings;	// enable warnings
     char pic;		// generate position-independent-code for shared libs
+    char cov;		// generate code coverage data
 
     char *argv0;	// program name
     Array *imppath;	// array of char*'s of where to look for import modules
@@ -53,6 +54,12 @@ struct Param
     char *docdir;	// write documentation file to docdir directory
     char *docname;	// write documentation file to docname
     Array *ddocfiles;	// macro include files for Ddoc
+
+#ifdef _DH
+    char doHdrGeneration;	// process embedded documentation comments
+    char *hdrdir;		// write 'header' file to docdir directory
+    char *hdrname;		// write 'header' file to docname
+#endif
 
     unsigned debuglevel;	// debug level
     Array *debugids;		// debug identifiers
@@ -86,6 +93,9 @@ struct Global
     char *obj_ext;
     char *doc_ext;	// for Ddoc generated files
     char *ddoc_ext;	// for Ddoc macro include files
+#ifdef _DH
+    char *hdr_ext;
+#endif
     char *copyright;
     char *written;
     Array *path;	// Array of char*'s which form the import lookup path

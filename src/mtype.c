@@ -9,13 +9,19 @@
 
 #include <stdio.h>
 #include <assert.h>
+#include <float.h>
 
 #ifdef __DMC__
 #include <fp.h>
 #endif
 
-#include <float.h>
+#if _MSC_VER
+#include <malloc.h>
+#include <complex>
+#include <limits>
+#else
 #include <complex.h>
+#endif
 
 #ifdef __APPLE__
 #include <math.h>
@@ -29,6 +35,7 @@ static double zero = 0;
 
 #include "mem.h"
 
+#include "dsymbol.h"
 #include "mtype.h"
 #include "scope.h"
 #include "init.h"
@@ -513,6 +520,10 @@ Expression *Type::getProperty(Loc loc, Identifier *ident)
 	e = defaultInit();
 	e->loc = loc;
     }
+    else if (ident == Id::mangleof)
+    {	assert(deco);
+	e = new StringExp(loc, deco, strlen(deco), 'c');
+    }
     else
     {
 	error(loc, "no property '%s' for type '%s'", ident->toChars(), toChars());
@@ -944,6 +955,11 @@ Expression *TypeBasic::getProperty(Loc loc, Identifier *ident)
 		foo = -foo;
 		fvalue = foo;
 	    }
+#elif _MSC_VER
+	    {
+		unsigned long nan[2]= { 0xFFFFFFFF, 0x7FFFFFFF };
+		fvalue = *(double*)nan;
+	    }
 #else
 		fvalue = NAN;
 #endif
@@ -965,6 +981,8 @@ Expression *TypeBasic::getProperty(Loc loc, Identifier *ident)
 	    case Tfloat80:
 #if __GNUC__
 		fvalue = 1 / zero;
+#elif _MSC_VER
+		fvalue = std::numeric_limits<long double>::infinity();
 #else
 		fvalue = INFINITY;
 #endif
@@ -2710,12 +2728,21 @@ void TypeQualified::resolveHelper(Loc loc, Scope *sc,
 		    return;
 		}
 #endif
+		v = s->isVarDeclaration();
+		if (v && id == Id::length)
+		{
+		    if (v->isConst() && v->getExpInitializer())
+			e = v->getExpInitializer()->exp;
+		    else
+			e = new VarExp(loc, v);
+		    t = e->type;
+		    goto L3;
+		}
 		t = s->getType();
 		if (!t && s->isDeclaration())
 		    t = s->isDeclaration()->type;
 		if (t)
 		{
-//<<>>
 		    sm = t->toDsymbol(sc);
 		    if (sm)
 		    {	sm = sm->search(id, 0);
@@ -2724,6 +2751,7 @@ void TypeQualified::resolveHelper(Loc loc, Scope *sc,
 		    }
 		    e = t->getProperty(loc, id);
 		    i++;
+		L3:
 		    for (; i < idents.dim; i++)
 		    {
 			id = (Identifier *)idents.data[i];
@@ -3436,6 +3464,21 @@ int TypeTypedef::isintegral()
 int TypeTypedef::isfloating()
 {
     return sym->basetype->isfloating();
+}
+
+int TypeTypedef::isreal()
+{
+    return sym->basetype->isreal();
+}
+
+int TypeTypedef::isimaginary()
+{
+    return sym->basetype->isimaginary();
+}
+
+int TypeTypedef::iscomplex()
+{
+    return sym->basetype->iscomplex();
 }
 
 int TypeTypedef::isunsigned()

@@ -14,6 +14,7 @@
 #include <string.h>
 #include <time.h>
 #include <ctype.h>
+#include <assert.h>
 
 #if _WIN32
 #include "..\root\mem.h"

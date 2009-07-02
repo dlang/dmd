@@ -13,6 +13,14 @@
 #include <assert.h>
 #include <complex.h>
 
+#if __GNUC__
+extern "C" long double strtold(const char *p,char **endp);
+#endif
+
+#if _WIN32 && __DMC__
+extern "C" char * __cdecl __locale_decpoint;
+#endif
+
 #if _WIN32
 #include "..\root\mem.h"
 #endif
@@ -513,6 +521,7 @@ void Expression::toCBuffer(OutBuffer *buf)
 
 void Expression::toMangleBuffer(OutBuffer *buf)
 {
+    dump(0);
     assert(0);
 }
 
@@ -683,6 +692,7 @@ Array *Expression::arraySyntaxCopy(Array *exps)
 IntegerExp::IntegerExp(Loc loc, integer_t value, Type *type)
 	: Expression(loc, TOKint64, sizeof(IntegerExp))
 {
+    //printf("IntegerExp(value = %lld, type = '%s')\n", value, type ? type->toChars() : "");
     if (type && !type->isscalar())
     {
 	error("integral constant must be scalar type, not %s", type->toChars());
@@ -824,18 +834,88 @@ Expression *IntegerExp::toLvalue(Expression *e)
 
 void IntegerExp::toCBuffer(OutBuffer *buf)
 {
-    if (type)
-    {
-	if (type->ty == Tenum)
-	{   TypeEnum *te = (TypeEnum *)type;
+    integer_t v = toInteger();
 
-	    buf->printf("cast(%s)", te->sym->toChars());
+    if (type)
+    {	Type *t = type;
+
+      L1:
+	switch (t->ty)
+	{
+	    case Tenum:
+	    {   TypeEnum *te = (TypeEnum *)t;
+		buf->printf("cast(%s)", te->sym->toChars());
+		t = te->sym->memtype;
+		goto L1;
+	    }
+
+	    case Ttypedef:
+	    {	TypeTypedef *tt = (TypeTypedef *)t;
+		buf->printf("cast(%s)", tt->sym->toChars());
+		t = tt->sym->basetype;
+		goto L1;
+	    }
+
+	    case Twchar:	// BUG: need to cast(wchar)
+	    case Tdchar:	// BUG: need to cast(dchar)
+		if ((uinteger_t)v > 0xFF)
+		{
+		     buf->printf("'\\U%08x'", v);
+		     break;
+		}
+	    case Tchar:
+		if (isprint(v))
+		    buf->printf("'%c'", (int)v);
+		else
+		    buf->printf("'\\x%02x'", (int)v);
+		break;
+
+	    case Tint8:
+		buf->writestring("cast(byte)");
+		goto L2;
+
+	    case Tint16:
+		buf->writestring("cast(short)");
+		goto L2;
+
+	    case Tint32:
+	    L2:
+		buf->printf("%ld", (int)v);
+		break;
+
+	    case Tuns8:
+		buf->writestring("cast(ubyte)");
+		goto L3;
+
+	    case Tuns16:
+		buf->writestring("cast(ushort)");
+		goto L3;
+
+	    case Tuns32:
+	    L3:
+		buf->printf("%ldu", (unsigned)v);
+		break;
+
+	    case Tint64:
+		buf->printf("%lldL", v);
+		break;
+
+	    case Tuns64:
+		buf->printf("%lldLU", v);
+		break;
+
+	    case Tbit:
+		buf->writestring((char *)(v ? "true" : "false"));
+		break;
+
+	    default:
+		assert(0);
 	}
     }
-    if (value & 0x8000000000000000LL)
-	buf->printf("0x%llx", value);
+    else if (v & 0x8000000000000000LL)
+	buf->printf("0x%llx", v);
     else
-	buf->printf("%lld", value);
+	buf->printf("%lld", v);
 }
 
 void IntegerExp::toMangleBuffer(OutBuffer *buf)
@@ -894,6 +974,17 @@ complex_t RealExp::toComplex()
 #endif
 }
 
+int RealExp::equals(Object *o)
+{   RealExp *ne;
+
+    if (this == o ||
+	(((Expression *)o)->op == TOKfloat64 &&
+	 ((ne = (RealExp *)o), type->equals(ne->type)) &&
+	 memcmp(&value, &ne->value, sizeof(value)) == 0))
+	return 1;
+    return 0;
+}
+
 Expression *RealExp::semantic(Scope *sc)
 {
     if (!type)
@@ -909,13 +1000,58 @@ int RealExp::isBool(int result)
 		  : (value == 0);
 }
 
-void RealExp::toCBuffer(OutBuffer *buf)
+void floatToBuffer(OutBuffer *buf, Type *type, real_t value)
 {
-    buf->printf("%Lg", value);
-    if (type->isimaginary())
-	buf->writeByte('i');
+    /* In order to get an exact representation, try converting it
+     * to decimal then back again. If it matches, use it.
+     * If it doesn't, fall back to hex, which is
+     * always exact.
+     */
+    char buffer[25];
+    sprintf(buffer, "%Lg", value);
+    assert(strlen(buffer) < sizeof(buffer));
+#if _WIN32 && __DMC__
+    char *save = __locale_decpoint;
+    __locale_decpoint = ".";
+    real_t r = strtold(buffer, NULL);
+    __locale_decpoint = save;
+#else
+    real_t r = strtold(buffer, NULL);
+#endif
+    if (r == value)			// if exact duplication
+	buf->writestring(buffer);
+    else
+	buf->printf("%La", value);	// ensure exact duplication
+
+    if (type)
+    {
+	Type *t = type->toBasetype();
+	switch (t->ty)
+	{
+	    case Tfloat32:
+	    case Timaginary32:
+	    case Tcomplex32:
+		buf->writeByte('F');
+		break;
+
+	    case Tfloat80:
+	    case Timaginary80:
+	    case Tcomplex80:
+		buf->writeByte('L');
+		break;
+
+	    default:
+		break;
+	}
+	if (t->isimaginary())
+	    buf->writeByte('i');
+    }
 }
 
+void RealExp::toCBuffer(OutBuffer *buf)
+{
+    floatToBuffer(buf, type, value);
+}
 
 void RealExp::toMangleBuffer(OutBuffer *buf)
 {
@@ -970,6 +1106,17 @@ complex_t ComplexExp::toComplex()
     return value;
 }
 
+int ComplexExp::equals(Object *o)
+{   ComplexExp *ne;
+
+    if (this == o ||
+	(((Expression *)o)->op == TOKcomplex80 &&
+	 ((ne = (ComplexExp *)o), type->equals(ne->type)) &&
+	 memcmp(&value, &ne->value, sizeof(value)) == 0))
+	return 1;
+    return 0;
+}
+
 Expression *ComplexExp::semantic(Scope *sc)
 {
     if (!type)
@@ -987,7 +1134,14 @@ int ComplexExp::isBool(int result)
 
 void ComplexExp::toCBuffer(OutBuffer *buf)
 {
-    buf->printf("(%Lg+%Lgi)", creall(value), cimagl(value));
+    /* Print as:
+     *  (re+imi)
+     */
+    buf->writeByte('(');
+    floatToBuffer(buf, type, creall(value));
+    buf->writeByte('+');
+    floatToBuffer(buf, type, cimagl(value));
+    buf->writestring("i)");
 }
 
 void ComplexExp::toMangleBuffer(OutBuffer *buf)
@@ -1636,6 +1790,7 @@ void StringExp::toCBuffer(OutBuffer *buf)
 		break;
 
 	    case '"':
+	    case '\\':
 		buf->writeByte('\\');
 	    default:
 		if (isprint(c))
@@ -1841,11 +1996,11 @@ void ScopeExp::toCBuffer(OutBuffer *buf)
 
 /********************** NewExp **************************************/
 
-NewExp::NewExp(Loc loc, Array *newargs, Type *type, Array *arguments)
+NewExp::NewExp(Loc loc, Array *newargs, Type *newtype, Array *arguments)
     : Expression(loc, TOKnew, sizeof(NewExp))
 {
     this->newargs = newargs;
-    this->type = type;
+    this->newtype = newtype;
     this->arguments = arguments;
     member = NULL;
     allocator = NULL;
@@ -1854,7 +2009,7 @@ NewExp::NewExp(Loc loc, Array *newargs, Type *type, Array *arguments)
 Expression *NewExp::syntaxCopy()
 {
     return new NewExp(loc, arraySyntaxCopy(newargs),
-	type->syntaxCopy(), arraySyntaxCopy(arguments));
+	newtype->syntaxCopy(), arraySyntaxCopy(arguments));
 }
 
 
@@ -1864,9 +2019,11 @@ Expression *NewExp::semantic(Scope *sc)
 
 #if LOGSEMANTIC
     printf("NewExp::semantic() %s\n", toChars());
-    printf("type: %s\n", type->toChars());
+    printf("newtype: %s\n", newtype->toChars());
 #endif
-    type = type->semantic(loc, sc);
+    if (type)
+	return this;
+    type = newtype->semantic(loc, sc);
     tb = type->toBasetype();
     //printf("tb: %s, deco = %s\n", tb->toChars(), tb->deco);
 
@@ -2025,7 +2182,7 @@ void NewExp::toCBuffer(OutBuffer *buf)
 	argsToCBuffer(buf, newargs);
 	buf->writeByte(')');
     }
-    type->toCBuffer(buf, NULL);
+    newtype->toCBuffer(buf, NULL);
     if (arguments && arguments->dim)
     {
 	buf->writeByte('(');
@@ -3035,7 +3192,8 @@ Expression *DotIdExp::semantic(Scope *sc)
     }
     else if (e1->type->ty == Tpointer &&
 	     ident != Id::init && ident != Id::__sizeof &&
-	     ident != Id::alignof && ident != Id::offsetof)
+	     ident != Id::alignof && ident != Id::offsetof &&
+	     ident != Id::mangleof)
     {
 	e = new PtrExp(loc, e1);
 	e->type = e1->type->next;

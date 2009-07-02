@@ -29,6 +29,9 @@ struct Scope;
 struct Expression;
 struct AliasDeclaration;
 enum MATCH;
+#ifdef _DH
+struct HdrGenState;
+#endif
 
 struct TemplateDeclaration : ScopeDsymbol
 {
@@ -46,6 +49,10 @@ struct TemplateDeclaration : ScopeDsymbol
     void toCBuffer(OutBuffer *buf);
     char *kind();
     char *toChars();
+#ifdef _DH
+    void toHBuffer(OutBuffer *buf, HdrGenState *hgs);
+    char *toHChars(HdrGenState *hgs);
+#endif
 
     void emitComment(Scope *sc);
 //    void toDocBuffer(OutBuffer *buf);
@@ -81,6 +88,9 @@ struct TemplateParameter
     virtual void semantic(Scope *) = 0;
     virtual void print(Object *oarg, Object *oded) = 0;
     virtual void toCBuffer(OutBuffer *buf) = 0;
+#ifdef _DH
+    virtual void toHBuffer(OutBuffer *buf, HdrGenState *hgs) = 0;
+#endif
     virtual Object *defaultArg(Scope *sc) = 0;
 
     /* If TemplateParameter's match as far as overloading goes.
@@ -111,6 +121,9 @@ struct TemplateTypeParameter : TemplateParameter
     void semantic(Scope *);
     void print(Object *oarg, Object *oded);
     void toCBuffer(OutBuffer *buf);
+#ifdef _DH
+    void toHBuffer(OutBuffer *buf, HdrGenState *hgs);
+#endif
     Object *defaultArg(Scope *sc);
     int overloadMatch(TemplateParameter *);
     MATCH matchArg(Scope *sc, Object *oarg, int i, Array *parameters, Array *dedtypes, Declaration **psparam);
@@ -136,6 +149,9 @@ struct TemplateValueParameter : TemplateParameter
     void semantic(Scope *);
     void print(Object *oarg, Object *oded);
     void toCBuffer(OutBuffer *buf);
+#ifdef _DH
+    void toHBuffer(OutBuffer *buf, HdrGenState *hgs);
+#endif
     Object *defaultArg(Scope *sc);
     int overloadMatch(TemplateParameter *);
     MATCH matchArg(Scope *sc, Object *oarg, int i, Array *parameters, Array *dedtypes, Declaration **psparam);
@@ -162,6 +178,9 @@ struct TemplateAliasParameter : TemplateParameter
     void semantic(Scope *);
     void print(Object *oarg, Object *oded);
     void toCBuffer(OutBuffer *buf);
+#ifdef _DH
+    void toHBuffer(OutBuffer *buf, HdrGenState *hgs);
+#endif
     Object *defaultArg(Scope *sc);
     int overloadMatch(TemplateParameter *);
     MATCH matchArg(Scope *sc, Object *oarg, int i, Array *parameters, Array *dedtypes, Declaration **psparam);
@@ -197,6 +216,10 @@ struct TemplateInstance : ScopeDsymbol
     char *kind();
     char *toChars();
     char *mangle();
+#ifdef _DH
+    void toHBuffer(OutBuffer *buf, HdrGenState *hgs);
+    char *toHChars(HdrGenState *hgs);
+#endif
 
     void toObjFile();			// compile to .obj file
 
@@ -224,6 +247,9 @@ struct TemplateMixin : TemplateInstance
     char *kind();
     Dsymbol *oneMember();
     void toCBuffer(OutBuffer *buf);
+#ifdef _DH
+    void toHBuffer(OutBuffer *buf, HdrGenState *hgs);
+#endif
 
     void toObjFile();			// compile to .obj file
 

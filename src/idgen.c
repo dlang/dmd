@@ -43,6 +43,7 @@ Msgtable msgtable[] =
     { "size" },
     { "__sizeof", "sizeof" },
     { "alignof" },
+    { "mangleof" },
     { "length" },
     { "remove" },
     { "ptr" },
@@ -61,6 +62,7 @@ Msgtable msgtable[] =
     { "line" },
     { "empty", "" },
     { "p" },
+    { "coverage", "__coverage" },
 
     { "TypeInfo" },
     { "TypeInfo_Class" },

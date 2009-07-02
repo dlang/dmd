@@ -19,6 +19,10 @@
 #include "module.h"
 #include "template.h"
 #include "lexer.h"
+#ifdef _DH
+#include "mtype.h"
+#include "scope.h"
+#endif
 
 int findCondition(Array *ids, Identifier *ident)
 {

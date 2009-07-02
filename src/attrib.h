@@ -22,6 +22,9 @@ struct LabelDsymbol;
 struct Initializer;
 struct Module;
 struct Condition;
+#ifdef _DH
+struct HdrGenState;
+#endif
 
 /**************************************************************/
 
@@ -43,6 +46,9 @@ struct AttribDeclaration : Dsymbol
     void checkCtorConstInit();
     void addLocalClass(Array *);
     void toCBuffer(OutBuffer *buf);
+#ifdef _DH
+    void toHBuffer(OutBuffer *buf, HdrGenState *hgs);
+#endif
     AttribDeclaration *isAttribDeclaration() { return this; }
 
     void toObjFile();			// compile to .obj file
@@ -57,6 +63,9 @@ struct StorageClassDeclaration: AttribDeclaration
     Dsymbol *syntaxCopy(Dsymbol *s);
     void semantic(Scope *sc);
     void toCBuffer(OutBuffer *buf);
+#ifdef _DH
+    void toHBuffer(OutBuffer *buf, HdrGenState *hgs);
+#endif
 };
 
 struct LinkDeclaration : AttribDeclaration
@@ -68,6 +77,9 @@ struct LinkDeclaration : AttribDeclaration
     void semantic(Scope *sc);
     void semantic3(Scope *sc);
     void toCBuffer(OutBuffer *buf);
+#ifdef _DH
+    void toHBuffer(OutBuffer *buf, HdrGenState *hgs);
+#endif
     char *toChars();
 };
 
@@ -79,6 +91,9 @@ struct ProtDeclaration : AttribDeclaration
     Dsymbol *syntaxCopy(Dsymbol *s);
     void semantic(Scope *sc);
     void toCBuffer(OutBuffer *buf);
+#ifdef _DH
+    void toHBuffer(OutBuffer *buf, HdrGenState *hgs);
+#endif
 };
 
 struct AlignDeclaration : AttribDeclaration
@@ -89,6 +104,9 @@ struct AlignDeclaration : AttribDeclaration
     Dsymbol *syntaxCopy(Dsymbol *s);
     void semantic(Scope *sc);
     void toCBuffer(OutBuffer *buf);
+#ifdef _DH
+    void toHBuffer(OutBuffer *buf, HdrGenState *hgs);
+#endif
 };
 
 struct AnonDeclaration : AttribDeclaration
@@ -99,6 +117,9 @@ struct AnonDeclaration : AttribDeclaration
     Dsymbol *syntaxCopy(Dsymbol *s);
     void semantic(Scope *sc);
     void toCBuffer(OutBuffer *buf);
+#ifdef _DH
+    void toHBuffer(OutBuffer *buf, HdrGenState *hgs);
+#endif
     char *kind();
 };
 
@@ -110,6 +131,9 @@ struct PragmaDeclaration : AttribDeclaration
     Dsymbol *syntaxCopy(Dsymbol *s);
     void semantic(Scope *sc);
     void toCBuffer(OutBuffer *buf);
+#ifdef _DH
+    void toHBuffer(OutBuffer *buf, HdrGenState *hgs);
+#endif
     char *kind();
     void toObjFile();			// compile to .obj file
 };
@@ -125,6 +149,9 @@ struct ConditionalDeclaration : AttribDeclaration
     Array *include(Scope *sc, ScopeDsymbol *s);
     void addComment(unsigned char *comment);
     void toCBuffer(OutBuffer *buf);
+#ifdef _DH
+    void toHBuffer(OutBuffer *buf, HdrGenState *hgs);
+#endif
 };
 
 #endif /* DMD_ATTRIB_H */

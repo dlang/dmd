@@ -67,6 +67,7 @@ Symbol *Dsymbol::toSymbolX(const char *prefix, int sclass, type *t)
     char *n;
 
     n = mangle(); //ident->toChars();
+    assert(n);
     id = (char *) alloca(strlen(prefix) + strlen(n) + 1);
     sprintf(id,"%s%s", prefix, n);
     s = symbol_name(id, sclass, t);

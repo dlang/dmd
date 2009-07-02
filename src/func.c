@@ -41,6 +41,13 @@ FuncDeclaration::FuncDeclaration(Loc loc, Loc endloc, Identifier *id, enum STC s
     returnLabel = NULL;
     fensure = NULL;
     fbody = NULL;
+#ifdef _DH
+    hcopyof = NULL;
+    hbody = NULL;
+    hensure = NULL;
+    hrequire = NULL;
+    htype = NULL;
+#endif
     localsymtab = NULL;
     vthis = NULL;
     v_arguments = NULL;
@@ -73,6 +80,9 @@ Dsymbol *FuncDeclaration::syntaxCopy(Dsymbol *s)
     f->fensure  = fensure  ? fensure->syntaxCopy()  : NULL;
     f->fbody    = fbody    ? fbody->syntaxCopy()    : NULL;
     assert(!fthrows); // deprecated
+#ifdef _DH
+    hdrSyntaxCopy(f);
+#endif
     return f;
 }
 
@@ -750,8 +760,15 @@ void FuncDeclaration::semantic3(Scope *sc)
 
 	    // Merge contracts together with body into one compound statement
 
+#ifdef _DH
+	    if (frequire && global.params.useIn)
+	    {	frequire->incontract = 1;
+		a->push(frequire);
+	    }
+#else
 	    if (frequire && global.params.useIn)
 		a->push(frequire);
+#endif
 
 	    // Precondition invariant
 	    if (addPreInvariant())
@@ -812,13 +829,6 @@ void FuncDeclaration::semantic3(Scope *sc)
 
 	sc2->pop();
     }
-}
-
-void FuncDeclaration::toHBuffer(OutBuffer *buf)
-{
-    type->toCBuffer(buf, ident);
-    buf->writeByte(';');
-    buf->writenl();
 }
 
 void FuncDeclaration::toCBuffer(OutBuffer *buf)
@@ -1459,6 +1469,10 @@ Dsymbol *CtorDeclaration::syntaxCopy(Dsymbol *s)
     assert(!fthrows); // deprecated
 
     f->arguments = Argument::arraySyntaxCopy(arguments);
+
+#ifdef _DH
+    FuncDeclaration::hdrSyntaxCopy(f);
+#endif
 
     return f;
 }

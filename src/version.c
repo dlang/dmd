@@ -8,6 +8,7 @@
 // See the included readme.txt for details.
 
 #include <stdio.h>
+#include <assert.h>
 
 #include "root.h"
 

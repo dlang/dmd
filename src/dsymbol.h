@@ -60,6 +60,10 @@ struct WithScopeSymbol;
 struct ArrayScopeSymbol;
 struct SymbolDeclaration;
 struct Expression;
+#ifdef _DH
+struct DeleteDeclaration;
+struct HdrGenState;
+#endif
 
 struct TYPE;
 
@@ -112,6 +116,10 @@ struct Dsymbol : Object
     virtual void inlineScan();
     virtual Dsymbol *search(Identifier *ident, int flags);
     virtual int overloadInsert(Dsymbol *s);
+#ifdef _DH
+    char *toHChars();
+    virtual void toHBuffer(OutBuffer *buf, HdrGenState *hgs);
+#endif
     virtual void toCBuffer(OutBuffer *buf);
     virtual void toDocBuffer(OutBuffer *buf);
     virtual unsigned size(Loc loc);
@@ -179,6 +187,9 @@ struct Dsymbol : Object
     virtual ArrayScopeSymbol *isArrayScopeSymbol() { return NULL; }
     virtual Import *isImport() { return NULL; }
     virtual EnumDeclaration *isEnumDeclaration() { return NULL; }
+#ifdef _DH
+    virtual DeleteDeclaration *isDeleteDeclaration() { return NULL; }
+#endif
     virtual SymbolDeclaration *isSymbolDeclaration() { return NULL; }
     virtual AttribDeclaration *isAttribDeclaration() { return NULL; }
 };

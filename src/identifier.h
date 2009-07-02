@@ -28,6 +28,10 @@ struct Identifier : Object
     int compare(Object *o);
     void print();
     char *toChars();
+#ifdef _DH
+    char *toHChars();
+    char *toHChars2();  //New
+#endif
     int dyncast();
 
     static Identifier *generateId(char *prefix);

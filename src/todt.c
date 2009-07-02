@@ -448,6 +448,7 @@ dt_t **RealExp::toDt(dt_t **pdt)
 
 dt_t **ComplexExp::toDt(dt_t **pdt)
 {
+    //printf("ComplexExp::toDt() '%s'\n", toChars());
     d_float32 fvalue;
     d_float64 dvalue;
     d_float80 evalue;
@@ -473,8 +474,8 @@ dt_t **ComplexExp::toDt(dt_t **pdt)
 	    pdt = dtnbytes(pdt,REALSIZE - REALPAD,(char *)&evalue);
 	    pdt = dtnbytes(pdt,REALPAD,zeropad);
 	    evalue = cimagl(value);
-	    pdt = dtnbytes(pdt,REALSIZE,(char *)&evalue);
-	    pdt = dtnbytes(pdt,REALSIZE - REALPAD,zeropad);
+	    pdt = dtnbytes(pdt,REALSIZE - REALPAD,(char *)&evalue);
+	    pdt = dtnbytes(pdt,REALPAD,zeropad);
 	    break;
 
 	default:

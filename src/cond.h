@@ -16,7 +16,13 @@ struct OutBuffer;
 struct Module;
 struct Scope;
 struct ScopeDsymbol;
+#ifdef _DH
+#include "lexer.h" // dmdhg
+#endif
 enum TOK;
+#ifdef _DH
+struct HdrGenState;
+#endif
 
 int findCondition(Array *ids, Identifier *ident);
 
@@ -32,6 +38,9 @@ struct Condition
     virtual Condition *syntaxCopy() = 0;
     virtual int include(Scope *sc, ScopeDsymbol *s) = 0;
     virtual void toCBuffer(OutBuffer *buf) = 0;
+#ifdef _DH
+    virtual void toHBuffer(OutBuffer *buf, HdrGenState *hgs);
+#endif
 };
 
 struct DVCondition : Condition
@@ -78,6 +87,9 @@ struct StaticIfCondition : Condition
     Condition *syntaxCopy();
     int include(Scope *sc, ScopeDsymbol *s);
     void toCBuffer(OutBuffer *buf);
+#ifdef _DH
+    void toHBuffer(OutBuffer *buf, HdrGenState *hgs);
+#endif
 };
 
 struct IftypeCondition : Condition
@@ -93,6 +105,9 @@ struct IftypeCondition : Condition
     Condition *syntaxCopy();
     int include(Scope *sc, ScopeDsymbol *s);
     void toCBuffer(OutBuffer *buf);
+#ifdef _DH
+    void toHBuffer(OutBuffer *buf, HdrGenState *hgs);
+#endif
 };
 
 

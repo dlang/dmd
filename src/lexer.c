@@ -2448,8 +2448,7 @@ void Lexer::initKeywords()
     Token::tochars[TOKge]		= ">=";
     Token::tochars[TOKequal]		= "==";
     Token::tochars[TOKnotequal]		= "!=";
-    Token::tochars[TOKidentity]		= "===";
-    Token::tochars[TOKnotidentity]	= "!==";
+    Token::tochars[TOKnotidentity]	= "!is";
 
     Token::tochars[TOKunord]		= "!<>=";
     Token::tochars[TOKue]		= "!<>";

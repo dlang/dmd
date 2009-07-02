@@ -21,6 +21,7 @@ struct ModuleInfoDeclaration;
 struct ClassDeclaration;
 struct ModuleDeclaration;
 struct Macro;
+struct VarDeclaration;
 
 // Back end
 struct elem;
@@ -50,9 +51,13 @@ struct Module : Package
     ModuleDeclaration *md; // if !NULL, the contents of the ModuleDeclaration declaration
     File *srcfile;	// input source file
     File *objfile;	// output .obj file
+#ifdef _DH
+    File *hdrfile;	// 'header' file
+#endif
     File *symfile;	// output symbol file
     File *docfile;	// output documentation file
     unsigned errors;	// if any errors in file
+    unsigned numlines;	// number of lines in source file
     int isHtml;		// if it is an HTML file
     int isDocFile;	// if it is a documentation input file, not D source
     int needmoduleinfo;
@@ -83,7 +88,11 @@ struct Module : Package
 
     Macro *macrotable;		// document comment macros
 
+#ifdef _DH
+    Module(char *arg, Identifier *ident, int doDocComment, int doHdrGen);
+#else
     Module(char *arg, Identifier *ident, int doDocComment);
+#endif
     ~Module();
 
     static Module *load(Loc loc, Array *packages, Identifier *ident);
@@ -96,6 +105,12 @@ struct Module : Package
     void semantic2();	// pass 2 semantic analysis
     void semantic3();	// pass 3 semantic analysis
     void inlineScan();	// scan for functions to inline
+#ifdef _DH
+    OutBuffer hdrbufr;  // Header file contents
+    void setHdrfile();	// set hdrfile member
+    void genhdrbufr();  // generate header file contents
+    void genhdrfile();  // format and write buffer to disk
+#endif
     void genobjfile();
     void gensymfile();
     void gendocfile();
@@ -106,6 +121,9 @@ struct Module : Package
     void runDeferredSemantic();
 
     // Back end
+
+    Symbol *cov;		// private uint[] __coverage;
+    unsigned *covb;		// bit array of valid code line numbers
 
     Symbol *sctor;		// module constructor
     Symbol *sdtor;		// module destructor
@@ -122,6 +140,7 @@ struct Module : Package
 
     static Symbol *gencritsec();
     elem *toEfilename();
+    elem *toEmodulename();
 
     Symbol *toSymbol();
     void genmoduleinfo();

@@ -11,6 +11,7 @@
 #include <string.h>
 #include <time.h>
 #include <ctype.h>
+#include <assert.h>
 
 #if _WIN32
 #include "..\root\mem.h"
@@ -27,6 +28,12 @@
 #include "macro.h"
 #include "template.h"
 #include "lexer.h"
+#include "aggregate.h"
+#include "declaration.h"
+#include "enum.h"
+#include "id.h"
+#include "module.h"
+#include "scope.h"
 #include "doc.h"
 
 struct Section

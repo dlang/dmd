@@ -22,6 +22,9 @@ struct dt_t;
 struct AggregateDeclaration;
 struct VoidInitializer;
 struct ExpInitializer;
+#ifdef _DH
+struct HdrGenState;
+#endif
 
 struct Initializer : Object
 {
@@ -33,6 +36,9 @@ struct Initializer : Object
     virtual Type *inferType(Scope *sc);
     virtual Expression *toExpression() = 0;
     virtual void toCBuffer(OutBuffer *buf) = 0;
+#ifdef _DH
+    virtual void toHBuffer(OutBuffer *buf, HdrGenState *hgs) = 0;
+#endif
 
     static Array *arraySyntaxCopy(Array *ai);
 
@@ -51,6 +57,9 @@ struct VoidInitializer : Initializer
     Initializer *semantic(Scope *sc, Type *t);
     Expression *toExpression();
     void toCBuffer(OutBuffer *buf);
+#ifdef _DH
+    void toHBuffer(OutBuffer *buf, HdrGenState *hgs);
+#endif
 
     dt_t *toDt();
 
@@ -69,6 +78,9 @@ struct StructInitializer : Initializer
     Initializer *semantic(Scope *sc, Type *t);
     Expression *toExpression();
     void toCBuffer(OutBuffer *buf);
+#ifdef _DH
+    void toHBuffer(OutBuffer *buf, HdrGenState *hgs);
+#endif
 
     dt_t *toDt();
 };
@@ -87,6 +99,9 @@ struct ArrayInitializer : Initializer
     Initializer *semantic(Scope *sc, Type *t);
     Expression *toExpression();
     void toCBuffer(OutBuffer *buf);
+#ifdef _DH
+    void toHBuffer(OutBuffer *buf, HdrGenState *hgs);
+#endif
 
     dt_t *toDt();
     dt_t *toDtBit();	// for bit arrays
@@ -102,6 +117,9 @@ struct ExpInitializer : Initializer
     Type *inferType(Scope *sc);
     Expression *toExpression();
     void toCBuffer(OutBuffer *buf);
+#ifdef _DH
+    void toHBuffer(OutBuffer *buf, HdrGenState *hgs);
+#endif
 
     dt_t *toDt();
 

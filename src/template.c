@@ -1539,6 +1539,7 @@ void TemplateInstance::semantic(Scope *sc)
 void TemplateInstance::semanticTiargs(Scope *sc)
 {
     // Run semantic on each argument, place results in tiargs[]
+    //printf("TemplateInstance::semanticTiargs()\n");
     for (int j = 0; j < tiargs->dim; j++)
     {   Type *ta = isType((Object *)tiargs->data[j]);
 	Expression *ea;
@@ -1549,7 +1550,11 @@ void TemplateInstance::semanticTiargs(Scope *sc)
 	    // It might really be an Expression or an Alias
 	    ta->resolve(loc, sc, &ea, &ta, &sa);
 	    if (ea)
+	    {
+		ea = ea->semantic(sc);
+		ea = ea->constFold();
 		tiargs->data[j] = ea;
+	    }
 	    else if (sa)
 		tiargs->data[j] = sa;
 	    else if (ta)

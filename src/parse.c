@@ -936,7 +936,7 @@ Array *Parser::parseParameters(int *pvarargs)
 		     *	at ai ...
 		     */
 
-		    if (inout != In)
+		    if (inout == Out || inout == InOut)
 			error("variadic argument cannot be out or inout");
 		    varargs = 2;
 		    a = new Argument(inout, at, ai, ae);
@@ -3428,13 +3428,18 @@ int Parser::isParameters(Token **pt)
 		if (!isBasicType(&t))
 		    return FALSE;
 		tmp = FALSE;
-		if (!isDeclarator(&t, &tmp, TOKreserved))
+		if (t->value != TOKdotdotdot &&
+		    !isDeclarator(&t, &tmp, TOKreserved))
 		    return FALSE;
 		if (t->value == TOKassign)
 		{   t = peek(t);
 		    if (!isExpression(&t))
 			return FALSE;
-		    continue;
+		}
+		if (t->value == TOKdotdotdot)
+		{
+		    t = peek(t);
+		    break;
 		}
 		if (t->value == TOKcomma)
 		{   t = peek(t);

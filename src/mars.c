@@ -38,6 +38,9 @@ Global::Global()
 {
     mars_ext = "d";
     sym_ext  = "d";
+#ifdef _DH
+    hdr_ext  = "d";
+#endif
     doc_ext  = "html";
     ddoc_ext = "ddoc";
 
@@ -51,7 +54,7 @@ Global::Global()
 
     copyright = "Copyright (c) 1999-2005 by Digital Mars";
     written = "written by Walter Bright";
-    version = "v0.140";
+    version = "v0.141";
     global.structalign = 8;
 
     memset(&params, 0, sizeof(Param));
@@ -139,6 +142,8 @@ Usage:\n\
   -debug=level   compile in debug code <= level\n\
   -debug=ident   compile in debug code identified by ident\n\
   -g             add symbolic debug info\n\
+  -Hdhdrdir      write 'header' file to hdrdir directory\n\
+  -Hffilename    write 'header' file to filename\n\
   --help         print help\n\
   -Ipath         where to look for imports\n\
   -inline        do function inlining\n\
@@ -211,6 +216,7 @@ int main(int argc, char *argv[])
     VersionCondition::addPredefinedGlobalIdent("X86");
     VersionCondition::addPredefinedGlobalIdent("LittleEndian");
     VersionCondition::addPredefinedGlobalIdent("D_InlineAsm");
+    VersionCondition::addPredefinedGlobalIdent("D_InlineAsm_X86");
     VersionCondition::addPredefinedGlobalIdent("all");
 
 #if _WIN32
@@ -237,6 +243,8 @@ int main(int argc, char *argv[])
 		global.params.useDeprecated = 1;
 	    else if (strcmp(p + 1, "c") == 0)
 		global.params.link = 0;
+	    else if (strcmp(p + 1, "cov") == 0)
+		global.params.cov = 1;
 	    else if (strcmp(p + 1, "fPIC") == 0)
 		global.params.pic = 1;
 	    else if (strcmp(p + 1, "g") == 0)
@@ -311,6 +319,31 @@ int main(int argc, char *argv[])
 			goto Lerror;
 		}
 	    }
+#ifdef _DH
+	    else if (p[1] == 'H')
+	    {	global.params.doHdrGeneration = 1;
+		switch (p[2])
+		{
+		    case 'd':
+			if (!p[3])
+			    goto Lnoarg;
+			global.params.hdrdir = p + 3;
+			break;
+
+		    case 'f':
+			if (!p[3])
+			    goto Lnoarg;
+			global.params.hdrname = p + 3;
+			break;
+
+		    case 0:
+			break;
+
+		    default:
+			goto Lerror;
+		}
+	    }
+#endif
 	    else if (strcmp(p + 1, "inline") == 0)
 		global.params.useInline = 1;
 	    else if (strcmp(p + 1, "quiet") == 0)
@@ -447,6 +480,9 @@ int main(int argc, char *argv[])
 	    fatal();
 	}
     }
+    if (global.params.cov)
+	VersionCondition::addPredefinedGlobalIdent("D_Coverage");
+
 
     //printf("%d source files\n",files.dim);
 
@@ -567,7 +603,11 @@ int main(int argc, char *argv[])
 	}
 
 	id = new Identifier(name, 0);
+#ifdef _DH
+	m = new Module((char *) files.data[i], id, global.params.doDocComments, global.params.doHdrGeneration);
+#else
 	m = new Module((char *) files.data[i], id, global.params.doDocComments);
+#endif
 	modules.push(m);
 
 	global.params.objfiles->push(m->objfile->name->str);
@@ -604,6 +644,19 @@ int main(int argc, char *argv[])
 		global.params.link = 0;
 	}
     }
+#ifdef _DH
+    if (global.params.doHdrGeneration)
+    {
+	/* Make syntax copies for header file generation after parsing but
+	 * prior to semantic analysis.
+	 */
+	for (i = 0; i < modules.dim; i++)
+	{
+	    m = (Module *)modules.data[i];
+	    m->syntaxCopy(NULL);    // The original data is *not* overwritten
+	}
+    }
+#endif
     if (global.errors)
 	fatal();
 
@@ -640,6 +693,22 @@ int main(int argc, char *argv[])
     if (global.errors)
 	fatal();
 
+#ifdef _DH
+    if (global.params.doHdrGeneration)
+    {
+	/* Generate header files after semantic analysis but before the
+	 * semantics of function bodies can be changed by function inlining.
+	 */
+	for (i = 0; i < modules.dim; i++)
+	{
+	    m = (Module *)modules.data[i];
+	    m->genhdrbufr();
+	}
+	if (global.errors)
+	    fatal();
+    }
+#endif
+
     // Scan for functions to inline
     if (global.params.useInline)
     {
@@ -666,7 +735,10 @@ int main(int argc, char *argv[])
 	    m->deleteObjFile();
 	else
 	{
-	    //m->gensymfile();
+#ifdef _DH
+	    if (global.params.doHdrGeneration)
+		m->genhdrfile();	// format and output header content
+#endif
 	    if (global.params.doDocComments)
 		m->gendocfile();
 	}

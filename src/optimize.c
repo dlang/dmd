@@ -113,6 +113,7 @@ Expression *PtrExp::optimize(int result)
 
 Expression *CastExp::optimize(int result)
 {
+    //printf("CastExp::optimize(result = %d) %s\n", result, toChars());
     if (e1->op == TOKstring &&
 	(type->ty == Tpointer || type->ty == Tarray) &&
 	type->next->equals(e1->type->next)

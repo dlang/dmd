@@ -193,8 +193,7 @@ int Dsymbol::overloadInsert(Dsymbol *s)
 
 void Dsymbol::toCBuffer(OutBuffer *buf)
 {
-    buf->printf("Dsymbol '%s' to C file", toChars());
-    buf->writenl();
+    buf->writestring(toChars());
 }
 
 unsigned Dsymbol::size(Loc loc)
@@ -281,7 +280,7 @@ void Dsymbol::addMember(Scope *sc, ScopeDsymbol *sd)
 	}
 	if (sd->isAggregateDeclaration() || sd->isEnumDeclaration())
 	{
-	    if (ident == Id::__sizeof || ident == Id::alignof)
+	    if (ident == Id::__sizeof || ident == Id::alignof || ident == Id::mangleof)
 		error(".%s property cannot be redefined", ident->toChars());
 	}
     }

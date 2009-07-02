@@ -22,6 +22,9 @@ struct Scope;
 struct OutBuffer;
 struct Module;
 struct Package;
+#ifdef _DH
+struct HdrGenState;
+#endif
 
 struct Import : Dsymbol
 {
@@ -39,6 +42,9 @@ struct Import : Dsymbol
     Dsymbol *search(Identifier *ident, int flags);
     int overloadInsert(Dsymbol *s);
     void toCBuffer(OutBuffer *buf);
+#ifdef _DH
+    void toHBuffer(OutBuffer *buf, HdrGenState *hgs);
+#endif
 
     Import *isImport() { return this; }
 };

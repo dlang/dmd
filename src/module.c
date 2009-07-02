@@ -1,5 +1,5 @@
 
-// Copyright (c) 1999-2004 by Digital Mars
+// Copyright (c) 1999-2005 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // www.digitalmars.com
@@ -10,6 +10,10 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <assert.h>
+
+#ifdef _MSC_VER
+#include <malloc.h>
+#endif
 
 #include "mars.h"
 #include "module.h"
@@ -34,7 +38,11 @@ void Module::init()
     modules = new DsymbolTable();
 }
 
+#ifdef _DH
+Module::Module(char *filename, Identifier *ident, int doDocComment, int doHdrGen)
+#else
 Module::Module(char *filename, Identifier *ident, int doDocComment)
+#endif
 	: Package(ident)
 {
     FileName *srcfilename;
@@ -47,6 +55,7 @@ Module::Module(char *filename, Identifier *ident, int doDocComment)
     this->arg = filename;
     md = NULL;
     errors = 0;
+    numlines = 0;
     members = NULL;
     isHtml = 0;
     isDocFile = 0;
@@ -76,6 +85,8 @@ Module::Module(char *filename, Identifier *ident, int doDocComment)
     versionidsNot = NULL;
 
     macrotable = NULL;
+    cov = NULL;
+    covb = NULL;
 
     srcfilename = FileName::defaultExt(filename, global.mars_ext);
     if (!srcfilename->equalsExt(global.mars_ext))
@@ -111,6 +122,13 @@ Module::Module(char *filename, Identifier *ident, int doDocComment)
 	setDocfile();
     }
 
+#ifdef _DH
+    if (doHdrGen)
+    {
+	setHdrfile();
+    }
+#endif
+
     objfile = new File(objfilename);
     symfile = new File(symfilename);
 }
@@ -140,6 +158,34 @@ void Module::setDocfile()
 
     docfile = new File(docfilename);
 }
+
+#ifdef _DH
+void Module::setHdrfile()
+{
+    FileName *hdrfilename;
+    char *arghdr;
+
+    if (global.params.hdrname)
+	arghdr = global.params.hdrname;
+    else if (global.params.preservePaths)
+	arghdr = (char *)arg;
+    else
+	arghdr = FileName::name((char *)arg);
+    if (!FileName::absolute(arghdr))
+	arghdr = FileName::combine(global.params.hdrdir, arghdr);
+    if (global.params.hdrname)
+	hdrfilename = new FileName(arghdr, 0);
+    else
+	hdrfilename = FileName::forceExt(arghdr, global.hdr_ext);
+
+    if (hdrfilename->equals(srcfile->name))
+    {   error("Source file and 'header' file have same name '%s'", srcfile->name->str);
+	fatal();
+    }
+
+    hdrfile = new File(hdrfilename);
+}
+#endif
 
 void Module::deleteObjFile()
 {
@@ -189,7 +235,11 @@ Module *Module::load(Loc loc, Array *packages, Identifier *ident)
 	filename = (char *)buf.extractData();
     }
 
+#ifdef _DH
+    m = new Module(filename, ident, 0, 0);
+#else
     m = new Module(filename, ident, 0);
+#endif
     m->loc = loc;
 
     // Find the sym file
@@ -443,6 +493,7 @@ void Module::parse()
     Parser p(this, buf, buflen, docfile != NULL);
     members = p.parseModule();
     md = p.md;
+    numlines = p.loc.linnum;
 
     DsymbolTable *dst;
 
@@ -645,7 +696,7 @@ void Module::gensymfile()
 
 int Module::needModuleInfo()
 {
-    return needmoduleinfo;
+    return needmoduleinfo || global.params.cov;
 }
 
 Dsymbol *Module::search(Identifier *ident, int flags)
