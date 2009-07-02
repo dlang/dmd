@@ -310,7 +310,7 @@ Initializer *ExpInitializer::semantic(Scope *sc, Type *t)
     // Look for the case of statically initializing an array
     // with a single member.
     if (tb->ty == Tsarray &&
-	!tb->next->equals(exp->type->next) &&
+	!tb->next->equals(exp->type->toBasetype()->next) &&
 	exp->implicitConvTo(tb->next)
        )
     {

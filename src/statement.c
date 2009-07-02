@@ -1714,12 +1714,12 @@ Statement *SynchronizedStatement::semantic(Scope *sc)
 
 int SynchronizedStatement::hasBreak()
 {
-    return TRUE;
+    return FALSE; //TRUE;
 }
 
 int SynchronizedStatement::hasContinue()
 {
-    return TRUE;
+    return FALSE; //TRUE;
 }
 
 int SynchronizedStatement::usesEH()
@@ -1843,7 +1843,7 @@ Statement *TryCatchStatement::semantic(Scope *sc)
 
 int TryCatchStatement::hasBreak()
 {
-    return TRUE;
+    return FALSE; //TRUE;
 }
 
 int TryCatchStatement::usesEH()
@@ -1926,12 +1926,12 @@ void TryFinallyStatement::toCBuffer(OutBuffer *buf)
 
 int TryFinallyStatement::hasBreak()
 {
-    return TRUE;
+    return FALSE; //TRUE;
 }
 
 int TryFinallyStatement::hasContinue()
 {
-    return TRUE;
+    return FALSE; //TRUE;
 }
 
 int TryFinallyStatement::usesEH()

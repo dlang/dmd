@@ -1198,7 +1198,7 @@ TemplateInstance *Parser::parseTemplateInstance()
     {   error("TemplateIdentifier expected following instance");
 	goto Lerr;
     }
-    tempinst = new TemplateInstance(id);
+    tempinst = new TemplateInstance(loc, id);
     while (token.value == TOKdot)
     {   nextToken();
 	if (token.value == TOKidentifier)
@@ -1278,7 +1278,7 @@ Dsymbol *Parser::parseMixin()
 	    break;
 
 	if (tiargs)
-	{   TemplateInstance *tempinst = new TemplateInstance(id);
+	{   TemplateInstance *tempinst = new TemplateInstance(loc, id);
 	    tempinst->tiargs = tiargs;
 	    id = (Identifier *)tempinst;
 	    tiargs = NULL;
@@ -1426,7 +1426,7 @@ Type *Parser::parseBasicType()
 	    if (token.value == TOKnot)
 	    {
 		nextToken();
-		tempinst = new TemplateInstance(id);
+		tempinst = new TemplateInstance(loc, id);
 		tempinst->tiargs = parseTemplateArgumentList();
 		tid = new TypeInstance(loc, tempinst);
 		goto Lident2;
@@ -1445,7 +1445,7 @@ Type *Parser::parseBasicType()
 		if (token.value == TOKnot)
 		{
 		    nextToken();
-		    tempinst = new TemplateInstance(id);
+		    tempinst = new TemplateInstance(loc, id);
 		    tempinst->tiargs = parseTemplateArgumentList();
 		    tid->addIdent((Identifier *)tempinst);
 		}
@@ -3387,7 +3387,7 @@ Expression *Parser::parsePrimaryExp()
 	    {	// identifier!(template-argument-list)
 		TemplateInstance *tempinst;
 
-		tempinst = new TemplateInstance(id);
+		tempinst = new TemplateInstance(loc, id);
 		nextToken();
 		tempinst->tiargs = parseTemplateArgumentList();
 		e = new ScopeExp(loc, tempinst);
@@ -3641,7 +3641,7 @@ Expression *Parser::parsePostExp(Expression *e)
 		    {   // identifier!(template-argument-list)
 			TemplateInstance *tempinst;
 
-			tempinst = new TemplateInstance(id);
+			tempinst = new TemplateInstance(loc, id);
 			nextToken();
 			tempinst->tiargs = parseTemplateArgumentList();
 			e = new DotTemplateInstanceExp(loc, e, tempinst);

@@ -337,7 +337,7 @@ int TemplateDeclaration::leastAsSpecialized(TemplateDeclaration *td2)
      * as td2.
      */
 
-    TemplateInstance ti(ident);		// create dummy template instance
+    TemplateInstance ti(0, ident);		// create dummy template instance
     Array dedtypes;
 
 #define LOG_LEASTAS	0
@@ -681,11 +681,12 @@ void TemplateTypeParameter::semantic(Scope *sc)
 
     if (specType)
 	specType = specType->semantic(loc, sc);
+#if 0 // Don't do semantic() until instantiation
     if (defaultType)
     {
 	defaultType = defaultType->semantic(loc, sc);
-	//defaultType->print();
     }
+#endif
 }
 
 int TemplateTypeParameter::overloadMatch(TemplateParameter *tp)
@@ -842,8 +843,10 @@ void TemplateAliasParameter::semantic(Scope *sc)
     if (!sc->insert(sparam))
 	error(loc, "parameter '%s' multiply defined", ident->toChars());
 
+#if 0 // Don't do semantic() until instantiation
     if (defaultAlias)
 	defaultAlias = defaultAlias->semantic(loc, sc);
+#endif
 }
 
 int TemplateAliasParameter::overloadMatch(TemplateParameter *tp)
@@ -978,7 +981,7 @@ void TemplateValueParameter::semantic(Scope *sc)
 
     sparam->semantic(sc);
     valType = valType->semantic(loc, sc);
-    if (!valType->isintegral())
+    if (!valType->isintegral() && valType->ty != Tident)
 	error(loc, "integral type expected for value-parameter, not %s", valType->toChars());
 
     if (specValue)
@@ -992,6 +995,7 @@ void TemplateValueParameter::semantic(Scope *sc)
 	//e->toInteger();
     }
 
+#if 0	// defer semantic analysis to arg match
     if (defaultValue)
     {   Expression *e = defaultValue;
 
@@ -1002,6 +1006,7 @@ void TemplateValueParameter::semantic(Scope *sc)
 	    defaultValue = e;
 	//e->toInteger();
     }
+#endif
 }
 
 int TemplateValueParameter::overloadMatch(TemplateParameter *tp)
@@ -1118,12 +1123,13 @@ Object *TemplateValueParameter::defaultArg(Scope *sc)
 
 /* ======================== TemplateInstance ================================ */
 
-TemplateInstance::TemplateInstance(Identifier *ident)
+TemplateInstance::TemplateInstance(Loc loc, Identifier *ident)
     : ScopeDsymbol(NULL)
 {
 #if LOG
     printf("TemplateInstance(this = %p, ident = '%s')\n", this, ident ? ident->toChars() : "null");
 #endif
+    this->loc = loc;
     this->idents.push(ident);
     this->tiargs = NULL;
     this->tempdecl = NULL;
@@ -1142,7 +1148,7 @@ Dsymbol *TemplateInstance::syntaxCopy(Dsymbol *s)
     if (s)
 	ti = (TemplateInstance *)s;
     else
-	ti = new TemplateInstance((Identifier *)idents.data[0]);
+	ti = new TemplateInstance(loc, (Identifier *)idents.data[0]);
 
     ti->idents.setDim(idents.dim);
     for (i = 1; i < idents.dim; i++)
@@ -1230,6 +1236,25 @@ void TemplateInstance::semantic(Scope *sc)
 
 	    if (t1)
 	    {
+		/* if t1 is an instance of ti, then give error
+		 * about recursive expansions.
+		 */
+		Dsymbol *s = t1->toDsymbol(sc);
+		if (s && s->parent)
+		{   TemplateInstance *ti1 = s->parent->isTemplateInstance();
+		    if (ti1 && ti1->tempdecl == tempdecl)
+		    {
+			for (Scope *sc1 = sc; sc1; sc1 = sc1->enclosing)
+			{
+			    if (sc1->scopesym == ti1)
+			    {
+				error("recursive template expansion for template argument %s", t1->toChars());
+				return;
+			    }
+			}
+		    }
+		}
+
 		if (!t2 || !t1->equals(t2))
 		    goto L1;
 	    }
@@ -1277,6 +1302,7 @@ void TemplateInstance::semantic(Scope *sc)
 
 	if (sc->scopesym->members)
 	{
+	    //printf("\tadding to %s %s\n", sc->scopesym->kind(), sc->scopesym->toChars());
 	    a = sc->scopesym->members;
 	}
 	else
@@ -1849,9 +1875,8 @@ char *TemplateInstance::toChars()
 
 TemplateMixin::TemplateMixin(Loc loc, Identifier *ident, TypeTypeof *tqual,
 	Array *idents, Array *tiargs)
-	: TemplateInstance((Identifier *)idents->data[idents->dim - 1])
+	: TemplateInstance(loc, (Identifier *)idents->data[idents->dim - 1])
 {
-    this->loc = loc;
     this->ident = ident;
     this->tqual = tqual;
     this->idents = idents;

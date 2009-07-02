@@ -94,6 +94,9 @@ struct TemplateParameter
 
 struct TemplateTypeParameter : TemplateParameter
 {
+    /* Syntax:
+     *	ident : specType = defaultType
+     */
     Type *specType;	// type parameter: if !=NULL, this is the type specialization
     Type *defaultType;
 
@@ -112,6 +115,10 @@ struct TemplateTypeParameter : TemplateParameter
 
 struct TemplateValueParameter : TemplateParameter
 {
+    /* Syntax:
+     *	valType ident : specValue = defaultValue
+     */
+
     Type *valType;
     Expression *specValue;
     Expression *defaultValue;
@@ -131,6 +138,10 @@ struct TemplateValueParameter : TemplateParameter
 
 struct TemplateAliasParameter : TemplateParameter
 {
+    /* Syntax:
+     *	ident = defaultAlias
+     */
+
     Type *defaultAlias;
 
     TemplateAliasParameter(Loc loc, Identifier *ident, Type *defaultAlias);
@@ -162,7 +173,7 @@ struct TemplateInstance : ScopeDsymbol
 					// sole member
     int semanticdone;	// has semantic() been done?
 
-    TemplateInstance(Identifier *temp_id);
+    TemplateInstance(Loc loc, Identifier *temp_id);
     Dsymbol *syntaxCopy(Dsymbol *);
     void addIdent(Identifier *ident);
     void semantic(Scope *sc);

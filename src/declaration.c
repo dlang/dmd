@@ -358,6 +358,7 @@ Dsymbol *VarDeclaration::syntaxCopy(Dsymbol *s)
 	}
 
 	sv = new VarDeclaration(loc, type->syntaxCopy(), ident, init);
+	sv->storage_class = storage_class;
     }
     return sv;
 }
@@ -484,7 +485,7 @@ void VarDeclaration::semantic(Scope *sc)
     }
 
     if (!init && !sc->inunion && !isStatic() && !isConst() && fd &&
-	!(storage_class & (STCfield | STCparameter | STCforeach)))
+	!(storage_class & (STCfield | STCin | STCforeach)))
     {
 	// Provide a default initializer
 	//printf("Providing default initializer for '%s'\n", toChars());
@@ -492,7 +493,8 @@ void VarDeclaration::semantic(Scope *sc)
 	    ((TypeStruct *)type)->sym->zeroInit == 1)
 	{
 	    Expression *e = new IntegerExp(loc, 0, Type::tint32);
-	    Expression *e1 = new VarExp(loc, this);
+	    Expression *e1;
+	    e1 = new VarExp(loc, this);
 	    e = new AssignExp(loc, e1, e);
 	    e->type = e1->type;
 	    init = new ExpInitializer(loc, e);

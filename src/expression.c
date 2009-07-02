@@ -1068,7 +1068,9 @@ Lagain:
 	s = ti->inst->toAlias();
 	if (!s->isTemplateInstance())
 	    goto Lagain;
-	return new ScopeExp(loc, ti);
+	e = new ScopeExp(loc, ti);
+	e = e->semantic(sc);
+	return e;
     }
 
     error("%s '%s' is not a variable", s->kind(), s->toChars());
@@ -1873,6 +1875,9 @@ Expression *DeclarationExp::syntaxCopy()
 
 Expression *DeclarationExp::semantic(Scope *sc)
 {
+    if (type)
+	return this;
+
 #if LOGSEMANTIC
     printf("DeclarationExp::semantic() %s\n", toChars());
 #endif

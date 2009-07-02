@@ -465,7 +465,9 @@ Expression *Type::getProperty(Loc loc, Identifier *ident)
 	return defaultInit();
     else
     {
+printf("ty = %d\n", ty);
 	error(loc, "no property '%s' for type '%s'", ident->toChars(), toChars());
+*(char*)0=0;
 	e = new IntegerExp(loc, 1, Type::tint32);
     }
     return e;
@@ -2514,12 +2516,28 @@ void TypeQualified::resolveHelper(Loc loc, Scope *sc,
 	    }
 	    else
 		sm = s->search(id, 0);
+//printf("s = '%s', kind = '%s'\n", s->toChars(), s->kind());
+//printf("getType = '%s'\n", s->getType()->toChars());
 	    if (!sm)
 	    {
+#if 0
+		if (s->isAliasDeclaration() && this->ty == Tident)
+		{
+		    *pt = this;
+		    return;
+		}
+#endif
 		t = s->getType();
 		if (t)
 		{
-		    e = t->getProperty(0, id);
+//<<>>
+		    sm = t->toDsymbol(sc);
+		    if (sm)
+		    {	sm = sm->search(id, 0);
+			if (sm)
+			    goto L2;
+		    }
+		    e = t->getProperty(loc, id);
 		    i++;
 		    for (; i < idents.dim; i++)
 		    {
@@ -2532,6 +2550,7 @@ void TypeQualified::resolveHelper(Loc loc, Scope *sc,
 		    error(loc, "identifier '%s' of '%s' is not defined", id->toChars(), toChars());
 		return;
 	    }
+	L2:
 	    s = sm->toAlias();
 	}
 

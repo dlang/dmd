@@ -830,6 +830,8 @@ unsigned Lexer::escapeSequence()
 			    break;
 			}
 		    }
+		    if (ndigits != 2 && !utf_isValidDchar(v))
+			error("invalid UTF character \\U08x", v);
 		    c = v;
 		}
 		else
@@ -903,6 +905,9 @@ TOK Lexer::wysiwygStringConstant(Token *t, int tc)
 		    memcpy(t->ustring, stringbuffer.data, stringbuffer.offset);
 		    return TOKstring;
 		}
+		break;
+
+	    default:
 		break;
 	}
 	stringbuffer.writeByte(c);
@@ -1034,6 +1039,38 @@ TOK Lexer::escapeStringConstant(Token *t, int wide)
 		t->ustring = (unsigned char *)"";
 		t->len = 0;
 		return TOKstring;
+
+	    default:
+		if (c & 0x80)
+		{   unsigned char octet[6];
+		    unsigned idx = 0;
+		    unsigned ndigits = 1;
+		    char *s;
+
+		    octet[0] = c;
+		    while (*p & 0x80)
+		    {
+			if (*p & 0x40)
+			    break;
+			if (ndigits >= 6)
+			{
+			Lutferr:
+			    error("invalid UTF character sequence");
+			    break;
+			}
+			octet[ndigits] = *p;
+			ndigits++;
+			p++;
+		    }
+		    s = utf_decodeChar(octet, ndigits, &idx, &c);
+		    if (s || idx != ndigits)
+		    {	error(s);
+			break;
+		    }
+		    stringbuffer.writeUTF8(c);
+		    continue;
+		}
+		break;
 	}
 	stringbuffer.writeByte(c);
     }

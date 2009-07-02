@@ -110,6 +110,28 @@ char *utf_decodeChar(unsigned char *s, unsigned len, unsigned *pidx, dchar_t *pr
     return "invalid UTF-8 sequence";
 }
 
+/***************************************************
+ * Validate a UTF-8 string.
+ * Returns:
+ *	NULL	success
+ *	!=NULL	error message string
+ */
+
+char *utf_validateString(unsigned char *s, unsigned len)
+{
+    unsigned idx;
+    char *err = NULL;
+    dchar_t dc;
+
+    for (idx = 0; idx < len; )
+    {
+	err = utf_decodeChar(s, len, &idx, &dc);
+	if (err)
+	    break;
+    }
+    return err;
+}
+
 
 /********************************************
  * Decode a single UTF-16 character sequence.

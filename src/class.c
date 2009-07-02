@@ -111,6 +111,9 @@ void ClassDeclaration::semantic(Scope *sc)
     unsigned offset;
 
     //printf("ClassDeclaration::semantic(%s), type = %p\n", toChars(), type);
+
+    //{ static int n;  if (++n == 20) *(char*)0=0; }
+
     if (!scope)
     {	type = type->semantic(loc, sc);
 	handle = handle->semantic(loc, sc);
@@ -133,7 +136,7 @@ void ClassDeclaration::semantic(Scope *sc)
 	scope = NULL;
     }
 
-    // See if base class is in baseclasses[]
+    // See if there's a base class as first in baseclasses[]
     if (baseclasses.dim)
     {	TypeClass *tc;
 	BaseClass *b;
@@ -154,6 +157,11 @@ void ClassDeclaration::semantic(Scope *sc)
 	    else
 	    {   baseClass = tc->sym;
 		b->base = baseClass;
+		if (b->base == this)
+		{
+		    error("base class same as class");
+		    baseclasses.remove(0);
+		}
 		if (!baseClass->symtab || baseClass->scope)
 		{
 		    //error("forward reference of base class %s", baseClass->toChars());

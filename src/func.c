@@ -424,7 +424,7 @@ void FuncDeclaration::semantic3(Scope *sc)
 	    {	// Declare _arguments[]
 		t = Type::typeinfo->type->arrayOf();
 		v_arguments = new VarDeclaration(0, t, Id::_arguments, NULL);
-		v_arguments->storage_class |= STCparameter | STCin;
+		v_arguments->storage_class = STCparameter | STCin;
 		v_arguments->semantic(sc2);
 		sc2->insert(v_arguments);
 		v_arguments->parent = this;
@@ -460,6 +460,7 @@ void FuncDeclaration::semantic3(Scope *sc)
 		    {	case In:    v->storage_class |= STCin;		break;
 			case Out:   v->storage_class |= STCout;		break;
 			case InOut: v->storage_class |= STCin | STCout;	break;
+			default: assert(0);
 		    }
 		    v->semantic(sc2);
 		    if (!sc2->insert(v))
@@ -605,8 +606,23 @@ void FuncDeclaration::semantic3(Scope *sc)
 	}
 
 	{
-	    // Merge contracts together with body into one compound statement
 	    Array *a = new Array();
+
+	    // Merge in initialization of 'out' parameters
+	    if (parameters)
+	    {	for (int i = 0; i < parameters->dim; i++)
+		{   VarDeclaration *v;
+
+		    v = (VarDeclaration *)parameters->data[i];
+		    if ((v->storage_class & (STCout | STCin)) == STCout)
+		    {
+			assert(v->init);
+			ExpInitializer *ie = v->init->isExpInitializer();
+			assert(ie);
+			a->push(new ExpStatement(0, ie->exp));
+		    }
+		}
+	    }
 
 	    if (argptr)
 	    {	// Initialize _argptr to point past non-variadic arg
@@ -628,6 +644,8 @@ void FuncDeclaration::semantic3(Scope *sc)
 		e->type = t;
 		a->push(new ExpStatement(0, e));
 	    }
+
+	    // Merge contracts together with body into one compound statement
 
 	    if (frequire && global.params.useIn)
 		a->push(frequire);

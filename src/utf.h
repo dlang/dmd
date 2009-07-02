@@ -14,7 +14,10 @@
 typedef unsigned dchar_t;
 
 int utf_isValidDchar(dchar_t c);
+
 char *utf_decodeChar(unsigned char *s, unsigned len, unsigned *pidx, dchar_t *presult);
 char *utf_decodeWchar(unsigned short *s, unsigned len, unsigned *pidx, dchar_t *presult);
+
+char *utf_validateString(unsigned char *s, unsigned len);
 
 #endif
