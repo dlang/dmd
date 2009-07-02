@@ -31,20 +31,35 @@ DebugSymbol::DebugSymbol(unsigned level)
 
 void DebugSymbol::addMember(ScopeDsymbol *sd)
 {
+    //printf("DebugSymbol::addMember('%s') %s\n", sd->toChars(), toChars());
+    Module *m;
+
     // Do not add the member to the symbol table,
     // just make sure subsequent debug declarations work.
+    m = sd->isModule();
     if (ident)
     {
-	DebugCondition::addIdent(ident->toChars());
+	if (!m)
+	    error("declaration must be at module level");
+	else
+	{
+	    if (!m->debugids)
+		m->debugids = new Array();
+	    m->debugids->push(ident->toChars());
+	}
     }
     else
     {
-	DebugCondition::setLevel(level);
+	if (!m)
+	    error("level declaration must be at module level");
+	else
+	    m->debuglevel = level;
     }
 }
 
 void DebugSymbol::semantic(Scope *sc)
 {
+    //printf("DebugSymbol::semantic() %s\n", toChars());
 }
 
 void DebugSymbol::toCBuffer(OutBuffer *buf)
@@ -58,6 +73,10 @@ void DebugSymbol::toCBuffer(OutBuffer *buf)
     buf->writenl();
 }
 
+char *DebugSymbol::kind()
+{
+    return "debug";
+}
 
 /* ================================================== */
 
@@ -74,15 +93,29 @@ VersionSymbol::VersionSymbol(unsigned level)
 
 void VersionSymbol::addMember(ScopeDsymbol *sd)
 {
+    //printf("VersionSymbol::addMember('%s') %s\n", sd->toChars(), toChars());
+    Module *m;
+
     // Do not add the member to the symbol table,
-    // just make sure subsequent version declarations work.
+    // just make sure subsequent debug declarations work.
+    m = sd->isModule();
     if (ident)
     {
-	VersionCondition::addIdent(ident->toChars());
+	if (!m)
+	    error("declaration must be at module level");
+	else
+	{
+	    if (!m->versionids)
+		m->versionids = new Array();
+	    m->versionids->push(ident->toChars());
+	}
     }
     else
     {
-	VersionCondition::setLevel(level);
+	if (!m)
+	    error("level declaration must be at module level");
+	else
+	    m->versionlevel = level;
     }
 }
 
@@ -99,6 +132,11 @@ void VersionSymbol::toCBuffer(OutBuffer *buf)
 	buf->printf("%u", level);
     buf->writestring(";");
     buf->writenl();
+}
+
+char *VersionSymbol::kind()
+{
+    return "kind";
 }
 
 

@@ -44,6 +44,7 @@ struct Module : Package
 
     static ClassDeclaration *moduleinfo;
 
+
     const char *arg;	// original argument name
     ModuleDeclaration *md; // if !NULL, the contents of the ModuleDeclaration declaration
     File *srcfile;	// input source file
@@ -53,14 +54,21 @@ struct Module : Package
     int isHtml;		// if it is an HTML file
     int needmoduleinfo;
     int insearch;
-    int semanticdone;	// has semantic() been done?
+    int semanticdone;		// has semantic() been done?
     Module *importedFrom;	// module from command line we're imported from,
 				// i.e. a module that will be taken all the
 				// way to an object file
 
-    Array *decldefs;	// top level declarations for this Module
+    Array *decldefs;		// top level declarations for this Module
 
     ModuleInfoDeclaration *vmoduleinfo;
+
+    unsigned debuglevel;	// debug level
+    Array *debugids;		// debug identifiers
+
+    unsigned versionlevel;	// version level
+    Array *versionids;		// version identifiers
+
 
     Module(char *arg, Identifier *ident);
     ~Module();

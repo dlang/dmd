@@ -28,6 +28,7 @@ struct DebugSymbol : Dsymbol
     void addMember(ScopeDsymbol *s);
     void semantic(Scope *sc);
     void toCBuffer(OutBuffer *buf);
+    char *kind();
 };
 
 struct VersionSymbol : Dsymbol
@@ -40,6 +41,7 @@ struct VersionSymbol : Dsymbol
     void addMember(ScopeDsymbol *s);
     void semantic(Scope *sc);
     void toCBuffer(OutBuffer *buf);
+    char *kind();
 };
 
 #endif /* DMD_VERSION_H */

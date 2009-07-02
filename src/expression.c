@@ -2766,7 +2766,8 @@ if (arguments && arguments->dim)
 	    // See if we need to adjust the 'this' pointer
 	    AggregateDeclaration *ad = f->isThis();
 	    ClassDeclaration *cd = dve->e1->type->isClassHandle();
-	    if (ad && cd && ad->isClassDeclaration() && ad != cd)
+	    if (ad && cd && ad->isClassDeclaration() && ad != cd &&
+		dve->e1->op != TOKsuper)
 	    {
 		dve->e1 = new CastExp(loc, dve->e1, ad->type);
 		dve->e1 = dve->e1->semantic(sc);

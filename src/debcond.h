@@ -13,13 +13,15 @@
 struct Expression;
 struct Identifier;
 struct OutBuffer;
+struct Module;
 
 struct Condition
 {
     unsigned level;
     Identifier *ident;
+    Module *mod;
 
-    Condition(unsigned level, Identifier *ident);
+    Condition(Module *mod, unsigned level, Identifier *ident);
 
     virtual int include();
     int isBool(int result);
@@ -29,20 +31,20 @@ struct Condition
 
 struct DebugCondition : Condition
 {
-    static void setLevel(unsigned level);
-    static void addIdent(char *ident);
+    static void setGlobalLevel(unsigned level);
+    static void addGlobalIdent(char *ident);
 
-    DebugCondition(unsigned level, Identifier *ident);
+    DebugCondition(Module *mod, unsigned level, Identifier *ident);
 
     int include();
 };
 
 struct VersionCondition : Condition
 {
-    static void setLevel(unsigned level);
-    static void addIdent(char *ident);
+    static void setGlobalLevel(unsigned level);
+    static void addGlobalIdent(char *ident);
 
-    VersionCondition(unsigned level, Identifier *ident);
+    VersionCondition(Module *mod, unsigned level, Identifier *ident);
 
     int include();
 };

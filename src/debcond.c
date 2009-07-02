@@ -15,8 +15,27 @@
 #include "expression.h"
 #include "debcond.h"
 
-Condition::Condition(unsigned level, Identifier *ident)
+int findCondition(Array *ids, Identifier *ident)
 {
+    if (ids)
+    {
+	for (int i = 0; i < ids->dim; i++)
+	{
+	    char *id = (char *)ids->data[i];
+
+	    if (strcmp(id, ident->toChars()) == 0)
+		return TRUE;
+	}
+    }
+
+    return FALSE;
+}
+
+/* ============================================================ */
+
+Condition::Condition(Module *mod, unsigned level, Identifier *ident)
+{
+    this->mod = mod;
     this->level = level;
     this->ident = ident;
 }
@@ -48,12 +67,12 @@ void Condition::toCBuffer(OutBuffer *buf)
 
 /* ============================================================ */
 
-void DebugCondition::setLevel(unsigned level)
+void DebugCondition::setGlobalLevel(unsigned level)
 {
     global.params.debuglevel = level;
 }
 
-void DebugCondition::addIdent(char *ident)
+void DebugCondition::addGlobalIdent(char *ident)
 {
     if (!global.params.debugids)
 	global.params.debugids = new Array();
@@ -61,8 +80,8 @@ void DebugCondition::addIdent(char *ident)
 }
 
 
-DebugCondition::DebugCondition(unsigned level, Identifier *ident)
-    : Condition(level, ident)
+DebugCondition::DebugCondition(Module *mod, unsigned level, Identifier *ident)
+    : Condition(mod, level, ident)
 {
 }
 
@@ -71,30 +90,25 @@ int DebugCondition::include()
     //printf("DebugCondition::include() level = %d, debuglevel = %d\n", level, global.params.debuglevel);
     if (ident)
     {
-	if (global.params.debugids)
-	{
-	    for (int i = 0; i < global.params.debugids->dim; i++)
-	    {
-		char *id = (char *)global.params.debugids->data[i];
+	if (findCondition(mod->debugids, ident))
+	    return TRUE;
 
-		if (strcmp(id, ident->toChars()) == 0)
-		    return TRUE;
-	    }
-	}
+	if (findCondition(global.params.debugids, ident))
+	    return TRUE;
     }
-    else if (level <= global.params.debuglevel)
+    else if (level <= global.params.debuglevel || level <= mod->debuglevel)
 	return TRUE;
     return FALSE;
 }
 
 /* ============================================================ */
 
-void VersionCondition::setLevel(unsigned level)
+void VersionCondition::setGlobalLevel(unsigned level)
 {
     global.params.versionlevel = level;
 }
 
-void VersionCondition::addIdent(char *ident)
+void VersionCondition::addGlobalIdent(char *ident)
 {
     if (!global.params.versionids)
 	global.params.versionids = new Array();
@@ -102,11 +116,9 @@ void VersionCondition::addIdent(char *ident)
 }
 
 
-VersionCondition::VersionCondition(unsigned level, Identifier *ident)
-    : Condition(level, ident)
+VersionCondition::VersionCondition(Module *mod, unsigned level, Identifier *ident)
+    : Condition(mod, level, ident)
 {
-    this->level = level;
-    this->ident = ident;
 }
 
 int VersionCondition::include()
@@ -114,18 +126,13 @@ int VersionCondition::include()
     //printf("VersionCondition::include() level = %d, versionlevel = %d\n", level, global.params.versionlevel);
     if (ident)
     {
-	if (global.params.versionids)
-	{
-	    for (int i = 0; i < global.params.versionids->dim; i++)
-	    {
-		char *id = (char *)global.params.versionids->data[i];
+	if (findCondition(mod->versionids, ident))
+	    return TRUE;
 
-		if (strcmp(id, ident->toChars()) == 0)
-		    return TRUE;
-	    }
-	}
+	if (findCondition(global.params.versionids, ident))
+	    return TRUE;
     }
-    else if (level <= global.params.versionlevel)
+    else if (level <= global.params.versionlevel || level <= mod->versionlevel)
 	return TRUE;
     return FALSE;
 }

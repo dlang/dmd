@@ -1,5 +1,5 @@
 
-// Copyright (c) 1999-2002 by Digital Mars
+// Copyright (c) 1999-2004 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // www.digitalmars.com
@@ -49,4 +49,17 @@ void Identifier::print()
 int Identifier::dyncast()
 {
     return DYNCAST_IDENTIFIER;
+}
+
+Identifier *Identifier::generateId(char *prefix)
+{   OutBuffer buf;
+    char *id;
+    static unsigned i;
+
+    buf.writestring(prefix);
+    buf.printf("%u", ++i);
+
+    id = buf.toChars();
+    buf.data = NULL;
+    return new Identifier(id, TOKidentifier);
 }

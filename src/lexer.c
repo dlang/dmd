@@ -195,6 +195,7 @@ Lexer::Lexer(Module *mod, unsigned char *base, unsigned length)
     this->base = base;
     this->end  = base + length;
     p = base;
+    this->mod = mod;
     //initKeywords();
 }
 
@@ -2088,4 +2089,5 @@ void Lexer::initKeywords()
     Token::tochars[TOKdotvar]		= "dotvar";
     Token::tochars[TOKsymoff]		= "symoff";
     Token::tochars[TOKtypedot]		= "typedot";
+    Token::tochars[TOKarraylength]	= "arraylength";
 }

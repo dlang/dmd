@@ -1224,6 +1224,7 @@ FuncLiteralDeclaration::FuncLiteralDeclaration(Loc loc, Loc endloc, Type *type,
 	enum TOK tok, ForeachStatement *fes)
     : FuncDeclaration(loc, endloc, NULL, STCundefined, type)
 {
+    this->ident = Identifier::generateId("__funclit");
     this->tok = tok;
     this->fes = fes;
 }

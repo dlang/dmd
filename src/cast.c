@@ -413,8 +413,8 @@ Expression *StringExp::castTo(Type *t)
 		    error(p);
 		else
 		    buffer.writeUTF16(c);
-		newlen++;
 	    }
+	    newlen = buffer.offset / 2;
 	    buffer.writeUTF16(0);
 	    goto L1;
 
@@ -438,8 +438,8 @@ Expression *StringExp::castTo(Type *t)
 		    error(p);
 		else
 		    buffer.writeUTF8(c);
-		newlen++;
 	    }
+	    newlen = buffer.offset;
 	    buffer.writeUTF8(0);
 	    goto L1;
 
@@ -465,6 +465,7 @@ Expression *StringExp::castTo(Type *t)
 		    buffer.writeUTF8(c);
 		newlen++;
 	    }
+	    newlen = buffer.offset;
 	    buffer.writeUTF8(0);
 	    goto L1;
 
@@ -478,6 +479,7 @@ Expression *StringExp::castTo(Type *t)
 		    buffer.writeUTF16(c);
 		newlen++;
 	    }
+	    newlen = buffer.offset / 2;
 	    buffer.writeUTF16(0);
 	    goto L1;
 

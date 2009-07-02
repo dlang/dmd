@@ -44,7 +44,7 @@ Global::Global()
 
     copyright = "Copyright (c) 1999-2004 by Digital Mars";
     written = "written by Walter Bright";
-    version = "v0.100";
+    version = "v0.101";
     global.structalign = 8;
 
     memset(&params, 0, sizeof(Param));
@@ -181,18 +181,18 @@ int main(int argc, char *argv[])
     global.params.objfiles = new Array();
 
     // Predefine version identifiers
-    VersionCondition::addIdent("DigitalMars");
+    VersionCondition::addGlobalIdent("DigitalMars");
 #if _WIN32
-    VersionCondition::addIdent("Windows");
-    VersionCondition::addIdent("Win32");
+    VersionCondition::addGlobalIdent("Windows");
+    VersionCondition::addGlobalIdent("Win32");
 #endif
 #if linux
-    VersionCondition::addIdent("linux");
+    VersionCondition::addGlobalIdent("linux");
     global.params.isLinux = 1;
 #endif /* linux */
-    VersionCondition::addIdent("X86");
-    VersionCondition::addIdent("LittleEndian");
-    VersionCondition::addIdent("D_InlineAsm");
+    VersionCondition::addGlobalIdent("X86");
+    VersionCondition::addGlobalIdent("LittleEndian");
+    VersionCondition::addGlobalIdent("D_InlineAsm");
 
 #if _WIN32
     inifile(argv[0], "sc.ini");
@@ -275,9 +275,9 @@ int main(int argc, char *argv[])
 		if (p[6] == '=')
 		{
 		    if (isdigit(p[7]))
-			DebugCondition::setLevel(atoi(p + 7));
+			DebugCondition::setGlobalLevel(atoi(p + 7));
 		    else if (isalpha(p[7]))
-			DebugCondition::addIdent(p + 7);
+			DebugCondition::addGlobalIdent(p + 7);
 		    else
 			goto Lerror;
 		}
@@ -292,9 +292,9 @@ int main(int argc, char *argv[])
 		if (p[8] == '=')
 		{
 		    if (isdigit(p[9]))
-			VersionCondition::setLevel(atoi(p + 9));
+			VersionCondition::setGlobalLevel(atoi(p + 9));
 		    else if (isalpha(p[9]))
-			VersionCondition::addIdent(p + 9);
+			VersionCondition::addGlobalIdent(p + 9);
 		    else
 			goto Lerror;
 		}

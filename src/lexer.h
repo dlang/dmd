@@ -219,6 +219,7 @@ struct Lexer
     unsigned char *end;		// past end of buffer
     unsigned char *p;		// current character
     Token token;
+    Module *mod;
 
     Lexer(Module *mod, unsigned char *base, unsigned length);
 

@@ -62,6 +62,11 @@ Module::Module(char *filename, Identifier *ident)
     sfilename = NULL;
     importedFrom = this;
 
+    debuglevel = 0;
+    debugids = NULL;
+    versionlevel = 0;
+    versionids = NULL;
+
     srcfilename = FileName::defaultExt(filename, global.mars_ext);
     if (!srcfilename->equalsExt(global.mars_ext))
     {

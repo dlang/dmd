@@ -412,14 +412,15 @@ Array *Parser::parseDeclDefs(int once)
 		    nextToken();
 		    break;
 		}
-		else if (token.value == TOKlparen)
+
+		if (token.value == TOKlparen)
 		{
 		    nextToken();
 		    condition = parseDebugCondition();
 		    check(TOKrparen);
 		}
 		else
-		    condition = new DebugCondition(1, NULL);
+		    condition = new DebugCondition(mod, 1, NULL);
 		a = parseBlock();
 		aelse = NULL;
 		if (token.value == TOKelse)
@@ -452,7 +453,8 @@ Array *Parser::parseDeclDefs(int once)
 		    nextToken();
 		    break;
 		}
-		else if (token.value == TOKlparen)
+
+		if (token.value == TOKlparen)
 		{
 		    nextToken();
 		    condition = parseVersionCondition();
@@ -570,7 +572,7 @@ DebugCondition *Parser::parseDebugCondition()
 	error("identifier or integer expected, not %s", token.toChars());
     nextToken();
 
-    return new DebugCondition(level, id);
+    return new DebugCondition(mod, level, id);
 }
 
 /**************************************
@@ -590,7 +592,7 @@ VersionCondition *Parser::parseVersionCondition()
 	error("identifier or integer expected, not %s", token.toChars());
     nextToken();
 
-    return new VersionCondition(level, id);
+    return new VersionCondition(mod, level, id);
 }
 
 /*****************************************
@@ -859,7 +861,7 @@ EnumDeclaration *Parser::parseEnum()
 	t = NULL;
 
     e = new EnumDeclaration(id, t);
-    if (token.value == TOKsemicolon)
+    if (token.value == TOKsemicolon && id)
  	nextToken();
     else if (token.value == TOKlcurly)
     {
@@ -896,7 +898,7 @@ EnumDeclaration *Parser::parseEnum()
 	nextToken();
     }
     else
-	error("{ enum members } expected");
+	error("enum declaration is invalid");
 
     return e;
 }
@@ -1952,7 +1954,7 @@ L1:
     {
 	case TOKlcurly:
 	    if (f->frequire || f->fensure)
-		error("must use body keyword after in or out");
+		error("missing body { ... } after in or out");
 	    f->fbody = parseStatement(PSsemi);
 	    f->endloc = endloc;
 	    break;
@@ -1964,6 +1966,8 @@ L1:
 	    break;
 
 	case TOKsemicolon:
+	    if (f->frequire || f->fensure)
+		error("missing body { ... } after in or out");
 	    nextToken();
 	    break;
 
@@ -2513,7 +2517,7 @@ Statement *Parser::parseStatement(int flags)
 		check(TOKrparen);
 	    }
 	    else
-		condition = new DebugCondition(1, NULL);
+		condition = new DebugCondition(mod, 1, NULL);
 	    ifbody = parseStatement(PSsemi);
 	    if (token.value == TOKelse)
 	    {
