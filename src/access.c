@@ -43,7 +43,7 @@ enum PROT ClassDeclaration::getAccess(Dsymbol *smember)
     printf("+ClassDeclaration::getAccess(this = '%s', smember = '%s')\n",
 	toChars(), smember->toChars());
 #endif
-    if (smember->parent == this)
+    if (smember->toParent() == this)
     {
 	access_ret = smember->prot();
     }
@@ -120,7 +120,7 @@ static int accessCheckX(
     if (cdthis->hasPrivateAccess(sfunc) ||
 	cdthis->isFriendOf(cdscope))
     {
-	if (smember->parent == cdthis)
+	if (smember->toParent() == cdthis)
 	    return 1;
 	else
 	{
@@ -141,7 +141,7 @@ static int accessCheckX(
     }
     else
     {
-	if (smember->parent != cdthis)
+	if (smember->toParent() != cdthis)
 	{
 	    int i;
 
@@ -186,7 +186,7 @@ void ClassDeclaration::accessCheck(Loc loc, Scope *sc, Dsymbol *smember)
     // BUG: should enable this check
     //assert(smember->parent->isBaseOf(this, NULL));
 
-    if (smember->parent == this)
+    if (smember->toParent() == this)
     {
 	result = smember->prot() >= PROTpublic ||
 		hasPrivateAccess(f) ||
@@ -228,7 +228,7 @@ int ClassDeclaration::isFriendOf(ClassDeclaration *cd)
 	return 1;
 
     // Friends if both are in the same module
-    if (cd && parent == cd->parent)
+    if (cd && toParent() == cd->toParent())
     {
 #if LOG
 	printf("\tin same module\n");
@@ -236,7 +236,7 @@ int ClassDeclaration::isFriendOf(ClassDeclaration *cd)
 	return 1;
     }
 
-    if (cd && cd->parent == this)
+    if (cd && cd->toParent() == this)
     {
 #if LOG
 	printf("\tcd is nested in this\n");
@@ -274,7 +274,7 @@ int ClassDeclaration::hasPrivateAccess(Dsymbol *smember)
 	}
 
 	// If both are members of the same module, grant access
-	if (!cd && parent == smember->parent)
+	if (!cd && toParent() == smember->toParent())
 	{
 #if LOG
 	    printf("\tyes 2\n");
@@ -303,7 +303,7 @@ void accessCheck(Loc loc, Scope *sc, Expression *e, Declaration *d)
 	if (e->op == TOKsuper)
 	{   ClassDeclaration *cd2;
 
-	    cd2 = sc->func->parent->isClassDeclaration();
+	    cd2 = sc->func->toParent()->isClassDeclaration();
 	    if (cd2)
 		cd = cd2;
 	}

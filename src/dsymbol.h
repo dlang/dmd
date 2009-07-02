@@ -1,5 +1,5 @@
 
-// Copyright (c) 1999-2003 by Digital Mars
+// Copyright (c) 1999-2004 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // www.digitalmars.com
@@ -32,6 +32,7 @@ struct StructDeclaration;
 struct UnionDeclaration;
 struct FuncDeclaration;
 struct FuncAliasDeclaration;
+struct FuncLiteralDeclaration;
 struct CtorDeclaration;
 struct DtorDeclaration;
 struct InvariantDeclaration;
@@ -49,6 +50,7 @@ struct LabelDsymbol;
 struct ScopeDsymbol;
 struct TemplateDeclaration;
 struct TemplateInstance;
+struct TemplateMixin;
 struct EnumMember;
 struct ScopeDsymbol;
 struct WithScopeSymbol;
@@ -84,6 +86,7 @@ struct Dsymbol : Object
     void error(Loc loc, const char *format, ...);
     void error(const char *format, ...);
     Module *getModule();
+    Dsymbol *toParent();
 
     int dyncast() { return DYNCAST_DSYMBOL; }	// kludge for template.isSymbol()
 
@@ -132,12 +135,14 @@ struct Dsymbol : Object
     virtual EnumMember *isEnumMember() { return NULL; }
     virtual TemplateDeclaration *isTemplateDeclaration() { return NULL; }
     virtual TemplateInstance *isTemplateInstance() { return NULL; }
+    virtual TemplateMixin *isTemplateMixin() { return NULL; }
     virtual Declaration *isDeclaration() { return NULL; }
     virtual TypedefDeclaration *isTypedefDeclaration() { return NULL; }
     virtual AliasDeclaration *isAliasDeclaration() { return NULL; }
     virtual AggregateDeclaration *isAggregateDeclaration() { return NULL; }
     virtual FuncDeclaration *isFuncDeclaration() { return NULL; }
     virtual FuncAliasDeclaration *isFuncAliasDeclaration() { return NULL; }
+    virtual FuncLiteralDeclaration *isFuncLiteralDeclaration() { return NULL; }
     virtual CtorDeclaration *isCtorDeclaration() { return NULL; }
     virtual DtorDeclaration *isDtorDeclaration() { return NULL; }
     virtual InvariantDeclaration *isInvariantDeclaration() { return NULL; }

@@ -103,6 +103,15 @@ Dsymbol *Dsymbol::toAlias()
     return this;
 }
 
+Dsymbol *Dsymbol::toParent()
+{
+    Dsymbol *s = parent;
+
+    while (s && s->isTemplateMixin())
+	s = s->parent;
+    return s;
+}
+
 int Dsymbol::isAnonymous()
 {
     return ident ? 0 : 1;
@@ -166,6 +175,7 @@ AggregateDeclaration *Dsymbol::isThis()
 
 ClassDeclaration *Dsymbol::isClassMember()	// are we a member of a class?
 {
+    Dsymbol *parent = toParent();
     if (parent && parent->isClassDeclaration())
 	return (ClassDeclaration *)parent;
     return NULL;
@@ -198,6 +208,7 @@ LabelDsymbol *Dsymbol::isLabel()		// is this a LabelDsymbol()?
 
 AggregateDeclaration *Dsymbol::isMember()	// is this a member of an AggregateDeclaration?
 {
+    Dsymbol *parent = toParent();
     return parent ? parent->isAggregateDeclaration() : NULL;
 }
 
@@ -502,7 +513,7 @@ WithScopeSymbol::WithScopeSymbol(WithStatement *withstate)
 Dsymbol *WithScopeSymbol::search(Identifier *ident, int flags)
 {
     // Acts as proxy to the with class declaration
-    return withstate->exp->type->isClassHandle()->search(ident, 0);
+    return withstate->exp->type->toDsymbol(NULL)->search(ident, 0);
 }
 
 /****************************** DsymbolTable ******************************/

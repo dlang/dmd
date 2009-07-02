@@ -1769,18 +1769,32 @@ Statement *WithStatement::semantic(Scope *sc)
 	sym = es->sds;
     }
     else
-    {
-	assert(exp->type);
-	if (!exp->type->isClassHandle())
+    {	Type *t = exp->type;
+
+	assert(t);
+	t = t->toBasetype();
+	if (t->isClassHandle())
+	{
+	    init = new ExpInitializer(loc, exp);
+	    wthis = new VarDeclaration(loc, exp->type, Id::withSym, init);
+	    wthis->semantic(sc);
+
+	    sym = new WithScopeSymbol(this);
+	    sym->parent = sc->scopesym;
+	}
+	else if (t->ty == Tstruct)
+	{
+	    Expression *e = exp->addressOf();
+	    init = new ExpInitializer(loc, e);
+	    wthis = new VarDeclaration(loc, e->type, Id::withSym, init);
+	    wthis->semantic(sc);
+	    sym = new WithScopeSymbol(this);
+	    sym->parent = sc->scopesym;
+	}
+	else
 	{   error("with expressions must be class objects, not '%s'", exp->type->toChars());
 	    return NULL;
 	}
-	init = new ExpInitializer(loc, exp);
-	wthis = new VarDeclaration(loc, exp->type, Id::withSym, init);
-	wthis->semantic(sc);
-
-	sym = new WithScopeSymbol(this);
-	sym->parent = sc->scopesym;
     }
     sc = sc->push(sym);
 

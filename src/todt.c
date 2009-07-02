@@ -521,6 +521,7 @@ void ClassDeclaration::toDt2(dt_t **pdt, ClassDeclaration *cd)
 	VarDeclaration *v = (VarDeclaration *)fields.data[i];
 	Initializer *init;
 
+	//printf("\t\tv->offset = %d, offset = %d\n", v->offset, offset);
 	dt = NULL;
 	init = v->init;
 	if (init)

@@ -368,12 +368,13 @@ void VarDeclaration::semantic(Scope *sc)
 
     type = type->semantic(loc, sc);
     linkage = sc->linkage;
-    parent = sc->parent;
+    this->parent = sc->parent;
     //printf("this = %p, parent = %p, '%s'\n", this, parent, parent->toChars());
     protection = sc->protection;
     storage_class |= sc->stc;
     //printf("storage_class = %x\n", storage_class);
 
+    Dsymbol *parent = toParent();
     FuncDeclaration *fd = parent->isFuncDeclaration();
 
     if (type->ty == Tvoid)
@@ -426,7 +427,7 @@ void VarDeclaration::semantic(Scope *sc)
 	    xalign = type->memalign(sc->structalign);
 	    cd->alignmember(xalign, memalignsize, &sc->offset);
 	    offset = sc->offset;
-//printf("offset of '%s' is x%x\n", toChars(), offset);
+	    //printf("offset of '%s' is x%x\n", toChars(), offset);
 	    sc->offset += memsize;
 	    if (sc->offset > cd->structsize)
 		cd->structsize = sc->offset;
@@ -596,6 +597,7 @@ int VarDeclaration::isDataseg()
     printf("%x, %p, %p\n", storage_class & (STCstatic | STCconst), parent->isModule(), parent->isTemplateInstance());
     printf("parent = '%s'\n", parent->toChars());
 #endif
+    Dsymbol *parent = this->toParent();
     return (storage_class & (STCstatic | STCconst) ||
 	   parent->isModule() ||
 	   parent->isTemplateInstance());

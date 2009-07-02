@@ -165,7 +165,8 @@ int DeclarationExp::inlineCost(InlineCostState *ics)
     // These can contain functions, which when copied, get output twice.
     if (declaration->isStructDeclaration() ||
 	declaration->isClassDeclaration() ||
-	declaration->isFuncDeclaration())
+	declaration->isFuncDeclaration() ||
+	declaration->isTemplateMixin())
 	return COST_MAX;
 
     //printf("DeclarationExp::inlineCost('%s')\n", toChars());
@@ -406,6 +407,9 @@ Expression *DeclarationExp::doInline(InlineDoState *ids)
 	    de->declaration = (Dsymbol *) (void *)vto;
 	}
     }
+    /* This needs work, like DeclarationExp::toElem(), if we are
+     * to handle TemplateMixin's. For now, we just don't inline them.
+     */
     return de;
 }
 

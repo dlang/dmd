@@ -1917,6 +1917,7 @@ static Keyword keywords[] =
     {	"union",	TOKunion	},
     {	"enum",		TOKenum		},
     {	"import",	TOKimport	},
+    {	"mixin",	TOKmixin	},
     {	"static",	TOKstatic	},
     /*{	"virtual",	TOKvirtual	},*/
     {	"final",	TOKfinal	},

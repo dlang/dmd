@@ -2376,7 +2376,8 @@ d_uns64 TypeQualified::size()
  *	if type, *pt is set
  */
 
-void TypeQualified::resolveHelper(Loc loc, Scope *sc, Dsymbol *s, Dsymbol *scopesym,
+void TypeQualified::resolveHelper(Loc loc, Scope *sc,
+	Dsymbol *s, Dsymbol *scopesym,
 	Expression **pe, Type **pt, Dsymbol **ps)
 {
     Identifier *id = NULL;
@@ -2563,6 +2564,7 @@ Dsymbol *TypeIdentifier::toDsymbol(Scope *sc)
 	{   Identifier *id;
 
 	    id = (Identifier *)idents.data[i];
+	    assert(id->dyncast() == DYNCAST_IDENTIFIER);
 	    s = s->search(id, 0);
 	    if (!s)                 // failed to find a symbol
 		break;
@@ -2683,6 +2685,13 @@ Type *TypeTypeof::syntaxCopy()
     return t;
 }
 
+Dsymbol *TypeTypeof::toDsymbol(Scope *sc)
+{
+    Type *t;
+
+    t = semantic(0, sc);
+    return t->toDsymbol(sc);
+}
 
 void TypeTypeof::toCBuffer2(OutBuffer *buf, Identifier *ident)
 {
@@ -3125,7 +3134,7 @@ Expression *TypeStruct::dotExp(Scope *sc, Expression *e, Identifier *ident)
 	error(e->loc, "struct %s is forward referenced", sym->toChars());
 	return new IntegerExp(e->loc, 0, Type::tint32);
     }
-    s = sym->symtab->lookup(ident);
+    s = sym->search(ident, 0);
     if (!s)
     {
 	return getProperty(e->loc, ident);
@@ -3151,6 +3160,10 @@ Expression *TypeStruct::dotExp(Scope *sc, Expression *e, Identifier *ident)
     }
 
     d = s->isDeclaration();
+#ifdef DEBUG
+    if (!d)
+	printf("d = '%s'\n", s->toChars());
+#endif
     assert(d);
 
     if (e->op == TOKtype)

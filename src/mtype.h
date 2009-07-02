@@ -427,6 +427,7 @@ struct TypeTypeof : TypeQualified
 
     TypeTypeof(Loc loc, Expression *exp);
     Type *syntaxCopy();
+    Dsymbol *toDsymbol(Scope *sc);
     void toCBuffer2(OutBuffer *buf, Identifier *ident);
     Type *semantic(Loc loc, Scope *sc);
 };

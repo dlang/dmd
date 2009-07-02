@@ -115,6 +115,7 @@ enum TOK
 	// Aggregates
 	TOKstruct, TOKclass, TOKinterface, TOKunion, TOKenum, TOKimport,
 	TOKtypedef, TOKalias, TOKoverride, TOKdelegate, TOKfunction,
+	TOKmixin,
 
 	TOKalign, TOKextern, TOKprivate, TOKprotected, TOKpublic, TOKexport,
 	TOKstatic, /*TOKvirtual,*/ TOKfinal, TOKconst, TOKabstract, TOKvolatile,

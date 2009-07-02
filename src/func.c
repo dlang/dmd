@@ -82,7 +82,7 @@ void FuncDeclaration::semantic(Scope *sc)
     ClassDeclaration *cd;
     InterfaceDeclaration *id;
 
-    //printf("FuncDeclaration::semantic(sc = %p, '%s', linkage = %d)\n",sc,ident->toChars(), sc->linkage);
+    //printf("FuncDeclaration::semantic(sc = %p, '%s', linkage = %d)\n", sc, toChars(), sc->linkage);
 
     type = type->semantic(loc, sc);
     if (type->ty != Tfunction)
@@ -92,10 +92,12 @@ void FuncDeclaration::semantic(Scope *sc)
     f = (TypeFunction *)(type);
 
     linkage = sc->linkage;
-    parent = sc->scopesym;
+//    parent = sc->scopesym;
+    parent = sc->parent;
     protection = sc->protection;
     storage_class |= sc->stc;
     //printf("storage_class = x%x\n", storage_class);
+    Dsymbol *parent = toParent();
 
     if (isConst() || isAuto())
 	error("functions cannot be const or auto");
@@ -628,8 +630,8 @@ int FuncDeclaration::overrides(FuncDeclaration *fd)
     {
 	int cov = type->covariant(fd->type);
 	if (cov)
-	{   ClassDeclaration *cd1 = parent->isClassDeclaration();
-	    ClassDeclaration *cd2 = fd->parent->isClassDeclaration();
+	{   ClassDeclaration *cd1 = toParent()->isClassDeclaration();
+	    ClassDeclaration *cd2 = fd->toParent()->isClassDeclaration();
 
 	    if (cd1 && cd2 && cd2->isBaseOf(cd1, NULL))
 		result = 1;
@@ -954,19 +956,23 @@ AggregateDeclaration *FuncDeclaration::isMember2()
 int FuncDeclaration::getLevel(FuncDeclaration *fd)
 {   int level;
     FuncDeclaration *thisfd;
+    Dsymbol *s;
+    Dsymbol *fdparent;
 
-    if (fd->parent == this)
+    fdparent = fd->toParent();
+    if (fdparent == this)
 	return -1;
     thisfd = this;
     level = 0;
-    while (fd != thisfd && fd->parent != thisfd->parent)
+    while (fd != thisfd && fdparent != thisfd->toParent())
     {
 	if (!thisfd || !thisfd->isNested())
 	{
 	    error("cannot access frame of function %s", fd->toChars());
 	    break;
 	}
-	thisfd = thisfd->parent->isFuncDeclaration();
+	s = thisfd->toParent();
+	thisfd = s->isFuncDeclaration();
 	level++;
     }
     return level;
@@ -1028,10 +1034,10 @@ int FuncDeclaration::isImportedSymbol()
 int FuncDeclaration::isVirtual()
 {
     //printf("FuncDeclaration::isVirtual(%s)\n", toChars());
-    //printf("%d %d %d %d\n", isStatic(), protection == PROTprivate, isCtorDeclaration(), linkage != LINKd);
+    //printf("%p %d %d %d %d\n", isMember(), isStatic(), protection == PROTprivate, isCtorDeclaration(), linkage != LINKd);
     return isMember() &&
 	!(isStatic() || protection == PROTprivate) &&
-	parent->isClassDeclaration();
+	toParent()->isClassDeclaration();
 }
 
 int FuncDeclaration::isAbstract()
@@ -1050,8 +1056,9 @@ int FuncDeclaration::isCodeseg()
 int FuncDeclaration::isNested()
 {
     //printf("FuncDeclaration::isNested() '%s'\n", toChars());
+    //printf("\ttoParent() = '%s'\n", toParent()->toChars());
     return ((storage_class & STCstatic) == 0) &&
-	   (parent->isFuncDeclaration() != NULL);
+	   (toParent()->isFuncDeclaration() != NULL);
 }
 
 int FuncDeclaration::needThis()
@@ -1202,7 +1209,9 @@ void CtorDeclaration::semantic(Scope *sc)
 
     assert(!(sc->stc & STCstatic));
 
-    cd = sc->scopesym->isClassDeclaration();
+    parent = sc->parent;
+    Dsymbol *parent = toParent();
+    cd = parent->isClassDeclaration();
     if (!cd)
     {
 	error("constructors only are for class definitions");

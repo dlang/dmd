@@ -845,6 +845,7 @@ Lagain:
     Expression *e;
     VarDeclaration *v;
     FuncDeclaration *f;
+    FuncLiteralDeclaration *fld;
     Declaration *d;
     ClassDeclaration *cd;
     ClassDeclaration *thiscd = NULL;
@@ -910,10 +911,15 @@ Lagain:
 	e = e->semantic(sc);
 	return e->deref();
     }
+    fld = s->isFuncLiteralDeclaration();
+    if (fld)
+    {	//printf("'%s' is a function literal\n", fld->toChars());
+	e = new FuncExp(loc, fld);
+	return e->semantic(sc);
+    }
     f = s->isFuncDeclaration();
     if (f)
-    {
-	//printf("it's a function\n");
+    {	//printf("'%s' is a function\n", f->toChars());
 	return new VarExp(loc, f);
     }
     cd = s->isClassDeclaration();
@@ -1639,7 +1645,8 @@ int VarExp::equals(Object *o)
 }
 
 Expression *VarExp::semantic(Scope *sc)
-{
+{   FuncLiteralDeclaration *fd;
+
 #if LOGSEMANTIC
     printf("VarExp::semantic(%s)\n", toChars());
 #endif
@@ -1672,6 +1679,14 @@ Expression *VarExp::semantic(Scope *sc)
 	    }
 	}
     }
+#if 0
+    else if ((fd = var->isFuncLiteralDeclaration()) != NULL)
+    {	Expression *e;
+	e = new FuncExp(loc, fd);
+	e->type = type;
+	return e;
+    }
+#endif
     return this;
 }
 

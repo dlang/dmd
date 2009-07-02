@@ -292,6 +292,8 @@ struct FuncLiteralDeclaration : FuncDeclaration
     FuncLiteralDeclaration(Loc loc, Loc endloc, Type *type, enum TOK tok,
 	ForeachStatement *fes);
     int isNested();
+
+    FuncLiteralDeclaration *isFuncLiteralDeclaration() { return this; }
 };
 
 struct CtorDeclaration : FuncDeclaration

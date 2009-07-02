@@ -54,7 +54,8 @@ struct Parser : Lexer
     TemplateDeclaration *parseTemplateDeclaration();
     Array *parseTemplateParameterList();
     TemplateInstance *parseTemplateInstance();
-    void parseTemplateArgumentList(TemplateInstance *tempinst);
+    Dsymbol *parseMixin();
+    Array *parseTemplateArgumentList();
     StaticAssert *parseStaticAssert();
     DebugCondition *parseDebugCondition();
     VersionCondition *parseVersionCondition();

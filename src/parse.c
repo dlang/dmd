@@ -165,6 +165,10 @@ Array *Parser::parseDeclDefs(int once)
 		s = (Dsymbol *)parseTemplateDeclaration();
 		break;
 
+	    case TOKmixin:
+		s = parseMixin();
+		break;
+
 	    case TOKinstance:		// Deprecated
 		if (isDeclaration(&token, 2, TOKreserved, NULL))
 		{
@@ -1188,11 +1192,105 @@ TemplateInstance *Parser::parseTemplateInstance()
 	}
 	nextToken();
     }
-    parseTemplateArgumentList(tempinst);
+    tempinst->tiargs = parseTemplateArgumentList();
 
     if (!global.params.useDeprecated)
 	error("instance is deprecated, use %s", tempinst->toChars());
     return tempinst;
+
+Lerr:
+    return NULL;
+}
+
+/******************************************
+ * Parse template mixin.
+ *	mixin Foo;
+ *	mixin Foo!(args);
+ *	mixin a.b.c!(args).Foo!(args);
+ *	mixin Foo!(args) identifier;
+ */
+
+Dsymbol *Parser::parseMixin()
+{
+    TemplateMixin *tm;
+    Identifier *id;
+    TypeTypeof *tqual;
+    Array *tiargs;
+    Array *idents;
+
+    //printf("parseMixin()\n");
+    nextToken();
+
+    tqual = NULL;
+    if (token.value == TOKdot)
+    {
+	id = Id::empty;
+    }
+    else
+    {
+	if (token.value == TOKtypeof)
+	{   Expression *exp;
+
+	    nextToken();
+	    check(TOKlparen);
+	    exp = parseExpression();
+	    check(TOKrparen);
+	    tqual = new TypeTypeof(loc, exp);
+	    check(TOKdot);
+	}
+	if (token.value != TOKidentifier)
+	{
+	    error("identifier expected, not %s", token.toChars());
+	    goto Lerr;
+	}
+	id = token.ident;
+    }
+
+    idents = new Array();
+    while (1)
+    {
+	nextToken();
+	tiargs = NULL;
+	if (token.value == TOKnot)
+	{
+	    nextToken();
+	    tiargs = parseTemplateArgumentList();
+	}
+
+	if (token.value != TOKdot)
+	    break;
+
+	if (tiargs)
+	{   TemplateInstance *tempinst = new TemplateInstance(id);
+	    tempinst->tiargs = tiargs;
+	    id = (Identifier *)tempinst;
+	    tiargs = NULL;
+	}
+	idents->push(id);
+
+	nextToken();
+	if (token.value != TOKidentifier)
+	{   error("identifier expected following '.' instead of '%s'", token.toChars());
+	    break;
+	}
+	id = token.ident;
+    }
+    idents->push(id);
+
+    if (token.value == TOKidentifier)
+    {
+	id = token.ident;
+	nextToken();
+    }
+    else
+	id = NULL;
+
+    tm = new TemplateMixin(loc, id, tqual, idents, tiargs);
+    if (token.value != TOKsemicolon)
+	error("';' expected after mixin");
+    nextToken();
+
+    return tm;
 
 Lerr:
     return NULL;
@@ -1206,14 +1304,12 @@ Lerr:
  *	current token is one after closing ')'
  */
 
-void Parser::parseTemplateArgumentList(TemplateInstance *tempinst)
+Array *Parser::parseTemplateArgumentList()
 {
-    assert(tempinst);
-//    assert(tempinst->ident);
+    Array *tiargs = new Array();
     if (token.value != TOKlparen)
-    {   error("!(TemplateArgumentList) expected following TemplateIdentifier '%s'",
-		((Identifier *)tempinst->idents.data[0])->toChars());
-	return;
+    {   error("!(TemplateArgumentList) expected following TemplateIdentifier");
+	return tiargs;
     }
     nextToken();
 
@@ -1230,14 +1326,14 @@ void Parser::parseTemplateArgumentList(TemplateInstance *tempinst)
 		// Get TemplateArgument
 		ta = parseBasicType();
 		ta = parseDeclarator(ta, NULL);
-		tempinst->tiargs.push(ta);
+		tiargs->push(ta);
 	    }
 	    else
 	    {	// Expression
 		Expression *ea;
 
 		ea = parseAssignExp();
-		tempinst->tiargs.push(ea);
+		tiargs->push(ea);
 	    }
 	    if (token.value != TOKcomma)
 		break;
@@ -1245,6 +1341,7 @@ void Parser::parseTemplateArgumentList(TemplateInstance *tempinst)
 	}
     }
     check(TOKrparen, "template argument list");
+    return tiargs;
 }
 
 Import *Parser::parseImport(Array *decldefs)
@@ -1313,7 +1410,7 @@ Type *Parser::parseBasicType()
 	    {
 		nextToken();
 		tempinst = new TemplateInstance(id);
-		parseTemplateArgumentList(tempinst);
+		tempinst->tiargs = parseTemplateArgumentList();
 		tid = new TypeInstance(loc, tempinst);
 		goto Lident2;
 	    }
@@ -1332,7 +1429,7 @@ Type *Parser::parseBasicType()
 		{
 		    nextToken();
 		    tempinst = new TemplateInstance(id);
-		    parseTemplateArgumentList(tempinst);
+		    tempinst->tiargs = parseTemplateArgumentList();
 		    tid->addIdent((Identifier *)tempinst);
 		}
 		else
@@ -1359,7 +1456,6 @@ Type *Parser::parseBasicType()
 
 	case TOKtypeof:
 	{   Expression *exp;
-	    TypeTypeof *tt;
 
 	    nextToken();
 	    check(TOKlparen);
@@ -2217,6 +2313,14 @@ Statement *Parser::parseStatement(int flags)
 	{   Dsymbol *d;
 
 	    d = parseEnum();
+	    s = new DeclarationStatement(loc, d);
+	    break;
+	}
+
+	case TOKmixin:
+	{   Dsymbol *d;
+
+	    d = parseMixin();
 	    s = new DeclarationStatement(loc, d);
 	    break;
 	}
@@ -3266,7 +3370,7 @@ Expression *Parser::parsePrimaryExp()
 
 		tempinst = new TemplateInstance(id);
 		nextToken();
-		parseTemplateArgumentList(tempinst);
+		tempinst->tiargs = parseTemplateArgumentList();
 		e = new ScopeExp(loc, tempinst);
 	    }
 	    else
@@ -3452,14 +3556,23 @@ Expression *Parser::parsePrimaryExp()
 	    enum TOK save = token.value;
 
 	    nextToken();
-	    if (token.value == TOKlparen)
-		t = Type::tvoid;		// default to void return type
+	    if (token.value == TOKlcurly)
+	    {	// default to void()
+		t = Type::tvoid;
+		varargs = 0;
+		arguments = new Array();
+	    }
 	    else
 	    {
-		t = parseBasicType();
-		t = parseBasicType2(t);		// function return type
+		if (token.value == TOKlparen)
+		    t = Type::tvoid;		// default to void return type
+		else
+		{
+		    t = parseBasicType();
+		    t = parseBasicType2(t);	// function return type
+		}
+		arguments = parseParameters(&varargs);
 	    }
-	    arguments = parseParameters(&varargs);
 	    t = new TypeFunction(arguments, t, varargs, linkage);
 	    fd = new FuncLiteralDeclaration(loc, 0, t, save, NULL);
 	    parseContracts(fd);
@@ -3499,7 +3612,7 @@ Expression *Parser::parsePostExp(Expression *e)
 
 			tempinst = new TemplateInstance(id);
 			nextToken();
-			parseTemplateArgumentList(tempinst);
+			tempinst->tiargs = parseTemplateArgumentList();
 			e = new DotTemplateInstanceExp(loc, e, tempinst);
 		    }
 		    else

@@ -152,7 +152,7 @@ struct TemplateInstance : ScopeDsymbol
      *	instance foo.bar.abc(int, char, 10*10)
      */
     Array idents;		// Array of Identifiers [foo, bar, abc]
-    Array tiargs;		// Array of Types/Expressions of template instance arguments [int, char, 10*10]
+    Array *tiargs;		// Array of Types/Expressions of template instance arguments [int, char, 10*10]
 
     TemplateDeclaration *tempdecl;	// referenced by foo.bar.abc
     TemplateInstance *inst;		// refer to existing instance
@@ -177,8 +177,34 @@ struct TemplateInstance : ScopeDsymbol
 
     void toObjFile();			// compile to .obj file
 
+    // Internal
+    void semanticTiargs(Scope *sc);
+    TemplateDeclaration *findTemplateDeclaration(Scope *sc);
+    void declareParameters(Scope *sc);
+    Identifier *genIdent();
+
     TemplateInstance *isTemplateInstance() { return this; }
     AliasDeclaration *isAliasDeclaration();
+};
+
+struct TemplateMixin : TemplateInstance
+{
+    Array *idents;
+    TypeTypeof *tqual;
+
+    TemplateMixin(Loc loc, Identifier *ident, TypeTypeof *tqual, Array *idents, Array *tiargs);
+    Dsymbol *syntaxCopy(Dsymbol *s);
+    void semantic(Scope *sc);
+    void semantic2(Scope *sc);
+    void semantic3(Scope *sc);
+    void inlineScan();
+    char *kind();
+    Dsymbol *oneMember();
+    void toCBuffer(OutBuffer *buf);
+
+    void toObjFile();			// compile to .obj file
+
+    TemplateMixin *isTemplateMixin() { return this; }
 };
 
 #endif /* DMD_TEMPLATE_H */
