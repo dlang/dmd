@@ -1005,6 +1005,10 @@ Dsymbol *Parser::parseAggregate()
 	    error("struct member expected");
 	nextToken();
     }
+    else
+    {
+	error("{ } expected following aggregate declaration");
+    }
 
     if (tpl)
     {	Array *decldefs;

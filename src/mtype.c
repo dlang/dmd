@@ -1360,18 +1360,31 @@ Type *TypeSArray::syntaxCopy()
 }
 
 d_uns64 TypeSArray::size()
-{   unsigned sz;
+{   integer_t sz;
 
     if (!dim)
 	return Type::size();
     sz = dim->toInteger();
-    if (next->ty == Tbit)		// if array of bits
+    if (next->toBasetype()->ty == Tbit)		// if array of bits
     {
+	if (sz + 31 < sz)
+	    goto Loverflow;
 	sz = ((sz + 31) & ~31) / 8;	// size in bytes, rounded up to 32 bit dwords
     }
     else
-	sz *= next->size();
+    {	integer_t n, n2;
+
+	n = next->size();
+	n2 = n * sz;
+	if (n && (n2 / n) != sz)
+	    goto Loverflow;
+	sz = n2;
+    }
     return sz;
+
+Loverflow:
+    error(0, "index %lld overflow for static array", sz);
+    return 1;
 }
 
 unsigned TypeSArray::alignsize()
@@ -1381,14 +1394,41 @@ unsigned TypeSArray::alignsize()
 
 Type *TypeSArray::semantic(Loc loc, Scope *sc)
 {
+    next = next->semantic(loc,sc);
     if (dim)
-    {	dim = dim->semantic(sc);
+    {	integer_t n, n2;
+
+	dim = dim->semantic(sc);
+	dim = dim->constFold();
+	integer_t d1 = dim->toInteger();
 	dim = dim->castTo(tsize_t);
 	dim = dim->constFold();
-	if (dim->op == TOKint64 && (long long)dim->toInteger() < 0)
-	    error(loc, "negative index %lld for static array", dim->toInteger());
+	integer_t d2 = dim->toInteger();
+
+	if (d1 != d2)
+	    goto Loverflow;
+	if (next->ty == Tbit && (d2 + 31) < d2)
+	    goto Loverflow;
+	else if (next->isintegral() ||
+		 next->isfloating() ||
+		 next->ty == Tpointer ||
+		 next->ty == Tarray ||
+		 next->ty == Taarray ||
+		 next->ty == Tclass)
+	{
+	    /* Only do this for types that don't need to have semantic()
+	     * run on them for the size, since they may be forward referenced.
+	     */
+	    n = next->size();
+	    n2 = n * d2;
+	    if (n && n2 / n != d2)
+	    {
+	      Loverflow:
+		error(loc, "index %lld overflow for static array", d1);
+		dim = new IntegerExp(0, 1, tsize_t);
+	    }
+	}
     }
-    next = next->semantic(loc,sc);
     switch (next->ty)
     {
 	case Tfunction:
@@ -1405,7 +1445,7 @@ void TypeSArray::toDecoBuffer(OutBuffer *buf)
 {
     buf->writeByte(mangleChar[ty]);
     if (dim)
-	buf->printf("%d", dim->toInteger());
+	buf->printf("%llu", dim->toInteger());
     if (next)
 	next->toDecoBuffer(buf);
 }

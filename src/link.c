@@ -199,6 +199,7 @@ int runLINK()
 
     waitpid(childpid, &status, 0);
 
+    status=WEXITSTATUS(status);
     if (status)
 	printf("--- errorlevel %d\n", status);
     return status;

@@ -2064,6 +2064,7 @@ Statement *LabelStatement::semantic(Scope *sc)
     FuncDeclaration *fd = sc->parent->isFuncDeclaration();
 
     sc = sc->push();
+    sc->scopesym = sc->enclosing->scopesym;
     sc->callSuper |= CSXlabel;
     sc->slabel = this;
     statement = statement->semantic(sc);

@@ -511,6 +511,9 @@ Statement *Statement::inlineScan(InlineScanState *iss)
 
 Statement *ExpStatement::inlineScan(InlineScanState *iss)
 {
+#if LOG
+    printf("ExpStatement::inlineScan(%s)\n", toChars());
+#endif
     if (exp)
 	exp = exp->inlineScan(iss);
     return this;
@@ -797,6 +800,9 @@ void FuncDeclaration::inlineScan()
 {
     InlineScanState iss;
 
+#if LOG
+    printf("FuncDeclaration::inlineScan('%s')\n", toChars());
+#endif
     memset(&iss, 0, sizeof(iss));
     iss.fd = this;
     if (fbody)

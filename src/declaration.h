@@ -352,6 +352,7 @@ struct DtorDeclaration : FuncDeclaration
     void semantic(Scope *sc);
     int addPreInvariant();
     int addPostInvariant();
+    int overloadInsert(Dsymbol *s);
 
     DtorDeclaration *isDtorDeclaration() { return this; }
 };

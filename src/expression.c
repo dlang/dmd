@@ -39,6 +39,50 @@ Expression *createTypeInfoArray(Scope *sc, Expression *args[], int dim);
 
 #define LOGSEMANTIC	0
 
+/*****************************************
+ * Determine if 'this' is available.
+ * If it is, return the FuncDeclaration that has it.
+ */
+
+FuncDeclaration *hasThis(Scope *sc)
+{   FuncDeclaration *fd;
+    FuncDeclaration *fdthis;
+
+    fdthis = sc->parent->isFuncDeclaration();
+
+    // Go upwards until we find the enclosing member function
+    fd = fdthis;
+    while (1)
+    {
+	if (!fd)
+	    goto Lno;
+	if (!fd->isNested())
+	    break;
+
+	Dsymbol *parent = fd->parent;
+	while (parent)
+	{
+	    TemplateInstance *ti = parent->isTemplateInstance();
+	    if (ti)
+		parent = ti->parent;
+	    else
+		break;
+	}
+
+	fd = fd->parent->isFuncDeclaration();
+    }
+
+    if (!fd->isThis())
+	goto Lno;
+
+    assert(fd->vthis);
+    return fd;
+
+Lno:
+    return NULL;		// don't have 'this' available
+}
+
+
 /***************************************
  * Pull out any properties.
  */
@@ -315,7 +359,7 @@ void Expression::error(const char *format, ...)
 
 void Expression::rvalue()
 {
-    if (type && type->ty == Tvoid)
+    if (type && type->toBasetype()->ty == Tvoid)
 	error("voids have no value");
 }
 
@@ -923,7 +967,7 @@ Lagain:
     if (sc->func)
 	thiscd = sc->func->parent->isClassDeclaration();
 
-    if (s->needThis())
+    if (s->needThis() && hasThis(sc))
     {
 	// Supply an implicit 'this', as in
 	//	  this.ident
@@ -1075,39 +1119,15 @@ Expression *ThisExp::semantic(Scope *sc)
     }
 
     fdthis = sc->parent->isFuncDeclaration();
-
-    // Go upwards until we find the enclosing member function
-    fd = fdthis;
-    while (1)
-    {
-	if (!fd)
-	    goto Lerr;
-	if (!fd->isNested())
-	    break;
-
-	nested = 1;
-
-	Dsymbol *parent = fd->parent;
-	while (parent)
-	{
-	    TemplateInstance *ti = parent->isTemplateInstance();
-	    if (ti)
-		parent = ti->parent;
-	    else
-		break;
-	}
-
-	fd = fd->parent->isFuncDeclaration();
-    }
-
-    if (!fd->isThis())
+    fd = hasThis(sc);
+    if (!fd)
 	goto Lerr;
 
     assert(fd->vthis);
     var = fd->vthis;
     assert(var->parent);
     type = var->type;
-    if (nested)
+    if (fd != fdthis)		// if nested
     {
 	fdthis->getLevel(fd);
 	fd->vthis->nestedref = 1;
@@ -1148,7 +1168,6 @@ SuperExp::SuperExp(Loc loc)
 Expression *SuperExp::semantic(Scope *sc)
 {   FuncDeclaration *fd;
     FuncDeclaration *fdthis;
-    int nested = 0;
     ClassDeclaration *cd;
 
 #if LOGSEMANTIC
@@ -1158,33 +1177,9 @@ Expression *SuperExp::semantic(Scope *sc)
 	return this;
 
     fdthis = sc->parent->isFuncDeclaration();
-
-    // Go upwards until we find the enclosing member function
-    fd = fdthis;
-    while (1)
-    {
-	if (!fd)
-	    goto Lerr;
-	if (!fd->isNested())
-	    break;
-	nested = 1;
-
-	Dsymbol *parent = fd->parent;
-	while (parent)
-	{
-	    TemplateInstance *ti = parent->isTemplateInstance();
-	    if (ti)
-		parent = ti->parent;
-	    else
-		break;
-	}
-
-	fd = fd->parent->isFuncDeclaration();
-    }
-
-    if (!fd->isThis())
+    fd = hasThis(sc);
+    if (!fd)
 	goto Lerr;
-
     assert(fd->vthis);
     var = fd->vthis;
     assert(var->parent);
@@ -1200,7 +1195,7 @@ Expression *SuperExp::semantic(Scope *sc)
 	type = cd->baseClass->type;
     }
 
-    if (nested)
+    if (fd != fdthis)
     {
 	fdthis->getLevel(fd);
 	fd->vthis->nestedref = 1;
@@ -1641,7 +1636,7 @@ Expression *NewExp::semantic(Scope *sc)
     }
     else
     {
-	error("new can only create structs, arrays or class objects, not %s's", type->toChars());
+	error("new can only create structs, dynamic arrays or class objects, not %s's", type->toChars());
 	type = type->pointerTo();
     }
 
@@ -3355,6 +3350,8 @@ Expression *ArrayExp::semantic(Scope *sc)
 
 Expression *ArrayExp::toLvalue(Expression *e)
 {
+    if (type && type->toBasetype()->ty == Tvoid)
+	error("voids have no value");
     return this;
 }
 
@@ -3492,6 +3489,8 @@ Expression *IndexExp::semantic(Scope *sc)
 
 Expression *IndexExp::toLvalue(Expression *e)
 {
+//    if (type && type->toBasetype()->ty == Tvoid)
+//	error("voids have no value");
     return this;
 }
 

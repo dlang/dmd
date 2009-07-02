@@ -348,7 +348,17 @@ void Module::parse()
 	dst = Package::resolve(md->packages, &this->parent, NULL);
     }
     else
+    {
 	dst = modules;
+
+	for (char* p = this->ident->toChars(); *p; p++)
+	{
+	    if (*p != '_' && !isalnum(*p))
+	    {	error("has non-identifier characters in filename, use module declaration instead");
+		break;
+	    }
+	}
+    }
 
     // Update global list of modules
     if (!dst->insert(this))
@@ -553,6 +563,11 @@ void Module::runDeferredSemantic()
     int len;
     int newlen;
 
+    static int nested;
+    if (nested)
+	return;
+    nested++;
+
     do
     {
 	len = deferred.dim;
@@ -571,6 +586,7 @@ void Module::runDeferredSemantic()
 	    newlen * sizeof(deferred.data[0]));
 	deferred.setDim(newlen);
     } while (newlen < len);
+    nested--;
 }
 
 /* =========================== ModuleDeclaration ===================== */

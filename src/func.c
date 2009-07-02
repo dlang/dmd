@@ -1346,6 +1346,11 @@ void DtorDeclaration::semantic(Scope *sc)
     FuncDeclaration::semantic(sc);
 }
 
+int DtorDeclaration::overloadInsert(Dsymbol *s)
+{
+    return FALSE;	// cannot overload destructors
+}
+
 int DtorDeclaration::addPreInvariant()
 {
     return (vthis && global.params.useInvariants);

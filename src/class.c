@@ -154,11 +154,11 @@ void ClassDeclaration::semantic(Scope *sc)
 	    else
 	    {   baseClass = tc->sym;
 		b->base = baseClass;
-		if (!baseClass->symtab)
+		if (!baseClass->symtab || baseClass->scope)
 		{
 		    //error("forward reference of base class %s", baseClass->toChars());
 		    // Forward reference of base class, try again later
-		    //printf("\ttry later\n");
+		    //printf("\ttry later, forward reference of base class %s\n", baseClass->toChars());
 		    scope = scx ? scx : new Scope(*sc);
 		    scope->setNoFree();
 		    scope->module->addDeferredSemantic(this);
@@ -320,6 +320,7 @@ void ClassDeclaration::semantic(Scope *sc)
 
 	b->fillVtbl(this, &b->vtbl, 1);
     }
+    //printf("-ClassDeclaration::semantic(%s), type = %p\n", toChars(), type);
 }
 
 void ClassDeclaration::toCBuffer(OutBuffer *buf)
@@ -393,7 +394,8 @@ Dsymbol *ClassDeclaration::search(Identifier *ident, int flags)
 	semantic(scope);
 
     if (!members || !symtab || scope)
-    {	error("is forward referenced");
+    {	error("is forward referenced when looking for '%s'", ident->toChars());
+*(char*)0=0;
 	return NULL;
     }
 

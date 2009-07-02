@@ -1197,7 +1197,9 @@ void TemplateInstance::semantic(Scope *sc)
 
     tempdecl = findTemplateDeclaration(sc);
     if (!tempdecl)
+    {	inst = this;
 	return;		// error recovery
+    }
 
     /* See if there is an existing TemplateInstantiation that already
      * implements the typeargs. If so, just refer to that one instead.
