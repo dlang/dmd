@@ -356,6 +356,7 @@ struct VarExp : Expression
     Expression *toLvalue(Expression *e);
     Expression *modifiableLvalue(Scope *sc, Expression *e);
     elem *toElem(IRState *irs);
+    dt_t **toDt(dt_t **pdt);
 
     //int inlineCost(InlineCostState *ics);
     Expression *doInline(InlineDoState *ids);
@@ -369,6 +370,7 @@ struct FuncExp : Expression
     FuncLiteralDeclaration *fd;
 
     FuncExp(Loc loc, FuncLiteralDeclaration *fd);
+    Expression *syntaxCopy();
     Expression *semantic(Scope *sc);
     char *toChars();
     void toCBuffer(OutBuffer *buf);

@@ -106,6 +106,7 @@ struct PragmaDeclaration : AttribDeclaration
     Dsymbol *syntaxCopy(Dsymbol *s);
     void semantic(Scope *sc);
     void toCBuffer(OutBuffer *buf);
+    void toObjFile();			// compile to .obj file
 };
 
 struct DebugDeclaration : AttribDeclaration

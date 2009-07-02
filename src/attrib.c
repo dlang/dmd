@@ -1,5 +1,5 @@
 
-// Copyright (c) 1999-2004 by Digital Mars
+// Copyright (c) 1999-2005 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // www.digitalmars.com
@@ -11,6 +11,12 @@
 #include <stdlib.h>
 #include <assert.h>
 
+#if _WIN32
+#include "mem.h"
+#elif linux
+#include "../root/mem.h"
+#endif
+
 #include "declaration.h"
 #include "init.h"
 #include "attrib.h"
@@ -20,6 +26,7 @@
 #include "expression.h"
 #include "dsymbol.h"
 
+extern void obj_includelib(char *name);
 
 /********************************* AttribDeclaration ****************************/
 
@@ -588,6 +595,20 @@ void PragmaDeclaration::semantic(Scope *sc)
 	    printf("\n");
 	}
     }
+    else if (ident == Id::lib)
+    {
+	if (!args || args->dim != 1)
+	    error("string argument expected for pragma(lib, \"libname\")");
+	else
+	{
+	    Expression *e = (Expression *)args->data[0];
+
+	    e = e->semantic(sc);
+	    args->data[0] = (void *)e;
+	    if (e->op != TOKstring)
+		error("string expected for pragma msg, not '%s'", e->toChars());
+	}
+    }
     else
 	error("unrecognized pragma(%s)", ident->toChars());
 
@@ -602,6 +623,23 @@ void PragmaDeclaration::semantic(Scope *sc)
     }
 }
 
+void PragmaDeclaration::toObjFile()
+{
+    if (ident == Id::lib)
+    {
+	assert(args && args->dim == 1);
+
+	Expression *e = (Expression *)args->data[0];
+
+	assert(e->op == TOKstring);
+
+	StringExp *se = (StringExp *)e;
+	char *name = (char *)mem.malloc(se->len + 1);
+	memcpy(name, se->string, se->len);
+	name[se->len] = 0;
+	obj_includelib(name);
+    }
+}
 
 void PragmaDeclaration::toCBuffer(OutBuffer *buf)
 {

@@ -87,6 +87,7 @@ ClassDeclaration::ClassDeclaration(Loc loc, Identifier *id, Array *baseclasses)
 	com = 1;
 #endif
     isauto = 0;
+    isabstract = 0;
 }
 
 Dsymbol *ClassDeclaration::syntaxCopy(Dsymbol *s)
@@ -116,11 +117,16 @@ void ClassDeclaration::semantic(Scope *sc)
     unsigned offset;
 
     //printf("ClassDeclaration::semantic(%s), type = %p, sizeok = %d\n", toChars(), type, sizeok);
+    //printf("parent = %p, '%s'\n", sc->parent, sc->parent ? sc->parent->toChars() : "");
 
     //{ static int n;  if (++n == 20) *(char*)0=0; }
 
     if (!scope)
-    {	type = type->semantic(loc, sc);
+    {
+	if (sc->parent && !sc->parent->isModule())
+	    parent = sc->parent;
+
+	type = type->semantic(loc, sc);
 	handle = handle->semantic(loc, sc);
     }
     if (!members)			// if forward reference
@@ -279,9 +285,13 @@ void ClassDeclaration::semantic(Scope *sc)
 
     if (sc->stc & STCauto)
 	isauto = 1;
+    if (sc->stc & STCabstract)
+	isabstract = 1;
+    if (sc->stc & STCdeprecated)
+	isdeprecated = 1;
 
     sc = sc->push(this);
-    sc->stc &= ~(STCauto | STCstatic);
+    sc->stc &= ~(STCauto | STCstatic | STCabstract);
     sc->parent = this;
 
     if (isCOMclass())
@@ -567,6 +577,8 @@ int ClassDeclaration::isCOMclass()
 
 int ClassDeclaration::isAbstract()
 {
+    if (isabstract)
+	return TRUE;
     for (int i = 1; i < vtbl.dim; i++)
     {
 	FuncDeclaration *fd = ((Dsymbol *)vtbl.data[i])->isFuncDeclaration();
@@ -574,6 +586,7 @@ int ClassDeclaration::isAbstract()
 	//printf("\tvtbl[%d] = %p\n", i, fd);
 	if (!fd || fd->isAbstract())
 	{
+	    isabstract |= 1;
 	    return TRUE;
 	}
     }

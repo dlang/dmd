@@ -113,6 +113,7 @@ enum TOK
 	TOKimaginary32, TOKimaginary64, TOKimaginary80,
 	TOKcomplex32, TOKcomplex64, TOKcomplex80,
 	TOKchar, TOKwchar, TOKdchar, TOKbit,
+	TOKcent, TOKucent,
 
 	// Aggregates
 	TOKstruct, TOKclass, TOKinterface, TOKunion, TOKenum, TOKimport,

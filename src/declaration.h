@@ -331,6 +331,7 @@ struct FuncAliasDeclaration : FuncDeclaration
     FuncAliasDeclaration(FuncDeclaration *funcalias);
 
     FuncAliasDeclaration *isFuncAliasDeclaration() { return this; }
+    char *kind();
 };
 
 struct FuncLiteralDeclaration : FuncDeclaration
@@ -339,6 +340,7 @@ struct FuncLiteralDeclaration : FuncDeclaration
 
     FuncLiteralDeclaration(Loc loc, Loc endloc, Type *type, enum TOK tok,
 	ForeachStatement *fes);
+    Dsymbol *syntaxCopy(Dsymbol *);
     int isNested();
 
     FuncLiteralDeclaration *isFuncLiteralDeclaration() { return this; }

@@ -45,6 +45,7 @@ struct AggregateDeclaration : ScopeDsymbol
 				// 0: no size
 				// 1: size is correct
 				// 2: cannot determine size; fwd referenced
+    int isdeprecated;		// !=0 if deprecated
     Scope *scope;		// !=NULL means context to use
 
     // Special member functions
@@ -61,6 +62,7 @@ struct AggregateDeclaration : ScopeDsymbol
     static void alignmember(unsigned salign, unsigned size, unsigned *poffset);
     Type *getType();
     void addField(Scope *sc, VarDeclaration *v);
+    int isDeprecated();		// is aggregate deprecated?
 
     // Back end
     Symbol *stag;		// tag symbol for debug data
@@ -154,6 +156,7 @@ struct ClassDeclaration : AggregateDeclaration
     ClassInfoDeclaration *vclassinfo;	// the ClassInfo object for this ClassDeclaration
     int com;				// !=0 if this is a COM class
     int isauto;				// !=0 if this is an auto class
+    int isabstract;			// !=0 if abstract class
 
     ClassDeclaration(Loc loc, Identifier *id, Array *baseclasses);
     Dsymbol *syntaxCopy(Dsymbol *s);

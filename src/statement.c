@@ -717,7 +717,7 @@ Statement *ForeachStatement::semantic(Scope *sc)
 		}
 		var->semantic(sc);
 		if (!sc->insert(var))
-		    assert(0);
+		    error("%s already defined", var->ident->toChars());
 
 		if (dim == 2 && i == 0)
 		    key = var;
@@ -1000,6 +1000,10 @@ Statement *IfStatement::semantic(Scope *sc)
     // semantic analysis of the skipped code.
     // This feature allows a limited form of conditional compilation.
     condition = condition->optimize(WANTflags);
+#if 0
+    /* Don't do this because of:
+     *	if (0) { Label: ... ; } else { ... ; goto Label; }
+     */
     if (condition->isBool(FALSE))
     {	Statement *s;
 
@@ -1019,6 +1023,7 @@ Statement *IfStatement::semantic(Scope *sc)
 	return s;
     }
     else
+#endif
     {	// Evaluate at runtime
 	unsigned cs0 = sc->callSuper;
 	unsigned cs1;
@@ -1040,10 +1045,10 @@ int IfStatement::usesEH()
 
 int IfStatement::fallOffEnd()
 {
-    if ((!ifbody || !ifbody->fallOffEnd()) &&
-	(!elsebody || !elsebody->fallOffEnd()))
-	return FALSE;
-    return TRUE;
+    if (!ifbody || ifbody->fallOffEnd() ||
+	!elsebody || elsebody->fallOffEnd())
+	return TRUE;
+    return FALSE;
 }
 
 
@@ -1266,21 +1271,25 @@ Statement *SwitchStatement::semantic(Scope *sc)
 	    break;
 	}
 
-	for (int j = 0; 1; j++)
+	for (Scope *scx = sc; scx; scx = scx->enclosing)
 	{
-	    if (j == cases->dim)
+	    if (!scx->sw)
+		continue;
+	    for (int j = 0; j < scx->sw->cases->dim; j++)
 	    {
-		gcs->error("case %s not found", gcs->exp->toChars());
-		break;
-	    }
-	    CaseStatement *cs = (CaseStatement *)cases->data[j];
+		CaseStatement *cs = (CaseStatement *)scx->sw->cases->data[j];
 
-	    if (cs->exp->equals(gcs->exp))
-	    {
-		gcs->cs = cs;
-		break;
+		if (cs->exp->equals(gcs->exp))
+		{
+		    gcs->cs = cs;
+		    goto Lfoundcase;
+		}
 	    }
 	}
+	gcs->error("case %s not found", gcs->exp->toChars());
+
+     Lfoundcase:
+	;
     }
 
     if (!sc->sw->sdefault)
@@ -2050,13 +2059,17 @@ int TryCatchStatement::usesEH()
 
 int TryCatchStatement::fallOffEnd()
 {
+    int result = FALSE;
+
+    if (body)
+	result = body->fallOffEnd();
     for (int i = 0; i < catches->dim; i++)
     {   Catch *c;
 
 	c = (Catch *)catches->data[i];
-	c->handler->fallOffEnd();
+	result |= c->handler->fallOffEnd();
     }
-    return body->fallOffEnd();
+    return result;
 }
 
 /******************************** Catch ***************************/

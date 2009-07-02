@@ -1027,6 +1027,8 @@ Lagain:
 
     //printf("DsymbolExp:: '%s' is a symbol\n", toChars());
     //printf("s = '%s', s->kind = '%s'\n", s->toChars(), s->kind());
+    if (!s->isFuncDeclaration())	// functions are checked after overloading
+	checkDeprecated(sc, s);
     s = s->toAlias();
     //printf("s = '%s', s->kind = '%s'\n", s->toChars(), s->kind());
     if (!s->isFuncDeclaration())
@@ -1035,6 +1037,7 @@ Lagain:
     if (sc->func)
 	thiscd = sc->func->parent->isClassDeclaration();
 
+    // This should happen after overload resolution for functions, not before
     if (s->needThis() && hasThis(sc))
     {
 	// Supply an implicit 'this', as in
@@ -1668,11 +1671,13 @@ Expression *NewExp::semantic(Scope *sc)
 	    error("cannot create instance of interface %s", cd->toChars());
 	if (cd->isAbstract())
 	    error("cannot create instance of abstract class %s", cd->toChars());
+	checkDeprecated(sc, cd);
 	f = cd->ctor;
 	if (f)
 	{
 	    assert(f);
 	    f = f->overloadResolve(loc, arguments);
+	    checkDeprecated(sc, f);
 	    member = f->isCtorDeclaration();
 	    assert(member);
 
@@ -1941,6 +1946,11 @@ FuncExp::FuncExp(Loc loc, FuncLiteralDeclaration *fd)
 	: Expression(loc, TOKfunction, sizeof(FuncExp))
 {
     this->fd = fd;
+}
+
+Expression *FuncExp::syntaxCopy()
+{
+    return new FuncExp(loc, (FuncLiteralDeclaration *)fd->syntaxCopy(NULL));
 }
 
 Expression *FuncExp::semantic(Scope *sc)
@@ -2941,6 +2951,7 @@ if (arguments && arguments->dim)
 		sc->callSuper |= CSXany_ctor | CSXsuper_ctor;
 
 		f = f->overloadResolve(loc, arguments);
+		checkDeprecated(sc, f);
 		e1 = new DotVarExp(e1->loc, e1, f);
 		e1 = e1->semantic(sc);
 		t1 = e1->type;
@@ -2974,6 +2985,7 @@ if (arguments && arguments->dim)
 
 	    f = cd->ctor;
 	    f = f->overloadResolve(loc, arguments);
+	    checkDeprecated(sc, f);
 	    e1 = new DotVarExp(e1->loc, e1, f);
 	    e1 = e1->semantic(sc);
 	    t1 = e1->type;

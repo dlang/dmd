@@ -1333,7 +1333,7 @@ void TemplateInstance::semantic(Scope *sc)
     {	Array *a;
 	int i;
 
-	if (sc->scopesym && sc->scopesym->members)
+	if (sc->scopesym && sc->scopesym->members && !sc->scopesym->isTemplateMixin())
 	{
 	    //printf("\t1: adding to %s %s\n", sc->scopesym->kind(), sc->scopesym->toChars());
 	    a = sc->scopesym->members;
@@ -1803,7 +1803,7 @@ void TemplateInstance::toObjFile()
 {   int i;
 
 #if LOG
-    printf("TemplateInstance::toObjFile('%s')\n", toChars());
+    printf("TemplateInstance::toObjFile('%s', this = %p)\n", toChars(), this);
 #endif
     if (members)
     {
@@ -2250,6 +2250,7 @@ void TemplateMixin::toCBuffer(OutBuffer *buf)
 
 void TemplateMixin::toObjFile()
 {
+    //printf("TemplateMixin::toObjFile('%s')\n", toChars());
     TemplateInstance::toObjFile();
 }
 

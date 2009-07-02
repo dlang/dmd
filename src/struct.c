@@ -29,6 +29,7 @@ AggregateDeclaration::AggregateDeclaration(Loc loc, Identifier *id)
     alignsize = 0;		// size of struct for alignment purposes
     structalign = 0;		// struct member alignment in effect
     sizeok = 0;			// size not determined yet
+    isdeprecated = 0;
     inv = NULL;
     aggNew = NULL;
     aggDelete = NULL;
@@ -102,6 +103,10 @@ Type *AggregateDeclaration::getType()
     return type;
 }
 
+int AggregateDeclaration::isDeprecated()
+{
+    return isdeprecated;
+}
 
 /****************************
  * Do byte or word alignment as necessary.

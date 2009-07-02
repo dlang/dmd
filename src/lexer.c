@@ -1367,6 +1367,7 @@ TOK Lexer::number(Token *t)
 		    case 'x':
 			state = STATE_hex0;
 			break;
+
 		    case '.':
 			if (p[1] == '.')	// .. is a separate token
 			    goto done;
@@ -1728,6 +1729,7 @@ Lnext:
     {
 	// Get next char from input
 	c = *p++;
+	//printf("dblstate = %d, c = '%c'\n", dblstate, c);
 	while (1)
 	{
 	    switch (dblstate)
@@ -1735,6 +1737,8 @@ Lnext:
 		case 0:			// opening state
 		    if (c == '0')
 			dblstate = 9;
+		    else if (c == '.')
+			dblstate = 3;
 		    else
 			dblstate = 1;
 		    break;
@@ -1804,7 +1808,7 @@ done:
     {
 	case 'F':
 	case 'f':
-#if __GNUC__
+#if 0
 	    t->float80value = strtod((char *)stringbuffer.data, NULL);
 #else
 	    t->float80value = strtof((char *)stringbuffer.data, NULL);
@@ -1848,10 +1852,8 @@ done:
 #if _WIN32 && __DMC__
     __locale_decpoint = save;
 #endif
-#if !__GNUC__
     if (errno == ERANGE)
 	error("number is not representable");
-#endif
     return result;
 }
 
@@ -2034,6 +2036,8 @@ static Keyword keywords[] =
     {	"uint",		TOKuns32	},
     {	"long",		TOKint64	},
     {	"ulong",	TOKuns64	},
+    {	"cent",		TOKcent,	},
+    {	"ucent",	TOKucent,	},
     {	"float",	TOKfloat32	},
     {	"double",	TOKfloat64	},
     {	"real",		TOKfloat80	},

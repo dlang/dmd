@@ -116,6 +116,7 @@ void VersionCondition::addGlobalIdent(char *ident)
 	"Windows", "Win32", "Win64",
 	"linux",
 	"LittleEndian", "BigEndian",
+	"all",
 	"none",
     };
 

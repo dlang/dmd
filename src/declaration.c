@@ -198,6 +198,8 @@ void AliasDeclaration::semantic(Scope *sc)
     }
     this->inSemantic = 1;
 
+    storage_class |= sc->stc & STCdeprecated;
+
     // Given:
     //	alias foo.bar.abc def;
     // it is not knowable from the syntax whether this is an alias

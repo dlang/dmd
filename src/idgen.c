@@ -162,6 +162,7 @@ Msgtable msgtable[] =
     { "apply", "opApply" },
 
     // For pragma's
+    { "lib" },
     { "msg" },
 
     // For toHash

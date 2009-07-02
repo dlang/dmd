@@ -528,6 +528,23 @@ dt_t **SymOffExp::toDt(dt_t **pdt)
     return dtxoff(pdt, s, offset, TYnptr);
 }
 
+dt_t **VarExp::toDt(dt_t **pdt)
+{
+    //printf("VarExp::toDt() %d\n", op);
+    VarDeclaration *v = var->isVarDeclaration();
+    if (v && v->isConst() && type->toBasetype()->ty != Tsarray && v->init)
+    {	dt_t **pdtend;
+
+	for (pdtend = pdt; *pdtend; pdtend = &((*pdtend)->DTnext))
+	    ;
+	*pdtend = v->init->toDt();
+	return pdt;
+    }
+    error("non-constant expression %s", toChars());
+    pdt = dtnzeros(pdt, 1);
+    return pdt;
+}
+
 /* ================================================================= */
 
 // Generate the data for the static initializer.

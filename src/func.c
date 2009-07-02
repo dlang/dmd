@@ -63,6 +63,7 @@ Dsymbol *FuncDeclaration::syntaxCopy(Dsymbol *s)
 {
     FuncDeclaration *f;
 
+    //printf("FuncDeclaration::syntaxCopy('%s')\n", toChars());
     if (s)
 	f = (FuncDeclaration *)s;
     else
@@ -109,6 +110,8 @@ void FuncDeclaration::semantic(Scope *sc)
     if (isConst() || isAuto())
 	error("functions cannot be const or auto");
 
+    if (isAbstract() && !isVirtual())
+	error("non-virtual functions cannot be abstract");
 #if 0
     if (isAbstract() && fbody)
 	error("abstract functions cannot have bodies");
@@ -587,7 +590,9 @@ void FuncDeclaration::semantic3(Scope *sc)
 		ClassDeclaration *cd = isClassMember();
 		//printf("callSuper = x%x\n", sc2->callSuper);
 
-		if (!(sc2->callSuper & CSXany_ctor) &&
+		assert(cd || global.errors);
+
+		if (cd && !(sc2->callSuper & CSXany_ctor) &&
 		    cd->baseClass && cd->baseClass->ctor)
 		{
 		    sc2->callSuper = 0;
@@ -1181,6 +1186,8 @@ int FuncDeclaration::needThis()
     //printf("FuncDeclaration::needThis() '%s'\n", toChars());
     int i = isThis() != NULL;
     //printf("\t%d\n", i);
+    if (!i && isFuncAliasDeclaration())
+	i = ((FuncAliasDeclaration *)this)->funcalias->needThis();
     return i;
 }
 
@@ -1259,6 +1266,11 @@ FuncAliasDeclaration::FuncAliasDeclaration(FuncDeclaration *funcalias)
     this->funcalias = funcalias;
 }
 
+char *FuncAliasDeclaration::kind()
+{
+    return "function alias";
+}
+
 
 /****************************** FuncLiteralDeclaration ************************/
 
@@ -1277,6 +1289,20 @@ FuncLiteralDeclaration::FuncLiteralDeclaration(Loc loc, Loc endloc, Type *type,
     this->ident = Identifier::generateId(id);
     this->tok = tok;
     this->fes = fes;
+    //printf("FuncLiteralDeclaration() id = '%s', type = '%s'\n", this->ident->toChars(), type->toChars());
+}
+
+Dsymbol *FuncLiteralDeclaration::syntaxCopy(Dsymbol *s)
+{
+    FuncLiteralDeclaration *f;
+
+    //printf("FuncLiteralDeclaration::syntaxCopy('%s')\n", toChars());
+    if (s)
+	f = (FuncLiteralDeclaration *)s;
+    else
+	f = new FuncLiteralDeclaration(loc, endloc, type->syntaxCopy(), tok, fes);
+    FuncDeclaration::syntaxCopy(f);
+    return f;
 }
 
 int FuncLiteralDeclaration::isNested()

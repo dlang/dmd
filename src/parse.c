@@ -3202,8 +3202,10 @@ int Parser::isParameters(Token **pt)
     Token *t = *pt;
     int tmp;
 
+    //printf("isParameters()\n");
     if (t->value != TOKlparen)
 	return FALSE;
+
     t = peek(t);
     while (1)
     {
@@ -3226,6 +3228,12 @@ int Parser::isParameters(Token **pt)
 		tmp = FALSE;
 		if (!isDeclarator(&t, &tmp, TOKreserved))
 		    return FALSE;
+		if (t->value == TOKassign)
+		{   t = peek(t);
+		    if (!isExpression(&t))
+			return FALSE;
+		    continue;
+		}
 		if (t->value == TOKcomma)
 		{   t = peek(t);
 		    continue;
@@ -3260,6 +3268,12 @@ int Parser::isExpression(Token **pt)
 
 	    case TOKrbracket:
 		if (--nest >= 0)
+		    continue;
+		break;
+
+	    case TOKcomma:
+	    case TOKrparen:
+		if (nest)
 		    continue;
 		break;
 
