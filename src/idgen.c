@@ -52,6 +52,7 @@ Msgtable msgtable[] =
     { "result", "__result" },
     { "returnLabel", "__returnLabel" },
     { "delegate" },
+    { "line" },
 
     { "nan" },
     { "infinity" },
@@ -121,6 +122,9 @@ Msgtable msgtable[] =
     { "catass" },
     { "postinc" },
     { "postdec" },
+
+    { "classNew", "new" },
+    { "classDelete", "delete" },
 };
 
 

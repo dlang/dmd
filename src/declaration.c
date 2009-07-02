@@ -58,7 +58,22 @@ int Declaration::isUnitTest()
     return FALSE;
 }
 
+int Declaration::isNew()
+{
+    return FALSE;
+}
+
+int Declaration::isDelete()
+{
+    return FALSE;
+}
+
 int Declaration::isDataseg()
+{
+    return FALSE;
+}
+
+int Declaration::isCodeseg()
 {
     return FALSE;
 }

@@ -99,8 +99,6 @@ void FuncDeclaration::semantic(Scope *sc)
     sd = dynamic_cast<StructDeclaration *>(parent);
     if (sd)
     {
-	InvariantDeclaration *inv;
-
 	// Verify no constructors, destructors, etc.
 	if (isConstructor() ||
 	    dynamic_cast<DtorDeclaration *>(this) ||
@@ -111,10 +109,24 @@ void FuncDeclaration::semantic(Scope *sc)
 	    error("special member functions not allowed for %ss", sd->kind());
 	}
 
+	InvariantDeclaration *inv;
 	inv = dynamic_cast<InvariantDeclaration *>(this);
 	if (inv)
 	{
 	    sd->inv = inv;
+	}
+
+	if (isNew())
+	{
+	    if (!sd->aggNew)
+		sd->aggNew = (NewDeclaration *)(this);
+	}
+
+	if (isDelete())
+	{
+	    if (sd->aggDelete)
+		error("multiple delete's for struct %s", sd->toChars());
+	    sd->aggDelete = (DeleteDeclaration *)(this);
 	}
     }
 
@@ -126,7 +138,7 @@ void FuncDeclaration::semantic(Scope *sc)
 	if (isConstructor() ||
 	    dynamic_cast<DtorDeclaration *>(this) ||
 	    dynamic_cast<InvariantDeclaration *>(this) ||
-	    isUnitTest())
+	    isUnitTest() || isNew() || isDelete())
 	    error("special function not allowed in interface %s", id->toChars());
 	if (fbody)
 	    error("function body is not abstract in interface %s", id->toChars());
@@ -150,6 +162,8 @@ void FuncDeclaration::semantic(Scope *sc)
 	dtor = dynamic_cast<DtorDeclaration *>(this);
 	if (dtor)
 	{
+	    if (cd->dtor)
+		error("multiple destructors for class %s", cd->toChars());
 	    cd->dtor = dtor;
 	}
 
@@ -157,6 +171,19 @@ void FuncDeclaration::semantic(Scope *sc)
 	if (inv)
 	{
 	    cd->inv = inv;
+	}
+
+	if (isNew())
+	{
+	    if (!cd->aggNew)
+		cd->aggNew = (NewDeclaration *)(this);
+	}
+
+	if (isDelete())
+	{
+	    if (cd->aggDelete)
+		error("multiple delete's for class %s", cd->toChars());
+	    cd->aggDelete = (DeleteDeclaration *)(this);
 	}
 
 	// if static function, do not put in vtbl[]
@@ -302,6 +329,12 @@ void FuncDeclaration::semantic3(Scope *sc)
 
 	if (fensure || addPostInvariant())
 	{
+	    ScopeDsymbol *sym;
+
+	    sym = new ScopeDsymbol();
+	    sym->parent = sc2->scopesym;
+	    sc2 = sc2->push(sym);
+
 	    if (type->next->ty == Tvoid)
 	    {
 		if (outId)
@@ -347,12 +380,8 @@ void FuncDeclaration::semantic3(Scope *sc)
 	    // Postcondition invariant
 	    if (addPostInvariant())
 	    {
-#if 1
 		ThisExp *v = new ThisExp(0);
 		v->type = vthis->type;
-#else
-		VarExp *v = new VarExp(0, vthis);
-#endif
 		AssertExp *e = new AssertExp(0, v);
 		ExpStatement *s = new ExpStatement(0, e);
 		if (fensure)
@@ -367,6 +396,7 @@ void FuncDeclaration::semantic3(Scope *sc)
 		ls->isReturnLabel = 1;
 		returnLabel->statement = ls;
 	    }
+	    sc2 = sc2->pop();
 	}
 
 	sc2->incontract--;
@@ -733,6 +763,11 @@ int FuncDeclaration::isAbstract()
     return storage_class & STCabstract;
 }
 
+int FuncDeclaration::isCodeseg()
+{
+    return TRUE;		// functions are always in the code segment
+}
+
 int FuncDeclaration::needThis()
 {
     return !isStatic() && dynamic_cast<AggregateDeclaration *>(parent);
@@ -915,8 +950,11 @@ DtorDeclaration::DtorDeclaration(Loc loc, Loc endloc)
 
 Dsymbol *DtorDeclaration::syntaxCopy(Dsymbol *s)
 {
-    assert(0);	// BUG: implement
-    return NULL;
+    DtorDeclaration *dd;
+
+    assert(!s);
+    dd = new DtorDeclaration(loc, endloc);
+    return FuncDeclaration::syntaxCopy(dd);
 }
 
 
@@ -954,8 +992,11 @@ StaticCtorDeclaration::StaticCtorDeclaration(Loc loc, Loc endloc)
 
 Dsymbol *StaticCtorDeclaration::syntaxCopy(Dsymbol *s)
 {
-    assert(0);	// BUG: implement
-    return NULL;
+    StaticCtorDeclaration *scd;
+
+    assert(!s);
+    scd = new StaticCtorDeclaration(loc, endloc);
+    return FuncDeclaration::syntaxCopy(scd);
 }
 
 
@@ -1012,8 +1053,11 @@ StaticDtorDeclaration::StaticDtorDeclaration(Loc loc, Loc endloc)
 
 Dsymbol *StaticDtorDeclaration::syntaxCopy(Dsymbol *s)
 {
-    assert(0);	// BUG: implement
-    return NULL;
+    StaticDtorDeclaration *sdd;
+
+    assert(!s);
+    sdd = new StaticDtorDeclaration(loc, endloc);
+    return FuncDeclaration::syntaxCopy(sdd);
 }
 
 
@@ -1136,8 +1180,11 @@ UnitTestDeclaration::UnitTestDeclaration(Loc loc, Loc endloc)
 
 Dsymbol *UnitTestDeclaration::syntaxCopy(Dsymbol *s)
 {
-    assert(0);	// BUG: implement
-    return NULL;
+    UnitTestDeclaration *utd;
+
+    assert(!s);
+    utd = new UnitTestDeclaration(loc, endloc);
+    return FuncDeclaration::syntaxCopy(utd);
 }
 
 
@@ -1181,6 +1228,193 @@ int UnitTestDeclaration::addPostInvariant()
 {
     return FALSE;
 }
+
+
+/********************************* NewDeclaration ****************************/
+
+NewDeclaration::NewDeclaration(Loc loc, Loc endloc, Array *arguments, int varargs)
+    : FuncDeclaration(loc, endloc, Id::classNew, STCstatic, NULL)
+{
+    this->arguments = arguments;
+    this->varargs = varargs;
+}
+
+Dsymbol *NewDeclaration::syntaxCopy(Dsymbol *s)
+{
+    NewDeclaration *f;
+
+    f = new NewDeclaration(loc, endloc, NULL, varargs);
+
+    FuncDeclaration::syntaxCopy(f);
+
+    if (arguments)
+    {
+	f->arguments = new Array();
+	f->arguments->setDim(arguments->dim);
+	for (int i = 0; i < arguments->dim; i++)
+	{   Argument *arg;
+	    Argument *a;
+
+	    arg = (Argument *)arguments->data[i];
+	    a = new Argument(arg->type->syntaxCopy(), arg->ident, arg->inout);
+	    f->arguments->data[i] = (void *)a;
+	}
+    }
+
+    return f;
+}
+
+
+void NewDeclaration::semantic(Scope *sc)
+{
+    ClassDeclaration *cd;
+    Type *tret;
+
+    //printf("NewDeclaration::semantic()\n");
+
+    cd = dynamic_cast<ClassDeclaration *>(sc->scopesym);
+    if (!cd && !dynamic_cast<StructDeclaration *>(sc->scopesym))
+    {
+	error("new allocators only are for class or struct definitions");
+    }
+    tret = Type::tvoid->pointerTo();
+    type = new TypeFunction(arguments, tret, varargs, LINKd);
+
+    type = type->semantic(loc, sc);
+
+    // Check that there is at least one argument of type uint
+    TypeFunction *tf = (TypeFunction *)type;
+    if (!tf->arguments || tf->arguments->dim < 1)
+    {
+	error("at least one argument of type uint expected");
+    }
+    else
+    {
+	Argument *a = (Argument *)tf->arguments->data[0];
+	if (!a->type->equals(Type::tuns32))
+	    error("first argument must be type uint, not %s", a->type->toChars());
+    }
+
+    FuncDeclaration::semantic(sc);
+}
+
+char *NewDeclaration::kind()
+{
+    return "allocator";
+}
+
+int NewDeclaration::isNew()
+{
+    return TRUE;
+}
+
+int NewDeclaration::isVirtual()
+{
+    return FALSE;
+}
+
+int NewDeclaration::addPreInvariant()
+{
+    return FALSE;
+}
+
+int NewDeclaration::addPostInvariant()
+{
+    return FALSE;
+}
+
+
+
+/********************************* DeleteDeclaration ****************************/
+
+DeleteDeclaration::DeleteDeclaration(Loc loc, Loc endloc, Array *arguments)
+    : FuncDeclaration(loc, endloc, Id::classDelete, STCstatic, NULL)
+{
+    this->arguments = arguments;
+}
+
+Dsymbol *DeleteDeclaration::syntaxCopy(Dsymbol *s)
+{
+    DeleteDeclaration *f;
+
+    f = new DeleteDeclaration(loc, endloc, NULL);
+
+    FuncDeclaration::syntaxCopy(f);
+
+    if (arguments)
+    {
+	f->arguments = new Array();
+	f->arguments->setDim(arguments->dim);
+	for (int i = 0; i < arguments->dim; i++)
+	{   Argument *arg;
+	    Argument *a;
+
+	    arg = (Argument *)arguments->data[i];
+	    a = new Argument(arg->type->syntaxCopy(), arg->ident, arg->inout);
+	    f->arguments->data[i] = (void *)a;
+	}
+    }
+
+    return f;
+}
+
+
+void DeleteDeclaration::semantic(Scope *sc)
+{
+    ClassDeclaration *cd;
+
+    //printf("DeleteDeclaration::semantic()\n");
+
+    cd = dynamic_cast<ClassDeclaration *>(sc->scopesym);
+    if (!cd && !dynamic_cast<StructDeclaration *>(sc->scopesym))
+    {
+	error("new allocators only are for class or struct definitions");
+    }
+    type = new TypeFunction(arguments, Type::tvoid, 0, LINKd);
+
+    type = type->semantic(loc, sc);
+
+    // Check that there is only one argument of type void*
+    TypeFunction *tf = (TypeFunction *)type;
+    if (!tf->arguments || tf->arguments->dim != 1)
+    {
+	error("one argument of type void* expected");
+    }
+    else
+    {
+	Argument *a = (Argument *)tf->arguments->data[0];
+	if (!a->type->equals(Type::tvoid->pointerTo()))
+	    error("one argument of type void* expected, not %s", a->type->toChars());
+    }
+
+    FuncDeclaration::semantic(sc);
+}
+
+char *DeleteDeclaration::kind()
+{
+    return "deallocator";
+}
+
+int DeleteDeclaration::isDelete()
+{
+    return TRUE;
+}
+
+int DeleteDeclaration::isVirtual()
+{
+    return FALSE;
+}
+
+int DeleteDeclaration::addPreInvariant()
+{
+    return FALSE;
+}
+
+int DeleteDeclaration::addPostInvariant()
+{
+    return FALSE;
+}
+
 
 
 

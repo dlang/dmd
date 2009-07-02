@@ -77,7 +77,8 @@ void EnumDeclaration::semantic(Scope *sc)
 	    em->addMember(this);
 	e = em->value;
 	if (e)
-	{   e = e->semantic(sc);
+	{
+	    e = e->semantic(sc);
 	    e = e->implicitCastTo(memtype);
 	    e = e->optimize(WANTvalue);
 	    number = e->toInteger();

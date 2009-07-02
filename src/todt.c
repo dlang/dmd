@@ -514,10 +514,10 @@ void ClassDeclaration::toDt2(dt_t **pdt, ClassDeclaration *cd)
 	dt = NULL;
 	init = v->init;
 	if (init)
-	{   //printf("\t\thas initializer %s\n", init->toChars());
+	{   //printf("\t\t%s has initializer %s\n", v->toChars(), init->toChars());
 	    dt = init->toDt();
 	}
-	else
+	else if (v->offset >= offset)
 	    v->type->toDt(&dt);
 	if (dt)
 	{

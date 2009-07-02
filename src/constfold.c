@@ -67,6 +67,7 @@ complex_t Complex_mul(complex_t x, complex_t y)
 
 int Expression::isConst()
 {
+    //printf("Expression::isConst(): %s\n", toChars());
     return FALSE;
 }
 
@@ -333,6 +334,7 @@ Expression *ModExp::constFold()
 
 Expression *ShlExp::constFold()
 {
+    //printf("ShlExp::constFold(%s)\n", toChars());
     e1 = e1->constFold();
     e2 = e2->constFold();
     return new IntegerExp(loc, e1->toInteger() << e2->toInteger(), type);

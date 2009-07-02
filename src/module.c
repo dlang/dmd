@@ -144,10 +144,45 @@ void Module::read()
     srcfile->readv();
 }
 
+inline unsigned readwordLE(unsigned short *p)
+{
+#if __I86__
+    return *p;
+#else
+    return (((unsigned char *)p)[1] << 8) | ((unsigned char *)p)[0];
+#endif
+}
+
+inline unsigned readwordBE(unsigned short *p)
+{
+    return (((unsigned char *)p)[0] << 8) | ((unsigned char *)p)[1];
+}
+
+inline unsigned readlongLE(unsigned *p)
+{
+#if __I86__
+    return *p;
+#else
+    return ((unsigned char *)p)[0] |
+	(((unsigned char *)p)[1] << 8) |
+	(((unsigned char *)p)[2] << 16) |
+	(((unsigned char *)p)[3] << 24));
+#endif
+}
+
+inline unsigned readlongBE(unsigned *p)
+{
+    return ((unsigned char *)p)[3] |
+	(((unsigned char *)p)[2] << 8) |
+	(((unsigned char *)p)[1] << 16) |
+	(((unsigned char *)p)[0] << 24);
+}
+
 void Module::parse()
 {   char *srcname;
     unsigned char *buf;
     unsigned buflen;
+    unsigned le;
 
     //printf("Module::parse()\n");
 
@@ -159,63 +194,120 @@ void Module::parse()
 
     if (buflen >= 2)
     {
+	/* Convert all non-UTF-8 formats to UTF-8.
+	 * BOM : http://www.unicode.org/faq/utf_bom.html
+	 * 00 00 FE FF	UTF-32BE, big-endian
+	 * FF FE 00 00	UTF-32LE, little-endian
+	 * FE FF	UTF-16BE, big-endian
+	 * FF FE	UTF-16LE, little-endian
+	 * EF BB BF	UTF-8
+	 */
+
 	if (buf[0] == 0xFF && buf[1] == 0xFE)
-	{   // Unicode little endian (X86)
-	    // Convert it to ascii, replacing wide characters with \uXXXX
+	{
+	    if (buflen >= 4 && buf[2] == 0 && buf[3] == 0)
+	    {	// UTF-32LE
+		le = 1;
 
-	    OutBuffer *dbuf = new OutBuffer();
-	    unsigned short *pu = (unsigned short *)(buf);
-	    unsigned short *pumax = (unsigned short *)(buf + buflen);
+	    Lutf32:
+		OutBuffer dbuf;
+		unsigned *pu = (unsigned *)(buf);
+		unsigned *pumax = &pu[buflen / 4];
 
-	    if (buflen & 1)
-	    {	error("odd length of wide char source %u", buflen);
-		fatal();
-	    }
-
-	    dbuf->reserve(buflen / 2);
-	    while (++pu < pumax)
-	    {	unsigned u = *pu;
-
-		if (u & ~0xFF)
-		{
-		    // Write as "\uXXXX"
-		    dbuf->printf("\\u%04x", u);		// not too efficent
+		if (buflen & 3)
+		{   error("odd length of UTF-32 char source %u", buflen);
+		    fatal();
 		}
-		else
-		    dbuf->writeByte(u);
+
+		dbuf.reserve(buflen / 4);
+		while (++pu < pumax)
+		{   unsigned u;
+
+		    u = le ? readlongLE(pu) : readlongBE(pu);
+		    if (u & ~0x7F)
+		    {
+			if (u > 0x10FFFF)
+			{   error("UTF-32 value %08x greater than 0x10FFFF", u);
+			    fatal();
+			}
+			dbuf.writeUTF8(u);
+		    }
+		    else
+			dbuf.writeByte(u);
+		}
+		dbuf.writeByte(0);		// add 0 as sentinel for scanner
+		buflen = dbuf.offset - 1;	// don't include sentinel in count
+		buf = dbuf.extractData();
 	    }
-	    dbuf->writeByte(0);
-	    buf = dbuf->data;
-	    buflen = dbuf->offset - 1;
+	    else
+	    {   // UTF-16LE (X86)
+		// Convert it to UTF-8
+		le = 1;
+
+	    Lutf16:
+		OutBuffer dbuf;
+		unsigned short *pu = (unsigned short *)(buf);
+		unsigned short *pumax = &pu[buflen / 2];
+
+		if (buflen & 1)
+		{   error("odd length of UTF-16 char source %u", buflen);
+		    fatal();
+		}
+
+		dbuf.reserve(buflen / 2);
+		while (++pu < pumax)
+		{   unsigned u;
+
+		    u = le ? readwordLE(pu) : readwordBE(pu);
+		    if (u & ~0x7F)
+		    {	if (u >= 0xD800 && u <= 0xDBFF)
+			{   unsigned u2;
+
+			    if (++pu > pumax)
+			    {   error("surrogate UTF-16 high value %04x at EOF", u);
+				fatal();
+			    }
+			    u2 = le ? readwordLE(pu) : readwordBE(pu);
+			    if (u2 < 0xDC00 || u2 > 0xDFFF)
+			    {   error("surrogate UTF-16 low value %04x out of range", u2);
+				fatal();
+			    }
+			    u = (u - 0xD7C0) << 10;
+			    u |= (u2 - 0xDC00);
+			}
+			else if (u >= 0xDC00 && u <= 0xDFFF)
+			{   error("unpaired surrogate UTF-16 value %04x", u);
+			    fatal();
+			}
+			else if (u == 0xFFFE || u == 0xFFFF)
+			{   error("illegal UTF-16 value %04x", u);
+			    fatal();
+			}
+			dbuf.writeUTF8(u);
+		    }
+		    else
+			dbuf.writeByte(u);
+		}
+		dbuf.writeByte(0);		// add 0 as sentinel for scanner
+		buflen = dbuf.offset - 1;	// don't include sentinel in count
+		buf = dbuf.extractData();
+	    }
 	}
 	else if (buf[0] == 0xFE && buf[1] == 0xFF)
-	{   // Unicode big endian
-	    // Convert it to ascii, replacing wide characters with \uXXXX
+	{   // UTF-16BE
+	    le = 0;
+	    goto Lutf16;
+	}
+	else if (buflen >= 4 && buf[0] == 0 && buf[1] == 0 && buf[2] == 0xFE && buf[3] == 0xFF)
+	{   // UTF-32BE
+	    le = 0;
+	    goto Lutf32;
+	}
+	else if (buflen >= 3 && buf[0] == 0xEF && buf[1] == 0xBB && buf[0] == 0xBF)
+	{   // UTF-8
 
-	    OutBuffer *dbuf = new OutBuffer();
-	    unsigned short *pu = (unsigned short *)(buf);
-	    unsigned short *pumax = (unsigned short *)(buf + buflen);
-
-	    if (buflen & 1)
-	    {	error("odd length of wide char source %u", buflen);
-		fatal();
-	    }
-
-	    dbuf->reserve(buflen / 2);
-	    while (++pu < pumax)
-	    {	unsigned u = *pu;
-
-		if (u & 0xFF)
-		{
-		    // Write as "\uXXXX"
-		    dbuf->printf("\\u%02x%02", u & 0xFF, u >> 8); // not too efficent
-		}
-		else
-		    dbuf->writeByte(u >> 8);
-	    }
-	    dbuf->writeByte(0);
-	    buf = dbuf->data;
-	    buflen = dbuf->offset - 1;
+	    buf += 3;
+	    buflen -= 3;
 	}
     }
 

@@ -93,22 +93,22 @@ char *FuncDeclaration::mangle()
 
 char *StructDeclaration::mangle()
 {
-    OutBuffer buf;
     char *id;
-    Dsymbol *s;
 
-    s = this;
-    while (1)
+    //printf("StructDeclaration::mangle() '%s'\n", toChars());
+    if (parent)
     {
-	buf.prependstring(s->ident ? s->ident->toChars() : s->toChars());
-	s = s->parent;
-	if (!s)
-	    break;
-	buf.prependstring("_");
-    }
+	OutBuffer buf;
 
-    id = buf.toChars();
-    buf.data = NULL;
+	//printf("  parent = '%s', kind = '%s'\n", parent->mangle(), parent->kind());
+	buf.writestring(parent->mangle());
+	buf.writestring("_");
+	buf.writestring(ident ? ident->toChars() : toChars());
+	id = buf.toChars();
+	buf.data = NULL;
+    }
+    else
+	id = ident ? ident->toChars() : toChars();
     return id;
 }
 
@@ -131,6 +131,26 @@ char *ClassDeclaration::mangle()
 
     id = buf.toChars();
     buf.data = NULL;
+    return id;
+}
+
+
+char *TemplateInstance::mangle()
+{
+    char *id;
+
+    if (parent)
+    {
+	OutBuffer buf;
+
+	buf.writestring(parent->mangle());
+	buf.writestring("_");
+	buf.writestring(ident ? ident->toChars() : toChars());
+	id = buf.toChars();
+	buf.data = NULL;
+    }
+    else
+	id = ident ? ident->toChars() : toChars();
     return id;
 }
 

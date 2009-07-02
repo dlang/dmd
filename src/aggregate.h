@@ -20,6 +20,8 @@ struct FuncDeclaration;
 struct CtorDeclaration;
 struct DtorDeclaration;
 struct InvariantDeclaration;
+struct NewDeclaration;
+struct DeleteDeclaration;
 struct InterfaceDeclaration;
 struct ClassInfoDeclaration;
 struct dt_t;
@@ -34,7 +36,12 @@ struct AggregateDeclaration : ScopeDsymbol
     unsigned structalign;	// struct member alignment in effect
     Array fields;		// VarDeclaration fields
     unsigned sizeok;		// set when structsize contains valid data
-    InvariantDeclaration *inv;	// aggregate invariant
+
+    // Special member functions
+    InvariantDeclaration *inv;		// invariant
+    NewDeclaration *aggNew;		// allocator
+    DeleteDeclaration *aggDelete;	// deallocator
+
 
     AggregateDeclaration(Identifier *id);
     void semantic2(Scope *sc);
@@ -93,7 +100,7 @@ struct BaseClass
     int fillVtbl(ClassDeclaration *cd, Array *vtbl, int newinstance);
 };
 
-#define CLASSINFO_SIZE 	0x38		// value of ClassInfo.size
+#define CLASSINFO_SIZE 	0x3C		// value of ClassInfo.size
 
 struct ClassDeclaration : AggregateDeclaration
 {

@@ -1632,11 +1632,11 @@ int TypePointer::implicitConvTo(Type *to)
     //printf("TypePointer::implicitConvTo()\n");
 
     if (this == to)
-	return 2;
-    if (to->next)
+	return MATCHexact;
+    if (to->ty == Tpointer && to->next)
     {
 	if (to->next->ty == Tvoid)
-	    return 1;
+	    return MATCHconvert;
 #if 0
 	if (next->ty == Tclass && to->next->ty == Tclass)
 	{   ClassDeclaration *cd;
@@ -1654,10 +1654,10 @@ int TypePointer::implicitConvTo(Type *to)
 
 	    tf   = dynamic_cast<TypeFunction *>(next);
 	    tfto = dynamic_cast<TypeFunction *>(to->next);
-	    return tfto->equals(tf) ? 2 : 0;
+	    return tfto->equals(tf) ? MATCHexact : MATCHnomatch;
 	}
     }
-    return 0;
+    return MATCHnomatch;
 }
 
 int TypePointer::isscalar()
@@ -2200,6 +2200,16 @@ void TypeInstance::addIdent(Identifier *ident)
     idents.push(ident);
 }
 
+#if 0
+void TypeInstance::toDecoBuffer(OutBuffer *buf)
+{
+    printf("TypeInstance::toDecoBuffer()\n");
+    buf->writeByte(mangleChar[ty]);
+    if (next)
+	next->toDecoBuffer(buf);
+}
+#endif
+
 void TypeInstance::toCBuffer2(OutBuffer *buf, Identifier *ident)
 {
     int i;
@@ -2657,20 +2667,11 @@ unsigned TypeStruct::alignsize()
 
 void TypeStruct::toDecoBuffer(OutBuffer *buf)
 {   unsigned len;
-    OutBuffer buf2;
-    Dsymbol *s;
+    char *p;
 
-    s = sym;
-    do
-    {
-	if (buf2.offset)
-	    buf2.prependstring("_");
-	buf2.prependstring(s->toChars());
-	s = s->parent;
-    } while (s);
-    len = buf2.offset;
-    buf2.writeByte(0);
-    buf->printf("%c%d%s", mangleChar[ty], len, buf2.data);
+    p = sym->mangle();
+    len = strlen(p);
+    buf->printf("%c%d%s", mangleChar[ty], len, p);
 }
 
 void TypeStruct::toTypeInfoBuffer(OutBuffer *buf)
@@ -2792,7 +2793,6 @@ TypeClass::TypeClass(ClassDeclaration *sym)
 
 char *TypeClass::toChars()
 {
-printf("sym->parent = '%s'\n", sym->parent->toChars());
     return sym->toChars();
 }
 
@@ -2810,7 +2810,6 @@ void TypeClass::toDecoBuffer(OutBuffer *buf)
 {   unsigned len;
     char *name;
 
-    //name = sym->toChars();
     name = sym->mangle();
     len = strlen(name);
     buf->printf("%c%d%s", mangleChar[ty], len, name);

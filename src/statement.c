@@ -1086,16 +1086,25 @@ Statement *WithStatement::semantic(Scope *sc)
     Initializer *init;
 
     exp = exp->semantic(sc);
-    if (!exp->type->isClassHandle())
-    {	error("with expressions must be class objects, not '%s'", exp->type->toChars());
-	return NULL;
-    }
-    init = new ExpInitializer(loc, exp);
-    wthis = new VarDeclaration(loc, exp->type, Id::withSym, init);
-    wthis->semantic(sc);
+    if (exp->op == TOKimport)
+    {	ScopeExp *es = (ScopeExp *)exp;
 
-    sym = new WithScopeSymbol(this);
-    sym->parent = sc->scopesym;
+	sym = es->sds;
+    }
+    else
+    {
+	assert(exp->type);
+	if (!exp->type->isClassHandle())
+	{   error("with expressions must be class objects, not '%s'", exp->type->toChars());
+	    return NULL;
+	}
+	init = new ExpInitializer(loc, exp);
+	wthis = new VarDeclaration(loc, exp->type, Id::withSym, init);
+	wthis->semantic(sc);
+
+	sym = new WithScopeSymbol(this);
+	sym->parent = sc->scopesym;
+    }
     sc = sc->push(sym);
 
     body = body->semantic(sc);

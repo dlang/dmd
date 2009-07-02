@@ -57,7 +57,10 @@ struct Declaration : Dsymbol
     virtual int isStaticConstructor();
     virtual int isStaticDestructor();
     virtual int isUnitTest();
+    virtual int isNew();
+    virtual int isDelete();
     virtual int isDataseg();
+    virtual int isCodeseg();
     int isFinal() { return storage_class & STCfinal; }
     int isAbstract() { return storage_class & STCabstract; }
     int isConst() { return storage_class & STCconst; }
@@ -225,6 +228,7 @@ struct FuncDeclaration : Declaration
     int isExport();
     int isImport();
     int isAbstract();
+    int isCodeseg();
     int needThis();
     virtual int isVirtual();
     virtual int addPreInvariant();
@@ -307,6 +311,34 @@ struct UnitTestDeclaration : FuncDeclaration
     void semantic(Scope *sc);
     AggregateDeclaration *isThis();
     int isUnitTest();
+    int isVirtual();
+    int addPreInvariant();
+    int addPostInvariant();
+};
+
+struct NewDeclaration : FuncDeclaration
+{   Array *arguments;
+    int varargs;
+
+    NewDeclaration(Loc loc, Loc endloc, Array *arguments, int varargs);
+    Dsymbol *syntaxCopy(Dsymbol *);
+    void semantic(Scope *sc);
+    char *kind();
+    int isNew();
+    int isVirtual();
+    int addPreInvariant();
+    int addPostInvariant();
+};
+
+
+struct DeleteDeclaration : FuncDeclaration
+{   Array *arguments;
+
+    DeleteDeclaration(Loc loc, Loc endloc, Array *arguments);
+    Dsymbol *syntaxCopy(Dsymbol *);
+    void semantic(Scope *sc);
+    char *kind();
+    int isDelete();
     int isVirtual();
     int addPreInvariant();
     int addPostInvariant();

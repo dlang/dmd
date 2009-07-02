@@ -18,6 +18,7 @@ struct TemplateInstance;
 struct TemplateParameter;
 struct Type;
 struct Scope;
+struct Expression;
 enum MATCH;
 
 struct TemplateDeclaration : ScopeDsymbol
@@ -43,19 +44,37 @@ struct TemplateDeclaration : ScopeDsymbol
 
 struct TemplateParameter
 {
-    Identifier *ident;
-    Type *type;
+    /* For type-parameter:
+     *	template Foo(ident)		// specType is set to NULL
+     *	template Foo(ident : specType)
+     * For value-parameter:
+     *	template Foo(valType ident)	// specValue is set to NULL
+     *	template Foo(valType ident : specValue)
+     */
 
-    TemplateParameter(Identifier *ident, Type *type);
+    Identifier *ident;
+
+    /* if valType!=NULL
+     *	it's a value-parameter
+     * else
+     *	it's a type-parameter
+     */
+
+    Type *specType;	// type parameter: if !=NULL, this is the type specialization
+
+    Type *valType;
+    Expression *specValue;
+
+    TemplateParameter(Identifier *ident, Type *specType, Type *valType, Expression *specValue);
 };
 
 struct TemplateInstance : ScopeDsymbol
 {
     /* Given:
-     *	instance foo.bar.abc(int, char)
+     *	instance foo.bar.abc(int, char, 10)
      */
     Array idents;		// Array of Identifiers [foo, bar, abc]
-    Array tiargs;		// Array of Types of template instance arguments [int, char]
+    Array tiargs;		// Array of Types/Expressions of template instance arguments [int, char, 10]
 
     TemplateDeclaration *tempdecl;	// referenced by foo.bar.abc
     TemplateInstance *inst;		// refer to existing instance
@@ -73,6 +92,7 @@ struct TemplateInstance : ScopeDsymbol
     Dsymbol *toAlias();			// resolve real symbol
     char *kind();
     char *toChars();
+    char *mangle();
 
     void toObjFile();			// compile to .obj file
 };

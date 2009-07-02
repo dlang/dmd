@@ -213,6 +213,13 @@ void ClassDeclaration::semantic(Scope *sc)
 	ctor->semantic(sc);
     }
 
+    if (baseClass)
+    {	if (!aggDelete)
+	    aggDelete = baseClass->aggDelete;
+	if (!aggNew)
+	    aggNew = baseClass->aggNew;
+    }
+
     // Allocate instance of each new interface
     for (i = 0; i < interfaces_dim; i++)
     {

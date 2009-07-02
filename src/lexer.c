@@ -286,11 +286,14 @@ void Lexer::scan(Token *t)
 		do
 		{
 		    p++;
-		    if (*p == 'u')
-			c = wchar();
+		    if (*p == 'u' || *p == 'U')
+		    {	c = wchar(*p);
+			stringbuffer.writeUTF16(c);
+		    }
 		    else
-			c = escapeSequence();
-		    stringbuffer.writewchar(c);
+		    {	c = escapeSequence();
+			stringbuffer.writewchar(c);
+		    }
 		} while (*p == '\\');
 		t->len = stringbuffer.offset / sizeof(d_wchar);
 		stringbuffer.writewchar(0);
@@ -677,6 +680,11 @@ void Lexer::scan(Token *t)
 
 #undef DOUBLE
 
+	    case '#':
+		p++;
+		pragma();
+		continue;
+
 	    default:
 		if (isprint(*p))
 		    error("unsupported char '%c'", *p);
@@ -718,6 +726,9 @@ unsigned Lexer::escapeSequence()
 
 	case 'u':
 		ndigits = 4;
+		goto Lhex;
+	case 'U':
+		ndigits = 8;
 		goto Lhex;
 	case 'x':
 		ndigits = 2;
@@ -838,8 +849,14 @@ TOK Lexer::escapeStringConstant(Token *t, int wide)
 	switch (c)
 	{
 	    case '\\':
-		if (*p == 'u' && wide)
-		    c = wchar();
+		if (*p == 'u' || *p == 'U')
+		{   c = wchar(*p);
+		    if (wide)
+			stringbuffer.writeUTF16(c);
+		    else
+			stringbuffer.writeUTF8(c);
+		    continue;
+		}
 		else
 		    c = escapeSequence();
 		break;
@@ -900,8 +917,8 @@ TOK Lexer::charConstant(Token *t, int wide)
 		return (ndigits <= 4) ? TOKuns32 : TOKuns64;
 
 	    case '\\':
-		if (*p == 'u' && wide)
-		    c = wchar();
+		if (*p == 'u' || *p == 'U')
+		    c = wchar(*p);
 		else
 		    c = escapeSequence();
 		break;
@@ -929,23 +946,28 @@ TOK Lexer::charConstant(Token *t, int wide)
 }
 
 /***************************************
+ * Read \u or \U unicode sequence
+ * Input:
+ *	u	'u' or 'U'
  */
 
-unsigned Lexer::wchar()
+unsigned Lexer::wchar(unsigned u)
 {
     unsigned value;
     unsigned n;
     unsigned char c;
+    unsigned nchars;
 
+    nchars = (u == 'U') ? 8 : 4;
     value = 0;
     for (n = 0; 1; n++)
     {
 	++p;
-	if (n == 4)
+	if (n == nchars)
 	    break;
 	c = *p;
 	if (!ishex(c))
-	{   error("\\u sequence must be followed by 4 hex characters");
+	{   error("\\%c sequence must be followed by %d hex characters", u, nchars);
 	    break;
 	}
 	if (isdigit(c))
@@ -1378,6 +1400,87 @@ done:
     if (errno == ERANGE)
 	error("number is not representable");
     return result;
+}
+
+/*********************************************
+ * Do pragma.
+ * Currently, the only pragma supported is:
+ *	#line linnum [filespec]
+ */
+
+void Lexer::pragma()
+{
+    Token tok;
+    int linnum;
+    char *filespec = NULL;
+
+    scan(&tok);
+    if (tok.value != TOKidentifier || tok.ident != Id::line)
+	goto Lerr;
+
+    scan(&tok);
+    if (tok.value != TOKint32v)
+	goto Lerr;
+    linnum = tok.uns64value - 1;
+
+    while (1)
+    {
+	switch (*p)
+	{
+	    case 0:
+	    case 0x1A:
+	    case '\n':
+		loc.linnum = linnum;
+		return;
+
+	    case ' ':
+	    case '\t':
+	    case '\v':
+	    case '\f':
+	    case '\r':
+		p++;
+		continue;			// skip white space
+
+	    case '"':
+		if (filespec)
+		    goto Lerr;
+		stringbuffer.reset();
+		p++;
+		while (1)
+		{   unsigned c;
+
+		    c = *p;
+		    switch (c)
+		    {
+			case '\n':
+			case '\r':
+			case 0:
+			case 0x1A:
+			    goto Lerr;
+
+			case '"':
+			    stringbuffer.writeByte(0);
+			    filespec = mem.strdup((char *)stringbuffer.data);
+			    loc.filename = filespec;
+			    p++;
+			    break;
+
+			default:
+			    stringbuffer.writeByte(c);
+			    p++;
+			    continue;
+		    }
+		    break;
+		}
+		continue;
+
+	    default:
+		goto Lerr;
+	}
+    }
+
+Lerr:
+    error("#line integer [\"filespec\"]\\n expected");
 }
 
 /********************************************

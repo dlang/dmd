@@ -528,7 +528,10 @@ Symbol *Module::toModuleAssert()
 	t->Tnext = tsvoid;
 	tsvoid->Tcount++;
 
-	massert = toSymbolX("_assert_", SCglobal, t);
+	massert = toSymbolX("_assert_", SCextern, t);
+	massert->Sfl = FLextern;
+	massert->Sflags |= SFLnodebug;
+	slist_add(massert);
     }
     return massert;
 }
@@ -548,7 +551,10 @@ Symbol *Module::toModuleArray()
 	t->Tnext = tsvoid;
 	tsvoid->Tcount++;
 
-	marray = toSymbolX("_array_", SCglobal, t);
+	marray = toSymbolX("_array_", SCextern, t);
+	marray->Sfl = FLextern;
+	marray->Sflags |= SFLnodebug;
+	slist_add(marray);
     }
     return marray;
 }

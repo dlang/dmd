@@ -29,6 +29,7 @@ Expression *Expression::implicitCastTo(Type *t)
 //t->print();
 //t->next->print();
 
+//*(char*)0=0;
     error("cannot implicitly convert %s to %s", type->toChars(), t->toChars());
     return castTo(t);
 }
@@ -217,8 +218,9 @@ int AddrExp::implicitConvTo(Type *t)
     int result;
 
     result = type->implicitConvTo(t);
+    //printf("\tresult = %d\n", result);
 
-    if (result == 0)
+    if (result == MATCHnomatch)
     {
 	// Look for pointers to functions where the functions are overloaded.
 	VarExp *ve;
@@ -235,12 +237,13 @@ int AddrExp::implicitConvTo(Type *t)
 	    {
 		if (t->next->equals(f->type))
 		{
-		    result = 2;
+		    result = MATCHexact;
 		    break;
 		}
 	    }
 	}
     }
+    //printf("\tresult = %d\n", result);
     return result;
 }
 

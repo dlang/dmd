@@ -1,5 +1,5 @@
 
-// Copyright (c) 1999-2002 by Digital Mars
+// Copyright (c) 1999-2003 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // www.digitalmars.com
@@ -29,9 +29,9 @@ Global::Global()
 {
     mars_ext = "d";
     sym_ext  = "d";
-    copyright = "Copyright (c) 1999-2002 by Digital Mars";
+    copyright = "Copyright (c) 1999-2003 by Digital Mars";
     written = "written by Walter Bright";
-    version = "Beta v0.50";
+    version = "Beta v0.53";
     global.structalign = 8;
 
     memset(&params, 0, sizeof(Param));
@@ -42,15 +42,21 @@ char *Loc::toChars()
     OutBuffer buf;
     char *p;
 
-    if (mod && mod->srcfile)
+    if (filename)
     {
-	buf.printf("%s", mod->srcfile->toChars());
+	buf.printf("%s", filename);
     }
 
     if (linnum)
 	buf.printf("(%d)", linnum);
     buf.writeByte(0);
     return (char *)buf.extractData();
+}
+
+Loc::Loc(Module *mod, unsigned linnum)
+{
+    this->linnum = linnum;
+    this->filename = mod ? mod->srcfile->toChars() : NULL;
 }
 
 /**************************************
@@ -83,6 +89,9 @@ void error(Loc loc, const char *format, ...)
 
 void fatal()
 {
+#if 0
+    *(char *)0 = 0;
+#endif
     exit(EXIT_FAILURE);
 }
 

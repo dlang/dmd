@@ -26,6 +26,8 @@ struct StaticCtorDeclaration;
 struct StaticDtorDeclaration;
 struct InvariantDeclaration;
 struct UnitTestDeclaration;
+struct NewDeclaration;
+struct DeleteDeclaration;
 struct DebugCondition;
 struct VersionCondition;
 struct Module;
@@ -54,6 +56,8 @@ struct Parser : Lexer
     StaticDtorDeclaration *parseStaticDtor();
     InvariantDeclaration *parseInvariant();
     UnitTestDeclaration *parseUnitTest();
+    NewDeclaration *parseNew();
+    DeleteDeclaration *parseDelete();
     Array *parseParameters(int *pvarargs);
     EnumDeclaration *parseEnum();
     AggregateDeclaration *parseAggregate();

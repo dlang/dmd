@@ -76,7 +76,7 @@ char *Dsymbol::locToChars()
     Module *m = getModule();
 
     if (m)
-	loc.mod = m;
+	loc.filename = m->srcfile->toChars();
     return loc.toChars();
 }
 
@@ -199,7 +199,24 @@ int Dsymbol::needThis()
 
 char *Dsymbol::mangle()
 {
-    return Dsymbol::toChars();
+//    return Dsymbol::toChars();
+    char *id;
+
+    //printf("Dsymbol::mangle() '%s'\n", toChars());
+    if (parent)
+    {
+	OutBuffer buf;
+
+	//printf("  parent = '%s', kind = '%s'\n", parent->mangle(), parent->kind());
+	buf.writestring(parent->mangle());
+	buf.writestring("_");
+	buf.writestring(ident ? ident->toChars() : toChars());
+	id = buf.toChars();
+	buf.data = NULL;
+    }
+    else
+	id = ident ? ident->toChars() : toChars();
+    return id;
 }
 
 void Dsymbol::addMember(ScopeDsymbol *sd)
@@ -494,6 +511,10 @@ Dsymbol *DsymbolTable::insert(Dsymbol *s)
 
     //printf("DsymbolTable::insert(this = %p, '%s')\n", this, s->ident->toChars());
     ident = s->ident;
+#ifdef DEBUG
+    assert(ident);
+    assert(tab);
+#endif
     sv = tab->insert(ident->toChars(),strlen(ident->toChars()));
     if (!sv)
 	return NULL;		// already in table

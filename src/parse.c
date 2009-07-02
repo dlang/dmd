@@ -65,7 +65,9 @@ Array *Parser::parseModule()
     {
 	nextToken();
 	if (token.value != TOKidentifier)
-	    error("Identifier expected following module");
+	{   error("Identifier expected following module");
+	    goto Lerr;
+	}
 	else
 	{
 	    Array *a = NULL;
@@ -80,23 +82,31 @@ Array *Parser::parseModule()
 		nextToken();
 		if (token.value != TOKidentifier)
 		{   error("Identifier expected following package");
-		    break;
+		    goto Lerr;
 		}
 		id = token.ident;
 	    }
 
-	    md = new ModuleDeclaration(a, token.ident);
+	    md = new ModuleDeclaration(a, id);
 
 	    if (token.value != TOKsemicolon)
-		error("';' expected");
+		error("';' expected following module declaration instead of %s", token.toChars());
 	    nextToken();
 	}
     }
 
     decldefs = parseDeclDefs(0);
     if (token.value != TOKeof)
-	error("unrecognized declaration");
+    {	error("unrecognized declaration");
+	goto Lerr;
+    }
     return decldefs;
+
+Lerr:
+    while (token.value != TOKsemicolon && token.value != TOKeof)
+	nextToken();
+    nextToken();
+    return new Array();
 }
 
 Array *Parser::parseDeclDefs(int once)
@@ -181,6 +191,14 @@ Array *Parser::parseDeclDefs(int once)
 
 	    case TOKunittest:
 		s = parseUnitTest();
+		break;
+
+	    case TOKnew:
+		s = parseNew();
+		break;
+
+	    case TOKdelete:
+		s = parseDelete();
 		break;
 
 	    case TOKeof:
@@ -613,6 +631,48 @@ UnitTestDeclaration *Parser::parseUnitTest()
     return f;
 }
 
+/*****************************************
+ * Parse a new definition:
+ *	new(arguments) { body }
+ * Current token is 'new'.
+ */
+
+NewDeclaration *Parser::parseNew()
+{
+    NewDeclaration *f;
+    Array *arguments;
+    int varargs;
+    Loc loc = this->loc;
+
+    nextToken();
+    arguments = parseParameters(&varargs);
+    f = new NewDeclaration(loc, 0, arguments, varargs);
+    parseContracts(f);
+    return f;
+}
+
+/*****************************************
+ * Parse a delete definition:
+ *	delete(arguments) { body }
+ * Current token is 'delete'.
+ */
+
+DeleteDeclaration *Parser::parseDelete()
+{
+    DeleteDeclaration *f;
+    Array *arguments;
+    int varargs;
+    Loc loc = this->loc;
+
+    nextToken();
+    arguments = parseParameters(&varargs);
+    if (varargs)
+	error("... not allowed in delete function parameter list");
+    f = new DeleteDeclaration(loc, 0, arguments);
+    parseContracts(f);
+    return f;
+}
+
 /**********************************************
  * Parse parameter list.
  */
@@ -785,6 +845,7 @@ AggregateDeclaration *Parser::parseAggregate()
 		    switch (token.value)
 		    {
 			case TOKidentifier:
+			case TOKinstance:
 			    break;
 			case TOKprivate:
 			    protection = PROTprivate;
@@ -874,23 +935,42 @@ TemplateDeclaration *Parser::parseTemplateDeclaration()
     {
 	while (1)
 	{   TemplateParameter *tp;
-	    Identifier *tp_ident;
-	    Type *tp_type = NULL;
+	    Identifier *tp_ident = NULL;
+	    Type *tp_spectype = NULL;
+	    Type *tp_valtype = NULL;
+	    Expression *tp_specvalue = NULL;
+	    Token *t;
 
 	    // Get TemplateParameter
-	    if (token.value != TOKidentifier)
-	    {   error("Identifier expected for template parameter");
-		goto Lerr;
-	    }
-	    tp_ident = token.ident;
-	    nextToken();
-	    if (token.value == TOKcolon)	// : Type
-	    {
+
+	    // First, look ahead to see if it is a TypeParameter or a ValueParameter
+	    t = peek(&token);
+	    if (t->value == TOKcolon || t->value == TOKcomma || t->value == TOKrparen)
+	    {	// TypeParameter
+		if (token.value != TOKidentifier)
+		{   error("Identifier expected for template parameter");
+		    goto Lerr;
+		}
+		tp_ident = token.ident;
 		nextToken();
-		tp_type = parseBasicType();
-		tp_type = parseDeclarator(tp_type, NULL);
+		if (token.value == TOKcolon)	// : Type
+		{
+		    nextToken();
+		    tp_spectype = parseBasicType();
+		    tp_spectype = parseDeclarator(tp_spectype, NULL);
+		}
 	    }
-	    tp = new TemplateParameter(tp_ident, tp_type);
+	    else
+	    {	// ValueParameter
+		tp_valtype = parseBasicType();
+		tp_valtype = parseDeclarator(tp_valtype, &tp_ident);
+		if (token.value == TOKcolon)	// : AssignExpression
+		{
+		    nextToken();
+		    tp_specvalue = parseAssignExp();
+		}
+	    }
+	    tp = new TemplateParameter(tp_ident, tp_spectype, tp_valtype, tp_specvalue);
 	    tpl->push(tp);
 	    if (token.value != TOKcomma)
 		break;
@@ -957,12 +1037,23 @@ TemplateInstance *Parser::parseTemplateInstance()
     {
 	while (1)
 	{
-	    Type *ta;
+	    // See if it is an Expression or a Type
+	    if (isDeclaration(&token, 0, TOKreserved, NULL))
+	    {	// Type
+		Type *ta;
 
-	    // Get TemplateArgument
-	    ta = parseBasicType();
-	    ta = parseDeclarator(ta, NULL);
-	    tempinst->tiargs.push(ta);
+		// Get TemplateArgument
+		ta = parseBasicType();
+		ta = parseDeclarator(ta, NULL);
+		tempinst->tiargs.push(ta);
+	    }
+	    else
+	    {	// Expression
+		Expression *ea;
+
+		ea = parseAssignExp();
+		tempinst->tiargs.push(ea);
+	    }
 	    if (token.value != TOKcomma)
 		break;
 	    nextToken();
@@ -1225,7 +1316,10 @@ Type *Parser::parseDeclarator(Type *t, Identifier **pident)
 		continue;
 
 	    case TOKidentifier:
-		*pident = token.ident;
+		if (pident)
+		    *pident = token.ident;
+		else
+		    error("unexpected identifer '%s' in declarator", token.ident->toChars());
 		ts = t;
 		nextToken();
 		break;
@@ -2368,12 +2462,35 @@ int Parser::isBasicType(Token **pt)
 	    if (t->value != TOKlparen)
 		goto Lfalse;
 
-	    // Pick off the template arguments
+	    // Skip over the template arguments
 	    while (1)
-	    {
-		t = peek(t);
-		if (!isDeclaration(t, 0, TOKreserved, &t))
-		    goto Lfalse;
+	    {	int parencnt = 0;
+
+		while (1)
+		{
+		    t = peek(t);
+		    switch (t->value)
+		    {
+			case TOKlparen:
+			    ++parencnt;
+			    continue;
+			case TOKrparen:
+			    if (--parencnt < 0)
+				break;
+			    continue;
+			case TOKcomma:
+			    if (parencnt)
+				continue;
+			    break;
+			case TOKeof:
+			case TOKsemicolon:
+			    goto Lfalse;
+			default:
+			    continue;
+		    }
+		    break;
+		}
+
 		if (t->value != TOKcomma)
 		    break;
 	    }
@@ -2717,6 +2834,28 @@ Expression *Parser::parsePrimaryExp()
 	    e = new AssertExp(loc, e);
 	    break;
 
+	case TOKinstance:
+	{   TemplateInstance *tempinst;
+	    TypeInstance *ti;
+
+	    tempinst = parseTemplateInstance();
+	    if (!tempinst)
+		return NULL;
+	    e = new ScopeExp(loc, tempinst);
+#if 0
+	    ti = new TypeInstance(loc, tempinst);
+	    check(TOKdot);
+	    if (token.value != TOKidentifier)
+	    {   error("Identifier expected following struct");
+		return NULL;
+	    }
+	    ti->addIdent(token.ident);
+	    e = new TypeExp(loc, ti);
+	    nextToken();
+#endif
+	    break;
+	}
+
 	default:
 	    error("expression expected, not '%s'", token.toChars());
 	    e = NULL;
@@ -2863,9 +3002,16 @@ Expression *Parser::parseUnaryExp()
 
 	case TOKnew:
 	{   Type *t;
+	    Array *newargs;
 	    Array *arguments;
 
 	    nextToken();
+	    newargs = NULL;
+	    if (token.value == TOKlparen)
+	    {
+		newargs = parseArguments();
+	    }
+
 	    t = parseBasicType();
 	    while (token.value == TOKmul)
 	    {	t = new TypePointer(t);
@@ -2884,7 +3030,7 @@ Expression *Parser::parseUnaryExp()
 	    }
 	    else
 		arguments = parseArguments();
-	    e = new NewExp(loc, t, arguments);
+	    e = new NewExp(loc, newargs, t, arguments);
 	    break;
 	}
 #if DCASTSYNTAX

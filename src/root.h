@@ -260,9 +260,11 @@ struct OutBuffer : Object
     void writenl();			// write newline
     void writeByte(unsigned b);
     void writebyte(unsigned b) { writeByte(b); }
+    void writeUTF8(unsigned b);
     void writedchar(unsigned b);
     void prependbyte(unsigned b);
     void writeword(unsigned w);
+    void writeUTF16(unsigned w);
     void write4(unsigned w);
     void write(OutBuffer *buf);
     void write(Object *obj);

@@ -19,6 +19,7 @@ struct VarDeclaration;
 struct FuncDeclaration;
 struct Declaration;
 struct CtorDeclaration;
+struct NewDeclaration;
 struct Dsymbol;
 struct Import;
 struct Module;
@@ -270,16 +271,19 @@ struct ScopeExp : Expression
     ScopeDsymbol *sds;
 
     ScopeExp(Loc loc, ScopeDsymbol *sds);
+    Expression *semantic(Scope *sc);
     elem *toElem(IRState *irs);
     void toCBuffer(OutBuffer *buf);
 };
 
 struct NewExp : Expression
 {
+    Array *newargs;		// Array of Expression's to call new operator
     Array *arguments;		// Array of Expression's
     CtorDeclaration *member;	// constructor function
+    NewDeclaration *allocator;	// allocator function
 
-    NewExp(Loc loc, Type *type, Array *arguments);
+    NewExp(Loc loc, Array *newargs, Type *type, Array *arguments);
     Expression *syntaxCopy();
     Expression *semantic(Scope *sc);
     elem *toElem(IRState *irs);

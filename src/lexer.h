@@ -213,9 +213,10 @@ struct Lexer
     TOK wysiwygStringConstant(Token *t, int wide);
     TOK escapeStringConstant(Token *t, int wide);
     TOK charConstant(Token *t, int wide);
-    unsigned wchar();
+    unsigned wchar(unsigned u);
     TOK number(Token *t);
     TOK inreal(Token *t);
     void error(const char *format, ...);
+    void pragma();
 };
 

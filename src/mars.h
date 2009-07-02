@@ -113,26 +113,22 @@ struct Module;
 //typedef unsigned Loc;		// file location
 struct Loc
 {
-    Module *mod;
+    char *filename;
     unsigned linnum;
 
     Loc()
     {
 	linnum = 0;
-	mod = NULL;
+	filename = NULL;
     }
 
     Loc(int x)
     {
 	linnum = 0;
-	mod = NULL;
+	filename = NULL;
     }
 
-    Loc(Module *mod, unsigned linnum)
-    {
-	this->linnum = linnum;
-	this->mod = mod;
-    }
+    Loc(Module *mod, unsigned linnum);
 
     char *toChars();
 };

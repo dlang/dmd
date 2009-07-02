@@ -20,6 +20,89 @@
 #include "expression.h"
 #include "template.h"
 
+/******************************
+ * Perform semantic() on an array of Expressions.
+ */
+
+void arrayExpressionSemantic(Array *a, Scope *sc)
+{
+    if (a)
+    {
+	for (int i = 0; i < a->dim; i++)
+	{   Expression *e = (Expression *)a->data[i];
+
+	    e = e->semantic(sc);
+	    a->data[i] = (void *)e;
+	}
+    }
+}
+
+/****************************************
+ * Process arguments to function.
+ */
+
+void functionArguments(Loc loc, Scope *sc, TypeFunction *tf, Array *arguments)
+{
+    unsigned nargs;
+    unsigned nproto;
+
+    nargs = arguments ? arguments->dim : 0;
+    nproto = tf->arguments ? tf->arguments->dim : 0;
+
+    if (nargs != nproto)
+    {
+	if (nargs < nproto || !tf->varargs)
+	    error(loc, "expected %d arguments to constructor, not %d\n", nproto, nargs);
+    }
+
+    for (int i = 0; i < nargs; i++)
+    {   Expression *arg = (Expression *)arguments->data[i];
+
+	if (i < nproto)
+	{
+	    Argument *p = (Argument *)tf->arguments->data[i];
+
+	    arg = arg->implicitCastTo(p->type);
+	    if (p->inout == Out || p->inout == InOut)
+	    {
+		arg = arg->modifiableLvalue(sc);
+	    }
+	    // Convert static arrays to pointers
+	    if (arg->type->ty == Tsarray)
+	    {
+		arg = arg->checkToPointer();
+	    }
+	}
+	else
+	{
+	    // Promote bytes, words, etc., to ints
+	    arg = arg->integralPromotions();
+
+	    // If not D linkage, promote floats to doubles
+	    if (tf->linkage != LINKd)
+	    {
+		switch (arg->type->ty)
+		{
+		    case Tfloat32:
+			arg = arg->castTo(Type::tfloat64);
+			break;
+
+		    case Timaginary32:
+			arg = arg->castTo(Type::timaginary64);
+			break;
+		}
+	    }
+
+	    // Convert static arrays to dynamic arrays
+	    if (arg->type->ty == Tsarray)
+	    {
+		arg = arg->castTo(arg->type->arrayOf());
+	    }
+	}
+	arguments->data[i] = (void *) arg;
+    }
+}
+
 /******************************** Expression **************************/
 
 Expression::Expression(Loc loc, enum TOK op, int size)
@@ -659,11 +742,15 @@ Expression *IdentifierExp::semantic(Scope *sc)
 	{
 	    //printf("Identifier '%s' is a variable, type '%s'\n", toChars(), v->type->toChars());
 	    type = v->type;
-	    if (v->isConst())
+	    if (v->isConst() && type->ty != Tsarray)
 	    {
+//printf("\tisConst()\n");
 		ExpInitializer *ei = dynamic_cast<ExpInitializer *>(v->init);
-		if (ei && ei->exp->type == type)
-		{   e = ei->exp->copy();	// make copy so we can change loc
+		if (ei)
+		{
+//printf("\tei\n");
+		    e = ei->exp->copy();	// make copy so we can change loc
+		    e = e->implicitCastTo(type);
 		    e->loc = loc;
 		    return e;
 		}
@@ -990,25 +1077,42 @@ ScopeExp::ScopeExp(Loc loc, ScopeDsymbol *pkg)
 }
 
 
+Expression *ScopeExp::semantic(Scope *sc)
+{
+    TemplateInstance *ti;
+
+    //printf("ScopeExp::semantic()\n");
+    ti = dynamic_cast<TemplateInstance *>(sds);
+    if (ti)
+    {	ti->semantic(sc);
+	sds = ti->inst;
+    }
+    return this;
+}
+
 void ScopeExp::toCBuffer(OutBuffer *buf)
 {
-    buf->writestring("import ");
+    buf->writestring(sds->kind());
+    buf->writestring(" ");
     buf->writestring(sds->toChars());
 }
 
 /********************** NewExp **************************************/
 
-NewExp::NewExp(Loc loc, Type *type, Array *arguments)
+NewExp::NewExp(Loc loc, Array *newargs, Type *type, Array *arguments)
     : Expression(loc, TOKnew, sizeof(NewExp))
 {
+    this->newargs = newargs;
     this->type = type;
     this->arguments = arguments;
     member = NULL;
+    allocator = NULL;
 }
 
 Expression *NewExp::syntaxCopy()
 {
-    return new NewExp(loc, type->syntaxCopy(), arraySyntaxCopy(arguments));
+    return new NewExp(loc, arraySyntaxCopy(newargs),
+	type->syntaxCopy(), arraySyntaxCopy(arguments));
 }
 
 
@@ -1022,24 +1126,14 @@ Expression *NewExp::semantic(Scope *sc)
     tb = type->toBasetype();
     //printf("tb: %s\n", tb->toChars());
 
-    if (arguments)
-    {
-	for (i = 0; i < arguments->dim; i++)
-	{   Expression *arg = (Expression *)arguments->data[i];
-
-	    arg = arg->semantic(sc);
-	    arguments->data[i] = (void *)arg;
-	}
-    }
+    arrayExpressionSemantic(newargs, sc);
+    arrayExpressionSemantic(arguments, sc);
 
     if (tb->ty == Tclass)
     {	ClassDeclaration *cd;
 	TypeClass *tc;
 	FuncDeclaration *f;
 	TypeFunction *tf;
-	unsigned nargs;
-	unsigned nproto;
-	int i;
 
 	tc = dynamic_cast<TypeClass *>(tb);
 	cd = dynamic_cast<ClassDeclaration *>(tc->sym);
@@ -1057,68 +1151,66 @@ Expression *NewExp::semantic(Scope *sc)
 	    tf = (TypeFunction *)f->type;
 	    type = tf->next;
 
-	    nargs = arguments ? arguments->dim : 0;
-	    nproto = tf->arguments ? tf->arguments->dim : 0;
-
-	    if (nargs != nproto)
-	    {
-		if (nargs < nproto || !tf->varargs)
-		    error("expected %d arguments to constructor, not %d\n", nproto, nargs);
-	    }
-
-	    for (i = 0; i < nargs; i++)
-	    {   Expression *arg = (Expression *)arguments->data[i];
-
-		if (i < nproto)
-		{
-		    Argument *p = (Argument *)tf->arguments->data[i];
-
-		    arg = arg->implicitCastTo(p->type);
-		    if (p->inout == Out || p->inout == InOut)
-		    {
-			arg = arg->modifiableLvalue(sc);
-		    }
-		    // Convert static arrays to pointers
-		    if (arg->type->ty == Tsarray)
-		    {
-			arg = arg->checkToPointer();
-		    }
-		}
-		else
-		{
-		    // Promote bytes, words, etc., to ints
-		    arg = arg->integralPromotions();
-
-		    // If not D linkage, promote floats to doubles
-		    if (tf->linkage != LINKd)
-		    {
-			switch (arg->type->ty)
-			{
-			    case Tfloat32:
-				arg = arg->castTo(Type::tfloat64);
-				break;
-
-			    case Timaginary32:
-				arg = arg->castTo(Type::timaginary64);
-				break;
-			}
-		    }
-
-		    // Convert static arrays to dynamic arrays
-		    if (arg->type->ty == Tsarray)
-		    {
-			arg = arg->castTo(arg->type->arrayOf());
-		    }
-		}
-		arguments->data[i] = (void *) arg;
-	    }
+	    functionArguments(loc, sc, tf, arguments);
 	}
 	else
 	{
 	    if (arguments && arguments->dim)
 		error("no constructor for %s", cd->toChars());
 	}
+
+	if (cd->aggNew)
+	{   Expression *e;
+
+	    f = cd->aggNew;
+
+	    // Prepend the uint size argument to newargs[]
+	    e = new IntegerExp(loc, cd->size(), Type::tuns32);
+	    if (!newargs)
+		newargs = new Array();
+	    newargs->shift(e);
+
+	    f = f->overloadResolve(loc, newargs);
+	    assert(f->isNew());
+	    allocator = dynamic_cast<NewDeclaration *>(f);
+	    assert(allocator);
+
+	    tf = (TypeFunction *)f->type;
+	    functionArguments(loc, sc, tf, newargs);
+	}
+	else
+	{
+	    if (newargs && newargs->dim)
+		error("no allocator for %s", cd->toChars());
+	}
+
     }
+#if 0
+    else if (tb->ty == Tstruct)
+    {
+	TypeStruct *ts = (TypeStruct *)tb;
+	StructDeclaration *sd = ts->sym;
+	FuncDeclaration *f = sd->aggNew;
+
+	if (f)
+	{
+	    Array *args = new Array();
+	    Expression *e;
+
+	    e = new IntegerExp(loc, sd->size(), Type::tuns32);
+	    args->push(e);
+
+	    f = f->overloadResolve(loc, args);
+	    e = new VarExp(loc, f);
+	    e = new CallExp(loc, e, args);
+	    e = e->semantic(sc);
+	    e->type = type->pointerTo();
+	    return e;
+	}
+
+	type = type->pointerTo();
+    }
+#endif
     else if (tb->ty == Tarray && (arguments && arguments->dim))
     {	Expression *arg;
 
@@ -1142,6 +1234,16 @@ void NewExp::toCBuffer(OutBuffer *buf)
 {   int i;
 
     buf->writestring("new ");
+    if (newargs && newargs->dim)
+    {
+	buf->writeByte('(');
+	for (i = 0; i < newargs->dim; i++)
+	{   Expression *arg = (Expression *)newargs->data[i];
+
+	    arg->toCBuffer(buf);
+	}
+	buf->writeByte(')');
+    }
     type->toCBuffer(buf, NULL);
     if (arguments && arguments->dim)
     {
@@ -1197,14 +1299,18 @@ VarExp::VarExp(Loc loc, Declaration *var)
 Expression *VarExp::semantic(Scope *sc)
 {
     //printf("VarExp::semantic(%s)\n", toChars());
+    type = var->type;
     if (var->isConst())
     {
 	VarDeclaration *v = dynamic_cast<VarDeclaration *>(var);
 	if (v)
 	{
 	    ExpInitializer *ei = dynamic_cast<ExpInitializer *>(v->init);
-	    if (ei && ei->exp->type == type)
-		return ei->exp;
+	    if (ei)
+	    {
+		//ei->exp->implicitCastTo(type)->print();
+		return ei->exp->implicitCastTo(type);
+	    }
 	}
     }
     return this;
@@ -1322,6 +1428,7 @@ Expression *BinExp::syntaxCopy()
 
 Expression *BinExp::semantic(Scope *sc)
 {
+    //printf("BinExp::semantic() %s\n", toChars());
     e1 = e1->semantic(sc);
     e2 = e2->semantic(sc);
     return this;
@@ -1606,8 +1713,6 @@ Expression *CallExp::syntaxCopy()
 
 Expression *CallExp::semantic(Scope *sc)
 {
-    unsigned nargs;
-    unsigned nproto;
     TypeFunction *tf;
     FuncDeclaration *f;
     int i;
@@ -1657,15 +1762,7 @@ Expression *CallExp::semantic(Scope *sc)
     else
 	UnaExp::semantic(sc);
 
-    if (arguments)
-    {
-	for (i = 0; i < arguments->dim; i++)
-	{   Expression *arg = (Expression *)arguments->data[i];
-
-	    arg = arg->semantic(sc);
-	    arguments->data[i] = (void *)arg;
-	}
-    }
+    arrayExpressionSemantic(arguments, sc);
 
     t1 = NULL;
     if (e1->type)
@@ -1797,80 +1894,8 @@ Lcheckargs:
     assert(tf->ty == Tfunction);
     type = tf->next;
 
-    nargs = arguments ? arguments->dim : 0;
-    nproto = tf->arguments ? tf->arguments->dim : 0;
+    functionArguments(loc, sc, tf, arguments);
 
-    if (nargs != nproto)
-    {
-	if (nargs < nproto || !tf->varargs)
-	    error("expected %d arguments to function, not %d\n", nproto, nargs);
-    }
-
-    // BUG: combine this with argument processing code in NewExp::semantic()
-    // to ensure identical behavior
-    for (i = 0; i < nargs; i++)
-    {   Expression *arg = (Expression *)arguments->data[i];
-
-	if (i < nproto)
-	{
-	    Argument *p = (Argument *)tf->arguments->data[i];
-#if 1
-	    arg = arg->implicitCastTo(p->type);
-	    if (p->inout == Out || p->inout == InOut)
-	    {
-		arg = arg->modifiableLvalue(sc);
-	    }
-#else
-	    if (p->inout == Out || p->inout == InOut)
-	    {
-		if (!arg->type->equals(p->type))
-		{
-		    error("argument %d is type %s, while %s parameter is type %s",
-			i + 1, arg->type->toChars(),
-			p->inout == Out ? "out" : "inout",
-			p->type->toChars());
-		}
-		arg = arg->modifiableLvalue(sc);
-	    }
-	    else
-	    {
-		arg = arg->implicitCastTo(p->type);
-	    }
-#endif
-	    // Convert static arrays to pointers
-	    if (arg->type->ty == Tsarray)
-	    {
-		arg = arg->checkToPointer();
-	    }
-	}
-	else
-	{
-	    // Promote bytes, words, etc., to ints
-	    arg = arg->integralPromotions();
-
-	    // If not D linkage, promote floats to doubles
-	    if (tf->linkage != LINKd)
-	    {
-		switch (arg->type->ty)
-		{
-		    case Tfloat32:
-			arg = arg->castTo(Type::tfloat64);
-			break;
-
-		    case Timaginary32:
-			arg = arg->castTo(Type::timaginary64);
-			break;
-		}
-	    }
-
-	    // Convert static arrays to dynamic arrays
-	    if (arg->type->ty == Tsarray)
-	    {
-		arg = arg->castTo(arg->type->arrayOf());
-	    }
-	}
-	arguments->data[i] = (void *) arg;
-    }
     assert(type);
     return this;
 }
@@ -2091,9 +2116,49 @@ DeleteExp::DeleteExp(Loc loc, Expression *e)
 
 Expression *DeleteExp::semantic(Scope *sc)
 {
+    Type *tb;
+
     UnaExp::semantic(sc);
     e1 = e1->toLvalue();
     type = Type::tvoid;
+
+#if 0
+    tb = e1->type->toBasetype();
+    if (tb->ty == Tclass)
+    {
+	TypeClass *tc = (TypeClass *)tb;
+	ClassDeclaration *cd = tc->sym;
+
+	if (cd->aggDelete)
+	{   FuncDeclaration *f = cd->aggDelete;
+	    Expression *e;
+	    Array *arguments;
+	    Type *tppv = Type::tvoid->pointerTo()->pointerTo();
+
+	    e = e1->addressOf();
+	    e->type = tppv;
+
+	    if (cd->dtor)
+	    {	Expression *ec;
+		FuncDeclaration *fd;
+
+		fd = FuncDeclaration::genCfunc(tppv, "_d_dtor");
+		ec = new VarExp(0, fd);
+		arguments = new Array();
+		arguments->push(e);
+		e = new CallExp(loc, ec, arguments);
+		e->type = tppv;
+	    }
+
+	    arguments = new Array();
+	    arguments->push(e);
+
+	    e = new VarExp(loc, f);
+	    e = new CallExp(loc, e, arguments);
+	    return e->semantic(sc);
+	}
+    }
+#endif
     return this;
 }
 
@@ -2512,6 +2577,10 @@ Expression *AssignExp::semantic(Scope *sc)
 	     ((StringExp *)e2)->len == 1)
     {	// memset
 	e2 = e2->implicitCastTo(e1->type->next);
+    }
+    else if (e1->type->ty == Tsarray)
+    {
+	error("cannot assign to static array %s", e1->toChars());
     }
     else
     {
@@ -3046,6 +3115,12 @@ Expression *CatExp::semantic(Scope *sc)
 	if (e2->type->ty == Tsarray)
 	    e2 = e2->castTo(e2->type->next->arrayOf());
 
+	/* BUG: Should handle things like:
+	 *	char c;
+	 *	c ~ ' '
+	 *	' ' ~ c;
+	 */
+
 	typeCombine();
 #if 0
 	e1->type->print();
@@ -3055,7 +3130,8 @@ Expression *CatExp::semantic(Scope *sc)
 #endif
 	if (e1->op == TOKstring && e2->op == TOKstring)
 	    e = optimize(WANTvalue);
-	else if (e1->type-equals(e2->type))
+	else if (e1->type-equals(e2->type) &&
+		(e1->type->ty == Tarray || e1->type->ty == Tsarray))
 	{
 	    e = this;
 	}
@@ -3233,6 +3309,7 @@ ShlExp::ShlExp(Loc loc, Expression *e1, Expression *e2)
 Expression *ShlExp::semantic(Scope *sc)
 {   Expression *e;
 
+    //printf("ShlExp::semantic(), type = %p\n", type);
     if (!type)
     {	BinExp::semantic(sc);
 	e = op_overload(sc);
@@ -3499,39 +3576,10 @@ Expression *CmpExp::semantic(Scope *sc)
     t1 = e1->type->toBasetype();
     t2 = e2->type->toBasetype();
     if ((t1->ty == Tarray || t1->ty == Tsarray) &&
-	(t2->ty == Tarray || t2->ty == Tsarray) &&
-	t1->next->equals(t2->next))
+	(t2->ty == Tarray || t2->ty == Tsarray))
     {
-	//printf("array, t1='%s', t2='%s'\n", t1->toChars(), t2->toChars());
-	Expression *ec;
-	FuncDeclaration *fd;
-	Array *arguments;
-	Expression *a1;
-	Expression *a2;
-	Type *telement = t1->next->toBasetype();
-
-	a1 = e1->castTo(t1->next->arrayOf());
-	a2 = e2->castTo(t2->next->arrayOf());
-	arguments = new Array();
-	arguments->push(a1);
-	arguments->push(a2);
-
-	if (telement->ty == Tchar)
-	{
-	    fd = FuncDeclaration::genCfunc(type, "_adCmpChar");
-	    ec = new VarExp(loc, fd);
-	}
-	else
-	{
-	    fd = FuncDeclaration::genCfunc(type, (telement->ty == Tbit ? "_adCmpBit" : "_adCmp"));
-	    ec = new VarExp(loc, fd);
-	    if (telement->ty != Tbit)
-		arguments->push(t1->next->toBasetype()->getProperty(loc, Id::typeinfo));
-	}
-	e = new CallExp(loc, ec, arguments);
-	e->type = Type::tint32;
-	e1 = e;
-	e2 = new IntegerExp(loc, 0, e->type);
+	if (!t1->next->equals(t2->next))
+	    error("array comparison type mismatch, %s vs %s", t1->next->toChars(), t2->next->toChars());
 	e = this;
     }
     else
@@ -3583,32 +3631,10 @@ Expression *EqualExp::semantic(Scope *sc)
     t1 = e1->type->toBasetype();
     t2 = e2->type->toBasetype();
     if ((t1->ty == Tarray || t1->ty == Tsarray) &&
-	(t2->ty == Tarray || t2->ty == Tsarray) &&
-	t1->next->equals(t2->next))
+	(t2->ty == Tarray || t2->ty == Tsarray))
     {
-	Expression *ec;
-	FuncDeclaration *fd;
-	Array *arguments;
-	Expression *a1;
-	Expression *a2;
-	Type *telement = t1->next->toBasetype();
-
-	fd = FuncDeclaration::genCfunc(type, (telement->ty == Tbit ? "_adEqBit" : "_adEq"));
-	ec = new VarExp(loc, fd);
-	a1 = e1->castTo(t1->next->arrayOf());
-	a2 = e2->castTo(t2->next->arrayOf());
-	arguments = new Array();
-	arguments->push(a1);
-	arguments->push(a2);
-	if (telement->ty != Tbit)
-	    arguments->push(telement->getProperty(loc, Id::typeinfo));
-	e = new CallExp(loc, ec, arguments);
-	e->type = type;
-
-	if (op == TOKnotequal)
-	{   e = new NotExp(loc, e);
-	    e->type = type;
-	}
+	if (!t1->next->equals(t2->next))
+	    error("array comparison type mismatch, %s vs %s", t1->next->toChars(), t2->next->toChars());
     }
     else
     {

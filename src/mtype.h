@@ -373,6 +373,7 @@ struct TypeInstance : Type
     void addIdent(Identifier *ident);
     unsigned size();
     //char *toChars();
+    //void toDecoBuffer(OutBuffer *buf);
     void toCBuffer2(OutBuffer *buf, Identifier *ident);
     void resolve(Scope *sc, Expression **pe, Type **pt);
     Type *semantic(Loc loc, Scope *sc);

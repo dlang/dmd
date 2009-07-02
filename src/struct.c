@@ -22,6 +22,8 @@ AggregateDeclaration::AggregateDeclaration(Identifier *id)
     structalign = 0;		// struct member alignment in effect
     sizeok = 0;			// size not determined yet
     inv = NULL;
+    aggNew = NULL;
+    aggDelete = NULL;
 
     stag = NULL;
     sinit = NULL;
