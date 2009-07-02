@@ -1391,6 +1391,7 @@ void TypeArray::toCBuffer2(OutBuffer *buf, Identifier *ident)
     buf->prependstring(buf2.toChars());
     if (ident)
     {
+	buf->writeByte(' ');
 	buf->writestring(ident->toChars());
     }
     next->toCBuffer2(buf, NULL);
@@ -2011,6 +2012,7 @@ void TypePointer::toCBuffer2(OutBuffer *buf, Identifier *ident)
     buf->prependstring("*");
     if (ident)
     {
+	buf->writeByte(' ');
 	buf->writestring(ident->toChars());
     }
     next->toCBuffer2(buf, NULL);
@@ -2305,7 +2307,7 @@ void TypeFunction::argsToCBuffer(OutBuffer *buf)
 	{   Argument *arg;
 
 	    if (i)
-		buf->writeByte(',');
+		buf->writestring(", ");
 	    arg = (Argument *)arguments->data[i];
 	    if (arg->inout == Out)
 		buf->writestring("out ");
@@ -2530,6 +2532,7 @@ void TypeDelegate::toCBuffer2(OutBuffer *buf, Identifier *ident)
     buf->prependstring(" delegate");
     if (ident)
     {
+	buf->writeByte(' ');
 	buf->writestring(ident->toChars());
     }
     next->next->toCBuffer2(buf, NULL);
@@ -3205,10 +3208,11 @@ void TypeEnum::toTypeInfoBuffer(OutBuffer *buf)
 
 void TypeEnum::toCBuffer2(OutBuffer *buf, Identifier *ident)
 {
-    buf->prependbyte(' ');
     buf->prependstring(sym->toChars());
     if (ident)
+    {	buf->writeByte(' ');
 	buf->writestring(ident->toChars());
+    }
 }
 
 Expression *TypeEnum::dotExp(Scope *sc, Expression *e, Identifier *ident)
@@ -3543,7 +3547,9 @@ void TypeStruct::toCBuffer2(OutBuffer *buf, Identifier *ident)
     buf->prependbyte(' ');
     buf->prependstring(sym->toChars());
     if (ident)
+    {	buf->writeByte(' ');
 	buf->writestring(ident->toChars());
+    }
 }
 
 Expression *TypeStruct::dotExp(Scope *sc, Expression *e, Identifier *ident)
@@ -3747,10 +3753,11 @@ void TypeClass::toDecoBuffer(OutBuffer *buf)
 
 void TypeClass::toCBuffer2(OutBuffer *buf, Identifier *ident)
 {
-    buf->prependbyte(' ');
     buf->prependstring(sym->toChars());
     if (ident)
+    {	buf->writeByte(' ');
 	buf->writestring(ident->toChars());
+    }
 }
 
 Expression *TypeClass::dotExp(Scope *sc, Expression *e, Identifier *ident)
