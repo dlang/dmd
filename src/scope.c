@@ -60,6 +60,7 @@ Scope::Scope()
     this->noctor = 0;
     this->callSuper = 0;
     this->flags = 0;
+    this->anonAgg = NULL;
 }
 
 Scope::Scope(Scope *enclosing)
@@ -85,6 +86,7 @@ Scope::Scope(Scope *enclosing)
     this->noctor = enclosing->noctor;
     this->callSuper = enclosing->callSuper;
     this->flags = 0;
+    this->anonAgg = NULL;
     assert(this != enclosing);
 }
 
@@ -246,6 +248,32 @@ ClassDeclaration *Scope::getClassScope()
 	    cd = sc->scopesym->isClassDeclaration();
 	    if (cd)
 		return cd;
+	}
+    }
+    return NULL;
+}
+
+/********************************************
+ * Search enclosing scopes for ClassDeclaration.
+ */
+
+AggregateDeclaration *Scope::getStructClassScope()
+{   Scope *sc;
+
+    for (sc = this; sc; sc = sc->enclosing)
+    {
+	AggregateDeclaration *ad;
+	
+	if (sc->scopesym)
+	{
+	    ad = sc->scopesym->isClassDeclaration();
+	    if (ad)
+		return ad;
+	    else
+	    {	ad = sc->scopesym->isStructDeclaration();
+		if (ad)
+		    return ad;
+	    }
 	}
     }
     return NULL;

@@ -58,7 +58,7 @@ Expression *AddrExp::optimize(int result)
     }
     if (e1->op == TOKvar)
     {	VarExp *ve = (VarExp *)e1;
-	if (!ve->var->isOut())
+	if (!ve->var->isOut() && !ve->var->isImportedSymbol())
 	{
 	    e = new SymOffExp(loc, ve->var, 0);
 	    e->type = type;
@@ -73,7 +73,8 @@ Expression *AddrExp::optimize(int result)
 	{
 	    integer_t index = ae->e2->toInteger();
 	    VarExp *ve = (VarExp *)ae->e1;
-	    if (ve->type->ty == Tsarray && ve->type->next->ty != Tbit)
+	    if (ve->type->ty == Tsarray && ve->type->next->ty != Tbit
+		&& !ve->var->isImportedSymbol())
 	    {
 		TypeSArray *ts = (TypeSArray *)ve->type;
 		integer_t dim = ts->dim->toInteger();

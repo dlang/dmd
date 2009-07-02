@@ -24,6 +24,8 @@ struct SwitchStatement;
 struct LabelStatement;
 struct ForeachStatement;
 struct ClassDeclaration;
+struct AggregateDeclaration;
+struct AnonymousAggregateDeclaration;
 struct FuncDeclaration;
 enum LINK;
 enum PROT;
@@ -62,6 +64,8 @@ struct Scope
     unsigned flags;
 #define SCOPEctor	1	// constructor type
 
+    AnonymousAggregateDeclaration *anonAgg;	// for temporary analysis
+
     static Scope *freelist;
     static void *operator new(size_t sz);
     static Scope *createGlobal(Module *module);
@@ -80,6 +84,7 @@ struct Scope
     Dsymbol *insert(Dsymbol *s);
 
     ClassDeclaration *getClassScope();
+    AggregateDeclaration *getStructClassScope();
     void setNoFree();
 };
 

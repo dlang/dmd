@@ -904,7 +904,8 @@ EnumDeclaration *Parser::parseEnum()
 }
 
 Dsymbol *Parser::parseAggregate()
-{   AggregateDeclaration *a;
+{   AggregateDeclaration *a = NULL;
+    int anon = 0;
     enum TOK tok;
     Identifier *id;
     Array *tpl = NULL;
@@ -918,13 +919,13 @@ Dsymbol *Parser::parseAggregate()
     else
     {	id = token.ident;
 	nextToken();
-    }
 
-    if (token.value == TOKlparen)
-    {	// Class template declaration.
+	if (token.value == TOKlparen)
+	{   // Class template declaration.
 
-	// Gather template parameter list
-	tpl = parseTemplateParameterList();
+	    // Gather template parameter list
+	    tpl = parseTemplateParameterList();
+	}
     }
 
     switch (tok)
@@ -985,31 +986,47 @@ Dsymbol *Parser::parseAggregate()
 	}
 
 	case TOKstruct:
-	    a = new StructDeclaration(loc, id);
+	    if (id)
+		a = new StructDeclaration(loc, id);
+	    else
+		anon = 1;
 	    break;
 
 	case TOKunion:
-	    a = new UnionDeclaration(loc, id);
+	    if (id)
+		a = new UnionDeclaration(loc, id);
+	    else
+		anon = 2;
 	    break;
 
 	default:
 	    assert(0);
 	    break;
     }
-    if (token.value == TOKsemicolon)
- 	nextToken();
+    if (a && token.value == TOKsemicolon)
+    { 	nextToken();
+    }
     else if (token.value == TOKlcurly)
     {
 	//printf("aggregate definition\n");
 	nextToken();
-	a->members = parseDeclDefs(0);
+	Array *decl = parseDeclDefs(0);
 	if (token.value != TOKrcurly)
 	    error("struct member expected");
 	nextToken();
+	if (anon)
+	{
+	    /* Anonymous structs/unions are more like attributes.
+	     */
+	    return new AnonDeclaration(anon - 1, decl);
+	}
+	else
+	    a->members = decl;
     }
     else
     {
 	error("{ } expected following aggregate declaration");
+	a = new StructDeclaration(loc, NULL);
     }
 
     if (tpl)

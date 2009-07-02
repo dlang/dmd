@@ -253,24 +253,33 @@ void AliasDeclaration::semantic(Scope *sc)
 
   L2:
     type = NULL;
-    FuncDeclaration *f = s->isFuncDeclaration();
-    if (f)
+    VarDeclaration *v = s->isVarDeclaration();
+    if (v && v->linkage == LINKdefault)
     {
-	if (overnext)
-	{
-	    FuncAliasDeclaration *fa = new FuncAliasDeclaration(f);
-	    if (!fa->overloadInsert(overnext))
-		ScopeDsymbol::multiplyDefined(f, overnext);
-	    overnext = NULL;
-	    s = fa;
-	}
-    }
-    if (overnext)
-	ScopeDsymbol::multiplyDefined(s, overnext);
-    if (s == this)
-    {
-	assert(global.errors);
+	error("forward reference of %s", v->toChars());
 	s = NULL;
+    }
+    else
+    {
+	FuncDeclaration *f = s->isFuncDeclaration();
+	if (f)
+	{
+	    if (overnext)
+	    {
+		FuncAliasDeclaration *fa = new FuncAliasDeclaration(f);
+		if (!fa->overloadInsert(overnext))
+		    ScopeDsymbol::multiplyDefined(f, overnext);
+		overnext = NULL;
+		s = fa;
+	    }
+	}
+	if (overnext)
+	    ScopeDsymbol::multiplyDefined(s, overnext);
+	if (s == this)
+	{
+	    assert(global.errors);
+	    s = NULL;
+	}
     }
     aliassym = s;
     this->inSemantic = 0;
@@ -407,51 +416,16 @@ void VarDeclaration::semantic(Scope *sc)
     }
     else
     {
-	StructDeclaration *sd = parent->isStructDeclaration();
-	if (sd)
+	AnonymousAggregateDeclaration *aad = sc->anonAgg;
+	if (aad)
 	{
-	    unsigned memsize;		// size of member
-	    unsigned memalignsize;	// size of member for alignment purposes
-	    unsigned xalign;		// alignment boundaries
-
-	    memsize = type->size();
-	    memalignsize = type->alignsize();
-	    xalign = type->memalign(sc->structalign);
-	    sd->alignmember(xalign, memalignsize, &sc->offset);
-	    offset = sc->offset;
-	    sc->offset += memsize;
-	    if (sc->offset > sd->structsize)
-		sd->structsize = sc->offset;
-	    if (sd->alignsize < memalignsize)
-		sd->alignsize = memalignsize;
-
-	    storage_class |= STCfield;
-	    //printf("1 Adding '%s' to '%s', offset %d\n", this->toChars(), sd->toChars(), offset);
-	    sd->fields.push(this);
+	    aad->addField(sc, this);
 	}
-
-	ClassDeclaration *cd = parent->isClassDeclaration();
-	if (cd)
+	else
 	{
-	    unsigned memsize;
-	    unsigned memalignsize;
-	    unsigned xalign;
-
-	    memsize = type->size();
-	    memalignsize = type->alignsize();
-	    xalign = type->memalign(sc->structalign);
-	    cd->alignmember(xalign, memalignsize, &sc->offset);
-	    offset = sc->offset;
-	    //printf("offset of '%s' is x%x\n", toChars(), offset);
-	    sc->offset += memsize;
-	    if (sc->offset > cd->structsize)
-		cd->structsize = sc->offset;
-	    if (cd->alignsize < memalignsize)
-		cd->alignsize = memalignsize;
-
-	    storage_class |= STCfield;
-	    //printf("2 Adding '%s' to '%s', offset %d\n", this->toChars(), cd->toChars(), offset);
-	    cd->fields.push(this);
+	    AggregateDeclaration *ad = parent->isAggregateDeclaration();
+	    if (ad)
+		ad->addField(sc, this);
 	}
 
 	InterfaceDeclaration *id = parent->isInterfaceDeclaration();

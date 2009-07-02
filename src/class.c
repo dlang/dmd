@@ -294,6 +294,7 @@ void ClassDeclaration::semantic(Scope *sc)
 	Dsymbol *s = (Dsymbol *)members->data[i];
 	s->semantic(sc);
     }
+    structsize = sc->offset;
     //members->print();
 
     /* Look for special member functions.
@@ -326,6 +327,7 @@ void ClassDeclaration::semantic(Scope *sc)
 	members->push(ctor);
 	ctor->addMember(this);
 	*sc = scsave;
+	sc->offset = structsize;
 	ctor->semantic(sc);
     }
 

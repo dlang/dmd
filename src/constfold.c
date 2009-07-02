@@ -207,6 +207,7 @@ Expression *MinExp::constFold()
 Expression *MulExp::constFold()
 {   Expression *e;
 
+    //printf("MulExp::constFold(%s)\n", toChars());
     e1 = e1->constFold();
     e2 = e2->constFold();
     if (type->isfloating())

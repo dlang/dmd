@@ -391,7 +391,6 @@ Expression *Expression::combine(Expression *e1, Expression *e2)
 integer_t Expression::toInteger()
 {
     //printf("Expression %s\n", Token::toChars(op));
-*(char*)0=0;
     error("Integer constant expression expected instead of %s", toChars());
     return 0;
 }
@@ -449,7 +448,7 @@ void Expression::checkScalar()
 void Expression::checkIntegral()
 {
     if (!type->isintegral())
-	error("'%s' is not an integral type", toChars());
+	error("'%s' is not of integral type, it is a %s", toChars(), type->toChars());
 }
 
 void Expression::checkArithmetic()
@@ -589,6 +588,11 @@ Array *Expression::arraySyntaxCopy(Array *exps)
 IntegerExp::IntegerExp(Loc loc, integer_t value, Type *type)
 	: Expression(loc, TOKint64, sizeof(IntegerExp))
 {
+    if (type && !type->isscalar())
+    {
+	error("integral constant must be scalar type, not %s", type->toChars());
+	type = Type::terror;
+    }
     this->type = type;
     this->value = value;
 }
@@ -703,7 +707,8 @@ Expression *IntegerExp::semantic(Scope *sc)
 	    type = Type::tint32;
     }
     else
-	type = type->semantic(loc, sc);
+    {	type = type->semantic(loc, sc);
+    }
     return this;
 }
 
@@ -828,7 +833,11 @@ real_t ImaginaryExp::toImaginary()
 
 complex_t ImaginaryExp::toComplex()
 {
-    return value;
+#ifdef __DMC__
+    return value * I;
+#else
+    return complex_t(0, value);
+#endif
 }
 
 Expression *ImaginaryExp::semantic(Scope *sc)
@@ -859,6 +868,7 @@ ComplexExp::ComplexExp(Loc loc, complex_t value, Type *type)
 {
     this->value = value;
     this->type = type;
+    //printf("ComplexExp::ComplexExp(%s)\n", toChars());
 }
 
 char *ComplexExp::toChars()
@@ -1122,6 +1132,7 @@ Lagain:
     }
 
     error("%s '%s' is not a variable", s->kind(), s->toChars());
+    type = Type::terror;
     return this;
 }
 
@@ -2249,6 +2260,44 @@ Expression *DotIdExp::semantic(Scope *sc)
 #endif
 
 //{ static int z; fflush(stdout); if (++z == 10) *(char*)0=0; }
+
+    /* Special case: rewrite this.id and super.id
+     * to be classtype.id and baseclasstype.id
+     * if we have no this pointer.
+     */
+    if ((e1->op == TOKthis || e1->op == TOKsuper) && !hasThis(sc))
+    {	ClassDeclaration *cd;
+	StructDeclaration *sd;
+	AggregateDeclaration *ad;
+
+	ad = sc->getStructClassScope();
+	cd = ad->isClassDeclaration();
+	if (cd)
+	{
+	    if (e1->op == TOKthis)
+	    {
+		e = new TypeDotIdExp(loc, cd->type, ident);
+		return e->semantic(sc);
+	    }
+	    else if (cd->baseClass && e1->op == TOKsuper)
+	    {
+		e = new TypeDotIdExp(loc, cd->baseClass->type, ident);
+		return e->semantic(sc);
+	    }
+	}
+	else
+	{
+	    sd = ad->isStructDeclaration();
+	    if (sd)
+	    {
+		if (e1->op == TOKthis)
+		{
+		    e = new TypeDotIdExp(loc, sd->type, ident);
+		    return e->semantic(sc);
+		}
+	    }
+	}
+    }
 
     UnaExp::semantic(sc);
 

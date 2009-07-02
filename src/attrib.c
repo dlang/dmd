@@ -208,7 +208,7 @@ void AttribDeclaration::toCBuffer(OutBuffer *buf)
     buf->writenl();
 }
 
-/********************************* StorageClassDeclaration ****************************/
+/************************* StorageClassDeclaration ****************************/
 
 StorageClassDeclaration::StorageClassDeclaration(unsigned stc, Array *decl)
 	: AttribDeclaration(decl)
@@ -430,6 +430,119 @@ void AlignDeclaration::toCBuffer(OutBuffer *buf)
 {
     buf->printf("align %d", salign);
     AttribDeclaration::toCBuffer(buf);
+}
+
+/********************************* AnonDeclaration ****************************/
+
+AnonDeclaration::AnonDeclaration(int isunion, Array *decl)
+	: AttribDeclaration(decl)
+{
+    this->isunion = isunion;
+}
+
+Dsymbol *AnonDeclaration::syntaxCopy(Dsymbol *s)
+{
+    AnonDeclaration *ad;
+
+    assert(!s);
+    ad = new AnonDeclaration(isunion, Dsymbol::arraySyntaxCopy(decl));
+    return ad;
+}
+
+void AnonDeclaration::semantic(Scope *sc)
+{
+    //printf("\tAnonDeclaration::semantic '%s'\n",toChars());
+    assert(sc->parent);
+
+    Dsymbol *parent = sc->parent->pastMixin();
+    AggregateDeclaration *ad = parent->isAggregateDeclaration();
+
+    if (!ad || (!ad->isStructDeclaration() && !ad->isClassDeclaration()))
+    {
+	error("can only be a part of an aggregate");
+	return;
+    }
+
+    if (decl)
+    {	Scope sc_save = *sc;
+	AnonymousAggregateDeclaration aad;
+	int adisunion;
+
+	if (sc->anonAgg)
+	{   ad = sc->anonAgg;
+	    adisunion = sc->inunion;
+	}
+	else
+	    adisunion = ad->isUnionDeclaration() != NULL;
+
+	sc->anonAgg = &aad;
+	sc->stc &= ~(STCauto | STCstatic);
+	sc->inunion = isunion;
+	sc->offset = 0;
+	sc->flags = 0;
+	aad.structalign = sc->structalign;
+
+	for (unsigned i = 0; i < decl->dim; i++)
+	{
+	    Dsymbol *s = (Dsymbol *)decl->data[i];
+
+	    s->semantic(sc);
+	    if (isunion)
+		sc->offset = 0;
+	}
+	*sc = sc_save;
+
+	// 0 sized structs are set to 1 byte
+	if (aad.structsize == 0)
+	{
+	    aad.structsize = 1;
+	    aad.alignsize = 1;
+	}
+
+	// Align size of anonymous aggregate
+//printf("aad.structalign = %d, aad.alignsize = %d, sc->offset = %d\n", aad.structalign, aad.alignsize, sc->offset);
+	ad->alignmember(aad.structalign, aad.alignsize, &sc->offset);
+	//ad->structsize = sc->offset;
+//printf("sc->offset = %d\n", sc->offset);
+
+	// Add members of aad to ad
+	//printf("\tadding members of aad to '%s'\n", ad->toChars());
+	for (unsigned i = 0; i < aad.fields.dim; i++)
+	{
+	    VarDeclaration *v = (VarDeclaration *)aad.fields.data[i];
+
+	    v->offset += sc->offset;
+	    ad->fields.push(v);
+	}
+
+	// Add size of aad to ad
+	if (adisunion)
+	{
+	    if (aad.structsize > ad->structsize)
+		ad->structsize = aad.structsize;
+	    sc->offset = 0;
+	}
+	else
+	{
+	    ad->structsize = sc->offset + aad.structsize;
+	    sc->offset = ad->structsize;
+	}
+
+	if (ad->alignsize < aad.alignsize)
+	    ad->alignsize = aad.alignsize;
+    }
+}
+
+
+void AnonDeclaration::toCBuffer(OutBuffer *buf)
+{
+    buf->printf(isunion ? "union" : "struct");
+    AttribDeclaration::toCBuffer(buf);
+}
+
+char *AnonDeclaration::kind()
+{
+    return (char *)(isunion ? "anonymous union" : "anonymous struct");
 }
 
 /********************************* PragmaDeclaration ****************************/

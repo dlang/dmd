@@ -29,6 +29,7 @@ struct NewDeclaration;
 struct DeleteDeclaration;
 struct InterfaceDeclaration;
 struct ClassInfoDeclaration;
+struct VarDeclaration;
 struct dt_t;
 
 
@@ -55,6 +56,7 @@ struct AggregateDeclaration : ScopeDsymbol
     unsigned size();
     static void alignmember(unsigned salign, unsigned size, unsigned *poffset);
     Type *getType();
+    void addField(Scope *sc, VarDeclaration *v);
 
     // Back end
     Symbol *stag;		// tag symbol for debug data
@@ -62,6 +64,16 @@ struct AggregateDeclaration : ScopeDsymbol
     Symbol *toInitializer();
 
     AggregateDeclaration *isAggregateDeclaration() { return this; }
+};
+
+struct AnonymousAggregateDeclaration : AggregateDeclaration
+{
+    AnonymousAggregateDeclaration()
+	: AggregateDeclaration(0, NULL)
+    {
+    }
+
+    AnonymousAggregateDeclaration *isAnonymousAggregateDeclaration() { return this; }
 };
 
 struct StructDeclaration : AggregateDeclaration

@@ -56,6 +56,10 @@ char *Declaration::mangle()
 		case LINKcpp:
 		    return ident->toChars();
 
+		case LINKdefault:
+		    error("forward declaration");
+		    return ident->toChars();
+
 		default:
 		    printf("'%s', linkage = %d\n", toChars(), linkage);
 		    assert(0);

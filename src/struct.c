@@ -131,6 +131,30 @@ void AggregateDeclaration::alignmember(unsigned salign, unsigned size, unsigned 
     //printf("result = %d\n",offset);
 }
 
+
+void AggregateDeclaration::addField(Scope *sc, VarDeclaration *v)
+{
+    unsigned memsize;		// size of member
+    unsigned memalignsize;	// size of member for alignment purposes
+    unsigned xalign;		// alignment boundaries
+
+    memsize = v->type->size();
+    memalignsize = v->type->alignsize();
+    xalign = v->type->memalign(sc->structalign);
+    alignmember(xalign, memalignsize, &sc->offset);
+    v->offset = sc->offset;
+    sc->offset += memsize;
+    if (sc->offset > structsize)
+	structsize = sc->offset;
+    if (alignsize < memalignsize)
+	alignsize = memalignsize;
+
+    v->storage_class |= STCfield;
+    //printf(" addField '%s' to '%s' at offset %d\n", v->toChars(), toChars(), v->offset);
+    fields.push(v);
+}
+
+
 /********************************* StructDeclaration ****************************/
 
 StructDeclaration::StructDeclaration(Loc loc, Identifier *id)
@@ -204,6 +228,7 @@ void StructDeclaration::semantic(Scope *sc)
 
     AggregateDeclaration *sd;
 
+#if 0
     if (isAnonymous())
     {	// Anonymous structures aren't independent, all their members are
 	// added to the enclosing struct.
@@ -255,6 +280,7 @@ void StructDeclaration::semantic(Scope *sc)
 		sd->alignsize = alignsize;
 	}
     }
+#endif
     //printf("-StructDeclaration::semantic(this=%p, '%s')\n", this, toChars());
 
     // Determine if struct is all zeros or not

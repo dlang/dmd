@@ -1707,6 +1707,7 @@ Statement *SynchronizedStatement::semantic(Scope *sc)
     {	ClassDeclaration *cd;
 
 	exp = exp->semantic(sc);
+	exp = resolveProperties(sc, exp);
 	cd = exp->type->isClassHandle();
 	if (!cd)
 	    error("can only synchronize on class objects, not '%s'", exp->type->toChars());

@@ -60,7 +60,7 @@ dt_t *StructInitializer::toDt()
     dt_t **pdtend;
     unsigned offset;
 
-    //printf("StructInitializer::toDt()\n");
+    //printf("StructInitializer::toDt('%s')\n", toChars());
     dts.setDim(ad->fields.dim);
     dts.zero();
 

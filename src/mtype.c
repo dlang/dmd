@@ -318,6 +318,7 @@ Type *Type::merge()
 
     //printf("merge(%s)\n", toChars());
     t = this;
+    assert(t);
     if (!deco)
     {
 	OutBuffer buf;
@@ -2506,6 +2507,7 @@ void TypeQualified::resolveHelper(Loc loc, Scope *sc,
     Expression *e;
 
     //printf("TypeQualified::resolveHelper(sc = %p, idents = '%s')\n", sc, toChars());
+    //printf("\tscopesym = '%s'\n", scopesym->toChars());
     *pe = NULL;
     *pt = NULL;
     *ps = NULL;
@@ -2629,7 +2631,18 @@ L1:
 	}
 	if (t->ty == Tident && t != this)
 	{
-	    ((TypeIdentifier *)t)->resolve(loc, sc, pe, &t, ps);
+	    Scope *scx;
+
+	    for (scx = sc; 1; scx = scx->enclosing)
+	    {
+		if (!scx)
+		{   error(loc, "forward reference to '%s'", t->toChars());
+		    return;
+		}
+		if (scx->scopesym == scopesym)
+		    break;
+	    }
+	    ((TypeIdentifier *)t)->resolve(loc, scx, pe, &t, ps);
 	}
 	*pt = t->merge();
     }
