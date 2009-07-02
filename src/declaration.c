@@ -191,7 +191,8 @@ void AliasDeclaration::semantic(Scope *sc)
     //printf("AliasDeclaration::semantic() %s\n", toChars());
     if (aliassym)
     {
-	aliassym->semantic(sc);
+	if (aliassym->isTemplateInstance())
+	    aliassym->semantic(sc);
 	return;
     }
     this->inSemantic = 1;
@@ -363,13 +364,15 @@ Dsymbol *VarDeclaration::syntaxCopy(Dsymbol *s)
 
 void VarDeclaration::semantic(Scope *sc)
 {
-    //printf("VarDeclaration::semantic('%s')\n", toChars());
+    //printf("VarDeclaration::semantic('%s', parent = '%s')\n", toChars(), sc->parent->toChars());
+
     type = type->semantic(loc, sc);
     linkage = sc->linkage;
     parent = sc->parent;
     //printf("this = %p, parent = %p, '%s'\n", this, parent, parent->toChars());
     protection = sc->protection;
     storage_class |= sc->stc;
+    //printf("storage_class = %x\n", storage_class);
 
     FuncDeclaration *fd = parent->isFuncDeclaration();
 
@@ -588,6 +591,11 @@ int VarDeclaration::isImportedSymbol()
 
 int VarDeclaration::isDataseg()
 {
+#if 0
+    printf("VarDeclaration::isDataseg(%p, '%s')\n", this, toChars());
+    printf("%x, %p, %p\n", storage_class & (STCstatic | STCconst), parent->isModule(), parent->isTemplateInstance());
+    printf("parent = '%s'\n", parent->toChars());
+#endif
     return (storage_class & (STCstatic | STCconst) ||
 	   parent->isModule() ||
 	   parent->isTemplateInstance());
@@ -603,20 +611,25 @@ Expression *VarDeclaration::callAutoDtor()
 
     if (storage_class & STCauto && !noauto)
     {
-	ClassDeclaration *cd = type->isClassHandle();
-	if (cd && cd->dtor)
-	{   FuncDeclaration *fd;
-	    Expression *efd;
-	    Expression *ec;
-	    Array *arguments;
+	for (ClassDeclaration *cd = type->isClassHandle();
+	     cd;
+	     cd = cd->baseClass)
+	{
+	    if (cd->dtor)
+	    {   FuncDeclaration *fd;
+		Expression *efd;
+		Expression *ec;
+		Array *arguments;
 
-	    fd = FuncDeclaration::genCfunc(Type::tvoid, "_d_callfinalizer");
-	    efd = new VarExp(loc, fd);
-	    ec = new VarExp(loc, this);
-	    arguments = new Array();
-	    arguments->push(ec);
-	    e = new CallExp(loc, efd, arguments);
-	    e->type = fd->type->next;
+		fd = FuncDeclaration::genCfunc(Type::tvoid, "_d_callfinalizer");
+		efd = new VarExp(loc, fd);
+		ec = new VarExp(loc, this);
+		arguments = new Array();
+		arguments->push(ec);
+		e = new CallExp(loc, efd, arguments);
+		e->type = fd->type->next;
+		break;
+	    }
 	}
     }
     return e;

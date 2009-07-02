@@ -181,7 +181,8 @@ Array *Parser::parseDeclDefs(int once)
 		    ti = parseTemplateInstance();
 		    s = (Dsymbol *)ti;
 		    if (ti)
-		    {   if (token.value == TOKidentifier)
+		    {
+			if (token.value == TOKidentifier)
 			{
 			    s = (Dsymbol *)new AliasDeclaration(loc, token.ident, ti);
 			    nextToken();
@@ -1189,6 +1190,8 @@ TemplateInstance *Parser::parseTemplateInstance()
     }
     parseTemplateArgumentList(tempinst);
 
+    if (!global.params.useDeprecated)
+	error("instance is deprecated, use %s", tempinst->toChars());
     return tempinst;
 
 Lerr:
@@ -3806,6 +3809,8 @@ Expression *Parser::parseUnaryExp()
 			{
 			    e = parseUnaryExp();
 			    e = new CastExp(loc, e, t);
+			    if (!global.params.useDeprecated)
+				error("C style cast deprecated, use %s", e->toChars());
 			}
 			return e;
 		    }

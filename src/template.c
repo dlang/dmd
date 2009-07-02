@@ -863,6 +863,7 @@ MATCH TemplateAliasParameter::matchArg(Scope *sc,
 {
     Dsymbol *sa;
 
+    //printf("TemplateAliasParameter::matchArg()\n");
     Expression *ea = isExpression(oarg);
     if (ea)
     {   // Try to convert Expression to symbol
@@ -1368,7 +1369,7 @@ void TemplateInstance::semantic(Scope *sc)
 	    Expression *e1 = isExpression(o1);
 	    Expression *e2 = isExpression(o2);
 	    Dsymbol *s1 = isDsymbol(o1);
-	    Dsymbol *s2 = isDsymbol(o1);
+	    Dsymbol *s2 = isDsymbol(o2);
 
 	    /* A proper implementation of the various equals() overrides
 	     * should make it possible to just do o1->equals(o2), but
@@ -1447,6 +1448,11 @@ void TemplateInstance::semantic(Scope *sc)
 	    else if (sa)
 	    {
 	      Lsa:
+		Declaration *d = sa->isDeclaration();
+		if (d && !d->isDataseg())
+		{
+		    error("cannot use local '%s' as template parameter", d->toChars());
+		}
 		char *p = sa->mangle();
 		buf.printf("__%u_%s", strlen(p) + 1, p);
 	    }

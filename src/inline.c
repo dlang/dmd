@@ -780,14 +780,25 @@ int FuncDeclaration::canInline()
 #endif
 
     if (inlineNest || !semanticRun)
+    {
+#if LOG
+	printf("\t1: no, inlineNest = %d, semanticRun = %d\n", inlineNest, semanticRun);
+#endif
 	return 0;
+    }
 
     switch (inlineStatus)
     {
 	case ILSyes:
+#if LOG
+	    printf("\tyes\n");
+#endif
 	    return 1;
 
 	case ILSno:
+#if LOG
+	    printf("\t2: no\n");
+#endif
 	    return 0;
 
 	case ILSuninitialized:

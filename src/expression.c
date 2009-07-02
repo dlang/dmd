@@ -1,5 +1,5 @@
 
-// Copyright (c) 1999-2003 by Digital Mars
+// Copyright (c) 1999-2004 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // www.digitalmars.com
@@ -35,6 +35,7 @@
 #include "dsymbol.h"
 #include "module.h"
 
+#define LOGSEMANTIC	0
 
 /***************************************
  * Pull out any properties.
@@ -213,6 +214,9 @@ Expression *Expression::copy()
 
 Expression *Expression::semantic(Scope *sc)
 {
+#if LOGSEMANTIC
+    printf("Expression::semantic()\n");
+#endif
     if (type)
 	type = type->semantic(loc, sc);
     else
@@ -776,7 +780,9 @@ Expression *IdentifierExp::semantic(Scope *sc)
     Dsymbol *s;
     Dsymbol *scopesym;
 
-    //printf("IdentifierExp::semantic('%s')\n", ident->toChars());
+#if LOGSEMANTIC
+    printf("IdentifierExp::semantic('%s')\n", ident->toChars());
+#endif
     s = sc->search(ident, &scopesym);
     if (s)
     {	Expression *e;
@@ -830,7 +836,9 @@ DsymbolExp::DsymbolExp(Loc loc, Dsymbol *s)
 
 Expression *DsymbolExp::semantic(Scope *sc)
 {
-    //printf("DsymbolExp::semantic('%s')\n", s->toChars());
+#if LOGSEMANTIC
+    printf("DsymbolExp::semantic('%s')\n", s->toChars());
+#endif
 
 Lagain:
     EnumMember *em;
@@ -988,7 +996,9 @@ Expression *ThisExp::semantic(Scope *sc)
     FuncDeclaration *fdthis;
     int nested = 0;
 
-    //printf("ThisExp::semantic()\n");
+#if LOGSEMANTIC
+    printf("ThisExp::semantic()\n");
+#endif
     if (type)
     {	assert(var);
 	return this;
@@ -1071,6 +1081,9 @@ Expression *SuperExp::semantic(Scope *sc)
     int nested = 0;
     ClassDeclaration *cd;
 
+#if LOGSEMANTIC
+    printf("SuperExp::semantic('%s')\n", toChars());
+#endif
     if (type)
 	return this;
 
@@ -1138,6 +1151,9 @@ NullExp::NullExp(Loc loc)
 
 Expression *NullExp::semantic(Scope *sc)
 {
+#if LOGSEMANTIC
+    printf("NullExp::semantic('%s')\n", toChars());
+#endif
     // NULL is the same as (void *)0
     if (!type)
 	type = Type::tvoid->pointerTo();
@@ -1178,7 +1194,9 @@ char *StringExp::toChars()
 
 Expression *StringExp::semantic(Scope *sc)
 {
-    //printf("StringExp::semantic()\n");
+#if LOGSEMANTIC
+    printf("StringExp::semantic()\n");
+#endif
     if (!type)
     {
 	type = new TypeSArray(Type::tchar, new IntegerExp(loc, len, Type::tindex));
@@ -1290,7 +1308,9 @@ TypeDotIdExp::TypeDotIdExp(Loc loc, Type *type, Identifier *ident)
 Expression *TypeDotIdExp::semantic(Scope *sc)
 {   Expression *e;
 
-    //printf("TypeDotIdExp::semantic()\n");
+#if LOGSEMANTIC
+    printf("TypeDotIdExp::semantic()\n");
+#endif
     type = type->semantic(loc, sc);
     e = type->getProperty(loc, ident);
     e = e->semantic(sc);
@@ -1343,7 +1363,9 @@ Expression *ScopeExp::semantic(Scope *sc)
     TemplateInstance *ti;
     ScopeDsymbol *sds2;
 
-    //printf("+ScopeExp::semantic('%s')\n", toChars());
+#if LOGSEMANTIC
+    printf("+ScopeExp::semantic('%s')\n", toChars());
+#endif
 Lagain:
     ti = sds->isTemplateInstance();
     if (ti)
@@ -1411,8 +1433,10 @@ Expression *NewExp::semantic(Scope *sc)
 {   int i;
     Type *tb;
 
-    //printf("NewExp::semantic()\n");
+#if LOGSEMANTIC
+    printf("NewExp::semantic()\n");
     //printf("type: %s\n", type->toChars());
+#endif
     type = type->semantic(loc, sc);
     tb = type->toBasetype();
     //printf("tb: %s, deco = %s\n", tb->toChars(), tb->deco);
@@ -1482,20 +1506,27 @@ Expression *NewExp::semantic(Scope *sc)
 	TypeStruct *ts = (TypeStruct *)tb;
 	StructDeclaration *sd = ts->sym;
 	FuncDeclaration *f = sd->aggNew;
+	TypeFunction *tf;
 
 	if (f)
 	{
-	    Array *args = new Array();
 	    Expression *e;
 
+	    // Prepend the uint size argument to newargs[]
 	    e = new IntegerExp(loc, sd->size(), Type::tuns32);
-	    args->push(e);
+	    if (!newargs)
+		newargs = new Array();
+	    newargs->shift(e);
 
-	    f = f->overloadResolve(loc, args);
+	    f = f->overloadResolve(loc, newargs);
 	    allocator = f->isNewDeclaration();
 	    assert(allocator);
+
+	    tf = (TypeFunction *)f->type;
+	    functionArguments(loc, sc, tf, newargs);
+
 	    e = new VarExp(loc, f);
-	    e = new CallExp(loc, e, args);
+	    e = new CallExp(loc, e, newargs);
 	    e = e->semantic(sc);
 	    e->type = type->pointerTo();
 	    return e;
@@ -1508,6 +1539,7 @@ Expression *NewExp::semantic(Scope *sc)
     {	Expression *arg;
 
 	arg = (Expression *)arguments->data[0];
+	arg = resolveProperties(sc, arg);
 	arg = arg->implicitCastTo(Type::tindex);
 	if (arg->op == TOKint64 && (long long)arg->toInteger() < 0)
 	    error("negative array index %s", arg->toChars());
@@ -1564,6 +1596,9 @@ SymOffExp::SymOffExp(Loc loc, Declaration *var, unsigned offset)
 
 Expression *SymOffExp::semantic(Scope *sc)
 {
+#if LOGSEMANTIC
+    printf("SymOffExp::semantic('%s')\n", toChars());
+#endif
     var->semantic(sc);
     type = var->type->pointerTo();
     return this;
@@ -1605,7 +1640,9 @@ int VarExp::equals(Object *o)
 
 Expression *VarExp::semantic(Scope *sc)
 {
-    //printf("VarExp::semantic(%s)\n", toChars());
+#if LOGSEMANTIC
+    printf("VarExp::semantic(%s)\n", toChars());
+#endif
     if (!type)
 	type = var->type;
 
@@ -1687,7 +1724,9 @@ FuncExp::FuncExp(Loc loc, FuncLiteralDeclaration *fd)
 
 Expression *FuncExp::semantic(Scope *sc)
 {
-    //printf("FuncExp::semantic(%s)\n", toChars());
+#if LOGSEMANTIC
+    printf("FuncExp::semantic(%s)\n", toChars());
+#endif
     if (!type)
     {
 	fd->semantic(sc);
@@ -1744,7 +1783,9 @@ Expression *DeclarationExp::syntaxCopy()
 
 Expression *DeclarationExp::semantic(Scope *sc)
 {
-    //printf("DeclarationExp::semantic() %s\n", toChars());
+#if LOGSEMANTIC
+    printf("DeclarationExp::semantic() %s\n", toChars());
+#endif
 
     if (declaration->isVarDeclaration())
     {	// Do semantic() on initializer first, so:
@@ -1807,6 +1848,9 @@ Expression *UnaExp::syntaxCopy()
 
 Expression *UnaExp::semantic(Scope *sc)
 {
+#if LOGSEMANTIC
+    printf("UnaExp::semantic('%s')\n", toChars());
+#endif
     e1 = e1->semantic(sc);
 //    if (!e1->type)
 //	error("%s has no value", e1->toChars());
@@ -1839,7 +1883,9 @@ Expression *BinExp::syntaxCopy()
 
 Expression *BinExp::semantic(Scope *sc)
 {
-    //printf("BinExp::semantic() %s\n", toChars());
+#if LOGSEMANTIC
+    printf("BinExp::semantic('%s')\n", toChars());
+#endif
     e1 = e1->semantic(sc);
     if (!e1->type)
 	error("%s has no value", e1->toChars());
@@ -1908,6 +1954,9 @@ AssertExp::AssertExp(Loc loc, Expression *e)
 
 Expression *AssertExp::semantic(Scope *sc)
 {
+#if LOGSEMANTIC
+    printf("AssertExp::semantic('%s')\n", toChars());
+#endif
     UnaExp::semantic(sc);
     e1 = resolveProperties(sc, e1);
     // BUG: see if we can do compile time elimination of the Assert
@@ -1936,8 +1985,10 @@ Expression *DotIdExp::semantic(Scope *sc)
     Expression *eleft;
     Expression *eright;
 
-    //printf("DotIdExp::semantic(this = %p, '%s')\n", this, toChars());
+#if LOGSEMANTIC
+    printf("DotIdExp::semantic(this = %p, '%s')\n", this, toChars());
     //printf("e1->op = %d, '%s'\n", e1->op, Token::toChars(e1->op));
+#endif
 
 //{ static int z; fflush(stdout); if (++z == 10) *(char*)0=0; }
 
@@ -1995,8 +2046,11 @@ Expression *DotIdExp::semantic(Scope *sc)
 			}
 		    }
 		}
-		if (v->needThis() && eleft)
-		{   e = new DotVarExp(loc, eleft, v);
+		if (v->needThis())
+		{
+		    if (!eleft)
+			eleft = new ThisExp(loc);
+		    e = new DotVarExp(loc, eleft, v);
 		    e = e->semantic(sc);
 		}
 		else
@@ -2014,8 +2068,11 @@ Expression *DotIdExp::semantic(Scope *sc)
 	    if (f)
 	    {
 		//printf("it's a function\n");
-		if (f->needThis() && eleft)
-		{   e = new DotVarExp(loc, eleft, f);
+		if (f->needThis())
+		{
+		    if (!eleft)
+			eleft = new ThisExp(loc);
+		    e = new DotVarExp(loc, eleft, f);
 		    e = e->semantic(sc);
 		}
 		else
@@ -2046,6 +2103,12 @@ Expression *DotIdExp::semantic(Scope *sc)
 
 		ie = new ScopeExp(loc, imp->pkg);
 		return ie->semantic(sc);
+	    }
+
+	    Type *t = s->getType();
+	    if (t)
+	    {
+		return new TypeExp(loc, t);
 	    }
 
 	    // BUG: handle other cases like in IdentifierExp::semantic()
@@ -2092,7 +2155,9 @@ DotVarExp::DotVarExp(Loc loc, Expression *e, Declaration *v)
 
 Expression *DotVarExp::semantic(Scope *sc)
 {
-    //printf("DotVarExp::semantic(%p)\n", this);
+#if LOGSEMANTIC
+    printf("DotVarExp::semantic('%s')\n", toChars());
+#endif
     if (!type)
     {
 	e1 = e1->semantic(sc);
@@ -2147,7 +2212,9 @@ Expression *DotTemplateInstanceExp::semantic(Scope *sc)
     Type *t1;
     Expression *eleft = NULL;
 
-    //printf("DotTemplateInstanceExp::semantic(%p)\n", this);
+#if LOGSEMANTIC
+    printf("DotTemplateInstanceExp::semantic('%s')\n", toChars());
+#endif
     //e1->print();
     //print();
     e1 = e1->semantic(sc);
@@ -2202,9 +2269,25 @@ Expression *DotTemplateInstanceExp::semantic(Scope *sc)
 	goto Lerr;
     }
     ti->tempdecl = td;
+
+    if (eleft)
+    {	Declaration *v;
+
+	ti->semantic(sc);
+	s = ti->inst->toAlias();
+	v = s->isDeclaration();
+	if (v)
+	{   e = new DotVarExp(loc, eleft, v);
+	    e = e->semantic(sc);
+	    return e;
+	}
+    }
+
     e = new ScopeExp(loc, ti);
     if (eleft)
+    {
 	e = new DotExp(loc, eleft, e);
+    }
     e = e->semantic(sc);
     return e;
 
@@ -2229,6 +2312,9 @@ DelegateExp::DelegateExp(Loc loc, Expression *e, FuncDeclaration *f)
 
 Expression *DelegateExp::semantic(Scope *sc)
 {
+#if LOGSEMANTIC
+    printf("DelegateExp::semantic('%s')\n", toChars());
+#endif
     if (!type)
     {
 	e1 = e1->semantic(sc);
@@ -2259,6 +2345,9 @@ DotTypeExp::DotTypeExp(Loc loc, Expression *e, Dsymbol *s)
 
 Expression *DotTypeExp::semantic(Scope *sc)
 {
+#if LOGSEMANTIC
+    printf("DotTypeExp::semantic('%s')\n", toChars());
+#endif
     return this;
 }
 
@@ -2280,6 +2369,9 @@ ArrowExp::ArrowExp(Loc loc, Expression *e, Identifier *ident)
 Expression *ArrowExp::semantic(Scope *sc)
 {   Expression *e;
 
+#if LOGSEMANTIC
+    printf("ArrowExp::semantic('%s')\n", toChars());
+#endif
     UnaExp::semantic(sc);
     e1 = resolveProperties(sc, e1);
     e1 = e1->checkToPointer();
@@ -2346,7 +2438,9 @@ Expression *CallExp::semantic(Scope *sc)
     int i;
     Type *t1;
 
-    //printf("CallExp::semantic(): %s\n", toChars());
+#if LOGSEMANTIC
+    printf("CallExp::semantic('%s')\n", toChars());
+#endif
     if (type)
 	return this;		// semantic() already run
 #if 0
@@ -2395,7 +2489,15 @@ if (arguments && arguments->dim)
 	// semantic() run later for these
     }
     else
+    {
 	UnaExp::semantic(sc);
+	if (e1->op == TOKimport)
+	{   // Perhaps this should be moved to ScopeExp::semantic()
+	    ScopeExp *se = (ScopeExp *)e1;
+	    e1 = new DsymbolExp(loc, se->sds);
+	    e1 = e1->semantic(sc);
+	}
+    }
 
 
     t1 = NULL;
@@ -2593,7 +2695,9 @@ AddrExp::AddrExp(Loc loc, Expression *e)
 
 Expression *AddrExp::semantic(Scope *sc)
 {
-    //printf("AddrExp::semantic(), type = %p\n", type);
+#if LOGSEMANTIC
+    printf("AddrExp::semantic('%s')\n", toChars());
+#endif
     if (!type)
     {
 	UnaExp::semantic(sc);
@@ -2654,6 +2758,9 @@ PtrExp::PtrExp(Loc loc, Expression *e, Type *t)
 Expression *PtrExp::semantic(Scope *sc)
 {   Type *tb;
 
+#if LOGSEMANTIC
+    printf("PtrExp::semantic('%s')\n", toChars());
+#endif
     UnaExp::semantic(sc);
     e1 = resolveProperties(sc, e1);
     if (type)
@@ -2712,6 +2819,9 @@ NegExp::NegExp(Loc loc, Expression *e)
 Expression *NegExp::semantic(Scope *sc)
 {   Expression *e;
 
+#if LOGSEMANTIC
+    printf("NegExp::semantic('%s')\n", toChars());
+#endif
     if (!type)
     {
 	UnaExp::semantic(sc);
@@ -2819,32 +2929,29 @@ Expression *DeleteExp::semantic(Scope *sc)
 
 	if (cd->isInterfaceDeclaration() && cd->isCOMclass())
 	    error("cannot delete instance of COM interface %s", cd->toChars());
+    }
+    else if (tb->ty == Tpointer)
+    {
+	tb = tb->next->toBasetype();
+	if (tb->ty == Tstruct)
+	{
+	    TypeStruct *ts = (TypeStruct *)tb;
+	    StructDeclaration *sd = ts->sym;
+	    FuncDeclaration *f = sd->aggDelete;
 
-#if 0
-	if (cd->aggDelete)
-	{   FuncDeclaration *f = cd->aggDelete;
-	    Expression *e;
-	    Expression *ec;
-	    Type *tppv = Type::tvoid->pointerTo()->pointerTo();
+	    if (f)
+	    {
+		Expression *e;
+		Expression *ec;
+		Type *tpv = Type::tvoid->pointerTo();
 
-	    e = e1->addressOf();
-	    e->type = tppv;
-
-	    if (cd->dtor)
-	    {	Expression *ec;
-		FuncDeclaration *fd;
-
-		fd = FuncDeclaration::genCfunc(tppv, "_d_dtor");
-		ec = new VarExp(0, fd);
+		e = e1;
+		e->type = tpv;
+		ec = new VarExp(loc, f);
 		e = new CallExp(loc, ec, e);
-		e->type = tppv;
+		return e->semantic(sc);
 	    }
-
-	    ec = new VarExp(loc, f);
-	    e = new CallExp(loc, ec, e);
-	    return e->semantic(sc);
 	}
-#endif
     }
     return this;
 }
@@ -2875,7 +2982,9 @@ Expression *CastExp::semantic(Scope *sc)
     BinExp *b;
     UnaExp *u;
 
-    //printf("CastExp::semantic()\n");
+#if LOGSEMANTIC
+    printf("CastExp::semantic('%s')\n", toChars());
+#endif
     if (type)
 	return this;
     UnaExp::semantic(sc);
@@ -2981,7 +3090,9 @@ Expression *SliceExp::semantic(Scope *sc)
     AggregateDeclaration *ad;
     FuncDeclaration *fd;
 
-    //printf("SliceExp::semantic(%p)\n", sc);
+#if LOGSEMANTIC
+    printf("SliceExp::semantic('%s')\n", toChars());
+#endif
     if (type)
 	return this;
 
@@ -3093,7 +3204,9 @@ ArrayLengthExp::ArrayLengthExp(Loc loc, Expression *e1)
 Expression *ArrayLengthExp::semantic(Scope *sc)
 {   Expression *e;
 
-    //printf("ArrayLengthExp::semantic(%p)\n", sc);
+#if LOGSEMANTIC
+    printf("ArrayLengthExp::semantic('%s')\n", toChars());
+#endif
     if (!type)
     {
 	UnaExp::semantic(sc);
@@ -3119,7 +3232,9 @@ DotExp::DotExp(Loc loc, Expression *e1, Expression *e2)
 
 Expression *DotExp::semantic(Scope *sc)
 {
-    //printf("DotExp::semantic() %s\n", toChars());
+#if LOGSEMANTIC
+    printf("DotExp::semantic('%s')\n", toChars());
+#endif
     e1 = e1->semantic(sc);
     e2 = e2->semantic(sc);
     return this;
@@ -3168,7 +3283,9 @@ Expression *IndexExp::semantic(Scope *sc)
     UnaExp *u;
     Type *t1;
 
-    //printf("IndexExp::semantic(): "); print();
+#if LOGSEMANTIC
+    printf("IndexExp::semantic('%s')\n", toChars());
+#endif
     BinExp::semanticp(sc);
     e = this;
 
@@ -3330,7 +3447,9 @@ AssignExp::AssignExp(Loc loc, Expression *e1, Expression *e2)
 Expression *AssignExp::semantic(Scope *sc)
 {   Type *t1;
 
-    //printf("AssignExp::semantic() "); print();
+#if LOGSEMANTIC
+    printf("AssignExp::semantic('%s')\n", toChars());
+#endif
     //printf("e1->op = %d, '%s'\n", e1->op, Token::toChars(e1->op));
 
     /* Look for operator overloading of a[]=value.
@@ -3807,7 +3926,9 @@ AddExp::AddExp(Loc loc, Expression *e1, Expression *e2)
 Expression *AddExp::semantic(Scope *sc)
 {   Expression *e;
 
-    //printf("AddExp::semantic()\n");
+#if LOGSEMANTIC
+    printf("AddExp::semantic('%s')\n", toChars());
+#endif
     if (!type)
     {
 	BinExp::semanticp(sc);
@@ -3873,7 +3994,9 @@ Expression *MinExp::semantic(Scope *sc)
     Type *t1;
     Type *t2;
 
-    //printf("MinExp::semantic() %s\n", toChars());
+#if LOGSEMANTIC
+    printf("MinExp::semantic('%s')\n", toChars());
+#endif
     if (type)
 	return this;
 
@@ -4414,7 +4537,9 @@ Expression *CmpExp::semantic(Scope *sc)
     Type *t1;
     Type *t2;
 
-    //printf("CmpExp::semantic()\n");
+#if LOGSEMANTIC
+    printf("CmpExp::semantic('%s')\n", toChars());
+#endif
     if (type)
 	return this;
 

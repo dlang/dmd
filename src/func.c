@@ -250,7 +250,7 @@ void FuncDeclaration::semantic(Scope *sc)
     /* Do not allow template instances to add virtual functions
      * to a class.
      */
-    if (!(isStatic() || protection == PROTprivate))
+    if (isVirtual())
     {
 	TemplateInstance *ti = parent->isTemplateInstance();
 	if (ti)

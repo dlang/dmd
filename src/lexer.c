@@ -230,7 +230,7 @@ void Lexer::error(const char *format, ...)
     fflush(stdout);
 
     global.errors++;
-    if (global.errors > 10)	// moderate blizzard of cascading messages
+    if (global.errors > 20)	// moderate blizzard of cascading messages
 	fatal();
 }
 

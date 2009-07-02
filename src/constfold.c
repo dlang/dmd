@@ -539,6 +539,6 @@ Expression *CondExp::constFold()
 	n = econd->toComplex() != 0;
     else
 	n = econd->toInteger() != 0;
-    return n ? e1 : e2;
+    return n ? e1->constFold() : e2->constFold();
 }
 
