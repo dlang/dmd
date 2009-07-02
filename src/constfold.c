@@ -617,9 +617,20 @@ Expression *IdentityExp::constFold()
     {
 	cmp = e1->toComplex() == e2->toComplex();
     }
-    else
+    else if (e1->type->isintegral())
     {
 	cmp = (e1->toInteger() == e2->toInteger());
+    }
+    else if (e1->op == TOKsymoff && e2->op == TOKsymoff)
+    {
+	SymOffExp *es1 = (SymOffExp *)e1;
+	SymOffExp *es2 = (SymOffExp *)e2;
+
+	cmp = (es1->var == es2->var && es1->offset == es2->offset);
+    }
+    else
+    {
+	return this;
     }
     if (op == TOKnotidentity)
 	cmp ^= 1;

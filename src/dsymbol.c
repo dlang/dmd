@@ -298,9 +298,11 @@ Module *Dsymbol::getModule()
     Module *m;
     Dsymbol *s;
 
+    //printf("Dsymbol::getModule()\n");
     s = this;
     while (s)
     {
+	//printf("\ts = '%s'\n", s->toChars());
 	m = s->isModule();
 	if (m)
 	    return m;

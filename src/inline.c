@@ -107,6 +107,20 @@ int ReturnStatement::inlineCost(InlineCostState *ics)
 
 /* -------------------------- */
 
+int arrayInlineCost(InlineCostState *ics, Array *arguments)
+{   int cost = 0;
+
+    if (arguments)
+    {
+	for (int i = 0; i < arguments->dim; i++)
+	{   Expression *e = (Expression *)arguments->data[i];
+
+	    cost += e->inlineCost(ics);
+	}
+    }
+    return cost;
+}
+
 int Expression::inlineCost(InlineCostState *ics)
 {
     return 1;
@@ -146,7 +160,7 @@ int DeclarationExp::inlineCost(InlineCostState *ics)
     vd = declaration->isVarDeclaration();
     if (vd)
     {
-	if (vd->isStatic())
+	if (vd->isDataseg())
 	    return COST_MAX;
 	cost += 1;
 
@@ -184,21 +198,9 @@ int BinExp::inlineCost(InlineCostState *ics)
 }
 
 int CallExp::inlineCost(InlineCostState *ics)
-{   int cost;
-
-    cost = 1 + e1->inlineCost(ics);
-    if (arguments)
-    {
-	for (int i = 0; i < arguments->dim; i++)
-	{
-	    Expression *e = (Expression *)arguments->data[i];
-
-	    cost += e->inlineCost(ics);
-	}
-    }
-    return cost;
+{
+    return 1 + e1->inlineCost(ics) + arrayInlineCost(ics, arguments);
 }
-
 
 int SliceExp::inlineCost(InlineCostState *ics)
 {   int cost;
@@ -209,6 +211,11 @@ int SliceExp::inlineCost(InlineCostState *ics)
     if (upr)
 	cost += upr->inlineCost(ics);
     return cost;
+}
+
+int ArrayExp::inlineCost(InlineCostState *ics)
+{
+    return 1 + e1->inlineCost(ics) + arrayInlineCost(ics, arguments);
 }
 
 
@@ -464,6 +471,17 @@ Expression *SliceExp::doInline(InlineDoState *ids)
 }
 
 
+Expression *ArrayExp::doInline(InlineDoState *ids)
+{
+    ArrayExp *ce;
+
+    ce = (ArrayExp *)copy();
+    ce->e1 = e1->doInline(ids);
+    ce->arguments = arrayExpressiondoInline(arguments, ids);
+    return ce;
+}
+
+
 Expression *CondExp::doInline(InlineDoState *ids)
 {
     CondExp *ce = (CondExp *)copy();
@@ -672,6 +690,19 @@ Statement *LabelStatement::inlineScan(InlineScanState *iss)
 
 /* -------------------------- */
 
+void arrayInlineScan(InlineScanState *iss, Array *arguments)
+{
+    if (arguments)
+    {
+	for (int i = 0; i < arguments->dim; i++)
+	{   Expression *e = (Expression *)arguments->data[i];
+
+	    e = e->inlineScan(iss);
+	    arguments->data[i] = (void *)e;
+	}
+    }
+}
+
 Expression *Expression::inlineScan(InlineScanState *iss)
 {
     return this;
@@ -702,16 +733,7 @@ Expression *CallExp::inlineScan(InlineScanState *iss)
 
     //printf("CallExp::inlineScan()\n");
     e1 = e1->inlineScan(iss);
-    if (arguments)
-    {
-	for (int i = 0; i < arguments->dim; i++)
-	{
-	    Expression *e = (Expression *)arguments->data[i];
-
-	    e = e->inlineScan(iss);
-	    arguments->data[i] = (void *)e;
-	}
-    }
+    arrayInlineScan(iss, arguments);
 
     if (e1->op == TOKvar)
     {
@@ -746,6 +768,17 @@ Expression *SliceExp::inlineScan(InlineScanState *iss)
     if (upr)
 	upr = upr->inlineScan(iss);
     return this;
+}
+
+
+Expression *ArrayExp::inlineScan(InlineScanState *iss)
+{   Expression *e = this;
+
+    //printf("ArrayExp::inlineScan()\n");
+    e1 = e1->inlineScan(iss);
+    arrayInlineScan(iss, arguments);
+
+    return e;
 }
 
 

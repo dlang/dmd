@@ -35,6 +35,8 @@
 #include "dsymbol.h"
 #include "module.h"
 
+Expression *createTypeInfoArray(Scope *sc, Expression *args[], int dim);
+
 #define LOGSEMANTIC	0
 
 /***************************************
@@ -74,7 +76,7 @@ void arrayExpressionSemantic(Array *a, Scope *sc)
 }
 
 /****************************************
- * Process arguments to function.
+ * Preprocess arguments to function.
  */
 
 void preFunctionArguments(Loc loc, Scope *sc, Array *arguments)
@@ -103,6 +105,16 @@ void preFunctionArguments(Loc loc, Scope *sc, Array *arguments)
 	}
     }
 }
+
+
+/****************************************
+ * Now that we know the exact type of the function we're calling,
+ * the arguments[] need to be adjusted:
+ *	1) implicitly convert argument to the corresponding paramter type
+ *	2) add default arguments for any missing arguments
+ *	3) do default promotions on arguments corresponding to ...
+ *	4) add hidden _arguments[] argument
+ */
 
 void functionArguments(Loc loc, Scope *sc, TypeFunction *tf, Array *arguments)
 {
@@ -145,7 +157,7 @@ void functionArguments(Loc loc, Scope *sc, TypeFunction *tf, Array *arguments)
 	    {
 		// BUG: should check that argument to inout is type 'invariant'
 		// BUG: assignments to inout should also be type 'invariant'
-		arg = arg->modifiableLvalue(sc);
+		arg = arg->modifiableLvalue(sc, NULL);
 
 		if (arg->op == TOKrange)
 		    arg->error("cannot modify slice %s", arg->toChars());
@@ -188,6 +200,31 @@ void functionArguments(Loc loc, Scope *sc, TypeFunction *tf, Array *arguments)
 	    }
 	}
 	arguments->data[i] = (void *) arg;
+    }
+
+    // If D linkage and variadic, add _arguments[] as first argument
+    if (tf->linkage == LINKd && tf->varargs)
+    {
+	Expression *e;
+
+	e = createTypeInfoArray(sc, (Expression **)&arguments->data[nproto],
+		arguments->dim - nproto);
+	arguments->insert(0, e);
+    }
+}
+
+void argsToCBuffer(OutBuffer *buf, Array *arguments)
+{   int i;
+
+    if (arguments)
+    {
+	for (i = 0; i < arguments->dim; i++)
+	{   Expression *arg = (Expression *)arguments->data[i];
+
+	    if (i)
+		buf->writeByte(',');
+	    arg->toCBuffer(buf);
+	}
     }
 }
 
@@ -330,16 +367,18 @@ void Expression::toCBuffer(OutBuffer *buf)
  * If we can, convert expression to be an lvalue.
  */
 
-Expression *Expression::toLvalue()
+Expression *Expression::toLvalue(Expression *e)
 {
-    error("'%s' is not an lvalue", toChars());
+    if (!e)
+	e = this;
+    error("%s is not an lvalue", e->toChars());
     return this;
 }
 
-Expression *Expression::modifiableLvalue(Scope *sc)
+Expression *Expression::modifiableLvalue(Scope *sc, Expression *e)
 {
     // See if this expression is a modifiable lvalue (i.e. not const)
-    return toLvalue();
+    return toLvalue(e);
 }
 
 void Expression::checkScalar()
@@ -407,7 +446,7 @@ Expression *Expression::addressOf()
     Expression *e;
 
     //printf("Expression::addressOf()\n");
-    e = toLvalue();
+    e = toLvalue(NULL);
     e = new AddrExp(loc, e);
     e->type = type->pointerTo();
     return e;
@@ -829,7 +868,7 @@ void IdentifierExp::toCBuffer(OutBuffer *buf)
     buf->writestring(ident->toChars());
 }
 
-Expression *IdentifierExp::toLvalue()
+Expression *IdentifierExp::toLvalue(Expression *e)
 {
 #if 0
     tym = tybasic(e1->ET->Tty);
@@ -992,7 +1031,7 @@ void DsymbolExp::toCBuffer(OutBuffer *buf)
     buf->writestring(s->toChars());
 }
 
-Expression *DsymbolExp::toLvalue()
+Expression *DsymbolExp::toLvalue(Expression *e)
 {
 #if 0
     tym = tybasic(e1->ET->Tty);
@@ -1083,7 +1122,7 @@ void ThisExp::toCBuffer(OutBuffer *buf)
     buf->writestring("this");
 }
 
-Expression *ThisExp::toLvalue()
+Expression *ThisExp::toLvalue(Expression *e)
 {
     return this;
 }
@@ -1435,6 +1474,7 @@ Lagain:
 	sds->semantic(sc);
     }
 #endif
+    type = Type::tvoid;
     //printf("-2ScopeExp::semantic()\n");
     return this;
 }
@@ -1600,22 +1640,14 @@ void NewExp::toCBuffer(OutBuffer *buf)
     if (newargs && newargs->dim)
     {
 	buf->writeByte('(');
-	for (i = 0; i < newargs->dim; i++)
-	{   Expression *arg = (Expression *)newargs->data[i];
-
-	    arg->toCBuffer(buf);
-	}
+	argsToCBuffer(buf, newargs);
 	buf->writeByte(')');
     }
     type->toCBuffer(buf, NULL);
     if (arguments && arguments->dim)
     {
 	buf->writeByte('(');
-	for (i = 0; i < arguments->dim; i++)
-	{   Expression *arg = (Expression *)arguments->data[i];
-
-	    arg->toCBuffer(buf);
-	}
+	argsToCBuffer(buf, arguments);
 	buf->writeByte(')');
     }
 }
@@ -1730,7 +1762,7 @@ void VarExp::toCBuffer(OutBuffer *buf)
     buf->writestring(var->toChars());
 }
 
-Expression *VarExp::toLvalue()
+Expression *VarExp::toLvalue(Expression *e)
 {
 #if 0
     tym = tybasic(e1->ET->Tty);
@@ -1742,7 +1774,7 @@ Expression *VarExp::toLvalue()
     return this;
 }
 
-Expression *VarExp::modifiableLvalue(Scope *sc)
+Expression *VarExp::modifiableLvalue(Scope *sc, Expression *e)
 {
     //printf("VarExp::modifiableLvalue('%s')\n", var->toChars());
     if (sc->incontract && var->isParameter())
@@ -1755,7 +1787,7 @@ Expression *VarExp::modifiableLvalue(Scope *sc)
 	error("cannot modify const variable '%s'", var->toChars());
 
     // See if this expression is a modifiable lvalue (i.e. not const)
-    return toLvalue();
+    return toLvalue(e);
 }
 
 
@@ -1875,6 +1907,43 @@ void DeclarationExp::toCBuffer(OutBuffer *buf)
 }
 
 
+/************************ TypeidExp ************************************/
+
+/*
+ *	typeid(int)
+ */
+
+TypeidExp::TypeidExp(Loc loc, Type *typeidType)
+    : Expression(loc, TOKtypeid, sizeof(TypeidExp))
+{
+    this->typeidType = typeidType;
+}
+
+
+Expression *TypeidExp::syntaxCopy()
+{
+    return new TypeidExp(loc, typeidType->syntaxCopy());
+}
+
+
+Expression *TypeidExp::semantic(Scope *sc)
+{   Expression *e;
+
+#if LOGSEMANTIC
+    printf("TypeidExp::semantic()\n");
+#endif
+    typeidType = typeidType->semantic(loc, sc);
+    e = typeidType->getTypeInfo(sc);
+    return e;
+}
+
+void TypeidExp::toCBuffer(OutBuffer *buf)
+{
+    buf->writestring("typeid(");
+    typeidType->toCBuffer(buf, NULL);
+    buf->writeByte(')');
+}
+
 /************************************************************/
 
 UnaExp::UnaExp(Loc loc, enum TOK op, int size, Expression *e1)
@@ -1966,7 +2035,7 @@ Expression *BinExp::commonSemanticAssign(Scope *sc)
 	if (e)
 	    return e;
 
-	e1 = e1->modifiableLvalue(sc);
+	e1 = e1->modifiableLvalue(sc, NULL);
 	e1->checkScalar();
 	type = e1->type;
 	typeCombine();
@@ -2215,7 +2284,7 @@ Expression *DotVarExp::semantic(Scope *sc)
     return this;
 }
 
-Expression *DotVarExp::toLvalue()
+Expression *DotVarExp::toLvalue(Expression *e)
 {
     return this;
 }
@@ -2716,17 +2785,7 @@ void CallExp::toCBuffer(OutBuffer *buf)
 
     e1->toCBuffer(buf);
     buf->writeByte('(');
-    if (arguments)
-    {
-	for (i = 0; i < arguments->dim; i++)
-	{   Expression *arg = (Expression *)arguments->data[i];
-
-	    if (i)
-		buf->writeByte(',');
-	    arg->toCBuffer(buf);
-	    // BUG: handle varargs
-	}
-    }
+    argsToCBuffer(buf, arguments);
     buf->writeByte(')');
 }
 
@@ -2746,7 +2805,7 @@ Expression *AddrExp::semantic(Scope *sc)
     if (!type)
     {
 	UnaExp::semantic(sc);
-	e1 = e1->toLvalue();
+	e1 = e1->toLvalue(NULL);
 	type = e1->type->pointerTo();
 
 	// See if this should really be a delegate
@@ -2834,7 +2893,7 @@ Expression *PtrExp::semantic(Scope *sc)
     return this;
 }
 
-Expression *PtrExp::toLvalue()
+Expression *PtrExp::toLvalue(Expression *e)
 {
 #if 0
     tym = tybasic(e1->ET->Tty);
@@ -2963,7 +3022,7 @@ Expression *DeleteExp::semantic(Scope *sc)
 
     UnaExp::semantic(sc);
     e1 = resolveProperties(sc, e1);
-    e1 = e1->toLvalue();
+    e1 = e1->toLvalue(NULL);
     type = Type::tvoid;
 
     tb = e1->type->toBasetype();
@@ -3150,17 +3209,22 @@ Expression *SliceExp::semantic(Scope *sc)
     return e;
 
 Lerror:
-    error("%s cannot be sliced with []", e1->type->toChars());
+    char *s;
+    if (t->ty == Tvoid)
+	s = e1->toChars();
+    else
+	s = t->toChars();
+    error("%s cannot be sliced with []", s);
     type = Type::terror;
     return e;
 }
 
-Expression *SliceExp::toLvalue()
+Expression *SliceExp::toLvalue(Expression *e)
 {
     return this;
 }
 
-Expression *SliceExp::modifiableLvalue(Scope *sc)
+Expression *SliceExp::modifiableLvalue(Scope *sc, Expression *e)
 {
     //error("cannot modify range expression %s", toChars());
     return this;
@@ -3214,6 +3278,75 @@ void ArrayLengthExp::toCBuffer(OutBuffer *buf)
     buf->writestring(".length");
 }
 
+/*********************** ArrayExp *************************************/
+
+// e1 [ i1, i2, i3, ... ]
+
+ArrayExp::ArrayExp(Loc loc, Expression *e1, Array *args)
+	: UnaExp(loc, TOKarray, sizeof(ArrayExp), e1)
+{
+    arguments = args;
+}
+
+Expression *ArrayExp::syntaxCopy()
+{
+    return new ArrayExp(loc, e1->syntaxCopy(), arraySyntaxCopy(arguments));
+}
+
+Expression *ArrayExp::semantic(Scope *sc)
+{   Expression *e;
+    Type *t1;
+
+#if LOGSEMANTIC
+    printf("ArrayExp::semantic('%s')\n", toChars());
+#endif
+    UnaExp::semantic(sc);
+    e1 = resolveProperties(sc, e1);
+    assert(arguments && arguments->dim);
+
+    t1 = e1->type->toBasetype();
+    if (t1->ty != Tclass && t1->ty != Tstruct)
+    {	// Convert to IndexExp
+	if (arguments->dim != 1)
+	    error("only one index allowed to index %s", t1->toChars());
+	e = new IndexExp(loc, e1, (Expression *)arguments->data[0]);
+	return e->semantic(sc);
+    }
+
+    // Run semantic() on each argument
+    for (int i = 0; i < arguments->dim; i++)
+    {	e = (Expression *)arguments->data[i];
+
+	e = e->semantic(sc);
+	if (!e->type)
+	    error("%s has no value", e->toChars());
+	arguments->data[i] = (void *)e;
+    }
+
+    e = op_overload(sc);
+    if (!e)
+    {	error("no [] operator overload for type %s", e1->type->toChars());
+	e = e1;
+    }
+    return e;
+}
+
+
+Expression *ArrayExp::toLvalue(Expression *e)
+{
+    return this;
+}
+
+
+void ArrayExp::toCBuffer(OutBuffer *buf)
+{   int i;
+
+    e1->toCBuffer(buf);
+    buf->writeByte('[');
+    argsToCBuffer(buf, arguments);
+    buf->writeByte(']');
+}
+
 /************************* DotExp ***********************************/
 
 DotExp::DotExp(Loc loc, Expression *e1, Expression *e2)
@@ -3248,9 +3381,9 @@ Expression *CommaExp::semantic(Scope *sc)
     return this;
 }
 
-Expression *CommaExp::toLvalue()
+Expression *CommaExp::toLvalue(Expression *e)
 {
-    e2 = e2->toLvalue();
+    e2 = e2->toLvalue(NULL);
     return this;
 }
 
@@ -3259,12 +3392,12 @@ int CommaExp::isBool(int result)
     return e2->isBool(result);
 }
 
-/************************************************************/
+/************************** IndexExp **********************************/
 
 // e1 [ e2 ]
 
 IndexExp::IndexExp(Loc loc, Expression *e1, Expression *e2)
-	: BinExp(loc, TOKarray, sizeof(IndexExp), e1, e2)
+	: BinExp(loc, TOKindex, sizeof(IndexExp), e1, e2)
 {
 }
 
@@ -3319,20 +3452,12 @@ Expression *IndexExp::semantic(Scope *sc)
 	case Taarray:
 	{   TypeAArray *taa = (TypeAArray *)t1;
 
-	    e1 = e1->modifiableLvalue(sc);
+	    e1 = e1->modifiableLvalue(sc, e1);
 	    e2 = e2->implicitCastTo(taa->index);	// type checking
 	    e2 = e2->implicitCastTo(taa->key);		// actual argument type
 	    type = taa->next;
 	    break;
 	}
-
-	case Tstruct:
-	case Tclass:
-	    e = op_overload(sc);
-	    if (!e)
-		error("no [] operator overload for type %s",
-		    e1->type->toChars());
-	    break;
 
 	default:
 	    error("%s must be an array or pointer type, not %s",
@@ -3342,7 +3467,7 @@ Expression *IndexExp::semantic(Scope *sc)
     return e;
 }
 
-Expression *IndexExp::toLvalue()
+Expression *IndexExp::toLvalue(Expression *e)
 {
     return this;
 }
@@ -3355,7 +3480,7 @@ void IndexExp::toCBuffer(OutBuffer *buf)
     buf->writeByte(']');
 }
 
-/************************************************************/
+/************************* PostIncExp ***********************************/
 
 PostIncExp::PostIncExp(Loc loc, Expression *e)
 	: BinExp(loc, TOKplusplus, sizeof(PostIncExp), e, new IntegerExp(loc, 1, Type::tint32))
@@ -3375,7 +3500,7 @@ Expression *PostIncExp::semantic(Scope *sc)
 	    return e;
 
 	e = this;
-	e1 = e1->modifiableLvalue(sc);
+	e1 = e1->modifiableLvalue(sc, NULL);
 	e1->checkScalar();
 	if (e1->type->ty == Tpointer)
 	    e = scaleFactor();
@@ -3411,7 +3536,7 @@ Expression *PostDecExp::semantic(Scope *sc)
 	    return e;
 
 	e = this;
-	e1 = e1->modifiableLvalue(sc);
+	e1 = e1->modifiableLvalue(sc, NULL);
 	e1->checkScalar();
 	if (e1->type->ty == Tpointer)
 	    e = scaleFactor();
@@ -3437,6 +3562,7 @@ AssignExp::AssignExp(Loc loc, Expression *e1, Expression *e2)
 
 Expression *AssignExp::semantic(Scope *sc)
 {   Type *t1;
+    Expression *e1old = e1;
 
 #if LOGSEMANTIC
     printf("AssignExp::semantic('%s')\n", toChars());
@@ -3449,7 +3575,7 @@ Expression *AssignExp::semantic(Scope *sc)
      */
     if (e1->op == TOKarray)
     {	Type *t1;
-	IndexExp *ae = (IndexExp *)e1;
+	ArrayExp *ae = (ArrayExp *)e1;
 	AggregateDeclaration *ad;
 	Identifier *id = Id::index;
 	FuncDeclaration *fd;
@@ -3465,14 +3591,31 @@ Expression *AssignExp::semantic(Scope *sc)
 	{
 	    ad = ((TypeClass *)t1)->sym;
 	  L1:
-	    // Rewrite (a[i] = value) to (a.opSetIndex(i, value))
-	    fd = search_function(ad, id);
+	    // Rewrite (a[i] = value) to (a.opIndexAssign(value, i))
+	    fd = search_function(ad, Id::indexass);
 	    if (fd)
-	    {	Expression *e = new DotIdExp(loc, ae->e1, id);
+	    {	Expression *e = new DotIdExp(loc, ae->e1, Id::indexass);
+		Array *a = ae->arguments->copy();
 
-		e = new CallExp(loc, e, ae->e2, e2);
+		a->insert(0, e2);
+		e = new CallExp(loc, e, a);
 		e = e->semantic(sc);
 		return e;
+	    }
+	    else
+	    {
+		// Rewrite (a[i] = value) to (a.opIndex(i, value))
+		fd = search_function(ad, id);
+		if (fd)
+		{   Expression *e = new DotIdExp(loc, ae->e1, id);
+
+		    if (!global.params.useDeprecated)
+			error("operator [] assignment overload with opIndex(i, value) deprecated, use opIndexAssign(value, i)");
+
+		    e = new CallExp(loc, e, (Expression *)ae->arguments->data[0], e2);
+		    e = e->semantic(sc);
+		    return e;
+		}
 	    }
 	}
     }
@@ -3495,10 +3638,12 @@ Expression *AssignExp::semantic(Scope *sc)
 	// e1 is not an lvalue, but we let code generator handle it
 	ArrayLengthExp *ale = (ArrayLengthExp *)e1;
 
-	ale->e1 = ale->e1->modifiableLvalue(sc);
+	ale->e1 = ale->e1->modifiableLvalue(sc, NULL);
     }
     else
-	e1 = e1->modifiableLvalue(sc);
+	// Try to do a decent error message with the expression
+	// before it got constant folded
+	e1 = e1->modifiableLvalue(sc, e1old);
 
     if (e1->op == TOKrange &&
 	!(e1->type->next->equals(e2->type->next) /*||
@@ -3558,7 +3703,7 @@ Expression *AddAssignExp::semantic(Scope *sc)
     if (e)
 	return e;
 
-    e1 = e1->modifiableLvalue(sc);
+    e1 = e1->modifiableLvalue(sc, NULL);
     if ((e1->type->ty == Tarray || e1->type->ty == Tsarray) &&
 	(e2->type->ty == Tarray || e2->type->ty == Tsarray) &&
 	e1->type->next->equals(e2->type->next)
@@ -3609,7 +3754,7 @@ Expression *MinAssignExp::semantic(Scope *sc)
     if (e)
 	return e;
 
-    e1 = e1->modifiableLvalue(sc);
+    e1 = e1->modifiableLvalue(sc, NULL);
     e1->checkScalar();
     if (e1->type->ty == Tpointer && e2->type->isintegral())
 	e = scaleFactor();
@@ -3646,7 +3791,14 @@ Expression *CatAssignExp::semantic(Scope *sc)
     if (e)
 	return e;
 
-    e1 = e1->modifiableLvalue(sc);
+    if (e1->op == TOKrange)
+    {	SliceExp *se = (SliceExp *)e1;
+
+	if (se->e1->type->ty == Tsarray)
+	    error("cannot append to static array %s", se->e1->type->toChars());
+    }
+
+    e1 = e1->modifiableLvalue(sc, NULL);
     if ((e1->type->ty == Tarray || e1->type->ty == Tsarray) &&
 	(e2->type->ty == Tarray || e2->type->ty == Tsarray) &&
 	e2->implicitConvTo(e1->type)
@@ -3691,7 +3843,7 @@ Expression *MulAssignExp::semantic(Scope *sc)
     if (e)
 	return e;
 
-    e1 = e1->modifiableLvalue(sc);
+    e1 = e1->modifiableLvalue(sc, NULL);
     e1->checkScalar();
     type = e1->type;
     typeCombine();
@@ -3746,7 +3898,7 @@ Expression *DivAssignExp::semantic(Scope *sc)
     if (e)
 	return e;
 
-    e1 = e1->modifiableLvalue(sc);
+    e1 = e1->modifiableLvalue(sc, NULL);
     e1->checkScalar();
     type = e1->type;
     typeCombine();
@@ -3807,7 +3959,7 @@ Expression *ShlAssignExp::semantic(Scope *sc)
     if (e)
 	return e;
 
-    e1 = e1->modifiableLvalue(sc);
+    e1 = e1->modifiableLvalue(sc, NULL);
     e1->checkScalar();
     type = e1->type;
     typeCombine();
@@ -3834,7 +3986,7 @@ Expression *ShrAssignExp::semantic(Scope *sc)
     if (e)
 	return e;
 
-    e1 = e1->modifiableLvalue(sc);
+    e1 = e1->modifiableLvalue(sc, NULL);
     e1->checkScalar();
     type = e1->type;
     typeCombine();
@@ -3861,7 +4013,7 @@ Expression *UshrAssignExp::semantic(Scope *sc)
     if (e)
 	return e;
 
-    e1 = e1->modifiableLvalue(sc);
+    e1 = e1->modifiableLvalue(sc, NULL);
     e1->checkScalar();
     type = e1->type;
     typeCombine();
@@ -4584,6 +4736,27 @@ Expression *EqualExp::semantic(Scope *sc)
 
     BinExp::semanticp(sc);
 
+    /* Before checking for operator overloading, check to see if we're
+     * comparing the addresses of two statics. If so, we can just see
+     * if they are the same symbol.
+     */
+    if (e1->op == TOKaddress && e2->op == TOKaddress)
+    {	AddrExp *ae1 = (AddrExp *)e1;
+	AddrExp *ae2 = (AddrExp *)e2;
+
+	if (ae1->e1->op == TOKvar && ae2->e1->op == TOKvar)
+	{   VarExp *ve1 = (VarExp *)ae1->e1;
+	    VarExp *ve2 = (VarExp *)ae2->e1;
+
+	    if (ve1->var == ve2->var /*|| ve1->var->toSymbol() == ve2->var->toSymbol()*/)
+	    {
+		// They are the same, result is 'true'
+		e = new IntegerExp(loc, 1, Type::tbit);
+		return e;
+	    }
+	}
+    }
+
     //if (e2->op != TOKnull)
     {
 	e = op_overload(sc);
@@ -4712,7 +4885,7 @@ Expression *CondExp::semantic(Scope *sc)
     return this;
 }
 
-Expression *CondExp::toLvalue()
+Expression *CondExp::toLvalue(Expression *ex)
 {
     PtrExp *e;
 
@@ -4720,10 +4893,10 @@ Expression *CondExp::toLvalue()
     e = new PtrExp(loc, this, type);
 
     e1 = e1->addressOf();
-    e1 = e1->toLvalue();
+    e1 = e1->toLvalue(NULL);
 
     e2 = e2->addressOf();
-    e2 = e2->toLvalue();
+    e2 = e2->toLvalue(NULL);
 
     typeCombine();
 

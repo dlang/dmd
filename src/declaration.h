@@ -47,6 +47,7 @@ enum STC
     STCin           = 0x800,		// in parameter
     STCout          = 0x1000,		// out parameter
     STCforeach      = 0x2000,		// variable for foreach loop
+    STCcomdat       = 0x4000,		// should go into COMDAT record
 };
 
 struct Match
@@ -198,11 +199,27 @@ struct TypeInfoDeclaration : VarDeclaration
 {
     Type *tinfo;
 
-    TypeInfoDeclaration(Type *tinfo);
+    TypeInfoDeclaration(Type *tinfo, int internal);
     Dsymbol *syntaxCopy(Dsymbol *);
     void semantic(Scope *sc);
 
     Symbol *toSymbol();
+    void toObjFile();			// compile to .obj file
+    virtual void toDt(dt_t **pdt);
+};
+
+struct TypeInfoClassDeclaration : TypeInfoDeclaration
+{
+    TypeInfoClassDeclaration(Type *tinfo);
+
+    void toDt(dt_t **pdt);
+};
+
+struct TypeInfoTypedefDeclaration : TypeInfoDeclaration
+{
+    TypeInfoTypedefDeclaration(Type *tinfo);
+
+    void toDt(dt_t **pdt);
 };
 
 struct ThisDeclaration : VarDeclaration
@@ -231,6 +248,7 @@ struct FuncDeclaration : Declaration
     DsymbolTable *localsymtab;		// used to prevent symbols in different
 					// scopes from having the same name
     VarDeclaration *vthis;		// 'this' parameter
+    VarDeclaration *v_arguments;	// '_arguments' parameter
     Array *parameters;			// Array of Argument's for parameters
     DsymbolTable *labtab;		// statement label symbol table
     Declaration *overnext;		// next in overload list

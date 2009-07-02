@@ -48,7 +48,6 @@ Msgtable msgtable[] =
     { "ModuleInfo" },
     { "ClassInfo" },
     { "classinfo" },
-    { "TypeInfo" },
     { "typeinfo" },
     { "Exception" },
     { "withSym", "__withSym" },
@@ -57,6 +56,12 @@ Msgtable msgtable[] =
     { "delegate" },
     { "line" },
     { "empty", "" },
+
+    { "TypeInfo" },
+    { "TypeInfoClass" },
+    { "TypeInfoTypedef" },
+    { "_arguments" },
+    { "_argptr" },
 
     { "nan" },
     { "infinity" },
@@ -134,6 +139,7 @@ Msgtable msgtable[] =
     { "postinc", "opPostInc" },
     { "postdec", "opPostDec" },
     { "index", "opIndex" },
+    { "indexass", "opIndexAssign" },
     { "slice", "opSlice" },
     { "call", "opCall" },
     { "cast", "opCast" },

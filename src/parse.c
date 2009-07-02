@@ -2222,6 +2222,7 @@ Statement *Parser::parseStatement(int flags)
 	case TOKdelete:
 	case TOKdelegate:
 	case TOKfunction:
+	case TOKtypeid:
 	Lexp:
 	{   Expression *exp;
 
@@ -3539,6 +3540,18 @@ Expression *Parser::parsePrimaryExp()
 	    goto L1;
 	}
 
+	case TOKtypeid:
+	{   Type *t;
+
+	    nextToken();
+	    check(TOKlparen, "typeid");
+	    t = parseBasicType();
+	    t = parseDeclarator(t,NULL);	// ( type )
+	    check(TOKrparen);
+	    e = new TypeidExp(loc, t);
+	    break;
+	}
+
 	case TOKassert:
 	    nextToken();
 	    check(TOKlparen, "assert");
@@ -3682,8 +3695,23 @@ Expression *Parser::parsePostExp(Expression *e)
 			e = new SliceExp(loc, e, index, upr);
 		    }
 		    else
-		    {	// array[index]
-			e = new IndexExp(loc, e, index);
+		    {	// array[index, i2, i3, i4, ...]
+			Array *arguments = new Array();
+			arguments->push(index);
+			if (token.value == TOKcomma)
+			{
+			    nextToken();
+			    while (1)
+			    {   Expression *arg;
+
+				arg = parseAssignExp();
+				arguments->push(arg);
+				if (token.value == TOKrbracket)
+				    break;
+				check(TOKcomma);
+			    }
+			}
+			e = new ArrayExp(loc, e, arguments);
 		    }
 		    check(TOKrbracket);
 		}

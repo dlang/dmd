@@ -69,6 +69,12 @@ ClassDeclaration::ClassDeclaration(Loc loc, Identifier *id, Array *baseclasses)
     if (!Type::typeinfo && id == Id::TypeInfo)
 	Type::typeinfo = this;
 
+    if (!Type::typeinfoclass && id == Id::TypeInfoClass)
+	Type::typeinfoclass = this;
+
+    if (!Type::typeinfotypedef && id == Id::TypeInfoTypedef)
+	Type::typeinfotypedef = this;
+
     com = 0;
 #if 0
     if (id == Id::IUnknown)		// IUnknown is the root of all COM objects
@@ -137,7 +143,9 @@ void ClassDeclaration::semantic(Scope *sc)
 	b->type = b->type->semantic(loc, sc);
 	tb = b->type->toBasetype();
 	if (tb->ty != Tclass)
-	    error("base type must be class or interface, not %s", b->type->toChars());
+	{   error("base type must be class or interface, not %s", b->type->toChars());
+	    baseclasses.remove(0);
+	}
 	else
 	{
 	    tc = (TypeClass *)(tb);

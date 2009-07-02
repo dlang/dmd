@@ -57,6 +57,9 @@ int Tptrdiff_t = Tint32;
 /***************************** Type *****************************/
 
 ClassDeclaration *Type::typeinfo;
+ClassDeclaration *Type::typeinfoclass;
+ClassDeclaration *Type::typeinfotypedef;
+
 Type *Type::basic[TMAX];
 unsigned char Type::mangleChar[TMAX];
 StringTable Type::stringtable;
@@ -271,6 +274,7 @@ void Type::toDecoBuffer(OutBuffer *buf)
 
 void Type::toTypeInfoBuffer(OutBuffer *buf)
 {
+    assert(0);
     buf->writeByte(mangleChar[ty]);
 }
 
@@ -437,8 +441,14 @@ int Type::implicitConvTo(Type *to)
 Expression *Type::getProperty(Loc loc, Identifier *ident)
 {   Expression *e;
 
-    if (ident == Id::size || ident == Id::__sizeof)
+    if (ident == Id::__sizeof)
     {
+	e = new IntegerExp(loc, size(), Type::tsize_t);
+    }
+    else if (ident == Id::size)
+    {
+	if (!global.params.useDeprecated)
+	    error(loc, ".size property is deprecated, use .sizeof");
 	e = new IntegerExp(loc, size(), Type::tsize_t);
     }
     else if (ident == Id::alignof)
@@ -447,11 +457,9 @@ Expression *Type::getProperty(Loc loc, Identifier *ident)
     }
     else if (ident == Id::typeinfo)
     {
-	if (!vtinfo)
-	    vtinfo = new TypeInfoDeclaration(this);
-	e = new VarExp(loc, vtinfo);
-	e = e->addressOf();
-	e->type = vtinfo->type;		// do this so we don't get redundant dereference
+	if (!global.params.useDeprecated)
+	    error(loc, ".typeinfo deprecated, use typeid(type)");
+	e = getTypeInfo(NULL);
     }
     else if (ident == Id::init)
 	return defaultInit();
@@ -525,7 +533,7 @@ void Type::error(Loc loc, const char *format, ...)
     fatal();
 }
 
-Identifier *Type::getTypeInfoIdent()
+Identifier *Type::getTypeInfoIdent(int internal)
 {
     // _init_10TypeInfo_%s
     OutBuffer buf;
@@ -533,7 +541,11 @@ Identifier *Type::getTypeInfoIdent()
     char *name;
     int len;
 
-    toTypeInfoBuffer(&buf);
+    //toTypeInfoBuffer(&buf);
+    if (internal)
+	buf.writeByte(mangleChar[ty]);
+    else
+	toDecoBuffer(&buf);
     name = (char *)alloca(15 + sizeof(len) * 3 + buf.offset + 1);
     buf.writeByte(0);
     len = strlen((char *)buf.data);
@@ -1103,12 +1115,22 @@ Expression *TypeBasic::dotExp(Scope *sc, Expression *e, Identifier *ident)
 }
 
 Expression *TypeBasic::defaultInit()
-{
+{   integer_t value = 0;
+
 #if LOGDEFAULTINIT
     printf("TypeBasic::defaultInit() '%s'\n", toChars());
 #endif
     switch (ty)
     {
+	case Tchar:
+	    value = 0xFF;
+	    break;
+
+	case Twchar:
+	case Tdchar:
+	    value = 0xFFFF;
+	    break;
+
 	case Timaginary32:
 	case Timaginary64:
 	case Timaginary80:
@@ -1120,13 +1142,16 @@ Expression *TypeBasic::defaultInit()
 	case Tcomplex80:
 	    return getProperty(0, Id::nan);
     }
-    return new IntegerExp(0, 0, this);
+    return new IntegerExp(0, value, this);
 }
 
 int TypeBasic::isZeroInit()
 {
     switch (ty)
     {
+	case Tchar:
+	case Twchar:
+	case Tdchar:
 	case Timaginary32:
 	case Timaginary64:
 	case Timaginary80:
@@ -1253,7 +1278,7 @@ Expression *TypeArray::dotExp(Scope *sc, Expression *e, Identifier *ident)
 	e = e->castTo(n->arrayOf());		// convert to dynamic array
 	arguments = new Array();
 	arguments->push(e);
-	arguments->push(n->getProperty(e->loc, Id::typeinfo));
+	arguments->push(n->getInternalTypeInfo());
 	e = new CallExp(e->loc, ec, arguments);
 	e->type = next->arrayOf();
     }
@@ -1744,7 +1769,7 @@ Expression *TypeAArray::dotExp(Scope *sc, Expression *e, Identifier *ident)
 	ec = new VarExp(0, fd);
 	arguments = new Array();
 	arguments->push(e->addressOf());
-	arguments->push(key->getProperty(e->loc, Id::typeinfo));
+	arguments->push(key->getInternalTypeInfo());
 	e = new CallExp(e->loc, ec, arguments);
 	e->type = this;
     }
@@ -2179,6 +2204,9 @@ Type *TypeFunction::semantic(Loc loc, Scope *sc)
 	}
     }
     deco = merge()->deco;
+
+    if (varargs && linkage != LINKd && !(arguments && arguments->dim))
+	error(loc, "variadic functions with non-C linkage must have at least one parameter");
 
     /* Don't return merge(), because arg identifiers and default args
      * can be different
@@ -3497,6 +3525,12 @@ L1:
 	    return e;
 	}
 
+	if (ident == Id::typeinfo)
+	{
+	    if (!global.params.useDeprecated)
+		error(e->loc, ".typeinfo deprecated, use typeid(type)");
+	    return getTypeInfo(sc);
+	}
 	return getProperty(e->loc, ident);
     }
     v = s->isVarDeclaration();
@@ -3658,26 +3692,6 @@ Expression *TypeClass::defaultInit()
 int TypeClass::isZeroInit()
 {
     return 1;
-}
-
-Expression *TypeClass::getProperty(Loc loc, Identifier *ident)
-{   Expression *e;
-    static TypeInfoDeclaration *tid;	// one TypeInfo for all class objects
-
-    if (ident == Id::typeinfo)
-    {
-	if (!tid)
-	    tid = new TypeInfoDeclaration(this);
-	vtinfo = tid;
-	e = new VarExp(0, vtinfo);
-	e = e->addressOf();
-	e->type = vtinfo->type;		// do this so we don't get redundant dereference
-    }
-    else
-    {
-	e = Type::getProperty(loc, ident);
-    }
-    return e;
 }
 
 int TypeClass::checkBoolean()

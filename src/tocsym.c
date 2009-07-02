@@ -239,6 +239,7 @@ Symbol *ModuleInfoDeclaration::toSymbol()
 
 Symbol *TypeInfoDeclaration::toSymbol()
 {
+    //printf("TypeInfoDeclaration::toSymbol(%s)\n", toChars());
     return VarDeclaration::toSymbol();
 }
 

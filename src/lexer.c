@@ -1857,6 +1857,7 @@ static Keyword keywords[] =
     {	"module",	TOKmodule	},
     {	"pragma",	TOKpragma	},
     {	"typeof",	TOKtypeof	},
+    {	"typeid",	TOKtypeid	},
 
     {	"template",	TOKtemplate	},
     {	"instance",	TOKinstance	},
@@ -2016,6 +2017,7 @@ void Lexer::initKeywords()
     Token::tochars[TOKor]		= "|";
     Token::tochars[TOKoror]		= "||";
     Token::tochars[TOKarray]		= "[]";
+    Token::tochars[TOKindex]		= "[]";
     Token::tochars[TOKaddress]		= "#";
     Token::tochars[TOKstar]		= "*";
     Token::tochars[TOKcast]		= "cast";

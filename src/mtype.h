@@ -146,6 +146,8 @@ struct Type : Object
     #define tptrdiff_t	basic[Tptrdiff_t]	// matches ptrdiff_t alias
 
     static ClassDeclaration *typeinfo;
+    static ClassDeclaration *typeinfoclass;
+    static ClassDeclaration *typeinfotypedef;
 
     static Type *basic[TMAX];
     static unsigned char mangleChar[TMAX];
@@ -197,9 +199,13 @@ struct Type : Object
     virtual Expression *defaultInit();
     virtual int isZeroInit();		// if initializer is 0
     virtual dt_t **toDt(dt_t **pdt);
-    Identifier *getTypeInfoIdent();
+    Identifier *getTypeInfoIdent(int internal);
     virtual MATCH deduceType(Type *tparam, Array *parameters, Array *atypes);
     virtual void resolve(Loc loc, Scope *sc, Expression **pe, Type **pt, Dsymbol **ps);
+    Expression *getInternalTypeInfo();
+    Expression *getTypeInfo(Scope *sc);
+    virtual TypeInfoDeclaration *getTypeInfoDeclaration();
+    virtual int builtinTypeInfo();
 
     static void error(Loc loc, const char *format, ...);
 
@@ -238,6 +244,7 @@ struct TypeBasic : Type
     int implicitConvTo(Type *to);
     Expression *defaultInit();
     int isZeroInit();
+    int builtinTypeInfo();
 
     // For eliminating dynamic_cast
     TypeBasic *isTypeBasic();
@@ -292,6 +299,7 @@ struct TypeDArray : TypeArray
     int checkBoolean();
     int implicitConvTo(Type *to);
     Expression *defaultInit();
+    int builtinTypeInfo();
 };
 
 struct TypeAArray : TypeArray
@@ -510,6 +518,7 @@ struct TypeTypedef : Type
     int isZeroInit();
     dt_t **toDt(dt_t **pdt);
     MATCH deduceType(Type *tparam, Array *parameters, Array *atypes);
+    TypeInfoDeclaration *getTypeInfoDeclaration();
 
     type *toCtype();
 };
@@ -532,10 +541,10 @@ struct TypeClass : Type
     int implicitConvTo(Type *to);
     Expression *defaultInit();
     int isZeroInit();
-    Expression *getProperty(Loc loc, Identifier *ident);
     MATCH deduceType(Type *tparam, Array *parameters, Array *atypes);
     int isauto();
     int checkBoolean();
+    TypeInfoDeclaration *getTypeInfoDeclaration();
 
     Symbol *toSymbol();
 };

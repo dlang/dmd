@@ -43,6 +43,7 @@ FuncDeclaration::FuncDeclaration(Loc loc, Loc endloc, Identifier *id, enum STC s
     fbody = NULL;
     localsymtab = NULL;
     vthis = NULL;
+    v_arguments = NULL;
     parameters = NULL;
     labtab = NULL;
     overnext = NULL;
@@ -330,6 +331,7 @@ void FuncDeclaration::semantic(Scope *sc)
 void FuncDeclaration::semantic3(Scope *sc)
 {   TypeFunction *f;
     AggregateDeclaration *ad;
+    VarDeclaration *argptr = NULL;
 
     //printf("FuncDeclaration::semantic3('%s.%s', sc = %p)\n", parent->toChars(), toChars(), sc);
     //fflush(stdout);
@@ -412,6 +414,29 @@ void FuncDeclaration::semantic3(Scope *sc)
 		assert(0);
 	    v->parent = this;
 	    vthis = v;
+	}
+
+	// Declare hidden variable _arguments[] and _argptr
+	if (f->varargs)
+	{   Type *t;
+
+	    if (f->linkage == LINKd)
+	    {	// Declare _arguments[]
+		t = Type::typeinfo->type->arrayOf();
+		v_arguments = new VarDeclaration(0, t, Id::_arguments, NULL);
+		v_arguments->storage_class |= STCparameter | STCin;
+		v_arguments->semantic(sc2);
+		sc2->insert(v_arguments);
+		v_arguments->parent = this;
+	    }
+	    if (f->linkage == LINKd || (parameters && parameters->dim))
+	    {	// Declare _argptr
+		t = Type::tvoid->pointerTo();
+		argptr = new VarDeclaration(0, t, Id::_argptr, NULL);
+		argptr->semantic(sc2);
+		sc2->insert(argptr);
+		argptr->parent = this;
+	    }
 	}
 
 	// Declare all the function parameters as variables
@@ -582,6 +607,27 @@ void FuncDeclaration::semantic3(Scope *sc)
 	{
 	    // Merge contracts together with body into one compound statement
 	    Array *a = new Array();
+
+	    if (argptr)
+	    {	// Initialize _argptr to point past non-variadic arg
+		Expression *e1;
+		Expression *e;
+		Type *t = argptr->type;
+		VarDeclaration *p;
+		unsigned offset;
+
+		e1 = new VarExp(0, argptr);
+		if (parameters && parameters->dim)
+		    p = (VarDeclaration *)parameters->data[parameters->dim - 1];
+		else
+		    p = v_arguments;		// last parameter is _arguments[]
+		offset = p->type->size();
+		offset = (offset + 3) & ~3;	// assume stack aligns on 4
+		e = new SymOffExp(0, p, offset);
+		e = new AssignExp(0, e1, e);
+		e->type = t;
+		a->push(new ExpStatement(0, e));
+	    }
 
 	    if (frequire && global.params.useIn)
 		a->push(frequire);
@@ -1342,6 +1388,8 @@ void StaticCtorDeclaration::semantic(Scope *sc)
 
     // We're going to need ModuleInfo
     Module *m = getModule();
+    if (!m)
+	m = sc->module;
     if (m)
 	m->needmoduleinfo = 1;
 }
@@ -1403,6 +1451,8 @@ void StaticDtorDeclaration::semantic(Scope *sc)
 
     // We're going to need ModuleInfo
     Module *m = getModule();
+    if (!m)
+	m = sc->module;
     if (m)
 	m->needmoduleinfo = 1;
 }
@@ -1531,6 +1581,8 @@ void UnitTestDeclaration::semantic(Scope *sc)
     // compiled in, because other modules may import this module and refer
     // to this ModuleInfo.
     Module *m = getModule();
+    if (!m)
+	m = sc->module;
     if (m)
 	m->needmoduleinfo = 1;
 }

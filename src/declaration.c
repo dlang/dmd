@@ -377,8 +377,11 @@ void VarDeclaration::semantic(Scope *sc)
     Dsymbol *parent = toParent();
     FuncDeclaration *fd = parent->isFuncDeclaration();
 
-    if (type->ty == Tvoid)
+    Type *tb = type->toBasetype();
+    if (tb->ty == Tvoid)
 	error("voids have no value");
+    if (tb->ty == Tfunction)
+	error("cannot be declared to be a function %s", tb->toChars());
 
     if (isConst())
     {
@@ -677,8 +680,8 @@ void ModuleInfoDeclaration::semantic(Scope *sc)
 
 /********************************* TypeInfoDeclaration ****************************/
 
-TypeInfoDeclaration::TypeInfoDeclaration(Type *tinfo)
-    : VarDeclaration(0, Type::typeinfo->type, tinfo->getTypeInfoIdent(), NULL)
+TypeInfoDeclaration::TypeInfoDeclaration(Type *tinfo, int internal)
+    : VarDeclaration(0, Type::typeinfo->type, tinfo->getTypeInfoIdent(internal), NULL)
 {
     this->tinfo = tinfo;
     storage_class = STCstatic;
@@ -693,6 +696,20 @@ Dsymbol *TypeInfoDeclaration::syntaxCopy(Dsymbol *s)
 }
 
 void TypeInfoDeclaration::semantic(Scope *sc)
+{
+}
+
+/***************************** TypeInfoClassDeclaration ***********************/
+
+TypeInfoClassDeclaration::TypeInfoClassDeclaration(Type *tinfo)
+    : TypeInfoDeclaration(tinfo, 0)
+{
+}
+
+/***************************** TypeInfoTypedefDeclaration ***********************/
+
+TypeInfoTypedefDeclaration::TypeInfoTypedefDeclaration(Type *tinfo)
+    : TypeInfoDeclaration(tinfo, 0)
 {
 }
 

@@ -65,7 +65,7 @@ Expression *AddrExp::optimize(int result)
 	    return e;
 	}
     }
-    if (e1->op == TOKarray)
+    if (e1->op == TOKindex)
     {	// Convert &array[n] to #array+n
 	IndexExp *ae = (IndexExp *)e1;
 
