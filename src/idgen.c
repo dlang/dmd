@@ -52,7 +52,6 @@ Msgtable msgtable[] =
     { "withSym", "__withSym" },
     { "result", "__result" },
     { "returnLabel", "__returnLabel" },
-    { "applyArg", "__applyArg" },
     { "delegate" },
     { "line" },
     { "empty", "" },
@@ -135,7 +134,7 @@ Msgtable msgtable[] =
     { "classDelete", "delete" },
 
     // For foreach
-    { "apply" },
+    { "apply", "opApply" },
 };
 
 

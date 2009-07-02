@@ -549,22 +549,30 @@ int ForStatement::usesEH()
 
 /******************************** ForeachStatement ***************************/
 
-ForeachStatement::ForeachStatement(Loc loc, Argument *arg,
+ForeachStatement::ForeachStatement(Loc loc, Array *arguments,
 	Expression *aggr, Statement *body)
     : Statement(loc)
 {
-    this->arg = arg;
+    this->arguments = arguments;
     this->aggr = aggr;
     this->body = body;
 
-    this->var = NULL;
+    this->key = NULL;
+    this->value = NULL;
 }
 
 Statement *ForeachStatement::syntaxCopy()
 {
-    Argument *a = new Argument(arg->type->syntaxCopy(), arg->ident, arg->inout);
+    Array *args = new Array();
+    args->setDim(arguments->dim);
+    for (int i = 0; i < arguments->dim; i++)
+    {
+	Argument *arg = (Argument *)arguments->data[i];
+	Argument *a = new Argument(arg->type->syntaxCopy(), arg->ident, arg->inout);
+	args->data[i] = (void *)a;
+    }
     Expression *exp = aggr->syntaxCopy();
-    ForeachStatement *s = new ForeachStatement(loc, a, exp, body->syntaxCopy());
+    ForeachStatement *s = new ForeachStatement(loc, args, exp, body->syntaxCopy());
     return s;
 }
 
@@ -572,6 +580,9 @@ Statement *ForeachStatement::semantic(Scope *sc)
 {
     ScopeDsymbol *sym;
     Statement *s = this;
+    int dim = arguments->dim;
+    int i;
+    TypeAArray *taa = NULL;
 
     aggr = aggr->semantic(sc);
 
@@ -586,36 +597,64 @@ Statement *ForeachStatement::semantic(Scope *sc)
     {
 	case Tarray:
 	case Tsarray:
-	    // Declare arg
-	    var = new VarDeclaration(0, arg->type, arg->ident, NULL);
-	    var->storage_class |= STCforeach;
-	    switch (arg->inout)
-	    {   case In:    var->storage_class |= STCin;          break;
-		case Out:   var->storage_class |= STCout;         break;
-		case InOut: var->storage_class |= STCin | STCout; break;
+	    if (dim < 1 || dim > 2)
+	    {
+		error("only one or two arguments for array foreach");
+		break;
 	    }
-	    var->semantic(sc);
-	    if (!sc->insert(var))
-		assert(0);
+	    for (i = 0; i < dim; i++)
+	    {	// Declare args
+		Argument *arg = (Argument *)arguments->data[i];
+		VarDeclaration *var;
+
+		var = new VarDeclaration(0, arg->type, arg->ident, NULL);
+		var->storage_class |= STCforeach;
+		switch (arg->inout)
+		{   case In:    var->storage_class |= STCin;          break;
+		    case Out:   var->storage_class |= STCout;         break;
+		    case InOut: var->storage_class |= STCin | STCout; break;
+		}
+		var->semantic(sc);
+		if (!sc->insert(var))
+		    assert(0);
+
+		value = var;
+		if (dim == 2 && i == 0)
+		    key = var;
+	    }
 
 	    sc->sbreak = this;
 	    sc->scontinue = this;
 	    body = body->semantic(sc);
 
-	    if (!var->type->equals(tab->next))
+	    if (!value->type->equals(tab->next))
 	    {
 		if (aggr->op == TOKstring)
-		    aggr = aggr->implicitCastTo(var->type->arrayOf());
+		    aggr = aggr->implicitCastTo(value->type->arrayOf());
 		else
-		    error("foreach: %s is not an array of %s", tab->toChars(), var->type->toChars());
+		    error("foreach: %s is not an array of %s", tab->toChars(), value->type->toChars());
 	    }
+
+	    if (key && key->type->ty != Tint32 && key->type->ty != Tuns32)
+	    {
+		error("foreach: key type must be int or uint, not %s", key->type->toChars());
+	    }
+
+	    if (key && key->storage_class & STCout)
+		error("foreach: key cannot be out");
 	    break;
 
 	case Taarray:
+	    taa = (TypeAArray *)tab;
+	    if (dim < 1 || dim > 2)
+	    {
+		error("only one or two arguments for associative array foreach");
+		break;
+	    }
 	case Tclass:
 	case Tstruct:
 	{   FuncDeclaration *fdapply;
-	    Array *arguments;
+	    Array *args;
 	    Expression *ec;
 	    Expression *e;
 	    FuncLiteralDeclaration *fld;
@@ -640,24 +679,32 @@ Statement *ForeachStatement::semantic(Scope *sc)
 	    /* Turn body into the function literal:
 	     *	int delegate(inout T arg) { body }
 	     */
-	    if (arg->inout == InOut)
-		id = arg->ident;
-	    else
-	    {	// Make a copy of the inout argument so it isn't
-		// a reference.
-		VarDeclaration *v;
-		Initializer *ie;
+	    args = new Array();
+	    for (i = 0; i < dim; i++)
+	    {	Argument *arg = (Argument *)arguments->data[i];
 
-		id = Id::applyArg;
-		ie = new ExpInitializer(0, new IdentifierExp(0, id));
-		v = new VarDeclaration(0, arg->type, arg->ident, ie);
-		s = new DeclarationStatement(0, v);
-		body = new CompoundStatement(loc, s, body);
+		arg->type = arg->type->semantic(loc, sc);
+		if (arg->inout == InOut)
+		    id = arg->ident;
+		else
+		{   // Make a copy of the inout argument so it isn't
+		    // a reference.
+		    VarDeclaration *v;
+		    Initializer *ie;
+		    char applyArg[10 + 4 + 1];
+
+		    sprintf(applyArg, "__applyArg%d", i);
+		    id = Lexer::idPool(applyArg);
+
+		    ie = new ExpInitializer(0, new IdentifierExp(0, id));
+		    v = new VarDeclaration(0, arg->type, arg->ident, ie);
+		    s = new DeclarationStatement(0, v);
+		    body = new CompoundStatement(loc, s, body);
+		}
+		a = new Argument(arg->type, id, InOut);
+		args->push(a);
 	    }
-	    arguments = new Array();
-	    a = new Argument(arg->type, id, InOut);
-	    arguments->push(a);
-	    t = new TypeFunction(arguments, Type::tint32, 0, LINKd);
+	    t = new TypeFunction(args, Type::tint32, 0, LINKd);
 	    fld = new FuncLiteralDeclaration(loc, 0, t, TOKdelegate, this);
 	    fld->fbody = body;
 	    flde = new FuncExp(loc, fld);
@@ -678,17 +725,32 @@ Statement *ForeachStatement::semantic(Scope *sc)
 
 	    if (tab->ty == Taarray)
 	    {
+		// Check types
+		Argument *arg = (Argument *)arguments->data[0];
+		if (dim == 2)
+		{
+		    if (arg->inout == InOut)
+			error("foreach: index cannot be inout");
+		    if (!arg->type->equals(taa->index))
+			error("foreach: index must be type %s, not %s", taa->index->toChars(), arg->type->toChars());
+		    arg = (Argument *)arguments->data[1];
+		}
+		if (!arg->type->equals(taa->next))
+		    error("foreach: value must be type %s, not %s", taa->next->toChars(), arg->type->toChars());
+
 		/* Call:
 		 *	_aaApply(aggr, keysize, flde)
 		 */
-		fdapply = FuncDeclaration::genCfunc(Type::tindex, "_aaApply");
+		if (dim == 2)
+		    fdapply = FuncDeclaration::genCfunc(Type::tindex, "_aaApply2");
+		else
+		    fdapply = FuncDeclaration::genCfunc(Type::tindex, "_aaApply");
 		ec = new VarExp(0, fdapply);
-		arguments = new Array();
-		arguments->push(aggr);
-		TypeAArray *taa = (TypeAArray *)tab;
-		arguments->push(new IntegerExp(0, taa->key->size(), Type::tint32));
-		arguments->push(flde);
-		e = new CallExp(loc, ec, arguments);
+		args = new Array();
+		args->push(aggr);
+		args->push(new IntegerExp(0, taa->key->size(), Type::tint32));
+		args->push(flde);
+		e = new CallExp(loc, ec, args);
 		e->type = Type::tindex;	// don't run semantic() on e
 	    }
 	    else
@@ -697,9 +759,9 @@ Statement *ForeachStatement::semantic(Scope *sc)
 		 *	aggr.apply(flde)
 		 */
 		ec = new DotIdExp(loc, aggr, Id::apply);
-		arguments = new Array();
-		arguments->push(flde);
-		e = new CallExp(loc, ec, arguments);
+		args = new Array();
+		args->push(flde);
+		e = new CallExp(loc, ec, args);
 		e = e->semantic(sc);
 		if (e->type != Type::tint32)
 		    error("apply() function for %s must return an int", tab->toChars());

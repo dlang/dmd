@@ -789,7 +789,18 @@ Expression *TypeBasic::getProperty(Loc loc, Identifier *ident)
 	    case Tfloat32:
 	    case Tfloat64:
 	    case Tfloat80:
+#if __GNUC__
+	    {	// gcc nan's have the sign bit set by default, so turn it off
+		// Need the volatile to prevent gcc from doing incorrect
+		// constant folding.
+		volatile d_float80 foo;
+		foo = NAN;
+		foo = -foo;
+		fvalue = foo;
+	    }
+#else
 		fvalue = NAN;
+#endif
 		goto Lfvalue;
 	}
     }
@@ -1469,8 +1480,11 @@ int TypeDArray::implicitConvTo(Type *to)
     {
 	return MATCHconvert;
     }
-    if (to->ty == Tarray && to->next->isBaseOf(next))
-	return MATCHconvert;
+    if (to->ty == Tarray)
+    {
+	if (to->next->isBaseOf(next) || to->next->ty == Tvoid)
+	    return MATCHconvert;
+    }
     return Type::implicitConvTo(to);
 }
 

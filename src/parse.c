@@ -2180,11 +2180,7 @@ Statement *Parser::parseStatement(int flags)
 
 	case TOKforeach:
 	{
-	    Type *tb;
-	    Identifier *ai;
-	    Type *at;
-	    Argument *a;
-	    enum InOut inout;
+	    Array *arguments;
 
 	    Statement *d;
 	    Statement *body;
@@ -2193,21 +2189,37 @@ Statement *Parser::parseStatement(int flags)
 	    nextToken();
 	    check(TOKlparen);
 
-	    inout = In;
-	    if (token.value == TOKinout)
-	    {	inout = InOut;
-		nextToken();
-	    }
-	    tb = parseBasicType();
-	    at = parseDeclarator(tb, &ai);
-	    a = new Argument(at, ai, inout);
+	    arguments = new Array();
 
+	    while (1)
+	    {
+		Type *tb;
+		Identifier *ai;
+		Type *at;
+		enum InOut inout;
+		Argument *a;
+
+		inout = In;
+		if (token.value == TOKinout)
+		{   inout = InOut;
+		    nextToken();
+		}
+		tb = parseBasicType();
+		at = parseDeclarator(tb, &ai);
+		a = new Argument(at, ai, inout);
+		arguments->push(a);
+		if (token.value == TOKcomma)
+		{   nextToken();
+		    continue;
+		}
+		break;
+	    }
 	    check(TOKsemicolon);
 
 	    aggr = parseExpression();
 	    check(TOKrparen);
 	    body = parseStatement(0);
-	    s = new ForeachStatement(loc, a, aggr, body);
+	    s = new ForeachStatement(loc, arguments, aggr, body);
 	    break;
 	}
 

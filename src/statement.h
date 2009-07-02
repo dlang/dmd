@@ -210,15 +210,17 @@ struct ForStatement : Statement
 
 struct ForeachStatement : Statement
 {
-    Argument *arg;
+    Array *arguments;	// array of Argument*'s
     Expression *aggr;
     Statement *body;
 
-    VarDeclaration *var;
+    VarDeclaration *key;
+    VarDeclaration *value;
+
     Array cases;	// put breaks, continues, gotos and returns here
     Array gotos;	// forward referenced goto's go here
 
-    ForeachStatement(Loc loc, Argument *arg, Expression *aggr, Statement *body);
+    ForeachStatement(Loc loc, Array *arguments, Expression *aggr, Statement *body);
     Statement *syntaxCopy();
     Statement *semantic(Scope *sc);
     int hasBreak();
