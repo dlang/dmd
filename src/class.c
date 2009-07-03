@@ -1,6 +1,6 @@
 
 // Compiler implementation of the D programming language
-// Copyright (c) 1999-2006 by Digital Mars
+// Copyright (c) 1999-2007 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // http://www.digitalmars.com
@@ -764,6 +764,33 @@ Dsymbol *ClassDeclaration::search(Loc loc, Identifier *ident, int flags)
 	}
     }
     return s;
+}
+
+/**********************************************************
+ * fd is in the vtbl[] for this class.
+ * Return 1 if function is hidden (not findable through search).
+ */
+
+int isf(void *param, FuncDeclaration *fd)
+{
+    //printf("param = %p, fd = %p %s\n", param, fd, fd->toChars());
+    return param == fd;
+}
+
+int ClassDeclaration::isFuncHidden(FuncDeclaration *fd)
+{
+    //printf("ClassDeclaration::isFuncHidden(%s)\n", fd->toChars());
+    Dsymbol *s = search(0, fd->ident, 4|2);
+    if (!s)
+    {	//printf("not found\n");
+	/* Because, due to a hack, if there are multiple definitions
+	 * of fd->ident, NULL is returned.
+	 */
+	return 0;
+    }
+    FuncDeclaration *fdstart = s->toAlias()->isFuncDeclaration();
+    //printf("%s fdstart = %p\n", s->kind(), fdstart);
+    return !overloadApply(fdstart, &isf, fd);
 }
 
 /****************

@@ -226,6 +226,7 @@ struct ScopeDsymbol : Dsymbol
     static void multiplyDefined(Loc loc, Dsymbol *s1, Dsymbol *s2);
     Dsymbol *nameCollision(Dsymbol *s);
     char *kind();
+    FuncDeclaration *findGetMembers();
 
     void emitMemberComments(Scope *sc);
 

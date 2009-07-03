@@ -53,14 +53,20 @@ char *Identifier::toHChars2()
     else if (this == Id::dtor) p = "~this";
     else if (this == Id::classInvariant) p = "invariant";
     else if (this == Id::unitTest) p = "unittest";
-    else if (this == Id::staticCtor) p = "static this";
-    else if (this == Id::staticDtor) p = "static ~this";
     else if (this == Id::dollar) p = "$";
     else if (this == Id::withSym) p = "with";
     else if (this == Id::result) p = "result";
     else if (this == Id::returnLabel) p = "return";
     else
-	p = toChars();
+    {	p = toChars();
+	if (*p == '_')
+	{
+	    if (memcmp(p, "_staticCtor", 11) == 0)
+		p = "static this";
+	    else if (memcmp(p, "_staticDtor", 11) == 0)
+		p = "static ~this";
+	}
+    }
 
     return p;
 }

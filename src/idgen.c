@@ -38,8 +38,6 @@ Msgtable msgtable[] =
     { "dtor", "_dtor" },
     { "classInvariant", "__invariant" },
     { "unitTest", "_unitTest" },
-    { "staticCtor", "_staticCtor" },
-    { "staticDtor", "_staticDtor" },
     { "init" },
     { "size" },
     { "__sizeof", "sizeof" },
@@ -97,6 +95,7 @@ Msgtable msgtable[] =
     { "TIMESTAMP", "__TIMESTAMP__" },
     { "VENDOR", "__VENDOR__" },
     { "VERSIONX", "__VERSION__" },
+    { "EOFX", "__EOF__" },
 
     { "nan" },
     { "infinity" },
@@ -213,9 +212,10 @@ Msgtable msgtable[] =
     { "msg" },
     { "GNU_asm" },
 
-    // For toHash/toString
+    // For special functions
     { "tohash", "toHash" },
     { "tostring", "toString" },
+    { "getmembers", "getMembers" },
 
     // Special functions
     { "alloca" },
@@ -242,6 +242,8 @@ Msgtable msgtable[] =
     { "classInstanceSize" },
     { "allMembers" },
     { "derivedMembers" },
+    { "isSame" },
+    { "compiles" },
 };
 
 

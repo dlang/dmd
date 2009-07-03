@@ -375,6 +375,7 @@ Type *Type::mutableOf()
 	t->rto = NULL;
 	t->cto = NULL;
 	t->ito = NULL;
+	t->vtinfo = NULL;
 	if (ty == Tsarray)
 	{   TypeSArray *ta = (TypeSArray *)t;
 	    ta->next = ta->next->mutableOf();
@@ -411,6 +412,7 @@ Type *Type::makeConst()
     t->rto = NULL;
     t->cto = NULL;
     t->ito = NULL;
+    t->vtinfo = NULL;
     //printf("-Type::makeConst() %p, %s\n", t, toChars());
     return t;
 }
@@ -429,6 +431,7 @@ Type *Type::makeInvariant()
     t->rto = NULL;
     t->cto = NULL;
     t->ito = NULL;
+    t->vtinfo = NULL;
     return t;
 }
 
@@ -1527,6 +1530,7 @@ Expression *TypeBasic::dotExp(Scope *sc, Expression *e, Identifier *ident)
 	    case Timaginary64:	t = tfloat64;	goto L4;
 	    case Timaginary80:	t = tfloat80;	goto L4;
 	    L4:
+		e = e->copy();
 		e->type = t;
 		break;
 
@@ -3694,6 +3698,7 @@ Type *TypeIdentifier::semantic(Loc loc, Scope *sc)
 	if (s)
 	{
 	    s->error(loc, "is used as a type");
+	    //halt();
 	}
 	else
 	    error(loc, "%s is used as a type", toChars());
@@ -5023,6 +5028,16 @@ MATCH TypeClass::implicitConvTo(Type *to)
 	    return MATCHconvert;
     }
 
+    return MATCHnomatch;
+}
+
+MATCH TypeClass::constConv(Type *to)
+{
+    if (equals(to))
+	return MATCHexact;
+    if (ty == to->ty && sym == ((TypeClass *)to)->sym &&
+	to->mod == MODconst)
+	return MATCHconst;
     return MATCHnomatch;
 }
 

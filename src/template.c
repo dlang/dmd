@@ -487,7 +487,7 @@ MATCH TemplateDeclaration::matchWithInstance(TemplateInstance *ti,
 
 	//printf("\targument [%d]\n", i);
 #if 0
-	//printf("\targument [%d] is %s\n", i, oarg ? oarg->toChars() : "null");
+	printf("\targument [%d] is %s\n", i, oarg ? oarg->toChars() : "null");
 	TemplateTypeParameter *ttp = tp->isTemplateTypeParameter();
 	if (ttp)
 	    printf("\tparameter[%d] is %s : %s\n", i, tp->ident->toChars(), ttp->specType ? ttp->specType->toChars() : "");
@@ -2868,7 +2868,7 @@ void TemplateInstance::semanticTiargs(Scope *sc)
 void TemplateInstance::semanticTiargs(Loc loc, Scope *sc, Objects *tiargs)
 {
     // Run semantic on each argument, place results in tiargs[]
-    //printf("+TemplateInstance::semanticTiargs()\n");
+    //printf("+TemplateInstance::semanticTiargs() %s\n", toChars());
     if (!tiargs)
 	return;
     for (size_t j = 0; j < tiargs->dim; j++)

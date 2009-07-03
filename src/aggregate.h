@@ -151,7 +151,7 @@ struct BaseClass
     void copyBaseInterfaces(BaseClasses *);
 };
 
-#define CLASSINFO_SIZE 	(0x3C+12)	// value of ClassInfo.size
+#define CLASSINFO_SIZE 	(0x3C+16)	// value of ClassInfo.size
 
 struct ClassDeclaration : AggregateDeclaration
 {
@@ -195,6 +195,7 @@ struct ClassDeclaration : AggregateDeclaration
     virtual int isBaseOf(ClassDeclaration *cd, int *poffset);
 
     Dsymbol *search(Loc, Identifier *ident, int flags);
+    int isFuncHidden(FuncDeclaration *fd);
     FuncDeclaration *findFunc(Identifier *ident, TypeFunction *tf);
     void interfaceSemantic(Scope *sc);
     int isNested();

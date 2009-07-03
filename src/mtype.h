@@ -654,6 +654,7 @@ struct TypeClass : Type
     TypeInfoDeclaration *getTypeInfoDeclaration();
     int hasPointers();
     Type *toCanonConst();
+    MATCH constConv(Type *to);
 
     type *toCtype();
 

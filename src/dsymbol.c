@@ -265,6 +265,7 @@ void Dsymbol::inlineScan()
  * Input:
  *	flags:	1	don't find private members
  *		2	don't give error messages
+ *		4	return NULL if ambiguous
  * Returns:
  *	NULL if not found
  */
@@ -663,6 +664,8 @@ Dsymbol *ScopeDsymbol::search(Loc loc, Identifier *ident, int flags)
 			 )
 		       )
 		    {
+			if (flags & 4)
+			    return NULL;
 			if (!(flags & 2))
 			    ss->multiplyDefined(loc, s, s2);
 			break;
@@ -775,6 +778,43 @@ char *ScopeDsymbol::kind()
 }
 
 
+/*******************************************
+ * Look for member of the form:
+ *	const(MemberInfo)[] getMembers(string);
+ * Returns NULL if not found
+ */
+
+#if V2
+FuncDeclaration *ScopeDsymbol::findGetMembers()
+{
+    Dsymbol *s = search_function(this, Id::getmembers);
+    FuncDeclaration *fdx = s ? s->isFuncDeclaration() : NULL;
+
+#if 0  // Finish
+    static TypeFunction *tfgetmembers;
+
+    if (!tfgetmembers)
+    {
+	Scope sc;
+	Arguments *arguments = new Arguments;
+	Arguments *arg = new Argument(STCin, Type::tchar->constOf()->arrayOf(), NULL, NULL);
+	arguments->push(arg);
+
+	Type *tret = NULL;
+	tfgetmembers = new TypeFunction(arguments, tret, 0, LINKd);
+	tfgetmembers = (TypeFunction *)tfgetmembers->semantic(0, &sc);
+    }
+    if (fdx)
+	fdx = fdx->overloadExactMatch(tfgetmembers);
+#endif
+    if (fdx && fdx->isVirtual())
+	fdx = NULL;
+
+    return fdx;
+}
+#endif
+
+
 /****************************** WithScopeSymbol ******************************/
 
 WithScopeSymbol::WithScopeSymbol(WithStatement *withstate)
@@ -872,6 +912,11 @@ Dsymbol *ArrayScopeSymbol::search(Loc loc, Identifier *ident, int flags)
 	if (!*pvar)
 	{
 	    VarDeclaration *v = new VarDeclaration(loc, Type::tsize_t, Id::dollar, NULL);
+
+	    if (ce->op == TOKvar)
+	    {	// if ce is const, get its initializer
+		ce = fromConstInitializer(WANTvalue | WANTinterpret, ce);
+	    }
 
 	    if (ce->op == TOKstring)
 	    {	/* It is for a string literal, so the

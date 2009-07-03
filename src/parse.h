@@ -68,7 +68,7 @@ struct Parser : Lexer
     Array *parseDeclDefs(int once);
     Array *parseBlock();
     TemplateDeclaration *parseTemplateDeclaration();
-    TemplateParameters *parseTemplateParameterList();
+    TemplateParameters *parseTemplateParameterList(int flag = 0);
     Dsymbol *parseMixin();
     Objects *parseTemplateArgumentList();
     Objects *parseTemplateArgumentList2();

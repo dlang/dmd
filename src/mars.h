@@ -89,6 +89,11 @@ struct Param
 
     bool dump_source;
 
+    char *defaultlibname;	// default library for non-debug builds
+    char *debuglibname;		// default library for debug builds
+
+    char *xmlname;		// filename for XML output
+
     // Hidden debug switches
     char debuga;
     char debugb;

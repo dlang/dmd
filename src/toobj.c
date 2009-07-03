@@ -46,7 +46,7 @@ void Module::genmoduleinfo()
 {
     Symbol *msym = toSymbol();
     unsigned offset;
-    unsigned sizeof_ModuleInfo = 12 * PTRSIZE;
+    unsigned sizeof_ModuleInfo = 13 * PTRSIZE;
 
     //////////////////////////////////////////////
 
@@ -64,6 +64,7 @@ void Module::genmoduleinfo()
 	    void *ctor;
 	    void *dtor;
 	    void *unitTest;
+	    const(MemberInfo[]) function(string) xgetMembers;	// module getMembers() function
        }
      */
     dt_t *dt = NULL;
@@ -132,6 +133,12 @@ void Module::genmoduleinfo()
 	dtxoff(&dt, stest, 0, TYnptr);
     else
 	dtdword(&dt, 0);
+
+    FuncDeclaration *sgetmembers = findGetMembers();
+    if (sgetmembers)
+	dtxoff(&dt, sgetmembers->toSymbol(), 0, TYnptr);
+    else
+	dtdword(&dt, 0);			// xgetMembers
 
     //////////////////////////////////////////////
 
@@ -308,6 +315,7 @@ void ClassDeclaration::toObjFile()
 	    void *deallocator;
 	    OffsetTypeInfo[] offTi;
 	    void *defaultConstructor;
+	    const(MemberInfo[]) function(string) xgetMembers;	// module getMembers() function
        }
      */
     dt_t *dt = NULL;
@@ -369,7 +377,7 @@ void ClassDeclaration::toObjFile()
 	dtdword(&dt, 0);
 
     // flags
-    int flags = 4 | com;
+    int flags = 16 | 4 | com;
     if (ctor)
 	flags |= 8;
     for (ClassDeclaration *cd = this; cd; cd = cd->baseClass)
@@ -405,6 +413,12 @@ void ClassDeclaration::toObjFile()
 	dtxoff(&dt, defaultCtor->toSymbol(), 0, TYnptr);
     else
 	dtdword(&dt, 0);
+
+    FuncDeclaration *sgetmembers = findGetMembers();
+    if (sgetmembers)
+	dtxoff(&dt, sgetmembers->toSymbol(), 0, TYnptr);
+    else
+	dtdword(&dt, 0);	// module getMembers() function
 
     //////////////////////////////////////////////
 
@@ -600,7 +614,13 @@ void ClassDeclaration::toObjFile()
 	//printf("\tvtbl[%d] = %p\n", i, fd);
 	if (fd && (fd->fbody || !isAbstract()))
 	{
-	    dtxoff(&dt, fd->toSymbol(), 0, TYnptr);
+	    if (isFuncHidden(fd))
+	    {
+		//printf("%s %s is hidden in %s\n", fd->toParent()->toChars(), fd->toChars(), toChars());
+		dtxoff(&dt, rtlsym[RTLSYM_DHIDDENFUNC], 0, TYnptr);
+	    }
+	    else
+		dtxoff(&dt, fd->toSymbol(), 0, TYnptr);
 	}
 	else
 	    dtdword(&dt, 0);
@@ -747,6 +767,7 @@ void InterfaceDeclaration::toObjFile()
 	    void *deallocator;
 	    OffsetTypeInfo[] offTi;
 	    void *defaultConstructor;
+	    const(MemberInfo[]) function(string) xgetMembers;	// module getMembers() function
        }
      */
     dt_t *dt = NULL;
@@ -804,6 +825,9 @@ void InterfaceDeclaration::toObjFile()
     dtdword(&dt, 0);		// null for now, fix later
 
     // defaultConstructor
+    dtdword(&dt, 0);
+
+    // xgetMembers
     dtdword(&dt, 0);
 
     //////////////////////////////////////////////

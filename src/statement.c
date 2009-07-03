@@ -894,6 +894,7 @@ Statement *DoStatement::semantic(Scope *sc)
     sc->noctor--;
     condition = condition->semantic(sc);
     condition = resolveProperties(sc, condition);
+    condition = condition->optimize(WANTvalue);
 
     condition = condition->checkToBoolean();
 
@@ -979,6 +980,7 @@ Statement *ForStatement::semantic(Scope *sc)
     sc->noctor++;
     condition = condition->semantic(sc);
     condition = resolveProperties(sc, condition);
+    condition = condition->optimize(WANTvalue);
     condition = condition->checkToBoolean();
     if (increment)
 	increment = increment->semantic(sc);
@@ -1648,6 +1650,7 @@ Statement *ForeachRangeStatement::semantic(Scope *sc)
 
     lwr = lwr->semantic(sc);
     lwr = resolveProperties(sc, lwr);
+    lwr = lwr->optimize(WANTvalue);
     if (!lwr->type)
     {
 	error("invalid range lower bound %s", lwr->toChars());
@@ -1656,6 +1659,7 @@ Statement *ForeachRangeStatement::semantic(Scope *sc)
 
     upr = upr->semantic(sc);
     upr = resolveProperties(sc, upr);
+    upr = upr->optimize(WANTvalue);
     if (!upr->type)
     {
 	error("invalid range upper bound %s", upr->toChars());
@@ -2263,6 +2267,7 @@ Statement *CaseStatement::syntaxCopy()
 Statement *CaseStatement::semantic(Scope *sc)
 {   SwitchStatement *sw = sc->sw;
 
+    //printf("CaseStatement::semantic() %s\n", toChars());
     exp = exp->semantic(sc);
     if (sw)
     {	int i;

@@ -1270,13 +1270,16 @@ Lerr:
 
 /******************************************
  * Parse template parameter list.
+ * Input:
+ *	flag	0: parsing "( list )"
+ *		1: parsing non-empty "list )"
  */
 
-TemplateParameters *Parser::parseTemplateParameterList()
+TemplateParameters *Parser::parseTemplateParameterList(int flag)
 {
     TemplateParameters *tpl;
 
-    if (token.value != TOKlparen)
+    if (!flag && token.value != TOKlparen)
     {   error("parenthesized TemplateParameterList expected following TemplateIdentifier");
 	goto Lerr;
     }
@@ -1284,7 +1287,7 @@ TemplateParameters *Parser::parseTemplateParameterList()
     nextToken();
 
     // Get array of TemplateParameters
-    if (token.value != TOKrparen)
+    if (flag || token.value != TOKrparen)
     {	int isvariadic = 0;
 
 	while (1)
@@ -4044,6 +4047,7 @@ Expression *Parser::parsePrimaryExp()
 	    Type *tspec = NULL;
 	    enum TOK tok = TOKreserved;
 	    enum TOK tok2 = TOKreserved;
+	    TemplateParameters *tpl = NULL;
 	    Loc loc = this->loc;
 
 	    nextToken();
@@ -4075,13 +4079,25 @@ Expression *Parser::parsePrimaryExp()
 			tspec = parseType();
 		    }
 		}
-		check(TOKrparen);
+		if (ident && tspec)
+		{
+		    if (token.value == TOKcomma)
+			tpl = parseTemplateParameterList(1);
+		    else
+		    {	tpl = new TemplateParameters();
+			check(TOKrparen);
+		    }
+		    TemplateParameter *tp = new TemplateTypeParameter(loc, ident, NULL, NULL);
+		    tpl->insert(0, tp);
+		}
+		else
+		    check(TOKrparen);
 	    }
 	    else
 	    {   error("(type identifier : specialization) expected following is");
 		goto Lerr;
 	    }
-	    e = new IftypeExp(loc, targ, ident, tok, tspec, tok2);
+	    e = new IsExp(loc, targ, ident, tok, tspec, tok2, tpl);
 	    break;
 	}
 

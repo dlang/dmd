@@ -77,6 +77,7 @@ Expression *FuncDeclaration::interpret(InterState *istate, Expressions *argument
 	return NULL;
     }
 
+    //printf("test2 %d, %p\n", semanticRun, scope);
     if (semanticRun == 0 && scope)
     {
 	semantic3(scope);
@@ -276,7 +277,7 @@ Expression *ExpStatement::interpret(InterState *istate)
 	Expression *e = exp->interpret(istate);
 	if (e == EXP_CANT_INTERPRET)
 	{
-	    //printf("cannot interpret %s\n", exp->toChars());
+	    //printf("-ExpStatement::interpret(): %p\n", e);
 	    return EXP_CANT_INTERPRET;
 	}
     }
@@ -364,20 +365,13 @@ Expression *IfStatement::interpret(InterState *istate)
     //if (e == EXP_CANT_INTERPRET) printf("cannot interpret\n");
     if (e != EXP_CANT_INTERPRET)
     {
-	if (!e->isConst())
-	{
-	    e = EXP_CANT_INTERPRET;
-	}
+	if (e->isBool(TRUE))
+	    e = ifbody ? ifbody->interpret(istate) : NULL;
+	else if (e->isBool(FALSE))
+	    e = elsebody ? elsebody->interpret(istate) : NULL;
 	else
 	{
-	    if (e->isBool(TRUE))
-		e = ifbody ? ifbody->interpret(istate) : NULL;
-	    else if (e->isBool(FALSE))
-		e = elsebody ? elsebody->interpret(istate) : NULL;
-	    else
-	    {
-		e = EXP_CANT_INTERPRET;
-	    }
+	    e = EXP_CANT_INTERPRET;
 	}
     }
     return e;
@@ -957,7 +951,7 @@ Expression *getVarExp(Loc loc, InterState *istate, Declaration *d)
     {
 	if (v->isConst() && v->init)
 	{   e = v->init->toExpression();
-	    if (!e->type)
+	    if (e && !e->type)
 		e->type = v->type;
 	}
 	else
@@ -994,7 +988,7 @@ Expression *DeclarationExp::interpret(InterState *istate)
 #if LOG
     printf("DeclarationExp::interpret() %s\n", toChars());
 #endif
-    Expression *e = EXP_CANT_INTERPRET;
+    Expression *e;
     VarDeclaration *v = declaration->isVarDeclaration();
     if (v)
     {
@@ -1015,6 +1009,19 @@ Expression *DeclarationExp::interpret(InterState *istate)
 		e->type = v->type;
 	}
     }
+    else if (declaration->isAttribDeclaration() ||
+	     declaration->isTemplateMixin() ||
+	     declaration->isTupleDeclaration())
+    {	// These can be made to work, too lazy now
+	e = EXP_CANT_INTERPRET;
+    }
+    else
+    {	// Others should not contain executable code, so are trivial to evaluate
+	e = NULL;
+    }
+#if LOG
+    printf("-DeclarationExp::interpret(): %p\n", e);
+#endif
     return e;
 }
 
@@ -1084,7 +1091,7 @@ Expression *ArrayLiteralExp::interpret(InterState *istate)
 		if (!expsx)
 		{   expsx = new Expressions();
 		    expsx->setDim(elements->dim);
-		    for (size_t j = 0; j < i; j++)
+		    for (size_t j = 0; j < elements->dim; j++)
 		    {
 			expsx->data[j] = elements->data[j];
 		    }
@@ -1342,6 +1349,7 @@ Expression *BinExp::interpretCommon2(InterState *istate, fp2_t fp)
     if (e1 == EXP_CANT_INTERPRET)
 	goto Lcant;
     if (e1->isConst() != 1 &&
+	e1->op != TOKnull &&
 	e1->op != TOKstring &&
 	e1->op != TOKarrayliteral &&
 	e1->op != TOKstructliteral)
@@ -1351,6 +1359,7 @@ Expression *BinExp::interpretCommon2(InterState *istate, fp2_t fp)
     if (e2 == EXP_CANT_INTERPRET)
 	goto Lcant;
     if (e2->isConst() != 1 &&
+	e2->op != TOKnull &&
 	e2->op != TOKstring &&
 	e2->op != TOKarrayliteral &&
 	e2->op != TOKstructliteral)
@@ -1420,7 +1429,14 @@ Expression *BinExp::interpretAssignCommon(InterState *istate, fp_t fp, int post)
 	    if (fp)
 		e2 = (*fp)(v->type, ev, e2);
 	    else
+	    {	/* Look for special case of struct being initialized with 0.
+		 */
+		if (v->type->toBasetype()->ty == Tstruct && e2->op == TOKint64)
+		{
+		    e2 = v->type->defaultInit();
+		}
 		e2 = Cast(v->type, v->type, e2);
+	    }
 	    if (e2 != EXP_CANT_INTERPRET)
 	    {
 		if (!v->isParameter())
@@ -1453,9 +1469,15 @@ Expression *BinExp::interpretAssignCommon(InterState *istate, fp_t fp, int post)
 	{   error("variable %s is used before initialization", v->toChars());
 	    return e;
 	}
-	if (v->value->op != TOKstructliteral)
+	Expression *vie = v->value;
+	if (vie->op == TOKvar)
+	{
+	    Declaration *d = ((VarExp *)vie)->var;
+	    vie = getVarExp(e1->loc, istate, d);
+	}
+	if (vie->op != TOKstructliteral)
 	    return EXP_CANT_INTERPRET;
-	StructLiteralExp *se = (StructLiteralExp *)v->value;
+	StructLiteralExp *se = (StructLiteralExp *)vie;
 	int fieldi = se->getFieldIndex(type, soe->offset);
 	if (fieldi == -1)
 	    return EXP_CANT_INTERPRET;
@@ -1842,6 +1864,10 @@ Expression *ArrayLengthExp::interpret(InterState *istate)
     if (e1->op == TOKstring || e1->op == TOKarrayliteral || e1->op == TOKassocarrayliteral)
     {
 	e = ArrayLength(type, e1);
+    }
+    else if (e1->op == TOKnull)
+    {
+	e = new IntegerExp(loc, 0, type);
     }
     else
 	goto Lcant;

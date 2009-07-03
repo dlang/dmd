@@ -60,12 +60,13 @@ void initPrecedence();
 
 Expression *resolveProperties(Scope *sc, Expression *e);
 void accessCheck(Loc loc, Scope *sc, Expression *e, Declaration *d);
-Dsymbol *search_function(AggregateDeclaration *ad, Identifier *funcid);
+Dsymbol *search_function(ScopeDsymbol *ad, Identifier *funcid);
 void inferApplyArgTypes(enum TOK op, Arguments *arguments, Expression *aggr);
 void argExpTypesToCBuffer(OutBuffer *buf, Expressions *arguments, HdrGenState *hgs);
 void argsToCBuffer(OutBuffer *buf, Expressions *arguments, HdrGenState *hgs);
 void expandTuples(Expressions *exps);
 FuncDeclaration *hasThis(Scope *sc);
+Expression *fromConstInitializer(int result, Expression *e);
 
 struct Expression : Object
 {
@@ -631,7 +632,7 @@ struct HaltExp : Expression
     elem *toElem(IRState *irs);
 };
 
-struct IftypeExp : Expression
+struct IsExp : Expression
 {
     /* is(targ id tok tspec)
      * is(targ id == tok2)
@@ -641,8 +642,10 @@ struct IftypeExp : Expression
     enum TOK tok;	// ':' or '=='
     Type *tspec;	// can be NULL
     enum TOK tok2;	// 'struct', 'union', 'typedef', etc.
+    TemplateParameters *parameters;
 
-    IftypeExp(Loc loc, Type *targ, Identifier *id, enum TOK tok, Type *tspec, enum TOK tok2);
+    IsExp(Loc loc, Type *targ, Identifier *id, enum TOK tok, Type *tspec,
+	enum TOK tok2, TemplateParameters *parameters);
     Expression *syntaxCopy();
     Expression *semantic(Scope *sc);
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);

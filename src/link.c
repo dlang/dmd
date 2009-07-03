@@ -244,7 +244,14 @@ int runLINK()
     /* Standard libraries must go after user specified libraries
      * passed with -l.
      */
-    argv.push((void *)"-lphobos2");	// turns into /usr/lib/libphobos.a
+    char *libname = (global.params.symdebug)
+				? global.params.debuglibname
+				: global.params.defaultlibname;
+    char *buf = (char *)malloc(2 + strlen(libname) + 1);
+    strcpy(buf, "-l");
+    strcpy(buf + 2, libname);
+    argv.push((void *)buf);		// turns into /usr/lib/libphobos2.a
+
     argv.push((void *)"-lpthread");
     argv.push((void *)"-lm");
 

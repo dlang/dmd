@@ -430,6 +430,7 @@ void TypeInfoStructDeclaration::toDt(dt_t **pdt)
      *	int function(in void*, in void*) xopCmp;
      *	string function(const(void)*) xtoString;
      *	uint m_flags;
+     *  xgetMembers
      *
      *	name[]
      */
@@ -539,6 +540,13 @@ void TypeInfoStructDeclaration::toDt(dt_t **pdt)
 
     // uint m_flags;
     dtdword(pdt, tc->hasPointers());
+
+    // xgetMembers
+    FuncDeclaration *sgetmembers = sd->findGetMembers();
+    if (sgetmembers)
+	dtxoff(pdt, sgetmembers->toSymbol(), 0, TYnptr);
+    else
+	dtdword(pdt, 0);			// xgetMembers
 
     // name[]
     dtnbytes(pdt, namelen + 1, name);

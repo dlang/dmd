@@ -235,9 +235,43 @@ Initializer *StructInitializer::semantic(Scope *sc, Type *t)
 }
 
 
+/***************************************
+ * This works by transforming a struct initializer into
+ * a struct literal. In the future, the two should be the
+ * same thing.
+ */
 Expression *StructInitializer::toExpression()
-{
-    return NULL;		// cannot do it
+{   Expression *e;
+
+    //printf("StructInitializer::toExpression() %s\n", toChars());
+    if (!ad)				// if fwd referenced
+    {
+	return NULL;
+    }
+    StructDeclaration *sd = ad->isStructDeclaration();
+    if (!sd)
+	return NULL;
+    Expressions *elements = new Expressions();
+    for (size_t i = 0; i < value.dim; i++)
+    {
+	if (field.data[i])
+	    goto Lno;
+	Initializer *iz = (Initializer *)value.data[i];
+	if (!iz)
+	    goto Lno;
+	Expression *ex = iz->toExpression();
+	if (!ex)
+	    goto Lno;
+	elements->push(ex);
+    }
+    e = new StructLiteralExp(loc, sd, elements);
+    e->type = sd->type;
+    return e;
+
+Lno:
+    delete elements;
+    //error(loc, "struct initializers as expressions are not allowed");
+    return NULL;
 }
 
 
@@ -490,6 +524,7 @@ Initializer *ExpInitializer::semantic(Scope *sc, Type *t)
 {
     //printf("ExpInitializer::semantic(%s), type = %s\n", exp->toChars(), t->toChars());
     exp = exp->semantic(sc);
+    exp = exp->optimize(WANTvalue | WANTinterpret);
     Type *tb = t->toBasetype();
 
     /* Look for case of initializing a static array with a too-short

@@ -88,7 +88,8 @@ Expression *TraitsExp::semantic(Scope *sc)
 #if LOGSEMANTIC
     printf("TraitsExp::semantic() %s\n", toChars());
 #endif
-    TemplateInstance::semanticTiargs(loc, sc, args);
+    if (ident != Id::compiles)
+	TemplateInstance::semanticTiargs(loc, sc, args);
     size_t dim = args ? args->dim : 0;
     Object *o;
     FuncDeclaration *f;
@@ -176,12 +177,12 @@ Expression *TraitsExp::semantic(Scope *sc)
 	Object *o = (Object *)args->data[0];
 	Expression *e = isExpression((Object *)args->data[1]);
 	if (!e)
-	{   error("string expected as second argument");
+	{   error("expression expected as second argument of __traits %s", ident->toChars());
 	    goto Lfalse;
 	}
 	e = e->optimize(WANTvalue | WANTinterpret);
 	if (e->op != TOKstring)
-	{   error("string expected as second argument");
+	{   error("string expected as second argument of __traits %s instead of %s", ident->toChars(), e->toChars());
 	    goto Lfalse;
 	}
 	StringExp *se = (StringExp *)e;
@@ -323,6 +324,62 @@ Expression *TraitsExp::semantic(Scope *sc)
 	Expression *e = new ArrayLiteralExp(loc, exps);
 	e = e->semantic(sc);
 	return e;
+    }
+    else if (ident == Id::compiles)
+    {
+	/* Determine if all the objects - types, expressions, or symbols -
+	 * compile without error
+	 */
+	if (!dim)
+	    goto Lfalse;
+
+	for (size_t i = 0; i < dim; i++)
+	{   Object *o = (Object *)args->data[i];
+	    Type *t;
+	    Expression *e;
+	    Dsymbol *s;
+
+	    unsigned errors = global.errors;
+	    global.gag++;
+
+	    t = isType(o);
+	    if (t)
+	    {	t->resolve(loc, sc, &e, &t, &s);
+		if (t)
+		    t->semantic(loc, sc);
+		else if (e)
+		    e->semantic(sc);
+	    }
+	    else
+	    {	e = isExpression(o);
+		if (e)
+		    e->semantic(sc);
+	    }
+
+	    global.gag--;
+	    if (errors != global.errors)
+	    {   if (global.gag == 0)
+		    global.errors = errors;
+		goto Lfalse;
+	    }
+	}
+	goto Ltrue;
+    }
+    else if (ident == Id::isSame)
+    {	/* Determine if two symbols are the same
+	 */
+	if (dim != 2)
+	    goto Ldimerror;
+	Dsymbol *s1 = getDsymbol((Object *)args->data[0]);
+	Dsymbol *s2 = getDsymbol((Object *)args->data[1]);
+
+	s1 = s1->toAlias();
+	s2 = s2->toAlias();
+
+	if (s1 == s2)
+	    goto Ltrue;
+	else
+	    goto Lfalse;
     }
     else
     {	error("unrecognized trait %s", ident->toChars());

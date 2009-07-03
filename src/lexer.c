@@ -457,7 +457,7 @@ int Lexer::isValidIdentifier(char *p)
     if (!p || !*p)
 	goto Linvalid;
 
-    if (isdigit(*p))
+    if (*p >= '0' && *p <= '9')		// beware of isdigit() on signed chars
 	goto Linvalid;
 
     len = strlen(p);
@@ -566,6 +566,23 @@ void Lexer::scan(Token *t)
 		t->value = hexStringConstant(t);
 		return;
 
+#if V2
+	    case 'q':
+		if (p[1] == '"')
+		{
+		    p++;
+		    t->value = delimitedStringConstant(t);
+		    return;
+		}
+		else if (p[1] == '{')
+		{
+		    p++;
+		    t->value = tokenStringConstant(t);
+		    return;
+		}
+		else
+		    goto case_ident;
+#endif
 
 	    case '"':
 		t->value = escapeStringConstant(t,0);
@@ -596,7 +613,11 @@ void Lexer::scan(Token *t)
 	    case 'a':  	case 'b':   case 'c':   case 'd':   case 'e':
 	    case 'f':  	case 'g':   case 'h':   case 'i':   case 'j':
 	    case 'k':  	            case 'm':   case 'n':   case 'o':
+#if V2
+	    case 'p':  	/*case 'q': case 'r':*/ case 's':   case 't':
+#else
 	    case 'p':  	case 'q': /*case 'r':*/ case 's':   case 't':
+#endif
 	    case 'u':  	case 'v':   case 'w': /*case 'x':*/ case 'y':
 	    case 'z':
 	    case 'A':  	case 'B':   case 'C':   case 'D':   case 'E':
@@ -695,6 +716,15 @@ void Lexer::scan(Token *t)
 			t->value = TOKint64v;
 			t->uns64value = major * 1000 + minor;
 		    }
+#if V2
+		    else if (id == Id::EOFX)
+		    {
+			t->value = TOKeof;
+			// Advance scanner to end of file
+			while (!(*p == 0 || *p == 0x1A))
+			    p++;
+		    }
+#endif
 		}
 		//printf("t->value = %d\n",t->value);
 		return;
@@ -1428,6 +1458,221 @@ TOK Lexer::hexStringConstant(Token *t)
 	}
     }
 }
+
+
+#if V2
+/**************************************
+ * Lex delimited strings:
+ *	q"(foo(xxx))"   // "foo(xxx)"
+ *	q"[foo(]"       // "foo("
+ *	q"/foo]/"       // "foo]"
+ *	q"HERE
+ *	foo
+ *	HERE"		// "foo\n"
+ * Input:
+ *	p is on the "
+ */
+
+TOK Lexer::delimitedStringConstant(Token *t)
+{   unsigned c;
+    Loc start = loc;
+    unsigned delimleft = 0;
+    unsigned delimright = 0;
+    unsigned nest = 1;
+    unsigned nestcount;
+    Identifier *hereid = NULL;
+    unsigned blankrol = 0;
+    unsigned startline = 0;
+
+    p++;
+    stringbuffer.reset();
+    while (1)
+    {
+	c = *p++;
+	//printf("c = '%c'\n", c);
+	switch (c)
+	{
+	    case '\n':
+	    Lnextline:
+		loc.linnum++;
+		startline = 1;
+		if (blankrol)
+		{   blankrol = 0;
+		    continue;
+		}
+		if (hereid)
+		{
+		    stringbuffer.writeUTF8(c);
+		    continue;
+		}
+		break;
+
+	    case '\r':
+		if (*p == '\n')
+		    continue;	// ignore
+		c = '\n';	// treat EndOfLine as \n character
+		goto Lnextline;
+
+	    case 0:
+	    case 0x1A:
+		goto Lerror;
+
+	    default:
+		if (c & 0x80)
+		{   p--;
+		    c = decodeUTF();
+		    p++;
+		    if (c == PS || c == LS)
+			goto Lnextline;
+		}
+		break;
+	}
+	if (delimleft == 0)
+	{   delimleft = c;
+	    nest = 1;
+	    nestcount = 1;
+	    if (c == '(')
+		delimright = ')';
+	    else if (c == '{')
+		delimright = '}';
+	    else if (c == '[')
+		delimright = ']';
+	    else if (c == '<')
+		delimright = '>';
+	    else if (isalpha(c) || c == '_' || (c >= 0x80 && isUniAlpha(c)))
+	    {	// Start of identifier; must be a heredoc
+		Token t;
+		p--;
+		scan(&t);		// read in heredoc identifier
+		if (t.value != TOKidentifier)
+		{   error("identifier expected for heredoc, not %s", t.toChars());
+		    delimright = c;
+		}
+		else
+		{   hereid = t.ident;
+		    //printf("hereid = '%s'\n", hereid->toChars());
+		    blankrol = 1;
+		}
+		nest = 0;
+	    }
+	    else
+	    {	delimright = c;
+		nest = 0;
+	    }
+	}
+	else
+	{
+	    if (blankrol)
+	    {	error("heredoc rest of line should be blank");
+		blankrol = 0;
+		continue;
+	    }
+	    if (nest == 1)
+	    {
+		if (c == delimleft)
+		    nestcount++;
+		else if (c == delimright)
+		{   nestcount--;
+		    if (nestcount == 0)
+			goto Ldone;
+		}
+	    }
+	    else if (c == delimright)
+		goto Ldone;
+	    if (startline && isalpha(c))
+	    {	Token t;
+		unsigned char *psave = p;
+		p--;
+		scan(&t);		// read in possible heredoc identifier
+		//printf("endid = '%s'\n", t.ident->toChars());
+		if (t.value == TOKidentifier && t.ident->equals(hereid))
+		{   /* should check that rest of line is blank
+		     */
+		    goto Ldone;
+		}
+		p = psave;
+	    }
+	    stringbuffer.writeUTF8(c);
+	    startline = 0;
+	}
+    }
+
+Ldone:
+    if (*p == '"')
+	p++;
+    else
+	error("delimited string must end in %c\"", delimright);
+    t->len = stringbuffer.offset;
+    stringbuffer.writeByte(0);
+    t->ustring = (unsigned char *)mem.malloc(stringbuffer.offset);
+    memcpy(t->ustring, stringbuffer.data, stringbuffer.offset);
+    stringPostfix(t);
+    return TOKstring;
+
+Lerror:
+    error("unterminated string constant starting at %s", start.toChars());
+    t->ustring = (unsigned char *)"";
+    t->len = 0;
+    t->postfix = 0;
+    return TOKstring;
+}
+
+/**************************************
+ * Lex delimited strings:
+ *	q{ foo(xxx) } // " foo(xxx) "
+ *	q{foo(}       // "foo("
+ *	q{{foo}"}"}   // "{foo}"}""
+ * Input:
+ *	p is on the q
+ */
+
+TOK Lexer::tokenStringConstant(Token *t)
+{
+    unsigned nest = 1;
+    Loc start = loc;
+    unsigned char *pstart = ++p;
+
+    while (1)
+    {	Token tok;
+
+	scan(&tok);
+	switch (tok.value)
+	{
+	    case TOKlcurly:
+		nest++;
+		continue;
+
+	    case TOKrcurly:
+		if (--nest == 0)
+		    goto Ldone;
+		continue;
+
+	    case TOKeof:
+		goto Lerror;
+
+	    default:
+		continue;
+	}
+    }
+
+Ldone:
+    t->len = p - 1 - pstart;
+    t->ustring = (unsigned char *)mem.malloc(t->len + 1);
+    memcpy(t->ustring, pstart, t->len);
+    t->ustring[t->len] = 0;
+    stringPostfix(t);
+    return TOKstring;
+
+Lerror:
+    error("unterminated token string constant starting at %s", start.toChars());
+    t->ustring = (unsigned char *)"";
+    t->len = 0;
+    t->postfix = 0;
+    return TOKstring;
+}
+
+#endif
+
 
 /**************************************
  */
@@ -2639,7 +2884,9 @@ static Keyword keywords[] =
     // Added after 1.0
     {	"ref",		TOKref		},
     {	"macro",	TOKmacro	},
+#if V2
     {	"__traits",	TOKtraits	},
+#endif
 };
 
 int Token::isKeyword()

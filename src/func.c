@@ -253,7 +253,7 @@ void FuncDeclaration::semantic(Scope *sc)
 	if (!isVirtual())
 	{
 	    //printf("\tnot virtual\n");
-	    return;
+	    goto Ldone;
 	}
 
 	// Find index of existing function in vtbl[] to override
@@ -283,6 +283,10 @@ void FuncDeclaration::semantic(Scope *sc)
 		    {
 			if (fdv->isFinal())
 			    error("cannot override final function %s", fdv->toPrettyChars());
+
+			if (!isOverride() && global.params.warnings)
+			    error("overrides base class function %s, but is not marked with 'override'", fdv->toPrettyChars());
+
 			if (fdv->toParent() == parent)
 			{
 			    // If both are mixins, then error.
@@ -432,7 +436,7 @@ void FuncDeclaration::semantic(Scope *sc)
 
 	if (introducing && isOverride())
 	{
-	    error("function %s does not override any", toChars());
+	    error("does not override any function");
 	}
 
     L2: ;
@@ -524,6 +528,7 @@ void FuncDeclaration::semantic(Scope *sc)
 	}
     }
 
+Ldone:
     /* Save scope for possible later use (if we need the
      * function internals)
      */
@@ -2113,7 +2118,8 @@ void DtorDeclaration::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 /********************************* StaticCtorDeclaration ****************************/
 
 StaticCtorDeclaration::StaticCtorDeclaration(Loc loc, Loc endloc)
-    : FuncDeclaration(loc, endloc, Id::staticCtor, STCstatic, NULL)
+    : FuncDeclaration(loc, endloc,
+      Identifier::generateId("_staticCtor"), STCstatic, NULL)
 {
 }
 
@@ -2185,7 +2191,8 @@ void StaticCtorDeclaration::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 /********************************* StaticDtorDeclaration ****************************/
 
 StaticDtorDeclaration::StaticDtorDeclaration(Loc loc, Loc endloc)
-    : FuncDeclaration(loc, endloc, Id::staticDtor, STCstatic, NULL)
+    : FuncDeclaration(loc, endloc,
+      Identifier::generateId("_staticDtor"), STCstatic, NULL)
 {
 }
 

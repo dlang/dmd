@@ -668,7 +668,35 @@ Expression *Equal(enum TOK op, Type *type, Expression *e1, Expression *e2)
 
     assert(op == TOKequal || op == TOKnotequal);
 
-    if (e1->op == TOKstring && e2->op == TOKstring)
+    if (e1->op == TOKnull)
+    {
+	if (e2->op == TOKnull)
+	    cmp = 1;
+	else if (e2->op == TOKstring)
+	{   StringExp *es2 = (StringExp *)e2;
+	    cmp = (0 == es2->len);
+	}
+	else if (e2->op == TOKarrayliteral)
+	{   ArrayLiteralExp *es2 = (ArrayLiteralExp *)e2;
+	    cmp = !es2->elements || (0 == es2->elements->dim);
+	}
+	else
+	    return EXP_CANT_INTERPRET;
+    }
+    else if (e2->op == TOKnull)
+    {
+	if (e1->op == TOKstring)
+	{   StringExp *es1 = (StringExp *)e1;
+	    cmp = (0 == es1->len);
+	}
+	else if (e1->op == TOKarrayliteral)
+	{   ArrayLiteralExp *es1 = (ArrayLiteralExp *)e1;
+	    cmp = !es1->elements || (0 == es1->elements->dim);
+	}
+	else
+	    return EXP_CANT_INTERPRET;
+    }
+    else if (e1->op == TOKstring && e2->op == TOKstring)
     {	StringExp *es1 = (StringExp *)e1;
 	StringExp *es2 = (StringExp *)e2;
 
@@ -792,7 +820,11 @@ Expression *Identity(enum TOK op, Type *type, Expression *e1, Expression *e2)
     Loc loc = e1->loc;
     int cmp;
 
-    if (e1->op == TOKsymoff && e2->op == TOKsymoff)
+    if (e1->op == TOKnull && e2->op == TOKnull)
+    {
+	cmp = 1;
+    }
+    else if (e1->op == TOKsymoff && e2->op == TOKsymoff)
     {
 	SymOffExp *es1 = (SymOffExp *)e1;
 	SymOffExp *es2 = (SymOffExp *)e2;
@@ -1054,7 +1086,7 @@ Expression *Cast(Type *type, Type *to, Expression *e1)
     }
     else
     {
-	error("cannot cast %s to %s", e1->type->toChars(), type->toChars());
+	error(loc, "cannot cast %s to %s", e1->type->toChars(), type->toChars());
 	e = new IntegerExp(loc, 0, type);
     }
     return e;
@@ -1251,11 +1283,11 @@ Expression *Cat(Type *type, Expression *e1, Expression *e2)
     //printf("Cat(e1 = %s, e2 = %s)\n", e1->toChars(), e2->toChars());
     //printf("\tt1 = %s, t2 = %s\n", t1->toChars(), t2->toChars());
 
-    if (e1->op == TOKnull && e2->op == TOKint64)
+    if (e1->op == TOKnull && (e2->op == TOKint64 || e2->op == TOKstructliteral))
     {	e = e2;
 	goto L2;
     }
-    else if (e1->op == TOKint64 && e2->op == TOKnull)
+    else if ((e1->op == TOKint64 || e1->op == TOKstructliteral) && e2->op == TOKnull)
     {	e = e1;
      L2:
 	Type *tn = e->type->toBasetype();

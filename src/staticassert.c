@@ -49,6 +49,7 @@ void StaticAssert::semantic2(Scope *sc)
 {
     Expression *e;
 
+    //printf("StaticAssert::semantic2() %s\n", toChars());
     e = exp->semantic(sc);
     e = e->optimize(WANTvalue | WANTinterpret);
     if (e->isBool(FALSE))
