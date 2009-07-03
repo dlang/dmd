@@ -434,7 +434,9 @@ void TypeInfoStructDeclaration::toDt(dt_t **pdt)
      *	int function(in void*, in void*) xopCmp;
      *	string function(const(void)*) xtoString;
      *	uint m_flags;
-     *  xgetMembers
+     *  xgetMembers;
+     *	xdtor;
+     *	xpostblit;
      *
      *	name[]
      */
@@ -553,6 +555,20 @@ void TypeInfoStructDeclaration::toDt(dt_t **pdt)
 	dtxoff(pdt, sgetmembers->toSymbol(), 0, TYnptr);
     else
 	dtdword(pdt, 0);			// xgetMembers
+
+    // xdtor
+    FuncDeclaration *sdtor = sd->dtor;
+    if (sdtor)
+	dtxoff(pdt, sdtor->toSymbol(), 0, TYnptr);
+    else
+	dtdword(pdt, 0);			// xdtor
+
+    // xpostblit
+    FuncDeclaration *spostblit = sd->postblit;
+    if (spostblit)
+	dtxoff(pdt, spostblit->toSymbol(), 0, TYnptr);
+    else
+	dtdword(pdt, 0);			// xpostblit
 
     // name[]
     dtnbytes(pdt, namelen + 1, name);

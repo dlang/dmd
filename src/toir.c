@@ -406,6 +406,19 @@ void FuncDeclaration::buildClosure(IRState *irs)
     {   // Generate closure on the heap
 	// BUG: doesn't capture variadic arguments passed to this function
 
+	/* BUG: doesn't handle destructors for the local variables.
+	 * The way to do it is to make the closure variables the fields
+	 * of a class object:
+	 *    class Closure
+	 *    {   vtbl[]
+	 *	  monitor
+	 *	  ptr to destructor
+	 *	  sthis
+	 *	  ... closure variables ...
+	 *	  ~this() { call destructor }
+	 *    }
+	 */
+
 	Symbol *sclosure;
 	sclosure = symbol_name("__closptr",SCauto,Type::tvoidptr->toCtype());
 	sclosure->Sflags |= SFLtrue | SFLfree;

@@ -1,6 +1,6 @@
 
 // Compiler implementation of the D programming language
-// Copyright (c) 1999-2007 by Digital Mars
+// Copyright (c) 1999-2008 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // http://www.digitalmars.com
@@ -57,6 +57,9 @@ struct AggregateDeclaration : ScopeDsymbol
     NewDeclaration *aggNew;		// allocator
     DeleteDeclaration *aggDelete;	// deallocator
 
+    FuncDeclarations dtors;	// Array of destructors
+    FuncDeclaration *dtor;	// aggregate destructor
+
 #ifdef IN_GCC
     Array methods;              // flat list of all methods for debug information
 #endif
@@ -70,6 +73,7 @@ struct AggregateDeclaration : ScopeDsymbol
     Type *getType();
     void addField(Scope *sc, VarDeclaration *v);
     int isDeprecated();		// is aggregate deprecated?
+    FuncDeclaration *buildDtor(Scope *sc);
 
     void emitComment(Scope *sc);
     void toDocBuffer(OutBuffer *buf);
@@ -103,6 +107,11 @@ struct AnonymousAggregateDeclaration : AggregateDeclaration
 struct StructDeclaration : AggregateDeclaration
 {
     int zeroInit;		// !=0 if initialize with 0 fill
+    int hasIdentityAssign;	// !=0 if has identity opAssign
+    FuncDeclaration *cpctor;	// generated copy-constructor, if any
+
+    FuncDeclarations postblits;	// Array of postblit functions
+    FuncDeclaration *postblit;	// aggregate postblit
 
     StructDeclaration(Loc loc, Identifier *id);
     Dsymbol *syntaxCopy(Dsymbol *s);
@@ -110,6 +119,10 @@ struct StructDeclaration : AggregateDeclaration
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
     char *mangle();
     char *kind();
+    int needOpAssign();
+    FuncDeclaration *buildOpAssign(Scope *sc);
+    FuncDeclaration *buildPostBlit(Scope *sc);
+    FuncDeclaration *buildCpCtor(Scope *sc);
     void toDocBuffer(OutBuffer *buf);
 
     PROT getAccess(Dsymbol *smember);	// determine access to smember
@@ -151,7 +164,11 @@ struct BaseClass
     void copyBaseInterfaces(BaseClasses *);
 };
 
+#if V2
 #define CLASSINFO_SIZE 	(0x3C+16)	// value of ClassInfo.size
+#else
+#define CLASSINFO_SIZE 	(0x3C+12)	// value of ClassInfo.size
+#endif
 
 struct ClassDeclaration : AggregateDeclaration
 {
@@ -161,7 +178,6 @@ struct ClassDeclaration : AggregateDeclaration
     ClassDeclaration *baseClass;	// NULL only if this is Object
     CtorDeclaration *ctor;
     CtorDeclaration *defaultCtor;	// default constructor
-    FuncDeclarations dtors;		// Array of destructors
     FuncDeclaration *staticCtor;
     FuncDeclaration *staticDtor;
     Array vtbl;				// Array of FuncDeclaration's making up the vtbl[]
@@ -196,13 +212,17 @@ struct ClassDeclaration : AggregateDeclaration
     virtual int isBaseOf(ClassDeclaration *cd, int *poffset);
 
     Dsymbol *search(Loc, Identifier *ident, int flags);
+#if V2
     int isFuncHidden(FuncDeclaration *fd);
+#endif
     FuncDeclaration *findFunc(Identifier *ident, TypeFunction *tf);
     void interfaceSemantic(Scope *sc);
     int isNested();
     int isCOMclass();
     virtual int isCOMinterface();
+#if V2
     virtual int isCPPinterface();
+#endif
     int isAbstract();
     virtual int vtblOffset();
     char *kind();
@@ -229,8 +249,9 @@ struct ClassDeclaration : AggregateDeclaration
 
 struct InterfaceDeclaration : ClassDeclaration
 {
+#if V2
     int cpp;				// !=0 if this is a C++ interface
-
+#endif
     InterfaceDeclaration(Loc loc, Identifier *id, BaseClasses *baseclasses);
     Dsymbol *syntaxCopy(Dsymbol *s);
     void semantic(Scope *sc);
@@ -238,7 +259,9 @@ struct InterfaceDeclaration : ClassDeclaration
     int isBaseOf(BaseClass *bc, int *poffset);
     char *kind();
     int vtblOffset();
+#if V2
     int isCPPinterface();
+#endif
     virtual int isCOMinterface();
 
     void toObjFile();			// compile to .obj file

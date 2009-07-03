@@ -231,10 +231,7 @@ Expression *TraitsExp::semantic(Scope *sc)
 	}
 	else if (ident == Id::getVirtualFunctions)
 	{
-printf("test1\n");
-e->dump(0);
 	    e = e->semantic(sc);
-printf("test2\n");
 
 	    /* Create tuple of virtual function overloads of e
 	     */

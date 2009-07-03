@@ -28,6 +28,7 @@ struct Import;
 struct Initializer;
 struct FuncDeclaration;
 struct CtorDeclaration;
+struct PostBlitDeclaration;
 struct DtorDeclaration;
 struct StaticCtorDeclaration;
 struct StaticDtorDeclaration;
@@ -80,6 +81,7 @@ struct Parser : Lexer
     Condition *parseVersionCondition();
     Condition *parseStaticIfCondition();
     CtorDeclaration *parseCtor();
+    PostBlitDeclaration *parsePostBlit();
     DtorDeclaration *parseDtor();
     StaticCtorDeclaration *parseStaticCtor();
     StaticDtorDeclaration *parseStaticDtor();

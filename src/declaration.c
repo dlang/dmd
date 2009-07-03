@@ -687,7 +687,7 @@ void VarDeclaration::semantic(Scope *sc)
 	    originalType = type;
 	type = type->semantic(loc, sc);
     }
-    //printf(" type = %s\n", type ? type->toChars() : "null");
+    //printf(" semantic type = %s\n", type ? type->toChars() : "null");
 
     type->checkDeprecated(loc, sc);
     linkage = sc->linkage;
@@ -728,6 +728,7 @@ void VarDeclaration::semantic(Scope *sc)
 	size_t nelems = Argument::dim(tt->arguments);
 	Objects *exps = new Objects();
 	exps->setDim(nelems);
+	Expression *ie = init ? init->toExpression() : NULL;
 
 	for (size_t i = 0; i < nelems; i++)
 	{   Argument *arg = Argument::getNth(tt->arguments, i);
@@ -738,7 +739,16 @@ void VarDeclaration::semantic(Scope *sc)
 	    char *name = (char *)buf.extractData();
 	    Identifier *id = new Identifier(name, TOKidentifier);
 
-	    VarDeclaration *v = new VarDeclaration(loc, arg->type, id, NULL);
+	    Expression *einit = ie;
+	    if (ie && ie->op == TOKtuple)
+	    {	einit = (Expression *)((TupleExp *)ie)->exps->data[i];
+	    }
+	    Initializer *ti = init;
+	    if (einit)
+	    {	ti = new ExpInitializer(einit->loc, einit);
+	    }
+
+	    VarDeclaration *v = new VarDeclaration(loc, arg->type, id, ti);
 	    //printf("declaring field %s of type %s\n", v->toChars(), v->type->toChars());
 	    v->semantic(sc);
 
@@ -1107,7 +1117,11 @@ void VarDeclaration::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 	buf->writestring(ident->toChars());
     if (init)
     {	buf->writestring(" = ");
-	init->toCBuffer(buf, hgs);
+	ExpInitializer *ie = init->isExpInitializer();
+	if (ie && ie->exp->op == TOKconstruct)
+	    ((AssignExp *)ie->exp)->e2->toCBuffer(buf, hgs);
+	else
+	    init->toCBuffer(buf, hgs);
     }
     buf->writeByte(';');
     buf->writenl();
@@ -1277,11 +1291,56 @@ int VarDeclaration::hasPointers()
  * Otherwise, return NULL.
  */
 
-Expression *VarDeclaration::callAutoDtor()
+Expression *VarDeclaration::callAutoDtor(Scope *sc)
 {   Expression *e = NULL;
 
     //printf("VarDeclaration::callAutoDtor() %s\n", toChars());
-    if (storage_class & (STCauto | STCscope) && !noauto)
+
+    if (noauto || storage_class & STCnodtor)
+	return NULL;
+
+    FuncDeclaration *fd = sc->parent->isFuncDeclaration();
+    if (fd && fd->nrvo_var == this)
+	return NULL;
+
+    // Destructors for structs and arrays of structs
+    bool array = false;
+    Type *tv = type->toBasetype();
+    while (tv->ty == Tsarray)
+    {   TypeSArray *ta = (TypeSArray *)tv;
+	array = true;
+	tv = tv->nextOf()->toBasetype();
+    }
+    if (tv->ty == Tstruct)
+    {   TypeStruct *ts = (TypeStruct *)tv;
+	StructDeclaration *sd = ts->sym;
+	if (sd->dtor)
+	{
+	    if (array)
+	    {
+		// Typeinfo.destroy(cast(void*)&v);
+		Expression *ea = new SymOffExp(loc, this, 0, 0);
+		ea = new CastExp(loc, ea, Type::tvoid->pointerTo());
+		Expressions *args = new Expressions();
+		args->push(ea);
+
+		Expression *et = type->getTypeInfo(sc);
+		et = new DotIdExp(loc, et, Id::destroy);
+
+		e = new CallExp(loc, et, args);
+	    }
+	    else
+	    {
+		e = new VarExp(loc, this);
+		e = new DotVarExp(loc, e, sd->dtor, 0);
+		e = new CallExp(loc, e);
+	    }
+	    return e;
+	}
+    }
+
+    // Destructors for classes
+    if (storage_class & (STCauto | STCscope))
     {
 	for (ClassDeclaration *cd = type->isClassHandle();
 	     cd;
@@ -1291,8 +1350,8 @@ Expression *VarDeclaration::callAutoDtor()
 	     * classes to determine if there's no way the monitor
 	     * could be set.
 	     */
-	    if (cd->isInterfaceDeclaration())
-		error("interface %s cannot be scope", cd->toChars());
+	    //if (cd->isInterfaceDeclaration())
+		//error("interface %s cannot be scope", cd->toChars());
 	    if (1 || onstack || cd->dtors.dim)	// if any destructors
 	    {
 		// delete this;

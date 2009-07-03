@@ -1,6 +1,6 @@
 
 // Compiler implementation of the D programming language
-// Copyright (c) 1999-2006 by Digital Mars
+// Copyright (c) 1999-2008 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // http://www.digitalmars.com
@@ -35,7 +35,9 @@ Msgtable msgtable[] =
     { "min" },
     { "This", "this" },
     { "ctor", "_ctor" },
+    { "cpctor", "_cpctor" },
     { "dtor", "_dtor" },
+    { "_postblit", "_postblit" },
     { "classInvariant", "__invariant" },
     { "unitTest", "_unitTest" },
     { "init" },
@@ -87,6 +89,8 @@ Msgtable msgtable[] =
     { "_arguments" },
     { "_argptr" },
     { "_match" },
+    { "destroy" },
+    { "postblit" },
 
     { "LINE", "__LINE__" },
     { "FILE", "__FILE__" },
@@ -191,7 +195,6 @@ Msgtable msgtable[] =
     { "opIn" },
     { "opIn_r" },
     { "opStar" },
-    { "opClone" },
 
     { "classNew", "new" },
     { "classDelete", "delete" },
@@ -210,9 +213,10 @@ Msgtable msgtable[] =
     { "aaRehash", "_aaRehash" },
 
     // For pragma's
+    { "GNU_asm" },
     { "lib" },
     { "msg" },
-    { "GNU_asm" },
+    { "startaddress" },
 
     // For special functions
     { "tohash", "toHash" },

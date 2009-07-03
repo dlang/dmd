@@ -1,5 +1,5 @@
 
-// Copyright (c) 1999-2007 by Digital Mars
+// Copyright (c) 1999-2008 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // http://www.digitalmars.com
@@ -194,7 +194,6 @@ void ClassDeclaration::toObjFile()
 {   unsigned i;
     unsigned offset;
     Symbol *sinit;
-    Symbol *sdtor;
     enum_SC scclass;
 
     //printf("ClassDeclaration::toObjFile('%s')\n", toChars());
@@ -226,7 +225,9 @@ void ClassDeclaration::toObjFile()
 	member->toObjFile();
     }
 
+#if 0
     // Build destructor by aggregating dtors[]
+    Symbol *sdtor;
     switch (dtors.dim)
     {	case 0:
 	    // No destructors for this class
@@ -283,6 +284,7 @@ void ClassDeclaration::toObjFile()
 	    writefunc(sdtor);
 	}
     }
+#endif
 
     // Generate C symbols
     toSymbol();
@@ -371,8 +373,8 @@ void ClassDeclaration::toObjFile()
 	dtdword(&dt, 0);
 
     // destructor
-    if (sdtor)
-	dtxoff(&dt, sdtor, 0, TYnptr);
+    if (dtor)
+	dtxoff(&dt, dtor->toSymbol(), 0, TYnptr);
     else
 	dtdword(&dt, 0);
 

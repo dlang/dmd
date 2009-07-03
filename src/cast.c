@@ -341,6 +341,14 @@ MATCH NullExp::implicitConvTo(Type *t)
 #endif
     if (this->type->equals(t))
 	return MATCHexact;
+
+    /* Allow implicit conversions from invariant to mutable|const,
+     * and mutable to invariant. It works because, after all, a null
+     * doesn't actually point to anything.
+     */
+    if (t->invariantOf()->equals(type->invariantOf()))
+	return MATCHconst;
+
     // NULL implicitly converts to any pointer type or dynamic array
     if (type->ty == Tpointer && type->nextOf()->ty == Tvoid)
     {
@@ -352,6 +360,37 @@ MATCH NullExp::implicitConvTo(Type *t)
 	    return committed ? MATCHconvert : MATCHexact;
     }
     return Expression::implicitConvTo(t);
+}
+
+MATCH StructLiteralExp::implicitConvTo(Type *t)
+{
+#if 0
+    printf("StructLiteralExp::implicitConvTo(this=%s, type=%s, t=%s)\n",
+	toChars(), type->toChars(), t->toChars());
+#endif
+    MATCH m = Expression::implicitConvTo(t);
+    if (m != MATCHnomatch)
+	return m;
+    if (type->ty == t->ty && type->ty == Tstruct &&
+	((TypeStruct *)type)->sym == ((TypeStruct *)t)->sym)
+    {
+	m = MATCHconst;
+	for (int i = 0; i < elements->dim; i++)
+	{   Expression *e = (Expression *)elements->data[i];
+	    Type *te = e->type;
+	    if (t->mod == 0)
+		te = te->mutableOf();
+	    else
+	    {	assert(t->mod == MODinvariant);
+		te = te->invariantOf();
+	    }
+	    MATCH m2 = e->implicitConvTo(te);
+	    //printf("\t%s => %s, match = %d\n", e->toChars(), te->toChars(), m2);
+	    if (m2 < m)
+		m = m2;
+	}
+    }
+    return m;
 }
 
 MATCH StringExp::implicitConvTo(Type *t)

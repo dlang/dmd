@@ -458,6 +458,7 @@ struct TypeFunction : TypeNext
     Arguments *parameters;	// function parameters
     int varargs;	// 1: T t, ...) style for variable number of arguments
 			// 2: T t ...) style for variable number of arguments
+    bool isnothrow;	// true: nothrow
     enum LINK linkage;	// calling convention
 
     int inuse;

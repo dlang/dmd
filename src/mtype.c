@@ -828,7 +828,7 @@ Expression *Type::dotExp(Scope *sc, Expression *e, Identifier *ident)
 		else
 		{   Loc loc = e->loc;
 		    e = v->init->toExpression();
-		    if (e->op == TOKassign || e->op == TOKconstruct)
+		    if (e->op == TOKassign || e->op == TOKconstruct || e->op == TOKblit)
 		    {
 			e = ((AssignExp *)e)->e2;
 
@@ -1811,7 +1811,11 @@ Expression *TypeArray::dotExp(Scope *sc, Expression *e, Identifier *ident)
 	    arguments->push(new IntegerExp(0, size, Type::tint32));
 	e = new CallExp(e->loc, ec, arguments);
 	if (ident == Id::idup)
-	    e->type = next->invariantOf()->arrayOf();
+	{   Type *einv = next->invariantOf();
+	    if (next->implicitConvTo(einv) < MATCHconst)
+		error(e->loc, "cannot implicitly convert element type %s to invariant", next->toChars());
+	    e->type = einv->arrayOf();
+	}
 	else
 	    e->type = next->mutableOf()->arrayOf();
     }
@@ -2845,6 +2849,7 @@ TypeFunction::TypeFunction(Arguments *parameters, Type *treturn, int varargs, en
     this->varargs = varargs;
     this->linkage = linkage;
     this->inuse = 0;
+    this->isnothrow = false;
 }
 
 Type *TypeFunction::syntaxCopy()
@@ -3513,7 +3518,7 @@ void TypeQualified::resolveHelper(Loc loc, Scope *sc,
 	    id = (Identifier *)idents.data[i];
 	    sm = s->searchX(loc, sc, id);
 	    //printf("\t3: s = '%s' %p, kind = '%s'\n",s->toChars(), s, s->kind());
-	    //printf("getType = '%s'\n", s->getType()->toChars());
+	    //printf("\tgetType = '%s'\n", s->getType()->toChars());
 	    if (!sm)
 	    {
 		v = s->isVarDeclaration();
@@ -3547,7 +3552,12 @@ void TypeQualified::resolveHelper(Loc loc, Scope *sc,
 		    {
 			id = (Identifier *)idents.data[i];
 			//printf("e: '%s', id: '%s', type = %p\n", e->toChars(), id->toChars(), e->type);
-			e = e->type->dotExp(sc, e, id);
+			if (id == Id::offsetof)
+			{   e = new DotIdExp(e->loc, e, id);
+			    e = e->semantic(sc);
+			}
+			else
+			    e = e->type->dotExp(sc, e, id);
 		    }
 		    *pe = e;
 		}
@@ -4509,9 +4519,8 @@ MATCH TypeTypedef::constConv(Type *to)
 {
     if (equals(to))
 	return MATCHexact;
-    if (ty == to->ty && sym == ((TypeTypedef *)to)->sym &&
-	to->mod == MODconst)
-	return MATCHconst;
+    if (ty == to->ty && sym == ((TypeTypedef *)to)->sym)
+	return sym->basetype->implicitConvTo(((TypeTypedef *)to)->sym->basetype);
     return MATCHnomatch;
 }
 
@@ -4669,6 +4678,7 @@ Expression *TypeStruct::dotExp(Scope *sc, Expression *e, Identifier *ident)
     {
 	/* Create a TupleExp
 	 */
+	e = e->semantic(sc);	// do this before turning on noaccesscheck
 	Expressions *exps = new Expressions;
 	exps->reserve(sym->fields.dim);
 	for (size_t i = 0; i < sym->fields.dim; i++)
@@ -4677,7 +4687,10 @@ Expression *TypeStruct::dotExp(Scope *sc, Expression *e, Identifier *ident)
 	    exps->push(fe);
 	}
 	e = new TupleExp(e->loc, exps);
+	sc = sc->push();
+	sc->noaccesscheck = 1;
 	e = e->semantic(sc);
+	sc->pop();
 	return e;
     }
 
@@ -4879,7 +4892,7 @@ int TypeStruct::hasPointers()
 MATCH TypeStruct::implicitConvTo(Type *to)
 {   MATCH m;
 
-    //printf("TypeStruct::implicitConvTo()\n");
+    //printf("TypeStruct::implicitConvTo(%s => %s)\n", toChars(), to->toChars());
     if (ty == to->ty && sym == ((TypeStruct *)to)->sym)
     {	m = MATCHexact;		// exact match
 	if (mod != to->mod)
@@ -4887,7 +4900,36 @@ MATCH TypeStruct::implicitConvTo(Type *to)
 	    if (to->mod == MODconst)
 		m = MATCHconst;
 	    else
-		m = MATCHnomatch;
+	    {	/* Check all the fields. If they can all be converted,
+		 * allow the conversion.
+		 */
+		for (int i = 0; i < sym->fields.dim; i++)
+		{   Dsymbol *s = (Dsymbol *)sym->fields.data[i];
+		    VarDeclaration *v = s->isVarDeclaration();
+		    assert(v && v->storage_class & STCfield);
+
+		    // 'from' type
+		    Type *tvf = v->type;
+		    if (mod == MODconst)
+			tvf = tvf->constOf();
+		    else if (mod == MODinvariant)
+			tvf = tvf->invariantOf();
+
+		    // 'to' type
+		    Type *tv = v->type;
+		    if (to->mod == 0)
+			tv = tv->mutableOf();
+		    else
+		    {	assert(to->mod == MODinvariant);
+			tv = tv->invariantOf();
+		    }
+
+		    //printf("\t%s => %s, match = %d\n", v->type->toChars(), tv->toChars(), tvf->implicitConvTo(tv));
+		    if (tvf->implicitConvTo(tv) < MATCHconst)
+			return MATCHnomatch;
+		}
+		m = MATCHconst;
+	    }
 	}
     }
     else
@@ -4998,6 +5040,7 @@ Expression *TypeClass::dotExp(Scope *sc, Expression *e, Identifier *ident)
     {
 	/* Create a TupleExp
 	 */
+	e = e->semantic(sc);	// do this before turning on noaccesscheck
 	Expressions *exps = new Expressions;
 	exps->reserve(sym->fields.dim);
 	for (size_t i = 0; i < sym->fields.dim; i++)
@@ -5006,7 +5049,10 @@ Expression *TypeClass::dotExp(Scope *sc, Expression *e, Identifier *ident)
 	    exps->push(fe);
 	}
 	e = new TupleExp(e->loc, exps);
+	sc = sc->push();
+	sc->noaccesscheck = 1;
 	e = e->semantic(sc);
+	sc->pop();
 	return e;
     }
 
@@ -5344,7 +5390,7 @@ TypeTuple::TypeTuple(Expressions *exps)
 	{   Expression *e = (Expression *)exps->data[i];
 	    if (e->type->ty == Ttuple)
 		e->error("cannot form tuple of tuples");
-	    Argument *arg = new Argument(STCin, e->type, NULL, NULL);
+	    Argument *arg = new Argument(STCundefined, e->type, NULL, NULL);
 	    arguments->data[i] = (void *)arg;
 	}
     }

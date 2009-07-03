@@ -614,11 +614,7 @@ Symbol *EnumDeclaration::toInitializer()
 	stag = fake_classsym(Id::ClassInfo);
 	Identifier *ident_save = ident;
 	if (!ident)
-	{   static int num;
-	    char name[6 + sizeof(num) * 3 + 1];
-	    sprintf(name, "__enum%d", ++num);
-	    ident = Lexer::idPool(name);
-	}
+	    ident = Lexer::uniqueId("__enum");
 	s = toSymbolX("__init", SCextern, stag->Stype, "Z");
 	ident = ident_save;
 	s->Sfl = FLextern;

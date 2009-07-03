@@ -276,6 +276,7 @@ TemplateDeclaration::TemplateDeclaration(Loc loc, Identifier *id, TemplateParame
 #endif
     this->loc = loc;
     this->parameters = parameters;
+    this->origParameters = parameters;
     this->members = decldefs;
     this->overnext = NULL;
     this->overroot = NULL;
@@ -343,6 +344,17 @@ void TemplateDeclaration::semantic(Scope *sc)
     paramsym->parent = sc->parent;
     Scope *paramscope = sc->push(paramsym);
     paramscope->parameterSpecialization = 1;
+
+    if (global.params.doDocComments)
+    {
+	origParameters = new TemplateParameters();
+	origParameters->setDim(parameters->dim);
+	for (int i = 0; i < parameters->dim; i++)
+	{
+	    TemplateParameter *tp = (TemplateParameter *)parameters->data[i];
+	    origParameters->data[i] = (void *)tp->syntaxCopy();
+	}
+    }
 
     for (int i = 0; i < parameters->dim; i++)
     {
@@ -696,13 +708,19 @@ MATCH TemplateDeclaration::deduceFunctionTemplateMatch(Objects *targsi,
     paramsym->parent = scope->parent;
     Scope *paramscope = scope->push(paramsym);
 
+    tp = isVariadic();
+
     nargsi = 0;
     if (targsi)
     {	// Set initial template arguments
 
 	nargsi = targsi->dim;
 	if (nargsi > parameters->dim)
-	    goto Lnomatch;
+	{   if (!tp)
+		goto Lnomatch;
+	    dedargs->setDim(nargsi);
+	    dedargs->zero();
+	}
 
 	memcpy(dedargs->data, targsi->data, nargsi * sizeof(*dedargs->data));
 
@@ -712,6 +730,7 @@ MATCH TemplateDeclaration::deduceFunctionTemplateMatch(Objects *targsi,
 	    Declaration *sparam;
 
 	    m = tp->matchArg(paramscope, dedargs, i, parameters, &dedtypes, &sparam);
+	    //printf("\tdeduceType m = %d\n", m);
 	    if (m == MATCHnomatch)
 		goto Lnomatch;
 	    if (m < match)
@@ -736,7 +755,6 @@ MATCH TemplateDeclaration::deduceFunctionTemplateMatch(Objects *targsi,
      * template Foo(T, A...) { void Foo(T t, A a); }
      * void main() { Foo(1,2,3); }
      */
-    tp = isVariadic();
     if (tp)
     {
 	if (nfparams == 0)		// if no function parameters
@@ -1131,12 +1149,25 @@ FuncDeclaration *TemplateDeclaration::deduceFunctionTemplate(Scope *sc, Loc loc,
   Lerror:
     if (!(flags & 1))
     {
-	OutBuffer buf;
 	HdrGenState hgs;
 
+	OutBuffer bufa;
+	Objects *args = targsi;
+	if (args)
+	{   for (int i = 0; i < args->dim; i++)
+	    {
+		if (i)
+		    bufa.writeByte(',');
+		Object *oarg = (Object *)args->data[i];
+		ObjectToCBuffer(&bufa, &hgs, oarg);
+	    }
+	}
+
+	OutBuffer buf;
 	argExpTypesToCBuffer(&buf, fargs, &hgs);
-	error(loc, "cannot deduce template function from argument types (%s)",
-		buf.toChars());
+
+	error(loc, "cannot deduce template function from argument types !(%s)(%s)",
+		bufa.toChars(), buf.toChars());
     }
     return NULL;
 }
@@ -1154,6 +1185,8 @@ void TemplateDeclaration::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
     for (int i = 0; i < parameters->dim; i++)
     {
 	TemplateParameter *tp = (TemplateParameter *)parameters->data[i];
+	if (hgs->ddoc)
+	    tp = (TemplateParameter *)origParameters->data[i];
 	if (i)
 	    buf->writeByte(',');
 	tp->toCBuffer(buf, hgs);
@@ -3449,10 +3482,30 @@ int TemplateInstance::isNested(Objects *args)
 	    {
 		// if module level template
 		if (tempdecl->toParent()->isModule())
-		{
-		    if (isnested && isnested != d->toParent())
-			error("inconsistent nesting levels %s and %s", isnested->toChars(), d->toParent()->toChars());
-		    isnested = d->toParent();
+		{   Dsymbol *dparent = d->toParent();
+		    if (!isnested)
+			isnested = dparent;
+		    else if (isnested != dparent)
+		    {
+			/* Select the more deeply nested of the two.
+			 * Error if one is not nested inside the other.
+			 */
+			for (Dsymbol *p = isnested; p; p = p->parent)
+			{
+			    if (p == dparent)
+				goto L1;	// isnested is most nested
+			}
+			for (Dsymbol *p = dparent; 1; p = p->parent)
+			{
+			    if (p == isnested)
+			    {	isnested = dparent;
+				goto L1;	// dparent is most nested
+			    }
+			}
+			error("is nested in both %s and %s", isnested->toChars(), dparent->toChars());
+		    }
+		  L1:
+		    //printf("\tnested inside %s\n", isnested->toChars());
 		    nested |= 1;
 		}
 		else

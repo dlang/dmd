@@ -584,6 +584,8 @@ Expression *ForStatement::interpret(InterState *istate)
 
     while (1)
     {
+	if (!condition)
+	    goto Lhead;
 	e = condition->interpret(istate);
 	if (e == EXP_CANT_INTERPRET)
 	    break;
@@ -592,7 +594,9 @@ Expression *ForStatement::interpret(InterState *istate)
 	    break;
 	}
 	if (e->isBool(TRUE))
-	{   e = body ? body->interpret(istate) : NULL;
+	{
+	Lhead:
+	    e = body ? body->interpret(istate) : NULL;
 	    if (e == EXP_CANT_INTERPRET)
 		break;
 	    if (e == EXP_BREAK_INTERPRET)
@@ -602,9 +606,12 @@ Expression *ForStatement::interpret(InterState *istate)
 	    if (e && e != EXP_CONTINUE_INTERPRET)
 		break;
 	Lcontinue:
-	    e = increment->interpret(istate);
-	    if (e == EXP_CANT_INTERPRET)
-		break;
+	    if (increment)
+	    {
+		e = increment->interpret(istate);
+		if (e == EXP_CANT_INTERPRET)
+		    break;
+	    }
 	}
 	else if (e->isBool(FALSE))
 	{   e = NULL;

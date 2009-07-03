@@ -202,6 +202,10 @@ Array *Parser::parseDeclDefs(int once)
 		s = parseCtor();
 		break;
 
+	    case TOKassign:
+		s = parsePostBlit();
+		break;
+
 	    case TOKtilde:
 		s = parseDtor();
 		break;
@@ -284,6 +288,7 @@ Array *Parser::parseDeclDefs(int once)
 	    case TOKabstract:	  stc = STCabstract;	 goto Lstc;
 	    case TOKsynchronized: stc = STCsynchronized; goto Lstc;
 	    case TOKdeprecated:   stc = STCdeprecated;	 goto Lstc;
+	    case TOKnothrow:      stc = STCnothrow;	 goto Lstc;
 	    //case TOKmanifest:	  stc = STCmanifest;	 goto Lstc;
 
 	    Lstc:
@@ -317,6 +322,7 @@ Array *Parser::parseDeclDefs(int once)
 		    case TOKabstract:	  stc = STCabstract;	 goto Lstc;
 		    case TOKsynchronized: stc = STCsynchronized; goto Lstc;
 		    case TOKdeprecated:   stc = STCdeprecated;	 goto Lstc;
+		    case TOKnothrow:      stc = STCnothrow;	 goto Lstc;
 		    //case TOKmanifest:	  stc = STCmanifest;	 goto Lstc;
 		    default:
 			break;
@@ -775,6 +781,26 @@ CtorDeclaration *Parser::parseCtor()
     nextToken();
     arguments = parseParameters(&varargs);
     f = new CtorDeclaration(loc, 0, arguments, varargs);
+    parseContracts(f);
+    return f;
+}
+
+/*****************************************
+ * Parse a postblit definition:
+ *	=this() { body }
+ * Current token is '='.
+ */
+
+PostBlitDeclaration *Parser::parsePostBlit()
+{
+    Loc loc = this->loc;
+
+    nextToken();
+    check(TOKthis);
+    check(TOKlparen);
+    check(TOKrparen);
+
+    PostBlitDeclaration *f = new PostBlitDeclaration(loc, 0);
     parseContracts(f);
     return f;
 }
@@ -2016,7 +2042,7 @@ Type *Parser::parseDeclarator(Type *t, Identifier **pident, TemplateParameters *
 		Arguments *arguments = parseParameters(&varargs);
 		Type *tf = new TypeFunction(arguments, t, varargs, linkage);
 
-		/* Parse const/invariant postfix
+		/* Parse const/invariant/nothrow postfix
 		 */
 		switch (token.value)
 		{
@@ -2027,6 +2053,11 @@ Type *Parser::parseDeclarator(Type *t, Identifier **pident, TemplateParameters *
 
 		    case TOKinvariant:
 			tf = tf->makeInvariant();
+			nextToken();
+			break;
+
+		    case TOKnothrow:
+			((TypeFunction *)tf)->isnothrow = 1;
 			nextToken();
 			break;
 		}
@@ -2105,6 +2136,7 @@ Array *Parser::parseDeclarations()
 	    case TOKabstract:	stc = STCabstract;	 goto L1;
 	    case TOKsynchronized: stc = STCsynchronized; goto L1;
 	    case TOKdeprecated: stc = STCdeprecated;	 goto L1;
+	    case TOKnothrow:    stc = STCnothrow;	 goto L1;
 	    case TOKenum:	stc = STCmanifest;	 goto L1;
 	    L1:
 		if (storage_class & stc)

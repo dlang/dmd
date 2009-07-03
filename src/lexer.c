@@ -1,6 +1,6 @@
 
 // Compiler implementation of the D programming language
-// Copyright (c) 1999-2007 by Digital Mars
+// Copyright (c) 1999-2008 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // http://www.digitalmars.com
@@ -2747,19 +2747,35 @@ unsigned char *Lexer::combineComments(unsigned char *c1, unsigned char *c2)
  */
 
 Identifier *Lexer::idPool(const char *s)
-{   unsigned len;
-    Identifier *id;
-    StringValue *sv;
-
-    len = strlen(s);
-    sv = stringtable.update(s, len);
-    id = (Identifier *) sv->ptrvalue;
+{
+    size_t len = strlen(s);
+    StringValue *sv = stringtable.update(s, len);
+    Identifier *id = (Identifier *) sv->ptrvalue;
     if (!id)
     {
 	id = new Identifier(sv->lstring.string, TOKidentifier);
 	sv->ptrvalue = id;
     }
     return id;
+}
+
+/*********************************************
+ * Create a unique identifier using the prefix s.
+ */
+
+Identifier *Lexer::uniqueId(const char *s, int num)
+{   char buffer[32];
+    size_t slen = strlen(s);
+
+    assert(slen + sizeof(num) * 3 + 1 <= sizeof(buffer));
+    sprintf(buffer, "%s%d", s, num);
+    return idPool(buffer);
+}
+
+Identifier *Lexer::uniqueId(const char *s)
+{
+    static int num;
+    return uniqueId(s, ++num);
 }
 
 /****************************************
@@ -2887,6 +2903,7 @@ static Keyword keywords[] =
     {	"macro",	TOKmacro	},
 #if V2
     {	"pure",		TOKpure		},
+    {	"nothrow",	TOKnothrow	},
     {	"__traits",	TOKtraits	},
     {	"__overloadset", TOKoverloadset	},
 #endif
@@ -2941,6 +2958,7 @@ void Lexer::initKeywords()
     Token::tochars[TOKxorass]		= "^=";
     Token::tochars[TOKassign]		= "=";
     Token::tochars[TOKconstruct]	= "=";
+    Token::tochars[TOKblit]		= "=";
     Token::tochars[TOKlt]		= "<";
     Token::tochars[TOKgt]		= ">";
     Token::tochars[TOKle]		= "<=";

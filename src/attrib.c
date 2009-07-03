@@ -1,6 +1,6 @@
 
 // Compiler implementation of the D programming language
-// Copyright (c) 1999-2007 by Digital Mars
+// Copyright (c) 1999-2008 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // http://www.digitalmars.com
@@ -29,8 +29,10 @@
 #include "aggregate.h"
 #include "module.h"
 #include "parse.h"
+#include "template.h"
 
 extern void obj_includelib(char *name);
+void obj_startaddress(Symbol *s);
 
 
 /********************************* AttribDeclaration ****************************/
@@ -837,6 +839,22 @@ void PragmaDeclaration::semantic(Scope *sc)
 	goto Lnodecl;
     }
 #endif
+    else if (ident == Id::startaddress)
+    {
+	if (!args || args->dim != 1)
+	    error("function name expected for start address");
+	else
+	{
+	    Expression *e = (Expression *)args->data[0];
+	    e = e->semantic(sc);
+	    e = e->optimize(WANTvalue | WANTinterpret);
+	    args->data[0] = (void *)e;
+	    Dsymbol *sa = getDsymbol(e);
+	    if (!sa || !sa->isFuncDeclaration())
+		error("function name expected for start address, not '%s'", e->toChars());
+	}
+	goto Lnodecl;
+    }
     else
 	error("unrecognized pragma(%s)", ident->toChars());
 
@@ -882,6 +900,16 @@ void PragmaDeclaration::toObjFile()
 	memcpy(name, se->string, se->len);
 	name[se->len] = 0;
 	obj_includelib(name);
+    }
+    else if (ident == Id::startaddress)
+    {
+	assert(args && args->dim == 1);
+	Expression *e = (Expression *)args->data[0];
+	Dsymbol *sa = getDsymbol(e);
+	FuncDeclaration *f = sa->isFuncDeclaration();
+	assert(f);
+	Symbol *s = f->toSymbol();
+	obj_startaddress(s);
     }
     AttribDeclaration::toObjFile();
 }
