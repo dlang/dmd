@@ -1,4 +1,5 @@
 
+// Compiler implementation of the D programming language
 // Copyright (c) 1999-2006 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
@@ -98,6 +99,8 @@ void FuncDeclaration::semantic(Scope *sc)
     printf("FuncDeclaration::semantic(sc = %p, this = %p, '%s', linkage = %d)\n", sc, this, toPrettyChars(), sc->linkage);
     if (isFuncLiteralDeclaration())
 	printf("\tFuncLiteralDeclaration()\n");
+    printf("sc->parent = %s\n", sc->parent->toChars());
+    printf("type: %s\n", type->toChars());
 #endif
 
     if (type->next)
@@ -108,10 +111,14 @@ void FuncDeclaration::semantic(Scope *sc)
 	error("%s must be a function", toChars());
     }
     f = (TypeFunction *)(type);
+    size_t nparams = Argument::dim(f->parameters);
 
     linkage = sc->linkage;
-//    parent = sc->scopesym;
-    parent = sc->parent;
+//    if (!parent)
+    {
+	//parent = sc->scopesym;
+	parent = sc->parent;
+    }
     protection = sc->protection;
     storage_class |= sc->stc;
     //printf("function storage_class = x%x\n", storage_class);
@@ -449,27 +456,25 @@ void FuncDeclaration::semantic(Scope *sc)
     if (isMain())
     {
 	// Check parameters to see if they are either () or (char[][] args)
-	if (f->arguments)
+	switch (nparams)
 	{
-	    switch (f->arguments->dim)
+	    case 0:
+		break;
+
+	    case 1:
 	    {
-		case 0:
-		    break;
-
-		case 1:
-		{
-		    Argument *arg0 = (Argument *)f->arguments->data[0];
-		    if (arg0->type->ty != Tarray ||
-			arg0->type->next->ty != Tarray ||
-			arg0->type->next->next->ty != Tchar)
-			goto Lmainerr;
-		    break;
-		}
-
-		default:
+		Argument *arg0 = Argument::getNth(f->parameters, 0);
+		if (arg0->type->ty != Tarray ||
+		    arg0->type->next->ty != Tarray ||
+		    arg0->type->next->next->ty != Tchar)
 		    goto Lmainerr;
+		break;
 	    }
+
+	    default:
+		goto Lmainerr;
 	}
+
 	if (f->next->ty != Tint32 && f->next->ty != Tvoid)
 	    error("must return int or void, not %s", f->next->toChars());
 	if (f->varargs)
@@ -505,6 +510,7 @@ void FuncDeclaration::semantic3(Scope *sc)
     if (!type || type->ty != Tfunction)
 	return;
     f = (TypeFunction *)(type);
+    size_t nparams = Argument::dim(f->parameters);
 
     // Check the 'throws' clause
     if (fthrows)
@@ -554,7 +560,7 @@ void FuncDeclaration::semantic3(Scope *sc)
 	    if (isFuncLiteralDeclaration() && isNested())
 	    {
 		error("literals cannot be class members");
-		ad = NULL;
+		return;
 	    }
 	    else
 	    {
@@ -610,23 +616,22 @@ void FuncDeclaration::semantic3(Scope *sc)
 	}
 
 	// Declare all the function parameters as variables
-	if (f->arguments)
-	{   int i;
-
+	if (nparams)
+	{   // parameters[] has all the tuples removed, as the back end
+	    // doesn't know about tuples
 	    parameters = new Array();
-	    parameters->reserve(f->arguments->dim);
-	    for (i = 0; i < f->arguments->dim; i++)
-	    {   Argument *arg;
-		VarDeclaration *v;
-
-		arg = (Argument *)f->arguments->data[i];
+	    parameters->reserve(nparams);
+	    for (size_t i = 0; i < nparams; i++)
+	    {
+		Argument *arg = Argument::getNth(f->parameters, i);
 		if (!arg->ident)
 		    error("no identifier for parameter %d of %s", i + 1, toChars());
 		else
 		{
-		    v = new VarDeclaration(0, arg->type, arg->ident, NULL);
+		    VarDeclaration *v = new VarDeclaration(0, arg->type, arg->ident, NULL);
+		    //printf("declaring parameter %s of type %s\n", v->toChars(), v->type->toChars());
 		    v->storage_class |= STCparameter;
-		    if (f->varargs == 2 && i + 1 == f->arguments->dim)
+		    if (f->varargs == 2 && i + 1 == nparams)
 			v->storage_class |= STCvariadic;
 		    switch (arg->inout)
 		    {	case In:    v->storage_class |= STCin;		break;
@@ -640,6 +645,36 @@ void FuncDeclaration::semantic3(Scope *sc)
 			error("parameter %s.%s is already defined", toChars(), v->toChars());
 		    else
 			parameters->push(v);
+		    localsymtab->insert(v);
+		    v->parent = this;
+		}
+	    }
+	}
+
+	// Declare the tuple symbols and put them in the symbol table,
+	// but not in parameters[]
+	if (f->parameters)
+	{
+	    for (size_t i = 0; i < f->parameters->dim; i++)
+	    {	Argument *arg = (Argument *)f->parameters->data[i];
+
+		if (arg->type->ty == Ttuple)
+		{   TypeTuple *t = (TypeTuple *)arg->type;
+		    size_t dim = Argument::dim(t->arguments);
+		    Objects *exps = new Objects();
+		    exps->setDim(dim);
+		    for (size_t j = 0; j < dim; j++)
+		    {	Argument *arg = Argument::getNth(t->arguments, j);
+			VarDeclaration *v = sc2->search(0, arg->ident, NULL)->isVarDeclaration();
+			assert(v);
+			Expression *e = new VarExp(0, v);
+			exps->data[j] = (void *)e;
+		    }
+		    TupleDeclaration *v = new TupleDeclaration(0, arg->ident, exps);
+		    //printf("declaring tuple %s\n", v->toChars());
+		    v->isexp = 1;
+		    if (!sc2->insert(v))
+			error("parameter %s.%s is already defined", toChars(), v->toChars());
 		    localsymtab->insert(v);
 		    v->parent = this;
 		}
@@ -1307,8 +1342,8 @@ if (arguments)
 	    tf = (TypeFunction *)type;
 
 	    //printf("tf = %s, args = %s\n", tf->deco, ((Expression *)arguments->data[0])->type->deco);
-	    error(loc, "%s does not match argument types (%s)",
-		Argument::argsTypesToChars(tf->arguments, tf->varargs),
+	    error(loc, "%s does not match parameter types (%s)",
+		Argument::argsTypesToChars(tf->parameters, tf->varargs),
 		buf.toChars());
 	    return m.anyf;		// as long as it's not a FuncAliasDeclaration
 	}
@@ -1320,8 +1355,8 @@ if (arguments)
 
 	    error(loc, "called with argument types:\n\t(%s)\nmatches both:\n\t%s%s\nand:\n\t%s%s",
 		    buf.toChars(),
-		    m.lastf->toPrettyChars(), Argument::argsTypesToChars(t1->arguments, t1->varargs),
-		    m.nextf->toPrettyChars(), Argument::argsTypesToChars(t2->arguments, t2->varargs));
+		    m.lastf->toPrettyChars(), Argument::argsTypesToChars(t1->parameters, t1->varargs),
+		    m.nextf->toPrettyChars(), Argument::argsTypesToChars(t2->parameters, t2->varargs));
 #else
 	    error(loc, "overloads %s and %s both match argument list for %s",
 		    m.lastf->type->toChars(),
@@ -1403,12 +1438,12 @@ int FuncDeclaration::getLevel(Loc loc, FuncDeclaration *fd)
     Dsymbol *fdparent;
 
     //printf("FuncDeclaration::getLevel(fd = '%s')\n", fd->toChars());
-    fdparent = fd->toParent();
+    fdparent = fd->toParent2();
     if (fdparent == this)
 	return -1;
     s = this;
     level = 0;
-    while (fd != s && fdparent != s->toParent())
+    while (fd != s && fdparent != s->toParent2())
     {
 	//printf("\ts = '%s'\n", s->toChars());
 	FuncDeclaration *thisfd = s->isFuncDeclaration();
@@ -1427,7 +1462,7 @@ int FuncDeclaration::getLevel(Loc loc, FuncDeclaration *fd)
 		goto Lerr;
 	}
 
-	s = s->toParent();
+	s = s->toParent2();
 	assert(s);
 	level++;
     }
@@ -1525,7 +1560,7 @@ int FuncDeclaration::isNested()
 	//printf("FuncDeclaration::isNested('%s') parent=%p\n", toChars(), parent);
     //printf("\ttoParent() = '%s'\n", toParent()->toChars());
     return ((storage_class & STCstatic) == 0) &&
-	   (toParent()->isFuncDeclaration() != NULL);
+	   (toParent2()->isFuncDeclaration() != NULL);
 }
 
 int FuncDeclaration::needThis()
@@ -1683,7 +1718,7 @@ void FuncLiteralDeclaration::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 
 /********************************* CtorDeclaration ****************************/
 
-CtorDeclaration::CtorDeclaration(Loc loc, Loc endloc, Array *arguments, int varargs)
+CtorDeclaration::CtorDeclaration(Loc loc, Loc endloc, Arguments *arguments, int varargs)
     : FuncDeclaration(loc, endloc, Id::ctor, STCundefined, NULL)
 {
     this->arguments = arguments;
@@ -2142,7 +2177,7 @@ void UnitTestDeclaration::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 
 /********************************* NewDeclaration ****************************/
 
-NewDeclaration::NewDeclaration(Loc loc, Loc endloc, Array *arguments, int varargs)
+NewDeclaration::NewDeclaration(Loc loc, Loc endloc, Arguments *arguments, int varargs)
     : FuncDeclaration(loc, endloc, Id::classNew, STCstatic, NULL)
 {
     this->arguments = arguments;
@@ -2181,16 +2216,17 @@ void NewDeclaration::semantic(Scope *sc)
     type = new TypeFunction(arguments, tret, varargs, LINKd);
 
     type = type->semantic(loc, sc);
+    assert(type->ty == Tfunction);
 
     // Check that there is at least one argument of type uint
     TypeFunction *tf = (TypeFunction *)type;
-    if (!tf->arguments || tf->arguments->dim < 1)
+    if (Argument::dim(tf->parameters) < 1)
     {
 	error("at least one argument of type uint expected");
     }
     else
     {
-	Argument *a = (Argument *)tf->arguments->data[0];
+	Argument *a = Argument::getNth(tf->parameters, 0);
 	if (!a->type->equals(Type::tuns32))
 	    error("first argument must be type uint, not %s", a->type->toChars());
     }
@@ -2228,7 +2264,7 @@ void NewDeclaration::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 
 /********************************* DeleteDeclaration ****************************/
 
-DeleteDeclaration::DeleteDeclaration(Loc loc, Loc endloc, Array *arguments)
+DeleteDeclaration::DeleteDeclaration(Loc loc, Loc endloc, Arguments *arguments)
     : FuncDeclaration(loc, endloc, Id::classDelete, STCstatic, NULL)
 {
     this->arguments = arguments;
@@ -2264,16 +2300,17 @@ void DeleteDeclaration::semantic(Scope *sc)
     type = new TypeFunction(arguments, Type::tvoid, 0, LINKd);
 
     type = type->semantic(loc, sc);
+    assert(type->ty == Tfunction);
 
     // Check that there is only one argument of type void*
     TypeFunction *tf = (TypeFunction *)type;
-    if (!tf->arguments || tf->arguments->dim != 1)
+    if (Argument::dim(tf->parameters) != 1)
     {
 	error("one argument of type void* expected");
     }
     else
     {
-	Argument *a = (Argument *)tf->arguments->data[0];
+	Argument *a = Argument::getNth(tf->parameters, 0);
 	if (!a->type->equals(Type::tvoid->pointerTo()))
 	    error("one argument of type void* expected, not %s", a->type->toChars());
     }

@@ -523,6 +523,128 @@ int CompoundStatement::comeFrom()
 }
 
 
+/**************************** UnrolledLoopStatement ***************************/
+
+UnrolledLoopStatement::UnrolledLoopStatement(Loc loc, Statements *s)
+    : Statement(loc)
+{
+    statements = s;
+}
+
+Statement *UnrolledLoopStatement::syntaxCopy()
+{
+    Statements *a = new Statements();
+    a->setDim(statements->dim);
+    for (size_t i = 0; i < statements->dim; i++)
+    {	Statement *s = (Statement *)statements->data[i];
+	if (s)
+	    s = s->syntaxCopy();
+	a->data[i] = s;
+    }
+    UnrolledLoopStatement *cs = new UnrolledLoopStatement(loc, a);
+    return cs;
+}
+
+
+Statement *UnrolledLoopStatement::semantic(Scope *sc)
+{
+    //printf("UnrolledLoopStatement::semantic(this = %p, sc = %p)\n", this, sc);
+
+    sc->noctor++;
+    Scope *scd = sc->push();
+    scd->sbreak = this;
+    scd->scontinue = this;
+
+    for (size_t i = 0; i < statements->dim; i++)
+    {
+	Statement *s = (Statement *) statements->data[i];
+	if (s)
+	{
+	    s = s->semantic(scd);
+	    statements->data[i] = s;
+	}
+    }
+
+    scd->pop();
+    sc->noctor--;
+    return this;
+}
+
+void UnrolledLoopStatement::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
+{
+    buf->writestring("unrolled {");
+    buf->writenl();
+
+    for (size_t i = 0; i < statements->dim; i++)
+    {	Statement *s;
+
+	s = (Statement *) statements->data[i];
+	if (s)
+	    s->toCBuffer(buf, hgs);
+    }
+
+    buf->writeByte('}');
+    buf->writenl();
+}
+
+int UnrolledLoopStatement::hasBreak()
+{
+    return TRUE;
+}
+
+int UnrolledLoopStatement::hasContinue()
+{
+    return TRUE;
+}
+
+int UnrolledLoopStatement::usesEH()
+{
+    for (size_t i = 0; i < statements->dim; i++)
+    {	Statement *s;
+
+	s = (Statement *) statements->data[i];
+	if (s && s->usesEH())
+	    return TRUE;
+    }
+    return FALSE;
+}
+
+int UnrolledLoopStatement::fallOffEnd()
+{   int falloff = TRUE;
+
+    //printf("UnrolledLoopStatement::fallOffEnd()\n");
+    for (size_t i = 0; i < statements->dim; i++)
+    {	Statement *s = (Statement *)statements->data[i];
+
+	if (!s)
+	    continue;
+
+	if (!falloff && global.params.warnings && !s->comeFrom())
+	{
+	    fprintf(stdmsg, "warning - ");
+	    s->error("statement is not reachable");
+	}
+	falloff = s->fallOffEnd();
+    }
+    return falloff;
+}
+
+int UnrolledLoopStatement::comeFrom()
+{   int comefrom = FALSE;
+
+    //printf("UnrolledLoopStatement::comeFrom()\n");
+    for (size_t i = 0; i < statements->dim; i++)
+    {	Statement *s = (Statement *)statements->data[i];
+
+	if (!s)
+	    continue;
+
+	comefrom |= s->comeFrom();
+    }
+    return comefrom;
+}
+
+
 /******************************** ScopeStatement ***************************/
 
 ScopeStatement::ScopeStatement(Loc loc, Statement *s)
@@ -874,7 +996,7 @@ void ForStatement::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 
 /******************************** ForeachStatement ***************************/
 
-ForeachStatement::ForeachStatement(Loc loc, enum TOK op, Array *arguments,
+ForeachStatement::ForeachStatement(Loc loc, enum TOK op, Arguments *arguments,
 	Expression *aggr, Statement *body)
     : Statement(loc)
 {
@@ -891,7 +1013,7 @@ ForeachStatement::ForeachStatement(Loc loc, enum TOK op, Array *arguments,
 
 Statement *ForeachStatement::syntaxCopy()
 {
-    Array *args = Argument::arraySyntaxCopy(arguments);
+    Arguments *args = Argument::arraySyntaxCopy(arguments);
     Expression *exp = aggr->syntaxCopy();
     ForeachStatement *s = new ForeachStatement(loc, op, args, exp, body->syntaxCopy());
     return s;
@@ -931,6 +1053,80 @@ Statement *ForeachStatement::semantic(Scope *sc)
 	error("cannot uniquely infer foreach argument types");
 	return this;
     }
+
+    Type *tab = aggr->type->toBasetype();
+
+    if (tab->ty == Ttuple)	// don't generate new scope for tuple loops
+    {
+	if (dim < 1 || dim > 2)
+	{
+	    error("only one (value) or two (key,value) arguments for tuple foreach");
+	    return s;
+	}
+
+	TypeTuple *tuple = (TypeTuple *)tab;
+	Statements *statements = new Statements();
+	//printf("aggr: op = %d, %s\n", aggr->op, aggr->toChars());
+	size_t n;
+	TupleExp *te = NULL;
+	if (aggr->op == TOKtuple)
+	{   te = (TupleExp *)aggr;
+	    n = te->exps->dim;
+	}
+	else if (aggr->op == TOKtype)
+	{
+	    n = Argument::dim(tuple->arguments);
+	}
+	else
+	    assert(0);
+	for (size_t j = 0; j < n; j++)
+	{   size_t k = (op == TOKforeach) ? j : n - 1 - j;
+	    Expression *e;
+	    if (te)
+		e = (Expression *)te->exps->data[k];
+	    else
+		e = Argument::getNth(tuple->arguments, k)->type->defaultInit();
+	    Argument *arg = (Argument *)arguments->data[0];
+	    Statements *st = new Statements();
+
+	    if (dim == 2)
+	    {   // Declare key
+		if (arg->inout != In)
+		    error("no storage class for %s", arg->ident->toChars());
+		TY keyty = arg->type->ty;
+		if ((keyty != Tint32 && keyty != Tuns32) ||
+		    (global.params.isX86_64 &&
+			    keyty != Tint64 && keyty != Tuns64)
+		   )
+		{
+		    error("foreach: key type must be int or uint, not %s", arg->type->toChars());
+		}
+		Initializer *ie = new ExpInitializer(0, new IntegerExp(k));
+		VarDeclaration *var = new VarDeclaration(loc, arg->type, arg->ident, ie);
+		DeclarationExp *de = new DeclarationExp(loc, var);
+		st->push(new ExpStatement(loc, de));
+		arg = (Argument *)arguments->data[1];	// value
+	    }
+	    // Declare value
+	    arg->type = e->type;
+	    if (arg->inout != In)
+		error("no storage class for %s", arg->ident->toChars());
+	    Initializer *ie = new ExpInitializer(0, e);
+	    VarDeclaration *var = new VarDeclaration(loc, arg->type, arg->ident, ie);
+	    DeclarationExp *de = new DeclarationExp(loc, var);
+	    st->push(new ExpStatement(loc, de));
+
+	    st->push(body->syntaxCopy());
+	    s = new CompoundStatement(loc, st);
+	    s = new ScopeStatement(loc, s);
+	    statements->push(s);
+	}
+
+	s = new UnrolledLoopStatement(loc, statements);
+	s = s->semantic(sc);
+	return s;
+    }
+
     for (i = 0; i < dim; i++)
     {	Argument *arg = (Argument *)arguments->data[i];
 	if (!arg->type)
@@ -946,7 +1142,6 @@ Statement *ForeachStatement::semantic(Scope *sc)
 
     sc->noctor++;
 
-    Type *tab = aggr->type->toBasetype();
     switch (tab->ty)
     {
 	case Tarray:
@@ -1056,7 +1251,7 @@ Statement *ForeachStatement::semantic(Scope *sc)
 	case Tdelegate:
 	Lapply:
 	{   FuncDeclaration *fdapply;
-	    Expressions *args;
+	    Arguments *args;
 	    Expression *ec;
 	    Expression *e;
 	    FuncLiteralDeclaration *fld;
@@ -1084,7 +1279,7 @@ Statement *ForeachStatement::semantic(Scope *sc)
 	    /* Turn body into the function literal:
 	     *	int delegate(inout T arg) { body }
 	     */
-	    args = new Expressions();
+	    args = new Arguments();
 	    for (i = 0; i < dim; i++)
 	    {	Argument *arg = (Argument *)arguments->data[i];
 
@@ -1151,13 +1346,13 @@ Statement *ForeachStatement::semantic(Scope *sc)
 		else
 		    fdapply = FuncDeclaration::genCfunc(Type::tindex, "_aaApply");
 		ec = new VarExp(0, fdapply);
-		args = new Expressions();
-		args->push(aggr);
+		Expressions *exps = new Expressions();
+		exps->push(aggr);
 		size_t keysize = taa->key->size();
 		keysize = (keysize + 3) & ~3;
-		args->push(new IntegerExp(0, keysize, Type::tint32));
-		args->push(flde);
-		e = new CallExp(loc, ec, args);
+		exps->push(new IntegerExp(0, keysize, Type::tint32));
+		exps->push(flde);
+		e = new CallExp(loc, ec, exps);
 		e->type = Type::tindex;	// don't run semantic() on e
 	    }
 	    else if (tab->ty == Tarray || tab->ty == Tsarray)
@@ -1193,12 +1388,12 @@ Statement *ForeachStatement::semantic(Scope *sc)
 		fdapply = FuncDeclaration::genCfunc(Type::tindex, fdname);
 
 		ec = new VarExp(0, fdapply);
-		args = new Expressions();
+		Expressions *exps = new Expressions();
 		if (tab->ty == Tsarray)
 		   aggr = aggr->castTo(sc, tn->arrayOf());
-		args->push(aggr);
-		args->push(flde);
-		e = new CallExp(loc, ec, args);
+		exps->push(aggr);
+		exps->push(flde);
+		e = new CallExp(loc, ec, exps);
 		e->type = Type::tindex;	// don't run semantic() on e
 	    }
 	    else if (tab->ty == Tdelegate)
@@ -1206,9 +1401,9 @@ Statement *ForeachStatement::semantic(Scope *sc)
 		/* Call:
 		 *	aggr(flde)
 		 */
-		args = new Expressions();
-		args->push(flde);
-		e = new CallExp(loc, aggr, args);
+		Expressions *exps = new Expressions();
+		exps->push(flde);
+		e = new CallExp(loc, aggr, exps);
 		e = e->semantic(sc);
 		if (e->type != Type::tint32)
 		    error("opApply() function for %s must return an int", tab->toChars());
@@ -1221,9 +1416,9 @@ Statement *ForeachStatement::semantic(Scope *sc)
 		ec = new DotIdExp(loc, aggr,
 			(op == TOKforeach_reverse) ? Id::applyReverse
 						   : Id::apply);
-		args = new Expressions();
-		args->push(flde);
-		e = new CallExp(loc, ec, args);
+		Expressions *exps = new Expressions();
+		exps->push(flde);
+		e = new CallExp(loc, ec, exps);
 		e = e->semantic(sc);
 		if (e->type != Type::tint32)
 		    error("opApply() function for %s must return an int", tab->toChars());

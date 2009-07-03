@@ -4,7 +4,7 @@
 #ifndef ROOT_MEM_H
 #define ROOT_MEM_H
 
-typedef unsigned size_t;
+#include <stddef.h>	// for size_t
 
 typedef void (*FINALIZERPROC)(void* pObj, void* pClientData);
 

@@ -155,20 +155,29 @@ struct CompoundStatement : Statement
     CompoundStatement *isCompoundStatement() { return this; }
 };
 
-#if 0
-// Same as CompoundStatement, but introduces a new scope
-
-struct BlockStatement : CompoundStatement
+/* The purpose of this is so that continue will go to the next
+ * of the statements, and break will go to the end of the statements.
+ */
+struct UnrolledLoopStatement : Statement
 {
-    BlockStatement(Loc loc, Statements *s);
-    BlockStatement(Loc loc, Statement *s1, Statement *s2);
+    Statements *statements;
+
+    UnrolledLoopStatement(Loc loc, Statements *statements);
     Statement *syntaxCopy();
-    void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
     Statement *semantic(Scope *sc);
+    int hasBreak();
+    int hasContinue();
+    int usesEH();
+    int fallOffEnd();
+    int comeFrom();
+    void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
+
+    int inlineCost(InlineCostState *ics);
+    Expression *doInline(InlineDoState *ids);
+    Statement *inlineScan(InlineScanState *iss);
 
     void toIR(IRState *irs);
 };
-#endif
 
 struct ScopeStatement : Statement
 {
@@ -251,7 +260,7 @@ struct ForStatement : Statement
 struct ForeachStatement : Statement
 {
     enum TOK op;	// TOKforeach or TOKforeach_reverse
-    Array *arguments;	// array of Argument*'s
+    Arguments *arguments;	// array of Argument*'s
     Expression *aggr;
     Statement *body;
 
@@ -263,7 +272,7 @@ struct ForeachStatement : Statement
     Array cases;	// put breaks, continues, gotos and returns here
     Array gotos;	// forward referenced goto's go here
 
-    ForeachStatement(Loc loc, enum TOK op, Array *arguments, Expression *aggr, Statement *body);
+    ForeachStatement(Loc loc, enum TOK op, Arguments *arguments, Expression *aggr, Statement *body);
     Statement *syntaxCopy();
     Statement *semantic(Scope *sc);
     int hasBreak();

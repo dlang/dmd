@@ -80,6 +80,9 @@ Symbol *Dsymbol::toSymbolX(const char *prefix, int sclass, type *t)
 Symbol *Dsymbol::toSymbol()
 {
     printf("Dsymbol::toSymbol() '%s', kind = '%s'\n", toChars(), kind());
+#ifdef DEBUG
+    *(char*)0=0;
+#endif
     assert(0);		// BUG: implement
     return NULL;
 }

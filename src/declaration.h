@@ -1,6 +1,6 @@
 
 // Compiler implementation of the D programming language
-// Copyright (c) 1999-2005 by Digital Mars
+// Copyright (c) 1999-2006 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // www.digitalmars.com
@@ -29,6 +29,7 @@ struct ForeachStatement;
 struct FuncDeclaration;
 struct ExpInitializer;
 struct StructDeclaration;
+struct TupleType;
 
 enum PROT;
 enum LINK;
@@ -111,6 +112,23 @@ struct Declaration : Dsymbol
     enum PROT prot();
 
     Declaration *isDeclaration() { return this; }
+};
+
+/**************************************************************/
+
+struct TupleDeclaration : Declaration
+{
+    Objects *objects;
+    int isexp;			// 1: expression tuple
+
+    TypeTuple *tupletype;	// !=NULL if this is a type tuple
+
+    TupleDeclaration(Loc loc, Identifier *ident, Objects *objects);
+    Dsymbol *syntaxCopy(Dsymbol *);
+    char *kind();
+    Type *getType();
+
+    TupleDeclaration *isTupleDeclaration() { return this; }
 };
 
 /**************************************************************/
@@ -473,10 +491,10 @@ struct FuncLiteralDeclaration : FuncDeclaration
 };
 
 struct CtorDeclaration : FuncDeclaration
-{   Array *arguments;
+{   Arguments *arguments;
     int varargs;
 
-    CtorDeclaration(Loc loc, Loc endloc, Array *arguments, int varargs);
+    CtorDeclaration(Loc loc, Loc endloc, Arguments *arguments, int varargs);
     Dsymbol *syntaxCopy(Dsymbol *);
     void semantic(Scope *sc);
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
@@ -566,10 +584,10 @@ struct UnitTestDeclaration : FuncDeclaration
 };
 
 struct NewDeclaration : FuncDeclaration
-{   Array *arguments;
+{   Arguments *arguments;
     int varargs;
 
-    NewDeclaration(Loc loc, Loc endloc, Array *arguments, int varargs);
+    NewDeclaration(Loc loc, Loc endloc, Arguments *arguments, int varargs);
     Dsymbol *syntaxCopy(Dsymbol *);
     void semantic(Scope *sc);
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
@@ -583,9 +601,9 @@ struct NewDeclaration : FuncDeclaration
 
 
 struct DeleteDeclaration : FuncDeclaration
-{   Array *arguments;
+{   Arguments *arguments;
 
-    DeleteDeclaration(Loc loc, Loc endloc, Array *arguments);
+    DeleteDeclaration(Loc loc, Loc endloc, Arguments *arguments);
     Dsymbol *syntaxCopy(Dsymbol *);
     void semantic(Scope *sc);
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);

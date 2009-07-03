@@ -297,7 +297,7 @@ void StructDeclaration::semantic(Scope *sc)
 
     TypeFunction *tfeqptr;
     {
-	Array *arguments = new Array;
+	Arguments *arguments = new Arguments;
 	Argument *arg = new Argument(In, handle, Id::p, NULL);
 
 	arguments->push(arg);
@@ -307,7 +307,7 @@ void StructDeclaration::semantic(Scope *sc)
 
     TypeFunction *tfeq;
     {
-	Array *arguments = new Array;
+	Arguments *arguments = new Arguments;
 	Argument *arg = new Argument(In, type, NULL, NULL);
 
 	arguments->push(arg);

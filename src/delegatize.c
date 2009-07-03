@@ -104,7 +104,7 @@ void SuperExp::scanForNestedRef(Scope *sc)
 
 void DeclarationExp::scanForNestedRef(Scope *sc)
 {
-    printf("DeclarationExp::scanForNestedRef() %s\n", toChars());
+    //printf("DeclarationExp::scanForNestedRef() %s\n", toChars());
     //assert(0);
 }
 
@@ -167,6 +167,12 @@ void SliceExp::scanForNestedRef(Scope *sc)
 void ArrayLiteralExp::scanForNestedRef(Scope *sc)
 {
     arrayExpressionScanForNestedRef(sc, elements);
+}
+
+
+void TupleExp::scanForNestedRef(Scope *sc)
+{
+    arrayExpressionScanForNestedRef(sc, exps);
 }
 
 

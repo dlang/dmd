@@ -884,12 +884,12 @@ void VarDeclaration::toObjFile()
 		 * in case multiple .obj files instantiate the same
 		 * template with the same types.
 		 */
-		if (parent->isTemplateInstance())
+		if (parent->isTemplateInstance() && !parent->isTemplateMixin())
 		{
 		    s->Sclass = SCcomdat;
 		    break;
 		}
-		parent = parent->toParent();
+		parent = parent->parent;
 	    } while (parent);
 	}
 	s->Sfl = FLdata;

@@ -92,6 +92,7 @@ enum TY
     Terror,
     Tinstance,
     Ttypeof,
+    Ttuple,
     TMAX
 };
 
@@ -397,14 +398,14 @@ enum RET
 
 struct TypeFunction : Type
 {
-    Array *arguments;	// Array of Argument's
+    Arguments *parameters;	// function parameters
     int varargs;	// 1: T t, ...) style for variable number of arguments
 			// 2: T t ...) style for variable number of arguments
     enum LINK linkage;	// calling convention
 
     int inuse;
 
-    TypeFunction(Array *arguments, Type *treturn, int varargs, enum LINK linkage);
+    TypeFunction(Arguments *parameters, Type *treturn, int varargs, enum LINK linkage);
     Type *syntaxCopy();
     Type *semantic(Loc loc, Scope *sc);
     void toDecoBuffer(OutBuffer *buf);
@@ -413,7 +414,7 @@ struct TypeFunction : Type
     TypeInfoDeclaration *getTypeInfoDeclaration();
     Type *reliesOnTident();
 
-    int callMatch(Array *toargs);
+    int callMatch(Expressions *toargs);
     type *toCtype();
     enum RET retStyle();
 
@@ -614,6 +615,22 @@ struct TypeClass : Type
     Symbol *toSymbol();
 };
 
+struct TypeTuple : Type
+{
+    Arguments *arguments;	// types making up the tuple
+
+    TypeTuple(Arguments *arguments);
+    TypeTuple(Expressions *exps);
+    Type *syntaxCopy();
+    Type *semantic(Loc loc, Scope *sc);
+    Type *reliesOnTident();
+    void toCBuffer2(OutBuffer *buf, Identifier *ident, HdrGenState *hgs);
+    void toDecoBuffer(OutBuffer *buf);
+    Expression *getProperty(Loc loc, Identifier *ident);
+};
+
+/**************************************************************/
+
 enum InOut { None, In, Out, InOut, Lazy };
 
 struct Argument : Object
@@ -626,9 +643,13 @@ struct Argument : Object
     Argument(enum InOut inout, Type *type, Identifier *ident, Expression *defaultArg);
     Argument *syntaxCopy();
     Type *isLazyArray();
-    static Array *arraySyntaxCopy(Array *args);
-    static char *argsTypesToChars(Array *args, int varargs);
-    static void argsToCBuffer(OutBuffer *buf, HdrGenState *hgs, Array *arguments, int varargs);
+    void toDecoBuffer(OutBuffer *buf);
+    static Arguments *arraySyntaxCopy(Arguments *args);
+    static char *argsTypesToChars(Arguments *args, int varargs);
+    static void argsToCBuffer(OutBuffer *buf, HdrGenState *hgs, Arguments *arguments, int varargs);
+    static void argsToDecoBuffer(OutBuffer *buf, Arguments *arguments);
+    static size_t dim(Arguments *arguments);
+    static Argument *getNth(Arguments *arguments, size_t nth, size_t *pn = NULL);
 };
 
 extern int PTRSIZE;

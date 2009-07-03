@@ -204,10 +204,25 @@ Dsymbol *Dsymbol::pastMixin()
 {
     Dsymbol *s = this;
 
+    //printf("Dsymbol::pastMixin() %s\n", toChars());
     while (s && s->isTemplateMixin())
 	s = s->parent;
     return s;
 }
+
+/**********************************
+ * Use this instead of toParent() when looking for the
+ * 'this' pointer of the enclosing function/class.
+ */
+
+Dsymbol *Dsymbol::toParent2()
+{
+    Dsymbol *s = parent;
+    while (s && s->isTemplateInstance())
+	s = s->parent;
+    return s;
+}
+
 
 int Dsymbol::isAnonymous()
 {
@@ -706,6 +721,7 @@ ArrayScopeSymbol::ArrayScopeSymbol(Expression *e)
 
 Dsymbol *ArrayScopeSymbol::search(Loc loc, Identifier *ident, int flags)
 {
+    //printf("ArrayScopeSymbol::search('%s', flags = %d)\n", ident->toChars(), flags);
     if (ident == Id::length || ident == Id::dollar)
     {	VarDeclaration **pvar;
 	Expression *ce;
@@ -735,6 +751,14 @@ Dsymbol *ArrayScopeSymbol::search(Loc loc, Identifier *ident, int flags)
 		 * length will be a const.
 		 */
 		Expression *e = new IntegerExp(0, ((StringExp *)ce)->len, Type::tsize_t);
+		v->init = new ExpInitializer(0, e);
+		v->storage_class |= STCconst;
+	    }
+	    else if (ce->op == TOKtuple)
+	    {	/* It is for an expression tuple, so the
+		 * length will be a const.
+		 */
+		Expression *e = new IntegerExp(0, ((TupleExp *)ce)->exps->dim, Type::tsize_t);
 		v->init = new ExpInitializer(0, e);
 		v->storage_class |= STCconst;
 	    }

@@ -28,7 +28,6 @@
 
 #if __GNUC__
 #include <time.h>
-extern "C" long double strtold(const char *p,char **endp);
 #endif
 
 #if _WIN32
@@ -51,7 +50,6 @@ extern "C" long double strtold(const char *p,char **endp);
 extern "C" char * __cdecl __locale_decpoint;
 #endif
 
-extern int isUniAlpha(unsigned u);
 extern int HtmlNamedEntity(unsigned char *p, int length);
 
 #define LS 0x2028	// UTF line separator
@@ -2720,4 +2718,5 @@ void Lexer::initKeywords()
     Token::tochars[TOKarrayliteral]	= "arrayliteral";
     Token::tochars[TOKstring]		= "string";
     Token::tochars[TOKdsymbol]		= "symbol";
+    Token::tochars[TOKtuple]		= "tuple";
 }

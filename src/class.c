@@ -398,14 +398,14 @@ void ClassDeclaration::semantic(Scope *sc)
 	    isnested = 1;
 	    if (storage_class & STCstatic)
 		error("static class cannot inherit from nested class %s", baseClass->toChars());
-	    if (toParent() != baseClass->toParent())
+	    if (toParent2() != baseClass->toParent2())
 		error("super class %s is nested within %s, not %s",
 			baseClass->toChars(),
-			baseClass->toParent()->toChars(),
-			toParent()->toChars());
+			baseClass->toParent2()->toChars(),
+			toParent2()->toChars());
 	}
 	else if (!(storage_class & STCstatic))
-	{   Dsymbol *s = toParent();
+	{   Dsymbol *s = toParent2();
 	    if (s)
 	    {
 		ClassDeclaration *cd = s->isClassDeclaration();

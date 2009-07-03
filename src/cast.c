@@ -503,6 +503,7 @@ Expression *Expression::castTo(Scope *sc, Type *t)
 {   Expression *e;
     Type *tb;
 
+    //printf("Expression::castTo(this=%s, t=%s)\n", toChars(), t->toChars());
 #if 0
     printf("Expression::castTo(this=%s, type=%s, t=%s)\n",
 	toChars(), type->toChars(), t->toChars());
@@ -865,6 +866,18 @@ Expression *AddrExp::castTo(Scope *sc, Type *t)
     e->type = t;
     return e;
 }
+
+
+Expression *TupleExp::castTo(Scope *sc, Type *t)
+{
+    for (size_t i = 0; i < exps->dim; i++)
+    {   Expression *e = (Expression *)exps->data[i];
+	e = e->castTo(sc, t);
+	exps->data[i] = (void *)e;
+    }
+    return this;
+}
+
 
 Expression *ArrayLiteralExp::castTo(Scope *sc, Type *t)
 {

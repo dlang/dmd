@@ -1,4 +1,5 @@
 
+// Compiler implementation of the D programming language
 // Copyright (c) 1999-2006 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
@@ -76,6 +77,72 @@ int Declaration::isCodeseg()
 enum PROT Declaration::prot()
 {
     return protection;
+}
+
+/********************************* TupleDeclaration ****************************/
+
+TupleDeclaration::TupleDeclaration(Loc loc, Identifier *id, Objects *objects)
+    : Declaration(id)
+{
+    this->type = NULL;
+    this->objects = objects;
+    this->isexp = 0;
+    this->tupletype = NULL;
+}
+
+Dsymbol *TupleDeclaration::syntaxCopy(Dsymbol *s)
+{
+    assert(0);
+    return NULL;
+}
+
+char *TupleDeclaration::kind()
+{
+    return "tuple";
+}
+
+Type *TupleDeclaration::getType()
+{
+    /* If this tuple represents a type, return that type
+     */
+
+    //printf("TupleDeclaration::getType() %s\n", toChars());
+    if (isexp)
+	return NULL;
+    if (!tupletype)
+    {
+	/* It's only a type tuple if all the Object's are types
+	 */
+	for (size_t i = 0; i < objects->dim; i++)
+	{   Object *o = (Object *)objects->data[i];
+
+	    if (o->dyncast() != DYNCAST_TYPE)
+	    {
+		//printf("\tnot[%d], %p, %d\n", i, o, o->dyncast());
+		return NULL;
+	    }
+	}
+
+	/* We know it's a type tuple, so build the TypeTuple
+	 */
+	Arguments *args = new Arguments();
+	args->setDim(objects->dim);
+	OutBuffer buf;
+	for (size_t i = 0; i < objects->dim; i++)
+	{   Type *t = (Type *)objects->data[i];
+
+	    //printf("type = %s\n", t->toChars());
+	    buf.printf("_%s_%d", ident->toChars(), i);
+	    char *name = (char *)buf.extractData();
+	    Identifier *id = new Identifier(name, TOKidentifier);
+	    Argument *arg = new Argument(In, t, id, NULL);
+	    args->data[i] = (void *)arg;
+	}
+
+	tupletype = new TypeTuple(args);
+    }
+
+    return tupletype;
 }
 
 /********************************* TypedefDeclaration ****************************/

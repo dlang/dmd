@@ -1474,10 +1474,10 @@ Argument *isFunctionParameter(Dsymbol *s, unsigned char *p, unsigned len)
     {
 	TypeFunction *tf = (TypeFunction *)f->type;
 
-	if (tf->arguments)
+	if (tf->parameters)
 	{
-	    for (int k = 0; k < tf->arguments->dim; k++)
-	    {   Argument *arg = (Argument *)tf->arguments->data[k];
+	    for (size_t k = 0; k < tf->parameters->dim; k++)
+	    {   Argument *arg = (Argument *)tf->parameters->data[k];
 
 		if (arg->ident && cmp(arg->ident->toChars(), p, len) == 0)
 		{

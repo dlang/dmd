@@ -36,8 +36,8 @@
 #include "template.h"
 
 static Expression *build_overload(Loc loc, Scope *sc, Expression *ethis, Expression *earg, Identifier *id);
-static void inferApplyArgTypesX(FuncDeclaration *fstart, Array *arguments);
-static int inferApplyArgTypesY(TypeFunction *tf, Array *arguments);
+static void inferApplyArgTypesX(FuncDeclaration *fstart, Arguments *arguments);
+static int inferApplyArgTypesY(TypeFunction *tf, Arguments *arguments);
 static void templateResolve(Match *m, TemplateDeclaration *td, Scope *sc, Loc loc, Objects *targsi, Expressions *arguments);
 
 /******************************** Expression **************************/
@@ -487,7 +487,7 @@ Dsymbol *search_function(AggregateDeclaration *ad, Identifier *funcid)
  * them from the aggregate type.
  */
 
-void inferApplyArgTypes(enum TOK op, Array *arguments, Expression *aggr)
+void inferApplyArgTypes(enum TOK op, Arguments *arguments, Expression *aggr)
 {
     if (!arguments || !arguments->dim)
 	return;
@@ -514,14 +514,15 @@ void inferApplyArgTypes(enum TOK op, Array *arguments, Expression *aggr)
     {
 	case Tarray:
 	case Tsarray:
+	case Ttuple:
 	    if (arguments->dim == 2)
 	    {
 		if (!arg->type)
 		    arg->type = Type::tsize_t;	// key type
 		arg = (Argument *)arguments->data[1];
 	    }
-	    if (!arg->type)
-		arg->type = tab->next;		// value type
+	    if (!arg->type && tab->ty != Ttuple)
+		arg->type = tab->next;	// value type
 	    break;
 
 	case Taarray:
@@ -606,7 +607,7 @@ void inferApplyArgTypes(enum TOK op, Array *arguments, Expression *aggr)
  * analogous to func.overloadResolveX().
  */
 
-static void inferApplyArgTypesX(FuncDeclaration *fstart, Array *arguments)
+static void inferApplyArgTypesX(FuncDeclaration *fstart, Arguments *arguments)
 {
     Declaration *d;
     Declaration *next;
@@ -656,13 +657,13 @@ static void inferApplyArgTypesX(FuncDeclaration *fstart, Array *arguments)
  *	1 no match for this function
  */
 
-static int inferApplyArgTypesY(TypeFunction *tf, Array *arguments)
-{   unsigned nparams;
+static int inferApplyArgTypesY(TypeFunction *tf, Arguments *arguments)
+{   size_t nparams;
     Argument *p;
 
-    if (!tf->arguments || tf->arguments->dim != 1)
+    if (Argument::dim(tf->parameters) != 1)
 	goto Lnomatch;
-    p = (Argument *)tf->arguments->data[0];
+    p = Argument::getNth(tf->parameters, 0);
     if (p->type->ty != Tdelegate)
 	goto Lnomatch;
     tf = (TypeFunction *)p->type->next;
@@ -671,18 +672,18 @@ static int inferApplyArgTypesY(TypeFunction *tf, Array *arguments)
     /* We now have tf, the type of the delegate. Match it against
      * the arguments, filling in missing argument types.
      */
-    if (!tf->arguments || tf->varargs)
+    nparams = Argument::dim(tf->parameters);
+    if (nparams == 0 || tf->varargs)
 	goto Lnomatch;		// not enough parameters
-    nparams = tf->arguments->dim;
     if (arguments->dim != nparams)
 	goto Lnomatch;		// not enough parameters
 
-    for (unsigned u = 0; u < nparams; u++)
+    for (size_t u = 0; u < nparams; u++)
     {
-	p = (Argument *)arguments->data[u];
-	Argument *tp = (Argument *)tf->arguments->data[u];
-	if (p->type)
-	{   if (!p->type->equals(tp->type))
+	Argument *arg = (Argument *)arguments->data[u];
+	Argument *param = Argument::getNth(tf->parameters, u);
+	if (arg->type)
+	{   if (!arg->type->equals(param->type))
 	    {
 		/* Cannot resolve argument types. Indicate an
 		 * error by setting the number of arguments to 0.
@@ -692,7 +693,7 @@ static int inferApplyArgTypesY(TypeFunction *tf, Array *arguments)
 	    }
 	    continue;
 	}
-	p->type = tp->type;
+	arg->type = param->type;
     }
   Lmatch:
     return 0;

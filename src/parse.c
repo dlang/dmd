@@ -696,7 +696,7 @@ Condition *Parser::parseIftypeCondition()
 CtorDeclaration *Parser::parseCtor()
 {
     CtorDeclaration *f;
-    Array *arguments;
+    Arguments *arguments;
     int varargs;
     Loc loc = this->loc;
 
@@ -819,7 +819,7 @@ UnitTestDeclaration *Parser::parseUnitTest()
 NewDeclaration *Parser::parseNew()
 {
     NewDeclaration *f;
-    Array *arguments;
+    Arguments *arguments;
     int varargs;
     Loc loc = this->loc;
 
@@ -839,7 +839,7 @@ NewDeclaration *Parser::parseNew()
 DeleteDeclaration *Parser::parseDelete()
 {
     DeleteDeclaration *f;
-    Array *arguments;
+    Arguments *arguments;
     int varargs;
     Loc loc = this->loc;
 
@@ -856,9 +856,9 @@ DeleteDeclaration *Parser::parseDelete()
  * Parse parameter list.
  */
 
-Array *Parser::parseParameters(int *pvarargs)
+Arguments *Parser::parseParameters(int *pvarargs)
 {
-    Array *arguments = new Array();
+    Arguments *arguments = new Arguments();
     int varargs = 0;
     int hasdefault = 0;
 
@@ -1233,7 +1233,8 @@ TemplateParameters *Parser::parseTemplateParameterList()
 
     // Get array of TemplateParameters
     if (token.value != TOKrparen)
-    {
+    {	int variadic = 0;
+
 	while (1)
 	{   TemplateParameter *tp;
 	    Identifier *tp_ident = NULL;
@@ -1243,6 +1244,11 @@ TemplateParameters *Parser::parseTemplateParameterList()
 	    Expression *tp_specvalue = NULL;
 	    Expression *tp_defaultvalue = NULL;
 	    Token *t;
+
+	    if (variadic)
+	    {	error("Variadic template parameter must be last one");
+		variadic = 0;
+	    }
 
 	    // Get TemplateParameter
 
@@ -1293,6 +1299,14 @@ TemplateParameters *Parser::parseTemplateParameterList()
 		    tp_defaulttype = parseDeclarator(tp_defaulttype, NULL);
 		}
 		tp = new TemplateTypeParameter(loc, tp_ident, tp_spectype, tp_defaulttype);
+	    }
+	    else if (token.value == TOKidentifier && t->value == TOKdotdotdot)
+	    {	// ident...
+		variadic = 1;
+		tp_ident = token.ident;
+		nextToken();
+		nextToken();
+		tp = new TemplateTupleParameter(loc, tp_ident);
 	    }
 	    else
 	    {	// ValueParameter
@@ -1768,7 +1782,7 @@ Type *Parser::parseBasicType2(Type *t)
 	    {	// Handle delegate declaration:
 		//	t delegate(parameter list)
 		//	t function(parameter list)
-		Array *arguments;
+		Arguments *arguments;
 		int varargs;
 		enum TOK save = token.value;
 
@@ -1859,7 +1873,7 @@ Type *Parser::parseDeclarator(Type *t, Identifier **pident, TemplateParameters *
 	    }
 #endif
 	    case TOKlparen:
-	    {	Array *arguments;
+	    {	Arguments *arguments;
 		int varargs;
 		Type **pt;
 
@@ -2605,7 +2619,7 @@ Statement *Parser::parseStatement(int flags)
 	case TOKforeach_reverse:
 	{
 	    enum TOK op = token.value;
-	    Array *arguments;
+	    Arguments *arguments;
 
 	    Statement *d;
 	    Statement *body;
@@ -2614,7 +2628,7 @@ Statement *Parser::parseStatement(int flags)
 	    nextToken();
 	    check(TOKlparen);
 
-	    arguments = new Array();
+	    arguments = new Arguments();
 
 	    while (1)
 	    {
@@ -3948,7 +3962,7 @@ Expression *Parser::parsePrimaryExp()
 	    /* function type(parameters) { body }
 	     * delegate type(parameters) { body }
 	     */
-	    Array *arguments;
+	    Arguments *arguments;
 	    int varargs;
 	    FuncLiteralDeclaration *fd;
 	    Type *t;
@@ -3957,7 +3971,7 @@ Expression *Parser::parsePrimaryExp()
 	    {
 		t = NULL;
 		varargs = 0;
-		arguments = new Array();
+		arguments = new Arguments();
 	    }
 	    else
 	    {

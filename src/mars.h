@@ -15,6 +15,8 @@
 #pragma once
 #endif /* __DMC__ */
 
+#include <stdint.h>
+
 #ifdef IN_GCC
 /* Changes for the GDC compiler by David Friedman */
 #endif
@@ -136,21 +138,21 @@ extern Global global;
  #endif
 #endif
 
-// Be careful not to care about sign with integer_t
-typedef unsigned long long integer_t;
+// Be careful not to care about sign when using integer_t
+typedef uint64_t integer_t;
 
 // Signed and unsigned variants
-typedef long long sinteger_t;
-typedef unsigned long long uinteger_t;
+typedef int64_t sinteger_t;
+typedef uint64_t uinteger_t;
 
-typedef signed char		d_int8;
-typedef unsigned char		d_uns8;
-typedef short			d_int16;
-typedef unsigned short		d_uns16;
-typedef int			d_int32;
-typedef unsigned		d_uns32;
-typedef long long		d_int64;
-typedef unsigned long long	d_uns64;
+typedef int8_t			d_int8;
+typedef uint8_t			d_uns8;
+typedef int16_t			d_int16;
+typedef uint16_t		d_uns16;
+typedef int32_t			d_int32;
+typedef uint32_t		d_uns32;
+typedef int64_t			d_int64;
+typedef uint64_t		d_uns64;
 
 typedef float			d_float32;
 typedef double			d_float64;
@@ -231,6 +233,7 @@ enum DYNCAST
     DYNCAST_DSYMBOL,
     DYNCAST_TYPE,
     DYNCAST_IDENTIFIER,
+    DYNCAST_TUPLE,
 };
 
 void error(Loc loc, const char *format, ...);

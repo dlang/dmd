@@ -52,10 +52,23 @@ int ExpStatement::inlineCost(InlineCostState *ics)
 int CompoundStatement::inlineCost(InlineCostState *ics)
 {   int cost = 0;
 
-    for (int i = 0; i < statements->dim; i++)
-    {	Statement *s;
+    for (size_t i = 0; i < statements->dim; i++)
+    {	Statement *s = (Statement *) statements->data[i];
+	if (s)
+	{
+	    cost += s->inlineCost(ics);
+	    if (cost >= COST_MAX)
+		break;
+	}
+    }
+    return cost;
+}
 
-	s = (Statement *) statements->data[i];
+int UnrolledLoopStatement::inlineCost(InlineCostState *ics)
+{   int cost = 0;
+
+    for (size_t i = 0; i < statements->dim; i++)
+    {	Statement *s = (Statement *) statements->data[i];
 	if (s)
 	{
 	    cost += s->inlineCost(ics);
@@ -152,6 +165,11 @@ int SuperExp::inlineCost(InlineCostState *ics)
 	if (fd->isNested() || !ics->hasthis)
 	    return COST_MAX;
     return 1;
+}
+
+int TupleExp::inlineCost(InlineCostState *ics)
+{
+    return 1 + arrayInlineCost(ics, exps);
 }
 
 int ArrayLiteralExp::inlineCost(InlineCostState *ics)
@@ -281,14 +299,29 @@ Expression *CompoundStatement::doInline(InlineDoState *ids)
     Expression *e = NULL;
 
     //printf("CompoundStatement::doInline() %d\n", statements->dim);
-    for (int i = 0; i < statements->dim; i++)
-    {	Statement *s;
-	Expression *e2;
-
-	s = (Statement *) statements->data[i];
+    for (size_t i = 0; i < statements->dim; i++)
+    {	Statement *s = (Statement *) statements->data[i];
 	if (s)
 	{
-	    e2 = s->doInline(ids);
+	    Expression *e2 = s->doInline(ids);
+	    e = Expression::combine(e, e2);
+	    if (s->isReturnStatement())
+		break;
+	}
+    }
+    return e;
+}
+
+Expression *UnrolledLoopStatement::doInline(InlineDoState *ids)
+{
+    Expression *e = NULL;
+
+    //printf("UnrolledLoopStatement::doInline() %d\n", statements->dim);
+    for (size_t i = 0; i < statements->dim; i++)
+    {	Statement *s = (Statement *) statements->data[i];
+	if (s)
+	{
+	    Expression *e2 = s->doInline(ids);
 	    e = Expression::combine(e, e2);
 	    if (s->isReturnStatement())
 		break;
@@ -592,6 +625,16 @@ Expression *SliceExp::doInline(InlineDoState *ids)
 }
 
 
+Expression *TupleExp::doInline(InlineDoState *ids)
+{
+    TupleExp *ce;
+
+    ce = (TupleExp *)copy();
+    ce->exps = arrayExpressiondoInline(exps, ids);
+    return ce;
+}
+
+
 Expression *ArrayLiteralExp::doInline(InlineDoState *ids)
 {
     ArrayLiteralExp *ce;
@@ -652,10 +695,18 @@ Statement *ExpStatement::inlineScan(InlineScanState *iss)
 
 Statement *CompoundStatement::inlineScan(InlineScanState *iss)
 {
-    for (int i = 0; i < statements->dim; i++)
-    {	Statement *s;
+    for (size_t i = 0; i < statements->dim; i++)
+    {	Statement *s = (Statement *) statements->data[i];
+	if (s)
+	    statements->data[i] = (void *)s->inlineScan(iss);
+    }
+    return this;
+}
 
-	s = (Statement *) statements->data[i];
+Statement *UnrolledLoopStatement::inlineScan(InlineScanState *iss)
+{
+    for (size_t i = 0; i < statements->dim; i++)
+    {	Statement *s = (Statement *) statements->data[i];
 	if (s)
 	    statements->data[i] = (void *)s->inlineScan(iss);
     }
@@ -942,6 +993,16 @@ Expression *SliceExp::inlineScan(InlineScanState *iss)
     if (upr)
 	upr = upr->inlineScan(iss);
     return this;
+}
+
+
+Expression *TupleExp::inlineScan(InlineScanState *iss)
+{   Expression *e = this;
+
+    //printf("TupleExp::inlineScan()\n");
+    arrayInlineScan(iss, exps);
+
+    return e;
 }
 
 

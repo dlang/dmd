@@ -57,9 +57,10 @@ void initPrecedence();
 Expression *resolveProperties(Scope *sc, Expression *e);
 void accessCheck(Loc loc, Scope *sc, Expression *e, Declaration *d);
 Dsymbol *search_function(AggregateDeclaration *ad, Identifier *funcid);
-void inferApplyArgTypes(enum TOK op, Array *arguments, Expression *aggr);
+void inferApplyArgTypes(enum TOK op, Arguments *arguments, Expression *aggr);
 void argExpTypesToCBuffer(OutBuffer *buf, Expressions *arguments, HdrGenState *hgs);
 void argsToCBuffer(OutBuffer *buf, Expressions *arguments, HdrGenState *hgs);
+void expandTuples(Expressions *exps);
 
 struct Expression : Object
 {
@@ -304,6 +305,28 @@ struct StringExp : Expression
     void toMangleBuffer(OutBuffer *buf);
     elem *toElem(IRState *irs);
     dt_t **toDt(dt_t **pdt);
+};
+
+// Tuple
+
+struct TupleExp : Expression
+{
+    Expressions *exps;
+
+    TupleExp(Loc loc, Expressions *exps);
+    Expression *syntaxCopy();
+    int equals(Object *o);
+    Expression *semantic(Scope *sc);
+    void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
+    void scanForNestedRef(Scope *sc);
+    void checkEscape();
+    int checkSideEffect(int flag);
+    Expression *optimize(int result);
+    Expression *castTo(Scope *sc, Type *t);
+
+    int inlineCost(InlineCostState *ics);
+    Expression *doInline(InlineDoState *ids);
+    Expression *inlineScan(InlineScanState *iss);
 };
 
 struct ArrayLiteralExp : Expression
@@ -668,9 +691,9 @@ struct DotTypeExp : UnaExp
 
 struct CallExp : UnaExp
 {
-    Expressions *arguments;	// Array of Expression's
+    Expressions *arguments;	// function arguments
 
-    CallExp(Loc loc, Expression *e, Expressions *arguments);
+    CallExp(Loc loc, Expression *e, Expressions *exps);
     CallExp(Loc loc, Expression *e);
     CallExp(Loc loc, Expression *e, Expression *earg1);
     CallExp(Loc loc, Expression *e, Expression *earg1, Expression *earg2);

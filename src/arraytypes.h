@@ -40,4 +40,6 @@ struct Objects : Array { };
 
 struct FuncDeclarations : Array { };
 
+struct Arguments : Array { };
+
 #endif

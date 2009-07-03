@@ -383,7 +383,7 @@ void TypeInfoStructDeclaration::toDt(dt_t **pdt)
     TypeFunction *tfeqptr;
     {
 	Scope sc;
-	Array *arguments = new Array;
+	Arguments *arguments = new Arguments;
 	Argument *arg = new Argument(In, tc->pointerTo(), NULL, NULL);
 
 	arguments->push(arg);

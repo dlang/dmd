@@ -1,4 +1,5 @@
 
+// Compiler implementation of the D programming language
 // Copyright (c) 1999-2006 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
@@ -24,6 +25,17 @@
 Expression *Expression::optimize(int result)
 {
     //printf("Expression::optimize(result = %d) %s\n", result, toChars());
+    return this;
+}
+
+Expression *TupleExp::optimize(int result)
+{
+    for (size_t i = 0; i < exps->dim; i++)
+    {   Expression *e = (Expression *)exps->data[i];
+
+	e = e->optimize(WANTvalue);
+	exps->data[i] = (void *)e;
+    }
     return this;
 }
 
@@ -349,10 +361,8 @@ Expression *IndexExp::optimize(int result)
 
 	if (i >= length)
 	{   error("array index %llu is out of bounds [0 .. %llu]", i, length);
-	    i = 0;
 	}
-
-	if (e1->op == TOKarrayliteral && !e1->checkSideEffect(2))
+	else if (e1->op == TOKarrayliteral && !e1->checkSideEffect(2))
 	{   ArrayLiteralExp *ale = (ArrayLiteralExp *)e1;
 	    e = (Expression *)ale->elements->data[i];
 	    e->type = type;

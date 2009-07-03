@@ -27,6 +27,7 @@ struct TemplateParameter;
 struct TemplateTypeParameter;
 struct TemplateValueParameter;
 struct TemplateAliasParameter;
+struct TemplateTupleParameter;
 struct Type;
 struct TypeTypeof;
 struct Scope;
@@ -35,6 +36,14 @@ struct AliasDeclaration;
 struct FuncDeclaration;
 struct HdrGenState;
 enum MATCH;
+
+struct Tuple : Object
+{
+    Objects objects;
+
+    int dyncast() { return DYNCAST_TUPLE; } // kludge for template.isType()
+};
+
 
 struct TemplateDeclaration : ScopeDsymbol
 {
@@ -66,6 +75,8 @@ struct TemplateDeclaration : ScopeDsymbol
     void declareParameter(Scope *sc, TemplateParameter *tp, Object *o);
 
     TemplateDeclaration *isTemplateDeclaration() { return this; }
+
+    TemplateTupleParameter *isVariadic();
 };
 
 struct TemplateParameter
@@ -88,6 +99,7 @@ struct TemplateParameter
     virtual TemplateTypeParameter  *isTemplateTypeParameter();
     virtual TemplateValueParameter *isTemplateValueParameter();
     virtual TemplateAliasParameter *isTemplateAliasParameter();
+    virtual TemplateTupleParameter *isTemplateTupleParameter();
 
     virtual TemplateParameter *syntaxCopy() = 0;
     virtual void semantic(Scope *) = 0;
@@ -102,7 +114,7 @@ struct TemplateParameter
 
     /* Match actual argument against parameter.
      */
-    virtual MATCH matchArg(Scope *sc, Object *oarg, int i, TemplateParameters *parameters, Objects *dedtypes, Declaration **psparam) = 0;
+    virtual MATCH matchArg(Scope *sc, Objects *tiargs, int i, TemplateParameters *parameters, Objects *dedtypes, Declaration **psparam) = 0;
 
     /* Create dummy argument based on parameter.
      */
@@ -127,7 +139,7 @@ struct TemplateTypeParameter : TemplateParameter
     Object *specialization();
     Object *defaultArg(Scope *sc);
     int overloadMatch(TemplateParameter *);
-    MATCH matchArg(Scope *sc, Object *oarg, int i, TemplateParameters *parameters, Objects *dedtypes, Declaration **psparam);
+    MATCH matchArg(Scope *sc, Objects *tiargs, int i, TemplateParameters *parameters, Objects *dedtypes, Declaration **psparam);
     void *dummyArg();
 };
 
@@ -153,7 +165,7 @@ struct TemplateValueParameter : TemplateParameter
     Object *specialization();
     Object *defaultArg(Scope *sc);
     int overloadMatch(TemplateParameter *);
-    MATCH matchArg(Scope *sc, Object *oarg, int i, TemplateParameters *parameters, Objects *dedtypes, Declaration **psparam);
+    MATCH matchArg(Scope *sc, Objects *tiargs, int i, TemplateParameters *parameters, Objects *dedtypes, Declaration **psparam);
     void *dummyArg();
 };
 
@@ -180,7 +192,27 @@ struct TemplateAliasParameter : TemplateParameter
     Object *specialization();
     Object *defaultArg(Scope *sc);
     int overloadMatch(TemplateParameter *);
-    MATCH matchArg(Scope *sc, Object *oarg, int i, TemplateParameters *parameters, Objects *dedtypes, Declaration **psparam);
+    MATCH matchArg(Scope *sc, Objects *tiargs, int i, TemplateParameters *parameters, Objects *dedtypes, Declaration **psparam);
+    void *dummyArg();
+};
+
+struct TemplateTupleParameter : TemplateParameter
+{
+    /* Syntax:
+     *	ident ...
+     */
+
+    TemplateTupleParameter(Loc loc, Identifier *ident);
+
+    TemplateTupleParameter *isTemplateTupleParameter();
+    TemplateParameter *syntaxCopy();
+    void semantic(Scope *);
+    void print(Object *oarg, Object *oded);
+    void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
+    Object *specialization();
+    Object *defaultArg(Scope *sc);
+    int overloadMatch(TemplateParameter *);
+    MATCH matchArg(Scope *sc, Objects *tiargs, int i, TemplateParameters *parameters, Objects *dedtypes, Declaration **psparam);
     void *dummyArg();
 };
 
@@ -200,13 +232,14 @@ struct TemplateInstance : ScopeDsymbol
 
     TemplateDeclaration *tempdecl;	// referenced by foo.bar.abc
     TemplateInstance *inst;		// refer to existing instance
-    ScopeDsymbol *argsym;	// argument symbol table
+    ScopeDsymbol *argsym;		// argument symbol table
     AliasDeclaration *aliasdecl;	// !=NULL if instance is an alias for its
 					// sole member
     WithScopeSymbol *withsym;		// if a member of a with statement
     int semanticdone;	// has semantic() been done?
     int nest;		// for recursion detection
     int havetempdecl;	// 1 if used second constructor
+    int isnested;	// if referencing local symbols
 #ifdef IN_GCC
     /* On some targets, it is necessary to know whether a symbol
        will be emitted in the output or not before the symbol

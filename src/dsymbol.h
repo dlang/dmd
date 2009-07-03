@@ -25,6 +25,7 @@ struct Identifier;
 struct Scope;
 struct DsymbolTable;
 struct Declaration;
+struct TupleDeclaration;
 struct TypedefDeclaration;
 struct AliasDeclaration;
 struct AggregateDeclaration;
@@ -107,6 +108,7 @@ struct Dsymbol : Object
     Module *getModule();
     Dsymbol *pastMixin();
     Dsymbol *toParent();
+    Dsymbol *toParent2();
 
     int dyncast() { return DYNCAST_DSYMBOL; }	// kludge for template.isSymbol()
 
@@ -170,6 +172,7 @@ struct Dsymbol : Object
     virtual TemplateInstance *isTemplateInstance() { return NULL; }
     virtual TemplateMixin *isTemplateMixin() { return NULL; }
     virtual Declaration *isDeclaration() { return NULL; }
+    virtual TupleDeclaration *isTupleDeclaration() { return NULL; }
     virtual TypedefDeclaration *isTypedefDeclaration() { return NULL; }
     virtual AliasDeclaration *isAliasDeclaration() { return NULL; }
     virtual AggregateDeclaration *isAggregateDeclaration() { return NULL; }

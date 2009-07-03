@@ -25,10 +25,6 @@
 #include "root.h"
 #include "../mars/mars.h"
 
-#if __GNUC__
-int memicmp(const char *s1, const char *s2, int n);
-#endif
-
 extern int HtmlNamedEntity(unsigned char *p, int length);
 
 /**********************************

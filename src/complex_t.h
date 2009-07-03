@@ -8,6 +8,9 @@
 // in artistic.txt, or the GNU General Public License in gnu.txt.
 // See the included readme.txt for details.
 
+#ifndef DMD_COMPLEX_T_H
+#define DMD_COMPLEX_T_H
+
 /* Roll our own complex type for compilers that don't support complex
  */
 
@@ -68,4 +71,4 @@ inline long double cimagl(complex_t x)
     return x.im;
 }
 
-
+#endif

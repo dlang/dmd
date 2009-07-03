@@ -8,6 +8,9 @@
 // in artistic.txt, or the GNU General Public License in gnu.txt.
 // See the included readme.txt for details.
 
+#ifndef DMD_HTML_H
+#define DMD_HTML_H 1
+
 struct OutBuffer;
 
 struct Html
@@ -36,3 +39,5 @@ struct Html
     int charEntity();
     static int namedEntity(unsigned char *p, int length);
 };
+
+#endif
