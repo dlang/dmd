@@ -325,6 +325,8 @@ void StorageClassDeclaration::semantic(Scope *sc)
 	 */
 	if (stc & (STCauto | STCscope | STCstatic | STCextern | STCmanifest))
 	    sc->stc &= ~(STCauto | STCscope | STCstatic | STCextern | STCmanifest);
+	if (stc & (STCauto | STCscope | STCstatic | STCtls | STCmanifest))
+	    sc->stc &= ~(STCauto | STCscope | STCstatic | STCtls | STCmanifest);
 	if (stc & (STCconst | STCinvariant | STCmanifest))
 	    sc->stc &= ~(STCconst | STCinvariant | STCmanifest);
 	sc->stc |= stc;
@@ -361,6 +363,9 @@ void StorageClassDeclaration::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 	{ STCsynchronized, TOKsynchronized },
 	{ STCdeprecated,   TOKdeprecated },
 	{ STCoverride,     TOKoverride },
+	{ STCnothrow,      TOKnothrow },
+	{ STCpure,         TOKpure },
+	{ STCtls,          TOKtls },
     };
 
     int written = 0;
@@ -625,7 +630,7 @@ void AnonDeclaration::semantic(Scope *sc)
 
 	sc = sc->push();
 	sc->anonAgg = &aad;
-	sc->stc &= ~(STCauto | STCscope | STCstatic);
+	sc->stc &= ~(STCauto | STCscope | STCstatic | STCtls);
 	sc->inunion = isunion;
 	sc->offset = 0;
 	sc->flags = 0;
@@ -855,6 +860,33 @@ void PragmaDeclaration::semantic(Scope *sc)
 	}
 	goto Lnodecl;
     }
+    else if (global.params.ignoreUnsupportedPragmas)
+    {
+	if (global.params.verbose)
+	{
+	    /* Print unrecognized pragmas
+	     */
+	    printf("pragma    %s", ident->toChars());
+	    if (args)
+	    {
+		for (size_t i = 0; i < args->dim; i++)
+		{
+		    Expression *e = (Expression *)args->data[i];
+		    e = e->semantic(sc);
+		    e = e->optimize(WANTvalue | WANTinterpret);
+		    if (i == 0)
+			printf(" (");
+		    else
+			printf(",");
+		    printf("%s", e->toChars());
+		}
+		if (args->dim)
+		    printf(")");
+	    }
+	    printf("\n");
+	}
+	goto Lnodecl;
+    }
     else
 	error("unrecognized pragma(%s)", ident->toChars());
 
@@ -916,18 +948,13 @@ void PragmaDeclaration::toObjFile()
 
 void PragmaDeclaration::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 {
-    buf->printf("pragma(%s", ident->toChars());
-    if (args)
+    buf->printf("pragma (%s", ident->toChars());
+    if (args && args->dim)
     {
-	for (size_t i = 0; i < args->dim; i++)
-	{
-	    Expression *e = (Expression *)args->data[i];
-
-	    buf->writestring(", ");
-	    e->toCBuffer(buf, hgs);
-	}
+        buf->writestring(", ");
+        argsToCBuffer(buf, args, hgs);
     }
-    buf->writestring(")");
+    buf->writeByte(')');
     AttribDeclaration::toCBuffer(buf, hgs);
 }
 

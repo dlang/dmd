@@ -989,13 +989,14 @@ Type *TypeNext::nextOf()
 
 Type *TypeNext::makeConst()
 {
-    //printf("TypeNext::makeConst() %s\n", toChars());
+    //printf("TypeNext::makeConst() %p, %s\n", this, toChars());
     if (cto)
 	return cto;
     TypeNext *t = (TypeNext *)Type::makeConst();
     if (ty != Tfunction && ty != Tdelegate && next->deco &&
         !next->isInvariant())
 	t->next = next->constOf();
+    //printf("TypeNext::makeConst() returns %p, %s\n", t, t->toChars());
     return t;
 }
 
@@ -2882,14 +2883,17 @@ TypeFunction::TypeFunction(Arguments *parameters, Type *treturn, int varargs, en
     this->linkage = linkage;
     this->inuse = 0;
     this->isnothrow = false;
+    this->ispure = false;
 }
 
 Type *TypeFunction::syntaxCopy()
 {
     Type *treturn = next ? next->syntaxCopy() : NULL;
     Arguments *params = Argument::arraySyntaxCopy(parameters);
-    Type *t = new TypeFunction(params, treturn, varargs, linkage);
+    TypeFunction *t = new TypeFunction(params, treturn, varargs, linkage);
     t->mod = mod;
+    t->isnothrow = isnothrow;
+    t->ispure = ispure;
     return t;
 }
 
@@ -2922,6 +2926,14 @@ int Type::covariant(Type *t)
     TypeFunction *t2 = (TypeFunction *)t;
 
     if (t1->varargs != t2->varargs)
+	goto Ldistinct;
+
+    /* Can convert pure to impure, and nothrow to throw
+     */
+    if (!t1->ispure && t2->ispure)
+	goto Ldistinct;
+
+    if (!t1->isnothrow && t2->isnothrow)
 	goto Ldistinct;
 
     if (t1->parameters && t2->parameters)
@@ -3017,6 +3029,10 @@ void TypeFunction::toDecoBuffer(OutBuffer *buf, int flag)
 	    assert(0);
     }
     buf->writeByte(mc);
+    if (ispure || isnothrow)
+    {	buf->writeByte('N');
+	buf->writeByte(ispure ? 'a' : 'b');
+    }
     // Write argument types
     Argument::argsToDecoBuffer(buf, parameters);
     //if (buf->data[buf->offset - 1] == '@') halt();
@@ -3027,6 +3043,7 @@ void TypeFunction::toDecoBuffer(OutBuffer *buf, int flag)
 
 void TypeFunction::toCBuffer(OutBuffer *buf, Identifier *ident, HdrGenState *hgs)
 {
+    //printf("TypeFunction::toCBuffer() this = %p %s\n", this, toChars());
     char *p = NULL;
 
     if (inuse)
@@ -3034,6 +3051,28 @@ void TypeFunction::toCBuffer(OutBuffer *buf, Identifier *ident, HdrGenState *hgs
 	return;
     }
     inuse++;
+
+    /* Use 'storage class' style for attributes
+     */
+    switch (mod)
+    {
+	case 0:
+	    break;
+	case MODconst:
+	    buf->writestring("const ");
+	    break;
+	case MODinvariant:
+	    buf->writestring("invariant ");
+	    break;
+	default:
+	    assert(0);
+	    break;
+    }
+    if (ispure)
+	buf->writestring("pure ");
+    if (isnothrow)
+	buf->writestring("pure ");
+
     if (next && (!ident || ident->toHChars2() == ident->toChars()))
 	next->toCBuffer2(buf, hgs, 0);
     if (hgs->ddoc != 1)
@@ -3062,6 +3101,7 @@ void TypeFunction::toCBuffer(OutBuffer *buf, Identifier *ident, HdrGenState *hgs
 
 void TypeFunction::toCBuffer2(OutBuffer *buf, HdrGenState *hgs, int mod)
 {
+    //printf("TypeFunction::toCBuffer2() this = %p %s\n", this, toChars());
     char *p = NULL;
 
     if (inuse)
@@ -3089,6 +3129,31 @@ void TypeFunction::toCBuffer2(OutBuffer *buf, HdrGenState *hgs, int mod)
 	buf->writestring(p);
     buf->writestring(" function");
     Argument::argsToCBuffer(buf, hgs, parameters, varargs);
+
+    /* Use postfix style for attributes
+     */
+    if (mod != this->mod)
+    {
+	switch (mod)
+	{
+	    case 0:
+		break;
+	    case MODconst:
+		buf->writestring(" const");
+		break;
+	    case MODinvariant:
+		buf->writestring(" invariant");
+		break;
+	    default:
+		assert(0);
+		break;
+	}
+    }
+    if (ispure)
+	buf->writestring(" pure");
+    if (isnothrow)
+	buf->writestring(" pure");
+
     inuse--;
 }
 
@@ -3254,7 +3319,8 @@ int TypeFunction::callMatch(Expression *ethis, Expressions *args)
 	}
 	arg = (Expression *)args->data[u];
 	assert(arg);
-	if (p->storageClass & STClazy && p->type->ty == Tvoid && arg->type->ty != Tvoid)
+	if (p->storageClass & STClazy && p->type->ty == Tvoid &&
+		arg->type->ty != Tvoid)
 	    m = MATCHconvert;
 	else
 	    m = arg->implicitConvTo(p->type);
@@ -3523,12 +3589,9 @@ void TypeQualified::resolveHelper(Loc loc, Scope *sc,
 	Dsymbol *s, Dsymbol *scopesym,
 	Expression **pe, Type **pt, Dsymbol **ps)
 {
-    Identifier *id = NULL;
-    int i;
     VarDeclaration *v;
     EnumMember *em;
     TupleDeclaration *td;
-    Type *t;
     Expression *e;
 
 #if 0
@@ -3544,15 +3607,15 @@ void TypeQualified::resolveHelper(Loc loc, Scope *sc,
 	//printf("\t1: s = '%s' %p, kind = '%s'\n",s->toChars(), s, s->kind());
 	s = s->toAlias();
 	//printf("\t2: s = '%s' %p, kind = '%s'\n",s->toChars(), s, s->kind());
-	for (i = 0; i < idents.dim; i++)
-	{   Dsymbol *sm;
-
-	    id = (Identifier *)idents.data[i];
-	    sm = s->searchX(loc, sc, id);
+	for (int i = 0; i < idents.dim; i++)
+	{
+	    Identifier *id = (Identifier *)idents.data[i];
+	    Dsymbol *sm = s->searchX(loc, sc, id);
 	    //printf("\t3: s = '%s' %p, kind = '%s'\n",s->toChars(), s, s->kind());
 	    //printf("\tgetType = '%s'\n", s->getType()->toChars());
 	    if (!sm)
-	    {
+	    {	Type *t;
+
 		v = s->isVarDeclaration();
 		if (v && id == Id::length)
 		{
@@ -3640,7 +3703,7 @@ void TypeQualified::resolveHelper(Loc loc, Scope *sc,
 	}
 
 L1:
-	t = s->getType();
+	Type *t = s->getType();
 	if (!t)
 	{
 	    // If the symbol is an import, try looking inside the import
@@ -4706,9 +4769,12 @@ Expression *TypeStruct::dotExp(Scope *sc, Expression *e, Identifier *ident)
 	return new IntegerExp(e->loc, 0, Type::tint32);
     }
 
+    /* If e.tupleof
+     */
     if (ident == Id::tupleof)
     {
-	/* Create a TupleExp
+	/* Create a TupleExp out of the fields of the struct e:
+	 * (e.field0, e.field1, e.field2, ...)
 	 */
 	e = e->semantic(sc);	// do this before turning on noaccesscheck
 	Expressions *exps = new Expressions;
@@ -4731,6 +4797,8 @@ Expression *TypeStruct::dotExp(Scope *sc, Expression *e, Identifier *ident)
 
 	if (de->e1->op == TOKimport)
 	{
+	    assert(0);	// cannot find a case where this happens; leave
+			// assert in until we do
 	    ScopeExp *se = (ScopeExp *)de->e1;
 
 	    s = se->sds->search(e->loc, ident, 0);
@@ -4743,7 +4811,26 @@ Expression *TypeStruct::dotExp(Scope *sc, Expression *e, Identifier *ident)
 L1:
     if (!s)
     {
-	//return getProperty(e->loc, ident);
+	if (ident != Id::__sizeof &&
+	    ident != Id::alignof &&
+	    ident != Id::init &&
+	    ident != Id::mangleof &&
+	    ident != Id::stringof &&
+	    ident != Id::offsetof)
+	{
+	    /* Look for overloaded opDot() to see if we should forward request
+	     * to it.
+	     */
+	    Dsymbol *fd = search_function(sym, Id::opDot);
+	    if (fd)
+	    {   /* Rewrite e.ident as:
+		 *	e.opId().ident
+		 */
+		e = build_overload(e->loc, sc, e, NULL, fd->ident);
+		e = new DotIdExp(e->loc, e, ident);
+		return e->semantic(sc);
+	    }
+	}
 	return Type::dotExp(sc, e, ident);
     }
     s = s->toAlias();
@@ -5045,8 +5132,6 @@ Expression *TypeClass::dotExp(Scope *sc, Expression *e, Identifier *ident)
     Expression *b;
     VarDeclaration *v;
     Dsymbol *s;
-    DotVarExp *de;
-    Declaration *d;
 
 #if LOGDOTEXP
     printf("TypeClass::dotExp(e='%s', ident='%s')\n", e->toChars(), ident->toChars());
@@ -5102,10 +5187,8 @@ L1:
 
 	if (ident == Id::classinfo)
 	{
-	    Type *t;
-
 	    assert(ClassDeclaration::classinfo);
-	    t = ClassDeclaration::classinfo->type;
+	    Type *t = ClassDeclaration::classinfo->type;
 	    if (e->op == TOKtype || e->op == TOKdottype)
 	    {
 		/* For type.classinfo, we know the classinfo
@@ -5159,7 +5242,28 @@ L1:
 	}
 	else
 	{
-	    //return getProperty(e->loc, ident);
+
+	    if (ident != Id::__sizeof &&
+		ident != Id::alignof &&
+		ident != Id::init &&
+		ident != Id::mangleof &&
+		ident != Id::stringof &&
+		ident != Id::offsetof)
+	    {
+		/* Look for overloaded opDot() to see if we should forward request
+		 * to it.
+		 */
+		Dsymbol *fd = search_function(sym, Id::opDot);
+		if (fd)
+		{   /* Rewrite e.ident as:
+		     *	e.opId().ident
+		     */
+		    e = build_overload(e->loc, sc, e, NULL, fd->ident);
+		    e = new DotIdExp(e->loc, e, ident);
+		    return e->semantic(sc);
+		}
+	    }
+
 	    return Type::dotExp(sc, e, ident);
 	}
     }
@@ -5191,9 +5295,8 @@ L1:
 
     TemplateMixin *tm = s->isTemplateMixin();
     if (tm)
-    {	Expression *de;
-
-	de = new DotExp(e->loc, e, new ScopeExp(e->loc, tm));
+    {
+	Expression *de = new DotExp(e->loc, e, new ScopeExp(e->loc, tm));
 	de->type = e->type;
 	return de;
     }
@@ -5218,7 +5321,7 @@ L1:
 	return de;
     }
 
-    d = s->isDeclaration();
+    Declaration *d = s->isDeclaration();
     if (!d)
     {
 	e->error("%s.%s is not a declaration", e->toChars(), ident->toChars());
@@ -5227,8 +5330,9 @@ L1:
 
     if (e->op == TOKtype)
     {
-	VarExp *ve;
-
+	/* It's:
+	 *    Class.d
+	 */
 	if (d->needThis() && (hasThis(sc) || !d->isFuncDeclaration()))
 	{
 	    if (sc->func)
@@ -5244,7 +5348,7 @@ L1:
 		    {
 			e = new ThisExp(e->loc);
 			e = new DotTypeExp(e->loc, e, cd);
-			de = new DotVarExp(e->loc, e, d);
+			DotVarExp *de = new DotVarExp(e->loc, e, d);
 			e = de->semantic(sc);
 			return e;
 		    }
@@ -5254,7 +5358,10 @@ L1:
 		}
 	    }
 
-	    de = new DotVarExp(e->loc, new ThisExp(e->loc), d);
+	    /* Rewrite as:
+	     *	this.d
+	     */
+	    DotVarExp *de = new DotVarExp(e->loc, new ThisExp(e->loc), d);
 	    e = de->semantic(sc);
 	    return e;
 	}
@@ -5266,9 +5373,9 @@ L1:
 	}
 	else
 	{
-	    ve = new VarExp(e->loc, d, 1);
+	    VarExp *ve = new VarExp(e->loc, d, 1);
+	    return ve;
 	}
-	return ve;
     }
 
     if (d->isDataseg())
@@ -5293,7 +5400,7 @@ L1:
 	return e;
     }
 
-    de = new DotVarExp(e->loc, e, d);
+    DotVarExp *de = new DotVarExp(e->loc, e, d);
     return de->semantic(sc);
 }
 

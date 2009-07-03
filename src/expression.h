@@ -61,6 +61,7 @@ void initPrecedence();
 
 Expression *resolveProperties(Scope *sc, Expression *e);
 void accessCheck(Loc loc, Scope *sc, Expression *e, Declaration *d);
+Expression *build_overload(Loc loc, Scope *sc, Expression *ethis, Expression *earg, Identifier *id);
 Dsymbol *search_function(ScopeDsymbol *ad, Identifier *funcid);
 void inferApplyArgTypes(enum TOK op, Arguments *arguments, Expression *aggr);
 void argExpTypesToCBuffer(OutBuffer *buf, Expressions *arguments, HdrGenState *hgs);
@@ -1419,6 +1420,31 @@ struct CondExp : BinExp
     elem *toElem(IRState *irs);
 };
 
+
+/****************************************************************/
+
+struct DefaultInitExp : Expression
+{
+    enum TOK subop;		// which of the derived classes this is
+
+    DefaultInitExp(Loc loc, enum TOK subop, int size);
+    virtual Expression *resolve(Loc loc, Scope *sc) = 0;
+    void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
+};
+
+struct FileInitExp : DefaultInitExp
+{
+    FileInitExp(Loc loc);
+    Expression *semantic(Scope *sc);
+    Expression *resolve(Loc loc, Scope *sc);
+};
+
+struct LineInitExp : DefaultInitExp
+{
+    LineInitExp(Loc loc);
+    Expression *semantic(Scope *sc);
+    Expression *resolve(Loc loc, Scope *sc);
+};
 
 /****************************************************************/
 

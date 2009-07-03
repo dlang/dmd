@@ -59,8 +59,10 @@ Expression *Type::getInternalTypeInfo(Scope *sc)
     switch (t->ty)
     {
 	case Tsarray:
+#if 0
 	    // convert to corresponding dynamic array type
 	    t = t->nextOf()->mutableOf()->arrayOf();
+#endif
 	    break;
 
 	case Tclass:

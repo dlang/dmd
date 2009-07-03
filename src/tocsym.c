@@ -197,6 +197,11 @@ Symbol *VarDeclaration::toSymbol()
 
 	if (isDataseg())
 	{
+	    if (storage_class & STCtls)
+	    {	/* Thread local storage
+		 */
+		type_setty(&t, t->Tty | mTYthread);
+	    }
 	    s->Sclass = SCextern;
 	    s->Sfl = FLextern;
 	    slist_add(s);

@@ -108,12 +108,16 @@ Module::Module(char *filename, Identifier *ident, int doDocComment, int doHdrGen
     covb = NULL;
 
     srcfilename = FileName::defaultExt(filename, global.mars_ext);
-    if (!srcfilename->equalsExt(global.mars_ext))
+    if (!srcfilename->equalsExt(global.mars_ext) &&
+        !srcfilename->equalsExt("dd"))
     {
 	if (srcfilename->equalsExt("html") ||
 	    srcfilename->equalsExt("htm")  ||
 	    srcfilename->equalsExt("xhtml"))
+	{   if (!global.params.useDeprecated)
+		error("html source files is deprecated %s", srcfilename->toChars());
 	    isHtml = 1;
+	}
 	else
 	{   error("source file name '%s' must have .%s extension", srcfilename->toChars(), global.mars_ext);
 	    fatal();

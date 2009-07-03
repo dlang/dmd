@@ -102,6 +102,7 @@ struct Parser : Lexer
     void parseContracts(FuncDeclaration *f);
     Statement *parseStatement(int flags);
     Initializer *parseInitializer();
+    Expression *parseDefaultInitExp();
     void check(Loc loc, enum TOK value);
     void check(enum TOK value);
     void check(enum TOK value, char *string);

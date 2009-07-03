@@ -1,5 +1,5 @@
 
-// Copyright (c) 1999-2007 by Digital Mars
+// Copyright (c) 1999-2008 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // http://www.digitalmars.com
@@ -31,8 +31,7 @@
 
 Expression *Expression::implicitCastTo(Scope *sc, Type *t)
 {
-    //printf("Expression::implicitCastTo(%s) => %s\n", type->toChars(), t->toChars());
-    //printf("%s\n", toChars());
+    //printf("Expression::implicitCastTo(%s of type %s) => %s\n", toChars(), type->toChars(), t->toChars());
 
     MATCH match = implicitConvTo(t);
     if (match)
@@ -103,7 +102,7 @@ MATCH Expression::implicitConvTo(Type *t)
     printf("Expression::implicitConvTo(this=%s, type=%s, t=%s)\n",
 	toChars(), type->toChars(), t->toChars());
 #endif
-    //static int nest; if (++nest == 50) halt();
+    //static int nest; if (++nest == 10) halt();
     if (!type)
     {	error("%s is not an expression", toChars());
 	type = Type::terror;
@@ -1086,7 +1085,7 @@ Expression *TupleExp::castTo(Scope *sc, Type *t)
 Expression *ArrayLiteralExp::castTo(Scope *sc, Type *t)
 {
 #if 0
-    printf("ArrayLiteralExp::castTo(this=%s, type=%s, t=%s)\n",
+    printf("ArrayLiteralExp::castTo(this=%s, type=%s, => %s)\n",
 	toChars(), type->toChars(), t->toChars());
 #endif
     if (type == t)
@@ -1096,7 +1095,8 @@ Expression *ArrayLiteralExp::castTo(Scope *sc, Type *t)
     Type *tb = t->toBasetype();
     if ((tb->ty == Tarray || tb->ty == Tsarray) &&
 	(typeb->ty == Tarray || typeb->ty == Tsarray) &&
-	tb->nextOf()->toBasetype()->ty != Tvoid)
+	// Not trying to convert non-void[] to void[]
+	!(tb->nextOf()->toBasetype()->ty == Tvoid && typeb->nextOf()->toBasetype()->ty != Tvoid))
     {
 	if (tb->ty == Tsarray)
 	{   TypeSArray *tsa = (TypeSArray *)tb;

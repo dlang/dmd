@@ -801,7 +801,7 @@ Lagain:
 	error("final cannot be applied to variable");
     }
 
-    if (storage_class & (STCstatic | STCextern | STCmanifest | STCtemplateparameter))
+    if (storage_class & (STCstatic | STCextern | STCmanifest | STCtemplateparameter | STCtls))
     {
     }
     else
@@ -810,7 +810,7 @@ Lagain:
 	if (!aad)
 	    aad = parent->isAggregateDeclaration();
 	if (aad)
-	{   assert(!(storage_class & (STCextern | STCstatic)));
+	{   assert(!(storage_class & (STCextern | STCstatic | STCtls)));
 
 	    if (storage_class & (STCconst | STCinvariant) && init)
 	    {
@@ -852,7 +852,7 @@ Lagain:
 
     if (type->isauto() && !noauto)
     {
-	if (storage_class & (STCfield | STCout | STCref | STCstatic | STCmanifest) || !fd)
+	if (storage_class & (STCfield | STCout | STCref | STCstatic | STCmanifest | STCtls) || !fd)
 	{
 	    error("globals, statics, fields, manifest constants, ref and out parameters cannot be auto");
 	}
@@ -1111,6 +1111,8 @@ void VarDeclaration::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 	buf->writestring("manifest ");
     if (storage_class & STCstatic)
 	buf->writestring("static ");
+    if (storage_class & STCtls)
+	buf->writestring("__tls ");
     if (storage_class & STCconst)
 	buf->writestring("const ");
     if (storage_class & STCinvariant)
@@ -1282,7 +1284,7 @@ int VarDeclaration::isDataseg()
 	return 0;
     }
     return canTakeAddressOf() &&
-	(storage_class & (STCstatic | STCextern) ||
+	(storage_class & (STCstatic | STCextern | STCtls) ||
 	 toParent()->isModule() ||
 	 toParent()->isTemplateInstance());
 }

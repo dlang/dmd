@@ -231,7 +231,11 @@ Expression *TraitsExp::semantic(Scope *sc)
 	}
 	else if (ident == Id::getVirtualFunctions)
 	{
+	    unsigned errors = global.errors;
+	    Expression *ex = e;
 	    e = e->semantic(sc);
+	    if (errors < global.errors)
+		error("%s cannot be resolved", ex->toChars());
 
 	    /* Create tuple of virtual function overloads of e
 	     */

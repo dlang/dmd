@@ -2313,6 +2313,7 @@ SwitchStatement::SwitchStatement(Loc loc, Expression *c, Statement *b)
     tf = NULL;
     cases = NULL;
     hasNoDefault = 0;
+    hasVars = 0;
 }
 
 Statement *SwitchStatement::syntaxCopy()
@@ -2482,6 +2483,7 @@ CaseStatement::CaseStatement(Loc loc, Expression *exp, Statement *s)
 {
     this->exp = exp;
     this->statement = s;
+    index = 0;
     cblock = NULL;
 }
 
@@ -2497,17 +2499,33 @@ Statement *CaseStatement::semantic(Scope *sc)
     //printf("CaseStatement::semantic() %s\n", toChars());
     exp = exp->semantic(sc);
     if (sw)
-    {	int i;
-
+    {
 	exp = exp->implicitCastTo(sc, sw->condition->type);
 	exp = exp->optimize(WANTvalue | WANTinterpret);
+
+	/* This is where variables are allowed as case expressions.
+	 */
+	if (exp->op == TOKvar)
+	{   VarExp *ve = (VarExp *)exp;
+	    VarDeclaration *v = ve->var->isVarDeclaration();
+	    Type *t = exp->type->toBasetype();
+	    if (v && (t->isintegral() || t->ty == Tclass))
+	    {	/* Flag that we need to do special code generation
+		 * for this, i.e. generate a sequence of if-then-else
+		 */
+		sw->hasVars = 1;
+		goto L1;
+	    }
+	}
+
 	if (exp->op != TOKstring && exp->op != TOKint64)
 	{
 	    error("case must be a string or an integral constant, not %s", exp->toChars());
 	    exp = new IntegerExp(0);
 	}
 
-	for (i = 0; i < sw->cases->dim; i++)
+    L1:
+	for (int i = 0; i < sw->cases->dim; i++)
 	{
 	    CaseStatement *cs = (CaseStatement *)sw->cases->data[i];
 
@@ -2521,7 +2539,7 @@ Statement *CaseStatement::semantic(Scope *sc)
 	sw->cases->push(this);
 
 	// Resolve any goto case's with no exp to this case statement
-	for (i = 0; i < sw->gotoCases.dim; i++)
+	for (int i = 0; i < sw->gotoCases.dim; i++)
 	{
 	    GotoCaseStatement *gcs = (GotoCaseStatement *)sw->gotoCases.data[i];
 

@@ -412,9 +412,11 @@ Expression *CastExp::optimize(int result)
     //printf("CastExp::optimize(result = %d) %s\n", result, toChars());
     //printf("from %s to %s\n", type->toChars(), to->toChars());
     //printf("from %s\n", type->toChars());
+    //printf("e1->type %s\n", e1->type->toChars());
     //printf("type = %p\n", type);
     assert(type);
     enum TOK op1 = e1->op;
+#define X 0
 
     e1 = e1->optimize(result);
     e1 = fromConstInitializer(result, e1);
@@ -425,7 +427,7 @@ Expression *CastExp::optimize(int result)
        )
     {
 	e1 = e1->castTo(NULL, type);
-	//printf(" returning1 %s\n", e1->toChars());
+	if (X) printf(" returning1 %s\n", e1->toChars());
 	return e1;
     }
 
@@ -433,7 +435,7 @@ Expression *CastExp::optimize(int result)
 	e1->type->implicitConvTo(type) >= MATCHconst)
     {
 	e1->type = type;
-	//printf(" returning2 %s\n", e1->toChars());
+	if (X) printf(" returning2 %s\n", e1->toChars());
 	return e1;
     }
 
@@ -445,6 +447,7 @@ Expression *CastExp::optimize(int result)
 	(type->ty == Tpointer || type->ty == Tclass || type->ty == Tarray))
     {
 	e1->type = type;
+	if (X) printf(" returning3 %s\n", e1->toChars());
 	return e1;
     }
 
@@ -460,14 +463,17 @@ Expression *CastExp::optimize(int result)
 	if (cdto->isBaseOf(cdfrom, &offset) && offset == 0)
 	{
 	    e1->type = type;
+	    if (X) printf(" returning4 %s\n", e1->toChars());
 	    return e1;
 	}
     }
 
     // We can convert 'head const' to mutable
-    if (to->constConv(e1->type) >= MATCHconst)
+    if (to->constOf()->equals(e1->type->constOf()))
+//    if (to->constConv(e1->type) >= MATCHconst)
     {
 	e1->type = type;
+	if (X) printf(" returning5 %s\n", e1->toChars());
 	return e1;
     }
 
@@ -492,8 +498,9 @@ Expression *CastExp::optimize(int result)
     }
     else
 	e = this;
-    //printf(" returning3 %s\n", e->toChars());
+    if (X) printf(" returning6 %s\n", e->toChars());
     return e;
+#undef X
 }
 
 Expression *BinExp::optimize(int result)

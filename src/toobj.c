@@ -624,7 +624,10 @@ void ClassDeclaration::toObjFile()
 	{
 	    if (isFuncHidden(fd))
 	    {
-		//printf("%s %s is hidden in %s\n", fd->toParent()->toChars(), fd->toChars(), toChars());
+		if (global.params.warnings)
+		{   fprintf(stdmsg, "warning - ");
+		    error("%s %s is hidden in %s\n", fd->toParent()->toChars(), fd->toChars(), toChars());
+		}
 		dtxoff(&dt, rtlsym[RTLSYM_DHIDDENFUNC], 0, TYnptr);
 	    }
 	    else
@@ -963,7 +966,7 @@ void VarDeclaration::toObjFile()
 	sz = type->size();
 
 	parent = this->toParent();
-#if 1	/* private statics should still get a global symbol, in case
+#if 0	/* private statics should still get a global symbol, in case
 	 * another module inlines a function that references it.
 	 */
 	if (/*protection == PROTprivate ||*/

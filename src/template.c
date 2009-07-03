@@ -666,6 +666,7 @@ MATCH TemplateDeclaration::leastAsSpecialized(TemplateDeclaration *td2)
 /*************************************************
  * Match function arguments against a specific template function.
  * Input:
+ *	loc		instantiation location
  *	targsi		Expression/Type initial list of template arguments
  *	ethis		'this' argument if !NULL
  *	fargs		arguments to function
@@ -675,19 +676,19 @@ MATCH TemplateDeclaration::leastAsSpecialized(TemplateDeclaration *td2)
  *	match level
  */
 
-MATCH TemplateDeclaration::deduceFunctionTemplateMatch(Objects *targsi,
+MATCH TemplateDeclaration::deduceFunctionTemplateMatch(Loc loc, Objects *targsi,
 	Expression *ethis, Expressions *fargs,
 	Objects *dedargs)
 {
     size_t i;
     size_t nfparams;
     size_t nfargs;
-    size_t nargsi;
+    size_t nargsi;		// array size of targsi
     int fptupindex = -1;
     int tuple_dim = 0;
     MATCH match = MATCHexact;
     FuncDeclaration *fd = onemember->toAlias()->isFuncDeclaration();
-    TypeFunction *fdtype;
+    TypeFunction *fdtype;		// type of fd
     TemplateTupleParameter *tp;
     Objects dedtypes;	// for T:T*, the dedargs is the T*, dedtypes is the T
 
@@ -758,7 +759,7 @@ MATCH TemplateDeclaration::deduceFunctionTemplateMatch(Objects *targsi,
      * template Foo(T, A...) { void Foo(T t, A a); }
      * void main() { Foo(1,2,3); }
      */
-    if (tp)
+    if (tp)				// if variadic
     {
 	if (nfparams == 0)		// if no function parameters
 	{
@@ -850,8 +851,6 @@ L2:
 	}
 
 	Argument *fparam = Argument::getNth(fdtype->parameters, i);
-	Expression *farg;
-	MATCH m;
 
 	if (i >= nfargs)		// if not enough arguments
 	{
@@ -863,12 +862,12 @@ L2:
 	    }
 	}
 	else
-	{   farg = (Expression *)fargs->data[i];
+	{   Expression *farg = (Expression *)fargs->data[i];
 #if 0
 	    printf("\tfarg->type   = %s\n", farg->type->toChars());
 	    printf("\tfparam->type = %s\n", fparam->type->toChars());
 #endif
-
+	    MATCH m;
 	    //m = farg->type->toHeadMutable()->deduceType(scope, fparam->type, parameters, &dedtypes);
 	    m = farg->type->deduceType(scope, fparam->type, parameters, &dedtypes);
 	    //printf("\tdeduceType m = %d\n", m);
@@ -922,30 +921,40 @@ Lmatch:
     for (i = nargsi; i < dedargs->dim; i++)
     {
 	TemplateParameter *tp = (TemplateParameter *)parameters->data[i];
+	//printf("tp[%d] = %s\n", i, tp->ident->toChars());
+	/* For T:T*, the dedargs is the T*, dedtypes is the T
+	 * But for function templates, we really need them to match
+	 */
 	Object *oarg = (Object *)dedargs->data[i];
-	Object *o = (Object *)dedtypes.data[i];
-	//printf("1dedargs[%d] = %p, dedtypes[%d] = %p\n", i, oarg, i, o);
+	Object *oded = (Object *)dedtypes.data[i];
+	//printf("1dedargs[%d] = %p, dedtypes[%d] = %p\n", i, oarg, i, oded);
 	if (!oarg)
 	{
-	    if (o)
+	    if (oded)
 	    {
 		if (tp->specialization())
-		    error("specialization not allowed for deduced parameter %s", tp->ident->toChars());
+		{   /* The specialization can work as long as afterwards
+		     * the oded == oarg
+		     */
+		    Declaration *sparam;
+		    dedargs->data[i] = (void *)oded;
+		    MATCH m2 = tp->matchArg(paramscope, dedargs, i, parameters, &dedtypes, &sparam, 0);
+		    //printf("m2 = %d\n", m2);
+		    if (!m2)
+			goto Lnomatch;
+		    if (m2 < match)
+			match = m2;		// pick worst match
+		    if (dedtypes.data[i] != oded)
+			error("specialization not allowed for deduced parameter %s", tp->ident->toChars());
+		}
 	    }
 	    else
-	    {	o = tp->defaultArg(paramscope);
-		if (!o)
+	    {	oded = tp->defaultArg(loc, paramscope);
+		if (!oded)
 		    goto Lnomatch;
-#if 0
-		Match m;
-		Declaration *sparam;
-		m = tp->matchArg(paramscope, dedargs, i, parameters, &sparam);
-		if (!m)
-		    goto Lnomatch;
-#endif
 	    }
-	    declareParameter(paramscope, tp, o);
-	    dedargs->data[i] = (void *)o;
+	    declareParameter(paramscope, tp, oded);
+	    dedargs->data[i] = (void *)oded;
 	}
     }
 
@@ -957,7 +966,7 @@ Lmatch:
 #endif
 
     paramscope->pop();
-    //printf("\tmatch\n");
+    //printf("\tmatch %d\n", match);
     return match;
 
 Lnomatch:
@@ -1051,6 +1060,8 @@ int TemplateDeclaration::isOverloadable()
  * to expand, and return that function.
  * If no match, give error message and return NULL.
  * Input:
+ *	sc		instantiation scope
+ *	loc		instantiation location
  *	targsi		initial list of template arguments
  *	ethis		if !NULL, the 'this' pointer argument
  *	fargs		arguments to function
@@ -1100,7 +1111,7 @@ FuncDeclaration *TemplateDeclaration::deduceFunctionTemplate(Scope *sc, Loc loc,
 	MATCH m;
 	Objects dedargs;
 
-	m = td->deduceFunctionTemplateMatch(targsi, ethis, fargs, &dedargs);
+	m = td->deduceFunctionTemplateMatch(loc, targsi, ethis, fargs, &dedargs);
 	//printf("deduceFunctionTemplateMatch = %d\n", m);
 	if (!m)			// if no match
 	    continue;
@@ -2013,7 +2024,7 @@ MATCH TemplateTypeParameter::matchArg(Scope *sc, Objects *tiargs,
 	oarg = (Object *)tiargs->data[i];
     else
     {	// Get default argument instead
-	oarg = defaultArg(sc);
+	oarg = defaultArg(loc, sc);
 	if (!oarg)
 	{   assert(i < dedtypes->dim);
 	    // It might have already been deduced
@@ -2140,7 +2151,7 @@ Object *TemplateTypeParameter::specialization()
 }
 
 
-Object *TemplateTypeParameter::defaultArg(Scope *sc)
+Object *TemplateTypeParameter::defaultArg(Loc loc, Scope *sc)
 {
     Type *t;
 
@@ -2269,7 +2280,7 @@ MATCH TemplateAliasParameter::matchArg(Scope *sc,
 	oarg = (Object *)tiargs->data[i];
     else
     {	// Get default argument instead
-	oarg = defaultArg(sc);
+	oarg = defaultArg(loc, sc);
 	if (!oarg)
 	{   assert(i < dedtypes->dim);
 	    // It might have already been deduced
@@ -2355,7 +2366,7 @@ Object *TemplateAliasParameter::specialization()
 }
 
 
-Object *TemplateAliasParameter::defaultArg(Scope *sc)
+Object *TemplateAliasParameter::defaultArg(Loc loc, Scope *sc)
 {
     Dsymbol *s = NULL;
 
@@ -2483,7 +2494,7 @@ MATCH TemplateValueParameter::matchArg(Scope *sc,
 	oarg = (Object *)tiargs->data[i];
     else
     {	// Get default argument instead
-	oarg = defaultArg(sc);
+	oarg = defaultArg(loc, sc);
 	if (!oarg)
 	{   assert(i < dedtypes->dim);
 	    // It might have already been deduced
@@ -2609,15 +2620,17 @@ Object *TemplateValueParameter::specialization()
 }
 
 
-Object *TemplateValueParameter::defaultArg(Scope *sc)
+Object *TemplateValueParameter::defaultArg(Loc loc, Scope *sc)
 {
-    Expression *e;
-
-    e = defaultValue;
+    Expression *e = defaultValue;
     if (e)
     {
 	e = e->syntaxCopy();
 	e = e->semantic(sc);
+	if (e->op == TOKdefault)
+	{   DefaultInitExp *de = (DefaultInitExp *)e;
+	    e = de->resolve(loc, sc);
+	}
     }
     return e;
 }
@@ -2751,7 +2764,7 @@ Object *TemplateTupleParameter::specialization()
 }
 
 
-Object *TemplateTupleParameter::defaultArg(Scope *sc)
+Object *TemplateTupleParameter::defaultArg(Loc loc, Scope *sc)
 {
     return NULL;
 }

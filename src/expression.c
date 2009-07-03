@@ -105,6 +105,7 @@ void initPrecedence()
     precedence[TOKassert] = PREC_primary;
     precedence[TOKfunction] = PREC_primary;
     precedence[TOKvar] = PREC_primary;
+    precedence[TOKdefault] = PREC_primary;
 
     // post
     precedence[TOKdotti] = PREC_primary;
@@ -471,7 +472,13 @@ void functionArguments(Loc loc, Scope *sc, TypeFunction *tf, Expressions *argume
 		    error(loc, "expected %zu arguments, not %zu", nparams, nargs);
 		    break;
 		}
-		arg = p->defaultArg->copy();
+		arg = p->defaultArg;
+		if (arg->op == TOKdefault)
+		{   DefaultInitExp *de = (DefaultInitExp *)arg;
+		    arg = de->resolve(loc, sc);
+		}
+		else
+		    arg = arg->copy();
 		arguments->push(arg);
 		nargs++;
 	    }
@@ -2046,8 +2053,8 @@ Expression *ThisExp::semantic(Scope *sc)
     return this;
 
 Lerr:
-    error("'this' is only allowed in non-static member functions, not %s", sc->parent->toChars());
-    type = Type::tint32;
+    error("'this' is only defined in non-static member functions, not %s", sc->parent->toChars());
+    type = Type::terror;
     return this;
 }
 
@@ -5226,13 +5233,14 @@ Expression *DotVarExp::semantic(Scope *sc)
 			if (s && s->isClassDeclaration())
 			    e1->type = s->isClassDeclaration()->type;
 
+			e1 = e1->semantic(sc); // get corrected nested refs
 			goto L1;
 		    }
 #ifdef DEBUG
 		    printf("2: ");
 #endif
-		    error("this for %s needs to be type %s not type %s",
-			var->toChars(), ad->toChars(), t->toChars());
+		    error("%s for %s needs to be type %s not type %s",
+			e1->toChars(), var->toChars(), ad->toChars(), t->toChars());
 		}
 	    }
 	    if (!sc->noaccesscheck)
@@ -9218,6 +9226,64 @@ void CondExp::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
     expToCBuffer(buf, hgs, e1, PREC_expr);
     buf->writestring(" : ");
     expToCBuffer(buf, hgs, e2, PREC_cond);
+}
+
+
+/****************************************************************/
+
+DefaultInitExp::DefaultInitExp(Loc loc, enum TOK subop, int size)
+    : Expression(loc, TOKdefault, size)
+{
+    this->subop = subop;
+}
+
+void DefaultInitExp::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
+{
+    buf->writestring(Token::toChars(subop));
+}
+
+/****************************************************************/
+
+FileInitExp::FileInitExp(Loc loc)
+    : DefaultInitExp(loc, TOKfile, sizeof(FileInitExp))
+{
+}
+
+Expression *FileInitExp::semantic(Scope *sc)
+{
+    //printf("FileInitExp::semantic()\n");
+    type = Type::tchar->invariantOf()->arrayOf();
+    return this;
+}
+
+Expression *FileInitExp::resolve(Loc loc, Scope *sc)
+{
+    //printf("FileInitExp::resolve() %s\n", toChars());
+    char *s = loc.filename ? loc.filename : sc->module->ident->toChars();
+    Expression *e = new StringExp(loc, s);
+    e = e->semantic(sc);
+    e = e->castTo(sc, type);
+    return e;
+}
+
+/****************************************************************/
+
+LineInitExp::LineInitExp(Loc loc)
+    : DefaultInitExp(loc, TOKline, sizeof(LineInitExp))
+{
+}
+
+Expression *LineInitExp::semantic(Scope *sc)
+{
+    type = Type::tint32;
+    return this;
+}
+
+Expression *LineInitExp::resolve(Loc loc, Scope *sc)
+{
+    Expression *e = new IntegerExp(loc, loc.linnum, Type::tint32);
+    e = e->castTo(sc, type);
+    return e;
 }
 
 

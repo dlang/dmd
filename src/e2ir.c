@@ -4114,7 +4114,7 @@ elem *IndexExp::toElem(IRState *irs)
     if (t1->ty == Taarray)
     {
 	// set to:
-	//	*aaGet(aa, keyti, valuesize, value);
+	//	*aaGet(aa, keyti, valuesize, index);
 
 	TypeAArray *taa = (TypeAArray *)t1;
 	elem *keyti;
@@ -4123,14 +4123,17 @@ elem *IndexExp::toElem(IRState *irs)
 	elem *valuesize;
 	Symbol *s;
 
+	// n2 becomes the index, also known as the key
 	n2 = e2->toElem(irs);
-	if (n2->Ety == TYstruct)
+	if (n2->Ety == TYstruct || n2->Ety == TYarray)
 	{
 	    n2 = el_una(OPstrpar, TYstruct, n2);
 	    n2->Enumbytes = n2->E1->Enumbytes;
+	    //printf("numbytes = %d\n", n2->Enumbytes);
 	    assert(n2->Enumbytes);
 	}
 	valuesize = el_long(TYuint, vsize);	// BUG: should be TYsize_t
+	//printf("valuesize: "); elem_print(valuesize);
 	if (modifiable)
 	{
 	    n1 = el_una(OPaddr, TYnptr, n1);
@@ -4140,8 +4143,9 @@ elem *IndexExp::toElem(IRState *irs)
 	{
 	    s = taa->aaGetSymbol("GetRvalue", 1);
 	}
-	//printf("taa->key = %s\n", taa->key->toChars());
+	//printf("taa->index = %s\n", taa->index->toChars());
 	keyti = taa->index->getInternalTypeInfo(NULL)->toElem(irs);
+	//keyti = taa->index->getTypeInfo(NULL)->toElem(irs);
 	//printf("keyti:\n");
 	//elem_print(keyti);
 	ep = el_params(n2, valuesize, keyti, n1, NULL);

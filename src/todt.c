@@ -728,7 +728,9 @@ dt_t **SymOffExp::toDt(dt_t **pdt)
 
     //printf("SymOffExp::toDt('%s')\n", var->toChars());
     assert(var);
-    if (!(var->isDataseg() || var->isCodeseg()) || var->needThis())
+    if (!(var->isDataseg() || var->isCodeseg()) ||
+	var->needThis() ||
+	var->storage_class & STCtls)
     {
 #ifdef DEBUG
 	printf("SymOffExp::toDt()\n");

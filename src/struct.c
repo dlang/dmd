@@ -164,7 +164,7 @@ void AggregateDeclaration::addField(Scope *sc, VarDeclaration *v)
     unsigned xalign;		// alignment boundaries
 
     //printf("AggregateDeclaration::addField('%s') %s\n", v->toChars(), toChars());
-    assert(!(v->storage_class & (STCstatic | STCextern | STCparameter)));
+    assert(!(v->storage_class & (STCstatic | STCextern | STCparameter | STCtls)));
 
     // Check for forward referenced types which will fail the size() call
     Type *t = v->type->toBasetype();

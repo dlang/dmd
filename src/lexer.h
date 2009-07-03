@@ -155,6 +155,9 @@ enum TOK
 	TOKoverloadset,
 	TOKpure,
 	TOKnothrow,
+	TOKtls,
+	TOKline,
+	TOKfile,
 #endif
 
 	TOKMAX

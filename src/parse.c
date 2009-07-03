@@ -289,6 +289,8 @@ Array *Parser::parseDeclDefs(int once)
 	    case TOKsynchronized: stc = STCsynchronized; goto Lstc;
 	    case TOKdeprecated:   stc = STCdeprecated;	 goto Lstc;
 	    case TOKnothrow:      stc = STCnothrow;	 goto Lstc;
+	    case TOKpure:         stc = STCpure;	 goto Lstc;
+	    case TOKtls:          stc = STCtls;		 goto Lstc;
 	    //case TOKmanifest:	  stc = STCmanifest;	 goto Lstc;
 
 	    Lstc:
@@ -323,6 +325,8 @@ Array *Parser::parseDeclDefs(int once)
 		    case TOKsynchronized: stc = STCsynchronized; goto Lstc;
 		    case TOKdeprecated:   stc = STCdeprecated;	 goto Lstc;
 		    case TOKnothrow:      stc = STCnothrow;	 goto Lstc;
+		    case TOKpure:         stc = STCpure;	 goto Lstc;
+		    case TOKtls:          stc = STCtls;		 goto Lstc;
 		    //case TOKmanifest:	  stc = STCmanifest;	 goto Lstc;
 		    default:
 			break;
@@ -1055,7 +1059,7 @@ Arguments *Parser::parseParameters(int *pvarargs)
 		    ae = NULL;
 		    if (token.value == TOKassign)	// = defaultArg
 		    {   nextToken();
-			ae = parseAssignExp();
+			ae = parseDefaultInitExp();
 			hasdefault = 1;
 		    }
 		    else
@@ -1515,7 +1519,7 @@ TemplateParameters *Parser::parseTemplateParameterList(int flag)
 		if (token.value == TOKassign)	// = CondExpression
 		{
 		    nextToken();
-		    tp_defaultvalue = parseCondExp();
+		    tp_defaultvalue = parseDefaultInitExp();
 		}
 		tp = new TemplateValueParameter(loc, tp_ident, tp_valtype, tp_specvalue, tp_defaultvalue);
 	    }
@@ -1937,15 +1941,29 @@ Type *Parser::parseBasicType2(Type *t)
 		//	t function(parameter list)
 		Arguments *arguments;
 		int varargs;
+		bool ispure = false;
+		bool isnothrow = false;
 		enum TOK save = token.value;
 
 		nextToken();
 		arguments = parseParameters(&varargs);
-		t = new TypeFunction(arguments, t, varargs, linkage);
+		while (1)
+		{
+		    if (token.value == TOKpure)
+			ispure = true;
+		    else if (token.value == TOKnothrow)
+			isnothrow = true;
+		    else
+			break;
+		    nextToken();
+		}
+		TypeFunction *tf = new TypeFunction(arguments, t, varargs, linkage);
+		tf->ispure = ispure;
+		tf->isnothrow = isnothrow;
 		if (save == TOKdelegate)
-		    t = new TypeDelegate(t);
+		    t = new TypeDelegate(tf);
 		else
-		    t = new TypePointer(t);	// pointer to function
+		    t = new TypePointer(tf);	// pointer to function
 		continue;
 	    }
 
@@ -2061,22 +2079,31 @@ Type *Parser::parseDeclarator(Type *t, Identifier **pident, TemplateParameters *
 
 		/* Parse const/invariant/nothrow postfix
 		 */
-		switch (token.value)
+		while (1)
 		{
-		    case TOKconst:
-			tf = tf->makeConst();
-			nextToken();
-			break;
+		    switch (token.value)
+		    {
+			case TOKconst:
+			    tf = tf->makeConst();
+			    nextToken();
+			    continue;
 
-		    case TOKinvariant:
-			tf = tf->makeInvariant();
-			nextToken();
-			break;
+			case TOKinvariant:
+			    tf = tf->makeInvariant();
+			    nextToken();
+			    continue;
 
-		    case TOKnothrow:
-			((TypeFunction *)tf)->isnothrow = 1;
-			nextToken();
-			break;
+			case TOKnothrow:
+			    ((TypeFunction *)tf)->isnothrow = 1;
+			    nextToken();
+			    continue;
+
+			case TOKpure:
+			    ((TypeFunction *)tf)->ispure = 1;
+			    nextToken();
+			    continue;
+		    }
+		    break;
 		}
 
 		/* Insert tf into
@@ -2154,6 +2181,8 @@ Array *Parser::parseDeclarations()
 	    case TOKsynchronized: stc = STCsynchronized; goto L1;
 	    case TOKdeprecated: stc = STCdeprecated;	 goto L1;
 	    case TOKnothrow:    stc = STCnothrow;	 goto L1;
+	    case TOKpure:       stc = STCpure;		 goto L1;
+	    case TOKtls:        stc = STCtls;		 goto L1;
 	    case TOKenum:	stc = STCmanifest;	 goto L1;
 	    L1:
 		if (storage_class & stc)
@@ -2631,6 +2660,32 @@ Initializer *Parser::parseInitializer()
     }
 }
 
+/*****************************************
+ * Parses default argument initializer expression that is an assign expression,
+ * with special handling for __FILE__ and __LINE__.
+ */
+
+Expression *Parser::parseDefaultInitExp()
+{
+    if (token.value == TOKfile ||
+	token.value == TOKline)
+    {
+	Token *t = peek(&token);
+	if (t->value == TOKcomma || t->value == TOKrparen)
+	{   Expression *e;
+
+	    if (token.value == TOKfile)
+		e = new FileInitExp(loc);
+	    else
+		e = new LineInitExp(loc);
+	    nextToken();
+	    return e;
+	}
+    }
+
+    Expression *e = parseAssignExp();
+    return e;
+}
 
 /*****************************************
  * Input:
@@ -2710,6 +2765,8 @@ Statement *Parser::parseStatement(int flags)
 	case TOKis:
 	case TOKlbracket:
 	case TOKtraits:
+	case TOKfile:
+	case TOKline:
 	Lexp:
 	{   Expression *exp;
 
@@ -3376,6 +3433,8 @@ Statement *Parser::parseStatement(int flags)
 	case TOKvolatile:
 	    nextToken();
 	    s = parseStatement(PSsemi | PScurlyscope);
+	    if (!global.params.useDeprecated)
+		error("volatile statements deprecated; used synchronized statements instead");
 	    s = new VolatileStatement(loc, s);
 	    break;
 
@@ -4121,6 +4180,18 @@ Expression *Parser::parsePrimaryExp()
 	    nextToken();
 	    break;
 
+	case TOKfile:
+	{   char *s = loc.filename ? loc.filename : mod->ident->toChars();
+	    e = new StringExp(loc, s, strlen(s), 0);
+	    nextToken();
+	    break;
+	}
+
+	case TOKline:
+	    e = new IntegerExp(loc, loc.linnum, Type::tint32);
+	    nextToken();
+	    break;
+
 	case TOKtrue:
 	    e = new IntegerExp(loc, 1, Type::tbool);
 	    nextToken();
@@ -4409,6 +4480,8 @@ Expression *Parser::parsePrimaryExp()
 	    int varargs;
 	    FuncLiteralDeclaration *fd;
 	    Type *t;
+	    bool isnothrow = false;
+	    bool ispure = false;
 
 	    if (token.value == TOKlcurly)
 	    {
@@ -4426,9 +4499,21 @@ Expression *Parser::parsePrimaryExp()
 		    t = parseBasicType2(t);	// function return type
 		}
 		arguments = parseParameters(&varargs);
+		while (1)
+		{
+		    if (token.value == TOKpure)
+			ispure = true;
+		    else if (token.value == TOKnothrow)
+			isnothrow = true;
+		    else
+			break;
+		    nextToken();
+		}
 	    }
-	    t = new TypeFunction(arguments, t, varargs, linkage);
-	    fd = new FuncLiteralDeclaration(loc, 0, t, save, NULL);
+	    TypeFunction *tf = new TypeFunction(arguments, t, varargs, linkage);
+	    tf->ispure = ispure;
+	    tf->isnothrow = isnothrow;
+	    fd = new FuncLiteralDeclaration(loc, 0, tf, save, NULL);
 	    parseContracts(fd);
 	    e = new FuncExp(loc, fd);
 	    break;
@@ -4687,6 +4772,8 @@ Expression *Parser::parseUnaryExp()
 		    case TOKfunction:
 		    case TOKdelegate:
 		    case TOKtypeof:
+		    case TOKfile:
+		    case TOKline:
 		    CASE_BASIC_TYPES:		// (type)int.size
 		    {	// (type) una_exp
 			Type *t;

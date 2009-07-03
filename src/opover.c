@@ -35,7 +35,6 @@
 #include "aggregate.h"
 #include "template.h"
 
-static Expression *build_overload(Loc loc, Scope *sc, Expression *ethis, Expression *earg, Identifier *id);
 static void inferApplyArgTypesX(FuncDeclaration *fstart, Arguments *arguments);
 static int inferApplyArgTypesY(TypeFunction *tf, Arguments *arguments);
 static void templateResolve(Match *m, TemplateDeclaration *td, Scope *sc, Loc loc, Objects *targsi, Expression *ethis, Expressions *arguments);
@@ -435,7 +434,7 @@ Expression *BinExp::op_overload(Scope *sc)
  * Utility to build a function call out of this reference and argument.
  */
 
-static Expression *build_overload(Loc loc, Scope *sc, Expression *ethis, Expression *earg, Identifier *id)
+Expression *build_overload(Loc loc, Scope *sc, Expression *ethis, Expression *earg, Identifier *id)
 {
     Expression *e;
 
