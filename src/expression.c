@@ -3122,7 +3122,7 @@ Lagain:
 	ClassDeclaration *cd = tc->sym->isClassDeclaration();
 	if (cd->isInterfaceDeclaration())
 	    error("cannot create instance of interface %s", cd->toChars());
-	if (cd->isAbstract())
+	else if (cd->isAbstract())
 	    error("cannot create instance of abstract class %s", cd->toChars());
 	checkDeprecated(sc, cd);
 	if (cd->isNested())

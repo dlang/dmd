@@ -523,7 +523,7 @@ void inferApplyArgTypes(enum TOK op, Arguments *arguments, Expression *aggr)
 		arg = (Argument *)arguments->data[1];
 	    }
 	    if (!arg->type && tab->ty != Ttuple)
-		arg->type = tab->next;	// value type
+		arg->type = tab->nextOf();	// value type
 	    break;
 
 	case Taarray:
@@ -593,7 +593,7 @@ void inferApplyArgTypes(enum TOK op, Arguments *arguments, Expression *aggr)
 	    }
 	    else
 	    {
-		inferApplyArgTypesY((TypeFunction *)tab->next, arguments);
+		inferApplyArgTypesY((TypeFunction *)tab->nextOf(), arguments);
 	    }
 	    break;
 	}
@@ -608,6 +608,23 @@ void inferApplyArgTypes(enum TOK op, Arguments *arguments, Expression *aggr)
  * analogous to func.overloadResolveX().
  */
 
+int fp3(void *param, FuncDeclaration *f)
+{
+    Arguments *arguments = (Arguments *)param;
+    TypeFunction *tf = (TypeFunction *)f->type;
+    if (inferApplyArgTypesY(tf, arguments) == 1)
+	return 0;
+    if (arguments->dim == 0)
+	return 1;
+    return 0;
+}
+
+static void inferApplyArgTypesX(FuncDeclaration *fstart, Arguments *arguments)
+{
+    overloadApply(fstart, &fp3, arguments);
+}
+
+#if 0
 static void inferApplyArgTypesX(FuncDeclaration *fstart, Arguments *arguments)
 {
     Declaration *d;
@@ -650,6 +667,7 @@ static void inferApplyArgTypesX(FuncDeclaration *fstart, Arguments *arguments)
 	}
     }
 }
+#endif
 
 /******************************
  * Infer arguments from type of function.
@@ -667,7 +685,7 @@ static int inferApplyArgTypesY(TypeFunction *tf, Arguments *arguments)
     p = Argument::getNth(tf->parameters, 0);
     if (p->type->ty != Tdelegate)
 	goto Lnomatch;
-    tf = (TypeFunction *)p->type->next;
+    tf = (TypeFunction *)p->type->nextOf();
     assert(tf->ty == Tfunction);
 
     /* We now have tf, the type of the delegate. Match it against

@@ -99,7 +99,7 @@ struct Expression : Object
     virtual Expression *toLvalue(Scope *sc, Expression *e);
     virtual Expression *modifiableLvalue(Scope *sc, Expression *e);
     Expression *implicitCastTo(Scope *sc, Type *t);
-    virtual int implicitConvTo(Type *t);
+    virtual MATCH implicitConvTo(Type *t);
     virtual Expression *castTo(Scope *sc, Type *t);
     virtual void checkEscape();
     void checkScalar();
@@ -159,7 +159,7 @@ struct IntegerExp : Expression
     complex_t toComplex();
     int isConst();
     int isBool(int result);
-    int implicitConvTo(Type *t);
+    MATCH implicitConvTo(Type *t);
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
     void toMangleBuffer(OutBuffer *buf);
     Expression *toLvalue(Scope *sc, Expression *e);
@@ -286,7 +286,7 @@ struct NullExp : Expression
     int isBool(int result);
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
     void toMangleBuffer(OutBuffer *buf);
-    int implicitConvTo(Type *t);
+    MATCH implicitConvTo(Type *t);
     Expression *castTo(Scope *sc, Type *t);
     Expression *interpret(InterState *istate);
     elem *toElem(IRState *irs);
@@ -310,7 +310,7 @@ struct StringExp : Expression
     Expression *semantic(Scope *sc);
     Expression *interpret(InterState *istate);
     StringExp *toUTF8(Scope *sc);
-    int implicitConvTo(Type *t);
+    MATCH implicitConvTo(Type *t);
     Expression *castTo(Scope *sc, Type *t);
     int compare(Object *obj);
     int isBool(int result);
@@ -361,7 +361,7 @@ struct ArrayLiteralExp : Expression
     void scanForNestedRef(Scope *sc);
     Expression *optimize(int result);
     Expression *interpret(InterState *istate);
-    int implicitConvTo(Type *t);
+    MATCH implicitConvTo(Type *t);
     Expression *castTo(Scope *sc, Type *t);
     dt_t **toDt(dt_t **pdt);
 
@@ -387,7 +387,7 @@ struct AssocArrayLiteralExp : Expression
     void scanForNestedRef(Scope *sc);
     Expression *optimize(int result);
     Expression *interpret(InterState *istate);
-    int implicitConvTo(Type *t);
+    MATCH implicitConvTo(Type *t);
     Expression *castTo(Scope *sc, Type *t);
 
     int inlineCost(InlineCostState *ics);
@@ -524,7 +524,7 @@ struct SymOffExp : Expression
     int isConst();
     int isBool(int result);
     Expression *doInline(InlineDoState *ids);
-    int implicitConvTo(Type *t);
+    MATCH implicitConvTo(Type *t);
     Expression *castTo(Scope *sc, Type *t);
     void scanForNestedRef(Scope *sc);
 
@@ -678,7 +678,7 @@ struct BinExp : Expression
     void scanForNestedRef(Scope *sc);
     Expression *interpretCommon(InterState *istate, Expression *(*fp)(Type *, Expression *, Expression *));
     Expression *interpretCommon2(InterState *istate, Expression *(*fp)(TOK, Type *, Expression *, Expression *));
-    Expression *interpretAssignCommon(InterState *istate, Expression *(*fp)(Type *, Expression *, Expression *));
+    Expression *interpretAssignCommon(InterState *istate, Expression *(*fp)(Type *, Expression *, Expression *), int post = 0);
 
     int inlineCost(InlineCostState *ics);
     Expression *doInline(InlineDoState *ids);
@@ -777,7 +777,7 @@ struct DelegateExp : UnaExp
 
     DelegateExp(Loc loc, Expression *e, FuncDeclaration *func);
     Expression *semantic(Scope *sc);
-    int implicitConvTo(Type *t);
+    MATCH implicitConvTo(Type *t);
     Expression *castTo(Scope *sc, Type *t);
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
     void dump(int indent);
@@ -826,7 +826,7 @@ struct AddrExp : UnaExp
     AddrExp(Loc loc, Expression *e);
     Expression *semantic(Scope *sc);
     elem *toElem(IRState *irs);
-    int implicitConvTo(Type *t);
+    MATCH implicitConvTo(Type *t);
     Expression *castTo(Scope *sc, Type *t);
     Expression *optimize(int result);
 };
@@ -1350,7 +1350,7 @@ struct CondExp : BinExp
     Expression *checkToBoolean();
     int checkSideEffect(int flag);
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
-    int implicitConvTo(Type *t);
+    MATCH implicitConvTo(Type *t);
     Expression *castTo(Scope *sc, Type *t);
     void scanForNestedRef(Scope *sc);
 

@@ -251,6 +251,16 @@ enum DYNCAST
     DYNCAST_TUPLE,
 };
 
+enum MATCH
+{
+    MATCHnomatch,	// no match
+    MATCHconvert,	// match with conversions
+#if V2
+    MATCHconst,		// match with conversion to const
+#endif
+    MATCHexact		// exact match
+};
+
 void error(Loc loc, const char *format, ...);
 void verror(Loc loc, const char *format, va_list);
 void fatal();

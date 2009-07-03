@@ -1,6 +1,6 @@
 
 // Compiler implementation of the D programming language
-// Copyright (c) 1999-2006 by Digital Mars
+// Copyright (c) 1999-2007 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // http://www.digitalmars.com
@@ -67,7 +67,7 @@ FuncDeclaration::FuncDeclaration(Loc loc, Loc endloc, Identifier *id, enum STC s
     fes = NULL;
     introducing = 0;
     tintro = NULL;
-    inferRetType = (type && type->next == NULL);
+    inferRetType = (type && type->nextOf() == NULL);
     scope = NULL;
     hasReturnExp = 0;
     nrvo_can = 1;
@@ -109,7 +109,7 @@ void FuncDeclaration::semantic(Scope *sc)
     printf("type: %s\n", type->toChars());
 #endif
 
-    if (type->next)
+    if (type->nextOf())
 	type = type->semantic(loc, sc);
     //type->print();
     if (type->ty != Tfunction)
@@ -144,7 +144,7 @@ void FuncDeclaration::semantic(Scope *sc)
 #if 0
     if (isStaticConstructor() || isStaticDestructor())
     {
-	if (!isStatic() || type->next->ty != Tvoid)
+	if (!isStatic() || type->nextOf()->ty != Tvoid)
 	    error("static constructors / destructors must be static void");
 	if (f->arguments && f->arguments->dim)
 	    error("static constructors / destructors must have empty parameter list");
@@ -316,7 +316,7 @@ void FuncDeclaration::semantic(Scope *sc)
 			     * offsets differ
 			     */
 			    int offset;
-			    if (fdv->type->next->isBaseOf(type->next, &offset))
+			    if (fdv->type->nextOf()->isBaseOf(type->nextOf(), &offset))
 			    {
 				tintro = fdv->type;
 			    }
@@ -397,7 +397,7 @@ void FuncDeclaration::semantic(Scope *sc)
 			     * offsets differ
 			     */
 			    int offset;
-			    if (fdv->type->next->isBaseOf(type->next, &offset))
+			    if (fdv->type->nextOf()->isBaseOf(type->nextOf(), &offset))
 			    {
 				ti = fdv->type;
 #if 0
@@ -489,8 +489,8 @@ void FuncDeclaration::semantic(Scope *sc)
 		goto Lmainerr;
 	}
 
-	if (f->next->ty != Tint32 && f->next->ty != Tvoid)
-	    error("must return int or void, not %s", f->next->toChars());
+	if (f->nextOf()->ty != Tint32 && f->nextOf()->ty != Tvoid)
+	    error("must return int or void, not %s", f->nextOf()->toChars());
 	if (f->varargs)
 	{
 	Lmainerr:
@@ -512,7 +512,7 @@ void FuncDeclaration::semantic(Scope *sc)
 	    Type *t0 = arg0->type->toBasetype();
 	    Type *tb = sd ? sd->type : cd->type;
 	    if (arg0->type->implicitConvTo(tb) ||
-		(sd && t0->ty == Tpointer && t0->next->implicitConvTo(tb))
+		(sd && t0->ty == Tpointer && t0->nextOf()->implicitConvTo(tb))
 	       )
 	    {
 		if (nparams == 1)
@@ -793,8 +793,8 @@ void FuncDeclaration::semantic3(Scope *sc)
 	    sym->parent = sc2->scopesym;
 	    sc2 = sc2->push(sym);
 
-	    assert(type->next);
-	    if (type->next->ty == Tvoid)
+	    assert(type->nextOf());
+	    if (type->nextOf()->ty == Tvoid)
 	    {
 		if (outId)
 		    error("void functions have no result");
@@ -813,7 +813,7 @@ void FuncDeclaration::semantic3(Scope *sc)
 		if (fensure)
 		    loc = fensure->loc;
 
-		v = new VarDeclaration(loc, type->next, outId, NULL);
+		v = new VarDeclaration(loc, type->nextOf(), outId, NULL);
 		v->noauto = 1;
 		sc2->incontract--;
 		v->semantic(sc2);
@@ -909,7 +909,7 @@ void FuncDeclaration::semantic3(Scope *sc)
 
 	    if (inferRetType)
 	    {	// If no return type inferred yet, then infer a void
-		if (!type->next)
+		if (!type->nextOf())
 		{
 		    type->next = Type::tvoid;
 		    type = type->semantic(loc, sc);
@@ -975,11 +975,11 @@ void FuncDeclaration::semantic3(Scope *sc)
 		fbody = new CompoundStatement(0, fbody, s);
 		assert(!returnLabel);
 	    }
-	    else if (!hasReturnExp && type->next->ty != Tvoid)
-		error("expected to return a value of type %s", type->next->toChars());
+	    else if (!hasReturnExp && type->nextOf()->ty != Tvoid)
+		error("expected to return a value of type %s", type->nextOf()->toChars());
 	    else if (!inlineAsm)
 	    {
-		if (type->next->ty == Tvoid)
+		if (type->nextOf()->ty == Tvoid)
 		{
 		    if (offend && isMain())
 		    {	// Add a return 0; statement
@@ -1005,12 +1005,12 @@ void FuncDeclaration::semantic3(Scope *sc)
 			    e = new AssertExp(
 				  endloc,
 				  new IntegerExp(0),
-				  new StringExp(0, "missing return expression")
+				  new StringExp(loc, "missing return expression")
 				);
 			}
 			else
 			    e = new HaltExp(endloc);
-			e = new CommaExp(0, e, type->next->defaultInit());
+			e = new CommaExp(0, e, type->nextOf()->defaultInit());
 			e = e->semantic(sc2);
 			Statement *s = new ExpStatement(0, e);
 			fbody = new CompoundStatement(0, fbody, s);
@@ -1137,13 +1137,13 @@ void FuncDeclaration::semantic3(Scope *sc)
 	    {
 		a->push(returnLabel->statement);
 
-		if (type->next->ty != Tvoid)
+		if (type->nextOf()->ty != Tvoid)
 		{
 		    // Create: return vresult;
 		    assert(vresult);
 		    Expression *e = new VarExp(0, vresult);
 		    if (tintro)
-		    {	e = e->implicitCastTo(sc, tintro->next);
+		    {	e = e->implicitCastTo(sc, tintro->nextOf());
 			e = e->semantic(sc);
 		    }
 		    ReturnStatement *s = new ReturnStatement(0, e);
@@ -1282,6 +1282,108 @@ int FuncDeclaration::overloadInsert(Dsymbol *s)
  * Find function in overload list that exactly matches t.
  */
 
+/***************************************************
+ * Visit each overloaded function in turn, and call
+ * (*fp)(param, f) on it.
+ * Exit when no more, or (*fp)(param, f) returns 1.
+ * Returns:
+ *	0	continue
+ *	1	done
+ */
+
+int overloadApply(FuncDeclaration *fstart,
+	int (*fp)(void *, FuncDeclaration *),
+	void *param)
+{
+    FuncDeclaration *f;
+    Declaration *d;
+    Declaration *next;
+
+    for (d = fstart; d; d = next)
+    {	FuncAliasDeclaration *fa = d->isFuncAliasDeclaration();
+
+	if (fa)
+	{
+	    if (overloadApply(fa->funcalias, fp, param))
+		return 1;
+	    next = fa->overnext;
+	}
+	else
+	{
+	    AliasDeclaration *a = d->isAliasDeclaration();
+
+	    if (a)
+	    {
+		Dsymbol *s = a->toAlias();
+		next = s->isDeclaration();
+		if (next == a)
+		    break;
+		if (next == fstart)
+		    break;
+	    }
+	    else
+	    {
+		f = d->isFuncDeclaration();
+		if (!f)
+		{   d->error("is aliased to a function");
+		    break;		// BUG: should print error message?
+		}
+		if ((*fp)(param, f))
+		    return 1;
+
+		next = f->overnext;
+	    }
+	}
+    }
+    return 0;
+}
+
+/********************************************
+ * Find function in overload list that exactly matches t.
+ */
+
+struct Param1
+{
+    Type *t;		// type to match
+    FuncDeclaration *f;	// return value
+};
+
+int fp1(void *param, FuncDeclaration *f)
+{   Param1 *p = (Param1 *)param;
+    Type *t = p->t;
+
+    if (t->equals(f->type))
+    {	p->f = f;
+	return 1;
+    }
+
+#if V2
+    /* Allow covariant matches, if it's just a const conversion
+     * of the return type
+     */
+    if (t->ty == Tfunction)
+    {   TypeFunction *tf = (TypeFunction *)f->type;
+	if (tf->covariant(t) == 1 &&
+	    tf->nextOf()->implicitConvTo(t->nextOf()) >= MATCHconst)
+	{
+	    p->f = f;
+	    return 1;
+	}
+    }
+#endif
+    return 0;
+}
+
+FuncDeclaration *FuncDeclaration::overloadExactMatch(Type *t)
+{
+    Param1 p;
+    p.t = t;
+    p.f = NULL;
+    overloadApply(this, &fp1, &p);
+    return p.f;
+}
+
+#if 0
 FuncDeclaration *FuncDeclaration::overloadExactMatch(Type *t)
 {
     FuncDeclaration *f;
@@ -1322,11 +1424,75 @@ FuncDeclaration *FuncDeclaration::overloadExactMatch(Type *t)
     }
     return NULL;
 }
+#endif
 
 /********************************************
  * Decide which function matches the arguments best.
  */
 
+struct Param2
+{
+    Match *m;
+    Expressions *arguments;
+};
+
+int fp2(void *param, FuncDeclaration *f)
+{   Param2 *p = (Param2 *)param;
+    Match *m = p->m;
+    Expressions *arguments = p->arguments;
+    MATCH match;
+
+    if (f != m->lastf)		// skip duplicates
+    {
+	TypeFunction *tf;
+
+	m->anyf = f;
+	tf = (TypeFunction *)f->type;
+	match = (MATCH) tf->callMatch(arguments);
+	//printf("match = %d\n", match);
+	if (match != MATCHnomatch)
+	{
+	    if (match > m->last)
+		goto LfIsBetter;
+
+	    if (match < m->last)
+		goto LlastIsBetter;
+
+	    /* See if one of the matches overrides the other.
+	     */
+	    if (m->lastf->overrides(f))
+		goto LlastIsBetter;
+	    else if (f->overrides(m->lastf))
+		goto LfIsBetter;
+
+	Lambiguous:
+	    m->nextf = f;
+	    m->count++;
+	    return 0;
+
+	LfIsBetter:
+	    m->last = match;
+	    m->lastf = f;
+	    m->count = 1;
+	    return 0;
+
+	LlastIsBetter:
+	    return 0;
+	}
+    }
+    return 0;
+}
+
+
+void overloadResolveX(Match *m, FuncDeclaration *fstart, Expressions *arguments)
+{
+    Param2 p;
+    p.m = m;
+    p.arguments = arguments;
+    overloadApply(fstart, &fp2, &p);
+}
+
+#if 0
 // Recursive helper function
 
 void overloadResolveX(Match *m, FuncDeclaration *fstart, Expressions *arguments)
@@ -1406,6 +1572,7 @@ void overloadResolveX(Match *m, FuncDeclaration *fstart, Expressions *arguments)
 	}
     }
 }
+#endif
 
 FuncDeclaration *FuncDeclaration::overloadResolve(Loc loc, Expressions *arguments)
 {
@@ -1731,7 +1898,7 @@ FuncDeclaration *FuncDeclaration::genCfunc(Type *treturn, Identifier *id)
     {
 	fd = s->isFuncDeclaration();
 	assert(fd);
-	assert(fd->type->next->equals(treturn));
+	assert(fd->type->nextOf()->equals(treturn));
     }
     else
     {
@@ -2076,7 +2243,9 @@ int StaticCtorDeclaration::addPostInvariant()
 void StaticCtorDeclaration::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 {
     if (hgs->hdrgen)
+    {	buf->writestring("static this(){}\n");
 	return;
+    }
     buf->writestring("static this()");
     bodyToCBuffer(buf, hgs);
 }

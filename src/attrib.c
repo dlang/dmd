@@ -292,7 +292,7 @@ void AttribDeclaration::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 	buf->writeByte('}');
     }
     else
-	buf->writeByte(':');
+	buf->writeByte(';');
     buf->writenl();
 }
 

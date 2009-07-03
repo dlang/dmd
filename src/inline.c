@@ -502,7 +502,10 @@ Expression *ThisExp::doInline(InlineDoState *ids)
 {
     //if (!ids->vthis)
 	//error("no 'this' when inlining %s", ids->parent->toChars());
-    assert(ids->vthis);
+    if (!ids->vthis)
+    {
+	return this;
+    }
 
     VarExp *ve = new VarExp(loc, ids->vthis);
     ve->type = type;
@@ -854,6 +857,17 @@ Statement *ForeachStatement::inlineScan(InlineScanState *iss)
     body = body->inlineScan(iss);
     return this;
 }
+
+
+#if V2
+Statement *ForeachRangeStatement::inlineScan(InlineScanState *iss)
+{
+    lwr = lwr->inlineScan(iss);
+    upr = upr->inlineScan(iss);
+    body = body->inlineScan(iss);
+    return this;
+}
+#endif
 
 
 Statement *IfStatement::inlineScan(InlineScanState *iss)

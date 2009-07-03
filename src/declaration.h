@@ -74,6 +74,9 @@ struct Match
 };
 
 void overloadResolveX(Match *m, FuncDeclaration *f, Expressions *arguments);
+int overloadApply(FuncDeclaration *fstart,
+	int (*fp)(void *, FuncDeclaration *),
+	void *param);
 
 /**************************************************************/
 

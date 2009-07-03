@@ -504,7 +504,7 @@ int Type::isBaseOf(Type *t, int *poffset)
  *	2	this and to are the same type
  */
 
-int Type::implicitConvTo(Type *to)
+MATCH Type::implicitConvTo(Type *to)
 {
     //printf("Type::implicitConvTo(this=%p, to=%p)\n", this, to);
     //printf("\tthis->next=%p, to->next=%p\n", this->next, to->next);
@@ -512,7 +512,7 @@ int Type::implicitConvTo(Type *to)
 	return MATCHexact;
 //    if (to->ty == Tvoid)
 //	return 1;
-    return 0;
+    return MATCHnomatch;
 }
 
 Expression *Type::getProperty(Loc loc, Identifier *ident)
@@ -1404,7 +1404,7 @@ int TypeBasic::isscalar()
     return flags & (TFLAGSintegral | TFLAGSfloating);
 }
 
-int TypeBasic::implicitConvTo(Type *to)
+MATCH TypeBasic::implicitConvTo(Type *to)
 {
     //printf("TypeBasic::implicitConvTo(%s) from %s\n", to->toChars(), toChars());
     if (this == to)
@@ -1920,7 +1920,7 @@ unsigned TypeSArray::memalign(unsigned salign)
     return next->memalign(salign);
 }
 
-int TypeSArray::implicitConvTo(Type *to)
+MATCH TypeSArray::implicitConvTo(Type *to)
 {
     //printf("TypeSArray::implicitConvTo()\n");
 
@@ -1929,7 +1929,7 @@ int TypeSArray::implicitConvTo(Type *to)
 	(to->next->ty == Tvoid || next->equals(to->next)
 	 /*|| to->next->isBaseOf(next)*/))
     {
-	return 1;
+	return MATCHconvert;
     }
     if (to->ty == Tarray)
     {	int offset = 0;
@@ -1946,7 +1946,7 @@ int TypeSArray::implicitConvTo(Type *to)
 
 	if (next->equals(tsa->next) && dim->equals(tsa->dim))
 	{
-	    return 1;
+	    return MATCHconvert;
 	}
     }
 #endif
@@ -2089,7 +2089,7 @@ int TypeDArray::isString()
     return nty == Tchar || nty == Twchar || nty == Tdchar;
 }
 
-int TypeDArray::implicitConvTo(Type *to)
+MATCH TypeDArray::implicitConvTo(Type *to)
 {
     //printf("TypeDArray::implicitConvTo()\n");
 
@@ -2398,7 +2398,7 @@ void TypePointer::toCBuffer2(OutBuffer *buf, Identifier *ident, HdrGenState *hgs
     next->toCBuffer2(buf, NULL, hgs);
 }
 
-int TypePointer::implicitConvTo(Type *to)
+MATCH TypePointer::implicitConvTo(Type *to)
 {
     //printf("TypePointer::implicitConvTo()\n");
 
@@ -3810,16 +3810,16 @@ int TypeEnum::isscalar()
     //return sym->memtype->isscalar();
 }
 
-int TypeEnum::implicitConvTo(Type *to)
-{   int m;
+MATCH TypeEnum::implicitConvTo(Type *to)
+{   MATCH m;
 
     //printf("TypeEnum::implicitConvTo()\n");
     if (this->equals(to))
-	m = 2;			// exact match
+	m = MATCHexact;		// exact match
     else if (sym->memtype->implicitConvTo(to))
-	m = 1;			// match with conversions
+	m = MATCHconvert;	// match with conversions
     else
-	m = 0;			// no match
+	m = MATCHnomatch;	// no match
     return m;
 }
 
@@ -3985,16 +3985,16 @@ Type *TypeTypedef::toBasetype()
     return t;
 }
 
-int TypeTypedef::implicitConvTo(Type *to)
-{   int m;
+MATCH TypeTypedef::implicitConvTo(Type *to)
+{   MATCH m;
 
     //printf("TypeTypedef::implicitConvTo()\n");
     if (this->equals(to))
-	m = 2;			// exact match
+	m = MATCHexact;		// exact match
     else if (sym->basetype->implicitConvTo(to))
-	m = 1;			// match with conversions
+	m = MATCHconvert;	// match with conversions
     else
-	m = 0;			// no match
+	m = MATCHnomatch;	// no match
     return m;
 }
 
@@ -4636,26 +4636,26 @@ int TypeClass::isBaseOf(Type *t, int *poffset)
     return 0;
 }
 
-int TypeClass::implicitConvTo(Type *to)
+MATCH TypeClass::implicitConvTo(Type *to)
 {
     //printf("TypeClass::implicitConvTo('%s')\n", to->toChars());
     if (this == to)
-	return 2;
+	return MATCHexact;
 
     ClassDeclaration *cdto = to->isClassHandle();
     if (cdto && cdto->isBaseOf(sym, NULL))
     {	//printf("is base\n");
-	return 1;
+	return MATCHconvert;
     }
 
     if (global.params.Dversion == 1)
     {
 	// Allow conversion to (void *)
 	if (to->ty == Tpointer && to->next->ty == Tvoid)
-	    return 1;
+	    return MATCHconvert;
     }
 
-    return 0;
+    return MATCHnomatch;
 }
 
 Expression *TypeClass::defaultInit()

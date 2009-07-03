@@ -259,6 +259,7 @@ struct TemplateInstance : ScopeDsymbol
 
     TemplateInstance(Loc loc, Identifier *temp_id);
     TemplateInstance(Loc loc, TemplateDeclaration *tempdecl, Objects *tiargs);
+    static Objects *arraySyntaxCopy(Objects *objs);
     Dsymbol *syntaxCopy(Dsymbol *);
     void semantic(Scope *sc);
     void semantic2(Scope *sc);
@@ -274,6 +275,7 @@ struct TemplateInstance : ScopeDsymbol
     void toObjFile();			// compile to .obj file
 
     // Internal
+    static void semanticTiargs(Loc loc, Scope *sc, Objects *tiargs);
     void semanticTiargs(Scope *sc);
     TemplateDeclaration *findTemplateDeclaration(Scope *sc);
     TemplateDeclaration *findBestMatch(Scope *sc);
@@ -313,5 +315,9 @@ Expression *isExpression(Object *o);
 Dsymbol *isDsymbol(Object *o);
 Type *isType(Object *o);
 Tuple *isTuple(Object *o);
+Type *getType(Object *o);
+Dsymbol *getDsymbol(Object *o);
+
+void ObjectToCBuffer(OutBuffer *buf, HdrGenState *hgs, Object *oarg);
 
 #endif /* DMD_TEMPLATE_H */

@@ -87,7 +87,7 @@ fflush(stdout);
  * Don't do the actual cast.
  */
 
-int Expression::implicitConvTo(Type *t)
+MATCH Expression::implicitConvTo(Type *t)
 {
 #if 0
     printf("Expression::implicitConvTo(this=%s, type=%s, t=%s)\n",
@@ -104,7 +104,7 @@ int Expression::implicitConvTo(Type *t)
     {	//printf("optimzed to %s\n", e->toChars());
 	return e->implicitConvTo(t);
     }
-    int match = type->implicitConvTo(t);
+    MATCH match = type->implicitConvTo(t);
     if (match)
 	return match;
 #if 0
@@ -129,7 +129,7 @@ int Expression::implicitConvTo(Type *t)
 }
 
 
-int IntegerExp::implicitConvTo(Type *t)
+MATCH IntegerExp::implicitConvTo(Type *t)
 {
 #if 0
     printf("IntegerExp::implicitConvTo(this=%s, type=%s, t=%s)\n",
@@ -142,7 +142,9 @@ int IntegerExp::implicitConvTo(Type *t)
     enum TY toty = t->toBasetype()->ty;
 
     if (type->implicitConvTo(t) == MATCHnomatch && t->ty == Tenum)
+    {
 	return MATCHnomatch;
+    }
 
     switch (ty)
     {
@@ -302,13 +304,15 @@ int IntegerExp::implicitConvTo(Type *t)
     return Expression::implicitConvTo(t);
 
 Lyes:
+    //printf("MATCHconvert\n");
     return MATCHconvert;
 
 Lno:
+    //printf("MATCHnomatch\n");
     return MATCHnomatch;
 }
 
-int NullExp::implicitConvTo(Type *t)
+MATCH NullExp::implicitConvTo(Type *t)
 {
 #if 0
     printf("NullExp::implicitConvTo(this=%s, type=%s, t=%s)\n",
@@ -329,7 +333,7 @@ int NullExp::implicitConvTo(Type *t)
     return Expression::implicitConvTo(t);
 }
 
-int StringExp::implicitConvTo(Type *t)
+MATCH StringExp::implicitConvTo(Type *t)
 {   MATCH m;
 
 #if 0
@@ -381,7 +385,7 @@ int StringExp::implicitConvTo(Type *t)
 #endif
 }
 
-int ArrayLiteralExp::implicitConvTo(Type *t)
+MATCH ArrayLiteralExp::implicitConvTo(Type *t)
 {   MATCH result = MATCHexact;
 
     Type *typeb = type->toBasetype();
@@ -409,7 +413,7 @@ int ArrayLiteralExp::implicitConvTo(Type *t)
 	return Expression::implicitConvTo(t);
 }
 
-int AssocArrayLiteralExp::implicitConvTo(Type *t)
+MATCH AssocArrayLiteralExp::implicitConvTo(Type *t)
 {   MATCH result = MATCHexact;
 
     Type *typeb = type->toBasetype();
@@ -436,13 +440,13 @@ int AssocArrayLiteralExp::implicitConvTo(Type *t)
 	return Expression::implicitConvTo(t);
 }
 
-int AddrExp::implicitConvTo(Type *t)
+MATCH AddrExp::implicitConvTo(Type *t)
 {
 #if 0
     printf("AddrExp::implicitConvTo(this=%s, type=%s, t=%s)\n",
 	toChars(), type->toChars(), t->toChars());
 #endif
-    int result;
+    MATCH result;
 
     result = type->implicitConvTo(t);
     //printf("\tresult = %d\n", result);
@@ -468,13 +472,13 @@ int AddrExp::implicitConvTo(Type *t)
     return result;
 }
 
-int SymOffExp::implicitConvTo(Type *t)
+MATCH SymOffExp::implicitConvTo(Type *t)
 {
 #if 0
     printf("SymOffExp::implicitConvTo(this=%s, type=%s, t=%s)\n",
 	toChars(), type->toChars(), t->toChars());
 #endif
-    int result;
+    MATCH result;
 
     result = type->implicitConvTo(t);
     //printf("\tresult = %d\n", result);
@@ -497,13 +501,13 @@ int SymOffExp::implicitConvTo(Type *t)
     return result;
 }
 
-int DelegateExp::implicitConvTo(Type *t)
+MATCH DelegateExp::implicitConvTo(Type *t)
 {
 #if 0
     printf("DelegateExp::implicitConvTo(this=%s, type=%s, t=%s)\n",
 	toChars(), type->toChars(), t->toChars());
 #endif
-    int result;
+    MATCH result;
 
     result = type->implicitConvTo(t);
 
@@ -517,16 +521,16 @@ int DelegateExp::implicitConvTo(Type *t)
 	    t->ty == Tdelegate && t->next->ty == Tfunction)
 	{
 	    if (func && func->overloadExactMatch(t->next))
-		result = 2;
+		result = MATCHexact;
 	}
     }
     return result;
 }
 
-int CondExp::implicitConvTo(Type *t)
+MATCH CondExp::implicitConvTo(Type *t)
 {
-    int m1;
-    int m2;
+    MATCH m1;
+    MATCH m2;
 
     m1 = e1->implicitConvTo(t);
     m2 = e2->implicitConvTo(t);

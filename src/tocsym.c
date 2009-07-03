@@ -133,7 +133,7 @@ Symbol *Dsymbol::toImport(Symbol *sym)
     //printf("Dsymbol::toImport('%s')\n", sym->Sident);
     n = sym->Sident;
     id = (char *) alloca(6 + strlen(n) + 1 + sizeof(type_paramsize(sym->Stype))*3 + 1);
-    if (sym->Stype->Tmangle == mTYman_std)
+    if (sym->Stype->Tmangle == mTYman_std && tyfunc(sym->Stype->Tty))
     {
 	sprintf(id,"_imp__%s@%d",n,type_paramsize(sym->Stype));
     }
@@ -178,7 +178,7 @@ Symbol *VarDeclaration::toSymbol()
 	{
 	    if (global.params.symdebug && storage_class & STCparameter)
 	    {
-		t = type_alloc(TYref);
+		t = type_alloc(TYnptr);		// should be TYref, but problems in back end
 		t->Tnext = type->toCtype();
 		t->Tnext->Tcount++;
 	    }
