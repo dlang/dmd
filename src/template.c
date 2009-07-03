@@ -2549,6 +2549,17 @@ void TemplateInstance::semantic(Scope *sc)
   }
 #endif
 
+    /* If any of the instantiation members didn't get semantic() run
+     * on them due to forward references, we cannot run semantic2()
+     * or semantic3() yet.
+     */
+    for (size_t i = 0; i < Module::deferred.dim; i++)
+    {	Dsymbol *sd = (Dsymbol *)Module::deferred.data[i];
+
+	if (sd->parent == this)
+	    goto Laftersemantic;
+    }
+
     /* The problem is when to parse the initializer for a variable.
      * Perhaps VarDeclaration::semantic() should do it like it does
      * for initializers inside a function.
@@ -2566,6 +2577,7 @@ void TemplateInstance::semantic(Scope *sc)
 	semantic3(sc2);
     }
 
+  Laftersemantic:
     sc2->pop();
 
     scope->pop();

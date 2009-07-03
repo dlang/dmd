@@ -876,6 +876,7 @@ void Module::runDeferredSemantic()
 	    Dsymbol *s = todo[i];
 
 	    s->semantic(NULL);
+	    //printf("deferred: %s, parent = %s\n", s->toChars(), s->parent->toChars());
 	}
 	//printf("\tdeferred.dim = %d, len = %d, dprogress = %d\n", deferred.dim, len, dprogress);
     } while (deferred.dim < len || dprogress);	// while making progress
