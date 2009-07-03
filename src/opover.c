@@ -12,7 +12,11 @@
 #include <stdlib.h>
 #include <ctype.h>
 #include <assert.h>
+#if _MSC_VER
+#include <complex>
+#else
 #include <complex.h>
+#endif
 
 #ifdef __APPLE__
 #define integer_t dmd_integer_t
@@ -548,22 +552,25 @@ void inferApplyArgTypes(enum TOK op, Arguments *arguments, Expression *aggr)
 	    goto Laggr;
 
 	Laggr:
-#if 0
 	    if (arguments->dim == 1)
 	    {
 		if (!arg->type)
 		{
-		    /* Look for an opNext() overload
+		    /* Look for a head() or rear() overload
 		     */
-		    Dsymbol *s = search_function(ad, Id::next);
-		    fd = s ? s->isFuncDeclaration() : NULL;
+		    Identifier *id = (op == TOKforeach) ? Id::Fhead : Id::Ftoe;
+		    Dsymbol *s = search_function(ad, id);
+		    FuncDeclaration *fd = s ? s->isFuncDeclaration() : NULL;
 		    if (!fd)
+		    {	if (s && s->isTemplateDeclaration())
+			    break;
 			goto Lapply;
-		    arg->type = fd->type->next;
+		    }
+		    arg->type = fd->type->nextOf();
 		}
 		break;
 	    }
-#endif
+
 	Lapply:
 	{   /* Look for an
 	     *	int opApply(int delegate(ref Type [, ...]) dg);

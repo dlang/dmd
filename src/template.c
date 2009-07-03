@@ -13,11 +13,6 @@
 #include <stdio.h>
 #include <assert.h>
 
-#if _WIN32
-#include <windows.h>
-long __cdecl __ehfilter(LPEXCEPTION_POINTERS ep);
-#endif
-
 #include "root.h"
 #include "mem.h"
 #include "stringtable.h"
@@ -36,7 +31,13 @@ long __cdecl __ehfilter(LPEXCEPTION_POINTERS ep);
 #include "identifier.h"
 #include "hdrgen.h"
 
+#if WINDOWS_SEH
+#include <windows.h>
+long __cdecl __ehfilter(LPEXCEPTION_POINTERS ep);
+#endif
+
 #define LOG	0
+
 
 /********************************************
  * These functions substitute for dynamic_cast. dynamic_cast does not work
@@ -3300,7 +3301,7 @@ void TemplateInstance::semantic(Scope *sc)
     //printf("isnested = %d, sc->parent = %s\n", isnested, sc->parent->toChars());
     sc2->parent = /*isnested ? sc->parent :*/ this;
 
-#if _WIN32
+#if WINDOWS_SEH
   __try
   {
 #endif
@@ -3316,7 +3317,7 @@ void TemplateInstance::semantic(Scope *sc)
 	//printf("test4: isnested = %d, s->parent = %s\n", isnested, s->parent->toChars());
 	sc2->module->runDeferredSemantic();
     }
-#if _WIN32
+#if WINDOWS_SEH
   }
   __except (__ehfilter(GetExceptionInformation()))
   {

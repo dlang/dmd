@@ -243,8 +243,6 @@ int runLINK()
 	mem.free(p);
     }
 
-    argv.insert(argv.dim, global.params.libfiles);
-
     if (global.params.symdebug)
 	argv.push((void *)"-g");
 
@@ -273,6 +271,29 @@ int runLINK()
 	argv.push((void *) p);
     }
 
+    /* Add each library, prefixing it with "-l".
+     * The order of libraries passed is:
+     *  1. any libraries passed with -L command line switch
+     *  2. libraries specified on the command line
+     *  3. libraries specified by pragma(lib), which were appended
+     *     to global.params.libfiles.
+     *  4. standard libraries.
+     */
+    for (i = 0; i < global.params.libfiles->dim; i++)
+    {	char *p = (char *)global.params.libfiles->data[i];
+	size_t plen = strlen(p);
+	if (plen > 2 && p[plen - 2] == '.' && p[plen -1] == 'a')
+	    argv.push((void *)p);
+	else
+	{
+	    char *s = (char *)mem.malloc(plen + 3);
+	    s[0] = '-';
+	    s[1] = 'l';
+	    memcpy(s + 2, p, plen + 1);
+	    argv.push((void *)s);
+	}
+    }
+
     /* Standard libraries must go after user specified libraries
      * passed with -l.
      */
@@ -284,7 +305,7 @@ int runLINK()
     strcpy(buf + 2, libname);
     argv.push((void *)buf);		// turns into /usr/lib/libphobos2.a
 
-    argv.push((void *)"-ldruntime");
+//    argv.push((void *)"-ldruntime");
     argv.push((void *)"-lpthread");
     argv.push((void *)"-lm");
 

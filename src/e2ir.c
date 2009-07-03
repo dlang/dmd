@@ -194,7 +194,7 @@ elem *callfunc(Loc loc,
 	if (ad)
 	{
 	    ethis = ec;
-	    if (ad->handle->ty == Tpointer && tybasic(ec->Ety) != TYnptr)
+	    if (ad->isStructDeclaration() && tybasic(ec->Ety) != TYnptr)
 	    {
 		ethis = addressElem(ec, ectype);
 	    }
@@ -1152,6 +1152,12 @@ elem *ThisExp::toElem(IRState *irs)
     else
 	ethis = el_var(irs->sthis);
 
+#if STRUCTTHISREF
+    if (type->ty == Tstruct)
+    {	ethis = el_una(OPind, TYstruct, ethis);
+	ethis->Enumbytes = type->size();
+    }
+#endif
     el_setLoc(ethis,loc);
     return ethis;
 }
@@ -1648,8 +1654,15 @@ elem *NewExp::toElem(IRState *irs)
 	}
 
 	if (member)
-	    // Call constructor
+	{   // Call constructor
 	    ez = callfunc(loc, irs, 1, type, ez, ectype, member, member->type, NULL, arguments);
+#if STRUCTTHISREF
+	    /* Structs return a ref, which gets automatically dereferenced.
+	     * But we want a pointer to the instance.
+	     */
+	    ez = el_una(OPaddr, TYnptr, ez);
+#endif
+	}
 
 	e = el_combine(ex, ey);
 	e = el_combine(e, ez);
@@ -2713,6 +2726,26 @@ elem *AssignExp::toElem(IRState *irs)
 	ta = ae->e1->type->toBasetype();
 	ty = ta->ty;
     }
+
+#if V2
+    /* Look for reference initializations
+     */
+    if (op == TOKconstruct && e1->op == TOKvar)
+    {
+	VarExp *ve = (VarExp *)e1;
+	Declaration *s = ve->var;
+	if (s->storage_class & STCref)
+	{
+	    Expression *ae = e2->addressOf(NULL);
+	    e = ae->toElem(irs);
+	    elem *es = el_var(s->toSymbol());
+	    es->Ety = TYnptr;
+	    e = el_bin(OPeq, TYnptr, es, e);
+	    goto Lret;
+	}
+    }
+#endif
+
 #if 1
     /* This will work if we can distinguish an assignment from
      * an initialization of the lvalue. It'll work if the latter.
@@ -3134,7 +3167,7 @@ elem *DotVarExp::toElem(IRState *irs)
     VarDeclaration *v = var->isVarDeclaration();
     if (!v)
     {
-	error("%s is not a field", var->toChars());
+	error("%s is not a field, but a %s", var->toChars(), var->kind());
     }
 
     elem *e = e1->toElem(irs);

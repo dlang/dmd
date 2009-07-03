@@ -526,6 +526,7 @@ Initializer *ExpInitializer::semantic(Scope *sc, Type *t)
 {
     //printf("ExpInitializer::semantic(%s), type = %s\n", exp->toChars(), t->toChars());
     exp = exp->semantic(sc);
+    exp = resolveProperties(sc, exp);
     exp = exp->optimize(WANTvalue | WANTinterpret);
     Type *tb = t->toBasetype();
 

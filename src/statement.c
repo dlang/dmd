@@ -1105,7 +1105,9 @@ Statement *ForStatement::semantic(Scope *sc)
 	condition = condition->checkToBoolean();
     }
     if (increment)
-	increment = increment->semantic(sc);
+    {	increment = increment->semantic(sc);
+	increment = resolveProperties(sc, increment);
+    }
 
     sc->sbreak = this;
     sc->scontinue = this;
@@ -1249,8 +1251,7 @@ Statement *ForeachStatement::semantic(Scope *sc)
     //printf("ForeachStatement::semantic() %p\n", this);
     ScopeDsymbol *sym;
     Statement *s = this;
-    int dim = arguments->dim;
-    int i;
+    size_t dim = arguments->dim;
     TypeAArray *taa = NULL;
 
     Type *tn = NULL;
@@ -1373,15 +1374,6 @@ Statement *ForeachStatement::semantic(Scope *sc)
 	return s;
     }
 
-    for (i = 0; i < dim; i++)
-    {	Argument *arg = (Argument *)arguments->data[i];
-	if (!arg->type)
-	{
-	    error("cannot infer type for %s", arg->ident->toChars());
-	    return this;
-	}
-    }
-
     sym = new ScopeDsymbol();
     sym->parent = sc->scopesym;
     sc = sc->push(sym);
@@ -1392,6 +1384,9 @@ Statement *ForeachStatement::semantic(Scope *sc)
     {
 	case Tarray:
 	case Tsarray:
+	    if (!checkForArgTypes())
+		return this;
+
 	    if (dim < 1 || dim > 2)
 	    {
 		error("only one or two arguments for array foreach");
@@ -1405,7 +1400,7 @@ Statement *ForeachStatement::semantic(Scope *sc)
 	    if (tn->ty == Tchar || tn->ty == Twchar || tn->ty == Tdchar)
 	    {	Argument *arg;
 
-		i = (dim == 1) ? 0 : 1;	// index of value
+		int i = (dim == 1) ? 0 : 1;	// index of value
 		arg = (Argument *)arguments->data[i];
 		arg->type = arg->type->semantic(loc, sc);
 		tnv = arg->type->toBasetype();
@@ -1423,7 +1418,7 @@ Statement *ForeachStatement::semantic(Scope *sc)
 		}
 	    }
 
-	    for (i = 0; i < dim; i++)
+	    for (size_t i = 0; i < dim; i++)
 	    {	// Declare args
 		Argument *arg = (Argument *)arguments->data[i];
 		VarDeclaration *var;
@@ -1483,6 +1478,9 @@ Statement *ForeachStatement::semantic(Scope *sc)
 	    break;
 
 	case Taarray:
+	    if (!checkForArgTypes())
+		return this;
+
 	    taa = (TypeAArray *)tab;
 	    if (dim < 1 || dim > 2)
 	    {
@@ -1497,6 +1495,72 @@ Statement *ForeachStatement::semantic(Scope *sc)
 
 	case Tclass:
 	case Tstruct:
+#if V2
+	{   /* Look for range iteration, i.e. the properties
+	     * .empty, .next, .retreat, .head and .rear
+	     *    foreach (e; range) { ... }
+	     * translates to:
+	     *    for (auto __r = range; !__r.empty; __r.next)
+	     *    {   auto e = __r.head;
+	     *        ...
+	     *    }
+	     */
+	    if (dim != 1)	// only one argument allowed with ranges
+		goto Lapply;
+	    AggregateDeclaration *ad = (tab->ty == Tclass)
+			? (AggregateDeclaration *)((TypeClass  *)tab)->sym
+			: (AggregateDeclaration *)((TypeStruct *)tab)->sym;
+	    Identifier *idhead;
+	    Identifier *idnext;
+	    if (op == TOKforeach)
+	    {	idhead = Id::Fhead;
+		idnext = Id::Fnext;
+	    }
+	    else
+	    {	idhead = Id::Ftoe;
+		idnext = Id::Fretreat;
+	    }
+	    Dsymbol *shead = search_function(ad, idhead);
+	    if (!shead)
+		goto Lapply;
+
+	    /* Generate a temporary __r and initialize it with the aggregate.
+	     */
+	    Identifier *id = Identifier::generateId("__r");
+	    VarDeclaration *r = new VarDeclaration(loc, NULL, id, new ExpInitializer(loc, aggr));
+	    r->semantic(sc);
+	    Statement *init = new DeclarationStatement(loc, r);
+
+	    // !__r.empty
+	    Expression *e = new VarExp(loc, r);
+	    e = new DotIdExp(loc, e, Id::Fempty);
+	    Expression *condition = new NotExp(loc, e);
+
+	    // __r.next
+	    e = new VarExp(loc, r);
+	    Expression *increment = new DotIdExp(loc, e, idnext);
+
+	    /* Declaration statement for e:
+	     *    auto e = __r.idhead;
+	     */
+	    e = new VarExp(loc, r);
+	    Expression *einit = new DotIdExp(loc, e, idhead);
+	    einit = einit->semantic(sc);
+	    Argument *arg = (Argument *)arguments->data[0];
+	    VarDeclaration *ve = new VarDeclaration(loc, arg->type, arg->ident, new ExpInitializer(loc, einit));
+	    ve->storage_class |= STCforeach;
+	    ve->storage_class |= arg->storageClass & (STCin | STCout | STCref | STCconst | STCinvariant);
+
+	    DeclarationExp *de = new DeclarationExp(loc, ve);
+
+	    Statement *body = new CompoundStatement(loc,
+		new DeclarationStatement(loc, de), this->body);
+
+	    s = new ForStatement(loc, init, condition, increment, body);
+	    s = s->semantic(sc);
+	    break;
+	}
+#endif
 	case Tdelegate:
 	Lapply:
 	{   FuncDeclaration *fdapply;
@@ -1509,6 +1573,9 @@ Statement *ForeachStatement::semantic(Scope *sc)
 	    Expression *flde;
 	    Identifier *id;
 	    Type *tret;
+
+	    if (!checkForArgTypes())
+		return this;
 
 	    tret = func->type->nextOf();
 
@@ -1529,7 +1596,7 @@ Statement *ForeachStatement::semantic(Scope *sc)
 	     *	int delegate(ref T arg) { body }
 	     */
 	    args = new Arguments();
-	    for (i = 0; i < dim; i++)
+	    for (size_t i = 0; i < dim; i++)
 	    {	Argument *arg = (Argument *)arguments->data[i];
 
 		arg->type = arg->type->semantic(loc, sc);
@@ -1728,6 +1795,19 @@ Statement *ForeachStatement::semantic(Scope *sc)
     return s;
 }
 
+bool ForeachStatement::checkForArgTypes()
+{
+    for (size_t i = 0; i < arguments->dim; i++)
+    {	Argument *arg = (Argument *)arguments->data[i];
+	if (!arg->type)
+	{
+	    error("cannot infer type for %s", arg->ident->toChars());
+	    return FALSE;
+	}
+    }
+    return TRUE;
+}
+
 int ForeachStatement::hasBreak()
 {
     return TRUE;
@@ -1800,6 +1880,8 @@ void ForeachStatement::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 }
 
 /**************************** ForeachRangeStatement ***************************/
+
+#if V2
 
 ForeachRangeStatement::ForeachRangeStatement(Loc loc, enum TOK op, Argument *arg,
 	Expression *lwr, Expression *upr, Statement *body)
@@ -1955,6 +2037,8 @@ void ForeachRangeStatement::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
     buf->writebyte('}');
     buf->writenl();
 }
+
+#endif
 
 /******************************** IfStatement ***************************/
 
@@ -2248,6 +2332,11 @@ Statement *PragmaStatement::semantic(Scope *sc)
     }
     else if (ident == Id::lib)
     {
+#if 1
+	/* Should this be allowed?
+	 */
+	error("pragma(lib) not allowed as statement");
+#else
 	if (!args || args->dim != 1)
 	    error("string expected for library name");
 	else
@@ -2269,6 +2358,7 @@ Statement *PragmaStatement::semantic(Scope *sc)
 		mem.free(name);
 	    }
 	}
+#endif
     }
     else if (ident == Id::startaddress)
     {

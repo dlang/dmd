@@ -1,5 +1,5 @@
 
-// Copyright (c) 1999-2007 by Digital Mars
+// Copyright (c) 1999-2008 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // http://www.digitalmars.com
@@ -565,9 +565,9 @@ Expression *DeclarationExp::doInline(InlineDoState *ids)
 		}
 		else
 		{
-		    ExpInitializer *ie = vd->init->isExpInitializer();
-		    assert(ie);
-		    vto->init = new ExpInitializer(ie->loc, ie->exp->doInline(ids));
+		    Expression *e = vd->init->toExpression();
+		    assert(e);
+		    vto->init = new ExpInitializer(e->loc, e->doInline(ids));
 		}
 	    }
 	    de->declaration = (Dsymbol *) (void *)vto;
@@ -1368,6 +1368,20 @@ Expression *FuncDeclaration::doInline(InlineScanState *iss, Expression *ethis, A
 	ExpInitializer *ei;
 	VarExp *ve;
 
+#if STRUCTTHISREF
+	if (ethis->type->ty == Tpointer)
+	{   Type *t = ethis->type->nextOf();
+	    ethis = new PtrExp(ethis->loc, ethis);
+	    ethis->type = t;
+	}
+	ei = new ExpInitializer(ethis->loc, ethis);
+
+	vthis = new VarDeclaration(ethis->loc, ethis->type, Id::This, ei);
+	if (ethis->type->ty != Tclass)
+	    vthis->storage_class = STCref;
+	else
+	    vthis->storage_class = STCin;
+#else
 	if (ethis->type->ty != Tclass && ethis->type->ty != Tpointer)
 	{
 	    ethis = ethis->addressOf(NULL);
@@ -1377,6 +1391,7 @@ Expression *FuncDeclaration::doInline(InlineScanState *iss, Expression *ethis, A
 
 	vthis = new VarDeclaration(ethis->loc, ethis->type, Id::This, ei);
 	vthis->storage_class = STCin;
+#endif
 	vthis->linkage = LINKd;
 	vthis->parent = iss->fd;
 
@@ -1385,6 +1400,13 @@ Expression *FuncDeclaration::doInline(InlineScanState *iss, Expression *ethis, A
 
 	ei->exp = new AssignExp(vthis->loc, ve, ethis);
 	ei->exp->type = ve->type;
+#if STRUCTTHISREF
+	if (ethis->type->ty != Tclass)
+	{   /* This is a reference initialization, not a simple assignment.
+	     */
+	    ei->exp->op = TOKconstruct;
+	}
+#endif
 
 	ids.vthis = vthis;
     }

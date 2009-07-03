@@ -37,6 +37,7 @@ enum LINK;
 
 struct TypeBasic;
 struct HdrGenState;
+struct Argument;
 
 // Back end
 #if IN_GCC
@@ -224,9 +225,10 @@ struct Type : Object
     virtual int isAssignable();
     virtual int checkBoolean();	// if can be converted to boolean value
     virtual void checkDeprecated(Loc loc, Scope *sc);
-    int isConst()	{ return mod == MODconst; }
-    int isInvariant()	{ return mod == MODinvariant; }
-    int isMutable()	{ return mod == 0; }
+    int isConst()	{ return mod & MODconst; }
+    int isInvariant()	{ return mod & MODinvariant; }
+    int isMutable()	{ return !(mod & (MODconst | MODinvariant)); }
+    int isShared()	{ return mod & MODshared; }
     Type *constOf();
     Type *invariantOf();
     Type *mutableOf();
@@ -399,6 +401,7 @@ struct TypeAArray : TypeArray
     Expression *dotExp(Scope *sc, Expression *e, Identifier *ident);
     Expression *defaultInit(Loc loc);
     MATCH deduceType(Scope *sc, Type *tparam, TemplateParameters *parameters, Objects *dedtypes);
+    int isZeroInit();
     int checkBoolean();
     TypeInfoDeclaration *getTypeInfoDeclaration();
     int hasPointers();
@@ -481,6 +484,7 @@ struct TypeFunction : TypeNext
 #if TARGET_LINUX
     void toCppMangle(OutBuffer *buf, CppMangleState *cms);
 #endif
+    bool parameterEscapes(Argument *p);
 
     int callMatch(Expression *ethis, Expressions *toargs);
     type *toCtype();

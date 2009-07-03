@@ -482,7 +482,13 @@ void TypeInfoStructDeclaration::toDt(dt_t **pdt)
     {	// bool opEqual(const T*) const;
 	Scope sc;
 	Arguments *arguments = new Arguments;
+#if STRUCTTHISREF
+	// arg type is ref const T
+	Argument *arg = new Argument(STCref, tc->constOf(), NULL, NULL);
+#else
+	// arg type is const T*
 	Argument *arg = new Argument(STCin, tc->pointerTo(), NULL, NULL);
+#endif
 
 	arguments->push(arg);
 	tfeqptr = new TypeFunction(arguments, Type::tbool, 0, LINKd);
@@ -494,7 +500,13 @@ void TypeInfoStructDeclaration::toDt(dt_t **pdt)
     {
 	Scope sc;
 	Arguments *arguments = new Arguments;
+#if STRUCTTHISREF
+	// arg type is ref const T
+	Argument *arg = new Argument(STCref, tc->constOf(), NULL, NULL);
+#else
+	// arg type is const T*
 	Argument *arg = new Argument(STCin, tc->pointerTo(), NULL, NULL);
+#endif
 
 	arguments->push(arg);
 	tfcmpptr = new TypeFunction(arguments, Type::tint32, 0, LINKd);
@@ -537,9 +549,13 @@ void TypeInfoStructDeclaration::toDt(dt_t **pdt)
     s = search_function(sd, Id::cmp);
     fdx = s ? s->isFuncDeclaration() : NULL;
     if (fdx)
-    {	fd = fdx->overloadExactMatch(tfcmpptr);
+    {
+	//printf("test1 %s, %s, %s\n", fdx->toChars(), fdx->type->toChars(), tfeqptr->toChars());
+	fd = fdx->overloadExactMatch(tfcmpptr);
 	if (fd)
-	    dtxoff(pdt, fd->toSymbol(), 0, TYnptr);
+	{   dtxoff(pdt, fd->toSymbol(), 0, TYnptr);
+	    //printf("test2\n");
+	}
 	else
 	    //fdx->error("must be declared as extern (D) int %s(%s*)", fdx->toChars(), sd->toChars());
 	    dtdword(pdt, 0);

@@ -264,7 +264,11 @@ void StructDeclaration::semantic(Scope *sc)
     }
 
     parent = sc->parent;
+#if STRUCTTHISREF
+    handle = type;
+#else
     handle = type->pointerTo();
+#endif
     structalign = sc->structalign;
     protection = sc->protection;
     storage_class |= sc->stc;

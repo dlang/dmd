@@ -904,7 +904,21 @@ void PragmaDeclaration::toObjFile(int multiobj)
 	char *name = (char *)mem.malloc(se->len + 1);
 	memcpy(name, se->string, se->len);
 	name[se->len] = 0;
+#if _WIN32
+	/* The OMF format allows library names to be inserted
+	 * into the object file. The linker will then automatically
+	 * search that library, too.
+	 */
 	obj_includelib(name);
+#elif linux
+	/* The ELF format does not allow embedded library names,
+	 * so instead append the library name to the list to be passed
+	 * to the linker.
+	 */
+	global.params.libfiles->push((void *) name);
+#else
+	error("pragma lib not supported");
+#endif
     }
     else if (ident == Id::startaddress)
     {

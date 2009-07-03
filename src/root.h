@@ -37,6 +37,12 @@ void warning(const char *format, ...);
 #define TYPEDEFS
 
 #if _MSC_VER
+#include <malloc.h> // for alloca
+// According to VC 8.0 docs, long double is the same as double
+#define strtold strtod
+#define strtof  strtod
+#define isnan   _isnan
+
 typedef __int64 longlong;
 typedef unsigned __int64 ulonglong;
 #else

@@ -316,6 +316,9 @@ void Library::addObject(const char *module_name, void *buf, size_t buflen)
 
     if (buflen < 16)
     {
+#if LOG
+	printf("buf = %p, buflen = %d\n", buf, buflen);
+#endif
       Lcorrupt:
 	error("corrupt object module %s %d", module_name, reason);
 	return;
@@ -326,6 +329,9 @@ void Library::addObject(const char *module_name, void *buf, size_t buflen)
 	 * Pull each object module out of the library and add it
 	 * to the object module array.
 	 */
+#if LOG
+	printf("archive, buf = %p, buflen = %d\n", buf, buflen);
+#endif
 	unsigned offset = 8;
 	char *symtab = NULL;
 	unsigned symtab_size = 0;
@@ -343,9 +349,13 @@ void Library::addObject(const char *module_name, void *buf, size_t buflen)
 	    char *endptr = NULL;
 	    unsigned long size = strtoul(header->file_size, &endptr, 10);
 	    if (endptr >= &header->file_size[10] || *endptr != ' ')
+	    {	reason = 2;
 		goto Lcorrupt;
+	    }
 	    if (offset + size > buflen)
+	    {	reason = 3;
 		goto Lcorrupt;
+	    }
 
 	    if (header->object_name[0] == '/' &&
 		header->object_name[1] == ' ')
@@ -354,11 +364,15 @@ void Library::addObject(const char *module_name, void *buf, size_t buflen)
 		 * library, just use the already created symbol table.
 		 */
 		if (symtab)
+		{   reason = 4;
 		    goto Lcorrupt;
+		}
 		symtab = (char *)buf + offset;
 		symtab_size = size;
 		if (size < 4)
+		{   reason = 5;
 		    goto Lcorrupt;
+		}
 	    }
 	    else if (header->object_name[0] == '/' &&
 		     header->object_name[1] == '/')
@@ -366,14 +380,16 @@ void Library::addObject(const char *module_name, void *buf, size_t buflen)
 		/* This is the file name table, save it for later.
 		 */
 		if (filenametab)
+		{   reason = 6;
 		    goto Lcorrupt;
+		}
 		filenametab = (char *)buf + offset;
 		filenametab_size = size;
 	    }
 	    else
 	    {
 		ObjModule *om = new ObjModule();
-		om->base = (unsigned char *)buf + offset - sizeof(Header);
+		om->base = (unsigned char *)buf + offset /*- sizeof(Header)*/;
 		om->length = size;
 		om->offset = 0;
 		if (header->object_name[0] == '/')
@@ -383,7 +399,9 @@ void Library::addObject(const char *module_name, void *buf, size_t buflen)
 		    unsigned i;
 		    for (i = 0; 1; i++)
 		    {	if (foff + i >= filenametab_size)
+			{   reason = 7;
 			    goto Lcorrupt;
+			}
 			char c = filenametab[foff + i];
 			if (c == '/')
 			    break;
@@ -400,7 +418,9 @@ void Library::addObject(const char *module_name, void *buf, size_t buflen)
 		    assert(om->name);
 		    for (int i = 0; 1; i++)
 		    {	if (i == OBJECT_NAME_SIZE)
+			{   reason = 8;
 			    goto Lcorrupt;
+			}
 			char c = header->object_name[i];
 			if (c == '/')
 			{   om->name[i] = 0;
@@ -420,7 +440,9 @@ void Library::addObject(const char *module_name, void *buf, size_t buflen)
 	    offset += (size + 1) & ~1;
 	}
 	if (offset != buflen)
+	{   reason = 9;
 	    goto Lcorrupt;
+	}
 
 	/* Scan the library's symbol table, and insert it into our own.
 	 * We use this instead of rescanning the object module, because
@@ -431,22 +453,30 @@ void Library::addObject(const char *module_name, void *buf, size_t buflen)
 	unsigned nsymbols = sgetl(symtab);
 	char *s = symtab + 4 + nsymbols * 4;
 	if (4 + nsymbols * (4 + 1) > symtab_size)
+	{   reason = 10;
 	    goto Lcorrupt;
+	}
 	for (unsigned i = 0; i < nsymbols; i++)
 	{   char *name = s;
 	    s += strlen(name) + 1;
 	    if (s - symtab > symtab_size)
+	    {	reason = 11;
 		goto Lcorrupt;
+	    }
 	    unsigned moff = sgetl(symtab + 4 + i * 4);
+//printf("symtab[%d] moff = %x  %x, name = %s\n", i, moff, moff + sizeof(Header), name);
 	    for (unsigned m = mstart; 1; m++)
 	    {	if (m == objmodules.dim)
+		{   reason = 12;
 		    goto Lcorrupt;		// didn't find it
+		}
 		ObjModule *om = (ObjModule *)objmodules.data[m];
+//printf("\t%x\n", (char *)om->base - (char *)buf);
 		if (moff + sizeof(Header) == (char *)om->base - (char *)buf)
 		{
 		    addSymbol(om, name, 1);
-		    if (mstart == m)
-			mstart++;
+//		    if (mstart == m)
+//			mstart++;
 		    break;
 		}
 	    }
@@ -456,7 +486,7 @@ void Library::addObject(const char *module_name, void *buf, size_t buflen)
     }
 
     if (memcmp(buf, elf, 4) != 0)
-    {	reason = 2;
+    {	reason = 13;
 	goto Lcorrupt;
     }
 
@@ -473,7 +503,7 @@ void Library::addObject(const char *module_name, void *buf, size_t buflen)
     {   struct stat statbuf;
 	int i = stat(module_name, &statbuf);
 	if (i == -1)		// error, errno is set
-	{   reason = 3;
+	{   reason = 14;
 	    goto Lcorrupt;
 	}
 	om->file_time = statbuf.st_ctime;

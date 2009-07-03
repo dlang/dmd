@@ -103,6 +103,7 @@ struct Module : Package
 
     Macro *macrotable;		// document comment macros
     Escape *escapetable;	// document comment escapes
+    bool safe;			// TRUE if module is marked as 'safe'
 
     Module(char *arg, Identifier *ident, int doDocComment, int doHdrGen);
     ~Module();
@@ -170,8 +171,9 @@ struct ModuleDeclaration
 {
     Identifier *id;
     Array *packages;		// array of Identifier's representing packages
+    bool safe;
 
-    ModuleDeclaration(Array *packages, Identifier *id);
+    ModuleDeclaration(Array *packages, Identifier *id, bool safe);
 
     char *toChars();
 };

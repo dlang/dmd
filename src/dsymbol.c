@@ -658,6 +658,7 @@ Dsymbol *ScopeDsymbol::syntaxCopy(Dsymbol *s)
 Dsymbol *ScopeDsymbol::search(Loc loc, Identifier *ident, int flags)
 {
     //printf("%s->ScopeDsymbol::search(ident='%s', flags=x%x)\n", toChars(), ident->toChars(), flags);
+    //if (strcmp(ident->toChars(),"c") == 0) *(char*)0=0;
 
     // Look in symbols declared in this module
     Dsymbol *s = symtab ? symtab->lookup(ident) : NULL;
@@ -776,7 +777,7 @@ void ScopeDsymbol::importScope(ScopeDsymbol *s, enum PROT protection)
 	    {   ScopeDsymbol *ss;
 
 		ss = (ScopeDsymbol *) imports->data[i];
-		if (ss == s)
+		if (ss == s)			// if already imported
 		{
 		    if (protection > prots[i])
 			prots[i] = protection;	// upgrade access

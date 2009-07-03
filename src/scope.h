@@ -29,8 +29,13 @@ struct AggregateDeclaration;
 struct AnonymousAggregateDeclaration;
 struct FuncDeclaration;
 struct DocComment;
+#if __GNUC__
+#include "dsymbol.h"    // PROT
+#include "mars.h"       // LINK
+#else
 enum LINK;
 enum PROT;
+#endif 
 
 struct Scope
 {

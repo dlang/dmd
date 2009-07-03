@@ -104,6 +104,7 @@ Module::Module(char *filename, Identifier *ident, int doDocComment, int doHdrGen
 
     macrotable = NULL;
     escapetable = NULL;
+    safe = FALSE;
     doppelganger = 0;
     cov = NULL;
     covb = NULL;
@@ -593,6 +594,7 @@ void Module::parse()
 
     if (md)
     {	this->ident = md->id;
+	this->safe = md->safe;
 	dst = Package::resolve(md->packages, &this->parent, NULL);
     }
     else
@@ -891,10 +893,11 @@ void Module::runDeferredSemantic()
 
 /* =========================== ModuleDeclaration ===================== */
 
-ModuleDeclaration::ModuleDeclaration(Array *packages, Identifier *id)
+ModuleDeclaration::ModuleDeclaration(Array *packages, Identifier *id, bool safe)
 {
     this->packages = packages;
     this->id = id;
+    this->safe = safe;
 }
 
 char *ModuleDeclaration::toChars()

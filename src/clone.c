@@ -87,6 +87,9 @@ FuncDeclaration *StructDeclaration::buildOpAssign(Scope *sc)
     Arguments *fparams = new Arguments;
     fparams->push(param);
     Type *ftype = new TypeFunction(fparams, handle, FALSE, LINKd);
+#if STRUCTTHISREF
+    ((TypeFunction *)ftype)->isref = 1;
+#endif
 
     fop = new FuncDeclaration(0, 0, Id::assign, STCundefined, ftype);
 
@@ -106,12 +109,21 @@ FuncDeclaration *StructDeclaration::buildOpAssign(Scope *sc)
 	    e = new DeclarationExp(0, tmp);
 	    ec = new AssignExp(0,
 		new VarExp(0, tmp),
-		new PtrExp(0, new ThisExp(0)));
+#if STRUCTTHISREF
+		new ThisExp(0)
+#else
+		new PtrExp(0, new ThisExp(0))
+#endif
+		);
 	    ec->op = TOKblit;
 	    e = Expression::combine(e, ec);
 	}
 	ec = new AssignExp(0,
+#if STRUCTTHISREF
+		new ThisExp(0),
+#else
 		new PtrExp(0, new ThisExp(0)),
+#endif
 		new IdentifierExp(0, Id::p));
 	ec->op = TOKblit;
 	e = Expression::combine(e, ec);
@@ -205,7 +217,9 @@ FuncDeclaration *StructDeclaration::buildCpCtor(Scope *sc)
 
 	// Build *this = p;
 	Expression *e = new ThisExp(0);
+#if !STRUCTTHISREF
 	e = new PtrExp(0, e);
+#endif
 	AssignExp *ea = new AssignExp(0, e, new IdentifierExp(0, Id::p));
 	ea->op = TOKblit;
 	Statement *s = new ExpStatement(0, ea);
