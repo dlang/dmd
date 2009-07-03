@@ -4281,6 +4281,13 @@ Expression *Parser::parseEqualExp()
 		e = new EqualExp(value, loc, e, e2);
 		continue;
 
+	    case TOKmatch:
+	    case TOKnotmatch:
+		nextToken();
+		e2 = parseRelExp();
+		e = new MatchExp(value, loc, e, e2);
+		continue;
+
 	    case TOKidentity:
 		if (!global.params.useDeprecated)
 		    error("'===' is deprecated, use 'is' instead");

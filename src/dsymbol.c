@@ -348,21 +348,21 @@ void Dsymbol::error(const char *format, ...)
 	char *p = locToChars();
 
 	if (*p)
-	    printf("%s: ", p);
+	    fprintf(stdmsg, "%s: ", p);
 	mem.free(p);
 
 	if (isAnonymous())
-	    printf("%s ", kind());
+	    fprintf(stdmsg, "%s ", kind());
 	else
-	    printf("%s %s ", kind(), toPrettyChars());
+	    fprintf(stdmsg, "%s %s ", kind(), toPrettyChars());
 
 	va_list ap;
 	va_start(ap, format);
-	vprintf(format, ap);
+	vfprintf(stdmsg, format, ap);
 	va_end(ap);
 
-	printf("\n");
-	fflush(stdout);
+	fprintf(stdmsg, "\n");
+	fflush(stdmsg);
     }
     global.errors++;
 
@@ -378,18 +378,18 @@ void Dsymbol::error(Loc loc, const char *format, ...)
 	    p = locToChars();
 
 	if (*p)
-	    printf("%s: ", p);
+	    fprintf(stdmsg, "%s: ", p);
 	mem.free(p);
 
-	printf("%s %s ", kind(), toPrettyChars());
+	fprintf(stdmsg, "%s %s ", kind(), toPrettyChars());
 
 	va_list ap;
 	va_start(ap, format);
-	vprintf(format, ap);
+	vfprintf(stdmsg, format, ap);
 	va_end(ap);
 
-	printf("\n");
-	fflush(stdout);
+	fprintf(stdmsg, "\n");
+	fflush(stdmsg);
     }
 
     global.errors++;

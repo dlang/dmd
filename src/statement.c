@@ -500,6 +500,7 @@ WhileStatement::WhileStatement(Loc loc, Expression *c, Statement *b)
 {
     condition = c;
     body = b;
+    match = NULL;
 }
 
 Statement *WhileStatement::syntaxCopy()
@@ -511,12 +512,39 @@ Statement *WhileStatement::syntaxCopy()
 
 Statement *WhileStatement::semantic(Scope *sc)
 {
+    if (condition->op == TOKmatch)
+    {
+	/* Rewrite while (condition) body as:
+	 *   if (condition)
+	 *     do
+	 *       body
+	 *     while ((_match = _match.opNext), _match);
+	 */
+
+	Expression *ew = new IdentifierExp(0, Id::_match);
+	ew = new DotIdExp(0, ew, Id::next);
+	ew = new AssignExp(0, new IdentifierExp(0, Id::_match), ew);
+	////ew = new EqualExp(TOKnotequal, 0, ew, new NullExp(0));
+	Expression *ev = new IdentifierExp(0, Id::_match);
+	//ev = new CastExp(0, ev, Type::tvoidptr);
+	ew = new CommaExp(0, ew, ev);
+	Statement *sw = new DoStatement(loc, body, ew);
+	Statement *si = new IfStatement(loc, condition, sw, NULL);
+	return si->semantic(sc);
+    }
+
     condition = condition->semantic(sc);
     condition = resolveProperties(sc, condition);
     condition = condition->checkToBoolean();
 
     sc->noctor++;
-    body = body->semanticScope(sc, this, this);
+
+    Scope *scd = sc->push();
+    scd->sbreak = this;
+    scd->scontinue = this;
+    body = body->semantic(scd);
+    scd->pop();
+
     sc->noctor--;
 
     return this;
@@ -575,7 +603,11 @@ Statement *DoStatement::semantic(Scope *sc)
     sc->noctor--;
     condition = condition->semantic(sc);
     condition = resolveProperties(sc, condition);
-    condition = condition->checkToBoolean();
+
+    // Only check boolean if it's not _Match
+//    if (!condition->type->equals(StructDeclaration::match->type))
+	condition = condition->checkToBoolean();
+
     return this;
 }
 
@@ -1099,6 +1131,7 @@ IfStatement::IfStatement(Loc loc, Expression *condition, Statement *ifbody, Stat
     this->condition = condition;
     this->ifbody = ifbody;
     this->elsebody = elsebody;
+    this->match = NULL;
 }
 
 Statement *IfStatement::syntaxCopy()
@@ -1117,9 +1150,12 @@ Statement *IfStatement::syntaxCopy()
 
 Statement *IfStatement::semantic(Scope *sc)
 {
+    int domatch = (condition->op == TOKmatch);
+
     condition = condition->semantic(sc);
     condition = resolveProperties(sc, condition);
-    condition = condition->checkToBoolean();
+    if (!domatch)
+	condition = condition->checkToBoolean();
 
     // If we can short-circuit evaluate the if statement, don't do the
     // semantic analysis of the skipped code.
@@ -1130,7 +1166,36 @@ Statement *IfStatement::semantic(Scope *sc)
     unsigned cs0 = sc->callSuper;
     unsigned cs1;
 
-    ifbody = ifbody->semanticScope(sc, NULL, NULL);
+    Scope *scd;
+    if (domatch)
+    {	/* Declare _match, which we will set to be the
+	 * result of condition. _match will give us access to the
+	 * regular expression match strings in the scope of ifbody.
+	 */
+	ScopeDsymbol *sym = new ScopeDsymbol();
+	sym->parent = sc->scopesym;
+	scd = sc->push(sym);
+
+	match = new VarDeclaration(loc, condition->type, Id::_match, NULL);
+	match->noauto = 1;
+	match->semantic(scd);
+	if (!scd->insert(match))
+	    assert(0);
+	match->parent = sc->func;
+
+	/* Generate:
+	 *  (_match = condition), _match
+	 */
+	VarExp *v = new VarExp(0, match);
+	condition = new AssignExp(loc, v, condition);
+	//condition = new CastExp(0, condition, Type::tvoidptr);
+	condition = condition->semantic(scd);
+    }
+    else
+	scd = sc->push();
+    ifbody = ifbody->semantic(scd);
+    scd->pop();
+
     cs1 = sc->callSuper;
     sc->callSuper = cs0;
     if (elsebody)

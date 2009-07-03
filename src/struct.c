@@ -193,6 +193,8 @@ void AggregateDeclaration::addField(Scope *sc, VarDeclaration *v)
 
 /********************************* StructDeclaration ****************************/
 
+StructDeclaration *StructDeclaration::match;
+
 StructDeclaration::StructDeclaration(Loc loc, Identifier *id)
     : AggregateDeclaration(loc, id)
 {
@@ -200,6 +202,10 @@ StructDeclaration::StructDeclaration(Loc loc, Identifier *id)
 
     // For forward references
     type = new TypeStruct(this);
+
+    // BUG: What if this is the wrong _Match, i.e. it is nested?
+    if (!match && id == Id::_Match)
+	match = this;
 }
 
 Dsymbol *StructDeclaration::syntaxCopy(Dsymbol *s)

@@ -387,7 +387,9 @@ Dsymbol *AliasDeclaration::toAlias()
     assert(this != aliassym);
     //static int count; if (++count == 10) *(char*)0=0;
     if (inSemantic)
-	error("recursive alias declaration");
+    {	error("recursive alias declaration");
+//	return this;
+    }
     Dsymbol *s = aliassym ? aliassym->toAlias() : this;
     return s;
 }
@@ -772,7 +774,12 @@ void VarDeclaration::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 {
     if (storage_class & STCconst)
 	buf->writestring("const ");
-    type->toCBuffer(buf, ident, hgs);
+    if (storage_class & STCstatic)
+	buf->writestring("static ");
+    if (type)
+	type->toCBuffer(buf, ident, hgs);
+    else
+	buf->writestring(ident->toChars());
     if (init)
     {	buf->writestring(" = ");
 	init->toCBuffer(buf, hgs);

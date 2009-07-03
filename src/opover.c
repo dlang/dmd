@@ -133,6 +133,8 @@ Identifier * CatAssignExp::opId()  { return Id::catass;  }
 int EqualExp::isCommutative()  { return TRUE; }
 Identifier *EqualExp::opId()   { return Id::eq; }
 
+Identifier *MatchExp::opId()   { return Id::match; }
+
 int CmpExp::isCommutative()  { return TRUE; }
 Identifier *CmpExp::opId()   { return Id::cmp; }
 

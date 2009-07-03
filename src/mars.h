@@ -1,5 +1,5 @@
 
-// Copyright (c) 1999-2005 by Digital Mars
+// Copyright (c) 1999-2006 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // www.digitalmars.com
@@ -13,6 +13,10 @@
 #ifdef __DMC__
 #pragma once
 #endif /* __DMC__ */
+
+#ifdef IN_GCC
+/* Changes for the GDC compiler by David Friedman */
+#endif
 
 struct Array;
 

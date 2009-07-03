@@ -508,11 +508,13 @@ void ClassDeclaration::semantic(Scope *sc)
 
 void ClassDeclaration::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 {
-    buf->printf("%s ", kind());
     if (!isAnonymous())
+    {
+	buf->printf("%s ", kind());
 	buf->writestring(toChars());
-    if (baseclasses.dim)
-	buf->writestring(" : ");
+	if (baseclasses.dim)
+	    buf->writestring(" : ");
+    }
     for (int i = 0; i < baseclasses.dim; i++)
     {
 	BaseClass *b = (BaseClass *)baseclasses.data[i];

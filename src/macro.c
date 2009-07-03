@@ -1,5 +1,5 @@
 
-// Copyright (c) 1999-2005 by Digital Mars
+// Copyright (c) 1999-2006 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // www.digitalmars.com
@@ -16,12 +16,16 @@
 #include <ctype.h>
 #include <assert.h>
 
+#ifdef IN_GCC
+#include "mem.h"
+#else
 #if _WIN32
 #include "..\root\mem.h"
 #elif linux
 #include "../root/mem.h"
 #else
 #error "fix this"
+#endif
 #endif
 
 #include "root.h"

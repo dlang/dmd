@@ -21,12 +21,23 @@ extern "C" long double strtold(const char *p,char **endp);
 extern "C" char * __cdecl __locale_decpoint;
 #endif
 
-#if _WIN32
-#include "..\root\mem.h"
+#if IN_GCC
+// Issues with using -include total.h (defines integer_t) and then complex.h fails...
+#undef integer_t
 #endif
-#if linux
+
+#ifdef __APPLE__
+#define integer_t dmd_integer_t
+#endif
+
+#if IN_GCC
+#include "mem.h"
+#elif _WIN32
+#include "..\root\mem.h"
+#elif linux
 #include "../root/mem.h"
 #endif
+
 #include "port.h"
 #include "mtype.h"
 #include "init.h"
@@ -370,6 +381,16 @@ void functionArguments(Loc loc, Scope *sc, TypeFunction *tf, Array *arguments)
 		    case Tsarray:
 		    case Tarray:
 		    {	// Create a static array variable v of type arg->type
+#ifdef IN_GCC
+			/* GCC 4.0 does not like zero length arrays used like
+			   this; pass a null array value instead. Could also
+			   just make a one-element array. */
+			if (nargs - i == 0)
+			{
+			    arg = new NullExp(loc);
+			    break;
+			}
+#endif
 			char name[10+6+1];
 			static int idn;
 			sprintf(name, "__arrayArg%d", ++idn);
@@ -554,7 +575,7 @@ Expression *Expression::copy()
 {
     Expression *e;
     if (!size)
-	printf("No expression copy for: %s\n", toChars());
+	fprintf(stdmsg, "No expression copy for: %s\n", toChars());
     e = (Expression *)mem.malloc(size);
     return (Expression *)memcpy(e, this, size);
 }
@@ -578,8 +599,8 @@ Expression *Expression::semantic(Scope *sc)
 
 void Expression::print()
 {
-    printf("%s\n", toChars());
-    fflush(stdout);
+    fprintf(stdmsg, "%s\n", toChars());
+    fflush(stdmsg);
 }
 
 char *Expression::toChars()
@@ -599,16 +620,16 @@ void Expression::error(const char *format, ...)
 	char *p = loc.toChars();
 
 	if (*p)
-	    printf("%s: ", p);
+	    fprintf(stdmsg, "%s: ", p);
 	mem.free(p);
 
 	va_list ap;
 	va_start(ap, format);
-	vprintf(format, ap);
+	vfprintf(stdmsg, format, ap);
 	va_end(ap);
 
-	printf("\n");
-	fflush(stdout);
+	fprintf(stdmsg, "\n");
+	fflush(stdmsg);
     }
 
     global.errors++;
@@ -664,7 +685,11 @@ real_t Expression::toImaginary()
 complex_t Expression::toComplex()
 {
     error("Floating point constant expression expected instead of %s", toChars());
+#ifdef IN_GCC
+    return complex_t(real_t(0)); // %% nicer
+#else
     return 0;
+#endif
 }
 
 void Expression::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
@@ -762,7 +787,9 @@ Expression *Expression::checkToBoolean()
 #endif
 
     if (!type->checkBoolean())
+    {
 	error("expression %s of type %s does not have a boolean value", toChars(), type->toChars());
+    }
     return this;
 }
 
@@ -1320,6 +1347,11 @@ void ComplexExp::toMangleBuffer(OutBuffer *buf)
     for (int j = 0; j < 2; j++)
     {
 	unsigned char *p = (unsigned char *)&r;
+#ifdef IN_GCC
+	unsigned char buffer[32];
+	r.toBytes(buffer, sizeof(buffer));
+	p = buffer;
+#endif
 	for (int i = 0; i < REALSIZE-REALPAD; i++)
 	    buf->printf("%02x", p[i]);
 	r = toImaginary();
@@ -1858,6 +1890,8 @@ Expression *StringExp::semantic(Scope *sc)
 		    else
 		    {	buffer.writeUTF16(c);
 			newlen++;
+			if (c >= 0x10000)
+			    newlen++;
 		    }
 		}
 		buffer.writeUTF16(0);
@@ -2427,7 +2461,7 @@ void NewAnonClassExp::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 	argsToCBuffer(buf, newargs, hgs);
 	buf->writeByte(')');
     }
-    buf->writestring(" class");
+    buf->writestring(" class ");
     if (arguments && arguments->dim)
     {
 	buf->writeByte('(');
@@ -4473,6 +4507,11 @@ Expression *DeleteExp::checkToBoolean()
     return this;
 }
 
+void DeleteExp::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
+{
+    buf->writestring("delete ");
+    expToCBuffer(buf, hgs, e1, precedence[op]);
+}
 
 /************************************************************/
 
@@ -6462,6 +6501,62 @@ Expression *IdentityExp::semantic(Scope *sc)
 int IdentityExp::isBit()
 {
     return TRUE;
+}
+
+
+/************************************************************/
+
+MatchExp::MatchExp(enum TOK op, Loc loc, Expression *e1, Expression *e2)
+	: BinExp(loc, op, sizeof(MatchExp), e1, e2)
+{
+    assert(op == TOKmatch || op == TOKnotmatch);
+}
+
+Expression *MatchExp::semantic(Scope *sc)
+{   Expression *e;
+
+    if (type)
+	return this;
+
+    BinExp::semanticp(sc);
+
+    e = op_overload(sc);
+    if (e)
+    {
+	if (op == TOKnotmatch)
+	{
+	    e = new NotExp(e->loc, e);
+	    e = e->semantic(sc);
+	}
+	return e;
+    }
+
+    // Both operands must be of type char[]
+    Type *t = Type::tchar->arrayOf();
+    e1 = e1->implicitCastTo(t);
+    e2 = e2->implicitCastTo(t);
+
+    // Call the internal function void* _d_match(e1, e2)
+    FuncDeclaration *fdmatch = FuncDeclaration::genCfunc(StructDeclaration::match->type->pointerTo(), "_d_match");
+
+    Expression *ec = new VarExp(0, fdmatch);
+    Array *args = new Array();
+    args->push(e1);
+    args->push(e2);
+    e = new CallExp(loc, ec, args);
+    e->type = fdmatch->type->next;		// don't run semantic() on e
+
+    if (op == TOKnotmatch)
+    {
+	e = new NotExp(e->loc, e);
+	e = e->semantic(sc);
+    }
+    return e;
+}
+
+int MatchExp::isBit()
+{
+    return FALSE;
 }
 
 

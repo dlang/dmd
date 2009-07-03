@@ -101,6 +101,8 @@ struct AnonymousAggregateDeclaration : AggregateDeclaration
 
 struct StructDeclaration : AggregateDeclaration
 {
+    static StructDeclaration *match;	// set to object._Match
+
     int zeroInit;		// !=0 if initialize with 0 fill
 
     StructDeclaration(Loc loc, Identifier *id);

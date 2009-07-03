@@ -354,6 +354,9 @@ struct FuncDeclaration : Declaration
 					// scopes from having the same name
     VarDeclaration *vthis;		// 'this' parameter
     VarDeclaration *v_arguments;	// '_arguments' parameter
+#if IN_GCC
+    VarDeclaration *v_argptr;	        // '_argptr' variable
+#endif
     Array *parameters;			// Array of Argument's for parameters
     DsymbolTable *labtab;		// statement label symbol table
     Declaration *overnext;		// next in overload list

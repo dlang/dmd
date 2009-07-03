@@ -300,6 +300,7 @@ Symbol *FuncDeclaration::toSymbol()
 		    break;
 
 		case LINKpascal:
+		    t->Tty = TYnpfunc;
 		    t->Tmangle = mTYman_pas;
 		    break;
 

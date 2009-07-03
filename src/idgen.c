@@ -55,6 +55,7 @@ Msgtable msgtable[] =
     { "classinfo" },
     { "typeinfo" },
     { "Exception" },
+    { "_Match" },
     { "withSym", "__withSym" },
     { "result", "__result" },
     { "returnLabel", "__returnLabel" },
@@ -77,6 +78,7 @@ Msgtable msgtable[] =
     { "TypeInfo_Delegate" },
     { "_arguments" },
     { "_argptr" },
+    { "_match" },
 
     { "LINE", "__LINE__" },
     { "FILE", "__FILE__" },
@@ -165,6 +167,8 @@ Msgtable msgtable[] =
     { "slice", "opSlice" },
     { "call", "opCall" },
     { "cast", "opCast" },
+    { "match", "opMatch" },
+    { "next", "opNext" },
 
     { "classNew", "new" },
     { "classDelete", "delete" },
@@ -175,6 +179,7 @@ Msgtable msgtable[] =
     // For pragma's
     { "lib" },
     { "msg" },
+    { "GNU_asm" },
 
     // For toHash
     { "tohash", "toHash" },

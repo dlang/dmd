@@ -1,5 +1,5 @@
 
-// Copyright (c) 1999-2005 by Digital Mars
+// Copyright (c) 1999-2006 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // www.digitalmars.com
@@ -62,7 +62,7 @@ char *Declaration::mangle()
 		    return ident->toChars();
 
 		default:
-		    printf("'%s', linkage = %d\n", toChars(), linkage);
+		    fprintf(stdmsg, "'%s', linkage = %d\n", toChars(), linkage);
 		    assert(0);
 	    }
 	}

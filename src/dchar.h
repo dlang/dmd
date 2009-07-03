@@ -1,5 +1,5 @@
 
-// Copyright (c) 1999-2002 by Digital Mars
+// Copyright (c) 1999-2006 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // www.digitalmars.com
@@ -11,7 +11,7 @@
 #ifndef DCHAR_H
 #define DCHAR_H
 
-#if __GNUC__
+#if __GNUC__ && !_WIN32
 #include "gnuc.h"
 #endif
 
@@ -138,7 +138,10 @@ struct Dchar
 #else
 
 #include <string.h>
+
+#ifndef GCC_SAFE_DMD
 #include <ctype.h>
+#endif
 
 typedef char dchar;
 #define TEXT(x)		x
@@ -156,6 +159,7 @@ struct Dchar
     static int cmp(dchar *s1, dchar *s2) { return strcmp(s1, s2); }
     static int memcmp(const dchar *s1, const dchar *s2, int nchars) { return ::memcmp(s1, s2, nchars); }
     static int isDigit(dchar c) { return '0' <= c && c <= '9'; }
+#ifndef GCC_SAFE_DMD
     static int isAlpha(dchar c) { return isalpha(c); }
     static int isUpper(dchar c) { return isupper(c); }
     static int isLower(dchar c) { return islower(c); }
@@ -165,6 +169,7 @@ struct Dchar
     static int toLower(dchar *p) { return toLower(*p); }
     static int toUpper(dchar c) { return islower(c) ? toupper(c) : c; }
     static dchar *dup(dchar *p) { return ::strdup(p); }	// BUG: out of memory?
+#endif
     static dchar *chr(dchar *p, int c) { return strchr(p, c); }
     static dchar *rchr(dchar *p, int c) { return strrchr(p, c); }
     static dchar *memchr(dchar *p, int c, int count)

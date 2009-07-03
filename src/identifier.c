@@ -65,7 +65,7 @@ char *Identifier::toHChars2()
 
 void Identifier::print()
 {
-    printf("%s",string);
+    fprintf(stdmsg, "%s",string);
 }
 
 int Identifier::dyncast()

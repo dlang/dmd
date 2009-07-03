@@ -1,5 +1,5 @@
 
-// Copyright (c) 1999-2005 by Digital Mars
+// Copyright (c) 1999-2006 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // www.digitalmars.com
@@ -99,7 +99,7 @@ void *Token::operator new(size_t size)
 #ifdef DEBUG
 void Token::print()
 {
-    printf("%s\n", toChars());
+    fprintf(stdmsg, "%s\n", toChars());
 }
 #endif
 
@@ -291,16 +291,16 @@ void Lexer::error(const char *format, ...)
     {
 	char *p = loc.toChars();
 	if (*p)
-	    printf("%s: ", p);
+	    fprintf(stdmsg, "%s: ", p);
 	mem.free(p);
 
 	va_list ap;
 	va_start(ap, format);
-	vprintf(format, ap);
+	vfprintf(stdmsg, format, ap);
 	va_end(ap);
 
-	printf("\n");
-	fflush(stdout);
+	fprintf(stdmsg, "\n");
+	fflush(stdmsg);
 
 	if (global.errors >= 20)	// moderate blizzard of cascading messages
 	    fatal();
@@ -314,16 +314,16 @@ void Lexer::error(Loc loc, const char *format, ...)
     {
 	char *p = loc.toChars();
 	if (*p)
-	    printf("%s: ", p);
+	    fprintf(stdmsg, "%s: ", p);
 	mem.free(p);
 
 	va_list ap;
 	va_start(ap, format);
-	vprintf(format, ap);
+	vfprintf(stdmsg, format, ap);
 	va_end(ap);
 
-	printf("\n");
-	fflush(stdout);
+	fprintf(stdmsg, "\n");
+	fflush(stdmsg);
 
 	if (global.errors >= 20)	// moderate blizzard of cascading messages
 	    fatal();
@@ -933,6 +933,10 @@ void Lexer::scan(Token *t)
 		    else
 			t->value = TOKule;	// !>
 		}
+		else if (*p == '~')
+		{   p++;
+		    t->value = TOKnotmatch;	// !~
+		}
 		else
 		    t->value = TOKnot;		// !
 		return;
@@ -950,6 +954,20 @@ void Lexer::scan(Token *t)
 		}
 		else
 		    t->value = TOKassign;		// =
+		return;
+
+	    case '~':
+		p++;
+		if (*p == '=')
+		{   p++;
+		    t->value = TOKcatass;		// ~=
+		}
+		else if (*p == '~')
+		{   p++;
+		    t->value = TOKmatch;		// ~~
+		}
+		else
+		    t->value = TOKtilde;		// ~
 		return;
 
 #define SINGLE(c,tok) case c: p++; t->value = tok; return;
@@ -982,7 +1000,6 @@ void Lexer::scan(Token *t)
 	    DOUBLE('*', TOKmul, '=', TOKmulass)
 	    DOUBLE('%', TOKmod, '=', TOKmodass)
 	    DOUBLE('^', TOKxor, '=', TOKxorass)
-	    DOUBLE('~', TOKtilde, '=', TOKcatass)
 
 #undef DOUBLE
 
@@ -1996,19 +2013,31 @@ done:
     char *save = __locale_decpoint;
     __locale_decpoint = ".";
 #endif
+#ifdef IN_GCC
+    t->float80value = real_t::parse((char *)stringbuffer.data, real_t::LongDouble);
+#else
     t->float80value = strtold((char *)stringbuffer.data, NULL);
+#endif
     errno = 0;
     switch (*p)
     {
 	case 'F':
 	case 'f':
+#ifdef IN_GCC
+	    real_t::parse((char *)stringbuffer.data, real_t::Float);
+#else
 	    strtof((char *)stringbuffer.data, NULL);
+#endif
 	    result = TOKfloat32v;
 	    p++;
 	    break;
 
 	default:
+#ifdef IN_GCC
+	    real_t::parse((char *)stringbuffer.data, real_t::Double);
+#else	    
 	    strtod((char *)stringbuffer.data, NULL);
+#endif
 	    result = TOKfloat64v;
 	    break;
 
@@ -2572,6 +2601,8 @@ void Lexer::initKeywords()
     Token::tochars[TOKcall]		= "call";
     Token::tochars[TOKidentity]		= "is";
     Token::tochars[TOKnotidentity]	= "!is";
+    Token::tochars[TOKmatch]		= "~~";
+    Token::tochars[TOKnotmatch]		= "!~";
 
     Token::tochars[TOKorass]		= "|=";
 

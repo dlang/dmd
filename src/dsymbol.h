@@ -63,7 +63,12 @@ struct Expression;
 struct DeleteDeclaration;
 struct HdrGenState;
 
+#if IN_GCC
+union tree_node;
+typedef union tree_node TYPE;
+#else
 struct TYPE;
+#endif
 
 enum PROT
 {

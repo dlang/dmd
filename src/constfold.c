@@ -19,6 +19,13 @@
 #include "mtype.h"
 #include "expression.h"
 
+#ifdef IN_GCC
+#include "d-gcc-real.h"
+
+/* %% fix? */
+extern "C" bool real_isnan (const real_t *);
+#endif
+
 static real_t zero;	// work around DMC bug for now
 
 
@@ -282,7 +289,11 @@ Expression *MulExp::constFold()
     e2 = e2->constFold();
     if (type->isfloating())
     {	complex_t c;
-	d_float80 r;
+#ifdef IN_GCC
+	real_t r;
+#else
+ 	d_float80 r;
+#endif
 
 	if (e1->type->isreal())
 	{
@@ -351,7 +362,11 @@ Expression *DivExp::constFold()
     e2 = e2->constFold();
     if (type->isfloating())
     {	complex_t c;
-	d_float80 r;
+#ifdef IN_GCC
+	real_t r;
+#else
+ 	d_float80 r;
+#endif
 
 	//e1->type->print();
 	//e2->type->print();
@@ -436,6 +451,8 @@ Expression *ModExp::constFold()
 
 #ifdef __DMC__
 	    c = fmodl(e1->toReal(), r2) + fmodl(e1->toImaginary(), r2) * I;
+#elif defined(IN_GCC)
+	    c = complex_t(e1->toReal() % r2, e1->toImaginary() % r2);
 #else
 	    c = complex_t(fmodl(e1->toReal(), r2), fmodl(e1->toImaginary(), r2));
 #endif
@@ -445,6 +462,8 @@ Expression *ModExp::constFold()
 
 #ifdef __DMC__
 	    c = fmodl(e1->toReal(), i2) + fmodl(e1->toImaginary(), i2) * I;
+#elif defined(IN_GCC)
+	    c = complex_t(e1->toReal() % i2, e1->toImaginary() % i2);
 #else
 	    c = complex_t(fmodl(e1->toReal(), i2), fmodl(e1->toImaginary(), i2));
 #endif
@@ -674,7 +693,11 @@ Expression *CmpExp::constFold()
 	}
 #else
 	// Don't rely on compiler, handle NAN arguments separately
+#if IN_GCC
+	if (real_isnan(&r1) || real_isnan(&r2))	// if unordered
+#else
 	if (isnan(r1) || isnan(r2))	// if unordered
+#endif
 	{
 	    switch (op)
 	    {

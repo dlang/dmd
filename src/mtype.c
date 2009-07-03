@@ -84,6 +84,7 @@ ClassDeclaration *Type::typeinfoenum;
 ClassDeclaration *Type::typeinfofunction;
 ClassDeclaration *Type::typeinfodelegate;
 
+Type *Type::tvoidptr;
 Type *Type::basic[TMAX];
 unsigned char Type::mangleChar[TMAX];
 StringTable Type::stringtable;
@@ -191,6 +192,8 @@ void Type::init()
     for (i = 0; i < sizeof(basetab) / sizeof(basetab[0]); i++)
 	basic[basetab[i]] = new TypeBasic(basetab[i]);
     basic[Terror] = basic[Tint32];
+
+    tvoidptr = tvoid->pointerTo();
 
     if (global.params.isX86_64)
     {
@@ -3307,7 +3310,8 @@ Expression *TypeEnum::getProperty(Loc loc, Identifier *ident)
     }
     else
     {
-	assert(sym->memtype);
+	if (!sym->memtype)
+	    goto Lfwd;
 	e = sym->memtype->getProperty(loc, ident);
     }
     return e;
@@ -3775,6 +3779,12 @@ int TypeStruct::isZeroInit()
 {
     return sym->zeroInit;
 }
+
+int TypeStruct::checkBoolean()
+{
+    return FALSE;
+}
+
 
 
 /***************************** TypeClass *****************************/

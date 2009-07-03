@@ -684,6 +684,7 @@ struct DeleteExp : UnaExp
     Expression *semantic(Scope *sc);
     Expression *checkToBoolean();
     void checkSideEffect(int flag);
+    void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
     elem *toElem(IRState *irs);
 };
 
@@ -1189,6 +1190,20 @@ struct IdentityExp : BinExp
     Expression *semantic(Scope *sc);
     int isBit();
     Expression *constFold();
+    elem *toElem(IRState *irs);
+};
+
+// ~~ and !~
+
+struct MatchExp : BinExp
+{
+    MatchExp(enum TOK op, Loc loc, Expression *e1, Expression *e2);
+    Expression *semantic(Scope *sc);
+    int isBit();
+
+    // For operator overloading
+    Identifier *opId();
+
     elem *toElem(IRState *irs);
 };
 

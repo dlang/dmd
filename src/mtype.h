@@ -142,7 +142,7 @@ struct Type : Object
     #define tshiftcnt	tint32		// right side of shift expression
     #define tboolean	tint32		// result of boolean expression
     #define tindex	tint32		// array/ptr index
-    #define tvoidptr	tint32		// size for void*
+    static Type *tvoidptr;		// void*
     #define terror	basic[Terror]	// for error recovery
 
     #define tsize_t	basic[Tsize_t]		// matches size_t alias
@@ -490,6 +490,7 @@ struct TypeStruct : Type
     unsigned memalign(unsigned salign);
     Expression *defaultInit();
     int isZeroInit();
+    int checkBoolean();
     dt_t **toDt(dt_t **pdt);
     MATCH deduceType(Type *tparam, Array *parameters, Array *atypes);
     TypeInfoDeclaration *getTypeInfoDeclaration();

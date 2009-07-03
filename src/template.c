@@ -254,10 +254,13 @@ MATCH TemplateDeclaration::matchWithInstance(TemplateInstance *ti,
     dedtypes->zero();
 
 
-//printf("TemplateDeclaration::matchWithInstance(this = %p, ti = %p)\n", this, ti);
-//printf("dim = %d, parameters->dim = %d\n", dim, parameters->dim);
+//printf("dedtypes->dim = %d, parameters->dim = %d\n", dim, parameters->dim);
 //if (ti->tiargs->dim)
 //printf("ti->tiargs->dim = %d, [0] = %p\n", ti->tiargs->dim, ti->tiargs->data[0]);
+
+    // If more arguments than parameters, no match
+    if (ti->tiargs->dim > parameters->dim)
+	return MATCHnomatch;
 
     assert(dim == parameters->dim);
     assert(dim >= ti->tiargs->dim);
@@ -399,7 +402,8 @@ int TemplateDeclaration::leastAsSpecialized(TemplateDeclaration *td2)
     }
 
     // Temporary Array to hold deduced types
-    dedtypes.setDim(parameters->dim);
+    //dedtypes.setDim(parameters->dim);
+    dedtypes.setDim(td2->parameters->dim);
 
     // Attempt a type deduction
     if (td2->matchWithInstance(&ti, &dedtypes, 1))
@@ -466,6 +470,7 @@ char *TemplateDeclaration::toChars()
 	tp->toCBuffer(&buf, &hgs);
     }
     buf.writeByte(')');
+    buf.writeByte(0);
     return (char *)buf.extractData();
 }
 
@@ -1290,6 +1295,7 @@ TemplateInstance::TemplateInstance(Loc loc, Identifier *ident)
     this->aliasdecl = NULL;
     this->semanticdone = 0;
     this->withsym = NULL;
+    this->nest = 0;
 }
 
 
@@ -1683,7 +1689,9 @@ TemplateDeclaration *TemplateInstance::findTemplateDeclaration(Scope *sc)
 	tempdecl = s->isTemplateDeclaration();
 	if (!tempdecl)
 	{
-	    Dsymbol *sp = s->parent->toAlias();
+	    if (!s->parent && global.errors)
+		return NULL;
+	    assert(s->parent);
 	    TemplateInstance *ti = s->parent->isTemplateInstance();
 	    if (ti &&
 		(ti->idents.data[ti->idents.dim - 1] == id ||

@@ -181,6 +181,8 @@ struct WhileStatement : Statement
     Expression *condition;
     Statement *body;
 
+    VarDeclaration *match;	// for MatchExpression results
+
     WhileStatement(Loc loc, Expression *c, Statement *b);
     Statement *syntaxCopy();
     Statement *semantic(Scope *sc);
@@ -266,6 +268,8 @@ struct IfStatement : Statement
     Expression *condition;
     Statement *ifbody;
     Statement *elsebody;
+
+    VarDeclaration *match;	// for MatchExpression results
 
     IfStatement(Loc loc, Expression *condition, Statement *ifbody, Statement *elsebody);
     Statement *syntaxCopy();

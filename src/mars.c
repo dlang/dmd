@@ -53,7 +53,7 @@ Global::Global()
 
     copyright = "Copyright (c) 1999-2006 by Digital Mars";
     written = "written by Walter Bright";
-    version = "v0.146";
+    version = "v0.147";
     global.structalign = 8;
 
     memset(&params, 0, sizeof(Param));
@@ -92,16 +92,16 @@ void error(Loc loc, const char *format, ...)
 	char *p = loc.toChars();
 
 	if (*p)
-	    printf("%s: ", p);
+	    fprintf(stdmsg, "%s: ", p);
 	mem.free(p);
 
 	va_list ap;
 	va_start(ap, format);
-	printf("Error: ");
-	vprintf(format, ap);
+	fprintf(stdmsg, "Error: ");
+	vfprintf(stdmsg, format, ap);
 	va_end( ap );
-	printf("\n");
-	fflush(stdout);
+	fprintf(stdmsg, "\n");
+	fflush(stdmsg);
     }
     global.errors++;
 }
@@ -157,7 +157,7 @@ Usage:\n\
   -profile	 profile runtime performance of generated code\n\
   -quiet         suppress unnecessary messages\n\
   -release	 compile release version\n\
-  -run args...   run resulting program, passing args\n\
+  -run srcfile args...   run resulting program, passing args\n\
   -unittest      compile in unit tests\n\
   -v             verbose\n\
   -version=level compile in version code >= level\n\
@@ -436,8 +436,17 @@ int main(int argc, char *argv[])
 	    else if (strcmp(p + 1, "run") == 0)
 	    {	global.params.run = 1;
 		global.params.runargs_length = ((i >= argcstart) ? argc : argcstart) - i - 1;
-		global.params.runargs = &argv[i + 1];
-		i += global.params.runargs_length;
+		if (global.params.runargs_length)
+		{
+		    files.push(argv[i + 1]);
+		    global.params.runargs = &argv[i + 2];
+		    i += global.params.runargs_length;
+		    global.params.runargs_length--;
+		}
+		else
+		{   global.params.run = 0;
+		    goto Lnoarg;
+		}
 	    }
 	    else
 	    {

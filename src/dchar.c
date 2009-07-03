@@ -1,5 +1,5 @@
 
-// Copyright (c) 1999-2002 by Digital Mars
+// Copyright (c) 1999-2006 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // www.digitalmars.com
@@ -365,18 +365,30 @@ unsigned Dchar::calcHash(const dchar *str, unsigned len)
 
 	    case 2:
 		hash *= 37;
+#if __I86__
 		hash += *(unsigned short *)str;
+#else
+		hash += str[0] * 256 + str[1];
+#endif
 		return hash;
 
 	    case 3:
 		hash *= 37;
+#if __I86__
 		hash += (*(unsigned short *)str << 8) +
 			((unsigned char *)str)[2];
+#else
+		hash += (str[0] * 256 + str[1]) * 256 + str[2];
+#endif
 		return hash;
 
 	    default:
 		hash *= 37;
+#if __I86__
 		hash += *(long *)str;
+#else
+		hash += ((str[0] * 256 + str[1]) * 256 + str[2]) * 256 + str[3];
+#endif
 		str += 4;
 		len -= 4;
 		break;
