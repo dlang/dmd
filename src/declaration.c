@@ -848,7 +848,13 @@ Expression *VarDeclaration::callAutoDtor()
 	     cd;
 	     cd = cd->baseClass)
 	{
-	    //if (cd->dtor)
+#if 1	    // delete this;
+	    Expression *ec;
+
+	    ec = new VarExp(loc, this);
+	    e = new DeleteExp(loc, ec);
+	    e->type = Type::tvoid;
+#else
 	    {   FuncDeclaration *fd;
 		Expression *efd;
 		Expression *ec;
@@ -866,6 +872,7 @@ Expression *VarDeclaration::callAutoDtor()
 		e->type = fd->type->next;
 		break;
 	    }
+#endif
 	}
     }
     return e;

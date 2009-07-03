@@ -253,19 +253,17 @@ void FuncDeclaration::semantic(Scope *sc)
 		if (fdv && fdv->ident == ident)
 		{
 		    int cov = type->covariant(fdv->type);
-		    //printf("\tcov = %d\n", cov);
-		    if (cov)
+		    //printf("\tbaseclass cov = %d\n", cov);
+		    if (cov == 2)
 		    {
-			// Override
-			//printf("\toverride %p with %p\n", fdv, this);
-			if (cov == 2)
-			{
-			    //type->print();
-			    //fdv->type->print();
-			    //printf("%s %s\n", type->deco, fdv->type->deco);
-			    error("of type %s overrides but is not covariant with %s of type %s",
-				type->toChars(), fdv->toPrettyChars(), fdv->type->toChars());
-			}
+			//type->print();
+			//fdv->type->print();
+			//printf("%s %s\n", type->deco, fdv->type->deco);
+			error("of type %s overrides but is not covariant with %s of type %s",
+			    type->toChars(), fdv->toPrettyChars(), fdv->type->toChars());
+		    }
+		    if (cov == 1)
+		    {
 			if (fdv->isFinal())
 			    error("cannot override final function %s", fdv->toPrettyChars());
 			if (fdv->toParent() == parent)
@@ -304,6 +302,11 @@ void FuncDeclaration::semantic(Scope *sc)
 			}
 			goto L1;
 		    }
+		    if (cov == 3)
+		    {
+			cd->sizeok = 2;	// can't finish due to forward reference
+			return;
+		    }
 		}
 	    }
 	}
@@ -328,7 +331,7 @@ void FuncDeclaration::semantic(Scope *sc)
 	    for (vi = 0; vi < b->base->vtbl.dim; vi++)
 	    {
 		Dsymbol *s = (Dsymbol *)b->base->vtbl.data[vi];
-		//printf("[%d] %p %s\n", vi, s, s->toChars());
+		//printf("interface %d vtbl[%d] %p %s\n", i, vi, s, s->toChars());
 		FuncDeclaration *fdv = s->isFuncDeclaration();
 		if (fdv && fdv->ident == ident)
 		{
@@ -353,9 +356,18 @@ void FuncDeclaration::semantic(Scope *sc)
 			     * offsets differ
 			     */
 			    int offset;
-			    if (fdv->type->next->isBaseOf(type->next, &offset) && offset)
+			    if (fdv->type->next->isBaseOf(type->next, &offset))
 			    {
 				ti = fdv->type;
+#if 0
+				if (offset)
+				    ti = fdv->type;
+				else if (type->next->ty == Tclass)
+				{   ClassDeclaration *cdn = ((TypeClass *)type->next)->sym;
+				    if (cdn && cdn->sizeok != 1)
+					ti = fdv->type;
+				}
+#endif
 			    }
 			}
 			if (ti)
@@ -367,6 +379,11 @@ void FuncDeclaration::semantic(Scope *sc)
 			    tintro = ti;
 			}
 			goto L2;
+		    }
+		    if (cov == 3)
+		    {
+			cd->sizeok = 2;	// can't finish due to forward reference
+			return;
 		    }
 		}
 	    }

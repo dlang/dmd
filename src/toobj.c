@@ -113,7 +113,10 @@ void Module::genmoduleinfo()
     else
 	dtdword(&dt, 0);
 
-    dtdword(&dt, 0);			// flags
+    if (needmoduleinfo)
+	dtdword(&dt, 0);		// flags (4 means MIstandalone)
+    else
+	dtdword(&dt, 4);		// flags (4 means MIstandalone)
 
     if (sctor)
 	dtxoff(&dt, sctor, 0, TYnptr);

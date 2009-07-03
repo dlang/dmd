@@ -566,6 +566,15 @@ Expression *StringExp::castTo(Type *t)
 	return se;
     }
 
+    if (tb->ty != Tsarray && tb->ty != Tarray && tb->ty != Tpointer)
+    {	se->committed = 1;
+	goto Lcast;
+    }
+    if (se->type->ty != Tsarray && se->type->ty != Tarray && se->type->ty != Tpointer)
+    {	se->committed = 1;
+	goto Lcast;
+    }
+
     if (se->committed == 1)
     {
 	if (se->type->next->size() == tb->next->size())
@@ -574,11 +583,8 @@ Expression *StringExp::castTo(Type *t)
 	}
 	goto Lcast;
     }
+
     se->committed = 1;
-    if (tb->ty != Tsarray && tb->ty != Tarray && tb->ty != Tpointer)
-	goto Lcast;
-    if (se->type->ty != Tsarray && se->type->ty != Tarray && se->type->ty != Tpointer)
-	goto Lcast;
 
     int tfty;
     int ttty;

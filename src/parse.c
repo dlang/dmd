@@ -3094,10 +3094,15 @@ Statement *Parser::parseStatement(int flags)
 
 	default:
 	    error("found '%s' instead of statement", token.toChars());
+	    goto Lerror;
+
 	Lerror:
-	    while (token.value != TOKsemicolon && token.value != TOKeof)
+	    while (token.value != TOKrcurly &&
+		   token.value != TOKsemicolon &&
+		   token.value != TOKeof)
 		nextToken();
-	    nextToken();
+	    if (token.value == TOKsemicolon)
+		nextToken();
 	    s = NULL;
 	    break;
     }
@@ -3772,7 +3777,10 @@ Expression *Parser::parsePrimaryExp()
 	    exp = parseExpression();
 	    check(TOKrparen);
 	    t = new TypeTypeof(loc, exp);
-	    goto L1;
+	    if (token.value == TOKdot)
+		goto L1;
+	    e = new TypeExp(loc, t);
+	    break;
 	}
 
 	case TOKtypeid:
@@ -4093,24 +4101,8 @@ Expression *Parser::parseUnaryExp()
 	    t = parseDeclarator(t,NULL);	// ( type )
 	    check(TOKrparen);
 
-	    // if .identifier
-	    if (token.value == TOKdot)
-	    {
-		nextToken();
-		if (token.value != TOKidentifier)
-		{   error("Identifier expected following cast(type).");
-		    return NULL;
-		}
-		// cast(type).ident
-		e = new TypeDotIdExp(loc, t, token.ident);
-		nextToken();
-	    }
-	    else
-	    {
-		e = parseUnaryExp();
-		e = new CastExp(loc, e, t);
-	    }
-
+	    e = parseUnaryExp();
+	    e = new CastExp(loc, e, t);
 	    break;
 	}
 

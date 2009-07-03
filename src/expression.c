@@ -3875,6 +3875,7 @@ Expression *DotTemplateInstanceExp::semantic(Scope *sc)
     Identifier *id;
     Type *t1;
     Expression *eleft = NULL;
+    Expression *eright;
 
 #if LOGSEMANTIC
     printf("DotTemplateInstanceExp::semantic('%s')\n", toChars());
@@ -3886,9 +3887,18 @@ Expression *DotTemplateInstanceExp::semantic(Scope *sc)
     if (t1)
 	t1 = t1->toBasetype();
     //t1->print();
-    if (e1->op == TOKimport)
+    if (e1->op == TOKdotexp)
+    {	DotExp *de = (DotExp *)e1;
+	eleft = de->e1;
+	eright = de->e2;
+    }
+    else
+    {	eleft = NULL;
+	eright = e1;
+    }
+    if (eright->op == TOKimport)
     {
-	s = ((ScopeExp *)e1)->sds;
+	s = ((ScopeExp *)eright)->sds;
     }
     else if (e1->op == TOKtype)
     {
@@ -3987,6 +3997,41 @@ Expression *DelegateExp::semantic(Scope *sc)
 	e1 = e1->semantic(sc);
 	type = new TypeDelegate(func->type);
 	type = type->semantic(loc, sc);
+//-----------------
+	/* For func, we need to get the
+	 * right 'this' pointer if func is in an outer class, but our
+	 * existing 'this' pointer is in an inner class.
+	 * This code is analogous to that used for variables
+	 * in DotVarExp::semantic().
+	 */
+	AggregateDeclaration *ad = func->toParent()->isAggregateDeclaration();
+    L10:
+	Type *t = e1->type;
+	if (func->needThis() && ad &&
+	    !(t->ty == Tpointer && t->next->ty == Tstruct &&
+	      ((TypeStruct *)t->next)->sym == ad) &&
+	    !(t->ty == Tstruct && ((TypeStruct *)t)->sym == ad)
+	   )
+	{
+	    ClassDeclaration *cd = ad->isClassDeclaration();
+	    ClassDeclaration *tcd = t->isClassHandle();
+
+	    if (!cd || !tcd ||
+		!(tcd == cd || cd->isBaseOf(tcd, NULL))
+	       )
+	    {
+		if (tcd && tcd->isNested())
+		{   // Try again with outer scope
+
+		    e1 = new DotVarExp(loc, e1, tcd->vthis);
+		    e1 = e1->semantic(sc);
+		    goto L10;
+		}
+		error("this for %s needs to be type %s not type %s",
+		    func->toChars(), ad->toChars(), t->toChars());
+	    }
+	}
+//-----------------
     }
     return this;
 }

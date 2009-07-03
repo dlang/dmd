@@ -252,6 +252,7 @@ struct TemplateMixin : TemplateInstance
     void inlineScan();
     char *kind();
     int oneMember(Dsymbol **ps);
+    char *toChars();
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
 
     void toObjFile();			// compile to .obj file

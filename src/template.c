@@ -12,6 +12,11 @@
 #include <stdio.h>
 #include <assert.h>
 
+#if _WIN32
+#include <windows.h>
+long __cdecl __ehfilter(LPEXCEPTION_POINTERS ep);
+#endif
+
 #include "root.h"
 #include "mem.h"
 #include "stringtable.h"
@@ -1776,7 +1781,7 @@ void TemplateInstance::semantic(Scope *sc)
     if (inst)		// if semantic() was already run
     {
 #if LOG
-    printf("-TemplateInstance::semantic('%s', this=%p) already run\n", inst->toChars(), inst);
+	printf("-TemplateInstance::semantic('%s', this=%p) already run\n", inst->toChars(), inst);
 #endif
 	return;
     }
@@ -1958,7 +1963,7 @@ void TemplateInstance::semantic(Scope *sc)
     {
 	Dsymbol *s = (Dsymbol *)members->data[i];
 #if LOG
-	printf("\t[%d] adding member '%s' %p to '%s', memnum = %d\n", i, s->toChars(), s, this->toChars(), memnum);
+	printf("\t[%d] adding member '%s' %p kind %s to '%s', memnum = %d\n", i, s->toChars(), s, s->kind(), this->toChars(), memnum);
 #endif
 	memnum |= s->addMember(scope, this, memnum);
     }
@@ -1994,12 +1999,27 @@ void TemplateInstance::semantic(Scope *sc)
     Scope *sc2;
     sc2 = scope->push(this);
     sc2->parent = this;
+
+#if _WIN32
+  __try
+  {
+#endif
     for (int i = 0; i < members->dim; i++)
     {
 	Dsymbol *s = (Dsymbol *)members->data[i];
+	//printf("\t[%d] semantic on '%s' %p kind %s in '%s'\n", i, s->toChars(), s, s->kind(), this->toChars());
 	s->semantic(sc2);
 	sc2->module->runDeferredSemantic();
     }
+#if _WIN32
+  }
+  __except (__ehfilter(GetExceptionInformation()))
+  {
+    global.gag = 0;			// ensure error message gets printed
+    error("recursive expansion");
+    fatal();
+  }
+#endif
 
     /* The problem is when to parse the initializer for a variable.
      * Perhaps VarDeclaration::semantic() should do it like it does
@@ -2926,6 +2946,18 @@ char *TemplateMixin::kind()
 int TemplateMixin::oneMember(Dsymbol **ps)
 {
     return Dsymbol::oneMember(ps);
+}
+
+char *TemplateMixin::toChars()
+{
+    OutBuffer buf;
+    HdrGenState hgs;
+    char *s;
+
+    TemplateInstance::toCBuffer(&buf, &hgs);
+    s = buf.toChars();
+    buf.data = NULL;
+    return s;
 }
 
 void TemplateMixin::toCBuffer(OutBuffer *buf, HdrGenState *hgs)

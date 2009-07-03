@@ -170,6 +170,11 @@ void AggregateDeclaration::addField(Scope *sc, VarDeclaration *v)
 	    return;
 	}
     }
+    if (t->ty == Tident)
+    {
+	sizeok = 2;		// cannot finish; flag as forward referenced
+	return;
+    }
 
     memsize = v->type->size(loc);
     memalignsize = v->type->alignsize();

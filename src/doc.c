@@ -482,7 +482,7 @@ void AggregateDeclaration::emitComment(Scope *sc)
 
 void TemplateDeclaration::emitComment(Scope *sc)
 {
-    //printf("TemplateDeclaration::emitComment() '%s'\n", toChars());
+    //printf("TemplateDeclaration::emitComment() '%s', kind = %s\n", toChars(), kind());
     if (prot() == PROTprivate)
 	return;
     if (!comment)
@@ -511,7 +511,7 @@ void TemplateDeclaration::emitComment(Scope *sc)
     buf->writestring(ddoc_decl_s);
 	o = buf->offset;
 	ss->toDocBuffer(buf);
-	highlightCode(sc, this, buf, o);
+	//highlightCode(sc, this, buf, o);
 	sc->lastoffset = buf->offset;
     buf->writestring(ddoc_decl_e);
 
@@ -686,6 +686,7 @@ void AggregateDeclaration::toDocBuffer(OutBuffer *buf)
 
 void ClassDeclaration::toDocBuffer(OutBuffer *buf)
 {
+    //printf("ClassDeclaration::toDocbuffer() %s\n", toChars());
     if (ident)
     {
 #if 0
@@ -701,7 +702,9 @@ void ClassDeclaration::toDocBuffer(OutBuffer *buf)
 	    highlightCode(NULL, this, buf, o);
 	}
 	else
+	{
 	    buf->printf("%s $(DDOC_PSYMBOL %s)", kind(), toChars());
+	}
 	int any = 0;
 	for (int i = 0; i < baseclasses.dim; i++)
 	{   BaseClass *bc = (BaseClass *)baseclasses.data[i];
@@ -1588,6 +1591,7 @@ void highlightCode(Scope *sc, Dsymbol *s, OutBuffer *buf, unsigned offset)
     char *sid = s->ident->toChars();
     FuncDeclaration *f = s->isFuncDeclaration();
 
+    //printf("highlightCode(s = '%s', kind = %s)\n", sid, s->kind());
     for (unsigned i = offset; i < buf->offset; i++)
     {	unsigned char c = buf->data[i];
 

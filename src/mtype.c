@@ -1,5 +1,5 @@
 
-// Copyright (c) 1999-2005 by Digital Mars
+// Copyright (c) 1999-2006 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // www.digitalmars.com
@@ -2223,7 +2223,6 @@ TypeFunction::TypeFunction(Array *arguments, Type *treturn, int varargs, enum LI
 
 Type *TypeFunction::syntaxCopy()
 {
-    assert(next);
     Type *treturn = next ? next->syntaxCopy() : NULL;
     Array *args = Argument::arraySyntaxCopy(arguments);
     Type *t = new TypeFunction(args, treturn, varargs, linkage);
@@ -2236,6 +2235,7 @@ Type *TypeFunction::syntaxCopy()
  *	1	this is covariant with t
  *	2	arguments match as far as overloading goes,
  *		but types are not covariant
+ *	3	cannot determine covariance because of forward references
  */
 
 int Type::covariant(Type *t)
@@ -2291,6 +2291,14 @@ int Type::covariant(Type *t)
 	goto Lcovariant;
     if (t1n->ty != Tclass || t2n->ty != Tclass)
 	goto Lnotcovariant;
+
+    // If t1n is forward referenced:
+    ClassDeclaration *cd = ((TypeClass *)t1n)->sym;
+    if (!cd->baseClass && cd->baseclasses.dim && !cd->isInterfaceDeclaration())
+    {
+	return 3;
+    }
+
     if (t1n->implicitConvTo(t2n))
 	goto Lcovariant;
     goto Lnotcovariant;
@@ -2683,6 +2691,7 @@ void TypeQualified::toCBuffer2Helper(OutBuffer *buf, Identifier *ident, HdrGenSt
 d_uns64 TypeQualified::size(Loc loc)
 {
     error(this->loc, "size of type %s is not known", toChars());
+*(char*)0=0;
     return 1;
 }
 
@@ -3609,7 +3618,11 @@ Expression *TypeTypedef::defaultInit()
 int TypeTypedef::isZeroInit()
 {
     if (sym->init)
+    {
+	if (sym->init->toExpression()->isBool(FALSE))
+	    return 1;
 	return 0;		// assume not
+    }
     return sym->basetype->isZeroInit();
 }
 
@@ -3723,7 +3736,8 @@ Expression *TypeStruct::dotExp(Scope *sc, Expression *e, Identifier *ident)
 L1:
     if (!s)
     {
-	return getProperty(e->loc, ident);
+	//return getProperty(e->loc, ident);
+	return Type::dotExp(sc, e, ident);
     }
     s = s->toAlias();
 
@@ -3980,7 +3994,8 @@ L1:
 		error(e->loc, ".typeinfo deprecated, use typeid(type)");
 	    return getTypeInfo(sc);
 	}
-	return getProperty(e->loc, ident);
+	//return getProperty(e->loc, ident);
+	return Type::dotExp(sc, e, ident);
     }
     s = s->toAlias();
     v = s->isVarDeclaration();
