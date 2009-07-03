@@ -210,11 +210,19 @@ Msgtable msgtable[] =
     { "apply", "opApply" },
     { "applyReverse", "opApplyReverse" },
 
+#if 1
+    { "Fempty", "empty" },
+    { "Fhead", "front" },
+    { "Ftoe", "back" },
+    { "Fnext", "popFront" },
+    { "Fretreat", "popBack" },
+#else
     { "Fempty", "empty" },
     { "Fhead", "head" },
     { "Ftoe", "toe" },
     { "Fnext", "next" },
     { "Fretreat", "retreat" },
+#endif
 
     { "adDup", "_adDupT" },
     { "adReverse", "_adReverse" },

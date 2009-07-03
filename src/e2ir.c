@@ -1942,7 +1942,7 @@ elem *AddExp::toElem(IRState *irs)
        )
     {
 	error("Array operation %s not implemented", toChars());
-	return e1->toElem(irs); // prevent segfault
+	e = el_long(type->totym(), 0);	// error recovery
     }
     else
 	e = toElemBin(irs,OPadd);
@@ -3169,13 +3169,6 @@ elem *CondExp::toElem(IRState *irs)
 
 /***************************************
  */
-
-elem *TypeDotIdExp::toElem(IRState *irs)
-{
-    print();
-    assert(0);
-    return NULL;
-}
 
 elem *TypeExp::toElem(IRState *irs)
 {

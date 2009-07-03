@@ -1806,8 +1806,57 @@ Objects *Parser::parseTemplateArgumentList2()
 	    else
 	    {	// Template argument is an expression
 		Expression *ea = parseAssignExp();
+
+		if (ea->op == TOKfunction)
+		{   FuncLiteralDeclaration *fd = ((FuncExp *)ea)->fd;
+		    if (fd->type->ty == Tfunction)
+		    {
+			TypeFunction *tf = (TypeFunction *)fd->type;
+			/* If there are parameters that consist of only an identifier,
+			 * rather than assuming the identifier is a type, as we would
+			 * for regular function declarations, assume the identifier
+			 * is the parameter name, and we're building a template with
+			 * a deduced type.
+			 */
+			TemplateParameters *tpl = NULL;
+			for (int i = 0; i < tf->parameters->dim; i++)
+			{   Argument *param = (Argument *)tf->parameters->data[i];
+			    if (param->ident == NULL &&
+				param->type &&
+				param->type->ty == Tident &&
+				((TypeIdentifier *)param->type)->idents.dim == 0
+			       )
+			    {
+				/* Switch parameter type to parameter identifier,
+				 * parameterize with template type parameter _T
+				 */
+				TypeIdentifier *pt = (TypeIdentifier *)param->type;
+				param->ident = pt->ident;
+				Identifier *id = Lexer::uniqueId("__T");
+				param->type = new TypeIdentifier(pt->loc, id);
+				TemplateParameter *tp = new TemplateTypeParameter(fd->loc, id, NULL, NULL);
+				if (!tpl)
+				    tpl = new TemplateParameters();
+				tpl->push(tp);
+			    }
+			}
+
+			if (tpl)
+			{   // Wrap a template around function fd
+			    Array *decldefs = new Array();
+			    decldefs->push(fd);
+			    TemplateDeclaration *tempdecl =
+				new TemplateDeclaration(fd->loc, fd->ident, tpl, NULL, decldefs);
+			    tempdecl->literal = 1;	// it's a template 'literal'
+			    tiargs->push(tempdecl);
+			    goto L1;
+			}
+		    }
+		}
+
 		tiargs->push(ea);
 	    }
+	 L1:
 	    if (token.value != TOKcomma)
 		break;
 	    nextToken();
@@ -3198,6 +3247,7 @@ Statement *Parser::parseStatement(int flags)
 	case TOKimmutable:
 	case TOKshared:
 	case TOKnothrow:
+	case TOKpure:
 #endif
 //	case TOKtypeof:
 	Ldeclaration:
@@ -4757,7 +4807,7 @@ Expression *Parser::parsePrimaryExp()
 	    {   error("found '%s' when expecting identifier following '%s.'", token.toChars(), t->toChars());
 		goto Lerr;
 	    }
-	    e = new TypeDotIdExp(loc, t, token.ident);
+	    e = typeDotIdExp(loc, t, token.ident);
 	    nextToken();
 	    break;
 
@@ -5008,6 +5058,7 @@ Expression *Parser::parsePrimaryExp()
 		    nextToken();
 		}
 	    }
+
 	    TypeFunction *tf = new TypeFunction(arguments, t, varargs, linkage);
 	    tf->ispure = ispure;
 	    tf->isnothrow = isnothrow;
@@ -5321,7 +5372,7 @@ Expression *Parser::parseUnaryExp()
 			    {   error("Identifier expected following (type).");
 				return NULL;
 			    }
-			    e = new TypeDotIdExp(loc, t, token.ident);
+			    e = typeDotIdExp(loc, t, token.ident);
 			    nextToken();
 			    e = parsePostExp(e);
 			}

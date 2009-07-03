@@ -5,7 +5,6 @@
 // http://www.digitalmars.com
 
 #include "port.h"
-
 #if __DMC__
 #include <math.h>
 #include <float.h>
@@ -124,6 +123,7 @@ char *Port::strupr(char *s)
 #include <string.h>
 #include <ctype.h>
 #include <stdlib.h>
+#include <limits> // for std::numeric_limits
 
 static unsigned long nanarray[2]= { 0xFFFFFFFF, 0x7FFFFFFF };
 //static unsigned long nanarray[2] = {0,0x7FF80000 };

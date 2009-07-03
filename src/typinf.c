@@ -27,6 +27,7 @@
 #include "import.h"
 #include "aggregate.h"
 
+#ifndef TARGET_NET
 #include "rmem.h"
 #include "cc.h"
 #include "global.h"
@@ -37,6 +38,7 @@
 #include "cgcv.h"
 #include "outbuf.h"
 #include "irstate.h"
+#endif
 
 extern Symbol *static_sym();
 
@@ -208,7 +210,7 @@ TypeInfoDeclaration *TypeTuple::getTypeInfoDeclaration()
     return new TypeInfoTupleDeclaration(this);
 }
 
-
+#ifndef TARGET_NET
 /****************************************************
  */
 
@@ -734,6 +736,7 @@ void TypeInfoDeclaration::toObjFile(int multiobj)
 }
 
 #endif
+#endif // TARGET_NET
 
 /* ========================================================================= */
 

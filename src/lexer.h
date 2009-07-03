@@ -51,7 +51,7 @@ enum TOK
 	TOKnull,	TOKassert,
 	TOKtrue,	TOKfalse,
 	TOKarray,	TOKcall,
-	TOKaddress,	TOKtypedot,
+	TOKaddress,
 	TOKtype,	TOKthrow,
 	TOKnew,		TOKdelete,
 	TOKstar,	TOKsymoff,

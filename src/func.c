@@ -1077,15 +1077,14 @@ void FuncDeclaration::semantic3(Scope *sc)
 		    Expression *e1 = new SuperExp(0);
 		    Expression *e = new CallExp(0, e1);
 
-		    unsigned errors = global.errors;
-		    global.gag++;
-		    e = e->semantic(sc2);
-		    global.gag--;
-		    if (errors != global.errors)
+		    e = e->trySemantic(sc2);
+		    if (!e)
 			error("no match for implicit super() call in constructor");
-
-		    Statement *s = new ExpStatement(0, e);
-		    fbody = new CompoundStatement(0, s, fbody);
+		    else
+		    {
+			Statement *s = new ExpStatement(0, e);
+			fbody = new CompoundStatement(0, s, fbody);
+		    }
 		}
 	    }
 	    else if (fes)
@@ -2291,7 +2290,7 @@ FuncLiteralDeclaration::FuncLiteralDeclaration(Loc loc, Loc endloc, Type *type,
 	id = "__dgliteral";
     else
 	id = "__funcliteral";
-    this->ident = Identifier::generateId(id);
+    this->ident = Lexer::uniqueId(id);
     this->tok = tok;
     this->fes = fes;
     //printf("FuncLiteralDeclaration() id = '%s', type = '%s'\n", this->ident->toChars(), type->toChars());
@@ -2305,7 +2304,9 @@ Dsymbol *FuncLiteralDeclaration::syntaxCopy(Dsymbol *s)
     if (s)
 	f = (FuncLiteralDeclaration *)s;
     else
-	f = new FuncLiteralDeclaration(loc, endloc, type->syntaxCopy(), tok, fes);
+    {	f = new FuncLiteralDeclaration(loc, endloc, type->syntaxCopy(), tok, fes);
+	f->ident = ident;		// keep old identifier
+    }
     FuncDeclaration::syntaxCopy(f);
     return f;
 }

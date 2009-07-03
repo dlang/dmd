@@ -183,7 +183,7 @@ Expression *TraitsExp::semantic(Scope *sc)
 	e = isExpression(o);
 	Dsymbol *s = isDsymbol(o);
 	if (t)
-	    e = new TypeDotIdExp(loc, t, id);
+	    e = typeDotIdExp(loc, t, id);
 	else if (e)
 	    e = new DotIdExp(loc, e, id);
 	else if (s)
@@ -198,13 +198,10 @@ Expression *TraitsExp::semantic(Scope *sc)
 	if (ident == Id::hasMember)
 	{   /* Take any errors as meaning it wasn't found
 	     */
-	    unsigned errors = global.errors;
-	    global.gag++;
-	    e = e->semantic(sc);
-	    global.gag--;
-	    if (errors != global.errors)
-	    {	if (global.gag == 0)
-		    global.errors = errors;
+	    e = e->trySemantic(sc);
+	    if (!e)
+	    {	if (global.gag)
+		    global.errors++;
 		goto Lfalse;
 	    }
 	    else
@@ -326,16 +323,15 @@ Expression *TraitsExp::semantic(Scope *sc)
 
 	for (size_t i = 0; i < dim; i++)
 	{   Object *o = (Object *)args->data[i];
-	    Type *t;
 	    Expression *e;
-	    Dsymbol *s;
 
 	    unsigned errors = global.errors;
 	    global.gag++;
 
-	    t = isType(o);
+	    Type *t = isType(o);
 	    if (t)
-	    {	t->resolve(loc, sc, &e, &t, &s);
+	    {	Dsymbol *s;
+		t->resolve(loc, sc, &e, &t, &s);
 		if (t)
 		    t->semantic(loc, sc);
 		else if (e)

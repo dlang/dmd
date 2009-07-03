@@ -142,7 +142,6 @@ void Declaration::checkModify(Loc loc, Scope *sc, Type *t)
 		p = "struct with immutable members";
 	    if (p)
 	    {	error(loc, "cannot modify %s", p);
-		halt();
 	    }
 	}
     }

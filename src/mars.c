@@ -58,6 +58,7 @@ Global::Global()
     obj_ext  = "obj";
 #elif TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD
     obj_ext  = "o";
+#elif TARGET_NET
 #else
 #error "fix this"
 #endif
@@ -66,13 +67,18 @@ Global::Global()
     lib_ext  = "lib";
 #elif TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD
     lib_ext  = "a";
+#elif TARGET_NET
 #else
 #error "fix this"
 #endif
 
     copyright = "Copyright (c) 1999-2009 by Digital Mars";
-    written = "written by Walter Bright";
-    version = "v2.028";
+    written = "written by Walter Bright"
+#if TARGET_NET
+    "\nMSIL back-end (alpha release) by Cristian L. Vlasceanu and associates.";
+#endif
+    ;
+    version = "v2.029";
     global.structalign = 8;
 
     memset(&params, 0, sizeof(Param));
@@ -196,7 +202,8 @@ Documentation: http://www.digitalmars.com/d/2.0/index.html\n\
 Usage:\n\
   dmd files.d ... { -switch }\n\
 \n\
-  files.d        D source files\n%s\
+  files.d        D source files\n\
+  @cmdfile       read arguments from cmdfile\n\
   -c             do not link\n\
   -cov           do code coverage analysis\n\
   -D             generate documentation\n\
@@ -237,13 +244,7 @@ Usage:\n\
   -version=level compile in version code >= level\n\
   -version=ident compile in version code identified by ident\n\
   -w             enable warnings\n\
-",
-#if WIN32
-"  @cmdfile       read arguments from cmdfile\n"
-#else
-""
-#endif
-);
+");
 }
 
 int main(int argc, char *argv[])
@@ -298,32 +299,38 @@ int main(int argc, char *argv[])
     global.params.defaultlibname = "phobos";
 #elif TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD
     global.params.defaultlibname = "phobos2";
+#elif TARGET_NET
+#else
+#error "fix this"
 #endif
 
     // Predefine version identifiers
     VersionCondition::addPredefinedGlobalIdent("DigitalMars");
+
 #if TARGET_WINDOS
     VersionCondition::addPredefinedGlobalIdent("Windows");
     global.params.isWindows = 1;
-#endif
-#if TARGET_LINUX
+#elif TARGET_LINUX
     VersionCondition::addPredefinedGlobalIdent("Posix");
     VersionCondition::addPredefinedGlobalIdent("linux");
     global.params.isLinux = 1;
-#endif
-#if TARGET_OSX
+#elif TARGET_OSX
     VersionCondition::addPredefinedGlobalIdent("Posix");
     VersionCondition::addPredefinedGlobalIdent("OSX");
     global.params.isOSX = 1;
 
     // For legacy compatibility
     VersionCondition::addPredefinedGlobalIdent("darwin");
-#endif
-#if TARGET_FREEBSD
+#elif TARGET_FREEBSD
     VersionCondition::addPredefinedGlobalIdent("Posix");
     VersionCondition::addPredefinedGlobalIdent("FreeBSD");
     global.params.isFreeBSD = 1;
+#elif TARGET_NET
+    VersionCondition::addPredefinedGlobalIdent("D_NET");
+#else
+#error "fix this"
 #endif
+
     VersionCondition::addPredefinedGlobalIdent("LittleEndian");
     //VersionCondition::addPredefinedGlobalIdent("D_Bits");
 #if DMDV2
@@ -333,9 +340,10 @@ int main(int argc, char *argv[])
 
 #if _WIN32
     inifile(argv[0], "sc.ini");
-#endif
-#if linux || __APPLE__ || __FreeBSD__
+#elif linux || __APPLE__ || __FreeBSD__
     inifile(argv[0], "dmd.conf");
+#else
+#error "fix this"
 #endif
     getenv_setargv("DFLAGS", &argc, &argv);
 

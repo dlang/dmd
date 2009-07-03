@@ -533,6 +533,9 @@ struct FuncDeclaration : Declaration
     void semantic(Scope *sc);
     void semantic2(Scope *sc);
     void semantic3(Scope *sc);
+    // called from semantic3
+    void varArgs(Scope *sc, TypeFunction*, VarDeclaration *&, VarDeclaration *&);
+
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
     void bodyToCBuffer(OutBuffer *buf, HdrGenState *hgs);
     int overrides(FuncDeclaration *fd);

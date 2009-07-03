@@ -60,6 +60,8 @@ struct TemplateDeclaration : ScopeDsymbol
     Scope *scope;
     Dsymbol *onemember;		// if !=NULL then one member of this template
 
+    int literal;		// this template declaration is a literal
+
     TemplateDeclaration(Loc loc, Identifier *id, TemplateParameters *parameters,
 	Expression *constraint, Array *decldefs);
     Dsymbol *syntaxCopy(Dsymbol *);

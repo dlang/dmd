@@ -90,7 +90,6 @@ void initPrecedence()
     precedence[TOKnull] = PREC_primary;
     precedence[TOKstring] = PREC_primary;
     precedence[TOKarrayliteral] = PREC_primary;
-    precedence[TOKtypedot] = PREC_primary;
     precedence[TOKtypeid] = PREC_primary;
     precedence[TOKis] = PREC_primary;
     precedence[TOKassert] = PREC_primary;
@@ -909,6 +908,25 @@ Expression *Expression::semantic(Scope *sc)
     else
 	type = Type::tvoid;
     return this;
+}
+
+/**********************************
+ * Try to run semantic routines.
+ * If they fail, return NULL.
+ */
+
+Expression *Expression::trySemantic(Scope *sc)
+{
+    unsigned errors = global.errors;
+    global.gag++;
+    Expression *e = semantic(sc);
+    global.gag--;
+    if (errors != global.errors)
+    {
+	global.errors = errors;
+	e = NULL;
+    }
+    return e;
 }
 
 void Expression::print()
@@ -1940,7 +1958,7 @@ Expression *IdentifierExp::semantic(Scope *sc)
 	    {	Type *t = withsym->withstate->wthis->type;
 		if (t->ty == Tpointer)
 		    t = ((TypePointer *)t)->next;
-		e = new TypeDotIdExp(loc, t, ident);
+		e = typeDotIdExp(loc, t, ident);
 	    }
 	}
 	else
@@ -2227,6 +2245,7 @@ Expression *DsymbolExp::toLvalue(Scope *sc, Expression *e)
 ThisExp::ThisExp(Loc loc)
 	: Expression(loc, TOKthis, sizeof(ThisExp))
 {
+    //printf("ThisExp::ThisExp()\n");
     var = NULL;
 }
 
@@ -2251,21 +2270,18 @@ Expression *ThisExp::semantic(Scope *sc)
 	// Find enclosing struct or class
 	for (Dsymbol *s = sc->parent; 1; s = s->parent)
 	{
-	    ClassDeclaration *cd;
-	    StructDeclaration *sd;
-
 	    if (!s)
 	    {
-		error("%s is not in a struct or class scope", toChars());
+		error("%s is not in a class or struct scope", toChars());
 		goto Lerr;
 	    }
-	    cd = s->isClassDeclaration();
+	    ClassDeclaration *cd = s->isClassDeclaration();
 	    if (cd)
 	    {
 		type = cd->type;
 		return this;
 	    }
-	    sd = s->isStructDeclaration();
+	    StructDeclaration *sd = s->isStructDeclaration();
 	    if (sd)
 	    {
 #if STRUCTTHISREF
@@ -3301,38 +3317,11 @@ void StructLiteralExp::toMangleBuffer(OutBuffer *buf)
  *	cast(foo).size
  */
 
-TypeDotIdExp::TypeDotIdExp(Loc loc, Type *type, Identifier *ident)
-    : Expression(loc, TOKtypedot, sizeof(TypeDotIdExp))
+Expression *typeDotIdExp(Loc loc, Type *type, Identifier *ident)
 {
-    this->type = type;
-    this->ident = ident;
+    return new DotIdExp(loc, new TypeExp(loc, type), ident);
 }
 
-Expression *TypeDotIdExp::syntaxCopy()
-{
-    TypeDotIdExp *te = new TypeDotIdExp(loc, type->syntaxCopy(), ident);
-    return te;
-}
-
-Expression *TypeDotIdExp::semantic(Scope *sc)
-{   Expression *e;
-
-#if LOGSEMANTIC
-    printf("TypeDotIdExp::semantic()\n");
-#endif
-    e = new DotIdExp(loc, new TypeExp(loc, type), ident);
-    e = e->semantic(sc);
-    return e;
-}
-
-void TypeDotIdExp::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
-{
-    buf->writeByte('(');
-    type->toCBuffer(buf, NULL, hgs);
-    buf->writeByte(')');
-    buf->writeByte('.');
-    buf->writestring(ident->toChars());
-}
 
 /************************************************************/
 
@@ -4582,19 +4571,11 @@ Expression *IsExp::semantic(Scope *sc)
     if (id && !(sc->flags & SCOPEstaticif))
 	error("can only declare type aliases within static if conditionals");
 
-    unsigned errors_save = global.errors;
-    global.errors = 0;
-    global.gag++;			// suppress printing of error messages
-    targ = targ->semantic(loc, sc);
-    global.gag--;
-    unsigned gerrors = global.errors;
-    global.errors = errors_save;
-
-    if (gerrors)			// if any errors happened
-    {					// then condition is false
-	goto Lno;
-    }
-    else if (tok2 != TOKreserved)
+    Type *t = targ->trySemantic(loc, sc);
+    if (!t)
+	goto Lno;			// errors, so condition is false
+    targ = t;
+    if (tok2 != TOKreserved)
     {
 	switch (tok2)
 	{
@@ -5304,12 +5285,12 @@ Expression *DotIdExp::semantic(Scope *sc)
 	    {
 		if (e1->op == TOKthis)
 		{
-		    e = new TypeDotIdExp(loc, cd->type, ident);
+		    e = typeDotIdExp(loc, cd->type, ident);
 		    return e->semantic(sc);
 		}
 		else if (cd->baseClass && e1->op == TOKsuper)
 		{
-		    e = new TypeDotIdExp(loc, cd->baseClass->type, ident);
+		    e = typeDotIdExp(loc, cd->baseClass->type, ident);
 		    return e->semantic(sc);
 		}
 	    }
@@ -5320,7 +5301,7 @@ Expression *DotIdExp::semantic(Scope *sc)
 		{
 		    if (e1->op == TOKthis)
 		    {
-			e = new TypeDotIdExp(loc, sd->type, ident);
+			e = typeDotIdExp(loc, sd->type, ident);
 			return e->semantic(sc);
 		    }
 		}
@@ -5368,8 +5349,15 @@ Expression *DotIdExp::semantic(Scope *sc)
 	return e;
     }
 
+    if (e1->op == TOKdottd)
+    {
+	error("template %s does not have property %s", e1->toChars(), ident->toChars());
+	return e1;
+    }
+
     if (!e1->type)
-    {   error("invalid expression (bad typeof?)");
+    {
+	error("expression %s does not have property %s", e1->toChars(), ident->toChars());
 	return e1;
     }
 
@@ -5409,32 +5397,6 @@ Expression *DotIdExp::semantic(Scope *sc)
 		    return this;
 		}
 		type = v->type;
-#if 0
-		if (v->isConst() || v->isInvariant())
-		{
-		    if (v->init)
-		    {
-			ExpInitializer *ei = v->init->isExpInitializer();
-			if (ei)
-			{
-    //printf("\tei: %p (%s)\n", ei->exp, ei->exp->toChars());
-    //ei->exp = ei->exp->semantic(sc);
-			    if (ei->exp->type == type)
-			    {
-				e = ei->exp->copy();	// make copy so we can change loc
-				e->loc = loc;
-				return e;
-			    }
-			}
-		    }
-		    else if (type->isscalar())
-		    {
-			e = type->defaultInit();
-			e->loc = loc;
-			return e;
-		    }
-		}
-#endif
 		if (v->needThis())
 		{
 		    if (!eleft)
@@ -6136,20 +6098,15 @@ Expression *CallExp::semantic(Scope *sc)
 	     * If not, go with partial explicit specialization.
 	     */
 	    ti->semanticTiargs(sc);
-	    Expression *etmp;
-	    unsigned errors = global.errors;
-	    global.gag++;
-	    etmp = e1->semantic(sc);
-	    global.gag--;
-	    if (errors != global.errors)
+	    Expression *etmp = e1->trySemantic(sc);
+	    if (etmp)
+		e1 = etmp;	// it worked
+	    else		// didn't work
 	    {
-		global.errors = errors;
 		targsi = ti->tiargs;
 		tierror = ti;		// for error reporting
 		e1 = new DotIdExp(loc, se->e1, ti->name);
 	    }
-	    else
-		e1 = etmp;
 	}
     }
 #endif
@@ -6671,6 +6628,7 @@ int CallExp::checkSideEffect(int flag)
 #if DMDV2
 int CallExp::canThrow()
 {
+    //printf("CallExp::canThrow() %s\n", toChars());
     if (e1->canThrow())
 	return 1;
 
@@ -6683,12 +6641,13 @@ int CallExp::canThrow()
 	    return 1;
     }
 
+    if (global.errors && !e1->type)
+	return 0;			// error recovery
+
     /* If calling a function or delegate that is typed as nothrow,
      * then this expression cannot throw.
      * Note that pure functions can throw.
      */
-    if (!e1->type)
-	return 0;
     Type *t = e1->type->toBasetype();
     if (t->ty == Tfunction && ((TypeFunction *)t)->isnothrow)
 	return 0;

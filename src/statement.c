@@ -1126,7 +1126,8 @@ Statement *ForStatement::semantic(Scope *sc)
 
     sc->sbreak = this;
     sc->scontinue = this;
-    if (body) body = body->semantic(sc);
+    if (body)
+	body = body->semantic(sc);
     sc->noctor--;
 
     sc->pop();
@@ -1507,9 +1508,9 @@ Statement *ForeachStatement::semantic(Scope *sc)
 #if DMDV2
 	{   /* Look for range iteration, i.e. the properties
 	     * .empty, .next, .retreat, .head and .rear
-	     *    foreach (e; range) { ... }
+	     *    foreach (e; aggr) { ... }
 	     * translates to:
-	     *    for (auto __r = range; !__r.empty; __r.next)
+	     *    for (auto __r = aggr[]; !__r.empty; __r.next)
 	     *    {   auto e = __r.head;
 	     *        ...
 	     *    }
@@ -1536,7 +1537,12 @@ Statement *ForeachStatement::semantic(Scope *sc)
 	    /* Generate a temporary __r and initialize it with the aggregate.
 	     */
 	    Identifier *id = Identifier::generateId("__r");
-	    VarDeclaration *r = new VarDeclaration(loc, NULL, id, new ExpInitializer(loc, aggr));
+	    aggr = aggr->semantic(sc);
+	    Expression *rinit = new SliceExp(loc, aggr, NULL, NULL);
+	    rinit = rinit->trySemantic(sc);
+	    if (!rinit)			// if application of [] failed
+		rinit = aggr;
+	    VarDeclaration *r = new VarDeclaration(loc, NULL, id, new ExpInitializer(loc, rinit));
 //	    r->semantic(sc);
 //printf("r: %s, init: %s\n", r->toChars(), r->init->toChars());
 	    Statement *init = new DeclarationStatement(loc, r);
@@ -1807,6 +1813,7 @@ Statement *ForeachStatement::semantic(Scope *sc)
 
 	default:
 	    error("foreach: %s is not an aggregate type", aggr->type->toChars());
+	    s = NULL;	// error recovery
 	    break;
     }
     sc->noctor--;

@@ -312,6 +312,7 @@ TemplateDeclaration::TemplateDeclaration(Loc loc, Identifier *id,
     this->overroot = NULL;
     this->scope = NULL;
     this->onemember = NULL;
+    this->literal = 0;
 }
 
 Dsymbol *TemplateDeclaration::syntaxCopy(Dsymbol *)
@@ -380,6 +381,9 @@ void TemplateDeclaration::semantic(Scope *sc)
     Scope *paramscope = sc->push(paramsym);
     paramscope->parameterSpecialization = 1;
     paramscope->stc = 0;
+
+    if (!parent)
+	parent = sc->parent;
 
     if (global.params.doDocComments)
     {
@@ -3685,6 +3689,9 @@ void TemplateInstance::semanticTiargs(Loc loc, Scope *sc, Objects *tiargs, int f
 	}
 	else if (sa)
 	{
+	    TemplateDeclaration *td = sa->isTemplateDeclaration();
+	    if (td && !td->scope && td->literal)
+		td->semantic(sc);
 	}
 	else
 	{
@@ -3964,7 +3971,13 @@ int TemplateInstance::hasNestedArgs(Objects *args)
 	else if (sa)
 	{
 	  Lsa:
-	    Declaration *d = sa->isDeclaration();
+	    Declaration *d = NULL;
+	    TemplateDeclaration *td = sa->isTemplateDeclaration();
+	    if (td && td->literal)
+	    {
+		goto L2;
+	    }
+	    d = sa->isDeclaration();
 	    if (d && !d->isDataseg() &&
 #if DMDV2
 		!(d->storage_class & STCmanifest) &&
@@ -3972,9 +3985,10 @@ int TemplateInstance::hasNestedArgs(Objects *args)
 		(!d->isFuncDeclaration() || d->isFuncDeclaration()->isNested()) &&
 		!isTemplateMixin())
 	    {
+	     L2:
 		// if module level template
 		if (tempdecl->toParent()->isModule())
-		{   Dsymbol *dparent = d->toParent();
+		{   Dsymbol *dparent = sa->toParent();
 		    if (!isnested)
 			isnested = dparent;
 		    else if (isnested != dparent)
@@ -4277,7 +4291,9 @@ Dsymbol *TemplateInstance::toAlias()
 	return inst->toAlias();
 
     if (aliasdecl)
+    {
 	return aliasdecl->toAlias();
+    }
 
     return inst;
 }

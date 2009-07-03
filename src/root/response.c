@@ -14,6 +14,10 @@
 #include <stdlib.h>
 #include <string.h>
 
+#if !__DMC__
+#include <sys/stat.h>
+#endif
+
 #if _WIN32
 #include <tchar.h>
 #include <io.h>
@@ -21,7 +25,6 @@
 
 #if linux || __APPLE__ || __FreeBSD__
 #include <sys/types.h>
-#include <sys/stat.h>
 #include <fcntl.h>
 #include <errno.h>
 #include <unistd.h>
@@ -112,7 +115,7 @@ int response_expand(int *pargc, char ***pargv)
                 int nread;
                 size_t len;
 
-#if _WIN32
+#if __DMC__
                 length = filesize(cp);
 #else
 		struct stat statbuf;

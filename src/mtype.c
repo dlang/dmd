@@ -303,6 +303,20 @@ Type *Type::semantic(Loc loc, Scope *sc)
     return merge();
 }
 
+Type *Type::trySemantic(Loc loc, Scope *sc)
+{
+    unsigned errors = global.errors;
+    global.gag++;			// suppress printing of error messages
+    Type *t = semantic(loc, sc);
+    global.gag--;
+    if (errors != global.errors)	// if any errors happened
+    {
+	global.errors = errors;
+	t = NULL;
+    }
+    return t;
+}
+
 /*******************************
  * Determine if converting 'this' to 'to' is an identity operation,
  * a conversion to const operation, or the types aren't the same.
@@ -5664,15 +5678,15 @@ L1:
     if (e->op == TOKtype)
     {	FuncDeclaration *fd = sc->func;
 
-	if (d->needThis() && fd && fd->vthis)
-	{
-	    e = new DotVarExp(e->loc, new ThisExp(e->loc), d);
-	    e = e->semantic(sc);
-	    return e;
-	}
 	if (d->isTupleDeclaration())
 	{
 	    e = new TupleExp(e->loc, d->isTupleDeclaration());
+	    e = e->semantic(sc);
+	    return e;
+	}
+	if (d->needThis() && fd && fd->vthis)
+	{
+	    e = new DotVarExp(e->loc, new ThisExp(e->loc), d);
 	    e = e->semantic(sc);
 	    return e;
 	}
@@ -6139,7 +6153,13 @@ L1:
 	/* It's:
 	 *    Class.d
 	 */
-	if (d->needThis() && (hasThis(sc) || !d->isFuncDeclaration()))
+	if (d->isTupleDeclaration())
+	{
+	    e = new TupleExp(e->loc, d->isTupleDeclaration());
+	    e = e->semantic(sc);
+	    return e;
+	}
+	else if (d->needThis() && (hasThis(sc) || !d->isFuncDeclaration()))
 	{
 	    if (sc->func)
 	    {
@@ -6169,12 +6189,6 @@ L1:
 	     */
 	    DotVarExp *de = new DotVarExp(e->loc, new ThisExp(e->loc), d);
 	    e = de->semantic(sc);
-	    return e;
-	}
-	else if (d->isTupleDeclaration())
-	{
-	    e = new TupleExp(e->loc, d->isTupleDeclaration());
-	    e = e->semantic(sc);
 	    return e;
 	}
 	else

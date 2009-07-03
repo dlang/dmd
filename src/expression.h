@@ -82,6 +82,7 @@ struct Expression : Object
     Expression *copy();
     virtual Expression *syntaxCopy();
     virtual Expression *semantic(Scope *sc);
+    Expression *trySemantic(Scope *sc);
 
     int dyncast() { return DYNCAST_EXPRESSION; }	// kludge for template.isExpression()
 
@@ -453,16 +454,7 @@ struct StructLiteralExp : Expression
     Expression *inlineScan(InlineScanState *iss);
 };
 
-struct TypeDotIdExp : Expression
-{
-    Identifier *ident;
-
-    TypeDotIdExp(Loc loc, Type *type, Identifier *ident);
-    Expression *syntaxCopy();
-    Expression *semantic(Scope *sc);
-    void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
-    elem *toElem(IRState *irs);
-};
+Expression *typeDotIdExp(Loc loc, Type *type, Identifier *ident);
 
 struct TypeExp : Expression
 {
