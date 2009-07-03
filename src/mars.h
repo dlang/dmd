@@ -69,6 +69,8 @@ struct Param
     unsigned versionlevel;	// version level
     Array *versionids;		// version identifiers
 
+    bool dump_source;
+
     // Hidden debug switches
     char debuga;
     char debugb;
@@ -122,10 +124,11 @@ extern Global global;
 
 #ifdef __DMC__
 typedef _Complex long double complex_t;
+#elif IN_GCC
 #else
 #include "complex_t.h"
 #ifdef __APPLE__
-#include "complex.h"
+//#include "complex.h"//This causes problems with include the c++ <complex> and not the C "complex.h"
 #define integer_t dmd_integer_t
 #endif
 #endif
@@ -136,8 +139,6 @@ typedef unsigned long long integer_t;
 // Signed and unsigned variants
 typedef long long sinteger_t;
 typedef unsigned long long uinteger_t;
-
-typedef long double real_t;
 
 typedef signed char		d_int8;
 typedef unsigned char		d_uns8;
@@ -156,15 +157,23 @@ typedef d_uns8			d_char;
 typedef d_uns16			d_wchar;
 typedef d_uns32			d_dchar;
 
+#ifdef IN_GCC
+#include "d-gcc-real.h"
+#else
+typedef long double real_t;
+#endif
+
 // Modify OutBuffer::writewchar to write the correct size of wchar
 #if _WIN32
 #define writewchar writeword
-#endif
-
-#if linux
+#else
+// This needs a configuration test...
 #define writewchar write4
 #endif
 
+#ifdef IN_GCC
+#include "d-gcc-complex_t.h"
+#endif
 
 struct Module;
 
@@ -191,8 +200,10 @@ struct Loc
     char *toChars();
 };
 
+#ifndef GCC_SAFE_DMD
 #define TRUE	1
 #define FALSE	0
+#endif
 
 #define INTERFACE_OFFSET	0	// if 1, put classinfo as first entry
 					// in interface vtbl[]'s

@@ -36,7 +36,12 @@ struct TypeBasic;
 struct HdrGenState;
 
 // Back end
+#if IN_GCC
+union tree_node; typedef union tree_node TYPE;
+typedef TYPE type;
+#else
 typedef struct TYPE type;
+#endif
 struct Symbol;
 
 enum TY
@@ -77,6 +82,7 @@ enum TY
     Tcomplex80,
 
     Tbit,
+    Tbool,
     Tchar,
     Twchar,
     Tdchar,
@@ -134,13 +140,15 @@ struct Type : Object
     #define tcomplex80	basic[Tcomplex80]
 
     #define tbit	basic[Tbit]
+    #define tbool	basic[Tbool]
     #define tchar	basic[Tchar]
     #define twchar	basic[Twchar]
     #define tdchar	basic[Tdchar]
 
     // Some special types
     #define tshiftcnt	tint32		// right side of shift expression
-    #define tboolean	tint32		// result of boolean expression
+//    #define tboolean	tint32		// result of boolean expression
+    #define tboolean	tbool		// result of boolean expression
     #define tindex	tint32		// array/ptr index
     static Type *tvoidptr;		// void*
     #define terror	basic[Terror]	// for error recovery

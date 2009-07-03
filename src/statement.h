@@ -1,5 +1,5 @@
 
-// Copyright (c) 1999-2002 by Digital Mars
+// Copyright (c) 1999-2006 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // www.digitalmars.com
@@ -45,8 +45,13 @@ struct HdrGenState;
 // Back end
 struct IRState;
 struct Blockx;
+#if IN_GCC
+union tree_node; typedef union tree_node block;
+union tree_node; typedef union tree_node elem;
+#else
 struct block;
 struct elem;
+#endif
 struct code;
 
 struct Statement : Object
@@ -265,13 +270,14 @@ struct ForeachStatement : Statement
 
 struct IfStatement : Statement
 {
+    Argument *arg;
     Expression *condition;
     Statement *ifbody;
     Statement *elsebody;
 
     VarDeclaration *match;	// for MatchExpression results
 
-    IfStatement(Loc loc, Expression *condition, Statement *ifbody, Statement *elsebody);
+    IfStatement(Loc loc, Argument *arg, Expression *condition, Statement *ifbody, Statement *elsebody);
     Statement *syntaxCopy();
     Statement *semantic(Scope *sc);
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
@@ -371,6 +377,9 @@ struct CaseStatement : Statement
 struct DefaultStatement : Statement
 {
     Statement *statement;
+#if IN_GCC
+    block *cblock;	// back end: label for the block
+#endif
 
     DefaultStatement(Loc loc, Statement *s);
     Statement *syntaxCopy();
@@ -569,6 +578,8 @@ struct OnScopeStatement : Statement
     Statement *semantic(Scope *sc);
     int usesEH();
     void scopeCode(Statement **sentry, Statement **sexit, Statement **sfinally);
+
+    void toIR(IRState *irs);
 };
 
 struct ThrowStatement : Statement
@@ -643,6 +654,9 @@ struct LabelStatement : Statement
 struct LabelDsymbol : Dsymbol
 {
     LabelStatement *statement;
+#if IN_GCC
+    unsigned asmLabelNum;       // GCC-specific
+#endif
 
     LabelDsymbol(Identifier *ident);
     LabelDsymbol *isLabel();

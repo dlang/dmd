@@ -24,7 +24,11 @@ struct Macro;
 struct VarDeclaration;
 
 // Back end
+#if IN_GCC
+union tree_node; typedef union tree_node elem;
+#else
 struct elem;
+#endif
 
 struct Package : ScopeDsymbol
 {
@@ -59,6 +63,9 @@ struct Module : Package
     int isHtml;		// if it is an HTML file
     int isDocFile;	// if it is a documentation input file, not D source
     int needmoduleinfo;
+#ifdef IN_GCC
+    int strictlyneedmoduleinfo;
+#endif
 
     int insearch;
     Identifier *searchCacheIdent;
@@ -95,7 +102,11 @@ struct Module : Package
     char *kind();
     void setDocfile();	// set docfile member
     void read(Loc loc);	// read file
+#if IN_GCC
+    void parse(bool dump_source = false);	// syntactic parse
+#else
     void parse();	// syntactic parse
+#endif
     void semantic();	// semantic analysis
     void semantic2();	// pass 2 semantic analysis
     void semantic3();	// pass 3 semantic analysis

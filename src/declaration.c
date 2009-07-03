@@ -505,7 +505,9 @@ void VarDeclaration::semantic(Scope *sc)
      */
     int inferred = 0;
     if (!type)
-    {	type = init->inferType(sc);
+    {	inuse++;
+	type = init->inferType(sc);
+	inuse--;
 	inferred = 1;
 
 	/* This is a kludge to support the existing syntax for RAII
@@ -707,9 +709,9 @@ void VarDeclaration::semantic(Scope *sc)
 	    global.gag++;
 	    //printf("+gag\n");
 	    Expression *e = ei->exp->syntaxCopy();
-	    inuse = 1;
+	    inuse++;
 	    e = e->semantic(sc);
-	    inuse = 0;
+	    inuse--;
 	    e = e->implicitCastTo(type);
 	    global.gag--;
 	    //printf("-gag\n");
@@ -751,7 +753,7 @@ void VarDeclaration::semantic2(Scope *sc)
 {
     //printf("VarDeclaration::semantic2('%s')\n", toChars());
     if (init && !sc->parent->isFuncDeclaration())
-    {	inuse = 1;
+    {	inuse++;
 #if 0
 	ExpInitializer *ei = init->isExpInitializer();
 	if (ei)
@@ -761,7 +763,7 @@ void VarDeclaration::semantic2(Scope *sc)
 	}
 #endif
 	init = init->semantic(sc, type);
-	inuse = 0;
+	inuse--;
     }
 }
 

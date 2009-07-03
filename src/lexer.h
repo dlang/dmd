@@ -1,6 +1,6 @@
 
 
-// Copyright (c) 1999-2002 by Digital Mars
+// Copyright (c) 1999-2006 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // www.digitalmars.com
@@ -35,7 +35,6 @@ struct Module;
 	++	--
 	.	->	:	,
 	?	&&	||
-	~~	!~
  */
 
 enum TOK
@@ -73,9 +72,8 @@ enum TOK
 	TOKle,		TOKge,
 	TOKequal,	TOKnotequal,
 	TOKidentity,	TOKnotidentity,
-	TOKmatch,	TOKnotmatch,
 	TOKindex,	TOKis,
-	TOKbool,
+	TOKtobool,
 
 	// NCEG floating point compares
 	// !<>=     <>    <>=    !>     !>=   !<     !<=   !<>
@@ -118,7 +116,7 @@ enum TOK
 	TOKfloat32, TOKfloat64, TOKfloat80,
 	TOKimaginary32, TOKimaginary64, TOKimaginary80,
 	TOKcomplex32, TOKcomplex64, TOKcomplex80,
-	TOKchar, TOKwchar, TOKdchar, TOKbit,
+	TOKchar, TOKwchar, TOKdchar, TOKbit, TOKbool,
 	TOKcent, TOKucent,
 
 	// Aggregates
@@ -149,7 +147,7 @@ enum TOK
 
 #define CASE_BASIC_TYPES			\
 	case TOKwchar: case TOKdchar:		\
-	case TOKbit: case TOKchar:		\
+	case TOKbit: case TOKbool: case TOKchar:	\
 	case TOKint8: case TOKuns8:		\
 	case TOKint16: case TOKuns16:		\
 	case TOKint32: case TOKuns32:		\
@@ -179,6 +177,7 @@ enum TOK
 	case TOKcomplex64: t = Type::tcomplex64; goto LabelX;	\
 	case TOKcomplex80: t = Type::tcomplex80; goto LabelX;	\
 	case TOKbit:	 t = Type::tbit;     goto LabelX;	\
+	case TOKbool:	 t = Type::tbool;    goto LabelX;	\
 	case TOKchar:	 t = Type::tchar;    goto LabelX;	\
 	case TOKwchar:	 t = Type::twchar; goto LabelX;	\
 	case TOKdchar:	 t = Type::tdchar; goto LabelX;	\

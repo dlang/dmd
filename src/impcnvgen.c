@@ -1,5 +1,5 @@
 
-// Copyright (c) 1999-2002 by Digital Mars
+// Copyright (c) 1999-2006 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // www.digitalmars.com
@@ -24,6 +24,7 @@ int integral_promotion(int t)
 	case Tchar:
 	case Twchar:
 	case Tbit:
+	case Tbool:
 	case Tint8:
 	case Tuns8:
 	case Tint16:
@@ -71,6 +72,28 @@ void init()
     X(Tbit,Tcomplex32,   Tfloat32,Tcomplex32,   Tcomplex32)
     X(Tbit,Tcomplex64,   Tfloat64,Tcomplex64,   Tcomplex64)
     X(Tbit,Tcomplex80,   Tfloat80,Tcomplex80,   Tcomplex80)
+
+    /* ======================= */
+
+    X(Tbool,Tbool,   Tbool,Tbool,    Tbool)
+    X(Tbool,Tint8,   Tint32,Tint32,  Tint32)
+    X(Tbool,Tuns8,   Tint32,Tint32,  Tint32)
+    X(Tbool,Tint16,  Tint32,Tint32,  Tint32)
+    X(Tbool,Tuns16,  Tint32,Tint32,  Tint32)
+    X(Tbool,Tint32,  Tint32,Tint32,  Tint32)
+    X(Tbool,Tuns32,  Tuns32,Tuns32,  Tuns32)
+    X(Tbool,Tint64,  Tint64,Tint64,  Tint64)
+    X(Tbool,Tuns64,  Tuns64,Tuns64,  Tuns64)
+
+    X(Tbool,Tfloat32,     Tfloat32,Tfloat32,     Tfloat32)
+    X(Tbool,Tfloat64,     Tfloat64,Tfloat64,     Tfloat64)
+    X(Tbool,Tfloat80,     Tfloat80,Tfloat80,     Tfloat80)
+    X(Tbool,Timaginary32, Tfloat32,Timaginary32, Tfloat32)
+    X(Tbool,Timaginary64, Tfloat64,Timaginary64, Tfloat64)
+    X(Tbool,Timaginary80, Tfloat80,Timaginary80, Tfloat80)
+    X(Tbool,Tcomplex32,   Tfloat32,Tcomplex32,   Tcomplex32)
+    X(Tbool,Tcomplex64,   Tfloat64,Tcomplex64,   Tcomplex64)
+    X(Tbool,Tcomplex80,   Tfloat80,Tcomplex80,   Tcomplex80)
 
     /* ======================= */
 

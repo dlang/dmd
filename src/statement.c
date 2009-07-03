@@ -45,8 +45,8 @@ Statement *Statement::syntaxCopy()
 
 void Statement::print()
 {
-    printf("%s\n", toChars());
-    fflush(stdout);
+    fprintf(stdmsg, "%s\n", toChars());
+    fflush(stdmsg);
 }
 
 char *Statement::toChars()
@@ -91,16 +91,16 @@ void Statement::error(const char *format, ...)
     {
 	char *p = loc.toChars();
 	if (*p)
-	    printf("%s: ", p);
+	    fprintf(stdmsg, "%s: ", p);
 	mem.free(p);
 
 	va_list ap;
 	va_start(ap, format);
-	vprintf(format, ap);
+	vfprintf(stdmsg, format, ap);
 	va_end(ap);
 
-	printf("\n");
-	fflush(stdout);
+	fprintf(stdmsg, "\n");
+	fflush(stdmsg);
     }
     global.errors++;
 }
@@ -140,6 +140,10 @@ int Statement::comeFrom()
  * If this statement has code that needs to run in a finally clause
  * at the end of the current scope, return that code in the form of
  * a Statement.
+ * Output:
+ *	*sentry		code executed upon entry to the scope
+ *	*sexit		code executed upon exit from the scope
+ *	*sfinally	code executed in finally block
  */
 
 void Statement::scopeCode(Statement **sentry, Statement **sexit, Statement **sfinally)
@@ -296,6 +300,10 @@ Statement *CompoundStatement::semantic(Scope *sc)
 {   Statement *s;
 
     //printf("CompoundStatement::semantic(this = %p, sc = %p)\n", this, sc);
+
+    /* Start by flattening it
+     */
+
     for (int i = 0; i < statements->dim; i++)
     {
       L1:
@@ -311,7 +319,14 @@ Statement *CompoundStatement::semantic(Scope *sc)
 		    break;
 		goto L1;
 	    }
+	}
+    }
 
+    for (int i = 0; i < statements->dim; i++)
+    {
+	s = (Statement *) statements->data[i];
+	if (s)
+	{
 	    s = s->semantic(sc);
 	    statements->data[i] = s;
 	    if (s)
@@ -321,15 +336,24 @@ Statement *CompoundStatement::semantic(Scope *sc)
 		Statement *sfinally;
 
 		s->scopeCode(&sentry, &sexit, &sfinally);
-		if (sfinally)
+		if (sentry)
+		{
+		    sentry = sentry->semantic(sc);
+		    statements->data[i] = sentry;
+		}
+		if (sexit && !sfinally)
 		{
 		    if (i + 1 == statements->dim)
 		    {
-			statements->push(sfinally);
+			statements->push(sexit);
 		    }
 		    else
 		    {
-			// The rest of the statements form the body of a try-finally
+			/* Rewrite:
+			 *	s; s1; s2;
+			 * As:
+			 *	s; { s1; s2; } sexit;
+			 */
 			Statement *body;
 			Array *a = new Array();
 
@@ -338,6 +362,67 @@ Statement *CompoundStatement::semantic(Scope *sc)
 			    a->push(statements->data[j]);
 			}
 			body = new CompoundStatement(0, a);
+			body = new ScopeStatement(0, body);
+			s = new CompoundStatement(0, body, sexit);
+			s = s->semantic(sc);
+			statements->data[i + 1] = s;
+			statements->setDim(i + 2);
+			break;
+		    }
+		}
+		else if (!sexit && sfinally)
+		{
+		    if (i + 1 == statements->dim)
+		    {
+			statements->push(sfinally);
+		    }
+		    else
+		    {
+			/* Rewrite:
+			 *	s; s1; s2;
+			 * As:
+			 *	s; try { s1; s2; } finally { sfinally; }
+			 */
+			Statement *body;
+			Array *a = new Array();
+
+			for (int j = i + 1; j < statements->dim; j++)
+			{
+			    a->push(statements->data[j]);
+			}
+			body = new CompoundStatement(0, a);
+			s = new TryFinallyStatement(0, body, sfinally);
+			s = s->semantic(sc);
+			statements->data[i + 1] = s;
+			statements->setDim(i + 2);
+			break;
+		    }
+		}
+		else if (sexit && sfinally)
+		{
+		    if (i + 1 == statements->dim)
+		    {	/* Assume sexit cannot throw an exception
+			 */
+			statements->push(sexit);
+			statements->push(sfinally);
+		    }
+		    else
+		    {
+			/* Rewrite:
+			 *	s; s1; s2;
+			 * As:
+			 *	s; try { { s1; s2; } sexit; } finally { sfinally; }
+			 */
+			Statement *body;
+			Array *a = new Array();
+
+			for (int j = i + 1; j < statements->dim; j++)
+			{
+			    a->push(statements->data[j]);
+			}
+			body = new CompoundStatement(0, a);
+			body = new ScopeStatement(0, body);
+			body = new CompoundStatement(0, body, sexit);
 			s = new TryFinallyStatement(0, body, sfinally);
 			s = s->semantic(sc);
 			statements->data[i + 1] = s;
@@ -412,7 +497,7 @@ int CompoundStatement::fallOffEnd()
 
 	if (!falloff && global.params.warnings && !s->comeFrom())
 	{
-	    printf("warning - ");
+	    fprintf(stdmsg, "warning - ");
 	    s->error("statement is not reachable");
 	}
 	falloff = s->fallOffEnd();
@@ -512,6 +597,7 @@ Statement *WhileStatement::syntaxCopy()
 
 Statement *WhileStatement::semantic(Scope *sc)
 {
+#if 0
     if (condition->op == TOKmatch)
     {
 	/* Rewrite while (condition) body as:
@@ -532,6 +618,7 @@ Statement *WhileStatement::semantic(Scope *sc)
 	Statement *si = new IfStatement(loc, condition, sw, NULL);
 	return si->semantic(sc);
     }
+#endif
 
     condition = condition->semantic(sc);
     condition = resolveProperties(sc, condition);
@@ -774,6 +861,7 @@ Statement *ForeachStatement::syntaxCopy()
 
 Statement *ForeachStatement::semantic(Scope *sc)
 {
+    //printf("ForeachStatement::semantic() %p\n", this);
     ScopeDsymbol *sym;
     Statement *s = this;
     int dim = arguments->dim;
@@ -785,6 +873,25 @@ Statement *ForeachStatement::semantic(Scope *sc)
 
     aggr = aggr->semantic(sc);
     aggr = resolveProperties(sc, aggr);
+
+    inferApplyArgTypes(arguments, aggr->type);
+
+    /* Check for inference errors
+     */
+    if (dim != arguments->dim)
+    {
+	//printf("dim = %d, arguments->dim = %d\n", dim, arguments->dim);
+	error("cannot uniquely infer foreach argument types");
+	return this;
+    }
+    for (i = 0; i < dim; i++)
+    {	Argument *arg = (Argument *)arguments->data[i];
+	if (!arg->type)
+	{
+	    error("cannot infer type for %s", arg->ident->toChars());
+	    return this;
+	}
+    }
 
     sym = new ScopeDsymbol();
     sym->parent = sc->scopesym;
@@ -1036,7 +1143,7 @@ Statement *ForeachStatement::semantic(Scope *sc)
 		e = new CallExp(loc, ec, args);
 		e = e->semantic(sc);
 		if (e->type != Type::tint32)
-		    error("apply() function for %s must return an int", tab->toChars());
+		    error("opApply() function for %s must return an int", tab->toChars());
 	    }
 
 	    if (!cases.dim)
@@ -1109,7 +1216,10 @@ void ForeachStatement::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 	    buf->writestring(", ");
 	if (a->inout == InOut)
 	    buf->writestring("inout ");
-	a->type->toCBuffer(buf, a->ident, hgs);
+	if (a->type)
+	    a->type->toCBuffer(buf, a->ident, hgs);
+	else
+	    buf->writestring(a->ident->toChars());
     }
     buf->writestring("; ");
     aggr->toCBuffer(buf, hgs);
@@ -1125,9 +1235,10 @@ void ForeachStatement::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 
 /******************************** IfStatement ***************************/
 
-IfStatement::IfStatement(Loc loc, Expression *condition, Statement *ifbody, Statement *elsebody)
+IfStatement::IfStatement(Loc loc, Argument *arg, Expression *condition, Statement *ifbody, Statement *elsebody)
     : Statement(loc)
 {
+    this->arg = arg;
     this->condition = condition;
     this->ifbody = ifbody;
     this->elsebody = elsebody;
@@ -1144,18 +1255,16 @@ Statement *IfStatement::syntaxCopy()
     if (elsebody)
 	e = elsebody->syntaxCopy();
 
-    IfStatement *s = new IfStatement(loc, condition->syntaxCopy(), i, e);
+    Argument *a = arg ? arg->syntaxCopy() : NULL;
+    IfStatement *s = new IfStatement(loc, a, condition->syntaxCopy(), i, e);
     return s;
 }
 
 Statement *IfStatement::semantic(Scope *sc)
 {
-    int domatch = (condition->op == TOKmatch);
-
     condition = condition->semantic(sc);
     condition = resolveProperties(sc, condition);
-    if (!domatch)
-	condition = condition->checkToBoolean();
+    condition = condition->checkToBoolean();
 
     // If we can short-circuit evaluate the if statement, don't do the
     // semantic analysis of the skipped code.
@@ -1167,16 +1276,15 @@ Statement *IfStatement::semantic(Scope *sc)
     unsigned cs1;
 
     Scope *scd;
-    if (domatch)
-    {	/* Declare _match, which we will set to be the
-	 * result of condition. _match will give us access to the
-	 * regular expression match strings in the scope of ifbody.
+    if (arg)
+    {	/* Declare arg, which we will set to be the
+	 * result of condition.
 	 */
 	ScopeDsymbol *sym = new ScopeDsymbol();
 	sym->parent = sc->scopesym;
 	scd = sc->push(sym);
 
-	match = new VarDeclaration(loc, condition->type, Id::_match, NULL);
+	match = new VarDeclaration(loc, condition->type, arg->ident, NULL);
 	match->noauto = 1;
 	match->semantic(scd);
 	if (!scd->insert(match))
@@ -1184,11 +1292,10 @@ Statement *IfStatement::semantic(Scope *sc)
 	match->parent = sc->func;
 
 	/* Generate:
-	 *  (_match = condition), _match
+	 *  (arg = condition)
 	 */
 	VarExp *v = new VarExp(0, match);
 	condition = new AssignExp(loc, v, condition);
-	//condition = new CastExp(0, condition, Type::tvoidptr);
 	condition = condition->semantic(scd);
     }
     else
@@ -1222,6 +1329,14 @@ int IfStatement::fallOffEnd()
 void IfStatement::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 {
     buf->writestring("if (");
+    if (arg)
+    {
+	if (arg->type)
+	    arg->type->toCBuffer(buf, arg->ident, hgs);
+	else
+	    buf->writestring(arg->ident->toChars());
+	buf->writebyte(';');
+    }
     condition->toCBuffer(buf, hgs);
     buf->writebyte(')');
     buf->writenl();
@@ -1328,12 +1443,12 @@ Statement *PragmaStatement::semantic(Scope *sc)
                 if (e->op == TOKstring)
                 {
                     StringExp *se = (StringExp *)e;
-                    printf("%.*s", se->len, se->string);
+                    fprintf(stdmsg, "%.*s", se->len, se->string);
                 }
                 else
 		    error("string expected for message, not '%s'", e->toChars());
             }
-            printf("\n");
+            fprintf(stdmsg, "\n");
         }
     }
     else if (ident == Id::lib)
@@ -1486,7 +1601,7 @@ Statement *SwitchStatement::semantic(Scope *sc)
     if (!sc->sw->sdefault)
     {
 	if (global.params.warnings)
-	{   printf("warning - ");
+	{   fprintf(stdmsg, "warning - ");
 	    error("switch statement has no default");
 	}
 
@@ -1653,6 +1768,9 @@ DefaultStatement::DefaultStatement(Loc loc, Statement *s)
     : Statement(loc)
 {
     this->statement = s;
+#if IN_GCC
++    cblock = NULL;
+#endif
 }
 
 Statement *DefaultStatement::syntaxCopy()
@@ -2092,6 +2210,7 @@ Statement *ContinueStatement::syntaxCopy()
 
 Statement *ContinueStatement::semantic(Scope *sc)
 {
+    //printf("ContinueStatement::semantic() %p\n", this);
     if (ident)
     {
 	Scope *scx;
@@ -2105,6 +2224,16 @@ Statement *ContinueStatement::semantic(Scope *sc)
 	    {
 		if (sc->fes)		// if this is the body of a foreach
 		{
+		    for (; scx; scx = scx->enclosing)
+		    {
+			ls = scx->slabel;
+			if (ls && ls->ident == ident && ls->statement == sc->fes)
+			{
+			    // Replace continue ident; with return 0;
+			    return new ReturnStatement(0, new IntegerExp(0));
+			}
+		    }
+
 		    /* Post this statement to the fes, and replace
 		     * it with a return value that caller will put into
 		     * a switch. Caller will figure out where the break
@@ -2441,6 +2570,7 @@ void Catch::semantic(Scope *sc)
 
     //printf("Catch::semantic()\n");
 
+#ifndef IN_GCC
     if (sc->tf)
     {
 	/* This is because the _d_local_unwind() gets the stack munged
@@ -2451,6 +2581,7 @@ void Catch::semantic(Scope *sc)
 	 */
 	error(loc, "cannot put catch statement inside finally block");
     }
+#endif
 
     sym = new ScopeDsymbol();
     sym->parent = sc->scopesym;
@@ -2568,7 +2699,7 @@ Statement *OnScopeStatement::syntaxCopy()
 
 Statement *OnScopeStatement::semantic(Scope *sc)
 {
-    statement = statement->semantic(sc);
+    /* semantic is called on results of scopeCode() */
     return this;
 }
 
@@ -2581,7 +2712,7 @@ void OnScopeStatement::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 
 int OnScopeStatement::usesEH()
 {
-    return TRUE;
+    return (tok != TOKon_scope_success);
 }
 
 void OnScopeStatement::scopeCode(Statement **sentry, Statement **sexit, Statement **sfinally)
@@ -2591,6 +2722,46 @@ void OnScopeStatement::scopeCode(Statement **sentry, Statement **sexit, Statemen
     *sentry = NULL;
     *sexit = NULL;
     *sfinally = NULL;
+    switch (tok)
+    {
+	case TOKon_scope_exit:
+	    *sfinally = statement;
+	    break;
+
+	case TOKon_scope_failure:
+	{
+	    /* Create:
+	     *	sentry:   int x = 0;
+	     *	sexit:    x = 1;
+	     *	sfinally: if (!x) statement;
+	     */
+	    char name[5 + sizeof(int) * 3 + 1];
+	    static int num;
+	    sprintf(name, "__osf%d", ++num);
+	    Identifier *id = Lexer::idPool(name);
+
+	    ExpInitializer *ie = new ExpInitializer(loc, new IntegerExp(0));
+	    VarDeclaration *v = new VarDeclaration(loc, Type::tint32, id, ie);
+	    *sentry = new DeclarationStatement(loc, v);
+
+	    Expression *e = new IntegerExp(1);
+	    e = new AssignExp(0, new VarExp(0, v), e);
+	    *sexit = new ExpStatement(0, e);
+
+	    e = new VarExp(0, v);
+	    e = new NotExp(0, e);
+	    *sfinally = new IfStatement(0, NULL, e, statement, NULL);
+
+	    break;
+	}
+
+	case TOKon_scope_success:
+	    *sexit = statement;
+	    break;
+
+	default:
+	    assert(0);
+    }
 }
 
 /******************************** ThrowStatement ***************************/
@@ -2834,6 +3005,9 @@ LabelDsymbol::LabelDsymbol(Identifier *ident)
 	: Dsymbol(ident)
 {
     statement = NULL;
+#if IN_GCC
+    asmLabelNum = 0;
+#endif
 }
 
 LabelDsymbol *LabelDsymbol::isLabel()		// is this a LabelDsymbol()?

@@ -53,7 +53,7 @@ Global::Global()
 
     copyright = "Copyright (c) 1999-2006 by Digital Mars";
     written = "written by Walter Bright";
-    version = "v0.147";
+    version = "v0.148";
     global.structalign = 8;
 
     memset(&params, 0, sizeof(Param));
@@ -219,6 +219,7 @@ int main(int argc, char *argv[])
 #endif /* linux */
     VersionCondition::addPredefinedGlobalIdent("X86");
     VersionCondition::addPredefinedGlobalIdent("LittleEndian");
+    //VersionCondition::addPredefinedGlobalIdent("D_Bits");
     VersionCondition::addPredefinedGlobalIdent("D_InlineAsm");
     VersionCondition::addPredefinedGlobalIdent("D_InlineAsm_X86");
     VersionCondition::addPredefinedGlobalIdent("all");

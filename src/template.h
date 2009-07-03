@@ -1,5 +1,5 @@
 
-// Copyright (c) 1999-2005 by Digital Mars
+// Copyright (c) 1999-2006 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // www.digitalmars.com
@@ -186,6 +186,12 @@ struct TemplateInstance : ScopeDsymbol
     WithScopeSymbol *withsym;		// if a member of a with statement
     int semanticdone;	// has semantic() been done?
     int nest;		// for recursion detection
+#ifdef IN_GCC
+    /* On some targets, it is necessary to know whether a symbol
+       will be emitted in the output or not before the symbol
+       is used.  This can be different from getModule(). */
+    Module * objFileModule;
+#endif
 
     TemplateInstance(Loc loc, Identifier *temp_id);
     Dsymbol *syntaxCopy(Dsymbol *);

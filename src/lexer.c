@@ -19,6 +19,13 @@
 #include <assert.h>
 #include <sys/time.h>
 
+#ifdef IN_GCC
+
+#include <time.h>
+#include "mem.h"
+
+#else
+
 #if __GNUC__
 #include <time.h>
 extern "C" long double strtold(const char *p,char **endp);
@@ -26,10 +33,9 @@ extern "C" long double strtold(const char *p,char **endp);
 
 #if _WIN32
 #include "..\root\mem.h"
-#elif linux
-#include "../root/mem.h"
 #else
-#error "fix this"
+#include "../root/mem.h"
+#endif
 #endif
 
 #include "stringtable.h"
@@ -111,14 +117,22 @@ char *Token::toChars()
     switch (value)
     {
 	case TOKint32v:
+#if IN_GCC
+	    sprintf(buffer,"%ld",(d_int32)int64value);
+#else
 	    sprintf(buffer,"%ld",int32value);
+#endif
 	    break;
 
 	case TOKuns32v:
 	case TOKcharv:
 	case TOKwcharv:
 	case TOKdcharv:
+#if IN_GCC
+	    sprintf(buffer,"%luU",(d_uns32)uns64value);
+#else
 	    sprintf(buffer,"%luU",uns32value);
+#endif
 	    break;
 
 	case TOKint64v:
@@ -129,6 +143,20 @@ char *Token::toChars()
 	    sprintf(buffer,"%lluUL",uns64value);
 	    break;
 
+#if IN_GCC
+	case TOKfloat32v:
+	case TOKfloat64v:
+	case TOKfloat80v:
+	    float80value.format(buffer, sizeof(buffer));
+	    break;
+	case TOKimaginary32v:
+	case TOKimaginary64v:
+	case TOKimaginary80v:
+	    float80value.format(buffer, sizeof(buffer));
+	    // %% buffer
+	    strcat(buffer, "i");
+	    break;
+#else
 	case TOKfloat32v:
 	    sprintf(buffer,"%Lgf", float80value);
 	    break;
@@ -152,7 +180,7 @@ char *Token::toChars()
 	case TOKimaginary80v:
 	    sprintf(buffer,"%gLi", float80value);
 	    break;
-
+#endif
 
 	case TOKstring:
 #if CSTRINGS
@@ -280,7 +308,7 @@ Lexer::Lexer(Module *mod,
 	    }
 	    break;
 	}
-	loc.linnum = 1;
+	loc.linnum = 2;
     }
 }
 
@@ -933,10 +961,6 @@ void Lexer::scan(Token *t)
 		    else
 			t->value = TOKule;	// !>
 		}
-		else if (*p == '~')
-		{   p++;
-		    t->value = TOKnotmatch;	// !~
-		}
 		else
 		    t->value = TOKnot;		// !
 		return;
@@ -961,10 +985,6 @@ void Lexer::scan(Token *t)
 		if (*p == '=')
 		{   p++;
 		    t->value = TOKcatass;		// ~=
-		}
-		else if (*p == '~')
-		{   p++;
-		    t->value = TOKmatch;		// ~~
 		}
 		else
 		    t->value = TOKtilde;		// ~
@@ -2418,8 +2438,9 @@ static Keyword keywords[] =
     {	"double",	TOKfloat64	},
     {	"real",		TOKfloat80	},
 
-    {	"bit",		TOKbit		},
-    {	"char",		TOKchar	},
+/*  {	"bit",		TOKbit		}, */
+    {	"bool",		TOKbool		},
+    {	"char",		TOKchar		},
     {	"wchar",	TOKwchar	},
     {	"dchar",	TOKdchar	},
 
@@ -2601,8 +2622,6 @@ void Lexer::initKeywords()
     Token::tochars[TOKcall]		= "call";
     Token::tochars[TOKidentity]		= "is";
     Token::tochars[TOKnotidentity]	= "!is";
-    Token::tochars[TOKmatch]		= "~~";
-    Token::tochars[TOKnotmatch]		= "!~";
 
     Token::tochars[TOKorass]		= "|=";
 

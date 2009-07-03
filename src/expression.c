@@ -119,7 +119,7 @@ void initPrecedence()
     precedence[TOKneg] = PREC_unary;
     precedence[TOKuadd] = PREC_unary;
     precedence[TOKnot] = PREC_unary;
-    precedence[TOKbool] = PREC_add;
+    precedence[TOKtobool] = PREC_add;
     precedence[TOKtilde] = PREC_unary;
     precedence[TOKdelete] = PREC_unary;
     precedence[TOKnew] = PREC_unary;
@@ -930,7 +930,8 @@ integer_t IntegerExp::toInteger()
     {
 	switch (t->ty)
 	{
-	    case Tbit:		value = (value != 0);		break;
+	    case Tbit:
+	    case Tbool:		value = (value != 0);		break;
 	    case Tint8:		value = (d_int8)  value;	break;
 	    case Tchar:
 	    case Tuns8:		value = (d_uns8)  value;	break;
@@ -1099,6 +1100,7 @@ void IntegerExp::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 		break;
 
 	    case Tbit:
+	    case Tbool:
 		buf->writestring((char *)(v ? "true" : "false"));
 		break;
 
@@ -1134,19 +1136,33 @@ char *RealExp::toChars()
 {
     static char buffer[sizeof(value) * 3 + 8 + 1 + 1];
 
+#ifdef IN_GCC
+    value.format(buffer, sizeof(buffer));
+    if (type->isimaginary())
+	strcat(buffer, "i");
+#else
     sprintf(buffer, type->isimaginary() ? "%Lgi" : "%Lg", value);
+#endif
     assert(strlen(buffer) < sizeof(buffer));
     return buffer;
 }
 
 integer_t RealExp::toInteger()
 {
+#ifdef IN_GCC
+    return toReal().toInt();
+#else
     return (sinteger_t) toReal();
+#endif
 }
 
 uinteger_t RealExp::toUInteger()
 {
+#ifdef IN_GCC
+    return (uinteger_t) toReal().toInt();
+#else
     return (uinteger_t) toReal();
+#endif
 }
 
 real_t RealExp::toReal()
@@ -1190,8 +1206,12 @@ Expression *RealExp::semantic(Scope *sc)
 
 int RealExp::isBool(int result)
 {
+#ifdef IN_GCC
+    return result ? (! value.isZero()) : (value.isZero());
+#else
     return result ? (value != 0)
 		  : (value == 0);
+#endif
 }
 
 void floatToBuffer(OutBuffer *buf, Type *type, real_t value)
@@ -1250,6 +1270,11 @@ void RealExp::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 void RealExp::toMangleBuffer(OutBuffer *buf)
 {
     unsigned char *p = (unsigned char *)&value;
+#ifdef IN_GCC
+    unsigned char buffer[32];
+    value.toBytes(buffer, sizeof(buffer));
+    p = buffer;
+#endif
     buf->writeByte('e');
     for (int i = 0; i < REALSIZE-REALPAD; i++)
 	buf->printf("%02x", p[i]);
@@ -1270,19 +1295,35 @@ char *ComplexExp::toChars()
 {
     static char buffer[sizeof(value) * 3 + 8 + 1];
 
+#ifdef IN_GCC
+    char buf1[sizeof(value) * 3 + 8 + 1];
+    char buf2[sizeof(value) * 3 + 8 + 1];
+    creall(value).format(buf1, sizeof(buf1));
+    cimagl(value).format(buf2, sizeof(buf2));
+    sprintf(buffer, "(%s+%si)", buf1, buf2);
+#else
     sprintf(buffer, "(%Lg+%Lgi)", creall(value), cimagl(value));
     assert(strlen(buffer) < sizeof(buffer));
+#endif
     return buffer;
 }
 
 integer_t ComplexExp::toInteger()
 {
+#ifdef IN_GCC
+    return (sinteger_t) toReal().toInt();
+#else
     return (sinteger_t) toReal();
+#endif
 }
 
 uinteger_t ComplexExp::toUInteger()
 {
+#ifdef IN_GCC
+    return (uinteger_t) toReal().toInt();
+#else
     return (uinteger_t) toReal();
+#endif
 }
 
 real_t ComplexExp::toReal()
@@ -1333,11 +1374,19 @@ void ComplexExp::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
     /* Print as:
      *  (re+imi)
      */
+#ifdef IN_GCC
+    char buf1[sizeof(value) * 3 + 8 + 1];
+    char buf2[sizeof(value) * 3 + 8 + 1];
+    creall(value).format(buf1, sizeof(buf1));
+    cimagl(value).format(buf2, sizeof(buf2));
+    buf->printf("(%s+%si)", buf1, buf2);
+#else
     buf->writeByte('(');
     floatToBuffer(buf, type, creall(value));
     buf->writeByte('+');
     floatToBuffer(buf, type, cimagl(value));
     buf->writestring("i)");
+#endif
 }
 
 void ComplexExp::toMangleBuffer(OutBuffer *buf)
@@ -3364,6 +3413,12 @@ Expression *DotIdExp::semantic(Scope *sc)
 	    if (v)
 	    {
 		//printf("DotIdExp:: Identifier '%s' is a variable, type '%s'\n", toChars(), v->type->toChars());
+		if (v->inuse)
+		{
+		    error("circular reference to '%s'", v->toChars());
+		    type = Type::tint32;
+		    return this;
+		}
 		type = v->type;
 		if (v->isConst())
 		{
@@ -4401,7 +4456,7 @@ int NotExp::isBit()
 /************************************************************/
 
 BoolExp::BoolExp(Loc loc, Expression *e, Type *t)
-	: UnaExp(loc, TOKbool, sizeof(BoolExp), e)
+	: UnaExp(loc, TOKtobool, sizeof(BoolExp), e)
 {
     type = t;
 }
@@ -5254,7 +5309,7 @@ Expression *AddAssignExp::semantic(Scope *sc)
 	e1->checkScalar();
 	if (tb1->ty == Tpointer && tb2->isintegral())
 	    e = scaleFactor();
-	else if (tb1->ty == Tbit)
+	else if (tb1->ty == Tbit || tb1->ty == Tbool)
 	{
 #if 0
 	    // Need to rethink this
@@ -6423,7 +6478,7 @@ Expression *EqualExp::semantic(Scope *sc)
 	    if (ve1->var == ve2->var /*|| ve1->var->toSymbol() == ve2->var->toSymbol()*/)
 	    {
 		// They are the same, result is 'true'
-		e = new IntegerExp(loc, 1, Type::tbit);
+		e = new IntegerExp(loc, 1, Type::tboolean);
 		return e;
 	    }
 	}
@@ -6501,62 +6556,6 @@ Expression *IdentityExp::semantic(Scope *sc)
 int IdentityExp::isBit()
 {
     return TRUE;
-}
-
-
-/************************************************************/
-
-MatchExp::MatchExp(enum TOK op, Loc loc, Expression *e1, Expression *e2)
-	: BinExp(loc, op, sizeof(MatchExp), e1, e2)
-{
-    assert(op == TOKmatch || op == TOKnotmatch);
-}
-
-Expression *MatchExp::semantic(Scope *sc)
-{   Expression *e;
-
-    if (type)
-	return this;
-
-    BinExp::semanticp(sc);
-
-    e = op_overload(sc);
-    if (e)
-    {
-	if (op == TOKnotmatch)
-	{
-	    e = new NotExp(e->loc, e);
-	    e = e->semantic(sc);
-	}
-	return e;
-    }
-
-    // Both operands must be of type char[]
-    Type *t = Type::tchar->arrayOf();
-    e1 = e1->implicitCastTo(t);
-    e2 = e2->implicitCastTo(t);
-
-    // Call the internal function void* _d_match(e1, e2)
-    FuncDeclaration *fdmatch = FuncDeclaration::genCfunc(StructDeclaration::match->type->pointerTo(), "_d_match");
-
-    Expression *ec = new VarExp(0, fdmatch);
-    Array *args = new Array();
-    args->push(e1);
-    args->push(e2);
-    e = new CallExp(loc, ec, args);
-    e->type = fdmatch->type->next;		// don't run semantic() on e
-
-    if (op == TOKnotmatch)
-    {
-	e = new NotExp(e->loc, e);
-	e = e->semantic(sc);
-    }
-    return e;
-}
-
-int MatchExp::isBit()
-{
-    return FALSE;
 }
 
 

@@ -1,4 +1,4 @@
-// Copyright (c) 1999-2004 by Digital Mars
+// Copyright (c) 1999-2006 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // www.digitalmars.com
@@ -12,10 +12,15 @@
 #include <assert.h>
 #include <complex.h>
 
-#if linux
-#include "../root/mem.h"
+#ifdef __APPLE__
+#define integer_t dmd_integer_t
 #endif
-#if _WIN32
+
+#if IN_GCC
+#include "mem.h"
+#elif linux
+#include "../root/mem.h"
+#elif _WIN32
 #include "..\root\mem.h"
 #endif
 
@@ -28,6 +33,7 @@
 #include "aggregate.h"
 
 static Expression *build_overload(Loc loc, Scope *sc, Expression *ethis, Expression *earg, Identifier *id);
+static void inferApplyArgTypesX(FuncDeclaration *fstart, Array *arguments);
 
 /******************************** Expression **************************/
 
@@ -132,8 +138,6 @@ Identifier * CatAssignExp::opId()  { return Id::catass;  }
 
 int EqualExp::isCommutative()  { return TRUE; }
 Identifier *EqualExp::opId()   { return Id::eq; }
-
-Identifier *MatchExp::opId()   { return Id::match; }
 
 int CmpExp::isCommutative()  { return TRUE; }
 Identifier *CmpExp::opId()   { return Id::cmp; }
@@ -412,3 +416,178 @@ FuncDeclaration *search_function(AggregateDeclaration *ad, Identifier *funcid)
     }
     return NULL;
 }
+
+
+/*****************************************
+ * Given array of arguments and an aggregate type,
+ * if any of the argument types are missing, attempt to infer
+ * them from the aggregate type.
+ */
+
+void inferApplyArgTypes(Array *arguments, Type *taggr)
+{
+    if (!arguments || !arguments->dim)
+	return;
+
+    /* Return if no arguments need types.
+     */
+    for (size_t u = 0; 1; u++)
+    {	if (u == arguments->dim)
+	    return;
+	Argument *arg = (Argument *)arguments->data[u];
+	if (!arg->type)
+	    break;
+    }
+
+    AggregateDeclaration *ad;
+    FuncDeclaration *fd;
+
+    Argument *arg = (Argument *)arguments->data[0];
+    Type *tab = taggr->toBasetype();
+    switch (tab->ty)
+    {
+	case Tarray:
+	case Tsarray:
+	    if (arguments->dim == 2)
+	    {
+		if (!arg->type)
+		    arg->type = Type::tsize_t;	// key type
+		arg = (Argument *)arguments->data[1];
+	    }
+	    if (!arg->type)
+		arg->type = tab->next;		// value type
+	    break;
+
+	case Taarray:
+	{   TypeAArray *taa = (TypeAArray *)tab;
+
+	    if (arguments->dim == 2)
+	    {
+		if (!arg->type)
+		    arg->type = taa->index;	// key type
+		arg = (Argument *)arguments->data[1];
+	    }
+	    if (!arg->type)
+		arg->type = taa->next;		// value type
+	    break;
+	}
+
+	case Tclass:
+	    ad = ((TypeClass *)tab)->sym;
+	    goto Laggr;
+
+	case Tstruct:
+	    ad = ((TypeStruct *)tab)->sym;
+	    goto Laggr;
+
+	Laggr:
+#if 0
+	    if (arguments->dim == 1)
+	    {
+		if (!arg->type)
+		{
+		    /* Look for an opNext() overload
+		     */
+		    fd = search_function(ad, Id::next);
+		    if (!fd)
+			goto Lapply;
+		    arg->type = fd->type->next;
+		}
+		break;
+	    }
+#endif
+	Lapply:
+	    /* Look for an
+	     *	int opApply(int delegate(inout Type [, ...]) dg);
+	     * overload
+	     */
+	    fd = search_function(ad, Id::apply);
+	    if (!fd)
+		break;
+	    inferApplyArgTypesX(fd, arguments);
+	    break;
+
+	default:
+	    break;		// ignore error, caught later
+    }
+}
+
+/********************************
+ * Recursive helper function,
+ * analogous to func.overloadResolveX().
+ */
+
+static void inferApplyArgTypesX(FuncDeclaration *fstart, Array *arguments)
+{
+    Declaration *d;
+    Declaration *next;
+
+    for (d = fstart; d; d = next)
+    {
+	FuncDeclaration *f;
+	FuncAliasDeclaration *fa;
+	AliasDeclaration *a;
+
+	fa = d->isFuncAliasDeclaration();
+	if (fa)
+	{
+	    inferApplyArgTypesX(fa->funcalias, arguments);
+	    next = fa->overnext;
+	}
+	else if ((f = d->isFuncDeclaration()) != NULL)
+	{
+	    next = f->overnext;
+
+	    TypeFunction *tf = (TypeFunction *)f->type;
+	    if (!tf->arguments || tf->arguments->dim != 1)
+		continue;
+	    Argument *p = (Argument *)tf->arguments->data[0];
+	    if (p->type->ty != Tdelegate)
+		continue;
+	    tf = (TypeFunction *)p->type->next;
+	    assert(tf->ty == Tfunction);
+
+	    /* We now have tf, the type of the delegate. Match it against
+	     * the arguments, filling in missing argument types.
+	     */
+	    if (!tf->arguments || tf->varargs)
+		continue;		// not enough parameters
+	    unsigned nparams = tf->arguments->dim;
+	    if (arguments->dim != nparams)
+		continue;		// not enough parameters
+
+	    for (unsigned u = 0; u < nparams; u++)
+	    {
+		p = (Argument *)arguments->data[u];
+		Argument *tp = (Argument *)tf->arguments->data[u];
+		if (p->type)
+		{   if (!p->type->equals(tp->type))
+		    {
+			/* Cannot resolve argument types. Indicate an
+			 * error by setting the number of arguments to 0.
+			 */
+			arguments->dim = 0;
+			return;
+		    }
+		    continue;
+		}
+		p->type = tp->type;
+	    }
+	}
+	else if ((a = d->isAliasDeclaration()) != NULL)
+	{
+	    Dsymbol *s = a->toAlias();
+	    next = s->isDeclaration();
+	    if (next == a)
+		break;
+	    if (next == fstart)
+		break;
+	}
+	else
+	{   d->error("is aliased to a function");
+	    break;
+	}
+    }
+}
+
+

@@ -103,6 +103,7 @@ int IntegerExp::implicitConvTo(Type *t)
     switch (ty)
     {
 	case Tbit:
+	case Tbool:
 	    value &= 1;
 	    ty = Tint32;
 	    break;
@@ -148,6 +149,7 @@ int IntegerExp::implicitConvTo(Type *t)
     switch (toty)
     {
 	case Tbit:
+	case Tbool:
 	    if (value & ~1)
 		goto Lno;
 	    goto Lyes;
@@ -1119,6 +1121,7 @@ Expression *Expression::integralPromotions()
 	case Tint16:
 	case Tuns16:
 	case Tbit:
+	case Tbool:
 	case Tchar:
 	case Twchar:
 	    e = e->castTo(Type::tint32);

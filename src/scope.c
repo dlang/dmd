@@ -226,7 +226,7 @@ Dsymbol *Scope::search(Identifier *ident, Dsymbol **pscopesym)
 		    sc->enclosing &&
 		    sc->enclosing->search(ident, NULL))
 		{
-		    printf("warning - ");
+		    fprintf(stdmsg, "warning - ");
 		    error("array 'length' hides other 'length' name in outer scope");
 		}
 

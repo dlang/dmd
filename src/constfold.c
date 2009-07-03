@@ -126,7 +126,7 @@ Expression *CastExp::constFold()
     }
 
     Type *tb = to->toBasetype();
-    if (tb->ty == Tbit)
+    if (tb->ty == Tbit || tb->ty == Tbool)
 	return new IntegerExp(loc, e1->toInteger() != 0, type);
     if (type->isintegral())
     {

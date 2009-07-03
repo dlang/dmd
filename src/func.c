@@ -1,5 +1,5 @@
 
-// Copyright (c) 1999-2005 by Digital Mars
+// Copyright (c) 1999-2006 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // www.digitalmars.com
@@ -25,6 +25,10 @@
 #include "template.h"
 #include "hdrgen.h"
 
+#ifdef IN_GCC
+#include "d-dmd-gcc.h"
+#endif
+
 /********************************* FuncDeclaration ****************************/
 
 FuncDeclaration::FuncDeclaration(Loc loc, Loc endloc, Identifier *id, enum STC storage_class, Type *type)
@@ -44,6 +48,9 @@ FuncDeclaration::FuncDeclaration(Loc loc, Loc endloc, Identifier *id, enum STC s
     localsymtab = NULL;
     vthis = NULL;
     v_arguments = NULL;
+#if IN_GCC
+    v_argptr = NULL;
+#endif
     parameters = NULL;
     labtab = NULL;
     overnext = NULL;
@@ -128,6 +135,13 @@ void FuncDeclaration::semantic(Scope *sc)
     }
 #endif
 
+#ifdef IN_GCC
+    AggregateDeclaration *ad;
+
+    ad = parent->isAggregateDeclaration();
+    if (ad)
+	ad->methods.push(this);
+#endif
     sd = parent->isStructDeclaration();
     if (sd)
     {
@@ -460,7 +474,11 @@ void FuncDeclaration::semantic3(Scope *sc)
 	    }
 	    if (f->linkage == LINKd || (parameters && parameters->dim))
 	    {	// Declare _argptr
+#if IN_GCC
+		t = d_gcc_builtin_va_list_d_type;
+#else
 		t = Type::tvoid->pointerTo();
+#endif
 		argptr = new VarDeclaration(0, t, Id::_argptr, NULL);
 		argptr->semantic(sc2);
 		sc2->insert(argptr);
@@ -702,7 +720,7 @@ void FuncDeclaration::semantic3(Scope *sc)
 		    {   Expression *e;
 
 			if (global.params.warnings)
-			{   printf("warning - ");
+			{   fprintf(stdmsg, "warning - ");
 			    error("no return at end of function");
 			}
 
@@ -745,6 +763,11 @@ void FuncDeclaration::semantic3(Scope *sc)
 
 	    if (argptr)
 	    {	// Initialize _argptr to point past non-variadic arg
+#if IN_GCC
+		// Handled in FuncDeclaration::toObjFile
+		v_argptr = argptr;
+		v_argptr->init = new VoidInitializer(loc);
+#else
 		Expression *e1;
 		Expression *e;
 		Type *t = argptr->type;
@@ -762,6 +785,7 @@ void FuncDeclaration::semantic3(Scope *sc)
 		e = new AssignExp(0, e1, e);
 		e->type = t;
 		a->push(new ExpStatement(0, e));
+#endif
 	    }
 
 	    // Merge contracts together with body into one compound statement
@@ -1701,7 +1725,11 @@ void StaticCtorDeclaration::semantic(Scope *sc)
     if (!m)
 	m = sc->module;
     if (m)
-	m->needmoduleinfo = 1;
+    {	m->needmoduleinfo = 1;
+#ifdef IN_GCC
+	m->strictlyneedmoduleinfo = 1;
+#endif
+    }
 }
 
 AggregateDeclaration *StaticCtorDeclaration::isThis()
@@ -1772,7 +1800,11 @@ void StaticDtorDeclaration::semantic(Scope *sc)
     if (!m)
 	m = sc->module;
     if (m)
-	m->needmoduleinfo = 1;
+    {	m->needmoduleinfo = 1;
+#ifdef IN_GCC
+	m->strictlyneedmoduleinfo = 1;
+#endif
+    }
 }
 
 AggregateDeclaration *StaticDtorDeclaration::isThis()

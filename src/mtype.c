@@ -7,6 +7,9 @@
 // in artistic.txt, or the GNU General Public License in gnu.txt.
 // See the included readme.txt for details.
 
+#define __USE_ISOC99 1		// so signbit() gets defined
+#include <math.h>
+
 #include <stdio.h>
 #include <assert.h>
 #include <float.h>
@@ -19,11 +22,13 @@
 #include <malloc.h>
 #include <complex>
 #include <limits>
-#else
+#elif __DMC__
 #include <complex.h>
+#else
+//#define signbit 56
 #endif
 
-#ifdef __APPLE__
+#if __APPLE__
 #include <math.h>
 static double zero = 0;
 #elif __GNUC__
@@ -105,7 +110,7 @@ Type::Type(TY ty, Type *next)
 Type *Type::syntaxCopy()
 {
     print();
-    printf("ty = %d\n", ty);
+    fprintf(stdmsg, "ty = %d\n", ty);
     assert(0);
     return this;
 }
@@ -166,6 +171,7 @@ void Type::init()
     mangleChar[Tcomplex80] = 'c';
 
     mangleChar[Tbit] = 'b';
+    mangleChar[Tbool] = 'x';
     mangleChar[Tascii] = 'a';
     mangleChar[Twchar] = 'u';
     mangleChar[Tdchar] = 'w';
@@ -176,7 +182,7 @@ void Type::init()
 
     for (i = 0; i < TMAX; i++)
     {	if (!mangleChar[i])
-	    printf("ty = %d\n", i);
+	    fprintf(stdmsg, "ty = %d\n", i);
 	assert(mangleChar[i]);
     }
 
@@ -186,7 +192,7 @@ void Type::init()
 	  Tfloat32, Tfloat64, Tfloat80,
 	  Timaginary32, Timaginary64, Timaginary80,
 	  Tcomplex32, Tcomplex64, Tcomplex80,
-	  Tbit,
+	  Tbit, Tbool,
 	  Tascii, Twchar, Tdchar };
 
     for (i = 0; i < sizeof(basetab) / sizeof(basetab[0]); i++)
@@ -599,16 +605,16 @@ void Type::error(Loc loc, const char *format, ...)
     {
 	char *p = loc.toChars();
 	if (*p)
-	    printf("%s: ", p);
+	    fprintf(stdmsg, "%s: ", p);
 	mem.free(p);
 
 	va_list ap;
 	va_start(ap, format);
-	vprintf(format, ap);
+	vfprintf(stdmsg, format, ap);
 	va_end(ap);
 
-	printf("\n");
-	fflush(stdout);
+	fprintf(stdmsg, "\n");
+	fflush(stdmsg);
     }
     global.errors++;
 }
@@ -766,6 +772,11 @@ TypeBasic::TypeBasic(TY ty)
 			flags |= TFLAGSintegral | TFLAGSunsigned;
 			break;
 
+	case Tbool:	d = Token::toChars(TOKbool);
+			c = "bool";
+			flags |= TFLAGSintegral | TFLAGSunsigned;
+			break;
+
 	case Tascii:	d = Token::toChars(TOKchar);
 			c = "char";
 			flags |= TFLAGSintegral | TFLAGSunsigned;
@@ -846,6 +857,7 @@ d_uns64 TypeBasic::size(Loc loc)
 	    break;
 
 	case Tbit:	size = 1;		break;
+	case Tbool:	size = 1;		break;
 	case Tascii:	size = 1;		break;
 	case Twchar:	size = 2;		break;
 	case Tdchar:	size = 4;		break;
@@ -881,7 +893,11 @@ Expression *TypeBasic::getProperty(Loc loc, Identifier *ident)
 {
     Expression *e;
     d_int64 ivalue;
+#ifdef IN_GCC
+    real_t    fvalue;
+#else
     d_float80 fvalue;
+#endif
 
     //printf("TypeBasic::getProperty('%s')\n", ident->toChars());
     if (ident == Id::max)
@@ -897,7 +913,8 @@ Expression *TypeBasic::getProperty(Loc loc, Identifier *ident)
 	    case Tint64:	ivalue = 0x7FFFFFFFFFFFFFFFLL;	goto Livalue;
 	    case Tuns64:	ivalue = 0xFFFFFFFFFFFFFFFFULL;	goto Livalue;
 	    case Tbit:		ivalue = 1;		goto Livalue;
-	    case Tascii:	ivalue = 0xFF;		goto Livalue;
+	    case Tbool:		ivalue = 1;		goto Livalue;
+	    case Tchar:		ivalue = 0xFF;		goto Livalue;
 	    case Twchar:	ivalue = 0xFFFFUL;	goto Livalue;
 	    case Tdchar:	ivalue = 0x10FFFFUL;	goto Livalue;
 
@@ -925,7 +942,8 @@ Expression *TypeBasic::getProperty(Loc loc, Identifier *ident)
 	    case Tint64:	ivalue = (-9223372036854775807LL-1LL);	goto Livalue;
 	    case Tuns64:	ivalue = 0;		goto Livalue;
 	    case Tbit:		ivalue = 0;		goto Livalue;
-	    case Tascii:	ivalue = 0;		goto Livalue;
+	    case Tbool:		ivalue = 0;		goto Livalue;
+	    case Tchar:		ivalue = 0;		goto Livalue;
 	    case Twchar:	ivalue = 0;		goto Livalue;
 	    case Tdchar:	ivalue = 0;		goto Livalue;
 
@@ -953,24 +971,27 @@ Expression *TypeBasic::getProperty(Loc loc, Identifier *ident)
 	    case Tfloat32:
 	    case Tfloat64:
 	    case Tfloat80:
-#if __GNUC__
-	    {	// gcc nan's have the sign bit set by default, so turn it off
+	    {
+#if IN_GCC
+		// mode doesn't matter, will be converted in RealExp anyway
+		fvalue = real_t::getnan(real_t::LongDouble);
+#elif __GNUC__
+		// gcc nan's have the sign bit set by default, so turn it off
 		// Need the volatile to prevent gcc from doing incorrect
 		// constant folding.
 		volatile d_float80 foo;
 		foo = NAN;
-		foo = -foo;
+		if (signbit(foo))	// signbit sometimes, not always, set
+		    foo = -foo;		// turn off sign bit
 		fvalue = foo;
-	    }
 #elif _MSC_VER
-	    {
 		unsigned long nan[2]= { 0xFFFFFFFF, 0x7FFFFFFF };
 		fvalue = *(double*)nan;
-	    }
 #else
 		fvalue = NAN;
 #endif
 		goto Lfvalue;
+	    }
 	}
     }
     else if (ident == Id::infinity)
@@ -986,7 +1007,9 @@ Expression *TypeBasic::getProperty(Loc loc, Identifier *ident)
 	    case Tfloat32:
 	    case Tfloat64:
 	    case Tfloat80:
-#if __GNUC__
+#if IN_GCC
+		fvalue = real_t::getinfinity();
+#elif __GNUC__
 		fvalue = 1 / zero;
 #elif _MSC_VER
 		fvalue = std::numeric_limits<long double>::infinity();
@@ -1472,7 +1495,7 @@ void TypeArray::toCBuffer2(OutBuffer *buf, Identifier *ident, HdrGenState *hgs)
 	buf->writeByte('[');
 	dim = ((TypeSArray *)t)->dim;
 	if (dim)
-	    buf->printf("%d", dim->toInteger());
+	    buf->printf("%lld", dim->toInteger());
 	buf->writeByte(']');
 	t = t->next;
     } while (t->ty == Tsarray);
@@ -1885,6 +1908,7 @@ Type *TypeAArray::semantic(Loc loc, Scope *sc)
 	    break;
 #endif
 	case Tbit:
+	case Tbool:
 	case Tfunction:
 	case Tvoid:
 	case Tnone:

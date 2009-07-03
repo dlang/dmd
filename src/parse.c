@@ -2645,10 +2645,21 @@ Statement *Parser::parseStatement(int flags)
 		{   inout = InOut;
 		    nextToken();
 		}
+		if (token.value == TOKidentifier)
+		{
+		    Token *t = peek(&token);
+		    if (t->value == TOKcomma || t->value == TOKsemicolon)
+		    {	ai = token.ident;
+			at = NULL;		// infer argument type
+			nextToken();
+			goto Larg;
+		    }
+		}
 		tb = parseBasicType();
 		at = parseDeclarator(tb, &ai);
 		if (!ai)
 		    error("no identifier for declarator %s", at->toChars());
+	      Larg:
 		a = new Argument(inout, at, ai, NULL);
 		arguments->push(a);
 		if (token.value == TOKcomma)
@@ -2667,12 +2678,26 @@ Statement *Parser::parseStatement(int flags)
 	}
 
 	case TOKif:
-	{   Expression *condition;
+	{   Argument *arg = NULL;
+	    Expression *condition;
 	    Statement *ifbody;
 	    Statement *elsebody;
 
 	    nextToken();
 	    check(TOKlparen);
+
+	    // Check for " ident;"
+	    if (token.value == TOKidentifier)
+	    {
+		Token *t = peek(&token);
+		if (t->value == TOKcomma || t->value == TOKsemicolon)
+		{
+		    arg = new Argument(In, NULL, token.ident, NULL);
+		    nextToken();
+		    nextToken();
+		}
+	    }
+
 	    condition = parseExpression();
 	    check(TOKrparen);
 	    ifbody = parseStatement(PSscope);
@@ -2683,7 +2708,7 @@ Statement *Parser::parseStatement(int flags)
 	    }
 	    else
 		elsebody = NULL;
-	    s = new IfStatement(loc, condition, ifbody, elsebody);
+	    s = new IfStatement(loc, arg, condition, ifbody, elsebody);
 	    break;
 	}
 
@@ -3668,12 +3693,12 @@ Expression *Parser::parsePrimaryExp()
 	    break;
 
 	case TOKtrue:
-	    e = new IntegerExp(loc, 1, Type::tbit);
+	    e = new IntegerExp(loc, 1, Type::tbool);
 	    nextToken();
 	    break;
 
 	case TOKfalse:
-	    e = new IntegerExp(loc, 0, Type::tbit);
+	    e = new IntegerExp(loc, 0, Type::tbool);
 	    nextToken();
 	    break;
 
@@ -4279,13 +4304,6 @@ Expression *Parser::parseEqualExp()
 		nextToken();
 		e2 = parseRelExp();
 		e = new EqualExp(value, loc, e, e2);
-		continue;
-
-	    case TOKmatch:
-	    case TOKnotmatch:
-		nextToken();
-		e2 = parseRelExp();
-		e = new MatchExp(value, loc, e, e2);
 		continue;
 
 	    case TOKidentity:

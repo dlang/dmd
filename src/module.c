@@ -15,6 +15,10 @@
 #include <malloc.h>
 #endif
 
+#if IN_GCC
+#include "gdc_alloca.h"
+#endif
+
 #include "mem.h"
 
 #include "mars.h"
@@ -29,6 +33,10 @@
 
 #define MARS 1
 #include "html.h"
+
+#ifdef IN_GCC
+#include "d-dmd-gcc.h"
+#endif
 
 ClassDeclaration *Module::moduleinfo;
 
@@ -59,6 +67,9 @@ Module::Module(char *filename, Identifier *ident, int doDocComment, int doHdrGen
     isHtml = 0;
     isDocFile = 0;
     needmoduleinfo = 0;
+#ifdef IN_GCC
+    strictlyneedmoduleinfo = 0;
+#endif
     insearch = 0;
     searchCacheIdent = NULL;
     searchCacheSymbol = NULL;
@@ -274,6 +285,10 @@ Module *Module::load(Loc loc, Array *packages, Identifier *ident)
     m->read(loc);
     m->parse();
 
+#ifdef IN_GCC
+    d_gcc_magic_module(m);
+#endif
+
     return m;
 }
 
@@ -320,7 +335,11 @@ inline unsigned readlongBE(unsigned *p)
 	(((unsigned char *)p)[0] << 24);
 }
 
+#if IN_GCC
+void Module::parse(bool dump_source)
+#else
 void Module::parse()
+#endif
 {   char *srcname;
     unsigned char *buf;
     unsigned buflen;
@@ -491,6 +510,14 @@ void Module::parse()
 	}
     }
 
+#ifdef IN_GCC
+    // dump utf-8 encoded source 
+    if (dump_source)
+    {	// %% srcname could contain a path ...
+	d_gcc_dump_source(srcname, "utf-8", buf, buflen);
+    }
+#endif
+
     /* If it starts with the string "Ddoc", then it's a documentation
      * source file.
      */
@@ -509,6 +536,11 @@ void Module::parse()
 	h.extractCode(dbuf);
 	buf = dbuf->data;
 	buflen = dbuf->offset;
+#ifdef IN_GCC
+	// dump extracted source
+	if (dump_source)
+	    d_gcc_dump_source(srcname, "d.utf-8", buf, buflen);
+#endif
     }
     Parser p(this, buf, buflen, docfile != NULL);
     members = p.parseModule();
