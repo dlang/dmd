@@ -927,7 +927,7 @@ void FuncDeclaration::semantic3(Scope *sc)
 		//printf("callSuper = x%x\n", sc2->callSuper);
 
 		// Verify that all the ctorinit fields got initialized
-		if (!(sc->callSuper & CSXthis_ctor))
+		if (!(sc2->callSuper & CSXthis_ctor))
 		{
 		    for (int i = 0; i < cd->fields.dim; i++)
 		    {   VarDeclaration *v = (VarDeclaration *)cd->fields.data[i];
@@ -1641,7 +1641,7 @@ int FuncDeclaration::isVirtual()
 
 int FuncDeclaration::isAbstract()
 {
-    return storage_class & STCabstract && !fbody;
+    return storage_class & STCabstract;
 }
 
 int FuncDeclaration::isCodeseg()
@@ -1937,10 +1937,6 @@ Dsymbol *DtorDeclaration::syntaxCopy(Dsymbol *s)
 void DtorDeclaration::semantic(Scope *sc)
 {
     ClassDeclaration *cd;
-    Type *tret;
-
-    sc = sc->push();
-    sc->stc &= ~STCstatic;		// not a static destructor
 
     parent = sc->parent;
     Dsymbol *parent = toParent();
@@ -1952,6 +1948,10 @@ void DtorDeclaration::semantic(Scope *sc)
     else
 	cd->dtors.push(this);
     type = new TypeFunction(NULL, Type::tvoid, FALSE, LINKd);
+
+    sc = sc->push();
+    sc->stc &= ~STCstatic;		// not a static destructor
+    sc->linkage = LINKd;
 
     FuncDeclaration::semantic(sc);
 
@@ -2176,9 +2176,14 @@ void InvariantDeclaration::semantic(Scope *sc)
     ad->inv = this;
     type = new TypeFunction(NULL, Type::tvoid, FALSE, LINKd);
 
+    sc = sc->push();
+    sc->stc &= ~STCstatic;		// not a static invariant
     sc->incontract++;
+    sc->linkage = LINKd;
+
     FuncDeclaration::semantic(sc);
-    sc->incontract--;
+
+    sc->pop();
 }
 
 int InvariantDeclaration::isVirtual()

@@ -148,4 +148,19 @@ struct StaticIfDeclaration : ConditionalDeclaration
     char *kind();
 };
 
+// Mixin declarations
+
+struct CompileDeclaration : AttribDeclaration
+{
+    Expression *exp;
+
+    ScopeDsymbol *sd;
+
+    CompileDeclaration(Loc loc, Expression *exp);
+    Dsymbol *syntaxCopy(Dsymbol *s);
+    int addMember(Scope *sc, ScopeDsymbol *sd, int memnum);
+    void semantic(Scope *sc);
+    void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
+};
+
 #endif /* DMD_ATTRIB_H */

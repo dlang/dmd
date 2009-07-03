@@ -149,6 +149,12 @@ int Expression::inlineCost(InlineCostState *ics)
     return 1;
 }
 
+int VarExp::inlineCost(InlineCostState *ics)
+{
+    //printf("VarExp::inlineCost() %s\n", toChars());
+    return 1;
+}
+
 int ThisExp::inlineCost(InlineCostState *ics)
 {
     FuncDeclaration *fd = ics->fd;
@@ -470,6 +476,8 @@ Expression *VarExp::doInline(InlineDoState *ids)
 
 Expression *ThisExp::doInline(InlineDoState *ids)
 {
+    //if (!ids->vthis)
+	//error("no 'this' when inlining %s", ids->parent->toChars());
     assert(ids->vthis);
 
     VarExp *ve = new VarExp(loc, ids->vthis);
@@ -1132,8 +1140,11 @@ int FuncDeclaration::canInline(int hasthis, int hdrscan)
 #define CANINLINE_LOG 0
 
 #if CANINLINE_LOG
-    printf("FuncDeclaration::canInline('%s')\n", toChars());
+    printf("FuncDeclaration::canInline(hasthis = %d, '%s')\n", hasthis, toChars());
 #endif
+
+    if (needThis() && !hasthis)
+	return 0;
 
     if (inlineNest || (!semanticRun && !hdrscan))
     {

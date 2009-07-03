@@ -300,4 +300,9 @@ struct TemplateMixin : TemplateInstance
     TemplateMixin *isTemplateMixin() { return this; }
 };
 
+Expression *isExpression(Object *o);
+Dsymbol *isDsymbol(Object *o);
+Type *isType(Object *o);
+Tuple *isTuple(Object *o);
+
 #endif /* DMD_TEMPLATE_H */

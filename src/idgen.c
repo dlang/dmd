@@ -45,6 +45,7 @@ Msgtable msgtable[] =
     { "__sizeof", "sizeof" },
     { "alignof" },
     { "mangleof" },
+    { "stringof" },
     { "tupleof" },
     { "length" },
     { "remove" },

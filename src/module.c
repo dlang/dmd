@@ -285,7 +285,7 @@ Module *Module::load(Loc loc, Array *packages, Identifier *ident)
     if (FileName::exists(sdi))
 	result = sdi;
     else if (FileName::exists(sd))
-	result =sd;
+	result = sd;
     else if (FileName::absolute(filename))
 	;
     else if (!global.path)

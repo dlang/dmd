@@ -1,6 +1,6 @@
 
 // Compiler implementation of the D programming language
-// Copyright (c) 1999-2006 by Digital Mars
+// Copyright (c) 1999-2007 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // www.digitalmars.com
@@ -249,9 +249,11 @@ struct ArrayScopeSymbol : ScopeDsymbol
 {
     Expression *exp;	// IndexExp or SliceExp
     TypeTuple *type;	// for tuple[length]
+    TupleDeclaration *td;	// for tuples of objects
 
     ArrayScopeSymbol(Expression *e);
     ArrayScopeSymbol(TypeTuple *t);
+    ArrayScopeSymbol(TupleDeclaration *td);
     Dsymbol *search(Loc loc, Identifier *ident, int flags);
 
     ArrayScopeSymbol *isArrayScopeSymbol() { return this; }

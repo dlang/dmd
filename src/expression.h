@@ -1,6 +1,6 @@
 
 // Compiler implementation of the D programming language
-// Copyright (c) 1999-2006 by Digital Mars
+// Copyright (c) 1999-2007 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // www.digitalmars.com
@@ -298,6 +298,7 @@ struct StringExp : Expression
     int equals(Object *o);
     char *toChars();
     Expression *semantic(Scope *sc);
+    StringExp *toUTF8(Scope *sc);
     int implicitConvTo(Type *t);
     Expression *castTo(Scope *sc, Type *t);
     int compare(Object *obj);
@@ -478,7 +479,7 @@ struct VarExp : Expression
     dt_t **toDt(dt_t **pdt);
     void scanForNestedRef(Scope *sc);
 
-    //int inlineCost(InlineCostState *ics);
+    int inlineCost(InlineCostState *ics);
     Expression *doInline(InlineDoState *ids);
     //Expression *inlineScan(InlineScanState *iss);
 };
@@ -616,6 +617,20 @@ struct BinAssignExp : BinExp
 };
 
 /****************************************************************/
+
+struct CompileExp : UnaExp
+{
+    CompileExp(Loc loc, Expression *e);
+    Expression *semantic(Scope *sc);
+    void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
+};
+
+struct FileExp : UnaExp
+{
+    FileExp(Loc loc, Expression *e);
+    Expression *semantic(Scope *sc);
+    void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
+};
 
 struct AssertExp : UnaExp
 {
@@ -816,6 +831,7 @@ struct CastExp : UnaExp
     Expression *semantic(Scope *sc);
     Expression *optimize(int result);
     int checkSideEffect(int flag);
+    void checkEscape();
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
     Expression *constFold();
     elem *toElem(IRState *irs);

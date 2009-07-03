@@ -1,6 +1,6 @@
 
 // Compiler implementation of the D programming language
-// Copyright (c) 1999-2006 by Digital Mars
+// Copyright (c) 1999-2007 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // www.digitalmars.com
@@ -53,6 +53,7 @@ extern "C" char * __cdecl __locale_decpoint;
 #include "module.h"
 #include "attrib.h"
 #include "hdrgen.h"
+#include "parse.h"
 
 Expression *createTypeInfoArray(Scope *sc, Expression *args[], int dim);
 
@@ -1904,7 +1905,7 @@ Expression *ThisExp::semantic(Scope *sc)
     printf("ThisExp::semantic()\n");
 #endif
     if (type)
-    {	assert(global.errors || var);
+    {	//assert(global.errors || var);
 	return this;
     }
 
@@ -2249,6 +2250,25 @@ Expression *StringExp::semantic(Scope *sc)
 		break;
 	}
 	type = type->semantic(loc, sc);
+    }
+    return this;
+}
+
+/****************************************
+ * Convert string to char[].
+ */
+
+StringExp *StringExp::toUTF8(Scope *sc)
+{
+    if (sz != 1)
+    {	// Convert to UTF-8 string
+	committed = 0;
+	Expression *e = castTo(sc, Type::tchar->arrayOf());
+	e = e->optimize(WANTvalue);
+	assert(e->op == TOKstring);
+	StringExp *se = (StringExp *)e;
+	assert(se->sz == 1);
+	return se;
     }
     return this;
 }
@@ -3125,7 +3145,6 @@ Expression *VarExp::semantic(Scope *sc)
 	    if (ei)
 	    {
 		//ei->exp->implicitCastTo(sc, type)->print();
-printf("test3: %s\n", ei->exp->toChars());
 		return ei->exp->implicitCastTo(sc, type);
 	    }
 	}
@@ -3719,7 +3738,7 @@ Expression *IftypeExp::semantic(Scope *sc)
 	parameters.setDim(1);
 	parameters.data[0] = (void *)&tp;
 
-	Array dedtypes;
+	Objects dedtypes;
 	dedtypes.setDim(1);
 	dedtypes.data[0] = NULL;
 
@@ -3985,6 +4004,87 @@ void BinExp::incompatibleTypes()
 
 /************************************************************/
 
+CompileExp::CompileExp(Loc loc, Expression *e)
+	: UnaExp(loc, TOKmixin, sizeof(CompileExp), e)
+{
+}
+
+Expression *CompileExp::semantic(Scope *sc)
+{
+#if LOGSEMANTIC
+    printf("CompileExp::semantic('%s')\n", toChars());
+#endif
+    UnaExp::semantic(sc);
+    e1 = resolveProperties(sc, e1);
+    e1 = e1->optimize(WANTvalue);
+    if (e1->op != TOKstring)
+    {	error("argument to mixin must be a string, not (%s)", e1->toChars());
+	return this;
+    }
+    StringExp *se = (StringExp *)e1;
+    se = se->toUTF8(sc);
+    Parser p(sc->module, (unsigned char *)se->string, se->len, 0);
+    p.loc = loc;
+    Expression *e = p.parseExpression();
+    if (p.token.value != TOKeof)
+	error("incomplete mixin expression (%s)", se->toChars());
+    return e->semantic(sc);
+}
+
+void CompileExp::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
+{
+    buf->writestring("mixin(");
+    expToCBuffer(buf, hgs, e1, PREC_assign);
+    buf->writeByte(')');
+}
+
+/************************************************************/
+
+FileExp::FileExp(Loc loc, Expression *e)
+	: UnaExp(loc, TOKmixin, sizeof(FileExp), e)
+{
+}
+
+Expression *FileExp::semantic(Scope *sc)
+{
+#if LOGSEMANTIC
+    printf("FileExp::semantic('%s')\n", toChars());
+#endif
+    UnaExp::semantic(sc);
+    e1 = resolveProperties(sc, e1);
+    e1 = e1->optimize(WANTvalue);
+    if (e1->op != TOKstring)
+    {	error("file name argument must be a string, not (%s)", e1->toChars());
+	return this;
+    }
+    StringExp *se = (StringExp *)e1;
+    se = se->toUTF8(sc);
+
+    if (global.params.verbose)
+	printf("file      %s\n", se->string);
+
+    File f((char *)se->string);
+    if (f.read())
+    {	error("cannot read file %s", f.toChars());
+	se = new StringExp(loc, "");
+    }
+    else
+    {
+	f.ref = 1;
+	se = new StringExp(loc, f.buffer, f.len);
+    }
+    return se->semantic(sc);
+}
+
+void FileExp::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
+{
+    buf->writestring("import(");
+    expToCBuffer(buf, hgs, e1, PREC_assign);
+    buf->writeByte(')');
+}
+
+/************************************************************/
+
 AssertExp::AssertExp(Loc loc, Expression *e, Expression *msg)
 	: UnaExp(loc, TOKassert, sizeof(AssertExp), e)
 {
@@ -4066,6 +4166,18 @@ Expression *DotIdExp::semantic(Scope *sc)
 #endif
 
 //{ static int z; fflush(stdout); if (++z == 10) *(char*)0=0; }
+
+#if 0
+    /* Don't do semantic analysis if we'll be converting
+     * it to a string.
+     */
+    if (ident == Id::stringof)
+    {	char *s = e1->toChars();
+	e = new StringExp(loc, s, strlen(s), 'c');
+	e = e->semantic(sc);
+	return e;
+    }
+#endif
 
     /* Special case: rewrite this.id and super.id
      * to be classtype.id and baseclasstype.id
@@ -4263,7 +4375,7 @@ Expression *DotIdExp::semantic(Scope *sc)
     else if (e1->type->ty == Tpointer &&
 	     ident != Id::init && ident != Id::__sizeof &&
 	     ident != Id::alignof && ident != Id::offsetof &&
-	     ident != Id::mangleof)
+	     ident != Id::mangleof && ident != Id::stringof)
     {
 	e = new PtrExp(loc, e1);
 	e->type = e1->type->next;
@@ -5635,6 +5747,20 @@ int CastExp::checkSideEffect(int flag)
 	!(to->ty == Tclass && e1->op == TOKcall && e1->type->ty == Tclass))
 	return Expression::checkSideEffect(flag);
     return 1;
+}
+
+void CastExp::checkEscape()
+{   Type *tb = type->toBasetype();
+    if (tb->ty == Tarray && e1->op == TOKvar &&
+	e1->type->toBasetype()->ty == Tsarray)
+    {	VarExp *ve = (VarExp *)e1;
+	VarDeclaration *v = ve->var->isVarDeclaration();
+	if (v)
+	{
+	    if (!v->isDataseg())
+		error("escaping reference to local %s", v->toChars());
+	}
+    }
 }
 
 void CastExp::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
@@ -7745,6 +7871,7 @@ Expression *EqualExp::semantic(Scope *sc)
     Type *t1;
     Type *t2;
 
+    //printf("EqualExp::semantic('%s')\n", toChars());
     if (type)
 	return this;
 

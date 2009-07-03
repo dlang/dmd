@@ -552,6 +552,12 @@ Expression *Type::getProperty(Loc loc, Identifier *ident)
 	Scope sc;
 	e = e->semantic(&sc);
     }
+    else if (ident == Id::stringof)
+    {	char *s = toChars();
+	e = new StringExp(loc, s, strlen(s), 'c');
+	Scope sc;
+	e = e->semantic(&sc);
+    }
     else
     {
 	error(loc, "no property '%s' for type '%s'", ident->toChars(), toChars());
@@ -625,6 +631,13 @@ Expression *Type::dotExp(Scope *sc, Expression *e, Identifier *ident)
 	if (!global.params.useDeprecated)
 	    error(e->loc, ".typeinfo deprecated, use typeid(type)");
 	e = getTypeInfo(sc);
+	return e;
+    }
+    if (ident == Id::stringof)
+    {	char *s = e->toChars();
+	e = new StringExp(e->loc, s, strlen(s), 'c');
+	Scope sc;
+	e = e->semantic(&sc);
 	return e;
     }
     return getProperty(e->loc, ident);
@@ -1665,8 +1678,46 @@ void TypeSArray::resolve(Loc loc, Scope *sc, Expression **pe, Type **pt, Dsymbol
 	e = new IndexExp(loc, *pe, dim);
 	*pe = e;
     }
+    else if (*ps)
+    {	Dsymbol *s = *ps;
+	TupleDeclaration *td = s->isTupleDeclaration();
+	if (td)
+	{
+	    ScopeDsymbol *sym = new ArrayScopeSymbol(td);
+	    sym->parent = sc->scopesym;
+	    sc = sc->push(sym);
+
+	    dim = dim->semantic(sc);
+	    dim = dim->constFold();
+	    uinteger_t d = dim->toUInteger();
+
+	    sc = sc->pop();
+
+	    if (d >= td->objects->dim)
+	    {	error(loc, "tuple index %ju exceeds %u", d, td->objects->dim);
+		goto Ldefault;
+	    }
+
+	    /* Create a new TupleDeclaration which
+	     * is a slice [d..d+1] out of the old one.
+	     * Do it this way because TemplateInstance::semanticTiargs()
+	     * can handle unresolved Objects this way.
+	     */
+	    Objects *objects = new Objects;
+	    objects->setDim(1);
+	    objects->data[0] = td->objects->data[(size_t)d];
+
+	    TupleDeclaration *tds = new TupleDeclaration(loc, td->ident, objects);
+	    *ps = tds;
+	}
+	else
+	    goto Ldefault;
+    }
     else
+    {
+     Ldefault:
 	Type::resolve(loc, sc, pe, pt, ps);
+    }
 }
 
 Type *TypeSArray::semantic(Loc loc, Scope *sc)
@@ -2983,6 +3034,7 @@ void TypeQualified::resolveHelper(Loc loc, Scope *sc,
     int i;
     VarDeclaration *v;
     EnumMember *em;
+    TupleDeclaration *td;
     Type *t;
     Expression *e;
 
@@ -3946,7 +3998,15 @@ int TypeTypedef::isZeroInit()
 	    return 1;
 	return 0;		// assume not
     }
-    return sym->basetype->isZeroInit();
+    if (sym->inuse)
+    {
+	sym->error("circular definition");
+	sym->basetype = Type::terror;
+    }
+    sym->inuse = 1;
+    int result = sym->basetype->isZeroInit();
+    sym->inuse = 0;
+    return result;
 }
 
 int TypeTypedef::hasPointers()
@@ -4781,8 +4841,59 @@ void TypeSlice::resolve(Loc loc, Scope *sc, Expression **pe, Type **pt, Dsymbol 
 	e = new SliceExp(loc, *pe, lwr, upr);
 	*pe = e;
     }
+    else if (*ps)
+    {	Dsymbol *s = *ps;
+	TupleDeclaration *td = s->isTupleDeclaration();
+	if (td)
+	{
+	    /* It's a slice of a TupleDeclaration
+	     */
+	    ScopeDsymbol *sym = new ArrayScopeSymbol(td);
+	    sym->parent = sc->scopesym;
+	    sc = sc->push(sym);
+
+	    lwr = lwr->semantic(sc);
+	    lwr = lwr->constFold();
+	    uinteger_t i1 = lwr->toUInteger();
+
+	    upr = upr->semantic(sc);
+	    upr = upr->constFold();
+	    uinteger_t i2 = upr->toUInteger();
+
+	    sc = sc->pop();
+
+	    if (!(i1 <= i2 && i2 <= td->objects->dim))
+	    {   error(loc, "slice [%ju..%ju] is out of range of [0..%u]", i1, i2, td->objects->dim);
+		goto Ldefault;
+	    }
+
+	    if (i1 == 0 && i2 == td->objects->dim)
+	    {
+		*ps = td;
+		return;
+	    }
+
+	    /* Create a new TupleDeclaration which
+	     * is a slice [i1..i2] out of the old one.
+	     */
+	    Objects *objects = new Objects;
+	    objects->setDim(i2 - i1);
+	    for (size_t i = 0; i < objects->dim; i++)
+	    {
+		objects->data[i] = td->objects->data[(size_t)i1 + i];
+	    }
+
+	    TupleDeclaration *tds = new TupleDeclaration(loc, td->ident, objects);
+	    *ps = tds;
+	}
+	else
+	    goto Ldefault;
+    }
     else
+    {
+     Ldefault:
 	Type::resolve(loc, sc, pe, pt, ps);
+    }
 }
 
 void TypeSlice::toCBuffer2(OutBuffer *buf, Identifier *ident, HdrGenState *hgs)
@@ -4988,10 +5099,11 @@ size_t Argument::dim(Arguments *args)
     {
 	for (size_t i = 0; i < args->dim; i++)
 	{   Argument *arg = (Argument *)args->data[i];
+	    Type *t = arg->type->toBasetype();
 
-	    if (arg->type->ty == Ttuple)
-	    {   TypeTuple *t = (TypeTuple *)arg->type;
-		n += dim(t->arguments);
+	    if (t->ty == Ttuple)
+	    {   TypeTuple *tu = (TypeTuple *)t;
+		n += dim(tu->arguments);
 	    }
 	    else
 		n++;
@@ -5016,10 +5128,11 @@ Argument *Argument::getNth(Arguments *args, size_t nth, size_t *pn)
     size_t n = 0;
     for (size_t i = 0; i < args->dim; i++)
     {   Argument *arg = (Argument *)args->data[i];
+	Type *t = arg->type->toBasetype();
 
-	if (arg->type->ty == Ttuple)
-	{   TypeTuple *t = (TypeTuple *)arg->type;
-	    arg = getNth(t->arguments, nth - n, &n);
+	if (t->ty == Ttuple)
+	{   TypeTuple *tu = (TypeTuple *)t;
+	    arg = getNth(tu->arguments, nth - n, &n);
 	    if (arg)
 		return arg;
 	}

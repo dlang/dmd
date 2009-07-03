@@ -1,6 +1,6 @@
 
 // Compiler implementation of the D programming language
-// Copyright (c) 1999-2006 by Digital Mars
+// Copyright (c) 1999-2007 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // www.digitalmars.com
@@ -1000,7 +1000,7 @@ void Lexer::scan(Token *t)
 		p++;
 		if (*p == '=')
 		{   p++;
-		    if (*p == '=')
+		    if (*p == '=' && global.params.Dversion == 1)
 		    {	p++;
 			t->value = TOKnotidentity;	// !==
 		    }
@@ -1042,7 +1042,7 @@ void Lexer::scan(Token *t)
 		p++;
 		if (*p == '=')
 		{   p++;
-		    if (*p == '=')
+		    if (*p == '=' && global.params.Dversion == 1)
 		    {	p++;
 			t->value = TOKidentity;		// ===
 		    }
@@ -2506,7 +2506,6 @@ static Keyword keywords[] =
     {	"pragma",	TOKpragma	},
     {	"typeof",	TOKtypeof	},
     {	"typeid",	TOKtypeid	},
-    {	"iftype",	TOKiftype	},
 
     {	"template",	TOKtemplate	},
 
@@ -2525,7 +2524,6 @@ static Keyword keywords[] =
     {	"double",	TOKfloat64	},
     {	"real",		TOKfloat80	},
 
-/*  {	"bit",		TOKbit		}, */
     {	"bool",		TOKbool		},
     {	"char",		TOKchar		},
     {	"wchar",	TOKwchar	},
@@ -2564,9 +2562,6 @@ static Keyword keywords[] =
     {	"foreach",	TOKforeach	},
     {	"foreach_reverse",	TOKforeach_reverse	},
     {	"scope",	TOKscope	},
-    {	"on_scope_exit",    TOKon_scope_exit },
-    {	"on_scope_failure", TOKon_scope_failure },
-    {	"on_scope_success", TOKon_scope_success },
 
     {	"struct",	TOKstruct	},
     {	"class",	TOKclass	},
@@ -2576,7 +2571,6 @@ static Keyword keywords[] =
     {	"import",	TOKimport	},
     {	"mixin",	TOKmixin	},
     {	"static",	TOKstatic	},
-    /*{	"virtual",	TOKvirtual	},*/
     {	"final",	TOKfinal	},
     {	"const",	TOKconst	},
     {	"typedef",	TOKtypedef	},

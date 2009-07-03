@@ -1,6 +1,6 @@
 
 // Compiler implementation of the D programming language
-// Copyright (c) 1999-2006 by Digital Mars
+// Copyright (c) 1999-2007 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // www.digitalmars.com
@@ -50,18 +50,6 @@
 
 // Support left-to-right array declarations
 #define LTORARRAYDECL	1
-
-/************************************
- * These control how parseStatement() works.
- */
-
-enum ParseStatementFlags
-{
-    PSsemi = 1,		// empty ';' statements are allowed
-    PSscope = 2,	// start a new scope
-    PScurly = 4,	// { } statement is required
-    PScurlyscope = 8,	// { } starts a new scope
-};
 
 
 Parser::Parser(Module *module, unsigned char *base, unsigned length, int doDocComment)
@@ -168,8 +156,20 @@ Array *Parser::parseDeclDefs(int once)
 		break;
 
 	    case TOKmixin:
+	    {	Loc loc = this->loc;
+		if (peek(&token)->value == TOKlparen)
+		{   // mixin(string)
+		    nextToken();
+		    check(TOKlparen, "mixin");
+		    Expression *e = parseAssignExp();
+		    check(TOKrparen);
+		    check(TOKsemicolon);
+		    s = new CompileDeclaration(loc, e);
+		    break;
+		}
 		s = parseMixin();
 		break;
+	    }
 
 	    CASE_BASIC_TYPES:
 	    case TOKalias:
@@ -409,10 +409,6 @@ Array *Parser::parseDeclDefs(int once)
 		condition = parseVersionCondition();
 		goto Lcondition;
 
-	    case TOKiftype:
-		condition = parseIftypeCondition();
-		goto Lcondition;
-
 	    Lcondition:
 		a = parseBlock();
 		aelse = NULL;
@@ -645,49 +641,6 @@ Condition *Parser::parseStaticIfCondition()
     return condition;
 }
 
-
-/***********************************************
- * Deprecated.
- *	iftype (type identifier : specialization)
- *	    body
- *	else
- *	    body
- */
-
-Condition *Parser::parseIftypeCondition()
-{
-    Type *targ;
-    Identifier *ident = NULL;
-    Type *tspec = NULL;
-    enum TOK tok = TOKreserved;
-    Loc loc = this->loc;
-
-    nextToken();
-    if (token.value == TOKlparen)
-    {
-	nextToken();
-	targ = parseBasicType();
-	targ = parseDeclarator(targ, &ident);
-	if (token.value == TOKcolon || token.value == TOKequal)
-	{
-	    tok = token.value;
-	    nextToken();
-	    tspec = parseBasicType();
-	    tspec = parseDeclarator(tspec, NULL);
-	}
-	check(TOKrparen);
-    }
-    else
-    {   error("(type identifier : specialization) expected following iftype");
-	return NULL;
-    }
-    Condition *condition = new IftypeCondition(loc, targ, ident, tok, tspec);
-
-    if (1 || !global.params.useDeprecated)
-	error("iftype(condition) is deprecated, use static if (is(condition))");
-
-    return condition;
-}
 
 /*****************************************
  * Parse a constructor definition:
@@ -2558,9 +2511,18 @@ Statement *Parser::parseStatement(int flags)
 	}
 
 	case TOKmixin:
-	{   Dsymbol *d;
-
-	    d = parseMixin();
+	{   t = peek(&token);
+	    if (t->value == TOKlparen)
+	    {	// mixin(string)
+		nextToken();
+		check(TOKlparen, "mixin");
+		Expression *e = parseAssignExp();
+		check(TOKrparen);
+		check(TOKsemicolon);
+		s = new CompileStatement(loc, e);
+		break;
+	    }
+	    Dsymbol *d = parseMixin();
 	    s = new DeclarationStatement(loc, d);
 	    break;
 	}
@@ -2816,19 +2778,6 @@ Statement *Parser::parseStatement(int flags)
 		break;
 	    }
 
-	case TOKon_scope_exit:
-	case TOKon_scope_failure:
-	case TOKon_scope_success:
-	{
-	    TOK t = token.value;
-	    if (1 || !global.params.useDeprecated)
-		error("%s is deprecated, use scope", token.toChars());
-	    nextToken();
-	    Statement *st = parseStatement(PScurlyscope);
-	    s = new OnScopeStatement(loc, t, st);
-	    break;
-	}
-
 	case TOKdebug:
 	    nextToken();
 	    condition = parseDebugCondition();
@@ -2837,10 +2786,6 @@ Statement *Parser::parseStatement(int flags)
 	case TOKversion:
 	    nextToken();
 	    condition = parseVersionCondition();
-	    goto Lcondition;
-
-	case TOKiftype:
-	    condition = parseIftypeCondition();
 	    goto Lcondition;
 
 	Lcondition:
@@ -3978,6 +3923,26 @@ Expression *Parser::parsePrimaryExp()
 	    }
 	    check(TOKrparen);
 	    e = new AssertExp(loc, e, msg);
+	    break;
+	}
+
+	case TOKmixin:
+	{
+	    nextToken();
+	    check(TOKlparen, "mixin");
+	    e = parseAssignExp();
+	    check(TOKrparen);
+	    e = new CompileExp(loc, e);
+	    break;
+	}
+
+	case TOKimport:
+	{
+	    nextToken();
+	    check(TOKlparen, "import");
+	    e = parseAssignExp();
+	    check(TOKrparen);
+	    e = new FileExp(loc, e);
 	    break;
 	}
 

@@ -64,7 +64,7 @@ enum TOK
 	TOKdeclaration,	TOKtypeof,
 	TOKpragma,	TOKdsymbol,
 	TOKtypeid,	TOKuadd,
-	TOKiftype,	TOKremove,
+	TOKremove,
 	TOKnewanonclass, TOKcomment,
 	TOKarrayliteral,
 

@@ -1,6 +1,6 @@
 
 // Compiler implementation of the D programming language
-// Copyright (c) 1999-2006 by Digital Mars
+// Copyright (c) 1999-2007 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // www.digitalmars.com
@@ -28,6 +28,7 @@
 #include "dsymbol.h"
 #include "aggregate.h"
 #include "module.h"
+#include "parse.h"
 
 extern void obj_includelib(char *name);
 
@@ -780,6 +781,15 @@ void PragmaDeclaration::semantic(Scope *sc)
 	    args->data[0] = (void *)e;
 	    if (e->op != TOKstring)
 		error("string expected for library name, not '%s'", e->toChars());
+	    else if (global.params.verbose)
+	    {
+		StringExp *se = (StringExp *)e;
+		char *name = (char *)mem.malloc(se->len + 1);
+		memcpy(name, se->string, se->len);
+		name[se->len] = 0;
+		printf("library   %s\n", name);
+		mem.free(name);
+	    }
 	}
 	goto Lnodecl;
     }
@@ -1084,3 +1094,56 @@ char *StaticIfDeclaration::kind()
 }
 
 
+/***************************** CompileDeclaration *****************************/
+
+CompileDeclaration::CompileDeclaration(Loc loc, Expression *exp)
+    : AttribDeclaration(NULL)
+{
+    this->exp = exp;
+    this->sd = NULL;
+}
+
+Dsymbol *CompileDeclaration::syntaxCopy(Dsymbol *s)
+{
+    //printf("CompileDeclaration::syntaxCopy('%s')\n", toChars());
+    CompileDeclaration *sc = new CompileDeclaration(loc, exp->syntaxCopy());
+    return sc;
+}
+
+int CompileDeclaration::addMember(Scope *sc, ScopeDsymbol *sd, int memnum)
+{
+    this->sd = sd;
+    return memnum;
+}
+
+void CompileDeclaration::semantic(Scope *sc)
+{
+    //printf("CompileDeclaration::semantic()\n");
+    exp = exp->semantic(sc);
+    exp = resolveProperties(sc, exp);
+    exp = exp->optimize(WANTvalue);
+    if (exp->op != TOKstring)
+    {	error("argument to mixin must be a string, not (%s)", exp->toChars());
+	return;
+    }
+    StringExp *se = (StringExp *)exp;
+    se = se->toUTF8(sc);
+    Parser p(sc->module, (unsigned char *)se->string, se->len, 0);
+    p.loc = loc;
+    decl = p.parseDeclDefs(0);
+    if (p.token.value != TOKeof)
+    {
+	error("incomplete mixin declaration (%s)", se->toChars());
+    }
+
+    AttribDeclaration::addMember(sc, sd, 0);
+    AttribDeclaration::semantic(sc);
+}
+
+void CompileDeclaration::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
+{
+    buf->writestring("mixin(");
+    exp->toCBuffer(buf, hgs);
+    buf->writestring(");");
+    buf->writenl();
+}

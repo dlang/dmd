@@ -1,6 +1,6 @@
 
 // Compiler implementation of the D programming language
-// Copyright (c) 1999-2006 by Digital Mars
+// Copyright (c) 1999-2007 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // www.digitalmars.com
@@ -736,6 +736,7 @@ ArrayScopeSymbol::ArrayScopeSymbol(Expression *e)
     assert(e->op == TOKindex || e->op == TOKslice);
     exp = e;
     type = NULL;
+    td = NULL;
 }
 
 ArrayScopeSymbol::ArrayScopeSymbol(TypeTuple *t)
@@ -743,6 +744,15 @@ ArrayScopeSymbol::ArrayScopeSymbol(TypeTuple *t)
 {
     exp = NULL;
     type = t;
+    td = NULL;
+}
+
+ArrayScopeSymbol::ArrayScopeSymbol(TupleDeclaration *s)
+    : ScopeDsymbol()
+{
+    exp = NULL;
+    type = NULL;
+    td = s;
 }
 
 Dsymbol *ArrayScopeSymbol::search(Loc loc, Identifier *ident, int flags)
@@ -753,6 +763,16 @@ Dsymbol *ArrayScopeSymbol::search(Loc loc, Identifier *ident, int flags)
 	Expression *ce;
 
     L1:
+
+	if (td)
+ 	{
+	    VarDeclaration *v = new VarDeclaration(0, Type::tsize_t, Id::dollar, NULL);
+	    Expression *e = new IntegerExp(0, td->objects->dim, Type::tsize_t);
+	    v->init = new ExpInitializer(0, e);
+	    v->storage_class |= STCconst;
+	    return v;
+	}
+
 	if (type)
  	{
 	    VarDeclaration *v = new VarDeclaration(0, Type::tsize_t, Id::dollar, NULL);

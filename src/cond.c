@@ -314,7 +314,7 @@ int IftypeCondition::include(Scope *sc, ScopeDsymbol *sd)
 	    parameters.setDim(1);
 	    parameters.data[0] = (void *)&tp;
 
-	    Array dedtypes;
+	    Objects dedtypes;
 	    dedtypes.setDim(1);
 
 	    m = targ->deduceType(NULL, tspec, &parameters, &dedtypes);

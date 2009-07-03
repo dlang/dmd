@@ -107,6 +107,7 @@ Expression *Type::getTypeInfo(Scope *sc)
     t = merge();	// do this since not all Type's are merge'd
     if (!t->vtinfo)
     {	t->vtinfo = t->getTypeInfoDeclaration();
+	assert(t->vtinfo);
 
 	/* If this has a custom implementation in std/typeinfo, then
 	 * do not generate a COMDAT for it.
@@ -209,7 +210,8 @@ void TypeInfoDeclaration::toDt(dt_t **pdt)
 
 void TypeInfoTypedefDeclaration::toDt(dt_t **pdt)
 {
-    //printf("TypeInfoTypedefDeclaration::toDt()\n");
+    //printf("TypeInfoTypedefDeclaration::toDt() %s\n", toChars());
+
     dtxoff(pdt, Type::typeinfotypedef->toVtblSymbol(), 0, TYnptr); // vtbl for TypeInfo_Typedef
     dtdword(pdt, 0);			    // monitor
 
@@ -217,6 +219,7 @@ void TypeInfoTypedefDeclaration::toDt(dt_t **pdt)
 
     TypeTypedef *tc = (TypeTypedef *)tinfo;
     TypedefDeclaration *sd = tc->sym;
+    //printf("basetype = %s\n", sd->basetype->toChars());
 
     /* Put out:
      *	TypeInfo base;
@@ -224,7 +227,9 @@ void TypeInfoTypedefDeclaration::toDt(dt_t **pdt)
      *	void[] m_init;
      */
 
-    sd->basetype->getTypeInfo(NULL);
+    sd->basetype = sd->basetype->merge();
+    sd->basetype->getTypeInfo(NULL);		// generate vtinfo
+    assert(sd->basetype->vtinfo);
     dtxoff(pdt, sd->basetype->vtinfo->toSymbol(), 0, TYnptr);	// TypeInfo for basetype
 
     char *name = sd->toPrettyChars();

@@ -232,7 +232,7 @@ struct Type : Object
     virtual int isZeroInit();		// if initializer is 0
     virtual dt_t **toDt(dt_t **pdt);
     Identifier *getTypeInfoIdent(int internal);
-    virtual MATCH deduceType(Scope *sc, Type *tparam, TemplateParameters *parameters, Array *atypes);
+    virtual MATCH deduceType(Scope *sc, Type *tparam, TemplateParameters *parameters, Objects *dedtypes);
     virtual void resolve(Loc loc, Scope *sc, Expression **pe, Type **pt, Dsymbol **ps);
     Expression *getInternalTypeInfo(Scope *sc);
     Expression *getTypeInfo(Scope *sc);
@@ -315,7 +315,7 @@ struct TypeSArray : TypeArray
     Expression *defaultInit();
     dt_t **toDt(dt_t **pdt);
     dt_t **toDtElem(dt_t **pdt, Expression *e);
-    MATCH deduceType(Scope *sc, Type *tparam, TemplateParameters *parameters, Array *atypes);
+    MATCH deduceType(Scope *sc, Type *tparam, TemplateParameters *parameters, Objects *dedtypes);
     TypeInfoDeclaration *getTypeInfoDeclaration();
     Expression *toExpression();
     int hasPointers();
@@ -361,7 +361,7 @@ struct TypeAArray : TypeArray
     void toPrettyBracket(OutBuffer *buf, HdrGenState *hgs);
     Expression *dotExp(Scope *sc, Expression *e, Identifier *ident);
     Expression *defaultInit();
-    MATCH deduceType(Scope *sc, Type *tparam, TemplateParameters *parameters, Array *atypes);
+    MATCH deduceType(Scope *sc, Type *tparam, TemplateParameters *parameters, Objects *dedtypes);
     int checkBoolean();
     TypeInfoDeclaration *getTypeInfoDeclaration();
     int hasPointers();
@@ -420,7 +420,7 @@ struct TypeFunction : Type
     Type *semantic(Loc loc, Scope *sc);
     void toDecoBuffer(OutBuffer *buf);
     void toCBuffer2(OutBuffer *buf, Identifier *ident, HdrGenState *hgs);
-    MATCH deduceType(Scope *sc, Type *tparam, TemplateParameters *parameters, Array *atypes);
+    MATCH deduceType(Scope *sc, Type *tparam, TemplateParameters *parameters, Objects *dedtypes);
     TypeInfoDeclaration *getTypeInfoDeclaration();
     Type *reliesOnTident();
 
@@ -474,7 +474,7 @@ struct TypeIdentifier : TypeQualified
     void resolve(Loc loc, Scope *sc, Expression **pe, Type **pt, Dsymbol **ps);
     Dsymbol *toDsymbol(Scope *sc);
     Type *semantic(Loc loc, Scope *sc);
-    MATCH deduceType(Scope *sc, Type *tparam, TemplateParameters *parameters, Array *atypes);
+    MATCH deduceType(Scope *sc, Type *tparam, TemplateParameters *parameters, Objects *dedtypes);
     Type *reliesOnTident();
     Expression *toExpression();
 };
@@ -492,7 +492,7 @@ struct TypeInstance : TypeQualified
     void toCBuffer2(OutBuffer *buf, Identifier *ident, HdrGenState *hgs);
     void resolve(Loc loc, Scope *sc, Expression **pe, Type **pt, Dsymbol **ps);
     Type *semantic(Loc loc, Scope *sc);
-    MATCH deduceType(Scope *sc, Type *tparam, TemplateParameters *parameters, Array *atypes);
+    MATCH deduceType(Scope *sc, Type *tparam, TemplateParameters *parameters, Objects *dedtypes);
 };
 
 struct TypeTypeof : TypeQualified
@@ -527,7 +527,7 @@ struct TypeStruct : Type
     int isZeroInit();
     int checkBoolean();
     dt_t **toDt(dt_t **pdt);
-    MATCH deduceType(Scope *sc, Type *tparam, TemplateParameters *parameters, Array *atypes);
+    MATCH deduceType(Scope *sc, Type *tparam, TemplateParameters *parameters, Objects *dedtypes);
     TypeInfoDeclaration *getTypeInfoDeclaration();
     int hasPointers();
 
@@ -557,7 +557,7 @@ struct TypeEnum : Type
     Type *toBasetype();
     Expression *defaultInit();
     int isZeroInit();
-    MATCH deduceType(Scope *sc, Type *tparam, TemplateParameters *parameters, Array *atypes);
+    MATCH deduceType(Scope *sc, Type *tparam, TemplateParameters *parameters, Objects *dedtypes);
     TypeInfoDeclaration *getTypeInfoDeclaration();
     int hasPointers();
 
@@ -593,7 +593,7 @@ struct TypeTypedef : Type
     Expression *defaultInit();
     int isZeroInit();
     dt_t **toDt(dt_t **pdt);
-    MATCH deduceType(Scope *sc, Type *tparam, TemplateParameters *parameters, Array *atypes);
+    MATCH deduceType(Scope *sc, Type *tparam, TemplateParameters *parameters, Objects *dedtypes);
     TypeInfoDeclaration *getTypeInfoDeclaration();
     int hasPointers();
 
@@ -619,7 +619,7 @@ struct TypeClass : Type
     int implicitConvTo(Type *to);
     Expression *defaultInit();
     int isZeroInit();
-    MATCH deduceType(Scope *sc, Type *tparam, TemplateParameters *parameters, Array *atypes);
+    MATCH deduceType(Scope *sc, Type *tparam, TemplateParameters *parameters, Objects *dedtypes);
     int isauto();
     int checkBoolean();
     TypeInfoDeclaration *getTypeInfoDeclaration();

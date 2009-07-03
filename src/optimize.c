@@ -354,7 +354,7 @@ Expression *EqualExp::optimize(int result)
 		EqualExp eq(TOKequal, 0, ee1, ee2);
 		Expression *v = eq.constFold();
 		value = v->toInteger();
-		if (value)
+		if (value == 0)
 		    break;
 	    }
 	}

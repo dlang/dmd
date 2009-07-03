@@ -42,6 +42,19 @@ struct TemplateDeclaration;
 struct TemplateInstance;
 struct StaticAssert;
 
+/************************************
+ * These control how parseStatement() works.
+ */
+
+enum ParseStatementFlags
+{
+    PSsemi = 1,		// empty ';' statements are allowed
+    PSscope = 2,	// start a new scope
+    PScurly = 4,	// { } statement is required
+    PScurlyscope = 8,	// { } starts a new scope
+};
+
+
 struct Parser : Lexer
 {
     ModuleDeclaration *md;
@@ -64,7 +77,6 @@ struct Parser : Lexer
     Condition *parseDebugCondition();
     Condition *parseVersionCondition();
     Condition *parseStaticIfCondition();
-    Condition *parseIftypeCondition();
     CtorDeclaration *parseCtor();
     DtorDeclaration *parseDtor();
     StaticCtorDeclaration *parseStaticCtor();

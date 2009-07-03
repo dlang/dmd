@@ -49,6 +49,11 @@ Expression *Expression::implicitCastTo(Scope *sc, Type *t)
 	}
 	return castTo(sc, t);
     }
+
+    Expression *e = optimize(WANTflags | WANTvalue);
+    if (e != this)
+	return e->implicitCastTo(sc, t);
+
 #if 0
 print();
 type->print();
@@ -69,10 +74,11 @@ fflush(stdout);
 	 */
 	error("forward reference to type %s", t->toChars());
     }
-    else
-	error("cannot implicitly convert expression (%s) of type %s to %s",
-	    toChars(), type->toChars(), t->toChars());
-//*(char*)0=0;
+    else if (t->reliesOnTident())
+	error("forward reference to type %s", t->reliesOnTident()->toChars());
+
+    error("cannot implicitly convert expression (%s) of type %s to %s",
+	toChars(), type->toChars(), t->toChars());
     return castTo(sc, t);
 }
 
@@ -627,6 +633,7 @@ Expression *StringExp::castTo(Scope *sc, Type *t)
     }
 
     tb = t->toBasetype();
+    //printf("\ttype = %s\n", type->toChars());
     if (tb->ty == Tdelegate && type->toBasetype()->ty != Tdelegate)
 	return Expression::castTo(sc, t);
 

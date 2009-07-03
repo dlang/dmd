@@ -129,23 +129,24 @@ Scope *Scope::createGlobal(Module *module)
 }
 
 Scope *Scope::push()
-{   Scope *s;
-
-    s = new Scope(this);
+{
+    //printf("Scope::push()\n");
+    Scope *s = new Scope(this);
     assert(this != s);
     return s;
 }
 
 Scope *Scope::push(ScopeDsymbol *ss)
-{   Scope *s;
-
-    s = push();
+{
+    //printf("Scope::push(%s)\n", ss->toChars());
+    Scope *s = push();
     s->scopesym = ss;
     return s;
 }
 
 Scope *Scope::pop()
 {
+    //printf("Scope::pop()\n");
     Scope *enc = enclosing;
 
     if (enclosing)
@@ -224,13 +225,15 @@ Dsymbol *Scope::search(Loc loc, Identifier *ident, Dsymbol **pscopesym)
 	    s = sc->scopesym->search(loc, ident, 0);
 	    if (s)
 	    {
-		if (global.params.warnings &&
+		if ((global.params.warnings ||
+		    global.params.Dversion > 1) &&
 		    ident == Id::length &&
 		    sc->scopesym->isArrayScopeSymbol() &&
 		    sc->enclosing &&
 		    sc->enclosing->search(loc, ident, NULL))
 		{
-		    fprintf(stdmsg, "warning - ");
+		    if (global.params.warnings)
+			fprintf(stdmsg, "warning - ");
 		    error("array 'length' hides other 'length' name in outer scope");
 		}
 

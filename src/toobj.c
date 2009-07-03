@@ -931,6 +931,15 @@ void VarDeclaration::toObjFile()
 		 */
 		if (parent->isTemplateInstance() && !parent->isTemplateMixin())
 		{
+		    /* These symbol constants have already been copied,
+		     * so no reason to output them.
+		     * Note that currently there is no way to take
+		     * the address of such a const.
+		     */
+		    if (isConst() && type->toBasetype()->ty != Tsarray &&
+			init && init->isExpInitializer())
+			return;
+
 		    s->Sclass = SCcomdat;
 		    break;
 		}

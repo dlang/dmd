@@ -906,6 +906,7 @@ Expression *EqualExp::constFold()
     real_t r1;
     real_t r2;
 
+    //printf("EqualExp::constFold() %s\n", toChars());
     assert(op == TOKequal || op == TOKnotequal);
     e1 = e1->constFold();
     e2 = e2->constFold();
