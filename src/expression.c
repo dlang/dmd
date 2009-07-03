@@ -32,13 +32,7 @@ extern "C" char * __cdecl __locale_decpoint;
 #define integer_t dmd_integer_t
 #endif
 
-#if IN_GCC
-#include "mem.h"
-#elif _WIN32
-#include "..\root\mem.h"
-#elif linux || __APPLE__
-#include "../root/mem.h"
-#endif
+#include "rmem.h"
 
 //#include "port.h"
 #include "mtype.h"
@@ -940,6 +934,18 @@ void Expression::error(const char *format, ...)
     va_start(ap, format);
     ::verror(loc, format, ap);
     va_end( ap );
+}
+
+void Expression::warning(const char *format, ...)
+{
+    if (global.params.warnings && !global.gag)
+    {
+	fprintf(stdmsg, "warning - ");
+	va_list ap;
+	va_start(ap, format);
+	::verror(loc, format, ap);
+	va_end( ap );
+    }
 }
 
 void Expression::rvalue()
@@ -7192,7 +7198,10 @@ Expression *SliceExp::semantic(Scope *sc)
 	return e;
     }
 
-    type = t->nextOf()->arrayOf();
+    if (t->ty == Tarray)
+	type = e1->type;
+    else
+	type = t->nextOf()->arrayOf();
     return e;
 
 Lerror:

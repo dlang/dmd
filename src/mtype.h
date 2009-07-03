@@ -246,6 +246,7 @@ struct Type : Object
     Type *nextOf() { return next; }
 
     static void error(Loc loc, const char *format, ...);
+    static void warning(Loc loc, const char *format, ...);
 
     // For backend
     virtual unsigned totym();

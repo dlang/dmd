@@ -19,6 +19,7 @@
 
 #include "arraytypes.h"
 #include "dsymbol.h"
+#include "lexer.h"
 
 struct OutBuffer;
 struct Scope;
@@ -43,6 +44,7 @@ struct AsmStatement;
 struct GotoStatement;
 struct ScopeStatement;
 struct TryCatchStatement;
+struct TryFinallyStatement;
 struct HdrGenState;
 struct InterState;
 
@@ -60,7 +62,7 @@ struct elem;
 #endif
 struct code;
 
-/* How a statement exits
+/* How a statement exits; this is returned by blockExit()
  */
 enum BE
 {
@@ -86,6 +88,7 @@ struct Statement : Object
     char *toChars();
 
     void error(const char *format, ...);
+    void warning(const char *format, ...);
     virtual void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
     virtual TryCatchStatement *isTryCatchStatement() { return NULL; }
     virtual GotoStatement *isGotoStatement() { return NULL; }

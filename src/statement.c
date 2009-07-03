@@ -1,6 +1,6 @@
 
 // Compiler implementation of the D programming language
-// Copyright (c) 1999-2008 by Digital Mars
+// Copyright (c) 1999-2009 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // http://www.digitalmars.com
@@ -12,7 +12,7 @@
 #include <stdlib.h>
 #include <assert.h>
 
-#include "mem.h"
+#include "rmem.h"
 
 #include "statement.h"
 #include "expression.h"
@@ -94,6 +94,18 @@ void Statement::error(const char *format, ...)
     va_start(ap, format);
     ::verror(loc, format, ap);
     va_end( ap );
+}
+
+void Statement::warning(const char *format, ...)
+{
+    if (global.params.warnings && !global.gag)
+    {
+	fprintf(stdmsg, "warning - ");
+	va_list ap;
+	va_start(ap, format);
+	::verror(loc, format, ap);
+	va_end( ap );
+    }
 }
 
 int Statement::hasBreak()
@@ -539,10 +551,7 @@ int CompoundStatement::blockExit()
 //printf("%s\n", s->toChars());
 	    if (!(result & BEfallthru) && !s->comeFrom())
 	    {
-		if (global.params.warnings)
-		{   fprintf(stdmsg, "warning - ");
-		    s->error("statement is not reachable");
-		}
+		s->warning("statement is not reachable");
 	    }
 
 	    result &= ~BEfallthru;
@@ -1017,9 +1026,11 @@ Statement *ForStatement::semantic(Scope *sc)
     sc = sc->push(sym);
     if (init)
 	init = init->semantic(sc);
+#if 0
     if (!condition)
 	// Use a default value
 	condition = new IntegerExp(loc, 1, Type::tboolean);
+#endif
     sc->noctor++;
     if (condition)
     {
@@ -1084,9 +1095,9 @@ int ForStatement::blockExit()
 	result &= ~BEfallthru;	// the body must do the exiting
     if (body)
     {	int r = body->blockExit();
-	if (r & BEbreak)
+	if (r & (BEbreak | BEgoto))
 	    result |= BEfallthru;
-	result |= r & ~(BEbreak | BEcontinue);
+	result |= r & ~(BEfallthru | BEbreak | BEcontinue);
     }
     if (increment && increment->canThrow())
 	result |= BEthrow;
@@ -2223,10 +2234,7 @@ Statement *SwitchStatement::semantic(Scope *sc)
     if (!sc->sw->sdefault)
     {	hasNoDefault = 1;
 
-	if (global.params.warnings)
-	{   fprintf(stdmsg, "warning - ");
-	    error("switch statement has no default");
-	}
+	warning("switch statement has no default");
 
 	// Generate runtime error if the default is hit
 	Statements *a = new Statements();

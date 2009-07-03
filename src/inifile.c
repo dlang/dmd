@@ -1,9 +1,14 @@
-
-// Copyright (c) 1999-2009 by Digital Mars
-// All Rights Reserved
-// written by Walter Bright
-// http://www.digitalmars.com
-
+/*
+ * Some portions copyright (c) 1994-1995 by Symantec
+ * Copyright (c) 1999-2009 by Digital Mars
+ * All Rights Reserved
+ * http://www.digitalmars.com
+ * Written by Walter Bright
+ *
+ * This source file is made available for personal use
+ * only. The license is in /dmd/src/dmd/backendlicense.txt
+ * For any other uses, please contact Digital Mars.
+ */
 
 #include	<stdio.h>
 #include	<string.h>
@@ -15,7 +20,7 @@
 #endif
 
 #include	"root.h"
-#include	"mem.h"
+#include	"rmem.h"
 
 #define LOG	0
 

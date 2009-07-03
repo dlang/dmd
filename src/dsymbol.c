@@ -12,7 +12,7 @@
 #include <string.h>
 #include <assert.h>
 
-#include "mem.h"
+#include "rmem.h"
 
 #include "mars.h"
 #include "dsymbol.h"

@@ -22,7 +22,7 @@
 #include <errno.h>
 #endif
 
-#include "mem.h"
+#include "rmem.h"
 #include "root.h"
 
 #include "mars.h"
@@ -74,7 +74,7 @@ Global::Global()
 
     copyright = "Copyright (c) 1999-2009 by Digital Mars";
     written = "written by Walter Bright";
-    version = "v1.040";
+    version = "v1.041";
     global.structalign = 8;
 
     memset(&params, 0, sizeof(Param));
@@ -112,6 +112,18 @@ void error(Loc loc, const char *format, ...)
     va_start(ap, format);
     verror(loc, format, ap);
     va_end( ap );
+}
+
+void warning(Loc loc, const char *format, ...)
+{
+    if (global.params.warnings && !global.gag)
+    {
+	fprintf(stdmsg, "warning - ");
+	va_list ap;
+	va_start(ap, format);
+	verror(loc, format, ap);
+	va_end( ap );
+    }
 }
 
 void verror(Loc loc, const char *format, va_list ap)
@@ -235,6 +247,7 @@ int main(int argc, char *argv[])
     Module *m;
     int status = EXIT_SUCCESS;
     int argcstart = argc;
+    int setdebuglib = 0;
 
     // Check for malformed input
     if (argc < 1 || !argv)
@@ -280,7 +293,6 @@ int main(int argc, char *argv[])
 #elif TARGET_LINUX || TARGET_OSX
     global.params.defaultlibname = "phobos";
 #endif
-    global.params.debuglibname = global.params.defaultlibname;
 
     // Predefine version identifiers
     VersionCondition::addPredefinedGlobalIdent("DigitalMars");
@@ -555,6 +567,7 @@ int main(int argc, char *argv[])
 	    }
 	    else if (memcmp(p + 1, "debuglib=", 9) == 0)
 	    {
+		setdebuglib = 1;
 		global.params.debuglibname = p + 1 + 9;
 	    }
 	    else if (memcmp(p + 1, "man", 3) == 0)
@@ -629,6 +642,9 @@ int main(int argc, char *argv[])
     {	usage();
 	return EXIT_FAILURE;
     }
+
+    if (!setdebuglib)
+	global.params.debuglibname = global.params.defaultlibname;
 
 #if TARGET_OSX
     global.params.pic = 1;

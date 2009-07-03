@@ -29,11 +29,7 @@
 #include	"init.h"
 #include	"template.h"
 
-#if _WIN32
-#include	"..\tk\mem.h"	// for mem_malloc
-#elif linux || __APPLE__
-#include	"../tk/mem.h"	// for mem_malloc
-#endif
+#include	"mem.h"	// for mem_malloc
 
 #include	"cc.h"
 #include	"el.h"
@@ -249,6 +245,79 @@ elem *getEthis(Loc loc, IRState *irs, Dsymbol *fd)
 }
 
 
+/*************************
+ * Initialize the hidden aggregate member, vthis, with
+ * the context pointer.
+ * Returns:
+ *	*(ey + ad.vthis.offset) = this;
+ */
+#if V2
+elem *setEthis(Loc loc, IRState *irs, elem *ey, AggregateDeclaration *ad)
+{
+    elem *ethis;
+    FuncDeclaration *thisfd = irs->getFunc();
+    int offset = 0;
+    Dsymbol *cdp = ad->toParent2();	// class/func we're nested in
+
+    //printf("setEthis(ad = %s, cdp = %s, thisfd = %s)\n", ad->toChars(), cdp->toChars(), thisfd->toChars());
+
+    if (cdp == thisfd)
+    {   /* Class we're new'ing is a local class in this function:
+	 *	void thisfd() { class ad { } }
+	 */
+	if (irs->sclosure)
+	    ethis = el_var(irs->sclosure);
+	else if (irs->sthis)
+	{
+#if V2
+	    if (thisfd->closureVars.dim)
+#else
+	    if (thisfd->nestedFrameRef)
+#endif
+	    {
+		ethis = el_ptr(irs->sthis);
+	    }
+	    else
+		ethis = el_var(irs->sthis);
+	}
+	else
+	{
+	    ethis = el_long(TYnptr, 0);
+#if V2
+	    if (thisfd->closureVars.dim)
+#else
+	    if (thisfd->nestedFrameRef)
+#endif
+	    {
+		ethis->Eoper = OPframeptr;
+	    }
+	}
+    }
+    else if (thisfd->vthis &&
+	  (cdp == thisfd->toParent2() ||
+	   (cdp->isClassDeclaration() &&
+	    cdp->isClassDeclaration()->isBaseOf(thisfd->toParent2()->isClassDeclaration(), &offset)
+	   )
+	  )
+	)
+    {   /* Class we're new'ing is at the same level as thisfd
+	 */
+	assert(offset == 0);	// BUG: should handle this case
+	ethis = el_var(irs->sthis);
+    }
+    else
+    {
+	ethis = getEthis(loc, irs, ad->toParent2());
+	ethis = el_una(OPaddr, TYnptr, ethis);
+    }
+
+    ey = el_bin(OPadd, TYnptr, ey, el_long(TYint, ad->vthis->offset));
+    ey = el_una(OPind, TYnptr, ey);
+    ey = el_bin(OPeq, TYnptr, ey, ethis);
+    return ey;
+}
+#endif
+
 /*******************************************
  * Convert intrinsic function to operator.
  * Returns that operator, -1 if not an intrinsic function.
@@ -256,8 +325,10 @@ elem *getEthis(Loc loc, IRState *irs, Dsymbol *fd)
 
 int intrinsic_op(char *name)
 {
+    //printf("intrinsic_op(%s)\n", name);
     static const char *namearray[] =
     {
+#if V1
 	"4math3cosFeZe",
 	"4math3sinFeZe",
 	"4math4fabsFeZe",
@@ -268,11 +339,7 @@ int intrinsic_op(char *name)
 	"4math5ldexpFeiZe",
 	"4math6rndtolFeZl",
 
-#if V1
 	"9intrinsic2btFPkkZi",
-#else
-	"9intrinsic2btFxPkkZi",
-#endif
 	"9intrinsic3bsfFkZi",
 	"9intrinsic3bsrFkZi",
 	"9intrinsic3btcFPkkZi",
@@ -285,6 +352,34 @@ int intrinsic_op(char *name)
 	"9intrinsic5bswapFkZk",
 	"9intrinsic5outplFkkZk",
 	"9intrinsic5outpwFktZt",
+#elif V2
+	/* The names are mangled differently because of the pure and
+	 * nothrow attributes.
+	 */
+	"4math3cosFNaNbeZe",
+	"4math3sinFNaNbeZe",
+	"4math4fabsFNaNbeZe",
+	"4math4rintFNaNbeZe",
+	"4math4sqrtFNaNbdZd",
+	"4math4sqrtFNaNbeZe",
+	"4math4sqrtFNaNbfZf",
+	"4math5ldexpFNaNbeiZe",
+	"4math6rndtolFNaNbeZl",
+
+	"9intrinsic2btFNaNbxPkkZi",
+	"9intrinsic3bsfFNaNbkZi",
+	"9intrinsic3bsrFNaNbkZi",
+	"9intrinsic3btcFNbPkkZi",
+	"9intrinsic3btrFNbPkkZi",
+	"9intrinsic3btsFNbPkkZi",
+	"9intrinsic3inpFNbkZh",
+	"9intrinsic4inplFNbkZk",
+	"9intrinsic4inpwFNbkZt",
+	"9intrinsic4outpFNbkhZh",
+	"9intrinsic5bswapFNaNbkZk",
+	"9intrinsic5outplFNbkkZk",
+	"9intrinsic5outpwFNbktZt",
+#endif
     };
     static unsigned char ioptab[] =
     {

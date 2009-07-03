@@ -39,7 +39,7 @@ static double zero = 0;
 static double zero = 0;
 #endif
 
-#include "mem.h"
+#include "rmem.h"
 
 #include "dsymbol.h"
 #include "mtype.h"
@@ -692,6 +692,18 @@ void Type::error(Loc loc, const char *format, ...)
     va_start(ap, format);
     ::verror(loc, format, ap);
     va_end( ap );
+}
+
+void Type::warning(Loc loc, const char *format, ...)
+{
+    if (global.params.warnings && !global.gag)
+    {
+	fprintf(stdmsg, "warning - ");
+	va_list ap;
+	va_start(ap, format);
+	::verror(loc, format, ap);
+	va_end( ap );
+    }
 }
 
 Identifier *Type::getTypeInfoIdent(int internal)
@@ -3818,7 +3830,16 @@ Expression *TypeEnum::dotExp(Scope *sc, Expression *e, Identifier *ident)
     s = sym->symtab->lookup(ident);
     if (!s)
     {
-	return getProperty(e->loc, ident);
+	if (ident == Id::max ||
+	    ident == Id::min ||
+	    ident == Id::init ||
+	    ident == Id::stringof ||
+	    !sym->memtype
+	   )
+	{
+	    return getProperty(e->loc, ident);
+	}
+	return sym->memtype->dotExp(sc, e, ident);
     }
     m = s->isEnumMember();
     em = m->value->copy();

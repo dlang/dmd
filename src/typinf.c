@@ -27,7 +27,7 @@
 #include "import.h"
 #include "aggregate.h"
 
-#include <mem.h>
+#include "rmem.h"
 #include "cc.h"
 #include "global.h"
 #include "oper.h"

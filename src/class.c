@@ -13,7 +13,7 @@
 #include <assert.h>
 
 #include "root.h"
-#include "mem.h"
+#include "rmem.h"
 
 #include "enum.h"
 #include "init.h"
@@ -857,7 +857,9 @@ FuncDeclaration *ClassDeclaration::findFunc(Identifier *ident, TypeFunction *tf)
     {
 	for (size_t i = 0; i < vtbl->dim; i++)
 	{
-	    FuncDeclaration *fd = (FuncDeclaration *)vtbl->data[i];
+	    FuncDeclaration *fd = ((Dsymbol*)vtbl->data[i])->isFuncDeclaration();
+	    if (!fd)
+		continue;		// the first entry might be a ClassInfo
 
 	    //printf("\t[%d] = %s\n", i, fd->toChars());
 	    if (ident == fd->ident &&

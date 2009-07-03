@@ -68,6 +68,7 @@ void argsToCBuffer(OutBuffer *buf, Expressions *arguments, HdrGenState *hgs);
 void expandTuples(Expressions *exps);
 FuncDeclaration *hasThis(Scope *sc);
 Expression *fromConstInitializer(int result, Expression *e);
+int arrayExpressionCanThrow(Expressions *exps);
 
 struct Expression : Object
 {
@@ -87,6 +88,7 @@ struct Expression : Object
     char *toChars();
     virtual void dump(int indent);
     void error(const char *format, ...);
+    void warning(const char *format, ...);
     virtual void rvalue();
 
     static Expression *combine(Expression *e1, Expression *e2);

@@ -16,18 +16,7 @@
 #include <ctype.h>
 #include <assert.h>
 
-#ifdef IN_GCC
-#include "mem.h"
-#else
-#if _WIN32
-#include "..\root\mem.h"
-#elif linux || __APPLE__
-#include "../root/mem.h"
-#else
-#error "fix this"
-#endif
-#endif
-
+#include "rmem.h"
 #include "root.h"
 
 #include "mars.h"

@@ -25,11 +25,7 @@
 #include	"init.h"
 #include	"template.h"
 
-#if _WIN32
-#include	"..\tk\mem.h"	// for mem_malloc
-#elif linux || __APPLE__
-#include	"../tk/mem.h"	// for mem_malloc
-#endif
+#include	"mem.h"	// for mem_malloc
 
 #if __APPLE__
 #define __I86__ 1
@@ -3646,10 +3642,11 @@ Lagain:
 	case X(Tfloat80,Tint32):
 	case X(Tfloat80,Tuns32):
 	case X(Tfloat80,Tint64):
-	case X(Tfloat80,Tuns64):
 	case X(Tfloat80,Tfloat32): e = el_una(OPld_d, TYdouble, e);
 				   fty = Tfloat64;
 				   goto Lagain;
+	case X(Tfloat80,Tuns64):
+				   eop = OPld_u64; goto Leop;
 	case X(Tfloat80,Tfloat64): eop = OPld_d; goto Leop;
 	case X(Tfloat80,Timaginary32): goto Lzero;
 	case X(Tfloat80,Timaginary64): goto Lzero;

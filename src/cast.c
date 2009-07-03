@@ -10,11 +10,7 @@
 #include <stdio.h>
 #include <assert.h>
 
-#if _WIN32 || IN_GCC
-#include "mem.h"
-#else
-#include "../root/mem.h"
-#endif
+#include "rmem.h"
 
 #include "expression.h"
 #include "mtype.h"
@@ -59,8 +55,7 @@ Expression *Expression::implicitCastTo(Scope *sc, Type *t)
 	    }
 	    else
 	    {
-		fprintf(stdmsg, "warning - ");
-		error("implicit conversion of expression (%s) of type %s to %s can cause loss of data",
+		warning("implicit conversion of expression (%s) of type %s to %s can cause loss of data",
 		    toChars(), type->toChars(), t->toChars());
 	    }
 	}

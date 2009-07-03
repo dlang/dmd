@@ -20,7 +20,7 @@
 #include "gdc_alloca.h"
 #endif
 
-#include "mem.h"
+#include "rmem.h"
 
 #include "mars.h"
 #include "module.h"
@@ -75,6 +75,7 @@ Module::Module(char *filename, Identifier *ident, int doDocComment, int doHdrGen
 #ifdef IN_GCC
     strictlyneedmoduleinfo = 0;
 #endif
+    selfimports = 0;
     insearch = 0;
     searchCacheIdent = NULL;
     searchCacheSymbol = NULL;
@@ -910,13 +911,39 @@ int Module::imports(Module *m)
 	{
 	    mi->insearch = 1;
 	    int r = mi->imports(m);
-	    mi->insearch = 0;
 	    if (r)
 		return r;
 	}
     }
     return FALSE;
 }
+
+/*************************************
+ * Return !=0 if module imports itself.
+ */
+
+int Module::selfImports()
+{
+    //printf("Module::selfImports() %s\n", toChars());
+    if (!selfimports)
+    {
+	for (int i = 0; i < amodules.dim; i++)
+	{   Module *mi = (Module *)amodules.data[i];
+	    //printf("\t[%d] %s\n", i, mi->toChars());
+	    mi->insearch = 0;
+	}
+
+	selfimports = imports(this) + 1;
+
+	for (int i = 0; i < amodules.dim; i++)
+	{   Module *mi = (Module *)amodules.data[i];
+	    //printf("\t[%d] %s\n", i, mi->toChars());
+	    mi->insearch = 0;
+	}
+    }
+    return selfimports - 1;
+}
+
 
 /* =========================== ModuleDeclaration ===================== */
 
