@@ -229,7 +229,58 @@ Expression *AddExp::constFold()
     }
     else if (type->iscomplex())
     {
-	e = new ComplexExp(loc, e1->toComplex() + e2->toComplex(), type);
+	// This rigamarole is necessary so that -0.0 doesn't get
+	// converted to +0.0 by doing an extraneous add with +0.0
+	complex_t c1;
+	real_t r1;
+	real_t i1;
+
+	complex_t c2;
+	real_t r2;
+	real_t i2;
+
+	complex_t v;
+	int x;
+
+	if (e1->type->isreal())
+	{   r1 = e1->toReal();
+	    x = 0;
+	}
+	else if (e1->type->isimaginary())
+	{   i1 = e1->toImaginary();
+	    x = 3;
+	}
+	else
+	{   c1 = e1->toComplex();
+	    x = 6;
+	}
+
+	if (e2->type->isreal())
+	{   r2 = e2->toReal();
+	}
+	else if (e2->type->isimaginary())
+	{   i2 = e2->toImaginary();
+	    x += 1;
+	}
+	else
+	{   c2 = e2->toComplex();
+	    x += 2;
+	}
+
+	switch (x)
+	{
+	    case 0+0:	v = (complex_t) (r1 + r2);	break;
+	    case 0+1:	v = r1 + i2 * I;		break;
+	    case 0+2:	v = r1 + c2;			break;
+	    case 3+0:	v = i1 * I + r2;		break;
+	    case 3+1:	v = (complex_t) ((i1 + i2) * I); break;
+	    case 3+2:	v = i1 * I + c2;		break;
+	    case 6+0:	v = c1 + r2;			break;
+	    case 6+1:	v = c1 + i2 * I;		break;
+	    case 6+2:	v = c1 + c2;			break;
+	    default: assert(0);
+	}
+	e = new ComplexExp(loc, v, type);
     }
     else if (e1->op == TOKsymoff)
     {
@@ -266,7 +317,58 @@ Expression *MinExp::constFold()
     }
     else if (type->iscomplex())
     {
-	e = new ComplexExp(loc, e1->toComplex() - e2->toComplex(), type);
+	// This rigamarole is necessary so that -0.0 doesn't get
+	// converted to +0.0 by doing an extraneous add with +0.0
+	complex_t c1;
+	real_t r1;
+	real_t i1;
+
+	complex_t c2;
+	real_t r2;
+	real_t i2;
+
+	complex_t v;
+	int x;
+
+	if (e1->type->isreal())
+	{   r1 = e1->toReal();
+	    x = 0;
+	}
+	else if (e1->type->isimaginary())
+	{   i1 = e1->toImaginary();
+	    x = 3;
+	}
+	else
+	{   c1 = e1->toComplex();
+	    x = 6;
+	}
+
+	if (e2->type->isreal())
+	{   r2 = e2->toReal();
+	}
+	else if (e2->type->isimaginary())
+	{   i2 = e2->toImaginary();
+	    x += 1;
+	}
+	else
+	{   c2 = e2->toComplex();
+	    x += 2;
+	}
+
+	switch (x)
+	{
+	    case 0+0:	v = (complex_t) (r1 - r2);	break;
+	    case 0+1:	v = r1 - i2 * I;		break;
+	    case 0+2:	v = r1 - c2;			break;
+	    case 3+0:	v = i1 * I - r2;		break;
+	    case 3+1:	v = (complex_t) ((i1 - i2) * I); break;
+	    case 3+2:	v = i1 * I - c2;		break;
+	    case 6+0:	v = c1 - r2;			break;
+	    case 6+1:	v = c1 - i2 * I;		break;
+	    case 6+2:	v = c1 - c2;			break;
+	    default: assert(0);
+	}
+	e = new ComplexExp(loc, v, type);
     }
     else if (e1->op == TOKsymoff)
     {

@@ -238,7 +238,7 @@ void AttribDeclaration::checkCtorConstInit()
 /****************************************
  */
 
-void AttribDeclaration::addLocalClass(Array *aclasses)
+void AttribDeclaration::addLocalClass(ClassDeclarations *aclasses)
 {   unsigned i;
     Array *d = include(NULL, NULL);
 
@@ -657,7 +657,7 @@ char *AnonDeclaration::kind()
 
 /********************************* PragmaDeclaration ****************************/
 
-PragmaDeclaration::PragmaDeclaration(Loc loc, Identifier *ident, Array *args, Array *decl)
+PragmaDeclaration::PragmaDeclaration(Loc loc, Identifier *ident, Expressions *args, Array *decl)
 	: AttribDeclaration(decl)
 {
     this->loc = loc;

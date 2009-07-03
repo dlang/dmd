@@ -418,6 +418,7 @@ void TypeInfoDeclaration::emitComment(Scope *sc)   { }
 void Declaration::emitComment(Scope *sc)
 {
     //printf("Declaration::emitComment(%p '%s'), comment = '%s'\n", this, toChars(), comment);
+    //printf("type = %p\n", type);
 
     if (protection == PROTprivate || !ident ||
 	(!type && !isCtorDeclaration()))
@@ -599,6 +600,7 @@ void Dsymbol::toDocBuffer(OutBuffer *buf)
 
 void Declaration::toDocBuffer(OutBuffer *buf)
 {
+    //printf("Declaration::toDocbuffer()\n");
     if (ident)
     {
 	if (isDeprecated())
@@ -615,8 +617,11 @@ void Declaration::toDocBuffer(OutBuffer *buf)
 	    buf->writestring("synchronized ");
 	if (type)
 	{   HdrGenState hgs;
+	    hgs.ddoc = 1;
 	    type->toCBuffer(buf, ident, &hgs);
 	}
+	else
+	    buf->writestring(ident->toChars());
 	buf->writestring(";\n");
     }
 }

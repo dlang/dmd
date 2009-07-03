@@ -146,7 +146,7 @@ struct BaseClass
     BaseClass(Type *type, enum PROT protection);
 
     int fillVtbl(ClassDeclaration *cd, Array *vtbl, int newinstance);
-    void copyBaseInterfaces(Array *);
+    void copyBaseInterfaces(BaseClasses *);
 };
 
 #define CLASSINFO_SIZE 	0x3C		// value of ClassInfo.size
@@ -162,14 +162,14 @@ struct ClassDeclaration : AggregateDeclaration
     FuncDeclaration *staticDtor;
     Array vtbl;				// Array of FuncDeclaration's making up the vtbl[]
 
-    Array baseclasses;			// Array of BaseClass's; first is super,
+    BaseClasses baseclasses;		// Array of BaseClass's; first is super,
 					// rest are Interface's
 
     int interfaces_dim;
     BaseClass **interfaces;		// interfaces[interfaces_dim] for this class
 					// (does not include baseClass)
 
-    Array *vtblInterfaces;		// array of base interfaces that have
+    BaseClasses *vtblInterfaces;	// array of base interfaces that have
 					// their own vtbl[]
 
     ClassInfoDeclaration *vclassinfo;	// the ClassInfo object for this ClassDeclaration
@@ -180,7 +180,7 @@ struct ClassDeclaration : AggregateDeclaration
     int isnested;			// !=0 if is nested
     VarDeclaration *vthis;		// 'this' parameter if this class is nested
 
-    ClassDeclaration(Loc loc, Identifier *id, Array *baseclasses);
+    ClassDeclaration(Loc loc, Identifier *id, BaseClasses *baseclasses);
     Dsymbol *syntaxCopy(Dsymbol *s);
     void semantic(Scope *sc);
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
@@ -202,7 +202,7 @@ struct ClassDeclaration : AggregateDeclaration
 
     PROT getAccess(Dsymbol *smember);	// determine access to smember
 
-    void addLocalClass(Array *);
+    void addLocalClass(ClassDeclarations *);
 
     // Back end
     void toObjFile();			// compile to .obj file
@@ -220,7 +220,7 @@ struct ClassDeclaration : AggregateDeclaration
 
 struct InterfaceDeclaration : ClassDeclaration
 {
-    InterfaceDeclaration(Loc loc, Identifier *id, Array *baseclasses);
+    InterfaceDeclaration(Loc loc, Identifier *id, BaseClasses *baseclasses);
     Dsymbol *syntaxCopy(Dsymbol *s);
     void semantic(Scope *sc);
     int isBaseOf(ClassDeclaration *cd, int *poffset);

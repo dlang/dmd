@@ -161,7 +161,7 @@ void Statement::scopeCode(Statement **sentry, Statement **sexception, Statement 
  * Returns NULL if no flattening necessary.
  */
 
-Array *Statement::flatten()
+Statements *Statement::flatten()
 {
     return NULL;
 }
@@ -405,7 +405,7 @@ Statement *CompoundStatement::semantic(Scope *sc)
 			 *	s; try { s1; s2; } finally { sfinally; }
 			 */
 			Statement *body;
-			Array *a = new Array();
+			Statements *a = new Statements();
 
 			for (int j = i + 1; j < statements->dim; j++)
 			{
@@ -427,7 +427,7 @@ Statement *CompoundStatement::semantic(Scope *sc)
     return this;
 }
 
-Array *CompoundStatement::flatten()
+Statements *CompoundStatement::flatten()
 {
     return statements;
 }
@@ -518,7 +518,7 @@ Statement *ScopeStatement::semantic(Scope *sc)
 
     //printf("ScopeStatement::semantic(sc = %p)\n", sc);
     if (statement)
-    {	Array *a;
+    {	Statements *a;
 
 	sym = new ScopeDsymbol();
 	sym->parent = sc->scopesym;
@@ -835,6 +835,8 @@ ForeachStatement::ForeachStatement(Loc loc, Array *arguments,
 
     this->key = NULL;
     this->value = NULL;
+
+    this->func = NULL;
 }
 
 Statement *ForeachStatement::syntaxCopy()
@@ -856,6 +858,10 @@ Statement *ForeachStatement::semantic(Scope *sc)
 
     Type *tn = NULL;
     Type *tnv = NULL;
+
+    func = sc->func;
+    if (func->fes)
+	func = func->fes->func;
 
     aggr = aggr->semantic(sc);
     aggr = resolveProperties(sc, aggr);
@@ -979,7 +985,7 @@ Statement *ForeachStatement::semantic(Scope *sc)
 	case Tstruct:
 	Lapply:
 	{   FuncDeclaration *fdapply;
-	    Array *args;
+	    Expressions *args;
 	    Expression *ec;
 	    Expression *e;
 	    FuncLiteralDeclaration *fld;
@@ -987,12 +993,15 @@ Statement *ForeachStatement::semantic(Scope *sc)
 	    Type *t;
 	    Expression *flde;
 	    Identifier *id;
+	    Type *tret;
+
+	    tret = func->type->next;
 
 	    // Need a variable to hold value from any return statements in body.
-	    if (!sc->func->vresult && sc->func->type->next != Type::tvoid)
+	    if (!sc->func->vresult && tret != Type::tvoid)
 	    {	VarDeclaration *v;
 
-		v = new VarDeclaration(loc, sc->func->type->next, Id::result, NULL);
+		v = new VarDeclaration(loc, tret, Id::result, NULL);
 		v->noauto = 1;
 		v->semantic(sc);
 		if (!sc->insert(v))
@@ -1004,7 +1013,7 @@ Statement *ForeachStatement::semantic(Scope *sc)
 	    /* Turn body into the function literal:
 	     *	int delegate(inout T arg) { body }
 	     */
-	    args = new Array();
+	    args = new Expressions();
 	    for (i = 0; i < dim; i++)
 	    {	Argument *arg = (Argument *)arguments->data[i];
 
@@ -1071,7 +1080,7 @@ Statement *ForeachStatement::semantic(Scope *sc)
 		else
 		    fdapply = FuncDeclaration::genCfunc(Type::tindex, "_aaApply");
 		ec = new VarExp(0, fdapply);
-		args = new Array();
+		args = new Expressions();
 		args->push(aggr);
 		args->push(new IntegerExp(0, taa->key->size(), Type::tint32));
 		args->push(flde);
@@ -1110,7 +1119,7 @@ Statement *ForeachStatement::semantic(Scope *sc)
 		fdapply = FuncDeclaration::genCfunc(Type::tindex, fdname);
 
 		ec = new VarExp(0, fdapply);
-		args = new Array();
+		args = new Expressions();
 		if (tab->ty == Tsarray)
 		   aggr = aggr->castTo(tn->arrayOf());
 		args->push(aggr);
@@ -1124,7 +1133,7 @@ Statement *ForeachStatement::semantic(Scope *sc)
 		 *	aggr.apply(flde)
 		 */
 		ec = new DotIdExp(loc, aggr, Id::apply);
-		args = new Array();
+		args = new Expressions();
 		args->push(flde);
 		e = new CallExp(loc, ec, args);
 		e = e->semantic(sc);
@@ -1138,7 +1147,7 @@ Statement *ForeachStatement::semantic(Scope *sc)
 	    else
 	    {	// Construct a switch statement around the return value
 		// of the apply function.
-		Array *a = new Array();
+		Statements *a = new Statements();
 
 		// default: break; takes care of cases 0 and 1
 		s = new BreakStatement(0, NULL);
@@ -1398,7 +1407,7 @@ void ConditionalStatement::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 
 /******************************** PragmaStatement ***************************/
 
-PragmaStatement::PragmaStatement(Loc loc, Identifier *ident, Array *args, Statement *body)
+PragmaStatement::PragmaStatement(Loc loc, Identifier *ident, Expressions *args, Statement *body)
     : Statement(loc)
 {
     this->ident = ident;
@@ -1593,7 +1602,7 @@ Statement *SwitchStatement::semantic(Scope *sc)
 	}
 
 	// Generate runtime error if the default is hit
-	Array *a = new Array();
+	Statements *a = new Statements();
 	CompoundStatement *cs;
 	Statement *s;
 
@@ -1928,6 +1937,8 @@ Statement *ReturnStatement::semantic(Scope *sc)
     FuncDeclaration *fd = sc->parent->isFuncDeclaration();
     FuncDeclaration *fdx = fd;
     Type *tret = fd->type->next;
+    if (fd->tintro)
+	tret = fd->tintro->next;
     Type *tbret = tret->toBasetype();
 
     if (!exp && tbret->ty == Tvoid && fd->isMain())
@@ -1948,10 +1959,12 @@ Statement *ReturnStatement::semantic(Scope *sc)
 	    }
 	}
 
+	tret = fdx->type->next;
+
 	if (exp)
 	{   exp = exp->semantic(sc);
 	    exp = resolveProperties(sc, exp);
-	    exp = exp->implicitCastTo(fdx->type->next);
+	    exp = exp->implicitCastTo(tret);
 	}
 	if (!exp || exp->op == TOKint64 || exp->op == TOKfloat64 ||
 	    exp->op == TOKimaginary80 || exp->op == TOKcomplex80 ||
@@ -2663,8 +2676,8 @@ int TryFinallyStatement::fallOffEnd()
 {   int result;
 
     result = body->fallOffEnd();
-    if (finalbody)
-	result = finalbody->fallOffEnd();
+//    if (finalbody)
+//	result = finalbody->fallOffEnd();
     return result;
 }
 
@@ -2811,9 +2824,9 @@ Statement *VolatileStatement::semantic(Scope *sc)
     return this;
 }
 
-Array *VolatileStatement::flatten()
+Statements *VolatileStatement::flatten()
 {
-    Array *a;
+    Statements *a;
 
     a = statement->flatten();
     if (a)
@@ -2876,7 +2889,7 @@ Statement *GotoStatement::semantic(Scope *sc)
 	 * so we can patch it later, and add it to a 'look at this later'
 	 * list.
 	 */
-	Array *a = new Array();
+	Statements *a = new Statements();
 	Statement *s;
 
 	a->push(this);
@@ -2940,9 +2953,9 @@ Statement *LabelStatement::semantic(Scope *sc)
     return this;
 }
 
-Array *LabelStatement::flatten()
+Statements *LabelStatement::flatten()
 {
-    Array *a;
+    Statements *a;
 
     a = statement->flatten();
     if (a)

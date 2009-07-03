@@ -14,6 +14,7 @@
 #pragma once
 #endif /* __DMC__ */
 
+#include "arraytypes.h"
 #include "lexer.h"
 #include "enum.h"
 
@@ -53,7 +54,7 @@ struct Parser : Lexer
     Array *parseDeclDefs(int once);
     Array *parseBlock();
     TemplateDeclaration *parseTemplateDeclaration();
-    Array *parseTemplateParameterList();
+    TemplateParameters *parseTemplateParameterList();
     TemplateInstance *parseTemplateInstance();
     Dsymbol *parseMixin();
     Array *parseTemplateArgumentList();
@@ -74,7 +75,7 @@ struct Parser : Lexer
     Array *parseParameters(int *pvarargs);
     EnumDeclaration *parseEnum();
     Dsymbol *parseAggregate();
-    Array *parseBaseClasses();
+    BaseClasses *parseBaseClasses();
     Import *parseImport(Array *decldefs);
     Type *parseBasicType();
     Type *parseBasicType2(Type *t);
@@ -110,7 +111,7 @@ struct Parser : Lexer
     Expression *parseCondExp();
     Expression *parseAssignExp();
 
-    Array *parseArguments();
+    Expressions *parseArguments();
 
     Expression *parseNewExp();
 

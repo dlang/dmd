@@ -62,8 +62,9 @@ FuncDeclaration::FuncDeclaration(Loc loc, Loc endloc, Identifier *id, enum STC s
     inlineAsm = 0;
     semanticRun = 0;
     nestedFrameRef = 0;
-    introducing = 0;
     fes = NULL;
+    introducing = 0;
+    tintro = NULL;
 }
 
 Dsymbol *FuncDeclaration::syntaxCopy(Dsymbol *s)
@@ -276,6 +277,28 @@ void FuncDeclaration::semantic(Scope *sc)
 			}
 			cd->vtbl.data[vi] = (void *)this;
 			vtblIndex = vi;
+
+			/* This works by whenever this function is called,
+			 * it actually returns tintro, which gets dynamically
+			 * cast to type. But we know that tintro is a base
+			 * of type, so we could optimize it by not doing a
+			 * dynamic cast, but just subtracting the isBaseOf()
+			 * offset if the value is != null.
+			 */
+
+			if (fdv->tintro)
+			    tintro = fdv->tintro;
+			else if (!type->equals(fdv->type))
+			{
+			    /* Only need to have a tintro if the vptr
+			     * offsets differ
+			     */
+			    int offset;
+			    if (fdv->type->next->isBaseOf(type->next, &offset) && offset)
+			    {
+				tintro = fdv->type;
+			    }
+			}
 			goto L1;
 		    }
 		}
@@ -296,6 +319,51 @@ void FuncDeclaration::semantic(Scope *sc)
 	}
 
     L1: ;
+
+	/* Go through all the interface bases.
+	 * If this function is covariant with any members of those interface
+	 * functions, set the tintro.
+	 */
+	for (int i = 0; i < cd->interfaces_dim; i++)
+	{
+	    BaseClass *b = cd->interfaces[i];
+	    for (vi = 0; vi < b->base->vtbl.dim; vi++)
+	    {
+		Dsymbol *s = (Dsymbol *)b->base->vtbl.data[vi];
+		//printf("[%d] %p %s\n", vi, s, s->toChars());
+		FuncDeclaration *fdv = s->isFuncDeclaration();
+		if (fdv && fdv->ident == ident)
+		{
+		    int cov = type->covariant(fdv->type);
+		    if (cov == 1)
+		    {	Type *ti = NULL;
+
+			if (fdv->tintro)
+			    ti = fdv->tintro;
+			else if (!type->equals(fdv->type))
+			{
+			    /* Only need to have a tintro if the vptr
+			     * offsets differ
+			     */
+			    int offset;
+			    if (fdv->type->next->isBaseOf(type->next, &offset) && offset)
+			    {
+				ti = fdv->type;
+			    }
+			}
+			if (ti)
+			{
+			    if (tintro && !tintro->equals(ti))
+			    {
+				error("incompatible covariant types %s and %s", tintro->toChars(), ti->toChars());
+			    }
+			    tintro = ti;
+			}
+		    }
+		}
+	    }
+	}
+
     }
     else if (isOverride() && !parent->isTemplateInstance())
 	error("override only applies to class member functions");
@@ -743,7 +811,7 @@ void FuncDeclaration::semantic3(Scope *sc)
 	}
 
 	{
-	    Array *a = new Array();
+	    Statements *a = new Statements();
 
 	    // Merge in initialization of 'out' parameters
 	    if (parameters)
@@ -849,6 +917,10 @@ void FuncDeclaration::semantic3(Scope *sc)
 		    // Create: return vresult;
 		    assert(vresult);
 		    Expression *e = new VarExp(0, vresult);
+		    if (tintro)
+		    {	e = e->implicitCastTo(tintro->next);
+			e = e->semantic(sc);
+		    }
 		    ReturnStatement *s = new ReturnStatement(0, e);
 		    a->push(s);
 		}
@@ -1030,7 +1102,7 @@ FuncDeclaration *FuncDeclaration::overloadExactMatch(Type *t)
 
 // Recursive helper function
 
-void overloadResolveX(Match *m, FuncDeclaration *fstart, Array *arguments)
+void overloadResolveX(Match *m, FuncDeclaration *fstart, Expressions *arguments)
 {
     MATCH match;
     Declaration *d;
@@ -1108,7 +1180,7 @@ void overloadResolveX(Match *m, FuncDeclaration *fstart, Array *arguments)
     }
 }
 
-FuncDeclaration *FuncDeclaration::overloadResolve(Loc loc, Array *arguments)
+FuncDeclaration *FuncDeclaration::overloadResolve(Loc loc, Expressions *arguments)
 {
     TypeFunction *tf;
     Match m;
@@ -1294,9 +1366,9 @@ void FuncDeclaration::appendState(Statement *s)
 {   CompoundStatement *cs;
 
     if (!fbody)
-    {	Array *a;
+    {	Statements *a;
 
-	a = new Array();
+	a = new Statements();
 	fbody = new CompoundStatement(0, a);
     }
     cs = fbody->isCompoundStatement();

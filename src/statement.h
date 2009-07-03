@@ -16,6 +16,7 @@
 
 #include "root.h"
 
+#include "arraytypes.h"
 #include "dsymbol.h"
 
 struct OutBuffer;
@@ -41,8 +42,6 @@ struct GotoStatement;
 struct ScopeStatement;
 struct TryCatchStatement;
 struct HdrGenState;
-
-typedef Array Statements;
 
 // Back end
 struct IRState;
@@ -251,6 +250,8 @@ struct ForeachStatement : Statement
     VarDeclaration *key;
     VarDeclaration *value;
 
+    FuncDeclaration *func;	// function we're lexically in
+
     Array cases;	// put breaks, continues, gotos and returns here
     Array gotos;	// forward referenced goto's go here
 
@@ -308,10 +309,10 @@ struct ConditionalStatement : Statement
 struct PragmaStatement : Statement
 {
     Identifier *ident;
-    Array *args;		// array of Expression's
+    Expressions *args;		// array of Expression's
     Statement *body;
 
-    PragmaStatement(Loc loc, Identifier *ident, Array *args, Statement *body);
+    PragmaStatement(Loc loc, Identifier *ident, Expressions *args, Statement *body);
     Statement *syntaxCopy();
     Statement *semantic(Scope *sc);
     int usesEH();

@@ -63,7 +63,7 @@ static Type *isType(Object *o)
 
 /* ======================== TemplateDeclaration ============================= */
 
-TemplateDeclaration::TemplateDeclaration(Loc loc, Identifier *id, Array *parameters, Array *decldefs)
+TemplateDeclaration::TemplateDeclaration(Loc loc, Identifier *id, TemplateParameters *parameters, Array *decldefs)
     : ScopeDsymbol(id)
 {
 #if LOG
@@ -92,13 +92,13 @@ TemplateDeclaration::TemplateDeclaration(Loc loc, Identifier *id, Array *paramet
 Dsymbol *TemplateDeclaration::syntaxCopy(Dsymbol *)
 {
     TemplateDeclaration *td;
-    Array *p;
+    TemplateParameters *p;
     Array *d;
 
     p = NULL;
     if (parameters)
     {
-	p = new Array();
+	p = new TemplateParameters();
 	p->setDim(parameters->dim);
 	for (int i = 0; i < p->dim; i++)
 	{   TemplateParameter *tp = (TemplateParameter *)parameters->data[i];
@@ -622,7 +622,7 @@ void TemplateDeclaration::declareParameter(Scope *sc, TemplateParameter *tp, Obj
  *	fargs		arguments to function
  */
 
-FuncDeclaration *TemplateDeclaration::deduce(Scope *sc, Loc loc, Array *targsi, Array *fargs)
+FuncDeclaration *TemplateDeclaration::deduce(Scope *sc, Loc loc, Array *targsi, Expressions *fargs)
 {
     MATCH m_best = MATCHnomatch;
     TemplateDeclaration *td_ambig = NULL;
@@ -793,7 +793,7 @@ char *TemplateDeclaration::toChars()
  *	dedtypes = [ int ]	// Array of Expression/Type's
  */
 
-MATCH Type::deduceType(Scope *sc, Type *tparam, Array *parameters, Array *dedtypes)
+MATCH Type::deduceType(Scope *sc, Type *tparam, TemplateParameters *parameters, Array *dedtypes)
 {
     //printf("Type::deduceType()\n");
     //printf("\tthis   = %d, ", ty); print();
@@ -861,7 +861,7 @@ Lnomatch:
     return MATCHnomatch;
 }
 
-MATCH TypeSArray::deduceType(Scope *sc, Type *tparam, Array *parameters, Array *dedtypes)
+MATCH TypeSArray::deduceType(Scope *sc, Type *tparam, TemplateParameters *parameters, Array *dedtypes)
 {
     //printf("TypeSArray::deduceType()\n");
     //printf("\tthis   = %d, ", ty); print();
@@ -916,7 +916,7 @@ MATCH TypeSArray::deduceType(Scope *sc, Type *tparam, Array *parameters, Array *
     return MATCHnomatch;
 }
 
-MATCH TypeAArray::deduceType(Scope *sc, Type *tparam, Array *parameters, Array *dedtypes)
+MATCH TypeAArray::deduceType(Scope *sc, Type *tparam, TemplateParameters *parameters, Array *dedtypes)
 {
     //printf("TypeAArray::deduceType()\n");
     //printf("\tthis   = %d, ", ty); print();
@@ -932,7 +932,7 @@ MATCH TypeAArray::deduceType(Scope *sc, Type *tparam, Array *parameters, Array *
     return Type::deduceType(sc, tparam, parameters, dedtypes);
 }
 
-MATCH TypeFunction::deduceType(Scope *sc, Type *tparam, Array *parameters, Array *dedtypes)
+MATCH TypeFunction::deduceType(Scope *sc, Type *tparam, TemplateParameters *parameters, Array *dedtypes)
 {
     // Extra check that function characteristics must match
     if (tparam && tparam->ty == Tfunction)
@@ -954,7 +954,7 @@ MATCH TypeFunction::deduceType(Scope *sc, Type *tparam, Array *parameters, Array
     return Type::deduceType(sc, tparam, parameters, dedtypes);
 }
 
-MATCH TypeIdentifier::deduceType(Scope *sc, Type *tparam, Array *parameters, Array *dedtypes)
+MATCH TypeIdentifier::deduceType(Scope *sc, Type *tparam, TemplateParameters *parameters, Array *dedtypes)
 {
     // Extra check
     if (tparam && tparam->ty == Tident)
@@ -973,7 +973,7 @@ MATCH TypeIdentifier::deduceType(Scope *sc, Type *tparam, Array *parameters, Arr
     return Type::deduceType(sc, tparam, parameters, dedtypes);
 }
 
-MATCH TypeInstance::deduceType(Scope *sc, Type *tparam, Array *parameters, Array *dedtypes)
+MATCH TypeInstance::deduceType(Scope *sc, Type *tparam, TemplateParameters *parameters, Array *dedtypes)
 {
     // Extra check
     if (tparam && tparam->ty == Tinstance)
@@ -1001,7 +1001,7 @@ MATCH TypeInstance::deduceType(Scope *sc, Type *tparam, Array *parameters, Array
     return Type::deduceType(sc, tparam, parameters, dedtypes);
 }
 
-MATCH TypeStruct::deduceType(Scope *sc, Type *tparam, Array *parameters, Array *dedtypes)
+MATCH TypeStruct::deduceType(Scope *sc, Type *tparam, TemplateParameters *parameters, Array *dedtypes)
 {
     //printf("TypeStruct::deduceType()\n");
     //printf("\tthis->parent   = %s, ", sym->parent->toChars()); print();
@@ -1018,7 +1018,7 @@ MATCH TypeStruct::deduceType(Scope *sc, Type *tparam, Array *parameters, Array *
     return Type::deduceType(sc, tparam, parameters, dedtypes);
 }
 
-MATCH TypeEnum::deduceType(Scope *sc, Type *tparam, Array *parameters, Array *dedtypes)
+MATCH TypeEnum::deduceType(Scope *sc, Type *tparam, TemplateParameters *parameters, Array *dedtypes)
 {
     // Extra check
     if (tparam && tparam->ty == Tenum)
@@ -1031,7 +1031,7 @@ MATCH TypeEnum::deduceType(Scope *sc, Type *tparam, Array *parameters, Array *de
     return Type::deduceType(sc, tparam, parameters, dedtypes);
 }
 
-MATCH TypeTypedef::deduceType(Scope *sc, Type *tparam, Array *parameters, Array *dedtypes)
+MATCH TypeTypedef::deduceType(Scope *sc, Type *tparam, TemplateParameters *parameters, Array *dedtypes)
 {
     // Extra check
     if (tparam && tparam->ty == Ttypedef)
@@ -1044,7 +1044,7 @@ MATCH TypeTypedef::deduceType(Scope *sc, Type *tparam, Array *parameters, Array 
     return Type::deduceType(sc, tparam, parameters, dedtypes);
 }
 
-MATCH TypeClass::deduceType(Scope *sc, Type *tparam, Array *parameters, Array *dedtypes)
+MATCH TypeClass::deduceType(Scope *sc, Type *tparam, TemplateParameters *parameters, Array *dedtypes)
 {
     //printf("TypeClass::deduceType()\n");
 
@@ -1151,7 +1151,7 @@ Lnomatch:
 
 
 MATCH TemplateTypeParameter::matchArg(Scope *sc, Object *oarg,
-	int i, Array *parameters, Array *dedtypes, Declaration **psparam)
+	int i, TemplateParameters *parameters, Array *dedtypes, Declaration **psparam)
 {
     //printf("TemplateTypeParameter::matchArg()\n");
 
@@ -1334,7 +1334,7 @@ Lnomatch:
 }
 
 MATCH TemplateAliasParameter::matchArg(Scope *sc,
-	Object *oarg, int i, Array *parameters, Array *dedtypes, Declaration **psparam)
+	Object *oarg, int i, TemplateParameters *parameters, Array *dedtypes, Declaration **psparam)
 {
     Dsymbol *sa;
 
@@ -1541,7 +1541,7 @@ Lnomatch:
 
 
 MATCH TemplateValueParameter::matchArg(Scope *sc,
-	Object *oarg, int i, Array *parameters, Array *dedtypes, Declaration **psparam)
+	Object *oarg, int i, TemplateParameters *parameters, Array *dedtypes, Declaration **psparam)
 {
     //printf("TemplateValueParameter::matchArg()\n");
 

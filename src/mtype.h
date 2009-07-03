@@ -1,5 +1,5 @@
 
-// Copyright (c) 1999-2005 by Digital Mars
+// Copyright (c) 1999-2006 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // www.digitalmars.com
@@ -17,6 +17,7 @@
 #include "root.h"
 #include "stringtable.h"
 
+#include "arraytypes.h"
 #include "expression.h"
 
 struct Scope;
@@ -214,7 +215,7 @@ struct Type : Object
     Type *arrayOf();
     virtual Dsymbol *toDsymbol(Scope *sc);
     virtual Type *toBasetype();
-    virtual int isBaseOf(Type *t);
+    virtual int isBaseOf(Type *t, int *poffset);
     virtual int implicitConvTo(Type *to);
     virtual ClassDeclaration *isClassHandle();
     virtual Expression *getProperty(Loc loc, Identifier *ident);
@@ -224,7 +225,7 @@ struct Type : Object
     virtual int isZeroInit();		// if initializer is 0
     virtual dt_t **toDt(dt_t **pdt);
     Identifier *getTypeInfoIdent(int internal);
-    virtual MATCH deduceType(Scope *sc, Type *tparam, Array *parameters, Array *atypes);
+    virtual MATCH deduceType(Scope *sc, Type *tparam, TemplateParameters *parameters, Array *atypes);
     virtual void resolve(Loc loc, Scope *sc, Expression **pe, Type **pt, Dsymbol **ps);
     Expression *getInternalTypeInfo(Scope *sc);
     Expression *getTypeInfo(Scope *sc);
@@ -301,7 +302,7 @@ struct TypeSArray : TypeArray
     int implicitConvTo(Type *to);
     Expression *defaultInit();
     dt_t **toDt(dt_t **pdt);
-    MATCH deduceType(Scope *sc, Type *tparam, Array *parameters, Array *atypes);
+    MATCH deduceType(Scope *sc, Type *tparam, TemplateParameters *parameters, Array *atypes);
     TypeInfoDeclaration *getTypeInfoDeclaration();
 
     type *toCtype();
@@ -343,7 +344,7 @@ struct TypeAArray : TypeArray
     void toPrettyBracket(OutBuffer *buf, HdrGenState *hgs);
     Expression *dotExp(Scope *sc, Expression *e, Identifier *ident);
     Expression *defaultInit();
-    MATCH deduceType(Scope *sc, Type *tparam, Array *parameters, Array *atypes);
+    MATCH deduceType(Scope *sc, Type *tparam, TemplateParameters *parameters, Array *atypes);
     int checkBoolean();
     TypeInfoDeclaration *getTypeInfoDeclaration();
 
@@ -398,7 +399,7 @@ struct TypeFunction : Type
     Type *semantic(Loc loc, Scope *sc);
     void toDecoBuffer(OutBuffer *buf);
     void toCBuffer2(OutBuffer *buf, Identifier *ident, HdrGenState *hgs);
-    MATCH deduceType(Scope *sc, Type *tparam, Array *parameters, Array *atypes);
+    MATCH deduceType(Scope *sc, Type *tparam, TemplateParameters *parameters, Array *atypes);
     TypeInfoDeclaration *getTypeInfoDeclaration();
 
     int callMatch(Array *toargs);
@@ -449,7 +450,7 @@ struct TypeIdentifier : TypeQualified
     void resolve(Loc loc, Scope *sc, Expression **pe, Type **pt, Dsymbol **ps);
     Dsymbol *toDsymbol(Scope *sc);
     Type *semantic(Loc loc, Scope *sc);
-    MATCH deduceType(Scope *sc, Type *tparam, Array *parameters, Array *atypes);
+    MATCH deduceType(Scope *sc, Type *tparam, TemplateParameters *parameters, Array *atypes);
 };
 
 /* Similar to TypeIdentifier, but with a TemplateInstance as the root
@@ -465,7 +466,7 @@ struct TypeInstance : TypeQualified
     void toCBuffer2(OutBuffer *buf, Identifier *ident, HdrGenState *hgs);
     void resolve(Loc loc, Scope *sc, Expression **pe, Type **pt, Dsymbol **ps);
     Type *semantic(Loc loc, Scope *sc);
-    MATCH deduceType(Scope *sc, Type *tparam, Array *parameters, Array *atypes);
+    MATCH deduceType(Scope *sc, Type *tparam, TemplateParameters *parameters, Array *atypes);
 };
 
 struct TypeTypeof : TypeQualified
@@ -500,7 +501,7 @@ struct TypeStruct : Type
     int isZeroInit();
     int checkBoolean();
     dt_t **toDt(dt_t **pdt);
-    MATCH deduceType(Scope *sc, Type *tparam, Array *parameters, Array *atypes);
+    MATCH deduceType(Scope *sc, Type *tparam, TemplateParameters *parameters, Array *atypes);
     TypeInfoDeclaration *getTypeInfoDeclaration();
 
     type *toCtype();
@@ -529,7 +530,7 @@ struct TypeEnum : Type
     Type *toBasetype();
     Expression *defaultInit();
     int isZeroInit();
-    MATCH deduceType(Scope *sc, Type *tparam, Array *parameters, Array *atypes);
+    MATCH deduceType(Scope *sc, Type *tparam, TemplateParameters *parameters, Array *atypes);
     TypeInfoDeclaration *getTypeInfoDeclaration();
 
     type *toCtype();
@@ -564,7 +565,7 @@ struct TypeTypedef : Type
     Expression *defaultInit();
     int isZeroInit();
     dt_t **toDt(dt_t **pdt);
-    MATCH deduceType(Scope *sc, Type *tparam, Array *parameters, Array *atypes);
+    MATCH deduceType(Scope *sc, Type *tparam, TemplateParameters *parameters, Array *atypes);
     TypeInfoDeclaration *getTypeInfoDeclaration();
 
     type *toCtype();
@@ -585,11 +586,11 @@ struct TypeClass : Type
     void toCBuffer2(OutBuffer *buf, Identifier *ident, HdrGenState *hgs);
     Expression *dotExp(Scope *sc, Expression *e, Identifier *ident);
     ClassDeclaration *isClassHandle();
-    int isBaseOf(Type *t);
+    int isBaseOf(Type *t, int *poffset);
     int implicitConvTo(Type *to);
     Expression *defaultInit();
     int isZeroInit();
-    MATCH deduceType(Scope *sc, Type *tparam, Array *parameters, Array *atypes);
+    MATCH deduceType(Scope *sc, Type *tparam, TemplateParameters *parameters, Array *atypes);
     int isauto();
     int checkBoolean();
     TypeInfoDeclaration *getTypeInfoDeclaration();

@@ -280,6 +280,8 @@ Array *Parser::parseDeclDefs(int once)
 		    s = v;
 		    if (token.value != TOKsemicolon)
 			error("semicolon expected following auto declaration, not '%s'", token.toChars());
+		    else
+			nextToken();
 		}
 		else
 		{   a = parseBlock();
@@ -339,7 +341,7 @@ Array *Parser::parseDeclDefs(int once)
 
 	    case TOKpragma:
 	    {	Identifier *ident;
-		Array *args = NULL;
+		Expressions *args = NULL;
 
 		nextToken();
 		check(TOKlparen);
@@ -1016,7 +1018,7 @@ Dsymbol *Parser::parseAggregate()
     int anon = 0;
     enum TOK tok;
     Identifier *id;
-    Array *tpl = NULL;
+    TemplateParameters *tpl = NULL;
 
     //printf("Parser::parseAggregate()\n");
     tok = token.value;
@@ -1045,7 +1047,7 @@ Dsymbol *Parser::parseAggregate()
 		error("anonymous classes not allowed");
 
 	    // Collect base class(es)
-	    Array *baseclasses = NULL;
+	    BaseClasses *baseclasses = NULL;
 	    if (token.value == TOKcolon)
 	    {
 		nextToken();
@@ -1123,10 +1125,10 @@ Dsymbol *Parser::parseAggregate()
 /*******************************************
  */
 
-Array *Parser::parseBaseClasses()
+BaseClasses *Parser::parseBaseClasses()
 {
     enum PROT protection = PROTpublic;
-    Array *baseclasses = new Array();
+    BaseClasses *baseclasses = new BaseClasses();
 
     for (; 1; nextToken())
     {
@@ -1167,7 +1169,7 @@ TemplateDeclaration *Parser::parseTemplateDeclaration()
 {
     TemplateDeclaration *tempdecl;
     Identifier *id;
-    Array *tpl;
+    TemplateParameters *tpl;
     Array *decldefs;
     Loc loc = this->loc;
 
@@ -1208,18 +1210,18 @@ Lerr:
  * Parse template parameter list.
  */
 
-Array *Parser::parseTemplateParameterList()
+TemplateParameters *Parser::parseTemplateParameterList()
 {
-    Array *tpl;
+    TemplateParameters *tpl;
 
     if (token.value != TOKlparen)
     {   error("parenthesized TemplateParameterList expected following TemplateIdentifier");
 	goto Lerr;
     }
-    tpl = new Array();
+    tpl = new TemplateParameters();
     nextToken();
 
-    // Get TemplateParameterList
+    // Get array of TemplateParameters
     if (token.value != TOKrparen)
     {
 	while (1)
@@ -2481,7 +2483,7 @@ Statement *Parser::parseStatement(int flags)
 	    a = parseDeclarations();
 	    if (a->dim > 1)
 	    {
-		Array *as = new Array();
+		Statements *as = new Statements();
 		as->reserve(a->dim);
 		for (int i = 0; i < a->dim; i++)
 		{
@@ -2531,10 +2533,10 @@ Statement *Parser::parseStatement(int flags)
 	}
 
 	case TOKlcurly:
-	{   Array *statements;
+	{   Statements *statements;
 
 	    nextToken();
-	    statements = new Array();
+	    statements = new Statements();
 	    while (token.value != TOKrcurly)
 	    {
 		statements->push(parseStatement(PSsemi | PScurlyscope));
@@ -2815,7 +2817,7 @@ Statement *Parser::parseStatement(int flags)
 
 	case TOKpragma:
 	{   Identifier *ident;
-	    Array *args = NULL;
+	    Expressions *args = NULL;
 	    Statement *body;
 
 	    nextToken();
@@ -2850,7 +2852,7 @@ Statement *Parser::parseStatement(int flags)
 
 	case TOKcase:
 	{   Expression *exp;
-	    Array *statements;
+	    Statements *statements;
 	    Array cases;	// array of Expression's
 
 	    while (1)
@@ -2863,7 +2865,7 @@ Statement *Parser::parseStatement(int flags)
 	    }
 	    check(TOKcolon);
 
-	    statements = new Array();
+	    statements = new Statements();
 	    while (token.value != TOKcase &&
 		   token.value != TOKdefault &&
 		   token.value != TOKrcurly)
@@ -2884,12 +2886,12 @@ Statement *Parser::parseStatement(int flags)
 
 	case TOKdefault:
 	{
-	    Array *statements;
+	    Statements *statements;
 
 	    nextToken();
 	    check(TOKcolon);
 
-	    statements = new Array();
+	    statements = new Statements();
 	    while (token.value != TOKcase &&
 		   token.value != TOKdefault &&
 		   token.value != TOKrcurly)
@@ -3075,12 +3077,12 @@ Statement *Parser::parseStatement(int flags)
 
 	case TOKvolatile:
 	    nextToken();
-	    s = parseStatement(PSsemi | PSscope);
+	    s = parseStatement(PSsemi | PScurlyscope);
 	    s = new VolatileStatement(loc, s);
 	    break;
 
 	case TOKasm:
-	{   Array *statements;
+	{   Statements *statements;
 	    Identifier *label;
 	    Loc labelloc;
 	    Token *toklist;
@@ -3096,7 +3098,7 @@ Statement *Parser::parseStatement(int flags)
 	    toklist = NULL;
 	    ptoklist = &toklist;
 	    label = NULL;
-	    statements = new Array();
+	    statements = new Statements();
 	    while (1)
 	    {
 		switch (token.value)
@@ -4029,7 +4031,7 @@ Expression *Parser::parsePostExp(Expression *e)
 		    }
 		    else
 		    {	// array[index, i2, i3, i4, ...]
-			Array *arguments = new Array();
+			Expressions *arguments = new Expressions();
 			arguments->push(index);
 			if (token.value == TOKcomma)
 			{
@@ -4563,12 +4565,12 @@ Expression *Parser::parseExpression()
  * Assume current token is '('.
  */
 
-Array *Parser::parseArguments()
+Expressions *Parser::parseArguments()
 {   // function call
-    Array *arguments;
+    Expressions *arguments;
     Expression *arg;
 
-    arguments = new Array();
+    arguments = new Expressions();
     //if (token.value == TOKlparen)
     {
 	nextToken();
@@ -4593,8 +4595,8 @@ Array *Parser::parseArguments()
 
 Expression *Parser::parseNewExp()
 {   Type *t;
-    Array *newargs;
-    Array *arguments = NULL;
+    Expressions *newargs;
+    Expressions *arguments = NULL;
     Expression *e;
     Loc loc = this->loc;
 
@@ -4612,7 +4614,7 @@ Expression *Parser::parseNewExp()
 	if (token.value == TOKlparen)
 	    arguments = parseArguments();
 
-	Array *baseclasses = parseBaseClasses();
+	BaseClasses *baseclasses = parseBaseClasses();
 	Identifier *id = NULL;
 	ClassDeclaration *cd = new ClassDeclaration(loc, id, baseclasses);
 
@@ -4656,7 +4658,7 @@ Expression *Parser::parseNewExp()
 		e = new DotIdExp(loc, e, id);
 	    }
 
-	    arguments = new Array();
+	    arguments = new Expressions();
 	    arguments->push(e);
 	    t = new TypeDArray(t->next);
 	}
@@ -4671,7 +4673,7 @@ Expression *Parser::parseNewExp()
 	TypeSArray *tsa = (TypeSArray *)t;
 	Expression *e = tsa->dim;
 
-	arguments = new Array();
+	arguments = new Expressions();
 	arguments->push(e);
 	t = new TypeDArray(t->next);
     }

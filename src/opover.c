@@ -203,8 +203,8 @@ Expression *BinExp::op_overload(Scope *sc)
     Identifier *id_r = opId_r();
 
     Match m;
-    Array args1;
-    Array args2;
+    Expressions args1;
+    Expressions args2;
     int argsset = 0;
 
     AggregateDeclaration *ad1;

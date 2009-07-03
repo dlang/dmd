@@ -65,7 +65,7 @@ struct Match
     FuncDeclaration *anyf;	// pick a func, any func, to use for error recovery
 };
 
-void overloadResolveX(Match *m, FuncDeclaration *f, Array *arguments);
+void overloadResolveX(Match *m, FuncDeclaration *f, Expressions *arguments);
 
 /**************************************************************/
 
@@ -368,8 +368,11 @@ struct FuncDeclaration : Declaration
     int inlineNest;			// !=0 if nested inline
     int semanticRun;			// !=0 if semantic3() had been run
     int nestedFrameRef;			// !=0 if nested variables referenced frame ptr
-    int introducing;			// !=0 if 'introducing' function
     ForeachStatement *fes;		// if foreach body, this is the foreach
+    int introducing;			// !=0 if 'introducing' function
+    Type *tintro;			// if !=NULL, then this is the type
+					// of the 'introducing' function
+					// this one is overriding
 
     // Things that should really go into Scope
     int hasReturnExp;			// if there's a return exp; statement
@@ -383,7 +386,7 @@ struct FuncDeclaration : Declaration
     int overrides(FuncDeclaration *fd);
     int overloadInsert(Dsymbol *s);
     FuncDeclaration *overloadExactMatch(Type *t);
-    FuncDeclaration *overloadResolve(Loc loc, Array *arguments);
+    FuncDeclaration *overloadResolve(Loc loc, Expressions *arguments);
     LabelDsymbol *searchLabel(Identifier *ident);
     AggregateDeclaration *isThis();
     AggregateDeclaration *isMember2();

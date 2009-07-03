@@ -80,7 +80,7 @@ void Module::genmoduleinfo()
     dtdword(&dt, namelen);
     dtabytes(&dt, TYnptr, 0, namelen + 1, name);
 
-    Array aclasses;
+    ClassDeclarations aclasses;
     int i;
 
     //printf("members->dim = %d\n", members->dim);

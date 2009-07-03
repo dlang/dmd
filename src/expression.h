@@ -13,6 +13,7 @@
 #include "mars.h"
 #include "identifier.h"
 #include "lexer.h"
+#include "arraytypes.h"
 
 struct Type;
 struct Scope;
@@ -41,8 +42,6 @@ struct BinExp;
 // Back end
 struct IRState;
 struct dt_t;
-
-typedef Array Expressions;
 
 #ifdef IN_GCC
 union tree_node; typedef union tree_node elem;

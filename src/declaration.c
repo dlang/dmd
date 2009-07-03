@@ -843,7 +843,7 @@ Expression *VarDeclaration::callAutoDtor()
 	    {   FuncDeclaration *fd;
 		Expression *efd;
 		Expression *ec;
-		Array *arguments;
+		Expressions *arguments;
 
 		/* Generate:
 		 *  _d_callfinalizer(this)
@@ -851,7 +851,7 @@ Expression *VarDeclaration::callAutoDtor()
 		fd = FuncDeclaration::genCfunc(Type::tvoid, "_d_callfinalizer");
 		efd = new VarExp(loc, fd);
 		ec = new VarExp(loc, this);
-		arguments = new Array();
+		arguments = new Expressions();
 		arguments->push(ec);
 		e = new CallExp(loc, efd, arguments);
 		e->type = fd->type->next;

@@ -314,7 +314,7 @@ void StructDeclaration::semantic(Scope *sc)
 		    FuncDeclaration *fdptr = new FuncDeclaration(loc, loc, fdx->ident, STCundefined, tfeqptr);
 		    Expression *e = new IdentifierExp(loc, Id::p);
 		    e = new PtrExp(loc, e);
-		    Array *args = new Array();
+		    Expressions *args = new Expressions();
 		    args->push(e);
 		    e = new IdentifierExp(loc, id);
 		    e = new CallExp(loc, e, args);

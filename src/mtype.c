@@ -123,6 +123,7 @@ int Type::equals(Object *o)
 	(t && deco == t->deco) &&		// deco strings are unique
 	 deco != NULL)				// and semantic() has been run
     {
+	//printf("deco = '%s', t->deco = '%s'\n", deco, t->deco);
 	return 1;
     }
     //if (deco && t && t->deco) printf("deco = '%s', t->deco = '%s'\n", deco, t->deco);
@@ -476,7 +477,7 @@ int Type::isZeroInit()
     return 0;		// assume not
 }
 
-int Type::isBaseOf(Type *t)
+int Type::isBaseOf(Type *t, int *poffset)
 {
     return 0;		// assume not
 }
@@ -1354,10 +1355,10 @@ int TypeBasic::implicitConvTo(Type *to)
 	if (flags & TFLAGScomplex && !(tob->flags & TFLAGScomplex))
 	    return MATCHnomatch;
 
-	// Allow implicit conversion of real or imaginary to complex
+	// Disallow implicit conversion of real or imaginary to complex
 	if (flags & (TFLAGSreal | TFLAGSimaginary) &&
 	    tob->flags & TFLAGScomplex)
-	    return MATCHconvert;
+	    return MATCHnomatch;
 
 	// Disallow implicit conversion to-from real and imaginary
 	if ((flags & (TFLAGSreal | TFLAGSimaginary)) !=
@@ -1390,7 +1391,7 @@ Expression *TypeArray::dotExp(Scope *sc, Expression *e, Identifier *ident)
     {
 	Expression *ec;
 	FuncDeclaration *fd;
-	Array *arguments;
+	Expressions *arguments;
 	char *nm;
 	static char *name[2] = { "_adReverseChar", "_adReverseWchar" };
 
@@ -1398,7 +1399,7 @@ Expression *TypeArray::dotExp(Scope *sc, Expression *e, Identifier *ident)
 	fd = FuncDeclaration::genCfunc(Type::tindex, nm);
 	ec = new VarExp(0, fd);
 	e = e->castTo(n->arrayOf());		// convert to dynamic array
-	arguments = new Array();
+	arguments = new Expressions();
 	arguments->push(e);
 	e = new CallExp(e->loc, ec, arguments);
 	e->type = next->arrayOf();
@@ -1407,7 +1408,7 @@ Expression *TypeArray::dotExp(Scope *sc, Expression *e, Identifier *ident)
     {
 	Expression *ec;
 	FuncDeclaration *fd;
-	Array *arguments;
+	Expressions *arguments;
 	int size = next->size(e->loc);
 	char *nm;
 	static char *name[2][2] = { { "_adReverse", "_adDup" },
@@ -1418,7 +1419,7 @@ Expression *TypeArray::dotExp(Scope *sc, Expression *e, Identifier *ident)
 	fd = FuncDeclaration::genCfunc(Type::tindex, nm);
 	ec = new VarExp(0, fd);
 	e = e->castTo(n->arrayOf());		// convert to dynamic array
-	arguments = new Array();
+	arguments = new Expressions();
 	arguments->push(e);
 	if (next->ty != Tbit)
 	    arguments->push(new IntegerExp(0, size, Type::tint32));
@@ -1429,13 +1430,13 @@ Expression *TypeArray::dotExp(Scope *sc, Expression *e, Identifier *ident)
     {
 	Expression *ec;
 	FuncDeclaration *fd;
-	Array *arguments;
+	Expressions *arguments;
 
 	fd = FuncDeclaration::genCfunc(tint32->arrayOf(),
 		(char*)(n->ty == Tbit ? "_adSortBit" : "_adSort"));
 	ec = new VarExp(0, fd);
 	e = e->castTo(n->arrayOf());		// convert to dynamic array
-	arguments = new Array();
+	arguments = new Expressions();
 	arguments->push(e);
 	if (next->ty != Tbit)
 	    arguments->push(n->ty == Tsarray
@@ -1809,7 +1810,7 @@ int TypeDArray::implicitConvTo(Type *to)
     }
     if (to->ty == Tarray)
     {
-	if (to->next->isBaseOf(next) || to->next->ty == Tvoid)
+	if (to->next->isBaseOf(next, NULL) || to->next->ty == Tvoid)
 	    return MATCHconvert;
     }
     return Type::implicitConvTo(to);
@@ -1938,11 +1939,11 @@ Expression *TypeAArray::dotExp(Scope *sc, Expression *e, Identifier *ident)
     {
 	Expression *ec;
 	FuncDeclaration *fd;
-	Array *arguments;
+	Expressions *arguments;
 
 	fd = FuncDeclaration::genCfunc(Type::tsize_t, "_aaLen");
 	ec = new VarExp(0, fd);
-	arguments = new Array();
+	arguments = new Expressions();
 	arguments->push(e);
 	e = new CallExp(e->loc, ec, arguments);
 	e->type = fd->type->next;
@@ -1951,7 +1952,7 @@ Expression *TypeAArray::dotExp(Scope *sc, Expression *e, Identifier *ident)
     {
 	Expression *ec;
 	FuncDeclaration *fd;
-	Array *arguments;
+	Expressions *arguments;
 	char aakeys[7+3*sizeof(int)+1];
 	int size = key->size(e->loc);
 
@@ -1967,7 +1968,7 @@ Expression *TypeAArray::dotExp(Scope *sc, Expression *e, Identifier *ident)
 	    strcpy(aakeys, "_aaKeys");
 	fd = FuncDeclaration::genCfunc(Type::tindex, aakeys);
 	ec = new VarExp(0, fd);
-	arguments = new Array();
+	arguments = new Expressions();
 	arguments->push(e);
 	if (size)
 	    arguments->push(new IntegerExp(0, size, Type::tint32));
@@ -1978,11 +1979,11 @@ Expression *TypeAArray::dotExp(Scope *sc, Expression *e, Identifier *ident)
     {
 	Expression *ec;
 	FuncDeclaration *fd;
-	Array *arguments;
+	Expressions *arguments;
 
 	fd = FuncDeclaration::genCfunc(Type::tindex, "_aaValues");
 	ec = new VarExp(0, fd);
-	arguments = new Array();
+	arguments = new Expressions();
 	arguments->push(e);
 	arguments->push(new IntegerExp(0, key->size(e->loc), Type::tint32));
 	arguments->push(new IntegerExp(0, next->size(e->loc), Type::tint32));
@@ -1993,11 +1994,11 @@ Expression *TypeAArray::dotExp(Scope *sc, Expression *e, Identifier *ident)
     {
 	Expression *ec;
 	FuncDeclaration *fd;
-	Array *arguments;
+	Expressions *arguments;
 
 	fd = FuncDeclaration::genCfunc(Type::tint64, "_aaRehash");
 	ec = new VarExp(0, fd);
-	arguments = new Array();
+	arguments = new Expressions();
 	arguments->push(e->addressOf());
 	arguments->push(key->getInternalTypeInfo(sc));
 	e = new CallExp(e->loc, ec, arguments);
@@ -2291,12 +2292,15 @@ int Type::covariant(Type *t)
     }
 
 Lcovariant:
+    //printf("\tcovaraint: 1\n");
     return 1;
 
 Ldistinct:
+    //printf("\tcovaraint: 0\n");
     return 0;
 
 Lnotcovariant:
+    //printf("\tcovaraint: 2\n");
     return 2;
 }
 
@@ -2343,17 +2347,20 @@ void TypeFunction::toDecoBuffer(OutBuffer *buf)
 
 void TypeFunction::toCBuffer2(OutBuffer *buf, Identifier *ident, HdrGenState *hgs)
 {
-    char *p;
+    char *p = NULL;
 
-    switch (linkage)
+    if (hgs->ddoc != 1)
     {
-	case LINKd:		p = NULL;	break;
-	case LINKc:		p = "C ";	break;
-	case LINKwindows:	p = "Windows ";	break;
-	case LINKpascal:	p = "Pascal ";	break;
-	case LINKcpp:		p = "C++ ";	break;
-	default:
-	    assert(0);
+	switch (linkage)
+	{
+	    case LINKd:		p = NULL;	break;
+	    case LINKc:		p = "C ";	break;
+	    case LINKwindows:	p = "Windows ";	break;
+	    case LINKpascal:	p = "Pascal ";	break;
+	    case LINKcpp:		p = "C++ ";	break;
+	    default:
+		assert(0);
+	}
     }
 
     if (buf->offset)
@@ -4060,13 +4067,13 @@ int TypeClass::isauto()
     return sym->isauto;
 }
 
-int TypeClass::isBaseOf(Type *t)
+int TypeClass::isBaseOf(Type *t, int *poffset)
 {
     if (t->ty == Tclass)
     {   ClassDeclaration *cd;
 
 	cd   = ((TypeClass *)t)->sym;
-	if (sym->isBaseOf(cd, NULL))
+	if (sym->isBaseOf(cd, poffset))
 	    return 1;
     }
     return 0;
@@ -4129,7 +4136,7 @@ Argument::Argument(enum InOut inout, Type *type, Identifier *ident, Expression *
 Argument *Argument::syntaxCopy()
 {
     Argument *a = new Argument(inout,
-		type->syntaxCopy(),
+		type ? type->syntaxCopy() : NULL,
 		ident,
 		defaultArg ? defaultArg->syntaxCopy() : NULL);
     return a;

@@ -3069,7 +3069,7 @@ Expression *IftypeExp::semantic(Scope *sc)
 	MATCH m;
 	TemplateTypeParameter tp(loc, id, NULL, NULL);
 
-	Array parameters;
+	TemplateParameters parameters;
 	parameters.setDim(1);
 	parameters.data[0] = (void *)&tp;
 
@@ -3995,6 +3995,7 @@ Expression *CallExp::semantic(Scope *sc)
     }
 
 Lagain:
+    f = NULL;
     if (e1->op == TOKthis || e1->op == TOKsuper)
     {
 	// semantic() run later for these
@@ -4275,6 +4276,13 @@ Lcheckargs:
     functionArguments(loc, sc, tf, arguments);
 
     assert(type);
+
+    if (f && f->tintro)
+    {	Type *t = type;
+	type = f->tintro->next;
+	return castTo(t);
+    }
+
     return this;
 }
 
@@ -5253,7 +5261,7 @@ Expression *AssignExp::semantic(Scope *sc)
 	    fd = search_function(ad, Id::indexass);
 	    if (fd)
 	    {	Expression *e = new DotIdExp(loc, ae->e1, Id::indexass);
-		Expressions *a = ae->arguments->copy();
+		Expressions *a = (Expressions *)ae->arguments->copy();
 
 		a->insert(0, e2);
 		e = new CallExp(loc, e, a);

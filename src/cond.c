@@ -309,7 +309,7 @@ int IftypeCondition::include(Scope *sc, ScopeDsymbol *sd)
 	    MATCH m;
 	    TemplateTypeParameter tp(loc, id, NULL, NULL);
 
-	    Array parameters;
+	    TemplateParameters parameters;
 	    parameters.setDim(1);
 	    parameters.data[0] = (void *)&tp;
 

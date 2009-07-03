@@ -18,6 +18,7 @@
 #include "stringtable.h"
 
 #include "mars.h"
+#include "arraytypes.h"
 
 struct Identifier;
 struct Scope;
@@ -142,7 +143,7 @@ struct Dsymbol : Object
     virtual Dsymbol *syntaxCopy(Dsymbol *s);	// copy only syntax trees
     virtual int oneMember(Dsymbol **ps);
     static int oneMembers(Array *members, Dsymbol **ps);
-    virtual void addLocalClass(Array *) { }
+    virtual void addLocalClass(ClassDeclarations *) { }
     virtual void checkCtorConstInit() { }
 
     virtual void addComment(unsigned char *comment);

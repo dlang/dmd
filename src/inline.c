@@ -336,12 +336,12 @@ Expression *ReturnStatement::doInline(InlineDoState *ids)
  * Perform doInline() on an array of Expressions.
  */
 
-Array *arrayExpressiondoInline(Array *a, InlineDoState *ids)
-{   Array *newa = NULL;
+Expressions *arrayExpressiondoInline(Expressions *a, InlineDoState *ids)
+{   Expressions *newa = NULL;
 
     if (a)
     {
-	newa = new Array();
+	newa = new Expressions();
 	newa->setDim(a->dim);
 
 	for (int i = 0; i < a->dim; i++)

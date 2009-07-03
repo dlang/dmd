@@ -786,6 +786,7 @@ Expression *DelegateExp::castTo(Type *t)
 	toChars(), type->toChars(), t->toChars());
 #endif
     Expression *e = this;
+    static char msg[] = "cannot form delegate due to covariant return type";
 
     tb = t->toBasetype();
     type = type->toBasetype();
@@ -802,13 +803,22 @@ Expression *DelegateExp::castTo(Type *t)
 		f = func->overloadExactMatch(tb->next);
 		if (f)
 		{
+		    if (f->tintro)
+			error(msg);
 		    e = new DelegateExp(loc, e1, f);
 		    e->type = t;
 		    return e;
 		}
+		if (func->tintro)
+		    error(msg);
 	    }
 	}
 	e = Expression::castTo(t);
+    }
+    else
+    {
+	if (func->tintro)
+	    error(msg);
     }
     e->type = t;
     return e;

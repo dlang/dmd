@@ -1,5 +1,5 @@
 
-// Copyright (c) 1999-2002 by Digital Mars
+// Copyright (c) 1999-2006 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // www.digitalmars.com
@@ -44,7 +44,7 @@ struct AttribDeclaration : Dsymbol
     char *kind();
     int oneMember(Dsymbol **ps);
     void checkCtorConstInit();
-    void addLocalClass(Array *);
+    void addLocalClass(ClassDeclarations *);
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
     AttribDeclaration *isAttribDeclaration() { return this; }
 
@@ -107,9 +107,9 @@ struct AnonDeclaration : AttribDeclaration
 
 struct PragmaDeclaration : AttribDeclaration
 {
-    Array *args;		// array of Expression's
+    Expressions *args;		// array of Expression's
 
-    PragmaDeclaration(Loc loc, Identifier *ident, Array *args, Array *decl);
+    PragmaDeclaration(Loc loc, Identifier *ident, Expressions *args, Array *decl);
     Dsymbol *syntaxCopy(Dsymbol *s);
     void semantic(Scope *sc);
     int oneMember(Dsymbol **ps);

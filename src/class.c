@@ -1,6 +1,5 @@
 
-
-// Copyright (c) 1999-2004 by Digital Mars
+// Copyright (c) 1999-2006 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // www.digitalmars.com
@@ -31,7 +30,7 @@
 
 ClassDeclaration *ClassDeclaration::classinfo;
 
-ClassDeclaration::ClassDeclaration(Loc loc, Identifier *id, Array *baseclasses)
+ClassDeclaration::ClassDeclaration(Loc loc, Identifier *id, BaseClasses *baseclasses)
     : AggregateDeclaration(loc, id)
 {
     if (baseclasses)
@@ -451,7 +450,7 @@ void ClassDeclaration::semantic(Scope *sc)
     {
 	//printf("Creating default this(){} for class %s\n", toChars());
 	ctor = new CtorDeclaration(0, 0, NULL, 0);
-	ctor->fbody = new CompoundStatement(0, new Array());
+	ctor->fbody = new CompoundStatement(0, new Statements());
 	members->push(ctor);
 	ctor->addMember(sc, this, 1);
 	*sc = scsave;
@@ -645,15 +644,21 @@ Dsymbol *ClassDeclaration::search(Identifier *ident, int flags)
 
 FuncDeclaration *ClassDeclaration::findFunc(Identifier *ident, TypeFunction *tf)
 {
-    unsigned i;
+    //printf("ClassDeclaration::findFunc(%s, %s) %s\n", ident->toChars(), tf->toChars(), toChars());
 
-    for (i = 0; i < vtbl.dim; i++)
+    for (size_t i = 0; i < vtbl.dim; i++)
     {
 	FuncDeclaration *fd = (FuncDeclaration *)vtbl.data[i];
 
+	//printf("\t[%d] = %s\n", i, fd->toChars());
 	if (ident == fd->ident &&
-	    tf->equals(fd->type))
+	    //tf->equals(fd->type)
+	    fd->type->covariant(tf) == 1
+	   )
+	{   //printf("\t\tfound\n");
 	    return fd;
+	}
+	//else printf("\t\t%d\n", fd->type->covariant(tf));
     }
 
     return NULL;
@@ -662,7 +667,7 @@ FuncDeclaration *ClassDeclaration::findFunc(Identifier *ident, TypeFunction *tf)
 void ClassDeclaration::interfaceSemantic(Scope *sc)
 {   int i;
 
-    vtblInterfaces = new Array();
+    vtblInterfaces = new BaseClasses();
     vtblInterfaces->reserve(interfaces_dim);
 
     for (i = 0; i < interfaces_dim; i++)
@@ -742,14 +747,14 @@ char *ClassDeclaration::kind()
 /****************************************
  */
 
-void ClassDeclaration::addLocalClass(Array *aclasses)
+void ClassDeclaration::addLocalClass(ClassDeclarations *aclasses)
 {
     aclasses->push(this);
 }
 
 /********************************* InterfaceDeclaration ****************************/
 
-InterfaceDeclaration::InterfaceDeclaration(Loc loc, Identifier *id, Array *baseclasses)
+InterfaceDeclaration::InterfaceDeclaration(Loc loc, Identifier *id, BaseClasses *baseclasses)
     : ClassDeclaration(loc, id, baseclasses)
 {
     com = 0;
@@ -1081,7 +1086,7 @@ int BaseClass::fillVtbl(ClassDeclaration *cd, Array *vtbl, int newinstance)
     return result;
 }
 
-void BaseClass::copyBaseInterfaces(Array *vtblInterfaces)
+void BaseClass::copyBaseInterfaces(BaseClasses *vtblInterfaces)
 {
     //printf("+copyBaseInterfaces(), %s\n", base->toChars());
 //    if (baseInterfaces_dim)

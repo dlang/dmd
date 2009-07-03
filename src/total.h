@@ -1,5 +1,5 @@
 
-// Copyright (c) 1999-2002 by Digital Mars
+// Copyright (c) 1999-2006 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // www.digitalmars.com
@@ -23,6 +23,7 @@
 #include "root.h"
 #include "stringtable.h"
 
+#include "arraytypes.h"
 #include "mars.h"
 #include "lexer.h"
 #include "parse.h"
