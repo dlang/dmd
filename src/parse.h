@@ -1,6 +1,6 @@
 
 // Compiler implementation of the D programming language
-// Copyright (c) 1999-2006 by Digital Mars
+// Copyright (c) 1999-2007 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // http://www.digitalmars.com
@@ -20,6 +20,7 @@
 #include "enum.h"
 
 struct Type;
+struct TypeQualified;
 struct Expression;
 struct Declaration;
 struct Statement;
@@ -73,6 +74,7 @@ struct Parser : Lexer
     Objects *parseTemplateArgumentList();
     Objects *parseTemplateArgumentList2();
     StaticAssert *parseStaticAssert();
+    TypeQualified *parseTypeof();
     enum LINK parseLinkage();
     Condition *parseDebugCondition();
     Condition *parseVersionCondition();

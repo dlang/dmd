@@ -171,6 +171,7 @@ void Type::init()
     sizeTy[Tclass] = sizeof(TypeClass);
     sizeTy[Ttuple] = sizeof(TypeTuple);
     sizeTy[Tslice] = sizeof(TypeSlice);
+    sizeTy[Treturn] = sizeof(TypeReturn);
 
     mangleChar[Tarray] = 'A';
     mangleChar[Tsarray] = 'G';
@@ -217,6 +218,7 @@ void Type::init()
     mangleChar[Ttypeof] = '@';
     mangleChar[Ttuple] = 'B';
     mangleChar[Tslice] = '@';
+    mangleChar[Treturn] = '@';
 
     for (i = 0; i < TMAX; i++)
     {	if (!mangleChar[i])
@@ -436,9 +438,9 @@ Type *Type::makeInvariant()
 }
 
 /**************************
- * Return type with the top level of it being non-const.
+ * Return type with the top level of it being mutable.
  */
-Type *Type::toCanonConst()
+Type *Type::toHeadMutable()
 {
     if (!mod)
 	return this;
@@ -529,6 +531,11 @@ char *Type::toChars()
 
 void Type::toCBuffer(OutBuffer *buf, Identifier *ident, HdrGenState *hgs)
 {
+#if 1
+    toCBuffer2(buf, hgs, 0);
+#else
+    /* This method doesn't use ( ) for the leading const or invariant
+     */
     switch (mod)
     {
 	case 0:			break;
@@ -537,6 +544,7 @@ void Type::toCBuffer(OutBuffer *buf, Identifier *ident, HdrGenState *hgs)
 	default:		assert(0);
     }
     toCBuffer2(buf, hgs, mod);
+#endif
     if (ident)
     {	buf->writeByte(' ');
 	buf->writestring(ident->toChars());
@@ -1987,7 +1995,7 @@ Type *TypeSArray::semantic(Loc loc, Scope *sc)
     }
 
     next = next->semantic(loc,sc);
-    if (mod == MODconst)
+    if (mod == MODconst && !next->isInvariant())
 	next = next->constOf();
     else if (mod == MODinvariant)
 	next = next->invariantOf();
@@ -2269,7 +2277,7 @@ Type *TypeDArray::semantic(Loc loc, Scope *sc)
     if (tn->isauto())
 	error(loc, "cannot have array of auto %s", tn->toChars());
 
-    if (mod == MODconst)
+    if (mod == MODconst && !tn->isInvariant())
 	tn = tn->constOf();
     else if (mod == MODinvariant)
 	tn = tn->invariantOf();
@@ -2474,10 +2482,11 @@ Type *TypeAArray::semantic(Loc loc, Scope *sc)
 	    break;
     }
     next = next->semantic(loc,sc);
-    if (mod == MODconst)
+    if (mod == MODconst && !next->isInvariant())
 	next = next->constOf();
     else if (mod == MODinvariant)
 	next = next->invariantOf();
+
     switch (next->toBasetype()->ty)
     {
 	case Tfunction:
@@ -2636,7 +2645,7 @@ Type *TypePointer::semantic(Loc loc, Scope *sc)
     if (n != next)
 	deco = NULL;
     next = n;
-    if (mod == MODconst)
+    if (mod == MODconst && !next->isInvariant())
 	next = next->constOf();
     else if (mod == MODinvariant)
 	next = next->invariantOf();
@@ -2657,7 +2666,8 @@ void TypePointer::toCBuffer2(OutBuffer *buf, HdrGenState *hgs, int mod)
 	return;
     }
     next->toCBuffer2(buf, hgs, this->mod);
-    buf->writeByte('*');
+    if (next->ty != Tfunction)
+	buf->writeByte('*');
 }
 
 MATCH TypePointer::implicitConvTo(Type *to)
@@ -2747,7 +2757,7 @@ Type *TypeReference::semantic(Loc loc, Scope *sc)
     if (n != next)
 	deco = NULL;
     next = n;
-    if (mod == MODconst)
+    if (mod == MODconst && !next->isInvariant())
 	next = next->constOf();
     else if (mod == MODinvariant)
 	next = next->invariantOf();
@@ -2926,7 +2936,7 @@ void TypeFunction::toDecoBuffer(OutBuffer *buf, int flag)
 	return;
     }
     inuse++;
-#if 0
+#if 1
     if (mod == MODconst)
 	buf->writeByte('x');
     else if (mod == MODinvariant)
@@ -3027,55 +3037,54 @@ Type *TypeFunction::semantic(Loc loc, Scope *sc)
     }
     //printf("TypeFunction::semantic() this = %p\n", this);
 
-    linkage = sc->linkage;
-    if (!next)
+    TypeFunction *tf = (TypeFunction *)mem.malloc(sizeof(TypeFunction));
+    memcpy(tf, this, sizeof(TypeFunction));
+    if (parameters)
+    {	tf->parameters = (Arguments *)parameters->copy();
+	for (size_t i = 0; i < parameters->dim; i++)
+	{   Argument *arg = (Argument *)parameters->data[i];
+	    Argument *cpy = (Argument *)mem.malloc(sizeof(Argument));
+	    memcpy(cpy, arg, sizeof(Argument));
+	    tf->parameters->data[i] = (void *)cpy;
+	}
+    }
+
+    tf->linkage = sc->linkage;
+    if (!tf->next)
     {
 	assert(global.errors);
-	next = tvoid;
+	tf->next = tvoid;
     }
-    next = next->semantic(loc,sc);
-    if (next->toBasetype()->ty == Tsarray)
-    {	error(loc, "functions cannot return static array %s", next->toChars());
-	next = Type::terror;
+    tf->next = tf->next->semantic(loc,sc);
+    if (tf->next->toBasetype()->ty == Tsarray)
+    {	error(loc, "functions cannot return static array %s", tf->next->toChars());
+	tf->next = Type::terror;
     }
-    if (next->toBasetype()->ty == Tfunction)
+    if (tf->next->toBasetype()->ty == Tfunction)
     {	error(loc, "functions cannot return a function");
-	next = Type::terror;
+	tf->next = Type::terror;
     }
-    if (next->toBasetype()->ty == Ttuple)
+    if (tf->next->toBasetype()->ty == Ttuple)
     {	error(loc, "functions cannot return a tuple");
-	next = Type::terror;
+	tf->next = Type::terror;
     }
-    if (next->isauto() && !(sc->flags & SCOPEctor))
-	error(loc, "functions cannot return auto %s", next->toChars());
+    if (tf->next->isauto() && !(sc->flags & SCOPEctor))
+	error(loc, "functions cannot return auto %s", tf->next->toChars());
 
-    if (parameters)
-    {	size_t dim = Argument::dim(parameters);
+    if (tf->parameters)
+    {	size_t dim = Argument::dim(tf->parameters);
 
 	for (size_t i = 0; i < dim; i++)
-	{   Argument *arg = Argument::getNth(parameters, i);
+	{   Argument *arg = Argument::getNth(tf->parameters, i);
 	    Type *t;
 
-	    /* 'const/invariant' implies 'final'
-	     */
-	    if (arg->storageClass & (STCconst | STCinvariant))
-		arg->storageClass |= STCfinal;
-
-	    /* 'in' implies 'final const scope'
-	     */
-	    if (arg->storageClass & STCin)
-	    {
-		arg->storageClass |= STCfinal | STCconst | STCscope;
-	    }
-
-	    inuse++;
+	    tf->inuse++;
 	    arg->type = arg->type->semantic(loc,sc);
-	    if (inuse == 1) inuse--;
+	    if (tf->inuse == 1) tf->inuse--;
 
-	    if (arg->storageClass & STCconst)
-	    {	if (arg->type->nextOf() && arg->type->nextOf()->isInvariant())
-		    arg->storageClass &= ~STCconst;
-		else
+	    if (arg->storageClass & (STCconst | STCin))
+	    {
+		if (!arg->type->isInvariant())
 		    arg->type = arg->type->constOf();
 	    }
 	    else if (arg->storageClass & STCinvariant)
@@ -3104,27 +3113,27 @@ Type *TypeFunction::semantic(Loc loc, Scope *sc)
 	     * change.
 	     */
 	    if (t->ty == Ttuple)
-	    {	dim = Argument::dim(parameters);
+	    {	dim = Argument::dim(tf->parameters);
 		i--;
 	    }
 	}
     }
-    deco = merge()->deco;
+    tf->deco = tf->merge()->deco;
 
-    if (inuse)
+    if (tf->inuse)
     {	error(loc, "recursive type");
-	inuse = 0;
+	tf->inuse = 0;
 	return terror;
     }
 
-    if (varargs == 1 && linkage != LINKd && Argument::dim(parameters) == 0)
+    if (tf->varargs == 1 && tf->linkage != LINKd && Argument::dim(tf->parameters) == 0)
 	error(loc, "variadic functions with non-D linkage must have at least one parameter");
 
     /* Don't return merge(), because arg identifiers and default args
      * can be different
      * even though the types match
      */
-    return this;
+    return tf;
 }
 
 /********************************
@@ -3134,10 +3143,23 @@ Type *TypeFunction::semantic(Loc loc, Scope *sc)
  *	MATCHxxxx
  */
 
-int TypeFunction::callMatch(Expressions *args)
+int TypeFunction::callMatch(Expression *ethis, Expressions *args)
 {
     //printf("TypeFunction::callMatch() %s\n", toChars());
     MATCH match = MATCHexact;		// assume exact match
+
+    if (ethis)
+    {	Type *t = ethis->type;
+	if (t->toBasetype()->ty == Tpointer)
+	    t = t->toBasetype()->nextOf();	// change struct* to struct
+	if (t->mod != mod)
+	{
+	    if (mod == MODconst)
+		match = MATCHconst;
+	    else
+		return MATCHnomatch;
+	}
+    }
 
     size_t nparams = Argument::dim(parameters);
     size_t nargs = args ? args->dim : 0;
@@ -3470,10 +3492,8 @@ void TypeQualified::resolveHelper(Loc loc, Scope *sc,
 		v = s->isVarDeclaration();
 		if (v && id == Id::length)
 		{
-		    if (v->isConst() && v->getExpInitializer())
-		    {	e = v->getExpInitializer()->exp;
-		    }
-		    else
+		    e = v->getConstInitializer();
+		    if (!e)
 			e = new VarExp(loc, v);
 		    t = e->type;
 		    if (!t)
@@ -3518,11 +3538,10 @@ void TypeQualified::resolveHelper(Loc loc, Scope *sc,
 	{
 #if 0
 	    // It's not a type, it's an expression
-	    if (v->isConst() && v->getExpInitializer())
+	    Expression *e = v->getConstInitializer();
+	    if (e)
 	    {
-		ExpInitializer *ei = v->getExpInitializer();
-		assert(ei);
-		*pe = ei->exp->copy();	// make copy so we can change loc
+		*pe = e->copy();	// make copy so we can change loc
 		(*pe)->loc = loc;
 	    }
 	    else
@@ -3947,7 +3966,11 @@ Type *TypeTypeof::semantic(Loc loc, Scope *sc)
 	}
 	if (t->ty == Ttypeof)
 	    error(loc, "forward reference to %s", toChars());
-	t = t->toCanonConst();
+
+	/* typeof should reflect the true type,
+	 * not what 'auto' would have gotten us.
+	 */
+	//t = t->toHeadMutable();
     }
 
     if (idents.dim)
@@ -3987,6 +4010,83 @@ d_uns64 TypeTypeof::size(Loc loc)
 	return TypeQualified::size(loc);
 }
 
+
+
+/***************************** TypeReturn *****************************/
+
+TypeReturn::TypeReturn(Loc loc)
+	: TypeQualified(Treturn, loc)
+{
+}
+
+Type *TypeReturn::syntaxCopy()
+{
+    TypeReturn *t = new TypeReturn(loc);
+    t->syntaxCopyHelper(this);
+    t->mod = mod;
+    return t;
+}
+
+Dsymbol *TypeReturn::toDsymbol(Scope *sc)
+{
+    Type *t = semantic(0, sc);
+    if (t == this)
+	return NULL;
+    return t->toDsymbol(sc);
+}
+
+Type *TypeReturn::semantic(Loc loc, Scope *sc)
+{
+    Type *t;
+    if (!sc->func)
+    {	error(loc, "typeof(return) must be inside function");
+	goto Lerr;
+    }
+    t = sc->func->type->nextOf();
+
+    if (mod & MODinvariant)
+	t = t->invariantOf();
+    else if (mod & MODconst)
+	t = t->constOf();
+
+    if (idents.dim)
+    {
+	Dsymbol *s = t->toDsymbol(sc);
+	for (size_t i = 0; i < idents.dim; i++)
+	{
+	    if (!s)
+		break;
+	    Identifier *id = (Identifier *)idents.data[i];
+	    s = s->searchX(loc, sc, id);
+	}
+	if (s)
+	{
+	    t = s->getType();
+	    if (!t)
+	    {	error(loc, "%s is not a type", s->toChars());
+		goto Lerr;
+	    }
+	}
+	else
+	{   error(loc, "cannot resolve .property for %s", toChars());
+	    goto Lerr;
+	}
+    }
+    return t;
+
+Lerr:
+    return terror;
+}
+
+void TypeReturn::toCBuffer2(OutBuffer *buf, HdrGenState *hgs, int mod)
+{
+    if (mod != this->mod)
+    {	toCBuffer3(buf, hgs, mod);
+	return;
+    }
+    buf->writestring("typeof(return)");
+    toCBuffer2Helper(buf, hgs);
+}
 
 
 /***************************** TypeEnum *****************************/
@@ -4236,13 +4336,13 @@ Dsymbol *TypeTypedef::toDsymbol(Scope *sc)
     return sym;
 }
 
-Type *TypeTypedef::toCanonConst()
+Type *TypeTypedef::toHeadMutable()
 {
     if (!mod)
 	return this;
 
     Type *tb = toBasetype();
-    Type *t = tb->toCanonConst();
+    Type *t = tb->toHeadMutable();
     if (t->equals(tb))
 	return this;
     else
@@ -4334,7 +4434,7 @@ Type *TypeTypedef::toBasetype()
     sym->inuse = 1;
     Type *t = sym->basetype->toBasetype();
     sym->inuse = 0;
-    if (mod == MODconst)
+    if (mod == MODconst && !t->isInvariant())
 	t = t->constOf();
     else if (mod == MODinvariant)
 	t = t->invariantOf();
@@ -4555,11 +4655,11 @@ L1:
     s = s->toAlias();
 
     v = s->isVarDeclaration();
-    if (v && v->isConst())
-    {	ExpInitializer *ei = v->getExpInitializer();
-
+    if (v && !v->isDataseg())
+    {
+	Expression *ei = v->getConstInitializer();
 	if (ei)
-	{   e = ei->exp->copy();	// need to copy it if it's a StringExp
+	{   e = ei->copy();	// need to copy it if it's a StringExp
 	    e = e->semantic(sc);
 	    return e;
 	}
@@ -4714,7 +4814,7 @@ MATCH TypeStruct::implicitConvTo(Type *to)
     return m;
 }
 
-Type *TypeStruct::toCanonConst()
+Type *TypeStruct::toHeadMutable()
 {
     return this;
 }
@@ -4909,11 +5009,11 @@ L1:
     }
     s = s->toAlias();
     v = s->isVarDeclaration();
-    if (v && v->isConst())
-    {	ExpInitializer *ei = v->getExpInitializer();
+    if (v && !v->isDataseg())
+    {	Expression *ei = v->getConstInitializer();
 
 	if (ei)
-	{   e = ei->exp->copy();	// need to copy it if it's a StringExp
+	{   e = ei->copy();	// need to copy it if it's a StringExp
 	    e = e->semantic(sc);
 	    return e;
 	}
@@ -5084,7 +5184,7 @@ MATCH TypeClass::constConv(Type *to)
     return MATCHnomatch;
 }
 
-Type *TypeClass::toCanonConst()
+Type *TypeClass::toHeadMutable()
 {
     return this;
 }
@@ -5295,7 +5395,7 @@ Type *TypeSlice::semantic(Loc loc, Scope *sc)
 {
     //printf("TypeSlice::semantic() %s\n", toChars());
     next = next->semantic(loc, sc);
-    if (mod == MODconst)
+    if (mod == MODconst && !next->isInvariant())
 	next = next->constOf();
     else if (mod == MODinvariant)
 	next = next->invariantOf();
@@ -5594,7 +5694,7 @@ void Argument::toDecoBuffer(OutBuffer *buf)
 	mod = 0;
     type->toDecoBuffer(buf, mod);
 #else
-    type->toCanonConst()->toDecoBuffer(buf, 0);
+    type->toHeadMutable()->toDecoBuffer(buf, 0);
 #endif
 }
 

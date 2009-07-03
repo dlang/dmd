@@ -139,6 +139,7 @@ struct Module : Package
     Symbol *cov;		// private uint[] __coverage;
     unsigned *covb;		// bit array of valid code line numbers
 
+    Symbol *sictor;		// module order independent constructor
     Symbol *sctor;		// module constructor
     Symbol *sdtor;		// module destructor
     Symbol *stest;		// module unit test

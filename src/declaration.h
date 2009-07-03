@@ -63,6 +63,7 @@ enum STC
     STCscope	    = 0x80000,		// template parameter
     STCinvariant    = 0x100000,
     STCref	    = 0x200000,
+    STCinit	    = 0x400000,		// has explicit initializer
 };
 
 struct Match
@@ -74,7 +75,8 @@ struct Match
     FuncDeclaration *anyf;	// pick a func, any func, to use for error recovery
 };
 
-void overloadResolveX(Match *m, FuncDeclaration *f, Expressions *arguments);
+void overloadResolveX(Match *m, FuncDeclaration *f,
+	Expression *ethis, Expressions *arguments);
 int overloadApply(FuncDeclaration *fstart,
 	int (*fp)(void *, FuncDeclaration *),
 	void *param);
@@ -84,6 +86,7 @@ int overloadApply(FuncDeclaration *fstart,
 struct Declaration : Dsymbol
 {
     Type *type;
+    Type *originalType;		// before semantic analysis
     unsigned storage_class;
     enum PROT protection;
     enum LINK linkage;
@@ -239,8 +242,10 @@ struct VarDeclaration : Declaration
     int isImportedSymbol();
     int isDataseg();
     int hasPointers();
+    int canTakeAddressOf();
     Expression *callAutoDtor();
     ExpInitializer *getExpInitializer();
+    Expression *getConstInitializer();
     void checkCtorConstInit();
     void checkNestedReference(Scope *sc, Loc loc);
     Dsymbol *toAlias();
@@ -517,7 +522,7 @@ struct FuncDeclaration : Declaration
     int overrides(FuncDeclaration *fd);
     int overloadInsert(Dsymbol *s);
     FuncDeclaration *overloadExactMatch(Type *t);
-    FuncDeclaration *overloadResolve(Loc loc, Expressions *arguments, int flags = 0);
+    FuncDeclaration *overloadResolve(Loc loc, Expression *ethis, Expressions *arguments, int flags = 0);
     LabelDsymbol *searchLabel(Identifier *ident);
     AggregateDeclaration *isThis();
     AggregateDeclaration *isMember2();

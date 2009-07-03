@@ -38,7 +38,7 @@
 static Expression *build_overload(Loc loc, Scope *sc, Expression *ethis, Expression *earg, Identifier *id);
 static void inferApplyArgTypesX(FuncDeclaration *fstart, Arguments *arguments);
 static int inferApplyArgTypesY(TypeFunction *tf, Arguments *arguments);
-static void templateResolve(Match *m, TemplateDeclaration *td, Scope *sc, Loc loc, Objects *targsi, Expressions *arguments);
+static void templateResolve(Match *m, TemplateDeclaration *td, Scope *sc, Loc loc, Objects *targsi, Expression *ethis, Expressions *arguments);
 
 /******************************** Expression **************************/
 
@@ -269,11 +269,11 @@ Expression *BinExp::op_overload(Scope *sc)
 	    fd = s->isFuncDeclaration();
 	    if (fd)
 	    {
-		overloadResolveX(&m, fd, &args2);
+		overloadResolveX(&m, fd, NULL, &args2);
 	    }
 	    else
 	    {   td = s->isTemplateDeclaration();
-		templateResolve(&m, td, sc, loc, NULL, &args2);
+		templateResolve(&m, td, sc, loc, NULL, NULL, &args2);
 	    }
 	}
 	
@@ -284,11 +284,11 @@ Expression *BinExp::op_overload(Scope *sc)
 	    fd = s_r->isFuncDeclaration();
 	    if (fd)
 	    {
-		overloadResolveX(&m, fd, &args1);
+		overloadResolveX(&m, fd, NULL, &args1);
 	    }
 	    else
 	    {   td = s_r->isTemplateDeclaration();
-		templateResolve(&m, td, sc, loc, NULL, &args1);
+		templateResolve(&m, td, sc, loc, NULL, NULL, &args1);
 	    }
 	}
 
@@ -358,11 +358,11 @@ Expression *BinExp::op_overload(Scope *sc)
 		fd = s_r->isFuncDeclaration();
 		if (fd)
 		{
-		    overloadResolveX(&m, fd, &args2);
+		    overloadResolveX(&m, fd, NULL, &args2);
 		}
 		else
 		{   td = s_r->isTemplateDeclaration();
-		    templateResolve(&m, td, sc, loc, NULL, &args2);
+		    templateResolve(&m, td, sc, loc, NULL, NULL, &args2);
 		}
 	    }
 	    lastf = m.lastf;
@@ -372,11 +372,11 @@ Expression *BinExp::op_overload(Scope *sc)
 		fd = s->isFuncDeclaration();
 		if (fd)
 		{
-		    overloadResolveX(&m, fd, &args1);
+		    overloadResolveX(&m, fd, NULL, &args1);
 		}
 		else
 		{   td = s->isTemplateDeclaration();
-		    templateResolve(&m, td, sc, loc, NULL, &args1);
+		    templateResolve(&m, td, sc, loc, NULL, NULL, &args1);
 		}
 	    }
 
@@ -724,12 +724,12 @@ static int inferApplyArgTypesY(TypeFunction *tf, Arguments *arguments)
 /**************************************
  */
 
-static void templateResolve(Match *m, TemplateDeclaration *td, Scope *sc, Loc loc, Objects *targsi, Expressions *arguments)
+static void templateResolve(Match *m, TemplateDeclaration *td, Scope *sc, Loc loc, Objects *targsi, Expression *ethis, Expressions *arguments)
 {
     FuncDeclaration *fd;
 
     assert(td);
-    fd = td->deduce(sc, loc, targsi, arguments);
+    fd = td->deduceFunctionTemplate(sc, loc, targsi, ethis, arguments);
     if (!fd)
 	return;
     m->anyf = fd;

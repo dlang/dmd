@@ -36,69 +36,96 @@ static real_t zero;	// work around DMC bug for now
 
 
 /*************************************
- * If expression is a variable with a const initializer,
+ * If variable has a const initializer,
  * return that initializer.
  */
+
+Expression *expandVar(int result, VarDeclaration *v)
+{
+    //printf("expandVar(result = %d, v = %s)\n", result, v ? v->toChars() : "null");
+    Expression *e = NULL;
+    if (v && (v->isConst() || v->isInvariant()))
+    {
+	Type *tb = v->type->toBasetype();
+	if (result & WANTinterpret ||
+	    (tb->ty != Tsarray && tb->ty != Tstruct)
+	   )
+	{
+	    if (v->init)
+	    {
+		if (v->inuse)
+		    goto L1;
+		Expression *ei = v->init->toExpression();
+		if (!ei)
+		    goto L1;
+		if (ei->op == TOKconstruct)
+		{   AssignExp *ae = (AssignExp *)ei;
+		    ei = ae->e2;
+		    if (ei->isConst() != 1 && ei->op != TOKstring)
+			goto L1;
+		    if (ei->type != v->type)
+			goto L1;
+		}
+		if (v->scope)
+		{
+		    v->inuse++;
+		    e = ei->syntaxCopy();
+		    e = e->semantic(v->scope);
+		    e = e->implicitCastTo(v->scope, v->type);
+		    v->scope = NULL;
+		    v->inuse--;
+		}
+		else if (!ei->type)
+		{
+		    goto L1;
+		}
+		else
+		    // Should remove the copy() operation by
+		    // making all mods to expressions copy-on-write
+		    e = ei->copy();
+	    }
+	    else
+	    {
+#if 1
+		goto L1;
+#else
+		// BUG: what if const is initialized in constructor?
+		e = v->type->defaultInit();
+		e->loc = e1->loc;
+#endif
+	    }
+	    if (e->type != v->type)
+	    {
+		e = e->castTo(NULL, v->type);
+	    }
+	    e = e->optimize(result);
+	}
+    }
+L1:
+    //if (e) printf("\te = %s, e->type = %s\n", e->toChars(), e->type->toChars());
+    return e;
+}
+
 
 Expression *fromConstInitializer(int result, Expression *e1)
 {
     //printf("fromConstInitializer(result = %x, %s)\n", result, e1->toChars());
+    //static int xx; if (xx++ == 10) assert(0);
     Expression *e = e1;
     if (e1->op == TOKvar)
     {	VarExp *ve = (VarExp *)e1;
 	VarDeclaration *v = ve->var->isVarDeclaration();
-	if (v && (v->isConst() || v->isInvariant()))
-	{
-	    Type *tb = v->type->toBasetype();
-	    if (result & WANTinterpret ||
-		(tb->ty != Tsarray && tb->ty != Tstruct)
-	       )
-	    {
-		if (v->init)
-		{
-		    if (v->inuse)
-			goto L1;
-		    Expression *ei = v->init->toExpression();
-		    if (!ei)
-			goto L1;
-		    if (v->scope)
-		    {
-			v->inuse++;
-			e = ei->syntaxCopy();
-			e = e->semantic(v->scope);
-			e = e->implicitCastTo(v->scope, v->type);
-			v->scope = NULL;
-			v->inuse--;
-		    }
-		    else if (!ei->type)
-		    {
-			goto L1;
-		    }
-		    else
-			// Should remove the copy() operation by
-			// making all mods to expressions copy-on-write
-			e = ei->copy();
-		}
-		else
-		{
-		    e = v->type->defaultInit();
-		    e->loc = e1->loc;
-		}
-		if (e->type != v->type)
-		{
-		    e = e->castTo(NULL, v->type);
-		}
-		if (e->type != e1->type)
-		{   // Type 'paint' operation
-		    e = e->copy();
-		    e->type = e1->type;
-		}
-		e = e->optimize(result);
-		//printf("e = %s, e1->type = %s, v->type = %s, e->type = %s\n", e->toChars(), e1->type->toChars(), v->type->toChars(), e->type->toChars());
+	e = expandVar(result, v);
+	if (e)
+	{   if (e->type != e1->type)
+	    {   // Type 'paint' operation
+		e = e->copy();
+		e->type = e1->type;
 	    }
 	}
+	else
+	    e = e1;
     }
-L1:
     return e;
 }
 
@@ -237,7 +264,21 @@ Expression *AddrExp::optimize(int result)
 {   Expression *e;
 
     //printf("AddrExp::optimize(result = %d) %s\n", result, toChars());
-    e1 = e1->optimize(result);
+
+    /* Rewrite &(a,b) as (a,&b)
+     */
+    if (e1->op == TOKcomma)
+    {	CommaExp *ce = (CommaExp *)e1;
+	AddrExp *ae = new AddrExp(loc, ce->e2);
+	ae->type = type;
+	e = new CommaExp(ce->loc, ce->e1, ae);
+	e->type = type;
+	return e->optimize(result);
+    }
+
+    if (e1->op != TOKvar)
+	e1 = e1->optimize(result);
+
     // Convert &*ex to ex
     if (e1->op == TOKstar)
     {	Expression *ex;
@@ -314,6 +355,17 @@ Expression *PtrExp::optimize(int result)
 	    return e;
     }
 
+    if (e1->op == TOKsymoff)
+    {	SymOffExp *se = (SymOffExp *)e1;
+	VarDeclaration *v = se->var->isVarDeclaration();
+	Expression *e = expandVar(result, v);
+	if (e && e->op == TOKstructliteral)
+	{   StructLiteralExp *sle = (StructLiteralExp *)e;
+	    e = sle->getField(type, se->offset);
+	    if (e != EXP_CANT_INTERPRET)
+		return e;
+	}
+    }
     return this;
 }
 
@@ -441,7 +493,8 @@ Expression *CastExp::optimize(int result)
 Expression *BinExp::optimize(int result)
 {
     //printf("BinExp::optimize(result = %d) %s\n", result, toChars());
-    e1 = e1->optimize(result);
+    if (op != TOKconstruct)
+	e1 = e1->optimize(result);
     e2 = e2->optimize(result);
     if (op == TOKshlass || op == TOKshrass || op == TOKushrass)
     {

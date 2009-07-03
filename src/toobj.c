@@ -1,5 +1,5 @@
 
-// Copyright (c) 1999-2006 by Digital Mars
+// Copyright (c) 1999-2007 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // http://www.digitalmars.com
@@ -46,7 +46,7 @@ void Module::genmoduleinfo()
 {
     Symbol *msym = toSymbol();
     unsigned offset;
-    unsigned sizeof_ModuleInfo = 13 * PTRSIZE;
+    unsigned sizeof_ModuleInfo = 14 * PTRSIZE;
 
     //////////////////////////////////////////////
 
@@ -65,6 +65,7 @@ void Module::genmoduleinfo()
 	    void *dtor;
 	    void *unitTest;
 	    const(MemberInfo[]) function(string) xgetMembers;	// module getMembers() function
+	    void *ictor;
        }
      */
     dt_t *dt = NULL;
@@ -115,9 +116,9 @@ void Module::genmoduleinfo()
 	dtdword(&dt, 0);
 
     if (needmoduleinfo)
-	dtdword(&dt, 0);		// flags (4 means MIstandalone)
+	dtdword(&dt, 8|0);		// flags (4 means MIstandalone)
     else
-	dtdword(&dt, 4);		// flags (4 means MIstandalone)
+	dtdword(&dt, 8|4);		// flags (4 means MIstandalone)
 
     if (sctor)
 	dtxoff(&dt, sctor, 0, TYnptr);
@@ -139,6 +140,11 @@ void Module::genmoduleinfo()
 	dtxoff(&dt, sgetmembers->toSymbol(), 0, TYnptr);
     else
 	dtdword(&dt, 0);			// xgetMembers
+
+    if (sictor)
+	dtxoff(&dt, sictor, 0, TYnptr);
+    else
+	dtdword(&dt, 0);
 
     //////////////////////////////////////////////
 
@@ -943,6 +949,12 @@ void VarDeclaration::toObjFile()
 	return;
     }
 
+    // Do not store variables we cannot take the address of
+    if (!canTakeAddressOf())
+    {
+	return;
+    }
+
     if (isDataseg() && !(storage_class & STCextern))
     {
 	s = toSymbol();
@@ -963,28 +975,29 @@ void VarDeclaration::toObjFile()
 	    else
 		s->Sclass = SCglobal;
 
-	    do
-	    {
-		/* Global template data members need to be in comdat's
-		 * in case multiple .obj files instantiate the same
-		 * template with the same types.
-		 */
-		if (parent->isTemplateInstance() && !parent->isTemplateMixin())
-		{
-		    /* These symbol constants have already been copied,
-		     * so no reason to output them.
-		     * Note that currently there is no way to take
-		     * the address of such a const.
-		     */
-		    if (isConst() && type->toBasetype()->ty != Tsarray &&
-			init && init->isExpInitializer())
-			return;
-
-		    s->Sclass = SCcomdat;
-		    break;
-		}
-		parent = parent->parent;
-	    } while (parent);
+            do
+            {
+                /* Global template data members need to be in comdat's
+                 * in case multiple .obj files instantiate the same
+                 * template with the same types.
+                 */
+                if (parent->isTemplateInstance() && !parent->isTemplateMixin())
+                {
+#if 0
+                    /* These symbol constants have already been copied,
+                     * so no reason to output them.
+                     * Note that currently there is no way to take
+                     * the address of such a const.
+                     */
+                    if (isConst() && type->toBasetype()->ty != Tsarray &&
+                        init && init->isExpInitializer())
+                        return;
+#endif
+                    s->Sclass = SCcomdat;
+                    break;
+                }
+                parent = parent->parent;
+            } while (parent);
 	}
 	s->Sfl = FLdata;
 

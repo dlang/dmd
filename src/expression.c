@@ -823,7 +823,7 @@ Expression *Expression::toLvalue(Scope *sc, Expression *e)
 
 Expression *Expression::modifiableLvalue(Scope *sc, Expression *e)
 {
-    //printf("Expression::modifiableLvalue() %s\n", toChars());
+    //printf("Expression::modifiableLvalue() %s, type = %s\n", toChars(), type->toChars());
 
     // See if this expression is a modifiable lvalue (i.e. not const)
     if (type && !type->isMutable())
@@ -1040,7 +1040,7 @@ int IntegerExp::equals(Object *o)
 
     if (this == o ||
 	(((Expression *)o)->op == TOKint64 &&
-	 ((ne = (IntegerExp *)o), type->equals(ne->type)) &&
+	 ((ne = (IntegerExp *)o), type->toHeadMutable()->equals(ne->type->toHeadMutable())) &&
 	 value == ne->value))
 	return 1;
     return 0;
@@ -1280,7 +1280,7 @@ RealExp::RealExp(Loc loc, real_t value, Type *type)
 
 char *RealExp::toChars()
 {
-    static char buffer[sizeof(value) * 3 + 8 + 1 + 1];
+    char buffer[sizeof(value) * 3 + 8 + 1 + 1];
 
 #ifdef IN_GCC
     value.format(buffer, sizeof(buffer));
@@ -1290,7 +1290,7 @@ char *RealExp::toChars()
     sprintf(buffer, type->isimaginary() ? "%Lgi" : "%Lg", value);
 #endif
     assert(strlen(buffer) < sizeof(buffer));
-    return buffer;
+    return mem.strdup(buffer);
 }
 
 integer_t RealExp::toInteger()
@@ -1350,7 +1350,7 @@ int RealExp::equals(Object *o)
 
     if (this == o ||
 	(((Expression *)o)->op == TOKfloat64 &&
-	 ((ne = (RealExp *)o), type->equals(ne->type)) &&
+	 ((ne = (RealExp *)o), type->toHeadMutable()->equals(ne->type->toHeadMutable())) &&
 	 RealEquals(value, ne->value)
         )
        )
@@ -1494,7 +1494,7 @@ ComplexExp::ComplexExp(Loc loc, complex_t value, Type *type)
 
 char *ComplexExp::toChars()
 {
-    static char buffer[sizeof(value) * 3 + 8 + 1];
+    char buffer[sizeof(value) * 3 + 8 + 1];
 
 #ifdef IN_GCC
     char buf1[sizeof(value) * 3 + 8 + 1];
@@ -1506,7 +1506,7 @@ char *ComplexExp::toChars()
     sprintf(buffer, "(%Lg+%Lgi)", creall(value), cimagl(value));
     assert(strlen(buffer) < sizeof(buffer));
 #endif
-    return buffer;
+    return mem.strdup(buffer);
 }
 
 integer_t ComplexExp::toInteger()
@@ -1547,7 +1547,7 @@ int ComplexExp::equals(Object *o)
 
     if (this == o ||
 	(((Expression *)o)->op == TOKcomplex80 &&
-	 ((ne = (ComplexExp *)o), type->equals(ne->type)) &&
+	 ((ne = (ComplexExp *)o), type->toHeadMutable()->equals(ne->type->toHeadMutable())) &&
 	 RealEquals(creall(value), creall(ne->value)) &&
 	 RealEquals(cimagl(value), cimagl(ne->value))
 	)
@@ -3122,7 +3122,13 @@ Lagain:
 	if (cd->isInterfaceDeclaration())
 	    error("cannot create instance of interface %s", cd->toChars());
 	else if (cd->isAbstract())
-	    error("cannot create instance of abstract class %s", cd->toChars());
+	{   error("cannot create instance of abstract class %s", cd->toChars());
+	    for (int i = 0; i < cd->vtbl.dim; i++)
+	    {	FuncDeclaration *fd = ((Dsymbol *)cd->vtbl.data[i])->isFuncDeclaration();
+		if (fd && fd->isAbstract())
+		    error("function %s is abstract", fd->toChars());
+	    }
+	}
 	checkDeprecated(sc, cd);
 	if (cd->isNested())
 	{   /* We need a 'this' pointer for the nested class.
@@ -3199,7 +3205,7 @@ Lagain:
 	if (f)
 	{
 	    assert(f);
-	    f = f->overloadResolve(loc, arguments);
+	    f = f->overloadResolve(loc, NULL, arguments);
 	    checkDeprecated(sc, f);
 	    member = f->isCtorDeclaration();
 	    assert(member);
@@ -3230,7 +3236,7 @@ Lagain:
 		newargs = new Expressions();
 	    newargs->shift(e);
 
-	    f = f->overloadResolve(loc, newargs);
+	    f = f->overloadResolve(loc, NULL, newargs);
 	    allocator = f->isNewDeclaration();
 	    assert(allocator);
 
@@ -3264,7 +3270,7 @@ Lagain:
 		newargs = new Expressions();
 	    newargs->shift(e);
 
-	    f = f->overloadResolve(loc, newargs);
+	    f = f->overloadResolve(loc, NULL, newargs);
 	    allocator = f->isNewDeclaration();
 	    assert(allocator);
 
@@ -3293,6 +3299,7 @@ Lagain:
 	    Expression *arg = (Expression *)arguments->data[i];
 	    arg = resolveProperties(sc, arg);
 	    arg = arg->implicitCastTo(sc, Type::tsize_t);
+	    arg = arg->optimize(WANTvalue);
 	    if (arg->op == TOKint64 && (long long)arg->toInteger() < 0)
 		error("negative array index %s", arg->toChars());
 	    arguments->data[i] = (void *) arg;
@@ -3491,7 +3498,7 @@ int VarExp::equals(Object *o)
 
     if (this == o ||
 	(((Expression *)o)->op == TOKvar &&
-	 ((ne = (VarExp *)o), type->equals(ne->type)) &&
+	 ((ne = (VarExp *)o), type->toHeadMutable()->equals(ne->type->toHeadMutable())) &&
 	 var == ne->var))
 	return 1;
     return 0;
@@ -4108,6 +4115,20 @@ Expression *IsExp::semantic(Scope *sc)
 		    goto Lno;
 		tded = targ;
 		break;
+
+#if V2
+	    case TOKconst:
+		if (!targ->isConst())
+		    goto Lno;
+		tded = targ;
+		break;
+
+	    case TOKinvariant:
+		if (!targ->isInvariant())
+		    goto Lno;
+		tded = targ;
+		break;
+#endif
 
 	    case TOKsuper:
 		// If class or interface, get the base class and interfaces
@@ -5588,14 +5609,14 @@ Lagain:
 	DotTemplateExp *dte;
 	AggregateDeclaration *ad;
 	UnaExp *ue = (UnaExp *)(e1);
-        
+
     	if (e1->op == TOKdotvar)
         {   // Do overload resolution
 	    dve = (DotVarExp *)(e1);
 
 	    f = dve->var->isFuncDeclaration();
 	    assert(f);
-	    f = f->overloadResolve(loc, arguments);
+	    f = f->overloadResolve(loc, ue->e1, arguments);
 
 	    ad = f->toParent()->isAggregateDeclaration();
 	}
@@ -5604,9 +5625,9 @@ Lagain:
 	    TemplateDeclaration *td = dte->td;
 	    assert(td);
 	    if (!arguments)
-		// Should fix deduce() so it works on NULL argument
+		// Should fix deduceFunctionTemplate() so it works on NULL argument
 		arguments = new Expressions();
-	    f = td->deduce(sc, loc, NULL, arguments);
+	    f = td->deduceFunctionTemplate(sc, loc, NULL, ue->e1, arguments);
 	    if (!f)
 	    {	type = Type::terror;
 		return this;
@@ -5672,13 +5693,13 @@ Lagain:
 	    printf("e1->type = %s\n", e1->type->toChars());
 #endif
 	    // Const member function can take const/invariant/mutable this
-	    if (!(f->storage_class & STCconst))
+	    if (!(f->type->isConst()))
 	    {
 		// Check for const/invariant compatibility
 		Type *tthis = ue->e1->type->toBasetype();
 		if (tthis->ty == Tpointer)
 		    tthis = tthis->nextOf()->toBasetype();
-		if (f->storage_class & STCinvariant)
+		if (f->type->isInvariant())
 		{
 		    if (tthis->mod != MODinvariant)
 			error("%s can only be called on an invariant object", e1->toChars());
@@ -5686,7 +5707,9 @@ Lagain:
 		else
 		{
 		    if (tthis->mod != 0)
-			error("%s can only be called on a mutable object", e1->toChars());
+		    {	//printf("test1: mod = %x\n", tthis->mod);
+			error("%s can only be called on a mutable object, not %s", e1->toChars(), tthis->toChars());
+		    }
 		}
 
 		/* Cannot call mutable method on a final struct
@@ -5744,7 +5767,7 @@ Lagain:
 		    error("multiple constructor calls");
 		sc->callSuper |= CSXany_ctor | CSXsuper_ctor;
 
-		f = f->overloadResolve(loc, arguments);
+		f = f->overloadResolve(loc, NULL, arguments);
 		checkDeprecated(sc, f);
 		e1 = new DotVarExp(e1->loc, e1, f);
 		e1 = e1->semantic(sc);
@@ -5778,7 +5801,7 @@ Lagain:
 	    sc->callSuper |= CSXany_ctor | CSXthis_ctor;
 
 	    f = cd->ctor;
-	    f = f->overloadResolve(loc, arguments);
+	    f = f->overloadResolve(loc, NULL, arguments);
 	    checkDeprecated(sc, f);
 	    e1 = new DotVarExp(e1->loc, e1, f);
 	    e1 = e1->semantic(sc);
@@ -5799,12 +5822,12 @@ Lagain:
 	    FuncDeclaration *f2 = s->isFuncDeclaration();
 	    if (f2)
 	    {
-		f2 = f2->overloadResolve(loc, arguments, 1);
+		f2 = f2->overloadResolve(loc, NULL, arguments, 1);
 	    }
 	    else
 	    {	TemplateDeclaration *td = s->isTemplateDeclaration();
 		assert(td);
-		f2 = td->deduce(sc, loc, NULL, arguments, 1);
+		f2 = td->deduceFunctionTemplate(sc, loc, NULL, NULL, arguments, 1);
 	    }
 	    if (f2)
 	    {	if (f)
@@ -5850,7 +5873,7 @@ Lagain:
 	else if (e1->op == TOKtemplate)
 	{
 	    TemplateExp *te = (TemplateExp *)e1;
-	    f = te->td->deduce(sc, loc, NULL, arguments);
+	    f = te->td->deduceFunctionTemplate(sc, loc, NULL, NULL, arguments);
 	    if (!f)
 	    {	type = Type::terror;
 		return this;
@@ -5882,7 +5905,7 @@ Lagain:
 	assert(f);
 
 	if (ve->hasOverloads)
-	    f = f->overloadResolve(loc, arguments);
+	    f = f->overloadResolve(loc, NULL, arguments);
 	checkDeprecated(sc, f);
 
 	if (f->needThis() && hasThis(sc))
@@ -5981,8 +6004,6 @@ Expression *AddrExp::semantic(Scope *sc)
 	if (e1->op == TOKdotvar)
 	{
 	    DotVarExp *dve = (DotVarExp *)e1;
-	    if (dve->var->isFinal())
-		type = e1->type->constOf()->pointerTo();
 
 	    FuncDeclaration *f = dve->var->isFuncDeclaration();
 
@@ -5998,8 +6019,10 @@ Expression *AddrExp::semantic(Scope *sc)
 	else if (e1->op == TOKvar)
 	{
 	    VarExp *ve = (VarExp *)e1;
-	    if (ve->var->isFinal())
-		type = e1->type->constOf()->pointerTo();
+
+	    VarDeclaration *v = ve->var->isVarDeclaration();
+	    if (v && !v->canTakeAddressOf())
+		error("cannot take address of %s", e1->toChars());
 
 	    FuncDeclaration *f = ve->var->isFuncDeclaration();
 
@@ -6087,12 +6110,12 @@ Expression *PtrExp::toLvalue(Scope *sc, Expression *e)
 
 Expression *PtrExp::modifiableLvalue(Scope *sc, Expression *e)
 {
-    //printf("PtrExp::modifiableLvalue() %s\n", toChars());
+    //printf("PtrExp::modifiableLvalue() %s, type %s\n", toChars(), type->toChars());
 
     if (e1->op == TOKsymoff)
     {	SymOffExp *se = (SymOffExp *)e1;
 	se->var->checkModify(loc, sc);
-	return toLvalue(sc, e);
+	//return toLvalue(sc, e);
     }
 
     return Expression::modifiableLvalue(sc, e);
@@ -7069,7 +7092,7 @@ Expression *AssignExp::semantic(Scope *sc)
     Expression *e1old = e1;
 
 #if LOGSEMANTIC
-    //printf("AssignExp::semantic('%s')\n", toChars());
+    printf("AssignExp::semantic('%s')\n", toChars());
 #endif
     //printf("e1->op = %d, '%s'\n", e1->op, Token::toChars(e1->op));
     //printf("e2->op = %d, '%s'\n", e2->op, Token::toChars(e2->op));
@@ -7234,7 +7257,8 @@ Expression *AssignExp::semantic(Scope *sc)
     else
     {	// Try to do a decent error message with the expression
 	// before it got constant folded
-	e1 = e1->optimize(WANTvalue);
+	if (e1->op != TOKvar)
+	    e1 = e1->optimize(WANTvalue);
 	e1 = e1->modifiableLvalue(sc, e1old);
     }
 
@@ -7937,20 +7961,13 @@ Expression *CatExp::semantic(Scope *sc)
 	}
 
 	typeCombine(sc);
-//type->print();
-	type = type->mutableOf();
-//printf("test1\n");
-//type->print();
+	type = type->toHeadMutable();
 
 	Type *tb = type->toBasetype();
 	if (tb->ty == Tsarray)
 	    type = tb->nextOf()->arrayOf();
-//printf("test2\n");
-//type->print();
 	if (type->ty == Tarray && tb1->nextOf()->mod != tb2->nextOf()->mod)
-	    type = type->nextOf()->toCanonConst()->arrayOf();
-//printf("test3\n");
-//type->print();
+	    type = type->nextOf()->toHeadMutable()->arrayOf();
 #if 0
 	e1->type->print();
 	e2->type->print();
@@ -8779,6 +8796,11 @@ Expression *CondExp::semantic(Scope *sc)
 	    case Tcomplex80:
 		e1 = e1->castTo(sc, e2->type);
 		break;
+	}
+	if (type->toBasetype()->ty == Tarray)
+	{
+	    e1 = e1->castTo(sc, type);
+	    e2 = e2->castTo(sc, type);
 	}
     }
 #if 0

@@ -449,6 +449,7 @@ void ClassDeclaration::semantic(Scope *sc)
 	com = baseClass->isCOMclass();
 	isauto = baseClass->isauto;
 	vthis = baseClass->vthis;
+	storage_class |= baseClass->storage_class & (STCconst | STCinvariant);
     }
     else
     {
@@ -521,10 +522,15 @@ void ClassDeclaration::semantic(Scope *sc)
 	isauto = 1;
     if (storage_class & STCabstract)
 	isabstract = 1;
+    if (storage_class & STCinvariant)
+	type = type->invariantOf();
+    else if (storage_class & STCconst)
+	type = type->constOf();
 
     sc = sc->push(this);
     sc->stc &= ~(STCfinal | STCauto | STCscope | STCstatic |
-		 STCabstract | STCdeprecated);
+		 STCabstract | STCdeprecated | STCconst | STCinvariant);
+    sc->stc |= storage_class & (STCconst | STCinvariant);
     sc->parent = this;
     sc->inunion = 0;
 
@@ -937,6 +943,7 @@ int ClassDeclaration::isAbstract()
     return FALSE;
 }
 
+
 /****************************************
  * Returns !=0 if there's an extra member which is the 'this'
  * pointer to the enclosing context (enclosing class or function)
@@ -1103,6 +1110,10 @@ void InterfaceDeclaration::semantic(Scope *sc)
 		return;
 	    }
 	}
+#if 0
+	// Inherit const/invariant from base class
+	storage_class |= b->base->storage_class & (STCconst | STCinvariant);
+#endif
 	i++;
     }
 
@@ -1144,6 +1155,9 @@ void InterfaceDeclaration::semantic(Scope *sc)
 	;
     }
 
+    protection = sc->protection;
+    storage_class |= sc->stc & (STCconst | STCinvariant);
+
     for (i = 0; i < members->dim; i++)
     {
 	Dsymbol *s = (Dsymbol *)members->data[i];
@@ -1151,6 +1165,9 @@ void InterfaceDeclaration::semantic(Scope *sc)
     }
 
     sc = sc->push(this);
+    sc->stc &= ~(STCfinal | STCauto | STCscope | STCstatic |
+                 STCabstract | STCdeprecated | STCconst | STCinvariant);
+    sc->stc |= storage_class & (STCconst | STCinvariant);
     sc->parent = this;
     if (isCOMinterface())
 	sc->linkage = LINKwindows;

@@ -1305,7 +1305,8 @@ Statement *ForeachStatement::semantic(Scope *sc)
 		if (aggr->op == TOKstring)
 		    aggr = aggr->implicitCastTo(sc, value->type->arrayOf());
 		else
-		    error("foreach: %s is not an array of %s", tab->toChars(), value->type->toChars());
+		    error("foreach: %s is not an array of %s",
+			tab->toChars(), value->type->toChars());
 	    }
 
 	    if (key &&

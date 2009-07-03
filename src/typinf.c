@@ -463,6 +463,7 @@ void TypeInfoStructDeclaration::toDt(dt_t **pdt)
 	Scope sc;
 
 	tftohash = new TypeFunction(NULL, Type::thash_t, 0, LINKd);
+	tftohash->mod = MODconst;
 	tftohash = (TypeFunction *)tftohash->semantic(0, &sc);
 
 	tftostring = new TypeFunction(NULL, Type::tchar->invariantOf()->arrayOf(), 0, LINKd);
@@ -477,6 +478,7 @@ void TypeInfoStructDeclaration::toDt(dt_t **pdt)
 
 	arguments->push(arg);
 	tfeqptr = new TypeFunction(arguments, Type::tint32, 0, LINKd);
+	tfeqptr->mod = MODconst;
 	tfeqptr = (TypeFunction *)tfeqptr->semantic(0, &sc);
     }
 

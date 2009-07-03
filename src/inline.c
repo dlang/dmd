@@ -542,7 +542,7 @@ Expression *DeclarationExp::doInline(InlineDoState *ids)
 	    return st->objects->dim;
 	}
 #endif
-	if (vd->isStatic() || vd->isConst())
+	if (vd->isStatic())
 	    ;
 	else
 	{

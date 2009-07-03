@@ -217,14 +217,10 @@ Symbol *VarDeclaration::toSymbol()
 		type_setcv(&t, t->Tty | mTYvolatile);
 	    }
 	}
-	if (storage_class & STCconst)
+	if (isConst() || isInvariant())
 	{
 	    // Insert const modifiers
-	    tym_t tym = 0;
-
-	    if (storage_class & STCconst)
-		tym |= mTYconst;
-	    type_setcv(&t, tym);
+	    type_setcv(&t, t->Tty | mTYconst);
 	}
 	switch (linkage)
 	{

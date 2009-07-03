@@ -163,6 +163,7 @@ void AggregateDeclaration::addField(Scope *sc, VarDeclaration *v)
     unsigned xalign;		// alignment boundaries
 
     //printf("AggregateDeclaration::addField('%s') %s\n", v->toChars(), toChars());
+    assert(!(v->storage_class & (STCstatic | STCextern | STCparameter)));
 
     // Check for forward referenced types which will fail the size() call
     Type *t = v->type->toBasetype();
@@ -254,9 +255,14 @@ void StructDeclaration::semantic(Scope *sc)
     handle = type->pointerTo();
     structalign = sc->structalign;
     protection = sc->protection;
+    storage_class |= sc->stc;
     assert(!isAnonymous());
     if (sc->stc & STCabstract)
 	error("structs, unions cannot be abstract");
+    if (storage_class & STCinvariant)
+        type = type->invariantOf();
+    else if (storage_class & STCconst)
+        type = type->constOf();
 
     if (sizeok == 0)		// if not already done the addMember step
     {
@@ -270,7 +276,7 @@ void StructDeclaration::semantic(Scope *sc)
 
     sizeok = 0;
     sc2 = sc->push(this);
-    sc2->stc = 0;
+    sc2->stc &= storage_class & (STCconst | STCinvariant);
     sc2->parent = this;
     if (isUnionDeclaration())
 	sc2->inunion = 1;

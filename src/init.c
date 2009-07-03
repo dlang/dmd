@@ -576,7 +576,7 @@ Type *ExpInitializer::inferType(Scope *sc)
     }
 
     Type *t = exp->type;
-    return t->ty == Tsarray ? t : t->mutableOf();
+    return t->ty == Tsarray ? t : t->toHeadMutable();
 }
 
 Expression *ExpInitializer::toExpression()

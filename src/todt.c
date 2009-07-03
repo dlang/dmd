@@ -747,7 +747,8 @@ dt_t **VarExp::toDt(dt_t **pdt)
 	;
 
     VarDeclaration *v = var->isVarDeclaration();
-    if (v && v->isConst() && type->toBasetype()->ty != Tsarray && v->init)
+    if (v && (v->isConst() || v->isInvariant()) &&
+	type->toBasetype()->ty != Tsarray && v->init)
     {
 	*pdt = v->init->toDt();
 	return pdt;

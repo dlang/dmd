@@ -933,7 +933,7 @@ Dsymbol *ArrayScopeSymbol::search(Loc loc, Identifier *ident, int flags)
 	    VarDeclaration *v = new VarDeclaration(loc, Type::tsize_t, Id::dollar, NULL);
 	    Expression *e = new IntegerExp(0, td->objects->dim, Type::tsize_t);
 	    v->init = new ExpInitializer(0, e);
-	    v->storage_class |= STCconst;
+	    v->storage_class |= STCstatic | STCconst;
 	    v->semantic(sc);
 	    return v;
 	}
@@ -943,7 +943,7 @@ Dsymbol *ArrayScopeSymbol::search(Loc loc, Identifier *ident, int flags)
 	    VarDeclaration *v = new VarDeclaration(loc, Type::tsize_t, Id::dollar, NULL);
 	    Expression *e = new IntegerExp(0, type->arguments->dim, Type::tsize_t);
 	    v->init = new ExpInitializer(0, e);
-	    v->storage_class |= STCconst;
+	    v->storage_class |= STCstatic | STCconst;
 	    v->semantic(sc);
 	    return v;
 	}
@@ -989,7 +989,7 @@ Dsymbol *ArrayScopeSymbol::search(Loc loc, Identifier *ident, int flags)
 		 */
 		Expression *e = new IntegerExp(0, ((StringExp *)ce)->len, Type::tsize_t);
 		v->init = new ExpInitializer(0, e);
-		v->storage_class |= STCconst;
+		v->storage_class |= STCstatic | STCconst;
 	    }
 	    else if (ce->op == TOKarrayliteral)
 	    {	/* It is for an array literal, so the
@@ -997,7 +997,7 @@ Dsymbol *ArrayScopeSymbol::search(Loc loc, Identifier *ident, int flags)
 		 */
 		Expression *e = new IntegerExp(0, ((ArrayLiteralExp *)ce)->elements->dim, Type::tsize_t);
 		v->init = new ExpInitializer(0, e);
-		v->storage_class |= STCconst;
+		v->storage_class |= STCstatic | STCconst;
 	    }
 	    else if (ce->op == TOKtuple)
 	    {	/* It is for an expression tuple, so the
@@ -1005,7 +1005,7 @@ Dsymbol *ArrayScopeSymbol::search(Loc loc, Identifier *ident, int flags)
 		 */
 		Expression *e = new IntegerExp(0, ((TupleExp *)ce)->exps->dim, Type::tsize_t);
 		v->init = new ExpInitializer(0, e);
-		v->storage_class |= STCconst;
+		v->storage_class |= STCstatic | STCconst;
 	    }
 	    *pvar = v;
 	}

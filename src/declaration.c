@@ -29,6 +29,7 @@ Declaration::Declaration(Identifier *id)
     : Dsymbol(id)
 {
     type = NULL;
+    originalType = NULL;
     storage_class = STCundefined;
     protection = PROTundefined;
     linkage = LINKdefault;
@@ -91,8 +92,8 @@ void Declaration::checkModify(Loc loc, Scope *sc)
 
     VarDeclaration *v = isVarDeclaration();
     if (v && v->canassign == 0 &&
-        (isConst() || isInvariant() || (isFinal() && !isCtorinit())))
-	error(loc, "cannot modify final/const/invariant variable '%s'", toChars());
+        (isConst() || isInvariant()) && !isCtorinit())
+	error(loc, "cannot modify const/invariant variable '%s'", toChars());
 
     if (isCtorinit())
     {	// It's only modifiable if inside the right constructor
@@ -432,7 +433,7 @@ void AliasDeclaration::semantic(Scope *sc)
      * try to alias y to 3.
      */
     s = type->toDsymbol(sc);
-    if (s)
+    if (s && ((s->getType() && type->equals(s->getType())) || s->isEnumMember()))
 	goto L2;			// it's a symbolic alias
 
     //printf("alias type is %s\n", type->toChars());
@@ -641,8 +642,8 @@ Dsymbol *VarDeclaration::syntaxCopy(Dsymbol *s)
 void VarDeclaration::semantic(Scope *sc)
 {
     //printf("VarDeclaration::semantic('%s', parent = '%s')\n", toChars(), sc->parent->toChars());
-    //printf(" type = %s\n", type->toChars());
-    //printf("stc = x%x\n", sc->stc);
+    //printf(" type = %s\n", type ? type->toChars() : "null");
+    //printf(" stc = x%x\n", sc->stc);
     //printf("linkage = %d\n", sc->linkage);
     //if (strcmp(toChars(), "mul") == 0) halt();
 
@@ -663,9 +664,14 @@ void VarDeclaration::semantic(Scope *sc)
 	 * declarations.
 	 */
 	storage_class &= ~STCauto;
+	originalType = type;
     }
     else
+    {	if (!originalType)
+	    originalType = type;
 	type = type->semantic(loc, sc);
+    }
+    //printf(" type = %s\n", type ? type->toChars() : "null");
 
     type->checkDeprecated(loc, sc);
     linkage = sc->linkage;
@@ -735,41 +741,18 @@ void VarDeclaration::semantic(Scope *sc)
 	return;
     }
 
-    if (storage_class & STCfinal && !init && !fd)
-    {	// Initialize by constructor only
-	storage_class |= STCctorinit;
-    }
-
 Lagain:
-    if (isConst())
-    {
-	/* Rewrite things like:
-	 *  const string s;
-	 * to:
-	 *  invariant string s;
-	 */
-	if (type->nextOf() && type->nextOf()->isInvariant())
-	{   storage_class |= STCinvariant;
-	    storage_class &= ~STCconst;
-	    goto Lagain;
-	}
-	type = type->constOf();
-	if (isParameter())
-	{   storage_class |= STCfinal;
-	    storage_class &= ~STCconst;
-	}
-    }
-    else if (storage_class & STCinvariant)
+    if (storage_class & STCinvariant)
     {
 	type = type->invariantOf();
-	if (isParameter())
-	{   storage_class |= STCfinal;
-	    storage_class &= ~STCinvariant;
-	}
     }
-    type = type->toCanonConst();
+    else if (storage_class & (STCconst | STCin))
+    {
+	if (!type->isInvariant())
+	    type = type->constOf();
+    }
 
-    if (storage_class & (STCconst | STCinvariant | STCstatic))
+    if (storage_class & (STCstatic | STCextern))
     {
     }
     else if (isSynchronized())
@@ -793,8 +776,15 @@ Lagain:
 	if (!aad)
 	    aad = parent->isAggregateDeclaration();
 	if (aad)
-	{   assert(!(storage_class & (STCconst | STCinvariant | STCstatic)));
-	    aad->addField(sc, this);
+	{   assert(!(storage_class & (STCextern | STCstatic)));
+
+	    if (storage_class & (STCconst | STCinvariant) && init)
+	    {
+		if (!type->toBasetype()->isTypeBasic())
+		    storage_class |= STCstatic;
+	    }
+	    else
+		aad->addField(sc, this);
 	}
 
 	InterfaceDeclaration *id = parent->isInterfaceDeclaration();
@@ -803,6 +793,8 @@ Lagain:
 	    error("field not allowed in interface");
 	}
 
+	/* Templates cannot add fields to aggregates
+	 */
 	TemplateInstance *ti = parent->isTemplateInstance();
 	if (ti)
 	{
@@ -838,8 +830,16 @@ Lagain:
 	}
     }
 
-    if (!init && !sc->inunion && !isStatic() && !isConst() && fd &&
-	!(storage_class & (STCfield | STCin | STCforeach)) &&
+    if ((isConst() || isInvariant()) && !init && !fd)
+    {	// Initialize by constructor only
+	storage_class |= STCctorinit;
+    }
+
+    if (init)
+	storage_class |= STCinit;     // remember we had an explicit initializer
+
+    if (!init && !sc->inunion && !isStatic() && fd &&
+	(!(storage_class & (STCfield | STCin | STCforeach | STCparameter)) || (storage_class & STCout)) &&
 	type->size() != 0)
     {
 	// Provide a default initializer
@@ -905,7 +905,7 @@ Lagain:
 	{
 	    // If local variable, use AssignExp to handle all the various
 	    // possibilities.
-	    if (fd && !isStatic() && !isConst() && !isInvariant() &&
+	    if (fd && !isStatic() &&
 		!init->isVoidInitializer())
 	    {
 		Expression *e1;
@@ -966,13 +966,10 @@ Lagain:
 	    else
 	    {
 		init = init->semantic(sc, type);
-		if (fd && (isConst() || isInvariant()) && !isStatic())
-		{   // Make it static
-		    storage_class |= STCstatic;
-		}
 	    }
 	}
-	else if (isConst() || isInvariant() || isFinal())
+	else if (storage_class & (STCconst | STCinvariant) ||
+		 type->isConst() || type->isInvariant())
 	{
 	    /* Because we may need the results of a const declaration in a
 	     * subsequent type, such as an array dimension, before semantic2()
@@ -1013,7 +1010,12 @@ Lagain:
 		}
 		else if (ei)
 		{
-		    e = e->optimize(WANTvalue | WANTinterpret);
+		    if (isDataseg())
+			/* static const/invariant does CTFE
+			 */
+			e = e->optimize(WANTvalue | WANTinterpret);
+		    else
+			e = e->optimize(WANTvalue);
 		    if (e->op == TOKint64 || e->op == TOKstring)
 		    {
 			ei->exp = e;		// no errors, keep result
@@ -1031,23 +1033,6 @@ Lagain:
 	    }
 	}
     }
-}
-
-ExpInitializer *VarDeclaration::getExpInitializer()
-{
-    ExpInitializer *ei;
-
-    if (init)
-	ei = init->isExpInitializer();
-    else
-    {
-	Expression *e = type->defaultInit();
-	if (e)
-	    ei = new ExpInitializer(loc, e);
-	else
-	    ei = NULL;
-    }
-    return ei;
 }
 
 void VarDeclaration::semantic2(Scope *sc)
@@ -1083,10 +1068,13 @@ Dsymbol *VarDeclaration::toAlias()
 
 void VarDeclaration::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 {
-    if (storage_class & STCconst)
-	buf->writestring("const ");
     if (storage_class & STCstatic)
 	buf->writestring("static ");
+    if (storage_class & STCconst)
+	buf->writestring("const ");
+    if (storage_class & STCinvariant)
+	buf->writestring("invariant ");
+
     if (type)
 	type->toCBuffer(buf, ident, hgs);
     else
@@ -1107,7 +1095,8 @@ int VarDeclaration::needThis()
 
 int VarDeclaration::isImportedSymbol()
 {
-    if (protection == PROTexport && !init && (isStatic() || isConst() || parent->isModule()))
+    if (protection == PROTexport && !init &&
+	(storage_class & STCstatic || parent->isModule()))
 	return TRUE;
     return FALSE;
 }
@@ -1159,9 +1148,70 @@ void VarDeclaration::checkNestedReference(Scope *sc, Loc loc)
     }
 }
 
+/****************************
+ * Get ExpInitializer for a variable, if there is one.
+ */
+
+ExpInitializer *VarDeclaration::getExpInitializer()
+{
+    ExpInitializer *ei;
+
+    if (init)
+	ei = init->isExpInitializer();
+    else
+    {
+	Expression *e = type->defaultInit();
+	if (e)
+	    ei = new ExpInitializer(loc, e);
+	else
+	    ei = NULL;
+    }
+    return ei;
+}
+
+/*******************************************
+ * If variable has a constant expression initializer, get it.
+ * Otherwise, return NULL.
+ */
+
+Expression *VarDeclaration::getConstInitializer()
+{
+    if ((isConst() || isInvariant()) &&
+	storage_class & STCinit)
+    {
+	ExpInitializer *ei = getExpInitializer();
+	if (ei)
+	    return ei->exp;
+    }
+
+    return NULL;
+}
+
+/*************************************
+ * Return !=0 if we can take the address of this variable.
+ */
+
+int VarDeclaration::canTakeAddressOf()
+{
+    /* Global variables and struct/class fields of the form:
+     *	const int x = 3;
+     * are not stored and hence cannot have their address taken.
+     */
+    if ((isConst() || isInvariant()) &&
+	storage_class & STCinit &&
+	(!(storage_class & (STCstatic | STCextern)) || (storage_class & STCfield)) &&
+	(!parent || toParent()->isModule() || toParent()->isTemplateInstance()) &&
+	type->toBasetype()->isTypeBasic()
+       )
+    {
+	return 0;
+    }
+    return 1;
+}
 
 /*******************************
  * Does symbol go into data segment?
+ * Includes extern variables.
  */
 
 int VarDeclaration::isDataseg()
@@ -1172,15 +1222,15 @@ int VarDeclaration::isDataseg()
     printf("parent = '%s'\n", parent->toChars());
 #endif
     Dsymbol *parent = this->toParent();
-    if (!parent && !(storage_class & (STCstatic | STCconst)))
+    if (!parent && !(storage_class & STCstatic))
     {	error("forward referenced");
-halt();
 	type = Type::terror;
 	return 0;
     }
-    return (storage_class & (STCstatic | STCconst) ||
-	   parent->isModule() ||
-	   parent->isTemplateInstance());
+    return canTakeAddressOf() &&
+	(storage_class & (STCstatic | STCextern) ||
+	 toParent()->isModule() ||
+	 toParent()->isTemplateInstance());
 }
 
 int VarDeclaration::hasPointers()

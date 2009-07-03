@@ -110,8 +110,48 @@ void FuncDeclaration::semantic(Scope *sc)
     printf("type: %s\n", type->toChars());
 #endif
 
-    if (type->nextOf())
+    storage_class |= sc->stc;
+    //printf("function storage_class = x%x\n", storage_class);
+
+    if (!originalType)
+	originalType = type;
+    if (!type->deco && type->nextOf())
+    {
+#if 1
+	/* Apply const and invariant storage class
+	 * to the function type
+	 */
 	type = type->semantic(loc, sc);
+	if (storage_class & STCinvariant)
+	{   // Don't use toInvariant(), as that will do a merge()
+	    type = type->makeInvariant();
+	    type->deco = type->merge()->deco;
+	}
+	else if (storage_class & STCconst)
+	{
+	    if (!type->isInvariant())
+	    {	// Don't use toConst(), as that will do a merge()
+		type = type->makeConst();
+		type->deco = type->merge()->deco;
+	    }
+	}
+#else
+	if (storage_class & (STCconst | STCinvariant))
+	{
+	    /* Apply const and invariant storage class
+	     * to the function's return type
+	     */
+	    Type *tn = type->nextOf();
+	    if (storage_class & STCconst)
+		tn = tn->makeConst();
+	    if (storage_class & STCinvariant)
+		tn = tn->makeInvariant();
+	    ((TypeNext *)type)->next = tn;
+	}
+
+	type = type->semantic(loc, sc);
+#endif
+    }
     //type->print();
     if (type->ty != Tfunction)
     {
@@ -119,6 +159,7 @@ void FuncDeclaration::semantic(Scope *sc)
 	return;
     }
     f = (TypeFunction *)(type);
+
     size_t nparams = Argument::dim(f->parameters);
 
     linkage = sc->linkage;
@@ -128,8 +169,6 @@ void FuncDeclaration::semantic(Scope *sc)
 	parent = sc->parent;
     }
     protection = sc->protection;
-    storage_class |= sc->stc;
-    //printf("function storage_class = x%x\n", storage_class);
     Dsymbol *parent = toParent();
 
     if (isAuto() || isScope())
@@ -137,6 +176,12 @@ void FuncDeclaration::semantic(Scope *sc)
 
     if (isAbstract() && !isVirtual())
 	error("non-virtual functions cannot be abstract");
+
+    if ((f->isConst() || f->isInvariant()) && !isThis())
+	error("without 'this' cannot be const/invariant");
+
+    if (isAbstract() && isFinal())
+	error("cannot be both final and abstract");
 #if 0
     if (isAbstract() && fbody)
 	error("abstract functions cannot have bodies");
@@ -679,11 +724,12 @@ void FuncDeclaration::semantic3(Scope *sc)
 	    {	// Declare _arguments[]
 #if BREAKABI
 		v_arguments = new VarDeclaration(0, Type::typeinfotypelist->type, Id::_arguments_typeinfo, NULL);
-		v_arguments->storage_class = STCparameter | STCin;
+		v_arguments->storage_class = STCparameter;
 		v_arguments->semantic(sc2);
 		sc2->insert(v_arguments);
 		v_arguments->parent = this;
 
+		//t = Type::typeinfo->type->constOf()->arrayOf();
 		t = Type::typeinfo->type->arrayOf();
 		_arguments = new VarDeclaration(0, t, Id::_arguments, NULL);
 		_arguments->semantic(sc2);
@@ -1108,6 +1154,7 @@ void FuncDeclaration::semantic3(Scope *sc)
 		e = new DotIdExp(0, e, Id::elements);
 		Expression *e1 = new VarExp(0, _arguments);
 		e = new AssignExp(0, e1, e);
+		e->op = TOKconstruct;
 		e = e->semantic(sc);
 		a->push(new ExpStatement(0, e));
 	    }
@@ -1299,6 +1346,7 @@ int FuncDeclaration::overloadInsert(Dsymbol *s)
 
     if (type && f->type &&	// can be NULL for overloaded constructors
 	f->type->covariant(type) &&
+	f->type->mod == type->mod &&
 	!isFuncAliasDeclaration())
     {
 	//printf("\tfalse: conflict %s\n", kind());
@@ -1446,6 +1494,7 @@ FuncDeclaration *FuncDeclaration::overloadExactMatch(Type *t)
 struct Param2
 {
     Match *m;
+    Expression *ethis;
     Expressions *arguments;
 };
 
@@ -1461,7 +1510,7 @@ int fp2(void *param, FuncDeclaration *f)
 
 	m->anyf = f;
 	tf = (TypeFunction *)f->type;
-	match = (MATCH) tf->callMatch(arguments);
+	match = (MATCH) tf->callMatch(f->needThis() ? p->ethis : NULL, arguments);
 	//printf("match = %d\n", match);
 	if (match != MATCHnomatch)
 	{
@@ -1496,16 +1545,18 @@ int fp2(void *param, FuncDeclaration *f)
     return 0;
 }
 
-void overloadResolveX(Match *m, FuncDeclaration *fstart, Expressions *arguments)
+void overloadResolveX(Match *m, FuncDeclaration *fstart,
+	Expression *ethis, Expressions *arguments)
 {
     Param2 p;
     p.m = m;
+    p.ethis = ethis;
     p.arguments = arguments;
     overloadApply(fstart, &fp2, &p);
 }
 
 
-FuncDeclaration *FuncDeclaration::overloadResolve(Loc loc, Expressions *arguments, int flags)
+FuncDeclaration *FuncDeclaration::overloadResolve(Loc loc, Expression *ethis, Expressions *arguments, int flags)
 {
     TypeFunction *tf;
     Match m;
@@ -1528,7 +1579,7 @@ if (arguments)
 
     memset(&m, 0, sizeof(m));
     m.last = MATCHnomatch;
-    overloadResolveX(&m, this, arguments);
+    overloadResolveX(&m, this, ethis, arguments);
 
     if (m.count == 1)		// exactly one match
     {
@@ -1597,6 +1648,12 @@ LabelDsymbol *FuncDeclaration::searchLabel(Identifier *ident)
     }
     return (LabelDsymbol *)s;
 }
+
+/****************************************
+ * If non-static member function that has a 'this' pointer,
+ * return the aggregate it is a member of.
+ * Otherwise, return NULL.
+ */
 
 AggregateDeclaration *FuncDeclaration::isThis()
 {   AggregateDeclaration *ad;

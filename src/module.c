@@ -85,6 +85,7 @@ Module::Module(char *filename, Identifier *ident, int doDocComment, int doHdrGen
     vmoduleinfo = NULL;
     massert = NULL;
     marray = NULL;
+    sictor = NULL;
     sctor = NULL;
     sdtor = NULL;
     stest = NULL;

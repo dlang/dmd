@@ -1329,8 +1329,14 @@ Expression *BinExp::typeCombine(Scope *sc)
 	    t2 = t2->nextOf()->mutableOf()->constOf()->arrayOf();
 //t1 = t1->constOf();
 //t2 = t2->constOf();
-	    e1 = e1->castTo(sc, t1);
-	    e2 = e2->castTo(sc, t2);
+	    if (e1->op == TOKstring && !((StringExp *)e1)->committed)
+		e1->type = t1;
+	    else
+		e1 = e1->castTo(sc, t1);
+	    if (e2->op == TOKstring && !((StringExp *)e2)->committed)
+		e2->type = t2;
+	    else
+		e2 = e2->castTo(sc, t2);
 	    goto Lagain;
 	}
     }

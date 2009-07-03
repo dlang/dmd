@@ -949,7 +949,7 @@ Expression *getVarExp(Loc loc, InterState *istate, Declaration *d)
     SymbolDeclaration *s = d->isSymbolDeclaration();
     if (v)
     {
-	if (v->isConst() && v->init)
+	if ((v->isConst() || v->isInvariant()) && v->init && !v->value)
 	{   e = v->init->toExpression();
 	    if (e && !e->type)
 		e->type = v->type;
@@ -1001,7 +1001,7 @@ Expression *DeclarationExp::interpret(InterState *istate)
 	    else if (v->init->isVoidInitializer())
 		e = NULL;
 	}
-	else if (s == v && v->isConst() && v->init)
+	else if (s == v && (v->isConst() || v->isInvariant()) && v->init)
 	{   e = v->init->toExpression();
 	    if (!e)
 		e = EXP_CANT_INTERPRET;
