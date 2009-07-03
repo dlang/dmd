@@ -329,6 +329,10 @@ void ClassDeclaration::toObjFile()
     // name[]
     char *name = ident->toChars();
     size_t namelen = strlen(name);
+    if (!(namelen > 9 && memcmp(name, "TypeInfo_", 9) == 0))
+    {	name = toPrettyChars();
+	namelen = strlen(name);
+    }
     dtdword(&dt, namelen);
     dtabytes(&dt, TYnptr, 0, namelen + 1, name);
 
@@ -725,7 +729,7 @@ void InterfaceDeclaration::toObjFile()
     dtdword(&dt, 0);			// initializer
 
     // name[]
-    char *name = ident->toChars();
+    char *name = toPrettyChars();
     size_t namelen = strlen(name);
     dtdword(&dt, namelen);
     dtabytes(&dt, TYnptr, 0, namelen + 1, name);
@@ -806,36 +810,41 @@ void StructDeclaration::toObjFile()
 	if (global.params.symdebug)
 	    toDebug();
 
-	// Generate static initializer
-	toInitializer();
-	if (parent && parent->isTemplateInstance())
-	    sinit->Sclass = SCcomdat;
-	else
-	    sinit->Sclass = SCglobal;
-	sinit->Sfl = FLdata;
-	toDt(&sinit->Sdt);
+	type->getTypeInfo(NULL);	// generate TypeInfo
+
+	if (1)
+	{
+	    // Generate static initializer
+	    toInitializer();
+	    if (parent && parent->isTemplateInstance())
+		sinit->Sclass = SCcomdat;
+	    else
+		sinit->Sclass = SCglobal;
+	    sinit->Sfl = FLdata;
+	    toDt(&sinit->Sdt);
 
 #if !ELFOBJ
-	/* ELF comdef's generate multiple
-	 * definition errors for them from the gnu linker.
-	 * Need to figure out how to generate proper comdef's for ELF.
-	 */
-	// See if we can convert a comdat to a comdef,
-	// which saves on exe file space.
-	if (sinit->Sclass == SCcomdat &&
-	    sinit->Sdt &&
-	    sinit->Sdt->dt == DT_azeros &&
-	    sinit->Sdt->DTnext == NULL)
-	{
-	    sinit->Sclass = SCglobal;
-	    sinit->Sdt->dt = DT_common;
-	}
+	    /* ELF comdef's generate multiple
+	     * definition errors for them from the gnu linker.
+	     * Need to figure out how to generate proper comdef's for ELF.
+	     */
+	    // See if we can convert a comdat to a comdef,
+	    // which saves on exe file space.
+	    if (sinit->Sclass == SCcomdat &&
+		sinit->Sdt &&
+		sinit->Sdt->dt == DT_azeros &&
+		sinit->Sdt->DTnext == NULL)
+	    {
+		sinit->Sclass = SCglobal;
+		sinit->Sdt->dt = DT_common;
+	    }
 #endif
 
 #if ELFOBJ // Burton
-	sinit->Sseg = CDATA;
-#endif /* ELFOBJ */
-	outdata(sinit);
+	    sinit->Sseg = CDATA;
+#endif
+	    outdata(sinit);
+	}
 
 	// Put out the members
 	for (i = 0; i < members->dim; i++)
@@ -996,6 +1005,8 @@ void TypedefDeclaration::toObjFile()
 
     if (global.params.symdebug)
 	toDebug();
+
+    type->getTypeInfo(NULL);	// generate TypeInfo
 }
 
 /* ================================================================== */
@@ -1006,6 +1017,8 @@ void EnumDeclaration::toObjFile()
 
     if (global.params.symdebug)
 	toDebug();
+
+    type->getTypeInfo(NULL);	// generate TypeInfo
 }
 
 

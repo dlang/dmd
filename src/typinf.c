@@ -360,7 +360,7 @@ void TypeInfoStructDeclaration::toDt(dt_t **pdt)
 
     /* Put out:
      *	char[] name;
-     *	uint xsize;
+     *	byte[] init;
      *	hash_t function(void*) xtoHash;
      *	int function(void*,void*) xopEquals;
      *	int function(void*,void*) xopCmp;
@@ -372,7 +372,12 @@ void TypeInfoStructDeclaration::toDt(dt_t **pdt)
     dtdword(pdt, namelen);
     dtabytes(pdt, TYnptr, 0, namelen + 1, name);
 
-    dtdword(pdt, sd->structsize);	// xsize
+    // byte[] init;
+    dtdword(pdt, sd->structsize);	// init.length
+    if (sd->zeroInit)
+	dtdword(pdt, 0);		// NULL for 0 initialization
+    else
+	dtxoff(pdt, sd->toInitializer(), 0, TYnptr);	// init.ptr
 
     FuncDeclaration *fd;
     FuncDeclaration *fdx;

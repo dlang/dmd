@@ -471,7 +471,8 @@ void FuncDeclaration::semantic(Scope *sc)
 		Argument *arg0 = Argument::getNth(f->parameters, 0);
 		if (arg0->type->ty != Tarray ||
 		    arg0->type->next->ty != Tarray ||
-		    arg0->type->next->next->ty != Tchar)
+		    arg0->type->next->next->ty != Tchar ||
+		    (arg0->inout != None && arg0->inout != In))
 		    goto Lmainerr;
 		break;
 	    }
@@ -488,6 +489,36 @@ void FuncDeclaration::semantic(Scope *sc)
 	    error("parameters must be main() or main(char[][] args)");
 	}
     }
+
+    if (ident == Id::assign && (sd || cd))
+    {	// Disallow identity assignment operator.
+
+	// opAssign(...)
+	if (nparams == 0)
+	{   if (f->varargs == 1)
+		goto Lassignerr;
+	}
+	else
+	{
+	    Argument *arg0 = Argument::getNth(f->parameters, 0);
+	    Type *t0 = arg0->type->toBasetype();
+	    Type *tb = sd ? sd->type : cd->type;
+	    if (arg0->type->implicitConvTo(tb) ||
+		(sd && t0->ty == Tpointer && t0->next->implicitConvTo(tb))
+	       )
+	    {
+		if (nparams == 1)
+		    goto Lassignerr;
+		Argument *arg1 = Argument::getNth(f->parameters, 1);
+		if (arg1->defaultArg)
+		    goto Lassignerr;
+	    }
+	}
+    }
+    return;
+
+Lassignerr:
+    error("identity assignment operator overload is illegal");
 }
 
 // Do the semantic analysis on the internals of the function.
@@ -1554,19 +1585,19 @@ void FuncDeclaration::appendState(Statement *s)
 
 int FuncDeclaration::isMain()
 {
-    return ident && strcmp(ident->toChars(), "main") == 0 &&
+    return ident == Id::main &&
 	linkage != LINKc && !isMember() && !isNested();
 }
 
 int FuncDeclaration::isWinMain()
 {
-    return ident && strcmp(ident->toChars(), "WinMain") == 0 &&
+    return ident == Id::WinMain &&
 	linkage != LINKc && !isMember();
 }
 
 int FuncDeclaration::isDllMain()
 {
-    return ident && strcmp(ident->toChars(), "DllMain") == 0 &&
+    return ident == Id::DllMain &&
 	linkage != LINKc && !isMember();
 }
 

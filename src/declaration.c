@@ -837,6 +837,10 @@ void VarDeclaration::semantic(Scope *sc)
 		    }
 		    e1 = new SliceExp(loc, e1, NULL, NULL);
 		}
+		else if (t->ty == Tstruct)
+		{
+		    ei->exp = new CastExp(loc, ei->exp, type);
+		}
 		ei->exp = new AssignExp(loc, e1, ei->exp);
 		ei->exp = ei->exp->semantic(sc);
 		ei->exp->optimize(WANTvalue);

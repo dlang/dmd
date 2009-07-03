@@ -13,6 +13,7 @@
 #include <ctype.h>
 #include <assert.h>
 #include <complex.h>
+#include <math.h>
 
 #if _WIN32 && __DMC__
 extern "C" char * __cdecl __locale_decpoint;
@@ -705,7 +706,7 @@ void Expression::rvalue()
 {
     if (type && type->toBasetype()->ty == Tvoid)
     {	error("expression %s is void and has no value", toChars());
-#ifdef DEBUG
+#if 0
 	dump(0);
 	*(char*)0=0;
 #endif
@@ -1361,17 +1362,55 @@ void RealExp::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
     floatToBuffer(buf, type, value);
 }
 
+void realToMangleBuffer(OutBuffer *buf, real_t value)
+{
+    /* Rely on %A to get portable mangling.
+     * Must munge result to get only identifier characters.
+     *
+     * Possible values from %A	=> mangled result
+     * NAN			=> NAN
+     * -INF			=> NINF
+     * INF			=> INF
+     * -0X1.1BC18BA997B95P+79	=> N11BC18BA997B95P79
+     * 0X1.9P+2			=> 19P2
+     */
+
+    if (isnan(value))
+	buf->writestring("NAN");	// no -NAN bugs
+    else
+    {
+	char buffer[32];
+	int n = sprintf(buffer, "%LA", value);
+	assert(n > 0 && n < sizeof(buffer));
+	for (int i = 0; i < n; i++)
+	{   char c = buffer[i];
+
+	    switch (c)
+	    {
+		case '-':
+		    buf->writeByte('N');
+		    break;
+
+		case '+':
+		case 'X':
+		case '.':
+		    break;
+
+		case '0':
+		    if (i < 2)
+			break;		// skip leading 0X
+		default:
+		    buf->writeByte(c);
+		    break;
+	    }
+	}
+    }
+}
+
 void RealExp::toMangleBuffer(OutBuffer *buf)
 {
-    unsigned char *p = (unsigned char *)&value;
-#ifdef IN_GCC
-    unsigned char buffer[32];
-    value.toBytes(buffer, sizeof(buffer));
-    p = buffer;
-#endif
     buf->writeByte('e');
-    for (int i = REALSIZE-REALPAD - 1; i >= 0; i--)
-	buf->printf("%02x", p[i]);
+    realToMangleBuffer(buf, value);
 }
 
 
@@ -1487,18 +1526,10 @@ void ComplexExp::toMangleBuffer(OutBuffer *buf)
 {
     buf->writeByte('c');
     real_t r = toReal();
-    for (int j = 0; j < 2; j++)
-    {
-	unsigned char *p = (unsigned char *)&r;
-#ifdef IN_GCC
-	unsigned char buffer[32];
-	r.toBytes(buffer, sizeof(buffer));
-	p = buffer;
-#endif
-	for (int i = 0; i < REALSIZE-REALPAD; i++)
-	    buf->printf("%02x", p[i]);
-	r = toImaginary();
-    }
+    realToMangleBuffer(buf, r);
+    buf->writeByte('c');	// separate the two
+    r = toImaginary();
+    realToMangleBuffer(buf, r);
 }
 
 /******************************** IdentifierExp **************************/
@@ -5495,6 +5526,23 @@ Expression *CastExp::semantic(Scope *sc)
 	{
 	    return e->implicitCastTo(sc, to);
 	}
+
+	Type *tob = to->toBasetype();
+	if (tob->ty == Tstruct && !tob->equals(e1->type->toBasetype()))
+	{
+	    /* Look to replace:
+	     *	cast(S)t
+	     * with:
+	     *	S(t)
+	     */
+
+	    // Rewrite as to.call(e1)
+	    e = new TypeExp(loc, to);
+	    e = new DotIdExp(loc, e, Id::call);
+	    e = new CallExp(loc, e, e1);
+	    e = e->semantic(sc);
+	    return e;
+	}
     }
     return e1->castTo(sc, to);
 }
@@ -6250,9 +6298,10 @@ Expression *AssignExp::semantic(Scope *sc)
 
     BinExp::semantic(sc);
     e2 = resolveProperties(sc, e2);
-
     assert(e1->type);
+
     t1 = e1->type->toBasetype();
+
     if (t1->ty == Tfunction)
     {	// Rewrite f=value to f(value)
 	Expression *e;
@@ -6260,6 +6309,19 @@ Expression *AssignExp::semantic(Scope *sc)
 	e = new CallExp(loc, e1, e2);
 	e = e->semantic(sc);
 	return e;
+    }
+
+    /* If it is an assignment from a 'foreign' type,
+     * check for operator overloading.
+     */
+    if (t1->ty == Tclass || t1->ty == Tstruct)
+    {
+	if (!e2->type->implicitConvTo(e1->type))
+	{
+	    Expression *e = op_overload(sc);
+	    if (e)
+		return e;
+	}
     }
 
     e2->rvalue();

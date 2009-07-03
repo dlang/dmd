@@ -194,6 +194,7 @@ struct Type : Object
     int dyncast() { return DYNCAST_TYPE; } // kludge for template.isType()
     int covariant(Type *t);
     char *toChars();
+    static char needThisPrefix();
     static void init();
     d_uns64 size();
     virtual d_uns64 size(Loc loc);

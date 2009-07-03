@@ -163,46 +163,16 @@ Expression *CastExp::constFold()
     if (tb->isreal())
     {	real_t value = e1->toReal();
 
-#if 0
-	if (tb->ty == Tfloat32)
-	{   float f = (float)value;
-	    value = f;
-	}
-	else if (tb->ty == Tfloat64)
-	    value = (double)value;
-#endif
 	return new RealExp(loc, value, type);
     }
     if (tb->isimaginary())
     {	real_t value = e1->toImaginary();
-#if 0
-	if (tb->ty == Timaginary32)
-	    value = (float)value;
-	else if (tb->ty == Timaginary64)
-	    value = (double)value;
-#endif
+
 	return new RealExp(loc, value, type);
     }
     if (tb->iscomplex())
     {	complex_t value = e1->toComplex();
 
-#if 0
-#if __DMC__
-	if (tb->ty == Tcomplex32)
-	    value = (_Complex float)value;
-	else if (tb->ty == Tcomplex64)
-	    value = (_Complex double)value;
-#else
-	if (tb->ty == Tcomplex32)
-	{   value.re = (float)value.re;
-	    value.im = (float)value.im;
-	}
-	else if (tb->ty == Tcomplex64)
-	{   value.re = (double)value.re;
-	    value.im = (double)value.im;
-	}
-#endif
-#endif
 	return new ComplexExp(loc, value, type);
     }
     if (tb->isscalar())

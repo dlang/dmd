@@ -131,6 +131,7 @@ Identifier *XorExp::opId_r() { return Id::ixor_r; }
 Identifier *CatExp::opId()   { return Id::cat; }
 Identifier *CatExp::opId_r() { return Id::cat_r; }
 
+Identifier *    AssignExp::opId()  { return Id::assign;  }
 Identifier * AddAssignExp::opId()  { return Id::addass;  }
 Identifier * MinAssignExp::opId()  { return Id::subass;  }
 Identifier * MulAssignExp::opId()  { return Id::mulass;  }

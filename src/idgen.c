@@ -159,6 +159,7 @@ Msgtable msgtable[] =
     { "ushr_r",  "opUShr_r" },
     { "cat",     "opCat" },
     { "cat_r",   "opCat_r" },
+    { "assign",  "opAssign" },
     { "addass",  "opAddAssign" },
     { "subass",  "opSubAssign" },
     { "mulass",  "opMulAssign" },
@@ -202,6 +203,9 @@ Msgtable msgtable[] =
 
     // Special functions
     { "alloca" },
+    { "main" },
+    { "WinMain" },
+    { "DllMain" },
 };
 
 

@@ -66,12 +66,21 @@ Symbol *Dsymbol::toSymbolX(const char *prefix, int sclass, type *t, const char *
     Symbol *s;
     char *id;
     char *n;
+    size_t nlen;
 
     //printf("Dsymbol::toSymbolX('%s')\n", prefix);
     n = mangle();
     assert(n);
-    id = (char *) alloca(1 + strlen(n) + sizeof(size_t) * 3 + strlen(prefix) + strlen(suffix) + 1);
-    sprintf(id,"D%s%d%s%s", n, strlen(prefix), prefix, suffix);
+    nlen = strlen(n);
+    if (nlen > 2 && n[0] == '_' && n[1] == 'D')
+    {
+	nlen -= 2;
+	n += 2;
+    }
+    id = (char *) alloca(2 + nlen + sizeof(size_t) * 3 + strlen(prefix) + strlen(suffix) + 1);
+    sprintf(id,"_D%s%d%s%s", n, strlen(prefix), prefix, suffix);
+    if (type_mangle(t) == mTYman_c || type_mangle(t) == mTYman_std)
+	id++;				// the C mangling will put the '_' back in
     s = symbol_name(id, sclass, t);
     //printf("-Dsymbol::toSymbolX() %s\n", id);
     return s;

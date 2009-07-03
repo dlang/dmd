@@ -61,6 +61,9 @@ char *mangle(Declaration *sthis)
     buf.prependstring("_D");
 L1:
     //printf("deco = '%s'\n", sthis->type->deco);
+    FuncDeclaration *fd = sthis->isFuncDeclaration();
+    if (fd && (fd->needThis() || fd->isNested()))
+	buf.writeByte(Type::needThisPrefix());
     buf.writestring(sthis->type->deco);
 
     id = buf.toChars();

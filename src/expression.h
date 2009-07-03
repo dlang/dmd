@@ -931,6 +931,7 @@ struct AssignExp : BinExp
     AssignExp(Loc loc, Expression *e1, Expression *e2);
     Expression *semantic(Scope *sc);
     Expression *checkToBoolean();
+    Identifier *opId();    // For operator overloading
     elem *toElem(IRState *irs);
 };
 

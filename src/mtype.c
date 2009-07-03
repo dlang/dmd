@@ -61,6 +61,9 @@ FuncDeclaration *hasThis(Scope *sc);
 #define LOGDOTEXP	0	// log ::dotExp()
 #define LOGDEFAULTINIT	0	// log ::defaultInit()
 
+// Allow implicit conversion of T[] to T*
+#define IMPLICIT_ARRAY_TO_PTR	global.params.useDeprecated
+
 /* These have default values for 32 bit code, they get
  * adjusted for 64 bit code.
  */
@@ -134,6 +137,10 @@ int Type::equals(Object *o)
     return 0;
 }
 
+char Type::needThisPrefix()
+{
+    return 'M';		// name mangling prefix for functions needing 'this'
+}
 
 void Type::init()
 {   int i;
@@ -590,10 +597,14 @@ Expression *Type::dotExp(Scope *sc, Expression *e, Identifier *ident)
 	{
 	    if (v->init)
 	    {
-		e = v->init->toExpression();
-		if (e->op == TOKassign)
-		{
-		    e = ((AssignExp *)e)->e2;
+		if (v->init->isVoidInitializer())
+		    error(e->loc, "%s.init is void", v->toChars());
+		else
+		{   e = v->init->toExpression();
+		    if (e->op == TOKassign)
+		    {
+			e = ((AssignExp *)e)->e2;
+		    }
 		}
 		return e;
 	    }
@@ -1762,7 +1773,9 @@ int TypeSArray::implicitConvTo(Type *to)
     //printf("TypeSArray::implicitConvTo()\n");
 
     // Allow implicit conversion of static array to pointer or dynamic array
-    if ((to->ty == Tpointer || to->ty == Tarray) &&
+    if ((
+	 (IMPLICIT_ARRAY_TO_PTR && to->ty == Tpointer) ||
+	 to->ty == Tarray) &&
 	(to->next->ty == Tvoid || next->equals(to->next)
 	 /*|| to->next->isBaseOf(next)*/))
     {
@@ -1917,10 +1930,13 @@ int TypeDArray::implicitConvTo(Type *to)
     //printf("TypeDArray::implicitConvTo()\n");
 
     // Allow implicit conversion of array to pointer
-    if (to->ty == Tpointer && (to->next->ty == Tvoid || next->equals(to->next) /*|| to->next->isBaseOf(next)*/))
+    if (IMPLICIT_ARRAY_TO_PTR &&
+	to->ty == Tpointer &&
+	(to->next->ty == Tvoid || next->equals(to->next) /*|| to->next->isBaseOf(next)*/))
     {
 	return MATCHconvert;
     }
+
     if (to->ty == Tarray)
     {	int offset = 0;
 
@@ -3101,9 +3117,9 @@ void TypeIdentifier::toDecoBuffer(OutBuffer *buf)
     char *name;
 
     name = ident->toChars();
-    //len = strlen(name);
-    //buf->printf("%c%d%s", mangleChar[ty], len, name);
-    buf->printf("%c%s", mangleChar[ty], name);
+    len = strlen(name);
+    buf->printf("%c%d%s", mangleChar[ty], len, name);
+    //buf->printf("%c%s", mangleChar[ty], name);
 }
 
 void TypeIdentifier::toCBuffer2(OutBuffer *buf, Identifier *ident, HdrGenState *hgs)
