@@ -1,6 +1,6 @@
 
 
-// Copyright (c) 1999-2007 by Digital Mars
+// Copyright (c) 1999-2008 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // http://www.digitalmars.com
@@ -35,6 +35,38 @@
 int executecmd(char *cmd, char *args, int useenv);
 int executearg0(char *cmd, char *args);
 
+/****************************************
+ * Write filename to cmdbuf, quoting if necessary.
+ */
+
+void writeFilename(OutBuffer *buf, char *filename, size_t len)
+{
+    /* Loop and see if we need to quote
+     */
+    for (size_t i = 0; i < len; i++)
+    {	char c = filename[i];
+
+	if (isalnum(c) || c == '_')
+	    continue;
+
+	/* Need to quote
+	 */
+	buf->writeByte('"');
+	buf->write(filename, len);
+	buf->writeByte('"');
+	return;
+    }
+
+    /* No quoting necessary
+     */
+    buf->write(filename, len);
+}
+
+void writeFilename(OutBuffer *buf, char *filename)
+{
+    writeFilename(buf, filename, strlen(filename));
+}
+
 /*****************************
  * Run the linker.  Return status of execution.
  */
@@ -57,15 +89,18 @@ int runLINK()
 	p = (char *)global.params.objfiles->data[i];
 	char *ext = FileName::ext(p);
 	if (ext)
-	    cmdbuf.write(p, ext - p - 1);
+	    // Write name sans extension
+	    writeFilename(&cmdbuf, p, ext - p - 1);
 	else
-	    cmdbuf.writestring(p);
+	    writeFilename(&cmdbuf, p);
     }
     cmdbuf.writeByte(',');
     if (global.params.exefile)
-	cmdbuf.writestring(global.params.exefile);
+	writeFilename(&cmdbuf, global.params.exefile);
     else
-    {	// Generate exe file name from first obj name
+    {	/* Generate exe file name from first obj name.
+	 * No need to add it to cmdbuf because the linker will default to it.
+	 */
 	char *n = (char *)global.params.objfiles->data[0];
 	n = FileName::name(n);
 	FileName *fn = FileName::forceExt(n, "exe");
@@ -89,13 +124,13 @@ int runLINK()
     {
 	if (i)
 	    cmdbuf.writeByte('+');
-	cmdbuf.writestring((char *) global.params.libfiles->data[i]);
+	writeFilename(&cmdbuf, (char *) global.params.libfiles->data[i]);
     }
 
     if (global.params.deffile)
     {
 	cmdbuf.writeByte(',');
-	cmdbuf.writestring(global.params.deffile);
+	writeFilename(&cmdbuf, global.params.deffile);
     }
 
     /* Eliminate unnecessary trailing commas	*/
@@ -109,7 +144,7 @@ int runLINK()
     if (global.params.resfile)
     {
 	cmdbuf.writestring("/RC:");
-	cmdbuf.writestring(global.params.resfile);
+	writeFilename(&cmdbuf, global.params.resfile);
     }
 
 #if 0

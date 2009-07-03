@@ -482,7 +482,7 @@ elem *eval_Darray(IRState *irs, Expression *e)
 /************************************
  */
 
-elem *sarray_toDarray(Type *tfrom, Type *tto, elem *e)
+elem *sarray_toDarray(Loc loc, Type *tfrom, Type *tto, elem *e)
 {
     //printf("sarray_toDarray()\n");
     //elem_print(e);
@@ -498,7 +498,7 @@ elem *sarray_toDarray(Type *tfrom, Type *tto, elem *e)
 	if ((dim * fsize) % tsize != 0)
 	{
 	  Lerr:
-	    error((Loc)0, "cannot cast %s to %s since sizes don't line up", tfrom->toChars(), tto->toChars());
+	    error(loc, "cannot cast %s to %s since sizes don't line up", tfrom->toChars(), tto->toChars());
 	}
 	dim = (dim * fsize) / tsize;
     }
@@ -2288,6 +2288,44 @@ elem *AssignExp::toElem(IRState *irs)
 	    //elem_print(e);
 	    goto Lret;
 	}
+	else if (e2->op == TOKadd || e2->op == TOKmin)
+	{
+	    /* It's ea[] = eb[] +- ec[]
+	     */
+	    BinExp *e2a = (BinExp *)e2;
+	    Type *t = e2->type->toBasetype()->nextOf()->toBasetype();
+	    if (t->ty != Tfloat32 && t->ty != Tfloat64 && t->ty != Tfloat80)
+	    {
+		e2->error("array add/min for %s not supported", t->toChars());
+		return el_long(TYint, 0);
+	    }
+	    elem *ea = e1->toElem(irs);
+	    ea = array_toDarray(e1->type, ea);
+	    elem *eb = e2a->e1->toElem(irs);
+	    eb = array_toDarray(e2a->e1->type, eb);
+	    elem *ec = e2a->e2->toElem(irs);
+	    ec = array_toDarray(e2a->e2->type, ec);
+
+	    int rtl = RTLSYM_ARRAYASSADDFLOAT;
+	    if (t->ty == Tfloat64)
+		rtl = RTLSYM_ARRAYASSADDDOUBLE;
+	    else if (t->ty == Tfloat80)
+		rtl = RTLSYM_ARRAYASSADDREAL;
+	    if (e2->op == TOKmin)
+	    {
+		rtl = RTLSYM_ARRAYASSMINFLOAT;
+		if (t->ty == Tfloat64)
+		    rtl = RTLSYM_ARRAYASSMINDOUBLE;
+		else if (t->ty == Tfloat80)
+		    rtl = RTLSYM_ARRAYASSMINREAL;
+	    }
+
+	    /* Set parameters so the order of evaluation is eb, ec, ea
+	     */
+	    elem *ep = el_params(eb, ec, ea, NULL);
+	    e = el_bin(OPcall, type->totym(), el_var(rtlsym[rtl]), ep);
+	    goto Lret;
+	}
 	else
 	{
 	    /* It's array1[]=array2[]
@@ -2341,7 +2379,7 @@ elem *AssignExp::toElem(IRState *irs)
 		// If eto is a static array, need to convert it to
 		// a dynamic array.
 		//if (are->e1->type->ty == Tsarray)
-		//    eto = sarray_toDarray(are->e1->type, eto);
+		//    eto = sarray_toDarray(loc, are->e1->type, eto);
 
 		ep = el_params(eto, efrom, esize, NULL);
 		e = el_bin(OPcall, type->totym(), el_var(rtlsym[RTLSYM_ARRAYCOPY]), ep);
@@ -3090,7 +3128,7 @@ elem *CastExp::toElem(IRState *irs)
     // Convert from static array to dynamic array
     if (tty == Tarray && fty == Tsarray)
     {
-	e = sarray_toDarray(tfrom, t, e);
+	e = sarray_toDarray(loc, tfrom, t, e);
 	goto Lret;
     }
 
@@ -3819,7 +3857,7 @@ elem *SliceExp::toElem(IRState *irs)
     }
     else if (t1->ty == Tsarray)
     {
-	e = sarray_toDarray(t1, NULL, e);
+	e = sarray_toDarray(loc, t1, NULL, e);
     }
     el_setLoc(e,loc);
     return e;

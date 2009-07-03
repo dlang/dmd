@@ -1451,9 +1451,10 @@ Dsymbol *Parser::parseMixin()
 	if (token.value != TOKidentifier)
 	{
 	    error("identifier expected, not %s", token.toChars());
-	    goto Lerr;
+	    id = Id::empty;
 	}
-	id = token.ident;
+	else
+	    id = token.ident;
 	nextToken();
     }
 
@@ -1502,9 +1503,6 @@ Dsymbol *Parser::parseMixin()
     nextToken();
 
     return tm;
-
-Lerr:
-    return NULL;
 }
 
 /******************************************
@@ -4101,8 +4099,6 @@ Expression *Parser::parsePrimaryExp()
 	    exp = parseExpression();
 	    check(TOKrparen);
 	    t = new TypeTypeof(loc, exp);
-	    if (token.value == TOKdot)
-		goto L1;
 	    e = new TypeExp(loc, t);
 	    break;
 	}

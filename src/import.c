@@ -55,7 +55,7 @@ void Import::addAlias(Identifier *name, Identifier *alias)
     aliases.push(alias);
 }
 
-char *Import::kind()
+const char *Import::kind()
 {
     return isstatic ? (char *)"static import" : (char *)"import";
 }

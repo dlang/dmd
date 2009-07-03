@@ -268,7 +268,7 @@ Expression *getRightThis(Loc loc, Scope *sc, AggregateDeclaration *ad,
 	    }
 	    /* Can't find a path from e1 to ad
 	     */
-	    error("this for %s needs to be type %s not type %s",
+	    e1->error("this for %s needs to be type %s not type %s",
 		var->toChars(), ad->toChars(), t->toChars());
 	}
     }
@@ -1120,6 +1120,18 @@ int Expression::isBit()
     return FALSE;
 }
 
+/********************************
+ * Can this expression throw an exception?
+ * Valid only after semantic() pass.
+ */
+
+int Expression::canThrow()
+{
+    return TRUE;
+}
+
+
+
 Expressions *Expression::arraySyntaxCopy(Expressions *exps)
 {   Expressions *a = NULL;
 
@@ -1221,9 +1233,13 @@ integer_t IntegerExp::toInteger()
 	    }
 
 	    default:
-		print();
-		type->print();
-		assert(0);
+		/* This can happen if errors, such as
+		 * the type is painted on like in fromConstInitializer().
+		 */
+		if (!global.errors)
+		{   type->print();
+		    assert(0);
+		}
 		break;
 	}
 	break;
@@ -1374,10 +1390,17 @@ void IntegerExp::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 		goto L3;
 
 	    default:
+		/* This can happen if errors, such as
+		 * the type is painted on like in fromConstInitializer().
+		 */
+		if (!global.errors)
+		{
 #ifdef DEBUG
-		t->print();
+		    t->print();
 #endif
-		assert(0);
+		    assert(0);
+		}
+		break;
 	}
     }
     else if (v & 0x8000000000000000LL)
@@ -4105,6 +4128,8 @@ Expression *TypeidExp::semantic(Scope *sc)
 #endif
     typeidType = typeidType->semantic(loc, sc);
     e = typeidType->getTypeInfo(sc);
+    if (e->loc.linnum == 0)
+	e->loc = loc;		// so there's at least some line number info
     return e;
 }
 
@@ -5109,6 +5134,16 @@ Expression *DotVarExp::semantic(Scope *sc)
 	    e1 = getRightThis(loc, sc, ad, e1, var);
 	    if (!sc->noaccesscheck)
 		accessCheck(loc, sc, e1, var);
+
+	    VarDeclaration *v = var->isVarDeclaration();
+	    if (v && v->isConst())
+	    {	ExpInitializer *ei = v->getExpInitializer();
+		if (ei)
+		{   Expression *e = ei->exp->copy();
+		    e = e->semantic(sc);
+		    return e;
+		}
+	    }
 	}
     }
     //printf("-DotVarExp::semantic('%s')\n", toChars());
@@ -5298,7 +5333,7 @@ Expression *DotTemplateInstanceExp::semantic(Scope *sc)
     return e;
 
 Lerr:
-    return new IntegerExp(0);
+    return new IntegerExp(loc, 0, Type::tint32);
 }
 
 void DotTemplateInstanceExp::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
@@ -5615,6 +5650,17 @@ Lagain:
 	if (f->needThis())
 	{
 	    ue->e1 = getRightThis(loc, sc, ad, ue->e1, f);
+	}
+
+	/* Cannot call public functions from inside invariant
+	 * (because then the invariant would have infinite recursion)
+	 */
+	if (sc->func && sc->func->isInvariantDeclaration() &&
+	    ue->e1->op == TOKthis &&
+	    f->addPostInvariant()
+	   )
+	{
+	    error("cannot call public/export function %s from invariant", f->toChars());
 	}
 
 	checkDeprecated(sc, f);

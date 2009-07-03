@@ -206,7 +206,7 @@ int AttribDeclaration::hasPointers()
     return 0;
 }
 
-char *AttribDeclaration::kind()
+const char *AttribDeclaration::kind()
 {
     return "attribute";
 }
@@ -692,7 +692,7 @@ void AnonDeclaration::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
     buf->writestring("}\n");
 }
 
-char *AnonDeclaration::kind()
+const char *AnonDeclaration::kind()
 {
     return (char *)(isunion ? "anonymous union" : "anonymous struct");
 }
@@ -856,7 +856,7 @@ int PragmaDeclaration::oneMember(Dsymbol **ps)
     return TRUE;
 }
 
-char *PragmaDeclaration::kind()
+const char *PragmaDeclaration::kind()
 {
     return "pragma";
 }
@@ -1091,7 +1091,7 @@ void StaticIfDeclaration::semantic(Scope *sc)
     }
 }
 
-char *StaticIfDeclaration::kind()
+const char *StaticIfDeclaration::kind()
 {
     return "static if";
 }
@@ -1102,6 +1102,7 @@ char *StaticIfDeclaration::kind()
 CompileDeclaration::CompileDeclaration(Loc loc, Expression *exp)
     : AttribDeclaration(NULL)
 {
+    this->loc = loc;
     this->exp = exp;
     this->sd = NULL;
     this->compiled = 0;
@@ -1135,7 +1136,7 @@ void CompileDeclaration::compileIt(Scope *sc)
     exp = resolveProperties(sc, exp);
     exp = exp->optimize(WANTvalue | WANTinterpret);
     if (exp->op != TOKstring)
-    {	error("argument to mixin must be a string, not (%s)", exp->toChars());
+    {	exp->error("argument to mixin must be a string, not (%s)", exp->toChars());
     }
     else
     {
@@ -1146,7 +1147,7 @@ void CompileDeclaration::compileIt(Scope *sc)
 	p.nextToken();
 	decl = p.parseDeclDefs(0);
 	if (p.token.value != TOKeof)
-	    error("incomplete mixin declaration (%s)", se->toChars());
+	    exp->error("incomplete mixin declaration (%s)", se->toChars());
     }
 }
 

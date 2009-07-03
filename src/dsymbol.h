@@ -116,7 +116,7 @@ struct Dsymbol : Object
 
     static Array *arraySyntaxCopy(Array *a);
 
-    virtual char *kind();
+    virtual const char *kind();
     virtual Dsymbol *toAlias();			// resolve real symbol
     virtual int addMember(Scope *sc, ScopeDsymbol *s, int memnum);
     virtual void semantic(Scope *sc);
@@ -226,7 +226,7 @@ struct ScopeDsymbol : Dsymbol
     void defineRef(Dsymbol *s);
     static void multiplyDefined(Loc loc, Dsymbol *s1, Dsymbol *s2);
     Dsymbol *nameCollision(Dsymbol *s);
-    char *kind();
+    const char *kind();
 
     void emitMemberComments(Scope *sc);
 

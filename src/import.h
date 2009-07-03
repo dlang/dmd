@@ -48,7 +48,7 @@ struct Import : Dsymbol
 	int isstatic);
     void addAlias(Identifier *name, Identifier *alias);
 
-    char *kind();
+    const char *kind();
     Dsymbol *syntaxCopy(Dsymbol *s);	// copy only syntax trees
     void load(Scope *sc);
     void semantic(Scope *sc);

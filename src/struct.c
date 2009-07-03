@@ -254,6 +254,8 @@ void StructDeclaration::semantic(Scope *sc)
     handle = type->pointerTo();
     structalign = sc->structalign;
     protection = sc->protection;
+    if (sc->stc & STCdeprecated)
+	isdeprecated = 1;
     assert(!isAnonymous());
     if (sc->stc & STCabstract)
 	error("structs, unions cannot be abstract");
@@ -450,7 +452,7 @@ void StructDeclaration::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 }
 
 
-char *StructDeclaration::kind()
+const char *StructDeclaration::kind()
 {
     return "struct";
 }
@@ -475,7 +477,7 @@ Dsymbol *UnionDeclaration::syntaxCopy(Dsymbol *s)
 }
 
 
-char *UnionDeclaration::kind()
+const char *UnionDeclaration::kind()
 {
     return "union";
 }

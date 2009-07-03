@@ -191,7 +191,7 @@ char *Dsymbol::locToChars()
     return loc.toChars();
 }
 
-char *Dsymbol::kind()
+const char *Dsymbol::kind()
 {
     return "symbol";
 }
@@ -785,7 +785,7 @@ Dsymbol *ScopeDsymbol::nameCollision(Dsymbol *s)
     return sprev;
 }
 
-char *ScopeDsymbol::kind()
+const char *ScopeDsymbol::kind()
 {
     return "ScopeDsymbol";
 }

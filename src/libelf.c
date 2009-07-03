@@ -24,7 +24,7 @@
 #include "lib.h"
 #include "melf.h"
 
-#define LOG 1
+#define LOG 0
 
 Library::Library()
 {
@@ -274,7 +274,8 @@ void Library::scanObjModule(ObjModule *om)
 	    for (unsigned offset = 0; offset < section->SHsecsz; offset += sizeof(elf_symtab))
 	    {	elf_symtab *sym = (elf_symtab *)(buf + section->SHfileoff + offset);
 
-		if ((sym->STinfo >> 4) == ST_BIND_GLOBAL &&
+		if (((sym->STinfo >> 4) == ST_BIND_GLOBAL ||
+		     (sym->STinfo >> 4) == ST_BIND_WEAK) &&
 		    sym->STdefsht != SHT_UNDEF)	// not extern
 		{
 		    char *name = string_tab + sym->STname;

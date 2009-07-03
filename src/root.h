@@ -264,7 +264,7 @@ struct OutBuffer : Object
     void reset();
     void write(const void *data, unsigned nbytes);
     void writebstring(unsigned char *string);
-    void writestring(char *string);
+    void writestring(const char *string);
     void writedstring(const char *string);
     void writedstring(const wchar_t *string);
     void prependstring(char *string);
