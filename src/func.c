@@ -23,7 +23,7 @@
 #include "module.h"
 #include "statement.h"
 #include "template.h"
-
+#include "hdrgen.h"
 
 /********************************* FuncDeclaration ****************************/
 
@@ -41,13 +41,6 @@ FuncDeclaration::FuncDeclaration(Loc loc, Loc endloc, Identifier *id, enum STC s
     returnLabel = NULL;
     fensure = NULL;
     fbody = NULL;
-#ifdef _DH
-    hcopyof = NULL;
-    hbody = NULL;
-    hensure = NULL;
-    hrequire = NULL;
-    htype = NULL;
-#endif
     localsymtab = NULL;
     vthis = NULL;
     v_arguments = NULL;
@@ -80,9 +73,6 @@ Dsymbol *FuncDeclaration::syntaxCopy(Dsymbol *s)
     f->fensure  = fensure  ? fensure->syntaxCopy()  : NULL;
     f->fbody    = fbody    ? fbody->syntaxCopy()    : NULL;
     assert(!fthrows); // deprecated
-#ifdef _DH
-    hdrSyntaxCopy(f);
-#endif
     return f;
 }
 
@@ -831,12 +821,45 @@ void FuncDeclaration::semantic3(Scope *sc)
     }
 }
 
-void FuncDeclaration::toCBuffer(OutBuffer *buf)
+void FuncDeclaration::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 {
-    type->toCBuffer(buf, ident);
-    if (fbody)
+    //printf("FuncDeclaration::toCBuffer() '%s'\n", toChars());
+
+    type->toCBuffer(buf, ident, hgs);
+    if (fbody &&
+	(!hgs->hdrgen || hgs->tpltMember || canInline(1,1))
+       )
     {	buf->writenl();
-	fbody->toCBuffer(buf);
+
+	// in{}
+	if (frequire)
+	{   buf->writestring("in");
+	    buf->writenl();
+	    frequire->toCBuffer(buf, hgs);
+	}
+
+	// out{}
+	if (fensure)
+	{   buf->writestring("out");
+	    if (outId)
+	    {   buf->writebyte('(');
+		buf->writestring(outId->toChars());
+		buf->writebyte(')');
+	    }
+	    buf->writenl();
+	    fensure->toCBuffer(buf, hgs);
+	}
+
+        if (frequire || fensure)
+	{   buf->writestring("body");
+	    buf->writenl();
+	}
+
+	buf->writebyte('{');
+	buf->writenl();
+	fbody->toCBuffer(buf, hgs);
+	buf->writebyte('}');
+	buf->writenl();
     }
     else
     {	buf->writeByte(';');
@@ -1075,6 +1098,7 @@ if (arguments)
 	if (arguments)
 	{   int i;
 	    OutBuffer argbuf;
+	    HdrGenState hgs;
 
 	    for (i = 0; i < arguments->dim; i++)
 	    {   Expression *arg;
@@ -1082,7 +1106,7 @@ if (arguments)
 		arg = (Expression *)arguments->data[i];
 		argbuf.reset();
 		assert(arg->type);
-		arg->type->toCBuffer2(&argbuf, NULL);
+		arg->type->toCBuffer2(&argbuf, NULL, &hgs);
 		if (i)
 		    buf.writeByte(',');
 		buf.write(&argbuf);
@@ -1469,11 +1493,6 @@ Dsymbol *CtorDeclaration::syntaxCopy(Dsymbol *s)
     assert(!fthrows); // deprecated
 
     f->arguments = Argument::arraySyntaxCopy(arguments);
-
-#ifdef _DH
-    FuncDeclaration::hdrSyntaxCopy(f);
-#endif
-
     return f;
 }
 
@@ -1780,6 +1799,13 @@ int InvariantDeclaration::addPostInvariant()
     return FALSE;
 }
 
+void InvariantDeclaration::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
+{
+    if (hgs->hdrgen)
+	return;
+    FuncDeclaration::toCBuffer(buf, hgs);
+}
+
 
 /********************************* UnitTestDeclaration ****************************/
 
@@ -1853,6 +1879,12 @@ int UnitTestDeclaration::addPostInvariant()
     return FALSE;
 }
 
+void UnitTestDeclaration::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
+{
+    if (hgs->hdrgen)
+	return;
+    FuncDeclaration::toCBuffer(buf, hgs);
+}
 
 /********************************* NewDeclaration ****************************/
 

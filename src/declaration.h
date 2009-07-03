@@ -126,11 +126,10 @@ struct TypedefDeclaration : Declaration
     char *mangle();
     char *kind();
     Type *getType();
-    void toCBuffer(OutBuffer *buf);
+    void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
 #ifdef _DH
     Type *htype;
     Type *hbasetype;
-    void toHBuffer(OutBuffer *buf, HdrGenState *hgs);
 #endif
 
     void toDocBuffer(OutBuffer *buf);
@@ -156,9 +155,8 @@ struct AliasDeclaration : Declaration
     char *kind();
     Type *getType();
     Dsymbol *toAlias();
-    void toCBuffer(OutBuffer *buf);
+    void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
 #ifdef _DH
-    void toHBuffer(OutBuffer *buf, HdrGenState *hgs);
     Type *htype;
     Dsymbol *haliassym;
 #endif
@@ -182,9 +180,8 @@ struct VarDeclaration : Declaration
     void semantic(Scope *sc);
     void semantic2(Scope *sc);
     char *kind();
-    void toCBuffer(OutBuffer *buf);
+    void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
 #ifdef _DH
-    void toHBuffer(OutBuffer *buf, HdrGenState *hgs);
     Type *htype;
     Initializer *hinit;
 #endif
@@ -344,21 +341,14 @@ enum ILS
 
 struct FuncDeclaration : Declaration
 {
-    Array *fthrows;			// Array of Type's of exceptions
+    Array *fthrows;			// Array of Type's of exceptions (not used)
     Statement *frequire;
+    Statement *fensure;
+    Statement *fbody;
+
     Identifier *outId;			// identifier for out statement
     VarDeclaration *vresult;		// variable corresponding to outId
     LabelDsymbol *returnLabel;		// where the return goes
-    Statement *fensure;
-    Statement *fbody;
-#ifdef _DH
-    void hdrSyntaxCopy(FuncDeclaration* f);
-    FuncDeclaration *hcopyof;   // keep track of original
-    Statement *hbody;           // "header body" - syntaxCopy of fbody before semantic is run on contents
-    Statement *hrequire;        // "in{}"
-    Statement *hensure;         // "out{}"
-    Type *htype;                // syntax type
-#endif
 
     DsymbolTable *localsymtab;		// used to prevent symbols in different
 					// scopes from having the same name
@@ -385,10 +375,7 @@ struct FuncDeclaration : Declaration
     Dsymbol *syntaxCopy(Dsymbol *);
     void semantic(Scope *sc);
     void semantic3(Scope *sc);
-    void toCBuffer(OutBuffer *buf);
-#ifdef _DH
-    void toHBuffer(OutBuffer *buf, HdrGenState *hgs);
-#endif
+    void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
     int overrides(FuncDeclaration *fd);
     int overloadInsert(Dsymbol *s);
     FuncDeclaration *overloadExactMatch(Type *t);
@@ -413,11 +400,7 @@ struct FuncDeclaration : Declaration
     virtual int addPreInvariant();
     virtual int addPostInvariant();
     void inlineScan();
-#ifdef _DH
     int canInline(int hasthis, int hdrscan = 0);
-#else
-    int canInline(int hasthis);
-#endif
     Expression *doInline(InlineScanState *iss, Expression *ethis, Array *arguments);
     char *kind();
 
@@ -523,6 +506,7 @@ struct InvariantDeclaration : FuncDeclaration
     int addPreInvariant();
     int addPostInvariant();
     void emitComment(Scope *sc);
+    void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
 
     InvariantDeclaration *isInvariantDeclaration() { return this; }
 };
@@ -537,6 +521,7 @@ struct UnitTestDeclaration : FuncDeclaration
     int isVirtual();
     int addPreInvariant();
     int addPostInvariant();
+    void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
 
     UnitTestDeclaration *isUnitTestDeclaration() { return this; }
 };

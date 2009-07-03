@@ -46,6 +46,9 @@ struct complex_t
     }
 
     operator bool () { return re || im; }
+
+    int operator == (complex_t y) { return re == y.re && im == y.im; }
+    int operator != (complex_t y) { return re != y.re || im != y.im; }
 };
 
 inline complex_t operator * (long double x, complex_t y) { return complex_t(x) * y; }

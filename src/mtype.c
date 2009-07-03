@@ -47,6 +47,7 @@ static double zero = 0;
 #include "enum.h"
 #include "import.h"
 #include "aggregate.h"
+#include "hdrgen.h"
 
 FuncDeclaration *hasThis(Scope *sc);
 
@@ -318,21 +319,22 @@ void Type::toTypeInfoBuffer(OutBuffer *buf)
 
 char *Type::toChars()
 {   OutBuffer *buf;
+    HdrGenState hgs;
 
     buf = new OutBuffer();
-    toCBuffer2(buf, NULL);
+    toCBuffer2(buf, NULL, &hgs);
     return buf->toChars();
 }
 
-void Type::toCBuffer(OutBuffer *buf, Identifier *ident)
+void Type::toCBuffer(OutBuffer *buf, Identifier *ident, HdrGenState *hgs)
 {
     OutBuffer tbuf;
 
-    toCBuffer2(&tbuf, ident);
+    toCBuffer2(&tbuf, ident, hgs);
     buf->write(&tbuf);
 }
 
-void Type::toCBuffer2(OutBuffer *buf, Identifier *ident)
+void Type::toCBuffer2(OutBuffer *buf, Identifier *ident, HdrGenState *hgs)
 {
     buf->prependstring(toChars());
     if (ident)
@@ -523,6 +525,8 @@ Expression *Type::getProperty(Loc loc, Identifier *ident)
     else if (ident == Id::mangleof)
     {	assert(deco);
 	e = new StringExp(loc, deco, strlen(deco), 'c');
+	Scope sc;
+	e = e->semantic(&sc);
     }
     else
     {
@@ -794,7 +798,7 @@ char *TypeBasic::toChars()
     return dstring;
 }
 
-void TypeBasic::toCBuffer2(OutBuffer *buf, Identifier *ident)
+void TypeBasic::toCBuffer2(OutBuffer *buf, Identifier *ident, HdrGenState *hgs)
 {
     buf->prependstring(cstring);
     if (ident)
@@ -1110,11 +1114,16 @@ Lfvalue:
 	complex_t cvalue;
 
 #if __DMC__
+	//((real_t *)&cvalue)[0] = fvalue;
+	//((real_t *)&cvalue)[1] = fvalue;
 	cvalue = fvalue + fvalue * I;
 #else
 	cvalue.re = fvalue;
 	cvalue.im = fvalue;
 #endif
+	//for (int i = 0; i < 20; i++)
+	//    printf("%02x ", ((unsigned char *)&cvalue)[i]);
+	//printf("\n");
 	e = new ComplexExp(0, cvalue, this);
     }
     return e;
@@ -1416,18 +1425,18 @@ Expression *TypeArray::dotExp(Scope *sc, Expression *e, Identifier *ident)
     return e;
 }
 
-void TypeArray::toCBuffer2(OutBuffer *buf, Identifier *ident)
+void TypeArray::toCBuffer2(OutBuffer *buf, Identifier *ident, HdrGenState *hgs)
 {
 #if 1
     OutBuffer buf2;
-    toPrettyBracket(&buf2);
+    toPrettyBracket(&buf2, hgs);
     buf->prependstring(buf2.toChars());
     if (ident)
     {
 	buf->writeByte(' ');
 	buf->writestring(ident->toChars());
     }
-    next->toCBuffer2(buf, NULL);
+    next->toCBuffer2(buf, NULL, hgs);
 #elif 1
     // The D way
     Type *t;
@@ -1438,14 +1447,14 @@ void TypeArray::toCBuffer2(OutBuffer *buf, Identifier *ident)
 	ta = dynamic_cast<TypeArray *>(t);
 	if (!ta)
 	    break;
-	ta->toPrettyBracket(&buf2);
+	ta->toPrettyBracket(&buf2, hgs);
     }
     buf->prependstring(buf2.toChars());
     if (ident)
     {
 	buf2.writestring(ident->toChars());
     }
-    t->toCBuffer2(buf, NULL);
+    t->toCBuffer2(buf, NULL, hgs);
 #else
     // The C way
     if (buf->offset)
@@ -1464,7 +1473,7 @@ void TypeArray::toCBuffer2(OutBuffer *buf, Identifier *ident)
 	buf->writeByte(']');
 	t = t->next;
     } while (t->ty == Tsarray);
-    t->toCBuffer2(buf, NULL);
+    t->toCBuffer2(buf, NULL, hgs);
 #endif
 }
 
@@ -1591,7 +1600,7 @@ void TypeSArray::toTypeInfoBuffer(OutBuffer *buf)
 	next->toTypeInfoBuffer(buf);
 }
 
-void TypeSArray::toPrettyBracket(OutBuffer *buf)
+void TypeSArray::toPrettyBracket(OutBuffer *buf, HdrGenState *hgs)
 {
     buf->printf("[%s]", dim->toChars());
 }
@@ -1724,7 +1733,7 @@ void TypeDArray::toTypeInfoBuffer(OutBuffer *buf)
 	next->toTypeInfoBuffer(buf);
 }
 
-void TypeDArray::toPrettyBracket(OutBuffer *buf)
+void TypeDArray::toPrettyBracket(OutBuffer *buf, HdrGenState *hgs)
 {
     buf->writestring("[]");
 }
@@ -1981,12 +1990,12 @@ void TypeAArray::toDecoBuffer(OutBuffer *buf)
     next->toDecoBuffer(buf);
 }
 
-void TypeAArray::toPrettyBracket(OutBuffer *buf)
+void TypeAArray::toPrettyBracket(OutBuffer *buf, HdrGenState *hgs)
 {
     buf->writeByte('[');
     {	OutBuffer ibuf;
 
-	index->toCBuffer2(&ibuf, NULL);
+	index->toCBuffer2(&ibuf, NULL, hgs);
 	buf->write(&ibuf);
     }
     buf->writeByte(']');
@@ -2041,7 +2050,7 @@ d_uns64 TypePointer::size(Loc loc)
     return PTRSIZE;
 }
 
-void TypePointer::toCBuffer2(OutBuffer *buf, Identifier *ident)
+void TypePointer::toCBuffer2(OutBuffer *buf, Identifier *ident, HdrGenState *hgs)
 {
     //printf("TypePointer::toCBuffer2() next = %d\n", next->ty);
     buf->prependstring("*");
@@ -2050,7 +2059,7 @@ void TypePointer::toCBuffer2(OutBuffer *buf, Identifier *ident)
 	buf->writeByte(' ');
 	buf->writestring(ident->toChars());
     }
-    next->toCBuffer2(buf, NULL);
+    next->toCBuffer2(buf, NULL, hgs);
 }
 
 int TypePointer::implicitConvTo(Type *to)
@@ -2130,14 +2139,14 @@ d_uns64 TypeReference::size(Loc loc)
     return PTRSIZE;
 }
 
-void TypeReference::toCBuffer2(OutBuffer *buf, Identifier *ident)
+void TypeReference::toCBuffer2(OutBuffer *buf, Identifier *ident, HdrGenState *hgs)
 {
     buf->prependstring("&");
     if (ident)
     {
 	buf->writestring(ident->toChars());
     }
-    next->toCBuffer2(buf, NULL);
+    next->toCBuffer2(buf, NULL, hgs);
 }
 
 Expression *TypeReference::dotExp(Scope *sc, Expression *e, Identifier *ident)
@@ -2172,6 +2181,8 @@ int TypeReference::isZeroInit()
 TypeFunction::TypeFunction(Array *arguments, Type *treturn, int varargs, enum LINK linkage)
     : Type(Tfunction, treturn)
 {
+if (!treturn) *(char*)0=0;
+    assert(treturn);
     this->arguments = arguments;
     this->varargs = varargs;
     this->linkage = linkage;
@@ -2179,6 +2190,7 @@ TypeFunction::TypeFunction(Array *arguments, Type *treturn, int varargs, enum LI
 
 Type *TypeFunction::syntaxCopy()
 {
+    assert(next);
     Type *treturn = next->syntaxCopy();
     Array *args = Argument::arraySyntaxCopy(arguments);
     Type *t = new TypeFunction(args, treturn, varargs, linkage);
@@ -2296,7 +2308,7 @@ void TypeFunction::toDecoBuffer(OutBuffer *buf)
     next->toDecoBuffer(buf);
 }
 
-void TypeFunction::toCBuffer2(OutBuffer *buf, Identifier *ident)
+void TypeFunction::toCBuffer2(OutBuffer *buf, Identifier *ident, HdrGenState *hgs)
 {
     char *p;
 
@@ -2313,25 +2325,26 @@ void TypeFunction::toCBuffer2(OutBuffer *buf, Identifier *ident)
 
     if (buf->offset)
     {
-	if (p)
+	if (!hgs->hdrgen && p)
 	    buf->prependstring(p);
 	buf->bracket('(', ')');
 	assert(!ident);
     }
     else
     {
-	if (p)
+	if (!hgs->hdrgen && p)
 	    buf->writestring(p);
 	if (ident)
 	{   buf->writeByte(' ');
-	    buf->writestring(ident->toChars());
+	    buf->writestring(ident->toHChars2());
 	}
     }
-    argsToCBuffer(buf);
-    next->toCBuffer2(buf, NULL);
+    argsToCBuffer(buf, hgs);
+    if (!ident || ident->toHChars2() == ident->toChars())
+	next->toCBuffer2(buf, NULL, hgs);
 }
 
-void TypeFunction::argsToCBuffer(OutBuffer *buf)
+void TypeFunction::argsToCBuffer(OutBuffer *buf, HdrGenState *hgs)
 {
     buf->writeByte('(');
     if (arguments)
@@ -2349,11 +2362,11 @@ void TypeFunction::argsToCBuffer(OutBuffer *buf)
 	    else if (arg->inout == InOut)
 		buf->writestring("inout ");
 	    argbuf.reset();
-	    arg->type->toCBuffer2(&argbuf, arg->ident);
+	    arg->type->toCBuffer2(&argbuf, arg->ident, hgs);
 	    if (arg->defaultArg)
 	    {
 		argbuf.writestring(" = ");
-		arg->defaultArg->toCBuffer(&argbuf);
+		arg->defaultArg->toCBuffer(&argbuf, hgs);
 	    }
 	    buf->write(&argbuf);
 	}
@@ -2556,13 +2569,13 @@ d_uns64 TypeDelegate::size(Loc loc)
     return PTRSIZE * 2;
 }
 
-void TypeDelegate::toCBuffer2(OutBuffer *buf, Identifier *ident)
+void TypeDelegate::toCBuffer2(OutBuffer *buf, Identifier *ident, HdrGenState *hgs)
 {
 #if 1
     OutBuffer args;
     TypeFunction *tf = (TypeFunction *)next;
 
-    tf->argsToCBuffer(&args);
+    tf->argsToCBuffer(&args, hgs);
     buf->prependstring(args.toChars());
     buf->prependstring(" delegate");
     if (ident)
@@ -2570,9 +2583,9 @@ void TypeDelegate::toCBuffer2(OutBuffer *buf, Identifier *ident)
 	buf->writeByte(' ');
 	buf->writestring(ident->toChars());
     }
-    next->next->toCBuffer2(buf, NULL);
+    next->next->toCBuffer2(buf, NULL, hgs);
 #else
-    next->toCBuffer2(buf, Id::delegate);
+    next->toCBuffer2(buf, Id::delegate, hgs);
     if (ident)
     {
 	buf->writestring(ident->toChars());
@@ -2634,7 +2647,7 @@ void TypeQualified::addIdent(Identifier *ident)
     idents.push(ident);
 }
 
-void TypeQualified::toCBuffer2Helper(OutBuffer *buf, Identifier *ident)
+void TypeQualified::toCBuffer2Helper(OutBuffer *buf, Identifier *ident, HdrGenState *hgs)
 {
     int i;
 
@@ -2646,7 +2659,7 @@ void TypeQualified::toCBuffer2Helper(OutBuffer *buf, Identifier *ident)
 	if (id->dyncast() != DYNCAST_IDENTIFIER)
 	{
 	    TemplateInstance *ti = (TemplateInstance *)id;
-	    ti->toCBuffer(buf);
+	    ti->toCBuffer(buf, hgs);
 	}
 	else
 	    buf->writestring(id->toChars());
@@ -2755,6 +2768,7 @@ void TypeQualified::resolveHelper(Loc loc, Scope *sc,
 		    for (; i < idents.dim; i++)
 		    {
 			id = (Identifier *)idents.data[i];
+			//printf("e: '%s', id: '%s', type = %p\n", e->toChars(), id->toChars(), e->type);
 			e = e->type->dotExp(sc, e, id);
 		    }
 		    *pe = e;
@@ -2872,12 +2886,12 @@ void TypeIdentifier::toDecoBuffer(OutBuffer *buf)
     buf->printf("%c%s", mangleChar[ty], name);
 }
 
-void TypeIdentifier::toCBuffer2(OutBuffer *buf, Identifier *ident)
+void TypeIdentifier::toCBuffer2(OutBuffer *buf, Identifier *ident, HdrGenState *hgs)
 {
     OutBuffer tmp;
 
     tmp.writestring(this->ident->toChars());
-    toCBuffer2Helper(&tmp, NULL);
+    toCBuffer2Helper(&tmp, NULL, hgs);
     buf->prependstring(tmp.toChars());
     if (ident)
     {	buf->writeByte(' ');
@@ -3013,12 +3027,12 @@ Type *TypeInstance::syntaxCopy()
 }
 
 
-void TypeInstance::toCBuffer2(OutBuffer *buf, Identifier *ident)
+void TypeInstance::toCBuffer2(OutBuffer *buf, Identifier *ident, HdrGenState *hgs)
 {
     OutBuffer tmp;
 
-    tempinst->toCBuffer(&tmp);
-    toCBuffer2Helper(&tmp, NULL);
+    tempinst->toCBuffer(&tmp, hgs);
+    toCBuffer2Helper(&tmp, NULL, hgs);
     buf->prependstring(tmp.toChars());
     if (ident)
     {	buf->writeByte(' ');
@@ -3097,14 +3111,14 @@ Dsymbol *TypeTypeof::toDsymbol(Scope *sc)
     return t->toDsymbol(sc);
 }
 
-void TypeTypeof::toCBuffer2(OutBuffer *buf, Identifier *ident)
+void TypeTypeof::toCBuffer2(OutBuffer *buf, Identifier *ident, HdrGenState *hgs)
 {
     OutBuffer tmp;
 
     tmp.writestring("typeof(");
-    exp->toCBuffer(&tmp);
+    exp->toCBuffer(&tmp, hgs);
     tmp.writeByte(')');
-    toCBuffer2Helper(&tmp, NULL);
+    toCBuffer2Helper(&tmp, NULL, hgs);
     buf->prependstring(tmp.toChars());
     if (ident)
     {	buf->writeByte(' ');
@@ -3260,7 +3274,7 @@ void TypeEnum::toTypeInfoBuffer(OutBuffer *buf)
     toBasetype()->toTypeInfoBuffer(buf);
 }
 
-void TypeEnum::toCBuffer2(OutBuffer *buf, Identifier *ident)
+void TypeEnum::toCBuffer2(OutBuffer *buf, Identifier *ident, HdrGenState *hgs)
 {
     buf->prependstring(sym->toChars());
     if (ident)
@@ -3417,7 +3431,7 @@ void TypeTypedef::toTypeInfoBuffer(OutBuffer *buf)
     sym->basetype->toTypeInfoBuffer(buf);
 }
 
-void TypeTypedef::toCBuffer2(OutBuffer *buf, Identifier *ident)
+void TypeTypedef::toCBuffer2(OutBuffer *buf, Identifier *ident, HdrGenState *hgs)
 {
     //printf("TypeTypedef::toCBuffer2() '%s'\n", sym->toChars());
     buf->prependstring(sym->toChars());
@@ -3611,14 +3625,12 @@ void TypeStruct::toTypeInfoBuffer(OutBuffer *buf)
 }
 
 
-void TypeStruct::toCBuffer2(OutBuffer *buf, Identifier *ident)
+void TypeStruct::toCBuffer2(OutBuffer *buf, Identifier *ident, HdrGenState *hgs)
 {
     buf->prependbyte(' ');
     buf->prependstring(sym->toChars());
     if (ident)
-    {	buf->writeByte(' ');
 	buf->writestring(ident->toChars());
-    }
 }
 
 Expression *TypeStruct::dotExp(Scope *sc, Expression *e, Identifier *ident)
@@ -3820,7 +3832,7 @@ void TypeClass::toDecoBuffer(OutBuffer *buf)
     buf->printf("%c%s", mangleChar[ty], name);
 }
 
-void TypeClass::toCBuffer2(OutBuffer *buf, Identifier *ident)
+void TypeClass::toCBuffer2(OutBuffer *buf, Identifier *ident, HdrGenState *hgs)
 {
     buf->prependstring(sym->toChars());
     if (ident)
@@ -4123,6 +4135,7 @@ char *Argument::argsTypesToChars(Array *args, int varargs)
     if (args)
     {	int i;
 	OutBuffer argbuf;
+	HdrGenState hgs;
 
 	for (i = 0; i < args->dim; i++)
 	{   Argument *arg;
@@ -4131,7 +4144,7 @@ char *Argument::argsTypesToChars(Array *args, int varargs)
 		buf->writeByte(',');
 	    arg = (Argument *)args->data[i];
 	    argbuf.reset();
-	    arg->type->toCBuffer2(&argbuf, NULL);
+	    arg->type->toCBuffer2(&argbuf, NULL, &hgs);
 	    buf->write(&argbuf);
 	}
 	if (varargs)

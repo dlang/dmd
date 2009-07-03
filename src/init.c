@@ -89,7 +89,7 @@ Expression *VoidInitializer::toExpression()
 }
 
 
-void VoidInitializer::toCBuffer(OutBuffer *buf)
+void VoidInitializer::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 {
     buf->writestring("void");
 }
@@ -214,8 +214,24 @@ Expression *StructInitializer::toExpression()
 }
 
 
-void StructInitializer::toCBuffer(OutBuffer *buf)
+void StructInitializer::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 {
+    buf->writebyte('{');
+    for (int i = 0; i < field.dim; i++)
+    {
+        if (i > 0)
+	    buf->writebyte(',');
+        Identifier *id = (Identifier *)field.data[i];
+        if (id)
+        {
+            buf->writestring(id->toChars());
+            buf->writebyte(':');
+        }
+        Initializer *iz = (Initializer *)value.data[i];
+        if (iz)
+            iz->toCBuffer(buf, hgs);
+    }
+    buf->writebyte('}');
 }
 
 /********************************** ArrayInitializer ************************************/
@@ -316,8 +332,24 @@ Expression *ArrayInitializer::toExpression()
 }
 
 
-void ArrayInitializer::toCBuffer(OutBuffer *buf)
+void ArrayInitializer::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 {
+    buf->writebyte('[');
+    for (int i = 0; i < index.dim; i++)
+    {
+        if (i > 0)
+	    buf->writebyte(',');
+        Expression *ex = (Expression *)index.data[i];
+        if (ex)
+        {
+            ex->toCBuffer(buf, hgs);
+            buf->writebyte(':');
+        }
+        Initializer *iz = (Initializer *)value.data[i];
+        if (iz)
+            iz->toCBuffer(buf, hgs);
+    }
+    buf->writebyte(']');
 }
 
 
@@ -387,9 +419,9 @@ Expression *ExpInitializer::toExpression()
 }
 
 
-void ExpInitializer::toCBuffer(OutBuffer *buf)
+void ExpInitializer::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 {
-    exp->toCBuffer(buf);
+    exp->toCBuffer(buf, hgs);
 }
 
 

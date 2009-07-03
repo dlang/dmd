@@ -34,15 +34,15 @@ struct Declaration;
 struct AggregateDeclaration;
 struct TemplateInstance;
 struct ClassDeclaration;
-#ifdef _DH
 struct HdrGenState;
 struct BinExp;
-#endif
 
 // Back end
 struct IRState;
 struct elem;
 struct dt_t;
+
+void initPrecedence();
 
 Expression *resolveProperties(Scope *sc, Expression *e);
 void accessCheck(Loc loc, Scope *sc, Expression *e, Declaration *d);
@@ -76,12 +76,7 @@ struct Expression : Object
     virtual real_t toReal();
     virtual real_t toImaginary();
     virtual complex_t toComplex();
-    virtual void toCBuffer(OutBuffer *buf);
-#ifdef _DH
-    virtual BinExp *isBinExp() { return NULL; }
-    virtual void toHBuffer(OutBuffer *buf, HdrGenState *hgs);
-    char *toHChars(HdrGenState *hgs);
-#endif
+    virtual void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
     virtual void toMangleBuffer(OutBuffer *buf);
     virtual Expression *toLvalue(Expression *e);
     virtual Expression *modifiableLvalue(Scope *sc, Expression *e);
@@ -139,10 +134,7 @@ struct IntegerExp : Expression
     int isConst();
     int isBool(int result);
     int implicitConvTo(Type *t);
-    void toCBuffer(OutBuffer *buf);
-#ifdef _DH
-    void toHBuffer(OutBuffer *buf, HdrGenState *hgs);
-#endif
+    void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
     void toMangleBuffer(OutBuffer *buf);
     Expression *toLvalue(Expression *e);
     elem *toElem(IRState *irs);
@@ -164,11 +156,8 @@ struct RealExp : Expression
     complex_t toComplex();
     int isConst();
     int isBool(int result);
-    void toCBuffer(OutBuffer *buf);
+    void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
     void toMangleBuffer(OutBuffer *buf);
-#ifdef _DH
-    void toHBuffer(OutBuffer *buf, HdrGenState *hgs);
-#endif
     elem *toElem(IRState *irs);
     dt_t **toDt(dt_t **pdt);
 };
@@ -188,11 +177,10 @@ struct ComplexExp : Expression
     complex_t toComplex();
     int isConst();
     int isBool(int result);
-    void toCBuffer(OutBuffer *buf);
+    void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
     void toMangleBuffer(OutBuffer *buf);
 #ifdef _DH
     OutBuffer hexp;
-    void toHBuffer(OutBuffer *buf, HdrGenState *hgs);
 #endif
     elem *toElem(IRState *irs);
     dt_t **toDt(dt_t **pdt);
@@ -208,10 +196,7 @@ struct IdentifierExp : Expression
     Expression *semantic(Scope *sc);
     char *toChars();
     void dump(int indent);
-    void toCBuffer(OutBuffer *buf);
-#ifdef _DH
-    void toHBuffer(OutBuffer *buf, HdrGenState *hgs);
-#endif
+    void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
     Expression *toLvalue(Expression *e);
 };
 
@@ -228,10 +213,7 @@ struct DsymbolExp : Expression
     Expression *semantic(Scope *sc);
     char *toChars();
     void dump(int indent);
-    void toCBuffer(OutBuffer *buf);
-#ifdef _DH
-    void toHBuffer(OutBuffer *buf, HdrGenState *hgs);
-#endif
+    void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
     Expression *toLvalue(Expression *e);
 };
 
@@ -242,10 +224,7 @@ struct ThisExp : Expression
     ThisExp(Loc loc);
     Expression *semantic(Scope *sc);
     int isBool(int result);
-    void toCBuffer(OutBuffer *buf);
-#ifdef _DH
-    void toHBuffer(OutBuffer *buf, HdrGenState *hgs);
-#endif
+    void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
     Expression *toLvalue(Expression *e);
 
     int inlineCost(InlineCostState *ics);
@@ -259,10 +238,7 @@ struct SuperExp : ThisExp
 {
     SuperExp(Loc loc);
     Expression *semantic(Scope *sc);
-    void toCBuffer(OutBuffer *buf);
-#ifdef _DH
-    void toHBuffer(OutBuffer *buf, HdrGenState *hgs);
-#endif
+    void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
 
     int inlineCost(InlineCostState *ics);
     Expression *doInline(InlineDoState *ids);
@@ -274,10 +250,7 @@ struct NullExp : Expression
     NullExp(Loc loc);
     Expression *semantic(Scope *sc);
     int isBool(int result);
-    void toCBuffer(OutBuffer *buf);
-#ifdef _DH
-    void toHBuffer(OutBuffer *buf, HdrGenState *hgs);
-#endif
+    void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
     void toMangleBuffer(OutBuffer *buf);
     int implicitConvTo(Type *t);
     Expression *castTo(Type *t);
@@ -302,11 +275,8 @@ struct StringExp : Expression
     Expression *castTo(Type *t);
     int compare(Object *obj);
     int isBool(int result);
-    void toCBuffer(OutBuffer *buf);
+    void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
     void toMangleBuffer(OutBuffer *buf);
-#ifdef _DH
-    void toHBuffer(OutBuffer *buf, HdrGenState *hgs);
-#endif
     elem *toElem(IRState *irs);
     dt_t **toDt(dt_t **pdt);
 };
@@ -318,20 +288,14 @@ struct TypeDotIdExp : Expression
     TypeDotIdExp(Loc loc, Type *type, Identifier *ident);
     Expression *syntaxCopy();
     Expression *semantic(Scope *sc);
-    void toCBuffer(OutBuffer *buf);
-#ifdef _DH
-    void toHBuffer(OutBuffer *buf, HdrGenState *hgs);
-#endif
+    void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
     elem *toElem(IRState *irs);
 };
 
 struct TypeExp : Expression
 {
     TypeExp(Loc loc, Type *type);
-    void toCBuffer(OutBuffer *buf);
-#ifdef _DH
-    void toHBuffer(OutBuffer *buf, HdrGenState *hgs);
-#endif
+    void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
     elem *toElem(IRState *irs);
 };
 
@@ -343,10 +307,7 @@ struct ScopeExp : Expression
     Expression *syntaxCopy();
     Expression *semantic(Scope *sc);
     elem *toElem(IRState *irs);
-    void toCBuffer(OutBuffer *buf);
-#ifdef _DH
-    void toHBuffer(OutBuffer *buf, HdrGenState *hgs);
-#endif
+    void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
 };
 
 struct NewExp : Expression
@@ -361,10 +322,7 @@ struct NewExp : Expression
     Expression *syntaxCopy();
     Expression *semantic(Scope *sc);
     elem *toElem(IRState *irs);
-    void toCBuffer(OutBuffer *buf);
-#ifdef _DH
-    void toHBuffer(OutBuffer *buf, HdrGenState *hgs);
-#endif
+    void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
 
     //int inlineCost(InlineCostState *ics);
     Expression *doInline(InlineDoState *ids);
@@ -380,10 +338,7 @@ struct NewAnonClassExp : Expression
     NewAnonClassExp(Loc loc, Array *newargs, ClassDeclaration *cd, Array *arguments);
     Expression *syntaxCopy();
     Expression *semantic(Scope *sc);
-    void toCBuffer(OutBuffer *buf);
-#ifdef _DH
-    void toHBuffer(OutBuffer *buf, HdrGenState *hgs);
-#endif
+    void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
 };
 
 // Offset from symbol
@@ -396,10 +351,7 @@ struct SymOffExp : Expression
     SymOffExp(Loc loc, Declaration *var, unsigned offset);
     Expression *semantic(Scope *sc);
     void checkEscape();
-    void toCBuffer(OutBuffer *buf);
-#ifdef _DH
-    void toHBuffer(OutBuffer *buf, HdrGenState *hgs);
-#endif
+    void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
     int isConst();
     int isBool(int result);
     Expression *doInline(InlineDoState *ids);
@@ -419,10 +371,7 @@ struct VarExp : Expression
     Expression *semantic(Scope *sc);
     void dump(int indent);
     char *toChars();
-    void toCBuffer(OutBuffer *buf);
-#ifdef _DH
-    void toHBuffer(OutBuffer *buf, HdrGenState *hgs);
-#endif
+    void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
     void checkEscape();
     Expression *toLvalue(Expression *e);
     Expression *modifiableLvalue(Scope *sc, Expression *e);
@@ -444,10 +393,7 @@ struct FuncExp : Expression
     Expression *syntaxCopy();
     Expression *semantic(Scope *sc);
     char *toChars();
-    void toCBuffer(OutBuffer *buf);
-#ifdef _DH
-    void toHBuffer(OutBuffer *buf, HdrGenState *hgs);
-#endif
+    void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
     elem *toElem(IRState *irs);
 
     int inlineCost(InlineCostState *ics);
@@ -464,10 +410,7 @@ struct DeclarationExp : Expression
     DeclarationExp(Loc loc, Dsymbol *declaration);
     Expression *syntaxCopy();
     Expression *semantic(Scope *sc);
-    void toCBuffer(OutBuffer *buf);
-#ifdef _DH
-    void toHBuffer(OutBuffer *buf, HdrGenState *hgs);
-#endif
+    void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
     elem *toElem(IRState *irs);
 
     int inlineCost(InlineCostState *ics);
@@ -482,20 +425,14 @@ struct TypeidExp : Expression
     TypeidExp(Loc loc, Type *typeidType);
     Expression *syntaxCopy();
     Expression *semantic(Scope *sc);
-    void toCBuffer(OutBuffer *buf);
-#ifdef _DH
-    void toHBuffer(OutBuffer *buf, HdrGenState *hgs);
-#endif
+    void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
 };
 
 struct HaltExp : Expression
 {
     HaltExp(Loc loc);
     Expression *semantic(Scope *sc);
-    void toCBuffer(OutBuffer *buf);
-#ifdef _DH
-    void toHBuffer(OutBuffer *buf, HdrGenState *hgs);
-#endif
+    void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
 
     elem *toElem(IRState *irs);
 };
@@ -514,10 +451,7 @@ struct IftypeExp : Expression
     IftypeExp(Loc loc, Type *targ, Identifier *id, enum TOK tok, Type *tspec, enum TOK tok2);
     Expression *syntaxCopy();
     Expression *semantic(Scope *sc);
-    void toCBuffer(OutBuffer *buf);
-#ifdef _DH
-    void toHBuffer(OutBuffer *buf, HdrGenState *hgs);
-#endif
+    void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
 };
 
 /****************************************************************/
@@ -529,10 +463,7 @@ struct UnaExp : Expression
     UnaExp(Loc loc, enum TOK op, int size, Expression *e1);
     Expression *syntaxCopy();
     Expression *semantic(Scope *sc);
-    void toCBuffer(OutBuffer *buf);
-#ifdef _DH
-    void toHBuffer(OutBuffer *buf, HdrGenState *hgs);
-#endif
+    void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
     Expression *optimize(int result);
     void dump(int indent);
 
@@ -554,15 +485,12 @@ struct BinExp : Expression
     Expression *semanticp(Scope *sc);
     Expression *commonSemanticAssign(Scope *sc);
     Expression *commonSemanticAssignIntegral(Scope *sc);
-    void toCBuffer(OutBuffer *buf);
-#ifdef _DH
-    void toHBuffer(OutBuffer *buf, HdrGenState *hgs);
-    BinExp *isBinExp() { return this; }
-#endif
+    void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
     Expression *scaleFactor();
     Expression *typeCombine();
     Expression *optimize(int result);
     int isunsigned();
+    void incompatibleTypes();
     void dump(int indent);
 
     int inlineCost(InlineCostState *ics);
@@ -580,10 +508,7 @@ struct AssertExp : UnaExp
 {
     AssertExp(Loc loc, Expression *e);
     Expression *semantic(Scope *sc);
-    void toCBuffer(OutBuffer *buf);
-#ifdef _DH
-    void toHBuffer(OutBuffer *buf, HdrGenState *hgs);
-#endif
+    void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
     elem *toElem(IRState *irs);
 };
 
@@ -593,10 +518,7 @@ struct DotIdExp : UnaExp
 
     DotIdExp(Loc loc, Expression *e, Identifier *ident);
     Expression *semantic(Scope *sc);
-    void toCBuffer(OutBuffer *buf);
-#ifdef _DH
-    void toHBuffer(OutBuffer *buf, HdrGenState *hgs);
-#endif
+    void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
     void dump(int i);
 };
 
@@ -608,10 +530,7 @@ struct DotVarExp : UnaExp
     Expression *semantic(Scope *sc);
     Expression *toLvalue(Expression *e);
     Expression *modifiableLvalue(Scope *sc, Expression *e);
-    void toCBuffer(OutBuffer *buf);
-#ifdef _DH
-    void toHBuffer(OutBuffer *buf, HdrGenState *hgs);
-#endif
+    void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
     void dump(int indent);
     elem *toElem(IRState *irs);
 };
@@ -623,10 +542,7 @@ struct DotTemplateInstanceExp : UnaExp
     DotTemplateInstanceExp(Loc loc, Expression *e, TemplateInstance *ti);
     Expression *syntaxCopy();
     Expression *semantic(Scope *sc);
-    void toCBuffer(OutBuffer *buf);
-#ifdef _DH
-    void toHBuffer(OutBuffer *buf, HdrGenState *hgs);
-#endif
+    void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
     void dump(int indent);
 };
 
@@ -638,10 +554,7 @@ struct DelegateExp : UnaExp
     Expression *semantic(Scope *sc);
     int implicitConvTo(Type *t);
     Expression *castTo(Type *t);
-    void toCBuffer(OutBuffer *buf);
-#ifdef _DH
-    void toHBuffer(OutBuffer *buf, HdrGenState *hgs);
-#endif
+    void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
     void dump(int indent);
 
     int inlineCost(InlineCostState *ics);
@@ -654,23 +567,8 @@ struct DotTypeExp : UnaExp
 
     DotTypeExp(Loc loc, Expression *e, Dsymbol *sym);
     Expression *semantic(Scope *sc);
-    void toCBuffer(OutBuffer *buf);
-#ifdef _DH
-    void toHBuffer(OutBuffer *buf, HdrGenState *hgs);
-#endif
+    void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
     elem *toElem(IRState *irs);
-};
-
-struct ArrowExp : UnaExp
-{
-    Identifier *ident;
-
-    ArrowExp(Loc loc, Expression *e, Identifier *ident);
-    Expression *semantic(Scope *sc);
-    void toCBuffer(OutBuffer *buf);
-#ifdef _DH
-    void toHBuffer(OutBuffer *buf, HdrGenState *hgs);
-#endif
 };
 
 struct CallExp : UnaExp
@@ -684,10 +582,7 @@ struct CallExp : UnaExp
 
     Expression *syntaxCopy();
     Expression *semantic(Scope *sc);
-    void toCBuffer(OutBuffer *buf);
-#ifdef _DH
-    void toHBuffer(OutBuffer *buf, HdrGenState *hgs);
-#endif
+    void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
     elem *toElem(IRState *irs);
 
     int inlineCost(InlineCostState *ics);
@@ -711,10 +606,7 @@ struct PtrExp : UnaExp
     PtrExp(Loc loc, Expression *e, Type *t);
     Expression *semantic(Scope *sc);
     Expression *toLvalue(Expression *e);
-    void toCBuffer(OutBuffer *buf);
-#ifdef _DH
-    void toHBuffer(OutBuffer *buf, HdrGenState *hgs);
-#endif
+    void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
     elem *toElem(IRState *irs);
     Expression *optimize(int result);
 };
@@ -787,10 +679,7 @@ struct CastExp : UnaExp
     Expression *syntaxCopy();
     Expression *semantic(Scope *sc);
     Expression *optimize(int result);
-    void toCBuffer(OutBuffer *buf);
-#ifdef _DH
-    void toHBuffer(OutBuffer *buf, HdrGenState *hgs);
-#endif
+    void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
     Expression *constFold();
     elem *toElem(IRState *irs);
 
@@ -811,10 +700,7 @@ struct SliceExp : UnaExp
     void checkEscape();
     Expression *toLvalue(Expression *e);
     Expression *modifiableLvalue(Scope *sc, Expression *e);
-    void toCBuffer(OutBuffer *buf);
-#ifdef _DH
-    void toHBuffer(OutBuffer *buf, HdrGenState *hgs);
-#endif
+    void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
     Expression *optimize(int result);
     void dump(int indent);
     elem *toElem(IRState *irs);
@@ -828,10 +714,7 @@ struct ArrayLengthExp : UnaExp
 {
     ArrayLengthExp(Loc loc, Expression *e1);
     Expression *semantic(Scope *sc);
-    void toCBuffer(OutBuffer *buf);
-#ifdef _DH
-    void toHBuffer(OutBuffer *buf, HdrGenState *hgs);
-#endif
+    void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
     elem *toElem(IRState *irs);
 };
 
@@ -845,10 +728,7 @@ struct ArrayExp : UnaExp
     Expression *syntaxCopy();
     Expression *semantic(Scope *sc);
     Expression *toLvalue(Expression *e);
-    void toCBuffer(OutBuffer *buf);
-#ifdef _DH
-    void toHBuffer(OutBuffer *buf, HdrGenState *hgs);
-#endif
+    void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
 
     // For operator overloading
     Identifier *opId();
@@ -887,10 +767,7 @@ struct IndexExp : BinExp
     Expression *semantic(Scope *sc);
     Expression *toLvalue(Expression *e);
     Expression *modifiableLvalue(Scope *sc, Expression *e);
-    void toCBuffer(OutBuffer *buf);
-#ifdef _DH
-    void toHBuffer(OutBuffer *buf, HdrGenState *hgs);
-#endif
+    void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
     Expression *optimize(int result);
     Expression *doInline(InlineDoState *ids);
 
@@ -901,10 +778,7 @@ struct PostIncExp : BinExp
 {
     PostIncExp(Loc loc, Expression *e);
     Expression *semantic(Scope *sc);
-    void toCBuffer(OutBuffer *buf);
-#ifdef _DH
-    void toHBuffer(OutBuffer *buf, HdrGenState *hgs);
-#endif
+    void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
     Identifier *opId();    // For operator overloading
     elem *toElem(IRState *irs);
 };
@@ -913,10 +787,7 @@ struct PostDecExp : BinExp
 {
     PostDecExp(Loc loc, Expression *e);
     Expression *semantic(Scope *sc);
-    void toCBuffer(OutBuffer *buf);
-#ifdef _DH
-    void toHBuffer(OutBuffer *buf, HdrGenState *hgs);
-#endif
+    void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
     Identifier *opId();    // For operator overloading
     elem *toElem(IRState *irs);
 };
@@ -1315,10 +1186,7 @@ struct CondExp : BinExp
     Expression *toLvalue(Expression *e);
     Expression *modifiableLvalue(Scope *sc, Expression *e);
     Expression *checkToBoolean();
-    void toCBuffer(OutBuffer *buf);
-#ifdef _DH
-    void toHBuffer(OutBuffer *buf, HdrGenState *hgs);
-#endif
+    void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
     int implicitConvTo(Type *t);
     Expression *castTo(Type *t);
 

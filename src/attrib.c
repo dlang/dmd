@@ -257,7 +257,7 @@ void AttribDeclaration::addLocalClass(Array *aclasses)
 }
 
 
-void AttribDeclaration::toCBuffer(OutBuffer *buf)
+void AttribDeclaration::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 {
     if (decl)
     {
@@ -269,7 +269,7 @@ void AttribDeclaration::toCBuffer(OutBuffer *buf)
 	    Dsymbol *s = (Dsymbol *)decl->data[i];
 
 	    buf->writestring("    ");
-	    s->toCBuffer(buf);
+	    s->toCBuffer(buf, hgs);
 	}
 	buf->writeByte('}');
     }
@@ -315,10 +315,40 @@ void StorageClassDeclaration::semantic(Scope *sc)
 	sc->stc = stc;
 }
 
-void StorageClassDeclaration::toCBuffer(OutBuffer *buf)
+void StorageClassDeclaration::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 {
-    buf->writestring("BUG: storage class goes here");	// BUG
-    AttribDeclaration::toCBuffer(buf);
+    struct SCstring
+    {
+	int stc;
+	enum TOK tok;
+    };
+
+    static SCstring table[] =
+    {
+	{ STCauto,         TOKauto },
+	{ STCstatic,       TOKstatic },
+	{ STCextern,       TOKextern },
+	{ STCconst,        TOKconst },
+	{ STCfinal,        TOKfinal },
+	{ STCabstract,     TOKabstract },
+	{ STCsynchronized, TOKsynchronized },
+	{ STCdeprecated,   TOKdeprecated },
+	{ STCoverride,     TOKoverride },
+    };
+
+    int written = 0;
+    for (int i = 0; i < sizeof(table)/sizeof(table[0]); i++)
+    {
+	if (stc & table[i].stc)
+	{
+	    if (written)
+		buf->writeByte(' ');
+	    written = 1;
+	    buf->writestring(Token::toChars(table[i].tok));
+	}
+    }
+
+    AttribDeclaration::toCBuffer(buf, hgs);
 }
 
 /********************************* LinkDeclaration ****************************/
@@ -381,7 +411,7 @@ void LinkDeclaration::semantic3(Scope *sc)
     }
 }
 
-void LinkDeclaration::toCBuffer(OutBuffer *buf)
+void LinkDeclaration::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 {   char *p;
 
     switch (linkage)
@@ -397,7 +427,7 @@ void LinkDeclaration::toCBuffer(OutBuffer *buf)
     }
     buf->writestring("extern ");
     buf->writestring(p);
-    AttribDeclaration::toCBuffer(buf);
+    AttribDeclaration::toCBuffer(buf, hgs);
 }
 
 char *LinkDeclaration::toChars()
@@ -441,7 +471,7 @@ void ProtDeclaration::semantic(Scope *sc)
 	sc->protection = protection;
 }
 
-void ProtDeclaration::toCBuffer(OutBuffer *buf)
+void ProtDeclaration::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 {   char *p;
 
     switch (protection)
@@ -456,7 +486,7 @@ void ProtDeclaration::toCBuffer(OutBuffer *buf)
 	    break;
     }
     buf->writestring(p);
-    AttribDeclaration::toCBuffer(buf);
+    AttribDeclaration::toCBuffer(buf, hgs);
 }
 
 /********************************* AlignDeclaration ****************************/
@@ -496,10 +526,10 @@ void AlignDeclaration::semantic(Scope *sc)
 }
 
 
-void AlignDeclaration::toCBuffer(OutBuffer *buf)
+void AlignDeclaration::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 {
     buf->printf("align %d", salign);
-    AttribDeclaration::toCBuffer(buf);
+    AttribDeclaration::toCBuffer(buf, hgs);
 }
 
 /********************************* AnonDeclaration ****************************/
@@ -605,10 +635,21 @@ void AnonDeclaration::semantic(Scope *sc)
 }
 
 
-void AnonDeclaration::toCBuffer(OutBuffer *buf)
+void AnonDeclaration::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 {
     buf->printf(isunion ? "union" : "struct");
-    AttribDeclaration::toCBuffer(buf);
+    buf->writestring("\n{\n");
+    if (decl)
+    {
+	for (unsigned i = 0; i < decl->dim; i++)
+	{
+	    Dsymbol *s = (Dsymbol *)decl->data[i];
+
+	    //buf->writestring("    ");
+	    s->toCBuffer(buf, hgs);
+	}
+    }
+    buf->writestring("}\n");
 }
 
 char *AnonDeclaration::kind()
@@ -711,7 +752,7 @@ void PragmaDeclaration::toObjFile()
     }
 }
 
-void PragmaDeclaration::toCBuffer(OutBuffer *buf)
+void PragmaDeclaration::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 {
     buf->printf("pragma(%s", ident->toChars());
     if (args)
@@ -720,11 +761,12 @@ void PragmaDeclaration::toCBuffer(OutBuffer *buf)
 	{
 	    Expression *e = (Expression *)args->data[i];
 
-	    buf->printf(", %s", e->toChars());
+	    buf->writestring(", ");
+	    e->toCBuffer(buf, hgs);
 	}
     }
     buf->writestring(")");
-    AttribDeclaration::toCBuffer(buf);
+    AttribDeclaration::toCBuffer(buf, hgs);
 }
 
 
@@ -801,9 +843,9 @@ void ConditionalDeclaration::addComment(unsigned char *comment)
     }
 }
 
-void ConditionalDeclaration::toCBuffer(OutBuffer *buf)
+void ConditionalDeclaration::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 {
-    condition->toCBuffer(buf);
+    condition->toCBuffer(buf, hgs);
     if (decl || elsedecl)
     {
 	buf->writenl();
@@ -816,7 +858,7 @@ void ConditionalDeclaration::toCBuffer(OutBuffer *buf)
 		Dsymbol *s = (Dsymbol *)decl->data[i];
 
 		buf->writestring("    ");
-		s->toCBuffer(buf);
+		s->toCBuffer(buf, hgs);
 	    }
 	}
 	buf->writeByte('}');
@@ -832,7 +874,7 @@ void ConditionalDeclaration::toCBuffer(OutBuffer *buf)
 		Dsymbol *s = (Dsymbol *)elsedecl->data[i];
 
 		buf->writestring("    ");
-		s->toCBuffer(buf);
+		s->toCBuffer(buf, hgs);
 	    }
 	    buf->writeByte('}');
 	}

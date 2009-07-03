@@ -45,10 +45,7 @@ struct AttribDeclaration : Dsymbol
     Dsymbol *oneMember();
     void checkCtorConstInit();
     void addLocalClass(Array *);
-    void toCBuffer(OutBuffer *buf);
-#ifdef _DH
-    void toHBuffer(OutBuffer *buf, HdrGenState *hgs);
-#endif
+    void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
     AttribDeclaration *isAttribDeclaration() { return this; }
 
     void toObjFile();			// compile to .obj file
@@ -62,10 +59,7 @@ struct StorageClassDeclaration: AttribDeclaration
     StorageClassDeclaration(unsigned stc, Array *decl);
     Dsymbol *syntaxCopy(Dsymbol *s);
     void semantic(Scope *sc);
-    void toCBuffer(OutBuffer *buf);
-#ifdef _DH
-    void toHBuffer(OutBuffer *buf, HdrGenState *hgs);
-#endif
+    void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
 };
 
 struct LinkDeclaration : AttribDeclaration
@@ -76,10 +70,7 @@ struct LinkDeclaration : AttribDeclaration
     Dsymbol *syntaxCopy(Dsymbol *s);
     void semantic(Scope *sc);
     void semantic3(Scope *sc);
-    void toCBuffer(OutBuffer *buf);
-#ifdef _DH
-    void toHBuffer(OutBuffer *buf, HdrGenState *hgs);
-#endif
+    void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
     char *toChars();
 };
 
@@ -90,10 +81,7 @@ struct ProtDeclaration : AttribDeclaration
     ProtDeclaration(enum PROT p, Array *decl);
     Dsymbol *syntaxCopy(Dsymbol *s);
     void semantic(Scope *sc);
-    void toCBuffer(OutBuffer *buf);
-#ifdef _DH
-    void toHBuffer(OutBuffer *buf, HdrGenState *hgs);
-#endif
+    void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
 };
 
 struct AlignDeclaration : AttribDeclaration
@@ -103,10 +91,7 @@ struct AlignDeclaration : AttribDeclaration
     AlignDeclaration(unsigned sa, Array *decl);
     Dsymbol *syntaxCopy(Dsymbol *s);
     void semantic(Scope *sc);
-    void toCBuffer(OutBuffer *buf);
-#ifdef _DH
-    void toHBuffer(OutBuffer *buf, HdrGenState *hgs);
-#endif
+    void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
 };
 
 struct AnonDeclaration : AttribDeclaration
@@ -116,10 +101,7 @@ struct AnonDeclaration : AttribDeclaration
     AnonDeclaration(Loc loc, int isunion, Array *decl);
     Dsymbol *syntaxCopy(Dsymbol *s);
     void semantic(Scope *sc);
-    void toCBuffer(OutBuffer *buf);
-#ifdef _DH
-    void toHBuffer(OutBuffer *buf, HdrGenState *hgs);
-#endif
+    void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
     char *kind();
 };
 
@@ -130,10 +112,7 @@ struct PragmaDeclaration : AttribDeclaration
     PragmaDeclaration(Loc loc, Identifier *ident, Array *args, Array *decl);
     Dsymbol *syntaxCopy(Dsymbol *s);
     void semantic(Scope *sc);
-    void toCBuffer(OutBuffer *buf);
-#ifdef _DH
-    void toHBuffer(OutBuffer *buf, HdrGenState *hgs);
-#endif
+    void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
     char *kind();
     void toObjFile();			// compile to .obj file
 };
@@ -148,10 +127,7 @@ struct ConditionalDeclaration : AttribDeclaration
     Dsymbol *oneMember();
     Array *include(Scope *sc, ScopeDsymbol *s);
     void addComment(unsigned char *comment);
-    void toCBuffer(OutBuffer *buf);
-#ifdef _DH
-    void toHBuffer(OutBuffer *buf, HdrGenState *hgs);
-#endif
+    void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
 };
 
 #endif /* DMD_ATTRIB_H */

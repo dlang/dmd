@@ -96,10 +96,12 @@ void *Token::operator new(size_t size)
     return ::operator new(size);
 }
 
+#ifdef DEBUG
 void Token::print()
 {
     printf("%s\n", toChars());
 }
+#endif
 
 char *Token::toChars()
 {   char *p;
@@ -156,7 +158,40 @@ char *Token::toChars()
 #if CSTRINGS
 	    p = string;
 #else
-	    p = (char *)ustring;
+	{   OutBuffer buf;
+
+	    buf.writeByte('"');
+	    for (unsigned i = 0; i < len; )
+	    {	unsigned c;
+
+		utf_decodeChar((unsigned char *)ustring, len, &i, &c);
+		switch (c)
+		{
+		    case 0:
+			break;
+
+		    case '"':
+		    case '\\':
+			buf.writeByte('\\');
+		    default:
+			if (isprint(c))
+			    buf.writeByte(c);
+			else if (c <= 0x7F)
+			    buf.printf("\\x%02x", c);
+			else if (c <= 0xFFFF)
+			    buf.printf("\\u%04x", c);
+			else
+			    buf.printf("\\U%08x", c);
+			continue;
+		}
+		break;
+	    }
+	    buf.writeByte('"');
+	    if (postfix)
+		buf.writeByte('"');
+	    buf.writeByte(0);
+	    p = (char *)buf.extractData();
+	}
 #endif
 	    break;
 
@@ -1396,6 +1431,7 @@ void Lexer::stringPostfix(Token *t)
  *	u	'u' or 'U'
  */
 
+#if 0
 unsigned Lexer::wchar(unsigned u)
 {
     unsigned value;
@@ -1426,6 +1462,7 @@ unsigned Lexer::wchar(unsigned u)
     }
     return value;
 }
+#endif
 
 /**************************************
  * Read in a number.
@@ -1670,7 +1707,7 @@ done:
 
     uinteger_t n;			// unsigned >=64 bit integer type
 
-    if (stringbuffer.offset == 1 && (state == STATE_decimal || state == STATE_0))
+    if (stringbuffer.offset == 2 && (state == STATE_decimal || state == STATE_0))
 	n = stringbuffer.data[0] - '0';
     else
     {
@@ -2102,8 +2139,7 @@ unsigned Lexer::decodeUTF()
     char *msg;
 
     c = *s;
-    if (!(c & 0x80))
-	return c;
+    assert(c & 0x80);
 
     // Check length of remaining string up to 6 UTF-8 characters
     for (len = 1; len < 6 && s[len]; len++)
@@ -2460,6 +2496,7 @@ void Lexer::initKeywords()
     Token::tochars[TOKug]		= "!<=";
 
     Token::tochars[TOKnot]		= "!";
+    Token::tochars[TOKbool]		= "!!";
     Token::tochars[TOKshl]		= "<<";
     Token::tochars[TOKshr]		= ">>";
     Token::tochars[TOKushr]		= ">>>";
@@ -2501,6 +2538,8 @@ void Lexer::initKeywords()
     Token::tochars[TOKcatass]		= "~=";
     Token::tochars[TOKcat]		= "~";
     Token::tochars[TOKcall]		= "call";
+    Token::tochars[TOKidentity]		= "is";
+    Token::tochars[TOKnotidentity]	= "!is";
 
     Token::tochars[TOKorass]		= "|=";
 

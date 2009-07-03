@@ -103,10 +103,7 @@ struct StructDeclaration : AggregateDeclaration
     StructDeclaration(Loc loc, Identifier *id);
     Dsymbol *syntaxCopy(Dsymbol *s);
     void semantic(Scope *sc);
-    void toCBuffer(OutBuffer *buf);
-#ifdef _DH
-    void toHBuffer(OutBuffer *buf, HdrGenState *hgs);
-#endif
+    void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
     char *mangle();
     char *kind();
 
@@ -183,10 +180,7 @@ struct ClassDeclaration : AggregateDeclaration
     ClassDeclaration(Loc loc, Identifier *id, Array *baseclasses);
     Dsymbol *syntaxCopy(Dsymbol *s);
     void semantic(Scope *sc);
-    void toCBuffer(OutBuffer *buf);
-#ifdef _DH
-    void toHBuffer(OutBuffer *buf, HdrGenState *hgs);
-#endif
+    void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
     int isBaseOf2(ClassDeclaration *cd);
 
     #define OFFSET_RUNTIME 0x76543210

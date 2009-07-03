@@ -55,11 +55,9 @@ struct Param
     char *docname;	// write documentation file to docname
     Array *ddocfiles;	// macro include files for Ddoc
 
-#ifdef _DH
     char doHdrGeneration;	// process embedded documentation comments
     char *hdrdir;		// write 'header' file to docdir directory
     char *hdrname;		// write 'header' file to docname
-#endif
 
     unsigned debuglevel;	// debug level
     Array *debugids;		// debug identifiers
@@ -93,9 +91,7 @@ struct Global
     char *obj_ext;
     char *doc_ext;	// for Ddoc generated files
     char *ddoc_ext;	// for Ddoc macro include files
-#ifdef _DH
-    char *hdr_ext;
-#endif
+    char *hdr_ext;	// for D 'header' import files
     char *copyright;
     char *written;
     Array *path;	// Array of char*'s which form the import lookup path

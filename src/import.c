@@ -1,5 +1,5 @@
 
-// Copyright (c) 1999-2002 by Digital Mars
+// Copyright (c) 1999-2005 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // www.digitalmars.com
@@ -16,6 +16,7 @@
 #include "identifier.h"
 #include "module.h"
 #include "scope.h"
+#include "hdrgen.h"
 
 /********************************* Import ****************************/
 
@@ -132,8 +133,11 @@ int Import::overloadInsert(Dsymbol *s)
     return s->isImport() != NULL;
 }
 
-void Import::toCBuffer(OutBuffer *buf)
+void Import::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 {
+    if (hgs->hdrgen && id == Id::object)
+	return;		// object is imported by default
+
     buf->writestring("import ");
     if (packages && packages->dim)
     {	int i;

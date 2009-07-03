@@ -1,5 +1,5 @@
 
-// Copyright (c) 1999-2004 by Digital Mars
+// Copyright (c) 1999-2005 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // www.digitalmars.com
@@ -30,8 +30,8 @@ struct Identifier : Object
     char *toChars();
 #ifdef _DH
     char *toHChars();
-    char *toHChars2();  //New
 #endif
+    char *toHChars2();
     int dyncast();
 
     static Identifier *generateId(char *prefix);

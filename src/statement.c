@@ -23,7 +23,7 @@
 #include "declaration.h"
 #include "aggregate.h"
 #include "id.h"
-
+#include "hdrgen.h"
 
 /******************************** Statement ***************************/
 
@@ -51,13 +51,14 @@ void Statement::print()
 
 char *Statement::toChars()
 {   OutBuffer *buf;
+    HdrGenState hgs;
 
     buf = new OutBuffer();
-    toCBuffer(buf);
+    toCBuffer(buf, &hgs);
     return buf->toChars();
 }
 
-void Statement::toCBuffer(OutBuffer *buf)
+void Statement::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 {
     buf->printf("Statement::toCBuffer()");
     buf->writenl();
@@ -174,12 +175,13 @@ Statement *ExpStatement::syntaxCopy()
     return es;
 }
 
-void ExpStatement::toCBuffer(OutBuffer *buf)
+void ExpStatement::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 {
     if (exp)
-	exp->toCBuffer(buf);
+	exp->toCBuffer(buf, hgs);
     buf->writeByte(';');
-    buf->writenl();
+    if (!hgs->FLinit.init)
+        buf->writenl();
 }
 
 Statement *ExpStatement::semantic(Scope *sc)
@@ -244,10 +246,9 @@ Statement *DeclarationStatement::callAutoDtor()
     return NULL;
 }
 
-void DeclarationStatement::toCBuffer(OutBuffer *buf)
+void DeclarationStatement::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 {
-    buf->printf("DeclarationStatement::toCBuffer()");
-    buf->writenl();
+    exp->toCBuffer(buf, hgs);
 }
 
 
@@ -365,7 +366,7 @@ ReturnStatement *CompoundStatement::isReturnStatement()
     return rs;
 }
 
-void CompoundStatement::toCBuffer(OutBuffer *buf)
+void CompoundStatement::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 {   int i;
 
     for (i = 0; i < statements->dim; i++)
@@ -373,7 +374,7 @@ void CompoundStatement::toCBuffer(OutBuffer *buf)
 
 	s = (Statement *) statements->data[i];
 	if (s)
-	    s->toCBuffer(buf);
+	    s->toCBuffer(buf, hgs);
     }
 }
 
@@ -467,13 +468,13 @@ int ScopeStatement::fallOffEnd()
     return statement ? statement->fallOffEnd() : TRUE;
 }
 
-void ScopeStatement::toCBuffer(OutBuffer *buf)
+void ScopeStatement::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 {
     buf->writeByte('{');
     buf->writenl();
 
     if (statement)
-	statement->toCBuffer(buf);
+	statement->toCBuffer(buf, hgs);
 
     buf->writeByte('}');
     buf->writenl();
@@ -529,6 +530,15 @@ int WhileStatement::fallOffEnd()
     return TRUE;
 }
 
+void WhileStatement::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
+{
+    buf->writestring("while (");
+    condition->toCBuffer(buf, hgs);
+    buf->writebyte(')');
+    buf->writenl();
+    body->toCBuffer(buf, hgs);
+}
+
 /******************************** DoStatement ***************************/
 
 DoStatement::DoStatement(Loc loc, Statement *b, Expression *c)
@@ -575,6 +585,16 @@ int DoStatement::fallOffEnd()
 {
     body->fallOffEnd();
     return TRUE;
+}
+
+void DoStatement::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
+{
+    buf->writestring("do");
+    buf->writenl();
+    body->toCBuffer(buf, hgs);
+    buf->writestring("while (");
+    condition->toCBuffer(buf, hgs);
+    buf->writebyte(')');
 }
 
 /******************************** ForStatement ***************************/
@@ -650,6 +670,39 @@ int ForStatement::fallOffEnd()
     if (body)
 	body->fallOffEnd();
     return TRUE;
+}
+
+void ForStatement::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
+{
+    buf->writestring("for (");
+    if (init)
+    {
+        hgs->FLinit.init++;
+        hgs->FLinit.decl = 0;
+        init->toCBuffer(buf, hgs);
+        if (hgs->FLinit.decl > 0)
+            buf->writebyte(';');
+        hgs->FLinit.decl = 0;
+        hgs->FLinit.init--;
+    }
+    else
+        buf->writebyte(';');
+    if (condition)
+    {   buf->writebyte(' ');
+        condition->toCBuffer(buf, hgs);
+    }
+    buf->writebyte(';');
+    if (increment)
+    {   buf->writebyte(' ');
+        increment->toCBuffer(buf, hgs);
+    }
+    buf->writebyte(')');
+    buf->writenl();
+    buf->writebyte('{');
+    buf->writenl();
+    body->toCBuffer(buf, hgs);
+    buf->writebyte('}');
+    buf->writenl();
 }
 
 /******************************** ForeachStatement ***************************/
@@ -1000,6 +1053,31 @@ int ForeachStatement::fallOffEnd()
     return TRUE;
 }
 
+void ForeachStatement::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
+{
+    buf->writestring("foreach (");
+    int i;
+    for (int i = 0; i < arguments->dim; i++)
+    {
+	Argument *a = (Argument *)arguments->data[i];
+	if (i)
+	    buf->writestring(", ");
+	if (a->inout == InOut)
+	    buf->writestring("inout ");
+	a->type->toCBuffer(buf, a->ident, hgs);
+    }
+    buf->writestring("; ");
+    aggr->toCBuffer(buf, hgs);
+    buf->writebyte(')');
+    buf->writenl();
+    buf->writebyte('{');
+    buf->writenl();
+    if (body)
+	body->toCBuffer(buf, hgs);
+    buf->writebyte('}');
+    buf->writenl();
+}
+
 /******************************** IfStatement ***************************/
 
 IfStatement::IfStatement(Loc loc, Expression *condition, Statement *ifbody, Statement *elsebody)
@@ -1063,10 +1141,18 @@ int IfStatement::fallOffEnd()
 }
 
 
-void IfStatement::toCBuffer(OutBuffer *buf)
+void IfStatement::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 {
-    buf->printf("IfStatement::toCBuffer()");
+    buf->writestring("if (");
+    condition->toCBuffer(buf, hgs);
+    buf->writebyte(')');
     buf->writenl();
+    ifbody->toCBuffer(buf, hgs);
+    if (elsebody)
+    {   buf->writestring("else");
+        buf->writenl();
+        elsebody->toCBuffer(buf, hgs);
+    }
 }
 
 /******************************** ConditionalStatement ***************************/
@@ -1114,11 +1200,18 @@ int ConditionalStatement::usesEH()
     return (ifbody && ifbody->usesEH()) || (elsebody && elsebody->usesEH());
 }
 
-void ConditionalStatement::toCBuffer(OutBuffer *buf)
+void ConditionalStatement::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 {
-    condition->toCBuffer(buf);
+    condition->toCBuffer(buf, hgs);
     buf->writenl();
-    buf->printf("ConditionalStatement::toCBuffer()");
+    if (ifbody)
+	ifbody->toCBuffer(buf, hgs);
+    if (elsebody)
+    {
+	buf->writestring("else");
+	buf->writenl();
+	elsebody->toCBuffer(buf, hgs);
+    }
     buf->writenl();
 }
 
@@ -1201,7 +1294,7 @@ int PragmaStatement::fallOffEnd()
     return TRUE;
 }
 
-void PragmaStatement::toCBuffer(OutBuffer *buf)
+void PragmaStatement::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 {
     buf->printf("PragmaStatement::toCBuffer()");
     buf->writenl();
@@ -1228,9 +1321,9 @@ Statement *StaticAssertStatement::semantic(Scope *sc)
     return NULL;
 }
 
-void StaticAssertStatement::toCBuffer(OutBuffer *buf)
+void StaticAssertStatement::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 {
-    sa->toCBuffer(buf);
+    sa->toCBuffer(buf, hgs);
 }
 
 
@@ -1360,6 +1453,28 @@ int SwitchStatement::fallOffEnd()
     return TRUE;
 }
 
+void SwitchStatement::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
+{
+    buf->writestring("switch (");
+    condition->toCBuffer(buf, hgs);
+    buf->writebyte(')');
+    buf->writenl();
+    if (body)
+    {
+	if (!body->isScopeStatement())
+        {   buf->writebyte('{');
+            buf->writenl();
+            body->toCBuffer(buf, hgs);
+            buf->writebyte('}');
+            buf->writenl();
+        }
+        else
+        {
+            body->toCBuffer(buf, hgs);
+        }
+    }
+}
+
 /******************************** CaseStatement ***************************/
 
 CaseStatement::CaseStatement(Loc loc, Expression *exp, Statement *s)
@@ -1445,6 +1560,15 @@ int CaseStatement::comeFrom()
     return TRUE;
 }
 
+void CaseStatement::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
+{
+    buf->writestring("case ");
+    exp->toCBuffer(buf, hgs);
+    buf->writebyte(':');
+    buf->writenl();
+    statement->toCBuffer(buf, hgs);
+}
+
 /******************************** DefaultStatement ***************************/
 
 DefaultStatement::DefaultStatement(Loc loc, Statement *s)
@@ -1490,6 +1614,12 @@ int DefaultStatement::comeFrom()
     return TRUE;
 }
 
+void DefaultStatement::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
+{
+    buf->writestring("default:\n");
+    statement->toCBuffer(buf, hgs);
+}
+
 /******************************** GotoDefaultStatement ***************************/
 
 GotoDefaultStatement::GotoDefaultStatement(Loc loc)
@@ -1515,6 +1645,11 @@ Statement *GotoDefaultStatement::semantic(Scope *sc)
 int GotoDefaultStatement::fallOffEnd()
 {
     return FALSE;
+}
+
+void GotoDefaultStatement::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
+{
+    buf->writestring("goto default;\n");
 }
 
 /******************************** GotoCaseStatement ***************************/
@@ -1557,6 +1692,17 @@ int GotoCaseStatement::fallOffEnd()
     return FALSE;
 }
 
+void GotoCaseStatement::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
+{
+    buf->writestring("goto case");
+    if (exp)
+    {   buf->writebyte(' ');
+        exp->toCBuffer(buf, hgs);
+    }
+    buf->writebyte(';');
+    buf->writenl();
+}
+
 /******************************** SwitchErrorStatement ***************************/
 
 SwitchErrorStatement::SwitchErrorStatement(Loc loc)
@@ -1567,6 +1713,12 @@ SwitchErrorStatement::SwitchErrorStatement(Loc loc)
 int SwitchErrorStatement::fallOffEnd()
 {
     return FALSE;
+}
+
+void SwitchErrorStatement::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
+{
+    buf->writestring("SwitchErrorStatement::toCBuffer()");
+    buf->writenl();
 }
 
 /******************************** ReturnStatement ***************************/
@@ -1744,11 +1896,11 @@ int ReturnStatement::fallOffEnd()
     return FALSE;
 }
 
-void ReturnStatement::toCBuffer(OutBuffer *buf)
+void ReturnStatement::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 {
     buf->printf("return ");
     if (exp)
-	exp->toCBuffer(buf);
+	exp->toCBuffer(buf, hgs);
     buf->writeByte(';');
     buf->writenl();
 }
@@ -1830,6 +1982,17 @@ int BreakStatement::fallOffEnd()
     return FALSE;
 }
 
+void BreakStatement::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
+{
+    buf->writestring("break");
+    if (ident)
+    {   buf->writebyte(' ');
+        buf->writestring(ident->toChars());
+    }
+    buf->writebyte(';');
+    buf->writenl();
+}
+
 /******************************** ContinueStatement ***************************/
 
 ContinueStatement::ContinueStatement(Loc loc, Identifier *ident)
@@ -1907,6 +2070,17 @@ int ContinueStatement::fallOffEnd()
     return FALSE;
 }
 
+void ContinueStatement::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
+{
+    buf->writestring("continue");
+    if (ident)
+    {   buf->writebyte(' ');
+        buf->writestring(ident->toChars());
+    }
+    buf->writebyte(';');
+    buf->writenl();
+}
+
 /******************************** SynchronizedStatement ***************************/
 
 SynchronizedStatement::SynchronizedStatement(Loc loc, Expression *exp, Statement *body)
@@ -1974,6 +2148,21 @@ int SynchronizedStatement::fallOffEnd()
     return body->fallOffEnd();
 }
 
+void SynchronizedStatement::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
+{
+    buf->writestring("synchronized");
+    if (exp)
+    {   buf->writebyte('(');
+	exp->toCBuffer(buf, hgs);
+	buf->writebyte(')');
+    }
+    if (body)
+    {
+	buf->writebyte(' ');
+	body->toCBuffer(buf, hgs);
+    }
+}
+
 /******************************** WithStatement ***************************/
 
 WithStatement::WithStatement(Loc loc, Expression *exp, Statement *body)
@@ -2038,13 +2227,12 @@ Statement *WithStatement::semantic(Scope *sc)
     return this;
 }
 
-void WithStatement::toCBuffer(OutBuffer *buf)
+void WithStatement::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 {
     buf->writestring("with (");
-    exp->toCBuffer(buf);
-    buf->writestring(")\n{\n");
-    body->toCBuffer(buf);
-    buf->writestring("\n}\n");
+    exp->toCBuffer(buf, hgs);
+    buf->writestring(")\n");
+    body->toCBuffer(buf, hgs);
 }
 
 int WithStatement::usesEH()
@@ -2130,6 +2318,20 @@ int TryCatchStatement::fallOffEnd()
     return result;
 }
 
+void TryCatchStatement::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
+{
+    buf->writestring("try");
+    buf->writenl();
+    if (body)
+        body->toCBuffer(buf, hgs);
+    int i;
+    for (i = 0; i < catches->dim; i++)
+    {
+        Catch *c = (Catch *)catches->data[i];
+        c->toCBuffer(buf, hgs);
+    }
+}
+
 /******************************** Catch ***************************/
 
 Catch::Catch(Loc loc, Type *t, Identifier *id, Statement *handler)
@@ -2187,6 +2389,22 @@ void Catch::semantic(Scope *sc)
     sc->pop();
 }
 
+void Catch::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
+{
+    buf->writestring("catch");
+    if (type)
+    {   buf->writebyte('(');
+	type->toCBuffer(buf, ident, hgs);
+        buf->writebyte(')');
+    }
+    buf->writenl();
+    buf->writebyte('{');
+    buf->writenl();
+    handler->toCBuffer(buf, hgs);
+    buf->writebyte('}');
+    buf->writenl();
+}
+
 /******************************** TryFinallyStatement ***************************/
 
 TryFinallyStatement::TryFinallyStatement(Loc loc, Statement *body, Statement *finalbody)
@@ -2215,12 +2433,12 @@ Statement *TryFinallyStatement::semantic(Scope *sc)
     return this;
 }
 
-void TryFinallyStatement::toCBuffer(OutBuffer *buf)
+void TryFinallyStatement::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 {
     buf->printf("try\n{\n");
-    body->toCBuffer(buf);
+    body->toCBuffer(buf, hgs);
     buf->printf("}\nfinally\n{\n");
-    finalbody->toCBuffer(buf);
+    finalbody->toCBuffer(buf, hgs);
     buf->writeByte('}');
     buf->writenl();
 }
@@ -2280,10 +2498,10 @@ int ThrowStatement::fallOffEnd()
     return FALSE;
 }
 
-void ThrowStatement::toCBuffer(OutBuffer *buf)
+void ThrowStatement::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 {
     buf->printf("throw ");
-    exp->toCBuffer(buf);
+    exp->toCBuffer(buf, hgs);
     buf->writeByte(';');
     buf->writenl();
 }
@@ -2331,6 +2549,17 @@ int VolatileStatement::fallOffEnd()
     return statement->fallOffEnd();
 }
 
+void VolatileStatement::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
+{
+    buf->writestring("volatile");
+    if (statement)
+    {   if (statement->isScopeStatement())
+            buf->writenl();
+        else
+            buf->writebyte(' ');
+        statement->toCBuffer(buf, hgs);
+    }
+}
 
 
 /******************************** GotoStatement ***************************/
@@ -2379,6 +2608,14 @@ Statement *GotoStatement::semantic(Scope *sc)
 int GotoStatement::fallOffEnd()
 {
     return FALSE;
+}
+
+void GotoStatement::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
+{
+    buf->writestring("goto ");
+    buf->writestring(ident->toChars());
+    buf->writebyte(';');
+    buf->writenl();
 }
 
 /******************************** LabelStatement ***************************/
@@ -2453,6 +2690,15 @@ int LabelStatement::fallOffEnd()
 int LabelStatement::comeFrom()
 {
     return TRUE;
+}
+
+void LabelStatement::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
+{
+    buf->writestring(ident->toChars());
+    buf->writebyte(':');
+    buf->writenl();
+    if (statement)
+        statement->toCBuffer(buf, hgs);
 }
 
 

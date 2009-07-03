@@ -15,6 +15,8 @@
 #include <malloc.h>
 #endif
 
+#include "mem.h"
+
 #include "mars.h"
 #include "module.h"
 #include "parse.h"
@@ -23,6 +25,7 @@
 #include "id.h"
 #include "import.h"
 #include "dsymbol.h"
+#include "hdrgen.h"
 
 #define MARS 1
 #include "html.h"
@@ -38,11 +41,7 @@ void Module::init()
     modules = new DsymbolTable();
 }
 
-#ifdef _DH
 Module::Module(char *filename, Identifier *ident, int doDocComment, int doHdrGen)
-#else
-Module::Module(char *filename, Identifier *ident, int doDocComment)
-#endif
 	: Package(ident)
 {
     FileName *srcfilename;
@@ -122,12 +121,10 @@ Module::Module(char *filename, Identifier *ident, int doDocComment)
 	setDocfile();
     }
 
-#ifdef _DH
     if (doHdrGen)
     {
 	setHdrfile();
     }
-#endif
 
     objfile = new File(objfilename);
     symfile = new File(symfilename);
@@ -159,7 +156,6 @@ void Module::setDocfile()
     docfile = new File(docfilename);
 }
 
-#ifdef _DH
 void Module::setHdrfile()
 {
     FileName *hdrfilename;
@@ -185,7 +181,6 @@ void Module::setHdrfile()
 
     hdrfile = new File(hdrfilename);
 }
-#endif
 
 void Module::deleteObjFile()
 {
@@ -235,22 +230,47 @@ Module *Module::load(Loc loc, Array *packages, Identifier *ident)
 	filename = (char *)buf.extractData();
     }
 
-#ifdef _DH
     m = new Module(filename, ident, 0, 0);
-#else
-    m = new Module(filename, ident, 0);
-#endif
     m->loc = loc;
 
-    // Find the sym file
-    char *s;
-    s = FileName::searchPath(global.path, m->symfile->toChars(), 1);
-    if (s)
-	m->symfile = new File(s);
+    /* Search along global.path for .di file, then .d file.
+     */
+    char *result = NULL;
+    FileName *fdi = FileName::forceExt(filename, global.hdr_ext);
+    FileName *fd  = FileName::forceExt(filename, global.mars_ext);
+    char *sdi = fdi->toChars();
+    char *sd  = fd->toChars();
 
-    // BUG: the sym file is actually a source file that is
-    // parsed. Someday make it a real symbol table
-    m->srcfile = m->symfile;
+    if (FileName::exists(sdi))
+	result = sdi;
+    else if (FileName::exists(sd))
+	result =sd;
+    else if (FileName::absolute(filename))
+	;
+    else if (!global.path)
+	;
+    else
+    {
+	for (size_t i = 0; i < global.path->dim; i++)
+	{
+	    char *p = (char *)global.path->data[i];
+	    char *n = FileName::combine(p, sdi);
+	    if (FileName::exists(n))
+	    {	result = n;
+		break;
+	    }
+	    mem.free(n);
+	    n = FileName::combine(p, sd);
+	    if (FileName::exists(n))
+	    {	result = n;
+		break;
+	    }
+	    mem.free(n);
+	}
+    }
+    if (result)
+	m->srcfile = new File(result);
+
     m->read(loc);
     m->parse();
 
@@ -667,6 +687,7 @@ void Module::inlineScan()
 void Module::gensymfile()
 {
     OutBuffer buf;
+    HdrGenState hgs;
     int i;
 
     //printf("Module::gensymfile()\n");
@@ -679,7 +700,7 @@ void Module::gensymfile()
 	Dsymbol *s;
 
 	s = (Dsymbol *)members->data[i];
-	s->toCBuffer(&buf);
+	s->toCBuffer(&buf, &hgs);
     }
 
     // Transfer image to file

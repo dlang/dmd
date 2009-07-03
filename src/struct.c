@@ -402,10 +402,12 @@ void StructDeclaration::semantic(Scope *sc)
     }
 }
 
-void StructDeclaration::toCBuffer(OutBuffer *buf)
+void StructDeclaration::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 {   int i;
 
-    buf->printf("%s %s", kind(), toChars());
+    buf->printf("%s ", kind());
+    if (!isAnonymous())
+	buf->writestring(toChars());
     if (!members)
     {
 	buf->writeByte(';');
@@ -420,7 +422,7 @@ void StructDeclaration::toCBuffer(OutBuffer *buf)
 	Dsymbol *s = (Dsymbol *)members->data[i];
 
 	buf->writestring("    ");
-	s->toCBuffer(buf);
+	s->toCBuffer(buf, hgs);
     }
     buf->writeByte('}');
     buf->writenl();

@@ -20,6 +20,7 @@
 #include "module.h"
 #include "id.h"
 #include "expression.h"
+#include "hdrgen.h"
 
 /********************************* Declaration ****************************/
 
@@ -171,10 +172,15 @@ Type *TypedefDeclaration::getType()
     return type;
 }
 
-void TypedefDeclaration::toCBuffer(OutBuffer *buf)
+void TypedefDeclaration::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 {
     buf->writestring("typedef ");
-    basetype->toCBuffer(buf, ident);
+    basetype->toCBuffer(buf, ident, hgs);
+    if (init)
+    {
+	buf->writestring(" = ");
+	init->toCBuffer(buf, hgs);
+    }
     buf->writeByte(';');
     buf->writenl();
 }
@@ -386,17 +392,33 @@ Dsymbol *AliasDeclaration::toAlias()
     return s;
 }
 
-void AliasDeclaration::toCBuffer(OutBuffer *buf)
+void AliasDeclaration::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 {
     buf->writestring("alias ");
-    if (aliassym)
+#if _DH
+    if (hgs->hdrgen)
     {
-	aliassym->toCBuffer(buf);
-	buf->writeByte(' ');
-	buf->writestring(ident->toChars());
+	if (haliassym)
+	{
+	    haliassym->toCBuffer(buf, hgs);
+	    buf->writeByte(' ');
+	    buf->writestring(ident->toChars());
+	}
+	else
+	    htype->toCBuffer(buf, ident, hgs);
     }
     else
-	type->toCBuffer(buf, ident);
+#endif
+    {
+	if (aliassym)
+	{
+	    aliassym->toCBuffer(buf, hgs);
+	    buf->writeByte(' ');
+	    buf->writestring(ident->toChars());
+	}
+	else
+	    type->toCBuffer(buf, ident, hgs);
+    }
     buf->writeByte(';');
     buf->writenl();
 }
@@ -700,12 +722,12 @@ char *VarDeclaration::kind()
     return "variable";
 }
 
-void VarDeclaration::toCBuffer(OutBuffer *buf)
+void VarDeclaration::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 {
-    type->toCBuffer(buf, ident);
+    type->toCBuffer(buf, ident, hgs);
     if (init)
     {	buf->writestring(" = ");
-	init->toCBuffer(buf);
+	init->toCBuffer(buf, hgs);
     }
     buf->writeByte(';');
     buf->writenl();
@@ -779,6 +801,7 @@ Expression *VarDeclaration::callAutoDtor()
     }
     return e;
 }
+
 
 /********************************* ClassInfoDeclaration ****************************/
 

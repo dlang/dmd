@@ -34,6 +34,7 @@
 #include "id.h"
 #include "module.h"
 #include "scope.h"
+#include "hdrgen.h"
 #include "doc.h"
 
 struct Section
@@ -586,7 +587,9 @@ void EnumMember::emitComment(Scope *sc)
 
 void Dsymbol::toDocBuffer(OutBuffer *buf)
 {
-    toCBuffer(buf);
+    HdrGenState hgs;
+
+    toCBuffer(buf, &hgs);
 }
 
 void Declaration::toDocBuffer(OutBuffer *buf)
@@ -606,7 +609,9 @@ void Declaration::toDocBuffer(OutBuffer *buf)
 	if (isSynchronized())
 	    buf->writestring("synchronized ");
 	if (type)
-	    type->toCBuffer(buf, ident);
+	{   HdrGenState hgs;
+	    type->toCBuffer(buf, ident, &hgs);
+	}
 	buf->writestring(";\n");
     }
 }
@@ -651,7 +656,8 @@ void CtorDeclaration::toDocBuffer(OutBuffer *buf)
     {	// Need to create one
 	tf = new TypeFunction(arguments, Type::tvoid, varargs, LINKd);
     }
-    tf->argsToCBuffer(buf);
+    HdrGenState hgs;
+    tf->argsToCBuffer(buf, &hgs);
     buf->writestring(";\n");
 }
 
@@ -708,7 +714,8 @@ void ClassDeclaration::toDocBuffer(OutBuffer *buf)
 	    }
 	    else
 	    {
-		bc->type->toCBuffer(buf, NULL);
+		HdrGenState hgs;
+		bc->type->toCBuffer(buf, NULL, &hgs);
 	    }
 	}
 	buf->writestring(";\n");
@@ -1018,13 +1025,13 @@ void ParamSection::write(DocComment *dc, Scope *sc, Dsymbol *s, OutBuffer *buf)
 
 	L1:
 	    //printf("param '%.*s' = '%.*s'\n", namelen, namestart, textlen, textstart);
-
+	    HdrGenState hgs;
 	    buf->writestring("$(DDOC_PARAM_ROW ");
 		buf->writestring("$(DDOC_PARAM_ID ");
 		    o = buf->offset;
 		    arg = isFunctionParameter(s, namestart, namelen);
 		    if (arg && arg->type && arg->ident)
-			arg->type->toCBuffer(buf, arg->ident);
+			arg->type->toCBuffer(buf, arg->ident, &hgs);
 		    else
 			buf->write(namestart, namelen);
 		    highlightCode(sc, s, buf, o);

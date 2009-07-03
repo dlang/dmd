@@ -33,9 +33,7 @@ struct InlineCostState
 {
     int nested;
     int hasthis;
-#ifdef _DH
-    int hdrscan;    // Is this an inline scan for 'header' content?
-#endif
+    int hdrscan;    // !=0 if inline scan for 'header' content
     FuncDeclaration *fd;
 };
 
@@ -60,19 +58,6 @@ int CompoundStatement::inlineCost(InlineCostState *ics)
 	s = (Statement *) statements->data[i];
 	if (s)
 	{
-#ifdef _DH
-	    if (ics->hdrscan)
-	    {   if (s->incontract)
-		    continue;       // bypass in contract
-
-		GotoStatement *gs = s->isGotoStatement();
-		if (gs && gs->label->statement->isReturnLabel)
-		    ics->hdrscan++; // skip out contract
-
-		if (ics->hdrscan > 1)
-		    break;
-	    }
-#endif
 	    cost += s->inlineCost(ics);
 	    if (cost >= COST_MAX)
 		break;
@@ -133,10 +118,8 @@ int arrayInlineCost(InlineCostState *ics, Array *arguments)
 	for (int i = 0; i < arguments->dim; i++)
 	{   Expression *e = (Expression *)arguments->data[i];
 
-#ifdef _DH
-	    if (e)   // To avoid crash with DMDFE for some expressions
-#endif
-	    cost += e->inlineCost(ics);
+	    if (e)
+		cost += e->inlineCost(ics);
 	}
     }
     return cost;
@@ -150,16 +133,18 @@ int Expression::inlineCost(InlineCostState *ics)
 int ThisExp::inlineCost(InlineCostState *ics)
 {
     FuncDeclaration *fd = ics->fd;
-    if (fd->isNested() || !ics->hasthis)
-	return COST_MAX;
+    if (!ics->hdrscan)
+	if (fd->isNested() || !ics->hasthis)
+	    return COST_MAX;
     return 1;
 }
 
 int SuperExp::inlineCost(InlineCostState *ics)
 {
     FuncDeclaration *fd = ics->fd;
-    if (fd->isNested() || !ics->hasthis)
-	return COST_MAX;
+    if (!ics->hdrscan)
+	if (fd->isNested() || !ics->hasthis)
+	    return COST_MAX;
     return 1;
 }
 
@@ -181,7 +166,7 @@ int DeclarationExp::inlineCost(InlineCostState *ics)
     vd = declaration->isVarDeclaration();
     if (vd)
     {
-	if (vd->isDataseg())
+	if (!ics->hdrscan && vd->isDataseg())
 	    return COST_MAX;
 	cost += 1;
 
@@ -362,9 +347,7 @@ Array *arrayExpressiondoInline(Array *a, InlineDoState *ids)
 	for (int i = 0; i < a->dim; i++)
 	{   Expression *e = (Expression *)a->data[i];
 
-#ifdef _DH
-	    if (e)   // To avoid crash with DMDFE for some expressions
-#endif
+	    if (e)
 	    {
 		e = e->doInline(ids);
 		newa->data[i] = (void *)e;
@@ -834,9 +817,7 @@ void arrayInlineScan(InlineScanState *iss, Array *arguments)
 	for (int i = 0; i < arguments->dim; i++)
 	{   Expression *e = (Expression *)arguments->data[i];
 
-#ifdef _DH
-	    if (e)   // to avoid a crash with DMDFE when scanning arguments with variadic parameters
-#endif
+	    if (e)
 	    {
 		e = e->inlineScan(iss);
 		arguments->data[i] = (void *)e;
@@ -962,11 +943,7 @@ void FuncDeclaration::inlineScan()
     }
 }
 
-#ifdef _DH
 int FuncDeclaration::canInline(int hasthis, int hdrscan)
-#else
-int FuncDeclaration::canInline(int hasthis)
-#endif
 {
     InlineCostState ics;
     int cost;
@@ -977,7 +954,7 @@ int FuncDeclaration::canInline(int hasthis)
     printf("FuncDeclaration::canInline('%s')\n", toChars());
 #endif
 
-    if (inlineNest || !semanticRun)
+    if (inlineNest || (!semanticRun && !hdrscan))
     {
 #if CANINLINE_LOG
 	printf("\t1: no, inlineNest = %d, semanticRun = %d\n", inlineNest, semanticRun);
@@ -1010,6 +987,10 @@ int FuncDeclaration::canInline(int hasthis)
     TypeFunction *tf = (TypeFunction *)(type);
 
     if (
+	!fbody ||
+	tf->varargs == 1 ||	// no variadic parameter lists
+	!hdrscan &&
+	(
 #if 0
 	isCtorDeclaration() ||	// cannot because need to convert:
 				//	return;
@@ -1018,11 +999,9 @@ int FuncDeclaration::canInline(int hasthis)
 #endif
 	isSynchronized() ||
 	isImportedSymbol() ||
-	!fbody ||
-	tf->varargs == 1 ||	// no variadic parameter lists
 	nestedFrameRef ||	// no nested references to this frame
 	(isVirtual() && !isFinal())
-       )
+       ))
     {
 	goto Lno;
     }
@@ -1043,9 +1022,7 @@ int FuncDeclaration::canInline(int hasthis)
     memset(&ics, 0, sizeof(ics));
     ics.hasthis = hasthis;
     ics.fd = this;
-#ifdef _DH
-    ics.hdrscan = hdrscan ? 1 : 0;
-#endif
+    ics.hdrscan = hdrscan;
     cost = fbody->inlineCost(&ics);
 #if CANINLINE_LOG
     printf("cost = %d\n", cost);
@@ -1053,26 +1030,20 @@ int FuncDeclaration::canInline(int hasthis)
     if (cost >= COST_MAX)
 	goto Lno;
 
-#ifdef _DH
     if (!hdrscan)    // Don't scan recursively for header content scan
-#endif
-    inlineScan();
+	inlineScan();
 
 Lyes:
-#ifdef _DH
     if (!hdrscan)    // Don't modify inlineStatus for header content scan
-#endif
-    inlineStatus = ILSyes;
+	inlineStatus = ILSyes;
 #if CANINLINE_LOG
     printf("\tyes\n");
 #endif
     return 1;
 
 Lno:
-#ifdef _DH
     if (!hdrscan)    // Don't modify inlineStatus for header content scan
-#endif
-    inlineStatus = ILSno;
+	inlineStatus = ILSno;
 #if CANINLINE_LOG
     printf("\tno\n");
 #endif

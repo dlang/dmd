@@ -1,5 +1,5 @@
 
-// Copyright (c) 1999-2002 by Digital Mars
+// Copyright (c) 1999-2005 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // www.digitalmars.com
@@ -41,10 +41,7 @@ struct Import : Dsymbol
     void semantic2(Scope *sc);
     Dsymbol *search(Identifier *ident, int flags);
     int overloadInsert(Dsymbol *s);
-    void toCBuffer(OutBuffer *buf);
-#ifdef _DH
-    void toHBuffer(OutBuffer *buf, HdrGenState *hgs);
-#endif
+    void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
 
     Import *isImport() { return this; }
 };

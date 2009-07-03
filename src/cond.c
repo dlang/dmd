@@ -107,7 +107,7 @@ int DebugCondition::include(Scope *sc, ScopeDsymbol *s)
     return (inc == 1);
 }
 
-void DebugCondition::toCBuffer(OutBuffer *buf)
+void DebugCondition::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 {
     if (ident)
 	buf->printf("debug (%s)", ident->toChars());
@@ -194,7 +194,7 @@ int VersionCondition::include(Scope *sc, ScopeDsymbol *s)
     return (inc == 1);
 }
 
-void VersionCondition::toCBuffer(OutBuffer *buf)
+void VersionCondition::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 {
     if (ident)
 	buf->printf("version (%s)", ident->toChars());
@@ -247,10 +247,10 @@ int StaticIfCondition::include(Scope *sc, ScopeDsymbol *s)
     return (inc == 1);
 }
 
-void StaticIfCondition::toCBuffer(OutBuffer *buf)
+void StaticIfCondition::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 {
     buf->writestring("static if(");
-    exp->toCBuffer(buf);
+    exp->toCBuffer(buf, hgs);
     buf->writeByte(')');
 }
 
@@ -365,17 +365,17 @@ int IftypeCondition::include(Scope *sc, ScopeDsymbol *sd)
     return (inc == 1);
 }
 
-void IftypeCondition::toCBuffer(OutBuffer *buf)
+void IftypeCondition::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 {
     buf->writestring("iftype(");
-    targ->toCBuffer(buf, id);
+    targ->toCBuffer(buf, id, hgs);
     if (tspec)
     {
 	if (tok == TOKcolon)
 	    buf->writestring(" : ");
 	else
 	    buf->writestring(" == ");
-	tspec->toCBuffer(buf, NULL);
+	tspec->toCBuffer(buf, NULL, hgs);
     }
     buf->writeByte(')');
 }

@@ -168,7 +168,7 @@ Dsymbol *EnumDeclaration::oneMember()
     return this;
 }
 
-void EnumDeclaration::toCBuffer(OutBuffer *buf)
+void EnumDeclaration::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 {   int i;
 
     buf->writestring("enum ");
@@ -179,7 +179,7 @@ void EnumDeclaration::toCBuffer(OutBuffer *buf)
     if (memtype)
     {
 	buf->writestring(": ");
-	memtype->toCBuffer(buf, NULL);
+	memtype->toCBuffer(buf, NULL, hgs);
     }
     if (!members)
     {
@@ -195,8 +195,8 @@ void EnumDeclaration::toCBuffer(OutBuffer *buf)
 	EnumMember *em = ((Dsymbol *)members->data[i])->isEnumMember();
 	if (!em)
 	    continue;
-	buf->writestring("    ");
-	em->toCBuffer(buf);
+	//buf->writestring("    ");
+	em->toCBuffer(buf, hgs);
 	buf->writeByte(',');
 	buf->writenl();
     }
@@ -240,13 +240,13 @@ Dsymbol *EnumMember::syntaxCopy(Dsymbol *s)
     return em;
 }
 
-void EnumMember::toCBuffer(OutBuffer *buf)
+void EnumMember::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 {
     buf->writestring(ident->toChars());
     if (value)
     {
 	buf->writestring(" = ");
-	value->toCBuffer(buf);
+	value->toCBuffer(buf, hgs);
     }
 }
 

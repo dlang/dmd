@@ -117,6 +117,29 @@ Expression *CastExp::constFold()
 	return new IntegerExp(loc, e1->toInteger() != 0, type);
     if (type->isintegral())
     {
+	if (e1->type->isfloating())
+	{   integer_t result;
+	    real_t r = e1->toReal();
+
+	    switch (type->toBasetype()->ty)
+	    {
+		case Tint8:	result = (d_int8)r;	break;
+		case Tchar:
+		case Tuns8:	result = (d_uns8)r;	break;
+		case Tint16:	result = (d_int16)r;	break;
+		case Twchar:
+		case Tuns16:	result = (d_uns16)r;	break;
+		case Tint32:	result = (d_int32)r;	break;
+		case Tdchar:
+		case Tuns32:	result = (d_uns32)r;	break;
+		case Tint64:	result = (d_int64)r;	break;
+		case Tuns64:	result = (d_uns64)r;	break;
+		default:
+		    assert(0);
+	    }
+
+	    return new IntegerExp(loc, result, type);
+	}
 	if (type->isunsigned())
 	    return new IntegerExp(loc, e1->toUInteger(), type);
 	else
@@ -427,8 +450,8 @@ Expression *ModExp::constFold()
 	    e = new RealExp(loc, creall(c), type);
 	else if (type->isimaginary())
 	    e = new RealExp(loc, cimagl(c), type);
-	else if (type->iscomplex())
-	    e = new ComplexExp(loc, c, type);
+	//else if (type->iscomplex())
+	    //e = new ComplexExp(loc, c, type);
 	else
 	    assert(0);
     }
@@ -511,6 +534,7 @@ Expression *ShrExp::constFold()
 
 Expression *UshrExp::constFold()
 {
+    //printf("UshrExp::constFold() %s\n", toChars());
     unsigned count;
     integer_t value;
 
@@ -522,11 +546,13 @@ Expression *UshrExp::constFold()
     {
 	case Tint8:
 	case Tuns8:
+		assert(0);		// no way to trigger this
 		value = (value & 0xFF) >> count;
 		break;
 
 	case Tint16:
 	case Tuns16:
+		assert(0);		// no way to trigger this
 		value = (value & 0xFFFF) >> count;
 		break;
 
@@ -568,27 +594,35 @@ Expression *XorExp::constFold()
 }
 
 Expression *AndAndExp::constFold()
-{   integer_t n;
+{   int n1, n2;
 
     e1 = e1->constFold();
     e2 = e2->constFold();
-    if (e1->type->isfloating())
-	n = e1->toComplex() && e2->toComplex();
+
+    n1 = e1->isBool(1);
+    if (n1)
+    {	n2 = e2->isBool(1);
+	assert(n2 || e2->isBool(0));
+    }
     else
-	n = e1->toInteger() && e2->toInteger();
-    return new IntegerExp(loc, n, type);
+	assert(e1->isBool(0));
+    return new IntegerExp(loc, n1 && n2, type);
 }
 
 Expression *OrOrExp::constFold()
-{   integer_t n;
+{   int n1, n2;
 
     e1 = e1->constFold();
     e2 = e2->constFold();
-    if (e1->type->isfloating())
-	n = e1->toComplex() || e2->toComplex();
-    else
-	n = e1->toInteger() || e2->toInteger();
-    return new IntegerExp(loc, n, type);
+
+    n1 = e1->isBool(1);
+    if (!n1)
+    {
+	assert(e1->isBool(0));
+	n2 = e2->isBool(1);
+	assert(n2 || e2->isBool(0));
+    }
+    return new IntegerExp(loc, n1 || n2, type);
 }
 
 Expression *CmpExp::constFold()
@@ -596,7 +630,7 @@ Expression *CmpExp::constFold()
     real_t r1;
     real_t r2;
 
-    //printf("CmpExp::constFold()\n");
+    //printf("CmpExp::constFold() %s\n", toChars());
     e1 = e1->constFold();
     e2 = e2->constFold();
     if (e1->type->isreal())
@@ -786,6 +820,7 @@ Expression *EqualExp::constFold()
 Expression *IdentityExp::constFold()
 {   int cmp;
 
+    //printf("IdentityExp::constFold() %s\n", toChars());
     e1 = e1->constFold();
     e2 = e2->constFold();
     if (e1->type->isfloating())
@@ -818,10 +853,8 @@ Expression *CondExp::constFold()
     int n;
 
     econd = econd->constFold();
-    if (econd->type->isfloating())
-	n = econd->toComplex() != 0;
-    else
-	n = econd->toInteger() != 0;
+    n = econd->isBool(1);
+    assert(n || econd->isBool(0));
     return n ? e1->constFold() : e2->constFold();
 }
 

@@ -43,10 +43,136 @@ extern "C" char * __cdecl __locale_decpoint;
 #include "dsymbol.h"
 #include "module.h"
 #include "attrib.h"
+#include "hdrgen.h"
 
 Expression *createTypeInfoArray(Scope *sc, Expression *args[], int dim);
 
 #define LOGSEMANTIC	0
+
+/**********************************
+ * Set operator precedence for each operator.
+ */
+
+// Operator precedence - greater values are higher precedence
+
+enum PREC
+{
+    PREC_zero,
+    PREC_expr,
+    PREC_assign,
+    PREC_cond,
+    PREC_oror,
+    PREC_andand,
+    PREC_or,
+    PREC_xor,
+    PREC_and,
+    PREC_equal,
+    PREC_rel,
+    PREC_shift,
+    PREC_add,
+    PREC_mul,
+    PREC_unary,
+    PREC_primary,
+};
+
+enum PREC precedence[TOKMAX];
+
+void initPrecedence()
+{
+    precedence[TOKimport] = PREC_primary;
+    precedence[TOKidentifier] = PREC_primary;
+    precedence[TOKthis] = PREC_primary;
+    precedence[TOKsuper] = PREC_primary;
+    precedence[TOKint64] = PREC_primary;
+    precedence[TOKfloat64] = PREC_primary;
+    precedence[TOKnull] = PREC_primary;
+    precedence[TOKstring] = PREC_primary;
+    precedence[TOKtypedot] = PREC_primary;
+    precedence[TOKtypeid] = PREC_primary;
+    precedence[TOKis] = PREC_primary;
+    precedence[TOKassert] = PREC_primary;
+    precedence[TOKfunction] = PREC_primary;
+
+    // post
+    precedence[TOKdotti] = PREC_primary;
+    precedence[TOKdot] = PREC_primary;
+//  precedence[TOKarrow] = PREC_primary;
+    precedence[TOKplusplus] = PREC_primary;
+    precedence[TOKminusminus] = PREC_primary;
+    precedence[TOKcall] = PREC_primary;
+    precedence[TOKslice] = PREC_primary;
+    precedence[TOKarray] = PREC_primary;
+
+    precedence[TOKaddress] = PREC_unary;
+    precedence[TOKstar] = PREC_unary;
+    precedence[TOKneg] = PREC_unary;
+    precedence[TOKuadd] = PREC_unary;
+    precedence[TOKnot] = PREC_unary;
+    precedence[TOKbool] = PREC_add;
+    precedence[TOKtilde] = PREC_unary;
+    precedence[TOKdelete] = PREC_unary;
+    precedence[TOKnew] = PREC_unary;
+    precedence[TOKcast] = PREC_unary;
+
+    precedence[TOKmul] = PREC_mul;
+    precedence[TOKdiv] = PREC_mul;
+    precedence[TOKmod] = PREC_mul;
+
+    precedence[TOKadd] = PREC_add;
+    precedence[TOKmin] = PREC_add;
+    precedence[TOKcat] = PREC_add;
+
+    precedence[TOKshl] = PREC_shift;
+    precedence[TOKshr] = PREC_shift;
+    precedence[TOKushr] = PREC_shift;
+
+    precedence[TOKlt] = PREC_rel;
+    precedence[TOKle] = PREC_rel;
+    precedence[TOKgt] = PREC_rel;
+    precedence[TOKge] = PREC_rel;
+    precedence[TOKunord] = PREC_rel;
+    precedence[TOKlg] = PREC_rel;
+    precedence[TOKleg] = PREC_rel;
+    precedence[TOKule] = PREC_rel;
+    precedence[TOKul] = PREC_rel;
+    precedence[TOKuge] = PREC_rel;
+    precedence[TOKug] = PREC_rel;
+    precedence[TOKue] = PREC_rel;
+    precedence[TOKin] = PREC_rel;
+
+    precedence[TOKequal] = PREC_equal;
+    precedence[TOKnotequal] = PREC_equal;
+    precedence[TOKidentity] = PREC_equal;
+    precedence[TOKnotidentity] = PREC_equal;
+
+    precedence[TOKand] = PREC_and;
+
+    precedence[TOKxor] = PREC_xor;
+
+    precedence[TOKor] = PREC_or;
+
+    precedence[TOKandand] = PREC_andand;
+
+    precedence[TOKoror] = PREC_oror;
+
+    precedence[TOKquestion] = PREC_cond;
+
+    precedence[TOKassign] = PREC_assign;
+    precedence[TOKaddass] = PREC_assign;
+    precedence[TOKminass] = PREC_assign;
+    precedence[TOKcatass] = PREC_assign;
+    precedence[TOKmulass] = PREC_assign;
+    precedence[TOKdivass] = PREC_assign;
+    precedence[TOKmodass] = PREC_assign;
+    precedence[TOKshlass] = PREC_assign;
+    precedence[TOKshrass] = PREC_assign;
+    precedence[TOKushrass] = PREC_assign;
+    precedence[TOKandass] = PREC_assign;
+    precedence[TOKorass] = PREC_assign;
+    precedence[TOKxorass] = PREC_assign;
+
+    precedence[TOKcomma] = PREC_expr;
+}
 
 /*****************************************
  * Determine if 'this' is available.
@@ -362,7 +488,28 @@ void functionArguments(Loc loc, Scope *sc, TypeFunction *tf, Array *arguments)
     }
 }
 
-void argsToCBuffer(OutBuffer *buf, Array *arguments)
+/**************************************************
+ * Write expression out to buf, but wrap it
+ * in ( ) if its precedence is less than pr.
+ */
+
+void expToCBuffer(OutBuffer *buf, HdrGenState *hgs, Expression *e, enum PREC pr)
+{
+    if (precedence[e->op] < pr)
+    {
+	buf->writeByte('(');
+	e->toCBuffer(buf, hgs);
+	buf->writeByte(')');
+    }
+    else
+	e->toCBuffer(buf, hgs);
+}
+
+/**************************************************
+ * Write out argument list to buf.
+ */
+
+void argsToCBuffer(OutBuffer *buf, Array *arguments, HdrGenState *hgs)
 {   int i;
 
     if (arguments)
@@ -372,7 +519,7 @@ void argsToCBuffer(OutBuffer *buf, Array *arguments)
 
 	    if (i)
 		buf->writeByte(',');
-	    arg->toCBuffer(buf);
+	    expToCBuffer(buf, hgs, arg, PREC_assign);
 	}
     }
 }
@@ -433,9 +580,11 @@ void Expression::print()
 
 char *Expression::toChars()
 {   OutBuffer *buf;
+    HdrGenState hgs;
 
+    memset(&hgs, 0, sizeof(hgs));
     buf = new OutBuffer();
-    toCBuffer(buf);
+    toCBuffer(buf, &hgs);
     return buf->toChars();
 }
 
@@ -514,7 +663,7 @@ complex_t Expression::toComplex()
     return 0;
 }
 
-void Expression::toCBuffer(OutBuffer *buf)
+void Expression::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 {
     buf->writestring(Token::toChars(op));
 }
@@ -832,7 +981,7 @@ Expression *IntegerExp::toLvalue(Expression *e)
     return this;
 }
 
-void IntegerExp::toCBuffer(OutBuffer *buf)
+void IntegerExp::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 {
     integer_t v = toInteger();
 
@@ -1048,7 +1197,7 @@ void floatToBuffer(OutBuffer *buf, Type *type, real_t value)
     }
 }
 
-void RealExp::toCBuffer(OutBuffer *buf)
+void RealExp::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 {
     floatToBuffer(buf, type, value);
 }
@@ -1128,11 +1277,13 @@ Expression *ComplexExp::semantic(Scope *sc)
 
 int ComplexExp::isBool(int result)
 {
-    return result ? (value != 0)
-		  : (value == 0);
+    if (result)
+	return (bool)(value);
+    else
+	return !value;
 }
 
-void ComplexExp::toCBuffer(OutBuffer *buf)
+void ComplexExp::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 {
     /* Print as:
      *  (re+imi)
@@ -1207,9 +1358,12 @@ char *IdentifierExp::toChars()
     return ident->toChars();
 }
 
-void IdentifierExp::toCBuffer(OutBuffer *buf)
+void IdentifierExp::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 {
-    buf->writestring(ident->toChars());
+    if (hgs->hdrgen)
+	buf->writestring(ident->toHChars2());
+    else
+	buf->writestring(ident->toChars());
 }
 
 Expression *IdentifierExp::toLvalue(Expression *e)
@@ -1407,7 +1561,7 @@ char *DsymbolExp::toChars()
     return s->toChars();
 }
 
-void DsymbolExp::toCBuffer(OutBuffer *buf)
+void DsymbolExp::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 {
     buf->writestring(s->toChars());
 }
@@ -1475,7 +1629,7 @@ int ThisExp::isBool(int result)
     return result ? TRUE : FALSE;
 }
 
-void ThisExp::toCBuffer(OutBuffer *buf)
+void ThisExp::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 {
     buf->writestring("this");
 }
@@ -1548,7 +1702,7 @@ Lerr:
     return this;
 }
 
-void SuperExp::toCBuffer(OutBuffer *buf)
+void SuperExp::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 {
     buf->writestring("super");
 }
@@ -1577,7 +1731,7 @@ int NullExp::isBool(int result)
     return result ? FALSE : TRUE;
 }
 
-void NullExp::toCBuffer(OutBuffer *buf)
+void NullExp::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 {
     buf->writestring("null");
 }
@@ -1626,9 +1780,11 @@ int StringExp::equals(Object *o)
 char *StringExp::toChars()
 {
     OutBuffer buf;
+    HdrGenState hgs;
     char *p;
 
-    toCBuffer(&buf);
+    memset(&hgs, 0, sizeof(hgs));
+    toCBuffer(&buf, &hgs);
     p = (char *)buf.data;
     buf.data = NULL;
     return p;
@@ -1760,7 +1916,7 @@ int StringExp::isBool(int result)
     return result ? TRUE : FALSE;
 }
 
-void StringExp::toCBuffer(OutBuffer *buf)
+void StringExp::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 {   unsigned i;
 
     buf->writeByte('"');
@@ -1900,10 +2056,10 @@ Expression *TypeDotIdExp::semantic(Scope *sc)
     return e;
 }
 
-void TypeDotIdExp::toCBuffer(OutBuffer *buf)
+void TypeDotIdExp::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 {
     buf->writeByte('(');
-    type->toCBuffer(buf, NULL);
+    type->toCBuffer(buf, NULL, hgs);
     buf->writeByte(')');
     buf->writeByte('.');
     buf->writestring(ident->toChars());
@@ -1920,9 +2076,9 @@ TypeExp::TypeExp(Loc loc, Type *type)
     this->type = type;
 }
 
-void TypeExp::toCBuffer(OutBuffer *buf)
+void TypeExp::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 {
-    type->toCBuffer(buf, NULL);
+    type->toCBuffer(buf, NULL, hgs);
 }
 
 /************************************************************/
@@ -1987,11 +2143,18 @@ Lagain:
     return this;
 }
 
-void ScopeExp::toCBuffer(OutBuffer *buf)
+void ScopeExp::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 {
-    buf->writestring(sds->kind());
-    buf->writestring(" ");
-    buf->writestring(sds->toChars());
+    if (sds->isTemplateInstance())
+    {
+        sds->toCBuffer(buf, hgs);
+    }
+    else
+    {
+	buf->writestring(sds->kind());
+	buf->writestring(" ");
+	buf->writestring(sds->toChars());
+    }
 }
 
 /********************** NewExp **************************************/
@@ -2172,21 +2335,21 @@ Expression *NewExp::semantic(Scope *sc)
     return this;
 }
 
-void NewExp::toCBuffer(OutBuffer *buf)
+void NewExp::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 {   int i;
 
     buf->writestring("new ");
     if (newargs && newargs->dim)
     {
 	buf->writeByte('(');
-	argsToCBuffer(buf, newargs);
+	argsToCBuffer(buf, newargs, hgs);
 	buf->writeByte(')');
     }
-    newtype->toCBuffer(buf, NULL);
+    newtype->toCBuffer(buf, NULL, hgs);
     if (arguments && arguments->dim)
     {
 	buf->writeByte('(');
-	argsToCBuffer(buf, arguments);
+	argsToCBuffer(buf, arguments, hgs);
 	buf->writeByte(')');
     }
 }
@@ -2226,24 +2389,28 @@ Expression *NewAnonClassExp::semantic(Scope *sc)
     return c->semantic(sc);
 }
 
-void NewAnonClassExp::toCBuffer(OutBuffer *buf)
+void NewAnonClassExp::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 {   int i;
 
     buf->writestring("new");
     if (newargs && newargs->dim)
     {
 	buf->writeByte('(');
-	argsToCBuffer(buf, newargs);
+	argsToCBuffer(buf, newargs, hgs);
 	buf->writeByte(')');
     }
     buf->writestring(" class");
     if (arguments && arguments->dim)
     {
 	buf->writeByte('(');
-	argsToCBuffer(buf, arguments);
+	argsToCBuffer(buf, arguments, hgs);
 	buf->writeByte(')');
     }
-    buf->writestring(" { }");
+    //buf->writestring(" { }");
+    if (cd)
+    {
+        cd->toCBuffer(buf, hgs);
+    }
 }
 
 /********************** SymOffExp **************************************/
@@ -2281,7 +2448,7 @@ void SymOffExp::checkEscape()
     }
 }
 
-void SymOffExp::toCBuffer(OutBuffer *buf)
+void SymOffExp::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 {
     if (offset)
 	buf->printf("(&%s+%u)", var->toChars(), offset);
@@ -2360,7 +2527,7 @@ char *VarExp::toChars()
     return var->toChars();
 }
 
-void VarExp::toCBuffer(OutBuffer *buf)
+void VarExp::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 {
     buf->writestring(var->toChars());
 }
@@ -2477,7 +2644,7 @@ char *FuncExp::toChars()
     return fd->toChars();
 }
 
-void FuncExp::toCBuffer(OutBuffer *buf)
+void FuncExp::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 {
     buf->writestring(fd->toChars());
 }
@@ -2556,9 +2723,9 @@ Expression *DeclarationExp::semantic(Scope *sc)
     return this;
 }
 
-void DeclarationExp::toCBuffer(OutBuffer *buf)
+void DeclarationExp::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 {
-    declaration->toCBuffer(buf);
+    declaration->toCBuffer(buf, hgs);
 }
 
 
@@ -2592,10 +2759,10 @@ Expression *TypeidExp::semantic(Scope *sc)
     return e;
 }
 
-void TypeidExp::toCBuffer(OutBuffer *buf)
+void TypeidExp::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 {
     buf->writestring("typeid(");
-    typeidType->toCBuffer(buf, NULL);
+    typeidType->toCBuffer(buf, NULL, hgs);
     buf->writeByte(')');
 }
 
@@ -2615,7 +2782,7 @@ Expression *HaltExp::semantic(Scope *sc)
     return this;
 }
 
-void HaltExp::toCBuffer(OutBuffer *buf)
+void HaltExp::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 {
     buf->writestring("halt");
 }
@@ -2796,17 +2963,17 @@ Lno:
     return new IntegerExp(0);
 }
 
-void IftypeExp::toCBuffer(OutBuffer *buf)
+void IftypeExp::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 {
     buf->writestring("is(");
-    targ->toCBuffer(buf, id);
+    targ->toCBuffer(buf, id, hgs);
     if (tspec)
     {
 	if (tok == TOKcolon)
 	    buf->writestring(" : ");
 	else
 	    buf->writestring(" == ");
-	tspec->toCBuffer(buf, NULL);
+	tspec->toCBuffer(buf, NULL, hgs);
     }
     buf->writeByte(')');
 }
@@ -2839,10 +3006,10 @@ Expression *UnaExp::semantic(Scope *sc)
     return this;
 }
 
-void UnaExp::toCBuffer(OutBuffer *buf)
+void UnaExp::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 {
     buf->writestring(Token::toChars(op));
-    e1->toCBuffer(buf);
+    expToCBuffer(buf, hgs, e1, precedence[op]);
 }
 
 /************************************************************/
@@ -2916,7 +3083,9 @@ Expression *BinExp::commonSemanticAssign(Scope *sc)
 	e2->checkArithmetic();
 
 	if (op == TOKmodass && e2->type->iscomplex())
-	    error("cannot perform modulo complex arithmetic");
+	{   error("cannot perform modulo complex arithmetic");
+	    return new IntegerExp(0);
+	}
     }
     return this;
 }
@@ -2944,18 +3113,25 @@ Expression *BinExp::commonSemanticAssignIntegral(Scope *sc)
 }
 
 
-void BinExp::toCBuffer(OutBuffer *buf)
+void BinExp::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 {
-    e1->toCBuffer(buf);
+    expToCBuffer(buf, hgs, e1, precedence[op]);
     buf->writeByte(' ');
     buf->writestring(Token::toChars(op));
     buf->writeByte(' ');
-    e2->toCBuffer(buf);
+    expToCBuffer(buf, hgs, e2, (enum PREC)(precedence[op] + 1));
 }
 
 int BinExp::isunsigned()
 {
     return e1->type->isunsigned() || e2->type->isunsigned();
+}
+
+void BinExp::incompatibleTypes()
+{
+    error("incompatible types for ((%s) %s (%s)): '%s' and '%s'",
+         e1->toChars(), Token::toChars(op), e2->toChars(),
+         e1->type->toChars(), e2->type->toChars());
 }
 
 /************************************************************/
@@ -2983,10 +3159,10 @@ Expression *AssertExp::semantic(Scope *sc)
     return this;
 }
 
-void AssertExp::toCBuffer(OutBuffer *buf)
+void AssertExp::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 {
     buf->writestring("assert(");
-    e1->toCBuffer(buf);
+    expToCBuffer(buf, hgs, e1, PREC_assign);
     buf->writeByte(')');
 }
 
@@ -3207,10 +3383,10 @@ Expression *DotIdExp::semantic(Scope *sc)
     }
 }
 
-void DotIdExp::toCBuffer(OutBuffer *buf)
+void DotIdExp::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 {
     //printf("DotIdExp::toCBuffer()\n");
-    e1->toCBuffer(buf);
+    expToCBuffer(buf, hgs, e1, PREC_primary);
     buf->writeByte('.');
     buf->writestring(ident->toChars());
 }
@@ -3313,9 +3489,9 @@ Expression *DotVarExp::modifiableLvalue(Scope *sc, Expression *e)
     return this;
 }
 
-void DotVarExp::toCBuffer(OutBuffer *buf)
+void DotVarExp::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 {
-    e1->toCBuffer(buf);
+    expToCBuffer(buf, hgs, e1, PREC_primary);
     buf->writeByte('.');
     buf->writestring(var->toChars());
 }
@@ -3433,11 +3609,11 @@ Lerr:
     return new IntegerExp(0);
 }
 
-void DotTemplateInstanceExp::toCBuffer(OutBuffer *buf)
+void DotTemplateInstanceExp::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 {
-    e1->toCBuffer(buf);
+    expToCBuffer(buf, hgs, e1, PREC_primary);
     buf->writeByte('.');
-    ti->toCBuffer(buf);
+    ti->toCBuffer(buf, hgs);
 }
 
 /************************************************************/
@@ -3462,11 +3638,12 @@ Expression *DelegateExp::semantic(Scope *sc)
     return this;
 }
 
-void DelegateExp::toCBuffer(OutBuffer *buf)
+void DelegateExp::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 {
     buf->writeByte('&');
     if (!func->isNested())
-    {	e1->toCBuffer(buf);
+    {
+	expToCBuffer(buf, hgs, e1, PREC_primary);
 	buf->writeByte('.');
     }
     buf->writestring(func->toChars());
@@ -3490,43 +3667,11 @@ Expression *DotTypeExp::semantic(Scope *sc)
     return this;
 }
 
-void DotTypeExp::toCBuffer(OutBuffer *buf)
+void DotTypeExp::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 {
-    e1->toCBuffer(buf);
+    expToCBuffer(buf, hgs, e1, PREC_primary);
     buf->writeByte('.');
     buf->writestring(sym->toChars());
-}
-
-/************************************************************/
-
-ArrowExp::ArrowExp(Loc loc, Expression *e, Identifier *ident)
-	: UnaExp(loc, TOKarrow, sizeof(ArrowExp), e)
-{
-    this->ident = ident;
-}
-
-Expression *ArrowExp::semantic(Scope *sc)
-{   Expression *e;
-
-#if LOGSEMANTIC
-    printf("ArrowExp::semantic('%s')\n", toChars());
-#endif
-    UnaExp::semantic(sc);
-    e1 = resolveProperties(sc, e1);
-    e1 = e1->checkToPointer();
-    if (e1->type->ty != Tpointer)
-	error("pointer expected before ->, not '%s'", e1->type->toChars());
-    e = new PtrExp(loc, e1);
-    e = new DotIdExp(loc, e, ident);
-    e = e->semantic(sc);
-    return e;
-}
-
-void ArrowExp::toCBuffer(OutBuffer *buf)
-{
-    e1->toCBuffer(buf);
-    buf->writestring("->");
-    buf->writestring(ident->toChars());
 }
 
 /************************************************************/
@@ -3905,12 +4050,12 @@ Lcheckargs:
     return this;
 }
 
-void CallExp::toCBuffer(OutBuffer *buf)
+void CallExp::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 {   int i;
 
-    e1->toCBuffer(buf);
+    expToCBuffer(buf, hgs, e1, precedence[op]);
     buf->writeByte('(');
-    argsToCBuffer(buf, arguments);
+    argsToCBuffer(buf, arguments, hgs);
     buf->writeByte(')');
 }
 
@@ -4043,12 +4188,10 @@ Expression *PtrExp::toLvalue(Expression *e)
     return this;
 }
 
-void PtrExp::toCBuffer(OutBuffer *buf)
+void PtrExp::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 {
     buf->writeByte('*');
-    buf->writeByte('(');
-    e1->toCBuffer(buf);
-    buf->writeByte(')');
+    expToCBuffer(buf, hgs, e1, precedence[op]);
 }
 
 /************************************************************/
@@ -4151,7 +4294,7 @@ int NotExp::isBit()
 /************************************************************/
 
 BoolExp::BoolExp(Loc loc, Expression *e, Type *t)
-	: UnaExp(loc, TOKnot, sizeof(BoolExp), e)
+	: UnaExp(loc, TOKbool, sizeof(BoolExp), e)
 {
     type = t;
 }
@@ -4293,13 +4436,12 @@ Expression *CastExp::semantic(Scope *sc)
     return e1->castTo(to);
 }
 
-void CastExp::toCBuffer(OutBuffer *buf)
+void CastExp::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 {
     buf->writestring("cast(");
-    to->toCBuffer(buf, NULL);
-    buf->writestring(")(");
-    e1->toCBuffer(buf);
+    to->toCBuffer(buf, NULL, hgs);
     buf->writeByte(')');
+    expToCBuffer(buf, hgs, e1, precedence[op]);
 }
 
 
@@ -4439,19 +4581,19 @@ Expression *SliceExp::modifiableLvalue(Scope *sc, Expression *e)
     return this;
 }
 
-void SliceExp::toCBuffer(OutBuffer *buf)
+void SliceExp::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 {
-    e1->toCBuffer(buf);
+    expToCBuffer(buf, hgs, e1, precedence[op]);
     buf->writeByte('[');
     if (upr || lwr)
     {
 	if (lwr)
-	    lwr->toCBuffer(buf);
+	    expToCBuffer(buf, hgs, lwr, PREC_assign);
 	else
 	    buf->writeByte('0');
 	buf->writestring("..");
 	if (upr)
-	    upr->toCBuffer(buf);
+	    expToCBuffer(buf, hgs, upr, PREC_assign);
 	else
 	    buf->writestring("length");		// BUG: should be array.length
     }
@@ -4481,9 +4623,9 @@ Expression *ArrayLengthExp::semantic(Scope *sc)
     return this;
 }
 
-void ArrayLengthExp::toCBuffer(OutBuffer *buf)
+void ArrayLengthExp::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 {
-    e1->toCBuffer(buf);
+    expToCBuffer(buf, hgs, e1, PREC_primary);
     buf->writestring(".length");
 }
 
@@ -4549,12 +4691,12 @@ Expression *ArrayExp::toLvalue(Expression *e)
 }
 
 
-void ArrayExp::toCBuffer(OutBuffer *buf)
+void ArrayExp::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 {   int i;
 
-    e1->toCBuffer(buf);
+    expToCBuffer(buf, hgs, e1, PREC_primary);
     buf->writeByte('[');
-    argsToCBuffer(buf, arguments);
+    argsToCBuffer(buf, arguments, hgs);
     buf->writeByte(']');
 }
 
@@ -4728,11 +4870,11 @@ Expression *IndexExp::modifiableLvalue(Scope *sc, Expression *e)
     return toLvalue(e);
 }
 
-void IndexExp::toCBuffer(OutBuffer *buf)
+void IndexExp::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 {
-    e1->toCBuffer(buf);
+    expToCBuffer(buf, hgs, e1, PREC_primary);
     buf->writeByte('[');
-    e2->toCBuffer(buf);
+    expToCBuffer(buf, hgs, e2, PREC_assign);
     buf->writeByte(']');
 }
 
@@ -4767,9 +4909,9 @@ Expression *PostIncExp::semantic(Scope *sc)
     return e;
 }
 
-void PostIncExp::toCBuffer(OutBuffer *buf)
+void PostIncExp::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 {
-    e1->toCBuffer(buf);
+    expToCBuffer(buf, hgs, e1, precedence[op]);
     buf->writestring("++");
 }
 
@@ -4803,9 +4945,9 @@ Expression *PostDecExp::semantic(Scope *sc)
     return e;
 }
 
-void PostDecExp::toCBuffer(OutBuffer *buf)
+void PostDecExp::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 {
-    e1->toCBuffer(buf);
+    expToCBuffer(buf, hgs, e1, precedence[op]);
     buf->writestring("--");
 }
 
@@ -5417,6 +5559,12 @@ Expression *AddExp::semantic(Scope *sc)
 	else if (tb1->ty == Tpointer && e2->type->isintegral() ||
 	    tb2->ty == Tpointer && e1->type->isintegral())
 	    e = scaleFactor();
+	else if (tb1->ty == Tpointer && tb2->ty == Tpointer)
+	{
+	    incompatibleTypes();
+	    type = e1->type;
+	    e = this;
+	}
 	else
 	{
 	    typeCombine();
@@ -5767,7 +5915,9 @@ Expression *ModExp::semantic(Scope *sc)
     if (type->isfloating())
     {	type = e1->type;
 	if (e2->type->iscomplex())
-	    error("cannot perform modulo complex arithmetic");
+	{   error("cannot perform modulo complex arithmetic");
+	    return new IntegerExp(0);
+	}
     }
     return this;
 }
@@ -6316,13 +6466,13 @@ Expression *CondExp::checkToBoolean()
     return this;
 }
 
-void CondExp::toCBuffer(OutBuffer *buf)
+void CondExp::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 {
-    econd->toCBuffer(buf);
+    expToCBuffer(buf, hgs, econd, PREC_oror);
     buf->writestring(" ? ");
-    e1->toCBuffer(buf);
+    expToCBuffer(buf, hgs, e1, PREC_expr);
     buf->writestring(" : ");
-    e2->toCBuffer(buf);
+    expToCBuffer(buf, hgs, e2, PREC_cond);
 }
 
 

@@ -35,10 +35,7 @@ struct Initializer : Object
     virtual Initializer *semantic(Scope *sc, Type *t);
     virtual Type *inferType(Scope *sc);
     virtual Expression *toExpression() = 0;
-    virtual void toCBuffer(OutBuffer *buf) = 0;
-#ifdef _DH
-    virtual void toHBuffer(OutBuffer *buf, HdrGenState *hgs) = 0;
-#endif
+    virtual void toCBuffer(OutBuffer *buf, HdrGenState *hgs) = 0;
 
     static Array *arraySyntaxCopy(Array *ai);
 
@@ -56,10 +53,7 @@ struct VoidInitializer : Initializer
     Initializer *syntaxCopy();
     Initializer *semantic(Scope *sc, Type *t);
     Expression *toExpression();
-    void toCBuffer(OutBuffer *buf);
-#ifdef _DH
-    void toHBuffer(OutBuffer *buf, HdrGenState *hgs);
-#endif
+    void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
 
     dt_t *toDt();
 
@@ -77,10 +71,7 @@ struct StructInitializer : Initializer
     void addInit(Identifier *field, Initializer *value);
     Initializer *semantic(Scope *sc, Type *t);
     Expression *toExpression();
-    void toCBuffer(OutBuffer *buf);
-#ifdef _DH
-    void toHBuffer(OutBuffer *buf, HdrGenState *hgs);
-#endif
+    void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
 
     dt_t *toDt();
 };
@@ -98,10 +89,7 @@ struct ArrayInitializer : Initializer
     void addInit(Expression *index, Initializer *value);
     Initializer *semantic(Scope *sc, Type *t);
     Expression *toExpression();
-    void toCBuffer(OutBuffer *buf);
-#ifdef _DH
-    void toHBuffer(OutBuffer *buf, HdrGenState *hgs);
-#endif
+    void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
 
     dt_t *toDt();
     dt_t *toDtBit();	// for bit arrays
@@ -116,10 +104,7 @@ struct ExpInitializer : Initializer
     Initializer *semantic(Scope *sc, Type *t);
     Type *inferType(Scope *sc);
     Expression *toExpression();
-    void toCBuffer(OutBuffer *buf);
-#ifdef _DH
-    void toHBuffer(OutBuffer *buf, HdrGenState *hgs);
-#endif
+    void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
 
     dt_t *toDt();
 

@@ -28,6 +28,7 @@
 #include "mars.h"
 #include "dsymbol.h"
 #include "identifier.h"
+#include "hdrgen.h"
 
 #define LOG	0
 
@@ -412,9 +413,10 @@ int TemplateDeclaration::leastAsSpecialized(TemplateDeclaration *td2)
     return 0;
 }
 
-void TemplateDeclaration::toCBuffer(OutBuffer *buf)
+void TemplateDeclaration::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 {
     int i;
+
 
     buf->writestring(kind());
     buf->writeByte(' ');
@@ -425,21 +427,44 @@ void TemplateDeclaration::toCBuffer(OutBuffer *buf)
 	TemplateParameter *tp = (TemplateParameter *)parameters->data[i];
 	if (i)
 	    buf->writeByte(',');
-	tp->toCBuffer(buf);
+	tp->toCBuffer(buf, hgs);
     }
     buf->writeByte(')');
+
+    if (hgs->hdrgen)
+    {
+	hgs->tpltMember++;
+	buf->writenl();
+	buf->writebyte('{');
+	buf->writenl();
+	for (i = 0; i < members->dim; i++)
+	{
+	    Dsymbol *s = (Dsymbol *)members->data[i];
+	    s->toCBuffer(buf, hgs);
+	}
+	buf->writebyte('}');
+	buf->writenl();
+	hgs->tpltMember--;
+    }
 }
 
 
 char *TemplateDeclaration::toChars()
-{
-    OutBuffer buf;
-    char *s;
+{   OutBuffer buf;
+    HdrGenState hgs;
 
-    toCBuffer(&buf);
-    s = buf.toChars();
-    buf.data = NULL;
-    return s + strlen(kind()) + 1;	// kludge to skip over 'template '
+    memset(&hgs, 0, sizeof(hgs));
+    buf.writestring(ident->toChars());
+    buf.writeByte('(');
+    for (int i = 0; i < parameters->dim; i++)
+    {
+	TemplateParameter *tp = (TemplateParameter *)parameters->data[i];
+	if (i)
+	    buf.writeByte(',');
+	tp->toCBuffer(&buf, &hgs);
+    }
+    buf.writeByte(')');
+    return (char *)buf.extractData();
 }
 
 /* ======================== Type ============================================ */
@@ -815,18 +840,18 @@ void TemplateTypeParameter::print(Object *oarg, Object *oded)
 }
 
 
-void TemplateTypeParameter::toCBuffer(OutBuffer *buf)
+void TemplateTypeParameter::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 {
     buf->writestring(ident->toChars());
     if (specType)
     {
 	buf->writestring(" : ");
-	specType->toCBuffer(buf, NULL);
+	specType->toCBuffer(buf, NULL, hgs);
     }
     if (defaultType)
     {
 	buf->writestring(" = ");
-	defaultType->toCBuffer(buf, NULL);
+	defaultType->toCBuffer(buf, NULL, hgs);
     }
 }
 
@@ -986,19 +1011,19 @@ void TemplateAliasParameter::print(Object *oarg, Object *oded)
     printf("\tArgument alias: %s\n", sa->toChars());
 }
 
-void TemplateAliasParameter::toCBuffer(OutBuffer *buf)
+void TemplateAliasParameter::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 {
     buf->writestring("alias ");
     buf->writestring(ident->toChars());
     if (specAliasT)
     {
 	buf->writestring(" : ");
-	specAliasT->toCBuffer(buf, NULL);
+	specAliasT->toCBuffer(buf, NULL, hgs);
     }
     if (defaultAlias)
     {
 	buf->writestring(" = ");
-	defaultAlias->toCBuffer(buf, NULL);
+	defaultAlias->toCBuffer(buf, NULL, hgs);
     }
 }
 
@@ -1178,18 +1203,18 @@ void TemplateValueParameter::print(Object *oarg, Object *oded)
 }
 
 
-void TemplateValueParameter::toCBuffer(OutBuffer *buf)
+void TemplateValueParameter::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 {
-    valType->toCBuffer(buf, ident);
+    valType->toCBuffer(buf, ident, hgs);
     if (specValue)
     {
 	buf->writestring(" : ");
-	specValue->toCBuffer(buf);
+	specValue->toCBuffer(buf, hgs);
     }
     if (defaultValue)
     {
 	buf->writestring(" = ");
-	defaultValue->toCBuffer(buf);
+	defaultValue->toCBuffer(buf, hgs);
     }
 }
 
@@ -1570,7 +1595,8 @@ void TemplateInstance::semanticTiargs(Scope *sc)
 	    ea = isExpression((Object *)tiargs->data[j]);
 	    assert(ea);
 	    ea = ea->semantic(sc);
-	    ea = ea->constFold();
+	    ea = ea->optimize(WANTvalue);
+	    //ea = ea->constFold();
 	    tiargs->data[j] = ea;
 	}
 	//printf("1: tiargs->data[%d] = %p\n", j, tiargs->data[j]);
@@ -1932,7 +1958,7 @@ void TemplateInstance::inlineScan()
     }
 }
 
-void TemplateInstance::toCBuffer(OutBuffer *buf)
+void TemplateInstance::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 {
     int i;
 
@@ -1958,9 +1984,9 @@ void TemplateInstance::toCBuffer(OutBuffer *buf)
 	    Expression *e = isExpression(oarg);
 	    Dsymbol *s = isDsymbol(oarg);
 	    if (t)
-		t->toCBuffer(buf, NULL);
+		t->toCBuffer(buf, NULL, hgs);
 	    else if (e)
-		e->toCBuffer(buf);
+		e->toCBuffer(buf, hgs);
 	    else if (s)
 	    {
 		char *p = s->ident ? s->ident->toChars() : s->toChars();
@@ -2016,13 +2042,13 @@ char *TemplateInstance::kind()
 char *TemplateInstance::toChars()
 {
     OutBuffer buf;
+    HdrGenState hgs;
     char *s;
 
-    toCBuffer(&buf);
+    toCBuffer(&buf, &hgs);
     s = buf.toChars();
     buf.data = NULL;
     return s;
-    //return s + 9;	// kludge to skip over 'instance '
 }
 
 /* ======================== TemplateMixin ================================ */
@@ -2356,25 +2382,49 @@ Dsymbol *TemplateMixin::oneMember()
     return Dsymbol::oneMember();
 }
 
-void TemplateMixin::toCBuffer(OutBuffer *buf)
+void TemplateMixin::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 {
-    //buf->writestring("mixin ");
-    if (tqual)
-    {	tqual->toCBuffer(buf, NULL);
-	buf->writeByte('.');
-    }
-    for (int i = 0; i + 1 < idents->dim; i++)
-    {	Identifier *id = (Identifier *)idents->data[i];
+    buf->writestring("mixin ");
+    int i;
+    for (i = 0; i < idents->dim; i++)
+    {   Identifier *id = (Identifier *)idents->data[i];
 
+    	if (i)
+	    buf->writeByte('.');
 	buf->writestring(id->toChars());
-	buf->writeByte('.');
     }
-    TemplateInstance::toCBuffer(buf);
-    if (ident)
+    buf->writestring("!(");
+    if (tiargs)
     {
-	buf->writeByte(' ');
-	buf->writestring(ident->toChars());
+        for (i = 0; i < tiargs->dim; i++)
+        {   if (i)
+                buf->writebyte(',');
+	    Object *oarg = (Object *)tiargs->data[i];
+	    Type *t = isType(oarg);
+	    Expression *e = isExpression(oarg);
+	    Dsymbol *s = isDsymbol(oarg);
+	    if (t)
+		t->toCBuffer(buf, NULL, hgs);
+	    else if (e)
+		e->toCBuffer(buf, hgs);
+	    else if (s)
+	    {
+		char *p = s->ident ? s->ident->toChars() : s->toChars();
+		buf->writestring(p);
+	    }
+	    else if (!oarg)
+	    {
+		buf->writestring("NULL");
+	    }
+	    else
+	    {
+		assert(0);
+	    }
+        }
     }
+    buf->writebyte(')');
+    buf->writebyte(';');
+    buf->writenl();
 }
 
 

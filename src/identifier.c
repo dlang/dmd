@@ -1,5 +1,5 @@
 
-// Copyright (c) 1999-2004 by Digital Mars
+// Copyright (c) 1999-2005 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // www.digitalmars.com
@@ -41,6 +41,26 @@ int Identifier::compare(Object *o)
 char *Identifier::toChars()
 {
     return (char *)string;
+}
+
+char *Identifier::toHChars2()
+{
+    char *p = NULL;
+
+    if (this == Id::ctor) p = "this";
+    else if (this == Id::dtor) p = "~this";
+    else if (this == Id::classInvariant) p = "invariant";
+    else if (this == Id::unitTest) p = "unittest";
+    else if (this == Id::staticCtor) p = "static this";
+    else if (this == Id::staticDtor) p = "static ~this";
+    else if (this == Id::dollar) p = "$";
+    else if (this == Id::withSym) p = "with";
+    else if (this == Id::result) p = "result";
+    else if (this == Id::returnLabel) p = "return";
+    else
+	p = toChars();
+
+    return p;
 }
 
 void Identifier::print()

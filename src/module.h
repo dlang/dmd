@@ -51,9 +51,7 @@ struct Module : Package
     ModuleDeclaration *md; // if !NULL, the contents of the ModuleDeclaration declaration
     File *srcfile;	// input source file
     File *objfile;	// output .obj file
-#ifdef _DH
     File *hdrfile;	// 'header' file
-#endif
     File *symfile;	// output symbol file
     File *docfile;	// output documentation file
     unsigned errors;	// if any errors in file
@@ -88,15 +86,12 @@ struct Module : Package
 
     Macro *macrotable;		// document comment macros
 
-#ifdef _DH
     Module(char *arg, Identifier *ident, int doDocComment, int doHdrGen);
-#else
-    Module(char *arg, Identifier *ident, int doDocComment);
-#endif
     ~Module();
 
     static Module *load(Loc loc, Array *packages, Identifier *ident);
 
+    void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
     char *kind();
     void setDocfile();	// set docfile member
     void read(Loc loc);	// read file
@@ -105,11 +100,9 @@ struct Module : Package
     void semantic2();	// pass 2 semantic analysis
     void semantic3();	// pass 3 semantic analysis
     void inlineScan();	// scan for functions to inline
-#ifdef _DH
-    OutBuffer hdrbufr;  // Header file contents
     void setHdrfile();	// set hdrfile member
-    void genhdrbufr();  // generate header file contents
-    void genhdrfile();  // format and write buffer to disk
+#ifdef _DH
+    void genhdrfile();  // generate D import file
 #endif
     void genobjfile();
     void gensymfile();

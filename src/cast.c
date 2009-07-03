@@ -1008,9 +1008,7 @@ Expression *BinExp::typeCombine()
     else
     {
      Lincompatible:
-	error("incompatible types for ((%s) %s (%s)): '%s' and '%s'",
-	 e1->toChars(), Token::toChars(op), e2->toChars(),
-	 t1->toChars(), t2->toChars());
+	incompatibleTypes();
     }
 Lret:
     if (!type)

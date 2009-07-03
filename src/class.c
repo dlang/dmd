@@ -503,34 +503,30 @@ void ClassDeclaration::semantic(Scope *sc)
     //printf("-ClassDeclaration::semantic(%s), type = %p\n", toChars(), type);
 }
 
-void ClassDeclaration::toCBuffer(OutBuffer *buf)
-{   int i;
-    int needcomma;
-
-    buf->printf("%s %s", kind(), toChars());
-    needcomma = 0;
-    if (baseClass)
-    {	buf->printf(" : %s", baseClass->toChars());
-	needcomma = 1;
-    }
-    for (i = 0; i < baseclasses.dim; i++)
+void ClassDeclaration::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
+{
+    buf->printf("%s ", kind());
+    if (!isAnonymous())
+	buf->writestring(toChars());
+    if (baseclasses.dim)
+	buf->writestring(" : ");
+    for (int i = 0; i < baseclasses.dim; i++)
     {
 	BaseClass *b = (BaseClass *)baseclasses.data[i];
 
-	if (needcomma)
+	if (i)
 	    buf->writeByte(',');
-	needcomma = 1;
 	buf->writestring(b->base->ident->toChars());
     }
     buf->writenl();
     buf->writeByte('{');
     buf->writenl();
-    for (i = 0; i < members->dim; i++)
+    for (int i = 0; i < members->dim; i++)
     {
 	Dsymbol *s = (Dsymbol *)members->data[i];
 
 	buf->writestring("    ");
-	s->toCBuffer(buf);
+	s->toCBuffer(buf, hgs);
     }
     buf->writestring("}");
     buf->writenl();

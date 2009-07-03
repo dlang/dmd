@@ -37,10 +37,7 @@ struct Condition
 
     virtual Condition *syntaxCopy() = 0;
     virtual int include(Scope *sc, ScopeDsymbol *s) = 0;
-    virtual void toCBuffer(OutBuffer *buf) = 0;
-#ifdef _DH
-    virtual void toHBuffer(OutBuffer *buf, HdrGenState *hgs);
-#endif
+    virtual void toCBuffer(OutBuffer *buf, HdrGenState *hgs) = 0;
 };
 
 struct DVCondition : Condition
@@ -63,7 +60,7 @@ struct DebugCondition : DVCondition
     DebugCondition(Module *mod, unsigned level, Identifier *ident);
 
     int include(Scope *sc, ScopeDsymbol *s);
-    void toCBuffer(OutBuffer *buf);
+    void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
 };
 
 struct VersionCondition : DVCondition
@@ -76,7 +73,7 @@ struct VersionCondition : DVCondition
     VersionCondition(Module *mod, unsigned level, Identifier *ident);
 
     int include(Scope *sc, ScopeDsymbol *s);
-    void toCBuffer(OutBuffer *buf);
+    void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
 };
 
 struct StaticIfCondition : Condition
@@ -86,10 +83,7 @@ struct StaticIfCondition : Condition
     StaticIfCondition(Loc loc, Expression *exp);
     Condition *syntaxCopy();
     int include(Scope *sc, ScopeDsymbol *s);
-    void toCBuffer(OutBuffer *buf);
-#ifdef _DH
-    void toHBuffer(OutBuffer *buf, HdrGenState *hgs);
-#endif
+    void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
 };
 
 struct IftypeCondition : Condition
@@ -104,10 +98,7 @@ struct IftypeCondition : Condition
     IftypeCondition(Loc loc, Type *targ, Identifier *id, enum TOK tok, Type *tspec);
     Condition *syntaxCopy();
     int include(Scope *sc, ScopeDsymbol *s);
-    void toCBuffer(OutBuffer *buf);
-#ifdef _DH
-    void toHBuffer(OutBuffer *buf, HdrGenState *hgs);
-#endif
+    void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
 };
 
 

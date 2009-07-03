@@ -34,10 +34,7 @@ struct StaticAssert : Dsymbol
     void inlineScan();
     void toObjFile();
     char *kind();
-    void toCBuffer(OutBuffer *buf);
-#ifdef _DH
-    void toHBuffer(OutBuffer *buf, HdrGenState *hgs);
-#endif
+    void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
 };
 
 #endif

@@ -191,7 +191,7 @@ int Dsymbol::overloadInsert(Dsymbol *s)
     return FALSE;
 }
 
-void Dsymbol::toCBuffer(OutBuffer *buf)
+void Dsymbol::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 {
     buf->writestring(toChars());
 }

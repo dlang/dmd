@@ -29,6 +29,7 @@
 #include "mtype.h"
 #include "id.h"
 #include "cond.h"
+#include "expression.h"
 
 void getenv_setargv(const char *envvar, int *pargc, char** *pargv);
 
@@ -38,9 +39,7 @@ Global::Global()
 {
     mars_ext = "d";
     sym_ext  = "d";
-#ifdef _DH
-    hdr_ext  = "d";
-#endif
+    hdr_ext  = "di";
     doc_ext  = "html";
     ddoc_ext = "ddoc";
 
@@ -54,7 +53,7 @@ Global::Global()
 
     copyright = "Copyright (c) 1999-2005 by Digital Mars";
     written = "written by Walter Bright";
-    version = "v0.141";
+    version = "v0.142";
     global.structalign = 8;
 
     memset(&params, 0, sizeof(Param));
@@ -134,6 +133,7 @@ Usage:\n\
 \n\
   files.d        D source files\n\
   -c             do not link\n\
+  -cov           do code coverage analysis\n\
   -D             generate documentation\n\
   -Dddocdir      write documentation file to docdir directory\n\
   -Dffilename    write documentation file to filename\n\
@@ -142,6 +142,7 @@ Usage:\n\
   -debug=level   compile in debug code <= level\n\
   -debug=ident   compile in debug code identified by ident\n\
   -g             add symbolic debug info\n\
+  -H             generate 'header' file\n\
   -Hdhdrdir      write 'header' file to hdrdir directory\n\
   -Hffilename    write 'header' file to filename\n\
   --help         print help\n\
@@ -176,6 +177,7 @@ int main(int argc, char *argv[])
     Type::init();
     Id::initialize();
     Module::init();
+    initPrecedence();
 
     backend_init();
 
@@ -603,11 +605,7 @@ int main(int argc, char *argv[])
 	}
 
 	id = new Identifier(name, 0);
-#ifdef _DH
 	m = new Module((char *) files.data[i], id, global.params.doDocComments, global.params.doHdrGeneration);
-#else
-	m = new Module((char *) files.data[i], id, global.params.doDocComments);
-#endif
 	modules.push(m);
 
 	global.params.objfiles->push(m->objfile->name->str);
@@ -644,21 +642,27 @@ int main(int argc, char *argv[])
 		global.params.link = 0;
 	}
     }
+    if (global.errors)
+	fatal();
 #ifdef _DH
     if (global.params.doHdrGeneration)
     {
-	/* Make syntax copies for header file generation after parsing but
-	 * prior to semantic analysis.
+	/* Generate 'header' import files.
+	 * Since 'header' import files must be independent of command
+	 * line switches and what else is imported, they are generated
+	 * before any semantic analysis.
 	 */
 	for (i = 0; i < modules.dim; i++)
 	{
 	    m = (Module *)modules.data[i];
-	    m->syntaxCopy(NULL);    // The original data is *not* overwritten
+	    if (global.params.verbose)
+		printf("import    %s\n", m->toChars());
+	    m->genhdrfile();
 	}
     }
-#endif
     if (global.errors)
 	fatal();
+#endif
 
     // Do semantic analysis
     for (i = 0; i < modules.dim; i++)
@@ -693,22 +697,6 @@ int main(int argc, char *argv[])
     if (global.errors)
 	fatal();
 
-#ifdef _DH
-    if (global.params.doHdrGeneration)
-    {
-	/* Generate header files after semantic analysis but before the
-	 * semantics of function bodies can be changed by function inlining.
-	 */
-	for (i = 0; i < modules.dim; i++)
-	{
-	    m = (Module *)modules.data[i];
-	    m->genhdrbufr();
-	}
-	if (global.errors)
-	    fatal();
-    }
-#endif
-
     // Scan for functions to inline
     if (global.params.useInline)
     {
@@ -735,10 +723,6 @@ int main(int argc, char *argv[])
 	    m->deleteObjFile();
 	else
 	{
-#ifdef _DH
-	    if (global.params.doHdrGeneration)
-		m->genhdrfile();	// format and output header content
-#endif
 	    if (global.params.doDocComments)
 		m->gendocfile();
 	}

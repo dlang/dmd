@@ -60,10 +60,8 @@ struct WithScopeSymbol;
 struct ArrayScopeSymbol;
 struct SymbolDeclaration;
 struct Expression;
-#ifdef _DH
 struct DeleteDeclaration;
 struct HdrGenState;
-#endif
 
 struct TYPE;
 
@@ -120,7 +118,7 @@ struct Dsymbol : Object
     char *toHChars();
     virtual void toHBuffer(OutBuffer *buf, HdrGenState *hgs);
 #endif
-    virtual void toCBuffer(OutBuffer *buf);
+    virtual void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
     virtual void toDocBuffer(OutBuffer *buf);
     virtual unsigned size(Loc loc);
     virtual int isforwardRef();

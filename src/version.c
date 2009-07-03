@@ -81,7 +81,7 @@ void DebugSymbol::semantic(Scope *sc)
     //printf("DebugSymbol::semantic() %s\n", toChars());
 }
 
-void DebugSymbol::toCBuffer(OutBuffer *buf)
+void DebugSymbol::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 {
     buf->writestring("debug = ");
     if (ident)
@@ -160,7 +160,7 @@ void VersionSymbol::semantic(Scope *sc)
 {
 }
 
-void VersionSymbol::toCBuffer(OutBuffer *buf)
+void VersionSymbol::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 {
     buf->writestring("version = ");
     if (ident)

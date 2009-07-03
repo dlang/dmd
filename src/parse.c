@@ -3960,15 +3960,6 @@ Expression *Parser::parsePostExp(Expression *e)
 		else
 		    error("identifier expected following '.', not '%s'", token.toChars());
 		break;
-#if 0
-	    case TOKarrow:
-		nextToken();
-		if (token.value == TOKidentifier)
-		    e = new ArrowExp(loc, e, token.ident);
-		else
-		    error("identifier expected following '->', not '%s'", token.toChars());
-		break;
-#endif
 
 	    case TOKplusplus:
 		e = new PostIncExp(loc, e);

@@ -64,11 +64,11 @@ char *StaticAssert::kind()
     return "static assert";
 }
 
-void StaticAssert::toCBuffer(OutBuffer *buf)
+void StaticAssert::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 {
     buf->writestring(kind());
     buf->writeByte('(');
-    exp->toCBuffer(buf);
+    exp->toCBuffer(buf, hgs);
     buf->writestring(");");
     buf->writenl();
 }
