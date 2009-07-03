@@ -1,6 +1,6 @@
 
 // Compiler implementation of the D programming language
-// Copyright (c) 1999-2006 by Digital Mars
+// Copyright (c) 1999-2007 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // http://www.digitalmars.com
@@ -338,7 +338,7 @@ Initializer *ArrayInitializer::semantic(Scope *sc, Type *t)
 	}
 
 	val = (Initializer *)value.data[i];
-	val = val->semantic(sc, t->next);
+	val = val->semantic(sc, t->nextOf());
 	value.data[i] = (void *)val;
 	length++;
 	if (length == 0)
@@ -347,8 +347,8 @@ Initializer *ArrayInitializer::semantic(Scope *sc, Type *t)
 	    dim = length;
     }
     unsigned long amax = 0x80000000;
-    if ((unsigned long) dim * t->next->size() >= amax)
-	error(loc, "array dimension %u exceeds max of %ju", dim, amax / t->next->size());
+    if ((unsigned long) dim * t->nextOf()->size() >= amax)
+	error(loc, "array dimension %u exceeds max of %ju", dim, amax / t->nextOf()->size());
     return this;
 }
 
@@ -513,11 +513,11 @@ Initializer *ExpInitializer::semantic(Scope *sc, Type *t)
     // Look for the case of statically initializing an array
     // with a single member.
     if (tb->ty == Tsarray &&
-	!tb->next->equals(exp->type->toBasetype()->next) &&
-	exp->implicitConvTo(tb->next)
+	!tb->nextOf()->equals(exp->type->toBasetype()->nextOf()) &&
+	exp->implicitConvTo(tb->nextOf())
        )
     {
-	t = tb->next;
+	t = tb->nextOf();
     }
 
     exp = exp->implicitCastTo(sc, t);
@@ -532,7 +532,8 @@ Type *ExpInitializer::inferType(Scope *sc)
     //printf("ExpInitializer::inferType() %s\n", toChars());
     exp = exp->semantic(sc);
     exp = resolveProperties(sc, exp);
-    return exp->type;
+    Type *t = exp->type;
+    return t->ty == Tsarray ? t : t->mutableOf();
 }
 
 Expression *ExpInitializer::toExpression()

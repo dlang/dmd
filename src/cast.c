@@ -1,5 +1,5 @@
 
-// Copyright (c) 1999-2006 by Digital Mars
+// Copyright (c) 1999-2007 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // http://www.digitalmars.com
@@ -31,7 +31,9 @@
 
 Expression *Expression::implicitCastTo(Scope *sc, Type *t)
 {
-    //printf("implicitCastTo(%s) => %s\n", type->toChars(), t->toChars());
+    //printf("Expression::implicitCastTo(%s) => %s\n", type->toChars(), t->toChars());
+    //printf("%s\n", toChars());
+
     if (implicitConvTo(t))
     {
 	if (global.params.warnings &&
@@ -60,7 +62,7 @@ type->print();
 printf("to:\n");
 t->print();
 printf("%p %p type: %s to: %s\n", type->deco, t->deco, type->deco, t->deco);
-//printf("%p %p %p\n", type->next->arrayOf(), type, t);
+//printf("%p %p %p\n", type->nextOf()->arrayOf(), type, t);
 fflush(stdout);
 #endif
     if (!t->deco)
@@ -87,7 +89,7 @@ fflush(stdout);
  * Don't do the actual cast.
  */
 
-int Expression::implicitConvTo(Type *t)
+MATCH Expression::implicitConvTo(Type *t)
 {
 #if 0
     printf("Expression::implicitConvTo(this=%s, type=%s, t=%s)\n",
@@ -97,30 +99,28 @@ int Expression::implicitConvTo(Type *t)
     {	error("%s is not an expression", toChars());
 	type = Type::terror;
     }
-    if (t->ty == Tbit && isBit())
-	return MATCHconvert;
     Expression *e = optimize(WANTvalue | WANTflags);
     if (e != this)
     {	//printf("optimzed to %s\n", e->toChars());
 	return e->implicitConvTo(t);
     }
-    int match = type->implicitConvTo(t);
-    if (match)
+    MATCH match = type->implicitConvTo(t);
+    if (match != MATCHnomatch)
 	return match;
 #if 0
     Type *tb = t->toBasetype();
     if (tb->ty == Tdelegate)
     {	TypeDelegate *td = (TypeDelegate *)tb;
-	TypeFunction *tf = (TypeFunction *)td->next;
+	TypeFunction *tf = (TypeFunction *)td->nextOf();
 
 	if (!tf->varargs &&
 	    !(tf->arguments && tf->arguments->dim)
 	   )
 	{
-	    match = type->implicitConvTo(tf->next);
+	    match = type->implicitConvTo(tf->nextOf());
 	    if (match)
 		return match;
-	    if (tf->next->toBasetype()->ty == Tvoid)
+	    if (tf->nextOf()->toBasetype()->ty == Tvoid)
 		return MATCHconvert;
 	}
     }
@@ -129,7 +129,7 @@ int Expression::implicitConvTo(Type *t)
 }
 
 
-int IntegerExp::implicitConvTo(Type *t)
+MATCH IntegerExp::implicitConvTo(Type *t)
 {
 #if 0
     printf("IntegerExp::implicitConvTo(this=%s, type=%s, t=%s)\n",
@@ -138,11 +138,11 @@ int IntegerExp::implicitConvTo(Type *t)
     if (type->equals(t))
 	return MATCHexact;
 
-    enum TY ty = type->toBasetype()->ty;
-    enum TY toty = t->toBasetype()->ty;
+    TY ty = type->toBasetype()->ty;
+    TY toty = t->toBasetype()->ty;
 
     if (type->implicitConvTo(t) == MATCHnomatch && t->ty == Tenum)
-	return MATCHnomatch;
+	goto Lno;
 
     switch (ty)
     {
@@ -298,6 +298,19 @@ int IntegerExp::implicitConvTo(Type *t)
 	    }
 	    goto Lyes;
 	}
+
+	case Tpointer:
+//printf("type = %s\n", type->toBasetype()->toChars());
+//printf("t = %s\n", t->toBasetype()->toChars());
+	    if (ty == Tpointer &&
+	        type->toBasetype()->nextOf()->ty == t->toBasetype()->nextOf()->ty)
+	    {	/* Allow things like:
+		 *	const char* P = cast(char *)3;
+		 *	char* q = P;
+		 */
+		goto Lyes;
+	    }
+	    break;
     }
     return Expression::implicitConvTo(t);
 
@@ -308,7 +321,7 @@ Lno:
     return MATCHnomatch;
 }
 
-int NullExp::implicitConvTo(Type *t)
+MATCH NullExp::implicitConvTo(Type *t)
 {
 #if 0
     printf("NullExp::implicitConvTo(this=%s, type=%s, t=%s)\n",
@@ -317,7 +330,7 @@ int NullExp::implicitConvTo(Type *t)
     if (this->type->equals(t))
 	return MATCHexact;
     // NULL implicitly converts to any pointer type or dynamic array
-    if (type->ty == Tpointer && type->next->ty == Tvoid)
+    if (type->ty == Tpointer && type->nextOf()->ty == Tvoid)
     {
 	if (t->ty == Ttypedef)
 	    t = ((TypeTypedef *)t)->sym->basetype;
@@ -329,7 +342,7 @@ int NullExp::implicitConvTo(Type *t)
     return Expression::implicitConvTo(t);
 }
 
-int StringExp::implicitConvTo(Type *t)
+MATCH StringExp::implicitConvTo(Type *t)
 {   MATCH m;
 
 #if 0
@@ -338,32 +351,45 @@ int StringExp::implicitConvTo(Type *t)
 #endif
     if (!committed)
     {
-    if (!committed && t->ty == Tpointer && t->next->ty == Tvoid)
+    if (!committed && t->ty == Tpointer && t->nextOf()->ty == Tvoid)
     {
 	return MATCHnomatch;
     }
     if (type->ty == Tsarray || type->ty == Tarray || type->ty == Tpointer)
     {
-	if (type->next->ty == Tchar)
-	{
+	TY tyn = type->nextOf()->ty;
+	if (tyn == Tchar || tyn == Twchar || tyn == Tdchar)
+	{   Type *tn;
+	    MATCH m;
+
 	    switch (t->ty)
 	    {
 		case Tsarray:
-		    if (type->ty == Tsarray &&
-			((TypeSArray *)type)->dim->toInteger() !=
-			((TypeSArray *)t)->dim->toInteger())
-			return MATCHnomatch;
-		    goto L1;
+		    if (type->ty == Tsarray)
+		    {
+			if (((TypeSArray *)type)->dim->toInteger() !=
+			    ((TypeSArray *)t)->dim->toInteger())
+			    return MATCHnomatch;
+			TY tynto = t->nextOf()->ty;
+			if (tynto == Tchar || tynto == Twchar || tynto == Tdchar)
+			    return MATCHexact;
+		    }
 		case Tarray:
-		    goto L1;
 		case Tpointer:
-		L1:
-		    if (t->next->ty == Tchar)
-			return MATCHexact;
-		    else if (t->next->ty == Twchar)
-			return MATCHexact;
-		    else if (t->next->ty == Tdchar)
-			return MATCHexact;
+		    tn = t->nextOf();
+		    m = MATCHexact;
+		    if (type->nextOf()->mod != tn->mod)
+		    {	if (!tn->isConst())
+			    return MATCHnomatch;
+			m = MATCHconst;
+		    }
+		    switch (tn->ty)
+		    {
+			case Tchar:
+			case Twchar:
+			case Tdchar:
+			    return m;
+		    }
 		    break;
 	    }
 	}
@@ -381,9 +407,13 @@ int StringExp::implicitConvTo(Type *t)
 #endif
 }
 
-int ArrayLiteralExp::implicitConvTo(Type *t)
+MATCH ArrayLiteralExp::implicitConvTo(Type *t)
 {   MATCH result = MATCHexact;
 
+#if 0
+    printf("ArrayLiteralExp::implicitConvTo(this=%s, type=%s, t=%s)\n",
+	toChars(), type->toChars(), t->toChars());
+#endif
     Type *typeb = type->toBasetype();
     Type *tb = t->toBasetype();
     if ((tb->ty == Tarray || tb->ty == Tsarray) &&
@@ -397,7 +427,7 @@ int ArrayLiteralExp::implicitConvTo(Type *t)
 
 	for (int i = 0; i < elements->dim; i++)
 	{   Expression *e = (Expression *)elements->data[i];
-	    MATCH m = (MATCH)e->implicitConvTo(tb->next);
+	    MATCH m = (MATCH)e->implicitConvTo(tb->nextOf());
 	    if (m < result)
 		result = m;			// remember worst match
 	    if (result == MATCHnomatch)
@@ -409,7 +439,7 @@ int ArrayLiteralExp::implicitConvTo(Type *t)
 	return Expression::implicitConvTo(t);
 }
 
-int AssocArrayLiteralExp::implicitConvTo(Type *t)
+MATCH AssocArrayLiteralExp::implicitConvTo(Type *t)
 {   MATCH result = MATCHexact;
 
     Type *typeb = type->toBasetype();
@@ -418,13 +448,13 @@ int AssocArrayLiteralExp::implicitConvTo(Type *t)
     {
 	for (size_t i = 0; i < keys->dim; i++)
 	{   Expression *e = (Expression *)keys->data[i];
-	    MATCH m = (MATCH)e->implicitConvTo(((TypeAArray *)tb)->key);
+	    MATCH m = (MATCH)e->implicitConvTo(((TypeAArray *)tb)->index);
 	    if (m < result)
 		result = m;			// remember worst match
 	    if (result == MATCHnomatch)
 		break;				// no need to check for worse
 	    e = (Expression *)values->data[i];
-	    m = (MATCH)e->implicitConvTo(tb->next);
+	    m = (MATCH)e->implicitConvTo(tb->nextOf());
 	    if (m < result)
 		result = m;			// remember worst match
 	    if (result == MATCHnomatch)
@@ -436,13 +466,13 @@ int AssocArrayLiteralExp::implicitConvTo(Type *t)
 	return Expression::implicitConvTo(t);
 }
 
-int AddrExp::implicitConvTo(Type *t)
+MATCH AddrExp::implicitConvTo(Type *t)
 {
 #if 0
     printf("AddrExp::implicitConvTo(this=%s, type=%s, t=%s)\n",
 	toChars(), type->toChars(), t->toChars());
 #endif
-    int result;
+    MATCH result;
 
     result = type->implicitConvTo(t);
     //printf("\tresult = %d\n", result);
@@ -454,13 +484,13 @@ int AddrExp::implicitConvTo(Type *t)
 	FuncDeclaration *f;
 
 	t = t->toBasetype();
-	if (type->ty == Tpointer && type->next->ty == Tfunction &&
-	    t->ty == Tpointer && t->next->ty == Tfunction &&
+	if (type->ty == Tpointer && type->nextOf()->ty == Tfunction &&
+	    t->ty == Tpointer && t->nextOf()->ty == Tfunction &&
 	    e1->op == TOKvar)
 	{
 	    ve = (VarExp *)e1;
 	    f = ve->var->isFuncDeclaration();
-	    if (f && f->overloadExactMatch(t->next))
+	    if (f && f->overloadExactMatch(t->nextOf()))
 		result = MATCHexact;
 	}
     }
@@ -468,13 +498,13 @@ int AddrExp::implicitConvTo(Type *t)
     return result;
 }
 
-int SymOffExp::implicitConvTo(Type *t)
+MATCH SymOffExp::implicitConvTo(Type *t)
 {
 #if 0
     printf("SymOffExp::implicitConvTo(this=%s, type=%s, t=%s)\n",
 	toChars(), type->toChars(), t->toChars());
 #endif
-    int result;
+    MATCH result;
 
     result = type->implicitConvTo(t);
     //printf("\tresult = %d\n", result);
@@ -485,11 +515,11 @@ int SymOffExp::implicitConvTo(Type *t)
 	FuncDeclaration *f;
 
 	t = t->toBasetype();
-	if (type->ty == Tpointer && type->next->ty == Tfunction &&
-	    t->ty == Tpointer && t->next->ty == Tfunction)
+	if (type->ty == Tpointer && type->nextOf()->ty == Tfunction &&
+	    t->ty == Tpointer && t->nextOf()->ty == Tfunction)
 	{
 	    f = var->isFuncDeclaration();
-	    if (f && f->overloadExactMatch(t->next))
+	    if (f && f->overloadExactMatch(t->nextOf()))
 		result = MATCHexact;
 	}
     }
@@ -497,36 +527,36 @@ int SymOffExp::implicitConvTo(Type *t)
     return result;
 }
 
-int DelegateExp::implicitConvTo(Type *t)
+MATCH DelegateExp::implicitConvTo(Type *t)
 {
 #if 0
     printf("DelegateExp::implicitConvTo(this=%s, type=%s, t=%s)\n",
 	toChars(), type->toChars(), t->toChars());
 #endif
-    int result;
+    MATCH result;
 
     result = type->implicitConvTo(t);
 
-    if (result == 0)
+    if (result == MATCHnomatch)
     {
 	// Look for pointers to functions where the functions are overloaded.
 	FuncDeclaration *f;
 
 	t = t->toBasetype();
-	if (type->ty == Tdelegate && type->next->ty == Tfunction &&
-	    t->ty == Tdelegate && t->next->ty == Tfunction)
+	if (type->ty == Tdelegate && type->nextOf()->ty == Tfunction &&
+	    t->ty == Tdelegate && t->nextOf()->ty == Tfunction)
 	{
-	    if (func && func->overloadExactMatch(t->next))
-		result = 2;
+	    if (func && func->overloadExactMatch(t->nextOf()))
+		result = MATCHexact;
 	}
     }
     return result;
 }
 
-int CondExp::implicitConvTo(Type *t)
+MATCH CondExp::implicitConvTo(Type *t)
 {
-    int m1;
-    int m2;
+    MATCH m1;
+    MATCH m2;
 
     m1 = e1->implicitConvTo(t);
     m2 = e2->implicitConvTo(t);
@@ -575,8 +605,8 @@ Expression *Expression::castTo(Scope *sc, Type *t)
 	else if (tb->ty == Tdelegate && type->ty != Tdelegate)
 	{
 	    TypeDelegate *td = (TypeDelegate *)tb;
-	    TypeFunction *tf = (TypeFunction *)td->next;
-	    return toDelegate(sc, tf->next);
+	    TypeFunction *tf = (TypeFunction *)td->nextOf();
+	    return toDelegate(sc, tf->nextOf());
 	}
 #endif
 	else
@@ -624,14 +654,14 @@ Expression *NullExp::castTo(Scope *sc, Type *t)
     if (tb != type)
     {
 	// NULL implicitly converts to any pointer type or dynamic array
-	if (type->ty == Tpointer && type->next->ty == Tvoid &&
+	if (type->ty == Tpointer && type->nextOf()->ty == Tvoid &&
 	    (tb->ty == Tpointer || tb->ty == Tarray || tb->ty == Taarray ||
 	     tb->ty == Tdelegate))
 	{
 #if 0
 	    if (tb->ty == Tdelegate)
 	    {   TypeDelegate *td = (TypeDelegate *)tb;
-		TypeFunction *tf = (TypeFunction *)td->next;
+		TypeFunction *tf = (TypeFunction *)td->nextOf();
 
 		if (!tf->varargs &&
 		    !(tf->arguments && tf->arguments->dim)
@@ -660,7 +690,7 @@ Expression *StringExp::castTo(Scope *sc, Type *t)
 
     //printf("StringExp::castTo(t = %s), '%s' committed = %d\n", t->toChars(), toChars(), committed);
 
-    if (!committed && t->ty == Tpointer && t->next->ty == Tvoid)
+    if (!committed && t->ty == Tpointer && t->nextOf()->ty == Tvoid)
     {
 	error("cannot convert string literal to void*");
     }
@@ -703,7 +733,7 @@ Expression *StringExp::castTo(Scope *sc, Type *t)
 
     if (se->committed == 1)
     {
-	if (se->type->next->size() == tb->next->size())
+	if (se->type->nextOf()->size() == tb->nextOf()->size())
 	{   se->type = t;
 	    return se;
 	}
@@ -723,8 +753,8 @@ Expression *StringExp::castTo(Scope *sc, Type *t)
     {
     OutBuffer buffer;
     newlen = 0;
-    tfty = se->type->next->toBasetype()->ty;
-    ttty = tb->next->toBasetype()->ty;
+    tfty = se->type->nextOf()->toBasetype()->ty;
+    ttty = tb->nextOf()->toBasetype()->ty;
     switch (X(tfty, ttty))
     {
 	case X(Tchar, Tchar):
@@ -815,11 +845,11 @@ Expression *StringExp::castTo(Scope *sc, Type *t)
 		se = new StringExp(loc, NULL, 0);
 	    se->string = buffer.extractData();
 	    se->len = newlen;
-	    se->sz = tb->next->size();
+	    se->sz = tb->nextOf()->size();
 	    break;
 
 	default:
-	    if (se->type->next->size() == tb->next->size())
+	    if (se->type->nextOf()->size() == tb->nextOf()->size())
 	    {	se->type = t;
 		return se;
 	    }
@@ -889,15 +919,15 @@ Expression *AddrExp::castTo(Scope *sc, Type *t)
 	VarExp *ve;
 	FuncDeclaration *f;
 
-	if (type->ty == Tpointer && type->next->ty == Tfunction &&
-	    tb->ty == Tpointer && tb->next->ty == Tfunction &&
+	if (type->ty == Tpointer && type->nextOf()->ty == Tfunction &&
+	    tb->ty == Tpointer && tb->nextOf()->ty == Tfunction &&
 	    e1->op == TOKvar)
 	{
 	    ve = (VarExp *)e1;
 	    f = ve->var->isFuncDeclaration();
 	    if (f)
 	    {
-		f = f->overloadExactMatch(tb->next);
+		f = f->overloadExactMatch(tb->nextOf());
 		if (f)
 		{
 		    e = new VarExp(loc, f);
@@ -932,7 +962,7 @@ Expression *ArrayLiteralExp::castTo(Scope *sc, Type *t)
     Type *tb = t->toBasetype();
     if ((tb->ty == Tarray || tb->ty == Tsarray) &&
 	(typeb->ty == Tarray || typeb->ty == Tsarray) &&
-	tb->next->toBasetype()->ty != Tvoid)
+	tb->nextOf()->toBasetype()->ty != Tvoid)
     {
 	if (tb->ty == Tsarray)
 	{   TypeSArray *tsa = (TypeSArray *)tb;
@@ -942,7 +972,7 @@ Expression *ArrayLiteralExp::castTo(Scope *sc, Type *t)
 
 	for (int i = 0; i < elements->dim; i++)
 	{   Expression *e = (Expression *)elements->data[i];
-	    e = e->castTo(sc, tb->next);
+	    e = e->castTo(sc, tb->nextOf());
 	    elements->data[i] = (void *)e;
 	}
 	type = t;
@@ -950,7 +980,7 @@ Expression *ArrayLiteralExp::castTo(Scope *sc, Type *t)
     }
     if (tb->ty == Tpointer && typeb->ty == Tsarray)
     {
-	type = typeb->next->pointerTo();
+	type = typeb->nextOf()->pointerTo();
     }
 L1:
     return Expression::castTo(sc, t);
@@ -961,16 +991,16 @@ Expression *AssocArrayLiteralExp::castTo(Scope *sc, Type *t)
     Type *typeb = type->toBasetype();
     Type *tb = t->toBasetype();
     if (tb->ty == Taarray && typeb->ty == Taarray &&
-	tb->next->toBasetype()->ty != Tvoid)
+	tb->nextOf()->toBasetype()->ty != Tvoid)
     {
 	assert(keys->dim == values->dim);
 	for (size_t i = 0; i < keys->dim; i++)
 	{   Expression *e = (Expression *)values->data[i];
-	    e = e->castTo(sc, tb->next);
+	    e = e->castTo(sc, tb->nextOf());
 	    values->data[i] = (void *)e;
 
 	    e = (Expression *)keys->data[i];
-	    e = e->castTo(sc, ((TypeAArray *)tb)->key);
+	    e = e->castTo(sc, ((TypeAArray *)tb)->index);
 	    keys->data[i] = (void *)e;
 	}
 	type = t;
@@ -997,13 +1027,13 @@ Expression *SymOffExp::castTo(Scope *sc, Type *t)
 	// Look for pointers to functions where the functions are overloaded.
 	FuncDeclaration *f;
 
-	if (type->ty == Tpointer && type->next->ty == Tfunction &&
-	    tb->ty == Tpointer && tb->next->ty == Tfunction)
+	if (type->ty == Tpointer && type->nextOf()->ty == Tfunction &&
+	    tb->ty == Tpointer && tb->nextOf()->ty == Tfunction)
 	{
 	    f = var->isFuncDeclaration();
 	    if (f)
 	    {
-		f = f->overloadExactMatch(tb->next);
+		f = f->overloadExactMatch(tb->nextOf());
 		if (f)
 		{
 		    e = new SymOffExp(loc, f, 0);
@@ -1035,15 +1065,15 @@ Expression *DelegateExp::castTo(Scope *sc, Type *t)
 	// Look for delegates to functions where the functions are overloaded.
 	FuncDeclaration *f;
 
-	if (type->ty == Tdelegate && type->next->ty == Tfunction &&
-	    tb->ty == Tdelegate && tb->next->ty == Tfunction)
+	if (type->ty == Tdelegate && type->nextOf()->ty == Tfunction &&
+	    tb->ty == Tdelegate && tb->nextOf()->ty == Tfunction)
 	{
 	    if (func)
 	    {
-		f = func->overloadExactMatch(tb->next);
+		f = func->overloadExactMatch(tb->nextOf());
 		if (f)
 		{   int offset;
-		    if (f->tintro && f->tintro->next->isBaseOf(f->type->next, &offset) && offset)
+		    if (f->tintro && f->tintro->nextOf()->isBaseOf(f->type->nextOf(), &offset) && offset)
 			error("%s", msg);
 		    e = new DelegateExp(loc, e1, f);
 		    e->type = t;
@@ -1058,7 +1088,7 @@ Expression *DelegateExp::castTo(Scope *sc, Type *t)
     else
     {	int offset;
 
-	if (func->tintro && func->tintro->next->isBaseOf(func->type->next, &offset) && offset)
+	if (func->tintro && func->tintro->nextOf()->isBaseOf(func->type->nextOf(), &offset) && offset)
 	    error("%s", msg);
     }
     e->type = t;
@@ -1097,16 +1127,10 @@ Expression *BinExp::scaleFactor(Scope *sc)
 	// Replace (ptr + int) with (ptr + (int * stride))
 	Type *t = Type::tptrdiff_t;
 
-	stride = t1b->next->size();
+	stride = t1b->nextOf()->size();
 	if (!t->equals(t2b))
 	    e2 = e2->castTo(sc, t);
-	if (t1b->next->isbit())
-	    // BUG: should add runtime check for misaligned offsets
-	    // This perhaps should be done by rewriting as &p[i]
-	    // and letting back end do it.
-	    e2 = new UshrExp(loc, e2, new IntegerExp(0, 3, t));
-	else
-	    e2 = new MulExp(loc, e2, new IntegerExp(0, stride, t));
+	e2 = new MulExp(loc, e2, new IntegerExp(0, stride, t));
 	e2->type = t;
 	type = e1->type;
     }
@@ -1116,16 +1140,12 @@ Expression *BinExp::scaleFactor(Scope *sc)
 	Type *t = Type::tptrdiff_t;
 	Expression *e;
 
-	stride = t2b->next->size();
+	stride = t2b->nextOf()->size();
 	if (!t->equals(t1b))
 	    e = e1->castTo(sc, t);
 	else
 	    e = e1;
-	if (t2b->next->isbit())
-	    // BUG: should add runtime check for misaligned offsets
-	    e = new UshrExp(loc, e, new IntegerExp(0, 3, t));
-	else
-	    e = new MulExp(loc, e, new IntegerExp(0, stride, t));
+	e = new MulExp(loc, e, new IntegerExp(0, stride, t));
 	e->type = t;
 	type = e2->type;
 	e1 = e2;
@@ -1211,6 +1231,18 @@ Expression *BinExp::typeCombine(Scope *sc)
 	return this;
     }
 
+    if (op == TOKcat)
+    {
+	if ((t1->ty == Tsarray || t1->ty == Tarray) &&
+	    (t2->ty == Tsarray || t2->ty == Tarray) &&
+	    (t1->nextOf()->mod || t2->nextOf()->mod))
+	{
+	    t1 = t1->constOf();
+	    t2 = t2->constOf();
+	}
+    }
+
+Lagain:
     t = t1;
     if (t1 == t2)
     {
@@ -1218,50 +1250,24 @@ Expression *BinExp::typeCombine(Scope *sc)
 	    (op == TOKmin || op == TOKadd))
 	    goto Lincompatible;
     }
-    else if (t1->isintegral() && t2->isintegral())
-    {
-	printf("t1 = %s, t2 = %s\n", t1->toChars(), t2->toChars());
-	int sz1 = t1->size();
-	int sz2 = t2->size();
-	int sign1 = t1->isunsigned() == 0;
-	int sign2 = t2->isunsigned() == 0;
-
-	if (sign1 == sign2)
-	{
-	    if (sz1 < sz2)
-		goto Lt2;
-	    else
-		goto Lt1;
-	}
-	if (!sign1)
-	{
-	    if (sz1 >= sz2)
-		goto Lt1;
-	    else
-		goto Lt2;
-	}
-	else
-	{
-	    if (sz2 >= sz1)
-		goto Lt2;
-	    else
-		goto Lt1;
-	}
-    }
     else if (t1->ty == Tpointer && t2->ty == Tpointer)
     {
 	// Bring pointers to compatible type
-	Type *t1n = t1->next;
-	Type *t2n = t2->next;
+	Type *t1n = t1->nextOf();
+	Type *t2n = t2->nextOf();
 
-//t1->print();
-//t2->print();
-//if (t1n == t2n) *(char *)0 = 0;
-	assert(t1n != t2n);
-	if (t1n->ty == Tvoid)		// pointers to void are always compatible
+	if (t1n == t2n)
+	    ;
+	else if (t1n->ty == Tvoid)	// pointers to void are always compatible
 	    t = t2;
 	else if (t2n->ty == Tvoid)
 	    ;
+	else if (t1n->mod != t2n->mod)
+	{
+	    t1 = t1->constOf();
+	    t2 = t2->constOf();
+	    goto Lagain;
+	}
 	else if (t1n->ty == Tclass && t2n->ty == Tclass)
 	{   ClassDeclaration *cd1 = t1n->isClassHandle();
 	    ClassDeclaration *cd2 = t2n->isClassHandle();
@@ -1285,13 +1291,17 @@ Expression *BinExp::typeCombine(Scope *sc)
 	    goto Lincompatible;
     }
     else if ((t1->ty == Tsarray || t1->ty == Tarray) &&
-	     e2->op == TOKnull && t2->ty == Tpointer && t2->next->ty == Tvoid)
-    {
+	     e2->op == TOKnull && t2->ty == Tpointer && t2->nextOf()->ty == Tvoid)
+    {	/*  (T[n] op void*)
+	 *  (T[] op void*)
+	 */
 	goto Lx1;
     }
     else if ((t2->ty == Tsarray || t2->ty == Tarray) &&
-	     e1->op == TOKnull && t1->ty == Tpointer && t1->next->ty == Tvoid)
-    {
+	     e1->op == TOKnull && t1->ty == Tpointer && t1->nextOf()->ty == Tvoid)
+    {	/*  (void* op T[n])
+	 *  (void* op T[])
+	 */
 	goto Lx2;
     }
     else if ((t1->ty == Tsarray || t1->ty == Tarray) && t1->implicitConvTo(t2))
@@ -1301,6 +1311,18 @@ Expression *BinExp::typeCombine(Scope *sc)
     else if ((t2->ty == Tsarray || t2->ty == Tarray) && t2->implicitConvTo(t1))
     {
 	goto Lt1;
+    }
+    /* If one is mutable and the other invariant, then retry
+     * with both of them as const
+     */
+    else if ((t1->ty == Tsarray || t1->ty == Tarray || t1->ty == Tpointer) &&
+	     (t2->ty == Tsarray || t2->ty == Tarray || t2->ty == Tpointer) &&
+	     t1->nextOf()->mod != t2->nextOf()->mod
+	    )
+    {
+	t1 = t1->constOf();
+	t2 = t2->constOf();
+	goto Lagain;
     }
     else if (t1->ty == Tclass || t2->ty == Tclass)
     {	int i1;
@@ -1329,6 +1351,11 @@ Expression *BinExp::typeCombine(Scope *sc)
 	else
 	    goto Lincompatible;
     }
+    else if (t1->ty == Tstruct && t2->ty == Tstruct)
+    {
+	if (((TypeStruct *)t1)->sym != ((TypeStruct *)t2)->sym)
+	    goto Lincompatible;
+    }
     else if ((e1->op == TOKstring || e1->op == TOKnull) && e1->implicitConvTo(t2))
     {
 	goto Lt2;
@@ -1339,20 +1366,24 @@ Expression *BinExp::typeCombine(Scope *sc)
 	goto Lt1;
     }
     else if (t1->ty == Tsarray && t2->ty == Tsarray &&
-	     e2->implicitConvTo(t1->next->arrayOf()))
+	     e2->implicitConvTo(t1->nextOf()->arrayOf()))
     {
      Lx1:
-	t = t1->next->arrayOf();
+	t = t1->nextOf()->arrayOf();
 	e1 = e1->castTo(sc, t);
 	e2 = e2->castTo(sc, t);
     }
     else if (t1->ty == Tsarray && t2->ty == Tsarray &&
-	     e1->implicitConvTo(t2->next->arrayOf()))
+	     e1->implicitConvTo(t2->nextOf()->arrayOf()))
     {
      Lx2:
-	t = t2->next->arrayOf();
+	t = t2->nextOf()->arrayOf();
 	e1 = e1->castTo(sc, t);
 	e2 = e2->castTo(sc, t);
+    }
+    else if (t1->isintegral() && t2->isintegral())
+    {
+	assert(0);
     }
     else
     {

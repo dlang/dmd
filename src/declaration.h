@@ -88,6 +88,7 @@ struct Declaration : Dsymbol
     void semantic(Scope *sc);
     char *kind();
     unsigned size(Loc loc);
+    void checkModify(Loc loc, Scope *sc);
 
     void emitComment(Scope *sc);
     void toDocBuffer(OutBuffer *buf);
@@ -103,6 +104,7 @@ struct Declaration : Dsymbol
     int isFinal()        { return storage_class & STCfinal; }
     int isAbstract()     { return storage_class & STCabstract; }
     int isConst()        { return storage_class & STCconst; }
+    int isInvariant()    { return storage_class & STCinvariant; }
     int isAuto()         { return storage_class & STCauto; }
     int isScope()        { return storage_class & (STCscope | STCauto); }
     int isSynchronized() { return storage_class & STCsynchronized; }
@@ -387,6 +389,22 @@ struct TypeInfoTupleDeclaration : TypeInfoDeclaration
 
     void toDt(dt_t **pdt);
 };
+
+struct TypeInfoConstDeclaration : TypeInfoDeclaration
+{
+    TypeInfoConstDeclaration(Type *tinfo);
+
+    void toDt(dt_t **pdt);
+};
+
+struct TypeInfoInvariantDeclaration : TypeInfoDeclaration
+{
+    TypeInfoInvariantDeclaration(Type *tinfo);
+
+    void toDt(dt_t **pdt);
+};
+
+/**************************************************************/
 
 struct ThisDeclaration : VarDeclaration
 {

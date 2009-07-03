@@ -441,7 +441,7 @@ void functionArguments(Loc loc, Scope *sc, TypeFunction *tf, Expressions *argume
 			char name[10 + sizeof(idn)*3 + 1];
 			sprintf(name, "__arrayArg%d", ++idn);
 			Identifier *id = Lexer::idPool(name);
-			Type *t = new TypeSArray(tb->next, new IntegerExp(nargs - i));
+			Type *t = new TypeSArray(((TypeArray *)tb)->next, new IntegerExp(nargs - i));
 			t = t->semantic(loc, sc);
 			VarDeclaration *v = new VarDeclaration(loc, t, id, new VoidInitializer(loc));
 			v->semantic(sc);
@@ -453,7 +453,7 @@ void functionArguments(Loc loc, Scope *sc, TypeFunction *tf, Expressions *argume
 
 			for (size_t u = i; u < nargs; u++)
 			{   Expression *a = (Expression *)arguments->data[u];
-			    if (tret && !tb->next->equals(a->type))
+			    if (tret && !((TypeArray *)tb)->next->equals(a->type))
 				a = a->toDelegate(sc, tret);
 
 			    Expression *e = new VarExp(loc, v);
@@ -545,7 +545,7 @@ void functionArguments(Loc loc, Scope *sc, TypeFunction *tf, Expressions *argume
 	    tb = arg->type->toBasetype();
 	    if (tb->ty == Tsarray)
 	    {	TypeSArray *ts = (TypeSArray *)tb;
-		Type *ta = tb->next->arrayOf();
+		Type *ta = ts->next->arrayOf();
 		if (ts->size(arg->loc) == 0)
 		{   arg = new NullExp(arg->loc);
 		    arg->type = ta;
@@ -623,7 +623,7 @@ void argExpTypesToCBuffer(OutBuffer *buf, Expressions *arguments, HdrGenState *h
 	    if (i)
 		buf->writeByte(',');
 	    argbuf.reset();
-	    arg->type->toCBuffer2(&argbuf, NULL, hgs);
+	    arg->type->toCBuffer2(&argbuf, hgs, 0);
 	    buf->write(&argbuf);
 	}
     }
@@ -789,7 +789,12 @@ Expression *Expression::toLvalue(Scope *sc, Expression *e)
 
 Expression *Expression::modifiableLvalue(Scope *sc, Expression *e)
 {
+    //printf("Expression::modifiableLvalue() %s\n", toChars());
+
     // See if this expression is a modifiable lvalue (i.e. not const)
+    if (type && !type->isMutable())
+	error("%s is not mutable", e->toChars());
+
     return toLvalue(sc, e);
 }
 
@@ -892,7 +897,7 @@ Expression *Expression::checkToPointer()
 	    e = new NullExp(loc);
 	else
 	    e = new AddrExp(loc, this);
-	e->type = tb->next->pointerTo();
+	e->type = ts->next->pointerTo();
     }
     return e;
 }
@@ -923,7 +928,7 @@ Expression *Expression::deref()
     {	Expression *e;
 
 	e = new PtrExp(loc, this);
-	e->type = type->next;
+	e->type = ((TypeReference *)type)->next;
 	return e;
     }
     return this;
@@ -1587,7 +1592,7 @@ Expression *IdentifierExp::semantic(Scope *sc)
 	    else
 	    {	Type *t = withsym->withstate->wthis->type;
 		if (t->ty == Tpointer)
-		    t = t->next;
+		    t = ((TypePointer *)t)->next;
 		e = new TypeDotIdExp(loc, t, ident);
 	    }
 	}
@@ -1733,8 +1738,8 @@ Lagain:
 		type = Type::terror;
 	    }
 	}
-	if (v->isConst() && type->toBasetype()->ty != Tsarray)
-	{
+	if ((v->isConst() || v->isInvariant()) && type->toBasetype()->ty != Tsarray)
+	{   // Replace v with its initializer
 	    if (v->init)
 	    {
 		if (v->inuse)
@@ -2235,6 +2240,8 @@ Expression *StringExp::semantic(Scope *sc)
 		break;
 	}
 	type = type->semantic(loc, sc);
+	type = type->invariantOf();
+	//printf("type = %s\n", type->toChars());
     }
     return this;
 }
@@ -2460,7 +2467,7 @@ Expression *ArrayLiteralExp::semantic(Scope *sc)
 	    // Convert any static arrays to dynamic arrays
 	    if (t0->ty == Tsarray)
 	    {
-		t0 = t0->next->arrayOf();
+		t0 = ((TypeSArray *)t0)->next->arrayOf();
 		e = e->implicitCastTo(sc, t0);
 	    }
 	}
@@ -3227,7 +3234,7 @@ Lagain:
 	    if (arg->op == TOKint64 && (long long)arg->toInteger() < 0)
 		error("negative array index %s", arg->toChars());
 	    arguments->data[i] = (void *) arg;
-	    tb = tb->next->toBasetype();
+	    tb = ((TypeDArray *)tb)->next->toBasetype();
 	}
     }
     else if (tb->isscalar())
@@ -3440,7 +3447,8 @@ Expression *VarExp::semantic(Scope *sc)
     VarDeclaration *v = var->isVarDeclaration();
     if (v)
     {
-	if (v->isConst() && type->toBasetype()->ty != Tsarray && v->init)
+	if ((v->isConst() || v->isInvariant()) &&
+	    type->toBasetype()->ty != Tsarray && v->init)
 	{
 	    ExpInitializer *ei = v->init->isExpInitializer();
 	    if (ei)
@@ -3505,52 +3513,10 @@ Expression *VarExp::toLvalue(Scope *sc, Expression *e)
 Expression *VarExp::modifiableLvalue(Scope *sc, Expression *e)
 {
     //printf("VarExp::modifiableLvalue('%s')\n", var->toChars());
-    if (sc->incontract && var->isParameter())
-	error("cannot modify parameter '%s' in contract", var->toChars());
-
     if (type && type->toBasetype()->ty == Tsarray)
 	error("cannot change reference to static array '%s'", var->toChars());
 
-    VarDeclaration *v = var->isVarDeclaration();
-    if (v && v->canassign == 0 &&
-        (var->isConst() || (global.params.Dversion > 1 && var->isFinal())))
-	error("cannot modify final variable '%s'", var->toChars());
-
-    if (var->isCtorinit())
-    {	// It's only modifiable if inside the right constructor
-	Dsymbol *s = sc->func;
-	while (1)
-	{
-	    FuncDeclaration *fd = NULL;
-	    if (s)
-		fd = s->isFuncDeclaration();
-	    if (fd &&
-		((fd->isCtorDeclaration() && var->storage_class & STCfield) ||
-		 (fd->isStaticCtorDeclaration() && !(var->storage_class & STCfield))) &&
-		fd->toParent() == var->toParent()
-	       )
-	    {
-		VarDeclaration *v = var->isVarDeclaration();
-		assert(v);
-		v->ctorinit = 1;
-		//printf("setting ctorinit\n");
-	    }
-	    else
-	    {
-		if (s)
-		{   s = s->toParent2();
-		    continue;
-		}
-		else
-		{
-		    const char *p = var->isStatic() ? "static " : "";
-		    error("can only initialize %sconst %s inside %sconstructor",
-			p, var->toChars(), p);
-		}
-	    }
-	    break;
-	}
-    }
+    var->checkModify(loc, sc);
 
     // See if this expression is a modifiable lvalue (i.e. not const)
     return toLvalue(sc, e);
@@ -3711,8 +3677,6 @@ Expression *FuncExp::semantic(Scope *sc)
 	fd->parent = sc->parent;
 	if (global.errors)
 	{
-	    if (!fd->type->next)
-		fd->type->next = Type::terror;
 	}
 	else
 	{
@@ -4026,7 +3990,7 @@ Expression *IftypeExp::semantic(Scope *sc)
 	    case TOKdelegate:
 		if (targ->ty != Tdelegate)
 		    goto Lno;
-		tded = targ->next;	// the underlying function type
+		tded = ((TypeDelegate *)targ)->next;	// the underlying function type
 		break;
 
 	    case TOKfunction:
@@ -4054,11 +4018,16 @@ Expression *IftypeExp::semantic(Scope *sc)
 		 * delegate, or pointer to function.
 		 */
 		if (targ->ty == Tfunction)
-		    tded = targ->next;
+		    tded = ((TypeFunction *)targ)->next;
 		else if (targ->ty == Tdelegate)
-		    tded = targ->next->next;
-		else if (targ->ty == Tpointer && targ->next->ty == Tfunction)
-		    tded = targ->next->next;
+		{   tded = ((TypeDelegate *)targ)->next;
+		    tded = ((TypeFunction *)tded)->next;
+		}
+		else if (targ->ty == Tpointer &&
+			 ((TypePointer *)targ)->next->ty == Tfunction)
+		{   tded = ((TypePointer *)targ)->next;
+		    tded = ((TypeFunction *)tded)->next;
+		}
 		else
 		    goto Lno;
 		break;
@@ -4481,7 +4450,7 @@ Expression *AssertExp::semantic(Scope *sc)
     {
 	msg = msg->semantic(sc);
 	msg = resolveProperties(sc, msg);
-	msg = msg->implicitCastTo(sc, Type::tchar->arrayOf());
+	msg = msg->implicitCastTo(sc, Type::tchar->constOf()->arrayOf());
 	msg = msg->optimize(WANTvalue);
     }
     if (e1->isBool(FALSE))
@@ -4641,7 +4610,7 @@ Expression *DotIdExp::semantic(Scope *sc)
 		    return this;
 		}
 		type = v->type;
-		if (v->isConst())
+		if (v->isConst() || v->isInvariant())
 		{
 		    if (v->init)
 		    {
@@ -4747,7 +4716,7 @@ Expression *DotIdExp::semantic(Scope *sc)
 	     ident != Id::mangleof && ident != Id::stringof)
     {
 	e = new PtrExp(loc, e1);
-	e->type = e1->type->next;
+	e->type = ((TypePointer *)e1->type)->next;
 	return e->type->dotExp(sc, e, ident);
     }
     else
@@ -4838,12 +4807,21 @@ Expression *DotVarExp::semantic(Scope *sc)
 	}
 
 	e1 = e1->semantic(sc);
+
 	type = var->type;
 	if (!type && global.errors)
 	{   // var is goofed up, just return 0
 	    return new IntegerExp(0);
 	}
 	assert(type);
+
+	Type *t1 = e1->type;
+	if (t1->ty == Tpointer)
+	    t1 = t1->nextOf();
+	if (t1->isConst())
+	    type = type->constOf();
+	else if (t1->isInvariant())
+	    type = type->invariantOf();
 
 	if (!var->isFuncDeclaration())	// for functions, do checks after overload resolution
 	{
@@ -4852,11 +4830,11 @@ Expression *DotVarExp::semantic(Scope *sc)
 	    Type *t = e1->type;
 
 	    if (ad &&
-		!(t->ty == Tpointer && t->next->ty == Tstruct &&
-		  ((TypeStruct *)t->next)->sym == ad)
+		!(t->ty == Tpointer &&
+		  ((TypePointer *)t)->next->ty == Tstruct &&
+		  ((TypeStruct *)((TypePointer *)t)->next)->sym == ad)
 		&&
-		!(t->ty == Tstruct &&
-		  ((TypeStruct *)t)->sym == ad)
+		!(t->ty == Tstruct && ((TypeStruct *)t)->sym == ad)
 	       )
 	    {
 		ClassDeclaration *cd = ad->isClassDeclaration();
@@ -4889,7 +4867,7 @@ Expression *DotVarExp::semantic(Scope *sc)
 			goto L1;
 		    }
 #ifdef DEBUG
-		    printf("2: ");
+		    //printf("2: ");
 #endif
 		    error("this for %s needs to be type %s not type %s",
 			var->toChars(), ad->toChars(), t->toChars());
@@ -4910,7 +4888,11 @@ Expression *DotVarExp::toLvalue(Scope *sc, Expression *e)
 
 Expression *DotVarExp::modifiableLvalue(Scope *sc, Expression *e)
 {
-    //printf("DotVarExp::modifiableLvalue(%s)\n", toChars());
+#if 0
+    printf("DotVarExp::modifiableLvalue(%s)\n", toChars());
+    printf("e1->type = %s\n", e1->type->toChars());
+    printf("var->type = %s\n", var->type->toChars());
+#endif
 
     if (var->isCtorinit())
     {	// It's only modifiable if inside the right constructor
@@ -4947,6 +4929,14 @@ Expression *DotVarExp::modifiableLvalue(Scope *sc, Expression *e)
 	    }
 	    break;
 	}
+    }
+    else
+    {	Type *t1 = e1->type->toBasetype();
+
+	if (!t1->isMutable() ||
+	    (t1->ty == Tpointer && !t1->nextOf()->isMutable()) ||
+	    !var->type->isMutable())
+	    error("cannot modify const/invariant %s", toChars());
     }
     return this;
 }
@@ -5029,7 +5019,7 @@ Expression *DotTemplateInstanceExp::semantic(Scope *sc)
     }
     else if (t1 && t1->ty == Tpointer)
     {
-	t1 = t1->next->toBasetype();
+	t1 = ((TypePointer *)t1)->next->toBasetype();
 	if (t1->ty != Tstruct)
 	    goto L1;
 	s = t1->toDsymbol(sc);
@@ -5124,8 +5114,8 @@ Expression *DelegateExp::semantic(Scope *sc)
     L10:
 	Type *t = e1->type;
 	if (func->needThis() && ad &&
-	    !(t->ty == Tpointer && t->next->ty == Tstruct &&
-	      ((TypeStruct *)t->next)->sym == ad) &&
+	    !(t->ty == Tpointer && ((TypePointer *)t)->next->ty == Tstruct &&
+	      ((TypeStruct *)((TypePointer *)t)->next)->sym == ad) &&
 	    !(t->ty == Tstruct && ((TypeStruct *)t)->sym == ad)
 	   )
 	{
@@ -5241,7 +5231,7 @@ Expression *CallExp::semantic(Scope *sc)
     int istemp;
 
 #if LOGSEMANTIC
-    printf("CallExp::semantic('%s')\n", toChars());
+    printf("CallExp::semantic() %s\n", toChars());
 #endif
     if (type)
 	return this;		// semantic() already run
@@ -5288,7 +5278,6 @@ Expression *CallExp::semantic(Scope *sc)
 
 		TypeAArray *taa = (TypeAArray *)dotid->e1->type->toBasetype();
 		key = key->implicitCastTo(sc, taa->index);
-		key = key->implicitCastTo(sc, taa->key);
 
 		return new RemoveExp(loc, dotid->e1, key);
 	    }
@@ -5421,8 +5410,8 @@ Lagain:
     L10:
 	Type *t = ue->e1->type->toBasetype();
 	if (f->needThis() && ad &&
-	    !(t->ty == Tpointer && t->next->ty == Tstruct &&
-	      ((TypeStruct *)t->next)->sym == ad) &&
+	    !(t->ty == Tpointer && ((TypePointer *)t)->next->ty == Tstruct &&
+	      ((TypeStruct *)((TypePointer *)t)->next)->sym == ad) &&
 	    !(t->ty == Tstruct && ((TypeStruct *)t)->sym == ad)
 	   )
 	{
@@ -5463,6 +5452,31 @@ Lagain:
 	    else
 		e1 = new DotVarExp(loc, dte->e1, f);
 	    e1->type = f->type;
+#if 0
+	    printf("ue->e1 = %s\n", ue->e1->toChars());
+	    printf("f = %s\n", f->toChars());
+	    printf("t = %s\n", t->toChars());
+	    printf("e1 = %s\n", e1->toChars());
+	    printf("e1->type = %s\n", e1->type->toChars());
+#endif
+	    // Const member function can take const/invariant/mutable this
+	    if (!(f->storage_class & STCconst))
+	    {
+		// Check for const/invariant compatibility
+		Type *tthis = ue->e1->type->toBasetype();
+		if (tthis->ty == Tpointer)
+		    tthis = tthis->nextOf()->toBasetype();
+		if (f->storage_class & STCinvariant)
+		{
+		    if (tthis->mod != MODinvariant)
+			error("%s can only be called on an invariant object", e1->toChars());
+		}
+		else
+		{
+		    if (tthis->mod != 0)
+			error("%s can only be called on a mutable object", e1->toChars());
+		}
+	    }
 
 	    // See if we need to adjust the 'this' pointer
 	    AggregateDeclaration *ad = f->isThis();
@@ -5564,16 +5578,16 @@ Lagain:
     else if (t1->ty != Tfunction)
     {
 	if (t1->ty == Tdelegate)
-	{
-	    assert(t1->next->ty == Tfunction);
-	    tf = (TypeFunction *)(t1->next);
+	{   TypeDelegate *td = (TypeDelegate *)t1;
+	    assert(td->next->ty == Tfunction);
+	    tf = (TypeFunction *)(td->next);
 	    goto Lcheckargs;
 	}
-	else if (t1->ty == Tpointer && t1->next->ty == Tfunction)
+	else if (t1->ty == Tpointer && ((TypePointer *)t1)->next->ty == Tfunction)
 	{   Expression *e;
 
 	    e = new PtrExp(loc, e1);
-	    t1 = t1->next;
+	    t1 = ((TypePointer *)t1)->next;
 	    e->type = t1;
 	    e1 = e;
 	}
@@ -5669,10 +5683,11 @@ Lcheckargs:
     {
 	Type *t = type;
 	int offset = 0;
+	TypeFunction *tf = (TypeFunction *)f->tintro;
 
-	if (f->tintro->next->isBaseOf(t, &offset) && offset)
+	if (tf->next->isBaseOf(t, &offset) && offset)
 	{
-	    type = f->tintro->next;
+	    type = tf->next;
 	    return castTo(sc, t);
 	}
     }
@@ -5744,6 +5759,9 @@ Expression *AddrExp::semantic(Scope *sc)
 	else if (e1->op == TOKvar)
 	{
 	    VarExp *dve = (VarExp *)e1;
+	    if (dve->var->isFinal())
+		type = e1->type->constOf()->pointerTo();
+
 	    FuncDeclaration *f = dve->var->isFuncDeclaration();
 
 	    if (f && f->isNested())
@@ -5753,11 +5771,6 @@ Expression *AddrExp::semantic(Scope *sc)
 		e = e->semantic(sc);
 		return e;
 	    }
-	}
-	else if (e1->op == TOKarray)
-	{
-	    if (e1->type->toBasetype()->ty == Tbit)
-		error("cannot take address of bit in array");
 	}
 	return optimize(WANTvalue);
     }
@@ -5770,7 +5783,7 @@ PtrExp::PtrExp(Loc loc, Expression *e)
 	: UnaExp(loc, TOKstar, sizeof(PtrExp), e)
 {
     if (e->type)
-	type = e->type->next;
+	type = ((TypePointer *)e->type)->next;
 }
 
 PtrExp::PtrExp(Loc loc, Expression *e, Type *t)
@@ -5795,19 +5808,12 @@ Expression *PtrExp::semantic(Scope *sc)
     switch (tb->ty)
     {
 	case Tpointer:
-	    type = tb->next;
-	    if (type->isbit())
-	    {	Expression *e;
-
-		// Rewrite *p as p[0]
-		e = new IndexExp(loc, e1, new IntegerExp(0));
-		return e->semantic(sc);
-	    }
+	    type = ((TypePointer *)tb)->next;
 	    break;
 
 	case Tsarray:
 	case Tarray:
-	    type = tb->next;
+	    type = ((TypeArray *)tb)->next;
 	    e1 = e1->castTo(sc, type->pointerTo());
 	    break;
 
@@ -5831,6 +5837,20 @@ Expression *PtrExp::toLvalue(Scope *sc, Expression *e)
 #endif
     return this;
 }
+
+Expression *PtrExp::modifiableLvalue(Scope *sc, Expression *e)
+{
+    //printf("PtrExp::modifiableLvalue() %s\n", toChars());
+
+    if (e1->op == TOKsymoff)
+    {	SymOffExp *se = (SymOffExp *)e1;
+	se->var->checkModify(loc, sc);
+	return toLvalue(sc, e);
+    }
+
+    return Expression::modifiableLvalue(sc, e);
+}
+
 
 void PtrExp::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 {
@@ -5987,7 +6007,7 @@ Expression *DeleteExp::semantic(Scope *sc)
 	    break;
 	}
 	case Tpointer:
-	    tb = tb->next->toBasetype();
+	    tb = ((TypePointer *)tb)->next->toBasetype();
 	    if (tb->ty == Tstruct)
 	    {
 		TypeStruct *ts = (TypeStruct *)tb;
@@ -6060,11 +6080,22 @@ CastExp::CastExp(Loc loc, Expression *e, Type *t)
 	: UnaExp(loc, TOKcast, sizeof(CastExp), e)
 {
     to = t;
+    this->tok = TOKreserved;
+}
+
+/* For cast(const) and cast(invariant)
+ */
+CastExp::CastExp(Loc loc, Expression *e, enum TOK tok)
+	: UnaExp(loc, TOKcast, sizeof(CastExp), e)
+{
+    to = NULL;
+    this->tok = tok;
 }
 
 Expression *CastExp::syntaxCopy()
 {
-    return new CastExp(loc, e1->syntaxCopy(), to->syntaxCopy());
+    return to ? new CastExp(loc, e1->syntaxCopy(), to->syntaxCopy())
+	      : new CastExp(loc, e1->syntaxCopy(), tok);
 }
 
 
@@ -6085,7 +6116,19 @@ Expression *CastExp::semantic(Scope *sc)
     if (e1->type)		// if not a tuple
     {
 	e1 = resolveProperties(sc, e1);
-	to = to->semantic(loc, sc);
+
+	/* Handle cast(const) and cast(invariant)
+	 */
+	if (!to)
+	{   if (tok == TOKconst)
+		to = e1->type->constOf();
+	    else if (tok == TOKinvariant)
+		to = e1->type->invariantOf();
+	    else
+		assert(0);
+	}
+	else
+	    to = to->semantic(loc, sc);
 
 	e = op_overload(sc);
 	if (e)
@@ -6109,6 +6152,10 @@ Expression *CastExp::semantic(Scope *sc)
 	    e = e->semantic(sc);
 	    return e;
 	}
+    }
+    else if (!to)
+    {	error("cannot cast tuple");
+	to = Type::terror;
     }
     e = e1->castTo(sc, to);
     return e;
@@ -6143,7 +6190,10 @@ void CastExp::checkEscape()
 void CastExp::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 {
     buf->writestring("cast(");
-    to->toCBuffer(buf, NULL, hgs);
+    if (to)
+	to->toCBuffer(buf, NULL, hgs);
+    else
+	buf->writestring(Token::tochars[tok]);
     buf->writeByte(')');
     expToCBuffer(buf, hgs, e1, precedence[op]);
 }
@@ -6318,7 +6368,7 @@ Expression *SliceExp::semantic(Scope *sc)
 	return e;
     }
 
-    type = t->next->arrayOf();
+    type = ((TypeNext *)t)->next->arrayOf();
     return e;
 
 Lerror:
@@ -6606,7 +6656,7 @@ Expression *IndexExp::semantic(Scope *sc)
 	case Tpointer:
 	case Tarray:
 	    e2 = e2->implicitCastTo(sc, Type::tsize_t);
-	    e->type = t1->next;
+	    e->type = ((TypeNext *)t1)->next;
 	    break;
 
 	case Tsarray:
@@ -6627,7 +6677,7 @@ Expression *IndexExp::semantic(Scope *sc)
 			    index, length);
 	    }
 #endif
-	    e->type = t1->next;
+	    e->type = t1->nextOf();
 	    break;
 	}
 
@@ -6635,7 +6685,6 @@ Expression *IndexExp::semantic(Scope *sc)
 	{   TypeAArray *taa = (TypeAArray *)t1;
 
 	    e2 = e2->implicitCastTo(sc, taa->index);	// type checking
-	    e2 = e2->implicitCastTo(sc, taa->key);	// actual argument type
 	    type = taa->next;
 	    break;
 	}
@@ -6700,6 +6749,8 @@ Expression *IndexExp::modifiableLvalue(Scope *sc, Expression *e)
     modifiable = 1;
     if (e1->op == TOKstring)
 	error("string literals are immutable");
+    if (type && !type->isMutable())
+	error("%s is not mutable", e->toChars());
     if (e1->type->toBasetype()->ty == Taarray)
 	e1 = e1->modifiableLvalue(sc, e1);
     return toLvalue(sc, e);
@@ -6760,6 +6811,7 @@ void PostExp::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 AssignExp::AssignExp(Loc loc, Expression *e1, Expression *e2)
 	: BinExp(loc, TOKassign, sizeof(AssignExp), e1, e2)
 {
+    ismemset = 0;
 }
 
 Expression *AssignExp::semantic(Scope *sc)
@@ -6898,32 +6950,34 @@ Expression *AssignExp::semantic(Scope *sc)
 	ale->e1 = ale->e1->modifiableLvalue(sc, NULL);
     }
     else if (e1->op == TOKslice)
-	;
+    {
+	Type *tn = e1->type->nextOf();
+	if (tn && !tn->isMutable() && op != TOKconstruct)
+	    error("slice %s is not mutable", e1->toChars());
+    }
     else
     {	// Try to do a decent error message with the expression
 	// before it got constant folded
+	e1 = e1->optimize(WANTvalue);
 	e1 = e1->modifiableLvalue(sc, e1old);
     }
 
+    Type *t2 = e2->type;
     if (e1->op == TOKslice &&
-	t1->next &&
-	!(t1->next->equals(e2->type->next) /*||
-	  (t1->next->ty == Tchar && e2->op == TOKstring)*/)
+	t1->nextOf() &&
+	e2->implicitConvTo(t1->nextOf())
        )
     {	// memset
-	e2 = e2->implicitCastTo(sc, t1->next);
+	ismemset = 1;	// make it easy for back end to tell what this is
+	e2 = e2->implicitCastTo(sc, t1->nextOf());
     }
-#if 0
-    else if (e1->op == TOKslice &&
-	     e2->op == TOKstring &&
-	     ((StringExp *)e2)->len == 1)
-    {	// memset
-	e2 = e2->implicitCastTo(sc, e1->type->next);
-    }
-#endif
     else if (t1->ty == Tsarray)
     {
 	error("cannot assign to static array %s", e1->toChars());
+    }
+    else if (e1->op == TOKslice)
+    {
+	e2 = e2->implicitCastTo(sc, e1->type->constOf());
     }
     else
     {
@@ -6971,7 +7025,7 @@ Expression *AddAssignExp::semantic(Scope *sc)
 
     if ((tb1->ty == Tarray || tb1->ty == Tsarray) &&
 	(tb2->ty == Tarray || tb2->ty == Tsarray) &&
-	tb1->next->equals(tb2->next)
+	tb1->nextOf()->equals(tb2->nextOf())
        )
     {
 	type = e1->type;
@@ -7116,8 +7170,8 @@ Expression *CatAssignExp::semantic(Scope *sc)
 
     if ((tb1->ty == Tarray) &&
 	(tb2->ty == Tarray || tb2->ty == Tsarray) &&
-	e2->implicitConvTo(e1->type)
-	//e1->type->next->equals(e2->type->next)
+	(e2->implicitConvTo(e1->type) ||
+	 tb2->nextOf()->implicitConvTo(tb1->nextOf()))
        )
     {	// Append array
 	e2 = e2->castTo(sc, e1->type);
@@ -7125,10 +7179,10 @@ Expression *CatAssignExp::semantic(Scope *sc)
 	e = this;
     }
     else if ((tb1->ty == Tarray) &&
-	e2->implicitConvTo(tb1->next)
+	e2->implicitConvTo(tb1->nextOf())
        )
     {	// Append element
-	e2 = e2->castTo(sc, tb1->next);
+	e2 = e2->castTo(sc, tb1->nextOf());
 	type = e1->type;
 	e = this;
     }
@@ -7414,7 +7468,7 @@ Expression *AddExp::semantic(Scope *sc)
 
         if ((tb1->ty == Tarray || tb1->ty == Tsarray) &&
             (tb2->ty == Tarray || tb2->ty == Tsarray) &&
-            tb1->next->equals(tb2->next)
+            tb1->nextOf()->equals(tb2->nextOf())
            )
         {
             type = e1->type;
@@ -7500,7 +7554,7 @@ Expression *MinExp::semantic(Scope *sc)
 
 	    typeCombine(sc);		// make sure pointer types are compatible
 	    type = Type::tptrdiff_t;
-	    stride = t2->next->size();
+	    stride = t2->nextOf()->size();
 	    e = new DivExp(loc, this, new IntegerExp(0, stride, Type::tptrdiff_t));
 	    e->type = Type::tptrdiff_t;
 	    return e;
@@ -7584,22 +7638,26 @@ Expression *CatExp::semantic(Scope *sc)
 	e2->type->print();
 #endif
 	if ((tb1->ty == Tsarray || tb1->ty == Tarray) &&
-	    e2->type->equals(tb1->next))
+	    e2->type->implicitConvTo(tb1->nextOf()) >= MATCHconst)
 	{
-	    type = tb1->next->arrayOf();
+	    type = tb1->nextOf()->arrayOf();
 	    return this;
 	}
 	else if ((tb2->ty == Tsarray || tb2->ty == Tarray) &&
-	    e1->type->equals(tb2->next))
+	    e1->type->implicitConvTo(tb2->nextOf()) >= MATCHconst)
 	{
-	    type = tb2->next->arrayOf();
+	    type = tb2->nextOf()->arrayOf();
 	    return this;
 	}
 
 	typeCombine(sc);
+	type = type->mutableOf();
 
-	if (type->toBasetype()->ty == Tsarray)
-	    type = type->toBasetype()->next->arrayOf();
+	Type *tb = type->toBasetype();
+	if (tb->ty == Tsarray)
+	    type = tb->nextOf()->arrayOf();
+	if (type->ty == Tarray)
+	    type = type->nextOf()->toCanonConst()->arrayOf();
 #if 0
 	e1->type->print();
 	e2->type->print();
@@ -7608,7 +7666,8 @@ Expression *CatExp::semantic(Scope *sc)
 #endif
 	if (e1->op == TOKstring && e2->op == TOKstring)
 	    e = optimize(WANTvalue);
-	else if (e1->type->equals(e2->type) &&
+	else if ((e1->type->implicitConvTo(e2->type) >= MATCHconst ||
+		  e2->type->implicitConvTo(e1->type) >= MATCHconst) &&
 		(e1->type->toBasetype()->ty == Tarray ||
 		 e1->type->toBasetype()->ty == Tsarray))
 	{
@@ -8123,7 +8182,7 @@ Expression *InExp::semantic(Scope *sc)
 	e1 = e1->implicitCastTo(sc, ta->index);
 
 	// Return type is pointer to value
-	type = ta->next->pointerTo();
+	type = ta->nextOf()->pointerTo();
     }
     return this;
 }
@@ -8178,11 +8237,13 @@ Expression *CmpExp::semantic(Scope *sc)
     // Special handling for array comparisons
     t1 = e1->type->toBasetype();
     t2 = e2->type->toBasetype();
-    if ((t1->ty == Tarray || t1->ty == Tsarray) &&
-	(t2->ty == Tarray || t2->ty == Tsarray))
+    if ((t1->ty == Tarray || t1->ty == Tsarray || t1->ty == Tpointer) &&
+	(t2->ty == Tarray || t2->ty == Tsarray || t2->ty == Tpointer))
     {
-	if (!t1->next->equals(t2->next))
-	    error("array comparison type mismatch, %s vs %s", t1->next->toChars(), t2->next->toChars());
+	if (t1->nextOf()->implicitConvTo(t2->nextOf()) < MATCHconst &&
+	    t2->nextOf()->implicitConvTo(t1->nextOf()) < MATCHconst &&
+	    (t1->nextOf()->ty != Tvoid && t2->nextOf()->ty != Tvoid))
+	    error("array comparison type mismatch, %s vs %s", t1->nextOf()->toChars(), t2->nextOf()->toChars());
 	e = this;
     }
     else if (t1->ty == Tstruct || t2->ty == Tstruct ||
@@ -8271,11 +8332,13 @@ Expression *EqualExp::semantic(Scope *sc)
     // Special handling for array comparisons
     t1 = e1->type->toBasetype();
     t2 = e2->type->toBasetype();
-    if ((t1->ty == Tarray || t1->ty == Tsarray) &&
-	(t2->ty == Tarray || t2->ty == Tsarray))
+    if ((t1->ty == Tarray || t1->ty == Tsarray || t1->ty == Tpointer) &&
+	(t2->ty == Tarray || t2->ty == Tsarray || t2->ty == Tpointer))
     {
-	if (!t1->next->equals(t2->next))
-	    error("array comparison type mismatch, %s vs %s", t1->next->toChars(), t2->next->toChars());
+	if (t1->nextOf()->implicitConvTo(t2->nextOf()) < MATCHconst &&
+	    t2->nextOf()->implicitConvTo(t1->nextOf()) < MATCHconst &&
+	    (t1->nextOf()->ty != Tvoid && t2->nextOf()->ty != Tvoid))
+	    error("array equality comparison type mismatch, %s vs %s", t1->toChars(), t2->toChars());
     }
     else
     {

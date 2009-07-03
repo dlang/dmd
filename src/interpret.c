@@ -931,7 +931,7 @@ Expression *DeclarationExp::interpret(InterState *istate)
 Expression *TupleExp::interpret(InterState *istate)
 {
 #if LOG
-    printf("VarExp::interpret() %s\n", toChars());
+    printf("TupleExp::interpret() %s\n", toChars());
 #endif
     Expressions *expsx = NULL;
 
@@ -1708,7 +1708,7 @@ Expression *CallExp::interpret(InterState *istate)
 		Expression *eresult = fd->interpret(istate, arguments);
 		if (eresult)
 		    e = eresult;
-		else if (fd->type->toBasetype()->next->ty == Tvoid)
+		else if (fd->type->toBasetype()->nextOf()->ty == Tvoid)
 		    e = EXP_VOID_INTERPRET;
 		else
 		    error("cannot evaluate %s at compile time", toChars());
@@ -1854,13 +1854,18 @@ Expression *CatExp::interpret(InterState *istate)
 #endif
     e1 = this->e1->interpret(istate);
     if (e1 == EXP_CANT_INTERPRET)
+    {
 	goto Lcant;
+    }
     e2 = this->e2->interpret(istate);
     if (e2 == EXP_CANT_INTERPRET)
 	goto Lcant;
     return Cat(type, e1, e2);
 
 Lcant:
+#if LOG
+    printf("CatExp::interpret() %s CANT\n", toChars());
+#endif
     return EXP_CANT_INTERPRET;
 }
 
@@ -1878,6 +1883,9 @@ Expression *CastExp::interpret(InterState *istate)
     return Cast(type, to, e1);
 
 Lcant:
+#if LOG
+    printf("CastExp::interpret() %s CANT\n", toChars());
+#endif
     return EXP_CANT_INTERPRET;
 }
 
@@ -1966,7 +1974,7 @@ Expression *interpret_aaLen(InterState *istate, Expressions *arguments)
 
 Expression *interpret_aaKeys(InterState *istate, Expressions *arguments)
 {
-    printf("interpret_aaKeys()\n");
+    //printf("interpret_aaKeys()\n");
     if (!arguments || arguments->dim != 2)
 	return NULL;
     Expression *earg = (Expression *)arguments->data[0];

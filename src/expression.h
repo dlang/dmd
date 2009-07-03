@@ -99,7 +99,7 @@ struct Expression : Object
     virtual Expression *toLvalue(Scope *sc, Expression *e);
     virtual Expression *modifiableLvalue(Scope *sc, Expression *e);
     Expression *implicitCastTo(Scope *sc, Type *t);
-    virtual int implicitConvTo(Type *t);
+    virtual MATCH implicitConvTo(Type *t);
     virtual Expression *castTo(Scope *sc, Type *t);
     virtual void checkEscape();
     void checkScalar();
@@ -159,7 +159,7 @@ struct IntegerExp : Expression
     complex_t toComplex();
     int isConst();
     int isBool(int result);
-    int implicitConvTo(Type *t);
+    MATCH implicitConvTo(Type *t);
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
     void toMangleBuffer(OutBuffer *buf);
     Expression *toLvalue(Scope *sc, Expression *e);
@@ -286,7 +286,7 @@ struct NullExp : Expression
     int isBool(int result);
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
     void toMangleBuffer(OutBuffer *buf);
-    int implicitConvTo(Type *t);
+    MATCH implicitConvTo(Type *t);
     Expression *castTo(Scope *sc, Type *t);
     Expression *interpret(InterState *istate);
     elem *toElem(IRState *irs);
@@ -310,7 +310,7 @@ struct StringExp : Expression
     Expression *semantic(Scope *sc);
     Expression *interpret(InterState *istate);
     StringExp *toUTF8(Scope *sc);
-    int implicitConvTo(Type *t);
+    MATCH implicitConvTo(Type *t);
     Expression *castTo(Scope *sc, Type *t);
     int compare(Object *obj);
     int isBool(int result);
@@ -360,7 +360,7 @@ struct ArrayLiteralExp : Expression
     void scanForNestedRef(Scope *sc);
     Expression *optimize(int result);
     Expression *interpret(InterState *istate);
-    int implicitConvTo(Type *t);
+    MATCH implicitConvTo(Type *t);
     Expression *castTo(Scope *sc, Type *t);
     dt_t **toDt(dt_t **pdt);
 
@@ -386,7 +386,7 @@ struct AssocArrayLiteralExp : Expression
     void scanForNestedRef(Scope *sc);
     Expression *optimize(int result);
     Expression *interpret(InterState *istate);
-    int implicitConvTo(Type *t);
+    MATCH implicitConvTo(Type *t);
     Expression *castTo(Scope *sc, Type *t);
 
     int inlineCost(InlineCostState *ics);
@@ -522,7 +522,7 @@ struct SymOffExp : Expression
     int isConst();
     int isBool(int result);
     Expression *doInline(InlineDoState *ids);
-    int implicitConvTo(Type *t);
+    MATCH implicitConvTo(Type *t);
     Expression *castTo(Scope *sc, Type *t);
     void scanForNestedRef(Scope *sc);
 
@@ -774,7 +774,7 @@ struct DelegateExp : UnaExp
 
     DelegateExp(Loc loc, Expression *e, FuncDeclaration *func);
     Expression *semantic(Scope *sc);
-    int implicitConvTo(Type *t);
+    MATCH implicitConvTo(Type *t);
     Expression *castTo(Scope *sc, Type *t);
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
     void dump(int indent);
@@ -823,7 +823,7 @@ struct AddrExp : UnaExp
     AddrExp(Loc loc, Expression *e);
     Expression *semantic(Scope *sc);
     elem *toElem(IRState *irs);
-    int implicitConvTo(Type *t);
+    MATCH implicitConvTo(Type *t);
     Expression *castTo(Scope *sc, Type *t);
     Expression *optimize(int result);
 };
@@ -834,6 +834,7 @@ struct PtrExp : UnaExp
     PtrExp(Loc loc, Expression *e, Type *t);
     Expression *semantic(Scope *sc);
     Expression *toLvalue(Scope *sc, Expression *e);
+    Expression *modifiableLvalue(Scope *sc, Expression *e);
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
     elem *toElem(IRState *irs);
     Expression *optimize(int result);
@@ -909,8 +910,10 @@ struct CastExp : UnaExp
 {
     // Possible to cast to one type while painting to another type
     Type *to;			// type to cast to
+    enum TOK tok;		// TOKconst or TOKinvariant
 
     CastExp(Loc loc, Expression *e, Type *t);
+    CastExp(Loc loc, Expression *e, enum TOK tok);
     Expression *syntaxCopy();
     Expression *semantic(Scope *sc);
     Expression *optimize(int result);
@@ -1033,7 +1036,8 @@ struct PostExp : BinExp
 };
 
 struct AssignExp : BinExp
-{
+{   int ismemset;	// !=0 if setting the contents of an array
+
     AssignExp(Loc loc, Expression *e1, Expression *e2);
     Expression *semantic(Scope *sc);
     Expression *checkToBoolean();
@@ -1346,7 +1350,7 @@ struct CondExp : BinExp
     Expression *checkToBoolean();
     int checkSideEffect(int flag);
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
-    int implicitConvTo(Type *t);
+    MATCH implicitConvTo(Type *t);
     Expression *castTo(Scope *sc, Type *t);
     void scanForNestedRef(Scope *sc);
 

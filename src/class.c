@@ -146,6 +146,18 @@ ClassDeclaration::ClassDeclaration(Loc loc, Identifier *id, BaseClasses *basecla
 		    Type::typeinfotypelist->error("%s", msg);
 		Type::typeinfotypelist = this;
 	    }
+
+	    if (id == Id::TypeInfo_Const)
+	    {	if (Type::typeinfoconst)
+		    Type::typeinfoconst->error("%s", msg);
+		Type::typeinfoconst = this;
+	    }
+
+	    if (id == Id::TypeInfo_Invariant)
+	    {	if (Type::typeinfoinvariant)
+		    Type::typeinfoinvariant->error("%s", msg);
+		Type::typeinfoinvariant = this;
+	    }
 	}
 
 	if (id == Id::Object)

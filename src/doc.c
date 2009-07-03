@@ -723,10 +723,11 @@ void FuncDeclaration::toDocBuffer(OutBuffer *buf)
 	    td->onemember == this)
 	{   HdrGenState hgs;
 	    unsigned o = buf->offset;
+	    TypeFunction *tf = (TypeFunction *)type;
 
 	    hgs.ddoc = 1;
 	    prefix(buf, td);
-	    type->next->toCBuffer(buf, NULL, &hgs);
+	    tf->next->toCBuffer(buf, NULL, &hgs);
 	    buf->writeByte(' ');
 	    buf->writestring(ident->toChars());
 	    buf->writeByte('(');
@@ -738,7 +739,6 @@ void FuncDeclaration::toDocBuffer(OutBuffer *buf)
 		tp->toCBuffer(buf, &hgs);
 	    }
 	    buf->writeByte(')');
-	    TypeFunction *tf = (TypeFunction *)type;
 	    Argument::argsToCBuffer(buf, &hgs, tf->parameters, tf->varargs);
 	    buf->writestring(";\n");
 

@@ -148,7 +148,7 @@ dt_t *StructInitializer::toDt()
 		unsigned dim = 1;
 		for (Type *vt = v->type->toBasetype();
 		     vt->ty == Tsarray;
-		     vt = vt->next->toBasetype())
+		     vt = vt->nextOf()->toBasetype())
 		{   TypeSArray *tsa = (TypeSArray *)vt;
 		    dim *= tsa->dim->toInteger();
 		}
@@ -185,10 +185,7 @@ dt_t *ArrayInitializer::toDt()
 {
     //printf("ArrayInitializer::toDt('%s')\n", toChars());
     Type *tb = type->toBasetype();
-    Type *tn = tb->next->toBasetype();
-
-    if (tn->ty == Tbit)
-	return toDtBit();
+    Type *tn = tb->nextOf()->toBasetype();
 
     Array dts;
     unsigned size;
@@ -223,10 +220,10 @@ dt_t *ArrayInitializer::toDt()
 	length++;
     }
 
-    Expression *edefault = tb->next->defaultInit();
+    Expression *edefault = tb->nextOf()->defaultInit();
 
     unsigned n = 1;
-    for (Type *tbn = tn; tbn->ty == Tsarray; tbn = tbn->next->toBasetype())
+    for (Type *tbn = tn; tbn->ty == Tsarray; tbn = tbn->nextOf()->toBasetype())
     {	TypeSArray *tsa = (TypeSArray *)tbn;
 
 	n *= tsa->dim->toInteger();
@@ -298,6 +295,7 @@ dt_t *ArrayInitializer::toDt()
 
 dt_t *ArrayInitializer::toDtBit()
 {
+#if 0
     unsigned size;
     unsigned length;
     unsigned i;
@@ -332,7 +330,7 @@ dt_t *ArrayInitializer::toDtBit()
 
     /* The default initializer may be something other than zero.
      */
-    if (tb->next->defaultInit()->toInteger())
+    if (tb->nextOf()->defaultInit()->toInteger())
        databits.set();
 
     size = sizeof(databits.data[0]);
@@ -407,6 +405,9 @@ dt_t *ArrayInitializer::toDtBit()
 	    assert(0);
     }
     return d;
+#else
+    return NULL;
+#endif
 }
 
 
@@ -688,7 +689,7 @@ dt_t **StructLiteralExp::toDt(dt_t **pdt)
 		unsigned dim = 1;
 		for (Type *vt = v->type->toBasetype();
 		     vt->ty == Tsarray;
-		     vt = vt->next->toBasetype())
+		     vt = vt->nextOf()->toBasetype())
 		{   TypeSArray *tsa = (TypeSArray *)vt;
 		    dim *= tsa->dim->toInteger();
 		}
@@ -954,51 +955,38 @@ dt_t **TypeSArray::toDtElem(dt_t **pdt, Expression *e)
 	{   TypeSArray *tsa = (TypeSArray *)tbn;
 
 	    len *= tsa->dim->toInteger();
-	    tnext = tbn->next;
+	    tnext = tbn->nextOf();
 	    tbn = tnext->toBasetype();
 	}
 	if (!e)				// if not already supplied
 	    e = tnext->defaultInit();	// use default initializer
-	if (tbn->ty == Tbit)
-	{
-	    Bits databits;
-
-	    databits.resize(len);
-	    if (e->toInteger())
-		databits.set();
-	    pdt = dtnbytes(pdt, databits.allocdim * sizeof(databits.data[0]),
-		(char *)databits.data);
-	}
+	if (tbn->ty == Tstruct)
+	    tnext->toDt(pdt);
 	else
+	    e->toDt(pdt);
+	dt_optimize(*pdt);
+	if ((*pdt)->dt == DT_azeros && !(*pdt)->DTnext)
 	{
-	    if (tbn->ty == Tstruct)
-		tnext->toDt(pdt);
-	    else
-		e->toDt(pdt);
-	    dt_optimize(*pdt);
-	    if ((*pdt)->dt == DT_azeros && !(*pdt)->DTnext)
+	    (*pdt)->DTazeros *= len;
+	    pdt = &((*pdt)->DTnext);
+	}
+	else if ((*pdt)->dt == DT_1byte && (*pdt)->DTonebyte == 0 && !(*pdt)->DTnext)
+	{
+	    (*pdt)->dt = DT_azeros;
+	    (*pdt)->DTazeros = len;
+	    pdt = &((*pdt)->DTnext);
+	}
+	else if (e->op != TOKstring)
+	{
+	    for (i = 1; i < len; i++)
 	    {
-		(*pdt)->DTazeros *= len;
-		pdt = &((*pdt)->DTnext);
-	    }
-	    else if ((*pdt)->dt == DT_1byte && (*pdt)->DTonebyte == 0 && !(*pdt)->DTnext)
-	    {
-		(*pdt)->dt = DT_azeros;
-		(*pdt)->DTazeros = len;
-		pdt = &((*pdt)->DTnext);
-	    }
-	    else if (e->op != TOKstring)
-	    {
-		for (i = 1; i < len; i++)
-		{
-		    if (tbn->ty == Tstruct)
-		    {	pdt = tnext->toDt(pdt);
-			while (*pdt)
-			    pdt = &((*pdt)->DTnext);
-		    }
-		    else
-			pdt = e->toDt(pdt);
+		if (tbn->ty == Tstruct)
+		{   pdt = tnext->toDt(pdt);
+		    while (*pdt)
+			pdt = &((*pdt)->DTnext);
 		}
+		else
+		    pdt = e->toDt(pdt);
 	    }
 	}
     }

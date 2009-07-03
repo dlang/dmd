@@ -577,7 +577,7 @@ MATCH TemplateDeclaration::deduceMatch(Objects *targsi, Expressions *fargs,
     printf("\nTemplateDeclaration::deduceMatch() %s\n", toChars());
     for (i = 0; i < fargs->dim; i++)
     {	Expression *e = (Expression *)fargs->data[i];
-	printf("\tfarg[%d] = %s\n", i, e->toChars());
+	printf("\tfarg[%d] is %s, type is %s\n", i, e->toChars(), e->type->toChars());
     }
 #endif
 
@@ -708,8 +708,8 @@ L2:
 	else
 	{   farg = (Expression *)fargs->data[i];
 #if 0
-	    printf("farg->type   = %s\n", farg->type->toChars());
-	    printf("fparam->type = %s\n", fparam->type->toChars());
+	    printf("\tfarg->type   = %s\n", farg->type->toChars());
+	    printf("\tfparam->type = %s\n", fparam->type->toChars());
 #endif
 
 	    m = farg->type->deduceType(scope, fparam->type, parameters, &dedtypes);
@@ -1146,7 +1146,7 @@ MATCH Type::deduceType(Scope *sc, Type *tparam, TemplateParameters *parameters,
 	if (equals(at))
 	    goto Lexact;
 	else if (ty == Tsarray && at->ty == Tarray &&
-	    next->equals(at->next))
+	    nextOf()->implicitConvTo(at->nextOf()) >= MATCHconst)
 	{
 	    goto Lexact;
 	}
@@ -1157,8 +1157,8 @@ MATCH Type::deduceType(Scope *sc, Type *tparam, TemplateParameters *parameters,
     if (ty != tparam->ty)
 	goto Lnomatch;
 
-    if (next)
-	return next->deduceType(sc, tparam->next, parameters, dedtypes);
+    if (nextOf())
+	return nextOf()->deduceType(sc, tparam->nextOf(), parameters, dedtypes);
 
 Lexact:
     return MATCHexact;
@@ -1212,7 +1212,7 @@ MATCH TypeSArray::deduceType(Scope *sc, Type *tparam, TemplateParameters *parame
 			    else
 			    {	dedtypes->data[i] = (void *)dim;
 			    }
-			    return next->deduceType(sc, tparam->next, parameters, dedtypes);
+			    return next->deduceType(sc, tparam->nextOf(), parameters, dedtypes);
 			}
 		    }
 		}
@@ -1221,7 +1221,7 @@ MATCH TypeSArray::deduceType(Scope *sc, Type *tparam, TemplateParameters *parame
 	else if (tparam->ty == Tarray)
 	{   MATCH m;
 
-	    m = next->deduceType(sc, tparam->next, parameters, dedtypes);
+	    m = next->deduceType(sc, tparam->nextOf(), parameters, dedtypes);
 	    if (m == MATCHexact)
 		m = MATCHconvert;
 	    return m;
@@ -1571,7 +1571,7 @@ MATCH TypeClass::deduceType(Scope *sc, Type *tparam, TemplateParameters *paramet
 	TypeClass *tp = (TypeClass *)tparam;
 
 	//printf("\t%d\n", (MATCH) implicitConvTo(tp));
-	return (MATCH) implicitConvTo(tp);
+	return implicitConvTo(tp);
     }
     return Type::deduceType(sc, tparam, parameters, dedtypes);
 }
@@ -3192,7 +3192,6 @@ Identifier *TemplateInstance::genIdent()
 	else if (ea)
 	{   sinteger_t v;
 	    real_t r;
-	    unsigned char *p;
 
 	    if (ea->op == TOKvar)
 	    {
@@ -3212,7 +3211,9 @@ Identifier *TemplateInstance::genIdent()
 		continue;
 	    }
 #if 1
-	    buf.writestring(ea->type->deco);
+	    /* Use deco that matches what it would be for a function parameter
+	     */
+	    buf.writestring(ea->type->toCanonConst()->deco);
 #else
 	    // Use type of parameter, not type of argument
 	    TemplateParameter *tp = (TemplateParameter *)tempdecl->parameters->data[i];

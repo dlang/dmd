@@ -59,7 +59,8 @@ Expression *Type::getInternalTypeInfo(Scope *sc)
     switch (t->ty)
     {
 	case Tsarray:
-	    t = t->next->arrayOf();	// convert to corresponding dynamic array type
+	    // convert to corresponding dynamic array type
+	    t = t->nextOf()->mutableOf()->arrayOf();
 	    break;
 
 	case Tclass:
@@ -68,7 +69,9 @@ Expression *Type::getInternalTypeInfo(Scope *sc)
 	    goto Linternal;
 
 	case Tarray:
-	    if (t->next->ty != Tclass)
+	    // convert to corresponding dynamic array type
+	    t = t->nextOf()->mutableOf()->arrayOf();
+	    if (t->nextOf()->ty != Tclass)
 		break;
 	    goto Linternal;
 
@@ -106,7 +109,13 @@ Expression *Type::getTypeInfo(Scope *sc)
     //printf("Type::getTypeInfo() %p, %s\n", this, toChars());
     t = merge();	// do this since not all Type's are merge'd
     if (!t->vtinfo)
-    {	t->vtinfo = t->getTypeInfoDeclaration();
+    {
+	if (t->isConst())
+	    t->vtinfo = new TypeInfoConstDeclaration(t);
+	else if (t->isInvariant())
+	    t->vtinfo = new TypeInfoInvariantDeclaration(t);
+	else
+	    t->vtinfo = t->getTypeInfoDeclaration();
 	assert(t->vtinfo);
 
 	/* If this has a custom implementation in std/typeinfo, then
@@ -206,6 +215,28 @@ void TypeInfoDeclaration::toDt(dt_t **pdt)
     //printf("TypeInfoDeclaration::toDt() %s\n", toChars());
     dtxoff(pdt, Type::typeinfo->toVtblSymbol(), 0, TYnptr); // vtbl for TypeInfo
     dtdword(pdt, 0);			    // monitor
+}
+
+void TypeInfoConstDeclaration::toDt(dt_t **pdt)
+{
+    //printf("TypeInfoConstDeclaration::toDt() %s\n", toChars());
+    dtxoff(pdt, Type::typeinfoconst->toVtblSymbol(), 0, TYnptr); // vtbl for TypeInfo_Const
+    dtdword(pdt, 0);			    // monitor
+    Type *tm = tinfo->mutableOf();
+    tm = tm->merge();
+    tm->getTypeInfo(NULL);
+    dtxoff(pdt, tm->vtinfo->toSymbol(), 0, TYnptr);
+}
+
+void TypeInfoInvariantDeclaration::toDt(dt_t **pdt)
+{
+    //printf("TypeInfoInvariantDeclaration::toDt() %s\n", toChars());
+    dtxoff(pdt, Type::typeinfoinvariant->toVtblSymbol(), 0, TYnptr); // vtbl for TypeInfo_Invariant
+    dtdword(pdt, 0);			    // monitor
+    Type *tm = tinfo->mutableOf();
+    tm = tm->merge();
+    tm->getTypeInfo(NULL);
+    dtxoff(pdt, tm->vtinfo->toSymbol(), 0, TYnptr);
 }
 
 void TypeInfoTypedefDeclaration::toDt(dt_t **pdt)
@@ -373,8 +404,8 @@ void TypeInfoDelegateDeclaration::toDt(dt_t **pdt)
 
     TypeDelegate *tc = (TypeDelegate *)tinfo;
 
-    tc->next->next->getTypeInfo(NULL);
-    dtxoff(pdt, tc->next->next->vtinfo->toSymbol(), 0, TYnptr); // TypeInfo for delegate return value
+    tc->next->nextOf()->getTypeInfo(NULL);
+    dtxoff(pdt, tc->next->nextOf()->vtinfo->toSymbol(), 0, TYnptr); // TypeInfo for delegate return value
 }
 
 void TypeInfoStructDeclaration::toDt(dt_t **pdt)
@@ -433,7 +464,7 @@ void TypeInfoStructDeclaration::toDt(dt_t **pdt)
 	tftohash = new TypeFunction(NULL, Type::thash_t, 0, LINKd);
 	tftohash = (TypeFunction *)tftohash->semantic(0, &sc);
 
-	tftostring = new TypeFunction(NULL, Type::tchar->arrayOf(), 0, LINKd);
+	tftostring = new TypeFunction(NULL, Type::tchar->constOf()->arrayOf(), 0, LINKd);
 	tftostring = (TypeFunction *)tftostring->semantic(0, &sc);
     }
 
@@ -631,12 +662,12 @@ int Type::builtinTypeInfo()
 
 int TypeBasic::builtinTypeInfo()
 {
-    return 1;
+    return mod ? 0 : 1;
 }
 
 int TypeDArray::builtinTypeInfo()
 {
-    return next->isTypeBasic() != NULL;
+    return !mod && next->isTypeBasic() != NULL && !next->mod;
 }
 
 /* ========================================================================= */

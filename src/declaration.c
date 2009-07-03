@@ -79,6 +79,58 @@ enum PROT Declaration::prot()
     return protection;
 }
 
+/*************************************
+ * Check to see if declaration can be modified in this context (sc).
+ * Issue error if not.
+ */
+
+void Declaration::checkModify(Loc loc, Scope *sc)
+{
+    if (sc->incontract && isParameter())
+	error(loc, "cannot modify parameter '%s' in contract", toChars());
+
+    VarDeclaration *v = isVarDeclaration();
+    if (v && v->canassign == 0 &&
+        (isConst() || isInvariant() || (isFinal() && !isCtorinit())))
+	error(loc, "cannot modify final/const/invariant variable '%s'", toChars());
+
+    if (isCtorinit())
+    {	// It's only modifiable if inside the right constructor
+	Dsymbol *s = sc->func;
+	while (1)
+	{
+	    FuncDeclaration *fd = NULL;
+	    if (s)
+		fd = s->isFuncDeclaration();
+	    if (fd &&
+		((fd->isCtorDeclaration() && storage_class & STCfield) ||
+		 (fd->isStaticCtorDeclaration() && !(storage_class & STCfield))) &&
+		fd->toParent() == toParent()
+	       )
+	    {
+		assert(v);
+		v->ctorinit = 1;
+		//printf("setting ctorinit\n");
+	    }
+	    else
+	    {
+		if (s)
+		{   s = s->toParent2();
+		    continue;
+		}
+		else
+		{
+		    const char *p = isStatic() ? "static " : "";
+		    error(loc, "can only initialize %sconst %s inside %sconstructor",
+			p, toChars(), p);
+		}
+	    }
+	    break;
+	}
+    }
+}
+
+
 /********************************* TupleDeclaration ****************************/
 
 TupleDeclaration::TupleDeclaration(Loc loc, Identifier *id, Objects *objects)
@@ -138,7 +190,7 @@ Type *TupleDeclaration::getType()
 	    Identifier *id = new Identifier(name, TOKidentifier);
 	    Argument *arg = new Argument(STCin, t, id, NULL);
 #else
-	    Argument *arg = new Argument(STCin, t, NULL, NULL);
+	    Argument *arg = new Argument(0, t, NULL, NULL);
 #endif
 	    args->data[i] = (void *)arg;
 	}
@@ -626,7 +678,7 @@ void VarDeclaration::semantic(Scope *sc)
     //printf("this = %p, parent = %p, '%s'\n", this, parent, parent->toChars());
     protection = sc->protection;
     //printf("sc->stc = %x\n", sc->stc);
-    //printf("storage_class = %x\n", storage_class);
+    //printf("storage_class = x%x\n", storage_class);
 
     Dsymbol *parent = toParent();
     FuncDeclaration *fd = parent->isFuncDeclaration();
@@ -688,14 +740,30 @@ void VarDeclaration::semantic(Scope *sc)
 	return;
     }
 
-    if (storage_class & STCconst && !init && !fd)
-	// Initialize by constructor only
-	storage_class = (storage_class & ~STCconst) | STCctorinit;
+    if (storage_class & STCfinal && !init && !fd)
+    {	// Initialize by constructor only
+	storage_class |= STCctorinit;
+    }
 
     if (isConst())
     {
+	type = type->constOf();
+	if (isParameter())
+	{   storage_class |= STCfinal;
+	    storage_class &= ~STCconst;
+	}
     }
-    else if (isStatic())
+    else if (storage_class & STCinvariant)
+    {
+	type = type->invariantOf();
+	if (isParameter())
+	{   storage_class |= STCfinal;
+	    storage_class &= ~STCinvariant;
+	}
+    }
+    type = type->toCanonConst();
+
+    if (storage_class & (STCconst | STCinvariant | STCstatic))
     {
     }
     else if (isSynchronized())
@@ -719,7 +787,7 @@ void VarDeclaration::semantic(Scope *sc)
 	if (!aad)
 	    aad = parent->isAggregateDeclaration();
 	if (aad)
-	{
+	{   assert(!(storage_class & (STCconst | STCinvariant | STCstatic)));
 	    aad->addField(sc, this);
 	}
 
@@ -824,7 +892,8 @@ void VarDeclaration::semantic(Scope *sc)
 	{
 	    // If local variable, use AssignExp to handle all the various
 	    // possibilities.
-	    if (fd && !isStatic() && !isConst() && !init->isVoidInitializer())
+	    if (fd && !isStatic() && !isConst() && !isInvariant() &&
+		!init->isVoidInitializer())
 	    {
 		Expression *e1;
 		Type *t;
@@ -856,15 +925,11 @@ void VarDeclaration::semantic(Scope *sc)
 		    // If multidimensional static array, treat as one large array
 		    while (1)
 		    {
-			t = t->next->toBasetype();
+			t = t->nextOf()->toBasetype();
 			if (t->ty != Tsarray)
 			    break;
-			if (t->next->toBasetype()->ty == Tbit)
-			    // t->size() gives size in bytes, convert to bits
-			    dim *= t->size() * 8;
-			else
-			    dim *= ((TypeSArray *)t)->dim->toInteger();
-			e1->type = new TypeSArray(t->next, new IntegerExp(0, dim, Type::tindex));
+			dim *= ((TypeSArray *)t)->dim->toInteger();
+			e1->type = new TypeSArray(t->nextOf(), new IntegerExp(0, dim, Type::tindex));
 		    }
 		    e1 = new SliceExp(loc, e1, NULL, NULL);
 		}
@@ -884,13 +949,13 @@ void VarDeclaration::semantic(Scope *sc)
 	    else
 	    {
 		init = init->semantic(sc, type);
-		if (fd && isConst() && !isStatic())
+		if (fd && (isConst() || isInvariant()) && !isStatic())
 		{   // Make it static
 		    storage_class |= STCstatic;
 		}
 	    }
 	}
-	else if (isConst() || isFinal())
+	else if (isConst() || isInvariant() || isFinal())
 	{
 	    /* Because we may need the results of a const declaration in a
 	     * subsequent type, such as an array dimension, before semantic2()
@@ -1155,6 +1220,20 @@ Dsymbol *TypeInfoDeclaration::syntaxCopy(Dsymbol *s)
 void TypeInfoDeclaration::semantic(Scope *sc)
 {
     assert(linkage == LINKc);
+}
+
+/***************************** TypeInfoConstDeclaration **********************/
+
+TypeInfoConstDeclaration::TypeInfoConstDeclaration(Type *tinfo)
+    : TypeInfoDeclaration(tinfo, 0)
+{
+}
+
+/***************************** TypeInfoInvariantDeclaration **********************/
+
+TypeInfoInvariantDeclaration::TypeInfoInvariantDeclaration(Type *tinfo)
+    : TypeInfoDeclaration(tinfo, 0)
+{
 }
 
 /***************************** TypeInfoStructDeclaration **********************/

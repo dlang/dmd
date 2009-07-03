@@ -1236,7 +1236,7 @@ int FuncDeclaration::canInline(int hasthis, int hdrscan)
 	/* Don't inline a function that returns non-void, but has
 	 * no return expression.
 	 */
-	if (type->next && type->next->ty != Tvoid &&
+	if (tf->next && tf->next->ty != Tvoid &&
 	    !(hasReturnExp & 1) &&
 	    !hdrscan)
 	    goto Lno;

@@ -67,7 +67,7 @@ FuncDeclaration::FuncDeclaration(Loc loc, Loc endloc, Identifier *id, enum STC s
     fes = NULL;
     introducing = 0;
     tintro = NULL;
-    inferRetType = (type && type->next == NULL);
+    inferRetType = (type && type->nextOf() == NULL);
     scope = NULL;
     hasReturnExp = 0;
     nrvo_can = 1;
@@ -109,7 +109,7 @@ void FuncDeclaration::semantic(Scope *sc)
     printf("type: %s\n", type->toChars());
 #endif
 
-    if (type->next)
+    if (type->nextOf())
 	type = type->semantic(loc, sc);
     //type->print();
     if (type->ty != Tfunction)
@@ -131,8 +131,8 @@ void FuncDeclaration::semantic(Scope *sc)
     //printf("function storage_class = x%x\n", storage_class);
     Dsymbol *parent = toParent();
 
-    if (isConst() || isAuto() || isScope())
-	error("functions cannot be const or auto");
+    if (isAuto() || isScope())
+	error("functions cannot be scope or auto");
 
     if (isAbstract() && !isVirtual())
 	error("non-virtual functions cannot be abstract");
@@ -144,7 +144,7 @@ void FuncDeclaration::semantic(Scope *sc)
 #if 0
     if (isStaticConstructor() || isStaticDestructor())
     {
-	if (!isStatic() || type->next->ty != Tvoid)
+	if (!isStatic() || type->nextOf()->ty != Tvoid)
 	    error("static constructors / destructors must be static void");
 	if (f->arguments && f->arguments->dim)
 	    error("static constructors / destructors must have empty parameter list");
@@ -316,7 +316,7 @@ void FuncDeclaration::semantic(Scope *sc)
 			     * offsets differ
 			     */
 			    int offset;
-			    if (fdv->type->next->isBaseOf(type->next, &offset))
+			    if (fdv->type->nextOf()->isBaseOf(type->nextOf(), &offset))
 			    {
 				tintro = fdv->type;
 			    }
@@ -395,14 +395,14 @@ void FuncDeclaration::semantic(Scope *sc)
 			     * offsets differ
 			     */
 			    int offset;
-			    if (fdv->type->next->isBaseOf(type->next, &offset))
+			    if (fdv->type->nextOf()->isBaseOf(type->nextOf(), &offset))
 			    {
 				ti = fdv->type;
 #if 0
 				if (offset)
 				    ti = fdv->type;
-				else if (type->next->ty == Tclass)
-				{   ClassDeclaration *cdn = ((TypeClass *)type->next)->sym;
+				else if (type->nextOf()->ty == Tclass)
+				{   ClassDeclaration *cdn = ((TypeClass *)type->nextOf())->sym;
 				    if (cdn && cdn->sizeok != 1)
 					ti = fdv->type;
 				}
@@ -476,8 +476,8 @@ void FuncDeclaration::semantic(Scope *sc)
 	    {
 		Argument *arg0 = Argument::getNth(f->parameters, 0);
 		if (arg0->type->ty != Tarray ||
-		    arg0->type->next->ty != Tarray ||
-		    arg0->type->next->next->ty != Tchar ||
+		    arg0->type->nextOf()->ty != Tarray ||
+		    arg0->type->nextOf()->nextOf()->ty != Tchar ||
 		    arg0->storageClass & (STCout | STCref | STClazy))
 		    goto Lmainerr;
 		break;
@@ -487,8 +487,8 @@ void FuncDeclaration::semantic(Scope *sc)
 		goto Lmainerr;
 	}
 
-	if (f->next->ty != Tint32 && f->next->ty != Tvoid)
-	    error("must return int or void, not %s", f->next->toChars());
+	if (f->nextOf()->ty != Tint32 && f->nextOf()->ty != Tvoid)
+	    error("must return int or void, not %s", f->nextOf()->toChars());
 	if (f->varargs)
 	{
 	Lmainerr:
@@ -510,7 +510,7 @@ void FuncDeclaration::semantic(Scope *sc)
 	    Type *t0 = arg0->type->toBasetype();
 	    Type *tb = sd ? sd->type : cd->type;
 	    if (arg0->type->implicitConvTo(tb) ||
-		(sd && t0->ty == Tpointer && t0->next->implicitConvTo(tb))
+		(sd && t0->ty == Tpointer && t0->nextOf()->implicitConvTo(tb))
 	       )
 	    {
 		if (nparams == 1)
@@ -598,7 +598,7 @@ void FuncDeclaration::semantic3(Scope *sc)
 	sc2->sw = NULL;
 	sc2->fes = fes;
 	sc2->linkage = LINKd;
-	sc2->stc &= ~(STCauto | STCscope | STCstatic | STCabstract | STCdeprecated);
+	sc2->stc &= ~(STCauto | STCscope | STCstatic | STCabstract | STCdeprecated | STCconst | STCfinal | STCinvariant);
 	sc2->protection = PROTpublic;
 	sc2->explicitProtection = 0;
 	sc2->structalign = 8;
@@ -619,8 +619,27 @@ void FuncDeclaration::semantic3(Scope *sc)
 	    {
 		assert(!isNested());	// can't be both member and nested
 		assert(ad->handle);
-		v = new ThisDeclaration(ad->handle);
-		v->storage_class |= STCparameter | STCin;
+		Type *thandle = ad->handle;
+		if (storage_class & STCconst)
+		{
+		    if (thandle->ty == Tclass)
+			thandle = thandle->constOf();
+		    else
+		    {	assert(thandle->ty == Tpointer);
+			thandle = thandle->nextOf()->constOf()->pointerTo();
+		    }
+		}
+		else if (storage_class & STCinvariant)
+		{
+		    if (thandle->ty == Tclass)
+			thandle = thandle->invariantOf();
+		    else
+		    {	assert(thandle->ty == Tpointer);
+			thandle = thandle->nextOf()->invariantOf()->pointerTo();
+		    }
+		}
+		v = new ThisDeclaration(thandle);
+		v->storage_class |= STCparameter;
 		v->semantic(sc2);
 		if (!sc2->insert(v))
 		    assert(0);
@@ -633,7 +652,7 @@ void FuncDeclaration::semantic3(Scope *sc)
 	    VarDeclaration *v;
 
 	    v = new ThisDeclaration(Type::tvoid->pointerTo());
-	    v->storage_class |= STCparameter | STCin;
+	    v->storage_class |= STCparameter;
 	    v->semantic(sc2);
 	    if (!sc2->insert(v))
 		assert(0);
@@ -723,7 +742,7 @@ void FuncDeclaration::semantic3(Scope *sc)
 		v->storage_class |= STCparameter;
 		if (f->varargs == 2 && i + 1 == nparams)
 		    v->storage_class |= STCvariadic;
-		v->storage_class |= arg->storageClass & (STCin | STCout | STCref | STClazy);
+		v->storage_class |= arg->storageClass & (STCin | STCout | STCref | STClazy | STCfinal | STCconst | STCinvariant);
 		if (v->storage_class & STClazy)
 		    v->storage_class |= STCin;
 		v->semantic(sc2);
@@ -790,8 +809,8 @@ void FuncDeclaration::semantic3(Scope *sc)
 	    sym->parent = sc2->scopesym;
 	    sc2 = sc2->push(sym);
 
-	    assert(type->next);
-	    if (type->next->ty == Tvoid)
+	    assert(type->nextOf());
+	    if (type->nextOf()->ty == Tvoid)
 	    {
 		if (outId)
 		    error("void functions have no result");
@@ -810,7 +829,7 @@ void FuncDeclaration::semantic3(Scope *sc)
 		if (fensure)
 		    loc = fensure->loc;
 
-		v = new VarDeclaration(loc, type->next, outId, NULL);
+		v = new VarDeclaration(loc, type->nextOf(), outId, NULL);
 		v->noauto = 1;
 		sc2->incontract--;
 		v->semantic(sc2);
@@ -906,9 +925,9 @@ void FuncDeclaration::semantic3(Scope *sc)
 
 	    if (inferRetType)
 	    {	// If no return type inferred yet, then infer a void
-		if (!type->next)
+		if (!type->nextOf())
 		{
-		    type->next = Type::tvoid;
+		    ((TypeFunction *)type)->next = Type::tvoid;
 		    type = type->semantic(loc, sc);
 		}
 		f = (TypeFunction *)type;
@@ -941,7 +960,7 @@ void FuncDeclaration::semantic3(Scope *sc)
 		    {   VarDeclaration *v = (VarDeclaration *)cd->fields.data[i];
 
 			if (v->ctorinit == 0 && v->isCtorinit())
-			    error("missing initializer for const field %s", v->toChars());
+			    error("missing initializer for final field %s", v->toChars());
 		    }
 		}
 
@@ -972,11 +991,11 @@ void FuncDeclaration::semantic3(Scope *sc)
 		fbody = new CompoundStatement(0, fbody, s);
 		assert(!returnLabel);
 	    }
-	    else if (!hasReturnExp && type->next->ty != Tvoid)
-		error("expected to return a value of type %s", type->next->toChars());
+	    else if (!hasReturnExp && type->nextOf()->ty != Tvoid)
+		error("expected to return a value of type %s", type->nextOf()->toChars());
 	    else if (!inlineAsm)
 	    {
-		if (type->next->ty == Tvoid)
+		if (type->nextOf()->ty == Tvoid)
 		{
 		    if (offend && isMain())
 		    {	// Add a return 0; statement
@@ -1002,12 +1021,12 @@ void FuncDeclaration::semantic3(Scope *sc)
 			    e = new AssertExp(
 				  endloc,
 				  new IntegerExp(0),
-				  new StringExp(0, "missing return expression")
+				  new StringExp(loc, "missing return expression")
 				);
 			}
 			else
 			    e = new HaltExp(endloc);
-			e = new CommaExp(0, e, type->next->defaultInit());
+			e = new CommaExp(0, e, type->nextOf()->defaultInit());
 			e = e->semantic(sc2);
 			Statement *s = new ExpStatement(0, e);
 			fbody = new CompoundStatement(0, fbody, s);
@@ -1134,13 +1153,13 @@ void FuncDeclaration::semantic3(Scope *sc)
 	    {
 		a->push(returnLabel->statement);
 
-		if (type->next->ty != Tvoid)
+		if (type->nextOf()->ty != Tvoid)
 		{
 		    // Create: return vresult;
 		    assert(vresult);
 		    Expression *e = new VarExp(0, vresult);
 		    if (tintro)
-		    {	e = e->implicitCastTo(sc, tintro->next);
+		    {	e = e->implicitCastTo(sc, tintro->nextOf());
 			e = e->semantic(sc);
 		    }
 		    ReturnStatement *s = new ReturnStatement(0, e);
@@ -1313,6 +1332,16 @@ FuncDeclaration *FuncDeclaration::overloadExactMatch(Type *t)
 		    break;		// BUG: should print error message?
 		if (t->equals(d->type))
 		    return f;
+
+		/* Allow covariant matches, if it's just a const conversion
+		 * of the return type
+		 */
+		if (t->ty == Tfunction)
+		{   TypeFunction *tf = (TypeFunction *)f->type;
+		    if (tf->covariant(t) == 1 &&
+			tf->nextOf()->implicitConvTo(t->nextOf()) >= MATCHconst)
+			return f;
+		}
 		next = f->overnext;
 	    }
 	}
@@ -1728,7 +1757,7 @@ FuncDeclaration *FuncDeclaration::genCfunc(Type *treturn, Identifier *id)
     {
 	fd = s->isFuncDeclaration();
 	assert(fd);
-	assert(fd->type->next->equals(treturn));
+	assert(fd->type->nextOf()->equals(treturn));
     }
     else
     {

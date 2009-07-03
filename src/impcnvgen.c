@@ -12,9 +12,9 @@
 
 #include "mtype.h"
 
-enum TY impcnvResult[TMAX][TMAX];
-enum TY impcnvType1[TMAX][TMAX];
-enum TY impcnvType2[TMAX][TMAX];
+TY impcnvResult[TMAX][TMAX];
+TY impcnvType1[TMAX][TMAX];
+TY impcnvType2[TMAX][TMAX];
 int impcnvWarn[TMAX][TMAX];
 
 int integral_promotion(int t)
@@ -23,7 +23,7 @@ int integral_promotion(int t)
     {
 	case Tchar:
 	case Twchar:
-	case Tbit:
+	//case Tbit:
 	case Tbool:
 	case Tint8:
 	case Tuns8:
@@ -53,6 +53,7 @@ void init()
 
     /* ======================= */
 
+#if 0
     X(Tbit,Tbit,    Tint32,Tint32,  Tint32)
     X(Tbit,Tint8,   Tint32,Tint32,  Tint32)
     X(Tbit,Tuns8,   Tint32,Tint32,  Tint32)
@@ -72,6 +73,7 @@ void init()
     X(Tbit,Tcomplex32,   Tfloat32,Tcomplex32,   Tcomplex32)
     X(Tbit,Tcomplex64,   Tfloat64,Tcomplex64,   Tcomplex64)
     X(Tbit,Tcomplex80,   Tfloat80,Tcomplex80,   Tcomplex80)
+#endif
 
     /* ======================= */
 
@@ -319,6 +321,8 @@ void init()
 #undef X
 
 #define Y(t1,t2)	impcnvWarn[t1][t2] = 1;
+
+#if 0
     Y(Tint8, Tbit)
     Y(Tuns8, Tbit)
     Y(Tint16, Tbit)
@@ -327,6 +331,7 @@ void init()
     Y(Tuns32, Tbit)
     Y(Tint64, Tbit)
     Y(Tuns64, Tbit)
+#endif
 
     Y(Tuns8, Tint8)
     Y(Tint16, Tint8)

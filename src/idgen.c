@@ -82,6 +82,8 @@ Msgtable msgtable[] =
     { "TypeInfo_Function" },
     { "TypeInfo_Delegate" },
     { "TypeInfo_Tuple" },
+    { "TypeInfo_Const" },
+    { "TypeInfo_Invariant" },
     { "elements" },
     { "_arguments_typeinfo" },
     { "_arguments" },
@@ -122,6 +124,7 @@ Msgtable msgtable[] =
     { "sort" },
     { "reverse" },
     { "dup" },
+    { "idup" },
 
     // For inline assembler
     { "___out", "out" },

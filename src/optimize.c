@@ -218,14 +218,14 @@ Expression *AddrExp::optimize(int result)
 	{
 	    integer_t index = ae->e2->toInteger();
 	    VarExp *ve = (VarExp *)ae->e1;
-	    if (ve->type->ty == Tsarray && ve->type->next->ty != Tbit
+	    if (ve->type->ty == Tsarray
 		&& !ve->var->isImportedSymbol())
 	    {
 		TypeSArray *ts = (TypeSArray *)ve->type;
 		integer_t dim = ts->dim->toInteger();
 		if (index < 0 || index >= dim)
 		    error("array index %jd is out of bounds [0..%jd]", index, dim);
-		e = new SymOffExp(loc, ve->var, index * ts->next->size());
+		e = new SymOffExp(loc, ve->var, index * ts->nextOf()->size());
 		e->type = type;
 		return e;
 	    }
@@ -300,18 +300,26 @@ Expression *CastExp::optimize(int result)
 
     if ((e1->op == TOKstring || e1->op == TOKarrayliteral) &&
 	(type->ty == Tpointer || type->ty == Tarray) &&
-	type->next->equals(e1->type->next)
+	e1->type->nextOf()->constConv(type->nextOf()) >= MATCHconst
        )
     {
 	e1->type = type;
 	return e1;
     }
+
+    if (e1->op == TOKstructliteral &&
+	e1->type->implicitConvTo(type) >= MATCHconst)
+    {
+	e1->type = type;
+	return e1;
+    }
+
     /* The first test here is to prevent infinite loops
      */
     if (op1 != TOKarrayliteral && e1->op == TOKarrayliteral)
 	return e1->castTo(NULL, to);
     if (e1->op == TOKnull &&
-	(type->ty == Tpointer || type->ty == Tclass))
+	(type->ty == Tpointer || type->ty == Tclass || type->ty == Tarray))
     {
 	e1->type = type;
 	return e1;
@@ -616,8 +624,8 @@ Expression *SliceExp::optimize(int result)
     {	if (e1->op == TOKstring)
 	{   // Convert slice of string literal into dynamic array
 	    Type *t = e1->type->toBasetype();
-	    if (t->next)
-		e = e1->castTo(NULL, t->next->arrayOf());
+	    if (t->nextOf())
+		e = e1->castTo(NULL, t->nextOf()->arrayOf());
 	}
 	return e;
     }

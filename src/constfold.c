@@ -970,8 +970,11 @@ Expression *Cast(Type *type, Type *to, Expression *e1)
 
     //printf("Cast(type = %s, to = %s, e1 = %s)\n", type->toChars(), to->toChars(), e1->toChars());
     //printf("e1->type = %s\n", e1->type->toChars());
-    if (type->equals(e1->type) && to->equals(type))
+    if (e1->type->equals(type) && type->equals(to))
 	return e1;
+    if (e1->type->implicitConvTo(to) >= MATCHconst ||
+	to->implicitConvTo(e1->type) >= MATCHconst)
+	return expType(to, e1);
 
     if (e1->isConst() != 1)
 	return EXP_CANT_INTERPRET;
@@ -1355,14 +1358,14 @@ Expression *Cat(Type *type, Expression *e1, Expression *e2)
 
 	if (type->toBasetype()->ty == Tsarray)
 	{
-	    e->type = new TypeSArray(e1->type->toBasetype()->next, new IntegerExp(0, es1->elements->dim, Type::tindex));
+	    e->type = new TypeSArray(e1->type->toBasetype()->nextOf(), new IntegerExp(0, es1->elements->dim, Type::tindex));
 	    e->type = e->type->semantic(loc, NULL);
 	}
 	else
 	    e->type = type;
     }
     else if (e1->op == TOKarrayliteral &&
-	e1->type->toBasetype()->next->equals(e2->type))
+	e1->type->toBasetype()->nextOf()->equals(e2->type))
     {
 	ArrayLiteralExp *es1 = (ArrayLiteralExp *)e1;
 
@@ -1379,7 +1382,7 @@ Expression *Cat(Type *type, Expression *e1, Expression *e2)
 	    e->type = type;
     }
     else if (e2->op == TOKarrayliteral &&
-	e2->type->toBasetype()->next->equals(e1->type))
+	e2->type->toBasetype()->nextOf()->equals(e1->type))
     {
 	ArrayLiteralExp *es2 = (ArrayLiteralExp *)e2;
 
@@ -1406,7 +1409,7 @@ Expression *Cat(Type *type, Expression *e1, Expression *e2)
 	t = e2->type;
       L1:
 	Type *tb = t->toBasetype();
-	if (tb->ty == Tarray && tb->next->equals(e->type))
+	if (tb->ty == Tarray && tb->nextOf()->equals(e->type))
 	{   Expressions *expressions = new Expressions();
 	    expressions->push(e);
 	    e = new ArrayLiteralExp(loc, expressions);
