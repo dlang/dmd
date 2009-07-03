@@ -1,6 +1,6 @@
 
 // Compiler implementation of the D programming language
-// Copyright (c) 1999-2006 by Digital Mars
+// Copyright (c) 1999-2008 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // http://www.digitalmars.com
@@ -166,6 +166,8 @@ Initializer *StructInitializer::semantic(Scope *sc, Type *t)
 	    {
 		if (fieldi >= ad->fields.dim)
 		{   error(loc, "too many initializers for %s", ad->toChars());
+		    field.remove(i);
+		    i--;
 		    continue;
 		}
 		else

@@ -497,6 +497,7 @@ int FileName::absolute(const char *name)
 
 /********************************
  * Return filename extension (read-only).
+ * Points past '.' of extension.
  * If there isn't one, return NULL.
  */
 
@@ -518,6 +519,7 @@ char *FileName::ext(const char *str)
 #if _WIN32
 	    case '\\':
 	    case ':':
+	    case '/':
 		break;
 #endif
 	    default:
@@ -533,6 +535,23 @@ char *FileName::ext(const char *str)
 char *FileName::ext()
 {
     return ext(str);
+}
+
+/********************************
+ * Return mem.malloc'd filename with extension removed.
+ */
+
+char *FileName::removeExt(const char *str)
+{
+    const char *e = ext(str);
+    if (e)
+    {	size_t len = (e - str) - 1;
+	char *n = (char *)mem.malloc(len + 1);
+	memcpy(n, str, len);
+	n[len] = 0;
+	return n;
+    }
+    return mem.strdup(str);
 }
 
 /********************************
@@ -1062,7 +1081,7 @@ int File::write()
     char *name;
 
     name = this->name->toChars();
-    fd = open(name, O_CREAT | O_WRONLY | O_TRUNC, 0660);
+    fd = open(name, O_CREAT | O_WRONLY | O_TRUNC, 0644);
     if (fd == -1)
 	goto err;
 

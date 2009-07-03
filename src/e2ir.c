@@ -4,6 +4,9 @@
 // All Rights Reserved
 // written by Walter Bright
 // http://www.digitalmars.com
+// License for redistribution is by either the Artistic License
+// in artistic.txt, or the GNU General Public License in gnu.txt.
+// See the included readme.txt for details.
 
 #include	<stdio.h>
 #include	<string.h>
@@ -122,7 +125,7 @@ elem *callfunc(Loc loc,
 	    elem *ea;
 
 	    arg = (Expression *)arguments->data[i];
-	    //printf("\targ: %s\n", arg->toChars());
+	    //printf("\targ[%d]: %s\n", i, arg->toChars());
 
 	    size_t nparams = Argument::dim(tf->parameters);
 	    if (i - j < nparams && i >= j)
@@ -747,7 +750,7 @@ elem *Dsymbol_toElem(Dsymbol *s, IRState *irs)
 	if (s != vd)
 	    return Dsymbol_toElem(s, irs);
 	if (vd->isStatic() || vd->isConst() || vd->storage_class & STCextern)
-	    vd->toObjFile();
+	    vd->toObjFile(0);
 	else
 	{
 	    sp = s->toSymbol();
@@ -1217,7 +1220,9 @@ elem *NewExp::toElem(IRState *irs)
 #else
 		    if (thisfd->nestedFrameRef)
 #endif
+		    {
 			ethis = el_ptr(irs->sthis);
+		    }
 		    else
 			ethis = el_var(irs->sthis);
 		}
@@ -1229,7 +1234,9 @@ elem *NewExp::toElem(IRState *irs)
 #else
 		    if (thisfd->nestedFrameRef)
 #endif
+		    {
 			ethis->Eoper = OPframeptr;
+		    }
 		}
 	    }
 	    else if (thisfd->vthis &&
@@ -3849,6 +3856,7 @@ elem *IndexExp::toElem(IRState *irs)
 	    assert(n2->Enumbytes);
 	}
 	valuesize = el_long(TYuint, vsize);	// BUG: should be TYsize_t
+	//printf("valuesize: "); elem_print(valuesize);
 	if (modifiable)
 	{
 	    n1 = el_una(OPaddr, TYnptr, n1);

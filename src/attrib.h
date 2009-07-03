@@ -50,7 +50,7 @@ struct AttribDeclaration : Dsymbol
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
     AttribDeclaration *isAttribDeclaration() { return this; }
 
-    void toObjFile();			// compile to .obj file
+    void toObjFile(int multiobj);			// compile to .obj file
     int cvMember(unsigned char *p);
 };
 
@@ -119,7 +119,7 @@ struct PragmaDeclaration : AttribDeclaration
     int oneMember(Dsymbol **ps);
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
     char *kind();
-    void toObjFile();			// compile to .obj file
+    void toObjFile(int multiobj);			// compile to .obj file
 };
 
 struct ConditionalDeclaration : AttribDeclaration

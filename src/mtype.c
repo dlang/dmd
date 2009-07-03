@@ -2212,6 +2212,35 @@ Type *TypeAArray::semantic(Loc loc, Scope *sc)
     return merge();
 }
 
+void TypeAArray::resolve(Loc loc, Scope *sc, Expression **pe, Type **pt, Dsymbol **ps)
+{
+    //printf("TypeAArray::resolve() %s\n", toChars());
+
+    // Deal with the case where we thought the index was a type, but
+    // in reality it was an expression.
+    if (index->ty == Tident || index->ty == Tinstance || index->ty == Tsarray)
+    {
+	Expression *e;
+	Type *t;
+	Dsymbol *s;
+
+	index->resolve(loc, sc, &e, &t, &s);
+	if (e)
+	{   // It was an expression -
+	    // Rewrite as a static array
+
+	    TypeSArray *tsa = new TypeSArray(next, e);
+	    return tsa->resolve(loc, sc, pe, pt, ps);
+	}
+	else if (t)
+	    index = t;
+	else
+	    index->error(loc, "index is not a type or an expression");
+    }
+    Type::resolve(loc, sc, pe, pt, ps);
+}
+
+
 Expression *TypeAArray::dotExp(Scope *sc, Expression *e, Identifier *ident)
 {
 #if LOGDOTEXP

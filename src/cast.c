@@ -1,5 +1,5 @@
 
-// Copyright (c) 1999-2006 by Digital Mars
+// Copyright (c) 1999-2008 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // http://www.digitalmars.com
@@ -1341,31 +1341,52 @@ Expression *BinExp::typeCombine(Scope *sc)
 	goto Lt1;
     }
     else if (t1->ty == Tclass || t2->ty == Tclass)
-    {	int i1;
-	int i2;
-
-	i1 = e2->implicitConvTo(t1);
-	i2 = e1->implicitConvTo(t2);
-
-	if (i1 && i2)
+    {
+	while (1)
 	{
-	    // We have the case of class vs. void*, so pick class
-	    if (t1->ty == Tpointer)
-		i1 = 0;
-	    else if (t2->ty == Tpointer)
-		i2 = 0;
-	}
+	    int i1 = e2->implicitConvTo(t1);
+	    int i2 = e1->implicitConvTo(t2);
 
-	if (i2)
-	{
-	    goto Lt2;
+	    if (i1 && i2)
+	    {
+		// We have the case of class vs. void*, so pick class
+		if (t1->ty == Tpointer)
+		    i1 = 0;
+		else if (t2->ty == Tpointer)
+		    i2 = 0;
+	    }
+
+	    if (i2)
+	    {
+		goto Lt2;
+	    }
+	    else if (i1)
+	    {
+		goto Lt1;
+	    }
+	    else if (t1->ty == Tclass && t2->ty == Tclass)
+	    {	TypeClass *tc1 = (TypeClass *)t1;
+		TypeClass *tc2 = (TypeClass *)t2;
+
+		/* Pick 'tightest' type
+		 */
+		ClassDeclaration *cd1 = tc1->sym->baseClass;
+		ClassDeclaration *cd2 = tc1->sym->baseClass;
+
+		if (cd1 && cd2)
+		{   t1 = cd1->type;
+		    t2 = cd2->type;
+		}
+		else if (cd1)
+		    t1 = cd1->type;
+		else if (cd2)
+		    t2 = cd2->type;
+		else
+		    goto Lincompatible;
+	    }
+	    else
+		goto Lincompatible;
 	}
-	else if (i1)
-	{
-	    goto Lt1;
-	}
-	else
-	    goto Lincompatible;
     }
     else if ((e1->op == TOKstring || e1->op == TOKnull) && e1->implicitConvTo(t2))
     {

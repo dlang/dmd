@@ -44,6 +44,8 @@ void obj_lzext(Symbol *s1,Symbol *s2);
 
 void Module::genmoduleinfo()
 {
+    //printf("Module::genmoduleinfo() %s\n", toChars());
+
     Symbol *msym = toSymbol();
     unsigned offset;
     unsigned sizeof_ModuleInfo = 14 * PTRSIZE;
@@ -73,7 +75,9 @@ void Module::genmoduleinfo()
     if (moduleinfo)
 	dtxoff(&dt, moduleinfo->toVtblSymbol(), 0, TYnptr); // vtbl for ModuleInfo
     else
+    {	//printf("moduleinfo is null\n");
 	dtdword(&dt, 0);		// BUG: should be an assert()
+    }
     dtdword(&dt, 0);			// monitor
 
     // name[]
@@ -83,21 +87,18 @@ void Module::genmoduleinfo()
     dtabytes(&dt, TYnptr, 0, namelen + 1, name);
 
     ClassDeclarations aclasses;
-    int i;
 
     //printf("members->dim = %d\n", members->dim);
-    for (i = 0; i < members->dim; i++)
-    {
-	Dsymbol *member;
+    for (int i = 0; i < members->dim; i++)
+    {	Dsymbol *member = (Dsymbol *)members->data[i];
 
-	member = (Dsymbol *)members->data[i];
 	//printf("\tmember '%s'\n", member->toChars());
 	member->addLocalClass(&aclasses);
     }
 
     // importedModules[]
     int aimports_dim = aimports.dim;
-    for (i = 0; i < aimports.dim; i++)
+    for (int i = 0; i < aimports.dim; i++)
     {	Module *m = (Module *)aimports.data[i];
 	if (!m->needModuleInfo())
 	    aimports_dim--;
@@ -144,11 +145,9 @@ void Module::genmoduleinfo()
 
     //////////////////////////////////////////////
 
-    for (i = 0; i < aimports.dim; i++)
-    {
-	Module *m;
+    for (int i = 0; i < aimports.dim; i++)
+    {	Module *m = (Module *)aimports.data[i];
 
-	m = (Module *)aimports.data[i];
 	if (m->needModuleInfo())
 	{   Symbol *s = m->toSymbol();
 	    s->Sflags |= SFLweak;
@@ -156,11 +155,9 @@ void Module::genmoduleinfo()
 	}
     }
 
-    for (i = 0; i < aclasses.dim; i++)
+    for (int i = 0; i < aclasses.dim; i++)
     {
-	ClassDeclaration *cd;
-
-	cd = (ClassDeclaration *)aclasses.data[i];
+	ClassDeclaration *cd = (ClassDeclaration *)aclasses.data[i];
 	dtxoff(&dt, cd->toSymbol(), 0, TYnptr);
     }
 
@@ -178,7 +175,7 @@ void Module::genmoduleinfo()
 
 /* ================================================================== */
 
-void Dsymbol::toObjFile()
+void Dsymbol::toObjFile(int multiobj)
 {
     //printf("Dsymbol::toObjFile('%s')\n", toChars());
     // ignore
@@ -186,7 +183,7 @@ void Dsymbol::toObjFile()
 
 /* ================================================================== */
 
-void ClassDeclaration::toObjFile()
+void ClassDeclaration::toObjFile(int multiobj)
 {   unsigned i;
     unsigned offset;
     Symbol *sinit;
@@ -218,7 +215,7 @@ void ClassDeclaration::toObjFile()
 	Dsymbol *member;
 
 	member = (Dsymbol *)members->data[i];
-	member->toObjFile();
+	member->toObjFile(0);
     }
 
 #if 0
@@ -700,7 +697,7 @@ unsigned ClassDeclaration::baseVtblOffset(BaseClass *bc)
 
 /* ================================================================== */
 
-void InterfaceDeclaration::toObjFile()
+void InterfaceDeclaration::toObjFile(int multiobj)
 {   unsigned i;
     unsigned offset;
     Symbol *sinit;
@@ -731,7 +728,7 @@ void InterfaceDeclaration::toObjFile()
 
 	member = (Dsymbol *)members->data[i];
 	if (!member->isFuncDeclaration())
-	    member->toObjFile();
+	    member->toObjFile(0);
     }
 
     // Generate C symbols
@@ -849,7 +846,7 @@ void InterfaceDeclaration::toObjFile()
 
 /* ================================================================== */
 
-void StructDeclaration::toObjFile()
+void StructDeclaration::toObjFile(int multiobj)
 {   unsigned i;
 
     //printf("StructDeclaration::toObjFile('%s')\n", toChars());
@@ -909,23 +906,24 @@ void StructDeclaration::toObjFile()
 	    Dsymbol *member;
 
 	    member = (Dsymbol *)members->data[i];
-	    member->toObjFile();
+	    member->toObjFile(0);
 	}
     }
 }
 
 /* ================================================================== */
 
-void VarDeclaration::toObjFile()
+void VarDeclaration::toObjFile(int multiobj)
 {
     Symbol *s;
     unsigned sz;
     Dsymbol *parent;
 
     //printf("VarDeclaration::toObjFile(%p '%s' type=%s) protection %d\n", this, toChars(), type->toChars(), protection);
+    //printf("\talign = %d\n", type->alignsize());
 
     if (aliassym)
-    {	toAlias()->toObjFile();
+    {	toAlias()->toObjFile(0);
 	return;
     }
 
@@ -940,7 +938,9 @@ void VarDeclaration::toObjFile()
 	 */
 	if (/*protection == PROTprivate ||*/
 	    !parent || parent->ident == NULL || parent->isFuncDeclaration())
+	{
 	    s->Sclass = SCstatic;
+	}
 	else
 #endif
 	{
@@ -1039,7 +1039,7 @@ void VarDeclaration::toObjFile()
 
 /* ================================================================== */
 
-void TypedefDeclaration::toObjFile()
+void TypedefDeclaration::toObjFile(int multiobj)
 {
     //printf("TypedefDeclaration::toObjFile('%s')\n", toChars());
 
@@ -1077,7 +1077,7 @@ void TypedefDeclaration::toObjFile()
 
 /* ================================================================== */
 
-void EnumDeclaration::toObjFile()
+void EnumDeclaration::toObjFile(int multiobj)
 {
     //printf("EnumDeclaration::toObjFile('%s')\n", toChars());
 

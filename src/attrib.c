@@ -1,6 +1,6 @@
 
 // Compiler implementation of the D programming language
-// Copyright (c) 1999-2007 by Digital Mars
+// Copyright (c) 1999-2008 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // http://www.digitalmars.com
@@ -29,8 +29,10 @@
 #include "aggregate.h"
 #include "module.h"
 #include "parse.h"
+#include "template.h"
 
 extern void obj_includelib(char *name);
+void obj_startaddress(Symbol *s);
 
 
 /********************************* AttribDeclaration ****************************/
@@ -174,7 +176,7 @@ void AttribDeclaration::emitComment(Scope *sc)
     }
 }
 
-void AttribDeclaration::toObjFile()
+void AttribDeclaration::toObjFile(int multiobj)
 {
     unsigned i;
     Array *d = include(NULL, NULL);
@@ -185,7 +187,7 @@ void AttribDeclaration::toObjFile()
 	{   Dsymbol *s;
 
 	    s = (Dsymbol *)d->data[i];
-	    s->toObjFile();
+	    s->toObjFile(multiobj);
 	}
     }
 }
@@ -888,7 +890,7 @@ char *PragmaDeclaration::kind()
     return "pragma";
 }
 
-void PragmaDeclaration::toObjFile()
+void PragmaDeclaration::toObjFile(int multiobj)
 {
     if (ident == Id::lib)
     {
@@ -904,7 +906,7 @@ void PragmaDeclaration::toObjFile()
 	name[se->len] = 0;
 	obj_includelib(name);
     }
-    AttribDeclaration::toObjFile();
+    AttribDeclaration::toObjFile(multiobj);
 }
 
 void PragmaDeclaration::toCBuffer(OutBuffer *buf, HdrGenState *hgs)

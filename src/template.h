@@ -25,6 +25,7 @@ struct Identifier;
 struct TemplateInstance;
 struct TemplateParameter;
 struct TemplateTypeParameter;
+struct TemplateThisParameter;
 struct TemplateValueParameter;
 struct TemplateAliasParameter;
 struct TemplateTupleParameter;
@@ -51,7 +52,7 @@ struct TemplateDeclaration : ScopeDsymbol
 
     TemplateParameters *origParameters;	// originals for Ddoc
 
-    Array instances;		// array of TemplateInstance's
+    Array instances;			// array of TemplateInstance's
 
     TemplateDeclaration *overnext;	// next overloaded TemplateDeclaration
     TemplateDeclaration *overroot;	// first in overnext list
@@ -150,6 +151,23 @@ struct TemplateTypeParameter : TemplateParameter
     MATCH matchArg(Scope *sc, Objects *tiargs, int i, TemplateParameters *parameters, Objects *dedtypes, Declaration **psparam);
     void *dummyArg();
 };
+
+#if V2
+struct TemplateThisParameter : TemplateTypeParameter
+{
+    /* Syntax:
+     *	this ident : specType = defaultType
+     */
+    Type *specType;	// type parameter: if !=NULL, this is the type specialization
+    Type *defaultType;
+
+    TemplateThisParameter(Loc loc, Identifier *ident, Type *specType, Type *defaultType);
+
+    TemplateThisParameter *isTemplateThisParameter();
+    TemplateParameter *syntaxCopy();
+    void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
+};
+#endif
 
 struct TemplateValueParameter : TemplateParameter
 {
@@ -276,7 +294,7 @@ struct TemplateInstance : ScopeDsymbol
     char *toChars();
     char *mangle();
 
-    void toObjFile();			// compile to .obj file
+    void toObjFile(int multiobj);			// compile to .obj file
 
     // Internal
     static void semanticTiargs(Loc loc, Scope *sc, Objects *tiargs);
@@ -310,7 +328,7 @@ struct TemplateMixin : TemplateInstance
     char *toChars();
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
 
-    void toObjFile();			// compile to .obj file
+    void toObjFile(int multiobj);			// compile to .obj file
 
     TemplateMixin *isTemplateMixin() { return this; }
 };

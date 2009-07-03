@@ -1,6 +1,6 @@
 
 // Compiler implementation of the D programming language
-// Copyright (c) 1999-2007 by Digital Mars
+// Copyright (c) 1999-2008 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // http://www.digitalmars.com
@@ -137,7 +137,7 @@ struct Dsymbol : Object
     virtual AggregateDeclaration *isThis();	// is a 'this' required to access the member
     virtual ClassDeclaration *isClassMember();	// are we a member of a class?
     virtual int isExport();			// is Dsymbol exported?
-    virtual int isImportedSymbol();			// is Dsymbol imported?
+    virtual int isImportedSymbol();		// is Dsymbol imported?
     virtual int isDeprecated();			// is Dsymbol deprecated?
     virtual LabelDsymbol *isLabel();		// is this a LabelDsymbol?
     virtual AggregateDeclaration *isMember();	// is this symbol a member of an AggregateDeclaration?
@@ -159,7 +159,7 @@ struct Dsymbol : Object
     // Backend
 
     virtual Symbol *toSymbol();			// to backend symbol
-    virtual void toObjFile();			// compile to .obj file
+    virtual void toObjFile(int multiobj);			// compile to .obj file
     virtual int cvMember(unsigned char *p);	// emit cv debug info for member
 
     Symbol *toImport();				// to backend import symbol

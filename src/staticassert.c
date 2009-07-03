@@ -86,7 +86,7 @@ void StaticAssert::inlineScan()
 {
 }
 
-void StaticAssert::toObjFile()
+void StaticAssert::toObjFile(int multiobj)
 {
 }
 

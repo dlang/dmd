@@ -125,6 +125,7 @@ struct FileName : String
     static int absolute(const char *name);
     static char *ext(const char *);
     char *ext();
+    static char *removeExt(const char *str);
     static char *name(const char *);
     char *name();
     static char *path(const char *);

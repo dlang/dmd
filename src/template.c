@@ -130,6 +130,7 @@ int match(Object *o1, Object *o2, TemplateDeclaration *tempdecl, Scope *sc)
     Dsymbol *s2 = isDsymbol(o2);
     Tuple *v1 = isTuple(o1);
     Tuple *v2 = isTuple(o2);
+
     //printf("\t match t1 %p t2 %p, e1 %p e2 %p, s1 %p s2 %p, v1 %p v2 %p\n", t1,t2,e1,e2,s1,s2,v1,v2);
 
     /* A proper implementation of the various equals() overrides
@@ -519,7 +520,12 @@ MATCH TemplateDeclaration::matchWithInstance(TemplateInstance *ti,
 	    printf("\tparameter[%d] is %s : %s\n", i, tp->ident->toChars(), ttp->specType ? ttp->specType->toChars() : "");
 #endif
 
+#if V1
 	m2 = tp->matchArg(paramscope, ti->tiargs, i, parameters, dedtypes, &sparam);
+#else
+	m2 = tp->matchArg(paramscope, ti->tiargs, i, parameters, dedtypes, &sparam, (flag & 2) ? 1 : 0);
+
+#endif
 	//printf("\tm2 = %d\n", m2);
 
 	if (m2 == MATCHnomatch)
@@ -984,7 +990,7 @@ void TemplateDeclaration::declareParameter(Scope *sc, TemplateParameter *tp, Obj
 	TemplateValueParameter *tvp = tp->isTemplateValueParameter();
 	assert(tvp);
 
-	VarDeclaration *v = new VarDeclaration(0, tvp->valType, tp->ident, init);
+	VarDeclaration *v = new VarDeclaration(loc, tvp->valType, tp->ident, init);
 	v->storage_class = STCconst;
 	s = v;
     }
@@ -1037,6 +1043,8 @@ int TemplateDeclaration::isOverloadable()
  * to expand, and return that function.
  * If no match, give error message and return NULL.
  * Input:
+ *	sc		instantiation scope
+ *	loc		instantiation location
  *	targsi		initial list of template arguments
  *	fargs		arguments to function
  */
@@ -1848,6 +1856,13 @@ TemplateTupleParameter *TemplateParameter::isTemplateTupleParameter()
     return NULL;
 }
 
+#if V2
+TemplateThisParameter  *TemplateParameter::isTemplateThisParameter()
+{
+    return NULL;
+}
+#endif
+
 /* ======================== TemplateTypeParameter =========================== */
 
 // type-parameter
@@ -1970,7 +1985,7 @@ MATCH TemplateTypeParameter::matchArg(Scope *sc, Objects *tiargs,
 
     if (specType)
     {
-	//printf("\tcalling deduceType(), specType is %s\n", specType->toChars());
+	//printf("\tcalling deduceType(): ta is %s, specType is %s\n", ta->toChars(), specType->toChars());
 	MATCH m2 = ta->deduceType(sc, specType, parameters, dedtypes);
 	if (m2 == MATCHnomatch)
 	{   //printf("\tfailed deduceType\n");
@@ -1983,13 +1998,16 @@ MATCH TemplateTypeParameter::matchArg(Scope *sc, Objects *tiargs,
     }
     else
     {
+	// So that matches with specializations are better
 	m = MATCHconvert;
 	if (t)
 	{   // Must match already deduced type
 
 	    m = MATCHexact;
 	    if (!t->equals(ta))
+	    {	//printf("t = %s ta = %s\n", t->toChars(), ta->toChars());
 		goto Lnomatch;
+	    }
 	}
     }
 
@@ -2074,6 +2092,40 @@ Object *TemplateTypeParameter::defaultArg(Scope *sc)
     }
     return t;
 }
+
+/* ======================== TemplateThisParameter =========================== */
+
+#if V2
+// this-parameter
+
+TemplateThisParameter::TemplateThisParameter(Loc loc, Identifier *ident,
+	Type *specType,
+	Type *defaultType)
+    : TemplateTypeParameter(loc, ident, specType, defaultType)
+{
+}
+
+TemplateThisParameter  *TemplateThisParameter::isTemplateThisParameter()
+{
+    return this;
+}
+
+TemplateParameter *TemplateThisParameter::syntaxCopy()
+{
+    TemplateThisParameter *tp = new TemplateThisParameter(loc, ident, specType, defaultType);
+    if (tp->specType)
+	tp->specType = specType->syntaxCopy();
+    if (defaultType)
+	tp->defaultType = defaultType->syntaxCopy();
+    return tp;
+}
+
+void TemplateThisParameter::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
+{
+    buf->writestring("this ");
+    TemplateTypeParameter::toCBuffer(buf, hgs);
+}
+#endif
 
 /* ======================== TemplateAliasParameter ========================== */
 
@@ -2491,13 +2543,17 @@ Object *TemplateValueParameter::specialization()
 
 Object *TemplateValueParameter::defaultArg(Scope *sc)
 {
-    Expression *e;
-
-    e = defaultValue;
+    Expression *e = defaultValue;
     if (e)
     {
 	e = e->syntaxCopy();
 	e = e->semantic(sc);
+#if V2
+	if (e->op == TOKdefault)
+	{   DefaultInitExp *de = (DefaultInitExp *)e;
+	    e = de->resolve(loc, sc);
+	}
+#endif
     }
     return e;
 }
@@ -2859,7 +2915,7 @@ void TemplateInstance::semantic(Scope *sc)
 	}
 	else
 	{   Module *m = sc->module->importedFrom;
-	    //printf("\t2: adding to module %s\n", m->toChars());
+	    //printf("\t2: adding to module %s instead of module %s\n", m->toChars(), sc->module->toChars());
 	    a = m->members;
 	    if (m->semanticdone >= 3)
 		dosemantic3 = 1;
@@ -3578,8 +3634,7 @@ printf("\tmember '%s', kind = '%s'\n", s->toChars(), s->kind());
 }
 
 void TemplateInstance::semantic3(Scope *sc)
-{   int i;
-
+{
 #if LOG
     printf("TemplateInstance::semantic3('%s'), semanticdone = %d\n", toChars(), semanticdone);
 #endif
@@ -3592,7 +3647,7 @@ void TemplateInstance::semantic3(Scope *sc)
 	sc = tempdecl->scope;
 	sc = sc->push(argsym);
 	sc = sc->push(this);
-	for (i = 0; i < members->dim; i++)
+	for (int i = 0; i < members->dim; i++)
 	{
 	    Dsymbol *s = (Dsymbol *)members->data[i];
 	    s->semantic3(sc);
@@ -3602,31 +3657,35 @@ void TemplateInstance::semantic3(Scope *sc)
     }
 }
 
-void TemplateInstance::toObjFile()
-{   int i;
-
+void TemplateInstance::toObjFile(int multiobj)
+{
 #if LOG
     printf("TemplateInstance::toObjFile('%s', this = %p)\n", toChars(), this);
 #endif
     if (!errors && members)
     {
-	for (i = 0; i < members->dim; i++)
+	if (multiobj)
+	    // Append to list of object files to be written later
+	    obj_append(this);
+	else
 	{
-	    Dsymbol *s = (Dsymbol *)members->data[i];
-	    s->toObjFile();
+	    for (int i = 0; i < members->dim; i++)
+	    {
+		Dsymbol *s = (Dsymbol *)members->data[i];
+		s->toObjFile(multiobj);
+	    }
 	}
     }
 }
 
 void TemplateInstance::inlineScan()
-{   int i;
-
+{
 #if LOG
     printf("TemplateInstance::inlineScan('%s')\n", toChars());
 #endif
     if (!errors && members)
     {
-	for (i = 0; i < members->dim; i++)
+	for (int i = 0; i < members->dim; i++)
 	{
 	    Dsymbol *s = (Dsymbol *)members->data[i];
 	    s->inlineScan();
@@ -4147,9 +4206,9 @@ void TemplateMixin::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 }
 
 
-void TemplateMixin::toObjFile()
+void TemplateMixin::toObjFile(int multiobj)
 {
     //printf("TemplateMixin::toObjFile('%s')\n", toChars());
-    TemplateInstance::toObjFile();
+    TemplateInstance::toObjFile(multiobj);
 }
 
