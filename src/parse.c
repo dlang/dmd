@@ -77,7 +77,7 @@ Array *Parser::parseModule()
 	{
 	    nextToken();
 	    if (token.value != TOKidentifier)
-	    {	error("module (safe) identifier expected");
+	    {	error("module (system) identifier expected");
 		goto Lerr;
 	    }
 	    Identifier *id = token.ident;
@@ -307,6 +307,12 @@ Array *Parser::parseDeclDefs(int once)
 		stc = STCinvariant;
 		goto Lstc;
 
+	    case TOKshared:
+		if (peek(&token)->value == TOKlparen)
+		    goto Ldeclaration;
+		stc = STCshared;
+		goto Lstc;
+
 	    case TOKfinal:	  stc = STCfinal;	 goto Lstc;
 	    case TOKauto:	  stc = STCauto;	 goto Lstc;
 	    case TOKscope:	  stc = STCscope;	 goto Lstc;
@@ -337,11 +343,14 @@ Array *Parser::parseDeclDefs(int once)
 		    case TOKconst:
 		    case TOKinvariant:
 		    case TOKimmutable:
+		    case TOKshared:
 			// If followed by a (, it is not a storage class
 			if (peek(&token)->value == TOKlparen)
 			    break;
 			if (token.value == TOKconst)
 			    stc = STCconst;
+			else if (token.value == TOKshared)
+			    stc = STCshared;
 			else
 			    stc = STCinvariant;
 			goto Lstc;
@@ -1032,6 +1041,12 @@ Arguments *Parser::parseParameters(int *pvarargs)
 		    if (peek(&token)->value == TOKlparen)
 			goto Ldefault;
 		    stc = STCinvariant;
+		    goto L2;
+
+		case TOKshared:
+		    if (peek(&token)->value == TOKlparen)
+			goto Ldefault;
+		    stc = STCshared;
 		    goto L2;
 
 		case TOKin:	   stc = STCin;		goto L2;
@@ -1915,7 +1930,22 @@ Import *Parser::parseImport(Array *decldefs, int isstatic)
 Type *Parser::parseType(Identifier **pident, TemplateParameters **tpl)
 {   Type *t;
 
-    if (token.value == TOKconst && peek(&token)->value != TOKlparen)
+    /* Take care of the storage class prefixes that
+     * serve as type attributes:
+     *  const shared, shared const, const, invariant, shared
+     */
+    if (token.value == TOKconst && peekNext() == TOKshared && peekNext2() != TOKlparen ||
+	token.value == TOKshared && peekNext() == TOKconst && peekNext2() != TOKlparen)
+    {
+	nextToken();
+	nextToken();
+	/* shared const type
+	 */
+	t = parseType(pident, tpl);
+	t = t->makeSharedConst();
+	return t;
+    }
+    else if (token.value == TOKconst && peekNext() != TOKlparen)
     {
 	nextToken();
 	/* const type
@@ -1925,13 +1955,22 @@ Type *Parser::parseType(Identifier **pident, TemplateParameters **tpl)
 	return t;
     }
     else if ((token.value == TOKinvariant || token.value == TOKimmutable) &&
-             peek(&token)->value != TOKlparen)
+             peekNext() != TOKlparen)
     {
 	nextToken();
 	/* invariant type
 	 */
 	t = parseType(pident, tpl);
 	t = t->makeInvariant();
+	return t;
+    }
+    else if (token.value == TOKshared && peekNext() != TOKlparen)
+    {
+	nextToken();
+	/* shared type
+	 */
+	t = parseType(pident, tpl);
+	t = t->makeShared();
 	return t;
     }
     else
@@ -2013,7 +2052,10 @@ Type *Parser::parseBasicType()
 	    check(TOKlparen);
 	    t = parseType();
 	    check(TOKrparen);
-	    t = t->makeConst();
+	    if (t->isShared())
+		t = t->makeSharedConst();
+	    else
+		t = t->makeConst();
 	    break;
 
 	case TOKinvariant:
@@ -2024,6 +2066,18 @@ Type *Parser::parseBasicType()
 	    t = parseType();
 	    check(TOKrparen);
 	    t = t->makeInvariant();
+	    break;
+
+	case TOKshared:
+	    // shared(type)
+	    nextToken();
+	    check(TOKlparen);
+	    t = parseType();
+	    check(TOKrparen);
+	    if (t->isConst())
+		t = t->makeSharedConst();
+	    else
+		t = t->makeShared();
 	    break;
 
 	default:
@@ -2244,13 +2298,24 @@ Type *Parser::parseDeclarator(Type *t, Identifier **pident, TemplateParameters *
 		    switch (token.value)
 		    {
 			case TOKconst:
-			    tf = tf->makeConst();
+			    if (tf->isShared())
+				tf = tf->makeSharedConst();
+			    else
+				tf = tf->makeConst();
 			    nextToken();
 			    continue;
 
 			case TOKinvariant:
 			case TOKimmutable:
 			    tf = tf->makeInvariant();
+			    nextToken();
+			    continue;
+
+			case TOKshared:
+			    if (tf->isConst())
+				tf = tf->makeSharedConst();
+			    else
+				tf = tf->makeShared();
 			    nextToken();
 			    continue;
 
@@ -3069,6 +3134,7 @@ Statement *Parser::parseStatement(int flags)
 	case TOKfinal:
 	case TOKinvariant:
 	case TOKimmutable:
+	case TOKshared:
 //	case TOKtypeof:
 	Ldeclaration:
 	{   Array *a;
@@ -3840,10 +3906,11 @@ int Parser::isDeclaration(Token *t, int needId, enum TOK endtok, Token **pt)
     int haveId = 0;
 
 #if V2
-    if ((t->value == TOKconst || t->value == TOKinvariant || token.value == TOKimmutable) &&
+    if ((t->value == TOKconst || t->value == TOKinvariant || token.value == TOKimmutable || token.value == TOKshared) &&
 	peek(t)->value != TOKlparen)
     {	/* const type
-	 * invariant type
+	 * immutable type
+	 * shared type
 	 */
 	t = peek(t);
     }
@@ -3967,7 +4034,8 @@ int Parser::isBasicType(Token **pt)
 	case TOKconst:
 	case TOKinvariant:
 	case TOKimmutable:
-	    // const(type)  or  invariant(type)
+	case TOKshared:
+	    // const(type)  or  immutable(type)  or  shared(type)
 	    t = peek(t);
 	    if (t->value != TOKlparen)
 		goto Lfalse;
@@ -4117,6 +4185,7 @@ int Parser::isDeclarator(Token **pt, int *haveId, enum TOK endtok)
 			case TOKconst:
 			case TOKinvariant:
 			case TOKimmutable:
+			case TOKshared:
 			case TOKpure:
 			case TOKnothrow:
 			    t = peek(t);
@@ -4179,6 +4248,7 @@ int Parser::isParameters(Token **pt)
 	    case TOKconst:
 	    case TOKinvariant:
 	    case TOKimmutable:
+	    case TOKshared:
 	    case TOKfinal:
 		continue;
 
@@ -4690,6 +4760,7 @@ Expression *Parser::parsePrimaryExp()
 			 token.value == TOKconst && peek(&token)->value == TOKrparen ||
 			 token.value == TOKinvariant && peek(&token)->value == TOKrparen ||
 			 token.value == TOKimmutable && peek(&token)->value == TOKrparen ||
+			 token.value == TOKshared && peek(&token)->value == TOKrparen ||
 			 token.value == TOKfunction ||
 			 token.value == TOKdelegate ||
 			 token.value == TOKreturn))
@@ -5055,23 +5126,48 @@ Expression *Parser::parseUnaryExp()
 	    break;
 
 	case TOKcast:				// cast(type) expression
-	{   Type *t;
-
+	{
 	    nextToken();
 	    check(TOKlparen);
-	    /* Look for cast(const) and cast(invariant)
+	    /* Look for cast(), cast(const), cast(immutable),
+	     * cast(shared), cast(shared const)
 	     */
-	    if ((token.value == TOKconst || token.value == TOKinvariant || token.value == TOKimmutable) &&
-		peek(&token)->value == TOKrparen)
-	    {	enum TOK tok = token.value;
+	    unsigned m;
+	    if (token.value == TOKrparen)
+	    {
+		m = 0;
+		goto Lmod1;
+	    }
+	    else if (token.value == TOKconst && peekNext() == TOKrparen)
+	    {
+		m = MODconst;
+		goto Lmod2;
+	    }
+	    else if ((token.value == TOKimmutable || token.value == TOKinvariant) && peekNext() == TOKrparen)
+	    {
+		m = MODinvariant;
+		goto Lmod2;
+	    }
+	    else if (token.value == TOKshared && peekNext() == TOKrparen)
+	    {
+		m = MODshared;
+		goto Lmod2;
+	    }
+	    else if (token.value == TOKconst && peekNext() == TOKshared && peekNext2() == TOKrparen ||
+		     token.value == TOKshared && peekNext() == TOKconst && peekNext2() == TOKrparen)
+	    {
+		m = MODshared | MODconst;
 		nextToken();
+	      Lmod2:
+		nextToken();
+	      Lmod1:
 		nextToken();
 		e = parseUnaryExp();
-		e = new CastExp(loc, e, tok);
+		e = new CastExp(loc, e, m);
 	    }
 	    else
 	    {
-		t = parseType();		// ( type )
+		Type *t = parseType();		// ( type )
 		check(TOKrparen);
 		e = parseUnaryExp();
 		e = new CastExp(loc, e, t);

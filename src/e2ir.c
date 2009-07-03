@@ -169,20 +169,24 @@ elem *callfunc(Loc loc,
 	    Symbol *stmp = symbol_genauto(t);
 	    ehidden = el_ptr(stmp);
 	}
-	if (ep)
-	{
-#if 0 // BUG: implement
-	    if (reverse && type_mangle(tfunc) == mTYman_cpp)
-		ep = el_param(ehidden,ep);
-	    else
-#endif
-		ep = el_param(ep,ehidden);
-	}
+	if (global.params.isLinux && tf->linkage != LINKd)
+	    ;	// ehidden goes last on Linux C++
 	else
-	    ep = ehidden;
-	ehidden = NULL;
+	{
+	    if (ep)
+	    {
+#if 0 // BUG: implement
+		if (reverse && type_mangle(tfunc) == mTYman_cpp)
+		    ep = el_param(ehidden,ep);
+		else
+#endif
+		    ep = el_param(ep,ehidden);
+	    }
+	    else
+		ep = ehidden;
+	    ehidden = NULL;
+	}
     }
-    assert(ehidden == NULL);
 
     if (fd && fd->isMember2())
     {
@@ -239,6 +243,8 @@ elem *callfunc(Loc loc,
     }
 
     ep = el_param(ep, ethis);
+    if (ehidden)
+	ep = el_param(ep, ehidden);	// if ehidden goes last
 
     tyret = tret->totym();
 
@@ -3173,7 +3179,8 @@ elem *DotVarExp::toElem(IRState *irs)
     elem *e = e1->toElem(irs);
     Type *tb1 = e1->type->toBasetype();
     if (tb1->ty != Tclass && tb1->ty != Tpointer)
-	e = el_una(OPaddr, TYnptr, e);
+	//e = el_una(OPaddr, TYnptr, e);
+	e = addressElem(e, tb1);
     e = el_bin(OPadd, TYnptr, e, el_long(TYint, v ? v->offset : 0));
     e = el_una(OPind, type->totym(), e);
     if (tybasic(e->Ety) == TYstruct)

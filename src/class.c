@@ -157,6 +157,12 @@ ClassDeclaration::ClassDeclaration(Loc loc, Identifier *id, BaseClasses *basecla
 		    Type::typeinfoinvariant->error("%s", msg);
 		Type::typeinfoinvariant = this;
 	    }
+
+	    if (id == Id::TypeInfo_Shared)
+	    {	if (Type::typeinfoshared)
+		    Type::typeinfoshared->error("%s", msg);
+		Type::typeinfoshared = this;
+	    }
 #endif
 	}
 
@@ -546,7 +552,16 @@ void ClassDeclaration::semantic(Scope *sc)
     sc->inunion = 0;
 
     if (isCOMclass())
+    {
+#if _WIN32
 	sc->linkage = LINKwindows;
+#else
+	/* This enables us to use COM objects under Linux and
+	 * work with things like XPCOM
+	 */
+	sc->linkage = LINKc;
+#endif
+    }
     sc->protection = PROTpublic;
     sc->explicitProtection = 0;
     sc->structalign = 8;

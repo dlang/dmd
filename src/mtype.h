@@ -111,12 +111,21 @@ struct Type : Object
 {
     TY ty;
     unsigned char mod;	// modifiers MODxxxx
+	/* pick this order of numbers so switch statements work better
+	 */
 	#define MODconst     1	// type is const
-	#define MODinvariant 2	// type is invariant
-	#define MODshared    4	// type is shared
+	#define MODinvariant 4	// type is invariant
+	#define MODshared    2	// type is shared
     char *deco;
+
+    /* Note that there is no "shared immutable", because that is just immutable
+     */
+
     Type *cto;		// MODconst ? mutable version of this type : const version
     Type *ito;		// MODinvariant ? mutable version of this type : invariant version
+    Type *sto;		// MODshared ? mutable version of this type : shared mutable version
+    Type *scto;		// MODshared|MODconst ? mutable version of this type : shared const version
+
     Type *pto;		// merged pointer to this type
     Type *rto;		// reference to this type
     Type *arrayof;	// array of this type
@@ -178,6 +187,7 @@ struct Type : Object
     static ClassDeclaration *typeinfotypelist;
     static ClassDeclaration *typeinfoconst;
     static ClassDeclaration *typeinfoinvariant;
+    static ClassDeclaration *typeinfoshared;
 
     static Type *basic[TMAX];
     static unsigned char mangleChar[TMAX];
@@ -229,14 +239,24 @@ struct Type : Object
     int isInvariant()	{ return mod & MODinvariant; }
     int isMutable()	{ return !(mod & (MODconst | MODinvariant)); }
     int isShared()	{ return mod & MODshared; }
+    int isSharedConst()	{ return mod == (MODshared | MODconst); }
     Type *constOf();
     Type *invariantOf();
     Type *mutableOf();
+    Type *sharedOf();
+    Type *sharedConstOf();
+    void fixTo(Type *t);
+    void check();
+    Type *castMod(unsigned mod);
+    Type *addMod(unsigned mod);
+    Type *addStorageClass(unsigned stc);
     Type *pointerTo();
     Type *referenceTo();
     Type *arrayOf();
     virtual Type *makeConst();
     virtual Type *makeInvariant();
+    virtual Type *makeShared();
+    virtual Type *makeSharedConst();
     virtual Dsymbol *toDsymbol(Scope *sc);
     virtual Type *toBasetype();
     virtual Type *toHeadMutable();
@@ -285,7 +305,10 @@ struct TypeNext : Type
     Type *nextOf();
     Type *makeConst();
     Type *makeInvariant();
+    Type *makeShared();
+    Type *makeSharedConst();
     MATCH constConv(Type *to);
+    void transitive();
 };
 
 struct TypeBasic : Type
@@ -559,6 +582,7 @@ struct TypeInstance : TypeQualified
     void toCBuffer2(OutBuffer *buf, HdrGenState *hgs, int mod);
     void resolve(Loc loc, Scope *sc, Expression **pe, Type **pt, Dsymbol **ps);
     Type *semantic(Loc loc, Scope *sc);
+    Dsymbol *toDsymbol(Scope *sc);
     MATCH deduceType(Scope *sc, Type *tparam, TemplateParameters *parameters, Objects *dedtypes);
 };
 

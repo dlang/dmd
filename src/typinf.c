@@ -112,7 +112,9 @@ Expression *Type::getTypeInfo(Scope *sc)
     t = merge();	// do this since not all Type's are merge'd
     if (!t->vtinfo)
     {
-	if (t->isConst())
+	if (t->isShared())	// does both 'shared' and 'shared const'
+	    t->vtinfo = new TypeInfoSharedDeclaration(t);
+	else if (t->isConst())
 	    t->vtinfo = new TypeInfoConstDeclaration(t);
 	else if (t->isInvariant())
 	    t->vtinfo = new TypeInfoInvariantDeclaration(t);
@@ -236,6 +238,21 @@ void TypeInfoInvariantDeclaration::toDt(dt_t **pdt)
     dtxoff(pdt, Type::typeinfoinvariant->toVtblSymbol(), 0, TYnptr); // vtbl for TypeInfo_Invariant
     dtdword(pdt, 0);			    // monitor
     Type *tm = tinfo->mutableOf();
+    tm = tm->merge();
+    tm->getTypeInfo(NULL);
+    dtxoff(pdt, tm->vtinfo->toSymbol(), 0, TYnptr);
+}
+
+void TypeInfoSharedDeclaration::toDt(dt_t **pdt)
+{
+    //printf("TypeInfoSharedDeclaration::toDt() %s\n", toChars());
+    dtxoff(pdt, Type::typeinfoshared->toVtblSymbol(), 0, TYnptr); // vtbl for TypeInfo_Shared
+    dtdword(pdt, 0);			    // monitor
+    Type *tm;
+    if (tinfo->isConst())		// it was 'shared const'
+	tm = tinfo->constOf();
+    else				// it was just 'shared'
+	tm = tinfo->mutableOf();
     tm = tm->merge();
     tm->getTypeInfo(NULL);
     dtxoff(pdt, tm->vtinfo->toSymbol(), 0, TYnptr);

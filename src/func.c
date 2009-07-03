@@ -347,6 +347,8 @@ void FuncDeclaration::semantic(Scope *sc)
 
 		if (isFinal())
 		{
+		    if (isOverride())
+			error("does not override any function");
 		    cd->vtblFinal.push(this);
 		}
 		else
@@ -608,6 +610,7 @@ void FuncDeclaration::semantic3(Scope *sc)
     }
     //printf("FuncDeclaration::semantic3('%s.%s', sc = %p, loc = %s)\n", parent->toChars(), toChars(), sc, loc.toChars());
     //fflush(stdout);
+    //printf("storage class = x%x %x\n", sc->stc, storage_class);
     //{ static int x; if (++x == 2) *(char*)0=0; }
     //printf("\tlinkage = %d\n", sc->linkage);
 
@@ -675,32 +678,36 @@ void FuncDeclaration::semantic3(Scope *sc)
 		assert(!isNested());	// can't be both member and nested
 		assert(ad->handle);
 		Type *thandle = ad->handle;
+#if STRUCTTHISREF
+		thandle = thandle->addMod(type->mod);
+		thandle = thandle->addStorageClass(storage_class);
+		if (isPure())
+		    thandle = thandle->addMod(MODconst);
+#else
 		if (storage_class & STCconst || type->isConst())
 		{
-#if STRUCTTHISREF
-		    thandle = thandle->constOf();
-#else
+		    assert(0); // BUG: shared not handled
 		    if (thandle->ty == Tclass)
 			thandle = thandle->constOf();
 		    else
 		    {	assert(thandle->ty == Tpointer);
 			thandle = thandle->nextOf()->constOf()->pointerTo();
 		    }
-#endif
 		}
 		else if (storage_class & STCinvariant || type->isInvariant())
 		{
-#if STRUCTTHISREF
-		    thandle = thandle->invariantOf();
-#else
 		    if (thandle->ty == Tclass)
 			thandle = thandle->invariantOf();
 		    else
 		    {	assert(thandle->ty == Tpointer);
 			thandle = thandle->nextOf()->invariantOf()->pointerTo();
 		    }
-#endif
 		}
+		else if (storage_class & STCshared || type->isShared())
+		{
+		    assert(0);  // not implemented
+		}
+#endif
 		v = new ThisDeclaration(thandle);
 		v->storage_class |= STCparameter;
 #if STRUCTTHISREF
@@ -809,7 +816,10 @@ void FuncDeclaration::semantic3(Scope *sc)
 		     */
 		    arg->ident = id = Identifier::generateId("_param_", i);
 		}
-		VarDeclaration *v = new VarDeclaration(loc, arg->type, id, NULL);
+		Type *vtype = arg->type;
+		if (isPure())
+		    vtype = vtype->addMod(MODconst);
+		VarDeclaration *v = new VarDeclaration(loc, vtype, id, NULL);
 		//printf("declaring parameter %s of type %s\n", v->toChars(), v->type->toChars());
 		v->storage_class |= STCparameter;
 		if (f->varargs == 2 && i + 1 == nparams)
@@ -1079,8 +1089,11 @@ void FuncDeclaration::semantic3(Scope *sc)
 		error("expected to return a value of type %s", type->nextOf()->toChars());
 	    else if (!inlineAsm)
 	    {
-		int offend = fbody ? fbody->blockExit() & BEfallthru : TRUE;
-		//int offend = fbody ? fbody->fallOffEnd() : TRUE;
+		int blockexit = fbody ? fbody->blockExit() : 0;
+		if (f->isnothrow && blockexit & BEthrow)
+		    error("'%s' is nothrow yet may throw", toChars());
+
+		int offend = blockexit & BEfallthru;
 
 		if (type->nextOf()->ty == Tvoid)
 		{
@@ -2054,6 +2067,13 @@ int FuncDeclaration::isCodeseg()
 int FuncDeclaration::isOverloadable()
 {
     return 1;			// functions can be overloaded
+}
+
+int FuncDeclaration::isPure()
+{
+    //printf("FuncDeclaration::isPure() '%s'\n", toChars());
+    assert(type->ty == Tfunction);
+    return ((TypeFunction *)this->type)->ispure;
 }
 
 // Determine if function needs

@@ -135,9 +135,9 @@ void Declaration::checkModify(Loc loc, Scope *sc, Type *t)
 	    if (isConst())
 		p = "const";
 	    else if (isInvariant())
-		p = "invariant";
+		p = "mutable";
 	    else if (storage_class & STCmanifest)
-		p = "manifest constant";
+		p = "enum";
 	    else if (!t->isAssignable())
 		p = "struct with immutable members";
 	    if (p)
@@ -775,19 +775,21 @@ void VarDeclaration::semantic(Scope *sc)
     }
 
 Lagain:
-    if (storage_class & STCinvariant)
-    {
-	type = type->invariantOf();
+    /* Storage class can modify the type
+     */
+    type = type->addStorageClass(storage_class);
+
+    /* Adjust storage class to reflect type
+     */
+    if (type->isConst())
+    {	storage_class |= STCconst;
+	if (type->isShared())
+	    storage_class |= STCshared;
     }
-    else if (storage_class & (STCconst | STCin))
-    {
-	if (!type->isInvariant())
-	    type = type->constOf();
-    }
-    else if (type->isConst())
-	storage_class |= STCconst;
     else if (type->isInvariant())
 	storage_class |= STCinvariant;
+    else if (type->isShared())
+	storage_class |= STCshared;
 
     if (isSynchronized())
     {
@@ -1166,9 +1168,11 @@ void VarDeclaration::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 	buf->writestring("auto ");
 #if V2
     if (storage_class & STCmanifest)
-	buf->writestring("manifest ");
+	buf->writestring("enum ");
     if (storage_class & STCinvariant)
-	buf->writestring("invariant ");
+	buf->writestring("immutable ");
+    if (storage_class & STCshared)
+	buf->writestring("shared ");
     if (storage_class & STCtls)
 	buf->writestring("__thread ");
 #endif
@@ -1537,6 +1541,15 @@ TypeInfoConstDeclaration::TypeInfoConstDeclaration(Type *tinfo)
 
 #if V2
 TypeInfoInvariantDeclaration::TypeInfoInvariantDeclaration(Type *tinfo)
+    : TypeInfoDeclaration(tinfo, 0)
+{
+}
+#endif
+
+/***************************** TypeInfoSharedDeclaration **********************/
+
+#if V2
+TypeInfoSharedDeclaration::TypeInfoSharedDeclaration(Type *tinfo)
     : TypeInfoDeclaration(tinfo, 0)
 {
 }

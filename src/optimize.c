@@ -375,6 +375,40 @@ Expression *PtrExp::optimize(int result)
     return this;
 }
 
+Expression *DotVarExp::optimize(int result)
+{
+    //printf("DotVarExp::optimize(result = x%x) %s\n", result, toChars());
+    e1 = e1->optimize(result);
+
+    if (e1->op == TOKvar)
+    {	VarExp *ve = (VarExp *)e1;
+	VarDeclaration *v = ve->var->isVarDeclaration();
+	Expression *e = expandVar(result, v);
+	if (e && e->op == TOKstructliteral)
+	{   StructLiteralExp *sle = (StructLiteralExp *)e;
+	    VarDeclaration *vf = var->isVarDeclaration();
+	    if (vf)
+	    {
+		e = sle->getField(type, vf->offset);
+		if (e != EXP_CANT_INTERPRET)
+		    return e;
+	    }
+	}
+    }
+    else if (e1->op == TOKstructliteral)
+    {   StructLiteralExp *sle = (StructLiteralExp *)e1;
+	VarDeclaration *vf = var->isVarDeclaration();
+	if (vf)
+	{
+	    Expression *e = sle->getField(type, vf->offset);
+	    if (e != EXP_CANT_INTERPRET)
+		return e;
+	}
+    }
+
+    return this;
+}
+
 Expression *CallExp::optimize(int result)
 {
     //printf("CallExp::optimize(result = %d) %s\n", result, toChars());

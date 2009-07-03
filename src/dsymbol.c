@@ -826,7 +826,6 @@ void ScopeDsymbol::multiplyDefined(Loc loc, Dsymbol *s1, Dsymbol *s2)
 	    s2->toPrettyChars(),
 	    s2->locToChars());
     }
-halt();
 }
 
 Dsymbol *ScopeDsymbol::nameCollision(Dsymbol *s)

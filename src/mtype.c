@@ -96,6 +96,7 @@ ClassDeclaration *Type::typeinfodelegate;
 ClassDeclaration *Type::typeinfotypelist;
 ClassDeclaration *Type::typeinfoconst;
 ClassDeclaration *Type::typeinfoinvariant;
+ClassDeclaration *Type::typeinfoshared;
 
 Type *Type::tvoidptr;
 Type *Type::basic[TMAX];
@@ -112,6 +113,8 @@ Type::Type(TY ty)
 #if V2
     this->cto = NULL;
     this->ito = NULL;
+    this->sto = NULL;
+    this->scto = NULL;
 #endif
     this->pto = NULL;
     this->rto = NULL;
@@ -310,8 +313,13 @@ MATCH Type::constConv(Type *to)
     return MATCHnomatch;
 }
 
+/********************************
+ * Convert to 'const'.
+ */
+
 Type *Type::constOf()
 {
+#if 0
     //printf("Type::constOf() %p %s\n", this, toChars());
     if (isConst())
 	return this;
@@ -325,10 +333,29 @@ Type *Type::constOf()
     //if (t->nextOf()) assert(t->nextOf()->isConst());
     //printf("-Type::constOf() %p %s\n", t, toChars());
     return t;
+#else
+    //printf("Type::constOf() %p %s\n", this, toChars());
+    if (mod == MODconst)
+	return this;
+    if (cto)
+    {	assert(cto->mod == MODconst);
+	return cto;
+    }
+    Type *t = makeConst();
+    t = t->merge();
+    t->fixTo(this);
+    //printf("-Type::constOf() %p %s\n", t, toChars());
+    return t;
+#endif
 }
+
+/********************************
+ * Convert to 'immutable'.
+ */
 
 Type *Type::invariantOf()
 {
+#if 0
     //printf("Type::invariantOf() %p %s\n", this, toChars());
     if (isInvariant())
     {
@@ -353,10 +380,32 @@ Type *Type::invariantOf()
 #endif
     //printf("\t%p\n", t);
     return t;
+#else
+    //printf("Type::invariantOf() %p %s\n", this, toChars());
+    if (isInvariant())
+    {
+	return this;
+    }
+    if (ito)
+    {
+	assert(ito->isInvariant());
+	return ito;
+    }
+    Type *t = makeInvariant();
+    t = t->merge();
+    t->fixTo(this);
+    //printf("\t%p\n", t);
+    return t;
+#endif
 }
+
+/********************************
+ * Make type mutable.
+ */
 
 Type *Type::mutableOf()
 {
+#if 0
     //printf("Type::mutableOf() %p, %s\n", this, toChars());
     Type *t = this;
     if (isConst())
@@ -379,6 +428,8 @@ Type *Type::mutableOf()
 	t->rto = NULL;
 	t->cto = NULL;
 	t->ito = NULL;
+	t->sto = NULL;
+	t->scto = NULL;
 	t->vtinfo = NULL;
 	if (ty == Tsarray)
 	{   TypeSArray *ta = (TypeSArray *)t;
@@ -399,6 +450,307 @@ Type *Type::mutableOf()
 	}
     }
     return t;
+#else
+    //printf("Type::mutableOf() %p, %s\n", this, toChars());
+    Type *t = this;
+    if (isConst())
+    {	if (isShared())
+	    t = sto;		// shared const => shared
+	else
+	    t = cto;
+	assert(!t || t->isMutable());
+    }
+    else if (isInvariant())
+    {	t = ito;
+	assert(!t || (t->isMutable() && !t->isShared()));
+    }
+    if (!t)
+    {
+	unsigned sz = sizeTy[ty];
+	t = (Type *)mem.malloc(sz);
+	memcpy(t, this, sz);
+	t->mod = 0;
+	t->deco = NULL;
+	t->arrayof = NULL;
+	t->pto = NULL;
+	t->rto = NULL;
+	t->cto = NULL;
+	t->ito = NULL;
+	t->sto = NULL;
+	t->scto = NULL;
+	t->vtinfo = NULL;
+	t = t->merge();
+
+	t->fixTo(this);
+
+	switch (mod)
+	{
+	    case MODconst:
+		t->cto = this;
+		break;
+
+	    case MODinvariant:
+		t->ito = this;
+		break;
+
+	    case MODshared:
+		t->sto = this;
+		break;
+
+	    case MODshared | MODconst:
+		t->scto = this;
+		break;
+
+	    default:
+		assert(0);
+	}
+    }
+    return t;
+#endif
+}
+
+Type *Type::sharedOf()
+{
+    //printf("Type::sharedOf() %p, %s\n", this, toChars());
+    if (mod == MODshared)
+    {
+	return this;
+    }
+    if (sto)
+    {
+	assert(sto->isShared());
+	return sto;
+    }
+    Type *t = makeShared();
+    t = t->merge();
+    t->fixTo(this);
+    //printf("\t%p\n", t);
+    return t;
+}
+
+Type *Type::sharedConstOf()
+{
+    //printf("Type::sharedConstOf() %p, %s\n", this, toChars());
+    if (mod == (MODshared | MODconst))
+    {
+	return this;
+    }
+    if (scto)
+    {
+	assert(scto->mod == (MODshared | MODconst));
+	return scto;
+    }
+    Type *t = makeSharedConst();
+    t = t->merge();
+    t->fixTo(this);
+    //printf("\t%p\n", t);
+    return t;
+}
+
+
+/**********************************
+ * For our new type 'this', which is type-constructed from t,
+ * fill in the cto, ito, sto, scto shortcuts.
+ */
+
+void Type::fixTo(Type *t)
+{
+    ito = t->ito;
+#if 0
+    /* Cannot do these because these are not fully transitive:
+     * there can be a shared ptr to immutable, for example.
+     * Immutable subtypes are always immutable, though.
+     */
+    cto = t->cto;
+    sto = t->sto;
+    scto = t->scto;
+#endif
+
+    assert(mod != t->mod);
+#define X(m, n) (((m) << 3) | (n))
+    switch (X(mod, t->mod))
+    {
+	case X(0, MODconst):
+	    cto = t;
+	    break;
+
+	case X(0, MODinvariant):
+	    ito = t;
+	    break;
+
+	case X(0, MODshared):
+	    sto = t;
+	    break;
+
+	case X(0, MODshared | MODconst):
+	    scto = t;
+	    break;
+
+
+	case X(MODconst, 0):
+	    cto = NULL;
+	    goto L2;
+
+	case X(MODconst, MODinvariant):
+	    ito = t;
+	    goto L2;
+
+	case X(MODconst, MODshared):
+	    sto = t;
+	    goto L2;
+
+	case X(MODconst, MODshared | MODconst):
+	    scto = t;
+	L2:
+	    t->cto = this;
+	    break;
+
+
+	case X(MODinvariant, 0):
+	    ito = NULL;
+	    goto L3;
+
+	case X(MODinvariant, MODconst):
+	    cto = t;
+	    goto L3;
+
+	case X(MODinvariant, MODshared):
+	    sto = t;
+	    goto L3;
+
+	case X(MODinvariant, MODshared | MODconst):
+	    scto = t;
+	L3:
+	    t->ito = this;
+	    if (t->cto) t->cto->ito = this;
+	    if (t->sto) t->sto->ito = this;
+	    if (t->scto) t->scto->ito = this;
+	    break;
+
+
+	case X(MODshared, 0):
+	    sto = NULL;
+	    goto L4;
+
+	case X(MODshared, MODconst):
+	    cto = t;
+	    goto L4;
+
+	case X(MODshared, MODinvariant):
+	    ito = t;
+	    goto L4;
+
+	case X(MODshared, MODshared | MODconst):
+	    scto = t;
+	L4:
+	    t->sto = this;
+	    break;
+
+
+	case X(MODshared | MODconst, 0):
+	    scto = NULL;
+	    break;
+
+	case X(MODshared | MODconst, MODconst):
+	    cto = t;
+	    break;
+
+	case X(MODshared | MODconst, MODinvariant):
+	    ito = t;
+	    break;
+
+	case X(MODshared | MODconst, MODshared):
+	    sto = t;
+	L5:
+	    t->scto = this;
+	    break;
+
+	default:
+	    assert(0);
+    }
+#undef X
+
+    check();
+    t->check();
+    //printf("fixTo: %s, %s\n", toChars(), t->toChars());
+}
+
+/***************************
+ * Look for bugs in constructing types.
+ */
+
+void Type::check()
+{
+    switch (mod)
+    {
+	case 0:
+	    if (cto) assert(cto->mod == MODconst);
+	    if (ito) assert(ito->mod == MODinvariant);
+	    if (sto) assert(sto->mod == MODshared);
+	    if (scto) assert(scto->mod == (MODshared | MODconst));
+	    break;
+
+	case MODconst:
+	    if (cto) assert(cto->mod == 0);
+	    if (ito) assert(ito->mod == MODinvariant);
+	    if (sto) assert(sto->mod == MODshared);
+	    if (scto) assert(scto->mod == (MODshared | MODconst));
+	    break;
+
+	case MODinvariant:
+	    if (cto) assert(cto->mod == MODconst);
+	    if (ito) assert(ito->mod == 0);
+	    if (sto) assert(sto->mod == MODshared);
+	    if (scto) assert(scto->mod == (MODshared | MODconst));
+	    break;
+
+	case MODshared:
+	    if (cto) assert(cto->mod == MODconst);
+	    if (ito) assert(ito->mod == MODinvariant);
+	    if (sto) assert(sto->mod == 0);
+	    if (scto) assert(scto->mod == (MODshared | MODconst));
+	    break;
+
+	case MODshared | MODconst:
+	    if (cto) assert(cto->mod == MODconst);
+	    if (ito) assert(ito->mod == MODinvariant);
+	    if (sto) assert(sto->mod == MODshared);
+	    if (scto) assert(scto->mod == 0);
+	    break;
+
+	default:
+	    assert(0);
+    }
+
+    Type *tn = nextOf();
+    if (tn && ty != Tfunction && ty != Tdelegate)
+    {	// Verify transitivity
+	switch (mod)
+	{
+	    case 0:
+		break;
+
+	    case MODconst:
+		assert(tn->mod & MODinvariant || tn->mod & MODconst);
+		break;
+
+	    case MODinvariant:
+		assert(tn->mod == MODinvariant);
+		break;
+
+	    case MODshared:
+		assert(tn->mod & MODinvariant || tn->mod & MODshared);
+		break;
+
+	    case MODshared | MODconst:
+		assert(tn->mod & MODinvariant || tn->mod & (MODshared | MODconst));
+		break;
+
+	    default:
+		assert(0);
+	}
+	tn->check();
+    }
 }
 
 Type *Type::makeConst()
@@ -416,6 +768,8 @@ Type *Type::makeConst()
     t->rto = NULL;
     t->cto = NULL;
     t->ito = NULL;
+    t->sto = NULL;
+    t->scto = NULL;
     t->vtinfo = NULL;
     //printf("-Type::makeConst() %p, %s\n", t, toChars());
     return t;
@@ -435,8 +789,153 @@ Type *Type::makeInvariant()
     t->rto = NULL;
     t->cto = NULL;
     t->ito = NULL;
+    t->sto = NULL;
+    t->scto = NULL;
     t->vtinfo = NULL;
     return t;
+}
+
+Type *Type::makeShared()
+{
+    if (sto)
+	return sto;
+    unsigned sz = sizeTy[ty];
+    Type *t = (Type *)mem.malloc(sz);
+    memcpy(t, this, sz);
+    t->mod = MODshared;
+    t->deco = NULL;
+    t->arrayof = NULL;
+    t->pto = NULL;
+    t->rto = NULL;
+    t->cto = NULL;
+    t->ito = NULL;
+    t->sto = NULL;
+    t->scto = NULL;
+    t->vtinfo = NULL;
+    return t;
+}
+
+Type *Type::makeSharedConst()
+{
+    if (scto)
+	return scto;
+    unsigned sz = sizeTy[ty];
+    Type *t = (Type *)mem.malloc(sz);
+    memcpy(t, this, sz);
+    t->mod = MODshared | MODconst;
+    t->deco = NULL;
+    t->arrayof = NULL;
+    t->pto = NULL;
+    t->rto = NULL;
+    t->cto = NULL;
+    t->ito = NULL;
+    t->sto = NULL;
+    t->scto = NULL;
+    t->vtinfo = NULL;
+    return t;
+}
+
+/************************************
+ * Apply MODxxxx bits to existing type.
+ */
+
+Type *Type::castMod(unsigned mod)
+{   Type *t;
+
+    switch (mod)
+    {
+	case 0:
+	    t = mutableOf();
+	    break;
+
+	case MODconst:
+	    t = constOf();
+	    break;
+
+	case MODinvariant:
+	    t = invariantOf();
+	    break;
+
+	case MODshared:
+	    t = sharedOf();
+	    break;
+
+	case MODshared | MODconst:
+	    t = sharedConstOf();
+	    break;
+
+	default:
+	    assert(0);
+    }
+    return t;
+}
+
+/************************************
+ * Add MODxxxx bits to existing type.
+ * We're adding, not replacing, so adding const to
+ * a shared type => "shared const"
+ */
+
+Type *Type::addMod(unsigned mod)
+{   Type *t = this;
+
+    /* Add anything to immutable, and it remains immutable
+     */
+    if (!t->isInvariant())
+    {
+	switch (mod)
+	{
+	    case 0:
+		break;
+
+	    case MODconst:
+		if (isShared())
+		    t = sharedConstOf();
+		else
+		    t = constOf();
+		break;
+
+	    case MODinvariant:
+		t = invariantOf();
+		break;
+
+	    case MODshared:
+		if (isConst())
+		    t = sharedConstOf();
+		else
+		    t = sharedOf();
+		break;
+
+	    case MODshared | MODconst:
+		t = sharedConstOf();
+		break;
+
+	    default:
+		assert(0);
+	}
+    }
+    return t;
+}
+
+/************************************
+ * Add storage class modifiers to type.
+ */
+
+Type *Type::addStorageClass(unsigned stc)
+{
+    /* Just translate to MOD bits and let addMod() do the work
+     */
+    unsigned mod = 0;
+
+    if (stc & STCinvariant)
+	mod = MODinvariant;
+    else
+    {	if (stc & (STCconst | STCin))
+	    mod = MODconst;
+	if (stc & STCshared)
+	    mod |= MODshared;
+    }
+    return addMod(mod);
 }
 
 /**************************
@@ -997,11 +1496,17 @@ Type *TypeNext::makeConst()
 {
     //printf("TypeNext::makeConst() %p, %s\n", this, toChars());
     if (cto)
+    {	assert(cto->mod == MODconst);
 	return cto;
+    }    
     TypeNext *t = (TypeNext *)Type::makeConst();
     if (ty != Tfunction && ty != Tdelegate && next->deco &&
-        !next->isInvariant())
-	t->next = next->constOf();
+        !next->isInvariant() && !next->isConst())
+    {	if (next->isShared())
+	    t->next = next->sharedConstOf();
+	else
+	    t->next = next->constOf();
+    }
     //printf("TypeNext::makeConst() returns %p, %s\n", t, t->toChars());
     return t;
 }
@@ -1014,9 +1519,47 @@ Type *TypeNext::makeInvariant()
 	return ito;
     }
     TypeNext *t = (TypeNext *)Type::makeInvariant();
-    if (ty != Tfunction && ty != Tdelegate && next->deco)
+    if (ty != Tfunction && ty != Tdelegate && next->deco &&
+	!next->isInvariant())
     {	t->next = next->invariantOf();
     }
+    return t;
+}
+
+Type *TypeNext::makeShared()
+{
+    //printf("TypeNext::makeShared() %s\n", toChars());
+    if (sto)
+    {	assert(sto->mod == MODshared);
+	return sto;
+    }    
+    TypeNext *t = (TypeNext *)Type::makeShared();
+    if (ty != Tfunction && ty != Tdelegate && next->deco &&
+        !next->isInvariant() && !next->isShared())
+    {
+	if (next->isConst())
+	    t->next = next->sharedConstOf();
+	else
+	    t->next = next->sharedOf();
+    }
+    //printf("TypeNext::makeShared() returns %p, %s\n", t, t->toChars());
+    return t;
+}
+
+Type *TypeNext::makeSharedConst()
+{
+    //printf("TypeNext::makeSharedConst() %s\n", toChars());
+    if (scto)
+    {	assert(scto->mod == (MODshared | MODconst));
+	return scto;
+    }    
+    TypeNext *t = (TypeNext *)Type::makeSharedConst();
+    if (ty != Tfunction && ty != Tdelegate && next->deco &&
+        !next->isInvariant() && !next->isSharedConst())
+    {
+	t->next = next->sharedConstOf();
+    }
+    //printf("TypeNext::makeSharedConst() returns %p, %s\n", t, t->toChars());
     return t;
 }
 
@@ -1029,6 +1572,13 @@ MATCH TypeNext::constConv(Type *to)
     return m;
 }
 
+
+void TypeNext::transitive()
+{
+    /* Invoke transitivity of type attributes
+     */
+    next = next->addMod(mod);
+}
 
 /* ============================= TypeBasic =========================== */
 
@@ -2011,10 +2561,7 @@ Type *TypeSArray::semantic(Loc loc, Scope *sc)
     }
 
     next = next->semantic(loc,sc);
-    if (mod == MODconst && !next->isInvariant())
-	next = next->constOf();
-    else if (mod == MODinvariant)
-	next = next->invariantOf();
+    transitive();
 
     Type *tbn = next->toBasetype();
 
@@ -2295,12 +2842,8 @@ Type *TypeDArray::semantic(Loc loc, Scope *sc)
     if (tn->isauto())
 	error(loc, "cannot have array of auto %s", tn->toChars());
 
-    if (mod == MODconst && !tn->isInvariant())
-	tn = tn->constOf();
-    else if (mod == MODinvariant)
-	tn = tn->invariantOf();
-
     next = tn;
+    transitive();
     return merge();
 }
 
@@ -2501,6 +3044,16 @@ Type *TypeAArray::semantic(Loc loc, Scope *sc)
     if (index->nextOf() && !index->nextOf()->isInvariant())
     {
 	index = index->constOf()->mutableOf();
+#if 0
+printf("index is %p %s\n", index, index->toChars());
+index->check();
+printf("index->mod = x%x\n", index->mod);
+printf("index->ito = x%x\n", index->ito);
+if (index->ito) {
+printf("index->ito->mod = x%x\n", index->ito->mod);
+printf("index->ito->ito = x%x\n", index->ito->ito);
+}
+#endif
     }
 
     switch (index->toBasetype()->ty)
@@ -2513,10 +3066,7 @@ Type *TypeAArray::semantic(Loc loc, Scope *sc)
 	    break;
     }
     next = next->semantic(loc,sc);
-    if (mod == MODconst && !next->isInvariant())
-	next = next->constOf();
-    else if (mod == MODinvariant)
-	next = next->invariantOf();
+    transitive();
 
     switch (next->toBasetype()->ty)
     {
@@ -2753,10 +3303,7 @@ Type *TypePointer::semantic(Loc loc, Scope *sc)
     if (n != next)
 	deco = NULL;
     next = n;
-    if (mod == MODconst && !next->isInvariant())
-	next = next->constOf();
-    else if (mod == MODinvariant)
-	next = next->invariantOf();
+    transitive();
     return merge();
 }
 
@@ -2869,10 +3416,7 @@ Type *TypeReference::semantic(Loc loc, Scope *sc)
     if (n != next)
 	deco = NULL;
     next = n;
-    if (mod == MODconst && !next->isInvariant())
-	next = next->constOf();
-    else if (mod == MODinvariant)
-	next = next->invariantOf();
+    transitive();
     return merge();
 }
 
@@ -3221,6 +3765,7 @@ Type *TypeFunction::semantic(Loc loc, Scope *sc)
 	return this;
     }
     //printf("TypeFunction::semantic() this = %p\n", this);
+    //printf("TypeFunction::semantic() %s, sc->stc = %x\n", toChars(), sc->stc);
 
     TypeFunction *tf = (TypeFunction *)mem.malloc(sizeof(TypeFunction));
     memcpy(tf, this, sizeof(TypeFunction));
@@ -3273,13 +3818,7 @@ Type *TypeFunction::semantic(Loc loc, Scope *sc)
 	    arg->type = arg->type->semantic(loc,sc);
 	    if (tf->inuse == 1) tf->inuse--;
 
-	    if (arg->storageClass & (STCconst | STCin))
-	    {
-		if (!arg->type->isInvariant())
-		    arg->type = arg->type->constOf();
-	    }
-	    else if (arg->storageClass & STCinvariant)
-		arg->type = arg->type->invariantOf();
+	    arg->type = arg->type->addStorageClass(arg->storageClass);
 
 	    if (arg->storageClass & (STCauto | STCalias | STCstatic))
 	    {
@@ -3918,13 +4457,8 @@ void TypeIdentifier::resolve(Loc loc, Scope *sc, Expression **pe, Type **pt, Dsy
     //printf("TypeIdentifier::resolve(sc = %p, idents = '%s')\n", sc, toChars());
     s = sc->search(loc, ident, &scopesym);
     resolveHelper(loc, sc, s, scopesym, pe, pt, ps);
-    if (*pt && mod)
-    {
-	if (mod & MODconst)
-	    *pt = (*pt)->constOf();
-	else if (mod & MODinvariant)
-	    *pt = (*pt)->invariantOf();
-    }
+    if (*pt)
+	(*pt) = (*pt)->addMod(mod);
 }
 
 /*****************************************
@@ -3974,10 +4508,7 @@ Type *TypeIdentifier::semantic(Loc loc, Scope *sc)
 	    if (tt->sym->sem == 1)
 		error(loc, "circular reference of typedef %s", tt->toChars());
 	}
-	if (isConst())
-	    t = t->constOf();
-	else if (isInvariant())
-	    t = t->invariantOf();
+	t = t->addMod(mod);
     }
     else
     {
@@ -4068,13 +4599,8 @@ void TypeInstance::resolve(Loc loc, Scope *sc, Expression **pe, Type **pt, Dsymb
     if (s)
 	s->semantic(sc);
     resolveHelper(loc, sc, s, NULL, pe, pt, ps);
-    if (*pt && mod)
-    {
-	if (mod & MODconst)
-	    *pt = (*pt)->constOf();
-	else if (mod & MODinvariant)
-	    *pt = (*pt)->invariantOf();
-    }
+    if (*pt)
+	*pt = (*pt)->addMod(mod);
     //printf("pt = '%s'\n", (*pt)->toChars());
 }
 
@@ -4114,6 +4640,33 @@ Type *TypeInstance::semantic(Loc loc, Scope *sc)
     return t;
 }
 
+Dsymbol *TypeInstance::toDsymbol(Scope *sc)
+{
+    Type *t;
+    Expression *e;
+    Dsymbol *s;
+
+    //printf("TypeInstance::semantic(%s)\n", toChars());
+
+    if (sc->parameterSpecialization)
+    {
+	unsigned errors = global.errors;
+	global.gag++;
+
+	resolve(loc, sc, &e, &t, &s);
+
+	global.gag--;
+	if (errors != global.errors)
+	{   if (global.gag == 0)
+		global.errors = errors;
+	    return NULL;
+	}
+    }
+    else
+	resolve(loc, sc, &e, &t, &s);
+
+    return s;
+}
 
 /***************************** TypeTypeof *****************************/
 
@@ -4302,11 +4855,7 @@ Type *TypeReturn::semantic(Loc loc, Scope *sc)
 	goto Lerr;
     }
     t = sc->func->type->nextOf();
-
-    if (mod & MODinvariant)
-	t = t->invariantOf();
-    else if (mod & MODconst)
-	t = t->constOf();
+    t = t->addMod(mod);
 
     if (idents.dim)
     {
@@ -4702,10 +5251,7 @@ Type *TypeTypedef::toBasetype()
     sym->inuse = 1;
     Type *t = sym->basetype->toBasetype();
     sym->inuse = 0;
-    if (mod == MODconst && !t->isInvariant())
-	t = t->constOf();
-    else if (mod == MODinvariant)
-	t = t->invariantOf();
+    t = t->addMod(mod);
     return t;
 }
 
@@ -4868,7 +5414,6 @@ void TypeStruct::toCBuffer2(OutBuffer *buf, HdrGenState *hgs, int mod)
 Expression *TypeStruct::dotExp(Scope *sc, Expression *e, Identifier *ident)
 {   unsigned offset;
 
-    Expression *b;
     VarDeclaration *v;
     Dsymbol *s;
     DotVarExp *de;
@@ -5003,6 +5548,14 @@ L1:
 	return de;
     }
 
+    Import *timp = s->isImport();
+    if (timp)
+    {
+	e = new DsymbolExp(e->loc, s, 0);
+	e = e->semantic(sc);
+	return e;
+    }
+
     d = s->isDeclaration();
 #ifdef DEBUG
     if (!d)
@@ -5047,17 +5600,15 @@ L1:
 
 	// *(&e + offset)
 	accessCheck(e->loc, sc, e, d);
-	b = new AddrExp(e->loc, e);
+#if 0
+	Expression *b = new AddrExp(e->loc, e);
 	b->type = e->type->pointerTo();
 	b = new AddExp(e->loc, b, new IntegerExp(e->loc, v->offset, Type::tint32));
 	b->type = v->type->pointerTo();
 	b = new PtrExp(e->loc, b);
-	b->type = v->type;
-	if (e->type->isConst())
-	    b->type = b->type->constOf();
-	else if (e->type->isInvariant())
-	    b->type = b->type->invariantOf();
+	b->type = v->type->addMod(e->type->mod);
 	return b;
+#endif
     }
 
     de = new DotVarExp(e->loc, e, d);
@@ -5141,20 +5692,10 @@ MATCH TypeStruct::implicitConvTo(Type *to)
 		    assert(v && v->storage_class & STCfield);
 
 		    // 'from' type
-		    Type *tvf = v->type;
-		    if (mod == MODconst)
-			tvf = tvf->constOf();
-		    else if (mod == MODinvariant)
-			tvf = tvf->invariantOf();
+		    Type *tvf = v->type->addMod(mod);
 
 		    // 'to' type
-		    Type *tv = v->type;
-		    if (to->mod == 0)
-			tv = tv->mutableOf();
-		    else
-		    {	assert(to->mod == MODinvariant);
-			tv = tv->invariantOf();
-		    }
+		    Type *tv = v->type->castMod(to->mod);
 
 		    //printf("\t%s => %s, match = %d\n", v->type->toChars(), tv->toChars(), tvf->implicitConvTo(tv));
 		    if (tvf->implicitConvTo(tv) < MATCHconst)
@@ -5807,10 +6348,7 @@ Type *TypeSlice::semantic(Loc loc, Scope *sc)
 {
     //printf("TypeSlice::semantic() %s\n", toChars());
     next = next->semantic(loc, sc);
-    if (mod == MODconst && !next->isInvariant())
-	next = next->constOf();
-    else if (mod == MODinvariant)
-	next = next->invariantOf();
+    transitive();
     //printf("next: %s\n", next->toChars());
 
     Type *tbn = next->toBasetype();

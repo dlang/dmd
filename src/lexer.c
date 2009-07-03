@@ -400,6 +400,16 @@ TOK Lexer::peekNext()
     return peek(&token)->value;
 }
 
+/***********************
+ * Look 2 tokens ahead at value.
+ */
+
+TOK Lexer::peekNext2()
+{
+    Token *t = peek(&token);
+    return peek(t)->value;
+}
+
 /*********************************
  * tk is on the opening (.
  * Look ahead and return token that is past the closing ).
@@ -1584,6 +1594,8 @@ TOK Lexer::delimitedStringConstant(Token *t)
 	    else
 	    {	delimright = c;
 		nest = 0;
+		if (isspace(c))
+		    error("delimiter cannot be whitespace");
 	    }
 	}
 	else
@@ -1605,7 +1617,7 @@ TOK Lexer::delimitedStringConstant(Token *t)
 	    }
 	    else if (c == delimright)
 		goto Ldone;
-	    if (startline && isalpha(c))
+	    if (startline && isalpha(c) && hereid)
 	    {	Token t;
 		unsigned char *psave = p;
 		p--;

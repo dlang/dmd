@@ -273,6 +273,7 @@ struct Lexer
 
     TOK nextToken();
     TOK peekNext();
+    TOK peekNext2();
     void scan(Token *t);
     Token *peek(Token *t);
     Token *peekPastParen(Token *t);

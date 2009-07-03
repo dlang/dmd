@@ -891,6 +891,38 @@ void Module::runDeferredSemantic()
     //printf("-Module::runDeferredSemantic('%s'), len = %d\n", toChars(), deferred.dim);
 }
 
+/************************************
+ * Recursively look at every module this module imports,
+ * return TRUE if it imports m.
+ * Can be used to detect circular imports.
+ */
+
+int Module::imports(Module *m)
+{
+    //printf("%s Module::imports(%s)\n", toChars(), m->toChars());
+    int aimports_dim = aimports.dim;
+#if 0
+    for (int i = 0; i < aimports.dim; i++)
+    {	Module *mi = (Module *)aimports.data[i];
+	printf("\t[%d] %s\n", i, mi->toChars());
+    }
+#endif
+    for (int i = 0; i < aimports.dim; i++)
+    {	Module *mi = (Module *)aimports.data[i];
+	if (mi == m)
+	    return TRUE;
+	if (!mi->insearch)
+	{
+	    mi->insearch = 1;
+	    int r = mi->imports(m);
+	    mi->insearch = 0;
+	    if (r)
+		return r;
+	}
+    }
+    return FALSE;
+}
+
 /* =========================== ModuleDeclaration ===================== */
 
 ModuleDeclaration::ModuleDeclaration(Array *packages, Identifier *id, bool safe)

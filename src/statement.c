@@ -124,13 +124,6 @@ int Statement::blockExit()
     return BEany;
 }
 
-// TRUE if statement may fall off the end without a throw or return
-
-int Statement::fallOffEnd()
-{
-    return TRUE;
-}
-
 // TRUE if statement 'comes from' somewhere else, like a goto
 
 int Statement::comeFrom()
@@ -231,21 +224,6 @@ int ExpStatement::blockExit()
     return result;
 }
 
-int ExpStatement::fallOffEnd()
-{
-    if (exp)
-    {
-	if (exp->op == TOKassert)
-	{   AssertExp *a = (AssertExp *)exp;
-
-	    if (a->e1->isBool(FALSE))	// if it's an assert(0)
-		return FALSE;
-	}
-	else if (exp->op == TOKhalt)
-	    return FALSE;
-    }
-    return TRUE;
-}
 
 /******************************** CompileStatement ***************************/
 
@@ -578,27 +556,6 @@ int CompoundStatement::blockExit()
     return result;
 }
 
-int CompoundStatement::fallOffEnd()
-{   int falloff = TRUE;
-
-    //printf("CompoundStatement::fallOffEnd() %s\n", toChars());
-    for (int i = 0; i < statements->dim; i++)
-    {	Statement *s = (Statement *)statements->data[i];
-
-	if (!s)
-	    continue;
-
-#if 0
-	if (!falloff && global.params.warnings && !s->comeFrom())
-	{
-	    fprintf(stdmsg, "warning - ");
-	    s->error("statement is not reachable");
-	}
-#endif
-	falloff = s->fallOffEnd();
-    }
-    return falloff;
-}
 
 int CompoundStatement::comeFrom()
 {   int comefrom = FALSE;
@@ -714,17 +671,6 @@ int UnrolledLoopStatement::blockExit()
     return result;
 }
 
-int UnrolledLoopStatement::fallOffEnd()
-{
-    //printf("UnrolledLoopStatement::fallOffEnd()\n");
-    for (size_t i = 0; i < statements->dim; i++)
-    {	Statement *s = (Statement *)statements->data[i];
-
-	if (s)
-	    s->fallOffEnd();
-    }
-    return TRUE;
-}
 
 int UnrolledLoopStatement::comeFrom()
 {   int comefrom = FALSE;
@@ -819,10 +765,6 @@ int ScopeStatement::blockExit()
     return statement ? statement->blockExit() : BEfallthru;
 }
 
-int ScopeStatement::fallOffEnd()
-{
-    return statement ? statement->fallOffEnd() : TRUE;
-}
 
 int ScopeStatement::comeFrom()
 {
@@ -946,12 +888,6 @@ int WhileStatement::blockExit()
     return result;
 }
 
-int WhileStatement::fallOffEnd()
-{
-    if (body)
-	body->fallOffEnd();
-    return TRUE;
-}
 
 int WhileStatement::comeFrom()
 {
@@ -1038,12 +974,6 @@ int DoStatement::blockExit()
     return result;
 }
 
-int DoStatement::fallOffEnd()
-{
-    if (body)
-	body->fallOffEnd();
-    return TRUE;
-}
 
 int DoStatement::comeFrom()
 {
@@ -1169,12 +1099,6 @@ int ForStatement::blockExit()
     return result;
 }
 
-int ForStatement::fallOffEnd()
-{
-    if (body)
-	body->fallOffEnd();
-    return TRUE;
-}
 
 int ForStatement::comeFrom()
 {
@@ -1836,12 +1760,6 @@ int ForeachStatement::blockExit()
     return result;
 }
 
-int ForeachStatement::fallOffEnd()
-{
-    if (body)
-	body->fallOffEnd();
-    return TRUE;
-}
 
 int ForeachStatement::comeFrom()
 {
@@ -2000,12 +1918,6 @@ int ForeachRangeStatement::blockExit()
     return result;
 }
 
-int ForeachRangeStatement::fallOffEnd()
-{
-    if (body)
-	body->fallOffEnd();
-    return TRUE;
-}
 
 int ForeachRangeStatement::comeFrom()
 {
@@ -2159,14 +2071,6 @@ int IfStatement::blockExit()
     }
     //printf("IfStatement::blockExit(%p) = x%x\n", this, result);
     return result;
-}
-
-int IfStatement::fallOffEnd()
-{
-    if (!ifbody || ifbody->fallOffEnd() ||
-	!elsebody || elsebody->fallOffEnd())
-	return TRUE;
-    return FALSE;
 }
 
 
@@ -2407,12 +2311,6 @@ int PragmaStatement::blockExit()
     return result;
 }
 
-int PragmaStatement::fallOffEnd()
-{
-    if (body)
-	return body->fallOffEnd();
-    return TRUE;
-}
 
 void PragmaStatement::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 {
@@ -2614,12 +2512,6 @@ int SwitchStatement::blockExit()
     return result;
 }
 
-int SwitchStatement::fallOffEnd()
-{
-    if (body)
-	body->fallOffEnd();
-    return TRUE;	// need to do this better
-}
 
 void SwitchStatement::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 {
@@ -2744,10 +2636,6 @@ int CaseStatement::blockExit()
     return statement->blockExit();
 }
 
-int CaseStatement::fallOffEnd()
-{
-    return statement->fallOffEnd();
-}
 
 int CaseStatement::comeFrom()
 {
@@ -2810,10 +2698,6 @@ int DefaultStatement::blockExit()
     return statement->blockExit();
 }
 
-int DefaultStatement::fallOffEnd()
-{
-    return statement->fallOffEnd();
-}
 
 int DefaultStatement::comeFrom()
 {
@@ -2853,10 +2737,6 @@ int GotoDefaultStatement::blockExit()
     return BEgoto;
 }
 
-int GotoDefaultStatement::fallOffEnd()
-{
-    return FALSE;
-}
 
 void GotoDefaultStatement::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 {
@@ -2903,10 +2783,6 @@ int GotoCaseStatement::blockExit()
     return BEgoto;
 }
 
-int GotoCaseStatement::fallOffEnd()
-{
-    return FALSE;
-}
 
 void GotoCaseStatement::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 {
@@ -2931,10 +2807,6 @@ int SwitchErrorStatement::blockExit()
     return BEthrow;
 }
 
-int SwitchErrorStatement::fallOffEnd()
-{
-    return FALSE;
-}
 
 void SwitchErrorStatement::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 {
@@ -3159,7 +3031,7 @@ Statement *ReturnStatement::semantic(Scope *sc)
 	    exp = exp->semantic(sc);
 	}
 
-	if (((TypeFunction *)fd->type)->isref)
+	if (((TypeFunction *)fd->type)->isref && !fd->isCtorDeclaration())
 	{   // Function returns a reference
 	    if (tbret->isMutable())
 		exp = exp->modifiableLvalue(sc, exp);
@@ -3232,10 +3104,6 @@ int ReturnStatement::blockExit()
     return result;
 }
 
-int ReturnStatement::fallOffEnd()
-{
-    return FALSE;
-}
 
 void ReturnStatement::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 {
@@ -3327,10 +3195,6 @@ int BreakStatement::blockExit()
     return ident ? BEgoto : BEbreak;
 }
 
-int BreakStatement::fallOffEnd()
-{
-    return FALSE;
-}
 
 void BreakStatement::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 {
@@ -3431,10 +3295,6 @@ int ContinueStatement::blockExit()
     return ident ? BEgoto : BEcontinue;
 }
 
-int ContinueStatement::fallOffEnd()
-{
-    return FALSE;
-}
 
 void ContinueStatement::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 {
@@ -3515,10 +3375,6 @@ int SynchronizedStatement::blockExit()
     return body ? body->blockExit() : BEfallthru;
 }
 
-int SynchronizedStatement::fallOffEnd()
-{
-    return body ? body->fallOffEnd() : TRUE;
-}
 
 void SynchronizedStatement::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 {
@@ -3637,10 +3493,6 @@ int WithStatement::blockExit()
     return result;
 }
 
-int WithStatement::fallOffEnd()
-{
-    return body ? body->fallOffEnd() : TRUE;
-}
 
 /******************************** TryCatchStatement ***************************/
 
@@ -3704,34 +3556,28 @@ int TryCatchStatement::usesEH()
 }
 
 int TryCatchStatement::blockExit()
-{   int result;
-
+{
     assert(body);
-    result = body->blockExit();
+    int result = body->blockExit();
 
+    int catchresult = 0;
     for (size_t i = 0; i < catches->dim; i++)
     {
         Catch *c = (Catch *)catches->data[i];
-        result |= c->blockExit();
+        catchresult |= c->blockExit();
+
+	/* If we're catching Object, then there is no throwing
+	 */
+	Identifier *id = c->type->toBasetype()->isClassHandle()->ident;
+	if (i == 0 &&
+	    (id == Id::Object || id == Id::Throwable || id == Id::Exception))
+	{
+	    result &= ~BEthrow;
+	}
     }
-    return result;
+    return result | catchresult;
 }
 
-int TryCatchStatement::fallOffEnd()
-{
-    int result = FALSE;
-
-    if (body)
-	result = body->fallOffEnd();
-    for (int i = 0; i < catches->dim; i++)
-    {   Catch *c;
-
-	c = (Catch *)catches->data[i];
-	if (c->handler)
-	    result |= c->handler->fallOffEnd();
-    }
-    return result;
-}
 
 void TryCatchStatement::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 {
@@ -3891,18 +3737,11 @@ int TryFinallyStatement::usesEH()
 
 int TryFinallyStatement::blockExit()
 {
-    int result = body->blockExit();
-    return result;
+    if (body)
+	return body->blockExit();
+    return BEfallthru;
 }
 
-int TryFinallyStatement::fallOffEnd()
-{   int result;
-
-    result = body->fallOffEnd();
-//    if (finalbody)
-//	result = finalbody->fallOffEnd();
-    return result;
-}
 
 /****************************** OnScopeStatement ***************************/
 
@@ -4024,10 +3863,6 @@ int ThrowStatement::blockExit()
     return BEthrow;  // obviously
 }
 
-int ThrowStatement::fallOffEnd()
-{
-    return FALSE;
-}
 
 void ThrowStatement::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 {
@@ -4081,10 +3916,6 @@ int VolatileStatement::blockExit()
     return statement ? statement->blockExit() : BEfallthru;
 }
 
-int VolatileStatement::fallOffEnd()
-{
-    return statement ? statement->fallOffEnd() : TRUE;
-}
 
 void VolatileStatement::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 {
@@ -4148,10 +3979,6 @@ int GotoStatement::blockExit()
     return BEgoto;
 }
 
-int GotoStatement::fallOffEnd()
-{
-    return FALSE;
-}
 
 void GotoStatement::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 {
@@ -4235,10 +4062,6 @@ int LabelStatement::blockExit()
     return statement ? statement->blockExit() : BEfallthru;
 }
 
-int LabelStatement::fallOffEnd()
-{
-    return statement ? statement->fallOffEnd() : TRUE;
-}
 
 int LabelStatement::comeFrom()
 {

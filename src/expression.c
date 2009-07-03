@@ -161,10 +161,20 @@ void initPrecedence()
     precedence[TOKue] = PREC_rel;
     precedence[TOKin] = PREC_rel;
 
+#if 0
     precedence[TOKequal] = PREC_equal;
     precedence[TOKnotequal] = PREC_equal;
     precedence[TOKidentity] = PREC_equal;
     precedence[TOKnotidentity] = PREC_equal;
+#else
+    /* Note that we changed precedence, so that < and != have the same
+     * precedence. This change is in the parser, too.
+     */
+    precedence[TOKequal] = PREC_rel;
+    precedence[TOKnotequal] = PREC_rel;
+    precedence[TOKidentity] = PREC_rel;
+    precedence[TOKnotidentity] = PREC_rel;
+#endif
 
     precedence[TOKand] = PREC_and;
 
@@ -623,7 +633,9 @@ void functionArguments(Loc loc, Scope *sc, TypeFunction *tf, Expressions *argume
 			    Expression *e = new VarExp(loc, v);
 			    e = new IndexExp(loc, e, new IntegerExp(u + 1 - nparams));
 			    AssignExp *ae = new AssignExp(loc, e, a);
+#if V2
 			    ae->op = TOKconstruct;
+#endif
 			    if (c)
 				c = new CommaExp(loc, c, ae);
 			    else
@@ -683,18 +695,19 @@ void functionArguments(Loc loc, Scope *sc, TypeFunction *tf, Expressions *argume
 	    {
 		arg = arg->checkToPointer();
 	    }
-
+#if V2
 	    if (tb->ty == Tstruct && !(p->storageClass & (STCref | STCout)))
 	    {
 		arg = callCpCtor(loc, sc, arg);
 	    }
+#endif
 
 	    // Convert lazy argument to a delegate
 	    if (p->storageClass & STClazy)
 	    {
 		arg = arg->toDelegate(sc, p->type);
 	    }
-
+#if V2
 	    /* Look for arguments that cannot 'escape' from the called
 	     * function.
 	     */
@@ -724,6 +737,7 @@ void functionArguments(Loc loc, Scope *sc, TypeFunction *tf, Expressions *argume
 		    }
 		}
 	    }
+#endif
 	}
 	else
 	{
@@ -799,7 +813,11 @@ void functionArguments(Loc loc, Scope *sc, TypeFunction *tf, Expressions *argume
 void expToCBuffer(OutBuffer *buf, HdrGenState *hgs, Expression *e, enum PREC pr)
 {
     //if (precedence[e->op] == 0) e->dump(0);
-    if (precedence[e->op] < pr)
+    if (precedence[e->op] < pr ||
+	/* Despite precedence, we don't allow a<b<c expressions.
+	 * They must be parenthesized.
+	 */
+	(pr == PREC_rel && precedence[e->op] == pr))
     {
 	buf->writeByte('(');
 	e->toCBuffer(buf, hgs);
@@ -1006,11 +1024,12 @@ void Expression::toMangleBuffer(OutBuffer *buf)
 /***************************************
  * Return !=0 if expression is an lvalue.
  */
-
+#if V2
 int Expression::isLvalue()
 {
     return 0;
 }
+#endif
 
 /*******************************
  * Give error if we're not an lvalue.
@@ -1032,9 +1051,10 @@ Expression *Expression::modifiableLvalue(Scope *sc, Expression *e)
     //printf("Expression::modifiableLvalue() %s, type = %s\n", toChars(), type->toChars());
 
     // See if this expression is a modifiable lvalue (i.e. not const)
+#if V2
     if (type && (!type->isMutable() || !type->isAssignable()))
 	error("%s is not mutable", e->toChars());
-
+#endif
     return toLvalue(sc, e);
 }
 
@@ -1081,6 +1101,15 @@ void Expression::checkDeprecated(Scope *sc, Dsymbol *s)
 {
     s->checkDeprecated(loc, sc);
 }
+
+#if V2
+void Expression::checkPurity(Scope *sc, FuncDeclaration *f)
+{
+    if (sc->func && sc->func->isPure() && !sc->intypeof && !f->isPure())
+	error("pure function '%s' cannot call impure function '%s'\n",
+	    sc->func->toChars(), f->toChars());
+}
+#endif
 
 /********************************
  * Check for expressions that have no use.
@@ -1208,7 +1237,11 @@ int Expression::isBit()
 
 int Expression::canThrow()
 {
+#if V2
     return FALSE;
+#else
+    return TRUE;
+#endif
 }
 
 
@@ -1922,10 +1955,12 @@ void IdentifierExp::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 	buf->writestring(ident->toChars());
 }
 
+#if V2
 int IdentifierExp::isLvalue()
 {
     return 1;
 }
+#endif
 
 Expression *IdentifierExp::toLvalue(Scope *sc, Expression *e)
 {
@@ -1992,7 +2027,11 @@ Lagain:
     // BUG: This should happen after overload resolution for functions, not before
     if (s->needThis())
     {
-	if (hasThis(sc) && !s->isFuncDeclaration())
+	if (hasThis(sc)
+#if V2
+		&& !s->isFuncDeclaration()
+#endif
+	    )
 	{
 	    // Supply an implicit 'this', as in
 	    //	  this.ident
@@ -2127,10 +2166,12 @@ void DsymbolExp::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
     buf->writestring(s->toChars());
 }
 
+#if V2
 int DsymbolExp::isLvalue()
 {
     return 1;
 }
+#endif
 
 Expression *DsymbolExp::toLvalue(Scope *sc, Expression *e)
 {
@@ -2230,10 +2271,12 @@ void ThisExp::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
     buf->writestring("this");
 }
 
+#if V2
 int ThisExp::isLvalue()
 {
     return 1;
 }
+#endif
 
 Expression *ThisExp::toLvalue(Scope *sc, Expression *e)
 {
@@ -2787,10 +2830,12 @@ int ArrayLiteralExp::isBool(int result)
     return result ? (dim != 0) : (dim == 0);
 }
 
+#if V2
 int ArrayLiteralExp::canThrow()
 {
     return 1;	// because it can fail allocating memory
 }
+#endif
 
 void ArrayLiteralExp::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 {
@@ -2910,10 +2955,12 @@ int AssocArrayLiteralExp::isBool(int result)
     return result ? (dim != 0) : (dim == 0);
 }
 
+#if V2
 int AssocArrayLiteralExp::canThrow()
 {
     return 1;
 }
+#endif
 
 void AssocArrayLiteralExp::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 {
@@ -3099,10 +3146,12 @@ int StructLiteralExp::getFieldIndex(Type *type, unsigned offset)
     return -1;
 }
 
+#if V2
 int StructLiteralExp::isLvalue()
 {
     return 1;
 }
+#endif
 
 Expression *StructLiteralExp::toLvalue(Scope *sc, Expression *e)
 {
@@ -3125,10 +3174,12 @@ int StructLiteralExp::checkSideEffect(int flag)
     return f;
 }
 
+#if V2
 int StructLiteralExp::canThrow()
 {
     return arrayExpressionCanThrow(elements);
 }
+#endif
 
 void StructLiteralExp::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 {
@@ -3626,10 +3677,12 @@ int NewExp::checkSideEffect(int flag)
     return 1;
 }
 
+#if V2
 int NewExp::canThrow()
 {
     return 1;
 }
+#endif
 
 void NewExp::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 {   int i;
@@ -3698,10 +3751,12 @@ int NewAnonClassExp::checkSideEffect(int flag)
     return 1;
 }
 
+#if V2
 int NewAnonClassExp::canThrow()
 {
     return 1;
 }
+#endif
 
 void NewAnonClassExp::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 {   int i;
@@ -3733,6 +3788,7 @@ void NewAnonClassExp::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 
 /********************** SymbolExp **************************************/
 
+#if V2
 SymbolExp::SymbolExp(Loc loc, enum TOK op, int size, Declaration *var, int hasOverloads)
     : Expression(loc, op, size)
 {
@@ -3740,6 +3796,7 @@ SymbolExp::SymbolExp(Loc loc, enum TOK op, int size, Declaration *var, int hasOv
     this->var = var;
     this->hasOverloads = hasOverloads;
 }
+#endif
 
 /********************** SymOffExp **************************************/
 
@@ -3747,7 +3804,6 @@ SymOffExp::SymOffExp(Loc loc, Declaration *var, unsigned offset, int hasOverload
     : SymbolExp(loc, TOKsymoff, sizeof(SymOffExp), var, hasOverloads)
 {
     this->offset = offset;
-
     VarDeclaration *v = var->isVarDeclaration();
     if (v && v->needThis())
 	error("need 'this' for address of %s", v->toChars());
@@ -3828,6 +3884,11 @@ Expression *VarExp::semantic(Scope *sc)
 	}
 #endif
     }
+    /* Fix for 1161 doesn't work because it causes protection
+     * problems when instantiating imported templates passing private
+     * variables as alias template parameters.
+     */
+    //accessCheck(loc, sc, NULL, var);
 
     VarDeclaration *v = var->isVarDeclaration();
     if (v)
@@ -3845,6 +3906,13 @@ Expression *VarExp::semantic(Scope *sc)
 	}
 #endif
 	v->checkNestedReference(sc, loc);
+#if V2
+	if (sc->func && sc->func->isPure() && !sc->intypeof)
+	{
+	    if (v->isDataseg() && !v->isInvariant())
+		error("pure function '%s' cannot access mutable static data '%s'", sc->func->toChars(), v->toChars());
+	}
+#endif
     }
 #if 0
     else if ((fd = var->isFuncLiteralDeclaration()) != NULL)
@@ -3883,12 +3951,14 @@ void VarExp::checkEscape()
     }
 }
 
+#if V2
 int VarExp::isLvalue()
 {
     if (var->storage_class & STClazy)
 	return 0;
     return 1;
 }
+#endif
 
 Expression *VarExp::toLvalue(Scope *sc, Expression *e)
 {
@@ -4062,10 +4132,12 @@ int TupleExp::checkSideEffect(int flag)
     return f;
 }
 
+#if V2
 int TupleExp::canThrow()
 {
     return arrayExpressionCanThrow(exps);
 }
+#endif
 
 void TupleExp::checkEscape()
 {
@@ -4235,6 +4307,7 @@ int DeclarationExp::checkSideEffect(int flag)
     return 1;
 }
 
+#if V2
 int DeclarationExp::canThrow()
 {
     VarDeclaration *v = declaration->isVarDeclaration();
@@ -4244,6 +4317,7 @@ int DeclarationExp::canThrow()
     }
     return 0;
 }
+#endif
 
 void DeclarationExp::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 {
@@ -4695,10 +4769,12 @@ Expression *UnaExp::semantic(Scope *sc)
     return this;
 }
 
+#if V2
 int UnaExp::canThrow()
 {
     return e1->canThrow();
 }
+#endif
 
 void UnaExp::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 {
@@ -4869,10 +4945,12 @@ int BinExp::isunsigned()
     return e1->type->isunsigned() || e2->type->isunsigned();
 }
 
+#if V2
 int BinExp::canThrow()
 {
     return e1->canThrow() || e2->canThrow();
 }
+#endif
 
 void BinExp::incompatibleTypes()
 {
@@ -5042,10 +5120,12 @@ int AssertExp::checkSideEffect(int flag)
     return 1;
 }
 
+#if V2
 int AssertExp::canThrow()
 {
     return (global.params.useAssert != 0);
 }
+#endif
 
 void AssertExp::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 {
@@ -5273,12 +5353,13 @@ Expression *DotIdExp::semantic(Scope *sc)
 		}
 		return e;
 	    }
-
+#if V2
 	    OverloadSet *o = s->isOverloadSet();
 	    if (o)
 	    {   //printf("'%s' is an overload set\n", o->toChars());
 		return new OverExp(o);
 	    }
+#endif
 
 	    Type *t = s->getType();
 	    if (t)
@@ -5345,6 +5426,7 @@ Expression *DotIdExp::semantic(Scope *sc)
 	e->type = ((TypePointer *)t1b)->next;
 	return e->type->dotExp(sc, e, ident);
     }
+#if V2
     else if (t1b->ty == Tarray ||
              t1b->ty == Tsarray ||
 	     t1b->ty == Taarray)
@@ -5366,6 +5448,7 @@ Expression *DotIdExp::semantic(Scope *sc)
 	e = e->semantic(sc);
 	return e;
     }
+#endif
     else
     {
 	e = e1->type->dotExp(sc, e1, ident);
@@ -5467,10 +5550,8 @@ Expression *DotVarExp::semantic(Scope *sc)
 	    Type *t1 = e1->type;
 	    if (t1->ty == Tpointer)
 		t1 = t1->nextOf();
-	    if (t1->isConst())
-		type = type->constOf();
-	    else if (t1->isInvariant())
-		type = type->invariantOf();
+
+	    type = type->addMod(t1->mod);
 
 	    AggregateDeclaration *ad = var->toParent()->isAggregateDeclaration();
 	    e1 = getRightThis(loc, sc, ad, e1, var);
@@ -5487,10 +5568,12 @@ Expression *DotVarExp::semantic(Scope *sc)
     return this;
 }
 
+#if V2
 int DotVarExp::isLvalue()
 {
     return 1;
 }
+#endif
 
 Expression *DotVarExp::toLvalue(Scope *sc, Expression *e)
 {
@@ -5542,6 +5625,7 @@ Expression *DotVarExp::modifiableLvalue(Scope *sc, Expression *e)
 	    break;
 	}
     }
+#if V2
     else
     {
 	Type *t1 = e1->type->toBasetype();
@@ -5554,6 +5638,7 @@ Expression *DotVarExp::modifiableLvalue(Scope *sc, Expression *e)
 	   )
 	    error("cannot modify const/invariant %s", toChars());
     }
+#endif
     return this;
 }
 
@@ -5875,7 +5960,11 @@ Expression *CallExp::semantic(Scope *sc)
 		if (!arguments)
 		    arguments = new Expressions();
 		arguments->shift(dotid->e1);
+#if V2
 		e1 = new DotIdExp(dotid->loc, new IdentifierExp(dotid->loc, Id::empty), dotid->ident);
+#else
+		e1 = new IdentifierExp(dotid->loc, dotid->ident);
+#endif
 	    }
 	}
     }
@@ -6109,6 +6198,9 @@ Lagain:
 	}
 
 	checkDeprecated(sc, f);
+#if V2
+	checkPurity(sc, f);
+#endif
 	accessCheck(loc, sc, ue->e1, f);
 	if (!f->needThis())
 	{
@@ -6210,6 +6302,9 @@ Lagain:
 
 		f = f->overloadResolve(loc, NULL, arguments);
 		checkDeprecated(sc, f);
+#if V2
+		checkPurity(sc, f);
+#endif
 		e1 = new DotVarExp(e1->loc, e1, f);
 		e1 = e1->semantic(sc);
 		t1 = e1->type;
@@ -6247,6 +6342,9 @@ Lagain:
 	    f = cd->ctor;
 	    f = f->overloadResolve(loc, NULL, arguments);
 	    checkDeprecated(sc, f);
+#if V2
+	    checkPurity(sc, f);
+#endif
 	    e1 = new DotVarExp(e1->loc, e1, f);
 	    e1 = e1->semantic(sc);
 	    t1 = e1->type;
@@ -6351,6 +6449,9 @@ Lagain:
 	if (ve->hasOverloads)
 	    f = f->overloadResolve(loc, NULL, arguments);
 	checkDeprecated(sc, f);
+#if V2
+	checkPurity(sc, f);
+#endif
 
 	if (f->needThis() && hasThis(sc))
 	{
@@ -6399,14 +6500,64 @@ Lcheckargs:
 
 int CallExp::checkSideEffect(int flag)
 {
+#if V2
+    if (flag != 2)
+	return 1;
+
+    if (e1->checkSideEffect(2))
+	return 1;
+
+    /* If any of the arguments have side effects, this expression does
+     */
+    for (size_t i = 0; i < arguments->dim; i++)
+    {   Expression *e = (Expression *)arguments->data[i];
+
+	if (e->checkSideEffect(2))
+	    return 1;
+    }
+
+    /* If calling a function or delegate that is typed as pure,
+     * then this expression has no side effects.
+     */
+    Type *t = e1->type->toBasetype();
+    if (t->ty == Tfunction && ((TypeFunction *)t)->ispure)
+	return 0;
+    if (t->ty == Tdelegate && ((TypeFunction *)((TypeDelegate *)t)->next)->ispure)
+	return 0;
+#endif
     return 1;
 }
 
+#if V2
 int CallExp::canThrow()
 {
+    if (e1->canThrow())
+	return 1;
+
+    /* If any of the arguments can throw, then this expression can throw
+     */
+    for (size_t i = 0; i < arguments->dim; i++)
+    {   Expression *e = (Expression *)arguments->data[i];
+
+	if (e->canThrow())
+	    return 1;
+    }
+
+    /* If calling a function or delegate that is typed as nothrow,
+     * then this expression cannot throw.
+     * Note that pure functions can throw.
+     */
+    Type *t = e1->type->toBasetype();
+    if (t->ty == Tfunction && ((TypeFunction *)t)->isnothrow)
+	return 0;
+    if (t->ty == Tdelegate && ((TypeFunction *)((TypeDelegate *)t)->next)->isnothrow)
+	return 0;
+
     return 1;
 }
+#endif
 
+#if V2
 int CallExp::isLvalue()
 {
     if (type->toBasetype()->ty == Tstruct)
@@ -6416,6 +6567,7 @@ int CallExp::isLvalue()
 	return 1;		// function returns a reference
     return 0;
 }
+#endif
 
 Expression *CallExp::toLvalue(Scope *sc, Expression *e)
 {
@@ -6568,10 +6720,12 @@ Expression *PtrExp::semantic(Scope *sc)
     return this;
 }
 
+#if V2
 int PtrExp::isLvalue()
 {
     return 1;
 }
+#endif
 
 Expression *PtrExp::toLvalue(Scope *sc, Expression *e)
 {
@@ -6585,6 +6739,7 @@ Expression *PtrExp::toLvalue(Scope *sc, Expression *e)
     return this;
 }
 
+#if V2
 Expression *PtrExp::modifiableLvalue(Scope *sc, Expression *e)
 {
     //printf("PtrExp::modifiableLvalue() %s, type %s\n", toChars(), type->toChars());
@@ -6597,7 +6752,7 @@ Expression *PtrExp::modifiableLvalue(Scope *sc, Expression *e)
 
     return Expression::modifiableLvalue(sc, e);
 }
-
+#endif
 
 void PtrExp::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 {
@@ -6863,22 +7018,24 @@ CastExp::CastExp(Loc loc, Expression *e, Type *t)
 	: UnaExp(loc, TOKcast, sizeof(CastExp), e)
 {
     to = t;
-    this->tok = TOKreserved;
+    this->mod = ~0;
 }
 
-/* For cast(const) and cast(invariant)
+#if V2
+/* For cast(const) and cast(immutable)
  */
-CastExp::CastExp(Loc loc, Expression *e, enum TOK tok)
+CastExp::CastExp(Loc loc, Expression *e, unsigned mod)
 	: UnaExp(loc, TOKcast, sizeof(CastExp), e)
 {
     to = NULL;
-    this->tok = tok;
+    this->mod = mod;
 }
+#endif
 
 Expression *CastExp::syntaxCopy()
 {
     return to ? new CastExp(loc, e1->syntaxCopy(), to->syntaxCopy())
-	      : new CastExp(loc, e1->syntaxCopy(), tok);
+	      : new CastExp(loc, e1->syntaxCopy(), mod);
 }
 
 
@@ -6900,15 +7057,11 @@ Expression *CastExp::semantic(Scope *sc)
     {
 	e1 = resolveProperties(sc, e1);
 
-	/* Handle cast(const) and cast(invariant)
-	 */
 	if (!to)
-	{   if (tok == TOKconst)
-		to = e1->type->constOf();
-	    else if (tok == TOKinvariant || tok == TOKimmutable)
-		to = e1->type->invariantOf();
-	    else
-		assert(0);
+	{
+	    /* Handle cast(const) and cast(immutable), etc.
+	     */
+	    to = e1->type->castMod(mod);
 	}
 	else
 	    to = to->semantic(loc, sc);
@@ -6943,6 +7096,42 @@ Expression *CastExp::semantic(Scope *sc)
     {	error("cannot cast tuple");
 	to = Type::terror;
     }
+
+    if (global.params.safe && !sc->module->safe && !sc->intypeof)
+    {	// Disallow unsafe casts
+	Type *tob = to->toBasetype();
+	Type *t1b = e1->type->toBasetype();
+	if (!t1b->isMutable() && tob->isMutable())
+	{   // Cast not mutable to mutable
+	  Lunsafe:
+	    error("cast from %s to %s not allowed in safe mode", e1->type->toChars(), to->toChars());
+	}
+	else if (t1b->isShared() && !tob->isShared())
+	    // Cast away shared
+	    goto Lunsafe;
+	else if (tob->ty == Tpointer)
+	{   if (t1b->ty != Tpointer)
+		goto Lunsafe;
+	    Type *tobn = tob->nextOf()->toBasetype();
+	    Type *t1bn = t1b->nextOf()->toBasetype();
+
+	    if (!t1bn->isMutable() && tobn->isMutable())
+		// Cast away pointer to not mutable
+		goto Lunsafe;
+
+	    if (t1bn->isShared() && !tobn->isShared())
+		// Cast away pointer to shared
+		goto Lunsafe;
+
+	    if (tobn->isTypeBasic() && tobn->size() < t1bn->size())
+		// Allow things like casting a long* to an int*
+		;
+	    else if (tobn->ty != Tvoid)
+		// Cast to a pointer other than void*
+		goto Lunsafe;
+	}
+    }
+
     e = e1->castTo(sc, to);
     return e;
 }
@@ -6976,10 +7165,35 @@ void CastExp::checkEscape()
 void CastExp::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 {
     buf->writestring("cast(");
+#if V1
+    to->toCBuffer(buf, NULL, hgs);
+#else
     if (to)
 	to->toCBuffer(buf, NULL, hgs);
     else
-	buf->writestring(Token::tochars[tok]);
+    {
+	switch (mod)
+	{   case 0:
+		break;
+	    case MODconst:
+		buf->writestring(Token::tochars[TOKconst]);
+		break;
+	    case MODinvariant:
+		buf->writestring(Token::tochars[TOKimmutable]);
+		break;
+	    case MODshared:
+		buf->writestring(Token::tochars[TOKshared]);
+		break;
+	    case MODshared | MODconst:
+		buf->writestring(Token::tochars[TOKshared]);
+		buf->writeByte(' ');
+		buf->writestring(Token::tochars[TOKconst]);
+		break;
+	    default:
+		assert(0);
+	}
+    }
+#endif
     buf->writeByte(')');
     expToCBuffer(buf, hgs, e1, precedence[op]);
 }
@@ -7173,10 +7387,12 @@ void SliceExp::checkEscape()
     e1->checkEscape();
 }
 
+#if V2
 int SliceExp::isLvalue()
 {
     return 1;
 }
+#endif
 
 Expression *SliceExp::toLvalue(Scope *sc, Expression *e)
 {
@@ -7292,13 +7508,14 @@ Expression *ArrayExp::semantic(Scope *sc)
     return e;
 }
 
-
+#if V2
 int ArrayExp::isLvalue()
 {
     if (type && type->toBasetype()->ty == Tvoid)
 	return 0;
     return 1;
 }
+#endif
 
 Expression *ArrayExp::toLvalue(Scope *sc, Expression *e)
 {
@@ -7369,10 +7586,12 @@ void CommaExp::checkEscape()
     e2->checkEscape();
 }
 
+#if V2
 int CommaExp::isLvalue()
 {
     return e2->isLvalue();
 }
+#endif
 
 Expression *CommaExp::toLvalue(Scope *sc, Expression *e)
 {
@@ -7539,10 +7758,12 @@ Expression *IndexExp::semantic(Scope *sc)
     return e;
 }
 
+#if V2
 int IndexExp::isLvalue()
 {
     return 1;
 }
+#endif
 
 Expression *IndexExp::toLvalue(Scope *sc, Expression *e)
 {
@@ -9051,7 +9272,7 @@ Expression *OrOrExp::semantic(Scope *sc)
     e2 = e2->checkToPointer();
 
     type = Type::tboolean;
-    if (e1->type->ty == Tvoid)
+    if (e2->type->ty == Tvoid)
 	type = Type::tvoid;
     if (e2->op == TOKtype || e2->op == TOKimport)
 	error("%s is not an expression", e2->toChars());
@@ -9116,7 +9337,7 @@ Expression *AndAndExp::semantic(Scope *sc)
     e2 = e2->checkToPointer();
 
     type = Type::tboolean;
-    if (e1->type->ty == Tvoid)
+    if (e2->type->ty == Tvoid)
 	type = Type::tvoid;
     if (e2->op == TOKtype || e2->op == TOKimport)
 	error("%s is not an expression", e2->toChars());
@@ -9510,10 +9731,12 @@ Expression *CondExp::semantic(Scope *sc)
     return this;
 }
 
+#if V2
 int CondExp::isLvalue()
 {
     return e1->isLvalue() && e2->isLvalue();
 }
+#endif
 
 Expression *CondExp::toLvalue(Scope *sc, Expression *ex)
 {
@@ -9570,11 +9793,12 @@ int CondExp::checkSideEffect(int flag)
     }
 }
 
+#if V2
 int CondExp::canThrow()
 {
     return econd->canThrow() || e1->canThrow() || e2->canThrow();
 }
-
+#endif
 
 void CondExp::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 {

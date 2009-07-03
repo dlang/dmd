@@ -113,6 +113,7 @@ struct Expression : Object
     Expression *checkIntegral();
     Expression *checkArithmetic();
     void checkDeprecated(Scope *sc, Dsymbol *s);
+    void checkPurity(Scope *sc, FuncDeclaration *f);
     virtual Expression *checkToBoolean();
     Expression *checkToPointer();
     Expression *addressOf(Scope *sc);
@@ -821,6 +822,8 @@ struct DotVarExp : UnaExp
     int isLvalue();
     Expression *toLvalue(Scope *sc, Expression *e);
     Expression *modifiableLvalue(Scope *sc, Expression *e);
+    Expression *optimize(int result);
+    Expression *interpret(InterState *istate);
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
     void dump(int indent);
     elem *toElem(IRState *irs);
@@ -990,10 +993,10 @@ struct CastExp : UnaExp
 {
     // Possible to cast to one type while painting to another type
     Type *to;			// type to cast to
-    enum TOK tok;		// TOKconst or TOKinvariant
+    unsigned mod;		// MODxxxxx
 
     CastExp(Loc loc, Expression *e, Type *t);
-    CastExp(Loc loc, Expression *e, enum TOK tok);
+    CastExp(Loc loc, Expression *e, unsigned mod);
     Expression *syntaxCopy();
     Expression *semantic(Scope *sc);
     Expression *optimize(int result);
