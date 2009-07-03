@@ -678,7 +678,7 @@ void Type::checkDeprecated(Loc loc, Scope *sc)
 }
 
 
-Expression *Type::defaultInit()
+Expression *Type::defaultInit(Loc loc)
 {
 #if LOGDEFAULTINIT
     printf("Type::defaultInit() '%s'\n", toChars());
@@ -742,8 +742,7 @@ Expression *Type::getProperty(Loc loc, Identifier *ident)
     {
 	if (ty == Tvoid)
 	    error(loc, "void does not have an initializer");
-	e = defaultInit();
-	e->loc = loc;
+	e = defaultInit(loc);
     }
     else if (ident == Id::mangleof)
     {
@@ -820,7 +819,7 @@ Expression *Type::dotExp(Scope *sc, Expression *e, Identifier *ident)
 			    e->isBool(0) &&
 			    v->type->toBasetype()->ty == Tstruct)
 			{
-			    e = v->type->defaultInit();
+			    e = v->type->defaultInit(e->loc);
 			}
 		    }
 		    e = e->optimize(WANTvalue | WANTinterpret);
@@ -830,8 +829,7 @@ Expression *Type::dotExp(Scope *sc, Expression *e, Identifier *ident)
 		return e;
 	    }
 #endif
-	    Expression *ex = defaultInit();
-	    ex->loc = e->loc;
+	    Expression *ex = defaultInit(e->loc);
 	    return ex;
 	}
     }
@@ -986,7 +984,8 @@ Type *TypeNext::makeConst()
     if (cto)
 	return cto;
     TypeNext *t = (TypeNext *)Type::makeConst();
-    if (ty != Tfunction && ty != Tdelegate && next->deco)
+    if (ty != Tfunction && ty != Tdelegate && next->deco &&
+        !next->isInvariant())
 	t->next = next->constOf();
     return t;
 }
@@ -1555,7 +1554,7 @@ Expression *TypeBasic::dotExp(Scope *sc, Expression *e, Identifier *ident)
     return e;
 }
 
-Expression *TypeBasic::defaultInit()
+Expression *TypeBasic::defaultInit(Loc loc)
 {   integer_t value = 0;
 
 #if LOGDEFAULTINIT
@@ -1581,9 +1580,12 @@ Expression *TypeBasic::defaultInit()
 	case Tcomplex32:
 	case Tcomplex64:
 	case Tcomplex80:
-	    return getProperty(0, Id::nan);
+	    return getProperty(loc, Id::nan);
+
+	case Tvoid:
+	    error(loc, "void does not have a default initializer");
     }
-    return new IntegerExp(0, value, this);
+    return new IntegerExp(loc, value, this);
 }
 
 int TypeBasic::isZeroInit()
@@ -1998,6 +2000,14 @@ Type *TypeSArray::semantic(Loc loc, Scope *sc)
 	dim = semanticLength(sc, tbn, dim);
 
 	dim = dim->optimize(WANTvalue | WANTinterpret);
+	if (sc->parameterSpecialization && dim->op == TOKvar &&
+	    ((VarExp *)dim)->var->storage_class & STCtemplateparameter)
+	{
+	    /* It could be a template parameter N which has no value yet:
+	     *   template Foo(T : T[N], size_t N);
+	     */
+	    return this;
+	}
 	integer_t d1 = dim->toInteger();
 	dim = dim->castTo(sc, tsize_t);
 	dim = dim->optimize(WANTvalue);
@@ -2179,12 +2189,12 @@ MATCH TypeSArray::implicitConvTo(Type *to)
     return MATCHnomatch;
 }
 
-Expression *TypeSArray::defaultInit()
+Expression *TypeSArray::defaultInit(Loc loc)
 {
 #if LOGDEFAULTINIT
     printf("TypeSArray::defaultInit() '%s'\n", toChars());
 #endif
-    return next->defaultInit();
+    return next->defaultInit(loc);
 }
 
 int TypeSArray::isZeroInit()
@@ -2367,13 +2377,13 @@ MATCH TypeDArray::implicitConvTo(Type *to)
     return Type::implicitConvTo(to);
 }
 
-Expression *TypeDArray::defaultInit()
+Expression *TypeDArray::defaultInit(Loc loc)
 {
 #if LOGDEFAULTINIT
     printf("TypeDArray::defaultInit() '%s'\n", toChars());
 #endif
     Expression *e;
-    e = new NullExp(0);
+    e = new NullExp(loc);
     e->type = this;
     return e;
 }
@@ -2572,13 +2582,13 @@ void TypeAArray::toCBuffer2(OutBuffer *buf, HdrGenState *hgs, int mod)
     buf->writeByte(']');
 }
 
-Expression *TypeAArray::defaultInit()
+Expression *TypeAArray::defaultInit(Loc loc)
 {
 #if LOGDEFAULTINIT
     printf("TypeAArray::defaultInit() '%s'\n", toChars());
 #endif
     Expression *e;
-    e = new NullExp(0);
+    e = new NullExp(loc);
     e->type = this;
     return e;
 }
@@ -2688,13 +2698,13 @@ int TypePointer::isscalar()
     return TRUE;
 }
 
-Expression *TypePointer::defaultInit()
+Expression *TypePointer::defaultInit(Loc loc)
 {
 #if LOGDEFAULTINIT
     printf("TypePointer::defaultInit() '%s'\n", toChars());
 #endif
     Expression *e;
-    e = new NullExp(0);
+    e = new NullExp(loc);
     e->type = this;
     return e;
 }
@@ -2770,13 +2780,13 @@ Expression *TypeReference::dotExp(Scope *sc, Expression *e, Identifier *ident)
     return next->dotExp(sc, e, ident);
 }
 
-Expression *TypeReference::defaultInit()
+Expression *TypeReference::defaultInit(Loc loc)
 {
 #if LOGDEFAULTINIT
     printf("TypeReference::defaultInit() '%s'\n", toChars());
 #endif
     Expression *e;
-    e = new NullExp(0);
+    e = new NullExp(loc);
     e->type = this;
     return e;
 }
@@ -3303,13 +3313,13 @@ void TypeDelegate::toCBuffer2(OutBuffer *buf, HdrGenState *hgs, int mod)
     Argument::argsToCBuffer(buf, hgs, tf->parameters, tf->varargs);
 }
 
-Expression *TypeDelegate::defaultInit()
+Expression *TypeDelegate::defaultInit(Loc loc)
 {
 #if LOGDEFAULTINIT
     printf("TypeDelegate::defaultInit() '%s'\n", toChars());
 #endif
     Expression *e;
-    e = new NullExp(0);
+    e = new NullExp(loc);
     e->type = this;
     return e;
 }
@@ -4105,7 +4115,7 @@ Expression *TypeEnum::getProperty(Loc loc, Identifier *ident)
     {
 	if (!sym->symtab)
 	    goto Lfwd;
-	e = defaultInit();
+	e = defaultInit(loc);
     }
     else
     {
@@ -4165,14 +4175,14 @@ MATCH TypeEnum::constConv(Type *to)
 }
 
 
-Expression *TypeEnum::defaultInit()
+Expression *TypeEnum::defaultInit(Loc loc)
 {
 #if LOGDEFAULTINIT
     printf("TypeEnum::defaultInit() '%s'\n", toChars());
 #endif
     // Initialize to first member of enum
     Expression *e;
-    e = new IntegerExp(0, sym->defaultval, this);
+    e = new IntegerExp(loc, sym->defaultval, this);
     return e;
 }
 
@@ -4359,7 +4369,7 @@ MATCH TypeTypedef::constConv(Type *to)
 }
 
 
-Expression *TypeTypedef::defaultInit()
+Expression *TypeTypedef::defaultInit(Loc loc)
 {   Expression *e;
     Type *bt;
 
@@ -4372,7 +4382,7 @@ Expression *TypeTypedef::defaultInit()
 	return sym->init->toExpression();
     }
     bt = sym->basetype;
-    e = bt->defaultInit();
+    e = bt->defaultInit(loc);
     e->type = this;
     while (bt->ty == Tsarray)
     {	TypeSArray *tsa = (TypeSArray *)bt;
@@ -4652,7 +4662,7 @@ unsigned TypeStruct::memalign(unsigned salign)
     return sym->structalign;
 }
 
-Expression *TypeStruct::defaultInit()
+Expression *TypeStruct::defaultInit(Loc loc)
 {   Symbol *s;
     Declaration *d;
 
@@ -5079,13 +5089,13 @@ Type *TypeClass::toCanonConst()
     return this;
 }
 
-Expression *TypeClass::defaultInit()
+Expression *TypeClass::defaultInit(Loc loc)
 {
 #if LOGDEFAULTINIT
     printf("TypeClass::defaultInit() '%s'\n", toChars());
 #endif
     Expression *e;
-    e = new NullExp(0);
+    e = new NullExp(loc);
     e->type = this;
     return e;
 }

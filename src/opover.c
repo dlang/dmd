@@ -152,7 +152,7 @@ int CmpExp::isCommutative()  { return TRUE; }
 Identifier *CmpExp::opId()   { return Id::cmp; }
 
 Identifier *ArrayExp::opId()	{ return Id::index; }
-
+Identifier *PtrExp::opId()	{ return Id::opStar; }
 
 /************************************
  * Operator overload.

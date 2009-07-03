@@ -968,7 +968,8 @@ Expression *AddrExp::castTo(Scope *sc, Type *t)
 		}
 	    }
 	    if (f)
-	    {	SymOffExp *se = new SymOffExp(loc, f, 0, 0);
+	    {	f->tookAddressOf = 1;
+		SymOffExp *se = new SymOffExp(loc, f, 0, 0);
 		se->semantic(sc);
 		// Let SymOffExp::castTo() do the heavy lifting
 		return se->castTo(sc, t);
@@ -1116,6 +1117,7 @@ Expression *SymOffExp::castTo(Scope *sc, Type *t)
 			e = new SymOffExp(loc, f, 0);
 			e->type = t;
 		    }
+		    f->tookAddressOf = 1;
 		    return e;
 		}
 	    }
@@ -1157,6 +1159,7 @@ Expression *DelegateExp::castTo(Scope *sc, Type *t)
 		{   int offset;
 		    if (f->tintro && f->tintro->nextOf()->isBaseOf(f->type->nextOf(), &offset) && offset)
 			error("%s", msg);
+		    f->tookAddressOf = 1;
 		    e = new DelegateExp(loc, e1, f);
 		    e->type = t;
 		    return e;
@@ -1170,6 +1173,7 @@ Expression *DelegateExp::castTo(Scope *sc, Type *t)
     else
     {	int offset;
 
+	func->tookAddressOf = 1;
 	if (func->tintro && func->tintro->nextOf()->isBaseOf(func->type->nextOf(), &offset) && offset)
 	    error("%s", msg);
     }
@@ -1247,7 +1251,7 @@ Expression *BinExp::typeCombine(Scope *sc)
     Type *t;
     TY ty;
 
-    //printf("BinExp::typeCombine()\n");
+    //printf("BinExp::typeCombine() %s\n", toChars());
     //dump(0);
 
     e1 = e1->integralPromotions(sc);
@@ -1321,8 +1325,13 @@ Expression *BinExp::typeCombine(Scope *sc)
 	    (t1->nextOf()->mod != t2->nextOf()->mod)
 	   )
 	{
-	    t1 = t1->constOf();
-	    t2 = t2->constOf();
+	    t1 = t1->nextOf()->mutableOf()->constOf()->arrayOf();
+	    t2 = t2->nextOf()->mutableOf()->constOf()->arrayOf();
+//t1 = t1->constOf();
+//t2 = t2->constOf();
+	    e1 = e1->castTo(sc, t1);
+	    e2 = e2->castTo(sc, t2);
+	    goto Lagain;
 	}
     }
 
@@ -1348,8 +1357,8 @@ Lagain:
 	    ;
 	else if (t1n->mod != t2n->mod)
 	{
-	    t1 = t1->constOf();
-	    t2 = t2->constOf();
+	    t1 = t1n->mutableOf()->constOf()->pointerTo();
+	    t2 = t2n->mutableOf()->constOf()->pointerTo();
 	    goto Lagain;
 	}
 	else if (t1n->ty == Tclass && t2n->ty == Tclass)
@@ -1404,8 +1413,15 @@ Lagain:
 	     t1->nextOf()->mod != t2->nextOf()->mod
 	    )
     {
-	t1 = t1->constOf();
-	t2 = t2->constOf();
+	if (t1->ty == Tpointer)
+	    t1 = t1->nextOf()->mutableOf()->constOf()->pointerTo();
+	else
+	    t1 = t1->nextOf()->mutableOf()->constOf()->arrayOf();
+
+	if (t2->ty == Tpointer)
+	    t2 = t2->nextOf()->mutableOf()->constOf()->pointerTo();
+	else
+	    t2 = t2->nextOf()->mutableOf()->constOf()->arrayOf();
 	goto Lagain;
     }
     else if (t1->ty == Tclass || t2->ty == Tclass)
@@ -1477,6 +1493,12 @@ Lagain:
 Lret:
     if (!type)
 	type = t;
+#if 0
+    printf("-BinExp::typeCombine() %s\n", toChars());
+    if (e1->type) printf("\tt1 = %s\n", e1->type->toChars());
+    if (e2->type) printf("\tt2 = %s\n", e2->type->toChars());
+    printf("\ttype = %s\n", type->toChars());
+#endif
     //dump(0);
     return this;
 

@@ -102,7 +102,9 @@ elem *getEthis(Loc loc, IRState *irs, Dsymbol *fd)
     {	/* Going down one nesting level, i.e. we're calling
 	 * a nested function from its enclosing function.
 	 */
-	if (irs->sthis)
+	if (irs->sclosure)
+	    ethis = el_var(irs->sclosure);
+	else if (irs->sthis)
 	{   // We have a 'this' pointer for the current function
 	    ethis = el_var(irs->sthis);
 
@@ -111,7 +113,11 @@ elem *getEthis(Loc loc, IRState *irs, Dsymbol *fd)
 	     * adding this frame into the linked list of stack
 	     * frames.
 	     */
+#if V2
+	    if (thisfd->closureVars.dim)
+#else
 	    if (thisfd->nestedFrameRef)
+#endif
 	    {	/* Local variables are referenced, can't skip.
 		 * Address of 'this' gives the 'this' for the nested
 		 * function
@@ -124,7 +130,11 @@ elem *getEthis(Loc loc, IRState *irs, Dsymbol *fd)
 	     * use NULL if no references to the current function's frame
 	     */
 	    ethis = el_long(TYnptr, 0);
+#if V2
+	    if (thisfd->closureVars.dim)
+#else
 	    if (thisfd->nestedFrameRef)
+#endif
 	    {	/* OPframeptr is an operator that gets the frame pointer
 		 * for the current function, i.e. for the x86 it gets
 		 * the value of EBP
@@ -160,7 +170,11 @@ elem *getEthis(Loc loc, IRState *irs, Dsymbol *fd)
 		    if (thisfd->isNested())
 		    {
 			FuncDeclaration *p = s->toParent2()->isFuncDeclaration();
+#if V2
+			if (!p || p->closureVars.dim)
+#else
 			if (!p || p->nestedFrameRef)
+#endif
 			    ethis = el_una(OPind, TYnptr, ethis);
 		    }
 		    else if (thisfd->vthis)
@@ -194,7 +208,11 @@ elem *getEthis(Loc loc, IRState *irs, Dsymbol *fd)
 			 * nested references are skipped in the linked list
 			 * of frames.
 			 */
+#if V2
+			if (s->toParent2()->isFuncDeclaration()->closureVars.dim)
+#else
 			if (s->toParent2()->isFuncDeclaration()->nestedFrameRef)
+#endif
 			    ethis = el_una(OPind, TYnptr, ethis);
 			break;
 		    }
@@ -204,7 +222,11 @@ elem *getEthis(Loc loc, IRState *irs, Dsymbol *fd)
 			 * nested references are skipped in the linked list
 			 * of frames.
 			 */
+#if V2
+			if (s->toParent2()->isFuncDeclaration()->closureVars.dim)
+#else
 			if (s->toParent2()->isFuncDeclaration()->nestedFrameRef)
+#endif
 			    ethis = el_una(OPind, TYnptr, ethis);
 		    }
 		}
@@ -349,6 +371,109 @@ elem *resolveLengthVar(VarDeclaration *lengthVar, elem **pe, Type *t1)
 	}
     }
     return einit;
+}
+
+/*************************************
+ * Closures are implemented by taking the local variables that
+ * need to survive the scope of the function, and copying them
+ * into a gc allocated chuck of memory. That chunk, called the
+ * closure here, is inserted into the linked list of stack
+ * frames instead of the usual stack frame.
+ *
+ * buildClosure() inserts code just after the function prolog
+ * is complete. It allocates memory for the closure, allocates
+ * a local variable (sclosure) to point to it, inserts into it
+ * the link to the enclosing frame, and copies into it the parameters
+ * that are referred to in nested functions.
+ * In VarExp::toElem and SymOffExp::toElem, when referring to a
+ * variable that is in a closure, takes the offset from sclosure rather
+ * than from the frame pointer.
+ *
+ * getEthis() and NewExp::toElem need to use sclosure, if set, rather
+ * than the current frame pointer.
+ */
+
+void FuncDeclaration::buildClosure(IRState *irs)
+{
+    if (needsClosure())
+    {   // Generate closure on the heap
+	// BUG: doesn't capture variadic arguments passed to this function
+
+	Symbol *sclosure;
+	sclosure = symbol_name("__closptr",SCauto,Type::tvoidptr->toCtype());
+	sclosure->Sflags |= SFLtrue | SFLfree;
+	symbol_add(sclosure);
+	irs->sclosure = sclosure;
+
+	unsigned offset = PTRSIZE;	// leave room for previous sthis
+	for (int i = 0; i < closureVars.dim; i++)
+	{   VarDeclaration *v = (VarDeclaration *)closureVars.data[i];
+	    assert(v->isVarDeclaration());
+
+	    /* Align and allocate space for v in the closure
+	     * just like AggregateDeclaration::addField() does.
+	     */
+	    unsigned memsize = v->type->size();
+	    unsigned memalignsize = v->type->alignsize();
+	    unsigned xalign = v->type->memalign(global.structalign);
+	    AggregateDeclaration::alignmember(xalign, memalignsize, &offset);
+	    v->offset = offset;
+	    offset += memsize;
+
+	    /* Can't do nrvo if the variable is put in a closure, since
+	     * what the shidden points to may no longer exist.
+	     */
+	    if (nrvo_can && nrvo_var == v)
+	    {
+		nrvo_can = 0;
+	    }
+	}
+	// offset is now the size of the closure
+
+	// Allocate memory for the closure
+	elem *e;
+	e = el_long(TYint, offset);
+	e = el_bin(OPcall, TYnptr, el_var(rtlsym[RTLSYM_ALLOCMEMORY]), e);
+
+	// Assign block of memory to sclosure
+	//    sclosure = allocmemory(sz);
+	e = el_bin(OPeq, TYvoid, el_var(sclosure), e);
+
+	// Set the first element to sthis
+	//    *(sclosure + 0) = sthis;
+	elem *ethis;
+	if (irs->sthis)
+	    ethis = el_var(irs->sthis);
+	else
+	    ethis = el_long(TYnptr, 0);
+	elem *ex = el_una(OPind, TYnptr, el_var(sclosure));
+	ex = el_bin(OPeq, TYnptr, ex, ethis);
+	e = el_combine(e, ex);
+
+	// Copy function parameters into closure
+	for (int i = 0; i < closureVars.dim; i++)
+	{   VarDeclaration *v = (VarDeclaration *)closureVars.data[i];
+
+	    if (!v->isParameter())
+		continue;
+	    tym_t tym = v->type->totym();
+	    if (v->type->toBasetype()->ty == Tsarray || v->isOut() || v->isRef())
+		tym = TYnptr;	// reference parameters are just pointers
+	    ex = el_bin(OPadd, TYnptr, el_var(sclosure), el_long(TYint, v->offset));
+	    ex = el_una(OPind, tym, ex);
+	    if (ex->Ety == TYstruct)
+	    {   ex->Enumbytes = v->type->size();
+		ex = el_bin(OPstreq, tym, ex, el_var(v->toSymbol()));
+		ex->Enumbytes = v->type->size();
+	    }
+	    else
+		ex = el_bin(OPeq, tym, ex, el_var(v->toSymbol()));
+
+	    e = el_combine(e, ex);
+	}
+
+	block_appendexp(irs->blx->curblock, e);
+    }
 }
 
 

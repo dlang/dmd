@@ -642,23 +642,15 @@ int UnrolledLoopStatement::usesEH()
 }
 
 int UnrolledLoopStatement::fallOffEnd()
-{   int falloff = TRUE;
-
+{
     //printf("UnrolledLoopStatement::fallOffEnd()\n");
     for (size_t i = 0; i < statements->dim; i++)
     {	Statement *s = (Statement *)statements->data[i];
 
-	if (!s)
-	    continue;
-
-	if (!falloff && global.params.warnings && !s->comeFrom())
-	{
-	    fprintf(stdmsg, "warning - ");
-	    s->error("statement is not reachable");
-	}
-	falloff = s->fallOffEnd();
+	if (s)
+	    s->fallOffEnd();
     }
-    return falloff;
+    return TRUE;
 }
 
 int UnrolledLoopStatement::comeFrom()
@@ -1192,9 +1184,8 @@ Statement *ForeachStatement::semantic(Scope *sc)
 		error("no storage class for value %s", arg->ident->toChars());
 	    Dsymbol *var;
 	    if (te)
-	    {
-		if (e->type->toBasetype()->ty == Tfunction &&
-		    e->op == TOKvar)
+	    {	Type *tb = e->type->toBasetype();
+		if ((tb->ty == Tfunction || tb->ty == Tsarray) && e->op == TOKvar)
 		{   VarExp *ve = (VarExp *)e;
 		    var = new AliasDeclaration(loc, arg->ident, ve->var);
 		}
@@ -1407,6 +1398,7 @@ Statement *ForeachStatement::semantic(Scope *sc)
 	    fld->fbody = body;
 	    flde = new FuncExp(loc, fld);
 	    flde = flde->semantic(sc);
+	    fld->tookAddressOf = 0;
 
 	    // Resolve any forward referenced goto's
 	    for (int i = 0; i < gotos.dim; i++)
@@ -2104,6 +2096,7 @@ SwitchStatement::SwitchStatement(Loc loc, Expression *c, Statement *b)
     condition = c;
     body = b;
     sdefault = NULL;
+    tf = NULL;
     cases = NULL;
     hasNoDefault = 0;
 }
@@ -2118,6 +2111,7 @@ Statement *SwitchStatement::syntaxCopy()
 Statement *SwitchStatement::semantic(Scope *sc)
 {
     //printf("SwitchStatement::semantic(%p)\n", this);
+    tf = sc->tf;
     assert(!cases);		// ensure semantic() is only run once
     condition = condition->semantic(sc);
     condition = resolveProperties(sc, condition);
@@ -2304,6 +2298,9 @@ Statement *CaseStatement::semantic(Scope *sc)
 		sw->gotoCases.remove(i);	// remove from array
 	    }
 	}
+
+	if (sc->sw->tf != sc->tf)
+	    error("switch and case are in different finally blocks");
     }
     else
 	error("case not in switch statement");
@@ -2362,6 +2359,7 @@ Statement *DefaultStatement::syntaxCopy()
 
 Statement *DefaultStatement::semantic(Scope *sc)
 {
+    //printf("DefaultStatement::semantic()\n");
     if (sc->sw)
     {
 	if (sc->sw->sdefault)
@@ -2369,6 +2367,9 @@ Statement *DefaultStatement::semantic(Scope *sc)
 	    error("switch statement already has a default");
 	}
 	sc->sw->sdefault = this;
+
+	if (sc->sw->tf != sc->tf)
+	    error("switch and default are in different finally blocks");
     }
     else
 	error("default not in switch statement");

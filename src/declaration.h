@@ -31,6 +31,7 @@ struct ExpInitializer;
 struct StructDeclaration;
 struct TupleType;
 struct InterState;
+struct IRState;
 
 enum PROT;
 enum LINK;
@@ -213,7 +214,7 @@ struct VarDeclaration : Declaration
     Initializer *init;
     unsigned offset;
     int noauto;			// no auto semantics
-    int nestedref;		// referenced by a lexically nested function
+    FuncDeclarations nestedrefs; // referenced by these lexically nested functions
     int inuse;
     int ctorinit;		// it has been initialized in a ctor
     int onstack;		// 1: it has been allocated on the stack
@@ -426,6 +427,7 @@ enum ILS
 };
 
 /**************************************************************/
+#if V2
 
 enum BUILTIN
 {
@@ -439,6 +441,8 @@ enum BUILTIN
 };
 
 Expression *eval_builtin(enum BUILTIN builtin, Expressions *arguments);
+
+#endif
 
 struct FuncDeclaration : Declaration
 {
@@ -469,7 +473,7 @@ struct FuncDeclaration : Declaration
     int inlineNest;			// !=0 if nested inline
     int cantInterpret;			// !=0 if cannot interpret function
     int semanticRun;			// !=0 if semantic3() had been run
-    int nestedFrameRef;			// !=0 if nested variables referenced frame ptr
+					// this function's frame ptr
     ForeachStatement *fes;		// if foreach body, this is the foreach
     int introducing;			// !=0 if 'introducing' function
     Type *tintro;			// if !=NULL, then this is the type
@@ -489,9 +493,19 @@ struct FuncDeclaration : Declaration
     VarDeclaration *nrvo_var;		// variable to replace with shidden
     Symbol *shidden;			// hidden pointer passed to function
 
+#if V2
     enum BUILTIN builtin;		// set if this is a known, builtin
 					// function we can evaluate at compile
 					// time
+
+    int tookAddressOf;			// set if someone took the address of
+					// this function
+    Dsymbols closureVars;		// local variables in this function
+					// which are referenced by nested
+					// functions
+#else
+    int nestedFrameRef;			// !=0 if nested variables referenced
+#endif
 
     FuncDeclaration(Loc loc, Loc endloc, Identifier *id, enum STC storage_class, Type *type);
     Dsymbol *syntaxCopy(Dsymbol *);
@@ -533,6 +547,7 @@ struct FuncDeclaration : Declaration
     char *kind();
     void toDocBuffer(OutBuffer *buf);
     FuncDeclaration *isUnique();
+    int needsClosure();
 
     static FuncDeclaration *genCfunc(Type *treturn, char *name);
     static FuncDeclaration *genCfunc(Type *treturn, Identifier *id);
@@ -541,6 +556,7 @@ struct FuncDeclaration : Declaration
     Symbol *toThunkSymbol(int offset);	// thunk version
     void toObjFile();			// compile to .obj file
     int cvMember(unsigned char *p);
+    void buildClosure(IRState *irs);
 
     FuncDeclaration *isFuncDeclaration() { return this; }
 };

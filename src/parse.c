@@ -2320,6 +2320,9 @@ Initializer *Parser::parseInitializer()
 			    break;
 			continue;
 
+		    case TOKeof:
+			break;
+
 		    default:
 			continue;
 		}
@@ -2358,6 +2361,10 @@ Initializer *Parser::parseInitializer()
 
 		    case TOKrcurly:		// allow trailing comma's
 			nextToken();
+			break;
+
+		    case TOKeof:
+			error("found EOF instead of initializer");
 			break;
 
 		    default:

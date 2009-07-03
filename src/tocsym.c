@@ -206,7 +206,7 @@ Symbol *VarDeclaration::toSymbol()
 	    s->Sclass = SCauto;
 	    s->Sfl = FLauto;
 
-	    if (nestedref)
+	    if (nestedrefs.dim)
 	    {
 		/* Symbol is accessed by a nested function. Make sure
 		 * it is not put in a register, and that the optimizer

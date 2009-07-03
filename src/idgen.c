@@ -190,6 +190,7 @@ Msgtable msgtable[] =
     { "next",	 "opNext" },
     { "opIn" },
     { "opIn_r" },
+    { "opStar" },
 
     { "classNew", "new" },
     { "classDelete", "delete" },

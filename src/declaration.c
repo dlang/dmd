@@ -587,7 +587,6 @@ VarDeclaration::VarDeclaration(Loc loc, Type *type, Identifier *id, Initializer 
     this->loc = loc;
     offset = 0;
     noauto = 0;
-    nestedref = 0;
     inuse = 0;
     ctorinit = 0;
     aliassym = NULL;
@@ -840,7 +839,8 @@ Lagain:
     }
 
     if (!init && !sc->inunion && !isStatic() && !isConst() && fd &&
-	!(storage_class & (STCfield | STCin | STCforeach)))
+	!(storage_class & (STCfield | STCin | STCforeach)) &&
+	type->size() != 0)
     {
 	// Provide a default initializer
 	//printf("Providing default initializer for '%s'\n", toChars());
@@ -934,15 +934,19 @@ Lagain:
 		t = type->toBasetype();
 		if (t->ty == Tsarray)
 		{
-		    dim = ((TypeSArray *)t)->dim->toInteger();
-		    // If multidimensional static array, treat as one large array
-		    while (1)
+		    ei->exp = ei->exp->semantic(sc);
+		    if (!ei->exp->implicitConvTo(type))
 		    {
-			t = t->nextOf()->toBasetype();
-			if (t->ty != Tsarray)
-			    break;
-			dim *= ((TypeSArray *)t)->dim->toInteger();
-			e1->type = new TypeSArray(t->nextOf(), new IntegerExp(0, dim, Type::tindex));
+			dim = ((TypeSArray *)t)->dim->toInteger();
+			// If multidimensional static array, treat as one large array
+			while (1)
+			{
+			    t = t->nextOf()->toBasetype();
+			    if (t->ty != Tsarray)
+				break;
+			    dim *= ((TypeSArray *)t)->dim->toInteger();
+			    e1->type = new TypeSArray(t->nextOf(), new IntegerExp(0, dim, Type::tindex));
+			}
 		    }
 		    e1 = new SliceExp(loc, e1, NULL, NULL);
 		}
@@ -1115,27 +1119,46 @@ void VarDeclaration::checkCtorConstInit()
 }
 
 /************************************
- * Check to see if variable is a reference to an enclosing function
- * or not.
+ * Check to see if this variable is actually in an enclosing function
+ * rather than the current one.
  */
 
 void VarDeclaration::checkNestedReference(Scope *sc, Loc loc)
 {
-    if (!isDataseg() && parent != sc->parent && parent)
+    if (parent && !isDataseg() && parent != sc->parent)
     {
+	// The function that this variable is in
 	FuncDeclaration *fdv = toParent()->isFuncDeclaration();
+	// The current function
 	FuncDeclaration *fdthis = sc->parent->isFuncDeclaration();
 
-	if (fdv && fdthis)
+	if (fdv && fdthis && fdv != fdthis)
 	{
 	    if (loc.filename)
 		fdthis->getLevel(loc, fdv);
-	    nestedref = 1;
-	    fdv->nestedFrameRef = 1;
+
+	    for (int i = 0; i < nestedrefs.dim; i++)
+	    {	FuncDeclaration *f = (FuncDeclaration *)nestedrefs.data[i];
+		if (f == fdthis)
+		    goto L1;
+	    }
+	    nestedrefs.push(fdthis);
+	  L1: ;
+
+
+	    for (int i = 0; i < fdv->closureVars.dim; i++)
+	    {	Dsymbol *s = (Dsymbol *)fdv->closureVars.data[i];
+		if (s == this)
+		    goto L2;
+	    }
+	    fdv->closureVars.push(this);
+	  L2: ;
+
 	    //printf("var %s in function %s is nested ref\n", toChars(), fdv->toChars());
 	}
     }
 }
+
 
 /*******************************
  * Does symbol go into data segment?
@@ -1151,6 +1174,7 @@ int VarDeclaration::isDataseg()
     Dsymbol *parent = this->toParent();
     if (!parent && !(storage_class & (STCstatic | STCconst)))
     {	error("forward referenced");
+halt();
 	type = Type::terror;
 	return 0;
     }
@@ -1260,17 +1284,21 @@ void TypeInfoDeclaration::semantic(Scope *sc)
 
 /***************************** TypeInfoConstDeclaration **********************/
 
+#if V2
 TypeInfoConstDeclaration::TypeInfoConstDeclaration(Type *tinfo)
     : TypeInfoDeclaration(tinfo, 0)
 {
 }
+#endif
 
 /***************************** TypeInfoInvariantDeclaration **********************/
 
+#if V2
 TypeInfoInvariantDeclaration::TypeInfoInvariantDeclaration(Type *tinfo)
     : TypeInfoDeclaration(tinfo, 0)
 {
 }
+#endif
 
 /***************************** TypeInfoStructDeclaration **********************/
 

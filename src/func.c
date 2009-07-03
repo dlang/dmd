@@ -63,7 +63,6 @@ FuncDeclaration::FuncDeclaration(Loc loc, Loc endloc, Identifier *id, enum STC s
     inlineAsm = 0;
     cantInterpret = 0;
     semanticRun = 0;
-    nestedFrameRef = 0;
     fes = NULL;
     introducing = 0;
     tintro = NULL;
@@ -74,6 +73,7 @@ FuncDeclaration::FuncDeclaration(Loc loc, Loc endloc, Identifier *id, enum STC s
     nrvo_var = NULL;
     shidden = NULL;
     builtin = BUILTINunknown;
+    tookAddressOf = 0;
 }
 
 Dsymbol *FuncDeclaration::syntaxCopy(Dsymbol *s)
@@ -555,10 +555,12 @@ void FuncDeclaration::semantic3(Scope *sc)
 
     if (!parent)
     {
+	if (global.errors)
+	    return;
 	printf("FuncDeclaration::semantic3(%s '%s', sc = %p)\n", kind(), toChars(), sc);
 	assert(0);
     }
-    //printf("FuncDeclaration::semantic3('%s.%s', sc = %p)\n", parent->toChars(), toChars(), sc);
+    //printf("FuncDeclaration::semantic3('%s.%s', sc = %p, loc = %s)\n", parent->toChars(), toChars(), sc, loc.toChars());
     //fflush(stdout);
     //{ static int x; if (++x == 2) *(char*)0=0; }
     //printf("\tlinkage = %d\n", sc->linkage);
@@ -746,7 +748,7 @@ void FuncDeclaration::semantic3(Scope *sc)
 		    id = new Identifier(name, TOKidentifier);
 		    arg->ident = id;
 		}
-		VarDeclaration *v = new VarDeclaration(0, arg->type, id, NULL);
+		VarDeclaration *v = new VarDeclaration(loc, arg->type, id, NULL);
 		//printf("declaring parameter %s of type %s\n", v->toChars(), v->type->toChars());
 		v->storage_class |= STCparameter;
 		if (f->varargs == 2 && i + 1 == nparams)
@@ -783,11 +785,11 @@ void FuncDeclaration::semantic3(Scope *sc)
 			assert(narg->ident);
 			VarDeclaration *v = sc2->search(0, narg->ident, NULL)->isVarDeclaration();
 			assert(v);
-			Expression *e = new VarExp(0, v);
+			Expression *e = new VarExp(v->loc, v);
 			exps->data[j] = (void *)e;
 		    }
 		    assert(arg->ident);
-		    TupleDeclaration *v = new TupleDeclaration(0, arg->ident, exps);
+		    TupleDeclaration *v = new TupleDeclaration(loc, arg->ident, exps);
 		    //printf("declaring tuple %s\n", v->toChars());
 		    v->isexp = 1;
 		    if (!sc2->insert(v))
@@ -1869,6 +1871,56 @@ char *FuncDeclaration::kind()
 {
     return "function";
 }
+
+/*******************************
+ * Look at all the variables in this function that are referenced
+ * by nested functions, and determine if a closure needs to be
+ * created for them.
+ */
+
+#if V2
+int FuncDeclaration::needsClosure()
+{
+    /* Need a closure for all the closureVars[] if any of the
+     * closureVars[] are accessed by a
+     * function that escapes the scope of this function.
+     * We take the conservative approach and decide that any function that:
+     * 1) is a virtual function
+     * 2) has its address taken
+     * 3) has a parent that escapes
+     * escapes.
+     */
+
+    //printf("FuncDeclaration::needsClosure() %s\n", toChars());
+    for (int i = 0; i < closureVars.dim; i++)
+    {	VarDeclaration *v = (VarDeclaration *)closureVars.data[i];
+	assert(v->isVarDeclaration());
+	//printf("\tv = %s\n", v->toChars());
+
+	for (int j = 0; j < v->nestedrefs.dim; j++)
+	{   FuncDeclaration *f = (FuncDeclaration *)v->nestedrefs.data[j];
+	    assert(f != this);
+
+	    //printf("\t\tf = %s, %d, %d\n", f->toChars(), f->isVirtual(), f->tookAddressOf);
+	    if (f->isVirtual() || f->tookAddressOf)
+		goto Lyes;	// assume f escapes this function's scope
+
+	    // Look to see if any parents of f that are below this escape
+	    for (Dsymbol *s = f->parent; s != this; s = s->parent)
+	    {
+		f = s->isFuncDeclaration();
+		if (f && (f->isVirtual() || f->tookAddressOf))
+		    goto Lyes;
+	    }
+	}
+    }
+    return 0;
+
+Lyes:
+    //printf("\tneeds closure\n");
+    return 1;
+}
+#endif
 
 /****************************** FuncAliasDeclaration ************************/
 

@@ -3022,4 +3022,5 @@ void Lexer::initKeywords()
     Token::tochars[TOKtuple]		= "tuple";
     Token::tochars[TOKdeclaration]	= "declaration";
     Token::tochars[TOKdottd]		= "dottd";
+    Token::tochars[TOKon_scope_exit]	= "scope(exit)";
 }

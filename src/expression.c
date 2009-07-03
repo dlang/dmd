@@ -862,10 +862,13 @@ Expression *Expression::checkIntegral()
     return this;
 }
 
-void Expression::checkArithmetic()
+Expression *Expression::checkArithmetic()
 {
     if (!type->isintegral() && !type->isfloating())
-	error("'%s' is not an arithmetic type", toChars());
+    {	error("'%s' is not of arithmetic type, it is a %s", toChars(), type->toChars());
+	return new IntegerExp(0);
+    }
+    return this;
 }
 
 void Expression::checkDeprecated(Scope *sc, Dsymbol *s)
@@ -1962,14 +1965,6 @@ Expression *ThisExp::semantic(Scope *sc)
     assert(var->parent);
     type = var->type;
     var->isVarDeclaration()->checkNestedReference(sc, loc);
-#if 0
-    if (fd != fdthis)		// if nested
-    {
-	fdthis->getLevel(loc, fd);
-	fd->vthis->nestedref = 1;
-	fd->nestedFrameRef = 1;
-    }
-#endif
     sc->callSuper |= CSXthis;
     return this;
 
@@ -2070,14 +2065,6 @@ Expression *SuperExp::semantic(Scope *sc)
     }
 
     var->isVarDeclaration()->checkNestedReference(sc, loc);
-#if 0
-    if (fd != fdthis)
-    {
-	fdthis->getLevel(loc, fd);
-	fd->vthis->nestedref = 1;
-	fd->nestedFrameRef = 1;
-    }
-#endif
 
     sc->callSuper |= CSXsuper;
     return this;
@@ -3430,15 +3417,22 @@ void NewAnonClassExp::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
     }
 }
 
-/********************** SymOffExp **************************************/
+/********************** SymbolExp **************************************/
 
-SymOffExp::SymOffExp(Loc loc, Declaration *var, unsigned offset, int hasOverloads)
-    : Expression(loc, TOKsymoff, sizeof(SymOffExp))
+SymbolExp::SymbolExp(Loc loc, enum TOK op, int size, Declaration *var, int hasOverloads)
+    : Expression(loc, op, size)
 {
     assert(var);
     this->var = var;
-    this->offset = offset;
     this->hasOverloads = hasOverloads;
+}
+
+/********************** SymOffExp **************************************/
+
+SymOffExp::SymOffExp(Loc loc, Declaration *var, unsigned offset, int hasOverloads)
+    : SymbolExp(loc, TOKsymoff, sizeof(SymOffExp), var, hasOverloads)
+{
+    this->offset = offset;
 
     VarDeclaration *v = var->isVarDeclaration();
     if (v && v->needThis())
@@ -3485,13 +3479,11 @@ void SymOffExp::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 /******************************** VarExp **************************/
 
 VarExp::VarExp(Loc loc, Declaration *var, int hasOverloads)
-	: Expression(loc, TOKvar, sizeof(VarExp))
+    : SymbolExp(loc, TOKvar, sizeof(VarExp), var, hasOverloads)
 {
-    //printf("VarExp(this = %p, '%s')\n", this, var->toChars());
+    //printf("VarExp(this = %p, '%s', loc = %s)\n", this, var->toChars(), loc.toChars());
     //if (strcmp(var->ident->toChars(), "func") == 0) halt();
-    this->var = var;
     this->type = var->type;
-    this->hasOverloads = hasOverloads;
 }
 
 int VarExp::equals(Object *o)
@@ -3797,6 +3789,7 @@ Expression *FuncExp::semantic(Scope *sc)
 	{
 	    type = fd->type->pointerTo();
 	}
+	fd->tookAddressOf++;
     }
     return this;
 }
@@ -5995,6 +5988,8 @@ Expression *AddrExp::semantic(Scope *sc)
 
 	    if (f)
 	    {
+		if (!dve->hasOverloads)
+		    f->tookAddressOf = 1;
 		Expression *e = new DelegateExp(loc, dve->e1, f, dve->hasOverloads);
 		e = e->semantic(sc);
 		return e;
@@ -6010,6 +6005,8 @@ Expression *AddrExp::semantic(Scope *sc)
 
 	    if (f)
 	    {
+		if (!ve->hasOverloads)
+		    f->tookAddressOf = 1;
 		if (f->isNested())
 		{
 		    Expression *e = new DelegateExp(loc, e1, f, ve->hasOverloads);
@@ -6044,31 +6041,35 @@ Expression *PtrExp::semantic(Scope *sc)
 #if LOGSEMANTIC
     printf("PtrExp::semantic('%s')\n", toChars());
 #endif
-    UnaExp::semantic(sc);
-    e1 = resolveProperties(sc, e1);
-    if (type)
-	return this;
-    if (!e1->type)
-	printf("PtrExp::semantic('%s')\n", toChars());
-    tb = e1->type->toBasetype();
-    switch (tb->ty)
+    if (!type)
     {
-	case Tpointer:
-	    type = ((TypePointer *)tb)->next;
-	    break;
+	UnaExp::semantic(sc);
+	e1 = resolveProperties(sc, e1);
+	if (!e1->type)
+	    printf("PtrExp::semantic('%s')\n", toChars());
+	Expression *e = op_overload(sc);
+	if (e)
+	    return e;
+	tb = e1->type->toBasetype();
+	switch (tb->ty)
+	{
+	    case Tpointer:
+		type = ((TypePointer *)tb)->next;
+		break;
 
-	case Tsarray:
-	case Tarray:
-	    type = ((TypeArray *)tb)->next;
-	    e1 = e1->castTo(sc, type->pointerTo());
-	    break;
+	    case Tsarray:
+	    case Tarray:
+		type = ((TypeArray *)tb)->next;
+		e1 = e1->castTo(sc, type->pointerTo());
+		break;
 
-	default:
-	    error("can only * a pointer, not a '%s'", e1->type->toChars());
-	    type = Type::tint32;
-	    break;
+	    default:
+		error("can only * a pointer, not a '%s'", e1->type->toChars());
+		type = Type::tint32;
+		break;
+	}
+	rvalue();
     }
-    rvalue();
     return this;
 }
 
@@ -7400,10 +7401,10 @@ Expression *MinAssignExp::semantic(Scope *sc)
 	e = scaleFactor(sc);
     else
     {
+	e1 = e1->checkArithmetic();
+	e2 = e2->checkArithmetic();
 	type = e1->type;
 	typeCombine(sc);
-	e1->checkArithmetic();
-	e2->checkArithmetic();
 	if (type->isreal() || type->isimaginary())
 	{
 	    assert(e2->type->isfloating());

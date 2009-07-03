@@ -936,6 +936,7 @@ void VarDeclaration::toObjFile()
     Dsymbol *parent;
 
     //printf("VarDeclaration::toObjFile(%p '%s' type=%s) protection %d\n", this, toChars(), type->toChars(), protection);
+    //printf("\talign = %d\n", type->alignsize());
 
     if (aliassym)
     {	toAlias()->toObjFile();

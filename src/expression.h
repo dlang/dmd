@@ -108,7 +108,7 @@ struct Expression : Object
     void checkScalar();
     void checkNoBool();
     Expression *checkIntegral();
-    void checkArithmetic();
+    Expression *checkArithmetic();
     void checkDeprecated(Scope *sc, Dsymbol *s);
     virtual Expression *checkToBoolean();
     Expression *checkToPointer();
@@ -516,13 +516,21 @@ struct NewAnonClassExp : Expression
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
 };
 
-// Offset from symbol
-
-struct SymOffExp : Expression
+struct SymbolExp : Expression
 {
     Declaration *var;
-    unsigned offset;
     int hasOverloads;
+
+    SymbolExp(Loc loc, enum TOK op, int size, Declaration *var, int hasOverloads);
+
+    elem *toElem(IRState *irs);
+};
+
+// Offset from symbol
+
+struct SymOffExp : SymbolExp
+{
+    unsigned offset;
 
     SymOffExp(Loc loc, Declaration *var, unsigned offset, int hasOverloads = 0);
     Expression *semantic(Scope *sc);
@@ -535,17 +543,13 @@ struct SymOffExp : Expression
     Expression *castTo(Scope *sc, Type *t);
     void scanForNestedRef(Scope *sc);
 
-    elem *toElem(IRState *irs);
     dt_t **toDt(dt_t **pdt);
 };
 
 // Variable
 
-struct VarExp : Expression
+struct VarExp : SymbolExp
 {
-    Declaration *var;
-    int hasOverloads;
-
     VarExp(Loc loc, Declaration *var, int hasOverloads = 0);
     int equals(Object *o);
     Expression *semantic(Scope *sc);
@@ -557,7 +561,6 @@ struct VarExp : Expression
     void checkEscape();
     Expression *toLvalue(Scope *sc, Expression *e);
     Expression *modifiableLvalue(Scope *sc, Expression *e);
-    elem *toElem(IRState *irs);
     dt_t **toDt(dt_t **pdt);
     void scanForNestedRef(Scope *sc);
 
@@ -876,6 +879,9 @@ struct PtrExp : UnaExp
     elem *toElem(IRState *irs);
     Expression *optimize(int result);
     Expression *interpret(InterState *istate);
+
+    // For operator overloading
+    Identifier *opId();
 };
 
 struct NegExp : UnaExp

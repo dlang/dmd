@@ -318,7 +318,9 @@ Expression *PtrExp::optimize(int result)
 }
 
 Expression *CallExp::optimize(int result)
-{   Expression *e = this;
+{
+    //printf("CallExp::optimize(result = %d) %s\n", result, toChars());
+    Expression *e = this;
 
     e1 = e1->optimize(result);
     if (e1->op == TOKvar)
@@ -336,9 +338,9 @@ Expression *CallExp::optimize(int result)
 	    else if (result & WANTinterpret)
 	    {
 		Expression *eresult = fd->interpret(NULL, arguments);
-		if (eresult)
+		if (eresult && eresult != EXP_VOID_INTERPRET)
 		    e = eresult;
-		else if (result & WANTinterpret)
+		else
 		    error("cannot evaluate %s at compile time", toChars());
 	    }
 	}

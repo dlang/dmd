@@ -546,8 +546,6 @@ Expression *DeclarationExp::doInline(InlineDoState *ids)
 	    ;
 	else
 	{
-	    ExpInitializer *ie;
-	    ExpInitializer *ieto;
 	    VarDeclaration *vto;
 
 	    vto = new VarDeclaration(vd->loc, vd->type, vd->ident, vd->init);
@@ -559,16 +557,18 @@ Expression *DeclarationExp::doInline(InlineDoState *ids)
 	    ids->from.push(vd);
 	    ids->to.push(vto);
 
-	    if (vd->init->isVoidInitializer())
+	    if (vd->init)
 	    {
-		vto->init = new VoidInitializer(vd->init->loc);
-	    }
-	    else
-	    {
-		ie = vd->init->isExpInitializer();
-		assert(ie);
-		ieto = new ExpInitializer(ie->loc, ie->exp->doInline(ids));
-		vto->init = ieto;
+		if (vd->init->isVoidInitializer())
+		{
+		    vto->init = new VoidInitializer(vd->init->loc);
+		}
+		else
+		{
+		    ExpInitializer *ie = vd->init->isExpInitializer();
+		    assert(ie);
+		    vto->init = new ExpInitializer(ie->loc, ie->exp->doInline(ids));
+		}
 	    }
 	    de->declaration = (Dsymbol *) (void *)vto;
 	}
@@ -854,7 +854,8 @@ Statement *ForStatement::inlineScan(InlineScanState *iss)
 Statement *ForeachStatement::inlineScan(InlineScanState *iss)
 {
     aggr = aggr->inlineScan(iss);
-    body = body->inlineScan(iss);
+    if (body)
+	body = body->inlineScan(iss);
     return this;
 }
 
@@ -864,7 +865,8 @@ Statement *ForeachRangeStatement::inlineScan(InlineScanState *iss)
 {
     lwr = lwr->inlineScan(iss);
     upr = upr->inlineScan(iss);
-    body = body->inlineScan(iss);
+    if (body)
+	body = body->inlineScan(iss);
     return this;
 }
 #endif
@@ -1288,7 +1290,11 @@ int FuncDeclaration::canInline(int hasthis, int hdrscan)
 #endif
 	isSynchronized() ||
 	isImportedSymbol() ||
+#if V2
+	closureVars.dim ||	// no nested references to this frame
+#else
 	nestedFrameRef ||	// no nested references to this frame
+#endif
 	(isVirtual() && !isFinal())
        ))
     {
