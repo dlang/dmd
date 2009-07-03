@@ -1758,7 +1758,7 @@ Lagain:
     em = s->isEnumMember();
     if (em)
     {
-	e = em->value;
+	e = em->value->copy();
 	e = e->semantic(sc);
 	return e;
     }

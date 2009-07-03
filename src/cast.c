@@ -547,30 +547,27 @@ MATCH CondExp::implicitConvTo(Type *t)
  */
 
 Expression *Expression::castTo(Scope *sc, Type *t)
-{   Expression *e;
-    Type *tb;
-
+{
     //printf("Expression::castTo(this=%s, t=%s)\n", toChars(), t->toChars());
 #if 0
     printf("Expression::castTo(this=%s, type=%s, t=%s)\n",
 	toChars(), type->toChars(), t->toChars());
 #endif
-    e = this;
-    tb = t->toBasetype();
-    type = type->toBasetype();
-    if (tb != type)
+    if (type == t)
+	return this;
+    Expression *e = this;
+    Type *tb = t->toBasetype();
+    Type *typeb = type->toBasetype();
+    if (tb != typeb)
     {
-	if (tb->ty == Tbit && isBit())
-	    ;
-
 	// Do (type *) cast of (type [dim])
-	else if (tb->ty == Tpointer &&
-	    type->ty == Tsarray
+	if (tb->ty == Tpointer &&
+	    typeb->ty == Tsarray
 	   )
 	{
 	    //printf("Converting [dim] to *\n");
 
-	    if (type->size(loc) == 0)
+	    if (typeb->size(loc) == 0)
 		e = new NullExp(loc);
 	    else
 		e = new AddrExp(loc, e);
@@ -579,8 +576,8 @@ Expression *Expression::castTo(Scope *sc, Type *t)
 	else if (tb->ty == Tdelegate && type->ty != Tdelegate)
 	{
 	    TypeDelegate *td = (TypeDelegate *)tb;
-	    TypeFunction *tf = (TypeFunction *)td->next;
-	    return toDelegate(sc, tf->next);
+	    TypeFunction *tf = (TypeFunction *)td->nextOf();
+	    return toDelegate(sc, tf->nextOf());
 	}
 #endif
 	else
@@ -588,6 +585,11 @@ Expression *Expression::castTo(Scope *sc, Type *t)
 	    e = new CastExp(loc, e, tb);
 	}
     }
+    else
+    {
+	e = e->copy();	// because of COW for assignment to e->type
+    }
+    assert(e != this);
     e->type = t;
     //printf("Returning: %s\n", e->toChars());
     return e;
@@ -595,47 +597,62 @@ Expression *Expression::castTo(Scope *sc, Type *t)
 
 
 Expression *RealExp::castTo(Scope *sc, Type *t)
-{
-    if (type->isreal() && t->isreal())
-	type = t;
-    else if (type->isimaginary() && t->isimaginary())
-	type = t;
-    else
-	return Expression::castTo(sc, t);
-    return this;
+{   Expression *e = this;
+    if (type != t)
+    {
+	if ((type->isreal() && t->isreal()) ||
+	    (type->isimaginary() && t->isimaginary())
+	   )
+	{   e = copy();
+	    e->type = t;
+	}
+	else
+	    e = Expression::castTo(sc, t);
+    }
+    return e;
 }
 
 
 Expression *ComplexExp::castTo(Scope *sc, Type *t)
-{
-    if (type->iscomplex() && t->iscomplex())
-	type = t;
-    else
-	return Expression::castTo(sc, t);
-    return this;
+{   Expression *e = this;
+    if (type != t)
+    {
+	if (type->iscomplex() && t->iscomplex())
+	{   e = copy();
+	    e->type = t;
+	}
+	else
+	    e = Expression::castTo(sc, t);
+    }
+    return e;
 }
 
 
 Expression *NullExp::castTo(Scope *sc, Type *t)
-{   Expression *e;
+{   NullExp *e;
     Type *tb;
 
     //printf("NullExp::castTo(t = %p)\n", t);
-    committed = 1;
-    e = this;
+    if (type == t)
+    {
+	committed = 1;
+	return this;
+    }
+    e = (NullExp *)copy();
+    e->committed = 1;
     tb = t->toBasetype();
-    type = type->toBasetype();
-    if (tb != type)
+    e->type = type->toBasetype();
+    if (tb != e->type)
     {
 	// NULL implicitly converts to any pointer type or dynamic array
-	if (type->ty == Tpointer && type->next->ty == Tvoid &&
+	if (e->type->ty == Tpointer && e->type->nextOf()->ty == Tvoid &&
 	    (tb->ty == Tpointer || tb->ty == Tarray || tb->ty == Taarray ||
 	     tb->ty == Tdelegate))
 	{
 #if 0
 	    if (tb->ty == Tdelegate)
 	    {   TypeDelegate *td = (TypeDelegate *)tb;
-		TypeFunction *tf = (TypeFunction *)td->next;
+		TypeFunction *tf = (TypeFunction *)td->nextOf();
 
 		if (!tf->varargs &&
 		    !(tf->arguments && tf->arguments->dim)
@@ -648,8 +665,7 @@ Expression *NullExp::castTo(Scope *sc, Type *t)
 	}
 	else
 	{
-	    return Expression::castTo(sc, t);
-	    //e = new CastExp(loc, e, tb);
+	    return e->Expression::castTo(sc, t);
 	}
     }
     e->type = t;
@@ -919,23 +935,31 @@ Expression *AddrExp::castTo(Scope *sc, Type *t)
 
 
 Expression *TupleExp::castTo(Scope *sc, Type *t)
-{
-    for (size_t i = 0; i < exps->dim; i++)
-    {   Expression *e = (Expression *)exps->data[i];
-	e = e->castTo(sc, t);
-	exps->data[i] = (void *)e;
+{   TupleExp *e = (TupleExp *)copy();
+    e->exps = (Expressions *)exps->copy();
+    for (size_t i = 0; i < e->exps->dim; i++)
+    {   Expression *ex = (Expression *)e->exps->data[i];
+	ex = ex->castTo(sc, t);
+	e->exps->data[i] = (void *)ex;
     }
-    return this;
+    return e;
 }
 
 
 Expression *ArrayLiteralExp::castTo(Scope *sc, Type *t)
 {
+#if 0
+    printf("ArrayLiteralExp::castTo(this=%s, type=%s, t=%s)\n",
+	toChars(), type->toChars(), t->toChars());
+#endif
+    if (type == t)
+	return this;
+    ArrayLiteralExp *e = this;
     Type *typeb = type->toBasetype();
     Type *tb = t->toBasetype();
     if ((tb->ty == Tarray || tb->ty == Tsarray) &&
 	(typeb->ty == Tarray || typeb->ty == Tsarray) &&
-	tb->next->toBasetype()->ty != Tvoid)
+	tb->nextOf()->toBasetype()->ty != Tvoid)
     {
 	if (tb->ty == Tsarray)
 	{   TypeSArray *tsa = (TypeSArray *)tb;
@@ -943,45 +967,55 @@ Expression *ArrayLiteralExp::castTo(Scope *sc, Type *t)
 		goto L1;
 	}
 
+	e = (ArrayLiteralExp *)copy();
+	e->elements = (Expressions *)elements->copy();
 	for (int i = 0; i < elements->dim; i++)
-	{   Expression *e = (Expression *)elements->data[i];
-	    e = e->castTo(sc, tb->next);
-	    elements->data[i] = (void *)e;
+	{   Expression *ex = (Expression *)elements->data[i];
+	    ex = ex->castTo(sc, tb->nextOf());
+	    e->elements->data[i] = (void *)ex;
 	}
-	type = t;
-	return this;
+	e->type = t;
+	return e;
     }
     if (tb->ty == Tpointer && typeb->ty == Tsarray)
     {
-	type = typeb->next->pointerTo();
+	e = (ArrayLiteralExp *)copy();
+	e->type = typeb->nextOf()->pointerTo();
     }
 L1:
-    return Expression::castTo(sc, t);
+    return e->Expression::castTo(sc, t);
 }
 
 Expression *AssocArrayLiteralExp::castTo(Scope *sc, Type *t)
 {
+    if (type == t)
+	return this;
+    AssocArrayLiteralExp *e = this;
     Type *typeb = type->toBasetype();
     Type *tb = t->toBasetype();
     if (tb->ty == Taarray && typeb->ty == Taarray &&
-	tb->next->toBasetype()->ty != Tvoid)
+	tb->nextOf()->toBasetype()->ty != Tvoid)
     {
+	e = (AssocArrayLiteralExp *)copy();
+	e->keys = (Expressions *)keys->copy();
+	e->values = (Expressions *)values->copy();
 	assert(keys->dim == values->dim);
 	for (size_t i = 0; i < keys->dim; i++)
-	{   Expression *e = (Expression *)values->data[i];
-	    e = e->castTo(sc, tb->next);
-	    values->data[i] = (void *)e;
+	{   Expression *ex = (Expression *)values->data[i];
+	    ex = ex->castTo(sc, tb->nextOf());
+	    e->values->data[i] = (void *)ex;
 
-	    e = (Expression *)keys->data[i];
-	    e = e->castTo(sc, ((TypeAArray *)tb)->key);
-	    keys->data[i] = (void *)e;
+	    ex = (Expression *)keys->data[i];
+	    ex = ex->castTo(sc, ((TypeAArray *)tb)->index);
+	    e->keys->data[i] = (void *)ex;
 	}
-	type = t;
-	return this;
+	e->type = t;
+	return e;
     }
 L1:
-    return Expression::castTo(sc, t);
+    return e->Expression::castTo(sc, t);
 }
+
 
 Expression *SymOffExp::castTo(Scope *sc, Type *t)
 {

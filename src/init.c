@@ -179,7 +179,7 @@ Initializer *StructInitializer::semantic(Scope *sc, Type *t)
 		s = ad->search(loc, id, 0);
 		if (!s)
 		{
-		    error("'%s' is not a member of '%s'", id->toChars(), t->toChars());
+		    error(loc, "'%s' is not a member of '%s'", id->toChars(), t->toChars());
 		    continue;
 		}
 

@@ -57,7 +57,7 @@ Expression *interpret_aaValues(InterState *istate, Expressions *arguments);
 Expression *FuncDeclaration::interpret(InterState *istate, Expressions *arguments)
 {
 #if LOG
-    printf("FuncDeclaration::interpret() %s\n", toChars());
+    printf("\n********\nFuncDeclaration::interpret(istate = %p) %s\n", istate, toChars());
     printf("cantInterpret = %d, semanticRun = %d\n", cantInterpret, semanticRun);
 #endif
     if (global.errors)
@@ -161,7 +161,15 @@ Expression *FuncDeclaration::interpret(InterState *istate, Expressions *argument
 	    else
 	    {	/* Value parameters
 		 */
-		earg = earg->interpret(&istatex);
+		Type *ta = arg->type->toBasetype();
+		if (ta->ty == Tsarray && earg->op == TOKaddress)
+		{
+		    /* Static arrays are passed by a simple pointer.
+		     * Skip past this to get at the actual arg.
+		     */
+		    earg = ((AddrExp *)earg)->e1;
+		}
+		earg = earg->interpret(istate ? istate : &istatex);
 		if (earg == EXP_CANT_INTERPRET)
 		    return NULL;
 		v->value = earg;
@@ -177,13 +185,13 @@ Expression *FuncDeclaration::interpret(InterState *istate, Expressions *argument
     Expressions valueSaves;
     if (istate)
     {
-	//printf("saving state...\n");
+	//printf("saving local variables...\n");
 	valueSaves.setDim(istate->vars.dim);
 	for (size_t i = 0; i < istate->vars.dim; i++)
 	{   VarDeclaration *v = (VarDeclaration *)istate->vars.data[i];
 	    if (v)
 	    {
-		//printf("\tsaving [%d] %s = %s\n", i, v->toChars(), v->value->toChars());
+		//printf("\tsaving [%d] %s = %s\n", i, v->toChars(), v->value ? v->value->toChars() : "");
 		valueSaves.data[i] = v->value;
 		v->value = NULL;
 	    }
@@ -230,10 +238,13 @@ Expression *FuncDeclaration::interpret(InterState *istate, Expressions *argument
     {
 	/* Restore the variable values
 	 */
+	//printf("restoring local variables...\n");
 	for (size_t i = 0; i < istate->vars.dim; i++)
 	{   VarDeclaration *v = (VarDeclaration *)istate->vars.data[i];
 	    if (v)
-		v->value = (Expression *)valueSaves.data[i];
+	    {	v->value = (Expression *)valueSaves.data[i];
+		//printf("\trestoring [%d] %s = %s\n", i, v->toChars(), v->value ? v->value->toChars() : "");
+	    }
 	}
     }
 
@@ -904,6 +915,8 @@ Expression *Expression::interpret(InterState *istate)
 {
 #if LOG
     printf("Expression::interpret() %s\n", toChars());
+    printf("type = %s\n", type->toChars());
+    dump(0);
 #endif
     return EXP_CANT_INTERPRET;
 }
@@ -949,7 +962,11 @@ Expression *getVarExp(Loc loc, InterState *istate, Declaration *d)
     SymbolDeclaration *s = d->isSymbolDeclaration();
     if (v)
     {
+#if V2
+	if ((v->isConst() || v->isInvariant()) && v->init && !v->value)
+#else
 	if (v->isConst() && v->init)
+#endif
 	{   e = v->init->toExpression();
 	    if (e && !e->type)
 		e->type = v->type;
@@ -1001,7 +1018,11 @@ Expression *DeclarationExp::interpret(InterState *istate)
 	    else if (v->init->isVoidInitializer())
 		e = NULL;
 	}
+#if V2
+	else if (s == v && (v->isConst() || v->isInvariant()) && v->init)
+#else
 	else if (s == v && v->isConst() && v->init)
+#endif
 	{   e = v->init->toExpression();
 	    if (!e)
 		e = EXP_CANT_INTERPRET;
@@ -1416,8 +1437,16 @@ Expression *BinExp::interpretAssignCommon(InterState *istate, fp_t fp, int post)
 	     */
 	    if (v->value && v->value->op == TOKvar)
 	    {
-		ve = (VarExp *)v->value;
-		v = ve->var->isVarDeclaration();
+		VarExp *ve2 = (VarExp *)v->value;
+		if (ve2->var->isSymbolDeclaration())
+		{
+		    /* This can happen if v is a struct initialized to
+		     * 0 using an __initZ SymbolDeclaration from
+		     * TypeStruct::defaultInit()
+		     */
+		}
+		else
+		    v = ve2->var->isVarDeclaration();
 		assert(v);
 	    }
 
@@ -1445,6 +1474,7 @@ Expression *BinExp::interpretAssignCommon(InterState *istate, fp_t fp, int post)
 		    {
 			if (i == istate->vars.dim)
 			{   istate->vars.push(v);
+			    //printf("\tadding %s to istate\n", v->toChars());
 			    break;
 			}
 			if (v == (VarDeclaration *)istate->vars.data[i])
@@ -1797,7 +1827,27 @@ Expression *CallExp::interpret(InterState *istate)
     {
 	FuncDeclaration *fd = ((VarExp *)e1)->var->isFuncDeclaration();
 	if (fd)
-	{   // Inline .dup
+	{
+#if V2
+	    enum BUILTIN b = fd->isBuiltin();
+	    if (b)
+	    {	Expressions args;
+		args.setDim(arguments->dim);
+		for (size_t i = 0; i < args.dim; i++)
+		{
+		    Expression *earg = (Expression *)arguments->data[i];
+		    earg = earg->interpret(istate);
+		    if (earg == EXP_CANT_INTERPRET)
+			return earg;
+		    args.data[i] = (void *)earg;
+		}
+		e = eval_builtin(b, &args);
+		if (!e)
+		    e = EXP_CANT_INTERPRET;
+	    }
+	    else
+#endif
+	    // Inline .dup
 	    if (fd->ident == Id::adDup && arguments && arguments->dim == 2)
 	    {
 		e = (Expression *)arguments->data[1];
@@ -1812,7 +1862,7 @@ Expression *CallExp::interpret(InterState *istate)
 		Expression *eresult = fd->interpret(istate, arguments);
 		if (eresult)
 		    e = eresult;
-		else if (fd->type->toBasetype()->nextOf()->ty == Tvoid)
+		else if (fd->type->toBasetype()->nextOf()->ty == Tvoid && !global.errors)
 		    e = EXP_VOID_INTERPRET;
 		else
 		    error("cannot evaluate %s at compile time", toChars());
