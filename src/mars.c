@@ -60,7 +60,7 @@ Global::Global()
 
     copyright = "Copyright (c) 1999-2007 by Digital Mars";
     written = "written by Walter Bright";
-    version = "v2.000";
+    version = "v2.001";
     global.structalign = 8;
 
     memset(&params, 0, sizeof(Param));
@@ -187,7 +187,6 @@ Usage:\n\
   -run srcfile args...   run resulting program, passing args\n\
   -unittest      compile in unit tests\n\
   -v             verbose\n\
-  -v1            D language version 1\n\
   -version=level compile in version code >= level\n\
   -version=ident compile in version code identified by ident\n\
   -w             enable warnings\n\
@@ -263,6 +262,7 @@ int main(int argc, char *argv[])
     //VersionCondition::addPredefinedGlobalIdent("D_Bits");
     VersionCondition::addPredefinedGlobalIdent("D_InlineAsm");
     VersionCondition::addPredefinedGlobalIdent("D_InlineAsm_X86");
+    VersionCondition::addPredefinedGlobalIdent("D_Version2");
     VersionCondition::addPredefinedGlobalIdent("all");
 
 #if _WIN32
@@ -306,7 +306,10 @@ int main(int argc, char *argv[])
 	    else if (strcmp(p + 1, "v") == 0)
 		global.params.verbose = 1;
 	    else if (strcmp(p + 1, "v1") == 0)
-		global.params.Dversion = 1;
+	    {
+		error("use DMD 1.0 series compilers for -v1 switch");
+		break;
+	    }
 	    else if (strcmp(p + 1, "w") == 0)
 		global.params.warnings = 1;
 	    else if (strcmp(p + 1, "O") == 0)

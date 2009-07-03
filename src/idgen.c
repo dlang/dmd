@@ -95,6 +95,8 @@ Msgtable msgtable[] =
     { "DATE", "__DATE__" },
     { "TIME", "__TIME__" },
     { "TIMESTAMP", "__TIMESTAMP__" },
+    { "VENDOR", "__VENDOR__" },
+    { "VERSIONX", "__VERSION__" },
 
     { "nan" },
     { "infinity" },

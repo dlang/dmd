@@ -2913,6 +2913,16 @@ Statement *WithStatement::semantic(Scope *sc)
 
 	sym = es->sds;
     }
+    else if (exp->op == TOKtype)
+    {	TypeExp *es = (TypeExp *)exp;
+
+	sym = es->type->toDsymbol(sc)->isScopeDsymbol();
+	if (!sym)
+	{   error("%s has no members", es->toChars());
+	    body = body->semantic(sc);
+	    return this;
+	}
+    }
     else
     {	Type *t = exp->type;
 

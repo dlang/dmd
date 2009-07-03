@@ -603,7 +603,8 @@ void argsToCBuffer(OutBuffer *buf, Expressions *arguments, HdrGenState *hgs)
 
 	    if (i)
 		buf->writeByte(',');
-	    expToCBuffer(buf, hgs, arg, PREC_assign);
+	    if (arg)
+		expToCBuffer(buf, hgs, arg, PREC_assign);
 	}
     }
 }
@@ -2348,10 +2349,11 @@ void StringExp::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 	{
 	    case '"':
 	    case '\\':
-		buf->writeByte('\\');
+		if (!hgs->console)
+		    buf->writeByte('\\');
 	    default:
 		if (c <= 0xFF)
-		{   if (c <= 0x7F && isprint(c))
+		{   if (c <= 0x7F && (isprint(c) || hgs->console))
 			buf->writeByte(c);
 		    else
 			buf->printf("\\x%02x", c);
@@ -2662,7 +2664,7 @@ StructLiteralExp::StructLiteralExp(Loc loc, StructDeclaration *sd, Expressions *
 {
     this->sd = sd;
     this->elements = elements;
-    this->s = NULL;
+    this->sym = NULL;
     this->soffset = 0;
     this->fillHoles = 1;
 }
@@ -2678,6 +2680,8 @@ Expression *StructLiteralExp::semantic(Scope *sc)
 #if LOGSEMANTIC
     printf("StructLiteralExp::semantic('%s')\n", toChars());
 #endif
+    if (type)
+	return this;
 
     // Run semantic() on each element
     for (size_t i = 0; i < elements->dim; i++)
@@ -2707,7 +2711,17 @@ Expression *StructLiteralExp::semantic(Scope *sc)
 	if (v->offset < offset)
 	    error("overlapping initialization for %s", v->toChars());
 	offset = v->offset + v->type->size();
-	e = e->implicitCastTo(sc, v->type);
+
+	Type *telem = v->type;
+	while (!e->implicitConvTo(telem) && telem->toBasetype()->ty == Tsarray)
+	{   /* Static array initialization, as in:
+	     *	T[3][5] = e;
+	     */
+	    telem = telem->toBasetype()->nextOf();
+	}
+
+	e = e->implicitCastTo(sc, telem);
+
 	elements->data[i] = (void *)e;
     }
 
@@ -2730,7 +2744,9 @@ Expression *StructLiteralExp::semantic(Scope *sc)
 		    error("cannot make expression out of initializer for %s", v->toChars());
 	    }
 	    else
-		e = v->type->defaultInit();
+	    {	e = v->type->defaultInit();
+		e->loc = loc;
+	    }
 	    offset = v->offset + v->type->size();
 	}
 	elements->push(e);
@@ -2788,6 +2804,11 @@ int StructLiteralExp::getFieldIndex(Type *type, unsigned offset)
     return -1;
 }
 
+
+Expression *StructLiteralExp::toLvalue(Scope *sc, Expression *e)
+{
+    return this;
+}
 
 
 int StructLiteralExp::checkSideEffect(int flag)
@@ -3393,7 +3414,7 @@ void SymOffExp::checkEscape()
     if (v)
     {
 	if (!v->isDataseg())
-	    error("escaping reference to local %s", v->toChars());
+	    error("escaping reference to local variable %s", v->toChars());
     }
 }
 
@@ -4815,16 +4836,16 @@ Expression *DotVarExp::semantic(Scope *sc)
 	}
 	assert(type);
 
-	Type *t1 = e1->type;
-	if (t1->ty == Tpointer)
-	    t1 = t1->nextOf();
-	if (t1->isConst())
-	    type = type->constOf();
-	else if (t1->isInvariant())
-	    type = type->invariantOf();
-
 	if (!var->isFuncDeclaration())	// for functions, do checks after overload resolution
 	{
+	    Type *t1 = e1->type;
+	    if (t1->ty == Tpointer)
+		t1 = t1->nextOf();
+	    if (t1->isConst())
+		type = type->constOf();
+	    else if (t1->isInvariant())
+		type = type->invariantOf();
+
 	    AggregateDeclaration *ad = var->toParent()->isAggregateDeclaration();
 	L1:
 	    Type *t = e1->type;
@@ -5475,6 +5496,15 @@ Lagain:
 		{
 		    if (tthis->mod != 0)
 			error("%s can only be called on a mutable object", e1->toChars());
+		}
+
+		/* Cannot call mutable method on a final struct
+		 */
+		if (tthis->ty == Tstruct &&
+		    ue->e1->op == TOKvar)
+		{   VarExp *v = (VarExp *)ue->e1;
+		    if (v->var->storage_class & STCfinal)
+			error("cannot call mutable method on final struct");
 		}
 	    }
 
@@ -6181,7 +6211,7 @@ void CastExp::checkEscape()
 	VarDeclaration *v = ve->var->isVarDeclaration();
 	if (v)
 	{
-	    if (!v->isDataseg())
+	    if (!v->isDataseg() && !v->isParameter())
 		error("escaping reference to local %s", v->toChars());
 	}
     }
@@ -7664,17 +7694,24 @@ Expression *CatExp::semantic(Scope *sc)
 	type->print();
 	print();
 #endif
+	Type *t1 = e1->type->toBasetype();
+	Type *t2 = e2->type->toBasetype();
 	if (e1->op == TOKstring && e2->op == TOKstring)
 	    e = optimize(WANTvalue);
+	else if ((t1->ty == Tarray || t1->ty == Tsarray) &&
+		 (t2->ty == Tarray || t2->ty == Tsarray))
+#if 0
 	else if ((e1->type->implicitConvTo(e2->type) >= MATCHconst ||
 		  e2->type->implicitConvTo(e1->type) >= MATCHconst) &&
 		(e1->type->toBasetype()->ty == Tarray ||
 		 e1->type->toBasetype()->ty == Tsarray))
+#endif
 	{
 	    e = this;
 	}
 	else
 	{
+	    //printf("(%s) ~ (%s)\n", e1->toChars(), e2->toChars());
 	    error("Can only concatenate arrays, not (%s ~ %s)",
 		e1->type->toChars(), e2->type->toChars());
 	    type = Type::tint32;

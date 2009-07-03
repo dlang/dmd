@@ -425,10 +425,10 @@ void TypeInfoStructDeclaration::toDt(dt_t **pdt)
     /* Put out:
      *	char[] name;
      *	void[] init;
-     *	hash_t function(void*) xtoHash;
-     *	int function(void*,void*) xopEquals;
-     *	int function(void*,void*) xopCmp;
-     *	char[] function(void*) xtoString;
+     *	hash_t function(in void*) xtoHash;
+     *	int function(in void*, in void*) xopEquals;
+     *	int function(in void*, in void*) xopCmp;
+     *	string function(const(void)*) xtoString;
      *	uint m_flags;
      *
      *	name[]

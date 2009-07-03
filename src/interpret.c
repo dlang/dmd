@@ -858,7 +858,7 @@ Expression *StringExp::interpret(InterState *istate)
     return this;
 }
 
-Expression *getVarExp(InterState *istate, Declaration *d)
+Expression *getVarExp(Loc loc, InterState *istate, Declaration *d)
 {
     Expression *e = EXP_CANT_INTERPRET;
     VarDeclaration *v = d->isVarDeclaration();
@@ -873,7 +873,7 @@ Expression *getVarExp(InterState *istate, Declaration *d)
 	else
 	{   e = v->value;
 	    if (!e)
-		error("variable %s is used before initialization", v->toChars());
+		error(loc, "variable %s is used before initialization", v->toChars());
 	    else if (e != EXP_CANT_INTERPRET)
 		e = e->interpret(istate);
 	}
@@ -896,7 +896,7 @@ Expression *VarExp::interpret(InterState *istate)
 #if LOG
     printf("VarExp::interpret() %s\n", toChars());
 #endif
-    return getVarExp(istate, var);
+    return getVarExp(loc, istate, var);
 }
 
 Expression *DeclarationExp::interpret(InterState *istate)
@@ -1414,9 +1414,35 @@ Expression *BinExp::interpretAssignCommon(InterState *istate, fp_t fp)
 
 	if (!v || v->isDataseg())
 	    return EXP_CANT_INTERPRET;
-	if (fp && !v->value)
-	{   error("variable %s is used before initialization", v->toChars());
-	    return e;
+	if (!v->value)
+	{
+	    if (fp)
+	    {   error("variable %s is used before initialization", v->toChars());
+		return e;
+	    }
+
+	    Type *t = v->type->toBasetype();
+	    if (t->ty == Tsarray)
+	    {
+		/* This array was void initialized. Create a
+		 * default initializer for it.
+		 * What we should do is fill the array literal with
+		 * NULL data, so use-before-initialized can be detected.
+		 * But we're too lazy at the moment to do it, as that
+		 * involves redoing Index() and whoever calls it.
+		 */
+		Expression *ev = v->type->defaultInit();
+		size_t dim = ((TypeSArray *)t)->dim->toInteger();
+		Expressions *elements = new Expressions();
+		elements->setDim(dim);
+		for (size_t i = 0; i < dim; i++)
+		    elements->data[i] = (void *)ev;
+		ArrayLiteralExp *ae = new ArrayLiteralExp(0, elements);
+		ae->type = v->type;
+		v->value = ae;
+	    }
+	    else
+		return EXP_CANT_INTERPRET;
 	}
 
 	ArrayLiteralExp *ae = NULL;
@@ -1615,8 +1641,9 @@ Expression *PostExp::interpret(InterState *istate)
 				break;
 			}
 		    }
+		    Expression *eold = v->value;
 		    v->value = e;
-		    e = Cast(type, type, e2);
+		    e = Cast(type, type, eold);
 		}
 	    }
 	}
@@ -1939,7 +1966,7 @@ Expression *PtrExp::interpret(InterState *istate)
     {	SymOffExp *soe = (SymOffExp *)e1;
 	VarDeclaration *v = soe->var->isVarDeclaration();
 	if (v)
-	{   Expression *ev = getVarExp(istate, v);
+	{   Expression *ev = getVarExp(loc, istate, v);
 	    if (ev != EXP_CANT_INTERPRET && ev->op == TOKstructliteral)
 	    {	StructLiteralExp *se = (StructLiteralExp *)ev;
 		e = se->getField(type, soe->offset);

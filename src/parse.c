@@ -123,6 +123,7 @@ Array *Parser::parseDeclDefs(int once)
     Array *aelse;
     enum PROT prot;
     unsigned stc;
+    unsigned storageClass;
     Condition *condition;
     unsigned char *comment;
 
@@ -131,6 +132,7 @@ Array *Parser::parseDeclDefs(int once)
     do
     {
 	comment = token.blockComment;
+	storageClass = 0;
 	switch (token.value)
 	{
 	    case TOKenum:
@@ -190,9 +192,14 @@ Array *Parser::parseDeclDefs(int once)
 	    case TOKinvariant:
 	    {	Token *t;
 		t = peek(&token);
-		if (t->value == TOKlparen && peek(t)->value == TOKrparen)
-		{   // invariant() forms start of class invariant
-		    s = parseInvariant();
+		if (t->value == TOKlparen)
+		{
+		    if (peek(t)->value == TOKrparen)
+			// invariant() forms start of class invariant
+			s = parseInvariant();
+		    else
+			// invariant(type)
+			goto Ldeclaration;
 		}
 		else
 		{
@@ -262,19 +269,36 @@ Array *Parser::parseDeclDefs(int once)
 	    case TOKdeprecated:   stc = STCdeprecated;	 goto Lstc;
 
 	    Lstc:
+		if (storageClass & stc)
+		    error("redundant storage class %s", Token::toChars(token.value));
+		{
+		unsigned u = storageClass | stc;
+		u &= STCconst | STCinvariant | STCfinal;
+		if (u & (u - 1))
+		    error("conflicting storage class %s", Token::toChars(token.value));
+		}
 		nextToken();
 	    Lstc2:
+		storageClass |= stc;
 		switch (token.value)
 		{
-		    case TOKconst:	  stc |= STCconst;	 goto Lstc;
-		    case TOKfinal:	  stc |= STCfinal;	 goto Lstc;
-		    case TOKauto:	  stc |= STCauto;	 goto Lstc;
-		    case TOKscope:	  stc |= STCscope;	 goto Lstc;
-		    case TOKoverride:	  stc |= STCoverride;	 goto Lstc;
-		    case TOKabstract:	  stc |= STCabstract;	 goto Lstc;
-		    case TOKsynchronized: stc |= STCsynchronized; goto Lstc;
-		    case TOKdeprecated:   stc |= STCdeprecated;	 goto Lstc;
-		    //case TOKinvariant:    stc |= STCinvariant;   goto Lstc;
+		    case TOKconst:
+		    case TOKinvariant:
+			// If followed by a (, it is not a storage class
+			if (peek(&token)->value == TOKlparen)
+			    break;
+			if (token.value == TOKconst)
+			    stc = STCconst;
+			else
+			    stc = STCinvariant;
+			goto Lstc;
+		    case TOKfinal:	  stc = STCfinal;	 goto Lstc;
+		    case TOKauto:	  stc = STCauto;	 goto Lstc;
+		    case TOKscope:	  stc = STCscope;	 goto Lstc;
+		    case TOKoverride:	  stc = STCoverride;	 goto Lstc;
+		    case TOKabstract:	  stc = STCabstract;	 goto Lstc;
+		    case TOKsynchronized: stc = STCsynchronized; goto Lstc;
+		    case TOKdeprecated:   stc = STCdeprecated;	 goto Lstc;
 		    default:
 			break;
 		}
@@ -292,7 +316,7 @@ Array *Parser::parseDeclDefs(int once)
 			nextToken();
 			Initializer *init = parseInitializer();
 			VarDeclaration *v = new VarDeclaration(loc, NULL, ident, init);
-			v->storage_class = stc;
+			v->storage_class = storageClass;
 			s = v;
 			if (token.value == TOKsemicolon)
 			{
@@ -318,7 +342,7 @@ Array *Parser::parseDeclDefs(int once)
 		}
 		else
 		{   a = parseBlock();
-		    s = new StorageClassDeclaration(stc, a);
+		    s = new StorageClassDeclaration(storageClass, a);
 		}
 		break;
 
@@ -899,9 +923,17 @@ Arguments *Parser::parseParameters(int *pvarargs)
 		case TOKfinal:	   stc = STCfinal;	goto L2;
 		case TOKstatic:	   stc = STCstatic;	goto L2;
 		L2:
-		    if (storageClass & stc)
+		    if (storageClass & stc ||
+			(storageClass & STCin && stc & (STCfinal | STCconst | STCscope)) ||
+			(stc & STCin && storageClass & (STCfinal | STCconst | STCscope))
+		       )
 			error("redundant storage class %s", Token::toChars(token.value));
 		    storageClass |= stc;
+		    {
+		    unsigned u = storageClass & (STCconst | STCinvariant);
+		    if (u & (u - 1))
+			error("conflicting storage class %s", Token::toChars(token.value));
+		    }
 		    continue;
 
 		default:

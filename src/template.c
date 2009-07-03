@@ -1112,7 +1112,6 @@ MATCH Type::deduceType(Scope *sc, Type *tparam, TemplateParameters *parameters,
     if (!tparam)
 	goto Lnomatch;
 
-  Lagain:
     if (this == tparam)
 	goto Lexact;
 
@@ -1129,7 +1128,7 @@ MATCH Type::deduceType(Scope *sc, Type *tparam, TemplateParameters *parameters,
 	     */
 	    tparam = tparam->semantic(0, sc);
 	    assert(tparam->ty != Tident);
-	    goto Lagain;
+	    return deduceType(sc, tparam, parameters, dedtypes);
 	}
 
 	TemplateParameter *tp = (TemplateParameter *)parameters->data[i];

@@ -400,7 +400,7 @@ struct StructLiteralExp : Expression
     Expressions *elements;	// parallels sd->fields[] with
 				// NULL entries for fields to skip
 
-    Symbol *s;			// back end symbol to initialize with literal
+    Symbol *sym;		// back end symbol to initialize with literal
     size_t soffset;		// offset from start of s
     int fillHoles;		// fill alignment 'holes' with zero
 
@@ -418,6 +418,7 @@ struct StructLiteralExp : Expression
     Expression *optimize(int result);
     Expression *interpret(InterState *istate);
     dt_t **toDt(dt_t **pdt);
+    Expression *toLvalue(Scope *sc, Expression *e);
 
     int inlineCost(InlineCostState *ics);
     Expression *doInline(InlineDoState *ids);

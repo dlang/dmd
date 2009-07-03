@@ -25,6 +25,7 @@ struct Scope;
 struct Expression;
 struct LabelDsymbol;
 struct Identifier;
+struct IfStatement;
 struct DeclarationStatement;
 struct DefaultStatement;
 struct VarDeclaration;
@@ -100,6 +101,7 @@ struct Statement : Object
     virtual DeclarationStatement *isDeclarationStatement() { return NULL; }
     virtual CompoundStatement *isCompoundStatement() { return NULL; }
     virtual ReturnStatement *isReturnStatement() { return NULL; }
+    virtual IfStatement *isIfStatement() { return NULL; }
 };
 
 struct ExpStatement : Statement
@@ -328,6 +330,7 @@ struct IfStatement : Statement
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
     int usesEH();
     int fallOffEnd();
+    IfStatement *isIfStatement() { return this; }
 
     int inlineCost(InlineCostState *ics);
     Expression *doInline(InlineDoState *ids);
