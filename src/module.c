@@ -844,6 +844,7 @@ void Module::runDeferredSemantic()
 
 	    s->semantic(NULL);
 	}
+	//printf("\tdeferred.dim = %d, len = %d, dprogress = %d\n", deferred.dim, len, dprogress);
     } while (deferred.dim < len || dprogress);	// while making progress
     nested--;
     //printf("-Module::runDeferredSemantic('%s'), len = %d\n", toChars(), deferred.dim);

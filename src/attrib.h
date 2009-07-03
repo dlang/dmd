@@ -98,6 +98,7 @@ struct AnonDeclaration : AttribDeclaration
 {
     int isunion;
     Scope *scope;		// !=NULL means context to use
+    int sem;			// 1 if successful semantic()
 
     AnonDeclaration(Loc loc, int isunion, Array *decl);
     Dsymbol *syntaxCopy(Dsymbol *s);

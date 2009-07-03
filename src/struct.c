@@ -219,6 +219,9 @@ void StructDeclaration::semantic(Scope *sc)
     Scope *sc2;
 
     //printf("+StructDeclaration::semantic(this=%p, '%s')\n", this, toChars());
+
+    //static int count; if (++count == 20) *(char*)0=0;
+
     assert(type);
     if (!members)			// if forward reference
 	return;
@@ -271,7 +274,9 @@ void StructDeclaration::semantic(Scope *sc)
 	if (isUnionDeclaration())
 	    sc2->offset = 0;
 	if (sizeok == 2)
+	{   //printf("forward reference\n");
 	    break;
+	}
     }
 
     /* The TypeInfo_Struct is expecting an opEquals and opCmp with

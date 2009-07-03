@@ -540,6 +540,7 @@ AnonDeclaration::AnonDeclaration(Loc loc, int isunion, Array *decl)
     this->loc = loc;
     this->isunion = isunion;
     this->scope = NULL;
+    this->sem = 0;
 }
 
 Dsymbol *AnonDeclaration::syntaxCopy(Dsymbol *s)
@@ -615,7 +616,10 @@ void AnonDeclaration::semantic(Scope *sc)
 	    scope->module->addDeferredSemantic(this);
 	    return;
 	}
-	Module::dprogress++;
+	if (sem == 0)
+	{   Module::dprogress++;
+	    sem = 1;
+	}
 
 	// 0 sized structs are set to 1 byte
 	if (aad.structsize == 0)
