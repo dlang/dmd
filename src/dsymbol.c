@@ -88,6 +88,7 @@ char *Dsymbol::toPrettyChars()
     char *q;
     size_t len;
 
+    //printf("Dsymbol::toPrettyChars() '%s'\n", toChars());
     if (!parent)
 	return toChars();
 
@@ -98,7 +99,7 @@ char *Dsymbol::toPrettyChars()
     s = (char *)mem.malloc(len);
     q = s + len - 1;
     *q = 0;
-    for (p = this; 1; p = p->parent)
+    for (p = this; p; p = p->parent)
     {
 	char *t = p->toChars();
 	len = strlen(t);

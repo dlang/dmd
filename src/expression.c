@@ -1,5 +1,5 @@
 
-// Copyright (c) 1999-2005 by Digital Mars
+// Copyright (c) 1999-2006 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // www.digitalmars.com
@@ -636,6 +636,7 @@ integer_t Expression::toInteger()
 {
     //printf("Expression %s\n", Token::toChars(op));
     error("Integer constant expression expected instead of %s", toChars());
+*(char*)0=0;
     return 0;
 }
 
@@ -670,6 +671,7 @@ void Expression::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 
 void Expression::toMangleBuffer(OutBuffer *buf)
 {
+    printf("global.errors = %d, gag = %d\n", global.errors, global.gag);
     dump(0);
     assert(0);
 }
@@ -1544,7 +1546,7 @@ Lagain:
     }
 
     TemplateInstance *ti = s->isTemplateInstance();
-    if (ti)
+    if (ti && !global.errors)
     {   ti->semantic(sc);
 	s = ti->inst->toAlias();
 	if (!s->isTemplateInstance())
@@ -2050,12 +2052,7 @@ Expression *TypeDotIdExp::semantic(Scope *sc)
 #if LOGSEMANTIC
     printf("TypeDotIdExp::semantic()\n");
 #endif
-#if 0
-    type = type->semantic(loc, sc);
-    e = type->getProperty(loc, ident);
-#else
     e = new DotIdExp(loc, new TypeExp(loc, type), ident);
-#endif
     e = e->semantic(sc);
     return e;
 }
@@ -2111,7 +2108,7 @@ Expression *ScopeExp::semantic(Scope *sc)
 #endif
 Lagain:
     ti = sds->isTemplateInstance();
-    if (ti)
+    if (ti && !global.errors)
     {	Dsymbol *s;
 	ti->semantic(sc);
 	s = ti->inst->toAlias();
@@ -3590,6 +3587,9 @@ Expression *DotTemplateInstanceExp::semantic(Scope *sc)
 	error("%s is not a template", id->toChars());
 	goto Lerr;
     }
+    if (global.errors)
+	goto Lerr;
+
     ti->tempdecl = td;
 
     if (eleft)
@@ -4124,6 +4124,7 @@ Expression *AddrExp::semantic(Scope *sc)
 	    if (e1->type->toBasetype()->ty == Tbit)
 		error("cannot take address of bit in array");
 	}
+	return optimize(WANTvalue);
     }
     return this;
 }

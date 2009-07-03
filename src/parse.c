@@ -2761,6 +2761,16 @@ Statement *Parser::parseStatement(int flags)
 	    break;
 	}
 
+	case TOKon_scope_exit:
+	case TOKon_scope_failure:
+	case TOKon_scope_success:
+	{   TOK t = token.value;
+	    nextToken();
+	    Statement *st = parseStatement(PScurlyscope);
+	    s = new OnScopeStatement(loc, t, st);
+	    break;
+	}
+
 	case TOKdebug:
 	    nextToken();
 	    condition = parseDebugCondition();

@@ -2681,7 +2681,7 @@ void TypeQualified::resolveHelper(Loc loc, Scope *sc,
 	    if (id->dyncast() != DYNCAST_IDENTIFIER)
 	    {
 		// It's a template instance
-		printf("\ttemplate instance id\n");
+		//printf("\ttemplate instance id\n");
 		TemplateDeclaration *td;
 		TemplateInstance *ti = (TemplateInstance *)id;
 		id = (Identifier *)ti->idents.data[0];
@@ -3289,14 +3289,20 @@ Expression *TypeEnum::getProperty(Loc loc, Identifier *ident)
 
     if (ident == Id::max)
     {
+	if (!sym->symtab)
+	    goto Lfwd;
 	e = new IntegerExp(0, sym->maxval, this);
     }
     else if (ident == Id::min)
     {
+	if (!sym->symtab)
+	    goto Lfwd;
 	e = new IntegerExp(0, sym->minval, this);
     }
     else if (ident == Id::init)
     {
+	if (!sym->symtab)
+	    goto Lfwd;
 	e = defaultInit();
     }
     else
@@ -3305,6 +3311,10 @@ Expression *TypeEnum::getProperty(Loc loc, Identifier *ident)
 	e = sym->memtype->getProperty(loc, ident);
     }
     return e;
+
+Lfwd:
+    error(loc, "forward reference of %s.%s", toChars(), ident->toChars());
+    return new IntegerExp(0, 0, this);
 }
 
 int TypeEnum::isintegral()
@@ -3324,7 +3334,8 @@ int TypeEnum::isunsigned()
 
 int TypeEnum::isscalar()
 {
-    return sym->memtype->isscalar();
+    return 1;
+    //return sym->memtype->isscalar();
 }
 
 int TypeEnum::implicitConvTo(Type *to)

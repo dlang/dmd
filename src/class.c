@@ -372,7 +372,7 @@ void ClassDeclaration::semantic(Scope *sc)
 	isdeprecated = 1;
 
     sc = sc->push(this);
-    sc->stc &= ~(STCauto | STCstatic | STCabstract);
+    sc->stc &= ~(STCauto | STCstatic | STCabstract | STCdeprecated);
     sc->parent = this;
     sc->inunion = 0;
 

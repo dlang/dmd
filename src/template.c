@@ -1308,6 +1308,8 @@ void TemplateInstance::addIdent(Identifier *ident)
 
 void TemplateInstance::semantic(Scope *sc)
 {
+    if (global.errors)
+	return;
 #if LOG
     printf("+TemplateInstance::semantic('%s', this=%p)\n", toChars(), this);
 #endif
@@ -1655,9 +1657,12 @@ TemplateDeclaration *TemplateInstance::findTemplateDeclaration(Scope *sc)
 	tempdecl = s->isTemplateDeclaration();
 	if (!tempdecl)
 	{
+	    Dsymbol *sp = s->parent->toAlias();
 	    TemplateInstance *ti = s->parent->isTemplateInstance();
 	    if (ti &&
-		ti->idents.data[ti->idents.dim - 1] == id &&
+		(ti->idents.data[ti->idents.dim - 1] == id ||
+		 ti->toAlias()->ident == id)
+		&&
 		idents.dim == 1 &&
 		ti->tempdecl)
 	    {

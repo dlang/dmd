@@ -142,11 +142,13 @@ int Statement::comeFrom()
  * a Statement.
  */
 
-Statement *Statement::callAutoDtor()
+void Statement::scopeCode(Statement **sentry, Statement **sexit, Statement **sfinally)
 {
-    //printf("Statement::callAutoDtor()\n");
+    //printf("Statement::scopeCode()\n");
     //print();
-    return NULL;
+    *sentry = NULL;
+    *sexit = NULL;
+    *sfinally = NULL;
 }
 
 /*********************************
@@ -222,10 +224,14 @@ Statement *DeclarationStatement::syntaxCopy()
     return ds;
 }
 
-Statement *DeclarationStatement::callAutoDtor()
+void DeclarationStatement::scopeCode(Statement **sentry, Statement **sexit, Statement **sfinally)
 {
-    //printf("DeclarationStatement::callAutoDtor()\n");
+    //printf("DeclarationStatement::scopeCode()\n");
     //print();
+
+    *sentry = NULL;
+    *sexit = NULL;
+    *sfinally = NULL;
 
     if (exp)
     {
@@ -240,12 +246,11 @@ Statement *DeclarationStatement::callAutoDtor()
 		if (e)
 		{
 		    //printf("dtor is: "); e->print();
-		    return new ExpStatement(loc, e);
+		    *sfinally = new ExpStatement(loc, e);
 		}
 	    }
 	}
     }
-    return NULL;
 }
 
 void DeclarationStatement::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
@@ -310,14 +315,16 @@ Statement *CompoundStatement::semantic(Scope *sc)
 	    statements->data[i] = s;
 	    if (s)
 	    {
-		Statement *finalbody;
+		Statement *sentry;
+		Statement *sexit;
+		Statement *sfinally;
 
-		finalbody = s->callAutoDtor();
-		if (finalbody)
+		s->scopeCode(&sentry, &sexit, &sfinally);
+		if (sfinally)
 		{
 		    if (i + 1 == statements->dim)
 		    {
-			statements->push(finalbody);
+			statements->push(sfinally);
 		    }
 		    else
 		    {
@@ -330,7 +337,7 @@ Statement *CompoundStatement::semantic(Scope *sc)
 			    a->push(statements->data[j]);
 			}
 			body = new CompoundStatement(0, a);
-			s = new TryFinallyStatement(0, body, finalbody);
+			s = new TryFinallyStatement(0, body, sfinally);
 			s = s->semantic(sc);
 			statements->data[i + 1] = s;
 			statements->setDim(i + 2);
@@ -451,12 +458,15 @@ Statement *ScopeStatement::semantic(Scope *sc)
 	statement = statement->semantic(sc);
 	if (statement)
 	{
-	    Statement *finalbody;
-	    finalbody = statement->callAutoDtor();
-	    if (finalbody)
+	    Statement *sentry;
+	    Statement *sexit;
+	    Statement *sfinally;
+
+	    statement->scopeCode(&sentry, &sexit, &sfinally);
+	    if (sfinally)
 	    {
-		//printf("adding finalbody\n");
-		statement = new CompoundStatement(loc, statement, finalbody);
+		//printf("adding sfinally\n");
+		statement = new CompoundStatement(loc, statement, sfinally);
 	    }
 	}
 
@@ -2407,7 +2417,7 @@ void Catch::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
     buf->writenl();
 }
 
-/******************************** TryFinallyStatement ***************************/
+/****************************** TryFinallyStatement ***************************/
 
 TryFinallyStatement::TryFinallyStatement(Loc loc, Statement *body, Statement *finalbody)
     : Statement(loc)
@@ -2467,6 +2477,49 @@ int TryFinallyStatement::fallOffEnd()
     if (finalbody)
 	result = finalbody->fallOffEnd();
     return result;
+}
+
+/****************************** OnScopeStatement ***************************/
+
+OnScopeStatement::OnScopeStatement(Loc loc, TOK tok, Statement *statement)
+    : Statement(loc)
+{
+    this->tok = tok;
+    this->statement = statement;
+}
+
+Statement *OnScopeStatement::syntaxCopy()
+{
+    OnScopeStatement *s = new OnScopeStatement(loc,
+	tok, statement->syntaxCopy());
+    return s;
+}
+
+Statement *OnScopeStatement::semantic(Scope *sc)
+{
+    statement = statement->semantic(sc);
+    return this;
+}
+
+void OnScopeStatement::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
+{
+    buf->writestring(Token::toChars(tok));
+    buf->writebyte(' ');
+    statement->toCBuffer(buf, hgs);
+}
+
+int OnScopeStatement::usesEH()
+{
+    return TRUE;
+}
+
+void OnScopeStatement::scopeCode(Statement **sentry, Statement **sexit, Statement **sfinally)
+{
+    //printf("OnScopeStatement::scopeCode()\n");
+    //print();
+    *sentry = NULL;
+    *sexit = NULL;
+    *sfinally = NULL;
 }
 
 /******************************** ThrowStatement ***************************/

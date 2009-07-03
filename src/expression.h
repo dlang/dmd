@@ -355,6 +355,8 @@ struct SymOffExp : Expression
     int isConst();
     int isBool(int result);
     Expression *doInline(InlineDoState *ids);
+    int implicitConvTo(Type *t);
+    Expression *castTo(Type *t);
 
     elem *toElem(IRState *irs);
     dt_t **toDt(dt_t **pdt);

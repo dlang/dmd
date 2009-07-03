@@ -75,7 +75,7 @@ struct Statement : Object
     virtual int usesEH();
     virtual int fallOffEnd();
     virtual int comeFrom();
-    virtual Statement *callAutoDtor();
+    virtual void scopeCode(Statement **sentry, Statement **sexit, Statement **sfinally);
     virtual Array *flatten();
 
     virtual int inlineCost(InlineCostState *ics);
@@ -117,7 +117,7 @@ struct DeclarationStatement : ExpStatement
     DeclarationStatement(Loc loc, Expression *exp);
     Statement *syntaxCopy();
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
-    Statement *callAutoDtor();
+    void scopeCode(Statement **sentry, Statement **sexit, Statement **sfinally);
 
     DeclarationStatement *isDeclarationStatement() { return this; }
 };
@@ -552,6 +552,19 @@ struct TryFinallyStatement : Statement
     Statement *inlineScan(InlineScanState *iss);
 
     void toIR(IRState *irs);
+};
+
+struct OnScopeStatement : Statement
+{
+    TOK tok;
+    Statement *statement;
+
+    OnScopeStatement(Loc loc, TOK tok, Statement *statement);
+    Statement *syntaxCopy();
+    void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
+    Statement *semantic(Scope *sc);
+    int usesEH();
+    void scopeCode(Statement **sentry, Statement **sexit, Statement **sfinally);
 };
 
 struct ThrowStatement : Statement

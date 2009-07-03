@@ -1,5 +1,5 @@
 
-// Copyright (c) 1999-2003 by Digital Mars
+// Copyright (c) 1999-2006 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // www.digitalmars.com
@@ -46,9 +46,11 @@ void StaticAssert::semantic2(Scope *sc)
     Expression *e;
 
     e = exp->semantic(sc);
-    e = e->constFold();
+    e = e->optimize(WANTvalue);
     if (e->isBool(FALSE))
 	error("(%s) is false", exp->toChars());
+    else if (!e->isBool(TRUE))
+	error("(%s) is not evaluatable at compile time", exp->toChars());
 }
 
 void StaticAssert::inlineScan()

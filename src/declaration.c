@@ -1,5 +1,5 @@
 
-// Copyright (c) 1999-2005 by Digital Mars
+// Copyright (c) 1999-2006 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // www.digitalmars.com
@@ -395,7 +395,7 @@ Dsymbol *AliasDeclaration::toAlias()
 void AliasDeclaration::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 {
     buf->writestring("alias ");
-#if _DH
+#if 0 && _DH
     if (hgs->hdrgen)
     {
 	if (haliassym)
@@ -556,6 +556,7 @@ void VarDeclaration::semantic(Scope *sc)
     else if (isAbstract())
     {
 	error("abstract cannot be applied to variable");
+*(char*)0=0;
     }
     else
     {
@@ -697,23 +698,30 @@ void VarDeclaration::semantic(Scope *sc)
 	 */
 
 	ExpInitializer *ei = init->isExpInitializer();
-	if (ei)
+	if (ei && !global.errors)
 	{
 	    unsigned errors = global.errors;
 	    global.gag++;
 	    //printf("+gag\n");
-	    Expression *e = ei->exp->copy();
+	    Expression *e = ei->exp->syntaxCopy();
+	    inuse = 1;
 	    e = e->semantic(sc);
+	    inuse = 0;
 	    e = e->implicitCastTo(type);
 	    global.gag--;
 	    //printf("-gag\n");
 	    if (errors != global.errors)	// if errors happened
-		global.errors = errors;		// act as if nothing happened
+	    {
+		if (global.gag == 0)
+		    global.errors = errors;	// act as if nothing happened
+	    }
 	    else
 	    {
 		e = e->optimize(WANTvalue);
 		if (e->op == TOKint64 || e->op == TOKstring)
+		{
 		    ei->exp = e;		// no errors, keep result
+		}
 	    }
 	}
     }
@@ -817,6 +825,9 @@ Expression *VarDeclaration::callAutoDtor()
 		Expression *ec;
 		Array *arguments;
 
+		/* Generate:
+		 *  _d_callfinalizer(this)
+		 */
 		fd = FuncDeclaration::genCfunc(Type::tvoid, "_d_callfinalizer");
 		efd = new VarExp(loc, fd);
 		ec = new VarExp(loc, this);

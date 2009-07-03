@@ -402,9 +402,10 @@ Expression *CatExp::optimize(int result)
 	    t = es1->type;
 	else
 	    t = es2->type;
-	es->type = new TypeSArray(t->next, new IntegerExp(0, len, Type::tindex));
+	//es->type = new TypeSArray(t->next, new IntegerExp(0, len, Type::tindex));
+	//es->type = es->type->semantic(loc, NULL);
+	es->type = type;
 	e = es;
-	e->type = e->type->semantic(loc, NULL);
     }
     else if (e1->op == TOKstring && e2->op == TOKint64)
     {
@@ -428,9 +429,10 @@ Expression *CatExp::optimize(int result)
 	es->sz = sz;
 	es->committed = es1->committed;
 	t = es1->type;
-	es->type = new TypeSArray(t->next, new IntegerExp(0, len, Type::tindex));
+	//es->type = new TypeSArray(t->next, new IntegerExp(0, len, Type::tindex));
+	//es->type = es->type->semantic(loc, NULL);
+	es->type = type;
 	e = es;
-	e->type = e->type->semantic(loc, NULL);
     }
     else if (e1->op == TOKint64 && e2->op == TOKstring)
     {
@@ -454,9 +456,10 @@ Expression *CatExp::optimize(int result)
 	es->sz = sz;
 	es->committed = es2->committed;
 	t = es2->type;
-	es->type = new TypeSArray(t->next, new IntegerExp(0, len, Type::tindex));
+	//es->type = new TypeSArray(t->next, new IntegerExp(0, len, Type::tindex));
+	//es->type = es->type->semantic(loc, NULL);
+	es->type = type;
 	e = es;
-	e->type = e->type->semantic(loc, NULL);
     }
     else
 	e = this;

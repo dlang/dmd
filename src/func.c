@@ -104,7 +104,7 @@ void FuncDeclaration::semantic(Scope *sc)
     parent = sc->parent;
     protection = sc->protection;
     storage_class |= sc->stc;
-    //printf("storage_class = x%x\n", storage_class);
+    //printf("function storage_class = x%x\n", storage_class);
     Dsymbol *parent = toParent();
 
     if (isConst() || isAuto())
@@ -403,6 +403,9 @@ void FuncDeclaration::semantic3(Scope *sc)
 	sc2->sw = NULL;
 	sc2->fes = fes;
 	sc2->linkage = LINKd;
+	sc2->stc &= ~(STCauto | STCstatic | STCabstract | STCdeprecated);
+	sc2->protection = PROTpublic;
+	sc2->structalign = 8;
 
 	// Declare 'this'
 	ad = isThis();

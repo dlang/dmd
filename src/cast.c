@@ -362,6 +362,35 @@ int AddrExp::implicitConvTo(Type *t)
     return result;
 }
 
+int SymOffExp::implicitConvTo(Type *t)
+{
+#if 0
+    printf("SymOffExp::implicitConvTo(this=%s, type=%s, t=%s)\n",
+	toChars(), type->toChars(), t->toChars());
+#endif
+    int result;
+
+    result = type->implicitConvTo(t);
+    //printf("\tresult = %d\n", result);
+
+    if (result == MATCHnomatch)
+    {
+	// Look for pointers to functions where the functions are overloaded.
+	FuncDeclaration *f;
+
+	t = t->toBasetype();
+	if (type->ty == Tpointer && type->next->ty == Tfunction &&
+	    t->ty == Tpointer && t->next->ty == Tfunction)
+	{
+	    f = var->isFuncDeclaration();
+	    if (f && f->overloadExactMatch(t->next))
+		result = MATCHexact;
+	}
+    }
+    //printf("\tresult = %d\n", result);
+    return result;
+}
+
 int DelegateExp::implicitConvTo(Type *t)
 {
 #if 0
@@ -473,7 +502,7 @@ Expression *StringExp::castTo(Type *t)
     Type *tb;
     int unique;
 
-    //printf("StringExp::castTo('%s')\n", string);
+    //printf("StringExp::castTo(%s) '%s'\n", t->toChars(), string);
     //if (((char*)string)[0] == 'd') *(char*)0=0;
     if (!committed && t->ty == Tpointer && t->next->ty == Tvoid)
     {
@@ -614,6 +643,10 @@ Expression *StringExp::castTo(Type *t)
 	    break;
 
 	default:
+	    if (se->type->next->size() == tb->next->size())
+	    {	se->type = t;
+		return se;
+	    }
 	    goto Lcast;
     }
     }
@@ -694,6 +727,44 @@ Expression *AddrExp::castTo(Type *t)
 		    e = new VarExp(loc, f);
 		    e->type = f->type;
 		    e = new AddrExp(loc, e);
+		    e->type = t;
+		    return e;
+		}
+	    }
+	}
+	e = Expression::castTo(t);
+    }
+    e->type = t;
+    return e;
+}
+
+Expression *SymOffExp::castTo(Type *t)
+{
+    Type *tb;
+
+#if 0
+    printf("SymOffExp::castTo(this=%s, type=%s, t=%s)\n",
+	toChars(), type->toChars(), t->toChars());
+#endif
+    Expression *e = this;
+
+    tb = t->toBasetype();
+    type = type->toBasetype();
+    if (tb != type)
+    {
+	// Look for pointers to functions where the functions are overloaded.
+	FuncDeclaration *f;
+
+	if (type->ty == Tpointer && type->next->ty == Tfunction &&
+	    tb->ty == Tpointer && tb->next->ty == Tfunction)
+	{
+	    f = var->isFuncDeclaration();
+	    if (f)
+	    {
+		f = f->overloadExactMatch(tb->next);
+		if (f)
+		{
+		    e = new SymOffExp(loc, f, 0);
 		    e->type = t;
 		    return e;
 		}

@@ -105,11 +105,15 @@ Expression *CastExp::constFold()
     //printf("CastExp::constFold(%s)\n", toChars());
 
     e1 = e1->constFold();
-    if (e1->op == TOKsymoff && type->size() == e1->type->size() &&
-	type->toBasetype()->ty != Tsarray)
+    if (e1->op == TOKsymoff)
     {
-	e1->type = type;
-	return e1;
+	if (type->size() == e1->type->size() &&
+	    type->toBasetype()->ty != Tsarray)
+	{
+	    e1->type = type;
+	    return e1;
+	}
+	return this;
     }
 
     Type *tb = to->toBasetype();
