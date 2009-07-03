@@ -148,7 +148,10 @@ int runLINK()
     // Build argv[]
     Array argv;
 
-    argv.push((void *)"gcc");
+    char *cc = getenv("CC");
+    if (!cc)
+	cc = "gcc";
+    argv.push((void *)cc);
     argv.insert(1, global.params.objfiles);
 
     // None of that a.out stuff. Use explicit exe file name, or

@@ -269,6 +269,7 @@ Expression *AddExp::constFold()
 
 	switch (x)
 	{
+#if __DMC__
 	    case 0+0:	v = (complex_t) (r1 + r2);	break;
 	    case 0+1:	v = r1 + i2 * I;		break;
 	    case 0+2:	v = r1 + c2;			break;
@@ -278,6 +279,17 @@ Expression *AddExp::constFold()
 	    case 6+0:	v = c1 + r2;			break;
 	    case 6+1:	v = c1 + i2 * I;		break;
 	    case 6+2:	v = c1 + c2;			break;
+#else
+	    case 0+0:	v = complex_t(r1 + r2, 0);	break;
+	    case 0+1:	v = complex_t(r1, i2);		break;
+	    case 0+2:	v = complex_t(r1 + creall(c2), cimagl(c2));	break;
+	    case 3+0:	v = complex_t(r2, i1);		break;
+	    case 3+1:	v = complex_t(0, i1 + i2);	break;
+	    case 3+2:	v = complex_t(creall(c2), i1 + cimagl(c2));	break;
+	    case 6+0:	v = complex_t(creall(c1) + r2, cimagl(c2));	break;
+	    case 6+1:	v = complex_t(creall(c1), cimagl(c1) + i2);	break;
+	    case 6+2:	v = c1 + c2;			break;
+#endif
 	    default: assert(0);
 	}
 	e = new ComplexExp(loc, v, type);
@@ -357,6 +369,7 @@ Expression *MinExp::constFold()
 
 	switch (x)
 	{
+#if __DMC__
 	    case 0+0:	v = (complex_t) (r1 - r2);	break;
 	    case 0+1:	v = r1 - i2 * I;		break;
 	    case 0+2:	v = r1 - c2;			break;
@@ -366,6 +379,17 @@ Expression *MinExp::constFold()
 	    case 6+0:	v = c1 - r2;			break;
 	    case 6+1:	v = c1 - i2 * I;		break;
 	    case 6+2:	v = c1 - c2;			break;
+#else
+	    case 0+0:	v = complex_t(r1 - r2, 0);	break;
+	    case 0+1:	v = complex_t(r1, -i2);		break;
+	    case 0+2:	v = complex_t(r1 - creall(c2), -cimagl(c2));	break;
+	    case 3+0:	v = complex_t(-r2, i1);		break;
+	    case 3+1:	v = complex_t(0, i1 - i2);	break;
+	    case 3+2:	v = complex_t(-creall(c2), i1 - cimagl(c2));	break;
+	    case 6+0:	v = complex_t(creall(c1) - r2, cimagl(c1));	break;
+	    case 6+1:	v = complex_t(creall(c1), cimagl(c1) - i2);	break;
+	    case 6+2:	v = c1 - c2;			break;
+#endif
 	    default: assert(0);
 	}
 	e = new ComplexExp(loc, v, type);

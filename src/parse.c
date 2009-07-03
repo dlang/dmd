@@ -984,6 +984,7 @@ EnumDeclaration *Parser::parseEnum()
 		Expression *value;
 		Identifier *ident;
 
+		loc = this->loc;
 		ident = token.ident;
 		value = NULL;
 		nextToken();

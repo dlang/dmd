@@ -1971,7 +1971,7 @@ Expression *TypeAArray::dotExp(Scope *sc, Expression *e, Identifier *ident)
 	arguments = new Expressions();
 	arguments->push(e);
 	if (size)
-	    arguments->push(new IntegerExp(0, size, Type::tint32));
+	    arguments->push(new IntegerExp(0, size, Type::tsize_t));
 	e = new CallExp(e->loc, ec, arguments);
 	e->type = index->arrayOf();
     }
@@ -1985,8 +1985,10 @@ Expression *TypeAArray::dotExp(Scope *sc, Expression *e, Identifier *ident)
 	ec = new VarExp(0, fd);
 	arguments = new Expressions();
 	arguments->push(e);
-	arguments->push(new IntegerExp(0, key->size(e->loc), Type::tint32));
-	arguments->push(new IntegerExp(0, next->size(e->loc), Type::tint32));
+	size_t keysize = key->size(e->loc);
+	keysize = (keysize + 3) & ~3;	// BUG: 64 bit pointers?
+	arguments->push(new IntegerExp(0, keysize, Type::tsize_t));
+	arguments->push(new IntegerExp(0, next->size(e->loc), Type::tsize_t));
 	e = new CallExp(e->loc, ec, arguments);
 	e->type = next->arrayOf();
     }

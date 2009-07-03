@@ -4278,9 +4278,15 @@ Lcheckargs:
     assert(type);
 
     if (f && f->tintro)
-    {	Type *t = type;
-	type = f->tintro->next;
-	return castTo(t);
+    {
+	Type *t = type;
+	int offset = 0;
+
+	if (f->tintro->next->isBaseOf(t, &offset) && offset)
+	{
+	    type = f->tintro->next;
+	    return castTo(t);
+	}
     }
 
     return this;
@@ -4691,7 +4697,8 @@ Expression *CastExp::semantic(Scope *sc)
 
 void CastExp::checkSideEffect(int flag)
 {
-    if (!to->equals(Type::tvoid))
+    if (!to->equals(Type::tvoid) &&
+	!(to->ty == Tclass && e1->op == TOKcall && e1->type->ty == Tclass))
 	Expression::checkSideEffect(flag);
 }
 

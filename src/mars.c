@@ -13,6 +13,11 @@
 #include <assert.h>
 #include <limits.h>
 
+#if _WIN32
+#include <windows.h>
+long __cdecl __ehfilter(LPEXCEPTION_POINTERS ep);
+#endif
+
 #if __DMC__
 #include <dos.h>
 #endif
@@ -53,7 +58,7 @@ Global::Global()
 
     copyright = "Copyright (c) 1999-2006 by Digital Mars";
     written = "written by Walter Bright";
-    version = "v0.150";
+    version = "v0.151";
     global.structalign = 8;
 
     memset(&params, 0, sizeof(Param));
@@ -637,6 +642,10 @@ int main(int argc, char *argv[])
 	global.params.objfiles->push(m->objfile->name->str);
     }
 
+#if _WIN32
+  __try
+  {
+#endif
     // Read files, parse them
     for (i = 0; i < modules.dim; i++)
     {
@@ -726,6 +735,26 @@ int main(int argc, char *argv[])
     // Scan for functions to inline
     if (global.params.useInline)
     {
+	/* The problem with useArrayBounds and useAssert is that the
+	 * module being linked to may not have generated them, so if
+	 * we inline functions from those modules, the symbols for them will
+	 * not be found at link time.
+	 */
+	if (!global.params.useArrayBounds && !global.params.useAssert)
+	{
+	    // Do pass 3 semantic analysis on all imported modules,
+	    // since otherwise functions in them cannot be inlined
+	    for (i = 0; i < Module::amodules.dim; i++)
+	    {
+		m = (Module *)Module::amodules.data[i];
+		if (global.params.verbose)
+		    printf("semantic3 %s\n", m->toChars());
+		m->semantic3();
+	    }
+	    if (global.errors)
+		fatal();
+	}
+
 	for (i = 0; i < modules.dim; i++)
 	{
 	    m = (Module *)modules.data[i];
@@ -753,7 +782,14 @@ int main(int argc, char *argv[])
 		m->gendocfile();
 	}
     }
-
+#if _WIN32
+  }
+  __except (__ehfilter(GetExceptionInformation()))
+  {
+    printf("Stack overflow\n");
+    fatal();
+  }
+#endif
     backend_term();
     if (global.errors)
 	fatal();
@@ -892,4 +928,18 @@ Ldone:
     *pargv = (char **)argv->data;
 }
 
+#if _WIN32
 
+long __cdecl __ehfilter(LPEXCEPTION_POINTERS ep)
+{
+    //printf("%x\n", ep->ExceptionRecord->ExceptionCode);
+    if (ep->ExceptionRecord->ExceptionCode == STATUS_STACK_OVERFLOW)
+    {
+#ifndef DEBUG
+	return EXCEPTION_EXECUTE_HANDLER;
+#endif
+    }
+    return EXCEPTION_CONTINUE_SEARCH;
+}
+
+#endif

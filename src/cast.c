@@ -802,8 +802,8 @@ Expression *DelegateExp::castTo(Type *t)
 	    {
 		f = func->overloadExactMatch(tb->next);
 		if (f)
-		{
-		    if (f->tintro)
+		{   int offset;
+		    if (f->tintro && f->tintro->next->isBaseOf(f->type->next, &offset) && offset)
 			error(msg);
 		    e = new DelegateExp(loc, e1, f);
 		    e->type = t;
@@ -816,8 +816,9 @@ Expression *DelegateExp::castTo(Type *t)
 	e = Expression::castTo(t);
     }
     else
-    {
-	if (func->tintro)
+    {	int offset;
+
+	if (func->tintro && func->tintro->next->isBaseOf(func->type->next, &offset) && offset)
 	    error(msg);
     }
     e->type = t;

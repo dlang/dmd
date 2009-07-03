@@ -2635,4 +2635,5 @@ void Lexer::initKeywords()
     Token::tochars[TOKtypedot]		= "typedot";
     Token::tochars[TOKarraylength]	= "arraylength";
     Token::tochars[TOKstring]		= "string";
+    Token::tochars[TOKdsymbol]		= "symbol";
 }

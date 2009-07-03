@@ -1082,7 +1082,9 @@ Statement *ForeachStatement::semantic(Scope *sc)
 		ec = new VarExp(0, fdapply);
 		args = new Expressions();
 		args->push(aggr);
-		args->push(new IntegerExp(0, taa->key->size(), Type::tint32));
+		size_t keysize = taa->key->size();
+		keysize = (keysize + 3) & ~3;
+		args->push(new IntegerExp(0, keysize, Type::tint32));
 		args->push(flde);
 		e = new CallExp(loc, ec, args);
 		e->type = Type::tindex;	// don't run semantic() on e

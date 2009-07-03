@@ -41,6 +41,7 @@
 ClassDeclaration *Module::moduleinfo;
 
 DsymbolTable *Module::modules;
+Array Module::amodules;
 
 Array Module::deferred;	// deferred Dsymbol's needing semantic() run on them
 
@@ -573,6 +574,10 @@ void Module::parse()
 	    error(loc, "is in multiple packages %s", md->toChars());
 	else
 	    error(loc, "is in multiple defined");
+    }
+    else
+    {
+	amodules.push(this);
     }
 }
 

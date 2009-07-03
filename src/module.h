@@ -44,7 +44,8 @@ struct Package : ScopeDsymbol
 
 struct Module : Package
 {
-    static DsymbolTable *modules;	// All modules
+    static DsymbolTable *modules;	// symbol table of all modules
+    static Array amodules;		// array of all modules
     static Array deferred;	// deferred Dsymbol's needing semantic() run on them
     static void init();
 

@@ -247,10 +247,11 @@ void FuncDeclaration::semantic(Scope *sc)
 		// BUG: should give error if argument types match,
 		// but return type does not?
 
-		//printf("\tvtbl[%d]\n", vi);
+		//printf("\tvtbl[%d] = '%s'\n", vi, fdv ? fdv->ident->toChars() : "");
 		if (fdv && fdv->ident == ident)
 		{
 		    int cov = type->covariant(fdv->type);
+		    //printf("\tcov = %d\n", cov);
 		    if (cov)
 		    {
 			// Override
@@ -294,7 +295,7 @@ void FuncDeclaration::semantic(Scope *sc)
 			     * offsets differ
 			     */
 			    int offset;
-			    if (fdv->type->next->isBaseOf(type->next, &offset) && offset)
+			    if (fdv->type->next->isBaseOf(type->next, &offset))
 			    {
 				tintro = fdv->type;
 			    }
@@ -335,6 +336,15 @@ void FuncDeclaration::semantic(Scope *sc)
 		if (fdv && fdv->ident == ident)
 		{
 		    int cov = type->covariant(fdv->type);
+		    //printf("\tcov = %d\n", cov);
+		    if (cov == 2)
+		    {
+			//type->print();
+			//fdv->type->print();
+			//printf("%s %s\n", type->deco, fdv->type->deco);
+			error("of type %s overrides but is not covariant with %s of type %s",
+			    type->toChars(), fdv->toPrettyChars(), fdv->type->toChars());
+		    }
 		    if (cov == 1)
 		    {	Type *ti = NULL;
 

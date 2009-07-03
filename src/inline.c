@@ -1,5 +1,5 @@
 
-// Copyright (c) 1999-2005 by Digital Mars
+// Copyright (c) 1999-2006 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // www.digitalmars.com
@@ -163,6 +163,7 @@ int DeclarationExp::inlineCost(InlineCostState *ics)
 {   int cost = 0;
     VarDeclaration *vd;
 
+    //printf("DeclarationExp::inlineCost()\n");
     vd = declaration->isVarDeclaration();
     if (vd)
     {
@@ -599,7 +600,7 @@ Expression *CondExp::doInline(InlineDoState *ids)
 }
 
 
-/* ========== Walk the parse trees, and inline expand functions =============== */
+/* ========== Walk the parse trees, and inline expand functions ============= */
 
 /* Walk the trees, looking for functions to inline.
  * Inline any that can be.
@@ -833,7 +834,23 @@ Expression *Expression::inlineScan(InlineScanState *iss)
 
 Expression *DeclarationExp::inlineScan(InlineScanState *iss)
 {
-    // Should scan variable initializers
+    VarDeclaration *vd;
+
+    //printf("DeclarationExp::inlineScan()\n");
+    vd = declaration->isVarDeclaration();
+    if (vd)
+    {
+	// Scan initializer (vd->init)
+	if (vd->init)
+	{
+	    ExpInitializer *ie = vd->init->isExpInitializer();
+
+	    if (ie)
+	    {
+		ie->exp = ie->exp->inlineScan(iss);
+	    }
+	}
+    }
     return this;
 }
 

@@ -558,7 +558,7 @@ int ClassDeclaration::isBaseOf2(ClassDeclaration *cd)
 {
     if (!cd)
 	return 0;
-    //printf("ClassDeclaration::isBaseOf(this = '%s', cd = '%s')\n", toChars(), cd->toChars());
+    //printf("ClassDeclaration::isBaseOf2(this = '%s', cd = '%s')\n", toChars(), cd->toChars());
     for (int i = 0; i < cd->baseclasses.dim; i++)
     {	BaseClass *b = (BaseClass *)cd->baseclasses.data[i];
 
