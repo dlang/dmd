@@ -1571,7 +1571,7 @@ int fp2(void *param, FuncDeclaration *f)
 	m->anyf = f;
 	TypeFunction *tf = (TypeFunction *)f->type;
 	match = (MATCH) tf->callMatch(arguments);
-	//printf("match = %d\n", match);
+	//printf("1match = %d\n", match);
 	if (match != MATCHnomatch)
 	{
 	    if (match > m->last)
@@ -1647,7 +1647,7 @@ void overloadResolveX(Match *m, FuncDeclaration *fstart, Expressions *arguments)
 		m->anyf = f;
 		tf = (TypeFunction *)f->type;
 		match = (MATCH) tf->callMatch(arguments);
-		//printf("match = %d\n", match);
+		//printf("2match = %d\n", match);
 		if (match != MATCHnomatch)
 		{
 		    if (match > m->last)

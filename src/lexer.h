@@ -272,6 +272,7 @@ struct Lexer
     static Identifier *uniqueId(const char *s, int num);
 
     TOK nextToken();
+    TOK peekNext();
     void scan(Token *t);
     Token *peek(Token *t);
     Token *peekPastParen(Token *t);

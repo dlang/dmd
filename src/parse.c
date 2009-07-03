@@ -3570,7 +3570,7 @@ int Parser::isDeclarator(Token **pt, int *haveId, enum TOK endtok)
 	switch (t->value)
 	{
 	    case TOKmul:
-	    case TOKand:
+	    //case TOKand:
 		t = peek(t);
 		continue;
 

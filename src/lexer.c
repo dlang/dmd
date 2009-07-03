@@ -391,6 +391,15 @@ Token *Lexer::peek(Token *ct)
     return t;
 }
 
+/***********************
+ * Look ahead at next token's value.
+ */
+
+TOK Lexer::peekNext()
+{
+    return peek(&token)->value;
+}
+
 /*********************************
  * tk is on the opening (.
  * Look ahead and return token that is past the closing ).
