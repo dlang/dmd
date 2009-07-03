@@ -1829,8 +1829,11 @@ done:
 	    case 'u':
 		f = FLAGS_unsigned;
 		goto L1;
-	    case 'L':
+
 	    case 'l':
+		if (!global.params.useDeprecated)
+		    error("'l' suffix is deprecated, use 'L' instead");
+	    case 'L':
 		f = FLAGS_long;
 	    L1:
 		p++;
@@ -2061,14 +2064,18 @@ done:
 	    result = TOKfloat64v;
 	    break;
 
-	case 'L':
 	case 'l':
+	    if (!global.params.useDeprecated)
+		error("'l' suffix is deprecated, use 'L' instead");
+	case 'L':
 	    result = TOKfloat80v;
 	    p++;
 	    break;
     }
     if (*p == 'i' || *p == 'I')
     {
+	if (!global.params.useDeprecated && *p == 'I')
+	    error("'I' suffix is deprecated, use 'i' instead");
 	p++;
 	switch (result)
 	{

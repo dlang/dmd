@@ -191,7 +191,7 @@ int runLINK()
     argv.push((void *)"-lpthread");
     argv.push((void *)"-lm");
 
-    if (global.params.exefile)
+    if (0 && global.params.exefile)
     {
 	/* This switch enables what is known as 'smart linking'
 	 * in the Windows world, where unreferenced sections
@@ -200,6 +200,7 @@ int runLINK()
 	 * Although it is documented to work with ld version 2.13,
 	 * in practice it does not, but just seems to be ignored.
 	 * Thomas Kuehne has verified that it works with ld 2.16.1.
+	 * BUG: disabled because it causes exception handling to fail
 	 */
 	argv.push((void *)"-Xlinker");
 	argv.push((void *)"--gc-sections");
