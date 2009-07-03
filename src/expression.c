@@ -1,6 +1,6 @@
 
 // Compiler implementation of the D programming language
-// Copyright (c) 1999-2008 by Digital Mars
+// Copyright (c) 1999-2009 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // http://www.digitalmars.com
@@ -11,13 +11,13 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <ctype.h>
+#include <math.h>
 #include <assert.h>
 #if _MSC_VER
 #include <complex>
 #else
 #include <complex.h>
 #endif
-#include <math.h>
 
 #if _WIN32 && __DMC__
 extern "C" char * __cdecl __locale_decpoint;
@@ -36,7 +36,7 @@ extern "C" char * __cdecl __locale_decpoint;
 #include "mem.h"
 #elif _WIN32
 #include "..\root\mem.h"
-#elif linux
+#elif linux || __APPLE__
 #include "../root/mem.h"
 #endif
 
@@ -1595,7 +1595,11 @@ complex_t RealExp::toComplex()
 
 int RealEquals(real_t x1, real_t x2)
 {
+#if __APPLE__
+    return (__inline_isnan(x1) && __inline_isnan(x2)) ||
+#else
     return (isnan(x1) && isnan(x2)) ||
+#endif
 	/* In some cases, the REALPAD bytes get garbage in them,
 	 * so be sure and ignore them.
 	 */
@@ -1700,7 +1704,11 @@ void realToMangleBuffer(OutBuffer *buf, real_t value)
      * 0X1.9P+2			=> 19P2
      */
 
+#if __APPLE__
+    if (__inline_isnan(value))
+#else
     if (isnan(value))
+#endif
 	buf->writestring("NAN");	// no -NAN bugs
     else
     {

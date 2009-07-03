@@ -18,7 +18,12 @@
 #include <wchar.h>
 #include <stdlib.h>
 #include <assert.h>
+
+#if _MSC_VER
+#include <time.h>
+#else
 #include <sys/time.h>
+#endif
 
 #ifdef IN_GCC
 
@@ -49,6 +54,10 @@
 #if _WIN32 && __DMC__
 // from \dm\src\include\setlocal.h
 extern "C" char * __cdecl __locale_decpoint;
+#endif
+
+#if _MSC_VER // workaround VC++ bug, labels and types should be in separate namespaces
+#define Lstring Lstr
 #endif
 
 extern int HtmlNamedEntity(unsigned char *p, int length);
@@ -2449,6 +2458,10 @@ done:
 #ifdef IN_GCC
 	    real_t::parse((char *)stringbuffer.data, real_t::Double);
 #else	    
+	    /* Should do our own strtod(), since dmc and linux gcc
+	     * accept 2.22507e-308, while apple gcc will only take
+	     * 2.22508e-308. Not sure who is right.
+	     */
 	    strtod((char *)stringbuffer.data, NULL);
 #endif
 	    result = TOKfloat64v;

@@ -1,6 +1,6 @@
 
 // Compiler implementation of the D programming language
-// Copyright (c) 1999-2008 by Digital Mars
+// Copyright (c) 1999-2009 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // http://www.digitalmars.com
@@ -31,7 +31,7 @@
 
 #if _WIN32
 #include	"..\tk\mem.h"	// for mem_malloc
-#elif linux
+#elif linux || __APPLE__
 #include	"../tk/mem.h"	// for mem_malloc
 #endif
 
@@ -443,9 +443,26 @@ void FuncDeclaration::buildClosure(IRState *irs)
 	    /* Align and allocate space for v in the closure
 	     * just like AggregateDeclaration::addField() does.
 	     */
-	    unsigned memsize = v->type->size();
-	    unsigned memalignsize = v->type->alignsize();
-	    unsigned xalign = v->type->memalign(global.structalign);
+	    unsigned memsize;
+	    unsigned memalignsize;
+	    unsigned xalign;
+#if V2
+	    if (v->storage_class & STClazy)
+	    {
+		/* Lazy variables are really delegates,
+		 * so give same answers that TypeDelegate would
+		 */
+		memsize = PTRSIZE * 2;
+		memalignsize = memsize;
+		xalign = global.structalign;
+	    }
+	    else
+#endif
+	    {
+		memsize = v->type->size();
+		memalignsize = v->type->alignsize();
+		xalign = v->type->memalign(global.structalign);
+	    }
 	    AggregateDeclaration::alignmember(xalign, memalignsize, &offset);
 	    v->offset = offset;
 	    offset += memsize;
@@ -489,6 +506,10 @@ void FuncDeclaration::buildClosure(IRState *irs)
 	    tym_t tym = v->type->totym();
 	    if (v->type->toBasetype()->ty == Tsarray || v->isOut() || v->isRef())
 		tym = TYnptr;	// reference parameters are just pointers
+#if V2
+	    else if (v->storage_class & STClazy)
+		tym = TYdelegate;
+#endif
 	    ex = el_bin(OPadd, TYnptr, el_var(sclosure), el_long(TYint, v->offset));
 	    ex = el_una(OPind, tym, ex);
 	    if (ex->Ety == TYstruct)
@@ -516,6 +537,11 @@ void FuncDeclaration::buildClosure(IRState *irs)
 enum RET TypeFunction::retStyle()
 {
     //printf("TypeFunction::retStyle() %s\n", toChars());
+#if V2
+    if (isref)
+	return RETregs;			// returns a pointer
+#endif
+
     Type *tn = next->toBasetype();
 
     if (tn->ty == Tstruct)
@@ -541,7 +567,7 @@ enum RET TypeFunction::retStyle()
 	}
 	return RETstack;
     }
-    else if (global.params.isLinux &&
+    else if ((global.params.isLinux || global.params.isOSX) &&
 	     linkage == LINKc &&
 	     tn->iscomplex())
     {

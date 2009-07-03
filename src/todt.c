@@ -1,6 +1,6 @@
 
 // Compiler implementation of the D programming language
-// Copyright (c) 1999-2007 by Digital Mars
+// Copyright (c) 1999-2009 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // http://www.digitalmars.com
@@ -298,6 +298,7 @@ dt_t *ArrayInitializer::toDt()
 
 dt_t *ArrayInitializer::toDtBit()
 {
+#if V1
     unsigned size;
     unsigned length;
     unsigned i;
@@ -407,6 +408,9 @@ dt_t *ArrayInitializer::toDtBit()
 	    assert(0);
     }
     return d;
+#else
+    return NULL;
+#endif
 }
 
 
@@ -444,7 +448,7 @@ dt_t **IntegerExp::toDt(dt_t **pdt)
     return pdt;
 }
 
-static char zeropad[2];
+static char zeropad[6];
 
 dt_t **RealExp::toDt(dt_t **pdt)
 {
@@ -472,6 +476,7 @@ dt_t **RealExp::toDt(dt_t **pdt)
 	    evalue = value;
 	    pdt = dtnbytes(pdt,REALSIZE - REALPAD,(char *)&evalue);
 	    pdt = dtnbytes(pdt,REALPAD,zeropad);
+	    assert(REALPAD <= sizeof(zeropad));
 	    break;
 
 	default:

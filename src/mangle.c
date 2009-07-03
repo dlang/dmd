@@ -24,6 +24,10 @@
 #include "id.h"
 #include "module.h"
 
+#if TARGET_LINUX || TARGET_OSX
+char *cpp_mangle(Dsymbol *s);
+#endif
+
 char *mangle(Declaration *sthis)
 {
     OutBuffer buf;
@@ -107,8 +111,15 @@ char *Declaration::mangle()
 		case LINKc:
 		case LINKwindows:
 		case LINKpascal:
-		case LINKcpp:
 		    return ident->toChars();
+
+		case LINKcpp:
+#if V2 && (TARGET_LINUX || TARGET_OSX)
+		    return cpp_mangle(this);
+#else
+		    // Windows C++ mangling is done by C++ back end
+		    return ident->toChars();
+#endif
 
 		case LINKdefault:
 		    error("forward declaration");
@@ -139,7 +150,7 @@ char *FuncDeclaration::mangle()
 #endif
     {
 	if (isMain())
-	    return "_Dmain";
+	    return (char *)"_Dmain";
 
 	if (isWinMain() || isDllMain())
 	    return ident->toChars();

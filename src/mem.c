@@ -6,7 +6,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-#if linux
+#if linux || __APPLE__ || __FreeBSD__
 #include "../root/mem.h"
 #else
 #include "mem.h"

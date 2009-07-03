@@ -1,5 +1,5 @@
 
-// Copyright (c) 1999-2006 by Digital Mars
+// Copyright (c) 1999-2009 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // www.digitalmars.com
@@ -24,7 +24,7 @@
 #include <direct.h>
 #endif
 
-#if linux
+#if linux || __APPLE__ || __FreeBSD__
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
@@ -324,7 +324,7 @@ char *FileName::combine(const char *path, const char *name)
     namelen = strlen(name);
     f = (char *)mem.malloc(pathlen + 1 + namelen + 1);
     memcpy(f, path, pathlen);
-#if linux
+#if linux || __APPLE__ || __FreeBSD__
     if (path[pathlen - 1] != '/')
     {	f[pathlen] = '/';
 	pathlen++;
@@ -378,7 +378,7 @@ Array *FileName::splitPath(const char *path)
 #if _WIN32
 		    case ';':
 #endif
-#if linux
+#if linux || __APPLE__ || __FreeBSD__
 		    case ':':
 #endif
 			p++;
@@ -392,7 +392,7 @@ Array *FileName::splitPath(const char *path)
 		    case '\r':
 			continue;	// ignore carriage returns
 
-#if linux
+#if linux || __APPLE__ || __FreeBSD__
 		    case '~':
 			buf.writestring(getenv("HOME"));
 			continue;
@@ -492,7 +492,7 @@ int FileName::absolute(const char *name)
 	   (*name == '/')  ||
 	   (*name && name[1] == ':');
 #endif
-#if linux
+#if linux || __APPLE__ || __FreeBSD__
     return (*name == '/');
 #endif
 }
@@ -514,7 +514,7 @@ char *FileName::ext(const char *str)
 	switch (*e)
 	{   case '.':
 		return e + 1;
-#if linux
+#if linux || __APPLE__ || __FreeBSD__
 	    case '/':
 	        break;
 #endif
@@ -570,7 +570,7 @@ char *FileName::name(const char *str)
     {
 	switch (*e)
 	{
-#if linux
+#if linux || __APPLE__ || __FreeBSD__
 	    case '/':
 	       return e + 1;
 #endif
@@ -607,7 +607,7 @@ char *FileName::path(const char *str)
 
     if (n > str)
     {
-#if linux
+#if linux || __APPLE__ || __FreeBSD__
 	if (n[-1] == '/')
 	    n--;
 #endif
@@ -643,7 +643,7 @@ char *FileName::replaceName(char *path, char *name)
     namelen = strlen(name);
     f = (char *)mem.malloc(pathlen + 1 + namelen + 1);
     memcpy(f, path, pathlen);
-#if linux
+#if linux || __APPLE__ || __FreeBSD__
     if (path[pathlen - 1] != '/')
     {	f[pathlen] = '/';
 	pathlen++;
@@ -719,7 +719,7 @@ int FileName::equalsExt(const char *ext)
 	return 1;
     if (!e || !ext)
 	return 0;
-#if linux
+#if linux || __APPLE__ || __FreeBSD__
     return strcmp(e,ext) == 0;
 #endif
 #if _WIN32
@@ -738,7 +738,7 @@ void FileName::CopyTo(FileName *to)
 #if _WIN32
     file.touchtime = mem.malloc(sizeof(WIN32_FIND_DATAA));	// keep same file time
 #endif
-#if linux
+#if linux || __APPLE__ || __FreeBSD__
     file.touchtime = mem.malloc(sizeof(struct stat)); // keep same file time
 #endif
     file.readv();
@@ -780,7 +780,7 @@ char *FileName::searchPath(Array *path, const char *name, int cwd)
 
 int FileName::exists(const char *name)
 {
-#if linux
+#if linux || __APPLE__ || __FreeBSD__
     struct stat st;
 
     if (stat(name, &st) < 0)
@@ -827,7 +827,7 @@ void FileName::ensurePathExists(const char *path)
 #if _WIN32
 	    if (path[strlen(path) - 1] != '\\')
 #endif
-#if linux
+#if linux || __APPLE__ || __FreeBSD__
 	    if (path[strlen(path) - 1] != '\\')
 #endif
 	    {
@@ -835,7 +835,7 @@ void FileName::ensurePathExists(const char *path)
 #if _WIN32
 		if (mkdir(path))
 #endif
-#if linux
+#if linux || __APPLE__ || __FreeBSD__
 		if (mkdir(path, 0777))
 #endif
 		    error("cannot create directory %s", path);
@@ -891,7 +891,7 @@ void File::mark()
 
 int File::read()
 {
-#if linux
+#if linux || __APPLE__ || __FreeBSD__
     off_t size;
     ssize_t numread;
     int fd;
@@ -1023,7 +1023,7 @@ err1:
 
 int File::mmread()
 {
-#if linux
+#if linux || __APPLE__ || __FreeBSD__
     return read();
 #endif
 #if _WIN32
@@ -1077,7 +1077,7 @@ Lerr:
 
 int File::write()
 {
-#if linux
+#if linux || __APPLE__ || __FreeBSD__
     int fd;
     ssize_t numwritten;
     char *name;
@@ -1150,7 +1150,7 @@ err:
 
 int File::append()
 {
-#if linux
+#if linux || __APPLE__ || __FreeBSD__
     return 1;
 #endif
 #if _WIN32
@@ -1230,7 +1230,7 @@ void File::appendv()
 
 int File::exists()
 {
-#if linux
+#if linux || __APPLE__ || __FreeBSD__
     return 0;
 #endif
 #if _WIN32
@@ -1255,7 +1255,7 @@ int File::exists()
 
 void File::remove()
 {
-#if linux
+#if linux || __APPLE__ || __FreeBSD__
     ::remove(this->name->toChars());
 #endif
 #if _WIN32
@@ -1270,7 +1270,7 @@ Array *File::match(char *n)
 
 Array *File::match(FileName *n)
 {
-#if linux
+#if linux || __APPLE__ || __FreeBSD__
     return NULL;
 #endif
 #if _WIN32
@@ -1308,7 +1308,7 @@ Array *File::match(FileName *n)
 
 int File::compareTime(File *f)
 {
-#if linux
+#if linux || __APPLE__ || __FreeBSD__
     return 0;
 #endif
 #if _WIN32
@@ -1322,7 +1322,7 @@ int File::compareTime(File *f)
 
 void File::stat()
 {
-#if linux
+#if linux || __APPLE__ || __FreeBSD__
     if (!touchtime)
     {
 	touchtime = mem.calloc(1, sizeof(struct stat));
@@ -1659,7 +1659,7 @@ void OutBuffer::vprintf(const char *format, va_list args)
 	    break;
 	psize *= 2;
 #endif
-#if linux
+#if linux || __APPLE__ || __FreeBSD__
         va_list va;
         va_copy(va, args);
 /*
@@ -1705,7 +1705,7 @@ void OutBuffer::vprintf(const wchar_t *format, va_list args)
 	    break;
 	psize *= 2;
 #endif
-#if linux
+#if linux || __APPLE__ || __FreeBSD__
         va_list va;
         va_copy(va, args);
 	count = vsnwprintf(p,psize,format,va);

@@ -1,6 +1,6 @@
 
 // Compiler implementation of the D programming language
-// Copyright (c) 2008-2008 by Digital Mars
+// Copyright (c) 2008-2009 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // http://www.digitalmars.com
@@ -41,7 +41,7 @@ void browse(const char *url)
     if (browser)
 	browser = strdup(browser);
     else
-	browser = "firefox";
+	browser = "x-www-browser";
 
     args[0] = browser;
     args[1] = url;
@@ -98,3 +98,5 @@ void browse(const char *url)
 #endif
 
 
+#if __FreeBSD__
+#endif

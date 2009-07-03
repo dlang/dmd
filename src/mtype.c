@@ -1,6 +1,6 @@
 
 // Compiler implementation of the D programming language
-// Copyright (c) 1999-2008 by Digital Mars
+// Copyright (c) 1999-2009 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // http://www.digitalmars.com
@@ -69,7 +69,10 @@ FuncDeclaration *hasThis(Scope *sc);
  */
 
 int PTRSIZE = 4;
-#if TARGET_LINUX
+#if TARGET_OSX
+int REALSIZE = 16;
+int REALPAD = 6;
+#elif TARGET_LINUX || TARGET_FREEBSD
 int REALSIZE = 12;
 int REALPAD = 2;
 #else
@@ -198,6 +201,7 @@ void Type::init()
     mangleChar[Ttypeof] = '@';
     mangleChar[Ttuple] = 'B';
     mangleChar[Tslice] = '@';
+    mangleChar[Treturn] = '@';
 
     for (i = 0; i < TMAX; i++)
     {	if (!mangleChar[i])
@@ -233,7 +237,10 @@ void Type::init()
     else
     {
 	PTRSIZE = 4;
-#if TARGET_LINUX
+#if TARGET_OSX
+	REALSIZE = 16;
+	REALPAD = 6;
+#elif TARGET_LINUX || TARGET_FREEBSD
 	REALSIZE = 12;
 	REALPAD = 2;
 #else
@@ -699,14 +706,19 @@ Identifier *Type::getTypeInfoIdent(int internal)
     if (internal)
     {	buf.writeByte(mangleChar[ty]);
 	if (ty == Tarray)
-	    buf.writeByte(mangleChar[next->ty]);
+	    buf.writeByte(mangleChar[((TypeArray *)this)->next->ty]);
     }
     else
 	toDecoBuffer(&buf);
     len = buf.offset;
     name = (char *)alloca(19 + sizeof(len) * 3 + len + 1);
     buf.writeByte(0);
+#if TARGET_OSX
+    // The LINKc will prepend the _
+    sprintf(name, "D%dTypeInfo_%s6__initZ", 9 + len, buf.data);
+#else
     sprintf(name, "_D%dTypeInfo_%s6__initZ", 9 + len, buf.data);
+#endif
     if (global.params.isWindows)
 	name++;			// C mangling will add it back in
     //printf("name = %s\n", name);
@@ -722,9 +734,8 @@ TypeBasic *Type::isTypeBasic()
 
 void Type::resolve(Loc loc, Scope *sc, Expression **pe, Type **pt, Dsymbol **ps)
 {
-    Type *t;
-
-    t = semantic(loc, sc);
+    //printf("Type::resolve() %s, %d\n", toChars(), ty);
+    Type *t = semantic(loc, sc);
     *pt = t;
     *pe = NULL;
     *ps = NULL;
@@ -984,7 +995,11 @@ unsigned TypeBasic::alignsize()
 	case Tfloat80:
 	case Timaginary80:
 	case Tcomplex80:
+#if TARGET_OSX
+	    sz = 16;
+#else
 	    sz = 2;
+#endif
 	    break;
 
 	default:
@@ -1520,8 +1535,8 @@ Expression *TypeArray::dotExp(Scope *sc, Expression *e, Identifier *ident)
 	Expression *ec;
 	FuncDeclaration *fd;
 	Expressions *arguments;
-	char *nm;
-	static char *name[2] = { "_adReverseChar", "_adReverseWchar" };
+	const char *nm;
+	static const char *name[2] = { "_adReverseChar", "_adReverseWchar" };
 
 	nm = name[n->ty == Twchar];
 	fd = FuncDeclaration::genCfunc(Type::tindex, nm);
@@ -1537,8 +1552,8 @@ Expression *TypeArray::dotExp(Scope *sc, Expression *e, Identifier *ident)
 	Expression *ec;
 	FuncDeclaration *fd;
 	Expressions *arguments;
-	char *nm;
-	static char *name[2] = { "_adSortChar", "_adSortWchar" };
+	const char *nm;
+	static const char *name[2] = { "_adSortChar", "_adSortWchar" };
 
 	nm = name[n->ty == Twchar];
 	fd = FuncDeclaration::genCfunc(Type::tindex, nm);
@@ -1782,7 +1797,7 @@ Type *TypeSArray::semantic(Loc loc, Scope *sc)
 	dim = semanticLength(sc, tbn, dim);
 
 	dim = dim->optimize(WANTvalue | WANTinterpret);
-	if (sc->parameterSpecialization && dim->op == TOKvar &&
+	if (sc && sc->parameterSpecialization && dim->op == TOKvar &&
 	    ((VarExp *)dim)->var->storage_class & STCtemplateparameter)
 	{
 	    /* It could be a template parameter N which has no value yet:
@@ -2517,8 +2532,7 @@ Expression *TypeReference::defaultInit(Loc loc)
 #if LOGDEFAULTINIT
     printf("TypeReference::defaultInit() '%s'\n", toChars());
 #endif
-    Expression *e;
-    e = new NullExp(loc);
+    Expression *e = new NullExp(loc);
     e->type = this;
     return e;
 }
@@ -3573,6 +3587,7 @@ TypeTypeof::TypeTypeof(Loc loc, Expression *exp)
 
 Type *TypeTypeof::syntaxCopy()
 {
+    //printf("TypeTypeof::syntaxCopy() %s\n", toChars());
     TypeTypeof *t;
 
     t = new TypeTypeof(loc, exp->syntaxCopy());
@@ -4845,6 +4860,7 @@ TypeTuple::TypeTuple(Arguments *arguments)
 {
     //printf("TypeTuple(this = %p)\n", this);
     this->arguments = arguments;
+    //printf("TypeTuple() %s\n", toChars());
 #ifdef DEBUG
     if (arguments)
     {
@@ -4890,6 +4906,7 @@ Type *TypeTuple::syntaxCopy()
 Type *TypeTuple::semantic(Loc loc, Scope *sc)
 {
     //printf("TypeTuple::semantic(this = %p)\n", this);
+    //printf("TypeTuple::semantic() %s\n", toChars());
     if (!deco)
 	deco = merge()->deco;
 

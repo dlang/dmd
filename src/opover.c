@@ -12,7 +12,11 @@
 #include <stdlib.h>
 #include <ctype.h>
 #include <assert.h>
+#if _MSC_VER
+#include <complex>
+#else
 #include <complex.h>
+#endif
 
 #ifdef __APPLE__
 #define integer_t dmd_integer_t
@@ -20,7 +24,7 @@
 
 #if IN_GCC
 #include "mem.h"
-#elif linux
+#elif linux || __APPLE__
 #include "../root/mem.h"
 #elif _WIN32
 #include "..\root\mem.h"

@@ -32,10 +32,12 @@ struct TypedefDeclaration;
 struct TypeInfoDeclaration;
 struct Dsymbol;
 struct TemplateInstance;
+struct CppMangleState;
 enum LINK;
 
 struct TypeBasic;
 struct HdrGenState;
+struct Argument;
 
 // Back end
 #if IN_GCC
@@ -94,6 +96,7 @@ enum TY
     Ttypeof,
     Ttuple,
     Tslice,
+    Treturn,
     TMAX
 };
 
@@ -102,13 +105,16 @@ enum TY
 extern int Tsize_t;
 extern int Tptrdiff_t;
 
+
 struct Type : Object
 {
     TY ty;
-    unsigned char mod;	// modifiers (MODconst, MODinvariant)
+    unsigned char mod;	// modifiers MODxxxx
+	/* pick this order of numbers so switch statements work better
+	 */
 	#define MODconst     1	// type is const
-	#define MODinvariant 2	// type is invariant
-    Type *next;
+	#define MODinvariant 4	// type is invariant
+	#define MODshared    2	// type is shared
     char *deco;
     Type *pto;		// merged pointer to this type
     Type *rto;		// reference to this type
@@ -236,6 +242,7 @@ struct Type : Object
     virtual Type *reliesOnTident();
     virtual Expression *toExpression();
     virtual int hasPointers();
+    Type *next;
     Type *nextOf() { return next; }
 
     static void error(Loc loc, const char *format, ...);

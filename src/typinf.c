@@ -1,6 +1,6 @@
 
 // Compiler implementation of the D programming language
-// Copyright (c) 1999-2007 by Digital Mars
+// Copyright (c) 1999-2009 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // http://www.digitalmars.com
@@ -210,6 +210,45 @@ void TypeInfoDeclaration::toDt(dt_t **pdt)
     dtdword(pdt, 0);			    // monitor
 }
 
+#if V2
+void TypeInfoConstDeclaration::toDt(dt_t **pdt)
+{
+    //printf("TypeInfoConstDeclaration::toDt() %s\n", toChars());
+    dtxoff(pdt, Type::typeinfoconst->toVtblSymbol(), 0, TYnptr); // vtbl for TypeInfo_Const
+    dtdword(pdt, 0);			    // monitor
+    Type *tm = tinfo->mutableOf();
+    tm = tm->merge();
+    tm->getTypeInfo(NULL);
+    dtxoff(pdt, tm->vtinfo->toSymbol(), 0, TYnptr);
+}
+
+void TypeInfoInvariantDeclaration::toDt(dt_t **pdt)
+{
+    //printf("TypeInfoInvariantDeclaration::toDt() %s\n", toChars());
+    dtxoff(pdt, Type::typeinfoinvariant->toVtblSymbol(), 0, TYnptr); // vtbl for TypeInfo_Invariant
+    dtdword(pdt, 0);			    // monitor
+    Type *tm = tinfo->mutableOf();
+    tm = tm->merge();
+    tm->getTypeInfo(NULL);
+    dtxoff(pdt, tm->vtinfo->toSymbol(), 0, TYnptr);
+}
+
+void TypeInfoSharedDeclaration::toDt(dt_t **pdt)
+{
+    //printf("TypeInfoSharedDeclaration::toDt() %s\n", toChars());
+    dtxoff(pdt, Type::typeinfoshared->toVtblSymbol(), 0, TYnptr); // vtbl for TypeInfo_Shared
+    dtdword(pdt, 0);			    // monitor
+    Type *tm;
+    if (tinfo->isConst())		// it was 'shared const'
+	tm = tinfo->constOf();
+    else				// it was just 'shared'
+	tm = tinfo->mutableOf();
+    tm = tm->merge();
+    tm->getTypeInfo(NULL);
+    dtxoff(pdt, tm->vtinfo->toSymbol(), 0, TYnptr);
+}
+#endif
+
 void TypeInfoTypedefDeclaration::toDt(dt_t **pdt)
 {
     //printf("TypeInfoTypedefDeclaration::toDt() %s\n", toChars());
@@ -278,7 +317,7 @@ void TypeInfoEnumDeclaration::toDt(dt_t **pdt)
     dtabytes(pdt, TYnptr, 0, namelen + 1, name);
 
     // void[] init;
-    if (tinfo->isZeroInit() || !sd->defaultval)
+    if (!sd->defaultval || tinfo->isZeroInit())
     {	// 0 initializer, or the same as the base type
 	dtdword(pdt, 0);	// init.length
 	dtdword(pdt, 0);	// init.ptr
@@ -511,6 +550,28 @@ void TypeInfoStructDeclaration::toDt(dt_t **pdt)
     // uint m_flags;
     dtdword(pdt, tc->hasPointers());
 
+#if V2
+    // xgetMembers
+    FuncDeclaration *sgetmembers = sd->findGetMembers();
+    if (sgetmembers)
+	dtxoff(pdt, sgetmembers->toSymbol(), 0, TYnptr);
+    else
+	dtdword(pdt, 0);			// xgetMembers
+
+    // xdtor
+    FuncDeclaration *sdtor = sd->dtor;
+    if (sdtor)
+	dtxoff(pdt, sdtor->toSymbol(), 0, TYnptr);
+    else
+	dtdword(pdt, 0);			// xdtor
+
+    // xpostblit
+    FuncDeclaration *spostblit = sd->postblit;
+    if (spostblit)
+	dtxoff(pdt, spostblit->toSymbol(), 0, TYnptr);
+    else
+	dtdword(pdt, 0);			// xpostblit
+#endif
     // name[]
     dtnbytes(pdt, namelen + 1, name);
 }
@@ -613,12 +674,12 @@ void TypeInfoDeclaration::toObjFile(int multiobj)
 	s->Sdt->dt = DT_common;
     }
 
-#if ELFOBJ // Burton
+#if ELFOBJ || MACHOBJ // Burton
     if (s->Sdt && s->Sdt->dt == DT_azeros && s->Sdt->DTnext == NULL)
 	s->Sseg = UDATA;
     else
 	s->Sseg = DATA;
-#endif /* ELFOBJ */
+#endif
     outdata(s);
     if (isExport())
 	obj_export(s,0);
