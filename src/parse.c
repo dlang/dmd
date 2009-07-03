@@ -568,9 +568,17 @@ enum LINK Parser::parseLinkage()
 		nextToken();
 	    }
 	}
+	else if (id == Id::System)
+	{
+#if _WIN32
+	    link = LINKwindows;
+#else
+	    link = LINKc;
+#endif
+	}
 	else
 	{
-	    error("valid linkage identifiers are D, C, C++, Pascal, Windows");
+	    error("valid linkage identifiers are D, C, C++, Pascal, Windows, System");
 	    link = LINKd;
 	}
     }
