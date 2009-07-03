@@ -1336,10 +1336,20 @@ MATCH Type::deduceType(Scope *sc, Type *tparam, TemplateParameters *parameters,
 	{
 	    if (!sc)
 		goto Lnomatch;
+
+	    /* Need a loc to go with the semantic routine.
+	     */
+	    Loc loc;
+	    if (parameters->dim)
+	    {
+		TemplateParameter *tp = (TemplateParameter *)parameters->data[0];
+		loc = tp->loc;
+	    }
+
 	    /* BUG: what if tparam is a template instance, that
 	     * has as an argument another Tident?
 	     */
-	    tparam = tparam->semantic(0, sc);
+	    tparam = tparam->semantic(loc, sc);
 	    assert(tparam->ty != Tident);
 	    return deduceType(sc, tparam, parameters, dedtypes);
 	}
