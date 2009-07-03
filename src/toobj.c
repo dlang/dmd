@@ -374,8 +374,7 @@ void ClassDeclaration::toObjFile()
 	    for (size_t i = 0; i < cd->members->dim; i++)
 	    {
 		Dsymbol *sm = (Dsymbol *)cd->members->data[i];
-		VarDeclaration *v = sm->isVarDeclaration();
-		if (v && !v->isDataseg() && v->type->hasPointers())
+		if (sm->hasPointers())
 		    goto L2;
 	    }
 	}
@@ -832,14 +831,20 @@ void StructDeclaration::toObjFile()
 	{
 	    // Generate static initializer
 	    toInitializer();
+#if 0
+	    sinit->Sclass = SCcomdat;
+#else
 	    if (parent && parent->isTemplateInstance())
 		sinit->Sclass = SCcomdat;
 	    else
 		sinit->Sclass = SCglobal;
+#endif
 	    sinit->Sfl = FLdata;
 	    toDt(&sinit->Sdt);
 
 #if !ELFOBJ
+	    /* For OMF, common blocks aren't pulled in from the library.
+	     */
 	    /* ELF comdef's generate multiple
 	     * definition errors for them from the gnu linker.
 	     * Need to figure out how to generate proper comdef's for ELF.

@@ -1,6 +1,6 @@
 
 // Compiler implementation of the D programming language
-// Copyright (c) 1999-2006 by Digital Mars
+// Copyright (c) 1999-2007 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // www.digitalmars.com
@@ -44,6 +44,7 @@ struct AttribDeclaration : Dsymbol
     void emitComment(Scope *sc);
     char *kind();
     int oneMember(Dsymbol **ps);
+    int hasPointers();
     void checkCtorConstInit();
     void addLocalClass(ClassDeclarations *);
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);

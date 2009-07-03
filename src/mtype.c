@@ -4223,8 +4223,7 @@ int TypeStruct::hasPointers()
 	for (size_t i = 0; i < s->members->dim; i++)
 	{
 	    Dsymbol *sm = (Dsymbol *)s->members->data[i];
-	    VarDeclaration *v = sm->isVarDeclaration();
-	    if (v && !v->isDataseg() && v->type->hasPointers())
+	    if (sm->hasPointers())
 		return TRUE;
 	}
     }

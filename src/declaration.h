@@ -224,6 +224,7 @@ struct VarDeclaration : Declaration
     int needThis();
     int isImportedSymbol();
     int isDataseg();
+    int hasPointers();
     Expression *callAutoDtor();
     ExpInitializer *getExpInitializer();
     void checkCtorConstInit();

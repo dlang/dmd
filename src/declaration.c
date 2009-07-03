@@ -1025,6 +1025,11 @@ int VarDeclaration::isDataseg()
 	   parent->isTemplateInstance());
 }
 
+int VarDeclaration::hasPointers()
+{
+    return (!isDataseg() && type->hasPointers());
+}
+
 /******************************************
  * If a variable has an auto destructor call, return call for it.
  * Otherwise, return NULL.

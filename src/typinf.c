@@ -241,8 +241,6 @@ void TypeInfoTypedefDeclaration::toDt(dt_t **pdt)
     else
     {
 	dtdword(pdt, sd->type->size());	// init.length
-	// BUG: should make sd->toInitializer() work
-	//dtdword(pdt, 0);	// init.ptr
 	dtxoff(pdt, sd->toInitializer(), 0, TYnptr);	// init.ptr
     }
 }

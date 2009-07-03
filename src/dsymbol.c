@@ -132,6 +132,15 @@ int Dsymbol::oneMembers(Array *members, Dsymbol **ps)
     return TRUE;
 }
 
+/*****************************************
+ * Is Dsymbol a variable that contains pointers?
+ */
+
+int Dsymbol::hasPointers()
+{
+    return 0;
+}
+
 char *Dsymbol::toChars()
 {
     return ident ? ident->toChars() : (char *)"__anonymous";

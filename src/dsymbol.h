@@ -147,6 +147,7 @@ struct Dsymbol : Object
     virtual Dsymbol *syntaxCopy(Dsymbol *s);	// copy only syntax trees
     virtual int oneMember(Dsymbol **ps);
     static int oneMembers(Array *members, Dsymbol **ps);
+    virtual int hasPointers();
     virtual void addLocalClass(ClassDeclarations *) { }
     virtual void checkCtorConstInit() { }
 

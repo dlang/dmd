@@ -211,6 +211,22 @@ int AttribDeclaration::cvMember(unsigned char *p)
     return nwritten;
 }
 
+int AttribDeclaration::hasPointers()
+{
+    Array *d = include(NULL, NULL);
+
+    if (d)
+    {
+	for (size_t i = 0; i < d->dim; i++)
+	{
+	    Dsymbol *s = (Dsymbol *)d->data[i];
+	    if (s->hasPointers())
+		return 1;
+	}
+    }
+    return 0;
+}
+
 char *AttribDeclaration::kind()
 {
     return "attribute";
