@@ -29,7 +29,8 @@
 /* Changes for the GDC compiler by David Friedman */
 #endif
 
-#define BREAKABI 1	// not ready to break the ABI just yet
+#define V2	1	// Version 2.0 features
+#define BREAKABI 1	// 0 if not ready to break the ABI just yet
 
 struct Array;
 

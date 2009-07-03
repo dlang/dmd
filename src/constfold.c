@@ -1082,7 +1082,7 @@ Expression *Index(Type *type, Expression *e1, Expression *e2)
 	uinteger_t i = e2->toInteger();
 
 	if (i >= es1->len)
-	    e1->error("string index %ju is out of bounds [0 .. %ju]", i, es1->len);
+	    e1->error("string index %ju is out of bounds [0 .. %zu]", i, es1->len);
 	else
 	{   integer_t value;
 
@@ -1226,8 +1226,11 @@ Expression *Cat(Type *type, Expression *e1, Expression *e2)
 {   Expression *e = EXP_CANT_INTERPRET;
     Loc loc = e1->loc;
     Type *t;
+    Type *t1 = e1->type->toBasetype();
+    Type *t2 = e2->type->toBasetype();
 
     //printf("Cat(e1 = %s, e2 = %s)\n", e1->toChars(), e2->toChars());
+    //printf("\tt1 = %s, t2 = %s\n", t1->toChars(), t2->toChars());
 
     if (e1->op == TOKnull && e2->op == TOKint64)
     {	e = e2;
@@ -1346,7 +1349,7 @@ Expression *Cat(Type *type, Expression *e1, Expression *e2)
 	e = es;
     }
     else if (e1->op == TOKarrayliteral && e2->op == TOKarrayliteral &&
-	e1->type->equals(e2->type))
+	t1->nextOf()->equals(t2->nextOf()))
     {
 	// Concatenate the arrays
 	ArrayLiteralExp *es1 = (ArrayLiteralExp *)e1;
@@ -1358,7 +1361,7 @@ Expression *Cat(Type *type, Expression *e1, Expression *e2)
 
 	if (type->toBasetype()->ty == Tsarray)
 	{
-	    e->type = new TypeSArray(e1->type->toBasetype()->nextOf(), new IntegerExp(0, es1->elements->dim, Type::tindex));
+	    e->type = new TypeSArray(t1->nextOf(), new IntegerExp(0, es1->elements->dim, Type::tindex));
 	    e->type = e->type->semantic(loc, NULL);
 	}
 	else

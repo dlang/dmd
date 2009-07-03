@@ -535,7 +535,7 @@ void ClassDeclaration::semantic(Scope *sc)
 	alignsize = 0;
 	structalign = 0;
 
-	sc->pop();
+	sc = sc->pop();
 
 	scope = scx ? scx : new Scope(*sc);
 	scope->setNoFree();
@@ -579,7 +579,7 @@ void ClassDeclaration::semantic(Scope *sc)
 	ctor->fbody = new CompoundStatement(0, new Statements());
 	members->push(ctor);
 	ctor->addMember(sc, this, 1);
-	*sc = scsave;
+	*sc = scsave;	// why? What about sc->nofree?
 	sc->offset = structsize;
 	ctor->semantic(sc);
 	defaultCtor = ctor;

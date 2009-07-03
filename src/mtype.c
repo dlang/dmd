@@ -2243,6 +2243,7 @@ Type *TypeDArray::semantic(Loc loc, Scope *sc)
     {
 	case Tfunction:
 	case Tnone:
+	case Ttuple:
 	    error(loc, "can't have array of %s", tbn->toChars());
 	    tn = next = tint32;
 	    break;
@@ -2604,6 +2605,13 @@ Type *TypePointer::semantic(Loc loc, Scope *sc)
 {
     //printf("TypePointer::semantic()\n");
     Type *n = next->semantic(loc, sc);
+    switch (n->toBasetype()->ty)
+    {
+	case Ttuple:
+	    error(loc, "can't have pointer to %s", n->toChars());
+	    n = tint32;
+	    break;
+    }
     if (n != next)
 	deco = NULL;
     next = n;
@@ -4043,6 +4051,8 @@ Expression *TypeEnum::dotExp(Scope *sc, Expression *e, Identifier *ident)
 #if LOGDOTEXP
     printf("TypeEnum::dotExp(e = '%s', ident = '%s') '%s'\n", e->toChars(), ident->toChars(), toChars());
 #endif
+    if (!sym->symtab)
+	goto Lfwd;
     s = sym->symtab->lookup(ident);
     if (!s)
     {
@@ -4052,6 +4062,10 @@ Expression *TypeEnum::dotExp(Scope *sc, Expression *e, Identifier *ident)
     em = m->value->copy();
     em->loc = e->loc;
     return em;
+
+Lfwd:
+    error(e->loc, "forward reference of %s.%s", toChars(), ident->toChars());
+    return new IntegerExp(0, 0, this);
 }
 
 Expression *TypeEnum::getProperty(Loc loc, Identifier *ident)

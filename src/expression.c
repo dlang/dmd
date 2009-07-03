@@ -296,12 +296,30 @@ void arrayExpressionSemantic(Expressions *exps, Scope *sc)
 
 void expandTuples(Expressions *exps)
 {
+    //printf("expandTuples()\n");
     if (exps)
     {
 	for (size_t i = 0; i < exps->dim; i++)
 	{   Expression *arg = (Expression *)exps->data[i];
 	    if (!arg)
 		continue;
+
+	    // Look for tuple with 0 members
+	    if (arg->op == TOKtype)
+	    {	TypeExp *e = (TypeExp *)arg;
+		if (e->type->toBasetype()->ty == Ttuple)
+		{   TypeTuple *tt = (TypeTuple *)e->type->toBasetype();
+
+		    if (!tt->arguments || tt->arguments->dim == 0)
+		    {
+			exps->remove(i);
+			if (i == exps->dim)
+			    return;
+			i--;
+			continue;
+		    }
+		}
+	    }
 
 	    // Inline expand all the tuples
 	    while (arg->op == TOKtuple)
@@ -656,7 +674,14 @@ Expression *Expression::copy()
 {
     Expression *e;
     if (!size)
+    {
+#ifdef DEBUG
 	fprintf(stdmsg, "No expression copy for: %s\n", toChars());
+	printf("op = %d\n", op);
+	dump(0);
+#endif
+	assert(0);
+    }
     e = (Expression *)mem.malloc(size);
     return (Expression *)memcpy(e, this, size);
 }
@@ -854,8 +879,14 @@ void Expression::checkDeprecated(Scope *sc, Dsymbol *s)
 int Expression::checkSideEffect(int flag)
 {
     if (flag == 0)
-	error("%s has no effect in expression (%s)",
+    {	if (op == TOKimport)
+	{
+	    error("%s has no effect", toChars());
+	}
+	else
+	    error("%s has no effect in expression (%s)",
 		Token::toChars(op), toChars());
+    }
     return 0;
 }
 
@@ -1005,10 +1036,14 @@ int IntegerExp::equals(Object *o)
 
 char *IntegerExp::toChars()
 {
+#if 1
+    return Expression::toChars();
+#else
     static char buffer[sizeof(value) * 3 + 1];
 
     sprintf(buffer, "%jd", value);
     return buffer;
+#endif
 }
 
 integer_t IntegerExp::toInteger()
@@ -2433,6 +2468,13 @@ ArrayLiteralExp::ArrayLiteralExp(Loc loc, Expressions *elements)
     this->elements = elements;
 }
 
+ArrayLiteralExp::ArrayLiteralExp(Loc loc, Expression *e)
+    : Expression(loc, TOKarrayliteral, sizeof(ArrayLiteralExp))
+{
+    elements = new Expressions;
+    elements->push(e);
+}
+
 Expression *ArrayLiteralExp::syntaxCopy()
 {
     return new ArrayLiteralExp(loc, arraySyntaxCopy(elements));
@@ -2762,11 +2804,17 @@ Expression *StructLiteralExp::semantic(Scope *sc)
  */
 
 Expression *StructLiteralExp::getField(Type *type, unsigned offset)
-{   Expression *e = NULL;
+{
+    //printf("StructLiteralExp::getField(this = %s, type = %s, offset = %u)\n",
+//	/*toChars()*/"", type->toChars(), offset);
+    Expression *e = NULL;
     int i = getFieldIndex(type, offset);
 
     if (i != -1)
-    {   e = (Expression *)elements->data[i];
+    {
+	//printf("\ti = %d\n", i);
+	assert(i < elements->dim);
+	e = (Expression *)elements->data[i];
 	if (e)
 	{
 	    e = e->copy();
@@ -4359,6 +4407,8 @@ Expression *CompileExp::semantic(Scope *sc)
     se = se->toUTF8(sc);
     Parser p(sc->module, (unsigned char *)se->string, se->len, 0);
     p.loc = loc;
+    p.nextToken();
+    //printf("p.loc.linnum = %d\n", p.loc.linnum);
     Expression *e = p.parseExpression();
     if (p.token.value != TOKeof)
 	error("incomplete mixin expression (%s)", se->toChars());
@@ -4726,6 +4776,12 @@ Expression *DotIdExp::semantic(Scope *sc)
 	    printf("s = '%s', kind = '%s'\n", s->toChars(), s->kind());
 #endif
 	    assert(0);
+	}
+	else if (ident == Id::stringof)
+	{   char *s = ie->toChars();
+	    e = new StringExp(loc, s, strlen(s), 'c');
+	    e = e->semantic(sc);
+	    return e;
 	}
 	error("undefined identifier %s", toChars());
 	type = Type::tvoid;
@@ -5342,6 +5398,24 @@ Lagain:
 	    e1 = new DsymbolExp(loc, se->sds);
 	    e1 = e1->semantic(sc);
 	}
+#if 1	// patch for #540 by Oskar Linde
+	else if (e1->op == TOKdotexp)
+	{
+	    DotExp *de = (DotExp *) e1;
+
+	    if (de->e2->op == TOKimport)
+	    {   // This should *really* be moved to ScopeExp::semantic()
+		ScopeExp *se = (ScopeExp *)de->e2;
+		de->e2 = new DsymbolExp(loc, se->sds);
+		de->e2 = de->e2->semantic(sc);
+	    }
+
+	    if (de->e2->op == TOKtemplate)
+	    {   TemplateExp *te = (TemplateExp *) de->e2;
+		e1 = new DotTemplateExp(loc,de->e1,te->td);
+	    }
+	}
+#endif
     }
 
     if (e1->op == TOKcomma)
@@ -7218,7 +7292,7 @@ Expression *CatAssignExp::semantic(Scope *sc)
     }
     else
     {
-	error("Can only append to dynamic arrays, not %s ~= %s", tb1->toChars(), tb2->toChars());
+	error("cannot append type %s to type %s", tb2->toChars(), tb1->toChars());
 	type = Type::tint32;
 	e = this;
     }
@@ -7645,7 +7719,7 @@ CatExp::CatExp(Loc loc, Expression *e1, Expression *e2)
 Expression *CatExp::semantic(Scope *sc)
 {   Expression *e;
 
-    //printf("CatExp::semantic()\n");
+    //printf("CatExp::semantic() %s\n", toChars());
     if (!type)
     {
 	BinExp::semanticp(sc);
@@ -7671,12 +7745,22 @@ Expression *CatExp::semantic(Scope *sc)
 	    e2->type->implicitConvTo(tb1->nextOf()) >= MATCHconst)
 	{
 	    type = tb1->nextOf()->arrayOf();
+	    if (tb2->ty == Tarray)
+	    {	// Make e2 into [e2]
+		e2 = new ArrayLiteralExp(e2->loc, e2);
+		e2->type = type;
+	    }
 	    return this;
 	}
 	else if ((tb2->ty == Tsarray || tb2->ty == Tarray) &&
 	    e1->type->implicitConvTo(tb2->nextOf()) >= MATCHconst)
 	{
 	    type = tb2->nextOf()->arrayOf();
+	    if (tb1->ty == Tarray)
+	    {	// Make e1 into [e1]
+		e1 = new ArrayLiteralExp(e1->loc, e1);
+		e1->type = type;
+	    }
 	    return this;
 	}
 
@@ -8446,6 +8530,9 @@ Expression *CondExp::semantic(Scope *sc)
     unsigned cs0;
     unsigned cs1;
 
+#if LOGSEMANTIC
+    printf("CondExp::semantic('%s')\n", toChars());
+#endif
     if (type)
 	return this;
 
@@ -8498,7 +8585,28 @@ Expression *CondExp::semantic(Scope *sc)
     else
     {
 	typeCombine(sc);
+	switch (e1->type->toBasetype()->ty)
+	{
+	    case Tcomplex32:
+	    case Tcomplex64:
+	    case Tcomplex80:
+		e2 = e2->castTo(sc, e1->type);
+		break;
+	}
+	switch (e2->type->toBasetype()->ty)
+	{
+	    case Tcomplex32:
+	    case Tcomplex64:
+	    case Tcomplex80:
+		e1 = e1->castTo(sc, e2->type);
+		break;
+	}
     }
+#if 0
+    printf("res: %s\n", type->toChars());
+    printf("e1 : %s\n", e1->type->toChars());
+    printf("e2 : %s\n", e2->type->toChars());
+#endif
     return this;
 }
 

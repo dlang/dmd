@@ -76,6 +76,7 @@ struct Scope
     unsigned flags;
 #define SCOPEctor	1	// constructor type
 #define SCOPEstaticif	2	// inside static if
+#define SCOPEfree	4	// is on free list
 
     AnonymousAggregateDeclaration *anonAgg;	// for temporary analysis
 

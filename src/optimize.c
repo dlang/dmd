@@ -62,6 +62,15 @@ Expression *Expression::optimize(int result)
     return this;
 }
 
+Expression *VarExp::optimize(int result)
+{
+    if (result & WANTinterpret)
+    {
+	return fromConstInitializer(this);
+    }
+    return this;
+}
+
 Expression *TupleExp::optimize(int result)
 {
     for (size_t i = 0; i < exps->dim; i++)

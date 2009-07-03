@@ -333,19 +333,21 @@ void FuncDeclaration::semantic(Scope *sc)
 	}
 
 	// This is an 'introducing' function.
+
+	// Verify this doesn't override previous final function
+	if (cd->baseClass)
+	{   Dsymbol *s = cd->baseClass->search(loc, ident, 0);
+	    if (s)
+	    {
+		FuncDeclaration *f = s->isFuncDeclaration();
+		f = f->overloadExactMatch(type);
+		if (f && f->isFinal() && f->prot() != PROTprivate)
+		    error("cannot override final function %s", f->toPrettyChars());
+	    }
+	}
+
 	if (isFinal())
 	{
-	    // Verify this doesn't override previous final function
-	    if (cd->baseClass)
-	    {	Dsymbol *s = cd->baseClass->search(loc, ident, 0);
-		if (s)
-		{
-		    FuncDeclaration *f = s->isFuncDeclaration();
-		    f = f->overloadExactMatch(type);
-		    if (f && f->isFinal())
-			error("cannot override final function %s", f->toPrettyChars());
-		}
-	    }
 	    cd->vtblFinal.push(this);
 	}
 	else
@@ -604,6 +606,7 @@ void FuncDeclaration::semantic3(Scope *sc)
 	sc2->structalign = 8;
 	sc2->incontract = 0;
 	sc2->tf = NULL;
+	sc2->noctor = 0;
 
 	// Declare 'this'
 	ad = isThis();

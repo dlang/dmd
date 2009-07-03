@@ -349,6 +349,7 @@ struct ArrayLiteralExp : Expression
     Expressions *elements;
 
     ArrayLiteralExp(Loc loc, Expressions *elements);
+    ArrayLiteralExp(Loc loc, Expression *e);
 
     Expression *syntaxCopy();
     Expression *semantic(Scope *sc);
@@ -540,6 +541,7 @@ struct VarExp : Expression
     VarExp(Loc loc, Declaration *var);
     int equals(Object *o);
     Expression *semantic(Scope *sc);
+    Expression *optimize(int result);
     Expression *interpret(InterState *istate);
     void dump(int indent);
     char *toChars();

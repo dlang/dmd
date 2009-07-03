@@ -577,6 +577,7 @@ void Module::parse()
 #endif
     }
     Parser p(this, buf, buflen, docfile != NULL);
+    p.nextToken();
     members = p.parseModule();
     md = p.md;
     numlines = p.loc.linnum;

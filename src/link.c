@@ -244,7 +244,7 @@ int runLINK()
     /* Standard libraries must go after user specified libraries
      * passed with -l.
      */
-    argv.push((void *)"-lphobos");	// turns into /usr/lib/libphobos.a
+    argv.push((void *)"-lphobos2");	// turns into /usr/lib/libphobos.a
     argv.push((void *)"-lpthread");
     argv.push((void *)"-lm");
 

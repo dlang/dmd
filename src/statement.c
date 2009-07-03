@@ -251,6 +251,7 @@ Statement *CompileStatement::semantic(Scope *sc)
     se = se->toUTF8(sc);
     Parser p(sc->module, (unsigned char *)se->string, se->len, 0);
     p.loc = loc;
+    p.nextToken();
 
     Statements *statements = new Statements();
     while (p.token.value != TOKeof)
@@ -781,7 +782,7 @@ WhileStatement::WhileStatement(Loc loc, Expression *c, Statement *b)
 
 Statement *WhileStatement::syntaxCopy()
 {
-    WhileStatement *s = new WhileStatement(loc, condition->syntaxCopy(), body->syntaxCopy());
+    WhileStatement *s = new WhileStatement(loc, condition->syntaxCopy(), body ? body->syntaxCopy() : NULL);
     return s;
 }
 
@@ -821,7 +822,8 @@ Statement *WhileStatement::semantic(Scope *sc)
     Scope *scd = sc->push();
     scd->sbreak = this;
     scd->scontinue = this;
-    body = body->semantic(scd);
+    if (body)
+	body = body->semantic(scd);
     scd->pop();
 
     sc->noctor--;
@@ -841,12 +843,13 @@ int WhileStatement::hasContinue()
 
 int WhileStatement::usesEH()
 {
-    return body->usesEH();
+    return body ? body->usesEH() : 0;
 }
 
 int WhileStatement::fallOffEnd()
 {
-    body->fallOffEnd();
+    if (body)
+	body->fallOffEnd();
     return TRUE;
 }
 
@@ -863,7 +866,8 @@ void WhileStatement::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
     condition->toCBuffer(buf, hgs);
     buf->writebyte(')');
     buf->writenl();
-    body->toCBuffer(buf, hgs);
+    if (body)
+	body->toCBuffer(buf, hgs);
 }
 
 /******************************** DoStatement ***************************/
@@ -877,7 +881,7 @@ DoStatement::DoStatement(Loc loc, Statement *b, Expression *c)
 
 Statement *DoStatement::syntaxCopy()
 {
-    DoStatement *s = new DoStatement(loc, body->syntaxCopy(), condition->syntaxCopy());
+    DoStatement *s = new DoStatement(loc, body ? body->syntaxCopy() : NULL, condition->syntaxCopy());
     return s;
 }
 
@@ -885,7 +889,8 @@ Statement *DoStatement::syntaxCopy()
 Statement *DoStatement::semantic(Scope *sc)
 {
     sc->noctor++;
-    body = body->semanticScope(sc, this, this);
+    if (body)
+	body = body->semanticScope(sc, this, this);
     sc->noctor--;
     condition = condition->semantic(sc);
     condition = resolveProperties(sc, condition);
@@ -907,12 +912,13 @@ int DoStatement::hasContinue()
 
 int DoStatement::usesEH()
 {
-    return body->usesEH();
+    return body ? body->usesEH() : 0;
 }
 
 int DoStatement::fallOffEnd()
 {
-    body->fallOffEnd();
+    if (body)
+	body->fallOffEnd();
     return TRUE;
 }
 
@@ -927,7 +933,8 @@ void DoStatement::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 {
     buf->writestring("do");
     buf->writenl();
-    body->toCBuffer(buf, hgs);
+    if (body)
+	body->toCBuffer(buf, hgs);
     buf->writestring("while (");
     condition->toCBuffer(buf, hgs);
     buf->writebyte(')');
@@ -1192,7 +1199,12 @@ Statement *ForeachStatement::semantic(Scope *sc)
 		{
 		    arg->type = e->type;
 		    Initializer *ie = new ExpInitializer(0, e);
-		    var = new VarDeclaration(loc, arg->type, arg->ident, ie);
+		    VarDeclaration *v = new VarDeclaration(loc, arg->type, arg->ident, ie);
+		    if (e->isConst())
+			v->storage_class |= STCconst;
+		    else
+			v->storage_class |= STCfinal;
+		    var = v;
 		}
 	    }
 	    else
@@ -2060,12 +2072,13 @@ int SwitchStatement::hasBreak()
 
 int SwitchStatement::usesEH()
 {
-    return body->usesEH();
+    return body ? body->usesEH() : 0;
 }
 
 int SwitchStatement::fallOffEnd()
 {
-    body->fallOffEnd();
+    if (body)
+	body->fallOffEnd();
     return TRUE;	// need to do this better
 }
 
@@ -2824,7 +2837,7 @@ SynchronizedStatement::SynchronizedStatement(Loc loc, elem *esync, Statement *bo
 Statement *SynchronizedStatement::syntaxCopy()
 {
     Expression *e = exp ? exp->syntaxCopy() : NULL;
-    SynchronizedStatement *s = new SynchronizedStatement(loc, e, body->syntaxCopy());
+    SynchronizedStatement *s = new SynchronizedStatement(loc, e, body ? body->syntaxCopy() : NULL);
     return s;
 }
 
@@ -2846,7 +2859,8 @@ Statement *SynchronizedStatement::semantic(Scope *sc)
 	    exp = exp->semantic(sc);
 	}
     }
-    body = body->semantic(sc);
+    if (body)
+	body = body->semantic(sc);
     return this;
 }
 
@@ -2867,7 +2881,7 @@ int SynchronizedStatement::usesEH()
 
 int SynchronizedStatement::fallOffEnd()
 {
-    return body->fallOffEnd();
+    return body ? body->fallOffEnd() : TRUE;
 }
 
 void SynchronizedStatement::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
@@ -2897,7 +2911,7 @@ WithStatement::WithStatement(Loc loc, Expression *exp, Statement *body)
 
 Statement *WithStatement::syntaxCopy()
 {
-    WithStatement *s = new WithStatement(loc, exp->syntaxCopy(), body->syntaxCopy());
+    WithStatement *s = new WithStatement(loc, exp->syntaxCopy(), body ? body->syntaxCopy() : NULL);
     return s;
 }
 
@@ -2953,7 +2967,8 @@ Statement *WithStatement::semantic(Scope *sc)
     }
     sc = sc->push(sym);
 
-    body = body->semantic(sc);
+    if (body)
+	body = body->semantic(sc);
 
     sc->pop();
 
@@ -2965,17 +2980,18 @@ void WithStatement::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
     buf->writestring("with (");
     exp->toCBuffer(buf, hgs);
     buf->writestring(")\n");
-    body->toCBuffer(buf, hgs);
+    if (body)
+	body->toCBuffer(buf, hgs);
 }
 
 int WithStatement::usesEH()
 {
-    return body->usesEH();
+    return body ? body->usesEH() : 0;
 }
 
 int WithStatement::fallOffEnd()
 {
-    return body->fallOffEnd();
+    return body ? body->fallOffEnd() : TRUE;
 }
 
 /******************************** TryCatchStatement ***************************/
@@ -3018,7 +3034,7 @@ Statement *TryCatchStatement::semantic(Scope *sc)
 	    char *si = c->loc.toChars();
 	    char *sj = cj->loc.toChars();
 
-	    if (c->type->implicitConvTo(cj->type))
+	    if (c->type->toBasetype()->implicitConvTo(cj->type->toBasetype()))
 		error("catch at %s hides catch at %s", sj, si);
 	}
     }
@@ -3346,7 +3362,8 @@ Statement *VolatileStatement::syntaxCopy()
 
 Statement *VolatileStatement::semantic(Scope *sc)
 {
-    statement = statement->semantic(sc);
+    if (statement)
+	statement = statement->semantic(sc);
     return this;
 }
 
@@ -3354,7 +3371,7 @@ Statements *VolatileStatement::flatten(Scope *sc)
 {
     Statements *a;
 
-    a = statement->flatten(sc);
+    a = statement ? statement->flatten(sc) : NULL;
     if (a)
     {	for (int i = 0; i < a->dim; i++)
 	{   Statement *s = (Statement *)a->data[i];
@@ -3369,7 +3386,7 @@ Statements *VolatileStatement::flatten(Scope *sc)
 
 int VolatileStatement::fallOffEnd()
 {
-    return statement->fallOffEnd();
+    return statement ? statement->fallOffEnd() : TRUE;
 }
 
 void VolatileStatement::toCBuffer(OutBuffer *buf, HdrGenState *hgs)

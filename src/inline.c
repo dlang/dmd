@@ -822,14 +822,14 @@ Statement *ScopeStatement::inlineScan(InlineScanState *iss)
 Statement *WhileStatement::inlineScan(InlineScanState *iss)
 {
     condition = condition->inlineScan(iss);
-    body = body->inlineScan(iss);
+    body = body ? body->inlineScan(iss) : NULL;
     return this;
 }
 
 
 Statement *DoStatement::inlineScan(InlineScanState *iss)
 {
-    body = body->inlineScan(iss);
+    body = body ? body->inlineScan(iss) : NULL;
     condition = condition->inlineScan(iss);
     return this;
 }
@@ -871,7 +871,7 @@ Statement *SwitchStatement::inlineScan(InlineScanState *iss)
 {
     //printf("SwitchStatement::inlineScan()\n");
     condition = condition->inlineScan(iss);
-    body = body->inlineScan(iss);
+    body = body ? body->inlineScan(iss) : NULL;
     if (sdefault)
 	sdefault = (DefaultStatement *)sdefault->inlineScan(iss);
     if (cases)

@@ -57,7 +57,7 @@ Parser::Parser(Module *module, unsigned char *base, unsigned length, int doDocCo
     linkage = LINKd;
     endloc = 0;
     inBrackets = 0;
-    nextToken();		// start up the scanner
+    //nextToken();		// start up the scanner
 }
 
 Array *Parser::parseModule()
@@ -528,7 +528,7 @@ Array *Parser::parseBlock()
 
 	case TOKcolon:
 	    nextToken();
-#if 1
+#if 0
 	    a = NULL;
 #else
 	    a = parseDeclDefs(0);	// grab declarations up to closing curly bracket
@@ -3601,6 +3601,7 @@ int Parser::isExpression(Token **pt)
     Token *t = *pt;
     int brnest = 0;
     int panest = 0;
+    int curlynest = 0;
 
     for (;; t = peek(t))
     {
@@ -3629,10 +3630,24 @@ int Parser::isExpression(Token **pt)
 		    continue;
 		break;
 
+	    case TOKlcurly:
+		curlynest++;
+		continue;
+
+	    case TOKrcurly:
+		if (--curlynest >= 0)
+		    continue;
+		return FALSE;
+
 	    case TOKslice:
 		if (brnest)
 		    continue;
 		break;
+
+	    case TOKsemicolon:
+		if (curlynest)
+		    continue;
+		return FALSE;
 
 	    case TOKeof:
 		return FALSE;
@@ -3774,6 +3789,7 @@ Expression *Parser::parsePrimaryExp()
     enum TOK save;
     Loc loc = this->loc;
 
+    //printf("parsePrimaryExp(): loc = %d\n", loc.linnum);
     switch (token.value)
     {
 	case TOKidentifier:
@@ -4821,7 +4837,7 @@ Expression *Parser::parseExpression()
     Expression *e2;
     Loc loc = this->loc;
 
-    //printf("Parser::parseExpression()\n");
+    //printf("Parser::parseExpression() loc = %d\n", loc.linnum);
     e = parseAssignExp();
     while (token.value == TOKcomma)
     {

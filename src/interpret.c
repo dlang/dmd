@@ -1135,7 +1135,7 @@ Expression *StructLiteralExp::interpret(InterState *istate)
 		if (!expsx)
 		{   expsx = new Expressions();
 		    expsx->setDim(elements->dim);
-		    for (size_t j = 0; j < i; j++)
+		    for (size_t j = 0; j < elements->dim; j++)
 		    {
 			expsx->data[j] = elements->data[j];
 		    }
@@ -1941,6 +1941,7 @@ Expression *AssertExp::interpret(InterState *istate)
 	}
 	else
 	    error("%s failed", toChars());
+	goto Lcant;
     }
     else
 	goto Lcant;

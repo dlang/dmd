@@ -400,6 +400,7 @@ Token *Lexer::peekPastParen(Token *tk)
 {
     //printf("peekPastParen()\n");
     int parens = 1;
+    int curlynest = 0;
     while (1)
     {
 	tk = peek(tk);
@@ -415,6 +416,20 @@ Token *Lexer::peekPastParen(Token *tk)
 		if (parens)
 		    continue;
 		tk = peek(tk);
+		break;
+
+	    case TOKlcurly:
+		curlynest++;
+		continue;
+
+	    case TOKrcurly:
+		if (--curlynest >= 0)
+		    continue;
+		break;
+
+	    case TOKsemicolon:
+		if (curlynest)
+		    continue;
 		break;
 
 	    case TOKeof:

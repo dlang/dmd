@@ -403,7 +403,7 @@ MATCH TemplateDeclaration::matchWithInstance(TemplateInstance *ti,
 
 	//printf("\targument [%d]\n", i);
 #if 0
-	printf("\targument [%d] is %s\n", i, oarg ? oarg->toChars() : "null");
+	//printf("\targument [%d] is %s\n", i, oarg ? oarg->toChars() : "null");
 	TemplateTypeParameter *ttp = tp->isTemplateTypeParameter();
 	if (ttp)
 	    printf("\tparameter[%d] is %s : %s\n", i, tp->ident->toChars(), ttp->specType ? ttp->specType->toChars() : "");
@@ -1144,6 +1144,10 @@ MATCH Type::deduceType(Scope *sc, Type *tparam, TemplateParameters *parameters,
 	}
 	if (equals(at))
 	    goto Lexact;
+	else if (ty == Tclass && at->ty == Tclass)
+	{
+	    return implicitConvTo(at);
+	}
 	else if (ty == Tsarray && at->ty == Tarray &&
 	    nextOf()->implicitConvTo(at->nextOf()) >= MATCHconst)
 	{
@@ -1526,7 +1530,7 @@ MATCH TypeTypedef::deduceType(Scope *sc, Type *tparam, TemplateParameters *param
 
 MATCH TypeClass::deduceType(Scope *sc, Type *tparam, TemplateParameters *parameters, Objects *dedtypes)
 {
-    //printf("TypeClass::deduceType()\n");
+    //printf("TypeClass::deduceType(this = %s)\n", toChars());
 
     /* If this class is a template class, and we're matching
      * it against a template instance, convert the class type
@@ -1720,6 +1724,7 @@ MATCH TemplateTypeParameter::matchArg(Scope *sc, Objects *tiargs,
     ta = isType(oarg);
     if (!ta)
 	goto Lnomatch;
+    //printf("ta is %s\n", ta->toChars());
 
     t = (Type *)dedtypes->data[i];
 
