@@ -107,7 +107,7 @@ struct Expression : Object
     void checkScalar();
     void checkNoBool();
     Expression *checkIntegral();
-    void checkArithmetic();
+    Expression *checkArithmetic();
     void checkDeprecated(Scope *sc, Dsymbol *s);
     virtual Expression *checkToBoolean();
     Expression *checkToPointer();
@@ -341,6 +341,7 @@ struct TupleExp : Expression
     Expression *optimize(int result);
     Expression *interpret(InterState *istate);
     Expression *castTo(Scope *sc, Type *t);
+    elem *toElem(IRState *irs);
 
     int inlineCost(InlineCostState *ics);
     Expression *doInline(InlineDoState *ids);

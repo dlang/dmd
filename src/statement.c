@@ -642,24 +642,17 @@ int UnrolledLoopStatement::usesEH()
 }
 
 int UnrolledLoopStatement::fallOffEnd()
-{   int falloff = TRUE;
-
+{
     //printf("UnrolledLoopStatement::fallOffEnd()\n");
     for (size_t i = 0; i < statements->dim; i++)
     {	Statement *s = (Statement *)statements->data[i];
 
-	if (!s)
-	    continue;
-
-	if (!falloff && global.params.warnings && !s->comeFrom())
-	{
-	    fprintf(stdmsg, "warning - ");
-	    s->error("statement is not reachable");
-	}
-	falloff = s->fallOffEnd();
+	if (s)
+	    s->fallOffEnd();
     }
-    return falloff;
+    return TRUE;
 }
+
 
 int UnrolledLoopStatement::comeFrom()
 {   int comefrom = FALSE;

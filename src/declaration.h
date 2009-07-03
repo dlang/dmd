@@ -406,6 +406,23 @@ enum ILS
 
 /**************************************************************/
 
+#if V2
+
+enum BUILTIN
+{
+    BUILTINunknown = -1,	// not known if this is a builtin
+    BUILTINnot,			// this is not a builtin
+    BUILTINsin,			// std.math.sin
+    BUILTINcos,			// std.math.cos
+    BUILTINtan,			// std.math.tan
+    BUILTINsqrt,		// std.math.sqrt
+    BUILTINfabs,		// std.math.fabs
+};
+
+Expression *eval_builtin(enum BUILTIN builtin, Expressions *arguments);
+
+#endif
+
 struct FuncDeclaration : Declaration
 {
     Array *fthrows;			// Array of Type's of exceptions (not used)
@@ -435,7 +452,6 @@ struct FuncDeclaration : Declaration
     int inlineNest;			// !=0 if nested inline
     int cantInterpret;			// !=0 if cannot interpret function
     int semanticRun;			// !=0 if semantic3() had been run
-    int nestedFrameRef;			// !=0 if nested variables referenced frame ptr
     ForeachStatement *fes;		// if foreach body, this is the foreach
     int introducing;			// !=0 if 'introducing' function
     Type *tintro;			// if !=NULL, then this is the type
@@ -454,6 +470,20 @@ struct FuncDeclaration : Declaration
     int nrvo_can;			// !=0 means we can do it
     VarDeclaration *nrvo_var;		// variable to replace with shidden
     Symbol *shidden;			// hidden pointer passed to function
+
+#if V2
+    enum BUILTIN builtin;		// set if this is a known, builtin
+					// function we can evaluate at compile
+					// time
+
+    int tookAddressOf;			// set if someone took the address of
+					// this function
+    Dsymbols closureVars;		// local variables in this function
+					// which are referenced by nested
+					// functions
+#else
+    int nestedFrameRef;			// !=0 if nested variables referenced
+#endif
 
     FuncDeclaration(Loc loc, Loc endloc, Identifier *id, enum STC storage_class, Type *type);
     Dsymbol *syntaxCopy(Dsymbol *);

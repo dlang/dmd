@@ -284,7 +284,7 @@ Expression *CallExp::optimize(int result)
 	if (fd)
 	{
 	    Expression *eresult = fd->interpret(NULL, arguments);
-	    if (eresult)
+	    if (eresult && eresult != EXP_VOID_INTERPRET)
 		e = eresult;
 	    else if (result & WANTinterpret)
 		error("cannot evaluate %s at compile time", toChars());

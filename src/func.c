@@ -550,6 +550,8 @@ void FuncDeclaration::semantic3(Scope *sc)
 
     if (!parent)
     {
+	if (global.errors)
+	    return;
 	printf("FuncDeclaration::semantic3(%s '%s', sc = %p)\n", kind(), toChars(), sc);
 	assert(0);
     }

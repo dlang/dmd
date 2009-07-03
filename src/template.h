@@ -77,6 +77,7 @@ struct TemplateDeclaration : ScopeDsymbol
     TemplateDeclaration *isTemplateDeclaration() { return this; }
 
     TemplateTupleParameter *isVariadic();
+    int isOverloadable();
 };
 
 struct TemplateParameter

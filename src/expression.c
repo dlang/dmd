@@ -850,10 +850,13 @@ Expression *Expression::checkIntegral()
     return this;
 }
 
-void Expression::checkArithmetic()
+Expression *Expression::checkArithmetic()
 {
     if (!type->isintegral() && !type->isfloating())
-	error("'%s' is not an arithmetic type", toChars());
+    {	error("'%s' is not of arithmetic type, it is a %s", toChars(), type->toChars());
+	return new IntegerExp(0);
+    }
+    return this;
 }
 
 void Expression::checkDeprecated(Scope *sc, Dsymbol *s)
@@ -6984,6 +6987,31 @@ Expression *AssignExp::semantic(Scope *sc)
     e2 = resolveProperties(sc, e2);
     assert(e1->type);
 
+    /* Rewrite tuple assignment as a tuple of assignments.
+     */
+    if (e1->op == TOKtuple && e2->op == TOKtuple)
+    {	TupleExp *tup1 = (TupleExp *)e1;
+	TupleExp *tup2 = (TupleExp *)e2;
+	size_t dim = tup1->exps->dim;
+	if (dim != tup2->exps->dim)
+	{
+	    error("mismatched tuple lengths, %d and %d", (int)dim, (int)tup2->exps->dim);
+	}
+	else
+	{   Expressions *exps = new Expressions;
+	    exps->setDim(dim);
+
+	    for (int i = 0; i < dim; i++)
+	    {	Expression *ex1 = (Expression *)tup1->exps->data[i];
+		Expression *ex2 = (Expression *)tup2->exps->data[i];
+		exps->data[i] = (void *) new AssignExp(loc, ex1, ex2);
+	    }
+	    Expression *e = new TupleExp(loc, exps);
+	    e = e->semantic(sc);
+	    return e;
+	}
+    }
+
     t1 = e1->type->toBasetype();
 
     if (t1->ty == Tfunction)
@@ -7026,21 +7054,14 @@ Expression *AssignExp::semantic(Scope *sc)
     }
 
     if (e1->op == TOKslice &&
-	t1->next &&
-	!(t1->next->equals(e2->type->next) /*||
-	  (t1->next->ty == Tchar && e2->op == TOKstring)*/)
+	t1->nextOf() &&
+	e2->implicitConvTo(t1->nextOf())
+//	!(t1->nextOf()->equals(e2->type->nextOf()))
        )
     {	// memset
+	ismemset = 1;	// make it easy for back end to tell what this is
 	e2 = e2->implicitCastTo(sc, t1->next);
     }
-#if 0
-    else if (e1->op == TOKslice &&
-	     e2->op == TOKstring &&
-	     ((StringExp *)e2)->len == 1)
-    {	// memset
-	e2 = e2->implicitCastTo(sc, e1->type->next);
-    }
-#endif
     else if (t1->ty == Tsarray)
     {
 	error("cannot assign to static array %s", e1->toChars());
@@ -7191,10 +7212,10 @@ Expression *MinAssignExp::semantic(Scope *sc)
 	e = scaleFactor(sc);
     else
     {
+	e1 = e1->checkArithmetic();
+	e2 = e2->checkArithmetic();
 	type = e1->type;
 	typeCombine(sc);
-	e1->checkArithmetic();
-	e2->checkArithmetic();
 	if (type->isreal() || type->isimaginary())
 	{
 	    assert(e2->type->isfloating());

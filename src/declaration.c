@@ -765,7 +765,8 @@ void VarDeclaration::semantic(Scope *sc)
     }
 
     if (!init && !sc->inunion && !isStatic() && !isConst() && fd &&
-	!(storage_class & (STCfield | STCin | STCforeach)))
+	!(storage_class & (STCfield | STCin | STCforeach)) &&
+	type->size() != 0)
     {
 	// Provide a default initializer
 	//printf("Providing default initializer for '%s'\n", toChars());
@@ -858,19 +859,19 @@ void VarDeclaration::semantic(Scope *sc)
 		t = type->toBasetype();
 		if (t->ty == Tsarray)
 		{
-		    dim = ((TypeSArray *)t)->dim->toInteger();
-		    // If multidimensional static array, treat as one large array
-		    while (1)
+		    ei->exp = ei->exp->semantic(sc);
+		    if (!ei->exp->implicitConvTo(type))
 		    {
-			t = t->next->toBasetype();
-			if (t->ty != Tsarray)
-			    break;
-			if (t->next->toBasetype()->ty == Tbit)
-			    // t->size() gives size in bytes, convert to bits
-			    dim *= t->size() * 8;
-			else
+			dim = ((TypeSArray *)t)->dim->toInteger();
+			// If multidimensional static array, treat as one large array
+			while (1)
+			{
+			    t = t->nextOf()->toBasetype();
+			    if (t->ty != Tsarray)
+				break;
 			    dim *= ((TypeSArray *)t)->dim->toInteger();
-			e1->type = new TypeSArray(t->next, new IntegerExp(0, dim, Type::tindex));
+			    e1->type = new TypeSArray(t->nextOf(), new IntegerExp(0, dim, Type::tindex));
+			}
 		    }
 		    e1 = new SliceExp(loc, e1, NULL, NULL);
 		}
@@ -1037,7 +1038,7 @@ void VarDeclaration::checkCtorConstInit()
 
 void VarDeclaration::checkNestedReference(Scope *sc, Loc loc)
 {
-    if (!isDataseg() && parent != sc->parent && parent)
+    if (parent && !isDataseg() && parent != sc->parent)
     {
 	FuncDeclaration *fdv = toParent()->isFuncDeclaration();
 	FuncDeclaration *fdthis = sc->parent->isFuncDeclaration();
@@ -1173,6 +1174,24 @@ void TypeInfoDeclaration::semantic(Scope *sc)
 {
     assert(linkage == LINKc);
 }
+
+/***************************** TypeInfoConstDeclaration **********************/
+
+#if V2
+TypeInfoConstDeclaration::TypeInfoConstDeclaration(Type *tinfo)
+    : TypeInfoDeclaration(tinfo, 0)
+{
+}
+#endif
+
+/***************************** TypeInfoInvariantDeclaration **********************/
+
+#if V2
+TypeInfoInvariantDeclaration::TypeInfoInvariantDeclaration(Type *tinfo)
+    : TypeInfoDeclaration(tinfo, 0)
+{
+}
+#endif
 
 /***************************** TypeInfoStructDeclaration **********************/
 

@@ -220,7 +220,7 @@ struct Type : Object
     virtual Expression *getProperty(Loc loc, Identifier *ident);
     virtual Expression *dotExp(Scope *sc, Expression *e, Identifier *ident);
     virtual unsigned memalign(unsigned salign);
-    virtual Expression *defaultInit();
+    virtual Expression *defaultInit(Loc loc = 0);
     virtual int isZeroInit();		// if initializer is 0
     virtual dt_t **toDt(dt_t **pdt);
     Identifier *getTypeInfoIdent(int internal);
@@ -270,7 +270,7 @@ struct TypeBasic : Type
     int isscalar();
     int isunsigned();
     MATCH implicitConvTo(Type *to);
-    Expression *defaultInit();
+    Expression *defaultInit(Loc loc);
     int isZeroInit();
     int builtinTypeInfo();
 
@@ -305,7 +305,7 @@ struct TypeSArray : TypeArray
     int isZeroInit();
     unsigned memalign(unsigned salign);
     MATCH implicitConvTo(Type *to);
-    Expression *defaultInit();
+    Expression *defaultInit(Loc loc);
     dt_t **toDt(dt_t **pdt);
     dt_t **toDtElem(dt_t **pdt, Expression *e);
     MATCH deduceType(Scope *sc, Type *tparam, TemplateParameters *parameters, Objects *dedtypes);
@@ -333,7 +333,7 @@ struct TypeDArray : TypeArray
     int isZeroInit();
     int checkBoolean();
     MATCH implicitConvTo(Type *to);
-    Expression *defaultInit();
+    Expression *defaultInit(Loc loc);
     int builtinTypeInfo();
     TypeInfoDeclaration *getTypeInfoDeclaration();
     int hasPointers();
@@ -353,7 +353,7 @@ struct TypeAArray : TypeArray
     void toDecoBuffer(OutBuffer *buf);
     void toPrettyBracket(OutBuffer *buf, HdrGenState *hgs);
     Expression *dotExp(Scope *sc, Expression *e, Identifier *ident);
-    Expression *defaultInit();
+    Expression *defaultInit(Loc loc);
     MATCH deduceType(Scope *sc, Type *tparam, TemplateParameters *parameters, Objects *dedtypes);
     int checkBoolean();
     TypeInfoDeclaration *getTypeInfoDeclaration();
@@ -374,7 +374,7 @@ struct TypePointer : Type
     void toCBuffer2(OutBuffer *buf, Identifier *ident, HdrGenState *hgs);
     MATCH implicitConvTo(Type *to);
     int isscalar();
-    Expression *defaultInit();
+    Expression *defaultInit(Loc loc);
     int isZeroInit();
     TypeInfoDeclaration *getTypeInfoDeclaration();
     int hasPointers();
@@ -389,7 +389,7 @@ struct TypeReference : Type
     d_uns64 size(Loc loc);
     void toCBuffer2(OutBuffer *buf, Identifier *ident, HdrGenState *hgs);
     Expression *dotExp(Scope *sc, Expression *e, Identifier *ident);
-    Expression *defaultInit();
+    Expression *defaultInit(Loc loc);
     int isZeroInit();
 };
 
@@ -431,7 +431,7 @@ struct TypeDelegate : Type
     Type *semantic(Loc loc, Scope *sc);
     d_uns64 size(Loc loc);
     void toCBuffer2(OutBuffer *buf, Identifier *ident, HdrGenState *hgs);
-    Expression *defaultInit();
+    Expression *defaultInit(Loc loc);
     int isZeroInit();
     int checkBoolean();
     TypeInfoDeclaration *getTypeInfoDeclaration();
@@ -516,7 +516,7 @@ struct TypeStruct : Type
     void toCBuffer2(OutBuffer *buf, Identifier *ident, HdrGenState *hgs);
     Expression *dotExp(Scope *sc, Expression *e, Identifier *ident);
     unsigned memalign(unsigned salign);
-    Expression *defaultInit();
+    Expression *defaultInit(Loc loc);
     int isZeroInit();
     int checkBoolean();
     dt_t **toDt(dt_t **pdt);
@@ -548,7 +548,7 @@ struct TypeEnum : Type
     int isunsigned();
     MATCH implicitConvTo(Type *to);
     Type *toBasetype();
-    Expression *defaultInit();
+    Expression *defaultInit(Loc loc);
     int isZeroInit();
     MATCH deduceType(Scope *sc, Type *tparam, TemplateParameters *parameters, Objects *dedtypes);
     TypeInfoDeclaration *getTypeInfoDeclaration();
@@ -583,7 +583,7 @@ struct TypeTypedef : Type
     int checkBoolean();
     Type *toBasetype();
     MATCH implicitConvTo(Type *to);
-    Expression *defaultInit();
+    Expression *defaultInit(Loc loc);
     int isZeroInit();
     dt_t **toDt(dt_t **pdt);
     MATCH deduceType(Scope *sc, Type *tparam, TemplateParameters *parameters, Objects *dedtypes);
@@ -610,7 +610,7 @@ struct TypeClass : Type
     ClassDeclaration *isClassHandle();
     int isBaseOf(Type *t, int *poffset);
     MATCH implicitConvTo(Type *to);
-    Expression *defaultInit();
+    Expression *defaultInit(Loc loc);
     int isZeroInit();
     MATCH deduceType(Scope *sc, Type *tparam, TemplateParameters *parameters, Objects *dedtypes);
     int isauto();
