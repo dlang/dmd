@@ -116,6 +116,7 @@ struct Parser : Lexer
     Expression *parseShiftExp();
     Expression *parseRelExp();
     Expression *parseEqualExp();
+    Expression *parseCmpExp();
     Expression *parseAndExp();
     Expression *parseXorExp();
     Expression *parseOrExp();

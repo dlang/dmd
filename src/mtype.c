@@ -1402,20 +1402,42 @@ int TypeBasic::implicitConvTo(Type *to)
     //printf("TypeBasic::implicitConvTo(%s) from %s\n", to->toChars(), toChars());
     if (this == to)
 	return MATCHexact;
-    if (to->ty == Tvoid)
+
+    if (ty == Tvoid || to->ty == Tvoid)
 	return MATCHnomatch;
+    if (1 || global.params.Dversion == 1)
+    {
+	if (to->ty == Tbool)
+	    return MATCHnomatch;
+    }
+    else
+    {
+	if (ty == Tbool || to->ty == Tbool)
+	    return MATCHnomatch;
+    }
     if (!to->isTypeBasic())
 	return MATCHnomatch;
-    if (ty == Tvoid /*|| to->ty == Tvoid*/)
-	return MATCHnomatch;
-    if (to->ty == Tbit || to->ty == Tbool)
-	return MATCHnomatch;
+
     TypeBasic *tob = (TypeBasic *)to;
     if (flags & TFLAGSintegral)
     {
 	// Disallow implicit conversion of integers to imaginary or complex
 	if (tob->flags & (TFLAGSimaginary | TFLAGScomplex))
 	    return MATCHnomatch;
+
+	// If converting to integral
+	if (0 && global.params.Dversion > 1 && tob->flags & TFLAGSintegral)
+	{   d_uns64 sz = size(0);
+	    d_uns64 tosz = tob->size(0);
+
+	    /* Can't convert to smaller size or, if same size, change sign
+	     */
+	    if (sz > tosz)
+		return MATCHnomatch;
+
+	    /*if (sz == tosz && (flags ^ tob->flags) & TFLAGSunsigned)
+		return MATCHnomatch;*/
+	}
     }
     else if (flags & TFLAGSfloating)
     {
@@ -1502,13 +1524,10 @@ Expression *TypeArray::dotExp(Scope *sc, Expression *e, Identifier *ident)
 	Expressions *arguments;
 	int size = next->size(e->loc);
 	int dup;
-	char *nm;
-	static char *name[2] = { "_adReverse", "_adDupT" };
 
 	assert(size);
 	dup = (ident == Id::dup);
-	nm = name[dup];
-	fd = FuncDeclaration::genCfunc(Type::tindex, nm);
+	fd = FuncDeclaration::genCfunc(Type::tindex, dup ? Id::adDup : Id::adReverse);
 	ec = new VarExp(0, fd);
 	e = e->castTo(sc, n->arrayOf());	// convert to dynamic array
 	arguments = new Expressions();
@@ -4601,12 +4620,13 @@ int TypeClass::implicitConvTo(Type *to)
 	return 1;
     }
 
-    // Allow conversion to (void *)
-    if (to->ty == Tpointer && to->next->ty == Tvoid)
-	return 1;
+    if (global.params.Dversion == 1)
+    {
+	// Allow conversion to (void *)
+	if (to->ty == Tpointer && to->next->ty == Tvoid)
+	    return 1;
+    }
 
-//    if (to->ty == Tvoid)
-//	return MATCHconvert;
     return 0;
 }
 

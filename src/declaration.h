@@ -1,6 +1,6 @@
 
 // Compiler implementation of the D programming language
-// Copyright (c) 1999-2006 by Digital Mars
+// Copyright (c) 1999-2007 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // www.digitalmars.com
@@ -30,6 +30,7 @@ struct FuncDeclaration;
 struct ExpInitializer;
 struct StructDeclaration;
 struct TupleType;
+struct InterState;
 
 enum PROT;
 enum LINK;
@@ -477,7 +478,7 @@ struct FuncDeclaration : Declaration
     virtual int isVirtual();
     virtual int addPreInvariant();
     virtual int addPostInvariant();
-    Expression *interpret(Expressions *arguments);
+    Expression *interpret(InterState *istate, Expressions *arguments);
     void inlineScan();
     int canInline(int hasthis, int hdrscan = 0);
     Expression *doInline(InlineScanState *iss, Expression *ethis, Array *arguments);
@@ -485,6 +486,7 @@ struct FuncDeclaration : Declaration
     void toDocBuffer(OutBuffer *buf);
 
     static FuncDeclaration *genCfunc(Type *treturn, char *name);
+    static FuncDeclaration *genCfunc(Type *treturn, Identifier *id);
 
     Symbol *toSymbol();
     Symbol *toThunkSymbol(int offset);	// thunk version

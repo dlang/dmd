@@ -1306,6 +1306,8 @@ struct CondExp : BinExp
 #define EXP_BREAK_INTERPRET	((Expression *)3)
 #define EXP_GOTO_INTERPRET	((Expression *)4)
 
+Expression *expType(Type *type, Expression *e);
+
 Expression *Neg(Type *type, Expression *e1);
 Expression *Com(Type *type, Expression *e1);
 Expression *Not(Type *type, Expression *e1);

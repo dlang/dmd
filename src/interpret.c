@@ -29,8 +29,10 @@
 
 struct InterState
 {
-    Dsymbols vars;	// variables used in this function
-    Statement *start;	// if !=NULL, start execution at this statement
+    InterState *caller;		// calling function's InterState
+    FuncDeclaration *fd;	// function being interpreted
+    Dsymbols vars;		// variables used in this function
+    Statement *start;		// if !=NULL, start execution at this statement
     Statement *gotoTarget;	// target of EXP_GOTO_INTERPRET result
 
     InterState();
@@ -43,10 +45,12 @@ InterState::InterState()
 
 /*************************************
  * Attempt to interpret a function given the arguments.
+ * Input:
+ *	istate	state for calling function (NULL if none)
  * Return result expression if successful, NULL if not.
  */
 
-Expression *FuncDeclaration::interpret(Expressions *arguments)
+Expression *FuncDeclaration::interpret(InterState *istate, Expressions *arguments)
 {
 #if LOG
     printf("FuncDeclaration::interpret() %s\n", toChars());
@@ -80,41 +84,92 @@ Expression *FuncDeclaration::interpret(Expressions *arguments)
     {	size_t dim = Argument::dim(tf->parameters);
 	for (size_t i = 0; i < dim; i++)
 	{   Argument *arg = Argument::getNth(tf->parameters, i);
-	    if (arg->inout == Out || arg->inout == InOut || arg->inout == Lazy)
+	    if (arg->inout == Lazy)
 	    {   cantInterpret = 1;
 		return NULL;
 	    }
 	}
     }
 
-    InterState istate;
+    /* Save the values of the local variables used
+     */
+    Expressions valueSaves;
+    if (istate)
+    {
+	valueSaves.setDim(istate->vars.dim);
+	for (size_t i = 0; i < istate->vars.dim; i++)
+	{   VarDeclaration *v = (VarDeclaration *)istate->vars.data[i];
+	    if (v)
+	    {	valueSaves.data[i] = v->value;
+		v->value = NULL;
+	    }
+	}
+    }
+
+    InterState istatex;
+    istatex.caller = istate;
+    istatex.fd = this;
+
     Expressions vsave;
     size_t dim = 0;
     if (arguments)
     {
 	dim = arguments->dim;
-	assert(parameters && parameters->dim == dim);
-	for (size_t i = 0; i < dim; i++)
-	{   Expression *earg = (Expression *)arguments->data[i];
-#if LOG
-	    printf("arg[%d] = %s\n", i, earg->toChars());
-#endif
-	    earg = earg->interpret(&istate);
-	    if (earg == EXP_CANT_INTERPRET)
-		return NULL;
-#if LOG
-	    printf("interpreted arg[%d] = %s\n", i, earg->toChars());
-#endif
-	}
-
+	assert(!dim || parameters->dim == dim);
 	vsave.setDim(dim);
 
 	for (size_t i = 0; i < dim; i++)
 	{   Expression *earg = (Expression *)arguments->data[i];
-	    earg = earg->interpret(&istate);
+	    Argument *arg = Argument::getNth(tf->parameters, i);
 	    VarDeclaration *v = (VarDeclaration *)parameters->data[i];
 	    vsave.data[i] = v->value;
-	    v->value = earg;
+#if LOG
+	    printf("arg[%d] = %s\n", i, earg->toChars());
+#endif
+	    if (arg->inout == Out || arg->inout == InOut)
+	    {
+		/* Bind out or inout parameter to the corresponding
+		 * variable v2
+		 */
+		if (!istate || earg->op != TOKvar)
+		    return NULL;	// can't bind to non-interpreted vars
+
+		VarDeclaration *v2;
+		while (1)
+		{
+		    VarExp *ve = (VarExp *)earg;
+		    v2 = ve->var->isVarDeclaration();
+		    if (!v2)
+			return NULL;
+		    if (!v2->value || v2->value->op != TOKvar)
+			break;
+		    earg = v2->value;
+		}
+
+		v->value = new VarExp(earg->loc, v2);
+
+		/* Don't restore the value of v2 upon function return
+		 */
+		assert(istate);
+		for (size_t i = 0; i < istate->vars.dim; i++)
+		{   VarDeclaration *v = (VarDeclaration *)istate->vars.data[i];
+		    if (v == v2)
+		    {	istate->vars.data[i] = NULL;
+			break;
+		    }
+		}
+	    }
+	    else
+	    {	/* Value parameters
+		 */
+		earg = earg->interpret(&istatex);
+		if (earg == EXP_CANT_INTERPRET)
+		    return NULL;
+		v->value = earg;
+	    }
+#if LOG
+	    printf("interpreted arg[%d] = %s\n", i, earg->toChars());
+#endif
 	}
     }
 
@@ -122,7 +177,7 @@ Expression *FuncDeclaration::interpret(Expressions *arguments)
 
     while (1)
     {
-	e = fbody->interpret(&istate);
+	e = fbody->interpret(&istatex);
 	if (e == EXP_CANT_INTERPRET)
 	{
 #if LOG
@@ -139,18 +194,32 @@ Expression *FuncDeclaration::interpret(Expressions *arguments)
 	 */
 	if (e == EXP_GOTO_INTERPRET)
 	{
-	    istate.start = istate.gotoTarget;	// set starting statement
-	    istate.gotoTarget = NULL;
+	    istatex.start = istatex.gotoTarget;	// set starting statement
+	    istatex.gotoTarget = NULL;
 	}
 	else
 	    break;
     }
 
+    /* Restore the parameter values
+     */
     for (size_t i = 0; i < dim; i++)
     {
 	VarDeclaration *v = (VarDeclaration *)parameters->data[i];
 	v->value = (Expression *)vsave.data[i];
     }
+
+    if (istate)
+    {
+	/* Restore the variable values
+	 */
+	for (size_t i = 0; i < istate->vars.dim; i++)
+	{   VarDeclaration *v = (VarDeclaration *)istate->vars.data[i];
+	    if (v)
+		v->value = (Expression *)valueSaves.data[i];
+	}
+    }
+
     return e;
 }
 
@@ -758,14 +827,23 @@ Expression *StringExp::interpret(InterState *istate)
 }
 
 Expression *VarExp::interpret(InterState *istate)
-{   Expression *e = EXP_CANT_INTERPRET;
+{
+#if LOG
+    printf("VarExp::interpret() %s\n", toChars());
+#endif
+    Expression *e = EXP_CANT_INTERPRET;
     VarDeclaration *v = var->isVarDeclaration();
     if (v)
     {
 	if (v->isConst() && v->init)
 	    e = v->init->toExpression();
 	else
-	    e = v->value;
+	{   e = v->value;
+	    if (!e)
+		error("variable %s is used before initialization", v->toChars());
+	    else if (e != EXP_CANT_INTERPRET)
+		e = e->interpret(istate);
+	}
 	if (!e)
 	    e = EXP_CANT_INTERPRET;
     }
@@ -783,6 +861,8 @@ Expression *DeclarationExp::interpret(InterState *istate)
 	    ExpInitializer *ie = v->init->isExpInitializer();
 	    if (ie)
 		e = ie->exp->interpret(istate);
+	    else if (v->init->isVoidInitializer())
+		e = NULL;
 	}
     }
     return e;
@@ -982,14 +1062,38 @@ BIN_INTERPRET2(Cmp)
 
 Expression *BinExp::interpretAssignCommon(InterState *istate, fp_t fp)
 {
+#if LOG
+    printf("BinExp::interpretAssignCommon() %s\n", toChars());
+#endif
     Expression *e = EXP_CANT_INTERPRET;
+    Expression *e1 = this->e1;
 
-    if (e1->op == TOKvar)
+    if (fp)
+    {
+	if (e1->op == TOKcast)
+	{   CastExp *ce = (CastExp *)e1;
+	    e1 = ce->e1;
+	}
+    }
+    if (e1 != EXP_CANT_INTERPRET && e1->op == TOKvar)
     {
 	VarExp *ve = (VarExp *)e1;
 	VarDeclaration *v = ve->var->isVarDeclaration();
-	if (v && !v->isDataseg() && (!fp || v->value))
+	if (v && !v->isDataseg())
 	{
+	    /* Chase down rebinding of out and inout
+	     */
+	    if (v->value && v->value->op == TOKvar)
+	    {
+		ve = (VarExp *)v->value;
+		v = ve->var->isVarDeclaration();
+		assert(v);
+	    }
+
+	    if (fp && !v->value)
+	    {	error("variable %s is used before initialization", v->toChars());
+		return e;
+	    }
 	    Expression *e2 = this->e2->interpret(istate);
 	    if (e2 != EXP_CANT_INTERPRET)
 	    {
@@ -1052,8 +1156,21 @@ Expression *PostExp::interpret(InterState *istate)
     {
 	VarExp *ve = (VarExp *)e1;
 	VarDeclaration *v = ve->var->isVarDeclaration();
-	if (v && !v->isDataseg() && v->value)
+	if (v && !v->isDataseg())
 	{
+	    /* Chase down rebinding of out and inout
+	     */
+	    if (v->value && v->value->op == TOKvar)
+	    {
+		ve = (VarExp *)v->value;
+		v = ve->var->isVarDeclaration();
+		assert(v);
+	    }
+
+	    if (!v->value)
+	    {	error("variable %s is used before initialization", v->toChars());
+		return e;
+	    }
 	    Expression *e2 = this->e2->interpret(istate);
 	    if (e2 != EXP_CANT_INTERPRET)
 	    {
@@ -1137,32 +1254,30 @@ Expression *OrOrExp::interpret(InterState *istate)
 Expression *CallExp::interpret(InterState *istate)
 {   Expression *e = EXP_CANT_INTERPRET;
 
+#if LOG
+    printf("CallExp::interpret() %s\n", toChars());
+#endif
     if (e1->op == TOKvar)
     {
 	FuncDeclaration *fd = ((VarExp *)e1)->var->isFuncDeclaration();
 	if (fd)
-	{
-	    /* Save the values of the variables used
-	     */
-	    Expressions valueSaves;
-	    valueSaves.setDim(istate->vars.dim);
-	    for (size_t i = 0; i < istate->vars.dim; i++)
-	    {	VarDeclaration *v = (VarDeclaration *)istate->vars.data[i];
-		valueSaves.data[i] = v->value;
-		v->value = NULL;
+	{   // Inline .dup
+	    if (fd->ident == Id::adDup && arguments && arguments->dim == 2)
+	    {
+		e = (Expression *)arguments->data[1];
+		e = e->interpret(istate);
+		if (e != EXP_CANT_INTERPRET)
+		{
+		    e = expType(type, e);
+		}
 	    }
-
-	    Expression *eresult = fd->interpret(arguments);
-	    if (eresult)
-		e = eresult;
 	    else
-		error("cannot evaluate %s at compile time", toChars());
-
-	    /* Restore the variable values
-	     */
-	    for (size_t i = 0; i < istate->vars.dim; i++)
-	    {	VarDeclaration *v = (VarDeclaration *)istate->vars.data[i];
-		v->value = (Expression *)valueSaves.data[i];
+	    {
+		Expression *eresult = fd->interpret(istate, arguments);
+		if (eresult)
+		    e = eresult;
+		else
+		    error("cannot evaluate %s at compile time", toChars());
 	    }
 	}
     }
@@ -1196,6 +1311,9 @@ Expression *ArrayLengthExp::interpret(InterState *istate)
 {   Expression *e;
     Expression *e1;
 
+#if LOG
+    printf("ArrayLengthExp::interpret() %s\n", toChars());
+#endif
     e1 = this->e1->interpret(istate);
     if (e1 == EXP_CANT_INTERPRET)
 	goto Lcant;
@@ -1250,7 +1368,7 @@ Expression *SliceExp::interpret(InterState *istate)
     e1 = this->e1->interpret(istate);
     if (e1 == EXP_CANT_INTERPRET)
 	goto Lcant;
-    if (!lwr)
+    if (!this->lwr)
     {
 	e = e1->castTo(NULL, type);
 	return e->interpret(istate);
@@ -1285,6 +1403,9 @@ Expression *CatExp::interpret(InterState *istate)
     Expression *e1;
     Expression *e2;
 
+#if LOG
+    printf("CatExp::interpret() %s\n", toChars());
+#endif
     e1 = this->e1->interpret(istate);
     if (e1 == EXP_CANT_INTERPRET)
 	goto Lcant;

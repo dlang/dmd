@@ -34,6 +34,16 @@ static real_t zero;	// work around DMC bug for now
 
 #define LOG 0
 
+Expression *expType(Type *type, Expression *e)
+{
+    if (type != e->type)
+    {
+	e = e->copy();
+	e->type = type;
+    }
+    return e;
+}
+
 /* ================================== isConst() ============================== */
 
 int Expression::isConst()
@@ -1019,7 +1029,7 @@ Expression *Index(Type *type, Expression *e1, Expression *e2)
 {   Expression *e = EXP_CANT_INTERPRET;
     Loc loc = e1->loc;
 
-    //printf("Index()\n");
+    //printf("Index(e1->type = %p)\n", e1->type);
     if (e1->op == TOKstring && e2->op == TOKint64)
     {	StringExp *es1 = (StringExp *)e1;
 	uinteger_t i = e2->toInteger();
@@ -1075,6 +1085,11 @@ Expression *Slice(Type *type, Expression *e1, Expression *lwr, Expression *upr)
 
 #if LOG
     printf("Slice()\n");
+    if (lwr)
+    {	printf("\te1 = %s\n", e1->toChars());
+	printf("\tlwr = %s\n", lwr->toChars());
+	printf("\tupr = %s\n", upr->toChars());
+    }
 #endif
     if (e1->op == TOKstring && lwr->op == TOKint64 && upr->op == TOKint64)
     {	StringExp *es1 = (StringExp *)e1;
@@ -1130,7 +1145,46 @@ Expression *Cat(Type *type, Expression *e1, Expression *e2)
 {   Expression *e = EXP_CANT_INTERPRET;
     Loc loc = e1->loc;
 
-    //printf("Cat()\n");
+    //printf("Cat(e1 = %s, e2 = %s)\n", e1->toChars(), e2->toChars());
+
+    if (e1->op == TOKnull && e2->op == TOKint64)
+    {	e = e2;
+	goto L2;
+    }
+    else if (e1->op == TOKint64 && e2->op == TOKnull)
+    {	e = e1;
+     L2:
+	Type *tn = e->type->toBasetype();
+	if (tn->ty == Tchar || tn->ty == Twchar || tn->ty == Tdchar)
+	{
+	    // Create a StringExp
+	    void *s;
+	    StringExp *es;
+	    size_t len = 1;
+	    int sz = tn->size();
+	    integer_t v = e->toInteger();
+
+	    s = mem.malloc((len + 1) * sz);
+	    memcpy((unsigned char *)s, &v, sz);
+
+	    // Add terminating 0
+	    memset((unsigned char *)s + len * sz, 0, sz);
+
+	    es = new StringExp(loc, s, len);
+	    es->sz = sz;
+	    es->committed = 1;
+	    e = es;
+	}
+	else
+	{   // Create an ArrayLiteralExp
+	    Expressions *elements = new Expressions();
+	    elements->push(e);
+	    e = new ArrayLiteralExp(e->loc, elements);
+	}
+	e->type = type;
+	return e;
+    }
+
     if (e1->op == TOKstring && e2->op == TOKstring)
     {
 	// Concatenate the strings

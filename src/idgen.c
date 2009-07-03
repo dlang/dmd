@@ -193,6 +193,9 @@ Msgtable msgtable[] =
     { "apply", "opApply" },
     { "applyReverse", "opApplyReverse" },
 
+    { "adDup", "_adDupT" },
+    { "adReverse", "_adReverse" },
+
     // For pragma's
     { "lib" },
     { "msg" },

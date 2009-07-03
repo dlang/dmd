@@ -521,6 +521,12 @@ void FuncDeclaration::semantic(Scope *sc)
 	    }
 	}
     }
+
+    /* Save scope for possible later use (if we need the
+     * function internals)
+     */
+    scope = new Scope(*sc);
+    scope->setNoFree();
     return;
 
 Lassignerr:
@@ -529,11 +535,6 @@ Lassignerr:
 
 void FuncDeclaration::semantic2(Scope *sc)
 {
-    /* Save scope for possible later use (if we need the
-     * function internals)
-     */
-    scope = new Scope(*sc);
-    scope->setNoFree();
 }
 
 // Do the semantic analysis on the internals of the function.
@@ -1710,16 +1711,18 @@ int FuncDeclaration::addPostInvariant()
 
 FuncDeclaration *FuncDeclaration::genCfunc(Type *treturn, char *name)
 {
+    return genCfunc(treturn, Lexer::idPool(name));
+}
+
+FuncDeclaration *FuncDeclaration::genCfunc(Type *treturn, Identifier *id)
+{
     FuncDeclaration *fd;
     TypeFunction *tf;
     Dsymbol *s;
-    Identifier *id;
     static DsymbolTable *st = NULL;
 
-    //printf("genCfunc(name = '%s')\n", name);
+    //printf("genCfunc(name = '%s')\n", id->toChars());
     //printf("treturn\n\t"); treturn->print();
-
-    id = Lexer::idPool(name);
 
     // See if already in table
     if (!st)

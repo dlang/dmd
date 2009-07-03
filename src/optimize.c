@@ -48,7 +48,10 @@ Expression *fromConstInitializer(Expression *e1)
 	if (v && v->isConst() && v->init)
 	{   Expression *ei = v->init->toExpression();
 	    if (ei)
-		e1 = ei;
+	    {	e1 = ei;
+		if (!e1->type)
+		    e1->type = v->type;
+	    }
 	}
     }
     return e1;
@@ -231,7 +234,7 @@ Expression *CallExp::optimize(int result)
 	FuncDeclaration *fd = ((VarExp *)e1)->var->isFuncDeclaration();
 	if (fd)
 	{
-	    Expression *eresult = fd->interpret(arguments);
+	    Expression *eresult = fd->interpret(NULL, arguments);
 	    if (eresult)
 		e = eresult;
 	    else if (result & WANTinterpret)

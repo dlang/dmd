@@ -4422,13 +4422,11 @@ Expression *Parser::parseEqualExp()
 		continue;
 
 	    case TOKidentity:
-		if (1 || !global.params.useDeprecated)
-		    error("'===' is no longer legal, use 'is' instead");
+		error("'===' is no longer legal, use 'is' instead");
 		goto L1;
 
 	    case TOKnotidentity:
-		if (1 || !global.params.useDeprecated)
-		    error("'!==' is no longer legal, use '!is' instead");
+		error("'!==' is no longer legal, use '!is' instead");
 		goto L1;
 
 	    case TOKis:
@@ -4458,18 +4456,98 @@ Expression *Parser::parseEqualExp()
     return e;
 }
 
+Expression *Parser::parseCmpExp()
+{   Expression *e;
+    Expression *e2;
+    Token *t;
+    Loc loc = this->loc;
+
+    e = parseShiftExp();
+    enum TOK op = token.value;
+
+    switch (op)
+    {
+	case TOKequal:
+	case TOKnotequal:
+	    nextToken();
+	    e2 = parseShiftExp();
+	    e = new EqualExp(op, loc, e, e2);
+	    break;
+
+	case TOKis:
+	    op = TOKidentity;
+	    goto L1;
+
+	case TOKnot:
+	    // Attempt to identify '!is'
+	    t = peek(&token);
+	    if (t->value != TOKis)
+		break;
+	    nextToken();
+	    op = TOKnotidentity;
+	    goto L1;
+
+	L1:
+	    nextToken();
+	    e2 = parseShiftExp();
+	    e = new IdentityExp(op, loc, e, e2);
+	    break;
+
+	case TOKlt:
+	case TOKle:
+	case TOKgt:
+	case TOKge:
+	case TOKunord:
+	case TOKlg:
+	case TOKleg:
+	case TOKule:
+	case TOKul:
+	case TOKuge:
+	case TOKug:
+	case TOKue:
+	    nextToken();
+	    e2 = parseShiftExp();
+	    e = new CmpExp(op, loc, e, e2);
+	    break;
+
+	case TOKin:
+	    nextToken();
+	    e2 = parseShiftExp();
+	    e = new InExp(loc, e, e2);
+	    break;
+
+	default:
+	    break;
+    }
+    return e;
+}
+
 Expression *Parser::parseAndExp()
 {   Expression *e;
     Expression *e2;
     Loc loc = this->loc;
 
-    e = parseEqualExp();
-    while (token.value == TOKand)
+    if (global.params.Dversion == 1)
     {
-	nextToken();
-	e2 = parseEqualExp();
-	e = new AndExp(loc,e,e2);
-	loc = this->loc;
+	e = parseEqualExp();
+	while (token.value == TOKand)
+	{
+	    nextToken();
+	    e2 = parseEqualExp();
+	    e = new AndExp(loc,e,e2);
+	    loc = this->loc;
+	}
+    }
+    else
+    {
+	e = parseCmpExp();
+	while (token.value == TOKand)
+	{
+	    nextToken();
+	    e2 = parseCmpExp();
+	    e = new AndExp(loc,e,e2);
+	    loc = this->loc;
+	}
     }
     return e;
 }

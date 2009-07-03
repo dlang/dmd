@@ -757,6 +757,7 @@ void PragmaDeclaration::semantic(Scope *sc)
 		Expression *e = (Expression *)args->data[i];
 
 		e = e->semantic(sc);
+		e = e->optimize(WANTvalue | WANTinterpret);
 		if (e->op == TOKstring)
 		{
 		    StringExp *se = (StringExp *)e;
@@ -778,6 +779,7 @@ void PragmaDeclaration::semantic(Scope *sc)
 	    Expression *e = (Expression *)args->data[0];
 
 	    e = e->semantic(sc);
+	    e = e->optimize(WANTvalue | WANTinterpret);
 	    args->data[0] = (void *)e;
 	    if (e->op != TOKstring)
 		error("string expected for library name, not '%s'", e->toChars());
@@ -1121,7 +1123,7 @@ void CompileDeclaration::semantic(Scope *sc)
     //printf("CompileDeclaration::semantic()\n");
     exp = exp->semantic(sc);
     exp = resolveProperties(sc, exp);
-    exp = exp->optimize(WANTvalue);
+    exp = exp->optimize(WANTvalue | WANTinterpret);
     if (exp->op != TOKstring)
     {	error("argument to mixin must be a string, not (%s)", exp->toChars());
 	return;

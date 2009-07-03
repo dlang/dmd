@@ -240,7 +240,7 @@ int StaticIfCondition::include(Scope *sc, ScopeDsymbol *s)
 	sc->flags |= SCOPEstaticif;
 	Expression *e = exp->semantic(sc);
 	sc->pop();
-	e = e->optimize(WANTvalue);
+	e = e->optimize(WANTvalue | WANTinterpret);
 	if (e->isBool(TRUE))
 	    inc = 1;
 	else if (e->isBool(FALSE))

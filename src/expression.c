@@ -103,6 +103,7 @@ void initPrecedence()
     precedence[TOKis] = PREC_primary;
     precedence[TOKassert] = PREC_primary;
     precedence[TOKfunction] = PREC_primary;
+    precedence[TOKvar] = PREC_primary;
 
     // post
     precedence[TOKdotti] = PREC_primary;
@@ -2825,6 +2826,9 @@ Lagain:
 	    else if (thisexp)
 		error("e.new is only for allocating nested classes");
 	}
+	else if (thisexp)
+	    error("e.new is only for allocating nested classes");
+
 	FuncDeclaration *f = cd->ctor;
 	if (f)
 	{
@@ -2922,7 +2926,7 @@ Lagain:
 
 	    Expression *arg = (Expression *)arguments->data[i];
 	    arg = resolveProperties(sc, arg);
-	    arg = arg->implicitCastTo(sc, Type::tindex);
+	    arg = arg->implicitCastTo(sc, Type::tsize_t);
 	    if (arg->op == TOKint64 && (long long)arg->toInteger() < 0)
 		error("negative array index %s", arg->toChars());
 	    arguments->data[i] = (void *) arg;
@@ -3312,6 +3316,10 @@ Expression *TupleExp::semantic(Scope *sc)
     }
 
     expandTuples(exps);
+    if (0 && exps->dim == 1)
+    {
+	return (Expression *)exps->data[0];
+    }
     type = new TypeTuple(exps);
     //printf("-TupleExp::semantic(%s)\n", toChars());
     return this;
@@ -3319,8 +3327,9 @@ Expression *TupleExp::semantic(Scope *sc)
 
 void TupleExp::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 {
-    buf->writestring("tuple");
+    buf->writestring("tuple(");
     argsToCBuffer(buf, exps, hgs);
+    buf->writeByte(')');
 }
 
 int TupleExp::checkSideEffect(int flag)
@@ -4016,7 +4025,7 @@ Expression *CompileExp::semantic(Scope *sc)
 #endif
     UnaExp::semantic(sc);
     e1 = resolveProperties(sc, e1);
-    e1 = e1->optimize(WANTvalue);
+    e1 = e1->optimize(WANTvalue | WANTinterpret);
     if (e1->op != TOKstring)
     {	error("argument to mixin must be a string, not (%s)", e1->toChars());
 	return this;
@@ -5900,12 +5909,12 @@ Expression *SliceExp::semantic(Scope *sc)
     if (lwr)
     {	lwr = lwr->semantic(sc);
 	lwr = resolveProperties(sc, lwr);
-	lwr = lwr->implicitCastTo(sc, Type::tindex);
+	lwr = lwr->implicitCastTo(sc, Type::tsize_t);
     }
     if (upr)
     {	upr = upr->semantic(sc);
 	upr = resolveProperties(sc, upr);
-	upr = upr->implicitCastTo(sc, Type::tindex);
+	upr = upr->implicitCastTo(sc, Type::tsize_t);
     }
 
     if (t->ty == Tsarray || t->ty == Tarray || t->ty == Ttuple)
@@ -6032,7 +6041,7 @@ Expression *ArrayLengthExp::semantic(Scope *sc)
 	UnaExp::semantic(sc);
 	e1 = resolveProperties(sc, e1);
 
-	type = Type::tindex;
+	type = Type::tsize_t;
     }
     return this;
 }
@@ -6248,13 +6257,13 @@ Expression *IndexExp::semantic(Scope *sc)
     {
 	case Tpointer:
 	case Tarray:
-	    e2 = e2->implicitCastTo(sc, Type::tindex);
+	    e2 = e2->implicitCastTo(sc, Type::tsize_t);
 	    e->type = t1->next;
 	    break;
 
 	case Tsarray:
 	{
-	    e2 = e2->implicitCastTo(sc, Type::tindex);
+	    e2 = e2->implicitCastTo(sc, Type::tsize_t);
 
 	    TypeSArray *tsa = (TypeSArray *)t1;
 
@@ -6285,7 +6294,7 @@ Expression *IndexExp::semantic(Scope *sc)
 
 	case Ttuple:
 	{
-	    e2 = e2->implicitCastTo(sc, Type::tindex);
+	    e2 = e2->implicitCastTo(sc, Type::tsize_t);
 	    e2 = e2->optimize(WANTvalue);
 	    uinteger_t index = e2->toUInteger();
 	    size_t length;
