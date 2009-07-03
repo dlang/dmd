@@ -10,11 +10,7 @@
 #include <stdio.h>
 #include <assert.h>
 
-#if _WIN32 || IN_GCC
-#include "mem.h"
-#else
-#include "../root/mem.h"
-#endif
+#include "rmem.h"
 
 #include "expression.h"
 #include "mtype.h"
@@ -61,8 +57,7 @@ Expression *Expression::implicitCastTo(Scope *sc, Type *t)
 	    }
 	    else
 	    {
-		fprintf(stdmsg, "warning - ");
-		error("implicit conversion of expression (%s) of type %s to %s can cause loss of data",
+		warning("implicit conversion of expression (%s) of type %s to %s can cause loss of data",
 		    toChars(), type->toChars(), t->toChars());
 	    }
 	}
@@ -1725,3 +1720,29 @@ Expression *Expression::integralPromotions(Scope *sc)
     return e;
 }
 
+/***********************************
+ * See if both types are arrays that can be compared
+ * for equality. Return !=0 if so.
+ * If they are arrays, but incompatible, issue error.
+ * This is to enable comparing things like an immutable
+ * array with a mutable one.
+ */
+
+int arrayTypeCompatible(Loc loc, Type *t1, Type *t2)
+{
+    t1 = t1->toBasetype();
+    t2 = t2->toBasetype();
+
+    if ((t1->ty == Tarray || t1->ty == Tsarray || t1->ty == Tpointer) &&
+	(t2->ty == Tarray || t2->ty == Tsarray || t2->ty == Tpointer))
+    {
+	if (t1->nextOf()->implicitConvTo(t2->nextOf()) < MATCHconst &&
+	    t2->nextOf()->implicitConvTo(t1->nextOf()) < MATCHconst &&
+	    (t1->nextOf()->ty != Tvoid && t2->nextOf()->ty != Tvoid))
+	{
+	    error("array equality comparison type mismatch, %s vs %s", t1->toChars(), t2->toChars());
+	}
+	return 1;
+    }
+    return 0;
+}

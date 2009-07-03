@@ -1,6 +1,6 @@
 
 // Compiler implementation of the D programming language
-// Copyright (c) 1999-2007 by Digital Mars
+// Copyright (c) 1999-2009 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // http://www.digitalmars.com
@@ -12,7 +12,11 @@
 #include <stdlib.h>
 #include <ctype.h>
 #include <assert.h>
+#if _MSC_VER
+#include <complex>
+#else
 #include <complex.h>
+#endif
 #include <math.h>
 
 #if IN_GCC
@@ -24,13 +28,7 @@
 #define integer_t dmd_integer_t
 #endif
 
-#if IN_GCC
-#include "mem.h"
-#elif _WIN32
-#include "..\root\mem.h"
-#elif linux
-#include "../root/mem.h"
-#endif
+#include "rmem.h"
 
 //#include "port.h"
 #include "mtype.h"
@@ -52,6 +50,8 @@
 #include "parse.h"
 
 #define LOGSEMANTIC	0
+
+#if V2
 
 /************************************************
  * Delegate to be passed to overloadApply() that looks
@@ -438,3 +438,4 @@ Ltrue:
 }
 
 
+#endif

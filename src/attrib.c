@@ -12,11 +12,7 @@
 #include <stdlib.h>
 #include <assert.h>
 
-#if _WIN32 || IN_GCC
-#include "mem.h"
-#elif linux || __APPLE__
-#include "../root/mem.h"
-#endif
+#include "rmem.h"
 
 #include "init.h"
 #include "declaration.h"

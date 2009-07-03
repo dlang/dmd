@@ -52,6 +52,9 @@ struct AggregateDeclaration : ScopeDsymbol
     int isdeprecated;		// !=0 if deprecated
     Scope *scope;		// !=NULL means context to use
 
+    int isnested;		// !=0 if is nested
+    VarDeclaration *vthis;	// 'this' parameter if this aggregate is nested
+
     // Special member functions
     InvariantDeclaration *inv;		// invariant
     NewDeclaration *aggNew;		// allocator
@@ -79,6 +82,7 @@ struct AggregateDeclaration : ScopeDsymbol
     void addField(Scope *sc, VarDeclaration *v);
     int isDeprecated();		// is aggregate deprecated?
     FuncDeclaration *buildDtor(Scope *sc);
+    int isNested();
 
     void emitComment(Scope *sc);
     void toDocBuffer(OutBuffer *buf);
@@ -204,9 +208,6 @@ struct ClassDeclaration : AggregateDeclaration
     int isauto;				// !=0 if this is an auto class
     int isabstract;			// !=0 if abstract class
 
-    int isnested;			// !=0 if is nested
-    VarDeclaration *vthis;		// 'this' parameter if this class is nested
-
     int inuse;				// to prevent recursive attempts
 
     ClassDeclaration(Loc loc, Identifier *id, BaseClasses *baseclasses);
@@ -224,7 +225,6 @@ struct ClassDeclaration : AggregateDeclaration
 #endif
     FuncDeclaration *findFunc(Identifier *ident, TypeFunction *tf);
     void interfaceSemantic(Scope *sc);
-    int isNested();
     int isCOMclass();
     virtual int isCOMinterface();
 #if V2

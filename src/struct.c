@@ -19,6 +19,7 @@
 #include "module.h"
 #include "id.h"
 #include "statement.h"
+#include "template.h"
 
 /********************************* AggregateDeclaration ****************************/
 
@@ -44,12 +45,14 @@ AggregateDeclaration::AggregateDeclaration(Loc loc, Identifier *id)
     stag = NULL;
     sinit = NULL;
     scope = NULL;
-#if V2
-    dtor = NULL;
+    isnested = 0;
+    vthis = NULL;
 
+#if V2
     ctor = NULL;
     defaultCtor = NULL;
 #endif
+    dtor = NULL;
 }
 
 enum PROT AggregateDeclaration::prot()
@@ -163,6 +166,10 @@ void AggregateDeclaration::addField(Scope *sc, VarDeclaration *v)
 
     // Check for forward referenced types which will fail the size() call
     Type *t = v->type->toBasetype();
+    if (v->storage_class & STCref)
+    {	// References are the size of a pointer
+	t = Type::tvoidptr;
+    }
     if (t->ty == Tstruct /*&& isStructDeclaration()*/)
     {	TypeStruct *ts = (TypeStruct *)t;
 #if V2
@@ -184,9 +191,9 @@ void AggregateDeclaration::addField(Scope *sc, VarDeclaration *v)
 	return;
     }
 
-    memsize = v->type->size(loc);
-    memalignsize = v->type->alignsize();
-    xalign = v->type->memalign(sc->structalign);
+    memsize = t->size(loc);
+    memalignsize = t->alignsize();
+    xalign = t->memalign(sc->structalign);
     alignmember(xalign, memalignsize, &sc->offset);
     v->offset = sc->offset;
     sc->offset += memsize;
@@ -201,6 +208,17 @@ void AggregateDeclaration::addField(Scope *sc, VarDeclaration *v)
     v->storage_class |= STCfield;
     //printf(" addField '%s' to '%s' at offset %d, size = %d\n", v->toChars(), toChars(), v->offset, memsize);
     fields.push(v);
+}
+
+
+/****************************************
+ * Returns !=0 if there's an extra member which is the 'this'
+ * pointer to the enclosing context (enclosing aggregate or function)
+ */
+
+int AggregateDeclaration::isNested()
+{
+    return isnested;
 }
 
 
@@ -281,12 +299,48 @@ void StructDeclaration::semantic(Scope *sc)
 
     if (sizeok == 0)		// if not already done the addMember step
     {
+	int hasfunctions = 0;
 	for (i = 0; i < members->dim; i++)
 	{
 	    Dsymbol *s = (Dsymbol *)members->data[i];
 	    //printf("adding member '%s' to '%s'\n", s->toChars(), this->toChars());
 	    s->addMember(sc, this, 1);
+	    if (s->isFuncDeclaration())
+		hasfunctions = 1;
 	}
+
+	// If nested struct, add in hidden 'this' pointer to outer scope
+	if (hasfunctions && !(storage_class & STCstatic))
+        {   Dsymbol *s = toParent2();
+            if (s)
+            {
+                AggregateDeclaration *ad = s->isAggregateDeclaration();
+                FuncDeclaration *fd = s->isFuncDeclaration();
+
+		TemplateInstance *ti;
+                if (ad && (ti = ad->parent->isTemplateInstance()) != NULL && ti->isnested || fd)
+                {   isnested = 1;
+                    Type *t;
+                    if (ad)
+                        t = ad->handle;
+                    else if (fd)
+                    {   AggregateDeclaration *ad = fd->isMember2();
+                        if (ad)
+                            t = ad->handle;
+                        else
+			    t = Type::tvoidptr;
+                    }
+                    else
+                        assert(0);
+		    if (t->ty == Tstruct)
+			t = Type::tvoidptr;	// t should not be a ref type
+                    assert(!vthis);
+                    vthis = new ThisDeclaration(t);
+		    //vthis->storage_class |= STCref;
+                    members->push(vthis);
+                }
+            }
+        }
     }
 
     sizeok = 0;
@@ -311,6 +365,14 @@ void StructDeclaration::semantic(Scope *sc)
 	    break;
 	}
 #endif
+	Type *t;
+	if (s->isDeclaration() &&
+	    (t = s->isDeclaration()->type) != NULL &&
+	    t->toBasetype()->ty == Tstruct)
+	{   StructDeclaration *sd = (StructDeclaration *)t->toDsymbol(sc);
+	    if (sd->isnested)
+		error("inner struct %s cannot be a field", sd->toChars());
+	}
     }
 
     /* The TypeInfo_Struct is expecting an opEquals and opCmp with

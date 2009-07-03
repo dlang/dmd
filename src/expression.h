@@ -89,6 +89,7 @@ struct Expression : Object
     char *toChars();
     virtual void dump(int indent);
     void error(const char *format, ...);
+    void warning(const char *format, ...);
     virtual void rvalue();
 
     static Expression *combine(Expression *e1, Expression *e2);

@@ -373,8 +373,8 @@ void FuncDeclaration::semantic(Scope *sc)
 		    error("cannot override final function %s", fdv->toPrettyChars());
 
 #if V2
-		if (!isOverride() && global.params.warnings)
-		    error("overrides base class function %s, but is not marked with 'override'", fdv->toPrettyChars());
+		if (!isOverride())
+		    warning(loc, "overrides base class function %s, but is not marked with 'override'", fdv->toPrettyChars());
 #endif
 
 		if (fdv->toParent() == parent)
@@ -1108,10 +1108,7 @@ void FuncDeclaration::semantic3(Scope *sc)
 		    if (offend)
 		    {   Expression *e;
 
-			if (global.params.warnings)
-			{   fprintf(stdmsg, "warning - ");
-			    error("no return at end of function");
-			}
+			warning(loc, "no return at end of function");
 
 			if (global.params.useAssert &&
 			    !global.params.useInline)
@@ -1941,7 +1938,7 @@ int FuncDeclaration::getLevel(Loc loc, FuncDeclaration *fd)
 	}
 	else
 	{
-	    ClassDeclaration *thiscd = s->isClassDeclaration();
+	    AggregateDeclaration *thiscd = s->isAggregateDeclaration();
 	    if (thiscd)
 	    {	if (!thiscd->isNested())
 		    goto Lerr;

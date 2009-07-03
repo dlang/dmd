@@ -12,7 +12,7 @@
 #include <stdlib.h>
 #include <assert.h>
 
-#include "mem.h"
+#include "rmem.h"
 
 #include "statement.h"
 #include "expression.h"

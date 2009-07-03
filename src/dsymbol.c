@@ -12,7 +12,7 @@
 #include <string.h>
 #include <assert.h>
 
-#include "mem.h"
+#include "rmem.h"
 
 #include "mars.h"
 #include "dsymbol.h"
@@ -1006,7 +1006,8 @@ Dsymbol *ArrayScopeSymbol::search(Loc loc, Identifier *ident, int flags)
     L1:
 
 	if (td)
- 	{
+ 	{   /* $ gives the number of elements in the tuple
+	     */
 	    VarDeclaration *v = new VarDeclaration(loc, Type::tsize_t, Id::dollar, NULL);
 	    Expression *e = new IntegerExp(0, td->objects->dim, Type::tsize_t);
 	    v->init = new ExpInitializer(0, e);
@@ -1016,7 +1017,8 @@ Dsymbol *ArrayScopeSymbol::search(Loc loc, Identifier *ident, int flags)
 	}
 
 	if (type)
- 	{
+ 	{   /* $ gives the number of type entries in the type tuple
+	     */
 	    VarDeclaration *v = new VarDeclaration(loc, Type::tsize_t, Id::dollar, NULL);
 	    Expression *e = new IntegerExp(0, type->arguments->dim, Type::tsize_t);
 	    v->init = new ExpInitializer(0, e);
@@ -1026,22 +1028,30 @@ Dsymbol *ArrayScopeSymbol::search(Loc loc, Identifier *ident, int flags)
 	}
 
 	if (exp->op == TOKindex)
-	{
+	{   /* array[index] where index is some function of $
+	     */
 	    IndexExp *ie = (IndexExp *)exp;
 
 	    pvar = &ie->lengthVar;
 	    ce = ie->e1;
 	}
 	else if (exp->op == TOKslice)
-	{
+	{   /* array[lwr .. upr] where lwr or upr is some function of $
+	     */
 	    SliceExp *se = (SliceExp *)exp;
 
 	    pvar = &se->lengthVar;
 	    ce = se->e1;
 	}
 	else
+	    /* Didn't find $, look in enclosing scope(s).
+	     */
 	    return NULL;
 
+	/* If we are indexing into an array that is really a type
+	 * tuple, rewrite this as an index into a type tuple and
+	 * try again.
+	 */
 	if (ce->op == TOKtype)
 	{
 	    Type *t = ((TypeExp *)ce)->type;
@@ -1051,8 +1061,13 @@ Dsymbol *ArrayScopeSymbol::search(Loc loc, Identifier *ident, int flags)
 	    }
 	}
 
-	if (!*pvar)
-	{
+	/* *pvar is lazily initialized, so if we refer to $
+	 * multiple times, it gets set only once.
+	 */
+	if (!*pvar)		// if not already initialized
+	{   /* Create variable v and set it to the value of $,
+	     * which will be a constant.
+	     */
 	    VarDeclaration *v = new VarDeclaration(loc, Type::tsize_t, Id::dollar, NULL);
 
 	    if (ce->op == TOKvar)

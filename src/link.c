@@ -29,7 +29,7 @@
 
 #include	"mars.h"
 
-#include	"mem.h"
+#include	"rmem.h"
 
 int executecmd(char *cmd, char *args, int useenv);
 int executearg0(char *cmd, char *args);

@@ -13,7 +13,7 @@
 #include <stdio.h>
 #include <assert.h>
 
-#include "mem.h"
+#include "rmem.h"
 #include "lexer.h"
 #include "parse.h"
 #include "init.h"
@@ -387,7 +387,9 @@ Array *Parser::parseDeclDefs(int once)
 		if (token.value == TOKidentifier &&
 		    (tk = peek(&token))->value == TOKlparen &&
 		    skipParens(tk, &tk) &&
-		    peek(tk)->value == TOKlparen)
+		    (peek(tk)->value == TOKlparen ||
+		     peek(tk)->value == TOKlcurly)
+		   )
 		{
 		    a = parseDeclarations(storageClass);
 		    decldefs->append(a);
@@ -1748,6 +1750,7 @@ Objects *Parser::parseTemplateArgumentList()
 
 Objects *Parser::parseTemplateArgumentList2()
 {
+    //printf("Parser::parseTemplateArgumentList2()\n");
     Objects *tiargs = new Objects();
     enum TOK endtok = TOKrparen;
     nextToken();
@@ -3906,7 +3909,10 @@ int Parser::isDeclaration(Token *t, int needId, enum TOK endtok, Token **pt)
     int haveId = 0;
 
 #if V2
-    if ((t->value == TOKconst || t->value == TOKinvariant || token.value == TOKimmutable || token.value == TOKshared) &&
+    if ((t->value == TOKconst ||
+	 t->value == TOKinvariant ||
+	 t->value == TOKimmutable ||
+	 t->value == TOKshared) &&
 	peek(t)->value != TOKlparen)
     {	/* const type
 	 * immutable type
@@ -3917,7 +3923,9 @@ int Parser::isDeclaration(Token *t, int needId, enum TOK endtok, Token **pt)
 #endif
 
     if (!isBasicType(&t))
+    {
 	goto Lisnot;
+    }
     if (!isDeclarator(&t, &haveId, endtok))
 	goto Lisnot;
     if ( needId == 1 ||
@@ -4041,7 +4049,9 @@ int Parser::isBasicType(Token **pt)
 		goto Lfalse;
 	    t = peek(t);
 	    if (!isDeclaration(t, 0, TOKrparen, &t))
+	    {
 		goto Lfalse;
+	    }
 	    t = peek(t);
 	    break;
 

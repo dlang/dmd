@@ -13,7 +13,7 @@
 #include <assert.h>
 
 #include "root.h"
-#include "mem.h"
+#include "rmem.h"
 
 #include "enum.h"
 #include "init.h"
@@ -188,8 +188,6 @@ ClassDeclaration::ClassDeclaration(Loc loc, Identifier *id, BaseClasses *basecla
     com = 0;
     isauto = 0;
     isabstract = 0;
-    isnested = 0;
-    vthis = NULL;
     inuse = 0;
 }
 
@@ -506,27 +504,28 @@ void ClassDeclaration::semantic(Scope *sc)
 	{   Dsymbol *s = toParent2();
 	    if (s)
 	    {
-		ClassDeclaration *cd = s->isClassDeclaration();
+		AggregateDeclaration *ad = s->isClassDeclaration();
 		FuncDeclaration *fd = s->isFuncDeclaration();
 
 
-		if (cd || fd)
+		if (ad || fd)
 		{   isnested = 1;
 		    Type *t;
-		    if (cd)
-			t = cd->type;
+		    if (ad)
+			t = ad->handle;
 		    else if (fd)
 		    {	AggregateDeclaration *ad = fd->isMember2();
 			if (ad)
 			    t = ad->handle;
 			else
 			{
-			    t = new TypePointer(Type::tvoid);
-			    t = t->semantic(0, sc);
+			    t = Type::tvoidptr;
 			}
 		    }
 		    else
 			assert(0);
+		    if (t->ty == Tstruct)	// ref to struct
+			t = Type::tvoidptr;
 		    assert(!vthis);
 		    vthis = new ThisDeclaration(t);
 		    members->push(vthis);
@@ -885,7 +884,9 @@ FuncDeclaration *ClassDeclaration::findFunc(Identifier *ident, TypeFunction *tf)
     {
 	for (size_t i = 0; i < vtbl->dim; i++)
 	{
-	    FuncDeclaration *fd = (FuncDeclaration *)vtbl->data[i];
+	    FuncDeclaration *fd = ((Dsymbol*)vtbl->data[i])->isFuncDeclaration();
+	    if (!fd)
+		continue;		// the first entry might be a ClassInfo
 
 	    //printf("\t[%d] = %s\n", i, fd->toChars());
 	    if (ident == fd->ident &&
@@ -970,16 +971,6 @@ int ClassDeclaration::isAbstract()
     return FALSE;
 }
 
-
-/****************************************
- * Returns !=0 if there's an extra member which is the 'this'
- * pointer to the enclosing context (enclosing class or function)
- */
-
-int ClassDeclaration::isNested()
-{
-    return isnested;
-}
 
 /****************************************
  * Determine if slot 0 of the vtbl[] is reserved for something else.

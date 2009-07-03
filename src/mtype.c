@@ -39,7 +39,7 @@ static double zero = 0;
 static double zero = 0;
 #endif
 
-#include "mem.h"
+#include "rmem.h"
 
 #include "dsymbol.h"
 #include "mtype.h"
@@ -1384,6 +1384,18 @@ void Type::error(Loc loc, const char *format, ...)
     va_end( ap );
 }
 
+void Type::warning(Loc loc, const char *format, ...)
+{
+    if (global.params.warnings && !global.gag)
+    {
+	fprintf(stdmsg, "warning - ");
+	va_list ap;
+	va_start(ap, format);
+	::verror(loc, format, ap);
+	va_end( ap );
+    }
+}
+
 Identifier *Type::getTypeInfoIdent(int internal)
 {
     // _init_10TypeInfo_%s
@@ -2641,6 +2653,12 @@ Type *TypeSArray::semantic(Loc loc, Scope *sc)
 	    Argument *arg = (Argument *)tt->arguments->data[(size_t)d];
 	    return arg->type;
 	}
+	case Tstruct:
+	{   TypeStruct *ts = (TypeStruct *)tbn;
+	    if (ts->sym->isnested)
+		error(loc, "cannot have array of inner structs %s", ts->toChars());
+	    break;
+	}
 	case Tfunction:
 	case Tnone:
 	    error(loc, "can't have array of %s", tbn->toChars());
@@ -2852,6 +2870,12 @@ Type *TypeDArray::semantic(Loc loc, Scope *sc)
 	    error(loc, "can't have array of %s", tbn->toChars());
 	    tn = next = tint32;
 	    break;
+	case Tstruct:
+	{   TypeStruct *ts = (TypeStruct *)tbn;
+	    if (ts->sym->isnested)
+		error(loc, "cannot have array of inner structs %s", ts->toChars());
+	    break;
+	}
     }
     if (tn->isauto())
 	error(loc, "cannot have array of auto %s", tn->toChars());
@@ -3668,7 +3692,7 @@ void TypeFunction::toDecoBuffer(OutBuffer *buf, int flag)
 
 void TypeFunction::toCBuffer(OutBuffer *buf, Identifier *ident, HdrGenState *hgs)
 {
-    //printf("TypeFunction::toCBuffer() this = %p %s\n", this, toChars());
+    //printf("TypeFunction::toCBuffer() this = %p\n", this);
     const char *p = NULL;
 
     if (inuse)
@@ -3721,7 +3745,7 @@ void TypeFunction::toCBuffer(OutBuffer *buf, Identifier *ident, HdrGenState *hgs
 
 void TypeFunction::toCBuffer2(OutBuffer *buf, HdrGenState *hgs, int mod)
 {
-    //printf("TypeFunction::toCBuffer2() this = %p %s\n", this, toChars());
+    //printf("TypeFunction::toCBuffer2() this = %p, ref = %d\n", this, isref);
     const char *p = NULL;
 
     if (inuse)
@@ -5000,7 +5024,16 @@ Expression *TypeEnum::dotExp(Scope *sc, Expression *e, Identifier *ident)
     Dsymbol *s = sym->search(e->loc, ident, 0);
     if (!s)
     {
-	return getProperty(e->loc, ident);
+	if (ident == Id::max ||
+	    ident == Id::min ||
+	    ident == Id::init ||
+	    ident == Id::stringof ||
+	    !sym->memtype
+	   )
+	{
+	    return getProperty(e->loc, ident);
+	}
+	return sym->memtype->dotExp(sc, e, ident);
     }
     EnumMember *m = s->isEnumMember();
     Expression *em = m->value->copy();
@@ -5701,7 +5734,8 @@ int TypeStruct::hasPointers()
     for (size_t i = 0; i < s->fields.dim; i++)
     {
 	Dsymbol *sm = (Dsymbol *)s->fields.data[i];
-	if (sm->hasPointers())
+	Declaration *d = sm->isDeclaration();
+	if (d->storage_class & STCref || d->hasPointers())
 	    return TRUE;
     }
     return FALSE;

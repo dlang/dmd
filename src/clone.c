@@ -47,6 +47,8 @@ int StructDeclaration::needOpAssign()
 	Dsymbol *s = (Dsymbol *)fields.data[i];
 	VarDeclaration *v = s->isVarDeclaration();
 	assert(v && v->storage_class & STCfield);
+	if (v->storage_class & STCref)
+	    continue;
 	Type *tv = v->type->toBasetype();
 	while (tv->ty == Tsarray)
 	{   TypeSArray *ta = (TypeSArray *)tv;
@@ -264,6 +266,8 @@ FuncDeclaration *StructDeclaration::buildPostBlit(Scope *sc)
 	Dsymbol *s = (Dsymbol *)fields.data[i];
 	VarDeclaration *v = s->isVarDeclaration();
 	assert(v && v->storage_class & STCfield);
+	if (v->storage_class & STCref)
+	    continue;
 	Type *tv = v->type->toBasetype();
 	size_t dim = 1;
 	while (tv->ty == Tsarray)
@@ -359,6 +363,8 @@ FuncDeclaration *AggregateDeclaration::buildDtor(Scope *sc)
 	Dsymbol *s = (Dsymbol *)fields.data[i];
 	VarDeclaration *v = s->isVarDeclaration();
 	assert(v && v->storage_class & STCfield);
+	if (v->storage_class & STCref)
+	    continue;
 	Type *tv = v->type->toBasetype();
 	size_t dim = 1;
 	while (tv->ty == Tsarray)

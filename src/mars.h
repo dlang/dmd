@@ -346,6 +346,7 @@ enum MATCH
     MATCHexact		// exact match
 };
 
+void warning(Loc loc, const char *format, ...);
 void error(Loc loc, const char *format, ...);
 void verror(Loc loc, const char *format, va_list);
 void fatal();

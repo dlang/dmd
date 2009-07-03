@@ -1,6 +1,6 @@
 
 // Compiler implementation of the D programming language
-// Copyright (c) 1999-2008 by Digital Mars
+// Copyright (c) 1999-2009 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // http://www.digitalmars.com
@@ -25,11 +25,7 @@
 #include	"init.h"
 #include	"template.h"
 
-#if _WIN32
-#include	"..\tk\mem.h"	// for mem_malloc
-#elif linux || __APPLE__
-#include	"../tk/mem.h"	// for mem_malloc
-#endif
+#include	"mem.h"	// for tk/mem_malloc
 
 #include	"cc.h"
 #include	"el.h"
@@ -247,6 +243,7 @@ elem *callfunc(Loc loc,
 	ep = el_param(ep, ehidden);	// if ehidden goes last
 
     tyret = tret->totym();
+
 
     // Look for intrinsic functions
     if (ec->Eoper == OPvar && (op = intrinsic_op(ec->EV.sp.Vsym->Sident)) != -1)
@@ -1532,65 +1529,7 @@ elem *NewExp::toElem(IRState *irs)
 	{   /* Initialize cd->vthis:
 	     *	*(ey + cd.vthis.offset) = this;
 	     */
-	    elem *ethis;
-	    FuncDeclaration *thisfd = irs->getFunc();
-	    int offset = 0;
-	    Dsymbol *cdp = cd->toParent2();	// class/func we're nested in
-
-	    if (cdp == thisfd)
-	    {	/* Class we're new'ing is a local class in this function:
-		 *	void thisfd() { class cd { } }
-		 */
-		if (irs->sclosure)
-		    ethis = el_var(irs->sclosure);
-		else if (irs->sthis)
-		{
-#if V2
-		    if (thisfd->closureVars.dim)
-#else
-		    if (thisfd->nestedFrameRef)
-#endif
-		    {
-			ethis = el_ptr(irs->sthis);
-		    }
-		    else
-			ethis = el_var(irs->sthis);
-		}
-		else
-		{
-		    ethis = el_long(TYnptr, 0);
-#if V2
-		    if (thisfd->closureVars.dim)
-#else
-		    if (thisfd->nestedFrameRef)
-#endif
-		    {
-			ethis->Eoper = OPframeptr;
-		    }
-		}
-	    }
-	    else if (thisfd->vthis &&
-		  (cdp == thisfd->toParent2() ||
-		   (cdp->isClassDeclaration() &&
-		    cdp->isClassDeclaration()->isBaseOf(thisfd->toParent2()->isClassDeclaration(), &offset)
-		   )
-		  )
-		)
-	    {	/* Class we're new'ing is at the same level as thisfd
-		 */
-		assert(offset == 0);	// BUG: should handle this case
-		ethis = el_var(irs->sthis);
-	    }
-	    else
-	    {
-		ethis = getEthis(loc, irs, cd->toParent2());
-		ethis = el_una(OPaddr, TYnptr, ethis);
-	    }
-
-	    ey = el_bin(OPadd, TYnptr, ey, el_long(TYint, cd->vthis->offset));
-	    ey = el_una(OPind, TYnptr, ey);
-	    ey = el_bin(OPeq, TYnptr, ey, ethis);
-
+	    ey = setEthis(loc, irs, ey, cd);
 	}
 
 	if (member)
@@ -1630,9 +1569,15 @@ elem *NewExp::toElem(IRState *irs)
 	    si = tclass->sym->toInitializer();
 	    ei = el_var(si);
 
-	    if (member)
+	    if (cd->isNested())
+	    {
+		ey = el_same(&ex);
+		ez = el_copytree(ey);
+	    }
+	    else if (member)
 		ez = el_same(&ex);
-	    else
+
+	    if (!member)
 	    {	/* Statically intialize with default initializer
 		 */
 		ex = el_una(OPind, TYstruct, ex);
@@ -1660,11 +1605,23 @@ elem *NewExp::toElem(IRState *irs)
 
 	    ectype = NULL;
 
-	    if (member)
+	    if (cd->isNested())
+	    {
+		ey = el_same(&ex);
+		ez = el_copytree(ey);
+	    }
+	    else if (member)
 		ez = el_same(&ex);
 //elem_print(ex);
 //elem_print(ey);
 //elem_print(ez);
+	}
+
+	if (cd->isNested())
+	{   /* Initialize cd->vthis:
+	     *	*(ey + cd.vthis.offset) = this;
+	     */
+	    ey = setEthis(loc, irs, ey, cd);
 	}
 
 	if (member)
@@ -2753,11 +2710,17 @@ elem *AssignExp::toElem(IRState *irs)
 	Declaration *s = ve->var;
 	if (s->storage_class & STCref)
 	{
+#if 0
 	    Expression *ae = e2->addressOf(NULL);
 	    e = ae->toElem(irs);
+#else
+	    e = e2->toElem(irs);
+	    e = addressElem(e, e2->type);
+#endif
 	    elem *es = el_var(s->toSymbol());
 	    es->Ety = TYnptr;
 	    e = el_bin(OPeq, TYnptr, es, e);
+// BUG: type is struct, and e2 is TOKint64
 	    goto Lret;
 	}
     }
@@ -2784,35 +2747,47 @@ elem *AssignExp::toElem(IRState *irs)
 	}
     }
 #endif
+//printf("test1 %d\n", op);
+//if (op == TOKconstruct) printf("construct\n");
     if (t1b->ty == Tstruct)
-    {
+    {	elem *eleft = e1->toElem(irs);
+
 	if (e2->op == TOKint64)
 	{   /* Implement:
 	     *	(struct = 0)
 	     * with:
 	     *	memset(&struct, 0, struct.sizeof)
 	     */
-	    elem *el = e1->toElem(irs);
-	    elem *enbytes = el_long(TYint, e1->type->size());
+	    elem *ey = NULL;
+	    int sz = e1->type->size();
+	    StructDeclaration *sd = ((TypeStruct *)t1b)->sym;
+	    if (sd->isnested && op == TOKconstruct)
+	    {
+		ey = el_una(OPaddr, TYnptr, eleft);
+		eleft = el_same(&ey);
+		ey = setEthis(loc, irs, ey, sd);
+		sz = sd->vthis->offset;
+	    }
+
+	    elem *el = eleft;
+	    elem *enbytes = el_long(TYint, sz);
 	    elem *evalue = el_long(TYint, 0);
 
-	    el = el_una(OPaddr, TYnptr, el);
+	    if (!(sd->isnested && op == TOKconstruct))
+		el = el_una(OPaddr, TYnptr, el);
 	    e = el_param(enbytes, evalue);
 	    e = el_bin(OPmemset,TYnptr,el,e);
+	    e = el_combine(ey, e);
 	    el_setLoc(e, loc);
 	    //e = el_una(OPind, TYstruct, e);
 	}
 	else
 	{
-	    elem *e1;
-	    elem *e2;
-	    tym_t tym;
-
 	    //printf("toElemBin() '%s'\n", toChars());
 
-	    tym = type->totym();
+	    tym_t tym = type->totym();
 
-	    e1 = this->e1->toElem(irs);
+	    elem *e1 = eleft;
 	    elem *ex = e1;
 	    if (e1->Eoper == OPind)
 		ex = e1->E1;
@@ -2837,7 +2812,7 @@ elem *AssignExp::toElem(IRState *irs)
 	    }
 	    else
 	    {
-		e2 = this->e2->toElem(irs);
+		elem *e2 = this->e2->toElem(irs);
 		e = el_bin(OPstreq,tym,e1,e2);
 		e->Enumbytes = this->e1->type->size();
 	    }
@@ -3984,10 +3959,11 @@ Lagain:
 	case X(Tfloat80,Tint32):
 	case X(Tfloat80,Tuns32):
 	case X(Tfloat80,Tint64):
-	case X(Tfloat80,Tuns64):
 	case X(Tfloat80,Tfloat32): e = el_una(OPld_d, TYdouble, e);
 				   fty = Tfloat64;
 				   goto Lagain;
+	case X(Tfloat80,Tuns64):
+				   eop = OPld_u64; goto Leop;
 	case X(Tfloat80,Tfloat64): eop = OPld_d; goto Leop;
 	case X(Tfloat80,Timaginary32): goto Lzero;
 	case X(Tfloat80,Timaginary64): goto Lzero;
@@ -4637,6 +4613,7 @@ elem *StructLiteralExp::toElem(IRState *irs)
 	    Dsymbol *s = (Dsymbol *)sd->fields.data[i];
 	    VarDeclaration *v = s->isVarDeclaration();
 	    assert(v);
+	    assert(!v->isThisDeclaration());
 
 	    elem *e1;
 	    if (tybasic(stmp->Stype->Tty) == TYnptr)
@@ -4728,6 +4705,29 @@ elem *StructLiteralExp::toElem(IRState *irs)
 	    }
 	    e = el_combine(e, e1);
 	}
+    }
+
+    if (sd->isnested)
+    {	// Initialize the hidden 'this' pointer
+	assert(sd->fields.dim);
+	Dsymbol *s = (Dsymbol *)sd->fields.data[sd->fields.dim - 1];
+	ThisDeclaration *v = s->isThisDeclaration();
+	assert(v);
+
+	elem *e1;
+	if (tybasic(stmp->Stype->Tty) == TYnptr)
+	{   e1 = el_var(stmp);
+	    e1->EV.sp.Voffset = soffset;
+	}
+	else
+	{   e1 = el_ptr(stmp);
+	    if (soffset)
+		e1 = el_bin(OPadd, TYnptr, e1, el_long(TYsize_t, soffset));
+	}
+	e1 = el_bin(OPadd, TYnptr, e1, el_long(TYsize_t, v->offset));
+	e1 = setEthis(loc, irs, e1, sd);
+
+	e = el_combine(e, e1);
     }
 
     elem *ev = el_var(stmp);

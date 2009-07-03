@@ -29,7 +29,7 @@
 #undef integer_t
 #include "mach.h"
 
-#include "mem.h"
+#include "rmem.h"
 #include "root.h"
 #include "stringtable.h"
 

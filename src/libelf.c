@@ -16,7 +16,7 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 
-#include "mem.h"
+#include "rmem.h"
 #include "root.h"
 #include "stringtable.h"
 

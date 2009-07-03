@@ -1,6 +1,6 @@
 
 // Compiler implementation of the D programming language
-// Copyright (c) 1999-2007 by Digital Mars
+// Copyright (c) 1999-2009 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // http://www.digitalmars.com
@@ -23,12 +23,14 @@
 #include "id.h"
 #include "module.h"
 
+#if V2
+
 /**********************************
  * Determine if function is a builtin one.
  */
 enum BUILTIN FuncDeclaration::isBuiltin()
 {
-    static const char FeZe[] = "FeZe";	// real function(real)
+    static const char FeZe[] = "FNaNbeZe";	// pure nothrow real function(real)
 
     //printf("FuncDeclaration::isBuiltin() %s\n", toChars());
     if (builtin == BUILTINunknown)
@@ -40,6 +42,7 @@ enum BUILTIN FuncDeclaration::isBuiltin()
 		parent->parent && parent->parent->ident == Id::std &&
 		!parent->parent->parent)
 	    {
+		//printf("deco = %s\n", type->deco);
 		if (strcmp(type->deco, FeZe) == 0)
 		{
 		    if (ident == Id::sin)
@@ -54,6 +57,9 @@ enum BUILTIN FuncDeclaration::isBuiltin()
 			builtin = BUILTINfabs;
 		    //printf("builtin = %d\n", builtin);
 		}
+		else if (strcmp(type->deco, "FNaNbdZd") == 0 ||
+			 strcmp(type->deco, "FNaNbfZf") == 0)
+			builtin = BUILTINsqrt;
 	    }
 	}
     }
@@ -100,3 +106,5 @@ Expression *eval_builtin(enum BUILTIN builtin, Expressions *arguments)
     }
     return e;
 }
+
+#endif

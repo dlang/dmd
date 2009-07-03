@@ -51,9 +51,9 @@ struct TemplateDeclaration : ScopeDsymbol
     TemplateParameters *parameters;	// array of TemplateParameter's
 
     TemplateParameters *origParameters;	// originals for Ddoc
-
+#if V2
     Expression *constraint;
-
+#endif
     Array instances;			// array of TemplateInstance's
 
     TemplateDeclaration *overnext;	// next overloaded TemplateDeclaration
@@ -63,7 +63,10 @@ struct TemplateDeclaration : ScopeDsymbol
     Dsymbol *onemember;		// if !=NULL then one member of this template
 
     TemplateDeclaration(Loc loc, Identifier *id, TemplateParameters *parameters,
-	Expression *constraint, Array *decldefs);
+#if V2
+	Expression *constraint,
+#endif
+	Array *decldefs);
     Dsymbol *syntaxCopy(Dsymbol *);
     void semantic(Scope *sc);
     int overloadInsert(Dsymbol *s);
@@ -111,7 +114,9 @@ struct TemplateParameter
     virtual TemplateTypeParameter  *isTemplateTypeParameter();
     virtual TemplateValueParameter *isTemplateValueParameter();
     virtual TemplateAliasParameter *isTemplateAliasParameter();
+#if V2
     virtual TemplateThisParameter *isTemplateThisParameter();
+#endif
     virtual TemplateTupleParameter *isTemplateTupleParameter();
 
     virtual TemplateParameter *syntaxCopy() = 0;
@@ -308,7 +313,7 @@ struct TemplateInstance : ScopeDsymbol
     TemplateDeclaration *findTemplateDeclaration(Scope *sc);
     TemplateDeclaration *findBestMatch(Scope *sc);
     void declareParameters(Scope *sc);
-    int isNested(Objects *tiargs);
+    int hasNestedArgs(Objects *tiargs);
     Identifier *genIdent();
 
     TemplateInstance *isTemplateInstance() { return this; }

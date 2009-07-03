@@ -25,6 +25,7 @@ struct Identifier;
 struct Scope;
 struct DsymbolTable;
 struct Declaration;
+struct ThisDeclaration;
 struct TupleDeclaration;
 struct TypedefDeclaration;
 struct AliasDeclaration;
@@ -181,6 +182,7 @@ struct Dsymbol : Object
     virtual TemplateInstance *isTemplateInstance() { return NULL; }
     virtual TemplateMixin *isTemplateMixin() { return NULL; }
     virtual Declaration *isDeclaration() { return NULL; }
+    virtual ThisDeclaration *isThisDeclaration() { return NULL; }
     virtual TupleDeclaration *isTupleDeclaration() { return NULL; }
     virtual TypedefDeclaration *isTypedefDeclaration() { return NULL; }
     virtual AliasDeclaration *isAliasDeclaration() { return NULL; }

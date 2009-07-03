@@ -1,6 +1,6 @@
 
 // Compiler implementation of the D programming language
-// Copyright (c) 1999-2008 by Digital Mars
+// Copyright (c) 1999-2009 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // http://www.digitalmars.com
@@ -14,7 +14,7 @@
 #include <assert.h>
 
 #include "root.h"
-#include "mem.h"
+#include "rmem.h"
 #include "stringtable.h"
 
 #include "mtype.h"
@@ -186,6 +186,7 @@ int match(Object *o1, Object *o2, TemplateDeclaration *tempdecl, Scope *sc)
 	{
 	    goto Lnomatch;
 	}
+#if V2
 	VarDeclaration *v1 = s1->isVarDeclaration();
 	VarDeclaration *v2 = s2->isVarDeclaration();
 	if (v1 && v2 && v1->storage_class & v2->storage_class & STCmanifest)
@@ -194,6 +195,7 @@ int match(Object *o1, Object *o2, TemplateDeclaration *tempdecl, Scope *sc)
 	    if (ei1 && ei2 && !ei1->exp->equals(ei2->exp))
 		goto Lnomatch;
 	}
+#endif
     }
     else if (v1)
     {
@@ -261,6 +263,7 @@ void ObjectToCBuffer(OutBuffer *buf, HdrGenState *hgs, Object *oarg)
     }
 }
 
+#if V2
 Object *objectSyntaxCopy(Object *o)
 {
     if (!o)
@@ -273,6 +276,7 @@ Object *objectSyntaxCopy(Object *o)
 	return e->syntaxCopy();
     return o;
 }
+#endif
 
 
 /* ======================== TemplateDeclaration ============================= */
@@ -300,7 +304,9 @@ TemplateDeclaration::TemplateDeclaration(Loc loc, Identifier *id,
     this->loc = loc;
     this->parameters = parameters;
     this->origParameters = parameters;
+#if V2
     this->constraint = constraint;
+#endif
     this->members = decldefs;
     this->overnext = NULL;
     this->overroot = NULL;
@@ -325,9 +331,11 @@ Dsymbol *TemplateDeclaration::syntaxCopy(Dsymbol *)
 	    p->data[i] = (void *)tp->syntaxCopy();
 	}
     }
+#if V2
     Expression *e = NULL;
     if (constraint)
 	e = constraint->syntaxCopy();
+#endif
     d = Dsymbol::arraySyntaxCopy(members);
     td = new TemplateDeclaration(loc, ident, p, e, d);
     return td;
@@ -373,6 +381,7 @@ void TemplateDeclaration::semantic(Scope *sc)
     paramsym->parent = sc->parent;
     Scope *paramscope = sc->push(paramsym);
     paramscope->parameterSpecialization = 1;
+    paramscope->stc = 0;
 
     if (global.params.doDocComments)
     {
@@ -533,6 +542,7 @@ MATCH TemplateDeclaration::matchWithInstance(TemplateInstance *ti,
     ScopeDsymbol *paramsym = new ScopeDsymbol();
     paramsym->parent = scope->parent;
     Scope *paramscope = scope->push(paramsym);
+    paramscope->stc = 0;
 
     // Attempt type deduction
     m = MATCHexact;
@@ -822,6 +832,7 @@ MATCH TemplateDeclaration::deduceFunctionTemplateMatch(Loc loc, Objects *targsi,
 	    Tuple *t = new Tuple();
 	    //printf("t = %p\n", t);
 	    dedargs->data[parameters->dim - 1] = (void *)t;
+	    declareParameter(paramscope, tp, t);
 	    goto L2;
 	}
 	else if (nfargs < nfparams - 1)
@@ -857,6 +868,7 @@ MATCH TemplateDeclaration::deduceFunctionTemplateMatch(Loc loc, Objects *targsi,
 		{   Expression *farg = (Expression *)fargs->data[fptupindex + i];
 		    t->objects.data[i] = (void *)farg->type;
 		}
+		declareParameter(paramscope, tp, t);
 		goto L2;
 	    }
 	    fptupindex = -1;
@@ -1885,11 +1897,20 @@ MATCH TypeInstance::deduceType(Scope *sc,
 	    Expression *e1 = isExpression(o1);
 	    Expression *e2 = isExpression(o2);
 
+	    Dsymbol *s1 = isDsymbol(o1);
+	    Dsymbol *s2 = isDsymbol(o2);
+
+	    Tuple *v1 = isTuple(o1);
+	    Tuple *v2 = isTuple(o2);
 #if 0
 	    if (t1)	printf("t1 = %s\n", t1->toChars());
 	    if (t2)	printf("t2 = %s\n", t2->toChars());
 	    if (e1)	printf("e1 = %s\n", e1->toChars());
 	    if (e2)	printf("e2 = %s\n", e2->toChars());
+	    if (s1)	printf("s1 = %s\n", s1->toChars());
+	    if (s2)	printf("s2 = %s\n", s2->toChars());
+	    if (v1)	printf("v1 = %s\n", v1->toChars());
+	    if (v2)	printf("v2 = %s\n", v2->toChars());
 #endif
 
 	    if (t1 && t2)
@@ -1936,7 +1957,33 @@ MATCH TypeInstance::deduceType(Scope *sc,
 		    dedtypes->data[j] = e1;
 		}
 	    }
-	    // BUG: Need to handle alias and tuple parameters
+	    else if (s1 && t2 && t2->ty == Tident)
+	    {
+		j = templateParameterLookup(t2, parameters);
+		if (j == -1)
+		    goto Lnomatch;
+		TemplateParameter *tp = (TemplateParameter *)parameters->data[j];
+		// BUG: use tp->matchArg() instead of the following
+		TemplateAliasParameter *ta = tp->isTemplateAliasParameter();
+		if (!ta)
+		    goto Lnomatch;
+		Dsymbol *s = (Dsymbol *)dedtypes->data[j];
+		if (s)
+		{
+		    if (!s1->equals(s))
+			goto Lnomatch;
+		}
+		else
+		{
+		    dedtypes->data[j] = s1;
+		}
+	    }
+	    else if (s1 && s2)
+	    {
+		if (!s1->equals(s2))
+		    goto Lnomatch;
+	    }
+	    // BUG: Need to handle tuple parameters
 	    else
 		goto Lnomatch;
 	}
@@ -2570,6 +2617,7 @@ MATCH TemplateAliasParameter::matchArg(Scope *sc,
 
 Lnomatch:
     *psparam = NULL;
+    //printf("\tm = %d\n", MATCHnomatch);
     return MATCHnomatch;
 }
 
@@ -3172,7 +3220,7 @@ void TemplateInstance::semantic(Scope *sc)
 	}
     }
 
-    isNested(tiargs);
+    hasNestedArgs(tiargs);
 
     /* See if there is an existing TemplateInstantiation that already
      * implements the typeargs. If so, just refer to that one instead.
@@ -3255,7 +3303,7 @@ void TemplateInstance::semantic(Scope *sc)
 	     *
 	     * see bugzilla 2500.
 	     */
-	    && !scx->module->imports(scx->module)
+	    && !scx->module->selfImports()
 #endif
 	   )
 	{
@@ -3299,9 +3347,13 @@ void TemplateInstance::semantic(Scope *sc)
     argsym = new ScopeDsymbol();
     argsym->parent = scope->parent;
     scope = scope->push(argsym);
+//    scope->stc = 0;
 
     // Declare each template parameter as an alias for the argument type
-    declareParameters(scope);
+    Scope *paramscope = scope->push();
+    paramscope->stc = 0;
+    declareParameters(paramscope);
+    paramscope->pop();
 
     // Add members of template instance to template instance symbol table
 //    parent = scope->scopesym;
@@ -3771,9 +3823,9 @@ TemplateDeclaration *TemplateInstance::findBestMatch(Scope *sc)
  * generation of the TemplateDeclaration.
  */
 
-int TemplateInstance::isNested(Objects *args)
+int TemplateInstance::hasNestedArgs(Objects *args)
 {   int nested = 0;
-    //printf("TemplateInstance::isNested('%s')\n", tempdecl->ident->toChars());
+    //printf("TemplateInstance::hasNestedArgs('%s')\n", tempdecl->ident->toChars());
 
     /* A nested instance happens when an argument references a local
      * symbol that is on the stack.
@@ -3842,7 +3894,7 @@ int TemplateInstance::isNested(Objects *args)
 	}
 	else if (va)
 	{
-	    nested |= isNested(&va->objects);
+	    nested |= hasNestedArgs(&va->objects);
 	}
     }
     return nested;

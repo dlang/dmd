@@ -456,8 +456,16 @@ void AliasDeclaration::semantic(Scope *sc)
     if (s && ((s->getType() && type->equals(s->getType())) || s->isEnumMember()))
 	goto L2;			// it's a symbolic alias
 
-    //printf("alias type is %s\n", type->toChars());
-    type->resolve(loc, sc, &e, &t, &s);
+    if (storage_class & STCref)
+    {	// For 'ref' to be attached to function types, and picked
+	// up by Type::resolve(), it has to go into sc.
+	sc = sc->push();
+	sc->stc |= STCref;
+	type->resolve(loc, sc, &e, &t, &s);
+	sc = sc->pop();
+    }
+    else
+	type->resolve(loc, sc, &e, &t, &s);
     if (s)
     {
 	goto L2;
@@ -857,8 +865,11 @@ Lagain:
 	}
     }
 
-    if ((storage_class & (STCref | STCparameter | STCforeach)) == STCref)
+    if ((storage_class & (STCref | STCparameter | STCforeach)) == STCref &&
+	ident != Id::This)
+    {
 	error("only parameters or foreach declarations can be ref");
+    }
 
     if (type->isauto() && !noauto)
     {
@@ -903,6 +914,7 @@ Lagain:
 	    Expression *e1;
 	    e1 = new VarExp(loc, this);
 	    e = new AssignExp(loc, e1, e);
+	    e->op = TOKconstruct;
 	    e->type = e1->type;		// don't type check this, it would fail
 	    init = new ExpInitializer(loc, e);
 	    return;
@@ -1654,5 +1666,4 @@ Dsymbol *ThisDeclaration::syntaxCopy(Dsymbol *s)
     assert(0);		// should never be produced by syntax
     return NULL;
 }
-
 
