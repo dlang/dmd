@@ -150,7 +150,7 @@ struct BaseClass
     void copyBaseInterfaces(BaseClasses *);
 };
 
-#define CLASSINFO_SIZE 	0x3C		// value of ClassInfo.size
+#define CLASSINFO_SIZE 	(0x3C+8)	// value of ClassInfo.size
 
 struct ClassDeclaration : AggregateDeclaration
 {

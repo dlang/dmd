@@ -306,6 +306,7 @@ void ClassDeclaration::toObjFile()
 	    void *invariant;		// class invariant
 	    uint flags;
 	    void *deallocator;
+	    OffsetTypeInfo[] offTi;
        }
      */
     dt_t *dt = NULL;
@@ -366,7 +367,7 @@ void ClassDeclaration::toObjFile()
 	dtdword(&dt, 0);
 
     // flags
-    int flags = com;
+    int flags = 4 | com;
     for (ClassDeclaration *cd = this; cd; cd = cd->baseClass)
     {
 	if (cd->members)
@@ -374,6 +375,7 @@ void ClassDeclaration::toObjFile()
 	    for (size_t i = 0; i < cd->members->dim; i++)
 	    {
 		Dsymbol *sm = (Dsymbol *)cd->members->data[i];
+		//printf("sm = %s %s\n", sm->kind(), sm->toChars());
 		if (sm->hasPointers())
 		    goto L2;
 	    }
@@ -389,6 +391,10 @@ void ClassDeclaration::toObjFile()
 	dtxoff(&dt, aggDelete->toSymbol(), 0, TYnptr);
     else
 	dtdword(&dt, 0);
+
+    // offTi[]
+    dtdword(&dt, 0);
+    dtdword(&dt, 0);		// null for now, fix later
 
     //////////////////////////////////////////////
 
@@ -776,10 +782,14 @@ void InterfaceDeclaration::toObjFile()
     dtdword(&dt, 0);
 
     // flags
-    dtdword(&dt, com);
+    dtdword(&dt, 4 | com);
 
     // deallocator
     dtdword(&dt, 0);
+
+    // offTi[]
+    dtdword(&dt, 0);
+    dtdword(&dt, 0);		// null for now, fix later
 
     //////////////////////////////////////////////
 

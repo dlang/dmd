@@ -138,6 +138,7 @@ int Dsymbol::oneMembers(Array *members, Dsymbol **ps)
 
 int Dsymbol::hasPointers()
 {
+    //printf("Dsymbol::hasPointers() %s\n", toChars());
     return 0;
 }
 
