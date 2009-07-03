@@ -105,7 +105,9 @@ void initPrecedence()
     precedence[TOKassert] = PREC_primary;
     precedence[TOKfunction] = PREC_primary;
     precedence[TOKvar] = PREC_primary;
+#if V2
     precedence[TOKdefault] = PREC_primary;
+#endif
 
     // post
     precedence[TOKdotti] = PREC_primary;
@@ -234,26 +236,32 @@ Expression *getRightThis(Loc loc, Scope *sc, AggregateDeclaration *ad,
 		 */
 
 		e1 = new DotVarExp(loc, e1, tcd->vthis);
-		e1 = e1->semantic(sc);
+		e1->type = tcd->vthis->type;
+		// Do not call checkNestedRef()
+		//e1 = e1->semantic(sc);
 
 		// Skip up over nested functions, and get the enclosing
 		// class type.
+		int n = 0;
 		Dsymbol *s;
 		for (s = tcd->toParent();
 		     s && s->isFuncDeclaration();
 		     s = s->toParent())
 		{   FuncDeclaration *f = s->isFuncDeclaration();
 		    if (f->vthis)
-		    {
+		    {	n++;
 			e1 = new VarExp(loc, f->vthis);
 		    }
 		}
 		if (s && s->isClassDeclaration())
-		    e1->type = s->isClassDeclaration()->type;
-		e1 = e1->semantic(sc);
+		{   e1->type = s->isClassDeclaration()->type;
+		    if (n > 1)
+			e1 = e1->semantic(sc);
+		}
+		else
+		    e1 = e1->semantic(sc);
 		goto L1;
 	    }
-
 	    /* Can't find a path from e1 to ad
 	     */
 	    error("this for %s needs to be type %s not type %s",
@@ -474,7 +482,7 @@ void preFunctionArguments(Loc loc, Scope *sc, Expressions *exps)
 /*********************************************
  * Call copy constructor for struct value argument.
  */
-
+#if V2
 Expression *callCpCtor(Loc loc, Scope *sc, Expression *e)
 {
     Type *tb = e->type->toBasetype();
@@ -496,6 +504,7 @@ Expression *callCpCtor(Loc loc, Scope *sc, Expression *e)
     }
     return e;
 }
+#endif
 
 /****************************************
  * Now that we know the exact type of the function we're calling,
@@ -546,11 +555,13 @@ void functionArguments(Loc loc, Scope *sc, TypeFunction *tf, Expressions *argume
 		    break;
 		}
 		arg = p->defaultArg;
+#if V2
 		if (arg->op == TOKdefault)
 		{   DefaultInitExp *de = (DefaultInitExp *)arg;
 		    arg = de->resolve(loc, sc);
 		}
 		else
+#endif
 		    arg = arg->copy();
 		arguments->push(arg);
 		nargs++;
@@ -708,7 +719,7 @@ void functionArguments(Loc loc, Scope *sc, TypeFunction *tf, Expressions *argume
 		else
 		    arg = arg->castTo(sc, ta);
 	    }
-
+#if V2
 	    if (tb->ty == Tstruct)
 	    {
 		arg = callCpCtor(loc, sc, arg);
@@ -720,9 +731,9 @@ void functionArguments(Loc loc, Scope *sc, TypeFunction *tf, Expressions *argume
 		if (se->hasOverloads && !se->var->isFuncDeclaration()->isUnique())
 		    arg->error("function %s is overloaded", arg->toChars());
 	    }
+#endif
 	    arg->rvalue();
 	}
-
 	arg = arg->optimize(WANTvalue);
 	arguments->data[i] = (void *) arg;
 	if (done)
@@ -948,6 +959,15 @@ void Expression::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 void Expression::toMangleBuffer(OutBuffer *buf)
 {
     error("expression %s is not a valid template value argument", toChars());
+}
+
+/***************************************
+ * Return !=0 if expression is an lvalue.
+ */
+
+int Expression::isLvalue()
+{
+    return 0;
 }
 
 /*******************************
@@ -1848,6 +1868,11 @@ void IdentifierExp::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 	buf->writestring(ident->toChars());
 }
 
+int IdentifierExp::isLvalue()
+{
+    return 1;
+}
+
 Expression *IdentifierExp::toLvalue(Scope *sc, Expression *e)
 {
 #if 0
@@ -2048,6 +2073,11 @@ void DsymbolExp::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
     buf->writestring(s->toChars());
 }
 
+int DsymbolExp::isLvalue()
+{
+    return 1;
+}
+
 Expression *DsymbolExp::toLvalue(Scope *sc, Expression *e)
 {
 #if 0
@@ -2122,7 +2152,8 @@ Expression *ThisExp::semantic(Scope *sc)
     assert(var->parent);
     type = var->type;
     var->isVarDeclaration()->checkNestedReference(sc, loc);
-    sc->callSuper |= CSXthis;
+    if (!sc->intypeof)
+	sc->callSuper |= CSXthis;
     return this;
 
 Lerr:
@@ -2139,6 +2170,11 @@ int ThisExp::isBool(int result)
 void ThisExp::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 {
     buf->writestring("this");
+}
+
+int ThisExp::isLvalue()
+{
+    return 1;
 }
 
 Expression *ThisExp::toLvalue(Scope *sc, Expression *e)
@@ -2223,7 +2259,8 @@ Expression *SuperExp::semantic(Scope *sc)
 
     var->isVarDeclaration()->checkNestedReference(sc, loc);
 
-    sc->callSuper |= CSXsuper;
+    if (!sc->intypeof)
+	sc->callSuper |= CSXsuper;
     return this;
 
 
@@ -3004,6 +3041,10 @@ int StructLiteralExp::getFieldIndex(Type *type, unsigned offset)
     return -1;
 }
 
+int StructLiteralExp::isLvalue()
+{
+    return 1;
+}
 
 Expression *StructLiteralExp::toLvalue(Scope *sc, Expression *e)
 {
@@ -3760,6 +3801,13 @@ void VarExp::checkEscape()
     }
 }
 
+int VarExp::isLvalue()
+{
+    if (var->storage_class & STClazy)
+	return 0;
+    return 1;
+}
+
 Expression *VarExp::toLvalue(Scope *sc, Expression *e)
 {
 #if 0
@@ -3795,6 +3843,11 @@ OverExp::OverExp(OverloadSet *s)
     //printf("OverExp(this = %p, '%s')\n", this, var->toChars());
     vars = s;
     type = Type::tvoid;
+}
+
+int OverExp::isLvalue()
+{
+    return 1;
 }
 
 Expression *OverExp::toLvalue(Scope *sc, Expression *e)
@@ -5259,7 +5312,6 @@ Expression *DotVarExp::semantic(Scope *sc)
 	}
 
 	e1 = e1->semantic(sc);
-
 	type = var->type;
 	if (!type && global.errors)
 	{   // var is goofed up, just return 0
@@ -5285,6 +5337,11 @@ Expression *DotVarExp::semantic(Scope *sc)
     }
     //printf("-DotVarExp::semantic('%s')\n", toChars());
     return this;
+}
+
+int DotVarExp::isLvalue()
+{
+    return 1;
 }
 
 Expression *DotVarExp::toLvalue(Scope *sc, Expression *e)
@@ -5687,12 +5744,15 @@ e1->dump(0);
 	    /* Attempt to instantiate ti. If that works, go with it.
 	     * If not, go with partial explicit specialization.
 	     */
+	    ti->semanticTiargs(sc);
 	    unsigned errors = global.errors;
 	    global.gag++;
 	    ti->semantic(sc);
 	    global.gag--;
 	    if (errors != global.errors)
 	    {
+		/* Didn't work, go with partial explicit specialization
+		 */
 		global.errors = errors;
 		targsi = ti->tiargs;
 		e1 = new IdentifierExp(loc, ti->name);
@@ -5711,6 +5771,7 @@ e1->dump(0);
 	    /* Attempt to instantiate ti. If that works, go with it.
 	     * If not, go with partial explicit specialization.
 	     */
+	    ti->semanticTiargs(sc);
 	    Expression *etmp;
 	    unsigned errors = global.errors;
 	    global.gag++;
@@ -5950,15 +6011,18 @@ Lagain:
 	    }
 	    else
 	    {
+		if (!sc->intypeof)
+		{
 #if 0
-		if (sc->callSuper & (CSXthis | CSXsuper))
-		    error("reference to this before super()");
+		    if (sc->callSuper & (CSXthis | CSXsuper))
+			error("reference to this before super()");
 #endif
-		if (sc->noctor || sc->callSuper & CSXlabel)
-		    error("constructor calls not allowed in loops or after labels");
-		if (sc->callSuper & (CSXsuper_ctor | CSXthis_ctor))
-		    error("multiple constructor calls");
-		sc->callSuper |= CSXany_ctor | CSXsuper_ctor;
+		    if (sc->noctor || sc->callSuper & CSXlabel)
+			error("constructor calls not allowed in loops or after labels");
+		    if (sc->callSuper & (CSXsuper_ctor | CSXthis_ctor))
+			error("multiple constructor calls");
+		    sc->callSuper |= CSXany_ctor | CSXsuper_ctor;
+		}
 
 		f = f->overloadResolve(loc, NULL, arguments);
 		checkDeprecated(sc, f);
@@ -5983,15 +6047,18 @@ Lagain:
 	}
 	else
 	{
+	    if (!sc->intypeof)
+	    {
 #if 0
-	    if (sc->callSuper & (CSXthis | CSXsuper))
-		error("reference to this before super()");
+		if (sc->callSuper & (CSXthis | CSXsuper))
+		    error("reference to this before super()");
 #endif
-	    if (sc->noctor || sc->callSuper & CSXlabel)
-		error("constructor calls not allowed in loops or after labels");
-	    if (sc->callSuper & (CSXsuper_ctor | CSXthis_ctor))
-		error("multiple constructor calls");
-	    sc->callSuper |= CSXany_ctor | CSXthis_ctor;
+		if (sc->noctor || sc->callSuper & CSXlabel)
+		    error("constructor calls not allowed in loops or after labels");
+		if (sc->callSuper & (CSXsuper_ctor | CSXthis_ctor))
+		    error("multiple constructor calls");
+		sc->callSuper |= CSXany_ctor | CSXthis_ctor;
+	    }
 
 	    f = cd->ctor;
 	    f = f->overloadResolve(loc, NULL, arguments);
@@ -6156,6 +6223,14 @@ int CallExp::canThrow()
     return 1;
 }
 
+int CallExp::isLvalue()
+{
+    if (type->toBasetype()->ty == Tstruct)
+	return 1;
+    else
+	return 0;
+}
+
 Expression *CallExp::toLvalue(Scope *sc, Expression *e)
 {
     if (type->toBasetype()->ty == Tstruct)
@@ -6302,6 +6377,11 @@ Expression *PtrExp::semantic(Scope *sc)
 	rvalue();
     }
     return this;
+}
+
+int PtrExp::isLvalue()
+{
+    return 1;
 }
 
 Expression *PtrExp::toLvalue(Scope *sc, Expression *e)
@@ -6902,6 +6982,11 @@ void SliceExp::checkEscape()
     e1->checkEscape();
 }
 
+int SliceExp::isLvalue()
+{
+    return 1;
+}
+
 Expression *SliceExp::toLvalue(Scope *sc, Expression *e)
 {
     return this;
@@ -7017,6 +7102,13 @@ Expression *ArrayExp::semantic(Scope *sc)
 }
 
 
+int ArrayExp::isLvalue()
+{
+    if (type && type->toBasetype()->ty == Tvoid)
+	return 0;
+    return 1;
+}
+
 Expression *ArrayExp::toLvalue(Scope *sc, Expression *e)
 {
     if (type && type->toBasetype()->ty == Tvoid)
@@ -7084,6 +7176,11 @@ Expression *CommaExp::semantic(Scope *sc)
 void CommaExp::checkEscape()
 {
     e2->checkEscape();
+}
+
+int CommaExp::isLvalue()
+{
+    return e2->isLvalue();
 }
 
 Expression *CommaExp::toLvalue(Scope *sc, Expression *e)
@@ -7249,6 +7346,11 @@ Expression *IndexExp::semantic(Scope *sc)
 	    break;
     }
     return e;
+}
+
+int IndexExp::isLvalue()
+{
+    return 1;
 }
 
 Expression *IndexExp::toLvalue(Scope *sc, Expression *e)
@@ -9124,6 +9226,11 @@ Expression *CondExp::semantic(Scope *sc)
     printf("e2 : %s\n", e2->type->toChars());
 #endif
     return this;
+}
+
+int CondExp::isLvalue()
+{
+    return e1->isLvalue() && e2->isLvalue();
 }
 
 Expression *CondExp::toLvalue(Scope *sc, Expression *ex)

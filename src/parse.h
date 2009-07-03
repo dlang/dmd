@@ -1,6 +1,6 @@
 
 // Compiler implementation of the D programming language
-// Copyright (c) 1999-2007 by Digital Mars
+// Copyright (c) 1999-2008 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // http://www.digitalmars.com
@@ -68,7 +68,9 @@ struct Parser : Lexer
 
     Array *parseModule();
     Array *parseDeclDefs(int once);
+    Array *parseAutoDeclarations(unsigned storageClass, unsigned char *comment);
     Array *parseBlock();
+    Expression *parseConstraint();
     TemplateDeclaration *parseTemplateDeclaration();
     TemplateParameters *parseTemplateParameterList(int flag = 0);
     Dsymbol *parseMixin();
@@ -98,7 +100,7 @@ struct Parser : Lexer
     Type *parseBasicType();
     Type *parseBasicType2(Type *t);
     Type *parseDeclarator(Type *t, Identifier **pident, TemplateParameters **tpl = NULL);
-    Array *parseDeclarations();
+    Array *parseDeclarations(unsigned storage_class);
     void parseContracts(FuncDeclaration *f);
     Statement *parseStatement(int flags);
     Initializer *parseInitializer();

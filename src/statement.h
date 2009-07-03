@@ -147,6 +147,7 @@ struct CompileStatement : Statement
     CompileStatement(Loc loc, Expression *exp);
     Statement *syntaxCopy();
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
+    Statements *flatten(Scope *sc);
     Statement *semantic(Scope *sc);
 };
 

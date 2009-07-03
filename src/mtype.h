@@ -769,6 +769,7 @@ struct Argument : Object
     static void argsCppMangle(OutBuffer *buf, CppMangleState *cms, Arguments *arguments, int varargs);
     static void argsToCBuffer(OutBuffer *buf, HdrGenState *hgs, Arguments *arguments, int varargs);
     static void argsToDecoBuffer(OutBuffer *buf, Arguments *arguments);
+    static int isTPL(Arguments *arguments);
     static size_t dim(Arguments *arguments);
     static Argument *getNth(Arguments *arguments, size_t nth, size_t *pn = NULL);
 };

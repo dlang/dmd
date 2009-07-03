@@ -77,7 +77,6 @@ Expression *FuncDeclaration::interpret(InterState *istate, Expressions *argument
 	return NULL;
     }
 
-    //printf("test2 %d, %p\n", semanticRun, scope);
     if (semanticRun == 0 && scope)
     {
 	semantic3(scope);

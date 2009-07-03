@@ -675,7 +675,7 @@ void Lexer::scan(Token *t)
 			sprintf(timestamp, "%.24s", p);
 		    }
 
-#if !V2
+#if V1
 		    if (mod && id == Id::FILE)
 		    {
 			t->ustring = (unsigned char *)(loc.filename ? loc.filename : mod->ident->toChars());

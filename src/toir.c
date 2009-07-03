@@ -268,7 +268,11 @@ int intrinsic_op(char *name)
 	"4math5ldexpFeiZe",
 	"4math6rndtolFeZl",
 
+#if V1
+	"9intrinsic2btFPkkZi",
+#else
 	"9intrinsic2btFxPkkZi",
+#endif
 	"9intrinsic3bsfFkZi",
 	"9intrinsic3bsrFkZi",
 	"9intrinsic3btcFPkkZi",
@@ -406,6 +410,7 @@ void FuncDeclaration::buildClosure(IRState *irs)
     {   // Generate closure on the heap
 	// BUG: doesn't capture variadic arguments passed to this function
 
+#if V2
 	/* BUG: doesn't handle destructors for the local variables.
 	 * The way to do it is to make the closure variables the fields
 	 * of a class object:
@@ -418,7 +423,7 @@ void FuncDeclaration::buildClosure(IRState *irs)
 	 *	  ~this() { call destructor }
 	 *    }
 	 */
-
+#endif
 	//printf("FuncDeclaration::buildClosure()\n");
 	Symbol *sclosure;
 	sclosure = symbol_name("__closptr",SCauto,Type::tvoidptr->toCtype());
@@ -431,9 +436,10 @@ void FuncDeclaration::buildClosure(IRState *irs)
 	{   VarDeclaration *v = (VarDeclaration *)closureVars.data[i];
 	    assert(v->isVarDeclaration());
 
+#if V2
 	    if (v->needsAutoDtor())
 		v->error("has scoped destruction, cannot build closure");
-
+#endif
 	    /* Align and allocate space for v in the closure
 	     * just like AggregateDeclaration::addField() does.
 	     */
@@ -501,4 +507,51 @@ void FuncDeclaration::buildClosure(IRState *irs)
 }
 
 #endif
+
+/***************************
+ * Determine return style of function - whether in registers or
+ * through a hidden pointer to the caller's stack.
+ */
+
+enum RET TypeFunction::retStyle()
+{
+    //printf("TypeFunction::retStyle() %s\n", toChars());
+    Type *tn = next->toBasetype();
+
+    if (tn->ty == Tstruct)
+    {	StructDeclaration *sd = ((TypeStruct *)tn)->sym;
+	if (global.params.isLinux && linkage != LINKd)
+	    ;
+#if V2
+	else if (sd->dtor || sd->cpctor)
+	    ;
+#endif
+	else
+	{
+	    switch ((int)tn->size())
+	    {   case 1:
+		case 2:
+		case 4:
+		case 8:
+		    return RETregs;	// return small structs in regs
+					// (not 3 byte structs!)
+		default:
+		    break;
+	    }
+	}
+	return RETstack;
+    }
+    else if (global.params.isLinux &&
+	     linkage == LINKc &&
+	     tn->iscomplex())
+    {
+	if (tn->ty == Tcomplex32)
+	    return RETregs;	// in EDX:EAX, not ST1:ST0
+	else
+	    return RETstack;
+    }
+    else
+	return RETregs;
+}
+
 

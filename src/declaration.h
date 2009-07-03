@@ -69,6 +69,7 @@ enum STC
     STCnothrow	    = 0x2000000,	// never throws exceptions
     STCpure	    = 0x4000000,	// pure function
     STCtls	    = 0x8000000,	// thread local
+    STCalias	    = 0x10000000,	// alias parameter
 };
 
 struct Match
@@ -263,7 +264,6 @@ struct VarDeclaration : Declaration
     // Eliminate need for dynamic_cast
     VarDeclaration *isVarDeclaration() { return (VarDeclaration *)this; }
 };
-
 
 /**************************************************************/
 
@@ -618,6 +618,7 @@ struct CtorDeclaration : FuncDeclaration
     CtorDeclaration *isCtorDeclaration() { return this; }
 };
 
+#if V2
 struct PostBlitDeclaration : FuncDeclaration
 {
     PostBlitDeclaration(Loc loc, Loc endloc);
@@ -633,6 +634,7 @@ struct PostBlitDeclaration : FuncDeclaration
 
     PostBlitDeclaration *isPostBlitDeclaration() { return this; }
 };
+#endif
 
 struct DtorDeclaration : FuncDeclaration
 {
@@ -667,7 +669,8 @@ struct StaticCtorDeclaration : FuncDeclaration
 };
 
 struct StaticDtorDeclaration : FuncDeclaration
-{
+{   VarDeclaration *vgate;	// 'gate' variable
+
     StaticDtorDeclaration(Loc loc, Loc endloc);
     Dsymbol *syntaxCopy(Dsymbol *);
     void semantic(Scope *sc);

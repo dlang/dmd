@@ -101,6 +101,7 @@ struct Expression : Object
     virtual complex_t toComplex();
     virtual void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
     virtual void toMangleBuffer(OutBuffer *buf);
+    virtual int isLvalue();
     virtual Expression *toLvalue(Scope *sc, Expression *e);
     virtual Expression *modifiableLvalue(Scope *sc, Expression *e);
     Expression *implicitCastTo(Scope *sc, Type *t);
@@ -233,6 +234,7 @@ struct IdentifierExp : Expression
     char *toChars();
     void dump(int indent);
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
+    int isLvalue();
     Expression *toLvalue(Scope *sc, Expression *e);
 };
 
@@ -251,6 +253,7 @@ struct DsymbolExp : Expression
     char *toChars();
     void dump(int indent);
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
+    int isLvalue();
     Expression *toLvalue(Scope *sc, Expression *e);
 };
 
@@ -262,6 +265,7 @@ struct ThisExp : Expression
     Expression *semantic(Scope *sc);
     int isBool(int result);
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
+    int isLvalue();
     Expression *toLvalue(Scope *sc, Expression *e);
     void scanForNestedRef(Scope *sc);
 
@@ -431,6 +435,7 @@ struct StructLiteralExp : Expression
     Expression *optimize(int result);
     Expression *interpret(InterState *istate);
     dt_t **toDt(dt_t **pdt);
+    int isLvalue();
     Expression *toLvalue(Scope *sc, Expression *e);
     int canThrow();
     MATCH implicitConvTo(Type *t);
@@ -569,6 +574,7 @@ struct VarExp : SymbolExp
     char *toChars();
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
     void checkEscape();
+    int isLvalue();
     Expression *toLvalue(Scope *sc, Expression *e);
     Expression *modifiableLvalue(Scope *sc, Expression *e);
     dt_t **toDt(dt_t **pdt);
@@ -586,6 +592,7 @@ struct OverExp : Expression
     OverloadSet *vars;
 
     OverExp(OverloadSet *s);
+    int isLvalue();
     Expression *toLvalue(Scope *sc, Expression *e);
 };
 
@@ -803,6 +810,7 @@ struct DotVarExp : UnaExp
 
     DotVarExp(Loc loc, Expression *e, Declaration *var, int hasOverloads = 0);
     Expression *semantic(Scope *sc);
+    int isLvalue();
     Expression *toLvalue(Scope *sc, Expression *e);
     Expression *modifiableLvalue(Scope *sc, Expression *e);
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
@@ -865,6 +873,7 @@ struct CallExp : UnaExp
     void dump(int indent);
     elem *toElem(IRState *irs);
     void scanForNestedRef(Scope *sc);
+    int isLvalue();
     Expression *toLvalue(Scope *sc, Expression *e);
     int canThrow();
 
@@ -888,6 +897,7 @@ struct PtrExp : UnaExp
     PtrExp(Loc loc, Expression *e);
     PtrExp(Loc loc, Expression *e, Type *t);
     Expression *semantic(Scope *sc);
+    int isLvalue();
     Expression *toLvalue(Scope *sc, Expression *e);
     Expression *modifiableLvalue(Scope *sc, Expression *e);
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
@@ -996,6 +1006,7 @@ struct SliceExp : UnaExp
     Expression *syntaxCopy();
     Expression *semantic(Scope *sc);
     void checkEscape();
+    int isLvalue();
     Expression *toLvalue(Scope *sc, Expression *e);
     Expression *modifiableLvalue(Scope *sc, Expression *e);
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
@@ -1029,6 +1040,7 @@ struct ArrayExp : UnaExp
     ArrayExp(Loc loc, Expression *e1, Expressions *arguments);
     Expression *syntaxCopy();
     Expression *semantic(Scope *sc);
+    int isLvalue();
     Expression *toLvalue(Scope *sc, Expression *e);
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
     void scanForNestedRef(Scope *sc);
@@ -1054,6 +1066,7 @@ struct CommaExp : BinExp
     CommaExp(Loc loc, Expression *e1, Expression *e2);
     Expression *semantic(Scope *sc);
     void checkEscape();
+    int isLvalue();
     Expression *toLvalue(Scope *sc, Expression *e);
     Expression *modifiableLvalue(Scope *sc, Expression *e);
     int isBool(int result);
@@ -1070,6 +1083,7 @@ struct IndexExp : BinExp
 
     IndexExp(Loc loc, Expression *e1, Expression *e2);
     Expression *semantic(Scope *sc);
+    int isLvalue();
     Expression *toLvalue(Scope *sc, Expression *e);
     Expression *modifiableLvalue(Scope *sc, Expression *e);
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
@@ -1403,6 +1417,7 @@ struct CondExp : BinExp
     Expression *optimize(int result);
     Expression *interpret(InterState *istate);
     void checkEscape();
+    int isLvalue();
     Expression *toLvalue(Scope *sc, Expression *e);
     Expression *modifiableLvalue(Scope *sc, Expression *e);
     Expression *checkToBoolean();

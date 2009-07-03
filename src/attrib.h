@@ -155,10 +155,12 @@ struct CompileDeclaration : AttribDeclaration
     Expression *exp;
 
     ScopeDsymbol *sd;
+    int compiled;
 
     CompileDeclaration(Loc loc, Expression *exp);
     Dsymbol *syntaxCopy(Dsymbol *s);
     int addMember(Scope *sc, ScopeDsymbol *sd, int memnum);
+    void compileIt(Scope *sc);
     void semantic(Scope *sc);
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
 };

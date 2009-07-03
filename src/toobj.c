@@ -136,10 +136,12 @@ void Module::genmoduleinfo()
     else
 	dtdword(&dt, 0);
 
+#if V2
     FuncDeclaration *sgetmembers = findGetMembers();
     if (sgetmembers)
 	dtxoff(&dt, sgetmembers->toSymbol(), 0, TYnptr);
     else
+#endif
 	dtdword(&dt, 0);			// xgetMembers
 
     if (sictor)
@@ -204,14 +206,8 @@ void ClassDeclaration::toObjFile(int multiobj)
     assert(!scope);	// semantic() should have been run to completion
 
     scclass = SCglobal;
-    for (Dsymbol *parent = this->parent; parent; parent = parent->parent)
-    {
-	if (parent->isTemplateInstance())
-	{
-	    scclass = SCcomdat;
-	    break;
-	}
-    }
+    if (inTemplateInstance())
+	scclass = SCcomdat;
 
     // Put out the members
     for (i = 0; i < members->dim; i++)
@@ -382,7 +378,10 @@ void ClassDeclaration::toObjFile(int multiobj)
 	dtdword(&dt, 0);
 
     // flags
-    int flags = 16 | 4 | isCOMclass();
+    int flags = 4 | isCOMclass();
+#if V2
+    flags |= 16;
+#endif
     if (ctor)
 	flags |= 8;
     for (ClassDeclaration *cd = this; cd; cd = cd->baseClass)
@@ -419,11 +418,13 @@ void ClassDeclaration::toObjFile(int multiobj)
     else
 	dtdword(&dt, 0);
 
+#if V2
     FuncDeclaration *sgetmembers = findGetMembers();
     if (sgetmembers)
 	dtxoff(&dt, sgetmembers->toSymbol(), 0, TYnptr);
     else
 	dtdword(&dt, 0);	// module getMembers() function
+#endif
 
     //////////////////////////////////////////////
 
@@ -618,17 +619,37 @@ void ClassDeclaration::toObjFile(int multiobj)
 
 	//printf("\tvtbl[%d] = %p\n", i, fd);
 	if (fd && (fd->fbody || !isAbstract()))
-	{
+	{   Symbol *s = fd->toSymbol();
+
+#if V2
 	    if (isFuncHidden(fd))
-	    {
-		if (global.params.warnings)
-		{   fprintf(stdmsg, "warning - ");
-		    error("%s %s is hidden in %s\n", fd->toParent()->toChars(), fd->toChars(), toChars());
+	    {	/* fd is hidden from the view of this class.
+		 * If fd overlaps with any function in the vtbl[], then
+		 * issue 'hidden' error.
+		 */
+		for (int j = 1; j < vtbl.dim; j++)
+		{   if (j == i)
+			continue;
+		    FuncDeclaration *fd2 = ((Dsymbol *)vtbl.data[j])->isFuncDeclaration();
+		    if (!fd2->ident->equals(fd->ident))
+			continue;
+		    if (fd->leastAsSpecialized(fd2) || fd2->leastAsSpecialized(fd))
+		    {
+			if (global.params.warnings)
+			{   fprintf(stdmsg, "warning - ");
+			    TypeFunction *tf = (TypeFunction *)fd->type;
+			    if (tf->ty == Tfunction)
+				error("%s%s is hidden by %s\n", fd->toPrettyChars(), Argument::argsTypesToChars(tf->parameters, tf->varargs), toChars());
+			    else
+				error("%s is hidden by %s\n", fd->toPrettyChars(), toChars());
+			}
+			s = rtlsym[RTLSYM_DHIDDENFUNC];
+			break;
+		    }
 		}
-		dtxoff(&dt, rtlsym[RTLSYM_DHIDDENFUNC], 0, TYnptr);
 	    }
-	    else
-		dtxoff(&dt, fd->toSymbol(), 0, TYnptr);
+#endif
+	    dtxoff(&dt, s, 0, TYnptr);
 	}
 	else
 	    dtdword(&dt, 0);
@@ -732,14 +753,8 @@ void InterfaceDeclaration::toObjFile(int multiobj)
 	toDebug();
 
     scclass = SCglobal;
-    for (Dsymbol *parent = this->parent; parent; parent = parent->parent)
-    {
-	if (parent->isTemplateInstance())
-	{
-	    scclass = SCcomdat;
-	    break;
-	}
-    }
+    if (inTemplateInstance())
+	scclass = SCcomdat;
 
     // Put out the members
     for (i = 0; i < members->dim; i++)
@@ -775,7 +790,9 @@ void InterfaceDeclaration::toObjFile(int multiobj)
 	    void *deallocator;
 	    OffsetTypeInfo[] offTi;
 	    void *defaultConstructor;
+#if V2
 	    const(MemberInfo[]) function(string) xgetMembers;	// module getMembers() function
+#endif
        }
      */
     dt_t *dt = NULL;
@@ -835,8 +852,10 @@ void InterfaceDeclaration::toObjFile(int multiobj)
     // defaultConstructor
     dtdword(&dt, 0);
 
+#if V2
     // xgetMembers
     dtdword(&dt, 0);
+#endif
 
     //////////////////////////////////////////////
 
@@ -951,11 +970,13 @@ void VarDeclaration::toObjFile(int multiobj)
 	return;
     }
 
+#if V2
     // Do not store variables we cannot take the address of
     if (!canTakeAddressOf())
     {
 	return;
     }
+#endif
 
     if (isDataseg() && !(storage_class & STCextern))
     {
@@ -963,7 +984,7 @@ void VarDeclaration::toObjFile(int multiobj)
 	sz = type->size();
 
 	parent = this->toParent();
-#if 0	/* private statics should still get a global symbol, in case
+#if V1	/* private statics should still get a global symbol, in case
 	 * another module inlines a function that references it.
 	 */
 	if (/*protection == PROTprivate ||*/
@@ -987,7 +1008,7 @@ void VarDeclaration::toObjFile(int multiobj)
                  */
                 if (parent->isTemplateInstance() && !parent->isTemplateMixin())
                 {
-#if 0
+#if V1
                     /* These symbol constants have already been copied,
                      * so no reason to output them.
                      * Note that currently there is no way to take
@@ -1085,14 +1106,8 @@ void TypedefDeclaration::toObjFile(int multiobj)
     else
     {
 	enum_SC scclass = SCglobal;
-	for (Dsymbol *parent = this->parent; parent; parent = parent->parent)
-	{
-	    if (parent->isTemplateInstance())
-	    {
-		scclass = SCcomdat;
-		break;
-	    }
-	}
+	if (inTemplateInstance())
+	    scclass = SCcomdat;
 
 	// Generate static initializer
 	toInitializer();
@@ -1112,8 +1127,10 @@ void EnumDeclaration::toObjFile(int multiobj)
 {
     //printf("EnumDeclaration::toObjFile('%s')\n", toChars());
 
+#if V2
     if (isAnonymous())
 	return;
+#endif
 
     if (global.params.symdebug)
 	toDebug();
@@ -1126,14 +1143,8 @@ void EnumDeclaration::toObjFile(int multiobj)
     else
     {
 	enum_SC scclass = SCglobal;
-	for (Dsymbol *parent = this->parent; parent; parent = parent->parent)
-	{
-	    if (parent->isTemplateInstance())
-	    {
-		scclass = SCcomdat;
-		break;
-	    }
-	}
+	if (inTemplateInstance())
+	    scclass = SCcomdat;
 
 	// Generate static initializer
 	toInitializer();
@@ -1142,9 +1153,16 @@ void EnumDeclaration::toObjFile(int multiobj)
 #if ELFOBJ // Burton
 	sinit->Sseg = CDATA;
 #endif /* ELFOBJ */
+#if V1
+	dtnbytes(&sinit->Sdt, tc->size(0), (char *)&tc->sym->defaultval);
+	//sinit->Sdt = tc->sym->init->toDt();
+#endif
+#if V2
 	tc->sym->defaultval->toDt(&sinit->Sdt);
+#endif
 	outdata(sinit);
     }
 }
+
 
 

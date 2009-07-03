@@ -50,16 +50,13 @@ Array *AttribDeclaration::include(Scope *sc, ScopeDsymbol *sd)
 
 int AttribDeclaration::addMember(Scope *sc, ScopeDsymbol *sd, int memnum)
 {
-    unsigned i;
     int m = 0;
     Array *d = include(sc, sd);
 
     if (d)
     {
-	for (i = 0; i < d->dim; i++)
-	{   Dsymbol *s;
-
-	    s = (Dsymbol *)d->data[i];
+	for (unsigned i = 0; i < d->dim; i++)
+	{   Dsymbol *s = (Dsymbol *)d->data[i];
 	    m |= s->addMember(sc, sd, m | memnum);
 	}
     }
@@ -70,7 +67,7 @@ void AttribDeclaration::semantic(Scope *sc)
 {
     Array *d = include(sc, NULL);
 
-    //printf("\tAttribDeclaration::semantic '%s'\n",toChars());
+    //printf("\tAttribDeclaration::semantic '%s', d = %p\n",toChars(), d);
     if (d)
     {
 	for (unsigned i = 0; i < d->dim; i++)
@@ -84,15 +81,12 @@ void AttribDeclaration::semantic(Scope *sc)
 
 void AttribDeclaration::semantic2(Scope *sc)
 {
-    unsigned i;
     Array *d = include(sc, NULL);
 
     if (d)
     {
-	for (i = 0; i < d->dim; i++)
-	{   Dsymbol *s;
-
-	    s = (Dsymbol *)d->data[i];
+	for (unsigned i = 0; i < d->dim; i++)
+	{   Dsymbol *s = (Dsymbol *)d->data[i];
 	    s->semantic2(sc);
 	}
     }
@@ -100,15 +94,12 @@ void AttribDeclaration::semantic2(Scope *sc)
 
 void AttribDeclaration::semantic3(Scope *sc)
 {
-    unsigned i;
     Array *d = include(sc, NULL);
 
     if (d)
     {
-	for (i = 0; i < d->dim; i++)
-	{   Dsymbol *s;
-
-	    s = (Dsymbol *)d->data[i];
+	for (unsigned i = 0; i < d->dim; i++)
+	{   Dsymbol *s = (Dsymbol *)d->data[i];
 	    s->semantic3(sc);
 	}
     }
@@ -116,15 +107,12 @@ void AttribDeclaration::semantic3(Scope *sc)
 
 void AttribDeclaration::inlineScan()
 {
-    unsigned i;
     Array *d = include(NULL, NULL);
 
     if (d)
     {
-	for (i = 0; i < d->dim; i++)
-	{   Dsymbol *s;
-
-	    s = (Dsymbol *)d->data[i];
+	for (unsigned i = 0; i < d->dim; i++)
+	{   Dsymbol *s = (Dsymbol *)d->data[i];
 	    //printf("AttribDeclaration::inlineScan %s\n", s->toChars());
 	    s->inlineScan();
 	}
@@ -135,15 +123,12 @@ void AttribDeclaration::addComment(unsigned char *comment)
 {
     if (comment)
     {
-	unsigned i;
 	Array *d = include(NULL, NULL);
 
 	if (d)
 	{
-	    for (i = 0; i < d->dim; i++)
-	    {   Dsymbol *s;
-
-		s = (Dsymbol *)d->data[i];
+	    for (unsigned i = 0; i < d->dim; i++)
+	    {   Dsymbol *s = (Dsymbol *)d->data[i];
 		//printf("AttribDeclaration::addComment %s\n", s->toChars());
 		s->addComment(comment);
 	    }
@@ -161,15 +146,12 @@ void AttribDeclaration::emitComment(Scope *sc)
 //    if (sc->docbuf)
 //	return;
 
-    unsigned i;
     Array *d = include(NULL, NULL);
 
     if (d)
     {
-	for (i = 0; i < d->dim; i++)
-	{   Dsymbol *s;
-
-	    s = (Dsymbol *)d->data[i];
+	for (unsigned i = 0; i < d->dim; i++)
+	{   Dsymbol *s = (Dsymbol *)d->data[i];
 	    //printf("AttribDeclaration::emitComment %s\n", s->toChars());
 	    s->emitComment(sc);
 	}
@@ -178,15 +160,12 @@ void AttribDeclaration::emitComment(Scope *sc)
 
 void AttribDeclaration::toObjFile(int multiobj)
 {
-    unsigned i;
     Array *d = include(NULL, NULL);
 
     if (d)
     {
-	for (i = 0; i < d->dim; i++)
-	{   Dsymbol *s;
-
-	    s = (Dsymbol *)d->data[i];
+	for (unsigned i = 0; i < d->dim; i++)
+	{   Dsymbol *s = (Dsymbol *)d->data[i];
 	    s->toObjFile(multiobj);
 	}
     }
@@ -194,17 +173,14 @@ void AttribDeclaration::toObjFile(int multiobj)
 
 int AttribDeclaration::cvMember(unsigned char *p)
 {
-    unsigned i;
     int nwritten = 0;
     int n;
     Array *d = include(NULL, NULL);
 
     if (d)
     {
-	for (i = 0; i < d->dim; i++)
-	{   Dsymbol *s;
-
-	    s = (Dsymbol *)d->data[i];
+	for (unsigned i = 0; i < d->dim; i++)
+	{   Dsymbol *s = (Dsymbol *)d->data[i];
 	    n = s->cvMember(p);
 	    if (p)
 		p += n;
@@ -244,15 +220,12 @@ int AttribDeclaration::oneMember(Dsymbol **ps)
 
 void AttribDeclaration::checkCtorConstInit()
 {
-    unsigned i;
     Array *d = include(NULL, NULL);
 
     if (d)
     {
-	for (i = 0; i < d->dim; i++)
-	{   Dsymbol *s;
-
-	    s = (Dsymbol *)d->data[i];
+	for (unsigned i = 0; i < d->dim; i++)
+	{   Dsymbol *s = (Dsymbol *)d->data[i];
 	    s->checkCtorConstInit();
 	}
     }
@@ -262,15 +235,13 @@ void AttribDeclaration::checkCtorConstInit()
  */
 
 void AttribDeclaration::addLocalClass(ClassDeclarations *aclasses)
-{   unsigned i;
+{
     Array *d = include(NULL, NULL);
 
     if (d)
     {
-	for (i = 0; i < d->dim; i++)
-	{   Dsymbol *s;
-
-	    s = (Dsymbol *)d->data[i];
+	for (unsigned i = 0; i < d->dim; i++)
+	{   Dsymbol *s = (Dsymbol *)d->data[i];
 	    s->addLocalClass(aclasses);
 	}
     }
@@ -1108,6 +1079,7 @@ Dsymbol *StaticIfDeclaration::syntaxCopy(Dsymbol *s)
 
 int StaticIfDeclaration::addMember(Scope *sc, ScopeDsymbol *sd, int memnum)
 {
+    //printf("StaticIfDeclaration::addMember() '%s'\n",toChars());
     /* This is deferred until semantic(), so that
      * expressions in the condition can refer to declarations
      * in the same scope, such as:
@@ -1134,7 +1106,7 @@ void StaticIfDeclaration::semantic(Scope *sc)
 {
     Array *d = include(sc, sd);
 
-    //printf("\tStaticIfDeclaration::semantic '%s'\n",toChars());
+    //printf("\tStaticIfDeclaration::semantic '%s', d = %p\n",toChars(), d);
     if (d)
     {
 	if (!addisdone)
@@ -1164,6 +1136,7 @@ CompileDeclaration::CompileDeclaration(Loc loc, Expression *exp)
 {
     this->exp = exp;
     this->sd = NULL;
+    this->compiled = 0;
 }
 
 Dsymbol *CompileDeclaration::syntaxCopy(Dsymbol *s)
@@ -1175,32 +1148,50 @@ Dsymbol *CompileDeclaration::syntaxCopy(Dsymbol *s)
 
 int CompileDeclaration::addMember(Scope *sc, ScopeDsymbol *sd, int memnum)
 {
+    //printf("CompileDeclaration::addMember(sc = %p)\n", sc);
     this->sd = sd;
+    if (memnum == 0)
+    {	/* No members yet, so parse the mixin now
+	 */
+	compileIt(sc);
+	memnum |= AttribDeclaration::addMember(sc, sd, memnum);
+	compiled = 1;
+    }
     return memnum;
 }
 
-void CompileDeclaration::semantic(Scope *sc)
+void CompileDeclaration::compileIt(Scope *sc)
 {
-    //printf("CompileDeclaration::semantic()\n");
+    //printf("CompileDeclaration::compileIt()\n");
     exp = exp->semantic(sc);
     exp = resolveProperties(sc, exp);
     exp = exp->optimize(WANTvalue | WANTinterpret);
     if (exp->op != TOKstring)
     {	error("argument to mixin must be a string, not (%s)", exp->toChars());
-	return;
     }
-    StringExp *se = (StringExp *)exp;
-    se = se->toUTF8(sc);
-    Parser p(sc->module, (unsigned char *)se->string, se->len, 0);
-    p.loc = loc;
-    p.nextToken();
-    decl = p.parseDeclDefs(0);
-    if (p.token.value != TOKeof)
+    else
     {
-	error("incomplete mixin declaration (%s)", se->toChars());
+	StringExp *se = (StringExp *)exp;
+	se = se->toUTF8(sc);
+	Parser p(sc->module, (unsigned char *)se->string, se->len, 0);
+	p.loc = loc;
+	p.nextToken();
+	decl = p.parseDeclDefs(0);
+	if (p.token.value != TOKeof)
+	    error("incomplete mixin declaration (%s)", se->toChars());
     }
+}
 
-    AttribDeclaration::addMember(sc, sd, 0);
+void CompileDeclaration::semantic(Scope *sc)
+{
+    //printf("CompileDeclaration::semantic()\n");
+
+    if (!compiled)
+    {
+	compileIt(sc);
+	AttribDeclaration::addMember(sc, sd, 0);
+	compiled = 1;
+    }
     AttribDeclaration::semantic(sc);
 }
 

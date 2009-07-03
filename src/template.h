@@ -1,6 +1,6 @@
 
 // Compiler implementation of the D programming language
-// Copyright (c) 1999-2006 by Digital Mars
+// Copyright (c) 1999-2008 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // http://www.digitalmars.com
@@ -52,6 +52,8 @@ struct TemplateDeclaration : ScopeDsymbol
 
     TemplateParameters *origParameters;	// originals for Ddoc
 
+    Expression *constraint;
+
     Array instances;			// array of TemplateInstance's
 
     TemplateDeclaration *overnext;	// next overloaded TemplateDeclaration
@@ -60,7 +62,8 @@ struct TemplateDeclaration : ScopeDsymbol
     Scope *scope;
     Dsymbol *onemember;		// if !=NULL then one member of this template
 
-    TemplateDeclaration(Loc loc, Identifier *id, TemplateParameters *parameters, Array *decldefs);
+    TemplateDeclaration(Loc loc, Identifier *id, TemplateParameters *parameters,
+	Expression *constraint, Array *decldefs);
     Dsymbol *syntaxCopy(Dsymbol *);
     void semantic(Scope *sc);
     int overloadInsert(Dsymbol *s);
@@ -202,17 +205,16 @@ struct TemplateValueParameter : TemplateParameter
 struct TemplateAliasParameter : TemplateParameter
 {
     /* Syntax:
-     *	ident : specAlias = defaultAlias
+     *	specType ident : specAlias = defaultAlias
      */
 
-    Type *specAliasT;
-    Dsymbol *specAlias;
-
-    Type *defaultAlias;
+    Type *specType;
+    Object *specAlias;
+    Object *defaultAlias;
 
     static Dsymbol *sdummy;
 
-    TemplateAliasParameter(Loc loc, Identifier *ident, Type *specAliasT, Type *defaultAlias);
+    TemplateAliasParameter(Loc loc, Identifier *ident, Type *specType, Object *specAlias, Object *defaultAlias);
 
     TemplateAliasParameter *isTemplateAliasParameter();
     TemplateParameter *syntaxCopy();
@@ -271,6 +273,7 @@ struct TemplateInstance : ScopeDsymbol
 					// sole member
     WithScopeSymbol *withsym;		// if a member of a with statement
     int semanticdone;	// has semantic() been done?
+    int semantictiargsdone;	// has semanticTiargs() been done?
     int nest;		// for recursion detection
     int havetempdecl;	// 1 if used second constructor
     Dsymbol *isnested;	// if referencing local symbols, this is the context

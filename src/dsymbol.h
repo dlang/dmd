@@ -55,7 +55,6 @@ struct Type;
 struct TypeTuple;
 struct WithStatement;
 struct LabelDsymbol;
-struct ScopeDsymbol;
 struct TemplateDeclaration;
 struct TemplateInstance;
 struct TemplateMixin;
@@ -115,6 +114,7 @@ struct Dsymbol : Object
     Dsymbol *pastMixin();
     Dsymbol *toParent();
     Dsymbol *toParent2();
+    TemplateInstance *inTemplateInstance();
 
     int dyncast() { return DYNCAST_DSYMBOL; }	// kludge for template.isSymbol()
 

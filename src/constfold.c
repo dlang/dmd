@@ -1078,10 +1078,21 @@ Expression *Cast(Type *type, Type *to, Expression *e1)
 	to->implicitConvTo(e1->type) >= MATCHconst)
 	return expType(to, e1);
 
+    Type *tb = to->toBasetype();
+    Type *typeb = type->toBasetype();
+
+    if (e1->op == TOKstring)
+    {
+	if (tb->ty == Tarray && typeb->ty == Tarray &&
+	    tb->nextOf()->size() == typeb->nextOf()->size())
+	{
+	    return expType(to, e1);
+	}
+    }
+
     if (e1->isConst() != 1)
 	return EXP_CANT_INTERPRET;
 
-    Type *tb = to->toBasetype();
     if (tb->ty == Tbool)
 	e = new IntegerExp(loc, e1->toInteger() != 0, type);
     else if (type->isintegral())
@@ -1090,7 +1101,7 @@ Expression *Cast(Type *type, Type *to, Expression *e1)
 	{   integer_t result;
 	    real_t r = e1->toReal();
 
-	    switch (type->toBasetype()->ty)
+	    switch (typeb->ty)
 	    {
 		case Tint8:	result = (d_int8)r;	break;
 		case Tchar:
@@ -1467,13 +1478,19 @@ Expression *Cat(Type *type, Expression *e1, Expression *e2)
 	else
 	    e->type = type;
     }
-    else if (e1->op == TOKarrayliteral &&
+    else if ((e1->op == TOKarrayliteral || e1->op == TOKnull) &&
 	e1->type->toBasetype()->nextOf()->equals(e2->type))
     {
-	ArrayLiteralExp *es1 = (ArrayLiteralExp *)e1;
-
-	es1 = new ArrayLiteralExp(es1->loc, (Expressions *)es1->elements->copy());
-	es1->elements->push(e2);
+	ArrayLiteralExp *es1;
+	if (e1->op == TOKarrayliteral)
+	{   es1 = (ArrayLiteralExp *)e1;
+	    es1 = new ArrayLiteralExp(es1->loc, (Expressions *)es1->elements->copy());
+	    es1->elements->push(e2);
+	}
+	else
+	{
+	    es1 = new ArrayLiteralExp(e1->loc, e2);
+	}
 	e = es1;
 
 	if (type->toBasetype()->ty == Tsarray)
