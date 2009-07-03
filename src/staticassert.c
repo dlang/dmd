@@ -53,6 +53,12 @@ void StaticAssert::semantic2(Scope *sc)
 	error("(%s) is not evaluatable at compile time", exp->toChars());
 }
 
+int StaticAssert::oneMember(Dsymbol **ps)
+{
+    *ps = NULL;
+    return TRUE;
+}
+
 void StaticAssert::inlineScan()
 {
 }

@@ -1,5 +1,5 @@
 
-// Copyright (c) 1999-2003 by Digital Mars
+// Copyright (c) 1999-2006 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // www.digitalmars.com
@@ -32,6 +32,7 @@ struct StaticAssert : Dsymbol
     void semantic(Scope *sc);
     void semantic2(Scope *sc);
     void inlineScan();
+    int oneMember(Dsymbol **ps);
     void toObjFile();
     char *kind();
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);

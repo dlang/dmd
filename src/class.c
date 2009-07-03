@@ -183,6 +183,9 @@ void ClassDeclaration::semantic(Scope *sc)
 	scx = scope;		// save so we don't make redundant copies
 	scope = NULL;
     }
+#ifdef IN_GCC
+    methods.setDim(0);
+#endif
 
     // See if there's a base class as first in baseclasses[]
     if (baseclasses.dim)

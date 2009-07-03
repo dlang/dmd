@@ -1,5 +1,5 @@
 
-// Copyright (c) 1999-2005 by Digital Mars
+// Copyright (c) 1999-2006 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // www.digitalmars.com
@@ -267,22 +267,14 @@ int AggregateDeclaration::isFriendOf(AggregateDeclaration *cd)
 	return 1;
 
     // Friends if both are in the same module
-    if (cd && toParent() == cd->toParent())
+    //if (toParent() == cd->toParent())
+    if (cd && getModule() == cd->getModule())
     {
 #if LOG
 	printf("\tin same module\n");
 #endif
 	return 1;
     }
-
-    if (cd && cd->toParent() == this)
-    {
-#if LOG
-	printf("\tcd is nested in this\n");
-#endif
-	return 1;
-    }
-
 
 #if LOG
     printf("\tnot friend\n");
@@ -363,6 +355,13 @@ int AggregateDeclaration::hasPrivateAccess(Dsymbol *smember)
 	{
 #if LOG
 	    printf("\tyes 2\n");
+#endif
+	    return 1;
+	}
+	if (!cd && getModule() == smember->getModule())
+	{
+#if LOG
+	    printf("\tyes 3\n");
 #endif
 	    return 1;
 	}

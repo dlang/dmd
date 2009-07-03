@@ -60,7 +60,7 @@ enum TOK
 	TOKdottype,	TOKslice,
 	TOKarraylength,	TOKversion,
 	TOKmodule,	TOKdollar,
-	TOKtemplate,	TOKinstance,
+	TOKtemplate,
 	TOKdeclaration,	TOKtypeof,
 	TOKpragma,	TOKdsymbol,
 	TOKtypeid,	TOKuadd,

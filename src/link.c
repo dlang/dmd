@@ -1,6 +1,6 @@
 
 
-// Copyright (c) 1999-2002 by Digital Mars
+// Copyright (c) 1999-2006 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // www.digitalmars.com
@@ -66,8 +66,19 @@ int runLINK()
     cmdbuf.writeByte(',');
     if (global.params.exefile)
 	cmdbuf.writestring(global.params.exefile);
+    else
+    {	// Generate exe file name from first obj name
+	char *n = (char *)global.params.objfiles->data[0];
+	char *ex;
+
+	n = FileName::name(n);
+	FileName *fn = FileName::forceExt(n, "exe");
+	global.params.exefile = fn->toChars();
+    }
 
     cmdbuf.writeByte(',');
+    if (global.params.run)
+	cmdbuf.writestring("nul");
 //    if (mapfile)
 //	cmdbuf.writestring(output);
     cmdbuf.writeByte(',');
@@ -165,6 +176,7 @@ int runLINK()
 	else
 	    ex = (char *)"a.out";	// no extension, so give up
 	argv.push(ex);
+	global.params.exefile = ex;
     }
 
     argv.insert(argv.dim, global.params.libfiles);
@@ -212,6 +224,18 @@ int runLINK()
 #endif
 }
 
+/**********************************
+ * Delete generated EXE file.
+ */
+
+void deleteExeFile()
+{
+    if (global.params.exefile)
+    {
+	//printf("deleteExeFile() %s\n", global.params.exefile);
+	remove(global.params.exefile);
+    }
+}
 
 /******************************
  * Execute a rule.  Return the status.
@@ -227,9 +251,9 @@ int executecmd(char *cmd, char *args, int useenv)
     char *buff;
     size_t len;
 
-//    if (global.params.verbose)
+    if (!global.params.quiet || global.params.verbose)
     {
-	printf("%s %s\n",cmd,args);
+	printf("%s %s\n", cmd, args);
 	fflush(stdout);
     }
 
@@ -259,8 +283,8 @@ int executecmd(char *cmd, char *args, int useenv)
     if (status == -1)
 	status = spawnlp(0,cmd,cmd,args,NULL);
 #endif
-    if (global.params.verbose)
-	printf("\n");
+//    if (global.params.verbose)
+//	printf("\n");
     if (status)
     {
 	if (status == -1)
@@ -318,3 +342,59 @@ int executearg0(char *cmd, char *args)
 }
 #endif
 
+/***************************************
+ * Run the compiled program.
+ * Return exit status.
+ */
+
+int runProgram()
+{
+    //printf("runProgram()\n");
+    if (global.params.verbose)
+    {
+	printf("%s", global.params.exefile);
+	for (size_t i = 0; i < global.params.runargs_length; i++)
+	    printf(" %s", (char *)global.params.runargs[i]);
+	printf("\n");
+    }
+
+    // Build argv[]
+    Array argv;
+
+    argv.push((void *)global.params.exefile);
+    for (size_t i = 0; i < global.params.runargs_length; i++)
+	argv.push((void *)global.params.runargs[i]);
+    argv.push(NULL);
+
+#if _WIN32
+    char *ex = FileName::name(global.params.exefile);
+    if (ex == global.params.exefile)
+	ex = FileName::combine(".", ex);
+    else
+	ex = global.params.exefile;
+    return spawnv(0,ex,(char **)argv.data);
+#elif linux
+    pid_t childpid;
+    int status;
+
+    childpid = fork();
+    if (childpid == 0)
+    {
+	char *fn = (char *)argv.data[0];
+	if (!FileName::absolute(fn))
+	{   // Make it "./fn"
+	    fn = FileName::combine(".", fn);
+	}
+	execv(fn, (char **)argv.data);
+	perror(fn);		// failed to execute
+	return -1;
+    }
+
+    waitpid(childpid, &status, 0);
+
+    status = WEXITSTATUS(status);
+    return status;
+#else
+    assert(0);
+#endif
+}

@@ -273,6 +273,10 @@ void preFunctionArguments(Loc loc, Scope *sc, Array *arguments)
 
 	    if (!arg->type)
 	    {
+#ifdef DEBUG
+		if (!global.gag)
+		    printf("1: \n");
+#endif
 		arg->error("%s is not an expression", arg->toChars());
 		arg = new IntegerExp(arg->loc, 0, Type::tint32);
 	    }
@@ -636,7 +640,6 @@ integer_t Expression::toInteger()
 {
     //printf("Expression %s\n", Token::toChars(op));
     error("Integer constant expression expected instead of %s", toChars());
-*(char*)0=0;
     return 0;
 }
 
@@ -730,6 +733,19 @@ void Expression::checkArithmetic()
 void Expression::checkDeprecated(Scope *sc, Dsymbol *s)
 {
     s->checkDeprecated(loc, sc);
+}
+
+/********************************
+ * Check for expressions that have no use.
+ * Input:
+ *	flag	!=0 means we want the result
+ */
+
+void Expression::checkSideEffect(int flag)
+{
+    if (!flag)
+	error("%s has no effect in expression (%s)",
+		Token::toChars(op), toChars());
 }
 
 /*****************************
@@ -2339,6 +2355,10 @@ Expression *NewExp::semantic(Scope *sc)
     return this;
 }
 
+void NewExp::checkSideEffect(int flag)
+{
+}
+
 void NewExp::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 {   int i;
 
@@ -2391,6 +2411,10 @@ Expression *NewAnonClassExp::semantic(Scope *sc)
 
     Expression *c = new CommaExp(loc, d, n);
     return c->semantic(sc);
+}
+
+void NewAnonClassExp::checkSideEffect(int flag)
+{
 }
 
 void NewAnonClassExp::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
@@ -2455,9 +2479,9 @@ void SymOffExp::checkEscape()
 void SymOffExp::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 {
     if (offset)
-	buf->printf("(&%s+%u)", var->toChars(), offset);
+	buf->printf("(& %s+%u)", var->toChars(), offset);
     else
-	buf->printf("&%s", var->toChars());
+	buf->printf("& %s", var->toChars());
 }
 
 /******************************** VarExp **************************/
@@ -2727,6 +2751,10 @@ Expression *DeclarationExp::semantic(Scope *sc)
     return this;
 }
 
+void DeclarationExp::checkSideEffect(int flag)
+{
+}
+
 void DeclarationExp::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 {
     declaration->toCBuffer(buf, hgs);
@@ -2784,6 +2812,10 @@ Expression *HaltExp::semantic(Scope *sc)
 #endif
     type = Type::tvoid;
     return this;
+}
+
+void HaltExp::checkSideEffect(int flag)
+{
 }
 
 void HaltExp::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
@@ -3116,6 +3148,30 @@ Expression *BinExp::commonSemanticAssignIntegral(Scope *sc)
     return this;
 }
 
+void BinExp::checkSideEffect(int flag)
+{
+    if (op == TOKplusplus ||
+	   op == TOKminusminus ||
+	   op == TOKassign ||
+	   op == TOKaddass ||
+	   op == TOKminass ||
+	   op == TOKcatass ||
+	   op == TOKmulass ||
+	   op == TOKdivass ||
+	   op == TOKmodass ||
+	   op == TOKshlass ||
+	   op == TOKshrass ||
+	   op == TOKushrass ||
+	   op == TOKandass ||
+	   op == TOKorass ||
+	   op == TOKxorass ||
+	   op == TOKoror ||
+	   op == TOKandand ||
+	   op == TOKin ||
+	   op == TOKremove)
+	return;
+    Expression::checkSideEffect(flag);
+}
 
 void BinExp::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 {
@@ -3162,6 +3218,10 @@ Expression *AssertExp::semantic(Scope *sc)
     }
     type = Type::tvoid;
     return this;
+}
+
+void AssertExp::checkSideEffect(int flag)
+{
 }
 
 void AssertExp::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
@@ -4058,6 +4118,10 @@ Lcheckargs:
     return this;
 }
 
+void CallExp::checkSideEffect(int flag)
+{
+}
+
 void CallExp::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 {   int i;
 
@@ -4399,6 +4463,10 @@ Expression *DeleteExp::semantic(Scope *sc)
     return this;
 }
 
+void DeleteExp::checkSideEffect(int flag)
+{
+}
+
 Expression *DeleteExp::checkToBoolean()
 {
     error("delete does not give a boolean result");
@@ -4443,6 +4511,12 @@ Expression *CastExp::semantic(Scope *sc)
 	return e->implicitCastTo(to);
     }
     return e1->castTo(to);
+}
+
+void CastExp::checkSideEffect(int flag)
+{
+    if (!to->equals(Type::tvoid))
+	Expression::checkSideEffect(flag);
 }
 
 void CastExp::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
@@ -4765,6 +4839,12 @@ int CommaExp::isBool(int result)
     return e2->isBool(result);
 }
 
+void CommaExp::checkSideEffect(int flag)
+{
+    /* Don't check e1 until we cast(void) the a,b code generation */
+    e2->checkSideEffect(flag);
+}
+
 /************************** IndexExp **********************************/
 
 // e1 [ e2 ]
@@ -4886,6 +4966,7 @@ void IndexExp::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
     expToCBuffer(buf, hgs, e2, PREC_assign);
     buf->writeByte(']');
 }
+
 
 /************************* PostIncExp ***********************************/
 
@@ -6474,6 +6555,13 @@ Expression *CondExp::checkToBoolean()
     e1 = e1->checkToBoolean();
     e2 = e2->checkToBoolean();
     return this;
+}
+
+void CondExp::checkSideEffect(int flag)
+{
+    econd->checkSideEffect(TRUE);
+    e1->checkSideEffect(flag);
+    e2->checkSideEffect(flag);
 }
 
 void CondExp::toCBuffer(OutBuffer *buf, HdrGenState *hgs)

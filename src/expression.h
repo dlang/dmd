@@ -102,6 +102,7 @@ struct Expression : Object
     virtual int isConst();
     virtual int isBool(int result);
     virtual int isBit();
+    virtual void checkSideEffect(int flag);
 
     virtual int inlineCost(InlineCostState *ics);
     virtual Expression *doInline(InlineDoState *ids);
@@ -322,6 +323,7 @@ struct NewExp : Expression
     Expression *syntaxCopy();
     Expression *semantic(Scope *sc);
     elem *toElem(IRState *irs);
+    void checkSideEffect(int flag);
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
 
     //int inlineCost(InlineCostState *ics);
@@ -338,6 +340,7 @@ struct NewAnonClassExp : Expression
     NewAnonClassExp(Loc loc, Array *newargs, ClassDeclaration *cd, Array *arguments);
     Expression *syntaxCopy();
     Expression *semantic(Scope *sc);
+    void checkSideEffect(int flag);
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
 };
 
@@ -412,6 +415,7 @@ struct DeclarationExp : Expression
     DeclarationExp(Loc loc, Dsymbol *declaration);
     Expression *syntaxCopy();
     Expression *semantic(Scope *sc);
+    void checkSideEffect(int flag);
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
     elem *toElem(IRState *irs);
 
@@ -435,6 +439,7 @@ struct HaltExp : Expression
     HaltExp(Loc loc);
     Expression *semantic(Scope *sc);
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
+    void checkSideEffect(int flag);
 
     elem *toElem(IRState *irs);
 };
@@ -487,6 +492,7 @@ struct BinExp : Expression
     Expression *semanticp(Scope *sc);
     Expression *commonSemanticAssign(Scope *sc);
     Expression *commonSemanticAssignIntegral(Scope *sc);
+    void checkSideEffect(int flag);
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
     Expression *scaleFactor();
     Expression *typeCombine();
@@ -504,12 +510,19 @@ struct BinExp : Expression
     elem *toElemBin(IRState *irs, int op);
 };
 
+struct BinAssignExp : BinExp
+{
+    BinAssignExp(Loc loc, enum TOK op, int size, Expression *e1, Expression *e2);
+    void checkSideEffect(int flag);
+};
+
 /****************************************************************/
 
 struct AssertExp : UnaExp
 {
     AssertExp(Loc loc, Expression *e);
     Expression *semantic(Scope *sc);
+    void checkSideEffect(int flag);
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
     elem *toElem(IRState *irs);
 };
@@ -584,6 +597,7 @@ struct CallExp : UnaExp
 
     Expression *syntaxCopy();
     Expression *semantic(Scope *sc);
+    void checkSideEffect(int flag);
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
     elem *toElem(IRState *irs);
 
@@ -669,6 +683,7 @@ struct DeleteExp : UnaExp
     DeleteExp(Loc loc, Expression *e);
     Expression *semantic(Scope *sc);
     Expression *checkToBoolean();
+    void checkSideEffect(int flag);
     elem *toElem(IRState *irs);
 };
 
@@ -681,6 +696,7 @@ struct CastExp : UnaExp
     Expression *syntaxCopy();
     Expression *semantic(Scope *sc);
     Expression *optimize(int result);
+    void checkSideEffect(int flag);
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
     Expression *constFold();
     elem *toElem(IRState *irs);
@@ -757,6 +773,7 @@ struct CommaExp : BinExp
     Expression *toLvalue(Expression *e);
     Expression *modifiableLvalue(Scope *sc, Expression *e);
     int isBool(int result);
+    void checkSideEffect(int flag);
     Expression *optimize(int result);
     elem *toElem(IRState *irs);
 };
@@ -1190,6 +1207,7 @@ struct CondExp : BinExp
     Expression *toLvalue(Expression *e);
     Expression *modifiableLvalue(Scope *sc, Expression *e);
     Expression *checkToBoolean();
+    void checkSideEffect(int flag);
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
     int implicitConvTo(Type *t);
     Expression *castTo(Type *t);

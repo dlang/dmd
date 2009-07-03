@@ -1,5 +1,5 @@
 
-// Copyright (c) 1999-2005 by Digital Mars
+// Copyright (c) 1999-2006 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // www.digitalmars.com
@@ -11,7 +11,7 @@
 #include <stdlib.h>
 #include <assert.h>
 
-#if _WIN32
+#if _WIN32 || IN_GCC
 #include "mem.h"
 #elif linux
 #include "../root/mem.h"
@@ -210,16 +210,11 @@ char *AttribDeclaration::kind()
     return "attribute";
 }
 
-Dsymbol *AttribDeclaration::oneMember()
+int AttribDeclaration::oneMember(Dsymbol **ps)
 {
-    Dsymbol *s;
     Array *d = include(NULL, NULL);
 
-    if (d && d->dim == 1)
-    {	s = (Dsymbol *)d->data[0];
-	return s->oneMember();
-    }
-    return NULL;
+    return Dsymbol::oneMembers(d, ps);
 }
 
 void AttribDeclaration::checkCtorConstInit()
@@ -425,8 +420,9 @@ void LinkDeclaration::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 	    assert(0);
 	    break;
     }
-    buf->writestring("extern ");
+    buf->writestring("extern (");
     buf->writestring(p);
+    buf->writestring(") ");
     AttribDeclaration::toCBuffer(buf, hgs);
 }
 
@@ -528,7 +524,7 @@ void AlignDeclaration::semantic(Scope *sc)
 
 void AlignDeclaration::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 {
-    buf->printf("align %d", salign);
+    buf->printf("align (%d)", salign);
     AttribDeclaration::toCBuffer(buf, hgs);
 }
 
@@ -693,12 +689,12 @@ void PragmaDeclaration::semantic(Scope *sc)
 		if (e->op == TOKstring)
 		{
 		    StringExp *se = (StringExp *)e;
-		    printf("%.*s", se->len, se->string);
+		    fprintf(stdmsg, "%.*s", se->len, se->string);
 		}
 		else
 		    error("string expected for message, not '%s'", e->toChars());
 	    }
-	    printf("\n");
+	    fprintf(stdmsg, "\n");
 	}
     }
     else if (ident == Id::lib)
@@ -715,6 +711,41 @@ void PragmaDeclaration::semantic(Scope *sc)
 		error("string expected for library name, not '%s'", e->toChars());
 	}
     }
+#if IN_GCC
+    else if (ident == Id::GNU_asm)
+    {
+	if (! args || args->dim != 2)
+	    error("identifier and string expected for asm name");
+	else
+	{
+	    Expression *e;
+	    Declaration *d = NULL;
+	    StringExp *s = NULL;
+
+	    e = (Expression *)args->data[0];
+	    e = e->semantic(sc);
+	    if (e->op == TOKvar)
+	    {
+		d = ((VarExp *)e)->var;
+		if (! d->isFuncDeclaration() && ! d->isVarDeclaration())
+		    d = NULL;
+	    }
+	    if (!d)
+		error("first argument of GNU_asm must be a function or variable declaration");
+
+	    e = (Expression *)args->data[1];
+	    e = e->semantic(sc);
+	    e = e->optimize(WANTvalue);
+	    if (e->op == TOKstring && ((StringExp *)e)->sz == 1)
+		s = ((StringExp *)e);
+	    else
+		error("second argument of GNU_asm must be a char string");
+
+	    if (d && s)
+		d->c_ident = Lexer::idPool((char*) s->string);
+	}
+    }
+#endif
     else
 	error("unrecognized pragma(%s)", ident->toChars());
 
@@ -727,6 +758,12 @@ void PragmaDeclaration::semantic(Scope *sc)
 	    s->semantic(sc);
 	}
     }
+}
+
+int PragmaDeclaration::oneMember(Dsymbol **ps)
+{
+    *ps = NULL;
+    return TRUE;
 }
 
 char *PragmaDeclaration::kind()
@@ -792,17 +829,16 @@ Dsymbol *ConditionalDeclaration::syntaxCopy(Dsymbol *s)
 }
 
 
-Dsymbol *ConditionalDeclaration::oneMember()
+int ConditionalDeclaration::oneMember(Dsymbol **ps)
 {
+    //printf("ConditionalDeclaration::oneMember(), inc = %d\n", condition->inc);
     if (condition->inc)
     {
 	Array *d = condition->include(NULL, NULL) ? decl : elsedecl;
-	if (d && d->dim == 1)
-	{   Dsymbol *s = (Dsymbol *)d->data[0];
-	    return s->oneMember();
-	}
+	return Dsymbol::oneMembers(d, ps);
     }
-    return NULL;
+    *ps = NULL;
+    return TRUE;
 }
 
 // Decide if 'then' or 'else' code should be included
@@ -949,6 +985,11 @@ void StaticIfDeclaration::semantic(Scope *sc)
 	    s->semantic(sc);
 	}
     }
+}
+
+char *StaticIfDeclaration::kind()
+{
+    return "static if";
 }
 
 

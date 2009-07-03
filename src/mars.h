@@ -75,6 +75,10 @@ struct Param
     char debugx;
     char debugy;
 
+    char run;		// run resulting executable
+    size_t runargs_length;
+    char** runargs;	// arguments for executable
+
     // Linker stuff
     Array *objfiles;
     Array *linkswitches;
@@ -215,6 +219,15 @@ void error(Loc loc, const char *format, ...);
 void fatal();
 void err_nomem();
 int runLINK();
+void deleteExeFile();
+int runProgram();
 void inifile(char *argv0, char *inifile);
+
+/*** Where to send error messages ***/
+#if IN_GCC
+#define stdmsg stderr
+#else
+#define stdmsg stdout
+#endif
 
 #endif /* DMD_MARS_H */

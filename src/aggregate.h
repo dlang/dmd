@@ -55,6 +55,9 @@ struct AggregateDeclaration : ScopeDsymbol
     NewDeclaration *aggNew;		// allocator
     DeleteDeclaration *aggDelete;	// deallocator
 
+#ifdef IN_GCC
+    Array methods;              // flat list of all methods for debug information
+#endif
 
     AggregateDeclaration(Loc loc, Identifier *id);
     void semantic2(Scope *sc);

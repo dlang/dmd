@@ -1,5 +1,5 @@
 
-// Copyright (c) 1999-2004 by Digital Mars
+// Copyright (c) 1999-2006 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // www.digitalmars.com
@@ -135,7 +135,8 @@ struct Dsymbol : Object
     virtual int needThis();			// need a 'this' pointer?
     virtual enum PROT prot();
     virtual Dsymbol *syntaxCopy(Dsymbol *s);	// copy only syntax trees
-    virtual Dsymbol *oneMember() { return this; }
+    virtual int oneMember(Dsymbol **ps);
+    static int oneMembers(Array *members, Dsymbol **ps);
     virtual void addLocalClass(Array *) { }
     virtual void checkCtorConstInit() { }
 

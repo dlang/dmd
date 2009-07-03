@@ -35,7 +35,7 @@ struct EnumDeclaration : ScopeDsymbol
     EnumDeclaration(Loc loc, Identifier *id, Type *memtype);
     Dsymbol *syntaxCopy(Dsymbol *s);
     void semantic(Scope *sc);
-    Dsymbol *oneMember();
+    int oneMember(Dsymbol **ps);
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
     Type *getType();
     char *kind();

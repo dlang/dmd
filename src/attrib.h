@@ -42,7 +42,7 @@ struct AttribDeclaration : Dsymbol
     void addComment(unsigned char *comment);
     void emitComment(Scope *sc);
     char *kind();
-    Dsymbol *oneMember();
+    int oneMember(Dsymbol **ps);
     void checkCtorConstInit();
     void addLocalClass(Array *);
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
@@ -112,6 +112,7 @@ struct PragmaDeclaration : AttribDeclaration
     PragmaDeclaration(Loc loc, Identifier *ident, Array *args, Array *decl);
     Dsymbol *syntaxCopy(Dsymbol *s);
     void semantic(Scope *sc);
+    int oneMember(Dsymbol **ps);
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
     char *kind();
     void toObjFile();			// compile to .obj file
@@ -124,7 +125,7 @@ struct ConditionalDeclaration : AttribDeclaration
 
     ConditionalDeclaration(Condition *condition, Array *decl, Array *elsedecl);
     Dsymbol *syntaxCopy(Dsymbol *s);
-    Dsymbol *oneMember();
+    int oneMember(Dsymbol **ps);
     Array *include(Scope *sc, ScopeDsymbol *s);
     void addComment(unsigned char *comment);
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
@@ -139,6 +140,7 @@ struct StaticIfDeclaration : ConditionalDeclaration
     Dsymbol *syntaxCopy(Dsymbol *s);
     void addMember(Scope *sc, ScopeDsymbol *s, int memnum);
     void semantic(Scope *sc);
+    char *kind();
 };
 
 #endif /* DMD_ATTRIB_H */

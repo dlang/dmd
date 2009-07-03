@@ -197,6 +197,7 @@ struct TemplateInstance : ScopeDsymbol
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
     Dsymbol *toAlias();			// resolve real symbol
     char *kind();
+    int oneMember(Dsymbol **ps);
     char *toChars();
     char *mangle();
 
@@ -224,7 +225,7 @@ struct TemplateMixin : TemplateInstance
     void semantic3(Scope *sc);
     void inlineScan();
     char *kind();
-    Dsymbol *oneMember();
+    int oneMember(Dsymbol **ps);
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
 
     void toObjFile();			// compile to .obj file

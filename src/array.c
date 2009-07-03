@@ -1,5 +1,5 @@
 
-// Copyright (c) 1999-2003 by Digital Mars
+// Copyright (c) 1999-2006 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // www.digitalmars.com
@@ -17,11 +17,15 @@
 #include <malloc.h>
 #endif
 
+#if IN_GCC
+#include "gdc_alloca.h"
+#endif
+
 #if _WIN32
 #include <windows.h>
 #endif
 
-#if linux
+#ifndef _WIN32
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>

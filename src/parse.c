@@ -177,34 +177,6 @@ Array *Parser::parseDeclDefs(int once)
 		s = parseMixin();
 		break;
 
-	    case TOKinstance:		// Deprecated
-		if (isDeclaration(&token, 2, TOKreserved, NULL))
-		{
-		    //printf("it's a declaration\n");
-		    goto Ldeclaration;
-		}
-		else
-		{
-		    // instance foo(bar) ident;
-
-		    TemplateInstance *ti;
-
-		    //printf("it's an alias\n");
-		    ti = parseTemplateInstance();
-		    s = (Dsymbol *)ti;
-		    if (ti)
-		    {
-			if (token.value == TOKidentifier)
-			{
-			    s = (Dsymbol *)new AliasDeclaration(loc, token.ident, ti);
-			    nextToken();
-			}
-		    }
-		    if (token.value != TOKsemicolon)
-			error("';' expected after template instance");
-		}
-		break;
-
 	    CASE_BASIC_TYPES:
 	    case TOKalias:
 	    case TOKtypedef:
@@ -1160,7 +1132,6 @@ Array *Parser::parseBaseClasses()
 	switch (token.value)
 	{
 	    case TOKidentifier:
-	    case TOKinstance:
 		break;
 	    case TOKprivate:
 		protection = PROTprivate;
@@ -1629,18 +1600,6 @@ Type *Parser::parseBasicType()
 	case TOKdot:
 	    id = Id::empty;
 	    goto Lident;
-
-	case TOKinstance:
-	{   // Deprecated
-	    tempinst = parseTemplateInstance();
-	    if (!tempinst)		// if error
-	    {	t = Type::tvoid;
-		break;
-	    }
-
-	    tid = new TypeInstance(loc, tempinst);
-	    goto Lident2;
-	}
 
 	case TOKtypeof:
 	{   Expression *exp;
@@ -2488,39 +2447,6 @@ Statement *Parser::parseStatement(int flags)
 	    break;
 	}
 
-	case TOKinstance:	// Deprecated
-	    /* Three cases:
-	     *	1) Declaration
-	     *	2) Template Instance Alias
-	     *	3) Expression
-	     */
-	    if (isDeclaration(&token, 2, TOKreserved, NULL))
-	    {
-		//printf("it's a declaration\n");
-		goto Ldeclaration;
-	    }
-	    else
-	    {
-		if (isTemplateInstance(&token, &t) && t->value == TOKidentifier)
-		{   // case 2
-		    TemplateInstance *ti;
-		    AliasDeclaration *a;
-
-		    ti = parseTemplateInstance();
-		    assert(ti);
-		    assert(token.value == TOKidentifier);
-
-		    a = new AliasDeclaration(loc, token.ident, ti);
-		    s = new DeclarationStatement(loc, a);
-		    nextToken();
-		    if (token.value != TOKsemicolon)
-			error("';' expected after template instance, not %s", token.toChars());
-		}
-		else
-		    goto Lexp;		// case 3
-	    }
-	    break;
-
 	case TOKstatic:
 	{   // Look ahead to see if it's static assert() or static if()
 	    Token *t;
@@ -3249,18 +3175,6 @@ int Parser::isBasicType(Token **pt)
 	case TOKdot:
 	    goto Ldot;
 
-	case TOKinstance:	// Deprecated
-	    // Handle cases like:
-	    //	instance Foo(int).bar x;
-	    // But remember that:
-	    //	instance Foo(int) x;
-	    // is not a type, but is an AliasDeclaration declaration.
-	    if (!isTemplateInstance(t, &t))
-		goto Lfalse;		// invalid syntax for template instance
-	    if (t->value == TOKdot)
-		goto Ldot;
-	    goto Lfalse;
-
 	case TOKtypeof:
 	    /* typeof(exp).identifier...
 	     */
@@ -3905,16 +3819,6 @@ Expression *Parser::parsePrimaryExp()
 	    check(TOKrparen);
 	    e = new AssertExp(loc, e);
 	    break;
-
-	case TOKinstance:	// Deprecated
-	{   TemplateInstance *tempinst;
-
-	    tempinst = parseTemplateInstance();
-	    if (!tempinst)
-		goto Lerr;
-	    e = new ScopeExp(loc, tempinst);
-	    break;
-	}
 
 	case TOKfunction:
 	case TOKdelegate:

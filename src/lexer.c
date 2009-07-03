@@ -244,23 +244,46 @@ Lexer::Lexer(Module *mod,
     this->anyToken = 0;
     this->commentToken = commentToken;
     //initKeywords();
-}
 
-#if 0
-unsigned Lexer::locToLine(Loc loc)
-{
-    unsigned linnum = 1;
-    unsigned char *s;
-    unsigned char *p = base + loc;
+    /* If first line starts with '#!', ignore the line
+     */
 
-    for (s = base; s != p; s++)
+    if (p[0] == '#' && p[1] =='!')
     {
-	if (*s == '\n')
-	    linnum++;
+	p += 2;
+	while (1)
+	{   unsigned char c = *p;
+	    switch (c)
+	    {
+		case '\n':
+		    p++;
+		    break;
+
+		case '\r':
+		    p++;
+		    if (*p == '\n')
+			p++;
+		    break;
+
+		case 0:
+		case 0x1A:
+		    break;
+
+		default:
+		    if (c & 0x80)
+		    {   unsigned u = decodeUTF();
+			if (u == PS || u == LS)
+			    break;
+		    }
+		    p++;
+		    continue;
+	    }
+	    break;
+	}
+	loc.linnum = 1;
     }
-    return linnum;
 }
-#endif
+
 
 void Lexer::error(const char *format, ...)
 {
@@ -2350,7 +2373,6 @@ static Keyword keywords[] =
     {	"iftype",	TOKiftype	},
 
     {	"template",	TOKtemplate	},
-    {	"instance",	TOKinstance	},
 
     {	"void",		TOKvoid		},
     {	"byte",		TOKint8		},
@@ -2523,7 +2545,7 @@ void Lexer::initKeywords()
     Token::tochars[TOKoror]		= "||";
     Token::tochars[TOKarray]		= "[]";
     Token::tochars[TOKindex]		= "[i]";
-    Token::tochars[TOKaddress]		= "#";
+    Token::tochars[TOKaddress]		= "&";
     Token::tochars[TOKstar]		= "*";
     Token::tochars[TOKtilde]		= "~";
     Token::tochars[TOKdollar]		= "$";

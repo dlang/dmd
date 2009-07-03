@@ -146,26 +146,11 @@ void EnumDeclaration::semantic(Scope *sc)
     //members->print();
 }
 
-Dsymbol *EnumDeclaration::oneMember()
+int EnumDeclaration::oneMember(Dsymbol **ps)
 {
-    if (isAnonymous() && members && members->dim)
-    {
-	Dsymbol *s = (Dsymbol *)members->data[0];
-	s = s->oneMember();
-
-        // Ignore any additional template instance symbols
-        for (int j = 1; j < members->dim; j++)
-        {   Dsymbol *sx = (Dsymbol *)members->data[j];
-            if (sx->isTemplateInstance())
-                continue;
-            s = NULL;
-            break;
-        }
-
-	if (s)
-	    return s;
-    }
-    return this;
+    if (isAnonymous())
+	return Dsymbol::oneMembers(members, ps);
+    return Dsymbol::oneMember(ps);
 }
 
 void EnumDeclaration::toCBuffer(OutBuffer *buf, HdrGenState *hgs)

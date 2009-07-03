@@ -77,6 +77,58 @@ Dsymbol *Dsymbol::syntaxCopy(Dsymbol *s)
     return NULL;
 }
 
+/**************************************
+ * Determine if this symbol is only one.
+ * Returns:
+ *	FALSE, *ps = NULL: There are 2 or more symbols
+ *	TRUE,  *ps = NULL: There are zero symbols
+ *	TRUE,  *ps = symbol: The one and only one symbol
+ */
+
+int Dsymbol::oneMember(Dsymbol **ps)
+{
+    *ps = this;
+    return TRUE;
+}
+
+/*****************************************
+ * Same as Dsymbol::oneMember(), but look at an array of Dsymbols.
+ */
+
+int Dsymbol::oneMembers(Array *members, Dsymbol **ps)
+{
+    //printf("Dsymbol::oneMembers()\n");
+    Dsymbol *s = NULL;
+
+    if (members)
+    {
+	for (int i = 0; i < members->dim; i++)
+	{   Dsymbol *sx = (Dsymbol *)members->data[i];
+
+	    int x = sx->oneMember(ps);
+	    //printf("\t[%d] kind %s = %d, s = %p\n", i, sx->kind(), x, *ps);
+	    if (!x)
+	    {
+		//printf("\tfalse 1\n");
+		assert(*ps == NULL);
+		return FALSE;
+	    }
+	    if (*ps)
+	    {
+		if (s)			// more than one symbol
+		{   *ps = NULL;
+		    //printf("\tfalse 2\n");
+		    return FALSE;
+		}
+		s = *ps;
+	    }
+	}
+    }
+    *ps = s;		// s is the one symbol, NULL if none
+    //printf("\ttrue\n");
+    return TRUE;
+}
+
 char *Dsymbol::toChars()
 {
     return ident ? ident->toChars() : (char *)"__anonymous";

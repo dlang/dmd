@@ -431,7 +431,7 @@ VarDeclaration::VarDeclaration(Loc loc, Type *type, Identifier *id, Initializer 
 #ifdef DEBUG
     if (!type && !init)
     {	printf("VarDeclaration('%s')\n", id->toChars());
-	*(char*)0=0;
+	//*(char*)0=0;
     }
 #endif
     assert(type || init);
@@ -501,8 +501,10 @@ void VarDeclaration::semantic(Scope *sc)
 
     /* If auto type inference, do the inference
      */
+    int inferred = 0;
     if (!type)
     {	type = init->inferType(sc);
+	inferred = 1;
 
 	/* This is a kludge to support the existing syntax for RAII
 	 * declarations.
@@ -556,7 +558,6 @@ void VarDeclaration::semantic(Scope *sc)
     else if (isAbstract())
     {
 	error("abstract cannot be applied to variable");
-*(char*)0=0;
     }
     else
     {
@@ -698,7 +699,7 @@ void VarDeclaration::semantic(Scope *sc)
 	 */
 
 	ExpInitializer *ei = init->isExpInitializer();
-	if (ei && !global.errors)
+	if (ei && !global.errors && !inferred)
 	{
 	    unsigned errors = global.errors;
 	    global.gag++;
@@ -749,6 +750,14 @@ void VarDeclaration::semantic2(Scope *sc)
     //printf("VarDeclaration::semantic2('%s')\n", toChars());
     if (init && !sc->parent->isFuncDeclaration())
     {	inuse = 1;
+#if 0
+	ExpInitializer *ei = init->isExpInitializer();
+	if (ei)
+	{
+	    ei->exp->dump(0);
+	    printf("type = %p\n", ei->exp->type);
+	}
+#endif
 	init = init->semantic(sc, type);
 	inuse = 0;
     }
@@ -761,6 +770,8 @@ char *VarDeclaration::kind()
 
 void VarDeclaration::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 {
+    if (storage_class & STCconst)
+	buf->writestring("const ");
     type->toCBuffer(buf, ident, hgs);
     if (init)
     {	buf->writestring(" = ");

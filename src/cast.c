@@ -1,5 +1,5 @@
 
-// Copyright (c) 1999-2005 by Digital Mars
+// Copyright (c) 1999-2006 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // www.digitalmars.com
@@ -10,9 +10,9 @@
 #include <stdio.h>
 #include <assert.h>
 
-#if _WIN32
+#if _WIN32 || IN_GCC
 #include "mem.h"
-#elif linux
+#else
 #include "../root/mem.h"
 #endif
 
@@ -43,7 +43,7 @@ Expression *Expression::implicitCastTo(Type *t)
 	    if (e->op == TOKint64)
 		return e->implicitCastTo(t);
 
-	    printf("warning - ");
+	    fprintf(stdmsg, "warning - ");
 	    error("implicit conversion of expression (%s) of type %s to %s can cause loss of data",
 		toChars(), type->toChars(), t->toChars());
 	}

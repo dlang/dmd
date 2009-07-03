@@ -157,14 +157,16 @@ void TemplateDeclaration::semantic(Scope *sc)
 
     paramscope->pop();
 
-    if (members && members->dim)
+    if (members)
     {
-	Dsymbol *s = (Dsymbol *)members->data[0];
-	s = s->oneMember();
-	if (s && s->ident && s->ident->equals(ident))
+	Dsymbol *s;
+	if (Dsymbol::oneMembers(members, &s))
 	{
-	    onemember = s;
-	    s->parent = this;
+	    if (s && s->ident && s->ident->equals(ident))
+	    {
+		onemember = s;
+		s->parent = this;
+	    }
 	}
     }
 
@@ -801,11 +803,15 @@ MATCH TemplateTypeParameter::matchArg(Scope *sc, Object *oarg,
 	    m = m2;
 	t = (Type *)dedtypes->data[i];
     }
-    else if (t)
-    {   // Must match already deduced type
+    else
+    {
+	m = MATCHconvert;
+	if (t)
+	{   // Must match already deduced type
 
-	if (!t->equals(ta))
-	    goto Lnomatch;
+	    if (!t->equals(ta))
+		goto Lnomatch;
+	}
     }
 
     if (!t)
@@ -1152,9 +1158,12 @@ Lnomatch:
 MATCH TemplateValueParameter::matchArg(Scope *sc,
 	Object *oarg, int i, Array *parameters, Array *dedtypes, Declaration **psparam)
 {
+    //printf("TemplateValueParameter::matchArg()\n");
+
     Initializer *init;
     Declaration *sparam;
     Expression *ei = isExpression(oarg);
+    MATCH m = MATCHexact;
     if (!ei && oarg)
 	goto Lnomatch;
 
@@ -1164,9 +1173,16 @@ MATCH TemplateValueParameter::matchArg(Scope *sc,
 	    goto Lnomatch;
 
 	Expression *e = specValue;
+
 	e = e->semantic(sc);
 	e = e->implicitCastTo(valType);
 	e = e->constFold();
+
+	ei = ei->syntaxCopy();
+	ei = ei->semantic(sc);
+	ei = ei->constFold();
+	//printf("ei: %s, %s\n", ei->toChars(), ei->type->toChars());
+	//printf("e : %s, %s\n", e->toChars(), e->type->toChars());
 	if (!ei->equals(e))
 	    goto Lnomatch;
     }
@@ -1177,13 +1193,23 @@ MATCH TemplateValueParameter::matchArg(Scope *sc,
 	if (!ei || !ei->equals(e))
 	    goto Lnomatch;
     }
+Lmatch:
+    //printf("valType: %s\n", valType->toChars());
+    //printf("ei: %s, %s\n", ei->toChars(), ei->type->toChars());
+    if (ei->type)
+    {
+	m = (MATCH)ei->implicitConvTo(valType);
+	//printf("m: %d\n", m);
+	if (!m)
+	    goto Lnomatch;
+    }
     dedtypes->data[i] = ei;
 
     init = new ExpInitializer(loc, ei);
     sparam = new VarDeclaration(loc, valType, ident, init);
     sparam->storage_class = STCconst;
     *psparam = sparam;
-    return MATCHexact;
+    return m;
 
 Lnomatch:
     *psparam = NULL;
@@ -1316,7 +1342,7 @@ void TemplateInstance::semantic(Scope *sc)
     if (inst)		// if semantic() was already run
     {
 #if LOG
-    printf("-TemplateInstance::semantic('%s', this=%p)\n", inst->toChars(), inst);
+    printf("-TemplateInstance::semantic('%s', this=%p) already run\n", inst->toChars(), inst);
 #endif
 	return;
     }
@@ -1423,6 +1449,7 @@ void TemplateInstance::semantic(Scope *sc)
 #endif
     unsigned errorsave = global.errors;
     inst = this;
+    int tempdecl_instance_idx = tempdecl->instances.dim;
     tempdecl->instances.push(this);
     parent = tempdecl->parent;
     //printf("parent = '%s'\n", parent->kind());
@@ -1482,13 +1509,19 @@ void TemplateInstance::semantic(Scope *sc)
     // Add members of template instance to template instance symbol table
 //    parent = scope->scopesym;
     symtab = new DsymbolTable();
+    int memnum = 0;
     for (int i = 0; i < members->dim; i++)
     {
 	Dsymbol *s = (Dsymbol *)members->data[i];
 #if LOG
 	printf("\tadding member '%s' %p to '%s'\n", s->toChars(), s, this->toChars());
 #endif
-	s->addMember(scope, this, i);
+	s->addMember(scope, this, memnum);
+
+	/* If symbol s is not the first significant one
+	 */
+	if (!memnum && !(s->oneMember(&s) && !s))
+	    memnum = 1;
     }
 
     /* See if there is only one member of template instance, and that
@@ -1498,19 +1531,8 @@ void TemplateInstance::semantic(Scope *sc)
     //printf("members->dim = %d\n", members->dim);
     if (members->dim)
     {
-	Dsymbol *s = (Dsymbol *)members->data[0];
-	s = s->oneMember();
-
-	// Ignore any additional template instance symbols
-	for (int j = 1; j < members->dim; j++)
-	{   Dsymbol *sx = (Dsymbol *)members->data[j];
-	    if (sx->isTemplateInstance())
-		continue;
-	    s = NULL;
-	    break;
-	}
-
-	if (s)
+	Dsymbol *s;
+	if (Dsymbol::oneMembers(members, &s) && s)
 	{
 	    //printf("s->kind = '%s'\n", s->kind());
 	    //s->print();
@@ -1556,7 +1578,11 @@ void TemplateInstance::semantic(Scope *sc)
 
     // Give additional context info if error occurred during instantiation
     if (global.errors != errorsave)
+    {
 	error("error instantiating");
+	if (global.gag)
+	    tempdecl->instances.remove(tempdecl_instance_idx);
+    }
 
 #if LOG
     printf("-TemplateInstance::semantic('%s', this=%p)\n", toChars(), this);
@@ -1711,7 +1737,7 @@ TemplateDeclaration *TemplateInstance::findTemplateDeclaration(Scope *sc)
 	if (!m)			// no match at all
 	    continue;
 
-#if 0
+#if 1
 	if (m < m_best)
 	    goto Ltd_best;
 	if (m > m_best)
@@ -1739,9 +1765,11 @@ TemplateDeclaration *TemplateInstance::findTemplateDeclaration(Scope *sc)
 	continue;
 
       Ltd_best:		// td_best is the best match so far
+	td_ambig = NULL;
 	continue;
 
       Ltd:		// td is the new best match
+	td_ambig = NULL;
 	td_best = td;
 	m_best = m;
 	tdtypes.setDim(dedtypes.dim);
@@ -1751,12 +1779,13 @@ TemplateDeclaration *TemplateInstance::findTemplateDeclaration(Scope *sc)
 
     if (!td_best)
     {
-	error("does not match any template declaration");
+	error("%s does not match any template declaration", toChars());
 	return NULL;
     }
     if (td_ambig)
     {
-	error("matches more than one template declaration");
+	error("%s matches more than one template declaration, %s and %s",
+		toChars(), td_best->toChars(), td_ambig->toChars());
     }
 
     /* The best match is td_best
@@ -2061,6 +2090,12 @@ AliasDeclaration *TemplateInstance::isAliasDeclaration()
 char *TemplateInstance::kind()
 {
     return "template instance";
+}
+
+int TemplateInstance::oneMember(Dsymbol **ps)
+{
+    *ps = NULL;
+    return TRUE;
 }
 
 char *TemplateInstance::toChars()
@@ -2401,9 +2436,9 @@ char *TemplateMixin::kind()
     return "mixin";
 }
 
-Dsymbol *TemplateMixin::oneMember()
+int TemplateMixin::oneMember(Dsymbol **ps)
 {
-    return Dsymbol::oneMember();
+    return Dsymbol::oneMember(ps);
 }
 
 void TemplateMixin::toCBuffer(OutBuffer *buf, HdrGenState *hgs)

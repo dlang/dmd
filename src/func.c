@@ -336,6 +336,8 @@ void FuncDeclaration::semantic(Scope *sc)
 		    goto Lmainerr;
 	    }
 	}
+	if (f->next->ty != Tint32 && f->next->ty != Tvoid)
+	    error("must return int or void, not %s", f->next->toChars());
 	if (f->varargs)
 	{
 	Lmainerr:
@@ -684,29 +686,40 @@ void FuncDeclaration::semantic3(Scope *sc)
 	    }
 //	    else if (!hasReturnExp && type->next->ty != Tvoid)
 //		error("expected to return a value of type %s", type->next->toChars());
-	    else if (type->next->ty != Tvoid && !inlineAsm)
+	    else if (!inlineAsm)
 	    {
-		if (offend)
-		{   Expression *e;
-
-		    if (global.params.warnings)
-		    {	printf("warning - ");
-			error("no return at end of function");
+		if (type->next->ty == Tvoid)
+		{
+		    if (offend && isMain())
+		    {	// Add a return 0; statement
+			Statement *s = new ReturnStatement(0, new IntegerExp(0));
+			fbody = new CompoundStatement(0, fbody, s);
 		    }
+		}
+		else
+		{
+		    if (offend)
+		    {   Expression *e;
 
-		    if (global.params.useAssert &&
-			!global.params.useInline)
-		    {   /* Add an assert(0); where the missing return
-			 * should be.
-			 */
-			e = new AssertExp(endloc, new IntegerExp(0, 0, Type::tint32));
+			if (global.params.warnings)
+			{   printf("warning - ");
+			    error("no return at end of function");
+			}
+
+			if (global.params.useAssert &&
+			    !global.params.useInline)
+			{   /* Add an assert(0); where the missing return
+			     * should be.
+			     */
+			    e = new AssertExp(endloc, new IntegerExp(0, 0, Type::tint32));
+			}
+			else
+			    e = new HaltExp(endloc);
+			e = new CommaExp(0, e, type->next->defaultInit());
+			e = e->semantic(sc2);
+			Statement *s = new ExpStatement(0, e);
+			fbody = new CompoundStatement(0, fbody, s);
 		    }
-		    else
-			e = new HaltExp(endloc);
-		    e = new CommaExp(0, e, type->next->defaultInit());
-		    e = e->semantic(sc2);
-		    Statement *s = new ExpStatement(0, e);
-		    fbody = new CompoundStatement(0, fbody, s);
 		}
 	    }
 	}

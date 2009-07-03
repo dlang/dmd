@@ -1,5 +1,5 @@
 
-// Copyright (c) 1999-2005 by Digital Mars
+// Copyright (c) 1999-2006 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // www.digitalmars.com
@@ -191,6 +191,7 @@ Statement *ExpStatement::semantic(Scope *sc)
     if (exp)
     {	exp = exp->semantic(sc);
 	exp = resolveProperties(sc, exp);
+	exp->checkSideEffect(0);
     }
     return this;
 }
@@ -1752,10 +1753,15 @@ Statement *ReturnStatement::syntaxCopy()
 
 Statement *ReturnStatement::semantic(Scope *sc)
 {
+    //printf("ReturnStatement::semantic()\n");
+
     FuncDeclaration *fd = sc->parent->isFuncDeclaration();
     FuncDeclaration *fdx = fd;
     Type *tret = fd->type->next;
     Type *tbret = tret->toBasetype();
+
+    if (!exp && tbret->ty == Tvoid && fd->isMain())
+	exp = new IntegerExp(0);
 
     Scope *scx = sc;
     if (sc->fes)
@@ -1891,7 +1897,7 @@ Statement *ReturnStatement::semantic(Scope *sc)
 	return gs;
     }
 
-    if (exp && tbret->ty == Tvoid)
+    if (exp && tbret->ty == Tvoid && !fd->isMain())
     {   Statement *s;
 
 	s = new ExpStatement(loc, exp);

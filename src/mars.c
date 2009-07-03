@@ -53,7 +53,7 @@ Global::Global()
 
     copyright = "Copyright (c) 1999-2006 by Digital Mars";
     written = "written by Walter Bright";
-    version = "v0.145";
+    version = "v0.146";
     global.structalign = 8;
 
     memset(&params, 0, sizeof(Param));
@@ -157,6 +157,7 @@ Usage:\n\
   -profile	 profile runtime performance of generated code\n\
   -quiet         suppress unnecessary messages\n\
   -release	 compile release version\n\
+  -run args...   run resulting program, passing args\n\
   -unittest      compile in unit tests\n\
   -v             verbose\n\
   -version=level compile in version code >= level\n\
@@ -172,6 +173,7 @@ int main(int argc, char *argv[])
     char *p;
     Module *m;
     int status = EXIT_SUCCESS;
+    int argcstart = argc;
 
     // Initialization
     Type::init();
@@ -431,6 +433,12 @@ int main(int argc, char *argv[])
 	    {
 		global.params.linkswitches->push(p + 2);
 	    }
+	    else if (strcmp(p + 1, "run") == 0)
+	    {	global.params.run = 1;
+		global.params.runargs_length = ((i >= argcstart) ? argc : argcstart) - i - 1;
+		global.params.runargs = &argv[i + 1];
+		i += global.params.runargs_length;
+	    }
 	    else
 	    {
 	     Lerror:
@@ -463,6 +471,9 @@ int main(int argc, char *argv[])
 	global.params.useSwitchError = 0;
     }
 
+    if (global.params.run)
+	global.params.quiet = 1;
+
     if (global.params.useUnitTests)
 	global.params.useAssert = 1;
 
@@ -473,6 +484,11 @@ int main(int argc, char *argv[])
     {
 	global.params.exefile = global.params.objname;
 	global.params.objname = NULL;
+    }
+    else if (global.params.run)
+    {
+	error("flags conflict with -run");
+	fatal();
     }
     else
     {
@@ -735,6 +751,23 @@ int main(int argc, char *argv[])
     if (global.params.link)
 	status = runLINK();
 
+    if (global.params.run)
+    {
+	if (!status)
+	{
+	    status = runProgram();
+
+	    /* Delete .obj files and .exe file
+	     */
+	    for (i = 0; i < modules.dim; i++)
+	    {
+		m = (Module *)modules.data[i];
+		m->deleteObjFile();
+	    }
+	    deleteExeFile();
+	}
+    }
+
     return status;
 }
 
@@ -757,6 +790,7 @@ void getenv_setargv(const char *envvar, int *pargc, char** *pargv)
     int instring;
     int slash;
     char c;
+    int j;
 
     env = getenv(envvar);
     if (!env)
@@ -771,6 +805,7 @@ void getenv_setargv(const char *envvar, int *pargc, char** *pargv)
     for (int i = 0; i < argc; i++)
 	argv->data[i] = (void *)(*pargv)[i];
 
+    j = 1;			// leave argv[0] alone
     while (1)
     {
 	wildcard = 1;
@@ -787,7 +822,9 @@ void getenv_setargv(const char *envvar, int *pargc, char** *pargv)
 	    case '"':
 		wildcard = 0;
 	    default:
-		argv->push(env);
+		argv->push(env);		// append
+		//argv->insert(j, env);		// insert at position j
+		j++;
 		argc++;
 		p = env;
 		slash = 0;

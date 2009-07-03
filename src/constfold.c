@@ -103,6 +103,8 @@ Expression *BoolExp::constFold()
 Expression *CastExp::constFold()
 {
     //printf("CastExp::constFold(%s)\n", toChars());
+    //printf("type = %p\n", type);
+    assert(type);
 
     e1 = e1->constFold();
     if (e1->op == TOKsymoff)
