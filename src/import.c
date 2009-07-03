@@ -41,6 +41,9 @@ Import::Import(Loc loc, Array *packages, Identifier *id, Identifier *aliasId,
 
 void Import::addAlias(Identifier *name, Identifier *alias)
 {
+    if (isstatic)
+	error("cannot have an import bind list");
+
     if (!aliasId)
 	this->ident = NULL;	// make it an anonymous import
 
@@ -50,7 +53,7 @@ void Import::addAlias(Identifier *name, Identifier *alias)
 
 char *Import::kind()
 {
-    return "import";
+    return isstatic ? (char *)"static import" : (char *)"import";
 }
 
 

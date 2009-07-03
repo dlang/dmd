@@ -739,14 +739,15 @@ FuncDeclaration *TemplateDeclaration::deduce(Scope *sc, Loc loc,
 
 void TemplateDeclaration::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 {
-    int i;
-
-
+#if 0 // Should handle template functions
+    if (onemember && onemember->isFuncDeclaration())
+	buf->writestring("foo ");
+#endif
     buf->writestring(kind());
     buf->writeByte(' ');
     buf->writestring(ident->toChars());
     buf->writeByte('(');
-    for (i = 0; i < parameters->dim; i++)
+    for (int i = 0; i < parameters->dim; i++)
     {
 	TemplateParameter *tp = (TemplateParameter *)parameters->data[i];
 	if (i)
@@ -761,7 +762,7 @@ void TemplateDeclaration::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 	buf->writenl();
 	buf->writebyte('{');
 	buf->writenl();
-	for (i = 0; i < members->dim; i++)
+	for (int i = 0; i < members->dim; i++)
 	{
 	    Dsymbol *s = (Dsymbol *)members->data[i];
 	    s->toCBuffer(buf, hgs);
@@ -1785,7 +1786,7 @@ void TemplateInstance::semantic(Scope *sc)
 	return;
     }
 #if LOG
-    printf("+TemplateInstance::semantic('%s', this=%p)\n", toChars(), this);
+    printf("\n+TemplateInstance::semantic('%s', this=%p)\n", toChars(), this);
 #endif
     if (inst)		// if semantic() was already run
     {
@@ -1833,7 +1834,7 @@ void TemplateInstance::semantic(Scope *sc)
     {
 	TemplateInstance *ti = (TemplateInstance *)tempdecl->instances.data[i];
 #if LOG
-	printf("\tchecking for match with instance %d (%p): '%s'\n", i, ti, ti->toChars());
+	printf("\t%s: checking for match with instance %d (%p): '%s'\n", toChars(), i, ti, ti->toChars());
 #endif
 	assert(tdtypes.dim == ti->tdtypes.dim);
 
@@ -1883,7 +1884,8 @@ void TemplateInstance::semantic(Scope *sc)
 	    }
 	    else if (s1)
 	    {
-		if (!s2 || !s1->equals(s2))
+		//printf("test1: %p %s, %p %s\n", s1, s1->toChars(), s2, s2->toChars());
+		if (!s2 || !s1->equals(s2) || s1->parent != s2->parent)
 		    goto L1;
 	    }
 	}

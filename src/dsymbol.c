@@ -555,7 +555,7 @@ Dsymbol *ScopeDsymbol::search(Identifier *ident, int flags)
 	    s2 = ss->search(ident, ss->isModule() ? 1 : 0);
 	    if (!s)
 		s = s2;
-	    else if (s2 && s != s2)
+	    else if (s2 && s != s2 && s->toAlias() != s2->toAlias())
 	    {
 		/* Two imports of the same module should be regarded as
 		 * the same.

@@ -2070,6 +2070,7 @@ Array *Parser::parseDeclarations()
 		tempdecl = new TemplateDeclaration(loc, s->ident, tpl, decldefs);
 		s = tempdecl;
 	    }
+	    addComment(s, comment);
 	    a->push(s);
 	}
 	else

@@ -1046,7 +1046,7 @@ Statement *ForeachStatement::semantic(Scope *sc)
 	    tret = func->type->next;
 
 	    // Need a variable to hold value from any return statements in body.
-	    if (!sc->func->vresult && tret != Type::tvoid)
+	    if (!sc->func->vresult && tret && tret != Type::tvoid)
 	    {	VarDeclaration *v;
 
 		v = new VarDeclaration(loc, tret, Id::result, NULL);
@@ -2016,7 +2016,21 @@ Statement *ReturnStatement::semantic(Scope *sc)
     //printf("ReturnStatement::semantic() %s\n", toChars());
 
     FuncDeclaration *fd = sc->parent->isFuncDeclaration();
-    FuncDeclaration *fdx = fd;
+    Scope *scx = sc;
+
+    if (sc->fes)
+    {
+	// Find scope of function foreach is in
+	for (; 1; scx = scx->enclosing)
+	{
+	    assert(scx);
+	    if (scx->func != fd)
+	    {	fd = scx->func;		// fd is now function enclosing foreach
+		break;
+	    }
+	}
+    }
+
     Type *tret = fd->type->next;
     if (fd->tintro)
 	tret = fd->tintro->next;
@@ -2027,75 +2041,9 @@ Statement *ReturnStatement::semantic(Scope *sc)
     if (!exp && (!tbret || tbret->ty == Tvoid) && fd->isMain())
 	exp = new IntegerExp(0);
 
-    Scope *scx = sc;
-    if (sc->fes)
-    {
-	Statement *s;
-
-	// Find scope of function foreach is in
-	for (; 1; scx = scx->enclosing)
-	{
-	    assert(scx);
-	    if (scx->func != fd)
-	    {	fdx = scx->func;
-		break;
-	    }
-	}
-
-	tret = fdx->type->next;
-
-	if (exp)
-	{   exp = exp->semantic(sc);
-	    exp = resolveProperties(sc, exp);
-	    exp = exp->implicitCastTo(tret);
-	}
-	if (!exp || exp->op == TOKint64 || exp->op == TOKfloat64 ||
-	    exp->op == TOKimaginary80 || exp->op == TOKcomplex80 ||
-	    exp->op == TOKthis || exp->op == TOKsuper || exp->op == TOKnull ||
-	    exp->op == TOKstring)
-	{
-	    sc->fes->cases.push(this);
-	    s = new ReturnStatement(0, new IntegerExp(sc->fes->cases.dim + 1));
-	}
-	else if (fdx->type->next->toBasetype() == Type::tvoid)
-	{
-	    Statement *s1;
-	    Statement *s2;
-
-	    s = new ReturnStatement(0, NULL);
-	    sc->fes->cases.push(s);
-
-	    // Construct: { exp; return cases.dim + 1; }
-	    s1 = new ExpStatement(loc, exp);
-	    s2 = new ReturnStatement(0, new IntegerExp(sc->fes->cases.dim + 1));
-	    s = new CompoundStatement(loc, s1, s2);
-	}
-	else
-	{
-	    VarExp *v;
-	    Statement *s1;
-	    Statement *s2;
-
-	    // Construct: return vresult;
-	    assert(fdx->vresult);
-	    v = new VarExp(0, fdx->vresult);
-	    s = new ReturnStatement(0, v);
-	    sc->fes->cases.push(s);
-
-	    // Construct: { vresult = exp; return cases.dim + 1; }
-	    v = new VarExp(0, fdx->vresult);
-	    exp = new AssignExp(loc, v, exp);
-	    exp = exp->semantic(sc);
-	    s1 = new ExpStatement(loc, exp);
-	    s2 = new ReturnStatement(0, new IntegerExp(sc->fes->cases.dim + 1));
-	    s = new CompoundStatement(loc, s1, s2);
-	}
-	return s;
-    }
-
-    if (sc->incontract)
+    if (sc->incontract || scx->incontract)
 	error("return statements cannot be in contracts");
-    if (sc->tf)
+    if (sc->tf || scx->tf)
 	error("return statements cannot be in finally, scope(exit) or scope(success) bodies");
 
     if (fd->isCtorDeclaration())
@@ -2111,45 +2059,34 @@ Statement *ReturnStatement::semantic(Scope *sc)
     {
 	fd->hasReturnExp |= 1;
 
+	exp = exp->semantic(sc);
+	exp = resolveProperties(sc, exp);
+
 	if (fd->returnLabel && tbret->ty != Tvoid)
 	{
-	    assert(fd->vresult);
-	    VarExp *v = new VarExp(0, fd->vresult);
-
-	    exp = resolveProperties(sc, exp);
-	    exp = new AssignExp(loc, v, exp);
-	    exp = exp->semantic(sc);
 	}
-	else
+	else if (fd->inferRetType)
 	{
-	    exp = exp->semantic(sc);
-	    exp = resolveProperties(sc, exp);
-	    if (fd->inferRetType)
+	    if (fd->type->next)
 	    {
-		if (fd->type->next)
-		{
-		    if (!exp->type->equals(fd->type->next))
-			error("mismatched function return type inference of %s and %s",
-			    exp->type->toChars(), fd->type->next->toChars());
-		}
-		else
-		{
-		    fd->type->next = exp->type;
-		    fd->type = fd->type->semantic(loc, sc);
-		    if (!fd->tintro)
-		    {	tret = fd->type->next;
-			tbret = tret->toBasetype();
-		    }
-		}
+		if (!exp->type->equals(fd->type->next))
+		    error("mismatched function return type inference of %s and %s",
+			exp->type->toChars(), fd->type->next->toChars());
 	    }
-	    else if (tbret->ty != Tvoid)
+	    else
 	    {
-		exp = exp->implicitCastTo(tret);
+		fd->type->next = exp->type;
+		fd->type = fd->type->semantic(loc, sc);
+		if (!fd->tintro)
+		{   tret = fd->type->next;
+		    tbret = tret->toBasetype();
+		}
 	    }
 	}
-	//exp->dump(0);
-	//exp->print();
-	exp->checkEscape();
+	else if (tbret->ty != Tvoid)
+	{
+	    exp = exp->implicitCastTo(tret);
+	}
     }
     else if (fd->inferRetType)
     {
@@ -2171,6 +2108,84 @@ Statement *ReturnStatement::semantic(Scope *sc)
     }
     else if (tbret->ty != Tvoid)	// if non-void return
 	error("return expression expected");
+
+    if (sc->fes)
+    {
+	Statement *s;
+
+	if (exp)
+	{
+	    exp = exp->implicitCastTo(tret);
+	}
+	if (!exp || exp->op == TOKint64 || exp->op == TOKfloat64 ||
+	    exp->op == TOKimaginary80 || exp->op == TOKcomplex80 ||
+	    exp->op == TOKthis || exp->op == TOKsuper || exp->op == TOKnull ||
+	    exp->op == TOKstring)
+	{
+	    sc->fes->cases.push(this);
+	    s = new ReturnStatement(0, new IntegerExp(sc->fes->cases.dim + 1));
+	}
+	else if (fd->type->next->toBasetype() == Type::tvoid)
+	{
+	    Statement *s1;
+	    Statement *s2;
+
+	    s = new ReturnStatement(0, NULL);
+	    sc->fes->cases.push(s);
+
+	    // Construct: { exp; return cases.dim + 1; }
+	    s1 = new ExpStatement(loc, exp);
+	    s2 = new ReturnStatement(0, new IntegerExp(sc->fes->cases.dim + 1));
+	    s = new CompoundStatement(loc, s1, s2);
+	}
+	else
+	{
+	    VarExp *v;
+	    Statement *s1;
+	    Statement *s2;
+
+	    // Construct: return vresult;
+	    if (!fd->vresult)
+	    {	VarDeclaration *v;
+
+		v = new VarDeclaration(loc, tret, Id::result, NULL);
+		v->noauto = 1;
+		v->semantic(scx);
+		if (!scx->insert(v))
+		    assert(0);
+		v->parent = fd;
+		fd->vresult = v;
+	    }
+
+	    v = new VarExp(0, fd->vresult);
+	    s = new ReturnStatement(0, v);
+	    sc->fes->cases.push(s);
+
+	    // Construct: { vresult = exp; return cases.dim + 1; }
+	    v = new VarExp(0, fd->vresult);
+	    exp = new AssignExp(loc, v, exp);
+	    exp = exp->semantic(sc);
+	    s1 = new ExpStatement(loc, exp);
+	    s2 = new ReturnStatement(0, new IntegerExp(sc->fes->cases.dim + 1));
+	    s = new CompoundStatement(loc, s1, s2);
+	}
+	return s;
+    }
+
+    if (exp)
+    {
+	if (fd->returnLabel && tbret->ty != Tvoid)
+	{
+	    assert(fd->vresult);
+	    VarExp *v = new VarExp(0, fd->vresult);
+
+	    exp = new AssignExp(loc, v, exp);
+	    exp = exp->semantic(sc);
+	}
+	//exp->dump(0);
+	//exp->print();
+	exp->checkEscape();
+    }
 
     /* BUG: need to issue an error on:
      *	this

@@ -97,6 +97,7 @@ Module::Module(char *filename, Identifier *ident, int doDocComment, int doHdrGen
     versionidsNot = NULL;
 
     macrotable = NULL;
+    escapetable = NULL;
     cov = NULL;
     covb = NULL;
 

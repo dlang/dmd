@@ -51,7 +51,6 @@ void inifile(char *argv0, char *inifile)
 #if LOG
     printf("inifile(argv0 = '%s', inifile = '%s')\n", argv0, inifile);
 #endif
-    path = FileName::path(argv0);
     if (FileName::absolute(inifile))
     {
 	filename = inifile;
@@ -72,17 +71,33 @@ void inifile(char *argv0, char *inifile)
 	{
 	    filename = FileName::combine(getenv("HOME"), inifile);
 	    if (!FileName::exists(filename))
-	    {	//mem.free(filename);
+	    {
 		filename = FileName::replaceName(argv0, inifile);
-#if linux
 		if (!FileName::exists(filename))
-		{   //mem.free(filename);
-		    filename = FileName::combine("/etc/", inifile);
-		}
+		{
+#if linux
+		    // Search PATH for argv0
+		    const char *p = getenv("PATH");
+		    Array *paths = FileName::splitPath(p);
+		    filename = FileName::searchPath(paths, argv0, 0);
+		    if (!filename)
+			goto Letc;		// argv0 not found on path
+		    filename = FileName::replaceName(filename, inifile);
+		    if (FileName::exists(filename))
+			goto Ldone;
 #endif
+
+		    // Search /etc/ for inifile
+		Letc:
+		    filename = FileName::combine("/etc/", inifile);
+
+		Ldone:
+		    ;
+		}
 	    }
 	}
     }
+    path = FileName::path(filename);
 #if LOG
     printf("\tpath = '%s', filename = '%s'\n", path, filename);
 #endif

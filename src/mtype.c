@@ -533,7 +533,8 @@ Expression *Type::getProperty(Loc loc, Identifier *ident)
 	e->loc = loc;
     }
     else if (ident == Id::mangleof)
-    {	assert(deco);
+    {
+	assert(deco);
 	e = new StringExp(loc, deco, strlen(deco), 'c');
 	Scope sc;
 	e = e->semantic(&sc);
@@ -1605,6 +1606,7 @@ Type *TypeSArray::semantic(Loc loc, Scope *sc)
 	case Tfunction:
 	case Tnone:
 	    error(loc, "can't have array of %s", tbn->toChars());
+	    tbn = next = tint32;
 	    break;
     }
     if (tbn->isauto())
@@ -1737,6 +1739,7 @@ Type *TypeDArray::semantic(Loc loc, Scope *sc)
 	case Tfunction:
 	case Tnone:
 	    error(loc, "can't have array of %s", tn->toChars());
+	    tn = next = tint32;
 	    break;
     }
     if (tn->isauto())

@@ -3794,7 +3794,13 @@ Expression *DotVarExp::semantic(Scope *sc)
 			// class type.
 			Dsymbol *s = tcd->toParent();
 			while (s && s->isFuncDeclaration())
+			{   FuncDeclaration *f = s->isFuncDeclaration();
+			    if (f->vthis)
+			    {
+				e1 = new VarExp(loc, f->vthis);
+			    }
 			    s = s->toParent();
+			}
 			if (s && s->isClassDeclaration())
 			    e1->type = s->isClassDeclaration()->type;
 
@@ -6876,8 +6882,8 @@ Expression *EqualExp::semantic(Scope *sc)
 
 	    if (ve1->var == ve2->var /*|| ve1->var->toSymbol() == ve2->var->toSymbol()*/)
 	    {
-		// They are the same, result is 'true'
-		e = new IntegerExp(loc, 1, Type::tboolean);
+		// They are the same, result is 'true' for ==, 'false' for !=
+		e = new IntegerExp(loc, (op == TOKequal), Type::tboolean);
 		return e;
 	    }
 	}

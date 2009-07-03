@@ -1,5 +1,5 @@
 
-// Copyright (c) 1999-2005 by Digital Mars
+// Copyright (c) 1999-2006 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // www.digitalmars.com
@@ -108,6 +108,7 @@ struct StructDeclaration : AggregateDeclaration
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
     char *mangle();
     char *kind();
+    void toDocBuffer(OutBuffer *buf);
 
     PROT getAccess(Dsymbol *smember);	// determine access to smember
 

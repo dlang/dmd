@@ -21,6 +21,7 @@ struct ModuleInfoDeclaration;
 struct ClassDeclaration;
 struct ModuleDeclaration;
 struct Macro;
+struct Escape;
 struct VarDeclaration;
 
 // Back end
@@ -94,6 +95,7 @@ struct Module : Package
     Array *versionidsNot;	// forward referenced version identifiers
 
     Macro *macrotable;		// document comment macros
+    Escape *escapetable;	// document comment escapes
 
     Module(char *arg, Identifier *ident, int doDocComment, int doHdrGen);
     ~Module();

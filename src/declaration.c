@@ -135,6 +135,7 @@ void TypedefDeclaration::semantic(Scope *sc)
     {	sem = 1;
 	basetype = basetype->semantic(loc, sc);
 	sem = 2;
+	type = type->semantic(loc, sc);
 	if (sc->parent->isFuncDeclaration() && init)
 	    semantic2(sc);
     }
@@ -146,7 +147,7 @@ void TypedefDeclaration::semantic(Scope *sc)
 
 void TypedefDeclaration::semantic2(Scope *sc)
 {
-    //printf("TypedefDeclaration::semantic2()\n");
+    //printf("TypedefDeclaration::semantic2(%s) sem = %d\n", toChars(), sem);
     if (sem == 2)
     {	sem = 3;
 	if (init)
@@ -607,7 +608,7 @@ void VarDeclaration::semantic(Scope *sc)
 
 	    // If it's a member template
 	    AggregateDeclaration *ad = ti->tempdecl->isMember();
-	    if (ad)
+	    if (ad && storage_class != STCundefined)
 	    {
 		error("cannot use template to add field to aggregate '%s'", ad->toChars());
 	    }

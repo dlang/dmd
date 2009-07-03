@@ -353,7 +353,7 @@ struct FuncDeclaration : Declaration
 
     DsymbolTable *localsymtab;		// used to prevent symbols in different
 					// scopes from having the same name
-    VarDeclaration *vthis;		// 'this' parameter
+    VarDeclaration *vthis;		// 'this' parameter (member and nested)
     VarDeclaration *v_arguments;	// '_arguments' parameter
 #if IN_GCC
     VarDeclaration *v_argptr;	        // '_argptr' variable
@@ -415,6 +415,7 @@ struct FuncDeclaration : Declaration
     int canInline(int hasthis, int hdrscan = 0);
     Expression *doInline(InlineScanState *iss, Expression *ethis, Array *arguments);
     char *kind();
+    void toDocBuffer(OutBuffer *buf);
 
     static FuncDeclaration *genCfunc(Type *treturn, char *name);
 
