@@ -252,6 +252,13 @@ void TemplateDeclaration::semantic(Scope *sc)
     {
 	TemplateParameter *tp = (TemplateParameter *)parameters->data[i];
 
+	tp->declareParameter(paramscope);
+    }
+
+    for (int i = 0; i < parameters->dim; i++)
+    {
+	TemplateParameter *tp = (TemplateParameter *)parameters->data[i];
+
 	tp->semantic(paramscope);
     }
 
@@ -340,6 +347,8 @@ int TemplateDeclaration::overloadInsert(Dsymbol *s)
  * those deduced types in dedtypes[].
  * Input:
  *	flag	1: don't do semantic() because of dummy types
+ * Output:
+ *	dedtypes	deduced arguments
  * Return match level.
  */
 
@@ -366,7 +375,12 @@ MATCH TemplateDeclaration::matchWithInstance(TemplateInstance *ti,
 
     // If more arguments than parameters, no match
     if (ti->tiargs->dim > parameters_dim && !variadic)
+    {
+#if LOG
+	printf(" no match: more arguments than parameters\n");
+#endif
 	return MATCHnomatch;
+    }
 
     assert(dedtypes_dim == parameters_dim);
     assert(dedtypes_dim >= ti->tiargs->dim || variadic);
@@ -384,6 +398,7 @@ MATCH TemplateDeclaration::matchWithInstance(TemplateInstance *ti,
 	TemplateParameter *tp = (TemplateParameter *)parameters->data[i];
 	Declaration *sparam;
 
+	//printf("\targument [%d]\n", i);
 #if 0
 	printf("\targument [%d] is %s\n", i, oarg ? oarg->toChars() : "null");
 	TemplateTypeParameter *ttp = tp->isTemplateTypeParameter();
@@ -1352,7 +1367,7 @@ MATCH TypeInstance::deduceType(Scope *sc,
 
 	for (int i = 0; i < tempinst->tiargs->dim; i++)
 	{
-	    //printf("test1: [%d]\n", i);
+	    //printf("test: [%d]\n", i);
 	    Object *o1 = (Object *)tempinst->tiargs->data[i];
 	    Object *o2 = (Object *)tp->tempinst->tiargs->data[i];
 
@@ -1501,6 +1516,7 @@ TemplateParameter::TemplateParameter(Loc loc, Identifier *ident)
 {
     this->loc = loc;
     this->ident = ident;
+    this->sparam = NULL;
 }
 
 TemplateTypeParameter  *TemplateParameter::isTemplateTypeParameter()
@@ -1551,14 +1567,18 @@ TemplateParameter *TemplateTypeParameter::syntaxCopy()
     return tp;
 }
 
+void TemplateTypeParameter::declareParameter(Scope *sc)
+{
+    //printf("TemplateTypeParameter::declareParameter('%s')\n", ident->toChars());
+    TypeIdentifier *ti = new TypeIdentifier(loc, ident);
+    sparam = new AliasDeclaration(loc, ident, ti);
+    if (!sc->insert(sparam))
+	error(loc, "parameter '%s' multiply defined", ident->toChars());
+}
+
 void TemplateTypeParameter::semantic(Scope *sc)
 {
     //printf("TemplateTypeParameter::semantic('%s')\n", ident->toChars());
-    TypeIdentifier *ti = new TypeIdentifier(loc, ident);
-    Declaration *sparam = new AliasDeclaration(loc, ident, ti);
-    if (!sc->insert(sparam))
-	error(loc, "parameter '%s' multiply defined", ident->toChars());
-
     if (specType)
     {
 	specType = specType->semantic(loc, sc);
@@ -1601,6 +1621,7 @@ Lnomatch:
 /*******************************************
  * Match to a particular TemplateParameter.
  * Input:
+ *	i		i'th argument
  *	tiargs[]	actual arguments to template instance
  *	parameters[]	template parameters
  *	dedtypes[]	deduced arguments to template instance
@@ -1623,7 +1644,12 @@ MATCH TemplateTypeParameter::matchArg(Scope *sc, Objects *tiargs,
     {	// Get default argument instead
 	oarg = defaultArg(sc);
 	if (!oarg)
-	    goto Lnomatch;
+	{   assert(i < dedtypes->dim);
+	    // It might have already been deduced
+	    oarg = (Object *)dedtypes->data[i];
+	    if (!oarg)
+		goto Lnomatch;
+	}
     }
 
     ta = isType(oarg);
@@ -1769,13 +1795,16 @@ TemplateParameter *TemplateAliasParameter::syntaxCopy()
     return tp;
 }
 
-void TemplateAliasParameter::semantic(Scope *sc)
+void TemplateAliasParameter::declareParameter(Scope *sc)
 {
     TypeIdentifier *ti = new TypeIdentifier(loc, ident);
-    Declaration *sparam = new AliasDeclaration(loc, ident, ti);
+    sparam = new AliasDeclaration(loc, ident, ti);
     if (!sc->insert(sparam))
 	error(loc, "parameter '%s' multiply defined", ident->toChars());
+}
 
+void TemplateAliasParameter::semantic(Scope *sc)
+{
     if (specAliasT)
     {
 	specAlias = specAliasT->toDsymbol(sc);
@@ -1820,7 +1849,12 @@ MATCH TemplateAliasParameter::matchArg(Scope *sc,
     {	// Get default argument instead
 	oarg = defaultArg(sc);
 	if (!oarg)
-	    goto Lnomatch;
+	{   assert(i < dedtypes->dim);
+	    // It might have already been deduced
+	    oarg = (Object *)dedtypes->data[i];
+	    if (!oarg)
+		goto Lnomatch;
+	}
     }
 
     ea = isExpression(oarg);
@@ -1963,13 +1997,17 @@ TemplateParameter *TemplateValueParameter::syntaxCopy()
     return tp;
 }
 
+void TemplateValueParameter::declareParameter(Scope *sc)
+{
+    VarDeclaration *v = new VarDeclaration(loc, valType, ident, NULL);
+    v->storage_class = STCtemplateparameter;
+    if (!sc->insert(v))
+	error(loc, "parameter '%s' multiply defined", ident->toChars());
+    sparam = v;
+}
+
 void TemplateValueParameter::semantic(Scope *sc)
 {
-    VarDeclaration *sparam = new VarDeclaration(loc, valType, ident, NULL);
-    sparam->storage_class = STCtemplateparameter;
-    if (!sc->insert(sparam))
-	error(loc, "parameter '%s' multiply defined", ident->toChars());
-
     sparam->semantic(sc);
     valType = valType->semantic(loc, sc);
     if (!(valType->isintegral() || valType->isfloating() || valType->isString()) &&
@@ -2043,7 +2081,12 @@ MATCH TemplateValueParameter::matchArg(Scope *sc,
     {	// Get default argument instead
 	oarg = defaultArg(sc);
 	if (!oarg)
-	    goto Lnomatch;
+	{   assert(i < dedtypes->dim);
+	    // It might have already been deduced
+	    oarg = (Object *)dedtypes->data[i];
+	    if (!oarg)
+		goto Lnomatch;
+	}
     }
 
     ei = isExpression(oarg);
@@ -2186,12 +2229,16 @@ TemplateParameter *TemplateTupleParameter::syntaxCopy()
     return tp;
 }
 
-void TemplateTupleParameter::semantic(Scope *sc)
+void TemplateTupleParameter::declareParameter(Scope *sc)
 {
     TypeIdentifier *ti = new TypeIdentifier(loc, ident);
-    Declaration *sparam = new AliasDeclaration(loc, ident, ti);
+    sparam = new AliasDeclaration(loc, ident, ti);
     if (!sc->insert(sparam))
 	error(loc, "parameter '%s' multiply defined", ident->toChars());
+}
+
+void TemplateTupleParameter::semantic(Scope *sc)
+{
 }
 
 int TemplateTupleParameter::overloadMatch(TemplateParameter *tp)
@@ -2601,7 +2648,7 @@ void TemplateInstance::semantic(Scope *sc)
     {
 	Dsymbol *s = (Dsymbol *)members->data[i];
 	//printf("\t[%d] semantic on '%s' %p kind %s in '%s'\n", i, s->toChars(), s, s->kind(), this->toChars());
-	//printf("test2: isnested = %d, sc2->parent = %s\n", isnested, sc2->parent->toChars());
+	//printf("test: isnested = %d, sc2->parent = %s\n", isnested, sc2->parent->toChars());
 //	if (isnested)
 //	    s->parent = sc->parent;
 	//printf("test3: isnested = %d, s->parent = %s\n", isnested, s->parent->toChars());
@@ -3399,11 +3446,12 @@ void TemplateMixin::semantic(Scope *sc)
 {
 #if LOG
     printf("+TemplateMixin::semantic('%s', this=%p)\n", toChars(), this);
+    fflush(stdout);
 #endif
     if (semanticdone &&
 	// This for when a class/struct contains mixin members, and
 	// is done over because of forward references
-	parent && !toParent()->isAggregateDeclaration())
+	(!parent || !toParent()->isAggregateDeclaration()))
     {
 #if LOG
 	printf("\tsemantic done\n");

@@ -53,6 +53,7 @@ ClassDeclaration::ClassDeclaration(Loc loc, Identifier *id, BaseClasses *basecla
     handle = type;
 
     ctor = NULL;
+    defaultCtor = NULL;
     staticCtor = NULL;
     staticDtor = NULL;
 
@@ -565,6 +566,7 @@ void ClassDeclaration::semantic(Scope *sc)
 	*sc = scsave;
 	sc->offset = structsize;
 	ctor->semantic(sc);
+	defaultCtor = ctor;
     }
 
 #if 0

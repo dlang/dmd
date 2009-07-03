@@ -758,7 +758,7 @@ void VarDeclaration::semantic(Scope *sc)
 	if (!(storage_class & (STCauto | STCscope)))
 	{
 	    if (!(storage_class & STCparameter) && ident != Id::withSym)
-		error("reference to auto class must be auto");
+		error("reference to scope class must be scope");
 	}
     }
 

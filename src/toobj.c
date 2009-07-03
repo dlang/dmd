@@ -75,7 +75,7 @@ void Module::genmoduleinfo()
     dtdword(&dt, 0);			// monitor
 
     // name[]
-    char *name = ident->toChars();
+    char *name = toPrettyChars();
     size_t namelen = strlen(name);
     dtdword(&dt, namelen);
     dtabytes(&dt, TYnptr, 0, namelen + 1, name);
@@ -109,7 +109,7 @@ void Module::genmoduleinfo()
     // localClasses[]
     dtdword(&dt, aclasses.dim);
     if (aclasses.dim)
-	dtxoff(&dt, csym, sizeof_ModuleInfo + aimports.dim * PTRSIZE, TYnptr);
+	dtxoff(&dt, csym, sizeof_ModuleInfo + aimports_dim * PTRSIZE, TYnptr);
     else
 	dtdword(&dt, 0);
 
@@ -307,13 +307,15 @@ void ClassDeclaration::toObjFile()
 	    uint flags;
 	    void *deallocator;
 	    OffsetTypeInfo[] offTi;
+	    void *defaultConstructor;
        }
      */
     dt_t *dt = NULL;
     offset = CLASSINFO_SIZE;			// must be ClassInfo.size
     if (classinfo)
     {
-	assert(classinfo->structsize == CLASSINFO_SIZE);
+	if (classinfo->structsize != CLASSINFO_SIZE)
+	    error("D compiler and phobos/object.d are mismatched");
     }
 
     if (classinfo)
@@ -368,6 +370,8 @@ void ClassDeclaration::toObjFile()
 
     // flags
     int flags = 4 | com;
+    if (ctor)
+	flags |= 8;
     for (ClassDeclaration *cd = this; cd; cd = cd->baseClass)
     {
 	if (cd->members)
@@ -395,6 +399,12 @@ void ClassDeclaration::toObjFile()
     // offTi[]
     dtdword(&dt, 0);
     dtdword(&dt, 0);		// null for now, fix later
+
+    // defaultConstructor
+    if (defaultCtor)
+	dtxoff(&dt, defaultCtor->toSymbol(), 0, TYnptr);
+    else
+	dtdword(&dt, 0);
 
     //////////////////////////////////////////////
 
@@ -735,6 +745,8 @@ void InterfaceDeclaration::toObjFile()
 	    void *invariant;		// class invariant
 	    uint flags;
 	    void *deallocator;
+	    OffsetTypeInfo[] offTi;
+	    void *defaultConstructor;
        }
      */
     dt_t *dt = NULL;
@@ -790,6 +802,9 @@ void InterfaceDeclaration::toObjFile()
     // offTi[]
     dtdword(&dt, 0);
     dtdword(&dt, 0);		// null for now, fix later
+
+    // defaultConstructor
+    dtdword(&dt, 0);
 
     //////////////////////////////////////////////
 

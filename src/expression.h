@@ -360,6 +360,7 @@ struct ArrayLiteralExp : Expression
     Expression *interpret(InterState *istate);
     int implicitConvTo(Type *t);
     Expression *castTo(Scope *sc, Type *t);
+    dt_t **toDt(dt_t **pdt);
 
     int inlineCost(InlineCostState *ics);
     Expression *doInline(InlineDoState *ids);

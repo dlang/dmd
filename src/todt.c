@@ -568,6 +568,53 @@ dt_t **StringExp::toDt(dt_t **pdt)
     return pdt;
 }
 
+dt_t **ArrayLiteralExp::toDt(dt_t **pdt)
+{
+    //printf("ArrayLiteralExp::toDt() '%s', type = %s\n", toChars(), type->toChars());
+
+    dt_t *d;
+    dt_t **pdtend;
+
+    d = NULL;
+    pdtend = &d;
+    for (int i = 0; i < elements->dim; i++)
+    {	Expression *e = (Expression *)elements->data[i];
+
+	pdtend = e->toDt(pdtend);
+    }
+    Type *t = type->toBasetype();
+
+    switch (t->ty)
+    {
+	case Tsarray:
+	    pdt = dtcat(pdt, d);
+	    break;
+
+	case Tpointer:
+	case Tarray:
+	    if (t->ty == Tarray)
+		dtdword(pdt, elements->dim);
+	    if (d)
+	    {
+		// Create symbol, and then refer to it
+		Symbol *s;
+		s = static_sym();
+		s->Sdt = d;
+		outdata(s);
+
+		dtxoff(pdt, s, 0, TYnptr);
+	    }
+	    else
+		dtdword(pdt, 0);
+
+	    break;
+
+	default:
+	    assert(0);
+    }
+    return pdt;
+}
+
 dt_t **SymOffExp::toDt(dt_t **pdt)
 {
     Symbol *s;

@@ -766,7 +766,7 @@ Dsymbol *ArrayScopeSymbol::search(Loc loc, Identifier *ident, int flags)
 
 	if (td)
  	{
-	    VarDeclaration *v = new VarDeclaration(0, Type::tsize_t, Id::dollar, NULL);
+	    VarDeclaration *v = new VarDeclaration(loc, Type::tsize_t, Id::dollar, NULL);
 	    Expression *e = new IntegerExp(0, td->objects->dim, Type::tsize_t);
 	    v->init = new ExpInitializer(0, e);
 	    v->storage_class |= STCconst;
@@ -775,7 +775,7 @@ Dsymbol *ArrayScopeSymbol::search(Loc loc, Identifier *ident, int flags)
 
 	if (type)
  	{
-	    VarDeclaration *v = new VarDeclaration(0, Type::tsize_t, Id::dollar, NULL);
+	    VarDeclaration *v = new VarDeclaration(loc, Type::tsize_t, Id::dollar, NULL);
 	    Expression *e = new IntegerExp(0, type->arguments->dim, Type::tsize_t);
 	    v->init = new ExpInitializer(0, e);
 	    v->storage_class |= STCconst;
@@ -810,7 +810,7 @@ Dsymbol *ArrayScopeSymbol::search(Loc loc, Identifier *ident, int flags)
 
 	if (!*pvar)
 	{
-	    VarDeclaration *v = new VarDeclaration(0, Type::tsize_t, Id::dollar, NULL);
+	    VarDeclaration *v = new VarDeclaration(loc, Type::tsize_t, Id::dollar, NULL);
 
 	    if (ce->op == TOKstring)
 	    {	/* It is for a string literal, so the

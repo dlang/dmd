@@ -94,6 +94,8 @@ struct TemplateParameter
     Loc loc;
     Identifier *ident;
 
+    Declaration *sparam;
+
     TemplateParameter(Loc loc, Identifier *ident);
 
     virtual TemplateTypeParameter  *isTemplateTypeParameter();
@@ -102,6 +104,7 @@ struct TemplateParameter
     virtual TemplateTupleParameter *isTemplateTupleParameter();
 
     virtual TemplateParameter *syntaxCopy() = 0;
+    virtual void declareParameter(Scope *sc) = 0;
     virtual void semantic(Scope *) = 0;
     virtual void print(Object *oarg, Object *oded) = 0;
     virtual void toCBuffer(OutBuffer *buf, HdrGenState *hgs) = 0;
@@ -133,6 +136,7 @@ struct TemplateTypeParameter : TemplateParameter
 
     TemplateTypeParameter *isTemplateTypeParameter();
     TemplateParameter *syntaxCopy();
+    void declareParameter(Scope *sc);
     void semantic(Scope *);
     void print(Object *oarg, Object *oded);
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
@@ -159,6 +163,7 @@ struct TemplateValueParameter : TemplateParameter
 
     TemplateValueParameter *isTemplateValueParameter();
     TemplateParameter *syntaxCopy();
+    void declareParameter(Scope *sc);
     void semantic(Scope *);
     void print(Object *oarg, Object *oded);
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
@@ -186,6 +191,7 @@ struct TemplateAliasParameter : TemplateParameter
 
     TemplateAliasParameter *isTemplateAliasParameter();
     TemplateParameter *syntaxCopy();
+    void declareParameter(Scope *sc);
     void semantic(Scope *);
     void print(Object *oarg, Object *oded);
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
@@ -206,6 +212,7 @@ struct TemplateTupleParameter : TemplateParameter
 
     TemplateTupleParameter *isTemplateTupleParameter();
     TemplateParameter *syntaxCopy();
+    void declareParameter(Scope *sc);
     void semantic(Scope *);
     void print(Object *oarg, Object *oded);
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);

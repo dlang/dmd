@@ -5919,6 +5919,7 @@ Expression *SliceExp::semantic(Scope *sc)
     if (t->ty == Tsarray || t->ty == Tarray || t->ty == Ttuple)
     {
 	sym = new ArrayScopeSymbol(this);
+	sym->loc = loc;
 	sym->parent = sc->scopesym;
 	sc = sc->push(sym);
     }
@@ -6255,6 +6256,7 @@ Expression *IndexExp::semantic(Scope *sc)
     if (t1->ty == Tsarray || t1->ty == Tarray || t1->ty == Ttuple)
     {	// Create scope for 'length' variable
 	sym = new ArrayScopeSymbol(this);
+	sym->loc = loc;
 	sym->parent = sc->scopesym;
 	sc = sc->push(sym);
     }

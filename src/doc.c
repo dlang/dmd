@@ -259,6 +259,8 @@ void Module::gendocfile()
     Macro::define(&macrotable, (unsigned char *)"DATETIME", 8, (unsigned char *)p, strlen(p));
     Macro::define(&macrotable, (unsigned char *)"YEAR", 4, (unsigned char *)p + 20, 4);
 
+    char *docfilename = docfile->toChars();
+    Macro::define(&macrotable, (unsigned char *)"DOCFILENAME", 11, (unsigned char *)docfilename, strlen(docfilename));
 
     if (dc->copyright)
     {

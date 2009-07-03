@@ -150,7 +150,7 @@ struct BaseClass
     void copyBaseInterfaces(BaseClasses *);
 };
 
-#define CLASSINFO_SIZE 	(0x3C+8)	// value of ClassInfo.size
+#define CLASSINFO_SIZE 	(0x3C+12)	// value of ClassInfo.size
 
 struct ClassDeclaration : AggregateDeclaration
 {
@@ -159,6 +159,7 @@ struct ClassDeclaration : AggregateDeclaration
 
     ClassDeclaration *baseClass;	// NULL only if this is Object
     CtorDeclaration *ctor;
+    CtorDeclaration *defaultCtor;	// default constructor
     FuncDeclarations dtors;		// Array of destructors
     FuncDeclaration *staticCtor;
     FuncDeclaration *staticDtor;

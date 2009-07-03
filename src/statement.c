@@ -3099,7 +3099,7 @@ void Catch::semantic(Scope *sc)
     if (!type)
 	type = new TypeIdentifier(0, Id::Object);
     type = type->semantic(loc, sc);
-    if (!type->isClassHandle())
+    if (!type->toBasetype()->isClassHandle())
 	error("can only catch class objects, not '%s'", type->toChars());
     else if (ident)
     {

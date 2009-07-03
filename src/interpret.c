@@ -283,9 +283,12 @@ Expression *CompoundStatement::interpret(InterState *istate)
 	for (size_t i = 0; i < statements->dim; i++)
 	{   Statement *s = (Statement *)statements->data[i];
 
-	    e = s->interpret(istate);
-	    if (e)
-		break;
+	    if (s)
+	    {
+		e = s->interpret(istate);
+		if (e)
+		    break;
+	    }
 	}
     }
 #if LOG
