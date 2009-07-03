@@ -67,6 +67,7 @@ enum TOK
 	TOKremove,
 	TOKnewanonclass, TOKcomment,
 	TOKarrayliteral, TOKassocarrayliteral,
+	TOKstructliteral,
 
 	// Operators
 	TOKlt,		TOKgt,

@@ -264,6 +264,7 @@ void TypeInfoEnumDeclaration::toDt(dt_t **pdt)
     /* Put out:
      *	TypeInfo base;
      *	char[] name;
+     *	void[] m_init;
      */
 
     sd->memtype->getTypeInfo(NULL);
@@ -273,6 +274,18 @@ void TypeInfoEnumDeclaration::toDt(dt_t **pdt)
     size_t namelen = strlen(name);
     dtdword(pdt, namelen);
     dtabytes(pdt, TYnptr, 0, namelen + 1, name);
+
+    // void[] init;
+    if (tinfo->isZeroInit() || !sd->defaultval)
+    {	// 0 initializer, or the same as the base type
+	dtdword(pdt, 0);	// init.length
+	dtdword(pdt, 0);	// init.ptr
+    }
+    else
+    {
+	dtdword(pdt, sd->type->size());	// init.length
+	dtxoff(pdt, sd->toInitializer(), 0, TYnptr);	// init.ptr
+    }
 }
 
 void TypeInfoPointerDeclaration::toDt(dt_t **pdt)

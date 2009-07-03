@@ -662,6 +662,8 @@ Expression *Equal(enum TOK op, Type *type, Expression *e1, Expression *e2)
     real_t r1;
     real_t r2;
 
+    //printf("Equal(e1 = %s, e2 = %s)\n", e1->toChars(), e2->toChars());
+
     assert(op == TOKequal || op == TOKnotequal);
 
     if (e1->op == TOKstring && e2->op == TOKstring)
@@ -692,6 +694,41 @@ Expression *Equal(enum TOK op, Type *type, Expression *e1, Expression *e2)
 	    {   Expression *ee1 = (Expression *)es1->elements->data[i];
 		Expression *ee2 = (Expression *)es2->elements->data[i];
 
+		Expression *v = Equal(TOKequal, Type::tint32, ee1, ee2);
+		if (v == EXP_CANT_INTERPRET)
+		    return EXP_CANT_INTERPRET;
+		cmp = v->toInteger();
+		if (cmp == 0)
+		    break;
+	    }
+	}
+    }
+    else if (e1->op == TOKstructliteral && e2->op == TOKstructliteral)
+    {   StructLiteralExp *es1 = (StructLiteralExp *)e1;
+	StructLiteralExp *es2 = (StructLiteralExp *)e2;
+
+	if (es1->sd != es2->sd)
+	    cmp = 0;
+	else if ((!es1->elements || !es1->elements->dim) &&
+	    (!es2->elements || !es2->elements->dim))
+	    cmp = 1;		// both arrays are empty
+	else if (!es1->elements || !es2->elements)
+	    cmp = 0;
+	else if (es1->elements->dim != es2->elements->dim)
+	    cmp = 0;
+	else
+	{
+	    cmp = 1;
+	    for (size_t i = 0; i < es1->elements->dim; i++)
+	    {   Expression *ee1 = (Expression *)es1->elements->data[i];
+		Expression *ee2 = (Expression *)es2->elements->data[i];
+
+		if (ee1 == ee2)
+		    continue;
+		if (!ee1 || !ee2)
+		{   cmp = 0;
+		    break;
+		}
 		Expression *v = Equal(TOKequal, Type::tint32, ee1, ee2);
 		if (v == EXP_CANT_INTERPRET)
 		    return EXP_CANT_INTERPRET;
@@ -1035,7 +1072,7 @@ Expression *Index(Type *type, Expression *e1, Expression *e2)
 {   Expression *e = EXP_CANT_INTERPRET;
     Loc loc = e1->loc;
 
-    //printf("Index(e1 = %s)\n", e1->toChars());
+    //printf("Index(e1 = %s, e2 = %s)\n", e1->toChars(), e2->toChars());
     assert(e1->type);
     if (e1->op == TOKstring && e2->op == TOKint64)
     {	StringExp *es1 = (StringExp *)e1;
@@ -1383,4 +1420,23 @@ Expression *Cat(Type *type, Expression *e1, Expression *e2)
     return e;
 }
 
+Expression *Ptr(Type *type, Expression *e1)
+{
+    //printf("Ptr(e1 = %s)\n", e1->toChars());
+    if (e1->op == TOKadd)
+    {	AddExp *ae = (AddExp *)e1;
+	if (ae->e1->op == TOKaddress && ae->e2->op == TOKint64)
+	{   AddrExp *ade = (AddrExp *)ae->e1;
+	    if (ade->e1->op == TOKstructliteral)
+	    {	StructLiteralExp *se = (StructLiteralExp *)ade->e1;
+		unsigned offset = ae->e2->toInteger();
+		Expression *e = se->getField(type, offset);
+		if (!e)
+		    e = EXP_CANT_INTERPRET;
+		return e;
+	    }
+	}
+    }
+    return EXP_CANT_INTERPRET;
+}
 

@@ -300,6 +300,8 @@ void expandTuples(Expressions *exps)
     {
 	for (size_t i = 0; i < exps->dim; i++)
 	{   Expression *arg = (Expression *)exps->data[i];
+	    if (!arg)
+		continue;
 
 	    // Inline expand all the tuples
 	    while (arg->op == TOKtuple)
@@ -2635,6 +2637,179 @@ void AssocArrayLiteralExp::toMangleBuffer(OutBuffer *buf)
     }
 }
 
+/************************ StructLiteralExp ************************************/
+
+// sd( e1, e2, e3, ... )
+
+StructLiteralExp::StructLiteralExp(Loc loc, StructDeclaration *sd, Expressions *elements)
+    : Expression(loc, TOKstructliteral, sizeof(StructLiteralExp))
+{
+    this->sd = sd;
+    this->elements = elements;
+    this->s = NULL;
+    this->soffset = 0;
+    this->fillHoles = 1;
+}
+
+Expression *StructLiteralExp::syntaxCopy()
+{
+    return new StructLiteralExp(loc, sd, arraySyntaxCopy(elements));
+}
+
+Expression *StructLiteralExp::semantic(Scope *sc)
+{   Expression *e;
+
+#if LOGSEMANTIC
+    printf("StructLiteralExp::semantic('%s')\n", toChars());
+#endif
+
+    // Run semantic() on each element
+    for (size_t i = 0; i < elements->dim; i++)
+    {	e = (Expression *)elements->data[i];
+	if (!e)
+	    continue;
+	e = e->semantic(sc);
+	elements->data[i] = (void *)e;
+    }
+    expandTuples(elements);
+    size_t offset = 0;
+    for (size_t i = 0; i < elements->dim; i++)
+    {	e = (Expression *)elements->data[i];
+	if (!e)
+	    continue;
+
+	if (!e->type)
+	    error("%s has no value", e->toChars());
+	e = resolveProperties(sc, e);
+	if (i >= sd->fields.dim)
+	{   error("more initializers than fields of %s", sd->toChars());
+	    break;
+	}
+	Dsymbol *s = (Dsymbol *)sd->fields.data[i];
+	VarDeclaration *v = s->isVarDeclaration();
+	assert(v);
+	if (v->offset < offset)
+	    error("overlapping initialization for %s", v->toChars());
+	offset = v->offset + v->type->size();
+	e = e->implicitCastTo(sc, v->type);
+	elements->data[i] = (void *)e;
+    }
+
+    /* Fill out remainder of elements[] with default initializers for fields[]
+     */
+    for (size_t i = elements->dim; i < sd->fields.dim; i++)
+    {	Dsymbol *s = (Dsymbol *)sd->fields.data[i];
+	VarDeclaration *v = s->isVarDeclaration();
+	assert(v);
+
+	if (v->offset < offset)
+	{   e = NULL;
+	    sd->hasUnions = 1;
+	}
+	else
+	{
+	    if (v->init)
+	    {   e = v->init->toExpression();
+		if (!e)
+		    error("cannot make expression out of initializer for %s", v->toChars());
+	    }
+	    else
+		e = v->type->defaultInit();
+	    offset = v->offset + v->type->size();
+	}
+	elements->push(e);
+    }
+
+    type = sd->type;
+    return this;
+}
+
+/**************************************
+ * Gets expression at offset of type.
+ * Returns NULL if not found.
+ */
+
+Expression *StructLiteralExp::getField(Type *type, unsigned offset)
+{   Expression *e = NULL;
+    int i = getFieldIndex(type, offset);
+
+    if (i != -1)
+    {   e = (Expression *)elements->data[i];
+	if (e)
+	{
+	    e = e->copy();
+	    e->type = type;
+	}
+    }
+    return e;
+}
+
+/************************************
+ * Get index of field.
+ * Returns -1 if not found. 
+ */
+
+int StructLiteralExp::getFieldIndex(Type *type, unsigned offset)
+{
+    /* Find which field offset is by looking at the field offsets
+     */
+    for (size_t i = 0; i < sd->fields.dim; i++)
+    {
+	Dsymbol *s = (Dsymbol *)sd->fields.data[i];
+	VarDeclaration *v = s->isVarDeclaration();
+	assert(v);
+
+	if (offset == v->offset &&
+	    type->size() == v->type->size())
+	{   Expression *e = (Expression *)elements->data[i];
+	    if (e)
+	    {
+		return i;
+	    }
+	    break;
+	}
+    }
+    return -1;
+}
+
+
+
+int StructLiteralExp::checkSideEffect(int flag)
+{   int f = 0;
+
+    for (size_t i = 0; i < elements->dim; i++)
+    {	Expression *e = (Expression *)elements->data[i];
+	if (!e)
+	    continue;
+
+	f |= e->checkSideEffect(2);
+    }
+    if (flag == 0 && f == 0)
+	Expression::checkSideEffect(0);
+    return f;
+}
+
+void StructLiteralExp::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
+{
+    buf->writestring(sd->toChars());
+    buf->writeByte('(');
+    argsToCBuffer(buf, elements, hgs);
+    buf->writeByte(')');
+}
+
+void StructLiteralExp::toMangleBuffer(OutBuffer *buf)
+{
+    size_t dim = elements ? elements->dim : 0;
+    buf->printf("S%u", dim);
+    for (size_t i = 0; i < dim; i++)
+    {	Expression *e = (Expression *)elements->data[i];
+	if (e)
+	    e->toMangleBuffer(buf);
+	else
+	    buf->writeByte('v');	// 'v' for void
+    }
+}
+
 /************************ TypeDotIdExp ************************************/
 
 /* Things like:
@@ -4178,6 +4353,7 @@ Expression *CompileExp::semantic(Scope *sc)
     e1 = e1->optimize(WANTvalue | WANTinterpret);
     if (e1->op != TOKstring)
     {	error("argument to mixin must be a string, not (%s)", e1->toChars());
+	type = Type::terror;
 	return this;
     }
     StringExp *se = (StringExp *)e1;
@@ -5168,14 +5344,21 @@ Lagain:
     if (t1)
     {	AggregateDeclaration *ad;
 
-	if (t1->ty == Tclass)
+	if (t1->ty == Tstruct)
+	{
+	    ad = ((TypeStruct *)t1)->sym;
+	    if (search_function(ad, Id::call))
+		goto L1;	// overload of opCall, therefore it's a call
+	    /* It's a struct literal
+	     */
+	    Expression *e = new StructLiteralExp(loc, (StructDeclaration *)ad, arguments);
+	    e = e->semantic(sc);
+	    return e;
+	}
+	else if (t1->ty == Tclass)
 	{
 	    ad = ((TypeClass *)t1)->sym;
 	    goto L1;
-	}
-	else if (t1->ty == Tstruct)
-	{
-	    ad = ((TypeStruct *)t1)->sym;
 	L1:
 	    // Rewrite as e1.call(arguments)
 	    Expression *e = new DotIdExp(loc, e1, Id::call);
@@ -6364,6 +6547,7 @@ int CommaExp::checkSideEffect(int flag)
 IndexExp::IndexExp(Loc loc, Expression *e1, Expression *e2)
 	: BinExp(loc, TOKindex, sizeof(IndexExp), e1, e2)
 {
+    //printf("IndexExp::IndexExp('%s')\n", toChars());
     lengthVar = NULL;
     modifiable = 0;	// assume it is an rvalue
 }
@@ -6380,6 +6564,8 @@ Expression *IndexExp::semantic(Scope *sc)
 #endif
     if (type)
 	return this;
+    if (!e1->type)
+	e1 = e1->semantic(sc);
     assert(e1->type);		// semantic() should already be run on it
     e = this;
 

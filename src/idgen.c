@@ -196,6 +196,12 @@ Msgtable msgtable[] =
     { "adDup", "_adDupT" },
     { "adReverse", "_adReverse" },
 
+    // For internal functions
+    { "aaLen", "_aaLen" },
+    { "aaKeys", "_aaKeys" },
+    { "aaValues", "_aaValues" },
+    { "aaRehash", "_aaRehash" },
+
     // For pragma's
     { "lib" },
     { "msg" },

@@ -34,6 +34,7 @@ AggregateDeclaration::AggregateDeclaration(Loc loc, Identifier *id)
     structsize = 0;		// size of struct
     alignsize = 0;		// size of struct for alignment purposes
     structalign = 0;		// struct member alignment in effect
+    hasUnions = 0;
     sizeok = 0;			// size not determined yet
     isdeprecated = 0;
     inv = NULL;

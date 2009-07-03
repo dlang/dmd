@@ -2203,8 +2203,8 @@ Type *TypeAArray::semantic(Loc loc, Scope *sc)
 #if 0
 	    // Convert to Tarray
 	    key = key->next->arrayOf();
-	    break;
 #endif
+	    break;
 	case Tbit:
 	case Tbool:
 	case Tfunction:
@@ -2238,7 +2238,7 @@ Expression *TypeAArray::dotExp(Scope *sc, Expression *e, Identifier *ident)
 	FuncDeclaration *fd;
 	Expressions *arguments;
 
-	fd = FuncDeclaration::genCfunc(Type::tsize_t, "_aaLen");
+	fd = FuncDeclaration::genCfunc(Type::tsize_t, Id::aaLen);
 	ec = new VarExp(0, fd);
 	arguments = new Expressions();
 	arguments->push(e);
@@ -2253,7 +2253,7 @@ Expression *TypeAArray::dotExp(Scope *sc, Expression *e, Identifier *ident)
 	int size = key->size(e->loc);
 
 	assert(size);
-	fd = FuncDeclaration::genCfunc(Type::tindex, "_aaKeys");
+	fd = FuncDeclaration::genCfunc(Type::tindex, Id::aaKeys);
 	ec = new VarExp(0, fd);
 	arguments = new Expressions();
 	arguments->push(e);
@@ -2267,7 +2267,7 @@ Expression *TypeAArray::dotExp(Scope *sc, Expression *e, Identifier *ident)
 	FuncDeclaration *fd;
 	Expressions *arguments;
 
-	fd = FuncDeclaration::genCfunc(Type::tindex, "_aaValues");
+	fd = FuncDeclaration::genCfunc(Type::tindex, Id::aaValues);
 	ec = new VarExp(0, fd);
 	arguments = new Expressions();
 	arguments->push(e);
@@ -2284,7 +2284,7 @@ Expression *TypeAArray::dotExp(Scope *sc, Expression *e, Identifier *ident)
 	FuncDeclaration *fd;
 	Expressions *arguments;
 
-	fd = FuncDeclaration::genCfunc(Type::tint64, "_aaRehash");
+	fd = FuncDeclaration::genCfunc(Type::tint64, Id::aaRehash);
 	ec = new VarExp(0, fd);
 	arguments = new Expressions();
 	arguments->push(e->addressOf(sc));

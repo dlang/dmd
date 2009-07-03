@@ -35,12 +35,14 @@ struct InlineScanState;
 struct Expression;
 struct Declaration;
 struct AggregateDeclaration;
+struct StructDeclaration;
 struct TemplateInstance;
 struct TemplateDeclaration;
 struct ClassDeclaration;
 struct HdrGenState;
 struct BinExp;
 struct InterState;
+struct Symbol;		// back end symbol
 
 enum TOK;
 
@@ -386,6 +388,36 @@ struct AssocArrayLiteralExp : Expression
     Expression *interpret(InterState *istate);
     int implicitConvTo(Type *t);
     Expression *castTo(Scope *sc, Type *t);
+
+    int inlineCost(InlineCostState *ics);
+    Expression *doInline(InlineDoState *ids);
+    Expression *inlineScan(InlineScanState *iss);
+};
+
+struct StructLiteralExp : Expression
+{
+    StructDeclaration *sd;		// which aggregate this is for
+    Expressions *elements;	// parallels sd->fields[] with
+				// NULL entries for fields to skip
+
+    Symbol *s;			// back end symbol to initialize with literal
+    size_t soffset;		// offset from start of s
+    int fillHoles;		// fill alignment 'holes' with zero
+
+    StructLiteralExp(Loc loc, StructDeclaration *sd, Expressions *elements);
+
+    Expression *syntaxCopy();
+    Expression *semantic(Scope *sc);
+    Expression *getField(Type *type, unsigned offset);
+    int getFieldIndex(Type *type, unsigned offset);
+    elem *toElem(IRState *irs);
+    int checkSideEffect(int flag);
+    void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
+    void toMangleBuffer(OutBuffer *buf);
+    void scanForNestedRef(Scope *sc);
+    Expression *optimize(int result);
+    Expression *interpret(InterState *istate);
+    dt_t **toDt(dt_t **pdt);
 
     int inlineCost(InlineCostState *ics);
     Expression *doInline(InlineDoState *ids);
@@ -805,6 +837,7 @@ struct PtrExp : UnaExp
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
     elem *toElem(IRState *irs);
     Expression *optimize(int result);
+    Expression *interpret(InterState *istate);
 };
 
 struct NegExp : UnaExp
@@ -1343,6 +1376,7 @@ Expression *Not(Type *type, Expression *e1);
 Expression *Bool(Type *type, Expression *e1);
 Expression *Cast(Type *type, Type *to, Expression *e1);
 Expression *ArrayLength(Type *type, Expression *e1);
+Expression *Ptr(Type *type, Expression *e1);
 
 Expression *Add(Type *type, Expression *e1, Expression *e2);
 Expression *Min(Type *type, Expression *e1, Expression *e2);

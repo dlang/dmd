@@ -1100,6 +1100,33 @@ void EnumDeclaration::toObjFile()
 	toDebug();
 
     type->getTypeInfo(NULL);	// generate TypeInfo
+
+    TypeEnum *tc = (TypeEnum *)type;
+    if (type->isZeroInit() || !tc->sym->defaultval)
+	;
+    else
+    {
+	enum_SC scclass = SCglobal;
+	for (Dsymbol *parent = this->parent; parent; parent = parent->parent)
+	{
+	    if (parent->isTemplateInstance())
+	    {
+		scclass = SCcomdat;
+		break;
+	    }
+	}
+
+	// Generate static initializer
+	toInitializer();
+	sinit->Sclass = scclass;
+	sinit->Sfl = FLdata;
+#if ELFOBJ // Burton
+	sinit->Sseg = CDATA;
+#endif /* ELFOBJ */
+	dtnbytes(&sinit->Sdt, tc->size(0), (char *)&tc->sym->defaultval);
+	//sinit->Sdt = tc->sym->init->toDt();
+	outdata(sinit);
+    }
 }
 
 

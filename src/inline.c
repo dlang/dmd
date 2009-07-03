@@ -188,6 +188,11 @@ int AssocArrayLiteralExp::inlineCost(InlineCostState *ics)
     return 1 + arrayInlineCost(ics, keys) + arrayInlineCost(ics, values);
 }
 
+int StructLiteralExp::inlineCost(InlineCostState *ics)
+{
+    return 1 + arrayInlineCost(ics, elements);
+}
+
 int FuncExp::inlineCost(InlineCostState *ics)
 {
     // Right now, this makes the function be output to the .obj file twice.
@@ -715,6 +720,16 @@ Expression *AssocArrayLiteralExp::doInline(InlineDoState *ids)
 }
 
 
+Expression *StructLiteralExp::doInline(InlineDoState *ids)
+{
+    StructLiteralExp *ce;
+
+    ce = (StructLiteralExp *)copy();
+    ce->elements = arrayExpressiondoInline(elements, ids);
+    return ce;
+}
+
+
 Expression *ArrayExp::doInline(InlineDoState *ids)
 {
     ArrayExp *ce;
@@ -1115,6 +1130,16 @@ Expression *AssocArrayLiteralExp::inlineScan(InlineScanState *iss)
     //printf("AssocArrayLiteralExp::inlineScan()\n");
     arrayInlineScan(iss, keys);
     arrayInlineScan(iss, values);
+
+    return e;
+}
+
+
+Expression *StructLiteralExp::inlineScan(InlineScanState *iss)
+{   Expression *e = this;
+
+    //printf("StructLiteralExp::inlineScan()\n");
+    arrayInlineScan(iss, elements);
 
     return e;
 }

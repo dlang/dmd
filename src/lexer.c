@@ -2730,6 +2730,7 @@ void Lexer::initKeywords()
     Token::tochars[TOKarraylength]	= "arraylength";
     Token::tochars[TOKarrayliteral]	= "arrayliteral";
     Token::tochars[TOKassocarrayliteral] = "assocarrayliteral";
+    Token::tochars[TOKstructliteral]	= "structliteral";
     Token::tochars[TOKstring]		= "string";
     Token::tochars[TOKdsymbol]		= "symbol";
     Token::tochars[TOKtuple]		= "tuple";

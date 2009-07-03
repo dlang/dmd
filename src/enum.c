@@ -26,6 +26,7 @@ EnumDeclaration::EnumDeclaration(Loc loc, Identifier *id, Type *memtype)
     maxval = 0;
     minval = 0;
     defaultval = 0;
+    sinit = NULL;
 }
 
 Dsymbol *EnumDeclaration::syntaxCopy(Dsymbol *s)

@@ -1,6 +1,6 @@
 
 // Compiler implementation of the D programming language
-// Copyright (c) 1999-2006 by Digital Mars
+// Copyright (c) 1999-2007 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // http://www.digitalmars.com
@@ -614,6 +614,112 @@ dt_t **ArrayLiteralExp::toDt(dt_t **pdt)
     }
     return pdt;
 }
+
+dt_t **StructLiteralExp::toDt(dt_t **pdt)
+{
+    Array dts;
+    unsigned i;
+    unsigned j;
+    dt_t *dt;
+    dt_t *d;
+    unsigned offset;
+
+    //printf("StructLiteralExp::toDt() %s)\n", toChars());
+    dts.setDim(sd->fields.dim);
+    dts.zero();
+    assert(elements->dim <= sd->fields.dim);
+
+    for (i = 0; i < elements->dim; i++)
+    {
+	Expression *e = (Expression *)elements->data[i];
+	if (!e)
+	    continue;
+	dt = NULL;
+	e->toDt(&dt);
+	dts.data[i] = (void *)dt;
+    }
+
+    offset = 0;
+    for (j = 0; j < dts.dim; j++)
+    {
+	VarDeclaration *v = (VarDeclaration *)sd->fields.data[j];
+
+	d = (dt_t *)dts.data[j];
+	if (!d)
+	{   // An instance specific initializer was not provided.
+	    // Look to see if there's a default initializer from the
+	    // struct definition
+	    VarDeclaration *v = (VarDeclaration *)sd->fields.data[j];
+
+	    if (v->init)
+	    {
+		d = v->init->toDt();
+	    }
+	    else if (v->offset >= offset)
+	    {
+		unsigned k;
+		unsigned offset2 = v->offset + v->type->size();
+		// Make sure this field (v) does not overlap any explicitly
+		// initialized field.
+		for (k = j + 1; 1; k++)
+		{
+		    if (k == dts.dim)		// didn't find any overlap
+		    {
+			v->type->toDt(&d);
+			break;
+		    }
+		    VarDeclaration *v2 = (VarDeclaration *)sd->fields.data[k];
+
+		    if (v2->offset < offset2 && dts.data[k])
+			break;			// overlap
+		}
+	    }
+	}
+	if (d)
+	{
+	    if (v->offset < offset)
+		error("duplicate union initialization for %s", v->toChars());
+	    else
+	    {	unsigned sz = dt_size(d);
+		unsigned vsz = v->type->size();
+		unsigned voffset = v->offset;
+		assert(sz <= vsz);
+
+		unsigned dim = 1;
+		for (Type *vt = v->type->toBasetype();
+		     vt->ty == Tsarray;
+		     vt = vt->next->toBasetype())
+		{   TypeSArray *tsa = (TypeSArray *)vt;
+		    dim *= tsa->dim->toInteger();
+		}
+
+		for (size_t i = 0; i < dim; i++)
+		{
+		    if (offset < voffset)
+			pdt = dtnzeros(pdt, voffset - offset);
+		    if (!d)
+		    {
+			if (v->init)
+			    d = v->init->toDt();
+			else
+			    v->type->toDt(&d);
+		    }
+		    pdt = dtcat(pdt, d);
+		    d = NULL;
+		    offset = voffset + sz;
+		    voffset += vsz / dim;
+		    if (sz == vsz)
+			break;
+		}
+	    }
+	}
+    }
+    if (offset < sd->structsize)
+	pdt = dtnzeros(pdt, sd->structsize - offset);
+
+    return pdt;
+}
+
 
 dt_t **SymOffExp::toDt(dt_t **pdt)
 {

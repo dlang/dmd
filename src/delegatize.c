@@ -184,6 +184,12 @@ void AssocArrayLiteralExp::scanForNestedRef(Scope *sc)
 }
 
 
+void StructLiteralExp::scanForNestedRef(Scope *sc)
+{
+    arrayExpressionScanForNestedRef(sc, elements);
+}
+
+
 void TupleExp::scanForNestedRef(Scope *sc)
 {
     arrayExpressionScanForNestedRef(sc, exps);

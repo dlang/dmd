@@ -24,6 +24,7 @@
 #include "attrib.h"
 #include "lexer.h"
 #include "dsymbol.h"
+#include "id.h"
 
 #include <mem.h>
 
@@ -582,6 +583,31 @@ Symbol *TypedefDeclaration::toInitializer()
     {
 	stag = fake_classsym(NULL);
 	s = toSymbolX("__init", SCextern, stag->Stype, "Z");
+	s->Sfl = FLextern;
+	s->Sflags |= SFLnodebug;
+	slist_add(s);
+	sinit = s;
+    }
+    return sinit;
+}
+
+Symbol *EnumDeclaration::toInitializer()
+{
+    Symbol *s;
+    Classsym *stag;
+
+    if (!sinit)
+    {
+	stag = fake_classsym(NULL);
+	Identifier *ident_save = ident;
+	if (!ident)
+	{   static int num;
+	    char name[6 + sizeof(num) * 3 + 1];
+	    sprintf(name, "__enum%d", ++num);
+	    ident = Lexer::idPool(name);
+	}
+	s = toSymbolX("__init", SCextern, stag->Stype, "Z");
+	ident = ident_save;
 	s->Sfl = FLextern;
 	s->Sflags |= SFLnodebug;
 	slist_add(s);

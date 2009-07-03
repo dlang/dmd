@@ -43,6 +43,7 @@ struct AggregateDeclaration : ScopeDsymbol
     unsigned structsize;	// size of struct
     unsigned alignsize;		// size of struct for alignment purposes
     unsigned structalign;	// struct member alignment in effect
+    int hasUnions;		// set if aggregate has overlapping fields
     Array fields;		// VarDeclaration fields
     unsigned sizeok;		// set when structsize contains valid data
 				// 0: no size

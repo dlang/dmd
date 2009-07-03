@@ -103,6 +103,21 @@ Expression *AssocArrayLiteralExp::optimize(int result)
     return this;
 }
 
+Expression *StructLiteralExp::optimize(int result)
+{
+    if (elements)
+    {
+	for (size_t i = 0; i < elements->dim; i++)
+	{   Expression *e = (Expression *)elements->data[i];
+	    if (!e)
+		continue;
+	    e = e->optimize(WANTvalue | (result & WANTinterpret));
+	    elements->data[i] = (void *)e;
+	}
+    }
+    return this;
+}
+
 Expression *TypeExp::optimize(int result)
 {
     return this;
@@ -221,6 +236,7 @@ Expression *AddrExp::optimize(int result)
 
 Expression *PtrExp::optimize(int result)
 {
+    //printf("PtrExp::optimize(result = x%x) %s\n", result, toChars());
     e1 = e1->optimize(result);
     // Convert *&ex to ex
     if (e1->op == TOKaddress)
@@ -237,6 +253,15 @@ Expression *PtrExp::optimize(int result)
 	}
 	return e;
     }
+    // Constant fold *(&structliteral + offset)
+    if (e1->op == TOKadd)
+    {
+	Expression *e;
+	e = Ptr(type, e1);
+	if (e != EXP_CANT_INTERPRET)
+	    return e;
+    }
+
     return this;
 }
 

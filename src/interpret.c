@@ -43,6 +43,10 @@ InterState::InterState()
     memset(this, 0, sizeof(InterState));
 }
 
+Expression *interpret_aaLen(InterState *istate, Expressions *arguments);
+Expression *interpret_aaKeys(InterState *istate, Expressions *arguments);
+Expression *interpret_aaValues(InterState *istate, Expressions *arguments);
+
 /*************************************
  * Attempt to interpret a function given the arguments.
  * Input:
@@ -56,6 +60,15 @@ Expression *FuncDeclaration::interpret(InterState *istate, Expressions *argument
     printf("FuncDeclaration::interpret() %s\n", toChars());
     printf("cantInterpret = %d, semanticRun = %d\n", cantInterpret, semanticRun);
 #endif
+    if (global.errors)
+	return NULL;
+    if (ident == Id::aaLen)
+	return interpret_aaLen(istate, arguments);
+    else if (ident == Id::aaKeys)
+	return interpret_aaKeys(istate, arguments);
+    else if (ident == Id::aaValues)
+	return interpret_aaValues(istate, arguments);
+
     if (cantInterpret || semanticRun == 1)
 	return NULL;
 
@@ -845,13 +858,9 @@ Expression *StringExp::interpret(InterState *istate)
     return this;
 }
 
-Expression *VarExp::interpret(InterState *istate)
+Expression *getVarExp(InterState *istate, VarDeclaration *v)
 {
-#if LOG
-    printf("VarExp::interpret() %s\n", toChars());
-#endif
     Expression *e = EXP_CANT_INTERPRET;
-    VarDeclaration *v = var->isVarDeclaration();
     if (v)
     {
 	if (v->isConst() && v->init)
@@ -870,6 +879,14 @@ Expression *VarExp::interpret(InterState *istate)
 	    e = EXP_CANT_INTERPRET;
     }
     return e;
+}
+
+Expression *VarExp::interpret(InterState *istate)
+{
+#if LOG
+    printf("VarExp::interpret() %s\n", toChars());
+#endif
+    return getVarExp(istate, var->isVarDeclaration());
 }
 
 Expression *DeclarationExp::interpret(InterState *istate)
@@ -1077,6 +1094,60 @@ Lerr:
     return EXP_CANT_INTERPRET;
 }
 
+Expression *StructLiteralExp::interpret(InterState *istate)
+{   Expressions *expsx = NULL;
+
+#if LOG
+    printf("StructLiteralExp::interpret() %s\n", toChars());
+#endif
+    /* We don't know how to deal with overlapping fields
+     */
+    if (sd->hasUnions)
+	return EXP_CANT_INTERPRET;
+
+    if (elements)
+    {
+	for (size_t i = 0; i < elements->dim; i++)
+	{   Expression *e = (Expression *)elements->data[i];
+	    if (!e)
+		continue;
+
+	    Expression *ex = e->interpret(istate);
+	    if (ex == EXP_CANT_INTERPRET)
+	    {   delete expsx;
+		return EXP_CANT_INTERPRET;
+	    }
+
+	    /* If any changes, do Copy On Write
+	     */
+	    if (ex != e)
+	    {
+		if (!expsx)
+		{   expsx = new Expressions();
+		    expsx->setDim(elements->dim);
+		    for (size_t j = 0; j < i; j++)
+		    {
+			expsx->data[j] = elements->data[j];
+		    }
+		}
+		expsx->data[i] = (void *)ex;
+	    }
+	}
+    }
+    if (elements && expsx)
+    {
+	expandTuples(expsx);
+	if (expsx->dim != elements->dim)
+	{   delete expsx;
+	    return EXP_CANT_INTERPRET;
+	}
+	StructLiteralExp *se = new StructLiteralExp(loc, sd, expsx);
+	se->type = type;
+	return se;
+    }
+    return this;
+}
+
 Expression *UnaExp::interpretCommon(InterState *istate, Expression *(*fp)(Type *, Expression *))
 {   Expression *e;
     Expression *e1;
@@ -1170,13 +1241,19 @@ Expression *BinExp::interpretCommon2(InterState *istate, fp2_t fp)
     e1 = this->e1->interpret(istate);
     if (e1 == EXP_CANT_INTERPRET)
 	goto Lcant;
-    if (e1->isConst() != 1 && e1->op != TOKstring && e1->op != TOKarrayliteral)
+    if (e1->isConst() != 1 &&
+	e1->op != TOKstring &&
+	e1->op != TOKarrayliteral &&
+	e1->op != TOKstructliteral)
 	goto Lcant;
 
     e2 = this->e2->interpret(istate);
     if (e2 == EXP_CANT_INTERPRET)
 	goto Lcant;
-    if (e2->isConst() != 1 && e2->op != TOKstring && e2->op != TOKarrayliteral)
+    if (e2->isConst() != 1 &&
+	e2->op != TOKstring &&
+	e2->op != TOKarrayliteral &&
+	e2->op != TOKstructliteral)
 	goto Lcant;
 
     e = (*fp)(op, type, e1, e2);
@@ -1213,6 +1290,13 @@ Expression *BinExp::interpretAssignCommon(InterState *istate, fp_t fp)
     }
     if (e1 == EXP_CANT_INTERPRET)
 	return e1;
+    Expression *e2 = this->e2->interpret(istate);
+    if (e2 == EXP_CANT_INTERPRET)
+	return e2;
+
+    /* Assignment to variable of the form:
+     *	v = e2
+     */
     if (e1->op == TOKvar)
     {
 	VarExp *ve = (VarExp *)e1;
@@ -1232,32 +1316,223 @@ Expression *BinExp::interpretAssignCommon(InterState *istate, fp_t fp)
 	    {	error("variable %s is used before initialization", v->toChars());
 		return e;
 	    }
-	    Expression *e2 = this->e2->interpret(istate);
+	    if (fp)
+		e2 = (*fp)(v->type, v->value, e2);
+	    else
+		e2 = Cast(v->type, v->type, e2);
 	    if (e2 != EXP_CANT_INTERPRET)
 	    {
-		if (fp)
-		    e2 = (*fp)(v->type, v->value, e2);
-		else
-		    e2 = Cast(v->type, v->type, e2);
-		if (e2 != EXP_CANT_INTERPRET)
+		if (!v->isParameter())
 		{
-		    if (!(v->isDataseg() || v->isParameter()))
+		    for (size_t i = 0; 1; i++)
 		    {
-			for (size_t i = 0; 1; i++)
-			{
-			    if (i == istate->vars.dim)
-			    {   istate->vars.push(v);
-				break;
-			    }
-			    if (v == (VarDeclaration *)istate->vars.data[i])
-				break;
+			if (i == istate->vars.dim)
+			{   istate->vars.push(v);
+			    break;
 			}
+			if (v == (VarDeclaration *)istate->vars.data[i])
+			    break;
 		    }
-		    v->value = e2;
-		    e = Cast(type, type, e2);
 		}
+		v->value = e2;
+		e = Cast(type, type, e2);
 	    }
 	}
+    }
+    /* Assignment to struct member of the form:
+     *   *(symoffexp) = e2
+     */
+    else if (e1->op == TOKstar && ((PtrExp *)e1)->e1->op == TOKsymoff)
+    {	SymOffExp *soe = (SymOffExp *)((PtrExp *)e1)->e1;
+	VarDeclaration *v = soe->var->isVarDeclaration();
+
+	if (v->isDataseg())
+	    return EXP_CANT_INTERPRET;
+	if (fp && !v->value)
+	{   error("variable %s is used before initialization", v->toChars());
+	    return e;
+	}
+	if (v->value->op != TOKstructliteral)
+	    return EXP_CANT_INTERPRET;
+	StructLiteralExp *se = (StructLiteralExp *)v->value;
+	int fieldi = se->getFieldIndex(type, soe->offset);
+	if (fieldi == -1)
+	    return EXP_CANT_INTERPRET;
+	Expression *ev = se->getField(type, soe->offset);
+	if (fp)
+	    e2 = (*fp)(type, ev, e2);
+	else
+	    e2 = Cast(type, type, e2);
+	if (e2 == EXP_CANT_INTERPRET)
+	    return e2;
+
+	if (!v->isParameter())
+	{
+	    for (size_t i = 0; 1; i++)
+	    {
+		if (i == istate->vars.dim)
+		{   istate->vars.push(v);
+		    break;
+		}
+		if (v == (VarDeclaration *)istate->vars.data[i])
+		    break;
+	    }
+	}
+
+	/* Create new struct literal reflecting updated fieldi
+	 */
+	Expressions *expsx = new Expressions();
+	expsx->setDim(se->elements->dim);
+	for (size_t j = 0; j < expsx->dim; j++)
+	{
+	    if (j == fieldi)
+		expsx->data[j] = (void *)e2;
+	    else
+		expsx->data[j] = se->elements->data[j];
+	}
+	v->value = new StructLiteralExp(se->loc, se->sd, expsx);
+
+	e = Cast(type, type, e2);
+    }
+    /* Assignment to array element of the form:
+     *   a[i] = e2
+     */
+    else if (e1->op == TOKindex && ((IndexExp *)e1)->e1->op == TOKvar)
+    {	IndexExp *ie = (IndexExp *)e1;
+	VarExp *ve = (VarExp *)ie->e1;
+	VarDeclaration *v = ve->var->isVarDeclaration();
+
+	if (!v || v->isDataseg())
+	    return EXP_CANT_INTERPRET;
+	if (fp && !v->value)
+	{   error("variable %s is used before initialization", v->toChars());
+	    return e;
+	}
+
+	ArrayLiteralExp *ae = NULL;
+	AssocArrayLiteralExp *aae = NULL;
+	StringExp *se = NULL;
+	if (v->value->op == TOKarrayliteral)
+	    ae = (ArrayLiteralExp *)v->value;
+	else if (v->value->op == TOKassocarrayliteral)
+	    aae = (AssocArrayLiteralExp *)v->value;
+	else if (v->value->op == TOKstring)
+	    se = (StringExp *)v->value;
+	else
+	    return EXP_CANT_INTERPRET;
+
+	Expression *index = ie->e2->interpret(istate);
+	if (index == EXP_CANT_INTERPRET)
+	    return EXP_CANT_INTERPRET;
+	Expression *ev;
+	if (fp || ae || se)	// not for aae, because key might not be there
+	{
+	    ev = Index(type, v->value, index);
+	    if (ev == EXP_CANT_INTERPRET)
+		return EXP_CANT_INTERPRET;
+	}
+
+	if (fp)
+	    e2 = (*fp)(type, ev, e2);
+	else
+	    e2 = Cast(type, type, e2);
+	if (e2 == EXP_CANT_INTERPRET)
+	    return e2;
+
+	if (!v->isParameter())
+	{
+	    for (size_t i = 0; 1; i++)
+	    {
+		if (i == istate->vars.dim)
+		{   istate->vars.push(v);
+		    break;
+		}
+		if (v == (VarDeclaration *)istate->vars.data[i])
+		    break;
+	    }
+	}
+
+	if (ae)
+	{
+	    /* Create new array literal reflecting updated elem
+	     */
+	    int elemi = index->toInteger();
+	    Expressions *expsx = new Expressions();
+	    expsx->setDim(ae->elements->dim);
+	    for (size_t j = 0; j < expsx->dim; j++)
+	    {
+		if (j == elemi)
+		    expsx->data[j] = (void *)e2;
+		else
+		    expsx->data[j] = ae->elements->data[j];
+	    }
+	    v->value = new ArrayLiteralExp(ae->loc, expsx);
+	    v->value->type = ae->type;
+	}
+	else if (aae)
+	{
+	    /* Create new associative array literal reflecting updated key/value
+	     */
+	    Expressions *keysx = aae->keys;
+	    Expressions *valuesx = new Expressions();
+	    valuesx->setDim(aae->values->dim);
+	    int updated = 0;
+	    for (size_t j = valuesx->dim; j; )
+	    {	j--;
+		Expression *ekey = (Expression *)aae->keys->data[j];
+		Expression *ex = Equal(TOKequal, Type::tbool, ekey, index);
+		if (ex == EXP_CANT_INTERPRET)
+		    return EXP_CANT_INTERPRET;
+		if (ex->isBool(TRUE))
+		{   valuesx->data[j] = (void *)e2;
+		    updated = 1;
+		}
+		else
+		    valuesx->data[j] = aae->values->data[j];
+	    }
+	    if (!updated)
+	    {	// Append index/e2 to keysx[]/valuesx[]
+		valuesx->push(e2);
+		keysx = (Expressions *)keysx->copy();
+		keysx->push(index);
+	    }
+	    v->value = new AssocArrayLiteralExp(aae->loc, keysx, valuesx);
+	    v->value->type = aae->type;
+	}
+	else if (se)
+	{
+	    /* Create new string literal reflecting updated elem
+	     */
+	    int elemi = index->toInteger();
+	    unsigned char *s;
+	    s = (unsigned char *)mem.calloc(se->len + 1, se->sz);
+	    memcpy(s, se->string, se->len * se->sz);
+	    unsigned value = e2->toInteger();
+	    switch (se->sz)
+	    {
+		case 1:	s[elemi] = value; break;
+		case 2:	((unsigned short *)s)[elemi] = value; break;
+		case 4:	((unsigned *)s)[elemi] = value; break;
+		default:
+		    assert(0);
+		    break;
+	    }
+	    StringExp *se2 = new StringExp(se->loc, s, se->len);
+	    se2->committed = se->committed;
+	    se2->postfix = se->postfix;
+	    se2->type = se->type;
+	    v->value = se2;
+	}
+	else
+	    assert(0);
+
+	e = Cast(type, type, e2);
+    }
+    else
+    {
+#ifdef DEBUG
+	dump(0);
+#endif
     }
     return e;
 }
@@ -1496,7 +1771,7 @@ Expression *IndexExp::interpret(InterState *istate)
     if (e1 == EXP_CANT_INTERPRET)
 	goto Lcant;
 
-    if (op == TOKstring || op == TOKarrayliteral)
+    if (e1->op == TOKstring || e1->op == TOKarrayliteral)
     {
 	/* Set the $ variable
 	 */
@@ -1630,4 +1905,81 @@ Lcant:
     return EXP_CANT_INTERPRET;
 }
 
+Expression *PtrExp::interpret(InterState *istate)
+{   Expression *e = EXP_CANT_INTERPRET;
+
+#if LOG
+    printf("PtrExp::interpret() %s\n", toChars());
+#endif
+
+    // Constant fold *(&structliteral + offset)
+    if (e1->op == TOKadd)
+    {
+	e = Ptr(type, e1);
+    }
+    else if (e1->op == TOKsymoff)
+    {	SymOffExp *soe = (SymOffExp *)e1;
+	VarDeclaration *v = soe->var->isVarDeclaration();
+	if (v)
+	{   Expression *ev = getVarExp(istate, v);
+	    if (ev != EXP_CANT_INTERPRET && ev->op == TOKstructliteral)
+	    {	StructLiteralExp *se = (StructLiteralExp *)ev;
+		e = se->getField(type, soe->offset);
+		if (!e)
+		    e = EXP_CANT_INTERPRET;
+	    }
+	}
+    }
+    return e;
+}
+
+/******************************* Special Functions ***************************/
+
+Expression *interpret_aaLen(InterState *istate, Expressions *arguments)
+{
+    if (!arguments || arguments->dim != 1)
+	return NULL;
+    Expression *earg = (Expression *)arguments->data[0];
+    earg = earg->interpret(istate);
+    if (earg == EXP_CANT_INTERPRET)
+	return NULL;
+    if (earg->op != TOKassocarrayliteral)
+	return NULL;
+    AssocArrayLiteralExp *aae = (AssocArrayLiteralExp *)earg;
+    Expression *e = new IntegerExp(aae->loc, aae->keys->dim, Type::tsize_t);
+    return e;
+}
+
+Expression *interpret_aaKeys(InterState *istate, Expressions *arguments)
+{
+    printf("interpret_aaKeys()\n");
+    if (!arguments || arguments->dim != 2)
+	return NULL;
+    Expression *earg = (Expression *)arguments->data[0];
+    earg = earg->interpret(istate);
+    if (earg == EXP_CANT_INTERPRET)
+	return NULL;
+    if (earg->op != TOKassocarrayliteral)
+	return NULL;
+    AssocArrayLiteralExp *aae = (AssocArrayLiteralExp *)earg;
+    Expression *e = new ArrayLiteralExp(aae->loc, aae->keys);
+    return e;
+}
+
+Expression *interpret_aaValues(InterState *istate, Expressions *arguments)
+{
+    //printf("interpret_aaValues()\n");
+    if (!arguments || arguments->dim != 3)
+	return NULL;
+    Expression *earg = (Expression *)arguments->data[0];
+    earg = earg->interpret(istate);
+    if (earg == EXP_CANT_INTERPRET)
+	return NULL;
+    if (earg->op != TOKassocarrayliteral)
+	return NULL;
+    AssocArrayLiteralExp *aae = (AssocArrayLiteralExp *)earg;
+    Expression *e = new ArrayLiteralExp(aae->loc, aae->values);
+    //printf("result is %s\n", e->toChars());
+    return e;
+}
 
