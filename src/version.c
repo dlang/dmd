@@ -46,7 +46,7 @@ Dsymbol *DebugSymbol::syntaxCopy(Dsymbol *s)
     return ds;
 }
 
-void DebugSymbol::addMember(Scope *sc, ScopeDsymbol *sd)
+void DebugSymbol::addMember(Scope *sc, ScopeDsymbol *sd, int memnum)
 {
     //printf("DebugSymbol::addMember('%s') %s\n", sd->toChars(), toChars());
     Module *m;
@@ -125,7 +125,7 @@ Dsymbol *VersionSymbol::syntaxCopy(Dsymbol *s)
     return ds;
 }
 
-void VersionSymbol::addMember(Scope *sc, ScopeDsymbol *sd)
+void VersionSymbol::addMember(Scope *sc, ScopeDsymbol *sd, int memnum)
 {
     //printf("VersionSymbol::addMember('%s') %s\n", sd->toChars(), toChars());
     Module *m;

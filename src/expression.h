@@ -714,6 +714,7 @@ struct ArrayLengthExp : UnaExp
 {
     ArrayLengthExp(Loc loc, Expression *e1);
     Expression *semantic(Scope *sc);
+    Expression *optimize(int result);
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
     elem *toElem(IRState *irs);
 };
@@ -1151,6 +1152,7 @@ struct EqualExp : BinExp
     EqualExp(enum TOK op, Loc loc, Expression *e1, Expression *e2);
     Expression *semantic(Scope *sc);
     Expression *constFold();
+    Expression *optimize(int result);
     int isBit();
 
     // For operator overloading

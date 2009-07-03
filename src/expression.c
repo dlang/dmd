@@ -2112,11 +2112,6 @@ Expression *ScopeExp::semantic(Scope *sc)
 Lagain:
     ti = sds->isTemplateInstance();
     if (ti)
-#if 0
-    {	ti->semantic(sc);
-	sds = ti->inst;
-    }
-#else
     {	Dsymbol *s;
 	ti->semantic(sc);
 	s = ti->inst->toAlias();
@@ -2147,9 +2142,9 @@ Lagain:
     else
     {
 	//printf("sds = %s, '%s'\n", sds->kind(), sds->toChars());
+	//printf("\tparent = '%s'\n", sds->parent->toChars());
 	sds->semantic(sc);
     }
-#endif
     type = Type::tvoid;
     //printf("-2ScopeExp::semantic()\n");
     return this;
@@ -2967,7 +2962,7 @@ Lyes:
 	s->semantic(sc);
 	sc->insert(s);
 	if (sc->sd)
-	    s->addMember(sc, sc->sd);
+	    s->addMember(sc, sc->sd, 1);
     }
     return new IntegerExp(1);
 
@@ -3161,6 +3156,7 @@ Expression *AssertExp::semantic(Scope *sc)
     UnaExp::semantic(sc);
     e1 = resolveProperties(sc, e1);
     // BUG: see if we can do compile time elimination of the Assert
+    e1 = e1->optimize(WANTvalue);
     e1 = e1->checkToBoolean();
     if (!global.params.useAssert && e1->isBool(FALSE))
     {	Expression *e = new HaltExp(loc);

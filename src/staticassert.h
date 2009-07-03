@@ -28,7 +28,7 @@ struct StaticAssert : Dsymbol
     StaticAssert(Loc loc, Expression *exp);
 
     Dsymbol *syntaxCopy(Dsymbol *s);
-    void addMember(Scope *sc, ScopeDsymbol *sd);
+    void addMember(Scope *sc, ScopeDsymbol *sd, int memnum);
     void semantic(Scope *sc);
     void semantic2(Scope *sc);
     void inlineScan();

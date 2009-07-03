@@ -109,13 +109,13 @@ void EnumDeclaration::semantic(Scope *sc)
 		{
 		    if (!scx->scopesym->symtab)
 			scx->scopesym->symtab = new DsymbolTable();
-		    em->addMember(sce, scx->scopesym);
+		    em->addMember(sce, scx->scopesym, 1);
 		    break;
 		}
 	    }
 	}
 	else
-	    em->addMember(sc, this);
+	    em->addMember(sc, this, 1);
 
 	if (first)
 	{   first = 0;

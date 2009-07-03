@@ -1,5 +1,5 @@
 
-// Copyright (c) 1999-2005 by Digital Mars
+// Copyright (c) 1999-2006 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // www.digitalmars.com
@@ -208,6 +208,47 @@ Expression *CommaExp::optimize(int result)
     return e;
 }
 
+Expression *ArrayLengthExp::optimize(int result)
+{   Expression *e;
+
+    //printf("ArrayLengthExp::optimize(result = %d) %s\n", result, toChars());
+    e1 = e1->optimize(WANTvalue);
+    e = this;
+    if (e1->op == TOKstring)
+    {	StringExp *es1 = (StringExp *)e1;
+
+	e = new IntegerExp(loc, es1->len, type);
+    }
+    return e;
+}
+
+Expression *EqualExp::optimize(int result)
+{   Expression *e;
+
+    //printf("EqualExp::optimize(result = %d) %s\n", result, toChars());
+    e1 = e1->optimize(WANTvalue);
+    e2 = e2->optimize(WANTvalue);
+    e = this;
+    if (e1->op == TOKstring && e2->op == TOKstring)
+    {	StringExp *es1 = (StringExp *)e1;
+	StringExp *es2 = (StringExp *)e2;
+	int value;
+
+	assert(es1->sz == es2->sz);
+	if (es1->len == es2->len &&
+	    memcmp(es1->string, es2->string, es1->sz * es1->len) == 0)
+	    value = 1;
+	else
+	    value = 0;
+	if (op == TOKnotequal)
+	    value ^= 1;
+	e = new IntegerExp(loc, value, type);
+    }
+    else if (e1->isConst() == 1 && e2->isConst() == 1)
+	e = constFold();
+    return e;
+}
+
 Expression *IndexExp::optimize(int result)
 {   Expression *e;
 
@@ -289,17 +330,21 @@ Expression *SliceExp::optimize(int result)
 Expression *AndAndExp::optimize(int result)
 {   Expression *e;
 
+    //printf("AndAndExp::optimize(%d) %s\n", result, toChars());
     e1 = e1->optimize(WANTflags);
-    e2 = e2->optimize(WANTflags);
     e = this;
     if (e1->isBool(FALSE))
 	e = new IntegerExp(loc, 0, type);
-    else if (e1->isConst())
+    else
     {
-	if (e2->isConst())
-	    e = constFold();
-	else if (e1->isBool(TRUE))
-	    e = new BoolExp(loc, e2, type);
+	e2 = e2->optimize(WANTflags);
+	if (e1->isConst())
+	{
+	    if (e2->isConst())
+		e = constFold();
+	    else if (e1->isBool(TRUE))
+		e = new BoolExp(loc, e2, type);
+	}
     }
     return e;
 }
@@ -308,16 +353,19 @@ Expression *OrOrExp::optimize(int result)
 {   Expression *e;
 
     e1 = e1->optimize(WANTflags);
-    e2 = e2->optimize(WANTflags);
     e = this;
     if (e1->isBool(TRUE))
 	e = new IntegerExp(loc, 1, type);
-    else if (e1->isConst())
+    else
     {
-	if (e2->isConst())
-	    e = constFold();
-	else if (e1->isBool(FALSE))
-	    e = new BoolExp(loc, e2, type);
+	e2 = e2->optimize(WANTflags);
+	if (e1->isConst())
+	{
+	    if (e2->isConst())
+		e = constFold();
+	    else if (e1->isBool(FALSE))
+		e = new BoolExp(loc, e2, type);
+	}
     }
     return e;
 }
@@ -325,7 +373,7 @@ Expression *OrOrExp::optimize(int result)
 Expression *CatExp::optimize(int result)
 {   Expression *e;
 
-    //printf("CatExp::optimize(%d)\n", result);
+    //printf("CatExp::optimize(%d) %s\n", result, toChars());
     e1 = e1->optimize(result);
     e2 = e2->optimize(result);
     if (e1->op == TOKstring && e2->op == TOKstring)
@@ -356,6 +404,59 @@ Expression *CatExp::optimize(int result)
 	    t = es2->type;
 	es->type = new TypeSArray(t->next, new IntegerExp(0, len, Type::tindex));
 	e = es;
+	e->type = e->type->semantic(loc, NULL);
+    }
+    else if (e1->op == TOKstring && e2->op == TOKint64)
+    {
+	// Concatenate the strings
+	void *s;
+	StringExp *es1 = (StringExp *)e1;
+	StringExp *es;
+	Type *t;
+	size_t len = es1->len + 1;
+	int sz = es1->sz;
+	integer_t v = e2->toInteger();
+
+	s = mem.malloc((len + 1) * sz);
+	memcpy(s, es1->string, es1->len * sz);
+	memcpy((unsigned char *)s + es1->len * sz, &v, sz);
+
+	// Add terminating 0
+	memset((unsigned char *)s + len * sz, 0, sz);
+
+	es = new StringExp(loc, s, len);
+	es->sz = sz;
+	es->committed = es1->committed;
+	t = es1->type;
+	es->type = new TypeSArray(t->next, new IntegerExp(0, len, Type::tindex));
+	e = es;
+	e->type = e->type->semantic(loc, NULL);
+    }
+    else if (e1->op == TOKint64 && e2->op == TOKstring)
+    {
+	// Concatenate the strings
+	void *s;
+	StringExp *es2 = (StringExp *)e2;
+	StringExp *es;
+	Type *t;
+	size_t len = 1 + es2->len;
+	int sz = es2->sz;
+	integer_t v = e1->toInteger();
+
+	s = mem.malloc((len + 1) * sz);
+	memcpy((unsigned char *)s, &v, sz);
+	memcpy((unsigned char *)s + sz, es2->string, es2->len * sz);
+
+	// Add terminating 0
+	memset((unsigned char *)s + len * sz, 0, sz);
+
+	es = new StringExp(loc, s, len);
+	es->sz = sz;
+	es->committed = es2->committed;
+	t = es2->type;
+	es->type = new TypeSArray(t->next, new IntegerExp(0, len, Type::tindex));
+	e = es;
+	e->type = e->type->semantic(loc, NULL);
     }
     else
 	e = this;
@@ -367,14 +468,15 @@ Expression *CondExp::optimize(int result)
 {   Expression *e;
 
     econd = econd->optimize(WANTflags);
-    e1 = e1->optimize(result);
-    e2 = e2->optimize(result);
     if (econd->isBool(TRUE))
-	e = e1;
+	e = e1->optimize(result);
     else if (econd->isBool(FALSE))
-	e = e2;
+	e = e2->optimize(result);
     else
+    {	e1 = e1->optimize(result);
+	e2 = e2->optimize(result);
 	e = this;
+    }
     return e;
 }
 

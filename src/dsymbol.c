@@ -24,6 +24,7 @@
 #include "declaration.h"
 #include "id.h"
 #include "scope.h"
+#include "init.h"
 
 /****************************** Dsymbol ******************************/
 
@@ -261,7 +262,7 @@ int Dsymbol::needThis()
     return FALSE;
 }
 
-void Dsymbol::addMember(Scope *sc, ScopeDsymbol *sd)
+void Dsymbol::addMember(Scope *sc, ScopeDsymbol *sd, int memnum)
 {
     //printf("Dsymbol::addMember(this = %p, '%s' scopesym = '%s')\n", this, toChars(), sd->toChars());
     //printf("Dsymbol::addMember(this = %p, '%s' sd = %p, sd->symtab = %p)\n", this, toChars(), sd, sd->symtab);
@@ -627,18 +628,21 @@ Dsymbol *ArrayScopeSymbol::search(Identifier *ident, int flags)
 {
     if (ident == Id::length || ident == Id::dollar)
     {	VarDeclaration **pvar;
+	Expression *ce;
 
 	if (exp->op == TOKindex)
 	{
 	    IndexExp *ie = (IndexExp *)exp;
 
 	    pvar = &ie->lengthVar;
+	    ce = ie->e1;
 	}
 	else if (exp->op == TOKslice)
 	{
 	    SliceExp *se = (SliceExp *)exp;
 
 	    pvar = &se->lengthVar;
+	    ce = se->e1;
 	}
 	else
 	    return NULL;
@@ -646,6 +650,14 @@ Dsymbol *ArrayScopeSymbol::search(Identifier *ident, int flags)
 	{
 	    VarDeclaration *v = new VarDeclaration(0, Type::tsize_t, Id::dollar, NULL);
 
+	    if (ce->op == TOKstring)
+	    {	/* It is for a string literal, so the
+		 * length will be a const.
+		 */
+		Expression *e = new IntegerExp(0, ((StringExp *)ce)->len, Type::tsize_t);
+		v->init = new ExpInitializer(0, e);
+		v->storage_class |= STCconst;
+	    }
 	    *pvar = v;
 	}
 	return (*pvar);

@@ -33,7 +33,7 @@ Dsymbol *StaticAssert::syntaxCopy(Dsymbol *s)
     return sa;
 }
 
-void StaticAssert::addMember(Scope *sc, ScopeDsymbol *sd)
+void StaticAssert::addMember(Scope *sc, ScopeDsymbol *sd, int memnum)
 {
 }
 

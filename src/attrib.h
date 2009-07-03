@@ -34,7 +34,7 @@ struct AttribDeclaration : Dsymbol
 
     AttribDeclaration(Array *decl);
     virtual Array *include(Scope *sc, ScopeDsymbol *s);
-    void addMember(Scope *sc, ScopeDsymbol *s);
+    void addMember(Scope *sc, ScopeDsymbol *s, int memnum);
     void semantic(Scope *sc);
     void semantic2(Scope *sc);
     void semantic3(Scope *sc);
@@ -128,6 +128,17 @@ struct ConditionalDeclaration : AttribDeclaration
     Array *include(Scope *sc, ScopeDsymbol *s);
     void addComment(unsigned char *comment);
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
+};
+
+struct StaticIfDeclaration : ConditionalDeclaration
+{
+    ScopeDsymbol *sd;
+    int addisdone;
+
+    StaticIfDeclaration(Condition *condition, Array *decl, Array *elsedecl);
+    Dsymbol *syntaxCopy(Dsymbol *s);
+    void addMember(Scope *sc, ScopeDsymbol *s, int memnum);
+    void semantic(Scope *sc);
 };
 
 #endif /* DMD_ATTRIB_H */

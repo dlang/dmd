@@ -251,7 +251,7 @@ void StructDeclaration::semantic(Scope *sc)
 	{
 	    Dsymbol *s = (Dsymbol *)members->data[i];
 	    //printf("adding member '%s' to '%s'\n", s->toChars(), this->toChars());
-	    s->addMember(sc, this);
+	    s->addMember(sc, this, 1);
 	}
     }
 
@@ -322,7 +322,7 @@ void StructDeclaration::semantic(Scope *sc)
 		    ScopeDsymbol *s = fdx->parent->isScopeDsymbol();
 		    assert(s);
 		    s->members->push(fdptr);
-		    fdptr->addMember(sc, s);
+		    fdptr->addMember(sc, s, 1);
 		    fdptr->semantic(sc2);
 		}
 	    }

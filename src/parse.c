@@ -254,7 +254,14 @@ Array *Parser::parseDeclDefs(int once)
 		    s = parseStaticAssert();
 		else if (token.value == TOKif)
 		{   condition = parseStaticIfCondition();
-		    goto Lcondition;
+		    a = parseBlock();
+		    aelse = NULL;
+		    if (token.value == TOKelse)
+		    {   nextToken();
+			aelse = parseBlock();
+		    }
+		    s = new StaticIfDeclaration(condition, a, aelse);
+		    break;
 		}
 		else
 		{   stc = STCstatic;
@@ -664,6 +671,7 @@ Condition *Parser::parseStaticIfCondition()
 
 
 /***********************************************
+ * Deprecated.
  *	iftype (type identifier : specialization)
  *	    body
  *	else
@@ -1485,6 +1493,7 @@ Lerr:
 
 Array *Parser::parseTemplateArgumentList()
 {
+    //printf("Parser::parseTemplateArgumentList()\n");
     Array *tiargs = new Array();
     if (token.value != TOKlparen)
     {   error("!(TemplateArgumentList) expected following TemplateIdentifier");
@@ -3267,6 +3276,8 @@ int Parser::isDeclarator(Token **pt, int *haveId, enum TOK endtok)
     Token *t = *pt;
     int parens;
 
+    //printf("Parser::isDeclarator()\n");
+    //t->print();
     if (t->value == TOKassign)
 	return FALSE;
 
@@ -3463,24 +3474,38 @@ int Parser::isExpression(Token **pt)
     // is found.
 
     Token *t = *pt;
-    int nest = 0;
+    int brnest = 0;
+    int panest = 0;
 
     for (;; t = peek(t))
     {
 	switch (t->value)
 	{
 	    case TOKlbracket:
-		nest++;
+		brnest++;
 		continue;
 
 	    case TOKrbracket:
-		if (--nest >= 0)
+		if (--brnest >= 0)
 		    continue;
 		break;
 
+	    case TOKlparen:
+		panest++;
+		continue;
+
 	    case TOKcomma:
+		if (brnest || panest)
+		    continue;
+		break;
+
 	    case TOKrparen:
-		if (nest)
+		if (--panest >= 0)
+		    continue;
+		break;
+
+	    case TOKslice:
+		if (brnest)
 		    continue;
 		break;
 

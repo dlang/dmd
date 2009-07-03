@@ -1787,6 +1787,9 @@ done:
     switch (flags)
     {
 	case 0:
+	    /* Octal or Hexadecimal constant.
+	     * First that fits: int, uint, long, ulong
+	     */
 	    if (n & 0x8000000000000000LL)
 		    result = TOKuns64v;
 	    else if (n & 0xFFFFFFFF00000000LL)
@@ -1798,6 +1801,8 @@ done:
 	    break;
 
 	case FLAGS_decimal:
+	    /* First that fits: int, long, long long
+	     */
 	    if (n & 0x8000000000000000LL)
 	    {	    error("signed integer overflow");
 		    result = TOKuns64v;
@@ -1810,6 +1815,8 @@ done:
 
 	case FLAGS_unsigned:
 	case FLAGS_decimal | FLAGS_unsigned:
+	    /* First that fits: uint, ulong
+	     */
 	    if (n & 0xFFFFFFFF00000000LL)
 		    result = TOKuns64v;
 	    else

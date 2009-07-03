@@ -218,7 +218,13 @@ Condition *StaticIfCondition::syntaxCopy()
 
 int StaticIfCondition::include(Scope *sc, ScopeDsymbol *s)
 {
-    //printf("StaticIfCondition::include()\n");
+#if 0
+    printf("StaticIfCondition::include(sc = %p, s = %p)\n", sc, s);
+    if (s)
+    {
+	printf("\ts = '%s', kind = %s\n", s->toChars(), s->kind());
+    }
+#endif
     if (inc == 0)
     {
 	if (!sc)
@@ -229,7 +235,7 @@ int StaticIfCondition::include(Scope *sc, ScopeDsymbol *s)
 	}
 
 	sc = sc->push(sc->scopesym);
-	sc->sd = s;
+	sc->sd = s;			// s gets any addMember()
 	sc->flags |= SCOPEstaticif;
 	Expression *e = exp->semantic(sc);
 	sc->pop();
@@ -324,7 +330,7 @@ int IftypeCondition::include(Scope *sc, ScopeDsymbol *sd)
 		s->semantic(sc);
 		sc->insert(s);
 		if (sd)
-		    s->addMember(sc, sd);
+		    s->addMember(sc, sd, 1);
 	    }
 	}
 	else if (id)
@@ -335,7 +341,7 @@ int IftypeCondition::include(Scope *sc, ScopeDsymbol *sd)
 	    s->semantic(sc);
 	    sc->insert(s);
 	    if (sd)
-		s->addMember(sc, sd);
+		s->addMember(sc, sd, 1);
 	    inc = 1;
 	}
 	else if (tspec)

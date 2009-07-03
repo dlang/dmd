@@ -688,6 +688,35 @@ void VarDeclaration::semantic(Scope *sc)
 	    }
 	}
     }
+    else if (isConst() and init)
+    {
+	/* Because we may need the results of a const declaration in a
+	 * subsequent type, such as an array dimension, before semantic2()
+	 * gets ordinarilly run, try to run semantic2() now.
+	 * Ignore failure.
+	 */
+
+	ExpInitializer *ei = init->isExpInitializer();
+	if (ei)
+	{
+	    unsigned errors = global.errors;
+	    global.gag++;
+	    //printf("+gag\n");
+	    Expression *e = ei->exp->copy();
+	    e = e->semantic(sc);
+	    e = e->implicitCastTo(type);
+	    global.gag--;
+	    //printf("-gag\n");
+	    if (errors != global.errors)	// if errors happened
+		global.errors = errors;		// act as if nothing happened
+	    else
+	    {
+		e = e->optimize(WANTvalue);
+		if (e->op == TOKint64 || e->op == TOKstring)
+		    ei->exp = e;		// no errors, keep result
+	    }
+	}
+    }
 }
 
 ExpInitializer *VarDeclaration::getExpInitializer()

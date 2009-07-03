@@ -2681,7 +2681,7 @@ void TypeQualified::resolveHelper(Loc loc, Scope *sc,
 	    if (id->dyncast() != DYNCAST_IDENTIFIER)
 	    {
 		// It's a template instance
-		//printf("\ttemplate instance id\n");
+		printf("\ttemplate instance id\n");
 		TemplateDeclaration *td;
 		TemplateInstance *ti = (TemplateInstance *)id;
 		id = (Identifier *)ti->idents.data[0];
@@ -2703,8 +2703,8 @@ void TypeQualified::resolveHelper(Loc loc, Scope *sc,
 	    }
 	    else
 		sm = s->search(id, 0);
-//printf("s = '%s', kind = '%s'\n", s->toChars(), s->kind());
-//printf("getType = '%s'\n", s->getType()->toChars());
+	    //printf("\t3: s = '%s' %p, kind = '%s'\n",s->toChars(), s, s->kind());
+	    //printf("getType = '%s'\n", s->getType()->toChars());
 	    if (!sm)
 	    {
 #if 0
@@ -2722,6 +2722,8 @@ void TypeQualified::resolveHelper(Loc loc, Scope *sc,
 		    else
 			e = new VarExp(loc, v);
 		    t = e->type;
+		    if (!t)
+			goto Lerror;
 		    goto L3;
 		}
 		t = s->getType();
@@ -2747,6 +2749,7 @@ void TypeQualified::resolveHelper(Loc loc, Scope *sc,
 		    *pe = e;
 		}
 		else
+	          Lerror:
 		    error(loc, "identifier '%s' of '%s' is not defined", id->toChars(), toChars());
 		return;
 	    }

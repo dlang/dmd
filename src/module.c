@@ -573,7 +573,7 @@ void Module::semantic()
     {	Dsymbol *s;
 
 	s = (Dsymbol *)members->data[i];
-	s->addMember(NULL, sc->scopesym);
+	s->addMember(NULL, sc->scopesym, 1);
     }
 
     // Pass 1 semantic routines: do public side of the definition

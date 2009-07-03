@@ -43,7 +43,7 @@ Array *AttribDeclaration::include(Scope *sc, ScopeDsymbol *sd)
     return decl;
 }
 
-void AttribDeclaration::addMember(Scope *sc, ScopeDsymbol *sd)
+void AttribDeclaration::addMember(Scope *sc, ScopeDsymbol *sd, int memnum)
 {
     unsigned i;
     Array *d = include(sc, sd);
@@ -54,7 +54,7 @@ void AttribDeclaration::addMember(Scope *sc, ScopeDsymbol *sd)
 	{   Dsymbol *s;
 
 	    s = (Dsymbol *)d->data[i];
-	    s->addMember(sc, sd);
+	    s->addMember(sc, sd, i + memnum);
 	}
     }
 }
@@ -882,6 +882,73 @@ void ConditionalDeclaration::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
     else
 	buf->writeByte(':');
     buf->writenl();
+}
+
+/***************************** StaticIfDeclaration ****************************/
+
+StaticIfDeclaration::StaticIfDeclaration(Condition *condition,
+	Array *decl, Array *elsedecl)
+	: ConditionalDeclaration(condition, decl, elsedecl)
+{
+    //printf("StaticIfDeclaration::StaticIfDeclaration()\n");
+    sd = NULL;
+    addisdone = 0;
+}
+
+
+Dsymbol *StaticIfDeclaration::syntaxCopy(Dsymbol *s)
+{
+    StaticIfDeclaration *dd;
+
+    assert(!s);
+    dd = new StaticIfDeclaration(condition->syntaxCopy(),
+	Dsymbol::arraySyntaxCopy(decl),
+	Dsymbol::arraySyntaxCopy(elsedecl));
+    return dd;
+}
+
+
+void StaticIfDeclaration::addMember(Scope *sc, ScopeDsymbol *sd, int memnum)
+{
+    /* This is deferred until semantic(), so that
+     * expressions in the condition can refer to declarations
+     * in the same scope, such as:
+     *
+     * template Foo(int i)
+     * {
+     *     const int j = i + 1;
+     *     static if (j == 3)
+     *         const int k;
+     * }
+     */
+    this->sd = sd;
+
+    if (memnum == 0)
+    {	AttribDeclaration::addMember(sc, sd, memnum);
+	addisdone = 1;
+    }
+}
+
+
+void StaticIfDeclaration::semantic(Scope *sc)
+{
+    Array *d = include(sc, sd);
+
+    //printf("\tStaticIfDeclaration::semantic '%s'\n",toChars());
+    if (d)
+    {
+	if (!addisdone)
+	{   AttribDeclaration::addMember(sc, sd, 1);
+	    addisdone = 1;
+	}
+
+	for (unsigned i = 0; i < d->dim; i++)
+	{
+	    Dsymbol *s = (Dsymbol *)d->data[i];
+
+	    s->semantic(sc);
+	}
+    }
 }
 
 

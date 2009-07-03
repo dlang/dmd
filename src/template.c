@@ -1,5 +1,5 @@
 
-// Copyright (c) 1999-2005 by Digital Mars
+// Copyright (c) 1999-2006 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // www.digitalmars.com
@@ -1486,7 +1486,7 @@ void TemplateInstance::semantic(Scope *sc)
 #if LOG
 	printf("\tadding member '%s' %p to '%s'\n", s->toChars(), s, this->toChars());
 #endif
-	s->addMember(scope, this);
+	s->addMember(scope, this, i);
     }
 
     /* See if there is only one member of template instance, and that
@@ -1610,6 +1610,7 @@ void TemplateInstance::semanticTiargs(Scope *sc)
 
 TemplateDeclaration *TemplateInstance::findTemplateDeclaration(Scope *sc)
 {
+    //printf("TemplateInstance::findTemplateDeclaration()\n");
     if (!tempdecl)
     {
 	/* Given:
@@ -1626,7 +1627,7 @@ TemplateDeclaration *TemplateInstance::findTemplateDeclaration(Scope *sc)
 	if (s)
 	{
 #if LOG
-	    printf("It's an instance of '%s'\n", s->toChars());
+	    printf("It's an instance of '%s' kind '%s'\n", s->toChars(), s->kind());
 #endif
 	    withsym = scopesym->isWithScopeSymbol();
 
@@ -1654,8 +1655,23 @@ TemplateDeclaration *TemplateInstance::findTemplateDeclaration(Scope *sc)
 	tempdecl = s->isTemplateDeclaration();
 	if (!tempdecl)
 	{
-	    error("%s is not a template declaration, it is a %s", id->toChars(), s->kind());
-	    return NULL;
+	    TemplateInstance *ti = s->parent->isTemplateInstance();
+	    if (ti &&
+		ti->idents.data[ti->idents.dim - 1] == id &&
+		idents.dim == 1 &&
+		ti->tempdecl)
+	    {
+		/* This is so that one can refer to the enclosing
+		 * template, even if it has the same name as a member
+		 * of the template, if it has a !(arguments)
+		 */
+		tempdecl = ti->tempdecl;
+	    }
+	    else
+	    {
+		error("%s is not a template declaration, it is a %s", id->toChars(), s->kind());
+		return NULL;
+	    }
 	}
     }
     else
@@ -2271,7 +2287,7 @@ void TemplateMixin::semantic(Scope *sc)
     {   Dsymbol *s;
 
 	s = (Dsymbol *)members->data[i];
-	s->addMember(scope, this);
+	s->addMember(scope, this, i);
 	//sc->insert(s);
 	//printf("sc->parent = %p, sc->scopesym = %p\n", sc->parent, sc->scopesym);
 	//printf("s->parent = %s\n", s->parent->toChars());
