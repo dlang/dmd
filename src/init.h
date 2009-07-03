@@ -37,6 +37,7 @@ struct Initializer : Object
     virtual Type *inferType(Scope *sc);
     virtual Expression *toExpression() = 0;
     virtual void toCBuffer(OutBuffer *buf, HdrGenState *hgs) = 0;
+    char *toChars();
 
     static Array *arraySyntaxCopy(Array *ai);
 
@@ -63,8 +64,10 @@ struct VoidInitializer : Initializer
 
 struct StructInitializer : Initializer
 {
-    Array field;	// of Identifier *'s before semantic(), VarDeclaration *'s after
+    Array field;	// of Identifier *'s
     Array value;	// parallel array of Initializer *'s
+
+    Array vars;		// parallel array of VarDeclaration *'s
     AggregateDeclaration *ad;	// which aggregate this is for
 
     StructInitializer(Loc loc);
@@ -89,6 +92,7 @@ struct ArrayInitializer : Initializer
     Initializer *syntaxCopy();
     void addInit(Expression *index, Initializer *value);
     Initializer *semantic(Scope *sc, Type *t);
+    Type *inferType(Scope *sc);
     Expression *toExpression();
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
 

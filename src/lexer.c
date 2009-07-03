@@ -1,4 +1,5 @@
 
+// Compiler implementation of the D programming language
 // Copyright (c) 1999-2006 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
@@ -116,9 +117,9 @@ char *Token::toChars()
     {
 	case TOKint32v:
 #if IN_GCC
-	    sprintf(buffer,"%ld",(d_int32)int64value);
+	    sprintf(buffer,"%d",(d_int32)int64value);
 #else
-	    sprintf(buffer,"%ld",int32value);
+	    sprintf(buffer,"%d",int32value);
 #endif
 	    break;
 
@@ -127,18 +128,18 @@ char *Token::toChars()
 	case TOKwcharv:
 	case TOKdcharv:
 #if IN_GCC
-	    sprintf(buffer,"%luU",(d_uns32)uns64value);
+	    sprintf(buffer,"%uU",(d_uns32)uns64value);
 #else
-	    sprintf(buffer,"%luU",uns32value);
+	    sprintf(buffer,"%uU",uns32value);
 #endif
 	    break;
 
 	case TOKint64v:
-	    sprintf(buffer,"%lldL",int64value);
+	    sprintf(buffer,"%jdL",int64value);
 	    break;
 
 	case TOKuns64v:
-	    sprintf(buffer,"%lluUL",uns64value);
+	    sprintf(buffer,"%juUL",uns64value);
 	    break;
 
 #if IN_GCC
@@ -164,7 +165,7 @@ char *Token::toChars()
 	    break;
 
 	case TOKfloat80v:
-	    sprintf(buffer,"%gL", float80value);
+	    sprintf(buffer,"%LgL", float80value);
 	    break;
 
 	case TOKimaginary32v:
@@ -176,7 +177,7 @@ char *Token::toChars()
 	    break;
 
 	case TOKimaginary80v:
-	    sprintf(buffer,"%gLi", float80value);
+	    sprintf(buffer,"%LgLi", float80value);
 	    break;
 #endif
 
@@ -1203,7 +1204,7 @@ unsigned Lexer::escapeSequence()
 			case ';':
 			    c = HtmlNamedEntity(idstart, p - idstart);
 			    if (c == ~0)
-			    {   error("unnamed character entity &%.*s;", p - idstart, idstart);
+			    {   error("unnamed character entity &%.*s;", (int)(p - idstart), idstart);
 				c = ' ';
 			    }
 			    p++;
@@ -1692,6 +1693,11 @@ TOK Lexer::number(Token *t)
 			p++;
 			continue;
 
+		    case 'L':
+			if (p[1] == 'i')
+			    goto real;
+			goto done;
+
 		    default:
 			goto done;
 		}
@@ -1719,6 +1725,8 @@ TOK Lexer::number(Token *t)
 			p = start;
 			return inreal(t);
 		    }
+		    else if (c == 'L' && p[1] == 'i')
+			goto real;
 		    goto done;
 		}
 		break;
@@ -2306,7 +2314,7 @@ unsigned Lexer::decodeUTF()
     p += idx - 1;
     if (msg)
     {
-	error(msg);
+	error("%s", msg);
     }
     return u;
 }
@@ -2720,4 +2728,5 @@ void Lexer::initKeywords()
     Token::tochars[TOKdsymbol]		= "symbol";
     Token::tochars[TOKtuple]		= "tuple";
     Token::tochars[TOKdeclaration]	= "declaration";
+    Token::tochars[TOKdottd]		= "dottd";
 }

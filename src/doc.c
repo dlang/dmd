@@ -8,6 +8,8 @@
 // in artistic.txt, or the GNU General Public License in gnu.txt.
 // See the included readme.txt for details.
 
+// This implements the Ddoc capability.
+
 #include <stdio.h>
 #include <string.h>
 #include <time.h>
@@ -517,13 +519,6 @@ void TemplateDeclaration::emitComment(Scope *sc)
     unsigned o;
     int hasmembers = 1;
 
-    if (!dc)
-    {
-	emitDitto(sc);
-	return;
-    }
-    dc->pmacrotable = &sc->module->macrotable;
-
     Dsymbol *ss = this;
 
     if (onemember)
@@ -531,15 +526,20 @@ void TemplateDeclaration::emitComment(Scope *sc)
 	ss = onemember->isAggregateDeclaration();
 	if (!ss)
 	{
-#if 0 // Do template functions later
 	    ss = onemember->isFuncDeclaration();
 	    if (ss)
 		hasmembers = 0;
 	    else
-#endif
 		ss = this;
 	}
     }
+
+    if (!dc)
+    {
+	ss->emitDitto(sc);
+	return;
+    }
+    dc->pmacrotable = &sc->module->macrotable;
 
     buf->writestring(ddoc_decl_s);
 	o = buf->offset;
@@ -636,25 +636,34 @@ void Dsymbol::toDocBuffer(OutBuffer *buf)
     toCBuffer(buf, &hgs);
 }
 
+void prefix(OutBuffer *buf, Dsymbol *s)
+{
+    if (s->isDeprecated())
+	buf->writestring("deprecated ");
+    Declaration *d = s->isDeclaration();
+    if (d)
+    {
+	emitProtection(buf, d->protection);
+	if (d->isAbstract())
+	    buf->writestring("abstract ");
+	if (d->isStatic())
+	    buf->writestring("static ");
+	if (d->isConst())
+	    buf->writestring("const ");
+	if (d->isFinal())
+	    buf->writestring("final ");
+	if (d->isSynchronized())
+	    buf->writestring("synchronized ");
+    }
+}
+
 void Declaration::toDocBuffer(OutBuffer *buf)
 {
     //printf("Declaration::toDocbuffer() %s\n", toChars());
     if (ident)
     {
-	if (isDeprecated())
-	    buf->writestring("deprecated ");
+	prefix(buf, this);
 
-	emitProtection(buf, protection);
-	if (isAbstract())
-	    buf->writestring("abstract ");
-	if (isStatic())
-	    buf->writestring("static ");
-	if (isConst())
-	    buf->writestring("const ");
-	if (isFinal())
-	    buf->writestring("final ");
-	if (isSynchronized())
-	    buf->writestring("synchronized ");
 	if (type)
 	{   HdrGenState hgs;
 	    hgs.ddoc = 1;
@@ -703,16 +712,32 @@ void FuncDeclaration::toDocBuffer(OutBuffer *buf)
     //printf("FuncDeclaration::toDocbuffer() %s\n", toChars());
     if (ident)
     {
-#if 0
-	emitProtection(buf, protection);
-#endif
 	TemplateDeclaration *td;
 
 	if (parent &&
 	    (td = parent->isTemplateDeclaration()) != NULL &&
 	    td->onemember == this)
-	{   unsigned o = buf->offset;
-	    td->toDocBuffer(buf);
+	{   HdrGenState hgs;
+	    unsigned o = buf->offset;
+
+	    hgs.ddoc = 1;
+	    prefix(buf, td);
+	    type->next->toCBuffer(buf, NULL, &hgs);
+	    buf->writeByte(' ');
+	    buf->writestring(ident->toChars());
+	    buf->writeByte('(');
+	    for (int i = 0; i < td->parameters->dim; i++)
+	    {
+		TemplateParameter *tp = (TemplateParameter *)td->parameters->data[i];
+		if (i)
+		    buf->writeByte(',');
+		tp->toCBuffer(buf, &hgs);
+	    }
+	    buf->writeByte(')');
+	    TypeFunction *tf = (TypeFunction *)type;
+	    Argument::argsToCBuffer(buf, &hgs, tf->parameters, tf->varargs);
+	    buf->writestring(";\n");
+
 	    highlightCode(NULL, this, buf, o);
 	}
 	else

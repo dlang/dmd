@@ -60,7 +60,7 @@ Global::Global()
 
     copyright = "Copyright (c) 1999-2006 by Digital Mars";
     written = "written by Walter Bright";
-    version = "v0.175";
+    version = "v0.176";
     global.structalign = 8;
 
     memset(&params, 0, sizeof(Param));
@@ -96,11 +96,11 @@ void error(Loc loc, const char *format, ...)
 {
     va_list ap;
     va_start(ap, format);
-    error(loc, format, ap);
+    verror(loc, format, ap);
     va_end( ap );
 }
 
-void error(Loc loc, const char *format, va_list ap)
+void verror(Loc loc, const char *format, va_list ap)
 {
     if (!global.gag)
     {

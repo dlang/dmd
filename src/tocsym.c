@@ -61,17 +61,19 @@ Symbol *SymbolDeclaration::toSymbol()
  * Helper
  */
 
-Symbol *Dsymbol::toSymbolX(const char *prefix, int sclass, type *t)
+Symbol *Dsymbol::toSymbolX(const char *prefix, int sclass, type *t, const char *suffix)
 {
     Symbol *s;
     char *id;
     char *n;
 
-    n = mangle(); //ident->toChars();
+    //printf("Dsymbol::toSymbolX('%s')\n", prefix);
+    n = mangle();
     assert(n);
-    id = (char *) alloca(strlen(prefix) + strlen(n) + 1);
-    sprintf(id,"%s%s", prefix, n);
+    id = (char *) alloca(1 + strlen(n) + sizeof(size_t) * 3 + strlen(prefix) + strlen(suffix) + 1);
+    sprintf(id,"D%s%d%s%s", n, strlen(prefix), prefix, suffix);
     s = symbol_name(id, sclass, t);
+    //printf("-Dsymbol::toSymbolX() %s\n", id);
     return s;
 }
 
@@ -432,7 +434,7 @@ Symbol *ClassDeclaration::toSymbol()
 	if (!scc)
 	    scc = fake_classsym("ClassInfo");
 
-	s = toSymbolX("_Class_", SCextern, scc->Stype);
+	s = toSymbolX("__Class", SCextern, scc->Stype, "Z");
 	s->Sfl = FLextern;
 	s->Sflags |= SFLnodebug;
 	csym = s;
@@ -454,7 +456,7 @@ Symbol *InterfaceDeclaration::toSymbol()
 	if (!scc)
 	    scc = fake_classsym("ClassInfo");
 
-	s = toSymbolX("_Interface_", SCextern, scc->Stype);
+	s = toSymbolX("__Interface", SCextern, scc->Stype, "Z");
 	s->Sfl = FLextern;
 	s->Sflags |= SFLnodebug;
 	csym = s;
@@ -477,7 +479,7 @@ Symbol *Module::toSymbol()
 	if (!scc)
 	    scc = fake_classsym("ModuleInfo");
 
-	s = toSymbolX("_ModuleInfo_", SCextern, scc->Stype);
+	s = toSymbolX("__ModuleInfo", SCextern, scc->Stype, "Z");
 	s->Sfl = FLextern;
 	s->Sflags |= SFLnodebug;
 	csym = s;
@@ -505,7 +507,7 @@ Symbol *ClassDeclaration::toVtblSymbol()
 	t->Tnext = tsvoid;
 	t->Tnext->Tcount++;
 	t->Tmangle = mTYman_c;
-	s = toSymbolX("_vtbl_", SCextern, t);
+	s = toSymbolX("__vtbl", SCextern, t, "Z");
 	s->Sflags |= SFLnodebug;
 	s->Sfl = FLextern;
 	vtblsym = s;
@@ -520,21 +522,13 @@ Symbol *ClassDeclaration::toVtblSymbol()
 
 Symbol *AggregateDeclaration::toInitializer()
 {
-    char *id;
-    char *n;
     Symbol *s;
     Classsym *stag;
 
     if (!sinit)
     {
-	n = mangle();
-	stag = fake_classsym(n);
-
-	id = (char *) alloca(6 + strlen(n) + 1);
-	sprintf(id,"_init_%s",n);
-	s = symbol_calloc(id);
-	s->Stype = stag->Stype;
-	s->Sclass = SCextern;
+	stag = fake_classsym(NULL);
+	s = toSymbolX("__init", SCextern, stag->Stype, "Z");
 	s->Sfl = FLextern;
 	s->Sflags |= SFLnodebug;
 	slist_add(s);
@@ -559,7 +553,7 @@ Symbol *Module::toModuleAssert()
 	t->Tnext = tsvoid;
 	tsvoid->Tcount++;
 
-	massert = toSymbolX("_assert_", SCextern, t);
+	massert = toSymbolX("__assert", SCextern, t, "FiZv");
 	massert->Sfl = FLextern;
 	massert->Sflags |= SFLnodebug;
 	slist_add(massert);
@@ -582,7 +576,7 @@ Symbol *Module::toModuleArray()
 	t->Tnext = tsvoid;
 	tsvoid->Tcount++;
 
-	marray = toSymbolX("_array_", SCextern, t);
+	marray = toSymbolX("__array", SCextern, t, "Z");
 	marray->Sfl = FLextern;
 	marray->Sflags |= SFLnodebug;
 	slist_add(marray);

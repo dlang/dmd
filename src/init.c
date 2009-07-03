@@ -1,5 +1,6 @@
 
-// Copyright (c) 1999-2004 by Digital Mars
+// Compiler implementation of the D programming language
+// Copyright (c) 1999-2006 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // www.digitalmars.com
@@ -13,12 +14,13 @@
 #include "mars.h"
 #include "init.h"
 #include "expression.h"
+#include "statement.h"
 #include "identifier.h"
 #include "declaration.h"
 #include "aggregate.h"
 #include "scope.h"
 #include "mtype.h"
-
+#include "hdrgen.h"
 
 /********************************** Initializer *******************************/
 
@@ -58,6 +60,16 @@ Array *Initializer::arraySyntaxCopy(Array *ai)
 	}
     }
     return a;
+}
+
+char *Initializer::toChars()
+{   OutBuffer *buf;
+    HdrGenState hgs;
+
+    memset(&hgs, 0, sizeof(hgs));
+    buf = new OutBuffer();
+    toCBuffer(buf, &hgs);
+    return buf->toChars();
 }
 
 /********************************** VoidInitializer ***************************/
@@ -137,6 +149,8 @@ Initializer *StructInitializer::semantic(Scope *sc, Type *t)
     TypeStruct *ts;
     int errors = 0;
 
+    //printf("StructInitializer::semantic(t = %s) %s\n", t->toChars(), toChars());
+    vars.setDim(field.dim);
     t = t->toBasetype();
     if (t->ty == Tstruct)
     {	unsigned i;
@@ -188,7 +202,7 @@ Initializer *StructInitializer::semantic(Scope *sc, Type *t)
 	    {
 		val = val->semantic(sc, v->type);
 		value.data[i] = (void *)val;
-		field.data[i] = (void *)v;
+		vars.data[i] = (void *)v;
 	    }
 	    else
 	    {	error(loc, "%s is not a field of %s", id ? id->toChars() : s->toChars(), ad->toChars());
@@ -196,6 +210,18 @@ Initializer *StructInitializer::semantic(Scope *sc, Type *t)
 	    }
 	    fieldi++;
 	}
+    }
+    else if (t->ty == Tdelegate && value.dim == 0)
+    {	/* Rewrite as empty delegate literal { }
+	 */
+	Arguments *arguments = new Arguments;
+	Type *tf = new TypeFunction(arguments, NULL, 0, LINKd);
+	FuncLiteralDeclaration *fd = new FuncLiteralDeclaration(loc, 0, tf, TOKdelegate, NULL);
+	fd->fbody = new CompoundStatement(loc, new Statements());
+	fd->endloc = loc;
+	Expression *e = new FuncExp(loc, fd);
+	ExpInitializer *ie = new ExpInitializer(loc, e);
+	return ie->semantic(sc, t);
     }
     else
     {
@@ -206,6 +232,7 @@ Initializer *StructInitializer::semantic(Scope *sc, Type *t)
     {
 	field.setDim(0);
 	value.setDim(0);
+	vars.setDim(0);
     }
     return this;
 }
@@ -219,6 +246,7 @@ Expression *StructInitializer::toExpression()
 
 void StructInitializer::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 {
+    //printf("StructInitializer::toCBuffer()\n");
     buf->writebyte('{');
     for (int i = 0; i < field.dim; i++)
     {
@@ -323,7 +351,7 @@ Initializer *ArrayInitializer::semantic(Scope *sc, Type *t)
     }
     unsigned long amax = 0x80000000;
     if ((unsigned long) dim * t->next->size() >= amax)
-	error(loc, "array dimension %u exceeds max of %lu", dim, amax / t->next->size());
+	error(loc, "array dimension %u exceeds max of %ju", dim, amax / t->next->size());
     return this;
 }
 
@@ -353,6 +381,30 @@ Lno:
     delete elements;
     error(loc, "array initializers as expressions are not allowed");
     return NULL;
+}
+
+
+Type *ArrayInitializer::inferType(Scope *sc)
+{
+    for (size_t i = 0; i < value.dim; i++)
+    {
+	if (index.data[i])
+	    goto Lno;
+    }
+    if (value.dim)
+    {
+	Initializer *iz = (Initializer *)value.data[0];
+	if (iz)
+	{   Type *t = iz->inferType(sc);
+	    t = new TypeSArray(t, new IntegerExp(value.dim));
+	    t = t->semantic(loc, sc);
+	    return t;
+	}
+    }
+
+Lno:
+    error(loc, "cannot infer type from this array initializer");
+    return Type::terror;
 }
 
 

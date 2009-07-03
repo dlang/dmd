@@ -81,6 +81,8 @@ Msgtable msgtable[] =
     { "TypeInfo_Function" },
     { "TypeInfo_Delegate" },
     { "TypeInfo_Tuple" },
+    { "elements" },
+    { "_arguments_typeinfo" },
     { "_arguments" },
     { "_argptr" },
     { "_match" },

@@ -554,6 +554,7 @@ Expression *DivExp::constFold()
 	n2 = e2->toInteger();
 	if (n2 == 0)
 	{   error("divide by 0");
+	    e2 = new IntegerExp(0, 1, e2->type);
 	    n2 = 1;
 	}
 	if (isunsigned())
@@ -617,6 +618,7 @@ Expression *ModExp::constFold()
 	n2 = e2->toInteger();
 	if (n2 == 0)
 	{   error("divide by 0");
+	    e2 = new IntegerExp(0, 1, e2->type);
 	    n2 = 1;
 	}
 	if (isunsigned())

@@ -1325,7 +1325,7 @@ void File::stat()
 void File::checkoffset(size_t offset, size_t nbytes)
 {
     if (offset > len || offset + nbytes > len)
-	error("Corrupt file '%s': offset x%x off end of file",toChars(),offset);
+	error("Corrupt file '%s': offset x%zx off end of file",toChars(),offset);
 }
 
 char *File::toChars()

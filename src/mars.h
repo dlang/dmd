@@ -21,7 +21,7 @@
 /* Changes for the GDC compiler by David Friedman */
 #endif
 
-#define BREAKABI 0	// not ready to break the ABI just yet
+#define BREAKABI 1	// not ready to break the ABI just yet
 
 struct Array;
 
@@ -240,7 +240,7 @@ enum DYNCAST
 };
 
 void error(Loc loc, const char *format, ...);
-void error(Loc loc, const char *format, char *);
+void verror(Loc loc, const char *format, char *);
 void fatal();
 void err_nomem();
 int runLINK();

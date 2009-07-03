@@ -260,7 +260,7 @@ void ClassDeclaration::toObjFile()
 
 	    // Create the function, sdtor, and write it out
 	    localgot = NULL;
-	    sdtor = toSymbolX("_dtor_", SCglobal, t);
+	    sdtor = toSymbolX("__dtor", SCglobal, t, "FZv");
 	    block *b = block_calloc();
 	    b->BC = BCret;
 	    b->Belem = edtor;

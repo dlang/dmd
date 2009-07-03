@@ -52,7 +52,7 @@ void Expression::dump(int i)
 void IntegerExp::dump(int i)
 {
     indent(i);
-    printf("%p %lld type=%s\n", this, (d_int64)value, type_print(type));
+    printf("%p %jd type=%s\n", this, (intmax_t)value, type_print(type));
 }
 
 void IdentifierExp::dump(int i)

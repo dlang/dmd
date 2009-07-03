@@ -639,7 +639,7 @@ void VarDeclaration::semantic(Scope *sc)
 	{   Argument *arg = Argument::getNth(tt->arguments, i);
 
 	    OutBuffer buf;
-	    buf.printf("_%s_field_%d", ident->toChars(), i);
+	    buf.printf("_%s_field_%zu", ident->toChars(), i);
 	    buf.writeByte(0);
 	    char *name = (char *)buf.extractData();
 	    Identifier *id = new Identifier(name, TOKidentifier);
@@ -805,8 +805,12 @@ void VarDeclaration::semantic(Scope *sc)
 		    Expression *e = init->toExpression();
 		    if (!e)
 		    {
-			error("is not a static and cannot have static initializer");
-			return;
+			init = init->semantic(sc, type);
+			e = init->toExpression();
+			if (!e)
+			{   error("is not a static and cannot have static initializer");
+			    return;
+			}
 		    }
 		    ei = new ExpInitializer(init->loc, e);
 		    init = ei;

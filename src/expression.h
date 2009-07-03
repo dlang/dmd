@@ -1152,6 +1152,7 @@ struct ShlExp : BinExp
     ShlExp(Loc loc, Expression *e1, Expression *e2);
     Expression *semantic(Scope *sc);
     Expression *constFold();
+    Expression *optimize(int result);
 
     // For operator overloading
     Identifier *opId();

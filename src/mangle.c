@@ -24,6 +24,50 @@
 #include "id.h"
 #include "module.h"
 
+char *mangle(Declaration *sthis)
+{
+    OutBuffer buf;
+    char *id;
+    Dsymbol *s;
+
+    s = sthis;
+    do
+    {
+	//printf("s = %p, '%s', parent = %p\n", s, s->toChars(), s->parent);
+	if (s->ident)
+	{
+	    FuncDeclaration *fd = s->isFuncDeclaration();
+	    if (s != sthis && fd)
+	    {
+		id = mangle(fd);
+		buf.prependstring(id);
+		goto L1;
+	    }
+	    else
+	    {
+		id = s->ident->toChars();
+		int len = strlen(id);
+		char tmp[sizeof(len) * 3 + 1];
+		buf.prependstring(id);
+		sprintf(tmp, "%d", len);
+		buf.prependstring(tmp);
+	    }
+	}
+	else
+	    buf.prependstring("0");
+	s = s->parent;
+    } while (s);
+
+    buf.prependstring("_D");
+L1:
+    //printf("deco = '%s'\n", sthis->type->deco);
+    buf.writestring(sthis->type->deco);
+
+    id = buf.toChars();
+    buf.data = NULL;
+    return id;
+}
+
 char *Declaration::mangle()
 #if __DMC__
     __out(result)
@@ -42,10 +86,6 @@ char *Declaration::mangle()
     __body
 #endif
     {
-	OutBuffer buf;
-	char *id;
-	Dsymbol *s;
-
 	//printf("Declaration::mangle(this = %p, '%s', parent = '%s', linkage = %d)\n", this, toChars(), parent ? parent->toChars() : "null", linkage);
 	if (!parent || parent->isModule())	// if at global scope
 	{
@@ -70,43 +110,7 @@ char *Declaration::mangle()
 		    assert(0);
 	    }
 	}
-
-	s = this;
-	do
-	{
-	    //printf("s = %p, '%s', parent = %p\n", s, s->toChars(), s->parent);
-	    if (s->ident)
-	    {
-		FuncDeclaration *fd = s->isFuncDeclaration();
-		if (s != this && fd)
-		{
-		    id = fd->mangle();
-		    buf.prependstring(id);
-		    goto L1;
-		}
-		else
-		{
-		    id = s->ident->toChars();
-		    int len = strlen(id);
-		    char tmp[sizeof(len) * 3 + 1];
-		    buf.prependstring(id);
-		    sprintf(tmp, "%d", len);
-		    buf.prependstring(tmp);
-		}
-	    }
-	    else
-		buf.prependstring("0");
-	    s = s->parent;
-	} while (s);
-
-	buf.prependstring("_D");
-    L1:
-	//printf("deco = '%s'\n", type->deco);
-	buf.writestring(type->deco);
-
-	id = buf.toChars();
-	buf.data = NULL;
-	return id;
+	return ::mangle(this);
     }
 
 char *FuncDeclaration::mangle()
@@ -190,9 +194,7 @@ char *Dsymbol::mangle()
 	//printf("  parent = '%s', kind = '%s'\n", parent->mangle(), parent->kind());
 	buf.writestring(parent->mangle());
     }
-    buf.printf("%d%s", strlen(id), id);
-    //buf.writestring("_");
-    //buf.writestring(id);
+    buf.printf("%zu%s", strlen(id), id);
     id = buf.toChars();
     buf.data = NULL;
     return id;

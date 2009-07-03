@@ -496,6 +496,7 @@ void FuncDeclaration::semantic3(Scope *sc)
 {   TypeFunction *f;
     AggregateDeclaration *ad;
     VarDeclaration *argptr = NULL;
+    VarDeclaration *_arguments = NULL;
 
     if (!parent)
     {
@@ -599,12 +600,26 @@ void FuncDeclaration::semantic3(Scope *sc)
 
 	    if (f->linkage == LINKd)
 	    {	// Declare _arguments[]
+#if BREAKABI
+		v_arguments = new VarDeclaration(0, Type::typeinfotypelist->type, Id::_arguments_typeinfo, NULL);
+		v_arguments->storage_class = STCparameter | STCin;
+		v_arguments->semantic(sc2);
+		sc2->insert(v_arguments);
+		v_arguments->parent = this;
+
+		t = Type::typeinfo->type->arrayOf();
+		_arguments = new VarDeclaration(0, t, Id::_arguments, NULL);
+		_arguments->semantic(sc2);
+		sc2->insert(_arguments);
+		_arguments->parent = this;
+#else
 		t = Type::typeinfo->type->arrayOf();
 		v_arguments = new VarDeclaration(0, t, Id::_arguments, NULL);
 		v_arguments->storage_class = STCparameter | STCin;
 		v_arguments->semantic(sc2);
 		sc2->insert(v_arguments);
 		v_arguments->parent = this;
+#endif
 	    }
 	    if (f->linkage == LINKd || (parameters && parameters->dim))
 	    {	// Declare _argptr
@@ -651,7 +666,7 @@ void FuncDeclaration::semantic3(Scope *sc)
 		{
 		    //error("no identifier for parameter %d of %s", i + 1, toChars());
 		    OutBuffer buf;
-		    buf.printf("_param_%d", i);
+		    buf.printf("_param_%zu", i);
 		    char *name = (char *)buf.extractData();
 		    id = new Identifier(name, TOKidentifier);
 		    arg->ident = id;
@@ -997,6 +1012,19 @@ void FuncDeclaration::semantic3(Scope *sc)
 		e->type = t;
 		a->push(new ExpStatement(0, e));
 #endif
+	    }
+
+	    if (_arguments)
+	    {
+		/* Advance to elements[] member of TypeInfo_Tuple with:
+		 *  _arguments = v_arguments.elements;
+		 */
+		Expression *e = new VarExp(0, v_arguments);
+		e = new DotIdExp(0, e, Id::elements);
+		Expression *e1 = new VarExp(0, _arguments);
+		e = new AssignExp(0, e1, e);
+		e = e->semantic(sc);
+		a->push(new ExpStatement(0, e));
 	    }
 
 	    // Merge contracts together with body into one compound statement

@@ -70,98 +70,98 @@ ClassDeclaration::ClassDeclaration(Loc loc, Identifier *id, BaseClasses *basecla
 	{
 	    if (id == Id::TypeInfo)
 	    {	if (Type::typeinfo)
-		    Type::typeinfo->error(msg);
+		    Type::typeinfo->error("%s", msg);
 		Type::typeinfo = this;
 	    }
 
 	    if (id == Id::TypeInfo_Class)
 	    {	if (Type::typeinfoclass)
-		    Type::typeinfoclass->error(msg);
+		    Type::typeinfoclass->error("%s", msg);
 		Type::typeinfoclass = this;
 	    }
 
 	    if (id == Id::TypeInfo_Interface)
 	    {	if (Type::typeinfointerface)
-		    Type::typeinfointerface->error(msg);
+		    Type::typeinfointerface->error("%s", msg);
 		Type::typeinfointerface = this;
 	    }
 
 	    if (id == Id::TypeInfo_Struct)
 	    {	if (Type::typeinfostruct)
-		    Type::typeinfostruct->error(msg);
+		    Type::typeinfostruct->error("%s", msg);
 		Type::typeinfostruct = this;
 	    }
 
 	    if (id == Id::TypeInfo_Typedef)
 	    {	if (Type::typeinfotypedef)
-		    Type::typeinfotypedef->error(msg);
+		    Type::typeinfotypedef->error("%s", msg);
 		Type::typeinfotypedef = this;
 	    }
 
 	    if (id == Id::TypeInfo_Pointer)
 	    {	if (Type::typeinfopointer)
-		    Type::typeinfopointer->error(msg);
+		    Type::typeinfopointer->error("%s", msg);
 		Type::typeinfopointer = this;
 	    }
 
 	    if (id == Id::TypeInfo_Array)
 	    {	if (Type::typeinfoarray)
-		    Type::typeinfoarray->error(msg);
+		    Type::typeinfoarray->error("%s", msg);
 		Type::typeinfoarray = this;
 	    }
 
 	    if (id == Id::TypeInfo_StaticArray)
 	    {	//if (Type::typeinfostaticarray)
-		    //Type::typeinfostaticarray->error(msg);
+		    //Type::typeinfostaticarray->error("%s", msg);
 		Type::typeinfostaticarray = this;
 	    }
 
 	    if (id == Id::TypeInfo_AssociativeArray)
 	    {	if (Type::typeinfoassociativearray)
-		    Type::typeinfoassociativearray->error(msg);
+		    Type::typeinfoassociativearray->error("%s", msg);
 		Type::typeinfoassociativearray = this;
 	    }
 
 	    if (id == Id::TypeInfo_Enum)
 	    {	if (Type::typeinfoenum)
-		    Type::typeinfoenum->error(msg);
+		    Type::typeinfoenum->error("%s", msg);
 		Type::typeinfoenum = this;
 	    }
 
 	    if (id == Id::TypeInfo_Function)
 	    {	if (Type::typeinfofunction)
-		    Type::typeinfofunction->error(msg);
+		    Type::typeinfofunction->error("%s", msg);
 		Type::typeinfofunction = this;
 	    }
 
 	    if (id == Id::TypeInfo_Delegate)
 	    {	if (Type::typeinfodelegate)
-		    Type::typeinfodelegate->error(msg);
+		    Type::typeinfodelegate->error("%s", msg);
 		Type::typeinfodelegate = this;
 	    }
 
 	    if (id == Id::TypeInfo_Tuple)
 	    {	if (Type::typeinfotypelist)
-		    Type::typeinfotypelist->error(msg);
+		    Type::typeinfotypelist->error("%s", msg);
 		Type::typeinfotypelist = this;
 	    }
 	}
 
 	if (id == Id::Object)
 	{   if (object)
-		object->error(msg);
+		object->error("%s", msg);
 	    object = this;
 	}
 
 	if (id == Id::ClassInfo)
 	{   if (classinfo)
-		classinfo->error(msg);
+		classinfo->error("%s", msg);
 	    classinfo = this;
 	}
 
 	if (id == Id::ModuleInfo)
 	{   if (Module::moduleinfo)
-		Module::moduleinfo->error(msg);
+		Module::moduleinfo->error("%s", msg);
 	    Module::moduleinfo = this;
 	}
     }

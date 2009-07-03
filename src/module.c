@@ -521,6 +521,10 @@ void Module::parse()
 	    }
 
 	    // It's UTF-8
+	    if (buf[0] >= 0x80)
+	    {	error("source file must start with BOM or ASCII character, not \\x%02X", buf[0]);
+		fatal();
+	    }
 	}
     }
 

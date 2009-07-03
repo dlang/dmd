@@ -373,7 +373,7 @@ void functionArguments(Loc loc, Scope *sc, TypeFunction *tf, Expressions *argume
     size_t nparams = Argument::dim(tf->parameters);
 
     if (nargs > nparams && tf->varargs == 0)
-	error(loc, "expected %d arguments, not %d\n", nparams, nargs);
+	error(loc, "expected %zu arguments, not %zu", nparams, nargs);
 
     n = (nargs > nparams) ? nargs : nparams;	// n = max(nargs, nparams)
 
@@ -397,7 +397,7 @@ void functionArguments(Loc loc, Scope *sc, TypeFunction *tf, Expressions *argume
 		{
 		    if (tf->varargs == 2 && i + 1 == nparams)
 			goto L2;
-		    error(loc, "expected %d arguments, not %d\n", nparams, nargs);
+		    error(loc, "expected %zu arguments, not %zu", nparams, nargs);
 		    break;
 		}
 		arg = p->defaultArg->copy();
@@ -411,7 +411,7 @@ void functionArguments(Loc loc, Scope *sc, TypeFunction *tf, Expressions *argume
 		if (arg->implicitConvTo(p->type))
 		{
 		    if (nargs != nparams)
-		        error(loc, "expected %d arguments, not %d\n", nparams, nargs);
+		        error(loc, "expected %zu arguments, not %zu", nparams, nargs);
 		    goto L1;
 		}
 	     L2:
@@ -697,7 +697,7 @@ void Expression::error(const char *format, ...)
 {
     va_list ap;
     va_start(ap, format);
-    ::error(loc, format, ap);
+    ::verror(loc, format, ap);
     va_end( ap );
 }
 
@@ -1003,7 +1003,7 @@ char *IntegerExp::toChars()
 {
     static char buffer[sizeof(value) * 3 + 1];
 
-    sprintf(buffer, "%lld", value);
+    sprintf(buffer, "%jd", value);
     return buffer;
 }
 
@@ -1160,7 +1160,7 @@ void IntegerExp::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 
 	    case Tint32:
 	    L2:
-		buf->printf("%ld", (int)v);
+		buf->printf("%d", (int)v);
 		break;
 
 	    case Tuns8:
@@ -1173,15 +1173,15 @@ void IntegerExp::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 
 	    case Tuns32:
 	    L3:
-		buf->printf("%ldu", (unsigned)v);
+		buf->printf("%du", (unsigned)v);
 		break;
 
 	    case Tint64:
-		buf->printf("%lldL", v);
+		buf->printf("%jdL", v);
 		break;
 
 	    case Tuns64:
-		buf->printf("%lldLU", v);
+		buf->printf("%juLU", v);
 		break;
 
 	    case Tbit:
@@ -1203,17 +1203,17 @@ void IntegerExp::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 	}
     }
     else if (v & 0x8000000000000000LL)
-	buf->printf("0x%llx", v);
+	buf->printf("0x%jx", v);
     else
-	buf->printf("%lld", v);
+	buf->printf("%jd", v);
 }
 
 void IntegerExp::toMangleBuffer(OutBuffer *buf)
 {
     if ((sinteger_t)value < 0)
-	buf->printf("N%lld", -value);
+	buf->printf("N%jd", -value);
     else
-	buf->printf("%lld", value);
+	buf->printf("%jd", value);
 }
 
 /******************************** RealExp **************************/
@@ -1370,7 +1370,7 @@ void RealExp::toMangleBuffer(OutBuffer *buf)
     p = buffer;
 #endif
     buf->writeByte('e');
-    for (int i = 0; i < REALSIZE-REALPAD; i++)
+    for (int i = REALSIZE-REALPAD - 1; i >= 0; i--)
 	buf->printf("%02x", p[i]);
 }
 
@@ -1529,7 +1529,7 @@ Expression *IdentifierExp::semantic(Scope *sc)
 	    s = s->toAlias();
 
 	    // Same as wthis.ident
-	    if (s->needThis())
+	    if (s->needThis() || s->isTemplateDeclaration())
 	    {
 		e = new VarExp(loc, withsym->withstate->wthis);
 		e = new DotIdExp(loc, e, ident);
@@ -2146,7 +2146,7 @@ Expression *StringExp::semantic(Scope *sc)
 		{
 		    p = utf_decodeChar((unsigned char *)string, len, &u, &c);
 		    if (p)
-		    {	error(p);
+		    {	error("%s", p);
 			break;
 		    }
 		    else
@@ -2167,7 +2167,7 @@ Expression *StringExp::semantic(Scope *sc)
 		{
 		    p = utf_decodeChar((unsigned char *)string, len, &u, &c);
 		    if (p)
-		    {	error(p);
+		    {	error("%s", p);
 			break;
 		    }
 		    else
@@ -2328,7 +2328,7 @@ void StringExp::toMangleBuffer(OutBuffer *buf)
 	    {
                 p = utf_decodeWchar((unsigned short *)string, len, &u, &c);
                 if (p)
-                    error(p);
+                    error("%s", p);
                 else
                     tmp.writeUTF8(c);
 	    }
@@ -2633,6 +2633,7 @@ Expression *NewExp::semantic(Scope *sc)
     if (type)			// if semantic() already run
 	return this;
 
+Lagain:
     if (thisexp)
     {	thisexp = thisexp->semantic(sc);
 	cdthis = thisexp->type->isClassHandle();
@@ -2662,13 +2663,10 @@ Expression *NewExp::semantic(Scope *sc)
 	error("e.new is only for allocating nested classes, not %s", tb->toChars());
 
     if (tb->ty == Tclass)
-    {	ClassDeclaration *cd;
-	TypeClass *tc;
-	FuncDeclaration *f;
-	TypeFunction *tf;
+    {	TypeFunction *tf;
 
-	tc = (TypeClass *)(tb);
-	cd = tc->sym->isClassDeclaration();
+	TypeClass *tc = (TypeClass *)(tb);
+	ClassDeclaration *cd = tc->sym->isClassDeclaration();
 	if (cd->isInterfaceDeclaration())
 	    error("cannot create instance of interface %s", cd->toChars());
 	if (cd->isAbstract())
@@ -2678,35 +2676,60 @@ Expression *NewExp::semantic(Scope *sc)
 	{   /* We need a 'this' pointer for the nested class.
 	     * Ensure we have the right one.
 	     */
-	    Dsymbol *s = cd->toParent();
+	    Dsymbol *s = cd->toParent2();
 	    ClassDeclaration *cdn = s->isClassDeclaration();
 
+	    //printf("isNested, cdn = %s\n", cdn ? cdn->toChars() : "null");
 	    if (cdn)
 	    {
+		if (!cdthis)
+		{
+		    // Supply an implicit 'this' and try again
+		    thisexp = new ThisExp(loc);
+		    for (Dsymbol *sp = sc->parent; 1; sp = sp->parent)
+		    {	if (!sp)
+			{
+			    error("outer class %s 'this' needed to 'new' nested class %s", cdn->toChars(), cd->toChars());
+			    break;
+			}
+			ClassDeclaration *cdp = sp->isClassDeclaration();
+			if (!cdp)
+			    continue;
+			if (cdp == cdn || cdn->isBaseOf(cdp, NULL))
+			    break;
+			// Add a '.outer' and try again
+			thisexp = new DotIdExp(loc, thisexp, Id::outer);
+		    }
+		    goto Lagain;
+		}
 		if (cdthis)
 		{
+		    //printf("cdthis = %s\n", cdthis->toChars());
 		    if (cdthis != cdn && !cdn->isBaseOf(cdthis, NULL))
 			error("'this' for nested class must be of type %s, not %s", cdn->toChars(), thisexp->type->toChars());
 		}
+#if 0
 		else
 		{
-		    for (Dsymbol *sf = sc->func; 1; sf= sf->toParent()->isFuncDeclaration())
+		    for (Dsymbol *sf = sc->func; 1; sf= sf->toParent2()->isFuncDeclaration())
 		    {
 			if (!sf)
 			{
 			    error("outer class %s 'this' needed to 'new' nested class %s", cdn->toChars(), cd->toChars());
 			    break;
 			}
+			printf("sf = %s\n", sf->toChars());
 			AggregateDeclaration *ad = sf->isThis();
 			if (ad && (ad == cdn || cdn->isBaseOf(ad->isClassDeclaration(), NULL)))
 			    break;
 		    }
 		}
+#endif
 	    }
 	    else if (thisexp)
 		error("e.new is only for allocating nested classes");
 	}
-	f = cd->ctor;
+	FuncDeclaration *f = cd->ctor;
 	if (f)
 	{
 	    assert(f);
@@ -3056,11 +3079,15 @@ void VarExp::checkEscape()
 {
     VarDeclaration *v = var->isVarDeclaration();
     if (v)
-    {
-	if ((v->isAuto() || v->isScope()) && !v->noauto)
-	    error("escaping reference to auto local %s", v->toChars());
-	else if (v->storage_class & STCvariadic)
-	    error("escaping reference to variadic parameter %s", v->toChars());
+    {	Type *tb = v->type->toBasetype();
+	// if reference type
+	if (tb->ty == Tarray || tb->ty == Tsarray || tb->ty == Tclass)
+	{
+	    if ((v->isAuto() || v->isScope()) && !v->noauto)
+		error("escaping reference to auto local %s", v->toChars());
+	    else if (v->storage_class & STCvariadic)
+		error("escaping reference to variadic parameter %s", v->toChars());
+	}
     }
 }
 
@@ -3103,8 +3130,9 @@ Expression *VarExp::modifiableLvalue(Scope *sc, Expression *e)
 	    //printf("setting ctorinit\n");
 	}
 	else
-	{
-	    error("can only initialize const %s inside constructor", var->toChars());
+	{   const char *p = var->isStatic() ? "static " : "";
+	    error("can only initialize %sconst %s inside %sconstructor",
+		p, var->toChars(), p);
 	}
     }
 
@@ -4177,6 +4205,8 @@ DotTemplateExp::DotTemplateExp(Loc loc, Expression *e, TemplateDeclaration *td)
 
 void DotTemplateExp::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 {
+    expToCBuffer(buf, hgs, e1, PREC_primary);
+    buf->writeByte('.');
     buf->writestring(td->toChars());
 }
 
@@ -4323,8 +4353,9 @@ Expression *DotVarExp::modifiableLvalue(Scope *sc, Expression *e)
 	    //printf("setting ctorinit\n");
 	}
 	else
-	{
-	    error("can only initialize const %s inside constructor", var->toChars());
+	{   const char *p = var->isStatic() ? "static " : "";
+	    error("can only initialize %sconst member %s inside %sconstructor",
+		p, var->toChars(), p);
 	}
     }
     return this;
@@ -4961,7 +4992,7 @@ Lagain:
 	    {
 		// Supply an implicit 'this', as in
 		//	  this.ident
-		
+
 		e1 = new DotTemplateExp(loc, (new ThisExp(loc))->semantic(sc), te->td);
 		goto Lagain;
 	    }
@@ -5002,7 +5033,6 @@ Lagain:
 		    tempdecl = tempdecl->overroot; // then get the start
 		e1 = new TemplateExp(loc, tempdecl);
 		istemp = 1;
-printf("istemp\n");
 		goto Lagain;
 	    }
 	}
@@ -5652,7 +5682,7 @@ Expression *SliceExp::semantic(Scope *sc)
 	}
 	else
 	{
-	    error("string slice [%llu .. %llu] is out of bounds", i1, i2);
+	    error("string slice [%ju .. %ju] is out of bounds", i1, i2);
 	    e = e1;
 	}
 	return e;
@@ -5995,7 +6025,7 @@ Expression *IndexExp::semantic(Scope *sc)
 	    }
 	    else
 	    {
-		error("array index [%llu] is outside array bounds [0 .. %u]",
+		error("array index [%ju] is outside array bounds [0 .. %zu]",
 			index, length);
 		e = e1;
 	    }

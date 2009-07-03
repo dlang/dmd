@@ -697,7 +697,7 @@ Expression *StringExp::castTo(Scope *sc, Type *t)
 	    {
 		p = utf_decodeChar((unsigned char *)se->string, len, &u, &c);
 		if (p)
-		    error(p);
+		    error("%s", p);
 		else
 		    buffer.writeUTF16(c);
 	    }
@@ -710,7 +710,7 @@ Expression *StringExp::castTo(Scope *sc, Type *t)
 	    {
 		p = utf_decodeChar((unsigned char *)se->string, len, &u, &c);
 		if (p)
-		    error(p);
+		    error("%s", p);
 		buffer.write4(c);
 		newlen++;
 	    }
@@ -722,7 +722,7 @@ Expression *StringExp::castTo(Scope *sc, Type *t)
 	    {
 		p = utf_decodeWchar((unsigned short *)se->string, len, &u, &c);
 		if (p)
-		    error(p);
+		    error("%s", p);
 		else
 		    buffer.writeUTF8(c);
 	    }
@@ -735,7 +735,7 @@ Expression *StringExp::castTo(Scope *sc, Type *t)
 	    {
 		p = utf_decodeWchar((unsigned short *)se->string, len, &u, &c);
 		if (p)
-		    error(p);
+		    error("%s", p);
 		buffer.write4(c);
 		newlen++;
 	    }
@@ -979,13 +979,13 @@ Expression *DelegateExp::castTo(Scope *sc, Type *t)
 		if (f)
 		{   int offset;
 		    if (f->tintro && f->tintro->next->isBaseOf(f->type->next, &offset) && offset)
-			error(msg);
+			error("%s", msg);
 		    e = new DelegateExp(loc, e1, f);
 		    e->type = t;
 		    return e;
 		}
 		if (func->tintro)
-		    error(msg);
+		    error("%s", msg);
 	    }
 	}
 	e = Expression::castTo(sc, t);
@@ -994,7 +994,7 @@ Expression *DelegateExp::castTo(Scope *sc, Type *t)
     {	int offset;
 
 	if (func->tintro && func->tintro->next->isBaseOf(func->type->next, &offset) && offset)
-	    error(msg);
+	    error("%s", msg);
     }
     e->type = t;
     return e;

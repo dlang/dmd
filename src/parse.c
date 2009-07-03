@@ -2243,10 +2243,40 @@ Initializer *Parser::parseInitializer()
     int comma;
     Loc loc = this->loc;
     Token *t;
+    int braces;
 
     switch (token.value)
     {
 	case TOKlcurly:
+	    /* Scan ahead to see if it is a struct initializer or
+	     * a function literal.
+	     * If it contains a ';', it is a function literal.
+	     * Treat { } as a struct initializer.
+	     */
+	    braces = 1;
+	    for (t = peek(&token); 1; t = peek(t))
+	    {
+		switch (t->value)
+		{
+		    case TOKsemicolon:
+		    case TOKreturn:
+			goto Lexpression;
+
+		    case TOKlcurly:
+			braces++;
+			continue;
+
+		    case TOKrcurly:
+			if (--braces == 0)
+			    break;
+			continue;
+
+		    default:
+			continue;
+		}
+		break;
+	    }
+
 	    is = new StructInitializer(loc);
 	    nextToken();
 	    comma = 0;
@@ -4427,12 +4457,12 @@ Expression *Parser::parseEqualExp()
 
 	    case TOKidentity:
 		if (1 || !global.params.useDeprecated)
-		    error("'===' is deprecated, use 'is' instead");
+		    error("'===' is no longer legal, use 'is' instead");
 		goto L1;
 
 	    case TOKnotidentity:
 		if (1 || !global.params.useDeprecated)
-		    error("'!==' is deprecated, use '!is' instead");
+		    error("'!==' is no longer legal, use '!is' instead");
 		goto L1;
 
 	    case TOKis:

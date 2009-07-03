@@ -175,12 +175,12 @@ void Type::init()
     mangleChar[Tcomplex64] = 'r';
     mangleChar[Tcomplex80] = 'c';
 
-    mangleChar[Tbit] = 'b';
-    mangleChar[Tbool] = 'x';
+    mangleChar[Tbool] = 'b';
     mangleChar[Tascii] = 'a';
     mangleChar[Twchar] = 'u';
     mangleChar[Tdchar] = 'w';
 
+    mangleChar[Tbit] = '@';
     mangleChar[Tinstance] = '@';
     mangleChar[Terror] = '@';
     mangleChar[Ttypeof] = '@';
@@ -618,7 +618,7 @@ void Type::error(Loc loc, const char *format, ...)
 {
     va_list ap;
     va_start(ap, format);
-    ::error(loc, format, ap);
+    ::verror(loc, format, ap);
     va_end( ap );
 }
 
@@ -638,10 +638,10 @@ Identifier *Type::getTypeInfoIdent(int internal)
     }
     else
 	toDecoBuffer(&buf);
-    name = (char *)alloca(15 + sizeof(len) * 3 + buf.offset + 1);
+    len = buf.offset;
+    name = (char *)alloca(18 + sizeof(len) * 3 + len + 1);
     buf.writeByte(0);
-    len = strlen((char *)buf.data);
-    sprintf(name, "_init_%dTypeInfo_%s", 9 + len, buf.data);
+    sprintf(name, "D%dTypeInfo_%s6__initZ", 9 + len, buf.data);
     id = Lexer::idPool(name);
     return id;
 }
@@ -1589,7 +1589,7 @@ d_uns64 TypeSArray::size(Loc loc)
     return sz;
 
 Loverflow:
-    error(loc, "index %lld overflow for static array", sz);
+    error(loc, "index %jd overflow for static array", sz);
     return 1;
 }
 
@@ -1674,7 +1674,7 @@ Type *TypeSArray::semantic(Loc loc, Scope *sc)
 	    if (n && n2 / n != d2)
 	    {
 	      Loverflow:
-		error(loc, "index %lld overflow for static array", d1);
+		error(loc, "index %jd overflow for static array", d1);
 		dim = new IntegerExp(0, 1, tsize_t);
 	    }
 	}
@@ -1688,7 +1688,7 @@ Type *TypeSArray::semantic(Loc loc, Scope *sc)
 	    uinteger_t d = dim->toUInteger();
 
 	    if (d >= tt->arguments->dim)
-	    {	error(loc, "tuple index %llu exceeds %u", d, tt->arguments->dim);
+	    {	error(loc, "tuple index %ju exceeds %u", d, tt->arguments->dim);
 		return Type::terror;
 	    }
 	    Argument *arg = (Argument *)tt->arguments->data[(size_t)d];
@@ -1709,7 +1709,7 @@ void TypeSArray::toDecoBuffer(OutBuffer *buf)
 {
     buf->writeByte(mangleChar[ty]);
     if (dim)
-	buf->printf("%llu", dim->toInteger());
+	buf->printf("%ju", dim->toInteger());
     if (next)
 	next->toDecoBuffer(buf);
 }
@@ -1969,7 +1969,7 @@ Type *TypeAArray::syntaxCopy()
 
 d_uns64 TypeAArray::size(Loc loc)
 {
-    return PTRSIZE * 2;
+    return PTRSIZE /* * 2*/;
 }
 
 
@@ -2471,7 +2471,7 @@ void TypeFunction::toCBuffer2(OutBuffer *buf, Identifier *ident, HdrGenState *hg
 	    case LINKc:		p = "C ";	break;
 	    case LINKwindows:	p = "Windows ";	break;
 	    case LINKpascal:	p = "Pascal ";	break;
-	    case LINKcpp:		p = "C++ ";	break;
+	    case LINKcpp:	p = "C++ ";	break;
 	    default:
 		assert(0);
 	}
@@ -2520,6 +2520,10 @@ Type *TypeFunction::semantic(Loc loc, Scope *sc)
     }
     if (next->toBasetype()->ty == Tfunction)
     {	error(loc, "functions cannot return a function");
+	next = Type::terror;
+    }
+    if (next->toBasetype()->ty == Ttuple)
+    {	error(loc, "functions cannot return a tuple");
 	next = Type::terror;
     }
     if (next->isauto() && !(sc->flags & SCOPEctor))
@@ -4322,7 +4326,8 @@ L1:
 			e = de->semantic(sc);
 			return e;
 		    }
-		    else if (!cd || !cd->isBaseOf(thiscd, NULL))
+		    else if ((!cd || !cd->isBaseOf(thiscd, NULL)) &&
+			     !d->isFuncDeclaration())
 			e->error("'this' is required, but %s is not a base class of %s", e->type->toChars(), thiscd->toChars());
 		}
 	    }
@@ -4546,7 +4551,7 @@ void TypeTuple::toDecoBuffer(OutBuffer *buf)
     OutBuffer buf2;
     Argument::argsToDecoBuffer(&buf2, arguments);
     unsigned len = buf2.offset;
-    buf->printf("%c%d%.*s", mangleChar[ty], len, len, buf2.extractData());
+    buf->printf("%c%d%.*s", mangleChar[ty], len, len, (char *)buf2.extractData());
 }
 
 Expression *TypeTuple::getProperty(Loc loc, Identifier *ident)
@@ -4607,7 +4612,7 @@ Type *TypeSlice::semantic(Loc loc, Scope *sc)
     uinteger_t i2 = upr->toUInteger();
 
     if (!(i1 <= i2 && i2 <= tt->arguments->dim))
-    {	error(loc, "slice [%llu..%llu] is out of range of [0..%u]", i1, i2, tt->arguments->dim);
+    {	error(loc, "slice [%ju..%ju] is out of range of [0..%u]", i1, i2, tt->arguments->dim);
 	return Type::terror;
     }
 

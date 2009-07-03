@@ -33,7 +33,7 @@ Expression *fromConstInitializer(Expression *e1)
     if (e1->op == TOKvar)
     {	VarExp *ve = (VarExp *)e1;
 	VarDeclaration *v = ve->var->isVarDeclaration();
-	if (v->isConst() && v->init)
+	if (v && v->isConst() && v->init)
 	{   Expression *ei = v->init->toExpression();
 	    if (ei)
 		e1 = ei;
@@ -132,7 +132,7 @@ Expression *AddrExp::optimize(int result)
 		TypeSArray *ts = (TypeSArray *)ve->type;
 		integer_t dim = ts->dim->toInteger();
 		if (index < 0 || index >= dim)
-		    error("array index %lld is out of bounds [0..%lld]", index, dim);
+		    error("array index %jd is out of bounds [0..%jd]", index, dim);
 		e = new SymOffExp(loc, ve->var, index * ts->next->size());
 		e->type = type;
 		return e;
@@ -220,6 +220,27 @@ Expression *BinExp::optimize(int result)
     return e;
 }
 
+Expression *ShlExp::optimize(int result)
+{   Expression *e;
+
+    //printf("ShlExp::optimize(result = %d) %s\n", result, toChars());
+    e1 = e1->optimize(result);
+    e2 = e2->optimize(result);
+    e = this;
+    if (e2->isConst() == 1)
+    {
+	e2 = e2->constFold();
+	integer_t i2 = e2->toInteger();
+	if (i2 < 0 || i2 > e1->type->size() * 8)
+	{   error("shift left by %jd exceeds %zu", i2, e2->type->size() * 8);
+	    e2 = new IntegerExp(0);
+	}
+	if (e1->isConst() == 1)
+	    e = constFold();
+    }
+    return e;
+}
+
 Expression *AddExp::optimize(int result)
 {   Expression *e;
 
@@ -294,16 +315,6 @@ Expression *EqualExp::optimize(int result)
     Expression *e1 = fromConstInitializer(this->e1);
     Expression *e2 = fromConstInitializer(this->e2);
 
-    if (e1->op == TOKvar)
-    {	VarExp *ve = (VarExp *)e1;
-	VarDeclaration *v = ve->var->isVarDeclaration();
-	if (v->isConst() && v->init)
-	{   Expression *ei = v->init->toExpression();
-	    if (ei)
-		e1 = ei;
-	}
-    }
-
     if (e1->op == TOKstring && e2->op == TOKstring)
     {	StringExp *es1 = (StringExp *)e1;
 	StringExp *es2 = (StringExp *)e2;
@@ -375,7 +386,7 @@ Expression *IndexExp::optimize(int result)
 	uinteger_t i = e2->toInteger();
 
 	if (i >= es1->len)
-	    error("string index %llu is out of bounds [0 .. %u]", i, es1->len);
+	    error("string index %ju is out of bounds [0 .. %ju]", i, es1->len);
 	else
 	{   integer_t value;
 
@@ -406,7 +417,7 @@ Expression *IndexExp::optimize(int result)
 	uinteger_t i = e2->toInteger();
 
 	if (i >= length)
-	{   error("array index %llu is out of bounds [0 .. %llu]", i, length);
+	{   error("array index %ju is out of bounds [0 .. %ju]", i, length);
 	}
 	else if (e1->op == TOKarrayliteral && !e1->checkSideEffect(2))
 	{   ArrayLiteralExp *ale = (ArrayLiteralExp *)e1;
@@ -433,7 +444,7 @@ Expression *SliceExp::optimize(int result)
 	uinteger_t iupr = upr->toInteger();
 
 	if (iupr > es1->len || ilwr > iupr)
-	    error("string slice [%llu .. %llu] is out of bounds", ilwr, iupr);
+	    error("string slice [%ju .. %ju] is out of bounds", ilwr, iupr);
 	else
 	{   integer_t value;
 	    void *s;
@@ -460,7 +471,7 @@ Expression *SliceExp::optimize(int result)
 	uinteger_t iupr = upr->toInteger();
 
 	if (iupr > es1->elements->dim || ilwr > iupr)
-	    error("array slice [%llu .. %llu] is out of bounds", ilwr, iupr);
+	    error("array slice [%ju .. %ju] is out of bounds", ilwr, iupr);
 	else
 	{
 	    memmove(es1->elements->data,

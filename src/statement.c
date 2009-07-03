@@ -90,7 +90,7 @@ void Statement::error(const char *format, ...)
 {
     va_list ap;
     va_start(ap, format);
-    ::error(loc, format, ap);
+    ::verror(loc, format, ap);
     va_end( ap );
 }
 
@@ -1766,7 +1766,7 @@ Statement *PragmaStatement::semantic(Scope *sc)
                 if (e->op == TOKstring)
                 {
                     StringExp *se = (StringExp *)e;
-                    fprintf(stdmsg, "%.*s", se->len, se->string);
+                    fprintf(stdmsg, "%.*s", (int)se->len, se->string);
                 }
                 else
 		    error("string expected for message, not '%s'", e->toChars());

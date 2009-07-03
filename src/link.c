@@ -393,7 +393,18 @@ int runProgram()
 
     argv.push((void *)global.params.exefile);
     for (size_t i = 0; i < global.params.runargs_length; i++)
-	argv.push((void *)global.params.runargs[i]);
+    {	char *a = global.params.runargs[i];
+
+#if _WIN32
+	// BUG: what about " appearing in the string?
+	if (strchr(a, ' '))
+	{   char *b = (char *)mem.malloc(3 + strlen(a));
+	    sprintf(b, "\"%s\"", a);
+	    a = b;
+	}
+#endif
+	argv.push((void *)a);
+    }
     argv.push(NULL);
 
 #if _WIN32
