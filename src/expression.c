@@ -708,7 +708,7 @@ void Expression::rvalue()
     {	error("expression %s is void and has no value", toChars());
 #if 0
 	dump(0);
-	*(char*)0=0;
+	halt();
 #endif
     }
 }
@@ -770,9 +770,7 @@ void Expression::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 
 void Expression::toMangleBuffer(OutBuffer *buf)
 {
-    printf("global.errors = %d, gag = %d\n", global.errors, global.gag);
-    dump(0);
-    assert(0);
+    error("expression %s is not a valid template value argument", toChars());
 }
 
 /*******************************
@@ -2130,6 +2128,14 @@ StringExp::StringExp(Loc loc, void *string, size_t len, unsigned char postfix)
     this->postfix = postfix;
 }
 
+#if 0
+Expression *StringExp::syntaxCopy()
+{
+    printf("StringExp::syntaxCopy() %s\n", toChars());
+    return copy();
+}
+#endif
+
 int StringExp::equals(Object *o)
 {
     //printf("StringExp::equals('%s')\n", o->toChars());
@@ -2161,7 +2167,7 @@ char *StringExp::toChars()
 Expression *StringExp::semantic(Scope *sc)
 {
 #if LOGSEMANTIC
-    printf("StringExp::semantic()\n");
+    printf("StringExp::semantic() %s\n", toChars());
 #endif
     if (!type)
     {	OutBuffer buffer;
@@ -2425,7 +2431,14 @@ Expression *ArrayLiteralExp::semantic(Scope *sc)
 	    error("%s has no value", e->toChars());
 	e = resolveProperties(sc, e);
 	if (!t0)
-	    t0 = e->type;
+	{   t0 = e->type;
+	    // Convert any static arrays to dynamic arrays
+	    if (t0->ty == Tsarray)
+	    {
+		t0 = t0->next->arrayOf();
+		e = e->implicitCastTo(sc, t0);
+	    }
+	}
 	else
 	    e = e->implicitCastTo(sc, t0);
 	elements->data[i] = (void *)e;
@@ -2587,7 +2600,7 @@ Lagain:
 	sds->semantic(sc);
     }
     type = Type::tvoid;
-    //printf("-2ScopeExp::semantic()\n");
+    //printf("-2ScopeExp::semantic() %s\n", toChars());
     return this;
 }
 
@@ -2731,7 +2744,8 @@ Lagain:
 			// Add a '.outer' and try again
 			thisexp = new DotIdExp(loc, thisexp, Id::outer);
 		    }
-		    goto Lagain;
+		    if (!global.errors)
+			goto Lagain;
 		}
 		if (cdthis)
 		{
@@ -3080,6 +3094,7 @@ Expression *VarExp::semantic(Scope *sc)
 	    if (ei)
 	    {
 		//ei->exp->implicitCastTo(sc, type)->print();
+printf("test3: %s\n", ei->exp->toChars());
 		return ei->exp->implicitCastTo(sc, type);
 	    }
 	}
@@ -3150,20 +3165,37 @@ Expression *VarExp::modifiableLvalue(Scope *sc, Expression *e)
 
     if (var->isCtorinit())
     {	// It's only modifiable if inside the right constructor
-	if (sc->func &&
-	    ((sc->func->isCtorDeclaration() && var->storage_class & STCfield) ||
-	     (sc->func->isStaticCtorDeclaration() && !(var->storage_class & STCfield))) &&
-	    sc->func->toParent() == var->toParent())
+	Dsymbol *s = sc->func;
+	while (1)
 	{
-	    VarDeclaration *v = var->isVarDeclaration();
-	    assert(v);
-	    v->ctorinit = 1;
-	    //printf("setting ctorinit\n");
-	}
-	else
-	{   const char *p = var->isStatic() ? "static " : "";
-	    error("can only initialize %sconst %s inside %sconstructor",
-		p, var->toChars(), p);
+	    FuncDeclaration *fd = NULL;
+	    if (s)
+		fd = s->isFuncDeclaration();
+	    if (fd &&
+		((fd->isCtorDeclaration() && var->storage_class & STCfield) ||
+		 (fd->isStaticCtorDeclaration() && !(var->storage_class & STCfield))) &&
+		fd->toParent() == var->toParent()
+	       )
+	    {
+		VarDeclaration *v = var->isVarDeclaration();
+		assert(v);
+		v->ctorinit = 1;
+		//printf("setting ctorinit\n");
+	    }
+	    else
+	    {
+		if (s)
+		{   s = s->toParent2();
+		    continue;
+		}
+		else
+		{
+		    const char *p = var->isStatic() ? "static " : "";
+		    error("can only initialize %sconst %s inside %sconstructor",
+			p, var->toChars(), p);
+		}
+	    }
+	    break;
 	}
     }
 
@@ -4371,22 +4403,38 @@ Expression *DotVarExp::modifiableLvalue(Scope *sc, Expression *e)
 
     if (var->isCtorinit())
     {	// It's only modifiable if inside the right constructor
-	if (sc->func &&
-	    ((sc->func->isCtorDeclaration() && var->storage_class & STCfield) ||
-	     (sc->func->isStaticCtorDeclaration() && !(var->storage_class & STCfield))) &&
-	    sc->func->toParent() == var->toParent() &&
-	    e1->op == TOKthis
-	   )
+	Dsymbol *s = sc->func;
+	while (1)
 	{
-	    VarDeclaration *v = var->isVarDeclaration();
-	    assert(v);
-	    v->ctorinit = 1;
-	    //printf("setting ctorinit\n");
-	}
-	else
-	{   const char *p = var->isStatic() ? "static " : "";
-	    error("can only initialize %sconst member %s inside %sconstructor",
-		p, var->toChars(), p);
+	    FuncDeclaration *fd = NULL;
+	    if (s)
+		fd = s->isFuncDeclaration();
+	    if (fd &&
+		((fd->isCtorDeclaration() && var->storage_class & STCfield) ||
+		 (fd->isStaticCtorDeclaration() && !(var->storage_class & STCfield))) &&
+		fd->toParent() == var->toParent() &&
+		e1->op == TOKthis
+	       )
+	    {
+		VarDeclaration *v = var->isVarDeclaration();
+		assert(v);
+		v->ctorinit = 1;
+		//printf("setting ctorinit\n");
+	    }
+	    else
+	    {
+		if (s)
+		{   s = s->toParent2();
+		    continue;
+		}
+		else
+		{
+		    const char *p = var->isStatic() ? "static " : "";
+		    error("can only initialize %sconst member %s inside %sconstructor",
+			p, var->toChars(), p);
+		}
+	    }
+	    break;
 	}
     }
     return this;
@@ -5902,6 +5950,18 @@ Expression *DotExp::semantic(Scope *sc)
 #endif
     e1 = e1->semantic(sc);
     e2 = e2->semantic(sc);
+    if (e2->op == TOKimport)
+    {
+	ScopeExp *se = (ScopeExp *)e2;
+	TemplateDeclaration *td = se->sds->isTemplateDeclaration();
+	if (td)
+	{   Expression *e = new DotTemplateExp(loc, e1, td);
+	    e = e->semantic(sc);
+	    return e;
+	}
+    }
+    if (!type)
+	type = e2->type;
     return this;
 }
 
@@ -6244,8 +6304,8 @@ Expression *AssignExp::semantic(Scope *sc)
 		if (search_function(ad, id))
 		{   Expression *e = new DotIdExp(loc, ae->e1, id);
 
-		    if (!global.params.useDeprecated)
-			error("operator [] assignment overload with opIndex(i, value) deprecated, use opIndexAssign(value, i)");
+		    if (1 || !global.params.useDeprecated)
+			error("operator [] assignment overload with opIndex(i, value) illegal, use opIndexAssign(value, i)");
 
 		    e = new CallExp(loc, e, (Expression *)ae->arguments->data[0], e2);
 		    e = e->semantic(sc);

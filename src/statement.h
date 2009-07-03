@@ -85,7 +85,7 @@ struct Statement : Object
     virtual int fallOffEnd();
     virtual int comeFrom();
     virtual void scopeCode(Statement **sentry, Statement **sexit, Statement **sfinally);
-    virtual Statements *flatten();
+    virtual Statements *flatten(Scope *sc);
 
     virtual int inlineCost(InlineCostState *ics);
     virtual Expression *doInline(InlineDoState *ids);
@@ -143,7 +143,7 @@ struct CompoundStatement : Statement
     int usesEH();
     int fallOffEnd();
     int comeFrom();
-    Statements *flatten();
+    Statements *flatten(Scope *sc);
     ReturnStatement *isReturnStatement();
 
     int inlineCost(InlineCostState *ics);
@@ -324,6 +324,7 @@ struct ConditionalStatement : Statement
     ConditionalStatement(Loc loc, Condition *condition, Statement *ifbody, Statement *elsebody);
     Statement *syntaxCopy();
     Statement *semantic(Scope *sc);
+    Statements *flatten(Scope *sc);
     int usesEH();
 
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
@@ -628,7 +629,7 @@ struct VolatileStatement : Statement
     VolatileStatement(Loc loc, Statement *statement);
     Statement *syntaxCopy();
     Statement *semantic(Scope *sc);
-    Statements *flatten();
+    Statements *flatten(Scope *sc);
     int fallOffEnd();
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
 
@@ -664,7 +665,7 @@ struct LabelStatement : Statement
     LabelStatement(Loc loc, Identifier *ident, Statement *statement);
     Statement *syntaxCopy();
     Statement *semantic(Scope *sc);
-    Statements *flatten();
+    Statements *flatten(Scope *sc);
     int usesEH();
     int fallOffEnd();
     int comeFrom();

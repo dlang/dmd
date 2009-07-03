@@ -294,6 +294,7 @@ struct StringExp : Expression
     StringExp(Loc loc, char *s);
     StringExp(Loc loc, void *s, size_t len);
     StringExp(Loc loc, void *s, size_t len, unsigned char postfix);
+    //Expression *syntaxCopy();
     int equals(Object *o);
     char *toChars();
     Expression *semantic(Scope *sc);

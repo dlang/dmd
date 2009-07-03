@@ -434,6 +434,11 @@ struct FuncDeclaration : Declaration
 					// 4 if there's an assert(0)
 					// 8 if there's inline asm
 
+    // Support for NRVO (named return value optimization)
+    int nrvo_can;			// !=0 means we can do it
+    VarDeclaration *nrvo_var;		// variable to replace with shidden
+    Symbol *shidden;			// hidden pointer passed to function
+
     FuncDeclaration(Loc loc, Loc endloc, Identifier *id, enum STC storage_class, Type *type);
     Dsymbol *syntaxCopy(Dsymbol *);
     void semantic(Scope *sc);

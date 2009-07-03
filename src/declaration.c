@@ -504,6 +504,7 @@ void AliasDeclaration::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 VarDeclaration::VarDeclaration(Loc loc, Type *type, Identifier *id, Initializer *init)
     : Declaration(id)
 {
+    //printf("VarDeclaration('%s')\n", id->toChars());
 #ifdef DEBUG
     if (!type && !init)
     {	printf("VarDeclaration('%s')\n", id->toChars());
@@ -572,7 +573,7 @@ Dsymbol *VarDeclaration::syntaxCopy(Dsymbol *s)
 void VarDeclaration::semantic(Scope *sc)
 {
     //printf("VarDeclaration::semantic('%s', parent = '%s')\n", toChars(), sc->parent->toChars());
-    //if (strcmp(toChars(), "mul") == 0) *(char*)0=0;
+    //if (strcmp(toChars(), "mul") == 0) halt();
 
     storage_class |= sc->stc;
     if (storage_class & STCextern && init)
@@ -752,7 +753,7 @@ void VarDeclaration::semantic(Scope *sc)
 	    e1 = new VarExp(loc, this);
 	    e = new AssignExp(loc, e1, e);
 	    e->type = e1->type;
-	    init = new ExpInitializer(loc, e);
+	    init = new ExpInitializer(loc, e/*->type->defaultInit()*/);
 	    return;
 	}
 	else if (type->ty == Ttypedef)
@@ -839,7 +840,9 @@ void VarDeclaration::semantic(Scope *sc)
 		}
 		else if (t->ty == Tstruct)
 		{
-		    ei->exp = new CastExp(loc, ei->exp, type);
+		    ei->exp = ei->exp->semantic(sc);
+		    if (!ei->exp->implicitConvTo(type))
+			ei->exp = new CastExp(loc, ei->exp, type);
 		}
 		ei->exp = new AssignExp(loc, e1, ei->exp);
 		ei->exp = ei->exp->semantic(sc);
@@ -858,7 +861,7 @@ void VarDeclaration::semantic(Scope *sc)
 	{
 	    /* Because we may need the results of a const declaration in a
 	     * subsequent type, such as an array dimension, before semantic2()
-	     * gets ordinarilly run, try to run semantic2() now.
+	     * gets ordinarily run, try to run semantic2() now.
 	     * Ignore failure.
 	     */
 

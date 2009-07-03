@@ -98,7 +98,7 @@ Initializer *VoidInitializer::semantic(Scope *sc, Type *t)
 Expression *VoidInitializer::toExpression()
 {
 #ifdef DEBUG
-    *(char*)0=0;
+    halt();
 #endif
     assert(0);
     return NULL;
@@ -485,7 +485,9 @@ L1:
 
 Type *ExpInitializer::inferType(Scope *sc)
 {
+    //printf("ExpInitializer::inferType() %s\n", toChars());
     exp = exp->semantic(sc);
+    exp = resolveProperties(sc, exp);
     return exp->type;
 }
 

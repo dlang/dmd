@@ -435,7 +435,14 @@ Expression *SliceExp::optimize(int result)
     e = this;
     e1 = e1->optimize(WANTvalue);
     if (!lwr)
+    {	if (e1->op == TOKstring)
+	{   // Convert slice of string literal into dynamic array
+	    Type *t = e1->type->toBasetype();
+	    if (t->next)
+		e = e1->castTo(NULL, t->next->arrayOf());
+	}
 	return e;
+    }
     lwr = lwr->optimize(WANTvalue);
     upr = upr->optimize(WANTvalue);
     if (e1->op == TOKstring && lwr->op == TOKint64 && upr->op == TOKint64)

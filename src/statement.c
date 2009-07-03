@@ -151,7 +151,7 @@ void Statement::scopeCode(Statement **sentry, Statement **sexception, Statement 
  * Returns NULL if no flattening necessary.
  */
 
-Statements *Statement::flatten()
+Statements *Statement::flatten(Scope *sc)
 {
     return NULL;
 }
@@ -300,32 +300,18 @@ Statement *CompoundStatement::semantic(Scope *sc)
 
     //printf("CompoundStatement::semantic(this = %p, sc = %p)\n", this, sc);
 
-    /* Start by flattening it
-     */
-
-    for (size_t i = 0; i < statements->dim; i++)
+    for (size_t i = 0; i < statements->dim; )
     {
-      L1:
 	s = (Statement *) statements->data[i];
 	if (s)
-	{   Statements *a = s->flatten();
+	{   Statements *a = s->flatten(sc);
 
 	    if (a)
 	    {
 		statements->remove(i);
 		statements->insert(i, a);
-		if (i >= statements->dim)
-		    break;
-		goto L1;
+		continue;
 	    }
-	}
-    }
-
-    for (size_t i = 0; i < statements->dim; i++)
-    {
-	s = (Statement *) statements->data[i];
-	if (s)
-	{
 	    s = s->semantic(sc);
 	    statements->data[i] = s;
 	    if (s)
@@ -424,13 +410,14 @@ Statement *CompoundStatement::semantic(Scope *sc)
 		}
 	    }
 	}
+	i++;
     }
     if (statements->dim == 1)
 	return s;
     return this;
 }
 
-Statements *CompoundStatement::flatten()
+Statements *CompoundStatement::flatten(Scope *sc)
 {
     return statements;
 }
@@ -664,7 +651,7 @@ Statement *ScopeStatement::semantic(Scope *sc)
 	sym->parent = sc->scopesym;
 	sc = sc->push(sym);
 
-	a = statement->flatten();
+	a = statement->flatten(sc);
 	if (a)
 	{
 	    statement = new CompoundStatement(loc, a);
@@ -1691,7 +1678,7 @@ Statement *ConditionalStatement::syntaxCopy()
 
 Statement *ConditionalStatement::semantic(Scope *sc)
 {
-    //condition = condition->semantic(sc);
+    printf("ConditionalStatement::semantic()\n");
 
     // If we can short-circuit evaluate the if statement, don't do the
     // semantic analysis of the skipped code.
@@ -1707,6 +1694,20 @@ Statement *ConditionalStatement::semantic(Scope *sc)
 	    elsebody = elsebody->semantic(sc);
 	return elsebody;
     }
+}
+
+Statements *ConditionalStatement::flatten(Scope *sc)
+{
+    Statement *s;
+
+    if (condition->include(sc, NULL))
+	s = ifbody;
+    else
+	s = elsebody;
+
+    Statements *a = new Statements();
+    a->push(s);
+    return a;
 }
 
 int ConditionalStatement::usesEH()
@@ -1988,7 +1989,7 @@ int SwitchStatement::usesEH()
 int SwitchStatement::fallOffEnd()
 {
     body->fallOffEnd();
-    return TRUE;
+    return TRUE;	// need to do this better
 }
 
 void SwitchStatement::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
@@ -2328,6 +2329,9 @@ Statement *ReturnStatement::semantic(Scope *sc)
 	exp = new ThisExp(0);
     }
 
+    if (!exp)
+	fd->nrvo_can = 0;
+
     if (exp)
     {
 	fd->hasReturnExp |= 1;
@@ -2335,6 +2339,20 @@ Statement *ReturnStatement::semantic(Scope *sc)
 	exp = exp->semantic(sc);
 	exp = resolveProperties(sc, exp);
 	exp = exp->optimize(WANTvalue);
+
+	if (fd->nrvo_can && exp->op == TOKvar)
+	{   VarExp *ve = (VarExp *)exp;
+	    VarDeclaration *v = ve->var->isVarDeclaration();
+
+	    if (fd->nrvo_var == NULL)
+	    {	if (!v->isDataseg() && !v->isParameter() && v->toParent2() == fd)
+		    fd->nrvo_var = v;
+		else
+		    fd->nrvo_can = 0;
+	    }
+	    else if (fd->nrvo_var != v)
+		fd->nrvo_can = 0;
+	}
 
 	if (fd->returnLabel && tbret->ty != Tvoid)
 	{
@@ -2808,6 +2826,7 @@ Statement *WithStatement::semantic(Scope *sc)
 
     //printf("WithStatement::semantic()\n");
     exp = exp->semantic(sc);
+    exp = resolveProperties(sc, exp);
     if (exp->op == TOKimport)
     {	ScopeExp *es = (ScopeExp *)exp;
 
@@ -2959,7 +2978,7 @@ void TryCatchStatement::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 
 Catch::Catch(Loc loc, Type *t, Identifier *id, Statement *handler)
 {
-    //printf("Catch(loc = %s)\n", loc.toChars());
+    //printf("Catch(%s, loc = %s)\n", id->toChars(), loc.toChars());
     this->loc = loc;
     this->type = t;
     this->ident = id;
@@ -2979,7 +2998,7 @@ Catch *Catch::syntaxCopy()
 void Catch::semantic(Scope *sc)
 {   ScopeDsymbol *sym;
 
-    //printf("Catch::semantic()\n");
+    //printf("Catch::semantic(%s)\n", ident->toChars());
 
 #ifndef IN_GCC
     if (sc->tf)
@@ -3240,11 +3259,11 @@ Statement *VolatileStatement::semantic(Scope *sc)
     return this;
 }
 
-Statements *VolatileStatement::flatten()
+Statements *VolatileStatement::flatten(Scope *sc)
 {
     Statements *a;
 
-    a = statement->flatten();
+    a = statement->flatten(sc);
     if (a)
     {	for (int i = 0; i < a->dim; i++)
 	{   Statement *s = (Statement *)a->data[i];
@@ -3364,26 +3383,30 @@ Statement *LabelStatement::semantic(Scope *sc)
     sc->scopesym = sc->enclosing->scopesym;
     sc->callSuper |= CSXlabel;
     sc->slabel = this;
-    statement = statement->semantic(sc);
+    if (statement)
+	statement = statement->semantic(sc);
     sc->pop();
     return this;
 }
 
-Statements *LabelStatement::flatten()
+Statements *LabelStatement::flatten(Scope *sc)
 {
-    Statements *a;
+    Statements *a = NULL;
 
-    a = statement->flatten();
-    if (a)
+    if (statement)
     {
-	if (!a->dim)
+	a = statement->flatten(sc);
+	if (a)
 	{
-	    a->push(new ExpStatement(loc, NULL));
-	}
-	Statement *s = (Statement *)a->data[0];
+	    if (!a->dim)
+	    {
+		a->push(new ExpStatement(loc, NULL));
+	    }
+	    Statement *s = (Statement *)a->data[0];
 
-	s = new LabelStatement(loc, ident, s);
-	a->data[0] = s;
+	    s = new LabelStatement(loc, ident, s);
+	    a->data[0] = s;
+	}
     }
 
     return a;
@@ -3392,7 +3415,7 @@ Statements *LabelStatement::flatten()
 
 int LabelStatement::usesEH()
 {
-    return statement->usesEH();
+    return statement ? statement->usesEH() : FALSE;
 }
 
 int LabelStatement::fallOffEnd()

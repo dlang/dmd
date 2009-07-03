@@ -560,7 +560,7 @@ void EnumDeclaration::emitComment(Scope *sc)
 {
     if (prot() == PROTprivate)
 	return;
-    if (!comment)
+//    if (!comment)
     {	if (isAnonymous() && members)
 	{
 	    for (int i = 0; i < members->dim; i++)
@@ -568,9 +568,11 @@ void EnumDeclaration::emitComment(Scope *sc)
 		Dsymbol *s = (Dsymbol *)members->data[i];
 		s->emitComment(sc);
 	    }
+	    return;
 	}
-	return;
     }
+    if (!comment)
+	return;
     if (isAnonymous())
 	return;
 

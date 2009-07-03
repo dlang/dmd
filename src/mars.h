@@ -38,6 +38,7 @@ struct Param
     char cpu;		// target CPU
     char isX86_64;	// generate X86_64 bit code
     char isLinux;	// generate code for linux
+    char isWindows;	// generate code for Windows
     char scheduler;	// which scheduler to use
     char useDeprecated;	// allow use of deprecated features
     char useAssert;	// generate runtime code for assert()'s
@@ -247,6 +248,7 @@ int runLINK();
 void deleteExeFile();
 int runProgram();
 void inifile(char *argv0, char *inifile);
+void halt();
 
 /*** Where to send error messages ***/
 #if IN_GCC

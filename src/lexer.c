@@ -857,7 +857,9 @@ void Lexer::scan(Token *t)
 	    case '.':
 		p++;
 		if (isdigit(*p))
-		{
+		{   /* Note that we don't allow ._1 and ._ as being
+		     * valid floating point numbers.
+		     */
 		    p--;
 		    t->value = inreal(t);
 		}

@@ -60,7 +60,7 @@ Global::Global()
 
     copyright = "Copyright (c) 1999-2006 by Digital Mars";
     written = "written by Walter Bright";
-    version = "v0.177";
+    version = "v0.178";
     global.structalign = 8;
 
     memset(&params, 0, sizeof(Param));
@@ -114,9 +114,6 @@ void verror(Loc loc, const char *format, va_list ap)
 	vfprintf(stdmsg, format, ap);
 	fprintf(stdmsg, "\n");
 	fflush(stdmsg);
-#ifdef DEBUG
-	//*(char*)0=0;
-#endif
     }
     global.errors++;
 }
@@ -132,6 +129,17 @@ void fatal()
     *(char *)0 = 0;
 #endif
     exit(EXIT_FAILURE);
+}
+
+/**************************************
+ * Try to stop forgetting to remove the breakpoints from
+ * release builds.
+ */
+void halt()
+{
+#ifdef DEBUG
+    *(char*)0=0;
+#endif
 }
 
 extern void backend_init();
@@ -243,6 +251,7 @@ int main(int argc, char *argv[])
 #if _WIN32
     VersionCondition::addPredefinedGlobalIdent("Windows");
     VersionCondition::addPredefinedGlobalIdent("Win32");
+    global.params.isWindows = 1;
 #endif
 #if linux
     VersionCondition::addPredefinedGlobalIdent("linux");

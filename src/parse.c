@@ -2844,12 +2844,12 @@ Statement *Parser::parseStatement(int flags)
 	    goto Lcondition;
 
 	Lcondition:
-	    ifbody = parseStatement(PSsemi);
+	    ifbody = parseStatement(0 /*PSsemi*/);
 	    elsebody = NULL;
 	    if (token.value == TOKelse)
 	    {
 		nextToken();
-		elsebody = parseStatement(PSsemi);
+		elsebody = parseStatement(0 /*PSsemi*/);
 	    }
 	    s = new ConditionalStatement(loc, condition, ifbody, elsebody);
 	    break;

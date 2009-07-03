@@ -865,7 +865,7 @@ void VarDeclaration::toObjFile()
     unsigned sz;
     Dsymbol *parent;
 
-    //printf("VarDeclaration::toObjFile(%p '%s') protection %d\n", this, toChars(), protection);
+    //printf("VarDeclaration::toObjFile(%p '%s' type=%s) protection %d\n", this, toChars(), type->toChars(), protection);
 
     if (aliassym)
     {	toAlias()->toObjFile();

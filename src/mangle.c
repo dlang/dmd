@@ -58,7 +58,7 @@ char *mangle(Declaration *sthis)
 	s = s->parent;
     } while (s);
 
-    buf.prependstring("_D");
+//    buf.prependstring("_D");
 L1:
     //printf("deco = '%s'\n", sthis->type->deco);
     FuncDeclaration *fd = sthis->isFuncDeclaration();
@@ -113,7 +113,13 @@ char *Declaration::mangle()
 		    assert(0);
 	    }
 	}
-	return ::mangle(this);
+	char *p = ::mangle(this);
+	OutBuffer buf;
+	buf.writestring("_D");
+	buf.writestring(p);
+	p = buf.toChars();
+	buf.data = NULL;
+	return p;
     }
 
 char *FuncDeclaration::mangle()
@@ -195,7 +201,10 @@ char *Dsymbol::mangle()
     if (parent)
     {
 	//printf("  parent = '%s', kind = '%s'\n", parent->mangle(), parent->kind());
-	buf.writestring(parent->mangle());
+	char *p = parent->mangle();
+	if (p[0] == '_' && p[1] == 'D')
+	    p += 2;
+	buf.writestring(p);
     }
     buf.printf("%zu%s", strlen(id), id);
     id = buf.toChars();

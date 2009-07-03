@@ -604,6 +604,16 @@ Expression *Type::dotExp(Scope *sc, Expression *e, Identifier *ident)
 		    if (e->op == TOKassign)
 		    {
 			e = ((AssignExp *)e)->e2;
+
+			/* Take care of case where we used a 0
+			 * to initialize the struct.
+			 */
+			if (e->type == Type::tint32 &&
+			    e->isBool(0) &&
+			    v->type->toBasetype()->ty == Tstruct)
+			{
+			    e = v->type->defaultInit();
+			}
 		    }
 		}
 		return e;
@@ -650,9 +660,12 @@ Identifier *Type::getTypeInfoIdent(int internal)
     else
 	toDecoBuffer(&buf);
     len = buf.offset;
-    name = (char *)alloca(18 + sizeof(len) * 3 + len + 1);
+    name = (char *)alloca(19 + sizeof(len) * 3 + len + 1);
     buf.writeByte(0);
-    sprintf(name, "D%dTypeInfo_%s6__initZ", 9 + len, buf.data);
+    sprintf(name, "_D%dTypeInfo_%s6__initZ", 9 + len, buf.data);
+    if (global.params.isWindows)
+	name++;			// C mangling will add it back in
+    //printf("name = %s\n", name);
     id = Lexer::idPool(name);
     return id;
 }
@@ -1773,13 +1786,19 @@ int TypeSArray::implicitConvTo(Type *to)
     //printf("TypeSArray::implicitConvTo()\n");
 
     // Allow implicit conversion of static array to pointer or dynamic array
-    if ((
-	 (IMPLICIT_ARRAY_TO_PTR && to->ty == Tpointer) ||
-	 to->ty == Tarray) &&
+    if ((IMPLICIT_ARRAY_TO_PTR && to->ty == Tpointer) &&
 	(to->next->ty == Tvoid || next->equals(to->next)
 	 /*|| to->next->isBaseOf(next)*/))
     {
 	return 1;
+    }
+    if (to->ty == Tarray)
+    {	int offset = 0;
+
+	if (next->equals(to->next) ||
+	    (to->next->isBaseOf(next, &offset) && offset == 0) ||
+	    to->next->ty == Tvoid)
+	    return MATCHconvert;
     }
 #if 0
     if (to->ty == Tsarray)
@@ -2885,7 +2904,6 @@ void TypeQualified::toCBuffer2Helper(OutBuffer *buf, Identifier *ident, HdrGenSt
 d_uns64 TypeQualified::size(Loc loc)
 {
     error(this->loc, "size of type %s is not known", toChars());
-*(char*)0=0;
     return 1;
 }
 
@@ -2966,7 +2984,8 @@ void TypeQualified::resolveHelper(Loc loc, Scope *sc,
 		if (v && id == Id::length)
 		{
 		    if (v->isConst() && v->getExpInitializer())
-			e = v->getExpInitializer()->exp;
+		    {	e = v->getExpInitializer()->exp;
+		    }
 		    else
 			e = new VarExp(loc, v);
 		    t = e->type;
@@ -3538,6 +3557,8 @@ void TypeEnum::toDecoBuffer(OutBuffer *buf)
 {   char *name;
 
     name = sym->mangle();
+//    if (name[0] == '_' && name[1] == 'D')
+//	name += 2;
     buf->printf("%c%s", mangleChar[ty], name);
 }
 
@@ -3705,6 +3726,8 @@ void TypeTypedef::toDecoBuffer(OutBuffer *buf)
     char *name;
 
     name = sym->mangle();
+//    if (name[0] == '_' && name[1] == 'D')
+//	name += 2;
     //len = strlen(name);
     //buf->printf("%c%d%s", mangleChar[ty], len, name);
     buf->printf("%c%s", mangleChar[ty], name);
@@ -3916,6 +3939,9 @@ void TypeStruct::toDecoBuffer(OutBuffer *buf)
     char *name;
 
     name = sym->mangle();
+    //printf("TypeStruct::toDecoBuffer('%s') = '%s'\n", toChars(), name);
+//    if (name[0] == '_' && name[1] == 'D')
+//	name += 2;
     //len = strlen(name);
     //buf->printf("%c%d%s", mangleChar[ty], len, name);
     buf->printf("%c%s", mangleChar[ty], name);
@@ -3996,7 +4022,10 @@ L1:
     {	ExpInitializer *ei = v->getExpInitializer();
 
 	if (ei)
-	    return ei->exp;
+	{   e = ei->exp->copy();	// need to copy it if it's a StringExp
+	    e = e->semantic(sc);
+	    return e;
+	}
     }
 
     if (s->getType())
@@ -4153,6 +4182,8 @@ void TypeClass::toDecoBuffer(OutBuffer *buf)
     char *name;
 
     name = sym->mangle();
+//    if (name[0] == '_' && name[1] == 'D')
+//	name += 2;
     //printf("TypeClass::toDecoBuffer('%s') = '%s'\n", toChars(), name);
     //len = strlen(name);
     //buf->printf("%c%d%s", mangleChar[ty], len, name);
@@ -4278,7 +4309,10 @@ L1:
     {	ExpInitializer *ei = v->getExpInitializer();
 
 	if (ei)
-	    return ei->exp;
+	{   e = ei->exp->copy();	// need to copy it if it's a StringExp
+	    e = e->semantic(sc);
+	    return e;
+	}
     }
 
     if (s->getType())
@@ -4840,7 +4874,7 @@ void Argument::toDecoBuffer(OutBuffer *buf)
 	    break;
 	default:
 #ifdef DEBUG
-	    *(char*)0=0;
+	    halt();
 #endif
 	    assert(0);
     }

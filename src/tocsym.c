@@ -72,15 +72,20 @@ Symbol *Dsymbol::toSymbolX(const char *prefix, int sclass, type *t, const char *
     n = mangle();
     assert(n);
     nlen = strlen(n);
+#if 0
     if (nlen > 2 && n[0] == '_' && n[1] == 'D')
     {
 	nlen -= 2;
 	n += 2;
     }
+#endif
     id = (char *) alloca(2 + nlen + sizeof(size_t) * 3 + strlen(prefix) + strlen(suffix) + 1);
     sprintf(id,"_D%s%d%s%s", n, strlen(prefix), prefix, suffix);
-    if (type_mangle(t) == mTYman_c || type_mangle(t) == mTYman_std)
-	id++;				// the C mangling will put the '_' back in
+#if 0
+    if (global.params.isWindows &&
+	(type_mangle(t) == mTYman_c || type_mangle(t) == mTYman_std))
+	id++;			// Windows C mangling will put the '_' back in
+#endif
     s = symbol_name(id, sclass, t);
     //printf("-Dsymbol::toSymbolX() %s\n", id);
     return s;
@@ -93,7 +98,7 @@ Symbol *Dsymbol::toSymbol()
 {
     printf("Dsymbol::toSymbol() '%s', kind = '%s'\n", toChars(), kind());
 #ifdef DEBUG
-    *(char*)0=0;
+    halt();
 #endif
     assert(0);		// BUG: implement
     return NULL;
@@ -421,7 +426,7 @@ Classsym *fake_classsym(char *name)
     t->Tflags |= TFsizeunknown | TFforward;
     t->Ttag = scc;		// structure tag name
     assert(t->Tmangle == 0);
-    t->Tmangle = mTYman_c;
+    t->Tmangle = mTYman_d;
     t->Tcount++;
     scc->Stype = t;
     slist_add(scc);
@@ -515,7 +520,7 @@ Symbol *ClassDeclaration::toVtblSymbol()
 	t = type_alloc(TYnptr | mTYconst);
 	t->Tnext = tsvoid;
 	t->Tnext->Tcount++;
-	t->Tmangle = mTYman_c;
+	t->Tmangle = mTYman_d;
 	s = toSymbolX("__vtbl", SCextern, t, "Z");
 	s->Sflags |= SFLnodebug;
 	s->Sfl = FLextern;

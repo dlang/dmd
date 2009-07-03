@@ -407,7 +407,7 @@ void ClassDeclaration::semantic(Scope *sc)
     }
     else
     {
-	// No base class, so this is the root of the class heirarchy
+	// No base class, so this is the root of the class hierarchy
 	vtbl.setDim(0);
 	vtbl.push(this);		// leave room for classinfo as first member
     }

@@ -1096,6 +1096,11 @@ MATCH Type::deduceType(Scope *sc, Type *tparam, TemplateParameters *parameters, 
 		}
 		if (equals(at))
 		    goto Lexact;
+		else if (ty == Tsarray && at->ty == Tarray &&
+		    next->equals(at->next))
+		{
+		    goto Lexact;
+		}
 		else
 		    goto Lnomatch;
 	    }
@@ -1191,7 +1196,9 @@ MATCH TypeAArray::deduceType(Scope *sc, Type *tparam, TemplateParameters *parame
     {
 	TypeAArray *tp = (TypeAArray *)tparam;
 	if (!index->deduceType(sc, tp->index, parameters, dedtypes))
+	{
 	    return MATCHnomatch;
+	}
     }
     return Type::deduceType(sc, tparam, parameters, dedtypes);
 }
@@ -1393,6 +1400,18 @@ MATCH TypeTypedef::deduceType(Scope *sc, Type *tparam, TemplateParameters *param
 MATCH TypeClass::deduceType(Scope *sc, Type *tparam, TemplateParameters *parameters, Array *dedtypes)
 {
     //printf("TypeClass::deduceType()\n");
+
+    /* If this class is a template class, and we're matching
+     * it against a template instance, convert the class type
+     * to a template instance, too, and try again.
+     */
+    TemplateInstance *ti = sym->parent->isTemplateInstance();
+    if (ti && ti->toAlias() == sym &&
+	tparam && tparam->ty == Tinstance)
+    {
+	TypeInstance *t = new TypeInstance(0, ti);
+	return t->deduceType(sc, tparam, parameters, dedtypes);
+    }
 
     // Extra check
     if (tparam && tparam->ty == Tclass)
@@ -2566,9 +2585,9 @@ void TemplateInstance::semanticTiargs(Scope *sc)
 	Object *o = (Object *)tiargs->data[j];
 	Type *ta = isType(o);
 	Expression *ea = isExpression(o);
-	Dsymbol *sa;
+	Dsymbol *sa = isDsymbol(o);
 
-	//printf("1: tiargs->data[%d] = %p, %p\n", j, o, isTuple(o));
+	//printf("1: tiargs->data[%d] = %p, %p, %p\n", j, o, isDsymbol(o), isTuple(o));
 	if (ta)
 	{
 	    // It might really be an Expression or an Alias
@@ -2616,7 +2635,7 @@ void TemplateInstance::semanticTiargs(Scope *sc)
 		tiargs->data[j] = Type::terror;
 	    }
 	}
-	else
+	else if (ea)
 	{
 	    if (!ea)
 	    {	assert(global.errors);
@@ -2627,6 +2646,13 @@ void TemplateInstance::semanticTiargs(Scope *sc)
 	    ea = ea->optimize(WANTvalue);
 	    //ea = ea->constFold();
 	    tiargs->data[j] = ea;
+	}
+	else if (sa)
+	{
+	}
+	else
+	{
+	    assert(0);
 	}
 	//printf("1: tiargs->data[%d] = %p\n", j, tiargs->data[j]);
     }

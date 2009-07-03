@@ -67,6 +67,10 @@ FuncDeclaration::FuncDeclaration(Loc loc, Loc endloc, Identifier *id, enum STC s
     introducing = 0;
     tintro = NULL;
     inferRetType = (type && type->next == NULL);
+    hasReturnExp = 0;
+    nrvo_can = 1;
+    nrvo_var = NULL;
+    shidden = NULL;
 }
 
 Dsymbol *FuncDeclaration::syntaxCopy(Dsymbol *s)
@@ -731,6 +735,8 @@ void FuncDeclaration::semantic3(Scope *sc)
 	    for (size_t i = 0; i < f->parameters->dim; i++)
 	    {	Argument *arg = (Argument *)f->parameters->data[i];
 
+		if (!arg->ident)
+		    continue;			// never used, so ignore
 		if (arg->type->ty == Ttuple)
 		{   TypeTuple *t = (TypeTuple *)arg->type;
 		    size_t dim = Argument::dim(t->arguments);
@@ -884,6 +890,9 @@ void FuncDeclaration::semantic3(Scope *sc)
 		    v->ctorinit = 0;
 		}
 	    }
+
+	    if (inferRetType || f->retStyle() != RETstack)
+		nrvo_can = 0;
 
 	    fbody = fbody->semantic(sc2);
 
