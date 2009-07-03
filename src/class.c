@@ -194,7 +194,7 @@ void ClassDeclaration::semantic(Scope *sc)
     unsigned offset;
 
     //printf("ClassDeclaration::semantic(%s), type = %p, sizeok = %d, this = %p\n", toChars(), type, sizeok, this);
-    //printf("parent = %p, '%s'\n", sc->parent, sc->parent ? sc->parent->toChars() : "");
+    //printf("\tparent = %p, '%s'\n", sc->parent, sc->parent ? sc->parent->toChars() : "");
     //printf("sc->stc = %x\n", sc->stc);
 
     //{ static int n;  if (++n == 20) *(char*)0=0; }

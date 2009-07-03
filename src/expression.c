@@ -2660,9 +2660,9 @@ Expression *VarExp::semantic(Scope *sc)
 		return ei->exp->implicitCastTo(type);
 	    }
 	}
-	if (!v->isDataseg() && v->parent != sc->parent)
+	if (!v->isDataseg() && v->parent != sc->parent && v->parent)
 	{
-	    FuncDeclaration *fdv = v->parent->isFuncDeclaration();
+	    FuncDeclaration *fdv = v->toParent()->isFuncDeclaration();
 	    FuncDeclaration *fdthis = sc->parent->isFuncDeclaration();
 
 	    if (fdv && fdthis)
@@ -2866,7 +2866,8 @@ Expression *DeclarationExp::semantic(Scope *sc)
 	    error("declaration %s is already defined", s->toPrettyChars());
     }
     if (!s->isVarDeclaration())
-    {	declaration->semantic(sc);
+    {
+	declaration->semantic(sc);
 	s->parent = sc->parent;
     }
     if (!global.errors)
@@ -2983,6 +2984,7 @@ Expression *IftypeExp::syntaxCopy()
 Expression *IftypeExp::semantic(Scope *sc)
 {   Type *tded;
 
+    printf("IftypeExp::semantic()\n");
     if (id && !(sc->flags & SCOPEstaticif))
 	error("can only declare type aliases within static if conditionals");
 
@@ -3066,6 +3068,8 @@ Expression *IftypeExp::semantic(Scope *sc)
 	 * If TRUE, declare id as an alias for the specialized type.
 	 */
 
+targ->print();
+tspec->print();
 	MATCH m;
 	TemplateTypeParameter tp(loc, id, NULL, NULL);
 
@@ -3102,8 +3106,8 @@ Expression *IftypeExp::semantic(Scope *sc)
 	/* Evaluate to TRUE if targ matches tspec
 	 */
 	tspec = tspec->semantic(loc, sc);
-	//printf("targ  = %s\n", targ->toChars());
-	//printf("tspec = %s\n", tspec->toChars());
+	printf("targ  = %s\n", targ->toChars());
+	printf("tspec = %s\n", tspec->toChars());
 	if (tok == TOKcolon)
 	{   if (targ->implicitConvTo(tspec))
 		goto Lyes;
@@ -3635,6 +3639,9 @@ Expression *DotVarExp::semantic(Scope *sc)
 	    if (ad &&
 		!(t->ty == Tpointer && t->next->ty == Tstruct &&
 		  ((TypeStruct *)t->next)->sym == ad)
+		&&
+		!(t->ty == Tstruct &&
+		  ((TypeStruct *)t)->sym == ad)
 	       )
 	    {
 		ClassDeclaration *cd = ad->isClassDeclaration();
@@ -3660,6 +3667,7 @@ Expression *DotVarExp::semantic(Scope *sc)
 
 			goto L1;
 		    }
+printf("cd = %p, tcd = %p, %s, %d\n", cd, tcd, ad->kind(), t->ty);
 		    error("this for %s needs to be type %s not type %s",
 			var->toChars(), ad->toChars(), t->toChars());
 		}
@@ -4040,8 +4048,8 @@ Lagain:
 	{
 	    ad = ((TypeStruct *)t1)->sym;
 	L1:
-	    fd = search_function(ad, Id::call);
-	    if (fd)
+//	    fd = search_function(ad, Id::call);
+//	    if (fd)
 	    {
 		// Rewrite as e1.call(arguments)
 		Expression *e = new DotIdExp(loc, e1, Id::call);
@@ -5095,6 +5103,7 @@ Expression *IndexExp::semantic(Scope *sc)
 
 	    TypeSArray *tsa = (TypeSArray *)t1;
 
+#if 0 	// Don't do now, because it might be short-circuit evaluated
 	    // Do compile time array bounds checking if possible
 	    e2 = e2->optimize(WANTvalue);
 	    if (e2->op == TOKint64)
@@ -5105,6 +5114,7 @@ Expression *IndexExp::semantic(Scope *sc)
 		    error("array index [%lld] is outside array bounds [0 .. %lld]",
 			    index, length);
 	    }
+#endif
 	    e->type = t1->next;
 	    break;
 	}
@@ -6440,6 +6450,8 @@ Expression *OrOrExp::semantic(Scope *sc)
     type = Type::tboolean;
     if (e1->type->ty == Tvoid)
 	type = Type::tvoid;
+    if (e2->op == TOKtype || e2->op == TOKimport)
+	error("%s is not an expression", e2->toChars());
     return this;
 }
 
@@ -6454,6 +6466,10 @@ int OrOrExp::isBit()
     return TRUE;
 }
 
+void OrOrExp::checkSideEffect(int flag)
+{
+    e2->checkSideEffect(flag);
+}
 
 /************************************************************/
 
@@ -6481,6 +6497,8 @@ Expression *AndAndExp::semantic(Scope *sc)
     type = Type::tboolean;
     if (e1->type->ty == Tvoid)
 	type = Type::tvoid;
+    if (e2->op == TOKtype || e2->op == TOKimport)
+	error("%s is not an expression", e2->toChars());
     return this;
 }
 
@@ -6495,6 +6513,10 @@ int AndAndExp::isBit()
     return TRUE;
 }
 
+void AndAndExp::checkSideEffect(int flag)
+{
+    e2->checkSideEffect(flag);
+}
 
 /************************************************************/
 

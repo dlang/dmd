@@ -193,7 +193,9 @@ void ExpStatement::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 Statement *ExpStatement::semantic(Scope *sc)
 {
     if (exp)
-    {	exp = exp->semantic(sc);
+    {
+	//printf("ExpStatement::semantic() %s\n", exp->toChars());
+	exp = exp->semantic(sc);
 	exp = resolveProperties(sc, exp);
 	exp->checkSideEffect(0);
 	exp = exp->optimize(WANTvalue);

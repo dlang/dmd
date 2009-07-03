@@ -1143,6 +1143,7 @@ struct OrOrExp : BinExp
     int isBit();
     Expression *constFold();
     Expression *optimize(int result);
+    void checkSideEffect(int flag);
     elem *toElem(IRState *irs);
 };
 
@@ -1154,6 +1155,7 @@ struct AndAndExp : BinExp
     int isBit();
     Expression *constFold();
     Expression *optimize(int result);
+    void checkSideEffect(int flag);
     elem *toElem(IRState *irs);
 };
 

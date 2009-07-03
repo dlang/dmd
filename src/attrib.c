@@ -148,6 +148,8 @@ void AttribDeclaration::addComment(unsigned char *comment)
 
 void AttribDeclaration::emitComment(Scope *sc)
 {
+    //printf("AttribDeclaration::emitComment(sc = %p)\n", sc);
+
     /* If generating doc comment, skip this because if we're inside
      * a template, then include(NULL, NULL) will fail.
      */
@@ -843,10 +845,20 @@ int ConditionalDeclaration::oneMember(Dsymbol **ps)
     return TRUE;
 }
 
+void ConditionalDeclaration::emitComment(Scope *sc)
+{
+    //printf("ConditionalDeclaration::emitComment(sc = %p)\n", sc);
+    if (condition->inc)
+    {
+	AttribDeclaration::emitComment(sc);
+    }
+}
+
 // Decide if 'then' or 'else' code should be included
 
 Array *ConditionalDeclaration::include(Scope *sc, ScopeDsymbol *sd)
 {
+    //printf("ConditionalDeclaration::include()\n");
     assert(condition);
     return condition->include(sc, sd) ? decl : elsedecl;
 }

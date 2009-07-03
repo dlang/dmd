@@ -768,7 +768,14 @@ void FuncDeclaration::semantic3(Scope *sc)
 		    // Insert implicit super() at start of fbody
 		    Expression *e1 = new SuperExp(0);
 		    Expression *e = new CallExp(0, e1);
+
+		    unsigned errors = global.errors;
+		    global.gag++;
 		    e = e->semantic(sc2);
+		    global.gag--;
+		    if (errors != global.errors)
+			error("no match for implicit super() call in constructor");
+
 		    Statement *s = new ExpStatement(0, e);
 		    fbody = new CompoundStatement(0, s, fbody);
 		}
@@ -1234,6 +1241,7 @@ if (arguments)
 	{
 	    tf = (TypeFunction *)type;
 
+	    //printf("tf = %s, args = %s\n", tf->deco, ((Expression *)arguments->data[0])->type->deco);
 	    error(loc, "%s does not match argument types (%s)",
 		Argument::argsTypesToChars(tf->arguments, tf->varargs),
 		buf.toChars());

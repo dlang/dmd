@@ -58,7 +58,7 @@ Global::Global()
 
     copyright = "Copyright (c) 1999-2006 by Digital Mars";
     written = "written by Walter Bright";
-    version = "v0.154";
+    version = "v0.155";
     global.structalign = 8;
 
     memset(&params, 0, sizeof(Param));
@@ -797,23 +797,31 @@ int main(int argc, char *argv[])
     if (global.errors)
 	fatal();
 
-    if (global.params.link)
-	status = runLINK();
-
-    if (global.params.run)
+    if (!global.params.objfiles->dim)
     {
-	if (!status)
-	{
-	    status = runProgram();
+	if (global.params.link)
+	    error("no object files to link");
+    }
+    else
+    {
+	if (global.params.link)
+	    status = runLINK();
 
-	    /* Delete .obj files and .exe file
-	     */
-	    for (i = 0; i < modules.dim; i++)
+	if (global.params.run)
+	{
+	    if (!status)
 	    {
-		m = (Module *)modules.data[i];
-		m->deleteObjFile();
+		status = runProgram();
+
+		/* Delete .obj files and .exe file
+		 */
+		for (i = 0; i < modules.dim; i++)
+		{
+		    m = (Module *)modules.data[i];
+		    m->deleteObjFile();
+		}
+		deleteExeFile();
 	    }
-	    deleteExeFile();
 	}
     }
 

@@ -262,7 +262,7 @@ Expression *IndexExp::optimize(int result)
 	uinteger_t i = e2->toInteger();
 
 	if (i >= es1->len)
-	    error("string index %llu is out of bounds", i);
+	    error("string index %llu is out of bounds [0 .. %u]", i, es1->len);
 	else
 	{   integer_t value;
 
@@ -286,6 +286,14 @@ Expression *IndexExp::optimize(int result)
 	    }
 	    e = new IntegerExp(loc, value, type);
 	}
+    }
+    else if (e1->type->toBasetype()->ty == Tsarray && e2->op == TOKint64)
+    {	TypeSArray *tsa = (TypeSArray *)e1->type->toBasetype();
+	uinteger_t length = tsa->dim->toInteger();
+	uinteger_t i = e2->toInteger();
+
+	if (i >= length)
+	    error("array index %llu is out of bounds [0 .. %llu]", i, length);
     }
     return e;
 }

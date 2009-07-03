@@ -126,6 +126,7 @@ struct ConditionalDeclaration : AttribDeclaration
     ConditionalDeclaration(Condition *condition, Array *decl, Array *elsedecl);
     Dsymbol *syntaxCopy(Dsymbol *s);
     int oneMember(Dsymbol **ps);
+    void emitComment(Scope *sc);
     Array *include(Scope *sc, ScopeDsymbol *s);
     void addComment(unsigned char *comment);
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);

@@ -2852,20 +2852,28 @@ L1:
 	    return;
 	}
 
-	if (t->ty == Tident && t != this)
-	{
-	    Scope *scx;
-
-	    for (scx = sc; 1; scx = scx->enclosing)
-	    {
-		if (!scx)
-		{   error(loc, "forward reference to '%s'", t->toChars());
-		    return;
-		}
-		if (scx->scopesym == scopesym)
+	if (t != this)
+	{   Type *tx;
+	    for (tx = t; tx; tx = tx->next)
+	    {	if (tx->ty == Tident)
 		    break;
 	    }
-	    ((TypeIdentifier *)t)->resolve(loc, scx, pe, &t, ps);
+	    if (tx)
+	    {
+		Scope *scx;
+
+		for (scx = sc; 1; scx = scx->enclosing)
+		{
+		    if (!scx)
+		    {   error(loc, "forward reference to '%s'", t->toChars());
+			return;
+		    }
+		    if (scx->scopesym == scopesym)
+			break;
+		}
+		t = t->semantic(loc, scx);
+		//((TypeIdentifier *)t)->resolve(loc, scx, pe, &t, ps);
+	    }
 	}
 	*pt = t->merge();
     }
@@ -3002,6 +3010,8 @@ Type *TypeIdentifier::semantic(Loc loc, Scope *sc)
     resolve(loc, sc, &e, &t, &s);
     if (t)
     {
+	//printf("\tit's a type %s, %s\n", t->toChars(), t->deco);
+
 	if (t->ty == Ttypedef)
 	{   TypeTypedef *tt = (TypeTypedef *)t;
 
