@@ -132,7 +132,7 @@ Expression *Type::getTypeInfo(Scope *sc)
 	    }
 	    else			// if in obj generation pass
 	    {
-		t->vtinfo->toObjFile();
+		t->vtinfo->toObjFile(global.params.multiobj);
 	    }
 	}
     }
@@ -639,13 +639,19 @@ void TypeInfoTupleDeclaration::toDt(dt_t **pdt)
     dtxoff(pdt, s, 0, TYnptr);		    // elements.ptr
 }
 
-void TypeInfoDeclaration::toObjFile()
+void TypeInfoDeclaration::toObjFile(int multiobj)
 {
     Symbol *s;
     unsigned sz;
     Dsymbol *parent;
 
     //printf("TypeInfoDeclaration::toObjFile(%p '%s') protection %d\n", this, toChars(), protection);
+
+    if (multiobj)
+    {
+	obj_append(this);
+	return;
+    }
 
     s = toSymbol();
     sz = type->size();

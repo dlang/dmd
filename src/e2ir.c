@@ -1054,7 +1054,7 @@ elem *Dsymbol_toElem(Dsymbol *s, IRState *irs)
 	if (s != vd)
 	    return Dsymbol_toElem(s, irs);
 	if (vd->isStatic() || vd->storage_class & STCextern)
-	    vd->toObjFile();
+	    vd->toObjFile(0);
 	else
 	{
 	    sp = s->toSymbol();
@@ -1073,18 +1073,15 @@ elem *Dsymbol_toElem(Dsymbol *s, IRState *irs)
     else if ((cd = s->isClassDeclaration()) != NULL)
     {
 	irs->deferToObj->push(s);
-	//sd->toObjFile();
     }
     else if ((sd = s->isStructDeclaration()) != NULL)
     {
 	irs->deferToObj->push(sd);
-	//sd->toObjFile();
     }
     else if ((fd = s->isFuncDeclaration()) != NULL)
     {
 	//printf("function %s\n", fd->toChars());
 	irs->deferToObj->push(fd);
-	//fd->toObjFile();
     }
     else if ((tm = s->isTemplateMixin()) != NULL)
     {

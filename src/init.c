@@ -166,6 +166,8 @@ Initializer *StructInitializer::semantic(Scope *sc, Type *t)
 	    {
 		if (fieldi >= ad->fields.dim)
 		{   error(loc, "too many initializers for %s", ad->toChars());
+		    field.remove(i);
+		    i--;
 		    continue;
 		}
 		else

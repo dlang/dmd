@@ -176,7 +176,7 @@ void AttribDeclaration::emitComment(Scope *sc)
     }
 }
 
-void AttribDeclaration::toObjFile()
+void AttribDeclaration::toObjFile(int multiobj)
 {
     unsigned i;
     Array *d = include(NULL, NULL);
@@ -187,7 +187,7 @@ void AttribDeclaration::toObjFile()
 	{   Dsymbol *s;
 
 	    s = (Dsymbol *)d->data[i];
-	    s->toObjFile();
+	    s->toObjFile(multiobj);
 	}
     }
 }
@@ -917,7 +917,7 @@ char *PragmaDeclaration::kind()
     return "pragma";
 }
 
-void PragmaDeclaration::toObjFile()
+void PragmaDeclaration::toObjFile(int multiobj)
 {
     if (ident == Id::lib)
     {
@@ -943,7 +943,7 @@ void PragmaDeclaration::toObjFile()
 	Symbol *s = f->toSymbol();
 	obj_startaddress(s);
     }
-    AttribDeclaration::toObjFile();
+    AttribDeclaration::toObjFile(multiobj);
 }
 
 void PragmaDeclaration::toCBuffer(OutBuffer *buf, HdrGenState *hgs)

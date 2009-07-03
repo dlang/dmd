@@ -906,9 +906,8 @@ TypeBasic *Type::isTypeBasic()
 
 void Type::resolve(Loc loc, Scope *sc, Expression **pe, Type **pt, Dsymbol **ps)
 {
-    Type *t;
-
-    t = semantic(loc, sc);
+    //printf("Type::resolve() %s, %d\n", toChars(), ty);
+    Type *t = semantic(loc, sc);
     *pt = t;
     *pe = NULL;
     *ps = NULL;
@@ -1919,8 +1918,7 @@ void TypeSArray::resolve(Loc loc, Scope *sc, Expression **pe, Type **pt, Dsymbol
     //printf("s = %p, e = %p, t = %p\n", *ps, *pe, *pt);
     if (*pe)
     {	// It's really an index expression
-	Expression *e;
-	e = new IndexExp(loc, *pe, dim);
+	Expression *e = new IndexExp(loc, *pe, dim);
 	*pe = e;
     }
     else if (*ps)
@@ -2379,7 +2377,7 @@ MATCH TypeDArray::implicitConvTo(Type *to)
 	if (!(next->mod == ta->next->mod || ta->next->mod == MODconst))
 	    return MATCHnomatch;	// not const-compatible
 
-	/* Alloc conversion to void[]
+	/* Allow conversion to void[]
 	 */
 	if (next->ty != Tvoid && ta->next->ty == Tvoid)
 	{
@@ -2392,6 +2390,15 @@ MATCH TypeDArray::implicitConvTo(Type *to)
 	    if (m == MATCHexact && mod != to->mod)
 		m = MATCHconst;
 	    return m;
+	}
+
+	/* Allow conversions of T[][] to const(T)[][]
+	 */
+	if (mod == ta->mod && next->ty == Tarray && ta->next->ty == Tarray)
+	{
+	    m = next->implicitConvTo(ta->next);
+	    if (m == MATCHconst)
+		return m;
 	}
 
 	/* Conversion of array of derived to array of base
@@ -2516,6 +2523,35 @@ Type *TypeAArray::semantic(Loc loc, Scope *sc)
 
     return merge();
 }
+
+void TypeAArray::resolve(Loc loc, Scope *sc, Expression **pe, Type **pt, Dsymbol **ps)
+{
+    //printf("TypeAArray::resolve() %s\n", toChars());
+
+    // Deal with the case where we thought the index was a type, but
+    // in reality it was an expression.
+    if (index->ty == Tident || index->ty == Tinstance || index->ty == Tsarray)
+    {
+	Expression *e;
+	Type *t;
+	Dsymbol *s;
+
+	index->resolve(loc, sc, &e, &t, &s);
+	if (e)
+	{   // It was an expression -
+	    // Rewrite as a static array
+
+	    TypeSArray *tsa = new TypeSArray(next, e);
+	    return tsa->resolve(loc, sc, pe, pt, ps);
+	}
+	else if (t)
+	    index = t;
+	else
+	    index->error(loc, "index is not a type or an expression");
+    }
+    Type::resolve(loc, sc, pe, pt, ps);
+}
+
 
 Expression *TypeAArray::dotExp(Scope *sc, Expression *e, Identifier *ident)
 {

@@ -107,11 +107,13 @@ struct AnonymousAggregateDeclaration : AggregateDeclaration
 struct StructDeclaration : AggregateDeclaration
 {
     int zeroInit;		// !=0 if initialize with 0 fill
+#if V2
     int hasIdentityAssign;	// !=0 if has identity opAssign
     FuncDeclaration *cpctor;	// generated copy-constructor, if any
 
     FuncDeclarations postblits;	// Array of postblit functions
     FuncDeclaration *postblit;	// aggregate postblit
+#endif
 
     StructDeclaration(Loc loc, Identifier *id);
     Dsymbol *syntaxCopy(Dsymbol *s);
@@ -127,7 +129,7 @@ struct StructDeclaration : AggregateDeclaration
 
     PROT getAccess(Dsymbol *smember);	// determine access to smember
 
-    void toObjFile();			// compile to .obj file
+    void toObjFile(int multiobj);			// compile to .obj file
     void toDt(dt_t **pdt);
     void toDebug();			// to symbolic debug info
 
@@ -236,7 +238,7 @@ struct ClassDeclaration : AggregateDeclaration
     void addLocalClass(ClassDeclarations *);
 
     // Back end
-    void toObjFile();			// compile to .obj file
+    void toObjFile(int multiobj);			// compile to .obj file
     void toDebug();
     unsigned baseVtblOffset(BaseClass *bc);
     Symbol *toSymbol();
@@ -266,7 +268,7 @@ struct InterfaceDeclaration : ClassDeclaration
 #endif
     virtual int isCOMinterface();
 
-    void toObjFile();			// compile to .obj file
+    void toObjFile(int multiobj);			// compile to .obj file
     Symbol *toSymbol();
 
     InterfaceDeclaration *isInterfaceDeclaration() { return this; }

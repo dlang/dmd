@@ -520,7 +520,12 @@ MATCH TemplateDeclaration::matchWithInstance(TemplateInstance *ti,
 	    printf("\tparameter[%d] is %s : %s\n", i, tp->ident->toChars(), ttp->specType ? ttp->specType->toChars() : "");
 #endif
 
+#if V1
+	m2 = tp->matchArg(paramscope, ti->tiargs, i, parameters, dedtypes, &sparam);
+#else
 	m2 = tp->matchArg(paramscope, ti->tiargs, i, parameters, dedtypes, &sparam, (flag & 2) ? 1 : 0);
+
+#endif
 	//printf("\tm2 = %d\n", m2);
 
 	if (m2 == MATCHnomatch)
@@ -1915,10 +1920,12 @@ TemplateTupleParameter *TemplateParameter::isTemplateTupleParameter()
     return NULL;
 }
 
+#if V2
 TemplateThisParameter  *TemplateParameter::isTemplateThisParameter()
 {
     return NULL;
 }
+#endif
 
 /* ======================== TemplateTypeParameter =========================== */
 
@@ -2166,6 +2173,7 @@ Object *TemplateTypeParameter::defaultArg(Loc loc, Scope *sc)
 
 /* ======================== TemplateThisParameter =========================== */
 
+#if V2
 // this-parameter
 
 TemplateThisParameter::TemplateThisParameter(Loc loc, Identifier *ident,
@@ -2195,7 +2203,7 @@ void TemplateThisParameter::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
     buf->writestring("this ");
     TemplateTypeParameter::toCBuffer(buf, hgs);
 }
-
+#endif
 
 /* ======================== TemplateAliasParameter ========================== */
 
@@ -2627,10 +2635,12 @@ Object *TemplateValueParameter::defaultArg(Loc loc, Scope *sc)
     {
 	e = e->syntaxCopy();
 	e = e->semantic(sc);
+#if V2
 	if (e->op == TOKdefault)
 	{   DefaultInitExp *de = (DefaultInitExp *)e;
 	    e = de->resolve(loc, sc);
 	}
+#endif
     }
     return e;
 }
@@ -2815,6 +2825,7 @@ TemplateInstance::TemplateInstance(Loc loc, TemplateDeclaration *td, Objects *ti
 
     assert((size_t)tempdecl->scope > 0x10000);
 }
+
 
 Objects *TemplateInstance::arraySyntaxCopy(Objects *objs)
 {
@@ -3731,8 +3742,7 @@ printf("\tmember '%s', kind = '%s'\n", s->toChars(), s->kind());
 }
 
 void TemplateInstance::semantic3(Scope *sc)
-{   int i;
-
+{
 #if LOG
     printf("TemplateInstance::semantic3('%s'), semanticdone = %d\n", toChars(), semanticdone);
 #endif
@@ -3745,7 +3755,7 @@ void TemplateInstance::semantic3(Scope *sc)
 	sc = tempdecl->scope;
 	sc = sc->push(argsym);
 	sc = sc->push(this);
-	for (i = 0; i < members->dim; i++)
+	for (int i = 0; i < members->dim; i++)
 	{
 	    Dsymbol *s = (Dsymbol *)members->data[i];
 	    s->semantic3(sc);
@@ -3755,31 +3765,35 @@ void TemplateInstance::semantic3(Scope *sc)
     }
 }
 
-void TemplateInstance::toObjFile()
-{   int i;
-
+void TemplateInstance::toObjFile(int multiobj)
+{
 #if LOG
     printf("TemplateInstance::toObjFile('%s', this = %p)\n", toChars(), this);
 #endif
     if (!errors && members)
     {
-	for (i = 0; i < members->dim; i++)
+	if (multiobj)
+	    // Append to list of object files to be written later
+	    obj_append(this);
+	else
 	{
-	    Dsymbol *s = (Dsymbol *)members->data[i];
-	    s->toObjFile();
+	    for (int i = 0; i < members->dim; i++)
+	    {
+		Dsymbol *s = (Dsymbol *)members->data[i];
+		s->toObjFile(multiobj);
+	    }
 	}
     }
 }
 
 void TemplateInstance::inlineScan()
-{   int i;
-
+{
 #if LOG
     printf("TemplateInstance::inlineScan('%s')\n", toChars());
 #endif
     if (!errors && members)
     {
-	for (i = 0; i < members->dim; i++)
+	for (int i = 0; i < members->dim; i++)
 	{
 	    Dsymbol *s = (Dsymbol *)members->data[i];
 	    s->inlineScan();
@@ -4300,9 +4314,9 @@ void TemplateMixin::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 }
 
 
-void TemplateMixin::toObjFile()
+void TemplateMixin::toObjFile(int multiobj)
 {
     //printf("TemplateMixin::toObjFile('%s')\n", toChars());
-    TemplateInstance::toObjFile();
+    TemplateInstance::toObjFile(multiobj);
 }
 

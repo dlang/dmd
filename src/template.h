@@ -155,6 +155,7 @@ struct TemplateTypeParameter : TemplateParameter
     void *dummyArg();
 };
 
+#if V2
 struct TemplateThisParameter : TemplateTypeParameter
 {
     /* Syntax:
@@ -169,6 +170,7 @@ struct TemplateThisParameter : TemplateTypeParameter
     TemplateParameter *syntaxCopy();
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
 };
+#endif
 
 struct TemplateValueParameter : TemplateParameter
 {
@@ -295,7 +297,7 @@ struct TemplateInstance : ScopeDsymbol
     char *toChars();
     char *mangle();
 
-    void toObjFile();			// compile to .obj file
+    void toObjFile(int multiobj);			// compile to .obj file
 
     // Internal
     static void semanticTiargs(Loc loc, Scope *sc, Objects *tiargs, int flags);
@@ -329,7 +331,7 @@ struct TemplateMixin : TemplateInstance
     char *toChars();
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
 
-    void toObjFile();			// compile to .obj file
+    void toObjFile(int multiobj);			// compile to .obj file
 
     TemplateMixin *isTemplateMixin() { return this; }
 };

@@ -104,6 +104,7 @@ Module::Module(char *filename, Identifier *ident, int doDocComment, int doHdrGen
 
     macrotable = NULL;
     escapetable = NULL;
+    doppelganger = 0;
     cov = NULL;
     covb = NULL;
 
@@ -765,18 +766,15 @@ void Module::gensymfile()
 {
     OutBuffer buf;
     HdrGenState hgs;
-    int i;
 
     //printf("Module::gensymfile()\n");
 
     buf.printf("// Sym file generated from '%s'", srcfile->toChars());
     buf.writenl();
 
-    for (i = 0; i < members->dim; i++)
-    {
-	Dsymbol *s;
+    for (int i = 0; i < members->dim; i++)
+    {	Dsymbol *s = (Dsymbol *)members->data[i];
 
-	s = (Dsymbol *)members->data[i];
 	s->toCBuffer(&buf, &hgs);
     }
 

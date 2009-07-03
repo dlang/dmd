@@ -165,7 +165,7 @@ struct Dsymbol : Object
     // Backend
 
     virtual Symbol *toSymbol();			// to backend symbol
-    virtual void toObjFile();			// compile to .obj file
+    virtual void toObjFile(int multiobj);			// compile to .obj file
     virtual int cvMember(unsigned char *p);	// emit cv debug info for member
 
     Symbol *toImport();				// to backend import symbol

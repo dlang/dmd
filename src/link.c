@@ -67,8 +67,6 @@ int runLINK()
     else
     {	// Generate exe file name from first obj name
 	char *n = (char *)global.params.objfiles->data[0];
-	char *ex;
-
 	n = FileName::name(n);
 	FileName *fn = FileName::forceExt(n, "exe");
 	global.params.exefile = fn->toChars();

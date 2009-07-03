@@ -1,6 +1,6 @@
 
 // Compiler implementation of the D programming language
-// Copyright (c) 1999-2007 by Digital Mars
+// Copyright (c) 1999-2008 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // http://www.digitalmars.com
@@ -29,6 +29,7 @@
 /* Changes for the GDC compiler by David Friedman */
 #endif
 
+#define V1	0
 #define V2	1	// Version 2.0 features
 #define BREAKABI 1	// 0 if not ready to break the ABI just yet
 
@@ -39,6 +40,9 @@ struct Param
 {
     char obj;		// write object file
     char link;		// perform link
+    char lib;		// write library file instead of object file(s)
+    char multiobj;	// break one object file into multiple ones
+    char oneobj;	// write one object file instead of multiple ones
     char trace;		// insert profiling hooks
     char quiet;		// suppress non-error messages
     char verbose;	// verbose compile
@@ -70,8 +74,9 @@ struct Param
     char *argv0;	// program name
     Array *imppath;	// array of char*'s of where to look for import modules
     Array *fileImppath;	// array of char*'s of where to look for file import modules
-    char *objdir;	// .obj file output directory
+    char *objdir;	// .obj/.lib file output directory
     char *objname;	// .obj file output name
+    char *libname;	// .lib file output name
 
     char doDocComments;	// process embedded documentation comments
     char *docdir;	// write documentation file to docdir directory
@@ -123,6 +128,7 @@ struct Global
     char *mars_ext;
     char *sym_ext;
     char *obj_ext;
+    char *lib_ext;
     char *doc_ext;	// for Ddoc generated files
     char *ddoc_ext;	// for Ddoc macro include files
     char *hdr_ext;	// for D 'header' import files
@@ -283,5 +289,13 @@ void halt();
 #else
 #define stdmsg stdout
 #endif
+
+struct Dsymbol;
+struct Library;
+struct File;
+void obj_start(char *srcfile);
+void obj_end(Library *library, File *objfile);
+void obj_append(Dsymbol *s);
+void obj_write_deferred(Library *library);
 
 #endif /* DMD_MARS_H */

@@ -947,10 +947,6 @@ Lagain:
 	    if (fd && !isStatic() && !(storage_class & STCmanifest) &&
 		!init->isVoidInitializer())
 	    {
-		Expression *e1;
-		Type *t;
-		int dim;
-
 		//printf("fd = '%s', var = '%s'\n", fd->toChars(), toChars());
 		if (!ei)
 		{
@@ -968,15 +964,15 @@ Lagain:
 		    init = ei;
 		}
 
-		e1 = new VarExp(loc, this);
+		Expression *e1 = new VarExp(loc, this);
 
-		t = type->toBasetype();
+		Type *t = type->toBasetype();
 		if (t->ty == Tsarray)
 		{
 		    ei->exp = ei->exp->semantic(sc);
 		    if (!ei->exp->implicitConvTo(type))
 		    {
-			dim = ((TypeSArray *)t)->dim->toInteger();
+			int dim = ((TypeSArray *)t)->dim->toInteger();
 			// If multidimensional static array, treat as one large array
 			while (1)
 			{
@@ -993,7 +989,11 @@ Lagain:
 		{
 		    ei->exp = ei->exp->semantic(sc);
 		    if (!ei->exp->implicitConvTo(type))
-			ei->exp = new CastExp(loc, ei->exp, type);
+		    {	Type *ti = ei->exp->type->toBasetype();
+			// Don't cast away invariant or mutability in initializer
+			if (!(ti->ty == Tstruct && t->toDsymbol(sc) == ti->toDsymbol(sc)))
+			    ei->exp = new CastExp(loc, ei->exp, type);
+		    }
 		}
 		ei->exp = new AssignExp(loc, e1, ei->exp);
 		ei->exp->op = op;

@@ -37,8 +37,13 @@ long __cdecl __ehfilter(LPEXCEPTION_POINTERS ep);
 #include "cond.h"
 #include "expression.h"
 #include "lexer.h"
+#include "lib.h"
 
+void browse(const char *url);
 void getenv_setargv(const char *envvar, int *pargc, char** *pargv);
+
+void obj_start(char *srcfile);
+void obj_end(Library *library, File *objfile);
 
 Global global;
 
@@ -58,9 +63,17 @@ Global::Global()
 #error "fix this"
 #endif
 
+#if _WIN32
+    lib_ext  = "lib";
+#elif linux
+    lib_ext  = "a";
+#else
+#error "fix this"
+#endif
+
     copyright = "Copyright (c) 1999-2008 by Digital Mars";
     written = "written by Walter Bright";
-    version = "v2.013";
+    version = "v2.014";
     global.structalign = 8;
 
     memset(&params, 0, sizeof(Param));
@@ -151,7 +164,7 @@ void usage()
     printf("Digital Mars D Compiler %s\n%s %s\n",
 	global.version, global.copyright, global.written);
     printf("\
-Documentation: http://www.digitalmars.com/d/index.html\n\
+Documentation: http://www.digitalmars.com/d/2.0/index.html\n\
 Usage:\n\
   dmd files.d ... { -switch }\n\
 \n\
@@ -178,10 +191,12 @@ Usage:\n\
   -inline        do function inlining\n\
   -Jpath         where to look for string imports\n\
   -Llinkerflag   pass linkerflag to link\n\
+  -lib           generate library rather than object files\n\
+  -man           open web browser on manual page\n\
   -nofloat       do not emit reference to floating point\n\
   -O             optimize\n\
   -o-            do not write object file\n\
-  -odobjdir      write object files to directory objdir\n\
+  -odobjdir      write object & library files to directory objdir\n\
   -offilename	 name output file to filename\n\
   -op            do not strip paths from source file\n\
   -profile	 profile runtime performance of generated code\n\
@@ -206,6 +221,7 @@ int main(int argc, char *argv[])
 {
     int i;
     Array files;
+    Array libmodules;
     char *p;
     Module *m;
     int status = EXIT_SUCCESS;
@@ -273,7 +289,9 @@ int main(int argc, char *argv[])
     //VersionCondition::addPredefinedGlobalIdent("D_Bits");
     VersionCondition::addPredefinedGlobalIdent("D_InlineAsm");
     VersionCondition::addPredefinedGlobalIdent("D_InlineAsm_X86");
+#if V2
     VersionCondition::addPredefinedGlobalIdent("D_Version2");
+#endif
     VersionCondition::addPredefinedGlobalIdent("all");
 
 #if _WIN32
@@ -304,6 +322,8 @@ int main(int argc, char *argv[])
 		global.params.cov = 1;
 	    else if (strcmp(p + 1, "fPIC") == 0)
 		global.params.pic = 1;
+	    else if (strcmp(p + 1, "multiobj") == 0)
+		global.params.multiobj = 1;
 	    else if (strcmp(p + 1, "g") == 0)
 		global.params.symdebug = 1;
 	    else if (strcmp(p + 1, "gc") == 0)
@@ -318,9 +338,13 @@ int main(int argc, char *argv[])
 		global.params.verbose = 1;
 	    else if (strcmp(p + 1, "v1") == 0)
 	    {
+#if V1
+		global.params.Dversion = 1;
+#else
 		error("use DMD 1.0 series compilers for -v1 switch");
 		break;
-	    }
+#endif
+            }
 	    else if (strcmp(p + 1, "w") == 0)
 		global.params.warnings = 1;
 	    else if (strcmp(p + 1, "O") == 0)
@@ -410,6 +434,8 @@ int main(int argc, char *argv[])
 		global.params.ignoreUnsupportedPragmas = 1;
 	    else if (strcmp(p + 1, "inline") == 0)
 		global.params.useInline = 1;
+	    else if (strcmp(p + 1, "lib") == 0)
+		global.params.lib = 1;
 	    else if (strcmp(p + 1, "nofloat") == 0)
 		global.params.nofloat = 1;
 	    else if (strcmp(p + 1, "quiet") == 0)
@@ -509,6 +535,24 @@ int main(int argc, char *argv[])
 	    {
 		global.params.debuglibname = p + 1 + 9;
 	    }
+	    else if (memcmp(p + 1, "man", 3) == 0)
+	    {
+#if _WIN32
+#if V1
+		browse("http://www.digitalmars.com/d/1.0/dmd-windows.html");
+#else
+		browse("http://www.digitalmars.com/d/2.0/dmd-windows.html");
+#endif
+#endif
+#if linux
+#if V1
+		browse("http://www.digitalmars.com/d/1.0/dmd-linux.html");
+#else
+		browse("http://www.digitalmars.com/d/2.0/dmd-linux.html");
+#endif
+#endif
+		exit(EXIT_SUCCESS);
+	    }
 	    else if (strcmp(p + 1, "run") == 0)
 	    {	global.params.run = 1;
 		global.params.runargs_length = ((i >= argcstart) ? argc : argcstart) - i - 1;
@@ -536,7 +580,17 @@ int main(int argc, char *argv[])
 	    }
 	}
 	else
+	{
+#if !TARGET_LINUX
+	    char *ext = FileName::ext(p);
+	    if (ext && stricmp(ext, "exe") == 0)
+	    {
+		global.params.objname = p;
+		continue;
+	    }
+#endif
 	    files.push(p);
+	}
     }
     if (global.errors)
     {
@@ -562,13 +616,37 @@ int main(int argc, char *argv[])
     if (global.params.useUnitTests)
 	global.params.useAssert = 1;
 
-    if (!global.params.obj)
+    if (!global.params.obj || global.params.lib)
 	global.params.link = 0;
 
     if (global.params.link)
     {
 	global.params.exefile = global.params.objname;
+	global.params.oneobj = 1;
+	if (global.params.objname)
+	{
+	    /* Use this to name the one object file with the same
+	     * name as the exe file.
+	     */
+	    global.params.objname = FileName::forceExt(global.params.objname, global.obj_ext)->toChars();
+
+	    /* If output directory is given, use that path rather than
+	     * the exe file path.
+	     */
+	    if (global.params.objdir)
+	    {	char *name = FileName::name(global.params.objname);
+		global.params.objname = FileName::combine(global.params.objdir, name);
+	    }
+	}
+    }
+    else if (global.params.lib)
+    {
+	global.params.libname = global.params.objname;
 	global.params.objname = NULL;
+
+	// Haven't investigated handling these options with multiobj
+	if (!global.params.cov && !global.params.trace)
+	    global.params.multiobj = 1;
     }
     else if (global.params.run)
     {
@@ -579,14 +657,17 @@ int main(int argc, char *argv[])
     {
 	if (global.params.objname && files.dim > 1)
 	{
-	    error("multiple source files, but only one .obj name");
-	    fatal();
+	    global.params.oneobj = 1;
+	    //error("multiple source files, but only one .obj name");
+	    //fatal();
 	}
     }
     if (global.params.cov)
 	VersionCondition::addPredefinedGlobalIdent("D_Coverage");
+#if V2
     if (global.params.useUnitTests)
 	VersionCondition::addPredefinedGlobalIdent("unittest");
+#endif
 
     // Initialization
     Type::init();
@@ -635,8 +716,9 @@ int main(int argc, char *argv[])
     // Create Modules
     Array modules;
     modules.reserve(files.dim);
+    int firstmodule = 1;
     for (i = 0; i < files.dim; i++)
-    {	Identifier *id;
+    {
 	char *ext;
 	char *name;
 
@@ -654,7 +736,8 @@ int main(int argc, char *argv[])
 	p = FileName::name(p);		// strip path
 	ext = FileName::ext(p);
 	if (ext)
-	{
+	{   /* Deduce what to do with a file based on its extension
+	     */
 #if TARGET_LINUX
 	    if (strcmp(ext, global.obj_ext) == 0)
 #else
@@ -662,16 +745,18 @@ int main(int argc, char *argv[])
 #endif
 	    {
 		global.params.objfiles->push(files.data[i]);
+		libmodules.push(files.data[i]);
 		continue;
 	    }
 
 #if TARGET_LINUX
-	    if (strcmp(ext, "a") == 0)
+	    if (strcmp(ext, global.lib_ext) == 0)
 #else
-	    if (stricmp(ext, "lib") == 0)
+	    if (stricmp(ext, global.lib_ext) == 0)
 #endif
 	    {
 		global.params.libfiles->push(files.data[i]);
+		libmodules.push(files.data[i]);
 		continue;
 	    }
 
@@ -696,11 +781,13 @@ int main(int argc, char *argv[])
 
 	    if (stricmp(ext, "exe") == 0)
 	    {
-		global.params.exefile = (char *)files.data[i];
-		continue;
+		assert(0);	// should have already been handled
 	    }
 #endif
 
+	    /* Examine extension to see if it is a valid
+	     * D source file extension
+	     */
 	    if (stricmp(ext, global.mars_ext) == 0 ||
 		stricmp(ext, "dd") == 0 ||
 		stricmp(ext, "htm") == 0 ||
@@ -733,11 +820,18 @@ int main(int argc, char *argv[])
 		goto Linvalid;
 	}
 
-	id = new Identifier(name, 0);
+	/* At this point, name is the D source file name stripped of
+	 * its path and extension.
+	 */
+
+	Identifier *id = new Identifier(name, 0);
 	m = new Module((char *) files.data[i], id, global.params.doDocComments, global.params.doHdrGeneration);
 	modules.push(m);
 
-	global.params.objfiles->push(m->objfile->name->str);
+	if (firstmodule)
+	{   global.params.objfiles->push(m->objfile->name->str);
+	    firstmodule = 0;
+	}
     }
 
 #if _WIN32
@@ -745,6 +839,7 @@ int main(int argc, char *argv[])
   {
 #endif
     // Read files, parse them
+    int anydocfiles = 0;
     for (i = 0; i < modules.dim; i++)
     {
 	m = (Module *)modules.data[i];
@@ -753,11 +848,13 @@ int main(int argc, char *argv[])
 	if (!Module::rootModule)
 	    Module::rootModule = m;
 	m->importedFrom = m;
-	m->deleteObjFile();
+	if (!global.params.oneobj || i == 0 || m->isDocFile)
+	    m->deleteObjFile();
 	m->read(0);
 	m->parse();
 	if (m->isDocFile)
 	{
+	    anydocfiles = 1;
 	    m->gendocfile();
 
 	    // Remove m from list of modules
@@ -777,6 +874,12 @@ int main(int argc, char *argv[])
 	    if (global.params.objfiles->dim == 0)
 		global.params.link = 0;
 	}
+    }
+    if (anydocfiles && modules.dim &&
+	(global.params.oneobj || global.params.objname))
+    {
+	error("conflicting Ddoc and obj generation options");
+	fatal();
     }
     if (global.errors)
 	fatal();
@@ -867,22 +970,68 @@ int main(int argc, char *argv[])
     if (global.errors)
 	fatal();
 
-    // Generate output files
-    for (i = 0; i < modules.dim; i++)
+    Library *library = NULL;
+    if (global.params.lib)
     {
-	m = (Module *)modules.data[i];
-	if (global.params.verbose)
-	    printf("code      %s\n", m->toChars());
-	if (global.params.obj)
-	    m->genobjfile();
-	if (global.errors)
-	    m->deleteObjFile();
-	else
+	library = new Library();
+	library->setFilename(global.params.objdir, global.params.libname);
+
+	// Add input object and input library files to output library
+	for (int i = 0; i < libmodules.dim; i++)
 	{
-	    if (global.params.doDocComments)
-		m->gendocfile();
+	    char *p = (char *)libmodules.data[i];
+	    library->addObject(p, NULL, 0);
 	}
     }
+
+    // Generate output files
+    if (global.params.oneobj)
+    {
+	for (i = 0; i < modules.dim; i++)
+	{
+	    m = (Module *)modules.data[i];
+	    if (global.params.verbose)
+		printf("code      %s\n", m->toChars());
+	    if (i == 0)
+		obj_start(m->srcfile->toChars());
+	    m->genobjfile(0);
+	    if (!global.errors && global.params.doDocComments)
+		m->gendocfile();
+	}
+	if (!global.errors && modules.dim)
+	{
+	    obj_end(library, ((Module *)modules.data[0])->objfile);
+	}
+    }
+    else
+    {
+	for (i = 0; i < modules.dim; i++)
+	{
+	    m = (Module *)modules.data[i];
+	    if (global.params.verbose)
+		printf("code      %s\n", m->toChars());
+	    if (global.params.obj)
+	    {   obj_start(m->srcfile->toChars());
+		m->genobjfile(global.params.multiobj);
+		obj_end(library, m->objfile);
+		obj_write_deferred(library);
+	    }
+	    if (global.errors)
+	    {
+		if (!global.params.lib)
+		    m->deleteObjFile();
+	    }
+	    else
+	    {
+		if (global.params.doDocComments)
+		    m->gendocfile();
+	    }
+	}
+    }
+
+    if (global.params.lib && !global.errors)
+	library->write();
+
 #if _WIN32
   }
   __except (__ehfilter(GetExceptionInformation()))
@@ -915,8 +1064,10 @@ int main(int argc, char *argv[])
 		 */
 		for (i = 0; i < modules.dim; i++)
 		{
-		    m = (Module *)modules.data[i];
+		    Module *m = (Module *)modules.data[i];
 		    m->deleteObjFile();
+		    if (global.params.oneobj)
+			break;
 		}
 		deleteExeFile();
 	    }

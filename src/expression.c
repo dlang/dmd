@@ -190,6 +190,79 @@ void initPrecedence()
     precedence[TOKcomma] = PREC_expr;
 }
 
+/*************************************************************
+ * Given var, we need to get the
+ * right 'this' pointer if var is in an outer class, but our
+ * existing 'this' pointer is in an inner class.
+ * Input:
+ *	e1	existing 'this'
+ *	ad	struct or class we need the correct 'this' for
+ *	var	the specific member of ad we're accessing
+ */
+
+Expression *getRightThis(Loc loc, Scope *sc, AggregateDeclaration *ad,
+	Expression *e1, Declaration *var)
+{
+ L1:
+    Type *t = e1->type->toBasetype();
+
+    /* If e1 is not the 'this' pointer for ad
+     */
+    if (ad &&
+	!(t->ty == Tpointer && t->nextOf()->ty == Tstruct &&
+	  ((TypeStruct *)t->nextOf())->sym == ad)
+	&&
+	!(t->ty == Tstruct &&
+	  ((TypeStruct *)t)->sym == ad)
+       )
+    {
+	ClassDeclaration *cd = ad->isClassDeclaration();
+	ClassDeclaration *tcd = t->isClassHandle();
+
+	/* e1 is the right this if ad is a base class of e1
+	 */
+	if (!cd || !tcd ||
+	    !(tcd == cd || cd->isBaseOf(tcd, NULL))
+	   )
+	{
+	    /* Only classes can be inner classes with an 'outer'
+	     * member pointing to the enclosing class instance
+	     */
+	    if (tcd && tcd->isNested())
+	    {   /* e1 is the 'this' pointer for an inner class.
+		 * Rewrite it as the 'this' pointer for the outer class.
+		 */
+
+		e1 = new DotVarExp(loc, e1, tcd->vthis);
+		e1 = e1->semantic(sc);
+
+		// Skip up over nested functions, and get the enclosing
+		// class type.
+		Dsymbol *s;
+		for (s = tcd->toParent();
+		     s && s->isFuncDeclaration();
+		     s = s->toParent())
+		{   FuncDeclaration *f = s->isFuncDeclaration();
+		    if (f->vthis)
+		    {
+			e1 = new VarExp(loc, f->vthis);
+		    }
+		}
+		if (s && s->isClassDeclaration())
+		    e1->type = s->isClassDeclaration()->type;
+		e1 = e1->semantic(sc);
+		goto L1;
+	    }
+
+	    /* Can't find a path from e1 to ad
+	     */
+	    error("this for %s needs to be type %s not type %s",
+		var->toChars(), ad->toChars(), t->toChars());
+	}
+    }
+    return e1;
+}
+
 /*****************************************
  * Determine if 'this' is available.
  * If it is, return the FuncDeclaration that has it.
@@ -5042,6 +5115,16 @@ Expression *DotIdExp::semantic(Scope *sc)
 		return new TypeExp(loc, t);
 	    }
 
+	    TupleDeclaration *tup = s->isTupleDeclaration();
+	    if (tup)
+	    {
+		if (eleft)
+		    error("cannot have e.tuple");
+		e = new TupleExp(loc, tup);
+		e = e->semantic(sc);
+		return e;
+	    }
+
 	    ScopeDsymbol *sds = s->isScopeDsymbol();
 	    if (sds)
 	    {
@@ -5195,54 +5278,7 @@ Expression *DotVarExp::semantic(Scope *sc)
 		type = type->invariantOf();
 
 	    AggregateDeclaration *ad = var->toParent()->isAggregateDeclaration();
-	L1:
-	    Type *t = e1->type->toBasetype();
-
-	    if (ad &&
-		!(t->ty == Tpointer &&
-		  ((TypePointer *)t)->next->ty == Tstruct &&
-		  ((TypeStruct *)((TypePointer *)t)->next)->sym == ad)
-		&&
-		!(t->ty == Tstruct && ((TypeStruct *)t)->sym == ad)
-	       )
-	    {
-		ClassDeclaration *cd = ad->isClassDeclaration();
-		ClassDeclaration *tcd = t->isClassHandle();
-
-		if (!cd || !tcd ||
-		    !(tcd == cd || cd->isBaseOf(tcd, NULL))
-		   )
-		{
-		    if (tcd && tcd->isNested())
-		    {	// Try again with outer scope
-
-			e1 = new DotVarExp(loc, e1, tcd->vthis);
-			e1 = e1->semantic(sc);
-
-			// Skip over nested functions, and get the enclosing
-			// class type.
-			Dsymbol *s = tcd->toParent();
-			while (s && s->isFuncDeclaration())
-			{   FuncDeclaration *f = s->isFuncDeclaration();
-			    if (f->vthis)
-			    {
-				e1 = new VarExp(loc, f->vthis);
-			    }
-			    s = s->toParent();
-			}
-			if (s && s->isClassDeclaration())
-			    e1->type = s->isClassDeclaration()->type;
-
-			e1 = e1->semantic(sc); // get corrected nested refs
-			goto L1;
-		    }
-#ifdef DEBUG
-		    printf("2: ");
-#endif
-		    error("%s for %s needs to be type %s not type %s",
-			e1->toChars(), var->toChars(), ad->toChars(), t->toChars());
-		}
-	    }
+	    e1 = getRightThis(loc, sc, ad, e1, var);
 	    if (!sc->noaccesscheck)
 		accessCheck(loc, sc, e1, var);
 	}
@@ -5485,44 +5521,9 @@ Expression *DelegateExp::semantic(Scope *sc)
 	e1 = e1->semantic(sc);
 	type = new TypeDelegate(func->type);
 	type = type->semantic(loc, sc);
-//-----------------
-	/* For func, we need to get the
-	 * right 'this' pointer if func is in an outer class, but our
-	 * existing 'this' pointer is in an inner class.
-	 * This code is analogous to that used for variables
-	 * in DotVarExp::semantic().
-	 */
 	AggregateDeclaration *ad = func->toParent()->isAggregateDeclaration();
-    L10:
-	Type *t = e1->type;
-	if (func->needThis() && ad &&
-	    !(t->ty == Tpointer && ((TypePointer *)t)->next->ty == Tstruct &&
-	      ((TypeStruct *)((TypePointer *)t)->next)->sym == ad) &&
-	    !(t->ty == Tstruct && ((TypeStruct *)t)->sym == ad)
-	   )
-	{
-	    ClassDeclaration *cd = ad->isClassDeclaration();
-	    ClassDeclaration *tcd = t->isClassHandle();
-
-	    if (!cd || !tcd ||
-		!(tcd == cd || cd->isBaseOf(tcd, NULL))
-	       )
-	    {
-		if (tcd && tcd->isNested())
-		{   // Try again with outer scope
-
-		    e1 = new DotVarExp(loc, e1, tcd->vthis);
-		    e1 = e1->semantic(sc);
-		    goto L10;
-		}
-#ifdef DEBUG
-		printf("3: ");
-#endif
-		error("this for %s needs to be type %s not type %s",
-		    func->toChars(), ad->toChars(), t->toChars());
-	    }
-	}
-//-----------------
+	if (func->needThis())
+	    e1 = getRightThis(loc, sc, ad, e1, func);
     }
     return this;
 }
@@ -5859,41 +5860,8 @@ Lagain:
 	    }
 	    ad = td->toParent()->isAggregateDeclaration();
 	}	
-	/* Now that we have the right function f, we need to get the
-	 * right 'this' pointer if f is in an outer class, but our
-	 * existing 'this' pointer is in an inner class.
-	 * This code is analogous to that used for variables
-	 * in DotVarExp::semantic().
-	 */
-    L10:
-	Type *t = ue->e1->type->toBasetype();
-	if (f->needThis() && ad &&
-	    !(t->ty == Tpointer && ((TypePointer *)t)->next->ty == Tstruct &&
-	      ((TypeStruct *)((TypePointer *)t)->next)->sym == ad) &&
-	    !(t->ty == Tstruct && ((TypeStruct *)t)->sym == ad)
-	   )
-	{
-	    ClassDeclaration *cd = ad->isClassDeclaration();
-	    ClassDeclaration *tcd = t->isClassHandle();
-
-	    if (!cd || !tcd ||
-		!(tcd == cd || cd->isBaseOf(tcd, NULL))
-	       )
-	    {
-		if (tcd && tcd->isNested())
-		{   // Try again with outer scope
-
-		    ue->e1 = new DotVarExp(loc, ue->e1, tcd->vthis);
-		    ue->e1 = ue->e1->semantic(sc);
-		    goto L10;
-		}
-#ifdef DEBUG
-		printf("1: ");
-#endif
-		error("this for %s needs to be type %s not type %s",
-		    f->toChars(), ad->toChars(), t->toChars());
-	    }
-	}
+	if (f->needThis())
+	    ue->e1 = getRightThis(loc, sc, ad, ue->e1, f);
 
 	checkDeprecated(sc, f);
 	accessCheck(loc, sc, ue->e1, f);

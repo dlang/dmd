@@ -178,7 +178,7 @@ struct TypedefDeclaration : Declaration
 
     void toDocBuffer(OutBuffer *buf);
 
-    void toObjFile();			// compile to .obj file
+    void toObjFile(int multiobj);			// compile to .obj file
     void toDebug();
     int cvMember(unsigned char *p);
 
@@ -257,7 +257,7 @@ struct VarDeclaration : Declaration
     Dsymbol *toAlias();
 
     Symbol *toSymbol();
-    void toObjFile();			// compile to .obj file
+    void toObjFile(int multiobj);			// compile to .obj file
     int cvMember(unsigned char *p);
 
     // Eliminate need for dynamic_cast
@@ -319,7 +319,7 @@ struct TypeInfoDeclaration : VarDeclaration
     void emitComment(Scope *sc);
 
     Symbol *toSymbol();
-    void toObjFile();			// compile to .obj file
+    void toObjFile(int multiobj);			// compile to .obj file
     virtual void toDt(dt_t **pdt);
 };
 
@@ -568,7 +568,7 @@ struct FuncDeclaration : Declaration
 
     Symbol *toSymbol();
     Symbol *toThunkSymbol(int offset);	// thunk version
-    void toObjFile();			// compile to .obj file
+    void toObjFile(int multiobj);			// compile to .obj file
     int cvMember(unsigned char *p);
     void buildClosure(IRState *irs);
 

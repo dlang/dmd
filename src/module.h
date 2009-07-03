@@ -1,6 +1,6 @@
 
 // Compiler implementation of the D programming language
-// Copyright (c) 1999-2005 by Digital Mars
+// Copyright (c) 1999-2008 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // http://www.digitalmars.com
@@ -24,6 +24,7 @@ struct ModuleDeclaration;
 struct Macro;
 struct Escape;
 struct VarDeclaration;
+struct Library;
 
 // Back end
 #if IN_GCC
@@ -125,7 +126,7 @@ struct Module : Package
 #ifdef _DH
     void genhdrfile();  // generate D import file
 #endif
-    void genobjfile();
+    void genobjfile(int multiobj);
     void gensymfile();
     void gendocfile();
     int needModuleInfo();
@@ -136,6 +137,7 @@ struct Module : Package
 
     // Back end
 
+    int doppelganger;		// sub-module
     Symbol *cov;		// private uint[] __coverage;
     unsigned *covb;		// bit array of valid code line numbers
 
