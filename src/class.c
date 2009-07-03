@@ -1,6 +1,6 @@
 
 // Compiler implementation of the D programming language
-// Copyright (c) 1999-2007 by Digital Mars
+// Copyright (c) 1999-2008 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // http://www.digitalmars.com
@@ -642,6 +642,7 @@ void ClassDeclaration::semantic(Scope *sc)
     sizeok = 1;
     Module::dprogress++;
 
+    dtor = buildDtor(sc);
 
     sc->pop();
 

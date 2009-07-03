@@ -48,6 +48,9 @@ struct Tuple : Object
 struct TemplateDeclaration : ScopeDsymbol
 {
     TemplateParameters *parameters;	// array of TemplateParameter's
+
+    TemplateParameters *origParameters;	// originals for Ddoc
+
     Array instances;		// array of TemplateInstance's
 
     TemplateDeclaration *overnext;	// next overloaded TemplateDeclaration

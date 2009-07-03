@@ -255,7 +255,7 @@ int runLINK()
     argv.push((void *)"-lpthread");
     argv.push((void *)"-lm");
 
-    if (!global.params.quiet)
+    if (!global.params.quiet || global.params.verbose)
     {
 	// Print it
 	for (i = 0; i < argv.dim; i++)

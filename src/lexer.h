@@ -1,6 +1,6 @@
 
 // Compiler implementation of the D programming language
-// Copyright (c) 1999-2007 by Digital Mars
+// Copyright (c) 1999-2008 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // http://www.digitalmars.com
@@ -92,11 +92,11 @@ enum TOK
 	TOKand,		TOKor,		TOKxor,
 	TOKandass,	TOKorass,	TOKxorass,
 	TOKassign,	TOKnot,		TOKtilde,
-	TOKplusplus,	TOKminusminus,	TOKconstruct,
+	TOKplusplus,	TOKminusminus,	TOKconstruct,	TOKblit,
 	TOKdot,		TOKarrow,	TOKcomma,
 	TOKquestion,	TOKandand,	TOKoror,
 
-// 103
+// 104
 	// Numeric literals
 	TOKint32v, TOKuns32v,
 	TOKint64v, TOKuns64v,
@@ -131,7 +131,7 @@ enum TOK
 	TOKalign, TOKextern, TOKprivate, TOKprotected, TOKpublic, TOKexport,
 	TOKstatic, /*TOKvirtual,*/ TOKfinal, TOKconst, TOKabstract, TOKvolatile,
 	TOKdebug, TOKdeprecated, TOKin, TOKout, TOKinout, TOKlazy,
-	TOKauto, TOKpackage,
+	TOKauto, TOKpackage, TOKmanifest,
 
 	// Statements
 	TOKif, TOKelse, TOKwhile, TOKfor, TOKdo, TOKswitch,
@@ -152,6 +152,8 @@ enum TOK
 	TOKmacro,
 #if V2
 	TOKtraits,
+	TOKoverloadset,
+	TOKpure,
 #endif
 
 	TOKMAX
@@ -261,6 +263,8 @@ struct Lexer
 
     static void initKeywords();
     static Identifier *idPool(const char *s);
+    static Identifier *uniqueId(const char *s);
+    static Identifier *uniqueId(const char *s, int num);
 
     TOK nextToken();
     void scan(Token *t);

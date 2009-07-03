@@ -170,6 +170,8 @@ void initPrecedence()
     precedence[TOKquestion] = PREC_cond;
 
     precedence[TOKassign] = PREC_assign;
+    precedence[TOKconstruct] = PREC_assign;
+    precedence[TOKblit] = PREC_assign;
     precedence[TOKaddass] = PREC_assign;
     precedence[TOKminass] = PREC_assign;
     precedence[TOKcatass] = PREC_assign;
@@ -4402,6 +4404,8 @@ int BinExp::checkSideEffect(int flag)
     if (op == TOKplusplus ||
 	   op == TOKminusminus ||
 	   op == TOKassign ||
+	   op == TOKconstruct ||
+	   op == TOKblit ||
 	   op == TOKaddass ||
 	   op == TOKminass ||
 	   op == TOKcatass ||
@@ -6124,13 +6128,10 @@ Expression *DeleteExp::semantic(Scope *sc)
 
 		if (f)
 		{
-		    Expression *e;
-		    Expression *ec;
 		    Type *tpv = Type::tvoid->pointerTo();
 
-		    e = e1;
-		    e->type = tpv;
-		    ec = new VarExp(loc, f);
+		    Expression *e = e1->castTo(sc, tpv);
+		    Expression *ec = new VarExp(loc, f);
 		    e = new CallExp(loc, ec, e);
 		    return e->semantic(sc);
 		}

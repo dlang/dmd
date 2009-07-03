@@ -55,6 +55,7 @@ struct Scope
     int noctor;			// set if constructor calls aren't allowed
     int intypeof;		// in typeof(exp)
     int parameterSpecialization; // if in template parameter specialization
+    int noaccesscheck;		// don't do access checks
 
     unsigned callSuper;		// primitive flow analysis for constructors
 #define	CSXthis_ctor	1	// called this()

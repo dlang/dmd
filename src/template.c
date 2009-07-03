@@ -268,6 +268,7 @@ TemplateDeclaration::TemplateDeclaration(Loc loc, Identifier *id, TemplateParame
 #endif
     this->loc = loc;
     this->parameters = parameters;
+    this->origParameters = parameters;
     this->members = decldefs;
     this->overnext = NULL;
     this->overroot = NULL;
@@ -335,6 +336,17 @@ void TemplateDeclaration::semantic(Scope *sc)
     paramsym->parent = sc->parent;
     Scope *paramscope = sc->push(paramsym);
     paramscope->parameterSpecialization = 1;
+
+    if (global.params.doDocComments)
+    {
+	origParameters = new TemplateParameters();
+	origParameters->setDim(parameters->dim);
+	for (int i = 0; i < parameters->dim; i++)
+	{
+	    TemplateParameter *tp = (TemplateParameter *)parameters->data[i];
+	    origParameters->data[i] = (void *)tp->syntaxCopy();
+	}
+    }
 
     for (int i = 0; i < parameters->dim; i++)
     {
@@ -1116,6 +1128,8 @@ void TemplateDeclaration::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
     for (int i = 0; i < parameters->dim; i++)
     {
 	TemplateParameter *tp = (TemplateParameter *)parameters->data[i];
+	if (hgs->ddoc)
+	    tp = (TemplateParameter *)origParameters->data[i];
 	if (i)
 	    buf->writeByte(',');
 	tp->toCBuffer(buf, hgs);
@@ -3305,10 +3319,30 @@ int TemplateInstance::isNested(Objects *args)
 	    {
 		// if module level template
 		if (tempdecl->toParent()->isModule())
-		{
-		    if (isnested && isnested != d->toParent())
-			error("inconsistent nesting levels %s and %s", isnested->toChars(), d->toParent()->toChars());
-		    isnested = d->toParent();
+		{   Dsymbol *dparent = d->toParent();
+		    if (!isnested)
+			isnested = dparent;
+		    else if (isnested != dparent)
+		    {
+			/* Select the more deeply nested of the two.
+			 * Error if one is not nested inside the other.
+			 */
+			for (Dsymbol *p = isnested; p; p = p->parent)
+			{
+			    if (p == dparent)
+				goto L1;	// isnested is most nested
+			}
+			for (Dsymbol *p = dparent; 1; p = p->parent)
+			{
+			    if (p == isnested)
+			    {	isnested = dparent;
+				goto L1;	// dparent is most nested
+			    }
+			}
+			error("is nested in both %s and %s", isnested->toChars(), dparent->toChars());
+		    }
+		  L1:
+		    //printf("\tnested inside %s\n", isnested->toChars());
 		    nested |= 1;
 		}
 		else

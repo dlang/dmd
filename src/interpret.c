@@ -602,9 +602,12 @@ Expression *ForStatement::interpret(InterState *istate)
 	    if (e && e != EXP_CONTINUE_INTERPRET)
 		break;
 	Lcontinue:
-	    e = increment->interpret(istate);
-	    if (e == EXP_CANT_INTERPRET)
-		break;
+	    if (increment)
+	    {
+		e = increment->interpret(istate);
+		if (e == EXP_CANT_INTERPRET)
+		    break;
+	    }
 	}
 	else if (e->isBool(FALSE))
 	{   e = NULL;

@@ -664,6 +664,7 @@ void VarDeclaration::semantic(Scope *sc)
 	size_t nelems = Argument::dim(tt->arguments);
 	Objects *exps = new Objects();
 	exps->setDim(nelems);
+	Expression *ie = init ? init->toExpression() : NULL;
 
 	for (size_t i = 0; i < nelems; i++)
 	{   Argument *arg = Argument::getNth(tt->arguments, i);
@@ -674,7 +675,16 @@ void VarDeclaration::semantic(Scope *sc)
 	    char *name = (char *)buf.extractData();
 	    Identifier *id = new Identifier(name, TOKidentifier);
 
-	    VarDeclaration *v = new VarDeclaration(loc, arg->type, id, NULL);
+	    Expression *einit = ie;
+	    if (ie && ie->op == TOKtuple)
+	    {	einit = (Expression *)((TupleExp *)ie)->exps->data[i];
+	    }
+	    Initializer *ti = init;
+	    if (einit)
+	    {	ti = new ExpInitializer(einit->loc, einit);
+	    }
+
+	    VarDeclaration *v = new VarDeclaration(loc, arg->type, id, ti);
 	    //printf("declaring field %s of type %s\n", v->toChars(), v->type->toChars());
 	    v->semantic(sc);
 
@@ -1105,8 +1115,8 @@ Expression *VarDeclaration::callAutoDtor()
 	     * classes to determine if there's no way the monitor
 	     * could be set.
 	     */
-	    if (cd->isInterfaceDeclaration())
-		error("interface %s cannot be scope", cd->toChars());
+	    //if (cd->isInterfaceDeclaration())
+		//error("interface %s cannot be scope", cd->toChars());
 	    if (1 || onstack || cd->dtors.dim)	// if any destructors
 	    {
 		// delete this;

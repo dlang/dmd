@@ -1,6 +1,6 @@
 
 // Compiler implementation of the D programming language
-// Copyright (c) 1999-2006 by Digital Mars
+// Copyright (c) 1999-2008 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // http://www.digitalmars.com
@@ -51,6 +51,8 @@ struct AggregateDeclaration : ScopeDsymbol
 				// 2: cannot determine size; fwd referenced
     int isdeprecated;		// !=0 if deprecated
     Scope *scope;		// !=NULL means context to use
+    FuncDeclarations dtors;	// Array of destructors
+    FuncDeclaration *dtor;	// aggregate destructor
 
     // Special member functions
     InvariantDeclaration *inv;		// invariant
@@ -70,6 +72,7 @@ struct AggregateDeclaration : ScopeDsymbol
     Type *getType();
     void addField(Scope *sc, VarDeclaration *v);
     int isDeprecated();		// is aggregate deprecated?
+    FuncDeclaration *buildDtor(Scope *sc);
 
     void emitComment(Scope *sc);
     void toDocBuffer(OutBuffer *buf);
@@ -110,6 +113,7 @@ struct StructDeclaration : AggregateDeclaration
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
     char *mangle();
     char *kind();
+    Expression *cloneMembers();
     void toDocBuffer(OutBuffer *buf);
 
     PROT getAccess(Dsymbol *smember);	// determine access to smember
@@ -151,7 +155,11 @@ struct BaseClass
     void copyBaseInterfaces(BaseClasses *);
 };
 
+#if V2
+#define CLASSINFO_SIZE 	(0x3C+16)	// value of ClassInfo.size
+#else
 #define CLASSINFO_SIZE 	(0x3C+12)	// value of ClassInfo.size
+#endif
 
 struct ClassDeclaration : AggregateDeclaration
 {
@@ -161,7 +169,6 @@ struct ClassDeclaration : AggregateDeclaration
     ClassDeclaration *baseClass;	// NULL only if this is Object
     CtorDeclaration *ctor;
     CtorDeclaration *defaultCtor;	// default constructor
-    FuncDeclarations dtors;		// Array of destructors
     FuncDeclaration *staticCtor;
     FuncDeclaration *staticDtor;
     Array vtbl;				// Array of FuncDeclaration's making up the vtbl[]
@@ -178,7 +185,8 @@ struct ClassDeclaration : AggregateDeclaration
 					// their own vtbl[]
 
     ClassInfoDeclaration *vclassinfo;	// the ClassInfo object for this ClassDeclaration
-    int com;				// !=0 if this is a COM class
+    int com;				// !=0 if this is a COM class (meaning
+					// it derives from IUnknown)
     int isauto;				// !=0 if this is an auto class
     int isabstract;			// !=0 if abstract class
 
@@ -195,11 +203,17 @@ struct ClassDeclaration : AggregateDeclaration
     virtual int isBaseOf(ClassDeclaration *cd, int *poffset);
 
     Dsymbol *search(Loc, Identifier *ident, int flags);
+#if V2
+    int isFuncHidden(FuncDeclaration *fd);
+#endif
     FuncDeclaration *findFunc(Identifier *ident, TypeFunction *tf);
     void interfaceSemantic(Scope *sc);
     int isNested();
     int isCOMclass();
     virtual int isCOMinterface();
+#if V2
+    virtual int isCPPinterface();
+#endif
     int isAbstract();
     virtual int vtblOffset();
     char *kind();
@@ -226,6 +240,9 @@ struct ClassDeclaration : AggregateDeclaration
 
 struct InterfaceDeclaration : ClassDeclaration
 {
+#if V2
+    int cpp;				// !=0 if this is a C++ interface
+#endif
     InterfaceDeclaration(Loc loc, Identifier *id, BaseClasses *baseclasses);
     Dsymbol *syntaxCopy(Dsymbol *s);
     void semantic(Scope *sc);
@@ -233,6 +250,9 @@ struct InterfaceDeclaration : ClassDeclaration
     int isBaseOf(BaseClass *bc, int *poffset);
     char *kind();
     int vtblOffset();
+#if V2
+    int isCPPinterface();
+#endif
     virtual int isCOMinterface();
 
     void toObjFile();			// compile to .obj file

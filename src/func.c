@@ -2122,12 +2122,15 @@ DtorDeclaration::DtorDeclaration(Loc loc, Loc endloc)
 {
 }
 
+DtorDeclaration::DtorDeclaration(Loc loc, Loc endloc, Identifier *id)
+    : FuncDeclaration(loc, endloc, id, STCundefined, NULL)
+{
+}
+
 Dsymbol *DtorDeclaration::syntaxCopy(Dsymbol *s)
 {
-    DtorDeclaration *dd;
-
     assert(!s);
-    dd = new DtorDeclaration(loc, endloc);
+    DtorDeclaration *dd = new DtorDeclaration(loc, endloc, ident);
     return FuncDeclaration::syntaxCopy(dd);
 }
 
