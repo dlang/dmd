@@ -1,6 +1,6 @@
 
 
-// Copyright (c) 1999-2006 by Digital Mars
+// Copyright (c) 1999-2007 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // http://www.digitalmars.com
@@ -139,10 +139,29 @@ int runLINK()
 
     p = cmdbuf.toChars();
 
+    FileName *lnkfilename = NULL;
+    size_t plen = strlen(p);
+    if (plen > 7000)
+    {
+	lnkfilename = FileName::forceExt(global.params.exefile, "lnk");
+	File flnk(lnkfilename);
+	flnk.setbuffer(p, plen);
+	flnk.ref = 1;
+	if (flnk.write())
+	    error("error writing file %s", lnkfilename);
+	if (lnkfilename->len() < plen)
+	    sprintf(p, "@%s", lnkfilename->toChars());
+    }
+
     char *linkcmd = getenv("LINKCMD");
     if (!linkcmd)
 	linkcmd = "link";
     status = executecmd(linkcmd, p, 1);
+    if (lnkfilename)
+    {
+	remove(lnkfilename->toChars());
+	delete lnkfilename;
+    }
     return status;
 #elif linux
     pid_t childpid;
@@ -199,10 +218,6 @@ int runLINK()
 
     argv.push((void *)"-m32");
 
-    argv.push((void *)"-lphobos");	// turns into /usr/lib/libphobos.a
-    argv.push((void *)"-lpthread");
-    argv.push((void *)"-lm");
-
     if (0 && global.params.exefile)
     {
 	/* This switch enables what is known as 'smart linking'
@@ -219,10 +234,19 @@ int runLINK()
     }
 
     for (i = 0; i < global.params.linkswitches->dim; i++)
-    {
-	argv.push((void *)"-Xlinker");
-	argv.push((void *) global.params.linkswitches->data[i]);
+    {	char *p = (char *)global.params.linkswitches->data[i];
+	if (!p || !p[0] || !(p[0] == '-' && p[1] == 'l'))
+	    // Don't need -Xlinker if switch starts with -l
+	    argv.push((void *)"-Xlinker");
+	argv.push((void *) p);
     }
+
+    /* Standard libraries must go after user specified libraries
+     * passed with -l.
+     */
+    argv.push((void *)"-lphobos");	// turns into /usr/lib/libphobos.a
+    argv.push((void *)"-lpthread");
+    argv.push((void *)"-lm");
 
     if (!global.params.quiet)
     {

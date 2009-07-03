@@ -1018,6 +1018,12 @@ Expression *ArrayLength(Type *type, Expression *e1)
 	dim = ale->elements ? ale->elements->dim : 0;
 	e = new IntegerExp(loc, dim, type);
     }
+    else if (e1->op == TOKassocarrayliteral)
+    {	AssocArrayLiteralExp *ale = (AssocArrayLiteralExp *)e1;
+	size_t dim = ale->keys->dim;
+
+	e = new IntegerExp(loc, dim, type);
+    }
     else
 	e = EXP_CANT_INTERPRET;
     return e;
@@ -1087,6 +1093,25 @@ Expression *Index(Type *type, Expression *e1, Expression *e2)
 	    else
 	    {	e = (Expression *)ale->elements->data[i];
 		e->type = type;
+	    }
+	}
+    }
+    else if (e1->op == TOKassocarrayliteral && !e1->checkSideEffect(2))
+    {
+	AssocArrayLiteralExp *ae = (AssocArrayLiteralExp *)e1;
+	/* Search the keys backwards, in case there are duplicate keys
+	 */
+	for (size_t i = ae->keys->dim; i;)
+	{
+	    i--;
+	    Expression *ekey = (Expression *)ae->keys->data[i];
+	    Expression *ex = Equal(TOKequal, Type::tbool, ekey, e2);
+	    if (ex == EXP_CANT_INTERPRET)
+		return ex;
+	    if (ex->isBool(TRUE))
+	    {	e = (Expression *)ae->values->data[i];
+		e->type = type;
+		break;
 	    }
 	}
     }

@@ -1688,6 +1688,18 @@ Expression *semanticLength(Scope *sc, Type *t, Expression *exp)
     return exp;
 }
 
+Expression *semanticLength(Scope *sc, TupleDeclaration *s, Expression *exp)
+{
+    ScopeDsymbol *sym = new ArrayScopeSymbol(s);
+    sym->parent = sc->scopesym;
+    sc = sc->push(sym);
+
+    exp = exp->semantic(sc);
+
+    sc->pop();
+    return exp;
+}
+
 void TypeSArray::resolve(Loc loc, Scope *sc, Expression **pe, Type **pt, Dsymbol **ps)
 {
     //printf("TypeSArray::resolve() %s\n", toChars());
@@ -1756,6 +1768,31 @@ void TypeSArray::resolve(Loc loc, Scope *sc, Expression **pe, Type **pt, Dsymbol
 Type *TypeSArray::semantic(Loc loc, Scope *sc)
 {
     //printf("TypeSArray::semantic() %s\n", toChars());
+
+    Type *t;
+    Expression *e;
+    Dsymbol *s;
+    next->resolve(loc, sc, &e, &t, &s);
+    if (dim && s && s->isTupleDeclaration())
+    {	TupleDeclaration *sd = s->isTupleDeclaration();
+
+	dim = semanticLength(sc, sd, dim);
+	dim = dim->optimize(WANTvalue | WANTinterpret);
+	uinteger_t d = dim->toUInteger();
+
+	if (d >= sd->objects->dim)
+	{   error(loc, "tuple index %ju exceeds %u", d, sd->objects->dim);
+	    return Type::terror;
+	}
+	Object *o = (Object *)sd->objects->data[(size_t)d];
+	if (o->dyncast() != DYNCAST_TYPE)
+	{   error(loc, "%s is not a type", toChars());
+	    return Type::terror;
+	}
+	t = (Type *)o;
+	return t;
+    }
+
     next = next->semantic(loc,sc);
     Type *tbn = next->toBasetype();
 
@@ -1773,9 +1810,7 @@ Type *TypeSArray::semantic(Loc loc, Scope *sc)
 	if (d1 != d2)
 	    goto Loverflow;
 
-	if (tbn->ty == Tbit && (d2 + 31) < d2)
-	    goto Loverflow;
-	else if (tbn->isintegral() ||
+	if (tbn->isintegral() ||
 		 tbn->isfloating() ||
 		 tbn->ty == Tpointer ||
 		 tbn->ty == Tarray ||
@@ -2215,25 +2250,14 @@ Expression *TypeAArray::dotExp(Scope *sc, Expression *e, Identifier *ident)
 	Expression *ec;
 	FuncDeclaration *fd;
 	Expressions *arguments;
-	char aakeys[7+3*sizeof(int)+1];
 	int size = key->size(e->loc);
 
 	assert(size);
-#if 0
-	if (size == 1 || size == 2 || size == 4 || size == 8)
-	{
-	    sprintf(aakeys, "_aaKeys%d", size);
-	    size = 0;
-	}
-	else
-#endif
-	    strcpy(aakeys, "_aaKeys");
-	fd = FuncDeclaration::genCfunc(Type::tindex, aakeys);
+	fd = FuncDeclaration::genCfunc(Type::tindex, "_aaKeys");
 	ec = new VarExp(0, fd);
 	arguments = new Expressions();
 	arguments->push(e);
-	if (size)
-	    arguments->push(new IntegerExp(0, size, Type::tsize_t));
+	arguments->push(new IntegerExp(0, size, Type::tsize_t));
 	e = new CallExp(e->loc, ec, arguments);
 	e->type = index->arrayOf();
     }

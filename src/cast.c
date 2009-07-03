@@ -403,6 +403,33 @@ int ArrayLiteralExp::implicitConvTo(Type *t)
 	return Expression::implicitConvTo(t);
 }
 
+int AssocArrayLiteralExp::implicitConvTo(Type *t)
+{   MATCH result = MATCHexact;
+
+    Type *typeb = type->toBasetype();
+    Type *tb = t->toBasetype();
+    if (tb->ty == Taarray && typeb->ty == Taarray)
+    {
+	for (size_t i = 0; i < keys->dim; i++)
+	{   Expression *e = (Expression *)keys->data[i];
+	    MATCH m = (MATCH)e->implicitConvTo(((TypeAArray *)tb)->key);
+	    if (m < result)
+		result = m;			// remember worst match
+	    if (result == MATCHnomatch)
+		break;				// no need to check for worse
+	    e = (Expression *)values->data[i];
+	    m = (MATCH)e->implicitConvTo(tb->next);
+	    if (m < result)
+		result = m;			// remember worst match
+	    if (result == MATCHnomatch)
+		break;				// no need to check for worse
+	}
+	return result;
+    }
+    else
+	return Expression::implicitConvTo(t);
+}
+
 int AddrExp::implicitConvTo(Type *t)
 {
 #if 0
@@ -918,6 +945,30 @@ Expression *ArrayLiteralExp::castTo(Scope *sc, Type *t)
     if (tb->ty == Tpointer && typeb->ty == Tsarray)
     {
 	type = typeb->next->pointerTo();
+    }
+L1:
+    return Expression::castTo(sc, t);
+}
+
+Expression *AssocArrayLiteralExp::castTo(Scope *sc, Type *t)
+{
+    Type *typeb = type->toBasetype();
+    Type *tb = t->toBasetype();
+    if (tb->ty == Taarray && typeb->ty == Taarray &&
+	tb->next->toBasetype()->ty != Tvoid)
+    {
+	assert(keys->dim == values->dim);
+	for (size_t i = 0; i < keys->dim; i++)
+	{   Expression *e = (Expression *)values->data[i];
+	    e = e->castTo(sc, tb->next);
+	    values->data[i] = (void *)e;
+
+	    e = (Expression *)keys->data[i];
+	    e = e->castTo(sc, ((TypeAArray *)tb)->key);
+	    keys->data[i] = (void *)e;
+	}
+	type = t;
+	return this;
     }
 L1:
     return Expression::castTo(sc, t);

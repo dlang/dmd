@@ -34,10 +34,17 @@ struct Port
     static double dbl_max;
     static double dbl_min;
 
-    static int isnan(double);
-    static int isfinite(double);
-    static int isinfinity(double);
-    static int signbit(double);
+#if __GNUC__
+    // These conflict with macros in math.h, should rename them
+    #undef isnan
+    #undef isfinite
+    #undef isinfinity
+    #undef signbit
+#endif
+    static int isNan(double);
+    static int isFinite(double);
+    static int isInfinity(double);
+    static int Signbit(double);
 
     static double floor(double);
     static double pow(double x, double y);

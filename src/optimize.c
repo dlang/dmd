@@ -264,10 +264,15 @@ Expression *CastExp::optimize(int result)
 {
     //printf("CastExp::optimize(result = %d) %s\n", result, toChars());
     //printf("from %s to %s\n", type->toChars(), to->toChars());
+    //printf("from %s\n", type->toChars());
     //printf("type = %p\n", type);
     assert(type);
+    enum TOK op1 = e1->op;
 
     e1 = e1->optimize(result);
+    if (result & WANTinterpret)
+	e1 = fromConstInitializer(e1);
+
     if ((e1->op == TOKstring || e1->op == TOKarrayliteral) &&
 	(type->ty == Tpointer || type->ty == Tarray) &&
 	type->next->equals(e1->type->next)
@@ -276,6 +281,10 @@ Expression *CastExp::optimize(int result)
 	e1->type = type;
 	return e1;
     }
+    /* The first test here is to prevent infinite loops
+     */
+    if (op1 != TOKarrayliteral && e1->op == TOKarrayliteral)
+	return e1->castTo(NULL, to);
     if (e1->op == TOKnull &&
 	(type->ty == Tpointer || type->ty == Tclass))
     {
@@ -519,7 +528,7 @@ Expression *ArrayLengthExp::optimize(int result)
     //printf("ArrayLengthExp::optimize(result = %d) %s\n", result, toChars());
     e1 = e1->optimize(WANTvalue | (result & WANTinterpret));
     e = this;
-    if (e1->op == TOKstring || e1->op == TOKarrayliteral)
+    if (e1->op == TOKstring || e1->op == TOKarrayliteral || e1->op == TOKassocarrayliteral)
     {
 	e = ArrayLength(type, e1);
     }

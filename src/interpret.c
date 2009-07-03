@@ -991,8 +991,8 @@ Expression *ArrayLiteralExp::interpret(InterState *istate)
 }
 
 Expression *AssocArrayLiteralExp::interpret(InterState *istate)
-{   Expressions *keysx = NULL;
-    Expressions *valuesx = NULL;
+{   Expressions *keysx = keys;
+    Expressions *valuesx = values;
 
 #if LOG
     printf("AssocArrayLiteralExp::interpret() %s\n", toChars());
@@ -1004,66 +1004,77 @@ Expression *AssocArrayLiteralExp::interpret(InterState *istate)
 
 	ex = ekey->interpret(istate);
 	if (ex == EXP_CANT_INTERPRET)
-	{   delete keysx;
-	    delete valuesx;
-	    return EXP_CANT_INTERPRET;
-	}
+	    goto Lerr;
 
 	/* If any changes, do Copy On Write
 	 */
 	if (ex != ekey)
 	{
-	    if (!keysx)
-	    {   keysx = new Expressions();
-		keysx->setDim(keys->dim);
-		for (size_t j = 0; j < i; j++)
-		{
-		    keysx->data[j] = keys->data[j];
-		}
-	    }
+	    if (keysx == keys)
+		keysx = (Expressions *)keys->copy();
 	    keysx->data[i] = (void *)ex;
 	}
 
 	ex = evalue->interpret(istate);
 	if (ex == EXP_CANT_INTERPRET)
-	{   delete keysx;
-	    delete valuesx;
-	    return EXP_CANT_INTERPRET;
-	}
+	    goto Lerr;
 
 	/* If any changes, do Copy On Write
 	 */
 	if (ex != evalue)
 	{
-	    if (!valuesx)
-	    {   valuesx = new Expressions();
-		valuesx->setDim(values->dim);
-		for (size_t j = 0; j < i; j++)
-		{
-		    valuesx->data[j] = values->data[j];
-		}
-	    }
+	    if (valuesx == values)
+		valuesx = (Expressions *)values->copy();
 	    valuesx->data[i] = (void *)ex;
 	}
     }
-    if (keysx || valuesx)
-    {
-	if (keysx)
-	    expandTuples(keysx);
-	if (valuesx)
-	    expandTuples(valuesx);
-	if ((keysx && keysx->dim != keys->dim) ||
-	    (valuesx && valuesx->dim != values->dim))
-	{   delete keysx;
-	    delete valuesx;
-	    return EXP_CANT_INTERPRET;
+    if (keysx != keys)
+	expandTuples(keysx);
+    if (valuesx != values)
+	expandTuples(valuesx);
+    if (keysx->dim != valuesx->dim)
+	goto Lerr;
+
+    /* Remove duplicate keys
+     */
+    for (size_t i = 1; i < keysx->dim; i++)
+    {   Expression *ekey = (Expression *)keysx->data[i - 1];
+
+	for (size_t j = i; j < keysx->dim; j++)
+	{   Expression *ekey2 = (Expression *)keysx->data[j];
+	    Expression *ex = Equal(TOKequal, Type::tbool, ekey, ekey2);
+	    if (ex == EXP_CANT_INTERPRET)
+		goto Lerr;
+	    if (ex->isBool(TRUE))	// if a match
+	    {
+		// Remove ekey
+		if (keysx == keys)
+		    keysx = (Expressions *)keys->copy();
+		if (valuesx == values)
+		    valuesx = (Expressions *)values->copy();
+		keysx->remove(i - 1);
+		valuesx->remove(i - 1);
+		i -= 1;		// redo the i'th iteration
+		break;
+	    }
 	}
-	AssocArrayLiteralExp *ae = new AssocArrayLiteralExp(loc,
-		keysx ? keysx : keys, valuesx ? valuesx : values);
+    }
+
+    if (keysx != keys || valuesx != values)
+    {
+	AssocArrayLiteralExp *ae;
+	ae = new AssocArrayLiteralExp(loc, keysx, valuesx);
 	ae->type = type;
 	return ae;
     }
     return this;
+
+Lerr:
+    if (keysx != keys)
+	delete keysx;
+    if (valuesx != values)
+	delete values;
+    return EXP_CANT_INTERPRET;
 }
 
 Expression *UnaExp::interpretCommon(InterState *istate, Expression *(*fp)(Type *, Expression *))
@@ -1200,7 +1211,9 @@ Expression *BinExp::interpretAssignCommon(InterState *istate, fp_t fp)
 	    e1 = ce->e1;
 	}
     }
-    if (e1 != EXP_CANT_INTERPRET && e1->op == TOKvar)
+    if (e1 == EXP_CANT_INTERPRET)
+	return e1;
+    if (e1->op == TOKvar)
     {
 	VarExp *ve = (VarExp *)e1;
 	VarDeclaration *v = ve->var->isVarDeclaration();
@@ -1459,7 +1472,7 @@ Expression *ArrayLengthExp::interpret(InterState *istate)
     e1 = this->e1->interpret(istate);
     if (e1 == EXP_CANT_INTERPRET)
 	goto Lcant;
-    if (e1->op == TOKstring || e1->op == TOKarrayliteral)
+    if (e1->op == TOKstring || e1->op == TOKarrayliteral || e1->op == TOKassocarrayliteral)
     {
 	e = ArrayLength(type, e1);
     }
@@ -1483,13 +1496,16 @@ Expression *IndexExp::interpret(InterState *istate)
     if (e1 == EXP_CANT_INTERPRET)
 	goto Lcant;
 
-    /* Set the $ variable
-     */
-    e = ArrayLength(Type::tsize_t, e1);
-    if (e == EXP_CANT_INTERPRET)
-	goto Lcant;
-    if (lengthVar)
-	lengthVar->value = e;
+    if (op == TOKstring || op == TOKarrayliteral)
+    {
+	/* Set the $ variable
+	 */
+	e = ArrayLength(Type::tsize_t, e1);
+	if (e == EXP_CANT_INTERPRET)
+	    goto Lcant;
+	if (lengthVar)
+	    lengthVar->value = e;
+    }
 
     e2 = this->e2->interpret(istate);
     if (e2 == EXP_CANT_INTERPRET)

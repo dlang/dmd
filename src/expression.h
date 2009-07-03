@@ -384,6 +384,8 @@ struct AssocArrayLiteralExp : Expression
     void scanForNestedRef(Scope *sc);
     Expression *optimize(int result);
     Expression *interpret(InterState *istate);
+    int implicitConvTo(Type *t);
+    Expression *castTo(Scope *sc, Type *t);
 
     int inlineCost(InlineCostState *ics);
     Expression *doInline(InlineDoState *ids);

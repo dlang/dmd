@@ -191,6 +191,9 @@ Array *Parser::parseDeclDefs(int once)
 		break;
 
 	    case TOKinvariant:
+#if 1
+		s = parseInvariant();
+#else
 		if (peek(&token)->value == TOKlcurly)
 		    s = parseInvariant();
 		else
@@ -198,6 +201,7 @@ Array *Parser::parseDeclDefs(int once)
 		    stc = STCinvariant;
 		    goto Lstc;
 		}
+#endif
 		break;
 
 	    case TOKunittest:
@@ -267,7 +271,7 @@ Array *Parser::parseDeclDefs(int once)
 		    case TOKabstract:	  stc |= STCabstract;	 goto Lstc;
 		    case TOKsynchronized: stc |= STCsynchronized; goto Lstc;
 		    case TOKdeprecated:   stc |= STCdeprecated;	 goto Lstc;
-		    case TOKinvariant:    stc |= STCinvariant;   goto Lstc;
+		    //case TOKinvariant:    stc |= STCinvariant;   goto Lstc;
 		    default:
 			break;
 		}
@@ -2001,7 +2005,15 @@ Array *Parser::parseDeclarations()
 		v = new AliasDeclaration(loc, ident, t);
 	    }
 	    v->storage_class = storage_class;
-	    a->push(v);
+	    if (link == linkage)
+		a->push(v);
+	    else
+	    {
+		Array *ax = new Array();
+		ax->push(v);
+		Dsymbol *s = new LinkDeclaration(link, ax);
+		a->push(s);
+	    }
 	    switch (token.value)
 	    {   case TOKsemicolon:
 		    nextToken();
@@ -2061,7 +2073,15 @@ Array *Parser::parseDeclarations()
 	    }
 	    v = new VarDeclaration(loc, t, ident, init);
 	    v->storage_class = storage_class;
-	    a->push(v);
+	    if (link == linkage)
+		a->push(v);
+	    else
+	    {
+		Array *ax = new Array();
+		ax->push(v);
+		Dsymbol *s = new LinkDeclaration(link, ax);
+		a->push(s);
+	    }
 	    switch (token.value)
 	    {   case TOKsemicolon:
 		    nextToken();
@@ -2327,7 +2347,7 @@ Initializer *Parser::parseInitializer()
 
 	case TOKvoid:
 	    t = peek(&token);
-	    if (t->value == TOKsemicolon)
+	    if (t->value == TOKsemicolon || t->value == TOKcomma)
 	    {
 		nextToken();
 		return new VoidInitializer(loc);
@@ -3961,9 +3981,43 @@ Expression *Parser::parsePrimaryExp()
 	    break;
 
 	case TOKlbracket:
-	{   Expressions *elements = parseArguments();
+	{   /* Parse array literals and associative array literals:
+	     *	[ value, value, value ... ]
+	     *	[ key:value, key:value, key:value ... ]
+	     */
+	    Expressions *values = new Expressions();
+	    Expressions *keys = NULL;
 
-	    e = new ArrayLiteralExp(loc, elements);
+	    nextToken();
+	    if (token.value != TOKrbracket)
+	    {
+		while (1)
+		{
+		    Expression *e = parseAssignExp();
+		    if (token.value == TOKcolon && (keys || values->dim == 0))
+		    {	nextToken();
+			if (!keys)
+			    keys = new Expressions();
+			keys->push(e);
+			e = parseAssignExp();
+		    }
+		    else if (keys)
+		    {	error("'key:value' expected for associative array literal");
+			delete keys;
+			keys = NULL;
+		    }
+		    values->push(e);
+		    if (token.value == TOKrbracket)
+			break;
+		    check(TOKcomma);
+		}
+	    }
+	    check(TOKrbracket);
+
+	    if (keys)
+		e = new AssocArrayLiteralExp(loc, keys, values);
+	    else
+		e = new ArrayLiteralExp(loc, values);
 	    break;
 	}
 

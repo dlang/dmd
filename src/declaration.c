@@ -595,6 +595,8 @@ Dsymbol *VarDeclaration::syntaxCopy(Dsymbol *s)
 void VarDeclaration::semantic(Scope *sc)
 {
     //printf("VarDeclaration::semantic('%s', parent = '%s')\n", toChars(), sc->parent->toChars());
+    //printf("type = %s\n", type->toChars());
+    //printf("linkage = %d\n", sc->linkage);
     //if (strcmp(toChars(), "mul") == 0) halt();
 
     storage_class |= sc->stc;

@@ -36,7 +36,7 @@ extern "C" char * __cdecl __locale_decpoint;
 #include "../root/mem.h"
 #endif
 
-#include "port.h"
+//#include "port.h"
 #include "mtype.h"
 #include "init.h"
 #include "expression.h"
@@ -3405,6 +3405,12 @@ TupleExp::TupleExp(Loc loc, TupleDeclaration *tup)
 	    Expression *e = new DsymbolExp(loc, s);
 	    exps->push(e);
 	}
+	else if (o->dyncast() == DYNCAST_TYPE)
+	{
+	    Type *t = (Type *)o;
+	    Expression *e = new TypeExp(loc, t);
+	    exps->push(e);
+	}
 	else
 	{
 	    error("%s is not an expression", o->toChars());
@@ -4164,13 +4170,12 @@ CompileExp::CompileExp(Loc loc, Expression *e)
 
 Expression *CompileExp::semantic(Scope *sc)
 {
-#if 1 || LOGSEMANTIC
+#if LOGSEMANTIC
     printf("CompileExp::semantic('%s')\n", toChars());
 #endif
     UnaExp::semantic(sc);
     e1 = resolveProperties(sc, e1);
     e1 = e1->optimize(WANTvalue | WANTinterpret);
-e1->print();
     if (e1->op != TOKstring)
     {	error("argument to mixin must be a string, not (%s)", e1->toChars());
 	return this;
@@ -5913,7 +5918,8 @@ Expression *CastExp::semantic(Scope *sc)
 	    return e;
 	}
     }
-    return e1->castTo(sc, to);
+    e = e1->castTo(sc, to);
+    return e;
 }
 
 int CastExp::checkSideEffect(int flag)
