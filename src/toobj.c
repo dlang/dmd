@@ -1,5 +1,5 @@
 
-// Copyright (c) 1999-2006 by Digital Mars
+// Copyright (c) 1999-2007 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // http://www.digitalmars.com
@@ -46,7 +46,7 @@ void Module::genmoduleinfo()
 {
     Symbol *msym = toSymbol();
     unsigned offset;
-    unsigned sizeof_ModuleInfo = 12 * PTRSIZE;
+    unsigned sizeof_ModuleInfo = 14 * PTRSIZE;
 
     //////////////////////////////////////////////
 
@@ -64,6 +64,8 @@ void Module::genmoduleinfo()
 	    void *ctor;
 	    void *dtor;
 	    void *unitTest;
+	    const(MemberInfo[]) function(string) xgetMembers;	// module getMembers() function
+	    void *ictor;
        }
      */
     dt_t *dt = NULL;
@@ -114,9 +116,9 @@ void Module::genmoduleinfo()
 	dtdword(&dt, 0);
 
     if (needmoduleinfo)
-	dtdword(&dt, 0);		// flags (4 means MIstandalone)
+	dtdword(&dt, 8|0);		// flags (4 means MIstandalone)
     else
-	dtdword(&dt, 4);		// flags (4 means MIstandalone)
+	dtdword(&dt, 8|4);		// flags (4 means MIstandalone)
 
     if (sctor)
 	dtxoff(&dt, sctor, 0, TYnptr);
@@ -130,6 +132,13 @@ void Module::genmoduleinfo()
 
     if (stest)
 	dtxoff(&dt, stest, 0, TYnptr);
+    else
+	dtdword(&dt, 0);
+
+    dtdword(&dt, 0);			// xgetMembers
+
+    if (sictor)
+	dtxoff(&dt, sictor, 0, TYnptr);
     else
 	dtdword(&dt, 0);
 

@@ -2720,38 +2720,50 @@ Type *TypeFunction::semantic(Loc loc, Scope *sc)
     }
     //printf("TypeFunction::semantic() this = %p\n", this);
 
-    linkage = sc->linkage;
-    if (!next)
+    TypeFunction *tf = (TypeFunction *)mem.malloc(sizeof(TypeFunction));
+    memcpy(tf, this, sizeof(TypeFunction));
+    if (parameters)
+    {	tf->parameters = (Arguments *)parameters->copy();
+	for (size_t i = 0; i < parameters->dim; i++)
+	{   Argument *arg = (Argument *)parameters->data[i];
+	    Argument *cpy = (Argument *)mem.malloc(sizeof(Argument));
+	    memcpy(cpy, arg, sizeof(Argument));
+	    tf->parameters->data[i] = (void *)cpy;
+	}
+    }
+
+    tf->linkage = sc->linkage;
+    if (!tf->next)
     {
 	assert(global.errors);
-	next = tvoid;
+	tf->next = tvoid;
     }
-    next = next->semantic(loc,sc);
-    if (next->toBasetype()->ty == Tsarray)
-    {	error(loc, "functions cannot return static array %s", next->toChars());
-	next = Type::terror;
+    tf->next = tf->next->semantic(loc,sc);
+    if (tf->next->toBasetype()->ty == Tsarray)
+    {	error(loc, "functions cannot return static array %s", tf->next->toChars());
+	tf->next = Type::terror;
     }
-    if (next->toBasetype()->ty == Tfunction)
+    if (tf->next->toBasetype()->ty == Tfunction)
     {	error(loc, "functions cannot return a function");
-	next = Type::terror;
+	tf->next = Type::terror;
     }
-    if (next->toBasetype()->ty == Ttuple)
+    if (tf->next->toBasetype()->ty == Ttuple)
     {	error(loc, "functions cannot return a tuple");
-	next = Type::terror;
+	tf->next = Type::terror;
     }
-    if (next->isauto() && !(sc->flags & SCOPEctor))
-	error(loc, "functions cannot return auto %s", next->toChars());
+    if (tf->next->isauto() && !(sc->flags & SCOPEctor))
+	error(loc, "functions cannot return auto %s", tf->next->toChars());
 
-    if (parameters)
-    {	size_t dim = Argument::dim(parameters);
+    if (tf->parameters)
+    {	size_t dim = Argument::dim(tf->parameters);
 
 	for (size_t i = 0; i < dim; i++)
-	{   Argument *arg = Argument::getNth(parameters, i);
+	{   Argument *arg = Argument::getNth(tf->parameters, i);
 	    Type *t;
 
-	    inuse++;
+	    tf->inuse++;
 	    arg->type = arg->type->semantic(loc,sc);
-	    if (inuse == 1) inuse--;
+	    if (tf->inuse == 1) tf->inuse--;
 	    t = arg->type->toBasetype();
 
 	    if (arg->storageClass & (STCout | STCref | STClazy))
@@ -2773,27 +2785,27 @@ Type *TypeFunction::semantic(Loc loc, Scope *sc)
 	     * change.
 	     */
 	    if (t->ty == Ttuple)
-	    {	dim = Argument::dim(parameters);
+	    {	dim = Argument::dim(tf->parameters);
 		i--;
 	    }
 	}
     }
-    deco = merge()->deco;
+    tf->deco = tf->merge()->deco;
 
-    if (inuse)
+    if (tf->inuse)
     {	error(loc, "recursive type");
-	inuse = 0;
+	tf->inuse = 0;
 	return terror;
     }
 
-    if (varargs == 1 && linkage != LINKd && Argument::dim(parameters) == 0)
+    if (tf->varargs == 1 && tf->linkage != LINKd && Argument::dim(tf->parameters) == 0)
 	error(loc, "variadic functions with non-D linkage must have at least one parameter");
 
     /* Don't return merge(), because arg identifiers and default args
      * can be different
      * even though the types match
      */
-    return this;
+    return tf;
 }
 
 /********************************

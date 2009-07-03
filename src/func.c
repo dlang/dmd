@@ -136,6 +136,9 @@ void FuncDeclaration::semantic(Scope *sc)
 
     if (isAbstract() && !isVirtual())
 	error("non-virtual functions cannot be abstract");
+
+    if (isAbstract() && isFinal())
+	error("cannot be both final and abstract");
 #if 0
     if (isAbstract() && fbody)
 	error("abstract functions cannot have bodies");

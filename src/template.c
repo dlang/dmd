@@ -647,7 +647,7 @@ int TemplateDeclaration::leastAsSpecialized(TemplateDeclaration *td2)
  *	dedargs		Expression/Type deduced template arguments
  */
 
-MATCH TemplateDeclaration::deduceMatch(Objects *targsi, Expressions *fargs,
+MATCH TemplateDeclaration::deduceFunctionTemplateMatch(Objects *targsi, Expressions *fargs,
 	Objects *dedargs)
 {
     size_t i;
@@ -662,7 +662,7 @@ MATCH TemplateDeclaration::deduceMatch(Objects *targsi, Expressions *fargs,
     Objects dedtypes;	// for T:T*, the dedargs is the T*, dedtypes is the T
 
 #if 0
-    printf("\nTemplateDeclaration::deduceMatch() %s\n", toChars());
+    printf("\nTemplateDeclaration::deduceFunctionTemplateMatch() %s\n", toChars());
     for (i = 0; i < fargs->dim; i++)
     {	Expression *e = (Expression *)fargs->data[i];
 	printf("\tfarg[%d] is %s, type is %s\n", i, e->toChars(), e->type->toChars());
@@ -985,7 +985,7 @@ int TemplateDeclaration::isOverloadable()
  *	fargs		arguments to function
  */
 
-FuncDeclaration *TemplateDeclaration::deduce(Scope *sc, Loc loc,
+FuncDeclaration *TemplateDeclaration::deduceFunctionTemplate(Scope *sc, Loc loc,
 	Objects *targsi, Expressions *fargs)
 {
     MATCH m_best = MATCHnomatch;
@@ -996,7 +996,7 @@ FuncDeclaration *TemplateDeclaration::deduce(Scope *sc, Loc loc,
     FuncDeclaration *fd;
 
 #if 0
-    printf("TemplateDeclaration::deduce() %s\n", toChars());
+    printf("TemplateDeclaration::deduceFunctionTemplate() %s\n", toChars());
     printf("    targsi:\n");
     if (targsi)
     {	for (int i = 0; i < targsi->dim; i++)
@@ -1028,8 +1028,8 @@ FuncDeclaration *TemplateDeclaration::deduce(Scope *sc, Loc loc,
 	MATCH m;
 	Objects dedargs;
 
-	m = td->deduceMatch(targsi, fargs, &dedargs);
-	//printf("deduceMatch = %d\n", m);
+	m = td->deduceFunctionTemplateMatch(targsi, fargs, &dedargs);
+	//printf("deduceFunctionTemplateMatch = %d\n", m);
 	if (!m)			// if no match
 	    continue;
 

@@ -83,6 +83,7 @@ int overloadApply(FuncDeclaration *fstart,
 struct Declaration : Dsymbol
 {
     Type *type;
+    Type *originalType;		// before semantic analysis
     unsigned storage_class;
     enum PROT protection;
     enum LINK linkage;
@@ -106,6 +107,7 @@ struct Declaration : Dsymbol
     int isFinal()        { return storage_class & STCfinal; }
     int isAbstract()     { return storage_class & STCabstract; }
     int isConst()        { return storage_class & STCconst; }
+    int isInvariant()    { return 0; }
     int isAuto()         { return storage_class & STCauto; }
     int isScope()        { return storage_class & (STCscope | STCauto); }
     int isSynchronized() { return storage_class & STCsynchronized; }

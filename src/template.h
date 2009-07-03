@@ -70,8 +70,8 @@ struct TemplateDeclaration : ScopeDsymbol
     MATCH matchWithInstance(TemplateInstance *ti, Objects *atypes, int flag);
     int leastAsSpecialized(TemplateDeclaration *td2);
 
-    MATCH deduceMatch(Objects *targsi, Expressions *fargs, Objects *dedargs);
-    FuncDeclaration *deduce(Scope *sc, Loc loc, Objects *targsi, Expressions *fargs);
+    MATCH deduceFunctionTemplateMatch(Objects *targsi, Expressions *fargs, Objects *dedargs);
+    FuncDeclaration *deduceFunctionTemplate(Scope *sc, Loc loc, Objects *targsi, Expressions *fargs);
     void declareParameter(Scope *sc, TemplateParameter *tp, Object *o);
 
     TemplateDeclaration *isTemplateDeclaration() { return this; }

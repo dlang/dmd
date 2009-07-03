@@ -1268,7 +1268,7 @@ RealExp::RealExp(Loc loc, real_t value, Type *type)
 
 char *RealExp::toChars()
 {
-    static char buffer[sizeof(value) * 3 + 8 + 1 + 1];
+    char buffer[sizeof(value) * 3 + 8 + 1 + 1];
 
 #ifdef IN_GCC
     value.format(buffer, sizeof(buffer));
@@ -1278,7 +1278,7 @@ char *RealExp::toChars()
     sprintf(buffer, type->isimaginary() ? "%Lgi" : "%Lg", value);
 #endif
     assert(strlen(buffer) < sizeof(buffer));
-    return buffer;
+    return mem.strdup(buffer);
 }
 
 integer_t RealExp::toInteger()
@@ -1482,7 +1482,7 @@ ComplexExp::ComplexExp(Loc loc, complex_t value, Type *type)
 
 char *ComplexExp::toChars()
 {
-    static char buffer[sizeof(value) * 3 + 8 + 1];
+    char buffer[sizeof(value) * 3 + 8 + 1];
 
 #ifdef IN_GCC
     char buf1[sizeof(value) * 3 + 8 + 1];
@@ -1494,7 +1494,7 @@ char *ComplexExp::toChars()
     sprintf(buffer, "(%Lg+%Lgi)", creall(value), cimagl(value));
     assert(strlen(buffer) < sizeof(buffer));
 #endif
-    return buffer;
+    return mem.strdup(buffer);
 }
 
 integer_t ComplexExp::toInteger()
@@ -3138,7 +3138,13 @@ Lagain:
 	if (cd->isInterfaceDeclaration())
 	    error("cannot create instance of interface %s", cd->toChars());
 	else if (cd->isAbstract())
-	    error("cannot create instance of abstract class %s", cd->toChars());
+	{   error("cannot create instance of abstract class %s", cd->toChars());
+	    for (int i = 0; i < cd->vtbl.dim; i++)
+	    {	FuncDeclaration *fd = ((Dsymbol *)cd->vtbl.data[i])->isFuncDeclaration();
+		if (fd && fd->isAbstract())
+		    error("function %s is abstract", fd->toChars());
+	    }
+	}
 	checkDeprecated(sc, cd);
 	if (cd->isNested())
 	{   /* We need a 'this' pointer for the nested class.
@@ -5522,9 +5528,9 @@ Lagain:
 	    TemplateDeclaration *td = dte->td;
 	    assert(td);
 	    if (!arguments)
-		// Should fix deduce() so it works on NULL argument
+		// Should fix deduceFunctionTemplate() so it works on NULL argument
 		arguments = new Expressions();
-	    f = td->deduce(sc, loc, NULL, arguments);
+	    f = td->deduceFunctionTemplate(sc, loc, NULL, arguments);
 	    if (!f)
 	    {	type = Type::terror;
 		return this;
@@ -5699,7 +5705,7 @@ Lagain:
 	else if (e1->op == TOKtemplate)
 	{
 	    TemplateExp *te = (TemplateExp *)e1;
-	    f = te->td->deduce(sc, loc, NULL, arguments);
+	    f = te->td->deduceFunctionTemplate(sc, loc, NULL, arguments);
 	    if (!f)
 	    {	type = Type::terror;
 		return this;
