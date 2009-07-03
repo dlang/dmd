@@ -220,7 +220,7 @@ struct Type : Object
     virtual void toCBuffer(OutBuffer *buf, Identifier *ident, HdrGenState *hgs);
     virtual void toCBuffer2(OutBuffer *buf, HdrGenState *hgs, int mod);
     void toCBuffer3(OutBuffer *buf, HdrGenState *hgs, int mod);
-#if TARGET_LINUX
+#if TARGET_LINUX || TARGET_OSX
     virtual void toCppMangle(OutBuffer *buf, CppMangleState *cms);
 #endif
     virtual int isintegral();
@@ -324,7 +324,7 @@ struct TypeBasic : Type
     Expression *dotExp(Scope *sc, Expression *e, Identifier *ident);
     char *toChars();
     void toCBuffer2(OutBuffer *buf, HdrGenState *hgs, int mod);
-#if TARGET_LINUX
+#if TARGET_LINUX || TARGET_OSX
     void toCppMangle(OutBuffer *buf, CppMangleState *cms);
 #endif
     int isintegral();
@@ -376,7 +376,7 @@ struct TypeSArray : TypeArray
     TypeInfoDeclaration *getTypeInfoDeclaration();
     Expression *toExpression();
     int hasPointers();
-#if TARGET_LINUX
+#if TARGET_LINUX || TARGET_OSX
     void toCppMangle(OutBuffer *buf, CppMangleState *cms);
 #endif
 
@@ -404,7 +404,7 @@ struct TypeDArray : TypeArray
     MATCH deduceType(Scope *sc, Type *tparam, TemplateParameters *parameters, Objects *dedtypes);
     TypeInfoDeclaration *getTypeInfoDeclaration();
     int hasPointers();
-#if TARGET_LINUX
+#if TARGET_LINUX || TARGET_OSX
     void toCppMangle(OutBuffer *buf, CppMangleState *cms);
 #endif
 
@@ -431,7 +431,7 @@ struct TypeAArray : TypeArray
     int hasPointers();
     MATCH implicitConvTo(Type *to);
     MATCH constConv(Type *to);
-#if TARGET_LINUX
+#if TARGET_LINUX || TARGET_OSX
     void toCppMangle(OutBuffer *buf, CppMangleState *cms);
 #endif
 
@@ -454,7 +454,7 @@ struct TypePointer : TypeNext
     int isZeroInit();
     TypeInfoDeclaration *getTypeInfoDeclaration();
     int hasPointers();
-#if TARGET_LINUX
+#if TARGET_LINUX || TARGET_OSX
     void toCppMangle(OutBuffer *buf, CppMangleState *cms);
 #endif
 
@@ -471,7 +471,7 @@ struct TypeReference : TypeNext
     Expression *dotExp(Scope *sc, Expression *e, Identifier *ident);
     Expression *defaultInit(Loc loc);
     int isZeroInit();
-#if TARGET_LINUX
+#if TARGET_LINUX || TARGET_OSX
     void toCppMangle(OutBuffer *buf, CppMangleState *cms);
 #endif
 };
@@ -505,7 +505,7 @@ struct TypeFunction : TypeNext
     MATCH deduceType(Scope *sc, Type *tparam, TemplateParameters *parameters, Objects *dedtypes);
     TypeInfoDeclaration *getTypeInfoDeclaration();
     Type *reliesOnTident();
-#if TARGET_LINUX
+#if TARGET_LINUX || TARGET_OSX
     void toCppMangle(OutBuffer *buf, CppMangleState *cms);
 #endif
     bool parameterEscapes(Argument *p);
@@ -532,7 +532,7 @@ struct TypeDelegate : TypeNext
     TypeInfoDeclaration *getTypeInfoDeclaration();
     Expression *dotExp(Scope *sc, Expression *e, Identifier *ident);
     int hasPointers();
-#if TARGET_LINUX
+#if TARGET_LINUX || TARGET_OSX
     void toCppMangle(OutBuffer *buf, CppMangleState *cms);
 #endif
 
@@ -634,7 +634,7 @@ struct TypeStruct : Type
     MATCH implicitConvTo(Type *to);
     MATCH constConv(Type *to);
     Type *toHeadMutable();
-#if TARGET_LINUX
+#if TARGET_LINUX || TARGET_OSX
     void toCppMangle(OutBuffer *buf, CppMangleState *cms);
 #endif
 
@@ -667,7 +667,7 @@ struct TypeEnum : Type
     MATCH deduceType(Scope *sc, Type *tparam, TemplateParameters *parameters, Objects *dedtypes);
     TypeInfoDeclaration *getTypeInfoDeclaration();
     int hasPointers();
-#if TARGET_LINUX
+#if TARGET_LINUX || TARGET_OSX
     void toCppMangle(OutBuffer *buf, CppMangleState *cms);
 #endif
 
@@ -709,7 +709,7 @@ struct TypeTypedef : Type
     TypeInfoDeclaration *getTypeInfoDeclaration();
     int hasPointers();
     Type *toHeadMutable();
-#if TARGET_LINUX
+#if TARGET_LINUX || TARGET_OSX
     void toCppMangle(OutBuffer *buf, CppMangleState *cms);
 #endif
 
@@ -742,7 +742,7 @@ struct TypeClass : Type
     int hasPointers();
     Type *toHeadMutable();
     MATCH constConv(Type *to);
-#if TARGET_LINUX
+#if TARGET_LINUX || TARGET_OSX
     void toCppMangle(OutBuffer *buf, CppMangleState *cms);
 #endif
 

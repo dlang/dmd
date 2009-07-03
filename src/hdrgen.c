@@ -29,7 +29,7 @@
 #else
 #if _WIN32
 #include "..\root\mem.h"
-#elif linux
+#elif linux || __APPLE__
 #include "../root/mem.h"
 #else
 #error "fix this"

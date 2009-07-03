@@ -1,6 +1,6 @@
 
 // Compiler implementation of the D programming language
-// Copyright (c) 1999-2008 by Digital Mars
+// Copyright (c) 1999-2009 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // http://www.digitalmars.com
@@ -44,10 +44,12 @@ AggregateDeclaration::AggregateDeclaration(Loc loc, Identifier *id)
     stag = NULL;
     sinit = NULL;
     scope = NULL;
+#if V2
     dtor = NULL;
 
     ctor = NULL;
     defaultCtor = NULL;
+#endif
 }
 
 enum PROT AggregateDeclaration::prot()
@@ -132,29 +134,19 @@ int AggregateDeclaration::isDeprecated()
  * Align sizes of 0, as we may not know array sizes yet.
  */
 
-void AggregateDeclaration::alignmember(unsigned salign, unsigned size, unsigned *poffset)
+void AggregateDeclaration::alignmember(
+	unsigned salign,	// struct alignment that is in effect
+	unsigned size,		// alignment requirement of field
+	unsigned *poffset)
 {
     //printf("salign = %d, size = %d, offset = %d\n",salign,size,offset);
     if (salign > 1)
-    {	int sa;
-
-	switch (size)
-	{   case 1:
-		break;
-	    case 2:
-	    case_2:
-		*poffset = (*poffset + 1) & ~1;	// align to word
-		break;
-	    case 3:
-	    case 4:
-		if (salign == 2)
-		    goto case_2;
-		*poffset = (*poffset + 3) & ~3;	// align to dword
-		break;
-	    default:
-		*poffset = (*poffset + salign - 1) & ~(salign - 1);
-		break;
-	}
+    {
+	assert(size != 3);
+	int sa = size;
+	if (sa == 0 || salign < sa)
+	    sa = salign;
+	*poffset = (*poffset + sa - 1) & ~(sa - 1);
     }
     //printf("result = %d\n",offset);
 }
@@ -173,11 +165,12 @@ void AggregateDeclaration::addField(Scope *sc, VarDeclaration *v)
     Type *t = v->type->toBasetype();
     if (t->ty == Tstruct /*&& isStructDeclaration()*/)
     {	TypeStruct *ts = (TypeStruct *)t;
-
+#if V2
 	if (ts->sym == this)
 	{
 	    error("cannot have field %s with same struct type", v->toChars());
 	}
+#endif
 
 	if (ts->sym->sizeok != 1)
 	{
@@ -217,9 +210,11 @@ StructDeclaration::StructDeclaration(Loc loc, Identifier *id)
     : AggregateDeclaration(loc, id)
 {
     zeroInit = 0;	// assume false until we do semantic processing
+#if V2
     hasIdentityAssign = 0;
     cpctor = NULL;
     postblit = NULL;
+#endif
 
     // For forward references
     type = new TypeStruct(this);
@@ -277,10 +272,12 @@ void StructDeclaration::semantic(Scope *sc)
     assert(!isAnonymous());
     if (sc->stc & STCabstract)
 	error("structs, unions cannot be abstract");
+#if V2
     if (storage_class & STCinvariant)
         type = type->invariantOf();
     else if (storage_class & STCconst)
         type = type->constOf();
+#endif
 
     if (sizeok == 0)		// if not already done the addMember step
     {
@@ -373,11 +370,12 @@ void StructDeclaration::semantic(Scope *sc)
 
 	id = Id::cmp;
     }
-
+#if V2
     dtor = buildDtor(sc2);
     postblit = buildPostBlit(sc2);
     cpctor = buildCpCtor(sc2);
     buildOpAssign(sc2);
+#endif
 
     sc2->pop();
 
@@ -440,7 +438,9 @@ void StructDeclaration::semantic(Scope *sc)
 
     /* Look for special member functions.
      */
+#if V2
     ctor =   (CtorDeclaration *)search(0, Id::ctor, 0);
+#endif
     inv =    (InvariantDeclaration *)search(0, Id::classInvariant, 0);
     aggNew =       (NewDeclaration *)search(0, Id::classNew,       0);
     aggDelete = (DeleteDeclaration *)search(0, Id::classDelete,    0);

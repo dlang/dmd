@@ -27,7 +27,7 @@
 
 #if _WIN32
 #include	"..\tk\mem.h"	// for mem_malloc
-#elif linux
+#elif linux || __APPLE__
 #include	"../tk/mem.h"	// for mem_malloc
 #endif
 
@@ -169,8 +169,8 @@ elem *callfunc(Loc loc,
 	    Symbol *stmp = symbol_genauto(t);
 	    ehidden = el_ptr(stmp);
 	}
-	if (global.params.isLinux && tf->linkage != LINKd)
-	    ;	// ehidden goes last on Linux C++
+	if ((global.params.isLinux || global.params.isOSX) && tf->linkage != LINKd)
+	    ;	// ehidden goes last on Linux/OSX C++
 	else
 	{
 	    if (ep)
@@ -630,7 +630,7 @@ elem *Expression::toElem(IRState *irs)
 
 /************************************
  */
-
+#if V2
 elem *SymbolExp::toElem(IRState *irs)
 {   Symbol *s;
     elem *e;
@@ -785,8 +785,9 @@ L1:
     el_setLoc(e,loc);
     return e;
 }
+#endif
 
-#if 0
+#if V1
 elem *VarExp::toElem(IRState *irs)
 {   Symbol *s;
     elem *e;
@@ -1346,6 +1347,9 @@ elem *StringExp::toElem(IRState *irs)
 #if ELFOBJ // Burton
 	si->Sseg = CDATA;
 #endif
+#if MACHOBJ
+	si->Sseg = DATA;
+#endif
 	outdata(si);
 
 	st->m = irs->m;
@@ -1368,7 +1372,7 @@ elem *StringExp::toElem(IRState *irs)
 	si->Sdt = dt;
 	si->Sfl = FLdata;
 
-#if ELFOBJ // Burton
+#if ELFOBJ || MACHOBJ // Burton
 	si->Sseg = CDATA;
 #endif
 	outdata(si);
@@ -1546,7 +1550,9 @@ elem *NewExp::toElem(IRState *irs)
 #else
 		    if (thisfd->nestedFrameRef)
 #endif
+		    {
 			ethis = el_ptr(irs->sthis);
+		    }
 		    else
 			ethis = el_var(irs->sthis);
 		}
@@ -1558,7 +1564,9 @@ elem *NewExp::toElem(IRState *irs)
 #else
 		    if (thisfd->nestedFrameRef)
 #endif
+		    {
 			ethis->Eoper = OPframeptr;
+		    }
 		}
 	    }
 	    else if (thisfd->vthis &&
@@ -1858,6 +1866,9 @@ elem *AssertExp::toElem(IRState *irs)
 		    assertexp_sfilename->Sfl = FLdata;
 #if ELFOBJ
 		    assertexp_sfilename->Sseg = CDATA;
+#endif
+#if MACHOBJ
+		    assertexp_sfilename->Sseg = DATA;
 #endif
 		    outdata(assertexp_sfilename);
 
@@ -2168,7 +2179,7 @@ elem *CmpExp::toElem(IRState *irs)
 	ea2 = e2->toElem(irs);
 	ea2 = array_toDarray(t2, ea2);
 
-#if 1
+#if V2
 	ep = el_params(telement->arrayOf()->getInternalTypeInfo(NULL)->toElem(irs),
 		ea2, ea1, NULL);
 	rtlfunc = RTLSYM_ARRAYCMP2;
@@ -2261,7 +2272,7 @@ elem *EqualExp::toElem(IRState *irs)
 	ea2 = e2->toElem(irs);
 	ea2 = array_toDarray(t2, ea2);
 
-#if 1
+#if V2
 	ep = el_params(telement->arrayOf()->getInternalTypeInfo(NULL)->toElem(irs),
 		ea2, ea1, NULL);
 	rtlfunc = RTLSYM_ARRAYEQ2;

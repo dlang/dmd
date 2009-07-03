@@ -24,7 +24,7 @@
 #include "id.h"
 #include "module.h"
 
-#if TARGET_LINUX
+#if TARGET_LINUX || TARGET_OSX
 char *cpp_mangle(Dsymbol *s);
 #endif
 
@@ -114,7 +114,7 @@ char *Declaration::mangle()
 		    return ident->toChars();
 
 		case LINKcpp:
-#if TARGET_LINUX
+#if V2 && (TARGET_LINUX || TARGET_OSX)
 		    return cpp_mangle(this);
 #else
 		    // Windows C++ mangling is done by C++ back end
@@ -152,13 +152,12 @@ char *FuncDeclaration::mangle()
 	if (isMain())
 	    return (char *)"_Dmain";
 
-	if (isWinMain() || isDllMain())
+	if (isWinMain() || isDllMain() || ident == Id::tls_get_addr)
 	    return ident->toChars();
 
 	assert(this);
 	return Declaration::mangle();
     }
-
 
 char *StructDeclaration::mangle()
 {

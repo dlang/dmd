@@ -1,6 +1,6 @@
 
 // Compiler implementation of the D programming language
-// Copyright (c) 1999-2007 by Digital Mars
+// Copyright (c) 1999-2009 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // http://www.digitalmars.com
@@ -221,6 +221,7 @@ void TypeInfoDeclaration::toDt(dt_t **pdt)
     dtdword(pdt, 0);			    // monitor
 }
 
+#if V2
 void TypeInfoConstDeclaration::toDt(dt_t **pdt)
 {
     //printf("TypeInfoConstDeclaration::toDt() %s\n", toChars());
@@ -257,6 +258,7 @@ void TypeInfoSharedDeclaration::toDt(dt_t **pdt)
     tm->getTypeInfo(NULL);
     dtxoff(pdt, tm->vtinfo->toSymbol(), 0, TYnptr);
 }
+#endif
 
 void TypeInfoTypedefDeclaration::toDt(dt_t **pdt)
 {
@@ -596,6 +598,7 @@ void TypeInfoStructDeclaration::toDt(dt_t **pdt)
     // uint m_flags;
     dtdword(pdt, tc->hasPointers());
 
+#if V2
     // xgetMembers
     FuncDeclaration *sgetmembers = sd->findGetMembers();
     if (sgetmembers)
@@ -616,7 +619,7 @@ void TypeInfoStructDeclaration::toDt(dt_t **pdt)
 	dtxoff(pdt, spostblit->toSymbol(), 0, TYnptr);
     else
 	dtdword(pdt, 0);			// xpostblit
-
+#endif
     // name[]
     dtnbytes(pdt, namelen + 1, name);
 }
@@ -719,12 +722,12 @@ void TypeInfoDeclaration::toObjFile(int multiobj)
 	s->Sdt->dt = DT_common;
     }
 
-#if ELFOBJ // Burton
+#if ELFOBJ || MACHOBJ // Burton
     if (s->Sdt && s->Sdt->dt == DT_azeros && s->Sdt->DTnext == NULL)
 	s->Sseg = UDATA;
     else
 	s->Sseg = DATA;
-#endif /* ELFOBJ */
+#endif
     outdata(s);
     if (isExport())
 	obj_export(s,0);

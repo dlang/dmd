@@ -1,5 +1,5 @@
 
-// Copyright (c) 1999-2006 by Digital Mars
+// Copyright (c) 1999-2009 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // http://www.digitalmars.com
@@ -9,6 +9,10 @@
 #include	<string.h>
 #include	<stdlib.h>
 #include	<ctype.h>
+
+#if __APPLE__
+#include	<sys/syslimits.h>
+#endif
 
 #include	"root.h"
 #include	"mem.h"
@@ -77,17 +81,24 @@ void inifile(const char *argv0x, const char *inifilex)
 		filename = FileName::replaceName(argv0, inifile);
 		if (!FileName::exists(filename))
 		{
-#if linux
-#if __GLIBC__	    // This fix by Thomas Kuehne
+#if linux || __APPLE__
+#if __GLIBC__ || __APPLE__	    // This fix by Thomas Kuehne
 		    /* argv0 might be a symbolic link,
 		     * so try again looking past it to the real path
 		     */
+#if __APPLE__
+		    char resolved_name[PATH_MAX + 1];
+		    char* real_argv0 = realpath(argv0, resolved_name);
+#else
 		    char* real_argv0 = realpath(argv0, NULL);
+#endif
 		    //printf("argv0 = %s, real_argv0 = %p\n", argv0, real_argv0);
 		    if (real_argv0)
 		    {
 			filename = FileName::replaceName(real_argv0, inifile);
+#if !__APPLE__
 			free(real_argv0);
+#endif
 			if (FileName::exists(filename))
 			    goto Ldone;
 		    }

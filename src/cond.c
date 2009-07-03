@@ -129,7 +129,7 @@ void VersionCondition::checkPredefined(Loc loc, const char *ident)
     {
 	"DigitalMars", "X86", "X86_64",
 	"Windows", "Win32", "Win64",
-	"linux", "Posix",
+	"linux", "Posix", "OSX", "FreeBSD",
 	"LittleEndian", "BigEndian",
 	"all",
 	"none",

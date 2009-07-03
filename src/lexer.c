@@ -18,8 +18,11 @@
 #include <wchar.h>
 #include <stdlib.h>
 #include <assert.h>
+#if _MSC_VER
+#include <time.h>
+#else
 #include <sys/time.h>
-
+#endif
 #ifdef IN_GCC
 
 #include <time.h>
@@ -49,6 +52,10 @@
 #if _WIN32 && __DMC__
 // from \dm\src\include\setlocal.h
 extern "C" char * __cdecl __locale_decpoint;
+#endif
+
+#if _MSC_VER // workaround VC++ bug, labels and types should be in separate namespaces
+#define Lstring Lstr
 #endif
 
 extern int HtmlNamedEntity(unsigned char *p, int length);
@@ -606,7 +613,7 @@ void Lexer::scan(Token *t)
 	    case '"':
 		t->value = escapeStringConstant(t,0);
 		return;
-
+#if ! TEXTUAL_ASSEMBLY_OUT
 	    case '\\':			// escaped string literal
 	    {	unsigned c;
 
@@ -637,7 +644,7 @@ void Lexer::scan(Token *t)
 		t->value = TOKstring;
 		return;
 	    }
-
+#endif
 	    case 'l':
 	    case 'L':
 #endif
@@ -1235,11 +1242,14 @@ void Lexer::scan(Token *t)
  */
 
 unsigned Lexer::escapeSequence()
-{   unsigned c;
+{   unsigned c = *p;
+
+#ifdef TEXTUAL_ASSEMBLY_OUT
+    return c;
+#endif
     int n;
     int ndigits;
 
-    c = *p;
     switch (c)
     {
 	case '\'':
@@ -1726,6 +1736,7 @@ TOK Lexer::escapeStringConstant(Token *t, int wide)
 	c = *p++;
 	switch (c)
 	{
+#if !( TEXTUAL_ASSEMBLY_OUT )
 	    case '\\':
 		switch (*p)
 		{
@@ -1741,7 +1752,7 @@ TOK Lexer::escapeStringConstant(Token *t, int wide)
 			break;
 		}
 		break;
-
+#endif
 	    case '\n':
 		loc.linnum++;
 		break;
@@ -1802,6 +1813,7 @@ TOK Lexer::charConstant(Token *t, int wide)
     c = *p++;
     switch (c)
     {
+#if ! TEXTUAL_ASSEMBLY_OUT
 	case '\\':
 	    switch (*p)
 	    {
@@ -1821,7 +1833,7 @@ TOK Lexer::charConstant(Token *t, int wide)
 		    break;
 	    }
 	    break;
-
+#endif
 	case '\n':
 	L1:
 	    loc.linnum++;

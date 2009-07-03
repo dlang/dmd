@@ -14,7 +14,7 @@
 
 #if _WIN32 || IN_GCC
 #include "mem.h"
-#elif linux
+#elif linux || __APPLE__
 #include "../root/mem.h"
 #endif
 
@@ -907,14 +907,14 @@ void PragmaDeclaration::toObjFile(int multiobj)
 	char *name = (char *)mem.malloc(se->len + 1);
 	memcpy(name, se->string, se->len);
 	name[se->len] = 0;
-#if _WIN32
+#if OMFOBJ
 	/* The OMF format allows library names to be inserted
 	 * into the object file. The linker will then automatically
 	 * search that library, too.
 	 */
 	obj_includelib(name);
-#elif linux
-	/* The ELF format does not allow embedded library names,
+#elif ELFOBJ || MACHOBJ
+	/* The format does not allow embedded library names,
 	 * so instead append the library name to the list to be passed
 	 * to the linker.
 	 */

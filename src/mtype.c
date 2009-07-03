@@ -1,6 +1,6 @@
 
 // Compiler implementation of the D programming language
-// Copyright (c) 1999-2008 by Digital Mars
+// Copyright (c) 1999-2009 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // http://www.digitalmars.com
@@ -69,7 +69,10 @@ FuncDeclaration *hasThis(Scope *sc);
  */
 
 int PTRSIZE = 4;
-#if TARGET_LINUX
+#if TARGET_OSX
+int REALSIZE = 16;
+int REALPAD = 6;
+#elif TARGET_LINUX || TARGET_FREEBSD
 int REALSIZE = 12;
 int REALPAD = 2;
 #else
@@ -262,7 +265,10 @@ void Type::init()
     else
     {
 	PTRSIZE = 4;
-#if TARGET_LINUX
+#if TARGET_OSX
+	REALSIZE = 16;
+	REALPAD = 6;
+#elif TARGET_LINUX || TARGET_FREEBSD
 	REALSIZE = 12;
 	REALPAD = 2;
 #else
@@ -1396,7 +1402,12 @@ Identifier *Type::getTypeInfoIdent(int internal)
     len = buf.offset;
     name = (char *)alloca(19 + sizeof(len) * 3 + len + 1);
     buf.writeByte(0);
+#if TARGET_OSX
+    // The LINKc will prepend the _
+    sprintf(name, "D%dTypeInfo_%s6__initZ", 9 + len, buf.data);
+#else
     sprintf(name, "_D%dTypeInfo_%s6__initZ", 9 + len, buf.data);
+#endif
     if (global.params.isWindows)
 	name++;			// C mangling will add it back in
     //printf("name = %s\n", name);
@@ -1769,7 +1780,11 @@ unsigned TypeBasic::alignsize()
 	case Tfloat80:
 	case Timaginary80:
 	case Tcomplex80:
+#if TARGET_OSX
+	    sz = 16;
+#else
 	    sz = 2;
+#endif
 	    break;
 
 	default:
@@ -2388,7 +2403,6 @@ Expression *TypeArray::dotExp(Scope *sc, Expression *e, Identifier *ident)
     }
     return e;
 }
-
 
 
 /***************************** TypeSArray *****************************/
@@ -4667,6 +4681,7 @@ Dsymbol *TypeInstance::toDsymbol(Scope *sc)
 
     return s;
 }
+
 
 /***************************** TypeTypeof *****************************/
 

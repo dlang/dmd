@@ -361,7 +361,7 @@ Symbol *FuncDeclaration::toSymbol()
 
 		case LINKcpp:
 		{   t->Tmangle = mTYman_cpp;
-#if !TARGET_LINUX
+#if TARGET_WINDOS
 		    if (isThis())
 			t->Tty = TYmfunc;
 #endif
@@ -437,9 +437,9 @@ Symbol *static_sym()
     s->Sfl = FLextern;
     s->Sflags |= SFLnodebug;
     s->Stype = t;
-#if ELFOBJ // Burton
+#if ELFOBJ || MACHOBJ
     s->Sseg = DATA;
-#endif /* ELFOBJ */
+#endif
     slist_add(s);
     return s;
 }

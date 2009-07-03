@@ -1,6 +1,6 @@
 
 //_ elfobj.c	Modified by: Walter Bright
-// Copyright (c) 1984-2008 by Digital Mars, http://www.digitalmars.com
+// Copyright (c) 1984-2009 by Digital Mars, http://www.digitalmars.com
 // All Rights Reserved
 // Written by Walter Bright
 // Output to ELF object files
@@ -15,7 +15,7 @@
 #include	<fcntl.h>
 #include	<ctype.h>
 
-#if linux
+#if linux || __APPLE__
 #include	<signal.h>
 #include	<unistd.h>
 #endif
@@ -104,26 +104,9 @@ static long elf_align(FILE *fd, targ_size_t size, long offset);
 static Outbuffer *section_names;
 #define SEC_NAMES_INIT	800
 #define SEC_NAMES_INC	400
-    static char section_names_init[] =
-      "\0.symtab\0.strtab\0.shstrtab\0.text\0.data\0.bss\0.note\0\
-.comment\0.rel.text\0.rel.data\0.rodata";
-    #define SEC_NAMIDX_NONE	0
-    #define SEC_NAMIDX_SYMS	1	// .symtab
-    #define SEC_NAMIDX_STRS	9	// .strtab
-    #define SEC_NAMIDX_SECS	17	// .shstrtab
-    #define SEC_NAMIDX_TEXT	27	// .text
-    #define SEC_NAMIDX_DATA	33	// .data
-    #define SEC_NAMIDX_BSS	39	// .bss
-    #define SEC_NAMIDX_NOTE	44	// .note
-    #define SEC_NAMIDX_COM	50	// .comment
-    #define SEC_NAMIDX_TEXTREL	59	// .rel.text
-    #define SEC_NAMIDX_DATAREL  69	// .rel.data
-    #define SEC_NAMIDX_RODATA   79	// .rodata
 
 // String Table  - String table for all other names
 static Outbuffer *symtab_strings;
-#define SYM_NAMES_INIT	2000
-#define SYM_NAMES_INC	1000
 
 
 // Section Headers
@@ -136,9 +119,7 @@ Outbuffer  *SECbuf;		// Buffer to build section table in
 // Try matching the order gcc output them
 // This means defining the sections and then removing them if they are
 // not used.
-static int section_cnt = 12;	// Number of sections in table
-#define SEC_TAB_INIT 16		// Initial number of sections in buffer
-#define SEC_TAB_INC  4		// Number of sections to increment buffer by
+static int section_cnt;	// Number of sections in table
 
 #define SHI_TEXT	1
 #define SHI_RELTEXT	2
@@ -157,10 +138,8 @@ IDXSYM *mapsec2sym;
 
 #define SymbolTable   ((Elf32_Sym *)SYMbuf->buf)
 #define SymbolTable64 ((Elf64_Sym *)SYMbuf->buf)
-static int symbol_idx=9;	// Number of symbols in symbol table
-static int local_cnt=9;		// Number of symbols with STB_LOCAL
-#define SYM_TAB_INIT 100	// Initial number of symbol entries in buffer
-#define SYM_TAB_INC  50		// Number of symbols to increment buffer by
+static int symbol_idx;		// Number of symbols in symbol table
+static int local_cnt;		// Number of symbols with STB_LOCAL
 
 #define STI_FILE 1		// Where file symbol table entry is
 #define STI_TEXT 2
@@ -177,9 +156,6 @@ static int local_cnt=9;		// Number of symbols with STB_LOCAL
 
 // Symbol Table
 Outbuffer  *SYMbuf;		// Buffer to build symbol table in
-
-// Read-Only Data
-bool elf_cdata_initialized;
 
 // Notes data (note currently used)
 static Outbuffer *note_data;
@@ -222,10 +198,13 @@ static const char compiler[] = "\0Digital Mars C/C++"
 #define MAP_SEG2TYP(seg) (MAP_SEG2SEC(seg)->sh_flags & SHF_EXECINSTR ? CODE : DATA)
 
 seg_data **SegData;
-int seg_count = COMD;
-int seg_max = OB_SEG_INC;
+int seg_count;
+int seg_max;
 int seg_tlsseg = UNKNOWN;
 int seg_tlsseg_bss = UNKNOWN;
+
+int elf_getsegment2(IDXSEC shtidx, IDXSYM symidx, IDXSEC relidx);
+
 
 /*******************************
  * Output a string into a string table
@@ -387,6 +366,10 @@ static IDXSYM elf_addsym(IDXSTR nam, targ_size_t val, unsigned sz,
 	    //nam,val,sz,typ,bind,sec);
     if (I64)
     {
+	if (!SYMbuf)
+	{   SYMbuf = new Outbuffer(50 * sizeof(Elf64_Sym));
+	    SYMbuf->reserve(100 * sizeof(Elf64_Sym));
+	}
 	Elf64_Sym sym;
 	sym.st_name = nam;
 	sym.st_value = val;
@@ -398,6 +381,10 @@ static IDXSYM elf_addsym(IDXSTR nam, targ_size_t val, unsigned sz,
     }
     else
     {
+	if (!SYMbuf)
+	{   SYMbuf = new Outbuffer(50 * sizeof(Elf32_Sym));
+	    SYMbuf->reserve(100 * sizeof(Elf32_Sym));
+	}
 	Elf32_Sym sym;
 	sym.st_name = nam;
 	sym.st_value = val;
@@ -426,7 +413,40 @@ static IDXSYM elf_addsym(IDXSTR nam, targ_size_t val, unsigned sz,
  *		Note: Sections will be reordered on output
  */
 
-static IDXSEC elf_newsection(const char *name, const char * suffix,
+static IDXSEC elf_newsection2(
+	elf_u32_f32 name,
+	elf_u32_f32 type,
+	elf_u32_f32 flags,
+	elf_add_f32 addr,
+	elf_off_f32 offset,
+	elf_u32_f32 size,
+	elf_u32_f32 link,
+	elf_u32_f32 info,
+	elf_u32_f32 addralign,
+	elf_u32_f32 entsize)
+{
+    Elf32_Shdr sec;
+
+    sec.sh_name = name;
+    sec.sh_type = type;
+    sec.sh_flags = flags;
+    sec.sh_addr = addr;
+    sec.sh_offset = offset;
+    sec.sh_size = size;
+    sec.sh_link = link;
+    sec.sh_info = info;
+    sec.sh_addralign = addralign;
+    sec.sh_entsize = entsize;
+
+    if (!SECbuf)
+    {	SECbuf = new Outbuffer(4 * sizeof(Elf32_Shdr));
+	SECbuf->reserve(16 * sizeof(Elf32_Shdr));
+    }
+    SECbuf->write((void *)&sec, sizeof(sec));
+    return section_cnt++;
+}
+
+static IDXSEC elf_newsection(const char *name, const char *suffix,
       	elf_u32_f32 type, elf_u32_f32 flags)
 {
     Elf32_Shdr sec;
@@ -434,48 +454,19 @@ static IDXSEC elf_newsection(const char *name, const char * suffix,
 //    dbg_printf("elf_newsection(%s,%s,type %d, flags x%x)\n",
 //        name?name:"",suffix?suffix:"",type,flags);
 
-    // Define new section - name in section names, section in symbol table
-    //			new section table entry
-#if 0
-    sec.sh_name = elf_addstr(section_names,name); 
+#if 1
+    int namidx = elf_addstr(section_names,name); 
 #else
-    sec.sh_name = section_names->size();
+    int namidx = section_names->size();
     section_names->writeString(name);
 #endif
     					// name in section names table
-    if (suffix)				// suffix - back up over NULL and
+    if (suffix)				// suffix - back up over NUL and
     {					//	    append suffix string
 	section_names->setsize(section_names->size()-1);
 	section_names->writeString(suffix);
     };
-    sec.sh_type = type;
-    sec.sh_flags = flags; 
-    sec.sh_addr = 0;
-    sec.sh_offset = 0;
-    sec.sh_size = 0;
-    sec.sh_link = SHT_UNDEF;
-    sec.sh_info = 0;
-    sec.sh_addralign = 0;
-    sec.sh_entsize = 0;
-    SECbuf->write((void *)&sec, sizeof(sec));
-    return section_cnt++;
-}
-
-/**************************
- * Initialize for a read only data segment
- *
- * Output:
- *	SDbuf for readonly section
- *
- */
-
-void elf_add_cdata()
-{
-    if (!elf_cdata_initialized)
-    {	SegData[CDATA]->SDbuf = new Outbuffer(OB_CDATA_INC);
-	SegData[CDATA]->SDbuf->reserve(OB_CDATA_STR);
-	elf_cdata_initialized = TRUE;
-    }
+    return elf_newsection2(namidx,type,flags,0,0,0,0,0,0,0);
 }
 
 /**************************
@@ -483,7 +474,7 @@ void elf_add_cdata()
  *
  */
 
-symbol * elf_sym_cdata(tym_t ty,char *p,int len)
+symbol *elf_sym_cdata(tym_t ty,char *p,int len)
 {
     symbol *s;
 
@@ -501,8 +492,6 @@ symbol * elf_sym_cdata(tym_t ty,char *p,int len)
 #endif
     {
 	//printf("elf_sym_cdata(ty = %x, p = %x, len = %d, CDoffset = %x)\n", ty, p, len, CDoffset);
-	if (!elf_cdata_initialized)
-	    elf_add_cdata();
 	alignOffset(CDATA, tysize(ty));
 	s = symboldata(CDoffset, ty);
 	obj_bytes(CDATA, CDoffset, len, p);
@@ -531,8 +520,6 @@ int elf_data_cdata(char *p, int len, int *pseg)
     }
     else*/
     {
-	if (!elf_cdata_initialized)
-	    elf_add_cdata();
 	oldoff = CDoffset;
 	SegData[CDATA]->SDbuf->reserve(len);
 	SegData[CDATA]->SDbuf->writen(p,len);
@@ -561,141 +548,101 @@ void obj_init(Outbuffer *objbuf, const char *filename, const char *csegname)
     cseg = CODE;
     fobjbuf = objbuf;
     
-    section_names = NULL;
-    symtab_strings = NULL;
-    SECbuf = NULL;
-    section_cnt = 12;
     mapsec2sym = NULL;
-    symbol_idx = 9;
-    local_cnt = 9;
-    SYMbuf = NULL;
-    elf_cdata_initialized = false;
     note_data = NULL;
     secidx_note = 0;
     comment_data = NULL;
-    SegData = NULL;
-    seg_count = COMD;
-    seg_max = OB_SEG_INC;
     seg_tlsseg = UNKNOWN;
     seg_tlsseg_bss = UNKNOWN;
     GOTsym = NULL;
 
     // Initialize buffers
 
-    section_names = new Outbuffer(SEC_NAMES_INC);
-    section_names->reserve(SEC_NAMES_INIT);
-    section_names->writen(section_names_init,sizeof(section_names_init));
-    
-    symtab_strings = new Outbuffer(SYM_NAMES_INC);
-    symtab_strings->reserve(SYM_NAMES_INIT);
-    symtab_strings->writeByte(0);
-
-    static Elf32_Shdr shtinit[] =	// For initialization
-    {
-	{   0,		     SHT_NULL,   0,			0,0,0,0,0, 0,0},
-	{   SEC_NAMIDX_TEXT,SHT_PROGDEF,SHF_ALLOC|SHF_EXECINSTR,0,0,0,0,0, 16,0},
-	{   SEC_NAMIDX_TEXTREL,SHT_REL, 0,0,0,0,SHI_SYMTAB,      SHI_TEXT,4,8},
-	{   SEC_NAMIDX_DATA,SHT_PROGDEF,SHF_ALLOC|SHF_WRITE,   0,0,0,0,0, 4,0},
-	{   SEC_NAMIDX_DATAREL,SHT_REL, 0,0,0,0,SHI_SYMTAB,      SHI_DATA,4,8},
-	{   SEC_NAMIDX_BSS, SHT_NOBITS,SHF_ALLOC|SHF_WRITE,   0,0,0,0,0, 32,0},
-	{   SEC_NAMIDX_RODATA,SHT_PROGDEF,SHF_ALLOC,           0,0,0,0,0, 1,0},
-	{   SEC_NAMIDX_STRS,SHT_STRTAB, 0,			0,0,0,0,0, 1,0},
-	{   SEC_NAMIDX_SYMS,SHT_SYMTAB, 0,			0,0,0,0,0, 4,0},
-	{   SEC_NAMIDX_SECS,SHT_STRTAB, 0,			0,0,0,0,0, 1,0},
-	{   SEC_NAMIDX_COM, SHT_PROGDEF,0,			0,0,0,0,0, 1,0},
-	{   SEC_NAMIDX_NOTE,SHT_NOTE,   0,			0,0,0,0,0, 1,0}
-    };
-
-    SECbuf = new Outbuffer(SYM_TAB_INC * sizeof(Elf32_Shdr));
-    SECbuf->reserve(SEC_TAB_INIT * sizeof(Elf32_Shdr));
-    SECbuf->writen(shtinit, sizeof(shtinit));
-
-    if (I64)
-    {
-	// The symbols that every object file has
-	static Elf64_Sym syminit[9] =
-	{
-	   { 0, ELF_ST_INFO(STB_LOCAL,STT_NOTYPE),  0, 0},
-	   { 0, ELF_ST_INFO(STB_LOCAL,STT_FILE),    0, SHT_ABS},	// STI_FILE
-	   { 0, ELF_ST_INFO(STB_LOCAL,STT_SECTION), 0, SHI_TEXT},	// STI_TEXT
-	   { 0, ELF_ST_INFO(STB_LOCAL,STT_SECTION), 0, SHI_DATA},	// STI_DATA
-	   { 0, ELF_ST_INFO(STB_LOCAL,STT_SECTION), 0, SHI_BSS},	// STI_BSS
-	   { 0, ELF_ST_INFO(STB_LOCAL,STT_NOTYPE),  0, SHI_TEXT},	// STI_GCC
-	   { 0, ELF_ST_INFO(STB_LOCAL,STT_SECTION), 0, SHI_RODAT},	// STI_RODAT
-	   { 0, ELF_ST_INFO(STB_LOCAL,STT_SECTION), 0, SHI_NOTE},	// STI_NOTE
-	   { 0, ELF_ST_INFO(STB_LOCAL,STT_SECTION), 0, SHI_COM},	// STI_COM
-	};
-
-	SYMbuf = new Outbuffer(SYM_TAB_INC*sizeof(Elf64_Sym));
-	SYMbuf->reserve(SYM_TAB_INIT*sizeof(Elf64_Sym));
-	SYMbuf->writen(syminit,sizeof(syminit));
-	symbol_idx = 9;
-    }
+    if (symtab_strings)
+	symtab_strings->setsize(1);
     else
-    {
-	// The symbols that every object file has
-	static Elf32_Sym syminit[9] =
-	{
-	   { 0,0,0, ELF_ST_INFO(STB_LOCAL,STT_NOTYPE),  0, 0},
-	   { 0,0,0, ELF_ST_INFO(STB_LOCAL,STT_FILE),    0, SHT_ABS},	// STI_FILE
-	   { 0,0,0, ELF_ST_INFO(STB_LOCAL,STT_SECTION), 0, SHI_TEXT},	// STI_TEXT
-	   { 0,0,0, ELF_ST_INFO(STB_LOCAL,STT_SECTION), 0, SHI_DATA},	// STI_DATA
-	   { 0,0,0, ELF_ST_INFO(STB_LOCAL,STT_SECTION), 0, SHI_BSS},	// STI_BSS
-	   { 0,0,0, ELF_ST_INFO(STB_LOCAL,STT_NOTYPE),  0, SHI_TEXT},	// STI_GCC
-	   { 0,0,0, ELF_ST_INFO(STB_LOCAL,STT_SECTION), 0, SHI_RODAT},	// STI_RODAT
-	   { 0,0,0, ELF_ST_INFO(STB_LOCAL,STT_SECTION), 0, SHI_NOTE},	// STI_NOTE
-	   { 0,0,0, ELF_ST_INFO(STB_LOCAL,STT_SECTION), 0, SHI_COM},	// STI_COM
-	};
-
-	SYMbuf = new Outbuffer(SYM_TAB_INC*sizeof(Elf32_Sym));
-	SYMbuf->reserve(SYM_TAB_INIT*sizeof(Elf32_Sym));
-	SYMbuf->writen(syminit,sizeof(syminit));
-	symbol_idx = 9;
+    {	symtab_strings = new Outbuffer(1024);
+	symtab_strings->reserve(2048);
+	symtab_strings->writeByte(0);
     }
+
+    static char section_names_init[] =
+      "\0.symtab\0.strtab\0.shstrtab\0.text\0.data\0.bss\0.note\0\
+.comment\0.rel.text\0.rel.data\0.rodata";
+    #define SEC_NAMIDX_NONE	0
+    #define SEC_NAMIDX_SYMS	1	// .symtab
+    #define SEC_NAMIDX_STRS	9	// .strtab
+    #define SEC_NAMIDX_SECS	17	// .shstrtab
+    #define SEC_NAMIDX_TEXT	27	// .text
+    #define SEC_NAMIDX_DATA	33	// .data
+    #define SEC_NAMIDX_BSS	39	// .bss
+    #define SEC_NAMIDX_NOTE	44	// .note
+    #define SEC_NAMIDX_COM	50	// .comment
+    #define SEC_NAMIDX_TEXTREL	59	// .rel.text
+    #define SEC_NAMIDX_DATAREL  69	// .rel.data
+    #define SEC_NAMIDX_RODATA   79	// .rodata
+
+    if (section_names)
+	section_names->setsize(sizeof(section_names_init));
+    else
+    {	section_names = new Outbuffer(512);
+	section_names->reserve(1024);
+	section_names->writen(section_names_init, sizeof(section_names_init));
+    }
+
+    if (SECbuf)
+	SECbuf->setsize(0);
+    section_cnt = 0;
+
+    // name,type,flags,addr,offset,size,link,info,addralign,entsize
+    elf_newsection2(0,		     SHT_NULL,   0,			0,0,0,0,0, 0,0);
+    elf_newsection2(SEC_NAMIDX_TEXT,SHT_PROGDEF,SHF_ALLOC|SHF_EXECINSTR,0,0,0,0,0, 16,0);
+    elf_newsection2(SEC_NAMIDX_TEXTREL,SHT_REL, 0,0,0,0,SHI_SYMTAB,      SHI_TEXT,4,8);
+    elf_newsection2(SEC_NAMIDX_DATA,SHT_PROGDEF,SHF_ALLOC|SHF_WRITE,   0,0,0,0,0, 4,0);
+    elf_newsection2(SEC_NAMIDX_DATAREL,SHT_REL, 0,0,0,0,SHI_SYMTAB,      SHI_DATA,4,8);
+    elf_newsection2(SEC_NAMIDX_BSS, SHT_NOBITS,SHF_ALLOC|SHF_WRITE,   0,0,0,0,0, 32,0);
+    elf_newsection2(SEC_NAMIDX_RODATA,SHT_PROGDEF,SHF_ALLOC,           0,0,0,0,0, 1,0);
+    elf_newsection2(SEC_NAMIDX_STRS,SHT_STRTAB, 0,			0,0,0,0,0, 1,0);
+    elf_newsection2(SEC_NAMIDX_SYMS,SHT_SYMTAB, 0,			0,0,0,0,0, 4,0);
+    elf_newsection2(SEC_NAMIDX_SECS,SHT_STRTAB, 0,			0,0,0,0,0, 1,0);
+    elf_newsection2(SEC_NAMIDX_COM, SHT_PROGDEF,0,			0,0,0,0,0, 1,0);
+    elf_newsection2(SEC_NAMIDX_NOTE,SHT_NOTE,   0,			0,0,0,0,0, 1,0);
+
+
+    if (SYMbuf)
+	SYMbuf->setsize(0);
+    symbol_idx = 0;
+    local_cnt = 0;
+    // The symbols that every object file has
+    elf_addsym(0, 0, 0, STT_NOTYPE,  STB_LOCAL, 0);
+    elf_addsym(0, 0, 0, STT_FILE,    STB_LOCAL, SHT_ABS);	// STI_FILE
+    elf_addsym(0, 0, 0, STT_SECTION, STB_LOCAL, SHI_TEXT);	// STI_TEXT
+    elf_addsym(0, 0, 0, STT_SECTION, STB_LOCAL, SHI_DATA);	// STI_DATA
+    elf_addsym(0, 0, 0, STT_SECTION, STB_LOCAL, SHI_BSS);	// STI_BSS
+    elf_addsym(0, 0, 0, STT_NOTYPE,  STB_LOCAL, SHI_TEXT);	// STI_GCC
+    elf_addsym(0, 0, 0, STT_SECTION, STB_LOCAL, SHI_RODAT);	// STI_RODAT
+    elf_addsym(0, 0, 0, STT_SECTION, STB_LOCAL, SHI_NOTE);	// STI_NOTE
+    elf_addsym(0, 0, 0, STT_SECTION, STB_LOCAL, SHI_COM);	// STI_COM
 
     // Initialize output buffers for CODE, DATA and COMMENTS
     //	    (NOTE not supported, BSS not required)
 
-    if (!SegData)
-    {	seg_max = OB_SEG_SIZ;
-	SegData = (seg_data **)mem_calloc(seg_max * sizeof(seg_data *));
-    }
+    seg_count = 0;
 
-    for (int i = 0; i < seg_max; i++)
-    {
-	if (SegData[i])
-	    memset(SegData[i], 0, sizeof(seg_data));
-	else
-	    SegData[i] = (seg_data *)mem_calloc(sizeof(seg_data));
-    }
-    
-    SegData[CODE]->SDseg = CODE;
-    SegData[CODE]->SDbuf = new Outbuffer(OB_CODE_INC);
-    SegData[CODE]->SDbuf->reserve(OB_CODE_STR);
-    SegData[CODE]->SDshtidx = SHI_TEXT;
-    SegData[CODE]->SDsymidx = STI_TEXT;
-    SegData[CODE]->SDrelidx = SHI_RELTEXT;
+    elf_getsegment2(SHI_TEXT, STI_TEXT, SHI_RELTEXT);
+    assert(SegData[CODE]->SDseg == CODE);
 
-    SegData[DATA]->SDseg = DATA;
-    SegData[DATA]->SDbuf = new Outbuffer(OB_DATA_INC);
-    SegData[DATA]->SDbuf->reserve(OB_DATA_STR);
-    SegData[DATA]->SDshtidx = SHI_DATA;
-    SegData[DATA]->SDsymidx = STI_DATA;
-    SegData[DATA]->SDrelidx = SHI_RELDATA;
+    elf_getsegment2(SHI_DATA, STI_DATA, SHI_RELDATA);
+    assert(SegData[DATA]->SDseg == DATA);
 
-    SegData[UDATA]->SDseg = UDATA;
-    SegData[UDATA]->SDshtidx = SHI_BSS;
-    SegData[UDATA]->SDsymidx = STI_BSS;
+    elf_getsegment2(SHI_RODAT, STI_RODAT, 0);
+    assert(SegData[CDATA]->SDseg == CDATA);
 
-    SegData[COMD]->SDseg = COMD;
-    SegData[COMD]->SDbuf = new Outbuffer();
-    SegData[COMD]->SDbuf->reserve(OB_COMD_STR);
-    SegData[COMD]->SDshtidx = SHI_COM;
-    SegData[COMD]->SDsymidx = STI_COM;
+    elf_getsegment2(SHI_BSS, STI_BSS, 0);
+    assert(SegData[UDATA]->SDseg == UDATA);
 
-    SegData[CDATA]->SDseg = CDATA;
-    SegData[CDATA]->SDshtidx = SHI_RODAT;	// initialize, but don't allocate
-    SegData[CDATA]->SDsymidx = STI_RODAT;	// buffers for read only data
+    elf_getsegment2(SHI_COM, STI_COM, 0);
+    assert(SegData[COMD]->SDseg == COMD);
 
     if (config.fulltypes)
 	dwarf_initfile(filename);
@@ -834,6 +781,7 @@ void *elf_renumbersyms()
 	    else
 	    {
 		Elf32_Rel *rel = (Elf32_Rel *) pseg->SDrel->buf;
+		assert(pseg->SDrelcnt == pseg->SDrel->size() / sizeof(Elf32_Rel));
 		for (int r = 0; r < pseg->SDrelcnt; r++)
 		{
 		    unsigned t = ELF32_R_TYPE(rel->r_info);
@@ -1054,11 +1002,13 @@ void obj_term()
 	seg = SegData[i]; 
 	if (!seg->SDbuf)
 	    continue;		// 0, BSS never allocated
-	if (seg->SDrel)
+	if (seg->SDrel && seg->SDrel->size())
 	{
+	    assert(seg->SDrelidx);
 	    sechdr = &SecHdrTab[seg->SDrelidx];
 	    sechdr->sh_size = seg->SDrel->size();
 	    sechdr->sh_offset = foffset;
+	    assert(seg->SDrelcnt == seg->SDrel->size() / sizeof(Elf32_Rel));
 	    fobjbuf->write(seg->SDrel->buf, sechdr->sh_size);
 	    foffset += sechdr->sh_size;
 	}
@@ -1529,18 +1479,53 @@ int obj_comdat(Symbol *s)
  *	segment index of found or newly created segment
  */
 
+int elf_getsegment2(IDXSEC shtidx, IDXSYM symidx, IDXSEC relidx)
+{
+    int seg = ++seg_count;
+    if (seg_count >= seg_max)
+    {				// need more room in segment table
+	seg_max += OB_SEG_INC;
+	SegData = (seg_data **)mem_realloc(SegData,seg_max * sizeof(seg_data *));
+	memset(&SegData[seg_count], 0, OB_SEG_INC * sizeof(seg_data *));
+    }
+    assert(seg_count < seg_max);
+    if (!SegData[seg])
+    {	SegData[seg] = (seg_data *)mem_calloc(sizeof(seg_data));
+    }
+
+    seg_data *pseg = SegData[seg];
+    pseg->SDseg = seg;
+    pseg->SDshtidx = shtidx;
+    pseg->SDoffset = 0;
+    if (pseg->SDbuf)
+	pseg->SDbuf->setsize(0);
+    else
+    {	if (SecHdrTab[shtidx].sh_type != SHT_NOBITS)
+	{   pseg->SDbuf = new Outbuffer(OB_XTRA_STR);
+	    pseg->SDbuf->reserve(1024);
+	}
+    }
+    if (pseg->SDrel)
+	pseg->SDrel->setsize(0);
+    pseg->SDsymidx = symidx;
+    pseg->SDrelidx = relidx;
+    pseg->SDrelmaxoff = 0;
+    pseg->SDrelindex = 0;
+    pseg->SDrelcnt = 0;
+    pseg->SDshtidxout = 0;
+    pseg->SDsym = NULL;
+    return seg;
+}
+
 int elf_getsegment(const char *name, const char *suffix, int type, int flags,
 	int align)
 {
-    IDXSTR namidx = 0;
-    IDXSEC secidx;
-    int seg;
-
     //printf("elf_getsegment(%s,%s,flags %x, align %d)\n",name,suffix,flags,align);
 
+    IDXSTR namidx;
     if (namidx = elf_findstr(section_names,name,suffix))
-    {					// this section name exist
-	for (seg=CODE; seg <= seg_count; seg++)
+    {					// this section name exists
+	for (int seg = CODE; seg <= seg_count; seg++)
 	{				// should be in segment table
 	    if (MAP_SEG2SEC(seg)->sh_name == namidx)
 	    {
@@ -1551,37 +1536,11 @@ int elf_getsegment(const char *name, const char *suffix, int type, int flags,
 	// FIX - should be an error message conflict with section names
     }
 
-    seg = ++seg_count;
-    if (seg_count == seg_max)
-    {				// need more room in segment table
-	seg_max += OB_SEG_INC;
-	SegData = (seg_data **)mem_realloc(SegData,seg_max * sizeof(seg_data *));
-	memset(&SegData[seg_count], 0, OB_SEG_INC * sizeof(seg_data *));
-    }
-    assert(seg_count < seg_max);
-    if (SegData[seg])
-	memset(SegData[seg], 0, sizeof(seg_data));
-    else
-	SegData[seg] = (seg_data *)mem_calloc(sizeof(seg_data));
-
     //dbg_printf("\tNew segment - %d size %d\n", seg,SegData[seg]->SDbuf);
-    seg_data *pseg = SegData[seg];
-    pseg->SDseg = seg;
-    pseg->SDoffset = 0;
-    pseg->SDbuf = (type == SHT_NOBITS) ? NULL : new Outbuffer(OB_XTRA_STR);
-    pseg->SDshtidx = secidx =
-	    elf_newsection(name,suffix,type,flags);
-    Elf32_Shdr  *newsec = &SecHdrTab[secidx];
-    newsec->sh_addralign = align;
-    pseg->SDsymidx =
-	elf_addsym(0, 0, 0, STT_SECTION, STB_LOCAL, secidx);
-    
-    pseg->SDrel = NULL;
-    pseg->SDrelidx = 0;
-    pseg->SDrelmaxoff = 0;
-    pseg->SDrelindex = 0;
-    pseg->SDrelcnt = 0;
-    pseg->SDsym = NULL;
+    IDXSEC shtidx = elf_newsection(name,suffix,type,flags);
+    SecHdrTab[shtidx].sh_addralign = align;
+    IDXSYM symidx = elf_addsym(0, 0, 0, STT_SECTION, STB_LOCAL, shtidx);
+    int seg = elf_getsegment2(shtidx, symidx, 0);
     //printf("-elf_getsegment() = %d\n", seg);
     return seg;
 }
@@ -2110,8 +2069,6 @@ void obj_write_byte(seg_data *pseg, unsigned byte)
 
 void obj_byte(int seg,targ_size_t offset,unsigned byte)
 {
-    if ((seg == CDATA) && !elf_cdata_initialized)
-	elf_add_cdata();
     Outbuffer *buf = SegData[seg]->SDbuf;
     int save = buf->size();
     //dbg_printf("obj_byte(seg=%d, offset=x%lx, byte=x%x)\n",seg,offset,byte);
@@ -2140,8 +2097,6 @@ void obj_write_bytes(seg_data *pseg, unsigned nbytes, void *p)
 
 unsigned obj_bytes(int seg, targ_size_t offset, unsigned nbytes, void *p)
 {
-    if ((seg == CDATA) && !elf_cdata_initialized)
-	elf_add_cdata();
 #if 0
     if (!(seg >= 0 && seg <= seg_count))
     {	printf("obj_bytes: seg = %d, seg_count = %d\n", seg, seg_count);
@@ -2202,11 +2157,13 @@ void elf_addrel(int seg, targ_size_t offset, unsigned type,
     assert(seg >= 0 && seg <= seg_count);
     segdata = SegData[seg];
     secidx = MAP_SEG2SECIDX(seg);
+    assert(secidx != 0);
 
     if (segdata->SDrel == NULL)
+	segdata->SDrel = new Outbuffer();
+    if (segdata->SDrel->size() == 0)
     {	IDXSEC relidx;
 
-	segdata->SDrel = new Outbuffer();
 	if (secidx == SHI_TEXT)
 	    relidx = SHI_RELTEXT;
 	else if (secidx == SHI_DATA)
@@ -2308,8 +2265,6 @@ void reftodatseg(int seg,targ_size_t offset,targ_size_t val,
     Outbuffer *buf;
     int save;
 
-    if ((targetdatum == CDATA) && !elf_cdata_initialized)
-	elf_add_cdata();
     buf = SegData[seg]->SDbuf;
     save = buf->size();
     buf->setsize(offset);
@@ -2409,8 +2364,6 @@ int reftoident(int seg, targ_size_t offset, Symbol *s, targ_size_t val,
     dbg_printf("Sseg = %d, Sxtrnnum = %d\n",s->Sseg,s->Sxtrnnum);
     symbol_print(s);
 #endif
-    if ((seg == CDATA) && !elf_cdata_initialized)
-	elf_add_cdata();
 
     ty = s->ty();
     if (s->Sxtrnnum)
@@ -2718,7 +2671,7 @@ void obj_moduleinfo(Symbol *scc)
 	buf->writeByte(0xB9);
 	buf->write32(0);//offset);
 	elf_addrel(seg, codeOffset + 7, RI_TYPE_SYM32, objextern("_Dmodule_ref"), 0);
-	
+
 	buf->writeByte(0x8B); buf->writeByte(0x11); /* movl (%ecx), %edx */
 	buf->writeByte(0x89); buf->writeByte(0x10); /* movl %edx, (%eax) */
 	buf->writeByte(0x89); buf->writeByte(0x01); /* movl %eax, (%ecx) */

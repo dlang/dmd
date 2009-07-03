@@ -1,6 +1,6 @@
 
 // Compiler implementation of the D programming language
-// Copyright (c) 1999-2008 by Digital Mars
+// Copyright (c) 1999-2009 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // http://www.digitalmars.com
@@ -13,7 +13,49 @@
 
 #ifdef __DMC__
 #pragma once
-#endif /* __DMC__ */
+#endif
+
+/*
+It is very important to use version control macros correctly - the
+idea is that host and target are independent. If these are done
+correctly, cross compilers can be built.
+The host compiler and host operating system are also different,
+and are predefined by the host compiler. The ones used in
+dmd are:
+
+Macros defined by the compiler, not the code:
+
+    Compiler:
+	__DMC__		Digital Mars compiler
+	_MSC_VER	Microsoft compiler
+	__GNUC__	Gnu compiler
+
+    Host operating system:
+	_WIN32		Microsoft NT, Windows 95, Windows 98, Win32s,
+			Windows 2000, Win XP, Vista
+	_WIN64		Windows for AMD64
+	linux		Linux
+	__APPLE__	Mac OSX
+
+For the target systems, there are the target operating system and
+the target object file format:
+
+    Target operating system:
+	TARGET_WINDOS	Covers 32 bit windows and 64 bit windows
+	TARGET_LINUX	Covers 32 and 64 bit linux
+	TARGET_OSX	Covers 32 and 64 bit Mac OSX
+
+    It is expected that the compiler for each platform will be able
+    to generate 32 and 64 bit code from the same compiler binary.
+
+    Target object module format:
+	OMFOBJ		Intel Object Module Format, used on Windows
+	ELFOBJ		Elf Object Module Format, used on linux
+	MACHOBJ		Mach-O Object Module Format, used on Mac OSX
+
+    There are currently no macros for byte endianness order.
+ */
+
 
 #include <stdint.h>
 #include <stdarg.h>
@@ -34,6 +76,28 @@
 #define BREAKABI 1	// 0 if not ready to break the ABI just yet
 #define STRUCTTHISREF V2	// if 'this' for struct is a reference, not a pointer
 
+/* Other targets are TARGET_LINUX and TARGET_OSX, which are
+ * set on the command line via the compiler makefile.
+ */
+
+#if _WIN32
+#define TARGET_WINDOS 1		// Windows dmd generates Windows targets
+#define OMFOBJ 1
+#endif
+
+#if TARGET_LINUX
+#ifndef ELFOBJ
+#define ELFOBJ 1
+#endif
+#endif
+
+#if TARGET_OSX
+#ifndef MACHOBJ
+#define MACHOBJ 1
+#endif
+#endif
+
+
 struct Array;
 
 // Put command line switches in here
@@ -52,6 +116,7 @@ struct Param
     char cpu;		// target CPU
     char isX86_64;	// generate X86_64 bit code
     char isLinux;	// generate code for linux
+    char isOSX;		// generate code for Mac OSX
     char isWindows;	// generate code for Windows
     char scheduler;	// which scheduler to use
     char useDeprecated;	// allow use of deprecated features

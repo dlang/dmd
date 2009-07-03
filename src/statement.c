@@ -4097,3 +4097,62 @@ LabelDsymbol *LabelDsymbol::isLabel()		// is this a LabelDsymbol()?
 }
 
 
+/************************ AsmStatement ***************************************/
+
+AsmStatement::AsmStatement(Loc loc, Token *tokens)
+    : Statement(loc)
+{
+    this->tokens = tokens;
+    asmcode = NULL;
+    asmalign = 0;
+    refparam = FALSE;
+    naked = FALSE;
+    regs = 0;
+}
+
+Statement *AsmStatement::syntaxCopy()
+{
+    return new AsmStatement(loc, tokens);
+}
+
+
+
+int AsmStatement::comeFrom()
+{
+    return TRUE;
+}
+
+int AsmStatement::blockExit()
+{
+    // Assume the worst
+    return BEfallthru | BEthrow | BEreturn | BEgoto | BEhalt;
+}
+
+void AsmStatement::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
+{
+    buf->writestring("asm { ");
+    Token *t = tokens;
+    while (t)
+    {
+        buf->writestring(t->toChars());
+        if (t->next                         &&
+           t->value != TOKmin               &&
+           t->value != TOKcomma             &&
+           t->next->value != TOKcomma       &&
+           t->value != TOKlbracket          &&
+           t->next->value != TOKlbracket    &&
+           t->next->value != TOKrbracket    &&
+           t->value != TOKlparen            &&
+           t->next->value != TOKlparen      &&
+           t->next->value != TOKrparen      &&
+           t->value != TOKdot               &&
+           t->next->value != TOKdot)
+        {
+            buf->writebyte(' ');
+        }
+        t = t->next;
+    }
+    buf->writestring("; }");
+    buf->writenl();
+}
+

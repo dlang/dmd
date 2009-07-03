@@ -19,7 +19,7 @@
 #include	<process.h>
 #endif
 
-#if linux
+#if linux || __APPLE__
 #include	<sys/types.h>
 #include	<sys/wait.h>
 #include	<unistd.h>
@@ -195,7 +195,7 @@ int runLINK()
 	delete lnkfilename;
     }
     return status;
-#elif linux
+#elif linux || __APPLE__
     pid_t childpid;
     int i;
     int status;
@@ -439,7 +439,7 @@ int executearg0(char *cmd, char *args)
     //printf("spawning '%s'\n",file);
 #if _WIN32
     return spawnl(0,file,file,args,NULL);
-#elif linux
+#elif linux || __APPLE__
     char *full;
     int cmdl = strlen(cmd);
 
@@ -502,7 +502,7 @@ int runProgram()
     else
 	ex = global.params.exefile;
     return spawnv(0,ex,(char **)argv.data);
-#elif linux
+#elif linux || __APPLE__
     pid_t childpid;
     int status;
 
