@@ -1,6 +1,6 @@
 
 // Compiler implementation of the D programming language
-// Copyright (c) 1999-2006 by Digital Mars
+// Copyright (c) 1999-2007 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // www.digitalmars.com
@@ -100,13 +100,13 @@ void ThisExp::scanForNestedRef(Scope *sc)
 
 void SuperExp::scanForNestedRef(Scope *sc)
 {
-    assert(0);
+    ThisExp::scanForNestedRef(sc);
 }
 
 void FuncExp::scanForNestedRef(Scope *sc)
 {
     //printf("FuncExp::scanForNestedRef(%s)\n", toChars());
-    fd->parent = sc->parent;
+    //fd->parent = sc->parent;
 }
 
 void DeclarationExp::scanForNestedRef(Scope *sc)

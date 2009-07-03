@@ -102,6 +102,9 @@ void EnumDeclaration::semantic(Scope *sc)
 	{
 	    assert(e->dyncast() == DYNCAST_EXPRESSION);
 	    e = e->semantic(sce);
+	    e = e->optimize(WANTvalue);
+	    // Need to copy it because we're going to change the type
+	    e = e->copy();
 	    e = e->implicitCastTo(sc, memtype);
 	    e = e->optimize(WANTvalue);
 	    number = e->toInteger();

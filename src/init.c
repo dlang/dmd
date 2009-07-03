@@ -97,11 +97,8 @@ Initializer *VoidInitializer::semantic(Scope *sc, Type *t)
 
 Expression *VoidInitializer::toExpression()
 {
-#ifdef DEBUG
-    halt();
-#endif
-    assert(0);
-    return NULL;
+    error(loc, "void initializer has no value");
+    return new IntegerExp(0);
 }
 
 

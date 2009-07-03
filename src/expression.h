@@ -342,6 +342,7 @@ struct ArrayLiteralExp : Expression
     elem *toElem(IRState *irs);
     int checkSideEffect(int flag);
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
+    void toMangleBuffer(OutBuffer *buf);
     void scanForNestedRef(Scope *sc);
     Expression *optimize(int result);
     int implicitConvTo(Type *t);
@@ -366,6 +367,7 @@ struct TypeDotIdExp : Expression
 struct TypeExp : Expression
 {
     TypeExp(Loc loc, Type *type);
+    Expression *semantic(Scope *sc);
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
     Expression *optimize(int result);
     elem *toElem(IRState *irs);
@@ -624,6 +626,11 @@ struct AssertExp : UnaExp
     Expression *semantic(Scope *sc);
     int checkSideEffect(int flag);
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
+
+    int inlineCost(InlineCostState *ics);
+    Expression *doInline(InlineDoState *ids);
+    Expression *inlineScan(InlineScanState *iss);
+
     elem *toElem(IRState *irs);
 };
 

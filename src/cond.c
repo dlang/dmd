@@ -247,7 +247,7 @@ int StaticIfCondition::include(Scope *sc, ScopeDsymbol *s)
 	    inc = 2;
 	else
 	{
-	    e->error("expression %s does not evaluate to a boolean", e->toChars());
+	    e->error("expression %s is not constant or does not evaluate to a bool", e->toChars());
 	    inc = 2;
 	}
     }

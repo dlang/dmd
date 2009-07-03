@@ -124,7 +124,8 @@ dt_t *StructInitializer::toDt()
 		for (k = j + 1; 1; k++)
 		{
 		    if (k == dts.dim)		// didn't find any overlap
-		    {	v->type->toDt(&d);	// provide default initializer
+		    {
+			v->type->toDt(&d);
 			break;
 		    }
 		    VarDeclaration *v2 = (VarDeclaration *)ad->fields.data[k];
@@ -140,12 +141,36 @@ dt_t *StructInitializer::toDt()
 		error(loc, "duplicate union initialization for %s", v->toChars());
 	    else
 	    {	unsigned sz = dt_size(d);
+		unsigned vsz = v->type->size();
+		unsigned voffset = v->offset;
+		assert(sz <= vsz);
 
-		if (offset < v->offset)
-		    pdtend = dtnzeros(pdtend, v->offset - offset);
-		pdtend = dtcat(pdtend, d);
-		assert(sz <= v->type->size());
-		offset = v->offset + sz;
+		unsigned dim = 1;
+		for (Type *vt = v->type->toBasetype();
+		     vt->ty == Tsarray;
+		     vt = vt->next->toBasetype())
+		{   TypeSArray *tsa = (TypeSArray *)vt;
+		    dim *= tsa->dim->toInteger();
+		}
+
+		for (size_t i = 0; i < dim; i++)
+		{
+		    if (offset < voffset)
+			pdtend = dtnzeros(pdtend, voffset - offset);
+		    if (!d)
+		    {
+			if (v->init)
+			    d = v->init->toDt();
+			else
+			    v->type->toDt(&d);
+		    }
+		    pdtend = dtcat(pdtend, d);
+		    d = NULL;
+		    offset = voffset + sz;
+		    voffset += vsz / dim;
+		    if (sz == vsz)
+			break;
+		}
 	    }
 	}
     }

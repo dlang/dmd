@@ -1277,13 +1277,27 @@ complex_t RealExp::toComplex()
 #endif
 }
 
+/********************************
+ * Test to see if two reals are the same.
+ * Regard NaN's as equivalent.
+ * Regard +0 and -0 as different.
+ */
+
+int RealEquals(real_t x1, real_t x2)
+{
+    return (isnan(x1) && isnan(x2)) ||
+	memcmp(&x1, &x2, sizeof(real_t)) == 0;
+}
+
 int RealExp::equals(Object *o)
 {   RealExp *ne;
 
     if (this == o ||
 	(((Expression *)o)->op == TOKfloat64 &&
 	 ((ne = (RealExp *)o), type->equals(ne->type)) &&
-	 memcmp(&value, &ne->value, sizeof(value)) == 0))
+	 RealEquals(value, ne->value)
+        )
+       )
 	return 1;
     return 0;
 }
@@ -1478,7 +1492,10 @@ int ComplexExp::equals(Object *o)
     if (this == o ||
 	(((Expression *)o)->op == TOKcomplex80 &&
 	 ((ne = (ComplexExp *)o), type->equals(ne->type)) &&
-	 memcmp(&value, &ne->value, sizeof(value)) == 0))
+	 RealEquals(creall(value), creall(ne->value)) &&
+	 RealEquals(cimagl(value), cimagl(ne->value))
+	)
+       )
 	return 1;
     return 0;
 }
@@ -2293,49 +2310,44 @@ int StringExp::isBool(int result)
 }
 
 void StringExp::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
-{   size_t i;
-
+{
     buf->writeByte('"');
-    for (i = 0; i < len;)
+    for (size_t i = 0; i < len; i++)
     {	unsigned c;
-	char *p;
 
 	switch (sz)
 	{
 	    case 1:
-		p = utf_decodeChar((unsigned char *)string, len, &i, &c);
+		c = ((unsigned char *)string)[i];
 		break;
 	    case 2:
-		p = utf_decodeWchar((unsigned short *)string, len, &i, &c);
+		c = ((unsigned short *)string)[i];
 		break;
 	    case 4:
-		p = NULL;
 		c = ((unsigned *)string)[i];
-		i++;
 		break;
 	    default:
 		assert(0);
 	}
 	switch (c)
 	{
-	    case 0:
-		break;
-
 	    case '"':
 	    case '\\':
 		buf->writeByte('\\');
 	    default:
-		if (isprint(c))
-		    buf->writeByte(c);
-		else if (c <= 0x7F)
-		    buf->printf("\\x%02x", c);
+		if (c <= 0xFF)
+		{   if (c <= 0x7F && isprint(c))
+			buf->writeByte(c);
+		    else
+			buf->printf("\\x%02x", c);
+		}
 		else if (c <= 0xFFFF)
-		    buf->printf("\\u%04x", c);
+		    buf->printf("\\x%02x\\x%02x", c & 0xFF, c >> 8);
 		else
-		    buf->printf("\\U%08x", c);
-		continue;
+		    buf->printf("\\x%02x\\x%02x\\x%02x\\x%02x",
+			c & 0xFF, (c >> 8) & 0xFF, (c >> 16) & 0xFF, c >> 24);
+		break;
 	}
-	break;
     }
     buf->writeByte('"');
     if (postfix)
@@ -2454,7 +2466,7 @@ Expression *ArrayLiteralExp::semantic(Scope *sc)
 int ArrayLiteralExp::checkSideEffect(int flag)
 {   int f = 0;
 
-    for (int i = 0; i < elements->dim; i++)
+    for (size_t i = 0; i < elements->dim; i++)
     {	Expression *e = (Expression *)elements->data[i];
 
 	f |= e->checkSideEffect(2);
@@ -2471,11 +2483,20 @@ int ArrayLiteralExp::isBool(int result)
 }
 
 void ArrayLiteralExp::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
-{   int i;
-
+{
     buf->writeByte('[');
     argsToCBuffer(buf, elements, hgs);
     buf->writeByte(']');
+}
+
+void ArrayLiteralExp::toMangleBuffer(OutBuffer *buf)
+{
+    size_t dim = elements ? elements->dim : 0;
+    buf->printf("A%u", dim);
+    for (size_t i = 0; i < dim; i++)
+    {	Expression *e = (Expression *)elements->data[i];
+	e->toMangleBuffer(buf);
+    }
 }
 
 /************************ TypeDotIdExp ************************************/
@@ -2529,6 +2550,13 @@ TypeExp::TypeExp(Loc loc, Type *type)
 {
     //printf("TypeExp::TypeExp(%s)\n", type->toChars());
     this->type = type;
+}
+
+Expression *TypeExp::semantic(Scope *sc)
+{
+    //printf("TypeExp::semantic(%s)\n", type->toChars());
+    type = type->semantic(loc, sc);
+    return this;
 }
 
 void TypeExp::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
@@ -3269,9 +3297,8 @@ Expression *TupleExp::semantic(Scope *sc)
 
 void TupleExp::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 {
-    buf->writestring("tuple(");
+    buf->writestring("tuple");
     argsToCBuffer(buf, exps, hgs);
-    buf->writestring(")");
 }
 
 int TupleExp::checkSideEffect(int flag)

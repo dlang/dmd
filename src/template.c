@@ -792,6 +792,7 @@ void TemplateDeclaration::declareParameter(Scope *sc, TemplateParameter *tp, Obj
 
     if (targ)
     {
+	//printf("type %s\n", targ->toChars());
 	s = new AliasDeclaration(0, tp->ident, targ);
     }
     else if (sa)
@@ -2424,6 +2425,7 @@ void TemplateInstance::semantic(Scope *sc)
     // Add 'this' to the enclosing scope's members[] so the semantic routines
     // will get called on the instance members
 #if 1
+    int dosemantic3 = 0;
     {	Array *a;
 	int i;
 
@@ -2438,6 +2440,8 @@ void TemplateInstance::semantic(Scope *sc)
 		m = m->importedFrom;
 	    //printf("\t2: adding to module %s\n", m->toChars());
 	    a = m->members;
+	    if (m->semanticdone >= 3)
+		dosemantic3 = 1;
 	}
 	for (i = 0; 1; i++)
 	{
@@ -2551,9 +2555,13 @@ void TemplateInstance::semantic(Scope *sc)
      */
 //    if (sc->parent->isFuncDeclaration())
 
+	/* BUG 782: this has problems if the classes this depends on
+	 * are forward referenced. Find a way to defer semantic()
+	 * on this template.
+	 */
 	semantic2(sc2);
 
-    if (sc->func)
+    if (sc->func || dosemantic3)
     {
 	semantic3(sc2);
     }
@@ -2975,6 +2983,7 @@ Identifier *TemplateInstance::genIdent()
 	Expression *ea = isExpression(o);
 	Dsymbol *sa = isDsymbol(o);
 	Tuple *va = isTuple(o);
+	//printf("\to %p ta %p ea %p sa %p va %p\n", o, ta, ea, sa, va);
 	if (ta)
 	{
 	    buf.writeByte('T');
@@ -3006,6 +3015,10 @@ Identifier *TemplateInstance::genIdent()
 		goto Lsa;
 	    }
 	    buf.writeByte('V');
+	    if (ea->op == TOKtuple)
+	    {	ea->error("tuple is not a valid template value argument");
+		continue;
+	    }
 #if 1
 	    buf.writestring(ea->type->deco);
 #else

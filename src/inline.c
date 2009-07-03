@@ -245,6 +245,11 @@ int UnaExp::inlineCost(InlineCostState *ics)
     return 1 + e1->inlineCost(ics);
 }
 
+int AssertExp::inlineCost(InlineCostState *ics)
+{
+    return 1 + e1->inlineCost(ics) + (msg ? msg->inlineCost(ics) : 0);
+}
+
 int BinExp::inlineCost(InlineCostState *ics)
 {
     return 1 + e1->inlineCost(ics) + e2->inlineCost(ics);
@@ -556,6 +561,16 @@ Expression *UnaExp::doInline(InlineDoState *ids)
 
     ue->e1 = e1->doInline(ids);
     return ue;
+}
+
+Expression *AssertExp::doInline(InlineDoState *ids)
+{
+    AssertExp *ae = (AssertExp *)copy();
+
+    ae->e1 = e1->doInline(ids);
+    if (msg)
+	ae->msg = msg->doInline(ids);
+    return ae;
 }
 
 Expression *BinExp::doInline(InlineDoState *ids)
@@ -977,6 +992,14 @@ Expression *DeclarationExp::inlineScan(InlineScanState *iss)
 Expression *UnaExp::inlineScan(InlineScanState *iss)
 {
     e1 = e1->inlineScan(iss);
+    return this;
+}
+
+Expression *AssertExp::inlineScan(InlineScanState *iss)
+{
+    e1 = e1->inlineScan(iss);
+    if (msg)
+	msg = msg->inlineScan(iss);
     return this;
 }
 

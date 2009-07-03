@@ -78,6 +78,7 @@ Module::Module(char *filename, Identifier *ident, int doDocComment, int doHdrGen
     searchCacheIdent = NULL;
     searchCacheSymbol = NULL;
     searchCacheFlags = 0;
+    semanticstarted = 0;
     semanticdone = 0;
     decldefs = NULL;
     vmoduleinfo = NULL;
@@ -229,6 +230,19 @@ Module *Module::load(Loc loc, Array *packages, Identifier *ident)
     char *filename;
 
     //printf("Module::load(ident = '%s')\n", ident->toChars());
+
+    if (global.params.verbose)
+    {
+	printf("import    ");
+	if (packages)
+	{
+	    for (size_t i = 0; i < packages->dim; i++)
+	    {   Identifier *pid = (Identifier *)packages->data[i];
+		printf("%s.", pid->toChars());
+	    }
+	}
+	printf("%s\n", ident->toChars());
+    }
 
     // Build module filename by turning:
     //	foo.bar.baz
@@ -598,11 +612,11 @@ void Module::parse()
 void Module::semantic()
 {   int i;
 
-    if (semanticdone)
+    if (semanticstarted)
 	return;
 
     //printf("+Module::semantic(this = %p, '%s'): parent = %p\n", this, toChars(), parent);
-    semanticdone = 1;
+    semanticstarted = 1;
 
     // Note that modules get their own scope, from scratch.
     // This is so regardless of where in the syntax a module
@@ -639,6 +653,7 @@ void Module::semantic()
 
     sc = sc->pop();
     sc->pop();
+    semanticdone = semanticstarted;
     //printf("-Module::semantic(this = %p, '%s'): parent = %p\n", this, toChars(), parent);
 }
 
@@ -656,10 +671,10 @@ void Module::semantic2()
 	return;
     }
     //printf("Module::semantic2('%s'): parent = %p\n", toChars(), parent);
-    if (semanticdone >= 2)
+    if (semanticstarted >= 2)
 	return;
-    assert(semanticdone == 1);
-    semanticdone = 2;
+    assert(semanticstarted == 1);
+    semanticstarted = 2;
 
     // Note that modules get their own scope, from scratch.
     // This is so regardless of where in the syntax a module
@@ -677,6 +692,7 @@ void Module::semantic2()
 
     sc = sc->pop();
     sc->pop();
+    semanticdone = semanticstarted;
     //printf("-Module::semantic2('%s'): parent = %p\n", toChars(), parent);
 }
 
@@ -684,10 +700,10 @@ void Module::semantic3()
 {   int i;
 
     //printf("Module::semantic3('%s'): parent = %p\n", toChars(), parent);
-    if (semanticdone >= 3)
+    if (semanticstarted >= 3)
 	return;
-    assert(semanticdone == 2);
-    semanticdone = 3;
+    assert(semanticstarted == 2);
+    semanticstarted = 3;
 
     // Note that modules get their own scope, from scratch.
     // This is so regardless of where in the syntax a module
@@ -706,15 +722,16 @@ void Module::semantic3()
 
     sc = sc->pop();
     sc->pop();
+    semanticdone = semanticstarted;
 }
 
 void Module::inlineScan()
 {   int i;
 
-    if (semanticdone >= 4)
+    if (semanticstarted >= 4)
 	return;
-    assert(semanticdone == 3);
-    semanticdone = 4;
+    assert(semanticstarted == 3);
+    semanticstarted = 4;
 
     // Note that modules get their own scope, from scratch.
     // This is so regardless of where in the syntax a module
@@ -730,6 +747,7 @@ void Module::inlineScan()
 
 	s->inlineScan();
     }
+    semanticdone = semanticstarted;
 }
 
 /****************************************************

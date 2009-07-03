@@ -742,6 +742,7 @@ Dsymbol *ArrayScopeSymbol::search(Loc loc, Identifier *ident, int flags)
     {	VarDeclaration **pvar;
 	Expression *ce;
 
+    L1:
 	if (type)
  	{
 	    VarDeclaration *v = new VarDeclaration(0, Type::tsize_t, Id::dollar, NULL);
@@ -767,6 +768,16 @@ Dsymbol *ArrayScopeSymbol::search(Loc loc, Identifier *ident, int flags)
 	}
 	else
 	    return NULL;
+
+	if (ce->op == TOKtype)
+	{
+	    Type *t = ((TypeExp *)ce)->type;
+	    if (t->ty == Ttuple)
+	    {	type = (TypeTuple *)t;
+		goto L1;
+	    }
+	}
+
 	if (!*pvar)
 	{
 	    VarDeclaration *v = new VarDeclaration(0, Type::tsize_t, Id::dollar, NULL);

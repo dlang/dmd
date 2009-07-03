@@ -2469,7 +2469,7 @@ Lnotcovariant:
 void TypeFunction::toDecoBuffer(OutBuffer *buf)
 {   unsigned char mc;
 
-    //printf("TypeFunction::toDecoBuffer() this = %p\n", this);
+    //printf("TypeFunction::toDecoBuffer() this = %p %s\n", this, toChars());
     //static int nest; if (++nest == 50) *(char*)0=0;
     if (inuse)
     {	inuse = 2;		// flag error to caller
@@ -2489,6 +2489,7 @@ void TypeFunction::toDecoBuffer(OutBuffer *buf)
     buf->writeByte(mc);
     // Write argument types
     Argument::argsToDecoBuffer(buf, parameters);
+    //if (buf->data[buf->offset - 1] == '@') halt();
     buf->writeByte('Z' - varargs);	// mark end of arg list
     next->toDecoBuffer(buf);
     inuse--;
@@ -2498,6 +2499,11 @@ void TypeFunction::toCBuffer2(OutBuffer *buf, Identifier *ident, HdrGenState *hg
 {
     char *p = NULL;
 
+    if (inuse)
+    {	inuse = 2;		// flag error to caller
+	return;
+    }
+    inuse++;
     if (hgs->ddoc != 1)
     {
 	switch (linkage)
@@ -2531,6 +2537,7 @@ void TypeFunction::toCBuffer2(OutBuffer *buf, Identifier *ident, HdrGenState *hg
     Argument::argsToCBuffer(buf, hgs, parameters, varargs);
     if (next && (!ident || ident->toHChars2() == ident->toChars()))
 	next->toCBuffer2(buf, NULL, hgs);
+    inuse--;
 }
 
 Type *TypeFunction::semantic(Loc loc, Scope *sc)
@@ -2571,8 +2578,17 @@ Type *TypeFunction::semantic(Loc loc, Scope *sc)
 	{   Argument *arg = Argument::getNth(parameters, i);
 	    Type *t;
 
+	    inuse++;
 	    arg->type = arg->type->semantic(loc,sc);
+	    if (inuse == 1) inuse--;
 	    t = arg->type->toBasetype();
+
+	    /* If arg turns out to be a tuple, the number of parameters may
+	     * change.
+	     */
+	    if (t->ty == Ttuple)
+		dim = Argument::dim(parameters);
+
 	    if (arg->inout != In)
 	    {
 		if (t->ty == Tsarray)
@@ -3762,7 +3778,11 @@ Expression *TypeTypedef::dotExp(Scope *sc, Expression *e, Identifier *ident)
 
 	    assert(v);
 	    if (v->init)
-		return v->init->toExpression();
+	    {	if (v->init->isVoidInitializer())
+		    error(e->loc, "%s.init is void", v->toChars());
+		else
+		    return v->init->toExpression();
+	    }
 	}
 	return defaultInit();
     }
@@ -4515,7 +4535,8 @@ TypeTuple::TypeTuple(Expressions *exps)
 	arguments->setDim(exps->dim);
 	for (size_t i = 0; i < exps->dim; i++)
 	{   Expression *e = (Expression *)exps->data[i];
-	    assert(e->type->ty != Ttuple);
+	    if (e->type->ty == Ttuple)
+		e->error("cannot form tuple of tuples");
 	    Argument *arg = new Argument(In, e->type, NULL, NULL);
 	    arguments->data[i] = (void *)arg;
 	}
@@ -4815,7 +4836,7 @@ void Argument::argsToCBuffer(OutBuffer *buf, HdrGenState *hgs, Arguments *argume
 
 void Argument::argsToDecoBuffer(OutBuffer *buf, Arguments *arguments)
 {
-    //printf("Argument::argsToDecoBuffer() this = %p\n", this);
+    //printf("Argument::argsToDecoBuffer()\n");
 
     // Write argument types
     if (arguments)

@@ -4304,6 +4304,7 @@ Expression *Parser::parseUnaryExp()
 			    }
 			    e = new TypeDotIdExp(loc, t, token.ident);
 			    nextToken();
+			    e = parsePostExp(e);
 			}
 			else
 			{

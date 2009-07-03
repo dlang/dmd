@@ -51,13 +51,16 @@ enum PROT AggregateDeclaration::prot()
 }
 
 void AggregateDeclaration::semantic2(Scope *sc)
-{   int i;
-
+{
     //printf("AggregateDeclaration::semantic2(%s)\n", toChars());
+    if (scope)
+    {	error("has forward references");
+	return;
+    }
     if (members)
     {
 	sc = sc->push(this);
-	for (i = 0; i < members->dim; i++)
+	for (size_t i = 0; i < members->dim; i++)
 	{
 	    Dsymbol *s = (Dsymbol *)members->data[i];
 	    s->semantic2(sc);

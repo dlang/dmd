@@ -1678,7 +1678,7 @@ Statement *ConditionalStatement::syntaxCopy()
 
 Statement *ConditionalStatement::semantic(Scope *sc)
 {
-    printf("ConditionalStatement::semantic()\n");
+    //printf("ConditionalStatement::semantic()\n");
 
     // If we can short-circuit evaluate the if statement, don't do the
     // semantic analysis of the skipped code.
@@ -2344,7 +2344,9 @@ Statement *ReturnStatement::semantic(Scope *sc)
 	{   VarExp *ve = (VarExp *)exp;
 	    VarDeclaration *v = ve->var->isVarDeclaration();
 
-	    if (fd->nrvo_var == NULL)
+	    if (!v)
+		fd->nrvo_can = 0;
+	    else if (fd->nrvo_var == NULL)
 	    {	if (!v->isDataseg() && !v->isParameter() && v->toParent2() == fd)
 		    fd->nrvo_var = v;
 		else

@@ -574,8 +574,8 @@ Expression *ModExp::constFold()
 	    e = new RealExp(loc, creall(c), type);
 	else if (type->isimaginary())
 	    e = new RealExp(loc, cimagl(c), type);
-	//else if (type->iscomplex())
-	    //e = new ComplexExp(loc, c, type);
+	else if (type->iscomplex())
+	    e = new ComplexExp(loc, c, type);
 	else
 	    assert(0);
     }
