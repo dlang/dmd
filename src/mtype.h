@@ -390,7 +390,6 @@ struct TypeFunction : Type
     Type *semantic(Loc loc, Scope *sc);
     void toDecoBuffer(OutBuffer *buf);
     void toCBuffer2(OutBuffer *buf, Identifier *ident, HdrGenState *hgs);
-    void argsToCBuffer(OutBuffer *buf, HdrGenState *hgs);
     MATCH deduceType(Type *tparam, Array *parameters, Array *atypes);
     TypeInfoDeclaration *getTypeInfoDeclaration();
 
@@ -604,6 +603,7 @@ struct Argument : Object
     Argument *syntaxCopy();
     static Array *arraySyntaxCopy(Array *args);
     static char *argsTypesToChars(Array *args, int varargs);
+    static void argsToCBuffer(OutBuffer *buf, HdrGenState *hgs, Array *arguments, int varargs);
 };
 
 extern int PTRSIZE;

@@ -187,7 +187,9 @@ void ExpStatement::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 Statement *ExpStatement::semantic(Scope *sc)
 {
     if (exp)
-	exp = exp->semantic(sc);
+    {	exp = exp->semantic(sc);
+	exp = resolveProperties(sc, exp);
+    }
     return this;
 }
 

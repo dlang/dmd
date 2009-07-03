@@ -183,6 +183,7 @@ struct TemplateInstance : ScopeDsymbol
     ScopeDsymbol *argsym;	// argument symbol table
     AliasDeclaration *aliasdecl;	// !=NULL if instance is an alias for its
 					// sole member
+    WithScopeSymbol *withsym;		// if a member of a with statement
     int semanticdone;	// has semantic() been done?
     int nest;		// for recursion detection
 

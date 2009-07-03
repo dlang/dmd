@@ -785,7 +785,10 @@ dt_t **TypeSArray::toDt(dt_t **pdt)
 		for (i = 1; i < len; i++)
 		{
 		    if (tbn->ty == Tstruct)
-			pdt = tnext->toDt(pdt);
+		    {	pdt = tnext->toDt(pdt);
+			while (*pdt)
+			    pdt = &((*pdt)->DTnext);
+		    }
 		    else
 			pdt = e->toDt(pdt);
 		}

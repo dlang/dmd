@@ -1263,6 +1263,7 @@ TemplateInstance::TemplateInstance(Loc loc, Identifier *ident)
     this->argsym = NULL;
     this->aliasdecl = NULL;
     this->semanticdone = 0;
+    this->withsym = NULL;
 }
 
 
@@ -1627,6 +1628,8 @@ TemplateDeclaration *TemplateInstance::findTemplateDeclaration(Scope *sc)
 #if LOG
 	    printf("It's an instance of '%s'\n", s->toChars());
 #endif
+	    withsym = scopesym->isWithScopeSymbol();
+
 	    s = s->toAlias();
 	    for (i = 1; i < idents.dim; i++)
 	    {   Dsymbol *sm;

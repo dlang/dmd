@@ -376,6 +376,7 @@ struct FuncDeclaration : Declaration
     void semantic(Scope *sc);
     void semantic3(Scope *sc);
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
+    void bodyToCBuffer(OutBuffer *buf, HdrGenState *hgs);
     int overrides(FuncDeclaration *fd);
     int overloadInsert(Dsymbol *s);
     FuncDeclaration *overloadExactMatch(Type *t);
@@ -430,6 +431,7 @@ struct FuncLiteralDeclaration : FuncDeclaration
 
     FuncLiteralDeclaration(Loc loc, Loc endloc, Type *type, enum TOK tok,
 	ForeachStatement *fes);
+    void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
     Dsymbol *syntaxCopy(Dsymbol *);
     int isNested();
 
@@ -444,6 +446,7 @@ struct CtorDeclaration : FuncDeclaration
     CtorDeclaration(Loc loc, Loc endloc, Array *arguments, int varargs);
     Dsymbol *syntaxCopy(Dsymbol *);
     void semantic(Scope *sc);
+    void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
     char *kind();
     char *toChars();
     int isVirtual();
@@ -459,6 +462,7 @@ struct DtorDeclaration : FuncDeclaration
     DtorDeclaration(Loc loc, Loc endloc);
     Dsymbol *syntaxCopy(Dsymbol *);
     void semantic(Scope *sc);
+    void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
     int addPreInvariant();
     int addPostInvariant();
     int overloadInsert(Dsymbol *s);
@@ -478,6 +482,7 @@ struct StaticCtorDeclaration : FuncDeclaration
     int addPreInvariant();
     int addPostInvariant();
     void emitComment(Scope *sc);
+    void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
 
     StaticCtorDeclaration *isStaticCtorDeclaration() { return this; }
 };
@@ -493,6 +498,7 @@ struct StaticDtorDeclaration : FuncDeclaration
     int addPreInvariant();
     int addPostInvariant();
     void emitComment(Scope *sc);
+    void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
 
     StaticDtorDeclaration *isStaticDtorDeclaration() { return this; }
 };
@@ -533,6 +539,7 @@ struct NewDeclaration : FuncDeclaration
     NewDeclaration(Loc loc, Loc endloc, Array *arguments, int varargs);
     Dsymbol *syntaxCopy(Dsymbol *);
     void semantic(Scope *sc);
+    void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
     char *kind();
     int isVirtual();
     int addPreInvariant();
@@ -548,6 +555,7 @@ struct DeleteDeclaration : FuncDeclaration
     DeleteDeclaration(Loc loc, Loc endloc, Array *arguments);
     Dsymbol *syntaxCopy(Dsymbol *);
     void semantic(Scope *sc);
+    void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
     char *kind();
     int isDelete();
     int isVirtual();

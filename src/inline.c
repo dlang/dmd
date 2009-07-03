@@ -983,12 +983,21 @@ int FuncDeclaration::canInline(int hasthis, int hdrscan)
 	    assert(0);
     }
 
-    assert(type->ty == Tfunction);
-    TypeFunction *tf = (TypeFunction *)(type);
+    if (type)
+    {	assert(type->ty == Tfunction);
+	TypeFunction *tf = (TypeFunction *)(type);
+	if (tf->varargs == 1)	// no variadic parameter lists
+	    goto Lno;
+    }
+    else
+    {	CtorDeclaration *ctor = isCtorDeclaration();
+
+	if (ctor && ctor->varargs == 1)
+	    goto Lno;
+    }
 
     if (
 	!fbody ||
-	tf->varargs == 1 ||	// no variadic parameter lists
 	!hdrscan &&
 	(
 #if 0

@@ -826,6 +826,12 @@ void FuncDeclaration::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
     //printf("FuncDeclaration::toCBuffer() '%s'\n", toChars());
 
     type->toCBuffer(buf, ident, hgs);
+    bodyToCBuffer(buf, hgs);
+}
+
+
+void FuncDeclaration::bodyToCBuffer(OutBuffer *buf, HdrGenState *hgs)
+{
     if (fbody &&
 	(!hgs->hdrgen || hgs->tpltMember || canInline(1,1))
        )
@@ -1470,6 +1476,20 @@ char *FuncLiteralDeclaration::kind()
     return (tok == TOKdelegate) ? (char*)"delegate" : (char*)"function";
 }
 
+void FuncLiteralDeclaration::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
+{
+    static Identifier *idfunc;
+    static Identifier *iddel;
+
+    if (!idfunc)
+	idfunc = new Identifier("function", 0);
+    if (!iddel)
+	iddel = new Identifier("delegate", 0);
+
+    type->toCBuffer(buf, ((tok == TOKdelegate) ? iddel : idfunc), hgs);
+    bodyToCBuffer(buf, hgs);
+}
+
 
 /********************************* CtorDeclaration ****************************/
 
@@ -1566,6 +1586,13 @@ int CtorDeclaration::addPostInvariant()
 }
 
 
+void CtorDeclaration::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
+{
+    buf->writestring("this");
+    Argument::argsToCBuffer(buf, hgs, arguments, varargs);
+    bodyToCBuffer(buf, hgs);
+}
+
 /********************************* DtorDeclaration ****************************/
 
 DtorDeclaration::DtorDeclaration(Loc loc, Loc endloc)
@@ -1618,6 +1645,14 @@ int DtorDeclaration::addPreInvariant()
 int DtorDeclaration::addPostInvariant()
 {
     return FALSE;
+}
+
+void DtorDeclaration::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
+{
+    if (hgs->hdrgen)
+	return;
+    buf->writestring("~this()");
+    bodyToCBuffer(buf, hgs);
 }
 
 /********************************* StaticCtorDeclaration ****************************/
@@ -1676,6 +1711,14 @@ int StaticCtorDeclaration::addPreInvariant()
 int StaticCtorDeclaration::addPostInvariant()
 {
     return FALSE;
+}
+
+void StaticCtorDeclaration::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
+{
+    if (hgs->hdrgen)
+	return;
+    buf->writestring("static this()");
+    bodyToCBuffer(buf, hgs);
 }
 
 /********************************* StaticDtorDeclaration ****************************/
@@ -1741,6 +1784,14 @@ int StaticDtorDeclaration::addPostInvariant()
     return FALSE;
 }
 
+void StaticDtorDeclaration::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
+{
+    if (hgs->hdrgen)
+	return;
+    buf->writestring("static ~this()");
+    bodyToCBuffer(buf, hgs);
+}
+
 /********************************* InvariantDeclaration ****************************/
 
 InvariantDeclaration::InvariantDeclaration(Loc loc, Loc endloc)
@@ -1803,7 +1854,8 @@ void InvariantDeclaration::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 {
     if (hgs->hdrgen)
 	return;
-    FuncDeclaration::toCBuffer(buf, hgs);
+    buf->writestring("invariant");
+    bodyToCBuffer(buf, hgs);
 }
 
 
@@ -1883,7 +1935,8 @@ void UnitTestDeclaration::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 {
     if (hgs->hdrgen)
 	return;
-    FuncDeclaration::toCBuffer(buf, hgs);
+    buf->writestring("unittest");
+    bodyToCBuffer(buf, hgs);
 }
 
 /********************************* NewDeclaration ****************************/
@@ -1964,6 +2017,12 @@ int NewDeclaration::addPostInvariant()
     return FALSE;
 }
 
+void NewDeclaration::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
+{
+    buf->writestring("new");
+    Argument::argsToCBuffer(buf, hgs, arguments, varargs);
+    bodyToCBuffer(buf, hgs);
+}
 
 
 /********************************* DeleteDeclaration ****************************/
@@ -2044,6 +2103,13 @@ int DeleteDeclaration::addPreInvariant()
 int DeleteDeclaration::addPostInvariant()
 {
     return FALSE;
+}
+
+void DeleteDeclaration::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
+{
+    buf->writestring("delete");
+    Argument::argsToCBuffer(buf, hgs, arguments, 0);
+    bodyToCBuffer(buf, hgs);
 }
 
 

@@ -1419,7 +1419,7 @@ Lagain:
     if (!s->isFuncDeclaration())	// functions are checked after overloading
 	checkDeprecated(sc, s);
     s = s->toAlias();
-    //printf("s = '%s', s->kind = '%s'\n", s->toChars(), s->kind());
+    //printf("s = '%s', s->kind = '%s', s->needThis() = %p\n", s->toChars(), s->kind(), s->needThis());
     if (!s->isFuncDeclaration())
 	checkDeprecated(sc, s);
 
@@ -1427,15 +1427,18 @@ Lagain:
 	thiscd = sc->func->parent->isClassDeclaration();
 
     // BUG: This should happen after overload resolution for functions, not before
-    if (s->needThis() && hasThis(sc) /*&& !s->isFuncDeclaration()*/)
+    if (s->needThis())
     {
-	// Supply an implicit 'this', as in
-	//	  this.ident
+	if (hasThis(sc) /*&& !s->isFuncDeclaration()*/)
+	{
+	    // Supply an implicit 'this', as in
+	    //	  this.ident
 
-	DotVarExp *de;
+	    DotVarExp *de;
 
-	de = new DotVarExp(loc, new ThisExp(loc), s->isDeclaration());
-	return de->semantic(sc);
+	    de = new DotVarExp(loc, new ThisExp(loc), s->isDeclaration());
+	    return de->semantic(sc);
+	}
     }
 
     em = s->isEnumMember();
@@ -1785,6 +1788,7 @@ char *StringExp::toChars()
 
     memset(&hgs, 0, sizeof(hgs));
     toCBuffer(&buf, &hgs);
+    buf.writeByte(0);
     p = (char *)buf.data;
     buf.data = NULL;
     return p;
@@ -2118,9 +2122,17 @@ Lagain:
 	s = ti->inst->toAlias();
 	sds2 = s->isScopeDsymbol();
 	if (!sds2)
-	{
+	{   Expression *e;
+
 	    //printf("s = %s, '%s'\n", s->kind(), s->toChars());
-	    Expression *e = new DsymbolExp(loc, s);
+	    if (ti->withsym)
+	    {
+		// Same as wthis.s
+		e = new VarExp(loc, ti->withsym->withstate->wthis);
+		e = new DotVarExp(loc, e, s->isDeclaration());
+	    }
+	    else
+		e = new DsymbolExp(loc, s);
 	    e = e->semantic(sc);
 	    //printf("-1ScopeExp::semantic()\n");
 	    return e;
@@ -5757,6 +5769,7 @@ Expression *CatExp::semantic(Scope *sc)
 	    type = Type::tint32;
 	    e = this;
 	}
+	e->type = e->type->semantic(loc, sc);
 	return e;
     }
     return this;

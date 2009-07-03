@@ -36,6 +36,7 @@
 #include "scope.h"
 #include "hdrgen.h"
 #include "doc.h"
+#include "mtype.h"
 
 struct Section
 {
@@ -649,15 +650,10 @@ void TypedefDeclaration::toDocBuffer(OutBuffer *buf)
 
 void CtorDeclaration::toDocBuffer(OutBuffer *buf)
 {
-    TypeFunction *tf = (TypeFunction *)type;
+    HdrGenState hgs;
 
     buf->writestring("this");
-    if (!tf)
-    {	// Need to create one
-	tf = new TypeFunction(arguments, Type::tvoid, varargs, LINKd);
-    }
-    HdrGenState hgs;
-    tf->argsToCBuffer(buf, &hgs);
+    Argument::argsToCBuffer(buf, &hgs, arguments, varargs);
     buf->writestring(";\n");
 }
 

@@ -2207,6 +2207,12 @@ Type *TypeFunction::syntaxCopy()
 
 int Type::covariant(Type *t)
 {
+#if 0
+    printf("Type::covariant(t = %s) %s\n", t->toChars(), toChars());
+    printf("deco = %p, %p\n", deco, t->deco);
+    printf("ty = %d\n", next->ty);
+#endif
+
     int inoutmismatch = 0;
 
     if (equals(t))
@@ -2339,45 +2345,9 @@ void TypeFunction::toCBuffer2(OutBuffer *buf, Identifier *ident, HdrGenState *hg
 	    buf->writestring(ident->toHChars2());
 	}
     }
-    argsToCBuffer(buf, hgs);
+    Argument::argsToCBuffer(buf, hgs, arguments, varargs);
     if (!ident || ident->toHChars2() == ident->toChars())
 	next->toCBuffer2(buf, NULL, hgs);
-}
-
-void TypeFunction::argsToCBuffer(OutBuffer *buf, HdrGenState *hgs)
-{
-    buf->writeByte('(');
-    if (arguments)
-    {	int i;
-	OutBuffer argbuf;
-
-	for (i = 0; i < arguments->dim; i++)
-	{   Argument *arg;
-
-	    if (i)
-		buf->writestring(", ");
-	    arg = (Argument *)arguments->data[i];
-	    if (arg->inout == Out)
-		buf->writestring("out ");
-	    else if (arg->inout == InOut)
-		buf->writestring("inout ");
-	    argbuf.reset();
-	    arg->type->toCBuffer2(&argbuf, arg->ident, hgs);
-	    if (arg->defaultArg)
-	    {
-		argbuf.writestring(" = ");
-		arg->defaultArg->toCBuffer(&argbuf, hgs);
-	    }
-	    buf->write(&argbuf);
-	}
-	if (varargs)
-	{
-	    if (i && varargs == 1)
-		buf->writeByte(',');
-	    buf->writestring("...");
-	}
-    }
-    buf->writeByte(')');
 }
 
 Type *TypeFunction::semantic(Loc loc, Scope *sc)
@@ -2575,7 +2545,7 @@ void TypeDelegate::toCBuffer2(OutBuffer *buf, Identifier *ident, HdrGenState *hg
     OutBuffer args;
     TypeFunction *tf = (TypeFunction *)next;
 
-    tf->argsToCBuffer(&args, hgs);
+    Argument::argsToCBuffer(&args, hgs, tf->arguments, tf->varargs);
     buf->prependstring(args.toChars());
     buf->prependstring(" delegate");
     if (ident)
@@ -2691,8 +2661,11 @@ void TypeQualified::resolveHelper(Loc loc, Scope *sc,
     Type *t;
     Expression *e;
 
-    //printf("TypeQualified::resolveHelper(sc = %p, idents = '%s')\n", sc, toChars());
-    //printf("\tscopesym = '%s'\n", scopesym->toChars());
+#if 0
+    printf("TypeQualified::resolveHelper(sc = %p, idents = '%s')\n", sc, toChars());
+    if (scopesym)
+	printf("\tscopesym = '%s'\n", scopesym->toChars());
+#endif
     *pe = NULL;
     *pt = NULL;
     *ps = NULL;
@@ -2835,6 +2808,11 @@ L1:
 	    *ps = s;
 	    return;
 	}
+	if (t->ty == Tinstance && t != this && !t->deco)
+	{   error(loc, "forward reference to '%s'", t->toChars());
+	    return;
+	}
+
 	if (t->ty == Tident && t != this)
 	{
 	    Scope *scx;
@@ -4158,4 +4136,41 @@ char *Argument::argsTypesToChars(Array *args, int varargs)
 
     return buf->toChars();
 }
+
+void Argument::argsToCBuffer(OutBuffer *buf, HdrGenState *hgs, Array *arguments, int varargs)
+{
+    buf->writeByte('(');
+    if (arguments)
+    {	int i;
+	OutBuffer argbuf;
+
+	for (i = 0; i < arguments->dim; i++)
+	{   Argument *arg;
+
+	    if (i)
+		buf->writestring(", ");
+	    arg = (Argument *)arguments->data[i];
+	    if (arg->inout == Out)
+		buf->writestring("out ");
+	    else if (arg->inout == InOut)
+		buf->writestring("inout ");
+	    argbuf.reset();
+	    arg->type->toCBuffer2(&argbuf, arg->ident, hgs);
+	    if (arg->defaultArg)
+	    {
+		argbuf.writestring(" = ");
+		arg->defaultArg->toCBuffer(&argbuf, hgs);
+	    }
+	    buf->write(&argbuf);
+	}
+	if (varargs)
+	{
+	    if (i && varargs == 1)
+		buf->writeByte(',');
+	    buf->writestring("...");
+	}
+    }
+    buf->writeByte(')');
+}
+
 

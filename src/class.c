@@ -516,7 +516,8 @@ void ClassDeclaration::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 
 	if (i)
 	    buf->writeByte(',');
-	buf->writestring(b->base->ident->toChars());
+	//buf->writestring(b->base->ident->toChars());
+	b->type->toCBuffer(buf, NULL, hgs);
     }
     buf->writenl();
     buf->writeByte('{');
