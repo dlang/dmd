@@ -2490,6 +2490,7 @@ elem *AssignExp::toElem(IRState *irs)
 	    //elem_print(e);
 	    goto Lret;
 	}
+#if 0
 	else if (e2->op == TOKadd || e2->op == TOKmin)
 	{
 	    /* It's ea[] = eb[] +- ec[]
@@ -2528,6 +2529,7 @@ elem *AssignExp::toElem(IRState *irs)
 	    e = el_bin(OPcall, type->totym(), el_var(rtlsym[rtl]), ep);
 	    goto Lret;
 	}
+#endif
 	else
 	{
 	    /* It's array1[]=array2[]
@@ -2586,6 +2588,7 @@ elem *AssignExp::toElem(IRState *irs)
 		e = el_pair(eto->Ety, el_copytree(elen), e);
 		e = el_combine(eto, e);
 	    }
+#if V2
 	    else if (postblit && op != TOKblit)
 	    {
 		/* Generate:
@@ -2599,6 +2602,7 @@ elem *AssignExp::toElem(IRState *irs)
 		int rtl = (op == TOKconstruct) ? RTLSYM_ARRAYCTOR : RTLSYM_ARRAYASSIGN;
 		e = el_bin(OPcall, type->totym(), el_var(rtlsym[rtl]), ep);
 	    }
+#endif
 	    else
 	    {
 		// Generate:

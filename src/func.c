@@ -354,7 +354,6 @@ void FuncDeclaration::semantic(Scope *sc)
 		    cd->vtbl.push(this);
 		    vtblIndex = vi;
 		}
-
 		break;
 
 	    case -2:	// can't determine because of fwd refs
@@ -367,8 +366,10 @@ void FuncDeclaration::semantic(Scope *sc)
 		if (fdv->isFinal())
 		    error("cannot override final function %s", fdv->toPrettyChars());
 
+#if V2
 		if (!isOverride() && global.params.warnings)
 		    error("overrides base class function %s, but is not marked with 'override'", fdv->toPrettyChars());
+#endif
 
 		if (fdv->toParent() == parent)
 		{
@@ -381,7 +382,9 @@ void FuncDeclaration::semantic(Scope *sc)
 #if !BREAKABI
 			&& !isDtorDeclaration()
 #endif
+#if V2
 			&& !isPostBlitDeclaration()
+#endif
 			)
 			error("multiple overrides of same function");
 		}
@@ -788,11 +791,7 @@ void FuncDeclaration::semantic3(Scope *sc)
 		    /* Generate identifier for un-named parameter,
 		     * because we need it later on.
 		     */
-		    OutBuffer buf;
-		    buf.printf("_param_%zu", i);
-		    char *name = (char *)buf.extractData();
-		    id = new Identifier(name, TOKidentifier);
-		    arg->ident = id;
+		    arg->ident = id = Identifier::generateId("_param_", i);
 		}
 		VarDeclaration *v = new VarDeclaration(loc, arg->type, id, NULL);
 		//printf("declaring parameter %s of type %s\n", v->toChars(), v->type->toChars());
@@ -1446,6 +1445,10 @@ int FuncDeclaration::overloadInsert(Dsymbol *s)
     //printf("\ttrue: no conflict\n");
     return TRUE;
 }
+
+/********************************************
+ * Find function in overload list that exactly matches t.
+ */
 
 /***************************************************
  * Visit each overloaded function in turn, and call

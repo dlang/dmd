@@ -775,7 +775,7 @@ void FuncDeclaration::toDocBuffer(OutBuffer *buf)
 	    {
 		TemplateParameter *tp = (TemplateParameter *)td->origParameters->data[i];
 		if (i)
-		    buf->writeByte(',');
+		    buf->writestring(", ");
 		tp->toCBuffer(buf, &hgs);
 	    }
 	    buf->writeByte(')');

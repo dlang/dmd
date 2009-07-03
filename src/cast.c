@@ -49,12 +49,14 @@ Expression *Expression::implicitCastTo(Scope *sc, Type *t)
 	    error("implicit conversion of expression (%s) of type %s to %s can cause loss of data",
 		toChars(), type->toChars(), t->toChars());
 	}
+#if V2
 	if (match == MATCHconst && t == type->constOf())
 	{
 	    Expression *e = copy();
 	    e->type = t;
 	    return e;
 	}
+#endif
 	return castTo(sc, t);
     }
 
@@ -326,9 +328,11 @@ MATCH IntegerExp::implicitConvTo(Type *t)
     return Expression::implicitConvTo(t);
 
 Lyes:
+    //printf("MATCHconvert\n");
     return MATCHconvert;
 
 Lno:
+    //printf("MATCHnomatch\n");
     return MATCHnomatch;
 }
 
@@ -361,6 +365,7 @@ MATCH NullExp::implicitConvTo(Type *t)
     return Expression::implicitConvTo(t);
 }
 
+#if V2
 MATCH StructLiteralExp::implicitConvTo(Type *t)
 {
 #if 0
@@ -391,6 +396,7 @@ MATCH StructLiteralExp::implicitConvTo(Type *t)
     }
     return m;
 }
+#endif
 
 MATCH StringExp::implicitConvTo(Type *t)
 {   MATCH m;
@@ -1328,9 +1334,9 @@ Expression *BinExp::scaleFactor(Scope *sc)
  *	0	failed
  */
 
-int typeMerge(Scope *sc, Type **pt, Expression **pe1, Expression **pe2)
+int typeMerge(Scope *sc, Expression *e, Type **pt, Expression **pe1, Expression **pe2)
 {
-    //printf("typeMerge() %s\n", toChars());
+    //printf("typeMerge() %s op %s\n", (*pe1)->toChars(), (*pe2)->toChars());
     //dump(0);
 
     Expression *e1 = (*pe1)->integralPromotions(sc);
@@ -1557,6 +1563,29 @@ Lagain:
     {
 	assert(0);
     }
+    else if (e1->op == TOKslice && t1->ty == Tarray &&
+	     e2->implicitConvTo(t1->nextOf()))
+    {	// T[] op T
+	e2 = e2->castTo(sc, t1->nextOf());
+	t = t1->nextOf()->arrayOf();
+    }
+    else if (e2->op == TOKslice && t2->ty == Tarray &&
+	     e1->implicitConvTo(t2->nextOf()))
+    {	// T op T[]
+	e1 = e1->castTo(sc, t2->nextOf());
+	t = t2->nextOf()->arrayOf();
+
+	//printf("test %s\n", e->toChars());
+	e1 = e1->optimize(WANTvalue);
+	if (e && e->isCommutative() && e1->isConst())
+	{   /* Swap operands to minimize number of functions generated
+	     */
+	    //printf("swap %s\n", e->toChars());
+	    Expression *tmp = e1;
+	    e1 = e2;
+	    e2 = tmp;
+	}
+    }
     else
     {
      Lincompatible:
@@ -1568,10 +1597,10 @@ Lret:
     *pe1 = e1;
     *pe2 = e2;
 #if 0
-    printf("-typeMerge() %s\n", toChars());
+    printf("-typeMerge() %s op %s\n", e1->toChars(), e2->toChars());
     if (e1->type) printf("\tt1 = %s\n", e1->type->toChars());
     if (e2->type) printf("\tt2 = %s\n", e2->type->toChars());
-    printf("\ttype = %s\n", type->toChars());
+    printf("\ttype = %s\n", t->toChars());
 #endif
     //dump(0);
     return 1;
@@ -1597,35 +1626,13 @@ Expression *BinExp::typeCombine(Scope *sc)
     Type *t1 = e1->type->toBasetype();
     Type *t2 = e2->type->toBasetype();
 
-    if (op == TOKcat)
-    {
-	if ((t1->ty == Tsarray || t1->ty == Tarray) &&
-	    (t2->ty == Tsarray || t2->ty == Tarray) &&
-	    (t1->nextOf()->mod || t2->nextOf()->mod) &&
-	    (t1->nextOf()->mod != t2->nextOf()->mod)
-	   )
-	{
-	    t1 = t1->nextOf()->mutableOf()->constOf()->arrayOf();
-	    t2 = t2->nextOf()->mutableOf()->constOf()->arrayOf();
-//t1 = t1->constOf();
-//t2 = t2->constOf();
-	    if (e1->op == TOKstring && !((StringExp *)e1)->committed)
-		e1->type = t1;
-	    else
-		e1 = e1->castTo(sc, t1);
-	    if (e2->op == TOKstring && !((StringExp *)e2)->committed)
-		e2->type = t2;
-	    else
-		e2 = e2->castTo(sc, t2);
-	}
-    }
-    else if (op == TOKmin || op == TOKadd)
+    if (op == TOKmin || op == TOKadd)
     {
 	if (t1 == t2 && (t1->ty == Tstruct || t1->ty == Tclass))
 	    goto Lerror;
     }
 
-    if (!typeMerge(sc, &type, &e1, &e2))
+    if (!typeMerge(sc, this, &type, &e1, &e2))
 	goto Lerror;
     return this;
 

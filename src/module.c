@@ -110,6 +110,7 @@ Module::Module(char *filename, Identifier *ident, int doDocComment, int doHdrGen
 
     srcfilename = FileName::defaultExt(filename, global.mars_ext);
     if (!srcfilename->equalsExt(global.mars_ext) &&
+        !srcfilename->equalsExt(global.hdr_ext) &&
         !srcfilename->equalsExt("dd"))
     {
 	if (srcfilename->equalsExt("html") ||

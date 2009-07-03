@@ -834,7 +834,7 @@ void ClassDeclaration::toDt2(dt_t **pdt, ClassDeclaration *cd)
 	if (dt)
 	{
 	    if (v->offset < offset)
-		error("2duplicate union initialization for %s", v->toChars());
+		error("duplicated union initialization for %s", v->toChars());
 	    else
 	    {
 		if (offset < v->offset)

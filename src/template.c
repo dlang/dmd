@@ -781,7 +781,8 @@ MATCH TemplateDeclaration::deduceFunctionTemplateMatch(Loc loc, Objects *targsi,
 	memcpy(dedargs->data, targsi->data, nargsi * sizeof(*dedargs->data));
 
 	for (i = 0; i < nargsi; i++)
-	{   TemplateParameter *tp = (TemplateParameter *)parameters->data[i];
+	{   assert(i < parameters->dim);
+	    TemplateParameter *tp = (TemplateParameter *)parameters->data[i];
 	    MATCH m;
 	    Declaration *sparam;
 
@@ -1436,9 +1437,11 @@ int templateParameterLookup(Type *tparam, TemplateParameters *parameters)
 MATCH Type::deduceType(Scope *sc, Type *tparam, TemplateParameters *parameters,
 	Objects *dedtypes)
 {
-    //printf("Type::deduceType()\n");
-    //printf("\tthis   = %d, ", ty); print();
-    //printf("\ttparam = %d, ", tparam->ty); tparam->print();
+#if 0
+    printf("Type::deduceType()\n");
+    printf("\tthis   = %d, ", ty); print();
+    printf("\ttparam = %d, ", tparam->ty); tparam->print();
+#endif
     if (!tparam)
 	goto Lnomatch;
 
@@ -1476,42 +1479,52 @@ MATCH Type::deduceType(Scope *sc, Type *tparam, TemplateParameters *parameters,
 	// Found the corresponding parameter tp
 	if (!tp->isTemplateTypeParameter())
 	    goto Lnomatch;
+	Type *tt = this;
 	Type *at = (Type *)dedtypes->data[i];
-	if (!at)
-	{   // 3*3 == 9 cases
-	    if (tparam->isMutable())
-	    {	// foo(U:U) T            => T
-		// foo(U:U) const(T)     => const(T)
-		// foo(U:U) invariant(T) => invariant(T)
-		dedtypes->data[i] = (void *)this;
+
+	// 3*3 == 9 cases
+	if (tparam->isMutable())
+	{   // foo(U:U) T            => T
+	    // foo(U:U) const(T)     => const(T)
+	    // foo(U:U) invariant(T) => invariant(T)
+	    if (!at)
+	    {   dedtypes->data[i] = (void *)this;
 		goto Lexact;
 	    }
-	    else if (mod == tparam->mod)
-	    {	// foo(U:const(U))     const(T)     => T
-		// foo(U:invariant(U)) invariant(T) => T
-		dedtypes->data[i] = (void *)mutableOf();
+	}
+	else if (mod == tparam->mod)
+	{   // foo(U:const(U))     const(T)     => T
+	    // foo(U:invariant(U)) invariant(T) => T
+	    tt = mutableOf();
+	    if (!at)
+	    {   dedtypes->data[i] = (void *)tt;
 		goto Lexact;
 	    }
-	    else if (tparam->isConst())
-	    {	// foo(U:const(U)) T            => T
-		// foo(U:const(U)) invariant(T) => T
-		dedtypes->data[i] = (void *)mutableOf();
+	}
+	else if (tparam->isConst())
+	{   // foo(U:const(U)) T            => T
+	    // foo(U:const(U)) invariant(T) => T
+	    tt = mutableOf();
+	    if (!at)
+	    {   dedtypes->data[i] = (void *)tt;
 		goto Lconst;
 	    }
-	    else
-	    {	// foo(U:invariant(U)) T        => nomatch
-		// foo(U:invariant(U)) const(T) => nomatch
+	}
+	else
+	{   // foo(U:invariant(U)) T        => nomatch
+	    // foo(U:invariant(U)) const(T) => nomatch
+	    if (!at)
 		goto Lnomatch;
-	    }
 	}
-	if (equals(at))
+
+	if (tt->equals(at))
 	    goto Lexact;
-	else if (ty == Tclass && at->ty == Tclass)
+	else if (tt->ty == Tclass && at->ty == Tclass)
 	{
-	    return implicitConvTo(at);
+	    return tt->implicitConvTo(at);
 	}
-	else if (ty == Tsarray && at->ty == Tarray &&
-	    nextOf()->implicitConvTo(at->nextOf()) >= MATCHconst)
+	else if (tt->ty == Tsarray && at->ty == Tarray &&
+	    tt->nextOf()->implicitConvTo(at->nextOf()) >= MATCHconst)
 	{
 	    goto Lexact;
 	}
