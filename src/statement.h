@@ -285,7 +285,7 @@ struct ForStatement : Statement
 
 struct ForeachStatement : Statement
 {
-    enum TOK op;	// TOKforeach or TOKforeach_reverse
+    enum TOK op;		// TOKforeach or TOKforeach_reverse
     Arguments *arguments;	// array of Argument*'s
     Expression *aggr;
     Statement *body;
@@ -299,6 +299,33 @@ struct ForeachStatement : Statement
     Array gotos;	// forward referenced goto's go here
 
     ForeachStatement(Loc loc, enum TOK op, Arguments *arguments, Expression *aggr, Statement *body);
+    Statement *syntaxCopy();
+    Statement *semantic(Scope *sc);
+    int hasBreak();
+    int hasContinue();
+    int usesEH();
+    int fallOffEnd();
+    int comeFrom();
+    Expression *interpret(InterState *istate);
+    void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
+
+    Statement *inlineScan(InlineScanState *iss);
+
+    void toIR(IRState *irs);
+};
+
+struct ForeachRangeStatement : Statement
+{
+    enum TOK op;		// TOKforeach or TOKforeach_reverse
+    Argument *arg;		// loop index variable
+    Expression *lwr;
+    Expression *upr;
+    Statement *body;
+
+    VarDeclaration *key;
+
+    ForeachRangeStatement(Loc loc, enum TOK op, Argument *arg,
+	Expression *lwr, Expression *upr, Statement *body);
     Statement *syntaxCopy();
     Statement *semantic(Scope *sc);
     int hasBreak();

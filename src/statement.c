@@ -1090,7 +1090,8 @@ Statement *ForeachStatement::syntaxCopy()
 {
     Arguments *args = Argument::arraySyntaxCopy(arguments);
     Expression *exp = aggr->syntaxCopy();
-    ForeachStatement *s = new ForeachStatement(loc, op, args, exp, body->syntaxCopy());
+    ForeachStatement *s = new ForeachStatement(loc, op, args, exp,
+	body ? body->syntaxCopy() : NULL);
     return s;
 }
 
@@ -1589,7 +1590,6 @@ void ForeachStatement::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 {
     buf->writestring(Token::toChars(op));
     buf->writestring(" (");
-    int i;
     for (int i = 0; i < arguments->dim; i++)
     {
 	Argument *a = (Argument *)arguments->data[i];
@@ -1605,6 +1605,146 @@ void ForeachStatement::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
     }
     buf->writestring("; ");
     aggr->toCBuffer(buf, hgs);
+    buf->writebyte(')');
+    buf->writenl();
+    buf->writebyte('{');
+    buf->writenl();
+    if (body)
+	body->toCBuffer(buf, hgs);
+    buf->writebyte('}');
+    buf->writenl();
+}
+
+/**************************** ForeachRangeStatement ***************************/
+
+ForeachRangeStatement::ForeachRangeStatement(Loc loc, enum TOK op, Argument *arg,
+	Expression *lwr, Expression *upr, Statement *body)
+    : Statement(loc)
+{
+    this->op = op;
+    this->arg = arg;
+    this->lwr = lwr;
+    this->upr = upr;
+    this->body = body;
+
+    this->key = NULL;
+}
+
+Statement *ForeachRangeStatement::syntaxCopy()
+{
+    ForeachRangeStatement *s = new ForeachRangeStatement(loc, op,
+	arg->syntaxCopy(),
+	lwr->syntaxCopy(),
+	upr->syntaxCopy(),
+	body ? body->syntaxCopy() : NULL);
+    return s;
+}
+
+Statement *ForeachRangeStatement::semantic(Scope *sc)
+{
+    //printf("ForeachRangeStatement::semantic() %p\n", this);
+    ScopeDsymbol *sym;
+    Statement *s = this;
+
+    lwr = lwr->semantic(sc);
+    lwr = resolveProperties(sc, lwr);
+    if (!lwr->type)
+    {
+	error("invalid range lower bound %s", lwr->toChars());
+	return this;
+    }
+
+    upr = upr->semantic(sc);
+    upr = resolveProperties(sc, upr);
+    if (!upr->type)
+    {
+	error("invalid range upper bound %s", upr->toChars());
+	return this;
+    }
+
+    if (arg->type)
+    {
+	lwr = lwr->implicitCastTo(sc, arg->type);
+	upr = upr->implicitCastTo(sc, arg->type);
+    }
+    else
+    {
+	/* Must infer types from lwr and upr
+	 */
+	AddExp ea(loc, lwr, upr);
+	ea.typeCombine(sc);
+	arg->type = ea.type;
+	lwr = ea.e1;
+	upr = ea.e2;
+    }
+    if (!arg->type->isscalar())
+	error("%s is not a scalar type", arg->type->toChars());
+
+    sym = new ScopeDsymbol();
+    sym->parent = sc->scopesym;
+    sc = sc->push(sym);
+
+    sc->noctor++;
+
+    key = new VarDeclaration(loc, arg->type, arg->ident, NULL);
+    DeclarationExp *de = new DeclarationExp(loc, key);
+    de->semantic(sc);
+
+    if (key->storage_class)
+	error("foreach range: key cannot have storage class");
+
+    sc->sbreak = this;
+    sc->scontinue = this;
+    body = body->semantic(sc);
+
+    sc->noctor--;
+    sc->pop();
+    return s;
+}
+
+int ForeachRangeStatement::hasBreak()
+{
+    return TRUE;
+}
+
+int ForeachRangeStatement::hasContinue()
+{
+    return TRUE;
+}
+
+int ForeachRangeStatement::usesEH()
+{
+    return body->usesEH();
+}
+
+int ForeachRangeStatement::fallOffEnd()
+{
+    if (body)
+	body->fallOffEnd();
+    return TRUE;
+}
+
+int ForeachRangeStatement::comeFrom()
+{
+    if (body)
+	return body->comeFrom();
+    return FALSE;
+}
+
+void ForeachRangeStatement::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
+{
+    buf->writestring(Token::toChars(op));
+    buf->writestring(" (");
+
+    if (arg->type)
+	arg->type->toCBuffer(buf, arg->ident, hgs);
+    else
+	buf->writestring(arg->ident->toChars());
+
+    buf->writestring("; ");
+    lwr->toCBuffer(buf, hgs);
+    buf->writestring(" .. ");
+    upr->toCBuffer(buf, hgs);
     buf->writebyte(')');
     buf->writenl();
     buf->writebyte('{');

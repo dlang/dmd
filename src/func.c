@@ -1,6 +1,6 @@
 
 // Compiler implementation of the D programming language
-// Copyright (c) 1999-2006 by Digital Mars
+// Copyright (c) 1999-2007 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // http://www.digitalmars.com
@@ -1297,24 +1297,30 @@ int FuncDeclaration::overloadInsert(Dsymbol *s)
     return TRUE;
 }
 
-/********************************************
- * Find function in overload list that exactly matches t.
+/***************************************************
+ * Visit each overloaded function in turn, and call
+ * (*fp)(param, f) on it.
+ * Exit when no more, or (*fp)(param, f) returns 1.
+ * Returns:
+ *	0	continue
+ *	1	done
  */
 
-FuncDeclaration *FuncDeclaration::overloadExactMatch(Type *t)
+int overloadApply(FuncDeclaration *fstart,
+	int (*fp)(void *, FuncDeclaration *),
+	void *param)
 {
     FuncDeclaration *f;
     Declaration *d;
     Declaration *next;
 
-    for (d = this; d; d = next)
+    for (d = fstart; d; d = next)
     {	FuncAliasDeclaration *fa = d->isFuncAliasDeclaration();
 
 	if (fa)
 	{
-	    FuncDeclaration *f2 = fa->funcalias->overloadExactMatch(t);
-	    if (f2)
-		return f2;
+	    if (overloadApply(fa->funcalias, fp, param))
+		return 1;
 	    next = fa->overnext;
 	}
 	else
@@ -1327,114 +1333,162 @@ FuncDeclaration *FuncDeclaration::overloadExactMatch(Type *t)
 		next = s->isDeclaration();
 		if (next == a)
 		    break;
+		if (next == fstart)
+		    break;
 	    }
 	    else
 	    {
 		f = d->isFuncDeclaration();
 		if (!f)
+		{   d->error("is aliased to a function");
 		    break;		// BUG: should print error message?
-		if (t->equals(d->type))
-		    return f;
-
-		/* Allow covariant matches, if it's just a const conversion
-		 * of the return type
-		 */
-		if (t->ty == Tfunction)
-		{   TypeFunction *tf = (TypeFunction *)f->type;
-		    if (tf->covariant(t) == 1 &&
-			tf->nextOf()->implicitConvTo(t->nextOf()) >= MATCHconst)
-			return f;
 		}
+		if ((*fp)(param, f))
+		    return 1;
+
 		next = f->overnext;
 	    }
 	}
     }
-    return NULL;
+    return 0;
 }
+
+/********************************************
+ * If there are no overloads of function f, return that function,
+ * otherwise return NULL.
+ */
+
+static int fpunique(void *param, FuncDeclaration *f)
+{   FuncDeclaration **pf = (FuncDeclaration **)param;
+
+    if (*pf)
+    {	*pf = NULL;
+	return 1;		// ambiguous, done
+    }
+    else
+    {	*pf = f;
+	return 0;
+    }
+}
+
+FuncDeclaration *FuncDeclaration::isUnique()
+{   FuncDeclaration *result = NULL;
+
+    overloadApply(this, &fpunique, &result);
+    return result;
+}
+
+/********************************************
+ * Find function in overload list that exactly matches t.
+ */
+
+struct Param1
+{
+    Type *t;		// type to match
+    FuncDeclaration *f;	// return value
+};
+
+int fp1(void *param, FuncDeclaration *f)
+{   Param1 *p = (Param1 *)param;
+    Type *t = p->t;
+
+    if (t->equals(f->type))
+    {	p->f = f;
+	return 1;
+    }
+
+#if V2
+    /* Allow covariant matches, if it's just a const conversion
+     * of the return type
+     */
+    if (t->ty == Tfunction)
+    {   TypeFunction *tf = (TypeFunction *)f->type;
+	if (tf->covariant(t) == 1 &&
+	    tf->nextOf()->implicitConvTo(t->nextOf()) >= MATCHconst)
+	{
+	    p->f = f;
+	    return 1;
+	}
+    }
+#endif
+    return 0;
+}
+
+FuncDeclaration *FuncDeclaration::overloadExactMatch(Type *t)
+{
+    Param1 p;
+    p.t = t;
+    p.f = NULL;
+    overloadApply(this, &fp1, &p);
+    return p.f;
+}
+
 
 /********************************************
  * Decide which function matches the arguments best.
  */
 
-// Recursive helper function
+struct Param2
+{
+    Match *m;
+    Expressions *arguments;
+};
+
+int fp2(void *param, FuncDeclaration *f)
+{   Param2 *p = (Param2 *)param;
+    Match *m = p->m;
+    Expressions *arguments = p->arguments;
+    MATCH match;
+
+    if (f != m->lastf)		// skip duplicates
+    {
+	TypeFunction *tf;
+
+	m->anyf = f;
+	tf = (TypeFunction *)f->type;
+	match = (MATCH) tf->callMatch(arguments);
+	//printf("match = %d\n", match);
+	if (match != MATCHnomatch)
+	{
+	    if (match > m->last)
+		goto LfIsBetter;
+
+	    if (match < m->last)
+		goto LlastIsBetter;
+
+	    /* See if one of the matches overrides the other.
+	     */
+	    if (m->lastf->overrides(f))
+		goto LlastIsBetter;
+	    else if (f->overrides(m->lastf))
+		goto LfIsBetter;
+
+	Lambiguous:
+	    m->nextf = f;
+	    m->count++;
+	    return 0;
+
+	LfIsBetter:
+	    m->last = match;
+	    m->lastf = f;
+	    m->count = 1;
+	    return 0;
+
+	LlastIsBetter:
+	    return 0;
+	}
+    }
+    return 0;
+}
 
 void overloadResolveX(Match *m, FuncDeclaration *fstart, Expressions *arguments)
 {
-    MATCH match;
-    Declaration *d;
-    Declaration *next;
-
-    for (d = fstart; d; d = next)
-    {
-	FuncDeclaration *f;
-	FuncAliasDeclaration *fa;
-	AliasDeclaration *a;
-
-	fa = d->isFuncAliasDeclaration();
-	if (fa)
-	{
-	    overloadResolveX(m, fa->funcalias, arguments);
-	    next = fa->overnext;
-	}
-	else if ((f = d->isFuncDeclaration()) != NULL)
-	{
-	    next = f->overnext;
-	    if (f == m->lastf)
-		continue;			// skip duplicates
-	    else
-	    {
-		TypeFunction *tf;
-
-		m->anyf = f;
-		tf = (TypeFunction *)f->type;
-		match = (MATCH) tf->callMatch(arguments);
-		//printf("match = %d\n", match);
-		if (match != MATCHnomatch)
-		{
-		    if (match > m->last)
-			goto LfIsBetter;
-
-		    if (match < m->last)
-			goto LlastIsBetter;
-
-		    /* See if one of the matches overrides the other.
-		     */
-		    if (m->lastf->overrides(f))
-			goto LlastIsBetter;
-		    else if (f->overrides(m->lastf))
-			goto LfIsBetter;
-
-		Lambiguous:
-		    m->nextf = f;
-		    m->count++;
-		    continue;
-
-		LfIsBetter:
-		    m->last = match;
-		    m->lastf = f;
-		    m->count = 1;
-		    continue;
-
-		LlastIsBetter:
-		    continue;
-		}
-	    }
-	}
-	else if ((a = d->isAliasDeclaration()) != NULL)
-	{
-	    Dsymbol *s = a->toAlias();
-	    next = s->isDeclaration();
-	    if (next == a)
-		break;
-	    if (next == fstart)
-		break;
-	}
-	else
-	{   d->error("is aliased to a function");
-	    break;
-	}
-    }
+    Param2 p;
+    p.m = m;
+    p.arguments = arguments;
+    overloadApply(fstart, &fp2, &p);
 }
+
 
 FuncDeclaration *FuncDeclaration::overloadResolve(Loc loc, Expressions *arguments)
 {
@@ -1678,6 +1732,22 @@ int FuncDeclaration::isVirtual()
     return isMember() &&
 	!(isStatic() || protection == PROTprivate || protection == PROTpackage) &&
 	toParent()->isClassDeclaration();
+}
+
+int FuncDeclaration::isFinal()
+{
+#if 0
+    printf("FuncDeclaration::isFinal(%s)\n", toChars());
+    printf("%p %d %d %d %d\n", isMember(), isStatic(), protection == PROTprivate, isCtorDeclaration(), linkage != LINKd);
+    printf("result is %d\n",
+	isMember() &&
+	!(isStatic() || protection == PROTprivate || protection == PROTpackage) &&
+	toParent()->isClassDeclaration());
+#endif
+    ClassDeclaration *cd;
+    return isMember() &&
+	(Declaration::isFinal() ||
+	 ((cd = toParent()->isClassDeclaration()) != NULL && cd->storage_class & STCfinal));
 }
 
 int FuncDeclaration::isAbstract()
@@ -2105,7 +2175,9 @@ int StaticCtorDeclaration::addPostInvariant()
 void StaticCtorDeclaration::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 {
     if (hgs->hdrgen)
+    {	buf->writestring("static this(){}\n");
 	return;
+    }
     buf->writestring("static this()");
     bodyToCBuffer(buf, hgs);
 }

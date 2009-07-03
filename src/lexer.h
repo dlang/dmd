@@ -150,6 +150,7 @@ enum TOK
 	// Added after 1.0
 	TOKref,
 	TOKmacro,
+	TOKtraits,
 
 	TOKMAX
 };

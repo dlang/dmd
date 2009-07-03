@@ -22,6 +22,8 @@
 
 #include "mtype.h"
 #include "expression.h"
+#include "aggregate.h"
+#include "declaration.h"
 
 #ifdef IN_GCC
 #include "d-gcc-real.h"
@@ -969,7 +971,7 @@ Expression *Cast(Type *type, Type *to, Expression *e1)
     Loc loc = e1->loc;
 
     //printf("Cast(type = %s, to = %s, e1 = %s)\n", type->toChars(), to->toChars(), e1->toChars());
-    //printf("e1->type = %s\n", e1->type->toChars());
+    //printf("\te1->type = %s\n", e1->type->toChars());
     if (e1->type->equals(type) && type->equals(to))
 	return e1;
     if (e1->type->implicitConvTo(to) >= MATCHconst ||
@@ -1029,14 +1031,31 @@ Expression *Cast(Type *type, Type *to, Expression *e1)
     }
     else if (tb->isscalar())
 	e = new IntegerExp(loc, e1->toInteger(), type);
+    else if (tb->ty == Tvoid)
+	e = EXP_CANT_INTERPRET;
+    else if (tb->ty == Tstruct && e1->op == TOKint64)
+    {	// Struct = 0;
+	StructDeclaration *sd = tb->toDsymbol(NULL)->isStructDeclaration();
+	assert(sd);
+	Expressions *elements = new Expressions;
+	for (size_t i = 0; i < sd->fields.dim; i++)
+	{   Dsymbol *s = (Dsymbol *)sd->fields.data[i];
+	    VarDeclaration *v = s->isVarDeclaration();
+	    assert(v);
+
+	    Expression *exp = new IntegerExp(0);
+	    exp = Cast(v->type, v->type, exp);
+	    if (exp == EXP_CANT_INTERPRET)
+		return exp;
+	    elements->push(exp);
+	}
+	e = new StructLiteralExp(loc, sd, elements);
+	e->type = type;
+    }
     else
     {
-	if (tb->ty == Tvoid)
-	    e = EXP_CANT_INTERPRET;
-	else
-	{   error("cannot cast %s to %s", e1->type->toChars(), type->toChars());
-	    e = new IntegerExp(loc, 0, type);
-	}
+	error("cannot cast %s to %s", e1->type->toChars(), type->toChars());
+	e = new IntegerExp(loc, 0, type);
     }
     return e;
 }

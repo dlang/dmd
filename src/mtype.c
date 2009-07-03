@@ -2992,7 +2992,7 @@ void TypeFunction::toCBuffer2(OutBuffer *buf, HdrGenState *hgs, int mod)
 
     if (!hgs->hdrgen && p)
 	buf->writestring(p);
-    buf->writestring("function");
+    buf->writestring(" function");
     Argument::argsToCBuffer(buf, hgs, parameters, varargs);
     inuse--;
 }
@@ -4585,7 +4585,7 @@ L1:
 	    e = e->semantic(sc);
 	    return e;
 	}
-	return new VarExp(e->loc, d);
+	return new VarExp(e->loc, d, 1);
     }
 
     if (d->isDataseg())
@@ -4949,7 +4949,9 @@ L1:
 	    return e;
 	}
 	else
-	    ve = new VarExp(e->loc, d);
+	{
+	    ve = new VarExp(e->loc, d, 1);
+	}
 	return ve;
     }
 
@@ -4968,9 +4970,8 @@ L1:
     if (d->parent && d->toParent()->isModule())
     {
 	// (e, d)
-	VarExp *ve;
 
-	ve = new VarExp(e->loc, d);
+	VarExp *ve = new VarExp(e->loc, d, 1);
 	e = new CommaExp(e->loc, e, ve);
 	e->type = d->type;
 	return e;

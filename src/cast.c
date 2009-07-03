@@ -488,6 +488,11 @@ MATCH AddrExp::implicitConvTo(Type *t)
 	    t->ty == Tpointer && t->nextOf()->ty == Tfunction &&
 	    e1->op == TOKvar)
 	{
+	    /* I don't think this can ever happen -
+	     * it should have been
+	     * converted to a SymOffExp.
+	     */
+	    assert(0);
 	    ve = (VarExp *)e1;
 	    f = ve->var->isFuncDeclaration();
 	    if (f && f->overloadExactMatch(t->nextOf()))
@@ -516,11 +521,17 @@ MATCH SymOffExp::implicitConvTo(Type *t)
 
 	t = t->toBasetype();
 	if (type->ty == Tpointer && type->nextOf()->ty == Tfunction &&
-	    t->ty == Tpointer && t->nextOf()->ty == Tfunction)
+	    (t->ty == Tpointer || t->ty == Tdelegate) && t->nextOf()->ty == Tfunction)
 	{
 	    f = var->isFuncDeclaration();
-	    if (f && f->overloadExactMatch(t->nextOf()))
-		result = MATCHexact;
+	    if (f)
+	    {	f = f->overloadExactMatch(t->nextOf());
+		if (f)
+		{   if ((t->ty == Tdelegate && (f->needThis() || f->isNested())) ||
+			(t->ty == Tpointer && !(f->needThis() || f->isNested())))
+			result = MATCHexact;
+		}
+	    }
 	}
     }
     //printf("\tresult = %d\n", result);
@@ -586,11 +597,8 @@ Expression *Expression::castTo(Scope *sc, Type *t)
     type = type->toBasetype();
     if (tb != type)
     {
-	if (tb->ty == Tbit && isBit())
-	    ;
-
 	// Do (type *) cast of (type [dim])
-	else if (tb->ty == Tpointer &&
+	if (tb->ty == Tpointer &&
 	    type->ty == Tsarray
 	   )
 	{
@@ -1027,8 +1035,9 @@ Expression *SymOffExp::castTo(Scope *sc, Type *t)
 	// Look for pointers to functions where the functions are overloaded.
 	FuncDeclaration *f;
 
-	if (type->ty == Tpointer && type->nextOf()->ty == Tfunction &&
-	    tb->ty == Tpointer && tb->nextOf()->ty == Tfunction)
+	if (hasOverloads &&
+	    type->ty == Tpointer && type->nextOf()->ty == Tfunction &&
+	    (tb->ty == Tpointer || tb->ty == Tdelegate) && tb->nextOf()->ty == Tfunction)
 	{
 	    f = var->isFuncDeclaration();
 	    if (f)
@@ -1036,13 +1045,30 @@ Expression *SymOffExp::castTo(Scope *sc, Type *t)
 		f = f->overloadExactMatch(tb->nextOf());
 		if (f)
 		{
-		    e = new SymOffExp(loc, f, 0);
-		    e->type = t;
+		    if (tb->ty == Tdelegate && f->needThis() && hasThis(sc))
+		    {
+			e = new DelegateExp(loc, new ThisExp(loc), f);
+			e = e->semantic(sc);
+		    }
+		    else if (tb->ty == Tdelegate && f->isNested())
+		    {
+			e = new DelegateExp(loc, new IntegerExp(0), f);
+			e = e->semantic(sc);
+		    }
+		    else
+		    {
+			e = new SymOffExp(loc, f, 0);
+			e->type = t;
+		    }
 		    return e;
 		}
 	    }
 	}
 	e = Expression::castTo(sc, t);
+    }
+    if (e == this && hasOverloads)
+    {	e = syntaxCopy();
+	((SymOffExp *)e)->hasOverloads = 0;
     }
     e->type = t;
     return e;

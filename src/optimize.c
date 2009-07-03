@@ -214,9 +214,9 @@ Expression *AddrExp::optimize(int result)
 	if (!ve->var->isOut() && !ve->var->isRef() &&
 	    !ve->var->isImportedSymbol())
 	{
-	    e = new SymOffExp(loc, ve->var, 0);
-	    e->type = type;
-	    return e;
+	    SymOffExp *se = new SymOffExp(loc, ve->var, 0, ve->hasOverloads);
+	    se->type = type;
+	    return se;
 	}
     }
     if (e1->op == TOKindex)

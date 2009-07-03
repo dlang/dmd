@@ -608,6 +608,23 @@ void inferApplyArgTypes(enum TOK op, Arguments *arguments, Expression *aggr)
  * analogous to func.overloadResolveX().
  */
 
+int fp3(void *param, FuncDeclaration *f)
+{
+    Arguments *arguments = (Arguments *)param;
+    TypeFunction *tf = (TypeFunction *)f->type;
+    if (inferApplyArgTypesY(tf, arguments) == 1)
+	return 0;
+    if (arguments->dim == 0)
+	return 1;
+    return 0;
+}
+
+static void inferApplyArgTypesX(FuncDeclaration *fstart, Arguments *arguments)
+{
+    overloadApply(fstart, &fp3, arguments);
+}
+
+#if 0
 static void inferApplyArgTypesX(FuncDeclaration *fstart, Arguments *arguments)
 {
     Declaration *d;
@@ -650,6 +667,7 @@ static void inferApplyArgTypesX(FuncDeclaration *fstart, Arguments *arguments)
 	}
     }
 }
+#endif
 
 /******************************
  * Infer arguments from type of function.

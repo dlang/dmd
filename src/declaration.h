@@ -74,6 +74,9 @@ struct Match
 };
 
 void overloadResolveX(Match *m, FuncDeclaration *f, Expressions *arguments);
+int overloadApply(FuncDeclaration *fstart,
+	int (*fp)(void *, FuncDeclaration *),
+	void *param);
 
 /**************************************************************/
 
@@ -390,6 +393,7 @@ struct TypeInfoTupleDeclaration : TypeInfoDeclaration
     void toDt(dt_t **pdt);
 };
 
+#if V2
 struct TypeInfoConstDeclaration : TypeInfoDeclaration
 {
     TypeInfoConstDeclaration(Type *tinfo);
@@ -403,6 +407,7 @@ struct TypeInfoInvariantDeclaration : TypeInfoDeclaration
 
     void toDt(dt_t **pdt);
 };
+#endif
 
 /**************************************************************/
 
@@ -498,6 +503,7 @@ struct FuncDeclaration : Declaration
     virtual int isNested();
     int needThis();
     virtual int isVirtual();
+    virtual int isFinal();
     virtual int addPreInvariant();
     virtual int addPostInvariant();
     Expression *interpret(InterState *istate, Expressions *arguments);
@@ -506,6 +512,7 @@ struct FuncDeclaration : Declaration
     Expression *doInline(InlineScanState *iss, Expression *ethis, Array *arguments);
     char *kind();
     void toDocBuffer(OutBuffer *buf);
+    FuncDeclaration *isUnique();
 
     static FuncDeclaration *genCfunc(Type *treturn, char *name);
     static FuncDeclaration *genCfunc(Type *treturn, Identifier *id);

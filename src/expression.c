@@ -572,6 +572,12 @@ void functionArguments(Loc loc, Scope *sc, TypeFunction *tf, Expressions *argume
 		    arg = arg->castTo(sc, ta);
 	    }
 
+	    // Give error for overloaded function addresses
+	    if (arg->op == TOKsymoff)
+	    {	SymOffExp *se = (SymOffExp *)arg;
+		if (se->hasOverloads && !se->var->isFuncDeclaration()->isUnique())
+		    arg->error("function %s is overloaded", arg->toChars());
+	    }
 	    arg->rvalue();
 	}
 	arg = arg->optimize(WANTvalue);
@@ -1640,6 +1646,7 @@ Expression *IdentifierExp::semantic(Scope *sc)
 		s->semantic(sc);
 	    }
 	    // Look to see if f is really a function template
+	    //FuncDeclaration *f = s->toAlias()->isFuncDeclaration();
 	    FuncDeclaration *f = s->isFuncDeclaration();
 	    if (f && f->parent)
 	    {   TemplateInstance *ti = f->parent->isTemplateInstance();
@@ -1659,7 +1666,16 @@ Expression *IdentifierExp::semantic(Scope *sc)
 		    return e;
 		}
 	    }
-	    e = new DsymbolExp(loc, s);
+	    f = s->toAlias()->isFuncDeclaration();
+	    if (f && !f->isFuncLiteralDeclaration())
+	    {
+		e = new VarExp(loc, f, 1);
+	    }
+	    else
+	    {
+		//printf("test1 %s\n", s->toChars());
+		e = new DsymbolExp(loc, s);
+	    }
 	}
 	return e->semantic(sc);
     }
@@ -1744,7 +1760,7 @@ Lagain:
     // BUG: This should happen after overload resolution for functions, not before
     if (s->needThis())
     {
-	if (hasThis(sc) /*&& !s->isFuncDeclaration()*/)
+	if (hasThis(sc) && !s->isFuncDeclaration())
 	{
 	    // Supply an implicit 'this', as in
 	    //	  this.ident
@@ -3138,7 +3154,7 @@ Lagain:
 	ClassDeclaration *cd = tc->sym->isClassDeclaration();
 	if (cd->isInterfaceDeclaration())
 	    error("cannot create instance of interface %s", cd->toChars());
-	if (cd->isAbstract())
+	else if (cd->isAbstract())
 	    error("cannot create instance of abstract class %s", cd->toChars());
 	checkDeprecated(sc, cd);
 	if (cd->isNested())
@@ -3147,8 +3163,9 @@ Lagain:
 	     */
 	    Dsymbol *s = cd->toParent2();
 	    ClassDeclaration *cdn = s->isClassDeclaration();
+	    FuncDeclaration *fdn = s->isFuncDeclaration();
 
-	    //printf("isNested, cdn = %s\n", cdn ? cdn->toChars() : "null");
+	    //printf("cd isNested, cdn = %s\n", cdn ? cdn->toChars() : "null");
 	    if (cdn)
 	    {
 		if (!cdthis)
@@ -3196,8 +3213,17 @@ Lagain:
 		}
 #endif
 	    }
-	    else if (thisexp)
-		error("e.new is only for allocating nested classes");
+	    else if (fdn)
+	    {	/* The nested class cd is nested inside a function,
+		 * we'll let getEthis() look for errors.
+		 */
+		//printf("nested class %s is nested inside function %s, we're in %s\n", cd->toChars(), fdn->toChars(), sc->func->toChars());
+		if (thisexp)
+		    // Because thisexp cannot be a function frame pointer
+		    error("e.new is only for allocating nested classes");
+	    }
+	    else
+		assert(0);
 	}
 	else if (thisexp)
 	    error("e.new is only for allocating nested classes");
@@ -3426,12 +3452,14 @@ void NewAnonClassExp::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 
 /********************** SymOffExp **************************************/
 
-SymOffExp::SymOffExp(Loc loc, Declaration *var, unsigned offset)
+SymOffExp::SymOffExp(Loc loc, Declaration *var, unsigned offset, int hasOverloads)
     : Expression(loc, TOKsymoff, sizeof(SymOffExp))
 {
     assert(var);
     this->var = var;
     this->offset = offset;
+    this->hasOverloads = hasOverloads;
+
     VarDeclaration *v = var->isVarDeclaration();
     if (v && v->needThis())
 	error("need 'this' for address of %s", v->toChars());
@@ -3476,12 +3504,14 @@ void SymOffExp::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 
 /******************************** VarExp **************************/
 
-VarExp::VarExp(Loc loc, Declaration *var)
+VarExp::VarExp(Loc loc, Declaration *var, int hasOverloads)
 	: Expression(loc, TOKvar, sizeof(VarExp))
 {
     //printf("VarExp(this = %p, '%s')\n", this, var->toChars());
+    //if (strcmp(var->ident->toChars(), "func") == 0) halt();
     this->var = var;
     this->type = var->type;
+    this->hasOverloads = hasOverloads;
 }
 
 int VarExp::equals(Object *o)
@@ -3921,6 +3951,42 @@ void TypeidExp::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 {
     buf->writestring("typeid(");
     typeidType->toCBuffer(buf, NULL, hgs);
+    buf->writeByte(')');
+}
+
+/************************ TraitsExp ************************************/
+
+/*
+ *	__traits(identifier, args...)
+ */
+
+TraitsExp::TraitsExp(Loc loc, Identifier *ident, Objects *args)
+    : Expression(loc, TOKtraits, sizeof(TraitsExp))
+{
+    this->ident = ident;
+    this->args = args;
+}
+
+
+Expression *TraitsExp::syntaxCopy()
+{
+    return new TraitsExp(loc, ident, TemplateInstance::arraySyntaxCopy(args));
+}
+
+
+void TraitsExp::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
+{
+    buf->writestring("__traits(");
+    buf->writestring(ident->toChars());
+    if (args)
+    {
+	for (int i = 0; i < args->dim; i++)
+	{
+	    buf->writeByte(',');
+	    Object *oarg = (Object *)args->data[i];
+	    ObjectToCBuffer(buf, hgs, oarg);
+	}
+    }
     buf->writeByte(')');
 }
 
@@ -4736,7 +4802,7 @@ Expression *DotIdExp::semantic(Scope *sc)
 		}
 		else
 		{
-		    e = new VarExp(loc, f);
+		    e = new VarExp(loc, f, 1);
 		    if (eleft)
 		    {	e = new CommaExp(loc, eleft, e);
 			e->type = f->type;
@@ -4833,11 +4899,12 @@ void DotTemplateExp::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 
 /************************************************************/
 
-DotVarExp::DotVarExp(Loc loc, Expression *e, Declaration *v)
+DotVarExp::DotVarExp(Loc loc, Expression *e, Declaration *v, int hasOverloads)
 	: UnaExp(loc, TOKdotvar, sizeof(DotVarExp), e)
 {
     //printf("DotVarExp()\n");
     this->var = v;
+    this->hasOverloads = hasOverloads;
 }
 
 Expression *DotVarExp::semantic(Scope *sc)
@@ -5164,10 +5231,11 @@ void DotTemplateInstanceExp::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 
 /************************************************************/
 
-DelegateExp::DelegateExp(Loc loc, Expression *e, FuncDeclaration *f)
+DelegateExp::DelegateExp(Loc loc, Expression *e, FuncDeclaration *f, int hasOverloads)
 	: UnaExp(loc, TOKdelegate, sizeof(DelegateExp), e)
 {
     this->func = f;
+    this->hasOverloads = hasOverloads;
 }
 
 Expression *DelegateExp::semantic(Scope *sc)
@@ -5370,6 +5438,7 @@ Expression *CallExp::semantic(Scope *sc)
 
     istemp = 0;
 Lagain:
+    //printf("Lagain: %s\n", toChars());
     f = NULL;
     if (e1->op == TOKthis || e1->op == TOKsuper)
     {
@@ -5752,7 +5821,8 @@ Lagain:
 	    }
 	}
 
-	f = f->overloadResolve(loc, arguments);
+	if (ve->hasOverloads)
+	    f = f->overloadResolve(loc, arguments);
 	checkDeprecated(sc, f);
 
 	if (f->needThis() && hasThis(sc))
@@ -5767,6 +5837,7 @@ Lagain:
 	accessCheck(loc, sc, NULL, f);
 
 	ve->var = f;
+//	ve->hasOverloads = 0;
 	ve->type = f->type;
 	t1 = f->type;
     }
@@ -5850,30 +5921,34 @@ Expression *AddrExp::semantic(Scope *sc)
 	if (e1->op == TOKdotvar)
 	{
 	    DotVarExp *dve = (DotVarExp *)e1;
+	    if (dve->var->isFinal())
+		type = e1->type->constOf()->pointerTo();
+
 	    FuncDeclaration *f = dve->var->isFuncDeclaration();
 
 	    if (f)
-	    {	Expression *e;
-
-		e = new DelegateExp(loc, dve->e1, f);
+	    {
+		Expression *e = new DelegateExp(loc, dve->e1, f, dve->hasOverloads);
 		e = e->semantic(sc);
 		return e;
 	    }
 	}
 	else if (e1->op == TOKvar)
 	{
-	    VarExp *dve = (VarExp *)e1;
-	    if (dve->var->isFinal())
+	    VarExp *ve = (VarExp *)e1;
+	    if (ve->var->isFinal())
 		type = e1->type->constOf()->pointerTo();
 
-	    FuncDeclaration *f = dve->var->isFuncDeclaration();
+	    FuncDeclaration *f = ve->var->isFuncDeclaration();
 
-	    if (f && f->isNested())
-	    {	Expression *e;
-
-		e = new DelegateExp(loc, e1, f);
-		e = e->semantic(sc);
-		return e;
+	    if (f)
+	    {
+		if (f->isNested())
+		{
+		    Expression *e = new DelegateExp(loc, e1, f, ve->hasOverloads);
+		    e = e->semantic(sc);
+		    return e;
+		}
 	    }
 	}
 	return optimize(WANTvalue);

@@ -1,6 +1,6 @@
 
 // Compiler implementation of the D programming language
-// Copyright (c) 1999-2006 by Digital Mars
+// Copyright (c) 1999-2007 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // http://www.digitalmars.com
@@ -179,7 +179,11 @@ elem *getEthis(Loc loc, IRState *irs, Dsymbol *fd)
 			fd->isClassDeclaration() &&
 			fd->isClassDeclaration()->isBaseOf(cd, NULL))
 			break;
-		    assert(cd->isNested() && cd->vthis);
+		    if (!cd->isNested() || !cd->vthis)
+		    {
+			irs->getFunc()->error(loc, "cannot get frame pointer to %s", fd->toChars());
+			return el_long(TYnptr, 0);	// error recovery
+		    }
 		    ethis = el_bin(OPadd, TYnptr, ethis, el_long(TYint, cd->vthis->offset));
 		    ethis = el_una(OPind, TYnptr, ethis);
 		    if (fdparent == s->toParent2())

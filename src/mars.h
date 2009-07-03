@@ -255,7 +255,9 @@ enum MATCH
 {
     MATCHnomatch,	// no match
     MATCHconvert,	// match with conversions
+#if V2
     MATCHconst,		// match with conversion to const
+#endif
     MATCHexact		// exact match
 };
 

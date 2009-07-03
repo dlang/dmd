@@ -71,6 +71,7 @@ struct Parser : Lexer
     TemplateParameters *parseTemplateParameterList();
     Dsymbol *parseMixin();
     Objects *parseTemplateArgumentList();
+    Objects *parseTemplateArgumentList2();
     StaticAssert *parseStaticAssert();
     enum LINK parseLinkage();
     Condition *parseDebugCondition();

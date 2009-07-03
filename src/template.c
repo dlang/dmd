@@ -75,6 +75,46 @@ Tuple *isTuple(Object *o)
     return (Tuple *)o;
 }
 
+
+/***********************
+ * Try to get arg as a type.
+ */
+
+Type *getType(Object *o)
+{
+    Type *t = isType(o);
+    if (!t)
+    {   Expression *e = isExpression(o);
+	if (e)
+	    t = e->type;
+    }
+    return t;
+}
+
+Dsymbol *getDsymbol(Object *oarg)
+{
+    Dsymbol *sa;
+    Expression *ea = isExpression(oarg);
+    if (ea)
+    {   // Try to convert Expression to symbol
+	if (ea->op == TOKvar)
+	    sa = ((VarExp *)ea)->var;
+	else if (ea->op == TOKfunction)
+	    sa = ((FuncExp *)ea)->fd;
+	else
+	    sa = NULL;
+    }
+    else
+    {   // Try to convert Type to symbol
+	Type *ta = isType(oarg);
+	if (ta)
+	    sa = ta->toDsymbol(NULL);
+	else
+	    sa = isDsymbol(oarg);	// if already a symbol
+    }
+    return sa;
+}
+
 /******************************
  * If o1 matches o2, return 1.
  * Else, return 0.
@@ -157,6 +197,50 @@ int match(Object *o1, Object *o2, TemplateDeclaration *tempdecl, Scope *sc)
 L1:
     return 0;	// nomatch;
 }
+
+/****************************************
+ */
+
+void ObjectToCBuffer(OutBuffer *buf, HdrGenState *hgs, Object *oarg)
+{
+    Type *t = isType(oarg);
+    Expression *e = isExpression(oarg);
+    Dsymbol *s = isDsymbol(oarg);
+    Tuple *v = isTuple(oarg);
+    if (t)
+	t->toCBuffer(buf, NULL, hgs);
+    else if (e)
+	e->toCBuffer(buf, hgs);
+    else if (s)
+    {
+	char *p = s->ident ? s->ident->toChars() : s->toChars();
+	buf->writestring(p);
+    }
+    else if (v)
+    {
+	Objects *args = &v->objects;
+	for (size_t i = 0; i < args->dim; i++)
+	{
+	    if (i)
+		buf->writeByte(',');
+	    Object *o = (Object *)args->data[i];
+	    ObjectToCBuffer(buf, hgs, o);
+	}
+    }
+    else if (!oarg)
+    {
+	buf->writestring("NULL");
+    }
+    else
+    {
+#ifdef DEBUG
+	printf("bad Object = %p\n", oarg);
+#endif
+	assert(0);
+    }
+}
+
+
 
 /* ======================== TemplateDeclaration ============================= */
 
@@ -1927,25 +2011,7 @@ MATCH TemplateAliasParameter::matchArg(Scope *sc,
 	}
     }
 
-    ea = isExpression(oarg);
-    if (ea)
-    {   // Try to convert Expression to symbol
-	if (ea->op == TOKvar)
-	    sa = ((VarExp *)ea)->var;
-	else if (ea->op == TOKfunction)
-	    sa = ((FuncExp *)ea)->fd;
-	else
-	    goto Lnomatch;
-    }
-    else
-    {   // Try to convert Type to symbol
-	Type *ta = isType(oarg);
-	if (ta)
-	    sa = ta->toDsymbol(NULL);
-	else
-	    sa = isDsymbol(oarg);	// if already a symbol
-    }
-
+    sa = getDsymbol(oarg);
     if (!sa)
 	goto Lnomatch;
 
@@ -2459,6 +2525,27 @@ TemplateInstance::TemplateInstance(Loc loc, TemplateDeclaration *td, Objects *ti
     assert((size_t)tempdecl->scope > 0x10000);
 }
 
+Objects *TemplateInstance::arraySyntaxCopy(Objects *objs)
+{
+    Objects *a = NULL;
+    if (objs)
+    {	a = new Objects();
+	a->setDim(objs->dim);
+	for (size_t i = 0; i < objs->dim; i++)
+	{
+	    Type *ta = isType((Object *)objs->data[i]);
+	    if (ta)
+		a->data[i] = ta->syntaxCopy();
+	    else
+	    {
+		Expression *ea = isExpression((Object *)objs->data[i]);
+		assert(ea);
+		a->data[i] = ea->syntaxCopy();
+	    }
+	}
+    }
+    return a;
+}
 
 Dsymbol *TemplateInstance::syntaxCopy(Dsymbol *s)
 {
@@ -2470,20 +2557,7 @@ Dsymbol *TemplateInstance::syntaxCopy(Dsymbol *s)
     else
 	ti = new TemplateInstance(loc, name);
 
-    ti->tiargs = new Objects();
-    ti->tiargs->setDim(tiargs->dim);
-    for (i = 0; i < tiargs->dim; i++)
-    {
-	Type *ta = isType((Object *)tiargs->data[i]);
-	if (ta)
-	    ti->tiargs->data[i] = ta->syntaxCopy();
-	else
-	{
-	    Expression *ea = isExpression((Object *)tiargs->data[i]);
-	    assert(ea);
-	    ti->tiargs->data[i] = ea->syntaxCopy();
-	}
-    }
+    ti->tiargs = arraySyntaxCopy(tiargs);
 
     ScopeDsymbol::syntaxCopy(ti);
     return ti;
@@ -2787,8 +2861,16 @@ void TemplateInstance::semantic(Scope *sc)
 
 void TemplateInstance::semanticTiargs(Scope *sc)
 {
-    // Run semantic on each argument, place results in tiargs[]
     //printf("+TemplateInstance::semanticTiargs() %s\n", toChars());
+    semanticTiargs(loc, sc, tiargs);
+}
+
+void TemplateInstance::semanticTiargs(Loc loc, Scope *sc, Objects *tiargs)
+{
+    // Run semantic on each argument, place results in tiargs[]
+    //printf("+TemplateInstance::semanticTiargs()\n");
+    if (!tiargs)
+	return;
     for (size_t j = 0; j < tiargs->dim; j++)
     {
 	Object *o = (Object *)tiargs->data[j];
@@ -3383,35 +3465,7 @@ void TemplateInstance::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 	    if (i)
 		buf->writeByte(',');
 	    Object *oarg = (Object *)args->data[i];
-	    Type *t = isType(oarg);
-	    Expression *e = isExpression(oarg);
-	    Dsymbol *s = isDsymbol(oarg);
-	    Tuple *v = isTuple(oarg);
-	    if (t)
-		t->toCBuffer(buf, NULL, hgs);
-	    else if (e)
-		e->toCBuffer(buf, hgs);
-	    else if (s)
-	    {
-		char *p = s->ident ? s->ident->toChars() : s->toChars();
-		buf->writestring(p);
-	    }
-	    else if (v)
-	    {	assert(i + 1 == args->dim);
-		args = &v->objects;
-		i = -1;
-	    }
-	    else if (!oarg)
-	    {
-		buf->writestring("NULL");
-	    }
-	    else
-	    {
-#ifdef DEBUG
-		printf("tiargs[%d] = %p\n", i, oarg);
-#endif
-		assert(0);
-	    }
+	    ObjectToCBuffer(buf, hgs, oarg);
 	}
 	nest--;
     }

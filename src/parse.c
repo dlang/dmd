@@ -595,9 +595,17 @@ enum LINK Parser::parseLinkage()
 		nextToken();
 	    }
 	}
+	else if (id == Id::System)
+	{
+#if _WIN32
+	    link = LINKwindows;
+#else
+	    link = LINKc;
+#endif
+	}
 	else
 	{
-	    error("valid linkage identifiers are D, C, C++, Pascal, Windows");
+	    error("valid linkage identifiers are D, C, C++, Pascal, Windows, System");
 	    link = LINKd;
 	}
     }
@@ -943,6 +951,9 @@ Arguments *Parser::parseParameters(int *pvarargs)
 			error("incompatible parameter storage classes");
 		    if ((storageClass & (STCfinal | STCout)) == (STCfinal | STCout))
 			error("out cannot be final");
+		    if ((storageClass & STCscope) &&
+			(storageClass & (STCref | STCout)))
+			error("scope cannot be ref or out");
 		    at = parseType(&ai);
 		    ae = NULL;
 		    if (token.value == TOKassign)	// = defaultArg
@@ -1481,11 +1492,16 @@ Lerr:
 Objects *Parser::parseTemplateArgumentList()
 {
     //printf("Parser::parseTemplateArgumentList()\n");
-    Objects *tiargs = new Objects();
     if (token.value != TOKlparen)
     {   error("!(TemplateArgumentList) expected following TemplateIdentifier");
-	return tiargs;
+	return new Objects();
     }
+    return parseTemplateArgumentList2();
+}
+
+Objects *Parser::parseTemplateArgumentList2()
+{
+    Objects *tiargs = new Objects();
     nextToken();
 
     // Get TemplateArgumentList
@@ -2504,6 +2520,7 @@ Statement *Parser::parseStatement(int flags)
 	case TOKtypeid:
 	case TOKis:
 	case TOKlbracket:
+	case TOKtraits:
 	Lexp:
 	{   Expression *exp;
 
@@ -2751,9 +2768,22 @@ Statement *Parser::parseStatement(int flags)
 	    check(TOKsemicolon);
 
 	    aggr = parseExpression();
-	    check(TOKrparen);
-	    body = parseStatement(0);
-	    s = new ForeachStatement(loc, op, arguments, aggr, body);
+	    if (token.value == TOKslice && arguments->dim == 1)
+	    {
+		Argument *a = (Argument *)arguments->data[0];
+		delete arguments;
+		nextToken();
+		Expression *upr = parseExpression();
+		check(TOKrparen);
+		body = parseStatement(0);
+		s = new ForeachRangeStatement(loc, op, a, aggr, upr, body);
+	    }
+	    else
+	    {
+		check(TOKrparen);
+		body = parseStatement(0);
+		s = new ForeachStatement(loc, op, arguments, aggr, body);
+	    }
 	    break;
 	}
 
@@ -3982,6 +4012,29 @@ Expression *Parser::parsePrimaryExp()
 	    t = parseType();		// ( type )
 	    check(TOKrparen);
 	    e = new TypeidExp(loc, t);
+	    break;
+	}
+
+	case TOKtraits:
+	{   /* __traits(identifier, args...)
+	     */
+	    Identifier *ident;
+	    Objects *args = NULL;
+
+	    nextToken();
+	    check(TOKlparen);
+	    if (token.value != TOKidentifier)
+	    {   error("__traits(identifier, args...) expected");
+		goto Lerr;
+	    }
+	    ident = token.ident;
+	    nextToken();
+	    if (token.value == TOKcomma)
+		args = parseTemplateArgumentList2();	// __traits(identifier, args...)
+	    else
+		check(TOKrparen);		// __traits(identifier)
+
+	    e = new TraitsExp(loc, ident, args);
 	    break;
 	}
 

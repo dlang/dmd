@@ -65,6 +65,7 @@ void inferApplyArgTypes(enum TOK op, Arguments *arguments, Expression *aggr);
 void argExpTypesToCBuffer(OutBuffer *buf, Expressions *arguments, HdrGenState *hgs);
 void argsToCBuffer(OutBuffer *buf, Expressions *arguments, HdrGenState *hgs);
 void expandTuples(Expressions *exps);
+FuncDeclaration *hasThis(Scope *sc);
 
 struct Expression : Object
 {
@@ -516,8 +517,9 @@ struct SymOffExp : Expression
 {
     Declaration *var;
     unsigned offset;
+    int hasOverloads;
 
-    SymOffExp(Loc loc, Declaration *var, unsigned offset);
+    SymOffExp(Loc loc, Declaration *var, unsigned offset, int hasOverloads = 0);
     Expression *semantic(Scope *sc);
     void checkEscape();
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
@@ -537,8 +539,9 @@ struct SymOffExp : Expression
 struct VarExp : Expression
 {
     Declaration *var;
+    int hasOverloads;
 
-    VarExp(Loc loc, Declaration *var);
+    VarExp(Loc loc, Declaration *var, int hasOverloads = 0);
     int equals(Object *o);
     Expression *semantic(Scope *sc);
     Expression *optimize(int result);
@@ -602,6 +605,17 @@ struct TypeidExp : Expression
     Type *typeidType;
 
     TypeidExp(Loc loc, Type *typeidType);
+    Expression *syntaxCopy();
+    Expression *semantic(Scope *sc);
+    void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
+};
+
+struct TraitsExp : Expression
+{
+    Identifier *ident;
+    Objects *args;
+
+    TraitsExp(Loc loc, Identifier *ident, Objects *args);
     Expression *syntaxCopy();
     Expression *semantic(Scope *sc);
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
@@ -678,7 +692,7 @@ struct BinExp : Expression
     void scanForNestedRef(Scope *sc);
     Expression *interpretCommon(InterState *istate, Expression *(*fp)(Type *, Expression *, Expression *));
     Expression *interpretCommon2(InterState *istate, Expression *(*fp)(TOK, Type *, Expression *, Expression *));
-    Expression *interpretAssignCommon(InterState *istate, Expression *(*fp)(Type *, Expression *, Expression *));
+    Expression *interpretAssignCommon(InterState *istate, Expression *(*fp)(Type *, Expression *, Expression *), int post = 0);
 
     int inlineCost(InlineCostState *ics);
     Expression *doInline(InlineDoState *ids);
@@ -750,8 +764,9 @@ struct DotTemplateExp : UnaExp
 struct DotVarExp : UnaExp
 {
     Declaration *var;
+    int hasOverloads;
 
-    DotVarExp(Loc loc, Expression *e, Declaration *var);
+    DotVarExp(Loc loc, Expression *e, Declaration *var, int hasOverloads = 0);
     Expression *semantic(Scope *sc);
     Expression *toLvalue(Scope *sc, Expression *e);
     Expression *modifiableLvalue(Scope *sc, Expression *e);
@@ -774,8 +789,9 @@ struct DotTemplateInstanceExp : UnaExp
 struct DelegateExp : UnaExp
 {
     FuncDeclaration *func;
+    int hasOverloads;
 
-    DelegateExp(Loc loc, Expression *e, FuncDeclaration *func);
+    DelegateExp(Loc loc, Expression *e, FuncDeclaration *func, int hasOverloads = 0);
     Expression *semantic(Scope *sc);
     MATCH implicitConvTo(Type *t);
     Expression *castTo(Scope *sc, Type *t);

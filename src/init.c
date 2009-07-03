@@ -532,6 +532,14 @@ Type *ExpInitializer::inferType(Scope *sc)
     //printf("ExpInitializer::inferType() %s\n", toChars());
     exp = exp->semantic(sc);
     exp = resolveProperties(sc, exp);
+
+    // Give error for overloaded function addresses
+    if (exp->op == TOKsymoff)
+    {   SymOffExp *se = (SymOffExp *)exp;
+	if (se->hasOverloads && !se->var->isFuncDeclaration()->isUnique())
+	    exp->error("cannot infer type from overloaded function symbol %s", exp->toChars());
+    }
+
     Type *t = exp->type;
     return t->ty == Tsarray ? t : t->mutableOf();
 }

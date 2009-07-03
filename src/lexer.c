@@ -2639,6 +2639,7 @@ static Keyword keywords[] =
     // Added after 1.0
     {	"ref",		TOKref		},
     {	"macro",	TOKmacro	},
+    {	"__traits",	TOKtraits	},
 };
 
 int Token::isKeyword()

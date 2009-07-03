@@ -635,6 +635,9 @@ Expression *ForeachStatement::interpret(InterState *istate)
     if (dim == EXP_CANT_INTERPRET)
 	return EXP_CANT_INTERPRET;
 
+    Expression *keysave = key ? key->value : NULL;
+    Expression *valuesave = value->value;
+
     uinteger_t d = dim->toUInteger();
     uinteger_t index;
 
@@ -645,9 +648,10 @@ Expression *ForeachStatement::interpret(InterState *istate)
 	    Expression *ekey = new IntegerExp(loc, index, Type::tsize_t);
 	    if (key)
 		key->value = ekey;
-	    value->value = Index(value->type, eaggr, ekey);
-	    if (value->value == EXP_CANT_INTERPRET)
-		return EXP_CANT_INTERPRET;
+	    e = Index(value->type, eaggr, ekey);
+	    if (e == EXP_CANT_INTERPRET)
+		break;
+	    value->value = e;
 
 	    e = body ? body->interpret(istate) : NULL;
 	    if (e == EXP_CANT_INTERPRET)
@@ -669,9 +673,10 @@ Expression *ForeachStatement::interpret(InterState *istate)
 	    Expression *ekey = new IntegerExp(loc, index, Type::tsize_t);
 	    if (key)
 		key->value = ekey;
-	    value->value = Index(value->type, eaggr, ekey);
-	    if (value->value == EXP_CANT_INTERPRET)
-		return EXP_CANT_INTERPRET;
+	    e = Index(value->type, eaggr, ekey);
+	    if (e == EXP_CANT_INTERPRET)
+		break;
+	    value->value = e;
 
 	    e = body ? body->interpret(istate) : NULL;
 	    if (e == EXP_CANT_INTERPRET)
@@ -686,8 +691,93 @@ Expression *ForeachStatement::interpret(InterState *istate)
 		break;
 	}
     }
+    value->value = valuesave;
+    if (key)
+	key->value = keysave;
     return e;
 }
+
+#if V2
+Expression *ForeachRangeStatement::interpret(InterState *istate)
+{
+#if LOG
+    printf("ForeachRangeStatement::interpret()\n");
+#endif
+    if (istate->start == this)
+	istate->start = NULL;
+    if (istate->start)
+	return NULL;
+
+    Expression *e = NULL;
+    Expression *elwr = lwr->interpret(istate);
+    if (elwr == EXP_CANT_INTERPRET)
+	return EXP_CANT_INTERPRET;
+
+    Expression *eupr = upr->interpret(istate);
+    if (eupr == EXP_CANT_INTERPRET)
+	return EXP_CANT_INTERPRET;
+
+    Expression *keysave = key->value;
+
+    if (op == TOKforeach)
+    {
+	key->value = elwr;
+
+	while (1)
+	{
+	    e = Cmp(TOKlt, key->value->type, key->value, upr);
+	    if (e == EXP_CANT_INTERPRET)
+		break;
+	    if (e->isBool(TRUE) == FALSE)
+	    {	e = NULL;
+		break;
+	    }
+
+	    e = body ? body->interpret(istate) : NULL;
+	    if (e == EXP_CANT_INTERPRET)
+		break;
+	    if (e == EXP_BREAK_INTERPRET)
+	    {   e = NULL;
+		break;
+	    }
+	    e = Add(key->value->type, key->value, new IntegerExp(loc, 1, key->value->type));
+	    if (e == EXP_CANT_INTERPRET)
+		break;
+	    key->value = e;
+	}
+    }
+    else // TOKforeach_reverse
+    {
+	key->value = eupr;
+
+	while (1)
+	{
+	    e = Cmp(TOKgt, key->value->type, key->value, lwr);
+	    if (e == EXP_CANT_INTERPRET)
+		break;
+	    if (e->isBool(TRUE) == FALSE)
+	    {	e = NULL;
+		break;
+	    }
+
+	    e = Min(key->value->type, key->value, new IntegerExp(loc, 1, key->value->type));
+	    if (e == EXP_CANT_INTERPRET)
+		break;
+	    key->value = e;
+
+	    e = body ? body->interpret(istate) : NULL;
+	    if (e == EXP_CANT_INTERPRET)
+		break;
+	    if (e == EXP_BREAK_INTERPRET)
+	    {   e = NULL;
+		break;
+	    }
+	}
+    }
+    key->value = keysave;
+    return e;
+}
+#endif
 
 Expression *SwitchStatement::interpret(InterState *istate)
 {
@@ -1283,7 +1373,7 @@ BIN_INTERPRET2(Equal)
 BIN_INTERPRET2(Identity)
 BIN_INTERPRET2(Cmp)
 
-Expression *BinExp::interpretAssignCommon(InterState *istate, fp_t fp)
+Expression *BinExp::interpretAssignCommon(InterState *istate, fp_t fp, int post)
 {
 #if LOG
     printf("BinExp::interpretAssignCommon() %s\n", toChars());
@@ -1322,12 +1412,13 @@ Expression *BinExp::interpretAssignCommon(InterState *istate, fp_t fp)
 		assert(v);
 	    }
 
-	    if (fp && !v->value)
+	    Expression *ev = v->value;
+	    if (fp && !ev)
 	    {	error("variable %s is used before initialization", v->toChars());
 		return e;
 	    }
 	    if (fp)
-		e2 = (*fp)(v->type, v->value, e2);
+		e2 = (*fp)(v->type, ev, e2);
 	    else
 		e2 = Cast(v->type, v->type, e2);
 	    if (e2 != EXP_CANT_INTERPRET)
@@ -1345,7 +1436,7 @@ Expression *BinExp::interpretAssignCommon(InterState *istate, fp_t fp)
 		    }
 		}
 		v->value = e2;
-		e = Cast(type, type, e2);
+		e = Cast(type, type, post ? ev : e2);
 	    }
 	}
     }
@@ -1401,8 +1492,9 @@ Expression *BinExp::interpretAssignCommon(InterState *istate, fp_t fp)
 		expsx->data[j] = se->elements->data[j];
 	}
 	v->value = new StructLiteralExp(se->loc, se->sd, expsx);
+	v->value->type = se->type;
 
-	e = Cast(type, type, e2);
+	e = Cast(type, type, post ? ev : e2);
     }
     /* Assignment to array element of the form:
      *   a[i] = e2
@@ -1562,7 +1654,7 @@ Expression *BinExp::interpretAssignCommon(InterState *istate, fp_t fp)
 	else
 	    assert(0);
 
-	e = Cast(type, type, e2);
+	e = Cast(type, type, post ? ev : e2);
     }
     else
     {
@@ -1602,52 +1694,15 @@ Expression *PostExp::interpret(InterState *istate)
 #if LOG
     printf("PostExp::interpret() %s\n", toChars());
 #endif
-    Expression *e = EXP_CANT_INTERPRET;
-
-    if (e1->op == TOKvar)
-    {
-	VarExp *ve = (VarExp *)e1;
-	VarDeclaration *v = ve->var->isVarDeclaration();
-	if (v && !v->isDataseg())
-	{
-	    /* Chase down rebinding of out and ref
-	     */
-	    if (v->value && v->value->op == TOKvar)
-	    {
-		ve = (VarExp *)v->value;
-		v = ve->var->isVarDeclaration();
-		assert(v);
-	    }
-
-	    if (!v->value)
-	    {	error("variable %s is used before initialization", v->toChars());
-		return e;
-	    }
-	    Expression *e2 = this->e2->interpret(istate);
-	    if (e2 != EXP_CANT_INTERPRET)
-	    {
-		e = ((op == TOKplusplus) ? &Add : &Min)(v->type, v->value, e2);
-		if (e != EXP_CANT_INTERPRET)
-		{
-		    if (v->isAuto())
-		    {
-			for (size_t i = 0; 1; i++)
-			{
-			    if (i == istate->vars.dim)
-			    {   istate->vars.push(v);
-				break;
-			    }
-			    if (v == (VarDeclaration *)istate->vars.data[i])
-				break;
-			}
-		    }
-		    Expression *eold = v->value;
-		    v->value = e;
-		    e = Cast(type, type, eold);
-		}
-	    }
-	}
-    }
+    Expression *e;
+    if (op == TOKplusplus)
+	e = interpretAssignCommon(istate, &Add, 1);
+    else
+	e = interpretAssignCommon(istate, &Min, 1);
+#if LOG
+    if (e == EXP_CANT_INTERPRET)
+	printf("PostExp::interpret() CANT\n");
+#endif
     return e;
 }
 
@@ -1960,7 +2015,23 @@ Expression *PtrExp::interpret(InterState *istate)
 
     // Constant fold *(&structliteral + offset)
     if (e1->op == TOKadd)
-    {
+    {	AddExp *ae = (AddExp *)e1;
+	if (ae->e1->op == TOKaddress && ae->e2->op == TOKint64)
+	{   AddrExp *ade = (AddrExp *)ae->e1;
+	    Expression *ex = ade->e1;
+	    ex = ex->interpret(istate);
+	    if (ex != EXP_CANT_INTERPRET)
+	    {
+		if (ex->op == TOKstructliteral)
+		{   StructLiteralExp *se = (StructLiteralExp *)ex;
+		    unsigned offset = ae->e2->toInteger();
+		    e = se->getField(type, offset);
+		    if (!e)
+			e = EXP_CANT_INTERPRET;
+		    return e;
+		}
+	    }
+	}
 	e = Ptr(type, e1);
     }
     else if (e1->op == TOKsymoff)
