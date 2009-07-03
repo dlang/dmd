@@ -359,6 +359,8 @@ Initializer *ArrayInitializer::semantic(Scope *sc, Type *t)
 Expression *ArrayInitializer::toExpression()
 {   Expressions *elements;
 
+    //printf("ArrayInitializer::toExpression()\n");
+    //static int i; if (++i == 2) halt();
     elements = new Expressions();
     for (size_t i = 0; i < value.dim; i++)
     {

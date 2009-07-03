@@ -75,7 +75,7 @@ Expression *FuncDeclaration::interpret(InterState *istate, Expressions *argument
     assert(tb->ty == Tfunction);
     TypeFunction *tf = (TypeFunction *)tb;
     Type *tret = tf->next->toBasetype();
-    if (tf->varargs || tret->ty == Tvoid)
+    if (tf->varargs /*|| tret->ty == Tvoid*/)
     {	cantInterpret = 1;
 	return NULL;
     }
@@ -87,21 +87,6 @@ Expression *FuncDeclaration::interpret(InterState *istate, Expressions *argument
 	    if (arg->inout == Lazy)
 	    {   cantInterpret = 1;
 		return NULL;
-	    }
-	}
-    }
-
-    /* Save the values of the local variables used
-     */
-    Expressions valueSaves;
-    if (istate)
-    {
-	valueSaves.setDim(istate->vars.dim);
-	for (size_t i = 0; i < istate->vars.dim; i++)
-	{   VarDeclaration *v = (VarDeclaration *)istate->vars.data[i];
-	    if (v)
-	    {	valueSaves.data[i] = v->value;
-		v->value = NULL;
 	    }
 	}
     }
@@ -170,6 +155,24 @@ Expression *FuncDeclaration::interpret(InterState *istate, Expressions *argument
 #if LOG
 	    printf("interpreted arg[%d] = %s\n", i, earg->toChars());
 #endif
+	}
+    }
+
+    /* Save the values of the local variables used
+     */
+    Expressions valueSaves;
+    if (istate)
+    {
+	//printf("saving state...\n");
+	valueSaves.setDim(istate->vars.dim);
+	for (size_t i = 0; i < istate->vars.dim; i++)
+	{   VarDeclaration *v = (VarDeclaration *)istate->vars.data[i];
+	    if (v)
+	    {
+		//printf("\tsaving [%d] %s = %s\n", i, v->toChars(), v->value->toChars());
+		valueSaves.data[i] = v->value;
+		v->value = NULL;
+	    }
 	}
     }
 
@@ -252,7 +255,7 @@ Expression *Statement::interpret(InterState *istate)
 Expression *ExpStatement::interpret(InterState *istate)
 {
 #if LOG
-    printf("ExpStatement::interpret()\n");
+    printf("ExpStatement::interpret(%s)\n", exp ? exp->toChars() : "");
 #endif
     START()
     if (exp)
@@ -285,6 +288,9 @@ Expression *CompoundStatement::interpret(InterState *istate)
 		break;
 	}
     }
+#if LOG
+    printf("-CompoundStatement::interpret() %p\n", e);
+#endif
     return e;
 }
 
@@ -374,10 +380,11 @@ Expression *ScopeStatement::interpret(InterState *istate)
 Expression *ReturnStatement::interpret(InterState *istate)
 {
 #if LOG
-    printf("ReturnStatement::interpret()\n");
+    printf("ReturnStatement::interpret(%s)\n", exp ? exp->toChars() : "");
 #endif
     START()
-    assert(exp);
+    if (!exp)
+	return EXP_VOID_INTERPRET;
     return exp->interpret(istate);
 }
 
@@ -836,7 +843,10 @@ Expression *VarExp::interpret(InterState *istate)
     if (v)
     {
 	if (v->isConst() && v->init)
-	    e = v->init->toExpression();
+	{   e = v->init->toExpression();
+	    if (!e->type)
+		e->type = v->type;
+	}
 	else
 	{   e = v->value;
 	    if (!e)
@@ -851,7 +861,11 @@ Expression *VarExp::interpret(InterState *istate)
 }
 
 Expression *DeclarationExp::interpret(InterState *istate)
-{   Expression *e = EXP_CANT_INTERPRET;
+{
+#if LOG
+    printf("DeclarationExp::interpret() %s\n", toChars());
+#endif
+    Expression *e = EXP_CANT_INTERPRET;
     VarDeclaration *v = declaration->isVarDeclaration();
     if (v)
     {
@@ -864,12 +878,23 @@ Expression *DeclarationExp::interpret(InterState *istate)
 	    else if (v->init->isVoidInitializer())
 		e = NULL;
 	}
+	else if (s == v && v->isConst() && v->init)
+	{   e = v->init->toExpression();
+	    if (!e)
+		e = EXP_CANT_INTERPRET;
+	    else if (!e->type)
+		e->type = v->type;
+	}
     }
     return e;
 }
 
 Expression *TupleExp::interpret(InterState *istate)
-{   Expressions *expsx = NULL;
+{
+#if LOG
+    printf("VarExp::interpret() %s\n", toChars());
+#endif
+    Expressions *expsx = NULL;
 
     for (size_t i = 0; i < exps->dim; i++)
     {   Expression *e = (Expression *)exps->data[i];
@@ -1031,16 +1056,19 @@ Expression *BinExp::interpretCommon2(InterState *istate, fp2_t fp)
     Expression *e1;
     Expression *e2;
 
+#if LOG
+    printf("BinExp::interpretCommon2() %s\n", toChars());
+#endif
     e1 = this->e1->interpret(istate);
     if (e1 == EXP_CANT_INTERPRET)
 	goto Lcant;
-    if (e1->isConst() != 1)
+    if (e1->isConst() != 1 && e1->op != TOKstring && e1->op != TOKarrayliteral)
 	goto Lcant;
 
     e2 = this->e2->interpret(istate);
     if (e2 == EXP_CANT_INTERPRET)
 	goto Lcant;
-    if (e2->isConst() != 1)
+    if (e2->isConst() != 1 && e2->op != TOKstring && e2->op != TOKarrayliteral)
 	goto Lcant;
 
     e = (*fp)(op, type, e1, e2);
@@ -1103,7 +1131,7 @@ Expression *BinExp::interpretAssignCommon(InterState *istate, fp_t fp)
 		    e2 = Cast(v->type, v->type, e2);
 		if (e2 != EXP_CANT_INTERPRET)
 		{
-		    if (v->isAuto())
+		    if (!(v->isDataseg() || v->isParameter()))
 		    {
 			for (size_t i = 0; 1; i++)
 			{
@@ -1276,6 +1304,8 @@ Expression *CallExp::interpret(InterState *istate)
 		Expression *eresult = fd->interpret(istate, arguments);
 		if (eresult)
 		    e = eresult;
+		else if (fd->type->toBasetype()->next->ty == Tvoid)
+		    e = EXP_VOID_INTERPRET;
 		else
 		    error("cannot evaluate %s at compile time", toChars());
 	    }
@@ -1334,6 +1364,9 @@ Expression *IndexExp::interpret(InterState *istate)
     Expression *e1;
     Expression *e2;
 
+#if LOG
+    printf("IndexExp::interpret() %s\n", toChars());
+#endif
     e1 = this->e1->interpret(istate);
     if (e1 == EXP_CANT_INTERPRET)
 	goto Lcant;

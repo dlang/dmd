@@ -457,7 +457,7 @@ Expression *Div(Type *type, Expression *e1, Expression *e2)
 	n1 = e1->toInteger();
 	n2 = e2->toInteger();
 	if (n2 == 0)
-	{   error("divide by 0");
+	{   e2->error("divide by 0");
 	    e2 = new IntegerExp(0, 1, e2->type);
 	    n2 = 1;
 	}
@@ -520,7 +520,7 @@ Expression *Mod(Type *type, Expression *e1, Expression *e2)
 	n1 = e1->toInteger();
 	n2 = e2->toInteger();
 	if (n2 == 0)
-	{   error("divide by 0");
+	{   e2->error("divide by 0");
 	    e2 = new IntegerExp(0, 1, e2->type);
 	    n2 = 1;
 	}
@@ -1029,7 +1029,8 @@ Expression *Index(Type *type, Expression *e1, Expression *e2)
 {   Expression *e = EXP_CANT_INTERPRET;
     Loc loc = e1->loc;
 
-    //printf("Index(e1->type = %p)\n", e1->type);
+    //printf("Index(e1 = %s)\n", e1->toChars());
+    assert(e1->type);
     if (e1->op == TOKstring && e2->op == TOKint64)
     {	StringExp *es1 = (StringExp *)e1;
 	uinteger_t i = e2->toInteger();
@@ -1066,7 +1067,7 @@ Expression *Index(Type *type, Expression *e1, Expression *e2)
 	uinteger_t i = e2->toInteger();
 
 	if (i >= length)
-	{   error("array index %ju is out of bounds [0 .. %ju]", i, length);
+	{   e2->error("array index %ju is out of bounds %s[0 .. %ju]", i, e1->toChars(), length);
 	}
 	else if (e1->op == TOKarrayliteral && !e1->checkSideEffect(2))
 	{   ArrayLiteralExp *ale = (ArrayLiteralExp *)e1;
@@ -1144,6 +1145,7 @@ Expression *Slice(Type *type, Expression *e1, Expression *lwr, Expression *upr)
 Expression *Cat(Type *type, Expression *e1, Expression *e2)
 {   Expression *e = EXP_CANT_INTERPRET;
     Loc loc = e1->loc;
+    Type *t;
 
     //printf("Cat(e1 = %s, e2 = %s)\n", e1->toChars(), e2->toChars());
 
@@ -1184,8 +1186,7 @@ Expression *Cat(Type *type, Expression *e1, Expression *e2)
 	e->type = type;
 	return e;
     }
-
-    if (e1->op == TOKstring && e2->op == TOKstring)
+    else if (e1->op == TOKstring && e2->op == TOKstring)
     {
 	// Concatenate the strings
 	void *s;
@@ -1319,12 +1320,21 @@ Expression *Cat(Type *type, Expression *e1, Expression *e2)
     }
     else if (e1->op == TOKnull && e2->op == TOKstring)
     {
+	t = e1->type;
 	e = e2;
 	goto L1;
     }
     else if (e1->op == TOKstring && e2->op == TOKnull)
     {	e = e1;
+	t = e2->type;
       L1:
+	Type *tb = t->toBasetype();
+	if (tb->ty == Tarray && tb->next->equals(e->type))
+	{   Expressions *expressions = new Expressions();
+	    expressions->push(e);
+	    e = new ArrayLiteralExp(loc, expressions);
+	    e->type = t;
+	}
 	if (!e->type->equals(type))
 	{   StringExp *se = (StringExp *)e->copy();
 	    e = se->castTo(NULL, type);

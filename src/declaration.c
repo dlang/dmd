@@ -1,6 +1,6 @@
 
 // Compiler implementation of the D programming language
-// Copyright (c) 1999-2006 by Digital Mars
+// Copyright (c) 1999-2007 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // www.digitalmars.com
@@ -147,6 +147,26 @@ Type *TupleDeclaration::getType()
     }
 
     return tupletype;
+}
+
+int TupleDeclaration::needThis()
+{
+    //printf("TupleDeclaration::needThis(%s)\n", toChars());
+    for (size_t i = 0; i < objects->dim; i++)
+    {   Object *o = (Object *)objects->data[i];
+	if (o->dyncast() == DYNCAST_EXPRESSION)
+	{   Expression *e = (Expression *)o;
+	    if (e->op == TOKdsymbol)
+	    {	DsymbolExp *ve = (DsymbolExp *)e;
+		Declaration *d = ve->s->isDeclaration();
+		if (d && d->needThis())
+		{
+		    return 1;
+		}
+	    }
+	}
+    }
+    return 0;
 }
 
 /********************************* TypedefDeclaration ****************************/
@@ -965,6 +985,7 @@ void VarDeclaration::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 
 int VarDeclaration::needThis()
 {
+    //printf("VarDeclaration::needThis(%s, x%x)\n", toChars(), storage_class);
     return storage_class & STCfield;
 }
 

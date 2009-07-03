@@ -130,6 +130,7 @@ struct TupleDeclaration : Declaration
     Dsymbol *syntaxCopy(Dsymbol *);
     char *kind();
     Type *getType();
+    int needThis();
 
     TupleDeclaration *isTupleDeclaration() { return this; }
 };
@@ -504,6 +505,7 @@ struct FuncAliasDeclaration : FuncDeclaration
 
     FuncAliasDeclaration *isFuncAliasDeclaration() { return this; }
     char *kind();
+    Symbol *toSymbol();
 };
 
 struct FuncLiteralDeclaration : FuncDeclaration

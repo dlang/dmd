@@ -18,6 +18,13 @@
 #include <stdint.h>
 #include <stdarg.h>
 
+#ifdef __DMC__
+#ifdef DEBUG
+#undef assert
+#define assert(e) (static_cast<void>((e) || (printf("assert %s(%d) %s\n", __FILE__, __LINE__, #e), halt())))
+#endif
+#endif
+
 #ifdef IN_GCC
 /* Changes for the GDC compiler by David Friedman */
 #endif

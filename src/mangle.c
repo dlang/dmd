@@ -30,10 +30,11 @@ char *mangle(Declaration *sthis)
     char *id;
     Dsymbol *s;
 
+    //printf("::mangle(%s)\n", sthis->toChars());
     s = sthis;
     do
     {
-	//printf("s = %p, '%s', parent = %p\n", s, s->toChars(), s->parent);
+	//printf("mangle: s = %p, '%s', parent = %p\n", s, s->toChars(), s->parent);
 	if (s->ident)
 	{
 	    FuncDeclaration *fd = s->isFuncDeclaration();
@@ -60,11 +61,16 @@ char *mangle(Declaration *sthis)
 
 //    buf.prependstring("_D");
 L1:
-    //printf("deco = '%s'\n", sthis->type->deco);
+    //printf("deco = '%s'\n", sthis->type->deco ? sthis->type->deco : "null");
+    //printf("sthis->type = %s\n", sthis->type->toChars());
     FuncDeclaration *fd = sthis->isFuncDeclaration();
     if (fd && (fd->needThis() || fd->isNested()))
 	buf.writeByte(Type::needThisPrefix());
-    buf.writestring(sthis->type->deco);
+    if (sthis->type->deco)
+	buf.writestring(sthis->type->deco);
+    else
+    {	assert(fd->inferRetType);
+    }
 
     id = buf.toChars();
     buf.data = NULL;
@@ -134,6 +140,7 @@ char *FuncDeclaration::mangle()
 	if (isMain())
 	    return "_Dmain";
 
+	assert(this);
 	return Declaration::mangle();
     }
 

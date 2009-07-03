@@ -1136,11 +1136,11 @@ Statement *ForeachStatement::semantic(Scope *sc)
 	//printf("aggr: op = %d, %s\n", aggr->op, aggr->toChars());
 	size_t n;
 	TupleExp *te = NULL;
-	if (aggr->op == TOKtuple)
+	if (aggr->op == TOKtuple)	// expression tuple
 	{   te = (TupleExp *)aggr;
 	    n = te->exps->dim;
 	}
-	else if (aggr->op == TOKtype)
+	else if (aggr->op == TOKtype)	// type tuple
 	{
 	    n = Argument::dim(tuple->arguments);
 	}
@@ -1182,9 +1182,17 @@ Statement *ForeachStatement::semantic(Scope *sc)
 	    Dsymbol *var;
 	    if (te)
 	    {
-		arg->type = e->type;
-		Initializer *ie = new ExpInitializer(0, e);
-		var = new VarDeclaration(loc, arg->type, arg->ident, ie);
+		if (e->type->toBasetype()->ty == Tfunction &&
+		    e->op == TOKvar)
+		{   VarExp *ve = (VarExp *)e;
+		    var = new AliasDeclaration(loc, arg->ident, ve->var);
+		}
+		else
+		{
+		    arg->type = e->type;
+		    Initializer *ie = new ExpInitializer(0, e);
+		    var = new VarDeclaration(loc, arg->type, arg->ident, ie);
+		}
 	    }
 	    else
 	    {

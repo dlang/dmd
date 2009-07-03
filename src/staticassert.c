@@ -1,5 +1,5 @@
 
-// Copyright (c) 1999-2006 by Digital Mars
+// Copyright (c) 1999-2007 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // www.digitalmars.com
@@ -49,20 +49,20 @@ void StaticAssert::semantic2(Scope *sc)
     Expression *e;
 
     e = exp->semantic(sc);
-    e = e->optimize(WANTvalue);
+    e = e->optimize(WANTvalue | WANTinterpret);
     if (e->isBool(FALSE))
     {
 	if (msg)
 	{
 	    msg = msg->semantic(sc);
-	    msg = msg->optimize(WANTvalue);
+	    msg = msg->optimize(WANTvalue | WANTinterpret);
 	    char *p = msg->toChars();
 	    p = strdup(p);
-	    error("(%s) is false, %s", exp->toChars(), p);
+	    error("%s", p);
 	    free(p);
 	}
 	else
-	    error("(%s) is false", exp->toChars());
+	    error("is false");
 	if (!global.gag)
 	    fatal();
     }

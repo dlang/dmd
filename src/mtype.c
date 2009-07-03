@@ -3082,7 +3082,12 @@ void TypeQualified::resolveHelper(Loc loc, Scope *sc,
 		id = (Identifier *)ti->idents.data[0];
 		sm = s->search(loc, id, 0);
 		if (!sm)
-		{   error(loc, "template identifier %s is not a member of %s", id->toChars(), s->toChars());
+		{
+#ifdef DEBUG
+		    printf("1: \n");
+#endif
+		    error(loc, "template identifier %s is not a member of %s %s",
+			id->toChars(), s->kind(), s->toChars());
 		    return;
 		}
 		sm = sm->toAlias();
@@ -3318,11 +3323,11 @@ Dsymbol *TypeIdentifier::toDsymbol(Scope *sc)
     s = sc->search(loc, ident, &scopesym);
     if (s)
     {
-	s = s->toAlias();
 	for (int i = 0; i < idents.dim; i++)
 	{   Identifier *id;
 	    Dsymbol *sm;
 
+	    s = s->toAlias();
 	    id = (Identifier *)idents.data[i];
 	    //printf("\tid = '%s'\n", id->toChars());
 	    if (id->dyncast() != DYNCAST_IDENTIFIER)
@@ -3334,20 +3339,35 @@ Dsymbol *TypeIdentifier::toDsymbol(Scope *sc)
 		id = (Identifier *)ti->idents.data[0];
 		sm = s->search(loc, id, 0);
 		if (!sm)
-		{   error(loc, "template identifier %s is not a member of %s", id->toChars(), s->toChars());
-		    break;
-		}
-		sm = sm->toAlias();
-		td = sm->isTemplateDeclaration();
-		if (!td)
 		{
-		    error(loc, "%s is not a template", id->toChars());
-		    break;
+		    Type *t = s->getType();
+		    if (t)
+			sm = t->toDsymbol(sc);
+		    if (!sm)
+		    {
+#ifdef DEBUG
+			printf("E2: %s\n", s->getType()->toChars());
+#endif
+			error(loc, "template identifier %s is not a member of %s %s",
+			    id->toChars(), s->kind(), s->toChars());
+			break;
+		    }
+		    sm = sm->toAlias();
 		}
-		ti->tempdecl = td;
-		if (!ti->semanticdone)
-		    ti->semantic(sc);
-		sm = ti->toAlias();
+		else
+		{
+		    sm = sm->toAlias();
+		    td = sm->isTemplateDeclaration();
+		    if (!td)
+		    {
+			error(loc, "%s %s is not a template", sm->kind(), id->toChars());
+			break;
+		    }
+		    ti->tempdecl = td;
+		    if (!ti->semanticdone)
+			ti->semantic(sc);
+		    sm = ti->toAlias();
+		}
 	    }
 	    else
 		sm = s->search(loc, id, 0);
@@ -3357,7 +3377,6 @@ Dsymbol *TypeIdentifier::toDsymbol(Scope *sc)
 	    {	//printf("\tdidn't find a symbol\n");
 		break;
 	    }
-	    s = s->toAlias();
 	}
     }
     return s;
@@ -4226,6 +4245,12 @@ L1:
 	    e = e->semantic(sc);
 	    return e;
 	}
+	if (d->isTupleDeclaration())
+	{
+	    e = new TupleExp(e->loc, d->isTupleDeclaration());
+	    e = e->semantic(sc);
+	    return e;
+	}
 	return new VarExp(e->loc, d);
     }
 
@@ -4552,6 +4577,12 @@ L1:
 
 	    de = new DotVarExp(e->loc, new ThisExp(e->loc), d);
 	    e = de->semantic(sc);
+	    return e;
+	}
+	else if (d->isTupleDeclaration())
+	{
+	    e = new TupleExp(e->loc, d->isTupleDeclaration());
+	    e = e->semantic(sc);
 	    return e;
 	}
 	else

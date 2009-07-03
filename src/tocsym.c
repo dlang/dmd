@@ -1,6 +1,6 @@
 
 // Compiler implementation of the D programming language
-// Copyright (c) 1999-2006 by Digital Mars
+// Copyright (c) 1999-2007 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // www.digitalmars.com
@@ -174,7 +174,16 @@ Symbol *VarDeclaration::toSymbol()
 	s = symbol_calloc(id);
 
 	if (storage_class & STCout)
-	    t = type_fake(TYnptr);
+	{
+	    if (global.params.symdebug && storage_class & STCparameter)
+	    {
+		t = type_alloc(TYref);
+		t->Tnext = type->toCtype();
+		t->Tnext->Tcount++;
+	    }
+	    else
+		t = type_fake(TYnptr);
+	}
 	else if (storage_class & STClazy)
 	    t = type_fake(TYullong);		// Tdelegate as C type
 	else if (isParameter())
@@ -276,6 +285,14 @@ Symbol *TypeInfoDeclaration::toSymbol()
 /*************************************
  */
 
+Symbol *FuncAliasDeclaration::toSymbol()
+{
+    return funcalias->toSymbol();
+}
+
+/*************************************
+ */
+
 Symbol *FuncDeclaration::toSymbol()
 {
     if (!csym)
@@ -288,7 +305,7 @@ Symbol *FuncDeclaration::toSymbol()
 #else
 	id = mangle();
 #endif
-	//printf("FuncDeclaration::toSymbol(%s)\n", toChars());
+	//printf("FuncDeclaration::toSymbol(%s %s)\n", kind(), toChars());
 	//printf("\tid = '%s'\n", id);
 	//printf("\ttype = %s\n", type->toChars());
 	s = symbol_calloc(id);
@@ -300,10 +317,15 @@ Symbol *FuncDeclaration::toSymbol()
 	    symbol_func(s);
 	    f = s->Sfunc;
 	    f->Fstartline.Slinnum = loc.linnum;
+	    f->Fstartline.Sfilename = loc.filename;
 	    if (endloc.linnum)
-		f->Fendline.Slinnum = endloc.linnum;
+	    {	f->Fendline.Slinnum = endloc.linnum;
+		f->Fendline.Sfilename = endloc.filename;
+	    }
 	    else
-		f->Fendline.Slinnum = loc.linnum;
+	    {	f->Fendline.Slinnum = loc.linnum;
+		f->Fendline.Sfilename = loc.filename;
+	    }
 	    t = type->toCtype();
 	}
 

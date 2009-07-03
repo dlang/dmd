@@ -42,6 +42,7 @@ static real_t zero;	// work around DMC bug for now
 
 Expression *fromConstInitializer(Expression *e1)
 {
+    //printf("fromConstInitializer(%s)\n", e1->toChars());
     if (e1->op == TOKvar)
     {	VarExp *ve = (VarExp *)e1;
 	VarDeclaration *v = ve->var->isVarDeclaration();

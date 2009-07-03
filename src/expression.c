@@ -1145,7 +1145,9 @@ void IntegerExp::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 		     break;
 		}
 	    case Tchar:
-		if (isprint(v) && v != '\\')
+		if (v == '\'')
+		    buf->writestring("'\\''");
+		else if (isprint(v) && v != '\\')
 		    buf->printf("'%c'", (int)v);
 		else
 		    buf->printf("'\\x%02x'", (int)v);
@@ -1820,23 +1822,8 @@ Lagain:
 
     TupleDeclaration *tup = s->isTupleDeclaration();
     if (tup)
-    {	Expressions *exps = new Expressions();
-
-	exps->reserve(tup->objects->dim);
-	for (size_t i = 0; i < tup->objects->dim; i++)
-	{   Object *o = (Object *)tup->objects->data[i];
-	    if (o->dyncast() != DYNCAST_EXPRESSION)
-	    {
-		error("%s is not an expression", o->toChars());
-	    }
-	    else
-	    {
-		Expression *e = (Expression *)o;
-		e = e->syntaxCopy();
-		exps->push(e);
-	    }
-	}
-	e = new TupleExp(loc, exps);
+    {
+	e = new TupleExp(loc, tup);
 	e = e->semantic(sc);
 	return e;
     }
@@ -2747,6 +2734,7 @@ Lagain:
     }
     else
 	type = newtype->semantic(loc, sc);
+    newtype = type;		// in case type gets cast to something else
     tb = type->toBasetype();
     //printf("tb: %s, deco = %s\n", tb->toChars(), tb->deco);
 
@@ -3266,6 +3254,35 @@ TupleExp::TupleExp(Loc loc, Expressions *exps)
     //printf("TupleExp(this = %p)\n", this);
     this->exps = exps;
     this->type = NULL;
+}
+
+
+TupleExp::TupleExp(Loc loc, TupleDeclaration *tup)
+	: Expression(loc, TOKtuple, sizeof(TupleExp))
+{
+    exps = new Expressions();
+    type = NULL;
+
+    exps->reserve(tup->objects->dim);
+    for (size_t i = 0; i < tup->objects->dim; i++)
+    {   Object *o = (Object *)tup->objects->data[i];
+	if (o->dyncast() == DYNCAST_EXPRESSION)
+	{
+	    Expression *e = (Expression *)o;
+	    e = e->syntaxCopy();
+	    exps->push(e);
+	}
+	else if (o->dyncast() == DYNCAST_DSYMBOL)
+	{
+	    Dsymbol *s = (Dsymbol *)o;
+	    Expression *e = new DsymbolExp(loc, s);
+	    exps->push(e);
+	}
+	else
+	{
+	    error("%s is not an expression", o->toChars());
+	}
+    }
 }
 
 int TupleExp::equals(Object *o)
@@ -4711,7 +4728,7 @@ Expression *DotTemplateInstanceExp::semantic(Scope *sc)
     id = (Identifier *)ti->idents.data[0];
     s2 = s->search(loc, id, 0);
     if (!s2)
-    {	error("template identifier %s is not a member of %s", id->toChars(), s->ident->toChars());
+    {	error("template identifier %s is not a member of %s %s", id->toChars(), s->kind(), s->ident->toChars());
 	goto Lerr;
     }
     s = s2;
