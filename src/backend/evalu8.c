@@ -35,6 +35,8 @@
 static char __file__[] = __FILE__;	/* for tassert.h		*/
 #include	"tassert.h"
 
+extern void error(const char *filename, unsigned linnum, const char *format, ...);
+
 #if linux || __APPLE__
 int _status87()
 {
@@ -568,10 +570,11 @@ elem * evalu8(elem *e)
 
 //    assert((_status87() & 0x3800) == 0);
     assert(e && EOP(e));
+    op = e->Eoper;
     elem_debug(e);
     e1 = e->E1;
 
-    //printf("evalu8(): "); elem_print(e);
+    //printf("evalu8(): "); //elem_print(e);
     elem_debug(e1);
     if (e1->Eoper == OPconst)
     {
@@ -612,7 +615,6 @@ elem * evalu8(elem *e)
     /* if left or right leaf is unsigned, this is an unsigned operation	*/
     uns = tyuns(tym) | tyuns(tym2);
 
-  op = e->Eoper;
   /*elem_print(e);*/
   /*dbg_printf("x%lx ",l1); WROP(op); dbg_printf("x%lx = ",l2);*/
   if (0 && e2)
@@ -1195,7 +1197,10 @@ elem * evalu8(elem *e)
 	break;
     case OPdiv:
 	if (!boolres(e2))			// divide by 0
-	{   if (!tyfloating(tym))
+	{
+#if SCPP
+	    if (!tyfloating(tym))
+#endif
 		goto div0;
 	}
 	if (uns)
@@ -1380,8 +1385,7 @@ elem * evalu8(elem *e)
 #if SCPP
 		synerr(EM_divby0);
 #else // MARS
-		printf("Error: divide by zero\n");
-		err_exit();		// BUG: should do better here
+		//error(e->Esrcpos.Sfilename, e->Esrcpos.Slinnum, "divide by zero");
 #endif
 		break;
 	}
@@ -1729,7 +1733,37 @@ elem * evalu8(elem *e)
     case OPeqeq:
 	if (tyfloating(tym))
 	{
-	    i ^= d1 == d2;
+	    switch (tybasic(tym))
+	    {
+		case TYcfloat:
+		    if (isnan(e1->EV.Vcfloat.re) || isnan(e1->EV.Vcfloat.im) ||
+			isnan(e2->EV.Vcfloat.re) || isnan(e2->EV.Vcfloat.im))
+			i ^= 1;
+		    else
+			i ^= (e1->EV.Vcfloat.re == e2->EV.Vcfloat.re) &&
+			     (e1->EV.Vcfloat.im == e2->EV.Vcfloat.im);
+		    break;
+		case TYcdouble:
+		    if (isnan(e1->EV.Vcdouble.re) || isnan(e1->EV.Vcdouble.im) ||
+			isnan(e2->EV.Vcdouble.re) || isnan(e2->EV.Vcdouble.im))
+			i ^= 1;
+		    else
+			i ^= (e1->EV.Vcdouble.re == e2->EV.Vcdouble.re) &&
+			     (e1->EV.Vcdouble.im == e2->EV.Vcdouble.im);
+		    break;
+		case TYcldouble:
+		    if (isnan(e1->EV.Vcldouble.re) || isnan(e1->EV.Vcldouble.im) ||
+			isnan(e2->EV.Vcldouble.re) || isnan(e2->EV.Vcldouble.im))
+			i ^= 1;
+		    else
+			i ^= (e1->EV.Vcldouble.re == e2->EV.Vcldouble.re) &&
+			     (e1->EV.Vcldouble.im == e2->EV.Vcldouble.im);
+		    break;
+		default:
+		    i ^= d1 == d2;
+		    break;
+	    }
+	    //printf("%Lg + %Lgi, %Lg + %Lgi\n", e1->EV.Vcldouble.re, e1->EV.Vcldouble.im, e2->EV.Vcldouble.re, e2->EV.Vcldouble.im);
 	}
 #if TARGET_MAC
 	else if (tybyte(tym))
@@ -1742,10 +1776,11 @@ elem * evalu8(elem *e)
 	e->EV.Vint = i;
 	break;
 
-#if __SC__ && !THINK_C
+#if __DMC__
     case OPord:
 	i++;
     case OPunord:
+	// BUG: complex numbers
 	i ^= d1 !<>= d2;
 	e->EV.Vint = i;
 	break;
@@ -1753,6 +1788,7 @@ elem * evalu8(elem *e)
     case OPnlg:
 	i++;
     case OPlg:
+	// BUG: complex numbers
 	i ^= d1 <> d2;
 	e->EV.Vint = i;
 	break;
@@ -1760,6 +1796,7 @@ elem * evalu8(elem *e)
     case OPnleg:
 	i++;
     case OPleg:
+	// BUG: complex numbers
 	i ^= d1 <>= d2;
 	e->EV.Vint = i;
 	break;
@@ -1767,6 +1804,7 @@ elem * evalu8(elem *e)
     case OPnule:
 	i++;
     case OPule:
+	// BUG: complex numbers
 	i ^= d1 !> d2;
 	e->EV.Vint = i;
 	break;
@@ -1774,6 +1812,7 @@ elem * evalu8(elem *e)
     case OPnul:
 	i++;
     case OPul:
+	// BUG: complex numbers
 	i ^= d1 !>= d2;
 	e->EV.Vint = i;
 	break;
@@ -1781,6 +1820,7 @@ elem * evalu8(elem *e)
     case OPnuge:
 	i++;
     case OPuge:
+	// BUG: complex numbers
 	i ^= d1 !< d2;
 	e->EV.Vint = i;
 	break;
@@ -1788,6 +1828,7 @@ elem * evalu8(elem *e)
     case OPnug:
 	i++;
     case OPug:
+	// BUG: complex numbers
 	i ^= d1 !<= d2;
 	e->EV.Vint = i;
 	break;
@@ -1795,6 +1836,7 @@ elem * evalu8(elem *e)
     case OPnue:
 	i++;
     case OPue:
+	// BUG: complex numbers
 	i ^= d1 !<> d2;
 	e->EV.Vint = i;
 	break;
@@ -1992,6 +2034,20 @@ elem * evalu8(elem *e)
 		     ((i1 <<  8) & 0x00FF0000) |
 		     ((i1 << 24) & 0xFF000000);
 	break;
+    case OPind:
+#if 0 && MARS
+	/* The problem with this is that although the only reaching definition
+	 * of the variable is null, it still may never get executed, as in:
+	 *   int* p = null; if (p) *p = 3;
+	 * and the error will be spurious.
+	 */
+	if (l1 >= 0 && l1 < 4096)
+	{
+	    error(e->Esrcpos.Sfilename, e->Esrcpos.Slinnum, "dereference of null pointer");
+	    e->E1->EV.Vlong = 4096;	// suppress redundant messages
+	}
+#endif
+	return e;
     default:
 	return e;
   }

@@ -1,5 +1,5 @@
 
-// Copyright (c) 2004 by Digital Mars
+// Copyright (c) 2004-2009 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // http://www.digitalmars.com
@@ -149,7 +149,7 @@ unsigned cv4_Denum(EnumDeclaration *e)
     {
 	for (i = 0; i < e->members->dim; i++)
 	{   EnumMember *sf = ((Dsymbol *)e->members->data[i])->isEnumMember();
-	    integer_t value;
+	    dinteger_t value;
 
 	    if (sf)
 	    {
@@ -187,7 +187,7 @@ unsigned cv4_Denum(EnumDeclaration *e)
     int fieldi = 0;
     for (i = 0; i < e->members->dim; i++)
     {   EnumMember *sf = ((Dsymbol *)e->members->data[i])->isEnumMember();
-	integer_t value;
+	dinteger_t value;
 
 	if (sf)
 	{

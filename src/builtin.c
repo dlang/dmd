@@ -23,7 +23,7 @@
 #include "id.h"
 #include "module.h"
 
-#if V2
+#if DMDV2
 
 /**********************************
  * Determine if function is a builtin one.

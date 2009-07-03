@@ -147,7 +147,7 @@ ClassDeclaration::ClassDeclaration(Loc loc, Identifier *id, BaseClasses *basecla
 		Type::typeinfotypelist = this;
 	    }
 
-#if V2
+#if DMDV2
 	    if (id == Id::TypeInfo_Const)
 	    {	if (Type::typeinfoconst)
 		    Type::typeinfoconst->error("%s", msg);
@@ -560,8 +560,8 @@ void ClassDeclaration::semantic(Scope *sc)
 //	    sc->offset += PTRSIZE;	// room for uplevel context pointer
     }
     else
-    {	sc->offset = 8;		// allow room for vptr[] and monitor
-	alignsize = 4;
+    {	sc->offset = PTRSIZE * 2;	// allow room for vptr[] and monitor
+	alignsize = PTRSIZE;
     }
     structsize = sc->offset;
     Scope scsave = *sc;
@@ -818,7 +818,7 @@ Dsymbol *ClassDeclaration::search(Loc loc, Identifier *ident, int flags)
  * Return 1 if function is hidden (not findable through search).
  */
 
-#if V2
+#if DMDV2
 int isf(void *param, FuncDeclaration *fd)
 {
     //printf("param = %p, fd = %p %s\n", param, fd, fd->toChars());
@@ -1150,7 +1150,7 @@ void InterfaceDeclaration::semantic(Scope *sc)
 	sc->linkage = LINKwindows;
     sc->structalign = 8;
     structalign = sc->structalign;
-    sc->offset = 8;
+    sc->offset = PTRSIZE * 2;
     inuse++;
     for (i = 0; i < members->dim; i++)
     {

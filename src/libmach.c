@@ -26,7 +26,6 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 
-#undef integer_t
 #include "mach.h"
 
 #include "rmem.h"

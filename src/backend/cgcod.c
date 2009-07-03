@@ -582,7 +582,7 @@ void stackoffsets(int flags)
 	targ_size_t Amax,sz;
 	int offi;
 	targ_size_t offstack[20];
-	vec_t tbl;
+	vec_t tbl = NULL;
 
 
 	//printf("stackoffsets()\n");
@@ -752,7 +752,7 @@ STATIC void blcodgen(block *bl)
     list_t bpl;
     int refparamsave;
     regm_t mfuncregsave = mfuncreg;
-    char *sflsave;
+    char *sflsave = NULL;
     int anyspill;
 
     //dbg_printf("blcodgen(%p)\n",bl);
@@ -2086,6 +2086,7 @@ void cssave(elem *e,regm_t regm,unsigned opsflag)
   /*if (e->Ecount && e->Ecount == e->Ecomsub)*/
   if (e->Ecount && e->Ecomsub)
   {
+	//printf("cssave(e = %p, regm = x%x, opsflag = %d)\n", e, regm, opsflag);
 	if (!opsflag && pass != PASSfinal && I32)
 	    return;
 
@@ -2373,7 +2374,7 @@ if (regcon.cse.mval & 1) elem_print(regcon.cse.value[i]);
 	    if (!regm)
 		regm = mLSW;
 	    c = cat(c,allocreg(&regm,&lsreg,TYint));
-	    c = cat(c,loadcse(e,lsreg,mLSW));
+	    c = cat(c,loadcse(e,lsreg,mLSW | mBP));
 	}
 
 	regm = mask[msreg] | mask[lsreg];	/* mask of result	*/
@@ -2444,7 +2445,9 @@ STATIC code * loadcse(elem *e,unsigned reg,regm_t regm)
   code *c;
 
   for (i = cstop; i--;)
-  {	if (csextab[i].e == e && csextab[i].regm & regm)
+  {
+	//printf("csextab[%d] = %p, regm = x%x\n", i, csextab[i].e, csextab[i].regm);
+	if (csextab[i].e == e && csextab[i].regm & regm)
 	{
 		reflocal = TRUE;
 		csextab[i].flags |= CSEload;	/* it was loaded	*/
@@ -2461,6 +2464,7 @@ STATIC code * loadcse(elem *e,unsigned reg,regm_t regm)
   }
 #if DEBUG
   printf("loadcse(e = x%p, reg = %d, regm = x%x)\n",e,reg,regm);
+elem_print(e);
 #endif
   assert(0);
   /* NOTREACHED */

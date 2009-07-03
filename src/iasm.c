@@ -1,7 +1,7 @@
 
 /*
  * Copyright (c) 1992-1999 by Symantec
- * Copyright (c) 1999-2008 by Digital Mars
+ * Copyright (c) 1999-2009 by Digital Mars
  * All Rights Reserved
  * http://www.digitalmars.com
  * Written by Mike Cote, John Micco and Walter Bright
@@ -2004,7 +2004,7 @@ STATIC void asm_merge_symbol(OPND *o1, Dsymbol *s)
 	    goto L2;
 	}
 	if ((v->isConst()
-#if V2
+#if DMDV2
 		|| v->isInvariant() || v->storage_class & STCmanifest
 #endif
 	    ) && !v->type->isfloating())
@@ -3287,7 +3287,7 @@ STATIC code *asm_db_parse(OP *pop)
 
 int asm_getnum()
 {   int v;
-    integer_t i;
+    dinteger_t i;
 
     switch (tok_value)
     {

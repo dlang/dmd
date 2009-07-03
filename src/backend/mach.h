@@ -8,9 +8,11 @@
 #include <mach-o/stab.h>
 #include <mach-o/reloc.h>
 
-#else
+#ifndef S_DTRACE_DOF
+	#define S_DTRACE_DOF			15
+#endif
 
-// So we can cross-compile
+#else
 
 #include <stdint.h>
 

@@ -3062,6 +3062,7 @@ code *cdpair(elem *e, regm_t *pretregs)
     }
 
     //printf("\ncdpair(e = %p, *pretregs = x%x)\n", e, *pretregs);
+    //printf("Ecount = %d\n", e->Ecount);
     retregs = *pretregs & allregs;
     if  (!retregs)
 	retregs = allregs;

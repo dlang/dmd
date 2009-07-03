@@ -18,10 +18,6 @@
 #include <complex.h>
 #endif
 
-#ifdef __APPLE__
-#define integer_t dmd_integer_t
-#endif
-
 #include "rmem.h"
 
 //#include "port.h"

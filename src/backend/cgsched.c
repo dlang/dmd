@@ -1800,9 +1800,6 @@ STATIC int conflict(Cinfo *ci1,Cinfo *ci2,int fpsched)
 
     //printf("conflict %x %x\n",c1,c2);
 
-    if ((c1->Iflags | c2->Iflags) & CFvolatile)
-	goto Lconflict;
-
     r1 = ci1->r;
     w1 = ci1->w;
     a1 = ci1->a;
@@ -1815,6 +1812,9 @@ STATIC int conflict(Cinfo *ci1,Cinfo *ci2,int fpsched)
 
     //printf("r1 %x w1 %x a1 %x sz1 %x\n",r1,w1,a1,sz1);
     //printf("r2 %x w2 %x a2 %x sz2 %x\n",r2,w2,a2,sz2);
+
+    if ((c1->Iflags | c2->Iflags) & CFvolatile)
+	goto Lconflict;
 
     // Determine if we should handle FPU register conflicts separately
     //if (fpsched) printf("fp_op %d,%d:\n",ci1->fp_op,ci2->fp_op);
@@ -2249,7 +2249,7 @@ int Schedule::insert(Cinfo *ci)
     targ_size_t offset;
     targ_size_t vpointer;
     int movesp = 0;
-    int reg2;
+    int reg2 = -1;		// avoid "may be uninitialized" warning
 
     //printf("insert "); ci->c->print();
     //printf("insert() %d\n", fpustackused);

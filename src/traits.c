@@ -19,15 +19,6 @@
 #endif
 #include <math.h>
 
-#if IN_GCC
-// Issues with using -include total.h (defines integer_t) and then complex.h fails...
-#undef integer_t
-#endif
-
-#ifdef __APPLE__
-#define integer_t dmd_integer_t
-#endif
-
 #include "rmem.h"
 
 //#include "port.h"
@@ -51,7 +42,7 @@
 
 #define LOGSEMANTIC	0
 
-#if V2
+#if DMDV2
 
 /************************************************
  * Delegate to be passed to overloadApply() that looks

@@ -28,7 +28,7 @@
  * (can be NULL for members that don't need one)
  */
 
-#if V2
+#if DMDV2
 Expression *StructDeclaration::cloneMembers()
 {
     Expression *e = NULL;
@@ -89,7 +89,7 @@ FuncDeclaration *AggregateDeclaration::buildDtor(Scope *sc)
     //printf("StructDeclaration::buildDtor() %s\n", toChars());
     Expression *e = NULL;
 
-#if V2
+#if DMDV2
     for (size_t i = 0; i < fields.dim; i++)
     {
 	Dsymbol *s = (Dsymbol *)fields.data[i];

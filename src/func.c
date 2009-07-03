@@ -328,7 +328,7 @@ void FuncDeclaration::semantic(Scope *sc)
 		if (fdv->isFinal())
 		    error("cannot override final function %s", fdv->toPrettyChars());
 
-#if V2
+#if DMDV2
 		if (!isOverride())
 		    warning(loc, "overrides base class function %s, but is not marked with 'override'", fdv->toPrettyChars());
 #endif
@@ -344,7 +344,7 @@ void FuncDeclaration::semantic(Scope *sc)
 #if !BREAKABI
 			&& !isDtorDeclaration()
 #endif
-#if V2
+#if DMDV2
 			&& !isPostBlitDeclaration()
 #endif
 			)
@@ -1196,7 +1196,7 @@ void FuncDeclaration::semantic3(Scope *sc)
 		{   // Call invariant virtually
 		    ThisExp *v = new ThisExp(0);
 		    v->type = vthis->type;
-		    Expression *se = new StringExp(0, "null this");
+		    Expression *se = new StringExp(0, (char *)"null this");
 		    se = se->semantic(sc);
 		    se->type = Type::tchar->arrayOf();
 		    e = new AssertExp(loc, v, se);
@@ -1479,7 +1479,7 @@ int fp1(void *param, FuncDeclaration *f)
 	return 1;
     }
 
-#if V2
+#if DMDV2
     /* Allow covariant matches, if it's just a const conversion
      * of the return type
      */
@@ -2074,7 +2074,7 @@ const char *FuncDeclaration::kind()
  * created for them.
  */
 
-#if V2
+#if DMDV2
 int FuncDeclaration::needsClosure()
 {
     /* Need a closure for all the closureVars[] if any of the
@@ -2794,17 +2794,17 @@ void NewDeclaration::semantic(Scope *sc)
     type = type->semantic(loc, sc);
     assert(type->ty == Tfunction);
 
-    // Check that there is at least one argument of type uint
+    // Check that there is at least one argument of type size_t
     TypeFunction *tf = (TypeFunction *)type;
     if (Argument::dim(tf->parameters) < 1)
     {
-	error("at least one argument of type uint expected");
+	error("at least one argument of type size_t expected");
     }
     else
     {
 	Argument *a = Argument::getNth(tf->parameters, 0);
-	if (!a->type->equals(Type::tuns32))
-	    error("first argument must be type uint, not %s", a->type->toChars());
+	if (!a->type->equals(Type::tsize_t))
+	    error("first argument must be type size_t, not %s", a->type->toChars());
     }
 
     FuncDeclaration::semantic(sc);

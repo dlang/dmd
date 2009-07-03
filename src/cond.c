@@ -129,7 +129,14 @@ void VersionCondition::checkPredefined(Loc loc, const char *ident)
     {
 	"DigitalMars", "X86", "X86_64",
 	"Windows", "Win32", "Win64",
-	"linux", "Posix", "OSX", "FreeBSD",
+	"linux",
+#if DMDV2
+	/* Although Posix is predefined by D1, disallowing its
+	 * redefinition breaks makefiles and older builds.
+	 */
+	"Posix",
+#endif
+	"OSX", "FreeBSD",
 	"LittleEndian", "BigEndian",
 	"all",
 	"none",

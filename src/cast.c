@@ -1,5 +1,5 @@
 
-// Copyright (c) 1999-2008 by Digital Mars
+// Copyright (c) 1999-2009 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // http://www.digitalmars.com
@@ -59,7 +59,7 @@ Expression *Expression::implicitCastTo(Scope *sc, Type *t)
 		    toChars(), type->toChars(), t->toChars());
 	    }
 	}
-#if V2
+#if DMDV2
 	if (match == MATCHconst && t == type->constOf())
 	{
 	    Expression *e = copy();
@@ -228,7 +228,7 @@ MATCH IntegerExp::implicitConvTo(Type *t)
 
 	case Tchar:
 	case Tuns8:
-	    //printf("value = %llu %llu\n", (integer_t)(unsigned char)value, value);
+	    //printf("value = %llu %llu\n", (dinteger_t)(unsigned char)value, value);
 	    if ((unsigned char)value != value)
 		goto Lno;
 	    goto Lyes;
@@ -355,7 +355,7 @@ MATCH NullExp::implicitConvTo(Type *t)
     return Expression::implicitConvTo(t);
 }
 
-#if V2
+#if DMDV2
 MATCH StructLiteralExp::implicitConvTo(Type *t)
 {
 #if 0
@@ -1206,7 +1206,7 @@ Expression *BinExp::scaleFactor(Scope *sc)
 	e2->type = t;
 	type = e1->type;
     }
-    else if (t2b->ty && t1b->isintegral())
+    else if (t2b->ty == Tpointer && t1b->isintegral())
     {   // Need to adjust operator by the stride
 	// Replace (int + ptr) with (ptr + (int * stride))
 	Type *t = Type::tptrdiff_t;

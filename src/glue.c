@@ -596,7 +596,7 @@ void FuncDeclaration::toObjFile(int multiobj)
 	sprintf(hiddenparam,"__HID%d",++hiddenparami);
 	shidden = symbol_name(hiddenparam,SCparameter,thidden);
 	shidden->Sflags |= SFLtrue | SFLfree;
-#if V1
+#if DMDV1
 	if (func->nrvo_can && func->nrvo_var && func->nrvo_var->nestedref)
 #else
 	if (func->nrvo_can && func->nrvo_var && func->nrvo_var->nestedrefs.dim)
@@ -848,7 +848,7 @@ void FuncDeclaration::toObjFile(int multiobj)
     if (ident && memcmp(ident->toChars(), "_STD", 4) == 0)
 	obj_staticdtor(s);
 #endif
-#if V2
+#if DMDV2
     if (irs.startaddress)
     {
 	printf("Setting start address\n");
@@ -930,7 +930,7 @@ unsigned Type::totym()
 	    assert(0);
     }
 
-#if V2
+#if DMDV2
     // Add modifiers
     switch (mod)
     {
@@ -991,7 +991,7 @@ unsigned TypeFunction::totym()
 	    printf("linkage = %d\n", linkage);
 	    assert(0);
     }
-#if V2
+#if DMDV2
     if (isnothrow)
 	tyf |= mTYnothrow;
 #endif

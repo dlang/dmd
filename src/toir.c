@@ -98,7 +98,7 @@ elem *getEthis(Loc loc, IRState *irs, Dsymbol *fd)
     {	/* Going down one nesting level, i.e. we're calling
 	 * a nested function from its enclosing function.
 	 */
-#if V2
+#if DMDV2
 	if (irs->sclosure)
 	    ethis = el_var(irs->sclosure);
 	else
@@ -112,7 +112,7 @@ elem *getEthis(Loc loc, IRState *irs, Dsymbol *fd)
 	     * adding this frame into the linked list of stack
 	     * frames.
 	     */
-#if V2
+#if DMDV2
 	    if (thisfd->closureVars.dim)
 #else
 	    if (thisfd->nestedFrameRef)
@@ -129,7 +129,7 @@ elem *getEthis(Loc loc, IRState *irs, Dsymbol *fd)
 	     * use NULL if no references to the current function's frame
 	     */
 	    ethis = el_long(TYnptr, 0);
-#if V2
+#if DMDV2
 	    if (thisfd->closureVars.dim)
 #else
 	    if (thisfd->nestedFrameRef)
@@ -169,7 +169,7 @@ elem *getEthis(Loc loc, IRState *irs, Dsymbol *fd)
 		    if (thisfd->isNested())
 		    {
 			FuncDeclaration *p = s->toParent2()->isFuncDeclaration();
-#if V2
+#if DMDV2
 			if (!p || p->closureVars.dim)
 #else
 			if (!p || p->nestedFrameRef)
@@ -209,7 +209,7 @@ elem *getEthis(Loc loc, IRState *irs, Dsymbol *fd)
 			 * nested references are skipped in the linked list
 			 * of frames.
 			 */
-#if V2
+#if DMDV2
 			if (s->toParent2()->isFuncDeclaration()->closureVars.dim)
 #else
 			if (s->toParent2()->isFuncDeclaration()->nestedFrameRef)
@@ -223,7 +223,7 @@ elem *getEthis(Loc loc, IRState *irs, Dsymbol *fd)
 			 * nested references are skipped in the linked list
 			 * of frames.
 			 */
-#if V2
+#if DMDV2
 			if (s->toParent2()->isFuncDeclaration()->closureVars.dim)
 #else
 			if (s->toParent2()->isFuncDeclaration()->nestedFrameRef)
@@ -251,7 +251,7 @@ elem *getEthis(Loc loc, IRState *irs, Dsymbol *fd)
  * Returns:
  *	*(ey + ad.vthis.offset) = this;
  */
-#if V2
+#if DMDV2
 elem *setEthis(Loc loc, IRState *irs, elem *ey, AggregateDeclaration *ad)
 {
     elem *ethis;
@@ -269,7 +269,7 @@ elem *setEthis(Loc loc, IRState *irs, elem *ey, AggregateDeclaration *ad)
 	    ethis = el_var(irs->sclosure);
 	else if (irs->sthis)
 	{
-#if V2
+#if DMDV2
 	    if (thisfd->closureVars.dim)
 #else
 	    if (thisfd->nestedFrameRef)
@@ -283,7 +283,7 @@ elem *setEthis(Loc loc, IRState *irs, elem *ey, AggregateDeclaration *ad)
 	else
 	{
 	    ethis = el_long(TYnptr, 0);
-#if V2
+#if DMDV2
 	    if (thisfd->closureVars.dim)
 #else
 	    if (thisfd->nestedFrameRef)
@@ -328,7 +328,7 @@ int intrinsic_op(char *name)
     //printf("intrinsic_op(%s)\n", name);
     static const char *namearray[] =
     {
-#if V1
+#if DMDV1
 	"4math3cosFeZe",
 	"4math3sinFeZe",
 	"4math4fabsFeZe",
@@ -352,7 +352,7 @@ int intrinsic_op(char *name)
 	"9intrinsic5bswapFkZk",
 	"9intrinsic5outplFkkZk",
 	"9intrinsic5outpwFktZt",
-#elif V2
+#elif DMDV2
 	/* The names are mangled differently because of the pure and
 	 * nothrow attributes.
 	 */
@@ -456,7 +456,7 @@ elem *resolveLengthVar(VarDeclaration *lengthVar, elem **pe, Type *t1)
 
 	if (t1->ty == Tsarray)
 	{   TypeSArray *tsa = (TypeSArray *)t1;
-	    integer_t length = tsa->dim->toInteger();
+	    dinteger_t length = tsa->dim->toInteger();
 
 	    elength = el_long(TYuint, length);
 	    goto L3;
@@ -497,7 +497,7 @@ elem *resolveLengthVar(VarDeclaration *lengthVar, elem **pe, Type *t1)
  * than the current frame pointer.
  */
 
-#if V2
+#if DMDV2
 
 void FuncDeclaration::buildClosure(IRState *irs)
 {
@@ -505,7 +505,7 @@ void FuncDeclaration::buildClosure(IRState *irs)
     {   // Generate closure on the heap
 	// BUG: doesn't capture variadic arguments passed to this function
 
-#if V2
+#if DMDV2
 	/* BUG: doesn't handle destructors for the local variables.
 	 * The way to do it is to make the closure variables the fields
 	 * of a class object:
@@ -531,7 +531,7 @@ void FuncDeclaration::buildClosure(IRState *irs)
 	{   VarDeclaration *v = (VarDeclaration *)closureVars.data[i];
 	    assert(v->isVarDeclaration());
 
-#if V2
+#if DMDV2
 	    if (v->needsAutoDtor())
 		v->error("has scoped destruction, cannot build closure");
 #endif
@@ -541,7 +541,7 @@ void FuncDeclaration::buildClosure(IRState *irs)
 	    unsigned memsize;
 	    unsigned memalignsize;
 	    unsigned xalign;
-#if V2
+#if DMDV2
 	    if (v->storage_class & STClazy)
 	    {
 		/* Lazy variables are really delegates,
@@ -601,7 +601,7 @@ void FuncDeclaration::buildClosure(IRState *irs)
 	    tym_t tym = v->type->totym();
 	    if (v->type->toBasetype()->ty == Tsarray || v->isOut() || v->isRef())
 		tym = TYnptr;	// reference parameters are just pointers
-#if V2
+#if DMDV2
 	    else if (v->storage_class & STClazy)
 		tym = TYdelegate;
 #endif
@@ -632,7 +632,7 @@ void FuncDeclaration::buildClosure(IRState *irs)
 enum RET TypeFunction::retStyle()
 {
     //printf("TypeFunction::retStyle() %s\n", toChars());
-#if V2
+#if DMDV2
     if (isref)
 	return RETregs;			// returns a pointer
 #endif
@@ -643,7 +643,7 @@ enum RET TypeFunction::retStyle()
     {	StructDeclaration *sd = ((TypeStruct *)tn)->sym;
 	if (global.params.isLinux && linkage != LINKd)
 	    ;
-#if V2
+#if DMDV2
 	else if (sd->dtor || sd->cpctor)
 	    ;
 #endif

@@ -281,7 +281,7 @@ elem *callfunc(Loc loc,
 	e = el_una(OPind, tyret, e);
     }
 
-#if V2
+#if DMDV2
     if (tf->isref)
     {
 	e->Ety = TYnptr;
@@ -604,7 +604,7 @@ elem *Expression::toElem(IRState *irs)
 /***************************************
  */
 
-#if V1
+#if DMDV1
 elem *VarExp::toElem(IRState *irs)
 {   Symbol *s;
     elem *e;
@@ -1257,7 +1257,7 @@ elem *NewExp::toElem(IRState *irs)
 		 */
 		if (irs->sthis)
 		{
-#if V2
+#if DMDV2
 		    if (thisfd->closureVars.dim)
 #else
 		    if (thisfd->nestedFrameRef)
@@ -1271,7 +1271,7 @@ elem *NewExp::toElem(IRState *irs)
 		else
 		{
 		    ethis = el_long(TYnptr, 0);
-#if V2
+#if DMDV2
 		    if (thisfd->closureVars.dim)
 #else
 		    if (thisfd->nestedFrameRef)
@@ -1879,7 +1879,7 @@ elem *CmpExp::toElem(IRState *irs)
 	ea2 = e2->toElem(irs);
 	ea2 = array_toDarray(t2, ea2);
 
-#if V2
+#if DMDV2
 	ep = el_params(telement->arrayOf()->getInternalTypeInfo(NULL)->toElem(irs),
 		ea2, ea1, NULL);
 	rtlfunc = RTLSYM_ARRAYCMP2;
@@ -1972,7 +1972,7 @@ elem *EqualExp::toElem(IRState *irs)
 	ea2 = e2->toElem(irs);
 	ea2 = array_toDarray(t2, ea2);
 
-#if V2
+#if DMDV2
 	ep = el_params(telement->arrayOf()->getInternalTypeInfo(NULL)->toElem(irs),
 		ea2, ea1, NULL);
 	rtlfunc = RTLSYM_ARRAYEQ2;
@@ -2184,7 +2184,7 @@ elem *AssignExp::toElem(IRState *irs)
 	    elem *enbytes;
 	    elem *elength;
 	    elem *einit;
-	    integer_t value;
+	    dinteger_t value;
 	    Type *ta = are->e1->type->toBasetype();
 	    Type *tb = ta->nextOf()->toBasetype();
 	    int sz = tb->size();
@@ -2384,11 +2384,17 @@ elem *AssignExp::toElem(IRState *irs)
 		esize = el_bin(OPmul, TYint, elen, esize);
 		epto = array_toPtr(e1->type, ex);
 		epfr = array_toPtr(e2->type, efrom);
+#if 1
+		// memcpy() is faster, so if we can't beat 'em, join 'em
+		e = el_params(esize, epfr, epto, NULL);
+		e = el_bin(OPcall,TYnptr,el_var(rtlsym[RTLSYM_MEMCPY]),e);
+#else
 		e = el_bin(OPmemcpy, TYnptr, epto, el_param(epfr, esize));
+#endif
 		e = el_pair(eto->Ety, el_copytree(elen), e);
 		e = el_combine(eto, e);
 	    }
-#if V2
+#if DMDV2
 	    else if (postblit && op != TOKblit)
 	    {
 		/* Generate:
@@ -2429,7 +2435,7 @@ elem *AssignExp::toElem(IRState *irs)
 	ty = ta->ty;
     }
 
-#if V2
+#if DMDV2
     /* Look for reference initializations
      */
     if (op == TOKconstruct && e1->op == TOKvar)
@@ -3013,7 +3019,7 @@ elem *CallExp::toElem(IRState *irs)
 	{   Expression *arg = (Expression *)arguments->data[0];
 	    arg = arg->optimize(WANTvalue);
 	    if (arg->isConst() && arg->type->isintegral())
-	    {	integer_t sz = arg->toInteger();
+	    {	dinteger_t sz = arg->toInteger();
 		if (sz > 0 && sz < 0x40000)
 		{
 		    // It's an alloca(sz) of a fixed amount.
@@ -3903,7 +3909,7 @@ elem *SliceExp::toElem(IRState *irs)
 	    }
 	    else if (t1->ty == Tsarray)
 	    {	TypeSArray *tsa = (TypeSArray *)t1;
-		integer_t length = tsa->dim->toInteger();
+		dinteger_t length = tsa->dim->toInteger();
 
 		elength = el_long(TYuint, length);
 		goto L1;
@@ -4038,7 +4044,7 @@ elem *IndexExp::toElem(IRState *irs)
 
 	    if (t1->ty == Tsarray)
 	    {	TypeSArray *tsa = (TypeSArray *)t1;
-		integer_t length = tsa->dim->toInteger();
+		dinteger_t length = tsa->dim->toInteger();
 
 		elength = el_long(TYuint, length);
 		goto L1;
@@ -4318,7 +4324,7 @@ elem *StructLiteralExp::toElem(IRState *irs)
 		{   e1->Eoper = OPstreq;
 		    e1->Enumbytes = v->type->size();
 		}
-#if V2
+#if DMDV2
 		/* Call postBlit() on e1
 		 */
 		Type *tb = v->type->toBasetype();

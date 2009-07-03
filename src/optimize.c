@@ -1,6 +1,6 @@
 
 // Compiler implementation of the D programming language
-// Copyright (c) 1999-2007 by Digital Mars
+// Copyright (c) 1999-2009 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // http://www.digitalmars.com
@@ -225,13 +225,13 @@ Expression *AddrExp::optimize(int result)
 
 	if (ae->e2->op == TOKint64 && ae->e1->op == TOKvar)
 	{
-	    integer_t index = ae->e2->toInteger();
+	    dinteger_t index = ae->e2->toInteger();
 	    VarExp *ve = (VarExp *)ae->e1;
 	    if (ve->type->ty == Tsarray && ve->type->next->ty != Tbit
 		&& !ve->var->isImportedSymbol())
 	    {
 		TypeSArray *ts = (TypeSArray *)ve->type;
-		integer_t dim = ts->dim->toInteger();
+		dinteger_t dim = ts->dim->toInteger();
 		if (index < 0 || index >= dim)
 		    error("array index %jd is out of bounds [0..%jd]", index, dim);
 		e = new SymOffExp(loc, ve->var, index * ts->next->size());
@@ -279,7 +279,7 @@ Expression *DotVarExp::optimize(int result)
     //printf("DotVarExp::optimize(result = x%x) %s\n", result, toChars());
     e1 = e1->optimize(result);
 
-#if V2
+#if DMDV2
     if (e1->op == TOKvar)
     {	VarExp *ve = (VarExp *)e1;
 	VarDeclaration *v = ve->var->isVarDeclaration();
@@ -413,7 +413,7 @@ Expression *BinExp::optimize(int result)
     {
 	if (e2->isConst() == 1)
 	{
-	    integer_t i2 = e2->toInteger();
+	    dinteger_t i2 = e2->toInteger();
 	    d_uns64 sz = e1->type->size() * 8;
 	    if (i2 < 0 || i2 > sz)
 	    {   error("shift assign by %jd is outside the range 0..%zu", i2, sz);
@@ -508,7 +508,7 @@ Expression *shift_optimize(int result, BinExp *e, Expression *(*shift)(Type *, E
     e->e2 = e->e2->optimize(result);
     if (e->e2->isConst() == 1)
     {
-	integer_t i2 = e->e2->toInteger();
+	dinteger_t i2 = e->e2->toInteger();
 	d_uns64 sz = e->e1->type->size() * 8;
 	if (i2 < 0 || i2 > sz)
 	{   e->error("shift by %jd is outside the range 0..%zu", i2, sz);

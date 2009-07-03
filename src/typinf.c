@@ -210,7 +210,7 @@ void TypeInfoDeclaration::toDt(dt_t **pdt)
     dtdword(pdt, 0);			    // monitor
 }
 
-#if V2
+#if DMDV2
 void TypeInfoConstDeclaration::toDt(dt_t **pdt)
 {
     //printf("TypeInfoConstDeclaration::toDt() %s\n", toChars());
@@ -550,7 +550,7 @@ void TypeInfoStructDeclaration::toDt(dt_t **pdt)
     // uint m_flags;
     dtdword(pdt, tc->hasPointers());
 
-#if V2
+#if DMDV2
     // xgetMembers
     FuncDeclaration *sgetmembers = sd->findGetMembers();
     if (sgetmembers)

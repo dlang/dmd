@@ -730,7 +730,7 @@ Expression *ForeachStatement::interpret(InterState *istate)
     return e;
 }
 
-#if V2
+#if DMDV2
 Expression *ForeachRangeStatement::interpret(InterState *istate)
 {
 #if LOG
@@ -990,7 +990,7 @@ Expression *getVarExp(Loc loc, InterState *istate, Declaration *d)
     SymbolDeclaration *s = d->isSymbolDeclaration();
     if (v)
     {
-#if V2
+#if DMDV2
 	if ((v->isConst() || v->isInvariant()) && v->init && !v->value)
 #else
 	if (v->isConst() && v->init)
@@ -1046,7 +1046,7 @@ Expression *DeclarationExp::interpret(InterState *istate)
 	    else if (v->init->isVoidInitializer())
 		e = NULL;
 	}
-#if V2
+#if DMDV2
 	else if (s == v && (v->isConst() || v->isInvariant()) && v->init)
 #else
 	else if (s == v && v->isConst() && v->init)
@@ -1921,7 +1921,7 @@ Expression *CallExp::interpret(InterState *istate)
 	FuncDeclaration *fd = ((VarExp *)e1)->var->isFuncDeclaration();
 	if (fd)
 	{
-#if V2
+#if DMDV2
 	    enum BUILTIN b = fd->isBuiltin();
 	    if (b)
 	    {	Expressions args;

@@ -1,5 +1,5 @@
 
-// Copyright (c) 1999-2006 by Digital Mars
+// Copyright (c) 1999-2009 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // www.digitalmars.com
@@ -13,7 +13,11 @@
 #include <string.h>
 #include <assert.h>
 
-#if _MSC_VER
+#if (defined (__SVR4) && defined (__sun)) 
+#include <alloca.h>
+#endif
+
+#if _MSC_VER || __MINGW32__
 #include <malloc.h>
 #endif
 

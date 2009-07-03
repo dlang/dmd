@@ -25,7 +25,7 @@
 #include "import.h"
 #include "aggregate.h"
 
-#if V2
+#if DMDV2
 
 /* Do mangling for C++ linkage.
  * Follows Itanium C++ ABI 1.86

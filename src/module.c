@@ -1,6 +1,6 @@
 
 // Compiler implementation of the D programming language
-// Copyright (c) 1999-2007 by Digital Mars
+// Copyright (c) 1999-2009 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // http://www.digitalmars.com
@@ -12,7 +12,11 @@
 #include <stdlib.h>
 #include <assert.h>
 
-#ifdef _MSC_VER
+#if (defined (__SVR4) && defined (__sun))
+#include <alloca.h>
+#endif
+
+#if defined(_MSC_VER) || defined(__MINGW32__)
 #include <malloc.h>
 #endif
 

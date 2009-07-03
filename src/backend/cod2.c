@@ -2941,6 +2941,11 @@ code *cdstrcpy(elem *e,regm_t *pretregs)
 
 /*********************************
  * Generate code for memcpy(s1,s2,n) intrinsic.
+ *  OPmemcpy
+ *   /   \
+ * s1   OPparam
+ *       /   \
+ *      s2    n
  */
 
 code *cdmemcpy(elem *e,regm_t *pretregs)
@@ -3027,17 +3032,51 @@ code *cdmemcpy(elem *e,regm_t *pretregs)
 	c3 = genmovreg(c3,AX,DI);
     }
 
-    c3 = cat(c3,getregs(mSI | mDI | mCX));
-    if (!I32 && config.flags4 & CFG4speed)	// if speed optimization
-    {	c3 = gen2(c3,0xD1,modregrm(3,5,CX));	// SHR CX,1
+    if (0 && I32 && config.flags4 & CFG4speed)
+    {
+	/* This is only faster if the memory is dword aligned, if not
+	 * it is significantly slower than just a rep movsb.
+	 */
+	/*	mov	EDX,ECX
+	 *	shr	ECX,2
+	 *	jz	L1
+	 *	repe	movsd
+	 * L1:	and	EDX,3
+	 *	jz	L2
+	 *	mov	ECX,EDX
+	 *	repe	movsb
+	 * L2:	nop
+	 */
+	c3 = cat(c3,getregs(mSI | mDI | mCX | mDX));
+	c3 = genmovreg(c3,DX,CX);		// MOV EDX,ECX
+	c3 = genc2(c3,0xC1,modregrm(3,5,CX),2);	// SHR ECX,2
+	code *cx = genc2(CNIL, 0x81, modregrm(3,4,DX),3);	// AND EDX,3
+	genjmp(c3, JE, FLcode, (block *)cx);			// JZ L1
+	gen1(c3,0xF3);						// REPE
+	gen1(c3,0xA5);						// MOVSW
+	c3 = cat(c3,cx);
+
+	code *cnop = gennop(CNIL);
+	genjmp(c3, JE, FLcode, (block *)cnop);	// JZ L2
+	genmovreg(c3,CX,DX);			// MOV ECX,EDX
 	gen1(c3,0xF3);				// REPE
-	gen1(c3,0xA5);				// MOVSW
-	gen2(c3,0x11,modregrm(3,CX,CX));	// ADC CX,CX
+	gen1(c3,0xA4);				// MOVSB
+	c3 = cat(c3, cnop);
     }
-    c3 = gen1(c3,0xF3);				/* REPE			*/
-    gen1(c3,0xA4);				/* MOVSB		*/
-    if (need_DS)
-	gen1(c3,0x1F);				/* POP DS		*/
+    else
+    {
+	c3 = cat(c3,getregs(mSI | mDI | mCX));
+	if (!I32 && config.flags4 & CFG4speed)		// if speed optimization
+	{   c3 = gen2(c3,0xD1,modregrm(3,5,CX));	// SHR CX,1
+	    gen1(c3,0xF3);				// REPE
+	    gen1(c3,0xA5);				// MOVSW
+	    gen2(c3,0x11,modregrm(3,CX,CX));		// ADC CX,CX
+	}
+	c3 = gen1(c3,0xF3);				// REPE
+	gen1(c3,0xA4);					// MOVSB
+	if (need_DS)
+	    gen1(c3,0x1F);				// POP DS
+    }
     return cat4(c1,c2,c3,fixresult(e,mES|mAX,pretregs));
 }
 

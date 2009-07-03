@@ -1,6 +1,6 @@
 
 // Compiler implementation of the D programming language
-// Copyright (c) 1999-2008 by Digital Mars
+// Copyright (c) 1999-2009 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // http://www.digitalmars.com
@@ -94,7 +94,7 @@ struct Expression : Object
     static Expression *combine(Expression *e1, Expression *e2);
     static Expressions *arraySyntaxCopy(Expressions *exps);
 
-    virtual integer_t toInteger();
+    virtual dinteger_t toInteger();
     virtual uinteger_t toUInteger();
     virtual real_t toReal();
     virtual real_t toImaginary();
@@ -154,16 +154,16 @@ struct Expression : Object
 
 struct IntegerExp : Expression
 {
-    integer_t value;
+    dinteger_t value;
 
-    IntegerExp(Loc loc, integer_t value, Type *type);
-    IntegerExp(integer_t value);
+    IntegerExp(Loc loc, dinteger_t value, Type *type);
+    IntegerExp(dinteger_t value);
     int equals(Object *o);
     Expression *semantic(Scope *sc);
     Expression *interpret(InterState *istate);
     char *toChars();
     void dump(int indent);
-    integer_t toInteger();
+    dinteger_t toInteger();
     real_t toReal();
     real_t toImaginary();
     complex_t toComplex();
@@ -186,7 +186,7 @@ struct RealExp : Expression
     Expression *semantic(Scope *sc);
     Expression *interpret(InterState *istate);
     char *toChars();
-    integer_t toInteger();
+    dinteger_t toInteger();
     uinteger_t toUInteger();
     real_t toReal();
     real_t toImaginary();
@@ -209,7 +209,7 @@ struct ComplexExp : Expression
     Expression *semantic(Scope *sc);
     Expression *interpret(InterState *istate);
     char *toChars();
-    integer_t toInteger();
+    dinteger_t toInteger();
     uinteger_t toUInteger();
     real_t toReal();
     real_t toImaginary();
@@ -571,7 +571,7 @@ struct VarExp : Expression
     //Expression *inlineScan(InlineScanState *iss);
 };
 
-#if V2
+#if DMDV2
 // Overload Set
 
 struct OverExp : Expression
@@ -633,7 +633,7 @@ struct TypeidExp : Expression
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
 };
 
-#if V2
+#if DMDV2
 struct TraitsExp : Expression
 {
     Identifier *ident;
@@ -1435,7 +1435,7 @@ struct CondExp : BinExp
     elem *toElem(IRState *irs);
 };
 
-#if V2
+#if DMDV2
 /****************************************************************/
 
 struct DefaultInitExp : Expression

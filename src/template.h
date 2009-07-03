@@ -51,9 +51,7 @@ struct TemplateDeclaration : ScopeDsymbol
     TemplateParameters *parameters;	// array of TemplateParameter's
 
     TemplateParameters *origParameters;	// originals for Ddoc
-#if V2
     Expression *constraint;
-#endif
     Array instances;			// array of TemplateInstance's
 
     TemplateDeclaration *overnext;	// next overloaded TemplateDeclaration
@@ -63,10 +61,7 @@ struct TemplateDeclaration : ScopeDsymbol
     Dsymbol *onemember;		// if !=NULL then one member of this template
 
     TemplateDeclaration(Loc loc, Identifier *id, TemplateParameters *parameters,
-#if V2
-	Expression *constraint,
-#endif
-	Array *decldefs);
+	Expression *constraint, Array *decldefs);
     Dsymbol *syntaxCopy(Dsymbol *);
     void semantic(Scope *sc);
     int overloadInsert(Dsymbol *s);
@@ -78,7 +73,7 @@ struct TemplateDeclaration : ScopeDsymbol
 //    void toDocBuffer(OutBuffer *buf);
 
     MATCH matchWithInstance(TemplateInstance *ti, Objects *atypes, int flag);
-    int leastAsSpecialized(TemplateDeclaration *td2);
+    MATCH leastAsSpecialized(TemplateDeclaration *td2);
 
     MATCH deduceFunctionTemplateMatch(Loc loc, Objects *targsi, Expression *ethis, Expressions *fargs, Objects *dedargs);
     FuncDeclaration *deduceFunctionTemplate(Scope *sc, Loc loc, Objects *targsi, Expression *ethis, Expressions *fargs, int flags = 0);
@@ -100,6 +95,8 @@ struct TemplateParameter
      *	template Foo(valType ident : specValue)
      * For alias-parameter:
      *	template Foo(alias ident)
+     * For this-parameter:
+     *	template Foo(this ident)
      */
 
     Loc loc;
@@ -112,7 +109,7 @@ struct TemplateParameter
     virtual TemplateTypeParameter  *isTemplateTypeParameter();
     virtual TemplateValueParameter *isTemplateValueParameter();
     virtual TemplateAliasParameter *isTemplateAliasParameter();
-#if V2
+#if DMDV2
     virtual TemplateThisParameter *isTemplateThisParameter();
 #endif
     virtual TemplateTupleParameter *isTemplateTupleParameter();
@@ -161,7 +158,7 @@ struct TemplateTypeParameter : TemplateParameter
     void *dummyArg();
 };
 
-#if V2
+#if DMDV2
 struct TemplateThisParameter : TemplateTypeParameter
 {
     /* Syntax:
@@ -208,7 +205,7 @@ struct TemplateValueParameter : TemplateParameter
 struct TemplateAliasParameter : TemplateParameter
 {
     /* Syntax:
-     *	ident : specAlias = defaultAlias
+     *	specType ident : specAlias = defaultAlias
      */
 
     Type *specAliasT;
@@ -307,7 +304,7 @@ struct TemplateInstance : ScopeDsymbol
     void toObjFile(int multiobj);			// compile to .obj file
 
     // Internal
-    static void semanticTiargs(Loc loc, Scope *sc, Objects *tiargs);
+    static void semanticTiargs(Loc loc, Scope *sc, Objects *tiargs, int flags);
     void semanticTiargs(Scope *sc);
     TemplateDeclaration *findTemplateDeclaration(Scope *sc);
     TemplateDeclaration *findBestMatch(Scope *sc);

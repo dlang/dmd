@@ -45,9 +45,9 @@ char *Identifier::toChars()
     return (char *)string;
 }
 
-char *Identifier::toHChars2()
+const char *Identifier::toHChars2()
 {
-    char *p = NULL;
+    const char *p = NULL;
 
     if (this == Id::ctor) p = "this";
     else if (this == Id::dtor) p = "~this";

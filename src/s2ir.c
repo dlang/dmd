@@ -1,6 +1,6 @@
 
 // Compiler implementation of the D programming language
-// Copyright (c) 2000-2008 by Digital Mars
+// Copyright (c) 2000-2009 by Digital Mars
 // All Rights Reserved
 // Written by Walter Bright
 // http://www.digitalmars.com
@@ -192,7 +192,7 @@ void IfStatement::toIR(IRState *irs)
 /**************************************
  */
 
-#if V2
+#if DMDV2
 void PragmaStatement::toIR(IRState *irs)
 {
     //printf("PragmaStatement::toIR()\n");
@@ -493,7 +493,7 @@ void ForeachStatement::toIR(IRState *irs)
 	e = el_var(sp);
 
     elem *evalue;
-#if V2
+#if DMDV2
     if (value->offset)	// if value is a member of a closure
     {
 	assert(irs->sclosure);
@@ -561,7 +561,7 @@ void ForeachStatement::toIR(IRState *irs)
 /**************************************
  */
 
-#if V2
+#if DMDV2
 void ForeachRangeStatement::toIR(IRState *irs)
 {   Type *tab;
     elem *eaggr;
@@ -869,7 +869,7 @@ void SwitchStatement::toIR(IRState *irs)
 
     incUsage(irs, loc);
     elem *econd = condition->toElem(&mystate);
-#if V2
+#if DMDV2
     if (hasVars)
     {	/* Generate a sequence of if-then-else blocks for the cases.
 	 */
@@ -1184,7 +1184,7 @@ void ReturnStatement::toIR(IRState *irs)
 		es = el_bin(op, ety, es, e);
 		if (op == OPstreq)
 		    es->Enumbytes = exp->type->size();
-#if V2
+#if DMDV2
 		/* Call postBlit() on *shidden
 		 */
 		Type *tb = exp->type->toBasetype();
@@ -1202,7 +1202,7 @@ void ReturnStatement::toIR(IRState *irs)
 	    e = el_var(irs->shidden);
 	    e = el_bin(OPcomma, e->Ety, es, e);
 	}
-#if V2
+#if DMDV2
 	else if (tf->isref)
 	{   // Reference return, so convert to a pointer
 	    Expression *ae = exp->addressOf(NULL);

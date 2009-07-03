@@ -13,7 +13,12 @@
 #include	<time.h>
 #include	<string.h>
 #include	<stdlib.h>
+
+#if __DMC__
 #include	<new.h>
+#else
+#include	<new>
+#endif
 
 #include	"cc.h"
 #include	"global.h"
@@ -160,68 +165,6 @@ void err_nomem()
 
 #if !MEM_DEBUG
 
-/*****************************
- * Replacement for the standard C++ library operator new().
- */
-
-#if 0
-#undef new
-
-#if ASM86
-__declspec(naked) void * __java newf(size_t nbytes)
-{
-    _asm
-    {
-	mov	EDX,EAX
-	mov	ECX,heap
-	add	EDX,4
-	and	EDX,0FFFFFFFCh
-	sub	0Ch[ECX],EDX
-	jbe	L1
-	mov	EAX,8[ECX]
-	add	EDX,EAX
-	mov	8[ECX],EDX
-	ret
-
-L1:	add	0Ch[ECX],EDX
-	push	EDX
-	push	EDX
-	call	ph_newheap
-	pop	EDX
-	mov	ECX,heap
-	mov	EAX,8[ECX]
-	add	8[ECX],EDX
-	sub	0Ch[ECX],EDX
-	ret
-    }
-}
-
-void * __cdecl operator new(size_t nbytes)
-{
-    return newf(nbytes);
-}
-#else
-void * __cdecl operator new(size_t nbytes)
-{   unsigned char *p;
-    Heap *h;
-
-#ifdef DEBUG
-    util_progress();
-#endif
-    nbytes += sizeof(unsigned);
-    nbytes &= ~(sizeof(unsigned) - 1);
-
-    if (nbytes >= heap->nleft)
-	ph_newheap(nbytes);
-    h = heap;
-    p = h->p;
-    h->p += nbytes;
-    h->nleft -= nbytes;
-    return p;
-}
-#endif
-
-#endif
 
 /***********************
  * Replacement for the standard C++ library operator delete().

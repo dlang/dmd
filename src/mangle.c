@@ -114,7 +114,7 @@ char *Declaration::mangle()
 		    return ident->toChars();
 
 		case LINKcpp:
-#if V2 && (TARGET_LINUX || TARGET_OSX)
+#if DMDV2 && (TARGET_LINUX || TARGET_OSX)
 		    return cpp_mangle(this);
 #else
 		    // Windows C++ mangling is done by C++ back end

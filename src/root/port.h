@@ -1,8 +1,8 @@
 
-// Copyright (c) 1999-2002 by Digital Mars
+// Copyright (c) 1999-2009 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
-// www.digitalmars.com
+// http://www.digitalmars.com
 
 #ifndef PORT_H
 #define PORT_H
@@ -42,6 +42,11 @@ struct Port
     #undef signbit
 #endif
     static int isNan(double);
+    static int isNan(long double);
+
+    static int isSignallingNan(double);
+    static int isSignallingNan(long double);
+
     static int isFinite(double);
     static int isInfinity(double);
     static int Signbit(double);
@@ -58,8 +63,10 @@ struct Port
     static double ull_to_double(ulonglong ull);
 
     // Get locale-dependent list separator
-    static char *list_separator();
-    static wchar_t *wlist_separator();
+    static const char *list_separator();
+    static const wchar_t *wlist_separator();
+
+    static char *strupr(char *);
 };
 
 #endif
