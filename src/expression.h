@@ -367,6 +367,29 @@ struct ArrayLiteralExp : Expression
     Expression *inlineScan(InlineScanState *iss);
 };
 
+struct AssocArrayLiteralExp : Expression
+{
+    Expressions *keys;
+    Expressions *values;
+
+    AssocArrayLiteralExp(Loc loc, Expressions *keys, Expressions *values);
+
+    Expression *syntaxCopy();
+    Expression *semantic(Scope *sc);
+    int isBool(int result);
+    elem *toElem(IRState *irs);
+    int checkSideEffect(int flag);
+    void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
+    void toMangleBuffer(OutBuffer *buf);
+    void scanForNestedRef(Scope *sc);
+    Expression *optimize(int result);
+    Expression *interpret(InterState *istate);
+
+    int inlineCost(InlineCostState *ics);
+    Expression *doInline(InlineDoState *ids);
+    Expression *inlineScan(InlineScanState *iss);
+};
+
 struct TypeDotIdExp : Expression
 {
     Identifier *ident;

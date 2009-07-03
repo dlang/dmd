@@ -23,6 +23,8 @@ struct Statement;
 struct BaseClass;
 struct TemplateParameter;
 struct FuncDeclaration;
+struct Identifier;
+struct Initializer;
 
 struct TemplateParameters : Array { };
 
@@ -41,5 +43,9 @@ struct Objects : Array { };
 struct FuncDeclarations : Array { };
 
 struct Arguments : Array { };
+
+struct Identifiers : Array { };
+
+struct Initializers : Array { };
 
 #endif

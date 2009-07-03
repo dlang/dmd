@@ -1,6 +1,6 @@
 
 // Compiler implementation of the D programming language
-// Copyright (c) 1999-2006 by Digital Mars
+// Copyright (c) 1999-2007 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // http://www.digitalmars.com
@@ -14,6 +14,7 @@
 #include "root.h"
 
 #include "mars.h"
+#include "arraytypes.h"
 
 struct Identifier;
 struct Expression;
@@ -39,7 +40,7 @@ struct Initializer : Object
     virtual void toCBuffer(OutBuffer *buf, HdrGenState *hgs) = 0;
     char *toChars();
 
-    static Array *arraySyntaxCopy(Array *ai);
+    static Initializers *arraySyntaxCopy(Initializers *ai);
 
     virtual dt_t *toDt();
 
@@ -64,8 +65,8 @@ struct VoidInitializer : Initializer
 
 struct StructInitializer : Initializer
 {
-    Array field;	// of Identifier *'s
-    Array value;	// parallel array of Initializer *'s
+    Identifiers field;	// of Identifier *'s
+    Initializers value;	// parallel array of Initializer *'s
 
     Array vars;		// parallel array of VarDeclaration *'s
     AggregateDeclaration *ad;	// which aggregate this is for
@@ -82,8 +83,8 @@ struct StructInitializer : Initializer
 
 struct ArrayInitializer : Initializer
 {
-    Array index;	// of Expression *'s
-    Array value;	// of Initializer *'s
+    Expressions index;	// indices
+    Initializers value;	// of Initializer *'s
     unsigned dim;	// length of array being initialized
     Type *type;		// type that array will be used to initialize
     int sem;		// !=0 if semantic() is run

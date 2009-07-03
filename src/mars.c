@@ -60,7 +60,7 @@ Global::Global()
 
     copyright = "Copyright (c) 1999-2007 by Digital Mars";
     written = "written by Walter Bright";
-    version = "v1.011";
+    version = "v1.012";
     global.structalign = 8;
 
     memset(&params, 0, sizeof(Param));
@@ -220,14 +220,6 @@ int main(int argc, char *argv[])
 	if (!argv[i])
 	    goto Largs;
     }
-
-    // Initialization
-    Type::init();
-    Id::initialize();
-    Module::init();
-    initPrecedence();
-
-    backend_init();
 
 #if __DMC__	// DMC unique support for response files
     if (response_expand(&argc,&argv))	// expand response files
@@ -569,6 +561,13 @@ int main(int argc, char *argv[])
     if (global.params.cov)
 	VersionCondition::addPredefinedGlobalIdent("D_Coverage");
 
+    // Initialization
+    Type::init();
+    Id::initialize();
+    Module::init();
+    initPrecedence();
+
+    backend_init();
 
     //printf("%d source files\n",files.dim);
 

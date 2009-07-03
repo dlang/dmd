@@ -248,7 +248,7 @@ struct TemplateInstance : ScopeDsymbol
     int semanticdone;	// has semantic() been done?
     int nest;		// for recursion detection
     int havetempdecl;	// 1 if used second constructor
-    int isnested;	// if referencing local symbols
+    Dsymbol *isnested;	// if referencing local symbols, this is the context
     int errors;		// 1 if compiled with errors
 #ifdef IN_GCC
     /* On some targets, it is necessary to know whether a symbol

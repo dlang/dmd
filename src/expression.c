@@ -2505,6 +2505,136 @@ void ArrayLiteralExp::toMangleBuffer(OutBuffer *buf)
     }
 }
 
+/************************ AssocArrayLiteralExp ************************************/
+
+// [ key0 : value0, key1 : value1, ... ]
+
+AssocArrayLiteralExp::AssocArrayLiteralExp(Loc loc,
+		Expressions *keys, Expressions *values)
+    : Expression(loc, TOKassocarrayliteral, sizeof(AssocArrayLiteralExp))
+{
+    assert(keys->dim == values->dim);
+    this->keys = keys;
+    this->values = values;
+}
+
+Expression *AssocArrayLiteralExp::syntaxCopy()
+{
+    return new AssocArrayLiteralExp(loc,
+	arraySyntaxCopy(keys), arraySyntaxCopy(values));
+}
+
+Expression *AssocArrayLiteralExp::semantic(Scope *sc)
+{   Expression *e;
+    Type *tkey = NULL;
+    Type *tvalue = NULL;
+
+#if LOGSEMANTIC
+    printf("AssocArrayLiteralExp::semantic('%s')\n", toChars());
+#endif
+
+    // Run semantic() on each element
+    for (size_t i = 0; i < keys->dim; i++)
+    {	Expression *key = (Expression *)keys->data[i];
+	Expression *value = (Expression *)values->data[i];
+
+	key = key->semantic(sc);
+	value = value->semantic(sc);
+
+	keys->data[i] = (void *)key;
+	values->data[i] = (void *)value;
+    }
+    expandTuples(keys);
+    expandTuples(values);
+    if (keys->dim != values->dim)
+    {
+	error("number of keys is %u, must match number of values %u", keys->dim, values->dim);
+	keys->setDim(0);
+	values->setDim(0);
+    }
+    for (size_t i = 0; i < keys->dim; i++)
+    {	Expression *key = (Expression *)keys->data[i];
+	Expression *value = (Expression *)values->data[i];
+
+	if (!key->type)
+	    error("%s has no value", key->toChars());
+	if (!value->type)
+	    error("%s has no value", value->toChars());
+	key = resolveProperties(sc, key);
+	value = resolveProperties(sc, value);
+
+	if (!tkey)
+	    tkey = key->type;
+	else
+	    key = key->implicitCastTo(sc, tkey);
+	keys->data[i] = (void *)key;
+
+	if (!tvalue)
+	    tvalue = value->type;
+	else
+	    value = value->implicitCastTo(sc, tvalue);
+	values->data[i] = (void *)value;
+    }
+
+    if (!tkey)
+	tkey = Type::tvoid;
+    if (!tvalue)
+	tvalue = Type::tvoid;
+    type = new TypeAArray(tvalue, tkey);
+    type = type->semantic(loc, sc);
+    return this;
+}
+
+int AssocArrayLiteralExp::checkSideEffect(int flag)
+{   int f = 0;
+
+    for (size_t i = 0; i < keys->dim; i++)
+    {	Expression *key = (Expression *)keys->data[i];
+	Expression *value = (Expression *)values->data[i];
+
+	f |= key->checkSideEffect(2);
+	f |= value->checkSideEffect(2);
+    }
+    if (flag == 0 && f == 0)
+	Expression::checkSideEffect(0);
+    return f;
+}
+
+int AssocArrayLiteralExp::isBool(int result)
+{
+    size_t dim = keys->dim;
+    return result ? (dim != 0) : (dim == 0);
+}
+
+void AssocArrayLiteralExp::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
+{
+    buf->writeByte('[');
+    for (size_t i = 0; i < keys->dim; i++)
+    {	Expression *key = (Expression *)keys->data[i];
+	Expression *value = (Expression *)values->data[i];
+
+	if (i)
+	    buf->writeByte(',');
+	expToCBuffer(buf, hgs, key, PREC_assign);
+	buf->writeByte(':');
+	expToCBuffer(buf, hgs, value, PREC_assign);
+    }
+    buf->writeByte(']');
+}
+
+void AssocArrayLiteralExp::toMangleBuffer(OutBuffer *buf)
+{
+    size_t dim = keys->dim;
+    buf->printf("A%u", dim);
+    for (size_t i = 0; i < dim; i++)
+    {	Expression *key = (Expression *)keys->data[i];
+	Expression *value = (Expression *)values->data[i];
+
+	key->toMangleBuffer(buf);
+	value->toMangleBuffer(buf);
+    }
+}
+
 /************************ TypeDotIdExp ************************************/
 
 /* Things like:
@@ -3198,7 +3328,8 @@ Expression *VarExp::modifiableLvalue(Scope *sc, Expression *e)
 	error("cannot change reference to static array '%s'", var->toChars());
 
     VarDeclaration *v = var->isVarDeclaration();
-    if (v && v->canassign == 0 && (var->isConst() || var->isFinal()))
+    if (v && v->canassign == 0 &&
+        (var->isConst() || (global.params.Dversion > 1 && var->isFinal())))
 	error("cannot modify final variable '%s'", var->toChars());
 
     if (var->isCtorinit())

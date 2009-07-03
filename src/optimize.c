@@ -87,6 +87,22 @@ Expression *ArrayLiteralExp::optimize(int result)
     return this;
 }
 
+Expression *AssocArrayLiteralExp::optimize(int result)
+{
+    assert(keys->dim == values->dim);
+    for (size_t i = 0; i < keys->dim; i++)
+    {   Expression *e = (Expression *)keys->data[i];
+
+	e = e->optimize(WANTvalue | (result & WANTinterpret));
+	keys->data[i] = (void *)e;
+
+	e = (Expression *)values->data[i];
+	e = e->optimize(WANTvalue | (result & WANTinterpret));
+	values->data[i] = (void *)e;
+    }
+    return this;
+}
+
 Expression *TypeExp::optimize(int result)
 {
     return this;

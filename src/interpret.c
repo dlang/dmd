@@ -990,6 +990,82 @@ Expression *ArrayLiteralExp::interpret(InterState *istate)
     return this;
 }
 
+Expression *AssocArrayLiteralExp::interpret(InterState *istate)
+{   Expressions *keysx = NULL;
+    Expressions *valuesx = NULL;
+
+#if LOG
+    printf("AssocArrayLiteralExp::interpret() %s\n", toChars());
+#endif
+    for (size_t i = 0; i < keys->dim; i++)
+    {   Expression *ekey = (Expression *)keys->data[i];
+	Expression *evalue = (Expression *)values->data[i];
+	Expression *ex;
+
+	ex = ekey->interpret(istate);
+	if (ex == EXP_CANT_INTERPRET)
+	{   delete keysx;
+	    delete valuesx;
+	    return EXP_CANT_INTERPRET;
+	}
+
+	/* If any changes, do Copy On Write
+	 */
+	if (ex != ekey)
+	{
+	    if (!keysx)
+	    {   keysx = new Expressions();
+		keysx->setDim(keys->dim);
+		for (size_t j = 0; j < i; j++)
+		{
+		    keysx->data[j] = keys->data[j];
+		}
+	    }
+	    keysx->data[i] = (void *)ex;
+	}
+
+	ex = evalue->interpret(istate);
+	if (ex == EXP_CANT_INTERPRET)
+	{   delete keysx;
+	    delete valuesx;
+	    return EXP_CANT_INTERPRET;
+	}
+
+	/* If any changes, do Copy On Write
+	 */
+	if (ex != evalue)
+	{
+	    if (!valuesx)
+	    {   valuesx = new Expressions();
+		valuesx->setDim(values->dim);
+		for (size_t j = 0; j < i; j++)
+		{
+		    valuesx->data[j] = values->data[j];
+		}
+	    }
+	    valuesx->data[i] = (void *)ex;
+	}
+    }
+    if (keysx || valuesx)
+    {
+	if (keysx)
+	    expandTuples(keysx);
+	if (valuesx)
+	    expandTuples(valuesx);
+	if ((keysx && keysx->dim != keys->dim) ||
+	    (valuesx && valuesx->dim != values->dim))
+	{   delete keysx;
+	    delete valuesx;
+	    return EXP_CANT_INTERPRET;
+	}
+	AssocArrayLiteralExp *ae = new AssocArrayLiteralExp(loc,
+		keysx ? keysx : keys, valuesx ? valuesx : values);
+	ae->type = type;
+	return ae;
+    }
+    return this;
+}
+
 Expression *UnaExp::interpretCommon(InterState *istate, Expression *(*fp)(Type *, Expression *))
 {   Expression *e;
     Expression *e1;

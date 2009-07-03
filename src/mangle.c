@@ -1,6 +1,6 @@
 
 // Compiler implementation of the D programming language
-// Copyright (c) 1999-2006 by Digital Mars
+// Copyright (c) 1999-2007 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // http://www.digitalmars.com
@@ -125,6 +125,7 @@ char *Declaration::mangle()
 	buf.writestring(p);
 	p = buf.toChars();
 	buf.data = NULL;
+	//printf("Declaration::mangle(this = %p, '%s', parent = '%s', linkage = %d) = %s\n", this, toChars(), parent ? parent->toChars() : "null", linkage, p);
 	return p;
     }
 
@@ -192,8 +193,28 @@ char *ClassDeclaration::mangle()
 
 char *TemplateInstance::mangle()
 {
-    //printf("TemplateInstance::mangle() '%s'\n", toChars());
-    return Dsymbol::mangle();
+    OutBuffer buf;
+    char *id;
+
+#if 0
+    printf("TemplateInstance::mangle() %s", toChars());
+    if (parent)
+	printf("  parent = %s %s", parent->kind(), parent->toChars());
+    printf("\n");
+#endif
+    id = ident ? ident->toChars() : toChars();
+    if (tempdecl->parent)
+    {
+	char *p = tempdecl->parent->mangle();
+	if (p[0] == '_' && p[1] == 'D')
+	    p += 2;
+	buf.writestring(p);
+    }
+    buf.printf("%zu%s", strlen(id), id);
+    id = buf.toChars();
+    buf.data = NULL;
+    //printf("TemplateInstance::mangle() %s = %s\n", toChars(), id);
+    return id;
 }
 
 
@@ -203,11 +224,15 @@ char *Dsymbol::mangle()
     OutBuffer buf;
     char *id;
 
-    //printf("Dsymbol::mangle() '%s'\n", toChars());
+#if 0
+    printf("Dsymbol::mangle() '%s'", toChars());
+    if (parent)
+	printf("  parent = %s %s", parent->kind(), parent->toChars());
+    printf("\n");
+#endif
     id = ident ? ident->toChars() : toChars();
     if (parent)
     {
-	//printf("  parent = '%s', kind = '%s'\n", parent->mangle(), parent->kind());
 	char *p = parent->mangle();
 	if (p[0] == '_' && p[1] == 'D')
 	    p += 2;
@@ -216,6 +241,7 @@ char *Dsymbol::mangle()
     buf.printf("%zu%s", strlen(id), id);
     id = buf.toChars();
     buf.data = NULL;
+    //printf("Dsymbol::mangle() %s = %s\n", toChars(), id);
     return id;
 }
 

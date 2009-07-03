@@ -45,12 +45,12 @@ Type *Initializer::inferType(Scope *sc)
     return Type::terror;
 }
 
-Array *Initializer::arraySyntaxCopy(Array *ai)
-{   Array *a = NULL;
+Initializers *Initializer::arraySyntaxCopy(Initializers *ai)
+{   Initializers *a = NULL;
 
     if (ai)
     {
-	a = new Array();
+	a = new Initializers();
 	a->setDim(ai->dim);
 	for (int i = 0; i < a->dim; i++)
 	{   Initializer *e = (Initializer *)ai->data[i];
