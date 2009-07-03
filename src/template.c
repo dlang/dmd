@@ -91,6 +91,7 @@ TemplateDeclaration::TemplateDeclaration(Loc loc, Identifier *id, TemplateParame
     this->parameters = parameters;
     this->members = decldefs;
     this->overnext = NULL;
+    this->overroot = NULL;
     this->scope = NULL;
     this->onemember = NULL;
 }
@@ -233,7 +234,7 @@ int TemplateDeclaration::overloadInsert(Dsymbol *s)
 	;
     }
 
-
+    f->overroot = this;
     *pf = f;
 #if LOG
     printf("\ttrue: no conflict\n");
@@ -2140,6 +2141,10 @@ void TemplateInstance::semanticTiargs(Scope *sc)
 	else
 	{
 	    ea = isExpression((Object *)tiargs->data[j]);
+	    if (!ea)
+	    {	assert(global.errors);
+		ea = new IntegerExp(0);
+	    }
 	    assert(ea);
 	    ea = ea->semantic(sc);
 	    ea = ea->optimize(WANTvalue);
@@ -2169,7 +2174,7 @@ TemplateDeclaration *TemplateInstance::findTemplateDeclaration(Scope *sc)
 	int i;
 
 	id = (Identifier *)idents.data[0];
-	s = sc->search(id, &scopesym);
+	s = sc->search(loc, id, &scopesym);
 	if (s)
 	{
 #if LOG
@@ -2182,7 +2187,7 @@ TemplateDeclaration *TemplateInstance::findTemplateDeclaration(Scope *sc)
 	    {   Dsymbol *sm;
 
 		id = (Identifier *)idents.data[i];
-		sm = s->search(id, 0);
+		sm = s->search(loc, id, 0);
 		if (!sm)
 		{
 		    s = NULL;
@@ -2226,6 +2231,8 @@ TemplateDeclaration *TemplateInstance::findTemplateDeclaration(Scope *sc)
 		 * of the template, if it has a !(arguments)
 		 */
 		tempdecl = ti->tempdecl;
+		if (tempdecl->overroot)		// if not start of overloaded list of TemplateDeclaration's
+		    tempdecl = tempdecl->overroot; // then get the start
 	    }
 	    else
 	    {
@@ -2684,7 +2691,7 @@ void TemplateMixin::semantic(Scope *sc)
     if (semanticdone &&
 	// This for when a class/struct contains mixin members, and
 	// is done over because of forward references
-	!toParent()->isAggregateDeclaration())
+	parent && !toParent()->isAggregateDeclaration())
     {
 #if LOG
 	printf("\tsemantic done\n");
@@ -2720,7 +2727,7 @@ void TemplateMixin::semantic(Scope *sc)
 	    id = (Identifier *)idents->data[0];
 	    if (id->dyncast() == DYNCAST_IDENTIFIER)
 	    {
-		s = sc->search(id, NULL);
+		s = sc->search(loc, id, NULL);
 	    }
 	    else
 	    {
@@ -2739,7 +2746,7 @@ void TemplateMixin::semantic(Scope *sc)
 	    id = (Identifier *)idents->data[i];
 	    if (id->dyncast() == DYNCAST_IDENTIFIER)
 	    {
-		sm = s->search(id, 0);
+		sm = s->search(loc, id, 0);
 	    }
 	    else
 	    {
@@ -2748,7 +2755,7 @@ void TemplateMixin::semantic(Scope *sc)
 		TemplateDeclaration *td;
 		TemplateInstance *ti = (TemplateInstance *)id;
 		id = (Identifier *)ti->idents.data[0];
-		sm = s->search(id, 0);
+		sm = s->search(loc, id, 0);
 		if (!sm)
 		{   error("template identifier %s is not a member of %s", id->toChars(), s->toChars());
 		    return;

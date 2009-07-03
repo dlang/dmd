@@ -165,7 +165,7 @@ Initializer *StructInitializer::semantic(Scope *sc, Type *t)
 	    else
 	    {
 		//s = ad->symtab->lookup(id);
-		s = ad->search(id, 0);
+		s = ad->search(loc, id, 0);
 		if (!s)
 		{
 		    error("'%s' is not a member of '%s'", id->toChars(), t->toChars());
@@ -355,7 +355,7 @@ Expression *ArrayInitializer::toExpression()
 
 Lno:
     delete elements;
-    error("array initializers as expressions are not allowed");
+    error(loc, "array initializers as expressions are not allowed");
     return NULL;
 }
 

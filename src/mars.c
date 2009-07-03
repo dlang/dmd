@@ -1,4 +1,5 @@
 
+// Compiler implementation of the D programming language
 // Copyright (c) 1999-2006 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
@@ -58,7 +59,7 @@ Global::Global()
 
     copyright = "Copyright (c) 1999-2006 by Digital Mars";
     written = "written by Walter Bright";
-    version = "v0.168";
+    version = "v0.169";
     global.structalign = 8;
 
     memset(&params, 0, sizeof(Param));
@@ -187,6 +188,7 @@ int main(int argc, char *argv[])
     {
       Largs:
 	error("missing or null command line arguments");
+	fatal();
     }
     for (i = 0; i < argc; i++)
     {

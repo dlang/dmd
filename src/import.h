@@ -1,4 +1,5 @@
 
+// Compiler implementation of the D programming language
 // Copyright (c) 1999-2006 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
@@ -54,7 +55,7 @@ struct Import : Dsymbol
     void semantic2(Scope *sc);
     Dsymbol *toAlias();
     int addMember(Scope *sc, ScopeDsymbol *s, int memnum);
-    Dsymbol *search(Identifier *ident, int flags);
+    Dsymbol *search(Loc loc, Identifier *ident, int flags);
     int overloadInsert(Dsymbol *s);
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
 

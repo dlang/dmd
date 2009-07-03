@@ -1,4 +1,5 @@
 
+// Compiler implementation of the D programming language
 // Copyright (c) 1999-2006 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
@@ -407,9 +408,9 @@ void StructDeclaration::semantic(Scope *sc)
 
     /* Look for special member functions.
      */
-    inv =    (InvariantDeclaration *)search(Id::classInvariant, 0);
-    aggNew =       (NewDeclaration *)search(Id::classNew,       0);
-    aggDelete = (DeleteDeclaration *)search(Id::classDelete,    0);
+    inv =    (InvariantDeclaration *)search(0, Id::classInvariant, 0);
+    aggNew =       (NewDeclaration *)search(0, Id::classNew,       0);
+    aggDelete = (DeleteDeclaration *)search(0, Id::classDelete,    0);
 
     if (sc->func)
     {

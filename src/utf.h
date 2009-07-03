@@ -1,5 +1,6 @@
+// Compiler implementation of the D programming language
 // utf.h
-// Copyright (c) 2003 by Digital Mars
+// Copyright (c) 2003-2006 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // www.digitalmars.com

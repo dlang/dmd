@@ -60,13 +60,20 @@ Expression *Type::getInternalTypeInfo(Scope *sc)
 	    t = t->next->arrayOf();	// convert to corresponding dynamic array type
 	    break;
 
+	case Tclass:
+	    if (((TypeClass *)t)->sym->isInterfaceDeclaration())
+		break;
+	    goto Linternal;
+
 	case Tarray:
 	    if (t->next->ty != Tclass)
 		break;
+	    goto Linternal;
+
 	case Tfunction:
 	case Tdelegate:
-	case Tclass:
 	case Tpointer:
+	Linternal:
 	    tid = internalTI[t->ty];
 	    if (!tid)
 	    {	tid = new TypeInfoDeclaration(t, 1);
@@ -152,7 +159,10 @@ TypeInfoDeclaration *TypeStruct::getTypeInfoDeclaration()
 
 TypeInfoDeclaration *TypeClass::getTypeInfoDeclaration()
 {
-    return new TypeInfoClassDeclaration(this);
+    if (sym->isInterfaceDeclaration())
+	return new TypeInfoInterfaceDeclaration(this);
+    else
+	return new TypeInfoClassDeclaration(this);
 }
 
 TypeInfoDeclaration *TypeEnum::getTypeInfoDeclaration()
@@ -442,8 +452,25 @@ void TypeInfoStructDeclaration::toDt(dt_t **pdt)
 
 void TypeInfoClassDeclaration::toDt(dt_t **pdt)
 {
-    //printf("TypeInfoClassDeclaration::toDt()\n");
+    //printf("TypeInfoClassDeclaration::toDt() %s\n", tinfo->toChars());
     dtxoff(pdt, Type::typeinfoclass->toVtblSymbol(), 0, TYnptr); // vtbl for TypeInfoClass
+    dtdword(pdt, 0);			    // monitor
+
+    assert(tinfo->ty == Tclass);
+
+    TypeClass *tc = (TypeClass *)tinfo;
+    Symbol *s;
+
+    if (!tc->sym->vclassinfo)
+	tc->sym->vclassinfo = new ClassInfoDeclaration(tc->sym);
+    s = tc->sym->vclassinfo->toSymbol();
+    dtxoff(pdt, s, 0, TYnptr);		// ClassInfo for tinfo
+}
+
+void TypeInfoInterfaceDeclaration::toDt(dt_t **pdt)
+{
+    //printf("TypeInfoInterfaceDeclaration::toDt() %s\n", tinfo->toChars());
+    dtxoff(pdt, Type::typeinfointerface->toVtblSymbol(), 0, TYnptr); // vtbl for TypeInfoInterface
     dtdword(pdt, 0);			    // monitor
 
     assert(tinfo->ty == Tclass);

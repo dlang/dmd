@@ -1,5 +1,6 @@
 
-// Copyright (c) 1999-2002 by Digital Mars
+// Compiler implementation of the D programming language
+// Copyright (c) 1999-2006 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // www.digitalmars.com
@@ -232,7 +233,7 @@ void Dsymbol::inlineScan()
     // Most Dsymbols have no further semantic analysis needed
 }
 
-Dsymbol *Dsymbol::search(Identifier *ident, int flags)
+Dsymbol *Dsymbol::search(Loc loc, Identifier *ident, int flags)
 {
     //printf("Dsymbol::search(this=%p,%s, ident='%s')\n", this, toChars(), ident->toChars());
     return NULL;
@@ -331,7 +332,7 @@ int Dsymbol::addMember(Scope *sc, ScopeDsymbol *sd, int memnum)
 	    s2 = sd->symtab->lookup(ident);
 	    if (!s2->overloadInsert(this))
 	    {
-		sd->multiplyDefined(this, s2);
+		sd->multiplyDefined(0, this, s2);
 	    }
 	}
 	if (sd->isAggregateDeclaration() || sd->isEnumDeclaration())
@@ -529,7 +530,7 @@ Dsymbol *ScopeDsymbol::syntaxCopy(Dsymbol *s)
     return sd;
 }
 
-Dsymbol *ScopeDsymbol::search(Identifier *ident, int flags)
+Dsymbol *ScopeDsymbol::search(Loc loc, Identifier *ident, int flags)
 {   Dsymbol *s;
     int i;
 
@@ -552,7 +553,7 @@ Dsymbol *ScopeDsymbol::search(Identifier *ident, int flags)
 		continue;
 
 	    //printf("\tscanning import '%s', prots = %d, isModule = %p, isImport = %p\n", ss->toChars(), prots[i], ss->isModule(), ss->isImport());
-	    s2 = ss->search(ident, ss->isModule() ? 1 : 0);
+	    s2 = ss->search(loc, ident, ss->isModule() ? 1 : 0);
 	    if (!s)
 		s = s2;
 	    else if (s2 && s != s2 && s->toAlias() != s2->toAlias())
@@ -562,9 +563,15 @@ Dsymbol *ScopeDsymbol::search(Identifier *ident, int flags)
 		 */
 		Import *i1 = s->isImport();
 		Import *i2 = s2->isImport();
-		if (!(i1 && i2 && i1->mod == i2->mod))
+		if (!(i1 && i2 &&
+		      (i1->mod == i2->mod ||
+		       (!i1->parent->isImport() && !i2->parent->isImport() &&
+			i1->ident->equals(i2->ident))
+		      )
+		     )
+		   )
 		{
-		    ss->multiplyDefined(s, s2);
+		    ss->multiplyDefined(loc, s, s2);
 		    break;
 		}
 	    }
@@ -622,23 +629,26 @@ void ScopeDsymbol::defineRef(Dsymbol *s)
     ss->members = NULL;
 }
 
-void ScopeDsymbol::multiplyDefined(Dsymbol *s1, Dsymbol *s2)
+void ScopeDsymbol::multiplyDefined(Loc loc, Dsymbol *s1, Dsymbol *s2)
 {
 #if 0
     printf("ScopeDsymbol::multiplyDefined()\n");
     printf("s1 = %p, '%s' kind = '%s', parent = %s\n", s1, s1->toChars(), s1->kind(), s1->parent ? s1->parent->toChars() : "");
     printf("s2 = %p, '%s' kind = '%s', parent = %s\n", s2, s2->toChars(), s2->kind(), s2->parent ? s2->parent->toChars() : "");
 #endif
-#if 1
-    s1->error("conflicts with %s at %s",
-	s2->toPrettyChars(),
-	s2->locToChars());
-#else
-    s1->error("symbol %s conflicts with %s at %s",
-	s1->toPrettyChars(),
-	s2->toPrettyChars(),
-	s2->locToChars());
-#endif
+    if (loc.filename)
+    {	::error(loc, "%s at %s conflicts with %s at %s",
+	    s1->toPrettyChars(),
+	    s1->locToChars(),
+	    s2->toPrettyChars(),
+	    s2->locToChars());
+    }
+    else
+    {
+	s1->error(loc, "conflicts with %s at %s",
+	    s2->toPrettyChars(),
+	    s2->locToChars());
+    }
 //*(char*)0=0;
 }
 
@@ -660,7 +670,7 @@ Dsymbol *ScopeDsymbol::nameCollision(Dsymbol *s)
 	    return sprev;
 	}
     }
-    multiplyDefined(s, sprev);
+    multiplyDefined(0, s, sprev);
     return sprev;
 }
 
@@ -678,10 +688,10 @@ WithScopeSymbol::WithScopeSymbol(WithStatement *withstate)
     this->withstate = withstate;
 }
 
-Dsymbol *WithScopeSymbol::search(Identifier *ident, int flags)
+Dsymbol *WithScopeSymbol::search(Loc loc, Identifier *ident, int flags)
 {
     // Acts as proxy to the with class declaration
-    return withstate->exp->type->toDsymbol(NULL)->search(ident, 0);
+    return withstate->exp->type->toDsymbol(NULL)->search(loc, ident, 0);
 }
 
 /****************************** ArrayScopeSymbol ******************************/
@@ -693,7 +703,7 @@ ArrayScopeSymbol::ArrayScopeSymbol(Expression *e)
     exp = e;
 }
 
-Dsymbol *ArrayScopeSymbol::search(Identifier *ident, int flags)
+Dsymbol *ArrayScopeSymbol::search(Loc loc, Identifier *ident, int flags)
 {
     if (ident == Id::length || ident == Id::dollar)
     {	VarDeclaration **pvar;

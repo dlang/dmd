@@ -1,4 +1,5 @@
 
+// Compiler implementation of the D programming language
 // Copyright (c) 1999-2006 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
@@ -118,7 +119,7 @@ struct Dsymbol : Object
     virtual void semantic2(Scope *sc);
     virtual void semantic3(Scope *sc);
     virtual void inlineScan();
-    virtual Dsymbol *search(Identifier *ident, int flags);
+    virtual Dsymbol *search(Loc loc, Identifier *ident, int flags);
     virtual int overloadInsert(Dsymbol *s);
 #ifdef _DH
     char *toHChars();
@@ -212,11 +213,11 @@ struct ScopeDsymbol : Dsymbol
     ScopeDsymbol();
     ScopeDsymbol(Identifier *id);
     Dsymbol *syntaxCopy(Dsymbol *s);
-    Dsymbol *search(Identifier *ident, int flags);
+    Dsymbol *search(Loc loc, Identifier *ident, int flags);
     void importScope(ScopeDsymbol *s, enum PROT protection);
     int isforwardRef();
     void defineRef(Dsymbol *s);
-    static void multiplyDefined(Dsymbol *s1, Dsymbol *s2);
+    static void multiplyDefined(Loc loc, Dsymbol *s1, Dsymbol *s2);
     Dsymbol *nameCollision(Dsymbol *s);
     char *kind();
 
@@ -232,7 +233,7 @@ struct WithScopeSymbol : ScopeDsymbol
     WithStatement *withstate;
 
     WithScopeSymbol(WithStatement *withstate);
-    Dsymbol *search(Identifier *ident, int flags);
+    Dsymbol *search(Loc loc, Identifier *ident, int flags);
 
     WithScopeSymbol *isWithScopeSymbol() { return this; }
 };
@@ -244,7 +245,7 @@ struct ArrayScopeSymbol : ScopeDsymbol
     Expression *exp;	// IndexExp or SliceExp
 
     ArrayScopeSymbol(Expression *e);
-    Dsymbol *search(Identifier *ident, int flags);
+    Dsymbol *search(Loc loc, Identifier *ident, int flags);
 
     ArrayScopeSymbol *isArrayScopeSymbol() { return this; }
 };

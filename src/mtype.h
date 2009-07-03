@@ -1,4 +1,5 @@
 
+// Compiler implementation of the D programming language
 // Copyright (c) 1999-2006 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
@@ -160,6 +161,7 @@ struct Type : Object
 
     static ClassDeclaration *typeinfo;
     static ClassDeclaration *typeinfoclass;
+    static ClassDeclaration *typeinfointerface;
     static ClassDeclaration *typeinfostruct;
     static ClassDeclaration *typeinfotypedef;
     static ClassDeclaration *typeinfopointer;

@@ -1,4 +1,6 @@
-// Copyright (c) 1999-2005 by Digital Mars
+
+// Compiler implementation of the D programming language
+// Copyright (c) 1999-2006 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // www.digitalmars.com

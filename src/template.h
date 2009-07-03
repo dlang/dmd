@@ -1,4 +1,5 @@
 
+// Compiler implementation of the D programming language
 // Copyright (c) 1999-2006 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
@@ -40,6 +41,8 @@ struct TemplateDeclaration : ScopeDsymbol
     Array instances;		// array of TemplateInstance's
 
     TemplateDeclaration *overnext;	// next overloaded TemplateDeclaration
+    TemplateDeclaration *overroot;	// first in overnext list
+
     Scope *scope;
     Dsymbol *onemember;		// if !=NULL then one member of this template
 

@@ -1,4 +1,5 @@
 
+// Compiler implementation of the D programming language
 // Copyright (c) 1999-2006 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
@@ -190,7 +191,7 @@ struct ClassDeclaration : AggregateDeclaration
     #define OFFSET_RUNTIME 0x76543210
     virtual int isBaseOf(ClassDeclaration *cd, int *poffset);
 
-    Dsymbol *search(Identifier *ident, int flags);
+    Dsymbol *search(Loc, Identifier *ident, int flags);
     FuncDeclaration *findFunc(Identifier *ident, TypeFunction *tf);
     void interfaceSemantic(Scope *sc);
     int isNested();

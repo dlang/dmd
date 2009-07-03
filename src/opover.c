@@ -459,7 +459,7 @@ Dsymbol *search_function(AggregateDeclaration *ad, Identifier *funcid)
     FuncDeclaration *fd;
     TemplateDeclaration *td;
 
-    s = ad->search(funcid, 0);
+    s = ad->search(0, funcid, 0);
     if (s)
     {	Dsymbol *s2;
 

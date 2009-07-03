@@ -1,4 +1,5 @@
 
+// Compiler implementation of the D programming language
 // Copyright (c) 1999-2006 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
@@ -77,6 +78,12 @@ ClassDeclaration::ClassDeclaration(Loc loc, Identifier *id, BaseClasses *basecla
 	    {	if (Type::typeinfoclass)
 		    Type::typeinfoclass->error(msg);
 		Type::typeinfoclass = this;
+	    }
+
+	    if (id == Id::TypeInfo_Interface)
+	    {	if (Type::typeinfointerface)
+		    Type::typeinfointerface->error(msg);
+		Type::typeinfointerface = this;
 	    }
 
 	    if (id == Id::TypeInfo_Struct)
@@ -488,7 +495,7 @@ void ClassDeclaration::semantic(Scope *sc)
     /* Look for special member functions.
      * They must be in this class, not in a base class.
      */
-    ctor = (CtorDeclaration *)search(Id::ctor, 0);
+    ctor = (CtorDeclaration *)search(0, Id::ctor, 0);
     if (ctor && ctor->toParent() != this)
 	ctor = NULL;
 
@@ -501,8 +508,8 @@ void ClassDeclaration::semantic(Scope *sc)
 //	inv = NULL;
 
     // Can be in base class
-    aggNew    = (NewDeclaration *)search(Id::classNew, 0);
-    aggDelete = (DeleteDeclaration *)search(Id::classDelete, 0);
+    aggNew    = (NewDeclaration *)search(0, Id::classNew, 0);
+    aggDelete = (DeleteDeclaration *)search(0, Id::classDelete, 0);
 
     // If this class has no constructor, but base class does, create
     // a constructor:
@@ -657,7 +664,7 @@ int ClassDeclaration::isBaseOf(ClassDeclaration *cd, int *poffset)
     return 0;
 }
 
-Dsymbol *ClassDeclaration::search(Identifier *ident, int flags)
+Dsymbol *ClassDeclaration::search(Loc loc, Identifier *ident, int flags)
 {
     Dsymbol *s;
 
@@ -671,7 +678,7 @@ Dsymbol *ClassDeclaration::search(Identifier *ident, int flags)
 	return NULL;
     }
 
-    s = ScopeDsymbol::search(ident, flags);
+    s = ScopeDsymbol::search(loc, ident, flags);
     if (!s)
     {
 	// Search bases classes in depth-first, left to right order
@@ -688,7 +695,7 @@ Dsymbol *ClassDeclaration::search(Identifier *ident, int flags)
 		    error("base %s is forward referenced", b->base->ident->toChars());
 		else
 		{
-		    s = b->base->search(ident, flags);
+		    s = b->base->search(loc, ident, flags);
 		    if (s == this)	// happens if s is nested in this and derives from this
 			s = NULL;
 		    else if (s)

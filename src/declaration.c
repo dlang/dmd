@@ -307,7 +307,7 @@ void AliasDeclaration::semantic(Scope *sc)
 	    {	Identifier *id;
 
 		id = (Identifier *)ti->idents.data[i];
-		s = s->search(id, 0);
+		s = s->search(loc, id, 0);
 		if (!s)			// failed to find a symbol
 		    goto L1;		// it must be a type
 		s = s->toAlias();
@@ -317,7 +317,7 @@ void AliasDeclaration::semantic(Scope *sc)
     }
   L1:
     if (overnext)
-	ScopeDsymbol::multiplyDefined(this, overnext);
+	ScopeDsymbol::multiplyDefined(0, this, overnext);
     type = type->semantic(loc, sc);
     this->inSemantic = 0;
     return;
@@ -339,14 +339,14 @@ void AliasDeclaration::semantic(Scope *sc)
 	    {
 		FuncAliasDeclaration *fa = new FuncAliasDeclaration(f);
 		if (!fa->overloadInsert(overnext))
-		    ScopeDsymbol::multiplyDefined(f, overnext);
+		    ScopeDsymbol::multiplyDefined(0, f, overnext);
 		overnext = NULL;
 		s = fa;
 		s->parent = sc->parent;
 	    }
 	}
 	if (overnext)
-	    ScopeDsymbol::multiplyDefined(s, overnext);
+	    ScopeDsymbol::multiplyDefined(0, s, overnext);
 	if (s == this)
 	{
 	    assert(global.errors);
@@ -868,6 +868,11 @@ int VarDeclaration::isDataseg()
     printf("parent = '%s'\n", parent->toChars());
 #endif
     Dsymbol *parent = this->toParent();
+    if (!parent && !(storage_class & (STCstatic | STCconst)))
+    {	error("forward referenced");
+	type = Type::terror;
+	return 0;
+    }
     return (storage_class & (STCstatic | STCconst) ||
 	   parent->isModule() ||
 	   parent->isTemplateInstance());
@@ -978,7 +983,7 @@ void TypeInfoDeclaration::semantic(Scope *sc)
     assert(linkage == LINKc);
 }
 
-/***************************** TypeInfoStructDeclaration ***********************/
+/***************************** TypeInfoStructDeclaration **********************/
 
 TypeInfoStructDeclaration::TypeInfoStructDeclaration(Type *tinfo)
     : TypeInfoDeclaration(tinfo, 0)
@@ -988,6 +993,13 @@ TypeInfoStructDeclaration::TypeInfoStructDeclaration(Type *tinfo)
 /***************************** TypeInfoClassDeclaration ***********************/
 
 TypeInfoClassDeclaration::TypeInfoClassDeclaration(Type *tinfo)
+    : TypeInfoDeclaration(tinfo, 0)
+{
+}
+
+/***************************** TypeInfoInterfaceDeclaration *******************/
+
+TypeInfoInterfaceDeclaration::TypeInfoInterfaceDeclaration(Type *tinfo)
     : TypeInfoDeclaration(tinfo, 0)
 {
 }

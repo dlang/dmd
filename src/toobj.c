@@ -1,5 +1,5 @@
 
-// Copyright (c) 1999-2004 by Digital Mars
+// Copyright (c) 1999-2006 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // www.digitalmars.com
@@ -194,10 +194,15 @@ void ClassDeclaration::toObjFile()
 
     assert(!scope);	// semantic() should have been run to completion
 
-    if (parent && parent->isTemplateInstance())
-	scclass = SCcomdat;
-    else
-	scclass = SCglobal;
+    scclass = SCglobal;
+    for (Dsymbol *parent = this->parent; parent; parent = parent->parent)
+    {
+	if (parent->isTemplateInstance())
+	{
+	    scclass = SCcomdat;
+	    break;
+	}
+    }
 
     // Put out the members
     for (i = 0; i < members->dim; i++)
@@ -663,10 +668,15 @@ void InterfaceDeclaration::toObjFile()
     if (global.params.symdebug)
 	toDebug();
 
-    if (parent && parent->isTemplateInstance())
-	scclass = SCcomdat;
-    else
-	scclass = SCglobal;
+    scclass = SCglobal;
+    for (Dsymbol *parent = this->parent; parent; parent = parent->parent)
+    {
+	if (parent->isTemplateInstance())
+	{
+	    scclass = SCcomdat;
+	    break;
+	}
+    }
 
     // Put out the members
     for (i = 0; i < members->dim; i++)

@@ -1,4 +1,5 @@
 
+// Compiler implementation of the D programming language
 // Copyright (c) 1999-2006 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
@@ -768,6 +769,7 @@ Expression *Expression::toLvalue(Scope *sc, Expression *e)
     else if (!loc.filename)
 	loc = e->loc;
     error("%s is not an lvalue", e->toChars());
+*(char*)0=0;
     return this;
 }
 
@@ -1496,7 +1498,7 @@ Expression *IdentifierExp::semantic(Scope *sc)
 #if LOGSEMANTIC
     printf("IdentifierExp::semantic('%s')\n", ident->toChars());
 #endif
-    s = sc->search(ident, &scopesym);
+    s = sc->search(loc, ident, &scopesym);
     if (s)
     {	Expression *e;
 	WithScopeSymbol *withsym;
@@ -3724,7 +3726,7 @@ Expression *DotIdExp::semantic(Scope *sc)
 	Dsymbol *s;
 	ScopeExp *ie = (ScopeExp *)eright;
 
-	s = ie->sds->search(ident, 0);
+	s = ie->sds->search(loc, ident, 0);
 	if (s)
 	{
 	    s = s->toAlias();
@@ -4091,7 +4093,7 @@ Expression *DotTemplateInstanceExp::semantic(Scope *sc)
 
     assert(s);
     id = (Identifier *)ti->idents.data[0];
-    s2 = s->search(id, 0);
+    s2 = s->search(loc, id, 0);
     if (!s2)
     {	error("template identifier %s is not a member of %s", id->toChars(), s->ident->toChars());
 	goto Lerr;
@@ -4684,6 +4686,14 @@ Lcheckargs:
 int CallExp::checkSideEffect(int flag)
 {
     return 1;
+}
+
+Expression *CallExp::toLvalue(Scope *sc, Expression *e)
+{
+    if (type->toBasetype()->ty == Tstruct)
+	return this;
+    else
+	return Expression::toLvalue(sc, e);
 }
 
 void CallExp::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
@@ -7266,10 +7276,10 @@ Expression *CondExp::toLvalue(Scope *sc, Expression *ex)
     e = new PtrExp(loc, this, type);
 
     e1 = e1->addressOf(sc);
-    e1 = e1->toLvalue(sc, NULL);
+    //e1 = e1->toLvalue(sc, NULL);
 
     e2 = e2->addressOf(sc);
-    e2 = e2->toLvalue(sc, NULL);
+    //e2 = e2->toLvalue(sc, NULL);
 
     typeCombine(sc);
 

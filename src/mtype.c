@@ -1,4 +1,5 @@
 
+// Compiler implementation of the D programming language
 // Copyright (c) 1999-2006 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
@@ -79,6 +80,7 @@ int Tptrdiff_t = Tint32;
 
 ClassDeclaration *Type::typeinfo;
 ClassDeclaration *Type::typeinfoclass;
+ClassDeclaration *Type::typeinfointerface;
 ClassDeclaration *Type::typeinfostruct;
 ClassDeclaration *Type::typeinfotypedef;
 ClassDeclaration *Type::typeinfopointer;
@@ -1409,6 +1411,23 @@ Expression *TypeArray::dotExp(Scope *sc, Expression *e, Identifier *ident)
 	Expressions *arguments;
 	char *nm;
 	static char *name[2] = { "_adReverseChar", "_adReverseWchar" };
+
+	nm = name[n->ty == Twchar];
+	fd = FuncDeclaration::genCfunc(Type::tindex, nm);
+	ec = new VarExp(0, fd);
+	e = e->castTo(sc, n->arrayOf());	// convert to dynamic array
+	arguments = new Expressions();
+	arguments->push(e);
+	e = new CallExp(e->loc, ec, arguments);
+	e->type = next->arrayOf();
+    }
+    else if (ident == Id::sort && (n->ty == Tchar || n->ty == Twchar))
+    {
+	Expression *ec;
+	FuncDeclaration *fd;
+	Expressions *arguments;
+	char *nm;
+	static char *name[2] = { "_adSortChar", "_adSortWchar" };
 
 	nm = name[n->ty == Twchar];
 	fd = FuncDeclaration::genCfunc(Type::tindex, nm);
@@ -2846,7 +2865,7 @@ void TypeQualified::resolveHelper(Loc loc, Scope *sc,
 		TemplateDeclaration *td;
 		TemplateInstance *ti = (TemplateInstance *)id;
 		id = (Identifier *)ti->idents.data[0];
-		sm = s->search(id, 0);
+		sm = s->search(loc, id, 0);
 		if (!sm)
 		{   error(loc, "template identifier %s is not a member of %s", id->toChars(), s->toChars());
 		    return;
@@ -2864,7 +2883,7 @@ void TypeQualified::resolveHelper(Loc loc, Scope *sc,
 		sm = ti->toAlias();
 	    }
 	    else
-		sm = s->search(id, 0);
+		sm = s->search(loc, id, 0);
 	    //printf("\t3: s = '%s' %p, kind = '%s'\n",s->toChars(), s, s->kind());
 	    //printf("getType = '%s'\n", s->getType()->toChars());
 	    if (!sm)
@@ -2895,7 +2914,7 @@ void TypeQualified::resolveHelper(Loc loc, Scope *sc,
 		{
 		    sm = t->toDsymbol(sc);
 		    if (sm)
-		    {	sm = sm->search(id, 0);
+		    {	sm = sm->search(loc, id, 0);
 			if (sm)
 			    goto L2;
 		    }
@@ -2965,7 +2984,7 @@ L1:
 	    si = s->isImport();
 	    if (si)
 	    {
-		s = si->search(s->ident, 0);
+		s = si->search(loc, s->ident, 0);
 		if (s && s != si)
 		    goto L1;
 		s = si;
@@ -3059,7 +3078,7 @@ void TypeIdentifier::resolve(Loc loc, Scope *sc, Expression **pe, Type **pt, Dsy
     Dsymbol *scopesym;
 
     //printf("TypeIdentifier::resolve(sc = %p, idents = '%s')\n", sc, toChars());
-    s = sc->search(ident, &scopesym);
+    s = sc->search(loc, ident, &scopesym);
     resolveHelper(loc, sc, s, scopesym, pe, pt, ps);
 }
 
@@ -3077,7 +3096,7 @@ Dsymbol *TypeIdentifier::toDsymbol(Scope *sc)
     if (!sc)
 	return NULL;
     //printf("ident = '%s'\n", ident->toChars());
-    s = sc->search(ident, &scopesym);
+    s = sc->search(loc, ident, &scopesym);
     if (s)
     {
 	s = s->toAlias();
@@ -3094,7 +3113,7 @@ Dsymbol *TypeIdentifier::toDsymbol(Scope *sc)
 		TemplateDeclaration *td;
 		TemplateInstance *ti = (TemplateInstance *)id;
 		id = (Identifier *)ti->idents.data[0];
-		sm = s->search(id, 0);
+		sm = s->search(loc, id, 0);
 		if (!sm)
 		{   error(loc, "template identifier %s is not a member of %s", id->toChars(), s->toChars());
 		    break;
@@ -3112,7 +3131,7 @@ Dsymbol *TypeIdentifier::toDsymbol(Scope *sc)
 		sm = ti->toAlias();
 	    }
 	    else
-		sm = s->search(id, 0);
+		sm = s->search(loc, id, 0);
 	    s = sm;
 
 	    if (!s)                 // failed to find a symbol
@@ -3266,6 +3285,8 @@ Dsymbol *TypeTypeof::toDsymbol(Scope *sc)
     Type *t;
 
     t = semantic(0, sc);
+    if (t == this)
+	return NULL;
     return t->toDsymbol(sc);
 }
 
@@ -3288,7 +3309,9 @@ Type *TypeTypeof::semantic(Loc loc, Scope *sc)
 {   Expression *e;
     Type *t;
 
-    //printf("TypeTypeof::semantic()\n");
+    //printf("TypeTypeof::semantic() %p\n", this);
+
+    //static int nest; if (++nest == 50) *(char*)0=0;
 
     /* Special case for typeof(this) and typeof(super) since both
      * should work even if they are not inside a non-static member function
@@ -3849,13 +3872,13 @@ Expression *TypeStruct::dotExp(Scope *sc, Expression *e, Identifier *ident)
 	{
 	    ScopeExp *se = (ScopeExp *)de->e1;
 
-	    s = se->sds->search(ident, 0);
+	    s = se->sds->search(e->loc, ident, 0);
 	    e = de->e1;
 	    goto L1;
 	}
     }
 
-    s = sym->search(ident, 0);
+    s = sym->search(e->loc, ident, 0);
 L1:
     if (!s)
     {
@@ -4061,13 +4084,13 @@ Expression *TypeClass::dotExp(Scope *sc, Expression *e, Identifier *ident)
 	{
 	    ScopeExp *se = (ScopeExp *)de->e1;
 
-	    s = se->sds->search(ident, 0);
+	    s = se->sds->search(e->loc, ident, 0);
 	    e = de->e1;
 	    goto L1;
 	}
     }
 
-    s = sym->search(ident, 0);
+    s = sym->search(e->loc, ident, 0);
 L1:
     if (!s)
     {

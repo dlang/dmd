@@ -1086,6 +1086,7 @@ int File::write()
 
 err2:
     close(fd);
+    ::remove(name);
 err:
     return 1;
 #endif
@@ -1115,6 +1116,7 @@ err:
 
 err2:
     CloseHandle(h);
+    DeleteFileA(name);
 err:
     return 1;
 #endif

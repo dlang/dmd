@@ -1,4 +1,5 @@
 
+// Compiler implementation of the D programming language
 // Copyright (c) 1999-2005 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
@@ -123,7 +124,7 @@ struct Module : Package
     void gensymfile();
     void gendocfile();
     int needModuleInfo();
-    Dsymbol *search(Identifier *ident, int flags);
+    Dsymbol *search(Loc loc, Identifier *ident, int flags);
     void deleteObjFile();
     void addDeferredSemantic(Dsymbol *s);
     void runDeferredSemantic();

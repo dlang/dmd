@@ -1,4 +1,5 @@
 
+// Compiler implementation of the D programming language
 // Copyright (c) 1999-2006 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
@@ -143,7 +144,7 @@ void Import::semantic(Scope *sc)
 	{   Dsymbol *s = (Dsymbol *)aliasdecls.data[i];
 
 	    //printf("\tImport alias semantic('%s')\n", s->toChars());
-	    if (!mod->search((Identifier *)names.data[i], 0))
+	    if (!mod->search(loc, (Identifier *)names.data[i], 0))
 		error("%s not found", ((Identifier *)names.data[i])->toChars());
 
 	    s->semantic(sc);
@@ -216,7 +217,7 @@ int Import::addMember(Scope *sc, ScopeDsymbol *sd, int memnum)
     return result;
 }
 
-Dsymbol *Import::search(Identifier *ident, int flags)
+Dsymbol *Import::search(Loc loc, Identifier *ident, int flags)
 {
     //printf("%s.Import::search(ident = '%s', flags = x%x)\n", toChars(), ident->toChars(), flags);
 
@@ -224,7 +225,7 @@ Dsymbol *Import::search(Identifier *ident, int flags)
 	load();
 
     // Forward it to the package/module
-    return pkg->search(ident, flags);
+    return pkg->search(loc, ident, flags);
 }
 
 int Import::overloadInsert(Dsymbol *s)

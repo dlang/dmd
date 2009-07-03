@@ -566,24 +566,51 @@ Expression *CatExp::optimize(int result)
 	ArrayLiteralExp *es1 = (ArrayLiteralExp *)e1;
 	ArrayLiteralExp *es2 = (ArrayLiteralExp *)e2;
 
+	es1 = new ArrayLiteralExp(es1->loc, (Expressions *)es1->elements->copy());
 	es1->elements->insert(es1->elements->dim, es2->elements);
 	e = es1;
+
+	if (type->toBasetype()->ty == Tsarray)
+	{
+	    e->type = new TypeSArray(e1->type->toBasetype()->next, new IntegerExp(0, es1->elements->dim, Type::tindex));
+	    e->type = e->type->semantic(loc, NULL);
+	}
+	else
+	    e->type = type;
     }
     else if (e1->op == TOKarrayliteral &&
 	e1->type->toBasetype()->next->equals(e2->type))
     {
 	ArrayLiteralExp *es1 = (ArrayLiteralExp *)e1;
 
+	es1 = new ArrayLiteralExp(es1->loc, (Expressions *)es1->elements->copy());
 	es1->elements->push(e2);
 	e = es1;
+
+	if (type->toBasetype()->ty == Tsarray)
+	{
+	    e->type = new TypeSArray(e2->type, new IntegerExp(0, es1->elements->dim, Type::tindex));
+	    e->type = e->type->semantic(loc, NULL);
+	}
+	else
+	    e->type = type;
     }
     else if (e2->op == TOKarrayliteral &&
 	e2->type->toBasetype()->next->equals(e1->type))
     {
 	ArrayLiteralExp *es2 = (ArrayLiteralExp *)e2;
 
+	es2 = new ArrayLiteralExp(es2->loc, (Expressions *)es2->elements->copy());
 	es2->elements->shift(e1);
 	e = es2;
+
+	if (type->toBasetype()->ty == Tsarray)
+	{
+	    e->type = new TypeSArray(e1->type, new IntegerExp(0, es2->elements->dim, Type::tindex));
+	    e->type = e->type->semantic(loc, NULL);
+	}
+	else
+	    e->type = type;
     }
     else
 	e = this;

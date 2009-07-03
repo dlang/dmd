@@ -1,4 +1,5 @@
 
+// Compiler implementation of the D programming language
 // Copyright (c) 1999-2006 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
@@ -122,13 +123,9 @@ Module::Module(char *filename, Identifier *ident, int doDocComment, int doHdrGen
     else
 	argobj = FileName::name(filename);
     if (!FileName::absolute(argobj))
-    {	//FileName::ensurePathExists(global.params.objdir);
+    {
 	argobj = FileName::combine(global.params.objdir, argobj);
     }
-
-    char *p = FileName::path(argobj);
-    FileName::ensurePathExists(p);
-    mem.free(p);
 
     if (global.params.objname)
 	objfilename = new FileName(argobj, 0);
@@ -772,7 +769,7 @@ int Module::needModuleInfo()
     return needmoduleinfo || global.params.cov;
 }
 
-Dsymbol *Module::search(Identifier *ident, int flags)
+Dsymbol *Module::search(Loc loc, Identifier *ident, int flags)
 {
     /* Since modules can be circularly referenced,
      * need to stop infinite recursive searches.
@@ -787,7 +784,7 @@ Dsymbol *Module::search(Identifier *ident, int flags)
     else
     {
 	insearch = 1;
-	s = ScopeDsymbol::search(ident, flags);
+	s = ScopeDsymbol::search(loc, ident, flags);
 	insearch = 0;
 
 	searchCacheIdent = ident;

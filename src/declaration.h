@@ -1,4 +1,5 @@
 
+// Compiler implementation of the D programming language
 // Copyright (c) 1999-2005 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
@@ -278,6 +279,13 @@ struct TypeInfoStructDeclaration : TypeInfoDeclaration
 struct TypeInfoClassDeclaration : TypeInfoDeclaration
 {
     TypeInfoClassDeclaration(Type *tinfo);
+
+    void toDt(dt_t **pdt);
+};
+
+struct TypeInfoInterfaceDeclaration : TypeInfoDeclaration
+{
+    TypeInfoInterfaceDeclaration(Type *tinfo);
 
     void toDt(dt_t **pdt);
 };

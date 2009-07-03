@@ -95,7 +95,7 @@ struct Scope
 
     void mergeCallSuper(Loc loc, unsigned cs);
 
-    Dsymbol *search(Identifier *ident, Dsymbol **pscopesym);
+    Dsymbol *search(Loc loc, Identifier *ident, Dsymbol **pscopesym);
     Dsymbol *insert(Dsymbol *s);
 
     ClassDeclaration *getClassScope();
