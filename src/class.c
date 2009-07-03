@@ -722,19 +722,24 @@ FuncDeclaration *ClassDeclaration::findFunc(Identifier *ident, TypeFunction *tf)
 {
     //printf("ClassDeclaration::findFunc(%s, %s) %s\n", ident->toChars(), tf->toChars(), toChars());
 
-    for (size_t i = 0; i < vtbl.dim; i++)
+    Array *vtbl = &this->vtbl;
+    for (int j = 0; j < 2; j++)
     {
-	FuncDeclaration *fd = (FuncDeclaration *)vtbl.data[i];
+	for (size_t i = 0; i < vtbl->dim; i++)
+	{
+	    FuncDeclaration *fd = (FuncDeclaration *)vtbl->data[i];
 
-	//printf("\t[%d] = %s\n", i, fd->toChars());
-	if (ident == fd->ident &&
-	    //tf->equals(fd->type)
-	    fd->type->covariant(tf) == 1
-	   )
-	{   //printf("\t\tfound\n");
-	    return fd;
+	    //printf("\t[%d] = %s\n", i, fd->toChars());
+	    if (ident == fd->ident &&
+		//tf->equals(fd->type)
+		fd->type->covariant(tf) == 1
+	       )
+	    {   //printf("\t\tfound\n");
+		return fd;
+	    }
+	    //else printf("\t\t%d\n", fd->type->covariant(tf));
 	}
-	//else printf("\t\t%d\n", fd->type->covariant(tf));
+	vtbl = &this->vtblFinal;
     }
 
     return NULL;

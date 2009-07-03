@@ -328,6 +328,7 @@ void FuncDeclaration::semantic(Scope *sc)
 			error("cannot override final function %s", f->toPrettyChars());
 		}
 	    }
+	    cd->vtblFinal.push(this);
 	}
 	else
 	{
