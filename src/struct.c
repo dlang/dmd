@@ -1,5 +1,5 @@
 
-// Copyright (c) 1999-2005 by Digital Mars
+// Copyright (c) 1999-2006 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // www.digitalmars.com
@@ -317,7 +317,8 @@ void StructDeclaration::semantic(Scope *sc)
     Identifier *id = Id::eq;
     for (int i = 0; i < 2; i++)
     {
-	FuncDeclaration *fdx = search_function(this, id);
+	Dsymbol *s = search_function(this, id);
+	FuncDeclaration *fdx = s ? s->isFuncDeclaration() : NULL;
 	if (fdx)
 	{   FuncDeclaration *fd = fdx->overloadExactMatch(tfeqptr);
 	    if (!fd)

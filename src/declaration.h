@@ -50,10 +50,12 @@ enum STC
     STCdeprecated   = 0x400,
     STCin           = 0x800,		// in parameter
     STCout          = 0x1000,		// out parameter
-    STCforeach      = 0x2000,		// variable for foreach loop
-    STCcomdat       = 0x4000,		// should go into COMDAT record
-    STCvariadic     = 0x8000,		// variadic function argument
-    STCctorinit     = 0x10000,		// can only be set inside constructor
+    STClazy	    = 0x2000,		// lazy parameter
+    STCforeach      = 0x4000,		// variable for foreach loop
+    STCcomdat       = 0x8000,		// should go into COMDAT record
+    STCvariadic     = 0x10000,		// variadic function argument
+    STCctorinit     = 0x20000,		// can only be set inside constructor
+    STCtemplateparameter = 0x40000,	// template parameter
 };
 
 struct Match
@@ -198,6 +200,7 @@ struct VarDeclaration : Declaration
     Expression *callAutoDtor();
     ExpInitializer *getExpInitializer();
     void checkCtorConstInit();
+    void checkNestedReference(Scope *sc, Loc loc);
 
     Symbol *toSymbol();
     void toObjFile();			// compile to .obj file

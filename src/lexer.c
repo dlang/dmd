@@ -2544,6 +2544,7 @@ static Keyword keywords[] =
     {	"in",		TOKin		},
     {	"out",		TOKout		},
     {	"inout",	TOKinout	},
+    {	"lazy",		TOKlazy		},
     {	"auto",		TOKauto		},
 
     {	"align",	TOKalign	},

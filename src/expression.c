@@ -241,6 +241,7 @@ Lno:
 
 Expression *resolveProperties(Scope *sc, Expression *e)
 {
+    //printf("resolveProperties(%s)\n", e->toChars());
     if (e->type)
     {
 	Type *t = e->type->toBasetype();
@@ -249,6 +250,18 @@ Expression *resolveProperties(Scope *sc, Expression *e)
 	{
 	    e = new CallExp(e->loc, e);
 	    e = e->semantic(sc);
+	}
+
+	/* Look for e being a lazy parameter; rewrite as delegate call
+	 */
+	else if (e->op == TOKvar)
+	{   VarExp *ve = (VarExp *)e;
+
+	    if (ve->var->storage_class & STClazy)
+	    {
+		e = new CallExp(e->loc, e);
+		e = e->semantic(sc);
+	    }
 	}
     }
     return e;
@@ -295,7 +308,7 @@ void preFunctionArguments(Loc loc, Scope *sc, Expressions *arguments)
 	    arg = resolveProperties(sc, arg);
 	    arguments->data[i] = (void *) arg;
 
-	    arg->rvalue();
+	    //arg->rvalue();
 #if 0
 	    if (arg->type->ty == Tfunction)
 	    {
@@ -376,6 +389,7 @@ void functionArguments(Loc loc, Scope *sc, TypeFunction *tf, Expressions *argume
 		}
 	     L2:
 		Type *tb = p->type->toBasetype();
+		Type *tret = p->isLazyArray();
 		switch (tb->ty)
 		{
 		    case Tsarray:
@@ -407,8 +421,10 @@ void functionArguments(Loc loc, Scope *sc, TypeFunction *tf, Expressions *argume
 
 			for (int u = i; u < nargs; u++)
 			{   Expression *a = (Expression *)arguments->data[u];
-			    Expression *e = new VarExp(loc, v);
+			    if (tret && !tb->next->equals(a->type))
+				a = a->toDelegate(sc, tret);
 
+			    Expression *e = new VarExp(loc, v);
 			    e = new IndexExp(loc, e, new IntegerExp(u + 1 - nproto));
 			    e = new AssignExp(loc, e, a);
 			    if (c)
@@ -446,7 +462,8 @@ void functionArguments(Loc loc, Scope *sc, TypeFunction *tf, Expressions *argume
 	    }
 
 	L1:
-	    arg = arg->implicitCastTo(sc, p->type);
+	    if (!(p->inout == Lazy && p->type->ty == Tvoid))
+		arg = arg->implicitCastTo(sc, p->type);
 	    if (p->inout == Out || p->inout == InOut)
 	    {
 		// BUG: should check that argument to inout is type 'invariant'
@@ -461,10 +478,17 @@ void functionArguments(Loc loc, Scope *sc, TypeFunction *tf, Expressions *argume
 		    arg->type->toBasetype()->ty == Tbit)
 		    error("cannot have out or inout argument of bit in array");
 	    }
+
 	    // Convert static arrays to pointers
 	    if (arg->type->toBasetype()->ty == Tsarray)
 	    {
 		arg = arg->checkToPointer();
+	    }
+
+	    // Convert lazy argument to a delegate
+	    if (p->inout == Lazy)
+	    {
+		arg = arg->toDelegate(sc, p->type);
 	    }
 	}
 	else
@@ -660,7 +684,11 @@ void Expression::error(const char *format, ...)
 void Expression::rvalue()
 {
     if (type && type->toBasetype()->ty == Tvoid)
-	error("voids have no value");
+    {	error("voids have no value");
+#ifdef DEBUG
+	*(char*)0=0;
+#endif
+    }
 }
 
 Expression *Expression::combine(Expression *e1, Expression *e2)
@@ -1764,13 +1792,15 @@ Expression *ThisExp::semantic(Scope *sc)
     var = fd->vthis;
     assert(var->parent);
     type = var->type;
+    var->isVarDeclaration()->checkNestedReference(sc, loc);
+#if 0
     if (fd != fdthis)		// if nested
     {
 	fdthis->getLevel(loc, fd);
 	fd->vthis->nestedref = 1;
 	fd->nestedFrameRef = 1;
     }
-
+#endif
     sc->callSuper |= CSXthis;
     return this;
 
@@ -1841,12 +1871,15 @@ Expression *SuperExp::semantic(Scope *sc)
 	type = cd->baseClass->type;
     }
 
+    var->isVarDeclaration()->checkNestedReference(sc, loc);
+#if 0
     if (fd != fdthis)
     {
 	fdthis->getLevel(loc, fd);
 	fd->vthis->nestedref = 1;
 	fd->nestedFrameRef = 1;
     }
+#endif
 
     sc->callSuper |= CSXsuper;
     return this;
@@ -2678,7 +2711,11 @@ Expression *SymOffExp::semantic(Scope *sc)
     printf("SymOffExp::semantic('%s')\n", toChars());
 #endif
     //var->semantic(sc);
-    type = var->type->pointerTo();
+    if (!type)
+	type = var->type->pointerTo();
+    VarDeclaration *v = var->isVarDeclaration();
+    if (v)
+	v->checkNestedReference(sc, loc);
     return this;
 }
 
@@ -2733,7 +2770,16 @@ Expression *VarExp::semantic(Scope *sc)
     printf("VarExp::semantic(%s)\n", toChars());
 #endif
     if (!type)
-	type = var->type;
+    {	type = var->type;
+#if 0
+	if (var->storage_class & STClazy)
+	{
+	    TypeFunction *tf = new TypeFunction(NULL, type, 0, LINKd);
+	    type = new TypeDelegate(tf);
+	    type = type->semantic(loc, sc);
+	}
+#endif
+    }
 
     VarDeclaration *v = var->isVarDeclaration();
     if (v)
@@ -2747,18 +2793,7 @@ Expression *VarExp::semantic(Scope *sc)
 		return ei->exp->implicitCastTo(sc, type);
 	    }
 	}
-	if (!v->isDataseg() && v->parent != sc->parent && v->parent)
-	{
-	    FuncDeclaration *fdv = v->toParent()->isFuncDeclaration();
-	    FuncDeclaration *fdthis = sc->parent->isFuncDeclaration();
-
-	    if (fdv && fdthis)
-	    {
-		fdthis->getLevel(loc, fdv);	// check for access
-		v->nestedref = 1;
-		fdv->nestedFrameRef = 1;
-	    }
-	}
+	v->checkNestedReference(sc, loc);
     }
 #if 0
     else if ((fd = var->isFuncLiteralDeclaration()) != NULL)
@@ -2802,6 +2837,8 @@ Expression *VarExp::toLvalue(Scope *sc, Expression *e)
 	  tym == TYarray && e->Eoper == TOKaddr))
 	    synerr(EM_lvalue);	// lvalue expected
 #endif
+    if (var->storage_class & STClazy)
+	error("lazy variables cannot be lvalues");
     return this;
 }
 
@@ -3740,6 +3777,23 @@ void DotIdExp::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
     buf->writestring(ident->toChars());
 }
 
+/********************** DotTemplateExp ***********************************/
+
+// Mainly just a placeholder
+
+DotTemplateExp::DotTemplateExp(Loc loc, Expression *e, TemplateDeclaration *td)
+	: UnaExp(loc, TOKdottd, sizeof(DotTemplateExp), e)
+  
+{
+    this->td = td;
+}
+
+void DotTemplateExp::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
+{
+    buf->writestring(td->toChars());
+}
+
+
 /************************************************************/
 
 DotVarExp::DotVarExp(Loc loc, Expression *e, Declaration *v)
@@ -4196,6 +4250,20 @@ Lagain:
     else
     {
 	UnaExp::semantic(sc);
+
+	/* Look for e1 being a lazy parameter
+	 */
+	if (e1->op == TOKvar)
+	{   VarExp *ve = (VarExp *)e1;
+
+	    if (ve->var->storage_class & STClazy)
+	    {
+		TypeFunction *tf = new TypeFunction(NULL, ve->var->type, 0, LINKd);
+		TypeDelegate *t = new TypeDelegate(tf);
+		ve->type = t->semantic(loc, sc);
+	    }
+	}
+
 	if (e1->op == TOKimport)
 	{   // Perhaps this should be moved to ScopeExp::semantic()
 	    ScopeExp *se = (ScopeExp *)e1;
@@ -4222,7 +4290,6 @@ Lagain:
     // Check for call operator overload
     if (t1)
     {	AggregateDeclaration *ad;
-	FuncDeclaration *fd;
 
 	if (t1->ty == Tclass)
 	{
@@ -4233,39 +4300,57 @@ Lagain:
 	{
 	    ad = ((TypeStruct *)t1)->sym;
 	L1:
-//	    fd = search_function(ad, Id::call);
-//	    if (fd)
-	    {
-		// Rewrite as e1.call(arguments)
-		Expression *e = new DotIdExp(loc, e1, Id::call);
-		e = new CallExp(loc, e, arguments);
-		e = e->semantic(sc);
-		return e;
-	    }
+	    // Rewrite as e1.call(arguments)
+	    Expression *e = new DotIdExp(loc, e1, Id::call);
+	    e = new CallExp(loc, e, arguments);
+	    e = e->semantic(sc);
+	    return e;
 	}
     }
 
     arrayExpressionSemantic(arguments, sc);
     preFunctionArguments(loc, sc, arguments);
 
-    if (e1->op == TOKdotvar && t1->ty == Tfunction)
+    if (e1->op == TOKdotvar && t1->ty == Tfunction ||
+        e1->op == TOKdottd)
     {
-	// Do overload resolution
-	DotVarExp *dve = (DotVarExp *)(e1);
+	DotVarExp *dve;
+	DotTemplateExp *dte;
+	AggregateDeclaration *ad;
+	UnaExp *ue = (UnaExp *)(e1);
+        
+    	if (e1->op == TOKdotvar)
+        {   // Do overload resolution
+	    dve = (DotVarExp *)(e1);
 
-	f = dve->var->isFuncDeclaration();
-	assert(f);
-	f = f->overloadResolve(loc, arguments);
+	    f = dve->var->isFuncDeclaration();
+	    assert(f);
+	    f = f->overloadResolve(loc, arguments);
 
+	    ad = f->toParent()->isAggregateDeclaration();
+	}
+        else
+        {   dte = (DotTemplateExp *)(e1);
+	    TemplateDeclaration *td = dte->td;
+	    assert(td);
+	    if (!arguments)
+		// Should fix deduce() so it works on NULL argument
+		arguments = new Expressions();
+	    f = td->deduce(sc, loc, NULL, arguments);
+	    if (!f)
+	    {	type = Type::terror;
+		return this;
+	    }
+	    ad = td->toParent()->isAggregateDeclaration();
+	}	
 	/* Now that we have the right function f, we need to get the
 	 * right 'this' pointer if f is in an outer class, but our
 	 * existing 'this' pointer is in an inner class.
 	 * This code is analogous to that used for variables
 	 * in DotVarExp::semantic().
 	 */
-	AggregateDeclaration *ad = f->toParent()->isAggregateDeclaration();
     L10:
-	Type *t = dve->e1->type;
+	Type *t = ue->e1->type;
 	if (f->needThis() && ad &&
 	    !(t->ty == Tpointer && t->next->ty == Tstruct &&
 	      ((TypeStruct *)t->next)->sym == ad) &&
@@ -4282,8 +4367,8 @@ Lagain:
 		if (tcd && tcd->isNested())
 		{   // Try again with outer scope
 
-		    dve->e1 = new DotVarExp(loc, dve->e1, tcd->vthis);
-		    dve->e1 = dve->e1->semantic(sc);
+		    ue->e1 = new DotVarExp(loc, ue->e1, tcd->vthis);
+		    ue->e1 = ue->e1->semantic(sc);
 		    goto L10;
 		}
 		error("this for %s needs to be type %s not type %s",
@@ -4292,26 +4377,29 @@ Lagain:
 	}
 
 	checkDeprecated(sc, f);
-	accessCheck(loc, sc, dve->e1, f);
+	accessCheck(loc, sc, ue->e1, f);
 	if (!f->needThis())
 	{
 	    VarExp *ve = new VarExp(loc, f);
-	    e1 = new CommaExp(loc, dve->e1, ve);
+	    e1 = new CommaExp(loc, ue->e1, ve);
 	    e1->type = f->type;
 	}
 	else
 	{
-	    dve->var = f;
+	    if (e1->op == TOKdotvar)		
+		dve->var = f;
+	    else
+		e1 = new DotVarExp(loc, dte->e1, f);
 	    e1->type = f->type;
 
 	    // See if we need to adjust the 'this' pointer
 	    AggregateDeclaration *ad = f->isThis();
-	    ClassDeclaration *cd = dve->e1->type->isClassHandle();
+	    ClassDeclaration *cd = ue->e1->type->isClassHandle();
 	    if (ad && cd && ad->isClassDeclaration() && ad != cd &&
-		dve->e1->op != TOKsuper)
+		ue->e1->op != TOKsuper)
 	    {
-		dve->e1 = dve->e1->castTo(sc, ad->type); //new CastExp(loc, dve->e1, ad->type);
-		dve->e1 = dve->e1->semantic(sc);
+		ue->e1 = ue->e1->castTo(sc, ad->type); //new CastExp(loc, ue->e1, ad->type);
+		ue->e1 = ue->e1->semantic(sc);
 	    }
 	}
 	t1 = e1->type;
@@ -4425,6 +4513,15 @@ Lagain:
 	    {	type = Type::terror;
 		return this;
 	    }
+	    if (f->needThis() && hasThis(sc))
+	    {
+		// Supply an implicit 'this', as in
+		//	  this.ident
+		
+		e1 = new DotTemplateExp(loc, (new ThisExp(loc))->semantic(sc), te->td);
+		goto Lagain;
+	    }
+
 	    e1 = new VarExp(loc, f);
 	    goto Lagain;
 	}
@@ -4932,7 +5029,7 @@ Expression *SliceExp::syntaxCopy()
 Expression *SliceExp::semantic(Scope *sc)
 {   Expression *e;
     AggregateDeclaration *ad;
-    FuncDeclaration *fd;
+    //FuncDeclaration *fd;
     ScopeDsymbol *sym;
 
 #if LOGSEMANTIC
@@ -4968,8 +5065,7 @@ Expression *SliceExp::semantic(Scope *sc)
         ad = ((TypeStruct *)t)->sym;
 
     L1:
-        fd = search_function(ad, Id::slice);
-        if (fd)
+	if (search_function(ad, Id::slice))
         {
             // Rewrite as e1.slice(lwr, upr)
 	    e = new DotIdExp(loc, e1, Id::slice);
@@ -5451,7 +5547,6 @@ Expression *AssignExp::semantic(Scope *sc)
 	ArrayExp *ae = (ArrayExp *)e1;
 	AggregateDeclaration *ad;
 	Identifier *id = Id::index;
-	FuncDeclaration *fd;
 
 	ae->e1 = ae->e1->semantic(sc);
 	t1 = ae->e1->type->toBasetype();
@@ -5465,8 +5560,7 @@ Expression *AssignExp::semantic(Scope *sc)
 	    ad = ((TypeClass *)t1)->sym;
 	  L1:
 	    // Rewrite (a[i] = value) to (a.opIndexAssign(value, i))
-	    fd = search_function(ad, Id::indexass);
-	    if (fd)
+	    if (search_function(ad, Id::indexass))
 	    {	Expression *e = new DotIdExp(loc, ae->e1, Id::indexass);
 		Expressions *a = (Expressions *)ae->arguments->copy();
 
@@ -5478,8 +5572,7 @@ Expression *AssignExp::semantic(Scope *sc)
 	    else
 	    {
 		// Rewrite (a[i] = value) to (a.opIndex(i, value))
-		fd = search_function(ad, id);
-		if (fd)
+		if (search_function(ad, id))
 		{   Expression *e = new DotIdExp(loc, ae->e1, id);
 
 		    if (!global.params.useDeprecated)
@@ -5501,9 +5594,9 @@ Expression *AssignExp::semantic(Scope *sc)
 	SliceExp *ae = (SliceExp *)e1;
 	AggregateDeclaration *ad;
 	Identifier *id = Id::index;
-	FuncDeclaration *fd;
 
 	ae->e1 = ae->e1->semantic(sc);
+	ae->e1 = resolveProperties(sc, ae->e1);
 	t1 = ae->e1->type->toBasetype();
 	if (t1->ty == Tstruct)
 	{
@@ -5515,8 +5608,7 @@ Expression *AssignExp::semantic(Scope *sc)
 	    ad = ((TypeClass *)t1)->sym;
 	  L2:
 	    // Rewrite (a[i..j] = value) to (a.opIndexAssign(value, i, j))
-	    fd = search_function(ad, Id::sliceass);
-	    if (fd)
+	    if (search_function(ad, Id::sliceass))
 	    {	Expression *e = new DotIdExp(loc, ae->e1, Id::sliceass);
 		Expressions *a = new Expressions();
 

@@ -601,7 +601,7 @@ struct TypeClass : Type
     Symbol *toSymbol();
 };
 
-enum InOut { None, In, Out, InOut };
+enum InOut { None, In, Out, InOut, Lazy };
 
 struct Argument : Object
 {
@@ -612,6 +612,7 @@ struct Argument : Object
 
     Argument(enum InOut inout, Type *type, Identifier *ident, Expression *defaultArg);
     Argument *syntaxCopy();
+    Type *isLazyArray();
     static Array *arraySyntaxCopy(Array *args);
     static char *argsTypesToChars(Array *args, int varargs);
     static void argsToCBuffer(OutBuffer *buf, HdrGenState *hgs, Array *arguments, int varargs);

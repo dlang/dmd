@@ -613,6 +613,7 @@ void FuncDeclaration::semantic3(Scope *sc)
 		    {	case In:    v->storage_class |= STCin;		break;
 			case Out:   v->storage_class |= STCout;		break;
 			case InOut: v->storage_class |= STCin | STCout;	break;
+			case Lazy:  v->storage_class |= STCin | STClazy; break;
 			default: assert(0);
 		    }
 		    v->semantic(sc2);
@@ -1470,8 +1471,14 @@ int FuncDeclaration::isImportedSymbol()
 
 int FuncDeclaration::isVirtual()
 {
-    //printf("FuncDeclaration::isVirtual(%s)\n", toChars());
-    //printf("%p %d %d %d %d\n", isMember(), isStatic(), protection == PROTprivate, isCtorDeclaration(), linkage != LINKd);
+#if 0
+    printf("FuncDeclaration::isVirtual(%s)\n", toChars());
+    printf("%p %d %d %d %d\n", isMember(), isStatic(), protection == PROTprivate, isCtorDeclaration(), linkage != LINKd);
+    printf("result is %d\n",
+	isMember() &&
+	!(isStatic() || protection == PROTprivate || protection == PROTpackage) &&
+	toParent()->isClassDeclaration());
+#endif
     return isMember() &&
 	!(isStatic() || protection == PROTprivate || protection == PROTpackage) &&
 	toParent()->isClassDeclaration();

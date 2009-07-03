@@ -980,7 +980,7 @@ Statement *ForeachStatement::semantic(Scope *sc)
 		Argument *arg = (Argument *)arguments->data[i];
 		VarDeclaration *var;
 
-		var = new VarDeclaration(0, arg->type, arg->ident, NULL);
+		var = new VarDeclaration(loc, arg->type, arg->ident, NULL);
 		var->storage_class |= STCforeach;
 		switch (arg->inout)
 		{   case In:    var->storage_class |= STCin;          break;
@@ -988,10 +988,14 @@ Statement *ForeachStatement::semantic(Scope *sc)
 		    case InOut: var->storage_class |= STCin | STCout; break;
 		    default: assert(0);
 		}
+#if 1
+		DeclarationExp *de = new DeclarationExp(loc, var);
+		de->semantic(sc);
+#else
 		var->semantic(sc);
 		if (!sc->insert(var))
 		    error("%s already defined", var->ident->toChars());
-
+#endif
 		if (dim == 2 && i == 0)
 		    key = var;
 		else

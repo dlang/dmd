@@ -1536,7 +1536,8 @@ TemplateParameter *TemplateValueParameter::syntaxCopy()
 
 void TemplateValueParameter::semantic(Scope *sc)
 {
-    Declaration *sparam = new VarDeclaration(loc, valType, ident, NULL);
+    VarDeclaration *sparam = new VarDeclaration(loc, valType, ident, NULL);
+    sparam->storage_class = STCtemplateparameter;
     if (!sc->insert(sparam))
 	error(loc, "parameter '%s' multiply defined", ident->toChars());
 
@@ -1913,6 +1914,14 @@ void TemplateInstance::semantic(Scope *sc)
 	    }
 	    else if (e1)
 	    {
+#if 0
+		if (e1 && e2)
+		{
+		    printf("match %d\n", e1->equals(e2));
+		    e1->print();
+		    e2->print();
+		}
+#endif
 		if (!e2 || !e1->equals(e2))
 		    goto L1;
 	    }

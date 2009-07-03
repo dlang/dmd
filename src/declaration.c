@@ -499,6 +499,7 @@ Dsymbol *VarDeclaration::syntaxCopy(Dsymbol *s)
 void VarDeclaration::semantic(Scope *sc)
 {
     //printf("VarDeclaration::semantic('%s', parent = '%s')\n", toChars(), sc->parent->toChars());
+    //if (strcmp(toChars(), "mul") == 0) *(char*)0=0;
 
     storage_class |= sc->stc;
     if (storage_class & STCextern && init)
@@ -533,7 +534,7 @@ void VarDeclaration::semantic(Scope *sc)
     FuncDeclaration *fd = parent->isFuncDeclaration();
 
     Type *tb = type->toBasetype();
-    if (tb->ty == Tvoid)
+    if (tb->ty == Tvoid && !(storage_class & STClazy))
     {	error("voids have no value");
 	type = Type::terror;
 	tb = type;
@@ -574,6 +575,9 @@ void VarDeclaration::semantic(Scope *sc)
     {
 	error("abstract cannot be applied to variable");
     }
+    else if (storage_class & STCtemplateparameter)
+    {
+    }
     else
     {
 	AnonymousAggregateDeclaration *aad = sc->anonAgg;
@@ -585,7 +589,9 @@ void VarDeclaration::semantic(Scope *sc)
 	{
 	    AggregateDeclaration *ad = parent->isAggregateDeclaration();
 	    if (ad)
+	    {
 		ad->addField(sc, this);
+	    }
 	}
 
 	InterfaceDeclaration *id = parent->isInterfaceDeclaration();
@@ -817,6 +823,28 @@ void VarDeclaration::checkCtorConstInit()
 {
     if (ctorinit == 0 && isCtorinit() && !(storage_class & STCfield))
 	error("missing initializer in static constructor for const variable");
+}
+
+/************************************
+ * Check to see if variable is a reference to an enclosing function
+ * or not.
+ */
+
+void VarDeclaration::checkNestedReference(Scope *sc, Loc loc)
+{
+    if (!isDataseg() && parent != sc->parent && parent)
+    {
+	FuncDeclaration *fdv = toParent()->isFuncDeclaration();
+	FuncDeclaration *fdthis = sc->parent->isFuncDeclaration();
+
+	if (fdv && fdthis)
+	{
+	    if (loc.filename)
+		fdthis->getLevel(loc, fdv);
+	    nestedref = 1;
+	    fdv->nestedFrameRef = 1;
+	}
+    }
 }
 
 /*******************************

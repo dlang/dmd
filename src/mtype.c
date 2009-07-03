@@ -2351,6 +2351,9 @@ void TypeFunction::toDecoBuffer(OutBuffer *buf)
 		case InOut:
 		    buf->writeByte('K');
 		    break;
+		case Lazy:
+		    buf->writeByte('L');
+		    break;
 		default:
 		    assert(0);
 	    }
@@ -2434,7 +2437,7 @@ Type *TypeFunction::semantic(Loc loc, Scope *sc)
 		if (t->ty == Tsarray)
 		    error(loc, "cannot have out or inout parameter of type %s", t->toChars());
 	    }
-	    if (t->ty == Tvoid)
+	    if (arg->inout != Lazy && t->ty == Tvoid)
 		error(loc, "cannot have parameter of type %s", arg->type->toChars());
 
 	    if (arg->defaultArg)
@@ -2504,7 +2507,10 @@ int TypeFunction::callMatch(Array *args)
 	}
 	arg = (Expression *)args->data[u];
 	assert(arg);
-	m = arg->implicitConvTo(p->type);
+	if (p->inout == Lazy && p->type->ty == Tvoid && arg->type->ty != Tvoid)
+	    m = MATCHconvert;
+	else
+	    m = arg->implicitConvTo(p->type);
 	//printf("\tm = %d\n", m);
 	if (m == MATCHnomatch)			// if no match
 	{
@@ -2526,7 +2532,31 @@ int TypeFunction::callMatch(Array *args)
 			{
 			    arg = (Expression *)args->data[u];
 			    assert(arg);
+#if 1
+			    /* If lazy array of delegates,
+			     * convert arg(s) to delegate(s)
+			     */
+			    Type *tret = p->isLazyArray();
+			    if (tret)
+			    {
+				if (tb->next->equals(arg->type))
+				{   m = MATCHexact;
+				}
+				else
+				{
+				    m = arg->implicitConvTo(tret);
+				    if (m == MATCHnomatch)
+				    {
+					if (tret->toBasetype()->ty == Tvoid)
+					    m = MATCHconvert;
+				    }
+				}
+			    }
+			    else
+				m = arg->implicitConvTo(tb->next);
+#else
 			    m = arg->implicitConvTo(tb->next);
+#endif
 			    if (m == 0)
 				goto Nomatch;
 			    if (m < match)
@@ -3044,7 +3074,8 @@ Type *TypeIdentifier::semantic(Loc loc, Scope *sc)
     else
     {
 #ifdef DEBUG
-	printf("1: ");
+	if (!global.gag)
+	    printf("1: ");
 #endif
 	if (s)
 	{
@@ -3783,9 +3814,11 @@ L1:
 	return de;
     }
 
-    if (s->isTemplateDeclaration())
+    TemplateDeclaration *td = s->isTemplateDeclaration();
+    if (td)
     {
-	s->error("templates don't have properties");
+        e = new DotTemplateExp(e->loc, e, td);
+        e->semantic(sc);
 	return e;
     }
 
@@ -4041,6 +4074,14 @@ L1:
 	return de;
     }
 
+    TemplateDeclaration *td = s->isTemplateDeclaration();
+    if (td)
+    {
+        e = new DotTemplateExp(e->loc, e, td);
+        e->semantic(sc);
+	return e;
+    }
+
     d = s->isDeclaration();
     if (!d)
     {
@@ -4264,6 +4305,8 @@ void Argument::argsToCBuffer(OutBuffer *buf, HdrGenState *hgs, Array *arguments,
 		buf->writestring("out ");
 	    else if (arg->inout == InOut)
 		buf->writestring("inout ");
+	    else if (arg->inout == Lazy)
+		buf->writestring("lazy ");
 	    argbuf.reset();
 	    arg->type->toCBuffer2(&argbuf, arg->ident, hgs);
 	    if (arg->defaultArg)
@@ -4281,6 +4324,38 @@ void Argument::argsToCBuffer(OutBuffer *buf, HdrGenState *hgs, Array *arguments,
 	}
     }
     buf->writeByte(')');
+}
+
+
+/****************************************************
+ * Determine if parameter is a lazy array of delegates.
+ * If so, return the return type of those delegates.
+ * If not, return NULL.
+ */
+
+Type *Argument::isLazyArray()
+{
+//    if (inout == Lazy)
+    {
+	Type *tb = type->toBasetype();
+	if (tb->ty == Tsarray || tb->ty == Tarray)
+	{
+	    Type *tel = tb->next->toBasetype();
+	    if (tel->ty == Tdelegate)
+	    {
+		TypeDelegate *td = (TypeDelegate *)tel;
+		TypeFunction *tf = (TypeFunction *)td->next;
+
+		if (!tf->varargs &&
+		    !(tf->arguments && tf->arguments->dim)
+		   )
+		{
+		    return tf->next;	// return type of delegate
+		}
+	    }
+	}
+    }
+    return NULL;
 }
 
 

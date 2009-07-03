@@ -1156,17 +1156,21 @@ Expression *FuncDeclaration::doInline(InlineScanState *iss, Expression *ethis, A
 	    ei = new ExpInitializer(arg->loc, arg);
 
 	    vto = new VarDeclaration(vfrom->loc, vfrom->type, vfrom->ident, ei);
-	    vto->storage_class |= vfrom->storage_class & (STCin | STCout);
+	    vto->storage_class |= vfrom->storage_class & (STCin | STCout | STClazy);
 	    vto->linkage = vfrom->linkage;
 	    vto->parent = iss->fd;
 	    //printf("vto = '%s', vto->storage_class = x%x\n", vto->toChars(), vto->storage_class);
 	    //printf("vto->parent = '%s'\n", iss->fd->toChars());
 
 	    ve = new VarExp(vto->loc, vto);
-	    ve->type = vto->type;
+	    //ve->type = vto->type;
+	    ve->type = arg->type;
 
 	    ei->exp = new AssignExp(vto->loc, ve, arg);
 	    ei->exp->type = ve->type;
+//ve->type->print();
+//arg->type->print();
+//ei->exp->print();
 
 	    ids.from.push(vfrom);
 	    ids.to.push(vto);

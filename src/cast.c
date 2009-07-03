@@ -101,6 +101,7 @@ int Expression::implicitConvTo(Type *t)
     int match = type->implicitConvTo(t);
     if (match)
 	return match;
+#if 0
     Type *tb = t->toBasetype();
     if (tb->ty == Tdelegate)
     {	TypeDelegate *td = (TypeDelegate *)tb;
@@ -117,6 +118,7 @@ int Expression::implicitConvTo(Type *t)
 		return MATCHconvert;
 	}
     }
+#endif
     return MATCHnomatch;
 }
 
@@ -494,18 +496,14 @@ Expression *Expression::castTo(Scope *sc, Type *t)
 
 	    e = new AddrExp(loc, e);
 	}
+#if 0
 	else if (tb->ty == Tdelegate && type->ty != Tdelegate)
 	{
 	    TypeDelegate *td = (TypeDelegate *)tb;
 	    TypeFunction *tf = (TypeFunction *)td->next;
-	    Statement *s = new ReturnStatement(loc, this->syntaxCopy());
-	    FuncLiteralDeclaration *fld =
-		new FuncLiteralDeclaration(loc, loc, tf, TOKdelegate, NULL);
-	    fld->fbody = s;
-	    e = new FuncExp(loc, fld);
-	    e = e->semantic(sc);
-	    return e;
+	    return toDelegate(sc, tf->next);
 	}
+#endif
 	else
 	{
 	    e = new CastExp(loc, e, tb);
@@ -554,6 +552,7 @@ Expression *NullExp::castTo(Scope *sc, Type *t)
 	    (tb->ty == Tpointer || tb->ty == Tarray || tb->ty == Taarray ||
 	     tb->ty == Tdelegate))
 	{
+#if 0
 	    if (tb->ty == Tdelegate)
 	    {   TypeDelegate *td = (TypeDelegate *)tb;
 		TypeFunction *tf = (TypeFunction *)td->next;
@@ -565,6 +564,7 @@ Expression *NullExp::castTo(Scope *sc, Type *t)
 		    return Expression::castTo(sc, t);
 		}
 	    }
+#endif
 	}
 	else
 	{

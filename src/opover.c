@@ -31,9 +31,11 @@
 #include "id.h"
 #include "declaration.h"
 #include "aggregate.h"
+#include "template.h"
 
 static Expression *build_overload(Loc loc, Scope *sc, Expression *ethis, Expression *earg, Identifier *id);
 static void inferApplyArgTypesX(FuncDeclaration *fstart, Array *arguments);
+static void templateResolve(Match *m, TemplateDeclaration *td, Scope *sc, Loc loc, Objects *targsi, Expressions *arguments);
 
 /******************************** Expression **************************/
 
@@ -158,7 +160,7 @@ Identifier *ArrayExp::opId()	{ return Id::index; }
 Expression *UnaExp::op_overload(Scope *sc)
 {
     AggregateDeclaration *ad;
-    FuncDeclaration *fd;
+    Dsymbol *fd;
     Type *t1 = e1->type->toBasetype();
 
     if (t1->ty == Tclass)
@@ -226,18 +228,20 @@ Expression *BinExp::op_overload(Scope *sc)
     else
 	ad2 = NULL;
 
+    Dsymbol *s = NULL;
+    Dsymbol *s_r = NULL;
     FuncDeclaration *fd = NULL;
-    FuncDeclaration *fd_r = NULL;
+    TemplateDeclaration *td = NULL;
     if (ad1 && id)
     {
-	fd = search_function(ad1, id);
+	s = search_function(ad1, id);
     }
     if (ad2 && id_r)
     {
-	fd_r = search_function(ad2, id_r);
+	s_r = search_function(ad2, id_r);
     }
 
-    if (fd || fd_r)
+    if (s || s_r)
     {
 	/* Try:
 	 *	a.opfunc(b)
@@ -255,9 +259,34 @@ Expression *BinExp::op_overload(Scope *sc)
 
 	memset(&m, 0, sizeof(m));
 	m.last = MATCHnomatch;
-	overloadResolveX(&m, fd, &args2);
+
+	if (s)
+	{
+	    fd = s->isFuncDeclaration();
+	    if (fd)
+	    {
+		overloadResolveX(&m, fd, &args2);
+	    }
+	    else
+	    {   td = s->isTemplateDeclaration();
+		templateResolve(&m, td, sc, loc, NULL, &args2);
+	    }
+	}
+	
 	lastf = m.lastf;
-	overloadResolveX(&m, fd_r, &args1);
+
+	if (s_r)
+	{
+	    fd = s_r->isFuncDeclaration();
+	    if (fd)
+	    {
+		overloadResolveX(&m, fd, &args1);
+	    }
+	    else
+	    {   td = s_r->isTemplateDeclaration();
+		templateResolve(&m, td, sc, loc, NULL, &args1);
+	    }
+	}
 
 	if (m.count > 1)
 	{
@@ -289,18 +318,18 @@ Expression *BinExp::op_overload(Scope *sc)
 
     if (isCommutative())
     {
-	fd = NULL;
-	fd_r = NULL;
+	s = NULL;
+	s_r = NULL;
 	if (ad1 && id_r)
 	{
-	    fd_r = search_function(ad1, id_r);
+	    s_r = search_function(ad1, id_r);
 	}
 	if (ad2 && id)
 	{
-	    fd = search_function(ad2, id);
+	    s = search_function(ad2, id);
 	}
 
-	if (fd || fd_r)
+	if (s || s_r)
 	{
 	    /* Try:
 	     *	a.opfunc_r(b)
@@ -319,9 +348,33 @@ Expression *BinExp::op_overload(Scope *sc)
 
 	    memset(&m, 0, sizeof(m));
 	    m.last = MATCHnomatch;
-	    overloadResolveX(&m, fd_r, &args2);
+
+	    if (s_r)
+	    {
+		fd = s_r->isFuncDeclaration();
+		if (fd)
+		{
+		    overloadResolveX(&m, fd, &args2);
+		}
+		else
+		{   td = s_r->isTemplateDeclaration();
+		    templateResolve(&m, td, sc, loc, NULL, &args2);
+		}
+	    }
 	    lastf = m.lastf;
-	    overloadResolveX(&m, fd, &args1);
+
+	    if (s)
+	    {
+		fd = s->isFuncDeclaration();
+		if (fd)
+		{
+		    overloadResolveX(&m, fd, &args1);
+		}
+		else
+		{   td = s->isTemplateDeclaration();
+		    templateResolve(&m, td, sc, loc, NULL, &args1);
+		}
+	    }
 
 	    if (m.count > 1)
 	    {
@@ -400,10 +453,11 @@ static Expression *build_overload(Loc loc, Scope *sc, Expression *ethis, Express
  * Search for function funcid in aggregate ad.
  */
 
-FuncDeclaration *search_function(AggregateDeclaration *ad, Identifier *funcid)
+Dsymbol *search_function(AggregateDeclaration *ad, Identifier *funcid)
 {
     Dsymbol *s;
     FuncDeclaration *fd;
+    TemplateDeclaration *td;
 
     s = ad->search(funcid, 0);
     if (s)
@@ -416,6 +470,9 @@ FuncDeclaration *search_function(AggregateDeclaration *ad, Identifier *funcid)
 	if (fd && fd->type->ty == Tfunction)
 	    return fd;
 
+	td = s2->isTemplateDeclaration();
+	if (td)
+	    return td;
     }
     return NULL;
 }
@@ -491,7 +548,8 @@ void inferApplyArgTypes(Array *arguments, Type *taggr)
 		{
 		    /* Look for an opNext() overload
 		     */
-		    fd = search_function(ad, Id::next);
+		    Dsymbol *s = search_function(ad, Id::next);
+		    fd = s ? s->isFuncDeclaration() : NULL;
 		    if (!fd)
 			goto Lapply;
 		    arg->type = fd->type->next;
@@ -500,16 +558,19 @@ void inferApplyArgTypes(Array *arguments, Type *taggr)
 	    }
 #endif
 	Lapply:
-	    /* Look for an
+	{   /* Look for an
 	     *	int opApply(int delegate(inout Type [, ...]) dg);
 	     * overload
 	     */
-	    fd = search_function(ad, Id::apply);
-	    if (!fd)
-		break;
-	    inferApplyArgTypesX(fd, arguments);
+	    Dsymbol *s = search_function(ad, Id::apply);
+	    if (s)
+	    {
+		fd = s->isFuncDeclaration();
+		if (fd) 
+		    inferApplyArgTypesX(fd, arguments);
+	    }
 	    break;
-
+	}
 	default:
 	    break;		// ignore error, caught later
     }
@@ -593,4 +654,26 @@ static void inferApplyArgTypesX(FuncDeclaration *fstart, Array *arguments)
     }
 }
 
+
+static void templateResolve(Match *m, TemplateDeclaration *td, Scope *sc, Loc loc, Objects *targsi, Expressions *arguments)
+{
+    FuncDeclaration *fd;
+
+    assert(td);
+    fd = td->deduce(sc, loc, targsi, arguments);
+    if (!fd)
+	return;
+    m->anyf = fd;
+    if (m->last >= MATCHexact)
+    {
+	m->nextf = fd;
+	m->count++;
+    }
+    else
+    {
+	m->last = MATCHexact;
+	m->lastf = fd;
+	m->count = 1;
+    }
+}
 

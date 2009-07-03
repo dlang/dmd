@@ -60,7 +60,7 @@ enum TOK
 	TOKdottype,	TOKslice,
 	TOKarraylength,	TOKversion,
 	TOKmodule,	TOKdollar,
-	TOKtemplate,
+	TOKtemplate,	TOKdottd,
 	TOKdeclaration,	TOKtypeof,
 	TOKpragma,	TOKdsymbol,
 	TOKtypeid,	TOKuadd,
@@ -126,7 +126,7 @@ enum TOK
 
 	TOKalign, TOKextern, TOKprivate, TOKprotected, TOKpublic, TOKexport,
 	TOKstatic, /*TOKvirtual,*/ TOKfinal, TOKconst, TOKabstract, TOKvolatile,
-	TOKdebug, TOKdeprecated, TOKin, TOKout, TOKinout,
+	TOKdebug, TOKdeprecated, TOKin, TOKout, TOKinout, TOKlazy,
 	TOKauto, TOKpackage,
 
 	// Statements

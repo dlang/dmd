@@ -353,6 +353,7 @@ void TypeInfoStructDeclaration::toDt(dt_t **pdt)
     FuncDeclaration *fdx;
     TypeFunction *tf;
     Type *ta;
+    Dsymbol *s;
 
     static TypeFunction *tftohash;
 
@@ -387,7 +388,8 @@ void TypeInfoStructDeclaration::toDt(dt_t **pdt)
     }
 #endif
 
-    fdx = search_function(sd, Id::tohash);
+    s = search_function(sd, Id::tohash);
+    fdx = s ? s->isFuncDeclaration() : NULL;
     if (fdx)
     {	fd = fdx->overloadExactMatch(tftohash);
 	if (fd)
@@ -399,7 +401,8 @@ void TypeInfoStructDeclaration::toDt(dt_t **pdt)
     else
 	dtdword(pdt, 0);
 
-    fdx = search_function(sd, Id::eq);
+    s = search_function(sd, Id::eq);
+    fdx = s ? s->isFuncDeclaration() : NULL;
     for (int i = 0; i < 2; i++)
     {
 	if (fdx)
@@ -413,7 +416,8 @@ void TypeInfoStructDeclaration::toDt(dt_t **pdt)
 	else
 	    dtdword(pdt, 0);
 
-	fdx = search_function(sd, Id::cmp);
+	s = search_function(sd, Id::cmp);
+	fdx = s ? s->isFuncDeclaration() : NULL;
     }
 }
 

@@ -897,6 +897,11 @@ Array *Parser::parseParameters(int *pvarargs)
 		nextToken();
 		goto L1;
 
+	    case TOKlazy:
+		inout = Lazy;
+		nextToken();
+		goto L1;
+
 	    default:
 	    L1:
 		tb = parseBasicType();
