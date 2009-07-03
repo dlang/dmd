@@ -58,7 +58,6 @@ printf("%p %p type: %s to: %s\n", type->deco, t->deco, type->deco, t->deco);
 //printf("%p %p %p\n", type->next->arrayOf(), type, t);
 fflush(stdout);
 #endif
-//*(char*)0=0;
     if (!t->deco)
     {	/* Can happen with:
 	 *    enum E { One }
@@ -73,6 +72,7 @@ fflush(stdout);
     else
 	error("cannot implicitly convert expression (%s) of type %s to %s",
 	    toChars(), type->toChars(), t->toChars());
+//*(char*)0=0;
     return castTo(sc, t);
 }
 
@@ -133,6 +133,11 @@ int IntegerExp::implicitConvTo(Type *t)
 	return MATCHexact;
 
     enum TY ty = type->toBasetype()->ty;
+    enum TY toty = t->toBasetype()->ty;
+
+    if (type->implicitConvTo(t) == MATCHnomatch && t->ty == Tenum)
+	return MATCHnomatch;
+
     switch (ty)
     {
 	case Tbit:
@@ -178,7 +183,6 @@ int IntegerExp::implicitConvTo(Type *t)
     }
 
     // Only allow conversion if no change in value
-    enum TY toty = t->toBasetype()->ty;
     switch (toty)
     {
 	case Tbit:
@@ -523,7 +527,10 @@ Expression *Expression::castTo(Scope *sc, Type *t)
 	{
 	    //printf("Converting [dim] to *\n");
 
-	    e = new AddrExp(loc, e);
+	    if (type->size(loc) == 0)
+		e = new NullExp(loc);
+	    else
+		e = new AddrExp(loc, e);
 	}
 #if 0
 	else if (tb->ty == Tdelegate && type->ty != Tdelegate)

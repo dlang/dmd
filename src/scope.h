@@ -53,6 +53,7 @@ struct Scope
     int incontract;		// we're inside contract code
     int nofree;			// set if shouldn't free it
     int noctor;			// set if constructor calls aren't allowed
+    int intypeof;		// in typeof(exp)
 
     unsigned callSuper;		// primitive flow analysis for constructors
 #define	CSXthis_ctor	1	// called this()

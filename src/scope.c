@@ -63,6 +63,7 @@ Scope::Scope()
     this->incontract = 0;
     this->nofree = 0;
     this->noctor = 0;
+    this->intypeof = 0;
     this->callSuper = 0;
     this->flags = 0;
     this->anonAgg = NULL;
@@ -95,6 +96,7 @@ Scope::Scope(Scope *enclosing)
     this->incontract = enclosing->incontract;
     this->nofree = 0;
     this->noctor = enclosing->noctor;
+    this->intypeof = enclosing->intypeof;
     this->callSuper = enclosing->callSuper;
     this->flags = 0;
     this->anonAgg = NULL;

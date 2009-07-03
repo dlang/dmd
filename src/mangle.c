@@ -147,12 +147,16 @@ char *ClassDeclaration::mangle()
     /* These are reserved to the compiler, so keep simple
      * names for them.
      */
-    if (ident == Id::TypeInfo   ||
+    if (ident == Id::Exception)
+    {	if (parent->ident == Id::object)
+	    parent = NULL;
+    }
+    else if (ident == Id::TypeInfo   ||
+//	ident == Id::Exception ||
 	ident == Id::TypeInfo_Struct   ||
 	ident == Id::TypeInfo_Class    ||
 	ident == Id::TypeInfo_Typedef  ||
 	ident == Id::TypeInfo_Tuple ||
-	ident == Id::Exception  ||
 	this == object     ||
 	this == classinfo  ||
 	this == Module::moduleinfo ||

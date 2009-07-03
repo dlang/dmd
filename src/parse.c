@@ -2620,8 +2620,10 @@ Statement *Parser::parseStatement(int flags)
 	    {	increment = parseExpression();
 		check(TOKrparen);
 	    }
-	    body = parseStatement(0);
+	    body = parseStatement(PSscope);
 	    s = new ForStatement(loc, init, condition, increment, body);
+	    if (init)
+		s = new ScopeStatement(loc, s);
 	    break;
 	}
 
@@ -3908,6 +3910,7 @@ Expression *Parser::parsePrimaryExp()
 			 token.value == TOKstruct ||
 			 token.value == TOKunion ||
 			 token.value == TOKclass ||
+			 token.value == TOKsuper ||
 			 token.value == TOKenum ||
 			 token.value == TOKinterface ||
 			 token.value == TOKfunction ||

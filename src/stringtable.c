@@ -1,4 +1,5 @@
-// Copyright (c) 1999-2002 by Digital Mars
+
+// Copyright (c) 1999-2006 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // www.digitalmars.com
@@ -41,7 +42,7 @@ struct StringEntry
 {
     StringEntry *left;
     StringEntry *right;
-    unsigned hash;
+    hash_t hash;
 
     StringValue value;
 
@@ -61,7 +62,7 @@ StringEntry *StringEntry::alloc(const dchar *s, unsigned len)
 
 void **StringTable::search(const dchar *s, unsigned len)
 {
-    unsigned hash;
+    hash_t hash;
     unsigned u;
     int cmp;
     StringEntry **se;

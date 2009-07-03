@@ -109,6 +109,7 @@ void FuncDeclaration::semantic(Scope *sc)
     if (type->ty != Tfunction)
     {
 	error("%s must be a function", toChars());
+	return;
     }
     f = (TypeFunction *)(type);
     size_t nparams = Argument::dim(f->parameters);
@@ -1074,6 +1075,7 @@ void FuncDeclaration::semantic3(Scope *sc)
 	    fbody = new CompoundStatement(0, a);
 	}
 
+	sc2->callSuper = 0;
 	sc2->pop();
     }
 }

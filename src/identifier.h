@@ -25,7 +25,7 @@ struct Identifier : Object
 
     Identifier(const char *string, int value);
     int equals(Object *o);
-    unsigned hashCode();
+    hash_t hashCode();
     int compare(Object *o);
     void print();
     char *toChars();

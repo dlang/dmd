@@ -507,7 +507,8 @@ void functionArguments(Loc loc, Scope *sc, TypeFunction *tf, Expressions *argume
 	    }
 
 	    // Convert static arrays to pointers
-	    if (arg->type->toBasetype()->ty == Tsarray)
+	    tb = arg->type->toBasetype();
+	    if (tb->ty == Tsarray)
 	    {
 		arg = arg->checkToPointer();
 	    }
@@ -543,8 +544,14 @@ void functionArguments(Loc loc, Scope *sc, TypeFunction *tf, Expressions *argume
 	    // Convert static arrays to dynamic arrays
 	    tb = arg->type->toBasetype();
 	    if (tb->ty == Tsarray)
-	    {
-		arg = arg->castTo(sc, tb->next->arrayOf());
+	    {	TypeSArray *ts = (TypeSArray *)tb;
+		Type *ta = tb->next->arrayOf();
+		if (ts->size(arg->loc) == 0)
+		{   arg = new NullExp(arg->loc);
+		    arg->type = ta;
+		}
+		else
+		    arg = arg->castTo(sc, ta);
 	    }
 
 	    arg->rvalue();
@@ -697,8 +704,9 @@ void Expression::error(const char *format, ...)
 void Expression::rvalue()
 {
     if (type && type->toBasetype()->ty == Tvoid)
-    {	error("voids have no value");
+    {	error("expression %s is void and has no value", toChars());
 #ifdef DEBUG
+	dump(0);
 	*(char*)0=0;
 #endif
     }
@@ -881,8 +889,11 @@ Expression *Expression::checkToPointer()
     // If C static array, convert to pointer
     tb = type->toBasetype();
     if (tb->ty == Tsarray)
-    {
-	e = new AddrExp(loc, this);
+    {	TypeSArray *ts = (TypeSArray *)tb;
+	if (ts->size(loc) == 0)
+	    e = new NullExp(loc);
+	else
+	    e = new AddrExp(loc, this);
 	e->type = tb->next->pointerTo();
     }
     return e;
@@ -1848,6 +1859,37 @@ Expression *ThisExp::semantic(Scope *sc)
 	return this;
     }
 
+    /* Special case for typeof(this) and typeof(super) since both
+     * should work even if they are not inside a non-static member function
+     */
+    if (sc->intypeof)
+    {
+	// Find enclosing struct or class
+	for (Dsymbol *s = sc->parent; 1; s = s->parent)
+	{
+	    ClassDeclaration *cd;
+	    StructDeclaration *sd;
+
+	    if (!s)
+	    {
+		error("%s is not in a struct or class scope", toChars());
+		goto Lerr;
+	    }
+	    cd = s->isClassDeclaration();
+	    if (cd)
+	    {
+		type = cd->type;
+		return this;
+	    }
+	    sd = s->isStructDeclaration();
+	    if (sd)
+	    {
+		type = sd->type->pointerTo();
+		return this;
+	    }
+	}
+    }
+
     fdthis = sc->parent->isFuncDeclaration();
     fd = hasThis(sc);	// fd is the uplevel function with the 'this' variable
     if (!fd)
@@ -1909,6 +1951,35 @@ Expression *SuperExp::semantic(Scope *sc)
 #endif
     if (type)
 	return this;
+
+    /* Special case for typeof(this) and typeof(super) since both
+     * should work even if they are not inside a non-static member function
+     */
+    if (sc->intypeof)
+    {
+	// Find enclosing class
+	for (Dsymbol *s = sc->parent; 1; s = s->parent)
+	{
+	    ClassDeclaration *cd;
+
+	    if (!s)
+	    {
+		error("%s is not in a class scope", toChars());
+		goto Lerr;
+	    }
+	    cd = s->isClassDeclaration();
+	    if (cd)
+	    {
+		cd = cd->baseClass;
+		if (!cd)
+		{   error("class %s has no 'super'", s->toChars());
+		    goto Lerr;
+		}
+		type = cd->type;
+		return this;
+	    }
+	}
+    }
 
     fdthis = sc->parent->isFuncDeclaration();
     fd = hasThis(sc);
@@ -2519,6 +2590,11 @@ void TemplateExp::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
     buf->writestring(td->toChars());
 }
 
+void TemplateExp::rvalue()
+{
+    error("template %s has no value", toChars());
+}
+
 /********************** NewExp **************************************/
 
 NewExp::NewExp(Loc loc, Expression *thisexp, Expressions *newargs,
@@ -2531,6 +2607,7 @@ NewExp::NewExp(Loc loc, Expression *thisexp, Expressions *newargs,
     this->arguments = arguments;
     member = NULL;
     allocator = NULL;
+    onstack = 0;
 }
 
 Expression *NewExp::syntaxCopy()
@@ -2859,6 +2936,9 @@ SymOffExp::SymOffExp(Loc loc, Declaration *var, unsigned offset)
     assert(var);
     this->var = var;
     this->offset = offset;
+    VarDeclaration *v = var->isVarDeclaration();
+    if (v && v->needThis())
+	error("need 'this' for address of %s", v->toChars());
 }
 
 Expression *SymOffExp::semantic(Scope *sc)
@@ -3146,7 +3226,12 @@ Expression *FuncExp::semantic(Scope *sc)
     {
 	fd->semantic(sc);
 	fd->parent = sc->parent;
-	if (!global.errors)
+	if (global.errors)
+	{
+	    if (!fd->type->next)
+		fd->type->next = Type::terror;
+	}
+	else
 	{
 	    fd->semantic2(sc);
 	    if (!global.errors)
@@ -3431,6 +3516,22 @@ Expression *IftypeExp::semantic(Scope *sc)
 		if (!((TypeClass *)targ)->sym->isInterfaceDeclaration())
 		    goto Lno;
 		tded = targ;
+		break;
+
+	    case TOKsuper:
+		// If class or interface, get the base class and interfaces
+		if (targ->ty != Tclass)
+		    goto Lno;
+		else
+		{   ClassDeclaration *cd = ((TypeClass *)targ)->sym;
+		    Arguments *args = new Arguments;
+		    args->reserve(cd->baseclasses.dim);
+		    for (size_t i = 0; i < cd->baseclasses.dim; i++)
+		    {	BaseClass *b = (BaseClass *)cd->baseclasses.data[i];
+			args->push(new Argument(In, b->type, NULL, NULL));
+		    }
+		    tded = new TypeTuple(args);
+		}
 		break;
 
 	    case TOKenum:
@@ -4294,7 +4395,11 @@ Expression *DotTemplateInstanceExp::semantic(Scope *sc)
     {
 	s = t1->isClassHandle();
 	if (!s)
-	    goto L1;
+	{   if (t1->ty == Tstruct)
+		s = ((TypeStruct *)t1)->sym;
+	    else
+		goto L1;
+	}
     }
     else if (t1 && (t1->ty == Tstruct || t1->ty == Tclass))
     {
@@ -4686,7 +4791,7 @@ Lagain:
 	 * in DotVarExp::semantic().
 	 */
     L10:
-	Type *t = ue->e1->type;
+	Type *t = ue->e1->type->toBasetype();
 	if (f->needThis() && ad &&
 	    !(t->ty == Tpointer && t->next->ty == Tstruct &&
 	      ((TypeStruct *)t->next)->sym == ad) &&
@@ -5890,7 +5995,7 @@ Expression *IndexExp::semantic(Scope *sc)
 	    }
 	    else
 	    {
-		error("array index [%llu] is outside array bounds [0 .. %llu]",
+		error("array index [%llu] is outside array bounds [0 .. %u]",
 			index, length);
 		e = e1;
 	    }

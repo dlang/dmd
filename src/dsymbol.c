@@ -572,30 +572,38 @@ Dsymbol *ScopeDsymbol::search(Loc loc, Identifier *ident, int flags)
 	    s2 = ss->search(loc, ident, ss->isModule() ? 1 : 0);
 	    if (!s)
 		s = s2;
-	    else if (s2 && s != s2 && s->toAlias() != s2->toAlias())
+	    else if (s2 && s != s2)
 	    {
-		/* Two imports of the same module should be regarded as
-		 * the same.
-		 */
-		Import *i1 = s->isImport();
-		Import *i2 = s2->isImport();
-		if (!(i1 && i2 &&
-		      (i1->mod == i2->mod ||
-		       (!i1->parent->isImport() && !i2->parent->isImport() &&
-			i1->ident->equals(i2->ident))
-		      )
-		     )
-		   )
+		if (s->toAlias() == s2->toAlias())
 		{
-		    ss->multiplyDefined(loc, s, s2);
-		    break;
+		    if (s->isDeprecated())
+			s = s2;
+		}
+		else
+		{
+		    /* Two imports of the same module should be regarded as
+		     * the same.
+		     */
+		    Import *i1 = s->isImport();
+		    Import *i2 = s2->isImport();
+		    if (!(i1 && i2 &&
+			  (i1->mod == i2->mod ||
+			   (!i1->parent->isImport() && !i2->parent->isImport() &&
+			    i1->ident->equals(i2->ident))
+			  )
+			 )
+		       )
+		    {
+			ss->multiplyDefined(loc, s, s2);
+			break;
+		    }
 		}
 	    }
 	}
 	if (s)
 	{
 	    Declaration *d = s->isDeclaration();
-	    if (d && d->protection == PROTprivate)
+	    if (d && d->protection == PROTprivate && !d->parent->isTemplateMixin())
 		error("%s is private", d->toPrettyChars());
 	}
     }

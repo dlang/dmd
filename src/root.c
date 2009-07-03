@@ -1,5 +1,5 @@
 
-// Copyright (c) 1999-2002 by Digital Mars
+// Copyright (c) 1999-2006 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // www.digitalmars.com
@@ -11,6 +11,7 @@
 #include <stdlib.h>
 #include <stdarg.h>
 #include <string.h>
+#include <stdint.h>
 #include <assert.h>
 
 #if _MSC_VER
@@ -169,9 +170,9 @@ int Object::equals(Object *o)
     return o == this;
 }
 
-unsigned Object::hashCode()
+hash_t Object::hashCode()
 {
-    return (int) this;
+    return (hash_t) this;
 }
 
 int Object::compare(Object *obj)
@@ -230,9 +231,9 @@ void String::mark()
     mem.mark(str);
 }
 
-unsigned String::calcHash(const char *str, unsigned len)
+hash_t String::calcHash(const char *str, size_t len)
 {
-    unsigned hash = 0;
+    hash_t hash = 0;
 
     for (;;)
     {
@@ -243,23 +244,23 @@ unsigned String::calcHash(const char *str, unsigned len)
 
 	    case 1:
 		hash *= 37;
-		hash += *(unsigned char *)str;
+		hash += *(uint8_t *)str;
 		return hash;
 
 	    case 2:
 		hash *= 37;
-		hash += *(unsigned short *)str;
+		hash += *(uint16_t *)str;
 		return hash;
 
 	    case 3:
 		hash *= 37;
-		hash += (*(unsigned short *)str << 8) +
-			((unsigned char *)str)[2];
+		hash += (*(uint16_t *)str << 8) +
+			((uint8_t *)str)[2];
 		return hash;
 
 	    default:
 		hash *= 37;
-		hash += *(long *)str;
+		hash += *(uint32_t *)str;
 		str += 4;
 		len -= 4;
 		break;
@@ -267,12 +268,12 @@ unsigned String::calcHash(const char *str, unsigned len)
     }
 }
 
-unsigned String::calcHash(const char *str)
+hash_t String::calcHash(const char *str)
 {
     return calcHash(str, strlen(str));
 }
 
-unsigned String::hashCode()
+hash_t String::hashCode()
 {
     return calcHash(str, strlen(str));
 }
@@ -415,15 +416,12 @@ Array *FileName::splitPath(const char *path)
     return array;
 }
 
-unsigned FileName::hashCode()
+hash_t FileName::hashCode()
 {
-#if linux
-    return String::hashCode();
-#endif
 #if _WIN32
     // We need a different hashCode because it must be case-insensitive
-    unsigned len = strlen(str);
-    unsigned hash = 0;
+    size_t len = strlen(str);
+    hash_t hash = 0;
     unsigned char *s = (unsigned char *)str;
 
     for (;;)
@@ -435,48 +433,49 @@ unsigned FileName::hashCode()
 
 	    case 1:
 		hash *= 37;
-		hash += *(unsigned char *)s | 0x20;
+		hash += *(uint8_t *)s | 0x20;
 		return hash;
 
 	    case 2:
 		hash *= 37;
-		hash += *(unsigned short *)s | 0x2020;
+		hash += *(uint16_t *)s | 0x2020;
 		return hash;
 
 	    case 3:
 		hash *= 37;
-		hash += ((*(unsigned short *)s << 8) +
-			 ((unsigned char *)s)[2]) | 0x202020;
+		hash += ((*(uint16_t *)s << 8) +
+			 ((uint8_t *)s)[2]) | 0x202020;
 		break;
 
 	    default:
 		hash *= 37;
-		hash += *(long *)s | 0x20202020;
+		hash += *(uint32_t *)s | 0x20202020;
 		s += 4;
 		len -= 4;
 		break;
 	}
     }
+#else
+    // darwin HFS is case insensitive, though...
+    return String::hashCode();
 #endif
 }
 
 int FileName::compare(Object *obj)
 {
-#if linux
-    return String::compare(obj);
-#endif
 #if _WIN32
     return stricmp(str,((FileName *)obj)->str);
+#else
+    return String::compare(obj);
 #endif
 }
 
 int FileName::equals(Object *obj)
 {
-#if linux
-    return String::equals(obj);
-#endif
 #if _WIN32
     return stricmp(str,((FileName *)obj)->str) == 0;
+#else
+    return String::equals(obj);
 #endif
 }
 

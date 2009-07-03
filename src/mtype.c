@@ -1618,6 +1618,19 @@ Expression *semanticLength(Scope *sc, Type *t, Expression *exp)
     return exp;
 }
 
+void TypeSArray::resolve(Loc loc, Scope *sc, Expression **pe, Type **pt, Dsymbol **ps)
+{
+    next->resolve(loc, sc, pe, pt, ps);
+    if (*pe)
+    {	// It's really an index expression
+	Expression *e;
+	e = new IndexExp(loc, *pe, dim);
+	*pe = e;
+    }
+    else
+	Type::resolve(loc, sc, pe, pt, ps);
+}
+
 Type *TypeSArray::semantic(Loc loc, Scope *sc)
 {
     //printf("TypeSArray::semantic() %s\n", toChars());
@@ -1629,6 +1642,7 @@ Type *TypeSArray::semantic(Loc loc, Scope *sc)
 
 	dim = semanticLength(sc, tbn, dim);
 
+	dim = dim->optimize(WANTvalue);
 	dim = dim->constFold();
 	integer_t d1 = dim->toInteger();
 	dim = dim->castTo(sc, tsize_t);
@@ -1965,7 +1979,7 @@ Type *TypeAArray::semantic(Loc loc, Scope *sc)
 
     // Deal with the case where we thought the index was a type, but
     // in reality it was an expression.
-    if (index->ty == Tident || index->ty == Tinstance)
+    if (index->ty == Tident || index->ty == Tinstance || index->ty == Tsarray)
     {
 	Expression *e;
 	Type *t;
@@ -2541,7 +2555,7 @@ Type *TypeFunction::semantic(Loc loc, Scope *sc)
     if (inuse)
     {	error(loc, "recursive type");
 	inuse = 0;
-	return tvoid;
+	return terror;
     }
 
     if (varargs == 1 && linkage != LINKd && Argument::dim(parameters) == 0)
@@ -3361,6 +3375,7 @@ Type *TypeTypeof::semantic(Loc loc, Scope *sc)
 
     //static int nest; if (++nest == 50) *(char*)0=0;
 
+#if 0
     /* Special case for typeof(this) and typeof(super) since both
      * should work even if they are not inside a non-static member function
      */
@@ -3405,8 +3420,11 @@ Type *TypeTypeof::semantic(Loc loc, Scope *sc)
 	}
     }
     else
+#endif
     {
+	sc->intypeof++;
 	exp = exp->semantic(sc);
+	sc->intypeof--;
 	t = exp->type;
 	if (!t)
 	{

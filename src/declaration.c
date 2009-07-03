@@ -524,6 +524,7 @@ VarDeclaration::VarDeclaration(Loc loc, Type *type, Identifier *id, Initializer 
     inuse = 0;
     ctorinit = 0;
     aliassym = NULL;
+    onstack = 0;
 }
 
 Dsymbol *VarDeclaration::syntaxCopy(Dsymbol *s)
@@ -754,6 +755,18 @@ void VarDeclaration::semantic(Scope *sc)
 	    init = new ExpInitializer(loc, e);
 	    return;
 	}
+	else if (type->ty == Ttypedef)
+	{   TypeTypedef *td = (TypeTypedef *)type;
+	    if (td->sym->init)
+	    {	init = td->sym->init;
+		ExpInitializer *ie = init->isExpInitializer();
+		if (ie)
+		    // Make copy so we can modify it
+		    init = new ExpInitializer(ie->loc, ie->exp);
+	    }
+	    else
+		init = getExpInitializer();
+	}
 	else
 	{
 	    init = getExpInitializer();
@@ -762,6 +775,19 @@ void VarDeclaration::semantic(Scope *sc)
 
     if (init)
     {
+	ExpInitializer *ei = init->isExpInitializer();
+
+	// See if we can allocate on the stack
+	if (ei && isScope() && ei->exp->op == TOKnew)
+	{   NewExp *ne = (NewExp *)ei->exp;
+	    if (!(ne->newargs && ne->newargs->dim))
+	    {	ne->onstack = 1;
+		onstack = 1;
+		if (type->isBaseOf(ne->newtype->semantic(loc, sc), NULL))
+		    onstack = 2;
+	    }
+	}
+
 	// If inside function, there is no semantic3() call
 	if (sc->func)
 	{
@@ -769,14 +795,12 @@ void VarDeclaration::semantic(Scope *sc)
 	    // possibilities.
 	    if (fd && !isStatic() && !isConst() && !init->isVoidInitializer())
 	    {
-		ExpInitializer *ie;
 		Expression *e1;
 		Type *t;
 		int dim;
 
 		//printf("fd = '%s', var = '%s'\n", fd->toChars(), toChars());
-		ie = init->isExpInitializer();
-		if (!ie)
+		if (!ei)
 		{
 		    Expression *e = init->toExpression();
 		    if (!e)
@@ -784,8 +808,8 @@ void VarDeclaration::semantic(Scope *sc)
 			error("is not a static and cannot have static initializer");
 			return;
 		    }
-		    ie = new ExpInitializer(init->loc, e);
-		    init = ie;
+		    ei = new ExpInitializer(init->loc, e);
+		    init = ei;
 		}
 
 		e1 = new VarExp(loc, this);
@@ -809,9 +833,9 @@ void VarDeclaration::semantic(Scope *sc)
 		    }
 		    e1 = new SliceExp(loc, e1, NULL, NULL);
 		}
-		ie->exp = new AssignExp(loc, e1, ie->exp);
-		ie->exp = ie->exp->semantic(sc);
-		ie->exp->optimize(WANTvalue);
+		ei->exp = new AssignExp(loc, e1, ei->exp);
+		ei->exp = ei->exp->semantic(sc);
+		ei->exp->optimize(WANTvalue);
 	    }
 	    else
 	    {
@@ -830,7 +854,6 @@ void VarDeclaration::semantic(Scope *sc)
 	     * Ignore failure.
 	     */
 
-	    ExpInitializer *ei = init->isExpInitializer();
 	    if (ei && !global.errors && !inferred)
 	    {
 		unsigned errors = global.errors;
@@ -881,7 +904,7 @@ ExpInitializer *VarDeclaration::getExpInitializer()
 void VarDeclaration::semantic2(Scope *sc)
 {
     //printf("VarDeclaration::semantic2('%s')\n", toChars());
-    if (init && !sc->parent->isFuncDeclaration())
+    if (init && !toParent()->isFuncDeclaration())
     {	inuse++;
 #if 0
 	ExpInitializer *ei = init->isExpInitializer();
@@ -963,6 +986,7 @@ void VarDeclaration::checkNestedReference(Scope *sc, Loc loc)
 		fdthis->getLevel(loc, fdv);
 	    nestedref = 1;
 	    fdv->nestedFrameRef = 1;
+	    //printf("var %s in function %s is nested ref\n", toChars(), fdv->toChars());
 	}
     }
 }
@@ -1003,12 +1027,20 @@ Expression *VarDeclaration::callAutoDtor()
 	     cd;
 	     cd = cd->baseClass)
 	{
-	    // delete this;
-	    Expression *ec;
+	    /* We can do better if there's a way with onstack
+	     * classes to determine if there's no way the monitor
+	     * could be set.
+	     */
+	    if (1 || onstack || cd->dtors.dim)	// if any destructors
+	    {
+		// delete this;
+		Expression *ec;
 
-	    ec = new VarExp(loc, this);
-	    e = new DeleteExp(loc, ec);
-	    e->type = Type::tvoid;
+		ec = new VarExp(loc, this);
+		e = new DeleteExp(loc, ec);
+		e->type = Type::tvoid;
+		break;
+	    }
 	}
     }
     return e;

@@ -301,6 +301,7 @@ struct TypeSArray : TypeArray
     d_uns64 size(Loc loc);
     unsigned alignsize();
     Type *semantic(Loc loc, Scope *sc);
+    void resolve(Loc loc, Scope *sc, Expression **pe, Type **pt, Dsymbol **ps);
     void toDecoBuffer(OutBuffer *buf);
     void toTypeInfoBuffer(OutBuffer *buf);
     void toPrettyBracket(OutBuffer *buf, HdrGenState *hgs);

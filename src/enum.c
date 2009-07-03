@@ -71,7 +71,9 @@ void EnumDeclaration::semantic(Scope *sc)
     }
 
     if (!memtype->isintegral())
-	error("base type must be of integral type, not %s", memtype->toChars());
+    {	error("base type must be of integral type, not %s", memtype->toChars());
+	memtype = Type::tint32;
+    }
 
     t = isAnonymous() ? memtype : type;
     symtab = new DsymbolTable();

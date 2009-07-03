@@ -2719,4 +2719,5 @@ void Lexer::initKeywords()
     Token::tochars[TOKstring]		= "string";
     Token::tochars[TOKdsymbol]		= "symbol";
     Token::tochars[TOKtuple]		= "tuple";
+    Token::tochars[TOKdeclaration]	= "declaration";
 }

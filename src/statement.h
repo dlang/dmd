@@ -188,7 +188,11 @@ struct ScopeStatement : Statement
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
     ScopeStatement *isScopeStatement() { return this; }
     Statement *semantic(Scope *sc);
+    int hasBreak();
+    int hasContinue();
+    int usesEH();
     int fallOffEnd();
+    int comeFrom();
 
     Statement *inlineScan(InlineScanState *iss);
 
@@ -245,6 +249,7 @@ struct ForStatement : Statement
     ForStatement(Loc loc, Statement *init, Expression *condition, Expression *increment, Statement *body);
     Statement *syntaxCopy();
     Statement *semantic(Scope *sc);
+    void scopeCode(Statement **sentry, Statement **sexit, Statement **sfinally);
     int hasBreak();
     int hasContinue();
     int usesEH();

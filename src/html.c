@@ -27,6 +27,8 @@
 
 extern int HtmlNamedEntity(unsigned char *p, int length);
 
+static int isLineSeparator(const unsigned char* p);
+
 /**********************************
  * Determine if beginning of tag identifier
  * or a continuation of a tag identifier.
@@ -522,7 +524,7 @@ void Html::scanCDATA()
 {
     while(*p && *p != 0x1A)
     {
-	int lineSepLength = isLineSeperator(p);
+	int lineSepLength = isLineSeparator(p);
 	if (lineSepLength>0)
 	{
 	    /* Always extract new lines, so that D lexer counts the lines
@@ -686,5 +688,32 @@ Lignore:
     //printf("Lignore\n");
     p = pstart + 1;
     return '&';
+}
+
+/**
+ * identify DOS, Linux, Mac, Next and Unicode line endings
+ * 0 if this is no line separator
+ * >0 the length of the separator
+ * Note: input has to be UTF-8
+ */
+static int isLineSeparator(const unsigned char* p)
+{
+    // Linux
+    if( p[0]=='\n')
+	return 1;
+
+    // Mac & Dos
+    if( p[0]=='\r')
+	return (p[1]=='\n') ? 2 : 1;
+
+    // Unicode (line || paragraph sep.)
+    if( p[0]==0xE2 && p[1]==0x80 && (p[2]==0xA8 || p[2]==0xA9))
+	return 3;
+
+    // Next
+    if( p[0]==0xC2 && p[1]==0x85)
+	return 2;
+
+    return 0;
 }
 

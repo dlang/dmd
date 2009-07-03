@@ -89,7 +89,7 @@ dt_t *StructInitializer::toDt()
 	    if ((VarDeclaration *)ad->fields.data[j] == v)
 	    {
 		if (dts.data[j])
-		    error("field %s of %s already initialized", v->toChars(), ad->toChars());
+		    error(loc, "field %s of %s already initialized", v->toChars(), ad->toChars());
 		dts.data[j] = (void *)val->toDt();
 		break;
 	    }
@@ -136,7 +136,7 @@ dt_t *StructInitializer::toDt()
 	if (d)
 	{
 	    if (v->offset < offset)
-		error("duplicate union initialization for %s", v->toChars());
+		error(loc, "duplicate union initialization for %s", v->toChars());
 	    else
 	    {	unsigned sz = dt_size(d);
 
@@ -192,7 +192,7 @@ dt_t *ArrayInitializer::toDt()
 	val = (Initializer *)value.data[i];
 	dt = val->toDt();
 	if (dts.data[length])
-	    error("duplicate initializations for index %d", length);
+	    error(loc, "duplicate initializations for index %d", length);
 	dts.data[length] = (void *)dt;
 	length++;
     }
@@ -240,7 +240,12 @@ dt_t *ArrayInitializer::toDt()
 		}
 	    }
 	    else if (dim > tadim)
-		error("too many initializers %d for array[%d]", dim, tadim);
+	    {
+#ifdef DEBUG
+		printf("1: ");
+#endif
+		error(loc, "too many initializers, %d, for array[%d]", dim, tadim);
+	    }
 	    break;
 	}
 
@@ -318,7 +323,7 @@ dt_t *ArrayInitializer::toDtBit()
 	    value = idx->toInteger();
 	    length = value;
 	    if (length != value)
-	    {	error("index overflow %llu", value);
+	    {	error(loc, "index overflow %llu", value);
 		length = 0;
 	    }
 	}
@@ -327,7 +332,7 @@ dt_t *ArrayInitializer::toDtBit()
 	val = (Initializer *)value.data[i];
 	eval = val->toExpression();
 	if (initbits.test(length))
-	    error("duplicate initializations for index %d", length);
+	    error(loc, "duplicate initializations for index %d", length);
 	initbits.set(length);
 	if (eval->toInteger())		// any non-zero value is boolean 'true'
 	    databits.set(length);
@@ -343,7 +348,12 @@ dt_t *ArrayInitializer::toDtBit()
 	case Tsarray:
 	{
 	    if (dim > tadim)
-		error("too many initializers %d for array[%d]", dim, tadim);
+	    {
+#ifdef DEBUG
+		printf("2: ");
+#endif
+		error(loc, "too many initializers, %d, for array[%d]", dim, tadim);
+	    }
 	    else
 	    {
 		tadim = (tadim + 31) / 32;

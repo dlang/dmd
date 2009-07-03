@@ -20,6 +20,27 @@
 #include "expression.h"
 #include "declaration.h"
 #include "aggregate.h"
+#include "init.h"
+
+
+/*************************************
+ * If expression is a variable with a const initializer,
+ * return that initializer.
+ */
+
+Expression *fromConstInitializer(Expression *e1)
+{
+    if (e1->op == TOKvar)
+    {	VarExp *ve = (VarExp *)e1;
+	VarDeclaration *v = ve->var->isVarDeclaration();
+	if (v->isConst() && v->init)
+	{   Expression *ei = v->init->toExpression();
+	    if (ei)
+		e1 = ei;
+	}
+    }
+    return e1;
+}
 
 
 Expression *Expression::optimize(int result)
@@ -50,6 +71,11 @@ Expression *ArrayLiteralExp::optimize(int result)
 	    elements->data[i] = (void *)e;
 	}
     }
+    return this;
+}
+
+Expression *TypeExp::optimize(int result)
+{
     return this;
 }
 
@@ -224,7 +250,7 @@ Expression *CommaExp::optimize(int result)
     //printf("CommaExp::optimize(result = %d) %s\n", result, toChars());
     e1 = e1->optimize(0);
     e2 = e2->optimize(result);
-    if (!e1 || e1->op == TOKint64 || e1->op == TOKfloat64)
+    if (!e1 || e1->op == TOKint64 || e1->op == TOKfloat64 || !e1->checkSideEffect(2))
     {
 	e = e2;
 	if (e)
@@ -232,6 +258,7 @@ Expression *CommaExp::optimize(int result)
     }
     else
 	e = this;
+    //printf("-CommaExp::optimize(result = %d) %s\n", result, e->toChars());
     return e;
 }
 
@@ -263,6 +290,20 @@ Expression *EqualExp::optimize(int result)
     e1 = e1->optimize(WANTvalue);
     e2 = e2->optimize(WANTvalue);
     e = this;
+
+    Expression *e1 = fromConstInitializer(this->e1);
+    Expression *e2 = fromConstInitializer(this->e2);
+
+    if (e1->op == TOKvar)
+    {	VarExp *ve = (VarExp *)e1;
+	VarDeclaration *v = ve->var->isVarDeclaration();
+	if (v->isConst() && v->init)
+	{   Expression *ei = v->init->toExpression();
+	    if (ei)
+		e1 = ei;
+	}
+    }
+
     if (e1->op == TOKstring && e2->op == TOKstring)
     {	StringExp *es1 = (StringExp *)e1;
 	StringExp *es2 = (StringExp *)e2;
@@ -310,7 +351,12 @@ Expression *EqualExp::optimize(int result)
 	    value ^= 1;
 	e = new IntegerExp(loc, value, type);
     }
-    else if (e1->isConst() == 1 && e2->isConst() == 1)
+#if 0 // Should handle this
+    else if (e1->op == TOKarrayliteral && e2->op == TOKstring)
+    {
+    }
+#endif
+    else if (this->e1->isConst() == 1 && this->e2->isConst() == 1)
     {
 	e = constFold();
     }
@@ -442,6 +488,8 @@ Expression *AndAndExp::optimize(int result)
     else
     {
 	e2 = e2->optimize(WANTflags);
+	if (result && e2->type->toBasetype()->ty == Tvoid && !global.errors)
+	    error("void has no value");
 	if (e1->isConst())
 	{
 	    if (e2->isConst())
@@ -467,6 +515,8 @@ Expression *OrOrExp::optimize(int result)
     else
     {
 	e2 = e2->optimize(WANTflags);
+	if (result && e2->type->toBasetype()->ty == Tvoid && !global.errors)
+	    error("void has no value");
 	if (e1->isConst())
 	{
 	    if (e2->isConst())
@@ -621,6 +671,14 @@ Expression *CatExp::optimize(int result)
 	}
 	else
 	    e->type = type;
+    }
+    else if (e1->op == TOKnull && e2->op == TOKstring)
+    {
+	e = e2->castTo(NULL, type);
+    }
+    else if (e1->op == TOKstring && e2->op == TOKnull)
+    {
+	e = e1->castTo(NULL, type);
     }
     else
 	e = this;

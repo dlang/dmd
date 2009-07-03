@@ -30,7 +30,7 @@
 
 Expression *Expression::toDelegate(Scope *sc, Type *t)
 {
-    //printf("Expression::toDelegate(t = %s)\n", t->toChars());
+    //printf("Expression::toDelegate(t = %s) %s\n", t->toChars(), toChars());
     TypeFunction *tf = new TypeFunction(NULL, t, 0, LINKd);
     FuncLiteralDeclaration *fld =
 	new FuncLiteralDeclaration(loc, loc, tf, TOKdelegate, NULL);
@@ -73,6 +73,7 @@ void arrayExpressionScanForNestedRef(Scope *sc, Expressions *a)
 
 void Expression::scanForNestedRef(Scope *sc)
 {
+    //printf("Expression::scanForNestedRef(%s)\n", toChars());
 }
 
 void SymOffExp::scanForNestedRef(Scope *sc)
@@ -102,10 +103,16 @@ void SuperExp::scanForNestedRef(Scope *sc)
     assert(0);
 }
 
+void FuncExp::scanForNestedRef(Scope *sc)
+{
+    //printf("FuncExp::scanForNestedRef(%s)\n", toChars());
+    fd->parent = sc->parent;
+}
+
 void DeclarationExp::scanForNestedRef(Scope *sc)
 {
     //printf("DeclarationExp::scanForNestedRef() %s\n", toChars());
-    //assert(0);
+    declaration->parent = sc->parent;
 }
 
 void NewExp::scanForNestedRef(Scope *sc)

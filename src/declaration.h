@@ -204,6 +204,8 @@ struct VarDeclaration : Declaration
     int nestedref;		// referenced by a lexically nested function
     int inuse;
     int ctorinit;		// it has been initialized in a ctor
+    int onstack;		// 1: it has been allocated on the stack
+				// 2: on stack, run destructor anyway
     Dsymbol *aliassym;		// if redone as alias to another symbol
 
     VarDeclaration(Loc loc, Type *t, Identifier *id, Initializer *init);

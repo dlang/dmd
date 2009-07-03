@@ -10,6 +10,7 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <stdint.h>
 #include <assert.h>
 
 #include "dchar.h"
@@ -82,7 +83,7 @@ L92:	ret
     }
 }
 #else
-unsigned Dchar::calcHash(const dchar *str, unsigned len)
+hash_t Dchar::calcHash(const dchar *str, size_t len)
 {
     unsigned hash = 0;
 
@@ -94,15 +95,15 @@ unsigned Dchar::calcHash(const dchar *str, unsigned len)
 		return hash;
 
 	    case 1:
-		hash += *(unsigned short *)str;
+		hash += *(const uint16_t *)str;
 		return hash;
 
 	    case 2:
-		hash += *(unsigned long *)str;
+		hash += *(const uint32_t *)str;
 		return hash;
 
 	    default:
-		hash += *(long *)str;
+		hash += *(const uint32_t *)str;
 		hash *= 37;
 		str += 2;
 		len -= 2;
@@ -112,9 +113,9 @@ unsigned Dchar::calcHash(const dchar *str, unsigned len)
 }
 #endif
 
-unsigned Dchar::icalcHash(const dchar *str, unsigned len)
+hash_t Dchar::icalcHash(const dchar *str, size_t len)
 {
-    unsigned hash = 0;
+    hash_t hash = 0;
 
     for (;;)
     {
@@ -124,15 +125,15 @@ unsigned Dchar::icalcHash(const dchar *str, unsigned len)
 		return hash;
 
 	    case 1:
-		hash += *(unsigned short *)str | 0x20;
+		hash += *(const uint16_t *)str | 0x20;
 		return hash;
 
 	    case 2:
-		hash += *(unsigned long *)str | 0x200020;
+		hash += *(const uint32_t *)str | 0x200020;
 		return hash;
 
 	    default:
-		hash += *(unsigned long *)str | 0x200020;
+		hash += *(const uint32_t *)str | 0x200020;
 		hash *= 37;
 		str += 2;
 		len -= 2;
@@ -143,9 +144,9 @@ unsigned Dchar::icalcHash(const dchar *str, unsigned len)
 
 #elif MCBS
 
-unsigned Dchar::calcHash(const dchar *str, unsigned len)
+hash_t Dchar::calcHash(const dchar *str, size_t len)
 {
-    unsigned hash = 0;
+    hash_t hash = 0;
 
     while (1)
     {
@@ -156,23 +157,23 @@ unsigned Dchar::calcHash(const dchar *str, unsigned len)
 
 	    case 1:
 		hash *= 37;
-		hash += *(unsigned char *)str;
+		hash += *(const uint8_t *)str;
 		return hash;
 
 	    case 2:
 		hash *= 37;
-		hash += *(unsigned short *)str;
+		hash += *(const uint16_t *)str;
 		return hash;
 
 	    case 3:
 		hash *= 37;
-		hash += (*(unsigned short *)str << 8) +
-			((unsigned char *)str)[2];
+		hash += (*(const uint16_t *)str << 8) +
+			((const uint8_t *)str)[2];
 		return hash;
 
 	    default:
 		hash *= 37;
-		hash += *(long *)str;
+		hash += *(const uint32_t *)str;
 		str += 4;
 		len -= 4;
 		break;
@@ -308,9 +309,9 @@ dchar *Dchar::put(dchar *p, unsigned c)
     return p;
 }
 
-unsigned Dchar::calcHash(const dchar *str, unsigned len)
+hash_t Dchar::calcHash(const dchar *str, size_t len)
 {
-    unsigned hash = 0;
+    hash_t hash = 0;
 
     while (1)
     {
@@ -321,23 +322,36 @@ unsigned Dchar::calcHash(const dchar *str, unsigned len)
 
 	    case 1:
 		hash *= 37;
-		hash += *(unsigned char *)str;
+		hash += *(const uint8_t *)str;
 		return hash;
 
 	    case 2:
 		hash *= 37;
-		hash += *(unsigned short *)str;
+#if __I86__
+		hash += *(const uint16_t *)str;
+#else
+		hash += str[0] * 256 + str[1];
+#endif
 		return hash;
 
 	    case 3:
 		hash *= 37;
-		hash += (*(unsigned short *)str << 8) +
-			((unsigned char *)str)[2];
+#if __I86__
+		hash += (*(const uint16_t *)str << 8) +
+			((const uint8_t *)str)[2];
+#else
+		hash += (str[0] * 256 + str[1]) * 256 + str[2];
+#endif
 		return hash;
 
 	    default:
 		hash *= 37;
-		hash += *(long *)str;
+#if __I86__
+		hash += *(const uint32_t *)str;
+#else
+		hash += ((str[0] * 256 + str[1]) * 256 + str[2]) * 256 + str[3];
+#endif
+
 		str += 4;
 		len -= 4;
 		break;
@@ -347,9 +361,9 @@ unsigned Dchar::calcHash(const dchar *str, unsigned len)
 
 #else // ascii
 
-unsigned Dchar::calcHash(const dchar *str, unsigned len)
+hash_t Dchar::calcHash(const dchar *str, size_t len)
 {
-    unsigned hash = 0;
+    hash_t hash = 0;
 
     while (1)
     {
@@ -360,13 +374,13 @@ unsigned Dchar::calcHash(const dchar *str, unsigned len)
 
 	    case 1:
 		hash *= 37;
-		hash += *(unsigned char *)str;
+		hash += *(const uint8_t *)str;
 		return hash;
 
 	    case 2:
 		hash *= 37;
 #if __I86__
-		hash += *(unsigned short *)str;
+		hash += *(const uint16_t *)str;
 #else
 		hash += str[0] * 256 + str[1];
 #endif
@@ -375,8 +389,8 @@ unsigned Dchar::calcHash(const dchar *str, unsigned len)
 	    case 3:
 		hash *= 37;
 #if __I86__
-		hash += (*(unsigned short *)str << 8) +
-			((unsigned char *)str)[2];
+		hash += (*(const uint16_t *)str << 8) +
+			((const uint8_t *)str)[2];
 #else
 		hash += (str[0] * 256 + str[1]) * 256 + str[2];
 #endif
@@ -385,7 +399,7 @@ unsigned Dchar::calcHash(const dchar *str, unsigned len)
 	    default:
 		hash *= 37;
 #if __I86__
-		hash += *(long *)str;
+		hash += *(const uint32_t *)str;
 #else
 		hash += ((str[0] * 256 + str[1]) * 256 + str[2]) * 256 + str[3];
 #endif
@@ -396,9 +410,9 @@ unsigned Dchar::calcHash(const dchar *str, unsigned len)
     }
 }
 
-unsigned Dchar::icalcHash(const dchar *str, unsigned len)
+hash_t Dchar::icalcHash(const dchar *str, size_t len)
 {
-    unsigned hash = 0;
+    hash_t hash = 0;
 
     while (1)
     {
@@ -409,23 +423,23 @@ unsigned Dchar::icalcHash(const dchar *str, unsigned len)
 
 	    case 1:
 		hash *= 37;
-		hash += *(unsigned char *)str | 0x20;
+		hash += *(const uint8_t *)str | 0x20;
 		return hash;
 
 	    case 2:
 		hash *= 37;
-		hash += *(unsigned short *)str | 0x2020;
+		hash += *(const uint16_t *)str | 0x2020;
 		return hash;
 
 	    case 3:
 		hash *= 37;
-		hash += ((*(unsigned short *)str << 8) +
-			 ((unsigned char *)str)[2]) | 0x202020;
+		hash += ((*(const uint16_t *)str << 8) +
+			 ((const uint8_t *)str)[2]) | 0x202020;
 		return hash;
 
 	    default:
 		hash *= 37;
-		hash += *(long *)str | 0x20202020;
+		hash += *(const uint32_t *)str | 0x20202020;
 		str += 4;
 		len -= 4;
 		break;

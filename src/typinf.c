@@ -114,7 +114,12 @@ Expression *Type::getTypeInfo(Scope *sc)
 	if (!t->builtinTypeInfo())
 	{   // Generate COMDAT
 	    if (sc)			// if in semantic() pass
-		sc->module->members->push(t->vtinfo);
+	    {	// Find module that will go all the way to an object file
+		Module *m = sc->module->importedFrom;
+		while (m != m->importedFrom)
+		    m = m->importedFrom;
+		m->members->push(t->vtinfo);
+	    }
 	    else			// if in obj generation pass
 		t->vtinfo->toObjFile();
 	}
@@ -356,7 +361,7 @@ void TypeInfoStructDeclaration::toDt(dt_t **pdt)
     /* Put out:
      *	char[] name;
      *	uint xsize;
-     *	uint function(void*) xtoHash;
+     *	hash_t function(void*) xtoHash;
      *	int function(void*,void*) xopEquals;
      *	int function(void*,void*) xopCmp;
      *	char[] function(void*) xtoString;

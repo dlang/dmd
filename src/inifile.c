@@ -165,6 +165,8 @@ void inifile(char *argv0, char *inifile)
 			{
 			    // %@P% is special meaning the path to the .ini file
 			    p = path;
+			    if (!*p)
+				p = ".";
 			}
 			else
 			{   int len = j - k;

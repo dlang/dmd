@@ -248,6 +248,27 @@ void ClassDeclaration::semantic(Scope *sc)
     methods.setDim(0);
 #endif
 
+    // Expand any tuples in baseclasses[]
+    for (i = 0; i < baseclasses.dim; )
+    {	BaseClass *b = (BaseClass *)baseclasses.data[i];
+	b->type = b->type->semantic(loc, sc);
+	Type *tb = b->type->toBasetype();
+
+	if (tb->ty == Ttuple)
+	{   TypeTuple *tup = (TypeTuple *)tb;
+	    enum PROT protection = b->protection;
+	    baseclasses.remove(i);
+	    size_t dim = Argument::dim(tup->arguments);
+	    for (size_t j = 0; j < dim; j++)
+	    {	Argument *arg = Argument::getNth(tup->arguments, j);
+		b = new BaseClass(arg->type, protection);
+		baseclasses.insert(i + j, b);
+	    }
+	}
+	else
+	    i++;
+    }
+
     // See if there's a base class as first in baseclasses[]
     if (baseclasses.dim)
     {	TypeClass *tc;
@@ -255,7 +276,7 @@ void ClassDeclaration::semantic(Scope *sc)
 	Type *tb;
 
 	b = (BaseClass *)baseclasses.data[0];
-	b->type = b->type->semantic(loc, sc);
+	//b->type = b->type->semantic(loc, sc);
 	tb = b->type->toBasetype();
 	if (tb->ty != Tclass)
 	{   error("base type must be class or interface, not %s", b->type->toChars());
@@ -318,6 +339,14 @@ void ClassDeclaration::semantic(Scope *sc)
 	}
 	else
 	{
+	    // Check for duplicate interfaces
+	    for (size_t j = (baseClass ? 1 : 0); j < i; j++)
+	    {
+		BaseClass *b2 = (BaseClass *)baseclasses.data[j];
+		if (b2->base == tc->sym)
+		    error("inherits from duplicate interface %s", b2->base->toChars());
+	    }
+
 	    b->base = tc->sym;
 	    if (!b->base->symtab || b->base->scope)
 	    {
@@ -892,6 +921,27 @@ void InterfaceDeclaration::semantic(Scope *sc)
 	scope = NULL;
     }
 
+    // Expand any tuples in baseclasses[]
+    for (i = 0; i < baseclasses.dim; )
+    {	BaseClass *b = (BaseClass *)baseclasses.data[0];
+	b->type = b->type->semantic(loc, sc);
+	Type *tb = b->type->toBasetype();
+
+	if (tb->ty == Ttuple)
+	{   TypeTuple *tup = (TypeTuple *)tb;
+	    enum PROT protection = b->protection;
+	    baseclasses.remove(i);
+	    size_t dim = Argument::dim(tup->arguments);
+	    for (size_t j = 0; j < dim; j++)
+	    {	Argument *arg = Argument::getNth(tup->arguments, j);
+		b = new BaseClass(arg->type, protection);
+		baseclasses.insert(i + j, b);
+	    }
+	}
+	else
+	    i++;
+    }
+
     // Check for errors, handle forward references
     for (i = 0; i < baseclasses.dim; )
     {	TypeClass *tc;
@@ -913,6 +963,14 @@ void InterfaceDeclaration::semantic(Scope *sc)
 	}
 	else
 	{
+	    // Check for duplicate interfaces
+	    for (size_t j = 0; j < i; j++)
+	    {
+		BaseClass *b2 = (BaseClass *)baseclasses.data[j];
+		if (b2->base == tc->sym)
+		    error("inherits from duplicate interface %s", b2->base->toChars());
+	    }
+
 	    b->base = tc->sym;
 	    if (b->base == this || isBaseOf2(b->base))
 	    {

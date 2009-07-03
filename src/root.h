@@ -1,6 +1,6 @@
 
 
-// Copyright (c) 1999-2002 by Digital Mars
+// Copyright (c) 1999-2006 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // www.digitalmars.com
@@ -14,9 +14,11 @@
 #include <stdlib.h>
 #include <stdarg.h>
 
-#if __SC__
+#if __DMC__
 #pragma once
 #endif
+
+typedef size_t hash_t;
 
 #include "dchar.h"
 
@@ -63,7 +65,7 @@ struct Object
     /**
      * Returns a hash code, useful for things like building hash tables of Objects.
      */
-    virtual unsigned hashCode();
+    virtual hash_t hashCode();
 
     /**
      * Return <0, ==0, or >0 if this is less than, equal to, or greater than obj.
@@ -102,9 +104,9 @@ struct String : Object
 
     ~String();
 
-    static unsigned calcHash(const char *str, unsigned len);
-    static unsigned calcHash(const char *str);
-    unsigned hashCode();
+    static hash_t calcHash(const char *str, size_t len);
+    static hash_t calcHash(const char *str);
+    hash_t hashCode();
     unsigned len();
     int equals(Object *obj);
     int compare(Object *obj);
@@ -117,7 +119,7 @@ struct FileName : String
 {
     FileName(char *str, int ref);
     FileName(char *path, char *name);
-    unsigned hashCode();
+    hash_t hashCode();
     int equals(Object *obj);
     int compare(Object *obj);
     static int absolute(const char *name);

@@ -213,11 +213,7 @@ Initializer *StructInitializer::semantic(Scope *sc, Type *t)
 
 Expression *StructInitializer::toExpression()
 {
-#ifdef DEBUG
-    *(char*)0=0;
-#endif
-    assert(0);
-    return NULL;
+    return NULL;		// cannot do it
 }
 
 

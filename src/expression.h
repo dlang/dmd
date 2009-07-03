@@ -80,7 +80,7 @@ struct Expression : Object
     char *toChars();
     virtual void dump(int indent);
     void error(const char *format, ...);
-    void rvalue();
+    virtual void rvalue();
 
     static Expression *combine(Expression *e1, Expression *e2);
     static Expressions *arraySyntaxCopy(Expressions *exps);
@@ -366,6 +366,7 @@ struct TypeExp : Expression
 {
     TypeExp(Loc loc, Type *type);
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
+    Expression *optimize(int result);
     elem *toElem(IRState *irs);
 };
 
@@ -385,6 +386,7 @@ struct TemplateExp : Expression
     TemplateDeclaration *td;
 
     TemplateExp(Loc loc, TemplateDeclaration *td);
+    void rvalue();
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
 };
 
@@ -399,6 +401,7 @@ struct NewExp : Expression
 
     CtorDeclaration *member;	// constructor function
     NewDeclaration *allocator;	// allocator function
+    int onstack;		// allocate on stack
 
     NewExp(Loc loc, Expression *thisexp, Expressions *newargs,
 	Type *newtype, Expressions *arguments);
@@ -486,6 +489,7 @@ struct FuncExp : Expression
     FuncExp(Loc loc, FuncLiteralDeclaration *fd);
     Expression *syntaxCopy();
     Expression *semantic(Scope *sc);
+    void scanForNestedRef(Scope *sc);
     char *toChars();
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
     elem *toElem(IRState *irs);
@@ -702,6 +706,7 @@ struct CallExp : UnaExp
     Expression *semantic(Scope *sc);
     int checkSideEffect(int flag);
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
+    void dump(int indent);
     elem *toElem(IRState *irs);
     void scanForNestedRef(Scope *sc);
     Expression *toLvalue(Scope *sc, Expression *e);

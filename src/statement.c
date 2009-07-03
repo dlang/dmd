@@ -122,6 +122,7 @@ int Statement::fallOffEnd()
 
 int Statement::comeFrom()
 {
+    //printf("Statement::comeFrom()\n");
     return FALSE;
 }
 
@@ -187,7 +188,8 @@ Statement *ExpStatement::semantic(Scope *sc)
 	exp = exp->semantic(sc);
 	exp = resolveProperties(sc, exp);
 	exp->checkSideEffect(0);
-	exp = exp->optimize(WANTvalue);
+	exp = exp->optimize(0);
+	//exp = exp->optimize(isDeclarationStatement() ? WANTvalue : 0);
     }
     return this;
 }
@@ -688,9 +690,30 @@ Statement *ScopeStatement::semantic(Scope *sc)
     return this;
 }
 
+int ScopeStatement::hasBreak()
+{
+    return statement ? statement->hasBreak() : FALSE;
+}
+
+int ScopeStatement::hasContinue()
+{
+    return statement ? statement->hasContinue() : FALSE;
+}
+
+int ScopeStatement::usesEH()
+{
+    return statement ? statement->usesEH() : FALSE;
+}
+
 int ScopeStatement::fallOffEnd()
 {
     return statement ? statement->fallOffEnd() : TRUE;
+}
+
+int ScopeStatement::comeFrom()
+{
+    //printf("ScopeStatement::comeFrom()\n");
+    return statement ? statement->comeFrom() : FALSE;
 }
 
 void ScopeStatement::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
@@ -894,9 +917,8 @@ Statement *ForStatement::syntaxCopy()
 }
 
 Statement *ForStatement::semantic(Scope *sc)
-{   ScopeDsymbol *sym;
-
-    sym = new ScopeDsymbol();
+{
+    ScopeDsymbol *sym = new ScopeDsymbol();
     sym->parent = sc->scopesym;
     sc = sc->push(sym);
     if (init)
@@ -918,6 +940,16 @@ Statement *ForStatement::semantic(Scope *sc)
 
     sc->pop();
     return this;
+}
+
+void ForStatement::scopeCode(Statement **sentry, Statement **sexception, Statement **sfinally)
+{
+    //printf("ForStatement::scopeCode()\n");
+    //print();
+    if (init)
+	init->scopeCode(sentry, sexception, sfinally);
+    else
+	Statement::scopeCode(sentry, sexception, sfinally);
 }
 
 int ForStatement::hasBreak()
@@ -944,8 +976,12 @@ int ForStatement::fallOffEnd()
 
 int ForStatement::comeFrom()
 {
+    //printf("ForStatement::comeFrom()\n");
     if (body)
-	return body->comeFrom();
+    {	int result = body->comeFrom();
+	//printf("result = %d\n", result);
+	return result;
+    }
     return FALSE;
 }
 
@@ -2249,6 +2285,7 @@ Statement *ReturnStatement::semantic(Scope *sc)
 
     FuncDeclaration *fd = sc->parent->isFuncDeclaration();
     Scope *scx = sc;
+    int implicit0 = 0;
 
     if (sc->fes)
     {
@@ -2270,8 +2307,12 @@ Statement *ReturnStatement::semantic(Scope *sc)
 
     if (tret)
 	tbret = tret->toBasetype();
+
+    // main() returns 0, even if it returns void
     if (!exp && (!tbret || tbret->ty == Tvoid) && fd->isMain())
+    {	implicit0 = 1;
 	exp = new IntegerExp(0);
+    }
 
     if (sc->incontract || scx->incontract)
 	error("return statements cannot be in contracts");
@@ -2346,7 +2387,7 @@ Statement *ReturnStatement::semantic(Scope *sc)
     {
 	Statement *s;
 
-	if (exp)
+	if (exp && !implicit0)
 	{
 	    exp = exp->implicitCastTo(sc, tret);
 	}
@@ -3361,6 +3402,7 @@ int LabelStatement::fallOffEnd()
 
 int LabelStatement::comeFrom()
 {
+    //printf("LabelStatement::comeFrom()\n");
     return TRUE;
 }
 

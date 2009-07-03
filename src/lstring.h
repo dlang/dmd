@@ -50,8 +50,8 @@ struct Lstring
 
     dchar *toDchars() { return string; }
 
-    unsigned hash() { return Dchar::calcHash(string, length); }
-    unsigned ihash() { return Dchar::icalcHash(string, length); }
+    hash_t hash() { return Dchar::calcHash(string, length); }
+    hash_t ihash() { return Dchar::icalcHash(string, length); }
 
     static int cmp(const Lstring *s1, const Lstring *s2)
     {

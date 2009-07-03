@@ -21,6 +21,7 @@
 #endif
 
 //#include "root.h"
+typedef size_t hash_t;
 
 #undef TEXT
 
@@ -74,12 +75,12 @@ struct Dchar
     static dchar *memchr(dchar *p, int c, int count);
     static dchar *cpy(dchar *s1, dchar *s2) { return wcscpy(s1, s2); }
     static dchar *str(dchar *s1, dchar *s2) { return wcsstr(s1, s2); }
-    static unsigned calcHash(const dchar *str, unsigned len);
+    static hash_t calcHash(const dchar *str, size_t len);
 
     // Case insensitive versions
     static int icmp(dchar *s1, dchar *s2) { return wcsicmp(s1, s2); }
     static int memicmp(const dchar *s1, const dchar *s2, int nchars) { return ::wcsnicmp(s1, s2, nchars); }
-    static unsigned icalcHash(const dchar *str, unsigned len);
+    static hash_t icalcHash(const dchar *str, size_t len);
 };
 
 #elif MCBS
@@ -128,7 +129,7 @@ struct Dchar
 	{ return (dchar *)::memchr(p, c, count); }
     static dchar *cpy(dchar *s1, dchar *s2) { return strcpy(s1, s2); }
     static dchar *str(dchar *s1, dchar *s2) { return strstr(s1, s2); }
-    static unsigned calcHash(const dchar *str, unsigned len);
+    static hash_t calcHash(const dchar *str, size_t len);
 
     // Case insensitive versions
     static int icmp(dchar *s1, dchar *s2) { return _mbsicmp(s1, s2); }
@@ -176,7 +177,7 @@ struct Dchar
 	{ return (dchar *)::memchr(p, c, count); }
     static dchar *cpy(dchar *s1, dchar *s2) { return strcpy(s1, s2); }
     static dchar *str(dchar *s1, dchar *s2) { return strstr(s1, s2); }
-    static unsigned calcHash(const dchar *str, unsigned len);
+    static hash_t calcHash(const dchar *str, size_t len);
 
     // Case insensitive versions
 #ifdef __GNUC__
@@ -185,7 +186,7 @@ struct Dchar
     static int icmp(dchar *s1, dchar *s2) { return stricmp(s1, s2); }
 #endif
     static int memicmp(const dchar *s1, const dchar *s2, int nchars) { return ::memicmp(s1, s2, nchars); }
-    static unsigned icalcHash(const dchar *str, unsigned len);
+    static hash_t icalcHash(const dchar *str, size_t len);
 };
 
 #endif

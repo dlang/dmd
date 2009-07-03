@@ -1,5 +1,6 @@
 
-// Copyright (c) 1999-2003 by Digital Mars
+// Compiler implementation of the D programming language
+// Copyright (c) 1999-2006 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // www.digitalmars.com
@@ -28,6 +29,18 @@ static void indent(int indent)
 static char *type_print(Type *type)
 {
     return type ? type->toChars() : (char *) "null";
+}
+
+void dumpExpressions(int i, Expressions *exps)
+{
+    for (size_t j = 0; j < exps->dim; j++)
+    {	Expression *e = (Expression *)exps->data[j];
+	indent(i);
+	printf("(\n");
+	e->dump(i + 2);
+	indent(i);
+	printf(")\n");
+    }
 }
 
 void Expression::dump(int i)
@@ -66,6 +79,12 @@ void UnaExp::dump(int i)
     printf("%p %s type=%s e1=%p\n", this, Token::toChars(op), type_print(type), e1);
     if (e1)
 	e1->dump(i + 2);
+}
+
+void CallExp::dump(int i)
+{
+    UnaExp::dump(i);
+    dumpExpressions(i, arguments);
 }
 
 void SliceExp::dump(int i)

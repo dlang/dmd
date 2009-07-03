@@ -25,7 +25,7 @@ Identifier::Identifier(const char *string, int value)
     this->len = strlen(string);
 }
 
-unsigned Identifier::hashCode()
+hash_t Identifier::hashCode()
 {
     return String::calcHash(string);
 }
