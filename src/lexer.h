@@ -91,7 +91,7 @@ enum TOK
 	TOKand,		TOKor,		TOKxor,
 	TOKandass,	TOKorass,	TOKxorass,
 	TOKassign,	TOKnot,		TOKtilde,
-	TOKplusplus,	TOKminusminus,
+	TOKplusplus,	TOKminusminus,	TOKconstruct,
 	TOKdot,		TOKarrow,	TOKcomma,
 	TOKquestion,	TOKandand,	TOKoror,
 

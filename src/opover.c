@@ -86,9 +86,9 @@ Identifier *CastExp::opId()   { return Id::cast; }
 Identifier *InExp::opId()     { return Id::opIn; }
 Identifier *InExp::opId_r()     { return Id::opIn_r; }
 
-Identifier *PostIncExp::opId() { return Id::postinc; }
-
-Identifier *PostDecExp::opId() { return Id::postdec; }
+Identifier *PostExp::opId() { return (op == TOKplusplus)
+				? Id::postinc
+				: Id::postdec; }
 
 int AddExp::isCommutative()  { return TRUE; }
 Identifier *AddExp::opId()   { return Id::add; }

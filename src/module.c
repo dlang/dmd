@@ -233,19 +233,6 @@ Module *Module::load(Loc loc, Array *packages, Identifier *ident)
 
     //printf("Module::load(ident = '%s')\n", ident->toChars());
 
-    if (global.params.verbose)
-    {
-	printf("import    ");
-	if (packages)
-	{
-	    for (size_t i = 0; i < packages->dim; i++)
-	    {   Identifier *pid = (Identifier *)packages->data[i];
-		printf("%s.", pid->toChars());
-	    }
-	}
-	printf("%s\n", ident->toChars());
-    }
-
     // Build module filename by turning:
     //	foo.bar.baz
     // into:
@@ -311,6 +298,19 @@ Module *Module::load(Loc loc, Array *packages, Identifier *ident)
     }
     if (result)
 	m->srcfile = new File(result);
+
+    if (global.params.verbose)
+    {
+	printf("import    ");
+	if (packages)
+	{
+	    for (size_t i = 0; i < packages->dim; i++)
+	    {   Identifier *pid = (Identifier *)packages->data[i];
+		printf("%s.", pid->toChars());
+	    }
+	}
+	printf("%s\t(%s)\n", ident->toChars(), m->srcfile->toChars());
+    }
 
     m->read(loc);
     m->parse();

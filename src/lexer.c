@@ -2644,6 +2644,7 @@ void Lexer::initKeywords()
     Token::tochars[TOKxor]		= "^";
     Token::tochars[TOKxorass]		= "^=";
     Token::tochars[TOKassign]		= "=";
+    Token::tochars[TOKconstruct]	= "=";
     Token::tochars[TOKlt]		= "<";
     Token::tochars[TOKgt]		= ">";
     Token::tochars[TOKle]		= "<=";

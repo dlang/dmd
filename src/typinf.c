@@ -368,6 +368,8 @@ void TypeInfoStructDeclaration::toDt(dt_t **pdt)
 {
     //printf("TypeInfoStructDeclaration::toDt() '%s'\n", toChars());
 
+    unsigned offset = Type::typeinfostruct->structsize;
+
     dtxoff(pdt, Type::typeinfostruct->toVtblSymbol(), 0, TYnptr); // vtbl for TypeInfo_Struct
     dtdword(pdt, 0);			    // monitor
 
@@ -384,12 +386,16 @@ void TypeInfoStructDeclaration::toDt(dt_t **pdt)
      *	int function(void*,void*) xopCmp;
      *	char[] function(void*) xtoString;
      *	uint m_flags;
+     *
+     *	name[]
      */
 
     char *name = sd->toPrettyChars();
     size_t namelen = strlen(name);
     dtdword(pdt, namelen);
-    dtabytes(pdt, TYnptr, 0, namelen + 1, name);
+    //dtabytes(pdt, TYnptr, 0, namelen + 1, name);
+    dtxoff(pdt, toSymbol(), offset, TYnptr);
+    offset += namelen + 1;
 
     // void[] init;
     dtdword(pdt, sd->structsize);	// init.length
@@ -489,6 +495,9 @@ void TypeInfoStructDeclaration::toDt(dt_t **pdt)
 
     // uint m_flags;
     dtdword(pdt, tc->hasPointers());
+
+    // name[]
+    dtnbytes(pdt, namelen + 1, name);
 }
 
 void TypeInfoClassDeclaration::toDt(dt_t **pdt)

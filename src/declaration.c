@@ -527,6 +527,7 @@ VarDeclaration::VarDeclaration(Loc loc, Type *type, Identifier *id, Initializer 
     ctorinit = 0;
     aliassym = NULL;
     onstack = 0;
+    value = NULL;
 }
 
 Dsymbol *VarDeclaration::syntaxCopy(Dsymbol *s)
@@ -885,7 +886,7 @@ void VarDeclaration::semantic(Scope *sc)
 		}
 		else
 		{
-		    e = e->optimize(WANTvalue);
+		    e = e->optimize(WANTvalue | WANTinterpret);
 		    if (e->op == TOKint64 || e->op == TOKstring)
 		    {
 			ei->exp = e;		// no errors, keep result

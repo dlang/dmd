@@ -60,7 +60,7 @@ Global::Global()
 
     copyright = "Copyright (c) 1999-2007 by Digital Mars";
     written = "written by Walter Bright";
-    version = "v1.005";
+    version = "v1.006";
     global.structalign = 8;
 
     memset(&params, 0, sizeof(Param));
@@ -171,6 +171,7 @@ Usage:\n\
   -Hffilename    write 'header' file to filename\n\
   --help         print help\n\
   -Ipath         where to look for imports\n\
+  -Jpath         where to look for string imports\n\
   -inline        do function inlining\n\
   -Llinkerflag   pass linkerflag to link\n\
   -nofloat       do not emit reference to floating point\n\
@@ -414,6 +415,12 @@ int main(int argc, char *argv[])
 		    global.params.imppath = new Array();
 		global.params.imppath->push(p + 2);
 	    }
+	    else if (p[1] == 'J')
+	    {
+		if (!global.params.fileImppath)
+		    global.params.fileImppath = new Array();
+		global.params.fileImppath->push(p + 2);
+	    }
 	    else if (memcmp(p + 1, "debug", 5) == 0)
 	    {
 		// Parse:
@@ -578,6 +585,23 @@ int main(int argc, char *argv[])
 		if (!global.path)
 		    global.path = new Array();
 		global.path->append(a);
+	    }
+	}
+    }
+
+    // Build string import search path
+    if (global.params.fileImppath)
+    {
+	for (i = 0; i < global.params.fileImppath->dim; i++)
+	{
+	    char *path = (char *)global.params.fileImppath->data[i];
+	    Array *a = FileName::splitPath(path);
+
+	    if (a)
+	    {
+		if (!global.filePath)
+		    global.filePath = new Array();
+		global.filePath->append(a);
 	    }
 	}
     }

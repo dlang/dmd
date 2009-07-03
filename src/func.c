@@ -61,12 +61,14 @@ FuncDeclaration::FuncDeclaration(Loc loc, Loc endloc, Identifier *id, enum STC s
     inlineStatus = ILSuninitialized;
     inlineNest = 0;
     inlineAsm = 0;
+    cantInterpret = 0;
     semanticRun = 0;
     nestedFrameRef = 0;
     fes = NULL;
     introducing = 0;
     tintro = NULL;
     inferRetType = (type && type->next == NULL);
+    scope = NULL;
     hasReturnExp = 0;
     nrvo_can = 1;
     nrvo_var = NULL;
@@ -525,6 +527,15 @@ Lassignerr:
     error("identity assignment operator overload is illegal");
 }
 
+void FuncDeclaration::semantic2(Scope *sc)
+{
+    /* Save scope for possible later use (if we need the
+     * function internals)
+     */
+    scope = new Scope(*sc);
+    scope->setNoFree();
+}
+
 // Do the semantic analysis on the internals of the function.
 
 void FuncDeclaration::semantic3(Scope *sc)
@@ -691,7 +702,7 @@ void FuncDeclaration::semantic3(Scope *sc)
 	if (nparams)
 	{   // parameters[] has all the tuples removed, as the back end
 	    // doesn't know about tuples
-	    parameters = new Array();
+	    parameters = new Dsymbols();
 	    parameters->reserve(nparams);
 	    for (size_t i = 0; i < nparams; i++)
 	    {
@@ -1013,7 +1024,7 @@ void FuncDeclaration::semantic3(Scope *sc)
 
 	    // Merge in initialization of 'out' parameters
 	    if (parameters)
-	    {	for (int i = 0; i < parameters->dim; i++)
+	    {	for (size_t i = 0; i < parameters->dim; i++)
 		{   VarDeclaration *v;
 
 		    v = (VarDeclaration *)parameters->data[i];
@@ -1146,6 +1157,7 @@ void FuncDeclaration::semantic3(Scope *sc)
 	sc2->callSuper = 0;
 	sc2->pop();
     }
+    semanticRun = 2;
 }
 
 void FuncDeclaration::toCBuffer(OutBuffer *buf, HdrGenState *hgs)

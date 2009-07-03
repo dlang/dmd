@@ -332,7 +332,7 @@ Initializer *ArrayInitializer::semantic(Scope *sc, Type *t)
 	idx = (Expression *)index.data[i];
 	if (idx)
 	{   idx = idx->semantic(sc);
-	    idx = idx->optimize(WANTvalue);
+	    idx = idx->optimize(WANTvalue | WANTinterpret);
 	    index.data[i] = (void *)idx;
 	    length = idx->toInteger();
 	}
@@ -475,7 +475,7 @@ Initializer *ExpInitializer::semantic(Scope *sc, Type *t)
 
     exp = exp->implicitCastTo(sc, t);
 L1:
-    exp = exp->optimize(WANTvalue);
+    exp = exp->optimize(WANTvalue | WANTinterpret);
     //printf("-ExpInitializer::semantic(): "); exp->print();
     return this;
 }

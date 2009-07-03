@@ -4046,7 +4046,9 @@ FileExp::FileExp(Loc loc, Expression *e)
 }
 
 Expression *FileExp::semantic(Scope *sc)
-{
+{   char *name;
+    StringExp *se;
+
 #if LOGSEMANTIC
     printf("FileExp::semantic('%s')\n", toChars());
 #endif
@@ -4055,25 +4057,48 @@ Expression *FileExp::semantic(Scope *sc)
     e1 = e1->optimize(WANTvalue);
     if (e1->op != TOKstring)
     {	error("file name argument must be a string, not (%s)", e1->toChars());
-	return this;
+	goto Lerror;
     }
-    StringExp *se = (StringExp *)e1;
+    se = (StringExp *)e1;
     se = se->toUTF8(sc);
+    name = (char *)se->string;
+
+    if (!global.params.fileImppath)
+    {	error("need -Jpath switch to import text file %s", name);
+	goto Lerror;
+    }
+
+    if (name != FileName::name(name))
+    {	error("use -Jpath switch to provide path for filename %s", name);
+	goto Lerror;
+    }
+
+    name = FileName::searchPath(global.filePath, name, 0);
+    if (!name)
+    {	error("file %s cannot be found, check -Jpath", se->toChars());
+	goto Lerror;
+    }
 
     if (global.params.verbose)
-	printf("file      %s\n", se->string);
+	printf("file      %s\t(%s)\n", se->string, name);
 
-    File f((char *)se->string);
-    if (f.read())
-    {	error("cannot read file %s", f.toChars());
-	se = new StringExp(loc, "");
+    {	File f(name);
+	if (f.read())
+	{   error("cannot read file %s", f.toChars());
+	    goto Lerror;
+	}
+	else
+	{
+	    f.ref = 1;
+	    se = new StringExp(loc, f.buffer, f.len);
+	}
     }
-    else
-    {
-	f.ref = 1;
-	se = new StringExp(loc, f.buffer, f.len);
-    }
+  Lret:
     return se->semantic(sc);
+
+  Lerror:
+    se = new StringExp(loc, "");
+    goto Lret;
 }
 
 void FileExp::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
@@ -6332,14 +6357,15 @@ void IndexExp::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 }
 
 
-/************************* PostIncExp ***********************************/
+/************************* PostExp ***********************************/
 
-PostIncExp::PostIncExp(Loc loc, Expression *e)
-	: BinExp(loc, TOKplusplus, sizeof(PostIncExp), e, new IntegerExp(loc, 1, Type::tint32))
+PostExp::PostExp(enum TOK op, Loc loc, Expression *e)
+	: BinExp(loc, op, sizeof(PostExp), e,
+	  new IntegerExp(loc, 1, Type::tint32))
 {
 }
 
-Expression *PostIncExp::semantic(Scope *sc)
+Expression *PostExp::semantic(Scope *sc)
 {   Expression *e = this;
 
     if (!type)
@@ -6364,50 +6390,15 @@ Expression *PostIncExp::semantic(Scope *sc)
     return e;
 }
 
-void PostIncExp::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
+void PostExp::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 {
     expToCBuffer(buf, hgs, e1, precedence[op]);
-    buf->writestring("++");
+    buf->writestring((op == TOKplusplus) ? (char *)"++" : (char *)"--");
 }
 
 /************************************************************/
 
-PostDecExp::PostDecExp(Loc loc, Expression *e)
-	: BinExp(loc, TOKminusminus, sizeof(PostDecExp), e, new IntegerExp(loc, 1, Type::tint32))
-{
-}
-
-Expression *PostDecExp::semantic(Scope *sc)
-{   Expression *e = this;
-
-    if (!type)
-    {
-	BinExp::semantic(sc);
-	e2 = resolveProperties(sc, e2);
-	e = op_overload(sc);
-	if (e)
-	    return e;
-
-	e = this;
-	e1 = e1->modifiableLvalue(sc, NULL);
-	e1->checkScalar();
-	e1->checkNoBool();
-	if (e1->type->ty == Tpointer)
-	    e = scaleFactor(sc);
-	else
-	    e2 = e2->castTo(sc, e1->type);
-	e->type = e1->type;
-    }
-    return e;
-}
-
-void PostDecExp::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
-{
-    expToCBuffer(buf, hgs, e1, precedence[op]);
-    buf->writestring("--");
-}
-
-/************************************************************/
+/* Can be TOKconstruct too */
 
 AssignExp::AssignExp(Loc loc, Expression *e1, Expression *e2)
 	: BinExp(loc, TOKassign, sizeof(AssignExp), e1, e2)

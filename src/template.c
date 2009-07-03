@@ -1981,7 +1981,7 @@ void TemplateValueParameter::semantic(Scope *sc)
 
 	e = e->semantic(sc);
 	e = e->implicitCastTo(sc, valType);
-	e = e->constFold();
+	e = e->optimize(WANTvalue | WANTinterpret);
 	if (e->op == TOKint64 || e->op == TOKfloat64 ||
 	    e->op == TOKcomplex80 || e->op == TOKnull || e->op == TOKstring)
 	    specValue = e;
@@ -1994,7 +1994,7 @@ void TemplateValueParameter::semantic(Scope *sc)
 
 	e = e->semantic(sc);
 	e = e->implicitCastTo(sc, valType);
-	e = e->constFold();
+	e = e->optimize(WANTvalue | WANTinterpret);
 	if (e->op == TOKint64)
 	    defaultValue = e;
 	//e->toInteger();
@@ -2061,11 +2061,11 @@ MATCH TemplateValueParameter::matchArg(Scope *sc,
 
 	e = e->semantic(sc);
 	e = e->implicitCastTo(sc, valType);
-	e = e->constFold();
+	e = e->optimize(WANTvalue | WANTinterpret);
 
 	ei = ei->syntaxCopy();
 	ei = ei->semantic(sc);
-	ei = ei->constFold();
+	ei = ei->optimize(WANTvalue | WANTinterpret);
 	//printf("ei: %s, %s\n", ei->toChars(), ei->type->toChars());
 	//printf("e : %s, %s\n", e->toChars(), e->type->toChars());
 	if (!ei->equals(e))
@@ -2687,8 +2687,7 @@ void TemplateInstance::semanticTiargs(Scope *sc)
 	    if (ea)
 	    {
 		ea = ea->semantic(sc);
-		ea = ea->optimize(WANTvalue);
-		ea = ea->constFold();
+		ea = ea->optimize(WANTvalue | WANTinterpret);
 		tiargs->data[j] = ea;
 	    }
 	    else if (sa)
@@ -2735,8 +2734,7 @@ void TemplateInstance::semanticTiargs(Scope *sc)
 	    }
 	    assert(ea);
 	    ea = ea->semantic(sc);
-	    ea = ea->optimize(WANTvalue);
-	    //ea = ea->constFold();
+	    ea = ea->optimize(WANTvalue | WANTinterpret);
 	    tiargs->data[j] = ea;
 	}
 	else if (sa)
@@ -2977,7 +2975,7 @@ TemplateDeclaration *TemplateInstance::findTemplateDeclaration(Scope *sc)
 	{
 	    assert(ea);
 	    ea = ea->castTo(tvp->valType);
-	    ea = ea->optimize(WANTvalue);
+	    ea = ea->optimize(WANTvalue | WANTinterpret);
 	    tiargs->data[i] = (Object *)ea;
 	}
     }

@@ -39,6 +39,7 @@ struct TemplateDeclaration;
 struct ClassDeclaration;
 struct HdrGenState;
 struct BinExp;
+struct InterState;
 
 enum TOK;
 
@@ -115,8 +116,10 @@ struct Expression : Object
     virtual Expression *optimize(int result);
     #define WANTflags	1
     #define WANTvalue	2
+    #define WANTinterpret 4
 
-    virtual Expression *constFold();
+    virtual Expression *interpret(InterState *istate);
+
     virtual int isConst();
     virtual int isBool(int result);
     virtual int isBit();
@@ -144,6 +147,7 @@ struct IntegerExp : Expression
     IntegerExp(integer_t value);
     int equals(Object *o);
     Expression *semantic(Scope *sc);
+    Expression *interpret(InterState *istate);
     char *toChars();
     void dump(int indent);
     integer_t toInteger();
@@ -167,6 +171,7 @@ struct RealExp : Expression
     RealExp(Loc loc, real_t value, Type *type);
     int equals(Object *o);
     Expression *semantic(Scope *sc);
+    Expression *interpret(InterState *istate);
     char *toChars();
     integer_t toInteger();
     uinteger_t toUInteger();
@@ -189,6 +194,7 @@ struct ComplexExp : Expression
     ComplexExp(Loc loc, complex_t value, Type *type);
     int equals(Object *o);
     Expression *semantic(Scope *sc);
+    Expression *interpret(InterState *istate);
     char *toChars();
     integer_t toInteger();
     uinteger_t toUInteger();
@@ -279,6 +285,7 @@ struct NullExp : Expression
     void toMangleBuffer(OutBuffer *buf);
     int implicitConvTo(Type *t);
     Expression *castTo(Scope *sc, Type *t);
+    Expression *interpret(InterState *istate);
     elem *toElem(IRState *irs);
     dt_t **toDt(dt_t **pdt);
 };
@@ -298,6 +305,7 @@ struct StringExp : Expression
     int equals(Object *o);
     char *toChars();
     Expression *semantic(Scope *sc);
+    Expression *interpret(InterState *istate);
     StringExp *toUTF8(Scope *sc);
     int implicitConvTo(Type *t);
     Expression *castTo(Scope *sc, Type *t);
@@ -324,6 +332,7 @@ struct TupleExp : Expression
     void checkEscape();
     int checkSideEffect(int flag);
     Expression *optimize(int result);
+    Expression *interpret(InterState *istate);
     Expression *castTo(Scope *sc, Type *t);
 
     int inlineCost(InlineCostState *ics);
@@ -346,6 +355,7 @@ struct ArrayLiteralExp : Expression
     void toMangleBuffer(OutBuffer *buf);
     void scanForNestedRef(Scope *sc);
     Expression *optimize(int result);
+    Expression *interpret(InterState *istate);
     int implicitConvTo(Type *t);
     Expression *castTo(Scope *sc, Type *t);
 
@@ -469,6 +479,7 @@ struct VarExp : Expression
     VarExp(Loc loc, Declaration *var);
     int equals(Object *o);
     Expression *semantic(Scope *sc);
+    Expression *interpret(InterState *istate);
     void dump(int indent);
     char *toChars();
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
@@ -512,6 +523,7 @@ struct DeclarationExp : Expression
     DeclarationExp(Loc loc, Dsymbol *declaration);
     Expression *syntaxCopy();
     Expression *semantic(Scope *sc);
+    Expression *interpret(InterState *istate);
     int checkSideEffect(int flag);
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
     elem *toElem(IRState *irs);
@@ -572,6 +584,7 @@ struct UnaExp : Expression
     Expression *optimize(int result);
     void dump(int indent);
     void scanForNestedRef(Scope *sc);
+    Expression *interpretCommon(InterState *istate, Expression *(*fp)(Type *, Expression *));
 
     int inlineCost(InlineCostState *ics);
     Expression *doInline(InlineDoState *ids);
@@ -600,6 +613,9 @@ struct BinExp : Expression
     void incompatibleTypes();
     void dump(int indent);
     void scanForNestedRef(Scope *sc);
+    Expression *interpretCommon(InterState *istate, Expression *(*fp)(Type *, Expression *, Expression *));
+    Expression *interpretCommon2(InterState *istate, Expression *(*fp)(TOK, Type *, Expression *, Expression *));
+    Expression *interpretAssignCommon(InterState *istate, Expression *(*fp)(Type *, Expression *, Expression *));
 
     int inlineCost(InlineCostState *ics);
     Expression *doInline(InlineDoState *ids);
@@ -639,6 +655,7 @@ struct AssertExp : UnaExp
     AssertExp(Loc loc, Expression *e, Expression *msg = NULL);
     Expression *syntaxCopy();
     Expression *semantic(Scope *sc);
+    Expression *interpret(InterState *istate);
     int checkSideEffect(int flag);
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
 
@@ -727,6 +744,8 @@ struct CallExp : UnaExp
 
     Expression *syntaxCopy();
     Expression *semantic(Scope *sc);
+    Expression *optimize(int result);
+    Expression *interpret(InterState *istate);
     int checkSideEffect(int flag);
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
     void dump(int indent);
@@ -764,7 +783,8 @@ struct NegExp : UnaExp
 {
     NegExp(Loc loc, Expression *e);
     Expression *semantic(Scope *sc);
-    Expression *constFold();
+    Expression *optimize(int result);
+    Expression *interpret(InterState *istate);
 
     // For operator overloading
     Identifier *opId();
@@ -785,7 +805,8 @@ struct ComExp : UnaExp
 {
     ComExp(Loc loc, Expression *e);
     Expression *semantic(Scope *sc);
-    Expression *constFold();
+    Expression *optimize(int result);
+    Expression *interpret(InterState *istate);
 
     // For operator overloading
     Identifier *opId();
@@ -797,7 +818,8 @@ struct NotExp : UnaExp
 {
     NotExp(Loc loc, Expression *e);
     Expression *semantic(Scope *sc);
-    Expression *constFold();
+    Expression *optimize(int result);
+    Expression *interpret(InterState *istate);
     int isBit();
     elem *toElem(IRState *irs);
 };
@@ -806,7 +828,8 @@ struct BoolExp : UnaExp
 {
     BoolExp(Loc loc, Expression *e, Type *type);
     Expression *semantic(Scope *sc);
-    Expression *constFold();
+    Expression *optimize(int result);
+    Expression *interpret(InterState *istate);
     int isBit();
     elem *toElem(IRState *irs);
 };
@@ -830,10 +853,10 @@ struct CastExp : UnaExp
     Expression *syntaxCopy();
     Expression *semantic(Scope *sc);
     Expression *optimize(int result);
+    Expression *interpret(InterState *istate);
     int checkSideEffect(int flag);
     void checkEscape();
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
-    Expression *constFold();
     elem *toElem(IRState *irs);
 
     // For operator overloading
@@ -855,6 +878,7 @@ struct SliceExp : UnaExp
     Expression *modifiableLvalue(Scope *sc, Expression *e);
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
     Expression *optimize(int result);
+    Expression *interpret(InterState *istate);
     void dump(int indent);
     elem *toElem(IRState *irs);
     void scanForNestedRef(Scope *sc);
@@ -869,6 +893,7 @@ struct ArrayLengthExp : UnaExp
     ArrayLengthExp(Loc loc, Expression *e1);
     Expression *semantic(Scope *sc);
     Expression *optimize(int result);
+    Expression *interpret(InterState *istate);
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
     elem *toElem(IRState *irs);
 };
@@ -912,6 +937,7 @@ struct CommaExp : BinExp
     int isBool(int result);
     int checkSideEffect(int flag);
     Expression *optimize(int result);
+    Expression *interpret(InterState *istate);
     elem *toElem(IRState *irs);
 };
 
@@ -926,25 +952,20 @@ struct IndexExp : BinExp
     Expression *modifiableLvalue(Scope *sc, Expression *e);
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
     Expression *optimize(int result);
+    Expression *interpret(InterState *istate);
     Expression *doInline(InlineDoState *ids);
     void scanForNestedRef(Scope *sc);
 
     elem *toElem(IRState *irs);
 };
 
-struct PostIncExp : BinExp
+/* For both i++ and i--
+ */
+struct PostExp : BinExp
 {
-    PostIncExp(Loc loc, Expression *e);
+    PostExp(enum TOK op, Loc loc, Expression *e);
     Expression *semantic(Scope *sc);
-    void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
-    Identifier *opId();    // For operator overloading
-    elem *toElem(IRState *irs);
-};
-
-struct PostDecExp : BinExp
-{
-    PostDecExp(Loc loc, Expression *e);
-    Expression *semantic(Scope *sc);
+    Expression *interpret(InterState *istate);
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
     Identifier *opId();    // For operator overloading
     elem *toElem(IRState *irs);
@@ -955,147 +976,44 @@ struct AssignExp : BinExp
     AssignExp(Loc loc, Expression *e1, Expression *e2);
     Expression *semantic(Scope *sc);
     Expression *checkToBoolean();
+    Expression *interpret(InterState *istate);
     Identifier *opId();    // For operator overloading
     elem *toElem(IRState *irs);
 };
 
-struct AddAssignExp : BinExp
-{
-    AddAssignExp(Loc loc, Expression *e1, Expression *e2);
-    Expression *semantic(Scope *sc);
-
-    Identifier *opId();    // For operator overloading
-
-    elem *toElem(IRState *irs);
+#define ASSIGNEXP(op)	\
+struct op##AssignExp : BinExp					\
+{								\
+    op##AssignExp(Loc loc, Expression *e1, Expression *e2);	\
+    Expression *semantic(Scope *sc);				\
+    Expression *interpret(InterState *istate);			\
+								\
+    Identifier *opId();    /* For operator overloading */	\
+								\
+    elem *toElem(IRState *irs);					\
 };
 
-struct MinAssignExp : BinExp
-{
-    MinAssignExp(Loc loc, Expression *e1, Expression *e2);
-    Expression *semantic(Scope *sc);
+ASSIGNEXP(Add)
+ASSIGNEXP(Min)
+ASSIGNEXP(Cat)
+ASSIGNEXP(Mul)
+ASSIGNEXP(Div)
+ASSIGNEXP(Mod)
+ASSIGNEXP(Shl)
+ASSIGNEXP(Shr)
+ASSIGNEXP(Ushr)
+ASSIGNEXP(And)
+ASSIGNEXP(Or)
+ASSIGNEXP(Xor)
 
-    // For operator overloading
-    Identifier *opId();
-
-    elem *toElem(IRState *irs);
-};
-
-struct CatAssignExp : BinExp
-{
-    CatAssignExp(Loc loc, Expression *e1, Expression *e2);
-    Expression *semantic(Scope *sc);
-
-    // For operator overloading
-    Identifier *opId();
-
-    elem *toElem(IRState *irs);
-};
-
-struct MulAssignExp : BinExp
-{
-    MulAssignExp(Loc loc, Expression *e1, Expression *e2);
-    Expression *semantic(Scope *sc);
-
-    // For operator overloading
-    Identifier *opId();
-
-    elem *toElem(IRState *irs);
-};
-
-struct DivAssignExp : BinExp
-{
-    DivAssignExp(Loc loc, Expression *e1, Expression *e2);
-    Expression *semantic(Scope *sc);
-
-    // For operator overloading
-    Identifier *opId();
-
-    elem *toElem(IRState *irs);
-};
-
-struct ModAssignExp : BinExp
-{
-    ModAssignExp(Loc loc, Expression *e1, Expression *e2);
-    Expression *semantic(Scope *sc);
-
-    // For operator overloading
-    Identifier *opId();
-
-    elem *toElem(IRState *irs);
-};
-
-struct ShlAssignExp : BinExp
-{
-    ShlAssignExp(Loc loc, Expression *e1, Expression *e2);
-    Expression *semantic(Scope *sc);
-
-    // For operator overloading
-    Identifier *opId();
-
-    elem *toElem(IRState *irs);
-};
-
-struct ShrAssignExp : BinExp
-{
-    ShrAssignExp(Loc loc, Expression *e1, Expression *e2);
-    Expression *semantic(Scope *sc);
-
-    // For operator overloading
-    Identifier *opId();
-
-    elem *toElem(IRState *irs);
-};
-
-struct UshrAssignExp : BinExp
-{
-    UshrAssignExp(Loc loc, Expression *e1, Expression *e2);
-    Expression *semantic(Scope *sc);
-
-    // For operator overloading
-    Identifier *opId();
-
-    elem *toElem(IRState *irs);
-};
-
-struct AndAssignExp : BinExp
-{
-    AndAssignExp(Loc loc, Expression *e1, Expression *e2);
-    Expression *semantic(Scope *sc);
-
-    // For operator overloading
-    Identifier *opId();
-
-    elem *toElem(IRState *irs);
-};
-
-struct OrAssignExp : BinExp
-{
-    OrAssignExp(Loc loc, Expression *e1, Expression *e2);
-    Expression *semantic(Scope *sc);
-
-    // For operator overloading
-    Identifier *opId();
-
-    elem *toElem(IRState *irs);
-};
-
-struct XorAssignExp : BinExp
-{
-    XorAssignExp(Loc loc, Expression *e1, Expression *e2);
-    Expression *semantic(Scope *sc);
-
-    // For operator overloading
-    Identifier *opId();
-
-    elem *toElem(IRState *irs);
-};
+#undef ASSIGNEXP
 
 struct AddExp : BinExp
 {
     AddExp(Loc loc, Expression *e1, Expression *e2);
     Expression *semantic(Scope *sc);
-    Expression *constFold();
     Expression *optimize(int result);
+    Expression *interpret(InterState *istate);
 
     // For operator overloading
     int isCommutative();
@@ -1109,8 +1027,8 @@ struct MinExp : BinExp
 {
     MinExp(Loc loc, Expression *e1, Expression *e2);
     Expression *semantic(Scope *sc);
-    Expression *constFold();
     Expression *optimize(int result);
+    Expression *interpret(InterState *istate);
 
     // For operator overloading
     Identifier *opId();
@@ -1124,6 +1042,7 @@ struct CatExp : BinExp
     CatExp(Loc loc, Expression *e1, Expression *e2);
     Expression *semantic(Scope *sc);
     Expression *optimize(int result);
+    Expression *interpret(InterState *istate);
 
     // For operator overloading
     Identifier *opId();
@@ -1136,7 +1055,8 @@ struct MulExp : BinExp
 {
     MulExp(Loc loc, Expression *e1, Expression *e2);
     Expression *semantic(Scope *sc);
-    Expression *constFold();
+    Expression *optimize(int result);
+    Expression *interpret(InterState *istate);
 
     // For operator overloading
     int isCommutative();
@@ -1150,7 +1070,8 @@ struct DivExp : BinExp
 {
     DivExp(Loc loc, Expression *e1, Expression *e2);
     Expression *semantic(Scope *sc);
-    Expression *constFold();
+    Expression *optimize(int result);
+    Expression *interpret(InterState *istate);
 
     // For operator overloading
     Identifier *opId();
@@ -1163,7 +1084,8 @@ struct ModExp : BinExp
 {
     ModExp(Loc loc, Expression *e1, Expression *e2);
     Expression *semantic(Scope *sc);
-    Expression *constFold();
+    Expression *optimize(int result);
+    Expression *interpret(InterState *istate);
 
     // For operator overloading
     Identifier *opId();
@@ -1176,8 +1098,8 @@ struct ShlExp : BinExp
 {
     ShlExp(Loc loc, Expression *e1, Expression *e2);
     Expression *semantic(Scope *sc);
-    Expression *constFold();
     Expression *optimize(int result);
+    Expression *interpret(InterState *istate);
 
     // For operator overloading
     Identifier *opId();
@@ -1190,7 +1112,8 @@ struct ShrExp : BinExp
 {
     ShrExp(Loc loc, Expression *e1, Expression *e2);
     Expression *semantic(Scope *sc);
-    Expression *constFold();
+    Expression *optimize(int result);
+    Expression *interpret(InterState *istate);
 
     // For operator overloading
     Identifier *opId();
@@ -1203,7 +1126,8 @@ struct UshrExp : BinExp
 {
     UshrExp(Loc loc, Expression *e1, Expression *e2);
     Expression *semantic(Scope *sc);
-    Expression *constFold();
+    Expression *optimize(int result);
+    Expression *interpret(InterState *istate);
 
     // For operator overloading
     Identifier *opId();
@@ -1216,7 +1140,8 @@ struct AndExp : BinExp
 {
     AndExp(Loc loc, Expression *e1, Expression *e2);
     Expression *semantic(Scope *sc);
-    Expression *constFold();
+    Expression *optimize(int result);
+    Expression *interpret(InterState *istate);
 
     // For operator overloading
     int isCommutative();
@@ -1230,7 +1155,8 @@ struct OrExp : BinExp
 {
     OrExp(Loc loc, Expression *e1, Expression *e2);
     Expression *semantic(Scope *sc);
-    Expression *constFold();
+    Expression *optimize(int result);
+    Expression *interpret(InterState *istate);
 
     // For operator overloading
     int isCommutative();
@@ -1244,7 +1170,8 @@ struct XorExp : BinExp
 {
     XorExp(Loc loc, Expression *e1, Expression *e2);
     Expression *semantic(Scope *sc);
-    Expression *constFold();
+    Expression *optimize(int result);
+    Expression *interpret(InterState *istate);
 
     // For operator overloading
     int isCommutative();
@@ -1260,8 +1187,8 @@ struct OrOrExp : BinExp
     Expression *semantic(Scope *sc);
     Expression *checkToBoolean();
     int isBit();
-    Expression *constFold();
     Expression *optimize(int result);
+    Expression *interpret(InterState *istate);
     int checkSideEffect(int flag);
     elem *toElem(IRState *irs);
 };
@@ -1272,8 +1199,8 @@ struct AndAndExp : BinExp
     Expression *semantic(Scope *sc);
     Expression *checkToBoolean();
     int isBit();
-    Expression *constFold();
     Expression *optimize(int result);
+    Expression *interpret(InterState *istate);
     int checkSideEffect(int flag);
     elem *toElem(IRState *irs);
 };
@@ -1282,7 +1209,8 @@ struct CmpExp : BinExp
 {
     CmpExp(enum TOK op, Loc loc, Expression *e1, Expression *e2);
     Expression *semantic(Scope *sc);
-    Expression *constFold();
+    Expression *optimize(int result);
+    Expression *interpret(InterState *istate);
     int isBit();
 
     // For operator overloading
@@ -1317,8 +1245,8 @@ struct EqualExp : BinExp
 {
     EqualExp(enum TOK op, Loc loc, Expression *e1, Expression *e2);
     Expression *semantic(Scope *sc);
-    Expression *constFold();
     Expression *optimize(int result);
+    Expression *interpret(InterState *istate);
     int isBit();
 
     // For operator overloading
@@ -1335,7 +1263,8 @@ struct IdentityExp : BinExp
     IdentityExp(enum TOK op, Loc loc, Expression *e1, Expression *e2);
     Expression *semantic(Scope *sc);
     int isBit();
-    Expression *constFold();
+    Expression *optimize(int result);
+    Expression *interpret(InterState *istate);
     elem *toElem(IRState *irs);
 };
 
@@ -1349,7 +1278,7 @@ struct CondExp : BinExp
     Expression *syntaxCopy();
     Expression *semantic(Scope *sc);
     Expression *optimize(int result);
-    Expression *constFold();
+    Expression *interpret(InterState *istate);
     void checkEscape();
     Expression *toLvalue(Scope *sc, Expression *e);
     Expression *modifiableLvalue(Scope *sc, Expression *e);
@@ -1366,5 +1295,42 @@ struct CondExp : BinExp
 
     elem *toElem(IRState *irs);
 };
+
+
+/****************************************************************/
+
+/* Special values used by the interpreter
+ */
+#define EXP_CANT_INTERPRET	((Expression *)1)
+#define EXP_CONTINUE_INTERPRET	((Expression *)2)
+#define EXP_BREAK_INTERPRET	((Expression *)3)
+#define EXP_GOTO_INTERPRET	((Expression *)4)
+
+Expression *Neg(Type *type, Expression *e1);
+Expression *Com(Type *type, Expression *e1);
+Expression *Not(Type *type, Expression *e1);
+Expression *Bool(Type *type, Expression *e1);
+Expression *Cast(Type *type, Type *to, Expression *e1);
+Expression *ArrayLength(Type *type, Expression *e1);
+
+Expression *Add(Type *type, Expression *e1, Expression *e2);
+Expression *Min(Type *type, Expression *e1, Expression *e2);
+Expression *Mul(Type *type, Expression *e1, Expression *e2);
+Expression *Div(Type *type, Expression *e1, Expression *e2);
+Expression *Mod(Type *type, Expression *e1, Expression *e2);
+Expression *Shl(Type *type, Expression *e1, Expression *e2);
+Expression *Shr(Type *type, Expression *e1, Expression *e2);
+Expression *Ushr(Type *type, Expression *e1, Expression *e2);
+Expression *And(Type *type, Expression *e1, Expression *e2);
+Expression *Or(Type *type, Expression *e1, Expression *e2);
+Expression *Xor(Type *type, Expression *e1, Expression *e2);
+Expression *Index(Type *type, Expression *e1, Expression *e2);
+Expression *Cat(Type *type, Expression *e1, Expression *e2);
+
+Expression *Equal(enum TOK op, Type *type, Expression *e1, Expression *e2);
+Expression *Cmp(enum TOK op, Type *type, Expression *e1, Expression *e2);
+Expression *Identity(enum TOK op, Type *type, Expression *e1, Expression *e2);
+
+Expression *Slice(Type *type, Expression *e1, Expression *lwr, Expression *upr);
 
 #endif /* DMD_EXPRESSION_H */

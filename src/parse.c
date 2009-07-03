@@ -4057,11 +4057,11 @@ Expression *Parser::parsePostExp(Expression *e)
 		break;
 
 	    case TOKplusplus:
-		e = new PostIncExp(loc, e);
+		e = new PostExp(TOKplusplus, loc, e);
 		break;
 
 	    case TOKminusminus:
-		e = new PostDecExp(loc, e);
+		e = new PostExp(TOKminusminus, loc, e);
 		break;
 
 	    case TOKlparen:

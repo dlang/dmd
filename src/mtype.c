@@ -607,7 +607,7 @@ Expression *Type::dotExp(Scope *sc, Expression *e, Identifier *ident)
 		    error(e->loc, "%s.init is void", v->toChars());
 		else
 		{   e = v->init->toExpression();
-		    if (e->op == TOKassign)
+		    if (e->op == TOKassign || e->op == TOKconstruct)
 		    {
 			e = ((AssignExp *)e)->e2;
 
@@ -1688,7 +1688,7 @@ void TypeSArray::resolve(Loc loc, Scope *sc, Expression **pe, Type **pt, Dsymbol
 	    sc = sc->push(sym);
 
 	    dim = dim->semantic(sc);
-	    dim = dim->constFold();
+	    dim = dim->optimize(WANTvalue | WANTinterpret);
 	    uinteger_t d = dim->toUInteger();
 
 	    sc = sc->pop();
@@ -1732,10 +1732,9 @@ Type *TypeSArray::semantic(Loc loc, Scope *sc)
 	dim = semanticLength(sc, tbn, dim);
 
 	dim = dim->optimize(WANTvalue);
-	dim = dim->constFold();
 	integer_t d1 = dim->toInteger();
 	dim = dim->castTo(sc, tsize_t);
-	dim = dim->constFold();
+	dim = dim->optimize(WANTvalue);
 	integer_t d2 = dim->toInteger();
 
 	if (d1 != d2)
@@ -4810,11 +4809,11 @@ Type *TypeSlice::semantic(Loc loc, Scope *sc)
     TypeTuple *tt = (TypeTuple *)tbn;
 
     lwr = semanticLength(sc, tbn, lwr);
-    lwr = lwr->constFold();
+    lwr = lwr->optimize(WANTvalue);
     uinteger_t i1 = lwr->toUInteger();
 
     upr = semanticLength(sc, tbn, upr);
-    upr = upr->constFold();
+    upr = upr->optimize(WANTvalue);
     uinteger_t i2 = upr->toUInteger();
 
     if (!(i1 <= i2 && i2 <= tt->arguments->dim))
@@ -4853,11 +4852,11 @@ void TypeSlice::resolve(Loc loc, Scope *sc, Expression **pe, Type **pt, Dsymbol 
 	    sc = sc->push(sym);
 
 	    lwr = lwr->semantic(sc);
-	    lwr = lwr->constFold();
+	    lwr = lwr->optimize(WANTvalue);
 	    uinteger_t i1 = lwr->toUInteger();
 
 	    upr = upr->semantic(sc);
-	    upr = upr->constFold();
+	    upr = upr->optimize(WANTvalue);
 	    uinteger_t i2 = upr->toUInteger();
 
 	    sc = sc->pop();
