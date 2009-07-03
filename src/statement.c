@@ -522,7 +522,7 @@ int CompoundStatement::usesEH()
 int CompoundStatement::fallOffEnd()
 {   int falloff = TRUE;
 
-    //printf("CompoundStatement::fallOffEnd()\n");
+    //printf("CompoundStatement::fallOffEnd() %s\n", toChars());
     for (int i = 0; i < statements->dim; i++)
     {	Statement *s = (Statement *)statements->data[i];
 
@@ -3207,7 +3207,7 @@ int TryFinallyStatement::usesEH()
 int TryFinallyStatement::fallOffEnd()
 {   int result;
 
-    result = body->fallOffEnd();
+    result = body ? body->fallOffEnd() : TRUE;
 //    if (finalbody)
 //	result = finalbody->fallOffEnd();
     return result;

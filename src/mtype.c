@@ -1,6 +1,6 @@
 
 // Compiler implementation of the D programming language
-// Copyright (c) 1999-2007 by Digital Mars
+// Copyright (c) 1999-2008 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // http://www.digitalmars.com
@@ -104,8 +104,13 @@ StringTable Type::stringtable;
 Type::Type(TY ty, Type *next)
 {
     this->ty = ty;
+    this->mod = 0;
     this->next = next;
     this->deco = NULL;
+#if V2
+    this->cto = NULL;
+    this->ito = NULL;
+#endif
     this->pto = NULL;
     this->rto = NULL;
     this->arrayof = NULL;
@@ -327,16 +332,6 @@ void Type::toDecoBuffer(OutBuffer *buf)
 }
 
 /********************************
- * Name mangling.
- */
-
-void Type::toTypeInfoBuffer(OutBuffer *buf)
-{
-    assert(0);
-    buf->writeByte(mangleChar[ty]);
-}
-
-/********************************
  * For pretty-printing a type.
  */
 
@@ -345,26 +340,53 @@ char *Type::toChars()
     HdrGenState hgs;
 
     buf = new OutBuffer();
-    toCBuffer2(buf, NULL, &hgs);
+    toCBuffer(buf, NULL, &hgs);
     return buf->toChars();
 }
 
 void Type::toCBuffer(OutBuffer *buf, Identifier *ident, HdrGenState *hgs)
 {
-    OutBuffer tbuf;
-
-    toCBuffer2(&tbuf, ident, hgs);
-    buf->write(&tbuf);
-}
-
-void Type::toCBuffer2(OutBuffer *buf, Identifier *ident, HdrGenState *hgs)
-{
-    buf->prependstring(toChars());
+    toCBuffer2(buf, hgs, 0);
     if (ident)
     {	buf->writeByte(' ');
 	buf->writestring(ident->toChars());
     }
 }
+
+void Type::toCBuffer2(OutBuffer *buf, HdrGenState *hgs, int mod)
+{
+    if (mod != this->mod)
+    {	toCBuffer3(buf, hgs, mod);
+	return;
+    }
+    buf->writestring(toChars());
+}
+
+void Type::toCBuffer3(OutBuffer *buf, HdrGenState *hgs, int mod)
+{
+    if (mod != this->mod)
+    {	char *p;
+
+	switch (this->mod)
+	{
+	    case 0:
+		toCBuffer2(buf, hgs, this->mod);
+		break;
+	    case MODconst:
+		p = "const(";
+		goto L1;
+	    case MODinvariant:
+		p = "invariant(";
+	    L1:	buf->writestring(p);
+		toCBuffer2(buf, hgs, this->mod);
+		buf->writeByte(')');
+		break;
+	    default:
+		assert(0);
+	}
+    }
+}
+
 
 /************************************
  */
@@ -895,13 +917,14 @@ char *TypeBasic::toChars()
     return dstring;
 }
 
-void TypeBasic::toCBuffer2(OutBuffer *buf, Identifier *ident, HdrGenState *hgs)
+void TypeBasic::toCBuffer2(OutBuffer *buf, HdrGenState *hgs, int mod)
 {
-    buf->prependstring(cstring);
-    if (ident)
-    {	buf->writeByte(' ');
-	buf->writestring(ident->toChars());
+    //printf("TypeBasic::toCBuffer2(mod = %d, this->mod = %d)\n", mod, this->mod);
+    if (mod != this->mod)
+    {	toCBuffer3(buf, hgs, mod);
+	return;
     }
+    buf->writestring(dstring);
 }
 
 d_uns64 TypeBasic::size(Loc loc)
@@ -1574,58 +1597,6 @@ Expression *TypeArray::dotExp(Scope *sc, Expression *e, Identifier *ident)
     return e;
 }
 
-void TypeArray::toCBuffer2(OutBuffer *buf, Identifier *ident, HdrGenState *hgs)
-{
-#if 1
-    OutBuffer buf2;
-    toPrettyBracket(&buf2, hgs);
-    buf->prependstring(buf2.toChars());
-    if (ident)
-    {
-	buf->writeByte(' ');
-	buf->writestring(ident->toChars());
-    }
-    next->toCBuffer2(buf, NULL, hgs);
-#elif 1
-    // The D way
-    Type *t;
-    OutBuffer buf2;
-    for (t = this; 1; t = t->next)
-    {	TypeArray *ta;
-
-	ta = dynamic_cast<TypeArray *>(t);
-	if (!ta)
-	    break;
-	ta->toPrettyBracket(&buf2, hgs);
-    }
-    buf->prependstring(buf2.toChars());
-    if (ident)
-    {
-	buf2.writestring(ident->toChars());
-    }
-    t->toCBuffer2(buf, NULL, hgs);
-#else
-    // The C way
-    if (buf->offset)
-    {	buf->bracket('(', ')');
-	assert(!ident);
-    }
-    else if (ident)
-	buf->writestring(ident->toChars());
-    Type *t = this;
-    do
-    {	Expression *dim;
-	buf->writeByte('[');
-	dim = ((TypeSArray *)t)->dim;
-	if (dim)
-	    buf->printf("%lld", dim->toInteger());
-	buf->writeByte(']');
-	t = t->next;
-    } while (t->ty == Tsarray);
-    t->toCBuffer2(buf, NULL, hgs);
-#endif
-}
-
 
 /***************************** TypeSArray *****************************/
 
@@ -1887,15 +1858,13 @@ void TypeSArray::toDecoBuffer(OutBuffer *buf)
 	next->toDecoBuffer(buf);
 }
 
-void TypeSArray::toTypeInfoBuffer(OutBuffer *buf)
+void TypeSArray::toCBuffer2(OutBuffer *buf, HdrGenState *hgs, int mod)
 {
-    buf->writeByte(mangleChar[Tarray]);
-    if (next)
-	next->toTypeInfoBuffer(buf);
-}
-
-void TypeSArray::toPrettyBracket(OutBuffer *buf, HdrGenState *hgs)
-{
+    if (mod != this->mod)
+    {	toCBuffer3(buf, hgs, mod);
+	return;
+    }
+    next->toCBuffer2(buf, hgs, this->mod);
     buf->printf("[%s]", dim->toChars());
 }
 
@@ -2053,15 +2022,13 @@ void TypeDArray::toDecoBuffer(OutBuffer *buf)
 	next->toDecoBuffer(buf);
 }
 
-void TypeDArray::toTypeInfoBuffer(OutBuffer *buf)
+void TypeDArray::toCBuffer2(OutBuffer *buf, HdrGenState *hgs, int mod)
 {
-    buf->writeByte(mangleChar[ty]);
-    if (next)
-	next->toTypeInfoBuffer(buf);
-}
-
-void TypeDArray::toPrettyBracket(OutBuffer *buf, HdrGenState *hgs)
-{
+    if (mod != this->mod)
+    {	toCBuffer3(buf, hgs, mod);
+	return;
+    }
+    next->toCBuffer2(buf, hgs, this->mod);
     buf->writestring("[]");
 }
 
@@ -2324,14 +2291,15 @@ void TypeAArray::toDecoBuffer(OutBuffer *buf)
     next->toDecoBuffer(buf);
 }
 
-void TypeAArray::toPrettyBracket(OutBuffer *buf, HdrGenState *hgs)
+void TypeAArray::toCBuffer2(OutBuffer *buf, HdrGenState *hgs, int mod)
 {
-    buf->writeByte('[');
-    {	OutBuffer ibuf;
-
-	index->toCBuffer2(&ibuf, NULL, hgs);
-	buf->write(&ibuf);
+    if (mod != this->mod)
+    {	toCBuffer3(buf, hgs, mod);
+	return;
     }
+    next->toCBuffer2(buf, hgs, this->mod);
+    buf->writeByte('[');
+    index->toCBuffer2(buf, hgs, 0);
     buf->writeByte(']');
 }
 
@@ -2396,16 +2364,16 @@ d_uns64 TypePointer::size(Loc loc)
     return PTRSIZE;
 }
 
-void TypePointer::toCBuffer2(OutBuffer *buf, Identifier *ident, HdrGenState *hgs)
+void TypePointer::toCBuffer2(OutBuffer *buf, HdrGenState *hgs, int mod)
 {
     //printf("TypePointer::toCBuffer2() next = %d\n", next->ty);
-    buf->prependstring("*");
-    if (ident)
-    {
-	buf->writeByte(' ');
-	buf->writestring(ident->toChars());
+    if (mod != this->mod)
+    {	toCBuffer3(buf, hgs, mod);
+	return;
     }
-    next->toCBuffer2(buf, NULL, hgs);
+    next->toCBuffer2(buf, hgs, this->mod);
+    if (next->ty != Tfunction)
+	buf->writeByte('*');
 }
 
 MATCH TypePointer::implicitConvTo(Type *to)
@@ -2490,14 +2458,14 @@ d_uns64 TypeReference::size(Loc loc)
     return PTRSIZE;
 }
 
-void TypeReference::toCBuffer2(OutBuffer *buf, Identifier *ident, HdrGenState *hgs)
+void TypeReference::toCBuffer2(OutBuffer *buf, HdrGenState *hgs, int mod)
 {
-    buf->prependstring("&");
-    if (ident)
-    {
-	buf->writestring(ident->toChars());
+    if (mod != this->mod)
+    {	toCBuffer3(buf, hgs, mod);
+	return;
     }
-    next->toCBuffer2(buf, NULL, hgs);
+    next->toCBuffer2(buf, hgs, this->mod);
+    buf->writeByte('&');
 }
 
 Expression *TypeReference::dotExp(Scope *sc, Expression *e, Identifier *ident)
@@ -2666,7 +2634,7 @@ void TypeFunction::toDecoBuffer(OutBuffer *buf)
     inuse--;
 }
 
-void TypeFunction::toCBuffer2(OutBuffer *buf, Identifier *ident, HdrGenState *hgs)
+void TypeFunction::toCBuffer(OutBuffer *buf, Identifier *ident, HdrGenState *hgs)
 {
     char *p = NULL;
 
@@ -2675,6 +2643,8 @@ void TypeFunction::toCBuffer2(OutBuffer *buf, Identifier *ident, HdrGenState *hg
 	return;
     }
     inuse++;
+    if (next && (!ident || ident->toHChars2() == ident->toChars()))
+	next->toCBuffer2(buf, hgs, 0);
     if (hgs->ddoc != 1)
     {
 	switch (linkage)
@@ -2689,25 +2659,45 @@ void TypeFunction::toCBuffer2(OutBuffer *buf, Identifier *ident, HdrGenState *hg
 	}
     }
 
-    if (buf->offset)
-    {
-	if (!hgs->hdrgen && p)
-	    buf->prependstring(p);
-	buf->bracket('(', ')');
-	assert(!ident);
-    }
-    else
-    {
-	if (!hgs->hdrgen && p)
-	    buf->writestring(p);
-	if (ident)
-	{   buf->writeByte(' ');
-	    buf->writestring(ident->toHChars2());
-	}
+    if (!hgs->hdrgen && p)
+	buf->writestring(p);
+    if (ident)
+    {   buf->writeByte(' ');
+	buf->writestring(ident->toHChars2());
     }
     Argument::argsToCBuffer(buf, hgs, parameters, varargs);
-    if (next && (!ident || ident->toHChars2() == ident->toChars()))
-	next->toCBuffer2(buf, NULL, hgs);
+    inuse--;
+}
+
+void TypeFunction::toCBuffer2(OutBuffer *buf, HdrGenState *hgs, int mod)
+{
+    char *p = NULL;
+
+    if (inuse)
+    {	inuse = 2;		// flag error to caller
+	return;
+    }
+    inuse++;
+    if (next)
+	next->toCBuffer2(buf, hgs, 0);
+    if (hgs->ddoc != 1)
+    {
+	switch (linkage)
+	{
+	    case LINKd:		p = NULL;	break;
+	    case LINKc:		p = "C ";	break;
+	    case LINKwindows:	p = "Windows ";	break;
+	    case LINKpascal:	p = "Pascal ";	break;
+	    case LINKcpp:	p = "C++ ";	break;
+	    default:
+		assert(0);
+	}
+    }
+
+    if (!hgs->hdrgen && p)
+	buf->writestring(p);
+    buf->writestring(" function");
+    Argument::argsToCBuffer(buf, hgs, parameters, varargs);
     inuse--;
 }
 
@@ -2978,28 +2968,17 @@ d_uns64 TypeDelegate::size(Loc loc)
     return PTRSIZE * 2;
 }
 
-void TypeDelegate::toCBuffer2(OutBuffer *buf, Identifier *ident, HdrGenState *hgs)
+void TypeDelegate::toCBuffer2(OutBuffer *buf, HdrGenState *hgs, int mod)
 {
-#if 1
-    OutBuffer args;
+    if (mod != this->mod)
+    {	toCBuffer3(buf, hgs, mod);
+	return;
+    }
     TypeFunction *tf = (TypeFunction *)next;
 
-    Argument::argsToCBuffer(&args, hgs, tf->parameters, tf->varargs);
-    buf->prependstring(args.toChars());
-    buf->prependstring(" delegate");
-    if (ident)
-    {
-	buf->writeByte(' ');
-	buf->writestring(ident->toChars());
-    }
-    next->next->toCBuffer2(buf, NULL, hgs);
-#else
-    next->toCBuffer2(buf, Id::delegate, hgs);
-    if (ident)
-    {
-	buf->writestring(ident->toChars());
-    }
-#endif
+    tf->next->toCBuffer2(buf, hgs, 0);
+    buf->writestring(" delegate");
+    Argument::argsToCBuffer(buf, hgs, tf->parameters, tf->varargs);
 }
 
 Expression *TypeDelegate::defaultInit(Loc loc)
@@ -3089,7 +3068,7 @@ void TypeQualified::addIdent(Identifier *ident)
     idents.push(ident);
 }
 
-void TypeQualified::toCBuffer2Helper(OutBuffer *buf, Identifier *ident, HdrGenState *hgs)
+void TypeQualified::toCBuffer2Helper(OutBuffer *buf, HdrGenState *hgs)
 {
     int i;
 
@@ -3319,17 +3298,14 @@ void TypeIdentifier::toDecoBuffer(OutBuffer *buf)
     //buf->printf("%c%s", mangleChar[ty], name);
 }
 
-void TypeIdentifier::toCBuffer2(OutBuffer *buf, Identifier *ident, HdrGenState *hgs)
+void TypeIdentifier::toCBuffer2(OutBuffer *buf, HdrGenState *hgs, int mod)
 {
-    OutBuffer tmp;
-
-    tmp.writestring(this->ident->toChars());
-    toCBuffer2Helper(&tmp, NULL, hgs);
-    buf->prependstring(tmp.toChars());
-    if (ident)
-    {	buf->writeByte(' ');
-	buf->writestring(ident->toChars());
+    if (mod != this->mod)
+    {	toCBuffer3(buf, hgs, mod);
+	return;
     }
+    buf->writestring(this->ident->toChars());
+    toCBuffer2Helper(buf, hgs);
 }
 
 /*************************************
@@ -3451,17 +3427,14 @@ Type *TypeInstance::syntaxCopy()
 }
 
 
-void TypeInstance::toCBuffer2(OutBuffer *buf, Identifier *ident, HdrGenState *hgs)
+void TypeInstance::toCBuffer2(OutBuffer *buf, HdrGenState *hgs, int mod)
 {
-    OutBuffer tmp;
-
-    tempinst->toCBuffer(&tmp, hgs);
-    toCBuffer2Helper(&tmp, NULL, hgs);
-    buf->prependstring(tmp.toChars());
-    if (ident)
-    {	buf->writeByte(' ');
-	buf->writestring(ident->toChars());
+    if (mod != this->mod)
+    {	toCBuffer3(buf, hgs, mod);
+	return;
     }
+    tempinst->toCBuffer(buf, hgs);
+    toCBuffer2Helper(buf, hgs);
 }
 
 void TypeInstance::resolve(Loc loc, Scope *sc, Expression **pe, Type **pt, Dsymbol **ps)
@@ -3554,19 +3527,16 @@ Dsymbol *TypeTypeof::toDsymbol(Scope *sc)
     return t->toDsymbol(sc);
 }
 
-void TypeTypeof::toCBuffer2(OutBuffer *buf, Identifier *ident, HdrGenState *hgs)
+void TypeTypeof::toCBuffer2(OutBuffer *buf, HdrGenState *hgs, int mod)
 {
-    OutBuffer tmp;
-
-    tmp.writestring("typeof(");
-    exp->toCBuffer(&tmp, hgs);
-    tmp.writeByte(')');
-    toCBuffer2Helper(&tmp, NULL, hgs);
-    buf->prependstring(tmp.toChars());
-    if (ident)
-    {	buf->writeByte(' ');
-	buf->writestring(ident->toChars());
+    if (mod != this->mod)
+    {	toCBuffer3(buf, hgs, mod);
+	return;
     }
+    buf->writestring("typeof(");
+    exp->toCBuffer(buf, hgs);
+    buf->writeByte(')');
+    toCBuffer2Helper(buf, hgs);
 }
 
 Type *TypeTypeof::semantic(Loc loc, Scope *sc)
@@ -3743,18 +3713,13 @@ void TypeEnum::toDecoBuffer(OutBuffer *buf)
     buf->printf("%c%s", mangleChar[ty], name);
 }
 
-void TypeEnum::toTypeInfoBuffer(OutBuffer *buf)
+void TypeEnum::toCBuffer2(OutBuffer *buf, HdrGenState *hgs, int mod)
 {
-    toBasetype()->toTypeInfoBuffer(buf);
-}
-
-void TypeEnum::toCBuffer2(OutBuffer *buf, Identifier *ident, HdrGenState *hgs)
-{
-    buf->prependstring(sym->toChars());
-    if (ident)
-    {	buf->writeByte(' ');
-	buf->writestring(ident->toChars());
+    if (mod != this->mod)
+    {	toCBuffer3(buf, hgs, mod);
+	return;
     }
+    buf->writestring(sym->toChars());
 }
 
 Expression *TypeEnum::dotExp(Scope *sc, Expression *e, Identifier *ident)
@@ -3924,19 +3889,14 @@ void TypeTypedef::toDecoBuffer(OutBuffer *buf)
     buf->printf("%c%s", mangleChar[ty], name);
 }
 
-void TypeTypedef::toTypeInfoBuffer(OutBuffer *buf)
-{
-    sym->basetype->toTypeInfoBuffer(buf);
-}
-
-void TypeTypedef::toCBuffer2(OutBuffer *buf, Identifier *ident, HdrGenState *hgs)
+void TypeTypedef::toCBuffer2(OutBuffer *buf, HdrGenState *hgs, int mod)
 {
     //printf("TypeTypedef::toCBuffer2() '%s'\n", sym->toChars());
-    buf->prependstring(sym->toChars());
-    if (ident)
-    {	buf->writeByte(' ');
-	buf->writestring(ident->toChars());
+    if (mod != this->mod)
+    {	toCBuffer3(buf, hgs, mod);
+	return;
     }
+    buf->writestring(sym->toChars());
 }
 
 Expression *TypeTypedef::dotExp(Scope *sc, Expression *e, Identifier *ident)
@@ -4152,18 +4112,17 @@ void TypeStruct::toDecoBuffer(OutBuffer *buf)
     buf->printf("%c%s", mangleChar[ty], name);
 }
 
-void TypeStruct::toTypeInfoBuffer(OutBuffer *buf)
+void TypeStruct::toCBuffer2(OutBuffer *buf, HdrGenState *hgs, int mod)
 {
-    toDecoBuffer(buf);
-}
-
-
-void TypeStruct::toCBuffer2(OutBuffer *buf, Identifier *ident, HdrGenState *hgs)
-{
-    buf->prependbyte(' ');
-    buf->prependstring(toChars());
-    if (ident)
-	buf->writestring(ident->toChars());
+    if (mod != this->mod)
+    {	toCBuffer3(buf, hgs, mod);
+	return;
+    }
+    TemplateInstance *ti = sym->parent->isTemplateInstance();
+    if (ti && ti->toAlias() == sym)
+	buf->writestring(ti->toChars());
+    else
+	buf->writestring(sym->toChars());
 }
 
 Expression *TypeStruct::dotExp(Scope *sc, Expression *e, Identifier *ident)
@@ -4429,13 +4388,13 @@ void TypeClass::toDecoBuffer(OutBuffer *buf)
     buf->printf("%c%s", mangleChar[ty], name);
 }
 
-void TypeClass::toCBuffer2(OutBuffer *buf, Identifier *ident, HdrGenState *hgs)
+void TypeClass::toCBuffer2(OutBuffer *buf, HdrGenState *hgs, int mod)
 {
-    buf->prependstring(sym->toChars());
-    if (ident)
-    {	buf->writeByte(' ');
-	buf->writestring(ident->toChars());
+    if (mod != this->mod)
+    {	toCBuffer3(buf, hgs, mod);
+	return;
     }
+    buf->writestring(sym->toChars());
 }
 
 Expression *TypeClass::dotExp(Scope *sc, Expression *e, Identifier *ident)
@@ -4863,15 +4822,9 @@ Type *TypeTuple::reliesOnTident()
     return NULL;
 }
 
-void TypeTuple::toCBuffer2(OutBuffer *buf, Identifier *ident, HdrGenState *hgs)
+void TypeTuple::toCBuffer2(OutBuffer *buf, HdrGenState *hgs, int mod)
 {
-    OutBuffer buf2;
-    Argument::argsToCBuffer(&buf2, hgs, arguments, 0);
-    buf->prependstring(buf2.toChars());
-    if (ident)
-    {	buf->writeByte(' ');
-	buf->writestring(ident->toChars());
-    }
+    Argument::argsToCBuffer(buf, hgs, arguments, 0);
 }
 
 void TypeTuple::toDecoBuffer(OutBuffer *buf)
@@ -5019,20 +4972,16 @@ void TypeSlice::resolve(Loc loc, Scope *sc, Expression **pe, Type **pt, Dsymbol 
     }
 }
 
-void TypeSlice::toCBuffer2(OutBuffer *buf, Identifier *ident, HdrGenState *hgs)
+void TypeSlice::toCBuffer2(OutBuffer *buf, HdrGenState *hgs, int mod)
 {
-    OutBuffer buf2;
-
-    buf2.printf("[%s .. ", lwr->toChars());
-    buf2.printf("%s]", upr->toChars());
-
-    buf->prependstring(buf2.toChars());
-    if (ident)
-    {
-	buf->writeByte(' ');
-	buf->writestring(ident->toChars());
+    if (mod != this->mod)
+    {	toCBuffer3(buf, hgs, mod);
+	return;
     }
-    next->toCBuffer2(buf, NULL, hgs);
+    next->toCBuffer2(buf, hgs, this->mod);
+
+    buf->printf("[%s .. ", lwr->toChars());
+    buf->printf("%s]", upr->toChars());
 }
 
 /***************************** Argument *****************************/
@@ -5089,7 +5038,7 @@ char *Argument::argsTypesToChars(Arguments *args, int varargs)
 		buf->writeByte(',');
 	    arg = (Argument *)args->data[i];
 	    argbuf.reset();
-	    arg->type->toCBuffer2(&argbuf, NULL, &hgs);
+	    arg->type->toCBuffer2(&argbuf, &hgs, 0);
 	    buf->write(&argbuf);
 	}
 	if (varargs)
@@ -5125,7 +5074,7 @@ void Argument::argsToCBuffer(OutBuffer *buf, HdrGenState *hgs, Arguments *argume
 	    else if (arg->storageClass & STClazy)
 		buf->writestring("lazy ");
 	    argbuf.reset();
-	    arg->type->toCBuffer2(&argbuf, arg->ident, hgs);
+	    arg->type->toCBuffer(&argbuf, arg->ident, hgs);
 	    if (arg->defaultArg)
 	    {
 		argbuf.writestring(" = ");

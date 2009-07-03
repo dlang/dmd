@@ -1,6 +1,6 @@
 
 // Compiler implementation of the D programming language
-// Copyright (c) 1999-2007 by Digital Mars
+// Copyright (c) 1999-2008 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // http://www.digitalmars.com
@@ -89,6 +89,7 @@ enum PREC precedence[TOKMAX];
 
 void initPrecedence()
 {
+    precedence[TOKdotvar] = PREC_primary;
     precedence[TOKimport] = PREC_primary;
     precedence[TOKidentifier] = PREC_primary;
     precedence[TOKthis] = PREC_primary;
@@ -645,7 +646,7 @@ void argExpTypesToCBuffer(OutBuffer *buf, Expressions *arguments, HdrGenState *h
 	    if (i)
 		buf->writeByte(',');
 	    argbuf.reset();
-	    arg->type->toCBuffer2(&argbuf, NULL, hgs);
+	    arg->type->toCBuffer2(&argbuf, hgs, 0);
 	    buf->write(&argbuf);
 	}
     }
@@ -2496,6 +2497,8 @@ Expression *ArrayLiteralExp::semantic(Scope *sc)
 #if LOGSEMANTIC
     printf("ArrayLiteralExp::semantic('%s')\n", toChars());
 #endif
+    if (type)
+	return this;
 
     // Run semantic() on each element
     for (int i = 0; i < elements->dim; i++)
@@ -6223,7 +6226,10 @@ Expression *CastExp::semantic(Scope *sc)
 	}
 
 	Type *tob = to->toBasetype();
-	if (tob->ty == Tstruct && !tob->equals(e1->type->toBasetype()))
+	if (tob->ty == Tstruct &&
+	    !tob->equals(e1->type->toBasetype()) &&
+	    ((TypeStruct *)to)->sym->search(0, Id::call, 0)
+	   )
 	{
 	    /* Look to replace:
 	     *	cast(S)t
@@ -7261,6 +7267,8 @@ Expression *CatAssignExp::semantic(Scope *sc)
 
     Type *tb1 = e1->type->toBasetype();
     Type *tb2 = e2->type->toBasetype();
+
+    e2->rvalue();
 
     if ((tb1->ty == Tarray) &&
 	(tb2->ty == Tarray || tb2->ty == Tsarray) &&
@@ -8322,6 +8330,13 @@ Expression *CmpExp::semantic(Scope *sc)
 	return this;
 
     BinExp::semanticp(sc);
+
+    if (e1->type->toBasetype()->ty == Tclass && e2->op == TOKnull ||
+	e2->type->toBasetype()->ty == Tclass && e1->op == TOKnull)
+    {
+	error("do not use null when comparing class types");
+    }
+
     e = op_overload(sc);
     if (e)
     {
@@ -8375,6 +8390,7 @@ int CmpExp::isBit()
 EqualExp::EqualExp(enum TOK op, Loc loc, Expression *e1, Expression *e2)
 	: BinExp(loc, op, sizeof(EqualExp), e1, e2)
 {
+    assert(op == TOKequal || op == TOKnotequal);
 }
 
 Expression *EqualExp::semantic(Scope *sc)
@@ -8407,6 +8423,14 @@ Expression *EqualExp::semantic(Scope *sc)
 		return e;
 	    }
 	}
+    }
+
+    if (e1->type->toBasetype()->ty == Tclass && e2->op == TOKnull ||
+	e2->type->toBasetype()->ty == Tclass && e1->op == TOKnull)
+    {
+	error("use '%s' instead of '%s' when comparing with null",
+		Token::toChars(op == TOKequal ? TOKidentity : TOKnotidentity),
+		Token::toChars(op));
     }
 
     //if (e2->op != TOKnull)

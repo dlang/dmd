@@ -637,6 +637,14 @@ Condition *Parser::parseVersionCondition()
 	    id = token.ident;
 	else if (token.value == TOKint32v)
 	    level = (unsigned)token.uns64value;
+#if V2
+	/* Allow:
+	 *    version (unittest)
+	 * even though unittest is a keyword
+	 */
+	else if (token.value == TOKunittest)
+	    id = Lexer::idPool(Token::toChars(TOKunittest));
+#endif
 	else
 	    error("identifier or integer expected, not %s", token.toChars());
 	nextToken();

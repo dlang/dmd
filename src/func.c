@@ -1,6 +1,6 @@
 
 // Compiler implementation of the D programming language
-// Copyright (c) 1999-2007 by Digital Mars
+// Copyright (c) 1999-2008 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // http://www.digitalmars.com
@@ -606,7 +606,7 @@ void FuncDeclaration::semantic3(Scope *sc)
 	sc2->sw = NULL;
 	sc2->fes = fes;
 	sc2->linkage = LINKd;
-	sc2->stc &= ~(STCauto | STCscope | STCstatic | STCabstract | STCdeprecated);
+	sc2->stc &= ~(STCauto | STCscope | STCstatic | STCabstract | STCdeprecated | STCfinal);
 	sc2->protection = PROTpublic;
 	sc2->explicitProtection = 0;
 	sc2->structalign = 8;
@@ -2041,6 +2041,8 @@ void CtorDeclaration::semantic(Scope *sc)
     Type *tret;
 
     //printf("CtorDeclaration::semantic()\n");
+    if (type)
+	return;
 
     sc = sc->push();
     sc->stc &= ~STCstatic;		// not a static constructor
