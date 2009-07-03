@@ -520,6 +520,10 @@ void Dsymbol::checkDeprecated(Loc loc, Scope *sc)
 	{
 	    if (sc->scopesym && sc->scopesym->isDeprecated())
 		return;
+
+	    // If inside a StorageClassDeclaration that is deprecated
+	    if (sc->stc & STCdeprecated)
+		return;
 	}
 
 	error(loc, "is deprecated");
