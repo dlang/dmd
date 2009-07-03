@@ -1232,7 +1232,7 @@ MATCH Type::deduceType(Scope *sc, Type *tparam, TemplateParameters *parameters,
 	    return (MATCH) implicitConvTo(at);
 	}
 	else if (ty == Tsarray && at->ty == Tarray &&
-	    next->equals(at->nextOf()))
+	    nextOf()->equals(at->nextOf()))
 	{
 	    goto Lexact;
 	}
@@ -3278,7 +3278,6 @@ Identifier *TemplateInstance::genIdent()
 	else if (ea)
 	{   sinteger_t v;
 	    real_t r;
-	    unsigned char *p;
 
 	    if (ea->op == TOKvar)
 	    {
@@ -3298,6 +3297,8 @@ Identifier *TemplateInstance::genIdent()
 		continue;
 	    }
 #if 1
+	    /* Use deco that matches what it would be for a function parameter
+	     */
 	    buf.writestring(ea->type->deco);
 #else
 	    // Use type of parameter, not type of argument

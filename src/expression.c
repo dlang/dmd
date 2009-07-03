@@ -619,9 +619,11 @@ void argsToCBuffer(OutBuffer *buf, Expressions *arguments, HdrGenState *hgs)
 	for (size_t i = 0; i < arguments->dim; i++)
 	{   Expression *arg = (Expression *)arguments->data[i];
 
-	    if (i)
-		buf->writeByte(',');
-	    expToCBuffer(buf, hgs, arg, PREC_assign);
+	    if (arg)
+	    {	if (i)
+		    buf->writeByte(',');
+		expToCBuffer(buf, hgs, arg, PREC_assign);
+	    }
 	}
     }
 }
@@ -3979,9 +3981,9 @@ void HaltExp::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 
 /************************************************************/
 
-IftypeExp::IftypeExp(Loc loc, Type *targ, Identifier *id, enum TOK tok,
+IsExp::IsExp(Loc loc, Type *targ, Identifier *id, enum TOK tok,
 	Type *tspec, enum TOK tok2)
-	: Expression(loc, TOKis, sizeof(IftypeExp))
+	: Expression(loc, TOKis, sizeof(IsExp))
 {
     this->targ = targ;
     this->id = id;
@@ -3990,9 +3992,9 @@ IftypeExp::IftypeExp(Loc loc, Type *targ, Identifier *id, enum TOK tok,
     this->tok2 = tok2;
 }
 
-Expression *IftypeExp::syntaxCopy()
+Expression *IsExp::syntaxCopy()
 {
-    return new IftypeExp(loc,
+    return new IsExp(loc,
 	targ->syntaxCopy(),
 	id,
 	tok,
@@ -4000,10 +4002,10 @@ Expression *IftypeExp::syntaxCopy()
 	tok2);
 }
 
-Expression *IftypeExp::semantic(Scope *sc)
+Expression *IsExp::semantic(Scope *sc)
 {   Type *tded;
 
-    //printf("IftypeExp::semantic()\n");
+    //printf("IsExp::semantic()\n");
     if (id && !(sc->flags & SCOPEstaticif))
 	error("can only declare type aliases within static if conditionals");
 
@@ -4201,11 +4203,15 @@ Lno:
     return new IntegerExp(0);
 }
 
-void IftypeExp::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
+void IsExp::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 {
     buf->writestring("is(");
     targ->toCBuffer(buf, id, hgs);
-    if (tspec)
+    if (tok2 != TOKreserved)
+    {
+	buf->printf(" %s %s", Token::toChars(tok), Token::toChars(tok2));
+    }
+    else if (tspec)
     {
 	if (tok == TOKcolon)
 	    buf->writestring(" : ");
@@ -4213,6 +4219,17 @@ void IftypeExp::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 	    buf->writestring(" == ");
 	tspec->toCBuffer(buf, NULL, hgs);
     }
+#if V2
+    if (parameters)
+    {	// First parameter is already output, so start with second
+	for (int i = 1; i < parameters->dim; i++)
+	{
+	    buf->writeByte(',');
+	    TemplateParameter *tp = (TemplateParameter *)parameters->data[i];
+	    tp->toCBuffer(buf, hgs);
+	}
+    }
+#endif
     buf->writeByte(')');
 }
 
@@ -5308,7 +5325,7 @@ Expression *CallExp::semantic(Scope *sc)
     int istemp;
 
 #if LOGSEMANTIC
-    printf("CallExp::semantic('%s')\n", toChars());
+    printf("CallExp::semantic() %s\n", toChars());
 #endif
     if (type)
 	return this;		// semantic() already run
@@ -5443,6 +5460,9 @@ Lagain:
 	    ad = ((TypeStruct *)t1)->sym;
 	    if (search_function(ad, Id::call))
 		goto L1;	// overload of opCall, therefore it's a call
+
+	    if (e1->op != TOKtype)
+		error("%s %s does not overload ()", ad->kind(), ad->toChars());
 	    /* It's a struct literal
 	     */
 	    Expression *e = new StructLiteralExp(loc, (StructDeclaration *)ad, arguments);

@@ -65,6 +65,8 @@ void inferApplyArgTypes(enum TOK op, Arguments *arguments, Expression *aggr);
 void argExpTypesToCBuffer(OutBuffer *buf, Expressions *arguments, HdrGenState *hgs);
 void argsToCBuffer(OutBuffer *buf, Expressions *arguments, HdrGenState *hgs);
 void expandTuples(Expressions *exps);
+FuncDeclaration *hasThis(Scope *sc);
+Expression *fromConstInitializer(int result, Expression *e);
 
 struct Expression : Object
 {
@@ -617,7 +619,7 @@ struct HaltExp : Expression
     elem *toElem(IRState *irs);
 };
 
-struct IftypeExp : Expression
+struct IsExp : Expression
 {
     /* is(targ id tok tspec)
      * is(targ id == tok2)
@@ -628,7 +630,7 @@ struct IftypeExp : Expression
     Type *tspec;	// can be NULL
     enum TOK tok2;	// 'struct', 'union', 'typedef', etc.
 
-    IftypeExp(Loc loc, Type *targ, Identifier *id, enum TOK tok, Type *tspec, enum TOK tok2);
+    IsExp(Loc loc, Type *targ, Identifier *id, enum TOK tok, Type *tspec, enum TOK tok2);
     Expression *syntaxCopy();
     Expression *semantic(Scope *sc);
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);

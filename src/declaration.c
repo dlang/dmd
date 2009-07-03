@@ -771,7 +771,12 @@ void VarDeclaration::semantic(Scope *sc)
 	//printf("Providing default initializer for '%s'\n", toChars());
 	if (type->ty == Tstruct &&
 	    ((TypeStruct *)type)->sym->zeroInit == 1)
-	{
+	{   /* If a struct is all zeros, as a special case
+	     * set it's initializer to the integer 0.
+	     * In AssignExp::toElem(), we check for this and issue
+	     * a memset() to initialize the struct.
+	     * Must do same check in interpreter.
+	     */
 	    Expression *e = new IntegerExp(loc, 0, Type::tint32);
 	    Expression *e1;
 	    e1 = new VarExp(loc, this);
@@ -801,11 +806,12 @@ void VarDeclaration::semantic(Scope *sc)
     if (init)
     {
 	ArrayInitializer *ai = init->isArrayInitializer();
-	if (ai && type->toBasetype()->ty == Taarray)
+	if (ai && tb->ty == Taarray)
 	{
 	    init = ai->toAssocArrayInitializer();
 	}
 
+	StructInitializer *si = init->isStructInitializer();
 	ExpInitializer *ei = init->isExpInitializer();
 
 	// See if we can allocate on the stack
@@ -898,16 +904,25 @@ void VarDeclaration::semantic(Scope *sc)
 	     * Ignore failure.
 	     */
 
-	    if (ei && !global.errors && !inferred)
+	    if (!global.errors && !inferred)
 	    {
 		unsigned errors = global.errors;
 		global.gag++;
 		//printf("+gag\n");
-		Expression *e = ei->exp->syntaxCopy();
+		Expression *e;
+		Initializer *i2 = init;
 		inuse++;
-		e = e->semantic(sc);
+		if (ei)
+		{
+		    e = ei->exp->syntaxCopy();
+		    e = e->semantic(sc);
+		    e = e->implicitCastTo(sc, type);
+		}
+		else if (si || ai)
+		{   i2 = init->syntaxCopy();
+		    i2 = i2->semantic(sc, type);
+		}
 		inuse--;
-		e = e->implicitCastTo(sc, type);
 		global.gag--;
 		//printf("-gag\n");
 		if (errors != global.errors)	// if errors happened
@@ -915,7 +930,7 @@ void VarDeclaration::semantic(Scope *sc)
 		    if (global.gag == 0)
 			global.errors = errors;	// act as if nothing happened
 		}
-		else
+		else if (ei)
 		{
 		    e = e->optimize(WANTvalue | WANTinterpret);
 		    if (e->op == TOKint64 || e->op == TOKstring)
@@ -923,6 +938,8 @@ void VarDeclaration::semantic(Scope *sc)
 			ei->exp = e;		// no errors, keep result
 		    }
 		}
+		else
+		    init = i2;		// no errors, keep result
 	    }
 	}
     }

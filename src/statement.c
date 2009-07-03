@@ -894,6 +894,7 @@ Statement *DoStatement::semantic(Scope *sc)
     sc->noctor--;
     condition = condition->semantic(sc);
     condition = resolveProperties(sc, condition);
+    condition = condition->optimize(WANTvalue);
 
     condition = condition->checkToBoolean();
 
@@ -979,6 +980,7 @@ Statement *ForStatement::semantic(Scope *sc)
     sc->noctor++;
     condition = condition->semantic(sc);
     condition = resolveProperties(sc, condition);
+    condition = condition->optimize(WANTvalue);
     condition = condition->checkToBoolean();
     if (increment)
 	increment = increment->semantic(sc);
@@ -1090,7 +1092,8 @@ Statement *ForeachStatement::syntaxCopy()
 {
     Arguments *args = Argument::arraySyntaxCopy(arguments);
     Expression *exp = aggr->syntaxCopy();
-    ForeachStatement *s = new ForeachStatement(loc, op, args, exp, body->syntaxCopy());
+    ForeachStatement *s = new ForeachStatement(loc, op, args, exp,
+	body ? body->syntaxCopy() : NULL);
     return s;
 }
 
@@ -1255,7 +1258,7 @@ Statement *ForeachStatement::semantic(Scope *sc)
 	    /* Look for special case of parsing char types out of char type
 	     * array.
 	     */
-	    tn = tab->next->toBasetype();
+	    tn = tab->nextOf()->toBasetype();
 	    if (tn->ty == Tchar || tn->ty == Twchar || tn->ty == Tdchar)
 	    {	Argument *arg;
 
@@ -1311,9 +1314,6 @@ Statement *ForeachStatement::semantic(Scope *sc)
 		    error("foreach: %s is not an array of %s", tab->toChars(), value->type->toChars());
 	    }
 
-	    if (value->storage_class & STCout && value->type->toBasetype()->ty == Tbit)
-		error("foreach: value cannot be out and type bit");
-
 	    if (key &&
 		((key->type->ty != Tint32 && key->type->ty != Tuns32) ||
 		 (global.params.isX86_64 &&
@@ -1356,7 +1356,7 @@ Statement *ForeachStatement::semantic(Scope *sc)
 	    Identifier *id;
 	    Type *tret;
 
-	    tret = func->type->next;
+	    tret = func->type->nextOf();
 
 	    // Need a variable to hold value from any return statements in body.
 	    if (!sc->func->vresult && tret && tret != Type::tvoid)
@@ -1430,8 +1430,8 @@ Statement *ForeachStatement::semantic(Scope *sc)
 			error("foreach: index must be type %s, not %s", taa->index->toChars(), arg->type->toChars());
 		    arg = (Argument *)arguments->data[1];
 		}
-		if (!arg->type->equals(taa->next))
-		    error("foreach: value must be type %s, not %s", taa->next->toChars(), arg->type->toChars());
+		if (!arg->type->equals(taa->nextOf()))
+		    error("foreach: value must be type %s, not %s", taa->nextOf()->toChars(), arg->type->toChars());
 
 		/* Call:
 		 *	_aaApply(aggr, keysize, flde)
@@ -1982,7 +1982,7 @@ Statement *SwitchStatement::semantic(Scope *sc)
 	// If it's not an array, cast it to one
 	if (condition->type->ty != Tarray)
 	{
-	    condition = condition->implicitCastTo(sc, condition->type->next->arrayOf());
+	    condition = condition->implicitCastTo(sc, condition->type->nextOf()->arrayOf());
 	}
     }
     else
@@ -2122,6 +2122,7 @@ Statement *CaseStatement::syntaxCopy()
 Statement *CaseStatement::semantic(Scope *sc)
 {   SwitchStatement *sw = sc->sw;
 
+    //printf("CaseStatement::semantic() %s\n", toChars());
     exp = exp->semantic(sc);
     if (sw)
     {	int i;
@@ -2390,9 +2391,9 @@ Statement *ReturnStatement::semantic(Scope *sc)
 	}
     }
 
-    Type *tret = fd->type->next;
+    Type *tret = fd->type->nextOf();
     if (fd->tintro)
-	tret = fd->tintro->next;
+	tret = fd->tintro->nextOf();
     Type *tbret = NULL;
 
     if (tret)
@@ -2452,18 +2453,18 @@ Statement *ReturnStatement::semantic(Scope *sc)
 	}
 	else if (fd->inferRetType)
 	{
-	    if (fd->type->next)
+	    if (fd->type->nextOf())
 	    {
-		if (!exp->type->equals(fd->type->next))
+		if (!exp->type->equals(fd->type->nextOf()))
 		    error("mismatched function return type inference of %s and %s",
-			exp->type->toChars(), fd->type->next->toChars());
+			exp->type->toChars(), fd->type->nextOf()->toChars());
 	    }
 	    else
 	    {
 		fd->type->next = exp->type;
 		fd->type = fd->type->semantic(loc, sc);
 		if (!fd->tintro)
-		{   tret = fd->type->next;
+		{   tret = fd->type->nextOf();
 		    tbret = tret->toBasetype();
 		}
 	    }
@@ -2475,11 +2476,11 @@ Statement *ReturnStatement::semantic(Scope *sc)
     }
     else if (fd->inferRetType)
     {
-	if (fd->type->next)
+	if (fd->type->nextOf())
 	{
-	    if (fd->type->next->ty != Tvoid)
+	    if (fd->type->nextOf()->ty != Tvoid)
 		error("mismatched function return type inference of void and %s",
-		    fd->type->next->toChars());
+		    fd->type->nextOf()->toChars());
 	}
 	else
 	{
@@ -2510,7 +2511,7 @@ Statement *ReturnStatement::semantic(Scope *sc)
 	    sc->fes->cases.push(this);
 	    s = new ReturnStatement(0, new IntegerExp(sc->fes->cases.dim + 1));
 	}
-	else if (fd->type->next->toBasetype() == Type::tvoid)
+	else if (fd->type->nextOf()->toBasetype() == Type::tvoid)
 	{
 	    Statement *s1;
 	    Statement *s2;

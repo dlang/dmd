@@ -3940,7 +3940,7 @@ Expression *Parser::parsePrimaryExp()
 	    {   error("(type identifier : specialization) expected following is");
 		goto Lerr;
 	    }
-	    e = new IftypeExp(loc, targ, ident, tok, tspec, tok2);
+	    e = new IsExp(loc, targ, ident, tok, tspec, tok2);
 	    break;
 	}
 

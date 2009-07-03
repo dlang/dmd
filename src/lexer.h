@@ -150,6 +150,9 @@ enum TOK
 	// Added after 1.0
 	TOKref,
 	TOKmacro,
+#if V2
+	TOKtraits,
+#endif
 
 	TOKMAX
 };
@@ -266,6 +269,10 @@ struct Lexer
     unsigned escapeSequence();
     TOK wysiwygStringConstant(Token *t, int tc);
     TOK hexStringConstant(Token *t);
+#if V2
+    TOK delimitedStringConstant(Token *t);
+    TOK tokenStringConstant(Token *t);
+#endif
     TOK escapeStringConstant(Token *t, int wide);
     TOK charConstant(Token *t, int wide);
     void stringPostfix(Token *t);

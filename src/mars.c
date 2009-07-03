@@ -60,7 +60,7 @@ Global::Global()
 
     copyright = "Copyright (c) 1999-2007 by Digital Mars";
     written = "written by Walter Bright";
-    version = "v1.020";
+    version = "v1.021";
     global.structalign = 8;
 
     memset(&params, 0, sizeof(Param));
@@ -246,6 +246,9 @@ int main(int argc, char *argv[])
     global.params.objfiles = new Array();
     global.params.ddocfiles = new Array();
 
+    global.params.defaultlibname = "phobos";
+    global.params.debuglibname = global.params.defaultlibname;
+
     // Predefine version identifiers
     VersionCondition::addPredefinedGlobalIdent("DigitalMars");
 #if _WIN32
@@ -413,7 +416,7 @@ int main(int argc, char *argv[])
 		    global.params.fileImppath = new Array();
 		global.params.fileImppath->push(p + 2);
 	    }
-	    else if (memcmp(p + 1, "debug", 5) == 0)
+	    else if (memcmp(p + 1, "debug", 5) == 0 && p[6] != 'l')
 	    {
 		// Parse:
 		//	-debug
@@ -483,6 +486,14 @@ int main(int argc, char *argv[])
 	    else if (p[1] == 'L')
 	    {
 		global.params.linkswitches->push(p + 2);
+	    }
+	    else if (memcmp(p + 1, "defaultlib=", 11) == 0)
+	    {
+		global.params.defaultlibname = p + 1 + 11;
+	    }
+	    else if (memcmp(p + 1, "debuglib=", 9) == 0)
+	    {
+		global.params.debuglibname = p + 1 + 9;
 	    }
 	    else if (strcmp(p + 1, "run") == 0)
 	    {	global.params.run = 1;

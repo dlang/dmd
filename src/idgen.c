@@ -38,8 +38,6 @@ Msgtable msgtable[] =
     { "dtor", "_dtor" },
     { "classInvariant", "__invariant" },
     { "unitTest", "_unitTest" },
-    { "staticCtor", "_staticCtor" },
-    { "staticDtor", "_staticDtor" },
     { "init" },
     { "size" },
     { "__sizeof", "sizeof" },

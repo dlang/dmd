@@ -658,15 +658,31 @@ Expression *NullExp::castTo(Scope *sc, Type *t)
 
 Expression *StringExp::castTo(Scope *sc, Type *t)
 {
+    /* This follows copy-on-write; any changes to 'this'
+     * will result in a copy.
+     * The this->string member is considered immutable.
+     */
     StringExp *se;
     Type *tb;
-    int unique;
+    int copied = 0;
 
     //printf("StringExp::castTo(t = %s), '%s' committed = %d\n", t->toChars(), toChars(), committed);
 
-    if (!committed && t->ty == Tpointer && t->next->ty == Tvoid)
+    if (!committed && t->ty == Tpointer && t->nextOf()->ty == Tvoid)
     {
 	error("cannot convert string literal to void*");
+    }
+
+    se = this;
+    if (!committed)
+    {   se = (StringExp *)copy();
+	se->committed = 1;
+	copied = 1;
+    }
+
+    if (type == t)
+    {
+	return se;
     }
 
     tb = t->toBasetype();
@@ -674,61 +690,53 @@ Expression *StringExp::castTo(Scope *sc, Type *t)
     if (tb->ty == Tdelegate && type->toBasetype()->ty != Tdelegate)
 	return Expression::castTo(sc, t);
 
-    se = this;
-    unique = 0;
-    if (!committed)
+    Type *typeb = type->toBasetype();
+    if (typeb == tb)
     {
-	// Copy when committing the type
-	void *s;
-
-	s = (unsigned char *)mem.malloc((len + 1) * sz);
-	memcpy(s, string, (len + 1) * sz);
-	se = new StringExp(loc, s, len);
-	se->type = type;
-	se->sz = sz;
-	se->committed = 0;
-	unique = 1;		// this is the only instance
-    }
-    se->type = type->toBasetype();
-    if (tb == se->type)
-    {	se->type = t;
-	se->committed = 1;
+	if (!copied)
+	{   se = (StringExp *)copy();
+	    copied = 1;
+	}
+	se->type = t;
 	return se;
     }
 
     if (tb->ty != Tsarray && tb->ty != Tarray && tb->ty != Tpointer)
-    {	se->committed = 1;
+    {	if (!copied)
+	{   se = (StringExp *)copy();
+	    copied = 1;
+	}
 	goto Lcast;
     }
-    if (se->type->ty != Tsarray && se->type->ty != Tarray && se->type->ty != Tpointer)
-    {	se->committed = 1;
-	goto Lcast;
-    }
-
-    if (se->committed == 1)
-    {
-	if (se->type->next->size() == tb->next->size())
-	{   se->type = t;
-	    return se;
+    if (typeb->ty != Tsarray && typeb->ty != Tarray && typeb->ty != Tpointer)
+    {	if (!copied)
+	{   se = (StringExp *)copy();
+	    copied = 1;
 	}
 	goto Lcast;
     }
 
-    se->committed = 1;
+    if (typeb->nextOf()->size() == tb->nextOf()->size())
+    {
+	if (!copied)
+	{   se = (StringExp *)copy();
+	    copied = 1;
+	}
+	if (tb->ty == Tsarray)
+	    goto L2;	// handle possible change in static array dimension
+	se->type = t;
+	return se;
+    }
 
-    int tfty;
-    int ttty;
-    char *p;
-    size_t u;
-    unsigned c;
-    size_t newlen;
+    if (committed)
+	goto Lcast;
 
 #define X(tf,tt)	((tf) * 256 + (tt))
     {
     OutBuffer buffer;
-    newlen = 0;
-    tfty = se->type->next->toBasetype()->ty;
-    ttty = tb->next->toBasetype()->ty;
+    size_t newlen = 0;
+    int tfty = typeb->nextOf()->toBasetype()->ty;
+    int ttty = tb->nextOf()->toBasetype()->ty;
     switch (X(tfty, ttty))
     {
 	case X(Tchar, Tchar):
@@ -737,9 +745,9 @@ Expression *StringExp::castTo(Scope *sc, Type *t)
 	    break;
 
 	case X(Tchar, Twchar):
-	    for (u = 0; u < len;)
-	    {
-		p = utf_decodeChar((unsigned char *)se->string, len, &u, &c);
+	    for (size_t u = 0; u < len;)
+	    {	unsigned c;
+		char *p = utf_decodeChar((unsigned char *)se->string, len, &u, &c);
 		if (p)
 		    error("%s", p);
 		else
@@ -750,9 +758,9 @@ Expression *StringExp::castTo(Scope *sc, Type *t)
 	    goto L1;
 
 	case X(Tchar, Tdchar):
-	    for (u = 0; u < len;)
-	    {
-		p = utf_decodeChar((unsigned char *)se->string, len, &u, &c);
+	    for (size_t u = 0; u < len;)
+	    {	unsigned c;
+		char *p = utf_decodeChar((unsigned char *)se->string, len, &u, &c);
 		if (p)
 		    error("%s", p);
 		buffer.write4(c);
@@ -762,9 +770,9 @@ Expression *StringExp::castTo(Scope *sc, Type *t)
 	    goto L1;
 
 	case X(Twchar,Tchar):
-	    for (u = 0; u < len;)
-	    {
-		p = utf_decodeWchar((unsigned short *)se->string, len, &u, &c);
+	    for (size_t u = 0; u < len;)
+	    {	unsigned c;
+		char *p = utf_decodeWchar((unsigned short *)se->string, len, &u, &c);
 		if (p)
 		    error("%s", p);
 		else
@@ -775,9 +783,9 @@ Expression *StringExp::castTo(Scope *sc, Type *t)
 	    goto L1;
 
 	case X(Twchar,Tdchar):
-	    for (u = 0; u < len;)
-	    {
-		p = utf_decodeWchar((unsigned short *)se->string, len, &u, &c);
+	    for (size_t u = 0; u < len;)
+	    {	unsigned c;
+		char *p = utf_decodeWchar((unsigned short *)se->string, len, &u, &c);
 		if (p)
 		    error("%s", p);
 		buffer.write4(c);
@@ -787,9 +795,9 @@ Expression *StringExp::castTo(Scope *sc, Type *t)
 	    goto L1;
 
 	case X(Tdchar,Tchar):
-	    for (u = 0; u < len; u++)
+	    for (size_t u = 0; u < len; u++)
 	    {
-		c = ((unsigned *)se->string)[u];
+		unsigned c = ((unsigned *)se->string)[u];
 		if (!utf_isValidDchar(c))
 		    error("invalid UCS-32 char \\U%08x", c);
 		else
@@ -801,9 +809,9 @@ Expression *StringExp::castTo(Scope *sc, Type *t)
 	    goto L1;
 
 	case X(Tdchar,Twchar):
-	    for (u = 0; u < len; u++)
+	    for (size_t u = 0; u < len; u++)
 	    {
-		c = ((unsigned *)se->string)[u];
+		unsigned c = ((unsigned *)se->string)[u];
 		if (!utf_isValidDchar(c))
 		    error("invalid UCS-32 char \\U%08x", c);
 		else
@@ -815,22 +823,23 @@ Expression *StringExp::castTo(Scope *sc, Type *t)
 	    goto L1;
 
 	L1:
-	    if (!unique)
-		se = new StringExp(loc, NULL, 0);
+	    if (!copied)
+	    {   se = (StringExp *)copy();
+		copied = 1;
+	    }
 	    se->string = buffer.extractData();
 	    se->len = newlen;
-	    se->sz = tb->next->size();
+	    se->sz = tb->nextOf()->size();
 	    break;
 
 	default:
-	    if (se->type->next->size() == tb->next->size())
-	    {	se->type = t;
-		return se;
-	    }
+	    assert(typeb->nextOf()->size() != tb->nextOf()->size());
 	    goto Lcast;
     }
     }
 #undef X
+L2:
+    assert(copied);
 
     // See if need to truncate or extend the literal
     if (tb->ty == Tsarray)
@@ -842,28 +851,18 @@ Expression *StringExp::castTo(Scope *sc, Type *t)
 	// Changing dimensions
 	if (dim2 != se->len)
 	{
+	    // Copy when changing the string literal
 	    unsigned newsz = se->sz;
+	    void *s;
+	    int d;
 
-	    if (unique && dim2 < se->len)
-	    {   se->len = dim2;
-		// Add terminating 0
-		memset((unsigned char *)se->string + dim2 * newsz, 0, newsz);
-	    }
-	    else
-	    {
-		// Copy when changing the string literal
-		void *s;
-		int d;
-
-		d = (dim2 < se->len) ? dim2 : se->len;
-		s = (unsigned char *)mem.malloc((dim2 + 1) * newsz);
-		memcpy(s, se->string, d * newsz);
-		// Extend with 0, add terminating 0
-		memset((char *)s + d * newsz, 0, (dim2 + 1 - d) * newsz);
-		se = new StringExp(loc, s, dim2);
-		se->committed = 1;	// it now has a firm type
-		se->sz = newsz;
-	    }
+	    d = (dim2 < se->len) ? dim2 : se->len;
+	    s = (unsigned char *)mem.malloc((dim2 + 1) * newsz);
+	    memcpy(s, se->string, d * newsz);
+	    // Extend with 0, add terminating 0
+	    memset((char *)s + d * newsz, 0, (dim2 + 1 - d) * newsz);
+	    se->string = s;
+	    se->len = dim2;
 	}
     }
     se->type = t;
@@ -871,7 +870,7 @@ Expression *StringExp::castTo(Scope *sc, Type *t)
 
 Lcast:
     Expression *e = new CastExp(loc, se, t);
-    e->type = t;
+    e->type = t;	// so semantic() won't be run on e
     return e;
 }
 

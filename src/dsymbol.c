@@ -764,6 +764,43 @@ char *ScopeDsymbol::kind()
 }
 
 
+/*******************************************
+ * Look for member of the form:
+ *	const(MemberInfo)[] getMembers(string);
+ * Returns NULL if not found
+ */
+
+#if V2
+FuncDeclaration *ScopeDsymbol::findGetMembers()
+{
+    Dsymbol *s = search_function(this, Id::getmembers);
+    FuncDeclaration *fdx = s ? s->isFuncDeclaration() : NULL;
+
+#if 0  // Finish
+    static TypeFunction *tfgetmembers;
+
+    if (!tfgetmembers)
+    {
+	Scope sc;
+	Arguments *arguments = new Arguments;
+	Arguments *arg = new Argument(STCin, Type::tchar->constOf()->arrayOf(), NULL, NULL);
+	arguments->push(arg);
+
+	Type *tret = NULL;
+	tfgetmembers = new TypeFunction(arguments, tret, 0, LINKd);
+	tfgetmembers = (TypeFunction *)tfgetmembers->semantic(0, &sc);
+    }
+    if (fdx)
+	fdx = fdx->overloadExactMatch(tfgetmembers);
+#endif
+    if (fdx && fdx->isVirtual())
+	fdx = NULL;
+
+    return fdx;
+}
+#endif
+
+
 /****************************** WithScopeSymbol ******************************/
 
 WithScopeSymbol::WithScopeSymbol(WithStatement *withstate)
