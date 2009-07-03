@@ -36,7 +36,7 @@ struct elem;
 struct Package : ScopeDsymbol
 {
     Package(Identifier *ident);
-    char *kind();
+    const char *kind();
 
     static DsymbolTable *resolve(Array *packages, Dsymbol **pparent, Package **ppkg);
 
@@ -110,7 +110,7 @@ struct Module : Package
     static Module *load(Loc loc, Array *packages, Identifier *ident);
 
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
-    char *kind();
+    const char *kind();
     void setDocfile();	// set docfile member
     void read(Loc loc);	// read file
 #if IN_GCC

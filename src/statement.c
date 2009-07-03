@@ -299,12 +299,11 @@ Statements *CompileStatement::flatten(Scope *sc)
 Statement *CompileStatement::semantic(Scope *sc)
 {
     //printf("CompileStatement::semantic() %s\n", exp->toChars());
-    /* Shouldn't happen unless errors, as CompileStatement::flatten()
-     * should have replaced it.
-     * Return NULL so no further errors happen.
-     */
-    assert(global.errors);
-    return NULL;
+    Statements *a = flatten(sc);
+    if (!a)
+	return NULL;
+    Statement *s = new CompoundStatement(loc, a);
+    return s->semantic(sc);
 }
 
 
@@ -582,7 +581,7 @@ int CompoundStatement::blockExit()
 int CompoundStatement::fallOffEnd()
 {   int falloff = TRUE;
 
-    //printf("CompoundStatement::fallOffEnd()\n");
+    //printf("CompoundStatement::fallOffEnd() %s\n", toChars());
     for (int i = 0; i < statements->dim; i++)
     {	Statement *s = (Statement *)statements->data[i];
 
@@ -925,14 +924,25 @@ int WhileStatement::blockExit()
     int result = BEnone;
     if (condition->canThrow())
 	result |= BEthrow;
-    if (body)
-    {	result |= body->blockExit();
-	if (result & BEbreak)
-	    result |= BEfallthru;
-	result &= ~(BEbreak | BEcontinue);
+    if (condition->isBool(TRUE))
+    {
+	if (body)
+	{   result |= body->blockExit();
+	    if (result & BEbreak)
+		result |= BEfallthru;
+	}
+    }
+    else if (condition->isBool(FALSE))
+    {
+	result |= BEfallthru;
     }
     else
+    {
+	if (body)
+	    result |= body->blockExit();
 	result |= BEfallthru;
+    }
+    result &= ~(BEbreak | BEcontinue);
     return result;
 }
 
@@ -1011,20 +1021,20 @@ int DoStatement::blockExit()
 
     if (body)
     {	result = body->blockExit();
-	if (result & BEbreak)
-	{
-	    if (result == BEbreak)
-		return BEfallthru;
-	    result |= BEfallthru;
-	}
+	if (result == BEbreak)
+	    return BEfallthru;
 	if (result & BEcontinue)
 	    result |= BEfallthru;
-	result &= ~(BEbreak | BEcontinue);
     }
     else
 	result = BEfallthru;
-    if (result & BEfallthru && condition->canThrow())
-	result |= BEthrow;
+    if (result & BEfallthru)
+    {	if (condition->canThrow())
+	    result |= BEthrow;
+	if (!(result & BEbreak) && condition->isBool(TRUE))
+	    result &= ~BEfallthru;
+    }
+    result &= ~(BEbreak | BEcontinue);
     return result;
 }
 
@@ -2033,14 +2043,31 @@ int IfStatement::blockExit()
     int result = BEnone;
     if (condition->canThrow())
 	result |= BEthrow;
-    if (ifbody)
-	result |= ifbody->blockExit();
+    if (condition->isBool(TRUE))
+    {
+	if (ifbody)
+	    result |= ifbody->blockExit();
+	else
+	    result |= BEfallthru;
+    }
+    else if (condition->isBool(FALSE))
+    {
+	if (elsebody)
+	    result |= elsebody->blockExit();
+	else
+	    result |= BEfallthru;
+    }
     else
-	result |= BEfallthru;
-    if (elsebody)
-	result |= elsebody->blockExit();
-    else
-	result |= BEfallthru;
+    {
+	if (ifbody)
+	    result |= ifbody->blockExit();
+	else
+	    result |= BEfallthru;
+	if (elsebody)
+	    result |= elsebody->blockExit();
+	else
+	    result |= BEfallthru;
+    }
     //printf("IfStatement::blockExit(%p) = x%x\n", this, result);
     return result;
 }
@@ -2609,8 +2636,7 @@ int CaseStatement::usesEH()
 
 int CaseStatement::blockExit()
 {
-    // Assume the worst
-    return BEany;
+    return statement->blockExit();
 }
 
 int CaseStatement::fallOffEnd()
@@ -2676,8 +2702,7 @@ int DefaultStatement::usesEH()
 
 int DefaultStatement::blockExit()
 {
-    // Assume the worst
-    return BEany;
+    return statement->blockExit();
 }
 
 int DefaultStatement::fallOffEnd()

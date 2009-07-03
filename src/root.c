@@ -1415,7 +1415,7 @@ void OutBuffer::writebstring(unsigned char *string)
     write(string,*string + 1);
 }
 
-void OutBuffer::writestring(char *string)
+void OutBuffer::writestring(const char *string)
 {
     write(string,strlen(string));
 }

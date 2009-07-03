@@ -93,7 +93,7 @@ void DebugSymbol::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
     buf->writenl();
 }
 
-char *DebugSymbol::kind()
+const char *DebugSymbol::kind()
 {
     return "debug";
 }
@@ -173,7 +173,7 @@ void VersionSymbol::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
     buf->writenl();
 }
 
-char *VersionSymbol::kind()
+const char *VersionSymbol::kind()
 {
     return "version";
 }

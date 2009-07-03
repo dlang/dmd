@@ -120,7 +120,7 @@ struct Dsymbol : Object
 
     static Array *arraySyntaxCopy(Array *a);
 
-    virtual char *kind();
+    virtual const char *kind();
     virtual Dsymbol *toAlias();			// resolve real symbol
     virtual int addMember(Scope *sc, ScopeDsymbol *s, int memnum);
     virtual void semantic(Scope *sc);
@@ -233,7 +233,7 @@ struct ScopeDsymbol : Dsymbol
     void defineRef(Dsymbol *s);
     static void multiplyDefined(Loc loc, Dsymbol *s1, Dsymbol *s2);
     Dsymbol *nameCollision(Dsymbol *s);
-    char *kind();
+    const char *kind();
     FuncDeclaration *findGetMembers();
 
     void emitMemberComments(Scope *sc);
@@ -282,7 +282,7 @@ struct OverloadSet : Dsymbol
     OverloadSet();
     void push(Dsymbol *s);
     OverloadSet *isOverloadSet() { return this; }
-    char *kind();
+    const char *kind();
 };
 
 // Table of Dsymbol's

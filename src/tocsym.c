@@ -188,7 +188,7 @@ Symbol *VarDeclaration::toSymbol()
 		t = type_fake(TYnptr);
 	}
 	else if (storage_class & STClazy)
-	    t = type_fake(TYullong);		// Tdelegate as C type
+	    t = type_fake(TYdelegate);		// Tdelegate as C type
 	else if (isParameter())
 	    t = type->toCParamtype();
 	else

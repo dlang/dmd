@@ -42,7 +42,7 @@ struct AttribDeclaration : Dsymbol
     void inlineScan();
     void addComment(unsigned char *comment);
     void emitComment(Scope *sc);
-    char *kind();
+    const char *kind();
     int oneMember(Dsymbol **ps);
     int hasPointers();
     void checkCtorConstInit();
@@ -106,7 +106,7 @@ struct AnonDeclaration : AttribDeclaration
     Dsymbol *syntaxCopy(Dsymbol *s);
     void semantic(Scope *sc);
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
-    char *kind();
+    const char *kind();
 };
 
 struct PragmaDeclaration : AttribDeclaration
@@ -118,7 +118,7 @@ struct PragmaDeclaration : AttribDeclaration
     void semantic(Scope *sc);
     int oneMember(Dsymbol **ps);
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
-    char *kind();
+    const char *kind();
     void toObjFile(int multiobj);			// compile to .obj file
 };
 
@@ -145,7 +145,7 @@ struct StaticIfDeclaration : ConditionalDeclaration
     Dsymbol *syntaxCopy(Dsymbol *s);
     int addMember(Scope *sc, ScopeDsymbol *s, int memnum);
     void semantic(Scope *sc);
-    char *kind();
+    const char *kind();
 };
 
 // Mixin declarations

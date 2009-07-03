@@ -548,7 +548,7 @@ void ClassDeclaration::semantic(Scope *sc)
 //	    sc->offset += PTRSIZE;	// room for uplevel context pointer
     }
     else
-    {	sc->offset = 8;		// allow room for vptr[] and monitor
+    {	sc->offset = PTRSIZE * 2;	// allow room for __vptr and __monitor
 	alignsize = 4;
     }
     structsize = sc->offset;
@@ -609,7 +609,7 @@ void ClassDeclaration::semantic(Scope *sc)
     if (!ctor && baseClass && baseClass->ctor)
     {
 	//printf("Creating default this(){} for class %s\n", toChars());
-	ctor = new CtorDeclaration(0, 0, NULL, 0);
+	ctor = new CtorDeclaration(loc, 0, NULL, 0);
 	ctor->fbody = new CompoundStatement(0, new Statements());
 	members->push(ctor);
 	ctor->addMember(sc, this, 1);
@@ -971,7 +971,7 @@ int ClassDeclaration::vtblOffset()
 /****************************************
  */
 
-char *ClassDeclaration::kind()
+const char *ClassDeclaration::kind()
 {
     return "class";
 }
@@ -1179,7 +1179,7 @@ void InterfaceDeclaration::semantic(Scope *sc)
 	sc->linkage = LINKcpp;
     sc->structalign = 8;
     structalign = sc->structalign;
-    sc->offset = 8;
+    sc->offset = PTRSIZE * 2;
     inuse++;
     for (i = 0; i < members->dim; i++)
     {
@@ -1292,7 +1292,7 @@ int InterfaceDeclaration::isCPPinterface()
 /*******************************************
  */
 
-char *InterfaceDeclaration::kind()
+const char *InterfaceDeclaration::kind()
 {
     return "interface";
 }

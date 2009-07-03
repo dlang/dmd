@@ -39,7 +39,7 @@ void Declaration::semantic(Scope *sc)
 {
 }
 
-char *Declaration::kind()
+const char *Declaration::kind()
 {
     return "declaration";
 }
@@ -167,7 +167,7 @@ Dsymbol *TupleDeclaration::syntaxCopy(Dsymbol *s)
     return NULL;
 }
 
-char *TupleDeclaration::kind()
+const char *TupleDeclaration::kind()
 {
     return "tuple";
 }
@@ -301,6 +301,7 @@ void TypedefDeclaration::semantic(Scope *sc)
 	type = type->semantic(loc, sc);
 	if (sc->parent->isFuncDeclaration() && init)
 	    semantic2(sc);
+	storage_class |= sc->stc & STCdeprecated;
     }
     else if (sem == 1)
     {
@@ -327,7 +328,7 @@ void TypedefDeclaration::semantic2(Scope *sc)
     }
 }
 
-char *TypedefDeclaration::kind()
+const char *TypedefDeclaration::kind()
 {
     return "typedef";
 }
@@ -531,7 +532,7 @@ int AliasDeclaration::overloadInsert(Dsymbol *s)
     }
 }
 
-char *AliasDeclaration::kind()
+const char *AliasDeclaration::kind()
 {
     return "alias";
 }
@@ -1096,7 +1097,7 @@ void VarDeclaration::semantic2(Scope *sc)
     }
 }
 
-char *VarDeclaration::kind()
+const char *VarDeclaration::kind()
 {
     return "variable";
 }
@@ -1217,7 +1218,7 @@ ExpInitializer *VarDeclaration::getExpInitializer()
 	ei = init->isExpInitializer();
     else
     {
-	Expression *e = type->defaultInit();
+	Expression *e = type->defaultInit(loc);
 	if (e)
 	    ei = new ExpInitializer(loc, e);
 	else

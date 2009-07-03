@@ -611,7 +611,7 @@ Expression *shift_optimize(int result, BinExp *e, Expression *(*shift)(Type *, E
 	integer_t i2 = e->e2->toInteger();
 	d_uns64 sz = e->e1->type->size() * 8;
 	if (i2 < 0 || i2 > sz)
-	{   error("shift by %jd is outside the range 0..%zu", i2, sz);
+	{   e->error("shift by %jd is outside the range 0..%zu", i2, sz);
 	    e->e2 = new IntegerExp(0);
 	}
 	if (e->e1->isConst() == 1)

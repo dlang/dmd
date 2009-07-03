@@ -432,7 +432,7 @@ void TypeInfoStructDeclaration::toDt(dt_t **pdt)
      *	char[] name;
      *	void[] init;
      *	hash_t function(in void*) xtoHash;
-     *	int function(in void*, in void*) xopEquals;
+     *	bool function(in void*, in void*) xopEquals;
      *	int function(in void*, in void*) xopCmp;
      *	string function(const(void)*) xtoString;
      *	uint m_flags;
@@ -479,29 +479,28 @@ void TypeInfoStructDeclaration::toDt(dt_t **pdt)
     }
 
     TypeFunction *tfeqptr;
+    {	// bool opEqual(const T*) const;
+	Scope sc;
+	Arguments *arguments = new Arguments;
+	Argument *arg = new Argument(STCin, tc->pointerTo(), NULL, NULL);
+
+	arguments->push(arg);
+	tfeqptr = new TypeFunction(arguments, Type::tbool, 0, LINKd);
+	tfeqptr->mod = MODconst;
+	tfeqptr = (TypeFunction *)tfeqptr->semantic(0, &sc);
+    }
+
+    TypeFunction *tfcmpptr;
     {
 	Scope sc;
 	Arguments *arguments = new Arguments;
 	Argument *arg = new Argument(STCin, tc->pointerTo(), NULL, NULL);
 
 	arguments->push(arg);
-	tfeqptr = new TypeFunction(arguments, Type::tint32, 0, LINKd);
-	tfeqptr->mod = MODconst;
-	tfeqptr = (TypeFunction *)tfeqptr->semantic(0, &sc);
+	tfcmpptr = new TypeFunction(arguments, Type::tint32, 0, LINKd);
+	tfcmpptr->mod = MODconst;
+	tfcmpptr = (TypeFunction *)tfcmpptr->semantic(0, &sc);
     }
-
-#if 0
-    TypeFunction *tfeq;
-    {
-	Scope sc;
-	Array *arguments = new Array;
-	Argument *arg = new Argument(In, tc, NULL, NULL);
-
-	arguments->push(arg);
-	tfeq = new TypeFunction(arguments, Type::tint32, 0, LINKd);
-	tfeq = (TypeFunction *)tfeq->semantic(0, &sc);
-    }
-#endif
 
     s = search_function(sd, Id::tohash);
     fdx = s ? s->isFuncDeclaration() : NULL;
@@ -518,22 +517,35 @@ void TypeInfoStructDeclaration::toDt(dt_t **pdt)
 
     s = search_function(sd, Id::eq);
     fdx = s ? s->isFuncDeclaration() : NULL;
-    for (int i = 0; i < 2; i++)
+    if (fdx)
     {
-	if (fdx)
-	{   fd = fdx->overloadExactMatch(tfeqptr);
-	    if (fd)
-		dtxoff(pdt, fd->toSymbol(), 0, TYnptr);
-	    else
-		//fdx->error("must be declared as extern (D) int %s(%s*)", fdx->toChars(), sd->toChars());
-		dtdword(pdt, 0);
-	}
+	//printf("test1 %s, %s, %s\n", fdx->toChars(), fdx->type->toChars(), tfeqptr->toChars());
+	fd = fdx->overloadExactMatch(tfeqptr);
+	if (fd)
+	    dtxoff(pdt, fd->toSymbol(), 0, TYnptr);
 	else
+	{   fd = fdx->overloadExactMatch(tfcmpptr);
+	    if (fd)
+		fdx->error("must return bool, not int");
+	    //fdx->error("must be declared as extern (D) int %s(%s*)", fdx->toChars(), sd->toChars());
 	    dtdword(pdt, 0);
-
-	s = search_function(sd, Id::cmp);
-	fdx = s ? s->isFuncDeclaration() : NULL;
+	}
     }
+    else
+	dtdword(pdt, 0);
+
+    s = search_function(sd, Id::cmp);
+    fdx = s ? s->isFuncDeclaration() : NULL;
+    if (fdx)
+    {	fd = fdx->overloadExactMatch(tfcmpptr);
+	if (fd)
+	    dtxoff(pdt, fd->toSymbol(), 0, TYnptr);
+	else
+	    //fdx->error("must be declared as extern (D) int %s(%s*)", fdx->toChars(), sd->toChars());
+	    dtdword(pdt, 0);
+    }
+    else
+	dtdword(pdt, 0);
 
     s = search_function(sd, Id::tostring);
     fdx = s ? s->isFuncDeclaration() : NULL;

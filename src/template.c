@@ -419,7 +419,7 @@ void TemplateDeclaration::semantic(Scope *sc)
      */
 }
 
-char *TemplateDeclaration::kind()
+const char *TemplateDeclaration::kind()
 {
     return (onemember && onemember->isAggregateDeclaration())
 		? onemember->kind()
@@ -939,13 +939,6 @@ L2:
 		//printf("\tm2 = %d\n", m);
 	    }
 
-	    /* If no match, see if we can implicitly convert farg to the
-	     * parameter type.
-	     */
-	    if (!m)
-	    {	m = farg->implicitConvTo(fparam->type);
-	    }
-
 	    if (m)
 	    {	if (m < match)
 		    match = m;		// pick worst match
@@ -1460,10 +1453,20 @@ MATCH Type::deduceType(Scope *sc, Type *tparam, TemplateParameters *parameters,
 	{
 	    if (!sc)
 		goto Lnomatch;
+
+	    /* Need a loc to go with the semantic routine.
+	     */
+	    Loc loc;
+	    if (parameters->dim)
+	    {
+		TemplateParameter *tp = (TemplateParameter *)parameters->data[0];
+		loc = tp->loc;
+	    }
+
 	    /* BUG: what if tparam is a template instance, that
 	     * has as an argument another Tident?
 	     */
-	    tparam = tparam->semantic(0, sc);
+	    tparam = tparam->semantic(loc, sc);
 	    assert(tparam->ty != Tident);
 	    return deduceType(sc, tparam, parameters, dedtypes);
 	}
@@ -1517,7 +1520,8 @@ MATCH Type::deduceType(Scope *sc, Type *tparam, TemplateParameters *parameters,
     }
 
     if (ty != tparam->ty)
-	goto Lnomatch;
+	return implicitConvTo(tparam);
+//	goto Lnomatch;
 
     if (nextOf())
 	return nextOf()->deduceType(sc, tparam->nextOf(), parameters, dedtypes);
@@ -3615,7 +3619,7 @@ TemplateDeclaration *TemplateInstance::findBestMatch(Scope *sc)
 	    return NULL;
 	}
 	m = td->matchWithInstance(this, &dedtypes, 0);
-	//printf("m = %d\n", m);
+	//printf("matchWithInstance = %d\n", m);
 	if (!m)			// no match at all
 	    continue;
 
@@ -4056,7 +4060,7 @@ AliasDeclaration *TemplateInstance::isAliasDeclaration()
     return aliasdecl;
 }
 
-char *TemplateInstance::kind()
+const char *TemplateInstance::kind()
 {
     return "template instance";
 }
@@ -4139,6 +4143,7 @@ void TemplateMixin::semantic(Scope *sc)
 #if LOG
     printf("\tdo semantic\n");
 #endif
+    util_progress();
 
     Scope *scx = NULL;
     if (scope)
@@ -4251,6 +4256,11 @@ void TemplateMixin::semantic(Scope *sc)
 	//printf("\ts = '%s'\n", s->toChars());
 	TemplateMixin *tm = s->isTemplateMixin();
 	if (!tm || tempdecl != tm->tempdecl)
+	    continue;
+
+	/* Different argument list lengths happen with variadic args
+	 */
+	if (tiargs->dim != tm->tiargs->dim)
 	    continue;
 
 	for (int i = 0; i < tiargs->dim; i++)
@@ -4436,7 +4446,7 @@ void TemplateMixin::inlineScan()
     TemplateInstance::inlineScan();
 }
 
-char *TemplateMixin::kind()
+const char *TemplateMixin::kind()
 {
     return "mixin";
 }

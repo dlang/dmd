@@ -31,7 +31,7 @@ struct DebugSymbol : Dsymbol
     int addMember(Scope *sc, ScopeDsymbol *s, int memnum);
     void semantic(Scope *sc);
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
-    char *kind();
+    const char *kind();
 };
 
 struct VersionSymbol : Dsymbol
@@ -45,7 +45,7 @@ struct VersionSymbol : Dsymbol
     int addMember(Scope *sc, ScopeDsymbol *s, int memnum);
     void semantic(Scope *sc);
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
-    char *kind();
+    const char *kind();
 };
 
 #endif /* DMD_VERSION_H */

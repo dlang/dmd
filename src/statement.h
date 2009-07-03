@@ -340,6 +340,7 @@ struct ForeachStatement : Statement
     void toIR(IRState *irs);
 };
 
+#if V2
 struct ForeachRangeStatement : Statement
 {
     enum TOK op;		// TOKforeach or TOKforeach_reverse
@@ -367,6 +368,7 @@ struct ForeachRangeStatement : Statement
 
     void toIR(IRState *irs);
 };
+#endif
 
 struct IfStatement : Statement
 {

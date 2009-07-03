@@ -99,7 +99,7 @@ struct Declaration : Dsymbol
 
     Declaration(Identifier *id);
     void semantic(Scope *sc);
-    char *kind();
+    const char *kind();
     unsigned size(Loc loc);
     void checkModify(Loc loc, Scope *sc, Type *t);
 
@@ -145,7 +145,7 @@ struct TupleDeclaration : Declaration
 
     TupleDeclaration(Loc loc, Identifier *ident, Objects *objects);
     Dsymbol *syntaxCopy(Dsymbol *);
-    char *kind();
+    const char *kind();
     Type *getType();
     int needThis();
 
@@ -169,7 +169,7 @@ struct TypedefDeclaration : Declaration
     void semantic(Scope *sc);
     void semantic2(Scope *sc);
     char *mangle();
-    char *kind();
+    const char *kind();
     Type *getType();
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
 #ifdef _DH
@@ -202,7 +202,7 @@ struct AliasDeclaration : Declaration
     Dsymbol *syntaxCopy(Dsymbol *);
     void semantic(Scope *sc);
     int overloadInsert(Dsymbol *s);
-    char *kind();
+    const char *kind();
     Type *getType();
     Dsymbol *toAlias();
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
@@ -238,7 +238,7 @@ struct VarDeclaration : Declaration
     Dsymbol *syntaxCopy(Dsymbol *);
     void semantic(Scope *sc);
     void semantic2(Scope *sc);
-    char *kind();
+    const char *kind();
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
 #ifdef _DH
     Type *htype;
@@ -558,7 +558,7 @@ struct FuncDeclaration : Declaration
     void inlineScan();
     int canInline(int hasthis, int hdrscan = 0);
     Expression *doInline(InlineScanState *iss, Expression *ethis, Array *arguments);
-    char *kind();
+    const char *kind();
     void toDocBuffer(OutBuffer *buf);
     FuncDeclaration *isUnique();
     int needsClosure();
@@ -582,7 +582,7 @@ struct FuncAliasDeclaration : FuncDeclaration
     FuncAliasDeclaration(FuncDeclaration *funcalias);
 
     FuncAliasDeclaration *isFuncAliasDeclaration() { return this; }
-    char *kind();
+    const char *kind();
     Symbol *toSymbol();
 };
 
@@ -595,9 +595,10 @@ struct FuncLiteralDeclaration : FuncDeclaration
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
     Dsymbol *syntaxCopy(Dsymbol *);
     int isNested();
+    int isVirtual();
 
     FuncLiteralDeclaration *isFuncLiteralDeclaration() { return this; }
-    char *kind();
+    const char *kind();
 };
 
 struct CtorDeclaration : FuncDeclaration
@@ -608,7 +609,7 @@ struct CtorDeclaration : FuncDeclaration
     Dsymbol *syntaxCopy(Dsymbol *);
     void semantic(Scope *sc);
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
-    char *kind();
+    const char *kind();
     char *toChars();
     int isVirtual();
     int addPreInvariant();
@@ -722,7 +723,7 @@ struct NewDeclaration : FuncDeclaration
     Dsymbol *syntaxCopy(Dsymbol *);
     void semantic(Scope *sc);
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
-    char *kind();
+    const char *kind();
     int isVirtual();
     int addPreInvariant();
     int addPostInvariant();
@@ -738,7 +739,7 @@ struct DeleteDeclaration : FuncDeclaration
     Dsymbol *syntaxCopy(Dsymbol *);
     void semantic(Scope *sc);
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
-    char *kind();
+    const char *kind();
     int isDelete();
     int isVirtual();
     int addPreInvariant();

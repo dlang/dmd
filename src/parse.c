@@ -878,7 +878,7 @@ StaticDtorDeclaration *Parser::parseStaticDtor()
 
 /*****************************************
  * Parse an invariant definition:
- *	invariant { body }
+ *	invariant() { body }
  * Current token is 'invariant'.
  */
 
@@ -1624,9 +1624,10 @@ Dsymbol *Parser::parseMixin()
 	if (token.value != TOKidentifier)
 	{
 	    error("identifier expected, not %s", token.toChars());
-	    goto Lerr;
+	    id = Id::empty;
 	}
-	id = token.ident;
+	else
+	    id = token.ident;
 	nextToken();
     }
 
@@ -1675,9 +1676,6 @@ Dsymbol *Parser::parseMixin()
     nextToken();
 
     return tm;
-
-Lerr:
-    return NULL;
 }
 
 /******************************************
@@ -4407,8 +4405,6 @@ Expression *Parser::parsePrimaryExp()
 	case TOKtypeof:
 	{
 	    t = parseTypeof();
-	    if (token.value == TOKdot)
-		goto L1;
 	    e = new TypeExp(loc, t);
 	    break;
 	}

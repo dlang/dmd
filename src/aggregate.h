@@ -120,7 +120,7 @@ struct StructDeclaration : AggregateDeclaration
     void semantic(Scope *sc);
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
     char *mangle();
-    char *kind();
+    const char *kind();
     int needOpAssign();
     FuncDeclaration *buildOpAssign(Scope *sc);
     FuncDeclaration *buildPostBlit(Scope *sc);
@@ -140,7 +140,7 @@ struct UnionDeclaration : StructDeclaration
 {
     UnionDeclaration(Loc loc, Identifier *id);
     Dsymbol *syntaxCopy(Dsymbol *s);
-    char *kind();
+    const char *kind();
 
     UnionDeclaration *isUnionDeclaration() { return this; }
 };
@@ -229,7 +229,7 @@ struct ClassDeclaration : AggregateDeclaration
 #endif
     int isAbstract();
     virtual int vtblOffset();
-    char *kind();
+    const char *kind();
     char *mangle();
     void toDocBuffer(OutBuffer *buf);
 
@@ -261,7 +261,7 @@ struct InterfaceDeclaration : ClassDeclaration
     void semantic(Scope *sc);
     int isBaseOf(ClassDeclaration *cd, int *poffset);
     int isBaseOf(BaseClass *bc, int *poffset);
-    char *kind();
+    const char *kind();
     int vtblOffset();
 #if V2
     int isCPPinterface();

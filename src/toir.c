@@ -443,9 +443,24 @@ void FuncDeclaration::buildClosure(IRState *irs)
 	    /* Align and allocate space for v in the closure
 	     * just like AggregateDeclaration::addField() does.
 	     */
-	    unsigned memsize = v->type->size();
-	    unsigned memalignsize = v->type->alignsize();
-	    unsigned xalign = v->type->memalign(global.structalign);
+	    unsigned memsize;
+	    unsigned memalignsize;
+	    unsigned xalign;
+	    if (v->storage_class & STClazy)
+	    {
+		/* Lazy variables are really delegates,
+		 * so give same answers that TypeDelegate would
+		 */
+		memsize = PTRSIZE * 2;
+		memalignsize = memsize;
+		xalign = global.structalign;
+	    }
+	    else
+	    {
+		memsize = v->type->size();
+		memalignsize = v->type->alignsize();
+		xalign = v->type->memalign(global.structalign);
+	    }
 	    AggregateDeclaration::alignmember(xalign, memalignsize, &offset);
 	    v->offset = offset;
 	    offset += memsize;
@@ -489,6 +504,8 @@ void FuncDeclaration::buildClosure(IRState *irs)
 	    tym_t tym = v->type->totym();
 	    if (v->type->toBasetype()->ty == Tsarray || v->isOut() || v->isRef())
 		tym = TYnptr;	// reference parameters are just pointers
+	    else if (v->storage_class & STClazy)
+		tym = TYdelegate;
 	    ex = el_bin(OPadd, TYnptr, el_var(sclosure), el_long(TYint, v->offset));
 	    ex = el_una(OPind, tym, ex);
 	    if (ex->Ety == TYstruct)

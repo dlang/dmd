@@ -90,7 +90,7 @@ void StaticAssert::toObjFile(int multiobj)
 {
 }
 
-char *StaticAssert::kind()
+const char *StaticAssert::kind()
 {
     return "static assert";
 }
