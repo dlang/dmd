@@ -722,8 +722,9 @@ FuncDeclaration *ClassDeclaration::findFunc(Identifier *ident, TypeFunction *tf)
 {
     //printf("ClassDeclaration::findFunc(%s, %s) %s\n", ident->toChars(), tf->toChars(), toChars());
 
-    Array *vtbl = &this->vtbl;
-    for (int j = 0; j < 2; j++)
+    ClassDeclaration *cd = this;
+    Array *vtbl = &cd->vtbl;
+    while (1)
     {
 	for (size_t i = 0; i < vtbl->dim; i++)
 	{
@@ -739,7 +740,10 @@ FuncDeclaration *ClassDeclaration::findFunc(Identifier *ident, TypeFunction *tf)
 	    }
 	    //else printf("\t\t%d\n", fd->type->covariant(tf));
 	}
-	vtbl = &this->vtblFinal;
+	if (!cd)
+	    break;
+	vtbl = &cd->vtblFinal;
+	cd = cd->baseClass;
     }
 
     return NULL;

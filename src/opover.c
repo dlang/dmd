@@ -507,6 +507,8 @@ void inferApplyArgTypes(enum TOK op, Array *arguments, Expression *aggr)
 
     Argument *arg = (Argument *)arguments->data[0];
     Type *taggr = aggr->type;
+    if (!taggr)
+	return;
     Type *tab = taggr->toBasetype();
     switch (tab->ty)
     {

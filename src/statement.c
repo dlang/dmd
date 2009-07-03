@@ -915,6 +915,11 @@ Statement *ForeachStatement::semantic(Scope *sc)
 
     aggr = aggr->semantic(sc);
     aggr = resolveProperties(sc, aggr);
+    if (!aggr->type)
+    {
+	error("invalid foreach aggregate %s", aggr->toChars());
+	return this;
+    }
 
     inferApplyArgTypes(op, arguments, aggr);
 
