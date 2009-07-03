@@ -5025,10 +5025,14 @@ Expression *DotIdExp::semantic(Scope *sc)
 
     if (eright->op == TOKimport)	// also used for template alias's
     {
-	Dsymbol *s;
 	ScopeExp *ie = (ScopeExp *)eright;
 
-	s = ie->sds->search(loc, ident, 0);
+	/* Disable access to another module's private imports.
+	 * The check for 'is sds our current module' is because
+	 * the current module should have access to its own imports.
+	 */
+	Dsymbol *s = ie->sds->search(loc, ident,
+	    (ie->sds->isModule() && ie->sds != sc->module) ? 1 : 0);
 	if (s)
 	{
 	    s = s->toAlias();

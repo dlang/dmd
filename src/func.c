@@ -1954,6 +1954,23 @@ int FuncDeclaration::isVirtual()
 	toParent()->isClassDeclaration();
 }
 
+int FuncDeclaration::isFinal()
+{
+    ClassDeclaration *cd;
+#if 0
+    printf("FuncDeclaration::isFinal(%s)\n", toChars());
+    printf("%p %d %d %d %d\n", isMember(), isStatic(), protection == PROTprivate, isCtorDeclaration(), linkage != LINKd);
+    printf("result is %d\n",
+	isMember() &&
+	!(isStatic() || protection == PROTprivate || protection == PROTpackage) &&
+	(cd = toParent()->isClassDeclaration()) != NULL &&
+	cd->storage_class & STCfinal);
+#endif
+    return isMember() &&
+	(Declaration::isFinal() ||
+	 ((cd = toParent()->isClassDeclaration()) != NULL && cd->storage_class & STCfinal));
+}
+
 int FuncDeclaration::isAbstract()
 {
     return storage_class & STCabstract;
@@ -2691,10 +2708,11 @@ void UnitTestDeclaration::semantic(Scope *sc)
 {
     if (global.params.useUnitTests)
     {
-	Type *tret;
-
 	type = new TypeFunction(NULL, Type::tvoid, FALSE, LINKd);
-	FuncDeclaration::semantic(sc);
+	Scope *sc2 = sc->push();
+	sc2->linkage = LINKd;
+	FuncDeclaration::semantic(sc2);
+	sc2->pop();
     }
 
     // We're going to need ModuleInfo even if the unit tests are not

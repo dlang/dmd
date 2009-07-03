@@ -543,6 +543,7 @@ struct FuncDeclaration : Declaration
     virtual int isNested();
     int needThis();
     virtual int isVirtual();
+    virtual int isFinal();
     virtual int addPreInvariant();
     virtual int addPostInvariant();
     Expression *interpret(InterState *istate, Expressions *arguments);

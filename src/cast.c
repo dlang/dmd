@@ -33,9 +33,10 @@ Expression *Expression::implicitCastTo(Scope *sc, Type *t)
 {
     //printf("implicitCastTo(%s) => %s\n", type->toChars(), t->toChars());
     if (implicitConvTo(t))
-    {
+    {	TY tyfrom = type->toBasetype()->ty;
+	TY tyto = t->toBasetype()->ty;
 	if (global.params.warnings &&
-	    Type::impcnvWarn[type->toBasetype()->ty][t->toBasetype()->ty] &&
+	    Type::impcnvWarn[tyfrom][tyto] &&
 	    op != TOKint64)
 	{
 	    Expression *e = optimize(WANTflags | WANTvalue);
@@ -43,9 +44,25 @@ Expression *Expression::implicitCastTo(Scope *sc, Type *t)
 	    if (e->op == TOKint64)
 		return e->implicitCastTo(sc, t);
 
-	    fprintf(stdmsg, "warning - ");
-	    error("implicit conversion of expression (%s) of type %s to %s can cause loss of data",
-		toChars(), type->toChars(), t->toChars());
+	    if (tyfrom == Tint32 &&
+		(op == TOKadd || op == TOKmin ||
+		 op == TOKand || op == TOKor || op == TOKxor)
+	       )
+	    {
+		/* This is really only a semi-kludge fix,
+		 * we really should look at the operands of op
+		 * and see if they are narrower types.
+		 * For example, b=b|b and b=b|7 and s=b+b should be allowed,
+		 * but b=b|i should be an error.
+		 */
+		;
+	    }
+	    else
+	    {
+		fprintf(stdmsg, "warning - ");
+		error("implicit conversion of expression (%s) of type %s to %s can cause loss of data",
+		    toChars(), type->toChars(), t->toChars());
+	    }
 	}
 #if V2
 	if (match == MATCHconst && t == type->constOf())
