@@ -24,6 +24,10 @@
 #include "id.h"
 #include "module.h"
 
+#if TARGET_LINUX
+char *cpp_mangle(Dsymbol *s);
+#endif
+
 char *mangle(Declaration *sthis)
 {
     OutBuffer buf;
@@ -96,7 +100,7 @@ char *Declaration::mangle()
 #endif
     {
 	//printf("Declaration::mangle(this = %p, '%s', parent = '%s', linkage = %d)\n", this, toChars(), parent ? parent->toChars() : "null", linkage);
-	if (!parent || parent->isModule())	// if at global scope
+	if (!parent || parent->isModule() || linkage == LINKcpp) // if at global scope
 	{
 	    // If it's not a D declaration, no mangling
 	    switch (linkage)
@@ -107,8 +111,15 @@ char *Declaration::mangle()
 		case LINKc:
 		case LINKwindows:
 		case LINKpascal:
-		case LINKcpp:
 		    return ident->toChars();
+
+		case LINKcpp:
+#if TARGET_LINUX
+		    return cpp_mangle(this);
+#else
+		    // Windows C++ mangling is done by C++ back end
+		    return ident->toChars();
+#endif
 
 		case LINKdefault:
 		    error("forward declaration");

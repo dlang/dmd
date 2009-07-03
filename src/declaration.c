@@ -600,6 +600,7 @@ VarDeclaration::VarDeclaration(Loc loc, Type *type, Identifier *id, Initializer 
     onstack = 0;
     canassign = 0;
     value = NULL;
+    scope = NULL;
 }
 
 Dsymbol *VarDeclaration::syntaxCopy(Dsymbol *s)
@@ -994,6 +995,11 @@ void VarDeclaration::semantic(Scope *sc)
 		{
 		    if (global.gag == 0)
 			global.errors = errors;	// act as if nothing happened
+
+		    /* Save scope for later use, to try again
+		     */
+		    scope = new Scope(*sc);
+		    scope->setNoFree();
 		}
 		else if (ei)
 		{
@@ -1001,6 +1007,13 @@ void VarDeclaration::semantic(Scope *sc)
 		    if (e->op == TOKint64 || e->op == TOKstring)
 		    {
 			ei->exp = e;		// no errors, keep result
+		    }
+		    else
+		    {
+			/* Save scope for later use, to try again
+			 */
+			scope = new Scope(*sc);
+			scope->setNoFree();
 		    }
 		}
 		else

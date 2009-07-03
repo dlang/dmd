@@ -89,7 +89,7 @@ Expression *TraitsExp::semantic(Scope *sc)
     printf("TraitsExp::semantic() %s\n", toChars());
 #endif
     if (ident != Id::compiles)
-	TemplateInstance::semanticTiargs(loc, sc, args);
+	TemplateInstance::semanticTiargs(loc, sc, args, 1);
     size_t dim = args ? args->dim : 0;
     Object *o;
     FuncDeclaration *f;

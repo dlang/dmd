@@ -2231,6 +2231,11 @@ MATCH TemplateValueParameter::matchArg(Scope *sc,
     if (!ei && oarg)
 	goto Lnomatch;
 
+    if (ei && ei->op == TOKvar)
+    {	// Resolve const variables that we had skipped earlier
+	ei = ei->optimize(WANTvalue | WANTinterpret);
+    }
+
     if (specValue)
     {
 	if (!ei || ei == edummy)
@@ -2862,13 +2867,18 @@ void TemplateInstance::semantic(Scope *sc)
 void TemplateInstance::semanticTiargs(Scope *sc)
 {
     //printf("+TemplateInstance::semanticTiargs() %s\n", toChars());
-    semanticTiargs(loc, sc, tiargs);
+    semanticTiargs(loc, sc, tiargs, 0);
 }
 
-void TemplateInstance::semanticTiargs(Loc loc, Scope *sc, Objects *tiargs)
+/**********************************
+ * Input:
+ *	flags	1: replace const variables with their initializers
+ */
+
+void TemplateInstance::semanticTiargs(Loc loc, Scope *sc, Objects *tiargs, int flags)
 {
     // Run semantic on each argument, place results in tiargs[]
-    //printf("+TemplateInstance::semanticTiargs() %s\n", toChars());
+    //printf("+TemplateInstance::semanticTiargs()\n");
     if (!tiargs)
 	return;
     for (size_t j = 0; j < tiargs->dim; j++)
@@ -2878,7 +2888,7 @@ void TemplateInstance::semanticTiargs(Loc loc, Scope *sc, Objects *tiargs)
 	Expression *ea = isExpression(o);
 	Dsymbol *sa = isDsymbol(o);
 
-	//printf("1: tiargs->data[%d] = %p, %p, %p\n", j, o, isDsymbol(o), isTuple(o));
+	//printf("1: tiargs->data[%d] = %p, %p, %p, ea=%p, ta=%p\n", j, o, isDsymbol(o), isTuple(o), ea, ta);
 	if (ta)
 	{
 	    //printf("type %s\n", ta->toChars());
@@ -2887,7 +2897,13 @@ void TemplateInstance::semanticTiargs(Loc loc, Scope *sc, Objects *tiargs)
 	    if (ea)
 	    {
 		ea = ea->semantic(sc);
-		ea = ea->optimize(WANTvalue | WANTinterpret);
+		/* This test is to skip substituting a const var with
+		 * its initializer. The problem is the initializer won't
+		 * match with an 'alias' parameter. Instead, do the
+		 * const substitution in TemplateValueParameter::matchArg().
+		 */
+		if (ea->op != TOKvar || flags & 1)
+		    ea = ea->optimize(WANTvalue | WANTinterpret);
 		tiargs->data[j] = ea;
 	    }
 	    else if (sa)
@@ -2934,7 +2950,8 @@ void TemplateInstance::semanticTiargs(Loc loc, Scope *sc, Objects *tiargs)
 	    }
 	    assert(ea);
 	    ea = ea->semantic(sc);
-	    ea = ea->optimize(WANTvalue | WANTinterpret);
+	    if (ea->op != TOKvar || flags & 1)
+		ea = ea->optimize(WANTvalue | WANTinterpret);
 	    tiargs->data[j] = ea;
 	}
 	else if (sa)

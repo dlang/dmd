@@ -740,6 +740,8 @@ Expression *Type::getProperty(Loc loc, Identifier *ident)
     }
     else if (ident == Id::init)
     {
+	if (ty == Tvoid)
+	    error(loc, "void does not have an initializer");
 	e = defaultInit();
 	e->loc = loc;
     }
@@ -828,7 +830,9 @@ Expression *Type::dotExp(Scope *sc, Expression *e, Identifier *ident)
 		return e;
 	    }
 #endif
-	    return defaultInit();
+	    Expression *ex = defaultInit();
+	    ex->loc = e->loc;
+	    return ex;
 	}
     }
     if (ident == Id::typeinfo)
@@ -3495,6 +3499,7 @@ void TypeQualified::resolveHelper(Loc loc, Scope *sc,
 	v = s->isVarDeclaration();
 	if (v)
 	{
+#if 0
 	    // It's not a type, it's an expression
 	    if (v->isConst() && v->getExpInitializer())
 	    {
@@ -3504,6 +3509,7 @@ void TypeQualified::resolveHelper(Loc loc, Scope *sc,
 		(*pe)->loc = loc;
 	    }
 	    else
+#endif
 	    {
 #if 0
 		WithScopeSymbol *withsym;
@@ -4825,6 +4831,9 @@ L1:
 	    t = ClassDeclaration::classinfo->type;
 	    if (e->op == TOKtype || e->op == TOKdottype)
 	    {
+		/* For type.classinfo, we know the classinfo
+		 * at compile time.
+		 */
 		if (!sym->vclassinfo)
 		    sym->vclassinfo = new ClassInfoDeclaration(sym);
 		e = new VarExp(e->loc, sym->vclassinfo);
@@ -4832,13 +4841,26 @@ L1:
 		e->type = t;	// do this so we don't get redundant dereference
 	    }
 	    else
-	    {
+	    {	/* For class objects, the classinfo reference is the first
+		 * entry in the vtbl[]
+		 */
 		e = new PtrExp(e->loc, e);
 		e->type = t->pointerTo();
 		if (sym->isInterfaceDeclaration())
 		{
-		    if (sym->isCOMclass())
-			error(e->loc, "no .classinfo for COM interface objects");
+		    if (sym->isCPPinterface())
+		    {	/* C++ interface vtbl[]s are different in that the
+			 * first entry is always pointer to the first virtual
+			 * function, not classinfo.
+			 * We can't get a .classinfo for it.
+			 */
+			error(e->loc, "no .classinfo for C++ interface objects");
+		    }
+		    /* For an interface, the first entry in the vtbl[]
+		     * is actually a pointer to an instance of struct Interface.
+		     * The first member of Interface is the .classinfo,
+		     * so add an extra pointer indirection.
+		     */
 		    e->type = e->type->pointerTo();
 		    e = new PtrExp(e->loc, e);
 		    e->type = t->pointerTo();

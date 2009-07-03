@@ -223,6 +223,15 @@ Msgtable msgtable[] =
     { "WinMain" },
     { "DllMain" },
 
+    // Builtin functions
+    { "std" },
+    { "math" },
+    { "sin" },
+    { "cos" },
+    { "tan" },
+    { "_sqrt", "sqrt" },
+    { "fabs" },
+
     // Traits
     { "isAbstractClass" },
     { "isArithmetic" },

@@ -56,14 +56,28 @@ Expression *fromConstInitializer(int result, Expression *e1)
 	    {
 		if (v->init)
 		{
-		    if (!v->inuse)
+		    if (v->inuse)
+			goto L1;
+		    Expression *ei = v->init->toExpression();
+		    if (!ei)
+			goto L1;
+		    if (v->scope)
 		    {
-			Expression *ei = v->init->toExpression();
-			if (ei && ei->type)
-			    // Should remove the copy() operation by
-			    // making all mods to expressions copy-on-write
-			    e = ei->copy();
+			v->inuse++;
+			e = ei->syntaxCopy();
+			e = e->semantic(v->scope);
+			e = e->implicitCastTo(v->scope, v->type);
+			v->scope = NULL;
+			v->inuse--;
 		    }
+		    else if (!ei->type)
+		    {
+			goto L1;
+		    }
+		    else
+			// Should remove the copy() operation by
+			// making all mods to expressions copy-on-write
+			e = ei->copy();
 		}
 		else
 		{
@@ -84,6 +98,7 @@ Expression *fromConstInitializer(int result, Expression *e1)
 	    }
 	}
     }
+L1:
     return e;
 }
 
@@ -306,16 +321,26 @@ Expression *CallExp::optimize(int result)
 {   Expression *e = this;
 
     e1 = e1->optimize(result);
-    if (e1->op == TOKvar && result & WANTinterpret)
+    if (e1->op == TOKvar)
     {
 	FuncDeclaration *fd = ((VarExp *)e1)->var->isFuncDeclaration();
 	if (fd)
 	{
-	    Expression *eresult = fd->interpret(NULL, arguments);
-	    if (eresult)
-		e = eresult;
+	    enum BUILTIN b = fd->isBuiltin();
+	    if (b)
+	    {
+		e = eval_builtin(b, arguments);
+		if (!e)			// failed
+		    e = this;		// evaluate at runtime
+	    }
 	    else if (result & WANTinterpret)
-		error("cannot evaluate %s at compile time", toChars());
+	    {
+		Expression *eresult = fd->interpret(NULL, arguments);
+		if (eresult)
+		    e = eresult;
+		else if (result & WANTinterpret)
+		    error("cannot evaluate %s at compile time", toChars());
+	    }
 	}
     }
     return e;
@@ -416,6 +441,18 @@ Expression *BinExp::optimize(int result)
     //printf("BinExp::optimize(result = %d) %s\n", result, toChars());
     e1 = e1->optimize(result);
     e2 = e2->optimize(result);
+    if (op == TOKshlass || op == TOKshrass || op == TOKushrass)
+    {
+	if (e2->isConst() == 1)
+	{
+	    integer_t i2 = e2->toInteger();
+	    d_uns64 sz = e1->type->size() * 8;
+	    if (i2 < 0 || i2 > sz)
+	    {   error("shift assign by %jd is outside the range 0..%zu", i2, sz);
+		e2 = new IntegerExp(0);
+	    }
+	}
+    }
     return this;
 }
 
@@ -496,55 +533,41 @@ Expression *ModExp::optimize(int result)
     return e;
 }
 
-Expression *ShlExp::optimize(int result)
-{   Expression *e;
+Expression *shift_optimize(int result, BinExp *e, Expression *(*shift)(Type *, Expression *, Expression *))
+{   Expression *ex = e;
 
-    //printf("ShlExp::optimize(result = %d) %s\n", result, toChars());
-    e1 = e1->optimize(result);
-    e2 = e2->optimize(result);
-    e = this;
-    if (e2->isConst() == 1)
+    e->e1 = e->e1->optimize(result);
+    e->e2 = e->e2->optimize(result);
+    if (e->e2->isConst() == 1)
     {
-	integer_t i2 = e2->toInteger();
-	if (i2 < 0 || i2 > e1->type->size() * 8)
-	{   error("shift left by %jd exceeds %zu", i2, e2->type->size() * 8);
-	    e2 = new IntegerExp(0);
+	integer_t i2 = e->e2->toInteger();
+	d_uns64 sz = e->e1->type->size() * 8;
+	if (i2 < 0 || i2 > sz)
+	{   error("shift by %jd is outside the range 0..%zu", i2, sz);
+	    e->e2 = new IntegerExp(0);
 	}
-	if (e1->isConst() == 1)
-	    e = new IntegerExp(loc, e1->toInteger() << e2->toInteger(), type);
+	if (e->e1->isConst() == 1)
+	    ex = (*shift)(e->type, e->e1, e->e2);
     }
-    return e;
+    return ex;
+}
+
+Expression *ShlExp::optimize(int result)
+{
+    //printf("ShlExp::optimize(result = %d) %s\n", result, toChars());
+    return shift_optimize(result, this, Shl);
 }
 
 Expression *ShrExp::optimize(int result)
-{   Expression *e;
-
-    e1 = e1->optimize(result);
-    e2 = e2->optimize(result);
-
-    if (e1->isConst() == 1 && e2->isConst() == 1)
-    {
-	e = Shr(type, e1, e2);
-    }
-    else
-	e = this;
-    return e;
+{
+    //printf("ShrExp::optimize(result = %d) %s\n", result, toChars());
+    return shift_optimize(result, this, Shr);
 }
 
 Expression *UshrExp::optimize(int result)
-{   Expression *e;
-
-    //printf("UshrExp::optimize() %s\n", toChars());
-    e1 = e1->optimize(result);
-    e2 = e2->optimize(result);
-
-    if (e1->isConst() == 1 && e2->isConst() == 1)
-    {
-	e = Ushr(type, e1, e2);
-    }
-    else
-	e = this;
-    return e;
+{
+    //printf("UshrExp::optimize(result = %d) %s\n", result, toChars());
+    return shift_optimize(result, this, Ushr);
 }
 
 Expression *AndExp::optimize(int result)

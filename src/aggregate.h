@@ -1,6 +1,6 @@
 
 // Compiler implementation of the D programming language
-// Copyright (c) 1999-2006 by Digital Mars
+// Copyright (c) 1999-2007 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // http://www.digitalmars.com
@@ -178,7 +178,8 @@ struct ClassDeclaration : AggregateDeclaration
 					// their own vtbl[]
 
     ClassInfoDeclaration *vclassinfo;	// the ClassInfo object for this ClassDeclaration
-    int com;				// !=0 if this is a COM class
+    int com;				// !=0 if this is a COM class (meaning
+					// it derives from IUnknown)
     int isauto;				// !=0 if this is an auto class
     int isabstract;			// !=0 if abstract class
 
@@ -200,6 +201,8 @@ struct ClassDeclaration : AggregateDeclaration
     void interfaceSemantic(Scope *sc);
     int isNested();
     int isCOMclass();
+    virtual int isCOMinterface();
+    virtual int isCPPinterface();
     int isAbstract();
     virtual int vtblOffset();
     char *kind();
@@ -226,6 +229,8 @@ struct ClassDeclaration : AggregateDeclaration
 
 struct InterfaceDeclaration : ClassDeclaration
 {
+    int cpp;				// !=0 if this is a C++ interface
+
     InterfaceDeclaration(Loc loc, Identifier *id, BaseClasses *baseclasses);
     Dsymbol *syntaxCopy(Dsymbol *s);
     void semantic(Scope *sc);
@@ -233,6 +238,8 @@ struct InterfaceDeclaration : ClassDeclaration
     int isBaseOf(BaseClass *bc, int *poffset);
     char *kind();
     int vtblOffset();
+    int isCPPinterface();
+    virtual int isCOMinterface();
 
     void toObjFile();			// compile to .obj file
     Symbol *toSymbol();

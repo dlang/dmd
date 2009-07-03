@@ -74,6 +74,9 @@ typedef union tree_node TYPE;
 struct TYPE;
 #endif
 
+// Back end
+struct Classsym;
+
 enum PROT
 {
     PROTundefined,

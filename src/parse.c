@@ -1912,9 +1912,9 @@ Type *Parser::parseDeclarator(Type *t, Identifier **pident, TemplateParameters *
 		}
 
 		arguments = parseParameters(&varargs);
-		TypeNext *ta = new TypeFunction(arguments, t, varargs, linkage);
-		TypeNext **pt;
-		for (pt = (TypeNext **)&ts; *pt != t; pt = (TypeNext **)&(*pt)->next)
+		Type *ta = new TypeFunction(arguments, t, varargs, linkage);
+		Type **pt;
+		for (pt = &ts; *pt != t; pt = &((TypeNext*)*pt)->next)
 		    ;
 		*pt = ta;
 		break;

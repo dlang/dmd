@@ -73,6 +73,7 @@ FuncDeclaration::FuncDeclaration(Loc loc, Loc endloc, Identifier *id, enum STC s
     nrvo_can = 1;
     nrvo_var = NULL;
     shidden = NULL;
+    builtin = BUILTINunknown;
 }
 
 Dsymbol *FuncDeclaration::syntaxCopy(Dsymbol *s)
@@ -948,12 +949,19 @@ void FuncDeclaration::semantic3(Scope *sc)
 		 * ctor consts were initialized.
 		 */
 
-		ScopeDsymbol *ad = toParent()->isScopeDsymbol();
-		assert(ad);
-		for (int i = 0; i < ad->members->dim; i++)
-		{   Dsymbol *s = (Dsymbol *)ad->members->data[i];
+		Dsymbol *p = toParent();
+		ScopeDsymbol *ad = p->isScopeDsymbol();
+		if (!ad)
+		{
+		    error("static constructor can only be member of struct/class/module, not %s %s", p->kind(), p->toChars());
+		}
+		else
+		{
+		    for (int i = 0; i < ad->members->dim; i++)
+		    {   Dsymbol *s = (Dsymbol *)ad->members->data[i];
 
-		    s->checkCtorConstInit();
+			s->checkCtorConstInit();
+		    }
 		}
 	    }
 
@@ -2181,7 +2189,7 @@ int StaticCtorDeclaration::addPostInvariant()
 void StaticCtorDeclaration::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 {
     if (hgs->hdrgen)
-    {	buf->writestring("static this(){}\n");
+    {	buf->writestring("static this();\n");
 	return;
     }
     buf->writestring("static this()");

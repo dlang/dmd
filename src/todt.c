@@ -374,7 +374,7 @@ dt_t *ArrayInitializer::toDtBit()
 	    if (dim > tadim)
 	    {
 #ifdef DEBUG
-		printf("2: ");
+		printf("3: ");
 #endif
 		error(loc, "too many initializers, %d, for array[%d]", dim, tadim);
 	    }

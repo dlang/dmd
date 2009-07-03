@@ -1797,7 +1797,27 @@ Expression *CallExp::interpret(InterState *istate)
     {
 	FuncDeclaration *fd = ((VarExp *)e1)->var->isFuncDeclaration();
 	if (fd)
-	{   // Inline .dup
+	{
+#if V2
+	    enum BUILTIN b = fd->isBuiltin();
+	    if (b)
+	    {	Expressions args;
+		args.setDim(arguments->dim);
+		for (size_t i = 0; i < args.dim; i++)
+		{
+		    Expression *earg = (Expression *)arguments->data[i];
+		    earg = earg->interpret(istate);
+		    if (earg == EXP_CANT_INTERPRET)
+			return earg;
+		    args.data[i] = (void *)earg;
+		}
+		e = eval_builtin(b, &args);
+		if (!e)
+		    e = EXP_CANT_INTERPRET;
+	    }
+	    else
+#endif
+	    // Inline .dup
 	    if (fd->ident == Id::adDup && arguments && arguments->dim == 2)
 	    {
 		e = (Expression *)arguments->data[1];

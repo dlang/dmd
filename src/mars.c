@@ -60,7 +60,7 @@ Global::Global()
 
     copyright = "Copyright (c) 1999-2007 by Digital Mars";
     written = "written by Walter Bright";
-    version = "v2.004";
+    version = "v2.005";
     global.structalign = 8;
 
     memset(&params, 0, sizeof(Param));
@@ -114,7 +114,7 @@ void verror(Loc loc, const char *format, va_list ap)
 	vfprintf(stdmsg, format, ap);
 	fprintf(stdmsg, "\n");
 	fflush(stdmsg);
-halt();
+//halt();
     }
     global.errors++;
 }
@@ -165,6 +165,8 @@ Usage:\n\
   -debug         compile in debug code\n\
   -debug=level   compile in debug code <= level\n\
   -debug=ident   compile in debug code identified by ident\n\
+  -debuglib=name    set symbolic debug library to name\n\
+  -defaultlib=name  set default library to name\n\
   -g             add symbolic debug info\n\
   -gc            add symbolic debug info, pretend to be C\n\
   -H             generate 'header' file\n\

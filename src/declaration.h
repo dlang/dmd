@@ -222,6 +222,7 @@ struct VarDeclaration : Declaration
     Dsymbol *aliassym;		// if redone as alias to another symbol
     Expression *value;		// when interpreting, this is the value
 				// (NULL if value not determinable)
+    Scope *scope;		// !=NULL means context to use
 
     VarDeclaration(Loc loc, Type *t, Identifier *id, Initializer *init);
     Dsymbol *syntaxCopy(Dsymbol *);
@@ -426,6 +427,19 @@ enum ILS
 
 /**************************************************************/
 
+enum BUILTIN
+{
+    BUILTINunknown = -1,	// not known if this is a builtin
+    BUILTINnot,			// this is not a builtin
+    BUILTINsin,			// std.math.sin
+    BUILTINcos,			// std.math.cos
+    BUILTINtan,			// std.math.tan
+    BUILTINsqrt,		// std.math.sqrt
+    BUILTINfabs,		// std.math.fabs
+};
+
+Expression *eval_builtin(enum BUILTIN builtin, Expressions *arguments);
+
 struct FuncDeclaration : Declaration
 {
     Array *fthrows;			// Array of Type's of exceptions (not used)
@@ -475,6 +489,10 @@ struct FuncDeclaration : Declaration
     VarDeclaration *nrvo_var;		// variable to replace with shidden
     Symbol *shidden;			// hidden pointer passed to function
 
+    enum BUILTIN builtin;		// set if this is a known, builtin
+					// function we can evaluate at compile
+					// time
+
     FuncDeclaration(Loc loc, Loc endloc, Identifier *id, enum STC storage_class, Type *type);
     Dsymbol *syntaxCopy(Dsymbol *);
     void semantic(Scope *sc);
@@ -496,6 +514,7 @@ struct FuncDeclaration : Declaration
     int isMain();
     int isWinMain();
     int isDllMain();
+    enum BUILTIN isBuiltin();
     int isExport();
     int isImportedSymbol();
     int isAbstract();

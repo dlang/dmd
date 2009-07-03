@@ -32,6 +32,7 @@ struct TypedefDeclaration;
 struct TypeInfoDeclaration;
 struct Dsymbol;
 struct TemplateInstance;
+struct CppMangleState;
 enum LINK;
 
 struct TypeBasic;
@@ -206,6 +207,9 @@ struct Type : Object
     virtual void toCBuffer(OutBuffer *buf, Identifier *ident, HdrGenState *hgs);
     virtual void toCBuffer2(OutBuffer *buf, HdrGenState *hgs, int mod);
     void toCBuffer3(OutBuffer *buf, HdrGenState *hgs, int mod);
+#if TARGET_LINUX
+    virtual void toCppMangle(OutBuffer *buf, CppMangleState *cms);
+#endif
     virtual int isintegral();
     virtual int isfloating();	// real, imaginary, or complex
     virtual int isreal();
@@ -292,6 +296,9 @@ struct TypeBasic : Type
     Expression *dotExp(Scope *sc, Expression *e, Identifier *ident);
     char *toChars();
     void toCBuffer2(OutBuffer *buf, HdrGenState *hgs, int mod);
+#if TARGET_LINUX
+    void toCppMangle(OutBuffer *buf, CppMangleState *cms);
+#endif
     int isintegral();
     int isbit();
     int isfloating();
@@ -341,6 +348,9 @@ struct TypeSArray : TypeArray
     TypeInfoDeclaration *getTypeInfoDeclaration();
     Expression *toExpression();
     int hasPointers();
+#if TARGET_LINUX
+    void toCppMangle(OutBuffer *buf, CppMangleState *cms);
+#endif
 
     type *toCtype();
     type *toCParamtype();
@@ -365,6 +375,9 @@ struct TypeDArray : TypeArray
     int builtinTypeInfo();
     TypeInfoDeclaration *getTypeInfoDeclaration();
     int hasPointers();
+#if TARGET_LINUX
+    void toCppMangle(OutBuffer *buf, CppMangleState *cms);
+#endif
 
     type *toCtype();
 };
@@ -385,6 +398,9 @@ struct TypeAArray : TypeArray
     int checkBoolean();
     TypeInfoDeclaration *getTypeInfoDeclaration();
     int hasPointers();
+#if TARGET_LINUX
+    void toCppMangle(OutBuffer *buf, CppMangleState *cms);
+#endif
 
     // Back end
     Symbol *aaGetSymbol(char *func, int flags);
@@ -405,6 +421,9 @@ struct TypePointer : TypeNext
     int isZeroInit();
     TypeInfoDeclaration *getTypeInfoDeclaration();
     int hasPointers();
+#if TARGET_LINUX
+    void toCppMangle(OutBuffer *buf, CppMangleState *cms);
+#endif
 
     type *toCtype();
 };
@@ -419,6 +438,9 @@ struct TypeReference : TypeNext
     Expression *dotExp(Scope *sc, Expression *e, Identifier *ident);
     Expression *defaultInit();
     int isZeroInit();
+#if TARGET_LINUX
+    void toCppMangle(OutBuffer *buf, CppMangleState *cms);
+#endif
 };
 
 enum RET
@@ -447,6 +469,9 @@ struct TypeFunction : TypeNext
     MATCH deduceType(Scope *sc, Type *tparam, TemplateParameters *parameters, Objects *dedtypes);
     TypeInfoDeclaration *getTypeInfoDeclaration();
     Type *reliesOnTident();
+#if TARGET_LINUX
+    void toCppMangle(OutBuffer *buf, CppMangleState *cms);
+#endif
 
     int callMatch(Expressions *toargs);
     type *toCtype();
@@ -470,6 +495,9 @@ struct TypeDelegate : TypeNext
     TypeInfoDeclaration *getTypeInfoDeclaration();
     Expression *dotExp(Scope *sc, Expression *e, Identifier *ident);
     int hasPointers();
+#if TARGET_LINUX
+    void toCppMangle(OutBuffer *buf, CppMangleState *cms);
+#endif
 
     type *toCtype();
 };
@@ -558,6 +586,9 @@ struct TypeStruct : Type
     MATCH implicitConvTo(Type *to);
     MATCH constConv(Type *to);
     Type *toCanonConst();
+#if TARGET_LINUX
+    void toCppMangle(OutBuffer *buf, CppMangleState *cms);
+#endif
 
     type *toCtype();
 };
@@ -588,6 +619,9 @@ struct TypeEnum : Type
     MATCH deduceType(Scope *sc, Type *tparam, TemplateParameters *parameters, Objects *dedtypes);
     TypeInfoDeclaration *getTypeInfoDeclaration();
     int hasPointers();
+#if TARGET_LINUX
+    void toCppMangle(OutBuffer *buf, CppMangleState *cms);
+#endif
 
     type *toCtype();
 };
@@ -625,6 +659,9 @@ struct TypeTypedef : Type
     TypeInfoDeclaration *getTypeInfoDeclaration();
     int hasPointers();
     Type *toCanonConst();
+#if TARGET_LINUX
+    void toCppMangle(OutBuffer *buf, CppMangleState *cms);
+#endif
 
     type *toCtype();
     type *toCParamtype();
@@ -655,6 +692,9 @@ struct TypeClass : Type
     int hasPointers();
     Type *toCanonConst();
     MATCH constConv(Type *to);
+#if TARGET_LINUX
+    void toCppMangle(OutBuffer *buf, CppMangleState *cms);
+#endif
 
     type *toCtype();
 
@@ -707,6 +747,7 @@ struct Argument : Object
     void toDecoBuffer(OutBuffer *buf);
     static Arguments *arraySyntaxCopy(Arguments *args);
     static char *argsTypesToChars(Arguments *args, int varargs);
+    static void argsCppMangle(OutBuffer *buf, CppMangleState *cms, Arguments *arguments, int varargs);
     static void argsToCBuffer(OutBuffer *buf, HdrGenState *hgs, Arguments *arguments, int varargs);
     static void argsToDecoBuffer(OutBuffer *buf, Arguments *arguments);
     static size_t dim(Arguments *arguments);

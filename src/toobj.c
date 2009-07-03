@@ -377,7 +377,7 @@ void ClassDeclaration::toObjFile()
 	dtdword(&dt, 0);
 
     // flags
-    int flags = 16 | 4 | com;
+    int flags = 16 | 4 | isCOMclass();
     if (ctor)
 	flags |= 8;
     for (ClassDeclaration *cd = this; cd; cd = cd->baseClass)
@@ -815,7 +815,7 @@ void InterfaceDeclaration::toObjFile()
     dtdword(&dt, 0);
 
     // flags
-    dtdword(&dt, 4 | com);
+    dtdword(&dt, 4 | isCOMinterface());
 
     // deallocator
     dtdword(&dt, 0);

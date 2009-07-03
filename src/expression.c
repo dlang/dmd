@@ -1016,6 +1016,7 @@ IntegerExp::IntegerExp(Loc loc, integer_t value, Type *type)
     //printf("IntegerExp(value = %lld, type = '%s')\n", value, type ? type->toChars() : "");
     if (type && !type->isscalar())
     {
+	//printf("test1: %s, loc = %d\n", toChars(), loc.linnum);
 	error("integral constant must be scalar type, not %s", type->toChars());
 	type = Type::terror;
     }
@@ -2377,26 +2378,36 @@ int StringExp::isBool(int result)
     return result ? TRUE : FALSE;
 }
 
+unsigned StringExp::charAt(size_t i)
+{   unsigned value;
+
+    switch (sz)
+    {
+	case 1:
+	    value = ((unsigned char *)string)[i];
+	    break;
+
+	case 2:
+	    value = ((unsigned short *)string)[i];
+	    break;
+
+	case 4:
+	    value = ((unsigned int *)string)[i];
+	    break;
+
+	default:
+	    assert(0);
+	    break;
+    }
+    return value;
+}
+
 void StringExp::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 {
     buf->writeByte('"');
     for (size_t i = 0; i < len; i++)
-    {	unsigned c;
+    {	unsigned c = charAt(i);
 
-	switch (sz)
-	{
-	    case 1:
-		c = ((unsigned char *)string)[i];
-		break;
-	    case 2:
-		c = ((unsigned short *)string)[i];
-		break;
-	    case 4:
-		c = ((unsigned *)string)[i];
-		break;
-	    default:
-		assert(0);
-	}
 	switch (c)
 	{
 	    case '"':
@@ -5027,7 +5038,7 @@ Expression *DotVarExp::semantic(Scope *sc)
 
 	    AggregateDeclaration *ad = var->toParent()->isAggregateDeclaration();
 	L1:
-	    Type *t = e1->type;
+	    Type *t = e1->type->toBasetype();
 
 	    if (ad &&
 		!(t->ty == Tpointer &&
@@ -5067,7 +5078,7 @@ Expression *DotVarExp::semantic(Scope *sc)
 			goto L1;
 		    }
 #ifdef DEBUG
-		    //printf("2: ");
+		    printf("2: ");
 #endif
 		    error("this for %s needs to be type %s not type %s",
 			var->toChars(), ad->toChars(), t->toChars());
@@ -5574,6 +5585,7 @@ Lagain:
 	     */
 	    Expression *e = new StructLiteralExp(loc, (StructDeclaration *)ad, arguments);
 	    e = e->semantic(sc);
+	    e->type = e1->type;		// in case e1->type was a typedef
 	    return e;
 	}
 	else if (t1->ty == Tclass)
@@ -6240,8 +6252,11 @@ Expression *DeleteExp::semantic(Scope *sc)
 	{   TypeClass *tc = (TypeClass *)tb;
 	    ClassDeclaration *cd = tc->sym;
 
-	    if (cd->isInterfaceDeclaration() && cd->isCOMclass())
+	    if (cd->isCOMinterface())
+	    {	/* Because COM classes are deleted by IUnknown.Release()
+		 */
 		error("cannot delete instance of COM interface %s", cd->toChars());
+	    }
 	    break;
 	}
 	case Tpointer:

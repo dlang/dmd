@@ -42,6 +42,8 @@
 void slist_add(Symbol *s);
 void slist_reset();
 
+Classsym *fake_classsym(Identifier *id);
+
 /********************************* SymbolDeclaration ****************************/
 
 SymbolDeclaration::SymbolDeclaration(Loc loc, Symbol *s, StructDeclaration *dsym)
@@ -312,11 +314,14 @@ Symbol *FuncDeclaration::toSymbol()
 	s = symbol_calloc(id);
 	slist_add(s);
 
-	{   func_t *f;
-
+	{
 	    s->Sclass = SCglobal;
 	    symbol_func(s);
-	    f = s->Sfunc;
+	    func_t *f = s->Sfunc;
+	    if (isVirtual())
+		f->Fflags |= Fvirtual;
+	    else if (isMember2())
+		f->Fflags |= Fstatic;
 	    f->Fstartline.Slinnum = loc.linnum;
 	    f->Fstartline.Sfilename = loc.filename;
 	    if (endloc.linnum)
@@ -358,9 +363,21 @@ Symbol *FuncDeclaration::toSymbol()
 		    break;
 
 		case LINKcpp:
-		    t->Tmangle = mTYman_cpp;
+		{   t->Tmangle = mTYman_cpp;
+#if !TARGET_LINUX
+		    if (isThis())
+			t->Tty = TYmfunc;
+#endif
+		    s->Sflags |= SFLpublic;
+		    Dsymbol *parent = toParent();
+		    ClassDeclaration *cd = parent->isClassDeclaration();
+		    if (cd)
+		    {
+			::type *t = cd->type->toCtype();
+			s->Sscope = t->Tnext->Ttag;
+		    }
 		    break;
-
+		}
 		default:
 		    printf("linkage = %d\n", linkage);
 		    assert(0);
@@ -368,7 +385,7 @@ Symbol *FuncDeclaration::toSymbol()
 	}
 	if (msave)
 	    assert(msave == t->Tmangle);
-	//printf("Tty = %d, mangle = x%x\n", t->Tty, t->Tmangle);
+	//printf("Tty = %x, mangle = x%x\n", t->Tty, t->Tmangle);
 	t->Tcount++;
 	s->Stype = t;
         //s->Sfielddef = this;
@@ -434,11 +451,11 @@ Symbol *static_sym()
  * Fake a struct symbol.
  */
 
-Classsym *fake_classsym(char *name)
+Classsym *fake_classsym(Identifier *id)
 {   TYPE *t;
     Classsym *scc;
 
-    scc = (Classsym *)symbol_calloc("ClassInfo");
+    scc = (Classsym *)symbol_calloc(id->toChars());
     scc->Sclass = SCstruct;
     scc->Sstruct = struct_calloc();
     scc->Sstruct->Sstructalign = 8;
@@ -469,7 +486,7 @@ Symbol *ClassDeclaration::toSymbol()
 	Symbol *s;
 
 	if (!scc)
-	    scc = fake_classsym("ClassInfo");
+	    scc = fake_classsym(Id::ClassInfo);
 
 	s = toSymbolX("__Class", SCextern, scc->Stype, "Z");
 	s->Sfl = FLextern;
@@ -491,7 +508,7 @@ Symbol *InterfaceDeclaration::toSymbol()
 	Symbol *s;
 
 	if (!scc)
-	    scc = fake_classsym("ClassInfo");
+	    scc = fake_classsym(Id::ClassInfo);
 
 	s = toSymbolX("__Interface", SCextern, scc->Stype, "Z");
 	s->Sfl = FLextern;
@@ -514,7 +531,7 @@ Symbol *Module::toSymbol()
 	static Classsym *scc;
 
 	if (!scc)
-	    scc = fake_classsym("ModuleInfo");
+	    scc = fake_classsym(Id::ClassInfo);
 
 	s = toSymbolX("__ModuleInfo", SCextern, scc->Stype, "Z");
 	s->Sfl = FLextern;
@@ -564,7 +581,7 @@ Symbol *AggregateDeclaration::toInitializer()
 
     if (!sinit)
     {
-	stag = fake_classsym(NULL);
+	stag = fake_classsym(Id::ClassInfo);
 	s = toSymbolX("__init", SCextern, stag->Stype, "Z");
 	s->Sfl = FLextern;
 	s->Sflags |= SFLnodebug;
@@ -581,7 +598,7 @@ Symbol *TypedefDeclaration::toInitializer()
 
     if (!sinit)
     {
-	stag = fake_classsym(NULL);
+	stag = fake_classsym(Id::ClassInfo);
 	s = toSymbolX("__init", SCextern, stag->Stype, "Z");
 	s->Sfl = FLextern;
 	s->Sflags |= SFLnodebug;
@@ -598,7 +615,7 @@ Symbol *EnumDeclaration::toInitializer()
 
     if (!sinit)
     {
-	stag = fake_classsym(NULL);
+	stag = fake_classsym(Id::ClassInfo);
 	Identifier *ident_save = ident;
 	if (!ident)
 	{   static int num;
