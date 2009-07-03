@@ -607,7 +607,8 @@ Expression *Type::dotExp(Scope *sc, Expression *e, Identifier *ident)
 		if (v->init->isVoidInitializer())
 		    error(e->loc, "%s.init is void", v->toChars());
 		else
-		{   e = v->init->toExpression();
+		{   Loc loc = e->loc;
+		    e = v->init->toExpression();
 		    if (e->op == TOKassign || e->op == TOKconstruct)
 		    {
 			e = ((AssignExp *)e)->e2;
@@ -622,6 +623,9 @@ Expression *Type::dotExp(Scope *sc, Expression *e, Identifier *ident)
 			    e = v->type->defaultInit();
 			}
 		    }
+		    e = e->optimize(WANTvalue | WANTinterpret);
+//		    if (!e->isConst())
+//			error(loc, ".init cannot be evaluated at compile time");
 		}
 		return e;
 	    }
@@ -2019,6 +2023,7 @@ Type *TypeDArray::semantic(Loc loc, Scope *sc)
     {
 	case Tfunction:
 	case Tnone:
+	case Ttuple:
 	    error(loc, "can't have array of %s", tbn->toChars());
 	    tn = next = tint32;
 	    break;
@@ -2362,6 +2367,13 @@ Type *TypePointer::semantic(Loc loc, Scope *sc)
 {
     //printf("TypePointer::semantic()\n");
     Type *n = next->semantic(loc, sc);
+    switch (n->toBasetype()->ty)
+    {
+	case Ttuple:
+	    error(loc, "can't have pointer to %s", n->toChars());
+	    n = tint32;
+	    break;
+    }
     if (n != next)
 	deco = NULL;
     next = n;
@@ -3906,20 +3918,7 @@ Expression *TypeTypedef::dotExp(Scope *sc, Expression *e, Identifier *ident)
 #endif
     if (ident == Id::init)
     {
-	if (e->op == TOKvar)
-	{
-	    VarExp *ve = (VarExp *)e;
-	    VarDeclaration *v = ve->var->isVarDeclaration();
-
-	    assert(v);
-	    if (v->init)
-	    {	if (v->init->isVoidInitializer())
-		    error(e->loc, "%s.init is void", v->toChars());
-		else
-		    return v->init->toExpression();
-	    }
-	}
-	return defaultInit();
+	return Type::dotExp(sc, e, ident);
     }
     return sym->basetype->dotExp(sc, e, ident);
 }

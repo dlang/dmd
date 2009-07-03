@@ -349,6 +349,7 @@ struct ArrayLiteralExp : Expression
     Expressions *elements;
 
     ArrayLiteralExp(Loc loc, Expressions *elements);
+    ArrayLiteralExp(Loc loc, Expression *e);
 
     Expression *syntaxCopy();
     Expression *semantic(Scope *sc);
@@ -400,7 +401,7 @@ struct StructLiteralExp : Expression
     Expressions *elements;	// parallels sd->fields[] with
 				// NULL entries for fields to skip
 
-    Symbol *s;			// back end symbol to initialize with literal
+    Symbol *sym;		// back end symbol to initialize with literal
     size_t soffset;		// offset from start of s
     int fillHoles;		// fill alignment 'holes' with zero
 
@@ -540,6 +541,7 @@ struct VarExp : Expression
     VarExp(Loc loc, Declaration *var);
     int equals(Object *o);
     Expression *semantic(Scope *sc);
+    Expression *optimize(int result);
     Expression *interpret(InterState *istate);
     void dump(int indent);
     char *toChars();

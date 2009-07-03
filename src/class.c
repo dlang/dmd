@@ -523,7 +523,7 @@ void ClassDeclaration::semantic(Scope *sc)
 	alignsize = 0;
 	structalign = 0;
 
-	sc->pop();
+	sc = sc->pop();
 
 	scope = scx ? scx : new Scope(*sc);
 	scope->setNoFree();

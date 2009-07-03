@@ -26,21 +26,26 @@
 Scope *Scope::freelist = NULL;
 
 void *Scope::operator new(size_t size)
-{   Scope *s;
-
+{
     if (freelist)
     {
-	s = freelist;
+	Scope *s = freelist;
 	freelist = s->enclosing;
+	//printf("freelist %p\n", s);
+	assert(s->flags & SCOPEfree);
+	s->flags &= ~SCOPEfree;
 	return s;
     }
 
-    return ::operator new(size);
+    void *p = ::operator new(size);
+    //printf("new %p\n", p);
+    return p;
 }
 
 Scope::Scope()
 {   // Create root scope
 
+    //printf("Scope::Scope() %p\n", this);
     this->module = NULL;
     this->scopesym = NULL;
     this->sd = NULL;
@@ -75,6 +80,8 @@ Scope::Scope()
 
 Scope::Scope(Scope *enclosing)
 {
+    //printf("Scope::Scope(enclosing = %p) %p\n", enclosing, this);
+    assert(!(enclosing->flags & SCOPEfree));
     this->module = enclosing->module;
     this->func   = enclosing->func;
     this->parent = enclosing->parent;
@@ -87,6 +94,15 @@ Scope::Scope(Scope *enclosing)
     this->fes = enclosing->fes;
     this->structalign = enclosing->structalign;
     this->enclosing = enclosing;
+#ifdef DEBUG
+    if (enclosing->enclosing)
+	assert(!(enclosing->enclosing->flags & SCOPEfree));
+    if (this == enclosing->enclosing)
+    {
+	printf("this = %p, enclosing = %p, enclosing->enclosing = %p\n", this, enclosing, enclosing->enclosing);
+    }
+    assert(this != enclosing->enclosing);
+#endif
     this->slabel = NULL;
     this->linkage = enclosing->linkage;
     this->protection = enclosing->protection;
@@ -148,7 +164,7 @@ Scope *Scope::push(ScopeDsymbol *ss)
 
 Scope *Scope::pop()
 {
-    //printf("Scope::pop()\n");
+    //printf("Scope::pop() %p nofree = %d\n", this, nofree);
     Scope *enc = enclosing;
 
     if (enclosing)
@@ -157,6 +173,7 @@ Scope *Scope::pop()
     if (!nofree)
     {	enclosing = freelist;
 	freelist = this;
+	flags |= SCOPEfree;
     }
 
     return enc;
@@ -323,9 +340,18 @@ AggregateDeclaration *Scope::getStructClassScope()
 
 void Scope::setNoFree()
 {   Scope *sc;
+    //int i = 0;
 
+    //printf("Scope::setNoFree(this = %p)\n", this);
     for (sc = this; sc; sc = sc->enclosing)
     {
+	//printf("\tsc = %p\n", sc);
 	sc->nofree = 1;
+
+	assert(!(flags & SCOPEfree));
+	//assert(sc != sc->enclosing);
+	//assert(!sc->enclosing || sc != sc->enclosing->enclosing);
+	//if (++i == 10)
+	    //assert(0);
     }
 }

@@ -870,6 +870,14 @@ Dsymbol *ArrayScopeSymbol::search(Loc loc, Identifier *ident, int flags)
 		v->init = new ExpInitializer(0, e);
 		v->storage_class |= STCconst;
 	    }
+	    else if (ce->op == TOKarrayliteral)
+	    {	/* It is for an array literal, so the
+		 * length will be a const.
+		 */
+		Expression *e = new IntegerExp(0, ((ArrayLiteralExp *)ce)->elements->dim, Type::tsize_t);
+		v->init = new ExpInitializer(0, e);
+		v->storage_class |= STCconst;
+	    }
 	    else if (ce->op == TOKtuple)
 	    {	/* It is for an expression tuple, so the
 		 * length will be a const.

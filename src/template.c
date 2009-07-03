@@ -1144,6 +1144,10 @@ MATCH Type::deduceType(Scope *sc, Type *tparam, TemplateParameters *parameters,
 	}
 	if (equals(at))
 	    goto Lexact;
+	else if (ty == Tclass && at->ty == Tclass)
+	{
+	    return (MATCH) implicitConvTo(at);
+	}
 	else if (ty == Tsarray && at->ty == Tarray &&
 	    next->equals(at->next))
 	{

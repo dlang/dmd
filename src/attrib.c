@@ -1132,6 +1132,7 @@ void CompileDeclaration::semantic(Scope *sc)
     se = se->toUTF8(sc);
     Parser p(sc->module, (unsigned char *)se->string, se->len, 0);
     p.loc = loc;
+    p.nextToken();
     decl = p.parseDeclDefs(0);
     if (p.token.value != TOKeof)
     {

@@ -60,7 +60,7 @@ Parser::Parser(Module *module, unsigned char *base, unsigned length, int doDocCo
     linkage = LINKd;
     endloc = 0;
     inBrackets = 0;
-    nextToken();		// start up the scanner
+    //nextToken();		// start up the scanner
 }
 
 Array *Parser::parseModule()
@@ -501,7 +501,7 @@ Array *Parser::parseBlock()
 
 	case TOKcolon:
 	    nextToken();
-#if 1
+#if 0
 	    a = NULL;
 #else
 	    a = parseDeclDefs(0);	// grab declarations up to closing curly bracket
