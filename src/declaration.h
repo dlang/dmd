@@ -110,6 +110,8 @@ struct Declaration : Dsymbol
     Declaration *isDeclaration() { return this; }
 };
 
+/**************************************************************/
+
 struct TypedefDeclaration : Declaration
 {
     Type *basetype;
@@ -142,6 +144,8 @@ struct TypedefDeclaration : Declaration
     TypedefDeclaration *isTypedefDeclaration() { return this; }
 };
 
+/**************************************************************/
+
 struct AliasDeclaration : Declaration
 {
     Dsymbol *aliassym;
@@ -166,6 +170,8 @@ struct AliasDeclaration : Declaration
 
     AliasDeclaration *isAliasDeclaration() { return this; }
 };
+
+/**************************************************************/
 
 struct VarDeclaration : Declaration
 {
@@ -200,6 +206,8 @@ struct VarDeclaration : Declaration
     // Eliminate need for dynamic_cast
     VarDeclaration *isVarDeclaration() { return (VarDeclaration *)this; }
 };
+
+/**************************************************************/
 
 // This is a shell around a back end symbol
 
@@ -339,6 +347,8 @@ enum ILS
     ILSno,		// cannot inline
     ILSyes,		// can inline
 };
+
+/**************************************************************/
 
 struct FuncDeclaration : Declaration
 {

@@ -723,7 +723,7 @@ void VarDeclaration::semantic(Scope *sc)
 	    inuse++;
 	    e = e->semantic(sc);
 	    inuse--;
-	    e = e->implicitCastTo(type);
+	    e = e->implicitCastTo(sc, type);
 	    global.gag--;
 	    //printf("-gag\n");
 	    if (errors != global.errors)	// if errors happened

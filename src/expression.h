@@ -88,11 +88,11 @@ struct Expression : Object
     virtual complex_t toComplex();
     virtual void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
     virtual void toMangleBuffer(OutBuffer *buf);
-    virtual Expression *toLvalue(Expression *e);
+    virtual Expression *toLvalue(Scope *sc, Expression *e);
     virtual Expression *modifiableLvalue(Scope *sc, Expression *e);
-    Expression *implicitCastTo(Type *t);
+    Expression *implicitCastTo(Scope *sc, Type *t);
     virtual int implicitConvTo(Type *t);
-    virtual Expression *castTo(Type *t);
+    virtual Expression *castTo(Scope *sc, Type *t);
     virtual void checkEscape();
     void checkScalar();
     void checkNoBool();
@@ -101,9 +101,9 @@ struct Expression : Object
     void checkDeprecated(Scope *sc, Dsymbol *s);
     virtual Expression *checkToBoolean();
     Expression *checkToPointer();
-    Expression *addressOf();
+    Expression *addressOf(Scope *sc);
     Expression *deref();
-    Expression *integralPromotions();
+    Expression *integralPromotions(Scope *sc);
 
     virtual Expression *optimize(int result);
     #define WANTflags	1
@@ -148,7 +148,7 @@ struct IntegerExp : Expression
     int implicitConvTo(Type *t);
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
     void toMangleBuffer(OutBuffer *buf);
-    Expression *toLvalue(Expression *e);
+    Expression *toLvalue(Scope *sc, Expression *e);
     elem *toElem(IRState *irs);
     dt_t **toDt(dt_t **pdt);
 };
@@ -166,7 +166,7 @@ struct RealExp : Expression
     real_t toReal();
     real_t toImaginary();
     complex_t toComplex();
-    Expression *castTo(Type *t);
+    Expression *castTo(Scope *sc, Type *t);
     int isConst();
     int isBool(int result);
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
@@ -188,7 +188,7 @@ struct ComplexExp : Expression
     real_t toReal();
     real_t toImaginary();
     complex_t toComplex();
-    Expression *castTo(Type *t);
+    Expression *castTo(Scope *sc, Type *t);
     int isConst();
     int isBool(int result);
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
@@ -211,7 +211,7 @@ struct IdentifierExp : Expression
     char *toChars();
     void dump(int indent);
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
-    Expression *toLvalue(Expression *e);
+    Expression *toLvalue(Scope *sc, Expression *e);
 };
 
 struct DollarExp : IdentifierExp
@@ -228,7 +228,7 @@ struct DsymbolExp : Expression
     char *toChars();
     void dump(int indent);
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
-    Expression *toLvalue(Expression *e);
+    Expression *toLvalue(Scope *sc, Expression *e);
 };
 
 struct ThisExp : Expression
@@ -239,7 +239,7 @@ struct ThisExp : Expression
     Expression *semantic(Scope *sc);
     int isBool(int result);
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
-    Expression *toLvalue(Expression *e);
+    Expression *toLvalue(Scope *sc, Expression *e);
 
     int inlineCost(InlineCostState *ics);
     Expression *doInline(InlineDoState *ids);
@@ -267,7 +267,7 @@ struct NullExp : Expression
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
     void toMangleBuffer(OutBuffer *buf);
     int implicitConvTo(Type *t);
-    Expression *castTo(Type *t);
+    Expression *castTo(Scope *sc, Type *t);
     elem *toElem(IRState *irs);
     dt_t **toDt(dt_t **pdt);
 };
@@ -287,7 +287,7 @@ struct StringExp : Expression
     char *toChars();
     Expression *semantic(Scope *sc);
     int implicitConvTo(Type *t);
-    Expression *castTo(Type *t);
+    Expression *castTo(Scope *sc, Type *t);
     int compare(Object *obj);
     int isBool(int result);
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
@@ -390,7 +390,7 @@ struct SymOffExp : Expression
     int isBool(int result);
     Expression *doInline(InlineDoState *ids);
     int implicitConvTo(Type *t);
-    Expression *castTo(Type *t);
+    Expression *castTo(Scope *sc, Type *t);
 
     elem *toElem(IRState *irs);
     dt_t **toDt(dt_t **pdt);
@@ -409,7 +409,7 @@ struct VarExp : Expression
     char *toChars();
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
     void checkEscape();
-    Expression *toLvalue(Expression *e);
+    Expression *toLvalue(Scope *sc, Expression *e);
     Expression *modifiableLvalue(Scope *sc, Expression *e);
     elem *toElem(IRState *irs);
     dt_t **toDt(dt_t **pdt);
@@ -525,8 +525,8 @@ struct BinExp : Expression
     Expression *commonSemanticAssignIntegral(Scope *sc);
     void checkSideEffect(int flag);
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
-    Expression *scaleFactor();
-    Expression *typeCombine();
+    Expression *scaleFactor(Scope *sc);
+    Expression *typeCombine(Scope *sc);
     Expression *optimize(int result);
     int isunsigned();
     void incompatibleTypes();
@@ -577,7 +577,7 @@ struct DotVarExp : UnaExp
 
     DotVarExp(Loc loc, Expression *e, Declaration *var);
     Expression *semantic(Scope *sc);
-    Expression *toLvalue(Expression *e);
+    Expression *toLvalue(Scope *sc, Expression *e);
     Expression *modifiableLvalue(Scope *sc, Expression *e);
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
     void dump(int indent);
@@ -602,7 +602,7 @@ struct DelegateExp : UnaExp
     DelegateExp(Loc loc, Expression *e, FuncDeclaration *func);
     Expression *semantic(Scope *sc);
     int implicitConvTo(Type *t);
-    Expression *castTo(Type *t);
+    Expression *castTo(Scope *sc, Type *t);
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
     void dump(int indent);
 
@@ -646,7 +646,7 @@ struct AddrExp : UnaExp
     Expression *semantic(Scope *sc);
     elem *toElem(IRState *irs);
     int implicitConvTo(Type *t);
-    Expression *castTo(Type *t);
+    Expression *castTo(Scope *sc, Type *t);
     Expression *optimize(int result);
 };
 
@@ -655,7 +655,7 @@ struct PtrExp : UnaExp
     PtrExp(Loc loc, Expression *e);
     PtrExp(Loc loc, Expression *e, Type *t);
     Expression *semantic(Scope *sc);
-    Expression *toLvalue(Expression *e);
+    Expression *toLvalue(Scope *sc, Expression *e);
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
     elem *toElem(IRState *irs);
     Expression *optimize(int result);
@@ -751,7 +751,7 @@ struct SliceExp : UnaExp
     Expression *syntaxCopy();
     Expression *semantic(Scope *sc);
     void checkEscape();
-    Expression *toLvalue(Expression *e);
+    Expression *toLvalue(Scope *sc, Expression *e);
     Expression *modifiableLvalue(Scope *sc, Expression *e);
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
     Expression *optimize(int result);
@@ -781,7 +781,7 @@ struct ArrayExp : UnaExp
     ArrayExp(Loc loc, Expression *e1, Expressions *arguments);
     Expression *syntaxCopy();
     Expression *semantic(Scope *sc);
-    Expression *toLvalue(Expression *e);
+    Expression *toLvalue(Scope *sc, Expression *e);
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
 
     // For operator overloading
@@ -805,7 +805,7 @@ struct CommaExp : BinExp
     CommaExp(Loc loc, Expression *e1, Expression *e2);
     Expression *semantic(Scope *sc);
     void checkEscape();
-    Expression *toLvalue(Expression *e);
+    Expression *toLvalue(Scope *sc, Expression *e);
     Expression *modifiableLvalue(Scope *sc, Expression *e);
     int isBool(int result);
     void checkSideEffect(int flag);
@@ -820,7 +820,7 @@ struct IndexExp : BinExp
 
     IndexExp(Loc loc, Expression *e1, Expression *e2);
     Expression *semantic(Scope *sc);
-    Expression *toLvalue(Expression *e);
+    Expression *toLvalue(Scope *sc, Expression *e);
     Expression *modifiableLvalue(Scope *sc, Expression *e);
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
     Expression *optimize(int result);
@@ -1246,13 +1246,13 @@ struct CondExp : BinExp
     Expression *optimize(int result);
     Expression *constFold();
     void checkEscape();
-    Expression *toLvalue(Expression *e);
+    Expression *toLvalue(Scope *sc, Expression *e);
     Expression *modifiableLvalue(Scope *sc, Expression *e);
     Expression *checkToBoolean();
     void checkSideEffect(int flag);
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
     int implicitConvTo(Type *t);
-    Expression *castTo(Type *t);
+    Expression *castTo(Scope *sc, Type *t);
 
     int inlineCost(InlineCostState *ics);
     Expression *doInline(InlineDoState *ids);

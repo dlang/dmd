@@ -1176,7 +1176,7 @@ Expression *TypeBasic::dotExp(Scope *sc, Expression *e, Identifier *ident)
 	    case Tcomplex64:	t = tfloat64;		goto L1;
 	    case Tcomplex80:	t = tfloat80;		goto L1;
 	    L1:
-		e = e->castTo(t);
+		e = e->castTo(sc, t);
 		break;
 
 	    case Tfloat32:
@@ -1204,7 +1204,7 @@ Expression *TypeBasic::dotExp(Scope *sc, Expression *e, Identifier *ident)
 	    case Tcomplex64:	t = timaginary64;	t2 = tfloat64;	goto L3;
 	    case Tcomplex80:	t = timaginary80;	t2 = tfloat80;	goto L3;
 	    L3:
-		e = e->castTo(t);
+		e = e->castTo(sc, t);
 		e->type = t2;
 		break;
 
@@ -1400,7 +1400,7 @@ Expression *TypeArray::dotExp(Scope *sc, Expression *e, Identifier *ident)
 	nm = name[n->ty == Twchar];
 	fd = FuncDeclaration::genCfunc(Type::tindex, nm);
 	ec = new VarExp(0, fd);
-	e = e->castTo(n->arrayOf());		// convert to dynamic array
+	e = e->castTo(sc, n->arrayOf());	// convert to dynamic array
 	arguments = new Expressions();
 	arguments->push(e);
 	e = new CallExp(e->loc, ec, arguments);
@@ -1420,7 +1420,7 @@ Expression *TypeArray::dotExp(Scope *sc, Expression *e, Identifier *ident)
 	nm = name[n->ty == Tbit][ident == Id::dup];
 	fd = FuncDeclaration::genCfunc(Type::tindex, nm);
 	ec = new VarExp(0, fd);
-	e = e->castTo(n->arrayOf());		// convert to dynamic array
+	e = e->castTo(sc, n->arrayOf());	// convert to dynamic array
 	arguments = new Expressions();
 	arguments->push(e);
 	if (next->ty != Tbit)
@@ -1437,7 +1437,7 @@ Expression *TypeArray::dotExp(Scope *sc, Expression *e, Identifier *ident)
 	fd = FuncDeclaration::genCfunc(tint32->arrayOf(),
 		(char*)(n->ty == Tbit ? "_adSortBit" : "_adSort"));
 	ec = new VarExp(0, fd);
-	e = e->castTo(n->arrayOf());		// convert to dynamic array
+	e = e->castTo(sc, n->arrayOf());	// convert to dynamic array
 	arguments = new Expressions();
 	arguments->push(e);
 	if (next->ty != Tbit)
@@ -1567,7 +1567,7 @@ Type *TypeSArray::semantic(Loc loc, Scope *sc)
 	dim = dim->semantic(sc);
 	dim = dim->constFold();
 	integer_t d1 = dim->toInteger();
-	dim = dim->castTo(tsize_t);
+	dim = dim->castTo(sc, tsize_t);
 	dim = dim->constFold();
 	integer_t d2 = dim->toInteger();
 
@@ -1646,7 +1646,7 @@ Expression *TypeSArray::dotExp(Scope *sc, Expression *e, Identifier *ident)
     }
     else if (ident == Id::ptr)
     {
-	e = e->castTo(next->pointerTo());
+	e = e->castTo(sc, next->pointerTo());
     }
     else
     {
@@ -1787,7 +1787,7 @@ Expression *TypeDArray::dotExp(Scope *sc, Expression *e, Identifier *ident)
     }
     else if (ident == Id::ptr)
     {
-	e = e->castTo(next->pointerTo());
+	e = e->castTo(sc, next->pointerTo());
 	return e;
     }
     else
@@ -2007,7 +2007,7 @@ Expression *TypeAArray::dotExp(Scope *sc, Expression *e, Identifier *ident)
 	fd = FuncDeclaration::genCfunc(Type::tint64, "_aaRehash");
 	ec = new VarExp(0, fd);
 	arguments = new Expressions();
-	arguments->push(e->addressOf());
+	arguments->push(e->addressOf(sc));
 	arguments->push(key->getInternalTypeInfo(sc));
 	e = new CallExp(e->loc, ec, arguments);
 	e->type = this;
@@ -2441,7 +2441,7 @@ Type *TypeFunction::semantic(Loc loc, Scope *sc)
 	    {
 		arg->defaultArg = arg->defaultArg->semantic(sc);
 		arg->defaultArg = resolveProperties(sc, arg->defaultArg);
-		arg->defaultArg = arg->defaultArg->implicitCastTo(arg->type);
+		arg->defaultArg = arg->defaultArg->implicitCastTo(sc, arg->type);
 	    }
 	}
     }
@@ -2461,9 +2461,7 @@ Type *TypeFunction::semantic(Loc loc, Scope *sc)
  * 'args' are being matched to function 'this'
  * Determine match level.
  * Returns:
- *	0	no match
- *	1	match with conversions
- *	2	exact match
+ *	MATCHxxxx
  */
 
 int TypeFunction::callMatch(Array *args)
@@ -2474,7 +2472,7 @@ int TypeFunction::callMatch(Array *args)
     int match;
 
     //printf("TypeFunction::callMatch()\n");
-    match = 2;				// assume exact match
+    match = MATCHexact;			// assume exact match
 
     nparams = arguments ? arguments->dim : 0;
     nargs = args ? args->dim : 0;
@@ -2484,7 +2482,7 @@ int TypeFunction::callMatch(Array *args)
     {
 	if (varargs == 0)
 	    goto Nomatch;		// too many args; no match
-	match = 1;			// match ... with a "conversion" match level
+	match = MATCHconvert;		// match ... with a "conversion" match level
     }
 
     for (u = 0; u < nparams; u++)
@@ -2508,7 +2506,7 @@ int TypeFunction::callMatch(Array *args)
 	assert(arg);
 	m = arg->implicitConvTo(p->type);
 	//printf("\tm = %d\n", m);
-	if (m == 0)			// if no match
+	if (m == MATCHnomatch)			// if no match
 	{
 	  L1:
 	    if (varargs == 2 && u + 1 == nparams)	// if last varargs param
@@ -2557,7 +2555,7 @@ Ldone:
 
 Nomatch:
     //printf("no match\n");
-    return 0;
+    return MATCHnomatch;
 }
 
 /***************************** TypeDelegate *****************************/
@@ -3982,7 +3980,7 @@ L1:
 		if (!sym->vclassinfo)
 		    sym->vclassinfo = new ClassInfoDeclaration(sym);
 		e = new VarExp(e->loc, sym->vclassinfo);
-		e = e->addressOf();
+		e = e->addressOf(sc);
 		e->type = t;	// do this so we don't get redundant dereference
 	    }
 	    else

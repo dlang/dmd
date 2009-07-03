@@ -29,7 +29,7 @@
  * Issue error if it can't be done.
  */
 
-Expression *Expression::implicitCastTo(Type *t)
+Expression *Expression::implicitCastTo(Scope *sc, Type *t)
 {
     //printf("implicitCastTo(%s) => %s\n", type->toChars(), t->toChars());
     if (implicitConvTo(t))
@@ -41,13 +41,13 @@ Expression *Expression::implicitCastTo(Type *t)
 	    Expression *e = optimize(WANTflags | WANTvalue);
 
 	    if (e->op == TOKint64)
-		return e->implicitCastTo(t);
+		return e->implicitCastTo(sc, t);
 
 	    fprintf(stdmsg, "warning - ");
 	    error("implicit conversion of expression (%s) of type %s to %s can cause loss of data",
 		toChars(), type->toChars(), t->toChars());
 	}
-	return castTo(t);
+	return castTo(sc, t);
     }
 #if 0
 print();
@@ -73,7 +73,7 @@ fflush(stdout);
     else
 	error("cannot implicitly convert expression (%s) of type %s to %s",
 	    toChars(), type->toChars(), t->toChars());
-    return castTo(t);
+    return castTo(sc, t);
 }
 
 /*******************************************
@@ -98,7 +98,26 @@ int Expression::implicitConvTo(Type *t)
     {	//printf("optimzed to %s\n", e->toChars());
 	return e->implicitConvTo(t);
     }
-    return type->implicitConvTo(t);
+    int match = type->implicitConvTo(t);
+    if (match)
+	return match;
+    Type *tb = t->toBasetype();
+    if (tb->ty == Tdelegate)
+    {	TypeDelegate *td = (TypeDelegate *)tb;
+	TypeFunction *tf = (TypeFunction *)td->next;
+
+	if (!tf->varargs &&
+	    !(tf->arguments && tf->arguments->dim)
+	   )
+	{
+	    match = type->implicitConvTo(tf->next);
+	    if (match)
+		return match;
+	    if (tf->next->toBasetype()->ty == Tvoid)
+		return MATCHconvert;
+	}
+    }
+    return MATCHnomatch;
 }
 
 
@@ -284,7 +303,7 @@ int NullExp::implicitConvTo(Type *t)
 	toChars(), type->toChars(), t->toChars());
 #endif
     if (this->type->equals(t))
-	return 2;
+	return MATCHexact;
     // NULL implicitly converts to any pointer type or dynamic array
     if (type->ty == Tpointer && type->next->ty == Tvoid)
     {
@@ -293,9 +312,9 @@ int NullExp::implicitConvTo(Type *t)
 	if (t->ty == Tpointer || t->ty == Tarray ||
 	    t->ty == Taarray  || t->ty == Tclass ||
 	    t->ty == Tdelegate)
-	    return 1;
+	    return MATCHconvert;
     }
-    return type->implicitConvTo(t);
+    return Expression::implicitConvTo(t);
 }
 
 int StringExp::implicitConvTo(Type *t)
@@ -332,6 +351,8 @@ int StringExp::implicitConvTo(Type *t)
 	}
     }
     }
+    return Expression::implicitConvTo(t);
+#if 0
     m = (MATCH)type->implicitConvTo(t);
     if (m)
     {
@@ -339,6 +360,7 @@ int StringExp::implicitConvTo(Type *t)
     }
 
     return MATCHnomatch;
+#endif
 }
 
 int AddrExp::implicitConvTo(Type *t)
@@ -447,7 +469,7 @@ int CondExp::implicitConvTo(Type *t)
  * Do an explicit cast.
  */
 
-Expression *Expression::castTo(Type *t)
+Expression *Expression::castTo(Scope *sc, Type *t)
 {   Expression *e;
     Type *tb;
 
@@ -472,6 +494,18 @@ Expression *Expression::castTo(Type *t)
 
 	    e = new AddrExp(loc, e);
 	}
+	else if (tb->ty == Tdelegate && type->ty != Tdelegate)
+	{
+	    TypeDelegate *td = (TypeDelegate *)tb;
+	    TypeFunction *tf = (TypeFunction *)td->next;
+	    Statement *s = new ReturnStatement(loc, this->syntaxCopy());
+	    FuncLiteralDeclaration *fld =
+		new FuncLiteralDeclaration(loc, loc, tf, TOKdelegate, NULL);
+	    fld->fbody = s;
+	    e = new FuncExp(loc, fld);
+	    e = e->semantic(sc);
+	    return e;
+	}
 	else
 	{
 	    e = new CastExp(loc, e, tb);
@@ -483,29 +517,29 @@ Expression *Expression::castTo(Type *t)
 }
 
 
-Expression *RealExp::castTo(Type *t)
+Expression *RealExp::castTo(Scope *sc, Type *t)
 {
     if (type->isreal() && t->isreal())
 	type = t;
     else if (type->isimaginary() && t->isimaginary())
 	type = t;
     else
-	return Expression::castTo(t);
+	return Expression::castTo(sc, t);
     return this;
 }
 
 
-Expression *ComplexExp::castTo(Type *t)
+Expression *ComplexExp::castTo(Scope *sc, Type *t)
 {
     if (type->iscomplex() && t->iscomplex())
 	type = t;
     else
-	return Expression::castTo(t);
+	return Expression::castTo(sc, t);
     return this;
 }
 
 
-Expression *NullExp::castTo(Type *t)
+Expression *NullExp::castTo(Scope *sc, Type *t)
 {   Expression *e;
     Type *tb;
 
@@ -520,17 +554,29 @@ Expression *NullExp::castTo(Type *t)
 	    (tb->ty == Tpointer || tb->ty == Tarray || tb->ty == Taarray ||
 	     tb->ty == Tdelegate))
 	{
+	    if (tb->ty == Tdelegate)
+	    {   TypeDelegate *td = (TypeDelegate *)tb;
+		TypeFunction *tf = (TypeFunction *)td->next;
+
+		if (!tf->varargs &&
+		    !(tf->arguments && tf->arguments->dim)
+		   )
+		{
+		    return Expression::castTo(sc, t);
+		}
+	    }
 	}
 	else
 	{
-	    e = new CastExp(loc, e, tb);
+	    return Expression::castTo(sc, t);
+	    //e = new CastExp(loc, e, tb);
 	}
     }
     e->type = t;
     return e;
 }
 
-Expression *StringExp::castTo(Type *t)
+Expression *StringExp::castTo(Scope *sc, Type *t)
 {
     StringExp *se;
     Type *tb;
@@ -542,6 +588,10 @@ Expression *StringExp::castTo(Type *t)
     {
 	error("cannot convert string literal to void*");
     }
+
+    tb = t->toBasetype();
+    if (tb->ty == Tdelegate && type->toBasetype()->ty != Tdelegate)
+	return Expression::castTo(sc, t);
 
     se = this;
     unique = 0;
@@ -558,7 +608,6 @@ Expression *StringExp::castTo(Type *t)
 	se->committed = 0;
 	unique = 1;		// this is the only instance
     }
-    tb = t->toBasetype();
     se->type = type->toBasetype();
     if (tb == se->type)
     {	se->type = t;
@@ -745,7 +794,7 @@ Lcast:
     return e;
 }
 
-Expression *AddrExp::castTo(Type *t)
+Expression *AddrExp::castTo(Scope *sc, Type *t)
 {
     Type *tb;
 
@@ -782,13 +831,13 @@ Expression *AddrExp::castTo(Type *t)
 		}
 	    }
 	}
-	e = Expression::castTo(t);
+	e = Expression::castTo(sc, t);
     }
     e->type = t;
     return e;
 }
 
-Expression *SymOffExp::castTo(Type *t)
+Expression *SymOffExp::castTo(Scope *sc, Type *t)
 {
     Type *tb;
 
@@ -820,13 +869,13 @@ Expression *SymOffExp::castTo(Type *t)
 		}
 	    }
 	}
-	e = Expression::castTo(t);
+	e = Expression::castTo(sc, t);
     }
     e->type = t;
     return e;
 }
 
-Expression *DelegateExp::castTo(Type *t)
+Expression *DelegateExp::castTo(Scope *sc, Type *t)
 {
     Type *tb;
 #if 0
@@ -861,7 +910,7 @@ Expression *DelegateExp::castTo(Type *t)
 		    error(msg);
 	    }
 	}
-	e = Expression::castTo(t);
+	e = Expression::castTo(sc, t);
     }
     else
     {	int offset;
@@ -873,18 +922,18 @@ Expression *DelegateExp::castTo(Type *t)
     return e;
 }
 
-Expression *CondExp::castTo(Type *t)
+Expression *CondExp::castTo(Scope *sc, Type *t)
 {
     Expression *e = this;
 
     if (type != t)
     {
 	if (1 || e1->op == TOKstring || e2->op == TOKstring)
-	{   e = new CondExp(loc, econd, e1->castTo(t), e2->castTo(t));
+	{   e = new CondExp(loc, econd, e1->castTo(sc, t), e2->castTo(sc, t));
 	    e->type = t;
 	}
 	else
-	    e = Expression::castTo(t);
+	    e = Expression::castTo(sc, t);
     }
     return e;
 }
@@ -895,7 +944,7 @@ Expression *CondExp::castTo(Type *t)
  * Scale addition/subtraction to/from pointer.
  */
 
-Expression *BinExp::scaleFactor()
+Expression *BinExp::scaleFactor(Scope *sc)
 {   d_uns64 stride;
     Type *t1b = e1->type->toBasetype();
     Type *t2b = e2->type->toBasetype();
@@ -907,7 +956,7 @@ Expression *BinExp::scaleFactor()
 
 	stride = t1b->next->size();
 	if (!t->equals(t2b))
-	    e2 = e2->castTo(t);
+	    e2 = e2->castTo(sc, t);
 	if (t1b->next->isbit())
 	    // BUG: should add runtime check for misaligned offsets
 	    // This perhaps should be done by rewriting as &p[i]
@@ -926,7 +975,7 @@ Expression *BinExp::scaleFactor()
 
 	stride = t2b->next->size();
 	if (!t->equals(t1b))
-	    e = e1->castTo(t);
+	    e = e1->castTo(sc, t);
 	else
 	    e = e1;
 	if (t2b->next->isbit())
@@ -946,7 +995,7 @@ Expression *BinExp::scaleFactor()
  * Bring leaves to common type.
  */
 
-Expression *BinExp::typeCombine()
+Expression *BinExp::typeCombine(Scope *sc)
 {
     Type *t1;
     Type *t2;
@@ -956,8 +1005,8 @@ Expression *BinExp::typeCombine()
     //printf("BinExp::typeCombine()\n");
     //dump(0);
 
-    e1 = e1->integralPromotions();
-    e2 = e2->integralPromotions();
+    e1 = e1->integralPromotions(sc);
+    e2 = e2->integralPromotions(sc);
 
     // BUG: do toBasetype()
     t1 = e1->type;
@@ -979,13 +1028,13 @@ Expression *BinExp::typeCombine()
 	ty2 = (TY)Type::impcnvType2[t1->ty][t2->ty];
 	t1 = Type::basic[ty1];
 	t2 = Type::basic[ty2];
-	e1 = e1->castTo(t1);
-	e2 = e2->castTo(t2);
+	e1 = e1->castTo(sc, t1);
+	e2 = e2->castTo(sc, t2);
 #if 0
 	if (type != Type::basic[ty])
 	{   t = type;
 	    type = Type::basic[ty];
-	    return castTo(t);
+	    return castTo(sc, t);
 	}
 #endif
 	//printf("after typeCombine():\n");
@@ -1053,13 +1102,13 @@ Expression *BinExp::typeCombine()
 	    if (cd1->isBaseOf(cd2, &offset))
 	    {
 		if (offset)
-		    e2 = e2->castTo(t);
+		    e2 = e2->castTo(sc, t);
 	    }
 	    else if (cd2->isBaseOf(cd1, &offset))
 	    {
 		t = t2;
 		if (offset)
-		    e1 = e1->castTo(t);
+		    e1 = e1->castTo(sc, t);
 	    }
 	    else
 		goto Lincompatible;
@@ -1126,16 +1175,16 @@ Expression *BinExp::typeCombine()
     {
      Lx1:
 	t = t1->next->arrayOf();
-	e1 = e1->castTo(t);
-	e2 = e2->castTo(t);
+	e1 = e1->castTo(sc, t);
+	e2 = e2->castTo(sc, t);
     }
     else if (t1->ty == Tsarray && t2->ty == Tsarray &&
 	     e1->implicitConvTo(t2->next->arrayOf()))
     {
      Lx2:
 	t = t2->next->arrayOf();
-	e1 = e1->castTo(t);
-	e2 = e2->castTo(t);
+	e1 = e1->castTo(sc, t);
+	e2 = e2->castTo(sc, t);
     }
     else
     {
@@ -1150,12 +1199,12 @@ Lret:
 
 
 Lt1:
-    e2 = e2->castTo(t1);
+    e2 = e2->castTo(sc, t1);
     t = t1;
     goto Lret;
 
 Lt2:
-    e1 = e1->castTo(t2);
+    e1 = e1->castTo(sc, t2);
     t = t2;
     goto Lret;
 }
@@ -1165,7 +1214,7 @@ Lt2:
  * Don't convert <array of> to <pointer to>
  */
 
-Expression *Expression::integralPromotions()
+Expression *Expression::integralPromotions(Scope *sc)
 {   Expression *e;
 
     e = this;
@@ -1183,11 +1232,11 @@ Expression *Expression::integralPromotions()
 	case Tbool:
 	case Tchar:
 	case Twchar:
-	    e = e->castTo(Type::tint32);
+	    e = e->castTo(sc, Type::tint32);
 	    break;
 
 	case Tdchar:
-	    e = e->castTo(Type::tuns32);
+	    e = e->castTo(sc, Type::tuns32);
 	    break;
     }
     return e;

@@ -385,7 +385,7 @@ Initializer *ExpInitializer::semantic(Scope *sc, Type *t)
 	    ((TypeSArray *)se->type)->dim->toInteger() <
 	    ((TypeSArray *)t)->dim->toInteger())
 	{
-	    exp = se->castTo(t);
+	    exp = se->castTo(sc, t);
 	    goto L1;
 	}
     }
@@ -400,7 +400,7 @@ Initializer *ExpInitializer::semantic(Scope *sc, Type *t)
 	t = tb->next;
     }
 
-    exp = exp->implicitCastTo(t);
+    exp = exp->implicitCastTo(sc, t);
 L1:
     exp = exp->optimize(WANTvalue);
     //printf("-ExpInitializer::semantic(): "); exp->print();

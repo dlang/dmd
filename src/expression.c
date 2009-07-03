@@ -446,7 +446,7 @@ void functionArguments(Loc loc, Scope *sc, TypeFunction *tf, Expressions *argume
 	    }
 
 	L1:
-	    arg = arg->implicitCastTo(p->type);
+	    arg = arg->implicitCastTo(sc, p->type);
 	    if (p->inout == Out || p->inout == InOut)
 	    {
 		// BUG: should check that argument to inout is type 'invariant'
@@ -474,17 +474,17 @@ void functionArguments(Loc loc, Scope *sc, TypeFunction *tf, Expressions *argume
 	    if (tf->linkage != LINKd)
 	    {
 		// Promote bytes, words, etc., to ints
-		arg = arg->integralPromotions();
+		arg = arg->integralPromotions(sc);
 
 		// Promote floats to doubles
 		switch (arg->type->ty)
 		{
 		    case Tfloat32:
-			arg = arg->castTo(Type::tfloat64);
+			arg = arg->castTo(sc, Type::tfloat64);
 			break;
 
 		    case Timaginary32:
-			arg = arg->castTo(Type::timaginary64);
+			arg = arg->castTo(sc, Type::timaginary64);
 			break;
 		}
 	    }
@@ -493,7 +493,7 @@ void functionArguments(Loc loc, Scope *sc, TypeFunction *tf, Expressions *argume
 	    tb = arg->type->toBasetype();
 	    if (tb->ty == Tsarray)
 	    {
-		arg = arg->castTo(tb->next->arrayOf());
+		arg = arg->castTo(sc, tb->next->arrayOf());
 	    }
 	}
 	arg = arg->optimize(WANTvalue);
@@ -730,7 +730,7 @@ void Expression::toMangleBuffer(OutBuffer *buf)
  * If we can, convert expression to be an lvalue.
  */
 
-Expression *Expression::toLvalue(Expression *e)
+Expression *Expression::toLvalue(Scope *sc, Expression *e)
 {
     if (!e)
 	e = this;
@@ -743,7 +743,7 @@ Expression *Expression::toLvalue(Expression *e)
 Expression *Expression::modifiableLvalue(Scope *sc, Expression *e)
 {
     // See if this expression is a modifiable lvalue (i.e. not const)
-    return toLvalue(e);
+    return toLvalue(sc, e);
 }
 
 /************************************
@@ -845,12 +845,12 @@ Expression *Expression::checkToPointer()
  * Take address of expression.
  */
 
-Expression *Expression::addressOf()
+Expression *Expression::addressOf(Scope *sc)
 {
     Expression *e;
 
     //printf("Expression::addressOf()\n");
-    e = toLvalue(NULL);
+    e = toLvalue(sc, NULL);
     e = new AddrExp(loc, e);
     e->type = type->pointerTo();
     return e;
@@ -1044,7 +1044,7 @@ Expression *IntegerExp::semantic(Scope *sc)
     return this;
 }
 
-Expression *IntegerExp::toLvalue(Expression *e)
+Expression *IntegerExp::toLvalue(Scope *sc, Expression *e)
 {
     if (!e)
 	e = this;
@@ -1510,7 +1510,7 @@ void IdentifierExp::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 	buf->writestring(ident->toChars());
 }
 
-Expression *IdentifierExp::toLvalue(Expression *e)
+Expression *IdentifierExp::toLvalue(Scope *sc, Expression *e)
 {
 #if 0
     tym = tybasic(e1->ET->Tty);
@@ -1619,7 +1619,7 @@ Lagain:
 		    e = ei->exp->copy();	// make copy so we can change loc
 		    if (e->op == TOKstring || !e->type)
 			e = e->semantic(sc);
-		    e = e->implicitCastTo(type);
+		    e = e->implicitCastTo(sc, type);
 		    e->loc = loc;
 		    return e;
 		}
@@ -1722,7 +1722,7 @@ void DsymbolExp::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
     buf->writestring(s->toChars());
 }
 
-Expression *DsymbolExp::toLvalue(Expression *e)
+Expression *DsymbolExp::toLvalue(Scope *sc, Expression *e)
 {
 #if 0
     tym = tybasic(e1->ET->Tty);
@@ -1790,7 +1790,7 @@ void ThisExp::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
     buf->writestring("this");
 }
 
-Expression *ThisExp::toLvalue(Expression *e)
+Expression *ThisExp::toLvalue(Scope *sc, Expression *e)
 {
     return this;
 }
@@ -2541,7 +2541,7 @@ Expression *NewExp::semantic(Scope *sc)
 
 	arg = (Expression *)arguments->data[0];
 	arg = resolveProperties(sc, arg);
-	arg = arg->implicitCastTo(Type::tindex);
+	arg = arg->implicitCastTo(sc, Type::tindex);
 	if (arg->op == TOKint64 && (long long)arg->toInteger() < 0)
 	    error("negative array index %s", arg->toChars());
 	arguments->data[0] = (void *) arg;
@@ -2743,8 +2743,8 @@ Expression *VarExp::semantic(Scope *sc)
 	    ExpInitializer *ei = v->init->isExpInitializer();
 	    if (ei)
 	    {
-		//ei->exp->implicitCastTo(type)->print();
-		return ei->exp->implicitCastTo(type);
+		//ei->exp->implicitCastTo(sc, type)->print();
+		return ei->exp->implicitCastTo(sc, type);
 	    }
 	}
 	if (!v->isDataseg() && v->parent != sc->parent && v->parent)
@@ -2793,7 +2793,7 @@ void VarExp::checkEscape()
     }
 }
 
-Expression *VarExp::toLvalue(Expression *e)
+Expression *VarExp::toLvalue(Scope *sc, Expression *e)
 {
 #if 0
     tym = tybasic(e1->ET->Tty);
@@ -2836,7 +2836,7 @@ Expression *VarExp::modifiableLvalue(Scope *sc, Expression *e)
     }
 
     // See if this expression is a modifiable lvalue (i.e. not const)
-    return toLvalue(e);
+    return toLvalue(sc, e);
 }
 
 
@@ -3268,6 +3268,7 @@ Expression *UnaExp::syntaxCopy()
 {   UnaExp *e;
 
     e = (UnaExp *)copy();
+    e->type = NULL;
     e->e1 = e->e1->syntaxCopy();
     return e;
 }
@@ -3302,6 +3303,7 @@ Expression *BinExp::syntaxCopy()
 {   BinExp *e;
 
     e = (BinExp *)copy();
+    e->type = NULL;
     e->e1 = e->e1->syntaxCopy();
     e->e2 = e->e2->syntaxCopy();
     return e;
@@ -3359,7 +3361,7 @@ Expression *BinExp::commonSemanticAssign(Scope *sc)
 	{
 	    error("operator not allowed on bool expression %s", toChars());
 	}
-	typeCombine();
+	typeCombine(sc);
 	e1->checkArithmetic();
 	e2->checkArithmetic();
 
@@ -3388,10 +3390,10 @@ Expression *BinExp::commonSemanticAssignIntegral(Scope *sc)
 	type = e1->type;
 	if (type->toBasetype()->ty == Tbool)
 	{
-	    e2 = e2->implicitCastTo(type);
+	    e2 = e2->implicitCastTo(sc, type);
 	}
 
-	typeCombine();
+	typeCombine(sc);
 	e1->checkIntegral();
 	e2->checkIntegral();
     }
@@ -3473,7 +3475,7 @@ Expression *AssertExp::semantic(Scope *sc)
     {
 	msg = msg->semantic(sc);
 	msg = resolveProperties(sc, msg);
-	msg = msg->implicitCastTo(Type::tchar->arrayOf());
+	msg = msg->implicitCastTo(sc, Type::tchar->arrayOf());
 	msg = msg->optimize(WANTvalue);
     }
     if (e1->isBool(FALSE))
@@ -3817,7 +3819,7 @@ Expression *DotVarExp::semantic(Scope *sc)
     return this;
 }
 
-Expression *DotVarExp::toLvalue(Expression *e)
+Expression *DotVarExp::toLvalue(Scope *sc, Expression *e)
 {
     //printf("DotVarExp::toLvalue(%s)\n", toChars());
     return this;
@@ -4170,8 +4172,8 @@ Expression *CallExp::semantic(Scope *sc)
 		key->rvalue();
 
 		TypeAArray *taa = (TypeAArray *)dotid->e1->type->toBasetype();
-		key = key->implicitCastTo(taa->index);
-		key = key->implicitCastTo(taa->key);
+		key = key->implicitCastTo(sc, taa->index);
+		key = key->implicitCastTo(sc, taa->key);
 
 		return new RemoveExp(loc, dotid->e1, key);
 	    }
@@ -4308,7 +4310,7 @@ Lagain:
 	    if (ad && cd && ad->isClassDeclaration() && ad != cd &&
 		dve->e1->op != TOKsuper)
 	    {
-		dve->e1 = dve->e1->castTo(ad->type); //new CastExp(loc, dve->e1, ad->type);
+		dve->e1 = dve->e1->castTo(sc, ad->type); //new CastExp(loc, dve->e1, ad->type);
 		dve->e1 = dve->e1->semantic(sc);
 	    }
 	}
@@ -4478,7 +4480,7 @@ Lcheckargs:
 	if (f->tintro->next->isBaseOf(t, &offset) && offset)
 	{
 	    type = f->tintro->next;
-	    return castTo(t);
+	    return castTo(sc, t);
 	}
     }
 
@@ -4514,7 +4516,7 @@ Expression *AddrExp::semantic(Scope *sc)
     if (!type)
     {
 	UnaExp::semantic(sc);
-	e1 = e1->toLvalue(NULL);
+	e1 = e1->toLvalue(sc, NULL);
 	if (!e1->type)
 	{
 	    error("cannot take address of %s", e1->toChars());
@@ -4604,7 +4606,7 @@ Expression *PtrExp::semantic(Scope *sc)
 	case Tsarray:
 	case Tarray:
 	    type = tb->next;
-	    e1 = e1->castTo(type->pointerTo());
+	    e1 = e1->castTo(sc, type->pointerTo());
 	    break;
 
 	default:
@@ -4616,7 +4618,7 @@ Expression *PtrExp::semantic(Scope *sc)
     return this;
 }
 
-Expression *PtrExp::toLvalue(Expression *e)
+Expression *PtrExp::toLvalue(Scope *sc, Expression *e)
 {
 #if 0
     tym = tybasic(e1->ET->Tty);
@@ -4769,7 +4771,7 @@ Expression *DeleteExp::semantic(Scope *sc)
 
     UnaExp::semantic(sc);
     e1 = resolveProperties(sc, e1);
-    e1 = e1->toLvalue(NULL);
+    e1 = e1->toLvalue(sc, NULL);
     type = Type::tvoid;
 
     tb = e1->type->toBasetype();
@@ -4883,9 +4885,9 @@ Expression *CastExp::semantic(Scope *sc)
     e = op_overload(sc);
     if (e)
     {
-	return e->implicitCastTo(to);
+	return e->implicitCastTo(sc, to);
     }
-    return e1->castTo(to);
+    return e1->castTo(sc, to);
 }
 
 void CastExp::checkSideEffect(int flag)
@@ -4999,12 +5001,12 @@ Expression *SliceExp::semantic(Scope *sc)
     if (lwr)
     {	lwr = lwr->semantic(sc);
 	lwr = resolveProperties(sc, lwr);
-	lwr = lwr->implicitCastTo(Type::tindex);
+	lwr = lwr->implicitCastTo(sc, Type::tindex);
     }
     if (upr)
     {	upr = upr->semantic(sc);
 	upr = resolveProperties(sc, upr);
-	upr = upr->implicitCastTo(Type::tindex);
+	upr = upr->implicitCastTo(sc, Type::tindex);
     }
 
     if (t->ty == Tsarray || t->ty == Tarray)
@@ -5029,7 +5031,7 @@ void SliceExp::checkEscape()
     e1->checkEscape();
 }
 
-Expression *SliceExp::toLvalue(Expression *e)
+Expression *SliceExp::toLvalue(Scope *sc, Expression *e)
 {
     return this;
 }
@@ -5142,7 +5144,7 @@ Expression *ArrayExp::semantic(Scope *sc)
 }
 
 
-Expression *ArrayExp::toLvalue(Expression *e)
+Expression *ArrayExp::toLvalue(Scope *sc, Expression *e)
 {
     if (type && type->toBasetype()->ty == Tvoid)
 	error("voids have no value");
@@ -5198,9 +5200,9 @@ void CommaExp::checkEscape()
     e2->checkEscape();
 }
 
-Expression *CommaExp::toLvalue(Expression *e)
+Expression *CommaExp::toLvalue(Scope *sc, Expression *e)
 {
-    e2 = e2->toLvalue(NULL);
+    e2 = e2->toLvalue(sc, NULL);
     return this;
 }
 
@@ -5273,13 +5275,13 @@ Expression *IndexExp::semantic(Scope *sc)
     {
 	case Tpointer:
 	case Tarray:
-	    e2 = e2->implicitCastTo(Type::tindex);
+	    e2 = e2->implicitCastTo(sc, Type::tindex);
 	    e->type = t1->next;
 	    break;
 
 	case Tsarray:
 	{
-	    e2 = e2->implicitCastTo(Type::tindex);
+	    e2 = e2->implicitCastTo(sc, Type::tindex);
 	    if (t1->next->toBasetype()->ty == Tbit)
 	    {
 		e->type = t1->next;
@@ -5307,8 +5309,8 @@ Expression *IndexExp::semantic(Scope *sc)
 	case Taarray:
 	{   TypeAArray *taa = (TypeAArray *)t1;
 
-	    e2 = e2->implicitCastTo(taa->index);	// type checking
-	    e2 = e2->implicitCastTo(taa->key);		// actual argument type
+	    e2 = e2->implicitCastTo(sc, taa->index);	// type checking
+	    e2 = e2->implicitCastTo(sc, taa->key);	// actual argument type
 	    type = taa->next;
 	    break;
 	}
@@ -5322,7 +5324,7 @@ Expression *IndexExp::semantic(Scope *sc)
     return e;
 }
 
-Expression *IndexExp::toLvalue(Expression *e)
+Expression *IndexExp::toLvalue(Scope *sc, Expression *e)
 {
 //    if (type && type->toBasetype()->ty == Tvoid)
 //	error("voids have no value");
@@ -5337,7 +5339,7 @@ Expression *IndexExp::modifiableLvalue(Scope *sc, Expression *e)
 	error("string literals are immutable");
     if (e1->type->toBasetype()->ty == Taarray)
 	e1 = e1->modifiableLvalue(sc, e1);
-    return toLvalue(e);
+    return toLvalue(sc, e);
 }
 
 void IndexExp::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
@@ -5373,9 +5375,9 @@ Expression *PostIncExp::semantic(Scope *sc)
 	e1->checkScalar();
 	e1->checkNoBool();
 	if (e1->type->ty == Tpointer)
-	    e = scaleFactor();
+	    e = scaleFactor(sc);
 	else
-	    e2 = e2->castTo(e1->type);
+	    e2 = e2->castTo(sc, e1->type);
 	e->type = e1->type;
     }
     return e;
@@ -5410,9 +5412,9 @@ Expression *PostDecExp::semantic(Scope *sc)
 	e1->checkScalar();
 	e1->checkNoBool();
 	if (e1->type->ty == Tpointer)
-	    e = scaleFactor();
+	    e = scaleFactor(sc);
 	else
-	    e2 = e2->castTo(e1->type);
+	    e2 = e2->castTo(sc, e1->type);
 	e->type = e1->type;
     }
     return e;
@@ -5570,14 +5572,14 @@ Expression *AssignExp::semantic(Scope *sc)
 	  (t1->next->ty == Tchar && e2->op == TOKstring)*/)
        )
     {	// memset
-	e2 = e2->implicitCastTo(t1->next);
+	e2 = e2->implicitCastTo(sc, t1->next);
     }
 #if 0
     else if (e1->op == TOKslice &&
 	     e2->op == TOKstring &&
 	     ((StringExp *)e2)->len == 1)
     {	// memset
-	e2 = e2->implicitCastTo(e1->type->next);
+	e2 = e2->implicitCastTo(sc, e1->type->next);
     }
 #endif
     else if (t1->ty == Tsarray)
@@ -5586,7 +5588,7 @@ Expression *AssignExp::semantic(Scope *sc)
     }
     else
     {
-	e2 = e2->implicitCastTo(e1->type);
+	e2 = e2->implicitCastTo(sc, e1->type);
     }
     type = e1->type;
     assert(type);
@@ -5641,7 +5643,7 @@ Expression *AddAssignExp::semantic(Scope *sc)
 	e1->checkScalar();
 	e1->checkNoBool();
 	if (tb1->ty == Tpointer && tb2->isintegral())
-	    e = scaleFactor();
+	    e = scaleFactor(sc);
 	else if (tb1->ty == Tbit || tb1->ty == Tbool)
 	{
 #if 0
@@ -5689,13 +5691,13 @@ Expression *AddAssignExp::semantic(Scope *sc)
 	else
 	{
 	    type = e1->type;
-	    typeCombine();
+	    typeCombine(sc);
 	    e1->checkArithmetic();
 	    e2->checkArithmetic();
 	    if (type->isreal() || type->isimaginary())
 	    {
 		assert(global.errors || e2->type->isfloating());
-		e2 = e2->castTo(e1->type);
+		e2 = e2->castTo(sc, e1->type);
 	    }
 	    e = this;
 	}
@@ -5727,17 +5729,17 @@ Expression *MinAssignExp::semantic(Scope *sc)
     e1->checkScalar();
     e1->checkNoBool();
     if (e1->type->ty == Tpointer && e2->type->isintegral())
-	e = scaleFactor();
+	e = scaleFactor(sc);
     else
     {
 	type = e1->type;
-	typeCombine();
+	typeCombine(sc);
 	e1->checkArithmetic();
 	e2->checkArithmetic();
 	if (type->isreal() || type->isimaginary())
 	{
 	    assert(e2->type->isfloating());
-	    e2 = e2->castTo(e1->type);
+	    e2 = e2->castTo(sc, e1->type);
 	}
 	e = this;
     }
@@ -5779,7 +5781,7 @@ Expression *CatAssignExp::semantic(Scope *sc)
 	//e1->type->next->equals(e2->type->next)
        )
     {	// Append array
-	e2 = e2->castTo(e1->type);
+	e2 = e2->castTo(sc, e1->type);
 	type = e1->type;
 	e = this;
     }
@@ -5787,7 +5789,7 @@ Expression *CatAssignExp::semantic(Scope *sc)
 	e2->implicitConvTo(tb1->next)
        )
     {	// Append element
-	e2 = e2->castTo(tb1->next);
+	e2 = e2->castTo(sc, tb1->next);
 	type = e1->type;
 	e = this;
     }
@@ -5821,7 +5823,7 @@ Expression *MulAssignExp::semantic(Scope *sc)
     e1->checkScalar();
     e1->checkNoBool();
     type = e1->type;
-    typeCombine();
+    typeCombine(sc);
     e1->checkArithmetic();
     e2->checkArithmetic();
     if (e2->type->isfloating())
@@ -5834,7 +5836,7 @@ Expression *MulAssignExp::semantic(Scope *sc)
 	{
 	    if (t2->isimaginary() || t2->iscomplex())
 	    {
-		e2 = e2->castTo(t1);
+		e2 = e2->castTo(sc, t1);
 	    }
 	}
 	else if (t1->isimaginary())
@@ -5849,7 +5851,7 @@ Expression *MulAssignExp::semantic(Scope *sc)
 		    default:
 			assert(0);
 		}
-		e2 = e2->castTo(t2);
+		e2 = e2->castTo(sc, t2);
 	    }
 	}
     }
@@ -5877,7 +5879,7 @@ Expression *DivAssignExp::semantic(Scope *sc)
     e1->checkScalar();
     e1->checkNoBool();
     type = e1->type;
-    typeCombine();
+    typeCombine(sc);
     e1->checkArithmetic();
     e2->checkArithmetic();
     if (e2->type->isimaginary())
@@ -5905,7 +5907,7 @@ Expression *DivAssignExp::semantic(Scope *sc)
 		default:
 		    assert(0);
 	    }
-	    e2 = e2->castTo(t2);
+	    e2 = e2->castTo(sc, t2);
 	    e = new AssignExp(loc, e1, e2);
 	    e->type = t1;
 	    return e;
@@ -5948,10 +5950,10 @@ Expression *ShlAssignExp::semantic(Scope *sc)
     e1->checkScalar();
     e1->checkNoBool();
     type = e1->type;
-    typeCombine();
+    typeCombine(sc);
     e1->checkIntegral();
     e2 = e2->checkIntegral();
-    e2 = e2->castTo(Type::tshiftcnt);
+    e2 = e2->castTo(sc, Type::tshiftcnt);
     return this;
 }
 
@@ -5976,10 +5978,10 @@ Expression *ShrAssignExp::semantic(Scope *sc)
     e1->checkScalar();
     e1->checkNoBool();
     type = e1->type;
-    typeCombine();
+    typeCombine(sc);
     e1->checkIntegral();
     e2 = e2->checkIntegral();
-    e2 = e2->castTo(Type::tshiftcnt);
+    e2 = e2->castTo(sc, Type::tshiftcnt);
     return this;
 }
 
@@ -6004,10 +6006,10 @@ Expression *UshrAssignExp::semantic(Scope *sc)
     e1->checkScalar();
     e1->checkNoBool();
     type = e1->type;
-    typeCombine();
+    typeCombine(sc);
     e1->checkIntegral();
     e2 = e2->checkIntegral();
-    e2 = e2->castTo(Type::tshiftcnt);
+    e2 = e2->castTo(sc, Type::tshiftcnt);
     return this;
 }
 
@@ -6081,7 +6083,7 @@ Expression *AddExp::semantic(Scope *sc)
         }
 	else if (tb1->ty == Tpointer && e2->type->isintegral() ||
 	    tb2->ty == Tpointer && e1->type->isintegral())
-	    e = scaleFactor();
+	    e = scaleFactor(sc);
 	else if (tb1->ty == Tpointer && tb2->ty == Tpointer)
 	{
 	    incompatibleTypes();
@@ -6090,7 +6092,7 @@ Expression *AddExp::semantic(Scope *sc)
 	}
 	else
 	{
-	    typeCombine();
+	    typeCombine(sc);
 	    if ((e1->type->isreal() && e2->type->isimaginary()) ||
 		(e1->type->isimaginary() && e2->type->isreal()))
 	    {
@@ -6157,7 +6159,7 @@ Expression *MinExp::semantic(Scope *sc)
 	    d_int64 stride;
 	    Expression *e;
 
-	    typeCombine();		// make sure pointer types are compatible
+	    typeCombine(sc);		// make sure pointer types are compatible
 	    type = Type::tptrdiff_t;
 	    stride = t2->next->size();
 	    e = new DivExp(loc, this, new IntegerExp(0, stride, Type::tptrdiff_t));
@@ -6165,7 +6167,7 @@ Expression *MinExp::semantic(Scope *sc)
 	    return e;
 	}
 	else if (t2->isintegral())
-	    e = scaleFactor();
+	    e = scaleFactor(sc);
 	else
 	{   error("incompatible types for -");
 	    return new IntegerExp(0);
@@ -6179,7 +6181,7 @@ Expression *MinExp::semantic(Scope *sc)
     }
     else
     {
-	typeCombine();
+	typeCombine(sc);
 	t1 = e1->type->toBasetype();
 	t2 = e2->type->toBasetype();
 	if ((t1->isreal() && t2->isimaginary()) ||
@@ -6255,7 +6257,7 @@ Expression *CatExp::semantic(Scope *sc)
 	    return this;
 	}
 
-	typeCombine();
+	typeCombine(sc);
 
 	if (type->toBasetype()->ty == Tsarray)
 	    type = type->toBasetype()->next->arrayOf();
@@ -6304,7 +6306,7 @@ Expression *MulExp::semantic(Scope *sc)
     if (e)
 	return e;
 
-    typeCombine();
+    typeCombine(sc);
     e1->checkArithmetic();
     e2->checkArithmetic();
     if (type->isfloating())
@@ -6368,7 +6370,7 @@ Expression *DivExp::semantic(Scope *sc)
     if (e)
 	return e;
 
-    typeCombine();
+    typeCombine(sc);
     e1->checkArithmetic();
     e2->checkArithmetic();
     if (type->isfloating())
@@ -6433,7 +6435,7 @@ Expression *ModExp::semantic(Scope *sc)
     if (e)
 	return e;
 
-    typeCombine();
+    typeCombine(sc);
     e1->checkArithmetic();
     e2->checkArithmetic();
     if (type->isfloating())
@@ -6464,8 +6466,8 @@ Expression *ShlExp::semantic(Scope *sc)
 	    return e;
 	e1 = e1->checkIntegral();
 	e2 = e2->checkIntegral();
-	e1 = e1->integralPromotions();
-	e2 = e2->castTo(Type::tshiftcnt);
+	e1 = e1->integralPromotions(sc);
+	e2 = e2->castTo(sc, Type::tshiftcnt);
 	type = e1->type;
     }
     return this;
@@ -6488,8 +6490,8 @@ Expression *ShrExp::semantic(Scope *sc)
 	    return e;
 	e1 = e1->checkIntegral();
 	e2 = e2->checkIntegral();
-	e1 = e1->integralPromotions();
-	e2 = e2->castTo(Type::tshiftcnt);
+	e1 = e1->integralPromotions(sc);
+	e2 = e2->castTo(sc, Type::tshiftcnt);
 	type = e1->type;
     }
     return this;
@@ -6512,8 +6514,8 @@ Expression *UshrExp::semantic(Scope *sc)
 	    return e;
 	e1 = e1->checkIntegral();
 	e2 = e2->checkIntegral();
-	e1 = e1->integralPromotions();
-	e2 = e2->castTo(Type::tshiftcnt);
+	e1 = e1->integralPromotions(sc);
+	e2 = e2->castTo(sc, Type::tshiftcnt);
 	type = e1->type;
     }
     return this;
@@ -6542,7 +6544,7 @@ Expression *AndExp::semantic(Scope *sc)
 	}
 	else
 	{
-	    typeCombine();
+	    typeCombine(sc);
 	    e1->checkIntegral();
 	    e2->checkIntegral();
 	}
@@ -6573,7 +6575,7 @@ Expression *OrExp::semantic(Scope *sc)
 	}
 	else
 	{
-	    typeCombine();
+	    typeCombine(sc);
 	    e1->checkIntegral();
 	    e2->checkIntegral();
 	}
@@ -6604,7 +6606,7 @@ Expression *XorExp::semantic(Scope *sc)
 	}
 	else
 	{
-	    typeCombine();
+	    typeCombine(sc);
 	    e1->checkIntegral();
 	    e2->checkIntegral();
 	}
@@ -6759,7 +6761,7 @@ Expression *InExp::semantic(Scope *sc)
 	TypeAArray *ta = (TypeAArray *)t2b;
 
 	// Convert key to type of key
-	e1 = e1->implicitCastTo(ta->index);
+	e1 = e1->implicitCastTo(sc, ta->index);
 
 	// Return type is pointer to value
 	type = ta->next->pointerTo();
@@ -6811,7 +6813,7 @@ Expression *CmpExp::semantic(Scope *sc)
 	return e;
     }
 
-    typeCombine();
+    typeCombine(sc);
     type = Type::tboolean;
 
     // Special handling for array comparisons
@@ -6903,7 +6905,7 @@ Expression *EqualExp::semantic(Scope *sc)
 	}
     }
 
-    e = typeCombine();
+    e = typeCombine(sc);
     type = Type::tboolean;
 
     // Special handling for array comparisons
@@ -6920,8 +6922,8 @@ Expression *EqualExp::semantic(Scope *sc)
 	if (e1->type != e2->type && e1->type->isfloating() && e2->type->isfloating())
 	{
 	    // Cast both to complex
-	    e1 = e1->castTo(Type::tcomplex80);
-	    e2 = e2->castTo(Type::tcomplex80);
+	    e1 = e1->castTo(sc, Type::tcomplex80);
+	    e2 = e2->castTo(sc, Type::tcomplex80);
 	}
     }
     return e;
@@ -6948,12 +6950,12 @@ Expression *IdentityExp::semantic(Scope *sc)
 
     BinExp::semanticp(sc);
     type = Type::tboolean;
-    typeCombine();
+    typeCombine(sc);
     if (e1->type != e2->type && e1->type->isfloating() && e2->type->isfloating())
     {
 	// Cast both to complex
-	e1 = e1->castTo(Type::tcomplex80);
-	e2 = e2->castTo(Type::tcomplex80);
+	e1 = e1->castTo(sc, Type::tcomplex80);
+	e2 = e2->castTo(sc, Type::tcomplex80);
     }
     return this;
 }
@@ -7035,25 +7037,25 @@ Expression *CondExp::semantic(Scope *sc)
 	type = t1;
     else
     {
-	typeCombine();
+	typeCombine(sc);
     }
     return this;
 }
 
-Expression *CondExp::toLvalue(Expression *ex)
+Expression *CondExp::toLvalue(Scope *sc, Expression *ex)
 {
     PtrExp *e;
 
     // convert (econd ? e1 : e2) to *(econd ? &e1 : &e2)
     e = new PtrExp(loc, this, type);
 
-    e1 = e1->addressOf();
-    e1 = e1->toLvalue(NULL);
+    e1 = e1->addressOf(sc);
+    e1 = e1->toLvalue(sc, NULL);
 
-    e2 = e2->addressOf();
-    e2 = e2->toLvalue(NULL);
+    e2 = e2->addressOf(sc);
+    e2 = e2->toLvalue(sc, NULL);
 
-    typeCombine();
+    typeCombine(sc);
 
     type = e2->type;
     return e;

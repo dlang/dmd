@@ -100,7 +100,7 @@ void EnumDeclaration::semantic(Scope *sc)
 	{
 	    assert(e->dyncast() == DYNCAST_EXPRESSION);
 	    e = e->semantic(sce);
-	    e = e->implicitCastTo(memtype);
+	    e = e->implicitCastTo(sc, memtype);
 	    e = e->optimize(WANTvalue);
 	    number = e->toInteger();
 	    e->type = t;

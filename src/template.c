@@ -448,6 +448,7 @@ MATCH TemplateDeclaration::deduceMatch(Objects *targsi, Expressions *fargs,
     TypeFunction *fdtype;
     Objects dedtypes;	// for T:T*, the dedargs is the T*, dedtypes is the T
 
+    //printf("TemplateDeclaration::deduceMatch() %s\n", toChars());
     assert((size_t)scope > 0x10000);
 
     dedargs->setDim(parameters->dim);
@@ -523,7 +524,26 @@ MATCH TemplateDeclaration::deduceMatch(Objects *targsi, Expressions *fargs,
 	else
 	{   farg = (Expression *)fargs->data[i];
 	    m = farg->type->deduceType(scope, fparam->type, parameters, &dedtypes);
-	    //printf("m = %d\n", m);
+	    //printf("\tm = %d\n", m);
+
+	    /* If no match, see if there's a conversion to a delegate
+	     */
+	    if (!m && fparam->type->toBasetype()->ty == Tdelegate)
+	    {
+		TypeDelegate *td = (TypeDelegate *)fparam->type->toBasetype();
+		TypeFunction *tf = (TypeFunction *)td->next;
+
+		if (!tf->varargs &&
+		    !(tf->arguments && tf->arguments->dim)
+		   )
+		{
+		    m = farg->type->deduceType(scope, tf->next, parameters, &dedtypes);
+		    if (!m && tf->next->toBasetype()->ty == Tvoid)
+			m = MATCHconvert;
+		}
+		//printf("\tm2 = %d\n", m);
+	    }
+
 	    if (m)
 	    {	if (m < match)
 		    match = m;		// pick worst match
@@ -647,6 +667,7 @@ FuncDeclaration *TemplateDeclaration::deduce(Scope *sc, Loc loc,
     TemplateInstance *ti;
     FuncDeclaration *fd;
 
+    //printf("TemplateDeclaration::deduce() %s\n", toChars());
     for (TemplateDeclaration *td = this; td; td = td->overnext)
     {
 	if (!td->scope)
@@ -664,6 +685,7 @@ FuncDeclaration *TemplateDeclaration::deduce(Scope *sc, Loc loc,
 	Objects dedargs;
 
 	m = td->deduceMatch(targsi, fargs, &dedargs);
+	//printf("deduceMatch = %d\n", m);
 	if (!m)			// if no match
 	    continue;
 
@@ -882,9 +904,11 @@ Lnomatch:
 
 MATCH TypeSArray::deduceType(Scope *sc, Type *tparam, TemplateParameters *parameters, Array *dedtypes)
 {
-    //printf("TypeSArray::deduceType()\n");
-    //printf("\tthis   = %d, ", ty); print();
-    //printf("\ttparam = %d, ", tparam->ty); tparam->print();
+#if 0
+    printf("TypeSArray::deduceType()\n");
+    printf("\tthis   = %d, ", ty); print();
+    printf("\ttparam = %d, ", tparam->ty); tparam->print();
+#endif
 
     // Extra check that array dimensions must match
     if (tparam)
@@ -927,6 +951,14 @@ MATCH TypeSArray::deduceType(Scope *sc, Type *tparam, TemplateParameters *parame
 		    }
 		}
 	    }
+	}
+	else if (tparam->ty == Tarray)
+	{   MATCH m;
+
+	    m = next->deduceType(sc, tparam->next, parameters, dedtypes);
+	    if (m == MATCHexact)
+		m = MATCHconvert;
+	    return m;
 	}
     }
     return Type::deduceType(sc, tparam, parameters, dedtypes);
@@ -1213,10 +1245,12 @@ MATCH TemplateTypeParameter::matchArg(Scope *sc, Object *oarg,
 	t = ta;
     }
     *psparam = new AliasDeclaration(loc, ident, t);
+    //printf("\tm = %d\n", m);
     return m;
 
 Lnomatch:
     *psparam = NULL;
+    //printf("\tm = %d\n", MATCHnomatch);
     return MATCHnomatch;
 }
 
@@ -1516,7 +1550,7 @@ void TemplateValueParameter::semantic(Scope *sc)
     {   Expression *e = specValue;
 
 	e = e->semantic(sc);
-	e = e->implicitCastTo(valType);
+	e = e->implicitCastTo(sc, valType);
 	e = e->constFold();
 	if (e->op == TOKint64 || e->op == TOKfloat64 ||
 	    e->op == TOKcomplex80 || e->op == TOKnull || e->op == TOKstring)
@@ -1529,7 +1563,7 @@ void TemplateValueParameter::semantic(Scope *sc)
     {   Expression *e = defaultValue;
 
 	e = e->semantic(sc);
-	e = e->implicitCastTo(valType);
+	e = e->implicitCastTo(sc, valType);
 	e = e->constFold();
 	if (e->op == TOKint64)
 	    defaultValue = e;
@@ -1584,7 +1618,7 @@ MATCH TemplateValueParameter::matchArg(Scope *sc,
 	Expression *e = specValue;
 
 	e = e->semantic(sc);
-	e = e->implicitCastTo(valType);
+	e = e->implicitCastTo(sc, valType);
 	e = e->constFold();
 
 	ei = ei->syntaxCopy();

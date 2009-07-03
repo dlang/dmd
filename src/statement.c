@@ -1005,7 +1005,7 @@ Statement *ForeachStatement::semantic(Scope *sc)
 	    if (!value->type->equals(tab->next))
 	    {
 		if (aggr->op == TOKstring)
-		    aggr = aggr->implicitCastTo(value->type->arrayOf());
+		    aggr = aggr->implicitCastTo(sc, value->type->arrayOf());
 		else
 		    error("foreach: %s is not an array of %s", tab->toChars(), value->type->toChars());
 	    }
@@ -1171,7 +1171,7 @@ Statement *ForeachStatement::semantic(Scope *sc)
 		ec = new VarExp(0, fdapply);
 		args = new Expressions();
 		if (tab->ty == Tsarray)
-		   aggr = aggr->castTo(tn->arrayOf());
+		   aggr = aggr->castTo(sc, tn->arrayOf());
 		args->push(aggr);
 		args->push(flde);
 		e = new CallExp(loc, ec, args);
@@ -1626,11 +1626,11 @@ Statement *SwitchStatement::semantic(Scope *sc)
 	// If it's not an array, cast it to one
 	if (condition->type->ty != Tarray)
 	{
-	    condition = condition->implicitCastTo(condition->type->next->arrayOf());
+	    condition = condition->implicitCastTo(sc, condition->type->next->arrayOf());
 	}
     }
     else
-    {	condition = condition->integralPromotions();
+    {	condition = condition->integralPromotions(sc);
 	condition->checkIntegral();
     }
 
@@ -1768,7 +1768,7 @@ Statement *CaseStatement::semantic(Scope *sc)
     if (sw)
     {	int i;
 
-	exp = exp->implicitCastTo(sw->condition->type);
+	exp = exp->implicitCastTo(sc, sw->condition->type);
 	exp = exp->constFold();
 	if (exp->op != TOKstring && exp->op != TOKint64)
 	{
@@ -1953,7 +1953,7 @@ Statement *GotoCaseStatement::semantic(Scope *sc)
 	sc->sw->gotoCases.push(this);
 	if (exp)
 	{
-	    exp = exp->implicitCastTo(sc->sw->condition->type);
+	    exp = exp->implicitCastTo(sc, sc->sw->condition->type);
 	    exp = exp->constFold();
 	}
     }
@@ -2085,7 +2085,7 @@ Statement *ReturnStatement::semantic(Scope *sc)
 	}
 	else if (tbret->ty != Tvoid)
 	{
-	    exp = exp->implicitCastTo(tret);
+	    exp = exp->implicitCastTo(sc, tret);
 	}
     }
     else if (fd->inferRetType)
@@ -2115,7 +2115,7 @@ Statement *ReturnStatement::semantic(Scope *sc)
 
 	if (exp)
 	{
-	    exp = exp->implicitCastTo(tret);
+	    exp = exp->implicitCastTo(sc, tret);
 	}
 	if (!exp || exp->op == TOKint64 || exp->op == TOKfloat64 ||
 	    exp->op == TOKimaginary80 || exp->op == TOKcomplex80 ||
@@ -2553,7 +2553,7 @@ Statement *WithStatement::semantic(Scope *sc)
 	}
 	else if (t->ty == Tstruct)
 	{
-	    Expression *e = exp->addressOf();
+	    Expression *e = exp->addressOf(sc);
 	    init = new ExpInitializer(loc, e);
 	    wthis = new VarDeclaration(loc, e->type, Id::withSym, init);
 	    wthis->semantic(sc);

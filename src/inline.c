@@ -1115,7 +1115,7 @@ Expression *FuncDeclaration::doInline(InlineScanState *iss, Expression *ethis, A
 
 	if (ethis->type->ty != Tclass && ethis->type->ty != Tpointer)
 	{
-	    ethis = ethis->addressOf();
+	    ethis = ethis->addressOf(NULL);
 	}
 
 	ei = new ExpInitializer(ethis->loc, ethis);

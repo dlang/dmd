@@ -977,7 +977,7 @@ void FuncDeclaration::semantic3(Scope *sc)
 		    assert(vresult);
 		    Expression *e = new VarExp(0, vresult);
 		    if (tintro)
-		    {	e = e->implicitCastTo(tintro->next);
+		    {	e = e->implicitCastTo(sc, tintro->next);
 			e = e->semantic(sc);
 		    }
 		    ReturnStatement *s = new ReturnStatement(0, e);
