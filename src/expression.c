@@ -4996,6 +4996,7 @@ Expression *DotVarExp::semantic(Scope *sc)
 			if (s && s->isClassDeclaration())
 			    e1->type = s->isClassDeclaration()->type;
 
+			e1 = e1->semantic(sc);
 			goto L1;
 		    }
 #ifdef DEBUG

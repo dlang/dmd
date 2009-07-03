@@ -60,7 +60,7 @@ Global::Global()
 
     copyright = "Copyright (c) 1999-2008 by Digital Mars";
     written = "written by Walter Bright";
-    version = "v1.028";
+    version = "v1.029";
     global.structalign = 8;
 
     memset(&params, 0, sizeof(Param));
@@ -173,8 +173,9 @@ Usage:\n\
   -Hffilename    write 'header' file to filename\n\
   --help         print help\n\
   -Ipath         where to look for imports\n\
-  -Jpath         where to look for string imports\n\
+  -ignore        ignore unsupported pragmas\n\
   -inline        do function inlining\n\
+  -Jpath         where to look for string imports\n\
   -Llinkerflag   pass linkerflag to link\n\
   -nofloat       do not emit reference to floating point\n\
   -O             optimize\n\
@@ -397,6 +398,8 @@ int main(int argc, char *argv[])
 		}
 	    }
 #endif
+	    else if (strcmp(p + 1, "ignore") == 0)
+		global.params.ignoreUnsupportedPragmas = 1;
 	    else if (strcmp(p + 1, "inline") == 0)
 		global.params.useInline = 1;
 	    else if (strcmp(p + 1, "nofloat") == 0)

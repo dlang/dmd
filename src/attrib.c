@@ -831,6 +831,33 @@ void PragmaDeclaration::semantic(Scope *sc)
 	goto Lnodecl;
     }
 #endif
+    else if (global.params.ignoreUnsupportedPragmas)
+    {
+	if (global.params.verbose)
+	{
+	    /* Print unrecognized pragmas
+	     */
+	    printf("pragma    %s", ident->toChars());
+	    if (args)
+	    {
+		for (size_t i = 0; i < args->dim; i++)
+		{
+		    Expression *e = (Expression *)args->data[i];
+		    e = e->semantic(sc);
+		    e = e->optimize(WANTvalue | WANTinterpret);
+		    if (i == 0)
+			printf(" (");
+		    else
+			printf(",");
+		    printf("%s", e->toChars());
+		}
+		if (args->dim)
+		    printf(")");
+	    }
+	    printf("\n");
+	}
+	goto Lnodecl;
+    }
     else
 	error("unrecognized pragma(%s)", ident->toChars());
 

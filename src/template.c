@@ -678,12 +678,12 @@ MATCH TemplateDeclaration::deduceFunctionTemplateMatch(Objects *targsi, Expressi
     size_t i;
     size_t nfparams;
     size_t nfargs;
-    size_t nargsi;
+    size_t nargsi;		// array size of targsi
     int fptupindex = -1;
     int tuple_dim = 0;
     MATCH match = MATCHexact;
     FuncDeclaration *fd = onemember->toAlias()->isFuncDeclaration();
-    TypeFunction *fdtype;
+    TypeFunction *fdtype;		// type of fd
     TemplateTupleParameter *tp;
     Objects dedtypes;	// for T:T*, the dedargs is the T*, dedtypes is the T
 
@@ -755,7 +755,7 @@ MATCH TemplateDeclaration::deduceFunctionTemplateMatch(Objects *targsi, Expressi
      * void main() { Foo(1,2,3); }
      */
     tp = isVariadic();
-    if (tp)
+    if (tp)				// if variadic
     {
 	if (nfparams == 0)		// if no function parameters
 	{
@@ -828,8 +828,6 @@ L2:
 	}
 
 	Argument *fparam = Argument::getNth(fdtype->parameters, i);
-	Expression *farg;
-	MATCH m;
 
 	if (i >= nfargs)		// if not enough arguments
 	{
@@ -841,12 +839,13 @@ L2:
 	    }
 	}
 	else
-	{   farg = (Expression *)fargs->data[i];
+	{   Expression *farg = (Expression *)fargs->data[i];
 #if 0
 	    printf("\tfarg->type   = %s\n", farg->type->toChars());
 	    printf("\tfparam->type = %s\n", fparam->type->toChars());
 #endif
 
+	    MATCH m;
 	    m = farg->type->deduceType(scope, fparam->type, parameters, &dedtypes);
 	    //printf("\tdeduceType m = %d\n", m);
 
@@ -899,30 +898,40 @@ Lmatch:
     for (i = nargsi; i < dedargs->dim; i++)
     {
 	TemplateParameter *tp = (TemplateParameter *)parameters->data[i];
+	//printf("tp[%d] = %s\n", i, tp->ident->toChars());
+	/* For T:T*, the dedargs is the T*, dedtypes is the T
+	 * But for function templates, we really need them to match
+	 */
 	Object *oarg = (Object *)dedargs->data[i];
-	Object *o = (Object *)dedtypes.data[i];
-	//printf("1dedargs[%d] = %p, dedtypes[%d] = %p\n", i, oarg, i, o);
+	Object *oded = (Object *)dedtypes.data[i];
+	//printf("1dedargs[%d] = %p, dedtypes[%d] = %p\n", i, oarg, i, oded);
 	if (!oarg)
 	{
-	    if (o)
+	    if (oded)
 	    {
 		if (tp->specialization())
-		    error("specialization not allowed for deduced parameter %s", tp->ident->toChars());
+		{   /* The specialization can work as long as afterwards
+		     * the oded == oarg
+		     */
+		    Declaration *sparam;
+		    dedargs->data[i] = (void *)oded;
+		    MATCH m2 = tp->matchArg(paramscope, dedargs, i, parameters, &dedtypes, &sparam);
+		    //printf("m2 = %d\n", m2);
+		    if (!m2)
+			goto Lnomatch;
+		    if (m2 < match)
+			match = m2;		// pick worst match
+		    if (dedtypes.data[i] != oded)
+			error("specialization not allowed for deduced parameter %s", tp->ident->toChars());
+		}
 	    }
 	    else
-	    {	o = tp->defaultArg(paramscope);
-		if (!o)
+	    {	oded = tp->defaultArg(paramscope);
+		if (!oded)
 		    goto Lnomatch;
-#if 0
-		Match m;
-		Declaration *sparam;
-		m = tp->matchArg(paramscope, dedargs, i, parameters, &sparam);
-		if (!m)
-		    goto Lnomatch;
-#endif
 	    }
-	    declareParameter(paramscope, tp, o);
-	    dedargs->data[i] = (void *)o;
+	    declareParameter(paramscope, tp, oded);
+	    dedargs->data[i] = (void *)oded;
 	}
     }
 
@@ -934,7 +943,7 @@ Lmatch:
 #endif
 
     paramscope->pop();
-    //printf("\tmatch\n");
+    //printf("\tmatch %d\n", match);
     return match;
 
 Lnomatch:

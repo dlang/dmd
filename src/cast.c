@@ -959,7 +959,8 @@ Expression *ArrayLiteralExp::castTo(Scope *sc, Type *t)
     Type *tb = t->toBasetype();
     if ((tb->ty == Tarray || tb->ty == Tsarray) &&
 	(typeb->ty == Tarray || typeb->ty == Tsarray) &&
-	tb->nextOf()->toBasetype()->ty != Tvoid)
+	// Not trying to convert non-void[] to void[]
+	!(tb->nextOf()->toBasetype()->ty == Tvoid && typeb->nextOf()->toBasetype()->ty != Tvoid))
     {
 	if (tb->ty == Tsarray)
 	{   TypeSArray *tsa = (TypeSArray *)tb;
