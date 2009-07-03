@@ -188,7 +188,7 @@ Expression *TraitsExp::semantic(Scope *sc)
 	e = isExpression(o);
 	Dsymbol *s = isDsymbol(o);
 	if (t)
-	    e = new TypeDotIdExp(loc, t, id);
+	    e = typeDotIdExp(loc, t, id);
 	else if (e)
 	    e = new DotIdExp(loc, e, id);
 	else if (s)

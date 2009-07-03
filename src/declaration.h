@@ -62,6 +62,7 @@ enum STC
     STCtemplateparameter = 0x40000,	// template parameter
     STCscope	    = 0x80000,		// template parameter
     STCinvariant    = 0x100000,
+    STCimmutable    = 0x100000,
     STCref	    = 0x200000,
     STCinit	    = 0x400000,		// has explicit initializer
     STCmanifest	    = 0x800000,		// manifest constant
@@ -70,6 +71,10 @@ enum STC
     STCpure	    = 0x4000000,	// pure function
     STCtls	    = 0x8000000,	// thread local
     STCalias	    = 0x10000000,	// alias parameter
+    STCshared       = 0x20000000,	// accessible from multiple threads
+    STCgshared      = 0x40000000,	// accessible from multiple threads
+					// but not typed as "shared"
+    STC_TYPECTOR    = (STCconst | STCimmutable | STCshared),
 };
 
 struct Match
@@ -95,6 +100,7 @@ struct Declaration : Dsymbol
     unsigned storage_class;
     enum PROT protection;
     enum LINK linkage;
+    int inuse;			// used to detect cycles
 
     Declaration(Identifier *id);
     void semantic(Scope *sc);
@@ -161,7 +167,6 @@ struct TypedefDeclaration : Declaration
 				// 1: semantic() is in progress
 				// 2: semantic() has been run
 				// 3: semantic2() has been run
-    int inuse;			// used to detect typedef cycles
 
     TypedefDeclaration(Loc loc, Identifier *ident, Type *basetype, Initializer *init);
     Dsymbol *syntaxCopy(Dsymbol *);
@@ -223,7 +228,6 @@ struct VarDeclaration : Declaration
     unsigned offset;
     int noauto;			// no auto semantics
     int nestedref;		// referenced by a lexically nested function
-    int inuse;
     int ctorinit;		// it has been initialized in a ctor
     int onstack;		// 1: it has been allocated on the stack
 				// 2: on stack, run destructor anyway
@@ -231,6 +235,7 @@ struct VarDeclaration : Declaration
     Dsymbol *aliassym;		// if redone as alias to another symbol
     Expression *value;		// when interpreting, this is the value
 				// (NULL if value not determinable)
+    Scope *scope;		// !=NULL means context to use
 
     VarDeclaration(Loc loc, Type *t, Identifier *id, Initializer *init);
     Dsymbol *syntaxCopy(Dsymbol *);
@@ -416,14 +421,22 @@ struct TypeInfoInvariantDeclaration : TypeInfoDeclaration
 
     void toDt(dt_t **pdt);
 };
+
+struct TypeInfoSharedDeclaration : TypeInfoDeclaration
+{
+    TypeInfoSharedDeclaration(Type *tinfo);
+
+    void toDt(dt_t **pdt);
+};
 #endif
 
 /**************************************************************/
 
 struct ThisDeclaration : VarDeclaration
 {
-    ThisDeclaration(Type *t);
+    ThisDeclaration(Loc loc, Type *t);
     Dsymbol *syntaxCopy(Dsymbol *);
+    ThisDeclaration *isThisDeclaration() { return this; }
 };
 
 enum ILS
@@ -479,7 +492,11 @@ struct FuncDeclaration : Declaration
     ILS inlineStatus;
     int inlineNest;			// !=0 if nested inline
     int cantInterpret;			// !=0 if cannot interpret function
-    int semanticRun;			// !=0 if semantic3() had been run
+    int semanticRun;			// 1 semantic() run
+					// 2 semantic2() run
+					// 3 semantic3() started
+					// 4 semantic3() done
+					// 5 toObjFile() run
 					// this function's frame ptr
     ForeachStatement *fes;		// if foreach body, this is the foreach
     int introducing;			// !=0 if 'introducing' function

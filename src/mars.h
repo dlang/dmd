@@ -36,6 +36,8 @@ Macros defined by the compiler, not the code:
 	_WIN64		Windows for AMD64
 	linux		Linux
 	__APPLE__	Mac OSX
+	__FreeBSD__	FreeBSD
+	__sun&&__SVR4	Solaris, OpenSolaris (yes, both macros are necessary)
 
 For the target systems, there are the target operating system and
 the target object file format:
@@ -45,13 +47,14 @@ the target object file format:
 	TARGET_LINUX	Covers 32 and 64 bit linux
 	TARGET_OSX	Covers 32 and 64 bit Mac OSX
 	TARGET_FREEBSD	Covers 32 and 64 bit FreeBSD
+	TARGET_SOLARIS	Covers 32 and 64 bit Solaris
 
     It is expected that the compiler for each platform will be able
     to generate 32 and 64 bit code from the same compiler binary.
 
     Target object module format:
 	OMFOBJ		Intel Object Module Format, used on Windows
-	ELFOBJ		Elf Object Module Format, used on linux and FreeBSD
+	ELFOBJ		Elf Object Module Format, used on linux, FreeBSD and Solaris
 	MACHOBJ		Mach-O Object Module Format, used on Mac OSX
 
     There are currently no macros for byte endianness order.
@@ -79,7 +82,8 @@ the target object file format:
 #define STRUCTTHISREF DMDV2	// if 'this' for struct is a reference, not a pointer
 #define SNAN_DEFAULT_INIT DMDV2	// if floats are default initialized to signalling NaN
 
-/* Other targets are TARGET_LINUX, TARGET_OSX and TARGET_FREEBSD, which are
+/* Other targets are TARGET_LINUX, TARGET_OSX, TARGET_FREEBSD and
+ * TARGET_SOLARIS, which are
  * set on the command line via the compiler makefile.
  */
 
@@ -88,7 +92,7 @@ the target object file format:
 #define OMFOBJ 1
 #endif
 
-#if TARGET_LINUX || TARGET_FREEBSD
+#if TARGET_LINUX || TARGET_FREEBSD || TARGET_SOLARIS
 #ifndef ELFOBJ
 #define ELFOBJ 1
 #endif
@@ -122,6 +126,7 @@ struct Param
     char isOSX;		// generate code for Mac OSX
     char isWindows;	// generate code for Windows
     char isFreeBSD;	// generate code for FreeBSD
+    char isSolaris;	// generate code for Solaris
     char scheduler;	// which scheduler to use
     char useDeprecated;	// allow use of deprecated features
     char useAssert;	// generate runtime code for assert()'s

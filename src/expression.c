@@ -89,7 +89,6 @@ void initPrecedence()
     precedence[TOKnull] = PREC_primary;
     precedence[TOKstring] = PREC_primary;
     precedence[TOKarrayliteral] = PREC_primary;
-    precedence[TOKtypedot] = PREC_primary;
     precedence[TOKtypeid] = PREC_primary;
     precedence[TOKis] = PREC_primary;
     precedence[TOKassert] = PREC_primary;
@@ -1535,6 +1534,22 @@ void IntegerExp::toMangleBuffer(OutBuffer *buf)
 	buf->printf("%jd", value);
 }
 
+/******************************** ErrorExp **************************/
+
+/* Use this expression for error recovery.
+ * It should behave as a 'sink' to prevent further cascaded error messages.
+ */
+
+ErrorExp::ErrorExp()
+    : IntegerExp(0, 0, Type::terror)
+{
+}
+
+void ErrorExp::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
+{
+    buf->writestring("__error");
+}
+
 /******************************** RealExp **************************/
 
 RealExp::RealExp(Loc loc, real_t value, Type *type)
@@ -1916,7 +1931,7 @@ Expression *IdentifierExp::semantic(Scope *sc)
 	    {	Type *t = withsym->withstate->wthis->type;
 		if (t->ty == Tpointer)
 		    t = ((TypePointer *)t)->next;
-		e = new TypeDotIdExp(loc, t, ident);
+		e = typeDotIdExp(loc, t, ident);
 	    }
 	}
 	else
@@ -3259,38 +3274,11 @@ void StructLiteralExp::toMangleBuffer(OutBuffer *buf)
  *	cast(foo).size
  */
 
-TypeDotIdExp::TypeDotIdExp(Loc loc, Type *type, Identifier *ident)
-    : Expression(loc, TOKtypedot, sizeof(TypeDotIdExp))
+Expression *typeDotIdExp(Loc loc, Type *type, Identifier *ident)
 {
-    this->type = type;
-    this->ident = ident;
+    return new DotIdExp(loc, new TypeExp(loc, type), ident);
 }
 
-Expression *TypeDotIdExp::syntaxCopy()
-{
-    TypeDotIdExp *te = new TypeDotIdExp(loc, type->syntaxCopy(), ident);
-    return te;
-}
-
-Expression *TypeDotIdExp::semantic(Scope *sc)
-{   Expression *e;
-
-#if LOGSEMANTIC
-    printf("TypeDotIdExp::semantic()\n");
-#endif
-    e = new DotIdExp(loc, new TypeExp(loc, type), ident);
-    e = e->semantic(sc);
-    return e;
-}
-
-void TypeDotIdExp::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
-{
-    buf->writeByte('(');
-    type->toCBuffer(buf, NULL, hgs);
-    buf->writeByte(')');
-    buf->writeByte('.');
-    buf->writestring(ident->toChars());
-}
 
 /************************************************************/
 
@@ -5209,12 +5197,12 @@ Expression *DotIdExp::semantic(Scope *sc)
 	    {
 		if (e1->op == TOKthis)
 		{
-		    e = new TypeDotIdExp(loc, cd->type, ident);
+		    e = typeDotIdExp(loc, cd->type, ident);
 		    return e->semantic(sc);
 		}
 		else if (cd->baseClass && e1->op == TOKsuper)
 		{
-		    e = new TypeDotIdExp(loc, cd->baseClass->type, ident);
+		    e = typeDotIdExp(loc, cd->baseClass->type, ident);
 		    return e->semantic(sc);
 		}
 	    }
@@ -5225,7 +5213,7 @@ Expression *DotIdExp::semantic(Scope *sc)
 		{
 		    if (e1->op == TOKthis)
 		    {
-			e = new TypeDotIdExp(loc, sd->type, ident);
+			e = typeDotIdExp(loc, sd->type, ident);
 			return e->semantic(sc);
 		    }
 		}
@@ -5271,6 +5259,18 @@ Expression *DotIdExp::semantic(Scope *sc)
 	TupleExp *te = (TupleExp *)e1;
 	e = new IntegerExp(loc, te->exps->dim, Type::tsize_t);
 	return e;
+    }
+
+    if (e1->op == TOKdottd)
+    {
+	error("template %s does not have property %s", e1->toChars(), ident->toChars());
+	return e1;
+    }
+
+    if (!e1->type)
+    {
+	error("expression %s does not have property %s", e1->toChars(), ident->toChars());
+	return e1;
     }
 
     if (eright->op == TOKimport)	// also used for template alias's
@@ -5559,7 +5559,8 @@ Expression *DotVarExp::semantic(Scope *sc)
 
 	if (!var->isFuncDeclaration())	// for functions, do checks after overload resolution
 	{
-	    AggregateDeclaration *ad = var->toParent()->isAggregateDeclaration();
+	    Dsymbol *vparent = var->toParent();
+	    AggregateDeclaration *ad = vparent ? vparent->isAggregateDeclaration() : NULL;
 	    e1 = getRightThis(loc, sc, ad, e1, var);
 	    if (!sc->noaccesscheck)
 		accessCheck(loc, sc, e1, var);
@@ -5754,7 +5755,11 @@ Expression *DotTemplateInstanceExp::semantic(Scope *sc)
     id = ti->name;
     s2 = s->search(loc, id, 0);
     if (!s2)
-    {	error("template identifier %s is not a member of %s %s", id->toChars(), s->kind(), s->ident->toChars());
+    {
+	if (!s->ident)
+	    error("template identifier %s is not a member of undefined %s", id->toChars(), s->kind());
+	else
+	    error("template identifier %s is not a member of %s %s", id->toChars(), s->kind(), s->ident->toChars());
 	goto Lerr;
     }
     s = s2;
@@ -7200,7 +7205,7 @@ Expression *SliceExp::semantic(Scope *sc)
 	else
 	{
 	    error("string slice [%ju .. %ju] is out of bounds", i1, i2);
-	    e = e1;
+	    e = new IntegerExp(0);
 	}
 	return e;
     }
@@ -9192,8 +9197,15 @@ Expression *CmpExp::semantic(Scope *sc)
     e = op_overload(sc);
     if (e)
     {
-	e = new CmpExp(op, loc, e, new IntegerExp(loc, 0, Type::tint32));
-	e = e->semantic(sc);
+	if (!e->type->isscalar() && e->type->equals(e1->type))
+	{
+	    error("recursive opCmp expansion");
+	    e = new ErrorExp();
+	}
+	else
+	{   e = new CmpExp(op, loc, e, new IntegerExp(loc, 0, Type::tint32));
+	    e = e->semantic(sc);
+	}
 	return e;
     }
 

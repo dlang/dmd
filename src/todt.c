@@ -753,7 +753,14 @@ dt_t **VarExp::toDt(dt_t **pdt)
     VarDeclaration *v = var->isVarDeclaration();
     if (v && v->isConst() && type->toBasetype()->ty != Tsarray && v->init)
     {
+	if (v->inuse)
+	{
+	    error("recursive reference %s", toChars());
+	    return pdt;
+	}
+	v->inuse++;
 	*pdt = v->init->toDt();
+	v->inuse--;
 	return pdt;
     }
     SymbolDeclaration *sd = var->isSymbolDeclaration();

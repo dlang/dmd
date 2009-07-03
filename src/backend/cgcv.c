@@ -21,6 +21,10 @@
 #include	<malloc.h>
 #endif
 
+#if __sun&&__SVR4
+#include	<alloca.h>
+#endif
+
 #include	"cc.h"
 #include	"type.h"
 #include	"code.h"

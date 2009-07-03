@@ -421,7 +421,10 @@ STATIC void asm_chktok(enum TOK toknum,unsigned errnum)
     if (tok_value == toknum)
 	asm_token();			// scan past token
     else
-	asmerr(errnum, asmtok->toChars());
+	/* When we run out of tokens, asmtok is NULL.
+	 * But when this happens when a ';' was hit.
+	 */
+	asmerr(errnum, asmtok ? asmtok->toChars() : ";");
 }
 
 

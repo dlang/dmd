@@ -290,7 +290,7 @@ Expression *DotVarExp::optimize(int result)
 	    if (vf)
 	    {
 		e = sle->getField(type, vf->offset);
-		if (e != EXP_CANT_INTERPRET)
+		if (e && e != EXP_CANT_INTERPRET)
 		    return e;
 	    }
 	}
@@ -303,7 +303,7 @@ Expression *DotVarExp::optimize(int result)
 	if (vf)
 	{
 	    Expression *e = sle->getField(type, vf->offset);
-	    if (e != EXP_CANT_INTERPRET)
+	    if (e && e != EXP_CANT_INTERPRET)
 		return e;
 	}
     }

@@ -69,7 +69,7 @@ Expression *FuncDeclaration::interpret(InterState *istate, Expressions *argument
     else if (ident == Id::aaValues)
 	return interpret_aaValues(istate, arguments);
 
-    if (cantInterpret || semanticRun == 1)
+    if (cantInterpret || semanticRun == 3)
 	return NULL;
 
     if (needThis() || isNested() || !fbody)
@@ -77,13 +77,13 @@ Expression *FuncDeclaration::interpret(InterState *istate, Expressions *argument
 	return NULL;
     }
 
-    if (semanticRun == 0 && scope)
+    if (semanticRun < 3 && scope)
     {
 	semantic3(scope);
 	if (global.errors)	// if errors compiling this function
 	    return NULL;
     }
-    if (semanticRun < 2)
+    if (semanticRun < 4)
 	return NULL;
 
     Type *tb = type->toBasetype();
@@ -1526,6 +1526,15 @@ Expression *BinExp::interpretAssignCommon(InterState *istate, fp_t fp, int post)
 	if (fp && !v->value)
 	{   error("variable %s is used before initialization", v->toChars());
 	    return e;
+	}
+	if (v->value == NULL && v->init->isVoidInitializer())
+	{   /* Since a void initializer initializes to undefined
+	     * values, it is valid here to use the default initializer.
+	     * No attempt is made to determine if someone actually relies
+	     * on the void value - to do that we'd need a VoidExp.
+	     * That's probably a good enhancement idea.
+	     */
+	    v->value = v->type->defaultInit();
 	}
 	Expression *vie = v->value;
 	if (vie->op == TOKvar)

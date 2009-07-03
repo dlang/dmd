@@ -1,4 +1,3 @@
-
 // Compiler implementation of the D programming language
 // Copyright (c) 1999-2008 by Digital Mars
 // All Rights Reserved
@@ -113,6 +112,18 @@ void FuncDeclaration::semantic(Scope *sc)
     printf("sc->parent = %s\n", sc->parent->toChars());
     printf("type: %p, %s\n", type, type->toChars());
 #endif
+
+    if (semanticRun && isFuncLiteralDeclaration())
+    {
+	/* Member functions that have return types that are
+	 * forward references can have semantic() run more than
+	 * once on them.
+	 * See test\interface2.d, test20
+	 */
+	return;
+    }
+    assert(semanticRun <= 1);
+    semanticRun = 1;
 
     if (type->nextOf())
 	type = type->semantic(loc, sc);
@@ -628,9 +639,9 @@ void FuncDeclaration::semantic3(Scope *sc)
     //printf("\tlinkage = %d\n", sc->linkage);
 
     //printf(" sc->incontract = %d\n", sc->incontract);
-    if (semanticRun)
+    if (semanticRun >= 3)
 	return;
-    semanticRun = 1;
+    semanticRun = 3;
 
     if (!type || type->ty != Tfunction)
 	return;
@@ -691,7 +702,7 @@ void FuncDeclaration::semantic3(Scope *sc)
 	    {
 		assert(!isNested());	// can't be both member and nested
 		assert(ad->handle);
-		v = new ThisDeclaration(ad->handle);
+		v = new ThisDeclaration(loc, ad->handle);
 		v->storage_class |= STCparameter | STCin;
 		v->semantic(sc2);
 		if (!sc2->insert(v))
@@ -706,7 +717,7 @@ void FuncDeclaration::semantic3(Scope *sc)
 	     * enclosing function's stack frame.
 	     * Note that nested functions and member functions are disjoint.
 	     */
-	    VarDeclaration *v = new ThisDeclaration(Type::tvoid->pointerTo());
+	    VarDeclaration *v = new ThisDeclaration(loc, Type::tvoid->pointerTo());
 	    v->storage_class |= STCparameter | STCin;
 	    v->semantic(sc2);
 	    if (!sc2->insert(v))
@@ -1235,7 +1246,7 @@ void FuncDeclaration::semantic3(Scope *sc)
 	sc2->callSuper = 0;
 	sc2->pop();
     }
-    semanticRun = 2;
+    semanticRun = 4;
 }
 
 void FuncDeclaration::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
@@ -2305,7 +2316,7 @@ int CtorDeclaration::addPreInvariant()
 
 int CtorDeclaration::addPostInvariant()
 {
-    return (vthis && global.params.useInvariants);
+    return (isThis() && vthis && global.params.useInvariants);
 }
 
 
@@ -2367,7 +2378,7 @@ int DtorDeclaration::overloadInsert(Dsymbol *s)
 
 int DtorDeclaration::addPreInvariant()
 {
-    return (vthis && global.params.useInvariants);
+    return (isThis() && vthis && global.params.useInvariants);
 }
 
 int DtorDeclaration::addPostInvariant()

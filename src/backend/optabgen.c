@@ -699,7 +699,7 @@ void fltables()
 		case FLctor:	segfl[i] = -1;	break;
 		case FLdtor:	segfl[i] = -1;	break;
 		case FLdsymbol:	segfl[i] = -1;	break;
-#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD
+#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_SOLARIS
 		case FLgot:	segfl[i] = -1;	break;
 		case FLgotoff:	segfl[i] = -1;	break;
 #endif

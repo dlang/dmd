@@ -33,6 +33,7 @@ Declaration::Declaration(Identifier *id)
     storage_class = STCundefined;
     protection = PROTundefined;
     linkage = LINKdefault;
+    inuse = 0;
 }
 
 void Declaration::semantic(Scope *sc)
@@ -253,7 +254,6 @@ TypedefDeclaration::TypedefDeclaration(Loc loc, Identifier *id, Type *basetype, 
     this->hbasetype = NULL;
 #endif
     this->sem = 0;
-    this->inuse = 0;
     this->loc = loc;
     this->sinit = NULL;
 }
@@ -479,7 +479,9 @@ void AliasDeclaration::semantic(Scope *sc)
 	}
     }
     else if (t)
+    {
 	type = t;
+    }
     if (overnext)
 	ScopeDsymbol::multiplyDefined(0, this, overnext);
     this->inSemantic = 0;
@@ -555,7 +557,7 @@ Dsymbol *AliasDeclaration::toAlias()
     //static int count; if (++count == 10) *(char*)0=0;
     if (inSemantic)
     {	error("recursive alias declaration");
-//	return this;
+	aliassym = new TypedefDeclaration(loc, ident, Type::terror, NULL);
     }
     Dsymbol *s = aliassym ? aliassym->toAlias() : this;
     return s;
@@ -615,7 +617,6 @@ VarDeclaration::VarDeclaration(Loc loc, Type *type, Identifier *id, Initializer 
     offset = 0;
     noauto = 0;
     nestedref = 0;
-    inuse = 0;
     ctorinit = 0;
     aliassym = NULL;
     onstack = 0;
@@ -1381,8 +1382,8 @@ TypeInfoTupleDeclaration::TypeInfoTupleDeclaration(Type *tinfo)
 
 // For the "this" parameter to member functions
 
-ThisDeclaration::ThisDeclaration(Type *t)
-   : VarDeclaration(0, t, Id::This, NULL)
+ThisDeclaration::ThisDeclaration(Loc loc, Type *t)
+   : VarDeclaration(loc, t, Id::This, NULL)
 {
     noauto = 1;
 }

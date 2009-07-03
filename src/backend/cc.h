@@ -81,7 +81,7 @@ enum WM
 	WM_badnumber	= 24,
 	WM_ccast	= 25,
 	WM_obsolete	= 26,
-#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD
+#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_SOLARIS
 	WM_skip_attribute   = 27, // skip GNUC attribute specification
 	WM_warning_message  = 28, // preprocessor warning message
 	WM_bad_vastart      = 29, // args for builtin va_start bad
@@ -145,7 +145,7 @@ enum LANG
 #include	"msgs2.h"
 #endif
 #include	"ty.h"
-#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD
+#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_SOLARIS
 #include	"../tk/mem.h"
 #else
 #include	"mem.h"
@@ -744,7 +744,7 @@ typedef struct FUNC_S
 	#define Fnteh		0x08	// uses NT Structured EH
 	#define Fdoinline	0x40	// do inline walk
 	#define Foverridden	0x80	// ignore for overriding purposes
-#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD
+#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_SOLARIS
     	#define Fnowrite	0x100	// SCinline should never output definition
 #else
 	#define Fjmonitor	0x100	// Jupiter synchronized function
@@ -798,7 +798,7 @@ typedef struct FUNC_S
 				// of SCftexpspec explicit specializations
     Funcsym *Fsurrogatesym;	// Fsurrogate: surrogate cast function
 
-#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD
+#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_SOLARIS
     char *Fredirect;		// redirect function name to this name in object
 #endif
     TARGET_structFUNC_S
@@ -1321,7 +1321,7 @@ struct Symbol
 	#define SFLmutable	0x100000	// SCmember or SCfield is mutable
 	#define SFLdyninit	0x200000	// symbol has dynamic initializer
 	#define SFLtmp		0x400000	// symbol is a generated temporary
-#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD
+#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_SOLARIS
     	#define SFLthunk	0x40000 // symbol is temporary for thunk
 #endif
 
@@ -1538,7 +1538,7 @@ enum FL
 	FLallocatmp,	// temp for built-in alloca()
 	FLstack,	// offset from ESP rather than EBP
 	FLdsymbol,	// it's a Dsymbol
-#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD
+#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_SOLARIS
 	// Change this, update debug.c too
 	FLgot,		// global offset table entry outside this object file
 	FLgotoff,	// global offset table entry inside this object file

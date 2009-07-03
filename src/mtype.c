@@ -62,11 +62,16 @@ FuncDeclaration *hasThis(Scope *sc);
  */
 
 int PTRSIZE = 4;
+
+/* REALSIZE = size a real consumes in memory
+ * REALPAD = 'padding' added to the CPU real size to bring it up to REALSIZE
+ * REALALIGNSIZE = alignment for reals
+ */
 #if TARGET_OSX
 int REALSIZE = 16;
 int REALPAD = 6;
 int REALALIGNSIZE = 16;
-#elif TARGET_LINUX || TARGET_FREEBSD
+#elif TARGET_LINUX || TARGET_FREEBSD || TARGET_SOLARIS
 int REALSIZE = 12;
 int REALPAD = 2;
 int REALALIGNSIZE = 4;
@@ -75,6 +80,7 @@ int REALSIZE = 10;
 int REALPAD = 0;
 int REALALIGNSIZE = 2;
 #endif
+
 int Tsize_t = Tuns32;
 int Tptrdiff_t = Tint32;
 
@@ -223,7 +229,7 @@ void Type::init()
     if (global.params.isX86_64)
     {
 	PTRSIZE = 8;
-	if (global.params.isLinux || global.params.isFreeBSD)
+	if (global.params.isLinux || global.params.isFreeBSD || global.params.isSolaris)
 	    REALSIZE = 10;
 	else
 	    REALSIZE = 8;
@@ -236,7 +242,7 @@ void Type::init()
 #if TARGET_OSX
 	REALSIZE = 16;
 	REALPAD = 6;
-#elif TARGET_LINUX || TARGET_FREEBSD
+#elif TARGET_LINUX || TARGET_FREEBSD || TARGET_SOLARIS
 	REALSIZE = 12;
 	REALPAD = 2;
 #else
@@ -368,7 +374,7 @@ void Type::toCBuffer2(OutBuffer *buf, HdrGenState *hgs, int mod)
 void Type::toCBuffer3(OutBuffer *buf, HdrGenState *hgs, int mod)
 {
     if (mod != this->mod)
-    {	char *p;
+    {	const char *p;
 
 	switch (this->mod)
 	{
@@ -395,20 +401,18 @@ void Type::toCBuffer3(OutBuffer *buf, HdrGenState *hgs, int mod)
  */
 
 Type *Type::merge()
-{   Type *t;
-
+{
     //printf("merge(%s)\n", toChars());
-    t = this;
+    Type *t = this;
     assert(t);
     if (!deco)
     {
-	OutBuffer buf;
-	StringValue *sv;
-
 	if (next)
 	    next = next->merge();
+
+	OutBuffer buf;
 	toDecoBuffer(&buf);
-	sv = stringtable.update((char *)buf.data, buf.offset);
+	StringValue *sv = stringtable.update((char *)buf.data, buf.offset);
 	if (sv->ptrvalue)
 	{   t = (Type *) sv->ptrvalue;
 	    assert(t->deco);
@@ -421,6 +425,28 @@ Type *Type::merge()
 	    //printf("new value, deco = '%s' %p\n", t->deco, t->deco);
 	}
     }
+    return t;
+}
+
+/*************************************
+ * This version does a merge even if the deco is already computed.
+ * Necessary for types that have a deco, but are not merged.
+ */
+Type *Type::merge2()
+{
+    //printf("merge2(%s)\n", toChars());
+    Type *t = this;
+    assert(t);
+    if (!t->deco)
+	return t->merge();
+
+    StringValue *sv = stringtable.lookup((char *)t->deco, strlen(t->deco));
+    if (sv && sv->ptrvalue)
+    {   t = (Type *) sv->ptrvalue;
+	assert(t->deco);
+    }
+    else
+	assert(0);
     return t;
 }
 
@@ -510,7 +536,7 @@ Expression *Type::defaultInit(Loc loc)
     return NULL;
 }
 
-int Type::isZeroInit()
+int Type::isZeroInit(Loc loc)
 {
     return 0;		// assume not
 }
@@ -572,9 +598,14 @@ Expression *Type::getProperty(Loc loc, Identifier *ident)
 	e = defaultInit(loc);
     }
     else if (ident == Id::mangleof)
-    {
-	assert(deco);
-	e = new StringExp(loc, deco, strlen(deco), 'c');
+    {	const char *s;
+	if (!deco)
+	{   s = toChars();
+	    error(loc, "forward reference of type %s.mangleof", s);
+	}
+	else
+	    s = deco;
+	e = new StringExp(loc, (char *)s, strlen(s), 'c');
 	Scope sc;
 	e = e->semantic(&sc);
     }
@@ -1006,6 +1037,17 @@ unsigned TypeBasic::alignsize()
 	    sz = REALALIGNSIZE;
 	    break;
 
+#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_SOLARIS
+	case Tint64:
+	case Tuns64:
+	case Tfloat64:
+	case Timaginary64:
+	case Tcomplex32:
+	case Tcomplex64:
+	    sz = 4;
+	    break;
+#endif
+
 	default:
 	    sz = size(0);
 	    break;
@@ -1361,7 +1403,7 @@ Expression *TypeBasic::defaultInit(Loc loc)
     return new IntegerExp(loc, value, this);
 }
 
-int TypeBasic::isZeroInit()
+int TypeBasic::isZeroInit(Loc loc)
 {
     switch (ty)
     {
@@ -1934,9 +1976,9 @@ Expression *TypeSArray::defaultInit(Loc loc)
     return next->defaultInit(loc);
 }
 
-int TypeSArray::isZeroInit()
+int TypeSArray::isZeroInit(Loc loc)
 {
-    return next->isZeroInit();
+    return next->isZeroInit(loc);
 }
 
 
@@ -2093,7 +2135,7 @@ Expression *TypeDArray::defaultInit(Loc loc)
     return e;
 }
 
-int TypeDArray::isZeroInit()
+int TypeDArray::isZeroInit(Loc loc)
 {
     return 1;
 }
@@ -2337,7 +2379,7 @@ Expression *TypeAArray::defaultInit(Loc loc)
     return e;
 }
 
-int TypeAArray::isZeroInit()
+int TypeAArray::isZeroInit(Loc loc)
 {
     return TRUE;
 }
@@ -2450,7 +2492,7 @@ Expression *TypePointer::defaultInit(Loc loc)
     return e;
 }
 
-int TypePointer::isZeroInit()
+int TypePointer::isZeroInit(Loc loc)
 {
     return 1;
 }
@@ -2516,7 +2558,7 @@ Expression *TypeReference::defaultInit(Loc loc)
     return e;
 }
 
-int TypeReference::isZeroInit()
+int TypeReference::isZeroInit(Loc loc)
 {
     return 1;
 }
@@ -2663,7 +2705,7 @@ void TypeFunction::toDecoBuffer(OutBuffer *buf)
 
 void TypeFunction::toCBuffer(OutBuffer *buf, Identifier *ident, HdrGenState *hgs)
 {
-    char *p = NULL;
+    const char *p = NULL;
 
     if (inuse)
     {	inuse = 2;		// flag error to caller
@@ -2698,7 +2740,7 @@ void TypeFunction::toCBuffer(OutBuffer *buf, Identifier *ident, HdrGenState *hgs
 
 void TypeFunction::toCBuffer2(OutBuffer *buf, HdrGenState *hgs, int mod)
 {
-    char *p = NULL;
+    const char *p = NULL;
 
     if (inuse)
     {	inuse = 2;		// flag error to caller
@@ -3019,7 +3061,7 @@ Expression *TypeDelegate::defaultInit(Loc loc)
     return e;
 }
 
-int TypeDelegate::isZeroInit()
+int TypeDelegate::isZeroInit(Loc loc)
 {
     return 1;
 }
@@ -3664,6 +3706,8 @@ Type *TypeTypeof::semantic(Loc loc, Scope *sc)
 	    error(loc, "expression (%s) has no type", exp->toChars());
 	    goto Lerr;
 	}
+	if (t->ty == Ttypeof)
+	    error(loc, "forward reference to %s", toChars());
     }
 
     if (idents.dim)
@@ -3760,7 +3804,7 @@ Type *TypeEnum::toBasetype()
 	printf("2: ");
 #endif
 	error(sym->loc, "enum %s is forward referenced", sym->toChars());
-	return tint32;
+	return terror;
     }
     return sym->memtype->toBasetype();
 }
@@ -3814,8 +3858,8 @@ Expression *TypeEnum::dotExp(Scope *sc, Expression *e, Identifier *ident)
     return em;
 
 Lfwd:
-    error(e->loc, "forward reference of %s.%s", toChars(), ident->toChars());
-    return new IntegerExp(0, 0, this);
+    error(e->loc, "forward reference of enum %s.%s", toChars(), ident->toChars());
+    return new IntegerExp(0, 0, Type::terror);
 }
 
 Expression *TypeEnum::getProperty(Loc loc, Identifier *ident)
@@ -3903,7 +3947,7 @@ Expression *TypeEnum::defaultInit(Loc loc)
     return e;
 }
 
-int TypeEnum::isZeroInit()
+int TypeEnum::isZeroInit(Loc loc)
 {
     return (sym->defaultval == 0);
 }
@@ -4094,7 +4138,7 @@ Expression *TypeTypedef::defaultInit(Loc loc)
     return e;
 }
 
-int TypeTypedef::isZeroInit()
+int TypeTypedef::isZeroInit(Loc loc)
 {
     if (sym->init)
     {
@@ -4111,7 +4155,7 @@ int TypeTypedef::isZeroInit()
 	sym->basetype = Type::terror;
     }
     sym->inuse = 1;
-    int result = sym->basetype->isZeroInit();
+    int result = sym->basetype->isZeroInit(loc);
     sym->inuse = 0;
     return result;
 }
@@ -4406,7 +4450,7 @@ Expression *TypeStruct::defaultInit(Loc loc)
     return new VarExp(sym->loc, d);
 }
 
-int TypeStruct::isZeroInit()
+int TypeStruct::isZeroInit(Loc loc)
 {
     return sym->zeroInit;
 }
@@ -4826,7 +4870,7 @@ Expression *TypeClass::defaultInit(Loc loc)
     return e;
 }
 
-int TypeClass::isZeroInit()
+int TypeClass::isZeroInit(Loc loc)
 {
     return 1;
 }

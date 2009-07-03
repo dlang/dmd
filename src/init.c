@@ -1,6 +1,6 @@
 
 // Compiler implementation of the D programming language
-// Copyright (c) 1999-2008 by Digital Mars
+// Copyright (c) 1999-2009 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // http://www.digitalmars.com
@@ -568,7 +568,20 @@ Type *ExpInitializer::inferType(Scope *sc)
     //printf("ExpInitializer::inferType() %s\n", toChars());
     exp = exp->semantic(sc);
     exp = resolveProperties(sc, exp);
-    return exp->type;
+
+#if DMDV2
+    // Give error for overloaded function addresses
+    if (exp->op == TOKsymoff)
+    {   SymOffExp *se = (SymOffExp *)exp;
+	if (se->hasOverloads && !se->var->isFuncDeclaration()->isUnique())
+	    exp->error("cannot infer type from overloaded function symbol %s", exp->toChars());
+    }
+#endif
+
+    Type *t = exp->type;
+    if (!t)
+	t = Initializer::inferType(sc);
+    return t;
 }
 
 Expression *ExpInitializer::toExpression()

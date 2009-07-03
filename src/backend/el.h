@@ -151,6 +151,7 @@ void el_free(elem_p);
 elem_p el_combine(elem_p ,elem_p);
 elem_p el_param(elem_p ,elem_p);
 elem_p el_params(elem_p , ...);
+elem *el_params(void **args, int length);
 elem_p el_pair(tym_t, elem_p, elem_p);
 #if TX86 || DEBUG
 void el_copy(elem_p ,elem_p);

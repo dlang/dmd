@@ -203,6 +203,7 @@ struct Type : Object
     virtual Type *semantic(Loc loc, Scope *sc);
     virtual void toDecoBuffer(OutBuffer *buf);
     Type *merge();
+    Type *merge2();
     virtual void toCBuffer(OutBuffer *buf, Identifier *ident, HdrGenState *hgs);
     virtual void toCBuffer2(OutBuffer *buf, HdrGenState *hgs, int mod);
     void toCBuffer3(OutBuffer *buf, HdrGenState *hgs, int mod);
@@ -230,7 +231,7 @@ struct Type : Object
     virtual Expression *dotExp(Scope *sc, Expression *e, Identifier *ident);
     virtual unsigned memalign(unsigned salign);
     virtual Expression *defaultInit(Loc loc = 0);
-    virtual int isZeroInit();		// if initializer is 0
+    virtual int isZeroInit(Loc loc = 0);		// if initializer is 0
     virtual dt_t **toDt(dt_t **pdt);
     Identifier *getTypeInfoIdent(int internal);
     virtual MATCH deduceType(Scope *sc, Type *tparam, TemplateParameters *parameters, Objects *dedtypes);
@@ -282,7 +283,7 @@ struct TypeBasic : Type
     int isunsigned();
     MATCH implicitConvTo(Type *to);
     Expression *defaultInit(Loc loc);
-    int isZeroInit();
+    int isZeroInit(Loc loc);
     int builtinTypeInfo();
 
     // For eliminating dynamic_cast
@@ -310,7 +311,7 @@ struct TypeSArray : TypeArray
     void toCBuffer2(OutBuffer *buf, HdrGenState *hgs, int mod);
     Expression *dotExp(Scope *sc, Expression *e, Identifier *ident);
     int isString();
-    int isZeroInit();
+    int isZeroInit(Loc loc);
     unsigned memalign(unsigned salign);
     MATCH implicitConvTo(Type *to);
     Expression *defaultInit(Loc loc);
@@ -337,7 +338,7 @@ struct TypeDArray : TypeArray
     void toCBuffer2(OutBuffer *buf, HdrGenState *hgs, int mod);
     Expression *dotExp(Scope *sc, Expression *e, Identifier *ident);
     int isString();
-    int isZeroInit();
+    int isZeroInit(Loc loc);
     int checkBoolean();
     MATCH implicitConvTo(Type *to);
     Expression *defaultInit(Loc loc);
@@ -363,7 +364,7 @@ struct TypeAArray : TypeArray
     Expression *dotExp(Scope *sc, Expression *e, Identifier *ident);
     Expression *defaultInit(Loc loc);
     MATCH deduceType(Scope *sc, Type *tparam, TemplateParameters *parameters, Objects *dedtypes);
-    int isZeroInit();
+    int isZeroInit(Loc loc);
     int checkBoolean();
     TypeInfoDeclaration *getTypeInfoDeclaration();
     int hasPointers();
@@ -384,7 +385,7 @@ struct TypePointer : Type
     MATCH implicitConvTo(Type *to);
     int isscalar();
     Expression *defaultInit(Loc loc);
-    int isZeroInit();
+    int isZeroInit(Loc loc);
     TypeInfoDeclaration *getTypeInfoDeclaration();
     int hasPointers();
 
@@ -399,7 +400,7 @@ struct TypeReference : Type
     void toCBuffer2(OutBuffer *buf, HdrGenState *hgs, int mod);
     Expression *dotExp(Scope *sc, Expression *e, Identifier *ident);
     Expression *defaultInit(Loc loc);
-    int isZeroInit();
+    int isZeroInit(Loc loc);
 };
 
 enum RET
@@ -442,7 +443,7 @@ struct TypeDelegate : Type
     d_uns64 size(Loc loc);
     void toCBuffer2(OutBuffer *buf, HdrGenState *hgs, int mod);
     Expression *defaultInit(Loc loc);
-    int isZeroInit();
+    int isZeroInit(Loc loc);
     int checkBoolean();
     TypeInfoDeclaration *getTypeInfoDeclaration();
     Expression *dotExp(Scope *sc, Expression *e, Identifier *ident);
@@ -527,7 +528,7 @@ struct TypeStruct : Type
     Expression *dotExp(Scope *sc, Expression *e, Identifier *ident);
     unsigned memalign(unsigned salign);
     Expression *defaultInit(Loc loc);
-    int isZeroInit();
+    int isZeroInit(Loc loc);
     int checkBoolean();
     dt_t **toDt(dt_t **pdt);
     MATCH deduceType(Scope *sc, Type *tparam, TemplateParameters *parameters, Objects *dedtypes);
@@ -558,7 +559,7 @@ struct TypeEnum : Type
     MATCH implicitConvTo(Type *to);
     Type *toBasetype();
     Expression *defaultInit(Loc loc);
-    int isZeroInit();
+    int isZeroInit(Loc loc);
     MATCH deduceType(Scope *sc, Type *tparam, TemplateParameters *parameters, Objects *dedtypes);
     TypeInfoDeclaration *getTypeInfoDeclaration();
     int hasPointers();
@@ -593,7 +594,7 @@ struct TypeTypedef : Type
     Type *toBasetype();
     MATCH implicitConvTo(Type *to);
     Expression *defaultInit(Loc loc);
-    int isZeroInit();
+    int isZeroInit(Loc loc);
     dt_t **toDt(dt_t **pdt);
     MATCH deduceType(Scope *sc, Type *tparam, TemplateParameters *parameters, Objects *dedtypes);
     TypeInfoDeclaration *getTypeInfoDeclaration();
@@ -620,12 +621,20 @@ struct TypeClass : Type
     int isBaseOf(Type *t, int *poffset);
     MATCH implicitConvTo(Type *to);
     Expression *defaultInit(Loc loc);
-    int isZeroInit();
+    int isZeroInit(Loc loc);
     MATCH deduceType(Scope *sc, Type *tparam, TemplateParameters *parameters, Objects *dedtypes);
     int isauto();
     int checkBoolean();
     TypeInfoDeclaration *getTypeInfoDeclaration();
     int hasPointers();
+    int builtinTypeInfo();
+#if DMDV2
+    Type *toHeadMutable();
+    MATCH constConv(Type *to);
+#if TARGET_LINUX || TARGET_OSX
+    void toCppMangle(OutBuffer *buf, CppMangleState *cms);
+#endif
+#endif
 
     type *toCtype();
 

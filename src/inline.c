@@ -1,5 +1,5 @@
 
-// Copyright (c) 1999-2007 by Digital Mars
+// Copyright (c) 1999-2008 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // http://www.digitalmars.com
@@ -923,8 +923,11 @@ Statement *DefaultStatement::inlineScan(InlineScanState *iss)
 
 Statement *ReturnStatement::inlineScan(InlineScanState *iss)
 {
+    //printf("ReturnStatement::inlineScan()\n");
     if (exp)
+    {
 	exp = exp->inlineScan(iss);
+    }
     return this;
 }
 
@@ -1228,7 +1231,7 @@ int FuncDeclaration::canInline(int hasthis, int hdrscan)
     if (needThis() && !hasthis)
 	return 0;
 
-    if (inlineNest || (!semanticRun && !hdrscan))
+    if (inlineNest || (semanticRun < 3 && !hdrscan))
     {
 #if CANINLINE_LOG
 	printf("\t1: no, inlineNest = %d, semanticRun = %d\n", inlineNest, semanticRun);
@@ -1240,13 +1243,13 @@ int FuncDeclaration::canInline(int hasthis, int hdrscan)
     {
 	case ILSyes:
 #if CANINLINE_LOG
-	    printf("\tyes\n");
+	    printf("\t1: yes %s\n", toChars());
 #endif
 	    return 1;
 
 	case ILSno:
 #if CANINLINE_LOG
-	    printf("\t2: no\n");
+	    printf("\t1: no %s\n", toChars());
 #endif
 	    return 0;
 
@@ -1332,7 +1335,7 @@ Lyes:
     if (!hdrscan)    // Don't modify inlineStatus for header content scan
 	inlineStatus = ILSyes;
 #if CANINLINE_LOG
-    printf("\tyes\n");
+    printf("\t2: yes %s\n", toChars());
 #endif
     return 1;
 
@@ -1340,7 +1343,7 @@ Lno:
     if (!hdrscan)    // Don't modify inlineStatus for header content scan
 	inlineStatus = ILSno;
 #if CANINLINE_LOG
-    printf("\tno\n");
+    printf("\t2: no %s\n", toChars());
 #endif
     return 0;
 }

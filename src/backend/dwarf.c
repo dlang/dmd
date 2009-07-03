@@ -22,7 +22,7 @@
 #include	<malloc.h>
 #endif
 
-#if linux || __APPLE__ || __FreeBSD__
+#if linux || __APPLE__ || __FreeBSD__ || __sun&&__SVR4
 #include	<signal.h>
 #include	<unistd.h>
 #include	<errno.h>
@@ -360,7 +360,7 @@ void dwarf_initfile(const char *filename)
 	linebuf->writeString((char *)list_ptr(pl));
 	linebuf->writeByte(0);
     }
-#if linux || __APPLE__ || __FreeBSD__
+#if linux || __APPLE__ || __FreeBSD__ || __sun&&__SVR4
     for (pl = pathsyslist; pl; pl = list_next(pl))
     {
 	linebuf->writeString((char *)list_ptr(pl));

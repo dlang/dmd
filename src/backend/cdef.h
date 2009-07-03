@@ -24,6 +24,7 @@
 	linux		Linux
 	__APPLE__	Mac OSX
 	__FreeBSD__	FreeBSD
+	__sun&&__SVR4	Solaris, OpenSolaris (yes, both macros are necessary)
 	__OS2__		IBM OS/2
 	DOS386		32 bit DOS extended executable
 	DOS16RM		Rational Systems 286 DOS extender
@@ -104,7 +105,7 @@ One and only one of these macros must be set by the makefile:
 
 /* FreeBSD Version
  * -------------
- * There are two main issues: hosting the compiler on OSX,
+ * There are two main issues: hosting the compiler on FreeBSD,
  * and generating (targetting) FreeBSD executables.
  * The "__FreeBSD__" and "__GNUC__" macros control hosting issues
  * for operating system and compiler dependencies, respectively.
@@ -112,6 +113,21 @@ One and only one of these macros must be set by the makefile:
  * ELF object file format, and TARGET_FREEBSD for things specific to
  * the FreeBSD memory model.
  * If this is all done right, one could generate a FreeBSD object file
+ * even when compiling on win32, and vice versa.
+ * The compiler source code currently uses these macros very inconsistently
+ * with these goals, and should be fixed.
+ */
+
+/* Solaris Version
+ * -------------
+ * There are two main issues: hosting the compiler on Solaris,
+ * and generating (targetting) Solaris executables.
+ * The "__sun", "__SVR4" and "__GNUC__" macros control hosting issues
+ * for operating system and compiler dependencies, respectively.
+ * To target Solaris executables, use ELFOBJ for things specific to the
+ * ELF object file format, and TARGET_SOLARIS for things specific to
+ * the Solaris memory model.
+ * If this is all done right, one could generate a Solaris object file
  * even when compiling on win32, and vice versa.
  * The compiler source code currently uses these macros very inconsistently
  * with these goals, and should be fixed.
@@ -149,9 +165,14 @@ One and only one of these macros must be set by the makefile:
 #define TARGET_FREEBSD	0		// target is a FreeBSD executable
 #endif
 
+// Set to 1 using the makefile
+#ifndef TARGET_SOLARIS
+#define TARGET_SOLARIS	0		// target is a Solaris executable
+#endif
+
 // This is the default
 #ifndef TARGET_WINDOS
-#define TARGET_WINDOS	(!(TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD))
+#define TARGET_WINDOS	(!(TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_SOLARIS))
 #endif
 
 #if __GNUC__
@@ -219,7 +240,7 @@ One and only one of these macros must be set by the makefile:
 
 // Precompiled header variations
 #define MEMORYHX	(_WINDLL && _WIN32)	// HX and SYM files are cached in memory
-#define MMFIO		(_WIN32 || linux || __APPLE__ || __FreeBSD__)	// if memory mapped files
+#define MMFIO		(_WIN32 || linux || __APPLE__ || __FreeBSD__ || __sun&&__SVR4)	// if memory mapped files
 #define	LINEARALLOC	_WIN32	// if we can reserve address ranges
 
 // H_STYLE takes on one of these precompiled header methods
@@ -428,14 +449,14 @@ typedef unsigned long	targ_uns;
 
 #define CHARSIZE	1
 #define SHORTSIZE	2
-#define WCHARSIZE	2	// 2 for WIN32, 4 for linux/OSX/FreeBSD
+#define WCHARSIZE	2	// 2 for WIN32, 4 for linux/OSX/FreeBSD/Solaris
 #define LONGSIZE	4
 #define LLONGSIZE	8
 #define FLOATSIZE	4
 #define DOUBLESIZE	8
 #if TARGET_OSX
 #define LNGDBLSIZE	16	// 80 bit reals
-#elif TARGET_LINUX || TARGET_FREEBSD
+#elif TARGET_LINUX || TARGET_FREEBSD || TARGET_SOLARIS
 #define LNGDBLSIZE	12	// 80 bit reals
 #else
 #define LNGDBLSIZE	10	// 80 bit reals
@@ -481,7 +502,7 @@ typedef targ_uns	targ_size_t;	/* size_t for the target machine */
 #define OMFOBJ		TARGET_WINDOS
 #endif
 #ifndef ELFOBJ
-#define ELFOBJ		(TARGET_LINUX || TARGET_FREEBSD)
+#define ELFOBJ		(TARGET_LINUX || TARGET_FREEBSD || TARGET_SOLARIS)
 #endif
 #ifndef MACHOBJ
 #define MACHOBJ		TARGET_OSX
@@ -680,9 +701,12 @@ struct Config
 #define EX_OSX64	0x20000
 #define EX_FREEBSD	0x40000
 #define EX_FREEBSD64	0x80000
+#define EX_SOLARIS	0x100000
+#define EX_SOLARIS64	0x200000
 
 #define EX_flat		(EX_OS2 | EX_NT | EX_LINUX | EX_WIN64 | EX_LINUX64 | \
-			 EX_OSX | EX_OSX64 | EX_FREEBSD | EX_FREEBSD64)
+			 EX_OSX | EX_OSX64 | EX_FREEBSD | EX_FREEBSD64 | \
+			 EX_SOLARIS | EX_SOLARIS64)
 #define EX_dos		(EX_DOSX | EX_ZPM | EX_RATIONAL | EX_PHARLAP | \
 			 EX_COM | EX_MZ /*| EX_WIN16*/)
 
@@ -735,7 +759,7 @@ struct Config
 #define CFG3relax	0x200	// relaxed type checking (C only)
 #define CFG3cpp		0x400	// C++ compile
 #define CFG3igninc	0x800	// ignore standard include directory
-#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD
+#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_SOLARIS
 #define CFG3mars	0x1000	// use mars libs and headers
 #define NO_FAR		(TRUE)	// always ignore __far and __huge keywords
 #else
@@ -747,7 +771,7 @@ struct Config
 #define CFG3cppcomment	0x8000	// allow C++ style comments
 #define CFG3wkfloat	0x10000	// make floating point references weak externs
 #define CFG3digraphs	0x20000	// support ANSI C++ digraphs
-#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD
+#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_SOLARIS
 #define CFG3semirelax	0x40000	// moderate relaxed type checking
 #endif
 #define CFG3pic		0x80000	// position independent code
@@ -782,12 +806,13 @@ struct Config
 #define CFG4implicitfromvoid 0x1000000	// allow implicit cast from void* to T*
 #define CFG4dependent        0x2000000	// dependent / non-dependent lookup
 #define CFG4wchar_is_long    0x4000000	// wchar_t is 4 bytes
+#define CFG4underscore       0x8000000	// prepend _ for C mangling
 #define CFGX4		(CFG4optimized | CFG4fastfloat | CFG4fdivcall | \
 			 CFG4tempinst | CFG4cacheph | CFG4notempexp | \
 			 CFG4stackalign | CFG4dependent)
 #define CFGY4		(CFG4nowchar_t | CFG4noemptybaseopt | CFG4adl | \
 			 CFG4enumoverload | CFG4implicitfromvoid | \
-			 CFG4wchar_is_long)
+			 CFG4wchar_is_long | CFG4nounderscore)
 
     unsigned long flags5;
 #define CFG5debug	1	// compile in __debug code
@@ -942,7 +967,7 @@ union eve
 #define SYMBOLZERO
 #endif
 
-#if TARGET_LINUX || TARGET_FREEBSD
+#if TARGET_LINUX || TARGET_FREEBSD || TARGET_SOLARIS
 #define UNIXFIELDS	(unsigned)-1,(unsigned)-1,0,0,
 #elif TARGET_OSX
 #define UNIXFIELDS	(unsigned)-1,(unsigned)-1,0,0,0,

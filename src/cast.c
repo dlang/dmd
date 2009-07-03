@@ -1506,6 +1506,9 @@ Expression *BinExp::typeCombine(Scope *sc)
     {
      Lincompatible:
 	incompatibleTypes();
+	type = Type::terror;
+	e1 = new ErrorExp();
+	e2 = new ErrorExp();
     }
 Lret:
     if (!type)

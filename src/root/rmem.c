@@ -6,7 +6,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-#if linux || __APPLE__ || __FreeBSD__
+#if linux || __APPLE__ || __FreeBSD__ || __sun&&__SVR4
 #include "../root/rmem.h"
 #else
 #include "rmem.h"

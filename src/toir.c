@@ -649,7 +649,7 @@ enum RET TypeFunction::retStyle()
 
     if (tn->ty == Tstruct)
     {	StructDeclaration *sd = ((TypeStruct *)tn)->sym;
-	if ((global.params.isLinux) && linkage != LINKd)
+	if (global.params.isLinux && linkage != LINKd)
 	    ;
 #if DMDV2
 	else if (sd->dtor || sd->cpctor)
@@ -670,7 +670,7 @@ enum RET TypeFunction::retStyle()
 	}
 	return RETstack;
     }
-    else if ((global.params.isLinux || global.params.isOSX || global.params.isFreeBSD) &&
+    else if ((global.params.isLinux || global.params.isOSX || global.params.isFreeBSD || global.params.isSolaris) &&
 	     linkage == LINKc &&
 	     tn->iscomplex())
     {

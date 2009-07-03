@@ -16,6 +16,10 @@
 #include	<string.h>
 #include	<stdlib.h>
 
+#if __sun&&__SVR4
+#include	<alloca.h>
+#endif
+
 #include	"cc.h"
 #include	"global.h"
 #include	"code.h"
@@ -76,6 +80,7 @@ STATIC void obj_browse_flush();
 STATIC void objfixupp (struct FIXUP *);
 STATIC void ledata_new (int seg,targ_size_t offset);
 static int obj_align(Symbol *s);
+void obj_tlssections();
 
 static IDXSYM elf_addsym(IDXSTR sym, targ_size_t val, unsigned sz,
 			unsigned typ,unsigned bind,IDXSEC sec);
@@ -903,22 +908,23 @@ void obj_term()
 	seg = SegData[i]; 
 	sechdr = MAP_SEG2SEC(i);	// corresponding section
 	foffset = elf_align(fd,sechdr->sh_addralign,foffset);
-	if (!seg->SDbuf)
-	{
-	    if (i == UDATA) // 0, BSS never allocated
-	    {   // but foffset as if it has
-		sechdr->sh_offset = foffset;
-		sechdr->sh_size = seg->SDoffset;
-				    // accumulated size	
-	    }
-	    else if (sechdr->sh_type == SHT_NOBITS) // .tbss never allocated
-	    {
-		sechdr->sh_offset = 0;
-		sechdr->sh_size = seg->SDoffset;
-				    // accumulated size	
-	    }
-	    continue;		// For others leave sh_offset as 0
+	if (i == UDATA) // 0, BSS never allocated
+	{   // but foffset as if it has
+	    sechdr->sh_offset = foffset;
+	    sechdr->sh_size = seg->SDoffset;
+				// accumulated size	
+	    continue;
 	}
+	else if (sechdr->sh_type == SHT_NOBITS) // .tbss never allocated
+	{
+	    sechdr->sh_offset = foffset;
+	    sechdr->sh_size = seg->SDoffset;
+				// accumulated size	
+	    continue;
+	}
+	else if (!seg->SDbuf)
+	    continue;		// For others leave sh_offset as 0
+
 	sechdr->sh_offset = foffset;
 	//printf("\tsection name %d,",sechdr->sh_name);
 	if (seg->SDbuf && seg->SDbuf->size())
@@ -1406,6 +1412,29 @@ void obj_ehsections()
     sec = elf_getsegment(".deh_end", NULL, SHT_PROGDEF, SHF_ALLOC, 4);
     namidx = elf_addstr(symtab_strings,"_deh_end");
     elf_addsym(namidx, 0, 0, STT_OBJECT, STB_GLOBAL, MAP_SEG2SECIDX(sec));
+
+    obj_tlssections();
+}
+
+/*********************************************
+ * Put out symbols that define the beginning/end of the thread local storage sections.
+ */
+
+void obj_tlssections()
+{
+    IDXSTR namidx;
+
+    int sec = elf_getsegment(".tdata", NULL, SHT_PROGDEF, SHF_ALLOC|SHF_WRITE|SHF_TLS, 4);
+    obj_bytes(sec, 0, 4, NULL);
+
+    namidx = elf_addstr(symtab_strings,"_tlsstart");
+    elf_addsym(namidx, 0, 4, STT_TLS, STB_GLOBAL, MAP_SEG2SECIDX(sec));
+
+    elf_getsegment(".tdata.", NULL, SHT_PROGDEF, SHF_ALLOC|SHF_WRITE|SHF_TLS, 4);
+
+    sec = elf_getsegment(".tcommon", NULL, SHT_NOBITS, SHF_ALLOC|SHF_WRITE|SHF_TLS, 4);
+    namidx = elf_addstr(symtab_strings,"_tlsend");
+    elf_addsym(namidx, 0, 4, STT_TLS, STB_GLOBAL, MAP_SEG2SECIDX(sec));
 }
 
 /*********************************
@@ -1436,6 +1465,11 @@ int obj_comdat(Symbol *s)
     }
     else if ((s->ty() & mTYLINK) == mTYthread)
     {
+	/* Ensure that ".tdata" precedes any other .tdata. section, as the ld
+	 * linker script fails to work right.
+	 */
+	elf_getsegment(".tdata", NULL, SHT_PROGDEF, SHF_ALLOC|SHF_WRITE|SHF_TLS, 4);
+
 	s->Sfl = FLtlsdata;
 	prefix = ".tdata.";
 	type = SHT_PROGDEF;
@@ -1616,6 +1650,11 @@ int obj_codeseg(char *name,int suffix)
 
 seg_data *obj_tlsseg()
 {
+    /* Ensure that ".tdata" precedes any other .tdata. section, as the ld
+     * linker script fails to work right.
+     */
+    elf_getsegment(".tdata", NULL, SHT_PROGDEF, SHF_ALLOC|SHF_WRITE|SHF_TLS, 4);
+
     static const char tlssegname[] = ".tdata.";
     //dbg_printf("obj_tlsseg(\n");
 
@@ -1715,7 +1754,7 @@ char *obj_mangle2(Symbol *s,char *dest)
 	    }
 	    break;
 	case mTYman_std:
-#if TARGET_LINUX || TARGET_FREEBSD
+#if TARGET_LINUX || TARGET_FREEBSD || TARGET_SOLARIS
 	    if (tyfunc(s->ty()) && !variadic(s->Stype))
 #else
 	    if (!(config.flags4 & CFG4oldstdmangle) &&
@@ -1874,8 +1913,8 @@ void objpubdef(int seg, Symbol *s, targ_size_t offset)
     }
 
 #if 0
-    printf("\nobjpubdef(%d,%s,%d)\n",seg,s->Sident,offset);
-    symbol_print(s);
+    //printf("\nobjpubdef(%d,%s,%d)\n",seg,s->Sident,offset);
+    //symbol_print(s);
 #endif
 
     symbol_debug(s);
@@ -2276,12 +2315,14 @@ void reftodatseg(int seg,targ_size_t offset,targ_size_t val,
     }
     else*/
     {
+	unsigned type = RI_TYPE_SYM32;
+
 	if (MAP_SEG2TYP(seg) == CODE && config.flags3 & CFG3pic)
-	    elf_addrel(seg,offset,RI_TYPE_GOTOFF,STI_RODAT,0);
-	else if (MAP_SEG2SEC(seg)->sh_flags & SHF_TLS)
-	    elf_addrel(seg,offset,config.flags3 & CFG3pic ? RI_TYPE_TLS_GD : RI_TYPE_TLS_LE,STI_RODAT,0);
-	else
-	    elf_addrel(seg,offset,RI_TYPE_SYM32,STI_RODAT,0);
+	    type = RI_TYPE_GOTOFF;
+	else if (MAP_SEG2SEC(targetdatum)->sh_flags & SHF_TLS)
+	    type = config.flags3 & CFG3pic ? RI_TYPE_TLS_GD : RI_TYPE_TLS_LE;
+
+	elf_addrel(seg,offset,type,STI_RODAT,0);
     }
     if (I64)
 	buf->write64(val);
@@ -2477,7 +2518,22 @@ int reftoident(int seg, targ_size_t offset, Symbol *s, targ_size_t val,
 	 		     RI_TYPE_GOT32 : RI_TYPE_SYM32;
 	    	    }
 		    if ((s->ty() & mTYLINK) & mTYthread)
-			relinfo = config.flags3 & CFG3pic ? RI_TYPE_TLS_GD : RI_TYPE_TLS_LE;
+		    {
+			if (config.flags3 & CFG3pic)
+			{
+			    if (s->Sclass == SCstatic)
+				relinfo = RI_TYPE_TLS_LE;  // TLS_GD?
+			    else
+				relinfo = RI_TYPE_TLS_IE;
+			}
+			else
+			{
+			    if (s->Sclass == SCstatic)
+				relinfo = RI_TYPE_TLS_LE;
+			    else
+				relinfo = RI_TYPE_TLS_IE;
+			}
+		    }
 		    //printf("\t\t************* adding relocation\n");
 		    elf_addrel(seg,offset,relinfo,refseg,0);
 		}
@@ -2596,7 +2652,7 @@ long elf_align(FILE *fd, targ_size_t size,long foffset)
 	    offset = (foffset + 31) & ~31;
 	    break;
 	default:
-	    dbg_printf("size was %d\n",size);
+	    dbg_printf("size was %d\n",(int)size);
 	    assert(0);
 	    break;
     }

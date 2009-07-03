@@ -69,6 +69,7 @@ struct Parser : Lexer
     Array *parseModule();
     Array *parseDeclDefs(int once);
     Array *parseBlock();
+    void composeStorageClass(unsigned stc);
     TemplateDeclaration *parseTemplateDeclaration();
     TemplateParameters *parseTemplateParameterList();
     Dsymbol *parseMixin();

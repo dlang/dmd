@@ -7,6 +7,8 @@
 // in artistic.txt, or the GNU General Public License in gnu.txt.
 // See the included readme.txt for details.
 
+#define POSIX (linux || __APPLE__ || __FreeBSD__ || __sun&&__SVR4)
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdarg.h>
@@ -28,7 +30,7 @@
 #include <direct.h>
 #endif
 
-#if linux || __APPLE__ || __FreeBSD__
+#if POSIX
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
@@ -328,19 +330,20 @@ char *FileName::combine(const char *path, const char *name)
     namelen = strlen(name);
     f = (char *)mem.malloc(pathlen + 1 + namelen + 1);
     memcpy(f, path, pathlen);
-#if linux || __APPLE__ || __FreeBSD__
+#if POSIX
     if (path[pathlen - 1] != '/')
     {	f[pathlen] = '/';
 	pathlen++;
     }
-#endif
-#if _WIN32
+#elif _WIN32
     if (path[pathlen - 1] != '\\' &&
 	path[pathlen - 1] != '/'  &&
 	path[pathlen - 1] != ':')
     {	f[pathlen] = '\\';
 	pathlen++;
     }
+#else
+    assert(0);
 #endif
     memcpy(f + pathlen, name, namelen + 1);
     return f;
@@ -384,7 +387,7 @@ Array *FileName::splitPath(const char *path)
 #if _WIN32
 		    case ';':
 #endif
-#if linux || __APPLE__ || __FreeBSD__
+#if POSIX
 		    case ':':
 #endif
 			p++;
@@ -398,7 +401,7 @@ Array *FileName::splitPath(const char *path)
 		    case '\r':
 			continue;	// ignore carriage returns
 
-#if linux || __APPLE__ || __FreeBSD__
+#if POSIX
 		    case '~':
 			buf.writestring(getenv("HOME"));
 			continue;
@@ -503,9 +506,10 @@ int FileName::absolute(const char *name)
     return (*name == '\\') ||
 	   (*name == '/')  ||
 	   (*name && name[1] == ':');
-#endif
-#if linux || __APPLE__ || __FreeBSD__
+#elif POSIX
     return (*name == '/');
+#else
+    assert(0);
 #endif
 }
 
@@ -526,7 +530,7 @@ char *FileName::ext(const char *str)
 	switch (*e)
 	{   case '.':
 		return e + 1;
-#if linux || __APPLE__ || __FreeBSD__
+#if POSIX
 	    case '/':
 	        break;
 #endif
@@ -582,7 +586,7 @@ char *FileName::name(const char *str)
     {
 	switch (*e)
 	{
-#if linux || __APPLE__ || __FreeBSD__
+#if POSIX
 	    case '/':
 	       return e + 1;
 #endif
@@ -627,13 +631,14 @@ char *FileName::path(const char *str)
 
     if (n > str)
     {
-#if linux || __APPLE__ || __FreeBSD__
+#if POSIX
 	if (n[-1] == '/')
 	    n--;
-#endif
-#if _WIN32
+#elif _WIN32
 	if (n[-1] == '\\' || n[-1] == '/')
 	    n--;
+#else
+	assert(0);
 #endif
     }
     pathlen = n - str;
@@ -663,19 +668,20 @@ const char *FileName::replaceName(const char *path, const char *name)
     namelen = strlen(name);
     f = (char *)mem.malloc(pathlen + 1 + namelen + 1);
     memcpy(f, path, pathlen);
-#if linux || __APPLE__ || __FreeBSD__
+#if POSIX
     if (path[pathlen - 1] != '/')
     {	f[pathlen] = '/';
 	pathlen++;
     }
-#endif
-#if _WIN32
+#elif _WIN32
     if (path[pathlen - 1] != '\\' &&
 	path[pathlen - 1] != '/' &&
 	path[pathlen - 1] != ':')
     {	f[pathlen] = '\\';
 	pathlen++;
     }
+#else
+    assert(0);
 #endif
     memcpy(f + pathlen, name, namelen + 1);
     return f;
@@ -741,11 +747,12 @@ int FileName::equalsExt(const char *ext)
 	return 1;
     if (!e || !ext)
 	return 0;
-#if linux || __APPLE__ || __FreeBSD__
+#if POSIX
     return strcmp(e,ext) == 0;
-#endif
-#if _WIN32
+#elif _WIN32
     return stricmp(e,ext) == 0;
+#else
+    assert(0);
 #endif
 }
 
@@ -759,9 +766,10 @@ void FileName::CopyTo(FileName *to)
 
 #if _WIN32
     file.touchtime = mem.malloc(sizeof(WIN32_FIND_DATAA));	// keep same file time
-#endif
-#if linux || __APPLE__ || __FreeBSD__
+#elif POSIX
     file.touchtime = mem.malloc(sizeof(struct stat)); // keep same file time
+#else
+    assert(0);
 #endif
     file.readv();
     file.name = to;
@@ -802,7 +810,7 @@ char *FileName::searchPath(Array *path, const char *name, int cwd)
 
 int FileName::exists(const char *name)
 {
-#if linux || __APPLE__ || __FreeBSD__
+#if POSIX
     struct stat st;
 
     if (stat(name, &st) < 0)
@@ -810,8 +818,7 @@ int FileName::exists(const char *name)
     if (S_ISDIR(st.st_mode))
 	return 2;
     return 1;
-#endif
-#if _WIN32
+#elif _WIN32
     DWORD dw;
     int result;
 
@@ -823,6 +830,8 @@ int FileName::exists(const char *name)
     else
 	result = 1;
     return result;
+#else
+    assert(0);
 #endif
 }
 
@@ -849,7 +858,7 @@ void FileName::ensurePathExists(const char *path)
 #if _WIN32
 	    if (path[strlen(path) - 1] != '\\')
 #endif
-#if linux || __APPLE__ || __FreeBSD__
+#if POSIX
 	    if (path[strlen(path) - 1] != '\\')
 #endif
 	    {
@@ -857,7 +866,7 @@ void FileName::ensurePathExists(const char *path)
 #if _WIN32
 		if (mkdir(path))
 #endif
-#if linux || __APPLE__ || __FreeBSD__
+#if POSIX
 		if (mkdir(path, 0777))
 #endif
 		    error("cannot create directory %s", path);
@@ -913,7 +922,7 @@ void File::mark()
 
 int File::read()
 {
-#if linux || __APPLE__ || __FreeBSD__
+#if POSIX
     off_t size;
     ssize_t numread;
     int fd;
@@ -981,8 +990,7 @@ err:
 err1:
     result = 1;
     return result;
-#endif
-#if _WIN32
+#elif _WIN32
     DWORD size;
     DWORD numread;
     HANDLE h;
@@ -1036,6 +1044,8 @@ err:
 err1:
     result = 1;
     return result;
+#else
+    assert(0);
 #endif
 }
 
@@ -1045,10 +1055,9 @@ err1:
 
 int File::mmread()
 {
-#if linux || __APPLE__ || __FreeBSD__
+#if POSIX
     return read();
-#endif
-#if _WIN32
+#elif _WIN32
     HANDLE hFile;
     HANDLE hFileMap;
     DWORD size;
@@ -1088,6 +1097,8 @@ int File::mmread()
 
 Lerr:
     return GetLastError();			// failure
+#else
+    assert(0);
 #endif
 }
 
@@ -1099,7 +1110,7 @@ Lerr:
 
 int File::write()
 {
-#if linux || __APPLE__ || __FreeBSD__
+#if POSIX
     int fd;
     ssize_t numwritten;
     char *name;
@@ -1131,8 +1142,7 @@ err2:
     ::remove(name);
 err:
     return 1;
-#endif
-#if _WIN32
+#elif _WIN32
     HANDLE h;
     DWORD numwritten;
     char *name;
@@ -1161,6 +1171,8 @@ err2:
     DeleteFileA(name);
 err:
     return 1;
+#else
+    assert(0);
 #endif
 }
 
@@ -1172,10 +1184,9 @@ err:
 
 int File::append()
 {
-#if linux || __APPLE__ || __FreeBSD__
+#if POSIX
     return 1;
-#endif
-#if _WIN32
+#elif _WIN32
     HANDLE h;
     DWORD numwritten;
     char *name;
@@ -1210,6 +1221,8 @@ err2:
     CloseHandle(h);
 err:
     return 1;
+#else
+    assert(0);
 #endif
 }
 
@@ -1252,10 +1265,9 @@ void File::appendv()
 
 int File::exists()
 {
-#if linux || __APPLE__ || __FreeBSD__
+#if POSIX
     return 0;
-#endif
-#if _WIN32
+#elif _WIN32
     DWORD dw;
     int result;
     char *name;
@@ -1272,16 +1284,19 @@ int File::exists()
     else
 	result = 1;
     return result;
+#else
+    assert(0);
 #endif
 }
 
 void File::remove()
 {
-#if linux || __APPLE__ || __FreeBSD__
+#if POSIX
     ::remove(this->name->toChars());
-#endif
-#if _WIN32
+#elif _WIN32
     DeleteFileA(this->name->toChars());
+#else
+    assert(0);
 #endif
 }
 
@@ -1292,10 +1307,9 @@ Array *File::match(char *n)
 
 Array *File::match(FileName *n)
 {
-#if linux || __APPLE__ || __FreeBSD__
+#if POSIX
     return NULL;
-#endif
-#if _WIN32
+#elif _WIN32
     HANDLE h;
     WIN32_FIND_DATAA fileinfo;
     Array *a;
@@ -1325,32 +1339,34 @@ Array *File::match(FileName *n)
 	FindClose(h);
     }
     return a;
+#else
+    assert(0);
 #endif
 }
 
 int File::compareTime(File *f)
 {
-#if linux || __APPLE__ || __FreeBSD__
+#if POSIX
     return 0;
-#endif
-#if _WIN32
+#elif _WIN32
     if (!touchtime)
 	stat();
     if (!f->touchtime)
 	f->stat();
     return CompareFileTime(&((WIN32_FIND_DATAA *)touchtime)->ftLastWriteTime, &((WIN32_FIND_DATAA *)f->touchtime)->ftLastWriteTime);
+#else
+    assert(0);
 #endif
 }
 
 void File::stat()
 {
-#if linux || __APPLE__ || __FreeBSD__
+#if POSIX
     if (!touchtime)
     {
 	touchtime = mem.calloc(1, sizeof(struct stat));
     }
-#endif
-#if _WIN32
+#elif _WIN32
     HANDLE h;
 
     if (!touchtime)
@@ -1362,6 +1378,8 @@ void File::stat()
     {
 	FindClose(h);
     }
+#else
+    assert(0);
 #endif
 }
 
@@ -1680,8 +1698,7 @@ void OutBuffer::vprintf(const char *format, va_list args)
 	if (count != -1)
 	    break;
 	psize *= 2;
-#endif
-#if linux || __APPLE__ || __FreeBSD__
+#elif POSIX
         va_list va;
         va_copy(va, args);
 /*
@@ -1701,6 +1718,8 @@ void OutBuffer::vprintf(const char *format, va_list args)
 	    psize = count + 1;
 	else
 	    break;
+#else
+    assert(0);
 #endif
 	p = (char *) alloca(psize);	// buffer too small, try again with larger size
     }
@@ -1726,8 +1745,7 @@ void OutBuffer::vprintf(const wchar_t *format, va_list args)
 	if (count != -1)
 	    break;
 	psize *= 2;
-#endif
-#if linux || __APPLE__ || __FreeBSD__
+#elif POSIX
         va_list va;
         va_copy(va, args);
 	count = vsnwprintf(p,psize,format,va);
@@ -1739,6 +1757,8 @@ void OutBuffer::vprintf(const wchar_t *format, va_list args)
 	    psize = count + 1;
 	else
 	    break;
+#else
+    assert(0);
 #endif
 	p = (dchar *) alloca(psize * 2);	// buffer too small, try again with larger size
     }

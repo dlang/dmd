@@ -527,6 +527,10 @@ Array *Parser::parseBlock()
 	    nextToken();
 	    break;
 
+	case TOKeof:
+	    error("declaration expected following attribute, not EOF");
+	    break;
+
 	case TOKlcurly:
 	    nextToken();
 	    a = parseDeclDefs(0);
@@ -1635,7 +1639,7 @@ Import *Parser::parseImport(Array *decldefs, int isstatic)
 	    nextToken();
 	}
 
-	s = new Import(loc, a, token.ident, aliasid, isstatic);
+	s = new Import(loc, a, id, aliasid, isstatic);
 	decldefs->push(s);
 
 	/* Look for
@@ -4250,7 +4254,7 @@ Expression *Parser::parsePrimaryExp()
 	    {   error("found '%s' when expecting identifier following '%s.'", token.toChars(), t->toChars());
 		goto Lerr;
 	    }
-	    e = new TypeDotIdExp(loc, t, token.ident);
+	    e = typeDotIdExp(loc, t, token.ident);
 	    nextToken();
 	    break;
 
@@ -4755,7 +4759,7 @@ Expression *Parser::parseUnaryExp()
 			    {   error("Identifier expected following (type).");
 				return NULL;
 			    }
-			    e = new TypeDotIdExp(loc, t, token.ident);
+			    e = typeDotIdExp(loc, t, token.ident);
 			    nextToken();
 			    e = parsePostExp(e);
 			}

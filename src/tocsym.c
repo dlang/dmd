@@ -13,6 +13,10 @@
 #include <time.h>
 #include <assert.h>
 
+#if __sun&&__SVR4
+#include <alloca.h>
+#endif
+
 #include "mars.h"
 #include "module.h"
 #include "mtype.h"

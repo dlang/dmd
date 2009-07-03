@@ -1740,7 +1740,7 @@ MATCH TypeFunction::deduceType(Scope *sc, Type *tparam, TemplateParameters *para
 	    /* See if 'A' of the template parameter matches 'A'
 	     * of the type of the last function parameter.
 	     */
-	    Argument *fparam = (Argument *)tp->parameters->data[nfparams - 1];
+	    Argument *fparam = Argument::getNth(tp->parameters, nfparams - 1);
 	    if (fparam->type->ty != Tident)
 		goto L1;
 	    TypeIdentifier *tid = (TypeIdentifier *)fparam->type;
@@ -3049,6 +3049,7 @@ TemplateInstance::TemplateInstance(Loc loc, Identifier *ident)
     this->tiargs = NULL;
     this->tempdecl = NULL;
     this->inst = NULL;
+    this->tinst = NULL;
     this->argsym = NULL;
     this->aliasdecl = NULL;
     this->semanticdone = 0;
@@ -3076,6 +3077,7 @@ TemplateInstance::TemplateInstance(Loc loc, TemplateDeclaration *td, Objects *ti
     this->tiargs = tiargs;
     this->tempdecl = td;
     this->inst = NULL;
+    this->tinst = NULL;
     this->argsym = NULL;
     this->aliasdecl = NULL;
     this->semanticdone = 0;
@@ -3151,6 +3153,9 @@ void TemplateInstance::semantic(Scope *sc)
 #endif
 	return;
     }
+
+    // get the enclosing template instance from the scope tinst
+    tinst = sc->tinst;
 
     if (semanticdone != 0)
     {
@@ -3371,11 +3376,20 @@ void TemplateInstance::semantic(Scope *sc)
     sc2 = scope->push(this);
     //printf("isnested = %d, sc->parent = %s\n", isnested, sc->parent->toChars());
     sc2->parent = /*isnested ? sc->parent :*/ this;
+    sc2->tinst = this;
 
 #if WINDOWS_SEH
   __try
   {
 #endif
+    static int nest;
+    //printf("%d\n", nest);
+    if (++nest > 500)
+    {
+	global.gag = 0;			// ensure error message gets printed
+	error("recursive expansion");
+	fatal();
+    }
     for (int i = 0; i < members->dim; i++)
     {
 	Dsymbol *s = (Dsymbol *)members->data[i];
@@ -3388,6 +3402,7 @@ void TemplateInstance::semantic(Scope *sc)
 	//printf("test4: isnested = %d, s->parent = %s\n", isnested, s->parent->toChars());
 	sc2->module->runDeferredSemantic();
     }
+    --nest;
 #if WINDOWS_SEH
   }
   __except (__ehfilter(GetExceptionInformation()))
@@ -3435,6 +3450,10 @@ void TemplateInstance::semantic(Scope *sc)
     if (global.errors != errorsave)
     {
 	error("error instantiating");
+	if (tinst && !global.gag)
+	{   tinst->printInstantiationTrace();
+	    fatal();
+	}
 	errors = 1;
 	if (global.gag)
 	    tempdecl->instances.remove(tempdecl_instance_idx);
@@ -3939,7 +3958,7 @@ Identifier *TemplateInstance::genIdent()
 	  Lsa:
 	    buf.writeByte('S');
 	    Declaration *d = sa->isDeclaration();
-	    if (d && !d->type->deco)
+	    if (d && (!d->type || !d->type->deco))
 		error("forward reference of %s", d->toChars());
 	    else
 	    {
@@ -3999,6 +4018,7 @@ void TemplateInstance::semantic2(Scope *sc)
 	assert(sc);
 	sc = sc->push(argsym);
 	sc = sc->push(this);
+	sc->tinst = this;
 	for (i = 0; i < members->dim; i++)
 	{
 	    Dsymbol *s = (Dsymbol *)members->data[i];
@@ -4029,6 +4049,7 @@ void TemplateInstance::semantic3(Scope *sc)
 	sc = tempdecl->scope;
 	sc = sc->push(argsym);
 	sc = sc->push(this);
+	sc->tinst = this;
 	for (int i = 0; i < members->dim; i++)
 	{
 	    Dsymbol *s = (Dsymbol *)members->data[i];
@@ -4037,6 +4058,12 @@ void TemplateInstance::semantic3(Scope *sc)
 	sc = sc->pop();
 	sc->pop();
     }
+}
+
+void TemplateInstance::printInstantiationTrace()
+{
+    if (global.gag)
+	return;
 }
 
 void TemplateInstance::toObjFile(int multiobj)
@@ -4414,11 +4441,24 @@ void TemplateMixin::semantic(Scope *sc)
     Scope *sc2;
     sc2 = scope->push(this);
     sc2->offset = sc->offset;
+
+    static int nest;
+    //printf("%d\n", nest);
+    if (++nest > 500)
+    {
+	global.gag = 0;			// ensure error message gets printed
+	error("recursive expansion");
+	fatal();
+    }
+
     for (int i = 0; i < members->dim; i++)
     {
 	Dsymbol *s = (Dsymbol *)members->data[i];
 	s->semantic(sc2);
     }
+
+    nest--;
+
     sc->offset = sc2->offset;
 
     /* The problem is when to parse the initializer for a variable.

@@ -5,7 +5,6 @@
 // http://www.digitalmars.com
 
 #include "port.h"
-
 #if __DMC__
 #include <math.h>
 #include <float.h>
@@ -124,6 +123,7 @@ char *Port::strupr(char *s)
 #include <string.h>
 #include <ctype.h>
 #include <stdlib.h>
+#include <limits> // for std::numeric_limits
 
 static unsigned long nanarray[2]= { 0xFFFFFFFF, 0x7FFFFFFF };
 //static unsigned long nanarray[2] = {0,0x7FF80000 };
@@ -477,7 +477,7 @@ char *Port::strupr(char *s)
 
 #endif
 
-#if defined (__SVR4) && defined (__sun)
+#if __sun&&__SVR4
 
 #define __C99FEATURES__ 1	// Needed on Solaris for NaN and more
 #include <math.h>
@@ -487,6 +487,8 @@ char *Port::strupr(char *s)
 #include <stdio.h>
 #include <stdlib.h>
 #include <ctype.h>
+#include <float.h>
+#include <ieeefp.h>
 
 static double zero = 0;
 double Port::nan = NAN;
@@ -514,23 +516,14 @@ PortInitializer::PortInitializer()
     Port::nan = foo;
 }
 
-#undef isnan
 int Port::isNan(double r)
 {
-#if __APPLE__
-    return __inline_isnan(r);
-#else
-    return ::isnan(r);
-#endif
+    return isnan(r);
 }
 
 int Port::isNan(long double r)
 {
-#if __APPLE__
-    return __inline_isnan(r);
-#else
-    return ::isnan(r);
-#endif
+    return isnan(r);
 }
 
 int Port::isSignallingNan(double r)
@@ -552,13 +545,12 @@ int Port::isSignallingNan(long double r)
 #undef isfinite
 int Port::isFinite(double r)
 {
-    return ::finite(r);
+    return finite(r);
 }
 
-#undef isinf
 int Port::isInfinity(double r)
 {
-    return ::isinf(r);
+    return isinf(r);
 }
 
 #undef signbit

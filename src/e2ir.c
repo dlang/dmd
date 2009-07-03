@@ -13,6 +13,8 @@
 #include	<time.h>
 #include	<complex.h>
 
+#include	"port.h"
+
 #include	"lexer.h"
 #include	"expression.h"
 #include	"mtype.h"
@@ -25,7 +27,7 @@
 #include	"init.h"
 #include	"template.h"
 
-#include	"mem.h"	// for mem_malloc
+#include	"mem.h"	// for tk/mem_malloc
 
 #if __APPLE__
 #define __I86__ 1
@@ -171,7 +173,8 @@ elem *callfunc(Loc loc,
 	}
 	if ((global.params.isLinux ||
 	     global.params.isOSX ||
-	     global.params.isFreeBSD) && tf->linkage != LINKd)
+	     global.params.isFreeBSD ||
+	     global.params.isSolaris) && tf->linkage != LINKd)
 	    ;	// ehidden goes last on Linux/OSX C++
 	else
 	{
@@ -901,11 +904,16 @@ elem *RealExp::toElem(IRState *irs)
 	case TYfloat:
 	case TYifloat:
 	    c.Vfloat = value;
+	    if (Port::isSignallingNan(value))
+		((unsigned int*)&c.Vfloat)[0] &= 0xFFBFFFFFL;
 	    break;
 
 	case TYdouble:
 	case TYidouble:
-	    c.Vdouble = value;
+	    c.Vdouble = value;	// unfortunately, this converts SNAN to QNAN
+	    if (Port::isSignallingNan(value))
+		// Put SNAN back
+		((unsigned int*)&c.Vdouble)[1] &= 0xFFF7FFFFL;
 	    break;
 
 	case TYldouble:
@@ -944,12 +952,20 @@ elem *ComplexExp::toElem(IRState *irs)
     {
 	case TYcfloat:
 	    c.Vcfloat.re = (float) re;
+	    if (Port::isSignallingNan(re))
+		((unsigned int*)&c.Vcfloat.re)[0] &= 0xFFBFFFFFL;
 	    c.Vcfloat.im = (float) im;
+	    if (Port::isSignallingNan(im))
+		((unsigned int*)&c.Vcfloat.im)[0] &= 0xFFBFFFFFL;
 	    break;
 
 	case TYcdouble:
 	    c.Vcdouble.re = (double) re;
+	    if (Port::isSignallingNan(re))
+		((unsigned int*)&c.Vcdouble.re)[1] &= 0xFFF7FFFFL;
 	    c.Vcdouble.im = (double) im;
+	    if (Port::isSignallingNan(re))
+		((unsigned int*)&c.Vcdouble.im)[1] &= 0xFFF7FFFFL;
 	    break;
 
 	case TYcldouble:
@@ -1240,9 +1256,16 @@ elem *NewExp::toElem(IRState *irs)
 	    if (offset)
 		ethis = el_bin(OPadd, TYnptr, ethis, el_long(TYint, offset));
 
-	    ey = el_bin(OPadd, TYnptr, ey, el_long(TYint, cd->vthis->offset));
-	    ey = el_una(OPind, TYnptr, ey);
-	    ey = el_bin(OPeq, TYnptr, ey, ethis);
+	    if (!cd->vthis)
+	    {
+		error("forward reference to %s", cd->toChars());
+	    }
+	    else
+	    {
+		ey = el_bin(OPadd, TYnptr, ey, el_long(TYint, cd->vthis->offset));
+		ey = el_una(OPind, TYnptr, ey);
+		ey = el_bin(OPeq, TYnptr, ey, ethis);
+	    }
 
 //printf("ex: "); elem_print(ex);
 //printf("ey: "); elem_print(ey);
@@ -1521,7 +1544,7 @@ elem *AssertExp::toElem(IRState *irs)
 	if (global.params.useInvariants && t1->ty == Tclass &&
 	    !((TypeClass *)t1)->sym->isInterfaceDeclaration())
 	{
-#if TARGET_LINUX || TARGET_FREEBSD
+#if TARGET_LINUX || TARGET_FREEBSD || TARGET_SOLARIS
 	    e = el_bin(OPcall, TYvoid, el_var(rtlsym[RTLSYM__DINVARIANT]), e);
 #else
 	    e = el_bin(OPcall, TYvoid, el_var(rtlsym[RTLSYM_DINVARIANT]), e);
@@ -1656,6 +1679,7 @@ elem *AddExp::toElem(IRState *irs)
        )
     {
 	error("Array operation %s not implemented", toChars());
+	e = el_long(type->totym(), 0);	// error recovery
     }
     else
 	e = toElemBin(irs,OPadd);
@@ -2503,11 +2527,10 @@ elem *AssignExp::toElem(IRState *irs)
 	{
 	    elem *e1;
 	    elem *e2;
-	    tym_t tym;
 
 	    //printf("toElemBin() '%s'\n", toChars());
 
-	    tym = type->totym();
+	    tym_t tym = type->totym();
 
 	    e1 = this->e1->toElem(irs);
 	    elem *ex = e1;
@@ -2534,7 +2557,7 @@ elem *AssignExp::toElem(IRState *irs)
 	    }
 	    else
 	    {
-		e2 = this->e2->toElem(irs);
+		elem *e2 = this->e2->toElem(irs);
 		e = el_bin(OPstreq,tym,e1,e2);
 		e->Enumbytes = this->e1->type->size();
 	    }
@@ -2849,13 +2872,6 @@ elem *CondExp::toElem(IRState *irs)
 
 /***************************************
  */
-
-elem *TypeDotIdExp::toElem(IRState *irs)
-{
-    print();
-    assert(0);
-    return NULL;
-}
 
 elem *TypeExp::toElem(IRState *irs)
 {
@@ -3261,7 +3277,7 @@ elem *CastExp::toElem(IRState *irs)
 	int offset;
 	int rtl = RTLSYM_DYNAMIC_CAST;
 
-	cdfrom = e1->type->isClassHandle();
+	cdfrom = tfrom->isClassHandle();
 	cdto   = t->isClassHandle();
 	if (cdfrom->isInterfaceDeclaration())
 	{
@@ -4117,9 +4133,11 @@ elem *ArrayLiteralExp::toElem(IRState *irs)
 
     //printf("ArrayLiteralExp::toElem() %s\n", toChars());
     if (elements)
-    {
+    {	Expressions args;
 	dim = elements->dim;
+	args.setDim(dim + 1);		// +1 for number of args parameter
 	e = el_long(TYint, dim);
+	args.data[dim] = (void *)e;
 	for (size_t i = 0; i < dim; i++)
 	{   Expression *el = (Expression *)elements->data[i];
 	    elem *ep = el->toElem(irs);
@@ -4129,8 +4147,14 @@ elem *ArrayLiteralExp::toElem(IRState *irs)
 		ep = el_una(OPstrpar, TYstruct, ep);
 		ep->Enumbytes = el->type->size();
 	    }
-	    e = el_param(ep, e);
+	    args.data[dim - (i + 1)] = (void *)ep;
 	}
+
+	/* Because the number of parameters can get very large, produce
+	 * a balanced binary tree so we don't blow up the stack in
+	 * the subsequent tree walking code.
+	 */
+	e = el_params(args.data, dim + 1);
     }
     else
     {	dim = 0;
@@ -4348,6 +4372,31 @@ elem *StructLiteralExp::toElem(IRState *irs)
 	    e = el_combine(e, e1);
 	}
     }
+
+#if DMDV2
+    if (sd->isnested)
+    {	// Initialize the hidden 'this' pointer
+	assert(sd->fields.dim);
+	Dsymbol *s = (Dsymbol *)sd->fields.data[sd->fields.dim - 1];
+	ThisDeclaration *v = s->isThisDeclaration();
+	assert(v);
+
+	elem *e1;
+	if (tybasic(stmp->Stype->Tty) == TYnptr)
+	{   e1 = el_var(stmp);
+	    e1->EV.sp.Voffset = soffset;
+	}
+	else
+	{   e1 = el_ptr(stmp);
+	    if (soffset)
+		e1 = el_bin(OPadd, TYnptr, e1, el_long(TYsize_t, soffset));
+	}
+	e1 = el_bin(OPadd, TYnptr, e1, el_long(TYsize_t, v->offset));
+	e1 = setEthis(loc, irs, e1, sd);
+
+	e = el_combine(e, e1);
+    }
+#endif
 
     elem *ev = el_var(stmp);
     ev->Enumbytes = sd->structsize;

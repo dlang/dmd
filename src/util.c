@@ -1,6 +1,6 @@
 /*
  * Some portions copyright (c) 1984-1993 by Symantec
- * Copyright (c) 1999-2008 by Digital Mars
+ * Copyright (c) 1999-2009 by Digital Mars
  * All Rights Reserved
  * http://www.digitalmars.com
  * Written by Walter Bright
@@ -131,7 +131,7 @@ void util_progress(int linnum)
 
 #endif
 
-#if linux || __APPLE__ || __FreeBSD__
+#if linux || __APPLE__ || __FreeBSD__ || __sun&&__SVR4
 void util_progress()
 {
 }

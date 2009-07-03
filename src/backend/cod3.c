@@ -496,7 +496,7 @@ void doswitch(block *b)
 	    genjmp(c,JNE,FLblock,list_block(b->Bsucc)); /* JNE default  */
 	}
 	ce = getregs(mCX|mDI);
-#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD
+#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_SOLARIS
 	if (config.flags3 & CFG3pic)
 	{   // Add in GOT
 	    code *cx;
@@ -576,7 +576,7 @@ void doswitch(block *b)
 	mod = (disp > 127) ? 2 : 1;	/* 1 or 2 byte displacement	*/
 	if (config.flags & CFGromable)
 		gen1(ce,SEGCS);		/* table is in code segment	*/
-#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD
+#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_SOLARIS
 	if (config.flags3 & CFG3pic)
 	{				// ADD EDX,(ncases-1)*2[EDI]
 	    ct = genc1(CNIL,0x03,modregrm(mod,DX,7),FLconst,disp);
@@ -1050,7 +1050,7 @@ code *cdgot(elem *e, regm_t *pretregs)
     gen1(c, 0x58 + reg);		// L1: POP reg
 
     return cat(c,fixresult(e,retregs,pretregs));
-#elif TARGET_LINUX || TARGET_FREEBSD
+#elif TARGET_LINUX || TARGET_FREEBSD || TARGET_SOLARIS
     regm_t retregs;
     unsigned reg;
     code *c;
@@ -1083,7 +1083,7 @@ code *cdgot(elem *e, regm_t *pretregs)
 #endif
 }
 
-#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD
+#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_SOLARIS
 /*****************************
  * Returns:
  *	# of bytes stored
@@ -1158,7 +1158,7 @@ code *prolog()
 
 Lagain:
     guessneedframe = needframe;
-//    if (needframe && config.exe & (EX_LINUX | EX_FREEBSD) && !(usednteh & ~NTEHjmonitor))
+//    if (needframe && config.exe & (EX_LINUX | EX_FREEBSD | EX_SOLARIS) && !(usednteh & ~NTEHjmonitor))
 //	usednteh |= NTEHpassthru;
 
     /* Compute BP offsets for variables on stack.
@@ -1359,7 +1359,7 @@ Lagain:
 	if (config.wflags & WFincbp && farfunc)
 	    c = gen1(c,0x40 + BP);	/* INC  BP			*/
 	if (config.target_cpu < TARGET_80286 ||
-	    config.exe & (EX_LINUX | EX_LINUX64 | EX_OSX | EX_OSX64 | EX_FREEBSD | EX_FREEBSD64) ||
+	    config.exe & (EX_LINUX | EX_LINUX64 | EX_OSX | EX_OSX64 | EX_FREEBSD | EX_FREEBSD64 | EX_SOLARIS | EX_SOLARIS64) ||
 	    !localsize ||
 	    config.flags & CFGstack ||
 	    (xlocalsize >= 0x1000 && config.exe & EX_flat) ||
@@ -1975,7 +1975,7 @@ targ_size_t cod3_spoff()
 
 code *cod3_load_got()
 {
-#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD
+#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_SOLARIS
     code *c;
     code *cgot;
 
@@ -2152,7 +2152,7 @@ void cod3_thunk(symbol *sthunk,symbol *sfunc,unsigned p,tym_t thisty,
     sthunk->Soffset = thunkoffset;
     sthunk->Ssize = Coffset - thunkoffset; /* size of thunk */
     sthunk->Sseg = cseg;
-#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD
+#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_SOLARIS
     objpubdef(cseg,sthunk,sthunk->Soffset);
 #endif
     searchfixlist(sthunk);		/* resolve forward refs	*/
@@ -3964,7 +3964,7 @@ STATIC void do32bit(enum FL fl,union evc *uev,int flags)
 	// un-named external with is the start of .rodata or .data
     case FLextern:			/* external data symbol		*/
     case FLtlsdata:
-#if TARGET_LINUX || TARGET_FREEBSD
+#if TARGET_LINUX || TARGET_FREEBSD || TARGET_SOLARIS
     case FLgot:
     case FLgotoff:
 #endif
@@ -4186,7 +4186,7 @@ void searchfixlist(symbol *s)
 		// resolve directly.
 		if (s->Sseg == p->Lseg &&
 		    (s->Sclass == SCstatic || 
-#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD
+#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_SOLARIS
 		     (!(config.flags3 & CFG3pic) && s->Sclass == SCglobal)) &&
 #else
 		     	s->Sclass == SCglobal) &&

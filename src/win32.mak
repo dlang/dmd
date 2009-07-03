@@ -148,12 +148,12 @@ ROOTSRC= $(ROOT)\dchar.h $(ROOT)\dchar.c $(ROOT)\lstring.h \
 	$(ROOT)\gnuc.h $(ROOT)\gnuc.c $(ROOT)\man.c $(ROOT)\port.c \
 	$(ROOT)\response.c $(ROOT)\async.h $(ROOT)\async.c
 
-MAKEFILES=win32.mak linux.mak osx.mak freebsd.mak
+MAKEFILES=win32.mak linux.mak osx.mak freebsd.mak solaris.mak
 
 #########################################
 
 $(TARGET).exe : $(OBJS) win32.mak
-	sc -o$(TARGET).exe $(OBJS) -cpp -mn -Ar $(LFLAGS)
+	dmc -o$(TARGET).exe $(OBJS) -cpp -mn -Ar $(LFLAGS)
 
 
 ##################### INCLUDE MACROS #####################
@@ -169,11 +169,11 @@ msgs.h msgs.c sj1041.msg sj1036.msg sj1031.msg : msgsx.exe
 	msgsx
 
 msgsx.exe : msgsx.c
-	sc msgsx -mn -D$(TARGET) $(DEFINES) $(WINLIBS)
+	dmc msgsx -mn -D$(TARGET) $(DEFINES) $(WINLIBS)
 
 elxxx.c cdxxx.c optab.c debtab.c fltables.c tytab.c : \
 	$C\cdef.h $C\cc.h $C\oper.h $C\ty.h $C\optabgen.c
-	sc -cpp -ooptabgen.exe $C\optabgen -DMARS -I$(TK) $(WINLIBS) #-L$(LINKS)
+	dmc -cpp -ooptabgen.exe $C\optabgen -DMARS -I$(TK) $(WINLIBS) #-L$(LINKS)
 	optabgen
 
 impcnvtab.c : impcnvgen.c
@@ -181,7 +181,7 @@ impcnvtab.c : impcnvgen.c
 	impcnvgen
 
 id.h id.c : idgen.c
-	sc -cpp idgen
+	dmc -cpp idgen
 	idgen
 
 ##################### SPECIAL BUILDS #####################

@@ -134,7 +134,7 @@ code *cdorth(elem *e,regm_t *pretregs)
 
   ty1 = tybasic(e1->Ety);
   if (tyfloating(ty1))
-#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD
+#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_SOLARIS
 	return orth87(e,pretregs);
 #else
 	return opdouble(e,pretregs,(e->Eoper == OPadd) ? CLIBdadd
@@ -749,7 +749,7 @@ code *cdmul(elem *e,regm_t *pretregs)
     oper = e->Eoper;
 
     if (tyfloating(tyml))
-#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD
+#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_SOLARIS
 	return orth87(e,pretregs);
 #else
 	return opdouble(e,pretregs,(oper == OPmul) ? CLIBdmul : CLIBddiv);
@@ -3639,10 +3639,14 @@ code *getoffset(elem *e,unsigned reg)
 	goto L4;
 
     case FLtlsdata:
-#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD
+#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_SOLARIS
     {	/* Generate:
 	 *	MOV reg,GS:[00000000]
-	 *	ADD reg, offset s
+	 *	ADD reg, offset s@TLS_LE
+	 * for locals, and for globals:
+	 *	MOV reg,GS:[00000000]
+	 *	ADD reg, s@TLS_IE
+	 * note different fixup
 	 */
       L5:
 	int stack = 0;
@@ -3664,14 +3668,27 @@ code *getoffset(elem *e,unsigned reg)
 	css.IEV1.Vuns = 0;
 	c = gen(c, &css);		// MOV reg,GS:[00000000]
 
-	cs.Iop = 0x81;
-	cs.Irm = modregrm(3,0,reg);
-	cs.Iflags = CFoff;
-	css.Ijty = 0;
-	cs.IFL2 = fl;
-	cs.IEVsym2 = e->EV.sp.Vsym;
-	cs.IEVoffset2 = e->EV.sp.Voffset;
-	c = gen(c, &cs);		// ADD reg,offset s
+	if (e->EV.sp.Vsym->Sclass == SCstatic || e->EV.sp.Vsym->Sclass == SClocstat)
+	{   // ADD reg, offset s
+	    cs.Iop = 0x81;
+	    cs.Irm = modregrm(3,0,reg);
+	    cs.Iflags = CFoff;
+	    css.Ijty = 0;
+	    cs.IFL2 = fl;
+	    cs.IEVsym2 = e->EV.sp.Vsym;
+	    cs.IEVoffset2 = e->EV.sp.Voffset;
+	}
+	else
+	{   // ADD reg, s
+	    cs.Iop = 0x03;
+	    cs.Irm = modregrm(0,reg,BPRM);
+	    cs.Iflags = CFoff;
+	    css.Ijty = 0;
+	    cs.IFL1 = fl;
+	    cs.IEVsym1 = e->EV.sp.Vsym;
+	    cs.IEVoffset1 = e->EV.sp.Voffset;
+	}
+	c = gen(c, &cs);		// ADD reg, xxxx
 
 	if (stack)
 	{
@@ -3690,13 +3707,13 @@ code *getoffset(elem *e,unsigned reg)
 	goto L4;
 
     case FLextern:
-#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD
+#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_SOLARIS
 	if (e->EV.sp.Vsym->ty() & mTYthread)
 	    goto L5;
 #endif
     case FLdata:
     case FLudata:
-#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD
+#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_SOLARIS
     case FLgot:
     case FLgotoff:
 #endif
@@ -3958,7 +3975,7 @@ code *cdpost(elem *e,regm_t *pretregs)
 
   if (tyfloating(tyml))
   {
-#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD
+#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_SOLARIS
 	return post87(e,pretregs);
 #else
 	if (config.inline8087)
