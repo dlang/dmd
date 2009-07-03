@@ -28,10 +28,10 @@ int utf_isValidDchar(dchar_t c)
  *	!=NULL	error message string
  */
 
-char *utf_decodeChar(unsigned char *s, unsigned len, unsigned *pidx, dchar_t *presult)
+char *utf_decodeChar(unsigned char *s, size_t len, size_t *pidx, dchar_t *presult)
 {
     dchar_t V;
-    unsigned i = *pidx;
+    size_t i = *pidx;
     unsigned char u = s[i];
 
     assert(i >= 0 && i < len);
@@ -117,9 +117,9 @@ char *utf_decodeChar(unsigned char *s, unsigned len, unsigned *pidx, dchar_t *pr
  *	!=NULL	error message string
  */
 
-char *utf_validateString(unsigned char *s, unsigned len)
+char *utf_validateString(unsigned char *s, size_t len)
 {
-    unsigned idx;
+    size_t idx;
     char *err = NULL;
     dchar_t dc;
 
@@ -141,10 +141,10 @@ char *utf_validateString(unsigned char *s, unsigned len)
  */
 
 
-char *utf_decodeWchar(unsigned short *s, unsigned len, unsigned *pidx, dchar_t *presult)
+char *utf_decodeWchar(unsigned short *s, size_t len, size_t *pidx, dchar_t *presult)
 {
     char *msg;
-    unsigned i = *pidx;
+    size_t i = *pidx;
     unsigned u = s[i];
 
     assert(i >= 0 && i < len);

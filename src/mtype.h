@@ -93,6 +93,7 @@ enum TY
     Tinstance,
     Ttypeof,
     Ttuple,
+    Tslice,
     TMAX
 };
 
@@ -172,6 +173,7 @@ struct Type : Object
     static ClassDeclaration *typeinfoenum;
     static ClassDeclaration *typeinfofunction;
     static ClassDeclaration *typeinfodelegate;
+    static ClassDeclaration *typeinfotypelist;
 
     static Type *basic[TMAX];
     static unsigned char mangleChar[TMAX];
@@ -623,10 +625,24 @@ struct TypeTuple : Type
     TypeTuple(Expressions *exps);
     Type *syntaxCopy();
     Type *semantic(Loc loc, Scope *sc);
+    int equals(Object *o);
     Type *reliesOnTident();
     void toCBuffer2(OutBuffer *buf, Identifier *ident, HdrGenState *hgs);
     void toDecoBuffer(OutBuffer *buf);
     Expression *getProperty(Loc loc, Identifier *ident);
+    TypeInfoDeclaration *getTypeInfoDeclaration();
+};
+
+struct TypeSlice : Type
+{
+    Expression *lwr;
+    Expression *upr;
+
+    TypeSlice(Type *next, Expression *lwr, Expression *upr);
+    Type *syntaxCopy();
+    Type *semantic(Loc loc, Scope *sc);
+    void resolve(Loc loc, Scope *sc, Expression **pe, Type **pt, Dsymbol **ps);
+    void toCBuffer2(OutBuffer *buf, Identifier *ident, HdrGenState *hgs);
 };
 
 /**************************************************************/

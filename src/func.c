@@ -124,7 +124,7 @@ void FuncDeclaration::semantic(Scope *sc)
     //printf("function storage_class = x%x\n", storage_class);
     Dsymbol *parent = toParent();
 
-    if (isConst() || isAuto())
+    if (isConst() || isAuto() || isScope())
 	error("functions cannot be const or auto");
 
     if (isAbstract() && !isVirtual())
@@ -283,7 +283,11 @@ void FuncDeclaration::semantic(Scope *sc)
 			    // the other.
 			    if (fdv->parent->isClassDeclaration())
 				goto L1;
-			    if (!this->parent->isClassDeclaration())
+			    if (!this->parent->isClassDeclaration()
+#if !BREAKABI
+				&& !isDtorDeclaration()
+#endif
+				)
 				error("multiple overrides of same function");
 			}
 			cd->vtbl.data[vi] = (void *)this;
@@ -545,7 +549,7 @@ void FuncDeclaration::semantic3(Scope *sc)
 	sc2->sw = NULL;
 	sc2->fes = fes;
 	sc2->linkage = LINKd;
-	sc2->stc &= ~(STCauto | STCstatic | STCabstract | STCdeprecated);
+	sc2->stc &= ~(STCauto | STCscope | STCstatic | STCabstract | STCdeprecated);
 	sc2->protection = PROTpublic;
 	sc2->explicitProtection = 0;
 	sc2->structalign = 8;
@@ -615,6 +619,23 @@ void FuncDeclaration::semantic3(Scope *sc)
 	    }
 	}
 
+	// Propagate storage class from tuple arguments to their sub-arguments.
+	if (f->parameters)
+	{
+	    for (size_t i = 0; i < f->parameters->dim; i++)
+	    {	Argument *arg = (Argument *)f->parameters->data[i];
+
+		if (arg->type->ty == Ttuple)
+		{   TypeTuple *t = (TypeTuple *)arg->type;
+		    size_t dim = Argument::dim(t->arguments);
+		    for (size_t j = 0; j < dim; j++)
+		    {	Argument *narg = Argument::getNth(t->arguments, j);
+			narg->inout = arg->inout;
+		    }
+		}
+	    }
+	}
+
 	// Declare all the function parameters as variables
 	if (nparams)
 	{   // parameters[] has all the tuples removed, as the back end
@@ -624,35 +645,40 @@ void FuncDeclaration::semantic3(Scope *sc)
 	    for (size_t i = 0; i < nparams; i++)
 	    {
 		Argument *arg = Argument::getNth(f->parameters, i);
-		if (!arg->ident)
-		    error("no identifier for parameter %d of %s", i + 1, toChars());
-		else
+		Identifier *id = arg->ident;
+		if (!id)
 		{
-		    VarDeclaration *v = new VarDeclaration(0, arg->type, arg->ident, NULL);
-		    //printf("declaring parameter %s of type %s\n", v->toChars(), v->type->toChars());
-		    v->storage_class |= STCparameter;
-		    if (f->varargs == 2 && i + 1 == nparams)
-			v->storage_class |= STCvariadic;
-		    switch (arg->inout)
-		    {	case In:    v->storage_class |= STCin;		break;
-			case Out:   v->storage_class |= STCout;		break;
-			case InOut: v->storage_class |= STCin | STCout;	break;
-			case Lazy:  v->storage_class |= STCin | STClazy; break;
-			default: assert(0);
-		    }
-		    v->semantic(sc2);
-		    if (!sc2->insert(v))
-			error("parameter %s.%s is already defined", toChars(), v->toChars());
-		    else
-			parameters->push(v);
-		    localsymtab->insert(v);
-		    v->parent = this;
+		    //error("no identifier for parameter %d of %s", i + 1, toChars());
+		    OutBuffer buf;
+		    buf.printf("_param_%d", i);
+		    char *name = (char *)buf.extractData();
+		    id = new Identifier(name, TOKidentifier);
+		    arg->ident = id;
 		}
+		VarDeclaration *v = new VarDeclaration(0, arg->type, id, NULL);
+		//printf("declaring parameter %s of type %s\n", v->toChars(), v->type->toChars());
+		v->storage_class |= STCparameter;
+		if (f->varargs == 2 && i + 1 == nparams)
+		    v->storage_class |= STCvariadic;
+		switch (arg->inout)
+		{   case In:    v->storage_class |= STCin;		break;
+		    case Out:   v->storage_class |= STCout;		break;
+		    case InOut: v->storage_class |= STCin | STCout;	break;
+		    case Lazy:  v->storage_class |= STCin | STClazy; break;
+		    default: assert(0);
+		}
+		v->semantic(sc2);
+		if (!sc2->insert(v))
+		    error("parameter %s.%s is already defined", toChars(), v->toChars());
+		else
+		    parameters->push(v);
+		localsymtab->insert(v);
+		v->parent = this;
 	    }
 	}
 
 	// Declare the tuple symbols and put them in the symbol table,
-	// but not in parameters[]
+	// but not in parameters[].
 	if (f->parameters)
 	{
 	    for (size_t i = 0; i < f->parameters->dim; i++)
@@ -664,12 +690,14 @@ void FuncDeclaration::semantic3(Scope *sc)
 		    Objects *exps = new Objects();
 		    exps->setDim(dim);
 		    for (size_t j = 0; j < dim; j++)
-		    {	Argument *arg = Argument::getNth(t->arguments, j);
-			VarDeclaration *v = sc2->search(0, arg->ident, NULL)->isVarDeclaration();
+		    {	Argument *narg = Argument::getNth(t->arguments, j);
+			assert(narg->ident);
+			VarDeclaration *v = sc2->search(0, narg->ident, NULL)->isVarDeclaration();
 			assert(v);
 			Expression *e = new VarExp(0, v);
 			exps->data[j] = (void *)e;
 		    }
+		    assert(arg->ident);
 		    TupleDeclaration *v = new TupleDeclaration(0, arg->ident, exps);
 		    //printf("declaring tuple %s\n", v->toChars());
 		    v->isexp = 1;
@@ -1875,6 +1903,18 @@ int DtorDeclaration::addPostInvariant()
     return FALSE;
 }
 
+int DtorDeclaration::isVirtual()
+{
+    /* This should be FALSE so that dtor's don't get put into the vtbl[],
+     * but doing so will require recompiling everything.
+     */
+#if BREAKABI
+    return FALSE;
+#else
+    return FuncDeclaration::isVirtual();
+#endif
+}
+
 void DtorDeclaration::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 {
     if (hgs->hdrgen)
@@ -2105,7 +2145,7 @@ void InvariantDeclaration::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 static Identifier *unitTestId()
 {
     static int n;
-    char buffer[8+3*4+1];
+    char buffer[10 + sizeof(n)*3 + 1];
 
     sprintf(buffer,"__unittest%d", n);
     n++;

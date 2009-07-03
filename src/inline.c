@@ -196,6 +196,23 @@ int DeclarationExp::inlineCost(InlineCostState *ics)
     vd = declaration->isVarDeclaration();
     if (vd)
     {
+	TupleDeclaration *td = vd->toAlias()->isTupleDeclaration();
+	if (td)
+	{
+#if 1
+	    return COST_MAX;	// finish DeclarationExp::doInline
+#else
+	    for (size_t i = 0; i < td->objects->dim; i++)
+	    {   Object *o = (Object *)td->objects->data[i];
+		if (o->dyncast() != DYNCAST_EXPRESSION)
+		    return COST_MAX;
+		Expression *eo = (Expression *)o;
+		if (eo->op != TOKdsymbol)
+		    return COST_MAX;
+	    }
+	    return td->objects->dim;
+#endif
+	}
 	if (!ics->hdrscan && vd->isDataseg())
 	    return COST_MAX;
 	cost += 1;
@@ -471,6 +488,19 @@ Expression *DeclarationExp::doInline(InlineDoState *ids)
     vd = declaration->isVarDeclaration();
     if (vd)
     {
+#if 0
+	// Need to figure this out before inlining can work for tuples
+	TupleDeclaration *td = vd->toAlias()->isTupleDeclaration();
+	if (td)
+	{
+	    for (size_t i = 0; i < td->objects->dim; i++)
+	    {   DsymbolExp *se = (DsymbolExp *)td->objects->data[i];
+		assert(se->op == TOKdsymbol);
+		se->s;
+	    }
+	    return st->objects->dim;
+	}
+#endif
 	if (vd->isStatic() || vd->isConst())
 	    ;
 	else
@@ -907,25 +937,40 @@ Expression *Expression::inlineScan(InlineScanState *iss)
     return this;
 }
 
-Expression *DeclarationExp::inlineScan(InlineScanState *iss)
+void scanVar(Dsymbol *s, InlineScanState *iss)
 {
-    VarDeclaration *vd;
-
-    //printf("DeclarationExp::inlineScan()\n");
-    vd = declaration->isVarDeclaration();
+    VarDeclaration *vd = s->isVarDeclaration();
     if (vd)
     {
-	// Scan initializer (vd->init)
-	if (vd->init)
+	TupleDeclaration *td = vd->toAlias()->isTupleDeclaration();
+	if (td)
 	{
-	    ExpInitializer *ie = vd->init->isExpInitializer();
-
-	    if (ie)
+	    for (size_t i = 0; i < td->objects->dim; i++)
+	    {   DsymbolExp *se = (DsymbolExp *)td->objects->data[i];
+		assert(se->op == TOKdsymbol);
+		scanVar(se->s, iss);
+	    }
+	}
+	else
+	{
+	    // Scan initializer (vd->init)
+	    if (vd->init)
 	    {
-		ie->exp = ie->exp->inlineScan(iss);
+		ExpInitializer *ie = vd->init->isExpInitializer();
+
+		if (ie)
+		{
+		    ie->exp = ie->exp->inlineScan(iss);
+		}
 	    }
 	}
     }
+}
+
+Expression *DeclarationExp::inlineScan(InlineScanState *iss)
+{
+    //printf("DeclarationExp::inlineScan()\n");
+    scanVar(declaration, iss);
     return this;
 }
 

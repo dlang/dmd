@@ -151,6 +151,7 @@ char *ClassDeclaration::mangle()
 	ident == Id::TypeInfo_Struct   ||
 	ident == Id::TypeInfo_Class    ||
 	ident == Id::TypeInfo_Typedef  ||
+	ident == Id::TypeInfo_Tuple ||
 	ident == Id::Exception  ||
 	this == object     ||
 	this == classinfo  ||

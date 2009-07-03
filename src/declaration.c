@@ -132,10 +132,14 @@ Type *TupleDeclaration::getType()
 	{   Type *t = (Type *)objects->data[i];
 
 	    //printf("type = %s\n", t->toChars());
+#if 0
 	    buf.printf("_%s_%d", ident->toChars(), i);
 	    char *name = (char *)buf.extractData();
 	    Identifier *id = new Identifier(name, TOKidentifier);
 	    Argument *arg = new Argument(In, t, id, NULL);
+#else
+	    Argument *arg = new Argument(In, t, NULL, NULL);
+#endif
 	    args->data[i] = (void *)arg;
 	}
 
@@ -519,6 +523,7 @@ VarDeclaration::VarDeclaration(Loc loc, Type *type, Identifier *id, Initializer 
     nestedref = 0;
     inuse = 0;
     ctorinit = 0;
+    aliassym = NULL;
 }
 
 Dsymbol *VarDeclaration::syntaxCopy(Dsymbol *s)
@@ -620,6 +625,43 @@ void VarDeclaration::semantic(Scope *sc)
 	}
     }
 
+    if (tb->ty == Ttuple)
+    {   /* Instead, declare variables for each of the tuple elements
+	 * and add those.
+	 */
+	TypeTuple *tt = (TypeTuple *)tb;
+	size_t nelems = Argument::dim(tt->arguments);
+	Objects *exps = new Objects();
+	exps->setDim(nelems);
+
+	for (size_t i = 0; i < nelems; i++)
+	{   Argument *arg = Argument::getNth(tt->arguments, i);
+
+	    OutBuffer buf;
+	    buf.printf("_%s_field_%d", ident->toChars(), i);
+	    buf.writeByte(0);
+	    char *name = (char *)buf.extractData();
+	    Identifier *id = new Identifier(name, TOKidentifier);
+
+	    VarDeclaration *v = new VarDeclaration(loc, arg->type, id, NULL);
+	    //printf("declaring field %s of type %s\n", v->toChars(), v->type->toChars());
+	    v->semantic(sc);
+
+	    if (sc->scopesym)
+	    {	//printf("adding %s to %s\n", v->toChars(), sc->scopesym->toChars());
+		if (sc->scopesym->members)
+		    sc->scopesym->members->push(v);
+	    }
+
+	    Expression *e = new DsymbolExp(loc, v);
+	    exps->data[i] = e;
+	}
+	TupleDeclaration *v2 = new TupleDeclaration(loc, ident, exps);
+	v2->isexp = 1;
+	aliassym = v2;
+	return;
+    }
+
     if (storage_class & STCconst && !init && !fd)
 	// Initialize by constructor only
 	storage_class = (storage_class & ~STCconst) | STCctorinit;
@@ -647,18 +689,12 @@ void VarDeclaration::semantic(Scope *sc)
     }
     else
     {
-	AnonymousAggregateDeclaration *aad = sc->anonAgg;
+	AggregateDeclaration *aad = sc->anonAgg;
+	if (!aad)
+	    aad = parent->isAggregateDeclaration();
 	if (aad)
 	{
 	    aad->addField(sc, this);
-	}
-	else
-	{
-	    AggregateDeclaration *ad = parent->isAggregateDeclaration();
-	    if (ad)
-	    {
-		ad->addField(sc, this);
-	    }
 	}
 
 	InterfaceDeclaration *id = parent->isInterfaceDeclaration();
@@ -695,7 +731,7 @@ void VarDeclaration::semantic(Scope *sc)
 	    error("globals, statics, fields, inout and out parameters cannot be auto");
 	}
 
-	if (!(storage_class & STCauto))
+	if (!(storage_class & (STCauto | STCscope)))
 	{
 	    if (!(storage_class & STCparameter) && ident != Id::withSym)
 		error("reference to auto class must be auto");
@@ -865,6 +901,14 @@ char *VarDeclaration::kind()
     return "variable";
 }
 
+Dsymbol *VarDeclaration::toAlias()
+{
+    //printf("VarDeclaration::toAlias('%s', this = %p, aliassym = %p)\n", toChars(), this, aliassym);
+    assert(this != aliassym);
+    Dsymbol *s = aliassym ? aliassym->toAlias() : this;
+    return s;
+}
+
 void VarDeclaration::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 {
     if (storage_class & STCconst)
@@ -953,37 +997,18 @@ int VarDeclaration::isDataseg()
 Expression *VarDeclaration::callAutoDtor()
 {   Expression *e = NULL;
 
-    if (storage_class & STCauto && !noauto)
+    if (storage_class & (STCauto | STCscope) && !noauto)
     {
 	for (ClassDeclaration *cd = type->isClassHandle();
 	     cd;
 	     cd = cd->baseClass)
 	{
-#if 1	    // delete this;
+	    // delete this;
 	    Expression *ec;
 
 	    ec = new VarExp(loc, this);
 	    e = new DeleteExp(loc, ec);
 	    e->type = Type::tvoid;
-#else
-	    {   FuncDeclaration *fd;
-		Expression *efd;
-		Expression *ec;
-		Expressions *arguments;
-
-		/* Generate:
-		 *  _d_callfinalizer(this)
-		 */
-		fd = FuncDeclaration::genCfunc(Type::tvoid, "_d_callfinalizer");
-		efd = new VarExp(loc, fd);
-		ec = new VarExp(loc, this);
-		arguments = new Expressions();
-		arguments->push(ec);
-		e = new CallExp(loc, efd, arguments);
-		e->type = fd->type->next;
-		break;
-	    }
-#endif
 	}
     }
     return e;
@@ -1123,6 +1148,13 @@ TypeInfoFunctionDeclaration::TypeInfoFunctionDeclaration(Type *tinfo)
 /***************************** TypeInfoDelegateDeclaration ********************/
 
 TypeInfoDelegateDeclaration::TypeInfoDelegateDeclaration(Type *tinfo)
+    : TypeInfoDeclaration(tinfo, 0)
+{
+}
+
+/***************************** TypeInfoTupleDeclaration **********************/
+
+TypeInfoTupleDeclaration::TypeInfoTupleDeclaration(Type *tinfo)
     : TypeInfoDeclaration(tinfo, 0)
 {
 }

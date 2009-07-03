@@ -286,14 +286,14 @@ struct NullExp : Expression
 struct StringExp : Expression
 {
     void *string;	// char, wchar, or dchar data
-    unsigned len;	// number of chars, wchars, or dchars
+    size_t len;		// number of chars, wchars, or dchars
     unsigned char sz;	// 1: char, 2: wchar, 4: dchar
     unsigned char committed;	// !=0 if type is committed
     unsigned char postfix;	// 'c', 'w', 'd'
 
     StringExp(Loc loc, char *s);
-    StringExp(Loc loc, void *s, unsigned len);
-    StringExp(Loc loc, void *s, unsigned len, unsigned char postfix);
+    StringExp(Loc loc, void *s, size_t len);
+    StringExp(Loc loc, void *s, size_t len, unsigned char postfix);
     int equals(Object *o);
     char *toChars();
     Expression *semantic(Scope *sc);

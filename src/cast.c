@@ -668,9 +668,9 @@ Expression *StringExp::castTo(Scope *sc, Type *t)
     int tfty;
     int ttty;
     char *p;
-    unsigned u;
+    size_t u;
     unsigned c;
-    unsigned newlen;
+    size_t newlen;
 
 #define X(tf,tt)	((tf) * 256 + (tt))
     {

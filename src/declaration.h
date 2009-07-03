@@ -58,6 +58,7 @@ enum STC
     STCvariadic     = 0x10000,		// variadic function argument
     STCctorinit     = 0x20000,		// can only be set inside constructor
     STCtemplateparameter = 0x40000,	// template parameter
+    STCscope	    = 0x80000,		// template parameter
 };
 
 struct Match
@@ -100,6 +101,7 @@ struct Declaration : Dsymbol
     int isAbstract()     { return storage_class & STCabstract; }
     int isConst()        { return storage_class & STCconst; }
     int isAuto()         { return storage_class & STCauto; }
+    int isScope()        { return storage_class & (STCscope | STCauto); }
     int isSynchronized() { return storage_class & STCsynchronized; }
     int isParameter()    { return storage_class & STCparameter; }
     int isDeprecated()   { return storage_class & STCdeprecated; }
@@ -202,6 +204,7 @@ struct VarDeclaration : Declaration
     int nestedref;		// referenced by a lexically nested function
     int inuse;
     int ctorinit;		// it has been initialized in a ctor
+    Dsymbol *aliassym;		// if redone as alias to another symbol
 
     VarDeclaration(Loc loc, Type *t, Identifier *id, Initializer *init);
     Dsymbol *syntaxCopy(Dsymbol *);
@@ -220,6 +223,7 @@ struct VarDeclaration : Declaration
     ExpInitializer *getExpInitializer();
     void checkCtorConstInit();
     void checkNestedReference(Scope *sc, Loc loc);
+    Dsymbol *toAlias();
 
     Symbol *toSymbol();
     void toObjFile();			// compile to .obj file
@@ -360,6 +364,13 @@ struct TypeInfoFunctionDeclaration : TypeInfoDeclaration
 struct TypeInfoDelegateDeclaration : TypeInfoDeclaration
 {
     TypeInfoDelegateDeclaration(Type *tinfo);
+
+    void toDt(dt_t **pdt);
+};
+
+struct TypeInfoTupleDeclaration : TypeInfoDeclaration
+{
+    TypeInfoTupleDeclaration(Type *tinfo);
 
     void toDt(dt_t **pdt);
 };
@@ -514,6 +525,7 @@ struct DtorDeclaration : FuncDeclaration
     Dsymbol *syntaxCopy(Dsymbol *);
     void semantic(Scope *sc);
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
+    int isVirtual();
     int addPreInvariant();
     int addPostInvariant();
     int overloadInsert(Dsymbol *s);

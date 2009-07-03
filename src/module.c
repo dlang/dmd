@@ -163,7 +163,7 @@ void Module::setDocfile()
     else
 	argdoc = FileName::name((char *)arg);
     if (!FileName::absolute(argdoc))
-    {	FileName::ensurePathExists(global.params.docdir);
+    {	//FileName::ensurePathExists(global.params.docdir);
 	argdoc = FileName::combine(global.params.docdir, argdoc);
     }
     if (global.params.docname)
@@ -191,7 +191,7 @@ void Module::setHdrfile()
     else
 	arghdr = FileName::name((char *)arg);
     if (!FileName::absolute(arghdr))
-    {	FileName::ensurePathExists(global.params.hdrdir);
+    {	//FileName::ensurePathExists(global.params.hdrdir);
 	arghdr = FileName::combine(global.params.hdrdir, arghdr);
     }
     if (global.params.hdrname)

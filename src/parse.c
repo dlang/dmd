@@ -242,6 +242,7 @@ Array *Parser::parseDeclDefs(int once)
 	    case TOKconst:	  stc = STCconst;	 goto Lstc;
 	    case TOKfinal:	  stc = STCfinal;	 goto Lstc;
 	    case TOKauto:	  stc = STCauto;	 goto Lstc;
+	    case TOKscope:	  stc = STCscope;	 goto Lstc;
 	    case TOKoverride:	  stc = STCoverride;	 goto Lstc;
 	    case TOKabstract:	  stc = STCabstract;	 goto Lstc;
 	    case TOKsynchronized: stc = STCsynchronized; goto Lstc;
@@ -255,6 +256,7 @@ Array *Parser::parseDeclDefs(int once)
 		    case TOKconst:	  stc |= STCconst;	 goto Lstc;
 		    case TOKfinal:	  stc |= STCfinal;	 goto Lstc;
 		    case TOKauto:	  stc |= STCauto;	 goto Lstc;
+		    case TOKscope:	  stc |= STCscope;	 goto Lstc;
 		    case TOKoverride:	  stc |= STCoverride;	 goto Lstc;
 		    case TOKabstract:	  stc |= STCabstract;	 goto Lstc;
 		    case TOKsynchronized: stc |= STCsynchronized; goto Lstc;
@@ -681,7 +683,7 @@ Condition *Parser::parseIftypeCondition()
     }
     Condition *condition = new IftypeCondition(loc, targ, ident, tok, tspec);
 
-    if (!global.params.useDeprecated)
+    if (1 || !global.params.useDeprecated)
 	error("iftype(condition) is deprecated, use static if (is(condition))");
 
     return condition;
@@ -1233,7 +1235,7 @@ TemplateParameters *Parser::parseTemplateParameterList()
 
     // Get array of TemplateParameters
     if (token.value != TOKrparen)
-    {	int variadic = 0;
+    {	int isvariadic = 0;
 
 	while (1)
 	{   TemplateParameter *tp;
@@ -1244,11 +1246,6 @@ TemplateParameters *Parser::parseTemplateParameterList()
 	    Expression *tp_specvalue = NULL;
 	    Expression *tp_defaultvalue = NULL;
 	    Token *t;
-
-	    if (variadic)
-	    {	error("Variadic template parameter must be last one");
-		variadic = 0;
-	    }
 
 	    // Get TemplateParameter
 
@@ -1302,7 +1299,9 @@ TemplateParameters *Parser::parseTemplateParameterList()
 	    }
 	    else if (token.value == TOKidentifier && t->value == TOKdotdotdot)
 	    {	// ident...
-		variadic = 1;
+		if (isvariadic)
+		    error("variadic template parameter must be last");
+		isvariadic = 1;
 		tp_ident = token.ident;
 		nextToken();
 		nextToken();
@@ -1378,7 +1377,7 @@ TemplateInstance *Parser::parseTemplateInstance()
     }
     tempinst->tiargs = parseTemplateArgumentList();
 
-    if (!global.params.useDeprecated)
+    if (1 || !global.params.useDeprecated)
 	error("instance is deprecated, use %s", tempinst->toChars());
     return tempinst;
 
@@ -1733,8 +1732,18 @@ Type *Parser::parseBasicType2(Type *t)
 		else
 		{
 		    //printf("it's [expression]\n");
+		    inBrackets++;
 		    Expression *e = parseExpression();		// [ expression ]
-		    t = new TypeSArray(t,e);
+		    if (token.value == TOKslice)
+		    {	Expression *e2;
+
+			nextToken();
+			e2 = parseExpression();			// [ exp .. exp ]
+			t = new TypeSlice(t, e, e2);
+		    }
+		    else
+			t = new TypeSArray(t,e);
+		    inBrackets--;
 		    check(TOKrbracket);
 		}
 		continue;
@@ -1945,6 +1954,7 @@ Array *Parser::parseDeclarations()
 	    case TOKstatic:	stc = STCstatic;	 goto L1;
 	    case TOKfinal:	stc = STCfinal;		 goto L1;
 	    case TOKauto:	stc = STCauto;		 goto L1;
+	    case TOKscope:	stc = STCscope;		 goto L1;
 	    case TOKoverride:	stc = STCoverride;	 goto L1;
 	    case TOKabstract:	stc = STCabstract;	 goto L1;
 	    case TOKsynchronized: stc = STCsynchronized; goto L1;
@@ -2727,7 +2737,7 @@ Statement *Parser::parseStatement(int flags)
 		    arg = new Argument(In, NULL, token.ident, NULL);
 		    nextToken();
 		    nextToken();
-		    if (!global.params.useDeprecated)
+		    if (1 || !global.params.useDeprecated)
 			error("if (v; e) is deprecated, use if (auto v = e)");
 		}
 	    }
@@ -2747,6 +2757,8 @@ Statement *Parser::parseStatement(int flags)
 	}
 
 	case TOKscope:
+	    if (peek(&token)->value != TOKlparen)
+		goto Ldeclaration;		// scope used as storage class
 	    nextToken();
 	    check(TOKlparen);
 	    if (token.value != TOKidentifier)
@@ -2777,7 +2789,7 @@ Statement *Parser::parseStatement(int flags)
 	case TOKon_scope_success:
 	{
 	    TOK t = token.value;
-	    if (!global.params.useDeprecated)
+	    if (1 || !global.params.useDeprecated)
 		error("%s is deprecated, use scope", token.toChars());
 	    nextToken();
 	    Statement *st = parseStatement(PScurlyscope);
@@ -3326,8 +3338,14 @@ int Parser::isDeclarator(Token **pt, int *haveId, enum TOK endtok)
 		else
 		{
 		    // [ expression ]
+		    // [ expression .. expression ]
 		    if (!isExpression(&t))
 			return FALSE;
+		    if (t->value == TOKslice)
+		    {	t = peek(t);
+			if (!isExpression(&t))
+			    return FALSE;
+		    }
 		    if (t->value != TOKrbracket)
 			return FALSE;
 		    t = peek(t);
@@ -3893,7 +3911,8 @@ Expression *Parser::parsePrimaryExp()
 			 token.value == TOKenum ||
 			 token.value == TOKinterface ||
 			 token.value == TOKfunction ||
-			 token.value == TOKdelegate))
+			 token.value == TOKdelegate ||
+			 token.value == TOKreturn))
 		    {
 			tok2 = token.value;
 			nextToken();
@@ -4404,12 +4423,12 @@ Expression *Parser::parseEqualExp()
 		continue;
 
 	    case TOKidentity:
-		if (!global.params.useDeprecated)
+		if (1 || !global.params.useDeprecated)
 		    error("'===' is deprecated, use 'is' instead");
 		goto L1;
 
 	    case TOKnotidentity:
-		if (!global.params.useDeprecated)
+		if (1 || !global.params.useDeprecated)
 		    error("'!==' is deprecated, use '!is' instead");
 		goto L1;
 

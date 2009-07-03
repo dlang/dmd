@@ -1,5 +1,6 @@
 
-// Copyright (c) 1999-2005 by Digital Mars
+// Compiler implementation of the D programming language
+// Copyright (c) 1999-2006 by Digital Mars
 // All Rights Reserved
 // Initial header generation implementation by Dave Fladebo
 // www.digitalmars.com
@@ -21,6 +22,18 @@
 #include <assert.h>
 #if __DMC__
 #include <complex.h>
+#endif
+
+#ifdef IN_GCC
+#include "mem.h"
+#else
+#if _WIN32
+#include "..\root\mem.h"
+#elif linux
+#include "../root/mem.h"
+#else
+#error "fix this"
+#endif
 #endif
 
 #include "id.h"
@@ -64,6 +77,10 @@ void Module::genhdrfile()
     hdrfile->setbuffer(hdrbufr.data, hdrbufr.offset);
     hdrbufr.data = NULL;
 
+    char *pt = FileName::path(hdrfile->toChars());
+    if (*pt)
+	FileName::ensurePathExists(pt);
+    mem.free(pt);
     hdrfile->writev();
 }
 

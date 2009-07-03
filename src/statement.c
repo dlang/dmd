@@ -88,22 +88,10 @@ Statement *Statement::semanticScope(Scope *sc, Statement *sbreak, Statement *sco
 
 void Statement::error(const char *format, ...)
 {
-    if (!global.gag)
-    {
-	char *p = loc.toChars();
-	if (*p)
-	    fprintf(stdmsg, "%s: ", p);
-	mem.free(p);
-
-	va_list ap;
-	va_start(ap, format);
-	vfprintf(stdmsg, format, ap);
-	va_end(ap);
-
-	fprintf(stdmsg, "\n");
-	fflush(stdmsg);
-    }
-    global.errors++;
+    va_list ap;
+    va_start(ap, format);
+    ::error(loc, format, ap);
+    va_end( ap );
 }
 
 int Statement::hasBreak()
@@ -383,8 +371,8 @@ Statement *CompoundStatement::semantic(Scope *sc)
 			body = new CompoundStatement(0, a);
 			body = new ScopeStatement(0, body);
 
-			char name[3 + sizeof(int) * 3 + 1];
 			static int num;
+			char name[3 + sizeof(num) * 3 + 1];
 			sprintf(name, "__o%d", ++num);
 			Identifier *id = Lexer::idPool(name);
 
@@ -1082,10 +1070,11 @@ Statement *ForeachStatement::semantic(Scope *sc)
 	for (size_t j = 0; j < n; j++)
 	{   size_t k = (op == TOKforeach) ? j : n - 1 - j;
 	    Expression *e;
+	    Type *t;
 	    if (te)
 		e = (Expression *)te->exps->data[k];
 	    else
-		e = Argument::getNth(tuple->arguments, k)->type->defaultInit();
+		t = Argument::getNth(tuple->arguments, k)->type;
 	    Argument *arg = (Argument *)arguments->data[0];
 	    Statements *st = new Statements();
 
@@ -1103,16 +1092,25 @@ Statement *ForeachStatement::semantic(Scope *sc)
 		}
 		Initializer *ie = new ExpInitializer(0, new IntegerExp(k));
 		VarDeclaration *var = new VarDeclaration(loc, arg->type, arg->ident, ie);
+		var->storage_class |= STCconst;
 		DeclarationExp *de = new DeclarationExp(loc, var);
 		st->push(new ExpStatement(loc, de));
 		arg = (Argument *)arguments->data[1];	// value
 	    }
 	    // Declare value
-	    arg->type = e->type;
 	    if (arg->inout != In)
 		error("no storage class for %s", arg->ident->toChars());
-	    Initializer *ie = new ExpInitializer(0, e);
-	    VarDeclaration *var = new VarDeclaration(loc, arg->type, arg->ident, ie);
+	    Dsymbol *var;
+	    if (te)
+	    {
+		arg->type = e->type;
+		Initializer *ie = new ExpInitializer(0, e);
+		var = new VarDeclaration(loc, arg->type, arg->ident, ie);
+	    }
+	    else
+	    {
+		var = new AliasDeclaration(loc, arg->ident, t);
+	    }
 	    DeclarationExp *de = new DeclarationExp(loc, var);
 	    st->push(new ExpStatement(loc, de));
 
@@ -1291,7 +1289,7 @@ Statement *ForeachStatement::semantic(Scope *sc)
 		    // a reference.
 		    VarDeclaration *v;
 		    Initializer *ie;
-		    char applyArg[10 + 4 + 1];
+		    char applyArg[10 + sizeof(i)*3 + 1];
 
 		    sprintf(applyArg, "__applyArg%d", i);
 		    id = Lexer::idPool(applyArg);
@@ -1365,7 +1363,7 @@ Statement *ForeachStatement::semantic(Scope *sc)
 		  "wc","cc","wd",
 		  "dc","dw","dd"
 		};
-		char fdname[11 + 1];
+		char fdname[7+1+2+ sizeof(dim)*3 + 1];
 		int flag;
 
 		switch (tn->ty)
@@ -3112,8 +3110,8 @@ void OnScopeStatement::scopeCode(Statement **sentry, Statement **sexception, Sta
 	     *	sexception:    x = 1;
 	     *	sfinally: if (!x) statement;
 	     */
-	    char name[5 + sizeof(int) * 3 + 1];
 	    static int num;
+	    char name[5 + sizeof(num) * 3 + 1];
 	    sprintf(name, "__osf%d", ++num);
 	    Identifier *id = Lexer::idPool(name);
 

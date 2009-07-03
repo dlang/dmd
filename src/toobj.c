@@ -858,6 +858,11 @@ void VarDeclaration::toObjFile()
 
     //printf("VarDeclaration::toObjFile(%p '%s') protection %d\n", this, toChars(), protection);
 
+    if (aliassym)
+    {	toAlias()->toObjFile();
+	return;
+    }
+
     if (isDataseg() && !(storage_class & STCextern))
     {
 	s = toSymbol();

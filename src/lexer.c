@@ -187,7 +187,7 @@ char *Token::toChars()
 	{   OutBuffer buf;
 
 	    buf.writeByte('"');
-	    for (unsigned i = 0; i < len; )
+	    for (size_t i = 0; i < len; )
 	    {	unsigned c;
 
 		utf_decodeChar((unsigned char *)ustring, len, &i, &c);
@@ -1901,7 +1901,7 @@ done:
 		goto L1;
 
 	    case 'l':
-		if (!global.params.useDeprecated)
+		if (1 || !global.params.useDeprecated)
 		    error("'l' suffix is deprecated, use 'L' instead");
 	    case 'L':
 		f = FLAGS_long;
@@ -2290,8 +2290,8 @@ unsigned Lexer::decodeUTF()
     dchar_t u;
     unsigned char c;
     unsigned char *s = p;
-    unsigned len;
-    unsigned idx;
+    size_t len;
+    size_t idx;
     char *msg;
 
     c = *s;

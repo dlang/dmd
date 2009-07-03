@@ -21,6 +21,8 @@
 /* Changes for the GDC compiler by David Friedman */
 #endif
 
+#define BREAKABI 0	// not ready to break the ABI just yet
+
 struct Array;
 
 // Put command line switches in here
@@ -52,6 +54,7 @@ struct Param
     char pic;		// generate position-independent-code for shared libs
     char cov;		// generate code coverage data
     char nofloat;	// code should not pull in floating point support
+    char Dversion;	// D version number
 
     char *argv0;	// program name
     Array *imppath;	// array of char*'s of where to look for import modules
@@ -237,6 +240,7 @@ enum DYNCAST
 };
 
 void error(Loc loc, const char *format, ...);
+void error(Loc loc, const char *format, char *);
 void fatal();
 void err_nomem();
 int runLINK();

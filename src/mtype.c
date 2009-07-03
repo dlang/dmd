@@ -90,6 +90,7 @@ ClassDeclaration *Type::typeinfoassociativearray;
 ClassDeclaration *Type::typeinfoenum;
 ClassDeclaration *Type::typeinfofunction;
 ClassDeclaration *Type::typeinfodelegate;
+ClassDeclaration *Type::typeinfotypelist;
 
 Type *Type::tvoidptr;
 Type *Type::basic[TMAX];
@@ -121,6 +122,7 @@ int Type::equals(Object *o)
 {   Type *t;
 
     t = (Type *)o;
+    //printf("Type::equals(%s, %s)\n", toChars(), t->toChars());
     if (this == o ||
 	(t && deco == t->deco) &&		// deco strings are unique
 	 deco != NULL)				// and semantic() has been run
@@ -182,7 +184,8 @@ void Type::init()
     mangleChar[Tinstance] = '@';
     mangleChar[Terror] = '@';
     mangleChar[Ttypeof] = '@';
-    mangleChar[Ttuple] = '@';
+    mangleChar[Ttuple] = 'B';
+    mangleChar[Tslice] = '@';
 
     for (i = 0; i < TMAX; i++)
     {	if (!mangleChar[i])
@@ -596,6 +599,13 @@ Expression *Type::dotExp(Scope *sc, Expression *e, Identifier *ident)
 	    }
 	}
     }
+    if (ident == Id::typeinfo)
+    {
+	if (!global.params.useDeprecated)
+	    error(e->loc, ".typeinfo deprecated, use typeid(type)");
+	e = getTypeInfo(sc);
+	return e;
+    }
     return getProperty(e->loc, ident);
 }
 
@@ -606,22 +616,10 @@ unsigned Type::memalign(unsigned salign)
 
 void Type::error(Loc loc, const char *format, ...)
 {
-    if (!global.gag)
-    {
-	char *p = loc.toChars();
-	if (*p)
-	    fprintf(stdmsg, "%s: ", p);
-	mem.free(p);
-
-	va_list ap;
-	va_start(ap, format);
-	vfprintf(stdmsg, format, ap);
-	va_end(ap);
-
-	fprintf(stdmsg, "\n");
-	fflush(stdmsg);
-    }
-    global.errors++;
+    va_list ap;
+    va_start(ap, format);
+    ::error(loc, format, ap);
+    va_end( ap );
 }
 
 Identifier *Type::getTypeInfoIdent(int internal)
@@ -1600,15 +1598,37 @@ unsigned TypeSArray::alignsize()
     return next->alignsize();
 }
 
+/**************************
+ * This evaluates exp while setting length to be the number
+ * of elements in the tuple t.
+ */
+Expression *semanticLength(Scope *sc, Type *t, Expression *exp)
+{
+    if (t->ty == Ttuple)
+    {	ScopeDsymbol *sym = new ArrayScopeSymbol((TypeTuple *)t);
+	sym->parent = sc->scopesym;
+	sc = sc->push(sym);
+
+	exp = exp->semantic(sc);
+
+	sc->pop();
+    }
+    else
+	exp = exp->semantic(sc);
+    return exp;
+}
+
 Type *TypeSArray::semantic(Loc loc, Scope *sc)
 {
     //printf("TypeSArray::semantic() %s\n", toChars());
     next = next->semantic(loc,sc);
     Type *tbn = next->toBasetype();
+
     if (dim)
     {	integer_t n, n2;
 
-	dim = dim->semantic(sc);
+	dim = semanticLength(sc, tbn, dim);
+
 	dim = dim->constFold();
 	integer_t d1 = dim->toInteger();
 	dim = dim->castTo(sc, tsize_t);
@@ -1647,6 +1667,19 @@ Type *TypeSArray::semantic(Loc loc, Scope *sc)
     }
     switch (tbn->ty)
     {
+	case Ttuple:
+	{   // Index the tuple to get the type
+	    assert(dim);
+	    TypeTuple *tt = (TypeTuple *)tbn;
+	    uinteger_t d = dim->toUInteger();
+
+	    if (d >= tt->arguments->dim)
+	    {	error(loc, "tuple index %llu exceeds %u", d, tt->arguments->dim);
+		return Type::terror;
+	    }
+	    Argument *arg = (Argument *)tt->arguments->data[(size_t)d];
+	    return arg->type;
+	}
 	case Tfunction:
 	case Tnone:
 	    error(loc, "can't have array of %s", tbn->toChars());
@@ -2743,7 +2776,17 @@ Expression *TypeDelegate::dotExp(Scope *sc, Expression *e, Identifier *ident)
 #endif
     if (ident == Id::ptr)
     {
-	e = e->castTo(sc, tvoidptr);
+	e->type = tvoidptr;
+	return e;
+    }
+    else if (ident == Id::funcptr)
+    {
+	e = e->addressOf(sc);
+	e->type = tvoidptr;
+	e = new AddExp(e->loc, e, new IntegerExp(PTRSIZE));
+	e->type = tvoidptr;
+	e = new PtrExp(e->loc, e);
+	e->type = next->pointerTo();
 	return e;
     }
     else
@@ -3363,7 +3406,6 @@ Type *TypeTypeof::semantic(Loc loc, Scope *sc)
     }
     else
     {
-
 	exp = exp->semantic(sc);
 	t = exp->type;
 	if (!t)
@@ -3873,6 +3915,22 @@ Expression *TypeStruct::dotExp(Scope *sc, Expression *e, Identifier *ident)
 	return new IntegerExp(e->loc, 0, Type::tint32);
     }
 
+    if (ident == Id::tupleof)
+    {
+	/* Create a TupleExp
+	 */
+	Expressions *exps = new Expressions;
+	exps->reserve(sym->fields.dim);
+	for (size_t i = 0; i < sym->fields.dim; i++)
+	{   VarDeclaration *v = (VarDeclaration *)sym->fields.data[i];
+	    Expression *fe = new DotVarExp(e->loc, e, v);
+	    exps->push(fe);
+	}
+	e = new TupleExp(e->loc, exps);
+	e = e->semantic(sc);
+	return e;
+    }
+
     if (e->op == TOKdotexp)
     {	DotExp *de = (DotExp *)e;
 
@@ -4096,6 +4154,22 @@ Expression *TypeClass::dotExp(Scope *sc, Expression *e, Identifier *ident)
 	    e = de->e1;
 	    goto L1;
 	}
+    }
+
+    if (ident == Id::tupleof)
+    {
+	/* Create a TupleExp
+	 */
+	Expressions *exps = new Expressions;
+	exps->reserve(sym->fields.dim);
+	for (size_t i = 0; i < sym->fields.dim; i++)
+	{   VarDeclaration *v = (VarDeclaration *)sym->fields.data[i];
+	    Expression *fe = new DotVarExp(e->loc, e, v);
+	    exps->push(fe);
+	}
+	e = new TupleExp(e->loc, exps);
+	e = e->semantic(sc);
+	return e;
     }
 
     s = sym->search(e->loc, ident, 0);
@@ -4340,7 +4414,18 @@ int TypeClass::checkBoolean()
 TypeTuple::TypeTuple(Arguments *arguments)
     : Type(Ttuple, NULL)
 {
+    //printf("TypeTuple(this = %p)\n", this);
     this->arguments = arguments;
+#ifdef DEBUG
+    if (arguments)
+    {
+	for (size_t i = 0; i < arguments->dim; i++)
+	{
+	    Argument *arg = (Argument *)arguments->data[i];
+	    assert(arg && arg->type);
+	}
+    }
+#endif
 }
 
 /****************
@@ -4358,7 +4443,7 @@ TypeTuple::TypeTuple(Expressions *exps)
 	for (size_t i = 0; i < exps->dim; i++)
 	{   Expression *e = (Expression *)exps->data[i];
 	    assert(e->type->ty != Ttuple);
-	    Argument *arg = new Argument(None, e->type, NULL, NULL);
+	    Argument *arg = new Argument(In, e->type, NULL, NULL);
 	    arguments->data[i] = (void *)arg;
 	}
     }
@@ -4374,14 +4459,41 @@ Type *TypeTuple::syntaxCopy()
 
 Type *TypeTuple::semantic(Loc loc, Scope *sc)
 {
-//    if (!deco)
-//	deco = merge()->deco;
-    deco = "hello";
+    //printf("TypeTuple::semantic(this = %p)\n", this);
+    if (!deco)
+	deco = merge()->deco;
 
     /* Don't return merge(), because a tuple with one type has the
      * same deco as that type.
      */
     return this;
+}
+
+int TypeTuple::equals(Object *o)
+{   Type *t;
+
+    t = (Type *)o;
+    //printf("TypeTuple::equals(%s, %s)\n", toChars(), t->toChars());
+    if (this == t)
+    {
+	return 1;
+    }
+    if (t->ty == Ttuple)
+    {	TypeTuple *tt = (TypeTuple *)t;
+
+	if (arguments->dim == tt->arguments->dim)
+	{
+	    for (size_t i = 0; i < tt->arguments->dim; i++)
+	    {   Argument *arg1 = (Argument *)arguments->data[i];
+		Argument *arg2 = (Argument *)tt->arguments->data[i];
+
+		if (!arg1->type->equals(arg2->type))
+		    return 0;
+	    }
+	    return 1;
+	}
+    }
+    return 0;
 }
 
 Type *TypeTuple::reliesOnTident()
@@ -4413,7 +4525,10 @@ void TypeTuple::toCBuffer2(OutBuffer *buf, Identifier *ident, HdrGenState *hgs)
 void TypeTuple::toDecoBuffer(OutBuffer *buf)
 {
     //printf("TypeTuple::toDecoBuffer() this = %p\n", this);
-    Argument::argsToDecoBuffer(buf, arguments);
+    OutBuffer buf2;
+    Argument::argsToDecoBuffer(&buf2, arguments);
+    unsigned len = buf2.offset;
+    buf->printf("%c%d%.*s", mangleChar[ty], len, len, buf2.extractData());
 }
 
 Expression *TypeTuple::getProperty(Loc loc, Identifier *ident)
@@ -4427,8 +4542,94 @@ Expression *TypeTuple::getProperty(Loc loc, Identifier *ident)
 	e = new IntegerExp(loc, arguments->dim, Type::tsize_t);
     }
     else
-	e = Type::getProperty(loc, ident);
+    {
+	error(loc, "no property '%s' for tuple '%s'", ident->toChars(), toChars());
+	e = new IntegerExp(loc, 1, Type::tint32);
+    }
     return e;
+}
+
+/***************************** TypeSlice *****************************/
+
+/* This is so we can slice a TypeTuple */
+
+TypeSlice::TypeSlice(Type *next, Expression *lwr, Expression *upr)
+    : Type(Tslice, next)
+{
+    //printf("TypeSlice[%s .. %s]\n", lwr->toChars(), upr->toChars());
+    this->lwr = lwr;
+    this->upr = upr;
+}
+
+Type *TypeSlice::syntaxCopy()
+{
+    Type *t = new TypeSlice(next->syntaxCopy(), lwr->syntaxCopy(), upr->syntaxCopy());
+    return t;
+}
+
+Type *TypeSlice::semantic(Loc loc, Scope *sc)
+{
+    //printf("TypeSlice::semantic() %s\n", toChars());
+    next = next->semantic(loc, sc);
+    //printf("next: %s\n", next->toChars());
+
+    Type *tbn = next->toBasetype();
+    if (tbn->ty != Ttuple)
+    {	error(loc, "can only slice tuple types, not %s", tbn->toChars());
+	return Type::terror;
+    }
+    TypeTuple *tt = (TypeTuple *)tbn;
+
+    lwr = semanticLength(sc, tbn, lwr);
+    lwr = lwr->constFold();
+    uinteger_t i1 = lwr->toUInteger();
+
+    upr = semanticLength(sc, tbn, upr);
+    upr = upr->constFold();
+    uinteger_t i2 = upr->toUInteger();
+
+    if (!(i1 <= i2 && i2 <= tt->arguments->dim))
+    {	error(loc, "slice [%llu..%llu] is out of range of [0..%u]", i1, i2, tt->arguments->dim);
+	return Type::terror;
+    }
+
+    Arguments *args = new Arguments;
+    args->reserve(i2 - i1);
+    for (size_t i = i1; i < i2; i++)
+    {	Argument *arg = (Argument *)tt->arguments->data[i];
+	args->push(arg);
+    }
+
+    return new TypeTuple(args);
+}
+
+void TypeSlice::resolve(Loc loc, Scope *sc, Expression **pe, Type **pt, Dsymbol **ps)
+{
+    next->resolve(loc, sc, pe, pt, ps);
+    if (*pe)
+    {	// It's really a slice expression
+	Expression *e;
+	e = new SliceExp(loc, *pe, lwr, upr);
+	*pe = e;
+    }
+    else
+	Type::resolve(loc, sc, pe, pt, ps);
+}
+
+void TypeSlice::toCBuffer2(OutBuffer *buf, Identifier *ident, HdrGenState *hgs)
+{
+    OutBuffer buf2;
+
+    buf2.printf("[%s .. ", lwr->toChars());
+    buf2.printf("%s]", upr->toChars());
+
+    buf->prependstring(buf2.toChars());
+    if (ident)
+    {
+	buf->writeByte(' ');
+	buf->writestring(ident->toChars());
+    }
+    next->toCBuffer2(buf, NULL, hgs);
 }
 
 /***************************** Argument *****************************/
@@ -4546,9 +4747,10 @@ void Argument::argsToDecoBuffer(OutBuffer *buf, Arguments *arguments)
     // Write argument types
     if (arguments)
     {
-	for (size_t i = 0; i < arguments->dim; i++)
+	size_t dim = Argument::dim(arguments);
+	for (size_t i = 0; i < dim; i++)
 	{
-	    Argument *arg = (Argument *)arguments->data[i];
+	    Argument *arg = Argument::getNth(arguments, i);
 	    arg->toDecoBuffer(buf);
 	}
     }
@@ -4598,6 +4800,9 @@ void Argument::toDecoBuffer(OutBuffer *buf)
 	    buf->writeByte('L');
 	    break;
 	default:
+#ifdef DEBUG
+	    *(char*)0=0;
+#endif
 	    assert(0);
     }
     type->toDecoBuffer(buf);

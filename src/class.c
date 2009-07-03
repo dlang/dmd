@@ -139,6 +139,12 @@ ClassDeclaration::ClassDeclaration(Loc loc, Identifier *id, BaseClasses *basecla
 		    Type::typeinfodelegate->error(msg);
 		Type::typeinfodelegate = this;
 	    }
+
+	    if (id == Id::TypeInfo_Tuple)
+	    {	if (Type::typeinfotypelist)
+		    Type::typeinfotypelist->error(msg);
+		Type::typeinfotypelist = this;
+	    }
 	}
 
 	if (id == Id::Object)
@@ -437,7 +443,7 @@ void ClassDeclaration::semantic(Scope *sc)
 	}
     }
 
-    if (storage_class & STCauto)
+    if (storage_class & (STCauto | STCscope))
 	isauto = 1;
     if (storage_class & STCabstract)
 	isabstract = 1;
@@ -445,7 +451,7 @@ void ClassDeclaration::semantic(Scope *sc)
 	isdeprecated = 1;
 
     sc = sc->push(this);
-    sc->stc &= ~(STCauto | STCstatic | STCabstract | STCdeprecated);
+    sc->stc &= ~(STCauto | STCscope | STCstatic | STCabstract | STCdeprecated);
     sc->parent = this;
     sc->inunion = 0;
 

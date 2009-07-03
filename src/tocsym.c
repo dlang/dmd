@@ -1,5 +1,6 @@
 
-// Copyright (c) 1999-2005 by Digital Mars
+// Compiler implementation of the D programming language
+// Copyright (c) 1999-2006 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // www.digitalmars.com
@@ -114,7 +115,7 @@ Symbol *Dsymbol::toImport(Symbol *sym)
 
     //printf("Dsymbol::toImport('%s')\n", sym->Sident);
     n = sym->Sident;
-    id = (char *) alloca(6 + strlen(n) + 5 + 1);
+    id = (char *) alloca(6 + strlen(n) + 1 + sizeof(type_paramsize(sym->Stype))*3 + 1);
     if (sym->Stype->Tmangle == mTYman_std)
     {
 	sprintf(id,"_imp__%s@%d",n,type_paramsize(sym->Stype));

@@ -301,8 +301,8 @@ void StorageClassDeclaration::semantic(Scope *sc)
     if (decl)
     {	unsigned stc_save = sc->stc;
 
-	if (stc & (STCauto | STCstatic | STCextern))
-	    sc->stc &= ~(STCauto | STCstatic | STCextern);
+	if (stc & (STCauto | STCscope | STCstatic | STCextern))
+	    sc->stc &= ~(STCauto | STCscope | STCstatic | STCextern);
 	sc->stc |= stc;
 	for (unsigned i = 0; i < decl->dim; i++)
 	{
@@ -327,6 +327,7 @@ void StorageClassDeclaration::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
     static SCstring table[] =
     {
 	{ STCauto,         TOKauto },
+	{ STCscope,        TOKscope },
 	{ STCstatic,       TOKstatic },
 	{ STCextern,       TOKextern },
 	{ STCconst,        TOKconst },
@@ -599,7 +600,7 @@ void AnonDeclaration::semantic(Scope *sc)
 
 	sc = sc->push();
 	sc->anonAgg = &aad;
-	sc->stc &= ~(STCauto | STCstatic);
+	sc->stc &= ~(STCauto | STCscope | STCstatic);
 	sc->inunion = isunion;
 	sc->offset = 0;
 	sc->flags = 0;

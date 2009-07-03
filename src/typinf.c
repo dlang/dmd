@@ -1,4 +1,5 @@
 
+// Compiler implementation of the D programming language
 // Copyright (c) 1999-2006 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
@@ -37,6 +38,7 @@
 #include "outbuf.h"
 #include "irstate.h"
 
+extern Symbol *static_sym();
 
 /*******************************************
  * Get a canonicalized form of the TypeInfo for use with the internal
@@ -99,25 +101,27 @@ Expression *Type::getInternalTypeInfo(Scope *sc)
 Expression *Type::getTypeInfo(Scope *sc)
 {
     Expression *e;
+    Type *t;
 
-    //printf("Type::getTypeInfo() %s\n", toChars());
-    if (!vtinfo)
-    {	vtinfo = getTypeInfoDeclaration();
+    //printf("Type::getTypeInfo() %p, %s\n", this, toChars());
+    t = merge();	// do this since not all Type's are merge'd
+    if (!t->vtinfo)
+    {	t->vtinfo = t->getTypeInfoDeclaration();
 
 	/* If this has a custom implementation in std/typeinfo, then
 	 * do not generate a COMDAT for it.
 	 */
-	if (!builtinTypeInfo())
+	if (!t->builtinTypeInfo())
 	{   // Generate COMDAT
 	    if (sc)			// if in semantic() pass
-		sc->module->members->push(vtinfo);
+		sc->module->members->push(t->vtinfo);
 	    else			// if in obj generation pass
-		vtinfo->toObjFile();
+		t->vtinfo->toObjFile();
 	}
     }
-    e = new VarExp(0, vtinfo);
+    e = new VarExp(0, t->vtinfo);
     e = e->addressOf(sc);
-    e->type = vtinfo->type;		// do this so we don't get redundant dereference
+    e->type = t->vtinfo->type;		// do this so we don't get redundant dereference
     return e;
 }
 
@@ -178,6 +182,11 @@ TypeInfoDeclaration *TypeFunction::getTypeInfoDeclaration()
 TypeInfoDeclaration *TypeDelegate::getTypeInfoDeclaration()
 {
     return new TypeInfoDelegateDeclaration(this);
+}
+
+TypeInfoDeclaration *TypeTuple::getTypeInfoDeclaration()
+{
+    return new TypeInfoTupleDeclaration(this);
 }
 
 
@@ -484,6 +493,35 @@ void TypeInfoInterfaceDeclaration::toDt(dt_t **pdt)
     dtxoff(pdt, s, 0, TYnptr);		// ClassInfo for tinfo
 }
 
+void TypeInfoTupleDeclaration::toDt(dt_t **pdt)
+{
+    //printf("TypeInfoTupleDeclaration::toDt() %s\n", tinfo->toChars());
+    dtxoff(pdt, Type::typeinfotypelist->toVtblSymbol(), 0, TYnptr); // vtbl for TypeInfoInterface
+    dtdword(pdt, 0);			    // monitor
+
+    assert(tinfo->ty == Ttuple);
+
+    TypeTuple *tu = (TypeTuple *)tinfo;
+
+    size_t dim = tu->arguments->dim;
+    dtdword(pdt, dim);			    // elements.length
+
+    dt_t *d = NULL;
+    for (size_t i = 0; i < dim; i++)
+    {	Argument *arg = (Argument *)tu->arguments->data[i];
+	Expression *e = arg->type->getTypeInfo(NULL);
+	e = e->optimize(WANTvalue);
+	e->toDt(&d);
+    }
+
+    Symbol *s;
+    s = static_sym();
+    s->Sdt = d;
+    outdata(s);
+
+    dtxoff(pdt, s, 0, TYnptr);		    // elements.ptr
+}
+
 void TypeInfoDeclaration::toObjFile()
 {
     Symbol *s;
@@ -555,8 +593,49 @@ int TypeDArray::builtinTypeInfo()
  * Used to supply hidden _arguments[] value for variadic D functions.
  */
 
-Expression *createTypeInfoArray(Scope *sc, Expression *args[], int dim)
+Expression *createTypeInfoArray(Scope *sc, Expression *exps[], int dim)
 {
+#if 1
+    /* Get the corresponding TypeInfo_Tuple and
+     * point at its elements[].
+     */
+
+    /* Create the TypeTuple corresponding to the types of args[]
+     */
+    Arguments *args = new Arguments;
+    args->setDim(dim);
+    for (size_t i = 0; i < dim; i++)
+    {	Argument *arg = new Argument(In, exps[i]->type, NULL, NULL);
+	args->data[i] = (void *)arg;
+    }
+    TypeTuple *tup = new TypeTuple(args);
+    Expression *e = tup->getTypeInfo(sc);
+    e = e->optimize(WANTvalue);
+    assert(e->op == TOKsymoff);		// should be SymOffExp
+
+#if BREAKABI
+    /*
+     * Should just pass a reference to TypeInfo_Tuple instead,
+     * but that would require existing code to be recompiled.
+     * Source compatibility can be maintained by computing _arguments[]
+     * at the start of the called function by offseting into the
+     * TypeInfo_Tuple reference.
+     */
+
+#else
+    // Advance to elements[] member of TypeInfo_Tuple
+    SymOffExp *se = (SymOffExp *)e;
+    se->offset += PTRSIZE + PTRSIZE;
+
+    // Set type to TypeInfo[]*
+    se->type = Type::typeinfo->type->arrayOf()->pointerTo();
+
+    // Indirect to get the _arguments[] value
+    e = new PtrExp(0, se);
+    e->type = se->type->next;
+#endif
+    return e;
+#else
     /* Improvements:
      * 1) create an array literal instead,
      * as it would eliminate the extra dereference of loading the
@@ -574,7 +653,7 @@ Expression *createTypeInfoArray(Scope *sc, Expression *args[], int dim)
     // Generate identifier for _arguments[]
     buf.writestring("_arguments_");
     for (int i = 0; i < dim; i++)
-    {	t = args[i]->type;
+    {	t = exps[i]->type;
 	t->toDecoBuffer(&buf);
     }
     buf.writeByte(0);
@@ -592,7 +671,7 @@ Expression *createTypeInfoArray(Scope *sc, Expression *args[], int dim)
     {	// Generate new one
 
 	for (int i = 0; i < dim; i++)
-	{   t = args[i]->type;
+	{   t = exps[i]->type;
 	    e = t->getTypeInfo(sc);
 	    ai->addInit(new IntegerExp(i), new ExpInitializer(0, e));
 	}
@@ -613,5 +692,8 @@ Expression *createTypeInfoArray(Scope *sc, Expression *args[], int dim)
     e = new VarExp(0, v);
     e = e->semantic(sc);
     return e;
+#endif
 }
+
+
 

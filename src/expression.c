@@ -432,8 +432,8 @@ void functionArguments(Loc loc, Scope *sc, TypeFunction *tf, Expressions *argume
 			    break;
 			}
 #endif
-			char name[10+6+1];
 			static int idn;
+			char name[10 + sizeof(idn)*3 + 1];
 			sprintf(name, "__arrayArg%d", ++idn);
 			Identifier *id = Lexer::idPool(name);
 			Type *t = new TypeSArray(tb->next, new IntegerExp(nargs - i));
@@ -688,25 +688,10 @@ char *Expression::toChars()
 
 void Expression::error(const char *format, ...)
 {
-    if (!global.gag)
-    {
-	char *p = loc.toChars();
-
-	if (*p)
-	    fprintf(stdmsg, "%s: ", p);
-	mem.free(p);
-
-	va_list ap;
-	va_start(ap, format);
-	vfprintf(stdmsg, format, ap);
-	va_end(ap);
-
-	fprintf(stdmsg, "\n");
-	fflush(stdmsg);
-    }
-
-    global.errors++;
-    //fatal();
+    va_list ap;
+    va_start(ap, format);
+    ::error(loc, format, ap);
+    va_end( ap );
 }
 
 void Expression::rvalue()
@@ -2023,7 +2008,7 @@ StringExp::StringExp(Loc loc, char *string)
     this->postfix = 0;
 }
 
-StringExp::StringExp(Loc loc, void *string, unsigned len)
+StringExp::StringExp(Loc loc, void *string, size_t len)
 	: Expression(loc, TOKstring, sizeof(StringExp))
 {
     this->string = string;
@@ -2033,7 +2018,7 @@ StringExp::StringExp(Loc loc, void *string, unsigned len)
     this->postfix = 0;
 }
 
-StringExp::StringExp(Loc loc, void *string, unsigned len, unsigned char postfix)
+StringExp::StringExp(Loc loc, void *string, size_t len, unsigned char postfix)
 	: Expression(loc, TOKstring, sizeof(StringExp))
 {
     this->string = string;
@@ -2078,9 +2063,9 @@ Expression *StringExp::semantic(Scope *sc)
 #endif
     if (!type)
     {	OutBuffer buffer;
-	unsigned newlen = 0;
+	size_t newlen = 0;
 	char *p;
-	unsigned u;
+	size_t u;
 	unsigned c;
 
 	switch (postfix)
@@ -2200,7 +2185,7 @@ int StringExp::isBool(int result)
 }
 
 void StringExp::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
-{   unsigned i;
+{   size_t i;
 
     buf->writeByte('"');
     for (i = 0; i < len;)
@@ -2427,7 +2412,7 @@ void TypeDotIdExp::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 TypeExp::TypeExp(Loc loc, Type *type)
     : Expression(loc, TOKtype, sizeof(TypeExp))
 {
-    //printf("TypeExp(): %s\n", type->toChars());
+    //printf("TypeExp::TypeExp(%s)\n", type->toChars());
     this->type = type;
 }
 
@@ -2992,7 +2977,7 @@ void VarExp::checkEscape()
     VarDeclaration *v = var->isVarDeclaration();
     if (v)
     {
-	if (v->isAuto() && !v->noauto)
+	if ((v->isAuto() || v->isScope()) && !v->noauto)
 	    error("escaping reference to auto local %s", v->toChars());
 	else if (v->storage_class & STCvariadic)
 	    error("escaping reference to variadic parameter %s", v->toChars());
@@ -3088,7 +3073,7 @@ Expression *TupleExp::syntaxCopy()
 Expression *TupleExp::semantic(Scope *sc)
 {
 #if LOGSEMANTIC
-    printf("TupleExp::semantic(%s)\n", toChars());
+    printf("+TupleExp::semantic(%s)\n", toChars());
 #endif
     if (type)
 	return this;
@@ -3107,6 +3092,7 @@ Expression *TupleExp::semantic(Scope *sc)
 
     expandTuples(exps);
     type = new TypeTuple(exps);
+    //printf("-TupleExp::semantic(%s)\n", toChars());
     return this;
 }
 
@@ -3393,13 +3379,16 @@ Expression *IftypeExp::semantic(Scope *sc)
     if (id && !(sc->flags & SCOPEstaticif))
 	error("can only declare type aliases within static if conditionals");
 
-    unsigned errors = global.errors;
+    unsigned errors_save = global.errors;
+    global.errors = 0;
     global.gag++;			// suppress printing of error messages
     targ = targ->semantic(loc, sc);
     global.gag--;
-    if (errors != global.errors)	// if any errors happened
+    unsigned gerrors = global.errors;
+    global.errors = errors_save;
+
+    if (gerrors)			// if any errors happened
     {					// then condition is false
-	global.errors = errors;
 	goto Lno;
     }
     else if (tok2 != TOKreserved)
@@ -3450,16 +3439,44 @@ Expression *IftypeExp::semantic(Scope *sc)
 		tded = ((TypeEnum *)targ)->sym->memtype;
 		break;
 
-	    case TOKfunction:
-		if (targ->ty != Tfunction)
-		    goto Lno;
-		tded = targ->next;
-		break;
-
 	    case TOKdelegate:
 		if (targ->ty != Tdelegate)
 		    goto Lno;
-		tded = targ->next;
+		tded = targ->next;	// the underlying function type
+		break;
+
+	    case TOKfunction:
+	    {	if (targ->ty != Tfunction)
+		    goto Lno;
+		tded = targ;
+
+		/* Generate tuple from function parameter types.
+		 */
+		assert(tded->ty == Tfunction);
+		Arguments *params = ((TypeFunction *)tded)->parameters;
+		size_t dim = Argument::dim(params);
+		Arguments *args = new Arguments;
+		args->reserve(dim);
+		for (size_t i = 0; i < dim; i++)
+		{   Argument *arg = Argument::getNth(params, i);
+		    assert(arg && arg->type);
+		    args->push(new Argument(arg->inout, arg->type, NULL, NULL));
+		}
+		tded = new TypeTuple(args);
+		break;
+	    }
+	    case TOKreturn:
+		/* Get the 'return type' for the function,
+		 * delegate, or pointer to function.
+		 */
+		if (targ->ty == Tfunction)
+		    tded = targ->next;
+		else if (targ->ty == Tdelegate)
+		    tded = targ->next->next;
+		else if (targ->ty == Tpointer && targ->next->ty == Tfunction)
+		    tded = targ->next->next;
+		else
+		    goto Lno;
 		break;
 
 	    default:
@@ -3985,6 +4002,12 @@ Expression *DotIdExp::semantic(Scope *sc)
 		return e;
 	    }
 
+	    Type *t = s->getType();
+	    if (t)
+	    {
+		return new TypeExp(loc, t);
+	    }
+
 	    ScopeDsymbol *sds = s->isScopeDsymbol();
 	    if (sds)
 	    {
@@ -4003,12 +4026,6 @@ Expression *DotIdExp::semantic(Scope *sc)
 
 		ie = new ScopeExp(loc, imp->pkg);
 		return ie->semantic(sc);
-	    }
-
-	    Type *t = s->getType();
-	    if (t)
-	    {
-		return new TypeExp(loc, t);
 	    }
 
 	    // BUG: handle other cases like in IdentifierExp::semantic()
@@ -4079,8 +4096,43 @@ Expression *DotVarExp::semantic(Scope *sc)
 #endif
     if (!type)
     {
-	e1 = e1->semantic(sc);
 	var = var->toAlias()->isDeclaration();
+
+	TupleDeclaration *tup = var->isTupleDeclaration();
+	if (tup)
+	{   /* Replace:
+	     *	e1.tuple(a, b, c)
+	     * with:
+	     *	tuple(e1.a, e1.b, e1.c)
+	     */
+	    Expressions *exps = new Expressions;
+
+	    exps->reserve(tup->objects->dim);
+	    for (size_t i = 0; i < tup->objects->dim; i++)
+	    {   Object *o = (Object *)tup->objects->data[i];
+		if (o->dyncast() != DYNCAST_EXPRESSION)
+		{
+		    error("%s is not an expression", o->toChars());
+		}
+		else
+		{
+		    Expression *e = (Expression *)o;
+		    if (e->op != TOKdsymbol)
+			error("%s is not a member", e->toChars());
+		    else
+		    {	DsymbolExp *ve = (DsymbolExp *)e;
+
+			e = new DotVarExp(loc, e1, ve->s->isDeclaration());
+			exps->push(e);
+		    }
+		}
+	    }
+	    Expression *e = new TupleExp(loc, exps);
+	    e = e->semantic(sc);
+	    return e;
+	}
+
+	e1 = e1->semantic(sc);
 	type = var->type;
 	if (!type && global.errors)
 	{   // var is goofed up, just return 0
@@ -5448,23 +5500,49 @@ Expression *SliceExp::semantic(Scope *sc)
 	sc->pop();
 
     if (t->ty == Ttuple)
-    {	TupleExp *te = (TupleExp *)e1;
+    {
 	lwr = lwr->optimize(WANTvalue);
 	upr = upr->optimize(WANTvalue);
-	size_t length = te->exps->dim;
 	uinteger_t i1 = lwr->toUInteger();
 	uinteger_t i2 = upr->toUInteger();
 
+	size_t length;
+	TupleExp *te;
+	TypeTuple *tup;
+
+	if (e1->op == TOKtuple)		// slicing an expression tuple
+	{   te = (TupleExp *)e1;
+	    length = te->exps->dim;
+	}
+	else if (e1->op == TOKtype)	// slicing a type tuple
+	{   tup = (TypeTuple *)t;
+	    length = Argument::dim(tup->arguments);
+	}
+	else
+	    assert(0);
+
 	if (i1 <= i2 && i2 <= length)
-	{   Expressions *exps = new Expressions;
-	    size_t j1 = (size_t) i1;
+	{   size_t j1 = (size_t) i1;
 	    size_t j2 = (size_t) i2;
-	    exps->setDim(j2 - j1);
-	    for (size_t i = 0; i < j2 - j1; i++)
-	    {	Expression *e = (Expression *)te->exps->data[j1 + i];
-		exps->data[i] = (void *)e;
+
+	    if (e1->op == TOKtuple)
+	    {	Expressions *exps = new Expressions;
+		exps->setDim(j2 - j1);
+		for (size_t i = 0; i < j2 - j1; i++)
+		{   Expression *e = (Expression *)te->exps->data[j1 + i];
+		    exps->data[i] = (void *)e;
+		}
+		e = new TupleExp(loc, exps);
 	    }
-	    e = new TupleExp(loc, exps);
+	    else
+	    {	Arguments *args = new Arguments;
+		args->reserve(j2 - j1);
+		for (size_t i = j1; i < j2; i++)
+		{   Argument *arg = Argument::getNth(tup->arguments, i);
+		    args->push(arg);
+		}
+		e = new TypeExp(e1->loc, new TypeTuple(args));
+	    }
 	    e = e->semantic(sc);
 	}
 	else
@@ -5782,14 +5860,33 @@ Expression *IndexExp::semantic(Scope *sc)
 	}
 
 	case Ttuple:
-	{   TupleExp *te = (TupleExp *)e1;
+	{
 	    e2 = e2->implicitCastTo(sc, Type::tindex);
 	    e2 = e2->optimize(WANTvalue);
 	    uinteger_t index = e2->toUInteger();
-	    uinteger_t length = te->exps->dim;
+	    size_t length;
+	    TupleExp *te;
+	    TypeTuple *tup;
+
+	    if (e1->op == TOKtuple)
+	    {	te = (TupleExp *)e1;
+		length = te->exps->dim;
+	    }
+	    else if (e1->op == TOKtype)
+	    {
+		tup = (TypeTuple *)t1;
+		length = Argument::dim(tup->arguments);
+	    }
+	    else
+		assert(0);
+
 	    if (index < length)
 	    {
-		e = (Expression *)te->exps->data[(size_t)index];
+
+		if (e1->op == TOKtuple)
+		    e = (Expression *)te->exps->data[(size_t)index];
+		else
+		    e = new TypeExp(e1->loc, Argument::getNth(tup->arguments, (size_t)index)->type);
 	    }
 	    else
 	    {

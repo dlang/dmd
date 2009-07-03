@@ -717,6 +717,14 @@ ArrayScopeSymbol::ArrayScopeSymbol(Expression *e)
 {
     assert(e->op == TOKindex || e->op == TOKslice);
     exp = e;
+    type = NULL;
+}
+
+ArrayScopeSymbol::ArrayScopeSymbol(TypeTuple *t)
+    : ScopeDsymbol()
+{
+    exp = NULL;
+    type = t;
 }
 
 Dsymbol *ArrayScopeSymbol::search(Loc loc, Identifier *ident, int flags)
@@ -725,6 +733,15 @@ Dsymbol *ArrayScopeSymbol::search(Loc loc, Identifier *ident, int flags)
     if (ident == Id::length || ident == Id::dollar)
     {	VarDeclaration **pvar;
 	Expression *ce;
+
+	if (type)
+ 	{
+	    VarDeclaration *v = new VarDeclaration(0, Type::tsize_t, Id::dollar, NULL);
+	    Expression *e = new IntegerExp(0, type->arguments->dim, Type::tsize_t);
+	    v->init = new ExpInitializer(0, e);
+	    v->storage_class |= STCconst;
+	    return v;
+	}
 
 	if (exp->op == TOKindex)
 	{

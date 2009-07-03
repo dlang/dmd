@@ -493,6 +493,7 @@ dt_t **NullExp::toDt(dt_t **pdt)
 
 dt_t **StringExp::toDt(dt_t **pdt)
 {
+    //printf("StringExp::toDt() '%s', type = %s\n", toChars(), type->toChars());
     Type *t = type->toBasetype();
 
     // BUG: should implement some form of static string pooling
@@ -751,7 +752,7 @@ dt_t **TypeSArray::toDtElem(dt_t **pdt, Expression *e)
     int i;
     unsigned len;
 
-    //printf("TypeSArray::toDt()\n");
+    //printf("TypeSArray::toDtElem()\n");
     len = dim->toInteger();
     if (len)
     {
@@ -796,7 +797,7 @@ dt_t **TypeSArray::toDtElem(dt_t **pdt, Expression *e)
 		(*pdt)->DTazeros = len;
 		pdt = &((*pdt)->DTnext);
 	    }
-	    else
+	    else if (e->op != TOKstring)
 	    {
 		for (i = 1; i < len; i++)
 		{

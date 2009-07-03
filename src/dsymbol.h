@@ -51,6 +51,7 @@ struct Package;
 struct Module;
 struct Import;
 struct Type;
+struct TypeTuple;
 struct WithStatement;
 struct LabelDsymbol;
 struct ScopeDsymbol;
@@ -246,8 +247,10 @@ struct WithScopeSymbol : ScopeDsymbol
 struct ArrayScopeSymbol : ScopeDsymbol
 {
     Expression *exp;	// IndexExp or SliceExp
+    TypeTuple *type;	// for tuple[length]
 
     ArrayScopeSymbol(Expression *e);
+    ArrayScopeSymbol(TypeTuple *t);
     Dsymbol *search(Loc loc, Identifier *ident, int flags);
 
     ArrayScopeSymbol *isArrayScopeSymbol() { return this; }

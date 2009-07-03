@@ -1,5 +1,6 @@
 
-// Copyright (c) 1999-2002 by Digital Mars
+// Compiler implementation of the D programming language
+// Copyright (c) 1999-2006 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // www.digitalmars.com
@@ -44,9 +45,11 @@ Msgtable msgtable[] =
     { "__sizeof", "sizeof" },
     { "alignof" },
     { "mangleof" },
+    { "tupleof" },
     { "length" },
     { "remove" },
     { "ptr" },
+    { "funcptr" },
     { "dollar", "__dollar" },
     { "offset" },
     { "offsetof" },
@@ -77,6 +80,7 @@ Msgtable msgtable[] =
     { "TypeInfo_AssociativeArray" },
     { "TypeInfo_Function" },
     { "TypeInfo_Delegate" },
+    { "TypeInfo_Tuple" },
     { "_arguments" },
     { "_argptr" },
     { "_match" },

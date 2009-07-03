@@ -268,6 +268,7 @@ struct TemplateInstance : ScopeDsymbol
     void semanticTiargs(Scope *sc);
     TemplateDeclaration *findTemplateDeclaration(Scope *sc);
     void declareParameters(Scope *sc);
+    int isNested(Objects *tiargs);
     Identifier *genIdent();
 
     TemplateInstance *isTemplateInstance() { return this; }
