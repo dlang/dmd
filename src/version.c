@@ -46,7 +46,7 @@ Dsymbol *DebugSymbol::syntaxCopy(Dsymbol *s)
     return ds;
 }
 
-void DebugSymbol::addMember(Scope *sc, ScopeDsymbol *sd, int memnum)
+int DebugSymbol::addMember(Scope *sc, ScopeDsymbol *sd, int memnum)
 {
     //printf("DebugSymbol::addMember('%s') %s\n", sd->toChars(), toChars());
     Module *m;
@@ -74,6 +74,7 @@ void DebugSymbol::addMember(Scope *sc, ScopeDsymbol *sd, int memnum)
 	else
 	    m->debuglevel = level;
     }
+    return 0;
 }
 
 void DebugSymbol::semantic(Scope *sc)
@@ -125,7 +126,7 @@ Dsymbol *VersionSymbol::syntaxCopy(Dsymbol *s)
     return ds;
 }
 
-void VersionSymbol::addMember(Scope *sc, ScopeDsymbol *sd, int memnum)
+int VersionSymbol::addMember(Scope *sc, ScopeDsymbol *sd, int memnum)
 {
     //printf("VersionSymbol::addMember('%s') %s\n", sd->toChars(), toChars());
     Module *m;
@@ -154,6 +155,7 @@ void VersionSymbol::addMember(Scope *sc, ScopeDsymbol *sd, int memnum)
 	else
 	    m->versionlevel = level;
     }
+    return 0;
 }
 
 void VersionSymbol::semantic(Scope *sc)

@@ -55,7 +55,6 @@ Msgtable msgtable[] =
     { "classinfo" },
     { "typeinfo" },
     { "Exception" },
-    { "_Match" },
     { "withSym", "__withSym" },
     { "result", "__result" },
     { "returnLabel", "__returnLabel" },
@@ -102,6 +101,10 @@ Msgtable msgtable[] =
     { "D" },
     { "Windows" },
     { "Pascal" },
+
+    { "exit" },
+    { "success" },
+    { "failure" },
 
     { "keys" },
     { "values" },
@@ -165,6 +168,7 @@ Msgtable msgtable[] =
     { "index", "opIndex" },
     { "indexass", "opIndexAssign" },
     { "slice", "opSlice" },
+    { "sliceass", "opSliceAssign" },
     { "call", "opCall" },
     { "cast", "opCast" },
     { "match", "opMatch" },

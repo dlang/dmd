@@ -184,7 +184,7 @@ Array *Parser::parseDeclDefs(int once)
 	    case TOKtypeof:
 	    case TOKdot:
 	    Ldeclaration:
-		a = parseDeclaration();
+		a = parseDeclarations();
 		decldefs->append(a);
 		continue;
 
@@ -938,6 +938,7 @@ Array *Parser::parseParameters(int *pvarargs)
     *pvarargs = varargs;
     return arguments;
 }
+
 
 /*************************************
  */
@@ -1925,7 +1926,7 @@ Type *Parser::parseDeclarator(Type *t, Identifier **pident)
  * Return array of Declaration *'s.
  */
 
-Array *Parser::parseDeclaration()
+Array *Parser::parseDeclarations()
 {
     enum STC storage_class;
     enum STC stc;
@@ -1938,7 +1939,7 @@ Array *Parser::parseDeclaration()
     unsigned char *comment = token.blockComment;
     enum LINK link = linkage;
 
-    //printf("parseDeclaration()\n");
+    //printf("parseDeclarations()\n");
     switch (token.value)
     {
 	case TOKtypedef:
@@ -2477,7 +2478,7 @@ Statement *Parser::parseStatement(int flags)
 	Ldeclaration:
 	{   Array *a;
 
-	    a = parseDeclaration();
+	    a = parseDeclarations();
 	    if (a->dim > 1)
 	    {
 		Array *as = new Array();
@@ -2686,8 +2687,42 @@ Statement *Parser::parseStatement(int flags)
 	    nextToken();
 	    check(TOKlparen);
 
+	    if (token.value == TOKauto)
+	    {
+		nextToken();
+		if (token.value == TOKidentifier)
+		{
+		    Token *t = peek(&token);
+		    if (t->value == TOKassign)
+		    {
+			arg = new Argument(In, NULL, token.ident, NULL);
+			nextToken();
+			nextToken();
+		    }
+		    else
+		    {   error("= expected following auto identifier");
+			goto Lerror;
+		    }
+		}
+		else
+		{   error("identifier expected following auto");
+		    goto Lerror;
+		}
+	    }
+	    else if (isDeclaration(&token, 2, TOKassign, NULL))
+	    {
+		Type *tb;
+		Type *at;
+		Identifier *ai;
+
+		tb = parseBasicType();
+		at = parseDeclarator(tb, &ai);
+		check(TOKassign);
+		arg = new Argument(In, at, ai, NULL);
+	    }
+
 	    // Check for " ident;"
-	    if (token.value == TOKidentifier)
+	    else if (token.value == TOKidentifier)
 	    {
 		Token *t = peek(&token);
 		if (t->value == TOKcomma || t->value == TOKsemicolon)
@@ -2695,6 +2730,8 @@ Statement *Parser::parseStatement(int flags)
 		    arg = new Argument(In, NULL, token.ident, NULL);
 		    nextToken();
 		    nextToken();
+		    if (!global.params.useDeprecated)
+			error("if (v; e) is deprecated, use if (auto v = e)");
 		}
 	    }
 
@@ -2712,10 +2749,39 @@ Statement *Parser::parseStatement(int flags)
 	    break;
 	}
 
+	case TOKscope:
+	    nextToken();
+	    check(TOKlparen);
+	    if (token.value != TOKidentifier)
+	    {	error("scope identifier expected");
+		goto Lerror;
+	    }
+	    else
+	    {	TOK t = TOKon_scope_exit;
+		Identifier *id = token.ident;
+
+		if (id == Id::exit)
+		    t = TOKon_scope_exit;
+		else if (id == Id::failure)
+		    t = TOKon_scope_failure;
+		else if (id == Id::success)
+		    t = TOKon_scope_success;
+		else
+		    error("valid scope identifiers are exit, failure, or success, not %s", id->toChars());
+		nextToken();
+		check(TOKrparen);
+		Statement *st = parseStatement(PScurlyscope);
+		s = new OnScopeStatement(loc, t, st);
+		break;
+	    }
+
 	case TOKon_scope_exit:
 	case TOKon_scope_failure:
 	case TOKon_scope_success:
-	{   TOK t = token.value;
+	{
+	    TOK t = token.value;
+	    if (!global.params.useDeprecated)
+		error("%s is deprecated, use scope", token.toChars());
 	    nextToken();
 	    Statement *st = parseStatement(PScurlyscope);
 	    s = new OnScopeStatement(loc, t, st);

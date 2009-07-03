@@ -43,9 +43,10 @@ Array *AttribDeclaration::include(Scope *sc, ScopeDsymbol *sd)
     return decl;
 }
 
-void AttribDeclaration::addMember(Scope *sc, ScopeDsymbol *sd, int memnum)
+int AttribDeclaration::addMember(Scope *sc, ScopeDsymbol *sd, int memnum)
 {
     unsigned i;
+    int m = 0;
     Array *d = include(sc, sd);
 
     if (d)
@@ -54,9 +55,10 @@ void AttribDeclaration::addMember(Scope *sc, ScopeDsymbol *sd, int memnum)
 	{   Dsymbol *s;
 
 	    s = (Dsymbol *)d->data[i];
-	    s->addMember(sc, sd, i + memnum);
+	    m |= s->addMember(sc, sd, m | memnum);
 	}
     }
+    return m;
 }
 
 void AttribDeclaration::semantic(Scope *sc)
@@ -944,7 +946,7 @@ Dsymbol *StaticIfDeclaration::syntaxCopy(Dsymbol *s)
 }
 
 
-void StaticIfDeclaration::addMember(Scope *sc, ScopeDsymbol *sd, int memnum)
+int StaticIfDeclaration::addMember(Scope *sc, ScopeDsymbol *sd, int memnum)
 {
     /* This is deferred until semantic(), so that
      * expressions in the condition can refer to declarations
@@ -958,11 +960,13 @@ void StaticIfDeclaration::addMember(Scope *sc, ScopeDsymbol *sd, int memnum)
      * }
      */
     this->sd = sd;
+    int m = 0;
 
     if (memnum == 0)
-    {	AttribDeclaration::addMember(sc, sd, memnum);
+    {	m = AttribDeclaration::addMember(sc, sd, memnum);
 	addisdone = 1;
     }
+    return m;
 }
 
 

@@ -79,7 +79,7 @@ struct Parser : Lexer
     Type *parseBasicType();
     Type *parseBasicType2(Type *t);
     Type *parseDeclarator(Type *t, Identifier **pident);
-    Array *parseDeclaration();
+    Array *parseDeclarations();
     void parseContracts(FuncDeclaration *f);
     Statement *parseStatement(int flags);
     Initializer *parseInitializer();

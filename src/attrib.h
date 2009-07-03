@@ -34,7 +34,7 @@ struct AttribDeclaration : Dsymbol
 
     AttribDeclaration(Array *decl);
     virtual Array *include(Scope *sc, ScopeDsymbol *s);
-    void addMember(Scope *sc, ScopeDsymbol *s, int memnum);
+    int addMember(Scope *sc, ScopeDsymbol *s, int memnum);
     void semantic(Scope *sc);
     void semantic2(Scope *sc);
     void semantic3(Scope *sc);
@@ -138,7 +138,7 @@ struct StaticIfDeclaration : ConditionalDeclaration
 
     StaticIfDeclaration(Condition *condition, Array *decl, Array *elsedecl);
     Dsymbol *syntaxCopy(Dsymbol *s);
-    void addMember(Scope *sc, ScopeDsymbol *s, int memnum);
+    int addMember(Scope *sc, ScopeDsymbol *s, int memnum);
     void semantic(Scope *sc);
     char *kind();
 };

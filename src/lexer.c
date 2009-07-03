@@ -2475,6 +2475,7 @@ static Keyword keywords[] =
     {	"with",		TOKwith		},
     {	"asm",		TOKasm		},
     {	"foreach",	TOKforeach	},
+    {	"scope",	TOKscope	},
     {	"on_scope_exit",    TOKon_scope_exit },
     {	"on_scope_failure", TOKon_scope_failure },
     {	"on_scope_success", TOKon_scope_success },

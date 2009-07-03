@@ -142,16 +142,16 @@ int Statement::comeFrom()
  * a Statement.
  * Output:
  *	*sentry		code executed upon entry to the scope
- *	*sexit		code executed upon exit from the scope
+ *	*sexception	code executed upon exit from the scope via exception
  *	*sfinally	code executed in finally block
  */
 
-void Statement::scopeCode(Statement **sentry, Statement **sexit, Statement **sfinally)
+void Statement::scopeCode(Statement **sentry, Statement **sexception, Statement **sfinally)
 {
     //printf("Statement::scopeCode()\n");
     //print();
     *sentry = NULL;
-    *sexit = NULL;
+    *sexception = NULL;
     *sfinally = NULL;
 }
 
@@ -229,13 +229,13 @@ Statement *DeclarationStatement::syntaxCopy()
     return ds;
 }
 
-void DeclarationStatement::scopeCode(Statement **sentry, Statement **sexit, Statement **sfinally)
+void DeclarationStatement::scopeCode(Statement **sentry, Statement **sexception, Statement **sfinally)
 {
     //printf("DeclarationStatement::scopeCode()\n");
     //print();
 
     *sentry = NULL;
-    *sexit = NULL;
+    *sexception = NULL;
     *sfinally = NULL;
 
     if (exp)
@@ -266,7 +266,7 @@ void DeclarationStatement::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 
 /******************************** CompoundStatement ***************************/
 
-CompoundStatement::CompoundStatement(Loc loc, Array *s)
+CompoundStatement::CompoundStatement(Loc loc, Statements *s)
     : Statement(loc)
 {
     statements = s;
@@ -275,7 +275,7 @@ CompoundStatement::CompoundStatement(Loc loc, Array *s)
 CompoundStatement::CompoundStatement(Loc loc, Statement *s1, Statement *s2)
     : Statement(loc)
 {
-    statements = new Array();
+    statements = new Statements();
     statements->reserve(2);
     statements->push(s1);
     statements->push(s2);
@@ -283,9 +283,9 @@ CompoundStatement::CompoundStatement(Loc loc, Statement *s1, Statement *s2)
 
 Statement *CompoundStatement::syntaxCopy()
 {
-    Array *a = new Array();
+    Statements *a = new Statements();
     a->setDim(statements->dim);
-    for (int i = 0; i < statements->dim; i++)
+    for (size_t i = 0; i < statements->dim; i++)
     {	Statement *s = (Statement *)statements->data[i];
 	if (s)
 	    s = s->syntaxCopy();
@@ -304,12 +304,12 @@ Statement *CompoundStatement::semantic(Scope *sc)
     /* Start by flattening it
      */
 
-    for (int i = 0; i < statements->dim; i++)
+    for (size_t i = 0; i < statements->dim; i++)
     {
       L1:
 	s = (Statement *) statements->data[i];
 	if (s)
-	{   Array *a = s->flatten();
+	{   Statements *a = s->flatten();
 
 	    if (a)
 	    {
@@ -322,7 +322,7 @@ Statement *CompoundStatement::semantic(Scope *sc)
 	}
     }
 
-    for (int i = 0; i < statements->dim; i++)
+    for (size_t i = 0; i < statements->dim; i++)
     {
 	s = (Statement *) statements->data[i];
 	if (s)
@@ -332,30 +332,36 @@ Statement *CompoundStatement::semantic(Scope *sc)
 	    if (s)
 	    {
 		Statement *sentry;
-		Statement *sexit;
+		Statement *sexception;
 		Statement *sfinally;
 
-		s->scopeCode(&sentry, &sexit, &sfinally);
+		s->scopeCode(&sentry, &sexception, &sfinally);
 		if (sentry)
 		{
 		    sentry = sentry->semantic(sc);
 		    statements->data[i] = sentry;
 		}
-		if (sexit && !sfinally)
+		if (sexception)
 		{
 		    if (i + 1 == statements->dim)
 		    {
-			statements->push(sexit);
+			statements->push(sexception);
+			if (sfinally)
+			    // Assume sexception does not throw
+			    statements->push(sfinally);
 		    }
 		    else
 		    {
 			/* Rewrite:
 			 *	s; s1; s2;
 			 * As:
-			 *	s; { s1; s2; } sexit;
+			 *	s;
+			 *	try { s1; s2; }
+			 *	catch (Object __o)
+			 *	{ sexception; throw __o; }
 			 */
 			Statement *body;
-			Array *a = new Array();
+			Statements *a = new Statements();
 
 			for (int j = i + 1; j < statements->dim; j++)
 			{
@@ -363,14 +369,29 @@ Statement *CompoundStatement::semantic(Scope *sc)
 			}
 			body = new CompoundStatement(0, a);
 			body = new ScopeStatement(0, body);
-			s = new CompoundStatement(0, body, sexit);
+
+			char name[3 + sizeof(int) * 3 + 1];
+			static int num;
+			sprintf(name, "__o%d", ++num);
+			Identifier *id = Lexer::idPool(name);
+
+			Statement *handler = new ThrowStatement(0, new IdentifierExp(0, id));
+			handler = new CompoundStatement(0, sexception, handler);
+
+			Array *catches = new Array();
+			Catch *ctch = new Catch(0, NULL, id, handler);
+			catches->push(ctch);
+			s = new TryCatchStatement(0, body, catches);
+
+			if (sfinally)
+			    s = new TryFinallyStatement(0, s, sfinally);
 			s = s->semantic(sc);
 			statements->data[i + 1] = s;
 			statements->setDim(i + 2);
 			break;
 		    }
 		}
-		else if (!sexit && sfinally)
+		else if (sfinally)
 		{
 		    if (i + 1 == statements->dim)
 		    {
@@ -391,38 +412,6 @@ Statement *CompoundStatement::semantic(Scope *sc)
 			    a->push(statements->data[j]);
 			}
 			body = new CompoundStatement(0, a);
-			s = new TryFinallyStatement(0, body, sfinally);
-			s = s->semantic(sc);
-			statements->data[i + 1] = s;
-			statements->setDim(i + 2);
-			break;
-		    }
-		}
-		else if (sexit && sfinally)
-		{
-		    if (i + 1 == statements->dim)
-		    {	/* Assume sexit cannot throw an exception
-			 */
-			statements->push(sexit);
-			statements->push(sfinally);
-		    }
-		    else
-		    {
-			/* Rewrite:
-			 *	s; s1; s2;
-			 * As:
-			 *	s; try { { s1; s2; } sexit; } finally { sfinally; }
-			 */
-			Statement *body;
-			Array *a = new Array();
-
-			for (int j = i + 1; j < statements->dim; j++)
-			{
-			    a->push(statements->data[j]);
-			}
-			body = new CompoundStatement(0, a);
-			body = new ScopeStatement(0, body);
-			body = new CompoundStatement(0, body, sexit);
 			s = new TryFinallyStatement(0, body, sfinally);
 			s = s->semantic(sc);
 			statements->data[i + 1] = s;
@@ -545,10 +534,10 @@ Statement *ScopeStatement::semantic(Scope *sc)
 	if (statement)
 	{
 	    Statement *sentry;
-	    Statement *sexit;
+	    Statement *sexception;
 	    Statement *sfinally;
 
-	    statement->scopeCode(&sentry, &sexit, &sfinally);
+	    statement->scopeCode(&sentry, &sexception, &sfinally);
 	    if (sfinally)
 	    {
 		//printf("adding sfinally\n");
@@ -585,7 +574,6 @@ WhileStatement::WhileStatement(Loc loc, Expression *c, Statement *b)
 {
     condition = c;
     body = b;
-    match = NULL;
 }
 
 Statement *WhileStatement::syntaxCopy()
@@ -691,9 +679,7 @@ Statement *DoStatement::semantic(Scope *sc)
     condition = condition->semantic(sc);
     condition = resolveProperties(sc, condition);
 
-    // Only check boolean if it's not _Match
-//    if (!condition->type->equals(StructDeclaration::match->type))
-	condition = condition->checkToBoolean();
+    condition = condition->checkToBoolean();
 
     return this;
 }
@@ -1284,7 +1270,8 @@ Statement *IfStatement::semantic(Scope *sc)
 	sym->parent = sc->scopesym;
 	scd = sc->push(sym);
 
-	match = new VarDeclaration(loc, condition->type, arg->ident, NULL);
+	Type *t = arg->type ? arg->type : condition->type;
+	match = new VarDeclaration(loc, t, arg->ident, NULL);
 	match->noauto = 1;
 	match->semantic(scd);
 	if (!scd->insert(match))
@@ -2715,12 +2702,12 @@ int OnScopeStatement::usesEH()
     return (tok != TOKon_scope_success);
 }
 
-void OnScopeStatement::scopeCode(Statement **sentry, Statement **sexit, Statement **sfinally)
+void OnScopeStatement::scopeCode(Statement **sentry, Statement **sexception, Statement **sfinally)
 {
     //printf("OnScopeStatement::scopeCode()\n");
     //print();
     *sentry = NULL;
-    *sexit = NULL;
+    *sexception = NULL;
     *sfinally = NULL;
     switch (tok)
     {
@@ -2729,10 +2716,14 @@ void OnScopeStatement::scopeCode(Statement **sentry, Statement **sexit, Statemen
 	    break;
 
 	case TOKon_scope_failure:
+	    *sexception = statement;
+	    break;
+
+	case TOKon_scope_success:
 	{
 	    /* Create:
 	     *	sentry:   int x = 0;
-	     *	sexit:    x = 1;
+	     *	sexception:    x = 1;
 	     *	sfinally: if (!x) statement;
 	     */
 	    char name[5 + sizeof(int) * 3 + 1];
@@ -2746,7 +2737,7 @@ void OnScopeStatement::scopeCode(Statement **sentry, Statement **sexit, Statemen
 
 	    Expression *e = new IntegerExp(1);
 	    e = new AssignExp(0, new VarExp(0, v), e);
-	    *sexit = new ExpStatement(0, e);
+	    *sexception = new ExpStatement(0, e);
 
 	    e = new VarExp(0, v);
 	    e = new NotExp(0, e);
@@ -2754,10 +2745,6 @@ void OnScopeStatement::scopeCode(Statement **sentry, Statement **sexit, Statemen
 
 	    break;
 	}
-
-	case TOKon_scope_success:
-	    *sexit = statement;
-	    break;
 
 	default:
 	    assert(0);

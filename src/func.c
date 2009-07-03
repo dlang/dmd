@@ -1142,21 +1142,10 @@ if (arguments)
 	OutBuffer buf;
 
 	if (arguments)
-	{   int i;
-	    OutBuffer argbuf;
+	{
 	    HdrGenState hgs;
 
-	    for (i = 0; i < arguments->dim; i++)
-	    {   Expression *arg;
-
-		arg = (Expression *)arguments->data[i];
-		argbuf.reset();
-		assert(arg->type);
-		arg->type->toCBuffer2(&argbuf, NULL, &hgs);
-		if (i)
-		    buf.writeByte(',');
-		buf.write(&argbuf);
-	    }
+	    argExpTypesToCBuffer(&buf, arguments, &hgs);
 	}
 
 	if (m.last == MATCHnomatch)

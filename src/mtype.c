@@ -772,8 +772,8 @@ TypeBasic::TypeBasic(TY ty)
 			flags |= TFLAGSintegral | TFLAGSunsigned;
 			break;
 
-	case Tbool:	d = Token::toChars(TOKbool);
-			c = "bool";
+	case Tbool:	d = "bool";
+			c = d;
 			flags |= TFLAGSintegral | TFLAGSunsigned;
 			break;
 
@@ -1334,7 +1334,7 @@ int TypeBasic::implicitConvTo(Type *to)
 	return MATCHnomatch;
     if (ty == Tvoid /*|| to->ty == Tvoid*/)
 	return MATCHnomatch;
-    if (to->ty == Tbit)
+    if (to->ty == Tbit || to->ty == Tbool)
 	return MATCHnomatch;
     TypeBasic *tob = (TypeBasic *)to;
     if (flags & TFLAGSintegral)

@@ -87,6 +87,7 @@ Dsymbol *Dsymbol::syntaxCopy(Dsymbol *s)
 
 int Dsymbol::oneMember(Dsymbol **ps)
 {
+    //printf("Dsymbol::oneMember()\n");
     *ps = this;
     return TRUE;
 }
@@ -97,7 +98,7 @@ int Dsymbol::oneMember(Dsymbol **ps)
 
 int Dsymbol::oneMembers(Array *members, Dsymbol **ps)
 {
-    //printf("Dsymbol::oneMembers()\n");
+    //printf("Dsymbol::oneMembers() %d\n", members ? members->dim : 0);
     Dsymbol *s = NULL;
 
     if (members)
@@ -315,8 +316,9 @@ int Dsymbol::needThis()
     return FALSE;
 }
 
-void Dsymbol::addMember(Scope *sc, ScopeDsymbol *sd, int memnum)
+int Dsymbol::addMember(Scope *sc, ScopeDsymbol *sd, int memnum)
 {
+    //printf("Dsymbol::addMember('%s')\n", toChars());
     //printf("Dsymbol::addMember(this = %p, '%s' scopesym = '%s')\n", this, toChars(), sd->toChars());
     //printf("Dsymbol::addMember(this = %p, '%s' sd = %p, sd->symtab = %p)\n", this, toChars(), sd, sd->symtab);
     parent = sd;
@@ -337,7 +339,9 @@ void Dsymbol::addMember(Scope *sc, ScopeDsymbol *sd, int memnum)
 	    if (ident == Id::__sizeof || ident == Id::alignof || ident == Id::mangleof)
 		error(".%s property cannot be redefined", ident->toChars());
 	}
+	return 1;
     }
+    return 0;
 }
 
 void Dsymbol::error(const char *format, ...)

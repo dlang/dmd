@@ -28,6 +28,7 @@ struct Type;
 struct Scope;
 struct Expression;
 struct AliasDeclaration;
+struct FuncDeclaration;
 struct HdrGenState;
 enum MATCH;
 
@@ -53,6 +54,10 @@ struct TemplateDeclaration : ScopeDsymbol
 
     MATCH matchWithInstance(TemplateInstance *ti, Array *atypes, int flag);
     int leastAsSpecialized(TemplateDeclaration *td2);
+
+    MATCH deduceMatch(Array *targsi, Array *fargs, Array *dedargs);
+    FuncDeclaration *deduce(Scope *sc, Loc loc, Array *targsi, Array *fargs);
+    void declareParameter(Scope *sc, TemplateParameter *tp, Object *o);
 
     TemplateDeclaration *isTemplateDeclaration() { return this; }
 };
@@ -82,6 +87,7 @@ struct TemplateParameter
     virtual void semantic(Scope *) = 0;
     virtual void print(Object *oarg, Object *oded) = 0;
     virtual void toCBuffer(OutBuffer *buf, HdrGenState *hgs) = 0;
+    virtual Object *specialization() = 0;
     virtual Object *defaultArg(Scope *sc) = 0;
 
     /* If TemplateParameter's match as far as overloading goes.
@@ -112,6 +118,7 @@ struct TemplateTypeParameter : TemplateParameter
     void semantic(Scope *);
     void print(Object *oarg, Object *oded);
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
+    Object *specialization();
     Object *defaultArg(Scope *sc);
     int overloadMatch(TemplateParameter *);
     MATCH matchArg(Scope *sc, Object *oarg, int i, Array *parameters, Array *dedtypes, Declaration **psparam);
@@ -137,6 +144,7 @@ struct TemplateValueParameter : TemplateParameter
     void semantic(Scope *);
     void print(Object *oarg, Object *oded);
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
+    Object *specialization();
     Object *defaultArg(Scope *sc);
     int overloadMatch(TemplateParameter *);
     MATCH matchArg(Scope *sc, Object *oarg, int i, Array *parameters, Array *dedtypes, Declaration **psparam);
@@ -163,6 +171,7 @@ struct TemplateAliasParameter : TemplateParameter
     void semantic(Scope *);
     void print(Object *oarg, Object *oded);
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
+    Object *specialization();
     Object *defaultArg(Scope *sc);
     int overloadMatch(TemplateParameter *);
     MATCH matchArg(Scope *sc, Object *oarg, int i, Array *parameters, Array *dedtypes, Declaration **psparam);
@@ -172,20 +181,26 @@ struct TemplateAliasParameter : TemplateParameter
 struct TemplateInstance : ScopeDsymbol
 {
     /* Given:
-     *	instance foo.bar.abc(int, char, 10*10)
+     *	template abc(T:T*, S, int V)
+     *	instance foo.bar.abc(int*, char, 10*10)
      */
     Array idents;		// Array of Identifiers [foo, bar, abc]
-    Array *tiargs;		// Array of Types/Expressions of template instance arguments [int, char, 10*10]
+    Array *tiargs;		// Array of Types/Expressions of template
+				// instance arguments [int*, char, 10*10]
+
+    Array tdtypes;		// Array of Types/Expressions corresponding
+				// to TemplateDeclaration.parameters
+				// [int, char, 100]
 
     TemplateDeclaration *tempdecl;	// referenced by foo.bar.abc
     TemplateInstance *inst;		// refer to existing instance
-    Array tdtypes;		// types corresponding to TemplateDeclaration.parameters
     ScopeDsymbol *argsym;	// argument symbol table
     AliasDeclaration *aliasdecl;	// !=NULL if instance is an alias for its
 					// sole member
     WithScopeSymbol *withsym;		// if a member of a with statement
     int semanticdone;	// has semantic() been done?
     int nest;		// for recursion detection
+    int havetempdecl;	// 1 if used second constructor
 #ifdef IN_GCC
     /* On some targets, it is necessary to know whether a symbol
        will be emitted in the output or not before the symbol
@@ -194,6 +209,7 @@ struct TemplateInstance : ScopeDsymbol
 #endif
 
     TemplateInstance(Loc loc, Identifier *temp_id);
+    TemplateInstance(Loc loc, TemplateDeclaration *tempdecl, Array *tiargs);
     Dsymbol *syntaxCopy(Dsymbol *);
     void addIdent(Identifier *ident);
     void semantic(Scope *sc);

@@ -42,6 +42,8 @@ struct ScopeStatement;
 struct TryCatchStatement;
 struct HdrGenState;
 
+typedef Array Statements;
+
 // Back end
 struct IRState;
 struct Blockx;
@@ -81,7 +83,7 @@ struct Statement : Object
     virtual int fallOffEnd();
     virtual int comeFrom();
     virtual void scopeCode(Statement **sentry, Statement **sexit, Statement **sfinally);
-    virtual Array *flatten();
+    virtual Statements *flatten();
 
     virtual int inlineCost(InlineCostState *ics);
     virtual Expression *doInline(InlineDoState *ids);
@@ -129,16 +131,16 @@ struct DeclarationStatement : ExpStatement
 
 struct CompoundStatement : Statement
 {
-    Array *statements;
+    Statements *statements;
 
-    CompoundStatement(Loc loc, Array *s);
+    CompoundStatement(Loc loc, Statements *s);
     CompoundStatement(Loc loc, Statement *s1, Statement *s2);
     Statement *syntaxCopy();
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
     Statement *semantic(Scope *sc);
     int usesEH();
     int fallOffEnd();
-    Array *flatten();
+    Statements *flatten();
     ReturnStatement *isReturnStatement();
 
     int inlineCost(InlineCostState *ics);
@@ -155,7 +157,7 @@ struct CompoundStatement : Statement
 
 struct BlockStatement : CompoundStatement
 {
-    BlockStatement(Loc loc, Array *s);
+    BlockStatement(Loc loc, Statements *s);
     BlockStatement(Loc loc, Statement *s1, Statement *s2);
     Statement *syntaxCopy();
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
@@ -185,8 +187,6 @@ struct WhileStatement : Statement
 {
     Expression *condition;
     Statement *body;
-
-    VarDeclaration *match;	// for MatchExpression results
 
     WhileStatement(Loc loc, Expression *c, Statement *b);
     Statement *syntaxCopy();
@@ -604,7 +604,7 @@ struct VolatileStatement : Statement
     VolatileStatement(Loc loc, Statement *statement);
     Statement *syntaxCopy();
     Statement *semantic(Scope *sc);
-    Array *flatten();
+    Statements *flatten();
     int fallOffEnd();
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
 
@@ -640,7 +640,7 @@ struct LabelStatement : Statement
     LabelStatement(Loc loc, Identifier *ident, Statement *statement);
     Statement *syntaxCopy();
     Statement *semantic(Scope *sc);
-    Array *flatten();
+    Statements *flatten();
     int usesEH();
     int fallOffEnd();
     int comeFrom();

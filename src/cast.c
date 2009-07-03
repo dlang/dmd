@@ -150,7 +150,7 @@ int IntegerExp::implicitConvTo(Type *t)
     {
 	case Tbit:
 	case Tbool:
-	    if (value & ~1)
+	    if ((value & 1) != value)
 		goto Lno;
 	    goto Lyes;
 

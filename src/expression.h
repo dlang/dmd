@@ -1,5 +1,5 @@
 
-// Copyright (c) 1999-2005 by Digital Mars
+// Copyright (c) 1999-2006 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // www.digitalmars.com
@@ -33,6 +33,7 @@ struct Expression;
 struct Declaration;
 struct AggregateDeclaration;
 struct TemplateInstance;
+struct TemplateDeclaration;
 struct ClassDeclaration;
 struct HdrGenState;
 struct BinExp;
@@ -40,6 +41,8 @@ struct BinExp;
 // Back end
 struct IRState;
 struct dt_t;
+
+typedef Array Expressions;
 
 #ifdef IN_GCC
 union tree_node; typedef union tree_node elem;
@@ -53,6 +56,7 @@ Expression *resolveProperties(Scope *sc, Expression *e);
 void accessCheck(Loc loc, Scope *sc, Expression *e, Declaration *d);
 FuncDeclaration *search_function(AggregateDeclaration *ad, Identifier *funcid);
 void inferApplyArgTypes(Array *arguments, Type *taggr);
+void argExpTypesToCBuffer(OutBuffer *buf, Expressions *arguments, HdrGenState *hgs);
 
 struct Expression : Object
 {
@@ -75,7 +79,7 @@ struct Expression : Object
     void rvalue();
 
     static Expression *combine(Expression *e1, Expression *e2);
-    static Array *arraySyntaxCopy(Array *exps);
+    static Expressions *arraySyntaxCopy(Expressions *exps);
 
     virtual integer_t toInteger();
     virtual uinteger_t toUInteger();
@@ -91,6 +95,7 @@ struct Expression : Object
     virtual Expression *castTo(Type *t);
     virtual void checkEscape();
     void checkScalar();
+    void checkNoBool();
     Expression *checkIntegral();
     void checkArithmetic();
     void checkDeprecated(Scope *sc, Dsymbol *s);
@@ -317,15 +322,23 @@ struct ScopeExp : Expression
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
 };
 
+struct TemplateExp : Expression
+{
+    TemplateDeclaration *td;
+
+    TemplateExp(Loc loc, TemplateDeclaration *td);
+    void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
+};
+
 struct NewExp : Expression
 {
     Type *newtype;
-    Array *newargs;		// Array of Expression's to call new operator
-    Array *arguments;		// Array of Expression's
+    Expressions *newargs;	// Array of Expression's to call new operator
+    Expressions *arguments;	// Array of Expression's
     CtorDeclaration *member;	// constructor function
     NewDeclaration *allocator;	// allocator function
 
-    NewExp(Loc loc, Array *newargs, Type *newtype, Array *arguments);
+    NewExp(Loc loc, Expressions *newargs, Type *newtype, Expressions *arguments);
     Expression *syntaxCopy();
     Expression *semantic(Scope *sc);
     elem *toElem(IRState *irs);
@@ -339,11 +352,11 @@ struct NewExp : Expression
 
 struct NewAnonClassExp : Expression
 {
-    Array *newargs;		// Array of Expression's to call new operator
-    Array *arguments;		// Array of Expression's to call class constructor
+    Expressions *newargs;	// Array of Expression's to call new operator
+    Expressions *arguments;	// Array of Expression's to call class constructor
     ClassDeclaration *cd;	// class being instantiated
 
-    NewAnonClassExp(Loc loc, Array *newargs, ClassDeclaration *cd, Array *arguments);
+    NewAnonClassExp(Loc loc, Expressions *newargs, ClassDeclaration *cd, Expressions *arguments);
     Expression *syntaxCopy();
     Expression *semantic(Scope *sc);
     void checkSideEffect(int flag);
@@ -594,9 +607,9 @@ struct DotTypeExp : UnaExp
 
 struct CallExp : UnaExp
 {
-    Array *arguments;		// Array of Expression's
+    Expressions *arguments;	// Array of Expression's
 
-    CallExp(Loc loc, Expression *e, Array *arguments);
+    CallExp(Loc loc, Expression *e, Expressions *arguments);
     CallExp(Loc loc, Expression *e);
     CallExp(Loc loc, Expression *e, Expression *earg1);
     CallExp(Loc loc, Expression *e, Expression *earg1, Expression *earg2);
@@ -748,9 +761,9 @@ struct ArrayLengthExp : UnaExp
 
 struct ArrayExp : UnaExp
 {
-    Array *arguments;		// Array of Expression's
+    Expressions *arguments;		// Array of Expression's
 
-    ArrayExp(Loc loc, Expression *e1, Array *arguments);
+    ArrayExp(Loc loc, Expression *e1, Expressions *arguments);
     Expression *syntaxCopy();
     Expression *semantic(Scope *sc);
     Expression *toLvalue(Expression *e);
