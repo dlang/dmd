@@ -551,6 +551,23 @@ Symbol *AggregateDeclaration::toInitializer()
     return sinit;
 }
 
+Symbol *TypedefDeclaration::toInitializer()
+{
+    Symbol *s;
+    Classsym *stag;
+
+    if (!sinit)
+    {
+	stag = fake_classsym(NULL);
+	s = toSymbolX("__init", SCextern, stag->Stype, "Z");
+	s->Sfl = FLextern;
+	s->Sflags |= SFLnodebug;
+	slist_add(s);
+	sinit = s;
+    }
+    return sinit;
+}
+
 
 /******************************************
  */

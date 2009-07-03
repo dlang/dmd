@@ -77,7 +77,7 @@ Dsymbol *Import::syntaxCopy(Dsymbol *s)
     return si;
 }
 
-void Import::load()
+void Import::load(Scope *sc)
 {
     DsymbolTable *dst;
     Dsymbol *s;
@@ -102,6 +102,8 @@ void Import::load()
 	mod = Module::load(loc, packages, id);
 	dst->insert(id, mod);		// id may be different from mod->ident,
 					// if so then insert alias
+	if (!mod->importedFrom)
+	    mod->importedFrom = sc ? sc->module->importedFrom : Module::rootModule;
     }
     if (!pkg)
 	pkg = mod;
@@ -115,16 +117,19 @@ void Import::semantic(Scope *sc)
 {
     //printf("Import::semantic('%s')\n", toChars());
 
-    load();
+    load(sc);
 
     if (mod)
     {
+#if 0
 	if (mod->loc.linnum != 0)
 	{   /* If the line number is not 0, then this is not
 	     * a 'root' module, i.e. it was not specified on the command line.
 	     */
 	    mod->importedFrom = sc->module->importedFrom;
+	    assert(mod->importedFrom);
 	}
+#endif
 
 	if (!isstatic && !aliasId && !names.dim)
 	{
@@ -225,7 +230,7 @@ Dsymbol *Import::search(Loc loc, Identifier *ident, int flags)
     //printf("%s.Import::search(ident = '%s', flags = x%x)\n", toChars(), ident->toChars(), flags);
 
     if (!pkg)
-	load();
+	load(NULL);
 
     // Forward it to the package/module
     return pkg->search(loc, ident, flags);

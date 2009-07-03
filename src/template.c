@@ -2245,6 +2245,7 @@ TemplateInstance::TemplateInstance(Loc loc, Identifier *ident)
     this->nest = 0;
     this->havetempdecl = 0;
     this->isnested = 0;
+    this->errors = 0;
 }
 
 
@@ -2266,6 +2267,7 @@ TemplateInstance::TemplateInstance(Loc loc, TemplateDeclaration *td, Objects *ti
     this->nest = 0;
     this->havetempdecl = 1;
     this->isnested = 0;
+    this->errors = 0;
 
     assert((size_t)tempdecl->scope > 0x10000);
 }
@@ -2436,8 +2438,6 @@ void TemplateInstance::semantic(Scope *sc)
 	}
 	else
 	{   Module *m = sc->module->importedFrom;
-	    while (m->loc.linnum != 0 && m != m->importedFrom)
-		m = m->importedFrom;
 	    //printf("\t2: adding to module %s\n", m->toChars());
 	    a = m->members;
 	    if (m->semanticdone >= 3)
@@ -2574,6 +2574,7 @@ void TemplateInstance::semantic(Scope *sc)
     if (global.errors != errorsave)
     {
 	error("error instantiating");
+	errors = 1;
 	if (global.gag)
 	    tempdecl->instances.remove(tempdecl_instance_idx);
     }
@@ -3089,7 +3090,7 @@ void TemplateInstance::semantic2(Scope *sc)
 #if LOG
     printf("+TemplateInstance::semantic2('%s')\n", toChars());
 #endif
-    if (members)
+    if (!errors && members)
     {
 	sc = tempdecl->scope;
 	assert(sc);
@@ -3121,7 +3122,7 @@ void TemplateInstance::semantic3(Scope *sc)
     if (semanticdone >= 3)
 	return;
     semanticdone = 3;
-    if (members)
+    if (!errors && members)
     {
 	sc = tempdecl->scope;
 	sc = sc->push(argsym);
@@ -3142,7 +3143,7 @@ void TemplateInstance::toObjFile()
 #if LOG
     printf("TemplateInstance::toObjFile('%s', this = %p)\n", toChars(), this);
 #endif
-    if (members)
+    if (!errors && members)
     {
 	for (i = 0; i < members->dim; i++)
 	{
@@ -3158,7 +3159,7 @@ void TemplateInstance::inlineScan()
 #if LOG
     printf("TemplateInstance::inlineScan('%s')\n", toChars());
 #endif
-    if (members)
+    if (!errors && members)
     {
 	for (i = 0; i < members->dim; i++)
 	{

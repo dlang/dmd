@@ -233,6 +233,7 @@ int DeclarationExp::inlineCost(InlineCostState *ics)
     if (declaration->isStructDeclaration() ||
 	declaration->isClassDeclaration() ||
 	declaration->isFuncDeclaration() ||
+	declaration->isTypedefDeclaration() ||
 	declaration->isTemplateMixin())
 	return COST_MAX;
 

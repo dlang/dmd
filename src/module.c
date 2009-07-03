@@ -1,6 +1,6 @@
 
 // Compiler implementation of the D programming language
-// Copyright (c) 1999-2006 by Digital Mars
+// Copyright (c) 1999-2007 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // www.digitalmars.com
@@ -42,6 +42,7 @@
 
 ClassDeclaration *Module::moduleinfo;
 
+Module *Module::rootModule;
 DsymbolTable *Module::modules;
 Array Module::amodules;
 
@@ -88,7 +89,8 @@ Module::Module(char *filename, Identifier *ident, int doDocComment, int doHdrGen
     sdtor = NULL;
     stest = NULL;
     sfilename = NULL;
-    importedFrom = this;
+    root = 0;
+    importedFrom = NULL;
     srcfile = NULL;
     docfile = NULL;
 

@@ -390,7 +390,7 @@ void StructDeclaration::semantic(Scope *sc)
     {
 	Dsymbol *s = (Dsymbol *)fields.data[i];
 	VarDeclaration *vd = s->isVarDeclaration();
-	if (vd)
+	if (vd && !vd->isDataseg())
 	{
 	    if (vd->init)
 	    {

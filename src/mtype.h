@@ -1,6 +1,6 @@
 
 // Compiler implementation of the D programming language
-// Copyright (c) 1999-2006 by Digital Mars
+// Copyright (c) 1999-2007 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // www.digitalmars.com
@@ -240,6 +240,7 @@ struct Type : Object
     virtual int builtinTypeInfo();
     virtual Type *reliesOnTident();
     virtual Expression *toExpression();
+    virtual int hasPointers();
 
     static void error(Loc loc, const char *format, ...);
 
@@ -317,6 +318,7 @@ struct TypeSArray : TypeArray
     MATCH deduceType(Scope *sc, Type *tparam, TemplateParameters *parameters, Array *atypes);
     TypeInfoDeclaration *getTypeInfoDeclaration();
     Expression *toExpression();
+    int hasPointers();
 
     type *toCtype();
     type *toCParamtype();
@@ -335,11 +337,13 @@ struct TypeDArray : TypeArray
     void toPrettyBracket(OutBuffer *buf, HdrGenState *hgs);
     Expression *dotExp(Scope *sc, Expression *e, Identifier *ident);
     int isString();
+    int isZeroInit();
     int checkBoolean();
     int implicitConvTo(Type *to);
     Expression *defaultInit();
     int builtinTypeInfo();
     TypeInfoDeclaration *getTypeInfoDeclaration();
+    int hasPointers();
 
     type *toCtype();
 };
@@ -360,6 +364,7 @@ struct TypeAArray : TypeArray
     MATCH deduceType(Scope *sc, Type *tparam, TemplateParameters *parameters, Array *atypes);
     int checkBoolean();
     TypeInfoDeclaration *getTypeInfoDeclaration();
+    int hasPointers();
 
     // Back end
     Symbol *aaGetSymbol(char *func, int flags);
@@ -379,6 +384,7 @@ struct TypePointer : Type
     Expression *defaultInit();
     int isZeroInit();
     TypeInfoDeclaration *getTypeInfoDeclaration();
+    int hasPointers();
 
     type *toCtype();
 };
@@ -437,6 +443,7 @@ struct TypeDelegate : Type
     int checkBoolean();
     TypeInfoDeclaration *getTypeInfoDeclaration();
     Expression *dotExp(Scope *sc, Expression *e, Identifier *ident);
+    int hasPointers();
 
     type *toCtype();
 };
@@ -522,6 +529,7 @@ struct TypeStruct : Type
     dt_t **toDt(dt_t **pdt);
     MATCH deduceType(Scope *sc, Type *tparam, TemplateParameters *parameters, Array *atypes);
     TypeInfoDeclaration *getTypeInfoDeclaration();
+    int hasPointers();
 
     type *toCtype();
 };
@@ -551,6 +559,7 @@ struct TypeEnum : Type
     int isZeroInit();
     MATCH deduceType(Scope *sc, Type *tparam, TemplateParameters *parameters, Array *atypes);
     TypeInfoDeclaration *getTypeInfoDeclaration();
+    int hasPointers();
 
     type *toCtype();
 };
@@ -586,6 +595,7 @@ struct TypeTypedef : Type
     dt_t **toDt(dt_t **pdt);
     MATCH deduceType(Scope *sc, Type *tparam, TemplateParameters *parameters, Array *atypes);
     TypeInfoDeclaration *getTypeInfoDeclaration();
+    int hasPointers();
 
     type *toCtype();
     type *toCParamtype();
@@ -613,6 +623,7 @@ struct TypeClass : Type
     int isauto();
     int checkBoolean();
     TypeInfoDeclaration *getTypeInfoDeclaration();
+    int hasPointers();
 
     type *toCtype();
 

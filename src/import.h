@@ -1,6 +1,6 @@
 
 // Compiler implementation of the D programming language
-// Copyright (c) 1999-2006 by Digital Mars
+// Copyright (c) 1999-2007 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // www.digitalmars.com
@@ -50,7 +50,7 @@ struct Import : Dsymbol
 
     char *kind();
     Dsymbol *syntaxCopy(Dsymbol *s);	// copy only syntax trees
-    void load();
+    void load(Scope *sc);
     void semantic(Scope *sc);
     void semantic2(Scope *sc);
     Dsymbol *toAlias();

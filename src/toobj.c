@@ -366,7 +366,23 @@ void ClassDeclaration::toObjFile()
 	dtdword(&dt, 0);
 
     // flags
-    dtdword(&dt, com);
+    int flags = com;
+    for (ClassDeclaration *cd = this; cd; cd = cd->baseClass)
+    {
+	if (cd->members)
+	{
+	    for (size_t i = 0; i < cd->members->dim; i++)
+	    {
+		Dsymbol *sm = (Dsymbol *)cd->members->data[i];
+		VarDeclaration *v = sm->isVarDeclaration();
+		if (v && !v->isDataseg() && v->type->hasPointers())
+		    goto L2;
+	    }
+	}
+    }
+    flags |= 2;			// no pointers
+  L2:
+    dtdword(&dt, flags);
 
 
     // deallocator
@@ -1007,6 +1023,32 @@ void TypedefDeclaration::toObjFile()
 	toDebug();
 
     type->getTypeInfo(NULL);	// generate TypeInfo
+
+    TypeTypedef *tc = (TypeTypedef *)type;
+    if (type->isZeroInit() || !tc->sym->init)
+	;
+    else
+    {
+	enum_SC scclass = SCglobal;
+	for (Dsymbol *parent = this->parent; parent; parent = parent->parent)
+	{
+	    if (parent->isTemplateInstance())
+	    {
+		scclass = SCcomdat;
+		break;
+	    }
+	}
+
+	// Generate static initializer
+	toInitializer();
+	sinit->Sclass = scclass;
+	sinit->Sfl = FLdata;
+#if ELFOBJ // Burton
+	sinit->Sseg = CDATA;
+#endif /* ELFOBJ */
+	sinit->Sdt = tc->sym->init->toDt();
+	outdata(sinit);
+    }
 }
 
 /* ================================================================== */

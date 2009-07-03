@@ -1,6 +1,6 @@
 
 // Compiler implementation of the D programming language
-// Copyright (c) 1999-2006 by Digital Mars
+// Copyright (c) 1999-2007 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // www.digitalmars.com
@@ -708,6 +708,16 @@ Type *Type::reliesOnTident()
 Expression *Type::toExpression()
 {
     return NULL;
+}
+
+/***************************************
+ * Return !=0 if type has pointers that need to
+ * be scanned by the GC during a collection cycle.
+ */
+
+int Type::hasPointers()
+{
+    return FALSE;
 }
 
 /* ============================= TypeBasic =========================== */
@@ -1478,18 +1488,21 @@ Expression *TypeArray::dotExp(Scope *sc, Expression *e, Identifier *ident)
 	FuncDeclaration *fd;
 	Expressions *arguments;
 	int size = next->size(e->loc);
+	int dup;
 	char *nm;
-	static char *name[2][2] = { { "_adReverse", "_adDup" },
-				    { "_adReverseBit", "_adDupBit" } };
+	static char *name[2] = { "_adReverse", "_adDupT" };
 
 	assert(size);
-	nm = name[n->ty == Tbit][ident == Id::dup];
+	dup = (ident == Id::dup);
+	nm = name[dup];
 	fd = FuncDeclaration::genCfunc(Type::tindex, nm);
 	ec = new VarExp(0, fd);
 	e = e->castTo(sc, n->arrayOf());	// convert to dynamic array
 	arguments = new Expressions();
+	if (dup)
+	    arguments->push(getTypeInfo(sc));
 	arguments->push(e);
-	if (next->ty != Tbit)
+	if (!dup)
 	    arguments->push(new IntegerExp(0, size, Type::tint32));
 	e = new CallExp(e->loc, ec, arguments);
 	e->type = next->arrayOf();
@@ -1571,6 +1584,7 @@ void TypeArray::toCBuffer2(OutBuffer *buf, Identifier *ident, HdrGenState *hgs)
     t->toCBuffer2(buf, NULL, hgs);
 #endif
 }
+
 
 /***************************** TypeSArray *****************************/
 
@@ -1839,6 +1853,11 @@ Expression *TypeSArray::toExpression()
     return e;
 }
 
+int TypeSArray::hasPointers()
+{
+    return next->hasPointers();
+}
+
 /***************************** TypeDArray *****************************/
 
 TypeDArray::TypeDArray(Type *t)
@@ -1977,7 +1996,17 @@ Expression *TypeDArray::defaultInit()
     return e;
 }
 
+int TypeDArray::isZeroInit()
+{
+    return 1;
+}
+
 int TypeDArray::checkBoolean()
+{
+    return TRUE;
+}
+
+int TypeDArray::hasPointers()
 {
     return TRUE;
 }
@@ -2197,6 +2226,11 @@ int TypeAArray::checkBoolean()
     return TRUE;
 }
 
+int TypeAArray::hasPointers()
+{
+    return TRUE;
+}
+
 /***************************** TypePointer *****************************/
 
 TypePointer::TypePointer(Type *t)
@@ -2291,6 +2325,11 @@ Expression *TypePointer::defaultInit()
 int TypePointer::isZeroInit()
 {
     return 1;
+}
+
+int TypePointer::hasPointers()
+{
+    return TRUE;
 }
 
 
@@ -2863,6 +2902,11 @@ Expression *TypeDelegate::dotExp(Scope *sc, Expression *e, Identifier *ident)
 	e = Type::dotExp(sc, e, ident);
     }
     return e;
+}
+
+int TypeDelegate::hasPointers()
+{
+    return TRUE;
 }
 
 
@@ -3696,6 +3740,10 @@ int TypeEnum::isZeroInit()
     return (sym->defaultval == 0);
 }
 
+int TypeEnum::hasPointers()
+{
+    return toBasetype()->hasPointers();
+}
 
 /***************************** TypeTypedef *****************************/
 
@@ -3893,11 +3941,17 @@ int TypeTypedef::isZeroInit()
     {
 	if (sym->init->isVoidInitializer())
 	    return 1;		// initialize voids to 0
-	if (sym->init->toExpression()->isBool(FALSE))
+	Expression *e = sym->init->toExpression();
+	if (e && e->isBool(FALSE))
 	    return 1;
 	return 0;		// assume not
     }
     return sym->basetype->isZeroInit();
+}
+
+int TypeTypedef::hasPointers()
+{
+    return toBasetype()->hasPointers();
 }
 
 /***************************** TypeStruct *****************************/
@@ -4159,6 +4213,23 @@ int TypeStruct::checkBoolean()
     return FALSE;
 }
 
+int TypeStruct::hasPointers()
+{
+    StructDeclaration *s = sym;
+
+    sym->size(0);		// give error for forward references
+    if (s->members)
+    {
+	for (size_t i = 0; i < s->members->dim; i++)
+	{
+	    Dsymbol *sm = (Dsymbol *)s->members->data[i];
+	    VarDeclaration *v = sm->isVarDeclaration();
+	    if (v && !v->isDataseg() && v->type->hasPointers())
+		return TRUE;
+	}
+    }
+    return FALSE;
+}
 
 
 /***************************** TypeClass *****************************/
@@ -4498,6 +4569,11 @@ int TypeClass::isZeroInit()
 }
 
 int TypeClass::checkBoolean()
+{
+    return TRUE;
+}
+
+int TypeClass::hasPointers()
 {
     return TRUE;
 }

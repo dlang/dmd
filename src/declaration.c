@@ -164,6 +164,7 @@ TypedefDeclaration::TypedefDeclaration(Loc loc, Identifier *id, Type *basetype, 
     this->sem = 0;
     this->inuse = 0;
     this->loc = loc;
+    this->sinit = NULL;
 }
 
 Dsymbol *TypedefDeclaration::syntaxCopy(Dsymbol *s)

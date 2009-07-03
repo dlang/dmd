@@ -60,7 +60,7 @@ Global::Global()
 
     copyright = "Copyright (c) 1999-2007 by Digital Mars";
     written = "written by Walter Bright";
-    version = "v1.0";
+    version = "v1.001";
     global.structalign = 8;
 
     memset(&params, 0, sizeof(Param));
@@ -126,7 +126,7 @@ void verror(Loc loc, const char *format, va_list ap)
 void fatal()
 {
 #if 0
-    *(char *)0 = 0;
+    halt();
 #endif
     exit(EXIT_FAILURE);
 }
@@ -154,7 +154,7 @@ Documentation: www.digitalmars.com/d/index.html\n\
 Usage:\n\
   dmd files.d ... { -switch }\n\
 \n\
-  files.d        D source files\n\
+  files.d        D source files\n%s\
   -c             do not link\n\
   -cov           do code coverage analysis\n\
   -D             generate documentation\n\
@@ -189,7 +189,13 @@ Usage:\n\
   -version=level compile in version code >= level\n\
   -version=ident compile in version code identified by ident\n\
   -w             enable warnings\n\
-");
+",
+#if WIN32
+"  @cmdfile       read arguments from cmdfile\n"
+#else
+""
+#endif
+);
 }
 
 int main(int argc, char *argv[])
@@ -692,6 +698,9 @@ int main(int argc, char *argv[])
 	m = (Module *)modules.data[i];
 	if (global.params.verbose)
 	    printf("parse     %s\n", m->toChars());
+	if (!Module::rootModule)
+	    Module::rootModule = m;
+	m->importedFrom = m;
 	m->deleteObjFile();
 	m->read(0);
 	m->parse();

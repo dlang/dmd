@@ -240,6 +240,7 @@ struct TemplateInstance : ScopeDsymbol
     int nest;		// for recursion detection
     int havetempdecl;	// 1 if used second constructor
     int isnested;	// if referencing local symbols
+    int errors;		// 1 if compiled with errors
 #ifdef IN_GCC
     /* On some targets, it is necessary to know whether a symbol
        will be emitted in the output or not before the symbol

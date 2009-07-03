@@ -544,7 +544,7 @@ dt_t **StringExp::toDt(dt_t **pdt)
 	{   TypeSArray *tsa = (TypeSArray *)type;
 	    integer_t dim;
 
-	    pdt = dtnbytes(pdt, len * sz, (char *)string);
+	    pdt = dtnbytes(pdt, len * sz, (const char *)string);
 	    if (tsa->dim)
 	    {
 		dim = tsa->dim->toInteger();

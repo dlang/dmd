@@ -1,6 +1,6 @@
 
 // Compiler implementation of the D programming language
-// Copyright (c) 1999-2006 by Digital Mars
+// Copyright (c) 1999-2007 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // www.digitalmars.com
@@ -116,12 +116,12 @@ Expression *Type::getTypeInfo(Scope *sc)
 	    if (sc)			// if in semantic() pass
 	    {	// Find module that will go all the way to an object file
 		Module *m = sc->module->importedFrom;
-		while (m != m->importedFrom)
-		    m = m->importedFrom;
 		m->members->push(t->vtinfo);
 	    }
 	    else			// if in obj generation pass
+	    {
 		t->vtinfo->toObjFile();
+	    }
 	}
     }
     e = new VarExp(0, t->vtinfo);
@@ -221,6 +221,7 @@ void TypeInfoTypedefDeclaration::toDt(dt_t **pdt)
     /* Put out:
      *	TypeInfo base;
      *	char[] name;
+     *	void[] m_init;
      */
 
     sd->basetype->getTypeInfo(NULL);
@@ -230,6 +231,20 @@ void TypeInfoTypedefDeclaration::toDt(dt_t **pdt)
     size_t namelen = strlen(name);
     dtdword(pdt, namelen);
     dtabytes(pdt, TYnptr, 0, namelen + 1, name);
+
+    // void[] init;
+    if (tinfo->isZeroInit() || !sd->init)
+    {	// 0 initializer, or the same as the base type
+	dtdword(pdt, 0);	// init.length
+	dtdword(pdt, 0);	// init.ptr
+    }
+    else
+    {
+	dtdword(pdt, sd->type->size());	// init.length
+	// BUG: should make sd->toInitializer() work
+	//dtdword(pdt, 0);	// init.ptr
+	dtxoff(pdt, sd->toInitializer(), 0, TYnptr);	// init.ptr
+    }
 }
 
 void TypeInfoEnumDeclaration::toDt(dt_t **pdt)
@@ -360,11 +375,12 @@ void TypeInfoStructDeclaration::toDt(dt_t **pdt)
 
     /* Put out:
      *	char[] name;
-     *	byte[] init;
+     *	void[] init;
      *	hash_t function(void*) xtoHash;
      *	int function(void*,void*) xopEquals;
      *	int function(void*,void*) xopCmp;
      *	char[] function(void*) xtoString;
+     *	uint m_flags;
      */
 
     char *name = sd->toPrettyChars();
@@ -372,7 +388,7 @@ void TypeInfoStructDeclaration::toDt(dt_t **pdt)
     dtdword(pdt, namelen);
     dtabytes(pdt, TYnptr, 0, namelen + 1, name);
 
-    // byte[] init;
+    // void[] init;
     dtdword(pdt, sd->structsize);	// init.length
     if (sd->zeroInit)
 	dtdword(pdt, 0);		// NULL for 0 initialization
@@ -467,6 +483,9 @@ void TypeInfoStructDeclaration::toDt(dt_t **pdt)
     }
     else
 	dtdword(pdt, 0);
+
+    // uint m_flags;
+    dtdword(pdt, tc->hasPointers());
 }
 
 void TypeInfoClassDeclaration::toDt(dt_t **pdt)

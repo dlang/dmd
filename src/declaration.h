@@ -165,6 +165,9 @@ struct TypedefDeclaration : Declaration
     int cvMember(unsigned char *p);
 
     TypedefDeclaration *isTypedefDeclaration() { return this; }
+
+    Symbol *sinit;
+    Symbol *toInitializer();
 };
 
 /**************************************************************/

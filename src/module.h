@@ -46,6 +46,7 @@ struct Package : ScopeDsymbol
 
 struct Module : Package
 {
+    static Module *rootModule;
     static DsymbolTable *modules;	// symbol table of all modules
     static Array amodules;		// array of all modules
     static Array deferred;	// deferred Dsymbol's needing semantic() run on them
@@ -78,6 +79,9 @@ struct Module : Package
 
     int semanticstarted;	// has semantic() been started?
     int semanticdone;		// has semantic() been done?
+    int root;			// != 0 if this is a 'root' module,
+				// i.e. a module that will be taken all the
+				// way to an object file
     Module *importedFrom;	// module from command line we're imported from,
 				// i.e. a module that will be taken all the
 				// way to an object file

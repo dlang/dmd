@@ -1,6 +1,6 @@
 
 // Compiler implementation of the D programming language
-// Copyright (c) 1999-2006 by Digital Mars
+// Copyright (c) 1999-2007 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // www.digitalmars.com
@@ -16,6 +16,7 @@
 #endif /* __DMC__ */
 
 #include <stdint.h>
+#include <stdarg.h>
 
 #ifdef IN_GCC
 /* Changes for the GDC compiler by David Friedman */
@@ -241,7 +242,7 @@ enum DYNCAST
 };
 
 void error(Loc loc, const char *format, ...);
-void verror(Loc loc, const char *format, char *);
+void verror(Loc loc, const char *format, va_list);
 void fatal();
 void err_nomem();
 int runLINK();
