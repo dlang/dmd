@@ -154,6 +154,11 @@ int SuperExp::inlineCost(InlineCostState *ics)
     return 1;
 }
 
+int ArrayLiteralExp::inlineCost(InlineCostState *ics)
+{
+    return 1 + arrayInlineCost(ics, elements);
+}
+
 int FuncExp::inlineCost(InlineCostState *ics)
 {
     // Right now, this makes the function be output to the .obj file twice.
@@ -587,6 +592,16 @@ Expression *SliceExp::doInline(InlineDoState *ids)
 }
 
 
+Expression *ArrayLiteralExp::doInline(InlineDoState *ids)
+{
+    ArrayLiteralExp *ce;
+
+    ce = (ArrayLiteralExp *)copy();
+    ce->elements = arrayExpressiondoInline(elements, ids);
+    return ce;
+}
+
+
 Expression *ArrayExp::doInline(InlineDoState *ids)
 {
     ArrayExp *ce;
@@ -927,6 +942,16 @@ Expression *SliceExp::inlineScan(InlineScanState *iss)
     if (upr)
 	upr = upr->inlineScan(iss);
     return this;
+}
+
+
+Expression *ArrayLiteralExp::inlineScan(InlineScanState *iss)
+{   Expression *e = this;
+
+    //printf("ArrayLiteralExp::inlineScan()\n");
+    arrayInlineScan(iss, elements);
+
+    return e;
 }
 
 

@@ -77,6 +77,7 @@ Initializer *VoidInitializer::syntaxCopy()
 
 Initializer *VoidInitializer::semantic(Scope *sc, Type *t)
 {
+    //printf("VoidInitializer::semantic(t = %p)\n", t);
     type = t;
     return this;
 }
@@ -84,6 +85,9 @@ Initializer *VoidInitializer::semantic(Scope *sc, Type *t)
 
 Expression *VoidInitializer::toExpression()
 {
+#ifdef DEBUG
+    *(char*)0=0;
+#endif
     assert(0);
     return NULL;
 }

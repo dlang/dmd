@@ -340,6 +340,7 @@ void TypeInfoStructDeclaration::toDt(dt_t **pdt)
      *	uint function(void*) xtoHash;
      *	int function(void*,void*) xopEquals;
      *	int function(void*,void*) xopCmp;
+     *	char[] function(void*) xtoString;
      */
 
     char *name = sd->toPrettyChars();
@@ -356,12 +357,17 @@ void TypeInfoStructDeclaration::toDt(dt_t **pdt)
     Dsymbol *s;
 
     static TypeFunction *tftohash;
+    static TypeFunction *tftostring;
 
     if (!tftohash)
     {
 	Scope sc;
+
 	tftohash = new TypeFunction(NULL, Type::tuns32, 0, LINKd);
 	tftohash = (TypeFunction *)tftohash->semantic(0, &sc);
+
+	tftostring = new TypeFunction(NULL, Type::tchar->arrayOf(), 0, LINKd);
+	tftostring = (TypeFunction *)tftostring->semantic(0, &sc);
     }
 
     TypeFunction *tfeqptr;
@@ -419,6 +425,19 @@ void TypeInfoStructDeclaration::toDt(dt_t **pdt)
 	s = search_function(sd, Id::cmp);
 	fdx = s ? s->isFuncDeclaration() : NULL;
     }
+
+    s = search_function(sd, Id::tostring);
+    fdx = s ? s->isFuncDeclaration() : NULL;
+    if (fdx)
+    {	fd = fdx->overloadExactMatch(tftostring);
+	if (fd)
+	    dtxoff(pdt, fd->toSymbol(), 0, TYnptr);
+	else
+	    //fdx->error("must be declared as extern (D) char[] toString()");
+	    dtdword(pdt, 0);
+    }
+    else
+	dtdword(pdt, 0);
 }
 
 void TypeInfoClassDeclaration::toDt(dt_t **pdt)

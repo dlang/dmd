@@ -116,10 +116,11 @@ void Import::semantic(Scope *sc)
     if (mod)
     {
 	if (mod->loc.linnum != 0)
-	    /* If the line number is not 0, then this is not
+	{   /* If the line number is not 0, then this is not
 	     * a 'root' module, i.e. it was not specified on the command line.
 	     */
 	    mod->importedFrom = sc->module->importedFrom;
+	}
 
 	if (!isstatic && !aliasId && !names.dim)
 	{

@@ -2679,6 +2679,7 @@ void Lexer::initKeywords()
     Token::tochars[TOKsymoff]		= "symoff";
     Token::tochars[TOKtypedot]		= "typedot";
     Token::tochars[TOKarraylength]	= "arraylength";
+    Token::tochars[TOKarrayliteral]	= "arrayliteral";
     Token::tochars[TOKstring]		= "string";
     Token::tochars[TOKdsymbol]		= "symbol";
 }

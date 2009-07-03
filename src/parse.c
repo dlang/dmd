@@ -2418,6 +2418,7 @@ Statement *Parser::parseStatement(int flags)
 	case TOKfunction:
 	case TOKtypeid:
 	case TOKis:
+	case TOKlbracket:
 	Lexp:
 	{   Expression *exp;
 
@@ -3923,6 +3924,13 @@ Expression *Parser::parsePrimaryExp()
 	    check(TOKrparen);
 	    break;
 
+	case TOKlbracket:
+	{   Expressions *elements = parseArguments();
+
+	    e = new ArrayLiteralExp(loc, elements);
+	    break;
+	}
+
 	case TOKlcurly:
 	    // { statements... }
 	    save = TOKdelegate;
@@ -4566,30 +4574,35 @@ Expression *Parser::parseExpression()
 
 /*************************
  * Collect argument list.
- * Assume current token is '('.
+ * Assume current token is '(' or '['.
  */
 
 Expressions *Parser::parseArguments()
 {   // function call
     Expressions *arguments;
     Expression *arg;
+    enum TOK endtok;
 
     arguments = new Expressions();
-    //if (token.value == TOKlparen)
+    if (token.value == TOKlbracket)
+	endtok = TOKrbracket;
+    else
+	endtok = TOKrparen;
+
     {
 	nextToken();
-	if (token.value != TOKrparen)
+	if (token.value != endtok)
 	{
 	    while (1)
 	    {
 		arg = parseAssignExp();
 		arguments->push(arg);
-		if (token.value == TOKrparen)
+		if (token.value == endtok)
 		    break;
 		check(TOKcomma);
 	    }
 	}
-	check(TOKrparen);
+	check(endtok);
     }
     return arguments;
 }

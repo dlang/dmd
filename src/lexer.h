@@ -66,6 +66,7 @@ enum TOK
 	TOKtypeid,	TOKuadd,
 	TOKiftype,	TOKremove,
 	TOKnewanonclass, TOKcomment,
+	TOKarrayliteral,
 
 	// Operators
 	TOKlt,		TOKgt,

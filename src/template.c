@@ -1971,9 +1971,11 @@ void TemplateInstance::semantic(Scope *sc)
 	    a = sc->scopesym->members;
 	}
 	else
-	{
-	    //printf("\t2: adding to module %s\n", sc->module->importedFrom->toChars());
-	    a = sc->module->importedFrom->members;
+	{   Module *m = sc->module->importedFrom;
+	    while (m->loc.linnum != 0 && m != m->importedFrom)
+		m = m->importedFrom;
+	    //printf("\t2: adding to module %s\n", m->toChars());
+	    a = m->members;
 	}
 	for (i = 0; 1; i++)
 	{

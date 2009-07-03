@@ -161,6 +161,12 @@ void SliceExp::scanForNestedRef(Scope *sc)
 }
 
 
+void ArrayLiteralExp::scanForNestedRef(Scope *sc)
+{
+    arrayExpressionScanForNestedRef(sc, elements);
+}
+
+
 void ArrayExp::scanForNestedRef(Scope *sc)
 {
     e1->scanForNestedRef(sc);

@@ -298,6 +298,7 @@ struct TypeSArray : TypeArray
     void toPrettyBracket(OutBuffer *buf, HdrGenState *hgs);
     Expression *dotExp(Scope *sc, Expression *e, Identifier *ident);
     int isString();
+    int isZeroInit();
     unsigned memalign(unsigned salign);
     int implicitConvTo(Type *to);
     Expression *defaultInit();

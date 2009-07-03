@@ -526,6 +526,7 @@ void FuncDeclaration::semantic3(Scope *sc)
 	sc2->explicitProtection = 0;
 	sc2->structalign = 8;
 	sc2->incontract = 0;
+	sc2->tf = NULL;
 
 	// Declare 'this'
 	ad = isThis();
@@ -956,7 +957,10 @@ void FuncDeclaration::semantic3(Scope *sc)
 		{   // Call invariant virtually
 		    ThisExp *v = new ThisExp(0);
 		    v->type = vthis->type;
-		    e = new AssertExp(0, v);
+		    Expression *se = new StringExp(0, "null this");
+		    se = se->semantic(sc);
+		    se->type = Type::tchar->arrayOf();
+		    e = new AssertExp(loc, v, se);
 		}
 		if (e)
 		{

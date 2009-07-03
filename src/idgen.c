@@ -187,8 +187,9 @@ Msgtable msgtable[] =
     { "msg" },
     { "GNU_asm" },
 
-    // For toHash
+    // For toHash/toString
     { "tohash", "toHash" },
+    { "tostring", "toString" },
 
     // Special functions
     { "alloca" },

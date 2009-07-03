@@ -235,7 +235,7 @@ d_uns64 Type::size()
 d_uns64 Type::size(Loc loc)
 {
     error(loc, "no size for type %s", toChars());
-    return 0;
+    return 1;
 }
 
 unsigned Type::alignsize()
@@ -1699,6 +1699,11 @@ Expression *TypeSArray::defaultInit()
     return next->defaultInit();
 }
 
+int TypeSArray::isZeroInit()
+{
+    return next->isZeroInit();
+}
+
 /***************************** TypeDArray *****************************/
 
 TypeDArray::TypeDArray(Type *t)
@@ -1734,11 +1739,12 @@ Type *TypeDArray::semantic(Loc loc, Scope *sc)
 {   Type *tn = next;
 
     tn = next->semantic(loc,sc);
-    switch (tn->ty)
+    Type *tbn = tn->toBasetype();
+    switch (tbn->ty)
     {
 	case Tfunction:
 	case Tnone:
-	    error(loc, "can't have array of %s", tn->toChars());
+	    error(loc, "can't have array of %s", tbn->toChars());
 	    tn = next = tint32;
 	    break;
     }
@@ -1866,11 +1872,11 @@ d_uns64 TypeAArray::size(Loc loc)
 
 Type *TypeAArray::semantic(Loc loc, Scope *sc)
 {
-    //printf("TypeAArray::semantic()\n");
+    //printf("TypeAArray::semantic() index->ty = %d\n", index->ty);
 
     // Deal with the case where we thought the index was a type, but
     // in reality it was an expression.
-    if (index->ty == Tident)
+    if (index->ty == Tident || index->ty == Tinstance)
     {
 	Expression *e;
 	Type *t;
@@ -3662,6 +3668,8 @@ int TypeTypedef::isZeroInit()
 {
     if (sym->init)
     {
+	if (sym->init->isVoidInitializer())
+	    return 1;		// initialize voids to 0
 	if (sym->init->toExpression()->isBool(FALSE))
 	    return 1;
 	return 0;		// assume not

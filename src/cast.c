@@ -1012,20 +1012,45 @@ Expression *BinExp::typeCombine(Scope *sc)
     t1 = e1->type;
     t2 = e2->type;
     assert(t1);
+
+    //if (t1) printf("\tt1 = %s\n", t1->toChars());
+    //if (t2) printf("\tt2 = %s\n", t2->toChars());
 #ifdef DEBUG
     if (!t2) printf("\te2 = '%s'\n", e2->toChars());
 #endif
     assert(t2);
 
-    ty = (TY)Type::impcnvResult[t1->ty][t2->ty];
+    Type *t1b = t1->toBasetype();
+    Type *t2b = t2->toBasetype();
+
+    ty = (TY)Type::impcnvResult[t1b->ty][t2b->ty];
     if (ty != Terror)
     {	TY ty1;
 	TY ty2;
 
+	ty1 = (TY)Type::impcnvType1[t1b->ty][t2b->ty];
+	ty2 = (TY)Type::impcnvType2[t1b->ty][t2b->ty];
+
+	if (t1b->ty == ty1)	// if no promotions
+	{
+	    if (t1 == t2)
+	    {
+		if (!type)
+		    type = t1;
+		return this;
+	    }
+
+	    if (t1b == t2b)
+	    {
+		if (!type)
+		    type = t1b;
+		return this;
+	    }
+	}
+
 	if (!type)
 	    type = Type::basic[ty];
-	ty1 = (TY)Type::impcnvType1[t1->ty][t2->ty];
-	ty2 = (TY)Type::impcnvType2[t1->ty][t2->ty];
+
 	t1 = Type::basic[ty1];
 	t2 = Type::basic[ty2];
 	e1 = e1->castTo(sc, t1);
@@ -1052,7 +1077,7 @@ Expression *BinExp::typeCombine(Scope *sc)
     }
     else if (t1->isintegral() && t2->isintegral())
     {
-	//printf("t1 = %s, t2 = %s\n", t1->toChars(), t2->toChars());
+	printf("t1 = %s, t2 = %s\n", t1->toChars(), t2->toChars());
 	int sz1 = t1->size();
 	int sz2 = t2->size();
 	int sign1 = t1->isunsigned() == 0;

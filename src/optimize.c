@@ -27,6 +27,20 @@ Expression *Expression::optimize(int result)
     return this;
 }
 
+Expression *ArrayLiteralExp::optimize(int result)
+{
+    if (elements)
+    {
+	for (size_t i = 0; i < elements->dim; i++)
+	{   Expression *e = (Expression *)elements->data[i];
+
+	    e = e->optimize(WANTvalue);
+	    elements->data[i] = (void *)e;
+	}
+    }
+    return this;
+}
+
 Expression *UnaExp::optimize(int result)
 {   Expression *e;
 
@@ -114,7 +128,7 @@ Expression *PtrExp::optimize(int result)
 Expression *CastExp::optimize(int result)
 {
     //printf("CastExp::optimize(result = %d) %s\n", result, toChars());
-    if (e1->op == TOKstring &&
+    if ((e1->op == TOKstring || e1->op == TOKarrayliteral) &&
 	(type->ty == Tpointer || type->ty == Tarray) &&
 	type->next->equals(e1->type->next)
        )
@@ -220,6 +234,13 @@ Expression *ArrayLengthExp::optimize(int result)
 
 	e = new IntegerExp(loc, es1->len, type);
     }
+    else if (e1->op == TOKarrayliteral)
+    {	ArrayLiteralExp *ale = (ArrayLiteralExp *)e1;
+	size_t dim;
+
+	dim = ale->elements ? ale->elements->dim : 0;
+	e = new IntegerExp(loc, dim, type);
+    }
     return e;
 }
 
@@ -245,8 +266,42 @@ Expression *EqualExp::optimize(int result)
 	    value ^= 1;
 	e = new IntegerExp(loc, value, type);
     }
+    else if (e1->op == TOKarrayliteral && e2->op == TOKarrayliteral)
+    {   ArrayLiteralExp *es1 = (ArrayLiteralExp *)e1;
+	ArrayLiteralExp *es2 = (ArrayLiteralExp *)e2;
+	int value;
+
+	if ((!es1->elements || !es1->elements->dim) &&
+	    (!es2->elements || !es2->elements->dim))
+	    value = 1;		// both arrays are empty
+	else if (!es1->elements || !es2->elements)
+	    value = 0;
+	else if (es1->elements->dim != es2->elements->dim)
+	    value = 0;
+	else
+	{
+	    for (size_t i = 0; i < es1->elements->dim; i++)
+	    {   Expression *ee1 = (Expression *)es1->elements->data[i];
+		Expression *ee2 = (Expression *)es2->elements->data[i];
+
+		if (!ee1->isConst() || !ee2->isConst())
+		    return e;
+
+		EqualExp eq(TOKequal, 0, ee1, ee2);
+		Expression *v = eq.constFold();
+		value = v->toInteger();
+		if (value)
+		    break;
+	    }
+	}
+	if (op == TOKnotequal)
+	    value ^= 1;
+	e = new IntegerExp(loc, value, type);
+    }
     else if (e1->isConst() == 1 && e2->isConst() == 1)
+    {
 	e = constFold();
+    }
     return e;
 }
 
@@ -293,7 +348,15 @@ Expression *IndexExp::optimize(int result)
 	uinteger_t i = e2->toInteger();
 
 	if (i >= length)
-	    error("array index %llu is out of bounds [0 .. %llu]", i, length);
+	{   error("array index %llu is out of bounds [0 .. %llu]", i, length);
+	    i = 0;
+	}
+
+	if (e1->op == TOKarrayliteral && !e1->checkSideEffect(2))
+	{   ArrayLiteralExp *ale = (ArrayLiteralExp *)e1;
+	    e = (Expression *)ale->elements->data[i];
+	    e->type = type;
+	}
     }
     return e;
 }
@@ -331,6 +394,24 @@ Expression *SliceExp::optimize(int result)
 	    es->committed = 1;
 	    es->type = type;
 	    e = es;
+	}
+    }
+    else if (e1->op == TOKarrayliteral &&
+	    lwr->op == TOKint64 && upr->op == TOKint64 &&
+	    !e1->checkSideEffect(2))
+    {	ArrayLiteralExp *es1 = (ArrayLiteralExp *)e1;
+	uinteger_t ilwr = lwr->toInteger();
+	uinteger_t iupr = upr->toInteger();
+
+	if (iupr > es1->elements->dim || ilwr > iupr)
+	    error("array slice [%llu .. %llu] is out of bounds", ilwr, iupr);
+	else
+	{
+	    memmove(es1->elements->data,
+		    es1->elements->data + ilwr,
+		    (iupr - ilwr) * sizeof(es1->elements->data[0]));
+	    es1->elements->dim = iupr - ilwr;
+	    e = es1;
 	}
     }
     return e;
@@ -477,6 +558,32 @@ Expression *CatExp::optimize(int result)
 	//es->type = es->type->semantic(loc, NULL);
 	es->type = type;
 	e = es;
+    }
+    else if (e1->op == TOKarrayliteral && e2->op == TOKarrayliteral &&
+	e1->type->equals(e2->type))
+    {
+	// Concatenate the arrays
+	ArrayLiteralExp *es1 = (ArrayLiteralExp *)e1;
+	ArrayLiteralExp *es2 = (ArrayLiteralExp *)e2;
+
+	es1->elements->insert(es1->elements->dim, es2->elements);
+	e = es1;
+    }
+    else if (e1->op == TOKarrayliteral &&
+	e1->type->toBasetype()->next->equals(e2->type))
+    {
+	ArrayLiteralExp *es1 = (ArrayLiteralExp *)e1;
+
+	es1->elements->push(e2);
+	e = es1;
+    }
+    else if (e2->op == TOKarrayliteral &&
+	e2->type->toBasetype()->next->equals(e1->type))
+    {
+	ArrayLiteralExp *es2 = (ArrayLiteralExp *)e2;
+
+	es2->elements->shift(e1);
+	e = es2;
     }
     else
 	e = this;

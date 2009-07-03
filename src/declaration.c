@@ -657,92 +657,95 @@ void VarDeclaration::semantic(Scope *sc)
 	}
     }
 
-    // If inside function, there is no semantic3() call
-    if (sc->func && init && !init->isVoidInitializer())
+    if (init)
     {
-	// If local variable, use AssignExp to handle all the various
-	// possibilities.
-	if (fd && !isStatic() && !isConst())
+	// If inside function, there is no semantic3() call
+	if (sc->func)
 	{
-	    ExpInitializer *ie;
-	    Expression *e1;
-	    Type *t;
-	    int dim;
-
-	    //printf("fd = '%s', var = '%s'\n", fd->toChars(), toChars());
-	    ie = init->isExpInitializer();
-	    if (!ie)
+	    // If local variable, use AssignExp to handle all the various
+	    // possibilities.
+	    if (fd && !isStatic() && !isConst() && !init->isVoidInitializer())
 	    {
-		error("is not a static and cannot have static initializer");
-		return;
-	    }
+		ExpInitializer *ie;
+		Expression *e1;
+		Type *t;
+		int dim;
 
-	    e1 = new VarExp(loc, this);
-
-	    t = type->toBasetype();
-	    if (t->ty == Tsarray)
-	    {
-		dim = ((TypeSArray *)t)->dim->toInteger();
-		// If multidimensional static array, treat as one large array
-		while (1)
+		//printf("fd = '%s', var = '%s'\n", fd->toChars(), toChars());
+		ie = init->isExpInitializer();
+		if (!ie)
 		{
-		    t = t->next->toBasetype();
-		    if (t->ty != Tsarray)
-			break;
-		    if (t->next->toBasetype()->ty == Tbit)
-			// t->size() gives size in bytes, convert to bits
-			dim *= t->size() * 8;
-		    else
-			dim *= ((TypeSArray *)t)->dim->toInteger();
-		    e1->type = new TypeSArray(t->next, new IntegerExp(0, dim, Type::tindex));
+		    error("is not a static and cannot have static initializer");
+		    return;
 		}
-		e1 = new SliceExp(loc, e1, NULL, NULL);
-	    }
-	    ie->exp = new AssignExp(loc, e1, ie->exp);
-	    ie->exp = ie->exp->semantic(sc);
-	    ie->exp->optimize(WANTvalue);
-	}
-	else
-	{
-	    init = init->semantic(sc, type);
-	    if (fd && isConst() && !isStatic())
-	    {	// Make it static
-		storage_class |= STCstatic;
-	    }
-	}
-    }
-    else if (isConst() and init)
-    {
-	/* Because we may need the results of a const declaration in a
-	 * subsequent type, such as an array dimension, before semantic2()
-	 * gets ordinarilly run, try to run semantic2() now.
-	 * Ignore failure.
-	 */
 
-	ExpInitializer *ei = init->isExpInitializer();
-	if (ei && !global.errors && !inferred)
-	{
-	    unsigned errors = global.errors;
-	    global.gag++;
-	    //printf("+gag\n");
-	    Expression *e = ei->exp->syntaxCopy();
-	    inuse++;
-	    e = e->semantic(sc);
-	    inuse--;
-	    e = e->implicitCastTo(sc, type);
-	    global.gag--;
-	    //printf("-gag\n");
-	    if (errors != global.errors)	// if errors happened
-	    {
-		if (global.gag == 0)
-		    global.errors = errors;	// act as if nothing happened
+		e1 = new VarExp(loc, this);
+
+		t = type->toBasetype();
+		if (t->ty == Tsarray)
+		{
+		    dim = ((TypeSArray *)t)->dim->toInteger();
+		    // If multidimensional static array, treat as one large array
+		    while (1)
+		    {
+			t = t->next->toBasetype();
+			if (t->ty != Tsarray)
+			    break;
+			if (t->next->toBasetype()->ty == Tbit)
+			    // t->size() gives size in bytes, convert to bits
+			    dim *= t->size() * 8;
+			else
+			    dim *= ((TypeSArray *)t)->dim->toInteger();
+			e1->type = new TypeSArray(t->next, new IntegerExp(0, dim, Type::tindex));
+		    }
+		    e1 = new SliceExp(loc, e1, NULL, NULL);
+		}
+		ie->exp = new AssignExp(loc, e1, ie->exp);
+		ie->exp = ie->exp->semantic(sc);
+		ie->exp->optimize(WANTvalue);
 	    }
 	    else
 	    {
-		e = e->optimize(WANTvalue);
-		if (e->op == TOKint64 || e->op == TOKstring)
+		init = init->semantic(sc, type);
+		if (fd && isConst() && !isStatic())
+		{   // Make it static
+		    storage_class |= STCstatic;
+		}
+	    }
+	}
+	else if (isConst())
+	{
+	    /* Because we may need the results of a const declaration in a
+	     * subsequent type, such as an array dimension, before semantic2()
+	     * gets ordinarilly run, try to run semantic2() now.
+	     * Ignore failure.
+	     */
+
+	    ExpInitializer *ei = init->isExpInitializer();
+	    if (ei && !global.errors && !inferred)
+	    {
+		unsigned errors = global.errors;
+		global.gag++;
+		//printf("+gag\n");
+		Expression *e = ei->exp->syntaxCopy();
+		inuse++;
+		e = e->semantic(sc);
+		inuse--;
+		e = e->implicitCastTo(sc, type);
+		global.gag--;
+		//printf("-gag\n");
+		if (errors != global.errors)	// if errors happened
 		{
-		    ei->exp = e;		// no errors, keep result
+		    if (global.gag == 0)
+			global.errors = errors;	// act as if nothing happened
+		}
+		else
+		{
+		    e = e->optimize(WANTvalue);
+		    if (e->op == TOKint64 || e->op == TOKstring)
+		    {
+			ei->exp = e;		// no errors, keep result
+		    }
 		}
 	    }
 	}

@@ -2065,6 +2065,7 @@ Statement *ReturnStatement::semantic(Scope *sc)
 
 	exp = exp->semantic(sc);
 	exp = resolveProperties(sc, exp);
+	exp = exp->optimize(WANTvalue);
 
 	if (fd->returnLabel && tbret->ty != Tvoid)
 	{

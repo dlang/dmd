@@ -98,6 +98,7 @@ void initPrecedence()
     precedence[TOKfloat64] = PREC_primary;
     precedence[TOKnull] = PREC_primary;
     precedence[TOKstring] = PREC_primary;
+    precedence[TOKarrayliteral] = PREC_primary;
     precedence[TOKtypedot] = PREC_primary;
     precedence[TOKtypeid] = PREC_primary;
     precedence[TOKis] = PREC_primary;
@@ -519,6 +520,8 @@ void functionArguments(Loc loc, Scope *sc, TypeFunction *tf, Expressions *argume
 	    {
 		arg = arg->castTo(sc, tb->next->arrayOf());
 	    }
+
+	    arg->rvalue();
 	}
 	arg = arg->optimize(WANTvalue);
 	arguments->data[i] = (void *) arg;
@@ -818,14 +821,20 @@ void Expression::checkDeprecated(Scope *sc, Dsymbol *s)
 /********************************
  * Check for expressions that have no use.
  * Input:
- *	flag	!=0 means we want the result
+ *	flag	0 not going to use the result, so issue error message if no
+ *		  side effects
+ *		1 the result of the expression is used, but still check
+ *		  for useless subexpressions
+ *		2 do not issue error messages, just return !=0 if expression
+ *		  has side effects
  */
 
-void Expression::checkSideEffect(int flag)
+int Expression::checkSideEffect(int flag)
 {
-    if (!flag)
+    if (flag == 0)
 	error("%s has no effect in expression (%s)",
 		Token::toChars(op), toChars());
+    return 0;
 }
 
 /*****************************
@@ -1496,6 +1505,8 @@ Expression *IdentifierExp::semantic(Scope *sc)
 	withsym = scopesym->isWithScopeSymbol();
 	if (withsym)
 	{
+	    s = s->toAlias();
+
 	    // Same as wthis.ident
 	    if (s->needThis())
 	    {
@@ -2220,6 +2231,78 @@ void StringExp::toMangleBuffer(OutBuffer *buf)
 	buf->printf("%02x", q[i]);
 }
 
+/************************ ArrayLiteralExp ************************************/
+
+// [ e1, e2, e3, ... ]
+
+ArrayLiteralExp::ArrayLiteralExp(Loc loc, Expressions *elements)
+    : Expression(loc, TOKarrayliteral, sizeof(ArrayLiteralExp))
+{
+    this->elements = elements;
+}
+
+Expression *ArrayLiteralExp::syntaxCopy()
+{
+    return new ArrayLiteralExp(loc, arraySyntaxCopy(elements));
+}
+
+Expression *ArrayLiteralExp::semantic(Scope *sc)
+{   Expression *e;
+    Type *t0 = NULL;
+
+#if LOGSEMANTIC
+    printf("ArrayLiteralExp::semantic('%s')\n", toChars());
+#endif
+
+    // Run semantic() on each element
+    for (int i = 0; i < elements->dim; i++)
+    {	e = (Expression *)elements->data[i];
+
+	e = e->semantic(sc);
+	if (!e->type)
+	    error("%s has no value", e->toChars());
+	e = resolveProperties(sc, e);
+	if (!t0)
+	    t0 = e->type;
+	else
+	    e = e->implicitCastTo(sc, t0);
+	elements->data[i] = (void *)e;
+    }
+
+    if (!t0)
+	t0 = Type::tvoid;
+    type = new TypeSArray(t0, new IntegerExp(elements->dim));
+    type = type->semantic(loc, sc);
+    return this;
+}
+
+int ArrayLiteralExp::checkSideEffect(int flag)
+{   int f = 0;
+
+    for (int i = 0; i < elements->dim; i++)
+    {	Expression *e = (Expression *)elements->data[i];
+
+	f |= e->checkSideEffect(2);
+    }
+    if (flag == 0 && f == 0)
+	Expression::checkSideEffect(0);
+    return f;
+}
+
+int ArrayLiteralExp::isBool(int result)
+{
+    size_t dim = elements ? elements->dim : 0;
+    return result ? (dim != 0) : (dim == 0);
+}
+
+void ArrayLiteralExp::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
+{   int i;
+
+    buf->writeByte('[');
+    argsToCBuffer(buf, elements, hgs);
+    buf->writeByte(']');
+}
+
 /************************ TypeDotIdExp ************************************/
 
 /* Things like:
@@ -2406,7 +2489,9 @@ Expression *NewExp::semantic(Scope *sc)
 
 #if LOGSEMANTIC
     printf("NewExp::semantic() %s\n", toChars());
-    printf("newtype: %s\n", newtype->toChars());
+    if (thisexp)
+	printf("\tthisexp = %s\n", thisexp->toChars());
+    printf("\tnewtype: %s\n", newtype->toChars());
 #endif
     if (type)			// if semantic() already run
 	return this;
@@ -2570,14 +2655,23 @@ Expression *NewExp::semantic(Scope *sc)
 	type = type->pointerTo();
     }
     else if (tb->ty == Tarray && (arguments && arguments->dim))
-    {	Expression *arg;
+    {
+	for (size_t i = 0; i < arguments->dim; i++)
+	{
+	    if (tb->ty != Tarray)
+	    {	error("too many arguments for array");
+		arguments->dim = i;
+		break;
+	    }
 
-	arg = (Expression *)arguments->data[0];
-	arg = resolveProperties(sc, arg);
-	arg = arg->implicitCastTo(sc, Type::tindex);
-	if (arg->op == TOKint64 && (long long)arg->toInteger() < 0)
-	    error("negative array index %s", arg->toChars());
-	arguments->data[0] = (void *) arg;
+	    Expression *arg = (Expression *)arguments->data[i];
+	    arg = resolveProperties(sc, arg);
+	    arg = arg->implicitCastTo(sc, Type::tindex);
+	    if (arg->op == TOKint64 && (long long)arg->toInteger() < 0)
+		error("negative array index %s", arg->toChars());
+	    arguments->data[i] = (void *) arg;
+	    tb = tb->next->toBasetype();
+	}
     }
     else if (tb->isscalar())
     {
@@ -2598,8 +2692,9 @@ Expression *NewExp::semantic(Scope *sc)
     return this;
 }
 
-void NewExp::checkSideEffect(int flag)
+int NewExp::checkSideEffect(int flag)
 {
+    return 1;
 }
 
 void NewExp::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
@@ -2663,8 +2758,9 @@ Expression *NewAnonClassExp::semantic(Scope *sc)
     return c->semantic(sc);
 }
 
-void NewAnonClassExp::checkSideEffect(int flag)
+int NewAnonClassExp::checkSideEffect(int flag)
 {
+    return 1;
 }
 
 void NewAnonClassExp::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
@@ -3028,8 +3124,9 @@ Expression *DeclarationExp::semantic(Scope *sc)
     return this;
 }
 
-void DeclarationExp::checkSideEffect(int flag)
+int DeclarationExp::checkSideEffect(int flag)
 {
+    return 1;
 }
 
 void DeclarationExp::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
@@ -3091,8 +3188,9 @@ Expression *HaltExp::semantic(Scope *sc)
     return this;
 }
 
-void HaltExp::checkSideEffect(int flag)
+int HaltExp::checkSideEffect(int flag)
 {
+    return 1;
 }
 
 void HaltExp::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
@@ -3437,7 +3535,7 @@ Expression *BinExp::commonSemanticAssignIntegral(Scope *sc)
     return this;
 }
 
-void BinExp::checkSideEffect(int flag)
+int BinExp::checkSideEffect(int flag)
 {
     if (op == TOKplusplus ||
 	   op == TOKminusminus ||
@@ -3454,12 +3552,10 @@ void BinExp::checkSideEffect(int flag)
 	   op == TOKandass ||
 	   op == TOKorass ||
 	   op == TOKxorass ||
-	   op == TOKoror ||
-	   op == TOKandand ||
 	   op == TOKin ||
 	   op == TOKremove)
-	return;
-    Expression::checkSideEffect(flag);
+	return 1;
+    return Expression::checkSideEffect(flag);
 }
 
 void BinExp::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
@@ -3530,8 +3626,9 @@ Expression *AssertExp::semantic(Scope *sc)
     return this;
 }
 
-void AssertExp::checkSideEffect(int flag)
+int AssertExp::checkSideEffect(int flag)
 {
+    return 1;
 }
 
 void AssertExp::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
@@ -4584,8 +4681,9 @@ Lcheckargs:
     return this;
 }
 
-void CallExp::checkSideEffect(int flag)
+int CallExp::checkSideEffect(int flag)
 {
+    return 1;
 }
 
 void CallExp::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
@@ -4932,8 +5030,9 @@ Expression *DeleteExp::semantic(Scope *sc)
     return this;
 }
 
-void DeleteExp::checkSideEffect(int flag)
+int DeleteExp::checkSideEffect(int flag)
 {
+    return 1;
 }
 
 Expression *DeleteExp::checkToBoolean()
@@ -4987,11 +5086,16 @@ Expression *CastExp::semantic(Scope *sc)
     return e1->castTo(sc, to);
 }
 
-void CastExp::checkSideEffect(int flag)
+int CastExp::checkSideEffect(int flag)
 {
+    /* if not:
+     *  cast(void)
+     *  cast(classtype)func()
+     */
     if (!to->equals(Type::tvoid) &&
 	!(to->ty == Tclass && e1->op == TOKcall && e1->type->ty == Tclass))
-	Expression::checkSideEffect(flag);
+	return Expression::checkSideEffect(flag);
+    return 1;
 }
 
 void CastExp::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
@@ -5313,10 +5417,15 @@ int CommaExp::isBool(int result)
     return e2->isBool(result);
 }
 
-void CommaExp::checkSideEffect(int flag)
+int CommaExp::checkSideEffect(int flag)
 {
-    /* Don't check e1 until we cast(void) the a,b code generation */
-    e2->checkSideEffect(flag);
+    if (flag == 2)
+	return e1->checkSideEffect(2) || e2->checkSideEffect(2);
+    else
+    {
+	// Don't check e1 until we cast(void) the a,b code generation
+	return e2->checkSideEffect(flag);
+    }
 }
 
 /************************** IndexExp **********************************/
@@ -6760,9 +6869,16 @@ int OrOrExp::isBit()
     return TRUE;
 }
 
-void OrOrExp::checkSideEffect(int flag)
+int OrOrExp::checkSideEffect(int flag)
 {
-    e2->checkSideEffect(flag);
+    if (flag == 2)
+    {
+	return e1->checkSideEffect(2) || e2->checkSideEffect(2);
+    }
+    else
+    {	e1->checkSideEffect(1);
+	return e2->checkSideEffect(flag);
+    }
 }
 
 /************************************************************/
@@ -6818,9 +6934,17 @@ int AndAndExp::isBit()
     return TRUE;
 }
 
-void AndAndExp::checkSideEffect(int flag)
+int AndAndExp::checkSideEffect(int flag)
 {
-    e2->checkSideEffect(flag);
+    if (flag == 2)
+    {
+	return e1->checkSideEffect(2) || e2->checkSideEffect(2);
+    }
+    else
+    {
+	e1->checkSideEffect(1);
+	return e2->checkSideEffect(flag);
+    }
 }
 
 /************************************************************/
@@ -7173,11 +7297,20 @@ Expression *CondExp::checkToBoolean()
     return this;
 }
 
-void CondExp::checkSideEffect(int flag)
+int CondExp::checkSideEffect(int flag)
 {
-    econd->checkSideEffect(TRUE);
-    e1->checkSideEffect(flag);
-    e2->checkSideEffect(flag);
+    if (flag == 2)
+    {
+	return econd->checkSideEffect(2) ||
+		e1->checkSideEffect(2) ||
+		e2->checkSideEffect(2);
+    }
+    else
+    {
+	econd->checkSideEffect(1);
+	e1->checkSideEffect(flag);
+	return e2->checkSideEffect(flag);
+    }
 }
 
 void CondExp::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
