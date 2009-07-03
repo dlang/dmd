@@ -3,7 +3,7 @@
 // Copyright (c) 1999-2006 by Digital Mars
 // All Rights Reserved
 // Initial header generation implementation by Dave Fladebo
-// www.digitalmars.com
+// http://www.digitalmars.com
 // License for redistribution is by either the Artistic License
 // in artistic.txt, or the GNU General Public License in gnu.txt.
 // See the included readme.txt for details.

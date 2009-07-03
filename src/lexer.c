@@ -3,7 +3,7 @@
 // Copyright (c) 1999-2007 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
-// www.digitalmars.com
+// http://www.digitalmars.com
 // License for redistribution is by either the Artistic License
 // in artistic.txt, or the GNU General Public License in gnu.txt.
 // See the included readme.txt for details.
@@ -2598,6 +2598,10 @@ static Keyword keywords[] =
     {	"invariant",	TOKinvariant	},
     {	"unittest",	TOKunittest	},
     {	"version",	TOKversion	},
+
+    // Added after 1.0
+    {	"ref",		TOKref		},
+    {	"macro",	TOKmacro	},
 };
 
 int Token::isKeyword()
@@ -2614,10 +2618,14 @@ void Lexer::initKeywords()
 {   StringValue *sv;
     unsigned u;
     enum TOK v;
+    unsigned nkeywords = sizeof(keywords) / sizeof(keywords[0]);
+
+    if (global.params.Dversion == 1)
+	nkeywords -= 2;
 
     cmtable_init();
 
-    for (u = 0; u < sizeof(keywords) / sizeof(keywords[0]); u++)
+    for (u = 0; u < nkeywords; u++)
     {	char *s;
 
 	//printf("keyword[%d] = '%s'\n",u, keywords[u].name);

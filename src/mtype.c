@@ -3,7 +3,7 @@
 // Copyright (c) 1999-2007 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
-// www.digitalmars.com
+// http://www.digitalmars.com
 // License for redistribution is by either the Artistic License
 // in artistic.txt, or the GNU General Public License in gnu.txt.
 // See the included readme.txt for details.
@@ -595,7 +595,7 @@ Expression *Type::dotExp(Scope *sc, Expression *e, Identifier *ident)
 	  Loffset:
 	    if (v->storage_class & STCfield)
 	    {
-		e = new IntegerExp(e->loc, v->offset, Type::tint32);
+		e = new IntegerExp(e->loc, v->offset, Type::tsize_t);
 		return e;
 	    }
 	}
@@ -1690,7 +1690,9 @@ Expression *semanticLength(Scope *sc, Type *t, Expression *exp)
 
 void TypeSArray::resolve(Loc loc, Scope *sc, Expression **pe, Type **pt, Dsymbol **ps)
 {
+    //printf("TypeSArray::resolve() %s\n", toChars());
     next->resolve(loc, sc, pe, pt, ps);
+    //printf("s = %p, e = %p, t = %p\n", *ps, *pe, *pt);
     if (*pe)
     {	// It's really an index expression
 	Expression *e;
@@ -1716,6 +1718,18 @@ void TypeSArray::resolve(Loc loc, Scope *sc, Expression **pe, Type **pt, Dsymbol
 	    {	error(loc, "tuple index %ju exceeds %u", d, td->objects->dim);
 		goto Ldefault;
 	    }
+	    Object *o = (Object *)td->objects->data[(size_t)d];
+	    if (o->dyncast() == DYNCAST_DSYMBOL)
+	    {
+		*ps = (Dsymbol *)o;
+		return;
+	    }
+	    if (o->dyncast() == DYNCAST_EXPRESSION)
+	    {
+		*ps = NULL;
+		*pe = (Expression *)o;
+		return;
+	    }
 
 	    /* Create a new TupleDeclaration which
 	     * is a slice [d..d+1] out of the old one.
@@ -1724,7 +1738,7 @@ void TypeSArray::resolve(Loc loc, Scope *sc, Expression **pe, Type **pt, Dsymbol
 	     */
 	    Objects *objects = new Objects;
 	    objects->setDim(1);
-	    objects->data[0] = td->objects->data[(size_t)d];
+	    objects->data[0] = o;
 
 	    TupleDeclaration *tds = new TupleDeclaration(loc, td->ident, objects);
 	    *ps = tds;
@@ -1750,7 +1764,7 @@ Type *TypeSArray::semantic(Loc loc, Scope *sc)
 
 	dim = semanticLength(sc, tbn, dim);
 
-	dim = dim->optimize(WANTvalue);
+	dim = dim->optimize(WANTvalue | WANTinterpret);
 	integer_t d1 = dim->toInteger();
 	dim = dim->castTo(sc, tsize_t);
 	dim = dim->optimize(WANTvalue);
@@ -2108,7 +2122,7 @@ d_uns64 TypeAArray::size(Loc loc)
 
 Type *TypeAArray::semantic(Loc loc, Scope *sc)
 {
-    //printf("TypeAArray::semantic() index->ty = %d\n", index->ty);
+    //printf("TypeAArray::semantic() %s index->ty = %d\n", toChars(), index->ty);
 
     // Deal with the case where we thought the index was a type, but
     // in reality it was an expression.
@@ -2528,7 +2542,7 @@ int Type::covariant(Type *t)
 
 	    if (!arg1->type->equals(arg2->type))
 		goto Ldistinct;
-	    if (arg1->inout != arg2->inout)
+	    if (arg1->storageClass != arg2->storageClass)
 		inoutmismatch = 1;
 	}
     }
@@ -2697,12 +2711,12 @@ Type *TypeFunction::semantic(Loc loc, Scope *sc)
 	    if (t->ty == Ttuple)
 		dim = Argument::dim(parameters);
 
-	    if (arg->inout != In)
+	    if (arg->storageClass & (STCout | STCref | STClazy))
 	    {
 		if (t->ty == Tsarray)
-		    error(loc, "cannot have out or inout parameter of type %s", t->toChars());
+		    error(loc, "cannot have out or ref parameter of type %s", t->toChars());
 	    }
-	    if (arg->inout != Lazy && t->ty == Tvoid)
+	    if (!(arg->storageClass & STClazy) && t->ty == Tvoid)
 		error(loc, "cannot have parameter of type %s", arg->type->toChars());
 
 	    if (arg->defaultArg)
@@ -2758,7 +2772,7 @@ int TypeFunction::callMatch(Expressions *args)
     {	int m;
 	Expression *arg;
 
-	// BUG: what about out and inout?
+	// BUG: what about out and ref?
 
 	Argument *p = Argument::getNth(parameters, u);
 	assert(p);
@@ -2772,7 +2786,7 @@ int TypeFunction::callMatch(Expressions *args)
 	}
 	arg = (Expression *)args->data[u];
 	assert(arg);
-	if (p->inout == Lazy && p->type->ty == Tvoid && arg->type->ty != Tvoid)
+	if (p->storageClass & STClazy && p->type->ty == Tvoid && arg->type->ty != Tvoid)
 	    m = MATCHconvert;
 	else
 	    m = arg->implicitConvTo(p->type);
@@ -2990,11 +3004,12 @@ TypeQualified::TypeQualified(TY ty, Loc loc)
 
 void TypeQualified::syntaxCopyHelper(TypeQualified *t)
 {
+    //printf("TypeQualified::syntaxCopyHelper(%s) %s\n", t->toChars(), toChars());
     idents.setDim(t->idents.dim);
     for (int i = 0; i < idents.dim; i++)
     {
 	Identifier *id = (Identifier *)t->idents.data[i];
-	if (id->dyncast() != DYNCAST_IDENTIFIER)
+	if (id->dyncast() == DYNCAST_DSYMBOL)
 	{
 	    TemplateInstance *ti = (TemplateInstance *)id;
 
@@ -3020,7 +3035,7 @@ void TypeQualified::toCBuffer2Helper(OutBuffer *buf, Identifier *ident, HdrGenSt
 
 	buf->writeByte('.');
 
-	if (id->dyncast() != DYNCAST_IDENTIFIER)
+	if (id->dyncast() == DYNCAST_DSYMBOL)
 	{
 	    TemplateInstance *ti = (TemplateInstance *)id;
 	    ti->toCBuffer(buf, hgs);
@@ -3073,48 +3088,11 @@ void TypeQualified::resolveHelper(Loc loc, Scope *sc,
 	{   Dsymbol *sm;
 
 	    id = (Identifier *)idents.data[i];
-	    if (id->dyncast() != DYNCAST_IDENTIFIER)
-	    {
-		// It's a template instance
-		//printf("\ttemplate instance id\n");
-		TemplateDeclaration *td;
-		TemplateInstance *ti = (TemplateInstance *)id;
-		id = (Identifier *)ti->idents.data[0];
-		sm = s->search(loc, id, 0);
-		if (!sm)
-		{
-#ifdef DEBUG
-		    printf("1: \n");
-#endif
-		    error(loc, "template identifier %s is not a member of %s %s",
-			id->toChars(), s->kind(), s->toChars());
-		    return;
-		}
-		sm = sm->toAlias();
-		td = sm->isTemplateDeclaration();
-		if (!td)
-		{
-		    error(loc, "%s is not a template", id->toChars());
-		    return;
-		}
-		ti->tempdecl = td;
-		if (!ti->semanticdone)
-		    ti->semantic(sc);
-		sm = ti->toAlias();
-	    }
-	    else
-		sm = s->search(loc, id, 0);
+	    sm = s->searchX(loc, sc, id);
 	    //printf("\t3: s = '%s' %p, kind = '%s'\n",s->toChars(), s, s->kind());
 	    //printf("getType = '%s'\n", s->getType()->toChars());
 	    if (!sm)
 	    {
-#if 0
-		if (s->isAliasDeclaration() && this->ty == Tident)
-		{
-		    *pt = this;
-		    return;
-		}
-#endif
 		v = s->isVarDeclaration();
 		if (v && id == Id::length)
 		{
@@ -3139,7 +3117,9 @@ void TypeQualified::resolveHelper(Loc loc, Scope *sc,
 			if (sm)
 			    goto L2;
 		    }
-		    e = t->getProperty(loc, id);
+		    //e = t->getProperty(loc, id);
+		    e = new TypeExp(loc, t);
+		    e = t->dotExp(sc, e, id);
 		    i++;
 		L3:
 		    for (; i < idents.dim; i++)
@@ -3313,66 +3293,19 @@ void TypeIdentifier::resolve(Loc loc, Scope *sc, Expression **pe, Type **pt, Dsy
 
 Dsymbol *TypeIdentifier::toDsymbol(Scope *sc)
 {
-    Dsymbol *s;
-    Dsymbol *scopesym;
-
     //printf("TypeIdentifier::toDsymbol('%s')\n", toChars());
     if (!sc)
 	return NULL;
     //printf("ident = '%s'\n", ident->toChars());
-    s = sc->search(loc, ident, &scopesym);
+
+    Dsymbol *scopesym;
+    Dsymbol *s = sc->search(loc, ident, &scopesym);
     if (s)
     {
 	for (int i = 0; i < idents.dim; i++)
-	{   Identifier *id;
-	    Dsymbol *sm;
-
-	    s = s->toAlias();
-	    id = (Identifier *)idents.data[i];
-	    //printf("\tid = '%s'\n", id->toChars());
-	    if (id->dyncast() != DYNCAST_IDENTIFIER)
-	    {
-		// It's a template instance
-		//printf("\ttemplate instance id\n");
-		TemplateDeclaration *td;
-		TemplateInstance *ti = (TemplateInstance *)id;
-		id = (Identifier *)ti->idents.data[0];
-		sm = s->search(loc, id, 0);
-		if (!sm)
-		{
-		    Type *t = s->getType();
-		    if (t)
-			sm = t->toDsymbol(sc);
-		    if (!sm)
-		    {
-#ifdef DEBUG
-			printf("E2: %s\n", s->getType()->toChars());
-#endif
-			error(loc, "template identifier %s is not a member of %s %s",
-			    id->toChars(), s->kind(), s->toChars());
-			break;
-		    }
-		    sm = sm->toAlias();
-		}
-		else
-		{
-		    sm = sm->toAlias();
-		    td = sm->isTemplateDeclaration();
-		    if (!td)
-		    {
-			error(loc, "%s %s is not a template", sm->kind(), id->toChars());
-			break;
-		    }
-		    ti->tempdecl = td;
-		    if (!ti->semanticdone)
-			ti->semantic(sc);
-		    sm = ti->toAlias();
-		}
-	    }
-	    else
-		sm = s->search(loc, id, 0);
-	    s = sm;
-
+	{
+	    Identifier *id = (Identifier *)idents.data[i];
+	    s = s->searchX(loc, sc, id);
 	    if (!s)                 // failed to find a symbol
 	    {	//printf("\tdidn't find a symbol\n");
 		break;
@@ -3446,6 +3379,7 @@ TypeInstance::TypeInstance(Loc loc, TemplateInstance *tempinst)
 
 Type *TypeInstance::syntaxCopy()
 {
+    //printf("TypeInstance::syntaxCopy() %s, %d\n", toChars(), idents.dim);
     TypeInstance *t;
 
     t = new TypeInstance(loc, (TemplateInstance *)tempinst->syntaxCopy(NULL));
@@ -3500,7 +3434,24 @@ Type *TypeInstance::semantic(Loc loc, Scope *sc)
     Dsymbol *s;
 
     //printf("TypeInstance::semantic(%s)\n", toChars());
-    resolve(loc, sc, &e, &t, &s);
+
+    if (sc->parameterSpecialization)
+    {
+	unsigned errors = global.errors;
+	global.gag++;
+
+	resolve(loc, sc, &e, &t, &s);
+
+	global.gag--;
+	if (errors != global.errors)
+	{   if (global.gag == 0)
+		global.errors = errors;
+	    return this;
+	}
+    }
+    else
+	resolve(loc, sc, &e, &t, &s);
+
     if (!t)
     {
 #ifdef DEBUG
@@ -3623,8 +3574,26 @@ Type *TypeTypeof::semantic(Loc loc, Scope *sc)
 
     if (idents.dim)
     {
-	error(loc, ".property not implemented for typeof");
-	goto Lerr;
+	Dsymbol *s = t->toDsymbol(sc);
+	for (size_t i = 0; i < idents.dim; i++)
+	{
+	    if (!s)
+		break;
+	    Identifier *id = (Identifier *)idents.data[i];
+	    s = s->searchX(loc, sc, id);
+	}
+	if (s)
+	{
+	    t = s->getType();
+	    if (!t)
+	    {	error(loc, "%s is not a type", s->toChars());
+		goto Lerr;
+	    }
+	}
+	else
+	{   error(loc, "cannot resolve .property for %s", toChars());
+	    goto Lerr;
+	}
     }
     return t;
 
@@ -4722,7 +4691,7 @@ TypeTuple::TypeTuple(Expressions *exps)
 	{   Expression *e = (Expression *)exps->data[i];
 	    if (e->type->ty == Ttuple)
 		e->error("cannot form tuple of tuples");
-	    Argument *arg = new Argument(In, e->type, NULL, NULL);
+	    Argument *arg = new Argument(STCin, e->type, NULL, NULL);
 	    arguments->data[i] = (void *)arg;
 	}
     }
@@ -4964,17 +4933,17 @@ void TypeSlice::toCBuffer2(OutBuffer *buf, Identifier *ident, HdrGenState *hgs)
 
 /***************************** Argument *****************************/
 
-Argument::Argument(enum InOut inout, Type *type, Identifier *ident, Expression *defaultArg)
+Argument::Argument(unsigned storageClass, Type *type, Identifier *ident, Expression *defaultArg)
 {
     this->type = type;
     this->ident = ident;
-    this->inout = inout;
+    this->storageClass = storageClass;
     this->defaultArg = defaultArg;
 }
 
 Argument *Argument::syntaxCopy()
 {
-    Argument *a = new Argument(inout,
+    Argument *a = new Argument(storageClass,
 		type ? type->syntaxCopy() : NULL,
 		ident,
 		defaultArg ? defaultArg->syntaxCopy() : NULL);
@@ -5044,11 +5013,12 @@ void Argument::argsToCBuffer(OutBuffer *buf, HdrGenState *hgs, Arguments *argume
 	    if (i)
 		buf->writestring(", ");
 	    arg = (Argument *)arguments->data[i];
-	    if (arg->inout == Out)
+	    if (arg->storageClass & STCout)
 		buf->writestring("out ");
-	    else if (arg->inout == InOut)
-		buf->writestring("inout ");
-	    else if (arg->inout == Lazy)
+	    else if (arg->storageClass & STCref)
+		buf->writestring((global.params.Dversion == 1)
+			? (char *)"inout " : (char *)"ref ");
+	    else if (arg->storageClass & STClazy)
 		buf->writestring("lazy ");
 	    argbuf.reset();
 	    arg->type->toCBuffer2(&argbuf, arg->ident, hgs);
@@ -5117,16 +5087,17 @@ Type *Argument::isLazyArray()
 
 void Argument::toDecoBuffer(OutBuffer *buf)
 {
-    switch (inout)
-    {   case In:
+    switch (storageClass & (STCin | STCout | STCref | STClazy))
+    {   case 0:
+	case STCin:
 	    break;
-	case Out:
+	case STCout:
 	    buf->writeByte('J');
 	    break;
-	case InOut:
+	case STCref:
 	    buf->writeByte('K');
 	    break;
-	case Lazy:
+	case STClazy:
 	    buf->writeByte('L');
 	    break;
 	default:

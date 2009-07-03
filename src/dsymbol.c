@@ -3,7 +3,7 @@
 // Copyright (c) 1999-2007 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
-// www.digitalmars.com
+// http://www.digitalmars.com
 // License for redistribution is by either the Artistic License
 // in artistic.txt, or the GNU General Public License in gnu.txt.
 // See the included readme.txt for details.
@@ -27,6 +27,7 @@
 #include "scope.h"
 #include "init.h"
 #include "import.h"
+#include "template.h"
 
 /****************************** Dsymbol ******************************/
 
@@ -263,8 +264,57 @@ Dsymbol *Dsymbol::search(Loc loc, Identifier *ident, int flags)
 {
     //printf("Dsymbol::search(this=%p,%s, ident='%s')\n", this, toChars(), ident->toChars());
     return NULL;
-//    error("%s.%s is undefined",toChars(), ident->toChars());
-//    return this;
+}
+
+/***************************************
+ * Search for identifier id as a member of 'this'.
+ * id may be a template instance.
+ * Returns:
+ *	symbol found, NULL if not
+ */
+
+Dsymbol *Dsymbol::searchX(Loc loc, Scope *sc, Identifier *id)
+{
+    //printf("Dsymbol::searchX(this=%p,%s, ident='%s')\n", this, toChars(), ident->toChars());
+    Dsymbol *s = toAlias();
+    Dsymbol *sm;
+
+    switch (id->dyncast())
+    {
+	case DYNCAST_IDENTIFIER:
+	    sm = s->search(loc, id, 0);
+	    break;
+
+	case DYNCAST_DSYMBOL:
+	{   // It's a template instance
+	    //printf("\ttemplate instance id\n");
+	    Dsymbol *st = (Dsymbol *)id;
+	    TemplateInstance *ti = st->isTemplateInstance();
+	    id = ti->name;
+	    sm = s->search(loc, id, 0);
+	    if (!sm)
+	    {   error("template identifier %s is not a member of %s %s",
+		    id->toChars(), s->kind(), s->toChars());
+		return NULL;
+	    }
+	    sm = sm->toAlias();
+	    TemplateDeclaration *td = sm->isTemplateDeclaration();
+	    if (!td)
+	    {
+		error("%s is not a template, it is a %s", id->toChars(), sm->kind());
+		return NULL;
+	    }
+	    ti->tempdecl = td;
+	    if (!ti->semanticdone)
+		ti->semantic(sc);
+	    sm = ti->toAlias();
+	    break;
+	}
+
+	default:
+	    assert(0);
+    }
+    return sm;
 }
 
 int Dsymbol::overloadInsert(Dsymbol *s)
@@ -679,11 +729,11 @@ void ScopeDsymbol::multiplyDefined(Loc loc, Dsymbol *s1, Dsymbol *s2)
     }
     else
     {
-	s1->error(loc, "conflicts with %s at %s",
+	s1->error(loc, "conflicts with %s %s at %s",
+	    s2->kind(),
 	    s2->toPrettyChars(),
 	    s2->locToChars());
     }
-//*(char*)0=0;
 }
 
 Dsymbol *ScopeDsymbol::nameCollision(Dsymbol *s)

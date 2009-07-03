@@ -3,7 +3,7 @@
 // Copyright (c) 1999-2007 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
-// www.digitalmars.com
+// http://www.digitalmars.com
 // License for redistribution is by either the Artistic License
 // in artistic.txt, or the GNU General Public License in gnu.txt.
 // See the included readme.txt for details.
@@ -660,16 +660,17 @@ struct TypeSlice : Type
 
 /**************************************************************/
 
-enum InOut { None, In, Out, InOut, Lazy };
+//enum InOut { None, In, Out, InOut, Lazy };
 
 struct Argument : Object
 {
-    enum InOut inout;
+    //enum InOut inout;
+    unsigned storageClass;
     Type *type;
     Identifier *ident;
     Expression *defaultArg;
 
-    Argument(enum InOut inout, Type *type, Identifier *ident, Expression *defaultArg);
+    Argument(unsigned storageClass, Type *type, Identifier *ident, Expression *defaultArg);
     Argument *syntaxCopy();
     Type *isLazyArray();
     void toDecoBuffer(OutBuffer *buf);

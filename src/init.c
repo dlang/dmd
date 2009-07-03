@@ -3,7 +3,7 @@
 // Copyright (c) 1999-2006 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
-// www.digitalmars.com
+// http://www.digitalmars.com
 // License for redistribution is by either the Artistic License
 // in artistic.txt, or the GNU General Public License in gnu.txt.
 // See the included readme.txt for details.
@@ -358,6 +358,7 @@ Initializer *ArrayInitializer::semantic(Scope *sc, Type *t)
 
 Expression *ArrayInitializer::toExpression()
 {   Expressions *elements;
+    Expression *e;
 
     //printf("ArrayInitializer::toExpression()\n");
     //static int i; if (++i == 2) halt();
@@ -374,7 +375,9 @@ Expression *ArrayInitializer::toExpression()
 	    goto Lno;
 	elements->push(ex);
     }
-    return new ArrayLiteralExp(loc, elements);
+    e = new ArrayLiteralExp(loc, elements);
+    e->type = type;
+    return e;
 
 Lno:
     delete elements;

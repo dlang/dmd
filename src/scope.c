@@ -2,7 +2,7 @@
 // Copyright (c) 1999-2005 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
-// www.digitalmars.com
+// http://www.digitalmars.com
 // License for redistribution is by either the Artistic License
 // in artistic.txt, or the GNU General Public License in gnu.txt.
 // See the included readme.txt for details.
@@ -64,6 +64,7 @@ Scope::Scope()
     this->nofree = 0;
     this->noctor = 0;
     this->intypeof = 0;
+    this->parameterSpecialization = 0;
     this->callSuper = 0;
     this->flags = 0;
     this->anonAgg = NULL;
@@ -97,6 +98,7 @@ Scope::Scope(Scope *enclosing)
     this->nofree = 0;
     this->noctor = enclosing->noctor;
     this->intypeof = enclosing->intypeof;
+    this->parameterSpecialization = enclosing->parameterSpecialization;
     this->callSuper = enclosing->callSuper;
     this->flags = 0;
     this->anonAgg = NULL;

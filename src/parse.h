@@ -3,7 +3,7 @@
 // Copyright (c) 1999-2006 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
-// www.digitalmars.com
+// http://www.digitalmars.com
 // License for redistribution is by either the Artistic License
 // in artistic.txt, or the GNU General Public License in gnu.txt.
 // See the included readme.txt for details.
@@ -69,7 +69,6 @@ struct Parser : Lexer
     Array *parseBlock();
     TemplateDeclaration *parseTemplateDeclaration();
     TemplateParameters *parseTemplateParameterList();
-    TemplateInstance *parseTemplateInstance();
     Dsymbol *parseMixin();
     Objects *parseTemplateArgumentList();
     StaticAssert *parseStaticAssert();
@@ -97,6 +96,7 @@ struct Parser : Lexer
     void parseContracts(FuncDeclaration *f);
     Statement *parseStatement(int flags);
     Initializer *parseInitializer();
+    void check(Loc loc, enum TOK value);
     void check(enum TOK value);
     void check(enum TOK value, char *string);
     int isDeclaration(Token *t, int needId, enum TOK endtok, Token **pt);

@@ -3,7 +3,7 @@
 // Copyright (c) 1999-2006 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
-// www.digitalmars.com
+// http://www.digitalmars.com
 // License for redistribution is by either the Artistic License
 // in artistic.txt, or the GNU General Public License in gnu.txt.
 // See the included readme.txt for details.
@@ -226,10 +226,12 @@ struct TemplateTupleParameter : TemplateParameter
 struct TemplateInstance : ScopeDsymbol
 {
     /* Given:
-     *	template abc(T:T*, S, int V)
-     *	instance foo.bar.abc(int*, char, 10*10)
+     *	foo!(args) =>
+     *	    name = foo
+     *	    tiargs = args
      */
-    Array idents;		// Array of Identifiers [foo, bar, abc]
+    Identifier *name;
+    //Array idents;
     Objects *tiargs;		// Array of Types/Expressions of template
 				// instance arguments [int*, char, 10*10]
 
@@ -258,7 +260,6 @@ struct TemplateInstance : ScopeDsymbol
     TemplateInstance(Loc loc, Identifier *temp_id);
     TemplateInstance(Loc loc, TemplateDeclaration *tempdecl, Objects *tiargs);
     Dsymbol *syntaxCopy(Dsymbol *);
-    void addIdent(Identifier *ident);
     void semantic(Scope *sc);
     void semantic2(Scope *sc);
     void semantic3(Scope *sc);
@@ -275,6 +276,7 @@ struct TemplateInstance : ScopeDsymbol
     // Internal
     void semanticTiargs(Scope *sc);
     TemplateDeclaration *findTemplateDeclaration(Scope *sc);
+    TemplateDeclaration *findBestMatch(Scope *sc);
     void declareParameters(Scope *sc);
     int isNested(Objects *tiargs);
     Identifier *genIdent();
@@ -286,11 +288,11 @@ struct TemplateInstance : ScopeDsymbol
 struct TemplateMixin : TemplateInstance
 {
     Array *idents;
-    TypeTypeof *tqual;
+    Type *tqual;
 
     Scope *scope;		// for forward referencing
 
-    TemplateMixin(Loc loc, Identifier *ident, TypeTypeof *tqual, Array *idents, Objects *tiargs);
+    TemplateMixin(Loc loc, Identifier *ident, Type *tqual, Array *idents, Objects *tiargs);
     Dsymbol *syntaxCopy(Dsymbol *s);
     void semantic(Scope *sc);
     void semantic2(Scope *sc);

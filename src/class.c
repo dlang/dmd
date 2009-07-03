@@ -3,7 +3,7 @@
 // Copyright (c) 1999-2006 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
-// www.digitalmars.com
+// http://www.digitalmars.com
 // License for redistribution is by either the Artistic License
 // in artistic.txt, or the GNU General Public License in gnu.txt.
 // See the included readme.txt for details.
@@ -394,6 +394,9 @@ void ClassDeclaration::semantic(Scope *sc)
 
     if (baseClass)
     {
+	if (baseClass->storage_class & STCfinal)
+	    error("cannot inherit from final class %s", baseClass->toChars());
+
 	interfaces_dim--;
 	interfaces++;
 
@@ -481,7 +484,8 @@ void ClassDeclaration::semantic(Scope *sc)
 	isdeprecated = 1;
 
     sc = sc->push(this);
-    sc->stc &= ~(STCauto | STCscope | STCstatic | STCabstract | STCdeprecated);
+    sc->stc &= ~(STCfinal | STCauto | STCscope | STCstatic |
+		 STCabstract | STCdeprecated);
     sc->parent = this;
     sc->inunion = 0;
 

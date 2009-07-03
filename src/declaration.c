@@ -3,7 +3,7 @@
 // Copyright (c) 1999-2007 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
-// www.digitalmars.com
+// http://www.digitalmars.com
 // License for redistribution is by either the Artistic License
 // in artistic.txt, or the GNU General Public License in gnu.txt.
 // See the included readme.txt for details.
@@ -136,9 +136,9 @@ Type *TupleDeclaration::getType()
 	    buf.printf("_%s_%d", ident->toChars(), i);
 	    char *name = (char *)buf.extractData();
 	    Identifier *id = new Identifier(name, TOKidentifier);
-	    Argument *arg = new Argument(In, t, id, NULL);
+	    Argument *arg = new Argument(STCin, t, id, NULL);
 #else
-	    Argument *arg = new Argument(In, t, NULL, NULL);
+	    Argument *arg = new Argument(STCin, t, NULL, NULL);
 #endif
 	    args->data[i] = (void *)arg;
 	}
@@ -371,50 +371,49 @@ void AliasDeclaration::semantic(Scope *sc)
     // toAlias() will return aliasssym.
 
     Dsymbol *s;
+    Type *t;
+    Expression *e;
 
-    if (type->ty == Tident)
+    /* This section is needed because resolve() will:
+     *   const x = 3;
+     *   alias x y;
+     * try to alias y to 3.
+     */
+    s = type->toDsymbol(sc);
+    if (s)
+	goto L2;			// it's a symbolic alias
+
+    //printf("alias type is %s\n", type->toChars());
+    type->resolve(loc, sc, &e, &t, &s);
+    if (s)
     {
-	TypeIdentifier *ti = (TypeIdentifier *)type;
-
-	s = ti->toDsymbol(sc);
-	if (s)
-	    goto L2;			// it's a symbolic alias
+	goto L2;
     }
-    else if (type->ty == Tinstance)
+    else if (e)
     {
-	// Handle forms like:
-	//	alias instance TFoo(int).bar.abc def;
-
-	TypeInstance *ti = (TypeInstance *)type;
-
-	s = ti->tempinst;
-	if (s)
-	{
-	    s->semantic(sc);
-	    s = s->toAlias();
-	    if (sc->parent->isFuncDeclaration())
-		s->semantic2(sc);
-
-	    for (int i = 0; i < ti->idents.dim; i++)
-	    {	Identifier *id;
-
-		id = (Identifier *)ti->idents.data[i];
-		s = s->search(loc, id, 0);
-		if (!s)			// failed to find a symbol
-		    goto L1;		// it must be a type
-		s = s->toAlias();
-	    }
+	// Try to convert Expression to Dsymbol
+        if (e->op == TOKvar)
+	{   s = ((VarExp *)e)->var;
 	    goto L2;
 	}
+        else if (e->op == TOKfunction)
+	{   s = ((FuncExp *)e)->fd;
+	    goto L2;
+	}
+        else
+	{   error("cannot alias an expression %s", e->toChars());
+	    t = e->type;
+	}
     }
-  L1:
+    else if (t)
+	type = t;
     if (overnext)
 	ScopeDsymbol::multiplyDefined(0, this, overnext);
-    type = type->semantic(loc, sc);
     this->inSemantic = 0;
     return;
 
   L2:
+    //printf("alias is a symbol %s %s\n", s->kind(), s->toChars());
     type = NULL;
     VarDeclaration *v = s->isVarDeclaration();
     if (v && v->linkage == LINKdefault)
@@ -424,7 +423,7 @@ void AliasDeclaration::semantic(Scope *sc)
     }
     else
     {
-	FuncDeclaration *f = s->isFuncDeclaration();
+	FuncDeclaration *f = s->toAlias()->isFuncDeclaration();
 	if (f)
 	{
 	    if (overnext)
@@ -478,7 +477,7 @@ Type *AliasDeclaration::getType()
 
 Dsymbol *AliasDeclaration::toAlias()
 {
-    //printf("AliasDeclaration::toAlias('%s', this = %p, aliassym = %p, kind = '%s')\n", toChars(), this, aliassym, aliassym->kind());
+    //printf("AliasDeclaration::toAlias('%s', this = %p, aliassym = %p, kind = '%s')\n", toChars(), this, aliassym, aliassym ? aliassym->kind() : "");
     assert(this != aliassym);
     //static int count; if (++count == 10) *(char*)0=0;
     if (inSemantic)
@@ -547,6 +546,7 @@ VarDeclaration::VarDeclaration(Loc loc, Type *type, Identifier *id, Initializer 
     ctorinit = 0;
     aliassym = NULL;
     onstack = 0;
+    canassign = 0;
     value = NULL;
 }
 
@@ -690,7 +690,7 @@ void VarDeclaration::semantic(Scope *sc)
 	// Initialize by constructor only
 	storage_class = (storage_class & ~STCconst) | STCctorinit;
 
-    if (isConst())
+    if (isConst() || isFinal())
     {
     }
     else if (isStatic())
@@ -750,9 +750,9 @@ void VarDeclaration::semantic(Scope *sc)
 
     if (type->isauto() && !noauto)
     {
-	if (storage_class & (STCfield | STCout | STCstatic) || !fd)
+	if (storage_class & (STCfield | STCout | STCref | STCstatic) || !fd)
 	{
-	    error("globals, statics, fields, inout and out parameters cannot be auto");
+	    error("globals, statics, fields, ref and out parameters cannot be auto");
 	}
 
 	if (!(storage_class & (STCauto | STCscope)))
@@ -867,7 +867,10 @@ void VarDeclaration::semantic(Scope *sc)
 			ei->exp = new CastExp(loc, ei->exp, type);
 		}
 		ei->exp = new AssignExp(loc, e1, ei->exp);
+		ei->exp->op = TOKconstruct;
+		canassign++;
 		ei->exp = ei->exp->semantic(sc);
+		canassign--;
 		ei->exp->optimize(WANTvalue);
 	    }
 	    else
@@ -879,7 +882,7 @@ void VarDeclaration::semantic(Scope *sc)
 		}
 	    }
 	}
-	else if (isConst())
+	else if (isConst() || isFinal())
 	{
 	    /* Because we may need the results of a const declaration in a
 	     * subsequent type, such as an array dimension, before semantic2()

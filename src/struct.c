@@ -3,7 +3,7 @@
 // Copyright (c) 1999-2006 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
-// www.digitalmars.com
+// http://www.digitalmars.com
 // License for redistribution is by either the Artistic License
 // in artistic.txt, or the GNU General Public License in gnu.txt.
 // See the included readme.txt for details.
@@ -301,7 +301,7 @@ void StructDeclaration::semantic(Scope *sc)
     TypeFunction *tfeqptr;
     {
 	Arguments *arguments = new Arguments;
-	Argument *arg = new Argument(In, handle, Id::p, NULL);
+	Argument *arg = new Argument(STCin, handle, Id::p, NULL);
 
 	arguments->push(arg);
 	tfeqptr = new TypeFunction(arguments, Type::tint32, 0, LINKd);
@@ -311,7 +311,7 @@ void StructDeclaration::semantic(Scope *sc)
     TypeFunction *tfeq;
     {
 	Arguments *arguments = new Arguments;
-	Argument *arg = new Argument(In, type, NULL, NULL);
+	Argument *arg = new Argument(STCin, type, NULL, NULL);
 
 	arguments->push(arg);
 	tfeq = new TypeFunction(arguments, Type::tint32, 0, LINKd);

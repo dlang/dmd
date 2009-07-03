@@ -3,7 +3,7 @@
 // Copyright (c) 1999-2006 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
-// www.digitalmars.com
+// http://www.digitalmars.com
 // License for redistribution is by either the Artistic License
 // in artistic.txt, or the GNU General Public License in gnu.txt.
 // See the included readme.txt for details.
@@ -478,7 +478,7 @@ void FuncDeclaration::semantic(Scope *sc)
 		if (arg0->type->ty != Tarray ||
 		    arg0->type->next->ty != Tarray ||
 		    arg0->type->next->next->ty != Tchar ||
-		    (arg0->inout != None && arg0->inout != In))
+		    arg0->storageClass & (STCout | STCref | STClazy))
 		    goto Lmainerr;
 		break;
 	    }
@@ -693,7 +693,7 @@ void FuncDeclaration::semantic3(Scope *sc)
 		    size_t dim = Argument::dim(t->arguments);
 		    for (size_t j = 0; j < dim; j++)
 		    {	Argument *narg = Argument::getNth(t->arguments, j);
-			narg->inout = arg->inout;
+			narg->storageClass = arg->storageClass;
 		    }
 		}
 	    }
@@ -723,13 +723,9 @@ void FuncDeclaration::semantic3(Scope *sc)
 		v->storage_class |= STCparameter;
 		if (f->varargs == 2 && i + 1 == nparams)
 		    v->storage_class |= STCvariadic;
-		switch (arg->inout)
-		{   case In:    v->storage_class |= STCin;		break;
-		    case Out:   v->storage_class |= STCout;		break;
-		    case InOut: v->storage_class |= STCin | STCout;	break;
-		    case Lazy:  v->storage_class |= STCin | STClazy; break;
-		    default: assert(0);
-		}
+		v->storage_class |= arg->storageClass & (STCin | STCout | STCref | STClazy);
+		if (v->storage_class & STClazy)
+		    v->storage_class |= STCin;
 		v->semantic(sc2);
 		if (!sc2->insert(v))
 		    error("parameter %s.%s is already defined", toChars(), v->toChars());
@@ -781,7 +777,7 @@ void FuncDeclaration::semantic3(Scope *sc)
 	    // BUG: need to error if accessing out parameters
 	    // BUG: need to treat parameters as const
 	    // BUG: need to disallow returns and throws
-	    // BUG: verify that all in and inout parameters are read
+	    // BUG: verify that all in and ref parameters are read
 	    frequire = frequire->semantic(sc2);
 	    labtab = NULL;		// so body can't refer to labels
 	}
@@ -1029,7 +1025,7 @@ void FuncDeclaration::semantic3(Scope *sc)
 		{   VarDeclaration *v;
 
 		    v = (VarDeclaration *)parameters->data[i];
-		    if ((v->storage_class & (STCout | STCin)) == STCout)
+		    if (v->storage_class & STCout)
 		    {
 			assert(v->init);
 			ExpInitializer *ie = v->init->isExpInitializer();

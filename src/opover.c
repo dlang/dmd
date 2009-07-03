@@ -3,7 +3,7 @@
 // Copyright (c) 1999-2006 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
-// www.digitalmars.com
+// http://www.digitalmars.com
 // License for redistribution is by either the Artistic License
 // in artistic.txt, or the GNU General Public License in gnu.txt.
 // See the included readme.txt for details.
@@ -567,7 +567,7 @@ void inferApplyArgTypes(enum TOK op, Arguments *arguments, Expression *aggr)
 #endif
 	Lapply:
 	{   /* Look for an
-	     *	int opApply(int delegate(inout Type [, ...]) dg);
+	     *	int opApply(int delegate(ref Type [, ...]) dg);
 	     * overload
 	     */
 	    Dsymbol *s = search_function(ad,

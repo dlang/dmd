@@ -3,7 +3,7 @@
 // Copyright (c) 1999-2007 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
-// www.digitalmars.com
+// http://www.digitalmars.com
 // License for redistribution is by either the Artistic License
 // in artistic.txt, or the GNU General Public License in gnu.txt.
 // See the included readme.txt for details.
@@ -492,21 +492,16 @@ void functionArguments(Loc loc, Scope *sc, TypeFunction *tf, Expressions *argume
 	    }
 
 	L1:
-	    if (!(p->inout == Lazy && p->type->ty == Tvoid))
+	    if (!(p->storageClass & STClazy && p->type->ty == Tvoid))
 		arg = arg->implicitCastTo(sc, p->type);
-	    if (p->inout == Out || p->inout == InOut)
+	    if (p->storageClass & (STCout | STCref))
 	    {
-		// BUG: should check that argument to inout is type 'invariant'
-		// BUG: assignments to inout should also be type 'invariant'
+		// BUG: should check that argument to ref is type 'invariant'
+		// BUG: assignments to ref should also be type 'invariant'
 		arg = arg->modifiableLvalue(sc, NULL);
 
 		//if (arg->op == TOKslice)
 		    //arg->error("cannot modify slice %s", arg->toChars());
-
-		// Don't have a way yet to do a pointer to a bit in array
-		if (arg->op == TOKarray &&
-		    arg->type->toBasetype()->ty == Tbit)
-		    error("cannot have out or inout argument of bit in array");
 	    }
 
 	    // Convert static arrays to pointers
@@ -517,7 +512,7 @@ void functionArguments(Loc loc, Scope *sc, TypeFunction *tf, Expressions *argume
 	    }
 
 	    // Convert lazy argument to a delegate
-	    if (p->inout == Lazy)
+	    if (p->storageClass & STClazy)
 	    {
 		arg = arg->toDelegate(sc, p->type);
 	    }
@@ -1608,7 +1603,7 @@ Expression *IdentifierExp::semantic(Scope *sc)
 
 		if (ti &&
 		    !ti->isTemplateMixin() &&
-		    (ti->idents.data[ti->idents.dim - 1] == f->ident ||
+		    (ti->name == f->ident ||
 		     ti->toAlias()->ident == f->ident)
 		    &&
 		    ti->tempdecl && ti->tempdecl->onemember)
@@ -3202,8 +3197,9 @@ Expression *VarExp::modifiableLvalue(Scope *sc, Expression *e)
     if (type && type->toBasetype()->ty == Tsarray)
 	error("cannot change reference to static array '%s'", var->toChars());
 
-    if (var->isConst())
-	error("cannot modify const variable '%s'", var->toChars());
+    VarDeclaration *v = var->isVarDeclaration();
+    if (v && v->canassign == 0 && (var->isConst() || var->isFinal()))
+	error("cannot modify final variable '%s'", var->toChars());
 
     if (var->isCtorinit())
     {	// It's only modifiable if inside the right constructor
@@ -3694,7 +3690,7 @@ Expression *IftypeExp::semantic(Scope *sc)
 		    args->reserve(cd->baseclasses.dim);
 		    for (size_t i = 0; i < cd->baseclasses.dim; i++)
 		    {	BaseClass *b = (BaseClass *)cd->baseclasses.data[i];
-			args->push(new Argument(In, b->type, NULL, NULL));
+			args->push(new Argument(STCin, b->type, NULL, NULL));
 		    }
 		    tded = new TypeTuple(args);
 		}
@@ -3727,7 +3723,7 @@ Expression *IftypeExp::semantic(Scope *sc)
 		for (size_t i = 0; i < dim; i++)
 		{   Argument *arg = Argument::getNth(params, i);
 		    assert(arg && arg->type);
-		    args->push(new Argument(arg->inout, arg->type, NULL, NULL));
+		    args->push(new Argument(arg->storageClass, arg->type, NULL, NULL));
 		}
 		tded = new TypeTuple(args);
 		break;
@@ -4037,12 +4033,13 @@ CompileExp::CompileExp(Loc loc, Expression *e)
 
 Expression *CompileExp::semantic(Scope *sc)
 {
-#if LOGSEMANTIC
+#if 1 || LOGSEMANTIC
     printf("CompileExp::semantic('%s')\n", toChars());
 #endif
     UnaExp::semantic(sc);
     e1 = resolveProperties(sc, e1);
     e1 = e1->optimize(WANTvalue | WANTinterpret);
+e1->print();
     if (e1->op != TOKstring)
     {	error("argument to mixin must be a string, not (%s)", e1->toChars());
 	return this;
@@ -4725,7 +4722,7 @@ Expression *DotTemplateInstanceExp::semantic(Scope *sc)
     }
 
     assert(s);
-    id = (Identifier *)ti->idents.data[0];
+    id = ti->name;
     s2 = s->search(loc, id, 0);
     if (!s2)
     {	error("template identifier %s is not a member of %s %s", id->toChars(), s->kind(), s->ident->toChars());
@@ -5291,7 +5288,7 @@ Lagain:
 	{   TemplateInstance *ti = f->parent->isTemplateInstance();
 
 	    if (ti &&
-		(ti->idents.data[ti->idents.dim - 1] == f->ident ||
+		(ti->name == f->ident ||
 		 ti->toAlias()->ident == f->ident)
 		&&
 		ti->tempdecl)
@@ -7308,8 +7305,13 @@ MulExp::MulExp(Loc loc, Expression *e1, Expression *e2)
 Expression *MulExp::semantic(Scope *sc)
 {   Expression *e;
 
+#if 0
+    printf("MulExp::semantic() %s\n", toChars());
+#endif
     if (type)
+    {
 	return this;
+    }
 
     BinExp::semanticp(sc);
     e = op_overload(sc);

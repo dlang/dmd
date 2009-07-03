@@ -2,7 +2,7 @@
 // Copyright (c) 1999-2005 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
-// www.digitalmars.com
+// http://www.digitalmars.com
 // License for redistribution is by either the Artistic License
 // in artistic.txt, or the GNU General Public License in gnu.txt.
 // See the included readme.txt for details.
@@ -54,6 +54,7 @@ struct Scope
     int nofree;			// set if shouldn't free it
     int noctor;			// set if constructor calls aren't allowed
     int intypeof;		// in typeof(exp)
+    int parameterSpecialization; // if in template parameter specialization
 
     unsigned callSuper;		// primitive flow analysis for constructors
 #define	CSXthis_ctor	1	// called this()

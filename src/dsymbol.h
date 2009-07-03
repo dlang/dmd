@@ -3,7 +3,7 @@
 // Copyright (c) 1999-2007 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
-// www.digitalmars.com
+// http://www.digitalmars.com
 // License for redistribution is by either the Artistic License
 // in artistic.txt, or the GNU General Public License in gnu.txt.
 // See the included readme.txt for details.
@@ -123,6 +123,7 @@ struct Dsymbol : Object
     virtual void semantic3(Scope *sc);
     virtual void inlineScan();
     virtual Dsymbol *search(Loc loc, Identifier *ident, int flags);
+    Dsymbol *searchX(Loc loc, Scope *sc, Identifier *id);
     virtual int overloadInsert(Dsymbol *s);
 #ifdef _DH
     char *toHChars();

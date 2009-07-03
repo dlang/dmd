@@ -3,7 +3,7 @@
 // Copyright (c) 1999-2007 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
-// www.digitalmars.com
+// http://www.digitalmars.com
 // License for redistribution is by either the Artistic License
 // in artistic.txt, or the GNU General Public License in gnu.txt.
 // See the included readme.txt for details.
@@ -84,7 +84,7 @@ Expression *FuncDeclaration::interpret(InterState *istate, Expressions *argument
     {	size_t dim = Argument::dim(tf->parameters);
 	for (size_t i = 0; i < dim; i++)
 	{   Argument *arg = Argument::getNth(tf->parameters, i);
-	    if (arg->inout == Lazy)
+	    if (arg->storageClass & STClazy)
 	    {   cantInterpret = 1;
 		return NULL;
 	    }
@@ -111,9 +111,9 @@ Expression *FuncDeclaration::interpret(InterState *istate, Expressions *argument
 #if LOG
 	    printf("arg[%d] = %s\n", i, earg->toChars());
 #endif
-	    if (arg->inout == Out || arg->inout == InOut)
+	    if (arg->storageClass & (STCout | STCref))
 	    {
-		/* Bind out or inout parameter to the corresponding
+		/* Bind out or ref parameter to the corresponding
 		 * variable v2
 		 */
 		if (!istate || earg->op != TOKvar)
@@ -388,7 +388,13 @@ Expression *ReturnStatement::interpret(InterState *istate)
     START()
     if (!exp)
 	return EXP_VOID_INTERPRET;
+#if LOG
+    Expression *e = exp->interpret(istate);
+    printf("e = %p\n", e);
+    return e;
+#else
     return exp->interpret(istate);
+#endif
 }
 
 Expression *BreakStatement::interpret(InterState *istate)
@@ -605,7 +611,7 @@ Expression *ForeachStatement::interpret(InterState *istate)
     Expression *e = NULL;
     Expression *eaggr;
 
-    if (value->isOut())
+    if (value->isOut() || value->isRef())
 	return EXP_CANT_INTERPRET;
 
     eaggr = aggr->interpret(istate);
@@ -820,6 +826,9 @@ Expression *IntegerExp::interpret(InterState *istate)
 
 Expression *RealExp::interpret(InterState *istate)
 {
+#if LOG
+    printf("RealExp::interpret() %s\n", toChars());
+#endif
     return this;
 }
 
@@ -936,6 +945,9 @@ Expression *TupleExp::interpret(InterState *istate)
 Expression *ArrayLiteralExp::interpret(InterState *istate)
 {   Expressions *expsx = NULL;
 
+#if LOG
+    printf("ArrayLiteralExp::interpret() %s\n", toChars());
+#endif
     if (elements)
     {
 	for (size_t i = 0; i < elements->dim; i++)
@@ -982,6 +994,9 @@ Expression *UnaExp::interpretCommon(InterState *istate, Expression *(*fp)(Type *
 {   Expression *e;
     Expression *e1;
 
+#if LOG
+    printf("UnaExp::interpretCommon() %s\n", toChars());
+#endif
     e1 = this->e1->interpret(istate);
     if (e1 == EXP_CANT_INTERPRET)
 	goto Lcant;
@@ -1014,6 +1029,9 @@ Expression *BinExp::interpretCommon(InterState *istate, fp_t fp)
     Expression *e1;
     Expression *e2;
 
+#if LOG
+    printf("BinExp::interpretCommon() %s\n", toChars());
+#endif
     e1 = this->e1->interpret(istate);
     if (e1 == EXP_CANT_INTERPRET)
 	goto Lcant;
@@ -1112,7 +1130,7 @@ Expression *BinExp::interpretAssignCommon(InterState *istate, fp_t fp)
 	VarDeclaration *v = ve->var->isVarDeclaration();
 	if (v && !v->isDataseg())
 	{
-	    /* Chase down rebinding of out and inout
+	    /* Chase down rebinding of out and ref
 	     */
 	    if (v->value && v->value->op == TOKvar)
 	    {
@@ -1181,6 +1199,9 @@ BIN_ASSIGN_INTERPRET(Xor)
 
 Expression *PostExp::interpret(InterState *istate)
 {
+#if LOG
+    printf("PostExp::interpret() %s\n", toChars());
+#endif
     Expression *e = EXP_CANT_INTERPRET;
 
     if (e1->op == TOKvar)
@@ -1189,7 +1210,7 @@ Expression *PostExp::interpret(InterState *istate)
 	VarDeclaration *v = ve->var->isVarDeclaration();
 	if (v && !v->isDataseg())
 	{
-	    /* Chase down rebinding of out and inout
+	    /* Chase down rebinding of out and ref
 	     */
 	    if (v->value && v->value->op == TOKvar)
 	    {
@@ -1231,6 +1252,9 @@ Expression *PostExp::interpret(InterState *istate)
 
 Expression *AndAndExp::interpret(InterState *istate)
 {
+#if LOG
+    printf("AndAndExp::interpret() %s\n", toChars());
+#endif
     Expression *e = e1->interpret(istate);
     if (e != EXP_CANT_INTERPRET)
     {
@@ -1257,6 +1281,9 @@ Expression *AndAndExp::interpret(InterState *istate)
 
 Expression *OrOrExp::interpret(InterState *istate)
 {
+#if LOG
+    printf("OrOrExp::interpret() %s\n", toChars());
+#endif
     Expression *e = e1->interpret(istate);
     if (e != EXP_CANT_INTERPRET)
     {
@@ -1319,6 +1346,9 @@ Expression *CallExp::interpret(InterState *istate)
 
 Expression *CommaExp::interpret(InterState *istate)
 {
+#if LOG
+    printf("CommaExp::interpret() %s\n", toChars());
+#endif
     Expression *e = e1->interpret(istate);
     if (e != EXP_CANT_INTERPRET)
 	e = e2->interpret(istate);
@@ -1327,6 +1357,9 @@ Expression *CommaExp::interpret(InterState *istate)
 
 Expression *CondExp::interpret(InterState *istate)
 {
+#if LOG
+    printf("CondExp::interpret() %s\n", toChars());
+#endif
     Expression *e = econd->interpret(istate);
     if (e != EXP_CANT_INTERPRET)
     {
@@ -1459,6 +1492,9 @@ Expression *CastExp::interpret(InterState *istate)
 {   Expression *e;
     Expression *e1;
 
+#if LOG
+    printf("CastExp::interpret() %s\n", toChars());
+#endif
     e1 = this->e1->interpret(istate);
     if (e1 == EXP_CANT_INTERPRET)
 	goto Lcant;
@@ -1473,6 +1509,9 @@ Expression *AssertExp::interpret(InterState *istate)
 {   Expression *e;
     Expression *e1;
 
+#if LOG
+    printf("AssertExp::interpret() %s\n", toChars());
+#endif
     e1 = this->e1->interpret(istate);
     if (e1 == EXP_CANT_INTERPRET)
 	goto Lcant;

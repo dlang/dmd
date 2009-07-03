@@ -3,7 +3,7 @@
 // Copyright (c) 1999-2007 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
-// www.digitalmars.com
+// http://www.digitalmars.com
 // License for redistribution is by either the Artistic License
 // in artistic.txt, or the GNU General Public License in gnu.txt.
 // See the included readme.txt for details.
@@ -60,6 +60,8 @@ enum STC
     STCctorinit     = 0x20000,		// can only be set inside constructor
     STCtemplateparameter = 0x40000,	// template parameter
     STCscope	    = 0x80000,		// template parameter
+    STCinvariant    = 0x100000,
+    STCref	    = 0x200000,
 };
 
 struct Match
@@ -110,7 +112,7 @@ struct Declaration : Dsymbol
 
     int isIn()    { return storage_class & STCin; }
     int isOut()   { return storage_class & STCout; }
-    int isInOut() { return (storage_class & (STCin | STCout)) == (STCin | STCout); }
+    int isRef()   { return storage_class & STCref; }
 
     enum PROT prot();
 
@@ -211,6 +213,7 @@ struct VarDeclaration : Declaration
     int ctorinit;		// it has been initialized in a ctor
     int onstack;		// 1: it has been allocated on the stack
 				// 2: on stack, run destructor anyway
+    int canassign;		// it can be assigned to
     Dsymbol *aliassym;		// if redone as alias to another symbol
     Expression *value;		// when interpreting, this is the value
 				// (NULL if value not determinable)

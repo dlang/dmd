@@ -3,7 +3,7 @@
 // Copyright (c) 1999-2007 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
-// www.digitalmars.com
+// http://www.digitalmars.com
 // License for redistribution is by either the Artistic License
 // in artistic.txt, or the GNU General Public License in gnu.txt.
 // See the included readme.txt for details.
@@ -1159,8 +1159,8 @@ Statement *ForeachStatement::semantic(Scope *sc)
 
 	    if (dim == 2)
 	    {   // Declare key
-		if (arg->inout != In)
-		    error("no storage class for %s", arg->ident->toChars());
+		if (arg->storageClass & (STCout | STCref | STClazy))
+		    error("no storage class for key %s", arg->ident->toChars());
 		TY keyty = arg->type->ty;
 		if ((keyty != Tint32 && keyty != Tuns32) ||
 		    (global.params.isX86_64 &&
@@ -1177,8 +1177,8 @@ Statement *ForeachStatement::semantic(Scope *sc)
 		arg = (Argument *)arguments->data[1];	// value
 	    }
 	    // Declare value
-	    if (arg->inout != In)
-		error("no storage class for %s", arg->ident->toChars());
+	    if (arg->storageClass & (STCout | STCref | STClazy))
+		error("no storage class for value %s", arg->ident->toChars());
 	    Dsymbol *var;
 	    if (te)
 	    {
@@ -1251,12 +1251,12 @@ Statement *ForeachStatement::semantic(Scope *sc)
 		if (tnv->ty != tn->ty &&
 		    (tnv->ty == Tchar || tnv->ty == Twchar || tnv->ty == Tdchar))
 		{
-		    if (arg->inout == InOut)
-			error("foreach: value of UTF conversion cannot be inout");
+		    if (arg->storageClass & STCref)
+			error("foreach: value of UTF conversion cannot be ref");
 		    if (dim == 2)
 		    {	arg = (Argument *)arguments->data[0];
-			if (arg->inout == InOut)
-			    error("foreach: key cannot be inout");
+			if (arg->storageClass & STCref)
+			    error("foreach: key cannot be ref");
 		    }
 		    goto Lapply;
 		}
@@ -1269,12 +1269,7 @@ Statement *ForeachStatement::semantic(Scope *sc)
 
 		var = new VarDeclaration(loc, arg->type, arg->ident, NULL);
 		var->storage_class |= STCforeach;
-		switch (arg->inout)
-		{   case In:    var->storage_class |= STCin;          break;
-		    case Out:   var->storage_class |= STCout;         break;
-		    case InOut: var->storage_class |= STCin | STCout; break;
-		    default: assert(0);
-		}
+		var->storage_class |= arg->storageClass & (STCin | STCout | STCref);
 #if 1
 		DeclarationExp *de = new DeclarationExp(loc, var);
 		de->semantic(sc);
@@ -1314,8 +1309,8 @@ Statement *ForeachStatement::semantic(Scope *sc)
 		error("foreach: key type must be int or uint, not %s", key->type->toChars());
 	    }
 
-	    if (key && key->storage_class & STCout)
-		error("foreach: key cannot be out");
+	    if (key && key->storage_class & (STCout | STCref))
+		error("foreach: key cannot be out or ref");
 	    break;
 
 	case Taarray:
@@ -1362,17 +1357,17 @@ Statement *ForeachStatement::semantic(Scope *sc)
 	    }
 
 	    /* Turn body into the function literal:
-	     *	int delegate(inout T arg) { body }
+	     *	int delegate(ref T arg) { body }
 	     */
 	    args = new Arguments();
 	    for (i = 0; i < dim; i++)
 	    {	Argument *arg = (Argument *)arguments->data[i];
 
 		arg->type = arg->type->semantic(loc, sc);
-		if (arg->inout == InOut)
+		if (arg->storageClass & STCref)
 		    id = arg->ident;
 		else
-		{   // Make a copy of the inout argument so it isn't
+		{   // Make a copy of the ref argument so it isn't
 		    // a reference.
 		    VarDeclaration *v;
 		    Initializer *ie;
@@ -1386,7 +1381,7 @@ Statement *ForeachStatement::semantic(Scope *sc)
 		    s = new DeclarationStatement(0, v);
 		    body = new CompoundStatement(loc, s, body);
 		}
-		a = new Argument(InOut, arg->type, id, NULL);
+		a = new Argument(STCref, arg->type, id, NULL);
 		args->push(a);
 	    }
 	    t = new TypeFunction(args, Type::tint32, 0, LINKd);
@@ -1414,8 +1409,8 @@ Statement *ForeachStatement::semantic(Scope *sc)
 		Argument *arg = (Argument *)arguments->data[0];
 		if (dim == 2)
 		{
-		    if (arg->inout == InOut)
-			error("foreach: index cannot be inout");
+		    if (arg->storageClass & STCref)
+			error("foreach: index cannot be ref");
 		    if (!arg->type->equals(taa->index))
 			error("foreach: index must be type %s, not %s", taa->index->toChars(), arg->type->toChars());
 		    arg = (Argument *)arguments->data[1];
@@ -1585,8 +1580,9 @@ void ForeachStatement::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 	Argument *a = (Argument *)arguments->data[i];
 	if (i)
 	    buf->writestring(", ");
-	if (a->inout == InOut)
-	    buf->writestring("inout ");
+	if (a->storageClass & STCref)
+	    buf->writestring((global.params.Dversion == 1)
+		? (char*)"inout " : (char*)"ref ");
 	if (a->type)
 	    a->type->toCBuffer(buf, a->ident, hgs);
 	else
@@ -2115,7 +2111,7 @@ Statement *CaseStatement::semantic(Scope *sc)
     {	int i;
 
 	exp = exp->implicitCastTo(sc, sw->condition->type);
-	exp = exp->optimize(WANTvalue);
+	exp = exp->optimize(WANTvalue | WANTinterpret);
 	if (exp->op != TOKstring && exp->op != TOKint64)
 	{
 	    error("case must be a string or an integral constant, not %s", exp->toChars());
@@ -2421,7 +2417,7 @@ Statement *ReturnStatement::semantic(Scope *sc)
 	{   VarExp *ve = (VarExp *)exp;
 	    VarDeclaration *v = ve->var->isVarDeclaration();
 
-	    if (!v || v->isOut())
+	    if (!v || v->isOut() || v->isRef())
 		fd->nrvo_can = 0;
 	    else if (fd->nrvo_var == NULL)
 	    {	if (!v->isDataseg() && !v->isParameter() && v->toParent2() == fd)

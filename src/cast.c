@@ -2,7 +2,7 @@
 // Copyright (c) 1999-2006 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
-// www.digitalmars.com
+// http://www.digitalmars.com
 // License for redistribution is by either the Artistic License
 // in artistic.txt, or the GNU General Public License in gnu.txt.
 // See the included readme.txt for details.
@@ -898,7 +898,8 @@ Expression *ArrayLiteralExp::castTo(Scope *sc, Type *t)
     Type *typeb = type->toBasetype();
     Type *tb = t->toBasetype();
     if ((tb->ty == Tarray || tb->ty == Tsarray) &&
-	(typeb->ty == Tarray || typeb->ty == Tsarray))
+	(typeb->ty == Tarray || typeb->ty == Tsarray) &&
+	tb->next->toBasetype()->ty != Tvoid)
     {
 	if (tb->ty == Tsarray)
 	{   TypeSArray *tsa = (TypeSArray *)tb;

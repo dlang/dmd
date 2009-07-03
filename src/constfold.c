@@ -3,7 +3,7 @@
 // Copyright (c) 1999-2007 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
-// www.digitalmars.com
+// http://www.digitalmars.com
 // License for redistribution is by either the Artistic License
 // in artistic.txt, or the GNU General Public License in gnu.txt.
 // See the included readme.txt for details.
@@ -1073,6 +1073,21 @@ Expression *Index(Type *type, Expression *e1, Expression *e2)
 	{   ArrayLiteralExp *ale = (ArrayLiteralExp *)e1;
 	    e = (Expression *)ale->elements->data[i];
 	    e->type = type;
+	}
+    }
+    else if (e1->type->toBasetype()->ty == Tarray && e2->op == TOKint64)
+    {
+	uinteger_t i = e2->toInteger();
+
+	if (e1->op == TOKarrayliteral && !e1->checkSideEffect(2))
+	{   ArrayLiteralExp *ale = (ArrayLiteralExp *)e1;
+	    if (i >= ale->elements->dim)
+	    {   e2->error("array index %ju is out of bounds %s[0 .. %u]", i, e1->toChars(), ale->elements->dim);
+	    }
+	    else
+	    {	e = (Expression *)ale->elements->data[i];
+		e->type = type;
+	    }
 	}
     }
     return e;

@@ -2,7 +2,7 @@
 // Copyright (c) 1999-2006 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
-// www.digitalmars.com
+// http://www.digitalmars.com
 // License for redistribution is by either the Artistic License
 // in artistic.txt, or the GNU General Public License in gnu.txt.
 // See the included readme.txt for details.
@@ -1223,7 +1223,7 @@ int FuncDeclaration::canInline(int hasthis, int hdrscan)
 	for (int i = 0; i < parameters->dim; i++)
 	{
 	    VarDeclaration *v = (VarDeclaration *)parameters->data[i];
-	    if (v->isOut() || v->type->toBasetype()->ty == Tsarray)
+	    if (v->isOut() || v->isRef() || v->type->toBasetype()->ty == Tsarray)
 		goto Lno;
 	}
     }
@@ -1322,7 +1322,7 @@ Expression *FuncDeclaration::doInline(InlineScanState *iss, Expression *ethis, A
 	    ei = new ExpInitializer(arg->loc, arg);
 
 	    vto = new VarDeclaration(vfrom->loc, vfrom->type, vfrom->ident, ei);
-	    vto->storage_class |= vfrom->storage_class & (STCin | STCout | STClazy);
+	    vto->storage_class |= vfrom->storage_class & (STCin | STCout | STClazy | STCref);
 	    vto->linkage = vfrom->linkage;
 	    vto->parent = iss->fd;
 	    //printf("vto = '%s', vto->storage_class = x%x\n", vto->toChars(), vto->storage_class);

@@ -3,7 +3,7 @@
 // Copyright (c) 1999-2007 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
-// www.digitalmars.com
+// http://www.digitalmars.com
 // License for redistribution is by either the Artistic License
 // in artistic.txt, or the GNU General Public License in gnu.txt.
 // See the included readme.txt for details.
@@ -48,11 +48,8 @@ Expression *fromConstInitializer(Expression *e1)
 	VarDeclaration *v = ve->var->isVarDeclaration();
 	if (v && v->isConst() && v->init)
 	{   Expression *ei = v->init->toExpression();
-	    if (ei)
-	    {	e1 = ei;
-		if (!e1->type)
-		    e1->type = v->type;
-	    }
+	    if (ei && ei->type)
+		e1 = ei;
 	}
     }
     return e1;
@@ -174,7 +171,8 @@ Expression *AddrExp::optimize(int result)
     }
     if (e1->op == TOKvar)
     {	VarExp *ve = (VarExp *)e1;
-	if (!ve->var->isOut() && !ve->var->isImportedSymbol())
+	if (!ve->var->isOut() && !ve->var->isRef() &&
+	    !ve->var->isImportedSymbol())
 	{
 	    e = new SymOffExp(loc, ve->var, 0);
 	    e->type = type;

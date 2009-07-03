@@ -3,7 +3,7 @@
 // Copyright (c) 1999-2007 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
-// www.digitalmars.com
+// http://www.digitalmars.com
 // License for redistribution is by either the Artistic License
 // in artistic.txt, or the GNU General Public License in gnu.txt.
 // See the included readme.txt for details.
@@ -428,7 +428,7 @@ void TypeInfoStructDeclaration::toDt(dt_t **pdt)
     {
 	Scope sc;
 	Arguments *arguments = new Arguments;
-	Argument *arg = new Argument(In, tc->pointerTo(), NULL, NULL);
+	Argument *arg = new Argument(STCin, tc->pointerTo(), NULL, NULL);
 
 	arguments->push(arg);
 	tfeqptr = new TypeFunction(arguments, Type::tint32, 0, LINKd);
@@ -646,7 +646,7 @@ Expression *createTypeInfoArray(Scope *sc, Expression *exps[], int dim)
     Arguments *args = new Arguments;
     args->setDim(dim);
     for (size_t i = 0; i < dim; i++)
-    {	Argument *arg = new Argument(In, exps[i]->type, NULL, NULL);
+    {	Argument *arg = new Argument(STCin, exps[i]->type, NULL, NULL);
 	args->data[i] = (void *)arg;
     }
     TypeTuple *tup = new TypeTuple(args);
