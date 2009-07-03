@@ -19,7 +19,7 @@
 #include	<process.h>
 #endif
 
-#if linux || __APPLE__
+#if linux || __APPLE__ || __FreeBSD__
 #include	<sys/types.h>
 #include	<sys/wait.h>
 #include	<unistd.h>
@@ -195,7 +195,7 @@ int runLINK()
 	delete lnkfilename;
     }
     return status;
-#elif linux || __APPLE__
+#elif linux || __APPLE__ || __FreeBSD__
     pid_t childpid;
     int i;
     int status;
@@ -425,7 +425,7 @@ int executecmd(char *cmd, char *args, int useenv)
 #if _WIN32
 int executearg0(char *cmd, char *args)
 {
-    char *file;
+    const char *file;
     char *argv0 = global.params.argv0;
 
     //printf("argv0='%s', cmd='%s', args='%s'\n",argv0,cmd,args);
@@ -439,7 +439,7 @@ int executearg0(char *cmd, char *args)
     //printf("spawning '%s'\n",file);
 #if _WIN32
     return spawnl(0,file,file,args,NULL);
-#elif linux || __APPLE__
+#elif linux || __APPLE__ || __FreeBSD__
     char *full;
     int cmdl = strlen(cmd);
 
@@ -502,7 +502,7 @@ int runProgram()
     else
 	ex = global.params.exefile;
     return spawnv(0,ex,(char **)argv.data);
-#elif linux || __APPLE__
+#elif linux || __APPLE__ || __FreeBSD__
     pid_t childpid;
     int status;
 

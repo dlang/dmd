@@ -414,7 +414,7 @@ code *nteh_prolog()
 	/* An sindex value of -2 is a magic value that tells the
 	 * stack unwinder to skip this frame.
 	 */
-	assert(config.exe & (EX_LINUX | EX_LINUX64 | EX_OSX | EX_OSX64));
+	assert(config.exe & (EX_LINUX | EX_LINUX64 | EX_OSX | EX_OSX64 | EX_FREEBSD | EX_FREEBSD64));
 	cs.Iop = 0x68;
 	cs.Iflags = 0;
 	cs.Ijty = 0;

@@ -72,7 +72,7 @@ struct Declaration;
 #define RMload	0x4000
 #define RMstore	0x8000
 
-#if TARGET_LINUX || TARGET_OSX
+#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD
     // To support positional independent code,
     // must be able to remove BX from available registers
 extern regm_t ALLREGS;			
@@ -514,7 +514,7 @@ unsigned findreg (regm_t regm );
 void freenode (elem *e );
 int isregvar (elem *e , regm_t *pregm , unsigned *preg );
 #ifdef DEBUG
-code *allocreg (regm_t *pretregs , unsigned *preg , tym_t tym , int line , char *file );
+code *allocreg (regm_t *pretregs , unsigned *preg , tym_t tym , int line , const char *file );
 #define allocreg(a,b,c)	allocreg((a),(b),(c),__LINE__,__FILE__)
 #else
 code *allocreg (regm_t *pretregs , unsigned *preg , tym_t tym );
@@ -572,7 +572,7 @@ void WRcodlst (code *c );
 cd_t cdcomma;
 cd_t cdloglog;
 cd_t cdshift;
-#if TARGET_LINUX || TARGET_OSX
+#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD
 cd_t cdindpic;
 #endif
 cd_t cdind;

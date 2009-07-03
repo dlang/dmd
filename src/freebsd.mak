@@ -3,12 +3,7 @@ C=backend
 TK=tk
 ROOT=root
 
-# See: http://developer.apple.com/documentation/developertools/conceptual/cross_development/Using/chapter_3_section_2.html#//apple_ref/doc/uid/20002000-1114311-BABGCAAB
-ENVP= MACOSX_DEPLOYMENT_TARGET=10.3
-SDK=/Developer/SDKs/MacOSX10.4u.sdk
-LDFLAGS= -isysroot ${SDK} -Wl,-syslibroot,${SDK}
-
-CC=g++ -m32 -isysroot $(SDK)
+CC=g++ -m32
 
 #OPT=-g -g3
 #OPT=-O2
@@ -18,8 +13,8 @@ CC=g++ -m32 -isysroot $(SDK)
 #GFLAGS = -Wno-deprecated -D__near= -D__pascal= -fno-exceptions -g -DDEBUG=1 $(COV)
 GFLAGS = -Wno-deprecated -D__near= -D__pascal= -fno-exceptions -O2
 
-CFLAGS = $(GFLAGS) -I$(ROOT) -D__I86__=1 -DMARS=1 -DTARGET_OSX=1 -D_DH
-MFLAGS = $(GFLAGS) -I$C -I$(TK) -D__I86__=1 -DMARS=1 -DTARGET_OSX=1 -D_DH
+CFLAGS = $(GFLAGS) -I$(ROOT) -D__I86__=1 -DMARS=1 -DTARGET_FREEBSD=1 -D_DH
+MFLAGS = $(GFLAGS) -I$C -I$(TK) -D__I86__=1 -DMARS=1 -DTARGET_FREEBSD=1 -D_DH
 
 CH= $C/cc.h $C/global.h $C/parser.h $C/oper.h $C/code.h $C/type.h \
 	$C/dt.h $C/cgcv.h $C/el.h $C/iasm.h
@@ -43,7 +38,7 @@ DMD_OBJS = \
 	hdrgen.o delegatize.o aa.o ti_achar.o toir.o interpret.o traits.o \
 	builtin.o clone.o aliasthis.o \
 	man.o arrayop.o port.o response.o async.o \
-	libmach.o machobj.o
+	libelf.o elfobj.o
 
 SRC = win32.mak linux.mak osx.mak freebsd.mak \
 	mars.c enum.c struct.c dsymbol.c import.c idgen.c impcnvgen.c \
@@ -91,7 +86,7 @@ SRC = win32.mak linux.mak osx.mak freebsd.mak \
 all: dmd
 
 dmd: id.o optabgen $(DMD_OBJS)
-	${ENVP} gcc -m32 -lstdc++ $(LDFLAGS) $(COV) $(DMD_OBJS) -o dmd
+	gcc -m32 -lstdc++ $(COV) $(DMD_OBJS) -o dmd
 
 clean:
 	rm -f $(DMD_OBJS) dmd optab.o id.o impcnvgen idgen id.c id.h \
@@ -102,7 +97,7 @@ clean:
 ######## optabgen generates some source
 
 optabgen: $C/optabgen.c $C/cc.h $C/oper.h
-	g++ -m32 $(MFLAGS) $< -o optabgen
+	$(CC) $(MFLAGS) $< -o optabgen
 	./optabgen
 
 debtab.c optab.c cdxxx.c elxxx.c fltables.c tytab.c : optabgen
@@ -114,7 +109,7 @@ id.h id.c : idgen
 	./idgen
 
 idgen : idgen.c
-	${ENVP} $(CC) idgen.c -o idgen
+	$(CC) idgen.c -o idgen
 
 id.o : id.h id.c
 	$(CC) -c $(CFLAGS) id.c
@@ -125,7 +120,7 @@ impcnvtab.c : impcnvgen
 	./impcnvgen
 
 impcnvgen : mtype.h impcnvgen.c
-	${ENVP} $(CC) $(CFLAGS) impcnvgen.c -o impcnvgen
+	$(CC) $(CFLAGS) impcnvgen.c -o impcnvgen
 
 #########
 
@@ -536,7 +531,7 @@ gcov:
 	gcov interpret.c
 	gcov irstate.c
 	gcov lexer.c
-	gcov libmach.c
+	gcov libelf.c
 	gcov link.c
 	gcov macro.c
 	gcov mangle.c

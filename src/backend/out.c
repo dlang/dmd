@@ -407,7 +407,7 @@ void outdata(symbol *s)
 		    flags = CFoff | CFseg;
 		if (tybasic(dt->Dty) == TYcptr)
 		    reftocodseg(seg,offset,dt->DTabytes);
-#if TARGET_LINUX || TARGET_OSX
+#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD
 		else 
 		    reftodatseg(seg,offset,dt->DTabytes,dt->DTseg,flags);
 #else

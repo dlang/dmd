@@ -529,7 +529,7 @@ void FuncDeclaration::toObjFile(int multiobj)
 	// Pull in RTL startup code
 	if (func->isMain())
 	{   objextdef("_main");
-#if TARGET_LINUX || TARGET_OSX
+#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD
 	    obj_ehsections();	// initialize exception handling sections
 #else
 	    objextdef("__acrtused_con");
@@ -684,7 +684,8 @@ void FuncDeclaration::toObjFile(int multiobj)
 	pi++;
     }
 
-    if (global.params.isLinux && linkage != LINKd && shidden && sthis)
+    if ((global.params.isLinux || global.params.isFreeBSD) &&
+	linkage != LINKd && shidden && sthis)
     {
 	/* swap shidden and sthis
 	 */
@@ -843,7 +844,7 @@ void FuncDeclaration::toObjFile(int multiobj)
 	s->toObjFile(0);
     }
 
-#if TARGET_LINUX || TARGET_OSX
+#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD
     // A hack to get a pointer to this function put in the .dtors segment
     if (ident && memcmp(ident->toChars(), "_STD", 4) == 0)
 	obj_staticdtor(s);
@@ -889,7 +890,7 @@ unsigned Type::totym()
 	//case Tbit:	t = TYuchar;	break;
 	case Tbool:	t = TYbool;	break;
 	case Tchar:	t = TYchar;	break;
-#if TARGET_LINUX || TARGET_OSX
+#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD
 	case Twchar:	t = TYwchar_t;	break;
 	case Tdchar:	t = TYdchar;	break;
 #else
@@ -973,7 +974,7 @@ unsigned TypeFunction::totym()
 
 	case LINKc:
 	    tyf = TYnfunc;
-#if TARGET_LINUX || TARGET_OSX
+#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD
 	    if (retStyle() == RETstack)
 		tyf = TYhfunc;
 #endif

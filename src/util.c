@@ -131,7 +131,7 @@ void util_progress(int linnum)
 
 #endif
 
-#if linux || __APPLE__
+#if linux || __APPLE__ || __FreeBSD__
 void util_progress()
 {
 }

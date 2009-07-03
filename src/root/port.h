@@ -33,6 +33,7 @@ struct Port
     static double infinity;
     static double dbl_max;
     static double dbl_min;
+    static long double ldbl_max;
 
 #if __GNUC__
     // These conflict with macros in math.h, should rename them

@@ -169,7 +169,9 @@ elem *callfunc(Loc loc,
 	    Symbol *stmp = symbol_genauto(t);
 	    ehidden = el_ptr(stmp);
 	}
-	if ((global.params.isLinux || global.params.isOSX) && tf->linkage != LINKd)
+	if ((global.params.isLinux ||
+	     global.params.isOSX ||
+	     global.params.isFreeBSD) && tf->linkage != LINKd)
 	    ;	// ehidden goes last on Linux/OSX C++
 	else
 	{
@@ -258,13 +260,17 @@ elem *callfunc(Loc loc,
 	    ep->Ety = tyret;
 	    e = ep;
 	    if (op == OPscale)
-	    {	elem *et;
-
-		et = e->E1;
+	    {
+		elem *et = e->E1;
 		e->E1 = el_una(OPs32_d, TYdouble, e->E2);
 		e->E1 = el_una(OPd_ld, TYldouble, e->E1);
 		e->E2 = et;
-		e->Ety = tyret;
+	    }
+	    else if (op == OPyl2x || op == OPyl2xp1)
+	    {
+		elem *et = e->E1;
+		e->E1 = e->E2;
+		e->E2 = et;
 	    }
 	}
 	else
@@ -1515,7 +1521,7 @@ elem *AssertExp::toElem(IRState *irs)
 	if (global.params.useInvariants && t1->ty == Tclass &&
 	    !((TypeClass *)t1)->sym->isInterfaceDeclaration())
 	{
-#if TARGET_LINUX
+#if TARGET_LINUX || TARGET_FREEBSD
 	    e = el_bin(OPcall, TYvoid, el_var(rtlsym[RTLSYM__DINVARIANT]), e);
 #else
 	    e = el_bin(OPcall, TYvoid, el_var(rtlsym[RTLSYM_DINVARIANT]), e);

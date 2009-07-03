@@ -100,7 +100,7 @@ void WRTYxx(tym_t t)
     if (t & mTYpasobj)
     	dbg_printf("mTYpasobj|");
 #endif
-#if linux || __APPLE__
+#if linux || __APPLE__ || __FreeBSD__
     if (t & mTYtransu)
 	dbg_printf("mTYtransu|");
 #endif
@@ -291,7 +291,7 @@ void WRFL(enum FL fl)
 	 "ndp   ","farda ","local ","csdat ","tlsdat",
 	 "bprel ","frameh","asm   ","blocko","alloca",
 	 "stack ","dsym  ",
-#if TARGET_LINUX || TARGET_OSX
+#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD
 	 "got   ","gotoff",
 #endif
 #endif

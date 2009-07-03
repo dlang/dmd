@@ -336,8 +336,10 @@ int intrinsic_op(char *name)
 	"4math4sqrtFdZd",
 	"4math4sqrtFeZe",
 	"4math4sqrtFfZf",
+	"4math4yl2xFeeZe",
 	"4math5ldexpFeiZe",
 	"4math6rndtolFeZl",
+	"4math6yl2xp1FeeZe",
 
 	"9intrinsic2btFPkkZi",
 	"9intrinsic3bsfFkZi",
@@ -363,8 +365,10 @@ int intrinsic_op(char *name)
 	"4math4sqrtFNaNbdZd",
 	"4math4sqrtFNaNbeZe",
 	"4math4sqrtFNaNbfZf",
+	"4math4yl2xFNaNbeeZe",
 	"4math5ldexpFNaNbeiZe",
 	"4math6rndtolFNaNbeZl",
+	"4math6yl2xp1FNaNbeeZe",
 
 	"9intrinsic2btFNaNbxPkkZi",
 	"9intrinsic3bsfFNaNbkZi",
@@ -390,8 +394,10 @@ int intrinsic_op(char *name)
 	OPsqrt,
 	OPsqrt,
 	OPsqrt,
+	OPyl2x,
 	OPscale,
 	OPrndtol,
+	OPyl2xp1,
 
 	OPbt,
 	OPbsf,
@@ -424,7 +430,9 @@ int intrinsic_op(char *name)
 #endif
 
     length = strlen(name);
-    if (length < 11 || memcmp(name, "_D3std", 6) != 0)
+    if (length < 11 ||
+	!(name[7] == 'm' || name[7] == 'i') ||
+	memcmp(name, "_D3std", 6) != 0)
 	return -1;
 
     i = binary(name + 6, namearray, sizeof(namearray) / sizeof(char *));
@@ -641,7 +649,7 @@ enum RET TypeFunction::retStyle()
 
     if (tn->ty == Tstruct)
     {	StructDeclaration *sd = ((TypeStruct *)tn)->sym;
-	if (global.params.isLinux && linkage != LINKd)
+	if ((global.params.isLinux) && linkage != LINKd)
 	    ;
 #if DMDV2
 	else if (sd->dtor || sd->cpctor)
@@ -662,7 +670,7 @@ enum RET TypeFunction::retStyle()
 	}
 	return RETstack;
     }
-    else if ((global.params.isLinux || global.params.isOSX) &&
+    else if ((global.params.isLinux || global.params.isOSX || global.params.isFreeBSD) &&
 	     linkage == LINKc &&
 	     tn->iscomplex())
     {

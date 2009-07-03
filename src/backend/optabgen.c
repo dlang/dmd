@@ -610,7 +610,7 @@ void dotab()
     }
   }
 
-  fprintf(fdeb,"static char *debtab[OPMAX] = \n\t{\n");
+  fprintf(fdeb,"static const char *debtab[OPMAX] = \n\t{\n");
   for (i = 0; i < OPMAX - 1; i++)
 	fprintf(fdeb,"\t\"%s\",\n",debtab[i]);
   fprintf(fdeb,"\t\"%s\"\n\t};\n",debtab[i]);
@@ -699,7 +699,7 @@ void fltables()
 		case FLctor:	segfl[i] = -1;	break;
 		case FLdtor:	segfl[i] = -1;	break;
 		case FLdsymbol:	segfl[i] = -1;	break;
-#if TARGET_LINUX || TARGET_OSX
+#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD
 		case FLgot:	segfl[i] = -1;	break;
 		case FLgotoff:	segfl[i] = -1;	break;
 #endif

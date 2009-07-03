@@ -134,7 +134,7 @@ code *cdorth(elem *e,regm_t *pretregs)
 
   ty1 = tybasic(e1->Ety);
   if (tyfloating(ty1))
-#if TARGET_LINUX || TARGET_OSX
+#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD
 	return orth87(e,pretregs);
 #else
 	return opdouble(e,pretregs,(e->Eoper == OPadd) ? CLIBdadd
@@ -749,7 +749,7 @@ code *cdmul(elem *e,regm_t *pretregs)
     oper = e->Eoper;
 
     if (tyfloating(tyml))
-#if TARGET_LINUX || TARGET_OSX
+#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD
 	return orth87(e,pretregs);
 #else
 	return opdouble(e,pretregs,(oper == OPmul) ? CLIBdmul : CLIBddiv);
@@ -3639,7 +3639,7 @@ code *getoffset(elem *e,unsigned reg)
 	goto L4;
 
     case FLtlsdata:
-#if TARGET_LINUX || TARGET_OSX
+#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD
     {	/* Generate:
 	 *	MOV reg,GS:[00000000]
 	 *	ADD reg, offset s
@@ -3690,13 +3690,13 @@ code *getoffset(elem *e,unsigned reg)
 	goto L4;
 
     case FLextern:
-#if TARGET_LINUX || TARGET_OSX
+#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD
 	if (e->EV.sp.Vsym->ty() & mTYthread)
 	    goto L5;
 #endif
     case FLdata:
     case FLudata:
-#if TARGET_LINUX || TARGET_OSX
+#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD
     case FLgot:
     case FLgotoff:
 #endif
@@ -3958,7 +3958,7 @@ code *cdpost(elem *e,regm_t *pretregs)
 
   if (tyfloating(tyml))
   {
-#if TARGET_LINUX || TARGET_OSX
+#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD
 	return post87(e,pretregs);
 #else
 	if (config.inline8087)

@@ -18,6 +18,10 @@
 #if __APPLE__
 #include	<sys/syslimits.h>
 #endif
+#if __FreeBSD__
+// for PATH_MAX
+#include	<limits.h>
+#endif
 
 #include	"root.h"
 #include	"rmem.h"
@@ -83,15 +87,15 @@ void inifile(const char *argv0x, const char *inifilex)
 	    filename = FileName::combine(getenv("HOME"), inifile);
 	    if (!FileName::exists(filename))
 	    {
-		filename = FileName::replaceName(argv0, inifile);
+		filename = (char *)FileName::replaceName(argv0, inifile);
 		if (!FileName::exists(filename))
 		{
-#if linux || __APPLE__
-#if __GLIBC__ || __APPLE__	    // This fix by Thomas Kuehne
+#if linux || __APPLE__ || __FreeBSD__
+#if __GLIBC__ || __APPLE__ || __FreeBSD__   // This fix by Thomas Kuehne
 		    /* argv0 might be a symbolic link,
 		     * so try again looking past it to the real path
 		     */
-#if __APPLE__
+#if __APPLE__ || __FreeBSD__
 		    char resolved_name[PATH_MAX + 1];
 		    char* real_argv0 = realpath(argv0, resolved_name);
 #else
@@ -100,8 +104,8 @@ void inifile(const char *argv0x, const char *inifilex)
 		    //printf("argv0 = %s, real_argv0 = %p\n", argv0, real_argv0);
 		    if (real_argv0)
 		    {
-			filename = FileName::replaceName(real_argv0, inifile);
-#if !__APPLE__
+			filename = (char *)FileName::replaceName(real_argv0, inifile);
+#if !(__APPLE__ || __FreeBSD__)
 			free(real_argv0);
 #endif
 			if (FileName::exists(filename))
@@ -117,7 +121,7 @@ void inifile(const char *argv0x, const char *inifilex)
 		    filename = FileName::searchPath(paths, argv0, 0);
 		    if (!filename)
 			goto Letc;		// argv0 not found on path
-		    filename = FileName::replaceName(filename, inifile);
+		    filename = (char *)FileName::replaceName(filename, inifile);
 		    if (FileName::exists(filename))
 			goto Ldone;
 		    }

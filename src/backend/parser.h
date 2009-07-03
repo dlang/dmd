@@ -155,7 +155,7 @@ struct MACRO
 #define FQtop		8	// top level file, already open
 #define FQqual		0x10	// filename is already qualified
 #endif
-#if linux || __APPLE__
+#if linux || __APPLE__ || __FreeBSD__
 #define FQnext		0x20	// search starts after directory
 #endif				// of last included file
 
@@ -694,7 +694,7 @@ char *el_tostring(Outbuffer *, elem *e);
 
 extern list_t pathlist;			// include paths
 extern list_t headers;			// pre-include files
-#if linux || __APPLE__
+#if linux || __APPLE__ || __FreeBSD__
 extern list_t pathsyslist;		// include path for .h file overrides
 #endif
 

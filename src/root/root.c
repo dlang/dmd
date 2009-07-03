@@ -471,20 +471,26 @@ hash_t FileName::hashCode()
 
 int FileName::compare(Object *obj)
 {
+    return compare(str, ((FileName *)obj)->str);
+}
+
+int FileName::compare(const char *name1, const char *name2)
+{
 #if _WIN32
-    return stricmp(str,((FileName *)obj)->str);
+    return stricmp(name1, name2);
 #else
-    return String::compare(obj);
+    return strcmp(name1, name2);
 #endif
 }
 
 int FileName::equals(Object *obj)
 {
-#if _WIN32
-    return stricmp(str,((FileName *)obj)->str) == 0;
-#else
-    return String::equals(obj);
-#endif
+    return compare(obj) == 0;
+}
+
+int FileName::equals(const char *name1, const char *name2)
+{
+    return compare(name1, name2) == 0;
 }
 
 /************************************
@@ -641,7 +647,7 @@ char *FileName::path(const char *str)
  * Replace filename portion of path.
  */
 
-char *FileName::replaceName(char *path, char *name)
+const char *FileName::replaceName(const char *path, const char *name)
 {   char *f;
     char *n;
     size_t pathlen;
