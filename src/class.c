@@ -816,9 +816,24 @@ int ClassDeclaration::isFuncHidden(FuncDeclaration *fd)
 	 */
 	return 0;
     }
-    FuncDeclaration *fdstart = s->toAlias()->isFuncDeclaration();
-    //printf("%s fdstart = %p\n", s->kind(), fdstart);
-    return !overloadApply(fdstart, &isf, fd);
+    s = s->toAlias();
+    OverloadSet *os = s->isOverloadSet();
+    if (os)
+    {
+	for (int i = 0; i < os->a.dim; i++)
+	{   Dsymbol *s = (Dsymbol *)os->a.data[i];
+	    FuncDeclaration *f2 = s->isFuncDeclaration();
+	    if (f2 && overloadApply(f2, &isf, fd))
+		return 0;
+	}
+	return 1;
+    }
+    else
+    {
+	FuncDeclaration *fdstart = s->isFuncDeclaration();
+	//printf("%s fdstart = %p\n", s->kind(), fdstart);
+	return !overloadApply(fdstart, &isf, fd);
+    }
 }
 #endif
 

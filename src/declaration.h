@@ -503,7 +503,7 @@ struct FuncDeclaration : Declaration
     int overrides(FuncDeclaration *fd);
     int overloadInsert(Dsymbol *s);
     FuncDeclaration *overloadExactMatch(Type *t);
-    FuncDeclaration *overloadResolve(Loc loc, Expressions *arguments);
+    FuncDeclaration *overloadResolve(Loc loc, Expressions *arguments, int flags = 0);
     LabelDsymbol *searchLabel(Identifier *ident);
     AggregateDeclaration *isThis();
     AggregateDeclaration *isMember2();
@@ -519,6 +519,7 @@ struct FuncDeclaration : Declaration
     int isImportedSymbol();
     int isAbstract();
     int isCodeseg();
+    int isOverloadable();
     virtual int isNested();
     int needThis();
     virtual int isVirtual();

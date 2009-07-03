@@ -382,6 +382,11 @@ int Dsymbol::isDeprecated()
     return FALSE;
 }
 
+int Dsymbol::isOverloadable()
+{
+    return 0;
+}
+
 LabelDsymbol *Dsymbol::isLabel()		// is this a LabelDsymbol()?
 {
     return NULL;
@@ -582,6 +587,23 @@ void Dsymbol::addComment(unsigned char *comment)
 #endif
 }
 
+/********************************* OverloadSet ****************************/
+
+OverloadSet::OverloadSet()
+    : Dsymbol()
+{
+}
+
+void OverloadSet::push(Dsymbol *s)
+{
+    a.push(s);
+}
+
+char *OverloadSet::kind()
+{
+    return "overloadset";
+}
+
 
 /********************************* ScopeDsymbol ****************************/
 
@@ -617,20 +639,21 @@ Dsymbol *ScopeDsymbol::syntaxCopy(Dsymbol *s)
 }
 
 Dsymbol *ScopeDsymbol::search(Loc loc, Identifier *ident, int flags)
-{   Dsymbol *s;
-    int i;
-
+{
     //printf("%s->ScopeDsymbol::search(ident='%s', flags=x%x)\n", toChars(), ident->toChars(), flags);
+
     // Look in symbols declared in this module
-    s = symtab ? symtab->lookup(ident) : NULL;
+    Dsymbol *s = symtab ? symtab->lookup(ident) : NULL;
     if (s)
     {
 	//printf("\ts = '%s.%s'\n",toChars(),s->toChars());
     }
     else if (imports)
     {
+	OverloadSet *a = NULL;
+
 	// Look in imported modules
-	for (i = 0; i < imports->dim; i++)
+	for (int i = 0; i < imports->dim; i++)
 	{   ScopeDsymbol *ss = (ScopeDsymbol *)imports->data[i];
 	    Dsymbol *s2;
 
@@ -639,6 +662,8 @@ Dsymbol *ScopeDsymbol::search(Loc loc, Identifier *ident, int flags)
 		continue;
 
 	    //printf("\tscanning import '%s', prots = %d, isModule = %p, isImport = %p\n", ss->toChars(), prots[i], ss->isModule(), ss->isImport());
+	    /* Don't find private members if ss is a module
+	     */
 	    s2 = ss->search(loc, ident, ss->isModule() ? 1 : 0);
 	    if (!s)
 		s = s2;
@@ -646,6 +671,10 @@ Dsymbol *ScopeDsymbol::search(Loc loc, Identifier *ident, int flags)
 	    {
 		if (s->toAlias() == s2->toAlias())
 		{
+		    /* After following aliases, we found the same symbol,
+		     * so it's not an ambiguity.
+		     * But if one alias is deprecated, prefer the other.
+		     */
 		    if (s->isDeprecated())
 			s = s2;
 		}
@@ -664,7 +693,28 @@ Dsymbol *ScopeDsymbol::search(Loc loc, Identifier *ident, int flags)
 			 )
 		       )
 		    {
-			if (flags & 4)
+			/* If both s2 and s are overloadable (though we only
+			 * need to check s once)
+			 */
+			if (s2->isOverloadable() && (a || s->isOverloadable()))
+			{   if (!a)
+				a = new OverloadSet();
+			    /* Don't add to a[] if s2 is alias of previous sym
+			     */
+			    for (int j = 0; j < a->a.dim; j++)
+			    {	Dsymbol *s3 = (Dsymbol *)a->a.data[j];
+				if (s2->toAlias() == s3->toAlias())
+				{
+				    if (s3->isDeprecated())
+					a->a.data[j] = (void *)s2;
+				    goto Lcontinue;
+				}
+			    }
+			    a->push(s2);
+			Lcontinue:
+			    continue;
+			}
+			if (flags & 4)		// if return NULL on ambiguity
 			    return NULL;
 			if (!(flags & 2))
 			    ss->multiplyDefined(loc, s, s2);
@@ -673,10 +723,20 @@ Dsymbol *ScopeDsymbol::search(Loc loc, Identifier *ident, int flags)
 		}
 	    }
 	}
+
+	/* Build special symbol if we had multiple finds
+	 */
+	if (a)
+	{   assert(s);
+	    a->push(s);
+	    s = a;
+	}
+
 	if (s)
 	{
 	    Declaration *d = s->isDeclaration();
-	    if (d && d->protection == PROTprivate && !d->parent->isTemplateMixin() &&
+	    if (d && d->protection == PROTprivate &&
+		!d->parent->isTemplateMixin() &&
 		!(flags & 2))
 		error("%s is private", d->toPrettyChars());
 	}
@@ -831,29 +891,32 @@ Dsymbol *WithScopeSymbol::search(Loc loc, Identifier *ident, int flags)
 
 /****************************** ArrayScopeSymbol ******************************/
 
-ArrayScopeSymbol::ArrayScopeSymbol(Expression *e)
+ArrayScopeSymbol::ArrayScopeSymbol(Scope *sc, Expression *e)
     : ScopeDsymbol()
 {
     assert(e->op == TOKindex || e->op == TOKslice);
     exp = e;
     type = NULL;
     td = NULL;
+    this->sc = sc;
 }
 
-ArrayScopeSymbol::ArrayScopeSymbol(TypeTuple *t)
+ArrayScopeSymbol::ArrayScopeSymbol(Scope *sc, TypeTuple *t)
     : ScopeDsymbol()
 {
     exp = NULL;
     type = t;
     td = NULL;
+    this->sc = sc;
 }
 
-ArrayScopeSymbol::ArrayScopeSymbol(TupleDeclaration *s)
+ArrayScopeSymbol::ArrayScopeSymbol(Scope *sc, TupleDeclaration *s)
     : ScopeDsymbol()
 {
     exp = NULL;
     type = NULL;
     td = s;
+    this->sc = sc;
 }
 
 Dsymbol *ArrayScopeSymbol::search(Loc loc, Identifier *ident, int flags)
@@ -871,6 +934,7 @@ Dsymbol *ArrayScopeSymbol::search(Loc loc, Identifier *ident, int flags)
 	    Expression *e = new IntegerExp(0, td->objects->dim, Type::tsize_t);
 	    v->init = new ExpInitializer(0, e);
 	    v->storage_class |= STCconst;
+	    v->semantic(sc);
 	    return v;
 	}
 
@@ -880,6 +944,7 @@ Dsymbol *ArrayScopeSymbol::search(Loc loc, Identifier *ident, int flags)
 	    Expression *e = new IntegerExp(0, type->arguments->dim, Type::tsize_t);
 	    v->init = new ExpInitializer(0, e);
 	    v->storage_class |= STCconst;
+	    v->semantic(sc);
 	    return v;
 	}
 
@@ -944,6 +1009,7 @@ Dsymbol *ArrayScopeSymbol::search(Loc loc, Identifier *ident, int flags)
 	    }
 	    *pvar = v;
 	}
+	(*pvar)->semantic(sc);
 	return (*pvar);
     }
     return NULL;

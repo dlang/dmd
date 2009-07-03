@@ -247,7 +247,7 @@ Expression *resolveProperties(Scope *sc, Expression *e)
     {
 	Type *t = e->type->toBasetype();
 
-	if (t->ty == Tfunction)
+	if (t->ty == Tfunction || e->op == TOKoverloadset)
 	{
 	    e = new CallExp(e->loc, e);
 	    e = e->semantic(sc);
@@ -269,6 +269,7 @@ Expression *resolveProperties(Scope *sc, Expression *e)
 	{
 	    e->error("expression has no value");
 	}
+	
     }
     return e;
 }
@@ -701,7 +702,7 @@ Expression *Expression::copy()
 Expression *Expression::semantic(Scope *sc)
 {
 #if LOGSEMANTIC
-    printf("Expression::semantic()\n");
+    printf("Expression::semantic() %s\n", toChars());
 #endif
     if (type)
 	type = type->semantic(loc, sc);
@@ -1016,7 +1017,7 @@ IntegerExp::IntegerExp(Loc loc, integer_t value, Type *type)
     //printf("IntegerExp(value = %lld, type = '%s')\n", value, type ? type->toChars() : "");
     if (type && !type->isscalar())
     {
-	//printf("test1: %s, loc = %d\n", toChars(), loc.linnum);
+	//printf("%s, loc = %d\n", toChars(), loc.linnum);
 	error("integral constant must be scalar type, not %s", type->toChars());
 	type = Type::terror;
     }
@@ -1620,7 +1621,8 @@ Expression *IdentifierExp::semantic(Scope *sc)
     {	Expression *e;
 	WithScopeSymbol *withsym;
 
-	// See if it was a with class
+	/* See if the symbol was a member of an enclosing 'with'
+	 */
 	withsym = scopesym->isWithScopeSymbol();
 	if (withsym)
 	{
@@ -1641,13 +1643,9 @@ Expression *IdentifierExp::semantic(Scope *sc)
 	}
 	else
 	{
-	    if (!s->parent && scopesym->isArrayScopeSymbol())
-	    {	// Kludge to run semantic() here because
-		// ArrayScopeSymbol::search() doesn't have access to sc.
-		s->semantic(sc);
-	    }
-	    // Look to see if f is really a function template
-	    //FuncDeclaration *f = s->toAlias()->isFuncDeclaration();
+	    /* If f is really a function template,
+	     * then replace f with the function template declaration.
+	     */
 	    FuncDeclaration *f = s->isFuncDeclaration();
 	    if (f && f->parent)
 	    {   TemplateInstance *ti = f->parent->isTemplateInstance();
@@ -1667,15 +1665,8 @@ Expression *IdentifierExp::semantic(Scope *sc)
 		    return e;
 		}
 	    }
-	    f = s->toAlias()->isFuncDeclaration();
-	    if (f && !f->isFuncLiteralDeclaration())
-	    {
-		e = new VarExp(loc, f, 1);
-	    }
-	    else
-	    {
-		e = new DsymbolExp(loc, s);
-	    }
+	    // Haven't done overload resolution yet, so pass 1
+	    e = new DsymbolExp(loc, s, 1);
 	}
 	return e->semantic(sc);
     }
@@ -1718,10 +1709,11 @@ DollarExp::DollarExp(Loc loc)
 
 /******************************** DsymbolExp **************************/
 
-DsymbolExp::DsymbolExp(Loc loc, Dsymbol *s)
+DsymbolExp::DsymbolExp(Loc loc, Dsymbol *s, int hasOverloads)
 	: Expression(loc, TOKdsymbol, sizeof(DsymbolExp))
 {
     this->s = s;
+    this->hasOverloads = hasOverloads;
 }
 
 Expression *DsymbolExp::semantic(Scope *sc)
@@ -1736,6 +1728,7 @@ Lagain:
     VarDeclaration *v;
     FuncDeclaration *f;
     FuncLiteralDeclaration *fld;
+    OverloadSet *o;
     Declaration *d;
     ClassDeclaration *cd;
     ClassDeclaration *thiscd = NULL;
@@ -1790,36 +1783,6 @@ Lagain:
 		type = Type::terror;
 	    }
 	}
-#if 0
-	if ((v->isConst() || v->isInvariant()) && type->toBasetype()->ty != Tsarray)
-	{   // Replace v with its initializer
-	    if (v->init)
-	    {
-		if (v->inuse)
-		{
-		    error("circular reference to '%s'", v->toChars());
-		    type = Type::tint32;
-		    return this;
-		}
-		ExpInitializer *ei = v->init->isExpInitializer();
-		if (ei)
-		{
-		    e = ei->exp->copy();	// make copy so we can change loc
-		    if (e->op == TOKstring || !e->type)
-			e = e->semantic(sc);
-		    e = e->implicitCastTo(sc, type);
-		    e->loc = loc;
-		    return e;
-		}
-	    }
-	    else
-	    {
-		e = type->defaultInit();
-		e->loc = loc;
-		return e;
-	    }
-	}
-#endif
 	e = new VarExp(loc, v);
 	e->type = type;
 	e = e->semantic(sc);
@@ -1834,7 +1797,12 @@ Lagain:
     f = s->isFuncDeclaration();
     if (f)
     {	//printf("'%s' is a function\n", f->toChars());
-	return new VarExp(loc, f);
+	return new VarExp(loc, f, hasOverloads);
+    }
+    o = s->isOverloadSet();
+    if (o)
+    {	//printf("'%s' is an overload set\n", o->toChars());
+	return new OverExp(o);
     }
     cd = s->isClassDeclaration();
     if (cd && thiscd && cd->isBaseOf(thiscd, NULL) && sc->func->needThis())
@@ -3633,6 +3601,22 @@ Expression *VarExp::modifiableLvalue(Scope *sc, Expression *e)
 
     // See if this expression is a modifiable lvalue (i.e. not const)
     return toLvalue(sc, e);
+}
+
+
+/******************************** OverExp **************************/
+
+OverExp::OverExp(OverloadSet *s)
+	: Expression(loc, TOKoverloadset, sizeof(OverExp))
+{
+    //printf("OverExp(this = %p, '%s')\n", this, var->toChars());
+    vars = s;
+    type = Type::tvoid;
+}
+
+Expression *OverExp::toLvalue(Scope *sc, Expression *e)
+{
+    return this;
 }
 
 
@@ -5813,6 +5797,41 @@ Lagain:
 		error("cyclic constructor call");
 	}
     }
+    else if (e1->op == TOKoverloadset)
+    {
+	OverExp *eo = (OverExp *)e1;
+	FuncDeclaration *f = NULL;
+	for (int i = 0; i < eo->vars->a.dim; i++)
+	{   Dsymbol *s = (Dsymbol *)eo->vars->a.data[i];
+	    FuncDeclaration *f2 = s->isFuncDeclaration();
+	    if (f2)
+	    {
+		f2 = f2->overloadResolve(loc, arguments, 1);
+	    }
+	    else
+	    {	TemplateDeclaration *td = s->isTemplateDeclaration();
+		assert(td);
+		f2 = td->deduce(sc, loc, NULL, arguments, 1);
+	    }
+	    if (f2)
+	    {	if (f)
+		    /* Error if match in more than one overload set,
+		     * even if one is a 'better' match than the other.
+		     */
+		    ScopeDsymbol::multiplyDefined(loc, f, f2);
+		else
+		    f = f2;
+	    }
+	}
+	if (!f)
+	{   /* No overload matches, just set f and rely on error
+	     * message being generated later.
+	     */
+	    f = (FuncDeclaration *)eo->vars->a.data[0];
+	}
+	e1 = new VarExp(loc, f);
+	goto Lagain;
+    }
     else if (!t1)
     {
 	error("function expected before (), not '%s'", e1->toChars());
@@ -5868,29 +5887,6 @@ Lagain:
 
 	f = ve->var->isFuncDeclaration();
 	assert(f);
-
-	// Look to see if f is really a function template
-	if (0 && !istemp && f->parent)
-	{   TemplateInstance *ti = f->parent->isTemplateInstance();
-
-	    if (ti &&
-		(ti->name == f->ident ||
-		 ti->toAlias()->ident == f->ident)
-		&&
-		ti->tempdecl)
-	    {
-		/* This is so that one can refer to the enclosing
-		 * template, even if it has the same name as a member
-		 * of the template, if it has a !(arguments)
-		 */
-		TemplateDeclaration *tempdecl = ti->tempdecl;
-		if (tempdecl->overroot)         // if not start of overloaded list of TemplateDeclaration's
-		    tempdecl = tempdecl->overroot; // then get the start
-		e1 = new TemplateExp(loc, tempdecl);
-		istemp = 1;
-		goto Lagain;
-	    }
-	}
 
 	if (ve->hasOverloads)
 	    f = f->overloadResolve(loc, arguments);
@@ -6547,7 +6543,7 @@ Expression *SliceExp::semantic(Scope *sc)
 
     if (t->ty == Tsarray || t->ty == Tarray || t->ty == Ttuple)
     {
-	sym = new ArrayScopeSymbol(this);
+	sym = new ArrayScopeSymbol(sc, this);
 	sym->loc = loc;
 	sym->parent = sc->scopesym;
 	sc = sc->push(sym);
@@ -6621,7 +6617,7 @@ Expression *SliceExp::semantic(Scope *sc)
 	return e;
     }
 
-    type = ((TypeNext *)t)->next->arrayOf();
+    type = t->nextOf()->arrayOf();
     return e;
 
 Lerror:
@@ -6887,7 +6883,7 @@ Expression *IndexExp::semantic(Scope *sc)
 
     if (t1->ty == Tsarray || t1->ty == Tarray || t1->ty == Ttuple)
     {	// Create scope for 'length' variable
-	sym = new ArrayScopeSymbol(this);
+	sym = new ArrayScopeSymbol(sc, this);
 	sym->loc = loc;
 	sym->parent = sc->scopesym;
 	sc = sc->push(sym);
@@ -7072,9 +7068,10 @@ Expression *AssignExp::semantic(Scope *sc)
     Expression *e1old = e1;
 
 #if LOGSEMANTIC
-    printf("AssignExp::semantic('%s')\n", toChars());
+    //printf("AssignExp::semantic('%s')\n", toChars());
 #endif
     //printf("e1->op = %d, '%s'\n", e1->op, Token::toChars(e1->op));
+    //printf("e2->op = %d, '%s'\n", e2->op, Token::toChars(e2->op));
 
     /* Look for operator overloading of a[i]=value.
      * Do it before semantic() otherwise the a[i] will have been
@@ -7168,6 +7165,31 @@ Expression *AssignExp::semantic(Scope *sc)
     BinExp::semantic(sc);
     e2 = resolveProperties(sc, e2);
     assert(e1->type);
+
+    /* Rewrite tuple assignment as a tuple of assignments.
+     */
+    if (e1->op == TOKtuple && e2->op == TOKtuple)
+    {	TupleExp *tup1 = (TupleExp *)e1;
+	TupleExp *tup2 = (TupleExp *)e2;
+	size_t dim = tup1->exps->dim;
+	if (dim != tup2->exps->dim)
+	{
+	    error("mismatched tuple lengths, %d and %d", (int)dim, (int)tup2->exps->dim);
+	}
+	else
+	{   Expressions *exps = new Expressions;
+	    exps->setDim(dim);
+
+	    for (int i = 0; i < dim; i++)
+	    {	Expression *ex1 = (Expression *)tup1->exps->data[i];
+		Expression *ex2 = (Expression *)tup2->exps->data[i];
+		exps->data[i] = (void *) new AssignExp(loc, ex1, ex2);
+	    }
+	    Expression *e = new TupleExp(loc, exps);
+	    e = e->semantic(sc);
+	    return e;
+	}
+    }
 
     t1 = e1->type->toBasetype();
 
@@ -7914,13 +7936,20 @@ Expression *CatExp::semantic(Scope *sc)
 	}
 
 	typeCombine(sc);
+//type->print();
 	type = type->mutableOf();
+//printf("test1\n");
+//type->print();
 
 	Type *tb = type->toBasetype();
 	if (tb->ty == Tsarray)
 	    type = tb->nextOf()->arrayOf();
-	if (type->ty == Tarray)
+//printf("test2\n");
+//type->print();
+	if (type->ty == Tarray && tb1->nextOf()->mod != tb2->nextOf()->mod)
 	    type = type->nextOf()->toCanonConst()->arrayOf();
+//printf("test3\n");
+//type->print();
 #if 0
 	e1->type->print();
 	e2->type->print();

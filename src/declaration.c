@@ -444,18 +444,12 @@ void AliasDeclaration::semantic(Scope *sc)
     else if (e)
     {
 	// Try to convert Expression to Dsymbol
-        if (e->op == TOKvar)
-	{   s = ((VarExp *)e)->var;
+	s = getDsymbol(e);
+	if (s)
 	    goto L2;
-	}
-        else if (e->op == TOKfunction)
-	{   s = ((FuncExp *)e)->fd;
-	    goto L2;
-	}
-        else
-	{   error("cannot alias an expression %s", e->toChars());
-	    t = e->type;
-	}
+
+	error("cannot alias an expression %s", e->toChars());
+	t = e->type;
     }
     else if (t)
 	type = t;
@@ -649,6 +643,7 @@ void VarDeclaration::semantic(Scope *sc)
 {
     //printf("VarDeclaration::semantic('%s', parent = '%s')\n", toChars(), sc->parent->toChars());
     //printf(" type = %s\n", type->toChars());
+    //printf("stc = x%x\n", sc->stc);
     //printf("linkage = %d\n", sc->linkage);
     //if (strcmp(toChars(), "mul") == 0) halt();
 
@@ -746,8 +741,19 @@ void VarDeclaration::semantic(Scope *sc)
 	storage_class |= STCctorinit;
     }
 
+Lagain:
     if (isConst())
     {
+	/* Rewrite things like:
+	 *  const string s;
+	 * to:
+	 *  invariant string s;
+	 */
+	if (type->nextOf() && type->nextOf()->isInvariant())
+	{   storage_class |= STCinvariant;
+	    storage_class &= ~STCconst;
+	    goto Lagain;
+	}
 	type = type->constOf();
 	if (isParameter())
 	{   storage_class |= STCfinal;

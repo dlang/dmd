@@ -2886,6 +2886,7 @@ static Keyword keywords[] =
     {	"macro",	TOKmacro	},
 #if V2
     {	"__traits",	TOKtraits	},
+    {	"__overloadset", TOKoverloadset	},
 #endif
 };
 

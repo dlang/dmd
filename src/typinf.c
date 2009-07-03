@@ -465,7 +465,7 @@ void TypeInfoStructDeclaration::toDt(dt_t **pdt)
 	tftohash = new TypeFunction(NULL, Type::thash_t, 0, LINKd);
 	tftohash = (TypeFunction *)tftohash->semantic(0, &sc);
 
-	tftostring = new TypeFunction(NULL, Type::tchar->constOf()->arrayOf(), 0, LINKd);
+	tftostring = new TypeFunction(NULL, Type::tchar->invariantOf()->arrayOf(), 0, LINKd);
 	tftostring = (TypeFunction *)tftostring->semantic(0, &sc);
     }
 

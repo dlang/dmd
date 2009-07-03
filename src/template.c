@@ -203,12 +203,15 @@ L1:
 
 void ObjectToCBuffer(OutBuffer *buf, HdrGenState *hgs, Object *oarg)
 {
+    //printf("ObjectToCBuffer()\n");
     Type *t = isType(oarg);
     Expression *e = isExpression(oarg);
     Dsymbol *s = isDsymbol(oarg);
     Tuple *v = isTuple(oarg);
     if (t)
+    {	//printf("\tt: %s ty = %d\n", t->toChars(), t->ty);
 	t->toCBuffer(buf, NULL, hgs);
+    }
     else if (e)
 	e->toCBuffer(buf, hgs);
     else if (s)
@@ -487,7 +490,7 @@ MATCH TemplateDeclaration::matchWithInstance(TemplateInstance *ti,
 
 	//printf("\targument [%d]\n", i);
 #if 0
-	printf("\targument [%d] is %s\n", i, oarg ? oarg->toChars() : "null");
+	//printf("\targument [%d] is %s\n", i, oarg ? oarg->toChars() : "null");
 	TemplateTypeParameter *ttp = tp->isTemplateTypeParameter();
 	if (ttp)
 	    printf("\tparameter[%d] is %s : %s\n", i, tp->ident->toChars(), ttp->specType ? ttp->specType->toChars() : "");
@@ -963,6 +966,15 @@ TemplateTupleParameter *TemplateDeclaration::isVariadic()
     return ::isVariadic(parameters);
 }
 
+/***********************************
+ * We can overload templates.
+ */
+
+int TemplateDeclaration::isOverloadable()
+{
+    return 1;
+}
+
 /*************************************************
  * Given function arguments, figure out which template function
  * to expand, and return that function.
@@ -970,10 +982,11 @@ TemplateTupleParameter *TemplateDeclaration::isVariadic()
  * Input:
  *	targsi		initial list of template arguments
  *	fargs		arguments to function
+ *	flags		1: do not issue error message on no match, just return NULL
  */
 
 FuncDeclaration *TemplateDeclaration::deduce(Scope *sc, Loc loc,
-	Objects *targsi, Expressions *fargs)
+	Objects *targsi, Expressions *fargs, int flags)
 {
     MATCH m_best = MATCHnomatch;
     TemplateDeclaration *td_ambig = NULL;
@@ -1058,7 +1071,8 @@ FuncDeclaration *TemplateDeclaration::deduce(Scope *sc, Loc loc,
     }
     if (!td_best)
     {
-	error(loc, "does not match any template declaration");
+	if (!(flags & 1))
+	    error(loc, "does not match any template declaration");
 	goto Lerror;
     }
     if (td_ambig)
@@ -1079,6 +1093,7 @@ FuncDeclaration *TemplateDeclaration::deduce(Scope *sc, Loc loc,
     return fd;
 
   Lerror:
+    if (!(flags & 1))
     {
 	OutBuffer buf;
 	HdrGenState hgs;
@@ -1086,8 +1101,8 @@ FuncDeclaration *TemplateDeclaration::deduce(Scope *sc, Loc loc,
 	argExpTypesToCBuffer(&buf, fargs, &hgs);
 	error(loc, "cannot deduce template function from argument types (%s)",
 		buf.toChars());
-	return NULL;
     }
+    return NULL;
 }
 
 void TemplateDeclaration::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
@@ -1153,6 +1168,17 @@ char *TemplateDeclaration::toChars()
  * Return -1 if not found.
  */
 
+int templateIdentifierLookup(Identifier *id, TemplateParameters *parameters)
+{
+    for (size_t i = 0; i < parameters->dim; i++)
+    {   TemplateParameter *tp = (TemplateParameter *)parameters->data[i];
+
+	if (tp->ident->equals(id))
+	    return i;
+    }
+    return -1;
+}
+
 int templateParameterLookup(Type *tparam, TemplateParameters *parameters)
 {
     assert(tparam->ty == Tident);
@@ -1160,14 +1186,7 @@ int templateParameterLookup(Type *tparam, TemplateParameters *parameters)
     //printf("\ttident = '%s'\n", tident->toChars());
     if (tident->idents.dim == 0)
     {
-	Identifier *id = tident->ident;
-
-	for (size_t i = 0; i < parameters->dim; i++)
-	{   TemplateParameter *tp = (TemplateParameter *)parameters->data[i];
-
-	    if (tp->ident->equals(id))
-		return i;
-	}
+	return templateIdentifierLookup(tident->ident, parameters);
     }
     return -1;
 }
@@ -1464,8 +1483,34 @@ MATCH TypeInstance::deduceType(Scope *sc,
 	//printf("tempinst->tempdecl = %p\n", tempinst->tempdecl);
 	//printf("tp->tempinst->tempdecl = %p\n", tp->tempinst->tempdecl);
 	if (!tp->tempinst->tempdecl)
-	{   if (!tp->tempinst->name->equals(tempinst->name))
-		goto Lnomatch;
+	{   //printf("tp->tempinst->name = '%s'\n", tp->tempinst->name->toChars());
+	    if (!tp->tempinst->name->equals(tempinst->name))
+	    {
+		/* Handle case of:
+		 *  template Foo(T : sa!(T), alias sa)
+		 */
+		int i = templateIdentifierLookup(tp->tempinst->name, parameters);
+		if (i == -1)
+		    goto Lnomatch;
+		TemplateParameter *tpx = (TemplateParameter *)parameters->data[i];
+		// This logic duplicates tpx->matchArg()
+		TemplateAliasParameter *ta = tpx->isTemplateAliasParameter();
+		if (!ta)
+		    goto Lnomatch;
+		Dsymbol *sa = tempinst->tempdecl;
+		if (!sa)
+		    goto Lnomatch;
+		if (ta->specAlias && sa != ta->specAlias)
+		    goto Lnomatch;
+		if (dedtypes->data[i])
+		{   // Must match already deduced symbol
+		    Dsymbol *s = (Dsymbol *)dedtypes->data[i];
+
+		    if (s != sa)
+			goto Lnomatch;
+		}
+		dedtypes->data[i] = sa;
+	    }
 	}
 	else if (tempinst->tempdecl != tp->tempinst->tempdecl)
 	    goto Lnomatch;
@@ -3004,7 +3049,8 @@ TemplateDeclaration *TemplateInstance::findTemplateDeclaration(Scope *sc)
 	}
 #if LOG
 	printf("It's an instance of '%s' kind '%s'\n", s->toChars(), s->kind());
-	printf("s->parent = '%s'\n", s->parent->toChars());
+	if (s->parent)
+	    printf("s->parent = '%s'\n", s->parent->toChars());
 #endif
 	withsym = scopesym->isWithScopeSymbol();
 

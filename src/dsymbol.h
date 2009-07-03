@@ -66,6 +66,7 @@ struct SymbolDeclaration;
 struct Expression;
 struct DeleteDeclaration;
 struct HdrGenState;
+struct OverloadSet;
 
 #if IN_GCC
 union tree_node;
@@ -140,8 +141,9 @@ struct Dsymbol : Object
     virtual AggregateDeclaration *isThis();	// is a 'this' required to access the member
     virtual ClassDeclaration *isClassMember();	// are we a member of a class?
     virtual int isExport();			// is Dsymbol exported?
-    virtual int isImportedSymbol();			// is Dsymbol imported?
+    virtual int isImportedSymbol();		// is Dsymbol imported?
     virtual int isDeprecated();			// is Dsymbol deprecated?
+    virtual int isOverloadable();
     virtual LabelDsymbol *isLabel();		// is this a LabelDsymbol?
     virtual AggregateDeclaration *isMember();	// is this symbol a member of an AggregateDeclaration?
     virtual Type *getType();			// is this a type?
@@ -207,6 +209,7 @@ struct Dsymbol : Object
 #endif
     virtual SymbolDeclaration *isSymbolDeclaration() { return NULL; }
     virtual AttribDeclaration *isAttribDeclaration() { return NULL; }
+    virtual OverloadSet *isOverloadSet() { return NULL; }
 };
 
 // Dsymbol that generates a scope
@@ -255,13 +258,26 @@ struct ArrayScopeSymbol : ScopeDsymbol
     Expression *exp;	// IndexExp or SliceExp
     TypeTuple *type;	// for tuple[length]
     TupleDeclaration *td;	// for tuples of objects
+    Scope *sc;
 
-    ArrayScopeSymbol(Expression *e);
-    ArrayScopeSymbol(TypeTuple *t);
-    ArrayScopeSymbol(TupleDeclaration *td);
+    ArrayScopeSymbol(Scope *sc, Expression *e);
+    ArrayScopeSymbol(Scope *sc, TypeTuple *t);
+    ArrayScopeSymbol(Scope *sc, TupleDeclaration *td);
     Dsymbol *search(Loc loc, Identifier *ident, int flags);
 
     ArrayScopeSymbol *isArrayScopeSymbol() { return this; }
+};
+
+// Overload Sets
+
+struct OverloadSet : Dsymbol
+{
+    Dsymbols a;		// array of Dsymbols
+
+    OverloadSet();
+    void push(Dsymbol *s);
+    OverloadSet *isOverloadSet() { return this; }
+    char *kind();
 };
 
 // Table of Dsymbol's

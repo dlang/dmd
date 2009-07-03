@@ -1503,7 +1503,7 @@ void overloadResolveX(Match *m, FuncDeclaration *fstart, Expressions *arguments)
 }
 
 
-FuncDeclaration *FuncDeclaration::overloadResolve(Loc loc, Expressions *arguments)
+FuncDeclaration *FuncDeclaration::overloadResolve(Loc loc, Expressions *arguments, int flags)
 {
     TypeFunction *tf;
     Match m;
@@ -1545,6 +1545,9 @@ if (arguments)
 
 	if (m.last == MATCHnomatch)
 	{
+	    if (flags & 1)		// if do not print error messages
+		return NULL;		// no match
+
 	    tf = (TypeFunction *)type;
 
 	    //printf("tf = %s, args = %s\n", tf->deco, ((Expression *)arguments->data[0])->type->deco);
@@ -1771,6 +1774,11 @@ int FuncDeclaration::isAbstract()
 int FuncDeclaration::isCodeseg()
 {
     return TRUE;		// functions are always in the code segment
+}
+
+int FuncDeclaration::isOverloadable()
+{
+    return 1;			// functions can be overloaded
 }
 
 // Determine if function needs

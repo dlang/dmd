@@ -483,10 +483,30 @@ MATCH AddrExp::implicitConvTo(Type *t)
     if (result == MATCHnomatch)
     {
 	// Look for pointers to functions where the functions are overloaded.
-	VarExp *ve;
-	FuncDeclaration *f;
 
 	t = t->toBasetype();
+
+	if (e1->op == TOKoverloadset &&
+	    (t->ty == Tpointer || t->ty == Tdelegate) && t->nextOf()->ty == Tfunction)
+	{   OverExp *eo = (OverExp *)e1;
+	    FuncDeclaration *f = NULL;
+	    for (int i = 0; i < eo->vars->a.dim; i++)
+	    {   Dsymbol *s = (Dsymbol *)eo->vars->a.data[i];
+		FuncDeclaration *f2 = s->isFuncDeclaration();
+		assert(f2);
+		if (f2->overloadExactMatch(t->nextOf()))
+		{   if (f)
+			/* Error if match in more than one overload set,
+			 * even if one is a 'better' match than the other.
+			 */
+			ScopeDsymbol::multiplyDefined(loc, f, f2);
+		    else
+			f = f2;
+		    result = MATCHexact;
+		}
+	    }
+	}
+
 	if (type->ty == Tpointer && type->nextOf()->ty == Tfunction &&
 	    t->ty == Tpointer && t->nextOf()->ty == Tfunction &&
 	    e1->op == TOKvar)
@@ -496,8 +516,8 @@ MATCH AddrExp::implicitConvTo(Type *t)
 	     * converted to a SymOffExp.
 	     */
 	    assert(0);
-	    ve = (VarExp *)e1;
-	    f = ve->var->isFuncDeclaration();
+	    VarExp *ve = (VarExp *)e1;
+	    FuncDeclaration *f = ve->var->isFuncDeclaration();
 	    if (f && f->overloadExactMatch(t->nextOf()))
 		result = MATCHexact;
 	}
@@ -928,17 +948,43 @@ Expression *AddrExp::castTo(Scope *sc, Type *t)
     if (tb != type)
     {
 	// Look for pointers to functions where the functions are overloaded.
-	VarExp *ve;
-	FuncDeclaration *f;
+
+	if (e1->op == TOKoverloadset &&
+	    (t->ty == Tpointer || t->ty == Tdelegate) && t->nextOf()->ty == Tfunction)
+	{   OverExp *eo = (OverExp *)e1;
+	    FuncDeclaration *f = NULL;
+	    for (int i = 0; i < eo->vars->a.dim; i++)
+	    {   Dsymbol *s = (Dsymbol *)eo->vars->a.data[i];
+		FuncDeclaration *f2 = s->isFuncDeclaration();
+		assert(f2);
+		if (f2->overloadExactMatch(t->nextOf()))
+		{   if (f)
+			/* Error if match in more than one overload set,
+			 * even if one is a 'better' match than the other.
+			 */
+			ScopeDsymbol::multiplyDefined(loc, f, f2);
+		    else
+			f = f2;
+		}
+	    }
+	    if (f)
+	    {	SymOffExp *se = new SymOffExp(loc, f, 0, 0);
+		se->semantic(sc);
+		// Let SymOffExp::castTo() do the heavy lifting
+		return se->castTo(sc, t);
+	    }
+	}
+
 
 	if (type->ty == Tpointer && type->nextOf()->ty == Tfunction &&
 	    tb->ty == Tpointer && tb->nextOf()->ty == Tfunction &&
 	    e1->op == TOKvar)
 	{
-	    ve = (VarExp *)e1;
-	    f = ve->var->isFuncDeclaration();
+	    VarExp *ve = (VarExp *)e1;
+	    FuncDeclaration *f = ve->var->isFuncDeclaration();
 	    if (f)
 	    {
+		assert(0);	// should be SymOffExp instead
 		f = f->overloadExactMatch(tb->nextOf());
 		if (f)
 		{
@@ -1271,7 +1317,9 @@ Expression *BinExp::typeCombine(Scope *sc)
     {
 	if ((t1->ty == Tsarray || t1->ty == Tarray) &&
 	    (t2->ty == Tsarray || t2->ty == Tarray) &&
-	    (t1->nextOf()->mod || t2->nextOf()->mod))
+	    (t1->nextOf()->mod || t2->nextOf()->mod) &&
+	    (t1->nextOf()->mod != t2->nextOf()->mod)
+	   )
 	{
 	    t1 = t1->constOf();
 	    t2 = t2->constOf();

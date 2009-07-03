@@ -43,6 +43,7 @@ struct HdrGenState;
 struct BinExp;
 struct InterState;
 struct Symbol;		// back end symbol
+struct OverloadSet;
 
 enum TOK;
 
@@ -240,8 +241,9 @@ struct DollarExp : IdentifierExp
 struct DsymbolExp : Expression
 {
     Dsymbol *s;
+    int hasOverloads;
 
-    DsymbolExp(Loc loc, Dsymbol *s);
+    DsymbolExp(Loc loc, Dsymbol *s, int hasOverloads = 0);
     Expression *semantic(Scope *sc);
     char *toChars();
     void dump(int indent);
@@ -341,6 +343,7 @@ struct TupleExp : Expression
     Expression *optimize(int result);
     Expression *interpret(InterState *istate);
     Expression *castTo(Scope *sc, Type *t);
+    elem *toElem(IRState *irs);
 
     int inlineCost(InlineCostState *ics);
     Expression *doInline(InlineDoState *ids);
@@ -562,6 +565,17 @@ struct VarExp : Expression
     Expression *doInline(InlineDoState *ids);
     //Expression *inlineScan(InlineScanState *iss);
 };
+
+// Overload Set
+
+struct OverExp : Expression
+{
+    OverloadSet *vars;
+
+    OverExp(OverloadSet *s);
+    Expression *toLvalue(Scope *sc, Expression *e);
+};
+
 
 // Function/Delegate literal
 

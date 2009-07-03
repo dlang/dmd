@@ -378,7 +378,7 @@ Type *Type::mutableOf()
 	t->vtinfo = NULL;
 	if (ty == Tsarray)
 	{   TypeSArray *ta = (TypeSArray *)t;
-	    ta->next = ta->next->mutableOf();
+	    //ta->next = ta->next->mutableOf();
 	}
 	t = t->merge();
 	if (isConst())
@@ -1866,7 +1866,7 @@ unsigned TypeSArray::alignsize()
 Expression *semanticLength(Scope *sc, Type *t, Expression *exp)
 {
     if (t->ty == Ttuple)
-    {	ScopeDsymbol *sym = new ArrayScopeSymbol((TypeTuple *)t);
+    {	ScopeDsymbol *sym = new ArrayScopeSymbol(sc, (TypeTuple *)t);
 	sym->parent = sc->scopesym;
 	sc = sc->push(sym);
 
@@ -1881,7 +1881,7 @@ Expression *semanticLength(Scope *sc, Type *t, Expression *exp)
 
 Expression *semanticLength(Scope *sc, TupleDeclaration *s, Expression *exp)
 {
-    ScopeDsymbol *sym = new ArrayScopeSymbol(s);
+    ScopeDsymbol *sym = new ArrayScopeSymbol(sc, s);
     sym->parent = sc->scopesym;
     sc = sc->push(sym);
 
@@ -1907,7 +1907,7 @@ void TypeSArray::resolve(Loc loc, Scope *sc, Expression **pe, Type **pt, Dsymbol
 	TupleDeclaration *td = s->isTupleDeclaration();
 	if (td)
 	{
-	    ScopeDsymbol *sym = new ArrayScopeSymbol(td);
+	    ScopeDsymbol *sym = new ArrayScopeSymbol(sc, td);
 	    sym->parent = sc->scopesym;
 	    sc = sc->push(sym);
 
@@ -2449,7 +2449,10 @@ Type *TypeAArray::semantic(Loc loc, Scope *sc)
     else
 	index = index->semantic(loc,sc);
 
-    index = index->constOf()->mutableOf();
+    if (index->nextOf() && !index->nextOf()->isInvariant())
+    {
+	index = index->constOf()->mutableOf();
+    }
 
     switch (index->toBasetype()->ty)
     {
@@ -3060,7 +3063,11 @@ Type *TypeFunction::semantic(Loc loc, Scope *sc)
 	    if (inuse == 1) inuse--;
 
 	    if (arg->storageClass & STCconst)
-		arg->type = arg->type->constOf();
+	    {	if (arg->type->nextOf() && arg->type->nextOf()->isInvariant())
+		    arg->storageClass &= ~STCconst;
+		else
+		    arg->type = arg->type->constOf();
+	    }
 	    else if (arg->storageClass & STCinvariant)
 		arg->type = arg->type->invariantOf();
 
@@ -4474,7 +4481,11 @@ void TypeStruct::toCBuffer2(OutBuffer *buf, HdrGenState *hgs, int mod)
     {	toCBuffer3(buf, hgs, mod);
 	return;
     }
-    buf->writestring(sym->toChars());
+    TemplateInstance *ti = sym->parent->isTemplateInstance();
+    if (ti && ti->toAlias() == sym)
+	buf->writestring(ti->toChars());
+    else
+	buf->writestring(sym->toChars());
 }
 
 Expression *TypeStruct::dotExp(Scope *sc, Expression *e, Identifier *ident)
@@ -5326,7 +5337,7 @@ void TypeSlice::resolve(Loc loc, Scope *sc, Expression **pe, Type **pt, Dsymbol 
 	{
 	    /* It's a slice of a TupleDeclaration
 	     */
-	    ScopeDsymbol *sym = new ArrayScopeSymbol(td);
+	    ScopeDsymbol *sym = new ArrayScopeSymbol(sc, td);
 	    sym->parent = sc->scopesym;
 	    sc = sc->push(sym);
 
@@ -5473,8 +5484,14 @@ void Argument::argsToCBuffer(OutBuffer *buf, HdrGenState *hgs, Arguments *argume
 	    else if (arg->storageClass & STCref)
 		buf->writestring((global.params.Dversion == 1)
 			? (char *)"inout " : (char *)"ref ");
+	    else if (arg->storageClass & STCin)
+		buf->writestring("in ");
 	    else if (arg->storageClass & STClazy)
 		buf->writestring("lazy ");
+	    if (arg->storageClass & STCconst)
+		buf->writestring("const ");
+	    if (arg->storageClass & STCinvariant)
+		buf->writestring("invariant ");
 	    argbuf.reset();
 	    arg->type->toCBuffer(&argbuf, arg->ident, hgs);
 	    if (arg->defaultArg)
