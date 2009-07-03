@@ -274,6 +274,15 @@ elem *callfunc(Loc loc,
 	e->Ety = TYnptr;
 	e = el_una(OPind, tyret, e);
     }
+
+#if V2
+    if (tf->isref)
+    {
+	e->Ety = TYnptr;
+	e = el_una(OPind, tyret, e);
+    }
+#endif
+
     if (tybasic(tyret) == TYstruct)
     {
 	e->Enumbytes = tret->size();
@@ -4452,7 +4461,26 @@ elem *AssocArrayLiteralExp::toElem(IRState *irs)
 	    el = (Expression *)values->data[i];
 	}
     }
-    e = el_param(e, type->getTypeInfo(NULL)->toElem(irs));
+
+    Type *t = type->toBasetype()->mutableOf();
+    assert(t->ty == Taarray);
+    TypeAArray *ta = (TypeAArray *)t;
+
+    /* Unfortunately, the hash function for Aa (array of chars) is custom and
+     * different from Axa and Aya, which get the generic hash function.
+     * So, rewrite the type of the AArray so that if it's key type
+     * is an array of const or invariant, make it an array of mutable.
+     */
+    Type *tkey = ta->index->toBasetype();
+    if (tkey->ty == Tarray)
+    {
+	tkey = tkey->nextOf()->mutableOf()->arrayOf();
+	tkey = tkey->semantic(0, NULL);
+	ta = new TypeAArray(ta->nextOf(), tkey);
+	ta = (TypeAArray *)ta->merge();
+    }
+
+    e = el_param(e, ta->getTypeInfo(NULL)->toElem(irs));
 
     // call _d_assocarrayliteralT(ti, dim, ...)
     e = el_bin(OPcall,TYnptr,el_var(rtlsym[RTLSYM_ASSOCARRAYLITERALT]),e);
@@ -4562,6 +4590,7 @@ elem *StructLiteralExp::toElem(IRState *irs)
 		    e1 = el_bin(OPadd, TYnptr, e1, el_long(TYsize_t, soffset));
 	    }
 	    e1 = el_bin(OPadd, TYnptr, e1, el_long(TYsize_t, v->offset));
+	    elem *ec = e1;			// pointer to destination
 
 	    elem *ep = el->toElem(irs);
 
@@ -4570,9 +4599,41 @@ elem *StructLiteralExp::toElem(IRState *irs)
 	    if (t1b->ty == Tsarray)
 	    {
 		if (t2b->implicitConvTo(t1b))
-		{   elem *esize = el_long(TYsize_t, t1b->size());
-		    ep = array_toPtr(el->type, ep);
-		    e1 = el_bin(OPmemcpy, TYnptr, e1, el_param(ep, esize));
+		{
+#if V2
+		    // Determine if postblit is needed
+		    int postblit = 0;
+		    Type *t = t1b;
+		    do
+		    {
+			t = t->nextOf()->toBasetype();
+		    } while (t->ty == Tsarray);
+		    if (t->ty == Tstruct)
+		    {	StructDeclaration *sd = ((TypeStruct *)t)->sym;
+			if (sd->postblit)
+			    postblit = 1;
+		    }
+
+		    if (postblit)
+		    {
+			/* Generate:
+			 *	_d_arrayctor(ti, From: ep, To: e1)
+			 */
+			Expression *ti = t1b->nextOf()->toBasetype()->getTypeInfo(NULL);
+			elem *esize = el_long(TYsize_t, ((TypeSArray *)t1b)->dim->toInteger());
+			e1 = el_pair(TYdarray, esize, e1);
+			ep = el_pair(TYdarray, el_copytree(esize), array_toPtr(el->type, ep));
+			ep = el_params(e1, ep, ti->toElem(irs), NULL);
+			int rtl = RTLSYM_ARRAYCTOR;
+			e1 = el_bin(OPcall, type->totym(), el_var(rtlsym[rtl]), ep);
+		    }
+		    else
+#endif
+		    {
+			elem *esize = el_long(TYsize_t, t1b->size());
+			ep = array_toPtr(el->type, ep);
+			e1 = el_bin(OPmemcpy, TYnptr, e1, el_param(ep, esize));
+		    }
 		}
 		else
 		{
@@ -4591,6 +4652,20 @@ elem *StructLiteralExp::toElem(IRState *irs)
 		{   e1->Eoper = OPstreq;
 		    e1->Enumbytes = v->type->size();
 		}
+#if V2
+		/* Call postBlit() on e1
+		 */
+		Type *tb = v->type->toBasetype();
+		if (tb->ty == Tstruct)
+		{   StructDeclaration *sd = ((TypeStruct *)tb)->sym;
+		    if (sd->postblit)
+		    {	FuncDeclaration *fd = sd->postblit;
+			ec = el_copytree(ec);
+			ec = callfunc(loc, irs, 1, Type::tvoid, ec, tb->pointerTo(), fd, fd->type, NULL, NULL);
+			e1 = el_bin(OPcomma, ec->Ety, e1, ec);
+		    }
+		}
+#endif
 	    }
 	    e = el_combine(e, e1);
 	}

@@ -70,6 +70,7 @@ enum STC
     STCpure	    = 0x4000000,	// pure function
     STCtls	    = 0x8000000,	// thread local
     STCalias	    = 0x10000000,	// alias parameter
+    STCshared       = 0x20000000,	// accessible from multiple threads
 };
 
 struct Match

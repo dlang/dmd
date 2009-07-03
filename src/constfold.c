@@ -1484,6 +1484,31 @@ Expression *Cat(Type *type, Expression *e1, Expression *e2)
 	else
 	    e->type = type;
     }
+    else if (e1->op == TOKarrayliteral && e2->op == TOKnull &&
+	t1->nextOf()->equals(t2->nextOf()))
+    {
+	e = e1;
+	goto L3;
+    }
+    else if (e1->op == TOKnull && e2->op == TOKarrayliteral &&
+	t1->nextOf()->equals(t2->nextOf()))
+    {
+	e = e2;
+     L3:
+	// Concatenate the array with null
+	ArrayLiteralExp *es = (ArrayLiteralExp *)e;
+
+	es = new ArrayLiteralExp(es->loc, (Expressions *)es->elements->copy());
+	e = es;
+
+	if (type->toBasetype()->ty == Tsarray)
+	{
+	    e->type = new TypeSArray(t1->nextOf(), new IntegerExp(loc, es->elements->dim, Type::tindex));
+	    e->type = e->type->semantic(loc, NULL);
+	}
+	else
+	    e->type = type;
+    }
     else if ((e1->op == TOKarrayliteral || e1->op == TOKnull) &&
 	e1->type->toBasetype()->nextOf()->equals(e2->type))
     {

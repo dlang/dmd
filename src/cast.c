@@ -339,8 +339,8 @@ Lno:
 MATCH NullExp::implicitConvTo(Type *t)
 {
 #if 0
-    printf("NullExp::implicitConvTo(this=%s, type=%s, t=%s)\n",
-	toChars(), type->toChars(), t->toChars());
+    printf("NullExp::implicitConvTo(this=%s, type=%s, t=%s, committed = %d)\n",
+	toChars(), type->toChars(), t->toChars(), committed);
 #endif
     if (this->type->equals(t))
 	return MATCHexact;

@@ -328,7 +328,8 @@ void StorageClassDeclaration::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 	{ STCstatic,       TOKstatic },
 	{ STCextern,       TOKextern },
 	{ STCconst,        TOKconst },
-	{ STCinvariant,    TOKinvariant },
+	{ STCinvariant,    TOKimmutable },
+	{ STCshared,       TOKshared },
 	{ STCfinal,        TOKfinal },
 	{ STCabstract,     TOKabstract },
 	{ STCsynchronized, TOKsynchronized },
@@ -336,6 +337,7 @@ void StorageClassDeclaration::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 	{ STCoverride,     TOKoverride },
 	{ STCnothrow,      TOKnothrow },
 	{ STCpure,         TOKpure },
+	{ STCref,          TOKref },
 	{ STCtls,          TOKtls },
     };
 

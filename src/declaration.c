@@ -855,6 +855,9 @@ Lagain:
 	}
     }
 
+    if ((storage_class & (STCref | STCparameter | STCforeach)) == STCref)
+	error("only parameters or foreach declarations can be ref");
+
     if (type->isauto() && !noauto)
     {
 	if (storage_class & (STCfield | STCout | STCref | STCstatic | STCmanifest | STCtls) || !fd)
@@ -925,7 +928,7 @@ Lagain:
     if (init)
     {
 	sc = sc->push();
-	sc->stc &= ~(STCconst | STCinvariant | STCpure);
+	sc->stc &= ~(STCconst | STCinvariant | STCpure | STCnothrow | STCref | STCshared);
 
 	ArrayInitializer *ai = init->isArrayInitializer();
 	if (ai && tb->ty == Taarray)
@@ -1202,8 +1205,10 @@ int VarDeclaration::isImportedSymbol()
 
 void VarDeclaration::checkCtorConstInit()
 {
+#if 0 /* doesn't work if more than one static ctor */
     if (ctorinit == 0 && isCtorinit() && !(storage_class & STCfield))
 	error("missing initializer in static constructor for const variable");
+#endif
 }
 
 /************************************

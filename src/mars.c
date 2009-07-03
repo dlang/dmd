@@ -73,7 +73,7 @@ Global::Global()
 
     copyright = "Copyright (c) 1999-2008 by Digital Mars";
     written = "written by Walter Bright";
-    version = "v2.019";
+    version = "v2.020";
     global.structalign = 8;
 
     memset(&params, 0, sizeof(Param));
@@ -281,6 +281,7 @@ int main(int argc, char *argv[])
     global.params.isWindows = 1;
 #endif
 #if linux
+    VersionCondition::addPredefinedGlobalIdent("Posix");
     VersionCondition::addPredefinedGlobalIdent("linux");
     global.params.isLinux = 1;
 #endif /* linux */

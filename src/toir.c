@@ -533,6 +533,11 @@ void FuncDeclaration::buildClosure(IRState *irs)
 enum RET TypeFunction::retStyle()
 {
     //printf("TypeFunction::retStyle() %s\n", toChars());
+#if V2
+    if (isref)
+	return RETregs;			// returns a pointer
+#endif
+
     Type *tn = next->toBasetype();
 
     if (tn->ty == Tstruct)

@@ -391,6 +391,15 @@ Token *Lexer::peek(Token *ct)
     return t;
 }
 
+/***********************
+ * Look ahead at next token's value.
+ */
+
+TOK Lexer::peekNext()
+{
+    return peek(&token)->value;
+}
+
 /*********************************
  * tk is on the opening (.
  * Look ahead and return token that is past the closing ).
@@ -2890,6 +2899,7 @@ static Keyword keywords[] =
     {	"static",	TOKstatic	},
     {	"final",	TOKfinal	},
     {	"const",	TOKconst	},
+    {	"immutable",	TOKimmutable	},
     {	"typedef",	TOKtypedef	},
     {	"alias",	TOKalias	},
     {	"override",	TOKoverride	},

@@ -114,7 +114,7 @@ void FuncDeclaration::semantic(Scope *sc)
     printf("type: %p, %s\n", type, type->toChars());
 #endif
 
-    storage_class |= sc->stc;
+    storage_class |= sc->stc & ~STCref;
     //printf("function storage_class = x%x\n", storage_class);
 
     if (!originalType)

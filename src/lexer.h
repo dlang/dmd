@@ -131,7 +131,7 @@ enum TOK
 	TOKalign, TOKextern, TOKprivate, TOKprotected, TOKpublic, TOKexport,
 	TOKstatic, /*TOKvirtual,*/ TOKfinal, TOKconst, TOKabstract, TOKvolatile,
 	TOKdebug, TOKdeprecated, TOKin, TOKout, TOKinout, TOKlazy,
-	TOKauto, TOKpackage, TOKmanifest,
+	TOKauto, TOKpackage, TOKmanifest, TOKimmutable,
 
 	// Statements
 	TOKif, TOKelse, TOKwhile, TOKfor, TOKdo, TOKswitch,
@@ -272,6 +272,7 @@ struct Lexer
     static Identifier *uniqueId(const char *s, int num);
 
     TOK nextToken();
+    TOK peekNext();
     void scan(Token *t);
     Token *peek(Token *t);
     Token *peekPastParen(Token *t);

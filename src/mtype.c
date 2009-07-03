@@ -507,13 +507,16 @@ void Type::toDecoBuffer(OutBuffer *buf, int flag)
 {
     if (flag != mod && flag != 0x100)
     {
-	switch (mod)
-	{
-	    case 0:		break;
-	    case MODconst:	buf->writeByte('x');	break;
-	    case MODinvariant:	buf->writeByte('y');	break;
-	    default:		assert(0);
-	}
+	if (mod & MODshared)
+	    buf->writeByte('O');
+
+	if (mod & MODconst)
+	    buf->writeByte('x');
+	else if (mod & MODinvariant)
+	    buf->writeByte('y');
+
+	// Cannot be both const and invariant
+	assert((mod & (MODconst | MODinvariant)) != (MODconst | MODinvariant));
     }
     buf->writeByte(mangleChar[ty]);
 }
@@ -554,7 +557,9 @@ void Type::toCBuffer3(OutBuffer *buf, HdrGenState *hgs, int mod)
     if (mod != this->mod)
     {	const char *p;
 
-	switch (this->mod)
+	if (mod & MODshared)
+	    buf->writestring("shared(");
+	switch (this->mod & (MODconst | MODinvariant))
 	{
 	    case 0:
 		toCBuffer2(buf, hgs, this->mod);
@@ -571,6 +576,8 @@ void Type::toCBuffer3(OutBuffer *buf, HdrGenState *hgs, int mod)
 	    default:
 		assert(0);
 	}
+	if (mod & MODshared)
+	    buf->writeByte(')');
     }
 }
 
@@ -2920,6 +2927,7 @@ TypeFunction::TypeFunction(Arguments *parameters, Type *treturn, int varargs, en
     this->inuse = 0;
     this->isnothrow = false;
     this->ispure = false;
+    this->isref = false;
 }
 
 Type *TypeFunction::syntaxCopy()
@@ -2930,6 +2938,7 @@ Type *TypeFunction::syntaxCopy()
     t->mod = mod;
     t->isnothrow = isnothrow;
     t->ispure = ispure;
+    t->isref = isref;
     return t;
 }
 
@@ -2952,24 +2961,19 @@ int Type::covariant(Type *t)
 
     int inoutmismatch = 0;
 
+    TypeFunction *t1;
+    TypeFunction *t2;
+
     if (equals(t))
-	goto Lcovariant;
+	return 1;			// covariant
+
     if (ty != Tfunction || t->ty != Tfunction)
 	goto Ldistinct;
 
-    {
-    TypeFunction *t1 = (TypeFunction *)this;
-    TypeFunction *t2 = (TypeFunction *)t;
+    t1 = (TypeFunction *)this;
+    t2 = (TypeFunction *)t;
 
     if (t1->varargs != t2->varargs)
-	goto Ldistinct;
-
-    /* Can convert pure to impure, and nothrow to throw
-     */
-    if (!t1->ispure && t2->ispure)
-	goto Ldistinct;
-
-    if (!t1->isnothrow && t2->isnothrow)
 	goto Ldistinct;
 
     if (t1->parameters && t2->parameters)
@@ -2997,6 +3001,7 @@ int Type::covariant(Type *t)
     if (t1->linkage != t2->linkage)
 	goto Lnotcovariant;
 
+  {
     // Return types
     Type *t1n = t1->next;
     Type *t2n = t2->next;
@@ -3022,10 +3027,21 @@ int Type::covariant(Type *t)
     }
     if (t1n->implicitConvTo(t2n))
 	goto Lcovariant;
+  }
     goto Lnotcovariant;
-    }
 
 Lcovariant:
+    /* Can convert pure to impure, and nothrow to throw
+     */
+    if (!t1->ispure && t2->ispure)
+	goto Lnotcovariant;
+
+    if (!t1->isnothrow && t2->isnothrow)
+	goto Lnotcovariant;
+
+    if (t1->isref != t2->isref)
+	goto Lnotcovariant;
+
     //printf("\tcovaraint: 1\n");
     return 1;
 
@@ -3049,9 +3065,11 @@ void TypeFunction::toDecoBuffer(OutBuffer *buf, int flag)
     }
     inuse++;
 #if 1
-    if (mod == MODconst)
+    if (mod & MODshared)
+	buf->writeByte('O');
+    if (mod & MODconst)
 	buf->writeByte('x');
-    else if (mod == MODinvariant)
+    else if (mod & MODinvariant)
 	buf->writeByte('y');
 #endif
     switch (linkage)
@@ -3065,9 +3083,14 @@ void TypeFunction::toDecoBuffer(OutBuffer *buf, int flag)
 	    assert(0);
     }
     buf->writeByte(mc);
-    if (ispure || isnothrow)
-    {	buf->writeByte('N');
-	buf->writeByte(ispure ? 'a' : 'b');
+    if (ispure || isnothrow || isref)
+    {
+	if (ispure)
+	    buf->writestring("Na");
+	if (isnothrow)
+	    buf->writestring("Nb");
+	if (isref)
+	    buf->writestring("Nc");
     }
     // Write argument types
     Argument::argsToDecoBuffer(buf, parameters);
@@ -3090,24 +3113,19 @@ void TypeFunction::toCBuffer(OutBuffer *buf, Identifier *ident, HdrGenState *hgs
 
     /* Use 'storage class' style for attributes
      */
-    switch (mod)
-    {
-	case 0:
-	    break;
-	case MODconst:
-	    buf->writestring("const ");
-	    break;
-	case MODinvariant:
-	    buf->writestring("invariant ");
-	    break;
-	default:
-	    assert(0);
-	    break;
-    }
+    if (mod & MODconst)
+	buf->writestring("const ");
+    if (mod & MODinvariant)
+	buf->writestring("invariant ");
+    if (mod & MODshared)
+	buf->writestring("shared ");
+
     if (ispure)
 	buf->writestring("pure ");
     if (isnothrow)
-	buf->writestring("pure ");
+	buf->writestring("nothrow ");
+    if (isref)
+	buf->writestring("ref ");
 
     if (next && (!ident || ident->toHChars2() == ident->toChars()))
 	next->toCBuffer2(buf, hgs, 0);
@@ -3170,25 +3188,19 @@ void TypeFunction::toCBuffer2(OutBuffer *buf, HdrGenState *hgs, int mod)
      */
     if (mod != this->mod)
     {
-	switch (mod)
-	{
-	    case 0:
-		break;
-	    case MODconst:
-		buf->writestring(" const");
-		break;
-	    case MODinvariant:
-		buf->writestring(" invariant");
-		break;
-	    default:
-		assert(0);
-		break;
-	}
+	if (mod & MODconst)
+	    buf->writestring(" const");
+	if (mod & MODinvariant)
+	    buf->writestring(" invariant");
+	if (mod & MODshared)
+	    buf->writestring(" shared");
     }
     if (ispure)
 	buf->writestring(" pure");
     if (isnothrow)
-	buf->writestring(" pure");
+	buf->writestring(" nothrow");
+    if (isref)
+	buf->writestring(" ref");
 
     inuse--;
 }
@@ -3213,6 +3225,13 @@ Type *TypeFunction::semantic(Loc loc, Scope *sc)
 	    tf->parameters->data[i] = (void *)cpy;
 	}
     }
+
+    if (sc->stc & STCpure)
+	tf->ispure = TRUE;
+    if (sc->stc & STCnothrow)
+	tf->isnothrow = TRUE;
+    if (sc->stc & STCref)
+	tf->isref = TRUE;
 
     tf->linkage = sc->linkage;
     if (!tf->next)

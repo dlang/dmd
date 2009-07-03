@@ -4424,6 +4424,7 @@ Expression *IsExp::semantic(Scope *sc)
 		break;
 
 	    case TOKinvariant:
+	    case TOKimmutable:
 		if (!targ->isInvariant())
 		    goto Lno;
 		tded = targ;
@@ -4692,7 +4693,8 @@ Expression *BinExp::semantic(Scope *sc)
     printf("BinExp::semantic('%s')\n", toChars());
 #endif
     e1 = e1->semantic(sc);
-    if (!e1->type)
+    if (!e1->type &&
+	!(op == TOKassign && e1->op == TOKdottd))	// a.template = e2
     {
 	error("%s has no value", e1->toChars());
 	e1->type = Type::terror;
@@ -4703,7 +4705,6 @@ Expression *BinExp::semantic(Scope *sc)
 	error("%s has no value", e2->toChars());
 	e2->type = Type::terror;
     }
-    assert(e1->type);
     return this;
 }
 
@@ -5133,6 +5134,8 @@ Expression *DotIdExp::semantic(Scope *sc)
 	return e;
     }
 
+    Type *t1b = e1->type->toBasetype();
+
     if (eright->op == TOKimport)	// also used for template alias's
     {
 	Dsymbol *s;
@@ -5287,14 +5290,39 @@ Expression *DotIdExp::semantic(Scope *sc)
 	type = Type::tvoid;
 	return this;
     }
-    else if (e1->type->ty == Tpointer &&
+    else if (t1b->ty == Tpointer &&
 	     ident != Id::init && ident != Id::__sizeof &&
 	     ident != Id::alignof && ident != Id::offsetof &&
 	     ident != Id::mangleof && ident != Id::stringof)
-    {
+    {	/* Rewrite:
+         *   p.ident
+         * as:
+         *   (*p).ident
+         */
 	e = new PtrExp(loc, e1);
-	e->type = ((TypePointer *)e1->type)->next;
+	e->type = ((TypePointer *)t1b)->next;
 	return e->type->dotExp(sc, e, ident);
+    }
+    else if (t1b->ty == Tarray ||
+             t1b->ty == Tsarray ||
+	     t1b->ty == Taarray)
+    {	/* If ident is not a valid property, rewrite:
+	 *   e1.ident
+         * as:
+         *   .ident(e1)
+         */
+	unsigned errors = global.errors;
+	global.gag++;
+	e = e1->type->dotExp(sc, e1, ident);
+	global.gag--;
+	if (errors != global.errors)	// if failed to find the property
+	{
+	    global.errors = errors;
+	    e = new DotIdExp(loc, new IdentifierExp(loc, Id::empty), ident);
+	    e = new CallExp(loc, e, e1);
+	}
+	e = e->semantic(sc);
+	return e;
     }
     else
     {
@@ -5771,7 +5799,7 @@ Expression *CallExp::semantic(Scope *sc)
     }
 
     /* Transform:
-     *	array.id(args) into id(array,args)
+     *	array.id(args) into .id(array,args)
      *	aa.remove(arg) into delete aa[arg]
      */
     if (e1->op == TOKdot)
@@ -5805,7 +5833,7 @@ Expression *CallExp::semantic(Scope *sc)
 		if (!arguments)
 		    arguments = new Expressions();
 		arguments->shift(dotid->e1);
-		e1 = new IdentifierExp(dotid->loc, dotid->ident);
+		e1 = new DotIdExp(dotid->loc, new IdentifierExp(dotid->loc, Id::empty), dotid->ident);
 	    }
 	}
     }
@@ -6337,16 +6365,17 @@ int CallExp::isLvalue()
 {
     if (type->toBasetype()->ty == Tstruct)
 	return 1;
-    else
-	return 0;
+    Type *tb = e1->type->toBasetype();
+    if (tb->ty == Tfunction && ((TypeFunction *)tb)->isref)
+	return 1;		// function returns a reference
+    return 0;
 }
 
 Expression *CallExp::toLvalue(Scope *sc, Expression *e)
 {
-    if (type->toBasetype()->ty == Tstruct)
+    if (isLvalue())
 	return this;
-    else
-	return Expression::toLvalue(sc, e);
+    return Expression::toLvalue(sc, e);
 }
 
 void CallExp::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
@@ -6825,7 +6854,7 @@ Expression *CastExp::semantic(Scope *sc)
 	if (!to)
 	{   if (tok == TOKconst)
 		to = e1->type->constOf();
-	    else if (tok == TOKinvariant)
+	    else if (tok == TOKinvariant || tok == TOKimmutable)
 		to = e1->type->invariantOf();
 	    else
 		assert(0);
@@ -7654,6 +7683,14 @@ Expression *AssignExp::semantic(Scope *sc)
     }
 
     BinExp::semantic(sc);
+
+    if (e1->op == TOKdottd)
+    {	// Rewrite a.b=e2, when b is a template, as a.b(e2)
+	Expression *e = new CallExp(loc, e1, e2);
+	e = e->semantic(sc);
+	return e;
+    }
+
     e2 = resolveProperties(sc, e2);
     assert(e1->type);
 
@@ -7770,6 +7807,7 @@ Expression *AssignExp::semantic(Scope *sc)
 	// before it got constant folded
 	if (e1->op != TOKvar)
 	    e1 = e1->optimize(WANTvalue);
+
 	if (op != TOKconstruct)
 	    e1 = e1->modifiableLvalue(sc, e1old);
     }

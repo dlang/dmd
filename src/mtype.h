@@ -109,9 +109,10 @@ extern int Tptrdiff_t;
 struct Type : Object
 {
     TY ty;
-    unsigned char mod;	// modifiers (MODconst, MODinvariant)
+    unsigned char mod;	// modifiers MODxxxx
 	#define MODconst     1	// type is const
 	#define MODinvariant 2	// type is invariant
+	#define MODshared    4	// type is shared
     char *deco;
     Type *cto;		// MODconst ? mutable version of this type : const version
     Type *ito;		// MODinvariant ? mutable version of this type : invariant version
@@ -463,6 +464,7 @@ struct TypeFunction : TypeNext
 			// 2: T t ...) style for variable number of arguments
     bool isnothrow;	// true: nothrow
     bool ispure;	// true: pure
+    bool isref;		// true: returns a reference
     enum LINK linkage;	// calling convention
 
     int inuse;

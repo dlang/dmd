@@ -284,6 +284,7 @@ int runLINK()
     strcpy(buf + 2, libname);
     argv.push((void *)buf);		// turns into /usr/lib/libphobos2.a
 
+    argv.push((void *)"-ldruntime");
     argv.push((void *)"-lpthread");
     argv.push((void *)"-lm");
 
