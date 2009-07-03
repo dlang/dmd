@@ -32,6 +32,8 @@
 /* Code to do access checks
  */
 
+int hasPackageAccess(Scope *sc, Dsymbol *s);
+
 /****************************************
  * Return PROT access for Dsymbol smember in this declaration.
  */
@@ -222,7 +224,7 @@ void AggregateDeclaration::accessCheck(Loc loc, Scope *sc, Dsymbol *smember)
 	result = access >= PROTpublic ||
 		hasPrivateAccess(f) ||
 		isFriendOf(cdscope) ||
-		(access == PROTpackage && hasPackageAccess(sc));
+		(access == PROTpackage && hasPackageAccess(sc, this));
 #if LOG
 	printf("result1 = %d\n", result);
 #endif
@@ -234,7 +236,7 @@ void AggregateDeclaration::accessCheck(Loc loc, Scope *sc, Dsymbol *smember)
 	printf("result2 = %d\n", result);
 #endif
     }
-    else if (access == PROTpackage && hasPackageAccess(sc))
+    else if (access == PROTpackage && hasPackageAccess(sc, this))
     {
 	result = 1;
 #if LOG
@@ -283,30 +285,29 @@ int AggregateDeclaration::isFriendOf(AggregateDeclaration *cd)
 }
 
 /****************************************
- * Determine if scope sc has package level access to 'this'.
+ * Determine if scope sc has package level access to s.
  */
 
-int AggregateDeclaration::hasPackageAccess(Scope *sc)
+int hasPackageAccess(Scope *sc, Dsymbol *s)
 {
 #if LOG
-    printf("AggregateDeclaration::hasPackageAccess(this = '%s', sc = '%p')\n", toChars(), sc);
+    printf("hasPackageAccess(s = '%s', sc = '%p')\n", s->toChars(), sc);
 #endif
-    Dsymbol *mthis;
 
-    for (mthis = this; mthis; mthis = mthis->parent)
+    for (; s; s = s->parent)
     {
-	if (mthis->isPackage() && !mthis->isModule())
+	if (s->isPackage() && !s->isModule())
 	    break;
     }
 #if LOG
-    if (mthis)
-	printf("\tthis is in package '%s'\n", mthis->toChars());
+    if (s)
+	printf("\tthis is in package '%s'\n", s->toChars());
 #endif
 
-    if (mthis && mthis == sc->module->parent)
+    if (s && s == sc->module->parent)
     {
 #if LOG
-	printf("\t'this' is in same package as cd\n");
+	printf("\ts is in same package as sc\n");
 #endif
 	return 1;
     }
@@ -379,10 +380,24 @@ int AggregateDeclaration::hasPrivateAccess(Dsymbol *smember)
 void accessCheck(Loc loc, Scope *sc, Expression *e, Declaration *d)
 {
 #if LOG
-    printf("accessCheck(%s . %s)\n", e->toChars(), d->toChars());
-    printf("\te->type = %s\n", e->type->toChars());
+    if (e)
+    {	printf("accessCheck(%s . %s)\n", e->toChars(), d->toChars());
+	printf("\te->type = %s\n", e->type->toChars());
+    }
+    else
+    {
+	//printf("accessCheck(%s)\n", d->toChars());
+    }
 #endif
-    if (e->type->ty == Tclass)
+    if (!e)
+    {
+	if (d->prot() == PROTprivate && d->getModule() != sc->module ||
+	    d->prot() == PROTpackage && !hasPackageAccess(sc, d))
+
+	    error(loc, "%s %s.%s is not accessible from %s",
+		d->kind(), d->getModule()->toChars(), d->toChars(), sc->module->toChars());
+    }
+    else if (e->type->ty == Tclass)
     {   // Do access check
 	ClassDeclaration *cd;
 

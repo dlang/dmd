@@ -57,7 +57,7 @@ struct Parser : Lexer
     TemplateParameters *parseTemplateParameterList();
     TemplateInstance *parseTemplateInstance();
     Dsymbol *parseMixin();
-    Array *parseTemplateArgumentList();
+    Objects *parseTemplateArgumentList();
     StaticAssert *parseStaticAssert();
     enum LINK parseLinkage();
     Condition *parseDebugCondition();
@@ -76,7 +76,7 @@ struct Parser : Lexer
     EnumDeclaration *parseEnum();
     Dsymbol *parseAggregate();
     BaseClasses *parseBaseClasses();
-    Import *parseImport(Array *decldefs);
+    Import *parseImport(Array *decldefs, int isstatic);
     Type *parseBasicType();
     Type *parseBasicType2(Type *t);
     Type *parseDeclarator(Type *t, Identifier **pident, TemplateParameters **tpl = NULL);

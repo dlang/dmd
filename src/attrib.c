@@ -457,8 +457,10 @@ void ProtDeclaration::semantic(Scope *sc)
 {
     if (decl)
     {	enum PROT protection_save = sc->protection;
+	int explicitProtection_save = sc->explicitProtection;
 
 	sc->protection = protection;
+	sc->explicitProtection = 1;
 	for (unsigned i = 0; i < decl->dim; i++)
 	{
 	    Dsymbol *s = (Dsymbol *)decl->data[i];
@@ -466,9 +468,12 @@ void ProtDeclaration::semantic(Scope *sc)
 	    s->semantic(sc);
 	}
 	sc->protection = protection_save;
+	sc->explicitProtection = explicitProtection_save;
     }
     else
-	sc->protection = protection;
+    {	sc->protection = protection;
+	sc->explicitProtection = 1;
+    }
 }
 
 void ProtDeclaration::toCBuffer(OutBuffer *buf, HdrGenState *hgs)

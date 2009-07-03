@@ -440,6 +440,7 @@ void ClassDeclaration::semantic(Scope *sc)
     if (isCOMclass())
 	sc->linkage = LINKwindows;
     sc->protection = PROTpublic;
+    sc->explicitProtection = 0;
     sc->structalign = 8;
     structalign = sc->structalign;
     if (baseClass)

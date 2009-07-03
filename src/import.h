@@ -1,5 +1,5 @@
 
-// Copyright (c) 1999-2005 by Digital Mars
+// Copyright (c) 1999-2006 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // www.digitalmars.com
@@ -22,6 +22,7 @@ struct Scope;
 struct OutBuffer;
 struct Module;
 struct Package;
+struct AliasDeclaration;
 #ifdef _DH
 struct HdrGenState;
 #endif
@@ -30,16 +31,29 @@ struct Import : Dsymbol
 {
     Array *packages;		// array of Identifier's representing packages
     Identifier *id;		// module Identifier
+    Identifier *aliasId;
+    int isstatic;		// !=0 if static import
+
+    // Pairs of alias=name to bind into current namespace
+    Array names;
+    Array aliases;
+
+    Array aliasdecls;		// AliasDeclarations for names/aliases
 
     Module *mod;
     Package *pkg;		// leftmost package/module
 
-    Import(Loc loc, Array *packages, Identifier *id);
+    Import(Loc loc, Array *packages, Identifier *id, Identifier *aliasId,
+	int isstatic);
+    void addAlias(Identifier *name, Identifier *alias);
+
     char *kind();
     Dsymbol *syntaxCopy(Dsymbol *s);	// copy only syntax trees
     void load();
     void semantic(Scope *sc);
     void semantic2(Scope *sc);
+    Dsymbol *toAlias();
+    int addMember(Scope *sc, ScopeDsymbol *s, int memnum);
     Dsymbol *search(Identifier *ident, int flags);
     int overloadInsert(Dsymbol *s);
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);

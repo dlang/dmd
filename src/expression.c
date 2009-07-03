@@ -1689,7 +1689,8 @@ Lagain:
 
     TemplateInstance *ti = s->isTemplateInstance();
     if (ti && !global.errors)
-    {   ti->semantic(sc);
+    {   if (!ti->semanticdone)
+	    ti->semantic(sc);
 	s = ti->inst->toAlias();
 	if (!s->isTemplateInstance())
 	    goto Lagain;
@@ -2251,6 +2252,8 @@ void TypeExp::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 ScopeExp::ScopeExp(Loc loc, ScopeDsymbol *pkg)
     : Expression(loc, TOKimport, sizeof(ScopeExp))
 {
+    //printf("ScopeExp::ScopeExp(pkg = '%s')\n", pkg->toChars());
+    //static int count; if (++count == 38) *(char*)0=0;
     this->sds = pkg;
 }
 
@@ -2272,7 +2275,8 @@ Lagain:
     ti = sds->isTemplateInstance();
     if (ti && !global.errors)
     {	Dsymbol *s;
-	ti->semantic(sc);
+	if (!ti->semanticdone)
+	    ti->semantic(sc);
 	s = ti->inst->toAlias();
 	sds2 = s->isScopeDsymbol();
 	if (!sds2)
@@ -4441,6 +4445,8 @@ Lagain:
 	    goto Lagain;
 	}
 
+	accessCheck(loc, sc, NULL, f);
+
 	ve->var = f;
 	ve->type = f->type;
 	t1 = f->type;
@@ -5319,7 +5325,10 @@ Expression *IndexExp::toLvalue(Expression *e)
 
 Expression *IndexExp::modifiableLvalue(Scope *sc, Expression *e)
 {
+    //printf("IndexExp::modifiableLvalue(%s)\n", toChars());
     modifiable = 1;
+    if (e1->op == TOKstring)
+	error("string literals are immutable");
     if (e1->type->toBasetype()->ty == Taarray)
 	e1 = e1->modifiableLvalue(sc, e1);
     return toLvalue(e);
@@ -5544,9 +5553,10 @@ Expression *AssignExp::semantic(Scope *sc)
     else if (e1->op == TOKslice)
 	;
     else
-	// Try to do a decent error message with the expression
+    {	// Try to do a decent error message with the expression
 	// before it got constant folded
 	e1 = e1->modifiableLvalue(sc, e1old);
+    }
 
     if (e1->op == TOKslice &&
 	t1->next &&

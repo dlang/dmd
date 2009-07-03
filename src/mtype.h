@@ -302,6 +302,7 @@ struct TypeSArray : TypeArray
     int implicitConvTo(Type *to);
     Expression *defaultInit();
     dt_t **toDt(dt_t **pdt);
+    dt_t **toDtElem(dt_t **pdt, Expression *e);
     MATCH deduceType(Scope *sc, Type *tparam, TemplateParameters *parameters, Array *atypes);
     TypeInfoDeclaration *getTypeInfoDeclaration();
 

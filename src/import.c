@@ -1,5 +1,5 @@
 
-// Copyright (c) 1999-2005 by Digital Mars
+// Copyright (c) 1999-2006 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // www.digitalmars.com
@@ -20,18 +20,32 @@
 
 /********************************* Import ****************************/
 
-Import::Import(Loc loc, Array *packages, Identifier *id)
+Import::Import(Loc loc, Array *packages, Identifier *id, Identifier *aliasId,
+	int isstatic)
     : Dsymbol(id)
 {
     this->loc = loc;
     this->packages = packages;
     this->id = id;
+    this->aliasId = aliasId;
+    this->isstatic = isstatic;
     pkg = NULL;
     mod = NULL;
 
+    if (aliasId)
+	this->ident = aliasId;
     // Kludge to change Import identifier to first package
-    if (packages && packages->dim)
+    else if (packages && packages->dim)
 	this->ident = (Identifier *)packages->data[0];
+}
+
+void Import::addAlias(Identifier *name, Identifier *alias)
+{
+    if (!aliasId)
+	this->ident = NULL;	// make it an anonymous import
+
+    names.push(name);
+    aliases.push(alias);
 }
 
 char *Import::kind()
@@ -46,7 +60,13 @@ Dsymbol *Import::syntaxCopy(Dsymbol *s)
 
     Import *si;
 
-    si = new Import(loc, packages, id);
+    si = new Import(loc, packages, id, aliasId, isstatic);
+
+    for (size_t i = 0; i < names.dim; i++)
+    {
+	si->addAlias((Identifier *)names.data[i], (Identifier *)aliases.data[i]);
+    }
+
     return si;
 }
 
@@ -98,22 +118,98 @@ void Import::semantic(Scope *sc)
 	     */
 	    mod->importedFrom = sc->module->importedFrom;
 
-	sc->scopesym->importScope(mod, sc->protection);
+	if (!isstatic && !aliasId && !names.dim)
+	{
+	    /* Default to private importing
+	     */
+	    enum PROT prot = sc->protection;
+	    if (!sc->explicitProtection)
+		prot = PROTprivate;
+	    sc->scopesym->importScope(mod, prot);
+	}
 
 	// Modules need a list of each imported module
 	sc->module->aimports.push(mod);
 
 	if (mod->needmoduleinfo)
 	    sc->module->needmoduleinfo = 1;
+
+	sc = sc->push(mod);
+	for (size_t i = 0; i < aliasdecls.dim; i++)
+	{   Dsymbol *s = (Dsymbol *)aliasdecls.data[i];
+
+	    //printf("\tImport alias semantic('%s')\n", s->toChars());
+	    if (!mod->search((Identifier *)names.data[i], 0))
+		error("%s not found", ((Identifier *)names.data[i])->toChars());
+
+	    s->semantic(sc);
+	}
+	sc = sc->pop();
     }
     //printf("-Import::semantic('%s'), pkg = %p\n", toChars(), pkg);
 }
 
 void Import::semantic2(Scope *sc)
 {
+    //printf("Import::semantic2('%s')\n", toChars());
     mod->semantic2();
     if (mod->needmoduleinfo)
 	sc->module->needmoduleinfo = 1;
+}
+
+Dsymbol *Import::toAlias()
+{
+    if (aliasId)
+	return mod;
+    return this;
+}
+
+int Import::addMember(Scope *sc, ScopeDsymbol *sd, int memnum)
+{
+    int result = 0;
+
+    if (names.dim == 0)
+	return Dsymbol::addMember(sc, sd, memnum);
+
+    if (aliasId)
+	result = Dsymbol::addMember(sc, sd, memnum);
+
+    for (size_t i = 0; i < names.dim; i++)
+    {
+	Identifier *name = (Identifier *)names.data[i];
+	Identifier *alias = (Identifier *)aliases.data[i];
+
+	if (!alias)
+	    alias = name;
+
+#if 1
+	TypeIdentifier *tname = new TypeIdentifier(loc, name);
+#else
+	TypeIdentifier *tname = new TypeIdentifier(loc, NULL);
+	if (packages)
+	{
+	    for (size_t j = 0; j < packages->dim; j++)
+	    {   Identifier *pid = (Identifier *)packages->data[j];
+
+		if (!tname->ident)
+		    tname->ident = pid;
+		else
+		    tname->addIdent(pid);
+	    }
+	}
+	if (!tname->ident)
+	    tname->ident = id;
+	else
+	    tname->addIdent(id);
+	tname->addIdent(name);
+#endif
+	AliasDeclaration *ad = new AliasDeclaration(loc, alias, tname);
+	result |= ad->addMember(sc, sd, memnum);
+
+	aliasdecls.push(ad);
+    }
+
+    return result;
 }
 
 Dsymbol *Import::search(Identifier *ident, int flags)
@@ -138,11 +234,16 @@ void Import::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
     if (hgs->hdrgen && id == Id::object)
 	return;		// object is imported by default
 
+    if (isstatic)
+	buf->writestring("static ");
     buf->writestring("import ");
+    if (aliasId)
+    {
+	buf->printf("%s = ", aliasId->toChars());
+    }
     if (packages && packages->dim)
-    {	int i;
-
-	for (i = 0; i < packages->dim; i++)
+    {
+	for (size_t i = 0; i < packages->dim; i++)
 	{   Identifier *pid = (Identifier *)packages->data[i];
 
 	    buf->printf("%s.", pid->toChars());

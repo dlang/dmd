@@ -75,7 +75,6 @@ struct AggregateDeclaration : ScopeDsymbol
     // For access checking
     virtual PROT getAccess(Dsymbol *smember);	// determine access to smember
     int isFriendOf(AggregateDeclaration *cd);
-    int hasPackageAccess(Scope *sc);
     int hasPrivateAccess(Dsymbol *smember);	// does smember have private access to members of this class?
     void accessCheck(Loc loc, Scope *sc, Dsymbol *smember);
 

@@ -107,6 +107,59 @@ void EnumDeclaration::semantic(Scope *sc)
 	}
 	else
 	{   // Default is the previous number plus 1
+
+	    // Check for overflow
+	    if (!first)
+	    {
+		switch (t->toBasetype()->ty)
+		{
+		    case Tbool:
+			if (number == 2)	goto Loverflow;
+			break;
+
+		    case Tint8:
+			if (number == 128) goto Loverflow;
+			break;
+
+		    case Tchar:
+		    case Tuns8:
+			if (number == 256) goto Loverflow;
+			break;
+
+		    case Tint16:
+			if (number == 0x8000) goto Loverflow;
+			break;
+
+		    case Twchar:
+		    case Tuns16:
+			if (number == 0x10000) goto Loverflow;
+			break;
+
+		    case Tint32:
+			if (number == 0x80000000) goto Loverflow;
+			break;
+
+		    case Tdchar:
+		    case Tuns32:
+			if (number == 0x100000000LL) goto Loverflow;
+			break;
+
+		    case Tint64:
+			if (number == 0x8000000000000000LL) goto Loverflow;
+			break;
+
+		    case Tuns64:
+			if (number == 0) goto Loverflow;
+			break;
+
+		    Loverflow:
+			error("overflow of enum value");
+			break;
+
+		    default:
+			assert(0);
+		}
+	    }
 	    e = new IntegerExp(em->loc, number, t);
 	}
 	em->value = e;

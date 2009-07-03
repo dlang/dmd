@@ -1130,12 +1130,12 @@ Ldefault:
     return Type::getProperty(loc, ident);
 
 Livalue:
-    e = new IntegerExp(0, ivalue, this);
+    e = new IntegerExp(loc, ivalue, this);
     return e;
 
 Lfvalue:
     if (isreal() || isimaginary())
-	e = new RealExp(0, fvalue, this);
+	e = new RealExp(loc, fvalue, this);
     else
     {
 	complex_t cvalue;
@@ -1151,12 +1151,12 @@ Lfvalue:
 	//for (int i = 0; i < 20; i++)
 	//    printf("%02x ", ((unsigned char *)&cvalue)[i]);
 	//printf("\n");
-	e = new ComplexExp(0, cvalue, this);
+	e = new ComplexExp(loc, cvalue, this);
     }
     return e;
 
 Lint:
-    e = new IntegerExp(0, ivalue, Type::tint32);
+    e = new IntegerExp(loc, ivalue, Type::tint32);
     return e;
 }
 
@@ -2751,7 +2751,8 @@ void TypeQualified::resolveHelper(Loc loc, Scope *sc,
 		    return;
 		}
 		ti->tempdecl = td;
-		ti->semantic(sc);
+		if (!ti->semanticdone)
+		    ti->semantic(sc);
 		sm = ti->toAlias();
 	    }
 	    else
@@ -3002,7 +3003,8 @@ Dsymbol *TypeIdentifier::toDsymbol(Scope *sc)
 		    break;
 		}
 		ti->tempdecl = td;
-		ti->semantic(sc);
+		if (!ti->semanticdone)
+		    ti->semantic(sc);
 		sm = ti->toAlias();
 	    }
 	    else
@@ -3576,7 +3578,16 @@ int TypeTypedef::checkBoolean()
 
 Type *TypeTypedef::toBasetype()
 {
-    return sym->basetype->toBasetype();
+    if (sym->inuse)
+    {
+	sym->error("circular definition");
+	sym->basetype = Type::terror;
+	return Type::terror;
+    }
+    sym->inuse = 1;
+    Type *t = sym->basetype->toBasetype();
+    sym->inuse = 0;
+    return t;
 }
 
 int TypeTypedef::implicitConvTo(Type *to)

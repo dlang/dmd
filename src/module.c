@@ -607,7 +607,7 @@ void Module::semantic()
     // Add import of "object" if this module isn't "object"
     if (ident != Id::object)
     {
-	Import *im = new Import(0, NULL, Id::object);
+	Import *im = new Import(0, NULL, Id::object, NULL, 0);
 	members->shift(im);
     }
 

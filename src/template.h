@@ -54,11 +54,11 @@ struct TemplateDeclaration : ScopeDsymbol
     void emitComment(Scope *sc);
 //    void toDocBuffer(OutBuffer *buf);
 
-    MATCH matchWithInstance(TemplateInstance *ti, Array *atypes, int flag);
+    MATCH matchWithInstance(TemplateInstance *ti, Objects *atypes, int flag);
     int leastAsSpecialized(TemplateDeclaration *td2);
 
-    MATCH deduceMatch(Array *targsi, Array *fargs, Array *dedargs);
-    FuncDeclaration *deduce(Scope *sc, Loc loc, Array *targsi, Expressions *fargs);
+    MATCH deduceMatch(Objects *targsi, Expressions *fargs, Objects *dedargs);
+    FuncDeclaration *deduce(Scope *sc, Loc loc, Objects *targsi, Expressions *fargs);
     void declareParameter(Scope *sc, TemplateParameter *tp, Object *o);
 
     TemplateDeclaration *isTemplateDeclaration() { return this; }
@@ -98,7 +98,7 @@ struct TemplateParameter
 
     /* Match actual argument against parameter.
      */
-    virtual MATCH matchArg(Scope *sc, Object *oarg, int i, TemplateParameters *parameters, Array *dedtypes, Declaration **psparam) = 0;
+    virtual MATCH matchArg(Scope *sc, Object *oarg, int i, TemplateParameters *parameters, Objects *dedtypes, Declaration **psparam) = 0;
 
     /* Create dummy argument based on parameter.
      */
@@ -123,7 +123,7 @@ struct TemplateTypeParameter : TemplateParameter
     Object *specialization();
     Object *defaultArg(Scope *sc);
     int overloadMatch(TemplateParameter *);
-    MATCH matchArg(Scope *sc, Object *oarg, int i, TemplateParameters *parameters, Array *dedtypes, Declaration **psparam);
+    MATCH matchArg(Scope *sc, Object *oarg, int i, TemplateParameters *parameters, Objects *dedtypes, Declaration **psparam);
     void *dummyArg();
 };
 
@@ -149,7 +149,7 @@ struct TemplateValueParameter : TemplateParameter
     Object *specialization();
     Object *defaultArg(Scope *sc);
     int overloadMatch(TemplateParameter *);
-    MATCH matchArg(Scope *sc, Object *oarg, int i, TemplateParameters *parameters, Array *dedtypes, Declaration **psparam);
+    MATCH matchArg(Scope *sc, Object *oarg, int i, TemplateParameters *parameters, Objects *dedtypes, Declaration **psparam);
     void *dummyArg();
 };
 
@@ -176,7 +176,7 @@ struct TemplateAliasParameter : TemplateParameter
     Object *specialization();
     Object *defaultArg(Scope *sc);
     int overloadMatch(TemplateParameter *);
-    MATCH matchArg(Scope *sc, Object *oarg, int i, TemplateParameters *parameters, Array *dedtypes, Declaration **psparam);
+    MATCH matchArg(Scope *sc, Object *oarg, int i, TemplateParameters *parameters, Objects *dedtypes, Declaration **psparam);
     void *dummyArg();
 };
 
@@ -187,10 +187,10 @@ struct TemplateInstance : ScopeDsymbol
      *	instance foo.bar.abc(int*, char, 10*10)
      */
     Array idents;		// Array of Identifiers [foo, bar, abc]
-    Array *tiargs;		// Array of Types/Expressions of template
+    Objects *tiargs;		// Array of Types/Expressions of template
 				// instance arguments [int*, char, 10*10]
 
-    Array tdtypes;		// Array of Types/Expressions corresponding
+    Objects tdtypes;		// Array of Types/Expressions corresponding
 				// to TemplateDeclaration.parameters
 				// [int, char, 100]
 
@@ -211,7 +211,7 @@ struct TemplateInstance : ScopeDsymbol
 #endif
 
     TemplateInstance(Loc loc, Identifier *temp_id);
-    TemplateInstance(Loc loc, TemplateDeclaration *tempdecl, Array *tiargs);
+    TemplateInstance(Loc loc, TemplateDeclaration *tempdecl, Objects *tiargs);
     Dsymbol *syntaxCopy(Dsymbol *);
     void addIdent(Identifier *ident);
     void semantic(Scope *sc);
@@ -244,7 +244,7 @@ struct TemplateMixin : TemplateInstance
 
     Scope *scope;		// for forward referencing
 
-    TemplateMixin(Loc loc, Identifier *ident, TypeTypeof *tqual, Array *idents, Array *tiargs);
+    TemplateMixin(Loc loc, Identifier *ident, TypeTypeof *tqual, Array *idents, Objects *tiargs);
     Dsymbol *syntaxCopy(Dsymbol *s);
     void semantic(Scope *sc);
     void semantic2(Scope *sc);

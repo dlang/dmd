@@ -625,7 +625,12 @@ void ClassDeclaration::toDt2(dt_t **pdt, ClassDeclaration *cd)
 	init = v->init;
 	if (init)
 	{   //printf("\t\t%s has initializer %s\n", v->toChars(), init->toChars());
-	    dt = init->toDt();
+	    ExpInitializer *ei = init->isExpInitializer();
+	    Type *tb = v->type->toBasetype();
+	    if (ei && tb->ty == Tsarray)
+		((TypeSArray *)tb)->toDtElem(&dt, ei->exp);
+	    else
+		dt = init->toDt();
 	}
 	else if (v->offset >= offset)
 	{   //printf("\t\tdefault initializer\n");
@@ -698,7 +703,12 @@ void StructDeclaration::toDt(dt_t **pdt)
 	init = v->init;
 	if (init)
 	{   //printf("\t\thas initializer %s\n", init->toChars());
-	    dt = init->toDt();
+	    ExpInitializer *ei = init->isExpInitializer();
+	    Type *tb = v->type->toBasetype();
+	    if (ei && tb->ty == Tsarray)
+		((TypeSArray *)tb)->toDtElem(&dt, ei->exp);
+	    else
+		dt = init->toDt();
 	}
 	else if (v->offset >= offset)
 	    v->type->toDt(&dt);
@@ -733,6 +743,11 @@ dt_t **Type::toDt(dt_t **pdt)
 
 dt_t **TypeSArray::toDt(dt_t **pdt)
 {
+    return toDtElem(pdt, NULL);
+}
+
+dt_t **TypeSArray::toDtElem(dt_t **pdt, Expression *e)
+{
     int i;
     unsigned len;
 
@@ -751,7 +766,8 @@ dt_t **TypeSArray::toDt(dt_t **pdt)
 	    tnext = tbn->next;
 	    tbn = tnext->toBasetype();
 	}
-	Expression *e = tnext->defaultInit();
+	if (!e)				// if not already supplied
+	    e = tnext->defaultInit();	// use default initializer
 	if (tbn->ty == Tbit)
 	{
 	    Bits databits;

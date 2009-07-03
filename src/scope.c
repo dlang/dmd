@@ -56,6 +56,7 @@ Scope::Scope()
     this->slabel = NULL;
     this->linkage = LINKd;
     this->protection = PROTpublic;
+    this->explicitProtection = 0;
     this->stc = 0;
     this->offset = 0;
     this->inunion = 0;
@@ -87,6 +88,7 @@ Scope::Scope(Scope *enclosing)
     this->slabel = NULL;
     this->linkage = enclosing->linkage;
     this->protection = enclosing->protection;
+    this->explicitProtection = enclosing->explicitProtection;
     this->stc = enclosing->stc;
     this->offset = 0;
     this->inunion = enclosing->inunion;

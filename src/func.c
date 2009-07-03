@@ -237,7 +237,10 @@ void FuncDeclaration::semantic(Scope *sc)
 
 	// if static function, do not put in vtbl[]
 	if (!isVirtual())
+	{
+	    //printf("\tnot virtual\n");
 	    return;
+	}
 
 	// Find index of existing function in vtbl[] to override
 	if (cd->baseClass)
@@ -313,7 +316,7 @@ void FuncDeclaration::semantic(Scope *sc)
 
 	// This is an 'introducing' function.
 	// Append to end of vtbl[]
-	//printf("\tappend with %p\n", this);
+	//printf("\tintroducing function\n");
 	introducing = 1;
 	vi = cd->vtbl.dim;
 	cd->vtbl.push(this);
@@ -520,7 +523,9 @@ void FuncDeclaration::semantic3(Scope *sc)
 	sc2->linkage = LINKd;
 	sc2->stc &= ~(STCauto | STCstatic | STCabstract | STCdeprecated);
 	sc2->protection = PROTpublic;
+	sc2->explicitProtection = 0;
 	sc2->structalign = 8;
+	sc2->incontract = 0;
 
 	// Declare 'this'
 	ad = isThis();

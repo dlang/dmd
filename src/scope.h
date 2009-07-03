@@ -65,7 +65,10 @@ struct Scope
 
     unsigned structalign;	// alignment for struct members
     enum LINK linkage;		// linkage for external functions
+
     enum PROT protection;	// protection for class members
+    int explicitProtection;	// set if in an explicit protection attribute
+
     unsigned stc;		// storage class
 
     unsigned flags;

@@ -159,7 +159,7 @@ Array *Parser::parseDeclDefs(int once)
 		break;
 
 	    case TOKimport:
-		s = parseImport(decldefs);
+		s = parseImport(decldefs, 0);
 		break;
 
 	    case TOKtemplate:
@@ -227,6 +227,10 @@ Array *Parser::parseDeclDefs(int once)
 		    }
 		    s = new StaticIfDeclaration(condition, a, aelse);
 		    break;
+		}
+		else if (token.value == TOKimport)
+		{
+		    s = parseImport(decldefs, 1);
 		}
 		else
 		{   stc = STCstatic;
@@ -586,12 +590,11 @@ Condition *Parser::parseDebugCondition()
 Condition *Parser::parseVersionCondition()
 {
     Condition *c;
+    unsigned level = 1;
+    Identifier *id = NULL;
 
     if (token.value == TOKlparen)
     {
-	unsigned level = 1;
-	Identifier *id = NULL;
-
 	nextToken();
 	if (token.value == TOKidentifier)
 	    id = token.ident;
@@ -602,12 +605,10 @@ Condition *Parser::parseVersionCondition()
 	nextToken();
 	check(TOKrparen);
 
-	c = new VersionCondition(mod, level, id);
     }
     else
-    {   error("(condition) expected following version");
-	c = NULL;
-    }
+       error("(condition) expected following version");
+    c = new VersionCondition(mod, level, id);
     return c;
 
 }
@@ -1152,7 +1153,7 @@ BaseClasses *Parser::parseBaseClasses()
 		protection = PROTpublic;
 		continue;
 	    default:
-		error("base classes expected");
+		error("base classes expected instead of %s", token.toChars());
 		return NULL;
 	}
 	BaseClass *b = new BaseClass(parseBasicType(), protection);
@@ -1378,7 +1379,7 @@ Dsymbol *Parser::parseMixin()
     TemplateMixin *tm;
     Identifier *id;
     TypeTypeof *tqual;
-    Array *tiargs;
+    Objects *tiargs;
     Array *idents;
 
     //printf("parseMixin()\n");
@@ -1468,10 +1469,10 @@ Lerr:
  *	current token is one after closing ')'
  */
 
-Array *Parser::parseTemplateArgumentList()
+Objects *Parser::parseTemplateArgumentList()
 {
     //printf("Parser::parseTemplateArgumentList()\n");
-    Array *tiargs = new Array();
+    Objects *tiargs = new Objects();
     if (token.value != TOKlparen)
     {   error("!(TemplateArgumentList) expected following TemplateIdentifier");
 	return tiargs;
@@ -1509,15 +1510,17 @@ Array *Parser::parseTemplateArgumentList()
     return tiargs;
 }
 
-Import *Parser::parseImport(Array *decldefs)
+Import *Parser::parseImport(Array *decldefs, int isstatic)
 {   Import *s;
     Identifier *id;
+    Identifier *aliasid = NULL;
     Array *a;
     Loc loc;
 
     //printf("Parser::parseImport()\n");
     do
     {
+     L1:
 	nextToken();
 	if (token.value != TOKidentifier)
 	{   error("Identifier expected following import");
@@ -1527,7 +1530,13 @@ Import *Parser::parseImport(Array *decldefs)
 	loc = this->loc;
 	a = NULL;
 	id = token.ident;
-	while (nextToken() == TOKdot)
+	nextToken();
+	if (!aliasid && token.value == TOKassign)
+	{
+	    aliasid = id;
+	    goto L1;
+	}
+	while (token.value == TOKdot)
 	{
 	    if (!a)
 		a = new Array();
@@ -1538,10 +1547,49 @@ Import *Parser::parseImport(Array *decldefs)
 		break;
 	    }
 	    id = token.ident;
+	    nextToken();
 	}
 
-	s = new Import(loc, a, token.ident);
+	s = new Import(loc, a, token.ident, aliasid, isstatic);
 	decldefs->push(s);
+
+	/* Look for
+	 *	: alias=name, alias=name;
+	 * syntax.
+	 */
+	if (token.value == TOKcolon)
+	{
+	    do
+	    {	Identifier *name;
+		Identifier *alias;
+
+		nextToken();
+		if (token.value != TOKidentifier)
+		{   error("Identifier expected following :");
+		    break;
+		}
+		alias = token.ident;
+		nextToken();
+		if (token.value == TOKassign)
+		{
+		    nextToken();
+		    if (token.value != TOKidentifier)
+		    {   error("Identifier expected following %s=", alias->toChars());
+			break;
+		    }
+		    name = token.ident;
+		    nextToken();
+		}
+		else
+		{   name = alias;
+		    alias = NULL;
+		}
+		s->addAlias(name, alias);
+	    } while (token.value == TOKcomma);
+	    break;	// no comma-separated imports of this form
+	}
+
+	aliasid = NULL;
     } while (token.value == TOKcomma);
 
     if (token.value == TOKsemicolon)
@@ -4564,7 +4612,10 @@ Expression *Parser::parseNewExp(Expression *thisexp)
 	if (token.value == TOKlparen)
 	    arguments = parseArguments();
 
-	BaseClasses *baseclasses = parseBaseClasses();
+	BaseClasses *baseclasses = NULL;
+	if (token.value != TOKlcurly)
+	    baseclasses = parseBaseClasses();
+
 	Identifier *id = NULL;
 	ClassDeclaration *cd = new ClassDeclaration(loc, id, baseclasses);
 

@@ -91,6 +91,7 @@ TypedefDeclaration::TypedefDeclaration(Loc loc, Identifier *id, Type *basetype, 
     this->hbasetype = NULL;
 #endif
     this->sem = 0;
+    this->inuse = 0;
     this->loc = loc;
 }
 

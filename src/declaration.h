@@ -118,6 +118,7 @@ struct TypedefDeclaration : Declaration
 				// 1: semantic() is in progress
 				// 2: semantic() has been run
 				// 3: semantic2() has been run
+    int inuse;			// used to detect typedef cycles
 
     TypedefDeclaration(Loc loc, Identifier *ident, Type *basetype, Initializer *init);
     Dsymbol *syntaxCopy(Dsymbol *);
