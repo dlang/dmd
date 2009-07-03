@@ -1,8 +1,8 @@
 
-// Copyright (c) 1999-2002 by Digital Mars
+// Copyright (c) 1999-2009 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
-// www.digitalmars.com
+// http://www.digitalmars.com
 
 #include "port.h"
 
@@ -12,6 +12,7 @@
 #include <fp.h>
 #include <time.h>
 #include <stdlib.h>
+#include <string.h>
 
 double Port::nan = NAN;
 double Port::infinity = INFINITY;
@@ -21,6 +22,27 @@ double Port::dbl_min = DBL_MIN;
 int Port::isNan(double r)
 {
     return ::isnan(r);
+}
+
+int Port::isNan(long double r)
+{
+    return ::isnan(r);
+}
+
+int Port::isSignallingNan(double r)
+{
+    /* A signalling NaN is a NaN with 0 as the most significant bit of
+     * its significand, which is bit 51 of 0..63 for 64 bit doubles.
+     */
+    return isNan(r) && !((((unsigned char*)&r)[6]) & 8);
+}
+
+int Port::isSignallingNan(long double r)
+{
+    /* A signalling NaN is a NaN with 0 as the most significant bit of
+     * its significand, which is bit 62 of 0..79 for 80 bit reals.
+     */
+    return isNan(r) && !((((unsigned char*)&r)[7]) & 0x40);
 }
 
 int Port::isFinite(double r)
@@ -70,16 +92,21 @@ double Port::ull_to_double(ulonglong ull)
     return (double) ull;
 }
 
-char *Port::list_separator()
+const char *Port::list_separator()
 {
     // LOCALE_SLIST for Windows
     return ",";
 }
 
-wchar_t *Port::wlist_separator()
+const wchar_t *Port::wlist_separator()
 {
     // LOCALE_SLIST for Windows
     return L",";
+}
+
+char *Port::strupr(char *s)
+{
+    return ::strupr(s);
 }
 
 #endif
@@ -97,7 +124,8 @@ wchar_t *Port::wlist_separator()
 #include <ctype.h>
 #include <stdlib.h>
 
-static unsigned long nanarray[2] = {0,0x7FF80000 };
+static unsigned long nanarray[2]= { 0xFFFFFFFF, 0x7FFFFFFF };
+//static unsigned long nanarray[2] = {0,0x7FF80000 };
 double Port::nan = (*(double *)nanarray);
 
 //static unsigned long infinityarray[2] = {0,0x7FF00000 };
@@ -107,9 +135,41 @@ double Port::infinity = 1 / zero;
 double Port::dbl_max = DBL_MAX;
 double Port::dbl_min = DBL_MIN;
 
+struct PortInitializer
+{
+    PortInitializer();
+};
+
+static PortInitializer portinitializer;
+
+PortInitializer::PortInitializer()
+{
+    Port::infinity = std::numeric_limits<long double>::infinity();
+}
+
 int Port::isNan(double r)
 {
     return ::_isnan(r);
+}
+
+int Port::isNan(long double r)
+{
+    return ::_isnan(r);
+}
+
+int Port::isSignallingNan(double r)
+{
+    /* A signalling NaN is a NaN with 0 as the most significant bit of
+     * its significand, which is bit 51 of 0..63 for 64 bit doubles.
+     */
+    return isNan(r) && !((((unsigned char*)&r)[6]) & 8);
+}
+
+int Port::isSignallingNan(long double r)
+{
+    /* MSVC doesn't have 80 bit long doubles
+     */
+    return isSignallingNan((double) r);
 }
 
 int Port::isFinite(double r)
@@ -234,21 +294,325 @@ double Port::ull_to_double(ulonglong ull)
     return d;
 }
 
-char *Port::list_separator()
+const char *Port::list_separator()
 {
     // LOCALE_SLIST for Windows
     return ",";
 }
 
-wchar_t *Port::wlist_separator()
+const wchar_t *Port::wlist_separator()
 {
     // LOCALE_SLIST for Windows
     return L",";
 }
 
+char *Port::strupr(char *s)
+{
+    return ::strupr(s);
+}
+
 #endif
 
 #if linux || __APPLE__ || __FreeBSD__
+
+#include <math.h>
+#if linux
+#include <bits/nan.h>
+#include <bits/mathdef.h>
+#endif
+#include <time.h>
+#include <sys/time.h>
+#include <unistd.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <ctype.h>
+
+static double zero = 0;
+double Port::nan = NAN;
+double Port::infinity = 1 / zero;
+double Port::dbl_max = 1.7976931348623157e308;
+double Port::dbl_min = 5e-324;
+
+struct PortInitializer
+{
+    PortInitializer();
+};
+
+static PortInitializer portinitializer;
+
+PortInitializer::PortInitializer()
+{
+    // gcc nan's have the sign bit set by default, so turn it off
+    // Need the volatile to prevent gcc from doing incorrect
+    // constant folding.
+    volatile long double foo;
+    foo = NAN;
+    if (signbit(foo))	// signbit sometimes, not always, set
+	foo = -foo;	// turn off sign bit
+    Port::nan = foo;
+}
+
+#undef isnan
+int Port::isNan(double r)
+{
+#if __APPLE__
+    return __inline_isnan(r);
+#else
+    return ::isnan(r);
+#endif
+}
+
+int Port::isNan(long double r)
+{
+#if __APPLE__
+    return __inline_isnan(r);
+#else
+    return ::isnan(r);
+#endif
+}
+
+int Port::isSignallingNan(double r)
+{
+    /* A signalling NaN is a NaN with 0 as the most significant bit of
+     * its significand, which is bit 51 of 0..63 for 64 bit doubles.
+     */
+    return isNan(r) && !((((unsigned char*)&r)[6]) & 8);
+}
+
+int Port::isSignallingNan(long double r)
+{
+    /* A signalling NaN is a NaN with 0 as the most significant bit of
+     * its significand, which is bit 62 of 0..79 for 80 bit reals.
+     */
+    return isNan(r) && !((((unsigned char*)&r)[7]) & 0x40);
+}
+
+#undef isfinite
+int Port::isFinite(double r)
+{
+    return ::finite(r);
+}
+
+#undef isinf
+int Port::isInfinity(double r)
+{
+#if __APPLE__
+    return fpclassify(r) == FP_INFINITE;
+#else
+    return ::isinf(r);
+#endif
+}
+
+#undef signbit
+int Port::Signbit(double r)
+{
+    return (long)(((long *)&r)[1] & 0x80000000);
+}
+
+double Port::floor(double d)
+{
+    return ::floor(d);
+}
+
+double Port::pow(double x, double y)
+{
+    return ::pow(x, y);
+}
+
+unsigned long long Port::strtoull(const char *p, char **pend, int base)
+{
+    return ::strtoull(p, pend, base);
+}
+
+char *Port::ull_to_string(char *buffer, ulonglong ull)
+{
+    sprintf(buffer, "%llu", ull);
+    return buffer;
+}
+
+wchar_t *Port::ull_to_string(wchar_t *buffer, ulonglong ull)
+{
+    swprintf(buffer, sizeof(ulonglong) * 3 + 1, L"%llu", ull);
+    return buffer;
+}
+
+double Port::ull_to_double(ulonglong ull)
+{
+    return (double) ull;
+}
+
+const char *Port::list_separator()
+{
+    return ",";
+}
+
+const wchar_t *Port::wlist_separator()
+{
+    return L",";
+}
+
+char *Port::strupr(char *s)
+{
+    char *t = s;
+    
+    while (*s)
+    {
+	*s = toupper(*s);
+	s++;
+    }
+
+    return t;
+}
+
+#endif
+
+#if defined (__SVR4) && defined (__sun)
+
+#define __C99FEATURES__ 1	// Needed on Solaris for NaN and more
+#include <math.h>
+#include <time.h>
+#include <sys/time.h>
+#include <unistd.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <ctype.h>
+
+static double zero = 0;
+double Port::nan = NAN;
+double Port::infinity = 1 / zero;
+double Port::dbl_max = 1.7976931348623157e308;
+double Port::dbl_min = 5e-324;
+
+struct PortInitializer
+{
+    PortInitializer();
+};
+
+static PortInitializer portinitializer;
+
+PortInitializer::PortInitializer()
+{
+    // gcc nan's have the sign bit set by default, so turn it off
+    // Need the volatile to prevent gcc from doing incorrect
+    // constant folding.
+    volatile long double foo;
+    foo = NAN;
+    if (signbit(foo))	// signbit sometimes, not always, set
+	foo = -foo;	// turn off sign bit
+    Port::nan = foo;
+}
+
+#undef isnan
+int Port::isNan(double r)
+{
+#if __APPLE__
+    return __inline_isnan(r);
+#else
+    return ::isnan(r);
+#endif
+}
+
+int Port::isNan(long double r)
+{
+#if __APPLE__
+    return __inline_isnan(r);
+#else
+    return ::isnan(r);
+#endif
+}
+
+int Port::isSignallingNan(double r)
+{
+    /* A signalling NaN is a NaN with 0 as the most significant bit of
+     * its significand, which is bit 51 of 0..63 for 64 bit doubles.
+     */
+    return isNan(r) && !((((unsigned char*)&r)[6]) & 8);
+}
+
+int Port::isSignallingNan(long double r)
+{
+    /* A signalling NaN is a NaN with 0 as the most significant bit of
+     * its significand, which is bit 62 of 0..79 for 80 bit reals.
+     */
+    return isNan(r) && !((((unsigned char*)&r)[7]) & 0x40);
+}
+
+#undef isfinite
+int Port::isFinite(double r)
+{
+    return ::finite(r);
+}
+
+#undef isinf
+int Port::isInfinity(double r)
+{
+    return ::isinf(r);
+}
+
+#undef signbit
+int Port::Signbit(double r)
+{
+    return (long)(((long *)&r)[1] & 0x80000000);
+}
+
+double Port::floor(double d)
+{
+    return ::floor(d);
+}
+
+double Port::pow(double x, double y)
+{
+    return ::pow(x, y);
+}
+
+unsigned long long Port::strtoull(const char *p, char **pend, int base)
+{
+    return ::strtoull(p, pend, base);
+}
+
+char *Port::ull_to_string(char *buffer, ulonglong ull)
+{
+    sprintf(buffer, "%llu", ull);
+    return buffer;
+}
+
+wchar_t *Port::ull_to_string(wchar_t *buffer, ulonglong ull)
+{
+    swprintf(buffer, sizeof(ulonglong) * 3 + 1, L"%llu", ull);
+    return buffer;
+}
+
+double Port::ull_to_double(ulonglong ull)
+{
+    return (double) ull;
+}
+
+const char *Port::list_separator()
+{
+    return ",";
+}
+
+const wchar_t *Port::wlist_separator()
+{
+    return L",";
+}
+
+char *Port::strupr(char *s)
+{
+    char *t = s;
+    
+    while (*s)
+    {
+	*s = toupper(*s);
+	s++;
+    }
+
+    return t;
+}
+
+#endif
+
+#if IN_GCC
 
 #include <math.h>
 #include <bits/nan.h>
@@ -258,6 +622,7 @@ wchar_t *Port::wlist_separator()
 #include <unistd.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <ctype.h>
 
 static double zero = 0;
 double Port::nan = NAN;
@@ -265,10 +630,51 @@ double Port::infinity = 1 / zero;
 double Port::dbl_max = 1.7976931348623157e308;
 double Port::dbl_min = 5e-324;
 
+#include "d-gcc-real.h"
+extern "C" bool real_isnan (const real_t *);
+
+struct PortInitializer
+{
+    PortInitializer();
+};
+
+static PortInitializer portinitializer;
+
+PortInitializer::PortInitializer()
+{
+    Port::infinity = real_t::getinfinity();
+    Port::nan = real_t::getnan(real_t::LongDouble);
+}
+
 #undef isnan
 int Port::isNan(double r)
 {
+#if __APPLE__
+    return __inline_isnan(r);
+#else
     return ::isnan(r);
+#endif
+}
+
+int Port::isNan(long double r)
+{
+    return real_isnan(&r);
+}
+
+int Port::isSignallingNan(double r)
+{
+    /* A signalling NaN is a NaN with 0 as the most significant bit of
+     * its significand, which is bit 51 of 0..63 for 64 bit doubles.
+     */
+    return isNan(r) && !((((unsigned char*)&r)[6]) & 8);
+}
+
+int Port::isSignallingNan(long double r)
+{
+    /* A signalling NaN is a NaN with 0 as the most significant bit of
+     * its significand, which is bit 62 of 0..79 for 80 bit reals.
+     */
+    return isNan(r) && !((((unsigned char*)&r)[7]) & 0x40);
 }
 
 #undef isfinite
@@ -321,14 +727,28 @@ double Port::ull_to_double(ulonglong ull)
     return (double) ull;
 }
 
-char *Port::list_separator()
+const char *Port::list_separator()
 {
     return ",";
 }
 
-wchar_t *Port::wlist_separator()
+const wchar_t *Port::wlist_separator()
 {
     return L",";
 }
 
+char *Port::strupr(char *s)
+{
+    char *t = s;
+    
+    while (*s)
+    {
+	*s = toupper(*s);
+	s++;
+    }
+
+    return t;
+}
+
 #endif
+

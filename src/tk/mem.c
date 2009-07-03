@@ -15,7 +15,11 @@
 #include	<stddef.h>
 
 #if __cplusplus
+#if __DMC__
 #include	<new.h>
+#else
+#include	<new>
+#endif
 #endif
 
 #ifndef malloc

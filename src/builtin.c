@@ -23,7 +23,7 @@
 #include "id.h"
 #include "module.h"
 
-#if V2
+#if DMDV2
 
 /**********************************
  * Determine if function is a builtin one.
@@ -59,7 +59,10 @@ enum BUILTIN FuncDeclaration::isBuiltin()
 		}
 		else if (strcmp(type->deco, "FNaNbdZd") == 0 ||
 			 strcmp(type->deco, "FNaNbfZf") == 0)
+		{
+		    if (ident == Id::_sqrt)
 			builtin = BUILTINsqrt;
+		}
 	    }
 	}
     }

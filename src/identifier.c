@@ -81,6 +81,7 @@ int Identifier::dyncast()
     return DYNCAST_IDENTIFIER;
 }
 
+// BUG: these are redundant with Lexer::uniqueId()
 
 Identifier *Identifier::generateId(const char *prefix)
 {

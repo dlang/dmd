@@ -1,6 +1,6 @@
 
 // Compiler implementation of the D programming language
-// Copyright (c) 1999-2008 by Digital Mars
+// Copyright (c) 1999-2009 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // http://www.digitalmars.com
@@ -311,7 +311,7 @@ void StorageClassDeclaration::semantic(Scope *sc)
 	sc->stc = stc;
 }
 
-void StorageClassDeclaration::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
+void StorageClassDeclaration::stcToCBuffer(OutBuffer *buf, int stc)
 {
     struct SCstring
     {
@@ -337,20 +337,25 @@ void StorageClassDeclaration::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 	{ STCpure,         TOKpure },
 	{ STCref,          TOKref },
 	{ STCtls,          TOKtls },
+	{ STClazy,         TOKlazy },
+	{ STCalias,        TOKalias },
+	{ STCout,          TOKout },
+	{ STCin,           TOKin },
     };
 
-    int written = 0;
     for (int i = 0; i < sizeof(table)/sizeof(table[0]); i++)
     {
 	if (stc & table[i].stc)
 	{
-	    if (written)
-		buf->writeByte(' ');
-	    written = 1;
 	    buf->writestring(Token::toChars(table[i].tok));
+	    buf->writeByte(' ');
 	}
     }
+}
 
+void StorageClassDeclaration::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
+{
+    stcToCBuffer(buf, stc);
     AttribDeclaration::toCBuffer(buf, hgs);
 }
 
@@ -919,6 +924,7 @@ void PragmaDeclaration::toObjFile(int multiobj)
 	error("pragma lib not supported");
 #endif
     }
+#if DMDV2
     else if (ident == Id::startaddress)
     {
 	assert(args && args->dim == 1);
@@ -929,6 +935,7 @@ void PragmaDeclaration::toObjFile(int multiobj)
 	Symbol *s = f->toSymbol();
 	obj_startaddress(s);
     }
+#endif
     AttribDeclaration::toObjFile(multiobj);
 }
 

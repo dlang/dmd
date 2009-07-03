@@ -62,6 +62,8 @@ struct StorageClassDeclaration: AttribDeclaration
     Dsymbol *syntaxCopy(Dsymbol *s);
     void semantic(Scope *sc);
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
+
+    static void stcToCBuffer(OutBuffer *buf, int stc);
 };
 
 struct LinkDeclaration : AttribDeclaration

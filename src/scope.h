@@ -1,5 +1,5 @@
 
-// Copyright (c) 1999-2005 by Digital Mars
+// Copyright (c) 1999-2009 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // http://www.digitalmars.com
@@ -12,7 +12,7 @@
 
 #ifdef __DMC__
 #pragma once
-#endif /* __DMC__ */
+#endif
 
 struct Dsymbol;
 struct ScopeDsymbol;
@@ -29,7 +29,9 @@ struct AggregateDeclaration;
 struct AnonymousAggregateDeclaration;
 struct FuncDeclaration;
 struct DocComment;
+
 #if __GNUC__
+// Requires a full definition for PROT and LINK
 #include "dsymbol.h"    // PROT
 #include "mars.h"       // LINK
 #else

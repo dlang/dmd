@@ -35,6 +35,7 @@ FuncDeclaration::FuncDeclaration(Loc loc, Loc endloc, Identifier *id, enum STC s
     : Declaration(id)
 {
     //printf("FuncDeclaration(id = '%s', type = %p)\n", id->toChars(), type);
+    //printf("storage_class = x%x\n", storage_class);
     this->storage_class = storage_class;
     this->type = type;
     this->loc = loc;
@@ -121,40 +122,49 @@ void FuncDeclaration::semantic(Scope *sc)
 	originalType = type;
     if (!type->deco && type->nextOf())
     {
-#if 1
 	/* Apply const and invariant storage class
 	 * to the function type
 	 */
 	type = type->semantic(loc, sc);
-	if (storage_class & STCinvariant)
-	{   // Don't use toInvariant(), as that will do a merge()
-	    type = type->makeInvariant();
-	    type->deco = type->merge()->deco;
-	}
-	else if (storage_class & STCconst)
+	unsigned stc = storage_class;
+	if (type->isInvariant())
+	    stc |= STCinvariant;
+	if (type->isConst())
+	    stc |= STCconst;
+	if (type->isShared())
+	    stc |= STCshared;
+	switch (stc & (STCinvariant | STCconst | STCshared))
 	{
-	    if (!type->isInvariant())
-	    {	// Don't use toConst(), as that will do a merge()
+	    case STCinvariant:
+	    case STCinvariant | STCconst:
+	    case STCinvariant | STCconst | STCshared:
+	    case STCinvariant | STCshared:
+		// Don't use toInvariant(), as that will do a merge()
+		type = type->makeInvariant();
+		type->deco = type->merge()->deco;
+		break;
+
+	    case STCconst:
 		type = type->makeConst();
 		type->deco = type->merge()->deco;
-	    }
-	}
-#else
-	if (storage_class & (STCconst | STCinvariant))
-	{
-	    /* Apply const and invariant storage class
-	     * to the function's return type
-	     */
-	    Type *tn = type->nextOf();
-	    if (storage_class & STCconst)
-		tn = tn->makeConst();
-	    if (storage_class & STCinvariant)
-		tn = tn->makeInvariant();
-	    ((TypeNext *)type)->next = tn;
-	}
+		break;
 
-	type = type->semantic(loc, sc);
-#endif
+	    case STCshared | STCconst:
+		type = type->makeSharedConst();
+		type->deco = type->merge()->deco;
+		break;
+
+	    case STCshared:
+		type = type->makeShared();
+		type->deco = type->merge()->deco;
+		break;
+
+	    case 0:
+		break;
+
+	    default:
+		assert(0);
+	}
     }
     //type->print();
     if (type->ty != Tfunction)
@@ -372,7 +382,7 @@ void FuncDeclaration::semantic(Scope *sc)
 		if (fdv->isFinal())
 		    error("cannot override final function %s", fdv->toPrettyChars());
 
-#if V2
+#if DMDV2
 		if (!isOverride())
 		    warning(loc, "overrides base class function %s, but is not marked with 'override'", fdv->toPrettyChars());
 #endif
@@ -388,7 +398,7 @@ void FuncDeclaration::semantic(Scope *sc)
 #if !BREAKABI
 			&& !isDtorDeclaration()
 #endif
-#if V2
+#if DMDV2
 			&& !isPostBlitDeclaration()
 #endif
 			)
@@ -1187,7 +1197,7 @@ void FuncDeclaration::semantic3(Scope *sc)
 		Expression *e1 = new VarExp(0, _arguments);
 		e = new AssignExp(0, e1, e);
 		e->op = TOKconstruct;
-		e = e->semantic(sc);
+		e = e->semantic(sc2);
 		a->push(new ExpStatement(0, e));
 	    }
 
@@ -1310,6 +1320,7 @@ void FuncDeclaration::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 {
     //printf("FuncDeclaration::toCBuffer() '%s'\n", toChars());
 
+    StorageClassDeclaration::stcToCBuffer(buf, storage_class);
     type->toCBuffer(buf, ident, hgs);
     bodyToCBuffer(buf, hgs);
 }
@@ -1584,7 +1595,7 @@ int fp1(void *param, FuncDeclaration *f)
 	return 1;
     }
 
-#if V2
+#if DMDV2
     /* Allow covariant matches, if it's just a const conversion
      * of the return type
      */
@@ -1845,6 +1856,36 @@ MATCH FuncDeclaration::leastAsSpecialized(FuncDeclaration *g)
     printf("  doesn't match, so is not as specialized\n");
 #endif
     return MATCHnomatch;
+}
+
+/*******************************************
+ * Given a symbol that could be either a FuncDeclaration or
+ * a function template, resolve it to a function symbol.
+ *	sc		instantiation scope
+ *	loc		instantiation location
+ *	targsi		initial list of template arguments
+ *	ethis		if !NULL, the 'this' pointer argument
+ *	fargs		arguments to function
+ *	flags		1: do not issue error message on no match, just return NULL
+ */
+
+FuncDeclaration *resolveFuncCall(Scope *sc, Loc loc, Dsymbol *s,
+	Objects *tiargs,
+	Expression *ethis,
+	Expressions *arguments,
+	int flags)
+{
+    if (!s)
+	return NULL;			// no match
+    FuncDeclaration *f = s->isFuncDeclaration();
+    if (f)
+	f = f->overloadResolve(loc, ethis, arguments);
+    else
+    {	TemplateDeclaration *td = s->isTemplateDeclaration();
+	assert(td);
+	f = td->deduceFunctionTemplate(sc, loc, tiargs, NULL, arguments, flags);
+    }
+    return f;
 }
 
 /********************************
@@ -2170,7 +2211,7 @@ const char *FuncDeclaration::kind()
  * created for them.
  */
 
-#if V2
+#if DMDV2
 int FuncDeclaration::needsClosure()
 {
     /* Need a closure for all the closureVars[] if any of the
@@ -2197,7 +2238,7 @@ int FuncDeclaration::needsClosure()
 	{   FuncDeclaration *f = (FuncDeclaration *)v->nestedrefs.data[j];
 	    assert(f != this);
 
-	    //printf("\t\tf = %s, %d, %d\n", f->toChars(), f->isVirtual(), f->tookAddressOf);
+	    //printf("\t\tf = %s, %d, %p, %d\n", f->toChars(), f->isVirtual(), f->isThis(), f->tookAddressOf);
 	    if (f->isThis() || f->tookAddressOf)
 		goto Lyes;	// assume f escapes this function's scope
 
@@ -2333,7 +2374,7 @@ void CtorDeclaration::semantic(Scope *sc)
     AggregateDeclaration *ad;
     Type *tret;
 
-    //printf("CtorDeclaration::semantic()\n");
+    //printf("CtorDeclaration::semantic() %s\n", toChars());
     if (type)
 	return;
 
@@ -2341,7 +2382,7 @@ void CtorDeclaration::semantic(Scope *sc)
     sc->stc &= ~STCstatic;		// not a static constructor
 
     parent = sc->parent;
-    Dsymbol *parent = toParent();
+    Dsymbol *parent = toParent2();
     ad = parent->isAggregateDeclaration();
     if (!ad || parent->isUnionDeclaration())
     {
@@ -2970,17 +3011,17 @@ void NewDeclaration::semantic(Scope *sc)
     type = type->semantic(loc, sc);
     assert(type->ty == Tfunction);
 
-    // Check that there is at least one argument of type uint
+    // Check that there is at least one argument of type size_t
     TypeFunction *tf = (TypeFunction *)type;
     if (Argument::dim(tf->parameters) < 1)
     {
-	error("at least one argument of type uint expected");
+	error("at least one argument of type size_t expected");
     }
     else
     {
 	Argument *a = Argument::getNth(tf->parameters, 0);
-	if (!a->type->equals(Type::tuns32))
-	    error("first argument must be type uint, not %s", a->type->toChars());
+	if (!a->type->equals(Type::tsize_t))
+	    error("first argument must be type size_t, not %s", a->type->toChars());
     }
 
     FuncDeclaration::semantic(sc);

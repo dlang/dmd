@@ -445,7 +445,7 @@ void emitProtection(OutBuffer *buf, PROT prot)
 
 void Dsymbol::emitComment(Scope *sc)		   { }
 void InvariantDeclaration::emitComment(Scope *sc)  { }
-#if V2
+#if DMDV2
 void PostBlitDeclaration::emitComment(Scope *sc)   { }
 #endif
 void DtorDeclaration::emitComment(Scope *sc)	   { }
@@ -672,7 +672,7 @@ void prefix(OutBuffer *buf, Dsymbol *s)
 	    buf->writestring("static ");
 	if (d->isConst())
 	    buf->writestring("const ");
-#if V2
+#if DMDV2
 	if (d->isInvariant())
 	    buf->writestring("invariant ");
 #endif

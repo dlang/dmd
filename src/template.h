@@ -1,6 +1,6 @@
 
 // Compiler implementation of the D programming language
-// Copyright (c) 1999-2008 by Digital Mars
+// Copyright (c) 1999-2009 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // http://www.digitalmars.com
@@ -51,9 +51,7 @@ struct TemplateDeclaration : ScopeDsymbol
     TemplateParameters *parameters;	// array of TemplateParameter's
 
     TemplateParameters *origParameters;	// originals for Ddoc
-#if V2
     Expression *constraint;
-#endif
     Array instances;			// array of TemplateInstance's
 
     TemplateDeclaration *overnext;	// next overloaded TemplateDeclaration
@@ -63,10 +61,7 @@ struct TemplateDeclaration : ScopeDsymbol
     Dsymbol *onemember;		// if !=NULL then one member of this template
 
     TemplateDeclaration(Loc loc, Identifier *id, TemplateParameters *parameters,
-#if V2
-	Expression *constraint,
-#endif
-	Array *decldefs);
+	Expression *constraint, Array *decldefs);
     Dsymbol *syntaxCopy(Dsymbol *);
     void semantic(Scope *sc);
     int overloadInsert(Dsymbol *s);
@@ -114,7 +109,7 @@ struct TemplateParameter
     virtual TemplateTypeParameter  *isTemplateTypeParameter();
     virtual TemplateValueParameter *isTemplateValueParameter();
     virtual TemplateAliasParameter *isTemplateAliasParameter();
-#if V2
+#if DMDV2
     virtual TemplateThisParameter *isTemplateThisParameter();
 #endif
     virtual TemplateTupleParameter *isTemplateTupleParameter();
@@ -163,7 +158,7 @@ struct TemplateTypeParameter : TemplateParameter
     void *dummyArg();
 };
 
-#if V2
+#if DMDV2
 struct TemplateThisParameter : TemplateTypeParameter
 {
     /* Syntax:

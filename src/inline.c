@@ -860,7 +860,7 @@ Statement *ForeachStatement::inlineScan(InlineScanState *iss)
 }
 
 
-#if V2
+#if DMDV2
 Statement *ForeachRangeStatement::inlineScan(InlineScanState *iss)
 {
     lwr = lwr->inlineScan(iss);
@@ -1293,7 +1293,7 @@ int FuncDeclaration::canInline(int hasthis, int hdrscan)
 #endif
 	isSynchronized() ||
 	isImportedSymbol() ||
-#if V2
+#if DMDV2
 	closureVars.dim ||	// no nested references to this frame
 #else
 	nestedFrameRef ||	// no nested references to this frame

@@ -1856,7 +1856,6 @@ STATIC void block_check()
 
 STATIC void brtailrecursion()
 {   block *b;
-    block *bn;
     block *bs;
     list_t bl;
     elem **pe;
@@ -1888,6 +1887,7 @@ STATIC void brtailrecursion()
 	if (b->BC == BC_try)
 	    return;
 	pe = &b->Belem;
+	block *bn = NULL;
 	if (*pe &&
 	    (b->BC == BCret ||
 	     b->BC == BCretexp ||

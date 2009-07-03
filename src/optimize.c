@@ -315,13 +315,13 @@ Expression *AddrExp::optimize(int result)
 
 	if (ae->e2->op == TOKint64 && ae->e1->op == TOKvar)
 	{
-	    integer_t index = ae->e2->toInteger();
+	    dinteger_t index = ae->e2->toInteger();
 	    VarExp *ve = (VarExp *)ae->e1;
 	    if (ve->type->ty == Tsarray
 		&& !ve->var->isImportedSymbol())
 	    {
 		TypeSArray *ts = (TypeSArray *)ve->type;
-		integer_t dim = ts->dim->toInteger();
+		dinteger_t dim = ts->dim->toInteger();
 		if (index < 0 || index >= dim)
 		    error("array index %jd is out of bounds [0..%jd]", index, dim);
 		e = new SymOffExp(loc, ve->var, index * ts->nextOf()->size());
@@ -452,17 +452,28 @@ Expression *CastExp::optimize(int result)
     enum TOK op1 = e1->op;
 #define X 0
 
+    Expression *e1old = e1;
     e1 = e1->optimize(result);
     e1 = fromConstInitializer(result, e1);
+
+    if (e1 == e1old &&
+	e1->op == TOKarrayliteral &&
+	type->toBasetype()->ty == Tpointer &&
+	e1->type->toBasetype()->ty != Tsarray)
+    {
+	// Casting this will result in the same expression, and
+	// infinite loop because of Expression::implicitCastTo()
+	return this;		// no change
+    }
 
     if ((e1->op == TOKstring || e1->op == TOKarrayliteral) &&
 	(type->ty == Tpointer || type->ty == Tarray) &&
 	e1->type->nextOf()->size() == type->nextOf()->size()
        )
     {
-	e1 = e1->castTo(NULL, type);
-	if (X) printf(" returning1 %s\n", e1->toChars());
-	return e1;
+	Expression *e = e1->castTo(NULL, type);
+	if (X) printf(" returning1 %s\n", e->toChars());
+	return e;
     }
 
     if (e1->op == TOKstructliteral &&
@@ -547,7 +558,7 @@ Expression *BinExp::optimize(int result)
     {
 	if (e2->isConst() == 1)
 	{
-	    integer_t i2 = e2->toInteger();
+	    dinteger_t i2 = e2->toInteger();
 	    d_uns64 sz = e1->type->size() * 8;
 	    if (i2 < 0 || i2 > sz)
 	    {   error("shift assign by %jd is outside the range 0..%zu", i2, sz);
@@ -642,7 +653,7 @@ Expression *shift_optimize(int result, BinExp *e, Expression *(*shift)(Type *, E
     e->e2 = e->e2->optimize(result);
     if (e->e2->isConst() == 1)
     {
-	integer_t i2 = e->e2->toInteger();
+	dinteger_t i2 = e->e2->toInteger();
 	d_uns64 sz = e->e1->type->size() * 8;
 	if (i2 < 0 || i2 > sz)
 	{   e->error("shift by %jd is outside the range 0..%zu", i2, sz);

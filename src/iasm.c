@@ -2005,7 +2005,7 @@ STATIC void asm_merge_symbol(OPND *o1, Dsymbol *s)
 	    goto L2;
 	}
 	if ((v->isConst()
-#if V2
+#if DMDV2
 		|| v->isInvariant() || v->storage_class & STCmanifest
 #endif
 	    ) && !v->type->isfloating() && v->init)
@@ -3288,7 +3288,7 @@ STATIC code *asm_db_parse(OP *pop)
 
 int asm_getnum()
 {   int v;
-    integer_t i;
+    dinteger_t i;
 
     switch (tok_value)
     {

@@ -149,7 +149,7 @@ unsigned cv4_Denum(EnumDeclaration *e)
     {
 	for (i = 0; i < e->members->dim; i++)
 	{   EnumMember *sf = ((Dsymbol *)e->members->data[i])->isEnumMember();
-	    integer_t value;
+	    dinteger_t value;
 
 	    if (sf)
 	    {
@@ -187,7 +187,7 @@ unsigned cv4_Denum(EnumDeclaration *e)
     int fieldi = 0;
     for (i = 0; i < e->members->dim; i++)
     {   EnumMember *sf = ((Dsymbol *)e->members->data[i])->isEnumMember();
-	integer_t value;
+	dinteger_t value;
 
 	if (sf)
 	{

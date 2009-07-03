@@ -15,16 +15,6 @@
 #include	<stdio.h>
 #include	<string.h>
 #include	<stdlib.h>
-#include	<malloc.h>
-#include	<sys/types.h>
-#include	<sys/stat.h>
-#include	<fcntl.h>
-#include	<ctype.h>
-
-#if linux || __APPLE__
-#include	<signal.h>
-#include	<unistd.h>
-#endif
 
 #include	"cc.h"
 #include	"global.h"
@@ -41,10 +31,6 @@
 #include	"tinfo.h"
 
 #if ELFOBJ
-
-#if MARS
-#include	"../mars/mars.h"
-#endif
 
 #include	"dwarf.h"
 
@@ -1720,7 +1706,13 @@ char *obj_mangle2(Symbol *s,char *dest)
 	    if (len >= DEST_LEN)
 		dest = (char *)mem_malloc(len + 1);
 	    memcpy(dest,name,len + 1);	// copy in name and ending 0
-	    strupr(dest);		// to upper case
+	    for (int i = 0; 1; i++)
+	    {	char c = dest[i];
+		if (!c)
+		    break;
+		if (c >= 'a' && c <= 'z')
+		    dest[i] = c + 'A' - 'a';
+	    }
 	    break;
 	case mTYman_std:
 #if TARGET_LINUX

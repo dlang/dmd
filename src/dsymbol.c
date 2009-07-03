@@ -460,6 +460,7 @@ void Dsymbol::error(const char *format, ...)
 	    fprintf(stdmsg, "%s: ", p);
 	mem.free(p);
 
+	fprintf(stdmsg, "Error: ");
 	if (isAnonymous())
 	    fprintf(stdmsg, "%s ", kind());
 	else
@@ -490,6 +491,7 @@ void Dsymbol::error(Loc loc, const char *format, ...)
 	    fprintf(stdmsg, "%s: ", p);
 	mem.free(p);
 
+	fprintf(stdmsg, "Error: ");
 	fprintf(stdmsg, "%s %s ", kind(), toPrettyChars());
 
 	va_list ap;
@@ -921,7 +923,7 @@ Dsymbol *ScopeDsymbol::getNth(Array *members, size_t nth, size_t *pn)
  * Returns NULL if not found
  */
 
-#if V2
+#if DMDV2
 FuncDeclaration *ScopeDsymbol::findGetMembers()
 {
     Dsymbol *s = search_function(this, Id::getmembers);

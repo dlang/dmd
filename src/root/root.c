@@ -14,7 +14,11 @@
 #include <stdint.h>
 #include <assert.h>
 
-#if _MSC_VER
+#if (defined (__SVR4) && defined (__sun))
+#include <alloca.h>
+#endif
+
+#if _MSC_VER ||__MINGW32__
 #include <malloc.h>
 #include <string>
 #endif
@@ -331,7 +335,9 @@ char *FileName::combine(const char *path, const char *name)
     }
 #endif
 #if _WIN32
-    if (path[pathlen - 1] != '\\' && path[pathlen - 1] != ':')
+    if (path[pathlen - 1] != '\\' &&
+	path[pathlen - 1] != '/'  &&
+	path[pathlen - 1] != ':')
     {	f[pathlen] = '\\';
 	pathlen++;
     }
@@ -575,9 +581,17 @@ char *FileName::name(const char *str)
 	       return e + 1;
 #endif
 #if _WIN32
+	    case '/':
 	    case '\\':
-	    case ':':
 		return e + 1;
+	    case ':':
+		/* The ':' is a drive letter only if it is the second
+		 * character or the last character,
+		 * otherwise it is an ADS (Alternate Data Stream) separator.
+		 * Consider ADS separators as part of the file name.
+		 */
+		if (e == str + 1 || e == str + len - 1)
+		    return e + 1;
 #endif
 	    default:
 		if (e == str)
@@ -612,7 +626,7 @@ char *FileName::path(const char *str)
 	    n--;
 #endif
 #if _WIN32
-	if (n[-1] == '\\')
+	if (n[-1] == '\\' || n[-1] == '/')
 	    n--;
 #endif
     }
@@ -650,7 +664,9 @@ char *FileName::replaceName(char *path, char *name)
     }
 #endif
 #if _WIN32
-    if (path[pathlen - 1] != '\\' && path[pathlen - 1] != ':')
+    if (path[pathlen - 1] != '\\' &&
+	path[pathlen - 1] != '/' &&
+	path[pathlen - 1] != ':')
     {	f[pathlen] = '\\';
 	pathlen++;
     }
@@ -815,8 +831,8 @@ void FileName::ensurePathExists(const char *path)
 	    if (*p)
 	    {
 #if _WIN32
-		size_t len = strlen(p);
-		if (len > 2 && p[-1] == ':')
+		size_t len = strlen(path);
+		if (len > 2 && p[-1] == ':' && path + 2 == p)
 		{   mem.free(p);
 		    return;
 		}

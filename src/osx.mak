@@ -41,8 +41,8 @@ DMD_OBJS = \
 	type.o typinf.o util.o var.o version.o strtold.o utf.o staticassert.o \
 	unialpha.o toobj.o toctype.o toelfdebug.o entity.o doc.o macro.o \
 	hdrgen.o delegatize.o aa.o ti_achar.o toir.o interpret.o traits.o \
-	builtin.o clone.o \
-	man.o arrayop.o \
+	builtin.o clone.o aliasthis.o \
+	man.o arrayop.o port.o response.o async.o \
 	libmach.o machobj.o
 
 SRC = win32.mak linux.mak osx.mak \
@@ -61,6 +61,7 @@ SRC = win32.mak linux.mak osx.mak \
 	doc.h doc.c macro.h macro.c hdrgen.h hdrgen.c arraytypes.h \
 	delegatize.c toir.h toir.c interpret.c traits.c cppmangle.c \
 	builtin.c clone.c lib.h libomf.c libelf.c libmach.c arrayop.c \
+	aliasthis.h aliasthis.c \
 	$C/cdef.h $C/cc.h $C/oper.h $C/ty.h $C/optabgen.c \
 	$C/global.h $C/parser.h $C/code.h $C/type.h $C/dt.h $C/cgcv.h \
 	$C/el.h $C/iasm.h $C/rtlsym.h $C/html.h \
@@ -83,7 +84,8 @@ SRC = win32.mak linux.mak osx.mak \
 	$(ROOT)/lstring.c $(ROOT)/root.h $(ROOT)/root.c $(ROOT)/array.c \
 	$(ROOT)/rmem.h $(ROOT)/rmem.c $(ROOT)/port.h $(ROOT)/port.c \
 	$(ROOT)/gnuc.h $(ROOT)/gnuc.c $(ROOT)/man.c \
-	$(ROOT)/stringtable.h $(ROOT)/stringtable.c
+	$(ROOT)/stringtable.h $(ROOT)/stringtable.c \
+	$(ROOT)/response.c $(ROOT)/async.h $(ROOT)/async.c
 
 
 all: dmd
@@ -133,11 +135,17 @@ aa.o: $C/aa.h $C/tinfo.h $C/aa.c
 access.o: access.c
 	$(CC) -c $(CFLAGS) $<
 
+aliasthis.o: aliasthis.c
+	$(CC) -c $(CFLAGS) $<
+
 array.o: $(ROOT)/array.c
 	$(CC) -c $(GFLAGS) -I$(ROOT) $<
 
 arrayop.o: arrayop.c
 	$(CC) -c $(CFLAGS) $<
+
+async.o: $(ROOT)/async.c
+	$(CC) -c $(GFLAGS) -I$(ROOT) $<
 
 attrib.o: attrib.c
 	$(CC) -c $(CFLAGS) $<
@@ -220,8 +228,8 @@ irstate.o: irstate.h irstate.c
 csymbol.o : $C/symbol.c
 	$(CC) -c $(MFLAGS) $C/symbol.c -o csymbol.o
 
-dchar.o: ../root/dchar.c
-	$(CC) -c $(CFLAGS) $<
+dchar.o: $(ROOT)/dchar.c
+	$(CC) -c $(GFLAGS) -I$(ROOT) $<
 
 cond.o: cond.c
 	$(CC) -c $(CFLAGS) $<
@@ -412,6 +420,9 @@ port.o: $(ROOT)/port.c
 ptrntab.o: $C/iasm.h $C/ptrntab.c
 	$(CC) -c $(MFLAGS) $C/ptrntab.c
 
+response.o: $(ROOT)/response.c
+	$(CC) -c $(GFLAGS) -I$(ROOT) $<
+
 root.o: $(ROOT)/root.c
 	$(CC) -c $(GFLAGS) -I$(ROOT) $<
 
@@ -494,6 +505,7 @@ version.o: version.c
 
 gcov:
 	gcov access.c
+	gcov aliasthis.c
 	gcov arrayop.c
 	gcov attrib.c
 	gcov bit.c

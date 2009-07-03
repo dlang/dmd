@@ -255,7 +255,7 @@ FuncDeclaration *StructDeclaration::buildCpCtor(Scope *sc)
  * and the ordering changes (runs forward instead of backwards).
  */
 
-#if V2
+#if DMDV2
 FuncDeclaration *StructDeclaration::buildPostBlit(Scope *sc)
 {
     //printf("StructDeclaration::buildPostBlit() %s\n", toChars());
@@ -286,7 +286,7 @@ FuncDeclaration *StructDeclaration::buildPostBlit(Scope *sc)
 		ex = new DotVarExp(0, ex, v, 0);
 
 		if (dim == 1)
-		{   // this.v.dtor()
+		{   // this.v.postblit()
 		    ex = new DotVarExp(0, ex, sd->postblit, 0);
 		    ex = new CallExp(0, ex);
 		}
@@ -312,7 +312,7 @@ FuncDeclaration *StructDeclaration::buildPostBlit(Scope *sc)
     {	//printf("Building __fieldPostBlit()\n");
 	PostBlitDeclaration *dd = new PostBlitDeclaration(0, 0, Lexer::idPool("__fieldPostBlit"));
 	dd->fbody = new ExpStatement(0, e);
-	dtors.push(dd);
+	postblits.shift(dd);
 	members->push(dd);
 	dd->semantic(sc);
     }
@@ -357,7 +357,7 @@ FuncDeclaration *AggregateDeclaration::buildDtor(Scope *sc)
     //printf("AggregateDeclaration::buildDtor() %s\n", toChars());
     Expression *e = NULL;
 
-#if V2
+#if DMDV2
     for (size_t i = 0; i < fields.dim; i++)
     {
 	Dsymbol *s = (Dsymbol *)fields.data[i];

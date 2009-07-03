@@ -1,6 +1,6 @@
 
 // Compiler implementation of the D programming language
-// Copyright (c) 1999-2007 by Digital Mars
+// Copyright (c) 1999-2009 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // http://www.digitalmars.com
@@ -19,20 +19,12 @@
 
 #include "rmem.h"
 #include "root.h"
+#include "port.h"
 
 #include "mtype.h"
 #include "expression.h"
 #include "aggregate.h"
 #include "declaration.h"
-
-#ifdef IN_GCC
-#include "d-gcc-real.h"
-
-/* %% fix? */
-extern "C" bool real_isnan (const real_t *);
-#endif
-
-static real_t zero;	// work around DMC bug for now
 
 #define LOG 0
 
@@ -547,7 +539,7 @@ Expression *Shr(Type *type, Expression *e1, Expression *e2)
 {   Expression *e;
     Loc loc = e1->loc;
     unsigned count;
-    integer_t value;
+    dinteger_t value;
 
     value = e1->toInteger();
     count = e2->toInteger();
@@ -596,7 +588,7 @@ Expression *Ushr(Type *type, Expression *e1, Expression *e2)
 {   Expression *e;
     Loc loc = e1->loc;
     unsigned count;
-    integer_t value;
+    dinteger_t value;
 
     value = e1->toInteger();
     count = e2->toInteger();
@@ -818,7 +810,7 @@ Expression *Equal(enum TOK op, Type *type, Expression *e1, Expression *e2)
 #if __DMC__
 	cmp = (r1 == r2);
 #else
-	if (isnan(r1) || isnan(r2))	// if unordered
+	if (Port::isNan(r1) || Port::isNan(r2))	// if unordered
 	{
 	    cmp = 0;
 	}
@@ -874,7 +866,7 @@ Expression *Identity(enum TOK op, Type *type, Expression *e1, Expression *e2)
 Expression *Cmp(enum TOK op, Type *type, Expression *e1, Expression *e2)
 {   Expression *e;
     Loc loc = e1->loc;
-    integer_t n;
+    dinteger_t n;
     real_t r1;
     real_t r2;
 
@@ -951,11 +943,7 @@ Expression *Cmp(enum TOK op, Type *type, Expression *e1, Expression *e2)
 	}
 #else
 	// Don't rely on compiler, handle NAN arguments separately
-#if IN_GCC
-	if (real_isnan(&r1) || real_isnan(&r2))	// if unordered
-#else
-	if (isnan(r1) || isnan(r2))	// if unordered
-#endif
+	if (Port::isNan(r1) || Port::isNan(r2))	// if unordered
 	{
 	    switch (op)
 	    {
@@ -1097,7 +1085,7 @@ Expression *Cast(Type *type, Type *to, Expression *e1)
     else if (type->isintegral())
     {
 	if (e1->type->isfloating())
-	{   integer_t result;
+	{   dinteger_t result;
 	    real_t r = e1->toReal();
 
 	    switch (typeb->ty)
@@ -1290,7 +1278,7 @@ Expression *Slice(Type *type, Expression *e1, Expression *lwr, Expression *upr)
 	if (iupr > es1->len || ilwr > iupr)
 	    e1->error("string slice [%ju .. %ju] is out of bounds", ilwr, iupr);
 	else
-	{   integer_t value;
+	{   dinteger_t value;
 	    void *s;
 	    size_t len = iupr - ilwr;
 	    int sz = es1->sz;
@@ -1357,7 +1345,7 @@ Expression *Cat(Type *type, Expression *e1, Expression *e2)
 	    StringExp *es;
 	    size_t len = 1;
 	    int sz = tn->size();
-	    integer_t v = e->toInteger();
+	    dinteger_t v = e->toInteger();
 
 	    s = mem.malloc((len + 1) * sz);
 	    memcpy((unsigned char *)s, &v, sz);
@@ -1424,7 +1412,7 @@ Expression *Cat(Type *type, Expression *e1, Expression *e2)
 	Type *t;
 	size_t len = es1->len + 1;
 	int sz = es1->sz;
-	integer_t v = e2->toInteger();
+	dinteger_t v = e2->toInteger();
 
 	s = mem.malloc((len + 1) * sz);
 	memcpy(s, es1->string, es1->len * sz);
@@ -1449,7 +1437,7 @@ Expression *Cat(Type *type, Expression *e1, Expression *e2)
 	Type *t;
 	size_t len = 1 + es2->len;
 	int sz = es2->sz;
-	integer_t v = e1->toInteger();
+	dinteger_t v = e1->toInteger();
 
 	s = mem.malloc((len + 1) * sz);
 	memcpy((unsigned char *)s, &v, sz);

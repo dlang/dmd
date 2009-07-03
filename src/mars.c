@@ -14,16 +14,13 @@
 #include <assert.h>
 #include <limits.h>
 
-#if __DMC__
-#include <dos.h>
-#endif
-
 #if linux || __APPLE__
 #include <errno.h>
 #endif
 
 #include "rmem.h"
 #include "root.h"
+#include "async.h"
 
 #include "mars.h"
 #include "module.h"
@@ -40,6 +37,7 @@ long __cdecl __ehfilter(LPEXCEPTION_POINTERS ep);
 #endif
 
 
+int response_expand(int *pargc, char ***pargv);
 void browse(const char *url);
 void getenv_setargv(const char *envvar, int *pargc, char** *pargv);
 
@@ -74,7 +72,7 @@ Global::Global()
 
     copyright = "Copyright (c) 1999-2009 by Digital Mars";
     written = "written by Walter Bright";
-    version = "v2.026";
+    version = "v2.027";
     global.structalign = 8;
 
     memset(&params, 0, sizeof(Param));
@@ -108,6 +106,16 @@ Loc::Loc(Module *mod, unsigned linnum)
 
 void error(Loc loc, const char *format, ...)
 {
+    va_list ap;
+    va_start(ap, format);
+    verror(loc, format, ap);
+    va_end( ap );
+}
+
+void error(const char *filename, unsigned linnum, const char *format, ...)
+{   Loc loc;
+    loc.filename = (char *)filename;
+    loc.linnum = linnum;
     va_list ap;
     va_start(ap, format);
     verror(loc, format, ap);
@@ -262,10 +270,8 @@ int main(int argc, char *argv[])
 	    goto Largs;
     }
 
-#if __DMC__	// DMC unique support for response files
     if (response_expand(&argc,&argv))	// expand response files
 	error("can't open response file");
-#endif
 
     files.reserve(argc - 1);
 
@@ -315,7 +321,7 @@ int main(int argc, char *argv[])
 #endif
     VersionCondition::addPredefinedGlobalIdent("LittleEndian");
     //VersionCondition::addPredefinedGlobalIdent("D_Bits");
-#if V2
+#if DMDV2
     VersionCondition::addPredefinedGlobalIdent("D_Version2");
 #endif
     VersionCondition::addPredefinedGlobalIdent("all");
@@ -368,7 +374,7 @@ int main(int argc, char *argv[])
 		global.params.verbose = 1;
 	    else if (strcmp(p + 1, "v1") == 0)
 	    {
-#if V1
+#if DMDV1
 		global.params.Dversion = 1;
 #else
 		error("use DMD 1.0 series compilers for -v1 switch");
@@ -472,7 +478,7 @@ int main(int argc, char *argv[])
 		global.params.quiet = 1;
 	    else if (strcmp(p + 1, "release") == 0)
 		global.params.release = 1;
-#if V2
+#if DMDV2
 	    else if (strcmp(p + 1, "safe") == 0)
 		global.params.safe = 1;
 #endif
@@ -573,21 +579,21 @@ int main(int argc, char *argv[])
 	    else if (memcmp(p + 1, "man", 3) == 0)
 	    {
 #if _WIN32
-#if V1
+#if DMDV1
 		browse("http://www.digitalmars.com/d/1.0/dmd-windows.html");
 #else
 		browse("http://www.digitalmars.com/d/2.0/dmd-windows.html");
 #endif
 #endif
 #if linux
-#if V1
+#if DMDV1
 		browse("http://www.digitalmars.com/d/1.0/dmd-linux.html");
 #else
 		browse("http://www.digitalmars.com/d/2.0/dmd-linux.html");
 #endif
 #endif
 #if __APPLE__
-#if V1
+#if DMDV1
 		browse("http://www.digitalmars.com/d/1.0/dmd-osx.html");
 #else
 		browse("http://www.digitalmars.com/d/2.0/dmd-osx.html");
@@ -735,7 +741,7 @@ int main(int argc, char *argv[])
 	VersionCondition::addPredefinedGlobalIdent("D_Coverage");
     if (global.params.pic)
 	VersionCondition::addPredefinedGlobalIdent("D_PIC");
-#if V2
+#if DMDV2
     if (global.params.useUnitTests)
 	VersionCondition::addPredefinedGlobalIdent("unittest");
 #endif
@@ -910,7 +916,27 @@ int main(int argc, char *argv[])
   __try
   {
 #endif
-    // Read files, parse them
+    // Read files
+#define ASYNCREAD 1
+#if ASYNCREAD
+    // Multi threaded
+    AsyncRead *aw = AsyncRead::create(modules.dim);
+    for (i = 0; i < modules.dim; i++)
+    {
+	m = (Module *)modules.data[i];
+	aw->addFile(m->srcfile);
+    }
+    aw->start();
+#else
+    // Single threaded
+    for (i = 0; i < modules.dim; i++)
+    {
+	m = (Module *)modules.data[i];
+	m->read(0);
+    }
+#endif
+
+    // Parse files
     int anydocfiles = 0;
     for (i = 0; i < modules.dim; i++)
     {
@@ -922,7 +948,12 @@ int main(int argc, char *argv[])
 	m->importedFrom = m;
 	if (!global.params.oneobj || i == 0 || m->isDocFile)
 	    m->deleteObjFile();
-	m->read(0);
+#if ASYNCREAD
+	if (aw->read(i))
+	{
+	    error("cannot read file %s", m->srcfile->name->toChars());
+	}
+#endif
 	m->parse();
 	if (m->isDocFile)
 	{
@@ -947,6 +978,10 @@ int main(int argc, char *argv[])
 		global.params.link = 0;
 	}
     }
+#if ASYNCREAD
+    AsyncRead::dispose(aw);
+#endif
+
     if (anydocfiles && modules.dim &&
 	(global.params.oneobj || global.params.objname))
     {

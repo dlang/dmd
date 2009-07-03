@@ -322,7 +322,8 @@ void optfunc()
 	for (b = startblock; b; b = b->Bnext)
 	{
 	    if (b->Belem)
-	    {   b->Belem = doptelem(b->Belem,bc_goal[b->BC] | GOALstruct);
+	    {
+		b->Belem = doptelem(b->Belem,bc_goal[b->BC] | GOALstruct);
 		if (b->Belem)
 		    b->Belem = el_convert(b->Belem);
 	    }

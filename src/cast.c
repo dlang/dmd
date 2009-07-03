@@ -1,5 +1,5 @@
 
-// Copyright (c) 1999-2008 by Digital Mars
+// Copyright (c) 1999-2009 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // http://www.digitalmars.com
@@ -61,7 +61,7 @@ Expression *Expression::implicitCastTo(Scope *sc, Type *t)
 		    toChars(), type->toChars(), t->toChars());
 	    }
 	}
-#if V2
+#if DMDV2
 	if (match == MATCHconst && t == type->constOf())
 	{
 	    Expression *e = copy();
@@ -242,7 +242,7 @@ MATCH IntegerExp::implicitConvTo(Type *t)
 
 	case Tchar:
 	case Tuns8:
-	    //printf("value = %llu %llu\n", (integer_t)(unsigned char)value, value);
+	    //printf("value = %llu %llu\n", (dinteger_t)(unsigned char)value, value);
 	    if ((unsigned char)value != value)
 		goto Lno;
 	    goto Lyes;
@@ -390,7 +390,7 @@ MATCH NullExp::implicitConvTo(Type *t)
     return Expression::implicitConvTo(t);
 }
 
-#if V2
+#if DMDV2
 MATCH StructLiteralExp::implicitConvTo(Type *t)
 {
 #if 0
@@ -731,6 +731,32 @@ Expression *Expression::castTo(Scope *sc, Type *t)
 #endif
 	else
 	{
+	    if (typeb->ty == Tstruct)
+	    {   TypeStruct *ts = (TypeStruct *)typeb;
+		if (!(tb->ty == Tstruct && ts->sym == ((TypeStruct *)tb)->sym) &&
+		    ts->sym->aliasthis)
+		{   /* Forward the cast to our alias this member, rewrite to:
+		     *   cast(to)e1.aliasthis
+		     */
+		    Expression *e1 = new DotIdExp(loc, this, ts->sym->aliasthis->ident);
+		    Expression *e = new CastExp(loc, e1, tb);
+		    e = e->semantic(sc);
+		    return e;
+		}
+	    }
+	    else if (typeb->ty == Tclass)
+	    {   TypeClass *ts = (TypeClass *)typeb;
+		if (tb->ty != Tclass &&
+		    ts->sym->aliasthis)
+		{   /* Forward the cast to our alias this member, rewrite to:
+		     *   cast(to)e1.aliasthis
+		     */
+		    Expression *e1 = new DotIdExp(loc, this, ts->sym->aliasthis->ident);
+		    Expression *e = new CastExp(loc, e1, tb);
+		    e = e->semantic(sc);
+		    return e;
+		}
+	    }
 	    e = new CastExp(loc, e, tb);
 	}
     }
@@ -1166,8 +1192,11 @@ Expression *ArrayLiteralExp::castTo(Scope *sc, Type *t)
     }
     if (tb->ty == Tpointer && typeb->ty == Tsarray)
     {
-	e = (ArrayLiteralExp *)copy();
-	e->type = typeb->nextOf()->pointerTo();
+	Type *tp = typeb->nextOf()->pointerTo();
+	if (!tp->equals(e->type))
+	{   e = (ArrayLiteralExp *)copy();
+	    e->type = tp;
+	}
     }
 L1:
     return e->Expression::castTo(sc, t);
@@ -1347,7 +1376,7 @@ Expression *BinExp::scaleFactor(Scope *sc)
 	e2->type = t;
 	type = e1->type;
     }
-    else if (t2b->ty && t1b->isintegral())
+    else if (t2b->ty == Tpointer && t1b->isintegral())
     {   // Need to adjust operator by the stride
 	// Replace (int + ptr) with (ptr + (int * stride))
 	Type *t = Type::tptrdiff_t;
@@ -1740,7 +1769,7 @@ int arrayTypeCompatible(Loc loc, Type *t1, Type *t2)
 	    t2->nextOf()->implicitConvTo(t1->nextOf()) < MATCHconst &&
 	    (t1->nextOf()->ty != Tvoid && t2->nextOf()->ty != Tvoid))
 	{
-	    error("array equality comparison type mismatch, %s vs %s", t1->toChars(), t2->toChars());
+	    error(loc, "array equality comparison type mismatch, %s vs %s", t1->toChars(), t2->toChars());
 	}
 	return 1;
     }

@@ -85,7 +85,7 @@ enum PROT Declaration::prot()
  * Issue error if not.
  */
 
-#if V2
+#if DMDV2
 void Declaration::checkModify(Loc loc, Scope *sc, Type *t)
 {
     if (sc->incontract && isParameter())
@@ -1172,23 +1172,11 @@ Dsymbol *VarDeclaration::toAlias()
 
 void VarDeclaration::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 {
-    if (storage_class & STCconst)
-	buf->writestring("const ");
-    if (storage_class & STCstatic)
-	buf->writestring("static ");
-    if (storage_class & STCauto)
-	buf->writestring("auto ");
-#if V2
-    if (storage_class & STCmanifest)
-	buf->writestring("enum ");
-    if (storage_class & STCinvariant)
-	buf->writestring("immutable ");
-    if (storage_class & STCshared)
-	buf->writestring("shared ");
-    if (storage_class & STCtls)
-	buf->writestring("__thread ");
-#endif
+    StorageClassDeclaration::stcToCBuffer(buf, storage_class);
 
+    /* If changing, be sure and fix CompoundDeclarationStatement::toCBuffer()
+     * too.
+     */
     if (type)
 	type->toCBuffer(buf, ident, hgs);
     else
@@ -1265,6 +1253,7 @@ void VarDeclaration::checkNestedReference(Scope *sc, Loc loc)
 	    fdv->closureVars.push(this);
 	  L2: ;
 
+	    //printf("fdthis is %s\n", fdthis->toChars());
 	    //printf("var %s in function %s is nested ref\n", toChars(), fdv->toChars());
 	}
     }
@@ -1542,7 +1531,7 @@ void TypeInfoDeclaration::semantic(Scope *sc)
 
 /***************************** TypeInfoConstDeclaration **********************/
 
-#if V2
+#if DMDV2
 TypeInfoConstDeclaration::TypeInfoConstDeclaration(Type *tinfo)
     : TypeInfoDeclaration(tinfo, 0)
 {
@@ -1551,7 +1540,7 @@ TypeInfoConstDeclaration::TypeInfoConstDeclaration(Type *tinfo)
 
 /***************************** TypeInfoInvariantDeclaration **********************/
 
-#if V2
+#if DMDV2
 TypeInfoInvariantDeclaration::TypeInfoInvariantDeclaration(Type *tinfo)
     : TypeInfoDeclaration(tinfo, 0)
 {
@@ -1560,7 +1549,7 @@ TypeInfoInvariantDeclaration::TypeInfoInvariantDeclaration(Type *tinfo)
 
 /***************************** TypeInfoSharedDeclaration **********************/
 
-#if V2
+#if DMDV2
 TypeInfoSharedDeclaration::TypeInfoSharedDeclaration(Type *tinfo)
     : TypeInfoDeclaration(tinfo, 0)
 {

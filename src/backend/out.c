@@ -346,7 +346,7 @@ void outdata(symbol *s)
 	{   seg_data *pseg = obj_tlsseg();
 #if ELFOBJ || MACHOBJ
 	    s->Sseg = pseg->SDseg;
-	    elf_data_start(s, datasize, seg);
+	    elf_data_start(s, datasize, s->Sseg);
 //	    s->Soffset = pseg->SDoffset;
 #else
 	    targ_size_t TDoffset = pseg->SDoffset;

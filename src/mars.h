@@ -57,6 +57,7 @@ the target object file format:
  */
 
 
+#include <stdio.h>
 #include <stdint.h>
 #include <stdarg.h>
 
@@ -71,10 +72,11 @@ the target object file format:
 /* Changes for the GDC compiler by David Friedman */
 #endif
 
-#define V1	0
-#define V2	1	// Version 2.0 features
+#define DMDV1	0
+#define DMDV2	1	// Version 2.0 features
 #define BREAKABI 1	// 0 if not ready to break the ABI just yet
-#define STRUCTTHISREF V2	// if 'this' for struct is a reference, not a pointer
+#define STRUCTTHISREF DMDV2	// if 'this' for struct is a reference, not a pointer
+#define SNAN_DEFAULT_INIT DMDV2	// if floats are default initialized to signalling NaN
 
 /* Other targets are TARGET_LINUX and TARGET_OSX, which are
  * set on the command line via the compiler makefile.
@@ -221,11 +223,6 @@ extern Global global;
 #define WINDOWS_SEH	(_WIN32 && __DMC__)
 
 
-#if __GNUC__
-//#define memicmp strncasecmp
-//#define stricmp strcasecmp
-#endif
-
 #ifdef __DMC__
  typedef _Complex long double complex_t;
 #else
@@ -234,12 +231,13 @@ extern Global global;
  #endif
  #ifdef __APPLE__
   //#include "complex.h"//This causes problems with include the c++ <complex> and not the C "complex.h"
-  #define integer_t dmd_integer_t
  #endif
 #endif
 
-// Be careful not to care about sign when using integer_t
-typedef uint64_t integer_t;
+// Be careful not to care about sign when using dinteger_t
+//typedef uint64_t integer_t;
+typedef uint64_t dinteger_t;	// use this instead of integer_t to
+				// avoid conflicts with system #include's
 
 // Signed and unsigned variants
 typedef int64_t sinteger_t;
@@ -340,7 +338,7 @@ enum MATCH
 {
     MATCHnomatch,	// no match
     MATCHconvert,	// match with conversions
-#if V2
+#if DMDV2
     MATCHconst,		// match with conversion to const
 #endif
     MATCHexact		// exact match

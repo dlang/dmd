@@ -48,9 +48,10 @@ AggregateDeclaration::AggregateDeclaration(Loc loc, Identifier *id)
     isnested = 0;
     vthis = NULL;
 
-#if V2
+#if DMDV2
     ctor = NULL;
     defaultCtor = NULL;
+    aliasthis = NULL;
 #endif
     dtor = NULL;
 }
@@ -172,7 +173,7 @@ void AggregateDeclaration::addField(Scope *sc, VarDeclaration *v)
     }
     if (t->ty == Tstruct /*&& isStructDeclaration()*/)
     {	TypeStruct *ts = (TypeStruct *)t;
-#if V2
+#if DMDV2
 	if (ts->sym == this)
 	{
 	    error("cannot have field %s with same struct type", v->toChars());
@@ -228,7 +229,7 @@ StructDeclaration::StructDeclaration(Loc loc, Identifier *id)
     : AggregateDeclaration(loc, id)
 {
     zeroInit = 0;	// assume false until we do semantic processing
-#if V2
+#if DMDV2
     hasIdentityAssign = 0;
     cpctor = NULL;
     postblit = NULL;
@@ -290,7 +291,7 @@ void StructDeclaration::semantic(Scope *sc)
     assert(!isAnonymous());
     if (sc->stc & STCabstract)
 	error("structs, unions cannot be abstract");
-#if V2
+#if DMDV2
     if (storage_class & STCinvariant)
         type = type->invariantOf();
     else if (storage_class & STCconst)
@@ -432,7 +433,7 @@ void StructDeclaration::semantic(Scope *sc)
 
 	id = Id::cmp;
     }
-#if V2
+#if DMDV2
     dtor = buildDtor(sc2);
     postblit = buildPostBlit(sc2);
     cpctor = buildCpCtor(sc2);
@@ -500,8 +501,8 @@ void StructDeclaration::semantic(Scope *sc)
 
     /* Look for special member functions.
      */
-#if V2
-    ctor =   (CtorDeclaration *)search(0, Id::ctor, 0);
+#if DMDV2
+    ctor = search(0, Id::ctor, 0);
 #endif
     inv =    (InvariantDeclaration *)search(0, Id::classInvariant, 0);
     aggNew =       (NewDeclaration *)search(0, Id::classNew,       0);

@@ -52,11 +52,11 @@ release:
 ################ NT COMMAND LINE RELEASE #########################
 
 trace:
-	$(MAKE) OPT=-o "DEBUG=-gt -Nc" LFLAGS=-L/ma/co dmd.exe
+	$(MAKE) OPT=-o "DEBUG=-gt -Nc" LFLAGS=-L/ma/co/delexe dmd.exe
 
 dmd:
-	$(MAKE) OPT=-o "DEBUG=" dmd.exe
-#	$(MAKE) OPT=-o "DEBUG=" LFLAGS=-L/ma/co dmd.exe
+	$(MAKE) OPT=-o "DEBUG=" LFLAGS=-L/delexe dmd.exe
+#	$(MAKE) OPT=-o "DEBUG=" LFLAGS=-L/ma/co/delexe dmd.exe
 
 ################ NT COMMAND LINE DEBUG #########################
 
@@ -75,7 +75,7 @@ OBJ1= mars.obj enum.obj struct.obj dsymbol.obj import.obj id.obj \
 	module.obj scope.obj dump.obj cond.obj inline.obj opover.obj \
 	entity.obj class.obj mangle.obj attrib.obj impcnvtab.obj \
 	link.obj access.obj doc.obj macro.obj hdrgen.obj delegatize.obj \
-	interpret.obj traits.obj \
+	interpret.obj traits.obj aliasthis.obj \
 	builtin.obj clone.obj libomf.obj arrayop.obj irstate.obj \
 	glue.obj msc.obj ph.obj tk.obj s2ir.obj todt.obj e2ir.obj tocsym.obj \
 	util.obj bit.obj eh.obj toobj.obj toctype.obj tocvdebug.obj toir.obj
@@ -93,7 +93,7 @@ OBJ8= go.obj gdag.obj gother.obj gflow.obj gloop.obj var.obj el.obj \
 # from ROOT
 
 ROOTOBJS= lstring.obj array.obj gnuc.obj man.obj rmem.obj port.obj root.obj \
-	stringtable.obj dchar.obj
+	stringtable.obj dchar.obj response.obj async.obj
 
 OBJS= $(OBJ1) $(OBJ8) $(ROOTOBJS)
 
@@ -111,7 +111,8 @@ SRCS= mars.c enum.c struct.c dsymbol.c import.c idgen.c impcnvgen.c utf.h \
 	declaration.h lexer.h expression.h statement.h doc.h doc.c \
 	macro.h macro.c hdrgen.h hdrgen.c arraytypes.h \
 	delegatize.c toir.h toir.c interpret.c traits.c builtin.c \
-	clone.c lib.h libomf.c libelf.c libmach.c arrayop.c
+	clone.c lib.h libomf.c libelf.c libmach.c arrayop.c \
+	aliasthis.h aliasthis.c
 
 # From C++ compiler
 
@@ -144,7 +145,8 @@ ROOTSRC= $(ROOT)\dchar.h $(ROOT)\dchar.c $(ROOT)\lstring.h \
 	$(ROOT)\lstring.c $(ROOT)\root.h $(ROOT)\root.c $(ROOT)\array.c \
 	$(ROOT)\rmem.h $(ROOT)\rmem.c $(ROOT)\port.h \
 	$(ROOT)\stringtable.h $(ROOT)\stringtable.c \
-	$(ROOT)\gnuc.h $(ROOT)\gnuc.c $(ROOT)\man.c $(ROOT)\port.c
+	$(ROOT)\gnuc.h $(ROOT)\gnuc.c $(ROOT)\man.c $(ROOT)\port.c \
+	$(ROOT)\response.c $(ROOT)\async.h $(ROOT)\async.c
 
 MAKEFILES=win32.mak linux.mak osx.mak
 
@@ -388,6 +390,9 @@ tk.obj : tk.c
 array.obj : $(ROOT)\array.c
 	$(CC) -c $(CFLAGS) $(ROOT)\array.c
 
+async.obj : $(ROOT)\async.h $(ROOT)\async.c
+	$(CC) -c $(CFLAGS) $(ROOT)\async.c
+
 dchar.obj : $(ROOT)\dchar.c
 	$(CC) -c $(CFLAGS) $(ROOT)\dchar.c
 
@@ -409,6 +414,9 @@ port.obj : $(ROOT)\port.c
 root.obj : $(ROOT)\root.c
 	$(CC) -c $(CFLAGS) $(ROOT)\root.c
 
+response.obj : $(ROOT)\response.c
+	$(CC) -c $(CFLAGS) $(ROOT)\response.c
+
 stringtable.obj : $(ROOT)\stringtable.c
 	$(CC) -c $(CFLAGS) $(ROOT)\stringtable.c
 
@@ -416,6 +424,7 @@ stringtable.obj : $(ROOT)\stringtable.c
 ################# Source file dependencies ###############
 
 access.obj : $(TOTALH) enum.h aggregate.h init.h attrib.h access.c
+aliasthis.obj : $(TOTALH) aliasthis.h aliasthis.c
 arrayop.obj : $(TOTALH) identifier.h declaration.h arrayop.c
 attrib.obj : $(TOTALH) identifier.h declaration.h attrib.h attrib.c
 builtin.obj : $(TOTALH) builtin.c

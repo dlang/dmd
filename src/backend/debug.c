@@ -64,7 +64,7 @@ void WRclass(enum SC c)
 void WROP(unsigned oper)
 {
   if (oper >= OPMAX)
-  {	dbg_printf("op = x%x\n",oper);
+  {	dbg_printf("op = x%x, OPMAX = %d\n",oper,OPMAX);
 	assert(0);
 #if TARGET_MAC
 	return;				/* try to keep on after assert, for now */

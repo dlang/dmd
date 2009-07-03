@@ -25,6 +25,8 @@
 static char __file__[] = __FILE__;	/* for tassert.h		*/
 #include	"tassert.h"
 
+extern void error(const char *filename, unsigned linnum, const char *format, ...);
+
 STATIC elem * optelem(elem *,HINT);
 STATIC elem * elarray(elem *e);
 STATIC elem * eldiv(elem *);
@@ -743,7 +745,17 @@ STATIC elem * elmemxxx(elem *e)
 		if (ex->E1->Eoper == OPptrlptr)
 		    eltonear(&ex->E1);
 		if (ex->E2->Eoper == OPconst)
-		{   // Convert OPmemcpy to OPstreq
+		{
+		    if (!boolres(ex->E2))
+		    {	// Copying 0 bytes, so remove memcpy
+			e->E2 = e->E1;
+			e->E1 = ex->E1;
+			ex->E1 = NULL;
+			e->Eoper = OPcomma;
+			el_free(ex);
+			return optelem(e, TRUE);
+		    }
+		    // Convert OPmemcpy to OPstreq
 		    e->Eoper = OPstreq;
 		    e->Enumbytes = el_tolong(ex->E2);
 		    e->E1 = el_una(OPind,TYstruct,e->E1);
@@ -1872,6 +1884,10 @@ Lret:
 
 STATIC elem * elremquo(elem *e)
 {
+#if 0 && MARS
+    if (cnst(e->E2) && !boolres(e->E2))
+	error(e->Esrcpos.Sfilename, e->Esrcpos.Slinnum, "divide by zero\n");
+#endif
     return e;
 }
 
@@ -1903,12 +1919,18 @@ STATIC elem * eldiv(elem *e)
     e2 = e->E2;
     tym = e->E1->Ety;
     uns = tyuns(tym) | tyuns(e2->Ety);
-    if (cnst(e2) &&
+    if (cnst(e2))
+    {
+#if 0 && MARS
+      if (!boolres(e2))
+	error(e->Esrcpos.Sfilename, e->Esrcpos.Slinnum, "divide by zero\n");
+#endif
+      if (
 #if TARGET_MAC
 	(e->Eoper == OPdiv || e->Eoper == OPdivass) &&
 #endif
        uns)
-    {	int i;
+      {	int i;
 #if TARGET_MAC
 	int j;
 	long l;
@@ -1966,10 +1988,8 @@ STATIC elem * eldiv(elem *e)
 	    return optelem(e,TRUE);
 	}
 #endif
-    }
+      }
 #if TARGET_MAC
-    if (cnst(e2) )
-    {
 	unsigned short op;
 	tym_t tym2;
 	elem *e1 = e->E1;
@@ -2021,8 +2041,8 @@ STATIC elem * eldiv(elem *e)
 	    return optelem(e,TRUE);
 	}
 #endif
-    }
 #endif
+    }
 
     if (OPTIMIZER)
     {
@@ -3745,18 +3765,24 @@ STATIC elem * ellngsht(elem *e)
  */
 
 STATIC elem * el64_32(elem *e)
-{ elem *e1;
-  tym_t ty;
-
-  ty = e->Ety;
-  e1 = e->E1;
+{
+  tym_t ty = e->Ety;
+  elem *e1 = e->E1;
   switch (e1->Eoper)
   {
     case OPs32_64:
     case OPu32_64:
+    case OPpair:
 	if (tysize(ty) != tysize(e->E1->E1->Ety))
 	    break;
 	e = el_selecte1(el_selecte1(e));
+	e->Ety = ty;
+	break;
+
+    case OPrpair:
+	if (tysize(ty) != tysize(e->E1->E2->Ety))
+	    break;
+	e = el_selecte2(el_selecte1(e));
 	e->Ety = ty;
 	break;
 
