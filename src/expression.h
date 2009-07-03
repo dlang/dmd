@@ -334,13 +334,18 @@ struct TemplateExp : Expression
 
 struct NewExp : Expression
 {
-    Type *newtype;
+    /* thisexp.new(newargs) newtype(arguments)
+     */
+    Expression *thisexp;	// if !NULL, 'this' for class being allocated
     Expressions *newargs;	// Array of Expression's to call new operator
+    Type *newtype;
     Expressions *arguments;	// Array of Expression's
+
     CtorDeclaration *member;	// constructor function
     NewDeclaration *allocator;	// allocator function
 
-    NewExp(Loc loc, Expressions *newargs, Type *newtype, Expressions *arguments);
+    NewExp(Loc loc, Expression *thisexp, Expressions *newargs,
+	Type *newtype, Expressions *arguments);
     Expression *syntaxCopy();
     Expression *semantic(Scope *sc);
     elem *toElem(IRState *irs);
@@ -354,11 +359,15 @@ struct NewExp : Expression
 
 struct NewAnonClassExp : Expression
 {
+    /* thisexp.new(newargs) class baseclasses { } (arguments)
+     */
+    Expression *thisexp;	// if !NULL, 'this' for class being allocated
     Expressions *newargs;	// Array of Expression's to call new operator
-    Expressions *arguments;	// Array of Expression's to call class constructor
     ClassDeclaration *cd;	// class being instantiated
+    Expressions *arguments;	// Array of Expression's to call class constructor
 
-    NewAnonClassExp(Loc loc, Expressions *newargs, ClassDeclaration *cd, Expressions *arguments);
+    NewAnonClassExp(Loc loc, Expression *thisexp, Expressions *newargs,
+	ClassDeclaration *cd, Expressions *arguments);
     Expression *syntaxCopy();
     Expression *semantic(Scope *sc);
     void checkSideEffect(int flag);
@@ -541,7 +550,10 @@ struct BinAssignExp : BinExp
 
 struct AssertExp : UnaExp
 {
-    AssertExp(Loc loc, Expression *e);
+    Expression *msg;
+
+    AssertExp(Loc loc, Expression *e, Expression *msg = NULL);
+    Expression *syntaxCopy();
     Expression *semantic(Scope *sc);
     void checkSideEffect(int flag);
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
@@ -1179,6 +1191,10 @@ struct InExp : BinExp
     InExp(Loc loc, Expression *e1, Expression *e2);
     Expression *semantic(Scope *sc);
     int isBit();
+
+    // For operator overloading
+    Identifier *opId();
+
     elem *toElem(IRState *irs);
 };
 

@@ -554,7 +554,7 @@ Dsymbol *AnonDeclaration::syntaxCopy(Dsymbol *s)
 
 void AnonDeclaration::semantic(Scope *sc)
 {
-    //printf("\tAnonDeclaration::semantic '%s'\n",toChars());
+    //printf("\tAnonDeclaration::semantic %s %p\n", isunion ? "union" : "struct", this);
 
     Scope *scx = NULL;
     if (scope)
@@ -575,7 +575,7 @@ void AnonDeclaration::semantic(Scope *sc)
     }
 
     if (decl)
-    {	Scope sc_save = *sc;
+    {
 	AnonymousAggregateDeclaration aad;
 	int adisunion;
 
@@ -586,12 +586,18 @@ void AnonDeclaration::semantic(Scope *sc)
 	else
 	    adisunion = ad->isUnionDeclaration() != NULL;
 
+//	printf("\tsc->anonAgg = %p\n", sc->anonAgg);
+//	printf("\tad  = %p\n", ad);
+//	printf("\taad = %p\n", &aad);
+
+	sc = sc->push();
 	sc->anonAgg = &aad;
 	sc->stc &= ~(STCauto | STCstatic);
 	sc->inunion = isunion;
 	sc->offset = 0;
 	sc->flags = 0;
 	aad.structalign = sc->structalign;
+	aad.parent = ad;
 
 	for (unsigned i = 0; i < decl->dim; i++)
 	{
@@ -605,21 +611,29 @@ void AnonDeclaration::semantic(Scope *sc)
 		break;
 	    }
 	}
-	*sc = sc_save;
+	sc = sc->pop();
 
 	// If failed due to forward references, unwind and try again later
 	if (aad.sizeok == 2)
 	{
 	    ad->sizeok = 2;
-	    scope = scx ? scx : new Scope(*sc);
-	    scope->setNoFree();
-	    scope->module->addDeferredSemantic(this);
+	    //printf("\tsetting ad->sizeok %p to 2\n", ad);
+	    if (!sc->anonAgg)
+	    {
+		scope = scx ? scx : new Scope(*sc);
+		scope->setNoFree();
+		scope->module->addDeferredSemantic(this);
+	    }
+	    //printf("\tforward reference %p\n", this);
 	    return;
 	}
 	if (sem == 0)
 	{   Module::dprogress++;
 	    sem = 1;
+	    //printf("\tcompleted %p\n", this);
 	}
+	else
+	    ;//printf("\talready completed %p\n", this);
 
 	// 0 sized structs are set to 1 byte
 	if (aad.structsize == 0)

@@ -3268,6 +3268,9 @@ unsigned TypeEnum::alignsize()
 {
     if (!sym->memtype)
     {
+#ifdef DEBUG
+	printf("1: ");
+#endif
 	error(0, "enum %s is forward referenced", sym->toChars());
 	return 4;
     }
@@ -3283,7 +3286,10 @@ Type *TypeEnum::toBasetype()
 {
     if (!sym->memtype)
     {
-	error(0, "enum %s is forward referenced", sym->toChars());
+#ifdef DEBUG
+	printf("2: ");
+#endif
+	error(sym->loc, "enum %s is forward referenced", sym->toChars());
 	return tint32;
     }
     return sym->memtype->toBasetype();
@@ -3366,12 +3372,12 @@ Lfwd:
 
 int TypeEnum::isintegral()
 {
-    return sym->memtype->isintegral();
+    return 1;
 }
 
 int TypeEnum::isfloating()
 {
-    return sym->memtype->isfloating();
+    return 0;
 }
 
 int TypeEnum::isunsigned()

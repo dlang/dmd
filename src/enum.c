@@ -1,5 +1,5 @@
 
-// Copyright (c) 1999-2004 by Digital Mars
+// Copyright (c) 1999-2006 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // www.digitalmars.com
@@ -58,6 +58,18 @@ void EnumDeclaration::semantic(Scope *sc)
 	memtype = Type::tint32;
     parent = sc->scopesym;
     memtype = memtype->semantic(loc, sc);
+
+    /* Check to see if memtype is forward referenced
+     */
+    if (memtype->ty == Tenum)
+    {	EnumDeclaration *sym = (EnumDeclaration *)memtype->toDsymbol(sc);
+	if (!sym->memtype)
+	{
+	    error("base enum %s is forward referenced", sym->toChars());
+	    memtype = Type::tint32;
+	}
+    }
+
     if (!memtype->isintegral())
 	error("base type must be of integral type, not %s", memtype->toChars());
 

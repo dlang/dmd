@@ -429,7 +429,7 @@ void functionArguments(Loc loc, Scope *sc, TypeFunction *tf, Expressions *argume
 			args->setDim(nargs - i);
 			for (int u = i; u < nargs; u++)
 			    args->data[u - i] = arguments->data[u];
-			arg = new NewExp(loc, NULL, p->type, args);
+			arg = new NewExp(loc, NULL, NULL, p->type, args);
 			break;
 		    }
 		    default:
@@ -2322,9 +2322,11 @@ void TemplateExp::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 
 /********************** NewExp **************************************/
 
-NewExp::NewExp(Loc loc, Expressions *newargs, Type *newtype, Expressions *arguments)
+NewExp::NewExp(Loc loc, Expression *thisexp, Expressions *newargs,
+	Type *newtype, Expressions *arguments)
     : Expression(loc, TOKnew, sizeof(NewExp))
 {
+    this->thisexp = thisexp;
     this->newargs = newargs;
     this->newtype = newtype;
     this->arguments = arguments;
@@ -2334,7 +2336,9 @@ NewExp::NewExp(Loc loc, Expressions *newargs, Type *newtype, Expressions *argume
 
 Expression *NewExp::syntaxCopy()
 {
-    return new NewExp(loc, arraySyntaxCopy(newargs),
+    return new NewExp(loc,
+	thisexp ? thisexp->syntaxCopy() : NULL,
+	arraySyntaxCopy(newargs),
 	newtype->syntaxCopy(), arraySyntaxCopy(arguments));
 }
 
@@ -2342,14 +2346,32 @@ Expression *NewExp::syntaxCopy()
 Expression *NewExp::semantic(Scope *sc)
 {   int i;
     Type *tb;
+    ClassDeclaration *cdthis = NULL;
 
 #if LOGSEMANTIC
     printf("NewExp::semantic() %s\n", toChars());
     printf("newtype: %s\n", newtype->toChars());
 #endif
-    if (type)
+    if (type)			// if semantic() already run
 	return this;
-    type = newtype->semantic(loc, sc);
+
+    if (thisexp)
+    {	thisexp = thisexp->semantic(sc);
+	cdthis = thisexp->type->isClassHandle();
+	if (cdthis)
+	{
+	    sc = sc->push(cdthis);
+	    type = newtype->semantic(loc, sc);
+	    sc = sc->pop();
+	}
+	else
+	{
+	    error("'this' for nested class must be a class type, not %s", thisexp->type->toChars());
+	    type = newtype->semantic(loc, sc);
+	}
+    }
+    else
+	type = newtype->semantic(loc, sc);
     tb = type->toBasetype();
     //printf("tb: %s, deco = %s\n", tb->toChars(), tb->deco);
 
@@ -2357,6 +2379,9 @@ Expression *NewExp::semantic(Scope *sc)
     preFunctionArguments(loc, sc, newargs);
     arrayExpressionSemantic(arguments, sc);
     preFunctionArguments(loc, sc, arguments);
+
+    if (thisexp && tb->ty != Tclass)
+	error("e.new is only for allocating nested classes, not %s", tb->toChars());
 
     if (tb->ty == Tclass)
     {	ClassDeclaration *cd;
@@ -2380,17 +2405,28 @@ Expression *NewExp::semantic(Scope *sc)
 
 	    if (cdn)
 	    {
-		for (Dsymbol *sf = sc->func; 1; sf= sf->toParent()->isFuncDeclaration())
+		if (cdthis)
 		{
-		    if (!sf)
+		    if (cdthis != cdn && !cdn->isBaseOf(cdthis, NULL))
+			error("'this' for nested class must be of type %s, not %s", cdn->toChars(), thisexp->type->toChars());
+		}
+		else
+		{
+		    for (Dsymbol *sf = sc->func; 1; sf= sf->toParent()->isFuncDeclaration())
 		    {
-			error("outer class %s 'this' needed to 'new' nested class %s", cdn->toChars(), cd->toChars());
-			break;
+			if (!sf)
+			{
+			    error("outer class %s 'this' needed to 'new' nested class %s", cdn->toChars(), cd->toChars());
+			    break;
+			}
+			AggregateDeclaration *ad = sf->isThis();
+			if (ad && (ad == cdn || cdn->isBaseOf(ad->isClassDeclaration(), NULL)))
+			    break;
 		    }
-		    if (sf->isThis() == cdn)
-			break;
 		}
 	    }
+	    else if (thisexp)
+		error("e.new is only for allocating nested classes");
 	}
 	f = cd->ctor;
 	if (f)
@@ -2513,6 +2549,10 @@ void NewExp::checkSideEffect(int flag)
 void NewExp::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 {   int i;
 
+    if (thisexp)
+    {	expToCBuffer(buf, hgs, thisexp, PREC_primary);
+	buf->writeByte('.');
+    }
     buf->writestring("new ");
     if (newargs && newargs->dim)
     {
@@ -2531,9 +2571,11 @@ void NewExp::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 
 /********************** NewAnonClassExp **************************************/
 
-NewAnonClassExp::NewAnonClassExp(Loc loc, Expressions *newargs, ClassDeclaration *cd, Expressions *arguments)
+NewAnonClassExp::NewAnonClassExp(Loc loc, Expression *thisexp,
+	Expressions *newargs, ClassDeclaration *cd, Expressions *arguments)
     : Expression(loc, TOKnewanonclass, sizeof(NewAnonClassExp))
 {
+    this->thisexp = thisexp;
     this->newargs = newargs;
     this->cd = cd;
     this->arguments = arguments;
@@ -2542,6 +2584,7 @@ NewAnonClassExp::NewAnonClassExp(Loc loc, Expressions *newargs, ClassDeclaration
 Expression *NewAnonClassExp::syntaxCopy()
 {
     return new NewAnonClassExp(loc,
+	thisexp ? thisexp->syntaxCopy() : NULL,
 	arraySyntaxCopy(newargs),
 	(ClassDeclaration *)cd->syntaxCopy(NULL),
 	arraySyntaxCopy(arguments));
@@ -2558,7 +2601,7 @@ Expression *NewAnonClassExp::semantic(Scope *sc)
     Expression *d = new DeclarationExp(loc, cd);
     d = d->semantic(sc);
 
-    Expression *n = new NewExp(loc, newargs, cd->type, arguments);
+    Expression *n = new NewExp(loc, thisexp, newargs, cd->type, arguments);
 
     Expression *c = new CommaExp(loc, d, n);
     return c->semantic(sc);
@@ -2571,6 +2614,10 @@ void NewAnonClassExp::checkSideEffect(int flag)
 void NewAnonClassExp::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 {   int i;
 
+    if (thisexp)
+    {	expToCBuffer(buf, hgs, thisexp, PREC_primary);
+	buf->writeByte('.');
+    }
     buf->writestring("new");
     if (newargs && newargs->dim)
     {
@@ -3358,9 +3405,17 @@ void BinExp::incompatibleTypes()
 
 /************************************************************/
 
-AssertExp::AssertExp(Loc loc, Expression *e)
+AssertExp::AssertExp(Loc loc, Expression *e, Expression *msg)
 	: UnaExp(loc, TOKassert, sizeof(AssertExp), e)
 {
+    this->msg = msg;
+}
+
+Expression *AssertExp::syntaxCopy()
+{
+    AssertExp *ae = new AssertExp(loc, e1->syntaxCopy(),
+				       msg ? msg->syntaxCopy() : NULL);
+    return ae;
 }
 
 Expression *AssertExp::semantic(Scope *sc)
@@ -3373,6 +3428,13 @@ Expression *AssertExp::semantic(Scope *sc)
     // BUG: see if we can do compile time elimination of the Assert
     e1 = e1->optimize(WANTvalue);
     e1 = e1->checkToBoolean();
+    if (msg)
+    {
+	msg = msg->semantic(sc);
+	msg = resolveProperties(sc, msg);
+	msg = msg->implicitCastTo(Type::tchar->arrayOf());
+	msg = msg->optimize(WANTvalue);
+    }
     if (!global.params.useAssert && e1->isBool(FALSE))
     {	Expression *e = new HaltExp(loc);
 	e = e->semantic(sc);
@@ -3390,6 +3452,11 @@ void AssertExp::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 {
     buf->writestring("assert(");
     expToCBuffer(buf, hgs, e1, PREC_assign);
+    if (msg)
+    {
+	buf->writeByte(',');
+	expToCBuffer(buf, hgs, msg, PREC_assign);
+    }
     buf->writeByte(')');
 }
 
@@ -6544,11 +6611,16 @@ InExp::InExp(Loc loc, Expression *e1, Expression *e2)
 }
 
 Expression *InExp::semantic(Scope *sc)
-{
+{   Expression *e;
+
     if (type)
 	return this;
 
     BinExp::semanticp(sc);
+    e = op_overload(sc);
+    if (e)
+	return e;
+
     //type = Type::tboolean;
     Type *t2b = e2->type->toBasetype();
     if (t2b->ty != Taarray)

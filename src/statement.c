@@ -497,6 +497,21 @@ int CompoundStatement::fallOffEnd()
     return falloff;
 }
 
+int CompoundStatement::comeFrom()
+{   int comefrom = FALSE;
+
+    //printf("CompoundStatement::comeFrom()\n");
+    for (int i = 0; i < statements->dim; i++)
+    {	Statement *s = (Statement *)statements->data[i];
+
+	if (!s)
+	    continue;
+
+	comefrom |= s->comeFrom();
+    }
+    return comefrom;
+}
+
 
 /******************************** ScopeStatement ***************************/
 
@@ -649,6 +664,13 @@ int WhileStatement::fallOffEnd()
     return TRUE;
 }
 
+int WhileStatement::comeFrom()
+{
+    if (body)
+	return body->comeFrom();
+    return FALSE;
+}
+
 void WhileStatement::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 {
     buf->writestring("while (");
@@ -706,6 +728,13 @@ int DoStatement::fallOffEnd()
 {
     body->fallOffEnd();
     return TRUE;
+}
+
+int DoStatement::comeFrom()
+{
+    if (body)
+	return body->comeFrom();
+    return FALSE;
 }
 
 void DoStatement::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
@@ -791,6 +820,13 @@ int ForStatement::fallOffEnd()
     if (body)
 	body->fallOffEnd();
     return TRUE;
+}
+
+int ForStatement::comeFrom()
+{
+    if (body)
+	return body->comeFrom();
+    return FALSE;
 }
 
 void ForStatement::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
@@ -1203,6 +1239,13 @@ int ForeachStatement::fallOffEnd()
     if (body)
 	body->fallOffEnd();
     return TRUE;
+}
+
+int ForeachStatement::comeFrom()
+{
+    if (body)
+	return body->comeFrom();
+    return FALSE;
 }
 
 void ForeachStatement::toCBuffer(OutBuffer *buf, HdrGenState *hgs)

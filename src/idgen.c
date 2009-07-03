@@ -173,6 +173,7 @@ Msgtable msgtable[] =
     { "cast", "opCast" },
     { "match", "opMatch" },
     { "next", "opNext" },
+    { "opIn" },
 
     { "classNew", "new" },
     { "classDelete", "delete" },

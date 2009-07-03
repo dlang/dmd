@@ -494,14 +494,19 @@ StaticAssert *Parser::parseStaticAssert()
 {
     Loc loc = this->loc;
     Expression *exp;
+    Expression *msg = NULL;
 
     //printf("parseStaticAssert()\n");
     nextToken();
     check(TOKlparen);
-    exp = parseExpression();
+    exp = parseAssignExp();
+    if (token.value == TOKcomma)
+    {	nextToken();
+	msg = parseAssignExp();
+    }
     check(TOKrparen);
     check(TOKsemicolon);
-    return new StaticAssert(loc, exp);
+    return new StaticAssert(loc, exp, msg);
 }
 
 
@@ -1093,7 +1098,7 @@ Dsymbol *Parser::parseAggregate()
 	nextToken();
 	Array *decl = parseDeclDefs(0);
 	if (token.value != TOKrcurly)
-	    error("struct member expected");
+	    error("} expected following member declarations in aggregate");
 	nextToken();
 	if (anon)
 	{
@@ -3860,12 +3865,19 @@ Expression *Parser::parsePrimaryExp()
 	}
 
 	case TOKassert:
+	{   Expression *msg = NULL;
+
 	    nextToken();
 	    check(TOKlparen, "assert");
 	    e = parseAssignExp();
+	    if (token.value == TOKcomma)
+	    {	nextToken();
+		msg = parseAssignExp();
+	    }
 	    check(TOKrparen);
-	    e = new AssertExp(loc, e);
+	    e = new AssertExp(loc, e, msg);
 	    break;
+	}
 
 	case TOKfunction:
 	case TOKdelegate:
@@ -3941,6 +3953,11 @@ Expression *Parser::parsePostExp(Expression *e)
 		    }
 		    else
 			e = new DotIdExp(loc, e, id);
+		    continue;
+		}
+		else if (token.value == TOKnew)
+		{
+		    e = parseNewExp(e);
 		    continue;
 		}
 		else
@@ -4076,7 +4093,7 @@ Expression *Parser::parseUnaryExp()
 	    break;
 
 	case TOKnew:
-	    e = parseNewExp();
+	    e = parseNewExp(NULL);
 	    break;
 
 #if DCASTSYNTAX
@@ -4547,7 +4564,7 @@ Expressions *Parser::parseArguments()
 /*******************************************
  */
 
-Expression *Parser::parseNewExp()
+Expression *Parser::parseNewExp(Expression *thisexp)
 {   Type *t;
     Expressions *newargs;
     Expressions *arguments = NULL;
@@ -4586,7 +4603,7 @@ Expression *Parser::parseNewExp()
 	    cd->members = decl;
 	}
 
-	e = new NewAnonClassExp(loc, newargs, cd, arguments);
+	e = new NewAnonClassExp(loc, thisexp, newargs, cd, arguments);
 
 	return e;
     }
@@ -4656,7 +4673,7 @@ Expression *Parser::parseNewExp()
     else if (token.value == TOKlparen)
 	arguments = parseArguments();
 #endif
-    e = new NewExp(loc, newargs, t, arguments);
+    e = new NewExp(loc, thisexp, newargs, t, arguments);
     return e;
 }
 

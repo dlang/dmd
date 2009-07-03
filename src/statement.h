@@ -139,6 +139,7 @@ struct CompoundStatement : Statement
     Statement *semantic(Scope *sc);
     int usesEH();
     int fallOffEnd();
+    int comeFrom();
     Statements *flatten();
     ReturnStatement *isReturnStatement();
 
@@ -194,6 +195,7 @@ struct WhileStatement : Statement
     int hasContinue();
     int usesEH();
     int fallOffEnd();
+    int comeFrom();
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
 
     Statement *inlineScan(InlineScanState *iss);
@@ -213,6 +215,7 @@ struct DoStatement : Statement
     int hasContinue();
     int usesEH();
     int fallOffEnd();
+    int comeFrom();
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
 
     Statement *inlineScan(InlineScanState *iss);
@@ -234,6 +237,7 @@ struct ForStatement : Statement
     int hasContinue();
     int usesEH();
     int fallOffEnd();
+    int comeFrom();
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
 
     Statement *inlineScan(InlineScanState *iss);
@@ -262,6 +266,7 @@ struct ForeachStatement : Statement
     int hasContinue();
     int usesEH();
     int fallOffEnd();
+    int comeFrom();
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
 
     Statement *inlineScan(InlineScanState *iss);

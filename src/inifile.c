@@ -1,5 +1,5 @@
 
-// Copyright (c) 1999-2002 by Digital Mars
+// Copyright (c) 1999-2006 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // www.digitalmars.com
@@ -11,6 +11,7 @@
 #include	<ctype.h>
 
 #include	"root.h"
+#include	"mem.h"
 
 #define LOG	0
 
@@ -50,20 +51,41 @@ void inifile(char *argv0, char *inifile)
 #if LOG
     printf("inifile(argv0 = '%s', inifile = '%s')\n", argv0, inifile);
 #endif
+    path = FileName::path(argv0);
     if (FileName::absolute(inifile))
     {
-	path = "";
 	filename = inifile;
     }
     else
     {
-	path = FileName::path(argv0);
-	filename = FileName::replaceName(argv0, inifile);
-
-#if LOG
-	printf("\tpath = '%s', filename = '%s'\n", path, filename);
+	/* Look for inifile in the following sequence of places:
+	 *	o current directory
+	 *	o home directory
+	 *	o directory off of argv0
+	 *	o /etc/
+	 */
+	if (FileName::exists(inifile))
+	{
+	    filename = inifile;
+	}
+	else
+	{
+	    filename = FileName::combine(getenv("HOME"), inifile);
+	    if (!FileName::exists(filename))
+	    {	//mem.free(filename);
+		filename = FileName::replaceName(argv0, inifile);
+#if linux
+		if (!FileName::exists(filename))
+		{   //mem.free(filename);
+		    filename = FileName::combine("/etc/", inifile);
+		}
 #endif
+	    }
+	}
     }
+#if LOG
+    printf("\tpath = '%s', filename = '%s'\n", path, filename);
+#endif
 
     File file(filename);
 

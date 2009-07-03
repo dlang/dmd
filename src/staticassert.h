@@ -24,8 +24,9 @@ struct HdrGenState;
 struct StaticAssert : Dsymbol
 {
     Expression *exp;
+    Expression *msg;
 
-    StaticAssert(Loc loc, Expression *exp);
+    StaticAssert(Loc loc, Expression *exp, Expression *msg);
 
     Dsymbol *syntaxCopy(Dsymbol *s);
     int addMember(Scope *sc, ScopeDsymbol *sd, int memnum);

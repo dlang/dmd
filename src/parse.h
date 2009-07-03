@@ -113,7 +113,7 @@ struct Parser : Lexer
 
     Expressions *parseArguments();
 
-    Expression *parseNewExp();
+    Expression *parseNewExp(Expression *thisexp);
 
     void addComment(Dsymbol *s, unsigned char *blockComment);
 };

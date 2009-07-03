@@ -638,7 +638,7 @@ void Module::semantic2()
 	{
 	    Dsymbol *sd = (Dsymbol *)deferred.data[i];
 
-	    sd->error("unable to resolve forward reference");
+	    sd->error("unable to resolve forward reference in definition");
 	}
 	return;
     }

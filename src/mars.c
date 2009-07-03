@@ -58,7 +58,7 @@ Global::Global()
 
     copyright = "Copyright (c) 1999-2006 by Digital Mars";
     written = "written by Walter Bright";
-    version = "v0.159";
+    version = "v0.160";
     global.structalign = 8;
 
     memset(&params, 0, sizeof(Param));
@@ -235,7 +235,7 @@ int main(int argc, char *argv[])
     inifile(argv[0], "sc.ini");
 #endif
 #if linux
-    inifile(argv[0], "/etc/dmd.conf");
+    inifile(argv[0], "dmd.conf");
 #endif
     getenv_setargv("DFLAGS", &argc, &argv);
 

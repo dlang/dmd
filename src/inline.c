@@ -468,6 +468,8 @@ Expression *NewExp::doInline(InlineDoState *ids)
     //printf("NewExp::doInline(): %s\n", toChars());
     NewExp *ne = (NewExp *)copy();
 
+    if (thisexp)
+	ne->thisexp = thisexp->doInline(ids);
     ne->newargs = arrayExpressiondoInline(ne->newargs, ids);
     ne->arguments = arrayExpressiondoInline(ne->arguments, ids);
     return ne;
