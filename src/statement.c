@@ -1982,6 +1982,7 @@ Statement *SwitchStatement::semantic(Scope *sc)
     {	condition = condition->integralPromotions(sc);
 	condition->checkIntegral();
     }
+    condition = condition->optimize(WANTvalue);
 
     sc = sc->push();
     sc->sbreak = this;

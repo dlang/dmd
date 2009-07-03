@@ -1094,6 +1094,7 @@ int VarDeclaration::hasPointers()
 Expression *VarDeclaration::callAutoDtor()
 {   Expression *e = NULL;
 
+    //printf("VarDeclaration::callAutoDtor() %s\n", toChars());
     if (storage_class & (STCauto | STCscope) && !noauto)
     {
 	for (ClassDeclaration *cd = type->isClassHandle();
@@ -1104,6 +1105,8 @@ Expression *VarDeclaration::callAutoDtor()
 	     * classes to determine if there's no way the monitor
 	     * could be set.
 	     */
+	    if (cd->isInterfaceDeclaration())
+		error("interface %s cannot be scope", cd->toChars());
 	    if (1 || onstack || cd->dtors.dim)	// if any destructors
 	    {
 		// delete this;

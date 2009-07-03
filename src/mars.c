@@ -1,6 +1,6 @@
 
 // Compiler implementation of the D programming language
-// Copyright (c) 1999-2007 by Digital Mars
+// Copyright (c) 1999-2008 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // http://www.digitalmars.com
@@ -58,9 +58,9 @@ Global::Global()
 #error "fix this"
 #endif
 
-    copyright = "Copyright (c) 1999-2007 by Digital Mars";
+    copyright = "Copyright (c) 1999-2008 by Digital Mars";
     written = "written by Walter Bright";
-    version = "v1.025";
+    version = "v1.026";
     global.structalign = 8;
 
     memset(&params, 0, sizeof(Param));

@@ -1219,13 +1219,12 @@ Lerr:
 
 TemplateParameters *Parser::parseTemplateParameterList()
 {
-    TemplateParameters *tpl;
+    TemplateParameters *tpl = new TemplateParameters();
 
     if (token.value != TOKlparen)
     {   error("parenthesized TemplateParameterList expected following TemplateIdentifier");
 	goto Lerr;
     }
-    tpl = new TemplateParameters();
     nextToken();
 
     // Get array of TemplateParameters
@@ -1309,7 +1308,7 @@ TemplateParameters *Parser::parseTemplateParameterList()
 		if (!tp_ident)
 		{
 		    error("no identifier for template value parameter");
-		    goto Lerr;
+		    tp_ident = new Identifier("error", TOKidentifier);
 		}
 		if (token.value == TOKcolon)	// : CondExpression
 		{
@@ -1330,10 +1329,8 @@ TemplateParameters *Parser::parseTemplateParameterList()
 	}
     }
     check(TOKrparen);
-    return tpl;
-
 Lerr:
-    return NULL;
+    return tpl;
 }
 
 /******************************************

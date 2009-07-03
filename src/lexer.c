@@ -2160,7 +2160,7 @@ done:
 		break;
 	    if (d >= r)
 		break;
-	    if (n * r + d < n)
+	    if (n && n * r + d <= n)
 	    {
 		error ("integer overflow");
 		break;

@@ -572,6 +572,7 @@ struct TypeTypedef : Type
     void toTypeInfoBuffer(OutBuffer *buf);
     void toCBuffer2(OutBuffer *buf, Identifier *ident, HdrGenState *hgs);
     Expression *dotExp(Scope *sc, Expression *e, Identifier *ident);
+    Expression *getProperty(Loc loc, Identifier *ident);
     int isbit();
     int isintegral();
     int isfloating();

@@ -1,6 +1,6 @@
 
 // Compiler implementation of the D programming language
-// Copyright (c) 1999-2007 by Digital Mars
+// Copyright (c) 1999-2008 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // http://www.digitalmars.com
@@ -1540,6 +1540,9 @@ MATCH TypeInstance::deduceType(Scope *sc,
 	else if (tempinst->tempdecl != tp->tempinst->tempdecl)
 	    goto Lnomatch;
 
+	if (tempinst->tiargs->dim != tp->tempinst->tiargs->dim)
+	    goto Lnomatch;
+
 	for (int i = 0; i < tempinst->tiargs->dim; i++)
 	{
 	    //printf("test: [%d]\n", i);
@@ -3008,6 +3011,8 @@ void TemplateInstance::semanticTiargs(Loc loc, Scope *sc, Objects *tiargs)
 	    ea = ea->semantic(sc);
 	    ea = ea->optimize(WANTvalue | WANTinterpret);
 	    tiargs->data[j] = ea;
+	    if (ea->op == TOKtype)
+		tiargs->data[j] = ea->type;
 	}
 	else if (sa)
 	{
@@ -3292,6 +3297,9 @@ int TemplateInstance::isNested(Objects *args)
 	  Lsa:
 	    Declaration *d = sa->isDeclaration();
 	    if (d && !d->isDataseg() &&
+#if V2
+		!(d->storage_class & STCmanifest) &&
+#endif
 		(!d->isFuncDeclaration() || d->isFuncDeclaration()->isNested()) &&
 		!isTemplateMixin())
 	    {
