@@ -51,7 +51,7 @@ elem *bit_assign(enum OPER op, elem *eb, elem *ei, elem *ev, int result);
 elem *bit_read(elem *eb, elem *ei, int result);
 elem *exp2_copytotemp(elem *e);
 
-#define el_setLoc(e,loc)	((e)->Esrcpos.Sfilename = (loc).filename, \
+#define el_setLoc(e,loc)	((e)->Esrcpos.Sfilename = (char *)(loc).filename, \
 				 (e)->Esrcpos.Slinnum = (loc).linnum)
 
 /************************************
@@ -169,7 +169,8 @@ elem *callfunc(Loc loc,
 	}
 	if ((global.params.isLinux ||
 	     global.params.isOSX ||
-	     global.params.isFreeBSD) && tf->linkage != LINKd)
+	     global.params.isFreeBSD ||
+	     global.params.isSolaris) && tf->linkage != LINKd)
 	    ;	// ehidden goes last on Linux/OSX C++
 	else
 	{
@@ -1073,7 +1074,7 @@ elem *Dsymbol_toElem(Dsymbol *s, IRState *irs)
 	s = s->toAlias();
 	if (s != vd)
 	    return Dsymbol_toElem(s, irs);
-	if (vd->isStatic() || vd->storage_class & STCextern)
+	if (vd->isStatic() || vd->storage_class & (STCextern | STCtls | STCgshared))
 	    vd->toObjFile(0);
 	else
 	{
@@ -1313,7 +1314,7 @@ StringTab stringTab[STSIZE];
 size_t stidx;
 
 static Symbol *assertexp_sfilename = NULL;
-static char *assertexp_name = NULL;
+static const char *assertexp_name = NULL;
 static Module *assertexp_mn = NULL;
 
 void clearStringTab()
@@ -1553,10 +1554,16 @@ elem *NewExp::toElem(IRState *irs)
 	    if (offset)
 		ethis = el_bin(OPadd, TYnptr, ethis, el_long(TYint, offset));
 
-	    ey = el_bin(OPadd, TYnptr, ey, el_long(TYint, cd->vthis->offset));
-	    ey = el_una(OPind, TYnptr, ey);
-	    ey = el_bin(OPeq, TYnptr, ey, ethis);
-
+	    if (!cd->vthis)
+	    {
+		error("forward reference to %s", cd->toChars());
+	    }
+	    else
+	    {
+		ey = el_bin(OPadd, TYnptr, ey, el_long(TYint, cd->vthis->offset));
+		ey = el_una(OPind, TYnptr, ey);
+		ey = el_bin(OPeq, TYnptr, ey, ethis);
+	    }
 //printf("ex: "); elem_print(ex);
 //printf("ey: "); elem_print(ey);
 //printf("ez: "); elem_print(ez);
@@ -1807,7 +1814,7 @@ elem *AssertExp::toElem(IRState *irs)
 	if (global.params.useInvariants && t1->ty == Tclass &&
 	    !((TypeClass *)t1)->sym->isInterfaceDeclaration())
 	{
-#if TARGET_LINUX || TARGET_FREEBSD
+#if TARGET_LINUX || TARGET_FREEBSD || TARGET_SOLARIS
 	    e = el_bin(OPcall, TYvoid, el_var(rtlsym[RTLSYM__DINVARIANT]), e);
 #else
 	    e = el_bin(OPcall, TYvoid, el_var(rtlsym[RTLSYM_DINVARIANT]), e);
@@ -1846,7 +1853,7 @@ elem *AssertExp::toElem(IRState *irs)
 		if (!assertexp_sfilename || strcmp(loc.filename, assertexp_name) != 0 || assertexp_mn != m)
 		{
 		    dt_t *dt = NULL;
-		    char *id;
+		    const char *id;
 		    int len;
 
 		    id = loc.filename;
@@ -3601,7 +3608,7 @@ elem *CastExp::toElem(IRState *irs)
 	int offset;
 	int rtl = RTLSYM_DYNAMIC_CAST;
 
-	cdfrom = e1->type->isClassHandle();
+	cdfrom = tfrom->isClassHandle();
 	cdto   = t->isClassHandle();
 	if (cdfrom->isInterfaceDeclaration())
 	{
@@ -4451,15 +4458,27 @@ elem *TupleExp::toElem(IRState *irs)
 }
 
 
+elem *tree_insert(Expressions *args, int low, int high)
+{
+    assert(low < high);
+    if (low + 1 == high)
+	return (elem *)args->data[low];
+    int mid = (low + high) >> 1;
+    return el_param(tree_insert(args, low, mid),
+		    tree_insert(args, mid, high));
+}
+
 elem *ArrayLiteralExp::toElem(IRState *irs)
 {   elem *e;
     size_t dim;
 
     //printf("ArrayLiteralExp::toElem() %s\n", toChars());
     if (elements)
-    {
+    {	Expressions args;
 	dim = elements->dim;
+	args.setDim(dim + 1);		// +1 for number of args parameter
 	e = el_long(TYint, dim);
+	args.data[dim] = (void *)e;
 	for (size_t i = 0; i < dim; i++)
 	{   Expression *el = (Expression *)elements->data[i];
 	    elem *ep = el->toElem(irs);
@@ -4469,8 +4488,14 @@ elem *ArrayLiteralExp::toElem(IRState *irs)
 		ep = el_una(OPstrpar, TYstruct, ep);
 		ep->Enumbytes = el->type->size();
 	    }
-	    e = el_param(ep, e);
+	    args.data[dim - (i + 1)] = (void *)ep;
 	}
+
+	/* Because the number of parameters can get very large, produce
+	 * a balanced binary tree so we don't blow up the stack in
+	 * the subsequent tree walking code.
+	 */
+	e = el_params(args.data, dim + 1);
     }
     else
     {	dim = 0;

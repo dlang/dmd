@@ -1123,13 +1123,12 @@ DsymbolTable::~DsymbolTable()
 }
 
 Dsymbol *DsymbolTable::lookup(Identifier *ident)
-{   StringValue *sv;
-
+{
 #ifdef DEBUG
     assert(ident);
     assert(tab);
 #endif
-    sv = tab->lookup((char*)ident->string, ident->len);
+    StringValue *sv = tab->lookup((char*)ident->string, ident->len);
     return (Dsymbol *)(sv ? sv->ptrvalue : NULL);
 }
 

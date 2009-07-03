@@ -70,6 +70,7 @@ struct Parser : Lexer
     Array *parseDeclDefs(int once);
     Array *parseAutoDeclarations(unsigned storageClass, unsigned char *comment);
     Array *parseBlock();
+    void composeStorageClass(unsigned stc);
     Expression *parseConstraint();
     TemplateDeclaration *parseTemplateDeclaration();
     TemplateParameters *parseTemplateParameterList(int flag = 0);

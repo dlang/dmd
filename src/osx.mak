@@ -45,7 +45,7 @@ DMD_OBJS = \
 	man.o arrayop.o port.o response.o async.o \
 	libmach.o machobj.o
 
-SRC = win32.mak linux.mak osx.mak \
+SRC = win32.mak linux.mak osx.mak freebsd.mak solaris.mak \
 	mars.c enum.c struct.c dsymbol.c import.c idgen.c impcnvgen.c \
 	identifier.c mtype.c expression.c optimize.c template.h \
 	template.c lexer.c declaration.c cast.c cond.h cond.c link.c \

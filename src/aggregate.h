@@ -178,9 +178,9 @@ struct BaseClass
 };
 
 #if DMDV2
-#define CLASSINFO_SIZE 	(0x3C+16)	// value of ClassInfo.size
+#define CLASSINFO_SIZE 	(0x3C+16+4)	// value of ClassInfo.size
 #else
-#define CLASSINFO_SIZE 	(0x3C+12)	// value of ClassInfo.size
+#define CLASSINFO_SIZE 	(0x3C+12+4)	// value of ClassInfo.size
 #endif
 
 struct ClassDeclaration : AggregateDeclaration

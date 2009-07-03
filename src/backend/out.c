@@ -407,7 +407,7 @@ void outdata(symbol *s)
 		    flags = CFoff | CFseg;
 		if (tybasic(dt->Dty) == TYcptr)
 		    reftocodseg(seg,offset,dt->DTabytes);
-#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD
+#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_SOLARIS
 		else 
 		    reftodatseg(seg,offset,dt->DTabytes,dt->DTseg,flags);
 #else
@@ -427,6 +427,7 @@ void outdata(symbol *s)
 		offset += dt->DTnbytes;
 		break;
 	    case DT_azeros:
+		//printf("obj_lidata(seg = %d, offset = %d, azeros = %d)\n", seg, offset, dt->DTazeros);
 		obj_lidata(seg,offset,dt->DTazeros);
 		offset += dt->DTazeros;
 		break;

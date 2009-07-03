@@ -29,6 +29,7 @@ struct AggregateDeclaration;
 struct AnonymousAggregateDeclaration;
 struct FuncDeclaration;
 struct DocComment;
+struct TemplateInstance;
 
 #if __GNUC__
 // Requires a full definition for PROT and LINK
@@ -52,6 +53,7 @@ struct Scope
     LabelStatement *slabel;	// enclosing labelled statement
     SwitchStatement *sw;	// enclosing switch statement
     TryFinallyStatement *tf;	// enclosing try finally statement
+    TemplateInstance *tinst;    // enclosing template instance
     Statement *sbreak;		// enclosing statement that supports "break"
     Statement *scontinue;	// enclosing statement that supports "continue"
     ForeachStatement *fes;	// if nested function for ForeachStatement, this is it

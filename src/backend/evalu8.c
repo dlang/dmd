@@ -41,7 +41,7 @@ static char __file__[] = __FILE__;	/* for tassert.h		*/
 
 extern void error(const char *filename, unsigned linnum, const char *format, ...);
 
-#if linux || __APPLE__ || __FreeBSD__
+#if linux || __APPLE__ || __FreeBSD__ || __sun&&__SVR4
 int _status87()
 {
     return fetestexcept(FE_ALL_EXCEPT);
@@ -505,7 +505,7 @@ doit:
 		if (e2->Eoper == OPconst)
 		{   targ_int i = e2->EV.Vint;
 
-#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD
+#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_SOLARIS
 		    if (i && e1->EV.sp.Vsym->Sfl == FLgot)
 			break;
 #endif

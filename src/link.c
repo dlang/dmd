@@ -1,5 +1,5 @@
 
-// Copyright (c) 1999-2008 by Digital Mars
+// Copyright (c) 1999-2009 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // http://www.digitalmars.com
@@ -19,7 +19,7 @@
 #include	<process.h>
 #endif
 
-#if linux || __APPLE__ || __FreeBSD__
+#if linux || __APPLE__ || __FreeBSD__ || __sun&&__SVR4
 #include	<sys/types.h>
 #include	<sys/wait.h>
 #include	<unistd.h>
@@ -195,7 +195,7 @@ int runLINK()
 	delete lnkfilename;
     }
     return status;
-#elif linux || __APPLE__ || __FreeBSD__
+#elif linux || __APPLE__ || __FreeBSD__ || __sun&&__SVR4
     pid_t childpid;
     int i;
     int status;
@@ -439,7 +439,7 @@ int executearg0(char *cmd, char *args)
     //printf("spawning '%s'\n",file);
 #if _WIN32
     return spawnl(0,file,file,args,NULL);
-#elif linux || __APPLE__ || __FreeBSD__
+#elif linux || __APPLE__ || __FreeBSD__ || __sun&&__SVR4
     char *full;
     int cmdl = strlen(cmd);
 
@@ -502,7 +502,7 @@ int runProgram()
     else
 	ex = global.params.exefile;
     return spawnv(0,ex,(char **)argv.data);
-#elif linux || __APPLE__ || __FreeBSD__
+#elif linux || __APPLE__ || __FreeBSD__ || __sun&&__SVR4
     pid_t childpid;
     int status;
 

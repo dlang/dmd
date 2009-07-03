@@ -1,6 +1,6 @@
 
 // Compiler implementation of the D programming language
-// Copyright (c) 1999-2007 by Digital Mars
+// Copyright (c) 1999-2009 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // http://www.digitalmars.com
@@ -12,6 +12,10 @@
 #include <stddef.h>
 #include <time.h>
 #include <assert.h>
+
+#if __sun&&__SVR4
+#include <alloca.h>
+#endif
 
 #include "mars.h"
 #include "module.h"
@@ -168,7 +172,6 @@ Symbol *VarDeclaration::toSymbol()
     {	Symbol *s;
 	TYPE *t;
 	const char *id;
-	mangle_t m = 0;
 
 	if (isDataseg())
 	    id = mangle();
@@ -197,10 +200,21 @@ Symbol *VarDeclaration::toSymbol()
 
 	if (isDataseg())
 	{
-	    if (storage_class & STCtls)
+	    if (isThreadlocal())
 	    {	/* Thread local storage
 		 */
+		TYPE *ts = t;
+		ts->Tcount++;	// make sure a different t is allocated
 		type_setty(&t, t->Tty | mTYthread);
+		ts->Tcount--;
+
+		if (global.params.vtls)
+		{
+		    char *p = loc.toChars();
+		    fprintf(stdmsg, "%s: %s is thread local\n", p ? p : "", toChars());
+		    if (p)
+			mem.free(p);
+		}
 	    }
 	    s->Sclass = SCextern;
 	    s->Sfl = FLextern;
@@ -223,6 +237,7 @@ Symbol *VarDeclaration::toSymbol()
 	    }
 	}
 
+	mangle_t m = 0;
 	switch (linkage)
 	{
 	    case LINKwindows:
@@ -320,14 +335,14 @@ Symbol *FuncDeclaration::toSymbol()
 	    else if (isMember2())
 		f->Fflags |= Fstatic;
 	    f->Fstartline.Slinnum = loc.linnum;
-	    f->Fstartline.Sfilename = loc.filename;
+	    f->Fstartline.Sfilename = (char *)loc.filename;
 	    if (endloc.linnum)
 	    {	f->Fendline.Slinnum = endloc.linnum;
-		f->Fendline.Sfilename = endloc.filename;
+		f->Fendline.Sfilename = (char *)endloc.filename;
 	    }
 	    else
 	    {	f->Fendline.Slinnum = loc.linnum;
-		f->Fendline.Sfilename = loc.filename;
+		f->Fendline.Sfilename = (char *)loc.filename;
 	    }
 	    t = type->toCtype();
 	}

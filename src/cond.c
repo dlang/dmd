@@ -138,6 +138,7 @@ void VersionCondition::checkPredefined(Loc loc, const char *ident)
 	"D_NET",
 #endif
 	"OSX", "FreeBSD",
+	"Solaris",
 	"LittleEndian", "BigEndian",
 	"all",
 	"none",

@@ -181,6 +181,13 @@ struct IntegerExp : Expression
     dt_t **toDt(dt_t **pdt);
 };
 
+struct ErrorExp : IntegerExp
+{
+    ErrorExp();
+
+    void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
+};
+
 struct RealExp : Expression
 {
     real_t value;

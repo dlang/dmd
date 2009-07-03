@@ -34,7 +34,7 @@ static char __file__[] = __FILE__;	/* for tassert.h		*/
 symbol *except_gentables()
 {
     //printf("except_gentables()\n");
-#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD
+#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_SOLARIS
     symbol *s;
     int sz;			// size so far
     dt_t **pdt;

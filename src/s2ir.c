@@ -53,7 +53,7 @@ elem *callfunc(Loc loc,
 elem *exp2_copytotemp(elem *e);
 elem *incUsageElem(IRState *irs, Loc loc);
 
-#define elem_setLoc(e,loc)	((e)->Esrcpos.Sfilename = (loc).filename, \
+#define elem_setLoc(e,loc)	((e)->Esrcpos.Sfilename = (char *)(loc).filename, \
 				 (e)->Esrcpos.Slinnum = (loc).linnum)
 
 #define SEH	(TARGET_WINDOS)

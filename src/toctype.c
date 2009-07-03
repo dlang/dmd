@@ -1,5 +1,5 @@
 
-// Copyright (c) 1999-2008 by Digital Mars
+// Copyright (c) 1999-2009 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // http://www.digitalmars.com
@@ -8,6 +8,10 @@
 #include <stddef.h>
 #include <time.h>
 #include <assert.h>
+
+#if __sun&&__SVR4
+#include <alloca.h>
+#endif
 
 #include "mars.h"
 #include "module.h"

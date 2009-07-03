@@ -372,6 +372,23 @@ elem *el_params(elem *e1, ...)
     return e;
 }
 
+/*****************************************
+ * Do an array of parameters as a balanced
+ * binary tree.
+ */
+
+elem *el_params(void **args, int length)
+{
+    if (length == 0)
+	return NULL;
+    if (length == 1)
+	return (elem *)args[0];
+    int mid = length >> 1;
+    return el_param(el_params(args, mid),
+		    el_params(args + mid, length - mid));
+}
+
+
 /*************************************
  * Create a quad word out of two dwords.
  */
@@ -1298,7 +1315,7 @@ elem *el_picvar(symbol *s)
     return e;
 }
 #endif
-#if TARGET_LINUX || TARGET_FREEBSD
+#if TARGET_LINUX || TARGET_FREEBSD || TARGET_SOLARIS
 
 elem *el_picvar(symbol *s)
 {   elem *e;
@@ -1406,8 +1423,11 @@ elem * el_var(symbol *s)
 
     //printf("el_var(s = '%s')\n", s->Sident);
     //printf("%x\n", s->Stype->Tty);
-#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD
+#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_SOLARIS
     if (config.flags3 & CFG3pic &&
+#if TARGET_LINUX || TARGET_FREEBSD || TARGET_SOLARIS
+	!(s->Stype->Tty & mTYthread) &&
+#endif
 	!tyfunc(s->ty()))
 	// Position Independent Code
 	return el_picvar(s);
@@ -1421,8 +1441,44 @@ elem * el_var(symbol *s)
     e->Ety = s->ty();
     if (s->Stype->Tty & mTYthread)
     {
-#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD
+	//printf("thread local %s\n", s->Sident);
+#if TARGET_OSX
+	;
+#elif TARGET_LINUX || TARGET_FREEBSD || TARGET_SOLARIS
 	;		// add GS: override in back end
+	/* Generate:
+         *      MOV reg,GS:[00000000]
+         *      ADD reg, offset s@TLS_LE
+	 *	e => *(&s + *(GS:0))
+         * for locals, and for globals:
+         *      MOV reg,GS:[00000000]
+         *      ADD reg, s@TLS_IE
+	 *	e => *(s + *(GS:0))
+         * note different fixup
+	 */
+	elem *e1,*e2;
+
+	e1 = el_calloc();
+	e1->EV.sp.Vsym = s;
+	if (s->Sclass == SCstatic || s->Sclass == SClocstat)
+	{   e1->Eoper = OPrelconst;
+	    e1->Ety = TYnptr;
+	}
+	else
+	{
+	    e1->Eoper = OPvar;
+	    e1->Ety = TYnptr;
+	}
+
+	// We'll fix this up in the back end to be GS:[0000]
+	e2 = el_calloc();
+	e2->Eoper = OPvar;
+	e2->EV.sp.Vsym = rtlsym[RTLSYM_TLS_ARRAY];
+	e2->Ety = e2->EV.sp.Vsym->ty();
+
+	e->Eoper = OPind;
+	e->E1 = el_bin(OPadd,e1->Ety,e2,e1);
+	e->E2 = NULL;
 #else
 	/*
 		mov	EAX,FS:__tls_array
@@ -1467,7 +1523,7 @@ elem * el_var(symbol *s)
 {   elem *e;
 
     //printf("el_var(s = '%s')\n", s->Sident);
-#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD
+#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_SOLARIS
     if (config.flags3 & CFG3pic && !tyfunc(s->ty()))
 	return el_picvar(s);
 #endif
@@ -1564,7 +1620,7 @@ elem * el_ptr(symbol *s)
 	return e;
     }
 #endif
-#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD
+#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_SOLARIS
     if (config.flags3 & CFG3pic && tyfunc(s->ty()))
 	e = el_picvar(s);
     else

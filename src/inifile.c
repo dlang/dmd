@@ -18,9 +18,13 @@
 #if __APPLE__
 #include	<sys/syslimits.h>
 #endif
-#if __FreeBSD__
+#if __FreeBSD__ || __sun&&__SVR4
 // for PATH_MAX
 #include	<limits.h>
+#endif
+
+#if __sun&&__SVR4
+#include	<alloca.h>
 #endif
 
 #include	"root.h"
@@ -90,12 +94,12 @@ void inifile(const char *argv0x, const char *inifilex)
 		filename = (char *)FileName::replaceName(argv0, inifile);
 		if (!FileName::exists(filename))
 		{
-#if linux || __APPLE__ || __FreeBSD__
-#if __GLIBC__ || __APPLE__ || __FreeBSD__   // This fix by Thomas Kuehne
+#if linux || __APPLE__ || __FreeBSD__ || __sun&&__SVR4
+#if __GLIBC__ || __APPLE__ || __FreeBSD__ || __sun&&__SVR4   // This fix by Thomas Kuehne
 		    /* argv0 might be a symbolic link,
 		     * so try again looking past it to the real path
 		     */
-#if __APPLE__ || __FreeBSD__
+#if __APPLE__ || __FreeBSD__ || __sun&&__SVR4
 		    char resolved_name[PATH_MAX + 1];
 		    char* real_argv0 = realpath(argv0, resolved_name);
 #else
@@ -105,7 +109,7 @@ void inifile(const char *argv0x, const char *inifilex)
 		    if (real_argv0)
 		    {
 			filename = (char *)FileName::replaceName(real_argv0, inifile);
-#if !(__APPLE__ || __FreeBSD__)
+#if !(__APPLE__ || __FreeBSD__ || __sun&&__SVR4)
 			free(real_argv0);
 #endif
 			if (FileName::exists(filename))

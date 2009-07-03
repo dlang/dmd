@@ -731,7 +731,7 @@ dt_t **SymOffExp::toDt(dt_t **pdt)
     assert(var);
     if (!(var->isDataseg() || var->isCodeseg()) ||
 	var->needThis() ||
-	var->storage_class & STCtls)
+	var->isThreadlocal())
     {
 #ifdef DEBUG
 	printf("SymOffExp::toDt()\n");
@@ -753,7 +753,14 @@ dt_t **VarExp::toDt(dt_t **pdt)
     if (v && (v->isConst() || v->isInvariant()) &&
 	type->toBasetype()->ty != Tsarray && v->init)
     {
+	if (v->inuse)
+	{
+	    error("recursive reference %s", toChars());
+	    return pdt;
+	}
+	v->inuse++;
 	*pdt = v->init->toDt();
+	v->inuse--;
 	return pdt;
     }
     SymbolDeclaration *sd = var->isSymbolDeclaration();

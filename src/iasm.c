@@ -422,7 +422,10 @@ STATIC void asm_chktok(enum TOK toknum,unsigned errnum)
     if (tok_value == toknum)
 	asm_token();			// scan past token
     else
-	asmerr(errnum, asmtok->toChars());
+	/* When we run out of tokens, asmtok is NULL.
+	 * But when this happens when a ';' was hit.
+	 */
+	asmerr(errnum, asmtok ? asmtok->toChars() : ";");
 }
 
 
@@ -1686,7 +1689,7 @@ code *asm_genloc(Loc loc, code *c)
 
 	memset(&srcpos, 0, sizeof(srcpos));
 	srcpos.Slinnum = loc.linnum;
-	srcpos.Sfilename = loc.filename;
+	srcpos.Sfilename = (char *)loc.filename;
 	pcLin = genlinnum(NULL, srcpos);
 	c = cat(pcLin, c);
     }

@@ -156,6 +156,7 @@ enum TOK
 	TOKpure,
 	TOKnothrow,
 	TOKtls,
+	TOKgshared,
 	TOKline,
 	TOKfile,
 	TOKshared,

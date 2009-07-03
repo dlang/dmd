@@ -1231,7 +1231,7 @@ int FuncDeclaration::canInline(int hasthis, int hdrscan)
     if (needThis() && !hasthis)
 	return 0;
 
-    if (inlineNest || (!semanticRun && !hdrscan))
+    if (inlineNest || (semanticRun < 3 && !hdrscan))
     {
 #if CANINLINE_LOG
 	printf("\t1: no, inlineNest = %d, semanticRun = %d\n", inlineNest, semanticRun);

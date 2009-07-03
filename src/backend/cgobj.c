@@ -2228,11 +2228,13 @@ size_t obj_mangle(Symbol *s,char *dest)
 		break;
 	    }
 	case mTYman_c:
-	    dest[1] = '_';		// leading _ in name
-	    memcpy(&dest[2],name,len);	// copy in name
-	    len++;
-	    break;
-
+	    if (config.flags4 & CFG4underscore)
+	    {
+		dest[1] = '_';		// leading _ in name
+		memcpy(&dest[2],name,len);	// copy in name
+		len++;
+		break;
+	    }
 	case mTYman_d:
 	case mTYman_sys:
 	    memcpy(dest + 1, name, len);	// no mangling
@@ -2497,6 +2499,7 @@ void obj_lidata(int seg,targ_size_t offset,targ_size_t count)
 	while (count > sizeof(zero))
 	{
 	    obj_bytes(seg,offset,sizeof(zero),zero);
+	    offset += sizeof(zero);
 	    count -= sizeof(zero);
 	}
 	obj_bytes(seg,offset,count,zero);

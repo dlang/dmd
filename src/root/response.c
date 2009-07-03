@@ -23,7 +23,7 @@
 #include <io.h>
 #endif
 
-#if linux || __APPLE__ || __FreeBSD__
+#if linux || __APPLE__ || __FreeBSD__ || __sun&&__SVR4
 #include <sys/types.h>
 #include <fcntl.h>
 #include <errno.h>

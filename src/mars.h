@@ -90,7 +90,7 @@ the target object file format:
 #define OMFOBJ 1
 #endif
 
-#if TARGET_LINUX || TARGET_FREEBSD
+#if TARGET_LINUX || TARGET_FREEBSD || TARGET_SOLARIS
 #ifndef ELFOBJ
 #define ELFOBJ 1
 #endif
@@ -116,6 +116,7 @@ struct Param
     char trace;		// insert profiling hooks
     char quiet;		// suppress non-error messages
     char verbose;	// verbose compile
+    char vtls;		// identify thread local variables
     char symdebug;	// insert debug symbolic information
     char optimize;	// run optimizer
     char cpu;		// target CPU
@@ -124,6 +125,7 @@ struct Param
     char isOSX;		// generate code for Mac OSX
     char isWindows;	// generate code for Windows
     char isFreeBSD;	// generate code for FreeBSD
+    char isSolaris;	// generate code for Solaris
     char scheduler;	// which scheduler to use
     char useDeprecated;	// allow use of deprecated features
     char useAssert;	// generate runtime code for assert()'s
@@ -287,7 +289,7 @@ struct Module;
 //typedef unsigned Loc;		// file location
 struct Loc
 {
-    char *filename;
+    const char *filename;
     unsigned linnum;
 
     Loc()
@@ -305,6 +307,7 @@ struct Loc
     Loc(Module *mod, unsigned linnum);
 
     char *toChars();
+    bool equals(const Loc& loc);
 };
 
 #ifndef GCC_SAFE_DMD

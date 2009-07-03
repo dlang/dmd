@@ -167,7 +167,7 @@ enum TK {
 	TK_stdcall,
 	TK_syscall,
 	TK_try,
-#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD
+#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_SOLARIS
 	TK_attribute,
 	TK_extension,
 	TK_format,
@@ -199,7 +199,7 @@ enum TK {
 	TKandand,TKshl,TKshr,TKrcur,TKeq,TKaddass,TKminass,TKmulass,TKdivass,
 	TKmodass,TKshrass,TKshlass,TKandass,TKxorass,TKorass,TKsemi,
 	TKadd,TKellipsis,
-#if !TX86 || TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD
+#if !TX86 || TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_SOLARIS
 	TKdollar,
 #endif
 

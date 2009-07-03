@@ -484,7 +484,7 @@ char *cpp_typetostring(type *t,char *prefix)
 char *cpp_mangle(symbol *s)
 {
     symbol_debug(s);
-    //dbg_printf("cpp_mangle(s = %p, '%s')\n", s, s->Sident);
+    //printf("cpp_mangle(s = %p, '%s')\n", s, s->Sident);
     //type_print(s->Stype);
 
 #if SCPP
@@ -1321,6 +1321,7 @@ STATIC void cpp_return_type(symbol *s)
 
 STATIC void cpp_ecsu_name(symbol *s)
 {
+    //printf("cpp_ecsu_name(%s)\n", symbol_ident(s));
     cpp_zname(symbol_ident(s));
 #if SCPP || MARS
     if (s->Sscope)
@@ -1517,12 +1518,22 @@ STATIC void cpp_scope(symbol *s)
 }
 
 STATIC void cpp_zname(const char *p)
-{   int i;
-
+{
+    //printf("cpp_zname(%s)\n", p);
     if (*p != '?' ||				// if not operator_name
 	(NEWTEMPMANGLE && p[1] == '$'))		// ?$ is a template name
     {
-	for (i = 0; i < mangle.znamei; i++)
+#if MARS
+	/* Scan forward past any dots
+	 */
+	for (const char *q = p; *q; q++)
+	{
+	    if (*q == '.')
+		p = q + 1;
+	}
+#endif
+
+	for (int i = 0; i < mangle.znamei; i++)
 	{
 	    if (strcmp(p,mangle.zname[i]) == 0)
 	    {   CHAR('0' + i);
@@ -1537,7 +1548,9 @@ STATIC void cpp_zname(const char *p)
     else if (p[1] == 'B')
 	STR("?B");			// skip return value encoding
     else
+    {
 	STR(p);
+    }
 }
 
 STATIC void cpp_symbol_name(symbol *s)

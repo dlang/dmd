@@ -675,7 +675,7 @@ enum RET TypeFunction::retStyle()
 	}
 	return RETstack;
     }
-    else if ((global.params.isLinux || global.params.isOSX || global.params.isFreeBSD) &&
+    else if ((global.params.isLinux || global.params.isOSX || global.params.isFreeBSD || global.params.isSolaris) &&
 	     linkage == LINKc &&
 	     tn->iscomplex())
     {

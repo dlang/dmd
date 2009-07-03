@@ -296,7 +296,7 @@ static struct mem_debug
 	11111,
 	0,
 	BEFOREVAL,
-#if !(linux || __APPLE__ || __FreeBSD__)
+#if !(linux || __APPLE__ || __FreeBSD__ || __sun&&__SVR4)
 	AFTERVAL
 #endif
 };
@@ -804,7 +804,7 @@ void mem_init()
 		mem_numalloc = 0;
 		mem_maxalloc = 0;
 		mem_alloclist.Mnext = NULL;
-#if linux || __APPLE__ || __FreeBSD__
+#if linux || __APPLE__ || __FreeBSD__ || __sun&&__SVR4
 		*(long *) &(mem_alloclist.data[0]) = AFTERVAL;
 #endif
 #endif

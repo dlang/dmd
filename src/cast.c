@@ -1712,6 +1712,8 @@ Expression *BinExp::typeCombine(Scope *sc)
 Lerror:
     incompatibleTypes();
     type = Type::terror;
+    e1 = new ErrorExp();
+    e2 = new ErrorExp();
     return this;
 }
 

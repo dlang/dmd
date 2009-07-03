@@ -1099,7 +1099,7 @@ Expression *Expression::checkIntegral()
 {
     if (!type->isintegral())
     {	error("'%s' is not of integral type, it is a %s", toChars(), type->toChars());
-	return new IntegerExp(0);
+	return new ErrorExp();
     }
     return this;
 }
@@ -1108,7 +1108,7 @@ Expression *Expression::checkArithmetic()
 {
     if (!type->isintegral() && !type->isfloating())
     {	error("'%s' is not of arithmetic type, it is a %s", toChars(), type->toChars());
-	return new IntegerExp(0);
+	return new ErrorExp();
     }
     return this;
 }
@@ -1122,15 +1122,17 @@ void Expression::checkDeprecated(Scope *sc, Dsymbol *s)
 void Expression::checkPurity(Scope *sc, FuncDeclaration *f)
 {
 #if 1
-	if (sc->func) {
-		FuncDeclaration *outerfunc=sc->func;
-		while (outerfunc->toParent2() && outerfunc->toParent2()->isFuncDeclaration()) {
-			outerfunc = outerfunc->toParent2()->isFuncDeclaration();
-		}
-    if (outerfunc->isPure()  && !sc->intypeof && (!f->isNested() && !f->isPure()))
-	error("pure function '%s' cannot call impure function '%s'\n",
-	    sc->func->toChars(), f->toChars());
+    if (sc->func)
+    {
+	FuncDeclaration *outerfunc=sc->func;
+	while (outerfunc->toParent2() && outerfunc->toParent2()->isFuncDeclaration())
+	{
+	    outerfunc = outerfunc->toParent2()->isFuncDeclaration();
 	}
+	if (outerfunc->isPure()  && !sc->intypeof && (!f->isNested() && !f->isPure()))
+	    error("pure function '%s' cannot call impure function '%s'\n",
+		sc->func->toChars(), f->toChars());
+    }
 #else
     if (sc->func && sc->func->isPure() && !sc->intypeof && !f->isPure())
 	error("pure function '%s' cannot call impure function '%s'\n",
@@ -1571,6 +1573,22 @@ void IntegerExp::toMangleBuffer(OutBuffer *buf)
 	buf->printf("N%jd", -value);
     else
 	buf->printf("%jd", value);
+}
+
+/******************************** ErrorExp **************************/
+
+/* Use this expression for error recovery.
+ * It should behave as a 'sink' to prevent further cascaded error messages.
+ */
+
+ErrorExp::ErrorExp()
+    : IntegerExp(0, 0, Type::terror)
+{
+}
+
+void ErrorExp::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
+{
+    buf->writestring("__error");
 }
 
 /******************************** RealExp **************************/
@@ -2245,7 +2263,7 @@ Expression *DsymbolExp::toLvalue(Scope *sc, Expression *e)
 ThisExp::ThisExp(Loc loc)
 	: Expression(loc, TOKthis, sizeof(ThisExp))
 {
-    //printf("ThisExp::ThisExp()\n");
+    //printf("ThisExp::ThisExp() loc = %d\n", loc.linnum);
     var = NULL;
 }
 
@@ -3233,20 +3251,23 @@ int StructLiteralExp::getFieldIndex(Type *type, unsigned offset)
 {
     /* Find which field offset is by looking at the field offsets
      */
-    for (size_t i = 0; i < sd->fields.dim; i++)
+    if (elements->dim)
     {
-	Dsymbol *s = (Dsymbol *)sd->fields.data[i];
-	VarDeclaration *v = s->isVarDeclaration();
-	assert(v);
+	for (size_t i = 0; i < sd->fields.dim; i++)
+	{
+	    Dsymbol *s = (Dsymbol *)sd->fields.data[i];
+	    VarDeclaration *v = s->isVarDeclaration();
+	    assert(v);
 
-	if (offset == v->offset &&
-	    type->size() == v->type->size())
-	{   Expression *e = (Expression *)elements->data[i];
-	    if (e)
-	    {
-		return i;
+	    if (offset == v->offset &&
+		type->size() == v->type->size())
+	    {   Expression *e = (Expression *)elements->data[i];
+		if (e)
+		{
+		    return i;
+		}
+		break;
 	    }
-	    break;
 	}
     }
     return -1;
@@ -3992,13 +4013,45 @@ Expression *VarExp::semantic(Scope *sc)
 	v->checkNestedReference(sc, loc);
 #if DMDV2
 #if 1
-	if (sc->func) {
-		FuncDeclaration *outerfunc=sc->func;
-		while (outerfunc->toParent2() && outerfunc->toParent2()->isFuncDeclaration()) {
-			outerfunc = outerfunc->toParent2()->isFuncDeclaration();
+	if (sc->func)
+	{
+	    /* Determine if sc->func is pure or if any function that
+	     * encloses it is also pure.
+	     */
+	    bool hasPureParent = false;
+	    for (FuncDeclaration *outerfunc = sc->func; outerfunc;)
+	    {
+		if (outerfunc->isPure())
+		{
+		    hasPureParent = true;
+		    break;
 		}
-    if (outerfunc->isPure()  && !sc->intypeof && v->isDataseg() && !v->isInvariant())
-		error("pure function '%s' cannot access mutable static data '%s'", sc->func->toChars(), v->toChars());
+		Dsymbol *parent = outerfunc->toParent2();
+	        if (!parent)
+		    break;
+		outerfunc = parent->isFuncDeclaration();
+	    }
+
+	    /* If ANY of its enclosing functions are pure,
+	     * it cannot do anything impure.
+	     * If it is pure, it cannot access any mutable variables other
+	     * than those inside itself
+	     */
+	    if (hasPureParent && !sc->intypeof && v->isDataseg() &&
+		!v->isInvariant())
+	    {
+		error("pure function '%s' cannot access mutable static data '%s'",
+		    sc->func->toChars(), v->toChars());
+	    }
+	    else if (sc->func->isPure() && sc->parent != v->parent &&
+		!sc->intypeof && !v->isInvariant() &&
+		!(v->storage_class & STCmanifest))
+	    {
+		error("pure nested function '%s' cannot access mutable data '%s'",
+		    sc->func->toChars(), v->toChars());
+		if (v->isEnumDeclaration())
+		    error("enum");
+	    }	
 	}
 #else
 	if (sc->func && sc->func->isPure() && !sc->intypeof)
@@ -4263,7 +4316,7 @@ Expression *FuncExp::semantic(Scope *sc)
     if (!type)
     {
 	fd->semantic(sc);
-	fd->parent = sc->parent;
+	//fd->parent = sc->parent;
 	if (global.errors)
 	{
 	}
@@ -4960,7 +5013,7 @@ Expression *BinExp::commonSemanticAssign(Scope *sc)
 
 	if (op == TOKmodass && e2->type->iscomplex())
 	{   error("cannot perform modulo complex arithmetic");
-	    return new IntegerExp(0);
+	    return new ErrorExp();
 	}
     }
     return this;
@@ -5624,7 +5677,7 @@ Expression *DotVarExp::semantic(Scope *sc)
 	type = var->type;
 	if (!type && global.errors)
 	{   // var is goofed up, just return 0
-	    return new IntegerExp(0);
+	    return new ErrorExp();
 	}
 	assert(type);
 
@@ -5636,7 +5689,8 @@ Expression *DotVarExp::semantic(Scope *sc)
 
 	    type = type->addMod(t1->mod);
 
-	    AggregateDeclaration *ad = var->toParent()->isAggregateDeclaration();
+	    Dsymbol *vparent = var->toParent();
+	    AggregateDeclaration *ad = vparent ? vparent->isAggregateDeclaration() : NULL;
 	    e1 = getRightThis(loc, sc, ad, e1, var);
 	    if (!sc->noaccesscheck)
 		accessCheck(loc, sc, e1, var);
@@ -5869,7 +5923,7 @@ Expression *DotTemplateInstanceExp::semantic(Scope *sc)
     return e;
 
 Lerr:
-    return new IntegerExp(loc, 0, Type::tint32);
+    return new ErrorExp();
 }
 
 void DotTemplateInstanceExp::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
@@ -6493,6 +6547,10 @@ Lagain:
 	{   TypeDelegate *td = (TypeDelegate *)t1;
 	    assert(td->next->ty == Tfunction);
 	    tf = (TypeFunction *)(td->next);
+	    if (sc->func && sc->func->isPure() && !tf->ispure)
+	    {
+		error("pure function '%s' cannot call impure delegate '%s'", sc->func->toChars(), e1->toChars());
+	    }
 	    goto Lcheckargs;
 	}
 	else if (t1->ty == Tpointer && ((TypePointer *)t1)->next->ty == Tfunction)
@@ -6500,6 +6558,10 @@ Lagain:
 
 	    e = new PtrExp(loc, e1);
 	    t1 = ((TypePointer *)t1)->next;
+	    if (sc->func && sc->func->isPure() && !((TypeFunction *)t1)->ispure)
+	    {
+		error("pure function '%s' cannot call impure function pointer '%s'", sc->func->toChars(), e1->toChars());
+	    }
 	    e->type = t1;
 	    e1 = e;
 	}
@@ -7470,7 +7532,7 @@ Expression *SliceExp::semantic(Scope *sc)
 	else
 	{
 	    error("string slice [%ju .. %ju] is out of bounds", i1, i2);
-	    e = e1;
+	    e = new ErrorExp();
 	}
 	return e;
     }
@@ -7490,7 +7552,7 @@ Lerror:
     else
 	s = t->toChars();
     error("%s cannot be sliced with []", s);
-    e = new IntegerExp(0);
+    e = new ErrorExp();
     return e;
 }
 
@@ -8852,14 +8914,14 @@ Expression *MinExp::semantic(Scope *sc)
 	    e = scaleFactor(sc);
 	else
 	{   error("incompatible types for minus");
-	    return new IntegerExp(0);
+	    return new ErrorExp();
 	}
     }
     else if (t2->ty == Tpointer)
     {
 	type = e2->type;
 	error("can't subtract pointer from %s", e1->type->toChars());
-	return new IntegerExp(0);
+	return new ErrorExp();
     }
     else
     {
@@ -9172,7 +9234,7 @@ Expression *ModExp::semantic(Scope *sc)
     {	type = e1->type;
 	if (e2->type->iscomplex())
 	{   error("cannot perform modulo complex arithmetic");
-	    return new IntegerExp(0);
+	    return new ErrorExp();
 	}
     }
     return this;
@@ -9570,8 +9632,15 @@ Expression *CmpExp::semantic(Scope *sc)
     e = op_overload(sc);
     if (e)
     {
-	e = new CmpExp(op, loc, e, new IntegerExp(loc, 0, Type::tint32));
-	e = e->semantic(sc);
+	if (!e->type->isscalar() && e->type->equals(e1->type))
+	{
+	    error("recursive opCmp expansion");
+	    e = new ErrorExp();
+	}
+	else
+	{   e = new CmpExp(op, loc, e, new IntegerExp(loc, 0, Type::tint32));
+	    e = e->semantic(sc);
+	}
 	return e;
     }
 
@@ -9603,7 +9672,7 @@ Expression *CmpExp::semantic(Scope *sc)
     else if (t1->iscomplex() || t2->iscomplex())
     {
 	error("compare not defined for complex operands");
-	e = new IntegerExp(0);
+	e = new ErrorExp();
     }
 #endif
     else
@@ -9947,8 +10016,8 @@ Expression *FileInitExp::semantic(Scope *sc)
 Expression *FileInitExp::resolve(Loc loc, Scope *sc)
 {
     //printf("FileInitExp::resolve() %s\n", toChars());
-    char *s = loc.filename ? loc.filename : sc->module->ident->toChars();
-    Expression *e = new StringExp(loc, s);
+    const char *s = loc.filename ? loc.filename : sc->module->ident->toChars();
+    Expression *e = new StringExp(loc, (char *)s);
     e = e->semantic(sc);
     e = e->castTo(sc, type);
     return e;

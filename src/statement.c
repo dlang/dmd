@@ -1434,7 +1434,7 @@ Statement *ForeachStatement::semantic(Scope *sc)
 
 		var = new VarDeclaration(loc, arg->type, arg->ident, NULL);
 		var->storage_class |= STCforeach;
-		var->storage_class |= arg->storageClass & (STCin | STCout | STCref | STCconst | STCinvariant);
+		var->storage_class |= arg->storageClass & (STCin | STCout | STCref | STC_TYPECTOR);
 		if (dim == 2 && i == 0)
 		{   key = var;
 		    //var->storage_class |= STCfinal;
@@ -1566,7 +1566,7 @@ Statement *ForeachStatement::semantic(Scope *sc)
 	    Argument *arg = (Argument *)arguments->data[0];
 	    VarDeclaration *ve = new VarDeclaration(loc, arg->type, arg->ident, new ExpInitializer(loc, einit));
 	    ve->storage_class |= STCforeach;
-	    ve->storage_class |= arg->storageClass & (STCin | STCout | STCref | STCconst | STCinvariant);
+	    ve->storage_class |= arg->storageClass & (STCin | STCout | STCref | STC_TYPECTOR);
 
 	    DeclarationExp *de = new DeclarationExp(loc, ve);
 

@@ -1,6 +1,6 @@
 
 // Compiler implementation of the D programming language
-// Copyright (c) 1999-2007 by Digital Mars
+// Copyright (c) 1999-2009 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // http://www.digitalmars.com
@@ -579,8 +579,9 @@ Type *ExpInitializer::inferType(Scope *sc)
     }
 
     Type *t = exp->type;
+    if (!t)
+	t = Initializer::inferType(sc);
     return t;
-    //return t->ty == Tsarray ? t : t->toHeadMutable();
 }
 
 Expression *ExpInitializer::toExpression()
