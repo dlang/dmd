@@ -1,5 +1,5 @@
 
-// Copyright (c) 1999-2005 by Digital Mars
+// Copyright (c) 1999-2006 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // www.digitalmars.com
@@ -363,7 +363,7 @@ void TypeInfoStructDeclaration::toDt(dt_t **pdt)
     {
 	Scope sc;
 
-	tftohash = new TypeFunction(NULL, Type::tuns32, 0, LINKd);
+	tftohash = new TypeFunction(NULL, Type::thash_t, 0, LINKd);
 	tftohash = (TypeFunction *)tftohash->semantic(0, &sc);
 
 	tftostring = new TypeFunction(NULL, Type::tchar->arrayOf(), 0, LINKd);

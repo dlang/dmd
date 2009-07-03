@@ -1017,7 +1017,12 @@ Statement *ForeachStatement::semantic(Scope *sc)
 	    if (value->storage_class & STCout && value->type->toBasetype()->ty == Tbit)
 		error("foreach: value cannot be out and type bit");
 
-	    if (key && key->type->ty != Tint32 && key->type->ty != Tuns32)
+	    if (key &&
+		((key->type->ty != Tint32 && key->type->ty != Tuns32) ||
+		 (global.params.isX86_64 &&
+			key->type->ty != Tint64 && key->type->ty != Tuns64)
+	        )
+	       )
 	    {
 		error("foreach: key type must be int or uint, not %s", key->type->toChars());
 	    }
@@ -2262,6 +2267,8 @@ Statement *BreakStatement::syntaxCopy()
 
 Statement *BreakStatement::semantic(Scope *sc)
 {
+    // If:
+    //	break Identifier;
     if (ident)
     {
 	Scope *scx;

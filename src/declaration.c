@@ -675,8 +675,14 @@ void VarDeclaration::semantic(Scope *sc)
 		ie = init->isExpInitializer();
 		if (!ie)
 		{
-		    error("is not a static and cannot have static initializer");
-		    return;
+		    Expression *e = init->toExpression();
+		    if (!e)
+		    {
+			error("is not a static and cannot have static initializer");
+			return;
+		    }
+		    ie = new ExpInitializer(init->loc, e);
+		    init = ie;
 		}
 
 		e1 = new VarExp(loc, this);

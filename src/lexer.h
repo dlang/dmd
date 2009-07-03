@@ -76,6 +76,7 @@ enum TOK
 	TOKindex,	TOKis,
 	TOKtobool,
 
+// 60
 	// NCEG floating point compares
 	// !<>=     <>    <>=    !>     !>=   !<     !<=   !<>
 	TOKunord,TOKlg,TOKleg,TOKule,TOKul,TOKuge,TOKug,TOKue,
@@ -94,6 +95,7 @@ enum TOK
 	TOKdot,		TOKarrow,	TOKcomma,
 	TOKquestion,	TOKandand,	TOKoror,
 
+// 103
 	// Numeric literals
 	TOKint32v, TOKuns32v,
 	TOKint64v, TOKuns64v,

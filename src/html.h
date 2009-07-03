@@ -1,5 +1,5 @@
 
-// Copyright (c) 1999-2002 by Digital Mars
+// Copyright (c) 1999-2006 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // www.digitalmars.com
@@ -30,6 +30,8 @@ struct Html
     unsigned char *skipWhite(unsigned char *q);
     void scanComment();
     int isCommentStart();
+    void scanCDATA();
+    int isCDATAStart();
     int charEntity();
     static int namedEntity(unsigned char *p, int length);
 };

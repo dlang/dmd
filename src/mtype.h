@@ -156,6 +156,7 @@ struct Type : Object
 
     #define tsize_t	basic[Tsize_t]		// matches size_t alias
     #define tptrdiff_t	basic[Tptrdiff_t]	// matches ptrdiff_t alias
+    #define thash_t	tsize_t			// matches hash_t alias
 
     static ClassDeclaration *typeinfo;
     static ClassDeclaration *typeinfoclass;
@@ -231,6 +232,7 @@ struct Type : Object
     Expression *getTypeInfo(Scope *sc);
     virtual TypeInfoDeclaration *getTypeInfoDeclaration();
     virtual int builtinTypeInfo();
+    virtual Type *reliesOnTident();
 
     static void error(Loc loc, const char *format, ...);
 
@@ -396,6 +398,8 @@ struct TypeFunction : Type
 			// 2: T t ...) style for variable number of arguments
     enum LINK linkage;	// calling convention
 
+    int inuse;
+
     TypeFunction(Array *arguments, Type *treturn, int varargs, enum LINK linkage);
     Type *syntaxCopy();
     Type *semantic(Loc loc, Scope *sc);
@@ -403,6 +407,7 @@ struct TypeFunction : Type
     void toCBuffer2(OutBuffer *buf, Identifier *ident, HdrGenState *hgs);
     MATCH deduceType(Scope *sc, Type *tparam, TemplateParameters *parameters, Array *atypes);
     TypeInfoDeclaration *getTypeInfoDeclaration();
+    Type *reliesOnTident();
 
     int callMatch(Array *toargs);
     type *toCtype();
@@ -422,6 +427,7 @@ struct TypeDelegate : Type
     int isZeroInit();
     int checkBoolean();
     TypeInfoDeclaration *getTypeInfoDeclaration();
+    Expression *dotExp(Scope *sc, Expression *e, Identifier *ident);
 
     type *toCtype();
 };
@@ -453,6 +459,7 @@ struct TypeIdentifier : TypeQualified
     Dsymbol *toDsymbol(Scope *sc);
     Type *semantic(Loc loc, Scope *sc);
     MATCH deduceType(Scope *sc, Type *tparam, TemplateParameters *parameters, Array *atypes);
+    Type *reliesOnTident();
 };
 
 /* Similar to TypeIdentifier, but with a TemplateInstance as the root

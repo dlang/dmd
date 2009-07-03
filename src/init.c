@@ -213,6 +213,9 @@ Initializer *StructInitializer::semantic(Scope *sc, Type *t)
 
 Expression *StructInitializer::toExpression()
 {
+#ifdef DEBUG
+    *(char*)0=0;
+#endif
     assert(0);
     return NULL;
 }
@@ -328,11 +331,32 @@ Initializer *ArrayInitializer::semantic(Scope *sc, Type *t)
     return this;
 }
 
+/********************************
+ * If possible, convert array initializer to array literal.
+ */
 
 Expression *ArrayInitializer::toExpression()
-{
+{   Expressions *elements;
+
+    elements = new Expressions();
+    for (size_t i = 0; i < value.dim; i++)
+    {
+	if (index.data[i])
+	    goto Lno;
+	Initializer *iz = (Initializer *)value.data[i];
+	if (!iz)
+	    goto Lno;
+	Expression *ex = iz->toExpression();
+	if (!ex)
+	    goto Lno;
+	elements->push(ex);
+    }
+    return new ArrayLiteralExp(loc, elements);
+
+Lno:
+    delete elements;
     error("array initializers as expressions are not allowed");
-    return new IntegerExp(0);
+    return NULL;
 }
 
 

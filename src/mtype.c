@@ -661,6 +661,19 @@ void Type::resolve(Loc loc, Scope *sc, Expression **pe, Type **pt, Dsymbol **ps)
     *ps = NULL;
 }
 
+/*******************************
+ * If one of the subtypes of this type is a TypeIdentifier,
+ * i.e. it's an unresolved type, return that type.
+ */
+
+Type *Type::reliesOnTident()
+{
+    if (!next)
+	return NULL;
+    else
+	return next->reliesOnTident();
+}
+
 /* ============================= TypeBasic =========================== */
 
 TypeBasic::TypeBasic(TY ty)
@@ -2228,6 +2241,7 @@ TypeFunction::TypeFunction(Array *arguments, Type *treturn, int varargs, enum LI
     this->arguments = arguments;
     this->varargs = varargs;
     this->linkage = linkage;
+    this->inuse = 0;
 }
 
 Type *TypeFunction::syntaxCopy()
@@ -2329,6 +2343,13 @@ Lnotcovariant:
 void TypeFunction::toDecoBuffer(OutBuffer *buf)
 {   unsigned char mc;
 
+    //printf("TypeFunction::toDecoBuffer() this = %p\n", this);
+    //static int nest; if (++nest == 50) *(char*)0=0;
+    if (inuse)
+    {	inuse = 2;		// flag error to caller
+	return;
+    }
+    inuse++;
     switch (linkage)
     {
 	case LINKd:		mc = 'F';	break;
@@ -2368,6 +2389,7 @@ void TypeFunction::toDecoBuffer(OutBuffer *buf)
     }
     buf->writeByte('Z' - varargs);	// mark end of arg list
     next->toDecoBuffer(buf);
+    inuse--;
 }
 
 void TypeFunction::toCBuffer2(OutBuffer *buf, Identifier *ident, HdrGenState *hgs)
@@ -2416,6 +2438,8 @@ Type *TypeFunction::semantic(Loc loc, Scope *sc)
 	//printf("already done\n");
 	return this;
     }
+    //printf("TypeFunction::semantic() this = %p\n", this);
+
     linkage = sc->linkage;
     if (!next)
     {
@@ -2424,7 +2448,13 @@ Type *TypeFunction::semantic(Loc loc, Scope *sc)
     }
     next = next->semantic(loc,sc);
     if (next->toBasetype()->ty == Tsarray)
-	error(loc, "functions cannot return static array %s", next->toChars());
+    {	error(loc, "functions cannot return static array %s", next->toChars());
+	next = Type::terror;
+    }
+    if (next->toBasetype()->ty == Tfunction)
+    {	error(loc, "functions cannot return a function");
+	next = Type::terror;
+    }
     if (next->isauto() && !(sc->flags & SCOPEctor))
 	error(loc, "functions cannot return auto %s", next->toChars());
 
@@ -2455,6 +2485,12 @@ Type *TypeFunction::semantic(Loc loc, Scope *sc)
 	}
     }
     deco = merge()->deco;
+
+    if (inuse)
+    {	error(loc, "recursive type");
+	inuse = 0;
+	return tvoid;
+    }
 
     if (varargs == 1 && linkage != LINKd && !(arguments && arguments->dim))
 	error(loc, "variadic functions with non-D linkage must have at least one parameter");
@@ -2594,6 +2630,24 @@ Nomatch:
     return MATCHnomatch;
 }
 
+Type *TypeFunction::reliesOnTident()
+{
+    if (arguments)
+    {	int i;
+
+	for (i = 0; i < arguments->dim; i++)
+	{   Argument *arg;
+	    Type *t;
+
+	    arg = (Argument *)arguments->data[i];
+	    t = arg->type->reliesOnTident();
+	    if (t)
+		return t;
+	}
+    }
+    return next->reliesOnTident();
+}
+
 /***************************** TypeDelegate *****************************/
 
 TypeDelegate::TypeDelegate(Type *t)
@@ -2671,6 +2725,23 @@ int TypeDelegate::isZeroInit()
 int TypeDelegate::checkBoolean()
 {
     return TRUE;
+}
+
+Expression *TypeDelegate::dotExp(Scope *sc, Expression *e, Identifier *ident)
+{
+#if LOGDOTEXP
+    printf("TypeDelegate::dotExp(e = '%s', ident = '%s')\n", e->toChars(), ident->toChars());
+#endif
+    if (ident == Id::ptr)
+    {
+	e = e->castTo(sc, tvoidptr);
+	return e;
+    }
+    else
+    {
+	e = Type::dotExp(sc, e, ident);
+    }
+    return e;
 }
 
 
@@ -2908,12 +2979,8 @@ L1:
 	}
 
 	if (t != this)
-	{   Type *tx;
-	    for (tx = t; tx; tx = tx->next)
-	    {	if (tx->ty == Tident)
-		    break;
-	    }
-	    if (tx)
+	{
+	    if (t->reliesOnTident())
 	    {
 		Scope *scx;
 
@@ -3093,6 +3160,11 @@ Type *TypeIdentifier::semantic(Loc loc, Scope *sc)
     }
     //t->print();
     return t;
+}
+
+Type *TypeIdentifier::reliesOnTident()
+{
+    return this;
 }
 
 /***************************** TypeInstance *****************************/
@@ -4047,8 +4119,15 @@ L1:
 		error(e->loc, ".typeinfo deprecated, use typeid(type)");
 	    return getTypeInfo(sc);
 	}
-	//return getProperty(e->loc, ident);
-	return Type::dotExp(sc, e, ident);
+	if (ident == Id::outer && sym->vthis)
+	{
+	    s = sym->vthis;
+	}
+	else
+	{
+	    //return getProperty(e->loc, ident);
+	    return Type::dotExp(sc, e, ident);
+	}
     }
     s = s->toAlias();
     v = s->isVarDeclaration();

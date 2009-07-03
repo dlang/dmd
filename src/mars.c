@@ -58,7 +58,7 @@ Global::Global()
 
     copyright = "Copyright (c) 1999-2006 by Digital Mars";
     written = "written by Walter Bright";
-    version = "v0.167";
+    version = "v0.168";
     global.structalign = 8;
 
     memset(&params, 0, sizeof(Param));
@@ -181,6 +181,18 @@ int main(int argc, char *argv[])
     Module *m;
     int status = EXIT_SUCCESS;
     int argcstart = argc;
+
+    // Check for malformed input
+    if (argc < 1 || !argv)
+    {
+      Largs:
+	error("missing or null command line arguments");
+    }
+    for (i = 0; i < argc; i++)
+    {
+	if (!argv[i])
+	    goto Largs;
+    }
 
     // Initialization
     Type::init();
@@ -611,7 +623,8 @@ int main(int argc, char *argv[])
 
 	    if (stricmp(ext, global.mars_ext) == 0 ||
 		stricmp(ext, "htm") == 0 ||
-		stricmp(ext, "html") == 0)
+		stricmp(ext, "html") == 0 ||
+		stricmp(ext, "xhtml") == 0)
 	    {
 		ext--;			// skip onto '.'
 		assert(*ext == '.');

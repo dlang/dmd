@@ -1,5 +1,5 @@
 
-// Copyright (c) 1999-2005 by Digital Mars
+// Copyright (c) 1999-2006 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // www.digitalmars.com
@@ -104,7 +104,9 @@ Module::Module(char *filename, Identifier *ident, int doDocComment, int doHdrGen
     srcfilename = FileName::defaultExt(filename, global.mars_ext);
     if (!srcfilename->equalsExt(global.mars_ext))
     {
-	if (srcfilename->equalsExt("html") || srcfilename->equalsExt("htm"))
+	if (srcfilename->equalsExt("html") ||
+	    srcfilename->equalsExt("htm")  ||
+	    srcfilename->equalsExt("xhtml"))
 	    isHtml = 1;
 	else
 	{   error("source file name '%s' must have .%s extension", srcfilename->toChars(), global.mars_ext);
@@ -120,9 +122,14 @@ Module::Module(char *filename, Identifier *ident, int doDocComment, int doHdrGen
     else
 	argobj = FileName::name(filename);
     if (!FileName::absolute(argobj))
-    {	FileName::ensurePathExists(global.params.objdir);
+    {	//FileName::ensurePathExists(global.params.objdir);
 	argobj = FileName::combine(global.params.objdir, argobj);
     }
+
+    char *p = FileName::path(argobj);
+    FileName::ensurePathExists(p);
+    mem.free(p);
+
     if (global.params.objname)
 	objfilename = new FileName(argobj, 0);
     else

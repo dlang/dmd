@@ -20,6 +20,7 @@ struct Expression;
 struct Statement;
 struct BaseClass;
 struct TemplateParameter;
+struct FuncDeclaration;
 
 struct TemplateParameters : Array { };
 
@@ -34,5 +35,7 @@ struct ClassDeclarations : Array { };
 struct Dsymbols : Array { };
 
 struct Objects : Array { };
+
+struct FuncDeclarations : Array { };
 
 #endif

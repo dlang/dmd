@@ -30,9 +30,7 @@
 
 #include	"mars.h"
 
-#if linux
 #include	"mem.h"
-#endif
 
 int executecmd(char *cmd, char *args, int useenv);
 int executearg0(char *cmd, char *args);
@@ -74,6 +72,12 @@ int runLINK()
 	n = FileName::name(n);
 	FileName *fn = FileName::forceExt(n, "exe");
 	global.params.exefile = fn->toChars();
+    }
+
+    // Make sure path to exe file exists
+    {	char *p = FileName::path(global.params.exefile);
+	FileName::ensurePathExists(p);
+	mem.free(p);
     }
 
     cmdbuf.writeByte(',');
@@ -180,6 +184,12 @@ int runLINK()
 	    ex = (char *)"a.out";	// no extension, so give up
 	argv.push(ex);
 	global.params.exefile = ex;
+    }
+
+    // Make sure path to exe file exists
+    {	char *p = FileName::path(global.params.exefile);
+	FileName::ensurePathExists(p);
+	mem.free(p);
     }
 
     argv.insert(argv.dim, global.params.libfiles);

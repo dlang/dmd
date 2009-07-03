@@ -54,6 +54,7 @@ Msgtable msgtable[] =
     { "ClassInfo" },
     { "classinfo" },
     { "typeinfo" },
+    { "outer" },
     { "Exception" },
     { "withSym", "__withSym" },
     { "result", "__result" },

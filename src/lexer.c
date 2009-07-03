@@ -2670,6 +2670,7 @@ void Lexer::initKeywords()
     Token::tochars[TOKnotidentity]	= "!is";
 
     Token::tochars[TOKorass]		= "|=";
+    Token::tochars[TOKidentifier]	= "identifier";
 
      // For debugging
     Token::tochars[TOKdotexp]		= "dotexp";

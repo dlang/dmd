@@ -365,6 +365,34 @@ int StringExp::implicitConvTo(Type *t)
 #endif
 }
 
+int ArrayLiteralExp::implicitConvTo(Type *t)
+{   MATCH result = MATCHexact;
+
+    Type *typeb = type->toBasetype();
+    Type *tb = t->toBasetype();
+    if ((tb->ty == Tarray || tb->ty == Tsarray) &&
+	(typeb->ty == Tarray || typeb->ty == Tsarray))
+    {
+	if (tb->ty == Tsarray)
+	{   TypeSArray *tsa = (TypeSArray *)tb;
+	    if (elements->dim != tsa->dim->toInteger())
+		result = MATCHnomatch;
+	}
+
+	for (int i = 0; i < elements->dim; i++)
+	{   Expression *e = (Expression *)elements->data[i];
+	    MATCH m = (MATCH)e->implicitConvTo(tb->next);
+	    if (m < result)
+		result = m;			// remember worst match
+	    if (result == MATCHnomatch)
+		break;				// no need to check for worse
+	}
+	return result;
+    }
+    else
+	return Expression::implicitConvTo(t);
+}
+
 int AddrExp::implicitConvTo(Type *t)
 {
 #if 0
@@ -835,6 +863,31 @@ Expression *AddrExp::castTo(Scope *sc, Type *t)
     }
     e->type = t;
     return e;
+}
+
+Expression *ArrayLiteralExp::castTo(Scope *sc, Type *t)
+{
+    Type *typeb = type->toBasetype();
+    Type *tb = t->toBasetype();
+    if ((tb->ty == Tarray || tb->ty == Tsarray) &&
+	(typeb->ty == Tarray || typeb->ty == Tsarray))
+    {
+	if (tb->ty == Tsarray)
+	{   TypeSArray *tsa = (TypeSArray *)tb;
+	    if (elements->dim != tsa->dim->toInteger())
+		goto L1;
+	}
+
+	for (int i = 0; i < elements->dim; i++)
+	{   Expression *e = (Expression *)elements->data[i];
+	    e = e->castTo(sc, tb->next);
+	    elements->data[i] = (void *)e;
+	}
+	type = t;
+	return this;
+    }
+L1:
+    return Expression::castTo(sc, t);
 }
 
 Expression *SymOffExp::castTo(Scope *sc, Type *t)

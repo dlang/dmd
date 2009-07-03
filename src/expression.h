@@ -315,6 +315,8 @@ struct ArrayLiteralExp : Expression
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
     void scanForNestedRef(Scope *sc);
     Expression *optimize(int result);
+    int implicitConvTo(Type *t);
+    Expression *castTo(Scope *sc, Type *t);
 
     int inlineCost(InlineCostState *ics);
     Expression *doInline(InlineDoState *ids);

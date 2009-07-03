@@ -1798,6 +1798,8 @@ void DtorDeclaration::semantic(Scope *sc)
     {
 	error("destructors only are for class definitions");
     }
+    else
+	cd->dtors.push(this);
     type = new TypeFunction(NULL, Type::tvoid, FALSE, LINKd);
 
     FuncDeclaration::semantic(sc);

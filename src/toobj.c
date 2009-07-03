@@ -46,7 +46,7 @@ void Module::genmoduleinfo()
 {
     Symbol *msym = toSymbol();
     unsigned offset;
-    unsigned sizeof_ModuleInfo = 12 * 4;
+    unsigned sizeof_ModuleInfo = 12 * PTRSIZE;
 
     //////////////////////////////////////////////
 
@@ -109,7 +109,7 @@ void Module::genmoduleinfo()
     // localClasses[]
     dtdword(&dt, aclasses.dim);
     if (aclasses.dim)
-	dtxoff(&dt, csym, sizeof_ModuleInfo + aimports.dim * 4, TYnptr);
+	dtxoff(&dt, csym, sizeof_ModuleInfo + aimports.dim * PTRSIZE, TYnptr);
     else
 	dtdword(&dt, 0);
 
@@ -181,6 +181,7 @@ void ClassDeclaration::toObjFile()
 {   unsigned i;
     unsigned offset;
     Symbol *sinit;
+    Symbol *sdtor;
     enum_SC scclass;
 
     //printf("ClassDeclaration::toObjFile('%s')\n", toChars());
@@ -205,6 +206,64 @@ void ClassDeclaration::toObjFile()
 
 	member = (Dsymbol *)members->data[i];
 	member->toObjFile();
+    }
+
+    // Build destructor by aggregating dtors[]
+    switch (dtors.dim)
+    {	case 0:
+	    // No destructors for this class
+	    sdtor = NULL;
+	    break;
+
+	case 1:
+	    // One destructor, just use it directly
+	    sdtor = ((DtorDeclaration *)dtors.data[0])->toSymbol();
+	    break;
+
+	default:
+	{   /* Build a destructor that calls all the
+	     * other destructors in dtors[].
+	     */
+
+	    elem *edtor = NULL;
+
+	    // Declare 'this' pointer for our new destructor
+	    Symbol *sthis = symbol_calloc("this");
+	    sthis->Stype = type_fake(TYnptr);
+	    sthis->Stype->Tcount++;
+	    sthis->Sclass = SCfastpar;
+	    sthis->Spreg = AX;
+	    sthis->Sfl = FLauto;
+
+	    // Call each of the destructors in dtors[]
+	    // in reverse order
+	    for (i = 0; i < dtors.dim; i++)
+	    {	DtorDeclaration *d = (DtorDeclaration *)dtors.data[i];
+		Symbol *s = d->toSymbol();
+		elem *e;
+
+		e = el_bin(OPcall, TYvoid, el_var(s), el_var(sthis));
+		edtor = el_combine(e, edtor);
+	    }
+
+	    // Create type for the function
+	    ::type *t = type_alloc(TYjfunc);
+	    t->Tflags |= TFprototype | TFfixed;
+	    t->Tmangle = mTYman_d;
+	    t->Tnext = tsvoid;
+	    tsvoid->Tcount++;
+
+	    // Create the function, sdtor, and write it out
+	    localgot = NULL;
+	    sdtor = toSymbolX("_dtor_", SCglobal, t);
+	    block *b = block_calloc();
+	    b->BC = BCret;
+	    b->Belem = edtor;
+	    sdtor->Sfunc->Fstartblock = b;
+	    cstate.CSpsymtab = &sdtor->Sfunc->Flocsym;
+	    symbol_add(sthis);
+	    writefunc(sdtor);
+	}
     }
 
     // Generate C symbols
@@ -286,8 +345,8 @@ void ClassDeclaration::toObjFile()
 	dtdword(&dt, 0);
 
     // destructor
-    if (dtor)
-	dtxoff(&dt, dtor->toSymbol(), 0, TYnptr);
+    if (sdtor)
+	dtxoff(&dt, sdtor, 0, TYnptr);
     else
 	dtdword(&dt, 0);
 
@@ -312,7 +371,7 @@ void ClassDeclaration::toObjFile()
     // Put out vtblInterfaces->data[]. Must immediately follow csym, because
     // of the fixup (*)
 
-    offset += vtblInterfaces->dim * (4 * 4);
+    offset += vtblInterfaces->dim * (4 * PTRSIZE);
     for (i = 0; i < vtblInterfaces->dim; i++)
     {	BaseClass *b = (BaseClass *)vtblInterfaces->data[i];
 	ClassDeclaration *id = b->base;
@@ -336,7 +395,7 @@ void ClassDeclaration::toObjFile()
 
 	dtdword(&dt, b->offset);			// this offset
 
-	offset += id->vtbl.dim * 4;
+	offset += id->vtbl.dim * PTRSIZE;
     }
 
     // Put out the vtblInterfaces->data[].vtbl[]
@@ -355,7 +414,7 @@ void ClassDeclaration::toObjFile()
 	    //dtxoff(&dt, id->toSymbol(), 0, TYnptr);
 
 	    // First entry is struct Interface reference
-	    dtxoff(&dt, csym, CLASSINFO_SIZE + i * (4 * 4), TYnptr);
+	    dtxoff(&dt, csym, CLASSINFO_SIZE + i * (4 * PTRSIZE), TYnptr);
 	    j = 1;
 	}
 	assert(id->vtbl.dim == b->vtbl.dim);
@@ -407,7 +466,7 @@ void ClassDeclaration::toObjFile()
 		    //dtxoff(&dt, id->toSymbol(), 0, TYnptr);
 
 		    // First entry is struct Interface reference
-		    dtxoff(&dt, cd->toSymbol(), CLASSINFO_SIZE + k * (4 * 4), TYnptr);
+		    dtxoff(&dt, cd->toSymbol(), CLASSINFO_SIZE + k * (4 * PTRSIZE), TYnptr);
 		    j = 1;
 		}
 
@@ -452,7 +511,7 @@ void ClassDeclaration::toObjFile()
 			//dtxoff(&dt, id->toSymbol(), 0, TYnptr);
 
 			// First entry is struct Interface reference
-			dtxoff(&dt, cd->toSymbol(), CLASSINFO_SIZE + k * (4 * 4), TYnptr);
+			dtxoff(&dt, cd->toSymbol(), CLASSINFO_SIZE + k * (4 * PTRSIZE), TYnptr);
 			j = 1;
 		    }
 
@@ -529,7 +588,7 @@ unsigned ClassDeclaration::baseVtblOffset(BaseClass *bc)
 
     //printf("ClassDeclaration::baseVtblOffset('%s', bc = %p)\n", toChars(), bc);
     csymoffset = CLASSINFO_SIZE;
-    csymoffset += vtblInterfaces->dim * (4 * 4);
+    csymoffset += vtblInterfaces->dim * (4 * PTRSIZE);
 
     for (i = 0; i < vtblInterfaces->dim; i++)
     {
@@ -537,7 +596,7 @@ unsigned ClassDeclaration::baseVtblOffset(BaseClass *bc)
 
 	if (b == bc)
 	    return csymoffset;
-	csymoffset += b->base->vtbl.dim * 4;
+	csymoffset += b->base->vtbl.dim * PTRSIZE;
     }
 
 #if 1
@@ -558,7 +617,7 @@ unsigned ClassDeclaration::baseVtblOffset(BaseClass *bc)
 		{   //printf("\tcsymoffset = x%x\n", csymoffset);
 		    return csymoffset;
 		}
-		csymoffset += bs->base->vtbl.dim * 4;
+		csymoffset += bs->base->vtbl.dim * PTRSIZE;
 	    }
 	}
     }
@@ -579,7 +638,7 @@ unsigned ClassDeclaration::baseVtblOffset(BaseClass *bc)
 		    return csymoffset;
 		}
 		if (b->base == bs->base)
-		    csymoffset += bs->base->vtbl.dim * 4;
+		    csymoffset += bs->base->vtbl.dim * PTRSIZE;
 	    }
 	}
     }
@@ -698,7 +757,7 @@ void InterfaceDeclaration::toObjFile()
     // Put out vtblInterfaces->data[]. Must immediately follow csym, because
     // of the fixup (*)
 
-    offset += vtblInterfaces->dim * (4 * 4);
+    offset += vtblInterfaces->dim * (4 * PTRSIZE);
     for (i = 0; i < vtblInterfaces->dim; i++)
     {	BaseClass *b = (BaseClass *)vtblInterfaces->data[i];
 	ClassDeclaration *id = b->base;
@@ -849,7 +908,7 @@ void VarDeclaration::toObjFile()
 		    value = (value & 1) ? ~(integer_t)0 : (integer_t)0;
 		    if (value == 0)
 		    {
-			dtnzeros(&s->Sdt, ((unsigned)dim + 31) / 32 * 4);
+			dtnzeros(&s->Sdt, ((unsigned)dim + 31) / 32 * PTRSIZE);
 		    }
 		    else
 		    {

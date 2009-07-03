@@ -158,7 +158,7 @@ struct ClassDeclaration : AggregateDeclaration
 
     ClassDeclaration *baseClass;	// NULL only if this is Object
     CtorDeclaration *ctor;
-    DtorDeclaration *dtor;
+    FuncDeclarations dtors;		// Array of destructors
     FuncDeclaration *staticCtor;
     FuncDeclaration *staticDtor;
     Array vtbl;				// Array of FuncDeclaration's making up the vtbl[]

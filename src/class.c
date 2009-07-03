@@ -52,7 +52,6 @@ ClassDeclaration::ClassDeclaration(Loc loc, Identifier *id, BaseClasses *basecla
     handle = type;
 
     ctor = NULL;
-    dtor = NULL;
     staticCtor = NULL;
     staticDtor = NULL;
 
@@ -493,9 +492,9 @@ void ClassDeclaration::semantic(Scope *sc)
     if (ctor && ctor->toParent() != this)
 	ctor = NULL;
 
-    dtor = (DtorDeclaration *)search(Id::dtor, 0);
-    if (dtor && dtor->toParent() != this)
-	dtor = NULL;
+//    dtor = (DtorDeclaration *)search(Id::dtor, 0);
+//    if (dtor && dtor->toParent() != this)
+//	dtor = NULL;
 
 //    inv = (InvariantDeclaration *)search(Id::classInvariant, 0);
 //    if (inv && inv->toParent() != this)

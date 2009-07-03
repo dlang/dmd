@@ -1,5 +1,5 @@
 
-// Copyright (c) 1999-2005 by Digital Mars
+// Copyright (c) 1999-2006 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // www.digitalmars.com
@@ -110,6 +110,10 @@ void Html::extractCode(OutBuffer *buf)
 		{   // Comments start with <!--
 		    scanComment();
 		}
+  		else if(p[1] == '!' && isCDATAStart())
+  		{
+  		    scanCDATA();
+  		}
 		else if (p[1] == '/' && istagstart(*skipWhite(p + 2)))
 		    skipTag();
 		else if (istagstart(*skipWhite(p + 1)))
@@ -275,7 +279,8 @@ void Html::skipTag()
     }
 
     // See if we parsed a <code> or </code> tag
-    if (taglen && memicmp((char *) tagstart, (char *) "CODE", taglen) == 0)
+    if (taglen && memicmp((char *) tagstart, (char *) "CODE", taglen) == 0
+	&& *(p - 2) != '/') // ignore "<code />" (XHTML)
     {
 	if (inot)
 	{   inCode--;
@@ -500,6 +505,53 @@ int Html::isCommentStart()
     No:
 	return 0;
     }
+
+int Html::isCDATAStart()
+{
+    const char * CDATA_START_MARKER = "<![CDATA[";
+    size_t len = strlen(CDATA_START_MARKER);
+
+    if (strncmp((char*)p, CDATA_START_MARKER, len) == 0)
+    {
+	p += len;
+	return 1;
+    }
+    else
+    {
+	return 0;
+    }
+}
+
+void Html::scanCDATA()
+{
+    while(*p && *p != 0x1A)
+    {
+	int lineSepLength = isLineSeperator(p);
+	if (lineSepLength>0)
+	{
+	    /* Always extract new lines, so that D lexer counts the lines
+	     * right.
+	     */
+	    linnum++;
+	    dbuf->writeUTF8('\n');
+	    p += lineSepLength;
+	    continue;
+        }
+	else if (p[0] == ']' && p[1] == ']' && p[2] == '>')
+	{
+	    /* end of CDATA section */
+	    p += 3;
+	    return;
+	}
+	else if (inCode)
+	{
+	    /* this CDATA section contains D code */
+	    dbuf->writeByte(*p);
+	}
+
+	p++;
+    }
+}
 
 /********************************************
  * Convert an HTML character entity into a character.
