@@ -1,6 +1,6 @@
 
 // Compiler implementation of the D programming language
-// Copyright (c) 1999-2007 by Digital Mars
+// Copyright (c) 1999-2008 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // http://www.digitalmars.com
@@ -386,6 +386,16 @@ Array *Parser::parseDeclDefs(int once)
 
 	    Lprot:
 		nextToken();
+		switch (token.value)
+		{
+		    case TOKprivate:
+		    case TOKpackage:
+		    case TOKprotected:
+		    case TOKpublic:
+		    case TOKexport:
+			error("redundant protection attribute");
+			break;
+		}
 		a = parseBlock();
 		s = new ProtDeclaration(prot, a);
 		break;
@@ -1253,36 +1263,42 @@ Dsymbol *Parser::parseAggregate()
 
 BaseClasses *Parser::parseBaseClasses()
 {
-    enum PROT protection = PROTpublic;
     BaseClasses *baseclasses = new BaseClasses();
 
     for (; 1; nextToken())
     {
+	enum PROT protection = PROTpublic;
 	switch (token.value)
 	{
-	    case TOKidentifier:
-		break;
 	    case TOKprivate:
 		protection = PROTprivate;
-		continue;
+		nextToken();
+		break;
 	    case TOKpackage:
 		protection = PROTpackage;
-		continue;
+		nextToken();
+		break;
 	    case TOKprotected:
 		protection = PROTprotected;
-		continue;
+		nextToken();
+		break;
 	    case TOKpublic:
 		protection = PROTpublic;
-		continue;
-	    default:
-		error("base classes expected instead of %s", token.toChars());
-		return NULL;
+		nextToken();
+		break;
 	}
-	BaseClass *b = new BaseClass(parseBasicType(), protection);
-	baseclasses->push(b);
-	if (token.value != TOKcomma)
-	    break;
-	protection = PROTpublic;
+	if (token.value == TOKidentifier)
+	{
+	    BaseClass *b = new BaseClass(parseBasicType(), protection);
+	    baseclasses->push(b);
+	    if (token.value != TOKcomma)
+		break;
+	}
+	else
+	{
+	    error("base classes expected instead of %s", token.toChars());
+	    return NULL;
+	}
     }
     return baseclasses;
 }
@@ -1341,13 +1357,12 @@ Lerr:
 
 TemplateParameters *Parser::parseTemplateParameterList(int flag)
 {
-    TemplateParameters *tpl;
+    TemplateParameters *tpl = new TemplateParameters();
 
     if (!flag && token.value != TOKlparen)
     {   error("parenthesized TemplateParameterList expected following TemplateIdentifier");
 	goto Lerr;
     }
-    tpl = new TemplateParameters();
     nextToken();
 
     // Get array of TemplateParameters
@@ -1447,7 +1462,7 @@ TemplateParameters *Parser::parseTemplateParameterList(int flag)
 		if (!tp_ident)
 		{
 		    error("no identifier for template value parameter");
-		    goto Lerr;
+		    tp_ident = new Identifier("error", TOKidentifier);
 		}
 		if (token.value == TOKcolon)	// : CondExpression
 		{
@@ -1468,10 +1483,8 @@ TemplateParameters *Parser::parseTemplateParameterList(int flag)
 	}
     }
     check(TOKrparen);
-    return tpl;
-
 Lerr:
-    return NULL;
+    return tpl;
 }
 
 /******************************************

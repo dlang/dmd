@@ -191,6 +191,7 @@ Msgtable msgtable[] =
     { "opIn" },
     { "opIn_r" },
     { "opStar" },
+    { "opClone" },
 
     { "classNew", "new" },
     { "classDelete", "delete" },

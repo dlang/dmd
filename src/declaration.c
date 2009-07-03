@@ -1,6 +1,6 @@
 
 // Compiler implementation of the D programming language
-// Copyright (c) 1999-2007 by Digital Mars
+// Copyright (c) 1999-2008 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // http://www.digitalmars.com
@@ -384,6 +384,7 @@ AliasDeclaration::AliasDeclaration(Loc loc, Identifier *id, Dsymbol *s)
 
 Dsymbol *AliasDeclaration::syntaxCopy(Dsymbol *s)
 {
+    //printf("AliasDeclaration::syntaxCopy()\n");
     assert(!s);
     AliasDeclaration *sa;
     if (type)
@@ -658,6 +659,7 @@ void VarDeclaration::semantic(Scope *sc)
     //printf("VarDeclaration::semantic('%s', parent = '%s')\n", toChars(), sc->parent->toChars());
     //printf(" type = %s\n", type ? type->toChars() : "null");
     //printf(" stc = x%x\n", sc->stc);
+    //printf(" storage_class = x%x\n", storage_class);
     //printf("linkage = %d\n", sc->linkage);
     //if (strcmp(toChars(), "mul") == 0) halt();
 
@@ -1278,6 +1280,7 @@ int VarDeclaration::hasPointers()
 Expression *VarDeclaration::callAutoDtor()
 {   Expression *e = NULL;
 
+    //printf("VarDeclaration::callAutoDtor() %s\n", toChars());
     if (storage_class & (STCauto | STCscope) && !noauto)
     {
 	for (ClassDeclaration *cd = type->isClassHandle();
@@ -1288,6 +1291,8 @@ Expression *VarDeclaration::callAutoDtor()
 	     * classes to determine if there's no way the monitor
 	     * could be set.
 	     */
+	    if (cd->isInterfaceDeclaration())
+		error("interface %s cannot be scope", cd->toChars());
 	    if (1 || onstack || cd->dtors.dim)	// if any destructors
 	    {
 		// delete this;

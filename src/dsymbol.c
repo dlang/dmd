@@ -394,7 +394,9 @@ LabelDsymbol *Dsymbol::isLabel()		// is this a LabelDsymbol()?
 
 AggregateDeclaration *Dsymbol::isMember()	// is this a member of an AggregateDeclaration?
 {
+    //printf("Dsymbol::isMember() %s\n", toChars());
     Dsymbol *parent = toParent();
+    //printf("parent is %s %s\n", parent->kind(), parent->toChars());
     return parent ? parent->isAggregateDeclaration() : NULL;
 }
 

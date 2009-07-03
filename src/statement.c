@@ -1174,7 +1174,7 @@ Statement *ForeachStatement::semantic(Scope *sc)
 		}
 		Initializer *ie = new ExpInitializer(0, new IntegerExp(k));
 		VarDeclaration *var = new VarDeclaration(loc, arg->type, arg->ident, ie);
-		var->storage_class |= STCconst;
+		var->storage_class |= STCmanifest;
 		DeclarationExp *de = new DeclarationExp(loc, var);
 		st->push(new ExpStatement(loc, de));
 		arg = (Argument *)arguments->data[1];	// value
@@ -2127,6 +2127,7 @@ Statement *SwitchStatement::semantic(Scope *sc)
     {	condition = condition->integralPromotions(sc);
 	condition->checkIntegral();
     }
+    condition = condition->optimize(WANTvalue);
 
     sc = sc->push();
     sc->sbreak = this;

@@ -153,6 +153,7 @@ enum TOK
 #if V2
 	TOKtraits,
 	TOKoverloadset,
+	TOKpure,
 #endif
 
 	TOKMAX

@@ -1,6 +1,6 @@
 
 // Compiler implementation of the D programming language
-// Copyright (c) 1999-2007 by Digital Mars
+// Copyright (c) 1999-2008 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // http://www.digitalmars.com
@@ -1603,9 +1603,12 @@ MATCH TypeInstance::deduceType(Scope *sc,
 	else if (tempinst->tempdecl != tp->tempinst->tempdecl)
 	    goto Lnomatch;
 
+	if (tempinst->tiargs->dim != tp->tempinst->tiargs->dim)
+	    goto Lnomatch;
+
 	for (int i = 0; i < tempinst->tiargs->dim; i++)
 	{
-	    //printf("test: [%d]\n", i);
+	    //printf("\ttest: tempinst->tiargs[%d]\n", i);
 	    Object *o1 = (Object *)tempinst->tiargs->data[i];
 	    Object *o2 = (Object *)tp->tempinst->tiargs->data[i];
 
@@ -1950,6 +1953,7 @@ MATCH TemplateTypeParameter::matchArg(Scope *sc, Objects *tiargs,
     ta = isType(oarg);
     if (!ta)
     {
+	//printf("test1 %s %p %p %p\n", oarg->toChars(), isExpression(oarg), isDsymbol(oarg), isTuple(oarg));
 	goto Lnomatch;
     }
     //printf("ta is %s\n", ta->toChars());
@@ -2889,21 +2893,28 @@ void TemplateInstance::semantic(Scope *sc)
 #if 1
     int dosemantic3 = 0;
     {	Array *a;
-	int i;
 
-	if (sc->scopesym && sc->scopesym->members && !sc->scopesym->isTemplateMixin())
+	Scope *scx = sc;
+#if 0
+	for (scx = sc; scx; scx = scx->enclosing)
+	    if (scx->scopesym)
+		break;
+#endif
+
+	//if (scx && scx->scopesym) printf("3: scx is %s %s\n", scx->scopesym->kind(), scx->scopesym->toChars());
+	if (scx && scx->scopesym && scx->scopesym->members && !scx->scopesym->isTemplateMixin())
 	{
-	    //printf("\t1: adding to %s %s\n", sc->scopesym->kind(), sc->scopesym->toChars());
-	    a = sc->scopesym->members;
+	    //printf("\t1: adding to %s %s\n", scx->scopesym->kind(), scx->scopesym->toChars());
+	    a = scx->scopesym->members;
 	}
 	else
 	{   Module *m = sc->module->importedFrom;
-	    //printf("\t2: adding to module %s\n", m->toChars());
+	    //printf("\t2: adding to module %s instead of module %s\n", m->toChars(), sc->module->toChars());
 	    a = m->members;
 	    if (m->semanticdone >= 3)
 		dosemantic3 = 1;
 	}
-	for (i = 0; 1; i++)
+	for (int i = 0; 1; i++)
 	{
 	    if (i == a->dim)
 	    {
@@ -3146,6 +3157,8 @@ void TemplateInstance::semanticTiargs(Loc loc, Scope *sc, Objects *tiargs, int f
 	    if (ea->op != TOKvar || flags & 1)
 		ea = ea->optimize(WANTvalue | WANTinterpret);
 	    tiargs->data[j] = ea;
+	    if (ea->op == TOKtype)
+		tiargs->data[j] = ea->type;
 	}
 	else if (sa)
 	{
@@ -3430,6 +3443,7 @@ int TemplateInstance::isNested(Objects *args)
 	  Lsa:
 	    Declaration *d = sa->isDeclaration();
 	    if (d && !d->isDataseg() &&
+		!(d->storage_class & STCmanifest) &&
 		(!d->isFuncDeclaration() || d->isFuncDeclaration()->isNested()) &&
 		!isTemplateMixin())
 	    {

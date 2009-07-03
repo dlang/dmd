@@ -1,6 +1,6 @@
 
 // Compiler implementation of the D programming language
-// Copyright (c) 1999-2007 by Digital Mars
+// Copyright (c) 1999-2008 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // http://www.digitalmars.com
@@ -2358,7 +2358,7 @@ int TypeDArray::isString()
 
 MATCH TypeDArray::implicitConvTo(Type *to)
 {
-    //printf("TypeDArray::implicitConvTo()\n");
+    //printf("TypeDArray::implicitConvTo(to = %s) this = %s\n", to->toChars(), toChars());
     if (equals(to))
 	return MATCHexact;
 
@@ -3704,6 +3704,13 @@ void TypeIdentifier::resolve(Loc loc, Scope *sc, Expression **pe, Type **pt, Dsy
     //printf("TypeIdentifier::resolve(sc = %p, idents = '%s')\n", sc, toChars());
     s = sc->search(loc, ident, &scopesym);
     resolveHelper(loc, sc, s, scopesym, pe, pt, ps);
+    if (*pt && mod)
+    {
+	if (mod & MODconst)
+	    *pt = (*pt)->constOf();
+	else if (mod & MODinvariant)
+	    *pt = (*pt)->invariantOf();
+    }
 }
 
 /*****************************************
@@ -3847,6 +3854,13 @@ void TypeInstance::resolve(Loc loc, Scope *sc, Expression **pe, Type **pt, Dsymb
     if (s)
 	s->semantic(sc);
     resolveHelper(loc, sc, s, NULL, pe, pt, ps);
+    if (*pt && mod)
+    {
+	if (mod & MODconst)
+	    *pt = (*pt)->constOf();
+	else if (mod & MODinvariant)
+	    *pt = (*pt)->invariantOf();
+    }
     //printf("pt = '%s'\n", (*pt)->toChars());
 }
 
@@ -4396,6 +4410,18 @@ Expression *TypeTypedef::dotExp(Scope *sc, Expression *e, Identifier *ident)
     return sym->basetype->dotExp(sc, e, ident);
 }
 
+Expression *TypeTypedef::getProperty(Loc loc, Identifier *ident)
+{
+#if LOGDOTEXP
+    printf("TypeTypedef::getProperty(ident = '%s') '%s'\n", ident->toChars(), toChars());
+#endif
+    if (ident == Id::init)
+    {
+	return Type::getProperty(loc, ident);
+    }
+    return sym->basetype->getProperty(loc, ident);
+}
+
 int TypeTypedef::isintegral()
 {
     //printf("TypeTypedef::isintegral()\n");
@@ -4703,9 +4729,8 @@ L1:
 
     TemplateMixin *tm = s->isTemplateMixin();
     if (tm)
-    {	Expression *de;
-
-	de = new DotExp(e->loc, e, new ScopeExp(e->loc, tm));
+    {
+	Expression *de = new DotExp(e->loc, e, new ScopeExp(e->loc, tm));
 	de->type = e->type;
 	return de;
     }
@@ -4716,6 +4741,18 @@ L1:
         e = new DotTemplateExp(e->loc, e, td);
         e->semantic(sc);
 	return e;
+    }
+
+    TemplateInstance *ti = s->isTemplateInstance();
+    if (ti)
+    {	if (!ti->semanticdone)
+	    ti->semantic(sc);
+	s = ti->inst->toAlias();
+	if (!s->isTemplateInstance())
+	    goto L1;
+	Expression *de = new DotExp(e->loc, e, new ScopeExp(e->loc, ti));
+	de->type = e->type;
+	return de;
     }
 
     d = s->isDeclaration();
@@ -5092,6 +5129,18 @@ L1:
         e = new DotTemplateExp(e->loc, e, td);
         e->semantic(sc);
 	return e;
+    }
+
+    TemplateInstance *ti = s->isTemplateInstance();
+    if (ti)
+    {	if (!ti->semanticdone)
+	    ti->semantic(sc);
+	s = ti->inst->toAlias();
+	if (!s->isTemplateInstance())
+	    goto L1;
+	Expression *de = new DotExp(e->loc, e, new ScopeExp(e->loc, ti));
+	de->type = e->type;
+	return de;
     }
 
     d = s->isDeclaration();

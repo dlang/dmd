@@ -2167,7 +2167,7 @@ done:
 		break;
 	    if (d >= r)
 		break;
-	    if (n * r + d < n)
+	    if (n && n * r + d <= n)
 	    {
 		error ("integer overflow");
 		break;
@@ -2886,6 +2886,7 @@ static Keyword keywords[] =
     {	"ref",		TOKref		},
     {	"macro",	TOKmacro	},
 #if V2
+    {	"pure",		TOKpure		},
     {	"__traits",	TOKtraits	},
     {	"__overloadset", TOKoverloadset	},
 #endif

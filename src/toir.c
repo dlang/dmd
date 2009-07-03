@@ -1,6 +1,6 @@
 
 // Compiler implementation of the D programming language
-// Copyright (c) 1999-2007 by Digital Mars
+// Copyright (c) 1999-2008 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // http://www.digitalmars.com
@@ -102,9 +102,12 @@ elem *getEthis(Loc loc, IRState *irs, Dsymbol *fd)
     {	/* Going down one nesting level, i.e. we're calling
 	 * a nested function from its enclosing function.
 	 */
+#if V2
 	if (irs->sclosure)
 	    ethis = el_var(irs->sclosure);
-	else if (irs->sthis)
+	else
+#endif
+	if (irs->sthis)
 	{   // We have a 'this' pointer for the current function
 	    ethis = el_var(irs->sthis);
 
@@ -188,13 +191,15 @@ elem *getEthis(Loc loc, IRState *irs, Dsymbol *fd)
 		     * function must be a member function of that class.
 		     */
 		    ClassDeclaration *cd = s->isClassDeclaration();
-		    assert(cd);
+		    if (!cd)
+			goto Lnoframe;
 		    if (//cd->baseClass == fd ||
 			fd->isClassDeclaration() &&
 			fd->isClassDeclaration()->isBaseOf(cd, NULL))
 			break;
 		    if (!cd->isNested() || !cd->vthis)
 		    {
+		      Lnoframe:
 			irs->getFunc()->error(loc, "cannot get frame pointer to %s", fd->toChars());
 			return el_long(TYnptr, 0);	// error recovery
 		    }
@@ -393,6 +398,8 @@ elem *resolveLengthVar(VarDeclaration *lengthVar, elem **pe, Type *t1)
  * than the current frame pointer.
  */
 
+#if V2
+
 void FuncDeclaration::buildClosure(IRState *irs)
 {
     if (needsClosure())
@@ -476,4 +483,5 @@ void FuncDeclaration::buildClosure(IRState *irs)
     }
 }
 
+#endif
 

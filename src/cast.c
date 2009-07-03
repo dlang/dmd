@@ -34,7 +34,8 @@ Expression *Expression::implicitCastTo(Scope *sc, Type *t)
     //printf("Expression::implicitCastTo(%s) => %s\n", type->toChars(), t->toChars());
     //printf("%s\n", toChars());
 
-    if (implicitConvTo(t))
+    MATCH match = implicitConvTo(t);
+    if (match)
     {
 	if (global.params.warnings &&
 	    Type::impcnvWarn[type->toBasetype()->ty][t->toBasetype()->ty] &&
@@ -48,6 +49,12 @@ Expression *Expression::implicitCastTo(Scope *sc, Type *t)
 	    fprintf(stdmsg, "warning - ");
 	    error("implicit conversion of expression (%s) of type %s to %s can cause loss of data",
 		toChars(), type->toChars(), t->toChars());
+	}
+	if (match == MATCHconst && t == type->constOf())
+	{
+	    Expression *e = copy();
+	    e->type = t;
+	    return e;
 	}
 	return castTo(sc, t);
     }

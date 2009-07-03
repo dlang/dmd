@@ -1781,8 +1781,16 @@ int FuncDeclaration::isMain()
 
 int FuncDeclaration::isWinMain()
 {
+    //printf("FuncDeclaration::isWinMain() %s\n", toChars());
+#if 0
+    int x = ident == Id::WinMain &&
+	linkage != LINKc && !isMember();
+    printf("%s\n", x ? "yes" : "no");
+    return x;
+#else
     return ident == Id::WinMain &&
 	linkage != LINKc && !isMember();
+#endif
 }
 
 int FuncDeclaration::isDllMain()
@@ -1858,7 +1866,7 @@ int FuncDeclaration::isNested()
 {
     //if (!toParent())
 	//printf("FuncDeclaration::isNested('%s') parent=%p\n", toChars(), parent);
-    //printf("\ttoParent() = '%s'\n", toParent()->toChars());
+    //printf("\ttoParent2() = '%s'\n", toParent2()->toChars());
     return ((storage_class & STCstatic) == 0) &&
 	   (toParent2()->isFuncDeclaration() != NULL);
 }

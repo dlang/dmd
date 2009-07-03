@@ -966,7 +966,9 @@ void VarDeclaration::toObjFile()
 	 */
 	if (/*protection == PROTprivate ||*/
 	    !parent || parent->ident == NULL || parent->isFuncDeclaration())
+	{
 	    s->Sclass = SCstatic;
+	}
 	else
 #endif
 	{
