@@ -2984,7 +2984,7 @@ Expression *IftypeExp::syntaxCopy()
 Expression *IftypeExp::semantic(Scope *sc)
 {   Type *tded;
 
-    printf("IftypeExp::semantic()\n");
+    //printf("IftypeExp::semantic()\n");
     if (id && !(sc->flags & SCOPEstaticif))
 	error("can only declare type aliases within static if conditionals");
 
@@ -3068,8 +3068,6 @@ Expression *IftypeExp::semantic(Scope *sc)
 	 * If TRUE, declare id as an alias for the specialized type.
 	 */
 
-targ->print();
-tspec->print();
 	MATCH m;
 	TemplateTypeParameter tp(loc, id, NULL, NULL);
 
@@ -3106,8 +3104,8 @@ tspec->print();
 	/* Evaluate to TRUE if targ matches tspec
 	 */
 	tspec = tspec->semantic(loc, sc);
-	printf("targ  = %s\n", targ->toChars());
-	printf("tspec = %s\n", tspec->toChars());
+	//printf("targ  = %s\n", targ->toChars());
+	//printf("tspec = %s\n", tspec->toChars());
 	if (tok == TOKcolon)
 	{   if (targ->implicitConvTo(tspec))
 		goto Lyes;
@@ -3667,7 +3665,6 @@ Expression *DotVarExp::semantic(Scope *sc)
 
 			goto L1;
 		    }
-printf("cd = %p, tcd = %p, %s, %d\n", cd, tcd, ad->kind(), t->ty);
 		    error("this for %s needs to be type %s not type %s",
 			var->toChars(), ad->toChars(), t->toChars());
 		}
