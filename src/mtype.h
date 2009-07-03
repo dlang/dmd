@@ -361,7 +361,7 @@ struct TypeAArray : TypeArray
     int hasPointers();
 
     // Back end
-    Symbol *aaGetSymbol(char *func, int flags);
+    Symbol *aaGetSymbol(const char *func, int flags);
 
     type *toCtype();
 };
@@ -487,6 +487,7 @@ struct TypeInstance : TypeQualified
     void toCBuffer2(OutBuffer *buf, HdrGenState *hgs, int mod);
     void resolve(Loc loc, Scope *sc, Expression **pe, Type **pt, Dsymbol **ps);
     Type *semantic(Loc loc, Scope *sc);
+    Dsymbol *toDsymbol(Scope *sc);
     MATCH deduceType(Scope *sc, Type *tparam, TemplateParameters *parameters, Objects *dedtypes);
 };
 

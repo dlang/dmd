@@ -539,7 +539,16 @@ void ClassDeclaration::semantic(Scope *sc)
     sc->inunion = 0;
 
     if (isCOMclass())
+    {
+#if _WIN32
 	sc->linkage = LINKwindows;
+#else
+	/* This enables us to use COM objects under Linux and
+	 * work with things like XPCOM
+	 */
+	sc->linkage = LINKc;
+#endif
+    }
     sc->protection = PROTpublic;
     sc->explicitProtection = 0;
     sc->structalign = 8;

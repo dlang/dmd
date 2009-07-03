@@ -404,7 +404,7 @@ void LinkDeclaration::semantic3(Scope *sc)
 }
 
 void LinkDeclaration::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
-{   char *p;
+{   const char *p;
 
     switch (linkage)
     {
@@ -425,7 +425,7 @@ void LinkDeclaration::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 
 char *LinkDeclaration::toChars()
 {
-    return "extern ()";
+    return (char *)"extern ()";
 }
 
 /********************************* ProtDeclaration ****************************/
@@ -470,7 +470,7 @@ void ProtDeclaration::semantic(Scope *sc)
 }
 
 void ProtDeclaration::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
-{   char *p;
+{   const char *p;
 
     switch (protection)
     {
@@ -694,7 +694,7 @@ void AnonDeclaration::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 
 const char *AnonDeclaration::kind()
 {
-    return (char *)(isunion ? "anonymous union" : "anonymous struct");
+    return (isunion ? "anonymous union" : "anonymous struct");
 }
 
 /********************************* PragmaDeclaration ****************************/
@@ -1116,6 +1116,7 @@ const char *StaticIfDeclaration::kind()
 CompileDeclaration::CompileDeclaration(Loc loc, Expression *exp)
     : AttribDeclaration(NULL)
 {
+    //printf("CompileDeclaration(loc = %d)\n", loc.linnum);
     this->loc = loc;
     this->exp = exp;
     this->sd = NULL;
@@ -1145,7 +1146,7 @@ int CompileDeclaration::addMember(Scope *sc, ScopeDsymbol *sd, int memnum)
 
 void CompileDeclaration::compileIt(Scope *sc)
 {
-    //printf("CompileDeclaration::compileIt()\n");
+    //printf("CompileDeclaration::compileIt(loc = %d)\n", loc.linnum);
     exp = exp->semantic(sc);
     exp = resolveProperties(sc, exp);
     exp = exp->optimize(WANTvalue | WANTinterpret);

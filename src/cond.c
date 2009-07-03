@@ -125,7 +125,7 @@ void VersionCondition::setGlobalLevel(unsigned level)
 
 void VersionCondition::checkPredefined(Loc loc, char *ident)
 {
-    static char* reserved[] =
+    static const char* reserved[] =
     {
 	"DigitalMars", "X86", "X86_64",
 	"Windows", "Win32", "Win64",

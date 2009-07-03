@@ -792,6 +792,8 @@ struct DotVarExp : UnaExp
     Expression *semantic(Scope *sc);
     Expression *toLvalue(Scope *sc, Expression *e);
     Expression *modifiableLvalue(Scope *sc, Expression *e);
+    Expression *optimize(int result);
+    Expression *interpret(InterState *istate);
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
     void dump(int indent);
     elem *toElem(IRState *irs);

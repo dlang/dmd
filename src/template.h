@@ -1,6 +1,6 @@
 
 // Compiler implementation of the D programming language
-// Copyright (c) 1999-2006 by Digital Mars
+// Copyright (c) 1999-2008 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // http://www.digitalmars.com
@@ -51,7 +51,9 @@ struct TemplateDeclaration : ScopeDsymbol
     TemplateParameters *parameters;	// array of TemplateParameter's
 
     TemplateParameters *origParameters;	// originals for Ddoc
-
+#if V2
+    Expression *constraint;
+#endif
     Array instances;			// array of TemplateInstance's
 
     TemplateDeclaration *overnext;	// next overloaded TemplateDeclaration
@@ -60,7 +62,11 @@ struct TemplateDeclaration : ScopeDsymbol
     Scope *scope;
     Dsymbol *onemember;		// if !=NULL then one member of this template
 
-    TemplateDeclaration(Loc loc, Identifier *id, TemplateParameters *parameters, Array *decldefs);
+    TemplateDeclaration(Loc loc, Identifier *id, TemplateParameters *parameters,
+#if V2
+	Expression *constraint,
+#endif
+	Array *decldefs);
     Dsymbol *syntaxCopy(Dsymbol *);
     void semantic(Scope *sc);
     int overloadInsert(Dsymbol *s);
@@ -74,8 +80,8 @@ struct TemplateDeclaration : ScopeDsymbol
     MATCH matchWithInstance(TemplateInstance *ti, Objects *atypes, int flag);
     int leastAsSpecialized(TemplateDeclaration *td2);
 
-    MATCH deduceFunctionTemplateMatch(Objects *targsi, Expressions *fargs, Objects *dedargs);
-    FuncDeclaration *deduceFunctionTemplate(Scope *sc, Loc loc, Objects *targsi, Expressions *fargs);
+    MATCH deduceFunctionTemplateMatch(Loc loc, Objects *targsi, Expression *ethis, Expressions *fargs, Objects *dedargs);
+    FuncDeclaration *deduceFunctionTemplate(Scope *sc, Loc loc, Objects *targsi, Expression *ethis, Expressions *fargs, int flags = 0);
     void declareParameter(Scope *sc, TemplateParameter *tp, Object *o);
 
     TemplateDeclaration *isTemplateDeclaration() { return this; }
@@ -106,6 +112,9 @@ struct TemplateParameter
     virtual TemplateTypeParameter  *isTemplateTypeParameter();
     virtual TemplateValueParameter *isTemplateValueParameter();
     virtual TemplateAliasParameter *isTemplateAliasParameter();
+#if V2
+    virtual TemplateThisParameter *isTemplateThisParameter();
+#endif
     virtual TemplateTupleParameter *isTemplateTupleParameter();
 
     virtual TemplateParameter *syntaxCopy() = 0;
@@ -114,7 +123,7 @@ struct TemplateParameter
     virtual void print(Object *oarg, Object *oded) = 0;
     virtual void toCBuffer(OutBuffer *buf, HdrGenState *hgs) = 0;
     virtual Object *specialization() = 0;
-    virtual Object *defaultArg(Scope *sc) = 0;
+    virtual Object *defaultArg(Loc loc, Scope *sc) = 0;
 
     /* If TemplateParameter's match as far as overloading goes.
      */
@@ -146,7 +155,7 @@ struct TemplateTypeParameter : TemplateParameter
     void print(Object *oarg, Object *oded);
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
     Object *specialization();
-    Object *defaultArg(Scope *sc);
+    Object *defaultArg(Loc loc, Scope *sc);
     int overloadMatch(TemplateParameter *);
     MATCH matchArg(Scope *sc, Objects *tiargs, int i, TemplateParameters *parameters, Objects *dedtypes, Declaration **psparam);
     void *dummyArg();
@@ -190,7 +199,7 @@ struct TemplateValueParameter : TemplateParameter
     void print(Object *oarg, Object *oded);
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
     Object *specialization();
-    Object *defaultArg(Scope *sc);
+    Object *defaultArg(Loc loc, Scope *sc);
     int overloadMatch(TemplateParameter *);
     MATCH matchArg(Scope *sc, Objects *tiargs, int i, TemplateParameters *parameters, Objects *dedtypes, Declaration **psparam);
     void *dummyArg();
@@ -218,7 +227,7 @@ struct TemplateAliasParameter : TemplateParameter
     void print(Object *oarg, Object *oded);
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
     Object *specialization();
-    Object *defaultArg(Scope *sc);
+    Object *defaultArg(Loc loc, Scope *sc);
     int overloadMatch(TemplateParameter *);
     MATCH matchArg(Scope *sc, Objects *tiargs, int i, TemplateParameters *parameters, Objects *dedtypes, Declaration **psparam);
     void *dummyArg();
@@ -239,7 +248,7 @@ struct TemplateTupleParameter : TemplateParameter
     void print(Object *oarg, Object *oded);
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
     Object *specialization();
-    Object *defaultArg(Scope *sc);
+    Object *defaultArg(Loc loc, Scope *sc);
     int overloadMatch(TemplateParameter *);
     MATCH matchArg(Scope *sc, Objects *tiargs, int i, TemplateParameters *parameters, Objects *dedtypes, Declaration **psparam);
     void *dummyArg();

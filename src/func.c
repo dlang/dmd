@@ -303,6 +303,8 @@ void FuncDeclaration::semantic(Scope *sc)
 
 		if (isFinal())
 		{
+		    if (isOverride())
+			error("does not override any function");
 		    cd->vtblFinal.push(this);
 		}
 		else
@@ -991,7 +993,6 @@ void FuncDeclaration::semantic3(Scope *sc)
 	    }
 
 	    int offend = fbody ? fbody->blockExit() & BEfallthru : TRUE;
-	    //int offend = fbody ? fbody->fallOffEnd() : TRUE;
 
 	    if (isStaticCtorDeclaration())
 	    {	/* It's a static constructor. Ensure that all
