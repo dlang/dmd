@@ -1,4 +1,5 @@
 
+// Compiler implementation of the D programming language
 // Copyright (c) 1999-2006 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
@@ -26,6 +27,7 @@
 #include "expression.h"
 #include "dsymbol.h"
 #include "aggregate.h"
+#include "module.h"
 
 extern void obj_includelib(char *name);
 

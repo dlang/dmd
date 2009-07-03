@@ -1,3 +1,5 @@
+
+// Compiler implementation of the D programming language
 // Copyright (c) 1999-2006 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
@@ -35,6 +37,7 @@
 
 static Expression *build_overload(Loc loc, Scope *sc, Expression *ethis, Expression *earg, Identifier *id);
 static void inferApplyArgTypesX(FuncDeclaration *fstart, Array *arguments);
+static int inferApplyArgTypesY(TypeFunction *tf, Array *arguments);
 static void templateResolve(Match *m, TemplateDeclaration *td, Scope *sc, Loc loc, Objects *targsi, Expressions *arguments);
 
 /******************************** Expression **************************/
@@ -484,7 +487,7 @@ Dsymbol *search_function(AggregateDeclaration *ad, Identifier *funcid)
  * them from the aggregate type.
  */
 
-void inferApplyArgTypes(Array *arguments, Type *taggr)
+void inferApplyArgTypes(enum TOK op, Array *arguments, Expression *aggr)
 {
     if (!arguments || !arguments->dim)
 	return;
@@ -503,6 +506,7 @@ void inferApplyArgTypes(Array *arguments, Type *taggr)
     FuncDeclaration *fd;
 
     Argument *arg = (Argument *)arguments->data[0];
+    Type *taggr = aggr->type;
     Type *tab = taggr->toBasetype();
     switch (tab->ty)
     {
@@ -562,7 +566,9 @@ void inferApplyArgTypes(Array *arguments, Type *taggr)
 	     *	int opApply(int delegate(inout Type [, ...]) dg);
 	     * overload
 	     */
-	    Dsymbol *s = search_function(ad, Id::apply);
+	    Dsymbol *s = search_function(ad,
+			(op == TOKforeach_reverse) ? Id::applyReverse
+						   : Id::apply);
 	    if (s)
 	    {
 		fd = s->isFuncDeclaration();
@@ -571,6 +577,23 @@ void inferApplyArgTypes(Array *arguments, Type *taggr)
 	    }
 	    break;
 	}
+
+	case Tdelegate:
+	{
+	    if (0 && aggr->op == TOKdelegate)
+	    {	DelegateExp *de = (DelegateExp *)aggr;
+
+		fd = de->func->isFuncDeclaration();
+		if (fd)
+		    inferApplyArgTypesX(fd, arguments);
+	    }
+	    else
+	    {
+		inferApplyArgTypesY((TypeFunction *)tab->next, arguments);
+	    }
+	    break;
+	}
+
 	default:
 	    break;		// ignore error, caught later
     }
@@ -603,40 +626,10 @@ static void inferApplyArgTypesX(FuncDeclaration *fstart, Array *arguments)
 	    next = f->overnext;
 
 	    TypeFunction *tf = (TypeFunction *)f->type;
-	    if (!tf->arguments || tf->arguments->dim != 1)
+	    if (inferApplyArgTypesY(tf, arguments) == 1)
 		continue;
-	    Argument *p = (Argument *)tf->arguments->data[0];
-	    if (p->type->ty != Tdelegate)
-		continue;
-	    tf = (TypeFunction *)p->type->next;
-	    assert(tf->ty == Tfunction);
-
-	    /* We now have tf, the type of the delegate. Match it against
-	     * the arguments, filling in missing argument types.
-	     */
-	    if (!tf->arguments || tf->varargs)
-		continue;		// not enough parameters
-	    unsigned nparams = tf->arguments->dim;
-	    if (arguments->dim != nparams)
-		continue;		// not enough parameters
-
-	    for (unsigned u = 0; u < nparams; u++)
-	    {
-		p = (Argument *)arguments->data[u];
-		Argument *tp = (Argument *)tf->arguments->data[u];
-		if (p->type)
-		{   if (!p->type->equals(tp->type))
-		    {
-			/* Cannot resolve argument types. Indicate an
-			 * error by setting the number of arguments to 0.
-			 */
-			arguments->dim = 0;
-			return;
-		    }
-		    continue;
-		}
-		p->type = tp->type;
-	    }
+	    if (arguments->dim == 0)
+		return;
 	}
 	else if ((a = d->isAliasDeclaration()) != NULL)
 	{
@@ -654,6 +647,60 @@ static void inferApplyArgTypesX(FuncDeclaration *fstart, Array *arguments)
     }
 }
 
+/******************************
+ * Infer arguments from type of function.
+ * Returns:
+ *	0 match for this function
+ *	1 no match for this function
+ */
+
+static int inferApplyArgTypesY(TypeFunction *tf, Array *arguments)
+{   unsigned nparams;
+    Argument *p;
+
+    if (!tf->arguments || tf->arguments->dim != 1)
+	goto Lnomatch;
+    p = (Argument *)tf->arguments->data[0];
+    if (p->type->ty != Tdelegate)
+	goto Lnomatch;
+    tf = (TypeFunction *)p->type->next;
+    assert(tf->ty == Tfunction);
+
+    /* We now have tf, the type of the delegate. Match it against
+     * the arguments, filling in missing argument types.
+     */
+    if (!tf->arguments || tf->varargs)
+	goto Lnomatch;		// not enough parameters
+    nparams = tf->arguments->dim;
+    if (arguments->dim != nparams)
+	goto Lnomatch;		// not enough parameters
+
+    for (unsigned u = 0; u < nparams; u++)
+    {
+	p = (Argument *)arguments->data[u];
+	Argument *tp = (Argument *)tf->arguments->data[u];
+	if (p->type)
+	{   if (!p->type->equals(tp->type))
+	    {
+		/* Cannot resolve argument types. Indicate an
+		 * error by setting the number of arguments to 0.
+		 */
+		arguments->dim = 0;
+		goto Lmatch;
+	    }
+	    continue;
+	}
+	p->type = tp->type;
+    }
+  Lmatch:
+    return 0;
+
+  Lnomatch:
+    return 1;
+}
+
+/**************************************
+ */
 
 static void templateResolve(Match *m, TemplateDeclaration *td, Scope *sc, Loc loc, Objects *targsi, Expressions *arguments)
 {

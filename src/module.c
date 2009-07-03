@@ -31,6 +31,7 @@
 #include "import.h"
 #include "dsymbol.h"
 #include "hdrgen.h"
+#include "lexer.h"
 
 #define MARS 1
 #include "html.h"
@@ -570,13 +571,10 @@ void Module::parse()
     {
 	dst = modules;
 
-	for (char* p = this->ident->toChars(); *p; p++)
-	{
-	    if (*p != '_' && !isalnum(*p))
-	    {	error("has non-identifier characters in filename, use module declaration instead");
-		break;
-	    }
-	}
+	/* Check to see if module name is a valid identifier
+	 */
+	if (!Lexer::isValidIdentifier(this->ident->toChars()))
+	    error("has non-identifier characters in filename, use module declaration instead");
     }
 
     // Update global list of modules

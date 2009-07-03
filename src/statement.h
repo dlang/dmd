@@ -44,6 +44,8 @@ struct ScopeStatement;
 struct TryCatchStatement;
 struct HdrGenState;
 
+enum TOK;
+
 // Back end
 struct IRState;
 struct Blockx;
@@ -248,6 +250,7 @@ struct ForStatement : Statement
 
 struct ForeachStatement : Statement
 {
+    enum TOK op;	// TOKforeach or TOKforeach_reverse
     Array *arguments;	// array of Argument*'s
     Expression *aggr;
     Statement *body;
@@ -260,7 +263,7 @@ struct ForeachStatement : Statement
     Array cases;	// put breaks, continues, gotos and returns here
     Array gotos;	// forward referenced goto's go here
 
-    ForeachStatement(Loc loc, Array *arguments, Expression *aggr, Statement *body);
+    ForeachStatement(Loc loc, enum TOK op, Array *arguments, Expression *aggr, Statement *body);
     Statement *syntaxCopy();
     Statement *semantic(Scope *sc);
     int hasBreak();

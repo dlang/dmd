@@ -40,6 +40,8 @@ struct ClassDeclaration;
 struct HdrGenState;
 struct BinExp;
 
+enum TOK;
+
 // Back end
 struct IRState;
 struct dt_t;
@@ -55,7 +57,7 @@ void initPrecedence();
 Expression *resolveProperties(Scope *sc, Expression *e);
 void accessCheck(Loc loc, Scope *sc, Expression *e, Declaration *d);
 Dsymbol *search_function(AggregateDeclaration *ad, Identifier *funcid);
-void inferApplyArgTypes(Array *arguments, Type *taggr);
+void inferApplyArgTypes(enum TOK op, Array *arguments, Expression *aggr);
 void argExpTypesToCBuffer(OutBuffer *buf, Expressions *arguments, HdrGenState *hgs);
 void argsToCBuffer(OutBuffer *buf, Expressions *arguments, HdrGenState *hgs);
 
@@ -267,6 +269,8 @@ struct SuperExp : ThisExp
 
 struct NullExp : Expression
 {
+    unsigned char committed;	// !=0 if type is committed
+
     NullExp(Loc loc);
     Expression *semantic(Scope *sc);
     int isBool(int result);

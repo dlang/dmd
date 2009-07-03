@@ -1,4 +1,5 @@
 
+// Compiler implementation of the D programming language
 // Copyright (c) 1999-2006 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
@@ -2601,7 +2602,9 @@ Statement *Parser::parseStatement(int flags)
 	}
 
 	case TOKforeach:
+	case TOKforeach_reverse:
 	{
+	    enum TOK op = token.value;
 	    Array *arguments;
 
 	    Statement *d;
@@ -2654,7 +2657,7 @@ Statement *Parser::parseStatement(int flags)
 	    aggr = parseExpression();
 	    check(TOKrparen);
 	    body = parseStatement(0);
-	    s = new ForeachStatement(loc, arguments, aggr, body);
+	    s = new ForeachStatement(loc, op, arguments, aggr, body);
 	    break;
 	}
 
@@ -4664,21 +4667,9 @@ Expression *Parser::parseNewExp(Expression *thisexp)
     {
 	Type *index = ((TypeAArray *)t)->index;
 
-	if (index->ty == Tident)
-	{
-	    TypeIdentifier *ti = (TypeIdentifier *)index;
-	    int i;
-	    Expression *e;
-	    Identifier *id = ti->ident;
-
-	    e = new IdentifierExp(loc, id);
-	    for (i = 0; i < ti->idents.dim; i++)
-	    {
-		id = (Identifier *)ti->idents.data[i];
-		e = new DotIdExp(loc, e, id);
-	    }
-
-	    arguments = new Expressions();
+	Expression *e = index->toExpression();
+	if (e)
+	{   arguments = new Expressions();
 	    arguments->push(e);
 	    t = new TypeDArray(t->next);
 	}

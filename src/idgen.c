@@ -183,6 +183,7 @@ Msgtable msgtable[] =
 
     // For foreach
     { "apply", "opApply" },
+    { "applyReverse", "opApplyReverse" },
 
     // For pragma's
     { "lib" },

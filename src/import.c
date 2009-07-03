@@ -18,6 +18,9 @@
 #include "module.h"
 #include "scope.h"
 #include "hdrgen.h"
+#include "mtype.h"
+#include "declaration.h"
+#include "id.h"
 
 /********************************* Import ****************************/
 

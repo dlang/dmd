@@ -26,6 +26,7 @@
 #include "id.h"
 #include "scope.h"
 #include "init.h"
+#include "import.h"
 
 /****************************** Dsymbol ******************************/
 

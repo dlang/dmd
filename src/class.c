@@ -418,8 +418,14 @@ void ClassDeclaration::semantic(Scope *sc)
 		    if (cd)
 			t = cd->type;
 		    else if (fd)
-		    {   t = new TypePointer(Type::tvoid);
-			t = t->semantic(0, sc);
+		    {	AggregateDeclaration *ad = fd->isMember2();
+			if (ad)
+			    t = ad->handle;
+			else
+			{
+			    t = new TypePointer(Type::tvoid);
+			    t = t->semantic(0, sc);
+			}
 		    }
 		    else
 			assert(0);
@@ -886,7 +892,7 @@ void InterfaceDeclaration::semantic(Scope *sc)
 	    tc = NULL;
 	if (!tc || !tc->sym->isInterfaceDeclaration())
 	{
-	    //error("base type must be interface, not %s", b->type->toChars());
+	    error("base type must be interface, not %s", b->type->toChars());
 	    baseclasses.remove(i);
 	    continue;
 	}

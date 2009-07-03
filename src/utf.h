@@ -21,4 +21,6 @@ char *utf_decodeWchar(unsigned short *s, unsigned len, unsigned *pidx, dchar_t *
 
 char *utf_validateString(unsigned char *s, unsigned len);
 
+extern int isUniAlpha(dchar_t);
+
 #endif

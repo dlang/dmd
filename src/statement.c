@@ -874,10 +874,11 @@ void ForStatement::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 
 /******************************** ForeachStatement ***************************/
 
-ForeachStatement::ForeachStatement(Loc loc, Array *arguments,
+ForeachStatement::ForeachStatement(Loc loc, enum TOK op, Array *arguments,
 	Expression *aggr, Statement *body)
     : Statement(loc)
 {
+    this->op = op;
     this->arguments = arguments;
     this->aggr = aggr;
     this->body = body;
@@ -892,7 +893,7 @@ Statement *ForeachStatement::syntaxCopy()
 {
     Array *args = Argument::arraySyntaxCopy(arguments);
     Expression *exp = aggr->syntaxCopy();
-    ForeachStatement *s = new ForeachStatement(loc, args, exp, body->syntaxCopy());
+    ForeachStatement *s = new ForeachStatement(loc, op, args, exp, body->syntaxCopy());
     return s;
 }
 
@@ -915,7 +916,7 @@ Statement *ForeachStatement::semantic(Scope *sc)
     aggr = aggr->semantic(sc);
     aggr = resolveProperties(sc, aggr);
 
-    inferApplyArgTypes(arguments, aggr->type);
+    inferApplyArgTypes(op, arguments, aggr);
 
     /* Check for inference errors
      */
@@ -1039,8 +1040,15 @@ Statement *ForeachStatement::semantic(Scope *sc)
 		error("only one or two arguments for associative array foreach");
 		break;
 	    }
+	    if (op == TOKforeach_reverse)
+	    {
+		error("no reverse iteration on associative arrays");
+	    }
+	    goto Lapply;
+
 	case Tclass:
 	case Tstruct:
+	case Tdelegate:
 	Lapply:
 	{   FuncDeclaration *fdapply;
 	    Expressions *args;
@@ -1157,7 +1165,7 @@ Statement *ForeachStatement::semantic(Scope *sc)
 		  "wc","cc","wd",
 		  "dc","dw","dd"
 		};
-		char fdname[10 + 1];
+		char fdname[11 + 1];
 		int flag;
 
 		switch (tn->ty)
@@ -1174,7 +1182,8 @@ Statement *ForeachStatement::semantic(Scope *sc)
 		    case Tdchar:	flag += 2; break;
 		    default:		assert(0);
 		}
-		int j = sprintf(fdname, "_aApply%.*s%d", 2, fntab[flag], dim);
+		const char *r = (op == TOKforeach_reverse) ? "R" : "";
+		int j = sprintf(fdname, "_aApply%s%.*s%d", r, 2, fntab[flag], dim);
 		assert(j < sizeof(fdname));
 		fdapply = FuncDeclaration::genCfunc(Type::tindex, fdname);
 
@@ -1187,12 +1196,26 @@ Statement *ForeachStatement::semantic(Scope *sc)
 		e = new CallExp(loc, ec, args);
 		e->type = Type::tindex;	// don't run semantic() on e
 	    }
+	    else if (tab->ty == Tdelegate)
+	    {
+		/* Call:
+		 *	aggr(flde)
+		 */
+		args = new Expressions();
+		args->push(flde);
+		e = new CallExp(loc, aggr, args);
+		e = e->semantic(sc);
+		if (e->type != Type::tint32)
+		    error("opApply() function for %s must return an int", tab->toChars());
+	    }
 	    else
 	    {
 		/* Call:
 		 *	aggr.apply(flde)
 		 */
-		ec = new DotIdExp(loc, aggr, Id::apply);
+		ec = new DotIdExp(loc, aggr,
+			(op == TOKforeach_reverse) ? Id::applyReverse
+						   : Id::apply);
 		args = new Expressions();
 		args->push(flde);
 		e = new CallExp(loc, ec, args);
@@ -1269,7 +1292,8 @@ int ForeachStatement::comeFrom()
 
 void ForeachStatement::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 {
-    buf->writestring("foreach (");
+    buf->writestring(Token::toChars(op));
+    buf->writestring(" (");
     int i;
     for (int i = 0; i < arguments->dim; i++)
     {

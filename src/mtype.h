@@ -235,6 +235,7 @@ struct Type : Object
     virtual TypeInfoDeclaration *getTypeInfoDeclaration();
     virtual int builtinTypeInfo();
     virtual Type *reliesOnTident();
+    virtual Expression *toExpression();
 
     static void error(Loc loc, const char *format, ...);
 
@@ -310,6 +311,7 @@ struct TypeSArray : TypeArray
     dt_t **toDtElem(dt_t **pdt, Expression *e);
     MATCH deduceType(Scope *sc, Type *tparam, TemplateParameters *parameters, Array *atypes);
     TypeInfoDeclaration *getTypeInfoDeclaration();
+    Expression *toExpression();
 
     type *toCtype();
     type *toCParamtype();
@@ -462,6 +464,7 @@ struct TypeIdentifier : TypeQualified
     Type *semantic(Loc loc, Scope *sc);
     MATCH deduceType(Scope *sc, Type *tparam, TemplateParameters *parameters, Array *atypes);
     Type *reliesOnTident();
+    Expression *toExpression();
 };
 
 /* Similar to TypeIdentifier, but with a TemplateInstance as the root

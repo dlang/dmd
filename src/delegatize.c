@@ -1,4 +1,5 @@
 
+// Compiler implementation of the D programming language
 // Copyright (c) 1999-2006 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
@@ -12,10 +13,12 @@
 
 #include "mars.h"
 #include "expression.h"
+#include "statement.h"
 #include "mtype.h"
 #include "utf.h"
 #include "declaration.h"
 #include "aggregate.h"
+#include "scope.h"
 
 /********************************************
  * Convert from expression to delegate that returns the expression,

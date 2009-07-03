@@ -28,6 +28,7 @@ struct TemplateTypeParameter;
 struct TemplateValueParameter;
 struct TemplateAliasParameter;
 struct Type;
+struct TypeTypeof;
 struct Scope;
 struct Expression;
 struct AliasDeclaration;

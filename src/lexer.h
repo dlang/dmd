@@ -136,7 +136,7 @@ enum TOK
 	TOKif, TOKelse, TOKwhile, TOKfor, TOKdo, TOKswitch,
 	TOKcase, TOKdefault, TOKbreak, TOKcontinue, TOKwith,
 	TOKsynchronized, TOKreturn, TOKgoto, TOKtry, TOKcatch, TOKfinally,
-	TOKasm, TOKforeach,
+	TOKasm, TOKforeach, TOKforeach_reverse,
 	TOKscope,
 	TOKon_scope_exit, TOKon_scope_failure, TOKon_scope_success,
 
@@ -273,6 +273,7 @@ struct Lexer
     unsigned decodeUTF();
     void getDocComment(Token *t, unsigned lineComment);
 
+    static int isValidIdentifier(char *p);
     static unsigned char *combineComments(unsigned char *c1, unsigned char *c2);
 };
 

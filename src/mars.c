@@ -36,6 +36,7 @@ long __cdecl __ehfilter(LPEXCEPTION_POINTERS ep);
 #include "id.h"
 #include "cond.h"
 #include "expression.h"
+#include "lexer.h"
 
 void getenv_setargv(const char *envvar, int *pargc, char** *pargv);
 
@@ -59,7 +60,7 @@ Global::Global()
 
     copyright = "Copyright (c) 1999-2006 by Digital Mars";
     written = "written by Walter Bright";
-    version = "v0.169";
+    version = "v0.170";
     global.structalign = 8;
 
     memset(&params, 0, sizeof(Param));
@@ -403,7 +404,7 @@ int main(int argc, char *argv[])
 			    goto Lerror;
 			DebugCondition::setGlobalLevel((int)level);
 		    }
-		    else if (isalpha(p[7]) || p[7] == '_')
+		    else if (Lexer::isValidIdentifier(p + 7))
 			DebugCondition::addGlobalIdent(p + 7);
 		    else
 			goto Lerror;
@@ -429,7 +430,7 @@ int main(int argc, char *argv[])
 			    goto Lerror;
 			VersionCondition::setGlobalLevel((int)level);
 		    }
-		    else if (isalpha(p[9]) || p[9] == '_')
+		    else if (Lexer::isValidIdentifier(p + 9))
 			VersionCondition::addGlobalIdent(p + 9);
 		    else
 			goto Lerror;

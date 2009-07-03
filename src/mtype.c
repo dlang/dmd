@@ -676,6 +676,17 @@ Type *Type::reliesOnTident()
 	return next->reliesOnTident();
 }
 
+/********************************
+ * We've mistakenly parsed this as a type.
+ * Redo it as an Expression.
+ * NULL if cannot.
+ */
+
+Expression *Type::toExpression()
+{
+    return NULL;
+}
+
 /* ============================= TypeBasic =========================== */
 
 TypeBasic::TypeBasic(TY ty)
@@ -1734,6 +1745,18 @@ Expression *TypeSArray::defaultInit()
 int TypeSArray::isZeroInit()
 {
     return next->isZeroInit();
+}
+
+
+Expression *TypeSArray::toExpression()
+{
+    Expression *e = next->toExpression();
+    if (e)
+    {	Expressions *arguments = new Expressions();
+	arguments->push(dim);
+	e = new ArrayExp(dim->loc, e, arguments);
+    }
+    return e;
 }
 
 /***************************** TypeDArray *****************************/
@@ -3184,6 +3207,18 @@ Type *TypeIdentifier::semantic(Loc loc, Scope *sc)
 Type *TypeIdentifier::reliesOnTident()
 {
     return this;
+}
+
+Expression *TypeIdentifier::toExpression()
+{
+    Expression *e = new IdentifierExp(loc, ident);
+    for (int i = 0; i < idents.dim; i++)
+    {
+	Identifier *id = (Identifier *)idents.data[i];
+	e = new DotIdExp(loc, e, id);
+    }
+
+    return e;
 }
 
 /***************************** TypeInstance *****************************/

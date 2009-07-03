@@ -428,6 +428,42 @@ Token *Lexer::peekPastParen(Token *tk)
     }
 }
 
+/**********************************
+ * Determine if string is a valid Identifier.
+ * Placed here because of commonality with Lexer functionality.
+ * Returns:
+ *	0	invalid
+ */
+
+int Lexer::isValidIdentifier(char *p)
+{
+    size_t len;
+    size_t idx;
+
+    if (!p || !*p)
+	goto Linvalid;
+
+    if (isdigit(*p))
+	goto Linvalid;
+
+    len = strlen(p);
+    idx = 0;
+    while (p[idx])
+    {   dchar_t dc;
+
+	char *q = utf_decodeChar((unsigned char *)p, len, &idx, &dc);
+	if (q)
+	    goto Linvalid;
+
+	if (!((dc >= 0x80 && isUniAlpha(dc)) || isalnum(dc) || dc == '_'))
+	    goto Linvalid;
+    }
+    return 1;
+
+Linvalid:
+    return 0;
+}
+
 /****************************
  * Turn next token in buffer into a token.
  */
@@ -2518,6 +2554,7 @@ static Keyword keywords[] =
     {	"with",		TOKwith		},
     {	"asm",		TOKasm		},
     {	"foreach",	TOKforeach	},
+    {	"foreach_reverse",	TOKforeach_reverse	},
     {	"scope",	TOKscope	},
     {	"on_scope_exit",    TOKon_scope_exit },
     {	"on_scope_failure", TOKon_scope_failure },

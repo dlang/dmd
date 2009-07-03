@@ -265,6 +265,11 @@ Expression *resolveProperties(Scope *sc, Expression *e)
 		e = e->semantic(sc);
 	    }
 	}
+
+	else if (e->op == TOKdotexp)
+	{
+	    e->error("expression has no value");
+	}
     }
     return e;
 }
@@ -769,7 +774,6 @@ Expression *Expression::toLvalue(Scope *sc, Expression *e)
     else if (!loc.filename)
 	loc = e->loc;
     error("%s is not an lvalue", e->toChars());
-*(char*)0=0;
     return this;
 }
 
@@ -1915,6 +1919,7 @@ void SuperExp::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 NullExp::NullExp(Loc loc)
 	: Expression(loc, TOKnull, sizeof(NullExp))
 {
+    committed = 0;
 }
 
 Expression *NullExp::semantic(Scope *sc)
@@ -3708,8 +3713,6 @@ Expression *DotIdExp::semantic(Scope *sc)
 
     UnaExp::semantic(sc);
 
-    e1 = resolveProperties(sc, e1);
-
     if (e1->op == TOKdotexp)
     {
 	DotExp *de = (DotExp *)e1;
@@ -3718,6 +3721,7 @@ Expression *DotIdExp::semantic(Scope *sc)
     }
     else
     {
+	e1 = resolveProperties(sc, e1);
 	eleft = NULL;
 	eright = e1;
     }
@@ -3961,6 +3965,9 @@ Expression *DotVarExp::semantic(Scope *sc)
 
 			goto L1;
 		    }
+#ifdef DEBUG
+		    printf("2: ");
+#endif
 		    error("this for %s needs to be type %s not type %s",
 			var->toChars(), ad->toChars(), t->toChars());
 		}
@@ -4192,6 +4199,9 @@ Expression *DelegateExp::semantic(Scope *sc)
 		    e1 = e1->semantic(sc);
 		    goto L10;
 		}
+#ifdef DEBUG
+		printf("3: ");
+#endif
 		error("this for %s needs to be type %s not type %s",
 		    func->toChars(), ad->toChars(), t->toChars());
 	    }
@@ -4298,6 +4308,13 @@ Expression *CallExp::semantic(Scope *sc)
 	if (earg->type) earg->type->print();
     }
 #endif
+
+    if (e1->op == TOKdelegate)
+    {	DelegateExp *de = (DelegateExp *)e1;
+
+	e1 = new DotVarExp(de->loc, de->e1, de->func);
+	return semantic(sc);
+    }
 
     /* Transform:
      *	array.id(args) into id(array,args)
@@ -4470,6 +4487,9 @@ Lagain:
 		    ue->e1 = ue->e1->semantic(sc);
 		    goto L10;
 		}
+#ifdef DEBUG
+		printf("1: ");
+#endif
 		error("this for %s needs to be type %s not type %s",
 		    f->toChars(), ad->toChars(), t->toChars());
 	    }
@@ -5382,6 +5402,7 @@ Expression *DotExp::semantic(Scope *sc)
 {
 #if LOGSEMANTIC
     printf("DotExp::semantic('%s')\n", toChars());
+    if (type) printf("\ttype = %s\n", type->toChars());
 #endif
     e1 = e1->semantic(sc);
     e2 = e2->semantic(sc);

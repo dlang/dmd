@@ -315,12 +315,29 @@ void FuncDeclaration::semantic(Scope *sc)
 	}
 
 	// This is an 'introducing' function.
-	// Append to end of vtbl[]
-	//printf("\tintroducing function\n");
-	introducing = 1;
-	vi = cd->vtbl.dim;
-	cd->vtbl.push(this);
-	vtblIndex = vi;
+	if (isFinal())
+	{
+	    // Verify this doesn't override previous final function
+	    if (cd->baseClass)
+	    {	Dsymbol *s = cd->baseClass->search(loc, ident, 0);
+		if (s)
+		{
+		    FuncDeclaration *f = s->isFuncDeclaration();
+		    f = f->overloadExactMatch(type);
+		    if (f && f->isFinal())
+			error("cannot override final function %s", f->toPrettyChars());
+		}
+	    }
+	}
+	else
+	{
+	    // Append to end of vtbl[]
+	    //printf("\tintroducing function\n");
+	    introducing = 1;
+	    vi = cd->vtbl.dim;
+	    cd->vtbl.push(this);
+	    vtblIndex = vi;
+	}
 
     L1: ;
 

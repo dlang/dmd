@@ -314,7 +314,7 @@ int NullExp::implicitConvTo(Type *t)
 	if (t->ty == Tpointer || t->ty == Tarray ||
 	    t->ty == Taarray  || t->ty == Tclass ||
 	    t->ty == Tdelegate)
-	    return MATCHconvert;
+	    return committed ? MATCHconvert : MATCHexact;
     }
     return Expression::implicitConvTo(t);
 }
@@ -570,6 +570,7 @@ Expression *NullExp::castTo(Scope *sc, Type *t)
     Type *tb;
 
     //printf("NullExp::castTo(t = %p)\n", t);
+    committed = 1;
     e = this;
     tb = t->toBasetype();
     type = type->toBasetype();
@@ -885,6 +886,10 @@ Expression *ArrayLiteralExp::castTo(Scope *sc, Type *t)
 	}
 	type = t;
 	return this;
+    }
+    if (tb->ty == Tpointer && typeb->ty == Tsarray)
+    {
+	type = typeb->next->pointerTo();
     }
 L1:
     return Expression::castTo(sc, t);

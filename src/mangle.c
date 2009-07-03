@@ -1,4 +1,5 @@
 
+// Compiler implementation of the D programming language
 // Copyright (c) 1999-2006 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
@@ -21,6 +22,7 @@
 #include "attrib.h"
 #include "template.h"
 #include "id.h"
+#include "module.h"
 
 char *Declaration::mangle()
 #if __DMC__
