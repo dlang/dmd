@@ -73,7 +73,7 @@ Global::Global()
 
     copyright = "Copyright (c) 1999-2008 by Digital Mars";
     written = "written by Walter Bright";
-    version = "v1.033";
+    version = "v1.034";
     global.structalign = 8;
 
     memset(&params, 0, sizeof(Param));
@@ -794,6 +794,7 @@ int main(int argc, char *argv[])
 	     * D source file extension
 	     */
 	    if (stricmp(ext, global.mars_ext) == 0 ||
+		stricmp(ext, global.hdr_ext) == 0 ||
 		stricmp(ext, "dd") == 0 ||
 		stricmp(ext, "htm") == 0 ||
 		stricmp(ext, "html") == 0 ||

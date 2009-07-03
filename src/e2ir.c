@@ -2158,7 +2158,7 @@ elem *AssignExp::toElem(IRState *irs)
 	// which we do if the 'next' types match
 	if (ismemset)
 	{   // Do a memset for array[]=n
-//printf("Lpair %s\n", toChars());
+	    //printf("Lpair %s\n", toChars());
 	    SliceExp *are = (SliceExp *)e1;
 	    elem *elwr;
 	    elem *eupr;
@@ -2288,6 +2288,7 @@ elem *AssignExp::toElem(IRState *irs)
 	    //elem_print(e);
 	    goto Lret;
 	}
+#if 0
 	else if (e2->op == TOKadd || e2->op == TOKmin)
 	{
 	    /* It's ea[] = eb[] +- ec[]
@@ -2326,6 +2327,7 @@ elem *AssignExp::toElem(IRState *irs)
 	    e = el_bin(OPcall, type->totym(), el_var(rtlsym[rtl]), ep);
 	    goto Lret;
 	}
+#endif
 	else
 	{
 	    /* It's array1[]=array2[]
@@ -2339,9 +2341,7 @@ elem *AssignExp::toElem(IRState *irs)
 	    eto = e1->toElem(irs);
 	    efrom = e2->toElem(irs);
 
-	    unsigned size;
-
-	    size = t1->nextOf()->size();
+	    unsigned size = t1->nextOf()->size();
 	    esize = el_long(TYint, size);
 
 	    if (e2->type->ty == Tpointer || !global.params.useArrayBounds)
@@ -2371,15 +2371,25 @@ elem *AssignExp::toElem(IRState *irs)
 		e = el_pair(eto->Ety, el_copytree(elen), e);
 		e = el_combine(eto, e);
 	    }
+#if V2
+	    else if (postblit && op != TOKblit)
+	    {
+		/* Generate:
+		 *	_d_arrayassign(ti, efrom, eto)
+		 * or:
+		 *	_d_arrayctor(ti, efrom, eto)
+		 */
+		el_free(esize);
+		Expression *ti = t1->nextOf()->toBasetype()->getTypeInfo(NULL);
+		ep = el_params(eto, efrom, ti->toElem(irs), NULL);
+		int rtl = (op == TOKconstruct) ? RTLSYM_ARRAYCTOR : RTLSYM_ARRAYASSIGN;
+		e = el_bin(OPcall, type->totym(), el_var(rtlsym[rtl]), ep);
+	    }
+#endif
 	    else
 	    {
 		// Generate:
 		//	_d_arraycopy(eto, efrom, esize)
-
-		// If eto is a static array, need to convert it to
-		// a dynamic array.
-		//if (are->e1->type->ty == Tsarray)
-		//    eto = sarray_toDarray(loc, are->e1->type, eto);
 
 		ep = el_params(eto, efrom, esize, NULL);
 		e = el_bin(OPcall, type->totym(), el_var(rtlsym[RTLSYM_ARRAYCOPY]), ep);

@@ -68,6 +68,9 @@ FuncDeclaration::FuncDeclaration(Loc loc, Loc endloc, Identifier *id, enum STC s
     fes = NULL;
     introducing = 0;
     tintro = NULL;
+    /* The type given for "infer the return type" is a TypeFunction with
+     * NULL for the return type.
+     */
     inferRetType = (type && type->nextOf() == NULL);
     scope = NULL;
     hasReturnExp = 0;
@@ -108,7 +111,7 @@ void FuncDeclaration::semantic(Scope *sc)
     if (isFuncLiteralDeclaration())
 	printf("\tFuncLiteralDeclaration()\n");
     printf("sc->parent = %s\n", sc->parent->toChars());
-    printf("type: %s\n", type->toChars());
+    printf("type: %p, %s\n", type, type->toChars());
 #endif
 
     if (type->nextOf())
@@ -277,8 +280,11 @@ void FuncDeclaration::semantic(Scope *sc)
 	vi = findVtblIndex(&cd->vtbl, cd->baseClass ? cd->baseClass->vtbl.dim : 0);
 	switch (vi)
 	{
-	    case -1:	// didn't find one
-		// This is an 'introducing' function.
+	    case -1:
+		/* Didn't find one, so
+		 * This is an 'introducing' function which gets a new
+		 * slot in the vtbl[].
+		 */
 
 		// Verify this doesn't override previous final function
 		if (cd->baseClass)
@@ -628,9 +634,8 @@ void FuncDeclaration::semantic3(Scope *sc)
 
     // Check the 'throws' clause
     if (fthrows)
-    {	int i;
-
-	for (i = 0; i < fthrows->dim; i++)
+    {
+	for (int i = 0; i < fthrows->dim; i++)
 	{
 	    Type *t = (Type *)fthrows->data[i];
 
@@ -692,9 +697,11 @@ void FuncDeclaration::semantic3(Scope *sc)
 	}
 	else if (isNested())
 	{
-	    VarDeclaration *v;
-
-	    v = new ThisDeclaration(Type::tvoid->pointerTo());
+	    /* The 'this' for a nested function is the link to the
+	     * enclosing function's stack frame.
+	     * Note that nested functions and member functions are disjoint.
+	     */
+	    VarDeclaration *v = new ThisDeclaration(Type::tvoid->pointerTo());
 	    v->storage_class |= STCparameter | STCin;
 	    v->semantic(sc2);
 	    if (!sc2->insert(v))
@@ -777,11 +784,7 @@ void FuncDeclaration::semantic3(Scope *sc)
 		    /* Generate identifier for un-named parameter,
 		     * because we need it later on.
 		     */
-		    OutBuffer buf;
-		    buf.printf("_param_%zu", i);
-		    char *name = (char *)buf.extractData();
-		    id = new Identifier(name, TOKidentifier);
-		    arg->ident = id;
+		    arg->ident = id = Identifier::generateId("_param_", i);
 		}
 		VarDeclaration *v = new VarDeclaration(loc, arg->type, id, NULL);
 		//printf("declaring parameter %s of type %s\n", v->toChars(), v->type->toChars());
@@ -820,11 +823,11 @@ void FuncDeclaration::semantic3(Scope *sc)
 			assert(narg->ident);
 			VarDeclaration *v = sc2->search(0, narg->ident, NULL)->isVarDeclaration();
 			assert(v);
-			Expression *e = new VarExp(0, v);
+			Expression *e = new VarExp(v->loc, v);
 			exps->data[j] = (void *)e;
 		    }
 		    assert(arg->ident);
-		    TupleDeclaration *v = new TupleDeclaration(0, arg->ident, exps);
+		    TupleDeclaration *v = new TupleDeclaration(loc, arg->ident, exps);
 		    //printf("declaring tuple %s\n", v->toChars());
 		    v->isexp = 1;
 		    if (!sc2->insert(v))
@@ -1562,10 +1565,8 @@ int fp2(void *param, FuncDeclaration *f)
 
     if (f != m->lastf)		// skip duplicates
     {
-	TypeFunction *tf;
-
 	m->anyf = f;
-	tf = (TypeFunction *)f->type;
+	TypeFunction *tf = (TypeFunction *)f->type;
 	match = (MATCH) tf->callMatch(arguments);
 	//printf("match = %d\n", match);
 	if (match != MATCHnomatch)
@@ -1903,8 +1904,16 @@ int FuncDeclaration::isMain()
 
 int FuncDeclaration::isWinMain()
 {
+    //printf("FuncDeclaration::isWinMain() %s\n", toChars());
+#if 0
+    int x = ident == Id::WinMain &&
+	linkage != LINKc && !isMember();
+    printf("%s\n", x ? "yes" : "no");
+    return x;
+#else
     return ident == Id::WinMain &&
 	linkage != LINKc && !isMember();
+#endif
 }
 
 int FuncDeclaration::isDllMain()
@@ -2079,7 +2088,7 @@ int FuncDeclaration::needsClosure()
 		goto Lyes;	// assume f escapes this function's scope
 
 	    // Look to see if any parents of f that are below this escape
-	    for (Dsymbol *s = f->parent; s != this; s = s->parent)
+	    for (Dsymbol *s = f->parent; s && s != this; s = s->parent)
 	    {
 		f = s->isFuncDeclaration();
 		if (f && (f->isThis() || f->tookAddressOf))
@@ -2185,7 +2194,7 @@ CtorDeclaration::CtorDeclaration(Loc loc, Loc endloc, Arguments *arguments, int 
 {
     this->arguments = arguments;
     this->varargs = varargs;
-    //printf("CtorDeclaration() %s\n", toChars());
+    //printf("CtorDeclaration(loc = %s) %s\n", loc.toChars(), toChars());
 }
 
 Dsymbol *CtorDeclaration::syntaxCopy(Dsymbol *s)

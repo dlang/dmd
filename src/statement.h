@@ -406,6 +406,7 @@ struct ConditionalStatement : Statement
     Statement *semantic(Scope *sc);
     Statements *flatten(Scope *sc);
     int usesEH();
+    int blockExit();
 
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
 };
