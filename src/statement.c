@@ -196,6 +196,7 @@ Statement *ExpStatement::semantic(Scope *sc)
     {	exp = exp->semantic(sc);
 	exp = resolveProperties(sc, exp);
 	exp->checkSideEffect(0);
+	exp = exp->optimize(WANTvalue);
     }
     return this;
 }
@@ -2046,7 +2047,6 @@ Statement *ReturnStatement::semantic(Scope *sc)
 	    if (tbret->ty != Tvoid)
 		exp = exp->implicitCastTo(tret);
 	}
-	exp = exp->optimize(WANTvalue);
 	//exp->dump(0);
 	//exp->print();
 	exp->checkEscape();

@@ -48,6 +48,7 @@ struct Param
     char warnings;	// enable warnings
     char pic;		// generate position-independent-code for shared libs
     char cov;		// generate code coverage data
+    char nofloat;	// code should not pull in floating point support
 
     char *argv0;	// program name
     Array *imppath;	// array of char*'s of where to look for import modules

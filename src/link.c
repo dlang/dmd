@@ -191,6 +191,20 @@ int runLINK()
     argv.push((void *)"-lpthread");
     argv.push((void *)"-lm");
 
+    if (global.params.exefile)
+    {
+	/* This switch enables what is known as 'smart linking'
+	 * in the Windows world, where unreferenced sections
+	 * are removed from the executable. It eliminates unreferenced
+	 * functions, essentially making a 'library' out of a module.
+	 * Although it is documented to work with ld version 2.13,
+	 * in practice it does not, but just seems to be ignored.
+	 * Thomas Kuehne has verified that it works with ld 2.16.1.
+	 */
+	argv.push((void *)"-Xlinker");
+	argv.push((void *)"--gc-sections");
+    }
+
     for (i = 0; i < global.params.linkswitches->dim; i++)
     {
 	argv.push((void *)"-Xlinker");

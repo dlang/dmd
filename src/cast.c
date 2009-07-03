@@ -473,6 +473,29 @@ Expression *Expression::castTo(Type *t)
     return e;
 }
 
+
+Expression *RealExp::castTo(Type *t)
+{
+    if (type->isreal() && t->isreal())
+	type = t;
+    else if (type->isimaginary() && t->isimaginary())
+	type = t;
+    else
+	return Expression::castTo(t);
+    return this;
+}
+
+
+Expression *ComplexExp::castTo(Type *t)
+{
+    if (type->iscomplex() && t->iscomplex())
+	type = t;
+    else
+	return Expression::castTo(t);
+    return this;
+}
+
+
 Expression *NullExp::castTo(Type *t)
 {   Expression *e;
     Type *tb;

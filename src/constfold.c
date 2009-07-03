@@ -110,6 +110,7 @@ Expression *BoolExp::constFold()
 Expression *CastExp::constFold()
 {
     //printf("CastExp::constFold(%s)\n", toChars());
+    //printf("from %s to %s\n", type->toChars(), to->toChars());
     //printf("type = %p\n", type);
     assert(type);
 

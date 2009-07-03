@@ -165,6 +165,7 @@ struct RealExp : Expression
     real_t toReal();
     real_t toImaginary();
     complex_t toComplex();
+    Expression *castTo(Type *t);
     int isConst();
     int isBool(int result);
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
@@ -186,6 +187,7 @@ struct ComplexExp : Expression
     real_t toReal();
     real_t toImaginary();
     complex_t toComplex();
+    Expression *castTo(Type *t);
     int isConst();
     int isBool(int result);
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);

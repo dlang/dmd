@@ -58,7 +58,7 @@ Global::Global()
 
     copyright = "Copyright (c) 1999-2006 by Digital Mars";
     written = "written by Walter Bright";
-    version = "v0.151";
+    version = "v0.153";
     global.structalign = 8;
 
     memset(&params, 0, sizeof(Param));
@@ -154,6 +154,7 @@ Usage:\n\
   -Ipath         where to look for imports\n\
   -inline        do function inlining\n\
   -Llinkerflag   pass linkerflag to link\n\
+  -nofloat       do not emit reference to floating point\n\
   -O             optimize\n\
   -o-            do not write object file\n\
   -odobjdir      write object files to directory objdir\n\
@@ -356,6 +357,8 @@ int main(int argc, char *argv[])
 #endif
 	    else if (strcmp(p + 1, "inline") == 0)
 		global.params.useInline = 1;
+	    else if (strcmp(p + 1, "nofloat") == 0)
+		global.params.nofloat = 1;
 	    else if (strcmp(p + 1, "quiet") == 0)
 		global.params.quiet = 1;
 	    else if (strcmp(p + 1, "release") == 0)

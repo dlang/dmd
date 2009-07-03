@@ -51,7 +51,10 @@ void StaticAssert::semantic2(Scope *sc)
     if (e->isBool(FALSE))
 	error("(%s) is false", exp->toChars());
     else if (!e->isBool(TRUE))
+    {
 	error("(%s) is not evaluatable at compile time", exp->toChars());
+printf("%s\n", e->toChars());
+    }
 }
 
 int StaticAssert::oneMember(Dsymbol **ps)

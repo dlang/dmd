@@ -195,9 +195,10 @@ Expression *MinExp::optimize(int result)
 Expression *CommaExp::optimize(int result)
 {   Expression *e;
 
+    //printf("CommaExp::optimize(result = %d) %s\n", result, toChars());
     e1 = e1->optimize(0);
     e2 = e2->optimize(result);
-    if (!e1)
+    if (!e1 || e1->op == TOKint64 || e1->op == TOKfloat64)
     {
 	e = e2;
 	if (e)
@@ -334,7 +335,11 @@ Expression *AndAndExp::optimize(int result)
     e1 = e1->optimize(WANTflags);
     e = this;
     if (e1->isBool(FALSE))
-	e = new IntegerExp(loc, 0, type);
+    {
+	e = new CommaExp(loc, e1, new IntegerExp(loc, 0, type));
+	e->type = type;
+	e = e->optimize(result);
+    }
     else
     {
 	e2 = e2->optimize(WANTflags);
@@ -355,7 +360,11 @@ Expression *OrOrExp::optimize(int result)
     e1 = e1->optimize(WANTflags);
     e = this;
     if (e1->isBool(TRUE))
-	e = new IntegerExp(loc, 1, type);
+    {	// Replace with (e1, 1)
+	e = new CommaExp(loc, e1, new IntegerExp(loc, 1, type));
+	e->type = type;
+	e = e->optimize(result);
+    }
     else
     {
 	e2 = e2->optimize(WANTflags);

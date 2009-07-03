@@ -153,6 +153,7 @@ struct BaseClass
 
 struct ClassDeclaration : AggregateDeclaration
 {
+    static ClassDeclaration *object;
     static ClassDeclaration *classinfo;
 
     ClassDeclaration *baseClass;	// NULL only if this is Object

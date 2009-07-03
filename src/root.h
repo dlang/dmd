@@ -225,10 +225,10 @@ struct File : Object
     // Return	<0	this < f
     //		=0	this == f
     //		>0	this > f
-    int File::compareTime(File *f);
+    int compareTime(File *f);
 
     // Read system file statistics
-    void File::stat();
+    void stat();
 
     /* Set buffer
      */
@@ -284,7 +284,7 @@ struct OutBuffer : Object
     void printf(const unsigned short *format, ...);
 #endif
     void bracket(char left, char right);
-    unsigned OutBuffer::bracket(unsigned i, char *left, unsigned j, char *right);
+    unsigned bracket(unsigned i, char *left, unsigned j, char *right);
     void spread(unsigned offset, unsigned nbytes);
     unsigned insert(unsigned offset, const void *data, unsigned nbytes);
     void remove(unsigned offset, unsigned nbytes);

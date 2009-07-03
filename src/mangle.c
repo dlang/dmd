@@ -148,9 +148,9 @@ char *ClassDeclaration::mangle()
 	ident == Id::TypeInfo_Class    ||
 	ident == Id::TypeInfo_Typedef  ||
 	ident == Id::Exception  ||
-	ident == Id::Object     ||
-	ident == Id::ClassInfo  ||
-	ident == Id::ModuleInfo ||
+	this == object     ||
+	this == classinfo  ||
+	this == Module::moduleinfo ||
 	memcmp(ident->toChars(), "TypeInfo_", 9) == 0
        )
 	parent = NULL;

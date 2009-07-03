@@ -29,10 +29,13 @@
 /********************************* ClassDeclaration ****************************/
 
 ClassDeclaration *ClassDeclaration::classinfo;
+ClassDeclaration *ClassDeclaration::object;
 
 ClassDeclaration::ClassDeclaration(Loc loc, Identifier *id, BaseClasses *baseclasses)
     : AggregateDeclaration(loc, id)
 {
+    static char msg[] = "only object.d can define this reserved class name";
+
     if (baseclasses)
 	this->baseclasses = *baseclasses;
     baseClass = NULL;
@@ -56,52 +59,99 @@ ClassDeclaration::ClassDeclaration(Loc loc, Identifier *id, BaseClasses *basecla
     vtblsym = NULL;
     vclassinfo = NULL;
 
-    if (id == Id::__sizeof || id == Id::alignof || id == Id::mangleof)
-	error("illegal class name");
+    if (id)
+    {	// Look for special class names
 
-    // BUG: What if this is the wrong ClassInfo, i.e. it is nested?
-    if (!classinfo && id == Id::ClassInfo)
-	classinfo = this;
+	if (id == Id::__sizeof || id == Id::alignof || id == Id::mangleof)
+	    error("illegal class name");
 
-    // BUG: What if this is the wrong ModuleInfo, i.e. it is nested?
-    if (!Module::moduleinfo && id == Id::ModuleInfo)
-	Module::moduleinfo = this;
+	// BUG: What if this is the wrong TypeInfo, i.e. it is nested?
+	if (id->toChars()[0] == 'T')
+	{
+	    if (id == Id::TypeInfo)
+	    {	if (Type::typeinfo)
+		    Type::typeinfo->error(msg);
+		Type::typeinfo = this;
+	    }
 
-    // BUG: What if this is the wrong TypeInfo, i.e. it is nested?
-    if (id && id->toChars()[0] == 'T')
-    {
-	if (!Type::typeinfo && id == Id::TypeInfo)
-	    Type::typeinfo = this;
+	    if (id == Id::TypeInfo_Class)
+	    {	if (Type::typeinfoclass)
+		    Type::typeinfoclass->error(msg);
+		Type::typeinfoclass = this;
+	    }
 
-	if (!Type::typeinfoclass && id == Id::TypeInfo_Class)
-	    Type::typeinfoclass = this;
+	    if (id == Id::TypeInfo_Struct)
+	    {	if (Type::typeinfostruct)
+		    Type::typeinfostruct->error(msg);
+		Type::typeinfostruct = this;
+	    }
 
-	if (!Type::typeinfostruct && id == Id::TypeInfo_Struct)
-	    Type::typeinfostruct = this;
+	    if (id == Id::TypeInfo_Typedef)
+	    {	if (Type::typeinfotypedef)
+		    Type::typeinfotypedef->error(msg);
+		Type::typeinfotypedef = this;
+	    }
 
-	if (!Type::typeinfotypedef && id == Id::TypeInfo_Typedef)
-	    Type::typeinfotypedef = this;
+	    if (id == Id::TypeInfo_Pointer)
+	    {	if (Type::typeinfopointer)
+		    Type::typeinfopointer->error(msg);
+		Type::typeinfopointer = this;
+	    }
 
-	if (!Type::typeinfopointer && id == Id::TypeInfo_Pointer)
-	    Type::typeinfopointer = this;
+	    if (id == Id::TypeInfo_Array)
+	    {	if (Type::typeinfoarray)
+		    Type::typeinfoarray->error(msg);
+		Type::typeinfoarray = this;
+	    }
 
-	if (!Type::typeinfoarray && id == Id::TypeInfo_Array)
-	    Type::typeinfoarray = this;
+	    if (id == Id::TypeInfo_StaticArray)
+	    {	//if (Type::typeinfostaticarray)
+		    //Type::typeinfostaticarray->error(msg);
+		Type::typeinfostaticarray = this;
+	    }
 
-	if (!Type::typeinfostaticarray && id == Id::TypeInfo_StaticArray)
-	    Type::typeinfostaticarray = this;
+	    if (id == Id::TypeInfo_AssociativeArray)
+	    {	if (Type::typeinfoassociativearray)
+		    Type::typeinfoassociativearray->error(msg);
+		Type::typeinfoassociativearray = this;
+	    }
 
-	if (!Type::typeinfoassociativearray && id == Id::TypeInfo_AssociativeArray)
-	    Type::typeinfoassociativearray = this;
+	    if (id == Id::TypeInfo_Enum)
+	    {	if (Type::typeinfoenum)
+		    Type::typeinfoenum->error(msg);
+		Type::typeinfoenum = this;
+	    }
 
-	if (!Type::typeinfoenum && id == Id::TypeInfo_Enum)
-	    Type::typeinfoenum = this;
+	    if (id == Id::TypeInfo_Function)
+	    {	if (Type::typeinfofunction)
+		    Type::typeinfofunction->error(msg);
+		Type::typeinfofunction = this;
+	    }
 
-	if (!Type::typeinfofunction && id == Id::TypeInfo_Function)
-	    Type::typeinfofunction = this;
+	    if (id == Id::TypeInfo_Delegate)
+	    {	if (Type::typeinfodelegate)
+		    Type::typeinfodelegate->error(msg);
+		Type::typeinfodelegate = this;
+	    }
+	}
 
-	if (!Type::typeinfodelegate && id == Id::TypeInfo_Delegate)
-	    Type::typeinfodelegate = this;
+	if (id == Id::Object)
+	{   if (object)
+		object->error(msg);
+	    object = this;
+	}
+
+	if (id == Id::ClassInfo)
+	{   if (classinfo)
+		classinfo->error(msg);
+	    classinfo = this;
+	}
+
+	if (id == Id::ModuleInfo)
+	{   if (Module::moduleinfo)
+		Module::moduleinfo->error(msg);
+	    Module::moduleinfo = this;
+	}
     }
 
     com = 0;
@@ -280,6 +330,11 @@ void ClassDeclaration::semantic(Scope *sc)
 	TypeClass *tc;
 	Type *bt;
 
+	if (!object)
+	{
+	    error("missing or corrupt object.d");
+	    fatal();
+	}
 	bt = tbase->semantic(loc, sc)->toBasetype();
 	b = new BaseClass(bt, PROTpublic);
 	baseclasses.shift(b);
