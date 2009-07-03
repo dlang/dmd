@@ -1835,7 +1835,6 @@ Type *Parser::parseDeclarator(Type *t, Identifier **pident, TemplateParameters *
 	    case TOKlparen:
 	    {	Arguments *arguments;
 		int varargs;
-		Type **pt;
 
 		if (tpl)
 		{
@@ -1852,7 +1851,8 @@ Type *Parser::parseDeclarator(Type *t, Identifier **pident, TemplateParameters *
 		}
 
 		arguments = parseParameters(&varargs);
-		ta = new TypeFunction(arguments, t, varargs, linkage);
+		Type *ta = new TypeFunction(arguments, t, varargs, linkage);
+		Type **pt;
 		for (pt = &ts; *pt != t; pt = &(*pt)->next)
 		    ;
 		*pt = ta;

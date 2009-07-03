@@ -76,6 +76,23 @@ void inifile(char *argv0, char *inifile)
 		if (!FileName::exists(filename))
 		{
 #if linux
+#if __GLIBC__	    // This fix by Thomas Kuehne
+		    /* argv0 might be a symbolic link,
+		     * so try again looking past it to the real path
+		     */
+		    char* real_argv0 = realpath(argv0, NULL);
+		    //printf("argv0 = %s, real_argv0 = %p\n", argv0, real_argv0);
+		    if (real_argv0)
+		    {
+			filename = FileName::replaceName(real_argv0, inifile);
+			free(real_argv0);
+			if (FileName::exists(filename))
+			    goto Ldone;
+		    }
+#else
+#error use of glibc non-standard extension realpath(char*, NULL)
+#endif
+		    if (1){
 		    // Search PATH for argv0
 		    const char *p = getenv("PATH");
 		    Array *paths = FileName::splitPath(p);
@@ -85,6 +102,7 @@ void inifile(char *argv0, char *inifile)
 		    filename = FileName::replaceName(filename, inifile);
 		    if (FileName::exists(filename))
 			goto Ldone;
+		    }
 #endif
 
 		    // Search /etc/ for inifile

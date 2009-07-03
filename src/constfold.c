@@ -733,6 +733,36 @@ Expression *Equal(enum TOK op, Type *type, Expression *e1, Expression *e2)
 	    }
 	}
     }
+    else if (e1->op == TOKarrayliteral && e2->op == TOKstring)
+    {	// Swap operands and use common code
+	Expression *e = e1;
+	e1 = e2;
+	e2 = e;
+	goto Lsa;
+    }
+    else if (e1->op == TOKstring && e2->op == TOKarrayliteral)
+    {
+     Lsa:
+	StringExp *es1 = (StringExp *)e1;
+	ArrayLiteralExp *es2 = (ArrayLiteralExp *)e2;
+	size_t dim1 = es1->len;
+	size_t dim2 = es2->elements ? es2->elements->dim : 0;
+	if (dim1 != dim2)
+	    cmp = 0;
+	else
+	{
+	    for (size_t i = 0; i < dim1; i++)
+	    {
+		uinteger_t c = es1->charAt(i);
+		Expression *ee2 = (Expression *)es2->elements->data[i];
+		if (ee2->isConst() != 1)
+		    return EXP_CANT_INTERPRET;
+		cmp = (c == ee2->toInteger());
+		if (cmp == 0)
+		    break;
+	    }
+	}
+    }
     else if (e1->op == TOKstructliteral && e2->op == TOKstructliteral)
     {   StructLiteralExp *es1 = (StructLiteralExp *)e1;
 	StructLiteralExp *es2 = (StructLiteralExp *)e2;
@@ -1132,26 +1162,7 @@ Expression *Index(Type *type, Expression *e1, Expression *e2)
 	if (i >= es1->len)
 	    e1->error("string index %ju is out of bounds [0 .. %zu]", i, es1->len);
 	else
-	{   integer_t value;
-
-	    switch (es1->sz)
-	    {
-		case 1:
-		    value = ((unsigned char *)es1->string)[i];
-		    break;
-
-		case 2:
-		    value = ((unsigned short *)es1->string)[i];
-		    break;
-
-		case 4:
-		    value = ((unsigned int *)es1->string)[i];
-		    break;
-
-		default:
-		    assert(0);
-		    break;
-	    }
+	{   unsigned value = es1->charAt(i);
 	    e = new IntegerExp(loc, value, type);
 	}
     }

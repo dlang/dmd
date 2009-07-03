@@ -371,6 +371,18 @@ Expression *BinExp::optimize(int result)
     //printf("BinExp::optimize(result = %d) %s\n", result, toChars());
     e1 = e1->optimize(result);
     e2 = e2->optimize(result);
+    if (op == TOKshlass || op == TOKshrass || op == TOKushrass)
+    {
+	if (e2->isConst() == 1)
+	{
+	    integer_t i2 = e2->toInteger();
+	    d_uns64 sz = e1->type->size() * 8;
+	    if (i2 < 0 || i2 > sz)
+	    {   error("shift assign by %jd is outside the range 0..%zu", i2, sz);
+		e2 = new IntegerExp(0);
+	    }
+	}
+    }
     return this;
 }
 
@@ -451,55 +463,41 @@ Expression *ModExp::optimize(int result)
     return e;
 }
 
-Expression *ShlExp::optimize(int result)
-{   Expression *e;
+Expression *shift_optimize(int result, BinExp *e, Expression *(*shift)(Type *, Expression *, Expression *))
+{   Expression *ex = e;
 
-    //printf("ShlExp::optimize(result = %d) %s\n", result, toChars());
-    e1 = e1->optimize(result);
-    e2 = e2->optimize(result);
-    e = this;
-    if (e2->isConst() == 1)
+    e->e1 = e->e1->optimize(result);
+    e->e2 = e->e2->optimize(result);
+    if (e->e2->isConst() == 1)
     {
-	integer_t i2 = e2->toInteger();
-	if (i2 < 0 || i2 > e1->type->size() * 8)
-	{   error("shift left by %jd exceeds %zu", i2, e2->type->size() * 8);
-	    e2 = new IntegerExp(0);
+	integer_t i2 = e->e2->toInteger();
+	d_uns64 sz = e->e1->type->size() * 8;
+	if (i2 < 0 || i2 > sz)
+	{   error("shift by %jd is outside the range 0..%zu", i2, sz);
+	    e->e2 = new IntegerExp(0);
 	}
-	if (e1->isConst() == 1)
-	    e = new IntegerExp(loc, e1->toInteger() << e2->toInteger(), type);
+	if (e->e1->isConst() == 1)
+	    ex = (*shift)(e->type, e->e1, e->e2);
     }
-    return e;
+    return ex;
+}
+
+Expression *ShlExp::optimize(int result)
+{
+    //printf("ShlExp::optimize(result = %d) %s\n", result, toChars());
+    return shift_optimize(result, this, Shl);
 }
 
 Expression *ShrExp::optimize(int result)
-{   Expression *e;
-
-    e1 = e1->optimize(result);
-    e2 = e2->optimize(result);
-
-    if (e1->isConst() == 1 && e2->isConst() == 1)
-    {
-	e = Shr(type, e1, e2);
-    }
-    else
-	e = this;
-    return e;
+{
+    //printf("ShrExp::optimize(result = %d) %s\n", result, toChars());
+    return shift_optimize(result, this, Shr);
 }
 
 Expression *UshrExp::optimize(int result)
-{   Expression *e;
-
-    //printf("UshrExp::optimize() %s\n", toChars());
-    e1 = e1->optimize(result);
-    e2 = e2->optimize(result);
-
-    if (e1->isConst() == 1 && e2->isConst() == 1)
-    {
-	e = Ushr(type, e1, e2);
-    }
-    else
-	e = this;
-    return e;
+{
+    //printf("UshrExp::optimize(result = %d) %s\n", result, toChars());
+    return shift_optimize(result, this, Ushr);
 }
 
 Expression *AndExp::optimize(int result)

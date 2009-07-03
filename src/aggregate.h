@@ -199,6 +199,7 @@ struct ClassDeclaration : AggregateDeclaration
     void interfaceSemantic(Scope *sc);
     int isNested();
     int isCOMclass();
+    virtual int isCOMinterface();
     int isAbstract();
     virtual int vtblOffset();
     char *kind();
@@ -232,6 +233,7 @@ struct InterfaceDeclaration : ClassDeclaration
     int isBaseOf(BaseClass *bc, int *poffset);
     char *kind();
     int vtblOffset();
+    virtual int isCOMinterface();
 
     void toObjFile();			// compile to .obj file
     Symbol *toSymbol();

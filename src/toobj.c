@@ -369,7 +369,7 @@ void ClassDeclaration::toObjFile()
 	dtdword(&dt, 0);
 
     // flags
-    int flags = 4 | com;
+    int flags = 4 | isCOMclass();
     if (ctor)
 	flags |= 8;
     for (ClassDeclaration *cd = this; cd; cd = cd->baseClass)
@@ -794,7 +794,7 @@ void InterfaceDeclaration::toObjFile()
     dtdword(&dt, 0);
 
     // flags
-    dtdword(&dt, 4 | com);
+    dtdword(&dt, 4 | isCOMinterface());
 
     // deallocator
     dtdword(&dt, 0);
@@ -972,44 +972,18 @@ void VarDeclaration::toObjFile()
 
 	    tb = type->toBasetype();
 	    if (tb->ty == Tsarray && ie &&
-		!tb->next->equals(ie->exp->type->toBasetype()->next) &&
-		ie->exp->implicitConvTo(tb->next)
+		!tb->nextOf()->equals(ie->exp->type->toBasetype()->nextOf()) &&
+		ie->exp->implicitConvTo(tb->nextOf())
 		)
 	    {
 		int dim;
 
 		dim = ((TypeSArray *)tb)->dim->toInteger();
 
-		if (tb->next->toBasetype()->ty == Tbit)
-		{   integer_t value;
-
-		    value = ie->exp->toInteger();
-		    value = (value & 1) ? ~(integer_t)0 : (integer_t)0;
-		    if (value == 0)
-		    {
-			dtnzeros(&s->Sdt, ((unsigned)dim + 31) / 32 * PTRSIZE);
-		    }
-		    else
-		    {
-			while (dim >= 32)
-			{
-			    dtnbytes(&s->Sdt, 4, (char *)&value);
-			    dim -= 32;
-			}
-			if (dim)
-			{
-			    value = (1 << dim) - 1;
-			    dtnbytes(&s->Sdt, 4, (char *)&value);
-			}
-		    }
-		}
-		else
+		// Duplicate Sdt 'dim-1' times, as we already have the first one
+		while (--dim > 0)
 		{
-		    // Duplicate Sdt 'dim-1' times, as we already have the first one
-		    while (--dim > 0)
-		    {
-			ie->exp->toDt(&s->Sdt);
-		    }
+		    ie->exp->toDt(&s->Sdt);
 		}
 	    }
 	}
