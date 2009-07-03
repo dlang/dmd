@@ -79,7 +79,7 @@ struct Parser : Lexer
     Import *parseImport(Array *decldefs);
     Type *parseBasicType();
     Type *parseBasicType2(Type *t);
-    Type *parseDeclarator(Type *t, Identifier **pident);
+    Type *parseDeclarator(Type *t, Identifier **pident, TemplateParameters **tpl = NULL);
     Array *parseDeclarations();
     void parseContracts(FuncDeclaration *f);
     Statement *parseStatement(int flags);

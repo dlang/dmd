@@ -1,5 +1,5 @@
 
-// Copyright (c) 1999-2005 by Digital Mars
+// Copyright (c) 1999-2006 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // www.digitalmars.com
@@ -53,9 +53,6 @@
 
 // Support left-to-right array declarations
 #define LTORARRAYDECL	1
-
-// Suppor references
-#define REFERENCES	0
 
 /************************************
  * These control how parseStatement() works.
@@ -998,8 +995,12 @@ EnumDeclaration *Parser::parseEnum()
 		if (token.value == TOKrcurly)
 		    ;
 		else
+		{   addComment(em, comment);
+		    comment = NULL;
 		    check(TOKcomma);
+		}
 		addComment(em, comment);
+		comment = token.blockComment;
 	    }
 	    else
 	    {	error("enum member expected");
@@ -1625,7 +1626,7 @@ Type *Parser::parseBasicType()
 }
 
 Type *Parser::parseBasicType2(Type *t)
-{   Expression *e;
+{
     Type *ts;
     Type *ta;
 
@@ -1639,12 +1640,6 @@ Type *Parser::parseBasicType2(Type *t)
 		nextToken();
 		continue;
 
-#if REFERENCES
-	    case TOKand:
-		t = new TypeReference(t);
-		nextToken();
-		continue;
-#endif
 	    case TOKlbracket:
 #if LTORARRAYDECL
 		// Handle []. Make sure things like
@@ -1669,7 +1664,7 @@ Type *Parser::parseBasicType2(Type *t)
 		else
 		{
 		    //printf("it's [expression]\n");
-		    e = parseExpression();			// [ expression ]
+		    Expression *e = parseExpression();		// [ expression ]
 		    t = new TypeSArray(t,e);
 		    check(TOKrbracket);
 		}
@@ -1700,7 +1695,7 @@ Type *Parser::parseBasicType2(Type *t)
 		    else
 		    {
 			//printf("it's [expression]\n");
-			e = parseExpression();			// [ expression ]
+			Expression *e = parseExpression();	// [ expression ]
 			ta = new TypeSArray(t,e);
 			check(TOKrbracket);
 		    }
@@ -1741,134 +1736,34 @@ Type *Parser::parseBasicType2(Type *t)
     return ts;
 }
 
-Type *Parser::parseDeclarator(Type *t, Identifier **pident)
-{   Expression *e;
-    Type *ts;
+Type *Parser::parseDeclarator(Type *t, Identifier **pident, TemplateParameters **tpl)
+{   Type *ts;
     Type *ta;
-    Type **pt;
 
-    //printf("parseDeclarator(t = %p)\n", t);
-    while (1)
+    //printf("parseDeclarator(tpl = %p)\n", tpl);
+    t = parseBasicType2(t);
+
+    switch (token.value)
     {
-	switch (token.value)
-	{
-	    case TOKmul:
-		t = new TypePointer(t);
-		nextToken();
-		continue;
 
-#if REFERENCES
-	    case TOKand:
-		t = new TypeReference(t);
-		nextToken();
-		continue;
-#endif
+	case TOKidentifier:
+	    if (pident)
+		*pident = token.ident;
+	    else
+		error("unexpected identifer '%s' in declarator", token.ident->toChars());
+	    ts = t;
+	    nextToken();
+	    break;
 
-	    case TOKlbracket:
-#if LTORARRAYDECL
-		// Handle []. Make sure things like
-		//     int[3][1] a;
-		// is (array[1] of array[3] of int)
-		nextToken();
-		if (token.value == TOKrbracket)
-		{
-		    t = new TypeDArray(t);			// []
-		    nextToken();
-		}
-		else if (isDeclaration(&token, 0, TOKrbracket, NULL))
-		{   // It's an associative array declaration
-		    Type *index;
+	case TOKlparen:
+	    nextToken();
+	    ts = parseDeclarator(t, pident);
+	    check(TOKrparen);
+	    break;
 
-		    //printf("it's an associative array\n");
-		    index = parseBasicType();
-		    index = parseDeclarator(index, NULL);	// [ type ]
-		    t = new TypeAArray(t, index);
-		    check(TOKrbracket);
-		}
-		else
-		{
-		    //printf("it's [expression]\n");
-		    e = parseExpression();			// [ expression ]
-		    t = new TypeSArray(t,e);
-		    check(TOKrbracket);
-		}
-		continue;
-#else
-		// Handle []. Make sure things like
-		//     int[3][1] a;
-		// is (array[3] of array[1] of int)
-		ts = t;
-		while (token.value == TOKlbracket)
-		{
-		    nextToken();
-		    if (token.value == TOKrbracket)
-		    {
-			ta = new TypeDArray(t);			// []
-			nextToken();
-		    }
-		    else if (isDeclaration(&token, 0, TOKrbracket, NULL))
-		    {   // It's an associative array declaration
-			Type *index;
-
-			//printf("it's an associative array\n");
-			index = parseBasicType();
-			index = parseDeclarator(index, NULL);	// [ type ]
-			check(TOKrbracket);
-			ta = new TypeAArray(t, index);
-		    }
-		    else
-		    {
-			//printf("it's [expression]\n");
-			e = parseExpression();			// [ expression ]
-			ta = new TypeSArray(t,e);
-			check(TOKrbracket);
-		    }
-		    for (pt = &ts; *pt != t; pt = &(*pt)->next)
-			;
-		    *pt = ta;
-		}
-		t = ts;
-		continue;
-#endif
-
-	    case TOKidentifier:
-		if (pident)
-		    *pident = token.ident;
-		else
-		    error("unexpected identifer '%s' in declarator", token.ident->toChars());
-		ts = t;
-		nextToken();
-		break;
-
-	    case TOKlparen:
-		nextToken();
-		ts = parseDeclarator(t, pident);
-		check(TOKrparen);
-		break;
-
-	    case TOKdelegate:
-	    case TOKfunction:
-	    {	// Handle delegate declaration:
-		//	t delegate(parameter list)
-		//	t function(parameter list)
-		Array *arguments;
-		int varargs;
-		enum TOK save = token.value;
-
-		nextToken();
-		arguments = parseParameters(&varargs);
-		t = new TypeFunction(arguments, t, varargs, linkage);
-		if (save == TOKdelegate)
-		    t = new TypeDelegate(t);
-		else
-		    t = new TypePointer(t);	// pointer to function
-		continue;
-	    }
-	    default:
-		ts = t;
-		break;
-	}
-	break;
+	default:
+	    ts = t;
+	    break;
     }
 
     while (1)
@@ -1877,8 +1772,7 @@ Type *Parser::parseDeclarator(Type *t, Identifier **pident)
 	{
 #if CARRAYDECL
 	    case TOKlbracket:
-		// This is the old C-style post [] syntax.
-		// Should we disallow it?
+	    {	// This is the old C-style post [] syntax.
 		nextToken();
 		if (token.value == TOKrbracket)
 		{
@@ -1898,25 +1792,67 @@ Type *Parser::parseDeclarator(Type *t, Identifier **pident)
 		else
 		{
 		    //printf("it's [expression]\n");
-		    e = parseExpression();			// [ expression ]
-		    ta = new TypeSArray(t,e);
+		    Expression *e = parseExpression();		// [ expression ]
+		    ta = new TypeSArray(t, e);
 		    check(TOKrbracket);
 		}
+		Type **pt;
 		for (pt = &ts; *pt != t; pt = &(*pt)->next)
 		    ;
 		*pt = ta;
 		continue;
+	    }
 #endif
 	    case TOKlparen:
 	    {	Array *arguments;
 		int varargs;
+		Type **pt;
+
+		if (tpl)
+		{
+		    /* Look ahead to see if this is (...)(...),
+		     * i.e. a function template declaration
+		     */
+		    Token *tk = &token;
+		    int parens = 1;
+		    while (1)
+		    {
+			tk = peek(tk);
+			switch (tk->value)
+			{
+			    case TOKlparen:
+				parens++;
+				continue;
+
+			    case TOKrparen:
+				--parens;
+				if (parens)
+				    continue;
+				break;
+
+			    case TOKeof:
+				break;
+
+			    default:
+				continue;
+			}
+			if (peek(tk)->value == TOKlparen)
+			{   // It's a function template declaration
+			    //printf("function template declaration\n");
+
+			    // Gather template parameter list
+			    *tpl = parseTemplateParameterList();
+			}
+			break;
+		    }
+		}
 
 		arguments = parseParameters(&varargs);
 		ta = new TypeFunction(arguments, t, varargs, linkage);
 		for (pt = &ts; *pt != t; pt = &(*pt)->next)
 		    ;
 		*pt = ta;
-		continue;
+		break;
 	    }
 	}
 	break;
@@ -2034,9 +1970,10 @@ Array *Parser::parseDeclarations()
     while (1)
     {
 	Loc loc = this->loc;
+	TemplateParameters *tpl = NULL;
 
 	ident = NULL;
-	t = parseDeclarator(ts,&ident);
+	t = parseDeclarator(ts, &ident, &tpl);
 	assert(t);
 	if (!tfirst)
 	    tfirst = t;
@@ -2083,6 +2020,7 @@ Array *Parser::parseDeclarations()
 	}
 	else if (t->ty == Tfunction)
 	{   FuncDeclaration *f;
+	    Dsymbol *s;
 
 	    f = new FuncDeclaration(loc, 0, ident, storage_class, t);
 	    addComment(f, comment);
@@ -2090,15 +2028,25 @@ Array *Parser::parseDeclarations()
 	    addComment(f, NULL);
 	    if (link == linkage)
 	    {
-		a->push(f);
+		s = f;
 	    }
 	    else
 	    {
 		Array *ax = new Array();
 		ax->push(f);
-		Dsymbol *s = new LinkDeclaration(link, ax);
-		a->push(s);
+		s = new LinkDeclaration(link, ax);
 	    }
+	    if (tpl)			// it's a function template
+	    {   Array *decldefs;
+		TemplateDeclaration *tempdecl;
+
+		// Wrap a template around the aggregate declaration
+		decldefs = new Array();
+		decldefs->push(s);
+		tempdecl = new TemplateDeclaration(loc, s->ident, tpl, decldefs);
+		s = tempdecl;
+	    }
+	    a->push(s);
 	}
 	else
 	{   VarDeclaration *v;
@@ -2833,7 +2781,12 @@ Statement *Parser::parseStatement(int flags)
 		args = parseArguments();	// pragma(identifier, args...);
 	    else
 		check(TOKrparen);		// pragma(identifier);
-	    body = parseStatement(PSsemi);
+	    if (token.value == TOKsemicolon)
+	    {	nextToken();
+		body = NULL;
+	    }
+	    else
+		body = parseStatement(PSsemi);
 	    s = new PragmaStatement(loc, ident, args, body);
 	    break;
 	}

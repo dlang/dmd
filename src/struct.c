@@ -157,7 +157,7 @@ void AggregateDeclaration::addField(Scope *sc, VarDeclaration *v)
     unsigned memalignsize;	// size of member for alignment purposes
     unsigned xalign;		// alignment boundaries
 
-    //printf("AggregateDeclaration::addField('%s')\n", v->toChars());
+    //printf("AggregateDeclaration::addField('%s') %s\n", v->toChars(), toChars());
 
     // Check for forward referenced types which will fail the size() call
     Type *t = v->type->toBasetype();
@@ -361,6 +361,7 @@ void StructDeclaration::semantic(Scope *sc)
     structsize = (structsize + alignsize - 1) & ~(alignsize - 1);
 
     sizeok = 1;
+    Module::dprogress++;
 
     //printf("-StructDeclaration::semantic(this=%p, '%s')\n", this, toChars());
 

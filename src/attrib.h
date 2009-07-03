@@ -97,6 +97,7 @@ struct AlignDeclaration : AttribDeclaration
 struct AnonDeclaration : AttribDeclaration
 {
     int isunion;
+    Scope *scope;		// !=NULL means context to use
 
     AnonDeclaration(Loc loc, int isunion, Array *decl);
     Dsymbol *syntaxCopy(Dsymbol *s);

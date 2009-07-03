@@ -1432,6 +1432,8 @@ Statement *PragmaStatement::syntaxCopy()
 
 Statement *PragmaStatement::semantic(Scope *sc)
 {   // Should be merged with PragmaDeclaration
+    //printf("PragmaStatement::semantic() %s\n", toChars());
+    //printf("body = %p\n", body);
     if (ident == Id::msg)
     {
         if (args)
@@ -1490,8 +1492,30 @@ int PragmaStatement::fallOffEnd()
 
 void PragmaStatement::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 {
-    buf->printf("PragmaStatement::toCBuffer()");
-    buf->writenl();
+    buf->writestring("pragma (");
+    buf->writestring(ident->toChars());
+    if (args && args->dim)
+    {
+	buf->writestring(", ");
+	argsToCBuffer(buf, args, hgs);
+    }
+    buf->writeByte(')');
+    if (body)
+    {
+	buf->writenl();
+	buf->writeByte('{');
+	buf->writenl();
+
+	body->toCBuffer(buf, hgs);
+
+	buf->writeByte('}');
+	buf->writenl();
+    }
+    else
+    {
+	buf->writeByte(';');
+	buf->writenl();
+    }
 }
 
 

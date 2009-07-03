@@ -751,6 +751,7 @@ void StructDeclaration::toObjFile()
 	// See if we can convert a comdat to a comdef,
 	// which saves on exe file space.
 	if (sinit->Sclass == SCcomdat &&
+	    sinit->Sdt &&
 	    sinit->Sdt->dt == DT_azeros &&
 	    sinit->Sdt->DTnext == NULL)
 	{
@@ -876,6 +877,7 @@ void VarDeclaration::toObjFile()
 	// See if we can convert a comdat to a comdef,
 	// which saves on exe file space.
 	if (s->Sclass == SCcomdat &&
+	    s->Sdt &&
 	    s->Sdt->dt == DT_azeros &&
 	    s->Sdt->DTnext == NULL)
 	{
@@ -889,9 +891,11 @@ void VarDeclaration::toObjFile()
 	else
 	    s->Sseg = DATA;
 #endif /* ELFOBJ */
-	outdata(s);
-	if (isExport())
-	    obj_export(s,0);
+	if (sz)
+	{   outdata(s);
+	    if (isExport())
+		obj_export(s,0);
+	}
     }
 }
 

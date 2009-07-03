@@ -1131,7 +1131,16 @@ void IntegerExp::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 		buf->writestring((char *)(v ? "true" : "false"));
 		break;
 
+	    case Tpointer:
+		buf->writestring("cast(");
+		buf->writestring(t->toChars());
+		buf->writeByte(')');
+		goto L3;
+
 	    default:
+#ifdef DEBUG
+		t->print();
+#endif
 		assert(0);
 	}
     }
@@ -2371,8 +2380,16 @@ Expression *NewExp::semantic(Scope *sc)
 
 	    if (cdn)
 	    {
-		if (!sc->func || sc->func->isThis() != cdn)
-		    error("no 'this' for nested class %s", cd->toChars());
+		for (Dsymbol *sf = sc->func; 1; sf= sf->toParent()->isFuncDeclaration())
+		{
+		    if (!sf)
+		    {
+			error("outer class %s 'this' needed to 'new' nested class %s", cdn->toChars(), cd->toChars());
+			break;
+		    }
+		    if (sf->isThis() == cdn)
+			break;
+		}
 	    }
 	}
 	f = cd->ctor;
@@ -3626,6 +3643,10 @@ Expression *DotVarExp::semantic(Scope *sc)
 	e1 = e1->semantic(sc);
 	var = var->toAlias()->isDeclaration();
 	type = var->type;
+	if (!type && global.errors)
+	{   // var is goofed up, just return 0
+	    return new IntegerExp(0);
+	}
 	assert(type);
 
 	if (!var->isFuncDeclaration())	// for functions, do checks after overload resolution

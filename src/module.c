@@ -44,6 +44,7 @@ DsymbolTable *Module::modules;
 Array Module::amodules;
 
 Array Module::deferred;	// deferred Dsymbol's needing semantic() run on them
+unsigned Module::dprogress;
 
 void Module::init()
 {
@@ -801,6 +802,7 @@ void Module::addDeferredSemantic(Dsymbol *s)
     deferred.push(s);
 }
 
+
 /******************************************
  * Run semantic() on deferred symbols.
  */
@@ -812,11 +814,12 @@ void Module::runDeferredSemantic()
     static int nested;
     if (nested)
 	return;
-    //if (deferred.dim) printf("Module::runDeferredSemantic('%s'), len = %d\n", toChars(), deferred.dim);
+    //if (deferred.dim) printf("+Module::runDeferredSemantic('%s'), len = %d\n", toChars(), deferred.dim);
     nested++;
 
     do
     {
+	dprogress = 0;
 	len = deferred.dim;
 	if (!len)
 	    break;
@@ -841,8 +844,9 @@ void Module::runDeferredSemantic()
 
 	    s->semantic(NULL);
 	}
-    } while (deferred.dim < len);	// while making progress
+    } while (deferred.dim < len || dprogress);	// while making progress
     nested--;
+    //printf("-Module::runDeferredSemantic('%s'), len = %d\n", toChars(), deferred.dim);
 }
 
 /* =========================== ModuleDeclaration ===================== */

@@ -187,6 +187,8 @@ int runLINK()
     if (global.params.symdebug)
 	argv.push((void *)"-g");
 
+    argv.push((void *)"-m32");
+
     argv.push((void *)"-lphobos");	// turns into /usr/lib/libphobos.a
     argv.push((void *)"-lpthread");
     argv.push((void *)"-lm");

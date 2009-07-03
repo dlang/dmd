@@ -340,6 +340,7 @@ void AliasDeclaration::semantic(Scope *sc)
 		    ScopeDsymbol::multiplyDefined(f, overnext);
 		overnext = NULL;
 		s = fa;
+		s->parent = sc->parent;
 	    }
 	}
 	if (overnext)

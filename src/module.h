@@ -47,6 +47,7 @@ struct Module : Package
     static DsymbolTable *modules;	// symbol table of all modules
     static Array amodules;		// array of all modules
     static Array deferred;	// deferred Dsymbol's needing semantic() run on them
+    static unsigned dprogress;	// progress resolving the deferred list
     static void init();
 
     static ClassDeclaration *moduleinfo;

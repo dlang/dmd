@@ -548,8 +548,9 @@ Lmatch:
     {
 	TemplateParameter *tp = (TemplateParameter *)parameters->data[i];
 	Object *oarg = (Object *)dedargs->data[i];
+	Object *o = (Object *)dedtypes.data[i];
 	if (!oarg)
-	{   Object *o = (Object *)dedtypes.data[i];
+	{
 	    if (o)
 	    {
 		if (tp->specialization())
@@ -607,7 +608,12 @@ void TemplateDeclaration::declareParameter(Scope *sc, TemplateParameter *tp, Obj
 	s = v;
     }
     else
+    {
+#ifdef DEBUG
+	o->print();
+#endif
 	assert(0);
+    }
     if (!sc->insert(s))
 	error("declaration %s is already defined", tp->ident->toChars());
     s->semantic(sc);
@@ -834,6 +840,8 @@ MATCH Type::deduceType(Scope *sc, Type *tparam, TemplateParameters *parameters, 
 
 	    if (tp->ident->equals(id))
 	    {	// Found the corresponding parameter
+		if (!tp->isTemplateTypeParameter())
+		    goto Lnomatch;
 		Type *at = (Type *)dedtypes->data[i];
 		if (!at)
 		{
@@ -1750,7 +1758,16 @@ void TemplateInstance::addIdent(Identifier *ident)
 void TemplateInstance::semantic(Scope *sc)
 {
     if (global.errors)
+    {
+	if (!global.gag)
+	{
+	    /* Trying to soldier on rarely generates useful messages
+	     * at this point.
+	     */
+	    fatal();
+	}
 	return;
+    }
 #if LOG
     printf("+TemplateInstance::semantic('%s', this=%p)\n", toChars(), this);
 #endif
@@ -2061,7 +2078,7 @@ void TemplateInstance::semanticTiargs(Scope *sc)
 
 TemplateDeclaration *TemplateInstance::findTemplateDeclaration(Scope *sc)
 {
-    //printf("TemplateInstance::findTemplateDeclaration()\n");
+    //printf("TemplateInstance::findTemplateDeclaration() %s\n", toChars());
     if (!tempdecl)
     {
 	/* Given:

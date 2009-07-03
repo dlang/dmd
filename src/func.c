@@ -314,11 +314,6 @@ void FuncDeclaration::semantic(Scope *sc)
 	cd->vtbl.push(this);
 	vtblIndex = vi;
 
-	if (isOverride())
-	{
-	    error("function %s does not override any", toChars());
-	}
-
     L1: ;
 
 	/* Go through all the interface bases.
@@ -369,11 +364,18 @@ void FuncDeclaration::semantic(Scope *sc)
 			    }
 			    tintro = ti;
 			}
+			goto L2;
 		    }
 		}
 	    }
 	}
 
+	if (introducing && isOverride())
+	{
+	    error("function %s does not override any", toChars());
+	}
+
+    L2: ;
     }
     else if (isOverride() && !parent->isTemplateInstance())
 	error("override only applies to class member functions");
@@ -1617,6 +1619,7 @@ CtorDeclaration::CtorDeclaration(Loc loc, Loc endloc, Array *arguments, int vara
 {
     this->arguments = arguments;
     this->varargs = varargs;
+    //printf("CtorDeclaration() %s\n", toChars());
 }
 
 Dsymbol *CtorDeclaration::syntaxCopy(Dsymbol *s)

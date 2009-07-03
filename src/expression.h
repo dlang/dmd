@@ -56,6 +56,7 @@ void accessCheck(Loc loc, Scope *sc, Expression *e, Declaration *d);
 FuncDeclaration *search_function(AggregateDeclaration *ad, Identifier *funcid);
 void inferApplyArgTypes(Array *arguments, Type *taggr);
 void argExpTypesToCBuffer(OutBuffer *buf, Expressions *arguments, HdrGenState *hgs);
+void argsToCBuffer(OutBuffer *buf, Expressions *arguments, HdrGenState *hgs);
 
 struct Expression : Object
 {

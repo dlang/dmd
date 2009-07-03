@@ -539,6 +539,7 @@ AnonDeclaration::AnonDeclaration(Loc loc, int isunion, Array *decl)
 {
     this->loc = loc;
     this->isunion = isunion;
+    this->scope = NULL;
 }
 
 Dsymbol *AnonDeclaration::syntaxCopy(Dsymbol *s)
@@ -553,6 +554,14 @@ Dsymbol *AnonDeclaration::syntaxCopy(Dsymbol *s)
 void AnonDeclaration::semantic(Scope *sc)
 {
     //printf("\tAnonDeclaration::semantic '%s'\n",toChars());
+
+    Scope *scx = NULL;
+    if (scope)
+    {   sc = scope;
+	scx = scope;
+	scope = NULL;
+    }
+
     assert(sc->parent);
 
     Dsymbol *parent = sc->parent->pastMixin();
@@ -590,8 +599,23 @@ void AnonDeclaration::semantic(Scope *sc)
 	    s->semantic(sc);
 	    if (isunion)
 		sc->offset = 0;
+	    if (aad.sizeok == 2)
+	    {
+		break;
+	    }
 	}
 	*sc = sc_save;
+
+	// If failed due to forward references, unwind and try again later
+	if (aad.sizeok == 2)
+	{
+	    ad->sizeok = 2;
+	    scope = scx ? scx : new Scope(*sc);
+	    scope->setNoFree();
+	    scope->module->addDeferredSemantic(this);
+	    return;
+	}
+	Module::dprogress++;
 
 	// 0 sized structs are set to 1 byte
 	if (aad.structsize == 0)
@@ -700,6 +724,7 @@ void PragmaDeclaration::semantic(Scope *sc)
 	    }
 	    fprintf(stdmsg, "\n");
 	}
+	goto Lnodecl;
     }
     else if (ident == Id::lib)
     {
@@ -714,6 +739,7 @@ void PragmaDeclaration::semantic(Scope *sc)
 	    if (e->op != TOKstring)
 		error("string expected for library name, not '%s'", e->toChars());
 	}
+	goto Lnodecl;
     }
 #if IN_GCC
     else if (ident == Id::GNU_asm)
@@ -748,6 +774,7 @@ void PragmaDeclaration::semantic(Scope *sc)
 	    if (d && s)
 		d->c_ident = Lexer::idPool((char*) s->string);
 	}
+	goto Lnodecl;
     }
 #endif
     else
@@ -762,6 +789,11 @@ void PragmaDeclaration::semantic(Scope *sc)
 	    s->semantic(sc);
 	}
     }
+    return;
+
+Lnodecl:
+    if (decl)
+	error("pragma is missing closing ';'");
 }
 
 int PragmaDeclaration::oneMember(Dsymbol **ps)
@@ -791,6 +823,7 @@ void PragmaDeclaration::toObjFile()
 	name[se->len] = 0;
 	obj_includelib(name);
     }
+    AttribDeclaration::toObjFile();
 }
 
 void PragmaDeclaration::toCBuffer(OutBuffer *buf, HdrGenState *hgs)

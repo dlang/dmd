@@ -265,7 +265,7 @@ void ClassDeclaration::semantic(Scope *sc)
 			goto L7;
 		    }
 		}
-		if (!tc->sym->symtab || tc->sym->scope)
+		if (!tc->sym->symtab || tc->sym->scope || tc->sym->sizeok == 0)
 		{
 		    //error("forward reference of base class %s", baseClass->toChars());
 		    // Forward reference of base class, try again later
@@ -284,6 +284,7 @@ void ClassDeclaration::semantic(Scope *sc)
 	}
     }
 
+    // Treat the remaining entries in baseclasses as interfaces
     // Check for errors, handle forward references
     for (i = (baseClass ? 1 : 0); i < baseclasses.dim; )
     {	TypeClass *tc;
@@ -471,6 +472,8 @@ void ClassDeclaration::semantic(Scope *sc)
 	scope = scx ? scx : new Scope(*sc);
 	scope->setNoFree();
 	scope->module->addDeferredSemantic(this);
+
+	//printf("\tsemantic('%s') failed\n", toChars());
 	return;
     }
 
@@ -545,6 +548,8 @@ void ClassDeclaration::semantic(Scope *sc)
     }
     structsize = sc->offset;
     sizeok = 1;
+    Module::dprogress++;
+
 
     sc->pop();
 

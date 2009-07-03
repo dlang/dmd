@@ -58,7 +58,7 @@ Global::Global()
 
     copyright = "Copyright (c) 1999-2006 by Digital Mars";
     written = "written by Walter Bright";
-    version = "v0.157";
+    version = "v0.158";
     global.structalign = 8;
 
     memset(&params, 0, sizeof(Param));
@@ -147,6 +147,7 @@ Usage:\n\
   -debug=level   compile in debug code <= level\n\
   -debug=ident   compile in debug code identified by ident\n\
   -g             add symbolic debug info\n\
+  -gc            add symbolic debug info, pretend to be C\n\
   -H             generate 'header' file\n\
   -Hdhdrdir      write 'header' file to hdrdir directory\n\
   -Hffilename    write 'header' file to filename\n\
