@@ -766,8 +766,11 @@ InvariantDeclaration *Parser::parseInvariant()
     Loc loc = this->loc;
 
     nextToken();
-    //check(TOKlparen);		// don't require ()
-    //check(TOKrparen);
+    if (token.value == TOKlparen)	// optional ()
+    {
+	nextToken();
+	check(TOKrparen);
+    }
 
     f = new InvariantDeclaration(loc, 0);
     f->fbody = parseStatement(PScurly);

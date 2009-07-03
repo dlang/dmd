@@ -858,9 +858,11 @@ Expression *StringExp::interpret(InterState *istate)
     return this;
 }
 
-Expression *getVarExp(InterState *istate, VarDeclaration *v)
+Expression *getVarExp(InterState *istate, Declaration *d)
 {
     Expression *e = EXP_CANT_INTERPRET;
+    VarDeclaration *v = d->isVarDeclaration();
+    SymbolDeclaration *s = d->isSymbolDeclaration();
     if (v)
     {
 	if (v->isConst() && v->init)
@@ -878,6 +880,14 @@ Expression *getVarExp(InterState *istate, VarDeclaration *v)
 	if (!e)
 	    e = EXP_CANT_INTERPRET;
     }
+    else if (s)
+    {
+	if (s->dsym->toInitializer() == s->sym)
+	{   Expressions *exps = new Expressions();
+	    e = new StructLiteralExp(0, s->dsym, exps);
+	    e = e->semantic(NULL);
+	}
+    }
     return e;
 }
 
@@ -886,7 +896,7 @@ Expression *VarExp::interpret(InterState *istate)
 #if LOG
     printf("VarExp::interpret() %s\n", toChars());
 #endif
-    return getVarExp(istate, var->isVarDeclaration());
+    return getVarExp(istate, var);
 }
 
 Expression *DeclarationExp::interpret(InterState *istate)
@@ -1930,6 +1940,10 @@ Expression *PtrExp::interpret(InterState *istate)
 	    }
 	}
     }
+#if LOG
+    if (e == EXP_CANT_INTERPRET)
+	printf("PtrExp::interpret() %s = EXP_CANT_INTERPRET\n", toChars());
+#endif
     return e;
 }
 

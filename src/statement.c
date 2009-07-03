@@ -813,6 +813,7 @@ Statement *WhileStatement::semantic(Scope *sc)
 
     condition = condition->semantic(sc);
     condition = resolveProperties(sc, condition);
+    condition = condition->optimize(WANTvalue);
     condition = condition->checkToBoolean();
 
     sc->noctor++;

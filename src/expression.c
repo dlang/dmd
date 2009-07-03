@@ -2450,6 +2450,11 @@ Expression *ArrayLiteralExp::semantic(Scope *sc)
 	if (!e->type)
 	    error("%s has no value", e->toChars());
 	e = resolveProperties(sc, e);
+
+	unsigned char committed = 1;
+	if (e->op == TOKstring)
+	    committed = ((StringExp *)e)->committed;
+
 	if (!t0)
 	{   t0 = e->type;
 	    // Convert any static arrays to dynamic arrays
@@ -2461,6 +2466,10 @@ Expression *ArrayLiteralExp::semantic(Scope *sc)
 	}
 	else
 	    e = e->implicitCastTo(sc, t0);
+	if (!committed && e->op == TOKstring)
+	{   StringExp *se = (StringExp *)e;
+	    se->committed = 0;
+	}
 	elements->data[i] = (void *)e;
     }
 

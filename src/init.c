@@ -386,6 +386,48 @@ Lno:
 }
 
 
+/********************************
+ * If possible, convert array initializer to associative array initializer.
+ */
+
+Initializer *ArrayInitializer::toAssocArrayInitializer()
+{   Expressions *keys;
+    Expressions *values;
+    Expression *e;
+
+    //printf("ArrayInitializer::toAssocArrayInitializer()\n");
+    //static int i; if (++i == 2) halt();
+    keys = new Expressions();
+    keys->setDim(value.dim);
+    values = new Expressions();
+    values->setDim(value.dim);
+
+    for (size_t i = 0; i < value.dim; i++)
+    {
+	e = (Expression *)index.data[i];
+	if (!e)
+	    goto Lno;
+	keys->data[i] = (void *)e;
+
+	Initializer *iz = (Initializer *)value.data[i];
+	if (!iz)
+	    goto Lno;
+	e = iz->toExpression();
+	if (!e)
+	    goto Lno;
+	values->data[i] = (void *)e;
+    }
+    e = new AssocArrayLiteralExp(loc, keys, values);
+    return new ExpInitializer(loc, e);
+
+Lno:
+    delete keys;
+    delete values;
+    error(loc, "not an associative array initializer");
+    return this;
+}
+
+
 Type *ArrayInitializer::inferType(Scope *sc)
 {
     for (size_t i = 0; i < value.dim; i++)

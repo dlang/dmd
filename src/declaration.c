@@ -800,6 +800,12 @@ void VarDeclaration::semantic(Scope *sc)
 
     if (init)
     {
+	ArrayInitializer *ai = init->isArrayInitializer();
+	if (ai && type->toBasetype()->ty == Taarray)
+	{
+	    init = ai->toAssocArrayInitializer();
+	}
+
 	ExpInitializer *ei = init->isExpInitializer();
 
 	// See if we can allocate on the stack

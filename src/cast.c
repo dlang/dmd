@@ -332,7 +332,10 @@ int NullExp::implicitConvTo(Type *t)
 int StringExp::implicitConvTo(Type *t)
 {   MATCH m;
 
-    //printf("StringExp::implicitConvTo(t = %s), '%s' committed = %d\n", t->toChars(), toChars(), committed);
+#if 0
+    printf("StringExp::implicitConvTo(this=%s, committed=%d, type=%s, t=%s)\n",
+	toChars(), committed, type->toChars(), t->toChars());
+#endif
     if (!committed)
     {
     if (!committed && t->ty == Tpointer && t->next->ty == Tvoid)
@@ -350,8 +353,11 @@ int StringExp::implicitConvTo(Type *t)
 			((TypeSArray *)type)->dim->toInteger() !=
 			((TypeSArray *)t)->dim->toInteger())
 			return MATCHnomatch;
+		    goto L1;
 		case Tarray:
+		    goto L1;
 		case Tpointer:
+		L1:
 		    if (t->next->ty == Tchar)
 			return MATCHexact;
 		    else if (t->next->ty == Twchar)
