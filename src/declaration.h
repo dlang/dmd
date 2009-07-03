@@ -69,6 +69,7 @@ enum STC
     STCnothrow	    = 0x2000000,	// never throws exceptions
     STCpure	    = 0x4000000,	// pure function
     STCtls	    = 0x8000000,	// thread local
+    STCalias	    = 0x10000000,	// alias parameter
 };
 
 struct Match
@@ -605,6 +606,24 @@ struct CtorDeclaration : FuncDeclaration
     CtorDeclaration *isCtorDeclaration() { return this; }
 };
 
+#if V2
+struct PostBlitDeclaration : FuncDeclaration
+{
+    PostBlitDeclaration(Loc loc, Loc endloc);
+    PostBlitDeclaration(Loc loc, Loc endloc, Identifier *id);
+    Dsymbol *syntaxCopy(Dsymbol *);
+    void semantic(Scope *sc);
+    void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
+    int isVirtual();
+    int addPreInvariant();
+    int addPostInvariant();
+    int overloadInsert(Dsymbol *s);
+    void emitComment(Scope *sc);
+
+    PostBlitDeclaration *isPostBlitDeclaration() { return this; }
+};
+#endif
+
 struct DtorDeclaration : FuncDeclaration
 {
     DtorDeclaration(Loc loc, Loc endloc);
@@ -638,7 +657,8 @@ struct StaticCtorDeclaration : FuncDeclaration
 };
 
 struct StaticDtorDeclaration : FuncDeclaration
-{
+{   VarDeclaration *vgate;	// 'gate' variable
+
     StaticDtorDeclaration(Loc loc, Loc endloc);
     Dsymbol *syntaxCopy(Dsymbol *);
     void semantic(Scope *sc);

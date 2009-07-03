@@ -1581,7 +1581,13 @@ Argument *isFunctionParameter(Dsymbol *s, unsigned char *p, unsigned len)
      */
     if (f && f->type)
     {
-	TypeFunction *tf = (TypeFunction *)f->type;
+	TypeFunction *tf;
+	if (f->originalType)
+	{
+	    tf = (TypeFunction *)f->originalType;
+	}
+	else
+	    tf = (TypeFunction *)f->type;
 
 	if (tf->parameters)
 	{

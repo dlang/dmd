@@ -675,6 +675,7 @@ void Lexer::scan(Token *t)
 			sprintf(timestamp, "%.24s", p);
 		    }
 
+#if V1
 		    if (mod && id == Id::FILE)
 		    {
 			t->ustring = (unsigned char *)(loc.filename ? loc.filename : mod->ident->toChars());
@@ -685,7 +686,9 @@ void Lexer::scan(Token *t)
 			t->value = TOKint64v;
 			t->uns64value = loc.linnum;
 		    }
-		    else if (id == Id::DATE)
+		    else
+#endif
+		    if (id == Id::DATE)
 		    {
 			t->ustring = (unsigned char *)date;
 			goto Lstring;
@@ -2918,8 +2921,11 @@ static Keyword keywords[] =
 #if V2
     {	"pure",		TOKpure		},
     {	"nothrow",	TOKnothrow	},
+    {	"__thread",	TOKtls		},
     {	"__traits",	TOKtraits	},
     {	"__overloadset", TOKoverloadset	},
+    {	"__FILE__",	TOKfile		},
+    {	"__LINE__",	TOKline		},
 #endif
 };
 

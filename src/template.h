@@ -268,6 +268,7 @@ struct TemplateInstance : ScopeDsymbol
 					// sole member
     WithScopeSymbol *withsym;		// if a member of a with statement
     int semanticdone;	// has semantic() been done?
+    int semantictiargsdone;	// has semanticTiargs() been done?
     int nest;		// for recursion detection
     int havetempdecl;	// 1 if used second constructor
     Dsymbol *isnested;	// if referencing local symbols, this is the context

@@ -110,6 +110,7 @@ struct Dsymbol : Object
     Dsymbol *pastMixin();
     Dsymbol *toParent();
     Dsymbol *toParent2();
+    TemplateInstance *inTemplateInstance();
 
     int dyncast() { return DYNCAST_DSYMBOL; }	// kludge for template.isSymbol()
 

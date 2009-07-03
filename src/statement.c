@@ -237,15 +237,15 @@ void CompileStatement::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
         buf->writenl();
 }
 
-Statement *CompileStatement::semantic(Scope *sc)
+Statements *CompileStatement::flatten(Scope *sc)
 {
-    //printf("CompileStatement::semantic() %s\n", exp->toChars());
+    //printf("CompileStatement::flatten() %s\n", exp->toChars());
     exp = exp->semantic(sc);
     exp = resolveProperties(sc, exp);
     exp = exp->optimize(WANTvalue | WANTinterpret);
     if (exp->op != TOKstring)
     {	error("argument to mixin must be a string, not (%s)", exp->toChars());
-	return this;
+	return NULL;
     }
     StringExp *se = (StringExp *)exp;
     se = se->toUTF8(sc);
@@ -253,17 +253,25 @@ Statement *CompileStatement::semantic(Scope *sc)
     p.loc = loc;
     p.nextToken();
 
-    Statements *statements = new Statements();
+    Statements *a = new Statements();
     while (p.token.value != TOKeof)
     {
 	Statement *s = p.parseStatement(PSsemi | PScurlyscope);
-	statements->push(s);
+	a->push(s);
     }
-
-    Statement *s = new CompoundStatement(loc, statements);
-    return s->semantic(sc);
+    return a;
 }
 
+Statement *CompileStatement::semantic(Scope *sc)
+{
+    printf("CompileStatement::semantic() %s\n", exp->toChars());
+    /* Shouldn't happen unless errors, as CompileStatement::flatten()
+     * should have replaced it.
+     * Return NULL so no further errors happen.
+     */
+    assert(global.errors);
+    return NULL;
+}
 
 /******************************** DeclarationStatement ***************************/
 
@@ -468,7 +476,9 @@ Statement *CompoundStatement::semantic(Scope *sc)
 	i++;
     }
     if (statements->dim == 1)
-	return s;
+    {
+	return (Statement *)statements->data[0];
+    }
     return this;
 }
 
@@ -1787,13 +1797,21 @@ void ConditionalStatement::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 {
     condition->toCBuffer(buf, hgs);
     buf->writenl();
+    buf->writeByte('{');
+    buf->writenl();
     if (ifbody)
 	ifbody->toCBuffer(buf, hgs);
+    buf->writeByte('}');
+    buf->writenl();
     if (elsebody)
     {
 	buf->writestring("else");
 	buf->writenl();
+	buf->writeByte('{');
+	buf->writenl();
 	elsebody->toCBuffer(buf, hgs);
+	buf->writeByte('}');
+	buf->writenl();
     }
     buf->writenl();
 }
