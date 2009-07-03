@@ -814,8 +814,6 @@ void FuncDeclaration::semantic3(Scope *sc)
 		if (f->varargs == 2 && i + 1 == nparams)
 		    v->storage_class |= STCvariadic;
 		v->storage_class |= arg->storageClass & (STCin | STCout | STCref | STClazy | STCfinal | STCconst | STCinvariant | STCnodtor);
-		if (v->storage_class & STClazy)
-		    v->storage_class |= STCin;
 		v->semantic(sc2);
 		if (!sc2->insert(v))
 		    error("parameter %s.%s is already defined", toChars(), v->toChars());
@@ -1274,8 +1272,6 @@ void FuncDeclaration::semantic3(Scope *sc)
 		    if (e)
 		    {	Statement *s = new ExpStatement(0, e);
 			s = s->semantic(sc);
-printf("%s\n", fbody->toChars());
-printf("blockExit = x%x\n", fbody->blockExit());
 			if (fbody->blockExit() == BEfallthru)
 			    fbody = new CompoundStatement(0, fbody, s);
 			else
@@ -2161,6 +2157,8 @@ void CtorDeclaration::semantic(Scope *sc)
     Type *tret;
 
     //printf("CtorDeclaration::semantic()\n");
+    if (type)
+	return;
 
     sc = sc->push();
     sc->stc &= ~STCstatic;		// not a static constructor

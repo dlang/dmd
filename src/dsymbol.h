@@ -238,6 +238,9 @@ struct ScopeDsymbol : Dsymbol
 
     void emitMemberComments(Scope *sc);
 
+    static size_t dim(Array *members);
+    static Dsymbol *getNth(Array *members, size_t nth, size_t *pn = NULL);
+
     ScopeDsymbol *isScopeDsymbol() { return this; }
 };
 

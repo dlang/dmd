@@ -400,6 +400,8 @@ struct TypeAArray : TypeArray
     int checkBoolean();
     TypeInfoDeclaration *getTypeInfoDeclaration();
     int hasPointers();
+    MATCH implicitConvTo(Type *to);
+    MATCH constConv(Type *to);
 #if TARGET_LINUX
     void toCppMangle(OutBuffer *buf, CppMangleState *cms);
 #endif

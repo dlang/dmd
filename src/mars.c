@@ -60,7 +60,7 @@ Global::Global()
 
     copyright = "Copyright (c) 1999-2008 by Digital Mars";
     written = "written by Walter Bright";
-    version = "v2.011";
+    version = "v2.012";
     global.structalign = 8;
 
     memset(&params, 0, sizeof(Param));
@@ -242,6 +242,7 @@ int main(int argc, char *argv[])
     global.params.useInline = 0;
     global.params.obj = 1;
     global.params.Dversion = 2;
+    global.params.quiet = 1;
 
     global.params.linkswitches = new Array();
     global.params.libfiles = new Array();
@@ -581,6 +582,8 @@ int main(int argc, char *argv[])
     }
     if (global.params.cov)
 	VersionCondition::addPredefinedGlobalIdent("D_Coverage");
+    if (global.params.useUnitTests)
+	VersionCondition::addPredefinedGlobalIdent("unittest");
 
     // Initialization
     Type::init();

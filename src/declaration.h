@@ -98,7 +98,7 @@ struct Declaration : Dsymbol
     void semantic(Scope *sc);
     char *kind();
     unsigned size(Loc loc);
-    void checkModify(Loc loc, Scope *sc);
+    void checkModify(Loc loc, Scope *sc, Type *t);
 
     void emitComment(Scope *sc);
     void toDocBuffer(OutBuffer *buf);
@@ -246,6 +246,7 @@ struct VarDeclaration : Declaration
     int isDataseg();
     int hasPointers();
     int canTakeAddressOf();
+    int needsAutoDtor();
     Expression *callAutoDtor(Scope *sc);
     ExpInitializer *getExpInitializer();
     Expression *getConstInitializer();

@@ -89,6 +89,7 @@ enum PREC precedence[TOKMAX];
 
 void initPrecedence()
 {
+    precedence[TOKdotvar] = PREC_primary;
     precedence[TOKimport] = PREC_primary;
     precedence[TOKidentifier] = PREC_primary;
     precedence[TOKthis] = PREC_primary;
@@ -520,11 +521,12 @@ void functionArguments(Loc loc, Scope *sc, TypeFunction *tf, Expressions *argume
 
 			    Expression *e = new VarExp(loc, v);
 			    e = new IndexExp(loc, e, new IntegerExp(u + 1 - nparams));
-			    e = new AssignExp(loc, e, a);
+			    AssignExp *ae = new AssignExp(loc, e, a);
+			    ae->op = TOKconstruct;
 			    if (c)
-				c = new CommaExp(loc, c, e);
+				c = new CommaExp(loc, c, ae);
 			    else
-				c = e;
+				c = ae;
 			}
 			arg = new VarExp(loc, v);
 			if (c)
@@ -665,6 +667,7 @@ void functionArguments(Loc loc, Scope *sc, TypeFunction *tf, Expressions *argume
 
 void expToCBuffer(OutBuffer *buf, HdrGenState *hgs, Expression *e, enum PREC pr)
 {
+    //if (precedence[e->op] == 0) e->dump(0);
     if (precedence[e->op] < pr)
     {
 	buf->writeByte('(');
@@ -2544,6 +2547,8 @@ Expression *ArrayLiteralExp::semantic(Scope *sc)
 #if LOGSEMANTIC
     printf("ArrayLiteralExp::semantic('%s')\n", toChars());
 #endif
+    if (type)
+	return this;
 
     // Run semantic() on each element
     for (int i = 0; i < elements->dim; i++)
@@ -3695,7 +3700,7 @@ Expression *VarExp::modifiableLvalue(Scope *sc, Expression *e)
     if (type && type->toBasetype()->ty == Tsarray)
 	error("cannot change reference to static array '%s'", var->toChars());
 
-    var->checkModify(loc, sc);
+    var->checkModify(loc, sc, type);
 
     // See if this expression is a modifiable lvalue (i.e. not const)
     return toLvalue(sc, e);
@@ -6253,6 +6258,16 @@ Expression *AddrExp::semantic(Scope *sc)
 		    e = e->semantic(sc);
 		    return e;
 		}
+		if (f->needThis() && hasThis(sc))
+		{
+		    /* Should probably supply 'this' after overload resolution,
+		     * not before.
+		     */
+		    Expression *ethis = new ThisExp(loc);
+		    Expression *e = new DelegateExp(loc, ethis, f, ve->hasOverloads);
+		    e = e->semantic(sc);
+		    return e;
+		}
 	    }
 	}
 	return optimize(WANTvalue);
@@ -6331,7 +6346,7 @@ Expression *PtrExp::modifiableLvalue(Scope *sc, Expression *e)
 
     if (e1->op == TOKsymoff)
     {	SymOffExp *se = (SymOffExp *)e1;
-	se->var->checkModify(loc, sc);
+	se->var->checkModify(loc, sc, type);
 	//return toLvalue(sc, e);
     }
 
@@ -6658,7 +6673,10 @@ Expression *CastExp::semantic(Scope *sc)
 	}
 
 	Type *tob = to->toBasetype();
-	if (tob->ty == Tstruct && !tob->equals(e1->type->toBasetype()))
+	if (tob->ty == Tstruct &&
+	    !tob->equals(e1->type->toBasetype()) &&
+	    ((TypeStruct *)to)->sym->search(0, Id::call, 0)
+	   )
 	{
 	    /* Look to replace:
 	     *	cast(S)t
@@ -7271,7 +7289,7 @@ Expression *IndexExp::modifiableLvalue(Scope *sc, Expression *e)
     if (e1->op == TOKstring)
 	error("string literals are immutable");
     if (type && !type->isMutable())
-	error("%s is not mutable", e->toChars());
+	error("%s isn't mutable", e->toChars());
     if (e1->type->toBasetype()->ty == Taarray)
 	e1 = e1->modifiableLvalue(sc, e1);
     return toLvalue(sc, e);
@@ -7565,7 +7583,8 @@ Expression *AssignExp::semantic(Scope *sc)
 	// before it got constant folded
 	if (e1->op != TOKvar)
 	    e1 = e1->optimize(WANTvalue);
-	e1 = e1->modifiableLvalue(sc, e1old);
+	if (op != TOKconstruct)
+	    e1 = e1->modifiableLvalue(sc, e1old);
     }
 
     Type *t2 = e2->type;
@@ -7772,6 +7791,8 @@ Expression *CatAssignExp::semantic(Scope *sc)
 
     Type *tb1 = e1->type->toBasetype();
     Type *tb2 = e2->type->toBasetype();
+
+    e2->rvalue();
 
     if ((tb1->ty == Tarray) &&
 	(tb2->ty == Tarray || tb2->ty == Tsarray) &&
@@ -8840,6 +8861,13 @@ Expression *CmpExp::semantic(Scope *sc)
 	return this;
 
     BinExp::semanticp(sc);
+
+    if (e1->type->toBasetype()->ty == Tclass && e2->op == TOKnull ||
+	e2->type->toBasetype()->ty == Tclass && e1->op == TOKnull)
+    {
+	error("do not use null when comparing class types");
+    }
+
     e = op_overload(sc);
     if (e)
     {
@@ -8896,6 +8924,7 @@ int CmpExp::isBit()
 EqualExp::EqualExp(enum TOK op, Loc loc, Expression *e1, Expression *e2)
 	: BinExp(loc, op, sizeof(EqualExp), e1, e2)
 {
+    assert(op == TOKequal || op == TOKnotequal);
 }
 
 Expression *EqualExp::semantic(Scope *sc)
@@ -8930,6 +8959,14 @@ Expression *EqualExp::semantic(Scope *sc)
 	}
     }
 
+    if (e1->type->toBasetype()->ty == Tclass && e2->op == TOKnull ||
+	e2->type->toBasetype()->ty == Tclass && e1->op == TOKnull)
+    {
+	error("use '%s' instead of '%s' when comparing with null",
+		Token::toChars(op == TOKequal ? TOKidentity : TOKnotidentity),
+		Token::toChars(op));
+    }
+
     //if (e2->op != TOKnull)
     {
 	e = op_overload(sc);
@@ -8950,6 +8987,7 @@ Expression *EqualExp::semantic(Scope *sc)
     // Special handling for array comparisons
     t1 = e1->type->toBasetype();
     t2 = e2->type->toBasetype();
+
     if ((t1->ty == Tarray || t1->ty == Tsarray || t1->ty == Tpointer) &&
 	(t2->ty == Tarray || t2->ty == Tsarray || t2->ty == Tpointer))
     {

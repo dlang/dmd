@@ -1244,6 +1244,7 @@ Statement *ForeachStatement::semantic(Scope *sc)
 
     aggr = aggr->semantic(sc);
     aggr = resolveProperties(sc, aggr);
+    aggr = aggr->optimize(WANTvalue);
     if (!aggr->type)
     {
 	error("invalid foreach aggregate %s", aggr->toChars());
@@ -2841,6 +2842,9 @@ Statement *ReturnStatement::semantic(Scope *sc)
 
 	    if (!v || v->isOut() || v->isRef())
 		fd->nrvo_can = 0;
+	    else if (tbret->ty == Tstruct && ((TypeStruct *)tbret)->sym->dtor)
+		// Struct being returned has destructors
+		fd->nrvo_can = 0;
 	    else if (fd->nrvo_var == NULL)
 	    {	if (!v->isDataseg() && !v->isParameter() && v->toParent2() == fd)
 		{   //printf("Setting nrvo to %s\n", v->toChars());
@@ -3308,8 +3312,7 @@ int SynchronizedStatement::usesEH()
 
 int SynchronizedStatement::blockExit()
 {
-    // Assume the worst
-    return BEany;
+    return body ? body->blockExit() : BEfallthru;
 }
 
 int SynchronizedStatement::fallOffEnd()

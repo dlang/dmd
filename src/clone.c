@@ -79,7 +79,7 @@ FuncDeclaration *StructDeclaration::buildOpAssign(Scope *sc)
     if (!needOpAssign())
 	return NULL;
 
-    printf("StructDeclaration::buildOpAssign() %s\n", toChars());
+    //printf("StructDeclaration::buildOpAssign() %s\n", toChars());
 
     FuncDeclaration *fop = NULL;
 
@@ -163,7 +163,7 @@ FuncDeclaration *StructDeclaration::buildOpAssign(Scope *sc)
 
     sc->pop();
 
-    printf("-StructDeclaration::buildOpAssign() %s\n", toChars());
+    //printf("-StructDeclaration::buildOpAssign() %s\n", toChars());
 
     return fop;
 }

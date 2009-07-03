@@ -109,8 +109,10 @@ Type::Type(TY ty)
     this->ty = ty;
     this->mod = 0;
     this->deco = NULL;
+#if V2
     this->cto = NULL;
     this->ito = NULL;
+#endif
     this->pto = NULL;
     this->rto = NULL;
     this->arrayof = NULL;
@@ -531,20 +533,7 @@ char *Type::toChars()
 
 void Type::toCBuffer(OutBuffer *buf, Identifier *ident, HdrGenState *hgs)
 {
-#if 1
     toCBuffer2(buf, hgs, 0);
-#else
-    /* This method doesn't use ( ) for the leading const or invariant
-     */
-    switch (mod)
-    {
-	case 0:			break;
-	case MODconst:		buf->writestring("const ");	break;
-	case MODinvariant:	buf->writestring("invariant ");	break;
-	default:		assert(0);
-    }
-    toCBuffer2(buf, hgs, mod);
-#endif
     if (ident)
     {	buf->writeByte(' ');
 	buf->writestring(ident->toChars());
@@ -2637,6 +2626,49 @@ int TypeAArray::checkBoolean()
 int TypeAArray::hasPointers()
 {
     return TRUE;
+}
+
+MATCH TypeAArray::implicitConvTo(Type *to)
+{
+    //printf("TypeAArray::implicitConvTo(to = %s) this = %s\n", to->toChars(), toChars());
+    if (equals(to))
+	return MATCHexact;
+
+    if (to->ty == Taarray)
+    {	TypeAArray *ta = (TypeAArray *)to;
+
+	if (!(next->mod == ta->next->mod || ta->next->mod == MODconst))
+	    return MATCHnomatch;	// not const-compatible
+
+	if (!(index->mod == ta->index->mod || ta->index->mod == MODconst))
+	    return MATCHnomatch;	// not const-compatible
+
+	MATCH m = next->constConv(ta->next);
+	MATCH mi = index->constConv(ta->index);
+	if (m != MATCHnomatch && mi != MATCHnomatch)
+	{
+	    if (m == MATCHexact && mod != to->mod)
+		m = MATCHconst;
+	    if (mi < m)
+		m = mi;
+	    return m;
+	}
+    }
+    return Type::implicitConvTo(to);
+}
+
+MATCH TypeAArray::constConv(Type *to)
+{
+    if (to->ty == Taarray)
+    {
+	TypeAArray *taa = (TypeAArray *)to;
+	MATCH mindex = index->constConv(taa->index);
+	MATCH mkey = next->constConv(taa->next);
+	// Pick the worst match
+	return mkey < mindex ? mkey : mindex;
+    }
+    else
+	return Type::constConv(to);
 }
 
 /***************************** TypePointer *****************************/
@@ -4877,14 +4909,11 @@ int TypeStruct::hasPointers()
     StructDeclaration *s = sym;
 
     sym->size(0);		// give error for forward references
-    if (s->members)
+    for (size_t i = 0; i < s->fields.dim; i++)
     {
-	for (size_t i = 0; i < s->members->dim; i++)
-	{
-	    Dsymbol *sm = (Dsymbol *)s->members->data[i];
-	    if (sm->hasPointers())
-		return TRUE;
-	}
+	Dsymbol *sm = (Dsymbol *)s->fields.data[i];
+	if (sm->hasPointers())
+	    return TRUE;
     }
     return FALSE;
 }

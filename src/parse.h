@@ -80,7 +80,7 @@ struct Parser : Lexer
     Condition *parseDebugCondition();
     Condition *parseVersionCondition();
     Condition *parseStaticIfCondition();
-    CtorDeclaration *parseCtor();
+    FuncDeclaration *parseCtor();
     PostBlitDeclaration *parsePostBlit();
     DtorDeclaration *parseDtor();
     StaticCtorDeclaration *parseStaticCtor();

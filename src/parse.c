@@ -722,6 +722,14 @@ Condition *Parser::parseVersionCondition()
 	    id = token.ident;
 	else if (token.value == TOKint32v)
 	    level = (unsigned)token.uns64value;
+#if V2
+	/* Allow:
+	 *    version (unittest)
+	 * even though unittest is a keyword
+	 */
+	else if (token.value == TOKunittest)
+	    id = Lexer::idPool(Token::toChars(TOKunittest));
+#endif
 	else
 	    error("identifier or integer expected, not %s", token.toChars());
 	nextToken();
@@ -768,19 +776,28 @@ Condition *Parser::parseStaticIfCondition()
 /*****************************************
  * Parse a constructor definition:
  *	this(arguments) { body }
+ * or postblit:
+ *	this(this) { body }
  * Current token is 'this'.
  */
 
-CtorDeclaration *Parser::parseCtor()
+FuncDeclaration *Parser::parseCtor()
 {
-    CtorDeclaration *f;
-    Arguments *arguments;
-    int varargs;
     Loc loc = this->loc;
 
     nextToken();
-    arguments = parseParameters(&varargs);
-    f = new CtorDeclaration(loc, 0, arguments, varargs);
+    if (token.value == TOKlparen && peek(&token)->value == TOKthis)
+    {	// this(this) { ... }
+	nextToken();
+	nextToken();
+	check(TOKrparen);
+	PostBlitDeclaration *f = new PostBlitDeclaration(loc, 0);
+	parseContracts(f);
+	return f;
+    }
+    int varargs;
+    Arguments *arguments = parseParameters(&varargs);
+    CtorDeclaration *f = new CtorDeclaration(loc, 0, arguments, varargs);
     parseContracts(f);
     return f;
 }
@@ -4385,6 +4402,8 @@ Expression *Parser::parsePrimaryExp()
 	{
 	    /* function type(parameters) { body }
 	     * delegate type(parameters) { body }
+	     * (parameters) { body }
+	     * { body }
 	     */
 	    Arguments *arguments;
 	    int varargs;

@@ -419,6 +419,7 @@ void FuncDeclaration::buildClosure(IRState *irs)
 	 *    }
 	 */
 
+	//printf("FuncDeclaration::buildClosure()\n");
 	Symbol *sclosure;
 	sclosure = symbol_name("__closptr",SCauto,Type::tvoidptr->toCtype());
 	sclosure->Sflags |= SFLtrue | SFLfree;
@@ -429,6 +430,9 @@ void FuncDeclaration::buildClosure(IRState *irs)
 	for (int i = 0; i < closureVars.dim; i++)
 	{   VarDeclaration *v = (VarDeclaration *)closureVars.data[i];
 	    assert(v->isVarDeclaration());
+
+	    if (v->needsAutoDtor())
+		v->error("has scoped destruction, cannot build closure");
 
 	    /* Align and allocate space for v in the closure
 	     * just like AggregateDeclaration::addField() does.

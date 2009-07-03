@@ -85,7 +85,7 @@ enum PROT Declaration::prot()
  * Issue error if not.
  */
 
-void Declaration::checkModify(Loc loc, Scope *sc)
+void Declaration::checkModify(Loc loc, Scope *sc, Type *t)
 {
     if (sc->incontract && isParameter())
 	error(loc, "cannot modify parameter '%s' in contract", toChars());
@@ -137,10 +137,12 @@ void Declaration::checkModify(Loc loc, Scope *sc)
 		p = "invariant";
 	    else if (storage_class & STCmanifest)
 		p = "manifest constant";
-	    else if (!type->isAssignable())
+	    else if (!t->isAssignable())
 		p = "struct with immutable members";
 	    if (p)
-		error(loc, "cannot modify %s", p);
+	    {	error(loc, "cannot modify %s", p);
+		halt();
+	    }
 	}
     }
 }
@@ -872,6 +874,7 @@ Lagain:
     else if (storage_class & STCmanifest)
 	error("manifest constants must have initializers");
 
+    enum TOK op = TOKconstruct;
     if (!init && !sc->inunion && !isStatic() && fd &&
 	(!(storage_class & (STCfield | STCin | STCforeach | STCparameter)) || (storage_class & STCout)) &&
 	type->size() != 0)
@@ -910,6 +913,8 @@ Lagain:
 	{
 	    init = getExpInitializer();
 	}
+	// Default initializer is always a blit
+	op = TOKblit;
     }
 
     if (init)
@@ -991,7 +996,7 @@ Lagain:
 			ei->exp = new CastExp(loc, ei->exp, type);
 		}
 		ei->exp = new AssignExp(loc, e1, ei->exp);
-		ei->exp->op = TOKconstruct;
+		ei->exp->op = op;
 		canassign++;
 		ei->exp = ei->exp->semantic(sc);
 		canassign--;
@@ -1118,7 +1123,7 @@ void VarDeclaration::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
     if (init)
     {	buf->writestring(" = ");
 	ExpInitializer *ie = init->isExpInitializer();
-	if (ie && ie->exp->op == TOKconstruct)
+	if (ie && (ie->exp->op == TOKconstruct || ie->exp->op == TOKblit))
 	    ((AssignExp *)ie->exp)->e2->toCBuffer(buf, hgs);
 	else
 	    init->toCBuffer(buf, hgs);
@@ -1181,6 +1186,7 @@ void VarDeclaration::checkNestedReference(Scope *sc, Loc loc)
 		if (s == this)
 		    goto L2;
 	    }
+
 	    fdv->closureVars.push(this);
 	  L2: ;
 
@@ -1283,8 +1289,43 @@ int VarDeclaration::isDataseg()
 
 int VarDeclaration::hasPointers()
 {
+    //printf("VarDeclaration::hasPointers() %s, ty = %d\n", toChars(), type->ty);
     return (!isDataseg() && type->hasPointers());
 }
+
+/******************************************
+ * Return TRUE if variable needs to call the destructor.
+ */
+
+int VarDeclaration::needsAutoDtor()
+{
+    //printf("VarDeclaration::needsAutoDtor() %s\n", toChars());
+
+    if (noauto || storage_class & STCnodtor)
+	return FALSE;
+
+    // Destructors for structs and arrays of structs
+    Type *tv = type->toBasetype();
+    while (tv->ty == Tsarray)
+    {   TypeSArray *ta = (TypeSArray *)tv;
+	tv = tv->nextOf()->toBasetype();
+    }
+    if (tv->ty == Tstruct)
+    {   TypeStruct *ts = (TypeStruct *)tv;
+	StructDeclaration *sd = ts->sym;
+	if (sd->dtor)
+	    return TRUE;
+    }
+
+    // Destructors for classes
+    if (storage_class & (STCauto | STCscope))
+    {
+	if (type->isClassHandle())
+	    return TRUE;
+    }
+    return FALSE;
+}
+
 
 /******************************************
  * If a variable has an auto destructor call, return call for it.
@@ -1297,10 +1338,6 @@ Expression *VarDeclaration::callAutoDtor(Scope *sc)
     //printf("VarDeclaration::callAutoDtor() %s\n", toChars());
 
     if (noauto || storage_class & STCnodtor)
-	return NULL;
-
-    FuncDeclaration *fd = sc->parent->isFuncDeclaration();
-    if (fd && fd->nrvo_var == this)
 	return NULL;
 
     // Destructors for structs and arrays of structs

@@ -595,8 +595,20 @@ void Lexer::scan(Token *t)
 		do
 		{
 		    p++;
-		    c = escapeSequence();
-		    stringbuffer.writeUTF8(c);
+		    switch (*p)
+		    {
+			case 'u':
+			case 'U':
+			case '&':
+			    c = escapeSequence();
+			    stringbuffer.writeUTF8(c);
+			    break;
+
+			default:
+			    c = escapeSequence();
+			    stringbuffer.writeByte(c);
+			    break;
+		    }
 		} while (*p == '\\');
 		t->len = stringbuffer.offset;
 		stringbuffer.writeByte(0);
@@ -1297,7 +1309,7 @@ unsigned Lexer::escapeSequence()
 
 	default:
 		if (isoctal(c))
-		{   unsigned char v;
+		{   unsigned v;
 
 		    n = 0;
 		    v = 0;
@@ -1307,6 +1319,8 @@ unsigned Lexer::escapeSequence()
 			c = *++p;
 		    } while (++n < 3 && isoctal(c));
 		    c = v;
+		    if (c > 0xFF)
+			error("0%03o is larger than a byte", c);
 		}
 		else
 		    error("undefined escape sequence \\%c\n",c);
@@ -2958,7 +2972,9 @@ void Lexer::initKeywords()
     Token::tochars[TOKxorass]		= "^=";
     Token::tochars[TOKassign]		= "=";
     Token::tochars[TOKconstruct]	= "=";
+#if V2
     Token::tochars[TOKblit]		= "=";
+#endif
     Token::tochars[TOKlt]		= "<";
     Token::tochars[TOKgt]		= ">";
     Token::tochars[TOKle]		= "<=";

@@ -88,7 +88,7 @@ Expression *TraitsExp::semantic(Scope *sc)
 #if LOGSEMANTIC
     printf("TraitsExp::semantic() %s\n", toChars());
 #endif
-    if (ident != Id::compiles)
+    if (ident != Id::compiles && ident != Id::isSame)
 	TemplateInstance::semanticTiargs(loc, sc, args, 1);
     size_t dim = args ? args->dim : 0;
     Object *o;
@@ -292,10 +292,11 @@ Expression *TraitsExp::semantic(Scope *sc)
 	}
 	Expressions *exps = new Expressions;
 	while (1)
-	{
-	    for (size_t i = 0; i < sd->members->dim; i++)
+	{   size_t dim = ScopeDsymbol::dim(sd->members);
+	    for (size_t i = 0; i < dim; i++)
 	    {
-		Dsymbol *sm = (Dsymbol *)sd->members->data[i];
+		Dsymbol *sm = ScopeDsymbol::getNth(sd->members, i);
+		//printf("\t[%i] %s %s\n", i, sm->kind(), sm->toChars());
 		if (sm->ident)
 		{
 		    //printf("\t%s\n", sm->ident->toChars());
@@ -370,8 +371,36 @@ Expression *TraitsExp::semantic(Scope *sc)
 	 */
 	if (dim != 2)
 	    goto Ldimerror;
-	Dsymbol *s1 = getDsymbol((Object *)args->data[0]);
-	Dsymbol *s2 = getDsymbol((Object *)args->data[1]);
+	TemplateInstance::semanticTiargs(loc, sc, args, 0);
+	Object *o1 = (Object *)args->data[0];
+	Object *o2 = (Object *)args->data[1];
+	Dsymbol *s1 = getDsymbol(o1);
+	Dsymbol *s2 = getDsymbol(o2);
+
+#if 0
+	printf("o1: %p\n", o1);
+	printf("o2: %p\n", o2);
+	if (!s1)
+	{   Expression *ea = isExpression(o1);
+	    if (ea)
+		printf("%s\n", ea->toChars());
+	    Type *ta = isType(o1);
+	    if (ta)
+		printf("%s\n", ta->toChars());
+	    goto Lfalse;
+	}
+	else
+	    printf("%s %s\n", s1->kind(), s1->toChars());
+#endif
+	if (!s1 && !s2)
+	{   Expression *ea1 = isExpression(o1);
+	    Expression *ea2 = isExpression(o2);
+	    if (ea1 && ea2 && ea1->equals(ea2))
+		goto Ltrue;
+	}
+
+	if (!s1 || !s2)
+	    goto Lfalse;
 
 	s1 = s1->toAlias();
 	s2 = s2->toAlias();

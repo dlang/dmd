@@ -103,7 +103,7 @@ MATCH Expression::implicitConvTo(Type *t)
     printf("Expression::implicitConvTo(this=%s, type=%s, t=%s)\n",
 	toChars(), type->toChars(), t->toChars());
 #endif
-    //static int nest; if (++nest == 10) halt();
+    //static int nest; if (++nest == 50) halt();
     if (!type)
     {	error("%s is not an expression", toChars());
 	type = Type::terror;
@@ -112,7 +112,7 @@ MATCH Expression::implicitConvTo(Type *t)
     if (e->type == t)
 	return MATCHexact;
     if (e != this)
-    {	//printf("optimized to %s\n", e->toChars());
+    {	//printf("\toptimized to %s of type %s\n", e->toChars(), e->type->toChars());
 	return e->implicitConvTo(t);
     }
     MATCH match = type->implicitConvTo(t);
@@ -600,7 +600,9 @@ MATCH SymOffExp::implicitConvTo(Type *t)
 		if (f)
 		{   if ((t->ty == Tdelegate && (f->needThis() || f->isNested())) ||
 			(t->ty == Tpointer && !(f->needThis() || f->isNested())))
+		    {
 			result = MATCHexact;
+		    }
 		}
 	    }
 	}
@@ -1547,7 +1549,6 @@ Lagain:
     {
 	goto Lt2;
     }
-//else if (e2->op == TOKstring) { printf("test2\n"); }
     else if ((e2->op == TOKstring || e2->op == TOKnull) && e2->implicitConvTo(t1))
     {
 	goto Lt1;

@@ -519,7 +519,7 @@ elem *sarray_toDarray(Type *tfrom, Type *tto, elem *e)
  *	tb	type of evalue
  */
 
-elem *setArray(elem *eptr, elem *edim, Type *tb, elem *evalue)
+elem *setArray(elem *eptr, elem *edim, Type *tb, elem *evalue, IRState *irs, int op)
 {   int r;
     elem *e;
     int sz = tb->size();
@@ -538,14 +538,41 @@ elem *setArray(elem *eptr, elem *edim, Type *tb, elem *evalue)
 	    case 2:	 r = RTLSYM_MEMSET16;	break;
 	    case 4:	 r = RTLSYM_MEMSET32;	break;
 	    case 8:	 r = RTLSYM_MEMSET64;	break;
+	    default:	 r = RTLSYM_MEMSETN;	break;
+	}
 
-	    default:
-		r = RTLSYM_MEMSETN;
-		evalue = el_una(OPaddr, TYnptr, evalue);
-		elem *esz = el_long(TYint, sz);
-		e = el_params(esz, edim, evalue, eptr, NULL);
-		e = el_bin(OPcall,TYnptr,el_var(rtlsym[r]),e);
-		return e;
+	/* Determine if we need to do postblit
+	 */
+	if (op != TOKblit)
+	{
+	    Type *t = tb;
+	    while (t->ty == Tsarray)
+		t = t->nextOf()->toBasetype();
+	    if (t->ty == Tstruct)
+	    {   StructDeclaration *sd = ((TypeStruct *)t)->sym;
+		if (sd->postblit)
+		{   /* Need to do postblit.
+		     *   void *_d_arraysetassign(void *p, void *value, int dim, TypeInfo ti);
+		     */
+		    r = (op == TOKconstruct) ? RTLSYM_ARRAYSETCTOR : RTLSYM_ARRAYSETASSIGN;
+		    evalue = el_una(OPaddr, TYnptr, evalue);
+		    Expression *ti = tb->getTypeInfo(NULL);
+		    elem *eti = ti->toElem(irs);
+		    e = el_params(eti, edim, evalue, eptr, NULL);
+		    e = el_bin(OPcall,TYnptr,el_var(rtlsym[r]),e);
+		    return e;
+		}
+	    }
+	}
+
+	if (r == RTLSYM_MEMSETN)
+	{
+	    // void *_memsetn(void *p, void *value, int dim, int sizelem)
+	    evalue = el_una(OPaddr, TYnptr, evalue);
+	    elem *esz = el_long(TYint, sz);
+	    e = el_params(esz, edim, evalue, eptr, NULL);
+	    e = el_bin(OPcall,TYnptr,el_var(rtlsym[r]),e);
+	    return e;
 	}
     }
     if (sz > 1 && sz <= 8 &&
@@ -2324,7 +2351,7 @@ elem *AssignExp::toElem(IRState *irs)
 	// which we do if the 'next' types match
 	if (ismemset)
 	{   // Do a memset for array[]=v
-//printf("Lpair %s\n", toChars());
+	    //printf("Lpair %s\n", toChars());
 	    SliceExp *are = (SliceExp *)e1;
 	    elem *elwr;
 	    elem *eupr;
@@ -2446,7 +2473,7 @@ elem *AssignExp::toElem(IRState *irs)
 	    }
 	    else
 		elength = el_copytree(enbytes);
-	    e = setArray(n1, enbytes, tb, evalue);
+	    e = setArray(n1, enbytes, tb, evalue, irs, op);
 	Lpair:
 	    e = el_pair(TYullong, elength, e);
 	Lret2:
@@ -2467,12 +2494,25 @@ elem *AssignExp::toElem(IRState *irs)
 	    eto = e1->toElem(irs);
 	    efrom = e2->toElem(irs);
 
-	    unsigned size;
-
-	    size = t1->nextOf()->size();
+	    unsigned size = t1->nextOf()->size();
 	    esize = el_long(TYint, size);
 
-	    if (e2->type->ty == Tpointer || !global.params.useArrayBounds)
+	    /* Determine if we need to do postblit
+	     */
+	    int postblit = 0;
+	    Type *t = t1;
+	    do
+		t = t->nextOf()->toBasetype();
+	    while (t->ty == Tsarray);
+	    if (t->ty == Tstruct)
+	    {	StructDeclaration *sd = ((TypeStruct *)t)->sym;
+		if (sd->postblit)
+		    postblit = 1;
+	    }
+
+	    assert(e2->type->ty != Tpointer);
+
+	    if (!postblit && !global.params.useArrayBounds)
 	    {	elem *epto;
 		elem *epfr;
 		elem *elen;
@@ -2499,15 +2539,23 @@ elem *AssignExp::toElem(IRState *irs)
 		e = el_pair(eto->Ety, el_copytree(elen), e);
 		e = el_combine(eto, e);
 	    }
+	    else if (postblit && op != TOKblit)
+	    {
+		/* Generate:
+		 *	_d_arrayassign(ti, efrom, eto)
+		 * or:
+		 *	_d_arrayctor(ti, efrom, eto)
+		 */
+		el_free(esize);
+		Expression *ti = t1->nextOf()->toBasetype()->getTypeInfo(NULL);
+		ep = el_params(eto, efrom, ti->toElem(irs), NULL);
+		int rtl = (op == TOKconstruct) ? RTLSYM_ARRAYCTOR : RTLSYM_ARRAYASSIGN;
+		e = el_bin(OPcall, type->totym(), el_var(rtlsym[rtl]), ep);
+	    }
 	    else
 	    {
 		// Generate:
 		//	_d_arraycopy(eto, efrom, esize)
-
-		// If eto is a static array, need to convert it to
-		// a dynamic array.
-		//if (are->e1->type->ty == Tsarray)
-		//    eto = sarray_toDarray(are->e1->type, eto);
 
 		ep = el_params(eto, efrom, esize, NULL);
 		e = el_bin(OPcall, type->totym(), el_var(rtlsym[RTLSYM_ARRAYCOPY]), ep);
@@ -2592,7 +2640,7 @@ elem *AssignExp::toElem(IRState *irs)
 
 		se->sym = ex->EV.sp.Vsym;
 		se->soffset = 0;
-		se->fillHoles = (op == TOKconstruct) ? 1 : 0;
+		se->fillHoles = (op == TOKconstruct || op == TOKblit) ? 1 : 0;
 
 		el_free(e1);
 		e = this->e2->toElem(irs);
@@ -4398,7 +4446,7 @@ elem *StructLiteralExp::toElem(IRState *irs)
 		else
 		{
 		    elem *edim = el_long(TYsize_t, t1b->size() / t2b->size());
-		    e1 = setArray(e1, edim, t2b, ep);
+		    e1 = setArray(e1, edim, t2b, ep, irs, TOKconstruct);
 		}
 	    }
 	    else

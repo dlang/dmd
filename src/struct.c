@@ -171,6 +171,11 @@ void AggregateDeclaration::addField(Scope *sc, VarDeclaration *v)
     if (t->ty == Tstruct /*&& isStructDeclaration()*/)
     {	TypeStruct *ts = (TypeStruct *)t;
 
+	if (ts->sym == this)
+	{
+	    error("cannot have field %s with same struct type", v->toChars());
+	}
+
 	if (ts->sym->sizeok != 1)
 	{
 	    sizeok = 2;		// cannot finish; flag as forward referenced

@@ -48,6 +48,7 @@ Expression *expandVar(int result, VarDeclaration *v)
     {
 	Type *tb = v->type->toBasetype();
 	if (result & WANTinterpret ||
+	    v->storage_class & STCmanifest ||
 	    (tb->ty != Tsarray && tb->ty != Tstruct)
 	   )
 	{
@@ -58,7 +59,7 @@ Expression *expandVar(int result, VarDeclaration *v)
 		Expression *ei = v->init->toExpression();
 		if (!ei)
 		    goto L1;
-		if (ei->op == TOKconstruct)
+		if (ei->op == TOKconstruct || ei->op == TOKblit)
 		{   AssignExp *ae = (AssignExp *)ei;
 		    ei = ae->e2;
 		    if (ei->isConst() != 1 && ei->op != TOKstring)
@@ -276,7 +277,12 @@ Expression *AddrExp::optimize(int result)
 	return e->optimize(result);
     }
 
-    if (e1->op != TOKvar)
+    if (e1->op == TOKvar)
+    {	VarExp *ve = (VarExp *)e1;
+	if (ve->var->storage_class & STCmanifest)
+	    e1 = e1->optimize(result);
+    }
+    else
 	e1 = e1->optimize(result);
 
     // Convert &*ex to ex
@@ -493,7 +499,7 @@ Expression *CastExp::optimize(int result)
 Expression *BinExp::optimize(int result)
 {
     //printf("BinExp::optimize(result = %d) %s\n", result, toChars());
-    if (op != TOKconstruct)
+    if (op != TOKconstruct && op != TOKblit)	// don't replace const variable with its initializer
 	e1 = e1->optimize(result);
     e2 = e2->optimize(result);
     if (op == TOKshlass || op == TOKshrass || op == TOKushrass)
