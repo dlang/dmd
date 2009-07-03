@@ -136,6 +136,9 @@ void FuncDeclaration::semantic(Scope *sc)
     //printf("function storage_class = x%x\n", storage_class);
     Dsymbol *parent = toParent();
 
+    if (ident == Id::ctor && !isCtorDeclaration())
+	error("_ctor is reserved for constructors");
+
     if (isConst() || isAuto() || isScope())
 	error("functions cannot be const or auto");
 
@@ -2529,7 +2532,7 @@ void StaticDtorDeclaration::semantic(Scope *sc)
 	sa->push(s);
 	Expression *e = new IdentifierExp(0, id);
 	e = new AddAssignExp(0, e, new IntegerExp(-1));
-	e = new EqualExp(TOKnotequal, 0, e, new IntegerExp(1));
+	e = new EqualExp(TOKnotequal, 0, e, new IntegerExp(0));
 	s = new IfStatement(0, NULL, e, new ReturnStatement(0, NULL), NULL);
 	sa->push(s);
 	if (fbody)

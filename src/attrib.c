@@ -31,7 +31,7 @@
 #include "parse.h"
 #include "template.h"
 
-extern void obj_includelib(char *name);
+extern void obj_includelib(const char *name);
 void obj_startaddress(Symbol *s);
 
 

@@ -187,7 +187,7 @@ void Object::print()
 
 char *Object::toChars()
 {
-    return "Object";
+    return (char *)"Object";
 }
 
 dchar *Object::toDchars()
@@ -311,13 +311,13 @@ FileName::FileName(char *str, int ref)
 {
 }
 
-char *FileName::combine(char *path, char *name)
+char *FileName::combine(const char *path, const char *name)
 {   char *f;
     size_t pathlen;
     size_t namelen;
 
     if (!path || !*path)
-	return name;
+	return (char *)name;
     pathlen = strlen(path);
     namelen = strlen(name);
     f = (char *)mem.malloc(pathlen + 1 + namelen + 1);
@@ -750,16 +750,16 @@ void FileName::CopyTo(FileName *to)
  *	cwd	if !=0, search current directory before searching path
  */
 
-char *FileName::searchPath(Array *path, char *name, int cwd)
+char *FileName::searchPath(Array *path, const char *name, int cwd)
 {
     if (absolute(name))
     {
-	return exists(name) ? name : NULL;
+	return exists(name) ? (char *)name : NULL;
     }
     if (cwd)
     {
 	if (exists(name))
-	    return name;
+	    return (char *)name;
     }
     if (path)
     {	unsigned i;
@@ -1444,7 +1444,7 @@ void OutBuffer::writedstring(const wchar_t *string)
 #endif
 }
 
-void OutBuffer::prependstring(char *string)
+void OutBuffer::prependstring(const char *string)
 {   unsigned len;
 
     len = strlen(string);
@@ -1704,7 +1704,7 @@ void OutBuffer::bracket(char left, char right)
  * Return index just past right.
  */
 
-unsigned OutBuffer::bracket(unsigned i, char *left, unsigned j, char *right)
+unsigned OutBuffer::bracket(unsigned i, const char *left, unsigned j, const char *right)
 {
     size_t leftlen = strlen(left);
     size_t rightlen = strlen(right);

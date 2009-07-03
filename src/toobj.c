@@ -939,7 +939,8 @@ void StructDeclaration::toObjFile(int multiobj)
 	    if (sinit->Sclass == SCcomdat &&
 		sinit->Sdt &&
 		sinit->Sdt->dt == DT_azeros &&
-		sinit->Sdt->DTnext == NULL)
+		sinit->Sdt->DTnext == NULL &&
+		!global.params.multiobj)
 	    {
 		sinit->Sclass = SCglobal;
 		sinit->Sdt->dt = DT_common;

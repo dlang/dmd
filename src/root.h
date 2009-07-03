@@ -131,14 +131,14 @@ struct FileName : String
     static char *path(const char *);
     static char *replaceName(char *path, char *name);
 
-    static char *combine(char *path, char *name);
+    static char *combine(const char *path, const char *name);
     static Array *splitPath(const char *path);
     static FileName *defaultExt(const char *name, const char *ext);
     static FileName *forceExt(const char *name, const char *ext);
     int equalsExt(const char *ext);
 
     void CopyTo(FileName *to);
-    static char *searchPath(Array *path, char *name, int cwd);
+    static char *searchPath(Array *path, const char *name, int cwd);
     static int exists(const char *name);
     static void ensurePathExists(const char *path);
 };
@@ -267,7 +267,7 @@ struct OutBuffer : Object
     void writestring(const char *string);
     void writedstring(const char *string);
     void writedstring(const wchar_t *string);
-    void prependstring(char *string);
+    void prependstring(const char *string);
     void writenl();			// write newline
     void writeByte(unsigned b);
     void writebyte(unsigned b) { writeByte(b); }
@@ -288,7 +288,7 @@ struct OutBuffer : Object
     void printf(const unsigned short *format, ...);
 #endif
     void bracket(char left, char right);
-    unsigned bracket(unsigned i, char *left, unsigned j, char *right);
+    unsigned bracket(unsigned i, const char *left, unsigned j, const char *right);
     void spread(unsigned offset, unsigned nbytes);
     unsigned insert(unsigned offset, const void *data, unsigned nbytes);
     void remove(unsigned offset, unsigned nbytes);

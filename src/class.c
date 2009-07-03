@@ -477,10 +477,22 @@ void ClassDeclaration::semantic(Scope *sc)
 	    if (storage_class & STCstatic)
 		error("static class cannot inherit from nested class %s", baseClass->toChars());
 	    if (toParent2() != baseClass->toParent2())
-		error("super class %s is nested within %s, not %s",
+	    {
+		if (toParent2())
+		{
+		    error("is nested within %s, but super class %s is nested within %s",
+			toParent2()->toChars(),
 			baseClass->toChars(),
-			baseClass->toParent2()->toChars(),
-			toParent2()->toChars());
+			baseClass->toParent2()->toChars());
+		}
+		else
+		{
+		    error("is not nested, but super class %s is nested within %s",
+			baseClass->toChars(),
+			baseClass->toParent2()->toChars());
+		}
+		isnested = 0;
+	    }
 	}
 	else if (!(storage_class & STCstatic))
 	{   Dsymbol *s = toParent2();
@@ -579,7 +591,7 @@ void ClassDeclaration::semantic(Scope *sc)
      * They must be in this class, not in a base class.
      */
     ctor = (CtorDeclaration *)search(0, Id::ctor, 0);
-    if (ctor && ctor->toParent() != this)
+    if (ctor && (ctor->toParent() != this || !ctor->isCtorDeclaration()))
 	ctor = NULL;
 
 //    dtor = (DtorDeclaration *)search(Id::dtor, 0);

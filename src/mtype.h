@@ -252,8 +252,8 @@ struct Type : Object
 
 struct TypeBasic : Type
 {
-    char *dstring;
-    char *cstring;
+    const char *dstring;
+    const char *cstring;
     unsigned flags;
 
     TypeBasic(TY ty);
