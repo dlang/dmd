@@ -140,12 +140,6 @@ void AttribDeclaration::emitComment(Scope *sc)
 {
     //printf("AttribDeclaration::emitComment(sc = %p)\n", sc);
 
-    /* If generating doc comment, skip this because if we're inside
-     * a template, then include(NULL, NULL) will fail.
-     */
-//    if (sc->docbuf)
-//	return;
-
     Array *d = include(NULL, NULL);
 
     if (d)
@@ -952,6 +946,17 @@ void ConditionalDeclaration::emitComment(Scope *sc)
     if (condition->inc)
     {
 	AttribDeclaration::emitComment(sc);
+    }
+    else if (sc->docbuf)
+    {
+	/* If generating doc comment, be careful because if we're inside
+	 * a template, then include(NULL, NULL) will fail.
+	 */
+	Array *d = decl ? decl : elsedecl;
+	for (unsigned i = 0; i < d->dim; i++)
+	{   Dsymbol *s = (Dsymbol *)d->data[i];
+	    s->emitComment(sc);
+	}
     }
 }
 

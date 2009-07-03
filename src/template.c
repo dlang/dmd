@@ -3633,14 +3633,15 @@ int TemplateInstance::isNested(Objects *args)
 			    if (p == dparent)
 				goto L1;	// isnested is most nested
 			}
-			for (Dsymbol *p = dparent; 1; p = p->parent)
+			for (Dsymbol *p = dparent; p; p = p->parent)
 			{
 			    if (p == isnested)
 			    {	isnested = dparent;
 				goto L1;	// dparent is most nested
 			    }
 			}
-			error("is nested in both %s and %s", isnested->toChars(), dparent->toChars());
+			error("%s is nested in both %s and %s",
+				toChars(), isnested->toChars(), dparent->toChars());
 		    }
 		  L1:
 		    //printf("\tnested inside %s\n", isnested->toChars());

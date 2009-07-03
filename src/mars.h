@@ -148,6 +148,12 @@ struct Global
 
 extern Global global;
 
+/* Set if Windows Structured Exception Handling C extensions are supported.
+ * Apparently, VC has dropped support for these?
+ */
+#define WINDOWS_SEH	(_WIN32 && __DMC__)
+
+
 #if __GNUC__
 //#define memicmp strncasecmp
 //#define stricmp strcasecmp

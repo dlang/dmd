@@ -450,6 +450,7 @@ struct TypeDotIdExp : Expression
 struct TypeExp : Expression
 {
     TypeExp(Loc loc, Type *type);
+    Expression *syntaxCopy();
     Expression *semantic(Scope *sc);
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
     Expression *optimize(int result);

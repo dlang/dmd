@@ -857,6 +857,8 @@ void ClassDeclaration::toDocBuffer(OutBuffer *buf)
 	}
 	else
 	{
+	    if (isAbstract())
+		buf->writestring("abstract ");
 	    buf->printf("%s $(DDOC_PSYMBOL %s)", kind(), toChars());
 	}
 	int any = 0;

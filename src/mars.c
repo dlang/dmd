@@ -1,6 +1,6 @@
 
 // Compiler implementation of the D programming language
-// Copyright (c) 1999-2008 by Digital Mars
+// Copyright (c) 1999-2009 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // http://www.digitalmars.com
@@ -71,9 +71,9 @@ Global::Global()
 #error "fix this"
 #endif
 
-    copyright = "Copyright (c) 1999-2008 by Digital Mars";
+    copyright = "Copyright (c) 1999-2009 by Digital Mars";
     written = "written by Walter Bright";
-    version = "v1.038";
+    version = "v1.039";
     global.structalign = 8;
 
     memset(&params, 0, sizeof(Param));
@@ -278,18 +278,15 @@ int main(int argc, char *argv[])
     VersionCondition::addPredefinedGlobalIdent("DigitalMars");
 #if _WIN32
     VersionCondition::addPredefinedGlobalIdent("Windows");
-    VersionCondition::addPredefinedGlobalIdent("Win32");
     global.params.isWindows = 1;
 #endif
 #if linux
+    VersionCondition::addPredefinedGlobalIdent("Posix");
     VersionCondition::addPredefinedGlobalIdent("linux");
     global.params.isLinux = 1;
 #endif /* linux */
-    VersionCondition::addPredefinedGlobalIdent("X86");
     VersionCondition::addPredefinedGlobalIdent("LittleEndian");
     //VersionCondition::addPredefinedGlobalIdent("D_Bits");
-    VersionCondition::addPredefinedGlobalIdent("D_InlineAsm");
-    VersionCondition::addPredefinedGlobalIdent("D_InlineAsm_X86");
 #if V2
     VersionCondition::addPredefinedGlobalIdent("D_Version2");
 #endif
@@ -335,6 +332,8 @@ int main(int argc, char *argv[])
 	    {	error("use -profile instead of -gt\n");
 		global.params.trace = 1;
 	    }
+	    else if (strcmp(p + 1, "m64") == 0)
+		global.params.isX86_64 = 1;
 	    else if (strcmp(p + 1, "profile") == 0)
 		global.params.trace = 1;
 	    else if (strcmp(p + 1, "v") == 0)
@@ -665,6 +664,26 @@ int main(int argc, char *argv[])
 	    //fatal();
 	}
     }
+    if (global.params.isX86_64)
+    {
+	VersionCondition::addPredefinedGlobalIdent("D_InlineAsm_X86_64");
+	VersionCondition::addPredefinedGlobalIdent("X86_64");
+	VersionCondition::addPredefinedGlobalIdent("D_LP64");
+#if _WIN32
+	VersionCondition::addPredefinedGlobalIdent("Win64");
+#endif
+    }
+    else
+    {
+	VersionCondition::addPredefinedGlobalIdent("D_InlineAsm");
+	VersionCondition::addPredefinedGlobalIdent("D_InlineAsm_X86");
+	VersionCondition::addPredefinedGlobalIdent("X86");
+#if _WIN32
+	VersionCondition::addPredefinedGlobalIdent("Win32");
+#endif
+    }
+    if (global.params.doDocComments)
+	VersionCondition::addPredefinedGlobalIdent("D_Ddoc");
     if (global.params.cov)
 	VersionCondition::addPredefinedGlobalIdent("D_Coverage");
     if (global.params.pic)
@@ -840,7 +859,7 @@ int main(int argc, char *argv[])
 	}
     }
 
-#if _WIN32
+#if WINDOWS_SEH
   __try
   {
 #endif
@@ -1038,7 +1057,7 @@ int main(int argc, char *argv[])
     if (global.params.lib && !global.errors)
 	library->write();
 
-#if _WIN32
+#if WINDOWS_SEH
   }
   __except (__ehfilter(GetExceptionInformation()))
   {
@@ -1194,7 +1213,7 @@ Ldone:
     *pargv = (char **)argv->data;
 }
 
-#if _WIN32
+#if WINDOWS_SEH
 
 long __cdecl __ehfilter(LPEXCEPTION_POINTERS ep)
 {

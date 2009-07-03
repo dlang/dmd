@@ -1,4 +1,4 @@
-
+ 
 // Compiler implementation of the D programming language
 // Copyright (c) 1999-2008 by Digital Mars
 // All Rights Reserved
@@ -222,69 +222,139 @@ void Library::scanObjModule(ObjModule *om)
     size_t buflen = om->length;
     int reason = 0;
 
-    if (buflen < sizeof(elf_header_f32))
+    if (buflen < EI_NIDENT + sizeof(Elf32_Hdr))
     {
       Lcorrupt:
 	error("corrupt ELF object module %s %d", om->name, reason);
 	return;
     }
 
-    elf_header_f32 *eh = (elf_header_f32 *)buf;
     if (memcmp(buf, elf, 4))
     {	reason = 1;
 	goto Lcorrupt;
     }
-    if (eh->EHtype != EH_TYPE_RELFILE)
-	return;				// not relocatable object module
-
-#if 0
-    /* String table section
-     */
-    elf_sht *string_section = (elf_sht *)(buf + eh->EHshtoff +
-	eh->EHshtentsz * eh->EHshtstrndx);
-    if (string_section->SHtype != SHT_STRTAB)
+    if (buf[EI_VERSION] != EV_CURRENT)
     {
-	//printf("buf = %p, EHshtentsz = %d, EHshtstrndx = %d\n", buf, eh->EHshtentsz, eh->EHshtstrndx);
-	//printf("SHtype = %d, SHT_STRTAB = %d\n", string_section->SHtype, SHT_STRTAB);
-	reason = 2;
-	goto Lcorrupt;
+	error("ELF object module %s has EI_VERSION = %d, should be %d", om->name, buf[EI_VERSION], EV_CURRENT);
+	return;
     }
-    printf("strtab SHfileoff = x%x\n", string_section->SHfileoff);
-    char *string_tab = (char *)(buf + string_section->SHfileoff);
-#endif
+    if (buf[EI_DATA] != ELFDATA2LSB)
+    {
+	error("ELF object module %s is byte swapped and unsupported", om->name);
+	return;
+    }
+    if (buf[EI_CLASS] == ELFCLASS32)
+    {
+	Elf32_Hdr *eh = (Elf32_Hdr *)(buf + EI_NIDENT);
+	if (eh->e_type != ET_REL)
+	{
+	    error("ELF object module %s is not relocatable", om->name);
+	    return;				// not relocatable object module
+	}
+	if (eh->e_version != EV_CURRENT)
+	    goto Lcorrupt;
 
-    /* For each Section
-     */
-    for (unsigned u = 0; u < eh->EHshtnum; u++)
-    {	elf_sht *section = (elf_sht *)(buf + eh->EHshtoff + eh->EHshtentsz * u);
+	/* For each Section
+	 */
+	for (unsigned u = 0; u < eh->e_shnum; u++)
+	{   Elf32_Shdr *section = (Elf32_Shdr *)(buf + eh->e_shoff + eh->e_shentsize * u);
 
-	if (section->SHtype == SHT_SYMTAB)
-	{   /* SHoptidx gives the particular string table section
-	     * used for the symbol names.
-	     */
-	    elf_sht *string_section = (elf_sht *)(buf + eh->EHshtoff +
-		eh->EHshtentsz * section->SHoptidx);
-	    if (string_section->SHtype != SHT_STRTAB)
-	    {
-		reason = 3;
-		goto Lcorrupt;
-	    }
-	    char *string_tab = (char *)(buf + string_section->SHfileoff);
-
-	    for (unsigned offset = 0; offset < section->SHsecsz; offset += sizeof(elf_symtab))
-	    {	elf_symtab *sym = (elf_symtab *)(buf + section->SHfileoff + offset);
-
-		if (((sym->STinfo >> 4) == ST_BIND_GLOBAL ||
-		     (sym->STinfo >> 4) == ST_BIND_WEAK) &&
-		    sym->STdefsht != SHT_UNDEF)	// not extern
+	    if (section->sh_type == SHT_SYMTAB)
+	    {   /* sh_link gives the particular string table section
+		 * used for the symbol names.
+		 */
+		Elf32_Shdr *string_section = (Elf32_Shdr *)(buf + eh->e_shoff +
+		    eh->e_shentsize * section->sh_link);
+		if (string_section->sh_type != SHT_STRTAB)
 		{
-		    char *name = string_tab + sym->STname;
-		    //printf("sym STname = x%x\n", sym->STname);
-		    addSymbol(om, name, 1);
+		    reason = 3;
+		    goto Lcorrupt;
+		}
+		char *string_tab = (char *)(buf + string_section->sh_offset);
+
+		for (unsigned offset = 0; offset < section->sh_size; offset += sizeof(Elf32_Sym))
+		{   Elf32_Sym *sym = (Elf32_Sym *)(buf + section->sh_offset + offset);
+
+		    if (((sym->st_info >> 4) == STB_GLOBAL ||
+			 (sym->st_info >> 4) == STB_WEAK) &&
+			sym->st_shndx != SHT_UNDEF)	// not extern
+		    {
+			char *name = string_tab + sym->st_name;
+			//printf("sym st_name = x%x\n", sym->st_name);
+			addSymbol(om, name, 1);
+		    }
 		}
 	    }
 	}
     }
+    else if (buf[EI_CLASS] == ELFCLASS64)
+    {
+	Elf64_Ehdr *eh = (Elf64_Ehdr *)(buf + EI_NIDENT);
+	if (buflen < EI_NIDENT + sizeof(Elf64_Ehdr))
+	    goto Lcorrupt;
+	if (eh->e_type != ET_REL)
+	{
+	    error("ELF object module %s is not relocatable", om->name);
+	    return;				// not relocatable object module
+	}
+	if (eh->e_version != EV_CURRENT)
+	    goto Lcorrupt;
+
+	/* For each Section
+	 */
+	for (unsigned u = 0; u < eh->e_shnum; u++)
+	{   Elf64_Shdr *section = (Elf64_Shdr *)(buf + eh->e_shoff + eh->e_shentsize * u);
+
+	    if (section->sh_type == SHT_SYMTAB)
+	    {   /* sh_link gives the particular string table section
+		 * used for the symbol names.
+		 */
+		Elf64_Shdr *string_section = (Elf64_Shdr *)(buf + eh->e_shoff +
+		    eh->e_shentsize * section->sh_link);
+		if (string_section->sh_type != SHT_STRTAB)
+		{
+		    reason = 3;
+		    goto Lcorrupt;
+		}
+		char *string_tab = (char *)(buf + string_section->sh_offset);
+
+		for (unsigned offset = 0; offset < section->sh_size; offset += sizeof(Elf64_Sym))
+		{   Elf64_Sym *sym = (Elf64_Sym *)(buf + section->sh_offset + offset);
+
+		    if (((sym->st_info >> 4) == STB_GLOBAL ||
+			 (sym->st_info >> 4) == STB_WEAK) &&
+			sym->st_shndx != SHT_UNDEF)	// not extern
+		    {
+			char *name = string_tab + sym->st_name;
+			//printf("sym st_name = x%x\n", sym->st_name);
+			addSymbol(om, name, 1);
+		    }
+		}
+	    }
+	}
+    }
+    else
+    {
+	error("ELF object module %s is unrecognized class %d", om->name, buf[EI_CLASS]);
+	return;
+    }
+
+#if 0
+    /* String table section
+     */
+    Elf32_Shdr *string_section = (Elf32_Shdr *)(buf + eh->e_shoff +
+	eh->e_shentsize * eh->e_shstrndx);
+    if (string_section->sh_type != SHT_STRTAB)
+    {
+	//printf("buf = %p, e_shentsize = %d, e_shstrndx = %d\n", buf, eh->e_shentsize, eh->e_shstrndx);
+	//printf("sh_type = %d, SHT_STRTAB = %d\n", string_section->sh_type, SHT_STRTAB);
+	reason = 2;
+	goto Lcorrupt;
+    }
+    printf("strtab sh_offset = x%x\n", string_section->sh_offset);
+    char *string_tab = (char *)(buf + string_section->sh_offset);
+#endif
+
 }
 
 /***************************************
