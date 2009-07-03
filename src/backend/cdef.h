@@ -151,7 +151,7 @@ One and only one of these macros must be set by the makefile:
 
 // This is the default
 #ifndef TARGET_WINDOS
-#define TARGET_WINDOS	(!(TARGET_LINUX || TARGET_OSX))
+#define TARGET_WINDOS	(!(TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD))
 #endif
 
 #if __GNUC__

@@ -1715,7 +1715,7 @@ char *obj_mangle2(Symbol *s,char *dest)
 	    }
 	    break;
 	case mTYman_std:
-#if TARGET_LINUX
+#if TARGET_LINUX || TARGET_FREEBSD
 	    if (tyfunc(s->ty()) && !variadic(s->Stype))
 #else
 	    if (!(config.flags4 & CFG4oldstdmangle) &&

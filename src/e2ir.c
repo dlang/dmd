@@ -167,7 +167,9 @@ elem *callfunc(Loc loc,
 	    Symbol *stmp = symbol_genauto(t);
 	    ehidden = el_ptr(stmp);
 	}
-	if ((global.params.isLinux || global.params.isOSX) && tf->linkage != LINKd)
+	if ((global.params.isLinux ||
+	     global.params.isOSX ||
+	     global.params.isFreeBSD) && tf->linkage != LINKd)
 	    ;	// ehidden goes last on Linux/OSX C++
 	else
 	{
@@ -246,7 +248,6 @@ elem *callfunc(Loc loc,
 
     tyret = tret->totym();
 
-
     // Look for intrinsic functions
     if (ec->Eoper == OPvar && (op = intrinsic_op(ec->EV.sp.Vsym->Sident)) != -1)
     {
@@ -257,13 +258,17 @@ elem *callfunc(Loc loc,
 	    ep->Ety = tyret;
 	    e = ep;
 	    if (op == OPscale)
-	    {	elem *et;
-
-		et = e->E1;
+	    {
+		elem *et = e->E1;
 		e->E1 = el_una(OPs32_d, TYdouble, e->E2);
 		e->E1 = el_una(OPd_ld, TYldouble, e->E1);
 		e->E2 = et;
-		e->Ety = tyret;
+	    }
+	    else if (op == OPyl2x || op == OPyl2xp1)
+	    {
+		elem *et = e->E1;
+		e->E1 = e->E2;
+		e->E2 = et;
 	    }
 	}
 	else
@@ -1186,7 +1191,7 @@ elem *RealExp::toElem(IRState *irs)
 {   union eve c;
     tym_t ty;
 
-    //printf("RealExp::toElem(%p)\n", this);
+    //printf("RealExp::toElem(%p) %s\n", this, toChars());
     memset(&c, 0, sizeof(c));
     ty = type->toBasetype()->totym();
     switch (tybasic(ty))
@@ -1231,10 +1236,12 @@ elem *ComplexExp::toElem(IRState *irs)
     real_t re;
     real_t im;
 
+    //printf("ComplexExp::toElem(%p) %s\n", this, toChars());
+
+    memset(&c, 0, sizeof(c));
     re = creall(value);
     im = cimagl(value);
 
-    memset(&c, 0, sizeof(c));
     ty = type->totym();
     switch (tybasic(ty))
     {
@@ -1257,8 +1264,22 @@ elem *ComplexExp::toElem(IRState *irs)
 	    break;
 
 	case TYcldouble:
+#if 1
 	    c.Vcldouble.re = re;
 	    c.Vcldouble.im = im;
+#else
+{unsigned short *p = (unsigned short *)&c.Vcldouble;
+for (int i = 0; i < (LNGDBLSIZE*2)/2; i++) printf("%04x ", p[i]);
+printf("\n");}
+	    c.Vcldouble.im = im;
+{unsigned short *p = (unsigned short *)&c.Vcldouble;
+for (int i = 0; i < (LNGDBLSIZE*2)/2; i++) printf("%04x ", p[i]);
+printf("\n");}
+	    c.Vcldouble.re = re;
+{unsigned short *p = (unsigned short *)&c.Vcldouble;
+for (int i = 0; i < (LNGDBLSIZE*2)/2; i++) printf("%04x ", p[i]);
+printf("\n");}
+#endif
 	    break;
 
 	default:
@@ -1786,7 +1807,7 @@ elem *AssertExp::toElem(IRState *irs)
 	if (global.params.useInvariants && t1->ty == Tclass &&
 	    !((TypeClass *)t1)->sym->isInterfaceDeclaration())
 	{
-#if TARGET_LINUX
+#if TARGET_LINUX || TARGET_FREEBSD
 	    e = el_bin(OPcall, TYvoid, el_var(rtlsym[RTLSYM__DINVARIANT]), e);
 #else
 	    e = el_bin(OPcall, TYvoid, el_var(rtlsym[RTLSYM_DINVARIANT]), e);
@@ -1908,7 +1929,6 @@ elem *BinExp::toElemBin(IRState *irs,int op)
     return e;
 }
 
-
 /***************************************
  */
 
@@ -1922,6 +1942,7 @@ elem *AddExp::toElem(IRState *irs)
        )
     {
 	error("Array operation %s not implemented", toChars());
+	return e1->toElem(irs); // prevent segfault
     }
     else
 	e = toElemBin(irs,OPadd);
@@ -4728,6 +4749,7 @@ elem *StructLiteralExp::toElem(IRState *irs)
 	}
     }
 
+#if DMDV2
     if (sd->isnested)
     {	// Initialize the hidden 'this' pointer
 	assert(sd->fields.dim);
@@ -4750,6 +4772,7 @@ elem *StructLiteralExp::toElem(IRState *irs)
 
 	e = el_combine(e, e1);
     }
+#endif
 
     elem *ev = el_var(stmp);
     ev->Enumbytes = sd->structsize;

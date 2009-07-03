@@ -257,7 +257,7 @@ void Type::init()
     if (global.params.isX86_64)
     {
 	PTRSIZE = 8;
-	if (global.params.isLinux)
+	if (global.params.isLinux || global.params.isFreeBSD)
 	    REALSIZE = 10;
 	else
 	    REALSIZE = 8;
@@ -4839,7 +4839,6 @@ Type *TypeTypeof::semantic(Loc loc, Scope *sc)
 	 */
 	//t = t->toHeadMutable();
     }
-
     if (idents.dim)
     {
 	Dsymbol *s = t->toDsymbol(sc);
@@ -4850,6 +4849,7 @@ Type *TypeTypeof::semantic(Loc loc, Scope *sc)
 	    Identifier *id = (Identifier *)idents.data[i];
 	    s = s->searchX(loc, sc, id);
 	}
+
 	if (s)
 	{
 	    t = s->getType();
@@ -5154,6 +5154,10 @@ Expression *TypeEnum::defaultInit(Loc loc)
 
 int TypeEnum::isZeroInit()
 {
+	if (!sym->defaultval) { 
+		error(0, "enum %s is forward referenced", sym->toChars());
+		return 0;
+	}
     return sym->defaultval->isBool(FALSE);
 }
 

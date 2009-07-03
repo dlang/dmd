@@ -26,6 +26,10 @@
 #include "aggregate.h"
 #include "declaration.h"
 
+#if __FreeBSD__
+#define fmodl fmod	// hack for now, fix later
+#endif
+
 #define LOG 0
 
 Expression *expType(Type *type, Expression *e)

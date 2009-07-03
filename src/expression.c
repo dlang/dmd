@@ -1103,9 +1103,21 @@ void Expression::checkDeprecated(Scope *sc, Dsymbol *s)
 #if DMDV2
 void Expression::checkPurity(Scope *sc, FuncDeclaration *f)
 {
+#if 1
+	if (sc->func) {
+		FuncDeclaration *outerfunc=sc->func;
+		while (outerfunc->toParent2() && outerfunc->toParent2()->isFuncDeclaration()) {
+			outerfunc = outerfunc->toParent2()->isFuncDeclaration();
+		}
+    if (outerfunc->isPure()  && !sc->intypeof && (!f->isNested() && !f->isPure()))
+	error("pure function '%s' cannot call impure function '%s'\n",
+	    sc->func->toChars(), f->toChars());
+	}
+#else
     if (sc->func && sc->func->isPure() && !sc->intypeof && !f->isPure())
 	error("pure function '%s' cannot call impure function '%s'\n",
 	    sc->func->toChars(), f->toChars());
+#endif
 }
 #endif
 
@@ -3990,11 +4002,22 @@ Expression *VarExp::semantic(Scope *sc)
 #endif
 	v->checkNestedReference(sc, loc);
 #if DMDV2
+#if 1
+	if (sc->func) {
+		FuncDeclaration *outerfunc=sc->func;
+		while (outerfunc->toParent2() && outerfunc->toParent2()->isFuncDeclaration()) {
+			outerfunc = outerfunc->toParent2()->isFuncDeclaration();
+		}
+    if (outerfunc->isPure()  && !sc->intypeof && v->isDataseg() && !v->isInvariant())
+		error("pure function '%s' cannot access mutable static data '%s'", sc->func->toChars(), v->toChars());
+	}
+#else
 	if (sc->func && sc->func->isPure() && !sc->intypeof)
 	{
 	    if (v->isDataseg() && !v->isInvariant())
 		error("pure function '%s' cannot access mutable static data '%s'", sc->func->toChars(), v->toChars());
 	}
+#endif
 #endif
     }
 #if 0
@@ -5345,6 +5368,11 @@ Expression *DotIdExp::semantic(Scope *sc)
 	return e;
     }
 
+    if (!e1->type)
+    {   error("invalid expression (bad typeof?)");
+	return e1;
+    }
+
     Type *t1b = e1->type->toBasetype();
 
     if (eright->op == TOKimport)	// also used for template alias's
@@ -5836,7 +5864,11 @@ Expression *DotTemplateInstanceExp::semantic(Scope *sc)
     id = ti->name;
     s2 = s->search(loc, id, 0);
     if (!s2)
-    {	error("template identifier %s is not a member of %s %s", id->toChars(), s->kind(), s->ident->toChars());
+    {
+	if (!s->ident)
+	    error("template identifier %s is not a member of undefined %s", id->toChars(), s->kind());
+	else
+	    error("template identifier %s is not a member of %s %s", id->toChars(), s->kind(), s->ident->toChars());
 	goto Lerr;
     }
     s = s2;
@@ -6655,6 +6687,8 @@ int CallExp::canThrow()
      * then this expression cannot throw.
      * Note that pure functions can throw.
      */
+    if (!e1->type)
+	return 0;
     Type *t = e1->type->toBasetype();
     if (t->ty == Tfunction && ((TypeFunction *)t)->isnothrow)
 	return 0;
@@ -7174,10 +7208,13 @@ Expression *CastExp::semantic(Scope *sc)
 	else
 	    to = to->semantic(loc, sc);
 
-	e = op_overload(sc);
-	if (e)
+	if (!to->equals(e1->type))
 	{
-	    return e->implicitCastTo(sc, to);
+	    e = op_overload(sc);
+	    if (e)
+	    {
+		return e->implicitCastTo(sc, to);
+	    }
 	}
 
 	Type *t1b = e1->type->toBasetype();

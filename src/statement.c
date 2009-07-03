@@ -1126,7 +1126,7 @@ Statement *ForStatement::semantic(Scope *sc)
 
     sc->sbreak = this;
     sc->scontinue = this;
-    body = body->semantic(sc);
+    if (body) body = body->semantic(sc);
     sc->noctor--;
 
     sc->pop();
@@ -1568,6 +1568,12 @@ Statement *ForeachStatement::semantic(Scope *sc)
 		new DeclarationStatement(loc, de), this->body);
 
 	    s = new ForStatement(loc, init, condition, increment, body);
+#if 0
+	    printf("init: %s\n", init->toChars());
+	    printf("condition: %s\n", condition->toChars());
+	    printf("increment: %s\n", increment->toChars());
+	    printf("body: %s\n", body->toChars());
+#endif
 	    s = s->semantic(sc);
 	    break;
 	}

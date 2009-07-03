@@ -88,6 +88,16 @@ void out_config_init()
     if (params->pic)
 	config.flags3 |= CFG3pic;
 #endif
+#if TARGET_FREEBSD
+    if (params->isX86_64)
+	config.exe = EX_FREEBSD64;
+    else
+	config.exe = EX_FREEBSD;
+    config.flags |= CFGnoebp;
+    config.flags |= CFGalwaysframe;
+    if (params->pic)
+	config.flags3 |= CFG3pic;
+#endif
     config.flags2 |= CFG2nodeflib;	// no default library
     config.flags3 |= CFG3eseqds;
 #if 0

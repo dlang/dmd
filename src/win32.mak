@@ -148,7 +148,7 @@ ROOTSRC= $(ROOT)\dchar.h $(ROOT)\dchar.c $(ROOT)\lstring.h \
 	$(ROOT)\gnuc.h $(ROOT)\gnuc.c $(ROOT)\man.c $(ROOT)\port.c \
 	$(ROOT)\response.c $(ROOT)\async.h $(ROOT)\async.c
 
-MAKEFILES=win32.mak linux.mak osx.mak
+MAKEFILES=win32.mak linux.mak osx.mak freebsd.mak
 
 #########################################
 

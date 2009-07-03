@@ -44,6 +44,7 @@ Expression *expandVar(int result, VarDeclaration *v)
 {
     //printf("expandVar(result = %d, v = %s)\n", result, v ? v->toChars() : "null");
     Expression *e = NULL;
+	if (v && !v->type) { error("ICE"); return e; }
     if (v && (v->isConst() || v->isInvariant() || v->storage_class & STCmanifest))
     {
 	Type *tb = v->type->toBasetype();

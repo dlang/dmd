@@ -26,7 +26,8 @@
 #if DMDV2
 
 /**********************************
- * Determine if function is a builtin one.
+ * Determine if function is a builtin one that we can
+ * evaluate at compile time.
  */
 enum BUILTIN FuncDeclaration::isBuiltin()
 {
@@ -38,6 +39,7 @@ enum BUILTIN FuncDeclaration::isBuiltin()
 	builtin = BUILTINnot;
 	if (parent && parent->isModule())
 	{
+	    // If it's in the std.math package
 	    if (parent->ident == Id::math &&
 		parent->parent && parent->parent->ident == Id::std &&
 		!parent->parent->parent)
@@ -57,6 +59,7 @@ enum BUILTIN FuncDeclaration::isBuiltin()
 			builtin = BUILTINfabs;
 		    //printf("builtin = %d\n", builtin);
 		}
+		// if float or double versions
 		else if (strcmp(type->deco, "FNaNbdZd") == 0 ||
 			 strcmp(type->deco, "FNaNbfZf") == 0)
 		{
@@ -84,27 +87,27 @@ Expression *eval_builtin(enum BUILTIN builtin, Expressions *arguments)
     {
 	case BUILTINsin:
 	    if (arg0->op == TOKfloat64)
-		e = new RealExp(0, sinl(arg0->toReal()), Type::tfloat80);
+		e = new RealExp(0, sinl(arg0->toReal()), arg0->type);
 	    break;
 
 	case BUILTINcos:
 	    if (arg0->op == TOKfloat64)
-		e = new RealExp(0, cosl(arg0->toReal()), Type::tfloat80);
+		e = new RealExp(0, cosl(arg0->toReal()), arg0->type);
 	    break;
 
 	case BUILTINtan:
 	    if (arg0->op == TOKfloat64)
-		e = new RealExp(0, tanl(arg0->toReal()), Type::tfloat80);
+		e = new RealExp(0, tanl(arg0->toReal()), arg0->type);
 	    break;
 
 	case BUILTINsqrt:
 	    if (arg0->op == TOKfloat64)
-		e = new RealExp(0, sqrtl(arg0->toReal()), Type::tfloat80);
+		e = new RealExp(0, sqrtl(arg0->toReal()), arg0->type);
 	    break;
 
 	case BUILTINfabs:
 	    if (arg0->op == TOKfloat64)
-		e = new RealExp(0, fabsl(arg0->toReal()), Type::tfloat80);
+		e = new RealExp(0, fabsl(arg0->toReal()), arg0->type);
 	    break;
     }
     return e;

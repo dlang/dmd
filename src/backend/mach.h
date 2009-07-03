@@ -28,7 +28,10 @@ struct mach_header
     cpu_type_t cputype;
 	#define CPU_TYPE_I386	((cpu_type_t)7)
 	#define CPU_TYPE_X86_64	((cpu_type_t)7 | 0x1000000)
+	#define CPU_TYPE_POWERPC ((cpu_type_t)18)
+	#define CPU_TYPE_POWERPC64 (CPU_TYPE_POWERPC | 0x1000000)
     cpu_subtype_t cpusubtype;
+	#define CPU_SUBTYPE_POWERPC_ALL ((cpu_subtype_t)0)
 	#define CPU_SUBTYPE_I386_ALL ((cpu_subtype_t)3)
     uint32_t filetype;
 	#define MH_OBJECT	1
@@ -203,12 +206,12 @@ struct twolevel_hint
 
 struct symtab_command
 {
-    uint_32 cmd;
-    uint_32 cmdsize;
-    uint_32 symoff;
-    uint_32 nsyms;
-    uint_32 stroff;
-    uint_32 strsize;
+    uint32_t cmd;
+    uint32_t cmdsize;
+    uint32_t symoff;
+    uint32_t nsyms;
+    uint32_t stroff;
+    uint32_t strsize;
 };
 
 struct nlist
@@ -227,7 +230,6 @@ struct nlist
 		#define N_INDR	10
 		#define N_PBUD	12
 		#define N_SECT	14
-	#define N_EXT	0x01
     uint8_t n_sect;
     int16_t n_desc;
     uint32_t n_value;

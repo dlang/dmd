@@ -1298,7 +1298,7 @@ elem *el_picvar(symbol *s)
     return e;
 }
 #endif
-#if TARGET_LINUX
+#if TARGET_LINUX || TARGET_FREEBSD
 
 elem *el_picvar(symbol *s)
 {   elem *e;
@@ -1406,7 +1406,7 @@ elem * el_var(symbol *s)
 
     //printf("el_var(s = '%s')\n", s->Sident);
     //printf("%x\n", s->Stype->Tty);
-#if TARGET_LINUX || TARGET_OSX
+#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD
     if (config.flags3 & CFG3pic &&
 	!tyfunc(s->ty()))
 	// Position Independent Code
@@ -1421,7 +1421,7 @@ elem * el_var(symbol *s)
     e->Ety = s->ty();
     if (s->Stype->Tty & mTYthread)
     {
-#if TARGET_LINUX || TARGET_OSX
+#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD
 	;		// add GS: override in back end
 #else
 	/*
@@ -1467,7 +1467,7 @@ elem * el_var(symbol *s)
 {   elem *e;
 
     //printf("el_var(s = '%s')\n", s->Sident);
-#if TARGET_LINUX || TARGET_OSX
+#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD
     if (config.flags3 & CFG3pic && !tyfunc(s->ty()))
 	return el_picvar(s);
 #endif
@@ -1564,7 +1564,7 @@ elem * el_ptr(symbol *s)
 	return e;
     }
 #endif
-#if TARGET_LINUX || TARGET_OSX
+#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD
     if (config.flags3 & CFG3pic && tyfunc(s->ty()))
 	e = el_picvar(s);
     else

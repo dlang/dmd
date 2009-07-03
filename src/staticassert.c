@@ -65,9 +65,9 @@ void StaticAssert::semantic2(Scope *sc)
 	    error("%s", buf.toChars());
 	}
 	else
-	    error("is false");
-	if (!global.gag)
-	    fatal();
+	    error("(%s) is false", exp->toChars());
+//	if (!global.gag)
+//	    fatal();
     }
     else if (!e->isBool(TRUE))
     {

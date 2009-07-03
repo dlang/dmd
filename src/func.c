@@ -2592,6 +2592,16 @@ int DtorDeclaration::addPostInvariant()
     return FALSE;
 }
 
+const char *DtorDeclaration::kind()
+{	
+    return "destructor";
+}
+
+char *DtorDeclaration::toChars()
+{
+    return (char *)"~this";
+}
+
 int DtorDeclaration::isVirtual()
 {
     /* This should be FALSE so that dtor's don't get put into the vtbl[],

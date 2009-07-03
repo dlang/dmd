@@ -661,6 +661,8 @@ struct DtorDeclaration : FuncDeclaration
     Dsymbol *syntaxCopy(Dsymbol *);
     void semantic(Scope *sc);
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
+    const char *kind();
+    char *toChars();
     int isVirtual();
     int addPreInvariant();
     int addPostInvariant();

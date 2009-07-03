@@ -23,6 +23,10 @@
 #include	<fp.h>
 #endif
 
+#if __FreeBSD__
+#define fmodl fmod
+#endif
+
 #include	"cc.h"
 #include	"oper.h"		/* OPxxxx definitions		*/
 #include	"global.h"
@@ -37,7 +41,7 @@ static char __file__[] = __FILE__;	/* for tassert.h		*/
 
 extern void error(const char *filename, unsigned linnum, const char *format, ...);
 
-#if linux || __APPLE__
+#if linux || __APPLE__ || __FreeBSD__
 int _status87()
 {
     return fetestexcept(FE_ALL_EXCEPT);
@@ -501,7 +505,7 @@ doit:
 		if (e2->Eoper == OPconst)
 		{   targ_int i = e2->EV.Vint;
 
-#if TARGET_LINUX || TARGET_OSX
+#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD
 		    if (i && e1->EV.sp.Vsym->Sfl == FLgot)
 			break;
 #endif

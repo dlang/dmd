@@ -18,6 +18,7 @@ double Port::nan = NAN;
 double Port::infinity = INFINITY;
 double Port::dbl_max = DBL_MAX;
 double Port::dbl_min = DBL_MIN;
+long double Port::ldbl_max = LDBL_MAX;
 
 int Port::isNan(double r)
 {
@@ -134,6 +135,7 @@ double Port::infinity = 1 / zero;
 
 double Port::dbl_max = DBL_MAX;
 double Port::dbl_min = DBL_MIN;
+long double Port::ldbl_max = LDBL_MAX;
 
 struct PortInitializer
 {
@@ -326,12 +328,14 @@ char *Port::strupr(char *s)
 #include <stdio.h>
 #include <stdlib.h>
 #include <ctype.h>
+#include <float.h>
 
 static double zero = 0;
 double Port::nan = NAN;
 double Port::infinity = 1 / zero;
 double Port::dbl_max = 1.7976931348623157e308;
 double Port::dbl_min = 5e-324;
+long double Port::ldbl_max = LDBL_MAX;
 
 struct PortInitializer
 {
@@ -350,6 +354,13 @@ PortInitializer::PortInitializer()
     if (signbit(foo))	// signbit sometimes, not always, set
 	foo = -foo;	// turn off sign bit
     Port::nan = foo;
+
+#if __FreeBSD__
+    // LDBL_MAX comes out as infinity. Fix.
+    static unsigned char x[sizeof(long double)] =
+	{ 0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFE,0x7F };
+    Port::ldbl_max = *(long double *)&x[0];
+#endif
 }
 
 #undef isnan
@@ -482,6 +493,7 @@ double Port::nan = NAN;
 double Port::infinity = 1 / zero;
 double Port::dbl_max = 1.7976931348623157e308;
 double Port::dbl_min = 5e-324;
+long double Port::ldbl_max = LDBL_MAX;
 
 struct PortInitializer
 {
@@ -629,6 +641,7 @@ double Port::nan = NAN;
 double Port::infinity = 1 / zero;
 double Port::dbl_max = 1.7976931348623157e308;
 double Port::dbl_min = 5e-324;
+long double Port::ldbl_max = LDBL_MAX;
 
 #include "d-gcc-real.h"
 extern "C" bool real_isnan (const real_t *);

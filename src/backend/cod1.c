@@ -1203,7 +1203,7 @@ code *getlvalue(code __ss *pcs,elem *e,regm_t keepmsk)
     case FLdata:
     case FLudata:
     case FLcsdata:
-#if TARGET_LINUX || TARGET_OSX
+#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD
     case FLgot:
     case FLgotoff:
     case FLtlsdata:
@@ -1231,7 +1231,7 @@ code *getlvalue(code __ss *pcs,elem *e,regm_t keepmsk)
 	{
 	    pcs->Iflags |= CFcs | CFoff;
 	}
-#if TARGET_LINUX || TARGET_OSX
+#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD
 	if (fl == FLtlsdata || s->ty() & mTYthread)
 	    pcs->Iflags |= CFgs;
 #endif
@@ -1786,12 +1786,12 @@ code *callclib(elem *e,unsigned clib,regm_t *pretregs,regm_t keepmask)
   symbol *s;
   int i;
 
-#if TARGET_LINUX || TARGET_OSX
+#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD
   static symbol lib[] =
   {
 /* Convert destroyed regs into saved regs	*/
 #define Z(desregs)	(~(desregs) & (mBP| mES | ALLREGS))
-#if TARGET_LINUX || TARGET_OSX
+#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD
 #define N(name) "_" name
 #else
 #define N(name) name
@@ -2011,7 +2011,7 @@ code *callclib(elem *e,unsigned clib,regm_t *pretregs,regm_t keepmask)
     {DOUBLEREGS_16,DOUBLEREGS_32,0,INFfloat,1,1},	// _INTDBL@	intdbl
     {mAX,mAX,0,INFfloat,1,1},				// _DBLUNS@	dbluns
     {DOUBLEREGS_16,DOUBLEREGS_32,0,INFfloat,1,1},	// _UNSDBL@	unsdbl
-#if TARGET_LINUX || TARGET_OSX
+#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD
     {mDX|mAX,mAX,0,INF32|INFfloat,0,1},			// _DBLULNG@	dblulng
 #else
     {mDX|mAX,mAX,0,INFfloat,1,1},			// _DBLULNG@	dblulng
@@ -2024,7 +2024,7 @@ code *callclib(elem *e,unsigned clib,regm_t *pretregs,regm_t keepmask)
 
     {DOUBLEREGS_16,mDX|mAX,0,INFfloat,1,1},		// _DBLLLNG@
     {DOUBLEREGS_16,DOUBLEREGS_32,0,INFfloat,1,1},	// _LLNGDBL@
-#if TARGET_LINUX || TARGET_OSX
+#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD
     {DOUBLEREGS_16,mDX|mAX,0,INFfloat,2,2},		// _DBLULLNG@
 #else
     {DOUBLEREGS_16,mDX|mAX,0,INFfloat,1,1},		// _DBLULLNG@

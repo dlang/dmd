@@ -3197,6 +3197,7 @@ Statement *Parser::parseStatement(int flags)
 #if DMDV2
 	case TOKimmutable:
 	case TOKshared:
+	case TOKnothrow:
 #endif
 //	case TOKtypeof:
 	Ldeclaration:

@@ -1,6 +1,6 @@
 
 // Compiler implementation of the D programming language
-// Copyright (c) 1999-2007 by Digital Mars
+// Copyright (c) 1999-2009 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // http://www.digitalmars.com
@@ -24,7 +24,7 @@
 #include "id.h"
 #include "module.h"
 
-#if TARGET_LINUX || TARGET_OSX
+#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD
 char *cpp_mangle(Dsymbol *s);
 #endif
 
@@ -114,7 +114,7 @@ char *Declaration::mangle()
 		    return ident->toChars();
 
 		case LINKcpp:
-#if DMDV2 && (TARGET_LINUX || TARGET_OSX)
+#if DMDV2 && (TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD)
 		    return cpp_mangle(this);
 #else
 		    // Windows C++ mangling is done by C++ back end

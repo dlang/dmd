@@ -544,7 +544,7 @@ void dwarf_CFA_offset(int reg, int offset);
 void dwarf_CFA_args_size(size_t sz);
 #endif
 
-#if TARGET_LINUX || TARGET_OSX
+#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD
 void elfobj_gotref(symbol *s);
 symbol *elfobj_getGOTsym();
 elem * exp_isconst();

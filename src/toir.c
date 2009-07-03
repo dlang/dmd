@@ -29,11 +29,7 @@
 #include	"init.h"
 #include	"template.h"
 
-#if _WIN32
-#include	"..\tk\mem.h"	// for mem_malloc
-#else
-#include	"../tk/mem.h"	// for mem_malloc
-#endif
+#include	"mem.h"	// for mem_malloc
 
 #include	"cc.h"
 #include	"el.h"
@@ -260,6 +256,7 @@ elem *getEthis(Loc loc, IRState *irs, Dsymbol *fd)
  * Returns:
  *	*(ey + ad.vthis.offset) = this;
  */
+#if DMDV2
 elem *setEthis(Loc loc, IRState *irs, elem *ey, AggregateDeclaration *ad)
 {
     elem *ethis;
@@ -324,6 +321,7 @@ elem *setEthis(Loc loc, IRState *irs, elem *ey, AggregateDeclaration *ad)
     ey = el_bin(OPeq, TYnptr, ey, ethis);
     return ey;
 }
+#endif
 
 /*******************************************
  * Convert intrinsic function to operator.
@@ -343,8 +341,10 @@ int intrinsic_op(char *name)
 	"4math4sqrtFdZd",
 	"4math4sqrtFeZe",
 	"4math4sqrtFfZf",
+	"4math4yl2xFeeZe",
 	"4math5ldexpFeiZe",
 	"4math6rndtolFeZl",
+	"4math6yl2xp1FeeZe",
 
 	"9intrinsic2btFPkkZi",
 	"9intrinsic3bsfFkZi",
@@ -370,8 +370,10 @@ int intrinsic_op(char *name)
 	"4math4sqrtFNaNbdZd",
 	"4math4sqrtFNaNbeZe",
 	"4math4sqrtFNaNbfZf",
+	"4math4yl2xFNaNbeeZe",
 	"4math5ldexpFNaNbeiZe",
 	"4math6rndtolFNaNbeZl",
+	"4math6yl2xp1FNaNbeeZe",
 
 	"9intrinsic2btFNaNbxPkkZi",
 	"9intrinsic3bsfFNaNbkZi",
@@ -397,8 +399,10 @@ int intrinsic_op(char *name)
 	OPsqrt,
 	OPsqrt,
 	OPsqrt,
+	OPyl2x,
 	OPscale,
 	OPrndtol,
+	OPyl2xp1,
 
 	OPbt,
 	OPbsf,
@@ -671,7 +675,7 @@ enum RET TypeFunction::retStyle()
 	}
 	return RETstack;
     }
-    else if ((global.params.isLinux || global.params.isOSX) &&
+    else if ((global.params.isLinux || global.params.isOSX || global.params.isFreeBSD) &&
 	     linkage == LINKc &&
 	     tn->iscomplex())
     {
