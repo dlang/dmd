@@ -82,6 +82,8 @@ Msgtable msgtable[] =
     { "TypeInfo_Function" },
     { "TypeInfo_Delegate" },
     { "TypeInfo_Tuple" },
+    { "TypeInfo_Const" },
+    { "TypeInfo_Invariant" },
     { "elements" },
     { "_arguments_typeinfo" },
     { "_arguments" },
@@ -93,6 +95,8 @@ Msgtable msgtable[] =
     { "DATE", "__DATE__" },
     { "TIME", "__TIME__" },
     { "TIMESTAMP", "__TIMESTAMP__" },
+    { "VENDOR", "__VENDOR__" },
+    { "VERSIONX", "__VERSION__" },
 
     { "nan" },
     { "infinity" },
@@ -122,6 +126,7 @@ Msgtable msgtable[] =
     { "sort" },
     { "reverse" },
     { "dup" },
+    { "idup" },
 
     // For inline assembler
     { "___out", "out" },

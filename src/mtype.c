@@ -601,6 +601,7 @@ Expression *Type::dotExp(Scope *sc, Expression *e, Identifier *ident)
 	}
 	else if (ident == Id::init)
 	{
+#if 0
 	    if (v->init)
 	    {
 		if (v->init->isVoidInitializer())
@@ -624,6 +625,8 @@ Expression *Type::dotExp(Scope *sc, Expression *e, Identifier *ident)
 		}
 		return e;
 	    }
+#endif
+	    return defaultInit();
 	}
     }
     if (ident == Id::typeinfo)
@@ -2729,12 +2732,6 @@ Type *TypeFunction::semantic(Loc loc, Scope *sc)
 	    if (inuse == 1) inuse--;
 	    t = arg->type->toBasetype();
 
-	    /* If arg turns out to be a tuple, the number of parameters may
-	     * change.
-	     */
-	    if (t->ty == Ttuple)
-		dim = Argument::dim(parameters);
-
 	    if (arg->storageClass & (STCout | STCref | STClazy))
 	    {
 		if (t->ty == Tsarray)
@@ -2748,6 +2745,14 @@ Type *TypeFunction::semantic(Loc loc, Scope *sc)
 		arg->defaultArg = arg->defaultArg->semantic(sc);
 		arg->defaultArg = resolveProperties(sc, arg->defaultArg);
 		arg->defaultArg = arg->defaultArg->implicitCastTo(sc, arg->type);
+	    }
+
+	    /* If arg turns out to be a tuple, the number of parameters may
+	     * change.
+	     */
+	    if (t->ty == Ttuple)
+	    {	dim = Argument::dim(parameters);
+		i--;
 	    }
 	}
     }

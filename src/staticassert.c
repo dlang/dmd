@@ -15,6 +15,7 @@
 #include "staticassert.h"
 #include "expression.h"
 #include "id.h"
+#include "hdrgen.h"
 
 /********************************* AttribDeclaration ****************************/
 
@@ -53,13 +54,14 @@ void StaticAssert::semantic2(Scope *sc)
     if (e->isBool(FALSE))
     {
 	if (msg)
-	{
+	{   HdrGenState hgs;
+	    OutBuffer buf;
+
 	    msg = msg->semantic(sc);
 	    msg = msg->optimize(WANTvalue | WANTinterpret);
-	    char *p = msg->toChars();
-	    p = strdup(p);
-	    error("%s", p);
-	    free(p);
+	    hgs.console = 1;
+	    msg->toCBuffer(&buf, &hgs);
+	    error("%s", buf.toChars());
 	}
 	else
 	    error("is false");

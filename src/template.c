@@ -577,7 +577,7 @@ MATCH TemplateDeclaration::deduceMatch(Objects *targsi, Expressions *fargs,
     printf("\nTemplateDeclaration::deduceMatch() %s\n", toChars());
     for (i = 0; i < fargs->dim; i++)
     {	Expression *e = (Expression *)fargs->data[i];
-	printf("\tfarg[%d] = %s\n", i, e->toChars());
+	printf("\tfarg[%d] is %s, type is %s\n", i, e->toChars(), e->type->toChars());
     }
 #endif
 
@@ -708,8 +708,8 @@ L2:
 	else
 	{   farg = (Expression *)fargs->data[i];
 #if 0
-	    printf("farg->type   = %s\n", farg->type->toChars());
-	    printf("fparam->type = %s\n", fparam->type->toChars());
+	    printf("\tfarg->type   = %s\n", farg->type->toChars());
+	    printf("\tfparam->type = %s\n", fparam->type->toChars());
 #endif
 
 	    m = farg->type->deduceType(scope, fparam->type, parameters, &dedtypes);
@@ -1112,7 +1112,6 @@ MATCH Type::deduceType(Scope *sc, Type *tparam, TemplateParameters *parameters,
     if (!tparam)
 	goto Lnomatch;
 
-  Lagain:
     if (this == tparam)
 	goto Lexact;
 
@@ -1129,7 +1128,7 @@ MATCH Type::deduceType(Scope *sc, Type *tparam, TemplateParameters *parameters,
 	     */
 	    tparam = tparam->semantic(0, sc);
 	    assert(tparam->ty != Tident);
-	    goto Lagain;
+	    return deduceType(sc, tparam, parameters, dedtypes);
 	}
 
 	TemplateParameter *tp = (TemplateParameter *)parameters->data[i];

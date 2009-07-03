@@ -2341,10 +2341,11 @@ void StringExp::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 	{
 	    case '"':
 	    case '\\':
-		buf->writeByte('\\');
+		if (!hgs->console)
+		    buf->writeByte('\\');
 	    default:
 		if (c <= 0xFF)
-		{   if (c <= 0x7F && isprint(c))
+		{   if (c <= 0x7F && (isprint(c) || hgs->console))
 			buf->writeByte(c);
 		    else
 			buf->printf("\\x%02x", c);
@@ -2700,7 +2701,17 @@ Expression *StructLiteralExp::semantic(Scope *sc)
 	if (v->offset < offset)
 	    error("overlapping initialization for %s", v->toChars());
 	offset = v->offset + v->type->size();
-	e = e->implicitCastTo(sc, v->type);
+
+	Type *telem = v->type;
+	while (!e->implicitConvTo(telem) && telem->toBasetype()->ty == Tsarray)
+	{   /* Static array initialization, as in:
+	     *	T[3][5] = e;
+	     */
+	    telem = telem->toBasetype()->nextOf();
+	}
+
+	e = e->implicitCastTo(sc, telem);
+
 	elements->data[i] = (void *)e;
     }
 
@@ -2723,7 +2734,9 @@ Expression *StructLiteralExp::semantic(Scope *sc)
 		    error("cannot make expression out of initializer for %s", v->toChars());
 	    }
 	    else
-		e = v->type->defaultInit();
+	    {	e = v->type->defaultInit();
+		e->loc = loc;
+	    }
 	    offset = v->offset + v->type->size();
 	}
 	elements->push(e);
@@ -2781,6 +2794,11 @@ int StructLiteralExp::getFieldIndex(Type *type, unsigned offset)
     return -1;
 }
 
+
+Expression *StructLiteralExp::toLvalue(Scope *sc, Expression *e)
+{
+    return this;
+}
 
 
 int StructLiteralExp::checkSideEffect(int flag)
@@ -3386,7 +3404,7 @@ void SymOffExp::checkEscape()
     if (v)
     {
 	if (!v->isDataseg())
-	    error("escaping reference to local %s", v->toChars());
+	    error("escaping reference to local variable %s", v->toChars());
     }
 }
 
@@ -6134,7 +6152,7 @@ void CastExp::checkEscape()
 	VarDeclaration *v = ve->var->isVarDeclaration();
 	if (v)
 	{
-	    if (!v->isDataseg())
+	    if (!v->isDataseg() && !v->isParameter())
 		error("escaping reference to local %s", v->toChars());
 	}
     }
@@ -6760,6 +6778,7 @@ void PostExp::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 AssignExp::AssignExp(Loc loc, Expression *e1, Expression *e2)
 	: BinExp(loc, TOKassign, sizeof(AssignExp), e1, e2)
 {
+    ismemset = 0;
 }
 
 Expression *AssignExp::semantic(Scope *sc)

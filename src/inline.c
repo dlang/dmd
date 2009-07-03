@@ -1,5 +1,5 @@
 
-// Copyright (c) 1999-2006 by Digital Mars
+// Copyright (c) 1999-2007 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // http://www.digitalmars.com
@@ -346,6 +346,20 @@ Expression *CompoundStatement::doInline(InlineDoState *ids)
 	    e = Expression::combine(e, e2);
 	    if (s->isReturnStatement())
 		break;
+
+	    /* Check for:
+	     *	if (condition)
+	     *	    return exp1;
+	     *	else
+	     *	    return exp2;
+	     */
+	    IfStatement *ifs = s->isIfStatement();
+	    if (ifs && ifs->elsebody && ifs->ifbody &&
+		ifs->ifbody->isReturnStatement() &&
+		ifs->elsebody->isReturnStatement()
+	       )
+		break;
+
 	}
     }
     return e;
@@ -1236,7 +1250,7 @@ int FuncDeclaration::canInline(int hasthis, int hdrscan)
 	/* Don't inline a function that returns non-void, but has
 	 * no return expression.
 	 */
-	if (type->next && type->next->ty != Tvoid &&
+	if (tf->next && tf->next->ty != Tvoid &&
 	    !(hasReturnExp & 1) &&
 	    !hdrscan)
 	    goto Lno;

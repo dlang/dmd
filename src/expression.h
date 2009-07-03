@@ -418,6 +418,7 @@ struct StructLiteralExp : Expression
     Expression *optimize(int result);
     Expression *interpret(InterState *istate);
     dt_t **toDt(dt_t **pdt);
+    Expression *toLvalue(Scope *sc, Expression *e);
 
     int inlineCost(InlineCostState *ics);
     Expression *doInline(InlineDoState *ids);
@@ -1033,7 +1034,8 @@ struct PostExp : BinExp
 };
 
 struct AssignExp : BinExp
-{
+{   int ismemset;	// !=0 if setting the contents of an array
+
     AssignExp(Loc loc, Expression *e1, Expression *e2);
     Expression *semantic(Scope *sc);
     Expression *checkToBoolean();

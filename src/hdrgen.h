@@ -13,6 +13,7 @@ struct HdrGenState
 {
     int hdrgen;		// 1 if generating header file
     int ddoc;		// 1 if generating Ddoc file
+    int console;	// 1 if writing to console
     int tpltMember;
     int inCallExp;
     int inPtrExp;

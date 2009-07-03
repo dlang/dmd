@@ -60,7 +60,7 @@ Global::Global()
 
     copyright = "Copyright (c) 1999-2007 by Digital Mars";
     written = "written by Walter Bright";
-    version = "v1.015";
+    version = "v1.017";
     global.structalign = 8;
 
     memset(&params, 0, sizeof(Param));
@@ -150,7 +150,7 @@ void usage()
     printf("Digital Mars D Compiler %s\n%s %s\n",
 	global.version, global.copyright, global.written);
     printf("\
-Documentation: http://www.digitalmars.com/d/index.html\n\
+Documentation: http://www.digitalmars.com/d/1.0/index.html\n\
 Usage:\n\
   dmd files.d ... { -switch }\n\
 \n\

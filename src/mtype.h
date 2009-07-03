@@ -241,6 +241,7 @@ struct Type : Object
     virtual Type *reliesOnTident();
     virtual Expression *toExpression();
     virtual int hasPointers();
+    Type *nextOf() { return next; }
 
     static void error(Loc loc, const char *format, ...);
 
