@@ -1,6 +1,6 @@
 // Compiler implementation of the D programming language
 // utf.h
-// Copyright (c) 2003-2006 by Digital Mars
+// Copyright (c) 2003-2008 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // http://www.digitalmars.com
@@ -16,10 +16,10 @@ typedef unsigned dchar_t;
 
 int utf_isValidDchar(dchar_t c);
 
-char *utf_decodeChar(unsigned char *s, size_t len, size_t *pidx, dchar_t *presult);
-char *utf_decodeWchar(unsigned short *s, size_t len, size_t *pidx, dchar_t *presult);
+const char *utf_decodeChar(unsigned char *s, size_t len, size_t *pidx, dchar_t *presult);
+const char *utf_decodeWchar(unsigned short *s, size_t len, size_t *pidx, dchar_t *presult);
 
-char *utf_validateString(unsigned char *s, size_t len);
+const char *utf_validateString(unsigned char *s, size_t len);
 
 extern int isUniAlpha(dchar_t);
 

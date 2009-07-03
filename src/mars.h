@@ -95,10 +95,10 @@ struct Param
 
     bool dump_source;
 
-    char *defaultlibname;	// default library for non-debug builds
-    char *debuglibname;		// default library for debug builds
+    const char *defaultlibname;	// default library for non-debug builds
+    const char *debuglibname;	// default library for debug builds
 
-    char *xmlname;		// filename for XML output
+    const char *xmlname;	// filename for XML output
 
     // Hidden debug switches
     char debuga;
@@ -125,19 +125,19 @@ struct Param
 
 struct Global
 {
-    char *mars_ext;
-    char *sym_ext;
-    char *obj_ext;
-    char *lib_ext;
-    char *doc_ext;	// for Ddoc generated files
-    char *ddoc_ext;	// for Ddoc macro include files
-    char *hdr_ext;	// for D 'header' import files
-    char *copyright;
-    char *written;
+    const char *mars_ext;
+    const char *sym_ext;
+    const char *obj_ext;
+    const char *lib_ext;
+    const char *doc_ext;	// for Ddoc generated files
+    const char *ddoc_ext;	// for Ddoc macro include files
+    const char *hdr_ext;	// for D 'header' import files
+    const char *copyright;
+    const char *written;
     Array *path;	// Array of char*'s which form the import lookup path
     Array *filePath;	// Array of char*'s which form the file import lookup path
     int structalign;
-    char *version;
+    const char *version;
 
     Param params;
     unsigned errors;	// number of errors reported so far
@@ -280,7 +280,7 @@ void err_nomem();
 int runLINK();
 void deleteExeFile();
 int runProgram();
-void inifile(char *argv0, char *inifile);
+void inifile(const char *argv0, const char *inifile);
 void halt();
 void util_progress();
 

@@ -1385,6 +1385,8 @@ elem *NewExp::toElem(IRState *irs)
     //printf("NewExp::toElem() %s\n", toChars());
     t = type->toBasetype();
     //printf("\ttype = %s\n", t->toChars());
+    //if (member)
+	//printf("\tmember = %s\n", member->toChars());
     if (t->ty == Tclass)
     {
 	Symbol *csym;
@@ -1560,6 +1562,80 @@ elem *NewExp::toElem(IRState *irs)
 	    ey = el_una(OPind, TYnptr, ey);
 	    ey = el_bin(OPeq, TYnptr, ey, ethis);
 
+	}
+
+	if (member)
+	    // Call constructor
+	    ez = callfunc(loc, irs, 1, type, ez, ectype, member, member->type, NULL, arguments);
+
+	e = el_combine(ex, ey);
+	e = el_combine(e, ez);
+    }
+    else if (t->ty == Tpointer && t->nextOf()->toBasetype()->ty == Tstruct)
+    {
+	Symbol *csym;
+
+	t = newtype->toBasetype();
+	assert(t->ty == Tstruct);
+	TypeStruct *tclass = (TypeStruct *)(t);
+	StructDeclaration *cd = tclass->sym;
+
+	/* Things to do:
+	 * 1) ex: call allocator
+	 * 2) ey: set vthis for nested classes
+	 * 3) ez: call constructor
+	 */
+
+	elem *ex = NULL;
+	elem *ey = NULL;
+	elem *ez = NULL;
+
+	if (allocator)
+	{   elem *ei;
+	    Symbol *si;
+
+	    ex = el_var(allocator->toSymbol());
+	    ex = callfunc(loc, irs, 1, type, ex, allocator->type,
+			allocator, allocator->type, NULL, newargs);
+
+	    si = tclass->sym->toInitializer();
+	    ei = el_var(si);
+
+	    if (member)
+		ez = el_same(&ex);
+	    else
+	    {	/* Statically intialize with default initializer
+		 */
+		ex = el_una(OPind, TYstruct, ex);
+		ex = el_bin(OPstreq, TYnptr, ex, ei);
+		ex->Enumbytes = cd->size(loc);
+		ex = el_una(OPaddr, TYnptr, ex);
+	    }
+	    ectype = tclass;
+	}
+	else
+	{
+	    d_uns64 elemsize = cd->size(loc);
+
+	    // call _d_newarrayT(ti, 1)
+	    e = el_long(TYsize_t, 1);
+	    e = el_param(e, type->getTypeInfo(NULL)->toElem(irs));
+
+	    int rtl = t->isZeroInit() ? RTLSYM_NEWARRAYT : RTLSYM_NEWARRAYIT;
+	    e = el_bin(OPcall,TYdarray,el_var(rtlsym[rtl]),e);
+
+	    // The new functions return an array, so convert to a pointer
+	    // ex -> (unsigned)(e >> 32)
+	    e = el_bin(OPshr, TYdarray, e, el_long(TYint, 32));
+	    ex = el_una(OP64_32, TYnptr, e);
+
+	    ectype = NULL;
+
+	    if (member)
+		ez = el_same(&ex);
+//elem_print(ex);
+//elem_print(ey);
+//elem_print(ez);
 	}
 
 	if (member)

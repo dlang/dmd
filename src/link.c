@@ -1,5 +1,4 @@
 
-
 // Copyright (c) 1999-2008 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
@@ -204,7 +203,7 @@ int runLINK()
     // Build argv[]
     Array argv;
 
-    char *cc = getenv("CC");
+    const char *cc = getenv("CC");
     if (!cc)
 	cc = "gcc";
     argv.push((void *)cc);
@@ -277,7 +276,7 @@ int runLINK()
     /* Standard libraries must go after user specified libraries
      * passed with -l.
      */
-    char *libname = (global.params.symdebug)
+    const char *libname = (global.params.symdebug)
 				? global.params.debuglibname
 				: global.params.defaultlibname;
     char *buf = (char *)malloc(2 + strlen(libname) + 1);
@@ -485,7 +484,7 @@ int runProgram()
     childpid = fork();
     if (childpid == 0)
     {
-	char *fn = (char *)argv.data[0];
+	const char *fn = (const char *)argv.data[0];
 	if (!FileName::absolute(fn))
 	{   // Make it "./fn"
 	    fn = FileName::combine(".", fn);

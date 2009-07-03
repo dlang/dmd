@@ -2406,7 +2406,7 @@ Expression *StringExp::semantic(Scope *sc)
     if (!type)
     {	OutBuffer buffer;
 	size_t newlen = 0;
-	char *p;
+	const char *p;
 	size_t u;
 	unsigned c;
 
@@ -2606,7 +2606,7 @@ void StringExp::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 void StringExp::toMangleBuffer(OutBuffer *buf)
 {   char m;
     OutBuffer tmp;
-    char *p;
+    const char *p;
     unsigned c;
     unsigned u;
     unsigned char *q;
@@ -3283,6 +3283,8 @@ void TemplateExp::rvalue()
 
 /********************** NewExp **************************************/
 
+/* thisexp.new(newargs) newtype(arguments) */
+
 NewExp::NewExp(Loc loc, Expression *thisexp, Expressions *newargs,
 	Type *newtype, Expressions *arguments)
     : Expression(loc, TOKnew, sizeof(NewExp))
@@ -3461,17 +3463,14 @@ Lagain:
 	}
 
 	if (cd->aggNew)
-	{   Expression *e;
-
-	    f = cd->aggNew;
-
+	{
 	    // Prepend the uint size argument to newargs[]
-	    e = new IntegerExp(loc, cd->size(loc), Type::tuns32);
+	    Expression *e = new IntegerExp(loc, cd->size(loc), Type::tuns32);
 	    if (!newargs)
 		newargs = new Expressions();
 	    newargs->shift(e);
 
-	    f = f->overloadResolve(loc, NULL, newargs);
+	    f = cd->aggNew->overloadResolve(loc, NULL, newargs);
 	    allocator = f->isNewDeclaration();
 	    assert(allocator);
 
@@ -3483,40 +3482,64 @@ Lagain:
 	    if (newargs && newargs->dim)
 		error("no allocator for %s", cd->toChars());
 	}
-
     }
     else if (tb->ty == Tstruct)
     {
 	TypeStruct *ts = (TypeStruct *)tb;
 	StructDeclaration *sd = ts->sym;
-	FuncDeclaration *f = sd->aggNew;
 	TypeFunction *tf;
 
-	if (arguments && arguments->dim)
-	    error("no constructor for %s", type->toChars());
-
-	if (f)
+	FuncDeclaration *f = sd->ctor;
+	if (f && arguments && arguments->dim)
 	{
-	    Expression *e;
+	    assert(f);
+	    f = f->overloadResolve(loc, NULL, arguments);
+	    checkDeprecated(sc, f);
+	    member = f->isCtorDeclaration();
+	    assert(member);
 
+	    sd->accessCheck(loc, sc, member);
+
+	    tf = (TypeFunction *)f->type;
+//	    type = tf->next;
+
+	    if (!arguments)
+		arguments = new Expressions();
+	    functionArguments(loc, sc, tf, arguments);
+	}
+	else
+	{
+	    if (arguments && arguments->dim)
+		error("no constructor for %s", sd->toChars());
+	}
+
+
+	if (sd->aggNew)
+	{
 	    // Prepend the uint size argument to newargs[]
-	    e = new IntegerExp(loc, sd->size(loc), Type::tuns32);
+	    Expression *e = new IntegerExp(loc, sd->size(loc), Type::tuns32);
 	    if (!newargs)
 		newargs = new Expressions();
 	    newargs->shift(e);
 
-	    f = f->overloadResolve(loc, NULL, newargs);
+	    f = sd->aggNew->overloadResolve(loc, NULL, newargs);
 	    allocator = f->isNewDeclaration();
 	    assert(allocator);
 
 	    tf = (TypeFunction *)f->type;
 	    functionArguments(loc, sc, tf, newargs);
-
+#if 0
 	    e = new VarExp(loc, f);
 	    e = new CallExp(loc, e, newargs);
 	    e = e->semantic(sc);
 	    e->type = type->pointerTo();
 	    return e;
+#endif
+	}
+	else
+	{
+	    if (newargs && newargs->dim)
+		error("no allocator for %s", sd->toChars());
 	}
 
 	type = type->pointerTo();
@@ -4566,9 +4589,11 @@ Lyes:
 	if (sc->sd)
 	    s->addMember(sc, sc->sd, 1);
     }
+//printf("Lyes\n");
     return new IntegerExp(loc, 1, Type::tbool);
 
 Lno:
+//printf("Lno\n");
     return new IntegerExp(loc, 0, Type::tbool);
 }
 
@@ -4915,7 +4940,7 @@ Expression *FileExp::semantic(Scope *sc)
     return se->semantic(sc);
 
   Lerror:
-    se = new StringExp(loc, "");
+    se = new StringExp(loc, (char *)"");
     goto Lret;
 }
 
@@ -5202,6 +5227,12 @@ Expression *DotIdExp::semantic(Scope *sc)
 		    }
 		}
 		return e;
+	    }
+
+	    OverloadSet *o = s->isOverloadSet();
+	    if (o)
+	    {   //printf("'%s' is an overload set\n", o->toChars());
+		return new OverExp(o);
 	    }
 
 	    Type *t = s->getType();
@@ -5909,6 +5940,24 @@ Lagain:
 	if (t1->ty == Tstruct)
 	{
 	    ad = ((TypeStruct *)t1)->sym;
+
+	    // First look for constructor
+	    if (ad->ctor && arguments && arguments->dim)
+	    {
+		// Create variable that will get constructed
+		Identifier *idtmp = Lexer::uniqueId("__ctmp");
+		VarDeclaration *tmp = new VarDeclaration(loc, t1, idtmp, NULL);
+		Expression *av = new DeclarationExp(loc, tmp);
+		av = new CommaExp(loc, av, new VarExp(loc, tmp));
+
+		Expression *e = new DotVarExp(loc, av, ad->ctor, 1);
+		e = new CallExp(loc, e, arguments);
+		e = new PtrExp(loc, e);
+		e = e->semantic(sc);
+		return e;
+	    }
+
+	    // No constructor, look for overload of opCall
 	    if (search_function(ad, Id::call))
 		goto L1;	// overload of opCall, therefore it's a call
 

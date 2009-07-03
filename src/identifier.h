@@ -32,7 +32,7 @@ struct Identifier : Object
 #ifdef _DH
     char *toHChars();
 #endif
-    char *toHChars2();
+    const char *toHChars2();
     int dyncast();
 
     static Identifier *generateId(const char *prefix);

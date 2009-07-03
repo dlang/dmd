@@ -131,7 +131,7 @@ void Declaration::checkModify(Loc loc, Scope *sc, Type *t)
 	VarDeclaration *v = isVarDeclaration();
 	if (v && v->canassign == 0)
 	{
-	    char *p = NULL;
+	    const char *p = NULL;
 	    if (isConst())
 		p = "const";
 	    else if (isInvariant())
@@ -924,6 +924,9 @@ Lagain:
 
     if (init)
     {
+	sc = sc->push();
+	sc->stc &= ~(STCconst | STCinvariant | STCpure);
+
 	ArrayInitializer *ai = init->isArrayInitializer();
 	if (ai && tb->ty == Taarray)
 	{
@@ -933,7 +936,7 @@ Lagain:
 	StructInitializer *si = init->isStructInitializer();
 	ExpInitializer *ei = init->isExpInitializer();
 
-	// See if we can allocate on the stack
+	// See if initializer is a NewExp that can be allocated on the stack
 	if (ei && isScope() && ei->exp->op == TOKnew)
 	{   NewExp *ne = (NewExp *)ei->exp;
 	    if (!(ne->newargs && ne->newargs->dim))
@@ -993,6 +996,45 @@ Lagain:
 		else if (t->ty == Tstruct)
 		{
 		    ei->exp = ei->exp->semantic(sc);
+
+		    /* Look to see if initializer is a call to the constructor
+		     */
+		    StructDeclaration *sd = ((TypeStruct *)t)->sym;
+		    if (sd->ctor &&		// there are constructors
+			ei->exp->type->ty == Tstruct &&	// rvalue is the same struct
+			((TypeStruct *)ei->exp->type)->sym == sd &&
+			ei->exp->op == TOKstar)
+		    {
+			/* Look for form of constructor call which is:
+			 *    *__ctmp.ctor(arguments...)
+			 */
+			PtrExp *pe = (PtrExp *)ei->exp;
+			if (pe->e1->op == TOKcall)
+			{   CallExp *ce = (CallExp *)pe->e1;
+			    if (ce->e1->op == TOKdotvar)
+			    {	DotVarExp *dve = (DotVarExp *)ce->e1;
+				if (dve->var->isCtorDeclaration())
+				{   /* It's a constructor call, currently constructing
+				     * a temporary __ctmp.
+				     */
+				    /* Before calling the constructor, initialize
+				     * variable with a bit copy of the default
+				     * initializer
+				     */
+				    Expression *e = new AssignExp(loc, new VarExp(loc, this), t->defaultInit(loc));
+				    e->op = TOKblit;
+				    e->type = t;
+				    ei->exp = new CommaExp(loc, e, ei->exp);
+
+				    /* Replace __ctmp being constructed with e1
+				     */
+				    dve->e1 = e1;
+				    return;
+				}
+			    }
+			}
+		    }
+
 		    if (!ei->exp->implicitConvTo(type))
 		    {	Type *ti = ei->exp->type->toBasetype();
 			// Don't cast away invariant or mutability in initializer
@@ -1076,6 +1118,7 @@ Lagain:
 		    init = i2;		// no errors, keep result
 	    }
 	}
+	sc = sc->pop();
     }
 }
 

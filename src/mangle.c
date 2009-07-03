@@ -150,7 +150,7 @@ char *FuncDeclaration::mangle()
 #endif
     {
 	if (isMain())
-	    return "_Dmain";
+	    return (char *)"_Dmain";
 
 	if (isWinMain() || isDllMain())
 	    return ident->toChars();

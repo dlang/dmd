@@ -1,5 +1,5 @@
 
-// Copyright (c) 1999-2006 by Digital Mars
+// Copyright (c) 1999-2008 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // http://www.digitalmars.com
@@ -19,7 +19,7 @@
 
 struct NameId
 {
-    char *name;
+    const char *name;
     unsigned short value;
 };
 

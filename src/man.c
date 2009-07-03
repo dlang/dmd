@@ -37,7 +37,7 @@ void browse(const char *url)
     pid_t childpid;
     const char *args[3];
 
-    char *browser = getenv("BROWSER");
+    const char *browser = getenv("BROWSER");
     if (browser)
 	browser = strdup(browser);
     else

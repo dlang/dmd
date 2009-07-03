@@ -33,7 +33,7 @@ struct Library
 
     Library();
     void setFilename(char *dir, char *filename);
-    void addObject(char *module_name, void *buf, size_t buflen);
+    void addObject(const char *module_name, void *buf, size_t buflen);
     void addLibrary(void *buf, size_t buflen);
     void write();
 

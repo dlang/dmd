@@ -294,7 +294,7 @@ void Library::scanObjModule(ObjModule *om)
  * and load the file.
  */
 
-void Library::addObject(char *module_name, void *buf, size_t buflen)
+void Library::addObject(const char *module_name, void *buf, size_t buflen)
 {
     if (!module_name)
 	module_name = "";
@@ -304,7 +304,7 @@ void Library::addObject(char *module_name, void *buf, size_t buflen)
     int fromfile = 0;
     if (!buf)
     {	assert(module_name[0]);
-	FileName f(module_name, 0);
+	FileName f((char *)module_name, 0);
 	File file(&f);
 	file.readv();
 	buf = file.buffer;
@@ -588,7 +588,7 @@ void Library::WriteLibToBuffer(OutBuffer *libbuf)
     om.base = NULL;
     om.length = hoffset - (8 + sizeof(Header));
     om.offset = 8;
-    om.name = "";
+    om.name = (char*)"";
     ::time(&om.file_time);
     om.user_id = 0;
     om.group_id = 0;

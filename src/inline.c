@@ -923,8 +923,11 @@ Statement *DefaultStatement::inlineScan(InlineScanState *iss)
 
 Statement *ReturnStatement::inlineScan(InlineScanState *iss)
 {
+    //printf("ReturnStatement::inlineScan()\n");
     if (exp)
+    {
 	exp = exp->inlineScan(iss);
+    }
     return this;
 }
 
@@ -1240,13 +1243,13 @@ int FuncDeclaration::canInline(int hasthis, int hdrscan)
     {
 	case ILSyes:
 #if CANINLINE_LOG
-	    printf("\tyes\n");
+	    printf("\t1: yes %s\n", toChars());
 #endif
 	    return 1;
 
 	case ILSno:
 #if CANINLINE_LOG
-	    printf("\t2: no\n");
+	    printf("\t1: no %s\n", toChars());
 #endif
 	    return 0;
 
@@ -1332,7 +1335,7 @@ Lyes:
     if (!hdrscan)    // Don't modify inlineStatus for header content scan
 	inlineStatus = ILSyes;
 #if CANINLINE_LOG
-    printf("\tyes\n");
+    printf("\t2: yes %s\n", toChars());
 #endif
     return 1;
 
@@ -1340,7 +1343,7 @@ Lno:
     if (!hdrscan)    // Don't modify inlineStatus for header content scan
 	inlineStatus = ILSno;
 #if CANINLINE_LOG
-    printf("\tno\n");
+    printf("\t2: no %s\n", toChars());
 #endif
     return 0;
 }
@@ -1437,9 +1440,6 @@ Expression *FuncDeclaration::doInline(InlineScanState *iss, Expression *ethis, A
     inlineNest++;
     Expression *eb = fbody->doInline(&ids);
     inlineNest--;
-//eb->type->print();
-//eb->print();
-//eb->dump(0);
     return Expression::combine(e, eb);
 }
 

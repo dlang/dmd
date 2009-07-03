@@ -107,7 +107,7 @@ struct Parser : Lexer
     Expression *parseDefaultInitExp();
     void check(Loc loc, enum TOK value);
     void check(enum TOK value);
-    void check(enum TOK value, char *string);
+    void check(enum TOK value, const char *string);
     int isDeclaration(Token *t, int needId, enum TOK endtok, Token **pt);
     int isBasicType(Token **pt);
     int isDeclarator(Token **pt, int *haveId, enum TOK endtok);

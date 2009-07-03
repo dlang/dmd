@@ -287,7 +287,7 @@ struct TypeNext : Type
 
 struct TypeBasic : Type
 {
-    char *dstring;
+    const char *dstring;
     unsigned flags;
 
     TypeBasic(TY ty);
@@ -408,7 +408,7 @@ struct TypeAArray : TypeArray
 #endif
 
     // Back end
-    Symbol *aaGetSymbol(char *func, int flags);
+    Symbol *aaGetSymbol(const char *func, int flags);
 
     type *toCtype();
 };

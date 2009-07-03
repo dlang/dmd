@@ -39,8 +39,10 @@ char *strupr(char *s)
  *	inifile	.ini file name
  */
 
-void inifile(char *argv0, char *inifile)
+void inifile(const char *argv0x, const char *inifilex)
 {
+    char *argv0 = (char *)argv0x;
+    char *inifile = (char *)inifilex;	// do const-correct later
     char *path;		// need path for @P macro
     char *filename;
     OutBuffer buf;
@@ -107,7 +109,7 @@ void inifile(char *argv0, char *inifile)
 
 		    // Search /etc/ for inifile
 		Letc:
-		    filename = FileName::combine("/etc/", inifile);
+		    filename = FileName::combine((char *)"/etc/", inifile);
 
 		Ldone:
 		    ;
@@ -184,7 +186,7 @@ void inifile(char *argv0, char *inifile)
 			    // %@P% is special meaning the path to the .ini file
 			    p = path;
 			    if (!*p)
-				p = ".";
+				p = (char *)".";
 			}
 			else
 			{   int len = j - k;
@@ -200,7 +202,7 @@ void inifile(char *argv0, char *inifile)
 			    strupr(p);
 			    p = getenv(p);
 			    if (!p)
-				p = "";
+				p = (char *)"";
 			}
 			buf.writestring(p);
 			k = j;

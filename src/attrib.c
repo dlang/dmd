@@ -31,7 +31,7 @@
 #include "parse.h"
 #include "template.h"
 
-extern void obj_includelib(char *name);
+extern void obj_includelib(const char *name);
 void obj_startaddress(Symbol *s);
 
 
@@ -415,7 +415,7 @@ void LinkDeclaration::semantic3(Scope *sc)
 }
 
 void LinkDeclaration::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
-{   char *p;
+{   const char *p;
 
     switch (linkage)
     {
@@ -436,7 +436,7 @@ void LinkDeclaration::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 
 char *LinkDeclaration::toChars()
 {
-    return "extern ()";
+    return (char *)"extern ()";
 }
 
 /********************************* ProtDeclaration ****************************/
@@ -481,7 +481,7 @@ void ProtDeclaration::semantic(Scope *sc)
 }
 
 void ProtDeclaration::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
-{   char *p;
+{   const char *p;
 
     switch (protection)
     {
@@ -1150,7 +1150,7 @@ Dsymbol *CompileDeclaration::syntaxCopy(Dsymbol *s)
 
 int CompileDeclaration::addMember(Scope *sc, ScopeDsymbol *sd, int memnum)
 {
-    //printf("CompileDeclaration::addMember(sc = %p)\n", sc);
+    //printf("CompileDeclaration::addMember(sc = %p, memnum = %d)\n", sc, memnum);
     this->sd = sd;
     if (memnum == 0)
     {	/* No members yet, so parse the mixin now

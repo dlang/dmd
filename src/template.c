@@ -3892,7 +3892,7 @@ Identifier *TemplateInstance::genIdent()
 		}
 	    }
 #endif
-	    char *p = sa->mangle();
+	    const char *p = sa->mangle();
 	    buf.printf("%zu%s", strlen(p), p);
 	}
 	else if (va)

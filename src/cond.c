@@ -1,6 +1,6 @@
 
 // Compiler implementation of the D programming language
-// Copyright (c) 1999-2006 by Digital Mars
+// Copyright (c) 1999-2008 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // http://www.digitalmars.com
@@ -31,7 +31,7 @@ int findCondition(Array *ids, Identifier *ident)
     {
 	for (int i = 0; i < ids->dim; i++)
 	{
-	    char *id = (char *)ids->data[i];
+	    const char *id = (const char *)ids->data[i];
 
 	    if (strcmp(id, ident->toChars()) == 0)
 		return TRUE;
@@ -71,11 +71,11 @@ void DebugCondition::setGlobalLevel(unsigned level)
     global.params.debuglevel = level;
 }
 
-void DebugCondition::addGlobalIdent(char *ident)
+void DebugCondition::addGlobalIdent(const char *ident)
 {
     if (!global.params.debugids)
 	global.params.debugids = new Array();
-    global.params.debugids->push(ident);
+    global.params.debugids->push((void *)ident);
 }
 
 
@@ -123,9 +123,9 @@ void VersionCondition::setGlobalLevel(unsigned level)
     global.params.versionlevel = level;
 }
 
-void VersionCondition::checkPredefined(Loc loc, char *ident)
+void VersionCondition::checkPredefined(Loc loc, const char *ident)
 {
-    static char* reserved[] =
+    static const char* reserved[] =
     {
 	"DigitalMars", "X86", "X86_64",
 	"Windows", "Win32", "Win64",
@@ -150,17 +150,17 @@ void VersionCondition::checkPredefined(Loc loc, char *ident)
     error(loc, "version identifier '%s' is reserved and cannot be set", ident);
 }
 
-void VersionCondition::addGlobalIdent(char *ident)
+void VersionCondition::addGlobalIdent(const char *ident)
 {
     checkPredefined(0, ident);
     addPredefinedGlobalIdent(ident);
 }
 
-void VersionCondition::addPredefinedGlobalIdent(char *ident)
+void VersionCondition::addPredefinedGlobalIdent(const char *ident)
 {
     if (!global.params.versionids)
 	global.params.versionids = new Array();
-    global.params.versionids->push(ident);
+    global.params.versionids->push((void *)ident);
 }
 
 

@@ -68,7 +68,7 @@ Symbol *Dsymbol::toSymbolX(const char *prefix, int sclass, type *t, const char *
 {
     Symbol *s;
     char *id;
-    char *n;
+    const char *n;
     size_t nlen;
 
     //printf("Dsymbol::toSymbolX('%s')\n", prefix);
@@ -685,7 +685,7 @@ Symbol *Module::toModuleArray()
  *		1	add value signature
  */
 
-Symbol *TypeAArray::aaGetSymbol(char *func, int flags)
+Symbol *TypeAArray::aaGetSymbol(const char *func, int flags)
 #if __DMC__
     __in
     {

@@ -1,6 +1,6 @@
 
 // Compiler implementation of the D programming language
-// Copyright (c) 1999-2006 by Digital Mars
+// Copyright (c) 1999-2008 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // http://www.digitalmars.com
@@ -55,8 +55,8 @@ struct DVCondition : Condition
 struct DebugCondition : DVCondition
 {
     static void setGlobalLevel(unsigned level);
-    static void addGlobalIdent(char *ident);
-    static void addPredefinedGlobalIdent(char *ident);
+    static void addGlobalIdent(const char *ident);
+    static void addPredefinedGlobalIdent(const char *ident);
 
     DebugCondition(Module *mod, unsigned level, Identifier *ident);
 
@@ -67,9 +67,9 @@ struct DebugCondition : DVCondition
 struct VersionCondition : DVCondition
 {
     static void setGlobalLevel(unsigned level);
-    static void checkPredefined(Loc loc, char *ident);
-    static void addGlobalIdent(char *ident);
-    static void addPredefinedGlobalIdent(char *ident);
+    static void checkPredefined(Loc loc, const char *ident);
+    static void addGlobalIdent(const char *ident);
+    static void addPredefinedGlobalIdent(const char *ident);
 
     VersionCondition(Module *mod, unsigned level, Identifier *ident);
 

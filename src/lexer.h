@@ -158,6 +158,7 @@ enum TOK
 	TOKtls,
 	TOKline,
 	TOKfile,
+	TOKshared,
 #endif
 
 	TOKMAX
@@ -235,13 +236,13 @@ struct Token
     real_t float80value; // can't use this in a union!
 #endif
 
-    static char *tochars[TOKMAX];
+    static const char *tochars[TOKMAX];
     static void *operator new(size_t sz);
 
     int isKeyword();
     void print();
-    char *toChars();
-    static char *toChars(enum TOK);
+    const char *toChars();
+    static const char *toChars(enum TOK);
 };
 
 struct Lexer

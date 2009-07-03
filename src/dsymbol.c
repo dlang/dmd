@@ -591,8 +591,8 @@ Array *Dsymbol::arraySyntaxCopy(Array *a)
 
 void Dsymbol::addComment(unsigned char *comment)
 {
-//    if (comment)
-//	printf("adding comment '%s' to symbol %p '%s'\n", comment, this, toChars());
+    //if (comment)
+	//printf("adding comment '%s' to symbol %p '%s'\n", comment, this, toChars());
 
     if (!this->comment)
 	this->comment = comment;

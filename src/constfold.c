@@ -695,7 +695,11 @@ Expression *Equal(enum TOK op, Type *type, Expression *e1, Expression *e2)
     {	StringExp *es1 = (StringExp *)e1;
 	StringExp *es2 = (StringExp *)e2;
 
-	assert(es1->sz == es2->sz);
+	if (es1->sz != es2->sz)
+	{
+	    assert(global.errors);
+	    return EXP_CANT_INTERPRET;
+	}
 	if (es1->len == es2->len &&
 	    memcmp(es1->string, es2->string, es1->sz * es1->len) == 0)
 	    cmp = 1;
@@ -1386,7 +1390,14 @@ Expression *Cat(Type *type, Expression *e1, Expression *e2)
 	size_t len = es1->len + es2->len;
 	int sz = es1->sz;
 
-	assert(sz == es2->sz);
+	if (sz != es2->sz)
+	{
+	    /* Can happen with:
+	     *   auto s = "foo"d ~ "bar"c;
+	     */
+	    assert(global.errors);
+	    return e;
+	}
 	s = mem.malloc((len + 1) * sz);
 	memcpy(s, es1->string, es1->len * sz);
 	memcpy((unsigned char *)s + es1->len * sz, es2->string, es2->len * sz);

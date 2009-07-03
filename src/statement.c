@@ -1436,9 +1436,14 @@ Statement *ForeachStatement::semantic(Scope *sc)
 		    //var->storage_class |= STCfinal;
 		}
 		else
-		{   //if (!(arg->storageClass & STCref))
-			//var->storage_class |= STCfinal;
+		{
 		    value = var;
+		    /* Reference to immutable data should be marked as const
+		     */
+		    if (var->storage_class & STCref && !tn->isMutable())
+		    {
+			var->storage_class |= STCconst;
+		    }
 		}
 #if 1
 		DeclarationExp *de = new DeclarationExp(loc, var);

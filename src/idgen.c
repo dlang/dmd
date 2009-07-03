@@ -22,8 +22,8 @@
 
 struct Msgtable
 {
-	char *ident;	// name to use in DMD source
-	char *name;	// name in D executable
+	const char *ident;	// name to use in DMD source
+	const char *name;	// name in D executable
 };
 
 Msgtable msgtable[] =
@@ -34,12 +34,12 @@ Msgtable msgtable[] =
     { "max" },
     { "min" },
     { "This", "this" },
-    { "ctor", "_ctor" },
-    { "cpctor", "_cpctor" },
-    { "dtor", "_dtor" },
-    { "_postblit", "_postblit" },
+    { "ctor", "__ctor" },
+    { "dtor", "__dtor" },
+    { "cpctor", "__cpctor" },
+    { "_postblit", "__postblit" },
     { "classInvariant", "__invariant" },
-    { "unitTest", "_unitTest" },
+    { "unitTest", "__unitTest" },
     { "init" },
     { "size" },
     { "__sizeof", "sizeof" },
@@ -289,7 +289,7 @@ int main()
 	fprintf(fp, "{\n");
 
 	for (i = 0; i < sizeof(msgtable) / sizeof(msgtable[0]); i++)
-	{   char *id = msgtable[i].ident;
+	{   const char *id = msgtable[i].ident;
 
 	    fprintf(fp,"    static Identifier *%s;\n", id);
 	}
@@ -314,8 +314,8 @@ int main()
 	fprintf(fp, "#include \"lexer.h\"\n");
 
 	for (i = 0; i < sizeof(msgtable) / sizeof(msgtable[0]); i++)
-	{   char *id = msgtable[i].ident;
-	    char *p = msgtable[i].name;
+	{   const char *id = msgtable[i].ident;
+	    const char *p = msgtable[i].name;
 
 	    if (!p)
 		p = id;
@@ -326,8 +326,8 @@ int main()
 	fprintf(fp, "{\n");
 
 	for (i = 0; i < sizeof(msgtable) / sizeof(msgtable[0]); i++)
-	{   char *id = msgtable[i].ident;
-	    char *p = msgtable[i].name;
+	{   const char *id = msgtable[i].ident;
+	    const char *p = msgtable[i].name;
 
 	    if (!p)
 		p = id;
