@@ -541,6 +541,14 @@ void VarDeclaration::semantic(Scope *sc)
 	type = Type::terror;
 	tb = type;
     }
+    if (tb->ty == Tstruct)
+    {	TypeStruct *ts = (TypeStruct *)tb;
+
+	if (!ts->sym->members)
+	{
+	    error("no definition of struct %s", ts->toChars());
+	}
+    }
 
     if (storage_class & STCconst && !init && !fd)
 	// Initialize by constructor only

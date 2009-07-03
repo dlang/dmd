@@ -19,6 +19,7 @@
 
 #if _WIN32
 #include <windows.h>
+#include <direct.h>
 #endif
 
 #if linux
@@ -781,6 +782,46 @@ int FileName::exists(const char *name)
 	result = 1;
     return result;
 #endif
+}
+
+void FileName::ensurePathExists(const char *path)
+{
+    //printf("FileName::ensurePathExists(%s)\n", path ? path : "");
+    if (path && *path)
+    {
+	if (!exists(path))
+	{
+	    char *p = FileName::path(path);
+	    if (*p)
+	    {
+#if _WIN32
+		size_t len = strlen(p);
+		if (len > 2 && p[-1] == ':')
+		{   mem.free(p);
+		    return;
+		}
+#endif
+		ensurePathExists(p);
+		mem.free(p);
+	    }
+#if _WIN32
+	    if (path[strlen(path) - 1] != '\\')
+#endif
+#if linux
+	    if (path[strlen(path) - 1] != '\\')
+#endif
+	    {
+		//printf("mkdir(%s)\n", path);
+#if _WIN32
+		if (mkdir(path))
+#endif
+#if linux
+		if (mkdir(path, 0777))
+#endif
+		    error("cannot create directory %s", path);
+	    }
+	}
+    }
 }
 
 /****************************** File ********************************/

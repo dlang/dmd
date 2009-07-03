@@ -800,14 +800,26 @@ void VarDeclaration::toObjFile()
 	    s->Sclass = SCstatic;
 	else
 #endif
-	if (parent->isTemplateInstance() ||
-	    storage_class & STCcomdat)
-	    // Global template data members need to be in comdat's
-	    // in case multiple .obj files instantiate the same
-	    // template with the same types.
-	    s->Sclass = SCcomdat;
-	else
-	    s->Sclass = SCglobal;
+	{
+	    if (storage_class & STCcomdat)
+		s->Sclass = SCcomdat;
+	    else
+		s->Sclass = SCglobal;
+
+	    do
+	    {
+		/* Global template data members need to be in comdat's
+		 * in case multiple .obj files instantiate the same
+		 * template with the same types.
+		 */
+		if (parent->isTemplateInstance())
+		{
+		    s->Sclass = SCcomdat;
+		    break;
+		}
+		parent = parent->toParent();
+	    } while (parent);
+	}
 	s->Sfl = FLdata;
 
 	if (init)

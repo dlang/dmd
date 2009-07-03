@@ -124,14 +124,15 @@ extern Global global;
 #endif
 
 #ifdef __DMC__
-typedef _Complex long double complex_t;
-#elif IN_GCC
+ typedef _Complex long double complex_t;
 #else
-#include "complex_t.h"
-#ifdef __APPLE__
-//#include "complex.h"//This causes problems with include the c++ <complex> and not the C "complex.h"
-#define integer_t dmd_integer_t
-#endif
+ #ifndef IN_GCC
+  #include "complex_t.h"
+ #endif
+ #ifdef __APPLE__
+  //#include "complex.h"//This causes problems with include the c++ <complex> and not the C "complex.h"
+  #define integer_t dmd_integer_t
+ #endif
 #endif
 
 // Be careful not to care about sign with integer_t

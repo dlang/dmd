@@ -392,6 +392,42 @@ Token *Lexer::peek(Token *ct)
     return t;
 }
 
+/*********************************
+ * tk is on the opening (.
+ * Look ahead and return token that is past the closing ).
+ */
+
+Token *Lexer::peekPastParen(Token *tk)
+{
+    //printf("peekPastParen()\n");
+    int parens = 1;
+    while (1)
+    {
+	tk = peek(tk);
+	//tk->print();
+	switch (tk->value)
+	{
+	    case TOKlparen:
+		parens++;
+		continue;
+
+	    case TOKrparen:
+		--parens;
+		if (parens)
+		    continue;
+		tk = peek(tk);
+		break;
+
+	    case TOKeof:
+		break;
+
+	    default:
+		continue;
+	}
+	return tk;
+    }
+}
+
 /****************************
  * Turn next token in buffer into a token.
  */

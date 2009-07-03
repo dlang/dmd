@@ -119,7 +119,9 @@ Module::Module(char *filename, Identifier *ident, int doDocComment, int doHdrGen
     else
 	argobj = FileName::name(filename);
     if (!FileName::absolute(argobj))
+    {	FileName::ensurePathExists(global.params.objdir);
 	argobj = FileName::combine(global.params.objdir, argobj);
+    }
     if (global.params.objname)
 	objfilename = new FileName(argobj, 0);
     else
@@ -155,7 +157,9 @@ void Module::setDocfile()
     else
 	argdoc = FileName::name((char *)arg);
     if (!FileName::absolute(argdoc))
+    {	FileName::ensurePathExists(global.params.docdir);
 	argdoc = FileName::combine(global.params.docdir, argdoc);
+    }
     if (global.params.docname)
 	docfilename = new FileName(argdoc, 0);
     else
@@ -181,7 +185,9 @@ void Module::setHdrfile()
     else
 	arghdr = FileName::name((char *)arg);
     if (!FileName::absolute(arghdr))
+    {	FileName::ensurePathExists(global.params.hdrdir);
 	arghdr = FileName::combine(global.params.hdrdir, arghdr);
+    }
     if (global.params.hdrname)
 	hdrfilename = new FileName(arghdr, 0);
     else

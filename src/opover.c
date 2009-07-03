@@ -79,6 +79,7 @@ Identifier *ComExp::opId()   { return Id::com; }
 Identifier *CastExp::opId()   { return Id::cast; }
 
 Identifier *InExp::opId()     { return Id::opIn; }
+Identifier *InExp::opId_r()     { return Id::opIn_r; }
 
 Identifier *PostIncExp::opId() { return Id::postinc; }
 

@@ -254,6 +254,7 @@ struct Lexer
     TOK nextToken();
     void scan(Token *t);
     Token *peek(Token *t);
+    Token *peekPastParen(Token *t);
     unsigned escapeSequence();
     TOK wysiwygStringConstant(Token *t, int tc);
     TOK hexStringConstant(Token *t);

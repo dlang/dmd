@@ -1326,7 +1326,7 @@ int TypeBasic::isscalar()
 
 int TypeBasic::implicitConvTo(Type *to)
 {
-    //printf("TypeBasic::implicitConvTo(%s)\n", to->toChars());
+    //printf("TypeBasic::implicitConvTo(%s) from %s\n", to->toChars(), toChars());
     if (this == to)
 	return MATCHexact;
     if (to->ty == Tvoid)
@@ -1340,7 +1340,8 @@ int TypeBasic::implicitConvTo(Type *to)
     TypeBasic *tob = (TypeBasic *)to;
     if (flags & TFLAGSintegral)
     {
-	if (tob->flags & TFLAGSimaginary)
+	// Disallow implicit conversion of integers to imaginary or complex
+	if (tob->flags & (TFLAGSimaginary | TFLAGScomplex))
 	    return MATCHnomatch;
     }
     else if (flags & TFLAGSfloating)
@@ -1809,8 +1810,10 @@ int TypeDArray::implicitConvTo(Type *to)
 	return MATCHconvert;
     }
     if (to->ty == Tarray)
-    {
-	if (to->next->isBaseOf(next, NULL) || to->next->ty == Tvoid)
+    {	int offset = 0;
+
+	if ((to->next->isBaseOf(next, &offset) && offset == 0) ||
+	    to->next->ty == Tvoid)
 	    return MATCHconvert;
     }
     return Type::implicitConvTo(to);
@@ -2211,8 +2214,8 @@ int TypeReference::isZeroInit()
 TypeFunction::TypeFunction(Array *arguments, Type *treturn, int varargs, enum LINK linkage)
     : Type(Tfunction, treturn)
 {
-if (!treturn) *(char*)0=0;
-    assert(treturn);
+//if (!treturn) *(char*)0=0;
+//    assert(treturn);
     this->arguments = arguments;
     this->varargs = varargs;
     this->linkage = linkage;
@@ -2221,7 +2224,7 @@ if (!treturn) *(char*)0=0;
 Type *TypeFunction::syntaxCopy()
 {
     assert(next);
-    Type *treturn = next->syntaxCopy();
+    Type *treturn = next ? next->syntaxCopy() : NULL;
     Array *args = Argument::arraySyntaxCopy(arguments);
     Type *t = new TypeFunction(args, treturn, varargs, linkage);
     return t;
@@ -2382,7 +2385,7 @@ void TypeFunction::toCBuffer2(OutBuffer *buf, Identifier *ident, HdrGenState *hg
 	}
     }
     Argument::argsToCBuffer(buf, hgs, arguments, varargs);
-    if (!ident || ident->toHChars2() == ident->toChars())
+    if (next && (!ident || ident->toHChars2() == ident->toChars()))
 	next->toCBuffer2(buf, NULL, hgs);
 }
 
@@ -2394,6 +2397,11 @@ Type *TypeFunction::semantic(Loc loc, Scope *sc)
 	return this;
     }
     linkage = sc->linkage;
+    if (!next)
+    {
+	assert(global.errors);
+	next = tvoid;
+    }
     next = next->semantic(loc,sc);
     if (next->toBasetype()->ty == Tsarray)
 	error(loc, "functions cannot return static array %s", next->toChars());
@@ -2993,7 +3001,9 @@ Dsymbol *TypeIdentifier::toDsymbol(Scope *sc)
 	    s = sm;
 
 	    if (!s)                 // failed to find a symbol
+	    {	//printf("\tdidn't find a symbol\n");
 		break;
+	    }
 	    s = s->toAlias();
 	}
     }

@@ -137,6 +137,7 @@ struct FileName : String
     void CopyTo(FileName *to);
     static char *searchPath(Array *path, char *name, int cwd);
     static int exists(const char *name);
+    static void ensurePathExists(const char *path);
 };
 
 struct File : Object

@@ -1469,8 +1469,17 @@ Expression *IdentifierExp::semantic(Scope *sc)
 	if (withsym)
 	{
 	    // Same as wthis.ident
-	    e = new VarExp(loc, withsym->withstate->wthis);
-	    e = new DotIdExp(loc, e, ident);
+	    if (s->needThis())
+	    {
+		e = new VarExp(loc, withsym->withstate->wthis);
+		e = new DotIdExp(loc, e, ident);
+	    }
+	    else
+	    {	Type *t = withsym->withstate->wthis->type;
+		if (t->ty == Tpointer)
+		    t = t->next;
+		e = new TypeDotIdExp(loc, t, ident);
+	    }
 	}
 	else
 	{
@@ -1888,6 +1897,16 @@ void NullExp::toMangleBuffer(OutBuffer *buf)
 }
 
 /******************************** StringExp **************************/
+
+StringExp::StringExp(Loc loc, char *string)
+	: Expression(loc, TOKstring, sizeof(StringExp))
+{
+    this->string = string;
+    this->len = strlen(string);
+    this->sz = 1;
+    this->committed = 0;
+    this->postfix = 0;
+}
 
 StringExp::StringExp(Loc loc, void *string, unsigned len)
 	: Expression(loc, TOKstring, sizeof(StringExp))
@@ -2924,10 +2943,28 @@ Expression *DeclarationExp::semantic(Scope *sc)
     // Must be unique in both.
     if (s->ident)
     {
-	if (!sc->insert(s) ||
-	    (s->isFuncDeclaration() && !sc->func->localsymtab->insert(s)))
-	    //error("declaration %s.%s is already defined", sc->func->toChars(), s->toChars());
+	if (!sc->insert(s))
 	    error("declaration %s is already defined", s->toPrettyChars());
+	else if (sc->func)
+	{   VarDeclaration *v = s->isVarDeclaration();
+	    if ((s->isFuncDeclaration() /*|| v && v->storage_class & STCstatic*/) &&
+		!sc->func->localsymtab->insert(s))
+		error("declaration %s is already defined in another scope in %s", s->toPrettyChars(), sc->func->toChars());
+	    else if (!global.params.useDeprecated)
+	    {	// Disallow shadowing
+
+		for (Scope *scx = sc->enclosing; scx && scx->func == sc->func; scx = scx->enclosing)
+		{   Dsymbol *s2;
+
+		    if (scx->scopesym && scx->scopesym->symtab &&
+			(s2 = scx->scopesym->symtab->lookup(s->ident)) != NULL &&
+			s != s2)
+		    {
+			error("shadowing declaration %s is deprecated", s->toPrettyChars());
+		    }
+		}
+	    }
+	}
     }
     if (!s->isVarDeclaration())
     {
@@ -3435,10 +3472,16 @@ Expression *AssertExp::semantic(Scope *sc)
 	msg = msg->implicitCastTo(Type::tchar->arrayOf());
 	msg = msg->optimize(WANTvalue);
     }
-    if (!global.params.useAssert && e1->isBool(FALSE))
-    {	Expression *e = new HaltExp(loc);
-	e = e->semantic(sc);
-	return e;
+    if (e1->isBool(FALSE))
+    {
+	FuncDeclaration *fd = sc->parent->isFuncDeclaration();
+	fd->hasReturnExp |= 4;
+
+	if (!global.params.useAssert)
+	{   Expression *e = new HaltExp(loc);
+	    e = e->semantic(sc);
+	    return e;
+	}
     }
     type = Type::tvoid;
     return this;
@@ -6522,16 +6565,27 @@ Expression *OrOrExp::semantic(Scope *sc)
 
     // same as for AndAnd
     e1 = e1->semantic(sc);
+    e1 = resolveProperties(sc, e1);
+    e1 = e1->checkToPointer();
+    e1 = e1->checkToBoolean();
     cs1 = sc->callSuper;
+
+    if (sc->flags & SCOPEstaticif)
+    {
+	/* If in static if, don't evaluate e2 if we don't have to.
+	 */
+	e1 = e1->optimize(WANTflags);
+	if (e1->isBool(TRUE))
+	{
+	    return new IntegerExp(loc, 1, Type::tboolean);
+	}
+    }
+
     e2 = e2->semantic(sc);
     sc->mergeCallSuper(loc, cs1);
-
-    e1 = resolveProperties(sc, e1);
     e2 = resolveProperties(sc, e2);
-
-    e1 = e1->checkToPointer();
     e2 = e2->checkToPointer();
-    e1 = e1->checkToBoolean();
+
     type = Type::tboolean;
     if (e1->type->ty == Tvoid)
 	type = Type::tvoid;
@@ -6569,16 +6623,27 @@ Expression *AndAndExp::semantic(Scope *sc)
 
     // same as for OrOr
     e1 = e1->semantic(sc);
+    e1 = resolveProperties(sc, e1);
+    e1 = e1->checkToPointer();
+    e1 = e1->checkToBoolean();
     cs1 = sc->callSuper;
+
+    if (sc->flags & SCOPEstaticif)
+    {
+	/* If in static if, don't evaluate e2 if we don't have to.
+	 */
+	e1 = e1->optimize(WANTflags);
+	if (e1->isBool(FALSE))
+	{
+	    return new IntegerExp(loc, 0, Type::tboolean);
+	}
+    }
+
     e2 = e2->semantic(sc);
     sc->mergeCallSuper(loc, cs1);
-
-    e1 = resolveProperties(sc, e1);
     e2 = resolveProperties(sc, e2);
-
-    e1 = e1->checkToPointer();
     e2 = e2->checkToPointer();
-    e1 = e1->checkToBoolean();
+
     type = Type::tboolean;
     if (e1->type->ty == Tvoid)
 	type = Type::tvoid;
@@ -6863,6 +6928,31 @@ Expression *CondExp::semantic(Scope *sc)
 
     econd = econd->semantic(sc);
     econd = resolveProperties(sc, econd);
+    econd = econd->checkToPointer();
+    econd = econd->checkToBoolean();
+
+#if 0	/* this cannot work right because the types of e1 and e2
+ 	 * both contribute to the type of the result.
+	 */
+    if (sc->flags & SCOPEstaticif)
+    {
+	/* If in static if, don't evaluate what we don't have to.
+	 */
+	econd = econd->optimize(WANTflags);
+	if (econd->isBool(TRUE))
+	{
+	    e1 = e1->semantic(sc);
+	    e1 = resolveProperties(sc, e1);
+	    return e1;
+	}
+	else if (econd->isBool(FALSE))
+	{
+	    e2 = e2->semantic(sc);
+	    e2 = resolveProperties(sc, e2);
+	    return e2;
+	}
+    }
+#endif
 
 
     cs0 = sc->callSuper;
@@ -6875,8 +6965,6 @@ Expression *CondExp::semantic(Scope *sc)
     sc->mergeCallSuper(loc, cs1);
 
 
-    econd = econd->checkToPointer();
-    econd = econd->checkToBoolean();
     // If either operand is void, the result is void
     t1 = e1->type;
     t2 = e2->type;

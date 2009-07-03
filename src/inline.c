@@ -70,6 +70,12 @@ int IfStatement::inlineCost(InlineCostState *ics)
 {
     int cost;
 
+    /* Can't declare variables inside ?: expressions, so
+     * we cannot inline if a variable is declared.
+     */
+    if (arg)
+	return COST_MAX;
+
     cost = condition->inlineCost(ics);
 
     /* Specifically allow:
@@ -293,6 +299,7 @@ Expression *IfStatement::doInline(InlineDoState *ids)
     Expression *e2;
     Expression *e;
 
+    assert(!arg);
     econd = condition->doInline(ids);
     assert(econd);
     if (ifbody)
@@ -1006,6 +1013,14 @@ int FuncDeclaration::canInline(int hasthis, int hdrscan)
     {	assert(type->ty == Tfunction);
 	TypeFunction *tf = (TypeFunction *)(type);
 	if (tf->varargs == 1)	// no variadic parameter lists
+	    goto Lno;
+
+	/* Don't inline a function that returns non-void, but has
+	 * no return expression.
+	 */
+	if (type->next && type->next->ty != Tvoid &&
+	    !(hasReturnExp & 1) &&
+	    !hdrscan)
 	    goto Lno;
     }
     else

@@ -205,10 +205,15 @@ Statement *ExpStatement::semantic(Scope *sc)
 
 int ExpStatement::fallOffEnd()
 {
-    if (exp && exp->op == TOKassert)
-    {	AssertExp *a = (AssertExp *)exp;
+    if (exp)
+    {
+	if (exp->op == TOKassert)
+	{   AssertExp *a = (AssertExp *)exp;
 
-	if (a->e1->isBool(FALSE))	// if it's an assert(0)
+	    if (a->e1->isBool(FALSE))	// if it's an assert(0)
+		return FALSE;
+	}
+	else if (exp->op == TOKhalt)
 	    return FALSE;
     }
     return TRUE;
@@ -346,12 +351,16 @@ Statement *CompoundStatement::semantic(Scope *sc)
 		}
 		if (sexception)
 		{
-		    if (i + 1 == statements->dim)
+		    if (i + 1 == statements->dim && !sfinally)
 		    {
+#if 1
+			sexception = sexception->semantic(sc);
+#else
 			statements->push(sexception);
 			if (sfinally)
 			    // Assume sexception does not throw
 			    statements->push(sfinally);
+#endif
 		    }
 		    else
 		    {
@@ -389,14 +398,14 @@ Statement *CompoundStatement::semantic(Scope *sc)
 			if (sfinally)
 			    s = new TryFinallyStatement(0, s, sfinally);
 			s = s->semantic(sc);
-			statements->data[i + 1] = s;
-			statements->setDim(i + 2);
+			statements->setDim(i + 1);
+			statements->push(s);
 			break;
 		    }
 		}
 		else if (sfinally)
 		{
-		    if (i + 1 == statements->dim)
+		    if (0 && i + 1 == statements->dim)
 		    {
 			statements->push(sfinally);
 		    }
@@ -417,8 +426,8 @@ Statement *CompoundStatement::semantic(Scope *sc)
 			body = new CompoundStatement(0, a);
 			s = new TryFinallyStatement(0, body, sfinally);
 			s = s->semantic(sc);
-			statements->data[i + 1] = s;
-			statements->setDim(i + 2);
+			statements->setDim(i + 1);
+			statements->push(s);
 			break;
 		    }
 		}
@@ -2004,16 +2013,18 @@ Statement *ReturnStatement::syntaxCopy()
 
 Statement *ReturnStatement::semantic(Scope *sc)
 {
-    //printf("ReturnStatement::semantic()\n");
+    //printf("ReturnStatement::semantic() %s\n", toChars());
 
     FuncDeclaration *fd = sc->parent->isFuncDeclaration();
     FuncDeclaration *fdx = fd;
     Type *tret = fd->type->next;
     if (fd->tintro)
 	tret = fd->tintro->next;
-    Type *tbret = tret->toBasetype();
+    Type *tbret = NULL;
 
-    if (!exp && tbret->ty == Tvoid && fd->isMain())
+    if (tret)
+	tbret = tret->toBasetype();
+    if (!exp && (!tbret || tbret->ty == Tvoid) && fd->isMain())
 	exp = new IntegerExp(0);
 
     Scope *scx = sc;
@@ -2085,7 +2096,7 @@ Statement *ReturnStatement::semantic(Scope *sc)
     if (sc->incontract)
 	error("return statements cannot be in contracts");
     if (sc->tf)
-	error("return statements cannot be in finally bodies");
+	error("return statements cannot be in finally, scope(exit) or scope(success) bodies");
 
     if (fd->isCtorDeclaration())
     {
@@ -2098,7 +2109,7 @@ Statement *ReturnStatement::semantic(Scope *sc)
 
     if (exp)
     {
-	fd->hasReturnExp = 1;
+	fd->hasReturnExp |= 1;
 
 	if (fd->returnLabel && tbret->ty != Tvoid)
 	{
@@ -2113,12 +2124,50 @@ Statement *ReturnStatement::semantic(Scope *sc)
 	{
 	    exp = exp->semantic(sc);
 	    exp = resolveProperties(sc, exp);
-	    if (tbret->ty != Tvoid)
+	    if (fd->inferRetType)
+	    {
+		if (fd->type->next)
+		{
+		    if (!exp->type->equals(fd->type->next))
+			error("mismatched function return type inference of %s and %s",
+			    exp->type->toChars(), fd->type->next->toChars());
+		}
+		else
+		{
+		    fd->type->next = exp->type;
+		    fd->type = fd->type->semantic(loc, sc);
+		    if (!fd->tintro)
+		    {	tret = fd->type->next;
+			tbret = tret->toBasetype();
+		    }
+		}
+	    }
+	    else if (tbret->ty != Tvoid)
+	    {
 		exp = exp->implicitCastTo(tret);
+	    }
 	}
 	//exp->dump(0);
 	//exp->print();
 	exp->checkEscape();
+    }
+    else if (fd->inferRetType)
+    {
+	if (fd->type->next)
+	{
+	    if (fd->type->next->ty != Tvoid)
+		error("mismatched function return type inference of void and %s",
+		    fd->type->next->toChars());
+	}
+	else
+	{
+	    fd->type->next = Type::tvoid;
+	    fd->type = fd->type->semantic(loc, sc);
+	    if (!fd->tintro)
+	    {   tret = Type::tvoid;
+		tbret = tret;
+	    }
+	}
     }
     else if (tbret->ty != Tvoid)	// if non-void return
 	error("return expression expected");
@@ -2708,6 +2757,7 @@ Statement *TryFinallyStatement::syntaxCopy()
 
 Statement *TryFinallyStatement::semantic(Scope *sc)
 {
+    //printf("TryFinallyStatement::semantic()\n");
     body = body->semantic(sc);
     sc = sc->push();
     sc->tf = this;
@@ -2852,6 +2902,10 @@ Statement *ThrowStatement::syntaxCopy()
 Statement *ThrowStatement::semantic(Scope *sc)
 {
     //printf("ThrowStatement::semantic()\n");
+
+    FuncDeclaration *fd = sc->parent->isFuncDeclaration();
+    fd->hasReturnExp |= 2;
+
     if (sc->incontract)
 	error("Throw statements cannot be in contracts");
     exp = exp->semantic(sc);

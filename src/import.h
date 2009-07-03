@@ -28,10 +28,11 @@ struct HdrGenState;
 
 struct Import : Dsymbol
 {
-    Module *mod;
-    Package *pkg;		// leftmost package/module
     Array *packages;		// array of Identifier's representing packages
     Identifier *id;		// module Identifier
+
+    Module *mod;
+    Package *pkg;		// leftmost package/module
 
     Import(Loc loc, Array *packages, Identifier *id);
     char *kind();

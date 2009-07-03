@@ -65,6 +65,7 @@ FuncDeclaration::FuncDeclaration(Loc loc, Loc endloc, Identifier *id, enum STC s
     fes = NULL;
     introducing = 0;
     tintro = NULL;
+    inferRetType = (type && type->next == NULL);
 }
 
 Dsymbol *FuncDeclaration::syntaxCopy(Dsymbol *s)
@@ -99,7 +100,8 @@ void FuncDeclaration::semantic(Scope *sc)
 	printf("\tFuncLiteralDeclaration()\n");
 #endif
 
-    type = type->semantic(loc, sc);
+    if (type->next)
+	type = type->semantic(loc, sc);
     //type->print();
     if (type->ty != Tfunction)
     {
@@ -622,6 +624,7 @@ void FuncDeclaration::semantic3(Scope *sc)
 	    sym->parent = sc2->scopesym;
 	    sc2 = sc2->push(sym);
 
+	    assert(type->next);
 	    if (type->next->ty == Tvoid)
 	    {
 		if (outId)
@@ -731,6 +734,17 @@ void FuncDeclaration::semantic3(Scope *sc)
 	    }
 
 	    fbody = fbody->semantic(sc2);
+
+	    if (inferRetType)
+	    {	// If no return type inferred yet, then infer a void
+		if (!type->next)
+		{
+		    type->next = Type::tvoid;
+		    type = type->semantic(loc, sc);
+		}
+		f = (TypeFunction *)type;
+	    }
+
 	    int offend = fbody ? fbody->fallOffEnd() : TRUE;
 
 	    if (isStaticCtorDeclaration())
@@ -789,8 +803,8 @@ void FuncDeclaration::semantic3(Scope *sc)
 		fbody = new CompoundStatement(0, fbody, s);
 		assert(!returnLabel);
 	    }
-//	    else if (!hasReturnExp && type->next->ty != Tvoid)
-//		error("expected to return a value of type %s", type->next->toChars());
+	    else if (!hasReturnExp && type->next->ty != Tvoid)
+		error("expected to return a value of type %s", type->next->toChars());
 	    else if (!inlineAsm)
 	    {
 		if (type->next->ty == Tvoid)
@@ -813,10 +827,14 @@ void FuncDeclaration::semantic3(Scope *sc)
 
 			if (global.params.useAssert &&
 			    !global.params.useInline)
-			{   /* Add an assert(0); where the missing return
+			{   /* Add an assert(0, msg); where the missing return
 			     * should be.
 			     */
-			    e = new AssertExp(endloc, new IntegerExp(0, 0, Type::tint32));
+			    e = new AssertExp(
+				  endloc,
+				  new IntegerExp(0),
+				  new StringExp(0, "missing return expression")
+				);
 			}
 			else
 			    e = new HaltExp(endloc);

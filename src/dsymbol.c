@@ -557,8 +557,16 @@ Dsymbol *ScopeDsymbol::search(Identifier *ident, int flags)
 		s = s2;
 	    else if (s2 && s != s2)
 	    {
-		ss->multiplyDefined(s, s2);
-		break;
+		/* Two imports of the same module should be regarded as
+		 * the same.
+		 */
+		Import *i1 = s->isImport();
+		Import *i2 = s2->isImport();
+		if (!(i1 && i2 && i1->mod == i2->mod))
+		{
+		    ss->multiplyDefined(s, s2);
+		    break;
+		}
 	    }
 	}
 	if (s)
@@ -616,8 +624,11 @@ void ScopeDsymbol::defineRef(Dsymbol *s)
 
 void ScopeDsymbol::multiplyDefined(Dsymbol *s1, Dsymbol *s2)
 {
-    //printf("s1 = '%s'\n", s1->toChars());
-    //printf("s2 = '%s', parent = %p\n", s2->toChars(), s2->parent);
+#if 0
+    printf("ScopeDsymbol::multiplyDefined()\n");
+    printf("s1 = %p, '%s' kind = '%s', parent = %s\n", s1, s1->toChars(), s1->kind(), s1->parent ? s1->parent->toChars() : "");
+    printf("s2 = %p, '%s' kind = '%s', parent = %s\n", s2, s2->toChars(), s2->kind(), s2->parent ? s2->parent->toChars() : "");
+#endif
 #if 1
     s1->error("conflicts with %s at %s",
 	s2->toPrettyChars(),
@@ -628,6 +639,7 @@ void ScopeDsymbol::multiplyDefined(Dsymbol *s1, Dsymbol *s2)
 	s2->toPrettyChars(),
 	s2->locToChars());
 #endif
+//*(char*)0=0;
 }
 
 Dsymbol *ScopeDsymbol::nameCollision(Dsymbol *s)

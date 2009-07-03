@@ -373,9 +373,13 @@ struct FuncDeclaration : Declaration
     Type *tintro;			// if !=NULL, then this is the type
 					// of the 'introducing' function
 					// this one is overriding
+    int inferRetType;			// !=0 if return type is to be inferred
 
     // Things that should really go into Scope
-    int hasReturnExp;			// if there's a return exp; statement
+    int hasReturnExp;			// 1 if there's a return exp; statement
+					// 2 if there's a throw statement
+					// 4 if there's an assert(0)
+					// 8 if there's inline asm
 
     FuncDeclaration(Loc loc, Loc endloc, Identifier *id, enum STC storage_class, Type *type);
     Dsymbol *syntaxCopy(Dsymbol *);

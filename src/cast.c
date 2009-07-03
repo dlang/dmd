@@ -54,13 +54,25 @@ print();
 type->print();
 printf("to:\n");
 t->print();
-printf("%p %p %s %s\n", type->deco, t->deco, type->deco, t->deco);
+printf("%p %p type: %s to: %s\n", type->deco, t->deco, type->deco, t->deco);
 //printf("%p %p %p\n", type->next->arrayOf(), type, t);
 fflush(stdout);
 #endif
 //*(char*)0=0;
-    error("cannot implicitly convert expression (%s) of type %s to %s",
-	toChars(), type->toChars(), t->toChars());
+    if (!t->deco)
+    {	/* Can happen with:
+	 *    enum E { One }
+	 *    class A
+	 *    { static void fork(EDG dg) { dg(E.One); }
+	 *	alias void delegate(E) EDG;
+	 *    }
+	 * Should eventually make it work.
+	 */
+	error("forward reference to type %s", t->toChars());
+    }
+    else
+	error("cannot implicitly convert expression (%s) of type %s to %s",
+	    toChars(), type->toChars(), t->toChars());
     return castTo(t);
 }
 
@@ -203,7 +215,6 @@ int IntegerExp::implicitConvTo(Type *t)
 	    goto Lyes;
 
 	case Tfloat32:
-	case Tcomplex32:
 	{
 	    volatile float f;
 	    if (type->isunsigned())
@@ -222,7 +233,6 @@ int IntegerExp::implicitConvTo(Type *t)
 	}
 
 	case Tfloat64:
-	case Tcomplex64:
 	{
 	    volatile double f;
 	    if (type->isunsigned())
@@ -241,7 +251,6 @@ int IntegerExp::implicitConvTo(Type *t)
 	}
 
 	case Tfloat80:
-	case Tcomplex80:
 	{
 	    volatile long double f;
 	    if (type->isunsigned())
@@ -292,7 +301,7 @@ int NullExp::implicitConvTo(Type *t)
 int StringExp::implicitConvTo(Type *t)
 {   MATCH m;
 
-    //printf("StringExp::implicitConvTo(), committed = %d\n", committed);
+    //printf("StringExp::implicitConvTo(t = %s), '%s' committed = %d\n", t->toChars(), toChars(), committed);
     if (!committed)
     {
     if (!committed && t->ty == Tpointer && t->next->ty == Tvoid)
@@ -527,8 +536,8 @@ Expression *StringExp::castTo(Type *t)
     Type *tb;
     int unique;
 
-    //printf("StringExp::castTo(%s) '%s'\n", t->toChars(), string);
-    //if (((char*)string)[0] == 'd') *(char*)0=0;
+    //printf("StringExp::castTo(t = %s), '%s' committed = %d\n", t->toChars(), toChars(), committed);
+
     if (!committed && t->ty == Tpointer && t->next->ty == Tvoid)
     {
 	error("cannot convert string literal to void*");
@@ -546,16 +555,26 @@ Expression *StringExp::castTo(Type *t)
 	se = new StringExp(loc, s, len);
 	se->type = type;
 	se->sz = sz;
-	se->committed = 1;	// it now has a firm type
+	se->committed = 0;
 	unique = 1;		// this is the only instance
     }
     tb = t->toBasetype();
     se->type = type->toBasetype();
     if (tb == se->type)
     {	se->type = t;
+	se->committed = 1;
 	return se;
     }
 
+    if (se->committed == 1)
+    {
+	if (se->type->next->size() == tb->next->size())
+	{   se->type = t;
+	    return se;
+	}
+	goto Lcast;
+    }
+    se->committed = 1;
     if (tb->ty != Tsarray && tb->ty != Tarray && tb->ty != Tpointer)
 	goto Lcast;
     if (se->type->ty != Tsarray && se->type->ty != Tarray && se->type->ty != Tpointer)

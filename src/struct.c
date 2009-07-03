@@ -186,7 +186,7 @@ void AggregateDeclaration::addField(Scope *sc, VarDeclaration *v)
     //printf("\talignsize = %d\n", alignsize);
 
     v->storage_class |= STCfield;
-    //printf(" addField '%s' to '%s' at offset %d\n", v->toChars(), toChars(), v->offset);
+    //printf(" addField '%s' to '%s' at offset %d, size = %d\n", v->toChars(), toChars(), v->offset, memsize);
     fields.push(v);
 }
 
@@ -273,10 +273,12 @@ void StructDeclaration::semantic(Scope *sc)
 	s->semantic(sc2);
 	if (isUnionDeclaration())
 	    sc2->offset = 0;
+#if 0
 	if (sizeok == 2)
 	{   //printf("forward reference\n");
 	    break;
 	}
+#endif
     }
 
     /* The TypeInfo_Struct is expecting an opEquals and opCmp with

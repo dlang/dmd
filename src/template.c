@@ -73,6 +73,7 @@ TemplateDeclaration::TemplateDeclaration(Loc loc, Identifier *id, TemplateParame
     if (parameters)
 	for (int i = 0; i < parameters->dim; i++)
 	{   TemplateParameter *tp = (TemplateParameter *)parameters->data[i];
+	    //printf("\tparameter[%d] = %p\n", i, tp);
 	    TemplateTypeParameter *ttp = tp->isTemplateTypeParameter();
 
 	    if (ttp)
@@ -91,6 +92,7 @@ TemplateDeclaration::TemplateDeclaration(Loc loc, Identifier *id, TemplateParame
 
 Dsymbol *TemplateDeclaration::syntaxCopy(Dsymbol *)
 {
+    //printf("TemplateDeclaration::syntaxCopy()\n");
     TemplateDeclaration *td;
     TemplateParameters *p;
     Array *d;
@@ -641,7 +643,7 @@ FuncDeclaration *TemplateDeclaration::deduce(Scope *sc, Loc loc, Array *targsi, 
     {
 	if (!td->scope)
 	{
-	    error("forward reference to template");
+	    error("forward reference to template %s", td->toChars());
 	    goto Lerror;
 	}
 	if (!td->onemember || !td->onemember->toAlias()->isFuncDeclaration())
@@ -2125,6 +2127,15 @@ TemplateDeclaration *TemplateInstance::findTemplateDeclaration(Scope *sc)
 	{
 	    if (!s->parent && global.errors)
 		return NULL;
+	    if (!s->parent && s->getType())
+	    {	Dsymbol *s2 = s->getType()->toDsymbol(sc);
+		if (!s2)
+		{
+		    error("%s is not a template declaration, it is a %s", id->toChars(), s->kind());
+		    return NULL;
+		}
+		s = s2;
+	    }
 	    assert(s->parent);
 	    TemplateInstance *ti = s->parent->isTemplateInstance();
 	    if (ti &&
@@ -2172,7 +2183,7 @@ TemplateDeclaration *TemplateInstance::findTemplateDeclaration(Scope *sc)
 	dedtypes.setDim(td->parameters->dim);
 	if (!td->scope)
 	{
-	    error("forward reference to template");
+	    error("forward reference to template declaration %s", td->toChars());
 	    return NULL;
 	}
 	m = td->matchWithInstance(this, &dedtypes, 0);
@@ -2233,6 +2244,26 @@ TemplateDeclaration *TemplateInstance::findTemplateDeclaration(Scope *sc)
     /* The best match is td_best
      */
     tempdecl = td_best;
+
+#if 0
+    /* Cast any value arguments to be same type as value parameter
+     */
+    for (size_t i = 0; i < tiargs->dim; i++)
+    {	Object *o = (Object *)tiargs->data[i];
+	Expression *ea = isExpression(o);	// value argument
+	TemplateParameter *tp = (TemplateParameter *)tempdecl->parameters->data[i];
+	assert(tp);
+	TemplateValueParameter *tvp = tp->isTemplateValueParameter();
+	if (tvp)
+	{
+	    assert(ea);
+	    ea = ea->castTo(tvp->valType);
+	    ea = ea->optimize(WANTvalue);
+	    tiargs->data[i] = (Object *)ea;
+	}
+    }
+#endif
+
 #if LOG
     printf("\tIt's a match with template declaration '%s'\n", tempdecl->toChars());
 #endif
@@ -2269,7 +2300,6 @@ Identifier *TemplateInstance::genIdent()
 	else if (ea)
 	{   sinteger_t v;
 	    real_t r;
-	    int i;
 	    unsigned char *p;
 
 	    if (ea->op == TOKvar)
@@ -2285,7 +2315,16 @@ Identifier *TemplateInstance::genIdent()
 		goto Lsa;
 	    }
 	    buf.writeByte('V');
+#if 1
 	    buf.writestring(ea->type->deco);
+#else
+	    // Use type of parameter, not type of argument
+	    TemplateParameter *tp = (TemplateParameter *)tempdecl->parameters->data[i];
+	    assert(tp);
+	    TemplateValueParameter *tvp = tp->isTemplateValueParameter();
+	    assert(tvp);
+	    buf.writestring(tvp->valType->deco);
+#endif
 	    ea->toMangleBuffer(&buf);
 	}
 	else if (sa)
@@ -2532,6 +2571,7 @@ TemplateMixin::TemplateMixin(Loc loc, Identifier *ident, TypeTypeof *tqual,
     this->tqual = tqual;
     this->idents = idents;
     this->tiargs = tiargs ? tiargs : new Array();
+    this->scope = NULL;
 }
 
 Dsymbol *TemplateMixin::syntaxCopy(Dsymbol *s)
@@ -2571,10 +2611,15 @@ void TemplateMixin::semantic(Scope *sc)
     printf("\tdo semantic\n");
 #endif
 
-    // Run semantic on each argument, place results in tiargs[]
-    semanticTiargs(sc);
+    Scope *scx = NULL;
+    if (scope)
+    {	sc = scope;
+	scx = scope;		// save so we don't make redundant copies
+	scope = NULL;
+    }
 
     // Follow qualifications to find the TemplateDeclaration
+    if (!tempdecl)
     {	Dsymbol *s;
 	int i;
 	Identifier *id;
@@ -2651,6 +2696,37 @@ void TemplateMixin::semantic(Scope *sc)
 	}
     }
 
+    // Look for forward reference
+    assert(tempdecl);
+    for (TemplateDeclaration *td = tempdecl; td; td = td->overnext)
+    {
+	if (!td->scope)
+	{
+	    /* Cannot handle forward references if mixin is a struct member,
+	     * because addField must happen during struct's semantic, not
+	     * during the mixin semantic.
+	     * runDeferred will re-run mixin's semantic outside of the struct's
+	     * semantic.
+	     */
+	    semanticdone = 0;
+	    AggregateDeclaration *ad = toParent()->isAggregateDeclaration();
+	    if (ad)
+		ad->sizeok = 2;
+	    else
+	    {
+		// Forward reference
+		//printf("forward reference - deferring\n");
+		scope = scx ? scx : new Scope(*sc);
+		scope->setNoFree();
+		scope->module->addDeferredSemantic(this);
+	    }
+	    return;
+	}
+    }
+
+    // Run semantic on each argument, place results in tiargs[]
+    semanticTiargs(sc);
+
     tempdecl = findTemplateDeclaration(sc);
     if (!tempdecl)
     {	inst = this;
@@ -2722,13 +2798,13 @@ void TemplateMixin::semantic(Scope *sc)
 #if LOG
     printf("\tcreate scope for template parameters '%s'\n", toChars());
 #endif
-    Scope *scx = sc;
-    scx = sc->push(this);
-    scx->parent = this;
+    Scope *scy = sc;
+    scy = sc->push(this);
+    scy->parent = this;
 
     argsym = new ScopeDsymbol();
-    argsym->parent = scx->parent;
-    Scope *scope = scx->push(argsym);
+    argsym->parent = scy->parent;
+    Scope *scope = scy->push(argsym);
 
     // Declare each template parameter as an alias for the argument type
     declareParameters(scope);
@@ -2777,7 +2853,7 @@ void TemplateMixin::semantic(Scope *sc)
 
 //    if (!isAnonymous())
     {
-	scx->pop();
+	scy->pop();
     }
 #if LOG
     printf("-TemplateMixin::semantic('%s', this=%p)\n", toChars(), this);

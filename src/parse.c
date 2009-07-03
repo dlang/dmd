@@ -43,10 +43,6 @@
 //	(type)(expression)
 #define CCASTSYNTAX	1
 
-// Support D cast syntax:
-//	cast(type)(expression)
-#define DCASTSYNTAX	1
-
 // Support C array declarations, such as
 //	int a[3][4];
 #define CARRAYDECL	1
@@ -1818,37 +1814,12 @@ Type *Parser::parseDeclarator(Type *t, Identifier **pident, TemplateParameters *
 		    /* Look ahead to see if this is (...)(...),
 		     * i.e. a function template declaration
 		     */
-		    Token *tk = &token;
-		    int parens = 1;
-		    while (1)
-		    {
-			tk = peek(tk);
-			switch (tk->value)
-			{
-			    case TOKlparen:
-				parens++;
-				continue;
+		    if (peekPastParen(&token)->value == TOKlparen)
+		    {   // It's a function template declaration
+			//printf("function template declaration\n");
 
-			    case TOKrparen:
-				--parens;
-				if (parens)
-				    continue;
-				break;
-
-			    case TOKeof:
-				break;
-
-			    default:
-				continue;
-			}
-			if (peek(tk)->value == TOKlparen)
-			{   // It's a function template declaration
-			    //printf("function template declaration\n");
-
-			    // Gather template parameter list
-			    *tpl = parseTemplateParameterList();
-			}
-			break;
+			// Gather template parameter list
+			*tpl = parseTemplateParameterList();
 		    }
 		}
 
@@ -2381,9 +2352,7 @@ Statement *Parser::parseStatement(int flags)
 	case TOKfalse:
 	case TOKstring:
 	case TOKlparen:
-#if DCASTSYNTAX
 	case TOKcast:
-#endif
 	case TOKmul:
 	case TOKmin:
 	case TOKadd:
@@ -3622,6 +3591,7 @@ Expression *Parser::parsePrimaryExp()
 {   Expression *e;
     Type *t;
     Identifier *id;
+    enum TOK save;
     Loc loc = this->loc;
 
     switch (token.value)
@@ -3879,8 +3849,28 @@ Expression *Parser::parsePrimaryExp()
 	    break;
 	}
 
+	case TOKlparen:
+	    if (peekPastParen(&token)->value == TOKlcurly)
+	    {	// (arguments) { statements... }
+		save = TOKdelegate;
+		goto case_delegate;
+	    }
+	    // ( expression )
+	    nextToken();
+	    e = parseExpression();
+	    check(TOKrparen);
+	    break;
+
+	case TOKlcurly:
+	    // { statements... }
+	    save = TOKdelegate;
+	    goto case_delegate;
+
 	case TOKfunction:
 	case TOKdelegate:
+	    save = token.value;
+	    nextToken();
+	case_delegate:
 	{
 	    /* function type(parameters) { body }
 	     * delegate type(parameters) { body }
@@ -3889,19 +3879,17 @@ Expression *Parser::parsePrimaryExp()
 	    int varargs;
 	    FuncLiteralDeclaration *fd;
 	    Type *t;
-	    enum TOK save = token.value;
 
-	    nextToken();
 	    if (token.value == TOKlcurly)
-	    {	// default to void()
-		t = Type::tvoid;
+	    {
+		t = NULL;
 		varargs = 0;
 		arguments = new Array();
 	    }
 	    else
 	    {
 		if (token.value == TOKlparen)
-		    t = Type::tvoid;		// default to void return type
+		    t = NULL;
 		else
 		{
 		    t = parseBasicType();
@@ -4096,7 +4084,6 @@ Expression *Parser::parseUnaryExp()
 	    e = parseNewExp(NULL);
 	    break;
 
-#if DCASTSYNTAX
 	case TOKcast:				// cast(type) expression
 	{   Type *t;
 
@@ -4126,14 +4113,14 @@ Expression *Parser::parseUnaryExp()
 
 	    break;
 	}
-#endif
+
 	case TOKlparen:
 	{   Token *tk;
 
-	    nextToken();
+	    tk = peek(&token);
 #if CCASTSYNTAX
 	    // If cast
-	    if (isDeclaration(&token, 0, TOKrparen, &tk))
+	    if (isDeclaration(tk, 0, TOKrparen, &tk))
 	    {
 		tk = peek(tk);		// skip over right parenthesis
 		switch (tk->value)
@@ -4142,7 +4129,6 @@ Expression *Parser::parseUnaryExp()
 		    case TOKplusplus:
 		    case TOKminusminus:
 		    case TOKnot:
-		    case TOKtilde:
 		    case TOKdelete:
 		    case TOKnew:
 		    case TOKlparen:
@@ -4166,10 +4152,13 @@ Expression *Parser::parseUnaryExp()
 		    case TOKwcharv:
 		    case TOKdcharv:
 		    case TOKstring:
+#if 0
+		    case TOKtilde:
 		    case TOKand:
 		    case TOKmul:
 		    case TOKmin:
 		    case TOKadd:
+#endif
 		    case TOKfunction:
 		    case TOKdelegate:
 		    case TOKtypeof:
@@ -4177,6 +4166,7 @@ Expression *Parser::parseUnaryExp()
 		    {	// (type) una_exp
 			Type *t;
 
+			nextToken();
 			t = parseBasicType();
 			t = parseDeclarator(t,NULL);
 			check(TOKrparen);
@@ -4203,10 +4193,7 @@ Expression *Parser::parseUnaryExp()
 		}
 	    }
 #endif
-	    // ( expression )
-	    e = parseExpression();
-	    check(TOKrparen);
-	    e = parsePostExp(e);
+	    e = parsePrimaryExp();
 	    break;
 	}
 	default:

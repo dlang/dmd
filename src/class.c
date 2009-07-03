@@ -400,24 +400,27 @@ void ClassDeclaration::semantic(Scope *sc)
 	}
 	else if (!(storage_class & STCstatic))
 	{   Dsymbol *s = toParent();
-	    ClassDeclaration *cd = s->isClassDeclaration();
-	    FuncDeclaration *fd = s->isFuncDeclaration();
+	    if (s)
+	    {
+		ClassDeclaration *cd = s->isClassDeclaration();
+		FuncDeclaration *fd = s->isFuncDeclaration();
 
 
-	    if (cd || fd)
-	    {   isnested = 1;
-		Type *t;
-		if (cd)
-		    t = cd->type;
-		else if (fd)
-		{   t = new TypePointer(Type::tvoid);
-		    t = t->semantic(0, sc);
+		if (cd || fd)
+		{   isnested = 1;
+		    Type *t;
+		    if (cd)
+			t = cd->type;
+		    else if (fd)
+		    {   t = new TypePointer(Type::tvoid);
+			t = t->semantic(0, sc);
+		    }
+		    else
+			assert(0);
+		    assert(!vthis);
+		    vthis = new ThisDeclaration(t);
+		    members->push(vthis);
 		}
-		else
-		    assert(0);
-		assert(!vthis);
-		vthis = new ThisDeclaration(t);
-		members->push(vthis);
 	    }
 	}
     }

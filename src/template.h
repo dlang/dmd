@@ -242,6 +242,8 @@ struct TemplateMixin : TemplateInstance
     Array *idents;
     TypeTypeof *tqual;
 
+    Scope *scope;		// for forward referencing
+
     TemplateMixin(Loc loc, Identifier *ident, TypeTypeof *tqual, Array *idents, Array *tiargs);
     Dsymbol *syntaxCopy(Dsymbol *s);
     void semantic(Scope *sc);

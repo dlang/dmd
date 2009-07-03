@@ -280,8 +280,9 @@ struct StringExp : Expression
     unsigned char committed;	// !=0 if type is committed
     unsigned char postfix;	// 'c', 'w', 'd'
 
-    StringExp(Loc loc, void *s, unsigned len, unsigned char postfix);
+    StringExp(Loc loc, char *s);
     StringExp(Loc loc, void *s, unsigned len);
+    StringExp(Loc loc, void *s, unsigned len, unsigned char postfix);
     int equals(Object *o);
     char *toChars();
     Expression *semantic(Scope *sc);
@@ -1194,6 +1195,7 @@ struct InExp : BinExp
 
     // For operator overloading
     Identifier *opId();
+    Identifier *opId_r();
 
     elem *toElem(IRState *irs);
 };
