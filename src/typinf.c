@@ -298,8 +298,12 @@ void TypeInfoEnumDeclaration::toDt(dt_t **pdt)
      *	void[] m_init;
      */
 
-    sd->memtype->getTypeInfo(NULL);
-    dtxoff(pdt, sd->memtype->vtinfo->toSymbol(), 0, TYnptr);	// TypeInfo for enum members
+    if (sd->memtype)
+    {	sd->memtype->getTypeInfo(NULL);
+	dtxoff(pdt, sd->memtype->vtinfo->toSymbol(), 0, TYnptr);	// TypeInfo for enum members
+    }
+    else
+	dtdword(pdt, 0);
 
     char *name = sd->toPrettyChars();
     size_t namelen = strlen(name);
@@ -307,7 +311,7 @@ void TypeInfoEnumDeclaration::toDt(dt_t **pdt)
     dtabytes(pdt, TYnptr, 0, namelen + 1, name);
 
     // void[] init;
-    if (tinfo->isZeroInit() || !sd->defaultval)
+    if (!sd->defaultval || tinfo->isZeroInit())
     {	// 0 initializer, or the same as the base type
 	dtdword(pdt, 0);	// init.length
 	dtdword(pdt, 0);	// init.ptr

@@ -136,8 +136,25 @@ Array *Parser::parseDeclDefs(int once)
 	switch (token.value)
 	{
 	    case TOKenum:
-		s = parseEnum();
+	    {	/* Determine if this is a manifest constant declaration,
+		 * or a conventional enum.
+		 */
+		Token *t = peek(&token);
+		if (t->value == TOKlcurly || t->value == TOKcolon)
+		    s = parseEnum();
+		else if (t->value != TOKidentifier)
+		    goto Ldeclaration;
+		else
+		{
+		    t = peek(t);
+		    if (t->value == TOKlcurly || t->value == TOKcolon ||
+			t->value == TOKsemicolon)
+			s = parseEnum();
+		    else
+			goto Ldeclaration;
+		}
 		break;
+	    }
 
 	    case TOKstruct:
 	    case TOKunion:
@@ -267,13 +284,14 @@ Array *Parser::parseDeclDefs(int once)
 	    case TOKabstract:	  stc = STCabstract;	 goto Lstc;
 	    case TOKsynchronized: stc = STCsynchronized; goto Lstc;
 	    case TOKdeprecated:   stc = STCdeprecated;	 goto Lstc;
+	    //case TOKmanifest:	  stc = STCmanifest;	 goto Lstc;
 
 	    Lstc:
 		if (storageClass & stc)
 		    error("redundant storage class %s", Token::toChars(token.value));
 		{
 		unsigned u = storageClass | stc;
-		u &= STCconst | STCinvariant | STCfinal;
+		u &= STCconst | STCinvariant | STCmanifest;
 		if (u & (u - 1))
 		    error("conflicting storage class %s", Token::toChars(token.value));
 		}
@@ -299,6 +317,7 @@ Array *Parser::parseDeclDefs(int once)
 		    case TOKabstract:	  stc = STCabstract;	 goto Lstc;
 		    case TOKsynchronized: stc = STCsynchronized; goto Lstc;
 		    case TOKdeprecated:   stc = STCdeprecated;	 goto Lstc;
+		    //case TOKmanifest:	  stc = STCmanifest;	 goto Lstc;
 		    default:
 			break;
 		}
@@ -1030,7 +1049,7 @@ Arguments *Parser::parseParameters(int *pvarargs)
 EnumDeclaration *Parser::parseEnum()
 {   EnumDeclaration *e;
     Identifier *id;
-    Type *t;
+    Type *memtype;
     Loc loc = this->loc;
 
     //printf("Parser::parseEnum()\n");
@@ -1045,12 +1064,13 @@ EnumDeclaration *Parser::parseEnum()
     if (token.value == TOKcolon)
     {
 	nextToken();
-	t = parseBasicType();
+	memtype = parseBasicType();
+	memtype = parseDeclarator(memtype, NULL, NULL);
     }
     else
-	t = NULL;
+	memtype = NULL;
 
-    e = new EnumDeclaration(loc, id, t);
+    e = new EnumDeclaration(loc, id, memtype);
     if (token.value == TOKsemicolon && id)
  	nextToken();
     else if (token.value == TOKlcurly)
@@ -1061,42 +1081,61 @@ EnumDeclaration *Parser::parseEnum()
 	unsigned char *comment = token.blockComment;
 	while (token.value != TOKrcurly)
 	{
-	    if (token.value == TOKidentifier)
-	    {	EnumMember *em;
-		Expression *value;
-		Identifier *ident;
+	    /* Can take the following forms:
+	     *	1. ident
+	     *	2. ident = value
+	     *	3. type ident = value
+	     */
 
-		loc = this->loc;
+	    loc = this->loc;
+
+	    Type *type = NULL;
+	    Identifier *ident;
+	    Token *tp = peek(&token);
+	    if (token.value == TOKidentifier &&
+		(tp->value == TOKassign || tp->value == TOKcomma || tp->value == TOKrcurly))
+	    {
 		ident = token.ident;
-		value = NULL;
+		type = NULL;
 		nextToken();
-		if (token.value == TOKassign)
-		{
-		    nextToken();
-		    value = parseAssignExp();
-		}
-		em = new EnumMember(loc, ident, value);
-		e->members->push(em);
-		if (token.value == TOKrcurly)
-		    ;
-		else
-		{   addComment(em, comment);
-		    comment = NULL;
-		    check(TOKcomma);
-		}
-		addComment(em, comment);
-		comment = token.blockComment;
 	    }
 	    else
-	    {	error("enum member expected");
-		nextToken();
+	    {
+		type = parseType(&ident, NULL);
+		if (id || memtype)
+		    error("type only allowed if anonymous enum and no enum type");
 	    }
+
+	    Expression *value;
+	    if (token.value == TOKassign)
+	    {
+		nextToken();
+		value = parseAssignExp();
+	    }
+	    else
+	    {	value = NULL;
+		if (type)
+		    error("if type, there must be an initializer");
+	    }
+
+	    EnumMember *em = new EnumMember(loc, ident, value, type);
+	    e->members->push(em);
+
+	    if (token.value == TOKrcurly)
+		;
+	    else
+	    {   addComment(em, comment);
+		comment = NULL;
+		check(TOKcomma);
+	    }
+	    addComment(em, comment);
+	    comment = token.blockComment;
 	}
 	nextToken();
     }
     else
 	error("enum declaration is invalid");
-
+    //printf("-parseEnum() %s\n", e->toChars());
     return e;
 }
 
@@ -2014,7 +2053,7 @@ Array *Parser::parseDeclarations()
     unsigned char *comment = token.blockComment;
     enum LINK link = linkage;
 
-    //printf("parseDeclarations()\n");
+    //printf("parseDeclarations() %s\n", token.toChars());
     switch (token.value)
     {
 	case TOKtypedef:
@@ -2053,10 +2092,17 @@ Array *Parser::parseDeclarations()
 	    case TOKabstract:	stc = STCabstract;	 goto L1;
 	    case TOKsynchronized: stc = STCsynchronized; goto L1;
 	    case TOKdeprecated: stc = STCdeprecated;	 goto L1;
+	    case TOKenum:	stc = STCmanifest;	 goto L1;
 	    L1:
 		if (storage_class & stc)
 		    error("redundant storage class '%s'", token.toChars());
 		storage_class = (STC) (storage_class | stc);
+		{
+		unsigned u = storage_class;
+		u &= STCconst | STCinvariant | STCmanifest;
+		if (u & (u - 1))
+		    error("conflicting storage class %s", Token::toChars(token.value));
+		}
 		nextToken();
 		continue;
 
@@ -2680,9 +2726,24 @@ Statement *Parser::parseStatement(int flags)
 	}
 
 	case TOKenum:
-	{   Dsymbol *d;
-
-	    d = parseEnum();
+	{   /* Determine if this is a manifest constant declaration,
+	     * or a conventional enum.
+	     */
+	    Dsymbol *d;
+	    Token *t = peek(&token);
+	    if (t->value == TOKlcurly || t->value == TOKcolon)
+		d = parseEnum();
+	    else if (t->value != TOKidentifier)
+		goto Ldeclaration;
+	    else
+	    {
+		t = peek(t);
+		if (t->value == TOKlcurly || t->value == TOKcolon ||
+		    t->value == TOKsemicolon)
+		    d = parseEnum();
+		else
+		    goto Ldeclaration;
+	    }
 	    s = new DeclarationStatement(loc, d);
 	    break;
 	}

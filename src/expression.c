@@ -743,6 +743,7 @@ void Expression::rvalue()
 	dump(0);
 	halt();
 #endif
+	type = Type::tint32;
     }
 }
 
@@ -826,7 +827,7 @@ Expression *Expression::modifiableLvalue(Scope *sc, Expression *e)
     //printf("Expression::modifiableLvalue() %s, type = %s\n", toChars(), type->toChars());
 
     // See if this expression is a modifiable lvalue (i.e. not const)
-    if (type && !type->isMutable())
+    if (type && (!type->isMutable() || !type->isAssignable()))
 	error("%s is not mutable", e->toChars());
 
     return toLvalue(sc, e);
@@ -1147,7 +1148,8 @@ Expression *IntegerExp::semantic(Scope *sc)
 	    type = Type::tint32;
     }
     else
-    {	type = type->semantic(loc, sc);
+    {	if (!type->deco)
+	    type = type->semantic(loc, sc);
     }
     return this;
 }
@@ -5140,11 +5142,15 @@ Expression *DotVarExp::modifiableLvalue(Scope *sc, Expression *e)
 	}
     }
     else
-    {	Type *t1 = e1->type->toBasetype();
+    {
+	Type *t1 = e1->type->toBasetype();
 
 	if (!t1->isMutable() ||
 	    (t1->ty == Tpointer && !t1->nextOf()->isMutable()) ||
-	    !var->type->isMutable())
+	    !var->type->isMutable() ||
+	    !var->type->isAssignable() ||
+	    var->storage_class & STCmanifest
+	   )
 	    error("cannot modify const/invariant %s", toChars());
     }
     return this;
@@ -5707,7 +5713,7 @@ Lagain:
 		else
 		{
 		    if (tthis->mod != 0)
-		    {	//printf("test1: mod = %x\n", tthis->mod);
+		    {	//printf("mod = %x\n", tthis->mod);
 			error("%s can only be called on a mutable object, not %s", e1->toChars(), tthis->toChars());
 		    }
 		}
@@ -7966,7 +7972,8 @@ Expression *CatExp::semantic(Scope *sc)
 	Type *tb = type->toBasetype();
 	if (tb->ty == Tsarray)
 	    type = tb->nextOf()->arrayOf();
-	if (type->ty == Tarray && tb1->nextOf()->mod != tb2->nextOf()->mod)
+	if (type->ty == Tarray && tb1->nextOf() && tb2->nextOf() &&
+	    tb1->nextOf()->mod != tb2->nextOf()->mod)
 	    type = type->nextOf()->toHeadMutable()->arrayOf();
 #if 0
 	e1->type->print();
@@ -7980,12 +7987,6 @@ Expression *CatExp::semantic(Scope *sc)
 	    e = optimize(WANTvalue);
 	else if ((t1->ty == Tarray || t1->ty == Tsarray) &&
 		 (t2->ty == Tarray || t2->ty == Tsarray))
-#if 0
-	else if ((e1->type->implicitConvTo(e2->type) >= MATCHconst ||
-		  e2->type->implicitConvTo(e1->type) >= MATCHconst) &&
-		(e1->type->toBasetype()->ty == Tarray ||
-		 e1->type->toBasetype()->ty == Tsarray))
-#endif
 	{
 	    e = this;
 	}
@@ -8581,6 +8582,7 @@ Expression *CmpExp::semantic(Scope *sc)
 #endif
     else
 	e = this;
+    //printf("CmpExp: %s\n", e->toChars());
     return e;
 }
 

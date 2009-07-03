@@ -1108,13 +1108,16 @@ void EnumDeclaration::toObjFile()
 {
     //printf("EnumDeclaration::toObjFile('%s')\n", toChars());
 
+    if (isAnonymous())
+	return;
+
     if (global.params.symdebug)
 	toDebug();
 
     type->getTypeInfo(NULL);	// generate TypeInfo
 
     TypeEnum *tc = (TypeEnum *)type;
-    if (type->isZeroInit() || !tc->sym->defaultval)
+    if (!tc->sym->defaultval || type->isZeroInit())
 	;
     else
     {
@@ -1135,8 +1138,7 @@ void EnumDeclaration::toObjFile()
 #if ELFOBJ // Burton
 	sinit->Sseg = CDATA;
 #endif /* ELFOBJ */
-	dtnbytes(&sinit->Sdt, tc->size(0), (char *)&tc->sym->defaultval);
-	//sinit->Sdt = tc->sym->init->toDt();
+	tc->sym->defaultval->toDt(&sinit->Sdt);
 	outdata(sinit);
     }
 }

@@ -833,7 +833,8 @@ L2:
 	    printf("\tfparam->type = %s\n", fparam->type->toChars());
 #endif
 
-	    m = farg->type->toHeadMutable()->deduceType(scope, fparam->type, parameters, &dedtypes);
+	    //m = farg->type->toHeadMutable()->deduceType(scope, fparam->type, parameters, &dedtypes);
+	    m = farg->type->deduceType(scope, fparam->type, parameters, &dedtypes);
 	    //printf("\tdeduceType m = %d\n", m);
 
 	    /* If no match, see if there's a conversion to a delegate
@@ -962,7 +963,7 @@ void TemplateDeclaration::declareParameter(Scope *sc, TemplateParameter *tp, Obj
 	assert(tvp);
 
 	VarDeclaration *v = new VarDeclaration(loc, tvp->valType, tp->ident, init);
-	v->storage_class = STCstatic | STCconst;
+	v->storage_class = STCmanifest;
 	s = v;
     }
     else if (va)
@@ -1976,8 +1977,8 @@ MATCH TemplateTypeParameter::matchArg(Scope *sc, Objects *tiargs,
 	/* This is so that:
 	 *   template Foo(T), Foo!(const int), => ta == int
 	 */
-	if (!(flags & 1))
-	    ta = ta->toHeadMutable();
+//	if (!(flags & 1))
+//	    ta = ta->toHeadMutable();
 
 	if (t)
 	{   // Must match already deduced type
@@ -2433,12 +2434,12 @@ MATCH TemplateValueParameter::matchArg(Scope *sc,
 	e = e->semantic(sc);
 	e = e->implicitCastTo(sc, valType);
 	e = e->optimize(WANTvalue | WANTinterpret);
-	e->type = e->type->toHeadMutable();
+	//e->type = e->type->toHeadMutable();
 
 	ei = ei->syntaxCopy();
 	ei = ei->semantic(sc);
 	ei = ei->optimize(WANTvalue | WANTinterpret);
-	ei->type = ei->type->toHeadMutable();
+	//ei->type = ei->type->toHeadMutable();
 	//printf("\tei: %s, %s\n", ei->toChars(), ei->type->toChars());
 	//printf("\te : %s, %s\n", e->toChars(), e->type->toChars());
 	if (!ei->equals(e))
@@ -2458,7 +2459,7 @@ Lmatch:
     //printf("vt = %s\n", vt->toChars());
     if (ei->type)
     {
-	ei->type = ei->type->toHeadMutable();
+	//ei->type = ei->type->toHeadMutable();
 	m = (MATCH)ei->implicitConvTo(vt);
 	//printf("m: %d\n", m);
 	if (!m)
@@ -2468,7 +2469,7 @@ Lmatch:
 
     init = new ExpInitializer(loc, ei);
     sparam = new VarDeclaration(loc, vt, ident, init);
-    sparam->storage_class = STCstatic | STCconst;
+    sparam->storage_class = STCmanifest;
     *psparam = sparam;
     return m;
 
@@ -3512,7 +3513,8 @@ Identifier *TemplateInstance::genIdent()
 #if 1
 	    /* Use deco that matches what it would be for a function parameter
 	     */
-	    buf.writestring(ea->type->toHeadMutable()->deco);
+	    //buf.writestring(ea->type->toHeadMutable()->deco);
+	    buf.writestring(ea->type->deco);
 #else
 	    // Use type of parameter, not type of argument
 	    TemplateParameter *tp = (TemplateParameter *)tempdecl->parameters->data[i];

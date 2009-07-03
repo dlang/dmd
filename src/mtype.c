@@ -668,6 +668,18 @@ int Type::isString()
     return FALSE;
 }
 
+/**************************
+ * Given:
+ *	T a, b;
+ * Can we assign:
+ *	a = b;
+ * ?
+ */
+int Type::isAssignable()
+{
+    return TRUE;
+}
+
 int Type::checkBoolean()
 {
     return isscalar();
@@ -1656,8 +1668,13 @@ int TypeBasic::isscalar()
 MATCH TypeBasic::implicitConvTo(Type *to)
 {
     //printf("TypeBasic::implicitConvTo(%s) from %s\n", to->toChars(), toChars());
-    if (this == to || ty == to->ty)
+    if (this == to)
 	return MATCHexact;
+
+    if (ty == to->ty)
+    {
+	return (mod == to->mod) ? MATCHexact : MATCHconst;
+    }
 
     if (ty == Tvoid || to->ty == Tvoid)
 	return MATCHnomatch;
@@ -2190,6 +2207,8 @@ MATCH TypeSArray::implicitConvTo(Type *to)
 	    MATCH m = next->implicitConvTo(tsa->next);
 	    if (m >= MATCHconst)
 	    {
+		if (mod != to->mod)
+		    m = MATCHconst;
 		return m;
 	    }
 	}
@@ -2375,7 +2394,11 @@ MATCH TypeDArray::implicitConvTo(Type *to)
 
 	MATCH m = next->constConv(ta->next);
 	if (m != MATCHnomatch)
+	{
+	    if (m == MATCHexact && mod != to->mod)
+		m = MATCHconst;
 	    return m;
+	}
 
 	/* Conversion of array of derived to array of base
 	 */
@@ -2692,7 +2715,11 @@ MATCH TypePointer::implicitConvTo(Type *to)
 
         MATCH m = next->constConv(tp->next);
         if (m != MATCHnomatch)
+	{
+	    if (m == MATCHexact && mod != to->mod)
+		m = MATCHconst;
             return m;
+	}
 
         /* Conversion of ptr to derived to ptr to base
          */
@@ -4106,6 +4133,7 @@ char *TypeEnum::toChars()
 
 Type *TypeEnum::semantic(Loc loc, Scope *sc)
 {
+    //printf("TypeEnum::semantic() %s\n", toChars());
     sym->semantic(sc);
     return merge();
 }
@@ -4155,8 +4183,6 @@ void TypeEnum::toDecoBuffer(OutBuffer *buf, int flag)
 {   char *name;
 
     name = sym->mangle();
-//    if (name[0] == '_' && name[1] == 'D')
-//	name += 2;
     Type::toDecoBuffer(buf, flag);
     buf->printf("%s", name);
 }
@@ -4172,28 +4198,18 @@ void TypeEnum::toCBuffer2(OutBuffer *buf, HdrGenState *hgs, int mod)
 
 Expression *TypeEnum::dotExp(Scope *sc, Expression *e, Identifier *ident)
 {
-    EnumMember *m;
-    Dsymbol *s;
-    Expression *em;
-
 #if LOGDOTEXP
     printf("TypeEnum::dotExp(e = '%s', ident = '%s') '%s'\n", e->toChars(), ident->toChars(), toChars());
 #endif
-    if (!sym->symtab)
-	goto Lfwd;
-    s = sym->symtab->lookup(ident);
+    Dsymbol *s = sym->search(e->loc, ident, 0);
     if (!s)
     {
 	return getProperty(e->loc, ident);
     }
-    m = s->isEnumMember();
-    em = m->value->copy();
+    EnumMember *m = s->isEnumMember();
+    Expression *em = m->value->copy();
     em->loc = e->loc;
     return em;
-
-Lfwd:
-    error(e->loc, "forward reference of %s.%s", toChars(), ident->toChars());
-    return new IntegerExp(0, 0, this);
 }
 
 Expression *TypeEnum::getProperty(Loc loc, Identifier *ident)
@@ -4201,27 +4217,23 @@ Expression *TypeEnum::getProperty(Loc loc, Identifier *ident)
 
     if (ident == Id::max)
     {
-	if (!sym->symtab)
+	if (!sym->maxval)
 	    goto Lfwd;
-	e = new IntegerExp(0, sym->maxval, this);
+	e = sym->maxval;
     }
     else if (ident == Id::min)
     {
-	if (!sym->symtab)
+	if (!sym->minval)
 	    goto Lfwd;
-	e = new IntegerExp(0, sym->minval, this);
+	e = sym->minval;
     }
     else if (ident == Id::init)
     {
-	if (!sym->symtab)
-	    goto Lfwd;
 	e = defaultInit(loc);
     }
     else
     {
-	if (!sym->memtype)
-	    goto Lfwd;
-	e = sym->memtype->getProperty(loc, ident);
+	e = toBasetype()->getProperty(loc, ident);
     }
     return e;
 
@@ -4256,7 +4268,7 @@ MATCH TypeEnum::implicitConvTo(Type *to)
 
     //printf("TypeEnum::implicitConvTo()\n");
     if (ty == to->ty && sym == ((TypeEnum *)to)->sym)
-	m = MATCHexact;		// exact match
+	m = (mod == to->mod) ? MATCHexact : MATCHconst;
     else if (sym->memtype->implicitConvTo(to))
 	m = MATCHconvert;	// match with conversions
     else
@@ -4281,14 +4293,18 @@ Expression *TypeEnum::defaultInit(Loc loc)
     printf("TypeEnum::defaultInit() '%s'\n", toChars());
 #endif
     // Initialize to first member of enum
-    Expression *e;
-    e = new IntegerExp(loc, sym->defaultval, this);
-    return e;
+    //printf("%s\n", sym->defaultval->type->toChars());
+    if (!sym->defaultval)
+    {
+	error(loc, "forward reference of %s.init", toChars());
+	return new IntegerExp(0, 0, this);
+    }
+    return sym->defaultval;
 }
 
 int TypeEnum::isZeroInit()
 {
-    return (sym->defaultval == 0);
+    return sym->defaultval->isBool(FALSE);
 }
 
 int TypeEnum::hasPointers()
@@ -4418,6 +4434,11 @@ int TypeTypedef::isscalar()
     return sym->basetype->isscalar();
 }
 
+int TypeTypedef::isAssignable()
+{
+    return sym->basetype->isAssignable();
+}
+
 int TypeTypedef::checkBoolean()
 {
     return sym->basetype->checkBoolean();
@@ -4530,11 +4551,13 @@ TypeStruct::TypeStruct(StructDeclaration *sym)
 char *TypeStruct::toChars()
 {
     //printf("sym.parent: %s, deco = %s\n", sym->parent->toChars(), deco);
-    TemplateInstance *ti = sym->parent->isTemplateInstance();
-    if (ti && ti->toAlias() == sym)
-	return ti->toChars();
     if (mod)
 	return Type::toChars();
+    TemplateInstance *ti = sym->parent->isTemplateInstance();
+    if (ti && ti->toAlias() == sym)
+    {
+	return ti->toChars();
+    }
     return sym->toChars();
 }
 
@@ -4786,6 +4809,19 @@ int TypeStruct::checkBoolean()
     return FALSE;
 }
 
+int TypeStruct::isAssignable()
+{
+    /* If any of the fields are const or invariant,
+     * then one cannot assign this struct.
+     */
+    for (size_t i = 0; i < sym->fields.dim; i++)
+    {   VarDeclaration *v = (VarDeclaration *)sym->fields.data[i];
+	if (v->isConst() || v->isInvariant())
+	    return FALSE;
+    }
+    return TRUE;
+}
+
 int TypeStruct::hasPointers()
 {
     StructDeclaration *s = sym;
@@ -4808,7 +4844,15 @@ MATCH TypeStruct::implicitConvTo(Type *to)
 
     //printf("TypeStruct::implicitConvTo()\n");
     if (ty == to->ty && sym == ((TypeStruct *)to)->sym)
-	m = MATCHexact;		// exact match
+    {	m = MATCHexact;		// exact match
+	if (mod != to->mod)
+	{
+	    if (to->mod == MODconst)
+		m = MATCHconst;
+	    else
+		m = MATCHnomatch;
+	}
+    }
     else
 	m = MATCHnomatch;	// no match
     return m;
@@ -5694,7 +5738,8 @@ void Argument::toDecoBuffer(OutBuffer *buf)
 	mod = 0;
     type->toDecoBuffer(buf, mod);
 #else
-    type->toHeadMutable()->toDecoBuffer(buf, 0);
+    //type->toHeadMutable()->toDecoBuffer(buf, 0);
+    type->toDecoBuffer(buf, 0);
 #endif
 }
 

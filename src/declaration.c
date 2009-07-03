@@ -90,11 +90,6 @@ void Declaration::checkModify(Loc loc, Scope *sc)
     if (sc->incontract && isParameter())
 	error(loc, "cannot modify parameter '%s' in contract", toChars());
 
-    VarDeclaration *v = isVarDeclaration();
-    if (v && v->canassign == 0 &&
-        (isConst() || isInvariant()) && !isCtorinit())
-	error(loc, "cannot modify const/invariant variable '%s'", toChars());
-
     if (isCtorinit())
     {	// It's only modifiable if inside the right constructor
 	Dsymbol *s = sc->func;
@@ -109,6 +104,7 @@ void Declaration::checkModify(Loc loc, Scope *sc)
 		fd->toParent() == toParent()
 	       )
 	    {
+		VarDeclaration *v = isVarDeclaration();
 		assert(v);
 		v->ctorinit = 1;
 		//printf("setting ctorinit\n");
@@ -127,6 +123,24 @@ void Declaration::checkModify(Loc loc, Scope *sc)
 		}
 	    }
 	    break;
+	}
+    }
+    else
+    {
+	VarDeclaration *v = isVarDeclaration();
+	if (v && v->canassign == 0)
+	{
+	    char *p = NULL;
+	    if (isConst())
+		p = "const";
+	    else if (isInvariant())
+		p = "invariant";
+	    else if (storage_class & STCmanifest)
+		p = "manifest constant";
+	    else if (!type->isAssignable())
+		p = "struct with immutable members";
+	    if (p)
+		error(loc, "cannot modify %s", p);
 	}
     }
 }
@@ -751,11 +765,12 @@ Lagain:
 	if (!type->isInvariant())
 	    type = type->constOf();
     }
+    else if (type->isConst())
+	storage_class |= STCconst;
+    else if (type->isInvariant())
+	storage_class |= STCinvariant;
 
-    if (storage_class & (STCstatic | STCextern))
-    {
-    }
-    else if (isSynchronized())
+    if (isSynchronized())
     {
 	error("variable %s cannot be synchronized", toChars());
     }
@@ -767,7 +782,12 @@ Lagain:
     {
 	error("abstract cannot be applied to variable");
     }
-    else if (storage_class & STCtemplateparameter)
+    else if (storage_class & STCfinal)
+    {
+	error("final cannot be applied to variable");
+    }
+
+    if (storage_class & (STCstatic | STCextern | STCmanifest | STCtemplateparameter))
     {
     }
     else
@@ -818,9 +838,9 @@ Lagain:
 
     if (type->isauto() && !noauto)
     {
-	if (storage_class & (STCfield | STCout | STCref | STCstatic) || !fd)
+	if (storage_class & (STCfield | STCout | STCref | STCstatic | STCmanifest) || !fd)
 	{
-	    error("globals, statics, fields, ref and out parameters cannot be auto");
+	    error("globals, statics, fields, manifest constants, ref and out parameters cannot be auto");
 	}
 
 	if (!(storage_class & (STCauto | STCscope)))
@@ -837,6 +857,8 @@ Lagain:
 
     if (init)
 	storage_class |= STCinit;     // remember we had an explicit initializer
+    else if (storage_class & STCmanifest)
+	error("manifest constants must have initializers");
 
     if (!init && !sc->inunion && !isStatic() && fd &&
 	(!(storage_class & (STCfield | STCin | STCforeach | STCparameter)) || (storage_class & STCout)) &&
@@ -905,7 +927,7 @@ Lagain:
 	{
 	    // If local variable, use AssignExp to handle all the various
 	    // possibilities.
-	    if (fd && !isStatic() &&
+	    if (fd && !isStatic() && !(storage_class & STCmanifest) &&
 		!init->isVoidInitializer())
 	    {
 		Expression *e1;
@@ -968,7 +990,7 @@ Lagain:
 		init = init->semantic(sc, type);
 	    }
 	}
-	else if (storage_class & (STCconst | STCinvariant) ||
+	else if (storage_class & (STCconst | STCinvariant | STCmanifest) ||
 		 type->isConst() || type->isInvariant())
 	{
 	    /* Because we may need the results of a const declaration in a
@@ -1068,6 +1090,8 @@ Dsymbol *VarDeclaration::toAlias()
 
 void VarDeclaration::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 {
+    if (storage_class & STCmanifest)
+	buf->writestring("manifest ");
     if (storage_class & STCstatic)
 	buf->writestring("static ");
     if (storage_class & STCconst)
@@ -1114,7 +1138,8 @@ void VarDeclaration::checkCtorConstInit()
 
 void VarDeclaration::checkNestedReference(Scope *sc, Loc loc)
 {
-    if (parent && !isDataseg() && parent != sc->parent)
+    if (parent && !isDataseg() && parent != sc->parent &&
+	!(storage_class & STCmanifest))
     {
 	// The function that this variable is in
 	FuncDeclaration *fdv = toParent()->isFuncDeclaration();
@@ -1176,7 +1201,7 @@ ExpInitializer *VarDeclaration::getExpInitializer()
 
 Expression *VarDeclaration::getConstInitializer()
 {
-    if ((isConst() || isInvariant()) &&
+    if ((isConst() || isInvariant() || storage_class & STCmanifest) &&
 	storage_class & STCinit)
     {
 	ExpInitializer *ei = getExpInitializer();
@@ -1193,6 +1218,7 @@ Expression *VarDeclaration::getConstInitializer()
 
 int VarDeclaration::canTakeAddressOf()
 {
+#if 0
     /* Global variables and struct/class fields of the form:
      *	const int x = 3;
      * are not stored and hence cannot have their address taken.
@@ -1206,6 +1232,10 @@ int VarDeclaration::canTakeAddressOf()
     {
 	return 0;
     }
+#else
+    if (storage_class & STCmanifest)
+	return 0;
+#endif
     return 1;
 }
 
@@ -1221,6 +1251,8 @@ int VarDeclaration::isDataseg()
     printf("%x, %p, %p\n", storage_class & (STCstatic | STCconst), parent->isModule(), parent->isTemplateInstance());
     printf("parent = '%s'\n", parent->toChars());
 #endif
+    if (storage_class & STCmanifest)
+	return 0;
     Dsymbol *parent = this->toParent();
     if (!parent && !(storage_class & STCstatic))
     {	error("forward referenced");

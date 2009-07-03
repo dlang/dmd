@@ -1196,8 +1196,6 @@ Statement *ForeachStatement::semantic(Scope *sc)
 		    VarDeclaration *v = new VarDeclaration(loc, arg->type, arg->ident, ie);
 		    if (e->isConst())
 			v->storage_class |= STCconst;
-		    else
-			v->storage_class |= STCfinal;
 		    var = v;
 		}
 	    }
@@ -1276,14 +1274,14 @@ Statement *ForeachStatement::semantic(Scope *sc)
 
 		var = new VarDeclaration(loc, arg->type, arg->ident, NULL);
 		var->storage_class |= STCforeach;
-		var->storage_class |= arg->storageClass & (STCin | STCout | STCref | STCfinal | STCconst);
+		var->storage_class |= arg->storageClass & (STCin | STCout | STCref | STCconst | STCinvariant);
 		if (dim == 2 && i == 0)
 		{   key = var;
-		    var->storage_class |= STCfinal;
+		    //var->storage_class |= STCfinal;
 		}
 		else
-		{   if (!(arg->storageClass & STCref))
-			var->storage_class |= STCfinal;
+		{   //if (!(arg->storageClass & STCref))
+			//var->storage_class |= STCfinal;
 		    value = var;
 		}
 #if 1

@@ -156,6 +156,7 @@ char *FuncDeclaration::mangle()
 	return Declaration::mangle();
     }
 
+
 char *StructDeclaration::mangle()
 {
     //printf("StructDeclaration::mangle() '%s'\n", toChars());

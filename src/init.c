@@ -179,7 +179,7 @@ Initializer *StructInitializer::semantic(Scope *sc, Type *t)
 		s = ad->search(loc, id, 0);
 		if (!s)
 		{
-		    error("'%s' is not a member of '%s'", id->toChars(), t->toChars());
+		    error(loc, "'%s' is not a member of '%s'", id->toChars(), t->toChars());
 		    continue;
 		}
 
@@ -576,7 +576,8 @@ Type *ExpInitializer::inferType(Scope *sc)
     }
 
     Type *t = exp->type;
-    return t->ty == Tsarray ? t : t->toHeadMutable();
+    return t;
+    //return t->ty == Tsarray ? t : t->toHeadMutable();
 }
 
 Expression *ExpInitializer::toExpression()

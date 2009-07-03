@@ -1344,6 +1344,16 @@ int FuncDeclaration::overloadInsert(Dsymbol *s)
     if (!f)
 	return FALSE;
 
+#if 0
+    /* Disable this check because:
+     *	const void foo();
+     * semantic() isn't run yet on foo(), so the const hasn't been
+     * applied yet.
+     */
+    if (type)
+    {   printf("type = %s\n", type->toChars());
+	printf("f->type = %s\n", f->type->toChars());
+    }
     if (type && f->type &&	// can be NULL for overloaded constructors
 	f->type->covariant(type) &&
 	f->type->mod == type->mod &&
@@ -1352,6 +1362,7 @@ int FuncDeclaration::overloadInsert(Dsymbol *s)
 	//printf("\tfalse: conflict %s\n", kind());
 	return FALSE;
     }
+#endif
 
     if (overnext)
 	return overnext->overloadInsert(f);

@@ -2880,6 +2880,7 @@ static Keyword keywords[] =
     {	"invariant",	TOKinvariant	},
     {	"unittest",	TOKunittest	},
     {	"version",	TOKversion	},
+    //{	"manifest",	TOKmanifest	},
 
     // Added after 1.0
     {	"ref",		TOKref		},

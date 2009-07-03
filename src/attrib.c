@@ -318,10 +318,13 @@ void StorageClassDeclaration::semantic(Scope *sc)
     if (decl)
     {	unsigned stc_save = sc->stc;
 
-	if (stc & (STCauto | STCscope | STCstatic | STCextern))
-	    sc->stc &= ~(STCauto | STCscope | STCstatic | STCextern);
-	if (stc & (STCconst | STCinvariant))
-	    sc->stc &= ~(STCconst | STCinvariant);
+	/* These sets of storage classes are mutually exclusive,
+	 * so choose the innermost or most recent one.
+	 */
+	if (stc & (STCauto | STCscope | STCstatic | STCextern | STCmanifest))
+	    sc->stc &= ~(STCauto | STCscope | STCstatic | STCextern | STCmanifest);
+	if (stc & (STCconst | STCinvariant | STCmanifest))
+	    sc->stc &= ~(STCconst | STCinvariant | STCmanifest);
 	sc->stc |= stc;
 	for (unsigned i = 0; i < decl->dim; i++)
 	{

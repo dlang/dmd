@@ -220,6 +220,7 @@ struct Type : Object
     virtual int isunsigned();
     virtual int isauto();
     virtual int isString();
+    virtual int isAssignable();
     virtual int checkBoolean();	// if can be converted to boolean value
     virtual void checkDeprecated(Loc loc, Scope *sc);
     int isConst()	{ return mod == MODconst; }
@@ -588,6 +589,7 @@ struct TypeStruct : Type
     unsigned memalign(unsigned salign);
     Expression *defaultInit(Loc loc);
     int isZeroInit();
+    int isAssignable();
     int checkBoolean();
     dt_t **toDt(dt_t **pdt);
     MATCH deduceType(Scope *sc, Type *tparam, TemplateParameters *parameters, Objects *dedtypes);
@@ -659,6 +661,7 @@ struct TypeTypedef : Type
     int isscalar();
     int isunsigned();
     int checkBoolean();
+    int isAssignable();
     Type *toBasetype();
     MATCH implicitConvTo(Type *to);
     MATCH constConv(Type *to);

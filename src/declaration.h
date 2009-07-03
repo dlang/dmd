@@ -64,6 +64,7 @@ enum STC
     STCinvariant    = 0x100000,
     STCref	    = 0x200000,
     STCinit	    = 0x400000,		// has explicit initializer
+    STCmanifest	    = 0x800000,		// manifest constant
 };
 
 struct Match
@@ -257,6 +258,7 @@ struct VarDeclaration : Declaration
     // Eliminate need for dynamic_cast
     VarDeclaration *isVarDeclaration() { return (VarDeclaration *)this; }
 };
+
 
 /**************************************************************/
 

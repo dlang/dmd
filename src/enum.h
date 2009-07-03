@@ -27,12 +27,16 @@ struct HdrGenState;
 
 
 struct EnumDeclaration : ScopeDsymbol
-{
+{   /* enum ident : memtype { ... }
+     */
     Type *type;			// the TypeEnum
     Type *memtype;		// type of the members
-    integer_t maxval;
-    integer_t minval;
-    integer_t defaultval;	// default initializer
+
+    Expression *maxval;
+    Expression *minval;
+    Expression *defaultval;	// default initializer
+
+    Scope *scope;		// !=NULL means context to use
 
     EnumDeclaration(Loc loc, Identifier *id, Type *memtype);
     Dsymbol *syntaxCopy(Dsymbol *s);
@@ -41,6 +45,7 @@ struct EnumDeclaration : ScopeDsymbol
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
     Type *getType();
     char *kind();
+    Dsymbol *search(Loc, Identifier *ident, int flags);
 
     void emitComment(Scope *sc);
     void toDocBuffer(OutBuffer *buf);
@@ -59,8 +64,9 @@ struct EnumDeclaration : ScopeDsymbol
 struct EnumMember : Dsymbol
 {
     Expression *value;
+    Type *type;
 
-    EnumMember(Loc loc, Identifier *id, Expression *value);
+    EnumMember(Loc loc, Identifier *id, Expression *value, Type *type);
     Dsymbol *syntaxCopy(Dsymbol *s);
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
     char *kind();

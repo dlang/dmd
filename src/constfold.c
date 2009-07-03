@@ -879,7 +879,45 @@ Expression *Cmp(enum TOK op, Type *type, Expression *e1, Expression *e2)
     real_t r1;
     real_t r2;
 
-    if (e1->type->isreal())
+    //printf("Cmp(e1 = %s, e2 = %s)\n", e1->toChars(), e2->toChars());
+
+    if (e1->op == TOKstring && e2->op == TOKstring)
+    {	StringExp *es1 = (StringExp *)e1;
+	StringExp *es2 = (StringExp *)e2;
+	size_t sz = es1->sz;
+	assert(sz == es2->sz);
+
+	size_t len = es1->len;
+	if (es2->len < len)
+	    len = es2->len;
+
+	int cmp = memcmp(es1->string, es2->string, sz * len);
+	if (cmp == 0)
+	    cmp = es1->len - es2->len;
+
+	switch (op)
+	{
+	    case TOKlt:	n = cmp <  0;	break;
+	    case TOKle:	n = cmp <= 0;	break;
+	    case TOKgt:	n = cmp >  0;	break;
+	    case TOKge:	n = cmp >= 0;	break;
+
+	    case TOKleg:   n = 1;		break;
+	    case TOKlg:	   n = cmp != 0;	break;
+	    case TOKunord: n = 0;		break;
+	    case TOKue:	   n = cmp == 0;	break;
+	    case TOKug:	   n = cmp >  0;	break;
+	    case TOKuge:   n = cmp >= 0;	break;
+	    case TOKul:	   n = cmp <  0;	break;
+	    case TOKule:   n = cmp <= 0;	break;
+
+	    default:
+		assert(0);
+	}
+    }
+    else if (e1->isConst() != 1 || e2->isConst() != 1)
+	return EXP_CANT_INTERPRET;
+    else if (e1->type->isreal())
     {
 	r1 = e1->toReal();
 	r2 = e2->toReal();

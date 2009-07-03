@@ -44,7 +44,7 @@ Expression *expandVar(int result, VarDeclaration *v)
 {
     //printf("expandVar(result = %d, v = %s)\n", result, v ? v->toChars() : "null");
     Expression *e = NULL;
-    if (v && (v->isConst() || v->isInvariant()))
+    if (v && (v->isConst() || v->isInvariant() || v->storage_class & STCmanifest))
     {
 	Type *tb = v->type->toBasetype();
 	if (result & WANTinterpret ||
@@ -829,13 +829,14 @@ Expression *CmpExp::optimize(int result)
 {   Expression *e;
 
     //printf("CmpExp::optimize() %s\n", toChars());
-    e1 = e1->optimize(result);
-    e2 = e2->optimize(result);
-    if (e1->isConst() == 1 && e2->isConst() == 1)
-    {
-	e = Cmp(op, type, this->e1, this->e2);
-    }
-    else
+    e1 = e1->optimize(WANTvalue | (result & WANTinterpret));
+    e2 = e2->optimize(WANTvalue | (result & WANTinterpret));
+
+    Expression *e1 = fromConstInitializer(result, this->e1);
+    Expression *e2 = fromConstInitializer(result, this->e2);
+
+    e = Cmp(op, type, e1, e2);
+    if (e == EXP_CANT_INTERPRET)
 	e = this;
     return e;
 }
