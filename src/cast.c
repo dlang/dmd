@@ -110,6 +110,19 @@ fflush(stdout);
     return castTo(sc, t);
 }
 
+Expression *StringExp::implicitCastTo(Scope *sc, Type *t)
+{
+    //printf("StringExp::implicitCastTo(%s of type %s) => %s\n", toChars(), type->toChars(), t->toChars());
+    unsigned char committed = this->committed;
+    Expression *e = Expression::implicitCastTo(sc, t);
+    if (e->op == TOKstring)
+    {
+	// Retain polysemous nature if it started out that way
+	((StringExp *)e)->committed = committed;
+    }
+    return e;
+}
+
 /*******************************************
  * Return !=0 if we can implicitly convert this to type t.
  * Don't do the actual cast.
@@ -441,6 +454,15 @@ MATCH StringExp::implicitConvTo(Type *t)
 		    if (type->ty == Tsarray)
 		    {
 			if (((TypeSArray *)type)->dim->toInteger() !=
+			    ((TypeSArray *)t)->dim->toInteger())
+			    return MATCHnomatch;
+			TY tynto = t->nextOf()->ty;
+			if (tynto == Tchar || tynto == Twchar || tynto == Tdchar)
+			    return MATCHexact;
+		    }
+		    else if (type->ty == Tarray)
+		    {
+			if (length() >
 			    ((TypeSArray *)t)->dim->toInteger())
 			    return MATCHnomatch;
 			TY tynto = t->nextOf()->ty;
@@ -845,6 +867,16 @@ Expression *StringExp::castTo(Scope *sc, Type *t)
 	{   se = (StringExp *)copy();
 	    copied = 1;
 	}
+	se->type = t;
+	return se;
+    }
+
+    if (committed && tb->ty == Tsarray && typeb->ty == Tarray)
+    {
+	se = (StringExp *)copy();
+	se->sz = tb->nextOf()->size();
+	se->len = (len * sz) / se->sz;
+	se->committed = 1;
 	se->type = t;
 	return se;
     }

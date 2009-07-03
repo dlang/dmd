@@ -1850,6 +1850,7 @@ Statement *ForeachRangeStatement::semantic(Scope *sc)
 
     if (arg->type)
     {
+	arg->type = arg->type->semantic(loc, sc);
 	lwr = lwr->implicitCastTo(sc, arg->type);
 	upr = upr->implicitCastTo(sc, arg->type);
     }

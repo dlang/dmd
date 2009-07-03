@@ -925,9 +925,26 @@ L2:
 	    printf("\tfarg->type   = %s\n", farg->type->toChars());
 	    printf("\tfparam->type = %s\n", fparam->type->toChars());
 #endif
+	    Type *argtype = farg->type;
+
+#if V2
+	    /* Allow string literals which are type [] to match with [dim]
+	     */
+	    if (farg->op == TOKstring)
+	    {	StringExp *se = (StringExp *)farg;
+		if (!se->committed && argtype->ty == Tarray &&
+		    fparam->type->toBasetype()->ty == Tsarray)
+		{
+		    argtype = new TypeSArray(argtype->nextOf(), new IntegerExp(se->loc, se->len, Type::tindex));
+		    argtype = argtype->semantic(se->loc, NULL);
+		    argtype = argtype->invariantOf();
+		}
+	    }
+#endif
+
 	    MATCH m;
-	    //m = farg->type->toHeadMutable()->deduceType(scope, fparam->type, parameters, &dedtypes);
-	    m = farg->type->deduceType(scope, fparam->type, parameters, &dedtypes);
+	    //m = argtype->toHeadMutable()->deduceType(scope, fparam->type, parameters, &dedtypes);
+	    m = argtype->deduceType(scope, fparam->type, parameters, &dedtypes);
 	    //printf("\tdeduceType m = %d\n", m);
 
 	    /* If no match, see if there's a conversion to a delegate
@@ -1554,6 +1571,20 @@ Lnomatch:
 
 Lconst:
     return MATCHconst;
+}
+
+MATCH TypeDArray::deduceType(Scope *sc, Type *tparam, TemplateParameters *parameters,
+	Objects *dedtypes)
+{
+#if 0
+    printf("TypeDArray::deduceType()\n");
+    printf("\tthis   = %d, ", ty); print();
+    printf("\ttparam = %d, ", tparam->ty); tparam->print();
+#endif
+    return Type::deduceType(sc, tparam, parameters, dedtypes);
+
+  Lnomatch:
+    return MATCHnomatch;
 }
 
 MATCH TypeSArray::deduceType(Scope *sc, Type *tparam, TemplateParameters *parameters,
@@ -3216,12 +3247,16 @@ void TemplateInstance::semantic(Scope *sc)
 
 	//if (scx && scx->scopesym) printf("3: scx is %s %s\n", scx->scopesym->kind(), scx->scopesym->toChars());
 	if (scx && scx->scopesym &&
-	    scx->scopesym->members && !scx->scopesym->isTemplateMixin() &&
-	    /* The following test should really be if scx->module recursively
-	     * imports itself. Because if it does, see bugzilla 2500.
+	    scx->scopesym->members && !scx->scopesym->isTemplateMixin()
+#if 0 // removed because it bloated compile times
+	    /* The problem is if A imports B, and B imports A, and both A
+	     * and B instantiate the same template, does the compilation of A
+	     * or the compilation of B do the actual instantiation?
+	     *
+	     * see bugzilla 2500.
 	     */
-	    //scx->module == tempdecl->getModule()
-	    !scx->module->imports(scx->module)
+	    && !scx->module->imports(scx->module)
+#endif
 	   )
 	{
 	    //printf("\t1: adding to %s %s\n", scx->scopesym->kind(), scx->scopesym->toChars());
@@ -3787,14 +3822,15 @@ int TemplateInstance::isNested(Objects *args)
 			    if (p == dparent)
 				goto L1;	// isnested is most nested
 			}
-			for (Dsymbol *p = dparent; 1; p = p->parent)
+			for (Dsymbol *p = dparent; p; p = p->parent)
 			{
 			    if (p == isnested)
 			    {	isnested = dparent;
 				goto L1;	// dparent is most nested
 			    }
 			}
-			error("is nested in both %s and %s", isnested->toChars(), dparent->toChars());
+			error("%s is nested in both %s and %s",
+				toChars(), isnested->toChars(), dparent->toChars());
 		    }
 		  L1:
 		    //printf("\tnested inside %s\n", isnested->toChars());

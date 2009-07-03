@@ -182,7 +182,7 @@ void FuncDeclaration::semantic(Scope *sc)
 	error("non-virtual functions cannot be abstract");
 
     if ((f->isConst() || f->isInvariant()) && !isThis())
-	error("without 'this' cannot be const/invariant");
+	error("without 'this' cannot be const/immutable");
 
     if (isAbstract() && isFinal())
 	error("cannot be both final and abstract");
@@ -2810,7 +2810,7 @@ void InvariantDeclaration::semantic(Scope *sc)
     ad = parent->isAggregateDeclaration();
     if (!ad)
     {
-	error("invariants only are for struct/union/class definitions");
+	error("invariants are only for struct/union/class definitions");
 	return;
     }
     else if (ad->inv && ad->inv != this)

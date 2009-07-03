@@ -222,11 +222,7 @@ Symbol *VarDeclaration::toSymbol()
 		type_setcv(&t, t->Tty | mTYvolatile);
 	    }
 	}
-	if (isConst() || isInvariant())
-	{
-	    // Insert const modifiers
-	    type_setcv(&t, t->Tty | mTYconst);
-	}
+
 	switch (linkage)
 	{
 	    case LINKwindows:

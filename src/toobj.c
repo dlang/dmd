@@ -257,9 +257,7 @@ void ClassDeclaration::toObjFile(int multiobj)
 	    for (i = 0; i < dtors.dim; i++)
 	    {	DtorDeclaration *d = (DtorDeclaration *)dtors.data[i];
 		Symbol *s = d->toSymbol();
-		elem *e;
-
-		e = el_bin(OPcall, TYvoid, el_var(s), el_var(sthis));
+		elem *e = el_bin(OPcall, TYvoid, el_var(s), el_var(sthis));
 		edtor = el_combine(e, edtor);
 	    }
 

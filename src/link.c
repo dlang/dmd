@@ -246,7 +246,10 @@ int runLINK()
     if (global.params.symdebug)
 	argv.push((void *)"-g");
 
-    argv.push((void *)"-m32");
+    if (global.params.isX86_64)
+	argv.push((void *)"-m64");
+    else
+	argv.push((void *)"-m32");
 
     if (0 && global.params.exefile)
     {

@@ -1067,7 +1067,7 @@ void Type::toCBuffer3(OutBuffer *buf, HdrGenState *hgs, int mod)
 		p = "const(";
 		goto L1;
 	    case MODinvariant:
-		p = "invariant(";
+		p = "immutable(";
 	    L1:	buf->writestring(p);
 		toCBuffer2(buf, hgs, this->mod);
 		buf->writeByte(')');
@@ -2359,7 +2359,7 @@ Expression *TypeArray::dotExp(Scope *sc, Expression *e, Identifier *ident)
 	if (ident == Id::idup)
 	{   Type *einv = next->invariantOf();
 	    if (next->implicitConvTo(einv) < MATCHconst)
-		error(e->loc, "cannot implicitly convert element type %s to invariant", next->toChars());
+		error(e->loc, "cannot implicitly convert element type %s to immutable", next->toChars());
 	    e->type = einv->arrayOf();
 	}
 	else
@@ -3668,7 +3668,7 @@ void TypeFunction::toCBuffer(OutBuffer *buf, Identifier *ident, HdrGenState *hgs
     if (mod & MODconst)
 	buf->writestring("const ");
     if (mod & MODinvariant)
-	buf->writestring("invariant ");
+	buf->writestring("immutable ");
     if (mod & MODshared)
 	buf->writestring("shared ");
 
@@ -3806,7 +3806,7 @@ Type *TypeFunction::semantic(Loc loc, Scope *sc)
 	tf->next = Type::terror;
     }
     if (tf->next->isauto() && !(sc->flags & SCOPEctor))
-	error(loc, "functions cannot return auto %s", tf->next->toChars());
+	error(loc, "functions cannot return scope %s", tf->next->toChars());
 
     if (tf->parameters)
     {	size_t dim = Argument::dim(tf->parameters);
@@ -4678,6 +4678,7 @@ TypeTypeof::TypeTypeof(Loc loc, Expression *exp)
 
 Type *TypeTypeof::syntaxCopy()
 {
+    //printf("TypeTypeof::syntaxCopy() %s\n", toChars());
     TypeTypeof *t;
 
     t = new TypeTypeof(loc, exp->syntaxCopy());
@@ -5556,6 +5557,25 @@ L1:
 	return e;
     }
 
+    OverloadSet *o = s->isOverloadSet();
+    if (o)
+    {	/* We really should allow this, triggered by:
+	 *   template c()
+	 *   {
+	 *	void a();
+	 *	void b () { this.a(); }
+	 *   }
+	 *   struct S
+	 *   {
+	 *	mixin c;
+	 *	mixin c;
+	 *  }
+	 *  alias S e;
+	 */
+	error(e->loc, "overload set for %s.%s not allowed in struct declaration", e->toChars(), ident->toChars());
+	return new IntegerExp(0);
+    }
+
     d = s->isDeclaration();
 #ifdef DEBUG
     if (!d)
@@ -5997,6 +6017,14 @@ L1:
 	Expression *de = new DotExp(e->loc, e, new ScopeExp(e->loc, ti));
 	de->type = e->type;
 	return de;
+    }
+
+    OverloadSet *o = s->isOverloadSet();
+    if (o)
+    {	/* We really should allow this
+	 */
+	error(e->loc, "overload set for %s.%s not allowed in struct declaration", e->toChars(), ident->toChars());
+	return new IntegerExp(0);
     }
 
     Declaration *d = s->isDeclaration();
@@ -6559,7 +6587,7 @@ void Argument::argsToCBuffer(OutBuffer *buf, HdrGenState *hgs, Arguments *argume
 	    if (arg->storageClass & STCconst)
 		buf->writestring("const ");
 	    if (arg->storageClass & STCinvariant)
-		buf->writestring("invariant ");
+		buf->writestring("immutable ");
 	    if (arg->storageClass & STCshared)
 		buf->writestring("shared ");
 

@@ -1,6 +1,6 @@
 
 // Compiler implementation of the D programming language
-// Copyright (c) 1999-2008 by Digital Mars
+// Copyright (c) 1999-2009 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // http://www.digitalmars.com
@@ -2510,7 +2510,8 @@ Expression *StringExp::semantic(Scope *sc)
 		string = buffer.extractData();
 		len = newlen;
 		sz = 4;
-		type = new TypeSArray(Type::tdchar, new IntegerExp(loc, len, Type::tindex));
+		//type = new TypeSArray(Type::tdchar, new IntegerExp(loc, len, Type::tindex));
+		type = new TypeDArray(Type::tdchar->invariantOf());
 		committed = 1;
 		break;
 
@@ -2533,21 +2534,71 @@ Expression *StringExp::semantic(Scope *sc)
 		string = buffer.extractData();
 		len = newlen;
 		sz = 2;
-		type = new TypeSArray(Type::twchar, new IntegerExp(loc, len, Type::tindex));
+		//type = new TypeSArray(Type::twchar, new IntegerExp(loc, len, Type::tindex));
+		type = new TypeDArray(Type::twchar->invariantOf());
 		committed = 1;
 		break;
 
 	    case 'c':
 		committed = 1;
 	    default:
-		type = new TypeSArray(Type::tchar, new IntegerExp(loc, len, Type::tindex));
+		//type = new TypeSArray(Type::tchar, new IntegerExp(loc, len, Type::tindex));
+		type = new TypeDArray(Type::tchar->invariantOf());
 		break;
 	}
 	type = type->semantic(loc, sc);
-	type = type->invariantOf();
+	//type = type->invariantOf();
 	//printf("type = %s\n", type->toChars());
     }
     return this;
+}
+
+/**********************************
+ * Return length of string.
+ */
+
+size_t StringExp::length()
+{
+    size_t result = 0;
+    dchar_t c;
+    const char *p;
+
+    switch (sz)
+    {
+	case 1:
+	    for (size_t u = 0; u < len;)
+	    {
+		p = utf_decodeChar((unsigned char *)string, len, &u, &c);
+		if (p)
+		{   error("%s", p);
+		    break;
+		}
+		else
+		    result++;
+	    }
+	    break;
+
+	case 2:
+	    for (size_t u = 0; u < len;)
+	    {
+		p = utf_decodeWchar((unsigned short *)string, len, &u, &c);
+		if (p)
+		{   error("%s", p);
+		    break;
+		}
+		else
+		    result++;
+	    }
+	    break;
+
+	case 4:
+	    result = len;
+	    break;
+
+	default:
+	    assert(0);
+    }
+    return result;
 }
 
 /****************************************
@@ -3255,6 +3306,12 @@ TypeExp::TypeExp(Loc loc, Type *type)
     this->type = type;
 }
 
+Expression *TypeExp::syntaxCopy()
+{
+    //printf("TypeExp::syntaxCopy()\n");
+    return new TypeExp(loc, type->syntaxCopy());
+}
+
 Expression *TypeExp::semantic(Scope *sc)
 {
     //printf("TypeExp::semantic(%s)\n", type->toChars());
@@ -3944,7 +4001,7 @@ void VarExp::checkEscape()
 	if (tb->ty == Tarray || tb->ty == Tsarray || tb->ty == Tclass)
 	{
 	    if ((v->isAuto() || v->isScope()) && !v->noauto)
-		error("escaping reference to auto local %s", v->toChars());
+		error("escaping reference to scope local %s", v->toChars());
 	    else if (v->storage_class & STCvariadic)
 		error("escaping reference to variadic parameter %s", v->toChars());
 	}
@@ -5636,7 +5693,7 @@ Expression *DotVarExp::modifiableLvalue(Scope *sc, Expression *e)
 	    !var->type->isAssignable() ||
 	    var->storage_class & STCmanifest
 	   )
-	    error("cannot modify const/invariant %s", toChars());
+	    error("cannot modify const/immutable %s", toChars());
     }
 #endif
     return this;
@@ -6194,7 +6251,7 @@ Lagain:
 	    f->addPostInvariant()
 	   )
 	{
-	    error("cannot call public/export function %s from invariant", f->toChars());
+	    error("cannot call public/export function %s from immutable", f->toChars());
 	}
 
 	checkDeprecated(sc, f);
@@ -6222,10 +6279,10 @@ Lagain:
 	    printf("e1 = %s\n", e1->toChars());
 	    printf("e1->type = %s\n", e1->type->toChars());
 #endif
-	    // Const member function can take const/invariant/mutable this
+	    // Const member function can take const/immutable/mutable this
 	    if (!(f->type->isConst()))
 	    {
-		// Check for const/invariant compatibility
+		// Check for const/immutable compatibility
 		Type *tthis = ue->e1->type->toBasetype();
 		if (tthis->ty == Tpointer)
 		    tthis = tthis->nextOf()->toBasetype();
@@ -7130,6 +7187,8 @@ Expression *CastExp::semantic(Scope *sc)
 		// Cast to a pointer other than void*
 		goto Lunsafe;
 	}
+
+	// BUG: Check for casting array types, such as void[] to int*[]
     }
 
     e = e1->castTo(sc, to);
@@ -7378,7 +7437,7 @@ Lerror:
     else
 	s = t->toChars();
     error("%s cannot be sliced with []", s);
-    type = Type::terror;
+    e = new IntegerExp(0);
     return e;
 }
 

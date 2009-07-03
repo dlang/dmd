@@ -140,11 +140,13 @@ void AttribDeclaration::emitComment(Scope *sc)
 {
     //printf("AttribDeclaration::emitComment(sc = %p)\n", sc);
 
-    /* If generating doc comment, skip this because if we're inside
-     * a template, then include(NULL, NULL) will fail.
+    /* A general problem with this, illustrated by BUGZILLA 2516,
+     * is that attributes are not transmitted through to the underlying
+     * member declarations for template bodies, because semantic analysis
+     * is not done for template declaration bodies
+     * (only template instantiations).
+     * Hence, Ddoc omits attributes from template members.
      */
-//    if (sc->docbuf)
-//	return;
 
     Array *d = include(NULL, NULL);
 
@@ -722,6 +724,7 @@ PragmaDeclaration::PragmaDeclaration(Loc loc, Identifier *ident, Expressions *ar
 
 Dsymbol *PragmaDeclaration::syntaxCopy(Dsymbol *s)
 {
+    //printf("PragmaDeclaration::syntaxCopy(%s)\n", toChars());
     PragmaDeclaration *pd;
 
     assert(!s);
@@ -986,6 +989,17 @@ void ConditionalDeclaration::emitComment(Scope *sc)
     if (condition->inc)
     {
 	AttribDeclaration::emitComment(sc);
+    }
+    else if (sc->docbuf)
+    {
+	/* If generating doc comment, be careful because if we're inside
+	 * a template, then include(NULL, NULL) will fail.
+	 */
+	Array *d = decl ? decl : elsedecl;
+	for (unsigned i = 0; i < d->dim; i++)
+	{   Dsymbol *s = (Dsymbol *)d->data[i];
+	    s->emitComment(sc);
+	}
     }
 }
 

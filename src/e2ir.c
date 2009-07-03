@@ -143,7 +143,7 @@ elem *callfunc(Loc loc,
 	    }
 	    ea = arg->toElem(irs);
 	L1:
-	    if (ea->Ety == TYstruct)
+	    if (tybasic(ea->Ety) == TYstruct)
 	    {
 		ea = el_una(OPstrpar, TYstruct, ea);
 		ea->Enumbytes = ea->E1->Enumbytes;
@@ -271,9 +271,9 @@ elem *callfunc(Loc loc,
 	    e = el_una(op,tyret,ep);
     }
     else if (ep)
-	e = el_bin(OPcall,tyret,ec,ep);
+	e = el_bin(tf->ispure ? OPcallns : OPcall,tyret,ec,ep);
     else
-	e = el_una(OPucall,tyret,ec);
+	e = el_una(tf->ispure ? OPucallns : OPucall,tyret,ec);
 
     if (retmethod == RETstack)
     {
@@ -1189,7 +1189,7 @@ elem *RealExp::toElem(IRState *irs)
     //printf("RealExp::toElem(%p)\n", this);
     memset(&c, 0, sizeof(c));
     ty = type->toBasetype()->totym();
-    switch (ty)
+    switch (tybasic(ty))
     {
 	case TYfloat:
 	case TYifloat:
@@ -1231,7 +1231,7 @@ elem *ComplexExp::toElem(IRState *irs)
 
     memset(&c, 0, sizeof(c));
     ty = type->totym();
-    switch (ty)
+    switch (tybasic(ty))
     {
 	case TYcfloat:
 	    c.Vcfloat.re = (float) re;
@@ -3562,6 +3562,14 @@ elem *CastExp::toElem(IRState *irs)
 	}
 	goto Lret;
     }
+
+#if 0
+    // Convert from dynamic array string literal to static array
+    if (tty == Tsarray && fty == Tarray && e1->op == TOKstring)
+    {
+	goto Lret;	// treat as a 'paint'
+    }
+#endif
 
     // Casting from base class to derived class requires a runtime check
     if (fty == Tclass && tty == Tclass)

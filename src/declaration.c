@@ -864,7 +864,7 @@ Lagain:
     {
 	if (storage_class & (STCfield | STCout | STCref | STCstatic | STCmanifest | STCtls) || !fd)
 	{
-	    error("globals, statics, fields, manifest constants, ref and out parameters cannot be auto");
+	    error("globals, statics, fields, manifest constants, ref and out parameters cannot be scope");
 	}
 
 	if (!(storage_class & (STCauto | STCscope)))

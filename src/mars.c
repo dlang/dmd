@@ -1,6 +1,6 @@
 
 // Compiler implementation of the D programming language
-// Copyright (c) 1999-2008 by Digital Mars
+// Copyright (c) 1999-2009 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // http://www.digitalmars.com
@@ -72,9 +72,9 @@ Global::Global()
 #error "fix this"
 #endif
 
-    copyright = "Copyright (c) 1999-2008 by Digital Mars";
+    copyright = "Copyright (c) 1999-2009 by Digital Mars";
     written = "written by Walter Bright";
-    version = "v2.022";
+    version = "v2.023";
     global.structalign = 8;
 
     memset(&params, 0, sizeof(Param));
@@ -128,7 +128,7 @@ void verror(Loc loc, const char *format, va_list ap)
 	vfprintf(stdmsg, format, ap);
 	fprintf(stdmsg, "\n");
 	fflush(stdmsg);
-halt();
+//halt();
     }
     global.errors++;
 }
@@ -279,7 +279,6 @@ int main(int argc, char *argv[])
     VersionCondition::addPredefinedGlobalIdent("DigitalMars");
 #if _WIN32
     VersionCondition::addPredefinedGlobalIdent("Windows");
-    VersionCondition::addPredefinedGlobalIdent("Win32");
     global.params.isWindows = 1;
 #endif
 #if linux
@@ -287,11 +286,8 @@ int main(int argc, char *argv[])
     VersionCondition::addPredefinedGlobalIdent("linux");
     global.params.isLinux = 1;
 #endif /* linux */
-    VersionCondition::addPredefinedGlobalIdent("X86");
     VersionCondition::addPredefinedGlobalIdent("LittleEndian");
     //VersionCondition::addPredefinedGlobalIdent("D_Bits");
-    VersionCondition::addPredefinedGlobalIdent("D_InlineAsm");
-    VersionCondition::addPredefinedGlobalIdent("D_InlineAsm_X86");
 #if V2
     VersionCondition::addPredefinedGlobalIdent("D_Version2");
 #endif
@@ -337,6 +333,8 @@ int main(int argc, char *argv[])
 	    {	error("use -profile instead of -gt\n");
 		global.params.trace = 1;
 	    }
+	    else if (strcmp(p + 1, "m64") == 0)
+		global.params.isX86_64 = 1;
 	    else if (strcmp(p + 1, "profile") == 0)
 		global.params.trace = 1;
 	    else if (strcmp(p + 1, "v") == 0)
@@ -447,8 +445,10 @@ int main(int argc, char *argv[])
 		global.params.quiet = 1;
 	    else if (strcmp(p + 1, "release") == 0)
 		global.params.release = 1;
+#if V2
 	    else if (strcmp(p + 1, "safe") == 0)
 		global.params.safe = 1;
+#endif
 	    else if (strcmp(p + 1, "unittest") == 0)
 		global.params.useUnitTests = 1;
 	    else if (p[1] == 'I')
@@ -669,6 +669,26 @@ int main(int argc, char *argv[])
 	    //fatal();
 	}
     }
+    if (global.params.isX86_64)
+    {
+	VersionCondition::addPredefinedGlobalIdent("D_InlineAsm_X86_64");
+	VersionCondition::addPredefinedGlobalIdent("X86_64");
+	VersionCondition::addPredefinedGlobalIdent("D_LP64");
+#if _WIN32
+	VersionCondition::addPredefinedGlobalIdent("Win64");
+#endif
+    }
+    else
+    {
+	VersionCondition::addPredefinedGlobalIdent("D_InlineAsm");
+	VersionCondition::addPredefinedGlobalIdent("D_InlineAsm_X86");
+	VersionCondition::addPredefinedGlobalIdent("X86");
+#if _WIN32
+	VersionCondition::addPredefinedGlobalIdent("Win32");
+#endif
+    }
+    if (global.params.doDocComments)
+	VersionCondition::addPredefinedGlobalIdent("D_Ddoc");
     if (global.params.cov)
 	VersionCondition::addPredefinedGlobalIdent("D_Coverage");
     if (global.params.pic)

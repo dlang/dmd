@@ -104,7 +104,7 @@ struct Expression : Object
     virtual int isLvalue();
     virtual Expression *toLvalue(Scope *sc, Expression *e);
     virtual Expression *modifiableLvalue(Scope *sc, Expression *e);
-    Expression *implicitCastTo(Scope *sc, Type *t);
+    virtual Expression *implicitCastTo(Scope *sc, Type *t);
     virtual MATCH implicitConvTo(Type *t);
     virtual Expression *castTo(Scope *sc, Type *t);
     virtual void checkEscape();
@@ -325,7 +325,9 @@ struct StringExp : Expression
     char *toChars();
     Expression *semantic(Scope *sc);
     Expression *interpret(InterState *istate);
+    size_t length();
     StringExp *toUTF8(Scope *sc);
+    Expression *implicitCastTo(Scope *sc, Type *t);
     MATCH implicitConvTo(Type *t);
     Expression *castTo(Scope *sc, Type *t);
     int compare(Object *obj);
@@ -464,6 +466,7 @@ struct TypeDotIdExp : Expression
 struct TypeExp : Expression
 {
     TypeExp(Loc loc, Type *type);
+    Expression *syntaxCopy();
     Expression *semantic(Scope *sc);
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
     Expression *optimize(int result);

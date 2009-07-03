@@ -1105,7 +1105,7 @@ Arguments *Parser::parseParameters(int *pvarargs)
 		    if ((storageClass & (STCconst | STCout)) == (STCconst | STCout))
 			error("out cannot be const");
 		    if ((storageClass & (STCinvariant | STCout)) == (STCinvariant | STCout))
-			error("out cannot be invariant");
+			error("out cannot be immutable");
 		    if ((storageClass & STCscope) &&
 			(storageClass & (STCref | STCout)))
 			error("scope cannot be ref or out");

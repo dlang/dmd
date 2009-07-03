@@ -401,6 +401,7 @@ struct TypeDArray : TypeArray
     MATCH implicitConvTo(Type *to);
     Expression *defaultInit(Loc loc);
     int builtinTypeInfo();
+    MATCH deduceType(Scope *sc, Type *tparam, TemplateParameters *parameters, Objects *dedtypes);
     TypeInfoDeclaration *getTypeInfoDeclaration();
     int hasPointers();
 #if TARGET_LINUX
