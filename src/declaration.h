@@ -1,6 +1,6 @@
 
 // Compiler implementation of the D programming language
-// Copyright (c) 1999-2008 by Digital Mars
+// Copyright (c) 1999-2009 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // http://www.digitalmars.com
@@ -86,7 +86,8 @@ struct Match
     FuncDeclaration *anyf;	// pick a func, any func, to use for error recovery
 };
 
-void overloadResolveX(Match *m, FuncDeclaration *f, Expressions *arguments);
+void overloadResolveX(Match *m, FuncDeclaration *f,
+	Expression *ethis, Expressions *arguments);
 int overloadApply(FuncDeclaration *fstart,
 	int (*fp)(void *, FuncDeclaration *),
 	void *param);
@@ -117,6 +118,7 @@ struct Declaration : Dsymbol
     virtual int isStaticDestructor();
     virtual int isDelete();
     virtual int isDataseg();
+    virtual int isThreadlocal();
     virtual int isCodeseg();
     int isCtorinit()     { return storage_class & STCctorinit; }
     int isFinal()        { return storage_class & STCfinal; }
@@ -235,7 +237,6 @@ struct VarDeclaration : Declaration
     Dsymbol *aliassym;		// if redone as alias to another symbol
     Expression *value;		// when interpreting, this is the value
 				// (NULL if value not determinable)
-    Scope *scope;		// !=NULL means context to use
 
     VarDeclaration(Loc loc, Type *t, Identifier *id, Initializer *init);
     Dsymbol *syntaxCopy(Dsymbol *);
@@ -462,6 +463,8 @@ enum BUILTIN
 
 Expression *eval_builtin(enum BUILTIN builtin, Expressions *arguments);
 
+#else
+enum BUILTIN { };
 #endif
 
 struct FuncDeclaration : Declaration
@@ -504,7 +507,6 @@ struct FuncDeclaration : Declaration
 					// of the 'introducing' function
 					// this one is overriding
     int inferRetType;			// !=0 if return type is to be inferred
-    Scope *scope;			// !=NULL means context to use
 
     // Things that should really go into Scope
     int hasReturnExp;			// 1 if there's a return exp; statement
@@ -536,13 +538,17 @@ struct FuncDeclaration : Declaration
     void semantic(Scope *sc);
     void semantic2(Scope *sc);
     void semantic3(Scope *sc);
+    // called from semantic3
+    void varArgs(Scope *sc, TypeFunction*, VarDeclaration *&, VarDeclaration *&);
+
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
     void bodyToCBuffer(OutBuffer *buf, HdrGenState *hgs);
     int overrides(FuncDeclaration *fd);
     int findVtblIndex(Array *vtbl, int dim);
     int overloadInsert(Dsymbol *s);
     FuncDeclaration *overloadExactMatch(Type *t);
-    FuncDeclaration *overloadResolve(Loc loc, Expressions *arguments);
+    FuncDeclaration *overloadResolve(Loc loc, Expression *ethis, Expressions *arguments, int flags = 0);
+    MATCH leastAsSpecialized(FuncDeclaration *g);
     LabelDsymbol *searchLabel(Identifier *ident);
     AggregateDeclaration *isThis();
     AggregateDeclaration *isMember2();
@@ -553,10 +559,13 @@ struct FuncDeclaration : Declaration
     int isMain();
     int isWinMain();
     int isDllMain();
+    enum BUILTIN isBuiltin();
     int isExport();
     int isImportedSymbol();
     int isAbstract();
     int isCodeseg();
+    int isOverloadable();
+    int isPure();
     virtual int isNested();
     int needThis();
     virtual int isVirtual();
@@ -650,6 +659,8 @@ struct DtorDeclaration : FuncDeclaration
     Dsymbol *syntaxCopy(Dsymbol *);
     void semantic(Scope *sc);
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
+    const char *kind();
+    char *toChars();
     int isVirtual();
     int addPreInvariant();
     int addPostInvariant();

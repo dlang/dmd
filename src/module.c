@@ -85,7 +85,7 @@ Module::Module(char *filename, Identifier *ident, int doDocComment, int doHdrGen
     searchCacheSymbol = NULL;
     searchCacheFlags = 0;
     semanticstarted = 0;
-    semanticdone = 0;
+    semanticRun = 0;
     decldefs = NULL;
     vmoduleinfo = NULL;
     massert = NULL;
@@ -647,25 +647,32 @@ void Module::semantic()
     // Add all symbols into module's symbol table
     symtab = new DsymbolTable();
     for (i = 0; i < members->dim; i++)
-    {	Dsymbol *s;
-
-	s = (Dsymbol *)members->data[i];
+    {	Dsymbol *s = (Dsymbol *)members->data[i];
 	s->addMember(NULL, sc->scopesym, 1);
+    }
+
+    /* Set scope for the symbols so that if we forward reference
+     * a symbol, it can possibly be resolved on the spot.
+     * If this works out well, it can be extended to all modules
+     * before any semantic() on any of them.
+     */
+    for (i = 0; i < members->dim; i++)
+    {	Dsymbol *s = (Dsymbol *)members->data[i];
+	s->setScope(sc);
     }
 
     // Pass 1 semantic routines: do public side of the definition
     for (i = 0; i < members->dim; i++)
-    {	Dsymbol *s;
+    {	Dsymbol *s = (Dsymbol *)members->data[i];
 
-	s = (Dsymbol *)members->data[i];
 	//printf("\tModule('%s'): '%s'.semantic()\n", toChars(), s->toChars());
 	s->semantic(sc);
 	runDeferredSemantic();
     }
 
     sc = sc->pop();
-    sc->pop();
-    semanticdone = semanticstarted;
+    sc->pop();		// 2 pops because Scope::createGlobal() created 2
+    semanticRun = semanticstarted;
     //printf("-Module::semantic(this = %p, '%s'): parent = %p\n", this, toChars(), parent);
 }
 
@@ -704,7 +711,7 @@ void Module::semantic2()
 
     sc = sc->pop();
     sc->pop();
-    semanticdone = semanticstarted;
+    semanticRun = semanticstarted;
     //printf("-Module::semantic2('%s'): parent = %p\n", toChars(), parent);
 }
 
@@ -734,7 +741,7 @@ void Module::semantic3()
 
     sc = sc->pop();
     sc->pop();
-    semanticdone = semanticstarted;
+    semanticRun = semanticstarted;
 }
 
 void Module::inlineScan()
@@ -759,7 +766,7 @@ void Module::inlineScan()
 
 	s->inlineScan();
     }
-    semanticdone = semanticstarted;
+    semanticRun = semanticstarted;
 }
 
 /****************************************************

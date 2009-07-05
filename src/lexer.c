@@ -1266,7 +1266,9 @@ unsigned Lexer::escapeSequence()
 			}
 		    }
 		    if (ndigits != 2 && !utf_isValidDchar(v))
-			error("invalid UTF character \\U%08x", v);
+		    {	error("invalid UTF character \\U%08x", v);
+			v = '?';	// recover with valid UTF character
+		    }
 		    c = v;
 		}
 		else

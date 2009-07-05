@@ -854,9 +854,13 @@ Expression *Identity(enum TOK op, Type *type, Expression *e1, Expression *e2)
     Loc loc = e1->loc;
     int cmp;
 
-    if (e1->op == TOKnull && e2->op == TOKnull)
+    if (e1->op == TOKnull)
     {
-	cmp = 1;
+	cmp = (e2->op == TOKnull);
+    }
+    else if (e2->op == TOKnull)
+    {
+	cmp = 0;
     }
     else if (e1->op == TOKsymoff && e2->op == TOKsymoff)
     {

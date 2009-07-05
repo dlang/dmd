@@ -1,5 +1,5 @@
 // Compiler implementation of the D programming language
-// Copyright (c) 1999-2008 by Digital Mars
+// Copyright (c) 1999-2009 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // http://www.digitalmars.com
@@ -35,6 +35,7 @@ FuncDeclaration::FuncDeclaration(Loc loc, Loc endloc, Identifier *id, enum STC s
     : Declaration(id)
 {
     //printf("FuncDeclaration(id = '%s', type = %p)\n", id->toChars(), type);
+    //printf("storage_class = x%x\n", storage_class);
     this->storage_class = storage_class;
     this->type = type;
     this->loc = loc;
@@ -63,7 +64,9 @@ FuncDeclaration::FuncDeclaration(Loc loc, Loc endloc, Identifier *id, enum STC s
     inlineAsm = 0;
     cantInterpret = 0;
     semanticRun = 0;
+#if DMDV1
     nestedFrameRef = 0;
+#endif
     fes = NULL;
     introducing = 0;
     tintro = NULL;
@@ -71,11 +74,14 @@ FuncDeclaration::FuncDeclaration(Loc loc, Loc endloc, Identifier *id, enum STC s
      * NULL for the return type.
      */
     inferRetType = (type && type->nextOf() == NULL);
-    scope = NULL;
     hasReturnExp = 0;
     nrvo_can = 1;
     nrvo_var = NULL;
     shidden = NULL;
+#if DMDV2
+    builtin = BUILTINunknown;
+    tookAddressOf = 0;
+#endif
 }
 
 Dsymbol *FuncDeclaration::syntaxCopy(Dsymbol *s)
@@ -109,7 +115,7 @@ void FuncDeclaration::semantic(Scope *sc)
     printf("FuncDeclaration::semantic(sc = %p, this = %p, '%s', linkage = %d)\n", sc, this, toPrettyChars(), sc->linkage);
     if (isFuncLiteralDeclaration())
 	printf("\tFuncLiteralDeclaration()\n");
-    printf("sc->parent = %s\n", sc->parent->toChars());
+    printf("sc->parent = %s, parent = %s\n", sc->parent->toChars(), parent ? parent->toChars() : "");
     printf("type: %p, %s\n", type, type->toChars());
 #endif
 
@@ -125,8 +131,10 @@ void FuncDeclaration::semantic(Scope *sc)
     assert(semanticRun <= 1);
     semanticRun = 1;
 
-    if (type->nextOf())
+    if (!type->deco)
+    {
 	type = type->semantic(loc, sc);
+    }
     //type->print();
     if (type->ty != Tfunction)
     {
@@ -216,6 +224,9 @@ void FuncDeclaration::semantic(Scope *sc)
 	storage_class |= STCabstract;
 
 	if (isCtorDeclaration() ||
+#if DMDV2
+	    isPostBlitDeclaration() ||
+#endif
 	    isDtorDeclaration() ||
 	    isInvariantDeclaration() ||
 	    isUnitTestDeclaration() || isNewDeclaration() || isDelete())
@@ -622,7 +633,6 @@ void FuncDeclaration::semantic2(Scope *sc)
 
 void FuncDeclaration::semantic3(Scope *sc)
 {   TypeFunction *f;
-    AggregateDeclaration *ad;
     VarDeclaration *argptr = NULL;
     VarDeclaration *_arguments = NULL;
 
@@ -635,6 +645,7 @@ void FuncDeclaration::semantic3(Scope *sc)
     }
     //printf("FuncDeclaration::semantic3('%s.%s', sc = %p, loc = %s)\n", parent->toChars(), toChars(), sc, loc.toChars());
     //fflush(stdout);
+    //printf("storage class = x%x %x\n", sc->stc, storage_class);
     //{ static int x; if (++x == 2) *(char*)0=0; }
     //printf("\tlinkage = %d\n", sc->linkage);
 
@@ -646,7 +657,6 @@ void FuncDeclaration::semantic3(Scope *sc)
     if (!type || type->ty != Tfunction)
 	return;
     f = (TypeFunction *)(type);
-    size_t nparams = Argument::dim(f->parameters);
 
     // Check the 'throws' clause
     if (fthrows)
@@ -689,7 +699,7 @@ void FuncDeclaration::semantic3(Scope *sc)
 	sc2->noctor = 0;
 
 	// Declare 'this'
-	ad = isThis();
+	AggregateDeclaration *ad = isThis();
 	if (ad)
 	{   VarDeclaration *v;
 
@@ -773,6 +783,7 @@ void FuncDeclaration::semantic3(Scope *sc)
 	    for (size_t i = 0; i < f->parameters->dim; i++)
 	    {	Argument *arg = (Argument *)f->parameters->data[i];
 
+		//printf("[%d] arg->type->ty = %d %s\n", i, arg->type->ty, arg->type->toChars());
 		if (arg->type->ty == Ttuple)
 		{   TypeTuple *t = (TypeTuple *)arg->type;
 		    size_t dim = Argument::dim(t->arguments);
@@ -784,7 +795,10 @@ void FuncDeclaration::semantic3(Scope *sc)
 	    }
 	}
 
-	// Declare all the function parameters as variables
+	/* Declare all the function parameters as variables
+	 * and install them in parameters[]
+	 */
+	size_t nparams = Argument::dim(f->parameters);
 	if (nparams)
 	{   /* parameters[] has all the tuples removed, as the back end
 	     * doesn't know about tuples
@@ -802,7 +816,8 @@ void FuncDeclaration::semantic3(Scope *sc)
 		     */
 		    arg->ident = id = Identifier::generateId("_param_", i);
 		}
-		VarDeclaration *v = new VarDeclaration(loc, arg->type, id, NULL);
+		Type *vtype = arg->type;
+		VarDeclaration *v = new VarDeclaration(loc, vtype, id, NULL);
 		//printf("declaring parameter %s of type %s\n", v->toChars(), v->type->toChars());
 		v->storage_class |= STCparameter;
 		if (f->varargs == 2 && i + 1 == nparams)
@@ -899,6 +914,12 @@ void FuncDeclaration::semantic3(Scope *sc)
 
 		v = new VarDeclaration(loc, type->nextOf(), outId, NULL);
 		v->noauto = 1;
+#if DMDV2
+		if (f->isref)
+		{
+		    v->storage_class |= STCref | STCforeach;
+		}
+#endif
 		sc2->incontract--;
 		v->semantic(sc2);
 		sc2->incontract++;
@@ -949,8 +970,12 @@ void FuncDeclaration::semantic3(Scope *sc)
 		}
 		else
 		{   // Call invariant virtually
-		    ThisExp *v = new ThisExp(0);
+		    Expression *v = new ThisExp(0);
 		    v->type = vthis->type;
+#if STRUCTTHISREF
+		    if (ad->isStructDeclaration())
+			v = v->addressOf(sc);
+#endif
 		    e = new AssertExp(0, v);
 		}
 		if (e)
@@ -1615,7 +1640,8 @@ int fp2(void *param, FuncDeclaration *f)
 }
 
 
-void overloadResolveX(Match *m, FuncDeclaration *fstart, Expressions *arguments)
+void overloadResolveX(Match *m, FuncDeclaration *fstart,
+	Expression *ethis, Expressions *arguments)
 {
     Param2 p;
     p.m = m;
@@ -1641,7 +1667,7 @@ void overloadResolveX(Match *m, FuncDeclaration *fstart, Expressions *arguments)
 	fa = d->isFuncAliasDeclaration();
 	if (fa)
 	{
-	    overloadResolveX(m, fa->funcalias, arguments);
+	    overloadResolveX(m, fa->funcalias, NULL, arguments);
 	    next = fa->overnext;
 	}
 	else if ((f = d->isFuncDeclaration()) != NULL)
@@ -1705,7 +1731,7 @@ void overloadResolveX(Match *m, FuncDeclaration *fstart, Expressions *arguments)
 }
 #endif
 
-FuncDeclaration *FuncDeclaration::overloadResolve(Loc loc, Expressions *arguments)
+FuncDeclaration *FuncDeclaration::overloadResolve(Loc loc, Expression *ethis, Expressions *arguments, int flags)
 {
     TypeFunction *tf;
     Match m;
@@ -1728,7 +1754,7 @@ if (arguments)
 
     memset(&m, 0, sizeof(m));
     m.last = MATCHnomatch;
-    overloadResolveX(&m, this, arguments);
+    overloadResolveX(&m, this, NULL, arguments);
 
     if (m.count == 1)		// exactly one match
     {
@@ -2327,6 +2353,80 @@ void CtorDeclaration::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
     bodyToCBuffer(buf, hgs);
 }
 
+/********************************* PostBlitDeclaration ****************************/
+
+#if DMDV2
+PostBlitDeclaration::PostBlitDeclaration(Loc loc, Loc endloc)
+    : FuncDeclaration(loc, endloc, Id::_postblit, STCundefined, NULL)
+{
+}
+
+PostBlitDeclaration::PostBlitDeclaration(Loc loc, Loc endloc, Identifier *id)
+    : FuncDeclaration(loc, endloc, id, STCundefined, NULL)
+{
+}
+
+Dsymbol *PostBlitDeclaration::syntaxCopy(Dsymbol *s)
+{
+    assert(!s);
+    PostBlitDeclaration *dd = new PostBlitDeclaration(loc, endloc, ident);
+    return FuncDeclaration::syntaxCopy(dd);
+}
+
+
+void PostBlitDeclaration::semantic(Scope *sc)
+{
+    //printf("PostBlitDeclaration::semantic() %s\n", toChars());
+    //printf("ident: %s, %s, %p, %p\n", ident->toChars(), Id::dtor->toChars(), ident, Id::dtor);
+    parent = sc->parent;
+    Dsymbol *parent = toParent();
+    StructDeclaration *ad = parent->isStructDeclaration();
+    if (!ad)
+    {
+	error("post blits are only for struct/union definitions, not %s %s", parent->kind(), parent->toChars());
+    }
+    else if (ident == Id::_postblit)
+	ad->postblits.push(this);
+    type = new TypeFunction(NULL, Type::tvoid, FALSE, LINKd);
+
+    sc = sc->push();
+    sc->stc &= ~STCstatic;		// not static
+    sc->linkage = LINKd;
+
+    FuncDeclaration::semantic(sc);
+
+    sc->pop();
+}
+
+int PostBlitDeclaration::overloadInsert(Dsymbol *s)
+{
+    return FALSE;	// cannot overload postblits
+}
+
+int PostBlitDeclaration::addPreInvariant()
+{
+    return FALSE;
+}
+
+int PostBlitDeclaration::addPostInvariant()
+{
+    return (isThis() && vthis && global.params.useInvariants);
+}
+
+int PostBlitDeclaration::isVirtual()
+{
+    return FALSE;
+}
+
+void PostBlitDeclaration::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
+{
+    if (hgs->hdrgen)
+	return;
+    buf->writestring("=this()");
+    bodyToCBuffer(buf, hgs);
+}
+#endif
+
 /********************************* DtorDeclaration ****************************/
 
 DtorDeclaration::DtorDeclaration(Loc loc, Loc endloc)
@@ -2384,6 +2484,16 @@ int DtorDeclaration::addPreInvariant()
 int DtorDeclaration::addPostInvariant()
 {
     return FALSE;
+}
+
+const char *DtorDeclaration::kind()
+{	
+    return "destructor";
+}
+
+char *DtorDeclaration::toChars()
+{
+    return (char *)"~this";
 }
 
 int DtorDeclaration::isVirtual()

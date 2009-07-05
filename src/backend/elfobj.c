@@ -869,7 +869,7 @@ void obj_term()
 	0,				// e_phoff
 	0,				// e_shoff
 	0,				// e_flags
-	sizeof(Elf64_Ehdr),		// e_ehsize
+	sizeof(Elf64_Ehdr) + EI_NIDENT,	// e_ehsize
 	sizeof(Elf64_Phdr),		// e_phentsize
 	0,				// e_phnum
 	sizeof(Elf64_Shdr),		// e_shentsize
@@ -1066,7 +1066,7 @@ void obj_term()
 	h.e_phoff     = elf_header.e_phoff;
 	h.e_shoff     = elf_header.e_shoff;
 	h.e_flags     = elf_header.e_flags;
-	h.e_ehsize    = sizeof(Elf32_Hdr);
+	h.e_ehsize    = sizeof(Elf32_Hdr) + EI_NIDENT;
 	h.e_phentsize = sizeof(elf_pht);
 	h.e_phnum     = elf_header.e_phnum;
 	h.e_shentsize = sizeof(Elf32_Shdr);

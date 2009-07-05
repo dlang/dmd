@@ -1473,16 +1473,8 @@ MATCH TypeBasic::implicitConvTo(Type *to)
 
     if (ty == Tvoid || to->ty == Tvoid)
 	return MATCHnomatch;
-    if (1 || global.params.Dversion == 1)
-    {
-	if (to->ty == Tbool)
-	    return MATCHnomatch;
-    }
-    else
-    {
-	if (ty == Tbool || to->ty == Tbool)
-	    return MATCHnomatch;
-    }
+    if (to->ty == Tbool)
+	return MATCHnomatch;
     if (!to->isTypeBasic())
 	return MATCHnomatch;
 
@@ -1493,6 +1485,7 @@ MATCH TypeBasic::implicitConvTo(Type *to)
 	if (tob->flags & (TFLAGSimaginary | TFLAGScomplex))
 	    return MATCHnomatch;
 
+#if DMDV2
 	// If converting to integral
 	if (0 && global.params.Dversion > 1 && tob->flags & TFLAGSintegral)
 	{   d_uns64 sz = size(0);
@@ -1506,6 +1499,7 @@ MATCH TypeBasic::implicitConvTo(Type *to)
 	    /*if (sz == tosz && (flags ^ tob->flags) & TFLAGSunsigned)
 		return MATCHnomatch;*/
 	}
+#endif
     }
     else if (flags & TFLAGSfloating)
     {
@@ -2413,6 +2407,9 @@ Type *TypePointer::syntaxCopy()
 
 Type *TypePointer::semantic(Loc loc, Scope *sc)
 {
+    if (deco)
+	return this;
+
     //printf("TypePointer::semantic()\n");
     Type *n = next->semantic(loc, sc);
     switch (n->toBasetype()->ty)
@@ -2792,26 +2789,24 @@ Type *TypeFunction::semantic(Loc loc, Scope *sc)
     }
 
     tf->linkage = sc->linkage;
-    if (!tf->next)
+    if (tf->next)
     {
-	assert(global.errors);
-	tf->next = tvoid;
+	tf->next = tf->next->semantic(loc,sc);
+	if (tf->next->toBasetype()->ty == Tsarray)
+	{   error(loc, "functions cannot return static array %s", tf->next->toChars());
+	    tf->next = Type::terror;
+	}
+	if (tf->next->toBasetype()->ty == Tfunction)
+	{   error(loc, "functions cannot return a function");
+	    tf->next = Type::terror;
+	}
+	if (tf->next->toBasetype()->ty == Ttuple)
+	{   error(loc, "functions cannot return a tuple");
+	    tf->next = Type::terror;
+	}
+	if (tf->next->isauto() && !(sc->flags & SCOPEctor))
+	    error(loc, "functions cannot return auto %s", tf->next->toChars());
     }
-    tf->next = tf->next->semantic(loc,sc);
-    if (tf->next->toBasetype()->ty == Tsarray)
-    {	error(loc, "functions cannot return static array %s", tf->next->toChars());
-	tf->next = Type::terror;
-    }
-    if (tf->next->toBasetype()->ty == Tfunction)
-    {	error(loc, "functions cannot return a function");
-	tf->next = Type::terror;
-    }
-    if (tf->next->toBasetype()->ty == Ttuple)
-    {	error(loc, "functions cannot return a tuple");
-	tf->next = Type::terror;
-    }
-    if (tf->next->isauto() && !(sc->flags & SCOPEctor))
-	error(loc, "functions cannot return auto %s", tf->next->toChars());
 
     if (tf->parameters)
     {	size_t dim = Argument::dim(tf->parameters);
@@ -2849,7 +2844,8 @@ Type *TypeFunction::semantic(Loc loc, Scope *sc)
 	    }
 	}
     }
-    tf->deco = tf->merge()->deco;
+    if (tf->next)
+	tf->deco = tf->merge()->deco;
 
     if (tf->inuse)
     {	error(loc, "recursive type");
@@ -3561,7 +3557,8 @@ Type *TypeInstance::semantic(Loc loc, Scope *sc)
     if (!t)
     {
 #ifdef DEBUG
-	printf("2: ");
+	if (s) printf("s = %s\n", s->kind());
+	printf("2: e:%p s:%p ", e, s);
 #endif
 	error(loc, "%s is used as a type", toChars());
 	t = tvoid;
@@ -3762,9 +3759,14 @@ char *TypeEnum::toChars()
     return sym->toChars();
 }
 
+Type *TypeEnum::syntaxCopy()
+{
+    return this;
+}
+
 Type *TypeEnum::semantic(Loc loc, Scope *sc)
 {
-    sym->semantic(sc);
+    //sym->semantic(sc);
     return merge();
 }
 
@@ -4353,7 +4355,7 @@ L1:
 
     TemplateInstance *ti = s->isTemplateInstance();
     if (ti)
-    {	if (!ti->semanticdone)
+    {	if (!ti->semanticRun)
 	    ti->semantic(sc);
 	s = ti->inst->toAlias();
 	if (!s->isTemplateInstance())
@@ -4499,8 +4501,8 @@ Type *TypeClass::syntaxCopy()
 Type *TypeClass::semantic(Loc loc, Scope *sc)
 {
     //printf("TypeClass::semantic(%s)\n", sym->toChars());
-    if (sym->scope)
-	sym->semantic(sym->scope);
+    if (deco)
+	return this;
     return merge();
 }
 
@@ -4727,7 +4729,7 @@ L1:
 
     TemplateInstance *ti = s->isTemplateInstance();
     if (ti)
-    {	if (!ti->semanticdone)
+    {	if (!ti->semanticRun)
 	    ti->semantic(sc);
 	s = ti->inst->toAlias();
 	if (!s->isTemplateInstance())

@@ -78,7 +78,7 @@ Global::Global()
     "\nMSIL back-end (alpha release) by Cristian L. Vlasceanu and associates.";
 #endif
     ;
-    version = "v1.045";
+    version = "v1.046";
     global.structalign = 8;
 
     memset(&params, 0, sizeof(Param));
@@ -104,6 +104,11 @@ Loc::Loc(Module *mod, unsigned linnum)
 {
     this->linnum = linnum;
     this->filename = mod ? mod->srcfile->toChars() : NULL;
+}
+
+bool Loc::equals(const Loc& loc)
+{
+    return linnum == loc.linnum && FileName::equals(filename, loc.filename);
 }
 
 /**************************************
@@ -215,6 +220,7 @@ Usage:\n\
   -debug=ident   compile in debug code identified by ident\n\
   -debuglib=name    set symbolic debug library to name\n\
   -defaultlib=name  set default library to name\n\
+  -deps=filename write module dependencies to filename\n\
   -g             add symbolic debug info\n\
   -gc            add symbolic debug info, pretend to be C\n\
   -H             generate 'header' file\n\
@@ -392,6 +398,10 @@ int main(int argc, char *argv[])
 		global.params.trace = 1;
 	    else if (strcmp(p + 1, "v") == 0)
 		global.params.verbose = 1;
+#if DMDV2
+	    else if (strcmp(p + 1, "vtls") == 0)
+		global.params.vtls = 1;
+#endif
 	    else if (strcmp(p + 1, "v1") == 0)
 	    {
 #if DMDV1
@@ -595,6 +605,13 @@ int main(int argc, char *argv[])
 	    {
 		setdebuglib = 1;
 		global.params.debuglibname = p + 1 + 9;
+	    }
+	    else if (memcmp(p + 1, "deps=", 5) == 0)
+	    {
+		global.params.moduleDepsFile = p + 1 + 5;
+		if (!global.params.moduleDepsFile[0])
+		    goto Lnoarg;
+		global.params.moduleDeps = new OutBuffer;
 	    }
 	    else if (memcmp(p + 1, "man", 3) == 0)
 	    {
@@ -1061,6 +1078,17 @@ int main(int argc, char *argv[])
     }
     if (global.errors)
 	fatal();
+
+    if (global.params.moduleDeps != NULL)
+    {
+	assert(global.params.moduleDepsFile != NULL);
+
+	File deps(global.params.moduleDepsFile);
+	OutBuffer* ob = global.params.moduleDeps;
+	deps.setbuffer((void*)ob->data, ob->offset);
+	deps.writev();
+    }
+
 
     // Scan for functions to inline
     if (global.params.useInline)

@@ -65,6 +65,7 @@ struct Scope
     int intypeof;		// in typeof(exp)
     int parameterSpecialization; // if in template parameter specialization
     int noaccesscheck;		// don't do access checks
+    int mustsemantic;		// cannot defer semantic()
 
     unsigned callSuper;		// primitive flow analysis for constructors
 #define	CSXthis_ctor	1	// called this()

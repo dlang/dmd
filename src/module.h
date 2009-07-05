@@ -82,7 +82,7 @@ struct Module : Package
     int searchCacheFlags;	// cached flags
 
     int semanticstarted;	// has semantic() been started?
-    int semanticdone;		// has semantic() been done?
+    int semanticRun;		// has semantic() been done?
     int root;			// != 0 if this is a 'root' module,
 				// i.e. a module that will be taken all the
 				// way to an object file

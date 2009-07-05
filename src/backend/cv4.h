@@ -1,6 +1,6 @@
 //_ cv4.h
 // Codeview 4 stuff
-// From "Microsoft Symbol and Type OMF" document
+// See "Microsoft Symbol and Type OMF" document
 
 #define OEM 0x42	// Digital Mars OEM number (picked at random)
 

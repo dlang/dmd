@@ -1,6 +1,6 @@
 
 // Compiler implementation of the D programming language
-// Copyright (c) 1999-2008 by Digital Mars
+// Copyright (c) 1999-2009 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // http://www.digitalmars.com
@@ -25,6 +25,7 @@ struct Identifier;
 struct Scope;
 struct DsymbolTable;
 struct Declaration;
+struct ThisDeclaration;
 struct TupleDeclaration;
 struct TypedefDeclaration;
 struct AliasDeclaration;
@@ -38,6 +39,7 @@ struct FuncDeclaration;
 struct FuncAliasDeclaration;
 struct FuncLiteralDeclaration;
 struct CtorDeclaration;
+struct PostBlitDeclaration;
 struct DtorDeclaration;
 struct StaticCtorDeclaration;
 struct StaticDtorDeclaration;
@@ -66,6 +68,7 @@ struct SymbolDeclaration;
 struct Expression;
 struct DeleteDeclaration;
 struct HdrGenState;
+struct OverloadSet;
 
 #if IN_GCC
 union tree_node;
@@ -73,6 +76,9 @@ typedef union tree_node TYPE;
 #else
 struct TYPE;
 #endif
+
+// Back end
+struct Classsym;
 
 enum PROT
 {
@@ -95,6 +101,7 @@ struct Dsymbol : Object
     Symbol *isym;		// import version of csym
     unsigned char *comment;	// documentation comment for this Dsymbol
     Loc loc;			// where defined
+    Scope *scope;		// !=NULL means context to use for semantic()
 
     Dsymbol();
     Dsymbol(Identifier *);
@@ -119,6 +126,7 @@ struct Dsymbol : Object
     virtual const char *kind();
     virtual Dsymbol *toAlias();			// resolve real symbol
     virtual int addMember(Scope *sc, ScopeDsymbol *s, int memnum);
+    virtual void setScope(Scope *sc);
     virtual void semantic(Scope *sc);
     virtual void semantic2(Scope *sc);
     virtual void semantic3(Scope *sc);
@@ -215,7 +223,7 @@ struct ScopeDsymbol : Dsymbol
     DsymbolTable *symtab;	// members[] sorted into table
 
     Array *imports;		// imported ScopeDsymbol's
-    unsigned char *prots;	// PROT for each import
+    unsigned char *prots;	// array of PROT, one for each import
 
     ScopeDsymbol();
     ScopeDsymbol(Identifier *id);

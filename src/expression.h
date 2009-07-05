@@ -855,6 +855,7 @@ struct CallExp : UnaExp
     elem *toElem(IRState *irs);
     void scanForNestedRef(Scope *sc);
     Expression *toLvalue(Scope *sc, Expression *e);
+    Expression *modifiableLvalue(Scope *sc, Expression *e);
 
     int inlineCost(InlineCostState *ics);
     Expression *doInline(InlineDoState *ids);

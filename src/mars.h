@@ -48,6 +48,7 @@ the target object file format:
 	TARGET_OSX	Covers 32 and 64 bit Mac OSX
 	TARGET_FREEBSD	Covers 32 and 64 bit FreeBSD
 	TARGET_SOLARIS	Covers 32 and 64 bit Solaris
+	TARGET_NET	Covers .Net
 
     It is expected that the compiler for each platform will be able
     to generate 32 and 64 bit code from the same compiler binary.
@@ -106,6 +107,7 @@ the target object file format:
 
 
 struct Array;
+struct OutBuffer;
 
 // Put command line switches in here
 struct Param
@@ -118,6 +120,7 @@ struct Param
     char trace;		// insert profiling hooks
     char quiet;		// suppress non-error messages
     char verbose;	// verbose compile
+    char vtls;		// identify thread local variables
     char symdebug;	// insert debug symbolic information
     char optimize;	// run optimizer
     char cpu;		// target CPU
@@ -175,6 +178,9 @@ struct Param
     const char *debuglibname;	// default library for debug builds
 
     const char *xmlname;	// filename for XML output
+
+    char *moduleDepsFile;	// filename for deps output
+    OutBuffer *moduleDeps;	// contents to be written to deps file
 
     // Hidden debug switches
     char debuga;
@@ -290,7 +296,7 @@ struct Module;
 //typedef unsigned Loc;		// file location
 struct Loc
 {
-    char *filename;
+    const char *filename;
     unsigned linnum;
 
     Loc()
@@ -308,6 +314,7 @@ struct Loc
     Loc(Module *mod, unsigned linnum);
 
     char *toChars();
+    bool equals(const Loc& loc);
 };
 
 #ifndef GCC_SAFE_DMD
@@ -367,7 +374,7 @@ void util_progress();
 #if IN_GCC
 #define stdmsg stderr
 #else
-#define stdmsg stdout
+#define stdmsg stderr
 #endif
 
 struct Dsymbol;

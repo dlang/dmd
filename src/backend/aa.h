@@ -1,10 +1,10 @@
 
-// Copyright (c) 2006-2006 by Digital Mars
+// Copyright (c) 2006-2009 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // http://www.digitalmars.com
 // License for redistribution is by either the Artistic License
-// in artistic.txt, or the GNU General Public License in gnu.txt.
+// in artistic.txt, or the GNU General Public License in gpl.txt.
 // See the included readme.txt for details.
 
 

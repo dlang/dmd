@@ -1,6 +1,6 @@
 
 // Compiler implementation of the D programming language
-// Copyright (c) 1999-2007 by Digital Mars
+// Copyright (c) 1999-2009 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // http://www.digitalmars.com
@@ -332,14 +332,14 @@ Symbol *FuncDeclaration::toSymbol()
 	    else if (isMember2())
 		f->Fflags |= Fstatic;
 	    f->Fstartline.Slinnum = loc.linnum;
-	    f->Fstartline.Sfilename = loc.filename;
+	    f->Fstartline.Sfilename = (char *)loc.filename;
 	    if (endloc.linnum)
 	    {	f->Fendline.Slinnum = endloc.linnum;
-		f->Fendline.Sfilename = endloc.filename;
+		f->Fendline.Sfilename = (char *)endloc.filename;
 	    }
 	    else
 	    {	f->Fendline.Slinnum = loc.linnum;
-		f->Fendline.Sfilename = loc.filename;
+		f->Fendline.Sfilename = (char *)loc.filename;
 	    }
 	    t = type->toCtype();
 	}

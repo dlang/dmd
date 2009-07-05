@@ -396,31 +396,76 @@ Expression *ArrayInitializer::toExpression()
 {   Expressions *elements;
     Expression *e;
 
-    //printf("ArrayInitializer::toExpression()\n");
+    //printf("ArrayInitializer::toExpression(), dim = %d\n", dim);
     //static int i; if (++i == 2) halt();
+
+    size_t edim;
+    Type *t = NULL;
+    if (type)
+    {
+	t = type->toBasetype();
+	switch (t->ty)
+	{
+	   case Tsarray:
+	       edim = ((TypeSArray *)t)->dim->toInteger();
+	       break;
+
+	   case Tpointer:
+	   case Tarray:
+	       edim = dim;
+	       break;
+
+	   default:
+	       assert(0);
+	}
+    }
+    else
+	edim = value.dim;
+
     elements = new Expressions();
-    for (size_t i = 0; i < value.dim; i++)
+    elements->setDim(edim);
+    for (size_t i = 0, j = 0; i < value.dim; i++, j++)
     {
 	if (index.data[i])
-	    goto Lno;
+	    j = ((Expression *)index.data[i])->toInteger();
+	assert(j < edim);
 	Initializer *iz = (Initializer *)value.data[i];
 	if (!iz)
 	    goto Lno;
 	Expression *ex = iz->toExpression();
 	if (!ex)
+	{
 	    goto Lno;
-	elements->push(ex);
+	}
+	elements->data[j] = ex;
     }
-    e = new ArrayLiteralExp(loc, elements);
+
+    /* Fill in any missing elements with the default initializer
+     */
+    {
+    Expression *init = NULL;
+    for (size_t i = 0; i < edim; i++)
+    {
+	if (!elements->data[i])
+	{
+	    if (!type)
+		goto Lno;
+	    if (!init)
+		init = t->next->defaultInit();
+	    elements->data[i] = init;
+	}
+    }
+
+    Expression *e = new ArrayLiteralExp(loc, elements);
     e->type = type;
     return e;
+    }
 
 Lno:
     delete elements;
     error(loc, "array initializers as expressions are not allowed");
     return NULL;
 }
-
 
 /********************************
  * If possible, convert array initializer to associative array initializer.

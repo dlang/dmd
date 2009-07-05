@@ -70,6 +70,7 @@ Scope::Scope()
     this->nofree = 0;
     this->noctor = 0;
     this->noaccesscheck = 0;
+    this->mustsemantic = 0;
     this->intypeof = 0;
     this->parameterSpecialization = 0;
     this->callSuper = 0;
@@ -117,6 +118,7 @@ Scope::Scope(Scope *enclosing)
     this->nofree = 0;
     this->noctor = enclosing->noctor;
     this->noaccesscheck = enclosing->noaccesscheck;
+    this->mustsemantic = enclosing->mustsemantic;
     this->intypeof = enclosing->intypeof;
     this->parameterSpecialization = enclosing->parameterSpecialization;
     this->callSuper = enclosing->callSuper;

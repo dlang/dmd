@@ -6,6 +6,7 @@
 /*
  * This source file is made available for personal use
  * only. The license is in /dmd/src/dmd/backendlicense.txt
+ * or /dm/src/dmd/backendlicense.txt
  * For any other uses, please contact Digital Mars.
  */
 
@@ -2085,11 +2086,18 @@ void obj_import(elem *e)
 	{   name = buffer + 1;
 	    len -= 1;
 	}
-	p = (char *) alloca(5 + len + 1);
-	memcpy(p,"_imp_",5);
-	memcpy(p + 5,name,len);
-	p[5 + len] = 0;
-
+	if (config.flags4 & CFG4underscore)
+	{   p = (char *) alloca(5 + len + 1);
+	    memcpy(p,"_imp_",5);
+	    memcpy(p + 5,name,len);
+	    p[5 + len] = 0;
+	}
+	else
+	{   p = (char *) alloca(6 + len + 1);
+	    memcpy(p,"__imp_",6);
+	    memcpy(p + 6,name,len);
+	    p[6 + len] = 0;
+	}
 	simp = scope_search(p,SCTglobal);
 	if (!simp)
 	{   type *t;

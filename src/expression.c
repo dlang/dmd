@@ -359,6 +359,11 @@ Expression *resolveProperties(Scope *sc, Expression *e)
 	}
 
     }
+    else if (e->op == TOKdottd)
+    {
+	e = new CallExp(e->loc, e);
+	e = e->semantic(sc);
+    }
     return e;
 }
 
@@ -2131,6 +2136,10 @@ Lagain:
     f = s->isFuncDeclaration();
     if (f)
     {	//printf("'%s' is a function\n", f->toChars());
+	if (!f->type->deco)
+	{
+	    error("forward reference to %s", toChars());
+	}
 	return new VarExp(loc, f);
     }
     cd = s->isClassDeclaration();
@@ -2185,7 +2194,7 @@ Lagain:
 
     TemplateInstance *ti = s->isTemplateInstance();
     if (ti && !global.errors)
-    {   if (!ti->semanticdone)
+    {   if (!ti->semanticRun)
 	    ti->semantic(sc);
 	s = ti->inst->toAlias();
 	if (!s->isTemplateInstance())
@@ -3339,7 +3348,7 @@ Lagain:
     ti = sds->isTemplateInstance();
     if (ti && !global.errors)
     {	Dsymbol *s;
-	if (!ti->semanticdone)
+	if (!ti->semanticRun)
 	    ti->semantic(sc);
 	s = ti->inst->toAlias();
 	sds2 = s->isScopeDsymbol();
@@ -3504,6 +3513,7 @@ Lagain:
 	     */
 	    Dsymbol *s = cd->toParent2();
 	    ClassDeclaration *cdn = s->isClassDeclaration();
+	    FuncDeclaration *fdn = s->isFuncDeclaration();
 
 	    //printf("cd isNested, cdn = %s\n", cdn ? cdn->toChars() : "null");
 	    if (cdn)
@@ -3555,6 +3565,21 @@ Lagain:
 	    }
 	    else if (thisexp)
 		error("e.new is only for allocating nested classes");
+	    else if (fdn)
+ 	    {
+		// make sure the parent context fdn of cd is reachable from sc
+		for (Dsymbol *sp = sc->parent; 1; sp = sp->parent)
+		{
+		    if (fdn == sp)
+			break;
+		    FuncDeclaration *fsp = sp ? sp->isFuncDeclaration() : NULL;
+		    if (!sp || (fsp && fsp->isStatic()))
+		    {
+			error("outer function context of %s is needed to 'new' nested class %s", fdn->toPrettyChars(), cd->toPrettyChars());
+			break;
+		    }
+		}
+	    }
 	}
 	else if (thisexp)
 	    error("e.new is only for allocating nested classes");
@@ -3563,7 +3588,7 @@ Lagain:
 	if (f)
 	{
 	    assert(f);
-	    f = f->overloadResolve(loc, arguments);
+	    f = f->overloadResolve(loc, NULL, arguments);
 	    checkDeprecated(sc, f);
 	    member = f->isCtorDeclaration();
 	    assert(member);
@@ -3591,7 +3616,7 @@ Lagain:
 		newargs = new Expressions();
 	    newargs->shift(e);
 
-	    f = cd->aggNew->overloadResolve(loc, newargs);
+	    f = cd->aggNew->overloadResolve(loc, NULL, newargs);
 	    allocator = f->isNewDeclaration();
 	    assert(allocator);
 
@@ -3624,7 +3649,7 @@ Lagain:
 		newargs = new Expressions();
 	    newargs->shift(e);
 
-	    f = f->overloadResolve(loc, newargs);
+	    f = f->overloadResolve(loc, NULL, newargs);
 	    allocator = f->isNewDeclaration();
 	    assert(allocator);
 
@@ -4155,6 +4180,7 @@ Expression *TupleExp::semantic(Scope *sc)
 	return (Expression *)exps->data[0];
     }
     type = new TypeTuple(exps);
+    type = type->semantic(loc, sc);
     //printf("-TupleExp::semantic(%s)\n", toChars());
     return this;
 }
@@ -5992,7 +6018,7 @@ Expression *CallExp::semantic(Scope *sc)
     if (e1->op == TOKimport && !e1->type)
     {	ScopeExp *se = (ScopeExp *)e1;
 	TemplateInstance *ti = se->sds->isTemplateInstance();
-	if (ti && !ti->semanticdone)
+	if (ti && !ti->semanticRun)
 	{
 	    /* Attempt to instantiate ti. If that works, go with it.
 	     * If not, go with partial explicit specialization.
@@ -6019,7 +6045,7 @@ Expression *CallExp::semantic(Scope *sc)
     if (e1->op == TOKdotti && !e1->type)
     {	DotTemplateInstanceExp *se = (DotTemplateInstanceExp *)e1;
 	TemplateInstance *ti = se->ti;
-	if (!ti->semanticdone)
+	if (!ti->semanticRun)
 	{
 	    /* Attempt to instantiate ti. If that works, go with it.
 	     * If not, go with partial explicit specialization.
@@ -6157,7 +6183,7 @@ Lagain:
 
 	    f = dve->var->isFuncDeclaration();
 	    assert(f);
-	    f = f->overloadResolve(loc, arguments);
+	    f = f->overloadResolve(loc, NULL, arguments);
 
 	    ad = f->toParent()->isAggregateDeclaration();
 	}
@@ -6258,7 +6284,7 @@ Lagain:
 		    sc->callSuper |= CSXany_ctor | CSXsuper_ctor;
 		}
 
-		f = f->overloadResolve(loc, arguments);
+		f = f->overloadResolve(loc, NULL, arguments);
 		checkDeprecated(sc, f);
 #if DMDV2
 		checkPurity(sc, f);
@@ -6298,7 +6324,7 @@ Lagain:
 	    }
 
 	    f = cd->ctor;
-	    f = f->overloadResolve(loc, arguments);
+	    f = f->overloadResolve(loc, NULL, arguments);
 	    checkDeprecated(sc, f);
 #if DMDV2
 	    checkPurity(sc, f);
@@ -6392,7 +6418,7 @@ Lagain:
 	    }
 	}
 
-	f = f->overloadResolve(loc, arguments);
+	f = f->overloadResolve(loc, NULL, arguments);
 	checkDeprecated(sc, f);
 #if DMDV2
 	checkPurity(sc, f);
@@ -6504,8 +6530,8 @@ int CallExp::canThrow()
 #if DMDV2
 int CallExp::isLvalue()
 {
-    if (type->toBasetype()->ty == Tstruct)
-	return 1;
+//    if (type->toBasetype()->ty == Tstruct)
+//	return 1;
     Type *tb = e1->type->toBasetype();
     if (tb->ty == Tfunction && ((TypeFunction *)tb)->isref)
 	return 1;		// function returns a reference
@@ -6515,10 +6541,18 @@ int CallExp::isLvalue()
 
 Expression *CallExp::toLvalue(Scope *sc, Expression *e)
 {
+#if 1
     if (type->toBasetype()->ty == Tstruct)
 	return this;
     else
+#endif
 	return Expression::toLvalue(sc, e);
+}
+
+Expression *CallExp::modifiableLvalue(Scope *sc, Expression *e)
+{
+    error("cannot assign to function call");
+    return toLvalue(sc, e);
 }
 
 void CallExp::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
@@ -6550,8 +6584,19 @@ Expression *AddrExp::semantic(Scope *sc)
 	if (!e1->type)
 	{
 	    error("cannot take address of %s", e1->toChars());
-	    type = Type::tint32;
-	    return this;
+	    return new ErrorExp();
+	}
+	if (!e1->type->deco)
+	{
+	    /* No deco means semantic() was not run on the type.
+	     * We have to run semantic() on the symbol to get the right type:
+	     *	auto x = &bar;
+	     *	pure: int bar() { return 1;}
+	     * otherwise the 'pure' is missing from the type assigned to x.
+	     */
+
+	    error("forward reference to %s", e1->toChars());
+	    return new ErrorExp();
 	}
 	type = e1->type->pointerTo();
 
@@ -6595,8 +6640,8 @@ Expression *AddrExp::semantic(Scope *sc)
 PtrExp::PtrExp(Loc loc, Expression *e)
 	: UnaExp(loc, TOKstar, sizeof(PtrExp), e)
 {
-    if (e->type)
-	type = ((TypePointer *)e->type)->next;
+//    if (e->type)
+//	type = ((TypePointer *)e->type)->next;
 }
 
 PtrExp::PtrExp(Loc loc, Expression *e, Type *t)
@@ -6606,43 +6651,42 @@ PtrExp::PtrExp(Loc loc, Expression *e, Type *t)
 }
 
 Expression *PtrExp::semantic(Scope *sc)
-{   Type *tb;
-
+{
 #if LOGSEMANTIC
     printf("PtrExp::semantic('%s')\n", toChars());
 #endif
-    UnaExp::semantic(sc);
-    e1 = resolveProperties(sc, e1);
-    if (type)
-	return this;
-    if (!e1->type)
-	printf("PtrExp::semantic('%s')\n", toChars());
-    tb = e1->type->toBasetype();
-    switch (tb->ty)
+    if (!type)
     {
-	case Tpointer:
-	    type = tb->next;
-	    if (type->isbit())
-	    {	Expression *e;
+	UnaExp::semantic(sc);
+	e1 = resolveProperties(sc, e1);
+	if (!e1->type)
+	    printf("PtrExp::semantic('%s')\n", toChars());
+	Type *tb = e1->type->toBasetype();
+	switch (tb->ty)
+	{
+	    case Tpointer:
+		type = tb->next;
+		if (type->isbit())
+		{   Expression *e;
 
-		// Rewrite *p as p[0]
-		e = new IndexExp(loc, e1, new IntegerExp(0));
-		return e->semantic(sc);
-	    }
-	    break;
+		    // Rewrite *p as p[0]
+		    e = new IndexExp(loc, e1, new IntegerExp(0));
+		    return e->semantic(sc);
+		}
+		break;
 
-	case Tsarray:
-	case Tarray:
-	    type = tb->next;
-	    e1 = e1->castTo(sc, type->pointerTo());
-	    break;
+	    case Tsarray:
+	    case Tarray:
+		type = tb->next;
+		e1 = e1->castTo(sc, type->pointerTo());
+		break;
 
-	default:
-	    error("can only * a pointer, not a '%s'", e1->type->toChars());
-	    type = Type::tint32;
-	    break;
+	    default:
+		error("can only * a pointer, not a '%s'", e1->type->toChars());
+		return new ErrorExp();
+	}
+	rvalue();
     }
-    rvalue();
     return this;
 }
 

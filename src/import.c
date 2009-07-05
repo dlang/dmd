@@ -134,8 +134,6 @@ void Import::semantic(Scope *sc)
 	//printf("%s imports %s\n", sc->module->toChars(), mod->toChars());
 	sc->module->aimports.push(mod);
 
-	mod->semantic();
-
 	if (!isstatic && !aliasId && !names.dim)
 	{
 	    /* Default to private importing
@@ -145,6 +143,8 @@ void Import::semantic(Scope *sc)
 		prot = PROTprivate;
 	    sc->scopesym->importScope(mod, prot);
 	}
+
+	mod->semantic();
 
 	if (mod->needmoduleinfo)
 	    sc->module->needmoduleinfo = 1;

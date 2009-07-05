@@ -55,7 +55,7 @@ elem *bit_assign(enum OPER op, elem *eb, elem *ei, elem *ev, int result);
 elem *bit_read(elem *eb, elem *ei, int result);
 elem *exp2_copytotemp(elem *e);
 
-#define el_setLoc(e,loc)	((e)->Esrcpos.Sfilename = (loc).filename, \
+#define el_setLoc(e,loc)	((e)->Esrcpos.Sfilename = (char *)(loc).filename, \
 				 (e)->Esrcpos.Slinnum = (loc).linnum)
 
 /************************************
@@ -676,6 +676,7 @@ elem *VarExp::toElem(IRState *irs)
 	//printf("\tadding symbol\n");
 	symbol_add(s);
     }
+
     if (var->isImportedSymbol())
     {
 	e = el_var(var->toImport());
@@ -1583,7 +1584,7 @@ elem *AssertExp::toElem(IRState *irs)
 		if (!assertexp_sfilename || strcmp(loc.filename, assertexp_name) != 0 || assertexp_mn != m)
 		{
 		    dt_t *dt = NULL;
-		    char *id;
+		    const char *id;
 		    int len;
 
 		    id = loc.filename;
@@ -1603,7 +1604,7 @@ elem *AssertExp::toElem(IRState *irs)
 		    outdata(assertexp_sfilename);
 
 		    assertexp_mn = m;
-		    assertexp_name = id;
+		    assertexp_name = (char *)id;
 		}
 
 		efilename = el_var(assertexp_sfilename);
@@ -1690,8 +1691,20 @@ elem *AddExp::toElem(IRState *irs)
  */
 
 elem *MinExp::toElem(IRState *irs)
-{
-    return toElemBin(irs,OPmin);
+{   elem *e;
+    Type *tb1 = e1->type->toBasetype();
+    Type *tb2 = e2->type->toBasetype();
+
+    if ((tb1->ty == Tarray || tb1->ty == Tsarray) &&
+	(tb2->ty == Tarray || tb2->ty == Tsarray)
+       )
+    {
+	error("Array operation %s not implemented", toChars());
+	e = el_long(type->totym(), 0);	// error recovery
+    }
+    else
+	e = toElemBin(irs,OPmin);
+    return e;
 }
 
 /***************************************
@@ -2934,7 +2947,7 @@ elem *DelegateExp::toElem(IRState *irs)
     {
 	ethis = e1->toElem(irs);
 	if (e1->type->ty != Tclass && e1->type->ty != Tpointer)
-	    ethis = el_una(OPaddr, TYnptr, ethis);
+	    ethis = addressElem(ethis, e1->type);
 
 	if (e1->op == TOKsuper)
 	    directcall = 1;

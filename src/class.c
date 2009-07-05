@@ -1,6 +1,6 @@
 
 // Compiler implementation of the D programming language
-// Copyright (c) 1999-2008 by Digital Mars
+// Copyright (c) 1999-2009 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // http://www.digitalmars.com
@@ -224,19 +224,19 @@ void ClassDeclaration::semantic(Scope *sc)
     //{ static int n;  if (++n == 20) *(char*)0=0; }
 
     if (!ident)		// if anonymous class
-    {	char *id = "__anonclass";
+    {	const char *id = "__anonclass";
 
 	ident = Identifier::generateId(id);
     }
 
-    if (!scope)
-    {
-	if (!parent && sc->parent && !sc->parent->isModule())
-	    parent = sc->parent;
+    if (!sc)
+	sc = scope;
+    if (!parent && sc->parent && !sc->parent->isModule())
+	parent = sc->parent;
 
-	type = type->semantic(loc, sc);
-	handle = handle->semantic(loc, sc);
-    }
+    type = type->semantic(loc, sc);
+    handle = type;
+
     if (!members)			// if forward reference
     {	//printf("\tclass '%s' is forward referenced\n", toChars());
 	return;
@@ -326,6 +326,11 @@ void ClassDeclaration::semantic(Scope *sc)
 			baseclasses.remove(0);
 			goto L7;
 		    }
+		}
+		if (!tc->sym->symtab || tc->sym->sizeok == 0)
+		{   // Try to resolve forward reference
+		    if (sc->mustsemantic && tc->sym->scope)
+			tc->sym->semantic(NULL);
 		}
 		if (!tc->sym->symtab || tc->sym->scope || tc->sym->sizeok == 0)
 		{
@@ -498,15 +503,15 @@ void ClassDeclaration::semantic(Scope *sc)
 	{   Dsymbol *s = toParent2();
 	    if (s)
 	    {
-		ClassDeclaration *cd = s->isClassDeclaration();
+		AggregateDeclaration *ad = s->isClassDeclaration();
 		FuncDeclaration *fd = s->isFuncDeclaration();
 
 
-		if (cd || fd)
+		if (ad || fd)
 		{   isnested = 1;
 		    Type *t;
-		    if (cd)
-			t = cd->type;
+		    if (ad)
+			t = ad->handle;
 		    else if (fd)
 		    {	AggregateDeclaration *ad = fd->isMember2();
 			if (ad)
@@ -560,7 +565,7 @@ void ClassDeclaration::semantic(Scope *sc)
 //	    sc->offset += PTRSIZE;	// room for uplevel context pointer
     }
     else
-    {	sc->offset = PTRSIZE * 2;	// allow room for vptr[] and monitor
+    {	sc->offset = PTRSIZE * 2;	// allow room for __vptr and __monitor
 	alignsize = PTRSIZE;
     }
     structsize = sc->offset;
@@ -776,7 +781,11 @@ Dsymbol *ClassDeclaration::search(Loc loc, Identifier *ident, int flags)
 
     //printf("%s.ClassDeclaration::search('%s')\n", toChars(), ident->toChars());
     if (scope)
-	semantic(scope);
+    {	Scope *sc = scope;
+	sc->mustsemantic++;
+	semantic(sc);
+	sc->mustsemantic--;
+    }
 
     if (!members || !symtab || scope)
     {	error("is forward referenced when looking for '%s'", ident->toChars());
@@ -827,7 +836,7 @@ int isf(void *param, FuncDeclaration *fd)
 
 int ClassDeclaration::isFuncHidden(FuncDeclaration *fd)
 {
-    //printf("ClassDeclaration::isFuncHidden(%s)\n", fd->toChars());
+    //printf("ClassDeclaration::isFuncHidden(class = %s, fd = %s)\n", toChars(), fd->toChars());
     Dsymbol *s = search(0, fd->ident, 4|2);
     if (!s)
     {	//printf("not found\n");
@@ -1002,10 +1011,13 @@ void InterfaceDeclaration::semantic(Scope *sc)
     //printf("InterfaceDeclaration::semantic(%s), type = %p\n", toChars(), type);
     if (inuse)
 	return;
-    if (!scope)
-    {	type = type->semantic(loc, sc);
-	handle = handle->semantic(loc, sc);
-    }
+
+    if (!sc)
+	sc = scope;
+
+    type = type->semantic(loc, sc);
+    handle = type;
+
     if (!members)			// if forward reference
     {	//printf("\tinterface '%s' is forward referenced\n", toChars());
 	return;
