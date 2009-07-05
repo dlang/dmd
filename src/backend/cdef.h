@@ -6,6 +6,7 @@
 /*
  * This source file is made available for personal use
  * only. The license is in /dmd/src/dmd/backendlicense.txt
+ * or /dm/src/dmd/backendlicense.txt
  * For any other uses, please contact Digital Mars.
  */
 
@@ -812,7 +813,7 @@ struct Config
 			 CFG4stackalign | CFG4dependent)
 #define CFGY4		(CFG4nowchar_t | CFG4noemptybaseopt | CFG4adl | \
 			 CFG4enumoverload | CFG4implicitfromvoid | \
-			 CFG4wchar_is_long | CFG4nounderscore)
+			 CFG4wchar_is_long | CFG4underscore)
 
     unsigned long flags5;
 #define CFG5debug	1	// compile in __debug code

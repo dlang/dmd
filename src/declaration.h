@@ -1,6 +1,6 @@
 
 // Compiler implementation of the D programming language
-// Copyright (c) 1999-2008 by Digital Mars
+// Copyright (c) 1999-2009 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // http://www.digitalmars.com
@@ -237,7 +237,6 @@ struct VarDeclaration : Declaration
     Dsymbol *aliassym;		// if redone as alias to another symbol
     Expression *value;		// when interpreting, this is the value
 				// (NULL if value not determinable)
-    Scope *scope;		// !=NULL means context to use
 
     VarDeclaration(Loc loc, Type *t, Identifier *id, Initializer *init);
     Dsymbol *syntaxCopy(Dsymbol *);
@@ -510,7 +509,6 @@ struct FuncDeclaration : Declaration
 					// of the 'introducing' function
 					// this one is overriding
     int inferRetType;			// !=0 if return type is to be inferred
-    Scope *scope;			// !=NULL means context to use
 
     // Things that should really go into Scope
     int hasReturnExp;			// 1 if there's a return exp; statement

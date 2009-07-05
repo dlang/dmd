@@ -78,7 +78,7 @@ Global::Global()
     "\nMSIL back-end (alpha release) by Cristian L. Vlasceanu and associates.";
 #endif
     ;
-    version = "v2.030";
+    version = "v2.031";
     global.structalign = 8;
 
     memset(&params, 0, sizeof(Param));
@@ -220,6 +220,7 @@ Usage:\n\
   -debug=ident   compile in debug code identified by ident\n\
   -debuglib=name    set symbolic debug library to name\n\
   -defaultlib=name  set default library to name\n\
+  -deps=filename write module dependencies to filename\n\
   -g             add symbolic debug info\n\
   -gc            add symbolic debug info, pretend to be C\n\
   -H             generate 'header' file\n\
@@ -248,6 +249,7 @@ Usage:\n\
   -v             verbose\n\
   -version=level compile in version code >= level\n\
   -version=ident compile in version code identified by ident\n\
+  -vtls          list all variables going into thread local storage\n\
   -w             enable warnings\n\
 ");
 }
@@ -604,6 +606,13 @@ int main(int argc, char *argv[])
 	    {
 		setdebuglib = 1;
 		global.params.debuglibname = p + 1 + 9;
+	    }
+	    else if (memcmp(p + 1, "deps=", 5) == 0)
+	    {
+		global.params.moduleDepsFile = p + 1 + 5;
+		if (!global.params.moduleDepsFile[0])
+		    goto Lnoarg;
+		global.params.moduleDeps = new OutBuffer;
 	    }
 	    else if (memcmp(p + 1, "man", 3) == 0)
 	    {
@@ -1070,6 +1079,17 @@ int main(int argc, char *argv[])
     }
     if (global.errors)
 	fatal();
+
+    if (global.params.moduleDeps != NULL)
+    {
+	assert(global.params.moduleDepsFile != NULL);
+
+	File deps(global.params.moduleDepsFile);
+	OutBuffer* ob = global.params.moduleDeps;
+	deps.setbuffer((void*)ob->data, ob->offset);
+	deps.writev();
+    }
+
 
     // Scan for functions to inline
     if (global.params.useInline)

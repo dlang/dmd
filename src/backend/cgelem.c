@@ -6,6 +6,7 @@
 /*
  * This source file is made available for personal use
  * only. The license is in /dmd/src/dmd/backendlicense.txt
+ * or /dm/src/dmd/backendlicense.txt
  * For any other uses, please contact Digital Mars.
  */
 
@@ -979,11 +980,21 @@ ret:
  */
 
 STATIC elem * elmul(elem *e)
-{ elem *e2;
-  tym_t tym;
+{
+  tym_t tym = e->Ety;
 
-  e2 = e->E2;
-  tym = e->Ety;
+  if (OPTIMIZER)
+  {
+	// Replace -a*-b with a*b.
+	// This is valid for all floating point types as well as integers.
+	if (tyarithmetic(tym) && e->E2->Eoper == OPneg && e->E1->Eoper == OPneg)
+	{
+	    e->E1 = el_selecte1(e->E1);
+	    e->E2 = el_selecte1(e->E2);
+	}
+  }
+
+  elem *e2 = e->E2;
   if (e2->Eoper == OPconst)		/* try to replace multiplies with shifts */
   {
 	if (OPTIMIZER)

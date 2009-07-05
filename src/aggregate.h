@@ -50,7 +50,6 @@ struct AggregateDeclaration : ScopeDsymbol
 				// 1: size is correct
 				// 2: cannot determine size; fwd referenced
     int isdeprecated;		// !=0 if deprecated
-    Scope *scope;		// !=NULL means context to use
 
     int isnested;		// !=0 if is nested
     VarDeclaration *vthis;	// 'this' parameter if this aggregate is nested

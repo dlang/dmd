@@ -180,6 +180,7 @@ elem *getEthis(Loc loc, IRState *irs, Dsymbol *fd)
 		    {
 		    }
 		    else
+			// Error should have been caught by front end
 			assert(0);
 		}
 		else

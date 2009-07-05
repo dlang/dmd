@@ -143,7 +143,6 @@ dt_t *StructInitializer::toDt()
 	    {	unsigned sz = dt_size(d);
 		unsigned vsz = v->type->size();
 		unsigned voffset = v->offset;
-		assert(sz <= vsz);
 
 		unsigned dim = 1;
 		for (Type *vt = v->type->toBasetype();
@@ -152,6 +151,7 @@ dt_t *StructInitializer::toDt()
 		{   TypeSArray *tsa = (TypeSArray *)vt;
 		    dim *= tsa->dim->toInteger();
 		}
+		assert(sz == vsz || sz * dim <= vsz);
 
 		for (size_t i = 0; i < dim; i++)
 		{

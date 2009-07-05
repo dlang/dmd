@@ -479,7 +479,7 @@ void FuncDeclaration::toObjFile(int multiobj)
     int i;
     int has_arguments;
 
-    //printf("FuncDeclaration::toObjFile(%p, %s)\n", func, func->toChars());
+    //printf("FuncDeclaration::toObjFile(%p, %s.%s)\n", func, parent->toChars(), func->toChars());
 #if 0
     //printf("line = %d\n",func->getWhere() / LINEINC);
     EEcontext *ee = env->getEEcontext();
@@ -503,7 +503,9 @@ void FuncDeclaration::toObjFile(int multiobj)
     semanticRun = 5;
 
     if (!func->fbody)
+    {
 	return;
+    }
     if (func->isUnitTestDeclaration() && !global.params.useUnitTests)
 	return;
 

@@ -1,6 +1,6 @@
 
 // Compiler implementation of the D programming language
-// Copyright (c) 1999-2008 by Digital Mars
+// Copyright (c) 1999-2009 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // http://www.digitalmars.com
@@ -231,14 +231,14 @@ void ClassDeclaration::semantic(Scope *sc)
 	ident = Identifier::generateId(id);
     }
 
-    if (!scope)
-    {
-	if (!parent && sc->parent && !sc->parent->isModule())
-	    parent = sc->parent;
+    if (!sc)
+	sc = scope;
+    if (!parent && sc->parent && !sc->parent->isModule())
+	parent = sc->parent;
 
-	type = type->semantic(loc, sc);
-	handle = handle->semantic(loc, sc);
-    }
+    type = type->semantic(loc, sc);
+    handle = type;
+
     if (!members)			// if forward reference
     {	//printf("\tclass '%s' is forward referenced\n", toChars());
 	return;
@@ -273,7 +273,9 @@ void ClassDeclaration::semantic(Scope *sc)
     // Expand any tuples in baseclasses[]
     for (i = 0; i < baseclasses.dim; )
     {	BaseClass *b = (BaseClass *)baseclasses.data[i];
+//printf("test1 %s %s\n", toChars(), b->type->toChars());
 	b->type = b->type->semantic(loc, sc);
+//printf("test2\n");
 	Type *tb = b->type->toBasetype();
 
 	if (tb->ty == Ttuple)
@@ -332,8 +334,14 @@ void ClassDeclaration::semantic(Scope *sc)
 			goto L7;
 		    }
 		}
+		if (!tc->sym->symtab || tc->sym->sizeok == 0)
+		{   // Try to resolve forward reference
+		    if (sc->mustsemantic && tc->sym->scope)
+			tc->sym->semantic(NULL);
+		}
 		if (!tc->sym->symtab || tc->sym->scope || tc->sym->sizeok == 0)
 		{
+		    //printf("%s: forward reference of base class %s\n", toChars(), tc->sym->toChars());
 		    //error("forward reference of base class %s", baseClass->toChars());
 		    // Forward reference of base class, try again later
 		    //printf("\ttry later, forward reference of base class %s\n", tc->sym->toChars());
@@ -791,10 +799,15 @@ Dsymbol *ClassDeclaration::search(Loc loc, Identifier *ident, int flags)
 
     //printf("%s.ClassDeclaration::search('%s')\n", toChars(), ident->toChars());
     if (scope)
-	semantic(scope);
+    {	Scope *sc = scope;
+	sc->mustsemantic++;
+	semantic(sc);
+	sc->mustsemantic--;
+    }
 
     if (!members || !symtab || scope)
-    {	error("is forward referenced when looking for '%s'", ident->toChars());
+    {
+	error("is forward referenced when looking for '%s'", ident->toChars());
 	//*(char*)0=0;
 	return NULL;
     }
@@ -1035,10 +1048,15 @@ void InterfaceDeclaration::semantic(Scope *sc)
     //printf("InterfaceDeclaration::semantic(%s), type = %p\n", toChars(), type);
     if (inuse)
 	return;
-    if (!scope)
-    {	type = type->semantic(loc, sc);
-	handle = handle->semantic(loc, sc);
-    }
+
+    if (!sc)
+	sc = scope;
+    if (!parent && sc->parent && !sc->parent->isModule())
+	parent = sc->parent;
+
+    type = type->semantic(loc, sc);
+    handle = type;
+
     if (!members)			// if forward reference
     {	//printf("\tinterface '%s' is forward referenced\n", toChars());
 	return;

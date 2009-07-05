@@ -1,6 +1,6 @@
 
 // Compiler implementation of the D programming language
-// Copyright (c) 1999-2007 by Digital Mars
+// Copyright (c) 1999-2009 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // http://www.digitalmars.com
@@ -803,6 +803,16 @@ Expression *IndexExp::optimize(int result)
     //printf("IndexExp::optimize(result = %d) %s\n", result, toChars());
     Expression *e1 = this->e1->optimize(WANTvalue | (result & WANTinterpret));
     e1 = fromConstInitializer(result, e1);
+    if (this->e1->op == TOKvar)
+    {	VarExp *ve = (VarExp *)this->e1;
+	if (ve->var->storage_class & STCmanifest)
+	{   /* We generally don't want to have more than one copy of an
+	     * array literal, but if it's an enum we have to because the
+	     * enum isn't stored elsewhere. See Bugzilla 2559
+	     */
+	    this->e1 = e1;
+	}
+    }
     e2 = e2->optimize(WANTvalue | (result & WANTinterpret));
     e = Index(type, e1, e2);
     if (e == EXP_CANT_INTERPRET)

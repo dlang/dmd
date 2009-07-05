@@ -3141,6 +3141,7 @@ Statement *Parser::parseStatement(int flags)
     Condition *condition;
     Statement *ifbody;
     Statement *elsebody;
+    bool isfinal;
     Loc loc = this->loc;
 
     //printf("parseStatement()\n");
@@ -3242,13 +3243,21 @@ Statement *Parser::parseStatement(int flags)
 	    goto Ldeclaration;
 	}
 
+	case TOKfinal:
+	    if (peekNext() == TOKswitch)
+	    {
+		nextToken();
+		isfinal = TRUE;
+		goto Lswitch;
+	    }
+	    goto Ldeclaration;
+
 	CASE_BASIC_TYPES:
 	case TOKtypedef:
 	case TOKalias:
 	case TOKconst:
 	case TOKauto:
 	case TOKextern:
-	case TOKfinal:
 	case TOKinvariant:
 #if DMDV2
 	case TOKimmutable:
@@ -3648,15 +3657,17 @@ Statement *Parser::parseStatement(int flags)
 	}
 
 	case TOKswitch:
-	{   Expression *condition;
-	    Statement *body;
+	    isfinal = FALSE;
+	    goto Lswitch;
 
+	Lswitch:
+	{
 	    nextToken();
 	    check(TOKlparen);
-	    condition = parseExpression();
+	    Expression *condition = parseExpression();
 	    check(TOKrparen);
-	    body = parseStatement(PSscope);
-	    s = new SwitchStatement(loc, condition, body);
+	    Statement *body = parseStatement(PSscope);
+	    s = new SwitchStatement(loc, condition, body, isfinal);
 	    break;
 	}
 
@@ -3664,6 +3675,7 @@ Statement *Parser::parseStatement(int flags)
 	{   Expression *exp;
 	    Statements *statements;
 	    Array cases;	// array of Expression's
+	    Expression *last = NULL;
 
 	    while (1)
 	    {
@@ -3675,6 +3687,20 @@ Statement *Parser::parseStatement(int flags)
 	    }
 	    check(TOKcolon);
 
+#if DMDV2
+	    /* case exp: .. case last:
+	     */
+	    if (token.value == TOKslice)
+	    {
+		if (cases.dim > 1)
+		    error("only one case allowed for start of case range");
+		nextToken();
+		check(TOKcase);
+		last = parseAssignExp();
+		check(TOKcolon);
+	    }
+#endif
+
 	    statements = new Statements();
 	    while (token.value != TOKcase &&
 		   token.value != TOKdefault &&
@@ -3685,11 +3711,20 @@ Statement *Parser::parseStatement(int flags)
 	    s = new CompoundStatement(loc, statements);
 	    s = new ScopeStatement(loc, s);
 
-	    // Keep cases in order by building the case statements backwards
-	    for (int i = cases.dim; i; i--)
+#if DMDV2
+	    if (last)
 	    {
-		exp = (Expression *)cases.data[i - 1];
-		s = new CaseStatement(loc, exp, s);
+		s = new CaseRangeStatement(loc, exp, last, s);
+	    }
+	    else
+#endif
+	    {
+		// Keep cases in order by building the case statements backwards
+		for (int i = cases.dim; i; i--)
+		{
+		    exp = (Expression *)cases.data[i - 1];
+		    s = new CaseStatement(loc, exp, s);
+		}
 	    }
 	    break;
 	}
@@ -4021,6 +4056,8 @@ void Parser::check(enum TOK value, const char *string)
  *	needId	0	no identifier
  *		1	identifier optional
  *		2	must have identifier
+ * Output:
+ *	if *pt is not NULL, it is set to the ending token, which would be endtok
  */
 
 int Parser::isDeclaration(Token *t, int needId, enum TOK endtok, Token **pt)
@@ -4059,7 +4096,7 @@ int Parser::isDeclaration(Token *t, int needId, enum TOK endtok, Token **pt)
 	goto Lisnot;
 
 Lis:
-    //printf("\tis declaration\n");
+    //printf("\tis declaration, t = %s\n", t->toChars());
     return TRUE;
 
 Lisnot:
@@ -4354,7 +4391,6 @@ int Parser::isDeclarator(Token **pt, int *haveId, enum TOK endtok)
 int Parser::isParameters(Token **pt)
 {   // This code parallels parseParameters()
     Token *t = *pt;
-    int tmp;
 
     //printf("isParameters()\n");
     if (t->value != TOKlparen)
@@ -4363,6 +4399,7 @@ int Parser::isParameters(Token **pt)
     t = peek(t);
     for (;1; t = peek(t))
     {
+     L1:
 	switch (t->value)
 	{
 	    case TOKrparen:
@@ -4377,12 +4414,23 @@ int Parser::isParameters(Token **pt)
 	    case TOKinout:
 	    case TOKref:
 	    case TOKlazy:
+	    case TOKfinal:
+		continue;
+
 	    case TOKconst:
 	    case TOKinvariant:
 	    case TOKimmutable:
 	    case TOKshared:
-	    case TOKfinal:
-		continue;
+		t = peek(t);
+		if (t->value == TOKlparen)
+		{
+		    t = peek(t);
+		    if (!isDeclaration(t, 0, TOKrparen, &t))
+			return FALSE;
+		    t = peek(t);	// skip past closing ')'
+		    goto L2;
+		}
+		goto L1;
 
 #if 0
 	    case TOKstatic:
@@ -4401,9 +4449,10 @@ int Parser::isParameters(Token **pt)
 #endif
 
 	    default:
-		if (!isBasicType(&t))
+	    {	if (!isBasicType(&t))
 		    return FALSE;
-		tmp = FALSE;
+	    L2:
+		int tmp = FALSE;
 		if (t->value != TOKdotdotdot &&
 		    !isDeclarator(&t, &tmp, TOKreserved))
 		    return FALSE;
@@ -4417,6 +4466,7 @@ int Parser::isParameters(Token **pt)
 		    t = peek(t);
 		    break;
 		}
+	    }
 	    L3:
 		if (t->value == TOKcomma)
 		{

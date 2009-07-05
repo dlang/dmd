@@ -1,5 +1,5 @@
 
-// Copyright (c) 1999-2008 by Digital Mars
+// Copyright (c) 1999-2009 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // http://www.digitalmars.com
@@ -422,6 +422,12 @@ Expression *AssignExp::buildArrayLoop(Arguments *fparams)
     /* Evaluate assign expressions right to left
      */
     Expression *ex2 = e2->buildArrayLoop(fparams);
+    /* Need the cast because:
+     *   b = c + p[i];
+     * where b is a byte fails because (c + p[i]) is an int
+     * which cannot be implicitly cast to byte.
+     */
+    ex2 = new CastExp(0, ex2, e1->type->nextOf());
     Expression *ex1 = e1->buildArrayLoop(fparams);
     Argument *param = (Argument *)fparams->data[0];
     param->storageClass = 0;

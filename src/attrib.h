@@ -1,6 +1,6 @@
 
 // Compiler implementation of the D programming language
-// Copyright (c) 1999-2007 by Digital Mars
+// Copyright (c) 1999-2009 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // http://www.digitalmars.com
@@ -36,6 +36,9 @@ struct AttribDeclaration : Dsymbol
     AttribDeclaration(Array *decl);
     virtual Array *include(Scope *sc, ScopeDsymbol *s);
     int addMember(Scope *sc, ScopeDsymbol *s, int memnum);
+    void semanticNewSc(Scope *sc,
+	unsigned newstc, enum LINK linkage, enum PROT protection, int explictProtection,
+	unsigned structalign);
     void semantic(Scope *sc);
     void semantic2(Scope *sc);
     void semantic3(Scope *sc);
@@ -86,6 +89,8 @@ struct ProtDeclaration : AttribDeclaration
     Dsymbol *syntaxCopy(Dsymbol *s);
     void semantic(Scope *sc);
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
+
+    static void protectionToCBuffer(OutBuffer *buf, enum PROT protection);
 };
 
 struct AlignDeclaration : AttribDeclaration
@@ -101,7 +106,6 @@ struct AlignDeclaration : AttribDeclaration
 struct AnonDeclaration : AttribDeclaration
 {
     int isunion;
-    Scope *scope;		// !=NULL means context to use
     int sem;			// 1 if successful semantic()
 
     AnonDeclaration(Loc loc, int isunion, Array *decl);

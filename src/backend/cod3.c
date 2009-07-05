@@ -6,6 +6,7 @@
 /*
  * This source file is made available for personal use
  * only. The license is in /dmd/src/dmd/backendlicense.txt
+ * or /dm/src/dmd/backendlicense.txt
  * For any other uses, please contact Digital Mars.
  */
 
@@ -766,8 +767,11 @@ int jmpopcode(elem *e)
 	tym_t tymx = tybasic(e->Ety);
 	if (tyfloating(tymx) && config.inline8087 &&
 	    (tymx == TYldouble || tymx == TYildouble || tymx == TYcldouble ||
-	     tymx == TYcdouble || tymx == TYcfloat))
+	     tymx == TYcdouble || tymx == TYcfloat ||
+	     op == OPind))
+	{
 	    return XP|JNE;
+	}
 	return (op >= OPbt && op <= OPbts) ? JC : JNE;
   }
 

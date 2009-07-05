@@ -197,6 +197,7 @@ Expression *UnaExp::op_overload(Scope *sc)
 	    }
 	}
 
+#if DMDV2
 	// Didn't find it. Forward to aliasthis
 	if (ad->aliasthis)
 	{
@@ -209,6 +210,7 @@ Expression *UnaExp::op_overload(Scope *sc)
 	    e = e->semantic(sc);
 	    return e;
 	}
+#endif
     }
     return NULL;
 }
@@ -440,6 +442,7 @@ Expression *BinExp::op_overload(Scope *sc)
 	}
     }
 
+#if DMDV2
     // Try alias this on first operand
     if (ad1 && ad1->aliasthis)
     {
@@ -465,7 +468,7 @@ Expression *BinExp::op_overload(Scope *sc)
 	e = e->semantic(sc);
 	return e;
     }
-
+#endif
     return NULL;
 }
 

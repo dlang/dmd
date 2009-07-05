@@ -37,6 +37,7 @@ Macros defined by the compiler, not the code:
 	linux		Linux
 	__APPLE__	Mac OSX
 	__FreeBSD__	FreeBSD
+	__sun&&__SVR4	Solaris, OpenSolaris (yes, both macros are necessary)
 
 For the target systems, there are the target operating system and
 the target object file format:
@@ -46,6 +47,7 @@ the target object file format:
 	TARGET_LINUX	Covers 32 and 64 bit linux
 	TARGET_OSX	Covers 32 and 64 bit Mac OSX
 	TARGET_FREEBSD	Covers 32 and 64 bit FreeBSD
+	TARGET_SOLARIS	Covers 32 and 64 bit Solaris
 	TARGET_NET	Covers .Net
 
     It is expected that the compiler for each platform will be able
@@ -53,7 +55,7 @@ the target object file format:
 
     Target object module format:
 	OMFOBJ		Intel Object Module Format, used on Windows
-	ELFOBJ		Elf Object Module Format, used on linux and FreeBSD
+	ELFOBJ		Elf Object Module Format, used on linux, FreeBSD and Solaris
 	MACHOBJ		Mach-O Object Module Format, used on Mac OSX
 
     There are currently no macros for byte endianness order.
@@ -81,7 +83,8 @@ the target object file format:
 #define STRUCTTHISREF DMDV2	// if 'this' for struct is a reference, not a pointer
 #define SNAN_DEFAULT_INIT DMDV2	// if floats are default initialized to signalling NaN
 
-/* Other targets are TARGET_LINUX, TARGET_OSX and TARGET_FREEBSD, which are
+/* Other targets are TARGET_LINUX, TARGET_OSX, TARGET_FREEBSD and
+ * TARGET_SOLARIS, which are
  * set on the command line via the compiler makefile.
  */
 
@@ -104,6 +107,7 @@ the target object file format:
 
 
 struct Array;
+struct OutBuffer;
 
 // Put command line switches in here
 struct Param
@@ -174,6 +178,9 @@ struct Param
     const char *debuglibname;	// default library for debug builds
 
     const char *xmlname;	// filename for XML output
+
+    char *moduleDepsFile;	// filename for deps output
+    OutBuffer *moduleDeps;	// contents to be written to deps file
 
     // Hidden debug switches
     char debuga;
@@ -367,7 +374,7 @@ void util_progress();
 #if IN_GCC
 #define stdmsg stderr
 #else
-#define stdmsg stdout
+#define stdmsg stderr
 #endif
 
 struct Dsymbol;

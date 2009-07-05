@@ -26,6 +26,9 @@
 #include "module.h"
 #include "parse.h"
 #include "template.h"
+#if TARGET_NET
+ #include "frontend.net/pragma.h"
+#endif
 
 extern void obj_includelib(const char *name);
 void obj_startaddress(Symbol *s);
@@ -57,6 +60,41 @@ int AttribDeclaration::addMember(Scope *sc, ScopeDsymbol *sd, int memnum)
 	}
     }
     return m;
+}
+
+void AttribDeclaration::semanticNewSc(Scope *sc,
+	unsigned stc, enum LINK linkage, enum PROT protection, int explicitProtection,
+	unsigned structalign)
+{
+    if (decl)
+    {
+	Scope *newsc = sc;
+	if (stc != sc->stc ||
+	    linkage != sc->linkage ||
+	    protection != sc->protection ||
+	    explicitProtection != sc->explicitProtection ||
+	    structalign != sc->structalign)
+	{
+	    // create new one for changes
+	    newsc = new Scope(*sc);
+	    newsc->flags &= ~SCOPEfree;
+	    newsc->stc = stc;
+	    newsc->linkage = linkage;
+	    newsc->protection = protection;
+	    newsc->explicitProtection = explicitProtection;
+	    newsc->structalign = structalign;
+	}
+	for (unsigned i = 0; i < decl->dim; i++)
+	{   Dsymbol *s = (Dsymbol *)decl->data[i];
+
+	    s->semantic(newsc);
+	}
+	if (newsc != sc)
+	{
+	    sc->offset = newsc->offset;
+	    newsc->pop();
+	}
+    }
 }
 
 void AttribDeclaration::semantic(Scope *sc)
@@ -287,7 +325,26 @@ Dsymbol *StorageClassDeclaration::syntaxCopy(Dsymbol *s)
 void StorageClassDeclaration::semantic(Scope *sc)
 {
     if (decl)
-    {	unsigned stc_save = sc->stc;
+    {
+#if 1
+	unsigned scstc = sc->stc;
+
+	/* These sets of storage classes are mutually exclusive,
+	 * so choose the innermost or most recent one.
+	 */
+	if (stc & (STCauto | STCscope | STCstatic | STCextern | STCmanifest))
+	    scstc &= ~(STCauto | STCscope | STCstatic | STCextern | STCmanifest);
+	if (stc & (STCauto | STCscope | STCstatic | STCtls | STCmanifest | STCgshared))
+	    scstc &= ~(STCauto | STCscope | STCstatic | STCtls | STCmanifest | STCgshared);
+	if (stc & (STCconst | STCimmutable | STCmanifest))
+	    scstc &= ~(STCconst | STCimmutable | STCmanifest);
+	if (stc & (STCgshared | STCshared | STCtls))
+	    scstc &= ~(STCgshared | STCshared | STCtls);
+	scstc |= stc;
+
+	semanticNewSc(sc, scstc, sc->linkage, sc->protection, sc->explicitProtection, sc->structalign);
+#else
+	unsigned stc_save = sc->stc;
 
 	/* These sets of storage classes are mutually exclusive,
 	 * so choose the innermost or most recent one.
@@ -308,9 +365,8 @@ void StorageClassDeclaration::semantic(Scope *sc)
 	    s->semantic(sc);
 	}
 	sc->stc = stc_save;
+#endif
     }
-    else
-	sc->stc = stc;
 }
 
 void StorageClassDeclaration::stcToCBuffer(OutBuffer *buf, int stc)
@@ -384,7 +440,11 @@ void LinkDeclaration::semantic(Scope *sc)
 {
     //printf("LinkDeclaration::semantic(linkage = %d, decl = %p)\n", linkage, decl);
     if (decl)
-    {	enum LINK linkage_save = sc->linkage;
+    {
+#if 1
+	semanticNewSc(sc, sc->stc, linkage, sc->protection, sc->explicitProtection, sc->structalign);
+#else
+	enum LINK linkage_save = sc->linkage;
 
 	sc->linkage = linkage;
 	for (unsigned i = 0; i < decl->dim; i++)
@@ -394,10 +454,7 @@ void LinkDeclaration::semantic(Scope *sc)
 	    s->semantic(sc);
 	}
 	sc->linkage = linkage_save;
-    }
-    else
-    {
-	sc->linkage = linkage;
+#endif
     }
 }
 
@@ -468,7 +525,11 @@ Dsymbol *ProtDeclaration::syntaxCopy(Dsymbol *s)
 void ProtDeclaration::semantic(Scope *sc)
 {
     if (decl)
-    {	enum PROT protection_save = sc->protection;
+    {
+#if 1
+	semanticNewSc(sc, sc->stc, sc->linkage, protection, 1, sc->structalign);
+#else
+	enum PROT protection_save = sc->protection;
 	int explicitProtection_save = sc->explicitProtection;
 
 	sc->protection = protection;
@@ -481,15 +542,13 @@ void ProtDeclaration::semantic(Scope *sc)
 	}
 	sc->protection = protection_save;
 	sc->explicitProtection = explicitProtection_save;
-    }
-    else
-    {	sc->protection = protection;
-	sc->explicitProtection = 1;
+#endif
     }
 }
 
-void ProtDeclaration::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
-{   const char *p;
+void ProtDeclaration::protectionToCBuffer(OutBuffer *buf, enum PROT protection)
+{
+    const char *p;
 
     switch (protection)
     {
@@ -503,6 +562,12 @@ void ProtDeclaration::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 	    break;
     }
     buf->writestring(p);
+    buf->writeByte(' ');
+}
+
+void ProtDeclaration::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
+{
+    protectionToCBuffer(buf, protection);
     AttribDeclaration::toCBuffer(buf, hgs);
 }
 
@@ -527,7 +592,11 @@ void AlignDeclaration::semantic(Scope *sc)
 {
     //printf("\tAlignDeclaration::semantic '%s'\n",toChars());
     if (decl)
-    {	unsigned salign_save = sc->structalign;
+    {
+#if 1
+	semanticNewSc(sc, sc->stc, sc->linkage, sc->protection, sc->explicitProtection, salign);
+#else
+	unsigned salign_save = sc->structalign;
 
 	sc->structalign = salign;
 	for (unsigned i = 0; i < decl->dim; i++)
@@ -537,9 +606,8 @@ void AlignDeclaration::semantic(Scope *sc)
 	    s->semantic(sc);
 	}
 	sc->structalign = salign_save;
+#endif
     }
-    else
-	sc->structalign = salign;
 }
 
 
@@ -556,7 +624,6 @@ AnonDeclaration::AnonDeclaration(Loc loc, int isunion, Array *decl)
 {
     this->loc = loc;
     this->isunion = isunion;
-    this->scope = NULL;
     this->sem = 0;
 }
 
@@ -840,6 +907,27 @@ void PragmaDeclaration::semantic(Scope *sc)
 	}
 	goto Lnodecl;
     }
+#if TARGET_NET
+    else if (ident == Lexer::idPool("assembly"))
+    {
+        if (!args || args->dim != 1)
+	        error("pragma has invalid number of arguments");
+	    else
+	    {
+	        Expression *e = (Expression *)args->data[0];
+	        e = e->semantic(sc);
+	        e = e->optimize(WANTvalue | WANTinterpret);
+	        args->data[0] = (void *)e;
+	        if (e->op != TOKstring)
+		    {
+		        error("string expected, not '%s'", e->toChars());
+	        }
+            PragmaScope* pragma = new PragmaScope(this, sc->parent, static_cast<StringExp*>(e));
+            decl = new Array;
+            decl->push(pragma);
+        }
+    }
+#endif // TARGET_NET
     else if (global.params.ignoreUnsupportedPragmas)
     {
 	if (global.params.verbose)

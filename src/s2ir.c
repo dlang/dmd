@@ -1240,13 +1240,16 @@ void ExpStatement::toIR(IRState *irs)
 
 void CompoundStatement::toIR(IRState *irs)
 {
-    size_t dim = statements->dim;
-    for (size_t i = 0 ; i < dim ; i++)
+    if (statements)
     {
-	Statement *s = (Statement *)statements->data[i];
-	if (s != NULL)
+	size_t dim = statements->dim;
+	for (size_t i = 0 ; i < dim ; i++)
 	{
-	    s->toIR(irs);
+	    Statement *s = (Statement *)statements->data[i];
+	    if (s != NULL)
+	    {
+		s->toIR(irs);
+	    }
 	}
     }
 }

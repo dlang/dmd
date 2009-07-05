@@ -1960,8 +1960,20 @@ elem *AddExp::toElem(IRState *irs)
  */
 
 elem *MinExp::toElem(IRState *irs)
-{
-    return toElemBin(irs,OPmin);
+{   elem *e;
+    Type *tb1 = e1->type->toBasetype();
+    Type *tb2 = e2->type->toBasetype();
+
+    if ((tb1->ty == Tarray || tb1->ty == Tsarray) &&
+	(tb2->ty == Tarray || tb2->ty == Tsarray)
+       )
+    {
+	error("Array operation %s not implemented", toChars());
+	e = el_long(type->totym(), 0);	// error recovery
+    }
+    else
+	e = toElemBin(irs,OPmin);
+    return e;
 }
 
 /***************************************
@@ -3238,7 +3250,7 @@ elem *DelegateExp::toElem(IRState *irs)
     {
 	ethis = e1->toElem(irs);
 	if (e1->type->ty != Tclass && e1->type->ty != Tpointer)
-	    ethis = el_una(OPaddr, TYnptr, ethis);
+	    ethis = addressElem(ethis, e1->type);
 
 	if (e1->op == TOKsuper)
 	    directcall = 1;

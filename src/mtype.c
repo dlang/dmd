@@ -1122,6 +1122,10 @@ Type *Type::merge()
 	sv = stringtable.update((char *)buf.data, buf.offset);
 	if (sv->ptrvalue)
 	{   t = (Type *) sv->ptrvalue;
+#ifdef DEBUG
+	    if (!t->deco)
+		printf("t = %s\n", t->toChars());
+#endif
 	    assert(t->deco);
 	    //printf("old value, deco = '%s' %p\n", t->deco, t->deco);
 	}
@@ -1259,14 +1263,14 @@ int Type::isBaseOf(Type *t, int *poffset)
  * Determine if 'this' can be implicitly converted
  * to type 'to'.
  * Returns:
- *	0	can't convert
- *	1	can convert using implicit conversions
- *	2	this and to are the same type
+ *	MATCHnomatch, MATCHconvert, MATCHconst, MATCHexact
  */
 
 MATCH Type::implicitConvTo(Type *to)
 {
     //printf("Type::implicitConvTo(this=%p, to=%p)\n", this, to);
+    //printf("from: %s\n", toChars());
+    //printf("to  : %s\n", to->toChars());
     if (this == to)
 	return MATCHexact;
     return MATCHnomatch;
@@ -1525,6 +1529,33 @@ Type *Type::nextOf()
     return NULL;
 }
 
+/****************************************
+ * Return the mask that an integral type will
+ * fit into.
+ */
+uinteger_t Type::sizemask()
+{   uinteger_t m;
+
+    switch (toBasetype()->ty)
+    {
+	case Tbool:	m = 1;				break;
+	case Tchar:
+	case Tint8:
+	case Tuns8:	m = 0xFF;			break;
+	case Twchar:
+	case Tint16:
+	case Tuns16:	m = 0xFFFFUL;			break;
+	case Tdchar:
+	case Tint32:
+	case Tuns32:	m = 0xFFFFFFFFUL;		break;
+	case Tint64:
+	case Tuns64:	m = 0xFFFFFFFFFFFFFFFFULL;	break;
+	default:
+		assert(0);
+    }
+    return m;
+}
+
 /* ============================= TypeNext =========================== */
 
 TypeNext::TypeNext(TY ty, Type *next)
@@ -1544,7 +1575,8 @@ void TypeNext::toDecoBuffer(OutBuffer *buf, int flag)
 void TypeNext::checkDeprecated(Loc loc, Scope *sc)
 {
     Type::checkDeprecated(loc, sc);
-    next->checkDeprecated(loc, sc);
+    if (next)	// next can be NULL if TypeFunction and auto return type
+	next->checkDeprecated(loc, sc);
 }
 
 
@@ -1566,7 +1598,8 @@ Type *TypeNext::makeConst()
 	return cto;
     }    
     TypeNext *t = (TypeNext *)Type::makeConst();
-    if (ty != Tfunction && ty != Tdelegate && next->deco &&
+    if (ty != Tfunction && ty != Tdelegate &&
+	(next->deco || next->ty == Tfunction) &&
         !next->isInvariant() && !next->isConst())
     {	if (next->isShared())
 	    t->next = next->sharedConstOf();
@@ -1585,7 +1618,8 @@ Type *TypeNext::makeInvariant()
 	return ito;
     }
     TypeNext *t = (TypeNext *)Type::makeInvariant();
-    if (ty != Tfunction && ty != Tdelegate && next->deco &&
+    if (ty != Tfunction && ty != Tdelegate &&
+	(next->deco || next->ty == Tfunction) &&
 	!next->isInvariant())
     {	t->next = next->invariantOf();
     }
@@ -1600,7 +1634,8 @@ Type *TypeNext::makeShared()
 	return sto;
     }    
     TypeNext *t = (TypeNext *)Type::makeShared();
-    if (ty != Tfunction && ty != Tdelegate && next->deco &&
+    if (ty != Tfunction && ty != Tdelegate &&
+	(next->deco || next->ty == Tfunction) &&
         !next->isInvariant() && !next->isShared())
     {
 	if (next->isConst())
@@ -1620,7 +1655,8 @@ Type *TypeNext::makeSharedConst()
 	return scto;
     }    
     TypeNext *t = (TypeNext *)Type::makeSharedConst();
-    if (ty != Tfunction && ty != Tdelegate && next->deco &&
+    if (ty != Tfunction && ty != Tdelegate &&
+	(next->deco || next->ty == Tfunction) &&
         !next->isInvariant() && !next->isSharedConst())
     {
 	t->next = next->sharedConstOf();
@@ -2300,23 +2336,17 @@ MATCH TypeBasic::implicitConvTo(Type *to)
     if (this == to)
 	return MATCHexact;
 
+#if DMDV2
     if (ty == to->ty)
     {
 	return (mod == to->mod) ? MATCHexact : MATCHconst;
     }
+#endif
 
     if (ty == Tvoid || to->ty == Tvoid)
 	return MATCHnomatch;
-    if (1 || global.params.Dversion == 1)
-    {
-	if (to->ty == Tbool)
-	    return MATCHnomatch;
-    }
-    else
-    {
-	if (ty == Tbool || to->ty == Tbool)
-	    return MATCHnomatch;
-    }
+    if (to->ty == Tbool)
+	return MATCHnomatch;
     if (!to->isTypeBasic())
 	return MATCHnomatch;
 
@@ -2327,19 +2357,23 @@ MATCH TypeBasic::implicitConvTo(Type *to)
 	if (tob->flags & (TFLAGSimaginary | TFLAGScomplex))
 	    return MATCHnomatch;
 
-	// If converting to integral
-	if (0 && global.params.Dversion > 1 && tob->flags & TFLAGSintegral)
+#if DMDV2
+	// If converting from integral to integral
+	if (1 && tob->flags & TFLAGSintegral)
 	{   d_uns64 sz = size(0);
 	    d_uns64 tosz = tob->size(0);
 
-	    /* Can't convert to smaller size or, if same size, change sign
+	    /* Can't convert to smaller size
 	     */
 	    if (sz > tosz)
 		return MATCHnomatch;
 
+	    /* Can't change sign if same size
+	     */
 	    /*if (sz == tosz && (flags ^ tob->flags) & TFLAGSunsigned)
 		return MATCHnomatch;*/
 	}
+#endif
     }
     else if (flags & TFLAGSfloating)
     {
@@ -3386,6 +3420,8 @@ Type *TypePointer::syntaxCopy()
 Type *TypePointer::semantic(Loc loc, Scope *sc)
 {
     //printf("TypePointer::semantic()\n");
+    if (deco)
+	return this;
     Type *n = next->semantic(loc, sc);
     switch (n->toBasetype()->ty)
     {
@@ -3395,7 +3431,9 @@ Type *TypePointer::semantic(Loc loc, Scope *sc)
 	    break;
     }
     if (n != next)
+    {
 	deco = NULL;
+    }
     next = n;
     transitive();
     return merge();
@@ -3631,7 +3669,13 @@ int Type::covariant(Type *t)
 	    Argument *arg2 = Argument::getNth(t2->parameters, i);
 
 	    if (!arg1->type->equals(arg2->type))
-		goto Ldistinct;
+	    {
+#if 0 // turn on this for contravariant argument types, see bugzilla 3075
+		// We can add const, but not subtract it
+		if (arg2->type->implicitConvTo(arg1->type) < MATCHconst)
+#endif
+		    goto Ldistinct;
+	    }
 	    if ((arg1->storageClass & ~STCscope) != (arg2->storageClass & ~STCscope))
 		inoutmismatch = 1;
 	    // We can add scope, but not subtract it
@@ -3848,7 +3892,7 @@ void TypeFunction::toCBuffer2(OutBuffer *buf, HdrGenState *hgs, int mod)
 	if (mod & MODconst)
 	    buf->writestring(" const");
 	if (mod & MODinvariant)
-	    buf->writestring(" invariant");
+	    buf->writestring(" immutable");
 	if (mod & MODshared)
 	    buf->writestring(" shared");
     }
@@ -3872,6 +3916,10 @@ Type *TypeFunction::semantic(Loc loc, Scope *sc)
     //printf("TypeFunction::semantic() this = %p\n", this);
     //printf("TypeFunction::semantic() %s, sc->stc = %x\n", toChars(), sc->stc);
 
+    /* Copy in order to not mess up original.
+     * This can produce redundant copies if inferring return type,
+     * as semantic() will get called again on this.
+     */
     TypeFunction *tf = (TypeFunction *)mem.malloc(sizeof(TypeFunction));
     memcpy(tf, this, sizeof(TypeFunction));
     if (parameters)
@@ -3892,26 +3940,24 @@ Type *TypeFunction::semantic(Loc loc, Scope *sc)
 	tf->isref = TRUE;
 
     tf->linkage = sc->linkage;
-    if (!tf->next)
+    if (tf->next)
     {
-	assert(global.errors);
-	tf->next = tvoid;
+	tf->next = tf->next->semantic(loc,sc);
+	if (tf->next->toBasetype()->ty == Tsarray)
+	{   error(loc, "functions cannot return static array %s", tf->next->toChars());
+	    tf->next = Type::terror;
+	}
+	if (tf->next->toBasetype()->ty == Tfunction)
+	{   error(loc, "functions cannot return a function");
+	    tf->next = Type::terror;
+	}
+	if (tf->next->toBasetype()->ty == Ttuple)
+	{   error(loc, "functions cannot return a tuple");
+	    tf->next = Type::terror;
+	}
+	if (tf->next->isauto() && !(sc->flags & SCOPEctor))
+	    error(loc, "functions cannot return scope %s", tf->next->toChars());
     }
-    tf->next = tf->next->semantic(loc,sc);
-    if (tf->next->toBasetype()->ty == Tsarray)
-    {	error(loc, "functions cannot return static array %s", tf->next->toChars());
-	tf->next = Type::terror;
-    }
-    if (tf->next->toBasetype()->ty == Tfunction)
-    {	error(loc, "functions cannot return a function");
-	tf->next = Type::terror;
-    }
-    if (tf->next->toBasetype()->ty == Ttuple)
-    {	error(loc, "functions cannot return a tuple");
-	tf->next = Type::terror;
-    }
-    if (tf->next->isauto() && !(sc->flags & SCOPEctor))
-	error(loc, "functions cannot return scope %s", tf->next->toChars());
 
     if (tf->parameters)
     {	size_t dim = Argument::dim(tf->parameters);
@@ -3959,7 +4005,8 @@ Type *TypeFunction::semantic(Loc loc, Scope *sc)
 	    }
 	}
     }
-    tf->deco = tf->merge()->deco;
+    if (tf->next)
+	tf->deco = tf->merge()->deco;
 
     if (tf->inuse)
     {	error(loc, "recursive type");
@@ -4556,11 +4603,11 @@ void TypeIdentifier::toCBuffer2(OutBuffer *buf, HdrGenState *hgs, int mod)
  */
 
 void TypeIdentifier::resolve(Loc loc, Scope *sc, Expression **pe, Type **pt, Dsymbol **ps)
-{   Dsymbol *s;
+{
     Dsymbol *scopesym;
 
     //printf("TypeIdentifier::resolve(sc = %p, idents = '%s')\n", sc, toChars());
-    s = sc->search(loc, ident, &scopesym);
+    Dsymbol *s = sc->search(loc, ident, &scopesym);
     resolveHelper(loc, sc, s, scopesym, pe, pt, ps);
     if (*pt)
 	(*pt) = (*pt)->addMod(mod);
@@ -5019,10 +5066,15 @@ char *TypeEnum::toChars()
     return sym->toChars();
 }
 
+Type *TypeEnum::syntaxCopy()
+{
+    return this;
+}
+
 Type *TypeEnum::semantic(Loc loc, Scope *sc)
 {
     //printf("TypeEnum::semantic() %s\n", toChars());
-    sym->semantic(sc);
+    //sym->semantic(sc);
     return merge();
 }
 
@@ -5673,7 +5725,7 @@ L1:
 
     TemplateInstance *ti = s->isTemplateInstance();
     if (ti)
-    {	if (!ti->semanticdone)
+    {	if (!ti->semanticRun)
 	    ti->semantic(sc);
 	s = ti->inst->toAlias();
 	if (!s->isTemplateInstance())
@@ -5914,8 +5966,9 @@ Type *TypeClass::syntaxCopy()
 Type *TypeClass::semantic(Loc loc, Scope *sc)
 {
     //printf("TypeClass::semantic(%s)\n", sym->toChars());
-    if (sym->scope)
-	sym->semantic(sym->scope);
+    if (deco)
+	return this;
+    //printf("\t%s\n", merge()->deco);
     return merge();
 }
 
@@ -6165,7 +6218,7 @@ L1:
 
     TemplateInstance *ti = s->isTemplateInstance();
     if (ti)
-    {	if (!ti->semanticdone)
+    {	if (!ti->semanticRun)
 	    ti->semantic(sc);
 	s = ti->inst->toAlias();
 	if (!s->isTemplateInstance())

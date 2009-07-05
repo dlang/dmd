@@ -6,6 +6,7 @@
 /*
  * This source file is made available for personal use
  * only. The license is in /dmd/src/dmd/backendlicense.txt
+ * or /dm/src/dmd/backendlicense.txt
  * For any other uses, please contact Digital Mars.
  */
 
@@ -3921,6 +3922,8 @@ code *cdabs( elem *e, regm_t *pretregs)
 	c = gen2(CNIL,0x2B ^ byte,modregrm(3,AX,DX));	// SUB EAX,EDX
 	if (I32 && sz == SHORTSIZE && *pretregs & mPSW)
 	    c->Iflags |= CFopsize | CFpsw;
+	if (*pretregs & mPSW)
+	    c->Iflags |= CFpsw;
 	*pretregs &= ~mPSW;			// flags already set
   }
   else if (sz == 2 * REGSIZE)

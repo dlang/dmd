@@ -6,6 +6,7 @@
 /*
  * This source file is made available for personal use
  * only. The license is in /dmd/src/dmd/backendlicense.txt
+ * or /dm/src/dmd/backendlicense.txt
  * For any other uses, please contact Digital Mars.
  */
 
@@ -2044,6 +2045,36 @@ L1:
     return ex;
 }
 
+/********************************************
+ * If e is a long double constant, and it is perfectly representable as a
+ * double constant, convert it to a double constant.
+ * Note that this must NOT be done in contexts where there are no further
+ * operations, since then it could change the type (eg, in the function call
+ * printf("%La", 2.0L); the 2.0 must stay as a long double).
+ */
+#if 0
+void shrinkLongDoubleConstantIfPossible(elem *e)
+{
+    if (e->Eoper == OPconst && e->Ety == TYldouble)
+    {
+	// Check to see if it can be converted into a double (this happens
+	// when the low bits are all zero, and the exponent is in the
+	// double range).
+	long double v = e->EV.Vldouble;
+	double vDouble;
+	double z = v;
+	*(&vDouble) = v;
+	if (v == vDouble)	// This will fail if compiler does NaN incorrectly!
+	{
+	    // Yes, we can do it!
+	    e->EV.Vdouble = vDouble;
+	    e->Ety = TYdouble;
+	}
+    }
+}
+#endif
+
+
 /*************************
  * Run through a tree converting it to CODGEN.
  */
@@ -2071,6 +2102,30 @@ elem *el_convert(elem *e)
 	    e = el_convstring(e);
 	    break;
 
+	case OPmul:
+	    /* special floating-point case: allow x*2 to be x+x
+	     * in this case, we preserve the constant 2.
+	     */
+	    if (tyreal(e->Ety) &&	// don't bother with imaginary or complex
+	        e->E2->Eoper == OPconst && el_toldouble(e->E2) == 2.0L)
+	    {
+		e->E1 = el_convert(e->E1);
+		/* Don't call el_convert(e->E2), we want it to stay as a constant
+		 * which will be detected by code gen.
+		 */
+		break;
+	    }
+#if 0
+	case OPdiv:
+	case OPadd:
+	case OPmin:
+	    // For a*b,a+b,a-b,a/b, if a long double constant is involved, convert it to a double constant.
+	    if (tyreal(e->Ety))
+		 shrinkLongDoubleConstantIfPossible(e->E1);
+	    if (tyreal(e->Ety))
+		shrinkLongDoubleConstantIfPossible(e->E2);
+	    // fall through...
+#endif
 	default:
 	    if (OTbinary(op))
 	    {

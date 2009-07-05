@@ -104,6 +104,7 @@ struct Statement : Object
     virtual int usesEH();
     virtual int blockExit();
     virtual int comeFrom();
+    virtual int isEmpty();
     virtual void scopeCode(Scope *sc, Statement **sentry, Statement **sexit, Statement **sfinally);
     virtual Statements *flatten(Scope *sc);
     virtual Expression *interpret(InterState *istate);
@@ -177,6 +178,7 @@ struct CompoundStatement : Statement
     int usesEH();
     int blockExit();
     int comeFrom();
+    int isEmpty();
     Statements *flatten(Scope *sc);
     ReturnStatement *isReturnStatement();
     Expression *interpret(InterState *istate);
@@ -236,6 +238,7 @@ struct ScopeStatement : Statement
     int usesEH();
     int blockExit();
     int comeFrom();
+    int isEmpty();
     Expression *interpret(InterState *istate);
 
     Statement *inlineScan(InlineScanState *iss);
@@ -443,6 +446,7 @@ struct SwitchStatement : Statement
 {
     Expression *condition;
     Statement *body;
+    bool isFinal;
 
     DefaultStatement *sdefault;
     TryFinallyStatement *tf;
@@ -451,7 +455,7 @@ struct SwitchStatement : Statement
     int hasNoDefault;		// !=0 if no default statement
     int hasVars;		// !=0 if has variable case values
 
-    SwitchStatement(Loc loc, Expression *c, Statement *b);
+    SwitchStatement(Loc loc, Expression *c, Statement *b, bool isFinal);
     Statement *syntaxCopy();
     Statement *semantic(Scope *sc);
     int hasBreak();
@@ -469,6 +473,7 @@ struct CaseStatement : Statement
 {
     Expression *exp;
     Statement *statement;
+
     int index;		// which case it is (since we sort this)
     block *cblock;	// back end: label for the block
 
@@ -486,6 +491,22 @@ struct CaseStatement : Statement
 
     void toIR(IRState *irs);
 };
+
+#if DMDV2
+
+struct CaseRangeStatement : Statement
+{
+    Expression *first;
+    Expression *last;
+    Statement *statement;
+
+    CaseRangeStatement(Loc loc, Expression *first, Expression *last, Statement *s);
+    Statement *syntaxCopy();
+    Statement *semantic(Scope *sc);
+    void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
+};
+
+#endif
 
 struct DefaultStatement : Statement
 {

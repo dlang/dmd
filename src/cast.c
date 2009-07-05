@@ -33,6 +33,7 @@ Expression *Expression::implicitCastTo(Scope *sc, Type *t)
     if (match)
     {	TY tyfrom = type->toBasetype()->ty;
 	TY tyto = t->toBasetype()->ty;
+#if DMDV1
 	if (global.params.warnings &&
 	    Type::impcnvWarn[tyfrom][tyto] &&
 	    op != TOKint64)
@@ -41,7 +42,6 @@ Expression *Expression::implicitCastTo(Scope *sc, Type *t)
 
 	    if (e->op == TOKint64)
 		return e->implicitCastTo(sc, t);
-
 	    if (tyfrom == Tint32 &&
 		(op == TOKadd || op == TOKmin ||
 		 op == TOKand || op == TOKor || op == TOKxor)
@@ -61,6 +61,7 @@ Expression *Expression::implicitCastTo(Scope *sc, Type *t)
 		    toChars(), type->toChars(), t->toChars());
 	    }
 	}
+#endif
 #if DMDV2
 	if (match == MATCHconst && t == type->constOf())
 	{
@@ -144,6 +145,16 @@ MATCH Expression::implicitConvTo(Type *t)
     MATCH match = type->implicitConvTo(t);
     if (match != MATCHnomatch)
 	return match;
+
+    /* See if we can do integral narrowing conversions
+     */
+    if (type->isintegral() && t->isintegral() &&
+	type->isTypeBasic() && t->isTypeBasic())
+    {	IntRange ir = getIntRange();
+	if (ir.imax <= t->sizemask())
+	    return MATCHconvert;
+    }
+
 #if 0
     Type *tb = t->toBasetype();
     if (tb->ty == Tdelegate)
@@ -676,18 +687,72 @@ MATCH DelegateExp::implicitConvTo(Type *t)
     return result;
 }
 
+MATCH OrExp::implicitConvTo(Type *t)
+{
+    MATCH result = Expression::implicitConvTo(t);
+
+    if (result == MATCHnomatch)
+    {
+	MATCH m1 = e1->implicitConvTo(t);
+	MATCH m2 = e2->implicitConvTo(t);
+
+	// Pick the worst match
+	result = (m1 < m2) ? m1 : m2;
+    }
+    return result;
+}
+
+MATCH XorExp::implicitConvTo(Type *t)
+{
+    MATCH result = Expression::implicitConvTo(t);
+
+    if (result == MATCHnomatch)
+    {
+	MATCH m1 = e1->implicitConvTo(t);
+	MATCH m2 = e2->implicitConvTo(t);
+
+	// Pick the worst match
+	result = (m1 < m2) ? m1 : m2;
+    }
+    return result;
+}
+
 MATCH CondExp::implicitConvTo(Type *t)
 {
-    MATCH m1;
-    MATCH m2;
-
-    m1 = e1->implicitConvTo(t);
-    m2 = e2->implicitConvTo(t);
+    MATCH m1 = e1->implicitConvTo(t);
+    MATCH m2 = e2->implicitConvTo(t);
+    //printf("CondExp: m1 %d m2 %d\n", m1, m2);
 
     // Pick the worst match
     return (m1 < m2) ? m1 : m2;
 }
 
+MATCH CommaExp::implicitConvTo(Type *t)
+{
+    return e2->implicitConvTo(t);
+}
+
+MATCH CastExp::implicitConvTo(Type *t)
+{
+#if 0
+    printf("CastExp::implicitConvTo(this=%s, type=%s, t=%s)\n",
+	toChars(), type->toChars(), t->toChars());
+#endif
+    MATCH result;
+
+    result = type->implicitConvTo(t);
+
+    if (result == MATCHnomatch)
+    {
+	if (t->isintegral() &&
+	    e1->type->isintegral() &&
+	    e1->implicitConvTo(t) != MATCHnomatch)
+	    result = MATCHconvert;
+	else
+	    result = Expression::implicitConvTo(t);
+    }
+    return result;
+}
 
 /* ==================== castTo ====================== */
 
@@ -1258,22 +1323,35 @@ Expression *SymOffExp::castTo(Scope *sc, Type *t)
 		f = f->overloadExactMatch(tb->nextOf());
 		if (f)
 		{
-		    if (tb->ty == Tdelegate && f->needThis() && hasThis(sc))
+		    if (tb->ty == Tdelegate)
 		    {
-			e = new DelegateExp(loc, new ThisExp(loc), f);
-			e = e->semantic(sc);
-		    }
-		    else if (tb->ty == Tdelegate && f->isNested())
-		    {
-			e = new DelegateExp(loc, new IntegerExp(0), f);
-			e = e->semantic(sc);
+			if (f->needThis() && hasThis(sc))
+			{
+			    e = new DelegateExp(loc, new ThisExp(loc), f);
+			    e = e->semantic(sc);
+			}
+			else if (f->isNested())
+			{
+			    e = new DelegateExp(loc, new IntegerExp(0), f);
+			    e = e->semantic(sc);
+			}
+			else if (f->needThis())
+			{   error("no 'this' to create delegate for %s", f->toChars());
+			    e = new ErrorExp();
+			}
+			else
+			{   error("cannot cast from function pointer to delegate");
+			    e = new ErrorExp();
+			}
 		    }
 		    else
 		    {
 			e = new SymOffExp(loc, f, 0);
 			e->type = t;
 		    }
+#if DMDV2
 		    f->tookAddressOf++;
+#endif
 		    return e;
 		}
 	    }
@@ -1349,6 +1427,23 @@ Expression *CondExp::castTo(Scope *sc, Type *t)
 	}
 	else
 	    e = Expression::castTo(sc, t);
+    }
+    return e;
+}
+
+Expression *CommaExp::castTo(Scope *sc, Type *t)
+{
+    Expression *e2c = e2->castTo(sc, t);
+    Expression *e;
+
+    if (e2c != e2)
+    {
+	e = new CommaExp(loc, e1, e2c);
+	e->type = e2c->type;
+    }
+    else
+    {	e = this;
+	e->type = e2->type;
     }
     return e;
 }
@@ -1777,3 +1872,226 @@ int arrayTypeCompatible(Loc loc, Type *t1, Type *t2)
     }
     return 0;
 }
+
+/******************************************************************/
+
+/* Determine the integral ranges of an expression.
+ * This is used to determine if implicit narrowing conversions will
+ * be allowed.
+ */
+
+uinteger_t getMask(uinteger_t v)
+{
+    uinteger_t u = 0;
+    if (v >= 0x80)
+	u = 0xFF;
+    while (u < v)
+	u = (u << 1) | 1;
+    return u;
+}
+
+IntRange Expression::getIntRange()
+{
+    IntRange ir;
+    ir.imin = 0;
+    ir.imax = type->sizemask();
+    return ir;
+}
+
+IntRange IntegerExp::getIntRange()
+{
+    IntRange ir;
+    ir.imin = value & type->sizemask();
+    ir.imax = ir.imin;
+    return ir;
+}
+
+IntRange CastExp::getIntRange()
+{
+    IntRange ir;
+    ir = e1->getIntRange();
+    // Do sign extension
+    switch (e1->type->toBasetype()->ty)
+    {
+	case Tint8:
+	    if (ir.imax & 0x80)
+		ir.imax |= 0xFFFFFFFFFFFFFF00ULL;
+	    break;
+	case Tint16:
+	    if (ir.imax & 0x8000)
+		ir.imax |= 0xFFFFFFFFFFFF0000ULL;
+	    break;
+	case Tint32:
+	    if (ir.imax & 0x80000000)
+		ir.imax |= 0xFFFFFFFF00000000ULL;
+	    break;
+    }
+    ir.imin &= type->sizemask();
+    ir.imax &= type->sizemask();
+//printf("CastExp: imin = x%llx, imax = x%llx\n", ir.imin, ir.imax);
+    return ir;
+}
+
+IntRange DivExp::getIntRange()
+{
+    if (!e1->type->isunsigned() && !e2->type->isunsigned())
+	return Expression::getIntRange();
+
+    IntRange ir;
+    IntRange ir1 = e1->getIntRange();
+    IntRange ir2 = e2->getIntRange();
+
+    ir.imin = ir1.imin / ir2.imax;
+    ir.imax = ir1.imax / ir2.imin;
+
+    ir.imin &= type->sizemask();
+    ir.imax &= type->sizemask();
+
+//printf("DivExp: imin = x%llx, imax = x%llx\n", ir.imin, ir.imax);
+//e1->dump(0);
+
+    return ir;
+}
+
+IntRange AndExp::getIntRange()
+{
+    IntRange ir;
+    IntRange ir1 = e1->getIntRange();
+    IntRange ir2 = e2->getIntRange();
+
+    ir.imin = ir1.imin;
+    if (ir2.imin < ir.imin)
+	ir.imin = ir2.imin;
+
+    ir.imax = ir1.imax;
+    if (ir2.imax > ir.imax)
+	ir.imax = ir2.imax;
+
+    uinteger_t u;
+
+    u = getMask(ir1.imax);
+    ir.imin &= u;
+    ir.imax &= u;
+
+    u = getMask(ir2.imax);
+    ir.imin &= u;
+    ir.imax &= u;
+
+    ir.imin &= type->sizemask();
+    ir.imax &= type->sizemask();
+
+//printf("AndExp: imin = x%llx, imax = x%llx\n", ir.imin, ir.imax);
+//e1->dump(0);
+
+    return ir;
+}
+
+IntRange OrExp::getIntRange()
+{
+    IntRange ir;
+    IntRange ir1 = e1->getIntRange();
+    IntRange ir2 = e2->getIntRange();
+
+    ir.imin = ir1.imin;
+    if (ir2.imin < ir.imin)
+	ir.imin = ir2.imin;
+
+    ir.imax = ir1.imax;
+    if (ir2.imax > ir.imax)
+	ir.imax = ir2.imax;
+
+    ir.imin &= type->sizemask();
+    ir.imax &= type->sizemask();
+
+//printf("OrExp: imin = x%llx, imax = x%llx\n", ir.imin, ir.imax);
+//e1->dump(0);
+
+    return ir;
+}
+
+IntRange XorExp::getIntRange()
+{
+    IntRange ir;
+    IntRange ir1 = e1->getIntRange();
+    IntRange ir2 = e2->getIntRange();
+
+    ir.imin = ir1.imin;
+    if (ir2.imin < ir.imin)
+	ir.imin = ir2.imin;
+
+    ir.imax = ir1.imax;
+    if (ir2.imax > ir.imax)
+	ir.imax = ir2.imax;
+
+    ir.imin &= type->sizemask();
+    ir.imax &= type->sizemask();
+
+//printf("XorExp: imin = x%llx, imax = x%llx\n", ir.imin, ir.imax);
+//e1->dump(0);
+
+    return ir;
+}
+
+IntRange ShlExp::getIntRange()
+{
+    IntRange ir;
+    IntRange ir1 = e1->getIntRange();
+    IntRange ir2 = e2->getIntRange();
+
+    ir.imin = getMask(ir1.imin) << ir2.imin;
+    ir.imax = getMask(ir1.imax) << ir2.imax;
+
+    ir.imin &= type->sizemask();
+    ir.imax &= type->sizemask();
+
+//printf("ShlExp: imin = x%llx, imax = x%llx\n", ir.imin, ir.imax);
+//e1->dump(0);
+
+    return ir;
+}
+
+IntRange ShrExp::getIntRange()
+{
+    if (!e1->type->isunsigned())
+	return Expression::getIntRange();
+
+    IntRange ir;
+    IntRange ir1 = e1->getIntRange();
+    IntRange ir2 = e2->getIntRange();
+
+    ir.imin = ir1.imin >> ir2.imax;
+    ir.imax = ir1.imax >> ir2.imin;
+
+    ir.imin &= type->sizemask();
+    ir.imax &= type->sizemask();
+
+//printf("ShrExp: imin = x%llx, imax = x%llx\n", ir.imin, ir.imax);
+//e1->dump(0);
+
+    return ir;
+}
+
+IntRange UshrExp::getIntRange()
+{
+    IntRange ir;
+    IntRange ir1 = e1->getIntRange();
+    IntRange ir2 = e2->getIntRange();
+
+    ir.imin = ir1.imin >> ir2.imax;
+    ir.imax = ir1.imax >> ir2.imin;
+
+    ir.imin &= type->sizemask();
+    ir.imax &= type->sizemask();
+
+//printf("UshrExp: imin = x%llx, imax = x%llx\n", ir.imin, ir.imax);
+//e1->dump(0);
+
+    return ir;
+}
+
+IntRange CommaExp::getIntRange()
+{
+    return e2->getIntRange();
+}
+
+

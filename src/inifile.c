@@ -15,6 +15,10 @@
 #include	<stdlib.h>
 #include	<ctype.h>
 
+#if _WIN32
+#include <windows.h>
+#endif
+
 #if __APPLE__
 #include	<sys/syslimits.h>
 #endif
@@ -91,6 +95,15 @@ void inifile(const char *argv0x, const char *inifilex)
 	    filename = FileName::combine(getenv("HOME"), inifile);
 	    if (!FileName::exists(filename))
 	    {
+#if _WIN32 // This fix by Tim Matthews
+		char resolved_name[MAX_PATH + 1];
+		if(GetModuleFileName(NULL, resolved_name, MAX_PATH + 1) && FileName::exists(resolved_name))
+		{
+			filename = (char *)FileName::replaceName(resolved_name, inifile);
+			if(FileName::exists(filename))
+				goto Ldone;
+		}
+#endif
 		filename = (char *)FileName::replaceName(argv0, inifile);
 		if (!FileName::exists(filename))
 		{
