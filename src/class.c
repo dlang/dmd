@@ -1014,6 +1014,8 @@ void InterfaceDeclaration::semantic(Scope *sc)
 
     if (!sc)
 	sc = scope;
+    if (!parent && sc->parent && !sc->parent->isModule())
+	parent = sc->parent;
 
     type = type->semantic(loc, sc);
     handle = type;
