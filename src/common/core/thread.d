@@ -1074,7 +1074,7 @@ class Thread
      * Returns:
      *  A key representing the array offset of this memory location.
      */
-    static uint createLocal()
+    deprecated static uint createLocal()
     {
         synchronized( slock )
         {
@@ -1104,7 +1104,7 @@ class Thread
      * Params:
      *  key = The key to delete.
      */
-    static void deleteLocal( uint key )
+    deprecated static void deleteLocal( uint key )
     {
         synchronized( slock )
         {
@@ -1127,7 +1127,7 @@ class Thread
      * Returns:
      *  The data associated with the supplied key.
      */
-    static void* getLocal( uint key )
+    deprecated static void* getLocal( uint key )
     {
         return getThis().m_local[key];
     }
@@ -1144,7 +1144,7 @@ class Thread
      * Returns:
      *  A copy of the data which has just been stored.
      */
-    static void* setLocal( uint key, void* val )
+    deprecated static void* setLocal( uint key, void* val )
     {
         return getThis().m_local[key] = val;
     }
@@ -2192,7 +2192,7 @@ body
  * This class encapsulates the operations required to initialize, access, and
  * destroy thread local data.
  */
-class ThreadLocal( T )
+deprecated class ThreadLocal( T )
 {
     ///////////////////////////////////////////////////////////////////////////
     // Initialization
