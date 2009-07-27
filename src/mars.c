@@ -221,6 +221,7 @@ Usage:\n\
   -debuglib=name    set symbolic debug library to name\n\
   -defaultlib=name  set default library to name\n\
   -deps=filename write module dependencies to filename\n\
+  -fPIC          generate position independent code\n\
   -g             add symbolic debug info\n\
   -gc            add symbolic debug info, pretend to be C\n\
   -H             generate 'header' file\n\
