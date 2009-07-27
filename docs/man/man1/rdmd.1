@@ -1,0 +1,65 @@
+.TH RDMD 1 "2006-03-12" "Digital Mars" "Digital Mars D"
+.SH NAME
+rdmd \- Digital Mars D executable cacher
+
+.SH SYNOPSIS
+.B rdmd [compiler arguments] [rdmd arguments]
+.I progfile.d
+.B [program arguments]
+
+.SH DESCRIPTION
+.B rdmd
+is a program to compile, cache and execute D source code
+files or 'pseudo shell scripts' (using the she-bang syntax
+with dmd v0.146 or above) on Linux and Windows systems.
+
+It will cache the executable in the
+.I /tmp
+directory by default and will re-compile the executable if
+any of the source file, the compiler or rdmd itself is
+newer than the cached executable. It can optionally use
+.B gdmd
+if specified, but uses
+.B dmd
+by default.
+
+.SH OPTIONS
+.IP --help
+Print help
+
+.IP --force
+Force re-compilation of source code [default = do not
+force]
+
+.IP --compiler=(dmd|gdmd)
+Specify compiler [default = \fBdmd\fR]
+
+.IP --tmpdir=\fItmp_dir_path\fR
+Specify directory to store cached program and other
+temporaries [default = \fI/tmp\fR]
+
+.SH NOTES
+.B dmd
+or
+.B gdmd
+must be in the current user context $PATH
+.PP
+
+.B rdmd
+does not support execution of D source code via stdin
+.PP
+
+.B rdmd
+will only compile and execute files with a '.d' file
+extension
+.PP
+
+\fBrdmd\fR's functionality will probably get folded into
+dmd itself
+
+.SH AUTHOR
+Written by Dave Fladebo and Robert Mariottini
+
+.SH "SEE ALSO"
+.BR dmd (1)
+.BR gdmd (1)
