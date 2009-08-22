@@ -46,8 +46,6 @@ class TypeInfo_As : TypeInfo
                     break;
             }
         }
-
-        return hash;
     }
 
     override equals_t equals(in void* p1, in void* p2)
