@@ -930,29 +930,24 @@ class Thread
                 MAX_SLEEP_TICKS = cast(typeof(period)) tin.tv_sec.max * TICKS_PER_SECOND
             }
 
-            do
+            if( period > MAX_SLEEP_TICKS )
             {
-                if( period > MAX_SLEEP_TICKS )
-                {
-                    tin.tv_sec = tin.tv_sec.max;
-                    tin.tv_nsec = 0;
-                }
-                else
-                {
-                    tin.tv_sec = cast(typeof(tin.tv_sec)) (period / TICKS_PER_SECOND);
-                    tin.tv_nsec = cast(typeof(tin.tv_nsec)) (period % TICKS_PER_SECOND) * NANOS_PER_TICK;
-                }
-                while( true )
-                {
-                    if( !nanosleep( &tin, &tout ) )
-                        return;
-                    if( getErrno() != EINTR )
-                        throw new ThreadException( "Unable to sleep for the specified duration" );
-                    tin = tout;
-                }
-                period -= (cast(typeof(period)) tin.tv_sec) * TICKS_PER_SECOND;
-                period -= (cast(typeof(period)) tin.tv_nsec) / NANOS_PER_TICK;
-            } while( period > 0 );
+                tin.tv_sec = tin.tv_sec.max;
+                tin.tv_nsec = 0;
+            }
+            else
+            {
+                tin.tv_sec = cast(typeof(tin.tv_sec)) (period / TICKS_PER_SECOND);
+                tin.tv_nsec = cast(typeof(tin.tv_nsec)) (period % TICKS_PER_SECOND) * NANOS_PER_TICK;
+            }
+            while( true )
+            {
+                if( !nanosleep( &tin, &tout ) )
+                    return;
+                if( getErrno() != EINTR )
+                    throw new ThreadException( "Unable to sleep for the specified duration" );
+                tin = tout;
+            }
         }
     }
 
