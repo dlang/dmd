@@ -343,7 +343,7 @@ ulong __ULLNGDBL()
     }
 }
 
-// Convert double to ulong
+// Convert double in EDX:EAX to ulong
 
 private __gshared short roundTo0 = 0xFBF;
 

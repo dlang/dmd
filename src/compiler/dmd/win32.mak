@@ -42,6 +42,7 @@ MODULES_BASE= \
 	invariant.d \
 	invariant_.d \
 	lifetime.d \
+	llmath.d \
 	memory.d \
 	memset.d \
 	obj.d \
