@@ -246,7 +246,7 @@ class Semaphore
                     throw new SyncException( "Unable to wait for semaphore" );
             }
             // -w trip
-            return false;
+            //return false;
         }
         else version( Posix )
         {
