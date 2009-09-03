@@ -59,7 +59,7 @@ enum PROT AggregateDeclaration::prot()
 void AggregateDeclaration::semantic2(Scope *sc)
 {
     //printf("AggregateDeclaration::semantic2(%s)\n", toChars());
-    if (scope)
+    if (scope && members)
     {	error("has forward references");
 	return;
     }

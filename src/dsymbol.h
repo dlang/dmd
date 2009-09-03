@@ -69,7 +69,9 @@ struct Expression;
 struct DeleteDeclaration;
 struct HdrGenState;
 struct OverloadSet;
-
+#if TARGET_NET
+struct PragmaScope;
+#endif
 #if IN_GCC
 union tree_node;
 typedef union tree_node TYPE;
@@ -106,7 +108,6 @@ struct Dsymbol : Object
     Dsymbol();
     Dsymbol(Identifier *);
     char *toChars();
-    char *toPrettyChars();
     char *locToChars();
     int equals(Object *o);
     int isAnonymous();
@@ -123,6 +124,7 @@ struct Dsymbol : Object
 
     static Array *arraySyntaxCopy(Array *a);
 
+    virtual const char *toPrettyChars();
     virtual const char *kind();
     virtual Dsymbol *toAlias();			// resolve real symbol
     virtual int addMember(Scope *sc, ScopeDsymbol *s, int memnum);
@@ -148,6 +150,9 @@ struct Dsymbol : Object
     virtual int isExport();			// is Dsymbol exported?
     virtual int isImportedSymbol();		// is Dsymbol imported?
     virtual int isDeprecated();			// is Dsymbol deprecated?
+#if DMDV2
+    virtual int isOverloadable();
+#endif
     virtual LabelDsymbol *isLabel();		// is this a LabelDsymbol?
     virtual AggregateDeclaration *isMember();	// is this symbol a member of an AggregateDeclaration?
     virtual Type *getType();			// is this a type?
@@ -184,6 +189,7 @@ struct Dsymbol : Object
     virtual TemplateInstance *isTemplateInstance() { return NULL; }
     virtual TemplateMixin *isTemplateMixin() { return NULL; }
     virtual Declaration *isDeclaration() { return NULL; }
+    virtual ThisDeclaration *isThisDeclaration() { return NULL; }
     virtual TupleDeclaration *isTupleDeclaration() { return NULL; }
     virtual TypedefDeclaration *isTypedefDeclaration() { return NULL; }
     virtual AliasDeclaration *isAliasDeclaration() { return NULL; }
@@ -192,6 +198,7 @@ struct Dsymbol : Object
     virtual FuncAliasDeclaration *isFuncAliasDeclaration() { return NULL; }
     virtual FuncLiteralDeclaration *isFuncLiteralDeclaration() { return NULL; }
     virtual CtorDeclaration *isCtorDeclaration() { return NULL; }
+    virtual PostBlitDeclaration *isPostBlitDeclaration() { return NULL; }
     virtual DtorDeclaration *isDtorDeclaration() { return NULL; }
     virtual StaticCtorDeclaration *isStaticCtorDeclaration() { return NULL; }
     virtual StaticDtorDeclaration *isStaticDtorDeclaration() { return NULL; }
@@ -213,6 +220,10 @@ struct Dsymbol : Object
 #endif
     virtual SymbolDeclaration *isSymbolDeclaration() { return NULL; }
     virtual AttribDeclaration *isAttribDeclaration() { return NULL; }
+    virtual OverloadSet *isOverloadSet() { return NULL; }
+#if TARGET_NET
+    virtual PragmaScope* isPragmaScope() { return NULL; }
+#endif
 };
 
 // Dsymbol that generates a scope
@@ -235,8 +246,12 @@ struct ScopeDsymbol : Dsymbol
     static void multiplyDefined(Loc loc, Dsymbol *s1, Dsymbol *s2);
     Dsymbol *nameCollision(Dsymbol *s);
     const char *kind();
+    FuncDeclaration *findGetMembers();
 
     void emitMemberComments(Scope *sc);
+
+    static size_t dim(Array *members);
+    static Dsymbol *getNth(Array *members, size_t nth, size_t *pn = NULL);
 
     ScopeDsymbol *isScopeDsymbol() { return this; }
 };
@@ -260,6 +275,7 @@ struct ArrayScopeSymbol : ScopeDsymbol
     Expression *exp;	// IndexExp or SliceExp
     TypeTuple *type;	// for tuple[length]
     TupleDeclaration *td;	// for tuples of objects
+    Scope *sc;
 
     ArrayScopeSymbol(Expression *e);
     ArrayScopeSymbol(TypeTuple *t);
@@ -268,6 +284,20 @@ struct ArrayScopeSymbol : ScopeDsymbol
 
     ArrayScopeSymbol *isArrayScopeSymbol() { return this; }
 };
+
+// Overload Sets
+
+#if DMDV2
+struct OverloadSet : Dsymbol
+{
+    Dsymbols a;		// array of Dsymbols
+
+    OverloadSet();
+    void push(Dsymbol *s);
+    OverloadSet *isOverloadSet() { return this; }
+    const char *kind();
+};
+#endif
 
 // Table of Dsymbol's
 

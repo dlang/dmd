@@ -52,6 +52,7 @@ elem *callfunc(Loc loc,
 
 elem *exp2_copytotemp(elem *e);
 elem *incUsageElem(IRState *irs, Loc loc);
+StructDeclaration *needsPostblit(Type *t);
 
 #define elem_setLoc(e,loc)	((e)->Esrcpos.Sfilename = (char *)(loc).filename, \
 				 (e)->Esrcpos.Slinnum = (loc).linnum)
@@ -216,6 +217,8 @@ void PragmaStatement::toIR(IRState *irs)
 
 void WhileStatement::toIR(IRState *irs)
 {
+    assert(0); // was "lowered"
+#if 0
     Blockx *blx = irs->blx;
 
     /* Create a new state, because we need a new continue and break target
@@ -240,6 +243,7 @@ void WhileStatement::toIR(IRState *irs)
     block_next(blx, BCgoto, mystate.breakBlock);
 
     list_append(&mystate.contBlock->Bsucc, mystate.breakBlock);
+#endif
 }
 
 /******************************************
@@ -327,7 +331,10 @@ void ForStatement::toIR(IRState *irs)
  */
 
 void ForeachStatement::toIR(IRState *irs)
-{   Type *tab;
+{
+    assert(0);  // done by "lowering" in the front end
+#if 0
+    Type *tab;
     elem *eaggr;
     elem *e;
     elem *elength;
@@ -519,6 +526,16 @@ void ForeachStatement::toIR(IRState *irs)
 	{
 	    e->Eoper = OPstreq;
 	    e->Enumbytes = value->type->size();
+#if DMDV2
+	    // Call postblit on e
+	    if (sd)
+	    {   FuncDeclaration *fd = sd->postblit;
+		elem *ec = el_copytree(evalue);
+		ec = el_una(OPaddr, TYnptr, ec);
+		ec = callfunc(loc, irs, 1, Type::tvoid, ec, sd->type->pointerTo(), fd, fd->type, NULL, NULL);
+		e = el_combine(e, ec);
+	    }
+#endif
 	}
 	else if (tybasic(tym) == TYarray)
 	{
@@ -555,6 +572,7 @@ void ForeachStatement::toIR(IRState *irs)
     list_append(&bcond->Bsucc,mystate.breakBlock);
     list_append(&bbodyx->Bsucc,mystate.contBlock);
     list_append(&mystate.contBlock->Bsucc,bcond);
+#endif
 }
 
 
@@ -563,7 +581,10 @@ void ForeachStatement::toIR(IRState *irs)
 
 #if DMDV2
 void ForeachRangeStatement::toIR(IRState *irs)
-{   Type *tab;
+{
+    assert(0);
+#if 0
+    Type *tab;
     elem *eaggr;
     elem *elwr;
     elem *eupr;
@@ -617,7 +638,7 @@ void ForeachRangeStatement::toIR(IRState *irs)
     elem *eend = (op == TOKforeach_reverse) ? elwr : eupr;
     Symbol *send = symbol_genauto(eend);
     e = el_bin(OPeq, eend->Ety, el_var(send), eend);
-    assert(e->Ety != TYstruct);
+    assert(tybasic(e->Ety) != TYstruct);
     block_appendexp(blx->curblock, e);
 
     bpre = blx->curblock;
@@ -670,6 +691,7 @@ void ForeachRangeStatement::toIR(IRState *irs)
     list_append(&bcond->Bsucc,mystate.breakBlock);
     list_append(&bbodyx->Bsucc,mystate.contBlock);
     list_append(&mystate.contBlock->Bsucc,bcond);
+#endif
 }
 #endif
 
@@ -1180,7 +1202,7 @@ void ReturnStatement::toIR(IRState *irs)
 
 		ety = e->Ety;
 		es = el_una(OPind,ety,el_var(irs->shidden));
-		op = (ety == TYstruct) ? OPstreq : OPeq;
+		op = (tybasic(ety) == TYstruct) ? OPstreq : OPeq;
 		es = el_bin(op, ety, es, e);
 		if (op == OPstreq)
 		    es->Enumbytes = exp->type->size();
@@ -1526,6 +1548,8 @@ void TryFinallyStatement::toIR(IRState *irs)
 
 void SynchronizedStatement::toIR(IRState *irs)
 {
+    assert(0);
+#if 0
     block *b;
     block *tryblock;
     elem *e;
@@ -1604,6 +1628,7 @@ void SynchronizedStatement::toIR(IRState *irs)
 
     list_append(&finallyblock->Bsucc, blx->curblock);
     list_append(&retblock->Bsucc, blx->curblock);
+#endif
 }
 
 

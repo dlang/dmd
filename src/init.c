@@ -420,7 +420,16 @@ Expression *ArrayInitializer::toExpression()
 	}
     }
     else
+    {
 	edim = value.dim;
+	for (size_t i = 0, j = 0; i < value.dim; i++, j++)
+	{
+	    if (index.data[i])
+		j = ((Expression *)index.data[i])->toInteger();
+	    if (j >= edim)
+		edim = j + 1;
+	}
+    }
 
     elements = new Expressions();
     elements->setDim(edim);
@@ -464,7 +473,7 @@ Expression *ArrayInitializer::toExpression()
 Lno:
     delete elements;
     error(loc, "array initializers as expressions are not allowed");
-    return NULL;
+    return new ErrorExp();
 }
 
 /********************************

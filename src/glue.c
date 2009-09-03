@@ -734,20 +734,41 @@ void FuncDeclaration::toObjFile(int multiobj)
 	bx.classdec = cd;
 	bx.member = func;
 	bx.module = getModule();
+	irs.blx = &bx;
 
-	// Generate expression for monitor for synchronized methods
-	elem *esync = NULL;
+#if 0
 	if (func->isSynchronized())
 	{
 	    if (cd)
-	    {
+	    {	elem *esync;
 		if (func->isStatic())
-		{   // Use pointer to ClassInfo as our monitor
+		{   // monitor is in ClassInfo
 		    esync = el_ptr(cd->toSymbol());
 		}
 		else
-		{   // Use 'this' as our monitor
+		{   // 'this' is the monitor
 		    esync = el_var(sthis);
+		}
+
+		if (func->isStatic() || sbody->usesEH() ||
+		    !(config.flags2 & CFG2seh))
+		{   // BUG: what if frequire or fensure uses EH?
+
+		    sbody = new SynchronizedStatement(func->loc, esync, sbody);
+		}
+		else
+		{
+#if TARGET_WINDOS
+		    if (config.flags2 & CFG2seh)
+		    {
+			/* The "jmonitor" uses an optimized exception handling frame
+			 * which is a little shorter than the more general EH frame.
+			 * It isn't strictly necessary.
+			 */
+			s->Sfunc->Fflags3 |= Fjmonitor;
+		    }
+#endif
+		    el_free(esync);
 		}
 	    }
 	    else
@@ -755,25 +776,17 @@ void FuncDeclaration::toObjFile(int multiobj)
 		error("synchronized function %s must be a member of a class", func->toChars());
 	    }
 	}
-
-	if (esync)
+#elif TARGET_WINDOS
+	if (func->isSynchronized() && cd && config.flags2 & CFG2seh &&
+	    !func->isStatic() && !sbody->usesEH())
 	{
-	    if (func->isStatic() || sbody->usesEH() || !(config.flags2 & CFG2seh))
-	    {	// BUG: what if frequire or fensure uses EH?
-
-		sbody = new SynchronizedStatement(func->loc, esync, sbody);
-	    }
-	    else
-	    {
-#if TARGET_WINDOS
-		if (config.flags2 & CFG2seh)
-		    s->Sfunc->Fflags3 |= Fjmonitor;
-#endif
-		el_free(esync);
-	    }
+	    /* The "jmonitor" hack uses an optimized exception handling frame
+	     * which is a little shorter than the more general EH frame.
+	     */
+	    s->Sfunc->Fflags3 |= Fjmonitor;
 	}
+#endif
 
-	irs.blx = &bx;
 	sbody->toIR(&irs);
 	bx.curblock->BC = BCret;
 

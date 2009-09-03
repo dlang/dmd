@@ -124,7 +124,7 @@ struct Declaration : Dsymbol
     int isFinal()        { return storage_class & STCfinal; }
     int isAbstract()     { return storage_class & STCabstract; }
     int isConst()        { return storage_class & STCconst; }
-    int isInvariant()    { return 0; }
+    int isInvariant()    { return storage_class & STCinvariant; }
     int isAuto()         { return storage_class & STCauto; }
     int isScope()        { return storage_class & (STCscope | STCauto); }
     int isSynchronized() { return storage_class & STCsynchronized; }
@@ -229,7 +229,11 @@ struct VarDeclaration : Declaration
     Initializer *init;
     unsigned offset;
     int noauto;			// no auto semantics
+#if DMDV2
+    FuncDeclarations nestedrefs; // referenced by these lexically nested functions
+#else
     int nestedref;		// referenced by a lexically nested function
+#endif
     int ctorinit;		// it has been initialized in a ctor
     int onstack;		// 1: it has been allocated on the stack
 				// 2: on stack, run destructor anyway
@@ -237,6 +241,11 @@ struct VarDeclaration : Declaration
     Dsymbol *aliassym;		// if redone as alias to another symbol
     Expression *value;		// when interpreting, this is the value
 				// (NULL if value not determinable)
+#if DMDV2
+    VarDeclaration *rundtor;	// if !NULL, rundtor is tested at runtime to see
+				// if the destructor should be run. Used to prevent
+				// dtor calls on postblitted vars
+#endif
 
     VarDeclaration(Loc loc, Type *t, Identifier *id, Initializer *init);
     Dsymbol *syntaxCopy(Dsymbol *);
@@ -251,9 +260,15 @@ struct VarDeclaration : Declaration
     int needThis();
     int isImportedSymbol();
     int isDataseg();
+    int isThreadlocal();
     int hasPointers();
-    Expression *callAutoDtor();
+#if DMDV2
+    int canTakeAddressOf();
+    int needsAutoDtor();
+#endif
+    Expression *callAutoDtor(Scope *sc);
     ExpInitializer *getExpInitializer();
+    Expression *getConstInitializer();
     void checkCtorConstInit();
     void checkNestedReference(Scope *sc, Loc loc);
     Dsymbol *toAlias();
@@ -556,6 +571,7 @@ struct FuncDeclaration : Declaration
     void appendExp(Expression *e);
     void appendState(Statement *s);
     char *mangle();
+    const char *toPrettyChars();
     int isMain();
     int isWinMain();
     int isDllMain();
@@ -572,12 +588,14 @@ struct FuncDeclaration : Declaration
     virtual int isFinal();
     virtual int addPreInvariant();
     virtual int addPostInvariant();
-    Expression *interpret(InterState *istate, Expressions *arguments);
+    Expression *interpret(InterState *istate, Expressions *arguments, Expression *thisexp = NULL);
     void inlineScan();
     int canInline(int hasthis, int hdrscan = 0);
     Expression *doInline(InlineScanState *iss, Expression *ethis, Array *arguments);
     const char *kind();
     void toDocBuffer(OutBuffer *buf);
+    FuncDeclaration *isUnique();
+    int needsClosure();
 
     static FuncDeclaration *genCfunc(Type *treturn, const char *name);
     static FuncDeclaration *genCfunc(Type *treturn, Identifier *id);
@@ -586,9 +604,18 @@ struct FuncDeclaration : Declaration
     Symbol *toThunkSymbol(int offset);	// thunk version
     void toObjFile(int multiobj);			// compile to .obj file
     int cvMember(unsigned char *p);
+    void buildClosure(IRState *irs);
 
     FuncDeclaration *isFuncDeclaration() { return this; }
 };
+
+#if DMDV2
+FuncDeclaration *resolveFuncCall(Scope *sc, Loc loc, Dsymbol *s,
+	Objects *tiargs,
+	Expression *ethis,
+	Expressions *arguments,
+	int flags);
+#endif
 
 struct FuncAliasDeclaration : FuncDeclaration
 {

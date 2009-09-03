@@ -151,7 +151,7 @@ char *Dsymbol::toChars()
     return ident ? ident->toChars() : (char *)"__anonymous";
 }
 
-char *Dsymbol::toPrettyChars()
+const char *Dsymbol::toPrettyChars()
 {   Dsymbol *p;
     char *s;
     char *q;
@@ -177,6 +177,16 @@ char *Dsymbol::toPrettyChars()
 	if (q == s)
 	    break;
 	q--;
+#if TARGET_NET
+    if (AggregateDeclaration* ad = p->isAggregateDeclaration())
+    {
+        if (ad->isNested() && p->parent && p->parent->isAggregateDeclaration())
+        {
+            *q = '/';
+            continue;
+        }
+    }
+#endif
 	*q = '.';
     }
     return s;
@@ -260,6 +270,7 @@ int Dsymbol::isAnonymous()
 
 void Dsymbol::setScope(Scope *sc)
 {
+    //printf("Dsymbol::setScope() %p %s\n", this, toChars());
     if (!sc->nofree)
 	sc->setNoFree();		// may need it even after semantic() finishes
     scope = sc;
@@ -422,6 +433,13 @@ int Dsymbol::isDeprecated()
 {
     return FALSE;
 }
+
+#if DMDV2
+int Dsymbol::isOverloadable()
+{
+    return 0;
+}
+#endif
 
 LabelDsymbol *Dsymbol::isLabel()		// is this a LabelDsymbol()?
 {
@@ -618,8 +636,8 @@ Array *Dsymbol::arraySyntaxCopy(Array *a)
 
 void Dsymbol::addComment(unsigned char *comment)
 {
-//    if (comment)
-//	printf("adding comment '%s' to symbol %p '%s'\n", comment, this, toChars());
+    //if (comment)
+	//printf("adding comment '%s' to symbol %p '%s'\n", comment, this, toChars());
 
     if (!this->comment)
 	this->comment = comment;
@@ -630,6 +648,25 @@ void Dsymbol::addComment(unsigned char *comment)
     }
 #endif
 }
+
+/********************************* OverloadSet ****************************/
+
+#if DMDV2
+OverloadSet::OverloadSet()
+    : Dsymbol()
+{
+}
+
+void OverloadSet::push(Dsymbol *s)
+{
+    a.push(s);
+}
+
+const char *OverloadSet::kind()
+{
+    return "overloadset";
+}
+#endif
 
 
 /********************************* ScopeDsymbol ****************************/

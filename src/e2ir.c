@@ -332,12 +332,12 @@ elem *addressElem(elem *e, Type *t)
 	    tx = type_fake(e->Ety);
 	stmp = symbol_genauto(tx);
 	eeq = el_bin(OPeq,e->Ety,el_var(stmp),e);
-	if (e->Ety == TYstruct)
+	if (tybasic(e->Ety) == TYstruct)
 	{
 	    eeq->Eoper = OPstreq;
 	    eeq->Enumbytes = e->Enumbytes;
 	}
-	else if (e->Ety == TYarray)
+	else if (tybasic(e->Ety) == TYarray)
 	{
 	    eeq->Eoper = OPstreq;
 	    eeq->Ejty = eeq->Ety = TYstruct;
@@ -579,7 +579,7 @@ elem *setArray(elem *eptr, elem *edim, Type *tb, elem *evalue)
 	edim = el_bin(OPmul, TYuint, edim, el_long(TYuint, sz));
     }
 
-    if (evalue->Ety == TYstruct)
+    if (tybasic(evalue->Ety) == TYstruct)
     {
 	evalue = el_una(OPstrpar, TYstruct, evalue);
 	evalue->Enumbytes = evalue->E1->Enumbytes;
@@ -2105,7 +2105,7 @@ elem *InExp::toElem(IRState *irs)
     // set to:
     //	aaIn(aa, keyti, key);
 
-    if (key->Ety == TYstruct)
+    if (tybasic(key->Ety) == TYstruct)
     {
 	key = el_una(OPstrpar, TYstruct, key);
 	key->Enumbytes = key->E1->Enumbytes;
@@ -2134,7 +2134,7 @@ elem *RemoveExp::toElem(IRState *irs)
     elem *ep;
     elem *keyti;
 
-    if (ekey->Ety == TYstruct)
+    if (tybasic(ekey->Ety) == TYstruct)
     {
 	ekey = el_una(OPstrpar, TYstruct, ekey);
 	ekey->Enumbytes = ekey->E1->Enumbytes;
@@ -2478,7 +2478,7 @@ elem *AssignExp::toElem(IRState *irs)
 	ty = ta->ty;
     }
 
-#if DMDV2
+#if 1
     /* Look for reference initializations
      */
     if (op == TOKconstruct && e1->op == TOKvar)
@@ -2492,6 +2492,7 @@ elem *AssignExp::toElem(IRState *irs)
 	    elem *es = el_var(s->toSymbol());
 	    es->Ety = TYnptr;
 	    e = el_bin(OPeq, TYnptr, es, e);
+// BUG: type is struct, and e2 is TOKint64
 	    goto Lret;
 	}
     }
@@ -2538,14 +2539,11 @@ elem *AssignExp::toElem(IRState *irs)
 	}
 	else
 	{
-	    elem *e1;
-	    elem *e2;
-
 	    //printf("toElemBin() '%s'\n", toChars());
 
 	    tym_t tym = type->totym();
 
-	    e1 = this->e1->toElem(irs);
+	    elem *e1 = this->e1->toElem(irs);
 	    elem *ex = e1;
 	    if (e1->Eoper == OPind)
 		ex = e1->E1;
@@ -2559,7 +2557,7 @@ elem *AssignExp::toElem(IRState *irs)
 
 		se->sym = ex->EV.sp.Vsym;
 		se->soffset = 0;
-		se->fillHoles = (op == TOKconstruct) ? 1 : 0;
+		se->fillHoles = (op == TOKconstruct || op == TOKblit) ? 1 : 0;
 
 		el_free(e1);
 		e = this->e2->toElem(irs);
@@ -2635,7 +2633,7 @@ elem *CatAssignExp::toElem(IRState *irs)
 	e1 = el_una(OPaddr, TYnptr, e1);
 
 	e2 = this->e2->toElem(irs);
-	if (e2->Ety == TYstruct)
+	if (tybasic(e2->Ety) == TYstruct)
 	{
 	    e2 = el_una(OPstrpar, TYstruct, e2);
 	    e2->Enumbytes = e2->E1->Enumbytes;
@@ -3139,7 +3137,7 @@ elem *DeleteExp::toElem(IRState *irs)
 	    elem *ep;
 	    elem *keyti;
 
-	    if (ekey->Ety == TYstruct)
+	    if (tybasic(ekey->Ety) == TYstruct)
 	    {
 		ekey = el_una(OPstrpar, TYstruct, ekey);
 		ekey->Enumbytes = ekey->E1->Enumbytes;
@@ -4020,7 +4018,7 @@ elem *IndexExp::toElem(IRState *irs)
 
 	// n2 becomes the index, also known as the key
 	n2 = e2->toElem(irs);
-	if (n2->Ety == TYstruct || n2->Ety == TYarray)
+	if (tybasic(n2->Ety) == TYstruct || tybasic(n2->Ety) == TYarray)
 	{
 	    n2 = el_una(OPstrpar, TYstruct, n2);
 	    n2->Enumbytes = n2->E1->Enumbytes;
@@ -4360,10 +4358,10 @@ elem *StructLiteralExp::toElem(IRState *irs)
 	    {
 		tym_t ty = v->type->totym();
 		e1 = el_una(OPind, ty, e1);
-		if (ty == TYstruct)
+		if (tybasic(ty) == TYstruct)
 		    e1->Enumbytes = v->type->size();
 		e1 = el_bin(OPeq, ty, e1, ep);
-		if (ty == TYstruct)
+		if (tybasic(ty) == TYstruct)
 		{   e1->Eoper = OPstreq;
 		    e1->Enumbytes = v->type->size();
 		}

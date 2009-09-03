@@ -36,6 +36,9 @@ struct AttribDeclaration : Dsymbol
     AttribDeclaration(Array *decl);
     virtual Array *include(Scope *sc, ScopeDsymbol *s);
     int addMember(Scope *sc, ScopeDsymbol *s, int memnum);
+    void setScopeNewSc(Scope *sc,
+	unsigned newstc, enum LINK linkage, enum PROT protection, int explictProtection,
+	unsigned structalign);
     void semanticNewSc(Scope *sc,
 	unsigned newstc, enum LINK linkage, enum PROT protection, int explictProtection,
 	unsigned structalign);
@@ -63,6 +66,7 @@ struct StorageClassDeclaration: AttribDeclaration
 
     StorageClassDeclaration(unsigned stc, Array *decl);
     Dsymbol *syntaxCopy(Dsymbol *s);
+    void setScope(Scope *sc);
     void semantic(Scope *sc);
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
 
@@ -75,6 +79,7 @@ struct LinkDeclaration : AttribDeclaration
 
     LinkDeclaration(enum LINK p, Array *decl);
     Dsymbol *syntaxCopy(Dsymbol *s);
+    void setScope(Scope *sc);
     void semantic(Scope *sc);
     void semantic3(Scope *sc);
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
@@ -87,6 +92,7 @@ struct ProtDeclaration : AttribDeclaration
 
     ProtDeclaration(enum PROT p, Array *decl);
     Dsymbol *syntaxCopy(Dsymbol *s);
+    void setScope(Scope *sc);
     void semantic(Scope *sc);
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
 
@@ -99,6 +105,7 @@ struct AlignDeclaration : AttribDeclaration
 
     AlignDeclaration(unsigned sa, Array *decl);
     Dsymbol *syntaxCopy(Dsymbol *s);
+    void setScope(Scope *sc);
     void semantic(Scope *sc);
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
 };

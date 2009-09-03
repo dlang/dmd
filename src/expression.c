@@ -581,7 +581,7 @@ void functionArguments(Loc loc, Scope *sc, TypeFunction *tf, Expressions *argume
 		if (arg->implicitConvTo(p->type))
 		{
 		    if (nargs != nparams)
-		        error(loc, "expected %zu arguments, not %zu", nparams, nargs);
+		        error(loc, "expected %zu function arguments, not %zu", nparams, nargs);
 		    goto L1;
 		}
 	     L2:
@@ -4244,13 +4244,13 @@ Expression *FuncExp::semantic(Scope *sc)
 	fd->parent = sc->parent;
 	if (global.errors)
 	{
-	    if (!fd->type->next)
-		fd->type->next = Type::terror;
 	}
 	else
 	{
 	    fd->semantic2(sc);
-	    if (!global.errors)
+	    if (!global.errors ||
+		// need to infer return type
+		(fd->type && fd->type->ty == Tfunction && !fd->type->nextOf()))
 	    {
 		fd->semantic3(sc);
 
@@ -4258,6 +4258,10 @@ Expression *FuncExp::semantic(Scope *sc)
 		    fd->inlineScan();
 	    }
 	}
+
+	// need to infer return type
+	if (global.errors && fd->type && fd->type->ty == Tfunction && !fd->type->nextOf())
+	    ((TypeFunction *)fd->type)->next = Type::terror;
 
 	// Type is a "delegate to" or "pointer to" the function literal
 	if (fd->isNested())
@@ -4901,7 +4905,7 @@ Expression *BinExp::commonSemanticAssign(Scope *sc)
 
 	if (op == TOKmodass && e2->type->iscomplex())
 	{   error("cannot perform modulo complex arithmetic");
-	    return new IntegerExp(0);
+	    return new ErrorExp();
 	}
     }
     return this;
@@ -5075,7 +5079,7 @@ Expression *FileExp::semantic(Scope *sc)
     }
 
     if (global.params.verbose)
-	printf("file      %s\t(%s)\n", se->string, name);
+	printf("file      %s\t(%s)\n", (char *)se->string, name);
 
     {	File f(name);
 	if (f.read())
@@ -6141,6 +6145,36 @@ Lagain:
 	if (t1->ty == Tstruct)
 	{
 	    ad = ((TypeStruct *)t1)->sym;
+#if DMDV2
+	    // First look for constructor
+	    if (ad->ctor && arguments && arguments->dim)
+	    {
+		// Create variable that will get constructed
+		Identifier *idtmp = Lexer::uniqueId("__ctmp");
+		VarDeclaration *tmp = new VarDeclaration(loc, t1, idtmp, NULL);
+		Expression *av = new DeclarationExp(loc, tmp);
+		av = new CommaExp(loc, av, new VarExp(loc, tmp));
+
+		Expression *e;
+		CtorDeclaration *cf = ad->ctor->isCtorDeclaration();
+		if (cf)
+		    e = new DotVarExp(loc, av, cf, 1);
+		else
+		{   TemplateDeclaration *td = ad->ctor->isTemplateDeclaration();
+		    assert(td);
+		    e = new DotTemplateExp(loc, av, td);
+		}
+		e = new CallExp(loc, e, arguments);
+#if !STRUCTTHISREF
+		/* Constructors return a pointer to the instance
+		 */
+		e = new PtrExp(loc, e);
+#endif
+		e = e->semantic(sc);
+		return e;
+	    }
+#endif
+	    // No constructor, look for overload of opCall
 	    if (search_function(ad, Id::call))
 		goto L1;	// overload of opCall, therefore it's a call
 
@@ -6501,6 +6535,7 @@ int CallExp::checkSideEffect(int flag)
 #if DMDV2
 int CallExp::canThrow()
 {
+    //printf("CallExp::canThrow() %s\n", toChars());
     if (e1->canThrow())
 	return 1;
 
@@ -6509,9 +6544,12 @@ int CallExp::canThrow()
     for (size_t i = 0; i < arguments->dim; i++)
     {   Expression *e = (Expression *)arguments->data[i];
 
-	if (e->canThrow())
+	if (e && e->canThrow())
 	    return 1;
     }
+
+    if (global.errors && !e1->type)
+	return 0;			// error recovery
 
     /* If calling a function or delegate that is typed as nothrow,
      * then this expression cannot throw.
@@ -6551,8 +6589,16 @@ Expression *CallExp::toLvalue(Scope *sc, Expression *e)
 
 Expression *CallExp::modifiableLvalue(Scope *sc, Expression *e)
 {
+#if 1
+    return Expression::modifiableLvalue(sc, e);
+#else
+    /* Although function return values being usable as "ref" parameters is
+     * unsound, disabling it breaks existing code.
+     * Bugzilla 3167
+     */
     error("cannot assign to function call");
     return toLvalue(sc, e);
+#endif
 }
 
 void CallExp::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
@@ -6666,13 +6712,6 @@ Expression *PtrExp::semantic(Scope *sc)
 	{
 	    case Tpointer:
 		type = tb->next;
-		if (type->isbit())
-		{   Expression *e;
-
-		    // Rewrite *p as p[0]
-		    e = new IndexExp(loc, e1, new IntegerExp(0));
-		    return e->semantic(sc);
-		}
 		break;
 
 	    case Tsarray:
@@ -7723,7 +7762,7 @@ void PostExp::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 
 /************************************************************/
 
-/* Can be TOKconstruct too */
+/* op can be TOKassign, TOKconstruct, or TOKblit */
 
 AssignExp::AssignExp(Loc loc, Expression *e1, Expression *e2)
 	: BinExp(loc, TOKassign, sizeof(AssignExp), e1, e2)
@@ -7732,26 +7771,39 @@ AssignExp::AssignExp(Loc loc, Expression *e1, Expression *e2)
 }
 
 Expression *AssignExp::semantic(Scope *sc)
-{   Type *t1;
+{
     Expression *e1old = e1;
 
 #if LOGSEMANTIC
     printf("AssignExp::semantic('%s')\n", toChars());
 #endif
     //printf("e1->op = %d, '%s'\n", e1->op, Token::toChars(e1->op));
+    //printf("e2->op = %d, '%s'\n", e2->op, Token::toChars(e2->op));
+
+    if (type)
+	return this;
+
+    if (e2->op == TOKcomma)
+    {	/* Rewrite to get rid of the comma from rvalue
+	 */
+	AssignExp *ea = new AssignExp(loc, e1, ((CommaExp *)e2)->e2);
+	ea->op = op;
+	Expression *e = new CommaExp(loc, ((CommaExp *)e2)->e1, ea);
+	return e->semantic(sc);
+    }
 
     /* Look for operator overloading of a[i]=value.
      * Do it before semantic() otherwise the a[i] will have been
      * converted to a.opIndex() already.
      */
     if (e1->op == TOKarray)
-    {	Type *t1;
+    {
 	ArrayExp *ae = (ArrayExp *)e1;
 	AggregateDeclaration *ad;
 	Identifier *id = Id::index;
 
 	ae->e1 = ae->e1->semantic(sc);
-	t1 = ae->e1->type->toBasetype();
+	Type *t1 = ae->e1->type->toBasetype();
 	if (t1->ty == Tstruct)
 	{
 	    ad = ((TypeStruct *)t1)->sym;
@@ -7866,13 +7918,20 @@ Expression *AssignExp::semantic(Scope *sc)
 	}
     }
 
-    t1 = e1->type->toBasetype();
+    // Determine if this is an initialization of a reference
+    int refinit = 0;
+    if (op == TOKconstruct && e1->op == TOKvar)
+    {	VarExp *ve = (VarExp *)e1;
+	VarDeclaration *v = ve->var->isVarDeclaration();
+	if (v->storage_class & (STCout | STCref))
+	    refinit = 1;
+    }
+
+    Type *t1 = e1->type->toBasetype();
 
     if (t1->ty == Tfunction)
     {	// Rewrite f=value to f(value)
-	Expression *e;
-
-	e = new CallExp(loc, e1, e2);
+	Expression *e = new CallExp(loc, e1, e2);
 	e = e->semantic(sc);
 	return e;
     }
@@ -7904,7 +7963,8 @@ Expression *AssignExp::semantic(Scope *sc)
     else
     {	// Try to do a decent error message with the expression
 	// before it got constant folded
-	e1 = e1->modifiableLvalue(sc, e1old);
+	if (op != TOKconstruct)
+	    e1 = e1->modifiableLvalue(sc, e1old);
     }
 
     if (e1->op == TOKslice &&
@@ -7916,7 +7976,7 @@ Expression *AssignExp::semantic(Scope *sc)
 	ismemset = 1;	// make it easy for back end to tell what this is
 	e2 = e2->implicitCastTo(sc, t1->next);
     }
-    else if (t1->ty == Tsarray)
+    else if (t1->ty == Tsarray && !refinit)
     {
 	error("cannot assign to static array %s", e1->toChars());
     }

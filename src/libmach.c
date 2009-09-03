@@ -151,7 +151,7 @@ void OmToHeader(Header *h, ObjModule *om)
     if (nzeros < 4)
 	nzeros += 8;		// emulate mysterious behavior of ar
 
-    size_t len = sprintf(h->object_name, "#1/%d", slen + nzeros);
+    size_t len = sprintf(h->object_name, "#1/%ld", slen + nzeros);
     memset(h->object_name + len, ' ', OBJECT_NAME_SIZE - len);
 
     /* In the following sprintf's, don't worry if the trailing 0
@@ -178,7 +178,7 @@ void OmToHeader(Header *h, ObjModule *om)
 
     int filesize = om->length;
     filesize = (filesize + 7) & ~7;
-    len = sprintf(h->file_size, "%u", slen + nzeros + filesize);
+    len = sprintf(h->file_size, "%lu", slen + nzeros + filesize);
     assert(len <= 10);
     memset(h->file_size + len, ' ', 10 - len);
 

@@ -104,7 +104,7 @@ struct Statement : Object
     virtual int usesEH();
     virtual int blockExit();
     virtual int comeFrom();
-    virtual void scopeCode(Statement **sentry, Statement **sexit, Statement **sfinally);
+    virtual void scopeCode(Scope *sc, Statement **sentry, Statement **sexit, Statement **sfinally);
     virtual Statements *flatten(Scope *sc);
     virtual Expression *interpret(InterState *istate);
 
@@ -120,6 +120,14 @@ struct Statement : Object
     virtual CompoundStatement *isCompoundStatement() { return NULL; }
     virtual ReturnStatement *isReturnStatement() { return NULL; }
     virtual IfStatement *isIfStatement() { return NULL; }
+};
+
+struct PeelStatement : Statement
+{
+    Statement *s;
+
+    PeelStatement(Statement *s);
+    Statement *semantic(Scope *sc);
 };
 
 struct ExpStatement : Statement
@@ -160,7 +168,7 @@ struct DeclarationStatement : ExpStatement
     DeclarationStatement(Loc loc, Expression *exp);
     Statement *syntaxCopy();
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
-    void scopeCode(Statement **sentry, Statement **sexit, Statement **sfinally);
+    void scopeCode(Scope *sc, Statement **sentry, Statement **sexit, Statement **sfinally);
 
     DeclarationStatement *isDeclarationStatement() { return this; }
 };
@@ -295,7 +303,7 @@ struct ForStatement : Statement
     ForStatement(Loc loc, Statement *init, Expression *condition, Expression *increment, Statement *body);
     Statement *syntaxCopy();
     Statement *semantic(Scope *sc);
-    void scopeCode(Statement **sentry, Statement **sexit, Statement **sfinally);
+    void scopeCode(Scope *sc, Statement **sentry, Statement **sexit, Statement **sfinally);
     int hasBreak();
     int hasContinue();
     int usesEH();
@@ -465,6 +473,7 @@ struct CaseStatement : Statement
 {
     Expression *exp;
     Statement *statement;
+
     int index;		// which case it is (since we sort this)
     block *cblock;	// back end: label for the block
 
@@ -482,6 +491,22 @@ struct CaseStatement : Statement
 
     void toIR(IRState *irs);
 };
+
+#if DMDV2
+
+struct CaseRangeStatement : Statement
+{
+    Expression *first;
+    Expression *last;
+    Statement *statement;
+
+    CaseRangeStatement(Loc loc, Expression *first, Expression *last, Statement *s);
+    Statement *syntaxCopy();
+    Statement *semantic(Scope *sc);
+    void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
+};
+
+#endif
 
 struct DefaultStatement : Statement
 {
@@ -694,7 +719,7 @@ struct OnScopeStatement : Statement
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
     Statement *semantic(Scope *sc);
     int usesEH();
-    void scopeCode(Statement **sentry, Statement **sexit, Statement **sfinally);
+    void scopeCode(Scope *sc, Statement **sentry, Statement **sexit, Statement **sfinally);
 
     void toIR(IRState *irs);
 };

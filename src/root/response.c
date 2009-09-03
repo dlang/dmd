@@ -14,16 +14,13 @@
 #include <stdlib.h>
 #include <string.h>
 
-#if !__DMC__
-#include <sys/stat.h>
-#endif
-
 #if _WIN32
 #include <tchar.h>
 #include <io.h>
 #endif
 
 #if linux || __APPLE__ || __FreeBSD__ || __sun&&__SVR4
+#include <sys/stat.h>
 #include <sys/types.h>
 #include <fcntl.h>
 #include <errno.h>

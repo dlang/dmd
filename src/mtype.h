@@ -508,6 +508,7 @@ struct TypeTypeof : TypeQualified
     Type *syntaxCopy();
     Dsymbol *toDsymbol(Scope *sc);
     void toCBuffer2(OutBuffer *buf, HdrGenState *hgs, int mod);
+    void toDecoBuffer(OutBuffer *buf);
     Type *semantic(Loc loc, Scope *sc);
     d_uns64 size(Loc loc);
 };

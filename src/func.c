@@ -34,7 +34,7 @@
 FuncDeclaration::FuncDeclaration(Loc loc, Loc endloc, Identifier *id, enum STC storage_class, Type *type)
     : Declaration(id)
 {
-    //printf("FuncDeclaration(id = '%s', type = %p)\n", id->toChars(), type);
+    //printf("FuncDeclaration(id = '%s', type = %s)\n", id->toChars(), type ? type->toChars() : "null");
     //printf("storage_class = x%x\n", storage_class);
     this->storage_class = storage_class;
     this->type = type;
@@ -1097,6 +1097,13 @@ void FuncDeclaration::semantic3(Scope *sc)
 		error("expected to return a value of type %s", type->nextOf()->toChars());
 	    else if (!inlineAsm)
 	    {
+#if DMDV2
+		int blockexit = fbody ? fbody->blockExit() : BEfallthru;
+		if (f->isnothrow && blockexit & BEthrow)
+		    error("'%s' is nothrow yet may throw", toChars());
+
+		int offend = blockexit & BEfallthru;
+#endif
 		if (type->nextOf()->ty == Tvoid)
 		{
 		    if (offend && isMain())
@@ -1109,9 +1116,11 @@ void FuncDeclaration::semantic3(Scope *sc)
 		{
 		    if (offend)
 		    {   Expression *e;
-
-			warning(loc, "no return at end of function");
-
+#if DMDV1
+			warning(loc, "no return exp; or assert(0); at end of function");
+#else
+			error("no return exp; or assert(0); at end of function");
+#endif
 			if (global.params.useAssert &&
 			    !global.params.useInline)
 			{   /* Add an assert(0, msg); where the missing return
@@ -1188,7 +1197,8 @@ void FuncDeclaration::semantic3(Scope *sc)
 		e = new DotIdExp(0, e, Id::elements);
 		Expression *e1 = new VarExp(0, _arguments);
 		e = new AssignExp(0, e1, e);
-		e = e->semantic(sc);
+		e->op = TOKconstruct;
+		e = e->semantic(sc2);
 		a->push(new ExpStatement(0, e));
 	    }
 
@@ -1232,6 +1242,10 @@ void FuncDeclaration::semantic3(Scope *sc)
 		{   // Call invariant virtually
 		    ThisExp *v = new ThisExp(0);
 		    v->type = vthis->type;
+#if STRUCTTHISREF
+		    if (ad->isStructDeclaration())
+			v = v->addressOf(sc);
+#endif
 		    Expression *se = new StringExp(0, (char *)"null this");
 		    se = se->semantic(sc);
 		    se->type = Type::tchar->arrayOf();
@@ -1266,6 +1280,75 @@ void FuncDeclaration::semantic3(Scope *sc)
 	    }
 
 	    fbody = new CompoundStatement(0, a);
+#if DMDV2
+	    /* Append destructor calls for parameters as finally blocks.
+	     */
+	    if (parameters)
+	    {	for (size_t i = 0; i < parameters->dim; i++)
+		{
+		    VarDeclaration *v = (VarDeclaration *)parameters->data[i];
+
+		    if (v->storage_class & (STCref | STCout))
+			continue;
+
+		    /* Don't do this for static arrays, since static
+		     * arrays are called by reference. Remove this
+		     * when we change them to call by value.
+		     */
+		    if (v->type->toBasetype()->ty == Tsarray)
+			continue;
+
+		    Expression *e = v->callAutoDtor(sc);
+		    if (e)
+		    {	Statement *s = new ExpStatement(0, e);
+			s = s->semantic(sc);
+			if (fbody->blockExit() == BEfallthru)
+			    fbody = new CompoundStatement(0, fbody, s);
+			else
+			    fbody = new TryFinallyStatement(0, fbody, s);
+		    }
+		}
+	    }
+#endif
+
+#if 1
+	    if (isSynchronized())
+	    {	/* Wrap the entire function body in a synchronized statement
+		 */
+		ClassDeclaration *cd = parent->isClassDeclaration();
+		if (cd)
+		{
+#if TARGET_WINDOS
+		    if (/*config.flags2 & CFG2seh &&*/	// always on for WINDOS
+			!isStatic() && !fbody->usesEH())
+		    {
+			/* The back end uses the "jmonitor" hack for syncing;
+			 * no need to do the sync at this level.
+			 */
+		    }
+		    else
+#endif
+		    {
+			Expression *vsync;
+			if (isStatic())
+			{   // The monitor is in the ClassInfo
+			    vsync = new DotIdExp(loc, new DsymbolExp(loc, cd), Id::classinfo);
+			}
+			else
+			{   // 'this' is the monitor
+			    vsync = new VarExp(loc, vthis);
+			}
+			fbody = new PeelStatement(fbody);	// don't redo semantic()
+			fbody = new SynchronizedStatement(loc, vsync, fbody);
+			fbody = fbody->semantic(sc2);
+		    }
+		}
+		else
+		{
+		    error("synchronized function %s must be a member of a class", toChars());
+		}
+	    }
+#endif
 	}
 
 	sc2->callSuper = 0;
@@ -1933,6 +2016,13 @@ void FuncDeclaration::appendState(Statement *s)
     cs->statements->push(s);
 }
 
+const char *FuncDeclaration::toPrettyChars()
+{
+    if (isMain())
+	return "D main";
+    else
+	return Dsymbol::toPrettyChars();
+}
 
 int FuncDeclaration::isMain()
 {
@@ -2292,6 +2382,10 @@ void CtorDeclaration::semantic(Scope *sc)
     else
 	tret = cd->type; //->referenceTo();
     type = new TypeFunction(arguments, tret, varargs, LINKd);
+#if STRUCTTHISREF
+    if (ad && ad->isStructDeclaration())
+	((TypeFunction *)type)->isref = 1;
+#endif
     if (!originalType)
 	originalType = type;
 
@@ -2303,12 +2397,10 @@ void CtorDeclaration::semantic(Scope *sc)
     //	return this;
     // to the function body
     if (fbody)
-    {	Expression *e;
-	Statement *s;
-
-	e = new ThisExp(0);
-	s = new ReturnStatement(0, e);
-	fbody = new CompoundStatement(0, fbody, s);
+    {
+	Expression *e = new ThisExp(loc);
+	Statement *s = new ReturnStatement(loc, e);
+	fbody = new CompoundStatement(loc, fbody, s);
     }
 
     FuncDeclaration::semantic(sc);
@@ -2449,14 +2541,14 @@ Dsymbol *DtorDeclaration::syntaxCopy(Dsymbol *s)
 
 void DtorDeclaration::semantic(Scope *sc)
 {
-    ClassDeclaration *cd;
-
+    //printf("DtorDeclaration::semantic() %s\n", toChars());
+    //printf("ident: %s, %s, %p, %p\n", ident->toChars(), Id::dtor->toChars(), ident, Id::dtor);
     parent = sc->parent;
     Dsymbol *parent = toParent();
-    cd = parent->isClassDeclaration();
+    ClassDeclaration *cd = parent->isClassDeclaration();
     if (!cd)
     {
-	error("destructors only are for class definitions");
+	error("destructors are only for class/struct/union definitions, not %s %s", parent->kind(), parent->toChars());
     }
     else
 	cd->dtors.push(this);

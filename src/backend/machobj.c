@@ -2278,7 +2278,7 @@ long elf_align(targ_size_t size, long foffset)
 	    offset = (foffset + 31) & ~31;
 	    break;
 	default:
-	    dbg_printf("size was %d\n",size);
+	    dbg_printf("size was %lu\n",size);
 	    assert(0);
 	    break;
     }

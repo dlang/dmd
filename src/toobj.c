@@ -1,5 +1,5 @@
 
-// Copyright (c) 1999-2008 by Digital Mars
+// Copyright (c) 1999-2009 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // http://www.digitalmars.com
@@ -48,7 +48,11 @@ void Module::genmoduleinfo()
 
     Symbol *msym = toSymbol();
     unsigned offset;
+#if DMDV2
+    unsigned sizeof_ModuleInfo = 18 * PTRSIZE;
+#else
     unsigned sizeof_ModuleInfo = 14 * PTRSIZE;
+#endif
 
     //////////////////////////////////////////////
 
@@ -81,7 +85,7 @@ void Module::genmoduleinfo()
     dtdword(&dt, 0);			// monitor
 
     // name[]
-    char *name = toPrettyChars();
+    const char *name = toPrettyChars();
     size_t namelen = strlen(name);
     dtdword(&dt, namelen);
     dtabytes(&dt, TYnptr, 0, namelen + 1, name);
@@ -149,6 +153,13 @@ void Module::genmoduleinfo()
     else
 	dtdword(&dt, 0);
 
+#if DMDV2
+    // void*[4] reserved;
+    dtdword(&dt, 0);
+    dtdword(&dt, 0);
+    dtdword(&dt, 0);
+    dtdword(&dt, 0);
+#endif
     //////////////////////////////////////////////
 
     for (int i = 0; i < aimports.dim; i++)
@@ -359,7 +370,7 @@ void ClassDeclaration::toObjFile(int multiobj)
     dtxoff(&dt, sinit, 0, TYnptr);	// initializer
 
     // name[]
-    char *name = ident->toChars();
+    const char *name = ident->toChars();
     size_t namelen = strlen(name);
     if (!(namelen > 9 && memcmp(name, "TypeInfo_", 9) == 0))
     {	name = toPrettyChars();
@@ -842,7 +853,7 @@ void InterfaceDeclaration::toObjFile(int multiobj)
     dtdword(&dt, 0);			// initializer
 
     // name[]
-    char *name = toPrettyChars();
+    const char *name = toPrettyChars();
     size_t namelen = strlen(name);
     dtdword(&dt, namelen);
     dtabytes(&dt, TYnptr, 0, namelen + 1, name);

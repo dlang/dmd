@@ -74,6 +74,11 @@ int ComplexExp::isConst()
     return 1;
 }
 
+int NullExp::isConst()
+{
+    return 1;
+}
+
 int SymOffExp::isConst()
 {
     return 2;
@@ -1041,10 +1046,23 @@ Expression *Cast(Type *type, Type *to, Expression *e1)
     if (type->equals(e1->type) && to->equals(type))
 	return e1;
 
+    Type *tb = to->toBasetype();
+
+    /* Allow casting from one string type to another
+     */
+    if (e1->op == TOKstring)
+    {
+	Type *typeb = type->toBasetype();
+	if (tb->ty == Tarray && typeb->ty == Tarray &&
+	    tb->nextOf()->size() == typeb->nextOf()->size())
+	{
+	    return expType(to, e1);
+	}
+    }
+
     if (e1->isConst() != 1)
 	return EXP_CANT_INTERPRET;
 
-    Type *tb = to->toBasetype();
     if (tb->ty == Tbool)
 	e = new IntegerExp(loc, e1->toInteger() != 0, type);
     else if (type->isintegral())

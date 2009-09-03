@@ -311,8 +311,47 @@ Expression *DotVarExp::optimize(int result)
     return this;
 }
 
+Expression *NewExp::optimize(int result)
+{
+    if (thisexp)
+	thisexp = thisexp->optimize(WANTvalue);
+
+    // Optimize parameters
+    if (newargs)
+    {
+	for (size_t i = 0; i < newargs->dim; i++)
+	{   Expression *e = (Expression *)newargs->data[i];
+
+	    e = e->optimize(WANTvalue);
+	    newargs->data[i] = (void *)e;
+	}
+    }
+
+    if (arguments)
+    {
+	for (size_t i = 0; i < arguments->dim; i++)
+	{   Expression *e = (Expression *)arguments->data[i];
+
+	    e = e->optimize(WANTvalue);
+	    arguments->data[i] = (void *)e;
+	}
+    }
+    return this;
+}
+
 Expression *CallExp::optimize(int result)
 {   Expression *e = this;
+
+    // Optimize parameters
+    if (arguments)
+    {
+	for (size_t i = 0; i < arguments->dim; i++)
+	{   Expression *e = (Expression *)arguments->data[i];
+
+	    e = e->optimize(WANTvalue);
+	    arguments->data[i] = (void *)e;
+	}
+    }
 
     e1 = e1->optimize(result);
     if (e1->op == TOKvar && result & WANTinterpret)

@@ -407,10 +407,12 @@ Array *FileName::splitPath(const char *path)
 			continue;
 #endif
 
+#if 0
 		    case ' ':
 		    case '\t':		// tabs in filenames?
 			if (!instring)	// if not in string
 			    break;	// treat as end of path
+#endif
 		    default:
 			buf.writeByte(c);
 			continue;

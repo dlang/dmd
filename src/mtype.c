@@ -3327,6 +3327,8 @@ L1:
 	}
 	if (t->ty == Ttuple)
 	    *pt = t;
+	else if (t->ty == Ttypeof)
+	    *pt = t->semantic(loc, sc);
 	else
 	    *pt = t->merge();
     }
@@ -3633,6 +3635,11 @@ void TypeTypeof::toCBuffer2(OutBuffer *buf, HdrGenState *hgs, int mod)
     exp->toCBuffer(buf, hgs);
     buf->writeByte(')');
     toCBuffer2Helper(buf, hgs);
+}
+
+void TypeTypeof::toDecoBuffer(OutBuffer *buf)
+{
+    assert(0);
 }
 
 Type *TypeTypeof::semantic(Loc loc, Scope *sc)
@@ -4490,7 +4497,7 @@ TypeClass::TypeClass(ClassDeclaration *sym)
 
 char *TypeClass::toChars()
 {
-    return sym->toPrettyChars();
+    return (char *)sym->toPrettyChars();
 }
 
 Type *TypeClass::syntaxCopy()

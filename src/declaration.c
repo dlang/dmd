@@ -912,6 +912,7 @@ void VarDeclaration::semantic(Scope *sc)
 	}
     }
 
+    enum TOK op = TOKconstruct;
     if (!init && !sc->inunion && !isStatic() && !isConst() && fd &&
 	!(storage_class & (STCfield | STCin | STCforeach)) &&
 	type->size() != 0)
@@ -930,9 +931,7 @@ void VarDeclaration::semantic(Scope *sc)
 	    Expression *e1;
 	    e1 = new VarExp(loc, this);
 	    e = new AssignExp(loc, e1, e);
-#if DMDV2
 	    e->op = TOKconstruct;
-#endif
 	    e->type = e1->type;		// don't type check this, it would fail
 	    init = new ExpInitializer(loc, e);
 	    return;
@@ -953,16 +952,14 @@ void VarDeclaration::semantic(Scope *sc)
 	{
 	    init = getExpInitializer();
 	}
-#if DMDV2
 	// Default initializer is always a blit
 	op = TOKblit;
-#endif
     }
 
     if (init)
     {
 	sc = sc->push();
-	sc->stc &= ~(STCconst | STCinvariant | STCpure);
+	sc->stc &= ~(STC_TYPECTOR | STCpure | STCnothrow | STCref);
 
 	ArrayInitializer *ai = init->isArrayInitializer();
 	if (ai && tb->ty == Taarray)
@@ -973,7 +970,7 @@ void VarDeclaration::semantic(Scope *sc)
 	StructInitializer *si = init->isStructInitializer();
 	ExpInitializer *ei = init->isExpInitializer();
 
-	// See if we can allocate on the stack
+	// See if initializer is a NewExp that can be allocated on the stack
 	if (ei && isScope() && ei->exp->op == TOKnew)
 	{   NewExp *ne = (NewExp *)ei->exp;
 	    if (!(ne->newargs && ne->newargs->dim))
@@ -1011,7 +1008,7 @@ void VarDeclaration::semantic(Scope *sc)
 		Expression *e1 = new VarExp(loc, this);
 
 		Type *t = type->toBasetype();
-		if (t->ty == Tsarray)
+		if (t->ty == Tsarray && !(storage_class & (STCref | STCout)))
 		{
 		    ei->exp = ei->exp->semantic(sc);
 		    if (!ei->exp->implicitConvTo(type))
@@ -1133,7 +1130,7 @@ void VarDeclaration::semantic(Scope *sc)
 		else if (ei)
 		{
 		    e = e->optimize(WANTvalue | WANTinterpret);
-		    if (e->op == TOKint64 || e->op == TOKstring)
+		    if (e->op == TOKint64 || e->op == TOKstring || e->op == TOKfloat64)
 		    {
 			ei->exp = e;		// no errors, keep result
 		    }
@@ -1296,6 +1293,15 @@ int VarDeclaration::isDataseg()
 	   parent->isTemplateInstance());
 }
 
+/************************************
+ * Does symbol go into thread local storage?
+ */
+
+int VarDeclaration::isThreadlocal()
+{
+    return 0;
+}
+
 int VarDeclaration::hasPointers()
 {
     //printf("VarDeclaration::hasPointers() %s, ty = %d\n", toChars(), type->ty);
@@ -1307,7 +1313,7 @@ int VarDeclaration::hasPointers()
  * Otherwise, return NULL.
  */
 
-Expression *VarDeclaration::callAutoDtor()
+Expression *VarDeclaration::callAutoDtor(Scope *sc)
 {   Expression *e = NULL;
 
     //printf("VarDeclaration::callAutoDtor() %s\n", toChars());
