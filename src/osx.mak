@@ -6,6 +6,7 @@ ROOT=root
 # See: http://developer.apple.com/documentation/developertools/conceptual/cross_development/Using/chapter_3_section_2.html#//apple_ref/doc/uid/20002000-1114311-BABGCAAB
 ENVP= MACOSX_DEPLOYMENT_TARGET=10.3
 SDK=/Developer/SDKs/MacOSX10.4u.sdk
+#SDK=/Developer/SDKs/MacOSX10.6.sdk
 LDFLAGS= -isysroot ${SDK} -Wl,-syslibroot,${SDK}
 
 CC=g++ -m32 -isysroot $(SDK)

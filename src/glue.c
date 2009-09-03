@@ -750,6 +750,7 @@ void FuncDeclaration::toObjFile(int multiobj)
 
 	buildClosure(&irs);
 
+#if 0
 	if (func->isSynchronized())
 	{
 	    if (cd)
@@ -773,7 +774,13 @@ void FuncDeclaration::toObjFile(int multiobj)
 		{
 #if TARGET_WINDOS
 		    if (config.flags2 & CFG2seh)
+		    {
+			/* The "jmonitor" uses an optimized exception handling frame
+			 * which is a little shorter than the more general EH frame.
+			 * It isn't strictly necessary.
+			 */
 			s->Sfunc->Fflags3 |= Fjmonitor;
+		    }
 #endif
 		    el_free(esync);
 		}
@@ -783,6 +790,16 @@ void FuncDeclaration::toObjFile(int multiobj)
 		error("synchronized function %s must be a member of a class", func->toChars());
 	    }
 	}
+#elif TARGET_WINDOS
+	if (func->isSynchronized() && cd && config.flags2 & CFG2seh &&
+	    !func->isStatic() && !sbody->usesEH())
+	{
+	    /* The "jmonitor" hack uses an optimized exception handling frame
+	     * which is a little shorter than the more general EH frame.
+	     */
+	    s->Sfunc->Fflags3 |= Fjmonitor;
+	}
+#endif
 
 	sbody->toIR(&irs);
 	bx.curblock->BC = BCret;

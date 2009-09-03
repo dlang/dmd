@@ -3201,7 +3201,7 @@ Expression *StructLiteralExp::semantic(Scope *sc)
 	e = resolveProperties(sc, e);
 	if (i >= nfields)
 	{   error("more initializers than fields of %s", sd->toChars());
-	    break;
+	    return new ErrorExp();
 	}
 	Dsymbol *s = (Dsymbol *)sd->fields.data[i];
 	VarDeclaration *v = s->isVarDeclaration();
@@ -4390,7 +4390,9 @@ Expression *FuncExp::semantic(Scope *sc)
 	else
 	{
 	    fd->semantic2(sc);
-	    if (!global.errors)
+	    if (!global.errors ||
+		// need to infer return type
+		(fd->type && fd->type->ty == Tfunction && !fd->type->nextOf()))
 	    {
 		fd->semantic3(sc);
 
@@ -4398,6 +4400,10 @@ Expression *FuncExp::semantic(Scope *sc)
 		    fd->inlineScan();
 	    }
 	}
+
+	// need to infer return type
+	if (global.errors && fd->type && fd->type->ty == Tfunction && !fd->type->nextOf())
+	    ((TypeFunction *)fd->type)->next = Type::terror;
 
 	// Type is a "delegate to" or "pointer to" the function literal
 	if (fd->isNested())
@@ -4746,6 +4752,12 @@ Expression *IsExp::semantic(Scope *sc)
 	    case TOKinvariant:
 	    case TOKimmutable:
 		if (!targ->isInvariant())
+		    goto Lno;
+		tded = targ;
+		break;
+
+	    case TOKshared:
+		if (!targ->isShared())
 		    goto Lno;
 		tded = targ;
 		break;
@@ -5254,7 +5266,7 @@ Expression *FileExp::semantic(Scope *sc)
     }
 
     if (global.params.verbose)
-	printf("file      %s\t(%s)\n", se->string, name);
+	printf("file      %s\t(%s)\n", (char *)se->string, name);
 
     {	File f(name);
 	if (f.read())
@@ -6178,7 +6190,7 @@ Expression *CallExp::semantic(Scope *sc)
 	}
     }
 
-#if DMDV2
+#if 1
     /* This recognizes:
      *	foo!(tiargs)(funcargs)
      */
@@ -6305,7 +6317,7 @@ Lagain:
 	if (t1->ty == Tstruct)
 	{
 	    ad = ((TypeStruct *)t1)->sym;
-
+#if DMDV2
 	    // First look for constructor
 	    if (ad->ctor && arguments && arguments->dim)
 	    {
@@ -6333,7 +6345,7 @@ Lagain:
 		e = e->semantic(sc);
 		return e;
 	    }
-
+#endif
 	    // No constructor, look for overload of opCall
 	    if (search_function(ad, Id::call))
 		goto L1;	// overload of opCall, therefore it's a call
@@ -6408,7 +6420,7 @@ Lagain:
 	    f->addPostInvariant()
 	   )
 	{
-	    error("cannot call public/export function %s from immutable", f->toChars());
+	    error("cannot call public/export function %s from invariant", f->toChars());
 	}
 
 	checkDeprecated(sc, f);
@@ -6443,19 +6455,27 @@ Lagain:
 		Type *tthis = ue->e1->type->toBasetype();
 		if (tthis->ty == Tpointer)
 		    tthis = tthis->nextOf()->toBasetype();
+#if 0	// this checking should have been already done
 		if (f->type->isInvariant())
 		{
 		    if (tthis->mod != MODinvariant)
-			error("%s can only be called on an invariant object", e1->toChars());
+			error("%s can only be called with an immutable object", e1->toChars());
+		}
+		else if (f->type->isShared())
+		{
+		    if (tthis->mod != MODinvariant &&
+			tthis->mod != MODshared &&
+			tthis->mod != (MODshared | MODconst))
+			error("shared %s can only be called with a shared or immutable object", e1->toChars());
 		}
 		else
 		{
 		    if (tthis->mod != 0)
 		    {	//printf("mod = %x\n", tthis->mod);
-			error("%s can only be called on a mutable object, not %s", e1->toChars(), tthis->toChars());
+			error("%s can only be called with a mutable object, not %s", e1->toChars(), tthis->toChars());
 		    }
 		}
-
+#endif
 		/* Cannot call mutable method on a final struct
 		 */
 		if (tthis->ty == Tstruct &&
@@ -7539,27 +7559,30 @@ Expression *SliceExp::semantic(Scope *sc)
     else
 	goto Lerror;
 
+    {
+    Scope *sc2 = sc;
     if (t->ty == Tsarray || t->ty == Tarray || t->ty == Ttuple)
     {
 	sym = new ArrayScopeSymbol(sc, this);
 	sym->loc = loc;
 	sym->parent = sc->scopesym;
-	sc = sc->push(sym);
+	sc2 = sc->push(sym);
     }
 
     if (lwr)
-    {	lwr = lwr->semantic(sc);
-	lwr = resolveProperties(sc, lwr);
-	lwr = lwr->implicitCastTo(sc, Type::tsize_t);
+    {	lwr = lwr->semantic(sc2);
+	lwr = resolveProperties(sc2, lwr);
+	lwr = lwr->implicitCastTo(sc2, Type::tsize_t);
     }
     if (upr)
-    {	upr = upr->semantic(sc);
-	upr = resolveProperties(sc, upr);
-	upr = upr->implicitCastTo(sc, Type::tsize_t);
+    {	upr = upr->semantic(sc2);
+	upr = resolveProperties(sc2, upr);
+	upr = upr->implicitCastTo(sc2, Type::tsize_t);
     }
 
-    if (t->ty == Tsarray || t->ty == Tarray || t->ty == Ttuple)
-	sc->pop();
+    if (sc2 != sc)
+	sc2->pop();
+    }
 
     if (t->ty == Ttuple)
     {
@@ -8245,6 +8268,15 @@ Expression *AssignExp::semantic(Scope *sc)
 	}
     }
 
+    // Determine if this is an initialization of a reference
+    int refinit = 0;
+    if (op == TOKconstruct && e1->op == TOKvar)
+    {	VarExp *ve = (VarExp *)e1;
+	VarDeclaration *v = ve->var->isVarDeclaration();
+	if (v->storage_class & (STCout | STCref))
+	    refinit = 1;
+    }
+
     Type *t1 = e1->type->toBasetype();
 
     if (t1->ty == Tfunction)
@@ -8266,22 +8298,14 @@ Expression *AssignExp::semantic(Scope *sc)
 	    if (e)
 		return e;
 	}
-	else if (op == TOKconstruct)
+	else if (op == TOKconstruct && !refinit)
 	{   Type *t2 = e2->type->toBasetype();
 	    if (t2->ty == Tstruct &&
 		sd == ((TypeStruct *)t2)->sym &&
 		sd->cpctor)
 	    {	/* We have a copy constructor for this
 		 */
-		if (e2->op == TOKvar || e2->op == TOKstar)
-		{   /* Write as:
-		     *	e1.cpctor(e2);
-		     */
-		    Expression *e = new DotVarExp(loc, e1, sd->cpctor, 0);
-		    e = new CallExp(loc, e, e2);
-		    return e->semantic(sc);
-		}
-		else if (e2->op == TOKquestion)
+		if (e2->op == TOKquestion)
 		{   /* Write as:
 		     *	a ? e1 = b : e1 = c;
 		     */
@@ -8291,6 +8315,17 @@ Expression *AssignExp::semantic(Scope *sc)
 		    AssignExp *ea2 = new AssignExp(ec->e1->loc, e1, ec->e2);
 		    ea2->op = op;
 		    Expression *e = new CondExp(loc, ec->econd, ea1, ea2);
+		    return e->semantic(sc);
+		}
+		else if (e2->op == TOKvar ||
+			 e2->op == TOKdotvar ||
+			 e2->op == TOKstar ||
+			 e2->op == TOKindex)
+		{   /* Write as:
+		     *	e1.cpctor(e2);
+		     */
+		    Expression *e = new DotVarExp(loc, e1, sd->cpctor, 0);
+		    e = new CallExp(loc, e, e2);
 		    return e->semantic(sc);
 		}
 	    }
@@ -8306,7 +8341,7 @@ Expression *AssignExp::semantic(Scope *sc)
 	}
     }
 
-    if (t1->ty == Tsarray)
+    if (t1->ty == Tsarray && !refinit)
     {	// Convert e1 to e1[]
 	Expression *e = new SliceExp(e1->loc, e1, NULL, NULL);
 	e1 = e->semantic(sc);
@@ -8351,7 +8386,7 @@ Expression *AssignExp::semantic(Scope *sc)
     {
 	/* Should have already converted e1 => e1[]
 	 */
-	assert(0);
+	assert(op == TOKconstruct);
 	//error("cannot assign to static array %s", e1->toChars());
     }
     else if (e1->op == TOKslice)

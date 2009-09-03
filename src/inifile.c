@@ -22,6 +22,7 @@
 #if __APPLE__
 #include	<sys/syslimits.h>
 #endif
+
 #if __FreeBSD__ || __sun&&__SVR4
 // for PATH_MAX
 #include	<limits.h>
@@ -51,7 +52,7 @@ char *strupr(char *s)
 
     return t;
 }
-#endif /* unix */
+#endif
 
 /*****************************
  * Read and analyze .ini file.
@@ -122,7 +123,7 @@ void inifile(const char *argv0x, const char *inifilex)
 		    if (real_argv0)
 		    {
 			filename = (char *)FileName::replaceName(real_argv0, inifile);
-#if !(__APPLE__ || __FreeBSD__ || __sun&&__SVR4)
+#if linux
 			free(real_argv0);
 #endif
 			if (FileName::exists(filename))
@@ -134,6 +135,9 @@ void inifile(const char *argv0x, const char *inifilex)
 		    if (1){
 		    // Search PATH for argv0
 		    const char *p = getenv("PATH");
+#if LOG
+		    printf("\tPATH='%s'\n", p);
+#endif
 		    Array *paths = FileName::splitPath(p);
 		    filename = FileName::searchPath(paths, argv0, 0);
 		    if (!filename)

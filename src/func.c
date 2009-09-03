@@ -147,7 +147,7 @@ void FuncDeclaration::semantic(Scope *sc)
 	    stc |= STCimmutable;
 	if (type->isConst())
 	    stc |= STCconst;
-	if (type->isShared())
+	if (type->isShared() || storage_class & STCsynchronized)
 	    stc |= STCshared;
 	switch (stc & STC_TYPECTOR)
 	{
@@ -1128,12 +1128,13 @@ void FuncDeclaration::semantic3(Scope *sc)
 		error("expected to return a value of type %s", type->nextOf()->toChars());
 	    else if (!inlineAsm)
 	    {
+#if DMDV2
 		int blockexit = fbody ? fbody->blockExit() : BEfallthru;
 		if (f->isnothrow && blockexit & BEthrow)
 		    error("'%s' is nothrow yet may throw", toChars());
 
 		int offend = blockexit & BEfallthru;
-
+#endif
 		if (type->nextOf()->ty == Tvoid)
 		{
 		    if (offend && isMain())
@@ -1146,10 +1147,11 @@ void FuncDeclaration::semantic3(Scope *sc)
 		{
 		    if (offend)
 		    {   Expression *e;
-
-			//warning(loc, "no return exp; or assert(0); at end of function");
+#if DMDV1
+			warning(loc, "no return exp; or assert(0); at end of function");
+#else
 			error("no return exp; or assert(0); at end of function");
-
+#endif
 			if (global.params.useAssert &&
 			    !global.params.useInline)
 			{   /* Add an assert(0, msg); where the missing return
@@ -1309,7 +1311,7 @@ void FuncDeclaration::semantic3(Scope *sc)
 	    }
 
 	    fbody = new CompoundStatement(0, a);
-
+#if DMDV2
 	    /* Append destructor calls for parameters as finally blocks.
 	     */
 	    if (parameters)
@@ -1338,6 +1340,46 @@ void FuncDeclaration::semantic3(Scope *sc)
 		    }
 		}
 	    }
+#endif
+
+#if 1
+	    if (isSynchronized())
+	    {	/* Wrap the entire function body in a synchronized statement
+		 */
+		ClassDeclaration *cd = parent->isClassDeclaration();
+		if (cd)
+		{
+#if TARGET_WINDOS
+		    if (/*config.flags2 & CFG2seh &&*/	// always on for WINDOS
+			!isStatic() && !fbody->usesEH())
+		    {
+			/* The back end uses the "jmonitor" hack for syncing;
+			 * no need to do the sync at this level.
+			 */
+		    }
+		    else
+#endif
+		    {
+			Expression *vsync;
+			if (isStatic())
+			{   // The monitor is in the ClassInfo
+			    vsync = new DotIdExp(loc, new DsymbolExp(loc, cd), Id::classinfo);
+			}
+			else
+			{   // 'this' is the monitor
+			    vsync = new VarExp(loc, vthis);
+			}
+			fbody = new PeelStatement(fbody);	// don't redo semantic()
+			fbody = new SynchronizedStatement(loc, vsync, fbody);
+			fbody = fbody->semantic(sc2);
+		    }
+		}
+		else
+		{
+		    error("synchronized function %s must be a member of a class", toChars());
+		}
+	    }
+#endif
 	}
 
 	sc2->callSuper = 0;
@@ -1767,12 +1809,18 @@ if (arguments)
     {
 	OutBuffer buf;
 
+	buf.writeByte('(');
 	if (arguments)
 	{
 	    HdrGenState hgs;
 
 	    argExpTypesToCBuffer(&buf, arguments, &hgs);
+	    buf.writeByte(')');
+	    if (ethis)
+		ethis->type->modToBuffer(&buf);
 	}
+	else
+	    buf.writeByte(')');
 
 	if (m.last == MATCHnomatch)
 	{
@@ -1781,9 +1829,13 @@ if (arguments)
 
 	    tf = (TypeFunction *)type;
 
+	    OutBuffer buf2;
+	    tf->modToBuffer(&buf2);
+
 	    //printf("tf = %s, args = %s\n", tf->deco, ((Expression *)arguments->data[0])->type->deco);
-	    error(loc, "%s does not match parameter types (%s)",
+	    error(loc, "%s%s is not callable using argument types %s",
 		Argument::argsTypesToChars(tf->parameters, tf->varargs),
+		buf2.toChars(),
 		buf.toChars());
 	    return m.anyf;		// as long as it's not a FuncAliasDeclaration
 	}
@@ -2055,6 +2107,13 @@ void FuncDeclaration::appendState(Statement *s)
     }
 }
 
+const char *FuncDeclaration::toPrettyChars()
+{
+    if (isMain())
+	return "D main";
+    else
+	return Dsymbol::toPrettyChars();
+}
 
 int FuncDeclaration::isMain()
 {

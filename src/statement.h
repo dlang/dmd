@@ -123,6 +123,14 @@ struct Statement : Object
     virtual IfStatement *isIfStatement() { return NULL; }
 };
 
+struct PeelStatement : Statement
+{
+    Statement *s;
+
+    PeelStatement(Statement *s);
+    Statement *semantic(Scope *sc);
+};
+
 struct ExpStatement : Statement
 {
     Expression *exp;

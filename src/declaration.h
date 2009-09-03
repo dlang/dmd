@@ -229,7 +229,11 @@ struct VarDeclaration : Declaration
     Initializer *init;
     unsigned offset;
     int noauto;			// no auto semantics
+#if DMDV2
     FuncDeclarations nestedrefs; // referenced by these lexically nested functions
+#else
+    int nestedref;		// referenced by a lexically nested function
+#endif
     int ctorinit;		// it has been initialized in a ctor
     int onstack;		// 1: it has been allocated on the stack
 				// 2: on stack, run destructor anyway
@@ -237,6 +241,11 @@ struct VarDeclaration : Declaration
     Dsymbol *aliassym;		// if redone as alias to another symbol
     Expression *value;		// when interpreting, this is the value
 				// (NULL if value not determinable)
+#if DMDV2
+    VarDeclaration *rundtor;	// if !NULL, rundtor is tested at runtime to see
+				// if the destructor should be run. Used to prevent
+				// dtor calls on postblitted vars
+#endif
 
     VarDeclaration(Loc loc, Type *t, Identifier *id, Initializer *init);
     Dsymbol *syntaxCopy(Dsymbol *);
@@ -253,8 +262,10 @@ struct VarDeclaration : Declaration
     int isDataseg();
     int isThreadlocal();
     int hasPointers();
+#if DMDV2
     int canTakeAddressOf();
     int needsAutoDtor();
+#endif
     Expression *callAutoDtor(Scope *sc);
     ExpInitializer *getExpInitializer();
     Expression *getConstInitializer();
@@ -467,6 +478,8 @@ enum BUILTIN
 
 Expression *eval_builtin(enum BUILTIN builtin, Expressions *arguments);
 
+#else
+enum BUILTIN { };
 #endif
 
 struct FuncDeclaration : Declaration
@@ -558,6 +571,7 @@ struct FuncDeclaration : Declaration
     void appendExp(Expression *e);
     void appendState(Statement *s);
     char *mangle();
+    const char *toPrettyChars();
     int isMain();
     int isWinMain();
     int isDllMain();
@@ -574,7 +588,7 @@ struct FuncDeclaration : Declaration
     virtual int isFinal();
     virtual int addPreInvariant();
     virtual int addPostInvariant();
-    Expression *interpret(InterState *istate, Expressions *arguments);
+    Expression *interpret(InterState *istate, Expressions *arguments, Expression *thisexp = NULL);
     void inlineScan();
     int canInline(int hasthis, int hdrscan = 0);
     Expression *doInline(InlineScanState *iss, Expression *ethis, Array *arguments);
@@ -595,12 +609,13 @@ struct FuncDeclaration : Declaration
     FuncDeclaration *isFuncDeclaration() { return this; }
 };
 
+#if DMDV2
 FuncDeclaration *resolveFuncCall(Scope *sc, Loc loc, Dsymbol *s,
 	Objects *tiargs,
 	Expression *ethis,
 	Expressions *arguments,
 	int flags);
-
+#endif
 
 struct FuncAliasDeclaration : FuncDeclaration
 {

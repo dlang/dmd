@@ -52,6 +52,7 @@ elem *callfunc(Loc loc,
 
 elem *exp2_copytotemp(elem *e);
 elem *incUsageElem(IRState *irs, Loc loc);
+StructDeclaration *needsPostblit(Type *t);
 
 #define elem_setLoc(e,loc)	((e)->Esrcpos.Sfilename = (char *)(loc).filename, \
 				 (e)->Esrcpos.Slinnum = (loc).linnum)
@@ -216,6 +217,8 @@ void PragmaStatement::toIR(IRState *irs)
 
 void WhileStatement::toIR(IRState *irs)
 {
+    assert(0); // was "lowered"
+#if 0
     Blockx *blx = irs->blx;
 
     /* Create a new state, because we need a new continue and break target
@@ -240,6 +243,7 @@ void WhileStatement::toIR(IRState *irs)
     block_next(blx, BCgoto, mystate.breakBlock);
 
     list_append(&mystate.contBlock->Bsucc, mystate.breakBlock);
+#endif
 }
 
 /******************************************
@@ -327,7 +331,10 @@ void ForStatement::toIR(IRState *irs)
  */
 
 void ForeachStatement::toIR(IRState *irs)
-{   Type *tab;
+{
+    assert(0);  // done by "lowering" in the front end
+#if 0
+    Type *tab;
     elem *eaggr;
     elem *e;
     elem *elength;
@@ -514,18 +521,48 @@ void ForeachStatement::toIR(IRState *irs)
     {
 	if (nrvo)
 	    evalue = el_una(OPind, tym, evalue);
-	e = el_bin(OPeq, tym, evalue, el_una(OPind, tym, e));
+	StructDeclaration *sd = needsPostblit(value->type);
 	if (tybasic(tym) == TYstruct)
 	{
+	    e = el_bin(OPeq, tym, evalue, el_una(OPind, tym, e));
 	    e->Eoper = OPstreq;
 	    e->Enumbytes = value->type->size();
+#if DMDV2
+	    // Call postblit on e
+	    if (sd)
+	    {   FuncDeclaration *fd = sd->postblit;
+		elem *ec = el_copytree(evalue);
+		ec = el_una(OPaddr, TYnptr, ec);
+		ec = callfunc(loc, irs, 1, Type::tvoid, ec, sd->type->pointerTo(), fd, fd->type, NULL, NULL);
+		e = el_combine(e, ec);
+	    }
+#endif
 	}
 	else if (tybasic(tym) == TYarray)
 	{
-	    e->Eoper = OPstreq;
-	    e->Ejty = e->Ety = TYstruct;
-	    e->Enumbytes = value->type->size();
+	    if (sd)
+	    {
+                /* Generate:
+                 *      _d_arrayctor(ti, efrom, eto)
+                 */
+                Expression *ti = value->type->toBasetype()->nextOf()->toBasetype()->getTypeInfo(NULL);
+		elem *esize = el_long(TYsize_t, ((TypeSArray *)value->type->toBasetype())->dim->toInteger());
+		elem *eto = el_pair(TYdarray, esize, el_una(OPaddr, TYnptr, evalue));
+		elem *efrom = el_pair(TYdarray, el_copytree(esize), e);
+                elem *ep = el_params(eto, efrom, ti->toElem(irs), NULL);
+                int rtl = RTLSYM_ARRAYCTOR;
+                e = el_bin(OPcall, TYvoid, el_var(rtlsym[rtl]), ep);
+	    }
+	    else
+	    {
+		e = el_bin(OPeq, tym, evalue, el_una(OPind, tym, e));
+		e->Eoper = OPstreq;
+		e->Ejty = e->Ety = TYstruct;
+		e->Enumbytes = value->type->size();
+	    }
 	}
+	else
+	    e = el_bin(OPeq, tym, evalue, el_una(OPind, tym, e));
     }
     incUsage(irs, loc);
     block_appendexp(blx->curblock, e);
@@ -555,6 +592,7 @@ void ForeachStatement::toIR(IRState *irs)
     list_append(&bcond->Bsucc,mystate.breakBlock);
     list_append(&bbodyx->Bsucc,mystate.contBlock);
     list_append(&mystate.contBlock->Bsucc,bcond);
+#endif
 }
 
 
@@ -563,7 +601,10 @@ void ForeachStatement::toIR(IRState *irs)
 
 #if DMDV2
 void ForeachRangeStatement::toIR(IRState *irs)
-{   Type *tab;
+{
+    assert(0);
+#if 0
+    Type *tab;
     elem *eaggr;
     elem *elwr;
     elem *eupr;
@@ -617,7 +658,7 @@ void ForeachRangeStatement::toIR(IRState *irs)
     elem *eend = (op == TOKforeach_reverse) ? elwr : eupr;
     Symbol *send = symbol_genauto(eend);
     e = el_bin(OPeq, eend->Ety, el_var(send), eend);
-    assert(e->Ety != TYstruct);
+    assert(tybasic(e->Ety) != TYstruct);
     block_appendexp(blx->curblock, e);
 
     bpre = blx->curblock;
@@ -670,6 +711,7 @@ void ForeachRangeStatement::toIR(IRState *irs)
     list_append(&bcond->Bsucc,mystate.breakBlock);
     list_append(&bbodyx->Bsucc,mystate.contBlock);
     list_append(&mystate.contBlock->Bsucc,bcond);
+#endif
 }
 #endif
 
@@ -1180,7 +1222,7 @@ void ReturnStatement::toIR(IRState *irs)
 
 		ety = e->Ety;
 		es = el_una(OPind,ety,el_var(irs->shidden));
-		op = (ety == TYstruct) ? OPstreq : OPeq;
+		op = (tybasic(ety) == TYstruct) ? OPstreq : OPeq;
 		es = el_bin(op, ety, es, e);
 		if (op == OPstreq)
 		    es->Enumbytes = exp->type->size();
@@ -1188,7 +1230,9 @@ void ReturnStatement::toIR(IRState *irs)
 		/* Call postBlit() on *shidden
 		 */
 		Type *tb = exp->type->toBasetype();
-		if (tb->ty == Tstruct)
+		//if (tb->ty == Tstruct) exp->dump(0);
+		if ((exp->op == TOKvar || exp->op == TOKdotvar || exp->op == TOKstar) &&
+		    tb->ty == Tstruct)
 		{   StructDeclaration *sd = ((TypeStruct *)tb)->sym;
 		    if (sd->postblit)
 		    {	FuncDeclaration *fd = sd->postblit;
@@ -1196,6 +1240,21 @@ void ReturnStatement::toIR(IRState *irs)
 			ec = callfunc(loc, irs, 1, Type::tvoid, ec, tb->pointerTo(), fd, fd->type, NULL, NULL);
 			es = el_bin(OPcomma, ec->Ety, es, ec);
 		    }
+
+#if 0
+		    /* It has been moved, so disable destructor
+		     */
+		    if (exp->op == TOKvar)
+		    {	VarExp *ve = (VarExp *)exp;
+			VarDeclaration *v = ve->var->isVarDeclaration();
+			if (v && v->rundtor)
+			{
+			    elem *er = el_var(v->rundtor->toSymbol());
+			    er = el_bin(OPeq, TYint, er, el_long(TYint, 0));
+			    es = el_bin(OPcomma, TYint, es, er);
+			}
+		    }
+#endif
 		}
 #endif
 	    }
@@ -1526,6 +1585,8 @@ void TryFinallyStatement::toIR(IRState *irs)
 
 void SynchronizedStatement::toIR(IRState *irs)
 {
+    assert(0);
+#if 0
     block *b;
     block *tryblock;
     elem *e;
@@ -1604,6 +1665,7 @@ void SynchronizedStatement::toIR(IRState *irs)
 
     list_append(&finallyblock->Bsucc, blx->curblock);
     list_append(&retblock->Bsucc, blx->curblock);
+#endif
 }
 
 

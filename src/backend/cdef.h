@@ -961,7 +961,7 @@ union eve
 #if SCPP
 #define SYMBOLZERO	0,0,0,
 #elif MARS
-#define SYMBOLZERO	0,
+#define SYMBOLZERO	0,0,
 #elif AUTONEST
 #define SYMBOLZERO	0,0,
 #else

@@ -5,6 +5,7 @@
 # Build dmd with Digital Mars C++ compiler
 
 D=
+DMDSVN=\svnproj\dmd\trunk\src
 SCROOT=$D\dm
 INCLUDE=$(SCROOT)\include
 CC=\dm\bin\dmc
@@ -499,5 +500,18 @@ install:
 	copy readme.txt $(DIR)\src\dmd\ 
 	copy artistic.txt $(DIR)\src\dmd\ 
 	copy backendlicense.txt $(DIR)\src\dmd\ 
+
+################### Write to SVN ################
+
+svn:
+	$(CP) $(SRCS) $(DMDSVN)\ 
+	$(CP) $(ROOTSRC) $(DMDSVN)\root\ 
+	$(CP) $(TKSRC) $(DMDSVN)\tk\  
+	$(CP) $(BACKSRC) $(DMDSVN)\backend\  
+	$(CP) $(MAKEFILES) $(DMDSVN)\  
+	copy gpl.txt $(DMDSVN)\ 
+	copy readme.txt $(DMDSVN)\ 
+	copy artistic.txt $(DMDSVN)\ 
+	copy backendlicense.txt $(DMDSVN)\ 
 
 ###################################

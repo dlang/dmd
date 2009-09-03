@@ -1,5 +1,5 @@
 
-// Copyright (c) 1999-2008 by Digital Mars
+// Copyright (c) 1999-2009 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // http://www.digitalmars.com
@@ -846,7 +846,8 @@ Statement *ForStatement::inlineScan(InlineScanState *iss)
 	condition = condition->inlineScan(iss);
     if (increment)
 	increment = increment->inlineScan(iss);
-    body = body->inlineScan(iss);
+    if (body)
+	body = body->inlineScan(iss);
     return this;
 }
 
@@ -1048,6 +1049,31 @@ void scanVar(Dsymbol *s, InlineScanState *iss)
 
 		if (ie)
 		{
+#if DMDV2
+		    if (vd->type)
+		    {	Type *tb = vd->type->toBasetype();
+			if (tb->ty == Tstruct)
+			{   StructDeclaration *sd = ((TypeStruct *)tb)->sym;
+			    if (sd->cpctor)
+			    {   /* The problem here is that if the initializer is a
+				 * function call that returns a struct S with a cpctor:
+				 *   S s = foo();
+				 * the postblit is done by the return statement in foo()
+				 * in s2ir.c, the intermediate code generator.
+				 * But, if foo() is inlined and now the code looks like:
+				 *   S s = x;
+				 * the postblit is not there, because such assignments
+				 * are rewritten as s.cpctor(&x) by the front end.
+				 * So, the inlining won't get the postblit called.
+				 * Work around by not inlining these cases.
+				 * A proper fix would be to move all the postblit
+				 * additions to the front end.
+				 */
+				return;
+			    }
+			}
+		    }
+#endif
 		    ie->exp = ie->exp->inlineScan(iss);
 		}
 	    }
@@ -1462,6 +1488,9 @@ Expression *FuncDeclaration::doInline(InlineScanState *iss, Expression *ethis, A
     inlineNest++;
     Expression *eb = fbody->doInline(&ids);
     inlineNest--;
+//eb->type->print();
+//eb->print();
+//eb->dump(0);
     return Expression::combine(e, eb);
 }
 

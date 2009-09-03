@@ -1796,8 +1796,17 @@ Expression *BinExp::typeCombine(Scope *sc)
 
     if (op == TOKmin || op == TOKadd)
     {
-	if (t1 == t2 && (t1->ty == Tstruct || t1->ty == Tclass))
-	    goto Lerror;
+	if (t1->ty == Tstruct)
+	{
+	    if (t2->ty == Tstruct &&
+		((TypeStruct *)t1)->sym == ((TypeStruct *)t2)->sym)
+		goto Lerror;
+	}
+	else if (t1->ty == Tclass)
+	{
+	    if (t2->ty == Tclass)
+		goto Lerror;
+	}
     }
 
     if (!typeMerge(sc, this, &type, &e1, &e2))
@@ -1940,6 +1949,9 @@ IntRange DivExp::getIntRange()
     IntRange ir;
     IntRange ir1 = e1->getIntRange();
     IntRange ir2 = e2->getIntRange();
+
+    if (ir2.imax == 0 || ir2.imin == 0)
+	return Expression::getIntRange();
 
     ir.imin = ir1.imin / ir2.imax;
     ir.imax = ir1.imax / ir2.imin;

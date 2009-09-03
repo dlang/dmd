@@ -948,7 +948,7 @@ void dotytab()
     }
     fprintf(f,"const tym_t tytouns[] =\n{ ");
     for (i = 0; i < arraysize(tytouns); i++)
-    {	fprintf(f,"0x%02x,",tytouns[i]);
+    {	fprintf(f,"0x%02lx,",tytouns[i]);
 	if ((i & 7) == 7 && i < arraysize(tytouns) - 1)
 	    fprintf(f,"\n  ");
     }
@@ -975,7 +975,7 @@ void dotytab()
     }
     fprintf(f,"unsigned char _tyrelax[] =\n{ ");
     for (i = 0; i < arraysize(_tyrelax); i++)
-    {	fprintf(f,"0x%02x,",_tyrelax[i]);
+    {	fprintf(f,"0x%02lx,",_tyrelax[i]);
 	if ((i & 7) == 7 && i < arraysize(_tyrelax) - 1)
 	    fprintf(f,"\n  ");
     }
@@ -992,7 +992,7 @@ void dotytab()
 
     fprintf(f,"unsigned char tyequiv[] =\n{ ");
     for (i = 0; i < arraysize(_tyequiv); i++)
-    {	fprintf(f,"0x%02x,",_tyequiv[i]);
+    {	fprintf(f,"0x%02lx,",_tyequiv[i]);
 	if ((i & 7) == 7 && i < arraysize(_tyequiv) - 1)
 	    fprintf(f,"\n  ");
     }

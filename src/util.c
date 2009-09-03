@@ -152,34 +152,9 @@ void util_progress(int linnum)
  *	else -1
  */
 
-#if !(TX86 && __INTSIZE == 4 && __SC__ && !_DEBUG_TRACE)
+#if TX86 && __INTSIZE == 4 && __DMC__ && !_DEBUG_TRACE
 
-int binary(const char *p, const char __near * __near *table,int high)
-{ int low,mid;
-  signed char cond;
-  char cp;
-
-  low = 0;
-  high--;
-  cp = *p;
-  p++;
-  while (low <= high)
-  {	mid = (low + high) >> 1;
-	if ((cond = table[mid][0] - cp) == 0)
-	    cond = strcmp(table[mid] + 1,p);
-	if (cond > 0)
-	    high = mid - 1;
-	else if (cond < 0)
-	    low = mid + 1;
-	else
-	    return mid;			/* match index			*/
-  }
-  return -1;
-}
-
-#else
-
-int binary(const char *p, const char __near * __near *table,int high)
+int binary(const char *p, const char **table,int high)
 {
 #define len high	// reuse parameter storage
     _asm
@@ -231,9 +206,33 @@ L63:
 #undef len
 }
 
+#else
+
+int binary(const char *p, const char __near * __near *table,int high)
+{ int low,mid;
+  signed char cond;
+  char cp;
+
+  low = 0;
+  high--;
+  cp = *p;
+  p++;
+  while (low <= high)
+  {	mid = (low + high) >> 1;
+	if ((cond = table[mid][0] - cp) == 0)
+	    cond = strcmp(table[mid] + 1,p);
+	if (cond > 0)
+	    high = mid - 1;
+	else if (cond < 0)
+	    low = mid + 1;
+	else
+	    return mid;			/* match index			*/
+  }
+  return -1;
+}
+
 #endif
 
-#if !MACINTOSH
 /**********************
  * If c is a power of 2, return that power else -1.
  */
@@ -248,7 +247,7 @@ int ispow2(unsigned long long c)
 		;
 	return i;
 }
-#endif
+
 /***************************
  */
 

@@ -1280,6 +1280,8 @@ struct Symbol
 #define isscover(s)		((s)->Sclass == SCstruct || (s)->Sclass == SCenum || (s)->Sclass == SCtemplate)
     unsigned Ssequence;		// sequence number (used for 2 level lookup)
 				// also used as 'parameter number' for SCTtemparg
+#elif MARS
+    const char *prettyIdent;	// the symbol identifer as the user sees it
 #elif AUTONEST
     unsigned char Spush;	// # of pushes followed by # of
     unsigned char Spop;		// pops of scope level

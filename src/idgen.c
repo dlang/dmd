@@ -137,6 +137,8 @@ Msgtable msgtable[] =
     { "dup" },
     { "idup" },
 
+    { "property" },
+
     // For inline assembler
     { "___out", "out" },
     { "___in", "in" },
@@ -232,6 +234,10 @@ Msgtable msgtable[] =
     { "aaKeys", "_aaKeys" },
     { "aaValues", "_aaValues" },
     { "aaRehash", "_aaRehash" },
+    { "monitorenter", "_d_monitorenter" },
+    { "monitorexit", "_d_monitorexit" },
+    { "criticalenter", "_d_criticalenter" },
+    { "criticalexit", "_d_criticalexit" },
 
     // For pragma's
     { "GNU_asm" },

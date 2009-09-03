@@ -377,8 +377,8 @@ type *TypeClass::toCtype()
 
     /* Need this symbol to do C++ name mangling
      */
-    char *name = sym->isCPPinterface() ? sym->ident->toChars()
-				       : sym->toPrettyChars();
+    const char *name = sym->isCPPinterface() ? sym->ident->toChars()
+					     : sym->toPrettyChars();
     s = symbol_calloc(name);
     s->Sclass = SCstruct;
     s->Sstruct = struct_calloc();

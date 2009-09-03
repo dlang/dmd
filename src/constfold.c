@@ -65,6 +65,11 @@ int ComplexExp::isConst()
     return 1;
 }
 
+int NullExp::isConst()
+{
+    return 0;
+}
+
 int SymOffExp::isConst()
 {
     return 2;
@@ -1076,6 +1081,8 @@ Expression *Cast(Type *type, Type *to, Expression *e1)
     Type *tb = to->toBasetype();
     Type *typeb = type->toBasetype();
 
+    /* Allow casting from one string type to another
+     */
     if (e1->op == TOKstring)
     {
 	if (tb->ty == Tarray && typeb->ty == Tarray &&

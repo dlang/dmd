@@ -56,6 +56,7 @@ struct Type;
 struct TypeTuple;
 struct WithStatement;
 struct LabelDsymbol;
+struct ScopeDsymbol;
 struct TemplateDeclaration;
 struct TemplateInstance;
 struct TemplateMixin;
@@ -107,7 +108,6 @@ struct Dsymbol : Object
     Dsymbol();
     Dsymbol(Identifier *);
     char *toChars();
-    char *toPrettyChars();
     char *locToChars();
     int equals(Object *o);
     int isAnonymous();
@@ -124,6 +124,7 @@ struct Dsymbol : Object
 
     static Array *arraySyntaxCopy(Array *a);
 
+    virtual const char *toPrettyChars();
     virtual const char *kind();
     virtual Dsymbol *toAlias();			// resolve real symbol
     virtual int addMember(Scope *sc, ScopeDsymbol *s, int memnum);
@@ -149,7 +150,9 @@ struct Dsymbol : Object
     virtual int isExport();			// is Dsymbol exported?
     virtual int isImportedSymbol();		// is Dsymbol imported?
     virtual int isDeprecated();			// is Dsymbol deprecated?
+#if DMDV2
     virtual int isOverloadable();
+#endif
     virtual LabelDsymbol *isLabel();		// is this a LabelDsymbol?
     virtual AggregateDeclaration *isMember();	// is this symbol a member of an AggregateDeclaration?
     virtual Type *getType();			// is this a type?
@@ -284,6 +287,7 @@ struct ArrayScopeSymbol : ScopeDsymbol
 
 // Overload Sets
 
+#if DMDV2
 struct OverloadSet : Dsymbol
 {
     Dsymbols a;		// array of Dsymbols
@@ -293,6 +297,7 @@ struct OverloadSet : Dsymbol
     OverloadSet *isOverloadSet() { return this; }
     const char *kind();
 };
+#endif
 
 // Table of Dsymbol's
 

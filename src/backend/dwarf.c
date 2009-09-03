@@ -499,7 +499,8 @@ void dwarf_initmodule(const char *filename, const char *modname)
 	static unsigned char abbrevModule[] =
 	{
 	    DW_TAG_module,
-	    1,			// one children
+	    //1,		// one children
+	    0,			// no children
 	    DW_AT_name,		DW_FORM_string,	// module name
 	    0,			0,
 	};
@@ -508,7 +509,7 @@ void dwarf_initmodule(const char *filename, const char *modname)
 	abbrevbuf->write(abbrevModule,sizeof(abbrevModule));
 	infobuf->writeuLEB128(abbrevcode);	// abbreviation code
 	infobuf->writeString(modname);		// DW_AT_name
-	hasModname = 1;
+	//hasModname = 1;
     }
     else
 	hasModname = 0;
@@ -828,6 +829,7 @@ void dwarf_func_term(Symbol *sfunc)
 	    abuf.writeByte(DW_AT_sibling);  abuf.writeByte(DW_FORM_ref4);
 	}
 	abuf.writeByte(DW_AT_name);	 abuf.writeByte(DW_FORM_string);
+	abuf.writeuLEB128(DW_AT_MIPS_linkage_name);	 abuf.writeByte(DW_FORM_string);
 	abuf.writeByte(DW_AT_decl_file); abuf.writeByte(DW_FORM_data1);
 	abuf.writeByte(DW_AT_decl_line); abuf.writeByte(DW_FORM_data2);
 	if (ret_type)
@@ -855,7 +857,15 @@ void dwarf_func_term(Symbol *sfunc)
 	    siblingoffset = infobuf->size();
 	    infobuf->write32(idxsibling);	// DW_AT_sibling
 	}
-	infobuf->writeString(sfunc->Sident);	// DW_AT_name
+
+	const char *name;
+#if MARS
+	name = sfunc->prettyIdent ? sfunc->prettyIdent : sfunc->Sident;
+#else
+	name = sfunc->Sident;
+#endif
+	infobuf->writeString(name);		// DW_AT_name
+	infobuf->writeString(sfunc->Sident);	// DW_AT_MIPS_linkage_name
 	infobuf->writeByte(1);			// DW_AT_decl_file
 	infobuf->writeWord(sfunc->Sfunc->Fstartline.Slinnum);	// DW_AT_decl_line
 	if (ret_type)

@@ -38,6 +38,7 @@ StringTable arrayfuncs;
 
 Expression *BinExp::arrayOp(Scope *sc)
 {
+    //printf("BinExp::arrayOp() %s\n", toChars());
     Expressions *arguments = new Expressions();
 
     /* The expression to generate an array operation for is mangled
@@ -320,6 +321,17 @@ void Expression::buildArrayIdent(OutBuffer *buf, Expressions *arguments)
     arguments->shift(this);
 }
 
+void CastExp::buildArrayIdent(OutBuffer *buf, Expressions *arguments)
+{
+    Type *tb = type->toBasetype();
+    if (tb->ty == Tarray || tb->ty == Tsarray)
+    {
+	e1->buildArrayIdent(buf, arguments);
+    }
+    else
+	Expression::buildArrayIdent(buf, arguments);
+}
+
 void SliceExp::buildArrayIdent(OutBuffer *buf, Expressions *arguments)
 {
     buf->writestring("Slice");
@@ -404,6 +416,17 @@ Expression *Expression::buildArrayLoop(Arguments *fparams)
     return e;
 }
 
+Expression *CastExp::buildArrayLoop(Arguments *fparams)
+{
+    Type *tb = type->toBasetype();
+    if (tb->ty == Tarray || tb->ty == Tsarray)
+    {
+	return e1->buildArrayLoop(fparams);
+    }
+    else
+	Expression::buildArrayLoop(fparams);
+}
+
 Expression *SliceExp::buildArrayLoop(Arguments *fparams)
 {
     Identifier *id = Identifier::generateId("p", fparams->dim);
@@ -422,12 +445,14 @@ Expression *AssignExp::buildArrayLoop(Arguments *fparams)
     /* Evaluate assign expressions right to left
      */
     Expression *ex2 = e2->buildArrayLoop(fparams);
+#if DMDV2
     /* Need the cast because:
      *   b = c + p[i];
      * where b is a byte fails because (c + p[i]) is an int
      * which cannot be implicitly cast to byte.
      */
     ex2 = new CastExp(0, ex2, e1->type->nextOf());
+#endif
     Expression *ex1 = e1->buildArrayLoop(fparams);
     Argument *param = (Argument *)fparams->data[0];
     param->storageClass = 0;

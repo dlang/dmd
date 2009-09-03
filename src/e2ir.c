@@ -328,12 +328,12 @@ elem *addressElem(elem *e, Type *t)
 	    tx = type_fake(e->Ety);
 	stmp = symbol_genauto(tx);
 	eeq = el_bin(OPeq,e->Ety,el_var(stmp),e);
-	if (e->Ety == TYstruct)
+	if (tybasic(e->Ety) == TYstruct)
 	{
 	    eeq->Eoper = OPstreq;
 	    eeq->Enumbytes = e->Enumbytes;
 	}
-	else if (e->Ety == TYarray)
+	else if (tybasic(e->Ety) == TYarray)
 	{
 	    eeq->Eoper = OPstreq;
 	    eeq->Ejty = eeq->Ety = TYstruct;
@@ -529,6 +529,23 @@ elem *sarray_toDarray(Loc loc, Type *tfrom, Type *tto, elem *e)
     return e;
 }
 
+/********************************************
+ * Determine if t is an array of structs that need a postblit.
+ */
+
+StructDeclaration *needsPostblit(Type *t)
+{
+    t = t->toBasetype();
+    while (t->ty == Tsarray)
+	t = t->nextOf()->toBasetype();
+    if (t->ty == Tstruct)
+    {   StructDeclaration *sd = ((TypeStruct *)t)->sym;
+	if (sd->postblit)
+	    return sd;
+    }
+    return NULL;
+}
+
 /*******************************************
  * Set an array pointed to by eptr to evalue:
  *	eptr[0..edim] = evalue;
@@ -565,23 +582,18 @@ elem *setArray(elem *eptr, elem *edim, Type *tb, elem *evalue, IRState *irs, int
 	 */
 	if (op != TOKblit)
 	{
-	    Type *t = tb;
-	    while (t->ty == Tsarray)
-		t = t->nextOf()->toBasetype();
-	    if (t->ty == Tstruct)
-	    {   StructDeclaration *sd = ((TypeStruct *)t)->sym;
-		if (sd->postblit)
-		{   /* Need to do postblit.
-		     *   void *_d_arraysetassign(void *p, void *value, int dim, TypeInfo ti);
-		     */
-		    r = (op == TOKconstruct) ? RTLSYM_ARRAYSETCTOR : RTLSYM_ARRAYSETASSIGN;
-		    evalue = el_una(OPaddr, TYnptr, evalue);
-		    Expression *ti = tb->getTypeInfo(NULL);
-		    elem *eti = ti->toElem(irs);
-		    e = el_params(eti, edim, evalue, eptr, NULL);
-		    e = el_bin(OPcall,TYnptr,el_var(rtlsym[r]),e);
-		    return e;
-		}
+	    StructDeclaration *sd = needsPostblit(tb);
+	    if (sd)
+	    {   /* Need to do postblit.
+		 *   void *_d_arraysetassign(void *p, void *value, int dim, TypeInfo ti);
+		 */
+		r = (op == TOKconstruct) ? RTLSYM_ARRAYSETCTOR : RTLSYM_ARRAYSETASSIGN;
+		evalue = el_una(OPaddr, TYnptr, evalue);
+		Expression *ti = tb->getTypeInfo(NULL);
+		elem *eti = ti->toElem(irs);
+		e = el_params(eti, edim, evalue, eptr, NULL);
+		e = el_bin(OPcall,TYnptr,el_var(rtlsym[r]),e);
+		return e;
 	    }
 	}
 
@@ -602,7 +614,7 @@ elem *setArray(elem *eptr, elem *edim, Type *tb, elem *evalue, IRState *irs, int
 	edim = el_bin(OPmul, TYuint, edim, el_long(TYuint, sz));
     }
 
-    if (evalue->Ety == TYstruct)
+    if (tybasic(evalue->Ety) == TYstruct)
     {
 	evalue = el_una(OPstrpar, TYstruct, evalue);
 	evalue->Enumbytes = evalue->E1->Enumbytes;
@@ -1137,10 +1149,9 @@ elem *Dsymbol_toElem(Dsymbol *s, IRState *irs)
 }
 
 elem *DeclarationExp::toElem(IRState *irs)
-{   elem *e;
-
+{
     //printf("DeclarationExp::toElem() %s\n", toChars());
-    e = Dsymbol_toElem(declaration, irs);
+    elem *e = Dsymbol_toElem(declaration, irs);
     return e;
 }
 
@@ -2374,7 +2385,7 @@ elem *InExp::toElem(IRState *irs)
     // set to:
     //	aaIn(aa, keyti, key);
 
-    if (key->Ety == TYstruct)
+    if (tybasic(key->Ety) == TYstruct)
     {
 	key = el_una(OPstrpar, TYstruct, key);
 	key->Enumbytes = key->E1->Enumbytes;
@@ -2403,7 +2414,7 @@ elem *RemoveExp::toElem(IRState *irs)
     elem *ep;
     elem *keyti;
 
-    if (ekey->Ety == TYstruct)
+    if (tybasic(ekey->Ety) == TYstruct)
     {
 	ekey = el_una(OPstrpar, TYstruct, ekey);
 	ekey->Enumbytes = ekey->E1->Enumbytes;
@@ -2676,15 +2687,8 @@ elem *AssignExp::toElem(IRState *irs)
 	    /* Determine if we need to do postblit
 	     */
 	    int postblit = 0;
-	    Type *t = t1;
-	    do
-		t = t->nextOf()->toBasetype();
-	    while (t->ty == Tsarray);
-	    if (t->ty == Tstruct)
-	    {	StructDeclaration *sd = ((TypeStruct *)t)->sym;
-		if (sd->postblit)
-		    postblit = 1;
-	    }
+	    if (needsPostblit(t1))
+		postblit = 1;
 
 	    assert(e2->type->ty != Tpointer);
 
@@ -2808,7 +2812,7 @@ elem *AssignExp::toElem(IRState *irs)
 	}
     }
 #endif
-//printf("test1 %d\n", op);
+//printf("test2 %d\n", op);
 //if (op == TOKconstruct) printf("construct\n");
     if (t1b->ty == Tstruct)
     {	elem *eleft = e1->toElem(irs);
@@ -2938,7 +2942,7 @@ elem *CatAssignExp::toElem(IRState *irs)
 	e1 = el_una(OPaddr, TYnptr, e1);
 
 	e2 = this->e2->toElem(irs);
-	if (e2->Ety == TYstruct)
+	if (tybasic(e2->Ety) == TYstruct)
 	{
 	    e2 = el_una(OPstrpar, TYstruct, e2);
 	    e2->Enumbytes = e2->E1->Enumbytes;
@@ -3442,7 +3446,7 @@ elem *DeleteExp::toElem(IRState *irs)
 	    elem *ep;
 	    elem *keyti;
 
-	    if (ekey->Ety == TYstruct)
+	    if (tybasic(ekey->Ety) == TYstruct)
 	    {
 		ekey = el_una(OPstrpar, TYstruct, ekey);
 		ekey->Enumbytes = ekey->E1->Enumbytes;
@@ -4350,7 +4354,7 @@ elem *IndexExp::toElem(IRState *irs)
 
 	// n2 becomes the index, also known as the key
 	n2 = e2->toElem(irs);
-	if (n2->Ety == TYstruct || n2->Ety == TYarray)
+	if (tybasic(n2->Ety) == TYstruct || tybasic(n2->Ety) == TYarray)
 	{
 	    n2 = el_una(OPstrpar, TYstruct, n2);
 	    n2->Enumbytes = n2->E1->Enumbytes;
@@ -4711,16 +4715,8 @@ elem *StructLiteralExp::toElem(IRState *irs)
 #if DMDV2
 		    // Determine if postblit is needed
 		    int postblit = 0;
-		    Type *t = t1b;
-		    do
-		    {
-			t = t->nextOf()->toBasetype();
-		    } while (t->ty == Tsarray);
-		    if (t->ty == Tstruct)
-		    {	StructDeclaration *sd = ((TypeStruct *)t)->sym;
-			if (sd->postblit)
-			    postblit = 1;
-		    }
+		    if (needsPostblit(t1b))
+			postblit = 1;
 
 		    if (postblit)
 		    {
@@ -4753,25 +4749,22 @@ elem *StructLiteralExp::toElem(IRState *irs)
 	    {
 		tym_t ty = v->type->totym();
 		e1 = el_una(OPind, ty, e1);
-		if (ty == TYstruct)
+		if (tybasic(ty) == TYstruct)
 		    e1->Enumbytes = v->type->size();
 		e1 = el_bin(OPeq, ty, e1, ep);
-		if (ty == TYstruct)
+		if (tybasic(ty) == TYstruct)
 		{   e1->Eoper = OPstreq;
 		    e1->Enumbytes = v->type->size();
 		}
 #if DMDV2
-		/* Call postBlit() on e1
+		/* Call postblit() on e1
 		 */
-		Type *tb = v->type->toBasetype();
-		if (tb->ty == Tstruct)
-		{   StructDeclaration *sd = ((TypeStruct *)tb)->sym;
-		    if (sd->postblit)
-		    {	FuncDeclaration *fd = sd->postblit;
-			ec = el_copytree(ec);
-			ec = callfunc(loc, irs, 1, Type::tvoid, ec, tb->pointerTo(), fd, fd->type, NULL, NULL);
-			e1 = el_bin(OPcomma, ec->Ety, e1, ec);
-		    }
+		StructDeclaration *sd = needsPostblit(v->type);
+		if (sd)
+		{   FuncDeclaration *fd = sd->postblit;
+		    ec = el_copytree(ec);
+		    ec = callfunc(loc, irs, 1, Type::tvoid, ec, sd->type->pointerTo(), fd, fd->type, NULL, NULL);
+		    e1 = el_bin(OPcomma, ec->Ety, e1, ec);
 		}
 #endif
 	    }

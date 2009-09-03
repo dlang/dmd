@@ -2263,7 +2263,7 @@ Type *Parser::parseBasicType2(Type *t)
 		nextToken();
 		arguments = parseParameters(&varargs);
 		while (1)
-		{   // Postfixes of 'pure' or 'nothrow'
+		{   // Postfixes
 		    if (token.value == TOKpure)
 			ispure = true;
 		    else if (token.value == TOKnothrow)
@@ -2430,6 +2430,22 @@ Type *Parser::parseDeclarator(Type *t, Identifier **pident, TemplateParameters *
 			    ((TypeFunction *)tf)->ispure = 1;
 			    nextToken();
 			    continue;
+
+			case TOKat:
+			    nextToken();
+			    if (token.value != TOKidentifier)
+			    {   error("attribute identifier expected");
+				nextToken();
+				continue;
+			    }
+			    Identifier *id = token.ident;
+			    if (id == Id::property)
+				((TypeFunction *)tf)->ispure = 1;
+			    else
+				error("valid attribute identifiers are property, not %s", id->toChars());
+			    nextToken();
+			    continue;
+
 		    }
 		    break;
 		}
@@ -4357,6 +4373,10 @@ int Parser::isDeclarator(Token **pt, int *haveId, enum TOK endtok)
 			case TOKpure:
 			case TOKnothrow:
 			    t = peek(t);
+			    continue;
+			case TOKat:
+			    t = peek(t);	// skip '@'
+			    t = peek(t);	// skip identifier
 			    continue;
 			default:
 			    break;

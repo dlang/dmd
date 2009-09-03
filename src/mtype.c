@@ -167,6 +167,7 @@ void Type::init()
 	sizeTy[i] = sizeof(TypeBasic);
     sizeTy[Tsarray] = sizeof(TypeSArray);
     sizeTy[Tarray] = sizeof(TypeDArray);
+    //sizeTy[Tnarray] = sizeof(TypeNArray);
     sizeTy[Taarray] = sizeof(TypeAArray);
     sizeTy[Tpointer] = sizeof(TypePointer);
     sizeTy[Treference] = sizeof(TypeReference);
@@ -185,6 +186,7 @@ void Type::init()
 
     mangleChar[Tarray] = 'A';
     mangleChar[Tsarray] = 'G';
+    mangleChar[Tnarray] = '@';
     mangleChar[Taarray] = 'H';
     mangleChar[Tpointer] = 'P';
     mangleChar[Treference] = 'R';
@@ -1102,6 +1104,16 @@ void Type::toCBuffer3(OutBuffer *buf, HdrGenState *hgs, int mod)
     }
 }
 
+void Type::modToBuffer(OutBuffer *buf)
+{
+    if (mod & MODshared)
+        buf->writestring(" shared");
+    if (mod & MODconst)
+        buf->writestring(" const");
+    if (mod & MODinvariant)
+        buf->writestring(" immutable");
+}
+
 /************************************
  */
 
@@ -1584,6 +1596,12 @@ Type *TypeNext::reliesOnTident()
 {
     return next->reliesOnTident();
 }
+
+/*******************************
+ * For TypeFunction, nextOf() can return NULL if the function return
+ * type is meant to be inferred, and semantic() hasn't yet ben run
+ * on the function. After semantic(), it must no longer be NULL.
+ */
 
 Type *TypeNext::nextOf()
 {
@@ -3113,6 +3131,88 @@ int TypeDArray::hasPointers()
     return TRUE;
 }
 
+
+/***************************** TypeNewArray *****************************/
+
+#if 0
+
+TypeNewArray::TypeNewArray(Type *telement)
+	: TypeArray(Tnewarray, telement)
+{
+    sym = NULL;
+}
+
+Type *TypeNewArray::syntaxCopy()
+{
+    Type *t = next->syntaxCopy();
+    if (t == next)
+	t = this;
+    else
+    {	t = new TypeNewArray(t);
+	t->mod = mod;
+    }
+    return t;
+}
+
+d_uns64 TypeNewArray::size(Loc loc)
+{
+    //printf("TypeNewArray::size()\n");
+    return PTRSIZE;
+}
+
+unsigned TypeNewArray::alignsize()
+{
+    return PTRSIZE;
+}
+
+Type *TypeNewArray::semantic(Loc loc, Scope *sc)
+{   Type *tn = next;
+
+    tn = next->semantic(loc,sc);
+    Type *tbn = tn->toBasetype();
+    switch (tbn->ty)
+    {
+	case Tfunction:
+	case Tnone:
+	case Ttuple:
+	    error(loc, "can't have array of %s", tbn->toChars());
+	    tn = next = tint32;
+	    break;
+	case Tstruct:
+	{   TypeStruct *ts = (TypeStruct *)tbn;
+	    if (ts->sym->isnested)
+		error(loc, "cannot have array of inner structs %s", ts->toChars());
+	    break;
+	}
+    }
+    if (tn->isauto())
+	error(loc, "cannot have array of auto %s", tn->toChars());
+
+    next = tn;
+    transitive();
+    return merge();
+}
+
+void TypeNewArray::toDecoBuffer(OutBuffer *buf, int flag)
+{
+    Type::toDecoBuffer(buf, flag);
+    buf->writeByte('e');
+    if (next)
+	next->toDecoBuffer(buf, (flag & 0x100) ? 0 : mod);
+}
+
+void TypeNewArray::toCBuffer2(OutBuffer *buf, HdrGenState *hgs, int mod)
+{
+    if (mod != this->mod)
+    {	toCBuffer3(buf, hgs, mod);
+	return;
+    }
+    next->toCBuffer2(buf, hgs, this->mod);
+    buf->writestring("[new]");
+}
+
+#endif
+
 /***************************** TypeAArray *****************************/
 
 TypeAArray::TypeAArray(Type *t, Type *index)
@@ -3608,6 +3708,7 @@ TypeFunction::TypeFunction(Arguments *parameters, Type *treturn, int varargs, en
     this->inuse = 0;
     this->isnothrow = false;
     this->ispure = false;
+    this->isproperty = false;
     this->isref = false;
 }
 
@@ -3619,6 +3720,7 @@ Type *TypeFunction::syntaxCopy()
     t->mod = mod;
     t->isnothrow = isnothrow;
     t->ispure = ispure;
+    t->isproperty = isproperty;
     t->isref = isref;
     return t;
 }
@@ -3784,7 +3886,7 @@ void TypeFunction::toDecoBuffer(OutBuffer *buf, int flag)
 	    assert(0);
     }
     buf->writeByte(mc);
-    if (ispure || isnothrow || isref)
+    if (ispure || isnothrow || isproperty || isref)
     {
 	if (ispure)
 	    buf->writestring("Na");
@@ -3792,6 +3894,8 @@ void TypeFunction::toDecoBuffer(OutBuffer *buf, int flag)
 	    buf->writestring("Nb");
 	if (isref)
 	    buf->writestring("Nc");
+	if (isproperty)
+	    buf->writestring("Nd");
     }
     // Write argument types
     Argument::argsToDecoBuffer(buf, parameters);
@@ -3825,6 +3929,8 @@ void TypeFunction::toCBuffer(OutBuffer *buf, Identifier *ident, HdrGenState *hgs
 	buf->writestring("pure ");
     if (isnothrow)
 	buf->writestring("nothrow ");
+    if (isproperty)
+	buf->writestring("@property ");
     if (isref)
 	buf->writestring("ref ");
 
@@ -3889,17 +3995,14 @@ void TypeFunction::toCBuffer2(OutBuffer *buf, HdrGenState *hgs, int mod)
      */
     if (mod != this->mod)
     {
-	if (mod & MODconst)
-	    buf->writestring(" const");
-	if (mod & MODinvariant)
-	    buf->writestring(" immutable");
-	if (mod & MODshared)
-	    buf->writestring(" shared");
+	modToBuffer(buf);
     }
     if (ispure)
 	buf->writestring(" pure");
     if (isnothrow)
 	buf->writestring(" nothrow");
+    if (isproperty)
+	buf->writestring(" @property");
     if (isref)
 	buf->writestring(" ref");
 
@@ -5955,7 +6058,7 @@ char *TypeClass::toChars()
 {
     if (mod)
 	return Type::toChars();
-    return sym->toPrettyChars();
+    return (char *)sym->toPrettyChars();
 }
 
 Type *TypeClass::syntaxCopy()

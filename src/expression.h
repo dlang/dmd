@@ -1,6 +1,6 @@
 
 // Compiler implementation of the D programming language
-// Copyright (c) 1999-2008 by Digital Mars
+// Copyright (c) 1999-2009 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // http://www.digitalmars.com
@@ -284,6 +284,7 @@ struct ThisExp : Expression
 
     ThisExp(Loc loc);
     Expression *semantic(Scope *sc);
+    Expression *interpret(InterState *istate);
     int isBool(int result);
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
     int isLvalue();
@@ -316,6 +317,7 @@ struct NullExp : Expression
     NullExp(Loc loc);
     Expression *semantic(Scope *sc);
     int isBool(int result);
+    int isConst();
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
     void toMangleBuffer(OutBuffer *buf);
     MATCH implicitConvTo(Type *t);
@@ -518,6 +520,7 @@ struct NewExp : Expression
 	Type *newtype, Expressions *arguments);
     Expression *syntaxCopy();
     Expression *semantic(Scope *sc);
+    Expression *optimize(int result);
     elem *toElem(IRState *irs);
     int checkSideEffect(int flag);
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
@@ -1017,6 +1020,8 @@ struct CastExp : UnaExp
     int checkSideEffect(int flag);
     void checkEscape();
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
+    void buildArrayIdent(OutBuffer *buf, Expressions *arguments);
+    Expression *buildArrayLoop(Arguments *fparams);
     elem *toElem(IRState *irs);
 
     // For operator overloading

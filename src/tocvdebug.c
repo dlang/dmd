@@ -1,5 +1,5 @@
 
-// Copyright (c) 2004 by Digital Mars
+// Copyright (c) 2004-2009 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // http://www.digitalmars.com
@@ -122,7 +122,7 @@ unsigned cv4_Denum(EnumDeclaration *e)
     unsigned property;
     unsigned attribute;
     int i;
-    char *id;
+    const char *id;
     idx_t typidx;
 
     //dbg_printf("cv4_Denum(%s)\n", e->toChars());
@@ -236,7 +236,7 @@ void TypedefDeclaration::toDebug()
 	    return;
 
 	unsigned length;
-	char *id = toPrettyChars();
+	const char *id = toPrettyChars();
 	idx_t typidx = cv4_typidx(basetype->toCtype());
 	unsigned len = strlen(id);
 	unsigned char *debsym = (unsigned char *) alloca(39 + IDOHD + len);
@@ -264,7 +264,7 @@ void EnumDeclaration::toDebug()
     if (!isMember())
     {
 	unsigned length;
-	char *id = toPrettyChars();
+	const char *id = toPrettyChars();
 	idx_t typidx = cv4_Denum(this);
 	unsigned len = strlen(id);
 	unsigned char *debsym = (unsigned char *) alloca(39 + IDOHD + len);
@@ -288,7 +288,7 @@ void StructDeclaration::toDebug()
     unsigned property;
     unsigned nfields;
     unsigned fnamelen;
-    char *id;
+    const char *id;
     targ_size_t size;
     unsigned numidx;
     debtyp_t *d,*dt;
@@ -421,7 +421,7 @@ void ClassDeclaration::toDebug()
     unsigned property;
     unsigned nfields;
     unsigned fnamelen;
-    char *id;
+    const char *id;
     targ_size_t size;
     unsigned numidx;
     debtyp_t *d,*dt;

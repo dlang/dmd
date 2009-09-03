@@ -1,7 +1,7 @@
 
 /*
  * Copyright (c) 1992-1999 by Symantec
- * Copyright (c) 1999-2008 by Digital Mars
+ * Copyright (c) 1999-2009 by Digital Mars
  * All Rights Reserved
  * http://www.digitalmars.com
  * Written by Mike Cote, John Micco and Walter Bright
@@ -4260,6 +4260,7 @@ Statement *AsmStatement::semantic(Scope *sc)
     asmstate.statement = this;
     asmstate.sc = sc;
 
+#if 0 // don't use bReturnax anymore, and will fail anyway if we use return type inference
     // Scalar return values will always be in AX.  So if it is a scalar
     // then asm block sets return value if it modifies AX, if it is non-scalar
     // then always assume that the ASM block sets up an appropriate return
@@ -4268,6 +4269,7 @@ Statement *AsmStatement::semantic(Scope *sc)
     asmstate.bReturnax = 1;
     if (sc->func->type->nextOf()->isscalar())
 	asmstate.bReturnax = 0;
+#endif
 
     // Assume assembler code takes care of setting the return value
     sc->func->hasReturnExp |= 8;
