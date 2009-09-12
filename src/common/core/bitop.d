@@ -2,7 +2,7 @@
  * This module contains a collection of bit-level operations.
  *
  * Copyright: Copyright Don Clugston 2005 - 2009.
- * License:   <a href="http://www.boost.org/LICENSE_1_0.txt>Boost License 1.0</a>.
+ * License:   <a href="http://www.boost.org/LICENSE_1_0.txt">Boost License 1.0</a>.
  * Authors:   Don Clugston, Sean Kelly, Walter Bright
  *
  *          Copyright Don Clugston 2005 - 2009.

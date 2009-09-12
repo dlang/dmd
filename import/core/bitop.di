@@ -18,7 +18,7 @@ version (D_Ddoc)
 }
 else
 {
-    public
+    public 
 {
     import std.intrinsic;
 }

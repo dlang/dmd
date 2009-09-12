@@ -30,7 +30,7 @@
  *      so sometimes the cache information may be incorrect.
  *
  * Copyright: Copyright Don Clugston 2007 - 2009.
- * License:   <a href="http://www.boost.org/LICENSE_1_0.txt>Boost License 1.0</a>.
+ * License:   <a href="http://www.boost.org/LICENSE_1_0.txt">Boost License 1.0</a>.
  * Authors:   Don Clugston, Tomas Lindquist Olsen &lt;tomas@famolsen.dk&gt;
  *
  *          Copyright Don Clugston 2007 - 2009.

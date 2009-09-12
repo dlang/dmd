@@ -3,7 +3,7 @@
  *  States and other countries.
  *
  * Copyright: Copyright Digital Mars 2000 - 2009.
- * License:   <a href="http://www.boost.org/LICENSE_1_0.txt>Boost License 1.0</a>.
+ * License:   <a href="http://www.boost.org/LICENSE_1_0.txt">Boost License 1.0</a>.
  * Authors:   Walter Bright, Sean Kelly
  *
  *          Copyright Digital Mars 2000 - 2009.

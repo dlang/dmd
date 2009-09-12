@@ -2,7 +2,7 @@
  * D header file for C99.
  *
  * Copyright: Copyright Sean Kelly 2005 - 2009.
- * License:   <a href="http://www.boost.org/LICENSE_1_0.txt>Boost License 1.0</a>.
+ * License:   <a href="http://www.boost.org/LICENSE_1_0.txt">Boost License 1.0</a>.
  * Authors:   Sean Kelly
  * Standards: ISO/IEC 9899:1999 (E)
  *

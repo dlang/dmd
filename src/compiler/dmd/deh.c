@@ -2,7 +2,7 @@
  * Implementation of exception handling support routines for Windows.
  *
  * Copyright: Copyright Digital Mars 1999 - 2009.
- * License:   <a href="http://www.boost.org/LICENSE_1_0.txt>Boost License 1.0</a>.
+ * License:   <a href="http://www.boost.org/LICENSE_1_0.txt">Boost License 1.0</a>.
  * Authors:   Walter Bright
  *
  *          Copyright Digital Mars 1999 - 2009.

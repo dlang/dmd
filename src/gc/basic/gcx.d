@@ -2,7 +2,7 @@
  * Contains the garbage collector implementation.
  *
  * Copyright: Copyright Digital Mars 2001 - 2009.
- * License:   <a href="http://www.boost.org/LICENSE_1_0.txt>Boost License 1.0</a>.
+ * License:   <a href="http://www.boost.org/LICENSE_1_0.txt">Boost License 1.0</a>.
  * Authors:   Walter Bright, David Friedman, Sean Kelly
  *
  *          Copyright Digital Mars 2001 - 2009.

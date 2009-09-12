@@ -2,7 +2,7 @@
  * Contains SSE2 and MMX versions of certain operations for float.
  *
  * Copyright: Copyright Digital Mars 2008 - 2009.
- * License:   <a href="http://www.boost.org/LICENSE_1_0.txt>Boost License 1.0</a>.
+ * License:   <a href="http://www.boost.org/LICENSE_1_0.txt">Boost License 1.0</a>.
  * Authors:   Walter Bright, based on code originally written by Burton Radons
  *
  *          Copyright Digital Mars 2008 - 2009.
