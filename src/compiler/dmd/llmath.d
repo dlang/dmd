@@ -282,7 +282,8 @@ C1:     ret                     ;
 
 // Convert ulong to real
 
-private __gshared real adjust = cast(real)0x800_0000_0000_0000 * 0x10;
+private immutable real adjust = 1.0L/real.epsilon;
+static assert((cast(real)0x800_0000_0000_0000 * 0x10) == 1.0L/real.epsilon);
 
 real __U64_LDBL()
 {
