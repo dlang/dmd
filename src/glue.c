@@ -493,7 +493,9 @@ void FuncDeclaration::toObjFile(int multiobj)
     semanticRun = 5;
 
     if (!func->fbody)
+    {
 	return;
+    }
     if (func->isUnitTestDeclaration() && !global.params.useUnitTests)
 	return;
 
@@ -502,6 +504,16 @@ void FuncDeclaration::toObjFile(int multiobj)
 
     s = func->toSymbol();
     f = s->Sfunc;
+
+#if TARGET_WINDOS
+    /* This is done so that the 'this' pointer on the stack is the same
+     * distance away from the function parameters, so that an overriding
+     * function can call the nested fdensure or fdrequire of its overridden function
+     * and the stack offsets are the same.
+     */
+    if (isVirtual() && (fensure || frequire))
+	f->Fflags3 |= Ffakeeh;
+#endif
 
 #if TARGET_OSX
     s->Sclass = SCcomdat;

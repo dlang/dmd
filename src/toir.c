@@ -93,8 +93,13 @@ elem *getEthis(Loc loc, IRState *irs, Dsymbol *fd)
     FuncDeclaration *thisfd = irs->getFunc();
     Dsymbol *fdparent = fd->toParent2();
 
-    //printf("getEthis(thisfd = '%s', fd = '%s', fdparent = '%s')\n", thisfd->toChars(), fd->toChars(), fdparent->toChars());
-    if (fdparent == thisfd)
+    //printf("getEthis(thisfd = '%s', fd = '%s', fdparent = '%s')\n", thisfd->toPrettyChars(), fd->toPrettyChars(), fdparent->toPrettyChars());
+    if (fdparent == thisfd ||
+	/* These two are compiler generated functions for the in and out contracts,
+	 * and are called from an overriding function, not just the one they're
+	 * nested inside, so this hack is so they'll pass
+	 */
+	fd->ident == Id::require || fd->ident == Id::ensure)
     {	/* Going down one nesting level, i.e. we're calling
 	 * a nested function from its enclosing function.
 	 */
@@ -180,6 +185,7 @@ elem *getEthis(Loc loc, IRState *irs, Dsymbol *fd)
 		    {
 		    }
 		    else
+			// Error should have been caught by front end
 			assert(0);
 		}
 		else

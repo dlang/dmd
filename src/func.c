@@ -34,7 +34,7 @@
 FuncDeclaration::FuncDeclaration(Loc loc, Loc endloc, Identifier *id, enum STC storage_class, Type *type)
     : Declaration(id)
 {
-    //printf("FuncDeclaration(id = '%s', type = %s)\n", id->toChars(), type ? type->toChars() : "null");
+    //printf("FuncDeclaration(id = '%s', type = %p)\n", id->toChars(), type);
     //printf("storage_class = x%x\n", storage_class);
     this->storage_class = storage_class;
     this->type = type;
@@ -42,6 +42,8 @@ FuncDeclaration::FuncDeclaration(Loc loc, Loc endloc, Identifier *id, enum STC s
     this->endloc = endloc;
     fthrows = NULL;
     frequire = NULL;
+    fdrequire = NULL;
+    fdensure = NULL;
     outId = NULL;
     vresult = NULL;
     returnLabel = NULL;
@@ -375,6 +377,10 @@ void FuncDeclaration::semantic(Scope *sc)
 		cd->vtbl.data[vi] = (void *)this;
 		vtblIndex = vi;
 
+		/* Remember which functions this overrides
+		 */
+		foverrides.push(fdv);
+
 		/* This works by whenever this function is called,
 		 * it actually returns tintro, which gets dynamically
 		 * cast to type. But we know that tintro is a base
@@ -421,6 +427,10 @@ void FuncDeclaration::semantic(Scope *sc)
 		default:
 		{   FuncDeclaration *fdv = (FuncDeclaration *)b->base->vtbl.data[vi];
 		    Type *ti = NULL;
+
+		    /* Remember which functions this overrides
+		     */
+		    foverrides.push(fdv);
 
 		    if (fdv->tintro)
 			ti = fdv->tintro;
@@ -613,6 +623,61 @@ void FuncDeclaration::semantic(Scope *sc)
 	}
     }
 
+    if (isVirtual())
+    {
+	/* Rewrite contracts as nested functions, then call them.
+	 * Doing it as nested functions means that overriding functions
+	 * can call them.
+	 */
+	if (frequire)
+	{   /*   in { ... }
+	     * becomes:
+	     *   void __require() { ... }
+	     *   __require();
+	     */
+	    Loc loc = frequire->loc;
+	    TypeFunction *tf = new TypeFunction(NULL, Type::tvoid, 0, LINKd);
+	    FuncDeclaration *fd = new FuncDeclaration(loc, loc,
+		Id::require, STCundefined, tf);
+	    fd->fbody = frequire;
+	    Statement *s1 = new DeclarationStatement(loc, fd);
+	    Expression *e = new CallExp(loc, new VarExp(loc, fd), (Expressions *)NULL);
+	    Statement *s2 = new ExpStatement(loc, e);
+	    frequire = new CompoundStatement(loc, s1, s2);
+	    fdrequire = fd;
+	}
+
+	if (fensure)
+	{   /*   out (result) { ... }
+	     * becomes:
+	     *   tret __ensure(ref tret result) { ... }
+	     *   __ensure(result);
+	     */
+	    if (!outId && f->nextOf()->toBasetype()->ty != Tvoid)
+		outId = Id::result;	// provide a default
+
+	    Loc loc = fensure->loc;
+	    Arguments *arguments = new Arguments();
+	    Argument *a = NULL;
+	    if (outId)
+	    {	a = new Argument(STCref, f->nextOf(), outId, NULL);
+		arguments->push(a);
+	    }
+	    TypeFunction *tf = new TypeFunction(arguments, Type::tvoid, 0, LINKd);
+	    FuncDeclaration *fd = new FuncDeclaration(loc, loc,
+		Id::ensure, STCundefined, tf);
+	    fd->fbody = fensure;
+	    Statement *s1 = new DeclarationStatement(loc, fd);
+	    Expression *eresult = NULL;
+	    if (outId)
+		eresult = new IdentifierExp(loc, outId);
+	    Expression *e = new CallExp(loc, new VarExp(loc, fd), eresult);
+	    Statement *s2 = new ExpStatement(loc, e);
+	    fensure = new CompoundStatement(loc, s1, s2);
+	    fdensure = fd;
+	}
+    }
+
 Ldone:
     /* Save scope for possible later use (if we need the
      * function internals)
@@ -670,6 +735,9 @@ void FuncDeclaration::semantic3(Scope *sc)
 		error("can only throw classes, not %s", t->toChars());
 	}
     }
+
+    frequire = mergeFrequire(frequire);
+    fensure = mergeFensure(fensure);
 
     if (fbody || frequire)
     {
@@ -738,7 +806,11 @@ void FuncDeclaration::semantic3(Scope *sc)
 
 	// Declare hidden variable _arguments[] and _argptr
 	if (f->varargs == 1)
-	{   Type *t;
+	{
+#if TARGET_NET
+        varArgs(sc2, f, argptr, _arguments);
+#else
+        Type *t;
 
 	    if (f->linkage == LINKd)
 	    {	// Declare _arguments[]
@@ -775,6 +847,7 @@ void FuncDeclaration::semantic3(Scope *sc)
 		sc2->insert(argptr);
 		argptr->parent = this;
 	    }
+#endif
 	}
 
 	// Propagate storage class from tuple parameters to their element-parameters.
@@ -1407,6 +1480,98 @@ void FuncDeclaration::bodyToCBuffer(OutBuffer *buf, HdrGenState *hgs)
     {	buf->writeByte(';');
 	buf->writenl();
     }
+}
+
+/****************************************************
+ * Merge into this function the 'in' contracts of all it overrides.
+ * 'in's are OR'd together, i.e. only one of them needs to pass.
+ */
+
+Statement *FuncDeclaration::mergeFrequire(Statement *sf)
+{
+    /* Implementing this is done by having the overriding function call
+     * nested functions (the fdrequire functions) nested inside the overridden
+     * function. This requires that the stack layout of the calling function's
+     * parameters and 'this' pointer be in the same place (as the nested
+     * function refers to them).
+     * This is easy for the parameters, as they are all on the stack in the same
+     * place by definition, since it's an overriding function. The problem is
+     * getting the 'this' pointer in the same place, since it is a local variable.
+     * We did some hacks in the code generator to make this happen:
+     *	1. always generate exception handler frame, or at least leave space for it
+     *     in the frame (Windows 32 SEH only)
+     *	2. always generate an EBP style frame
+     *  3. since 'this' is passed in a register that is subsequently copied into
+     *     a stack local, allocate that local immediately following the exception
+     *     handler block, so it is always at the same offset from EBP.
+     */
+    for (int i = 0; i < foverrides.dim; i++)
+    {
+	FuncDeclaration *fdv = (FuncDeclaration *)foverrides.data[i];
+	sf = fdv->mergeFrequire(sf);
+	if (fdv->frequire)
+	{
+	    //printf("fdv->frequire: %s\n", fdv->frequire->toChars());
+	    /* Make the call:
+	     *   try { __require(); }
+	     *   catch { frequire; }
+	     */
+	    Expression *eresult = NULL;
+	    Expression *e = new CallExp(loc, new VarExp(loc, fdv->fdrequire), eresult);
+	    Statement *s2 = new ExpStatement(loc, e);
+
+	    if (sf)
+	    {	Catch *c = new Catch(loc, NULL, NULL, sf);
+		Array *catches = new Array();
+		catches->push(c);
+		sf = new TryCatchStatement(loc, s2, catches);
+	    }
+	    else
+		sf = s2;
+	}
+    }
+    return sf;
+}
+
+/****************************************************
+ * Merge into this function the 'out' contracts of all it overrides.
+ * 'out's are AND'd together, i.e. all of them need to pass.
+ */
+
+Statement *FuncDeclaration::mergeFensure(Statement *sf)
+{
+    /* Same comments as for mergeFrequire(), except that we take care
+     * of generating a consistent reference to the 'result' local by
+     * explicitly passing 'result' to the nested function as a reference
+     * argument.
+     * This won't work for the 'this' parameter as it would require changing
+     * the semantic code for the nested function so that it looks on the parameter
+     * list for the 'this' pointer, something that would need an unknown amount
+     * of tweaking of various parts of the compiler that I'd rather leave alone.
+     */
+    for (int i = 0; i < foverrides.dim; i++)
+    {
+	FuncDeclaration *fdv = (FuncDeclaration *)foverrides.data[i];
+	sf = fdv->mergeFensure(sf);
+	if (fdv->fensure)
+	{
+	    //printf("fdv->fensure: %s\n", fdv->fensure->toChars());
+	    // Make the call: __ensure(result)
+	    Expression *eresult = NULL;
+	    if (outId)
+		eresult = new IdentifierExp(loc, outId);
+	    Expression *e = new CallExp(loc, new VarExp(loc, fdv->fdensure), eresult);
+	    Statement *s2 = new ExpStatement(loc, e);
+
+	    if (sf)
+	    {
+		sf = new CompoundStatement(fensure->loc, s2, sf);
+	    }
+	    else
+		sf = s2;
+	}
+    }
+    return sf;
 }
 
 /****************************************************

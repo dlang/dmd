@@ -489,6 +489,10 @@ struct FuncDeclaration : Declaration
     Statement *fensure;
     Statement *fbody;
 
+    FuncDeclarations foverrides;	// functions this function overrides
+    FuncDeclaration *fdrequire;		// function that does the in contract
+    FuncDeclaration *fdensure;		// function that does the out contract
+
     Identifier *outId;			// identifier for out statement
     VarDeclaration *vresult;		// variable corresponding to outId
     LabelDsymbol *returnLabel;		// where the return goes
@@ -596,6 +600,8 @@ struct FuncDeclaration : Declaration
     void toDocBuffer(OutBuffer *buf);
     FuncDeclaration *isUnique();
     int needsClosure();
+    Statement *mergeFrequire(Statement *);
+    Statement *mergeFensure(Statement *);
 
     static FuncDeclaration *genCfunc(Type *treturn, const char *name);
     static FuncDeclaration *genCfunc(Type *treturn, Identifier *id);

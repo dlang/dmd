@@ -583,34 +583,42 @@ tryagain:
  */
 
 void stackoffsets(int flags)
-{	int si;
-	symbol *s;
-	targ_size_t Amax,sz;
-	int offi;
-	targ_size_t offstack[20];
-	vec_t tbl = NULL;
+{
+    symbol *s;
+    targ_size_t Amax,sz;
+    int offi;
+    targ_size_t offstack[20];
+    vec_t tbl = NULL;
 
 
-	//printf("stackoffsets()\n");
-	if (config.flags4 & CFG4optimized)
-	{
-	    tbl = vec_calloc(globsym.top);
-	}
-	offi = 0;			/* index into offstack[]	*/
-	Aoffset = 0;			/* automatic & register offset	*/
-	Toffset = 0;			/* temporary offset		*/
-	Poffset = 0;			/* parameter offset		*/
-	EEoffset = 0;			// for SCstack's
-	Amax = 0;
-	Aalign = REGSIZE;
-	for (si = 0; si < globsym.top; si++)
+    //printf("stackoffsets()\n");
+    if (config.flags4 & CFG4optimized)
+    {
+	tbl = vec_calloc(globsym.top);
+    }
+    offi = 0;				// index into offstack[]
+    Aoffset = 0;			// automatic & register offset
+    Toffset = 0;			// temporary offset
+    Poffset = 0;			// parameter offset
+    EEoffset = 0;			// for SCstack's
+    Amax = 0;
+    Aalign = REGSIZE;
+    for (int pass = 0; pass < 2; pass++)
+    {
+	for (int si = 0; si < globsym.top; si++)
 	{   s = globsym.tab[si];
+#if 1
 	    if (s->Sflags & SFLdead ||
 		(!anyiasm && !(s->Sflags & SFLread) && s->Sflags & SFLunambig &&
+#if MARS
+		 // This variable has been reference by a nested function
+		 !(s->Stype->Tty & mTYvolatile) &&
+#endif
 	         (config.flags4 & CFG4optimized || !config.fulltypes))
 		)
 		sz = 0;
 	    else
+#endif
 	    {	sz = type_size(s->Stype);
 		if (sz == 0)
 		    sz++;		// guard against 0 length structs
@@ -618,6 +626,38 @@ void stackoffsets(int flags)
 
 	    //dbg_printf("symbol '%s', size = x%lx\n",s->Sident,(long)sz);
 	    assert((int)sz >= 0);
+
+	    if (pass == 1)
+	    {
+//break;
+		if (s->Sclass == SCfastpar)
+		{
+		    /* Allocate in second pass in order to get these
+		     * right next to the stack frame pointer, EBP.
+		     * Needed so we can call nested contract functions
+		     * frequire and fensure.
+		     */
+		    if (s->Sfl == FLreg)	// if allocated in register
+			continue;
+		    /* Needed because storing fastpar's on the stack in prolog()
+		     * does the entire register
+		     */
+		    if (sz < REGSIZE)
+			sz = REGSIZE;
+
+		    Aoffset = align(sz,Aoffset);
+		    s->Soffset = Aoffset;
+		    Aoffset += sz;
+		    if (Aoffset > Amax)
+			Amax = Aoffset;
+		    //printf("fastpar '%s' sz = %d, auto offset =  x%lx\n",s->Sident,sz,(long)s->Soffset);
+
+		    // Align doubles to 8 byte boundary
+		    if (I32 && type_alignsize(s->Stype) > REGSIZE)
+			Aalign = type_alignsize(s->Stype);
+		}
+		continue;
+	    }
 
 	    /* Can't do this for CPP because the inline function expander
 		adds new symbols on the end.
@@ -644,6 +684,7 @@ void stackoffsets(int flags)
 	    switch (s->Sclass)
 	    {
 		case SCfastpar:
+		    break;		// ignore on pass 0
 		case SCregister:
 		case SCauto:
 		    if (s->Sfl == FLreg)	// if allocated in register
@@ -654,15 +695,13 @@ void stackoffsets(int flags)
 			// used in finally blocks
 			!(usednteh & ~NTEHjmonitor) &&
 			s->Srange && sz && flags && !(s->Sflags & SFLspill))
-		    {	int i;
-			symbol *sp;
-
-			for (i = 0; i < si; i++)
+		    {
+			for (int i = 0; i < si; i++)
 			{
 			    if (!vec_testbit(i,tbl))
 				continue;
-			    sp = globsym.tab[i];
-//printf("s = '%s', sp = '%s', %d, %d, %d\n",s->Sident,sp->Sident,dfotop,vec_numbits(s->Srange),vec_numbits(sp->Srange));
+			    symbol *sp = globsym.tab[i];
+//printf("auto    s = '%s', sp = '%s', %d, %d, %d\n",s->Sident,sp->Sident,dfotop,vec_numbits(s->Srange),vec_numbits(sp->Srange));
 			    if (vec_disjoint(s->Srange,sp->Srange) &&
 				sz <= type_size(sp->Stype))
 			    {
@@ -675,7 +714,7 @@ void stackoffsets(int flags)
 		    }
 		    Aoffset = align(sz,Aoffset);
 		    s->Soffset = Aoffset;
-		    //printf("'%s' sz = %d, auto offset =  x%lx\n",s->Sident,sz,(long)s->Soffset);
+		    //printf("auto    '%s' sz = %d, auto offset =  x%lx\n",s->Sident,sz,(long)s->Soffset);
 		    Aoffset += sz;
 		    if (Aoffset > Amax)
 			Amax = Aoffset;
@@ -732,16 +771,16 @@ void stackoffsets(int flags)
 	    }
 #endif
 	}
-	Aoffset = Amax;
-	Aoffset = align(0,Aoffset);
-//	printf("Aligned Aoffset = x%lx, Toffset = x%lx\n",
-//		(long)Aoffset,(long)Toffset);
-	Toffset = align(0,Toffset);
+    }
+    Aoffset = Amax;
+    Aoffset = align(0,Aoffset);
+    //printf("Aligned Aoffset = x%lx, Toffset = x%lx\n", (long)Aoffset,(long)Toffset);
+    Toffset = align(0,Toffset);
 
-	if (config.flags4 & CFG4optimized)
-	{
-	    vec_free(tbl);
-	}
+    if (config.flags4 & CFG4optimized)
+    {
+	vec_free(tbl);
+    }
 }
 
 /****************************

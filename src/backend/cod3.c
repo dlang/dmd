@@ -980,6 +980,11 @@ regm_t cod3_useBP()
     if (tyf & mTYnaked)			// if no prolog/epilog for function
 	goto Lcant;
 
+    if (funcsym_p->Sfunc->Fflags3 & Ffakeeh)
+    {
+	goto Lcant;			// need consistent stack frame
+    }
+
     tym = tybasic(tyf);
     if (tym == TYifunc)
 	goto Lcant;
@@ -1157,7 +1162,7 @@ code *prolog()
     tym = tybasic(tyf);
     farfunc = tyfarfunc(tym);
     pushallocreg = (tyf == TYmfunc) ? CX : AX;
-    if (config.flags & CFGalwaysframe)
+    if (config.flags & CFGalwaysframe || funcsym_p->Sfunc->Fflags3 & Ffakeeh)
 	needframe = 1;
 
 Lagain:
@@ -1193,6 +1198,10 @@ Lagain:
     Aoff = 0;
 #if NTEXCEPTIONS == 2
     Aoff -= nteh_contextsym_size();
+#if MARS
+    if (funcsym_p->Sfunc->Fflags3 & Ffakeeh && nteh_contextsym_size() == 0)
+	Aoff -= 5 * 4;
+#endif
 #endif
     Aoff = -align(0,-Aoff + Aoffset);
 
@@ -1684,7 +1693,7 @@ Lcont:
 		c = genmovreg(c,s->Sreglsw,preg);
 	    }
 	    else if (s->Sflags & SFLdead ||
-		(!anyiasm && !(s->Sflags & SFLread) &&
+		(!anyiasm && !(s->Sflags & SFLread) && s->Sflags & SFLunambig &&
 #if MARS
 		 // This variable has been reference by a nested function
 		 !(s->Stype->Tty & mTYvolatile) &&
@@ -1695,19 +1704,24 @@ Lcont:
 	    }
 	    else
 	    {
+		targ_size_t offset = Aoff + BPoff + s->Soffset;
 		if (hasframe)
 		{
 		    if (!(pushalloc && preg == pushallocreg))
 		    {	// MOV x[EBP],preg
-			c = genc1(c,0x89,
-			    modregrm(2,preg,BPRM),FLconst,Aoff + BPoff + s->Soffset);
+			c2 = genc1(CNIL,0x89,
+			    modregrm(2,preg,BPRM),FLconst, offset);
+//printf("%s Aoff = %d, BPoff = %d, Soffset = %d\n", s->Sident, Aoff, BPoff, s->Soffset);
+//			if (offset & 2)
+//			    c2->Iflags |= CFopsize;
+			c = cat(c, c2);
 		    }
 		}
 		else
-		{   targ_size_t offset;
+		{
 		    code *clast;
 
-		    offset = Aoff + BPoff + s->Soffset + EBPtoESP;
+		    offset += EBPtoESP;
 #if 1
 		    if (!(pushalloc && preg == pushallocreg))
 #else
@@ -1719,8 +1733,11 @@ Lcont:
 		    else
 #endif
 		    {	// MOV offset[ESP],preg
+			// BUG: byte size?
 			c2 = genc1(CNIL,0x89,modregrm(2,preg,4),FLconst,offset);
 			c2->Isib = modregrm(0,4,SP);
+//			if (offset & 2)
+//			    c2->Iflags |= CFopsize;
 			c = cat(c,c2);
 		    }
 		}
