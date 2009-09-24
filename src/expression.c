@@ -6092,9 +6092,10 @@ CallExp::CallExp(Loc loc, Expression *e, Expression *earg1)
 	: UnaExp(loc, TOKcall, sizeof(CallExp), e)
 {
     Expressions *arguments = new Expressions();
-    arguments->setDim(1);
-    arguments->data[0] = (void *)earg1;
-
+    if (earg1)
+    {	arguments->setDim(1);
+	arguments->data[0] = (void *)earg1;
+    }
     this->arguments = arguments;
 }
 

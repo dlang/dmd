@@ -756,6 +756,7 @@ typedef struct FUNC_S
 	#define Fnested		0x1000	// D nested function with 'this'
 	#define Fmember		0x2000	// D member function with 'this'
 	#define Fnotailrecursion 0x4000	// no tail recursion optimizations
+	#define Ffakeeh		0x8000	// allocate space for NT EH context sym anyway
     unsigned char Foper;	// operator number (OPxxxx) if Foperator
 
     Symbol *Fparsescope;	// use this scope to parse friend functions

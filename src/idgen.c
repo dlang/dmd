@@ -40,6 +40,8 @@ Msgtable msgtable[] =
     { "_postblit", "__postblit" },
     { "classInvariant", "__invariant" },
     { "unitTest", "__unitTest" },
+    { "require", "__require" },
+    { "ensure", "__ensure" },
     { "init" },
     { "size" },
     { "__sizeof", "sizeof" },

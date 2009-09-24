@@ -748,7 +748,7 @@ elem *SymbolExp::toElem(IRState *irs)
 
     if (s->Sclass == SCauto && s->Ssymnum == -1)
     {
-	//printf("\tadding symbol\n");
+	//printf("\tadding symbol %s\n", s->Sident);
 	symbol_add(s);
     }
 

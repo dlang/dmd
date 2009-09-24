@@ -424,7 +424,7 @@ Expression *CastExp::buildArrayLoop(Arguments *fparams)
 	return e1->buildArrayLoop(fparams);
     }
     else
-	Expression::buildArrayLoop(fparams);
+	return Expression::buildArrayLoop(fparams);
 }
 
 Expression *SliceExp::buildArrayLoop(Arguments *fparams)
