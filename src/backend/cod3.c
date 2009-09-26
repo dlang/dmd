@@ -1411,7 +1411,9 @@ Lagain:
 		dwarf_CFA_set_reg_offset(SP, 8); // CFA is now 8[ESP]
 		dwarf_CFA_offset(BP, -8);	// EBP is at 0[ESP]
 		dwarf_CFA_set_loc(3);		// address after MOV EBP,ESP
-		dwarf_CFA_set_reg_offset(BP, 0);	// CFA is now 0[EBP]
+		// Yes, I know the parameter is 8 when we mean 0!
+		// But this gets the cfa register set to EBP correctly
+		dwarf_CFA_set_reg_offset(BP, 8);	// CFA is now 0[EBP]
 	    }
 #endif
 	}

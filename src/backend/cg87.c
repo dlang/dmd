@@ -914,7 +914,8 @@ code *orth87(elem *e,regm_t *pretregs)
 	case X(OPadd, TYdouble, TYdouble):
 	case X(OPadd, TYdouble_alias, TYdouble_alias):
 	case X(OPadd, TYldouble, TYldouble):
-//	case X(OPadd, TYldouble, TYdouble):
+	case X(OPadd, TYldouble, TYdouble):
+	case X(OPadd, TYdouble, TYldouble):
 	case X(OPadd, TYifloat, TYifloat):
 	case X(OPadd, TYidouble, TYidouble):
 	case X(OPadd, TYildouble, TYildouble):
@@ -925,8 +926,8 @@ code *orth87(elem *e,regm_t *pretregs)
 	case X(OPmin, TYdouble, TYdouble):
 	case X(OPmin, TYdouble_alias, TYdouble_alias):
 	case X(OPmin, TYldouble, TYldouble):
-//	case X(OPmin, TYldouble, TYdouble):
-//	case X(OPmin, TYdouble, TYldouble):
+	case X(OPmin, TYldouble, TYdouble):
+	case X(OPmin, TYdouble, TYldouble):
 	case X(OPmin, TYifloat, TYifloat):
 	case X(OPmin, TYidouble, TYidouble):
 	case X(OPmin, TYildouble, TYildouble):
@@ -937,7 +938,8 @@ code *orth87(elem *e,regm_t *pretregs)
 	case X(OPmul, TYdouble, TYdouble):
 	case X(OPmul, TYdouble_alias, TYdouble_alias):
 	case X(OPmul, TYldouble, TYldouble):
-//	case X(OPmul, TYldouble, TYdouble):
+	case X(OPmul, TYldouble, TYdouble):
+	case X(OPmul, TYdouble, TYldouble):
 	case X(OPmul, TYifloat, TYifloat):
 	case X(OPmul, TYidouble, TYidouble):
 	case X(OPmul, TYildouble, TYildouble):
@@ -954,8 +956,8 @@ code *orth87(elem *e,regm_t *pretregs)
 	case X(OPdiv, TYdouble, TYdouble):
 	case X(OPdiv, TYdouble_alias, TYdouble_alias):
 	case X(OPdiv, TYldouble, TYldouble):
-//	case X(OPdiv, TYldouble, TYdouble):
-//	case X(OPdiv, TYdouble, TYldouble):
+	case X(OPdiv, TYldouble, TYdouble):
+	case X(OPdiv, TYdouble, TYldouble):
 	case X(OPdiv, TYifloat, TYifloat):
 	case X(OPdiv, TYidouble, TYidouble):
 	case X(OPdiv, TYildouble, TYildouble):
@@ -1364,7 +1366,14 @@ code *orth87(elem *e,regm_t *pretregs)
     #undef X
 
     e2oper = e2->Eoper;
-    if (e1->Eoper == OPconst ||
+
+    /* Move double-sized operand into the second position if there's a chance
+     * it will allow combining a load with an operation (DMD Bugzilla 2905)
+     */
+    if ( ((tybasic(e1->Ety) == TYdouble)
+          && ((e1->Eoper == OPvar) || (e1->Eoper == OPconst))
+          && (tybasic(e2->Ety) != TYdouble)) ||
+        (e1->Eoper == OPconst) ||
 	(e1->Eoper == OPvar &&
 	 ((e1->Ety & (mTYconst | mTYimmutable) && !OTleaf(e2oper)) ||
 	  (e2oper == OPd_f &&

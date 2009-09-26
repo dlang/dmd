@@ -87,7 +87,7 @@ Symbol *Dsymbol::toSymbolX(const char *prefix, int sclass, type *t, const char *
     }
 #endif
     id = (char *) alloca(2 + nlen + sizeof(size_t) * 3 + strlen(prefix) + strlen(suffix) + 1);
-    sprintf(id,"_D%s%lu%s%s", n, strlen(prefix), prefix, suffix);
+    sprintf(id,"_D%s%zu%s%s", n, strlen(prefix), prefix, suffix);
 #if 0
     if (global.params.isWindows &&
 	(type_mangle(t) == mTYman_c || type_mangle(t) == mTYman_std))

@@ -1820,7 +1820,7 @@ Statement *ForeachStatement::semantic(Scope *sc)
 		    default:		assert(0);
 		}
 		const char *r = (op == TOKforeach_reverse) ? "R" : "";
-		int j = sprintf(fdname, "_aApply%s%.*s%ld", r, 2, fntab[flag], dim);
+		int j = sprintf(fdname, "_aApply%s%.*s%zd", r, 2, fntab[flag], dim);
 		assert(j < sizeof(fdname));
 		fdapply = FuncDeclaration::genCfunc(Type::tindex, fdname);
 

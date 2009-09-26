@@ -3290,6 +3290,7 @@ printf("index->ito->ito = x%x\n", index->ito->ito);
 	case Tfunction:
 	case Tvoid:
 	case Tnone:
+	case Ttuple:
 	    error(loc, "can't have associative array key of %s", index->toBasetype()->toChars());
 	    break;
     }
