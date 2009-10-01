@@ -39,6 +39,13 @@ StringTable arrayfuncs;
 Expression *BinExp::arrayOp(Scope *sc)
 {
     //printf("BinExp::arrayOp() %s\n", toChars());
+
+    if (type->toBasetype()->nextOf()->toBasetype()->ty == Tvoid)
+    {
+        error("Cannot perform array operations on void[] arrays");
+        return new ErrorExp();
+    }
+
     Expressions *arguments = new Expressions();
 
     /* The expression to generate an array operation for is mangled

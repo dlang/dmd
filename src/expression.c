@@ -1166,7 +1166,11 @@ void Expression::checkPurity(Scope *sc, FuncDeclaration *f)
 int Expression::checkSideEffect(int flag)
 {
     if (flag == 0)
-    {	if (op == TOKimport)
+    {
+	if (op == TOKerror)
+	{   // Error should have already been printed
+	}
+	else if (op == TOKimport)
 	{
 	    error("%s has no effect", toChars());
 	}
@@ -1243,10 +1247,10 @@ Expression *Expression::addressOf(Scope *sc)
 Expression *Expression::deref()
 {
     //printf("Expression::deref()\n");
-    if (type->ty == Treference)
-    {	Expression *e;
-
-	e = new PtrExp(loc, this);
+    // type could be null if forward referencing an 'auto' variable
+    if (type && type->ty == Treference)
+    {
+	Expression *e = new PtrExp(loc, this);
 	e->type = ((TypeReference *)type)->next;
 	return e;
     }
@@ -1399,7 +1403,10 @@ dinteger_t IntegerExp::toInteger()
 		 * the type is painted on like in fromConstInitializer().
 		 */
 		if (!global.errors)
-		{   type->print();
+		{
+printf("ty = %d, %d\n", type->ty, t->ty);
+if (type->ty == Tenum) printf("test1\n");
+		    type->print();
 		    assert(0);
 		}
 		break;
@@ -1595,6 +1602,7 @@ void IntegerExp::toMangleBuffer(OutBuffer *buf)
 ErrorExp::ErrorExp()
     : IntegerExp(0, 0, Type::terror)
 {
+    op = TOKerror;
 }
 
 void ErrorExp::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
@@ -5157,6 +5165,46 @@ int BinExp::checkSideEffect(int flag)
     return Expression::checkSideEffect(flag);
 }
 
+// generate an error if this is a nonsensical *=,/=, or %=, eg real *= imaginary
+void BinExp::checkComplexMulAssign()
+{
+    // Any multiplication by an imaginary or complex number yields a complex result.
+    // r *= c, i*=c, r*=i, i*=i are all forbidden operations.
+    const char *opstr = Token::toChars(op);
+    if ( e1->type->isreal() && e2->type->iscomplex())
+    {
+        error("%s %s %s is undefined. Did you mean %s %s %s.re ?",
+            e1->type->toChars(), opstr, e2->type->toChars(), 
+            e1->type->toChars(), opstr, e2->type->toChars());
+    }
+    else if (e1->type->isimaginary() && e2->type->iscomplex())
+    {
+        error("%s %s %s is undefined. Did you mean %s %s %s.im ?",
+            e1->type->toChars(), opstr, e2->type->toChars(),
+            e1->type->toChars(), opstr, e2->type->toChars());
+    }
+    else if ((e1->type->isreal() || e1->type->isimaginary()) &&
+	e2->type->isimaginary())
+    {
+        error("%s %s %s is an undefined operation", e1->type->toChars(),
+		opstr, e2->type->toChars());
+    }
+}
+
+// generate an error if this is a nonsensical += or -=, eg real += imaginary
+void BinExp::checkComplexAddAssign()
+{
+    // Addition or subtraction of a real and an imaginary is a complex result.
+    // Thus, r+=i, r+=c, i+=r, i+=c are all forbidden operations.
+    if ( (e1->type->isreal() && (e2->type->isimaginary() || e2->type->iscomplex())) ||
+         (e1->type->isimaginary() && (e2->type->isreal() || e2->type->iscomplex()))        
+        )
+    {
+        error("%s %s %s is undefined (result is complex)",
+	    e1->type->toChars(), Token::toChars(op), e2->type->toChars());
+    }
+}
+
 void BinExp::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 {
     expToCBuffer(buf, hgs, e1, precedence[op]);
@@ -7357,6 +7405,18 @@ Expression *CastExp::semantic(Scope *sc)
 	    e = e->semantic(sc);
 	    return e;
 	}
+
+	// Struct casts are possible only when the sizes match
+	if (tob->ty == Tstruct || t1b->ty == Tstruct)
+	{
+	    size_t fromsize = t1b->size(loc);
+	    size_t tosize = tob->size(loc);
+	    if (fromsize != tosize)
+	    {
+		error("cannot cast from %s to %s", e1->type->toChars(), to->toChars());
+		return new ErrorExp();
+	    }
+	}
     }
     else if (!to)
     {	error("cannot cast tuple");
@@ -8522,6 +8582,7 @@ Expression *AddAssignExp::semantic(Scope *sc)
 	    typeCombine(sc);
 	    e1->checkArithmetic();
 	    e2->checkArithmetic();
+	    checkComplexAddAssign();
 	    if (type->isreal() || type->isimaginary())
 	    {
 		assert(global.errors || e2->type->isfloating());
@@ -8569,6 +8630,7 @@ Expression *MinAssignExp::semantic(Scope *sc)
     {
 	e1 = e1->checkArithmetic();
 	e2 = e2->checkArithmetic();
+	checkComplexAddAssign();
 	type = e1->type;
 	typeCombine(sc);
 	if (type->isreal() || type->isimaginary())
@@ -8670,6 +8732,7 @@ Expression *MulAssignExp::semantic(Scope *sc)
     typeCombine(sc);
     e1->checkArithmetic();
     e2->checkArithmetic();
+    checkComplexMulAssign();
     if (e2->type->isfloating())
     {	Type *t1;
 	Type *t2;
@@ -8733,6 +8796,7 @@ Expression *DivAssignExp::semantic(Scope *sc)
     typeCombine(sc);
     e1->checkArithmetic();
     e2->checkArithmetic();
+    checkComplexMulAssign();
     if (e2->type->isimaginary())
     {	Type *t1;
 	Type *t2;
@@ -8776,6 +8840,8 @@ ModAssignExp::ModAssignExp(Loc loc, Expression *e1, Expression *e2)
 
 Expression *ModAssignExp::semantic(Scope *sc)
 {
+    BinExp::semantic(sc);
+    checkComplexMulAssign();
     return commonSemanticAssign(sc);
 }
 

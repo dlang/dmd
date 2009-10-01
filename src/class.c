@@ -732,17 +732,22 @@ void ClassDeclaration::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 	//buf->writestring(b->base->ident->toChars());
 	b->type->toCBuffer(buf, NULL, hgs);
     }
-    buf->writenl();
-    buf->writeByte('{');
-    buf->writenl();
-    for (int i = 0; i < members->dim; i++)
+    if (members)
     {
-	Dsymbol *s = (Dsymbol *)members->data[i];
+	buf->writenl();
+	buf->writeByte('{');
+	buf->writenl();
+	for (int i = 0; i < members->dim; i++)
+	{
+	    Dsymbol *s = (Dsymbol *)members->data[i];
 
-	buf->writestring("    ");
-	s->toCBuffer(buf, hgs);
+	    buf->writestring("    ");
+	    s->toCBuffer(buf, hgs);
+	}
+	buf->writestring("}");
     }
-    buf->writestring("}");
+    else
+	buf->writeByte(';');
     buf->writenl();
 }
 

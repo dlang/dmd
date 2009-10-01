@@ -835,6 +835,8 @@ Expression *IdentityExp::optimize(int result)
 	(this->e1->op == TOKnull && this->e2->op == TOKnull))
     {
 	e = Identity(op, type, this->e1, this->e2);
+	if (e == EXP_CANT_INTERPRET)
+	    e = this;
     }
     return e;
 }

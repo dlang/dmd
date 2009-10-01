@@ -4606,13 +4606,46 @@ elem *doptelem(elem *e,HINT goal)
 
 void postoptelem(elem *e)
 {
+    int linnum = 0;
+    char *filename = NULL;
+
     elem_debug(e);
     while (1)
     {
 	if (OTunary(e->Eoper))
+	{
+	    /* This is necessary as the optimizer tends to lose this information
+	     */
+#if MARS
+	    if (e->Esrcpos.Slinnum > linnum)
+	    {   linnum = e->Esrcpos.Slinnum;
+		filename = e->Esrcpos.Sfilename;
+	    }
+#endif
+	    if (e->Eoper == OPind)
+	    {
+#if MARS
+		if (e->E1->Eoper == OPconst &&
+		    el_tolong(e->E1) >= 0 && el_tolong(e->E1) < 4096)
+		{
+		    error(filename, linnum, "null dereference in function %s", funcsym_p->Sident);
+		    e->E1->EV.Vlong = 4096;	// suppress redundant messages
+		}
+#endif
+	    }
 	    e = e->E1;
+	}
 	else if (OTbinary(e->Eoper))
-	{   if (e->Eoper == OPparam)
+	{
+#if MARS
+	    /* This is necessary as the optimizer tends to lose this information
+	     */
+	    if (e->Esrcpos.Slinnum > linnum)
+	    {   linnum = e->Esrcpos.Slinnum;
+		filename = e->Esrcpos.Sfilename;
+	    }
+#endif
+	    if (e->Eoper == OPparam)
 	    {
 		elparamx(e);
 	    }

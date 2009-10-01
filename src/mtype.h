@@ -668,8 +668,13 @@ struct TypeEnum : Type
     Expression *getProperty(Loc loc, Identifier *ident);
     int isintegral();
     int isfloating();
+    int isreal();
+    int isimaginary();
+    int iscomplex();
     int isscalar();
     int isunsigned();
+    int checkBoolean();
+    int isAssignable();
     MATCH implicitConvTo(Type *to);
     MATCH constConv(Type *to);
     Type *toBasetype();

@@ -3454,16 +3454,22 @@ Statement *ReturnStatement::semantic(Scope *sc)
 	return gs;
     }
 
-    if (exp && tbret->ty == Tvoid && !fd->isMain())
+    if (exp && tbret->ty == Tvoid && !implicit0)
     {
 	/* Replace:
 	 *	return exp;
 	 * with:
 	 *	exp; return;
+	 * or, if main():
+	 *	exp; return 0;
 	 */
 	Statement *s = new ExpStatement(loc, exp);
+	//s = s->semantic(sc);
 	loc = 0;
-	exp = NULL;
+	if (fd->isMain())
+	    exp = new IntegerExp(0);
+	else
+	    exp = NULL;
 	return new CompoundStatement(loc, s, this);
     }
 

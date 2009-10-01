@@ -744,6 +744,8 @@ struct BinExp : Expression
     Expression *commonSemanticAssign(Scope *sc);
     Expression *commonSemanticAssignIntegral(Scope *sc);
     int checkSideEffect(int flag);
+    void checkComplexMulAssign();
+    void checkComplexAddAssign();
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
     Expression *scaleFactor(Scope *sc);
     Expression *typeCombine(Scope *sc);

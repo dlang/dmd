@@ -110,6 +110,7 @@ enum TOK
 	TOKidentifier,	TOKstring,
 	TOKthis,	TOKsuper,
 	TOKhalt,	TOKtuple,
+	TOKerror,
 
 	// Basic types
 	TOKvoid,

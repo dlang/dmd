@@ -1267,20 +1267,22 @@ void FuncDeclaration::semantic3(Scope *sc)
 		v_argptr = argptr;
 		v_argptr->init = new VoidInitializer(loc);
 #else
-		Expression *e1;
-		Expression *e;
 		Type *t = argptr->type;
 		VarDeclaration *p;
 		unsigned offset;
 
-		e1 = new VarExp(0, argptr);
+		Expression *e1 = new VarExp(0, argptr);
 		if (parameters && parameters->dim)
 		    p = (VarDeclaration *)parameters->data[parameters->dim - 1];
 		else
 		    p = v_arguments;		// last parameter is _arguments[]
-		offset = p->type->size();
+		if (p->storage_class & STClazy)
+		    // If the last parameter is lazy, it's the size of a delegate
+		    offset = PTRSIZE * 2;
+		else
+		    offset = p->type->size();
 		offset = (offset + 3) & ~3;	// assume stack aligns on 4
-		e = new SymOffExp(0, p, offset);
+		Expression *e = new SymOffExp(0, p, offset);
 		e = new AssignExp(0, e1, e);
 		e->type = t;
 		a->push(new ExpStatement(0, e));
