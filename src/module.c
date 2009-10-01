@@ -815,8 +815,11 @@ Dsymbol *Module::search(Loc loc, Identifier *ident, int flags)
     Dsymbol *s;
     if (insearch)
 	s = NULL;
-    else if (searchCacheIdent == ident && searchCacheFlags == flags)
+    else if (searchCacheIdent == ident && searchCacheFlags == flags && searchCacheSymbol)
+    {
 	s = searchCacheSymbol;
+	//printf("%s Module::search('%s', flags = %d) insearch = %d searchCacheSymbol = %s\n", toChars(), ident->toChars(), flags, insearch, searchCacheSymbol ? searchCacheSymbol->toChars() : "null");
+    }
     else
     {
 	insearch = 1;

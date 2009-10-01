@@ -842,7 +842,7 @@ Expression *Equal(enum TOK op, Type *type, Expression *e1, Expression *e2)
     {
 	cmp = e1->toComplex() == e2->toComplex();
     }
-    else if (e1->type->isintegral())
+    else if (e1->type->isintegral() || e1->type->toBasetype()->ty == Tpointer)
     {
 	cmp = (e1->toInteger() == e2->toInteger());
     }

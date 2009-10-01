@@ -1763,7 +1763,7 @@ Statement *ForeachStatement::semantic(Scope *sc)
 		    default:		assert(0);
 		}
 		const char *r = (op == TOKforeach_reverse) ? "R" : "";
-		int j = sprintf(fdname, "_aApply%s%.*s%ld", r, 2, fntab[flag], dim);
+		int j = sprintf(fdname, "_aApply%s%.*s%zd", r, 2, fntab[flag], dim);
 		assert(j < sizeof(fdname));
 		fdapply = FuncDeclaration::genCfunc(Type::tindex, fdname);
 
@@ -3306,16 +3306,22 @@ Statement *ReturnStatement::semantic(Scope *sc)
 	return gs;
     }
 
-    if (exp && tbret->ty == Tvoid && !fd->isMain())
+    if (exp && tbret->ty == Tvoid && !implicit0)
     {
 	/* Replace:
 	 *	return exp;
 	 * with:
 	 *	exp; return;
+	 * or, if main():
+	 *	exp; return 0;
 	 */
 	Statement *s = new ExpStatement(loc, exp);
+	//s = s->semantic(sc);
 	loc = 0;
-	exp = NULL;
+	if (fd->isMain())
+	    exp = new IntegerExp(0);
+	else
+	    exp = NULL;
 	return new CompoundStatement(loc, s, this);
     }
 

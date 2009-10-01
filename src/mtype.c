@@ -2225,6 +2225,7 @@ Type *TypeAArray::semantic(Loc loc, Scope *sc)
 	case Tfunction:
 	case Tvoid:
 	case Tnone:
+	case Ttuple:
 	    error(loc, "can't have associative array key of %s", key->toChars());
 	    break;
     }
@@ -2751,10 +2752,10 @@ void TypeFunction::toCBuffer2(OutBuffer *buf, HdrGenState *hgs, int mod)
 	switch (linkage)
 	{
 	    case LINKd:		p = NULL;	break;
-	    case LINKc:		p = "C ";	break;
-	    case LINKwindows:	p = "Windows ";	break;
-	    case LINKpascal:	p = "Pascal ";	break;
-	    case LINKcpp:	p = "C++ ";	break;
+	    case LINKc:		p = " C";	break;
+	    case LINKwindows:	p = " Windows";	break;
+	    case LINKpascal:	p = " Pascal";	break;
+	    case LINKcpp:	p = " C++";	break;
 	    default:
 		assert(0);
 	}
@@ -3214,6 +3215,19 @@ void TypeQualified::resolveHelper(Loc loc, Scope *sc,
 			goto Lerror;
 		    goto L3;
 		}
+		else if (v && id == Id::stringof)
+		{
+		    e = new DsymbolExp(loc, s);
+		    do
+		    {
+			id = (Identifier *)idents.data[i];
+			e = new DotIdExp(loc, e, id);
+		    } while (++i < idents.dim);
+		    e = e->semantic(sc);
+		    *pe = e;
+		    return;
+		}
+
 		t = s->getType();
 		if (!t && s->isDeclaration())
 		    t = s->isDeclaration()->type;
@@ -3310,19 +3324,27 @@ L1:
 	{
 	    if (t->reliesOnTident())
 	    {
-		Scope *scx;
-
-		for (scx = sc; 1; scx = scx->enclosing)
+		if (s->scope)
+		    t = t->semantic(loc, s->scope);
+		else
 		{
-		    if (!scx)
-		    {   error(loc, "forward reference to '%s'", t->toChars());
-			return;
+		    /* Attempt to find correct scope in which to evaluate t.
+		     * Not sure if this is right or not, or if we should just
+		     * give forward reference error if s->scope is not set.
+		     */
+		    for (Scope *scx = sc; 1; scx = scx->enclosing)
+		    {
+			if (!scx)
+			{   error(loc, "forward reference to '%s'", t->toChars());
+			    return;
+			}
+			if (scx->scopesym == scopesym)
+			{
+			    t = t->semantic(loc, scx);
+			    break;
+			}
 		    }
-		    if (scx->scopesym == scopesym)
-			break;
 		}
-		t = t->semantic(loc, scx);
-		//((TypeIdentifier *)t)->resolve(loc, scx, pe, &t, ps);
 	    }
 	}
 	if (t->ty == Ttuple)
@@ -4755,9 +4777,16 @@ L1:
 
     if (e->op == TOKtype)
     {
-	VarExp *ve;
-
-	if (d->needThis() && (hasThis(sc) || !d->isFuncDeclaration()))
+	/* It's:
+	 *    Class.d
+	 */
+	if (d->isTupleDeclaration())
+	{
+	    e = new TupleExp(e->loc, d->isTupleDeclaration());
+	    e = e->semantic(sc);
+	    return e;
+	}
+	else if (d->needThis() && (hasThis(sc) || !(sc->intypeof || d->isFuncDeclaration())))
 	{
 	    if (sc->func)
 	    {
@@ -4786,15 +4815,11 @@ L1:
 	    e = de->semantic(sc);
 	    return e;
 	}
-	else if (d->isTupleDeclaration())
-	{
-	    e = new TupleExp(e->loc, d->isTupleDeclaration());
-	    e = e->semantic(sc);
-	    return e;
-	}
 	else
-	    ve = new VarExp(e->loc, d);
-	return ve;
+	{
+	    VarExp *ve = new VarExp(e->loc, d);
+	    return ve;
+	}
     }
 
     if (d->isDataseg())

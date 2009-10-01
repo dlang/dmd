@@ -2267,7 +2267,7 @@ code *cdcnvt(elem *e, regm_t *pretregs)
 	    case OPd_f:
 		/* if won't do us much good to transfer back and	*/
 		/* forth between 8088 registers and 8087 registers	*/
-		if (OTcall(e->E1->Eoper))
+		if (OTcall(e->E1->Eoper) && !(*pretregs & allregs))
 		{
 		    retregs = regmask(e->E1->Ety, e->E1->E1->Ety);
 		    if (retregs & (mST01 | mST0))	// if return in ST0

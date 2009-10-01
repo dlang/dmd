@@ -204,7 +204,7 @@ STATIC void conpropwalk(elem *n,vec_t IN)
 
 	assert(n && IN);
 	/*chkvecdim(deftop,0);*/
-	//dbg_printf("conpropwalk()\n"),elem_print(n);
+	//printf("conpropwalk()\n"),elem_print(n);
 	op = n->Eoper;
 	if (op == OPcolon || op == OPcolon2)
 	{	L = vec_clone(IN);
@@ -330,6 +330,7 @@ STATIC void conpropwalk(elem *n,vec_t IN)
 	if (op == OPvar && sytab[n->EV.sp.Vsym->Sclass] & SCRD)
 	{   list_t rdl;
 
+	    //printf("const prop: %s\n", n->EV.sp.Vsym->Sident);
 	    rdl = listrds(IN,n,NULL);
 	    if (rdtype == RDconstprop)
 	    {	elem *e;
@@ -490,7 +491,8 @@ STATIC elem * chkprop(elem *n,list_t rdlist)
 		/* (in case of assigning to overlapping unions, etc.)	*/
 		if (t->EV.sp.Voffset != noff ||
 		    /* If sizes match, we are ok	*/
-		    size(t->Ety) != nsize)
+		    size(t->Ety) != nsize &&
+			!(d->E2->Eoper == OPconst && size(t->Ety) > nsize && !tyfloating(d->E2->Ety)))
 		    goto noprop;
 	    }
 	    else

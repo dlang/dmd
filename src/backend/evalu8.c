@@ -624,8 +624,8 @@ elem * evalu8(elem *e)
   /*dbg_printf("x%lx ",l1); WROP(op); dbg_printf("x%lx = ",l2);*/
   if (0 && e2)
   {
-      dbg_printf("d1 = %Lg, d2 = %Lg, op = %d, OPne = %d, tym = x%x\n",d1,d2,op,OPne,tym);
-      dbg_printf("tym1 = x%x, tym2 = x%x, e2 = %g\n",tym,tym2,e2->EV.Vdouble);
+      dbg_printf("d1 = %Lg, d2 = %Lg, op = %d, OPne = %d, tym = x%lx\n",d1,d2,op,OPne,tym);
+      dbg_printf("tym1 = x%lx, tym2 = x%lx, e2 = %g\n",tym,tym2,e2->EV.Vdouble);
       dbg_printf("d1 = x%08lx%08lx\n",((long*)&d1)[1],((long*)&d1)[0]);
       dbg_printf("d2 = x%08lx%08lx\n",((long*)&d2)[1],((long*)&d2)[0]);
   }

@@ -2052,7 +2052,7 @@ L1:
  * operations, since then it could change the type (eg, in the function call
  * printf("%La", 2.0L); the 2.0 must stay as a long double).
  */
-#if 0
+#if 1
 void shrinkLongDoubleConstantIfPossible(elem *e)
 {
     if (e->Eoper == OPconst && e->Ety == TYldouble)
@@ -2115,7 +2115,7 @@ elem *el_convert(elem *e)
 		 */
 		break;
 	    }
-#if 0
+#if 1
 	case OPdiv:
 	case OPadd:
 	case OPmin:

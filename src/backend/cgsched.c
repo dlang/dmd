@@ -1811,8 +1811,8 @@ STATIC int conflict(Cinfo *ci1,Cinfo *ci2,int fpsched)
     a2 = ci2->a;
     sz2 = ci2->sz;
 
-    //printf("r1 %x w1 %x a1 %x sz1 %x\n",r1,w1,a1,sz1);
-    //printf("r2 %x w2 %x a2 %x sz2 %x\n",r2,w2,a2,sz2);
+    //printf("r1 %lx w1 %lx a1 %lx sz1 %x\n",r1,w1,a1,sz1);
+    //printf("r2 %lx w2 %lx a2 %lx sz2 %x\n",r2,w2,a2,sz2);
 
     if ((c1->Iflags | c2->Iflags) & CFvolatile)
 	goto Lconflict;
@@ -1837,7 +1837,7 @@ STATIC int conflict(Cinfo *ci1,Cinfo *ci2,int fpsched)
 #if 0
     if (c1->Iop == 0xFF && c2->Iop == 0x8B)
     {	c1->print(); c2->print(); i = 1;
-	printf("r1=%x, w1=%x, a1=%x, sz1=%d, r2=%x, w2=%x, a2=%x, sz2=%d\n",r1,w1,a1,sz1,r2,w2,a2,sz2);
+	printf("r1=%lx, w1=%lx, a1=%lx, sz1=%d, r2=%lx, w2=%lx, a2=%lx, sz2=%d\n",r1,w1,a1,sz1,r2,w2,a2,sz2);
     }
 #endif
 L1:
@@ -1869,7 +1869,7 @@ if (c2->IEVpointer1 + sz2 <= c1->IEVpointer1) printf("t5\n");
 	// If other than the memory reference is a conflict
 	if (w1 & r2 & ~mMEM || (r1 | w1) & w2 & ~mMEM)
 	{   if (i) printf("\t1\n");
-	    if (i) printf("r1=%x, w1=%x, a1=%x, sz1=%d, r2=%x, w2=%x, a2=%x, sz2=%d\n",r1,w1,a1,sz1,r2,w2,a2,sz2);
+	    if (i) printf("r1=%lx, w1=%lx, a1=%lx, sz1=%d, r2=%lx, w2=%lx, a2=%lx, sz2=%d\n",r1,w1,a1,sz1,r2,w2,a2,sz2);
 	    goto Lconflict;
 	}
 

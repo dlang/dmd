@@ -926,7 +926,7 @@ elem *RealExp::toElem(IRState *irs)
 	    print();
 	    type->print();
 	    type->toBasetype()->print();
-	    printf("ty = %d, tym = %x\n", type->ty, ty);
+	    printf("ty = %d, tym = %lx\n", type->ty, ty);
 	    assert(0);
     }
     return el_const(ty, &c);

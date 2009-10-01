@@ -672,6 +672,8 @@ Expression *IdentityExp::optimize(int result)
     if (this->e1->isConst() && this->e2->isConst())
     {
 	e = Identity(op, type, this->e1, this->e2);
+	if (e == EXP_CANT_INTERPRET)
+	    e = this;
     }
     return e;
 }

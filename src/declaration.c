@@ -1029,10 +1029,10 @@ void VarDeclaration::semantic(Scope *sc)
 		else if (t->ty == Tstruct)
 		{
 		    ei->exp = ei->exp->semantic(sc);
+		    StructDeclaration *sd = ((TypeStruct *)t)->sym;
 #if DMDV2
 		    /* Look to see if initializer is a call to the constructor
 		     */
-		    StructDeclaration *sd = ((TypeStruct *)t)->sym;
 		    if (sd->ctor &&		// there are constructors
 			ei->exp->type->ty == Tstruct &&	// rvalue is the same struct
 			((TypeStruct *)ei->exp->type)->sym == sd &&
@@ -1069,7 +1069,21 @@ void VarDeclaration::semantic(Scope *sc)
 		    }
 #endif
 		    if (!ei->exp->implicitConvTo(type))
-			ei->exp = new CastExp(loc, ei->exp, type);
+		    {
+			/* Look for opCall
+			 * See bugzilla 2702 for more discussion
+			 */
+			Type *ti = ei->exp->type->toBasetype();
+			// Don't cast away invariant or mutability in initializer
+			if (search_function(sd, Id::call) &&
+			    /* Initializing with the same type is done differently
+			     */
+			    !(ti->ty == Tstruct && t->toDsymbol(sc) == ti->toDsymbol(sc)))
+			{   // Rewrite as e1.call(arguments)
+			    Expression * eCall = new DotIdExp(loc, e1, Id::call);
+			    ei->exp = new CallExp(loc, eCall, ei->exp);
+			}
+		    }
 		}
 		ei->exp = new AssignExp(loc, e1, ei->exp);
 		ei->exp->op = TOKconstruct;
