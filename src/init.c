@@ -390,6 +390,7 @@ Initializer *ArrayInitializer::semantic(Scope *sc, Type *t)
 
 /********************************
  * If possible, convert array initializer to array literal.
+ * Otherwise return NULL.
  */
 
 Expression *ArrayInitializer::toExpression()
@@ -471,9 +472,7 @@ Expression *ArrayInitializer::toExpression()
     }
 
 Lno:
-    delete elements;
-    error(loc, "array initializers as expressions are not allowed");
-    return new ErrorExp();
+    return NULL;
 }
 
 
@@ -635,6 +634,15 @@ Type *ExpInitializer::inferType(Scope *sc)
     if (exp->op == TOKsymoff)
     {   SymOffExp *se = (SymOffExp *)exp;
 	if (se->hasOverloads && !se->var->isFuncDeclaration()->isUnique())
+	    exp->error("cannot infer type from overloaded function symbol %s", exp->toChars());
+    }
+
+    // Give error for overloaded function addresses
+    if (exp->op == TOKdelegate)
+    {   DelegateExp *se = (DelegateExp *)exp;
+	if (
+	    se->func->isFuncDeclaration() &&
+	    !se->func->isFuncDeclaration()->isUnique())
 	    exp->error("cannot infer type from overloaded function symbol %s", exp->toChars());
     }
 
