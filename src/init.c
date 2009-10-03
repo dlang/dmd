@@ -623,14 +623,27 @@ Type *ExpInitializer::inferType(Scope *sc)
     exp = exp->semantic(sc);
     exp = resolveProperties(sc, exp);
 
-#if DMDV2
     // Give error for overloaded function addresses
     if (exp->op == TOKsymoff)
     {   SymOffExp *se = (SymOffExp *)exp;
-	if (se->hasOverloads && !se->var->isFuncDeclaration()->isUnique())
+	if (
+#if DMDV2
+	    se->hasOverloads &&
+#else
+	    se->var->isFuncDeclaration() &&
+#endif
+	    !se->var->isFuncDeclaration()->isUnique())
 	    exp->error("cannot infer type from overloaded function symbol %s", exp->toChars());
     }
-#endif
+
+    // Give error for overloaded function addresses
+    if (exp->op == TOKdelegate)
+    {   DelegateExp *se = (DelegateExp *)exp;
+	if (
+	    se->func->isFuncDeclaration() &&
+	    !se->func->isFuncDeclaration()->isUnique())
+	    exp->error("cannot infer type from overloaded function symbol %s", exp->toChars());
+    }
 
     Type *t = exp->type;
     if (!t)

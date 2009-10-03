@@ -1749,6 +1749,31 @@ int overloadApply(FuncDeclaration *fstart,
 }
 
 /********************************************
+ * If there are no overloads of function f, return that function,
+ * otherwise return NULL.
+ */
+
+static int fpunique(void *param, FuncDeclaration *f)
+{   FuncDeclaration **pf = (FuncDeclaration **)param;
+
+    if (*pf)
+    {	*pf = NULL;
+	return 1;		// ambiguous, done
+    }
+    else
+    {	*pf = f;
+	return 0;
+    }
+}
+
+FuncDeclaration *FuncDeclaration::isUnique()
+{   FuncDeclaration *result = NULL;
+
+    overloadApply(this, &fpunique, &result);
+    return result;
+}
+
+/********************************************
  * Find function in overload list that exactly matches t.
  */
 

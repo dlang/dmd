@@ -38,7 +38,7 @@
 static char __file__[] = __FILE__;	/* for tassert.h		*/
 #include	"tassert.h"
 
-STATIC void symbol_undef(symbol *s);
+//STATIC void symbol_undef(symbol *s);
 STATIC void symbol_freemember(symbol *s);
 STATIC void mptr_hydrate(mptr_t **);
 STATIC void mptr_dehydrate(mptr_t **);
@@ -252,10 +252,9 @@ symbol * symbol_calloc(const char *id)
  */
 
 symbol * symbol_name(const char *name,int sclass,type *t)
-{   symbol *s;
-
+{
     type_debug(t);
-    s = symbol_calloc(name);
+    symbol *s = symbol_calloc(name);
     s->Sclass = (enum SC) sclass;
     s->Stype = t;
     s->Stype->Tcount++;
@@ -771,7 +770,6 @@ void symbol_free(symbol *s)
 	assert(/*s->Sclass != SCunde &&*/ (int) s->Sclass < (int) SCMAX);
 #endif
 	{   type *t = s->Stype;
-	    struct_t *st;
 
 	    if (t)
 		type_debug(t);
@@ -851,7 +849,7 @@ void symbol_free(symbol *s)
 #if SCPP
 		  if (CPP)
 		  {
-		    st = s->Sstruct;
+		    struct_t *st = s->Sstruct;
 		    assert(st);
 		    list_free(&st->Sclassfriends,FPNULL);
 		    list_free(&st->Sfriendclass,FPNULL);
@@ -988,6 +986,7 @@ void symbol_free(symbol *s)
  * Assume error msg was already printed.
  */
 
+#if 0
 STATIC void symbol_undef(symbol *s)
 {
   s->Sclass = SCunde;
@@ -995,13 +994,14 @@ STATIC void symbol_undef(symbol *s)
   type_free(s->Stype);			/* free type data		*/
   s->Stype = NULL;
 }
+#endif
 
 /*****************************
  * Add symbol to current symbol array.
  */
 
 SYMIDX symbol_add(symbol *s)
-{   SYMIDX si,sitop;
+{   SYMIDX sitop;
 
     //printf("symbol_add('%s')\n", s->Sident);
 #ifdef DEBUG

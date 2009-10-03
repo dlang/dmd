@@ -760,11 +760,15 @@ void functionArguments(Loc loc, Scope *sc, TypeFunction *tf, Expressions *argume
 	    {
 		arg = callCpCtor(loc, sc, arg);
 	    }
+#endif
 
 	    // Give error for overloaded function addresses
+#if DMDV2
 	    if (arg->op == TOKsymoff)
 	    {	SymOffExp *se = (SymOffExp *)arg;
-		if (se->hasOverloads && !se->var->isFuncDeclaration()->isUnique())
+		if (
+		    se->hasOverloads &&
+		    !se->var->isFuncDeclaration()->isUnique())
 		    arg->error("function %s is overloaded", arg->toChars());
 	    }
 #endif
