@@ -4064,13 +4064,19 @@ Type *TypeFunction::semantic(Loc loc, Scope *sc)
     }
 
     if (tf->parameters)
-    {	size_t dim = Argument::dim(tf->parameters);
+    {
+	/* Create a scope for evaluating the default arguments for the parameters
+	 */
+	Scope *argsc = sc->push();
+	argsc->stc = 0;			// don't inherit storage class
+	argsc->protection = PROTpublic;
 
+	size_t dim = Argument::dim(tf->parameters);
 	for (size_t i = 0; i < dim; i++)
 	{   Argument *arg = Argument::getNth(tf->parameters, i);
 
 	    tf->inuse++;
-	    arg->type = arg->type->semantic(loc,sc);
+	    arg->type = arg->type->semantic(loc, argsc);
 	    if (tf->inuse == 1) tf->inuse--;
 
 	    arg->type = arg->type->addStorageClass(arg->storageClass);
@@ -4095,9 +4101,9 @@ Type *TypeFunction::semantic(Loc loc, Scope *sc)
 
 	    if (arg->defaultArg)
 	    {
-		arg->defaultArg = arg->defaultArg->semantic(sc);
-		arg->defaultArg = resolveProperties(sc, arg->defaultArg);
-		arg->defaultArg = arg->defaultArg->implicitCastTo(sc, arg->type);
+		arg->defaultArg = arg->defaultArg->semantic(argsc);
+		arg->defaultArg = resolveProperties(argsc, arg->defaultArg);
+		arg->defaultArg = arg->defaultArg->implicitCastTo(argsc, arg->type);
 	    }
 
 	    /* If arg turns out to be a tuple, the number of parameters may
@@ -4108,6 +4114,7 @@ Type *TypeFunction::semantic(Loc loc, Scope *sc)
 		i--;
 	    }
 	}
+	argsc->pop();
     }
     if (tf->next)
 	tf->deco = tf->merge()->deco;
