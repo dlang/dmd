@@ -588,7 +588,9 @@ void FuncDeclaration::semantic(Scope *sc)
 		goto Lmainerr;
 	}
 
-	if (f->nextOf()->ty != Tint32 && f->nextOf()->ty != Tvoid)
+	if (!f->nextOf())
+	    error("must return int or void");
+	else if (f->nextOf()->ty != Tint32 && f->nextOf()->ty != Tvoid)
 	    error("must return int or void, not %s", f->nextOf()->toChars());
 	if (f->varargs)
 	{
@@ -961,6 +963,12 @@ void FuncDeclaration::semantic3(Scope *sc)
 	if (fensure || addPostInvariant())
 	{   /* fensure is composed of the [out] contracts
 	     */
+	    if (!type->nextOf())
+	    {	// Have to do semantic() on fbody first
+		error("post conditions are not supported if the return type is inferred");
+		return;
+	    }
+
 	    ScopeDsymbol *sym = new ScopeDsymbol();
 	    sym->parent = sc2->scopesym;
 	    sc2 = sc2->push(sym);

@@ -298,6 +298,8 @@ Expression *BinExp::arrayOp(Scope *sc)
 	    sc->stc = 0;
 	    sc->linkage = LINKc;
 	    fd->semantic(sc);
+	    fd->semantic2(sc);
+	    fd->semantic3(sc);
 	    sc->pop();
 	}
 	else

@@ -2111,6 +2111,13 @@ elem *InExp::toElem(IRState *irs)
 	key->Enumbytes = key->E1->Enumbytes;
 	assert(key->Enumbytes);
     }
+    else if (tybasic(key->Ety) == TYarray && taa->index->ty == Tsarray)
+    {   // e2->elem() turns string literals into a TYarray, so the
+	// length is lost. Restore it.
+	key = el_una(OPstrpar, TYstruct, key);
+	assert(e1->type->size() == taa->index->size());
+	key->Enumbytes = taa->index->size();
+    }
 
     Symbol *s = taa->aaGetSymbol("In", 0);
     keyti = taa->key->getInternalTypeInfo(NULL)->toElem(irs);
@@ -3998,7 +4005,6 @@ elem *SliceExp::toElem(IRState *irs)
 elem *IndexExp::toElem(IRState *irs)
 {   elem *e;
     elem *n1 = e1->toElem(irs);
-    elem *n2;
     elem *eb = NULL;
     Type *t1;
 
@@ -4017,11 +4023,16 @@ elem *IndexExp::toElem(IRState *irs)
 	Symbol *s;
 
 	// n2 becomes the index, also known as the key
-	n2 = e2->toElem(irs);
+	elem *n2 = e2->toElem(irs);
 	if (tybasic(n2->Ety) == TYstruct || tybasic(n2->Ety) == TYarray)
 	{
 	    n2 = el_una(OPstrpar, TYstruct, n2);
 	    n2->Enumbytes = n2->E1->Enumbytes;
+	    if (taa->index->ty == Tsarray)
+	    {
+		assert(e2->type->size() == taa->index->size());
+		n2->Enumbytes = taa->index->size();
+	    }
 	    //printf("numbytes = %d\n", n2->Enumbytes);
 	    assert(n2->Enumbytes);
 	}
@@ -4064,10 +4075,9 @@ elem *IndexExp::toElem(IRState *irs)
 	    e->Enumbytes = type->size();
     }
     else
-    {	elem *einit;
-
-	einit = resolveLengthVar(lengthVar, &n1, t1);
-	n2 = e2->toElem(irs);
+    {
+	elem *einit = resolveLengthVar(lengthVar, &n1, t1);
+	elem *n2 = e2->toElem(irs);
 
 	if (global.params.useArrayBounds)
 	{

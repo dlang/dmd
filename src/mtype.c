@@ -2642,6 +2642,9 @@ int Type::covariant(Type *t)
     Type *t1n = t1->next;
     Type *t2n = t2->next;
 
+    if (!t1n || !t2n)		// happens with return type inference
+	goto Lnotcovariant;
+
     if (t1n->equals(t2n))
 	goto Lcovariant;
     if (t1n->ty != Tclass || t2n->ty != Tclass)
@@ -4349,7 +4352,7 @@ L1:
     s = s->toAlias();
 
     v = s->isVarDeclaration();
-    if (v && v->isConst() && v->type->toBasetype()->ty != Tsarray)
+    if (v && v->isConst() && v->type && v->type->toBasetype()->ty != Tsarray)
     {	ExpInitializer *ei = v->getExpInitializer();
 
 	if (ei)

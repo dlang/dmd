@@ -794,16 +794,19 @@ MATCH TemplateDeclaration::deduceFunctionTemplateMatch(Loc loc, Objects *targsi,
     {	// Set initial template arguments
 
 	nargsi = targsi->dim;
-	if (nargsi > parameters->dim)
+	size_t n = parameters->dim;
+	if (nargsi > n)
 	{   if (!tp)
 		goto Lnomatch;
 	    dedargs->setDim(nargsi);
 	    dedargs->zero();
 	}
+	else
+	    n = nargsi;
 
-	memcpy(dedargs->data, targsi->data, nargsi * sizeof(*dedargs->data));
+	memcpy(dedargs->data, targsi->data, n * sizeof(*dedargs->data));
 
-	for (size_t i = 0; i < nargsi; i++)
+	for (size_t i = 0; i < n; i++)
 	{   assert(i < parameters->dim);
 	    TemplateParameter *tp = (TemplateParameter *)parameters->data[i];
 	    MATCH m;
@@ -845,7 +848,7 @@ MATCH TemplateDeclaration::deduceFunctionTemplateMatch(Loc loc, Objects *targsi,
      */
     if (tp)				// if variadic
     {
-	if (nfparams == 0)		// if no function parameters
+	if (nfparams == 0 && nfargs != 0)		// if no function parameters
 	{
 	    Tuple *t = new Tuple();
 	    //printf("t = %p\n", t);
@@ -4172,6 +4175,7 @@ Dsymbol *TemplateInstance::toAlias()
 #endif
     if (!inst)
     {	error("cannot resolve forward reference");
+	errors = 1;
 	return this;
     }
 
@@ -4364,6 +4368,8 @@ void TemplateMixin::semantic(Scope *sc)
 
     // Run semantic on each argument, place results in tiargs[]
     semanticTiargs(sc);
+    if (errors)
+	return;
 
     tempdecl = findBestMatch(sc);
     if (!tempdecl)

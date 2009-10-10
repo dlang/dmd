@@ -3431,8 +3431,9 @@ code *loaddata(elem *e,regm_t *pretregs)
   {
     // See if we can use register that parameter was passed in
     if (regcon.params && e->EV.sp.Vsym->Sclass == SCfastpar &&
-	regcon.params & mask[e->EV.sp.Vsym->Spreg])
-    {	assert(sz <= REGSIZE);
+	regcon.params & mask[e->EV.sp.Vsym->Spreg] &&
+	sz <= REGSIZE)			// make sure no 'paint' to a larger size happened
+    {
 	reg = e->EV.sp.Vsym->Spreg;
 	forregs = mask[reg];
 	mfuncreg &= ~forregs;

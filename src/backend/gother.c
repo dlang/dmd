@@ -477,7 +477,7 @@ STATIC elem * chkprop(elem *n,list_t rdlist)
 	//printf("\trd: "); WReqn(d); printf("\n");
 	if (d->Eoper == OPasm)		/* OPasm elems ruin everything	*/
 	    goto noprop;
-	if (OTassign(d->Eoper))		/* if assignment elem	 	*/
+	if (OTassign(d->Eoper) && EBIN(d))	// if assignment elem
 	{   elem *t = Elvalue(d);
 
 	    if (t->Eoper == OPvar)

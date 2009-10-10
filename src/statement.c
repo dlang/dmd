@@ -2528,6 +2528,11 @@ Statement *StaticAssertStatement::semantic(Scope *sc)
     return NULL;
 }
 
+int StaticAssertStatement::blockExit()
+{
+    return BEfallthru;
+}
+
 void StaticAssertStatement::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 {
     sa->toCBuffer(buf, hgs);
@@ -3312,16 +3317,11 @@ Statement *ReturnStatement::semantic(Scope *sc)
 	 *	return exp;
 	 * with:
 	 *	exp; return;
-	 * or, if main():
-	 *	exp; return 0;
 	 */
 	Statement *s = new ExpStatement(loc, exp);
-	//s = s->semantic(sc);
+	exp = NULL;
+	s = s->semantic(sc);
 	loc = 0;
-	if (fd->isMain())
-	    exp = new IntegerExp(0);
-	else
-	    exp = NULL;
 	return new CompoundStatement(loc, s, this);
     }
 

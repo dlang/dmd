@@ -440,6 +440,7 @@ struct StaticAssertStatement : Statement
     StaticAssertStatement(StaticAssert *sa);
     Statement *syntaxCopy();
     Statement *semantic(Scope *sc);
+    int blockExit();
 
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
 };
