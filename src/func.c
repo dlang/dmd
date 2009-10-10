@@ -159,22 +159,23 @@ void FuncDeclaration::semantic(Scope *sc)
 	    case STCimmutable | STCshared:
 		// Don't use toInvariant(), as that will do a merge()
 		type = type->makeInvariant();
-		type->deco = type->merge()->deco;
-		break;
+		goto Lmerge;
 
 	    case STCconst:
 		type = type->makeConst();
-		type->deco = type->merge()->deco;
-		break;
+		goto Lmerge;
 
 	    case STCshared | STCconst:
 		type = type->makeSharedConst();
-		type->deco = type->merge()->deco;
-		break;
+		goto Lmerge;
 
 	    case STCshared:
 		type = type->makeShared();
-		type->deco = type->merge()->deco;
+	    Lmerge:
+		if (!(type->ty == Tfunction && !type->nextOf()))
+		    /* Can't do merge if return type is not known yet
+		     */
+		    type->deco = type->merge()->deco;
 		break;
 
 	    case 0:
@@ -574,7 +575,9 @@ void FuncDeclaration::semantic(Scope *sc)
 		goto Lmainerr;
 	}
 
-	if (f->nextOf()->ty != Tint32 && f->nextOf()->ty != Tvoid)
+	if (!f->nextOf())
+	    error("must return int or void");
+	else if (f->nextOf()->ty != Tint32 && f->nextOf()->ty != Tvoid)
 	    error("must return int or void, not %s", f->nextOf()->toChars());
 	if (f->varargs)
 	{
@@ -988,6 +991,15 @@ void FuncDeclaration::semantic3(Scope *sc)
 	if (fensure || addPostInvariant())
 	{   /* fensure is composed of the [out] contracts
 	     */
+	    if (!type->nextOf())		// if return type is inferred
+	    {	/* This case:
+		 *   auto fp = function() out { } body { };
+		 * Can fix by doing semantic() onf fbody first.
+		 */
+		error("post conditions are not supported if the return type is inferred");
+		return;
+	    }
+
 	    ScopeDsymbol *sym = new ScopeDsymbol();
 	    sym->parent = sc2->scopesym;
 	    sc2 = sc2->push(sym);

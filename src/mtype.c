@@ -3800,6 +3800,9 @@ int Type::covariant(Type *t)
     Type *t1n = t1->next;
     Type *t2n = t2->next;
 
+    if (!t1n || !t2n)		// happens with return type inference
+	goto Lnotcovariant;
+
     if (t1n->equals(t2n))
 	goto Lcovariant;
     if (t1n->ty == Tclass && t2n->ty == Tclass)
@@ -3902,6 +3905,7 @@ void TypeFunction::toDecoBuffer(OutBuffer *buf, int flag)
     Argument::argsToDecoBuffer(buf, parameters);
     //if (buf->data[buf->offset - 1] == '@') halt();
     buf->writeByte('Z' - varargs);	// mark end of arg list
+    assert(next);
     next->toDecoBuffer(buf);
     inuse--;
 }

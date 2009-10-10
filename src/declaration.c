@@ -540,7 +540,14 @@ int AliasDeclaration::overloadInsert(Dsymbol *s)
 
     //printf("AliasDeclaration::overloadInsert('%s')\n", s->toChars());
     if (overnext == NULL)
-    {	overnext = s;
+    {
+#if 1
+	if (s == this)
+	{
+	    return TRUE;
+	}
+#endif
+	overnext = s;
 	return TRUE;
     }
     else

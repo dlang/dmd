@@ -2391,6 +2391,13 @@ elem *InExp::toElem(IRState *irs)
 	key->Enumbytes = key->E1->Enumbytes;
 	assert(key->Enumbytes);
     }
+    else if (tybasic(key->Ety) == TYarray && taa->index->ty == Tsarray)
+    {   // e2->elem() turns string literals into a TYarray, so the
+	// length is lost. Restore it.
+	key = el_una(OPstrpar, TYstruct, key);
+	assert(e1->type->size() == taa->index->size());
+	key->Enumbytes = taa->index->size();
+    }
 
     Symbol *s = taa->aaGetSymbol("In", 0);
     keyti = taa->index->getInternalTypeInfo(NULL)->toElem(irs);
@@ -4334,12 +4341,10 @@ elem *SliceExp::toElem(IRState *irs)
 elem *IndexExp::toElem(IRState *irs)
 {   elem *e;
     elem *n1 = e1->toElem(irs);
-    elem *n2;
     elem *eb = NULL;
-    Type *t1;
 
     //printf("IndexExp::toElem() %s\n", toChars());
-    t1 = e1->type->toBasetype();
+    Type *t1 = e1->type->toBasetype();
     if (t1->ty == Taarray)
     {
 	// set to:
@@ -4349,19 +4354,24 @@ elem *IndexExp::toElem(IRState *irs)
 	elem *keyti;
 	elem *ep;
 	int vsize = taa->next->size();
-	elem *valuesize;
 	Symbol *s;
 
 	// n2 becomes the index, also known as the key
-	n2 = e2->toElem(irs);
+	elem *n2 = e2->toElem(irs);
 	if (tybasic(n2->Ety) == TYstruct || tybasic(n2->Ety) == TYarray)
 	{
 	    n2 = el_una(OPstrpar, TYstruct, n2);
 	    n2->Enumbytes = n2->E1->Enumbytes;
+	    if (taa->index->ty == Tsarray)
+	    {
+		assert(e2->type->size() == taa->index->size());
+		n2->Enumbytes = taa->index->size();
+	    }
+
 	    //printf("numbytes = %d\n", n2->Enumbytes);
 	    assert(n2->Enumbytes);
 	}
-	valuesize = el_long(TYuint, vsize);	// BUG: should be TYsize_t
+	elem *valuesize = el_long(TYuint, vsize);	// BUG: should be TYsize_t
 	//printf("valuesize: "); elem_print(valuesize);
 	if (modifiable)
 	{
@@ -4381,15 +4391,12 @@ elem *IndexExp::toElem(IRState *irs)
 	e = el_bin(OPcall, TYnptr, el_var(s), ep);
 	if (global.params.useArrayBounds)
 	{
-	    elem *n;
 	    elem *ea;
 
-	    n = el_same(&e);
+	    elem *n = el_same(&e);
 
 	    // Construct: ((e || ModuleAssert(line)),n)
-	    Symbol *sassert;
-
-	    sassert = irs->blx->module->toModuleArray();
+	    Symbol *sassert = irs->blx->module->toModuleArray();
 	    ea = el_bin(OPcall,TYvoid,el_var(sassert),
 		el_long(TYint, loc.linnum));
 	    e = el_bin(OPoror,TYvoid,e,ea);
@@ -4400,10 +4407,9 @@ elem *IndexExp::toElem(IRState *irs)
 	    e->Enumbytes = type->size();
     }
     else
-    {	elem *einit;
-
-	einit = resolveLengthVar(lengthVar, &n1, t1);
-	n2 = e2->toElem(irs);
+    {
+	elem *einit = resolveLengthVar(lengthVar, &n1, t1);
+	elem *n2 = e2->toElem(irs);
 
 	if (global.params.useArrayBounds)
 	{

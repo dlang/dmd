@@ -3286,8 +3286,26 @@ Expression *StructLiteralExp::getField(Type *type, unsigned offset)
 	e = (Expression *)elements->data[i];
 	if (e)
 	{
-	    e = e->copy();
-	    e->type = type;
+	    //printf("e = %s, e->type = %s\n", e->toChars(), e->type->toChars());
+
+	    /* If type is a static array, and e is an initializer for that array,
+	     * then the field initializer should be an array literal of e.
+	     */
+	    if (e->type != type && type->ty == Tsarray)
+	    {   TypeSArray *tsa = (TypeSArray *)type;
+		uinteger_t length = tsa->dim->toInteger();
+		Expressions *z = new Expressions;
+		z->setDim(length);
+		for (int q = 0; q < length; ++q)
+		    z->data[q] = e->copy();
+		e = new ArrayLiteralExp(loc, z);
+		e->type = type;
+	    }
+	    else
+	    {
+		e = e->copy();
+		e->type = type;
+	    }
 	}
     }
     return e;
@@ -6644,8 +6662,9 @@ Lagain:
     {
 	OverExp *eo = (OverExp *)e1;
 	FuncDeclaration *f = NULL;
+	Dsymbol *s = NULL;
 	for (int i = 0; i < eo->vars->a.dim; i++)
-	{   Dsymbol *s = (Dsymbol *)eo->vars->a.data[i];
+	{   s = (Dsymbol *)eo->vars->a.data[i];
 	    FuncDeclaration *f2 = s->isFuncDeclaration();
 	    if (f2)
 	    {
@@ -6667,10 +6686,10 @@ Lagain:
 	    }
 	}
 	if (!f)
-	{   /* No overload matches, just set f and rely on error
-	     * message being generated later.
+	{   /* No overload matches
 	     */
-	    f = (FuncDeclaration *)eo->vars->a.data[0];
+	    error("no overload matches for %s", s->toChars());
+	    return new ErrorExp();
 	}
 	e1 = new VarExp(loc, f);
 	goto Lagain;
@@ -9796,8 +9815,6 @@ CmpExp::CmpExp(enum TOK op, Loc loc, Expression *e1, Expression *e2)
 
 Expression *CmpExp::semantic(Scope *sc)
 {   Expression *e;
-    Type *t1;
-    Type *t2;
 
 #if LOGSEMANTIC
     printf("CmpExp::semantic('%s')\n", toChars());
@@ -9807,8 +9824,10 @@ Expression *CmpExp::semantic(Scope *sc)
 
     BinExp::semanticp(sc);
 
-    if (e1->type->toBasetype()->ty == Tclass && e2->op == TOKnull ||
-	e2->type->toBasetype()->ty == Tclass && e1->op == TOKnull)
+    Type *t1 = e1->type->toBasetype();
+    Type *t2 = e2->type->toBasetype();
+    if (t1->ty == Tclass && e2->op == TOKnull ||
+	t2->ty == Tclass && e1->op == TOKnull)
     {
 	error("do not use null when comparing class types");
     }
@@ -9826,6 +9845,15 @@ Expression *CmpExp::semantic(Scope *sc)
 	    e = e->semantic(sc);
 	}
 	return e;
+    }
+
+    /* Disallow comparing T[]==T and T==T[]
+     */
+    if (e1->op == TOKslice && t1->ty == Tarray && e2->implicitConvTo(t1->nextOf()) ||
+	e2->op == TOKslice && t2->ty == Tarray && e1->implicitConvTo(t2->nextOf()))
+    {
+	incompatibleTypes();
+	return new ErrorExp();
     }
 
     typeCombine(sc);
@@ -9884,8 +9912,6 @@ EqualExp::EqualExp(enum TOK op, Loc loc, Expression *e1, Expression *e2)
 
 Expression *EqualExp::semantic(Scope *sc)
 {   Expression *e;
-    Type *t1;
-    Type *t2;
 
     //printf("EqualExp::semantic('%s')\n", toChars());
     if (type)
@@ -9914,8 +9940,10 @@ Expression *EqualExp::semantic(Scope *sc)
 	}
     }
 
-    if (e1->type->toBasetype()->ty == Tclass && e2->op == TOKnull ||
-	e2->type->toBasetype()->ty == Tclass && e1->op == TOKnull)
+    Type *t1 = e1->type->toBasetype();
+    Type *t2 = e2->type->toBasetype();
+    if (t1->ty == Tclass && e2->op == TOKnull ||
+	t2->ty == Tclass && e1->op == TOKnull)
     {
 	error("use '%s' instead of '%s' when comparing with null",
 		Token::toChars(op == TOKequal ? TOKidentity : TOKnotidentity),
@@ -9934,6 +9962,15 @@ Expression *EqualExp::semantic(Scope *sc)
 	    }
 	    return e;
 	}
+    }
+
+    /* Disallow comparing T[]==T and T==T[]
+     */
+    if (e1->op == TOKslice && t1->ty == Tarray && e2->implicitConvTo(t1->nextOf()) ||
+	e2->op == TOKslice && t2->ty == Tarray && e1->implicitConvTo(t2->nextOf()))
+    {
+	incompatibleTypes();
+	return new ErrorExp();
     }
 
     e = typeCombine(sc);
