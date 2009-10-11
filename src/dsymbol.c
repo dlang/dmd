@@ -276,6 +276,10 @@ void Dsymbol::setScope(Scope *sc)
     scope = sc;
 }
 
+void Dsymbol::importAll(Scope *sc)
+{
+}
+
 /*************************************
  * Does semantic analysis on the public face of declarations.
  */
@@ -709,6 +713,7 @@ Dsymbol *ScopeDsymbol::search(Loc loc, Identifier *ident, int flags)
 
     // Look in symbols declared in this module
     Dsymbol *s = symtab ? symtab->lookup(ident) : NULL;
+    //printf("\ts = %p, imports = %p, %d\n", s, imports, imports ? imports->dim : 0);
     if (s)
     {
 	//printf("\ts = '%s.%s'\n",toChars(),s->toChars());

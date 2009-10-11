@@ -51,6 +51,7 @@ struct Import : Dsymbol
     const char *kind();
     Dsymbol *syntaxCopy(Dsymbol *s);	// copy only syntax trees
     void load(Scope *sc);
+    void importAll(Scope *sc);
     void semantic(Scope *sc);
     void semantic2(Scope *sc);
     Dsymbol *toAlias();

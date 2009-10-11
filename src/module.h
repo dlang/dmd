@@ -122,6 +122,7 @@ struct Module : Package
 #else
     void parse();	// syntactic parse
 #endif
+    void importAll(Scope *sc);
     void semantic();	// semantic analysis
     void semantic2();	// pass 2 semantic analysis
     void semantic3();	// pass 3 semantic analysis

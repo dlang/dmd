@@ -626,9 +626,65 @@ void Module::parse()
     }
 }
 
-void Module::semantic()
-{   int i;
+void Module::importAll(Scope *prevsc)
+{
+    //printf("+Module::importAll(this = %p, '%s'): parent = %p\n", this, toChars(), parent);
 
+    if (scope)
+	return;			// already done
+
+    /* Note that modules get their own scope, from scratch.
+     * This is so regardless of where in the syntax a module
+     * gets imported, it is unaffected by context.
+     * Ignore prevsc.
+     */
+    Scope *sc = Scope::createGlobal(this);	// create root scope
+
+    // Add import of "object" if this module isn't "object"
+    if (ident != Id::object)
+    {
+	if (members->dim == 0 || ((Dsymbol *)members->data[0])->ident != Id::object)
+	{
+	    Import *im = new Import(0, NULL, Id::object, NULL, 0);
+	    members->shift(im);
+	}
+    }
+
+    if (!symtab)
+    {
+	// Add all symbols into module's symbol table
+	symtab = new DsymbolTable();
+	for (int i = 0; i < members->dim; i++)
+	{
+	    Dsymbol *s = (Dsymbol *)members->data[i];
+	    s->addMember(NULL, sc->scopesym, 1);
+	}
+    }
+    // anything else should be run after addMember, so version/debug symbols are defined
+
+    /* Set scope for the symbols so that if we forward reference
+     * a symbol, it can possibly be resolved on the spot.
+     * If this works out well, it can be extended to all modules
+     * before any semantic() on any of them.
+     */
+    setScope(sc);		// remember module scope for semantic
+    for (int i = 0; i < members->dim; i++)
+    {	Dsymbol *s = (Dsymbol *)members->data[i];
+	s->setScope(sc);
+    }
+
+    for (int i = 0; i < members->dim; i++)
+    {
+	Dsymbol *s = (Dsymbol *)members->data[i];
+	s->importAll(sc);
+    }
+
+    sc = sc->pop();
+    sc->pop();		// 2 pops because Scope::createGlobal() created 2
+}
+
+void Module::semantic()
+{
     if (semanticstarted)
 	return;
 
@@ -638,10 +694,15 @@ void Module::semantic()
     // Note that modules get their own scope, from scratch.
     // This is so regardless of where in the syntax a module
     // gets imported, it is unaffected by context.
-    Scope *sc = Scope::createGlobal(this);	// create root scope
+    Scope *sc = scope;			// see if already got one from importAll()
+    if (!sc)
+    {	printf("test2\n");
+	Scope::createGlobal(this);	// create root scope
+    }
 
     //printf("Module = %p, linkage = %d\n", sc->scopesym, sc->linkage);
 
+#if 0
     // Add import of "object" if this module isn't "object"
     if (ident != Id::object)
     {
@@ -651,7 +712,7 @@ void Module::semantic()
 
     // Add all symbols into module's symbol table
     symtab = new DsymbolTable();
-    for (i = 0; i < members->dim; i++)
+    for (int i = 0; i < members->dim; i++)
     {	Dsymbol *s = (Dsymbol *)members->data[i];
 	s->addMember(NULL, sc->scopesym, 1);
     }
@@ -661,13 +722,14 @@ void Module::semantic()
      * If this works out well, it can be extended to all modules
      * before any semantic() on any of them.
      */
-    for (i = 0; i < members->dim; i++)
+    for (int i = 0; i < members->dim; i++)
     {	Dsymbol *s = (Dsymbol *)members->data[i];
 	s->setScope(sc);
     }
+#endif
 
     // Pass 1 semantic routines: do public side of the definition
-    for (i = 0; i < members->dim; i++)
+    for (int i = 0; i < members->dim; i++)
     {	Dsymbol *s = (Dsymbol *)members->data[i];
 
 	//printf("\tModule('%s'): '%s'.semantic()\n", toChars(), s->toChars());
@@ -675,8 +737,10 @@ void Module::semantic()
 	runDeferredSemantic();
     }
 
-    sc = sc->pop();
-    sc->pop();		// 2 pops because Scope::createGlobal() created 2
+    if (!scope)
+    {	sc = sc->pop();
+	sc->pop();		// 2 pops because Scope::createGlobal() created 2
+    }
     semanticRun = semanticstarted;
     //printf("-Module::semantic(this = %p, '%s'): parent = %p\n", this, toChars(), parent);
 }

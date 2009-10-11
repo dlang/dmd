@@ -562,6 +562,29 @@ void ProtDeclaration::setScope(Scope *sc)
     }
 }
 
+void ProtDeclaration::importAll(Scope *sc)
+{
+    Scope *newsc = sc;
+    if (sc->protection != protection ||
+       sc->explicitProtection != 1)
+    {
+       // create new one for changes
+       newsc = new Scope(*sc);
+       newsc->flags &= ~SCOPEfree;
+       newsc->protection = protection;
+       newsc->explicitProtection = 1;
+    }
+
+    for (int i = 0; i < decl->dim; i++)
+    {
+       Dsymbol *s = (Dsymbol *)decl->data[i];
+       s->importAll(newsc);
+    }
+
+    if (newsc != sc)
+       newsc->pop();
+}
+
 void ProtDeclaration::semantic(Scope *sc)
 {
     if (decl)
@@ -1143,6 +1166,37 @@ Array *ConditionalDeclaration::include(Scope *sc, ScopeDsymbol *sd)
     return condition->include(sc, sd) ? decl : elsedecl;
 }
 
+void ConditionalDeclaration::setScope(Scope *sc)
+{
+    Array *d = include(sc, NULL);
+
+    //printf("\tConditionalDeclaration::setScope '%s', d = %p\n",toChars(), d);
+    if (d)
+    {
+       for (unsigned i = 0; i < d->dim; i++)
+       {
+           Dsymbol *s = (Dsymbol *)d->data[i];
+
+           s->setScope(sc);
+       }
+    }
+}
+
+void ConditionalDeclaration::importAll(Scope *sc)
+{
+    Array *d = include(sc, NULL);
+
+    //printf("\tConditionalDeclaration::importAll '%s', d = %p\n",toChars(), d);
+    if (d)
+    {
+       for (unsigned i = 0; i < d->dim; i++)
+       {
+           Dsymbol *s = (Dsymbol *)d->data[i];
+
+           s->importAll(sc);
+       }
+    }
+}
 
 void ConditionalDeclaration::addComment(unsigned char *comment)
 {
@@ -1262,6 +1316,16 @@ int StaticIfDeclaration::addMember(Scope *sc, ScopeDsymbol *sd, int memnum)
     return m;
 }
 
+
+void StaticIfDeclaration::importAll(Scope *sc)
+{
+    // do not evaluate condition before semantic pass
+}
+
+void StaticIfDeclaration::setScope(Scope *sc)
+{
+    // do not evaluate condition before semantic pass
+}
 
 void StaticIfDeclaration::semantic(Scope *sc)
 {

@@ -81,19 +81,16 @@ Dsymbol *Import::syntaxCopy(Dsymbol *s)
 
 void Import::load(Scope *sc)
 {
-    DsymbolTable *dst;
-    Dsymbol *s;
-
     //printf("Import::load('%s')\n", toChars());
 
     // See if existing module
-    dst = Package::resolve(packages, NULL, &pkg);
+    DsymbolTable *dst = Package::resolve(packages, NULL, &pkg);
 
-    s = dst->lookup(id);
+    Dsymbol *s = dst->lookup(id);
     if (s)
     {
 #if TARGET_NET
-		mod = (Module *)s;
+	mod = (Module *)s;
 #else
 	if (s->isModule())
 	    mod = (Module *)s;
@@ -137,11 +134,34 @@ void escapePath(OutBuffer *buf, const char *fname)
     }
 }
 
+void Import::importAll(Scope *sc)
+{
+    if (!mod)
+    {
+       load(sc);
+       mod->importAll(0);
+
+       if (!isstatic && !aliasId && !names.dim)
+       {
+           /* Default to private importing
+            */
+           enum PROT prot = sc->protection;
+           if (!sc->explicitProtection)
+               prot = PROTprivate;
+           sc->scopesym->importScope(mod, prot);
+       }
+    }
+}
+
 void Import::semantic(Scope *sc)
 {
     //printf("Import::semantic('%s')\n", toChars());
 
-    load(sc);
+    // Load if not already done so
+    if (!mod)
+    {	load(sc);
+	mod->importAll(0);
+    }
 
     if (mod)
     {
