@@ -124,11 +124,10 @@ STATIC void local_exp(elem *e,int goal)
     unsigned u;
     elem *e1;
     int op1;
-    int op;
 
 Loop:
     elem_debug(e);
-    op = e->Eoper;
+    int op = e->Eoper;
     switch (op)
     {	case OPcomma:
 	    local_exp(e->E1,0);
@@ -359,7 +358,11 @@ Loop:
 #if TX86
 	case OPmemset:
 	    local_exp(e->E2,1);
-	    local_exp(e->E1,1);
+	    if (e->E1->Eoper != OPvar)
+		/* Don't want to rearrange (p = get(); p memset 0;)
+		 * as elemxxx() will rearrange it back.
+		 */
+		local_exp(e->E1,1);
 	    local_ambigdef();
 	    break;
 #endif

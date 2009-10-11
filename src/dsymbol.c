@@ -276,6 +276,10 @@ void Dsymbol::setScope(Scope *sc)
     scope = sc;
 }
 
+void Dsymbol::importAll(Scope *sc)
+{
+}
+
 /*************************************
  * Does semantic analysis on the public face of declarations.
  */

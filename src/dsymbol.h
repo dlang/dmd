@@ -129,6 +129,7 @@ struct Dsymbol : Object
     virtual Dsymbol *toAlias();			// resolve real symbol
     virtual int addMember(Scope *sc, ScopeDsymbol *s, int memnum);
     virtual void setScope(Scope *sc);
+    virtual void importAll(Scope *sc);
     virtual void semantic(Scope *sc);
     virtual void semantic2(Scope *sc);
     virtual void semantic3(Scope *sc);

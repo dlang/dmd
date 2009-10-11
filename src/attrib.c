@@ -549,6 +549,29 @@ void ProtDeclaration::setScope(Scope *sc)
     }
 }
 
+void ProtDeclaration::importAll(Scope *sc)
+{
+    Scope *newsc = sc;
+    if (sc->protection != protection ||
+       sc->explicitProtection != 1)
+    {
+       // create new one for changes
+       newsc = new Scope(*sc);
+       newsc->flags &= ~SCOPEfree;
+       newsc->protection = protection;
+       newsc->explicitProtection = 1;
+    }
+
+    for (int i = 0; i < decl->dim; i++)
+    {
+       Dsymbol *s = (Dsymbol *)decl->data[i];
+       s->importAll(newsc);
+    }
+
+    if (newsc != sc)
+       newsc->pop();
+}
+
 void ProtDeclaration::semantic(Scope *sc)
 {
     if (decl)
@@ -809,6 +832,39 @@ Dsymbol *PragmaDeclaration::syntaxCopy(Dsymbol *s)
     pd = new PragmaDeclaration(loc, ident,
 	Expression::arraySyntaxCopy(args), Dsymbol::arraySyntaxCopy(decl));
     return pd;
+}
+
+void PragmaDeclaration::setScope(Scope *sc)
+{
+#if TARGET_NET
+    if (ident == Lexer::idPool("assembly"))
+    {
+        if (!args || args->dim != 1)
+        {
+            error("pragma has invalid number of arguments");
+        }
+        else
+        {
+            Expression *e = (Expression *)args->data[0];
+            e = e->semantic(sc);
+            e = e->optimize(WANTvalue | WANTinterpret);
+            args->data[0] = (void *)e;
+            if (e->op != TOKstring)
+            {
+                error("string expected, not '%s'", e->toChars());
+            }
+            PragmaScope* pragma = new PragmaScope(this, sc->parent, static_cast<StringExp*>(e));
+
+            assert(sc);
+            pragma->setScope(sc);
+
+            //add to module members
+            assert(sc->module);
+            assert(sc->module->members);
+            sc->module->members->push(pragma);
+        }
+    }
+#endif // TARGET_NET
 }
 
 void PragmaDeclaration::semantic(Scope *sc)
@@ -1102,6 +1158,37 @@ Array *ConditionalDeclaration::include(Scope *sc, ScopeDsymbol *sd)
     return condition->include(sc, sd) ? decl : elsedecl;
 }
 
+void ConditionalDeclaration::setScope(Scope *sc)
+{
+    Array *d = include(sc, NULL);
+
+    //printf("\tConditionalDeclaration::setScope '%s', d = %p\n",toChars(), d);
+    if (d)
+    {
+       for (unsigned i = 0; i < d->dim; i++)
+       {
+           Dsymbol *s = (Dsymbol *)d->data[i];
+
+           s->setScope(sc);
+       }
+    }
+}
+
+void ConditionalDeclaration::importAll(Scope *sc)
+{
+    Array *d = include(sc, NULL);
+
+    //printf("\tConditionalDeclaration::importAll '%s', d = %p\n",toChars(), d);
+    if (d)
+    {
+       for (unsigned i = 0; i < d->dim; i++)
+       {
+           Dsymbol *s = (Dsymbol *)d->data[i];
+
+           s->importAll(sc);
+       }
+    }
+}
 
 void ConditionalDeclaration::addComment(unsigned char *comment)
 {
@@ -1221,6 +1308,16 @@ int StaticIfDeclaration::addMember(Scope *sc, ScopeDsymbol *sd, int memnum)
     return m;
 }
 
+
+void StaticIfDeclaration::importAll(Scope *sc)
+{
+    // do not evaluate condition before semantic pass
+}
+
+void StaticIfDeclaration::setScope(Scope *sc)
+{
+    // do not evaluate condition before semantic pass
+}
 
 void StaticIfDeclaration::semantic(Scope *sc)
 {
