@@ -169,6 +169,9 @@ struct Param
     char *hdrdir;		// write 'header' file to docdir directory
     char *hdrname;		// write 'header' file to docname
 
+    char doXGeneration;		// write JSON file
+    char *xfilename;		// write JSON file to xfilename
+
     unsigned debuglevel;	// debug level
     Array *debugids;		// debug identifiers
 
@@ -179,8 +182,6 @@ struct Param
 
     const char *defaultlibname;	// default library for non-debug builds
     const char *debuglibname;	// default library for debug builds
-
-    const char *xmlname;	// filename for XML output
 
     char *moduleDepsFile;	// filename for deps output
     OutBuffer *moduleDeps;	// contents to be written to deps file
@@ -217,6 +218,7 @@ struct Global
     const char *doc_ext;	// for Ddoc generated files
     const char *ddoc_ext;	// for Ddoc macro include files
     const char *hdr_ext;	// for D 'header' import files
+    const char *json_ext;	// for JSON files
     const char *copyright;
     const char *written;
     Array *path;	// Array of char*'s which form the import lookup path

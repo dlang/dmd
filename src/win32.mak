@@ -79,7 +79,8 @@ OBJ1= mars.obj enum.obj struct.obj dsymbol.obj import.obj id.obj \
 	interpret.obj traits.obj aliasthis.obj \
 	builtin.obj clone.obj libomf.obj arrayop.obj irstate.obj \
 	glue.obj msc.obj ph.obj tk.obj s2ir.obj todt.obj e2ir.obj tocsym.obj \
-	util.obj bit.obj eh.obj toobj.obj toctype.obj tocvdebug.obj toir.obj
+	util.obj bit.obj eh.obj toobj.obj toctype.obj tocvdebug.obj toir.obj \
+	json.obj
 
 # from C/C++ compiler optimizer and back end
 
@@ -113,7 +114,7 @@ SRCS= mars.c enum.c struct.c dsymbol.c import.c idgen.c impcnvgen.c utf.h \
 	macro.h macro.c hdrgen.h hdrgen.c arraytypes.h \
 	delegatize.c toir.h toir.c interpret.c traits.c builtin.c \
 	clone.c lib.h libomf.c libelf.c libmach.c arrayop.c \
-	aliasthis.h aliasthis.c
+	aliasthis.h aliasthis.c json.h json.c
 
 # From C++ compiler
 
@@ -448,6 +449,7 @@ inifile.obj : $(TOTALH) inifile.c
 init.obj : $(TOTALH) init.h init.c
 inline.obj : $(TOTALH) inline.c
 interpret.obj : $(TOTALH) interpret.c
+json.obj : $(TOTALH) json.h json.c
 lexer.obj : $(TOTALH) lexer.c
 libomf.obj : $(TOTALH) lib.h libomf.c
 link.obj : $(TOTALH) link.c

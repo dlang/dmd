@@ -86,6 +86,7 @@ struct AggregateDeclaration : ScopeDsymbol
     int isNested();
 
     void emitComment(Scope *sc);
+    void toJsonBuffer(OutBuffer *buf);
     void toDocBuffer(OutBuffer *buf);
 
     // For access checking

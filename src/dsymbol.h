@@ -143,6 +143,7 @@ struct Dsymbol : Object
 #endif
     virtual void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
     virtual void toDocBuffer(OutBuffer *buf);
+    virtual void toJsonBuffer(OutBuffer *buf);
     virtual unsigned size(Loc loc);
     virtual int isforwardRef();
     virtual void defineRef(Dsymbol *s);

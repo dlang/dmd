@@ -814,8 +814,7 @@ void Module::semantic3()
 }
 
 void Module::inlineScan()
-{   int i;
-
+{
     if (semanticstarted >= 4)
 	return;
     assert(semanticstarted == 3);
@@ -826,10 +825,8 @@ void Module::inlineScan()
     // gets imported, it is unaffected by context.
     //printf("Module = %p\n", sc.scopesym);
 
-    for (i = 0; i < members->dim; i++)
-    {	Dsymbol *s;
-
-	s = (Dsymbol *)members->data[i];
+    for (int i = 0; i < members->dim; i++)
+    {	Dsymbol *s = (Dsymbol *)members->data[i];
 	//if (global.params.verbose)
 	    //printf("inline scan symbol %s\n", s->toChars());
 
