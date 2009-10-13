@@ -113,6 +113,7 @@ struct Module : Package
     static Module *load(Loc loc, Array *packages, Identifier *ident);
 
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
+    void toJsonBuffer(OutBuffer *buf);
     const char *kind();
     void setDocfile();	// set docfile member
     void read(Loc loc);	// read file

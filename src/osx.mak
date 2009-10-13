@@ -6,6 +6,7 @@ ROOT=root
 # See: http://developer.apple.com/documentation/developertools/conceptual/cross_development/Using/chapter_3_section_2.html#//apple_ref/doc/uid/20002000-1114311-BABGCAAB
 ENVP= MACOSX_DEPLOYMENT_TARGET=10.3
 SDK=/Developer/SDKs/MacOSX10.4u.sdk
+#SDK=/Developer/SDKs/MacOSX10.6.sdk
 LDFLAGS= -isysroot ${SDK} -Wl,-syslibroot,${SDK}
 
 CC=g++ -m32 -isysroot $(SDK)
@@ -42,7 +43,7 @@ DMD_OBJS = \
 	unialpha.o toobj.o toctype.o toelfdebug.o entity.o doc.o macro.o \
 	hdrgen.o delegatize.o aa.o ti_achar.o toir.o interpret.o traits.o \
 	builtin.o clone.o aliasthis.o \
-	man.o arrayop.o port.o response.o async.o \
+	man.o arrayop.o port.o response.o async.o json.o \
 	libmach.o machobj.o
 
 SRC = win32.mak linux.mak osx.mak freebsd.mak solaris.mak \
@@ -61,7 +62,7 @@ SRC = win32.mak linux.mak osx.mak freebsd.mak solaris.mak \
 	doc.h doc.c macro.h macro.c hdrgen.h hdrgen.c arraytypes.h \
 	delegatize.c toir.h toir.c interpret.c traits.c cppmangle.c \
 	builtin.c clone.c lib.h libomf.c libelf.c libmach.c arrayop.c \
-	aliasthis.h aliasthis.c \
+	aliasthis.h aliasthis.c json.h json.c \
 	$C/cdef.h $C/cc.h $C/oper.h $C/ty.h $C/optabgen.c \
 	$C/global.h $C/parser.h $C/code.h $C/type.h $C/dt.h $C/cgcv.h \
 	$C/el.h $C/iasm.h $C/rtlsym.h $C/html.h \
@@ -348,6 +349,9 @@ inline.o: inline.c
 interpret.o: interpret.c
 	$(CC) -c $(CFLAGS) $<
 
+json.o: json.c
+	$(CC) -c $(CFLAGS) $<
+
 lexer.o: lexer.c
 	$(CC) -c $(CFLAGS) $<
 
@@ -535,6 +539,7 @@ gcov:
 	gcov inline.c
 	gcov interpret.c
 	gcov irstate.c
+	gcov json.c
 	gcov lexer.c
 	gcov libmach.c
 	gcov link.c

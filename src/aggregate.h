@@ -56,6 +56,13 @@ struct AggregateDeclaration : ScopeDsymbol
     NewDeclaration *aggNew;		// allocator
     DeleteDeclaration *aggDelete;	// deallocator
 
+#if DMDV2
+    //CtorDeclaration *ctor;
+    Dsymbol *ctor;			// CtorDeclaration or TemplateDeclaration
+    CtorDeclaration *defaultCtor;	// default constructor
+    Dsymbol *aliasthis;			// forward unresolved lookups to aliasthis
+#endif
+
     FuncDeclarations dtors;	// Array of destructors
     FuncDeclaration *dtor;	// aggregate destructor
 
@@ -75,6 +82,7 @@ struct AggregateDeclaration : ScopeDsymbol
     FuncDeclaration *buildDtor(Scope *sc);
 
     void emitComment(Scope *sc);
+    void toJsonBuffer(OutBuffer *buf);
     void toDocBuffer(OutBuffer *buf);
 
     // For access checking
