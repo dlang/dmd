@@ -3204,14 +3204,12 @@ elem *DeleteExp::toElem(IRState *irs)
 }
 
 elem *CastExp::toElem(IRState *irs)
-{   elem *e;
+{
     TY fty;
     TY tty;
     tym_t ftym;
     tym_t ttym;
     enum OPER eop;
-    Type *t;
-    Type *tfrom;
 
 #if 0
     printf("CastExp::toElem()\n");
@@ -3220,9 +3218,9 @@ elem *CastExp::toElem(IRState *irs)
     printf("\tto  : %s\n", to->toChars());
 #endif
 
-    e = e1->toElem(irs);
-    tfrom = e1->type->toBasetype();
-    t = to->toBasetype();		// skip over typedef's
+    elem *e = e1->toElem(irs);
+    Type *tfrom = e1->type->toBasetype();
+    Type *t = to->toBasetype();		// skip over typedef's
     if (t->equals(tfrom))
 	goto Lret;
 
@@ -3358,8 +3356,8 @@ elem *CastExp::toElem(IRState *irs)
 	goto Lret;
     }
 
-    ftym = e->Ety;
-    ttym = t->totym();
+    ftym = tybasic(e->Ety);
+    ttym = tybasic(t->totym());
     if (ftym == ttym)
 	goto Lret;
 
@@ -3863,7 +3861,7 @@ Lagain:
 		goto Lpaint;
 	    //dump(0);
 	    //printf("fty = %d, tty = %d\n", fty, tty);
-	    error("e2ir: cannot cast from %s to %s", e1->type->toChars(), t->toChars());
+	    error("e2ir: cannot cast %s of type %s to type %s", e1->toChars(), e1->type->toChars(), t->toChars());
 	    goto Lzero;
 
 	Lzero:
