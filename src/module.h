@@ -137,6 +137,7 @@ struct Module : Package
     void gendocfile();
     int needModuleInfo();
     Dsymbol *search(Loc loc, Identifier *ident, int flags);
+    Dsymbol *symtabInsert(Dsymbol *s);
     void deleteObjFile();
     void addDeferredSemantic(Dsymbol *s);
     void runDeferredSemantic();

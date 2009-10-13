@@ -875,13 +875,14 @@ Dsymbol *Module::search(Loc loc, Identifier *ident, int flags)
 {
     /* Since modules can be circularly referenced,
      * need to stop infinite recursive searches.
+     * This is done with the cache.
      */
 
     //printf("%s Module::search('%s', flags = %d) insearch = %d\n", toChars(), ident->toChars(), flags, insearch);
     Dsymbol *s;
     if (insearch)
 	s = NULL;
-    else if (searchCacheIdent == ident && searchCacheFlags == flags && searchCacheSymbol)
+    else if (searchCacheIdent == ident && searchCacheFlags == flags)
     {
 	s = searchCacheSymbol;
 	//printf("%s Module::search('%s', flags = %d) insearch = %d searchCacheSymbol = %s\n", toChars(), ident->toChars(), flags, insearch, searchCacheSymbol ? searchCacheSymbol->toChars() : "null");
@@ -898,6 +899,13 @@ Dsymbol *Module::search(Loc loc, Identifier *ident, int flags)
     }
     return s;
 }
+
+Dsymbol *Module::symtabInsert(Dsymbol *s)
+{
+    searchCacheIdent = 0;	// symbol is inserted, so invalidate cache
+    return Package::symtabInsert(s);
+}
+
 
 /*******************************************
  * Can't run semantic on s now, try again later.

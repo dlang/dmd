@@ -879,7 +879,7 @@ Expression *createTypeInfoArray(Scope *sc, Expression *exps[], int dim)
 	ai->type = t;
 	v = new VarDeclaration(0, t, id, ai);
 	m->members->push(v);
-	m->symtab->insert(v);
+	m->symtabInsert(v);
 	sc = sc->push();
 	sc->linkage = LINKc;
 	sc->stc = STCstatic | STCcomdat;

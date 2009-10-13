@@ -282,7 +282,7 @@ Dsymbol *Scope::insert(Dsymbol *s)
 	    //printf("\t\tsc->scopesym = %p\n", sc->scopesym);
 	    if (!sc->scopesym->symtab)
 		sc->scopesym->symtab = new DsymbolTable();
-	    return sc->scopesym->symtab->insert(s);
+	    return sc->scopesym->symtabInsert(s);
 	}
     }
     assert(0);
