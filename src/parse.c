@@ -3220,6 +3220,7 @@ Statement *Parser::parseStatement(int flags)
 	    statements = new Statements();
 	    while (token.value != TOKcase &&
 		   token.value != TOKdefault &&
+		   token.value != TOKeof &&
 		   token.value != TOKrcurly)
 	    {
 		statements->push(parseStatement(PSsemi | PScurlyscope));
@@ -3246,6 +3247,7 @@ Statement *Parser::parseStatement(int flags)
 	    statements = new Statements();
 	    while (token.value != TOKcase &&
 		   token.value != TOKdefault &&
+		   token.value != TOKeof &&
 		   token.value != TOKrcurly)
 	    {
 		statements->push(parseStatement(PSsemi | PScurlyscope));
