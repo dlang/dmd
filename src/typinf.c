@@ -427,8 +427,8 @@ void TypeInfoDelegateDeclaration::toDt(dt_t **pdt)
 
     TypeDelegate *tc = (TypeDelegate *)tinfo;
 
-    tc->next->next->getTypeInfo(NULL);
-    dtxoff(pdt, tc->next->next->vtinfo->toSymbol(), 0, TYnptr); // TypeInfo for delegate return value
+    tc->next->nextOf()->getTypeInfo(NULL);
+    dtxoff(pdt, tc->next->nextOf()->vtinfo->toSymbol(), 0, TYnptr); // TypeInfo for delegate return value
 }
 
 void TypeInfoStructDeclaration::toDt(dt_t **pdt)
@@ -846,7 +846,7 @@ Expression *createTypeInfoArray(Scope *sc, Expression *exps[], int dim)
 	ai->type = t;
 	v = new VarDeclaration(0, t, id, ai);
 	m->members->push(v);
-	m->symtab->insert(v);
+	m->symtabInsert(v);
 	sc = sc->push();
 	sc->linkage = LINKc;
 	sc->stc = STCstatic | STCcomdat;

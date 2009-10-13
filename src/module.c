@@ -109,6 +109,7 @@ Module::Module(char *filename, Identifier *ident, int doDocComment, int doHdrGen
 
     macrotable = NULL;
     escapetable = NULL;
+    safe = FALSE;
     doppelganger = 0;
     cov = NULL;
     covb = NULL;
@@ -809,8 +810,7 @@ void Module::semantic3()
 }
 
 void Module::inlineScan()
-{   int i;
-
+{
     if (semanticstarted >= 4)
 	return;
     assert(semanticstarted == 3);
@@ -821,10 +821,8 @@ void Module::inlineScan()
     // gets imported, it is unaffected by context.
     //printf("Module = %p\n", sc.scopesym);
 
-    for (i = 0; i < members->dim; i++)
-    {	Dsymbol *s;
-
-	s = (Dsymbol *)members->data[i];
+    for (int i = 0; i < members->dim; i++)
+    {	Dsymbol *s = (Dsymbol *)members->data[i];
 	//if (global.params.verbose)
 	    //printf("inline scan symbol %s\n", s->toChars());
 
@@ -873,13 +871,14 @@ Dsymbol *Module::search(Loc loc, Identifier *ident, int flags)
 {
     /* Since modules can be circularly referenced,
      * need to stop infinite recursive searches.
+     * This is done with the cache.
      */
 
     //printf("%s Module::search('%s', flags = %d) insearch = %d\n", toChars(), ident->toChars(), flags, insearch);
     Dsymbol *s;
     if (insearch)
 	s = NULL;
-    else if (searchCacheIdent == ident && searchCacheFlags == flags && searchCacheSymbol)
+    else if (searchCacheIdent == ident && searchCacheFlags == flags)
     {
 	s = searchCacheSymbol;
 	//printf("%s Module::search('%s', flags = %d) insearch = %d searchCacheSymbol = %s\n", toChars(), ident->toChars(), flags, insearch, searchCacheSymbol ? searchCacheSymbol->toChars() : "null");
@@ -896,6 +895,13 @@ Dsymbol *Module::search(Loc loc, Identifier *ident, int flags)
     }
     return s;
 }
+
+Dsymbol *Module::symtabInsert(Dsymbol *s)
+{
+    searchCacheIdent = 0;	// symbol is inserted, so invalidate cache
+    return Package::symtabInsert(s);
+}
+
 
 /*******************************************
  * Can't run semantic on s now, try again later.

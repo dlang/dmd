@@ -249,6 +249,7 @@ struct ScopeDsymbol : Dsymbol
     Dsymbol *nameCollision(Dsymbol *s);
     const char *kind();
     FuncDeclaration *findGetMembers();
+    virtual Dsymbol *symtabInsert(Dsymbol *s);
 
     void emitMemberComments(Scope *sc);
 
