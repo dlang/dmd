@@ -2177,6 +2177,14 @@ Lagain:
 		type = Type::terror;
 	    }
 	}
+
+	if ((v->storage_class & STCmanifest) && v->init)
+	{
+	    e = v->init->toExpression();
+	    e->semantic(sc);
+	    return e;
+	}
+
 	e = new VarExp(loc, v);
 	e->type = type;
 	e = e->semantic(sc);
