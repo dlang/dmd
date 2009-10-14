@@ -140,6 +140,7 @@ Expression *fromConstInitializer(int result, Expression *e1)
 		e = e->copy();
 		e->type = e1->type;
 	    }
+	    e->loc = e1->loc;
 	}
 	else
 	    e = e1;
