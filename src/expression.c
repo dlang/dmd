@@ -4387,7 +4387,13 @@ Expression *DeclarationExp::semantic(Scope *sc)
     }
     if (!s->isVarDeclaration())
     {
-	declaration->semantic(sc);
+	Scope *sc2 = sc;
+	if (sc2->stc & (STCpure | STCnothrow))
+	    sc2 = sc->push();
+	sc2->stc &= ~(STCpure | STCnothrow);
+	declaration->semantic(sc2);
+	if (sc2 != sc)
+	    sc2->pop();
 	s->parent = sc->parent;
     }
     if (!global.errors)
