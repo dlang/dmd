@@ -1144,6 +1144,7 @@ Statement *ForStatement::semantic(Scope *sc)
     if (increment)
     {	increment = increment->semantic(sc);
 	increment = resolveProperties(sc, increment);
+	increment = increment->optimize(0);
     }
 
     sc->sbreak = this;
