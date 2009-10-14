@@ -104,6 +104,7 @@ struct Statement : Object
     virtual int usesEH();
     virtual int blockExit();
     virtual int comeFrom();
+    virtual int isEmpty();
     virtual void scopeCode(Scope *sc, Statement **sentry, Statement **sexit, Statement **sfinally);
     virtual Statements *flatten(Scope *sc);
     virtual Expression *interpret(InterState *istate);
@@ -140,6 +141,7 @@ struct ExpStatement : Statement
     Statement *semantic(Scope *sc);
     Expression *interpret(InterState *istate);
     int blockExit();
+    int isEmpty();
 
     int inlineCost(InlineCostState *ics);
     Expression *doInline(InlineDoState *ids);
@@ -185,6 +187,7 @@ struct CompoundStatement : Statement
     int usesEH();
     int blockExit();
     int comeFrom();
+    int isEmpty();
     Statements *flatten(Scope *sc);
     ReturnStatement *isReturnStatement();
     Expression *interpret(InterState *istate);
@@ -244,6 +247,7 @@ struct ScopeStatement : Statement
     int usesEH();
     int blockExit();
     int comeFrom();
+    int isEmpty();
     Expression *interpret(InterState *istate);
 
     Statement *inlineScan(InlineScanState *iss);

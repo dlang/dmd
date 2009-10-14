@@ -147,6 +147,13 @@ int Statement::comeFrom()
     return FALSE;
 }
 
+// Return TRUE if statement has no code in it
+int Statement::isEmpty()
+{
+    //printf("Statement::isEmpty()\n");
+    return FALSE;
+}
+
 /****************************************
  * If this statement has code that needs to run in a finally clause
  * at the end of the current scope, return that code in the form of
@@ -253,6 +260,11 @@ int ExpStatement::blockExit()
 	    result |= BEthrow;
     }
     return result;
+}
+
+int ExpStatement::isEmpty()
+{
+    return exp == NULL;
 }
 
 
@@ -574,12 +586,14 @@ int CompoundStatement::blockExit()
 //printf("%s\n", s->toChars());
 	    if (!(result & BEfallthru) && !s->comeFrom())
 	    {
-		if (s->blockExit() != BEhalt)
+		if (s->blockExit() != BEhalt && !s->isEmpty())
 		    s->warning("statement is not reachable");
 	    }
-
-	    result &= ~BEfallthru;
-	    result |= s->blockExit();
+	    else
+	    {
+		result &= ~BEfallthru;
+		result |= s->blockExit();
+	    }
 	}
     }
     return result;
@@ -598,6 +612,16 @@ int CompoundStatement::comeFrom()
 	comefrom |= s->comeFrom();
     }
     return comefrom;
+}
+
+int CompoundStatement::isEmpty()
+{
+    for (int i = 0; i < statements->dim; i++)
+    {	Statement *s = (Statement *) statements->data[i];
+	if (s && !s->isEmpty())
+	    return FALSE;
+    }
+    return TRUE;
 }
 
 
@@ -868,10 +892,17 @@ int ScopeStatement::blockExit()
     return statement ? statement->blockExit() : BEfallthru;
 }
 
+
 int ScopeStatement::comeFrom()
 {
     //printf("ScopeStatement::comeFrom()\n");
     return statement ? statement->comeFrom() : FALSE;
+}
+
+int ScopeStatement::isEmpty()
+{
+    //printf("ScopeStatement::isEmpty() %d\n", statement ? statement->isEmpty() : TRUE);
+    return statement ? statement->isEmpty() : TRUE;
 }
 
 void ScopeStatement::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
@@ -3835,6 +3866,11 @@ Statement *TryCatchStatement::semantic(Scope *sc)
 	    if (c->type->toBasetype()->implicitConvTo(cj->type->toBasetype()))
 		error("catch at %s hides catch at %s", sj, si);
 	}
+    }
+
+    if (!body || body->isEmpty())
+    {
+	return NULL;
     }
     return this;
 }
