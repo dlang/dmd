@@ -141,6 +141,7 @@ struct ExpStatement : Statement
     Statement *semantic(Scope *sc);
     Expression *interpret(InterState *istate);
     int blockExit();
+    int isEmpty();
 
     int inlineCost(InlineCostState *ics);
     Expression *doInline(InlineDoState *ids);

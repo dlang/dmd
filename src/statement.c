@@ -262,6 +262,11 @@ int ExpStatement::blockExit()
     return result;
 }
 
+int ExpStatement::isEmpty()
+{
+    return exp == NULL;
+}
+
 
 /******************************** CompileStatement ***************************/
 
@@ -605,12 +610,14 @@ int CompoundStatement::blockExit()
 //printf("%s\n", s->toChars());
 	    if (!(result & BEfallthru) && !s->comeFrom())
 	    {
-		if (s->blockExit() != BEhalt)
+		if (s->blockExit() != BEhalt && !s->isEmpty())
 		    s->warning("statement is not reachable");
 	    }
-
-	    result &= ~BEfallthru;
-	    result |= s->blockExit();
+	    else
+	    {
+		result &= ~BEfallthru;
+		result |= s->blockExit();
+	    }
 	}
     }
     return result;
@@ -1085,7 +1092,8 @@ int DoStatement::blockExit()
     else
 	result = BEfallthru;
     if (result & BEfallthru)
-    {	if (condition->canThrow())
+    {
+	if (condition->canThrow())
 	    result |= BEthrow;
 	if (!(result & BEbreak) && condition->isBool(TRUE))
 	    result &= ~BEfallthru;
