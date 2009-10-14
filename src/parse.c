@@ -2223,6 +2223,12 @@ Type *Parser::parseBasicType2(Type *t)
 		    t = new TypeDArray(t);			// []
 		    nextToken();
 		}
+		else if (token.value == TOKnew && peekNext() == TOKrbracket)
+		{
+		    t = new TypeNewArray(t);			// [new]
+		    nextToken();
+		    nextToken();
+		}
 		else if (isDeclaration(&token, 0, TOKrbracket, NULL))
 		{   // It's an associative array declaration
 
@@ -2343,6 +2349,12 @@ Type *Parser::parseDeclarator(Type *t, Identifier **pident, TemplateParameters *
 		if (token.value == TOKrbracket)
 		{   // It's a dynamic array
 		    ta = new TypeDArray(t);		// []
+		    nextToken();
+		}
+		else if (token.value == TOKnew && peekNext() == TOKrbracket)
+		{
+		    t = new TypeNewArray(t);		// [new]
+		    nextToken();
 		    nextToken();
 		}
 		else if (isDeclaration(&token, 0, TOKrbracket, NULL))
@@ -4265,6 +4277,11 @@ int Parser::isDeclarator(Token **pt, int *haveId, enum TOK endtok)
 		t = peek(t);
 		if (t->value == TOKrbracket)
 		{
+		    t = peek(t);
+		}
+		else if (t->value == TOKnew && peek(t)->value == TOKrbracket)
+		{
+		    t = peek(t);
 		    t = peek(t);
 		}
 		else if (isDeclaration(t, 0, TOKrbracket, &t))

@@ -6865,6 +6865,27 @@ void TypeSlice::toCBuffer2(OutBuffer *buf, HdrGenState *hgs, int mod)
     buf->printf("%s]", upr->toChars());
 }
 
+/***************************** TypeNewArray *****************************/
+
+/* T[new]
+ */
+
+TypeNewArray::TypeNewArray(Type *next)
+    : TypeNext(Tnarray, next)
+{
+    //printf("TypeNewArray\n");
+}
+
+void TypeNewArray::toCBuffer2(OutBuffer *buf, HdrGenState *hgs, int mod)
+{
+    if (mod != this->mod)
+    {	toCBuffer3(buf, hgs, mod);
+	return;
+    }
+    next->toCBuffer2(buf, hgs, this->mod);
+    buf->writestring("[new]");
+}
+
 /***************************** Argument *****************************/
 
 Argument::Argument(unsigned storageClass, Type *type, Identifier *ident, Expression *defaultArg)

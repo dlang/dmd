@@ -798,6 +798,12 @@ struct TypeSlice : TypeNext
     void toCBuffer2(OutBuffer *buf, HdrGenState *hgs, int mod);
 };
 
+struct TypeNewArray : TypeNext
+{
+    TypeNewArray(Type *next);
+    void toCBuffer2(OutBuffer *buf, HdrGenState *hgs, int mod);
+};
+
 /**************************************************************/
 
 //enum InOut { None, In, Out, InOut, Lazy };
