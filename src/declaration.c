@@ -1044,10 +1044,11 @@ Lagain:
 		else if (t->ty == Tstruct)
 		{
 		    ei->exp = ei->exp->semantic(sc);
+		    ei->exp = resolveProperties(sc, ei->exp);
+		    StructDeclaration *sd = ((TypeStruct *)t)->sym;
 #if DMDV2
 		    /* Look to see if initializer is a call to the constructor
 		     */
-		    StructDeclaration *sd = ((TypeStruct *)t)->sym;
 		    if (sd->ctor &&		// there are constructors
 			ei->exp->type->ty == Tstruct &&	// rvalue is the same struct
 			((TypeStruct *)ei->exp->type)->sym == sd &&
