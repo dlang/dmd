@@ -1521,7 +1521,7 @@ Statement *FuncDeclaration::mergeFrequire(Statement *sf)
     {
 	FuncDeclaration *fdv = (FuncDeclaration *)foverrides.data[i];
 	sf = fdv->mergeFrequire(sf);
-	if (fdv->frequire)
+	if (fdv->fdrequire)
 	{
 	    //printf("fdv->frequire: %s\n", fdv->frequire->toChars());
 	    /* Make the call:
@@ -1565,7 +1565,7 @@ Statement *FuncDeclaration::mergeFensure(Statement *sf)
     {
 	FuncDeclaration *fdv = (FuncDeclaration *)foverrides.data[i];
 	sf = fdv->mergeFensure(sf);
-	if (fdv->fensure)
+	if (fdv->fdensure)
 	{
 	    //printf("fdv->fensure: %s\n", fdv->fensure->toChars());
 	    // Make the call: __ensure(result)
