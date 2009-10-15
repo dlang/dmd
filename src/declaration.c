@@ -1034,6 +1034,7 @@ void VarDeclaration::semantic(Scope *sc)
 		else if (t->ty == Tstruct)
 		{
 		    ei->exp = ei->exp->semantic(sc);
+		    ei->exp = resolveProperties(sc, ei->exp);
 		    StructDeclaration *sd = ((TypeStruct *)t)->sym;
 #if DMDV2
 		    /* Look to see if initializer is a call to the constructor
