@@ -171,7 +171,8 @@ void Module::toJsonBuffer(OutBuffer *buf)
 {
     buf->writestring("{\n");
 
-    JsonProperty(buf, Pname, md->toChars());
+    if (md)
+	JsonProperty(buf, Pname, md->toChars());
 
     JsonProperty(buf, Pkind, kind());
 
@@ -187,12 +188,13 @@ void Module::toJsonBuffer(OutBuffer *buf)
     for (int i = 0; i < members->dim; i++)
     {	Dsymbol *s = (Dsymbol *)members->data[i];
 	if (offset != buf->offset)
-	{   buf->writestring(",");
+	{   buf->writestring(",\n");
 	    offset = buf->offset;
 	}
 	s->toJsonBuffer(buf);
     }
 
+    JsonRemoveComma(buf);
     buf->writestring("]\n");
 
     buf->writestring("}\n");
@@ -289,11 +291,12 @@ void AggregateDeclaration::toJsonBuffer(OutBuffer *buf)
 	    for (int i = 0; i < cd->interfaces_dim; i++)
 	    {	BaseClass *b = cd->interfaces[i];
 		if (offset != buf->offset)
-		{   buf->writestring(",");
+		{   buf->writestring(",\n");
 		    offset = buf->offset;
 		}
 		JsonString(buf, b->base->toChars());
 	    }
+	    JsonRemoveComma(buf);
 	    buf->writestring("],\n");
 	}
     }
@@ -304,11 +307,12 @@ void AggregateDeclaration::toJsonBuffer(OutBuffer *buf)
     for (int i = 0; i < members->dim; i++)
     {	Dsymbol *s = (Dsymbol *)members->data[i];
 	if (offset != buf->offset)
-	{   buf->writestring(",");
+	{   buf->writestring(",\n");
 	    offset = buf->offset;
 	}
 	s->toJsonBuffer(buf);
     }
+    JsonRemoveComma(buf);
     buf->writestring("]\n");
 
     buf->writestring("}\n");
@@ -334,11 +338,12 @@ void TemplateDeclaration::toJsonBuffer(OutBuffer *buf)
     for (int i = 0; i < members->dim; i++)
     {	Dsymbol *s = (Dsymbol *)members->data[i];
 	if (offset != buf->offset)
-	{   buf->writestring(",");
+	{   buf->writestring(",\n");
 	    offset = buf->offset;
 	}
 	s->toJsonBuffer(buf);
     }
+    JsonRemoveComma(buf);
     buf->writestring("]\n");
 
     buf->writestring("}\n");
@@ -381,11 +386,12 @@ void EnumDeclaration::toJsonBuffer(OutBuffer *buf)
     for (int i = 0; i < members->dim; i++)
     {	Dsymbol *s = (Dsymbol *)members->data[i];
 	if (offset != buf->offset)
-	{   buf->writestring(",");
+	{   buf->writestring(",\n");
 	    offset = buf->offset;
 	}
 	s->toJsonBuffer(buf);
     }
+    JsonRemoveComma(buf);
     buf->writestring("]\n");
 
     buf->writestring("}\n");
