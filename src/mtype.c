@@ -3219,6 +3219,7 @@ TypeAArray::TypeAArray(Type *t, Type *index)
     : TypeArray(Taarray, t)
 {
     this->index = index;
+    this->impl = NULL;
 }
 
 Type *TypeAArray::syntaxCopy()
@@ -3264,7 +3265,9 @@ Type *TypeAArray::semantic(Loc loc, Scope *sc)
 	else if (t)
 	    index = t;
 	else
-	    index->error(loc, "index is not a type or an expression");
+	{   index->error(loc, "index is not a type or an expression");
+	    return Type::terror;
+	}
     }
     else
 	index = index->semantic(loc,sc);
@@ -3292,7 +3295,7 @@ printf("index->ito->ito = x%x\n", index->ito->ito);
 	case Tnone:
 	case Ttuple:
 	    error(loc, "can't have associative array key of %s", index->toBasetype()->toChars());
-	    break;
+	    return Type::terror;
     }
     next = next->semantic(loc,sc);
     transitive();
@@ -3302,10 +3305,35 @@ printf("index->ito->ito = x%x\n", index->ito->ito);
 	case Tfunction:
 	case Tnone:
 	    error(loc, "can't have associative array of %s", next->toChars());
-	    break;
+	    return Type::terror;
     }
     if (next->isauto())
-	error(loc, "cannot have array of auto %s", next->toChars());
+    {	error(loc, "cannot have array of auto %s", next->toChars());
+	return Type::terror;
+    }
+
+    if (!index->reliesOnTident() && !next->reliesOnTident())
+    {
+	/* This is really a proxy for the template instance AssocArray!(index, next)
+	 * But the instantiation can fail if it is a template specialization field
+	 * which has Tident's instead of real types.
+	 */
+	TemplateInstance *ti = new TemplateInstance(loc, Id::AssociativeArray);
+	Objects *tiargs = new Objects();
+	tiargs->push(index);
+	tiargs->push(next);
+	ti->tiargs = tiargs;
+
+	ti->semantic(sc);
+	impl = ti->toAlias()->isStructDeclaration();
+#ifdef DEBUG
+	if (!impl)
+	{   Dsymbol *s = ti->toAlias();
+	    printf("%s %s\n", s->kind(), s->toChars());
+	}
+#endif
+	assert(impl);
+    }
 
     return merge();
 }
@@ -3341,9 +3369,10 @@ void TypeAArray::resolve(Loc loc, Scope *sc, Expression **pe, Type **pt, Dsymbol
 
 Expression *TypeAArray::dotExp(Scope *sc, Expression *e, Identifier *ident)
 {
-#if LOGDOTEXP
+#if  LOGDOTEXP
     printf("TypeAArray::dotExp(e = '%s', ident = '%s')\n", e->toChars(), ident->toChars());
 #endif
+#if 0
     if (ident == Id::length)
     {
 	Expression *ec;
@@ -3357,7 +3386,8 @@ Expression *TypeAArray::dotExp(Scope *sc, Expression *e, Identifier *ident)
 	e = new CallExp(e->loc, ec, arguments);
 	e->type = ((TypeFunction *)fd->type)->next;
     }
-    else if (ident == Id::keys)
+    else
+    if (ident == Id::keys)
     {
 	Expression *ec;
 	FuncDeclaration *fd;
@@ -3405,8 +3435,11 @@ Expression *TypeAArray::dotExp(Scope *sc, Expression *e, Identifier *ident)
 	e->type = this;
     }
     else
+#endif
     {
-	e = Type::dotExp(sc, e, ident);
+	e->type = impl->type;
+	e = impl->type->dotExp(sc, e, ident);
+	//e = Type::dotExp(sc, e, ident);
     }
     return e;
 }
@@ -5055,6 +5088,7 @@ Type *TypeTypeof::semantic(Loc loc, Scope *sc)
     {
 	sc->intypeof++;
 	exp = exp->semantic(sc);
+	//exp = resolveProperties(sc, exp);
 	sc->intypeof--;
 	if (exp->op == TOKtype)
 	{

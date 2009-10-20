@@ -1437,6 +1437,7 @@ Statement *ForeachStatement::semantic(Scope *sc)
 
     sc->noctor++;
 
+Lagain:
     switch (tab->ty)
     {
 	case Tarray:
@@ -1604,12 +1605,20 @@ Statement *ForeachStatement::semantic(Scope *sc)
 		error("only one or two arguments for associative array foreach");
 		break;
 	    }
+#if 0
+	    /* This currently fails if Key or Value is a static array.
+	     * The fix is to make static arrays a value type, not the
+	     * kludge they currently are.
+	     */
+	    tab = taa->impl->type;
+	    goto Lagain;
+#else
 	    if (op == TOKforeach_reverse)
 	    {
 		error("no reverse iteration on associative arrays");
 	    }
 	    goto Lapply;
-
+#endif
 	case Tclass:
 	case Tstruct:
 #if DMDV2

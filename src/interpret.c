@@ -48,6 +48,10 @@ Expression *interpret_aaLen(InterState *istate, Expressions *arguments);
 Expression *interpret_aaKeys(InterState *istate, Expressions *arguments);
 Expression *interpret_aaValues(InterState *istate, Expressions *arguments);
 
+Expression *interpret_length(InterState *istate, Expression *earg);
+Expression *interpret_keys(InterState *istate, Expression *earg, FuncDeclaration *fd);
+Expression *interpret_values(InterState *istate, Expression *earg, FuncDeclaration *fd);
+
 /*************************************
  * Attempt to interpret a function given the arguments.
  * Input:
@@ -66,12 +70,27 @@ Expression *FuncDeclaration::interpret(InterState *istate, Expressions *argument
 #endif
     if (global.errors)
 	return NULL;
+
+#if DMDV1
     if (ident == Id::aaLen)
 	return interpret_aaLen(istate, arguments);
     else if (ident == Id::aaKeys)
 	return interpret_aaKeys(istate, arguments);
     else if (ident == Id::aaValues)
 	return interpret_aaValues(istate, arguments);
+#endif
+#if DMDV2
+    if (thisarg &&
+	(!arguments || arguments->dim == 0))
+    {
+	if (ident == Id::length)
+	    return interpret_length(istate, thisarg);
+	else if (ident == Id::keys)
+	    return interpret_keys(istate, thisarg, this);
+	else if (ident == Id::values)
+	    return interpret_values(istate, thisarg, this);
+    }
+#endif
 
     if (cantInterpret || semanticRun == 3)
 	return NULL;
@@ -2682,6 +2701,8 @@ Expression *DotVarExp::interpret(InterState *istate)
 
 /******************************* Special Functions ***************************/
 
+#if DMDV1
+
 Expression *interpret_aaLen(InterState *istate, Expressions *arguments)
 {
     if (!arguments || arguments->dim != 1)
@@ -2735,4 +2756,60 @@ Expression *interpret_aaValues(InterState *istate, Expressions *arguments)
     //printf("result is %s\n", e->toChars());
     return e;
 }
+
+#endif
+
+#if DMDV2
+
+Expression *interpret_length(InterState *istate, Expression *earg)
+{
+    //printf("interpret_length()\n");
+    earg = earg->interpret(istate);
+    if (earg == EXP_CANT_INTERPRET)
+	return NULL;
+    if (earg->op != TOKassocarrayliteral)
+	return NULL;
+    AssocArrayLiteralExp *aae = (AssocArrayLiteralExp *)earg;
+    Expression *e = new IntegerExp(aae->loc, aae->keys->dim, Type::tsize_t);
+    return e;
+}
+
+Expression *interpret_keys(InterState *istate, Expression *earg, FuncDeclaration *fd)
+{
+#if LOG
+    printf("interpret_keys()\n");
+#endif
+    earg = earg->interpret(istate);
+    if (earg == EXP_CANT_INTERPRET)
+	return NULL;
+    if (earg->op != TOKassocarrayliteral)
+	return NULL;
+    AssocArrayLiteralExp *aae = (AssocArrayLiteralExp *)earg;
+    Expression *e = new ArrayLiteralExp(aae->loc, aae->keys);
+    assert(fd->type->ty == Tfunction);
+    assert(fd->type->nextOf()->ty == Tarray);
+    Type *elemType = ((TypeFunction *)fd->type)->nextOf()->nextOf();
+    e->type = new TypeSArray(elemType, new IntegerExp(aae->keys->dim));
+    return e;
+}
+
+Expression *interpret_values(InterState *istate, Expression *earg, FuncDeclaration *fd)
+{
+    //printf("interpret_values()\n");
+    earg = earg->interpret(istate);
+    if (earg == EXP_CANT_INTERPRET)
+	return NULL;
+    if (earg->op != TOKassocarrayliteral)
+	return NULL;
+    AssocArrayLiteralExp *aae = (AssocArrayLiteralExp *)earg;
+    Expression *e = new ArrayLiteralExp(aae->loc, aae->values);
+    assert(fd->type->ty == Tfunction);
+    assert(fd->type->nextOf()->ty == Tarray);
+    Type *elemType = ((TypeFunction *)fd->type)->nextOf()->nextOf();
+    e->type = new TypeSArray(elemType, new IntegerExp(aae->values->dim));
+    //printf("result is %s\n", e->toChars());
+    return e;
+}
+
+#endif
 

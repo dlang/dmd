@@ -3063,6 +3063,9 @@ Expression *AssocArrayLiteralExp::semantic(Scope *sc)
     printf("AssocArrayLiteralExp::semantic('%s')\n", toChars());
 #endif
 
+    if (type)
+	return this;
+
     // Run semantic() on each element
     for (size_t i = 0; i < keys->dim; i++)
     {	Expression *key = (Expression *)keys->data[i];
@@ -5736,11 +5739,13 @@ Expression *DotIdExp::semantic(Scope *sc)
          */
 	unsigned errors = global.errors;
 	global.gag++;
+	Type *t1 = e1->type;
 	e = e1->type->dotExp(sc, e1, ident);
 	global.gag--;
 	if (errors != global.errors)	// if failed to find the property
 	{
 	    global.errors = errors;
+	    e1->type = t1;		// kludge to restore type
 	    e = new DotIdExp(loc, new IdentifierExp(loc, Id::empty), ident);
 	    e = new CallExp(loc, e, e1);
 	}
@@ -6261,7 +6266,8 @@ Expression *CallExp::semantic(Scope *sc)
 
 		return new RemoveExp(loc, dotid->e1, key);
 	    }
-	    else if (e1ty == Tarray || e1ty == Tsarray || e1ty == Taarray)
+	    else if (e1ty == Tarray || e1ty == Tsarray ||
+		     (e1ty == Taarray && dotid->ident != Id::apply && dotid->ident != Id::applyReverse))
 	    {
 		if (!arguments)
 		    arguments = new Expressions();
@@ -6956,7 +6962,6 @@ Expression *AddrExp::semantic(Scope *sc)
 	    return new ErrorExp();
 	}
 
-//printf("test3 deco = %p\n", e1->type->deco);
 	type = e1->type->pointerTo();
 
 	// See if this should really be a delegate

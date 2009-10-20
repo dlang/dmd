@@ -408,6 +408,9 @@ void TypeInfoAssociativeArrayDeclaration::toDt(dt_t **pdt)
 
     tc->index->getTypeInfo(NULL);
     dtxoff(pdt, tc->index->vtinfo->toSymbol(), 0, TYnptr); // TypeInfo for array of type
+
+    tc->impl->type->getTypeInfo(NULL);
+    dtxoff(pdt, tc->impl->type->vtinfo->toSymbol(), 0, TYnptr);    // impl
 }
 
 void TypeInfoFunctionDeclaration::toDt(dt_t **pdt)

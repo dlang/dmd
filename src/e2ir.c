@@ -4580,6 +4580,7 @@ elem *AssocArrayLiteralExp::toElem(IRState *irs)
     assert(t->ty == Taarray);
     TypeAArray *ta = (TypeAArray *)t;
 
+#if 0
     /* Unfortunately, the hash function for Aa (array of chars) is custom and
      * different from Axa and Aya, which get the generic hash function.
      * So, rewrite the type of the AArray so that if it's key type
@@ -4593,6 +4594,7 @@ elem *AssocArrayLiteralExp::toElem(IRState *irs)
 	ta = new TypeAArray(ta->nextOf(), tkey);
 	ta = (TypeAArray *)ta->merge();
     }
+#endif
 
     e = el_param(e, ta->getTypeInfo(NULL)->toElem(irs));
 

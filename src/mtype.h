@@ -424,6 +424,8 @@ struct TypeAArray : TypeArray
 {
     Type *index;		// key type
 
+    StructDeclaration *impl;	// implementation
+
     TypeAArray(Type *t, Type *index);
     Type *syntaxCopy();
     d_uns64 size(Loc loc);

@@ -398,23 +398,16 @@ Expression *DotVarExp::optimize(int result)
     //printf("DotVarExp::optimize(result = x%x) %s\n", result, toChars());
     e1 = e1->optimize(result);
 
+    Expression *e = e1;
+
     if (e1->op == TOKvar)
     {	VarExp *ve = (VarExp *)e1;
 	VarDeclaration *v = ve->var->isVarDeclaration();
-	Expression *e = expandVar(result, v);
-	if (e && e->op == TOKstructliteral)
-	{   StructLiteralExp *sle = (StructLiteralExp *)e;
-	    VarDeclaration *vf = var->isVarDeclaration();
-	    if (vf)
-	    {
-		e = sle->getField(type, vf->offset);
-		if (e && e != EXP_CANT_INTERPRET)
-		    return e;
-	    }
-	}
+	e = expandVar(result, v);
     }
-    else if (e1->op == TOKstructliteral)
-    {   StructLiteralExp *sle = (StructLiteralExp *)e1;
+
+    if (e && e->op == TOKstructliteral)
+    {   StructLiteralExp *sle = (StructLiteralExp *)e;
 	VarDeclaration *vf = var->isVarDeclaration();
 	if (vf)
 	{
@@ -492,6 +485,18 @@ Expression *CallExp::optimize(int result)
 		else
 		    error("cannot evaluate %s at compile time", toChars());
 	    }
+	}
+    }
+    else if (e1->op == TOKdotvar && result & WANTinterpret)
+    {	DotVarExp *dve = (DotVarExp *)e1;
+	FuncDeclaration *fd = dve->var->isFuncDeclaration();
+	if (fd)
+	{
+	    Expression *eresult = fd->interpret(NULL, arguments, dve->e1);
+	    if (eresult && eresult != EXP_VOID_INTERPRET)
+		e = eresult;
+	    else
+		error("cannot evaluate %s at compile time", toChars());
 	}
     }
     return e;

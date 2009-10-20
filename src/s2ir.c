@@ -339,7 +339,6 @@ void ForeachStatement::toIR(IRState *irs)
     elem *e;
     elem *elength;
     tym_t keytym;
-    int isbit;
 
     //printf("ForeachStatement::toIR()\n");
     block *bpre;
@@ -354,7 +353,6 @@ void ForeachStatement::toIR(IRState *irs)
 
     tab = aggr->type->toBasetype();
     assert(tab->ty == Tarray || tab->ty == Tsarray);
-    isbit = 0;
 
     incUsage(irs, aggr->loc);
     eaggr = aggr->toElem(irs);
@@ -611,7 +609,6 @@ void ForeachRangeStatement::toIR(IRState *irs)
     elem *e;
     elem *elength;
     tym_t keytym;
-    int isbit;
 
     //printf("ForeachStatement::toIR()\n");
     block *bpre;

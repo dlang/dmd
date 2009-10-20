@@ -62,6 +62,7 @@ Msgtable msgtable[] =
     { "typeinfo" },
     { "outer" },
     { "Exception" },
+    { "AssociativeArray" },
     { "Throwable" },
     { "withSym", "__withSym" },
     { "result", "__result" },
