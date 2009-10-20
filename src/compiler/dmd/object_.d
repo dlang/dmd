@@ -602,6 +602,8 @@ class TypeInfo_AssociativeArray : TypeInfo
 
     TypeInfo value;
     TypeInfo key;
+
+    TypeInfo impl;
 }
 
 class TypeInfo_Function : TypeInfo

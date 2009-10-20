@@ -126,6 +126,7 @@ class TypeInfo_AssociativeArray : TypeInfo
 {
     TypeInfo value;
     TypeInfo key;
+    TypeInfo impl;
 }
 
 class TypeInfo_Function : TypeInfo
@@ -266,3 +267,63 @@ class Error : Throwable
     this(string msg, Throwable next = null);
     this(string msg, string file, size_t line, Throwable next = null);
 }
+
+extern (C)
+{
+    // from druntime/src/compiler/dmd/aaA.d
+
+    size_t _aaLen(void* p);
+    void* _aaGet(void** pp, TypeInfo keyti, size_t valuesize, ...);
+    void* _aaGetRvalue(void* p, TypeInfo keyti, size_t valuesize, ...);
+    void* _aaIn(void* p, TypeInfo keyti);
+    void _aaDel(void* p, TypeInfo keyti, ...);
+    void[] _aaValues(void* p, size_t keysize, size_t valuesize);
+    void[] _aaKeys(void* p, size_t keysize, size_t valuesize);
+    void* _aaRehash(void** pp, TypeInfo keyti);
+
+    extern (D) typedef int delegate(void *) _dg_t;
+    int _aaApply(void* aa, size_t keysize, _dg_t dg);
+
+    extern (D) typedef int delegate(void *, void *) _dg2_t;
+    int _aaApply2(void* aa, size_t keysize, _dg2_t dg);
+
+    void* _d_assocarrayliteralT(TypeInfo_AssociativeArray ti, size_t length, ...);
+}
+
+struct AssociativeArray(Key, Value)
+{
+    void* p;
+
+    size_t length() { return _aaLen(p); }
+
+    Value[Key] rehash()
+    {
+	return cast(Value[Key]) _aaRehash(&p, typeid(Value[Key]));
+    }
+
+    Value[] values()
+    {
+	auto a = _aaValues(p, Key.sizeof, Value.sizeof);
+	return *cast(Value[]*) &a;
+    }
+
+    Key[] keys()
+    {
+	auto a = _aaKeys(p, Key.sizeof, Value.sizeof);
+	return *cast(Key[]*) &a;
+    }
+
+/+ Won't work yet because cannot pass static arrays to inout
+    int opApply(int delegate(inout Value) dg)
+    {
+	return _aaApply(p, Key.sizeof, cast(_dg_t)dg);
+    }
+
+    int opApply(int delegate(inout Key, inout Value) dg)
+    {
+	return _aaApply2(p, Key.sizeof, cast(_dg2_t)dg);
+    }
++/
+}
+
+

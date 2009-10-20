@@ -13,6 +13,8 @@
  */
 module rt.lifetime;
 
+//debug=PRINTF;
+import core.stdc.stdio;
 
 private
 {
@@ -542,7 +544,7 @@ body
 {
     debug(PRINTF)
     {
-        printf("_d_arraysetlengthT(p = %p, sizeelem = %d, newlength = %d)\n", p, sizeelem, newlength);
+        //printf("_d_arraysetlengthT(p = %p, sizeelem = %d, newlength = %d)\n", p, sizeelem, newlength);
         if (p)
             printf("\tp.data = %p, p.length = %d\n", p.data, p.length);
     }
