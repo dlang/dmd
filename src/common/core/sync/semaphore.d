@@ -245,8 +245,6 @@ class Semaphore
                 if( rc != KERN_ABORTED || errno != EINTR )
                     throw new SyncException( "Unable to wait for semaphore" );
             }
-            // -w trip
-            //return false;
         }
         else version( Posix )
         {
