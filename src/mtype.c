@@ -104,6 +104,7 @@ ClassDeclaration *Type::typeinfoinvariant;
 ClassDeclaration *Type::typeinfoshared;
 
 Type *Type::tvoidptr;
+Type *Type::tstring;
 Type *Type::basic[TMAX];
 unsigned char Type::mangleChar[TMAX];
 unsigned char Type::sizeTy[TMAX];
@@ -255,6 +256,7 @@ void Type::init()
     basic[Terror] = basic[Tint32];
 
     tvoidptr = tvoid->pointerTo();
+    tstring = tchar->invariantOf()->arrayOf();
 
     if (global.params.isX86_64)
     {
@@ -3006,8 +3008,12 @@ void TypeDArray::toCBuffer2(OutBuffer *buf, HdrGenState *hgs, int mod)
     {	toCBuffer3(buf, hgs, mod);
 	return;
     }
-    next->toCBuffer2(buf, hgs, this->mod);
-    buf->writestring("[]");
+    if (equals(tstring))
+	buf->writestring("string");
+    else
+    {	next->toCBuffer2(buf, hgs, this->mod);
+	buf->writestring("[]");
+    }
 }
 
 Expression *TypeDArray::dotExp(Scope *sc, Expression *e, Identifier *ident)
@@ -4084,10 +4090,12 @@ Type *TypeFunction::semantic(Loc loc, Scope *sc)
     if (tf->next)
     {
 	tf->next = tf->next->semantic(loc,sc);
+#if !SARRAYVALUE
 	if (tf->next->toBasetype()->ty == Tsarray)
 	{   error(loc, "functions cannot return static array %s", tf->next->toChars());
 	    tf->next = Type::terror;
 	}
+#endif
 	if (tf->next->toBasetype()->ty == Tfunction)
 	{   error(loc, "functions cannot return a function");
 	    tf->next = Type::terror;
@@ -4128,8 +4136,8 @@ Type *TypeFunction::semantic(Loc loc, Scope *sc)
 
 	    if (arg->storageClass & (STCout | STCref | STClazy))
 	    {
-		if (t->ty == Tsarray)
-		    error(loc, "cannot have out or ref parameter of type %s", t->toChars());
+		//if (t->ty == Tsarray)
+		    //error(loc, "cannot have out or ref parameter of type %s", t->toChars());
 		if (arg->storageClass & STCout && arg->type->mod)
 		    error(loc, "cannot have const/invariant out parameter of type %s", t->toChars());
 	    }

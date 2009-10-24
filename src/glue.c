@@ -943,7 +943,11 @@ unsigned Type::totym()
 	case Tpointer:	t = TYnptr;	break;
 	case Tdelegate:	t = TYdelegate;	break;
 	case Tarray:	t = TYdarray;	break;
+#if SARRAYVALUE
+	case Tsarray:	t = TYstruct;	break;
+#else
 	case Tsarray:	t = TYarray;	break;
+#endif
 	case Tstruct:	t = TYstruct;	break;
 
 	case Tenum:

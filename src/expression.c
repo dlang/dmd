@@ -679,12 +679,14 @@ void functionArguments(Loc loc, Scope *sc, TypeFunction *tf, Expressions *argume
 		arg = arg->modifiableLvalue(sc, arg);
 	    }
 
-	    // Convert static arrays to pointers
 	    tb = arg->type->toBasetype();
+#if !SARRAYVALUE
+	    // Convert static arrays to pointers
 	    if (tb->ty == Tsarray)
 	    {
 		arg = arg->checkToPointer();
 	    }
+#endif
 #if DMDV2
 	    if (tb->ty == Tstruct && !(p->storageClass & (STCref | STCout)))
 	    {
@@ -1210,14 +1212,14 @@ Expression *Expression::checkToBoolean()
 
 Expression *Expression::checkToPointer()
 {
-    Expression *e;
     Type *tb;
 
     //printf("Expression::checkToPointer()\n");
-    e = this;
+    Expression *e = this;
 
+#if !SARRAYVALUE
     // If C static array, convert to pointer
-    tb = type->toBasetype();
+    Type *tb = type->toBasetype();
     if (tb->ty == Tsarray)
     {	TypeSArray *ts = (TypeSArray *)tb;
 	if (ts->size(loc) == 0)
@@ -1226,6 +1228,7 @@ Expression *Expression::checkToPointer()
 	    e = new AddrExp(loc, this);
 	e->type = ts->next->pointerTo();
     }
+#endif
     return e;
 }
 
@@ -4232,8 +4235,8 @@ Expression *VarExp::toLvalue(Scope *sc, Expression *e)
 Expression *VarExp::modifiableLvalue(Scope *sc, Expression *e)
 {
     //printf("VarExp::modifiableLvalue('%s')\n", var->toChars());
-    if (type && type->toBasetype()->ty == Tsarray)
-	error("cannot change reference to static array '%s'", var->toChars());
+    //if (type && type->toBasetype()->ty == Tsarray)
+	//error("cannot change reference to static array '%s'", var->toChars());
 
     var->checkModify(loc, sc, type);
 

@@ -658,8 +658,39 @@ enum RET TypeFunction::retStyle()
 #endif
 
     Type *tn = next->toBasetype();
+    Type *tns = tn;
+    d_uns64 sz = tn->size();
 
-    if (tn->ty == Tstruct)
+#if SARRAYVALUE
+    if (tn->ty == Tsarray)
+    {
+	do
+	{
+	    tns = tns->nextOf()->toBasetype();
+	} while (tns->ty == Tsarray);
+	if (tns->ty != Tstruct)
+	{
+	    if (global.params.isLinux && linkage != LINKd)
+		;
+	    else
+	    {
+		switch (sz)
+		{   case 1:
+		    case 2:
+		    case 4:
+		    case 8:
+			return RETregs;	// return small structs in regs
+					    // (not 3 byte structs!)
+		    default:
+			break;
+		}
+	    }
+	    return RETstack;
+	}
+    }
+#endif
+
+    if (tns->ty == Tstruct)
     {	StructDeclaration *sd = ((TypeStruct *)tn)->sym;
 	if (global.params.isLinux && linkage != LINKd)
 	    ;
@@ -669,7 +700,7 @@ enum RET TypeFunction::retStyle()
 #endif
 	else
 	{
-	    switch ((int)tn->size())
+	    switch (sz)
 	    {   case 1:
 		case 2:
 		case 4:

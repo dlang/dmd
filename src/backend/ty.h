@@ -279,7 +279,7 @@ extern const tym_t tytouns[];
 
 // Determine if parameter can go in register for TYjfunc
 #ifndef tyjparam
-#define tyjparam(ty)	(tysize(ty) <= intsize && !tyfloating(ty) && tybasic(ty) != TYstruct)
+#define tyjparam(ty)	(tysize(ty) <= intsize && !tyfloating(ty) && tybasic(ty) != TYstruct && tybasic(ty) != TYarray)
 #endif
 
 /* Determine relaxed type	*/
