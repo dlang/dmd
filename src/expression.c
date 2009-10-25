@@ -7149,7 +7149,7 @@ Expression *NegExp::semantic(Scope *sc)
 	    return e;
 
 	e1->checkNoBool();
-	if (e1->op != TOKslice)
+	if (!e1->isArrayOperand())
 	    e1->checkArithmetic();
 	type = e1->type;
     }
@@ -7199,7 +7199,7 @@ Expression *ComExp::semantic(Scope *sc)
 	    return e;
 
 	e1->checkNoBool();
-	if (e1->op != TOKslice)
+	if (!e1->isArrayOperand())
 	    e1 = e1->checkIntegral();
 	type = e1->type;
     }
@@ -9330,10 +9330,10 @@ Expression *MulExp::semantic(Scope *sc)
 	return e;
 
     typeCombine(sc);
-    if (e1->op != TOKslice && e2->op != TOKslice)
-    {	e1->checkArithmetic();
+    if (!e1->isArrayOperand())
+	e1->checkArithmetic();
+    if (!e2->isArrayOperand())
 	e2->checkArithmetic();
-    }
     if (type->isfloating())
     {	Type *t1 = e1->type;
 	Type *t2 = e2->type;
@@ -9396,10 +9396,10 @@ Expression *DivExp::semantic(Scope *sc)
 	return e;
 
     typeCombine(sc);
-    if (e1->op != TOKslice && e2->op != TOKslice)
-    {	e1->checkArithmetic();
+    if (!e1->isArrayOperand())
+	e1->checkArithmetic();
+    if (!e2->isArrayOperand())
 	e2->checkArithmetic();
-    }
     if (type->isfloating())
     {	Type *t1 = e1->type;
 	Type *t2 = e2->type;
@@ -9463,10 +9463,10 @@ Expression *ModExp::semantic(Scope *sc)
 	return e;
 
     typeCombine(sc);
-    if (e1->op != TOKslice && e2->op != TOKslice)
-    {	e1->checkArithmetic();
+    if (!e1->isArrayOperand())
+	e1->checkArithmetic();
+    if (!e2->isArrayOperand())
 	e2->checkArithmetic();
-    }
     if (type->isfloating())
     {	type = e1->type;
 	if (e2->type->iscomplex())
@@ -9574,10 +9574,10 @@ Expression *AndExp::semantic(Scope *sc)
 	else
 	{
 	    typeCombine(sc);
-	    if (e1->op != TOKslice && e2->op != TOKslice)
-	    {   e1->checkIntegral();
+	    if (!e1->isArrayOperand())
+		e1->checkIntegral();
+	    if (!e2->isArrayOperand())
 		e2->checkIntegral();
-	    }
 	}
     }
     return this;
@@ -9607,10 +9607,10 @@ Expression *OrExp::semantic(Scope *sc)
 	else
 	{
 	    typeCombine(sc);
-	    if (e1->op != TOKslice && e2->op != TOKslice)
-	    {   e1->checkIntegral();
+	    if (!e1->isArrayOperand())
+		e1->checkIntegral();
+	    if (!e2->isArrayOperand())
 		e2->checkIntegral();
-	    }
 	}
     }
     return this;
@@ -9640,10 +9640,10 @@ Expression *XorExp::semantic(Scope *sc)
 	else
 	{
 	    typeCombine(sc);
-	    if (e1->op != TOKslice && e2->op != TOKslice)
-	    {   e1->checkIntegral();
+	    if (!e1->isArrayOperand())
+		e1->checkIntegral();
+	    if (!e2->isArrayOperand())
 		e2->checkIntegral();
-	    }
 	}
     }
     return this;

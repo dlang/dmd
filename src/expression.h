@@ -156,6 +156,7 @@ struct Expression : Object
     // For array ops
     virtual void buildArrayIdent(OutBuffer *buf, Expressions *arguments);
     virtual Expression *buildArrayLoop(Arguments *fparams);
+    int isArrayOperand();
 
     // Back end
     virtual elem *toElem(IRState *irs);

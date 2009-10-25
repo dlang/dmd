@@ -1605,10 +1605,8 @@ Lagain:
 		error("only one or two arguments for associative array foreach");
 		break;
 	    }
-#if 1
-	    /* This currently fails if Key or Value is a static array.
-	     * The fix is to make static arrays a value type, not the
-	     * kludge they currently are.
+#if SARRAYVALUE
+	    /* This only works if Key or Value is a static array.
 	     */
 	    tab = taa->impl->type;
 	    goto Lagain;

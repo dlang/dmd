@@ -530,3 +530,34 @@ X(Or)
 #undef X
 
 
+/***********************************************
+ * Test if operand is a valid array op operand.
+ */
+
+int Expression::isArrayOperand()
+{
+    //printf("Expression::isArrayOperand() %s\n", toChars());
+    if (op == TOKslice)
+	return 1;
+    if (type->toBasetype()->ty == Tarray)
+    {
+	switch (op)
+	{
+	    case TOKadd:
+	    case TOKmin:
+	    case TOKmul:
+	    case TOKdiv:
+	    case TOKmod:
+	    case TOKxor:
+	    case TOKand:
+	    case TOKor:
+	    case TOKneg:
+	    case TOKtilde:
+		return 1;
+
+	    default:
+		break;
+	}
+    }
+    return 0;
+}
