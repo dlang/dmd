@@ -5233,7 +5233,10 @@ int AssertExp::checkSideEffect(int flag)
 #if DMDV2
 int AssertExp::canThrow()
 {
-    return (global.params.useAssert != 0);
+    /* assert()s are non-recoverable errors, so functions that
+     * use them can be considered "nothrow"
+     */
+    return 0; //(global.params.useAssert != 0);
 }
 #endif
 
@@ -5535,7 +5538,11 @@ Expression *DotIdExp::semantic(Scope *sc)
 	     ident != Id::init && ident != Id::__sizeof &&
 	     ident != Id::alignof && ident != Id::offsetof &&
 	     ident != Id::mangleof && ident != Id::stringof)
-    {
+    {	/* Rewrite:
+         *   p.ident
+         * as:
+         *   (*p).ident
+         */
 	e = new PtrExp(loc, e1);
 	e->type = ((TypePointer *)e1->type)->next;
 	return e->type->dotExp(sc, e, ident);
@@ -5654,7 +5661,7 @@ Expression *DotVarExp::semantic(Scope *sc)
 	type = var->type;
 	if (!type && global.errors)
 	{   // var is goofed up, just return 0
-	    return new IntegerExp(0);
+	    return new ErrorExp();
 	}
 	assert(type);
 
@@ -6863,7 +6870,7 @@ Expression *NegExp::semantic(Scope *sc)
 	    return e;
 
 	e1->checkNoBool();
-	if (e1->op != TOKslice)
+	if (!e1->isArrayOperand())
 	    e1->checkArithmetic();
 	type = e1->type;
     }
@@ -6913,7 +6920,7 @@ Expression *ComExp::semantic(Scope *sc)
 	    return e;
 
 	e1->checkNoBool();
-	if (e1->op != TOKslice)
+	if (!e1->isArrayOperand())
 	    e1 = e1->checkIntegral();
 	type = e1->type;
     }
@@ -8857,10 +8864,10 @@ Expression *MulExp::semantic(Scope *sc)
 	return e;
 
     typeCombine(sc);
-    if (e1->op != TOKslice && e2->op != TOKslice)
-    {	e1->checkArithmetic();
+    if (!e1->isArrayOperand())
+	e1->checkArithmetic();
+    if (!e2->isArrayOperand())
 	e2->checkArithmetic();
-    }
     if (type->isfloating())
     {	Type *t1 = e1->type;
 	Type *t2 = e2->type;
@@ -8923,10 +8930,10 @@ Expression *DivExp::semantic(Scope *sc)
 	return e;
 
     typeCombine(sc);
-    if (e1->op != TOKslice && e2->op != TOKslice)
-    {	e1->checkArithmetic();
+    if (!e1->isArrayOperand())
+	e1->checkArithmetic();
+    if (!e2->isArrayOperand())
 	e2->checkArithmetic();
-    }
     if (type->isfloating())
     {	Type *t1 = e1->type;
 	Type *t2 = e2->type;
@@ -8990,10 +8997,10 @@ Expression *ModExp::semantic(Scope *sc)
 	return e;
 
     typeCombine(sc);
-    if (e1->op != TOKslice && e2->op != TOKslice)
-    {	e1->checkArithmetic();
+    if (!e1->isArrayOperand())
+	e1->checkArithmetic();
+    if (!e2->isArrayOperand())
 	e2->checkArithmetic();
-    }
     if (type->isfloating())
     {	type = e1->type;
 	if (e2->type->iscomplex())
@@ -9101,10 +9108,10 @@ Expression *AndExp::semantic(Scope *sc)
 	else
 	{
 	    typeCombine(sc);
-	    if (e1->op != TOKslice && e2->op != TOKslice)
-	    {   e1->checkIntegral();
+	    if (!e1->isArrayOperand())
+		e1->checkIntegral();
+	    if (!e2->isArrayOperand())
 		e2->checkIntegral();
-	    }
 	}
     }
     return this;
@@ -9134,10 +9141,10 @@ Expression *OrExp::semantic(Scope *sc)
 	else
 	{
 	    typeCombine(sc);
-	    if (e1->op != TOKslice && e2->op != TOKslice)
-	    {   e1->checkIntegral();
+	    if (!e1->isArrayOperand())
+		e1->checkIntegral();
+	    if (!e2->isArrayOperand())
 		e2->checkIntegral();
-	    }
 	}
     }
     return this;
@@ -9167,10 +9174,10 @@ Expression *XorExp::semantic(Scope *sc)
 	else
 	{
 	    typeCombine(sc);
-	    if (e1->op != TOKslice && e2->op != TOKslice)
-	    {   e1->checkIntegral();
+	    if (!e1->isArrayOperand())
+		e1->checkIntegral();
+	    if (!e2->isArrayOperand())
 		e2->checkIntegral();
-	    }
 	}
     }
     return this;

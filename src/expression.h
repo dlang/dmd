@@ -151,6 +151,7 @@ struct Expression : Object
     // For array ops
     virtual void buildArrayIdent(OutBuffer *buf, Expressions *arguments);
     virtual Expression *buildArrayLoop(Arguments *fparams);
+    int isArrayOperand();
 
     // Back end
     virtual elem *toElem(IRState *irs);
@@ -260,6 +261,7 @@ struct DollarExp : IdentifierExp
 struct DsymbolExp : Expression
 {
     Dsymbol *s;
+    int hasOverloads;
 
     DsymbolExp(Loc loc, Dsymbol *s);
     Expression *semantic(Scope *sc);
@@ -976,6 +978,8 @@ struct CastExp : UnaExp
     int checkSideEffect(int flag);
     void checkEscape();
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
+    void buildArrayIdent(OutBuffer *buf, Expressions *arguments);
+    Expression *buildArrayLoop(Arguments *fparams);
     elem *toElem(IRState *irs);
 
     // For operator overloading

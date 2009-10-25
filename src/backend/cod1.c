@@ -2221,7 +2221,7 @@ code *cdfunc(elem *e,regm_t *pretregs)
 		    if (tyf == TYjfunc &&
 			// This must match type_jparam()
 			!(tyjparam(ep->Ety) ||
-			  (tybasic(ep->Ety) == TYstruct && ep->Enumbytes <= intsize && ep->Enumbytes != 3)
+			  ((tybasic(ep->Ety) == TYstruct || tybasic(ep->Ety) == TYarray) && ep->Enumbytes <= intsize && ep->Enumbytes != 3)
 			 )
 			)
 		    {
@@ -2270,7 +2270,7 @@ code *cdfunc(elem *e,regm_t *pretregs)
 		    if (tyf == TYjfunc &&
 			// This must match type_jparam()
 			!(tyjparam(ep->Ety) ||
-			  (tybasic(ep->Ety) == TYstruct && ep->Enumbytes <= intsize && ep->Enumbytes != 3)
+			  ((tybasic(ep->Ety) == TYstruct || tybasic(ep->Ety) == TYarray) && ep->Enumbytes <= intsize && ep->Enumbytes != 3)
 			 )
 			)
 		    {
