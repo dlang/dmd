@@ -313,7 +313,6 @@ struct AssociativeArray(Key, Value)
 	return *cast(Key[]*) &a;
     }
 
-/+ Won't work yet because cannot pass static arrays to inout
     int opApply(int delegate(inout Value) dg)
     {
 	return _aaApply(p, Key.sizeof, cast(_dg_t)dg);
@@ -323,7 +322,6 @@ struct AssociativeArray(Key, Value)
     {
 	return _aaApply2(p, Key.sizeof, cast(_dg2_t)dg);
     }
-+/
 }
 
 
