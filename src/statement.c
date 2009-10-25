@@ -1605,7 +1605,7 @@ Lagain:
 		error("only one or two arguments for associative array foreach");
 		break;
 	    }
-#if 0
+#if 1
 	    /* This currently fails if Key or Value is a static array.
 	     * The fix is to make static arrays a value type, not the
 	     * kludge they currently are.

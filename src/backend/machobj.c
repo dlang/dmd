@@ -43,7 +43,7 @@
 #if MACHOBJ
 
 #if MARS
-#include	"../mars/mars.h"
+#include	"mars.h"
 #endif
 
 #include	"mach.h"

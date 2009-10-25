@@ -4236,8 +4236,25 @@ int TypeFunction::callMatch(Expression *ethis, Expressions *args)
 	assert(arg);
 
 	// Non-lvalues do not match ref or out parameters
-	if (p->storageClass & (STCref | STCout) && !arg->isLvalue())
-	    goto Nomatch;
+	if (p->storageClass & (STCref | STCout))
+	{   if (!arg->isLvalue())
+		goto Nomatch;
+	}
+
+	if (p->storageClass & STCref)
+	{
+	    /* Don't allow static arrays to be passed to mutable refereces
+	     * to static arrays if the argument cannot be modified.
+	     */
+	    Type *targb = arg->type->toBasetype();
+	    Type *tparb = p->type->toBasetype();
+	    //printf("%s\n", targb->toChars());
+	    //printf("%s\n", tparb->toChars());
+	    if (targb->nextOf() && tparb->ty == Tsarray &&
+		targb->nextOf()->mod != tparb->nextOf()->mod &&
+		!tparb->nextOf()->isConst())
+		goto Nomatch;
+	}
 
 	if (p->storageClass & STClazy && p->type->ty == Tvoid &&
 		arg->type->ty != Tvoid)

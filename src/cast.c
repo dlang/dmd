@@ -918,8 +918,6 @@ Expression *StringExp::castTo(Scope *sc, Type *t)
      * will result in a copy.
      * The this->string member is considered immutable.
      */
-    StringExp *se;
-    Type *tb;
     int copied = 0;
 
     //printf("StringExp::castTo(t = %s), '%s' committed = %d\n", t->toChars(), toChars(), committed);
@@ -929,7 +927,7 @@ Expression *StringExp::castTo(Scope *sc, Type *t)
 	error("cannot convert string literal to void*");
     }
 
-    se = this;
+    StringExp *se = this;
     if (!committed)
     {   se = (StringExp *)copy();
 	se->committed = 1;
@@ -941,7 +939,7 @@ Expression *StringExp::castTo(Scope *sc, Type *t)
 	return se;
     }
 
-    tb = t->toBasetype();
+    Type *tb = t->toBasetype();
     //printf("\ttype = %s\n", type->toChars());
     if (tb->ty == Tdelegate && type->toBasetype()->ty != Tdelegate)
 	return Expression::castTo(sc, t);

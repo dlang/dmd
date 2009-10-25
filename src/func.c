@@ -1890,7 +1890,7 @@ int fp2(void *param, FuncDeclaration *f)
 	m->anyf = f;
 	TypeFunction *tf = (TypeFunction *)f->type;
 	match = (MATCH) tf->callMatch(f->needThis() ? p->ethis : NULL, arguments);
-	//printf("match = %d\n", match);
+	//printf("test: match = %d\n", match);
 	if (match != MATCHnomatch)
 	{
 	    if (match > m->last)

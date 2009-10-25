@@ -254,7 +254,7 @@ dump.o: dump.c
 	$(CC) -c $(CFLAGS) $<
 
 dwarf.o: $C/dwarf.h $C/dwarf.c
-	$(CC) -c $(MFLAGS) $C/dwarf.c
+	$(CC) -c $(MFLAGS) -I. $C/dwarf.c
 
 e2ir.o: $C/rtlsym.h expression.h toir.h e2ir.c
 	$(CC) -c -I$(ROOT) $(MFLAGS) e2ir.c

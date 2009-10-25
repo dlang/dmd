@@ -148,7 +148,7 @@ elem *callfunc(Loc loc,
 	    }
 	    ea = arg->toElem(irs);
 	L1:
-	    if (tybasic(ea->Ety) == TYstruct)
+	    if (tybasic(ea->Ety) == TYstruct || tybasic(ea->Ety) == TYarray)
 	    {
 		ea = el_una(OPstrpar, TYstruct, ea);
 		ea->Enumbytes = ea->E1->Enumbytes;
@@ -622,7 +622,7 @@ elem *setArray(elem *eptr, elem *edim, Type *tb, elem *evalue, IRState *irs, int
 	edim = el_bin(OPmul, TYuint, edim, el_long(TYuint, sz));
     }
 
-    if (tybasic(evalue->Ety) == TYstruct)
+    if (tybasic(evalue->Ety) == TYstruct || tybasic(evalue->Ety) == TYarray)
     {
 	evalue = el_una(OPstrpar, TYstruct, evalue);
 	evalue->Enumbytes = evalue->E1->Enumbytes;
@@ -1415,13 +1415,12 @@ elem *StringExp::toElem(IRState *irs)
     }
     else if (tb->ty == Tsarray)
     {
-	Symbol *si;
 	dt_t *dt = NULL;
 
 	toDt(&dt);
 	dtnzeros(&dt, sz);		// leave terminating 0
 
-	si = symbol_generate(SCstatic,type_allocn(TYarray, tschar));
+	Symbol *si = symbol_generate(SCstatic,type_allocn(TYarray, tschar));
 	si->Sdt = dt;
 	si->Sfl = FLdata;
 
@@ -1431,6 +1430,7 @@ elem *StringExp::toElem(IRState *irs)
 	outdata(si);
 
 	e = el_var(si);
+	e->Enumbytes = len * sz;
     }
     else if (tb->ty == Tpointer)
     {
@@ -2429,7 +2429,7 @@ elem *RemoveExp::toElem(IRState *irs)
     elem *ep;
     elem *keyti;
 
-    if (tybasic(ekey->Ety) == TYstruct)
+    if (tybasic(ekey->Ety) == TYstruct || tybasic(ekey->Ety) == TYarray)
     {
 	ekey = el_una(OPstrpar, TYstruct, ekey);
 	ekey->Enumbytes = ekey->E1->Enumbytes;
@@ -2955,7 +2955,7 @@ elem *CatAssignExp::toElem(IRState *irs)
 	e1 = el_una(OPaddr, TYnptr, e1);
 
 	e2 = this->e2->toElem(irs);
-	if (tybasic(e2->Ety) == TYstruct)
+	if (tybasic(e2->Ety) == TYstruct || tybasic(e2->Ety) == TYarray)
 	{
 	    e2 = el_una(OPstrpar, TYstruct, e2);
 	    e2->Enumbytes = e2->E1->Enumbytes;
@@ -3459,7 +3459,7 @@ elem *DeleteExp::toElem(IRState *irs)
 	    elem *ep;
 	    elem *keyti;
 
-	    if (tybasic(ekey->Ety) == TYstruct)
+	    if (tybasic(ekey->Ety) == TYstruct || tybasic(ekey->Ety) == TYarray)
 	    {
 		ekey = el_una(OPstrpar, TYstruct, ekey);
 		ekey->Enumbytes = ekey->E1->Enumbytes;

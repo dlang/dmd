@@ -51,7 +51,7 @@
 #if ELFOBJ || MACHOBJ
 
 #if MARS
-#include	"../mars/mars.h"
+#include	"mars.h"
 #endif
 
 #include	"dwarf.h"
