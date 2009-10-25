@@ -2799,9 +2799,7 @@ int PostBlitDeclaration::isVirtual()
 
 void PostBlitDeclaration::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 {
-    if (hgs->hdrgen)
-	return;
-    buf->writestring("=this()");
+    buf->writestring("this(this)");
     bodyToCBuffer(buf, hgs);
 }
 #endif
@@ -2889,8 +2887,6 @@ int DtorDeclaration::isVirtual()
 
 void DtorDeclaration::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 {
-    if (hgs->hdrgen)
-	return;
     buf->writestring("~this()");
     bodyToCBuffer(buf, hgs);
 }
