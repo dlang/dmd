@@ -986,7 +986,8 @@ void StructDeclaration::toObjFile(int multiobj)
 	     */
 	    // See if we can convert a comdat to a comdef,
 	    // which saves on exe file space.
-	    if (sinit->Sclass == SCcomdat &&
+	    if (0 &&  // causes multiple def problems with COMMON in one file and COMDAT in library
+		sinit->Sclass == SCcomdat &&
 		sinit->Sdt &&
 		sinit->Sdt->dt == DT_azeros &&
 		sinit->Sdt->DTnext == NULL &&

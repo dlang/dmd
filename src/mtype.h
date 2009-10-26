@@ -424,6 +424,8 @@ struct TypeDArray : TypeArray
 struct TypeAArray : TypeArray
 {
     Type *index;		// key type
+    Loc loc;
+    Scope *sc;
 
     StructDeclaration *impl;	// implementation
 
@@ -431,6 +433,7 @@ struct TypeAArray : TypeArray
     Type *syntaxCopy();
     d_uns64 size(Loc loc);
     Type *semantic(Loc loc, Scope *sc);
+    StructDeclaration *getImpl();
     void resolve(Loc loc, Scope *sc, Expression **pe, Type **pt, Dsymbol **ps);
     void toDecoBuffer(OutBuffer *buf, int flag);
     void toCBuffer2(OutBuffer *buf, HdrGenState *hgs, int mod);
@@ -538,6 +541,7 @@ struct TypeDelegate : TypeNext
     Type *syntaxCopy();
     Type *semantic(Loc loc, Scope *sc);
     d_uns64 size(Loc loc);
+    MATCH implicitConvTo(Type *to);
     void toCBuffer2(OutBuffer *buf, HdrGenState *hgs, int mod);
     Expression *defaultInit(Loc loc);
     int isZeroInit(Loc loc);

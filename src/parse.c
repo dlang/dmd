@@ -2452,9 +2452,9 @@ Type *Parser::parseDeclarator(Type *t, Identifier **pident, TemplateParameters *
 			    }
 			    Identifier *id = token.ident;
 			    if (id == Id::property)
-				((TypeFunction *)tf)->ispure = 1;
+				((TypeFunction *)tf)->isproperty = 1;
 			    else
-				error("valid attribute identifiers are property, not %s", id->toChars());
+				error("valid attribute identifiers are @property, not @%s", id->toChars());
 			    nextToken();
 			    continue;
 

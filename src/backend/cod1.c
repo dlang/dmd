@@ -2744,6 +2744,11 @@ code *params(elem *e,unsigned stackalign)
 		unsigned npushes;
 
 		e1 = e->E1;
+		if (sz == 0)
+		{
+		    ce = docommas(&e1);	/* skip over any commas		*/
+		    goto L2;
+		}
 		if ((sz & 3) == 0 && (sz / REGSIZE) <= 4 && e1->Eoper == OPvar)
 		{   freenode(e);
 		    e = e1;

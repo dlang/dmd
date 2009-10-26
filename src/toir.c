@@ -619,7 +619,11 @@ void FuncDeclaration::buildClosure(IRState *irs)
 	    if (!v->isParameter())
 		continue;
 	    tym_t tym = v->type->totym();
-	    if (v->type->toBasetype()->ty == Tsarray || v->isOut() || v->isRef())
+	    if (
+#if !SARRAYVALUE
+		v->type->toBasetype()->ty == Tsarray ||
+#endif
+		v->isOut() || v->isRef())
 		tym = TYnptr;	// reference parameters are just pointers
 #if DMDV2
 	    else if (v->storage_class & STClazy)
@@ -627,7 +631,7 @@ void FuncDeclaration::buildClosure(IRState *irs)
 #endif
 	    ex = el_bin(OPadd, TYnptr, el_var(sclosure), el_long(TYint, v->offset));
 	    ex = el_una(OPind, tym, ex);
-	    if (ex->Ety == TYstruct)
+	    if (tybasic(ex->Ety) == TYstruct || tybasic(ex->Ety) == TYarray)
 	    {   ex->Enumbytes = v->type->size();
 		ex = el_bin(OPstreq, tym, ex, el_var(v->toSymbol()));
 		ex->Enumbytes = v->type->size();

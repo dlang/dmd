@@ -1626,6 +1626,10 @@ Type *TypeNext::makeConst()
 	else
 	    t->next = next->constOf();
     }
+    if (ty == Taarray)
+    {
+	((TypeAArray *)t)->impl = NULL;		// lazily recompute it
+    }
     //printf("TypeNext::makeConst() returns %p, %s\n", t, t->toChars());
     return t;
 }
@@ -1642,6 +1646,10 @@ Type *TypeNext::makeInvariant()
 	(next->deco || next->ty == Tfunction) &&
 	!next->isInvariant())
     {	t->next = next->invariantOf();
+    }
+    if (ty == Taarray)
+    {
+	((TypeAArray *)t)->impl = NULL;		// lazily recompute it
     }
     return t;
 }
@@ -1663,6 +1671,10 @@ Type *TypeNext::makeShared()
 	else
 	    t->next = next->sharedOf();
     }
+    if (ty == Taarray)
+    {
+	((TypeAArray *)t)->impl = NULL;		// lazily recompute it
+    }
     //printf("TypeNext::makeShared() returns %p, %s\n", t, t->toChars());
     return t;
 }
@@ -1680,6 +1692,10 @@ Type *TypeNext::makeSharedConst()
         !next->isInvariant() && !next->isSharedConst())
     {
 	t->next = next->sharedConstOf();
+    }
+    if (ty == Taarray)
+    {
+	((TypeAArray *)t)->impl = NULL;		// lazily recompute it
     }
     //printf("TypeNext::makeSharedConst() returns %p, %s\n", t, t->toChars());
     return t;
@@ -3226,6 +3242,8 @@ TypeAArray::TypeAArray(Type *t, Type *index)
 {
     this->index = index;
     this->impl = NULL;
+    this->loc = 0;
+    this->sc = NULL;
 }
 
 Type *TypeAArray::syntaxCopy()
@@ -3250,6 +3268,10 @@ d_uns64 TypeAArray::size(Loc loc)
 Type *TypeAArray::semantic(Loc loc, Scope *sc)
 {
     //printf("TypeAArray::semantic() %s index->ty = %d\n", toChars(), index->ty);
+    this->loc = loc;
+    this->sc = sc;
+    if (sc)
+	sc->setNoFree();
 
     // Deal with the case where we thought the index was a type, but
     // in reality it was an expression.
@@ -3317,31 +3339,40 @@ printf("index->ito->ito = x%x\n", index->ito->ito);
     {	error(loc, "cannot have array of auto %s", next->toChars());
 	return Type::terror;
     }
-
-    if (!index->reliesOnTident() && !next->reliesOnTident())
-    {
-	/* This is really a proxy for the template instance AssocArray!(index, next)
-	 * But the instantiation can fail if it is a template specialization field
-	 * which has Tident's instead of real types.
-	 */
-	TemplateInstance *ti = new TemplateInstance(loc, Id::AssociativeArray);
-	Objects *tiargs = new Objects();
-	tiargs->push(index);
-	tiargs->push(next);
-	ti->tiargs = tiargs;
-
-	ti->semantic(sc);
-	impl = ti->toAlias()->isStructDeclaration();
-#ifdef DEBUG
-	if (!impl)
-	{   Dsymbol *s = ti->toAlias();
-	    printf("%s %s\n", s->kind(), s->toChars());
-	}
-#endif
-	assert(impl);
-    }
-
     return merge();
+}
+
+StructDeclaration *TypeAArray::getImpl()
+{
+    // Do it lazily
+    if (!impl)
+    {
+	if (!index->reliesOnTident() && !next->reliesOnTident())
+	{
+	    /* This is really a proxy for the template instance AssocArray!(index, next)
+	     * But the instantiation can fail if it is a template specialization field
+	     * which has Tident's instead of real types.
+	     */
+	    TemplateInstance *ti = new TemplateInstance(loc, Id::AssociativeArray);
+	    Objects *tiargs = new Objects();
+	    tiargs->push(index);
+	    tiargs->push(next);
+	    ti->tiargs = tiargs;
+
+	    ti->semantic(sc);
+	    ti->semantic2(sc);
+	    ti->semantic3(sc);
+	    impl = ti->toAlias()->isStructDeclaration();
+#ifdef DEBUG
+	    if (!impl)
+	    {   Dsymbol *s = ti->toAlias();
+		printf("%s %s\n", s->kind(), s->toChars());
+	    }
+#endif
+	    assert(impl);
+	}
+    }
+    return impl;
 }
 
 void TypeAArray::resolve(Loc loc, Scope *sc, Expression **pe, Type **pt, Dsymbol **ps)
@@ -3443,8 +3474,8 @@ Expression *TypeAArray::dotExp(Scope *sc, Expression *e, Identifier *ident)
     else
 #endif
     {
-	e->type = impl->type;
-	e = impl->type->dotExp(sc, e, ident);
+	e->type = getImpl()->type;
+	e = e->type->dotExp(sc, e, ident);
 	//e = Type::dotExp(sc, e, ident);
     }
     return e;
@@ -3766,6 +3797,7 @@ Type *TypeFunction::syntaxCopy()
 }
 
 /*******************************
+ * Covariant means that 'this' can substitute for 't'.
  * Returns:
  *	0	types are distinct
  *	1	this is covariant with t
@@ -3813,6 +3845,7 @@ int Type::covariant(Type *t)
 	    if (!arg1->type->equals(arg2->type))
 	    {
 #if 0 // turn on this for contravariant argument types, see bugzilla 3075
+		// BUG: cannot convert ref to const to ref to immutable
 		// We can add const, but not subtract it
 		if (arg2->type->implicitConvTo(arg1->type) < MATCHconst)
 #endif
@@ -4234,6 +4267,7 @@ int TypeFunction::callMatch(Expression *ethis, Expressions *args)
 	}
 	arg = (Expression *)args->data[u];
 	assert(arg);
+	//printf("arg: %s, type: %s\n", arg->toChars(), arg->type->toChars());
 
 	// Non-lvalues do not match ref or out parameters
 	if (p->storageClass & (STCref | STCout))
@@ -4422,6 +4456,20 @@ Type *TypeDelegate::semantic(Loc loc, Scope *sc)
 d_uns64 TypeDelegate::size(Loc loc)
 {
     return PTRSIZE * 2;
+}
+
+MATCH TypeDelegate::implicitConvTo(Type *to)
+{
+    //printf("TypeDelegate::implicitConvTo(this=%p, to=%p)\n", this, to);
+    //printf("from: %s\n", toChars());
+    //printf("to  : %s\n", to->toChars());
+    if (this == to)
+	return MATCHexact;
+#if 0 // not allowing covariant conversions because it interferes with overriding
+    if (to->ty == Tdelegate && this->nextOf()->covariant(to->nextOf()) == 1)
+	return MATCHconvert;
+#endif
+    return MATCHnomatch;
 }
 
 void TypeDelegate::toCBuffer2(OutBuffer *buf, HdrGenState *hgs, int mod)

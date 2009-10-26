@@ -1608,7 +1608,7 @@ Lagain:
 #if SARRAYVALUE
 	    /* This only works if Key or Value is a static array.
 	     */
-	    tab = taa->impl->type;
+	    tab = taa->getImpl()->type;
 	    goto Lagain;
 #else
 	    if (op == TOKforeach_reverse)
