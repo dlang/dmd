@@ -22,82 +22,84 @@ LIBBASENAME=druntime_rt_dmd.lib
 #	$(addprefix sync/,barrier condition config exception mutex rwmutex semaphore)
 BUILDS=debug release unittest
 
+MODULES_ROOT= \
+	object_.d
+
 MODULES_BASE= \
-	aaA.d \
-	aApply.d \
-	aApplyR.d \
-	adi.d \
-	arrayassign.d \
-	arraybyte.d \
-	arraycast.d \
-	arraycat.d \
-	arraydouble.d \
-	arrayfloat.d \
-	arrayint.d \
-	arrayreal.d \
-	arrayshort.d \
-	cast_.d \
-	cover.d \
-	dmain2.d \
-	invariant.d \
-	invariant_.d \
-	lifetime.d \
-	llmath.d \
-	memory.d \
-	memset.d \
-	obj.d \
-	object_.d \
-	qsort.d \
-	switch_.d \
-	trace.d
+	rt\aaA.d \
+	rt\aApply.d \
+	rt\aApplyR.d \
+	rt\adi.d \
+	rt\arrayassign.d \
+	rt\arraybyte.d \
+	rt\arraycast.d \
+	rt\arraycat.d \
+	rt\arraydouble.d \
+	rt\arrayfloat.d \
+	rt\arrayint.d \
+	rt\arrayreal.d \
+	rt\arrayshort.d \
+	rt\cast_.d \
+	rt\cover.d \
+	rt\dmain2.d \
+	rt\invariant.d \
+	rt\invariant_.d \
+	rt\lifetime.d \
+	rt\llmath.d \
+	rt\memory.d \
+	rt\memset.d \
+	rt\obj.d \
+	rt\qsort.d \
+	rt\switch_.d \
+	rt\trace.d
 # NOTE: trace.d and cover.d are not necessary for a successful build
 #       as both are used for debugging features (profiling and coverage)
 # NOTE: a pre-compiled minit.obj has been provided in dmd for Win32 and
 #       minit.asm is not used by dmd for Linux
 
 MODULES_UTIL= \
-	util\console.d \
-	util\cpuid.d \
-	util\ctype.d \
-	util\string.d \
-	util\utf.d
+	rt\util\console.d \
+	rt\util\cpuid.d \
+	rt\util\ctype.d \
+	rt\util\string.d \
+	rt\util\utf.d
 
 MODULES_TI= \
-	typeinfo\ti_AC.d \
-	typeinfo\ti_Acdouble.d \
-	typeinfo\ti_Acfloat.d \
-	typeinfo\ti_Acreal.d \
-	typeinfo\ti_Adouble.d \
-	typeinfo\ti_Afloat.d \
-	typeinfo\ti_Ag.d \
-	typeinfo\ti_Aint.d \
-	typeinfo\ti_Along.d \
-	typeinfo\ti_Areal.d \
-	typeinfo\ti_Ashort.d \
-	typeinfo\ti_byte.d \
-	typeinfo\ti_C.d \
-	typeinfo\ti_cdouble.d \
-	typeinfo\ti_cfloat.d \
-	typeinfo\ti_char.d \
-	typeinfo\ti_creal.d \
-	typeinfo\ti_dchar.d \
-	typeinfo\ti_delegate.d \
-	typeinfo\ti_double.d \
-	typeinfo\ti_float.d \
-	typeinfo\ti_idouble.d \
-	typeinfo\ti_ifloat.d \
-	typeinfo\ti_int.d \
-	typeinfo\ti_ireal.d \
-	typeinfo\ti_long.d \
-	typeinfo\ti_ptr.d \
-	typeinfo\ti_real.d \
-	typeinfo\ti_short.d \
-	typeinfo\ti_ubyte.d \
-	typeinfo\ti_uint.d \
-	typeinfo\ti_ulong.d \
-	typeinfo\ti_ushort.d \
-	typeinfo\ti_void.d \
-	typeinfo\ti_wchar.d
+	rt\typeinfo\ti_AC.d \
+	rt\typeinfo\ti_Acdouble.d \
+	rt\typeinfo\ti_Acfloat.d \
+	rt\typeinfo\ti_Acreal.d \
+	rt\typeinfo\ti_Adouble.d \
+	rt\typeinfo\ti_Afloat.d \
+	rt\typeinfo\ti_Ag.d \
+	rt\typeinfo\ti_Aint.d \
+	rt\typeinfo\ti_Along.d \
+	rt\typeinfo\ti_Areal.d \
+	rt\typeinfo\ti_Ashort.d \
+	rt\typeinfo\ti_byte.d \
+	rt\typeinfo\ti_C.d \
+	rt\typeinfo\ti_cdouble.d \
+	rt\typeinfo\ti_cfloat.d \
+	rt\typeinfo\ti_char.d \
+	rt\typeinfo\ti_creal.d \
+	rt\typeinfo\ti_dchar.d \
+	rt\typeinfo\ti_delegate.d \
+	rt\typeinfo\ti_double.d \
+	rt\typeinfo\ti_float.d \
+	rt\typeinfo\ti_idouble.d \
+	rt\typeinfo\ti_ifloat.d \
+	rt\typeinfo\ti_int.d \
+	rt\typeinfo\ti_ireal.d \
+	rt\typeinfo\ti_long.d \
+	rt\typeinfo\ti_ptr.d \
+	rt\typeinfo\ti_real.d \
+	rt\typeinfo\ti_short.d \
+	rt\typeinfo\ti_ubyte.d \
+	rt\typeinfo\ti_uint.d \
+	rt\typeinfo\ti_ulong.d \
+	rt\typeinfo\ti_ushort.d \
+	rt\typeinfo\ti_void.d \
+	rt\typeinfo\ti_wchar.d
 
 C_SRCS=complex.c critical.c deh.c monitor.c
 
@@ -117,7 +119,7 @@ CFLAGS_unittest=$(CFLAGS_release)
 
 C_OBJS=complex.obj critical.obj deh.obj monitor.obj
 AS_OBJS=minit.obj
-ALL_MODULES=$(MODULES_BASE) $(MODULES_UTIL) $(MODULES_TI)
+ALL_MODULES=$(MODULES_ROOT) $(MODULES_BASE) $(MODULES_UTIL) $(MODULES_TI)
 D_SRCS=$(ALL_MODULES)
 ALLLIBS=\
 	$(LIBDIR)\debug\$(LIBBASENAME) \
