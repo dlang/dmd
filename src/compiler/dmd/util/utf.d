@@ -579,7 +579,7 @@ void validate(S)(in S s)
 
 /* =================== Conversion to UTF8 ======================= */
 
-char[] toUTF8(char[4] buf, dchar c)
+char[] toUTF8(out char[4] buf, dchar c)
     in
     {
 	assert(isValidDchar(c));
