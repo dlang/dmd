@@ -1212,8 +1212,6 @@ Expression *Expression::checkToBoolean()
 
 Expression *Expression::checkToPointer()
 {
-    Type *tb;
-
     //printf("Expression::checkToPointer()\n");
     Expression *e = this;
 
@@ -2820,6 +2818,7 @@ int StringExp::isLvalue()
 
 Expression *StringExp::toLvalue(Scope *sc, Expression *e)
 {
+    //printf("StringExp::toLvalue(%s)\n", toChars());
     return this;
 }
 

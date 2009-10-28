@@ -340,7 +340,8 @@ Expression *TraitsExp::semantic(Scope *sc)
 	    else
 	    {	e = isExpression(o);
 		if (e)
-		    e->semantic(sc);
+		{   e->semantic(sc);
+		}
 	    }
 
 	    global.gag--;
@@ -363,6 +364,7 @@ Expression *TraitsExp::semantic(Scope *sc)
 	Dsymbol *s1 = getDsymbol(o1);
 	Dsymbol *s2 = getDsymbol(o2);
 
+	//printf("isSame: %s, %s\n", o1->toChars(), o2->toChars());
 #if 0
 	printf("o1: %p\n", o1);
 	printf("o2: %p\n", o2);
@@ -381,8 +383,11 @@ Expression *TraitsExp::semantic(Scope *sc)
 	if (!s1 && !s2)
 	{   Expression *ea1 = isExpression(o1);
 	    Expression *ea2 = isExpression(o2);
-	    if (ea1 && ea2 && ea1->equals(ea2))
-		goto Ltrue;
+	    if (ea1 && ea2)
+	    {
+		if (ea1->equals(ea2))
+		    goto Ltrue;
+	    }
 	}
 
 	if (!s1 || !s2)

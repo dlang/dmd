@@ -894,13 +894,7 @@ void PragmaDeclaration::semantic(Scope *sc)
 
 		e = e->semantic(sc);
 		e = e->optimize(WANTvalue | WANTinterpret);
-		if (e->op == TOKstring)
-		{
-		    StringExp *se = (StringExp *)e;
-		    fprintf(stdmsg, "%.*s", (int)se->len, (char *)se->string);
-		}
-		else
-		    error("string expected for message, not '%s'", e->toChars());
+		fprintf(stdmsg, e->toChars());
 	    }
 	    fprintf(stdmsg, "\n");
 	}

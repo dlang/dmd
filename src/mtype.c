@@ -4171,8 +4171,8 @@ Type *TypeFunction::semantic(Loc loc, Scope *sc)
 	    {
 		//if (t->ty == Tsarray)
 		    //error(loc, "cannot have out or ref parameter of type %s", t->toChars());
-		if (arg->storageClass & STCout && arg->type->mod)
-		    error(loc, "cannot have const/invariant out parameter of type %s", t->toChars());
+		if (arg->storageClass & STCout && arg->type->mod & (STCconst | STCimmutable))
+		    error(loc, "cannot have const or immutable out parameter of type %s", t->toChars());
 	    }
 	    if (!(arg->storageClass & STClazy) && t->ty == Tvoid)
 		error(loc, "cannot have parameter of type %s", arg->type->toChars());
