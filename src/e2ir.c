@@ -285,9 +285,9 @@ elem *callfunc(Loc loc,
 	    e = el_una(op,tyret,ep);
     }
     else if (ep)
-	e = el_bin(tf->ispure ? OPcallns : OPcall,tyret,ec,ep);
+	e = el_bin((tf->ispure && tf->isnothrow) ? OPcallns : OPcall,tyret,ec,ep);
     else
-	e = el_una(tf->ispure ? OPucallns : OPucall,tyret,ec);
+	e = el_una((tf->ispure && tf->isnothrow) ? OPucallns : OPucall,tyret,ec);
 
     if (retmethod == RETstack)
     {
