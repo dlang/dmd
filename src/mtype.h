@@ -115,7 +115,8 @@ struct Type : Object
 	/* pick this order of numbers so switch statements work better
 	 */
 	#define MODconst     1	// type is const
-	#define MODinvariant 4	// type is invariant
+	#define MODinvariant 4	// type is immutable
+	#define MODimmutable 4  // type is immutable
 	#define MODshared    2	// type is shared
     char *deco;
 
@@ -253,6 +254,7 @@ struct Type : Object
     Type *mutableOf();
     Type *sharedOf();
     Type *sharedConstOf();
+    Type *unSharedOf();
     void fixTo(Type *t);
     void check();
     Type *castMod(unsigned mod);

@@ -1409,8 +1409,6 @@ dinteger_t IntegerExp::toInteger()
 		 */
 		if (!global.errors)
 		{
-printf("ty = %d, %d\n", type->ty, t->ty);
-if (type->ty == Tenum) printf("test1\n");
 		    type->print();
 		    assert(0);
 		}
@@ -4751,6 +4749,7 @@ Expression *IsExp::semantic(Scope *sc)
 {   Type *tded;
 
     /* is(targ id tok tspec)
+     * is(targ id :  tok2)
      * is(targ id == tok2)
      */
 
@@ -4903,14 +4902,16 @@ Expression *IsExp::semantic(Scope *sc)
 	 * If TRUE, declare id as an alias for the specialized type.
 	 */
 
-	MATCH m;
 	assert(parameters && parameters->dim);
 
 	Objects dedtypes;
 	dedtypes.setDim(parameters->dim);
 	dedtypes.zero();
 
-	m = targ->deduceType(NULL, tspec, parameters, &dedtypes);
+	MATCH m = targ->deduceType(NULL, tspec, parameters, &dedtypes);
+//printf("targ: %s\n", targ->toChars());
+//printf("tspec: %s\n", tspec->toChars());
+//printf("test1 %d\n", m);
 	if (m == MATCHnomatch ||
 	    (m != MATCHexact && tok == TOKequal))
 	{

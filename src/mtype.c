@@ -345,21 +345,6 @@ MATCH Type::constConv(Type *to)
 
 Type *Type::constOf()
 {
-#if 0
-    //printf("Type::constOf() %p %s\n", this, toChars());
-    if (isConst())
-	return this;
-    if (cto)
-	return cto;
-    Type *t = makeConst();
-    t = t->merge();
-    cto = t;
-    if (ito)
-	ito->cto = t;
-    //if (t->nextOf()) assert(t->nextOf()->isConst());
-    //printf("-Type::constOf() %p %s\n", t, toChars());
-    return t;
-#else
     //printf("Type::constOf() %p %s\n", this, toChars());
     if (mod == MODconst)
 	return this;
@@ -372,7 +357,6 @@ Type *Type::constOf()
     t->fixTo(this);
     //printf("-Type::constOf() %p %s\n", t, toChars());
     return t;
-#endif
 }
 
 /********************************
@@ -381,32 +365,6 @@ Type *Type::constOf()
 
 Type *Type::invariantOf()
 {
-#if 0
-    //printf("Type::invariantOf() %p %s\n", this, toChars());
-    if (isInvariant())
-    {
-	return this;
-    }
-    if (ito)
-    {
-	//if (!ito->isInvariant()) printf("\tito is %p %s\n", ito, ito->toChars());
-	assert(ito->isInvariant());
-	return ito;
-    }
-    Type *t = makeInvariant();
-    t = t->merge();
-    ito = t;
-    if (cto)
-	cto->ito = t;
-#if 0 // fails for function types
-    if (t->nextOf() && !t->nextOf()->isInvariant())
-    {
-	assert(0);
-    }
-#endif
-    //printf("\t%p\n", t);
-    return t;
-#else
     //printf("Type::invariantOf() %p %s\n", this, toChars());
     if (isInvariant())
     {
@@ -422,7 +380,6 @@ Type *Type::invariantOf()
     t->fixTo(this);
     //printf("\t%p\n", t);
     return t;
-#endif
 }
 
 /********************************
@@ -431,52 +388,6 @@ Type *Type::invariantOf()
 
 Type *Type::mutableOf()
 {
-#if 0
-    //printf("Type::mutableOf() %p, %s\n", this, toChars());
-    Type *t = this;
-    if (isConst())
-    {	t = cto;
-	assert(!t || t->isMutable());
-    }
-    else if (isInvariant())
-    {	t = ito;
-	assert(!t || t->isMutable());
-    }
-    if (!t)
-    {
-	unsigned sz = sizeTy[ty];
-	t = (Type *)mem.malloc(sz);
-	memcpy(t, this, sz);
-	t->mod = 0;
-	t->deco = NULL;
-	t->arrayof = NULL;
-	t->pto = NULL;
-	t->rto = NULL;
-	t->cto = NULL;
-	t->ito = NULL;
-	t->sto = NULL;
-	t->scto = NULL;
-	t->vtinfo = NULL;
-	if (ty == Tsarray)
-	{   TypeSArray *ta = (TypeSArray *)t;
-	    //ta->next = ta->next->mutableOf();
-	}
-	t = t->merge();
-	if (isConst())
-	{   cto = t;
-	    t->cto = this;
-	    if (ito)
-		ito->cto = this;
-	}
-	else if (isInvariant())
-	{   ito = t;
-	    t->ito = this;
-	    if (cto)
-		cto->ito = this;
-	}
-    }
-    return t;
-#else
     //printf("Type::mutableOf() %p, %s\n", this, toChars());
     Type *t = this;
     if (isConst())
@@ -495,7 +406,7 @@ Type *Type::mutableOf()
 	unsigned sz = sizeTy[ty];
 	t = (Type *)mem.malloc(sz);
 	memcpy(t, this, sz);
-	t->mod = 0;
+	t->mod =  mod & MODshared;
 	t->deco = NULL;
 	t->arrayof = NULL;
 	t->pto = NULL;
@@ -519,10 +430,6 @@ Type *Type::mutableOf()
 		t->ito = this;
 		break;
 
-	    case MODshared:
-		t->sto = this;
-		break;
-
 	    case MODshared | MODconst:
 		t->scto = this;
 		break;
@@ -532,7 +439,6 @@ Type *Type::mutableOf()
 	}
     }
     return t;
-#endif
 }
 
 Type *Type::sharedOf()
@@ -573,6 +479,61 @@ Type *Type::sharedConstOf()
     return t;
 }
 
+
+/********************************
+ * Make type unshared.
+ */
+
+Type *Type::unSharedOf()
+{
+    //printf("Type::unSharedOf() %p, %s\n", this, toChars());
+    Type *t = this;
+
+    if (isShared())
+    {
+	if (isConst())
+	    t = cto;	// shared const => const
+	else
+	    t = sto;
+	assert(!t || !t->isShared());
+    }
+
+    if (!t)
+    {
+	unsigned sz = sizeTy[ty];
+	t = (Type *)mem.malloc(sz);
+	memcpy(t, this, sz);
+	t->mod = mod & ~MODshared;
+	t->deco = NULL;
+	t->arrayof = NULL;
+	t->pto = NULL;
+	t->rto = NULL;
+	t->cto = NULL;
+	t->ito = NULL;
+	t->sto = NULL;
+	t->scto = NULL;
+	t->vtinfo = NULL;
+	t = t->merge();
+
+	t->fixTo(this);
+
+	switch (mod)
+	{
+	    case MODshared:
+		t->sto = this;
+		break;
+
+	    case MODshared | MODconst:
+		t->scto = this;
+		break;
+
+	    default:
+		assert(0);
+	}
+    }
+    assert(!t->isShared());
+    return t;
+}
 
 /**********************************
  * For our new type 'this', which is type-constructed from t,
