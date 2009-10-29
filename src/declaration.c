@@ -461,11 +461,11 @@ void AliasDeclaration::semantic(Scope *sc)
 	goto L2;			// it's a symbolic alias
 
 #if DMDV2
-    if (storage_class & STCref)
+    if (storage_class & (STCref | STCnothrow | STCpure))
     {	// For 'ref' to be attached to function types, and picked
 	// up by Type::resolve(), it has to go into sc.
 	sc = sc->push();
-	sc->stc |= STCref;
+	sc->stc |= storage_class & (STCref | STCnothrow | STCpure);
 	type->resolve(loc, sc, &e, &t, &s);
 	sc = sc->pop();
     }

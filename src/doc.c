@@ -674,7 +674,7 @@ void prefix(OutBuffer *buf, Dsymbol *s)
 	    buf->writestring("const ");
 #if DMDV2
 	if (d->isInvariant())
-	    buf->writestring("invariant ");
+	    buf->writestring("immutable ");
 #endif
 	if (d->isFinal())
 	    buf->writestring("final ");
