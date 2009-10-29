@@ -674,7 +674,7 @@ void prefix(OutBuffer *buf, Dsymbol *s)
 	    buf->writestring("const ");
 #if DMDV2
 	if (d->isInvariant())
-	    buf->writestring("invariant ");
+	    buf->writestring("immutable ");
 #endif
 	if (d->isFinal())
 	    buf->writestring("final ");
@@ -963,13 +963,28 @@ void DocComment::parseSections(unsigned char *comment)
 	pstart = p;
 
 	/* Find end of section, which is ended by one of:
-	 *	'identifier:'
+	 *	'identifier:' (but not inside a code section)
 	 *	'\0'
 	 */
 	idlen = 0;
+	int inCode = 0;
 	while (1)
 	{
-	    if (isalpha(*p) || *p == '_')
+	    // Check for start/end of a code section
+	    if (*p == '-')
+	    {
+		int numdash = 0;
+		while (*p == '-')
+		{
+		    ++numdash;
+		    p++;
+		}
+		// BUG: handle UTF PS and LS too
+		if (!*p || *p == '\r' || *p == '\n' && numdash >= 3)
+		    inCode ^= 1;
+	    }
+
+	    if (!inCode && (isalpha(*p) || *p == '_'))
 	    {
 		q = p + 1;
 		while (isalnum(*q) || *q == '_')
