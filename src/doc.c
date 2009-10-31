@@ -33,6 +33,7 @@
 #include "hdrgen.h"
 #include "doc.h"
 #include "mtype.h"
+#include "utf.h"
 
 struct Escape
 {
@@ -96,6 +97,10 @@ void highlightText(Scope *sc, Dsymbol *s, OutBuffer *buf, unsigned offset);
 void highlightCode(Scope *sc, Dsymbol *s, OutBuffer *buf, unsigned offset);
 void highlightCode2(Scope *sc, Dsymbol *s, OutBuffer *buf, unsigned offset);
 Argument *isFunctionParameter(Dsymbol *s, unsigned char *p, unsigned len);
+
+int isIdStart(unsigned char *p);
+int isIdTail(unsigned char *p);
+int utfStride(unsigned char *p);
 
 static unsigned char ddoc_default[] = "\
 DDOC =	<html><head>\n\
@@ -948,7 +953,6 @@ void DocComment::parseSections(unsigned char *comment)
 {   unsigned char *p;
     unsigned char *pstart;
     unsigned char *pend;
-    unsigned char *q;
     unsigned char *idstart;
     unsigned idlen;
 
@@ -984,11 +988,11 @@ void DocComment::parseSections(unsigned char *comment)
 		    inCode ^= 1;
 	    }
 
-	    if (!inCode && (isalpha(*p) || *p == '_'))
+	    if (!inCode && isIdStart(p))
 	    {
-		q = p + 1;
-		while (isalnum(*q) || *q == '_')
-		    q++;
+		unsigned char *q = p + utfStride(p);
+		while (isIdTail(q))
+		    q += utfStride(q);
 		if (*q == ':')	// identifier: ends it
 		{   idlen = q - p;
 		    idstart = p;
@@ -1156,12 +1160,13 @@ void ParamSection::write(DocComment *dc, Scope *sc, Dsymbol *s, OutBuffer *buf)
     while (p < pend)
     {
 	// Skip to start of macro
-	for (; 1; p++)
+	while (1)
 	{
 	    switch (*p)
 	    {
 		case ' ':
 		case '\t':
+		    p++;
 		    continue;
 
 		case '\n':
@@ -1169,20 +1174,18 @@ void ParamSection::write(DocComment *dc, Scope *sc, Dsymbol *s, OutBuffer *buf)
 		    goto Lcont;
 
 		default:
-		    if (!(isalpha(*p) || *p == '_'))
-		    {
-			if (namelen)
-			    goto Ltext;		// continuation of prev macro
-			goto Lskipline;
-		    }
-		    break;
+		    if (isIdStart(p))
+			break;
+		    if (namelen)
+			goto Ltext;		// continuation of prev macro
+		    goto Lskipline;
 	    }
 	    break;
 	}
 	tempstart = p;
 
-	while (isalnum(*p) || *p == '_')
-	    p++;
+	while (isIdTail(p))
+	    p += utfStride(p);
 	templen = p - tempstart;
 
 	while (*p == ' ' || *p == '\t')
@@ -1284,7 +1287,7 @@ void DocComment::parseMacros(Escape **pescapetable, Macro **pmacrotable, unsigne
     while (p < pend)
     {
 	// Skip to start of macro
-	for (; 1; p++)
+	while (1)
 	{
 	    if (p >= pend)
 		goto Ldone;
@@ -1292,6 +1295,7 @@ void DocComment::parseMacros(Escape **pescapetable, Macro **pmacrotable, unsigne
 	    {
 		case ' ':
 		case '\t':
+		    p++;
 		    continue;
 
 		case '\n':
@@ -1299,13 +1303,11 @@ void DocComment::parseMacros(Escape **pescapetable, Macro **pmacrotable, unsigne
 		    goto Lcont;
 
 		default:
-		    if (!(isalpha(*p) || *p == '_'))
-		    {
-			if (namelen)
-			    goto Ltext;		// continuation of prev macro
-			goto Lskipline;
-		    }
-		    break;
+		    if (isIdStart(p))
+			break;
+		    if (namelen)
+			goto Ltext;		// continuation of prev macro
+		    goto Lskipline;
 	    }
 	    break;
 	}
@@ -1315,9 +1317,9 @@ void DocComment::parseMacros(Escape **pescapetable, Macro **pmacrotable, unsigne
 	{
 	    if (p >= pend)
 		goto Ldone;
-	    if (!(isalnum(*p) || *p == '_'))
+	    if (!isIdTail(p))
 		break;
-	    p++;
+	    p += utfStride(p);
 	}
 	templen = p - tempstart;
 
@@ -1503,14 +1505,23 @@ unsigned char *skipwhitespace(unsigned char *p)
 
 unsigned skiptoident(OutBuffer *buf, unsigned i)
 {
-    for (; i < buf->offset; i++)
-    {
-	// BUG: handle unicode alpha's
-	unsigned char c = buf->data[i];
-	if (isalpha(c) || c == '_')
+    while (i < buf->offset)
+    {	dchar_t c;
+
+	unsigned oi = i;
+	if (utf_decodeChar((unsigned char *)buf->data, buf->offset, &i, &c))
+	    /* Ignore UTF errors, but still consume input
+	     */
 	    break;
-	if (c == '\n')
-	    break;
+	if (c >= 0x80)
+	{
+	    if (!isUniAlpha(c))
+		continue;
+	}
+	else if (!(isalpha(c) || c == '_' || c == '\n'))
+	    continue;
+	i = oi;
+	break;
     }
     return i;
 }
@@ -1521,12 +1532,23 @@ unsigned skiptoident(OutBuffer *buf, unsigned i)
 
 unsigned skippastident(OutBuffer *buf, unsigned i)
 {
-    for (; i < buf->offset; i++)
-    {
-	// BUG: handle unicode alpha's
-	unsigned char c = buf->data[i];
-	if (!(isalnum(c) || c == '_'))
+    while (i < buf->offset)
+    {	dchar_t c;
+
+	unsigned oi = i;
+	if (utf_decodeChar((unsigned char *)buf->data, buf->offset, &i, &c))
+	    /* Ignore UTF errors, but still consume input
+	     */
 	    break;
+	if (c >= 0x80)
+	{
+	    if (isUniAlpha(c))
+		continue;
+	}
+	else if (isalnum(c) || c == '_')
+	    continue;
+	i = oi;
+	break;
     }
     return i;
 }
@@ -1825,7 +1847,7 @@ void highlightText(Scope *sc, Dsymbol *s, OutBuffer *buf, unsigned offset)
 
 	    default:
 		leadingBlank = 0;
-		if (sc && !inCode && (isalpha(c) || c == '_'))
+		if (sc && !inCode && isIdStart(&buf->data[i]))
 		{   unsigned j;
 
 		    j = skippastident(buf, i);
@@ -1896,7 +1918,7 @@ void highlightCode(Scope *sc, Dsymbol *s, OutBuffer *buf, unsigned offset)
 	    i = buf->insert(i, se, len);
 	    i--;		// point to ';'
 	}
-	else if (isalpha(c) || c == '_')
+	else if (isIdStart(&buf->data[i]))
 	{   unsigned j;
 
 	    j = skippastident(buf, i);
@@ -2032,3 +2054,54 @@ const char *Escape::escapeChar(unsigned c)
     return s;
 }
 
+/****************************************
+ * Determine if p points to the start of an identifier.
+ */
+
+int isIdStart(unsigned char *p)
+{
+    unsigned c = *p;
+    if (isalpha(c) || c == '_')
+	return 1;
+    if (c >= 0x80)
+    {	unsigned i = 0;
+	if (utf_decodeChar(p, 4, &i, &c))
+	    return 0;	// ignore errors
+	if (isUniAlpha(c))
+	    return 1;
+    }
+    return 0;
+}
+
+/****************************************
+ * Determine if p points to the rest of an identifier.
+ */
+
+int isIdTail(unsigned char *p)
+{
+    unsigned c = *p;
+    if (isalnum(c) || c == '_')
+	return 1;
+    if (c >= 0x80)
+    {	unsigned i = 0;
+	if (utf_decodeChar(p, 4, &i, &c))
+	    return 0;	// ignore errors
+	if (isUniAlpha(c))
+	    return 1;
+    }
+    return 0;
+}
+
+/*****************************************
+ * Return number of bytes in UTF character.
+ */
+
+int utfStride(unsigned char *p)
+{
+    unsigned c = *p;
+    if (c < 0x80)
+	return 1;
+    unsigned i = 0;
+    utf_decodeChar(p, 4, &i, &c);	// ignore errors, but still consume input
+    return i;
+}

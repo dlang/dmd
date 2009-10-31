@@ -2495,7 +2495,13 @@ Statement *PragmaStatement::semantic(Scope *sc)
 
                 e = e->semantic(sc);
 		e = e->optimize(WANTvalue | WANTinterpret);
-		fprintf(stdmsg, e->toChars());
+                if (e->op == TOKstring)
+                {
+                    StringExp *se = (StringExp *)e;
+                    fprintf(stdmsg, "%.*s", (int)se->len, (char *)se->string);
+                }
+                else
+		    fprintf(stdmsg, e->toChars());
             }
             fprintf(stdmsg, "\n");
         }
