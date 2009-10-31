@@ -4261,15 +4261,19 @@ void TemplateMixin::semantic(Scope *sc)
     printf("+TemplateMixin::semantic('%s', this=%p)\n", toChars(), this);
     fflush(stdout);
 #endif
-    if (semanticRun &&
+    if (semanticRun)
+    {
 	// This for when a class/struct contains mixin members, and
 	// is done over because of forward references
-	(!parent || !toParent()->isAggregateDeclaration()))
-    {
+	if (parent && toParent()->isAggregateDeclaration())
+	    semanticRun = 1;		// do over
+	else
+	{
 #if LOG
-	printf("\tsemantic done\n");
+	    printf("\tsemantic done\n");
 #endif
-	return;
+	    return;
+	}
     }
     if (!semanticRun)
 	semanticRun = 1;
