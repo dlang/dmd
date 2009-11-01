@@ -7451,6 +7451,12 @@ Expression *CastExp::semantic(Scope *sc)
 	    }
 	}
 
+	if (e1->op == TOKtemplate)
+	{
+	    error("cannot cast template %s to type %s", e1->toChars(), to->toChars());
+	    return new ErrorExp();
+	}
+
 	Type *t1b = e1->type->toBasetype();
 	Type *tob = to->toBasetype();
 	if (tob->ty == Tstruct &&
