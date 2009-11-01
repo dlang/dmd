@@ -6698,7 +6698,7 @@ Type *TypeTuple::syntaxCopy()
 Type *TypeTuple::semantic(Loc loc, Scope *sc)
 {
     //printf("TypeTuple::semantic(this = %p)\n", this);
-    //printf("TypeTuple::semantic() %s\n", toChars());
+    //printf("TypeTuple::semantic() %p, %s\n", this, toChars());
     if (!deco)
 	deco = merge()->deco;
 

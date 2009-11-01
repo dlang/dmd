@@ -4171,13 +4171,11 @@ int TemplateInstance::hasNestedArgs(Objects *args)
 
 Identifier *TemplateInstance::genIdent()
 {   OutBuffer buf;
-    char *id;
-    Objects *args;
 
     //printf("TemplateInstance::genIdent('%s')\n", tempdecl->ident->toChars());
-    id = tempdecl->ident->toChars();
+    char *id = tempdecl->ident->toChars();
     buf.printf("__T%zu%s", strlen(id), id);
-    args = tiargs;
+    Objects *args = tiargs;
     for (int i = 0; i < args->dim; i++)
     {   Object *o = (Object *)args->data[i];
 	Type *ta = isType(o);

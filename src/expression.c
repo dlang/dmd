@@ -666,6 +666,8 @@ void functionArguments(Loc loc, Scope *sc, TypeFunction *tf, Expressions *argume
 		if (p->type != arg->type)
 		{
 		    //printf("arg->type = %s, p->type = %s\n", arg->type->toChars(), p->type->toChars());
+		    if (arg->op == TOKtype)
+			arg->error("cannot pass type %s as function argument", arg->toChars());
 		    arg = arg->implicitCastTo(sc, p->type);
 		    arg = arg->optimize(WANTvalue);
 		}

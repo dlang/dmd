@@ -204,6 +204,7 @@ Type *TupleDeclaration::getType()
 	Arguments *args = new Arguments();
 	args->setDim(objects->dim);
 	OutBuffer buf;
+	int hasdeco = 1;
 	for (size_t i = 0; i < objects->dim; i++)
 	{   Type *t = (Type *)objects->data[i];
 
@@ -217,9 +218,13 @@ Type *TupleDeclaration::getType()
 	    Argument *arg = new Argument(0, t, NULL, NULL);
 #endif
 	    args->data[i] = (void *)arg;
+	    if (!t->deco)
+		hasdeco = 0;
 	}
 
 	tupletype = new TypeTuple(args);
+	if (hasdeco)
+	    return tupletype->semantic(0, NULL);
     }
 
     return tupletype;
