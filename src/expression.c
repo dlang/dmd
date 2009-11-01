@@ -24,8 +24,8 @@ extern "C" char * __cdecl __locale_decpoint;
 #endif
 
 #include "rmem.h"
+#include "port.h"
 
-//#include "port.h"
 #include "mtype.h"
 #include "init.h"
 #include "expression.h"
@@ -534,7 +534,7 @@ void functionArguments(Loc loc, Scope *sc, TypeFunction *tf, Expressions *argume
     size_t nparams = Argument::dim(tf->parameters);
 
     if (nargs > nparams && tf->varargs == 0)
-	error(loc, "expected %zu arguments, not %zu", nparams, nargs);
+	error(loc, "expected %zu arguments, not %zu for non-variadic function type %s", nparams, nargs, tf->toChars());
 
     n = (nargs > nparams) ? nargs : nparams;	// n = max(nargs, nparams)
 
@@ -559,7 +559,7 @@ void functionArguments(Loc loc, Scope *sc, TypeFunction *tf, Expressions *argume
 		{
 		    if (tf->varargs == 2 && i + 1 == nparams)
 			goto L2;
-		    error(loc, "expected %zu arguments, not %zu", nparams, nargs);
+		    error(loc, "expected %zu function arguments, not %zu", nparams, nargs);
 		    break;
 		}
 		arg = p->defaultArg;
@@ -660,7 +660,16 @@ void functionArguments(Loc loc, Scope *sc, TypeFunction *tf, Expressions *argume
 
 	L1:
 	    if (!(p->storageClass & STClazy && p->type->ty == Tvoid))
-		arg = arg->implicitCastTo(sc, p->type);
+	    {
+		if (p->type != arg->type)
+		{
+		    //printf("arg->type = %s, p->type = %s\n", arg->type->toChars(), p->type->toChars());
+		    if (arg->op == TOKtype)
+			arg->error("cannot pass type %s as function argument", arg->toChars());
+		    arg = arg->implicitCastTo(sc, p->type);
+		    arg = arg->optimize(WANTvalue);
+		}
+	    }
 	    if (p->storageClass & (STCout | STCref))
 	    {
 		// BUG: should check that argument to ref is type 'invariant'
