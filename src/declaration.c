@@ -1114,7 +1114,8 @@ Lagain:
 	    }
 	}
 	else if (storage_class & (STCconst | STCimmutable | STCmanifest) ||
-		 type->isConst() || type->isInvariant())
+		 type->isConst() || type->isInvariant() ||
+		 parent->isAggregateDeclaration())
 	{
 	    /* Because we may need the results of a const declaration in a
 	     * subsequent type, such as an array dimension, before semantic2()
