@@ -4111,21 +4111,17 @@ int TemplateInstance::hasNestedArgs(Objects *args)
 	else if (sa)
 	{
 	  Lsa:
-	    Declaration *d = NULL;
 	    TemplateDeclaration *td = sa->isTemplateDeclaration();
-	    if (td && td->literal)
-	    {
-		goto L2;
-	    }
-	    d = sa->isDeclaration();
-	    if (d && !d->isDataseg() &&
+	    Declaration *d = sa->isDeclaration();
+	    if ((td && td->literal) ||
+	        (d && !d->isDataseg() &&
 #if DMDV2
-		!(d->storage_class & STCmanifest) &&
+		 !(d->storage_class & STCmanifest) &&
 #endif
-		(!d->isFuncDeclaration() || d->isFuncDeclaration()->isNested()) &&
-		!isTemplateMixin())
+		 (!d->isFuncDeclaration() || d->isFuncDeclaration()->isNested()) &&
+		 !isTemplateMixin()
+		))
 	    {
-	     L2:
 		// if module level template
 		if (tempdecl->toParent()->isModule())
 		{   Dsymbol *dparent = sa->toParent();
@@ -4156,7 +4152,7 @@ int TemplateInstance::hasNestedArgs(Objects *args)
 		    nested |= 1;
 		}
 		else
-		    error("cannot use local '%s' as parameter to non-global template %s", d->toChars(), tempdecl->toChars());
+		    error("cannot use local '%s' as parameter to non-global template %s", sa->toChars(), tempdecl->toChars());
 	    }
 	}
 	else if (va)
