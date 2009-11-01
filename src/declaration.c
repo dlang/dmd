@@ -1107,7 +1107,8 @@ void VarDeclaration::semantic(Scope *sc)
 		}
 	    }
 	}
-	else if (isConst() || isFinal())
+	else if (isConst() || isFinal() ||
+		 parent->isAggregateDeclaration())
 	{
 	    /* Because we may need the results of a const declaration in a
 	     * subsequent type, such as an array dimension, before semantic2()

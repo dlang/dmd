@@ -3153,7 +3153,16 @@ Expression *StructLiteralExp::semantic(Scope *sc)
 	    if (v->init)
 	    {   e = v->init->toExpression();
 		if (!e)
-		    error("cannot make expression out of initializer for %s", v->toChars());
+		{   error("cannot make expression out of initializer for %s", v->toChars());
+		    e = new ErrorExp();
+		}
+		else if (v->scope)
+		{   // Do deferred semantic anaylsis
+		    Initializer *i2 = v->init->syntaxCopy();
+		    i2 = i2->semantic(v->scope, v->type);
+		    e = i2->toExpression();
+		    v->scope = NULL;
+		}
 	    }
 	    else
 	    {	e = v->type->defaultInit();
