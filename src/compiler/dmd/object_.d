@@ -1626,20 +1626,20 @@ struct AssociativeArray(Key, Value)
 {
     void* p;
 
-    size_t length() { return _aaLen(p); }
+    size_t length() @property { return _aaLen(p); }
 
-    Value[Key] rehash()
+    Value[Key] rehash() @property
     {
 	return cast(Value[Key]) _aaRehash(&p, typeid(Value[Key]));
     }
 
-    Value[] values()
+    Value[] values() @property
     {
 	auto a = _aaValues(p, Key.sizeof, Value.sizeof);
 	return *cast(Value[]*) &a;
     }
 
-    Key[] keys()
+    Key[] keys() @property
     {
 	auto a = _aaKeys(p, Key.sizeof, Value.sizeof);
 	return *cast(Key[]*) &a;
