@@ -21,7 +21,7 @@ version( AnyX86 )
     version = HasUnalignedOps;
 
 
-hash_t hashOf( const (void)* data, size_t len, hash_t seed = 0 )
+hash_t hashOf( const (void)* buf, size_t len, hash_t seed = 0 )
 {
     /*
      * This is Paul Hsieh's SuperFastHash algorithm, described here:
@@ -46,6 +46,7 @@ hash_t hashOf( const (void)* data, size_t len, hash_t seed = 0 )
     
     // NOTE: SuperFastHash normally starts with a zero hash value.  The seed
     //       value was incorporated to allow chaining.
+    auto data = cast(const (ubyte)*) buf;
     uint hash = seed;
     uint tmp;
     int  rem;
