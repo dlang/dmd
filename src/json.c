@@ -44,15 +44,21 @@ const char Ptype[] = "type";
 const char Pcomment[] = "comment";
 const char Pmembers[] = "members";
 
+void JsonRemoveComma(OutBuffer *buf);
+
 void json_generate(Array *modules)
 {   OutBuffer buf;
 
+    buf.writestring("[\n");
     for (int i = 0; i < modules->dim; i++)
     {	Module *m = (Module *)modules->data[i];
 	if (global.params.verbose)
 	    printf("json gen %s\n", m->toChars());
 	m->toJsonBuffer(&buf);
+	buf.writestring(",\n");
     }
+    JsonRemoveComma(&buf);
+    buf.writestring("]\n");
 
     // Write buf to file
     char *arg = global.params.xfilename;
