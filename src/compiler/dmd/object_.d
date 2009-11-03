@@ -21,13 +21,8 @@ private
 {
     import core.stdc.string;
     import core.stdc.stdlib;
-    // HACK: This versioning is to provide for the different treatment of
-    //       imports in a normal vs. a -lib build.  It should really be fixed
-    //       correctly before the next release.
-    version (D_Ddoc)
-        import util.string;
-    else
-        import rt.util.string;
+    import rt.util.hash;
+    import rt.util.string;
     debug(PRINTF) import core.stdc.stdio;
 
     extern (C) void onOutOfMemoryError();
@@ -236,11 +231,8 @@ class TypeInfo
 {
     override hash_t toHash()
     {
-        hash_t hash;
-
-        foreach (char c; this.toString())
-            hash = hash * 9 + c;
-        return hash;
+        auto data = this.toString();
+        return hashOf(data.ptr, data.length);
     }
 
     override int opCmp(Object o)
@@ -404,12 +396,8 @@ class TypeInfo_Array : TypeInfo
 
     override hash_t getHash(in void* p)
     {
-        size_t sz = value.tsize();
-        hash_t hash = 0;
         void[] a = *cast(void[]*)p;
-        for (size_t i = 0; i < a.length; i++)
-            hash += value.getHash(a.ptr + i * sz) * 11;
-        return hash;
+        return hashOf(a.ptr, a.length);
     }
 
     override equals_t equals(in void* p1, in void* p2)
@@ -809,18 +797,8 @@ class TypeInfo_Struct : TypeInfo
         }
         else
         {
-            hash_t h;
             debug(PRINTF) printf("getHash() using default hash\n");
-            // A sorry hash algorithm.
-            // Should use the one for strings.
-            // BUG: relies on the GC not moving objects
-            auto q = cast(const(ubyte)*)p;
-            for (size_t i = 0; i < init.length; i++)
-            {
-                h = h * 9 + *q;
-                q++;
-            }
-            return h;
+            return hashOf(p, init.length);
         }
     }
 
@@ -1656,8 +1634,7 @@ struct AssociativeArray(Key, Value)
     }
 }
 
-version (none) // enforce isn't available in druntime
-{
+
 void clear(T)(T obj) if (is(T == class))
 {
    auto defaultCtor =
@@ -1774,6 +1751,16 @@ void clear(T)(ref T obj)
    obj = T.init;
 }
 
+template isStaticArray(T : U[N], U, size_t N)
+{
+    enum bool isStaticArray = true;
+}
+
+template isStaticArray(T)
+{
+    enum bool isStaticArray = false;
+}
+
 unittest
 {
    {
@@ -1788,4 +1775,38 @@ unittest
    }
 }
 
+version (unittest)
+{
+    bool isnan(float x)
+    {
+        return x != x;
+    }
+
+    // enforce() copied from Phobos std.contracts for clear() unittest.
+
+    T enforce(T, string file = __FILE__, int line = __LINE__)
+        (T value, lazy const(char)[] msg = null)
+    {
+        if (!value) bailOut(file, line, msg);
+        return value;
+    }
+
+    T enforce(T, string file = __FILE__, int line = __LINE__)
+        (T value, scope void delegate() dg)
+    {
+        if (!value) dg();
+        return value;
+    }
+
+    private void bailOut(string file, int line, in char[] msg)
+    {
+        char[21] buf;
+        throw new Exception(cast(string)(file ~ "(" ~ intToString(buf[], line) ~ "): " ~ (msg ? msg : "Enforcement failed")));
+    }
+
+    T enforce(T)(T value, lazy Exception ex)
+    {
+        if (!value) throw ex();
+        return value;
+    }
 }
