@@ -1637,18 +1637,19 @@ struct AssociativeArray(Key, Value)
 
 void clear(T)(T obj) if (is(T == class))
 {
-   auto defaultCtor =
-       cast(void function(Object)) obj.classinfo.defaultConstructor;
-   enforce(defaultCtor || (obj.classinfo.flags & 8) == 0);
-   immutable size = obj.classinfo.init.length;
-   static if (is(typeof(obj.__dtor())))
-   {
-       obj.__dtor();
-   }
-   auto buf = (cast(void*) obj)[0 .. size];
-   buf[] = obj.classinfo.init;
-   if (defaultCtor)
-       defaultCtor(obj);
+    auto defaultCtor =
+        cast(void function(Object)) obj.classinfo.defaultConstructor;
+    version(none) // enforce isn't available in druntime
+        _enforce(defaultCtor || (obj.classinfo.flags & 8) == 0);
+    immutable size = obj.classinfo.init.length;
+    static if (is(typeof(obj.__dtor())))
+    {
+        obj.__dtor();
+    }
+    auto buf = (cast(void*) obj)[0 .. size];
+    buf[] = obj.classinfo.init;
+    if (defaultCtor)
+        defaultCtor(obj);
 }
 
 unittest
@@ -1733,32 +1734,32 @@ unittest
 
 void clear(T : U[n], U, size_t n)(/*ref*/ T obj)
 {
-   obj = T.init;
+    obj = T.init;
 }
 
 unittest
 {
-   int[2] a;
-   a[0] = 1;
-   a[1] = 2;
-   clear(a);
-   assert(a == [ 0, 0 ]);
+    int[2] a;
+    a[0] = 1;
+    a[1] = 2;
+    clear(a);
+    assert(a == [ 0, 0 ]);
 }
 
 void clear(T)(ref T obj)
-    if (!is(T == struct) && !is(T == class) && !isStaticArray!T)
+    if (!is(T == struct) && !is(T == class) && !_isStaticArray!T)
 {
-   obj = T.init;
+    obj = T.init;
 }
 
-template isStaticArray(T : U[N], U, size_t N)
+template _isStaticArray(T : U[N], U, size_t N)
 {
-    enum bool isStaticArray = true;
+    enum bool _isStaticArray = true;
 }
 
-template isStaticArray(T)
+template _isStaticArray(T)
 {
-    enum bool isStaticArray = false;
+    enum bool _isStaticArray = false;
 }
 
 unittest
@@ -1781,32 +1782,37 @@ version (unittest)
     {
         return x != x;
     }
+}
 
-    // enforce() copied from Phobos std.contracts for clear() unittest.
+version (none)
+{
+    // enforce() copied from Phobos std.contracts for clear(), left out until
+    // we decide whether to use it.
+    
 
-    T enforce(T, string file = __FILE__, int line = __LINE__)
+    T _enforce(T, string file = __FILE__, int line = __LINE__)
         (T value, lazy const(char)[] msg = null)
     {
         if (!value) bailOut(file, line, msg);
         return value;
     }
 
-    T enforce(T, string file = __FILE__, int line = __LINE__)
+    T _enforce(T, string file = __FILE__, int line = __LINE__)
         (T value, scope void delegate() dg)
     {
         if (!value) dg();
         return value;
     }
 
-    private void bailOut(string file, int line, in char[] msg)
-    {
-        char[21] buf;
-        throw new Exception(cast(string)(file ~ "(" ~ intToString(buf[], line) ~ "): " ~ (msg ? msg : "Enforcement failed")));
-    }
-
-    T enforce(T)(T value, lazy Exception ex)
+    T _enforce(T)(T value, lazy Exception ex)
     {
         if (!value) throw ex();
         return value;
+    }
+
+    private void _bailOut(string file, int line, in char[] msg)
+    {
+        char[21] buf;
+        throw new Exception(cast(string)(file ~ "(" ~ intToString(buf[], line) ~ "): " ~ (msg ? msg : "Enforcement failed")));
     }
 }

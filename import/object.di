@@ -326,39 +326,49 @@ struct AssociativeArray(Key, Value)
 
 void clear(T)(T obj) if (is(T == class))
 {
-   auto defaultCtor =
-       cast(void function(Object)) obj.classinfo.defaultConstructor;
-   enforce(defaultCtor || (obj.classinfo.flags & 8) == 0);
-   immutable size = obj.classinfo.init.length;
-   static if (is(typeof(obj.__dtor())))
-   {
-       obj.__dtor();
-   }
-   auto buf = (cast(void*) obj)[0 .. size];
-   buf[] = obj.classinfo.init;
-   if (defaultCtor)
-       defaultCtor(obj);
+    auto defaultCtor =
+        cast(void function(Object)) obj.classinfo.defaultConstructor;
+    version(none) // enforce isn't available in druntime
+        _enforce(defaultCtor || (obj.classinfo.flags & 8) == 0);
+    immutable size = obj.classinfo.init.length;
+    static if (is(typeof(obj.__dtor())))
+    {
+        obj.__dtor();
+    }
+    auto buf = (cast(void*) obj)[0 .. size];
+    buf[] = obj.classinfo.init;
+    if (defaultCtor)
+        defaultCtor(obj);
 }
 
 void clear(T)(ref T obj) if (is(T == struct))
 {
-   static if (is(typeof(obj.__dtor())))
-   {
-       obj.__dtor();
-   }
-   auto buf = (cast(void*) &obj)[0 .. T.sizeof];
-   auto init = (cast(void*) &T.init)[0 .. T.sizeof];
-   buf[] = init[];
+    static if (is(typeof(obj.__dtor())))
+    {
+        obj.__dtor();
+    }
+    auto buf = (cast(void*) &obj)[0 .. T.sizeof];
+    auto init = (cast(void*) &T.init)[0 .. T.sizeof];
+    buf[] = init[];
 }
 
 void clear(T : U[n], U, size_t n)(/*ref*/ T obj)
 {
-   obj = T.init;
+    obj = T.init;
 }
 
 void clear(T)(ref T obj)
-    if (!is(T == struct) && !is(T == class) && !isStaticArray!T)
+    if (!is(T == struct) && !is(T == class) && !_isStaticArray!T)
 {
-   obj = T.init;
+    obj = T.init;
 }
 
+template _isStaticArray(T : U[N], U, size_t N)
+{
+    enum bool _isStaticArray = true;
+}
+
+template _isStaticArray(T)
+{
+    enum bool _isStaticArray = false;
+}
