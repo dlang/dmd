@@ -1656,7 +1656,8 @@ struct AssociativeArray(Key, Value)
     }
 }
 
-
+version (none) // enforce isn't available in druntime
+{
 void clear(T)(T obj) if (is(T == class))
 {
    auto defaultCtor =
@@ -1787,3 +1788,4 @@ unittest
    }
 }
 
+}
