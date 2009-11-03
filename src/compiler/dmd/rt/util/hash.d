@@ -81,6 +81,8 @@ hash_t hashOf( const (void)* buf, size_t len, hash_t seed = 0 )
             hash ^= hash << 10;
             hash += hash >> 1;
             break;
+     default:
+            break;
     }
 
     /* Force "avalanching" of final 127 bits */
