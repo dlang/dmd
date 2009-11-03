@@ -54,7 +54,7 @@ extern (C) long _adReverseChar(char[] a)
         char[6] tmp;
         char[6] tmplo;
         char* lo = a.ptr;
-        char* hi = &a[length - 1];
+        char* hi = &a[$ - 1];
 
         while (lo < hi)
         {   auto clo = *lo;
@@ -148,7 +148,7 @@ extern (C) long _adReverseWchar(wchar[] a)
     {
         wchar[2] tmp;
         wchar* lo = a.ptr;
-        wchar* hi = &a[length - 1];
+        wchar* hi = &a[$ - 1];
 
         while (lo < hi)
         {   auto clo = *lo;
