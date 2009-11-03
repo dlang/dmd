@@ -1657,3 +1657,133 @@ struct AssociativeArray(Key, Value)
 }
 
 
+void clear(T)(T obj) if (is(T == class))
+{
+   auto defaultCtor =
+       cast(void function(Object)) obj.classinfo.defaultConstructor;
+   enforce(defaultCtor || (obj.classinfo.flags & 8) == 0);
+   immutable size = obj.classinfo.init.length;
+   static if (is(typeof(obj.__dtor())))
+   {
+       obj.__dtor();
+   }
+   auto buf = (cast(void*) obj)[0 .. size];
+   buf[] = obj.classinfo.init;
+   if (defaultCtor)
+       defaultCtor(obj);
+}
+
+unittest
+{
+   {
+       class A { string s = "A"; this() {} }
+       auto a = new A;
+       a.s = "asd";
+       clear(a);
+       assert(a.s == "A");
+   }
+   {
+       static bool destroyed = false;
+       class B
+       {
+           string s = "B";
+           this() {}
+           ~this()
+           {
+               destroyed = true;
+           }
+       }
+       auto a = new B;
+       a.s = "asd";
+       clear(a);
+       assert(destroyed);
+       assert(a.s == "B");
+   }
+   {
+       class C
+       {
+           string s;
+           this()
+           {
+               s = "C";
+           }
+       }
+       auto a = new C;
+       a.s = "asd";
+       clear(a);
+       assert(a.s == "C");
+   }
+}
+
+void clear(T)(ref T obj) if (is(T == struct))
+{
+   static if (is(typeof(obj.__dtor())))
+   {
+       obj.__dtor();
+   }
+   auto buf = (cast(void*) &obj)[0 .. T.sizeof];
+   auto init = (cast(void*) &T.init)[0 .. T.sizeof];
+   buf[] = init[];
+}
+
+unittest
+{
+   {
+       struct A { string s = "A";  }
+       A a;
+       a.s = "asd";
+       clear(a);
+       assert(a.s == "A");
+   }
+   {
+       static bool destroyed = false;
+       struct B
+       {
+           string s = "B";
+           ~this()
+           {
+               destroyed = true;
+           }
+       }
+       B a;
+       a.s = "asd";
+       clear(a);
+       assert(destroyed);
+       assert(a.s == "B");
+   }
+}
+
+void clear(T : U[n], U, size_t n)(/*ref*/ T obj)
+{
+   obj = T.init;
+}
+
+unittest
+{
+   int[2] a;
+   a[0] = 1;
+   a[1] = 2;
+   clear(a);
+   assert(a == [ 0, 0 ]);
+}
+
+void clear(T)(ref T obj)
+    if (!is(T == struct) && !is(T == class) && !isStaticArray!T)
+{
+   obj = T.init;
+}
+
+unittest
+{
+   {
+       int a = 42;
+       clear(a);
+       assert(a == 0);
+   }
+   {
+       float a = 42;
+       clear(a);
+       assert(isnan(a));
+   }
+}
+

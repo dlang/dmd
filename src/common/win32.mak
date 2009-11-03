@@ -56,10 +56,17 @@ D_SRCS=\
 	core\sync\rwmutex.d \
 	core\sync\semaphore.d \
 	\
+	$(IMPDIR)\std\intrinsic.di \
 	$(IMPDIR)\core\stdc\math.d \
 	$(IMPDIR)\core\stdc\stdarg.d \
 	$(IMPDIR)\core\stdc\stdio.d \
+	$(IMPDIR)\core\stdc\stdlib.d \
+	$(IMPDIR)\core\stdc\stdint.d \
+	$(IMPDIR)\core\stdc\stddef.d \
+	$(IMPDIR)\core\stdc\string.d \
 	$(IMPDIR)\core\stdc\wchar_.d \
+	$(IMPDIR)\core\stdc\config.d \
+	$(IMPDIR)\core\stdc\signal.d \
 	\
 	$(IMPDIR)\core\sys\windows\windows.d
 
