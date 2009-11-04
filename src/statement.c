@@ -1377,9 +1377,8 @@ Statement *ForeachStatement::semantic(Scope *sc)
 		error("no storage class for value %s", arg->ident->toChars());
 	    Dsymbol *var;
 	    if (te)
-	    {
-		if (e->type->toBasetype()->ty == Tfunction &&
-		    e->op == TOKvar)
+	    {	Type *tb = e->type->toBasetype();
+		if ((tb->ty == Tfunction || tb->ty == Tsarray) && e->op == TOKvar)
 		{   VarExp *ve = (VarExp *)e;
 		    var = new AliasDeclaration(loc, arg->ident, ve->var);
 		}
