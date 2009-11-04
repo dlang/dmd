@@ -73,7 +73,12 @@ L1:
     if (sthis->type->deco)
 	buf.writestring(sthis->type->deco);
     else
-    {	assert(fd->inferRetType);
+    {
+#ifdef DEBUG
+	if (!fd->inferRetType)
+	    printf("%s\n", fd->toChars());
+#endif
+	assert(fd && fd->inferRetType);
     }
 
     id = buf.toChars();
