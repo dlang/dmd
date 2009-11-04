@@ -5122,7 +5122,9 @@ Type *TypeTypeof::semantic(Loc loc, Scope *sc)
     {
 	sc->intypeof++;
 	exp = exp->semantic(sc);
-	//exp = resolveProperties(sc, exp);
+	if (exp->type && exp->type->ty == Tfunction &&
+	    ((TypeFunction *)exp->type)->isproperty)
+	    exp = resolveProperties(sc, exp);
 	sc->intypeof--;
 	if (exp->op == TOKtype)
 	{

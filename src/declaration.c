@@ -1091,10 +1091,21 @@ Lagain:
 #endif
 		    if (!ei->exp->implicitConvTo(type))
 		    {
+			Type *ti = ei->exp->type->toBasetype();
+			// Look for constructor first
+			if (sd->ctor &&
+			    /* Initializing with the same type is done differently
+			     */
+			    !(ti->ty == Tstruct && t->toDsymbol(sc) == ti->toDsymbol(sc)))
+			{
+			   // Rewrite as e1.ctor(arguments)
+			    Expression *ector = new DotIdExp(loc, e1, Id::ctor);
+			    ei->exp = new CallExp(loc, ector, ei->exp);
+			} 
+			else
 			/* Look for opCall
 			 * See bugzilla 2702 for more discussion
 			 */
-			Type *ti = ei->exp->type->toBasetype();
 			// Don't cast away invariant or mutability in initializer
 			if (search_function(sd, Id::call) &&
 			    /* Initializing with the same type is done differently

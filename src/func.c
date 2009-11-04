@@ -2951,6 +2951,7 @@ void StaticCtorDeclaration::semantic(Scope *sc)
 	m = sc->module;
     if (m)
     {	m->needmoduleinfo = 1;
+	//printf("module1 %s needs moduleinfo\n", m->toChars());
 #ifdef IN_GCC
 	m->strictlyneedmoduleinfo = 1;
 #endif
@@ -3060,6 +3061,7 @@ void StaticDtorDeclaration::semantic(Scope *sc)
 	m = sc->module;
     if (m)
     {	m->needmoduleinfo = 1;
+	//printf("module2 %s needs moduleinfo\n", m->toChars());
 #ifdef IN_GCC
 	m->strictlyneedmoduleinfo = 1;
 #endif
@@ -3212,11 +3214,15 @@ void UnitTestDeclaration::semantic(Scope *sc)
     // We're going to need ModuleInfo even if the unit tests are not
     // compiled in, because other modules may import this module and refer
     // to this ModuleInfo.
+    // (This doesn't make sense to me?)
     Module *m = getModule();
     if (!m)
 	m = sc->module;
     if (m)
+    {
+	//printf("module3 %s needs moduleinfo\n", m->toChars());
 	m->needmoduleinfo = 1;
+    }
 }
 
 AggregateDeclaration *UnitTestDeclaration::isThis()
