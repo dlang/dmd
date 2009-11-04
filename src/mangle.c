@@ -78,7 +78,7 @@ L1:
 	if (!fd->inferRetType)
 	    printf("%s\n", fd->toChars());
 #endif
-	assert(fd->inferRetType);
+	assert(fd && fd->inferRetType);
     }
 
     id = buf.toChars();
