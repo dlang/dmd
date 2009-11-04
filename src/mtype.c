@@ -1948,6 +1948,24 @@ Expression *TypeBasic::getProperty(Loc loc, Identifier *ident)
 
 	    case Tcomplex32:
 	    case Timaginary32:
+	    case Tfloat32:
+	    case Tcomplex64:
+	    case Timaginary64:
+	    case Tfloat64:
+	    case Tcomplex80:
+	    case Timaginary80:
+	    case Tfloat80:
+				// For backwards compatibility - eventually, deprecate
+				goto Lmin_normal;
+	}
+    }
+    else if (ident == Id::min_normal)
+    {
+      Lmin_normal:
+	switch (ty)
+	{
+	    case Tcomplex32:
+	    case Timaginary32:
 	    case Tfloat32:	fvalue = FLT_MIN;	goto Lfvalue;
 	    case Tcomplex64:
 	    case Timaginary64:
