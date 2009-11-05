@@ -192,7 +192,9 @@ void Import::semantic(Scope *sc)
 	mod->semantic();
 
 	if (mod->needmoduleinfo)
+	{   //printf("module4 %s because of %s\n", sc->module->toChars(), mod->toChars());
 	    sc->module->needmoduleinfo = 1;
+	}
 
 	sc = sc->push(mod);
 	for (size_t i = 0; i < aliasdecls.dim; i++)
@@ -284,7 +286,9 @@ void Import::semantic2(Scope *sc)
     //printf("Import::semantic2('%s')\n", toChars());
     mod->semantic2();
     if (mod->needmoduleinfo)
+    {   //printf("module5 %s because of %s\n", sc->module->toChars(), mod->toChars());
 	sc->module->needmoduleinfo = 1;
+    }
 }
 
 Dsymbol *Import::toAlias()
