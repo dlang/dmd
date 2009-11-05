@@ -1298,6 +1298,7 @@ void FuncDeclaration::semantic3(Scope *sc)
 		e = new AssignExp(0, e1, e);
 		e->type = t;
 		a->push(new ExpStatement(0, e));
+		p->isargptr = TRUE;
 #endif
 	    }
 

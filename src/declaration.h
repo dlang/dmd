@@ -232,6 +232,7 @@ struct VarDeclaration : Declaration
     int noauto;			// no auto semantics
 #if DMDV2
     FuncDeclarations nestedrefs; // referenced by these lexically nested functions
+    bool isargptr;		// if parameter that _argptr points to
 #else
     int nestedref;		// referenced by a lexically nested function
 #endif

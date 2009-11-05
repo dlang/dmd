@@ -553,7 +553,15 @@ void FuncDeclaration::buildClosure(IRState *irs)
 
 #if DMDV2
 	    if (v->needsAutoDtor())
+		/* Because the value needs to survive the end of the scope!
+		 */
 		v->error("has scoped destruction, cannot build closure");
+	    if (v->isargptr)
+		/* See Bugzilla 2479
+		 * This is actually a bug, but better to produce a nice
+		 * message at compile time rather than memory corruption at runtime
+		 */
+		v->error("cannot reference variadic arguments from closure");
 #endif
 	    /* Align and allocate space for v in the closure
 	     * just like AggregateDeclaration::addField() does.

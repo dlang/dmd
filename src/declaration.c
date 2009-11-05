@@ -637,6 +637,9 @@ VarDeclaration::VarDeclaration(Loc loc, Type *type, Identifier *id, Initializer 
     this->loc = loc;
     offset = 0;
     noauto = 0;
+#if DMDV2
+    isargptr = FALSE;
+#endif
 #if DMDV1
     nestedref = 0;
 #endif
