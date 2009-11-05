@@ -337,20 +337,21 @@ DOCS=\
 	$(DOCDIR)\core\sync\semaphore.html
 
 IMPORTS=\
+	$(IMPDIR)\core\sync\exception.di \
 	$(IMPDIR)\core\exception.di \
 	$(IMPDIR)\core\memory.di \
 	$(IMPDIR)\core\runtime.di \
 	$(IMPDIR)\core\thread.di \
 	$(IMPDIR)\core\vararg.di \
 	\
-	$(IMPDIR)\core\sync\barrier.di \
-	$(IMPDIR)\core\sync\condition.di \
-	$(IMPDIR)\core\sync\config.di \
-	$(IMPDIR)\core\sync\exception.di \
+	$(IMPDIR)\core\sync\semaphore.di \
 	$(IMPDIR)\core\sync\mutex.di \
-	$(IMPDIR)\core\sync\rwmutex.di \
-	$(IMPDIR)\core\sync\semaphore.di
-	# bitop.di is already published
+	$(IMPDIR)\core\sync\config.di \
+	$(IMPDIR)\core\sync\condition.di \
+	$(IMPDIR)\core\sync\barrier.di \
+	$(IMPDIR)\core\sync\rwmutex.di
+
+# bitop.di is already published
 
 ######################## Doc .html file generation ##############################
 

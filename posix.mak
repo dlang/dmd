@@ -311,7 +311,11 @@ SRCS= \
 	$(IMPDIR)/core/stdc/string.d \
 	$(IMPDIR)/core/stdc/time.d \
 	$(IMPDIR)/core/stdc/wchar_.d \
-	$(IMPDIR)/core/sys/posix/sys/select.d
+	$(IMPDIR)/core/sys/posix/sys/select.d \
+	$(IMPDIR)/core/sys/posix/sys/socket.d \
+	$(IMPDIR)/core/sys/posix/sys/stat.d \
+	$(IMPDIR)/core/sys/posix/sys/wait.d \
+	$(IMPDIR)/core/sys/posix/netinet/in_.d
 
 # NOTE: trace.d and cover.d are not necessary for a successful build
 #       as both are used for debugging features (profiling and coverage)
