@@ -661,11 +661,11 @@ void FuncDeclaration::toObjFile(int multiobj)
     {
 	for (i = 0; i < parameters->dim; i++)
 	{   VarDeclaration *v = (VarDeclaration *)parameters->data[i];
-#ifdef DEBUG
 	    if (v->csym)
-		printf("parameter '%s'\n", v->toChars());
-#endif
-	    assert(!v->csym);
+	    {
+		error("compiler error, parameter '%s', bugzilla 2962?", v->toChars());
+		assert(0);
+	    }
 	    params[pi + i] = v->toSymbol();
 	}
 	pi += i;
