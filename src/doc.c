@@ -90,9 +90,9 @@ int cmp(const char *stringz, void *s, size_t slen);
 int icmp(const char *stringz, void *s, size_t slen);
 int isDitto(unsigned char *comment);
 unsigned char *skipwhitespace(unsigned char *p);
-unsigned skiptoident(OutBuffer *buf, unsigned i);
-unsigned skippastident(OutBuffer *buf, unsigned i);
-unsigned skippastURL(OutBuffer *buf, unsigned i);
+unsigned skiptoident(OutBuffer *buf, size_t i);
+unsigned skippastident(OutBuffer *buf, size_t i);
+unsigned skippastURL(OutBuffer *buf, size_t i);
 void highlightText(Scope *sc, Dsymbol *s, OutBuffer *buf, unsigned offset);
 void highlightCode(Scope *sc, Dsymbol *s, OutBuffer *buf, unsigned offset);
 void highlightCode2(Scope *sc, Dsymbol *s, OutBuffer *buf, unsigned offset);
@@ -1503,12 +1503,12 @@ unsigned char *skipwhitespace(unsigned char *p)
  *	end of buf
  */
 
-unsigned skiptoident(OutBuffer *buf, unsigned i)
+unsigned skiptoident(OutBuffer *buf, size_t i)
 {
     while (i < buf->offset)
     {	dchar_t c;
 
-	unsigned oi = i;
+	size_t oi = i;
 	if (utf_decodeChar((unsigned char *)buf->data, buf->offset, &i, &c))
 	    /* Ignore UTF errors, but still consume input
 	     */
@@ -1530,12 +1530,12 @@ unsigned skiptoident(OutBuffer *buf, unsigned i)
  * Scan forward past end of identifier.
  */
 
-unsigned skippastident(OutBuffer *buf, unsigned i)
+unsigned skippastident(OutBuffer *buf, size_t i)
 {
     while (i < buf->offset)
     {	dchar_t c;
 
-	unsigned oi = i;
+	size_t oi = i;
 	if (utf_decodeChar((unsigned char *)buf->data, buf->offset, &i, &c))
 	    /* Ignore UTF errors, but still consume input
 	     */
@@ -1562,7 +1562,7 @@ unsigned skippastident(OutBuffer *buf, unsigned i)
  *	index just past it if it is a URL
  */
 
-unsigned skippastURL(OutBuffer *buf, unsigned i)
+unsigned skippastURL(OutBuffer *buf, size_t i)
 {   unsigned length = buf->offset - i;
     unsigned char *p = &buf->data[i];
     unsigned j;
@@ -2064,7 +2064,7 @@ int isIdStart(unsigned char *p)
     if (isalpha(c) || c == '_')
 	return 1;
     if (c >= 0x80)
-    {	unsigned i = 0;
+    {	size_t i = 0;
 	if (utf_decodeChar(p, 4, &i, &c))
 	    return 0;	// ignore errors
 	if (isUniAlpha(c))
@@ -2083,7 +2083,7 @@ int isIdTail(unsigned char *p)
     if (isalnum(c) || c == '_')
 	return 1;
     if (c >= 0x80)
-    {	unsigned i = 0;
+    {	size_t i = 0;
 	if (utf_decodeChar(p, 4, &i, &c))
 	    return 0;	// ignore errors
 	if (isUniAlpha(c))
@@ -2101,7 +2101,7 @@ int utfStride(unsigned char *p)
     unsigned c = *p;
     if (c < 0x80)
 	return 1;
-    unsigned i = 0;
+    size_t i = 0;
     utf_decodeChar(p, 4, &i, &c);	// ignore errors, but still consume input
     return i;
 }

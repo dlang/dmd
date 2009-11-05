@@ -3128,14 +3128,20 @@ void UnitTestDeclaration::semantic(Scope *sc)
 	sc2->pop();
     }
 
+#if 0
     // We're going to need ModuleInfo even if the unit tests are not
     // compiled in, because other modules may import this module and refer
     // to this ModuleInfo.
+    // (This doesn't make sense to me?)
     Module *m = getModule();
     if (!m)
 	m = sc->module;
     if (m)
+    {
+	//printf("module3 %s needs moduleinfo\n", m->toChars());
 	m->needmoduleinfo = 1;
+    }
+#endif
 }
 
 AggregateDeclaration *UnitTestDeclaration::isThis()
