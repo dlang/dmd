@@ -1652,7 +1652,7 @@ void clear(T)(T obj) if (is(T == class))
         defaultCtor(obj);
 }
 
-unittest
+version(unittest) unittest
 {
    {
        class A { string s = "A"; this() {} }
@@ -1705,7 +1705,7 @@ void clear(T)(ref T obj) if (is(T == struct))
    buf[] = init[];
 }
 
-unittest
+version(unittest) unittest
 {
    {
        struct A { string s = "A";  }
@@ -1737,7 +1737,7 @@ void clear(T : U[n], U, size_t n)(/*ref*/ T obj)
     obj = T.init;
 }
 
-unittest
+version(unittest) unittest
 {
     int[2] a;
     a[0] = 1;
@@ -1762,7 +1762,7 @@ template _isStaticArray(T)
     enum bool _isStaticArray = false;
 }
 
-unittest
+version(unittest) unittest
 {
    {
        int a = 42;
