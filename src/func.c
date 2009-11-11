@@ -31,7 +31,7 @@
 
 /********************************* FuncDeclaration ****************************/
 
-FuncDeclaration::FuncDeclaration(Loc loc, Loc endloc, Identifier *id, enum STC storage_class, Type *type)
+FuncDeclaration::FuncDeclaration(Loc loc, Loc endloc, Identifier *id, StorageClass storage_class, Type *type)
     : Declaration(id)
 {
     //printf("FuncDeclaration(id = '%s', type = %p)\n", id->toChars(), type);
@@ -94,7 +94,7 @@ Dsymbol *FuncDeclaration::syntaxCopy(Dsymbol *s)
     if (s)
 	f = (FuncDeclaration *)s;
     else
-	f = new FuncDeclaration(loc, endloc, ident, (enum STC) storage_class, type->syntaxCopy());
+	f = new FuncDeclaration(loc, endloc, ident, storage_class, type->syntaxCopy());
     f->outId = outId;
     f->frequire = frequire ? frequire->syntaxCopy() : NULL;
     f->fensure  = fensure  ? fensure->syntaxCopy()  : NULL;
@@ -140,11 +140,11 @@ void FuncDeclaration::semantic(Scope *sc)
 	originalType = type;
     if (!type->deco)
     {
-	/* Apply const and invariant storage class
+	/* Apply const, immutable and shared storage class
 	 * to the function type
 	 */
 	type = type->semantic(loc, sc);
-	unsigned stc = storage_class;
+	StorageClass stc = storage_class;
 	if (type->isInvariant())
 	    stc |= STCimmutable;
 	if (type->isConst())
@@ -752,7 +752,9 @@ void FuncDeclaration::semantic3(Scope *sc)
 	sc2->sw = NULL;
 	sc2->fes = fes;
 	sc2->linkage = LINKd;
-	sc2->stc &= ~(STCauto | STCscope | STCstatic | STCabstract | STCdeprecated | STC_TYPECTOR | STCfinal | STCtls | STCgshared | STCref);
+	sc2->stc &= ~(STCauto | STCscope | STCstatic | STCabstract | STCdeprecated |
+			STC_TYPECTOR | STCfinal | STCtls | STCgshared | STCref |
+			STCproperty | STCsafe | STCtrusted | STCunsafe);
 	sc2->protection = PROTpublic;
 	sc2->explicitProtection = 0;
 	sc2->structalign = 8;
@@ -1876,7 +1878,9 @@ FuncDeclaration *FuncDeclaration::overloadExactMatch(Type *t)
 struct Param2
 {
     Match *m;
+#if DMDV2
     Expression *ethis;
+#endif
     Expressions *arguments;
 };
 
@@ -1907,6 +1911,7 @@ int fp2(void *param, FuncDeclaration *f)
 	    else if (f->overrides(m->lastf))
 		goto LfIsBetter;
 
+#if DMDV2
 	    /* Try to disambiguate using template-style partial ordering rules.
 	     * In essence, if f() and g() are ambiguous, if f() can call g(),
 	     * but g() cannot call f(), then pick f().
@@ -1921,7 +1926,7 @@ int fp2(void *param, FuncDeclaration *f)
 	    if (c1 < c2)
 		goto LlastIsBetter;
 	    }
-
+#endif
 	Lambiguous:
 	    m->nextf = f;
 	    m->count++;
@@ -1939,6 +1944,7 @@ int fp2(void *param, FuncDeclaration *f)
     }
     return 0;
 }
+
 
 void overloadResolveX(Match *m, FuncDeclaration *fstart,
 	Expression *ethis, Expressions *arguments)
@@ -2043,6 +2049,7 @@ if (arguments)
  *	0	g is more specialized than 'this'
  */
 
+#if DMDV2
 MATCH FuncDeclaration::leastAsSpecialized(FuncDeclaration *g)
 {
 #define LOG_LEASTAS     0
@@ -2144,6 +2151,7 @@ FuncDeclaration *resolveFuncCall(Scope *sc, Loc loc, Dsymbol *s,
     }
     return f;
 }
+#endif
 
 /********************************
  * Labels are in a separate scope, one per function.
@@ -2384,6 +2392,18 @@ int FuncDeclaration::isPure()
     return ((TypeFunction *)this->type)->ispure;
 }
 
+int FuncDeclaration::isSafe()
+{
+    assert(type->ty == Tfunction);
+    return ((TypeFunction *)type)->trust == TRUSTsafe;
+}
+
+int FuncDeclaration::isTrusted()
+{
+    assert(type->ty == Tfunction);
+    return ((TypeFunction *)type)->trust == TRUSTtrusted;
+}
+
 // Determine if function needs
 // a static frame pointer to its lexically enclosing function
 
@@ -2535,7 +2555,7 @@ Lyes:
 
 FuncAliasDeclaration::FuncAliasDeclaration(FuncDeclaration *funcalias)
     : FuncDeclaration(funcalias->loc, funcalias->endloc, funcalias->ident,
-	(enum STC)funcalias->storage_class, funcalias->type)
+	funcalias->storage_class, funcalias->type)
 {
     assert(funcalias != this);
     this->funcalias = funcalias;

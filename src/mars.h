@@ -364,6 +364,9 @@ enum MATCH
     MATCHexact		// exact match
 };
 
+typedef uint64_t StorageClass;
+
+
 void warning(Loc loc, const char *format, ...);
 void error(Loc loc, const char *format, ...);
 void verror(Loc loc, const char *format, va_list);

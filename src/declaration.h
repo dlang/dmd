@@ -77,6 +77,11 @@ enum STC
     STC_TYPECTOR    = (STCconst | STCimmutable | STCshared),
 };
 
+#define STCproperty	0x100000000LL
+#define STCsafe		0x200000000LL
+#define STCtrusted	0x400000000LL
+#define STCunsafe	0x800000000LL
+
 struct Match
 {
     int count;			// number of matches found
@@ -98,7 +103,7 @@ struct Declaration : Dsymbol
 {
     Type *type;
     Type *originalType;		// before semantic analysis
-    unsigned storage_class;
+    StorageClass storage_class;
     enum PROT protection;
     enum LINK linkage;
     int inuse;			// used to detect cycles
@@ -557,7 +562,7 @@ struct FuncDeclaration : Declaration
     int nestedFrameRef;			// !=0 if nested variables referenced
 #endif
 
-    FuncDeclaration(Loc loc, Loc endloc, Identifier *id, enum STC storage_class, Type *type);
+    FuncDeclaration(Loc loc, Loc endloc, Identifier *id, StorageClass storage_class, Type *type);
     Dsymbol *syntaxCopy(Dsymbol *);
     void semantic(Scope *sc);
     void semantic2(Scope *sc);
@@ -591,6 +596,8 @@ struct FuncDeclaration : Declaration
     int isCodeseg();
     int isOverloadable();
     int isPure();
+    int isSafe();
+    int isTrusted();
     virtual int isNested();
     int needThis();
     virtual int isVirtual();

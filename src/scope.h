@@ -82,7 +82,7 @@ struct Scope
     enum PROT protection;	// protection for class members
     int explicitProtection;	// set if in an explicit protection attribute
 
-    unsigned stc;		// storage class
+    StorageClass stc;		// storage class
 
     unsigned flags;
 #define SCOPEctor	1	// constructor type

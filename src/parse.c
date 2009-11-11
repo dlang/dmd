@@ -145,8 +145,8 @@ Array *Parser::parseDeclDefs(int once)
     Array *a;
     Array *aelse;
     enum PROT prot;
-    enum STC stc;
-    unsigned storageClass;
+    StorageClass stc;
+    StorageClass storageClass;
     Condition *condition;
     unsigned char *comment;
 
@@ -331,6 +331,7 @@ Array *Parser::parseDeclDefs(int once)
 	    case TOKtls:          stc = STCtls;		 goto Lstc;
 	    case TOKgshared:      stc = STCgshared;	 goto Lstc;
 	    //case TOKmanifest:	  stc = STCmanifest;	 goto Lstc;
+	    case TOKat:           stc = parseAttribute(); goto Lstc;
 #endif
 
 	    Lstc:
@@ -369,6 +370,7 @@ Array *Parser::parseDeclDefs(int once)
 		    case TOKtls:          stc = STCtls;		 goto Lstc;
 		    case TOKgshared:      stc = STCgshared;	 goto Lstc;
 		    //case TOKmanifest:	  stc = STCmanifest;	 goto Lstc;
+		    case TOKat:           stc = parseAttribute(); goto Lstc;
 		    default:
 			break;
 		}
@@ -567,9 +569,10 @@ Array *Parser::parseDeclDefs(int once)
  * Give error on conflicting storage classes.
  */
 
-void Parser::composeStorageClass(unsigned stc)
+#if DMDV2
+void Parser::composeStorageClass(StorageClass stc)
 {
-    unsigned u = stc;
+    StorageClass u = stc;
     u &= STCconst | STCimmutable | STCmanifest;
     if (u & (u - 1))
 	error("conflicting storage class %s", Token::toChars(token.value));
@@ -577,7 +580,40 @@ void Parser::composeStorageClass(unsigned stc)
     u &= STCgshared | STCshared | STCtls;
     if (u & (u - 1))
 	error("conflicting storage class %s", Token::toChars(token.value));
+    u = stc;
+    u &= STCsafe | STCunsafe | STCtrusted;
+    if (u & (u - 1))
+	error("conflicting attribute @%s", token.toChars());
 }
+#endif
+
+/***********************************************
+ * Parse storage class, lexer is on '@'
+ */
+
+#if DMDV2
+StorageClass Parser::parseAttribute()
+{
+    nextToken();
+    StorageClass stc = 0;
+    if (token.value != TOKidentifier)
+    {
+	error("identifier expected after @, not %s", token.toChars());
+    }
+    else if (token.ident == Id::property)
+	stc = STCproperty;
+    else if (token.ident == Id::safe)
+	stc = STCsafe;
+    else if (token.ident == Id::trusted)
+	stc = STCtrusted;
+    else if (token.ident == Id::unsafe)
+	stc = STCunsafe;
+    else
+	error("valid attribute identifiers are @property, @safe, @trusted, @unsafe, not @%s", token.toChars());
+    return stc;
+}
+#endif
+
 
 /********************************************
  * Parse declarations after an align, protection, or extern decl.
@@ -1069,8 +1105,8 @@ Arguments *Parser::parseParameters(int *pvarargs)
 	Identifier *ai = NULL;
 	Type *at;
 	Argument *a;
-	unsigned storageClass = 0;
-	unsigned stc;
+	StorageClass storageClass = 0;
+	StorageClass stc;
 	Expression *ae;
 
 	for (;1; nextToken())
@@ -2264,7 +2300,9 @@ Type *Parser::parseBasicType2(Type *t)
 		int varargs;
 		bool ispure = false;
 		bool isnothrow = false;
+		bool isproperty = false;
 		enum TOK save = token.value;
+		enum TRUST trust = TRUSTdefault;
 
 		nextToken();
 		arguments = parseParameters(&varargs);
@@ -2274,6 +2312,27 @@ Type *Parser::parseBasicType2(Type *t)
 			ispure = true;
 		    else if (token.value == TOKnothrow)
 			isnothrow = true;
+		    else if (token.value == TOKat)
+		    {	StorageClass stc = parseAttribute();
+			switch ((unsigned)(stc >> 32))
+			{   case STCproperty >> 32:
+				isproperty = true;
+				break;
+			    case STCsafe >> 32:
+				trust = TRUSTsafe;
+				break;
+			    case STCunsafe >> 32:
+				trust = TRUSTunsafe;
+				break;
+			    case STCtrusted >> 32:
+				trust = TRUSTtrusted;
+				break;
+			    case 0:
+				break;
+			    default:
+				assert(0);
+			}
+		    }
 		    else
 			break;
 		    nextToken();
@@ -2281,6 +2340,8 @@ Type *Parser::parseBasicType2(Type *t)
 		TypeFunction *tf = new TypeFunction(arguments, t, varargs, linkage);
 		tf->ispure = ispure;
 		tf->isnothrow = isnothrow;
+		tf->isproperty = isproperty;
+		tf->trust = trust;
 		if (save == TOKdelegate)
 		    t = new TypeDelegate(tf);
 		else
@@ -2444,20 +2505,29 @@ Type *Parser::parseDeclarator(Type *t, Identifier **pident, TemplateParameters *
 			    continue;
 
 			case TOKat:
-			    nextToken();
-			    if (token.value != TOKidentifier)
-			    {   error("attribute identifier expected");
-				nextToken();
-				continue;
+			{   StorageClass stc = parseAttribute();
+			    TypeFunction *tfunc = (TypeFunction *)tf;
+			    switch ((unsigned)(stc >> 32))
+			    {	case STCproperty >> 32:
+				    tfunc->isproperty = 1;
+				    break;
+				case STCsafe >> 32:
+				    tfunc->trust = TRUSTsafe;
+				    break;
+				case STCunsafe >> 32:
+				    tfunc->trust = TRUSTunsafe;
+				    break;
+				case STCtrusted >> 32:
+				    tfunc->trust = TRUSTtrusted;
+				    break;
+				case 0:
+				    break;
+				default:
+				    assert(0);
 			    }
-			    Identifier *id = token.ident;
-			    if (id == Id::property)
-				((TypeFunction *)tf)->isproperty = 1;
-			    else
-				error("valid attribute identifiers are @property, not @%s", id->toChars());
 			    nextToken();
 			    continue;
-
+			}
 		    }
 		    break;
 		}
@@ -2488,9 +2558,9 @@ Type *Parser::parseDeclarator(Type *t, Identifier **pident, TemplateParameters *
  * Return array of Declaration *'s.
  */
 
-Array *Parser::parseDeclarations(unsigned storage_class)
+Array *Parser::parseDeclarations(StorageClass storage_class)
 {
-    enum STC stc;
+    StorageClass stc;
     Type *ts;
     Type *t;
     Type *tfirst;
@@ -2571,6 +2641,7 @@ Array *Parser::parseDeclarations(unsigned storage_class)
 	    case TOKtls:        stc = STCtls;		 goto L1;
 	    case TOKgshared:    stc = STCgshared;	 goto L1;
 	    case TOKenum:	stc = STCmanifest;	 goto L1;
+	    case TOKat:         stc = parseAttribute();  goto L1;
 #endif
 	    L1:
 		if (storage_class & stc)
@@ -2708,7 +2779,7 @@ L2:
 	    }
 #endif
 	    FuncDeclaration *f =
-		new FuncDeclaration(loc, 0, ident, (enum STC)storage_class, t);
+		new FuncDeclaration(loc, 0, ident, storage_class, t);
 	    addComment(f, comment);
 	    if (tpl)
 		constraint = parseConstraint();
@@ -2789,7 +2860,7 @@ L2:
  */
 
 #if DMDV2
-Array *Parser::parseAutoDeclarations(unsigned storageClass, unsigned char *comment)
+Array *Parser::parseAutoDeclarations(StorageClass storageClass, unsigned char *comment)
 {
     Array *a = new Array;
 
@@ -2834,7 +2905,6 @@ Array *Parser::parseAutoDeclarations(unsigned storageClass, unsigned char *comme
 
 void Parser::parseContracts(FuncDeclaration *f)
 {
-    Type *tb;
     enum LINK linksave = linkage;
 
     // The following is irrelevant, as it is overridden by sc->linkage in
@@ -2877,7 +2947,7 @@ L1:
 	    check(TOKlparen);
 	    while (1)
 	    {
-		tb = parseBasicType();
+		Type *tb = parseBasicType();
 		f->fthrows->push(tb);
 		if (token.value == TOKcomma)
 		{   nextToken();
@@ -3294,6 +3364,7 @@ Statement *Parser::parseStatement(int flags)
 	case TOKpure:
 	case TOKtls:
 	case TOKgshared:
+	case TOKat:
 #endif
 //	case TOKtypeof:
 	Ldeclaration:
@@ -5127,6 +5198,8 @@ Expression *Parser::parsePrimaryExp()
 	    Type *t;
 	    bool isnothrow = false;
 	    bool ispure = false;
+	    bool isproperty = false;
+	    enum TRUST trust = TRUSTdefault;
 
 	    if (token.value == TOKlcurly)
 	    {
@@ -5150,6 +5223,27 @@ Expression *Parser::parsePrimaryExp()
 			ispure = true;
 		    else if (token.value == TOKnothrow)
 			isnothrow = true;
+		    else if (token.value == TOKat)
+		    {	StorageClass stc = parseAttribute();
+			switch ((unsigned)(stc >> 32))
+			{   case STCproperty >> 32:
+				isproperty = true;
+				break;
+			    case STCsafe >> 32:
+				trust = TRUSTsafe;
+				break;
+			    case STCunsafe >> 32:
+				trust = TRUSTunsafe;
+				break;
+			    case STCtrusted >> 32:
+				trust = TRUSTtrusted;
+				break;
+			    case 0:
+				break;
+			    default:
+				assert(0);
+			}
+		    }
 		    else
 			break;
 		    nextToken();
@@ -5159,6 +5253,8 @@ Expression *Parser::parsePrimaryExp()
 	    TypeFunction *tf = new TypeFunction(arguments, t, varargs, linkage);
 	    tf->ispure = ispure;
 	    tf->isnothrow = isnothrow;
+	    tf->isproperty = isproperty;
+	    tf->trust = trust;
 	    fd = new FuncLiteralDeclaration(loc, 0, tf, save, NULL);
 	    parseContracts(fd);
 	    e = new FuncExp(loc, fd);

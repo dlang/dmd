@@ -739,10 +739,17 @@ void VarDeclaration::semantic(Scope *sc)
     //printf("storage_class = x%x\n", storage_class);
 
 #if DMDV2
+#if 1
+    if (storage_class & STCgshared && sc->func && sc->func->isSafe())
+    {
+	error("__gshared not allowed in safe functions; use shared");
+    }
+#else
     if (storage_class & STCgshared && global.params.safe && !sc->module->safe)
     {
 	error("__gshared not allowed in safe mode; use shared");
     }
+#endif
 #endif
 
     Dsymbol *parent = toParent();

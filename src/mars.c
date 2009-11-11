@@ -80,7 +80,7 @@ Global::Global()
     "\nMSIL back-end (alpha release) by Cristian L. Vlasceanu and associates.";
 #endif
     ;
-    version = "v2.036";
+    version = "v2.037";
     global.structalign = 8;
 
     memset(&params, 0, sizeof(Param));
@@ -531,7 +531,7 @@ int main(int argc, char *argv[])
 		global.params.release = 1;
 #if DMDV2
 	    else if (strcmp(p + 1, "safe") == 0)
-		global.params.safe = 1;
+		global.params.safe = 1;		// now ignored
 #endif
 	    else if (strcmp(p + 1, "unittest") == 0)
 		global.params.useUnitTests = 1;

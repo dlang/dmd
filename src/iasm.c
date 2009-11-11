@@ -4234,10 +4234,13 @@ Statement *AsmStatement::semantic(Scope *sc)
 {
     //printf("AsmStatement::semantic()\n");
 
+#if 1
+    if (sc->func && sc->func->isSafe())
+	error("inline assembler not allowed in @safe function %s", sc->func->toChars());
+#else
     if (global.params.safe && !sc->module->safe)
-    {
 	error("inline assembler not allowed in safe mode");
-    }
+#endif
 
     OP *o;
     OPND *o1 = NULL,*o2 = NULL, *o3 = NULL;

@@ -142,6 +142,9 @@ Msgtable msgtable[] =
     { "idup" },
 
     { "property" },
+    { "safe" },
+    { "trusted" },
+    { "unsafe" },
 
     // For inline assembler
     { "___out", "out" },

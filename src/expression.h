@@ -122,6 +122,7 @@ struct Expression : Object
     Expression *checkArithmetic();
     void checkDeprecated(Scope *sc, Dsymbol *s);
     void checkPurity(Scope *sc, FuncDeclaration *f);
+    void checkSafety(Scope *sc, FuncDeclaration *f);
     virtual Expression *checkToBoolean();
     Expression *checkToPointer();
     Expression *addressOf(Scope *sc);

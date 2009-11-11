@@ -908,7 +908,7 @@ Type *Type::addMod(unsigned mod)
  * Add storage class modifiers to type.
  */
 
-Type *Type::addStorageClass(unsigned stc)
+Type *Type::addStorageClass(StorageClass stc)
 {
     /* Just translate to MOD bits and let addMod() do the work
      */
@@ -3760,6 +3760,7 @@ TypeFunction::TypeFunction(Arguments *parameters, Type *treturn, int varargs, en
     this->ispure = false;
     this->isproperty = false;
     this->isref = false;
+    this->trust = TRUSTdefault;
 }
 
 Type *TypeFunction::syntaxCopy()
@@ -3772,6 +3773,7 @@ Type *TypeFunction::syntaxCopy()
     t->ispure = ispure;
     t->isproperty = isproperty;
     t->isref = isref;
+    t->trust = trust;
     return t;
 }
 
@@ -3900,6 +3902,11 @@ Lcovariant:
     if (t1->isref != t2->isref)
 	goto Lnotcovariant;
 
+    /* Can convert safe/trusted to unsafe
+     */
+    if (t1->trust <= TRUSTunsafe && t2->trust >= TRUSTtrusted)
+	goto Lnotcovariant;
+
     //printf("\tcovaraint: 1\n");
     return 1;
 
@@ -3941,7 +3948,7 @@ void TypeFunction::toDecoBuffer(OutBuffer *buf, int flag)
 	    assert(0);
     }
     buf->writeByte(mc);
-    if (ispure || isnothrow || isproperty || isref)
+    if (ispure || isnothrow || isproperty || isref || trust)
     {
 	if (ispure)
 	    buf->writestring("Na");
@@ -3951,6 +3958,15 @@ void TypeFunction::toDecoBuffer(OutBuffer *buf, int flag)
 	    buf->writestring("Nc");
 	if (isproperty)
 	    buf->writestring("Nd");
+	switch (trust)
+	{
+	    case TRUSTtrusted:
+		buf->writestring("Ne");
+		break;
+	    case TRUSTsafe:
+		buf->writestring("Nd");
+		break;
+	}
     }
     // Write argument types
     Argument::argsToDecoBuffer(buf, parameters);
@@ -3989,6 +4005,17 @@ void TypeFunction::toCBuffer(OutBuffer *buf, Identifier *ident, HdrGenState *hgs
 	buf->writestring("@property ");
     if (isref)
 	buf->writestring("ref ");
+
+    switch (trust)
+    {
+	case TRUSTtrusted:
+	    buf->writestring("@trusted ");
+	    break;
+
+	case TRUSTsafe:
+	    buf->writestring("@safe ");
+	    break;
+    }
 
     if (next && (!ident || ident->toHChars2() == ident->toChars()))
 	next->toCBuffer2(buf, hgs, 0);
@@ -4062,6 +4089,16 @@ void TypeFunction::toCBuffer2(OutBuffer *buf, HdrGenState *hgs, int mod)
     if (isref)
 	buf->writestring(" ref");
 
+    switch (trust)
+    {
+	case TRUSTtrusted:
+	    buf->writestring(" @trusted");
+	    break;
+
+	case TRUSTsafe:
+	    buf->writestring(" @safe");
+	    break;
+    }
     inuse--;
 }
 
@@ -4097,8 +4134,27 @@ Type *TypeFunction::semantic(Loc loc, Scope *sc)
 	tf->isnothrow = TRUE;
     if (sc->stc & STCref)
 	tf->isref = TRUE;
+    if (sc->stc & STCsafe)
+	tf->trust = TRUSTsafe;
+    if (sc->stc & STCtrusted)
+	tf->trust = TRUSTtrusted;
 
     tf->linkage = sc->linkage;
+
+    /* If the parent is @safe, then this function defaults to safe
+     * too.
+     */
+    if (tf->trust == TRUSTdefault)
+	for (Dsymbol *p = sc->func; p; p = p->toParent2())
+	{   FuncDeclaration *fd = p->isFuncDeclaration();
+	    if (fd)
+	    {
+		if (fd->isSafe())
+		    tf->trust = TRUSTsafe;		// default to @safe
+		break;
+	    }
+	}
+
     if (tf->next)
     {
 	tf->next = tf->next->semantic(loc,sc);
@@ -6976,7 +7032,7 @@ void TypeNewArray::toCBuffer2(OutBuffer *buf, HdrGenState *hgs, int mod)
 
 /***************************** Argument *****************************/
 
-Argument::Argument(unsigned storageClass, Type *type, Identifier *ident, Expression *defaultArg)
+Argument::Argument(StorageClass storageClass, Type *type, Identifier *ident, Expression *defaultArg)
 {
     this->type = type;
     this->ident = ident;
@@ -7070,7 +7126,7 @@ void Argument::argsToCBuffer(OutBuffer *buf, HdrGenState *hgs, Arguments *argume
 	    else if (arg->storageClass & STCauto)
 		buf->writestring("auto ");
 
-	    unsigned stc = arg->storageClass;
+	    StorageClass stc = arg->storageClass;
 	    if (arg->type && arg->type->mod & MODshared)
 		stc &= ~STCshared;
 

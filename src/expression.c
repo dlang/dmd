@@ -1147,12 +1147,25 @@ void Expression::checkPurity(Scope *sc, FuncDeclaration *f)
 #if 1
     if (sc->func)
     {
-	FuncDeclaration *outerfunc=sc->func;
+	/* Given:
+	 * void f()
+	 * { pure void g()
+	 *   {
+	 *	void h()
+	 *	{
+	 *	   void i() { }
+	 *	}
+	 *   }
+	 * }
+	 * g() can call h() but not f()
+	 * i() can call h() and g() but not f()
+	 */
+	FuncDeclaration *outerfunc = sc->func;
 	while (outerfunc->toParent2() && outerfunc->toParent2()->isFuncDeclaration())
 	{
 	    outerfunc = outerfunc->toParent2()->isFuncDeclaration();
 	}
-	if (outerfunc->isPure()  && !sc->intypeof && (!f->isNested() && !f->isPure()))
+	if (outerfunc->isPure() && !sc->intypeof && (!f->isNested() && !f->isPure()))
 	    error("pure function '%s' cannot call impure function '%s'\n",
 		sc->func->toChars(), f->toChars());
     }
@@ -1161,6 +1174,14 @@ void Expression::checkPurity(Scope *sc, FuncDeclaration *f)
 	error("pure function '%s' cannot call impure function '%s'\n",
 	    sc->func->toChars(), f->toChars());
 #endif
+}
+
+void Expression::checkSafety(Scope *sc, FuncDeclaration *f)
+{
+    if (sc->func && sc->func->isSafe() && !sc->intypeof &&
+	!f->isSafe() && !f->isTrusted())
+	error("safe function '%s' cannot call unsafe function '%s'\n",
+	    sc->func->toChars(), f->toChars());
 }
 #endif
 
@@ -4146,8 +4167,22 @@ Expression *VarExp::semantic(Scope *sc)
 	v->checkNestedReference(sc, loc);
 #if DMDV2
 #if 1
-	if (sc->func)
+	if (sc->func && !sc->intypeof)
 	{
+	    /* Given:
+	     * void f()
+	     * { int fx;
+	     *   pure void g()
+	     *   {  int gx;
+	     *      void h()
+	     *      {  int hx;
+	     *         void i() { }
+	     *      }
+	     *   }
+	     * }
+	     * i() can modify hx and gx but not fx
+	     */
+
 	    /* Determine if sc->func is pure or if any function that
 	     * encloses it is also pure.
 	     */
@@ -4170,21 +4205,27 @@ Expression *VarExp::semantic(Scope *sc)
 	     * If it is pure, it cannot access any mutable variables other
 	     * than those inside itself
 	     */
-	    if (hasPureParent && !sc->intypeof && v->isDataseg() &&
+	    if (hasPureParent && v->isDataseg() &&
 		!v->isInvariant())
 	    {
 		error("pure function '%s' cannot access mutable static data '%s'",
 		    sc->func->toChars(), v->toChars());
 	    }
 	    else if (sc->func->isPure() && sc->parent != v->parent &&
-		!sc->intypeof && !v->isInvariant() &&
+		!v->isInvariant() &&
 		!(v->storage_class & STCmanifest))
 	    {
 		error("pure nested function '%s' cannot access mutable data '%s'",
 		    sc->func->toChars(), v->toChars());
 		if (v->isEnumDeclaration())
 		    error("enum");
-	    }	
+	    }
+
+	    /* Do not allow safe functions to access __gshared data
+	     */
+	    if (sc->func->isSafe() && v->storage_class & STCgshared)
+		error("safe function '%s' cannot access __gshared data '%s'",
+		    sc->func->toChars(), v->toChars());
 	}
 #else
 	if (sc->func && sc->func->isPure() && !sc->intypeof)
@@ -6547,6 +6588,7 @@ Lagain:
 	checkDeprecated(sc, f);
 #if DMDV2
 	checkPurity(sc, f);
+	checkSafety(sc, f);
 #endif
 	accessCheck(loc, sc, ue->e1, f);
 	if (!f->needThis())
@@ -6658,6 +6700,7 @@ Lagain:
 		checkDeprecated(sc, f);
 #if DMDV2
 		checkPurity(sc, f);
+		checkSafety(sc, f);
 #endif
 		e1 = new DotVarExp(e1->loc, e1, f);
 		e1 = e1->semantic(sc);
@@ -6697,6 +6740,7 @@ Lagain:
 	    checkDeprecated(sc, f);
 #if DMDV2
 	    checkPurity(sc, f);
+	    checkSafety(sc, f);
 #endif
 	    e1 = new DotVarExp(e1->loc, e1, f);
 	    e1 = e1->semantic(sc);
@@ -6760,16 +6804,23 @@ Lagain:
 	    {
 		error("pure function '%s' cannot call impure delegate '%s'", sc->func->toChars(), e1->toChars());
 	    }
+	    if (sc->func && sc->func->isSafe() && tf->trust <= TRUSTunsafe)
+	    {
+		error("safe function '%s' cannot call unsafe delegate '%s'", sc->func->toChars(), e1->toChars());
+	    }
 	    goto Lcheckargs;
 	}
 	else if (t1->ty == Tpointer && ((TypePointer *)t1)->next->ty == Tfunction)
-	{   Expression *e;
-
-	    e = new PtrExp(loc, e1);
+	{
+	    Expression *e = new PtrExp(loc, e1);
 	    t1 = ((TypePointer *)t1)->next;
 	    if (sc->func && sc->func->isPure() && !((TypeFunction *)t1)->ispure)
 	    {
 		error("pure function '%s' cannot call impure function pointer '%s'", sc->func->toChars(), e1->toChars());
+	    }
+	    if (sc->func && sc->func->isSafe() && !((TypeFunction *)t1)->trust <= TRUSTunsafe)
+	    {
+		error("safe function '%s' cannot call unsafe function pointer '%s'", sc->func->toChars(), e1->toChars());
 	    }
 	    e->type = t1;
 	    e1 = e;
@@ -6815,6 +6866,7 @@ Lagain:
 	checkDeprecated(sc, f);
 #if DMDV2
 	checkPurity(sc, f);
+	checkSafety(sc, f);
 #endif
 
 	if (f->needThis() && hasThis(sc))
@@ -7501,14 +7553,18 @@ Expression *CastExp::semantic(Scope *sc)
 	to = Type::terror;
     }
 
+#if 1
+    if (sc->func && sc->func->isSafe() && !sc->intypeof)
+#else
     if (global.params.safe && !sc->module->safe && !sc->intypeof)
+#endif
     {	// Disallow unsafe casts
 	Type *tob = to->toBasetype();
 	Type *t1b = e1->type->toBasetype();
 	if (!t1b->isMutable() && tob->isMutable())
 	{   // Cast not mutable to mutable
 	  Lunsafe:
-	    error("cast from %s to %s not allowed in safe mode", e1->type->toChars(), to->toChars());
+	    error("cast from %s to %s not allowed in safe code", e1->type->toChars(), to->toChars());
 	}
 	else if (t1b->isShared() && !tob->isShared())
 	    // Cast away shared

@@ -63,7 +63,7 @@ int AttribDeclaration::addMember(Scope *sc, ScopeDsymbol *sd, int memnum)
 }
 
 void AttribDeclaration::setScopeNewSc(Scope *sc,
-	unsigned stc, enum LINK linkage, enum PROT protection, int explicitProtection,
+	StorageClass stc, enum LINK linkage, enum PROT protection, int explicitProtection,
 	unsigned structalign)
 {
     if (decl)
@@ -98,7 +98,7 @@ void AttribDeclaration::setScopeNewSc(Scope *sc,
 }
 
 void AttribDeclaration::semanticNewSc(Scope *sc,
-	unsigned stc, enum LINK linkage, enum PROT protection, int explicitProtection,
+	StorageClass stc, enum LINK linkage, enum PROT protection, int explicitProtection,
 	unsigned structalign)
 {
     if (decl)
@@ -342,7 +342,7 @@ void AttribDeclaration::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 
 /************************* StorageClassDeclaration ****************************/
 
-StorageClassDeclaration::StorageClassDeclaration(unsigned stc, Array *decl)
+StorageClassDeclaration::StorageClassDeclaration(StorageClass stc, Array *decl)
 	: AttribDeclaration(decl)
 {
     this->stc = stc;
@@ -361,7 +361,7 @@ void StorageClassDeclaration::setScope(Scope *sc)
 {
     if (decl)
     {
-	unsigned scstc = sc->stc;
+	StorageClass scstc = sc->stc;
 
 	/* These sets of storage classes are mutually exclusive,
 	 * so choose the innermost or most recent one.
@@ -374,6 +374,8 @@ void StorageClassDeclaration::setScope(Scope *sc)
 	    scstc &= ~(STCconst | STCimmutable | STCmanifest);
 	if (stc & (STCgshared | STCshared | STCtls))
 	    scstc &= ~(STCgshared | STCshared | STCtls);
+	if (stc & (STCsafe | STCtrusted | STCunsafe))
+	    scstc &= ~(STCsafe | STCtrusted | STCunsafe);
 	scstc |= stc;
 
 	setScopeNewSc(sc, scstc, sc->linkage, sc->protection, sc->explicitProtection, sc->structalign);
@@ -384,7 +386,7 @@ void StorageClassDeclaration::semantic(Scope *sc)
 {
     if (decl)
     {
-	unsigned scstc = sc->stc;
+	StorageClass scstc = sc->stc;
 
 	/* These sets of storage classes are mutually exclusive,
 	 * so choose the innermost or most recent one.
@@ -397,17 +399,19 @@ void StorageClassDeclaration::semantic(Scope *sc)
 	    scstc &= ~(STCconst | STCimmutable | STCmanifest);
 	if (stc & (STCgshared | STCshared | STCtls))
 	    scstc &= ~(STCgshared | STCshared | STCtls);
+	if (stc & (STCsafe | STCtrusted | STCunsafe))
+	    scstc &= ~(STCsafe | STCtrusted | STCunsafe);
 	scstc |= stc;
 
 	semanticNewSc(sc, scstc, sc->linkage, sc->protection, sc->explicitProtection, sc->structalign);
     }
 }
 
-void StorageClassDeclaration::stcToCBuffer(OutBuffer *buf, int stc)
+void StorageClassDeclaration::stcToCBuffer(OutBuffer *buf, StorageClass stc)
 {
     struct SCstring
     {
-	int stc;
+	StorageClass stc;
 	enum TOK tok;
     };
 
@@ -435,6 +439,9 @@ void StorageClassDeclaration::stcToCBuffer(OutBuffer *buf, int stc)
 	{ STCref,          TOKref },
 	{ STCtls,          TOKtls },
 	{ STCgshared,      TOKgshared },
+	{ STCproperty,     TOKat },
+	{ STCsafe,         TOKat },
+	{ STCtrusted,      TOKat },
 #endif
     };
 
@@ -442,7 +449,22 @@ void StorageClassDeclaration::stcToCBuffer(OutBuffer *buf, int stc)
     {
 	if (stc & table[i].stc)
 	{
-	    buf->writestring(Token::toChars(table[i].tok));
+	    enum TOK tok = table[i].tok;
+	    if (tok == TOKat)
+	    {	Identifier *id;
+
+		if (stc & STCproperty)
+		    id = Id::property;
+		else if (stc & STCsafe)
+		    id = Id::safe;
+		else if (stc & STCtrusted)
+		    id = Id::trusted;
+		else
+		    assert(0);
+		buf->writestring(id->toChars());
+	    }
+	    else
+		buf->writestring(Token::toChars(tok));
 	    buf->writeByte(' ');
 	}
     }
@@ -967,6 +989,7 @@ void PragmaDeclaration::semantic(Scope *sc)
 	goto Lnodecl;
     }
 #endif
+#if DMDV2
     else if (ident == Id::startaddress)
     {
 	if (!args || args->dim != 1)
@@ -983,6 +1006,7 @@ void PragmaDeclaration::semantic(Scope *sc)
 	}
 	goto Lnodecl;
     }
+#endif
 #if TARGET_NET
     else if (ident == Lexer::idPool("assembly"))
     {

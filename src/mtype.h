@@ -259,7 +259,7 @@ struct Type : Object
     void check();
     Type *castMod(unsigned mod);
     Type *addMod(unsigned mod);
-    Type *addStorageClass(unsigned stc);
+    Type *addStorageClass(StorageClass stc);
     Type *pointerTo();
     Type *referenceTo();
     Type *arrayOf();
@@ -499,6 +499,14 @@ enum RET
     RETstack	= 2,	// returned on stack
 };
 
+enum TRUST
+{
+    TRUSTdefault = 0,
+    TRUSTunsafe = 1,	// @unsafe (same as TRUSTdefault)
+    TRUSTtrusted = 2,	// @trusted
+    TRUSTsafe = 3,	// @safe
+};
+
 struct TypeFunction : TypeNext
 {
     // .next is the return type
@@ -511,6 +519,7 @@ struct TypeFunction : TypeNext
     bool isproperty;	// can be called without parentheses
     bool isref;		// true: returns a reference
     enum LINK linkage;	// calling convention
+    enum TRUST trust;	// level of trust
 
     int inuse;
 
@@ -820,12 +829,12 @@ struct TypeNewArray : TypeNext
 struct Argument : Object
 {
     //enum InOut inout;
-    unsigned storageClass;
+    StorageClass storageClass;
     Type *type;
     Identifier *ident;
     Expression *defaultArg;
 
-    Argument(unsigned storageClass, Type *type, Identifier *ident, Expression *defaultArg);
+    Argument(StorageClass storageClass, Type *type, Identifier *ident, Expression *defaultArg);
     Argument *syntaxCopy();
     Type *isLazyArray();
     void toDecoBuffer(OutBuffer *buf);
