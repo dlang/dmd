@@ -31,7 +31,7 @@
 
 /********************************* FuncDeclaration ****************************/
 
-FuncDeclaration::FuncDeclaration(Loc loc, Loc endloc, Identifier *id, enum STC storage_class, Type *type)
+FuncDeclaration::FuncDeclaration(Loc loc, Loc endloc, Identifier *id, StorageClass storage_class, Type *type)
     : Declaration(id)
 {
     //printf("FuncDeclaration(id = '%s', type = %p)\n", id->toChars(), type);
@@ -94,7 +94,7 @@ Dsymbol *FuncDeclaration::syntaxCopy(Dsymbol *s)
     if (s)
 	f = (FuncDeclaration *)s;
     else
-	f = new FuncDeclaration(loc, endloc, ident, (enum STC) storage_class, type->syntaxCopy());
+	f = new FuncDeclaration(loc, endloc, ident, storage_class, type->syntaxCopy());
     f->outId = outId;
     f->frequire = frequire ? frequire->syntaxCopy() : NULL;
     f->fensure  = fensure  ? fensure->syntaxCopy()  : NULL;
@@ -412,7 +412,6 @@ void FuncDeclaration::semantic(Scope *sc)
 	 */
 	for (int i = 0; i < cd->interfaces_dim; i++)
 	{
-#if 1
 	    BaseClass *b = cd->interfaces[i];
 	    vi = findVtblIndex(&b->base->vtbl, b->base->vtbl.dim);
 	    switch (vi)
@@ -465,68 +464,6 @@ void FuncDeclaration::semantic(Scope *sc)
 		    goto L2;
 		}
 	    }
-#else
-	    BaseClass *b = cd->interfaces[i];
-	    for (vi = 0; vi < b->base->vtbl.dim; vi++)
-	    {
-		Dsymbol *s = (Dsymbol *)b->base->vtbl.data[vi];
-		//printf("interface %d vtbl[%d] %p %s\n", i, vi, s, s->toChars());
-		FuncDeclaration *fdv = s->isFuncDeclaration();
-		if (fdv && fdv->ident == ident)
-		{
-		    int cov = type->covariant(fdv->type);
-		    //printf("\tcov = %d\n", cov);
-		    if (cov == 2)
-		    {
-			//type->print();
-			//fdv->type->print();
-			//printf("%s %s\n", type->deco, fdv->type->deco);
-			error("of type %s overrides but is not covariant with %s of type %s",
-			    type->toChars(), fdv->toPrettyChars(), fdv->type->toChars());
-		    }
-		    if (cov == 1)
-		    {	Type *ti = NULL;
-
-			if (fdv->tintro)
-			    ti = fdv->tintro;
-			else if (!type->equals(fdv->type))
-			{
-			    /* Only need to have a tintro if the vptr
-			     * offsets differ
-			     */
-			    int offset;
-			    if (fdv->type->nextOf()->isBaseOf(type->nextOf(), &offset))
-			    {
-				ti = fdv->type;
-#if 0
-				if (offset)
-				    ti = fdv->type;
-				else if (type->nextOf()->ty == Tclass)
-				{   ClassDeclaration *cdn = ((TypeClass *)type->nextOf())->sym;
-				    if (cdn && cdn->sizeok != 1)
-					ti = fdv->type;
-				}
-#endif
-			    }
-			}
-			if (ti)
-			{
-			    if (tintro && !tintro->equals(ti))
-			    {
-				error("incompatible covariant types %s and %s", tintro->toChars(), ti->toChars());
-			    }
-			    tintro = ti;
-			}
-			goto L2;
-		    }
-		    if (cov == 3)
-		    {
-			cd->sizeok = 2;	// can't finish due to forward reference
-			return;
-		    }
-		}
-	    }
-#endif
 	}
 
 	if (introducing && isOverride())
@@ -1249,13 +1186,11 @@ void FuncDeclaration::semantic3(Scope *sc)
 		v_argptr = argptr;
 		v_argptr->init = new VoidInitializer(loc);
 #else
-		Expression *e1;
-		Expression *e;
 		Type *t = argptr->type;
 		VarDeclaration *p;
 		unsigned offset;
 
-		e1 = new VarExp(0, argptr);
+		Expression *e1 = new VarExp(0, argptr);
 		if (parameters && parameters->dim)
 		    p = (VarDeclaration *)parameters->data[parameters->dim - 1];
 		else
@@ -1266,7 +1201,7 @@ void FuncDeclaration::semantic3(Scope *sc)
 		else
 		    offset = p->type->size();
 		offset = (offset + 3) & ~3;	// assume stack aligns on 4
-		e = new SymOffExp(0, p, offset);
+		Expression *e = new SymOffExp(0, p, offset);
 		e = new AssignExp(0, e1, e);
 		e->type = t;
 		a->push(new ExpStatement(0, e));
@@ -1826,48 +1761,6 @@ FuncDeclaration *FuncDeclaration::overloadExactMatch(Type *t)
     return p.f;
 }
 
-#if 0
-FuncDeclaration *FuncDeclaration::overloadExactMatch(Type *t)
-{
-    FuncDeclaration *f;
-    Declaration *d;
-    Declaration *next;
-
-    for (d = this; d; d = next)
-    {	FuncAliasDeclaration *fa = d->isFuncAliasDeclaration();
-
-	if (fa)
-	{
-	    FuncDeclaration *f2 = fa->funcalias->overloadExactMatch(t);
-	    if (f2)
-		return f2;
-	    next = fa->overnext;
-	}
-	else
-	{
-	    AliasDeclaration *a = d->isAliasDeclaration();
-
-	    if (a)
-	    {
-		Dsymbol *s = a->toAlias();
-		next = s->isDeclaration();
-		if (next == a)
-		    break;
-	    }
-	    else
-	    {
-		f = d->isFuncDeclaration();
-		if (!f)
-		    break;		// BUG: should print error message?
-		if (t->equals(d->type))
-		    return f;
-		next = f->overnext;
-	    }
-	}
-    }
-    return NULL;
-}
-#endif
 
 /********************************************
  * Decide which function matches the arguments best.
@@ -1876,6 +1769,9 @@ FuncDeclaration *FuncDeclaration::overloadExactMatch(Type *t)
 struct Param2
 {
     Match *m;
+#if DMDV2
+    Expression *ethis;
+#endif
     Expressions *arguments;
 };
 
@@ -1906,6 +1802,22 @@ int fp2(void *param, FuncDeclaration *f)
 	    else if (f->overrides(m->lastf))
 		goto LfIsBetter;
 
+#if DMDV2
+	    /* Try to disambiguate using template-style partial ordering rules.
+	     * In essence, if f() and g() are ambiguous, if f() can call g(),
+	     * but g() cannot call f(), then pick f().
+	     * This is because f() is "more specialized."
+	     */
+	    {
+	    MATCH c1 = f->leastAsSpecialized(m->lastf);
+	    MATCH c2 = m->lastf->leastAsSpecialized(f);
+	    //printf("c1 = %d, c2 = %d\n", c1, c2);
+	    if (c1 > c2)
+		goto LfIsBetter;
+	    if (c1 < c2)
+		goto LlastIsBetter;
+	    }
+#endif
 	Lambiguous:
 	    m->nextf = f;
 	    m->count++;
@@ -1934,87 +1846,6 @@ void overloadResolveX(Match *m, FuncDeclaration *fstart,
     overloadApply(fstart, &fp2, &p);
 }
 
-#if 0
-// Recursive helper function
-
-void overloadResolveX(Match *m, FuncDeclaration *fstart, Expressions *arguments)
-{
-    MATCH match;
-    Declaration *d;
-    Declaration *next;
-
-    for (d = fstart; d; d = next)
-    {
-	FuncDeclaration *f;
-	FuncAliasDeclaration *fa;
-	AliasDeclaration *a;
-
-	fa = d->isFuncAliasDeclaration();
-	if (fa)
-	{
-	    overloadResolveX(m, fa->funcalias, NULL, arguments);
-	    next = fa->overnext;
-	}
-	else if ((f = d->isFuncDeclaration()) != NULL)
-	{
-	    next = f->overnext;
-	    if (f == m->lastf)
-		continue;			// skip duplicates
-	    else
-	    {
-		TypeFunction *tf;
-
-		m->anyf = f;
-		tf = (TypeFunction *)f->type;
-		match = (MATCH) tf->callMatch(arguments);
-		//printf("2match = %d\n", match);
-		if (match != MATCHnomatch)
-		{
-		    if (match > m->last)
-			goto LfIsBetter;
-
-		    if (match < m->last)
-			goto LlastIsBetter;
-
-		    /* See if one of the matches overrides the other.
-		     */
-		    if (m->lastf->overrides(f))
-			goto LlastIsBetter;
-		    else if (f->overrides(m->lastf))
-			goto LfIsBetter;
-
-		Lambiguous:
-		    m->nextf = f;
-		    m->count++;
-		    continue;
-
-		LfIsBetter:
-		    m->last = match;
-		    m->lastf = f;
-		    m->count = 1;
-		    continue;
-
-		LlastIsBetter:
-		    continue;
-		}
-	    }
-	}
-	else if ((a = d->isAliasDeclaration()) != NULL)
-	{
-	    Dsymbol *s = a->toAlias();
-	    next = s->isDeclaration();
-	    if (next == a)
-		break;
-	    if (next == fstart)
-		break;
-	}
-	else
-	{   d->error("is aliased to a function");
-	    break;
-	}
-    }
-}
-#endif
 
 FuncDeclaration *FuncDeclaration::overloadResolve(Loc loc, Expression *ethis, Expressions *arguments, int flags)
 {
@@ -2086,6 +1917,118 @@ if (arguments)
 	}
     }
 }
+
+/*************************************
+ * Determine partial specialization order of 'this' vs g.
+ * This is very similar to TemplateDeclaration::leastAsSpecialized().
+ * Returns:
+ *	match	'this' is at least as specialized as g
+ *	0	g is more specialized than 'this'
+ */
+
+#if DMDV2
+MATCH FuncDeclaration::leastAsSpecialized(FuncDeclaration *g)
+{
+#define LOG_LEASTAS     0
+
+#if LOG_LEASTAS
+    printf("%s.leastAsSpecialized(%s)\n", toChars(), g->toChars());
+#endif
+
+    /* This works by calling g() with f()'s parameters, and
+     * if that is possible, then f() is at least as specialized
+     * as g() is.
+     */
+
+    TypeFunction *tf = (TypeFunction *)type;
+    TypeFunction *tg = (TypeFunction *)g->type;
+    size_t nfparams = Argument::dim(tf->parameters);
+    size_t ngparams = Argument::dim(tg->parameters);
+    MATCH match = MATCHexact;
+
+    /* If both functions have a 'this' pointer, and the mods are not
+     * the same and g's is not const, then this is less specialized.
+     */
+    if (needThis() && g->needThis())
+    {
+	if (tf->mod != tg->mod)
+	{
+	    if (tg->mod == MODconst)
+		match = MATCHconst;
+	    else
+		return MATCHnomatch;
+	}
+    }
+
+    /* Create a dummy array of arguments out of the parameters to f()
+     */
+    Expressions args;
+    args.setDim(nfparams);
+    for (int u = 0; u < nfparams; u++)
+    {
+	Argument *p = Argument::getNth(tf->parameters, u);
+	Expression *e;
+	if (p->storageClass & (STCref | STCout))
+	{
+	    e = new IdentifierExp(0, p->ident);
+	    e->type = p->type;
+	}
+	else
+	    e = p->type->defaultInit();
+	args.data[u] = e;
+    }
+
+    MATCH m = (MATCH) tg->callMatch(NULL, &args);
+    if (m)
+    {
+        /* A variadic parameter list is less specialized than a
+         * non-variadic one.
+         */
+        if (tf->varargs && !tg->varargs)
+            goto L1;	// less specialized
+
+#if LOG_LEASTAS
+        printf("  matches %d, so is least as specialized\n", m);
+#endif
+        return m;
+    }
+  L1:
+#if LOG_LEASTAS
+    printf("  doesn't match, so is not as specialized\n");
+#endif
+    return MATCHnomatch;
+}
+
+/*******************************************
+ * Given a symbol that could be either a FuncDeclaration or
+ * a function template, resolve it to a function symbol.
+ *	sc		instantiation scope
+ *	loc		instantiation location
+ *	targsi		initial list of template arguments
+ *	ethis		if !NULL, the 'this' pointer argument
+ *	fargs		arguments to function
+ *	flags		1: do not issue error message on no match, just return NULL
+ */
+
+FuncDeclaration *resolveFuncCall(Scope *sc, Loc loc, Dsymbol *s,
+	Objects *tiargs,
+	Expression *ethis,
+	Expressions *arguments,
+	int flags)
+{
+    if (!s)
+	return NULL;			// no match
+    FuncDeclaration *f = s->isFuncDeclaration();
+    if (f)
+	f = f->overloadResolve(loc, ethis, arguments);
+    else
+    {	TemplateDeclaration *td = s->isTemplateDeclaration();
+	assert(td);
+	f = td->deduceFunctionTemplate(sc, loc, tiargs, NULL, arguments, flags);
+    }
+    return f;
+}
+#endif
 
 /********************************
  * Labels are in a separate scope, one per function.
@@ -2206,15 +2149,14 @@ void FuncDeclaration::appendExp(Expression *e)
 }
 
 void FuncDeclaration::appendState(Statement *s)
-{   CompoundStatement *cs;
-
+{
     if (!fbody)
     {	Statements *a;
 
 	a = new Statements();
 	fbody = new CompoundStatement(0, a);
     }
-    cs = fbody->isCompoundStatement();
+    CompoundStatement *cs = fbody->isCompoundStatement();
     cs->statements->push(s);
 }
 
@@ -2270,7 +2212,7 @@ int FuncDeclaration::isVirtual()
 {
 #if 0
     printf("FuncDeclaration::isVirtual(%s)\n", toChars());
-    printf("%p %d %d %d %d\n", isMember(), isStatic(), protection == PROTprivate, isCtorDeclaration(), linkage != LINKd);
+    printf("isMember:%p isStatic:%d private:%d ctor:%d !Dlinkage:%d\n", isMember(), isStatic(), protection == PROTprivate, isCtorDeclaration(), linkage != LINKd);
     printf("result is %d\n",
 	isMember() &&
 	!(isStatic() || protection == PROTprivate || protection == PROTpackage) &&
@@ -2315,7 +2257,7 @@ int FuncDeclaration::isNested()
 {
     //if (!toParent())
 	//printf("FuncDeclaration::isNested('%s') parent=%p\n", toChars(), parent);
-    //printf("\ttoParent() = '%s'\n", toParent()->toChars());
+    //printf("\ttoParent2() = '%s'\n", toParent2()->toChars());
     return ((storage_class & STCstatic) == 0) &&
 	   (toParent2()->isFuncDeclaration() != NULL);
 }
@@ -2979,6 +2921,7 @@ void StaticDtorDeclaration::semantic(Scope *sc)
 	m = sc->module;
     if (m)
     {	m->needmoduleinfo = 1;
+	//printf("module2 %s needs moduleinfo\n", m->toChars());
 #ifdef IN_GCC
 	m->strictlyneedmoduleinfo = 1;
 #endif

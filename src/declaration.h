@@ -98,7 +98,7 @@ struct Declaration : Dsymbol
 {
     Type *type;
     Type *originalType;		// before semantic analysis
-    unsigned storage_class;
+    StorageClass storage_class;
     enum PROT protection;
     enum LINK linkage;
     int inuse;			// used to detect cycles
@@ -232,6 +232,7 @@ struct VarDeclaration : Declaration
     int noauto;			// no auto semantics
 #if DMDV2
     FuncDeclarations nestedrefs; // referenced by these lexically nested functions
+    bool isargptr;		// if parameter that _argptr points to
 #else
     int nestedref;		// referenced by a lexically nested function
 #endif
@@ -556,7 +557,7 @@ struct FuncDeclaration : Declaration
     int nestedFrameRef;			// !=0 if nested variables referenced
 #endif
 
-    FuncDeclaration(Loc loc, Loc endloc, Identifier *id, enum STC storage_class, Type *type);
+    FuncDeclaration(Loc loc, Loc endloc, Identifier *id, StorageClass storage_class, Type *type);
     Dsymbol *syntaxCopy(Dsymbol *);
     void semantic(Scope *sc);
     void semantic2(Scope *sc);

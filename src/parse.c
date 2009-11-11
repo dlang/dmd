@@ -147,7 +147,7 @@ Array *Parser::parseDeclDefs(int once)
     Array *a;
     Array *aelse;
     enum PROT prot;
-    unsigned stc;
+    StorageClass stc;
     Condition *condition;
     unsigned char *comment;
 
@@ -284,6 +284,7 @@ Array *Parser::parseDeclDefs(int once)
 	    case TOKpure:         stc = STCpure;	 goto Lstc;
 	    case TOKref:          stc = STCref;          goto Lstc;
 	    case TOKtls:          stc = STCtls;		 goto Lstc;
+	    case TOKgshared:      stc = STCgshared;	 goto Lstc;
 	    //case TOKmanifest:	  stc = STCmanifest;	 goto Lstc;
 #endif
 
@@ -509,6 +510,23 @@ Array *Parser::parseDeclDefs(int once)
     return decldefs;
 }
 
+/*********************************************
+ * Give error on conflicting storage classes.
+ */
+
+#if DMDV2
+void Parser::composeStorageClass(StorageClass stc)
+{
+    StorageClass u = stc;
+    u &= STCconst | STCimmutable | STCmanifest;
+    if (u & (u - 1))
+	error("conflicting storage class %s", Token::toChars(token.value));
+    u = stc;
+    u &= STCgshared | STCshared | STCtls;
+    if (u & (u - 1))
+	error("conflicting storage class %s", Token::toChars(token.value));
+}
+#endif
 
 /********************************************
  * Parse declarations after an align, protection, or extern decl.
@@ -762,7 +780,7 @@ Condition *Parser::parseStaticIfCondition()
  * Current token is 'this'.
  */
 
-CtorDeclaration *Parser::parseCtor()
+Dsymbol *Parser::parseCtor()
 {
     CtorDeclaration *f;
     Arguments *arguments;
@@ -940,7 +958,7 @@ Arguments *Parser::parseParameters(int *pvarargs)
 	Identifier *ai = NULL;
 	Type *at;
 	Argument *a;
-	unsigned storageClass;
+	StorageClass storageClass = 0;
 	Expression *ae;
 
 	storageClass = STCin;		// parameter is "in" by default
@@ -1318,7 +1336,7 @@ Lerr:
  * Parse template parameter list.
  */
 
-TemplateParameters *Parser::parseTemplateParameterList()
+TemplateParameters *Parser::parseTemplateParameterList(int flag)
 {
     TemplateParameters *tpl = new TemplateParameters();
 
@@ -2077,8 +2095,8 @@ Type *Parser::parseDeclarator(Type *t, Identifier **pident, TemplateParameters *
 
 Array *Parser::parseDeclarations()
 {
-    enum STC storage_class;
-    enum STC stc;
+    StorageClass storage_class;
+    StorageClass stc;
     Type *ts;
     Type *t;
     Type *tfirst;
@@ -2333,7 +2351,7 @@ Array *Parser::parseDeclarations()
  */
 
 #if DMDV2
-Array *Parser::parseAutoDeclarations(unsigned storageClass, unsigned char *comment)
+Array *Parser::parseAutoDeclarations(StorageClass storageClass, unsigned char *comment)
 {
     Array *a = new Array;
 

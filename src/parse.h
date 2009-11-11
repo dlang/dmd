@@ -68,18 +68,24 @@ struct Parser : Lexer
 
     Array *parseModule();
     Array *parseDeclDefs(int once);
+    Array *parseAutoDeclarations(StorageClass storageClass, unsigned char *comment);
     Array *parseBlock();
-    void composeStorageClass(unsigned stc);
+    void composeStorageClass(StorageClass stc);
+    Expression *parseConstraint();
     TemplateDeclaration *parseTemplateDeclaration();
-    TemplateParameters *parseTemplateParameterList();
+    TemplateParameters *parseTemplateParameterList(int flag = 0);
     Dsymbol *parseMixin();
     Objects *parseTemplateArgumentList();
+    Objects *parseTemplateArgumentList2();
+    Objects *parseTemplateArgument();
     StaticAssert *parseStaticAssert();
+    TypeQualified *parseTypeof();
     enum LINK parseLinkage();
     Condition *parseDebugCondition();
     Condition *parseVersionCondition();
     Condition *parseStaticIfCondition();
-    CtorDeclaration *parseCtor();
+    Dsymbol *parseCtor();
+    PostBlitDeclaration *parsePostBlit();
     DtorDeclaration *parseDtor();
     StaticCtorDeclaration *parseStaticCtor();
     StaticDtorDeclaration *parseStaticDtor();
@@ -92,6 +98,7 @@ struct Parser : Lexer
     Dsymbol *parseAggregate();
     BaseClasses *parseBaseClasses();
     Import *parseImport(Array *decldefs, int isstatic);
+    Type *parseType(Identifier **pident = NULL, TemplateParameters **tpl = NULL);
     Type *parseBasicType();
     Type *parseBasicType2(Type *t);
     Type *parseDeclarator(Type *t, Identifier **pident, TemplateParameters **tpl = NULL);
@@ -99,6 +106,7 @@ struct Parser : Lexer
     void parseContracts(FuncDeclaration *f);
     Statement *parseStatement(int flags);
     Initializer *parseInitializer();
+    Expression *parseDefaultInitExp();
     void check(Loc loc, enum TOK value);
     void check(enum TOK value);
     void check(enum TOK value, const char *string);

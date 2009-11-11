@@ -37,10 +37,10 @@ struct AttribDeclaration : Dsymbol
     virtual Array *include(Scope *sc, ScopeDsymbol *s);
     int addMember(Scope *sc, ScopeDsymbol *s, int memnum);
     void setScopeNewSc(Scope *sc,
-	unsigned newstc, enum LINK linkage, enum PROT protection, int explictProtection,
+	StorageClass newstc, enum LINK linkage, enum PROT protection, int explictProtection,
 	unsigned structalign);
     void semanticNewSc(Scope *sc,
-	unsigned newstc, enum LINK linkage, enum PROT protection, int explictProtection,
+	StorageClass newstc, enum LINK linkage, enum PROT protection, int explictProtection,
 	unsigned structalign);
     void semantic(Scope *sc);
     void semantic2(Scope *sc);
@@ -63,15 +63,15 @@ struct AttribDeclaration : Dsymbol
 
 struct StorageClassDeclaration: AttribDeclaration
 {
-    unsigned stc;
+    StorageClass stc;
 
-    StorageClassDeclaration(unsigned stc, Array *decl);
+    StorageClassDeclaration(StorageClass stc, Array *decl);
     Dsymbol *syntaxCopy(Dsymbol *s);
     void setScope(Scope *sc);
     void semantic(Scope *sc);
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
 
-    static void stcToCBuffer(OutBuffer *buf, int stc);
+    static void stcToCBuffer(OutBuffer *buf, StorageClass stc);
 };
 
 struct LinkDeclaration : AttribDeclaration

@@ -63,7 +63,7 @@ int AttribDeclaration::addMember(Scope *sc, ScopeDsymbol *sd, int memnum)
 }
 
 void AttribDeclaration::setScopeNewSc(Scope *sc,
-	unsigned stc, enum LINK linkage, enum PROT protection, int explicitProtection,
+	StorageClass stc, enum LINK linkage, enum PROT protection, int explicitProtection,
 	unsigned structalign)
 {
     if (decl)
@@ -98,7 +98,7 @@ void AttribDeclaration::setScopeNewSc(Scope *sc,
 }
 
 void AttribDeclaration::semanticNewSc(Scope *sc,
-	unsigned stc, enum LINK linkage, enum PROT protection, int explicitProtection,
+	StorageClass stc, enum LINK linkage, enum PROT protection, int explicitProtection,
 	unsigned structalign)
 {
     if (decl)
@@ -342,7 +342,7 @@ void AttribDeclaration::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 
 /************************* StorageClassDeclaration ****************************/
 
-StorageClassDeclaration::StorageClassDeclaration(unsigned stc, Array *decl)
+StorageClassDeclaration::StorageClassDeclaration(StorageClass stc, Array *decl)
 	: AttribDeclaration(decl)
 {
     this->stc = stc;
@@ -361,7 +361,7 @@ void StorageClassDeclaration::setScope(Scope *sc)
 {
     if (decl)
     {
-	unsigned scstc = sc->stc;
+	StorageClass scstc = sc->stc;
 
 	/* These sets of storage classes are mutually exclusive,
 	 * so choose the innermost or most recent one.
@@ -384,7 +384,7 @@ void StorageClassDeclaration::semantic(Scope *sc)
 {
     if (decl)
     {
-	unsigned scstc = sc->stc;
+	StorageClass scstc = sc->stc;
 
 	/* These sets of storage classes are mutually exclusive,
 	 * so choose the innermost or most recent one.
@@ -403,11 +403,11 @@ void StorageClassDeclaration::semantic(Scope *sc)
     }
 }
 
-void StorageClassDeclaration::stcToCBuffer(OutBuffer *buf, int stc)
+void StorageClassDeclaration::stcToCBuffer(OutBuffer *buf, StorageClass stc)
 {
     struct SCstring
     {
-	int stc;
+	StorageClass stc;
 	enum TOK tok;
     };
 
@@ -423,6 +423,19 @@ void StorageClassDeclaration::stcToCBuffer(OutBuffer *buf, int stc)
 	{ STCsynchronized, TOKsynchronized },
 	{ STCdeprecated,   TOKdeprecated },
 	{ STCoverride,     TOKoverride },
+	{ STClazy,         TOKlazy },
+	{ STCalias,        TOKalias },
+	{ STCout,          TOKout },
+	{ STCin,           TOKin },
+#if DMDV2
+	{ STCimmutable,    TOKimmutable },
+	{ STCshared,       TOKshared },
+	{ STCnothrow,      TOKnothrow },
+	{ STCpure,         TOKpure },
+	{ STCref,          TOKref },
+	{ STCtls,          TOKtls },
+	{ STCgshared,      TOKgshared },
+#endif
     };
 
     for (int i = 0; i < sizeof(table)/sizeof(table[0]); i++)
@@ -954,25 +967,27 @@ void PragmaDeclaration::semantic(Scope *sc)
 	goto Lnodecl;
     }
 #endif
+#if DMDV2
+    else if (ident == Id::startaddress)
+    {
+	if (!args || args->dim != 1)
+	    error("function name expected for start address");
+	else
+	{
+	    Expression *e = (Expression *)args->data[0];
+	    e = e->semantic(sc);
+	    e = e->optimize(WANTvalue | WANTinterpret);
+	    args->data[0] = (void *)e;
+	    Dsymbol *sa = getDsymbol(e);
+	    if (!sa || !sa->isFuncDeclaration())
+		error("function name expected for start address, not '%s'", e->toChars());
+	}
+	goto Lnodecl;
+    }
+#endif
 #if TARGET_NET
     else if (ident == Lexer::idPool("assembly"))
     {
-        if (!args || args->dim != 1)
-	        error("pragma has invalid number of arguments");
-	    else
-	    {
-	        Expression *e = (Expression *)args->data[0];
-	        e = e->semantic(sc);
-	        e = e->optimize(WANTvalue | WANTinterpret);
-	        args->data[0] = (void *)e;
-	        if (e->op != TOKstring)
-		    {
-		        error("string expected, not '%s'", e->toChars());
-	        }
-            PragmaScope* pragma = new PragmaScope(this, sc->parent, static_cast<StringExp*>(e));
-            decl = new Array;
-            decl->push(pragma);
-        }
     }
 #endif // TARGET_NET
     else if (global.params.ignoreUnsupportedPragmas)
@@ -1090,7 +1105,7 @@ void PragmaDeclaration::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 	    e->toCBuffer(buf, hgs);
 	}
     }
-    buf->writestring(")");
+    buf->writeByte(')');
     AttribDeclaration::toCBuffer(buf, hgs);
 }
 
