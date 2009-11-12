@@ -42,7 +42,6 @@ Initializer *Initializer::semantic(Scope *sc, Type *t)
 Type *Initializer::inferType(Scope *sc)
 {
     error(loc, "cannot infer type from initializer");
-halt();
     return Type::terror;
 }
 

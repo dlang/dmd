@@ -717,6 +717,11 @@ void VarDeclaration::semantic(Scope *sc)
 	inuse--;
 	inferred = 1;
 
+	if (init->isArrayInitializer() && type->toBasetype()->ty == Tsarray)
+	{   // Prefer array literals to give a T[] type rather than a T[dim]
+	    type = type->toBasetype()->nextOf()->arrayOf();
+	}
+
 	/* This is a kludge to support the existing syntax for RAII
 	 * declarations.
 	 */

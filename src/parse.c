@@ -74,7 +74,7 @@ Array *Parser::parseModule()
 	bool safe = FALSE;
 
 	nextToken();
-#if DMDV2
+#if 0 && DMDV2
 	if (token.value == TOKlparen)
 	{
 	    nextToken();
