@@ -1070,6 +1070,8 @@ struct ArrayLengthExp : UnaExp
     Expression *interpret(InterState *istate);
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
     elem *toElem(IRState *irs);
+
+    static Expression *rewriteOpAssign(BinExp *exp);
 };
 
 // e1[a0,a1,a2,a3,...]

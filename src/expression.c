@@ -5190,6 +5190,13 @@ Expression *BinExp::commonSemanticAssign(Scope *sc)
 	if (e)
 	    return e;
 
+	if (e1->op == TOKarraylength)
+	{
+	    e = ArrayLengthExp::rewriteOpAssign(this);
+	    e = e->semantic(sc);
+	    return e;
+	}
+
 	if (e1->op == TOKslice)
 	{   // T[] op= ...
 	    typeCombine(sc);
@@ -5227,6 +5234,13 @@ Expression *BinExp::commonSemanticAssignIntegral(Scope *sc)
 	e = op_overload(sc);
 	if (e)
 	    return e;
+
+	if (e1->op == TOKarraylength)
+	{
+	    e = ArrayLengthExp::rewriteOpAssign(this);
+	    e = e->semantic(sc);
+	    return e;
+	}
 
 	if (e1->op == TOKslice)
 	{   // T[] op= ...
@@ -7902,8 +7916,7 @@ ArrayLengthExp::ArrayLengthExp(Loc loc, Expression *e1)
 }
 
 Expression *ArrayLengthExp::semantic(Scope *sc)
-{   Expression *e;
-
+{
 #if LOGSEMANTIC
     printf("ArrayLengthExp::semantic('%s')\n", toChars());
 #endif
@@ -7915,6 +7928,64 @@ Expression *ArrayLengthExp::semantic(Scope *sc)
 	type = Type::tsize_t;
     }
     return this;
+}
+
+Expression *opAssignToOp(Loc loc, enum TOK op, Expression *e1, Expression *e2)
+{   Expression *e;
+
+    switch (op)
+    {
+	case TOKaddass:   e = new AddExp(loc, e1, e2);	break;
+	case TOKminass:   e = new MinExp(loc, e1, e2);	break;
+	case TOKmulass:   e = new MulExp(loc, e1, e2);	break;
+	case TOKdivass:   e = new DivExp(loc, e1, e2);	break;
+	case TOKmodass:   e = new ModExp(loc, e1, e2);	break;
+	case TOKandass:   e = new AndExp(loc, e1, e2);	break;
+	case TOKorass:    e = new OrExp (loc, e1, e2);	break;
+	case TOKxorass:   e = new XorExp(loc, e1, e2);	break;
+	case TOKshlass:   e = new ShlExp(loc, e1, e2);	break;
+	case TOKshrass:   e = new ShrExp(loc, e1, e2);	break;
+	case TOKushrass:  e = new UshrExp(loc, e1, e2);	break;
+	default:	assert(0);
+    }
+    return e;
+}
+
+/*********************
+ * Rewrite:
+ *    array.length op= e2
+ * as:
+ *    array.length = array.length op e2
+ * or:
+ *    auto tmp = &array;
+ *    (*tmp).length = (*tmp).length op e2
+ */
+
+Expression *ArrayLengthExp::rewriteOpAssign(BinExp *exp)
+{   Expression *e;
+
+    assert(exp->e1->op == TOKarraylength);
+    ArrayLengthExp *ale = (ArrayLengthExp *)exp->e1;
+    if (ale->e1->op == TOKvar)
+    {	e = opAssignToOp(exp->loc, exp->op, ale, exp->e2);
+	e = new AssignExp(exp->loc, ale->syntaxCopy(), e);
+    }
+    else
+    {
+	/*    auto tmp = &array;
+	 *    (*tmp).length = (*tmp).length op e2
+	 */
+	Identifier *id = Lexer::uniqueId("__arraylength");
+	ExpInitializer *ei = new ExpInitializer(ale->loc, new AddrExp(ale->loc, ale->e1));
+	VarDeclaration *tmp = new VarDeclaration(ale->loc, ale->e1->type->pointerTo(), id, ei);
+
+	Expression *e1 = new ArrayLengthExp(ale->loc, new PtrExp(ale->loc, new VarExp(ale->loc, tmp)));
+	Expression *elvalue = e1->syntaxCopy();
+	e = opAssignToOp(exp->loc, exp->op, e1, exp->e2);
+	e = new AssignExp(exp->loc, elvalue, e);
+	e = new CommaExp(exp->loc, new DeclarationExp(ale->loc, tmp), e);
+    }
+    return e;
 }
 
 void ArrayLengthExp::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
@@ -8644,6 +8715,13 @@ Expression *AddAssignExp::semantic(Scope *sc)
     Type *tb1 = e1->type->toBasetype();
     Type *tb2 = e2->type->toBasetype();
 
+    if (e1->op == TOKarraylength)
+    {
+	e = ArrayLengthExp::rewriteOpAssign(this);
+	e = e->semantic(sc);
+	return e;
+    }
+
     if (e1->op == TOKslice)
     {
 	typeCombine(sc);
@@ -8747,6 +8825,13 @@ Expression *MinAssignExp::semantic(Scope *sc)
     e = op_overload(sc);
     if (e)
 	return e;
+
+    if (e1->op == TOKarraylength)
+    {
+	e = ArrayLengthExp::rewriteOpAssign(this);
+	e = e->semantic(sc);
+	return e;
+    }
 
     if (e1->op == TOKslice)
     {	// T[] -= ...
@@ -8852,6 +8937,13 @@ Expression *MulAssignExp::semantic(Scope *sc)
     if (e)
 	return e;
 
+    if (e1->op == TOKarraylength)
+    {
+	e = ArrayLengthExp::rewriteOpAssign(this);
+	e = e->semantic(sc);
+	return e;
+    }
+
     if (e1->op == TOKslice)
     {	// T[] -= ...
 	typeCombine(sc);
@@ -8915,6 +9007,13 @@ Expression *DivAssignExp::semantic(Scope *sc)
     e = op_overload(sc);
     if (e)
 	return e;
+
+    if (e1->op == TOKarraylength)
+    {
+	e = ArrayLengthExp::rewriteOpAssign(this);
+	e = e->semantic(sc);
+	return e;
+    }
 
     if (e1->op == TOKslice)
     {	// T[] -= ...
@@ -8997,6 +9096,13 @@ Expression *ShlAssignExp::semantic(Scope *sc)
     if (e)
 	return e;
 
+    if (e1->op == TOKarraylength)
+    {
+	e = ArrayLengthExp::rewriteOpAssign(this);
+	e = e->semantic(sc);
+	return e;
+    }
+
     e1 = e1->modifiableLvalue(sc, e1);
     e1->checkScalar();
     e1->checkNoBool();
@@ -9025,6 +9131,13 @@ Expression *ShrAssignExp::semantic(Scope *sc)
     if (e)
 	return e;
 
+    if (e1->op == TOKarraylength)
+    {
+	e = ArrayLengthExp::rewriteOpAssign(this);
+	e = e->semantic(sc);
+	return e;
+    }
+
     e1 = e1->modifiableLvalue(sc, e1);
     e1->checkScalar();
     e1->checkNoBool();
@@ -9052,6 +9165,13 @@ Expression *UshrAssignExp::semantic(Scope *sc)
     e = op_overload(sc);
     if (e)
 	return e;
+
+    if (e1->op == TOKarraylength)
+    {
+	e = ArrayLengthExp::rewriteOpAssign(this);
+	e = e->semantic(sc);
+	return e;
+    }
 
     e1 = e1->modifiableLvalue(sc, e1);
     e1->checkScalar();

@@ -1926,11 +1926,9 @@ elem *AssertExp::toElem(IRState *irs)
 }
 
 elem *PostExp::toElem(IRState *irs)
-{   elem *e;
-    elem *einc;
-
-    e = e1->toElem(irs);
-    einc = e2->toElem(irs);
+{
+    elem *e = e1->toElem(irs);
+    elem *einc = e2->toElem(irs);
     e = el_bin((op == TOKplusplus) ? OPpostinc : OPpostdec,
 		e->Ety,e,einc);
     el_setLoc(e,loc);
@@ -2449,10 +2447,7 @@ elem *RemoveExp::toElem(IRState *irs)
  */
 
 elem *AssignExp::toElem(IRState *irs)
-{   elem *e;
-    IndexExp *ae;
-    int r;
-
+{
     //printf("AssignExp::toElem('%s')\n", toChars());
     Type *t1b = e1->type->toBasetype();
 
@@ -2463,44 +2458,24 @@ elem *AssignExp::toElem(IRState *irs)
 	//	_d_arraysetlength(e2, sizeelem, &ale->e1);
 
 	ArrayLengthExp *ale = (ArrayLengthExp *)e1;
-	elem *p1;
-	elem *p2;
-	elem *p3;
-	elem *ep;
-	Type *t1;
 
-	p1 = e2->toElem(irs);
-	p3 = ale->e1->toElem(irs);
+	elem *p1 = e2->toElem(irs);
+	elem *p3 = ale->e1->toElem(irs);
 	p3 = addressElem(p3, NULL);
-	t1 = ale->e1->type->toBasetype();
+	Type *t1 = ale->e1->type->toBasetype();
 
-#if 1
 	// call _d_arraysetlengthT(ti, e2, &ale->e1);
-	p2 = t1->getTypeInfo(NULL)->toElem(irs);
-	ep = el_params(p3, p1, p2, NULL);	// c function
-	r = t1->nextOf()->isZeroInit() ? RTLSYM_ARRAYSETLENGTHT : RTLSYM_ARRAYSETLENGTHIT;
-#else
-	if (t1->next->isZeroInit())
-	{   p2 = t1->getTypeInfo(NULL)->toElem(irs);
-	    ep = el_params(p3, p1, p2, NULL);	// c function
-	    r = RTLSYM_ARRAYSETLENGTHT;
-	}
-	else
-	{
-	    p2 = el_long(TYint, t1->next->size());
-	    ep = el_params(p3, p2, p1, NULL);	// c function
-	    Expression *init = t1->next->defaultInit();
-	    ep = el_param(el_long(TYint, init->type->size()), ep);
-	    elem *ei = init->toElem(irs);
-	    ep = el_param(ei, ep);
-	    r = RTLSYM_ARRAYSETLENGTH3;
-	}
-#endif
+	elem *p2 = t1->getTypeInfo(NULL)->toElem(irs);
+	elem *ep = el_params(p3, p1, p2, NULL);	// c function
+	int r = t1->nextOf()->isZeroInit() ? RTLSYM_ARRAYSETLENGTHT : RTLSYM_ARRAYSETLENGTHIT;
 
-	e = el_bin(OPcall, type->totym(), el_var(rtlsym[r]), ep);
+	elem *e = el_bin(OPcall, type->totym(), el_var(rtlsym[r]), ep);
 	el_setLoc(e, loc);
 	return e;
     }
+
+    elem *e;
+    IndexExp *ae;
 
     // Look for array[]=n
     if (e1->op == TOKslice)
@@ -2687,16 +2662,13 @@ elem *AssignExp::toElem(IRState *irs)
 	    /* It's array1[]=array2[]
 	     * which is a memcpy
 	     */
-	    elem *eto;
-	    elem *efrom;
-	    elem *esize;
 	    elem *ep;
 
-	    eto = e1->toElem(irs);
-	    efrom = e2->toElem(irs);
+	    elem *eto = e1->toElem(irs);
+	    elem *efrom = e2->toElem(irs);
 
 	    unsigned size = t1->nextOf()->size();
-	    esize = el_long(TYint, size);
+	    elem *esize = el_long(TYint, size);
 
 	    /* Determine if we need to do postblit
 	     */
@@ -2707,14 +2679,11 @@ elem *AssignExp::toElem(IRState *irs)
 	    assert(e2->type->ty != Tpointer);
 
 	    if (!postblit && !global.params.useArrayBounds)
-	    {	elem *epto;
-		elem *epfr;
-		elem *elen;
-		elem *ex;
-
-		ex = el_same(&eto);
+	    {
+		elem *ex = el_same(&eto);
 
 		// Determine if elen is a constant
+		elem *elen;
 		if (eto->Eoper == OPpair &&
 		    eto->E1->Eoper == OPconst)
 		{
@@ -2727,8 +2696,8 @@ elem *AssignExp::toElem(IRState *irs)
 		}
 
 		esize = el_bin(OPmul, TYint, elen, esize);
-		epto = array_toPtr(e1->type, ex);
-		epfr = array_toPtr(e2->type, efrom);
+		elem *epto = array_toPtr(e1->type, ex);
+		elem *epfr = array_toPtr(e2->type, efrom);
 #if 1
 		// memcpy() is faster, so if we can't beat 'em, join 'em
 		e = el_params(esize, epfr, epto, NULL);
@@ -4236,28 +4205,20 @@ elem *ArrayLengthExp::toElem(IRState *irs)
 }
 
 elem *SliceExp::toElem(IRState *irs)
-{   elem *e;
-    Type *t1;
-
+{
     //printf("SliceExp::toElem()\n");
-    t1 = e1->type->toBasetype();
-    e = e1->toElem(irs);
+    Type *t1 = e1->type->toBasetype();
+    elem *e = e1->toElem(irs);
     if (lwr)
-    {	elem *elwr;
-	elem *elwr2;
-	elem *eupr;
-	elem *eptr;
-	elem *einit;
-	int sz;
+    {
+	elem *einit = resolveLengthVar(lengthVar, &e, t1);
 
-	einit = resolveLengthVar(lengthVar, &e, t1);
+	int sz = t1->nextOf()->size();
 
-	sz = t1->nextOf()->size();
+	elem *elwr = lwr->toElem(irs);
+	elem *eupr = upr->toElem(irs);
 
-	elwr = lwr->toElem(irs);
-	eupr = upr->toElem(irs);
-
-	elwr2 = el_same(&elwr);
+	elem *elwr2 = el_same(&elwr);
 
 	// Create an array reference where:
 	// length is (upr - lwr)
@@ -4325,7 +4286,7 @@ elem *SliceExp::toElem(IRState *irs)
 	    }
 	}
 
-	eptr = array_toPtr(e1->type, e);
+	elem *eptr = array_toPtr(e1->type, e);
 
 	elem *elength = el_bin(OPmin, TYint, eupr, elwr2);
 	eptr = el_bin(OPadd, TYnptr, eptr, el_bin(OPmul, TYint, el_copytree(elwr2), el_long(TYint, sz)));
