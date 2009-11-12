@@ -10270,8 +10270,10 @@ Expression *CondExp::toLvalue(Scope *sc, Expression *ex)
 
 Expression *CondExp::modifiableLvalue(Scope *sc, Expression *e)
 {
-    error("conditional expression %s is not a modifiable lvalue", toChars());
-    return this;
+    //error("conditional expression %s is not a modifiable lvalue", toChars());
+    e1 = e1->modifiableLvalue(sc, e1);
+    e2 = e2->modifiableLvalue(sc, e1);
+    return toLvalue(sc, this);
 }
 
 void CondExp::checkEscape()
