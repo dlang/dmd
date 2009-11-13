@@ -174,6 +174,7 @@ class ClassInfo : Object
     {
         foreach (m; ModuleInfo)
         {
+	  if (m)
             //writefln("module %s, %d", m.name, m.localClasses.length);
             foreach (c; m.localClasses)
             {

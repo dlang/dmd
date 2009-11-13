@@ -204,7 +204,7 @@ extern (C) bool runModuleUnitTests()
     {
         foreach( m; ModuleInfo )
         {
-            if( m.unitTest )
+            if( m && m.unitTest )
                 m.unitTest();
         }
         return true;
