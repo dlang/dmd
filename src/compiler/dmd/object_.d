@@ -174,7 +174,7 @@ class ClassInfo : Object
     {
         foreach (m; ModuleInfo)
         {
-	  if (m)
+          if (m)
             //writefln("module %s, %d", m.name, m.localClasses.length);
             foreach (c; m.localClasses)
             {
@@ -1609,29 +1609,29 @@ struct AssociativeArray(Key, Value)
 
     Value[Key] rehash() @property
     {
-	return cast(Value[Key]) _aaRehash(&p, typeid(Value[Key]));
+        return cast(Value[Key]) _aaRehash(&p, typeid(Value[Key]));
     }
 
     Value[] values() @property
     {
-	auto a = _aaValues(p, Key.sizeof, Value.sizeof);
-	return *cast(Value[]*) &a;
+        auto a = _aaValues(p, Key.sizeof, Value.sizeof);
+        return *cast(Value[]*) &a;
     }
 
     Key[] keys() @property
     {
-	auto a = _aaKeys(p, Key.sizeof, Value.sizeof);
-	return *cast(Key[]*) &a;
+        auto a = _aaKeys(p, Key.sizeof, Value.sizeof);
+        return *cast(Key[]*) &a;
     }
 
     int opApply(int delegate(inout Key, inout Value) dg)
     {
-	return _aaApply2(p, Key.sizeof, cast(_dg2_t)dg);
+        return _aaApply2(p, Key.sizeof, cast(_dg2_t)dg);
     }
 
     int opApply(int delegate(inout Value) dg)
     {
-	return _aaApply(p, Key.sizeof, cast(_dg_t)dg);
+        return _aaApply(p, Key.sizeof, cast(_dg_t)dg);
     }
 }
 
