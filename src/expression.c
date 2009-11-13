@@ -4092,7 +4092,14 @@ void SymOffExp::checkEscape()
     if (v)
     {
 	if (!v->isDataseg())
+	{   /* BUG: This should be allowed:
+	     *   void foo()
+	     *   { int a;
+	     *     int* bar() { return &a; }
+	     *   }
+	     */
 	    error("escaping reference to local variable %s", v->toChars());
+	}
     }
 }
 
