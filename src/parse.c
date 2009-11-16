@@ -193,7 +193,7 @@ Array *Parser::parseDeclDefs(int once)
 		break;
 	    }
 
-	    CASE_BASIC_TYPES:
+	    case BASIC_TYPES:
 	    case TOKalias:
 	    case TOKtypedef:
 	    case TOKidentifier:
@@ -1773,7 +1773,7 @@ Type *Parser::parseBasicType()
     //printf("parseBasicType()\n");
     switch (token.value)
     {
-	CASE_BASIC_TYPES_X(t):
+	case BASIC_TYPES_X(t):
 	    nextToken();
 	    break;
 
@@ -2832,7 +2832,7 @@ Statement *Parser::parseStatement(int flags)
 	    goto Ldeclaration;
 	}
 
-	CASE_BASIC_TYPES:
+	case BASIC_TYPES:
 	case TOKtypedef:
 	case TOKalias:
 	case TOKconst:
@@ -3625,7 +3625,7 @@ int Parser::isBasicType(Token **pt)
 
     switch (t->value)
     {
-	CASE_BASIC_TYPES:
+	case BASIC_TYPES:
 	    t = peek(t);
 	    break;
 
@@ -4265,7 +4265,7 @@ Expression *Parser::parsePrimaryExp()
 	    break;
 	}
 
-	CASE_BASIC_TYPES_X(t):
+	case BASIC_TYPES_X(t):
 	    nextToken();
 	L1:
 	    check(TOKdot, t->toChars());
@@ -4761,7 +4761,7 @@ Expression *Parser::parseUnaryExp()
 		    case TOKfile:
 		    case TOKline:
 #endif
-		    CASE_BASIC_TYPES:		// (type)int.size
+		    case BASIC_TYPES:		// (type)int.size
 		    {	// (type) una_exp
 			Type *t;
 

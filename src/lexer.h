@@ -166,8 +166,8 @@ enum TOK
 	TOKMAX
 };
 
-#define CASE_BASIC_TYPES			\
-	case TOKwchar: case TOKdchar:		\
+#define BASIC_TYPES			\
+	TOKwchar: case TOKdchar:		\
 	case TOKbit: case TOKbool: case TOKchar:	\
 	case TOKint8: case TOKuns8:		\
 	case TOKint16: case TOKuns16:		\
@@ -178,8 +178,8 @@ enum TOK
 	case TOKcomplex32: case TOKcomplex64: case TOKcomplex80:	\
 	case TOKvoid
 
-#define CASE_BASIC_TYPES_X(t)					\
-	case TOKvoid:	 t = Type::tvoid;  goto LabelX;		\
+#define BASIC_TYPES_X(t)					\
+	TOKvoid:	 t = Type::tvoid;  goto LabelX;		\
 	case TOKint8:	 t = Type::tint8;  goto LabelX;		\
 	case TOKuns8:	 t = Type::tuns8;  goto LabelX;		\
 	case TOKint16:	 t = Type::tint16; goto LabelX;		\
