@@ -99,9 +99,10 @@ struct ArrayInitializer : Initializer
     Initializer *syntaxCopy();
     void addInit(Expression *index, Initializer *value);
     Initializer *semantic(Scope *sc, Type *t);
+    int isAssociativeArray();
     Type *inferType(Scope *sc);
     Expression *toExpression();
-    Initializer *toAssocArrayInitializer();
+    Expression *toAssocArrayLiteral();
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
 
     dt_t *toDt();

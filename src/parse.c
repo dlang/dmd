@@ -210,7 +210,7 @@ Array *Parser::parseDeclDefs(int once)
 		break;
 	    }
 
-	    CASE_BASIC_TYPES:
+	    case BASIC_TYPES:
 	    case TOKalias:
 	    case TOKtypedef:
 	    case TOKidentifier:
@@ -1932,7 +1932,7 @@ Objects *Parser::parseTemplateArgument()
 	    ta = new TypeIdentifier(loc, token.ident);
 	    goto LabelX;
 
-	CASE_BASIC_TYPES_X(ta):
+	case BASIC_TYPES_X(ta):
 	    tiargs->push(ta);
 	    nextToken();
 	    break;
@@ -2125,7 +2125,7 @@ Type *Parser::parseBasicType()
     //printf("parseBasicType()\n");
     switch (token.value)
     {
-	CASE_BASIC_TYPES_X(t):
+	case BASIC_TYPES_X(t):
 	    nextToken();
 	    break;
 
@@ -3350,7 +3350,7 @@ Statement *Parser::parseStatement(int flags)
 	    }
 	    goto Ldeclaration;
 
-	CASE_BASIC_TYPES:
+	case BASIC_TYPES:
 	case TOKtypedef:
 	case TOKalias:
 	case TOKconst:
@@ -4214,7 +4214,7 @@ int Parser::isBasicType(Token **pt)
 
     switch (t->value)
     {
-	CASE_BASIC_TYPES:
+	case BASIC_TYPES:
 	    t = peek(t);
 	    break;
 
@@ -4253,7 +4253,7 @@ int Parser::isBasicType(Token **pt)
 			    if (!skipParens(t, &t))
 				goto Lfalse;
 			    break;
-			CASE_BASIC_TYPES:
+			case BASIC_TYPES:
 			case TOKint32v:
 			case TOKuns32v:
 			case TOKint64v:
@@ -4967,7 +4967,7 @@ Expression *Parser::parsePrimaryExp()
 	    break;
 	}
 
-	CASE_BASIC_TYPES_X(t):
+	case BASIC_TYPES_X(t):
 	    nextToken();
 	L1:
 	    check(TOKdot, t->toChars());
@@ -5549,7 +5549,7 @@ Expression *Parser::parseUnaryExp()
 		    case TOKfile:
 		    case TOKline:
 #endif
-		    CASE_BASIC_TYPES:		// (type)int.size
+		    case BASIC_TYPES:		// (type)int.size
 		    {	// (type) una_exp
 			Type *t;
 

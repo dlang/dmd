@@ -454,6 +454,63 @@ void expandTuples(Expressions *exps)
     }
 }
 
+Expressions *arrayExpressionToCommonType(Scope *sc, Expressions *exps, Type **pt)
+{
+    IntegerExp integerexp(0);
+    CondExp condexp(0, &integerexp, NULL, NULL);
+
+    Type *t0 = NULL;
+    Expression *e0;
+    int j0;
+    for (int i = 0; i < exps->dim; i++)
+    {   Expression *e = (Expression *)exps->data[i];
+
+	e = resolveProperties(sc, e);
+	if (!e->type)
+	{   error("%s has no value", e->toChars());
+	    e = new ErrorExp();
+	}
+
+	if (t0)
+	{   if (t0 != e->type)
+	    {
+		/* This applies ?: to merge the types. It's backwards;
+		 * ?: should call this function to merge types.
+		 */
+		condexp.type = NULL;
+		condexp.e1 = e0;
+		condexp.e2 = e;
+		condexp.semantic(sc);
+		exps->data[j0] = (void *)condexp.e1;
+		e = condexp.e2;
+		t0 = e->type;
+	    }
+	}
+	else
+	{   j0 = i;
+	    e0 = e;
+	    t0 = e->type;
+	}
+	exps->data[i] = (void *)e;
+    }
+
+    if (t0)
+    {
+	for (int i = 0; i < exps->dim; i++)
+	{   Expression *e = (Expression *)exps->data[i];
+	    e = e->implicitCastTo(sc, t0);
+	    exps->data[i] = (void *)e;
+	}
+    }
+    else
+	t0 = Type::tvoid;		// [] is typed as void[]
+    if (pt)
+	*pt = t0;
+
+    // Eventually, we want to make this copy-on-write
+    return exps;
+}
+
 /****************************************
  * Preprocess arguments to function.
  */
@@ -2978,54 +3035,19 @@ Expression *ArrayLiteralExp::syntaxCopy()
 }
 
 Expression *ArrayLiteralExp::semantic(Scope *sc)
-{   Expression *e;
-    Type *t0 = NULL;
-
+{
 #if LOGSEMANTIC
     printf("ArrayLiteralExp::semantic('%s')\n", toChars());
 #endif
     if (type)
 	return this;
 
-    // Run semantic() on each element
-    for (int i = 0; i < elements->dim; i++)
-    {	e = (Expression *)elements->data[i];
-	e = e->semantic(sc);
-	assert(e->type);
-	elements->data[i] = (void *)e;
-    }
+    arrayExpressionSemantic(elements, sc);    // run semantic() on each element
     expandTuples(elements);
-    for (int i = 0; i < elements->dim; i++)
-    {	e = (Expression *)elements->data[i];
 
-	if (!e->type)
-	    error("%s has no value", e->toChars());
-	e = resolveProperties(sc, e);
+    Type *t0;
+    elements = arrayExpressionToCommonType(sc, elements, &t0);
 
-	unsigned char committed = 1;
-	if (e->op == TOKstring)
-	    committed = ((StringExp *)e)->committed;
-
-	if (!t0)
-	{   t0 = e->type;
-	    // Convert any static arrays to dynamic arrays
-	    if (t0->ty == Tsarray)
-	    {
-		t0 = ((TypeSArray *)t0)->next->arrayOf();
-		e = e->implicitCastTo(sc, t0);
-	    }
-	}
-	else
-	    e = e->implicitCastTo(sc, t0);
-	if (!committed && e->op == TOKstring)
-	{   StringExp *se = (StringExp *)e;
-	    se->committed = 0;
-	}
-	elements->data[i] = (void *)e;
-    }
-
-    if (!t0)
-	t0 = Type::tvoid;
     type = new TypeSArray(t0, new IntegerExp(elements->dim));
     type = type->semantic(loc, sc);
     return this;
@@ -3095,8 +3117,6 @@ Expression *AssocArrayLiteralExp::syntaxCopy()
 
 Expression *AssocArrayLiteralExp::semantic(Scope *sc)
 {   Expression *e;
-    Type *tkey = NULL;
-    Type *tvalue = NULL;
 
 #if LOGSEMANTIC
     printf("AssocArrayLiteralExp::semantic('%s')\n", toChars());
@@ -3106,16 +3126,8 @@ Expression *AssocArrayLiteralExp::semantic(Scope *sc)
 	return this;
 
     // Run semantic() on each element
-    for (size_t i = 0; i < keys->dim; i++)
-    {	Expression *key = (Expression *)keys->data[i];
-	Expression *value = (Expression *)values->data[i];
-
-	key = key->semantic(sc);
-	value = value->semantic(sc);
-
-	keys->data[i] = (void *)key;
-	values->data[i] = (void *)value;
-    }
+    arrayExpressionSemantic(keys, sc);
+    arrayExpressionSemantic(values, sc);
     expandTuples(keys);
     expandTuples(values);
     if (keys->dim != values->dim)
@@ -3124,34 +3136,12 @@ Expression *AssocArrayLiteralExp::semantic(Scope *sc)
 	keys->setDim(0);
 	values->setDim(0);
     }
-    for (size_t i = 0; i < keys->dim; i++)
-    {	Expression *key = (Expression *)keys->data[i];
-	Expression *value = (Expression *)values->data[i];
 
-	if (!key->type)
-	    error("%s has no value", key->toChars());
-	if (!value->type)
-	    error("%s has no value", value->toChars());
-	key = resolveProperties(sc, key);
-	value = resolveProperties(sc, value);
+    Type *tkey = NULL;
+    Type *tvalue = NULL;
+    keys = arrayExpressionToCommonType(sc, keys, &tkey);
+    values = arrayExpressionToCommonType(sc, values, &tvalue);
 
-	if (!tkey)
-	    tkey = key->type;
-	else
-	    key = key->implicitCastTo(sc, tkey);
-	keys->data[i] = (void *)key;
-
-	if (!tvalue)
-	    tvalue = value->type;
-	else
-	    value = value->implicitCastTo(sc, tvalue);
-	values->data[i] = (void *)value;
-    }
-
-    if (!tkey)
-	tkey = Type::tvoid;
-    if (!tvalue)
-	tvalue = Type::tvoid;
     type = new TypeAArray(tvalue, tkey);
     type = type->semantic(loc, sc);
     return this;

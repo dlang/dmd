@@ -210,7 +210,7 @@ const char *Token::toChars()
 	case TOKenum:
 	case TOKstruct:
 	case TOKimport:
-	CASE_BASIC_TYPES:
+	case BASIC_TYPES:
 	    p = ident->toChars();
 	    break;
 
