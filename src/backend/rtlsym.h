@@ -93,6 +93,8 @@ SYMBOL_MARS(ARRAYCATT,	   FLfunc,FREGSAVED,"_d_arraycatT", 0, t) \
 SYMBOL_MARS(ARRAYCATNT,	   FLfunc,FREGSAVED,"_d_arraycatnT", 0, t) \
 SYMBOL_MARS(ARRAYAPPENDT,  FLfunc,FREGSAVED,"_d_arrayappendT", 0, t) \
 SYMBOL_MARS(ARRAYAPPENDCT,  FLfunc,FREGSAVED,"_d_arrayappendcT", 0, t) \
+SYMBOL_MARS(ARRAYAPPENDCD,  FLfunc,FREGSAVED,"_d_arrayappendcd", 0, t) \
+SYMBOL_MARS(ARRAYAPPENDWD,  FLfunc,FREGSAVED,"_d_arrayappendwd", 0, t) \
 SYMBOL_MARS(ARRAYSETLENGTHT,FLfunc,FREGSAVED,"_d_arraysetlengthT", 0, t) \
 SYMBOL_MARS(ARRAYSETLENGTHIT,FLfunc,FREGSAVED,"_d_arraysetlengthiT", 0, t) \
 SYMBOL_MARS(ARRAYCOPY,	   FLfunc,FREGSAVED,"_d_arraycopy", 0, t) \
