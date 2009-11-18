@@ -449,6 +449,95 @@ void expandTuples(Expressions *exps)
     }
 }
 
+Expressions *arrayExpressionToCommonType(Scope *sc, Expressions *exps, Type **pt)
+{
+#if DMDV1
+    /* The first element sets the type
+     */
+    Type *t0 = NULL;
+    for (size_t i = 0; i < exps->dim; i++)
+    {	Expression *e = (Expression *)exps->data[i];
+
+	if (!e->type)
+	{   error("%s has no value", e->toChars());
+	    e = new ErrorExp();
+	}
+	e = resolveProperties(sc, e);
+
+	if (!t0)
+	    t0 = e->type;
+	else
+	    e = e->implicitCastTo(sc, t0);
+	exps->data[i] = (void *)e;
+    }
+
+    if (!t0)
+	t0 = Type::tvoid;
+    if (pt)
+	*pt = t0;
+
+    // Eventually, we want to make this copy-on-write
+    return exps;
+#endif
+#if DMDV2
+    /* The type is determined by applying ?: to each pair.
+     */
+    IntegerExp integerexp(0);
+    CondExp condexp(0, &integerexp, NULL, NULL);
+
+    Type *t0 = NULL;
+    Expression *e0;
+    int j0;
+    for (size_t i = 0; i < exps->dim; i++)
+    {   Expression *e = (Expression *)exps->data[i];
+
+	e = resolveProperties(sc, e);
+	if (!e->type)
+	{   error("%s has no value", e->toChars());
+	    e = new ErrorExp();
+	}
+
+	if (t0)
+	{   if (t0 != e->type)
+	    {
+		/* This applies ?: to merge the types. It's backwards;
+		 * ?: should call this function to merge types.
+		 */
+		condexp.type = NULL;
+		condexp.e1 = e0;
+		condexp.e2 = e;
+		condexp.semantic(sc);
+		exps->data[j0] = (void *)condexp.e1;
+		e = condexp.e2;
+		t0 = e->type;
+	    }
+	}
+	else
+	{   j0 = i;
+	    e0 = e;
+	    t0 = e->type;
+	}
+	exps->data[i] = (void *)e;
+    }
+
+    if (t0)
+    {
+	for (size_t i = 0; i < exps->dim; i++)
+	{   Expression *e = (Expression *)exps->data[i];
+	    e = e->implicitCastTo(sc, t0);
+	    exps->data[i] = (void *)e;
+	}
+    }
+    else
+	t0 = Type::tvoid;		// [] is typed as void[]
+    if (pt)
+	*pt = t0;
+
+    // Eventually, we want to make this copy-on-write
+    return exps;
+#endif
+}
+
 /****************************************
  * Preprocess arguments to function.
  */
@@ -2960,24 +3049,14 @@ Expression *AssocArrayLiteralExp::syntaxCopy()
 
 Expression *AssocArrayLiteralExp::semantic(Scope *sc)
 {   Expression *e;
-    Type *tkey = NULL;
-    Type *tvalue = NULL;
 
 #if LOGSEMANTIC
     printf("AssocArrayLiteralExp::semantic('%s')\n", toChars());
 #endif
 
     // Run semantic() on each element
-    for (size_t i = 0; i < keys->dim; i++)
-    {	Expression *key = (Expression *)keys->data[i];
-	Expression *value = (Expression *)values->data[i];
-
-	key = key->semantic(sc);
-	value = value->semantic(sc);
-
-	keys->data[i] = (void *)key;
-	values->data[i] = (void *)value;
-    }
+    arrayExpressionSemantic(keys, sc);
+    arrayExpressionSemantic(values, sc);
     expandTuples(keys);
     expandTuples(values);
     if (keys->dim != values->dim)
@@ -2986,34 +3065,12 @@ Expression *AssocArrayLiteralExp::semantic(Scope *sc)
 	keys->setDim(0);
 	values->setDim(0);
     }
-    for (size_t i = 0; i < keys->dim; i++)
-    {	Expression *key = (Expression *)keys->data[i];
-	Expression *value = (Expression *)values->data[i];
 
-	if (!key->type)
-	    error("%s has no value", key->toChars());
-	if (!value->type)
-	    error("%s has no value", value->toChars());
-	key = resolveProperties(sc, key);
-	value = resolveProperties(sc, value);
+    Type *tkey = NULL;
+    Type *tvalue = NULL;
+    keys = arrayExpressionToCommonType(sc, keys, &tkey);
+    values = arrayExpressionToCommonType(sc, values, &tvalue);
 
-	if (!tkey)
-	    tkey = key->type;
-	else
-	    key = key->implicitCastTo(sc, tkey);
-	keys->data[i] = (void *)key;
-
-	if (!tvalue)
-	    tvalue = value->type;
-	else
-	    value = value->implicitCastTo(sc, tvalue);
-	values->data[i] = (void *)value;
-    }
-
-    if (!tkey)
-	tkey = Type::tvoid;
-    if (!tvalue)
-	tvalue = Type::tvoid;
     type = new TypeAArray(tvalue, tkey);
     type = type->semantic(loc, sc);
     return this;
