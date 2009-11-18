@@ -456,13 +456,44 @@ void expandTuples(Expressions *exps)
 
 Expressions *arrayExpressionToCommonType(Scope *sc, Expressions *exps, Type **pt)
 {
+#if DMDV1
+    /* The first element sets the type
+     */
+    Type *t0 = NULL;
+    for (size_t i = 0; i < exps->dim; i++)
+    {	Expression *e = (Expression *)exps->data[i];
+
+	if (!e->type)
+	{   error("%s has no value", e->toChars());
+	    e = new ErrorExp();
+	}
+	e = resolveProperties(sc, e);
+
+	if (!t0)
+	    t0 = e->type;
+	else
+	    e = e->implicitCastTo(sc, t0);
+	exps->data[i] = (void *)e;
+    }
+
+    if (!t0)
+	t0 = Type::tvoid;
+    if (pt)
+	*pt = t0;
+
+    // Eventually, we want to make this copy-on-write
+    return exps;
+#endif
+#if DMDV2
+    /* The type is determined by applying ?: to each pair.
+     */
     IntegerExp integerexp(0);
     CondExp condexp(0, &integerexp, NULL, NULL);
 
     Type *t0 = NULL;
     Expression *e0;
     int j0;
-    for (int i = 0; i < exps->dim; i++)
+    for (size_t i = 0; i < exps->dim; i++)
     {   Expression *e = (Expression *)exps->data[i];
 
 	e = resolveProperties(sc, e);
@@ -496,7 +527,7 @@ Expressions *arrayExpressionToCommonType(Scope *sc, Expressions *exps, Type **pt
 
     if (t0)
     {
-	for (int i = 0; i < exps->dim; i++)
+	for (size_t i = 0; i < exps->dim; i++)
 	{   Expression *e = (Expression *)exps->data[i];
 	    e = e->implicitCastTo(sc, t0);
 	    exps->data[i] = (void *)e;
@@ -509,6 +540,7 @@ Expressions *arrayExpressionToCommonType(Scope *sc, Expressions *exps, Type **pt
 
     // Eventually, we want to make this copy-on-write
     return exps;
+#endif
 }
 
 /****************************************
@@ -8890,10 +8922,15 @@ Expression *CatAssignExp::semantic(Scope *sc)
 
     e2->rvalue();
 
+    Type *tb1next = tb1->nextOf();
+
     if ((tb1->ty == Tarray) &&
 	(tb2->ty == Tarray || tb2->ty == Tsarray) &&
-	(e2->implicitConvTo(e1->type) ||
-	 tb2->nextOf()->implicitConvTo(tb1->nextOf()))
+	(e2->implicitConvTo(e1->type)
+#if DMDV2
+	 || tb2->nextOf()->implicitConvTo(tb1next)
+#endif
+	)
        )
     {	// Append array
 	e2 = e2->castTo(sc, e1->type);
@@ -8901,18 +8938,30 @@ Expression *CatAssignExp::semantic(Scope *sc)
 	e = this;
     }
     else if ((tb1->ty == Tarray) &&
-	e2->implicitConvTo(tb1->nextOf())
+	e2->implicitConvTo(tb1next)
        )
     {	// Append element
-	e2 = e2->castTo(sc, tb1->nextOf());
+	e2 = e2->castTo(sc, tb1next);
 	type = e1->type;
 	e = this;
+    }
+    else if (tb1->ty == Tarray &&
+	(tb1next->ty == Tchar || tb1next->ty == Twchar) &&
+	e2->implicitConvTo(Type::tdchar)
+       )
+    {	// Append dchar to char[] or wchar[]
+	e2 = e2->castTo(sc, Type::tdchar);
+	type = e1->type;
+	e = this;
+
+	/* Do not allow appending wchar to char[] because if wchar happens
+	 * to be a surrogate pair, nothing good can result.
+	 */
     }
     else
     {
 	error("cannot append type %s to type %s", tb2->toChars(), tb1->toChars());
-	type = Type::tint32;
-	e = this;
+	e = new ErrorExp();
     }
     return e;
 }
@@ -8934,12 +8983,14 @@ Expression *MulAssignExp::semantic(Scope *sc)
     if (e)
 	return e;
 
+#if DMDV2
     if (e1->op == TOKarraylength)
     {
 	e = ArrayLengthExp::rewriteOpAssign(this);
 	e = e->semantic(sc);
 	return e;
     }
+#endif
 
     if (e1->op == TOKslice)
     {	// T[] -= ...
@@ -9005,12 +9056,14 @@ Expression *DivAssignExp::semantic(Scope *sc)
     if (e)
 	return e;
 
+#if DMDV2
     if (e1->op == TOKarraylength)
     {
 	e = ArrayLengthExp::rewriteOpAssign(this);
 	e = e->semantic(sc);
 	return e;
     }
+#endif
 
     if (e1->op == TOKslice)
     {	// T[] -= ...
