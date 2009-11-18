@@ -4996,7 +4996,6 @@ Expression *IsExp::semantic(Scope *sc)
 	MATCH m = targ->deduceType(NULL, tspec, parameters, &dedtypes);
 //printf("targ: %s\n", targ->toChars());
 //printf("tspec: %s\n", tspec->toChars());
-//printf("test1 %d\n", m);
 	if (m == MATCHnomatch ||
 	    (m != MATCHexact && tok == TOKequal))
 	{
@@ -9472,10 +9471,14 @@ Expression *CatExp::semantic(Scope *sc)
 	e1->type->print();
 	e2->type->print();
 #endif
+	Type *tb1next = tb1->nextOf();
+	Type *tb2next = tb2->nextOf();
+
 	if ((tb1->ty == Tsarray || tb1->ty == Tarray) &&
-	    e2->type->implicitConvTo(tb1->nextOf()) >= MATCHconst)
+	    e2->implicitConvTo(tb1next) >= MATCHconvert)
 	{
-	    type = tb1->nextOf()->arrayOf();
+	    e2 = e2->implicitCastTo(sc, tb1next);
+	    type = tb1next->arrayOf();
 	    if (tb2->ty == Tarray)
 	    {	// Make e2 into [e2]
 		e2 = new ArrayLiteralExp(e2->loc, e2);
@@ -9484,9 +9487,10 @@ Expression *CatExp::semantic(Scope *sc)
 	    return this;
 	}
 	else if ((tb2->ty == Tsarray || tb2->ty == Tarray) &&
-	    e1->type->implicitConvTo(tb2->nextOf()) >= MATCHconst)
+	    e1->implicitConvTo(tb2next) >= MATCHconvert)
 	{
-	    type = tb2->nextOf()->arrayOf();
+	    e1 = e1->implicitCastTo(sc, tb2next);
+	    type = tb2next->arrayOf();
 	    if (tb1->ty == Tarray)
 	    {	// Make e1 into [e1]
 		e1 = new ArrayLiteralExp(e1->loc, e1);
@@ -9497,12 +9501,12 @@ Expression *CatExp::semantic(Scope *sc)
 
 	if ((tb1->ty == Tsarray || tb1->ty == Tarray) &&
 	    (tb2->ty == Tsarray || tb2->ty == Tarray) &&
-	    (tb1->nextOf()->mod || tb2->nextOf()->mod) &&
-	    (tb1->nextOf()->mod != tb2->nextOf()->mod)
+	    (tb1next->mod || tb2next->mod) &&
+	    (tb1next->mod != tb2next->mod)
 	   )
 	{
-	    Type *t1 = tb1->nextOf()->mutableOf()->constOf()->arrayOf();
-	    Type *t2 = tb2->nextOf()->mutableOf()->constOf()->arrayOf();
+	    Type *t1 = tb1next->mutableOf()->constOf()->arrayOf();
+	    Type *t2 = tb2next->mutableOf()->constOf()->arrayOf();
 	    if (e1->op == TOKstring && !((StringExp *)e1)->committed)
 		e1->type = t1;
 	    else
@@ -9519,8 +9523,8 @@ Expression *CatExp::semantic(Scope *sc)
 	Type *tb = type->toBasetype();
 	if (tb->ty == Tsarray)
 	    type = tb->nextOf()->arrayOf();
-	if (type->ty == Tarray && tb1->nextOf() && tb2->nextOf() &&
-	    tb1->nextOf()->mod != tb2->nextOf()->mod)
+	if (type->ty == Tarray && tb1next && tb2next &&
+	    tb1next->mod != tb2next->mod)
 	{
 	    type = type->nextOf()->toHeadMutable()->arrayOf();
 	}
@@ -9544,8 +9548,7 @@ Expression *CatExp::semantic(Scope *sc)
 	    //printf("(%s) ~ (%s)\n", e1->toChars(), e2->toChars());
 	    error("Can only concatenate arrays, not (%s ~ %s)",
 		e1->type->toChars(), e2->type->toChars());
-	    type = Type::tint32;
-	    e = this;
+	    return new ErrorExp();
 	}
 	e->type = e->type->semantic(loc, sc);
 	return e;
