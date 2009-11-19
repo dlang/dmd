@@ -320,8 +320,8 @@ void StructDeclaration::semantic(Scope *sc)
 
     TypeFunction *tfeqptr;
     {
-	Arguments *arguments = new Arguments;
-	Argument *arg = new Argument(STCin, handle, Id::p, NULL);
+	Parameters *arguments = new Parameters;
+	Parameter *arg = new Parameter(STCin, handle, Id::p, NULL);
 
 	arguments->push(arg);
 	tfeqptr = new TypeFunction(arguments, Type::tint32, 0, LINKd);
@@ -330,8 +330,8 @@ void StructDeclaration::semantic(Scope *sc)
 
     TypeFunction *tfeq;
     {
-	Arguments *arguments = new Arguments;
-	Argument *arg = new Argument(STCin, type, NULL, NULL);
+	Parameters *arguments = new Parameters;
+	Parameter *arg = new Parameter(STCin, type, NULL, NULL);
 
 	arguments->push(arg);
 	tfeq = new TypeFunction(arguments, Type::tint32, 0, LINKd);

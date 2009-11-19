@@ -228,9 +228,9 @@ type *TypeFunction::toCtype()
 	type *tp;
 
 	paramtypes = NULL;
-	size_t nparams = Argument::dim(parameters);
+	size_t nparams = Parameter::dim(parameters);
 	for (size_t i = 0; i < nparams; i++)
-	{   Argument *arg = Argument::getNth(parameters, i);
+	{   Parameter *arg = Parameter::getNth(parameters, i);
 	    tp = arg->type->toCtype();
 	    if (arg->storageClass & (STCout | STCref))
 	    {   // C doesn't have reference types, so it's really a pointer

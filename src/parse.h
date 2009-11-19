@@ -93,7 +93,7 @@ struct Parser : Lexer
     UnitTestDeclaration *parseUnitTest();
     NewDeclaration *parseNew();
     DeleteDeclaration *parseDelete();
-    Arguments *parseParameters(int *pvarargs);
+    Parameters *parseParameters(int *pvarargs);
     EnumDeclaration *parseEnum();
     Dsymbol *parseAggregate();
     BaseClasses *parseBaseClasses();

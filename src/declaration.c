@@ -201,7 +201,7 @@ Type *TupleDeclaration::getType()
 
 	/* We know it's a type tuple, so build the TypeTuple
 	 */
-	Arguments *args = new Arguments();
+	Parameters *args = new Parameters();
 	args->setDim(objects->dim);
 	OutBuffer buf;
 	int hasdeco = 1;
@@ -213,9 +213,9 @@ Type *TupleDeclaration::getType()
 	    buf.printf("_%s_%d", ident->toChars(), i);
 	    char *name = (char *)buf.extractData();
 	    Identifier *id = new Identifier(name, TOKidentifier);
-	    Argument *arg = new Argument(STCin, t, id, NULL);
+	    Parameter *arg = new Parameter(STCin, t, id, NULL);
 #else
-	    Argument *arg = new Argument(STCin, t, NULL, NULL);
+	    Parameter *arg = new Parameter(STCin, t, NULL, NULL);
 #endif
 	    args->data[i] = (void *)arg;
 	    if (!t->deco)
@@ -784,13 +784,13 @@ void VarDeclaration::semantic(Scope *sc)
 	 * and add those.
 	 */
 	TypeTuple *tt = (TypeTuple *)tb;
-	size_t nelems = Argument::dim(tt->arguments);
+	size_t nelems = Parameter::dim(tt->arguments);
 	Objects *exps = new Objects();
 	exps->setDim(nelems);
 	Expression *ie = init ? init->toExpression() : NULL;
 
 	for (size_t i = 0; i < nelems; i++)
-	{   Argument *arg = Argument::getNth(tt->arguments, i);
+	{   Parameter *arg = Parameter::getNth(tt->arguments, i);
 
 	    OutBuffer buf;
 	    buf.printf("_%s_field_%zu", ident->toChars(), i);

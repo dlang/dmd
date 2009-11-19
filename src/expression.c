@@ -542,7 +542,7 @@ Expressions *arrayExpressionToCommonType(Scope *sc, Expressions *exps, Type **pt
  * Preprocess arguments to function.
  */
 
-void preFunctionArguments(Loc loc, Scope *sc, Expressions *exps)
+void preFunctionParameters(Loc loc, Scope *sc, Expressions *exps)
 {
     if (exps)
     {
@@ -613,14 +613,14 @@ Expression *callCpCtor(Loc loc, Scope *sc, Expression *e)
  *	4. add hidden _arguments[] argument
  */
 
-void functionArguments(Loc loc, Scope *sc, TypeFunction *tf, Expressions *arguments)
+void functionParameters(Loc loc, Scope *sc, TypeFunction *tf, Expressions *arguments)
 {
     unsigned n;
 
-    //printf("functionArguments()\n");
+    //printf("functionParameters()\n");
     assert(arguments);
     size_t nargs = arguments ? arguments->dim : 0;
-    size_t nparams = Argument::dim(tf->parameters);
+    size_t nparams = Parameter::dim(tf->parameters);
 
     if (nargs > nparams && tf->varargs == 0)
 	error(loc, "expected %zu arguments, not %zu for non-variadic function type %s", nparams, nargs, tf->toChars());
@@ -640,7 +640,7 @@ void functionArguments(Loc loc, Scope *sc, TypeFunction *tf, Expressions *argume
 
 	if (i < nparams)
 	{
-	    Argument *p = Argument::getNth(tf->parameters, i);
+	    Parameter *p = Parameter::getNth(tf->parameters, i);
 
 	    if (!arg)
 	    {
@@ -3584,9 +3584,9 @@ Lagain:
     //printf("tb: %s, deco = %s\n", tb->toChars(), tb->deco);
 
     arrayExpressionSemantic(newargs, sc);
-    preFunctionArguments(loc, sc, newargs);
+    preFunctionParameters(loc, sc, newargs);
     arrayExpressionSemantic(arguments, sc);
-    preFunctionArguments(loc, sc, arguments);
+    preFunctionParameters(loc, sc, arguments);
 
     if (thisexp && tb->ty != Tclass)
 	error("e.new is only for allocating nested classes, not %s", tb->toChars());
@@ -3700,7 +3700,7 @@ Lagain:
 
 	    if (!arguments)
 		arguments = new Expressions();
-	    functionArguments(loc, sc, tf, arguments);
+	    functionParameters(loc, sc, tf, arguments);
 	}
 	else
 	{
@@ -3721,7 +3721,7 @@ Lagain:
 	    assert(allocator);
 
 	    tf = (TypeFunction *)f->type;
-	    functionArguments(loc, sc, tf, newargs);
+	    functionParameters(loc, sc, tf, newargs);
 	}
 	else
 	{
@@ -3754,7 +3754,7 @@ Lagain:
 	    assert(allocator);
 
 	    tf = (TypeFunction *)f->type;
-	    functionArguments(loc, sc, tf, newargs);
+	    functionParameters(loc, sc, tf, newargs);
 
 	    e = new VarExp(loc, f);
 	    e = new CallExp(loc, e, newargs);
@@ -4720,11 +4720,11 @@ Expression *IsExp::semantic(Scope *sc)
 		    goto Lno;
 		else
 		{   ClassDeclaration *cd = ((TypeClass *)targ)->sym;
-		    Arguments *args = new Arguments;
+		    Parameters *args = new Parameters;
 		    args->reserve(cd->baseclasses.dim);
 		    for (size_t i = 0; i < cd->baseclasses.dim; i++)
 		    {	BaseClass *b = (BaseClass *)cd->baseclasses.data[i];
-			args->push(new Argument(STCin, b->type, NULL, NULL));
+			args->push(new Parameter(STCin, b->type, NULL, NULL));
 		    }
 		    tded = new TypeTuple(args);
 		}
@@ -4751,14 +4751,14 @@ Expression *IsExp::semantic(Scope *sc)
 		/* Generate tuple from function parameter types.
 		 */
 		assert(tded->ty == Tfunction);
-		Arguments *params = ((TypeFunction *)tded)->parameters;
-		size_t dim = Argument::dim(params);
-		Arguments *args = new Arguments;
+		Parameters *params = ((TypeFunction *)tded)->parameters;
+		size_t dim = Parameter::dim(params);
+		Parameters *args = new Parameters;
 		args->reserve(dim);
 		for (size_t i = 0; i < dim; i++)
-		{   Argument *arg = Argument::getNth(params, i);
+		{   Parameter *arg = Parameter::getNth(params, i);
 		    assert(arg && arg->type);
-		    args->push(new Argument(arg->storageClass, arg->type, NULL, NULL));
+		    args->push(new Parameter(arg->storageClass, arg->type, NULL, NULL));
 		}
 		tded = new TypeTuple(args);
 		break;
@@ -6355,7 +6355,7 @@ Lagain:
     }
 
     arrayExpressionSemantic(arguments, sc);
-    preFunctionArguments(loc, sc, arguments);
+    preFunctionParameters(loc, sc, arguments);
 
     if (e1->op == TOKdotvar && t1->ty == Tfunction ||
         e1->op == TOKdottd)
@@ -6636,7 +6636,7 @@ Lcheckargs:
 
     if (!arguments)
 	arguments = new Expressions();
-    functionArguments(loc, sc, tf, arguments);
+    functionParameters(loc, sc, tf, arguments);
 
     assert(type);
 
@@ -7429,7 +7429,7 @@ Expression *SliceExp::semantic(Scope *sc)
 	}
 	else if (e1->op == TOKtype)	// slicing a type tuple
 	{   tup = (TypeTuple *)t;
-	    length = Argument::dim(tup->arguments);
+	    length = Parameter::dim(tup->arguments);
 	}
 	else
 	    assert(0);
@@ -7448,10 +7448,10 @@ Expression *SliceExp::semantic(Scope *sc)
 		e = new TupleExp(loc, exps);
 	    }
 	    else
-	    {	Arguments *args = new Arguments;
+	    {	Parameters *args = new Parameters;
 		args->reserve(j2 - j1);
 		for (size_t i = j1; i < j2; i++)
-		{   Argument *arg = Argument::getNth(tup->arguments, i);
+		{   Parameter *arg = Parameter::getNth(tup->arguments, i);
 		    args->push(arg);
 		}
 		e = new TypeExp(e1->loc, new TypeTuple(args));
@@ -7829,7 +7829,7 @@ Expression *IndexExp::semantic(Scope *sc)
 	    else if (e1->op == TOKtype)
 	    {
 		tup = (TypeTuple *)t1;
-		length = Argument::dim(tup->arguments);
+		length = Parameter::dim(tup->arguments);
 	    }
 	    else
 		assert(0);
@@ -7840,7 +7840,7 @@ Expression *IndexExp::semantic(Scope *sc)
 		if (e1->op == TOKtuple)
 		    e = (Expression *)te->exps->data[(size_t)index];
 		else
-		    e = new TypeExp(e1->loc, Argument::getNth(tup->arguments, (size_t)index)->type);
+		    e = new TypeExp(e1->loc, Parameter::getNth(tup->arguments, (size_t)index)->type);
 	    }
 	    else
 	    {

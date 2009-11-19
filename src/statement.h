@@ -38,7 +38,7 @@ struct InlineDoState;
 struct InlineScanState;
 struct ReturnStatement;
 struct CompoundStatement;
-struct Argument;
+struct Parameter;
 struct StaticAssert;
 struct AsmStatement;
 struct GotoStatement;
@@ -324,7 +324,7 @@ struct ForStatement : Statement
 struct ForeachStatement : Statement
 {
     enum TOK op;		// TOKforeach or TOKforeach_reverse
-    Arguments *arguments;	// array of Argument*'s
+    Parameters *arguments;	// array of Parameter*'s
     Expression *aggr;
     Statement *body;
 
@@ -336,7 +336,7 @@ struct ForeachStatement : Statement
     Array cases;	// put breaks, continues, gotos and returns here
     Array gotos;	// forward referenced goto's go here
 
-    ForeachStatement(Loc loc, enum TOK op, Arguments *arguments, Expression *aggr, Statement *body);
+    ForeachStatement(Loc loc, enum TOK op, Parameters *arguments, Expression *aggr, Statement *body);
     Statement *syntaxCopy();
     Statement *semantic(Scope *sc);
     int hasBreak();
@@ -356,14 +356,14 @@ struct ForeachStatement : Statement
 struct ForeachRangeStatement : Statement
 {
     enum TOK op;		// TOKforeach or TOKforeach_reverse
-    Argument *arg;		// loop index variable
+    Parameter *arg;		// loop index variable
     Expression *lwr;
     Expression *upr;
     Statement *body;
 
     VarDeclaration *key;
 
-    ForeachRangeStatement(Loc loc, enum TOK op, Argument *arg,
+    ForeachRangeStatement(Loc loc, enum TOK op, Parameter *arg,
 	Expression *lwr, Expression *upr, Statement *body);
     Statement *syntaxCopy();
     Statement *semantic(Scope *sc);
@@ -383,14 +383,14 @@ struct ForeachRangeStatement : Statement
 
 struct IfStatement : Statement
 {
-    Argument *arg;
+    Parameter *arg;
     Expression *condition;
     Statement *ifbody;
     Statement *elsebody;
 
     VarDeclaration *match;	// for MatchExpression results
 
-    IfStatement(Loc loc, Argument *arg, Expression *condition, Statement *ifbody, Statement *elsebody);
+    IfStatement(Loc loc, Parameter *arg, Expression *condition, Statement *ifbody, Statement *elsebody);
     Statement *syntaxCopy();
     Statement *semantic(Scope *sc);
     Expression *interpret(InterState *istate);

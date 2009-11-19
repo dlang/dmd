@@ -42,7 +42,7 @@ struct Objects : Array { };
 
 struct FuncDeclarations : Array { };
 
-struct Arguments : Array { };
+struct Parameters : Array { };
 
 struct Identifiers : Array { };
 

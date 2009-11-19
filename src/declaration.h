@@ -655,10 +655,10 @@ struct FuncLiteralDeclaration : FuncDeclaration
 };
 
 struct CtorDeclaration : FuncDeclaration
-{   Arguments *arguments;
+{   Parameters *arguments;
     int varargs;
 
-    CtorDeclaration(Loc loc, Loc endloc, Arguments *arguments, int varargs);
+    CtorDeclaration(Loc loc, Loc endloc, Parameters *arguments, int varargs);
     Dsymbol *syntaxCopy(Dsymbol *);
     void semantic(Scope *sc);
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
@@ -776,10 +776,10 @@ struct UnitTestDeclaration : FuncDeclaration
 };
 
 struct NewDeclaration : FuncDeclaration
-{   Arguments *arguments;
+{   Parameters *arguments;
     int varargs;
 
-    NewDeclaration(Loc loc, Loc endloc, Arguments *arguments, int varargs);
+    NewDeclaration(Loc loc, Loc endloc, Parameters *arguments, int varargs);
     Dsymbol *syntaxCopy(Dsymbol *);
     void semantic(Scope *sc);
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
@@ -793,9 +793,9 @@ struct NewDeclaration : FuncDeclaration
 
 
 struct DeleteDeclaration : FuncDeclaration
-{   Arguments *arguments;
+{   Parameters *arguments;
 
-    DeleteDeclaration(Loc loc, Loc endloc, Arguments *arguments);
+    DeleteDeclaration(Loc loc, Loc endloc, Parameters *arguments);
     Dsymbol *syntaxCopy(Dsymbol *);
     void semantic(Scope *sc);
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);

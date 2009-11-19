@@ -258,9 +258,9 @@ Expression *BinExp::arrayOp(Scope *sc)
 	     *	return p;
 	     */
 
-	    Arguments *fparams = new Arguments();
+	    Parameters *fparams = new Parameters();
 	    Expression *loopbody = buildArrayLoop(fparams);
-	    Argument *p = (Argument *)fparams->data[0 /*fparams->dim - 1*/];
+	    Parameter *p = (Parameter *)fparams->data[0 /*fparams->dim - 1*/];
 #if DMDV1
 	    // for (size_t i = 0; i < p.length; i++)
 	    Initializer *init = new ExpInitializer(0, new IntegerExp(0, 0, Type::tsize_t));
@@ -273,7 +273,7 @@ Expression *BinExp::arrayOp(Scope *sc)
 #else
 	    // foreach (i; 0 .. p.length)
 	    Statement *s1 = new ForeachRangeStatement(0, TOKforeach,
-		new Argument(0, NULL, Id::p, NULL),
+		new Parameter(0, NULL, Id::p, NULL),
 		new IntegerExp(0, 0, Type::tint32),
 		new ArrayLengthExp(0, new IdentifierExp(0, p->ident)),
 		new ExpStatement(0, loopbody));
@@ -415,16 +415,16 @@ X(Or)
  * and build the parameter list.
  */
 
-Expression *Expression::buildArrayLoop(Arguments *fparams)
+Expression *Expression::buildArrayLoop(Parameters *fparams)
 {
     Identifier *id = Identifier::generateId("c", fparams->dim);
-    Argument *param = new Argument(0, type, id, NULL);
+    Parameter *param = new Parameter(0, type, id, NULL);
     fparams->shift(param);
     Expression *e = new IdentifierExp(0, id);
     return e;
 }
 
-Expression *CastExp::buildArrayLoop(Arguments *fparams)
+Expression *CastExp::buildArrayLoop(Parameters *fparams)
 {
     Type *tb = type->toBasetype();
     if (tb->ty == Tarray || tb->ty == Tsarray)
@@ -435,10 +435,10 @@ Expression *CastExp::buildArrayLoop(Arguments *fparams)
 	return Expression::buildArrayLoop(fparams);
 }
 
-Expression *SliceExp::buildArrayLoop(Arguments *fparams)
+Expression *SliceExp::buildArrayLoop(Parameters *fparams)
 {
     Identifier *id = Identifier::generateId("p", fparams->dim);
-    Argument *param = new Argument(STCconst, type, id, NULL);
+    Parameter *param = new Parameter(STCconst, type, id, NULL);
     fparams->shift(param);
     Expression *e = new IdentifierExp(0, id);
     Expressions *arguments = new Expressions();
@@ -448,7 +448,7 @@ Expression *SliceExp::buildArrayLoop(Arguments *fparams)
     return e;
 }
 
-Expression *AssignExp::buildArrayLoop(Arguments *fparams)
+Expression *AssignExp::buildArrayLoop(Parameters *fparams)
 {
     /* Evaluate assign expressions right to left
      */
@@ -462,20 +462,20 @@ Expression *AssignExp::buildArrayLoop(Arguments *fparams)
     ex2 = new CastExp(0, ex2, e1->type->nextOf());
 #endif
     Expression *ex1 = e1->buildArrayLoop(fparams);
-    Argument *param = (Argument *)fparams->data[0];
+    Parameter *param = (Parameter *)fparams->data[0];
     param->storageClass = 0;
     Expression *e = new AssignExp(0, ex1, ex2);
     return e;
 }
 
 #define X(Str) \
-Expression *Str##AssignExp::buildArrayLoop(Arguments *fparams)	\
+Expression *Str##AssignExp::buildArrayLoop(Parameters *fparams)	\
 {								\
     /* Evaluate assign expressions right to left		\
      */								\
     Expression *ex2 = e2->buildArrayLoop(fparams);		\
     Expression *ex1 = e1->buildArrayLoop(fparams);		\
-    Argument *param = (Argument *)fparams->data[0];		\
+    Parameter *param = (Parameter *)fparams->data[0];		\
     param->storageClass = 0;					\
     Expression *e = new Str##AssignExp(0, ex1, ex2);		\
     return e;							\
@@ -492,14 +492,14 @@ X(Or)
 
 #undef X
 
-Expression *NegExp::buildArrayLoop(Arguments *fparams)
+Expression *NegExp::buildArrayLoop(Parameters *fparams)
 {
     Expression *ex1 = e1->buildArrayLoop(fparams);
     Expression *e = new NegExp(0, ex1);
     return e;
 }
 
-Expression *ComExp::buildArrayLoop(Arguments *fparams)
+Expression *ComExp::buildArrayLoop(Parameters *fparams)
 {
     Expression *ex1 = e1->buildArrayLoop(fparams);
     Expression *e = new ComExp(0, ex1);
@@ -507,7 +507,7 @@ Expression *ComExp::buildArrayLoop(Arguments *fparams)
 }
 
 #define X(Str) \
-Expression *Str##Exp::buildArrayLoop(Arguments *fparams)	\
+Expression *Str##Exp::buildArrayLoop(Parameters *fparams)	\
 {								\
     /* Evaluate assign expressions left to right		\
      */								\
