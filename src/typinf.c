@@ -504,13 +504,13 @@ void TypeInfoStructDeclaration::toDt(dt_t **pdt)
     TypeFunction *tfeqptr;
     {	// bool opEqual(const T*) const;
 	Scope sc;
-	Arguments *arguments = new Arguments;
+	Parameters *arguments = new Parameters;
 #if STRUCTTHISREF
 	// arg type is ref const T
-	Argument *arg = new Argument(STCref, tc->constOf(), NULL, NULL);
+	Parameter *arg = new Parameter(STCref, tc->constOf(), NULL, NULL);
 #else
 	// arg type is const T*
-	Argument *arg = new Argument(STCin, tc->pointerTo(), NULL, NULL);
+	Parameter *arg = new Parameter(STCin, tc->pointerTo(), NULL, NULL);
 #endif
 
 	arguments->push(arg);
@@ -522,13 +522,13 @@ void TypeInfoStructDeclaration::toDt(dt_t **pdt)
     TypeFunction *tfcmpptr;
     {
 	Scope sc;
-	Arguments *arguments = new Arguments;
+	Parameters *arguments = new Parameters;
 #if STRUCTTHISREF
 	// arg type is ref const T
-	Argument *arg = new Argument(STCref, tc->constOf(), NULL, NULL);
+	Parameter *arg = new Parameter(STCref, tc->constOf(), NULL, NULL);
 #else
 	// arg type is const T*
-	Argument *arg = new Argument(STCin, tc->pointerTo(), NULL, NULL);
+	Parameter *arg = new Parameter(STCin, tc->pointerTo(), NULL, NULL);
 #endif
 
 	arguments->push(arg);
@@ -677,7 +677,7 @@ void TypeInfoTupleDeclaration::toDt(dt_t **pdt)
 
     dt_t *d = NULL;
     for (size_t i = 0; i < dim; i++)
-    {	Argument *arg = (Argument *)tu->arguments->data[i];
+    {	Parameter *arg = (Parameter *)tu->arguments->data[i];
 	Expression *e = arg->type->getTypeInfo(NULL);
 	e = e->optimize(WANTvalue);
 	e->toDt(&d);
@@ -800,10 +800,10 @@ Expression *createTypeInfoArray(Scope *sc, Expression *exps[], int dim)
 
     /* Create the TypeTuple corresponding to the types of args[]
      */
-    Arguments *args = new Arguments;
+    Parameters *args = new Parameters;
     args->setDim(dim);
     for (size_t i = 0; i < dim; i++)
-    {	Argument *arg = new Argument(STCin, exps[i]->type, NULL, NULL);
+    {	Parameter *arg = new Parameter(STCin, exps[i]->type, NULL, NULL);
 	args->data[i] = (void *)arg;
     }
     TypeTuple *tup = new TypeTuple(args);

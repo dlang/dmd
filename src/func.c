@@ -192,7 +192,7 @@ void FuncDeclaration::semantic(Scope *sc)
 	return;
     }
     f = (TypeFunction *)(type);
-    size_t nparams = Argument::dim(f->parameters);
+    size_t nparams = Parameter::dim(f->parameters);
 
     linkage = sc->linkage;
 //    if (!parent)
@@ -562,7 +562,7 @@ void FuncDeclaration::semantic(Scope *sc)
 
 	    case 1:
 	    {
-		Argument *arg0 = Argument::getNth(f->parameters, 0);
+		Parameter *arg0 = Parameter::getNth(f->parameters, 0);
 		if (arg0->type->ty != Tarray ||
 		    arg0->type->nextOf()->ty != Tarray ||
 		    arg0->type->nextOf()->nextOf()->ty != Tchar ||
@@ -596,7 +596,7 @@ void FuncDeclaration::semantic(Scope *sc)
 	}
 	else
 	{
-	    Argument *arg0 = Argument::getNth(f->parameters, 0);
+	    Parameter *arg0 = Parameter::getNth(f->parameters, 0);
 	    Type *t0 = arg0->type->toBasetype();
 	    Type *tb = sd ? sd->type : cd->type;
 	    if (arg0->type->implicitConvTo(tb) ||
@@ -605,7 +605,7 @@ void FuncDeclaration::semantic(Scope *sc)
 	    {
 		if (nparams == 1)
 		    goto Lassignerr;
-		Argument *arg1 = Argument::getNth(f->parameters, 1);
+		Parameter *arg1 = Parameter::getNth(f->parameters, 1);
 		if (arg1->defaultArg)
 		    goto Lassignerr;
 	    }
@@ -646,10 +646,10 @@ void FuncDeclaration::semantic(Scope *sc)
 		outId = Id::result;	// provide a default
 
 	    Loc loc = fensure->loc;
-	    Arguments *arguments = new Arguments();
-	    Argument *a = NULL;
+	    Parameters *arguments = new Parameters();
+	    Parameter *a = NULL;
 	    if (outId)
-	    {	a = new Argument(STCref, f->nextOf(), outId, NULL);
+	    {	a = new Parameter(STCref, f->nextOf(), outId, NULL);
 		arguments->push(a);
 	    }
 	    TypeFunction *tf = new TypeFunction(arguments, Type::tvoid, 0, LINKd);
@@ -886,14 +886,14 @@ void FuncDeclaration::semantic3(Scope *sc)
 	if (f->parameters)
 	{
 	    for (size_t i = 0; i < f->parameters->dim; i++)
-	    {	Argument *arg = (Argument *)f->parameters->data[i];
+	    {	Parameter *arg = (Parameter *)f->parameters->data[i];
 
 		//printf("[%d] arg->type->ty = %d %s\n", i, arg->type->ty, arg->type->toChars());
 		if (arg->type->ty == Ttuple)
 		{   TypeTuple *t = (TypeTuple *)arg->type;
-		    size_t dim = Argument::dim(t->arguments);
+		    size_t dim = Parameter::dim(t->arguments);
 		    for (size_t j = 0; j < dim; j++)
-		    {	Argument *narg = Argument::getNth(t->arguments, j);
+		    {	Parameter *narg = Parameter::getNth(t->arguments, j);
 			narg->storageClass = arg->storageClass;
 		    }
 		}
@@ -903,7 +903,7 @@ void FuncDeclaration::semantic3(Scope *sc)
 	/* Declare all the function parameters as variables
 	 * and install them in parameters[]
 	 */
-	size_t nparams = Argument::dim(f->parameters);
+	size_t nparams = Parameter::dim(f->parameters);
 	if (nparams)
 	{   /* parameters[] has all the tuples removed, as the back end
 	     * doesn't know about tuples
@@ -912,7 +912,7 @@ void FuncDeclaration::semantic3(Scope *sc)
 	    parameters->reserve(nparams);
 	    for (size_t i = 0; i < nparams; i++)
 	    {
-		Argument *arg = Argument::getNth(f->parameters, i);
+		Parameter *arg = Parameter::getNth(f->parameters, i);
 		Identifier *id = arg->ident;
 		if (!id)
 		{
@@ -945,17 +945,17 @@ void FuncDeclaration::semantic3(Scope *sc)
 	if (f->parameters)
 	{
 	    for (size_t i = 0; i < f->parameters->dim; i++)
-	    {	Argument *arg = (Argument *)f->parameters->data[i];
+	    {	Parameter *arg = (Parameter *)f->parameters->data[i];
 
 		if (!arg->ident)
 		    continue;			// never used, so ignore
 		if (arg->type->ty == Ttuple)
 		{   TypeTuple *t = (TypeTuple *)arg->type;
-		    size_t dim = Argument::dim(t->arguments);
+		    size_t dim = Parameter::dim(t->arguments);
 		    Objects *exps = new Objects();
 		    exps->setDim(dim);
 		    for (size_t j = 0; j < dim; j++)
-		    {	Argument *narg = Argument::getNth(t->arguments, j);
+		    {	Parameter *narg = Parameter::getNth(t->arguments, j);
 			assert(narg->ident);
 			VarDeclaration *v = sc2->search(0, narg->ident, NULL)->isVarDeclaration();
 			assert(v);
@@ -2015,7 +2015,7 @@ if (arguments)
 
 	    //printf("tf = %s, args = %s\n", tf->deco, ((Expression *)arguments->data[0])->type->deco);
 	    error(loc, "%s%s is not callable using argument types %s",
-		Argument::argsTypesToChars(tf->parameters, tf->varargs),
+		Parameter::argsTypesToChars(tf->parameters, tf->varargs),
 		buf2.toChars(),
 		buf.toChars());
 	    return m.anyf;		// as long as it's not a FuncAliasDeclaration
@@ -2028,8 +2028,8 @@ if (arguments)
 
 	    error(loc, "called with argument types:\n\t(%s)\nmatches both:\n\t%s%s\nand:\n\t%s%s",
 		    buf.toChars(),
-		    m.lastf->toPrettyChars(), Argument::argsTypesToChars(t1->parameters, t1->varargs),
-		    m.nextf->toPrettyChars(), Argument::argsTypesToChars(t2->parameters, t2->varargs));
+		    m.lastf->toPrettyChars(), Parameter::argsTypesToChars(t1->parameters, t1->varargs),
+		    m.nextf->toPrettyChars(), Parameter::argsTypesToChars(t2->parameters, t2->varargs));
 #else
 	    error(loc, "overloads %s and %s both match argument list for %s",
 		    m.lastf->type->toChars(),
@@ -2065,8 +2065,8 @@ MATCH FuncDeclaration::leastAsSpecialized(FuncDeclaration *g)
 
     TypeFunction *tf = (TypeFunction *)type;
     TypeFunction *tg = (TypeFunction *)g->type;
-    size_t nfparams = Argument::dim(tf->parameters);
-    size_t ngparams = Argument::dim(tg->parameters);
+    size_t nfparams = Parameter::dim(tf->parameters);
+    size_t ngparams = Parameter::dim(tg->parameters);
     MATCH match = MATCHexact;
 
     /* If both functions have a 'this' pointer, and the mods are not
@@ -2089,7 +2089,7 @@ MATCH FuncDeclaration::leastAsSpecialized(FuncDeclaration *g)
     args.setDim(nfparams);
     for (int u = 0; u < nfparams; u++)
     {
-	Argument *p = Argument::getNth(tf->parameters, u);
+	Parameter *p = Parameter::getNth(tf->parameters, u);
 	Expression *e;
 	if (p->storageClass & (STCref | STCout))
 	{
@@ -2636,7 +2636,7 @@ void FuncLiteralDeclaration::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 
 /********************************* CtorDeclaration ****************************/
 
-CtorDeclaration::CtorDeclaration(Loc loc, Loc endloc, Arguments *arguments, int varargs)
+CtorDeclaration::CtorDeclaration(Loc loc, Loc endloc, Parameters *arguments, int varargs)
     : FuncDeclaration(loc, endloc, Id::ctor, STCundefined, NULL)
 {
     this->arguments = arguments;
@@ -2656,7 +2656,7 @@ Dsymbol *CtorDeclaration::syntaxCopy(Dsymbol *s)
     f->fbody    = fbody    ? fbody->syntaxCopy()    : NULL;
     assert(!fthrows); // deprecated
 
-    f->arguments = Argument::arraySyntaxCopy(arguments);
+    f->arguments = Parameter::arraySyntaxCopy(arguments);
     return f;
 }
 
@@ -2712,7 +2712,7 @@ void CtorDeclaration::semantic(Scope *sc)
     sc->pop();
 
     // See if it's the default constructor
-    if (ad && varargs == 0 && Argument::dim(arguments) == 0)
+    if (ad && varargs == 0 && Parameter::dim(arguments) == 0)
     {	if (ad->isStructDeclaration())
 	    error("default constructor not allowed for structs");
 	else
@@ -2749,7 +2749,7 @@ int CtorDeclaration::addPostInvariant()
 void CtorDeclaration::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 {
     buf->writestring("this");
-    Argument::argsToCBuffer(buf, hgs, arguments, varargs);
+    Parameter::argsToCBuffer(buf, hgs, arguments, varargs);
     bodyToCBuffer(buf, hgs);
 }
 
@@ -3278,7 +3278,7 @@ void UnitTestDeclaration::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 
 /********************************* NewDeclaration ****************************/
 
-NewDeclaration::NewDeclaration(Loc loc, Loc endloc, Arguments *arguments, int varargs)
+NewDeclaration::NewDeclaration(Loc loc, Loc endloc, Parameters *arguments, int varargs)
     : FuncDeclaration(loc, endloc, Id::classNew, STCstatic, NULL)
 {
     this->arguments = arguments;
@@ -3293,7 +3293,7 @@ Dsymbol *NewDeclaration::syntaxCopy(Dsymbol *s)
 
     FuncDeclaration::syntaxCopy(f);
 
-    f->arguments = Argument::arraySyntaxCopy(arguments);
+    f->arguments = Parameter::arraySyntaxCopy(arguments);
 
     return f;
 }
@@ -3321,13 +3321,13 @@ void NewDeclaration::semantic(Scope *sc)
 
     // Check that there is at least one argument of type size_t
     TypeFunction *tf = (TypeFunction *)type;
-    if (Argument::dim(tf->parameters) < 1)
+    if (Parameter::dim(tf->parameters) < 1)
     {
 	error("at least one argument of type size_t expected");
     }
     else
     {
-	Argument *a = Argument::getNth(tf->parameters, 0);
+	Parameter *a = Parameter::getNth(tf->parameters, 0);
 	if (!a->type->equals(Type::tsize_t))
 	    error("first argument must be type size_t, not %s", a->type->toChars());
     }
@@ -3358,14 +3358,14 @@ int NewDeclaration::addPostInvariant()
 void NewDeclaration::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 {
     buf->writestring("new");
-    Argument::argsToCBuffer(buf, hgs, arguments, varargs);
+    Parameter::argsToCBuffer(buf, hgs, arguments, varargs);
     bodyToCBuffer(buf, hgs);
 }
 
 
 /********************************* DeleteDeclaration ****************************/
 
-DeleteDeclaration::DeleteDeclaration(Loc loc, Loc endloc, Arguments *arguments)
+DeleteDeclaration::DeleteDeclaration(Loc loc, Loc endloc, Parameters *arguments)
     : FuncDeclaration(loc, endloc, Id::classDelete, STCstatic, NULL)
 {
     this->arguments = arguments;
@@ -3379,7 +3379,7 @@ Dsymbol *DeleteDeclaration::syntaxCopy(Dsymbol *s)
 
     FuncDeclaration::syntaxCopy(f);
 
-    f->arguments = Argument::arraySyntaxCopy(arguments);
+    f->arguments = Parameter::arraySyntaxCopy(arguments);
 
     return f;
 }
@@ -3405,13 +3405,13 @@ void DeleteDeclaration::semantic(Scope *sc)
 
     // Check that there is only one argument of type void*
     TypeFunction *tf = (TypeFunction *)type;
-    if (Argument::dim(tf->parameters) != 1)
+    if (Parameter::dim(tf->parameters) != 1)
     {
 	error("one argument of type void* expected");
     }
     else
     {
-	Argument *a = Argument::getNth(tf->parameters, 0);
+	Parameter *a = Parameter::getNth(tf->parameters, 0);
 	if (!a->type->equals(Type::tvoid->pointerTo()))
 	    error("one argument of type void* expected, not %s", a->type->toChars());
     }
@@ -3447,7 +3447,7 @@ int DeleteDeclaration::addPostInvariant()
 void DeleteDeclaration::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 {
     buf->writestring("delete");
-    Argument::argsToCBuffer(buf, hgs, arguments, 0);
+    Parameter::argsToCBuffer(buf, hgs, arguments, 0);
     bodyToCBuffer(buf, hgs);
 }
 

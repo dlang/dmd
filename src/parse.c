@@ -895,7 +895,7 @@ Dsymbol *Parser::parseCtor()
     {	tpl = parseTemplateParameterList();
 
 	int varargs;
-	Arguments *arguments = parseParameters(&varargs);
+	Parameters *arguments = parseParameters(&varargs);
 
 	Expression *constraint = NULL;
 	if (tpl)
@@ -915,7 +915,7 @@ Dsymbol *Parser::parseCtor()
     /* Just a regular constructor
      */
     int varargs;
-    Arguments *arguments = parseParameters(&varargs);
+    Parameters *arguments = parseParameters(&varargs);
     CtorDeclaration *f = new CtorDeclaration(loc, 0, arguments, varargs);
     parseContracts(f);
     return f;
@@ -1056,7 +1056,7 @@ UnitTestDeclaration *Parser::parseUnitTest()
 NewDeclaration *Parser::parseNew()
 {
     NewDeclaration *f;
-    Arguments *arguments;
+    Parameters *arguments;
     int varargs;
     Loc loc = this->loc;
 
@@ -1076,7 +1076,7 @@ NewDeclaration *Parser::parseNew()
 DeleteDeclaration *Parser::parseDelete()
 {
     DeleteDeclaration *f;
-    Arguments *arguments;
+    Parameters *arguments;
     int varargs;
     Loc loc = this->loc;
 
@@ -1093,9 +1093,9 @@ DeleteDeclaration *Parser::parseDelete()
  * Parse parameter list.
  */
 
-Arguments *Parser::parseParameters(int *pvarargs)
+Parameters *Parser::parseParameters(int *pvarargs)
 {
-    Arguments *arguments = new Arguments();
+    Parameters *arguments = new Parameters();
     int varargs = 0;
     int hasdefault = 0;
 
@@ -1104,7 +1104,7 @@ Arguments *Parser::parseParameters(int *pvarargs)
     {   Type *tb;
 	Identifier *ai = NULL;
 	Type *at;
-	Argument *a;
+	Parameter *a;
 	StorageClass storageClass = 0;
 	StorageClass stc;
 	Expression *ae;
@@ -1216,13 +1216,13 @@ Arguments *Parser::parseParameters(int *pvarargs)
 			if (storageClass & (STCout | STCref))
 			    error("variadic argument cannot be out or ref");
 			varargs = 2;
-			a = new Argument(storageClass, at, ai, ae);
+			a = new Parameter(storageClass, at, ai, ae);
 			arguments->push(a);
 			nextToken();
 			break;
 		    }
 		L3:
-		    a = new Argument(storageClass, at, ai, ae);
+		    a = new Parameter(storageClass, at, ai, ae);
 		    arguments->push(a);
 		    if (token.value == TOKcomma)
 		    {   nextToken();
@@ -1868,7 +1868,7 @@ Objects *Parser::parseTemplateArgumentList2()
 			 */
 			TemplateParameters *tpl = NULL;
 			for (int i = 0; i < tf->parameters->dim; i++)
-			{   Argument *param = (Argument *)tf->parameters->data[i];
+			{   Parameter *param = (Parameter *)tf->parameters->data[i];
 			    if (param->ident == NULL &&
 				param->type &&
 				param->type->ty == Tident &&
@@ -2296,7 +2296,7 @@ Type *Parser::parseBasicType2(Type *t)
 	    {	// Handle delegate declaration:
 		//	t delegate(parameter list) nothrow pure
 		//	t function(parameter list) nothrow pure
-		Arguments *arguments;
+		Parameters *arguments;
 		int varargs;
 		bool ispure = false;
 		bool isnothrow = false;
@@ -2463,7 +2463,7 @@ Type *Parser::parseDeclarator(Type *t, Identifier **pident, TemplateParameters *
 		}
 
 		int varargs;
-		Arguments *arguments = parseParameters(&varargs);
+		Parameters *arguments = parseParameters(&varargs);
 		Type *tf = new TypeFunction(arguments, t, varargs, linkage);
 
 		/* Parse const/invariant/nothrow/pure postfix
@@ -2772,7 +2772,7 @@ L2:
 	    TypeFunction *tf = (TypeFunction *)t;
 	    Expression *constraint = NULL;
 #if 0
-	    if (Argument::isTPL(tf->parameters))
+	    if (Parameter::isTPL(tf->parameters))
 	    {
 		if (!tpl)
 		    tpl = new TemplateParameters();
@@ -3541,26 +3541,18 @@ Statement *Parser::parseStatement(int flags)
 	case TOKforeach_reverse:
 	{
 	    enum TOK op = token.value;
-	    Arguments *arguments;
-
-	    Statement *d;
-	    Statement *body;
-	    Expression *aggr;
 
 	    nextToken();
 	    check(TOKlparen);
 
-	    arguments = new Arguments();
+	    Parameters *arguments = new Parameters();
 
 	    while (1)
 	    {
-		Type *tb;
 		Identifier *ai = NULL;
 		Type *at;
-		unsigned storageClass;
-		Argument *a;
 
-		storageClass = 0;
+		StorageClass storageClass = 0;
 		if (token.value == TOKinout || token.value == TOKref)
 		{   storageClass = STCref;
 		    nextToken();
@@ -3579,7 +3571,7 @@ Statement *Parser::parseStatement(int flags)
 		if (!ai)
 		    error("no identifier for declarator %s", at->toChars());
 	      Larg:
-		a = new Argument(storageClass, at, ai, NULL);
+		Parameter *a = new Parameter(storageClass, at, ai, NULL);
 		arguments->push(a);
 		if (token.value == TOKcomma)
 		{   nextToken();
@@ -3589,28 +3581,28 @@ Statement *Parser::parseStatement(int flags)
 	    }
 	    check(TOKsemicolon);
 
-	    aggr = parseExpression();
+	    Expression *aggr = parseExpression();
 	    if (token.value == TOKslice && arguments->dim == 1)
 	    {
-		Argument *a = (Argument *)arguments->data[0];
+		Parameter *a = (Parameter *)arguments->data[0];
 		delete arguments;
 		nextToken();
 		Expression *upr = parseExpression();
 		check(TOKrparen);
-		body = parseStatement(0);
+		Statement *body = parseStatement(0);
 		s = new ForeachRangeStatement(loc, op, a, aggr, upr, body);
 	    }
 	    else
 	    {
 		check(TOKrparen);
-		body = parseStatement(0);
+		Statement *body = parseStatement(0);
 		s = new ForeachStatement(loc, op, arguments, aggr, body);
 	    }
 	    break;
 	}
 
 	case TOKif:
-	{   Argument *arg = NULL;
+	{   Parameter *arg = NULL;
 	    Expression *condition;
 	    Statement *ifbody;
 	    Statement *elsebody;
@@ -3626,7 +3618,7 @@ Statement *Parser::parseStatement(int flags)
 		    Token *t = peek(&token);
 		    if (t->value == TOKassign)
 		    {
-			arg = new Argument(0, NULL, token.ident, NULL);
+			arg = new Parameter(0, NULL, token.ident, NULL);
 			nextToken();
 			nextToken();
 		    }
@@ -3647,7 +3639,7 @@ Statement *Parser::parseStatement(int flags)
 
 		at = parseType(&ai);
 		check(TOKassign);
-		arg = new Argument(0, at, ai, NULL);
+		arg = new Parameter(0, at, ai, NULL);
 	    }
 
 	    // Check for " ident;"
@@ -3656,7 +3648,7 @@ Statement *Parser::parseStatement(int flags)
 		Token *t = peek(&token);
 		if (t->value == TOKcomma || t->value == TOKsemicolon)
 		{
-		    arg = new Argument(0, NULL, token.ident, NULL);
+		    arg = new Parameter(0, NULL, token.ident, NULL);
 		    nextToken();
 		    nextToken();
 		    if (1 || !global.params.useDeprecated)
@@ -5192,7 +5184,7 @@ Expression *Parser::parsePrimaryExp()
 	     * (parameters) { body }
 	     * { body }
 	     */
-	    Arguments *arguments;
+	    Parameters *arguments;
 	    int varargs;
 	    FuncLiteralDeclaration *fd;
 	    Type *t;
@@ -5205,7 +5197,7 @@ Expression *Parser::parsePrimaryExp()
 	    {
 		t = NULL;
 		varargs = 0;
-		arguments = new Arguments();
+		arguments = new Parameters();
 	    }
 	    else
 	    {

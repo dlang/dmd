@@ -149,7 +149,7 @@ char *cpp_mangle(Dsymbol *s)
     {	// add <bare-function-type>
 	TypeFunction *tf = (TypeFunction *)fd->type;
 	assert(tf->ty == Tfunction);
-	Argument::argsCppMangle(&buf, &cms, tf->parameters, tf->varargs);
+	Parameter::argsCppMangle(&buf, &cms, tf->parameters, tf->varargs);
     }
     buf.writeByte(0);
     return (char *)buf.extractData();
@@ -303,7 +303,7 @@ void TypeFunction::toCppMangle(OutBuffer *buf, CppMangleState *cms)
 	if (linkage == LINKc)
 	    buf->writeByte('Y');
 	next->toCppMangle(buf, cms);
-	Argument::argsCppMangle(buf, cms, parameters, varargs);
+	Parameter::argsCppMangle(buf, cms, parameters, varargs);
 	buf->writeByte('E');
     }
 }
@@ -346,12 +346,12 @@ void TypeClass::toCppMangle(OutBuffer *buf, CppMangleState *cms)
 
 
 
-void Argument::argsCppMangle(OutBuffer *buf, CppMangleState *cms, Arguments *arguments, int varargs)
+void Parameter::argsCppMangle(OutBuffer *buf, CppMangleState *cms, Parameters *arguments, int varargs)
 {   int n = 0;
     if (arguments)
     {
 	for (size_t i = 0; i < arguments->dim; i++)
-	{   Argument *arg = (Argument *)arguments->data[i];
+	{   Parameter *arg = (Parameter *)arguments->data[i];
 	    Type *t = arg->type;
 	    if (arg->storageClass & (STCout | STCref))
 		t = t->referenceTo();

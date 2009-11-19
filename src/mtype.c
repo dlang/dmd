@@ -2755,7 +2755,7 @@ Type *TypeSArray::semantic(Loc loc, Scope *sc)
 	    {	error(loc, "tuple index %ju exceeds %u", d, tt->arguments->dim);
 		return Type::terror;
 	    }
-	    Argument *arg = (Argument *)tt->arguments->data[(size_t)d];
+	    Parameter *arg = (Parameter *)tt->arguments->data[(size_t)d];
 	    return arg->type;
 	}
 	case Tstruct:
@@ -3746,7 +3746,7 @@ int TypeReference::isZeroInit(Loc loc)
 
 /***************************** TypeFunction *****************************/
 
-TypeFunction::TypeFunction(Arguments *parameters, Type *treturn, int varargs, enum LINK linkage)
+TypeFunction::TypeFunction(Parameters *parameters, Type *treturn, int varargs, enum LINK linkage)
     : TypeNext(Tfunction, treturn)
 {
 //if (!treturn) *(char*)0=0;
@@ -3766,7 +3766,7 @@ TypeFunction::TypeFunction(Arguments *parameters, Type *treturn, int varargs, en
 Type *TypeFunction::syntaxCopy()
 {
     Type *treturn = next ? next->syntaxCopy() : NULL;
-    Arguments *params = Argument::arraySyntaxCopy(parameters);
+    Parameters *params = Parameter::arraySyntaxCopy(parameters);
     TypeFunction *t = new TypeFunction(params, treturn, varargs, linkage);
     t->mod = mod;
     t->isnothrow = isnothrow;
@@ -3815,13 +3815,13 @@ int Type::covariant(Type *t)
 
     if (t1->parameters && t2->parameters)
     {
-	size_t dim = Argument::dim(t1->parameters);
-	if (dim != Argument::dim(t2->parameters))
+	size_t dim = Parameter::dim(t1->parameters);
+	if (dim != Parameter::dim(t2->parameters))
 	    goto Ldistinct;
 
 	for (size_t i = 0; i < dim; i++)
-	{   Argument *arg1 = Argument::getNth(t1->parameters, i);
-	    Argument *arg2 = Argument::getNth(t2->parameters, i);
+	{   Parameter *arg1 = Parameter::getNth(t1->parameters, i);
+	    Parameter *arg2 = Parameter::getNth(t2->parameters, i);
 
 	    if (!arg1->type->equals(arg2->type))
 	    {
@@ -3969,7 +3969,7 @@ void TypeFunction::toDecoBuffer(OutBuffer *buf, int flag)
 	}
     }
     // Write argument types
-    Argument::argsToDecoBuffer(buf, parameters);
+    Parameter::argsToDecoBuffer(buf, parameters);
     //if (buf->data[buf->offset - 1] == '@') halt();
     buf->writeByte('Z' - varargs);	// mark end of arg list
     assert(next);
@@ -4039,7 +4039,7 @@ void TypeFunction::toCBuffer(OutBuffer *buf, Identifier *ident, HdrGenState *hgs
     {   buf->writeByte(' ');
 	buf->writestring(ident->toHChars2());
     }
-    Argument::argsToCBuffer(buf, hgs, parameters, varargs);
+    Parameter::argsToCBuffer(buf, hgs, parameters, varargs);
     inuse--;
 }
 
@@ -4072,7 +4072,7 @@ void TypeFunction::toCBuffer2(OutBuffer *buf, HdrGenState *hgs, int mod)
     if (!hgs->hdrgen && p)
 	buf->writestring(p);
     buf->writestring(" function");
-    Argument::argsToCBuffer(buf, hgs, parameters, varargs);
+    Parameter::argsToCBuffer(buf, hgs, parameters, varargs);
 
     /* Use postfix style for attributes
      */
@@ -4119,11 +4119,11 @@ Type *TypeFunction::semantic(Loc loc, Scope *sc)
     TypeFunction *tf = (TypeFunction *)mem.malloc(sizeof(TypeFunction));
     memcpy(tf, this, sizeof(TypeFunction));
     if (parameters)
-    {	tf->parameters = (Arguments *)parameters->copy();
+    {	tf->parameters = (Parameters *)parameters->copy();
 	for (size_t i = 0; i < parameters->dim; i++)
-	{   Argument *arg = (Argument *)parameters->data[i];
-	    Argument *cpy = (Argument *)mem.malloc(sizeof(Argument));
-	    memcpy(cpy, arg, sizeof(Argument));
+	{   Parameter *arg = (Parameter *)parameters->data[i];
+	    Parameter *cpy = (Parameter *)mem.malloc(sizeof(Parameter));
+	    memcpy(cpy, arg, sizeof(Parameter));
 	    tf->parameters->data[i] = (void *)cpy;
 	}
     }
@@ -4184,9 +4184,9 @@ Type *TypeFunction::semantic(Loc loc, Scope *sc)
 	argsc->stc = 0;			// don't inherit storage class
 	argsc->protection = PROTpublic;
 
-	size_t dim = Argument::dim(tf->parameters);
+	size_t dim = Parameter::dim(tf->parameters);
 	for (size_t i = 0; i < dim; i++)
-	{   Argument *arg = Argument::getNth(tf->parameters, i);
+	{   Parameter *arg = Parameter::getNth(tf->parameters, i);
 
 	    tf->inuse++;
 	    arg->type = arg->type->semantic(loc, argsc);
@@ -4223,7 +4223,7 @@ Type *TypeFunction::semantic(Loc loc, Scope *sc)
 	     * change.
 	     */
 	    if (t->ty == Ttuple)
-	    {	dim = Argument::dim(tf->parameters);
+	    {	dim = Parameter::dim(tf->parameters);
 		i--;
 	    }
 	}
@@ -4238,7 +4238,7 @@ Type *TypeFunction::semantic(Loc loc, Scope *sc)
 	return terror;
     }
 
-    if (tf->varargs == 1 && tf->linkage != LINKd && Argument::dim(tf->parameters) == 0)
+    if (tf->varargs == 1 && tf->linkage != LINKd && Parameter::dim(tf->parameters) == 0)
 	error(loc, "variadic functions with non-D linkage must have at least one parameter");
 
     /* Don't return merge(), because arg identifiers and default args
@@ -4273,7 +4273,7 @@ int TypeFunction::callMatch(Expression *ethis, Expressions *args)
 	}
     }
 
-    size_t nparams = Argument::dim(parameters);
+    size_t nparams = Parameter::dim(parameters);
     size_t nargs = args ? args->dim : 0;
     if (nparams == nargs)
 	;
@@ -4290,7 +4290,7 @@ int TypeFunction::callMatch(Expression *ethis, Expressions *args)
 
 	// BUG: what about out and ref?
 
-	Argument *p = Argument::getNth(parameters, u);
+	Parameter *p = Parameter::getNth(parameters, u);
 	assert(p);
 	if (u >= nargs)
 	{
@@ -4413,7 +4413,7 @@ Type *TypeFunction::reliesOnTident()
     if (parameters)
     {
 	for (size_t i = 0; i < parameters->dim; i++)
-	{   Argument *arg = (Argument *)parameters->data[i];
+	{   Parameter *arg = (Parameter *)parameters->data[i];
 	    Type *t = arg->type->reliesOnTident();
 	    if (t)
 		return t;
@@ -4427,7 +4427,7 @@ Type *TypeFunction::reliesOnTident()
  * p can 'escape' the scope of the function.
  */
 
-bool TypeFunction::parameterEscapes(Argument *p)
+bool TypeFunction::parameterEscapes(Parameter *p)
 {
 
     /* Scope parameters do not escape.
@@ -4517,7 +4517,7 @@ void TypeDelegate::toCBuffer2(OutBuffer *buf, HdrGenState *hgs, int mod)
 
     tf->next->toCBuffer2(buf, hgs, 0);
     buf->writestring(" delegate");
-    Argument::argsToCBuffer(buf, hgs, tf->parameters, tf->varargs);
+    Parameter::argsToCBuffer(buf, hgs, tf->parameters, tf->varargs);
 }
 
 Expression *TypeDelegate::defaultInit(Loc loc)
@@ -6722,7 +6722,7 @@ int TypeClass::hasPointers()
 
 /***************************** TypeTuple *****************************/
 
-TypeTuple::TypeTuple(Arguments *arguments)
+TypeTuple::TypeTuple(Parameters *arguments)
     : Type(Ttuple)
 {
     //printf("TypeTuple(this = %p)\n", this);
@@ -6733,7 +6733,7 @@ TypeTuple::TypeTuple(Arguments *arguments)
     {
 	for (size_t i = 0; i < arguments->dim; i++)
 	{
-	    Argument *arg = (Argument *)arguments->data[i];
+	    Parameter *arg = (Parameter *)arguments->data[i];
 	    assert(arg && arg->type);
 	}
     }
@@ -6748,7 +6748,7 @@ TypeTuple::TypeTuple(Arguments *arguments)
 TypeTuple::TypeTuple(Expressions *exps)
     : Type(Ttuple)
 {
-    Arguments *arguments = new Arguments;
+    Parameters *arguments = new Parameters;
     if (exps)
     {
 	arguments->setDim(exps->dim);
@@ -6756,7 +6756,7 @@ TypeTuple::TypeTuple(Expressions *exps)
 	{   Expression *e = (Expression *)exps->data[i];
 	    if (e->type->ty == Ttuple)
 		e->error("cannot form tuple of tuples");
-	    Argument *arg = new Argument(STCundefined, e->type, NULL, NULL);
+	    Parameter *arg = new Parameter(STCundefined, e->type, NULL, NULL);
 	    arguments->data[i] = (void *)arg;
 	}
     }
@@ -6765,7 +6765,7 @@ TypeTuple::TypeTuple(Expressions *exps)
 
 Type *TypeTuple::syntaxCopy()
 {
-    Arguments *args = Argument::arraySyntaxCopy(arguments);
+    Parameters *args = Parameter::arraySyntaxCopy(arguments);
     Type *t = new TypeTuple(args);
     t->mod = mod;
     return t;
@@ -6799,8 +6799,8 @@ int TypeTuple::equals(Object *o)
 	if (arguments->dim == tt->arguments->dim)
 	{
 	    for (size_t i = 0; i < tt->arguments->dim; i++)
-	    {   Argument *arg1 = (Argument *)arguments->data[i];
-		Argument *arg2 = (Argument *)tt->arguments->data[i];
+	    {   Parameter *arg1 = (Parameter *)arguments->data[i];
+		Parameter *arg2 = (Parameter *)tt->arguments->data[i];
 
 		if (!arg1->type->equals(arg2->type))
 		    return 0;
@@ -6817,7 +6817,7 @@ Type *TypeTuple::reliesOnTident()
     {
 	for (size_t i = 0; i < arguments->dim; i++)
 	{
-	    Argument *arg = (Argument *)arguments->data[i];
+	    Parameter *arg = (Parameter *)arguments->data[i];
 	    Type *t = arg->type->reliesOnTident();
 	    if (t)
 		return t;
@@ -6833,12 +6833,12 @@ Type *TypeTuple::makeConst()
     if (cto)
 	return cto;
     TypeTuple *t = (TypeTuple *)Type::makeConst();
-    t->arguments = new Arguments();
+    t->arguments = new Parameters();
     t->arguments->setDim(arguments->dim);
     for (size_t i = 0; i < arguments->dim; i++)
-    {   Argument *arg = (Argument *)arguments->data[i];
-	Argument *narg = new Argument(arg->storageClass, arg->type->constOf(), arg->ident, arg->defaultArg);
-	t->arguments->data[i] = (Argument *)narg;
+    {   Parameter *arg = (Parameter *)arguments->data[i];
+	Parameter *narg = new Parameter(arg->storageClass, arg->type->constOf(), arg->ident, arg->defaultArg);
+	t->arguments->data[i] = (Parameter *)narg;
     }
     return t;
 }
@@ -6846,7 +6846,7 @@ Type *TypeTuple::makeConst()
 
 void TypeTuple::toCBuffer2(OutBuffer *buf, HdrGenState *hgs, int mod)
 {
-    Argument::argsToCBuffer(buf, hgs, arguments, 0);
+    Parameter::argsToCBuffer(buf, hgs, arguments, 0);
 }
 
 void TypeTuple::toDecoBuffer(OutBuffer *buf, int flag)
@@ -6854,7 +6854,7 @@ void TypeTuple::toDecoBuffer(OutBuffer *buf, int flag)
     //printf("TypeTuple::toDecoBuffer() this = %p, %s\n", this, toChars());
     Type::toDecoBuffer(buf, flag);
     OutBuffer buf2;
-    Argument::argsToDecoBuffer(&buf2, arguments);
+    Parameter::argsToDecoBuffer(&buf2, arguments);
     unsigned len = buf2.offset;
     buf->printf("%d%.*s", len, len, (char *)buf2.extractData());
 }
@@ -6923,10 +6923,10 @@ Type *TypeSlice::semantic(Loc loc, Scope *sc)
 	return Type::terror;
     }
 
-    Arguments *args = new Arguments;
+    Parameters *args = new Parameters;
     args->reserve(i2 - i1);
     for (size_t i = i1; i < i2; i++)
-    {	Argument *arg = (Argument *)tt->arguments->data[i];
+    {	Parameter *arg = (Parameter *)tt->arguments->data[i];
 	args->push(arg);
     }
 
@@ -7030,9 +7030,9 @@ void TypeNewArray::toCBuffer2(OutBuffer *buf, HdrGenState *hgs, int mod)
     buf->writestring("[new]");
 }
 
-/***************************** Argument *****************************/
+/***************************** Parameter *****************************/
 
-Argument::Argument(StorageClass storageClass, Type *type, Identifier *ident, Expression *defaultArg)
+Parameter::Parameter(StorageClass storageClass, Type *type, Identifier *ident, Expression *defaultArg)
 {
     this->type = type;
     this->ident = ident;
@@ -7040,24 +7040,24 @@ Argument::Argument(StorageClass storageClass, Type *type, Identifier *ident, Exp
     this->defaultArg = defaultArg;
 }
 
-Argument *Argument::syntaxCopy()
+Parameter *Parameter::syntaxCopy()
 {
-    Argument *a = new Argument(storageClass,
+    Parameter *a = new Parameter(storageClass,
 		type ? type->syntaxCopy() : NULL,
 		ident,
 		defaultArg ? defaultArg->syntaxCopy() : NULL);
     return a;
 }
 
-Arguments *Argument::arraySyntaxCopy(Arguments *args)
-{   Arguments *a = NULL;
+Parameters *Parameter::arraySyntaxCopy(Parameters *args)
+{   Parameters *a = NULL;
 
     if (args)
     {
-	a = new Arguments();
+	a = new Parameters();
 	a->setDim(args->dim);
 	for (size_t i = 0; i < a->dim; i++)
-	{   Argument *arg = (Argument *)args->data[i];
+	{   Parameter *arg = (Parameter *)args->data[i];
 
 	    arg = arg->syntaxCopy();
 	    a->data[i] = (void *)arg;
@@ -7066,7 +7066,7 @@ Arguments *Argument::arraySyntaxCopy(Arguments *args)
     return a;
 }
 
-char *Argument::argsTypesToChars(Arguments *args, int varargs)
+char *Parameter::argsTypesToChars(Parameters *args, int varargs)
 {
     OutBuffer *buf = new OutBuffer();
 
@@ -7082,7 +7082,7 @@ char *Argument::argsTypesToChars(Arguments *args, int varargs)
 	for (int i = 0; i < args->dim; i++)
 	{   if (i)
 		buf->writeByte(',');
-	    Argument *arg = (Argument *)args->data[i];
+	    Parameter *arg = (Parameter *)args->data[i];
 	    argbuf.reset();
 	    arg->type->toCBuffer2(&argbuf, &hgs, 0);
 	    buf->write(&argbuf);
@@ -7099,7 +7099,7 @@ char *Argument::argsTypesToChars(Arguments *args, int varargs)
     return buf->toChars();
 }
 
-void Argument::argsToCBuffer(OutBuffer *buf, HdrGenState *hgs, Arguments *arguments, int varargs)
+void Parameter::argsToCBuffer(OutBuffer *buf, HdrGenState *hgs, Parameters *arguments, int varargs)
 {
     buf->writeByte('(');
     if (arguments)
@@ -7110,7 +7110,7 @@ void Argument::argsToCBuffer(OutBuffer *buf, HdrGenState *hgs, Arguments *argume
 	{
 	    if (i)
 		buf->writestring(", ");
-	    Argument *arg = (Argument *)arguments->data[i];
+	    Parameter *arg = (Parameter *)arguments->data[i];
 
 	    if (arg->storageClass & STCout)
 		buf->writestring("out ");
@@ -7158,17 +7158,17 @@ void Argument::argsToCBuffer(OutBuffer *buf, HdrGenState *hgs, Arguments *argume
 }
 
 
-void Argument::argsToDecoBuffer(OutBuffer *buf, Arguments *arguments)
+void Parameter::argsToDecoBuffer(OutBuffer *buf, Parameters *arguments)
 {
-    //printf("Argument::argsToDecoBuffer()\n");
+    //printf("Parameter::argsToDecoBuffer()\n");
 
     // Write argument types
     if (arguments)
     {
-	size_t dim = Argument::dim(arguments);
+	size_t dim = Parameter::dim(arguments);
 	for (size_t i = 0; i < dim; i++)
 	{
-	    Argument *arg = Argument::getNth(arguments, i);
+	    Parameter *arg = Parameter::getNth(arguments, i);
 	    arg->toDecoBuffer(buf);
 	}
     }
@@ -7180,16 +7180,16 @@ void Argument::argsToDecoBuffer(OutBuffer *buf, Arguments *arguments)
  * (i.e. it has auto or alias parameters)
  */
 
-int Argument::isTPL(Arguments *arguments)
+int Parameter::isTPL(Parameters *arguments)
 {
-    //printf("Argument::isTPL()\n");
+    //printf("Parameter::isTPL()\n");
 
     if (arguments)
     {
-	size_t dim = Argument::dim(arguments);
+	size_t dim = Parameter::dim(arguments);
 	for (size_t i = 0; i < dim; i++)
 	{
-	    Argument *arg = Argument::getNth(arguments, i);
+	    Parameter *arg = Parameter::getNth(arguments, i);
 	    if (arg->storageClass & (STCalias | STCauto | STCstatic))
 		return 1;
 	}
@@ -7203,7 +7203,7 @@ int Argument::isTPL(Arguments *arguments)
  * If not, return NULL.
  */
 
-Type *Argument::isLazyArray()
+Type *Parameter::isLazyArray()
 {
 //    if (inout == Lazy)
     {
@@ -7216,7 +7216,7 @@ Type *Argument::isLazyArray()
 		TypeDelegate *td = (TypeDelegate *)tel;
 		TypeFunction *tf = (TypeFunction *)td->next;
 
-		if (!tf->varargs && Argument::dim(tf->parameters) == 0)
+		if (!tf->varargs && Parameter::dim(tf->parameters) == 0)
 		{
 		    return tf->next;	// return type of delegate
 		}
@@ -7226,7 +7226,7 @@ Type *Argument::isLazyArray()
     return NULL;
 }
 
-void Argument::toDecoBuffer(OutBuffer *buf)
+void Parameter::toDecoBuffer(OutBuffer *buf)
 {
     if (storageClass & STCscope)
 	buf->writeByte('M');
@@ -7264,13 +7264,13 @@ void Argument::toDecoBuffer(OutBuffer *buf)
  * Determine number of arguments, folding in tuples.
  */
 
-size_t Argument::dim(Arguments *args)
+size_t Parameter::dim(Parameters *args)
 {
     size_t n = 0;
     if (args)
     {
 	for (size_t i = 0; i < args->dim; i++)
-	{   Argument *arg = (Argument *)args->data[i];
+	{   Parameter *arg = (Parameter *)args->data[i];
 	    Type *t = arg->type->toBasetype();
 
 	    if (t->ty == Ttuple)
@@ -7285,21 +7285,21 @@ size_t Argument::dim(Arguments *args)
 }
 
 /***************************************
- * Get nth Argument, folding in tuples.
+ * Get nth Parameter, folding in tuples.
  * Returns:
- *	Argument*	nth Argument
+ *	Parameter*	nth Parameter
  *	NULL		not found, *pn gets incremented by the number
- *			of Arguments
+ *			of Parameters
  */
 
-Argument *Argument::getNth(Arguments *args, size_t nth, size_t *pn)
+Parameter *Parameter::getNth(Parameters *args, size_t nth, size_t *pn)
 {
     if (!args)
 	return NULL;
 
     size_t n = 0;
     for (size_t i = 0; i < args->dim; i++)
-    {   Argument *arg = (Argument *)args->data[i];
+    {   Parameter *arg = (Parameter *)args->data[i];
 	Type *t = arg->type->toBasetype();
 
 	if (t->ty == Ttuple)

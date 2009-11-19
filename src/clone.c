@@ -85,8 +85,8 @@ FuncDeclaration *StructDeclaration::buildOpAssign(Scope *sc)
 
     FuncDeclaration *fop = NULL;
 
-    Argument *param = new Argument(STCnodtor, type, Id::p, NULL);
-    Arguments *fparams = new Arguments;
+    Parameter *param = new Parameter(STCnodtor, type, Id::p, NULL);
+    Parameters *fparams = new Parameters;
     fparams->push(param);
     Type *ftype = new TypeFunction(fparams, handle, FALSE, LINKd);
 #if STRUCTTHISREF
@@ -210,8 +210,8 @@ FuncDeclaration *StructDeclaration::buildCpCtor(Scope *sc)
     {
 	//printf("generating cpctor\n");
 
-	Argument *param = new Argument(STCref, type, Id::p, NULL);
-	Arguments *fparams = new Arguments;
+	Parameter *param = new Parameter(STCref, type, Id::p, NULL);
+	Parameters *fparams = new Parameters;
 	fparams->push(param);
 	Type *ftype = new TypeFunction(fparams, Type::tvoid, FALSE, LINKd);
 

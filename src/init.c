@@ -213,7 +213,7 @@ Initializer *StructInitializer::semantic(Scope *sc, Type *t)
     else if (t->ty == Tdelegate && value.dim == 0)
     {	/* Rewrite as empty delegate literal { }
 	 */
-	Arguments *arguments = new Arguments;
+	Parameters *arguments = new Parameters;
 	Type *tf = new TypeFunction(arguments, NULL, 0, LINKd);
 	FuncLiteralDeclaration *fd = new FuncLiteralDeclaration(loc, 0, tf, TOKdelegate, NULL);
 	fd->fbody = new CompoundStatement(loc, new Statements());

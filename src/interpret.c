@@ -121,9 +121,9 @@ Expression *FuncDeclaration::interpret(InterState *istate, Expressions *argument
     
     // Ensure there are no lazy parameters
     if (tf->parameters)
-    {	size_t dim = Argument::dim(tf->parameters);
+    {	size_t dim = Parameter::dim(tf->parameters);
 	for (size_t i = 0; i < dim; i++)
-	{   Argument *arg = Argument::getNth(tf->parameters, i);
+	{   Parameter *arg = Parameter::getNth(tf->parameters, i);
 	    if (arg->storageClass & STClazy)
 	    {   cantInterpret = 1;
 		return NULL;
@@ -158,7 +158,7 @@ Expression *FuncDeclaration::interpret(InterState *istate, Expressions *argument
 
 	for (size_t i = 0; i < dim; i++)
 	{   Expression *earg = (Expression *)arguments->data[i];
-	    Argument *arg = Argument::getNth(tf->parameters, i);
+	    Parameter *arg = Parameter::getNth(tf->parameters, i);
 
 	    if (arg->storageClass & (STCout | STCref))
 	    {
@@ -185,7 +185,7 @@ Expression *FuncDeclaration::interpret(InterState *istate, Expressions *argument
 
 	for (size_t i = 0; i < dim; i++)
 	{   Expression *earg = (Expression *)eargs.data[i];
-	    Argument *arg = Argument::getNth(tf->parameters, i);
+	    Parameter *arg = Parameter::getNth(tf->parameters, i);
 	    VarDeclaration *v = (VarDeclaration *)parameters->data[i];
 	    vsave.data[i] = v->value;
 #if LOG

@@ -96,7 +96,7 @@ unsigned skippastURL(OutBuffer *buf, size_t i);
 void highlightText(Scope *sc, Dsymbol *s, OutBuffer *buf, unsigned offset);
 void highlightCode(Scope *sc, Dsymbol *s, OutBuffer *buf, unsigned offset);
 void highlightCode2(Scope *sc, Dsymbol *s, OutBuffer *buf, unsigned offset);
-Argument *isFunctionParameter(Dsymbol *s, unsigned char *p, unsigned len);
+Parameter *isFunctionParameter(Dsymbol *s, unsigned char *p, unsigned len);
 
 int isIdStart(unsigned char *p);
 int isIdTail(unsigned char *p);
@@ -773,7 +773,7 @@ void FuncDeclaration::toDocBuffer(OutBuffer *buf)
 		tp->toCBuffer(buf, &hgs);
 	    }
 	    buf->writeByte(')');
-	    Argument::argsToCBuffer(buf, &hgs, tf->parameters, tf->varargs);
+	    Parameter::argsToCBuffer(buf, &hgs, tf->parameters, tf->varargs);
 	    buf->writestring(";\n");
 
 	    highlightCode(NULL, this, buf, o);
@@ -790,7 +790,7 @@ void CtorDeclaration::toDocBuffer(OutBuffer *buf)
     HdrGenState hgs;
 
     buf->writestring("this");
-    Argument::argsToCBuffer(buf, &hgs, arguments, varargs);
+    Parameter::argsToCBuffer(buf, &hgs, arguments, varargs);
     buf->writestring(";\n");
 }
 
@@ -1154,7 +1154,7 @@ void ParamSection::write(DocComment *dc, Scope *sc, Dsymbol *s, OutBuffer *buf)
     unsigned textlen;
 
     unsigned o;
-    Argument *arg;
+    Parameter *arg;
 
     buf->writestring("$(DDOC_PARAMS \n");
     while (p < pend)
@@ -1621,7 +1621,7 @@ int isKeyword(unsigned char *p, unsigned len)
 /****************************************************
  */
 
-Argument *isFunctionParameter(Dsymbol *s, unsigned char *p, unsigned len)
+Parameter *isFunctionParameter(Dsymbol *s, unsigned char *p, unsigned len)
 {
     FuncDeclaration *f = s->isFuncDeclaration();
 
@@ -1640,7 +1640,7 @@ Argument *isFunctionParameter(Dsymbol *s, unsigned char *p, unsigned len)
 	if (tf->parameters)
 	{
 	    for (size_t k = 0; k < tf->parameters->dim; k++)
-	    {   Argument *arg = (Argument *)tf->parameters->data[k];
+	    {   Parameter *arg = (Parameter *)tf->parameters->data[k];
 
 		if (arg->ident && cmp(arg->ident->toChars(), p, len) == 0)
 		{

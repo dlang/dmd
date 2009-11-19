@@ -37,7 +37,7 @@ enum LINK;
 
 struct TypeBasic;
 struct HdrGenState;
-struct Argument;
+struct Parameter;
 
 // Back end
 #if IN_GCC
@@ -511,7 +511,7 @@ struct TypeFunction : TypeNext
 {
     // .next is the return type
 
-    Arguments *parameters;	// function parameters
+    Parameters *parameters;	// function parameters
     int varargs;	// 1: T t, ...) style for variable number of arguments
 			// 2: T t ...) style for variable number of arguments
     bool isnothrow;	// true: nothrow
@@ -523,7 +523,7 @@ struct TypeFunction : TypeNext
 
     int inuse;
 
-    TypeFunction(Arguments *parameters, Type *treturn, int varargs, enum LINK linkage);
+    TypeFunction(Parameters *parameters, Type *treturn, int varargs, enum LINK linkage);
     Type *syntaxCopy();
     Type *semantic(Loc loc, Scope *sc);
     void toDecoBuffer(OutBuffer *buf, int flag);
@@ -535,7 +535,7 @@ struct TypeFunction : TypeNext
 #if CPP_MANGLE
     void toCppMangle(OutBuffer *buf, CppMangleState *cms);
 #endif
-    bool parameterEscapes(Argument *p);
+    bool parameterEscapes(Parameter *p);
 
     int callMatch(Expression *ethis, Expressions *toargs);
     type *toCtype();
@@ -790,9 +790,9 @@ struct TypeClass : Type
 
 struct TypeTuple : Type
 {
-    Arguments *arguments;	// types making up the tuple
+    Parameters *arguments;	// types making up the tuple
 
-    TypeTuple(Arguments *arguments);
+    TypeTuple(Parameters *arguments);
     TypeTuple(Expressions *exps);
     Type *syntaxCopy();
     Type *semantic(Loc loc, Scope *sc);
@@ -826,7 +826,7 @@ struct TypeNewArray : TypeNext
 
 //enum InOut { None, In, Out, InOut, Lazy };
 
-struct Argument : Object
+struct Parameter : Object
 {
     //enum InOut inout;
     StorageClass storageClass;
@@ -834,18 +834,18 @@ struct Argument : Object
     Identifier *ident;
     Expression *defaultArg;
 
-    Argument(StorageClass storageClass, Type *type, Identifier *ident, Expression *defaultArg);
-    Argument *syntaxCopy();
+    Parameter(StorageClass storageClass, Type *type, Identifier *ident, Expression *defaultArg);
+    Parameter *syntaxCopy();
     Type *isLazyArray();
     void toDecoBuffer(OutBuffer *buf);
-    static Arguments *arraySyntaxCopy(Arguments *args);
-    static char *argsTypesToChars(Arguments *args, int varargs);
-    static void argsCppMangle(OutBuffer *buf, CppMangleState *cms, Arguments *arguments, int varargs);
-    static void argsToCBuffer(OutBuffer *buf, HdrGenState *hgs, Arguments *arguments, int varargs);
-    static void argsToDecoBuffer(OutBuffer *buf, Arguments *arguments);
-    static int isTPL(Arguments *arguments);
-    static size_t dim(Arguments *arguments);
-    static Argument *getNth(Arguments *arguments, size_t nth, size_t *pn = NULL);
+    static Parameters *arraySyntaxCopy(Parameters *args);
+    static char *argsTypesToChars(Parameters *args, int varargs);
+    static void argsCppMangle(OutBuffer *buf, CppMangleState *cms, Parameters *arguments, int varargs);
+    static void argsToCBuffer(OutBuffer *buf, HdrGenState *hgs, Parameters *arguments, int varargs);
+    static void argsToDecoBuffer(OutBuffer *buf, Parameters *arguments);
+    static int isTPL(Parameters *arguments);
+    static size_t dim(Parameters *arguments);
+    static Parameter *getNth(Parameters *arguments, size_t nth, size_t *pn = NULL);
 };
 
 extern int PTRSIZE;

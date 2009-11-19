@@ -993,8 +993,8 @@ FuncDeclaration *ScopeDsymbol::findGetMembers()
     if (!tfgetmembers)
     {
 	Scope sc;
-	Arguments *arguments = new Arguments;
-	Arguments *arg = new Argument(STCin, Type::tchar->constOf()->arrayOf(), NULL, NULL);
+	Parameters *arguments = new Parameters;
+	Parameters *arg = new Parameter(STCin, Type::tchar->constOf()->arrayOf(), NULL, NULL);
 	arguments->push(arg);
 
 	Type *tret = NULL;
