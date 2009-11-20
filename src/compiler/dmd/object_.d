@@ -26,7 +26,7 @@ private
     debug(PRINTF) import core.stdc.stdio;
 
     extern (C) void onOutOfMemoryError();
-    extern (C) Object _d_newclass(ClassInfo ci);
+    extern (C) Object _d_newclass(TypeInfo_Class ci);
 }
 
 // NOTE: For some reason, this declaration method doesn't work
@@ -116,7 +116,7 @@ class Object
      */
     static Object factory(string classname)
     {
-        auto ci = ClassInfo.find(classname);
+        auto ci = TypeInfo_Class.find(classname);
         if (ci)
         {
             return ci.create();
@@ -132,7 +132,7 @@ class Object
  */
 struct Interface
 {
-    ClassInfo   classinfo;  /// .classinfo for this interface (not for containing class)
+    TypeInfo_Class   classinfo;  /// .classinfo for this interface (not for containing class)
     void*[]     vtbl;
     ptrdiff_t   offset;     /// offset to Interface 'this' from Object 'this'
 }
@@ -142,76 +142,7 @@ struct Interface
  * or instance by using the .classinfo property.
  * A pointer to this appears as the first entry in the class's vtbl[].
  */
-class ClassInfo : Object
-{
-    byte[]      init;           /** class static initializer
-                                 * (init.length gives size in bytes of class)
-                                 */
-    string      name;           /// class name
-    void*[]     vtbl;           /// virtual function pointer table
-    Interface[] interfaces;     /// interfaces this class implements
-    ClassInfo   base;           /// base class
-    void*       destructor;
-    void function(Object) classInvariant;
-    uint        flags;
-    //  1:                      // is IUnknown or is derived from IUnknown
-    //  2:                      // has no possible pointers into GC memory
-    //  4:                      // has offTi[] member
-    //  8:                      // has constructors
-    // 16:                      // has xgetMembers member
-    // 32:                      // has typeinfo member
-    void*       deallocator;
-    OffsetTypeInfo[] offTi;
-    void function(Object) defaultConstructor;   // default Constructor
-    const(MemberInfo[]) function(in char[]) xgetMembers;
-    TypeInfo typeinfo;
-
-    /**
-     * Search all modules for ClassInfo corresponding to classname.
-     * Returns: null if not found
-     */
-    static ClassInfo find(in char[] classname)
-    {
-        foreach (m; ModuleInfo)
-        {
-          if (m)
-            //writefln("module %s, %d", m.name, m.localClasses.length);
-            foreach (c; m.localClasses)
-            {
-                //writefln("\tclass %s", c.name);
-                if (c.name == classname)
-                    return c;
-            }
-        }
-        return null;
-    }
-
-    /**
-     * Create instance of Object represented by 'this'.
-     */
-    Object create()
-    {
-        if (flags & 8 && !defaultConstructor)
-            return null;
-        Object o = _d_newclass(this);
-        if (flags & 8 && defaultConstructor)
-        {
-            defaultConstructor(o);
-        }
-        return o;
-    }
-
-    /**
-     * Search for all members with the name 'name'.
-     * If name[] is null, return all members.
-     */
-    const(MemberInfo[]) getMembers(in char[] name)
-    {
-        if (flags & 16 && xgetMembers)
-            return xgetMembers(name);
-        return null;
-    }
-}
+alias TypeInfo_Class Classinfo;
 
 /**
  * Array of pairs giving the offset and type information for each
@@ -705,11 +636,81 @@ class TypeInfo_Class : TypeInfo
 
     override OffsetTypeInfo[] offTi()
     {
-        return (info.flags & 4) ? info.offTi : null;
+        return m_offTi;
     }
 
-    ClassInfo info;
+    @property TypeInfo_Class info() { return this; }
+    @property TypeInfo typeinfo() { return this; }
+
+    byte[]      init;           /** class static initializer
+                                 * (init.length gives size in bytes of class)
+                                 */
+    string      name;           /// class name
+    void*[]     vtbl;           /// virtual function pointer table
+    Interface[] interfaces;     /// interfaces this class implements
+    TypeInfo_Class   base;           /// base class
+    void*       destructor;
+    void function(Object) classInvariant;
+    uint        m_flags;
+    //  1:                      // is IUnknown or is derived from IUnknown
+    //  2:                      // has no possible pointers into GC memory
+    //  4:                      // has offTi[] member
+    //  8:                      // has constructors
+    // 16:                      // has xgetMembers member
+    // 32:                      // has typeinfo member
+    void*       deallocator;
+    OffsetTypeInfo[] m_offTi;
+    void function(Object) defaultConstructor;   // default Constructor
+    const(MemberInfo[]) function(in char[]) xgetMembers;
+
+    /**
+     * Search all modules for TypeInfo_Class corresponding to classname.
+     * Returns: null if not found
+     */
+    static TypeInfo_Class find(in char[] classname)
+    {
+        foreach (m; ModuleInfo)
+        {
+	  if (m)
+            //writefln("module %s, %d", m.name, m.localClasses.length);
+            foreach (c; m.localClasses)
+            {
+                //writefln("\tclass %s", c.name);
+                if (c.name == classname)
+                    return c;
+            }
+        }
+        return null;
+    }
+
+    /**
+     * Create instance of Object represented by 'this'.
+     */
+    Object create()
+    {
+        if (m_flags & 8 && !defaultConstructor)
+            return null;
+        Object o = _d_newclass(this);
+        if (m_flags & 8 && defaultConstructor)
+        {
+            defaultConstructor(o);
+        }
+        return o;
+    }
+
+    /**
+     * Search for all members with the name 'name'.
+     * If name[] is null, return all members.
+     */
+    const(MemberInfo[]) getMembers(in char[] name)
+    {
+        if (m_flags & 16 && xgetMembers)
+            return xgetMembers(name);
+        return null;
+    }
 }
+
+alias TypeInfo_Class ClassInfo;
 
 class TypeInfo_Interface : TypeInfo
 {
@@ -772,7 +773,7 @@ class TypeInfo_Interface : TypeInfo
 
     override uint flags() { return 1; }
 
-    ClassInfo info;
+    TypeInfo_Class info;
 }
 
 class TypeInfo_Struct : TypeInfo
@@ -1173,7 +1174,7 @@ class ModuleInfo
 {
     string          name;
     ModuleInfo[]    importedModules;
-    ClassInfo[]     localClasses;
+    TypeInfo_Class[]     localClasses;
     uint            flags;
 
     void function() ctor;       // module static constructor (order dependent)

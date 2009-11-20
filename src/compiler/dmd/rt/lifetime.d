@@ -87,7 +87,7 @@ extern (C) Object _d_newclass(ClassInfo ci)
     void* p;
 
     debug(PRINTF) printf("_d_newclass(ci = %p, %s)\n", ci, cast(char *)ci.name);
-    if (ci.flags & 1) // if COM object
+    if (ci.m_flags & 1) // if COM object
     {   /* COM objects are not garbage collected, they are reference counted
          * using AddRef() and Release().  They get free'd by C's free()
          * function called by Release() when Release()'s reference count goes
@@ -100,7 +100,7 @@ extern (C) Object _d_newclass(ClassInfo ci)
     else
     {
         p = gc_malloc(ci.init.length,
-                      BlkAttr.FINALIZE | (ci.flags & 2 ? BlkAttr.NO_SCAN : 0));
+                      BlkAttr.FINALIZE | (ci.m_flags & 2 ? BlkAttr.NO_SCAN : 0));
         debug(PRINTF) printf(" p = %p\n", p);
     }
 

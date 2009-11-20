@@ -11,7 +11,7 @@ UDFLAGS=-O -release -nofloat -w -d
 
 CFLAGS=
 
-DRUNTIME=druntime.lib
+DRUNTIME=lib\druntime.lib
 
 target : $(DOCS) $(IMPORTS) $(DRUNTIME)
 

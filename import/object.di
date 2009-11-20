@@ -40,36 +40,9 @@ class Object
 
 struct Interface
 {
-    ClassInfo   classinfo;
+    TypeInfo_Class   classinfo;
     void*[]     vtbl;
     ptrdiff_t   offset;   // offset to Interface 'this' from Object 'this'
-}
-
-class ClassInfo : Object
-{
-    byte[]      init;   // class static initializer
-    string      name;   // class name
-    void*[]     vtbl;   // virtual function pointer table
-    Interface[] interfaces;
-    ClassInfo   base;
-    void*       destructor;
-    void(*classInvariant)(Object);
-    uint        flags;
-    //  1:      // is IUnknown or is derived from IUnknown
-    //  2:      // has no possible pointers into GC memory
-    //  4:      // has offTi[] member
-    //  8:      // has constructors
-    // 16:      // has xgetMembers member
-    // 32:      // has typeinfo member
-    void*       deallocator;
-    OffsetTypeInfo[] offTi;
-    void*       defaultConstructor;
-    const(MemberInfo[]) function(string) xgetMembers;
-    TypeInfo    typeinfo;
-
-    static ClassInfo find(in char[] classname);
-    Object create();
-    const(MemberInfo[]) getMembers(in char[] classname);
 }
 
 struct OffsetTypeInfo
@@ -141,8 +114,34 @@ class TypeInfo_Delegate : TypeInfo
 
 class TypeInfo_Class : TypeInfo
 {
-    ClassInfo info;
+    @property TypeInfo_Class info() { return this; }
+    @property TypeInfo typeinfo() { return this; }
+
+    byte[]      init;   // class static initializer
+    string      name;   // class name
+    void*[]     vtbl;   // virtual function pointer table
+    Interface[] interfaces;
+    TypeInfo_Class   base;
+    void*       destructor;
+    void(*classInvariant)(Object);
+    uint        m_flags;
+    //  1:      // is IUnknown or is derived from IUnknown
+    //  2:      // has no possible pointers into GC memory
+    //  4:      // has offTi[] member
+    //  8:      // has constructors
+    // 16:      // has xgetMembers member
+    // 32:      // has typeinfo member
+    void*       deallocator;
+    OffsetTypeInfo[] m_offTi;
+    void*       defaultConstructor;
+    const(MemberInfo[]) function(string) xgetMembers;
+
+    static TypeInfo_Class find(in char[] classname);
+    Object create();
+    const(MemberInfo[]) getMembers(in char[] classname);
 }
+
+alias TypeInfo_Class ClassInfo;
 
 class TypeInfo_Interface : TypeInfo
 {
