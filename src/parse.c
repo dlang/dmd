@@ -4979,13 +4979,20 @@ Expression *Parser::parsePrimaryExp()
 	}
 
 	case TOKtypeid:
-	{   Type *t;
-
+	{
 	    nextToken();
 	    check(TOKlparen, "typeid");
-	    t = parseType();		// ( type )
+	    Object *o;
+	    if (isDeclaration(&token, 0, TOKreserved, NULL))
+	    {	// argument is a type
+		o = parseType();
+	    }
+	    else
+	    {	// argument is an expression
+		o = parseAssignExp();
+	    }
 	    check(TOKrparen);
-	    e = new TypeidExp(loc, t);
+	    e = new TypeidExp(loc, o);
 	    break;
 	}
 

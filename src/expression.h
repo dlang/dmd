@@ -663,9 +663,9 @@ struct DeclarationExp : Expression
 
 struct TypeidExp : Expression
 {
-    Type *typeidType;
+    Object *obj;
 
-    TypeidExp(Loc loc, Type *typeidType);
+    TypeidExp(Loc loc, Object *obj);
     Expression *syntaxCopy();
     Expression *semantic(Scope *sc);
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);

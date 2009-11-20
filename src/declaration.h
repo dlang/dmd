@@ -359,6 +359,7 @@ struct TypeInfoStructDeclaration : TypeInfoDeclaration
 struct TypeInfoClassDeclaration : TypeInfoDeclaration
 {
     TypeInfoClassDeclaration(Type *tinfo);
+    Symbol *toSymbol();
 
     void toDt(dt_t **pdt);
 };

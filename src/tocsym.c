@@ -300,6 +300,17 @@ Symbol *TypeInfoDeclaration::toSymbol()
 /*************************************
  */
 
+Symbol *TypeInfoClassDeclaration::toSymbol()
+{
+    //printf("TypeInfoClassDeclaration::toSymbol(%s), linkage = %d\n", toChars(), linkage);
+    assert(tinfo->ty == Tclass);
+    TypeClass *tc = (TypeClass *)tinfo;
+    return tc->sym->toSymbol();
+}
+
+/*************************************
+ */
+
 Symbol *FuncAliasDeclaration::toSymbol()
 {
     return funcalias->toSymbol();

@@ -30,7 +30,7 @@ struct InvariantDeclaration;
 struct NewDeclaration;
 struct DeleteDeclaration;
 struct InterfaceDeclaration;
-struct ClassInfoDeclaration;
+struct TypeInfoClassDeclaration;
 struct VarDeclaration;
 struct dt_t;
 
@@ -185,7 +185,7 @@ struct BaseClass
 };
 
 #if DMDV2
-#define CLASSINFO_SIZE 	(0x3C+16+4)	// value of ClassInfo.size
+#define CLASSINFO_SIZE 	(0x3C+12+4)	// value of ClassInfo.size
 #else
 #define CLASSINFO_SIZE 	(0x3C+12+4)	// value of ClassInfo.size
 #endif
@@ -215,7 +215,7 @@ struct ClassDeclaration : AggregateDeclaration
     BaseClasses *vtblInterfaces;	// array of base interfaces that have
 					// their own vtbl[]
 
-    ClassInfoDeclaration *vclassinfo;	// the ClassInfo object for this ClassDeclaration
+    TypeInfoClassDeclaration *vclassinfo;	// the ClassInfo object for this ClassDeclaration
     int com;				// !=0 if this is a COM class (meaning
 					// it derives from IUnknown)
     int isauto;				// !=0 if this is an auto class

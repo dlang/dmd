@@ -4697,16 +4697,16 @@ void DeclarationExp::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
  *	typeid(int)
  */
 
-TypeidExp::TypeidExp(Loc loc, Type *typeidType)
+TypeidExp::TypeidExp(Loc loc, Object *o)
     : Expression(loc, TOKtypeid, sizeof(TypeidExp))
 {
-    this->typeidType = typeidType;
+    this->obj = o;
 }
 
 
 Expression *TypeidExp::syntaxCopy()
 {
-    return new TypeidExp(loc, typeidType->syntaxCopy());
+    return new TypeidExp(loc, objectSyntaxCopy(obj));
 }
 
 
@@ -4716,17 +4716,53 @@ Expression *TypeidExp::semantic(Scope *sc)
 #if LOGSEMANTIC
     printf("TypeidExp::semantic()\n");
 #endif
-    typeidType = typeidType->semantic(loc, sc);
-    e = typeidType->getTypeInfo(sc);
-    if (e->loc.linnum == 0)
-	e->loc = loc;		// so there's at least some line number info
+    Type *ta = isType(obj);
+    Expression *ea = isExpression(obj);
+    Dsymbol *sa = isDsymbol(obj);
+
+    if (ta)
+    {
+	ta->resolve(loc, sc, &ea, &ta, &sa);
+    }
+    if (ea)
+    {
+	ea = ea->semantic(sc);
+	ea = resolveProperties(sc, ea);
+	ta = ea->type;
+	if (ea->op == TOKtype)
+	    ea = NULL;
+    }
+
+    if (!ta)
+    {	error("no type for typeid(%s)", ea ? ea->toChars() : (sa ? sa->toChars() : ""));
+	return new ErrorExp();
+    }
+
+    if (ea && ta->toBasetype()->ty == Tclass)
+    {   /* Get the dynamic type, which is .classinfo
+	 */
+	e = new DotIdExp(ea->loc, ea, Id::classinfo);
+	e = e->semantic(sc);
+    }
+    else
+    {	/* Get the static type
+	 */
+	e = ta->getTypeInfo(sc);
+	if (e->loc.linnum == 0)
+	    e->loc = loc;		// so there's at least some line number info
+	if (ea)
+	{
+	    e = new CommaExp(loc, ea, e);	// execute ea
+	    e = e->semantic(sc);
+	}
+    }
     return e;
 }
 
 void TypeidExp::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 {
     buf->writestring("typeid(");
-    typeidType->toCBuffer(buf, NULL, hgs);
+    ObjectToCBuffer(buf, hgs, obj);
     buf->writeByte(')');
 }
 

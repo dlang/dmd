@@ -324,7 +324,7 @@ void ClassDeclaration::toObjFile(int multiobj)
 
     // Put out the TypeInfo
     type->getTypeInfo(NULL);
-    type->vtinfo->toObjFile(multiobj);
+    //type->vtinfo->toObjFile(multiobj);
 
     //////////////////////////////////////////////
 
@@ -348,7 +348,7 @@ void ClassDeclaration::toObjFile(int multiobj)
 	    OffsetTypeInfo[] offTi;
 	    void *defaultConstructor;
 	    const(MemberInfo[]) function(string) xgetMembers;	// module getMembers() function
-	    TypeInfo typeinfo;
+	    //TypeInfo typeinfo;
        }
      */
     dt_t *dt = NULL;
@@ -459,8 +459,7 @@ void ClassDeclaration::toObjFile(int multiobj)
 	dtdword(&dt, 0);	// module getMembers() function
 #endif
 
-    dtxoff(&dt, type->vtinfo->toSymbol(), 0, TYnptr);	// typeinfo
-    //dtdword(&dt, 0);
+    //dtxoff(&dt, type->vtinfo->toSymbol(), 0, TYnptr);	// typeinfo
 
     //////////////////////////////////////////////
 
@@ -473,10 +472,11 @@ void ClassDeclaration::toObjFile(int multiobj)
 	ClassDeclaration *id = b->base;
 
 	/* The layout is:
+	 *  struct Interface
 	 *  {
 	 *	ClassInfo *interface;
 	 *	void *[] vtbl;
-	 *	unsigned offset;
+	 *	ptrdiff_t offset;
 	 *  }
 	 */
 
@@ -500,10 +500,9 @@ void ClassDeclaration::toObjFile(int multiobj)
     for (i = 0; i < vtblInterfaces->dim; i++)
     {	BaseClass *b = (BaseClass *)vtblInterfaces->data[i];
 	ClassDeclaration *id = b->base;
-	int j;
 
 	//printf("    interface[%d] is '%s'\n", i, id->toChars());
-	j = 0;
+	int j = 0;
 	if (id->vtblOffset())
 	{
 	    // First entry is ClassInfo reference
@@ -516,8 +515,6 @@ void ClassDeclaration::toObjFile(int multiobj)
 	assert(id->vtbl.dim == b->vtbl.dim);
 	for (; j < id->vtbl.dim; j++)
 	{
-	    FuncDeclaration *fd;
-
 	    assert(j < b->vtbl.dim);
 #if 0
 	    Object *o = (Object *)b->vtbl.data[j];
@@ -529,7 +526,7 @@ void ClassDeclaration::toObjFile(int multiobj)
 		printf("s->kind() = '%s'\n", s->kind());
 	    }
 #endif
-	    fd = (FuncDeclaration *)b->vtbl.data[j];
+	    FuncDeclaration *fd = (FuncDeclaration *)b->vtbl.data[j];
 	    if (fd)
 		dtxoff(&dt, fd->toThunkSymbol(b->offset), 0, TYnptr);
 	    else
@@ -838,7 +835,7 @@ void InterfaceDeclaration::toObjFile(int multiobj)
 #if DMDV2
 	    const(MemberInfo[]) function(string) xgetMembers;	// module getMembers() function
 #endif
-	    TypeInfo typeinfo;
+	    //TypeInfo typeinfo;
        }
      */
     dt_t *dt = NULL;
@@ -903,7 +900,7 @@ void InterfaceDeclaration::toObjFile(int multiobj)
     dtdword(&dt, 0);
 #endif
 
-    dtxoff(&dt, type->vtinfo->toSymbol(), 0, TYnptr);	// typeinfo
+    //dtxoff(&dt, type->vtinfo->toSymbol(), 0, TYnptr);	// typeinfo
 
     //////////////////////////////////////////////
 

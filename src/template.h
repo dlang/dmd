@@ -351,5 +351,6 @@ Type *getType(Object *o);
 Dsymbol *getDsymbol(Object *o);
 
 void ObjectToCBuffer(OutBuffer *buf, HdrGenState *hgs, Object *oarg);
+Object *objectSyntaxCopy(Object *o);
 
 #endif /* DMD_TEMPLATE_H */

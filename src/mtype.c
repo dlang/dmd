@@ -6372,7 +6372,7 @@ L1:
 		 * at compile time.
 		 */
 		if (!sym->vclassinfo)
-		    sym->vclassinfo = new ClassInfoDeclaration(sym);
+		    sym->vclassinfo = new TypeInfoClassDeclaration(sym->type);
 		e = new VarExp(e->loc, sym->vclassinfo);
 		e = e->addressOf(sc);
 		e->type = t;	// do this so we don't get redundant dereference

@@ -172,7 +172,8 @@ ClassDeclaration::ClassDeclaration(Loc loc, Identifier *id, BaseClasses *basecla
 	    object = this;
 	}
 
-	if (id == Id::ClassInfo)
+	//if (id == Id::ClassInfo)
+	if (id == Id::TypeInfo_Class)
 	{   if (classinfo)
 		classinfo->error("%s", msg);
 	    classinfo = this;
