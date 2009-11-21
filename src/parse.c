@@ -2277,11 +2277,11 @@ Type *Parser::parseBasicType2(Type *t)
 		{
 		    //printf("it's type[expression]\n");
 		    inBrackets++;
-		    Expression *e = parseExpression();		// [ expression ]
+		    Expression *e = parseAssignExp();		// [ expression ]
 		    if (token.value == TOKslice)
 		    {
 			nextToken();
-			Expression *e2 = parseExpression();	// [ exp .. exp ]
+			Expression *e2 = parseAssignExp();	// [ exp .. exp ]
 			t = new TypeSlice(t, e, e2);
 		    }
 		    else
@@ -2429,7 +2429,7 @@ Type *Parser::parseDeclarator(Type *t, Identifier **pident, TemplateParameters *
 		else
 		{
 		    //printf("It's a static array\n");
-		    Expression *e = parseExpression();	// [ expression ]
+		    Expression *e = parseAssignExp();	// [ expression ]
 		    ta = new TypeSArray(t, e);
 		    check(TOKrbracket);
 		}
@@ -3313,9 +3313,8 @@ Statement *Parser::parseStatement(int flags)
 	case TOKline:
 #endif
 	Lexp:
-	{   Expression *exp;
-
-	    exp = parseExpression();
+	{
+	    Expression *exp = parseExpression();
 	    check(TOKsemicolon, "statement");
 	    s = new ExpStatement(loc, exp);
 	    break;
