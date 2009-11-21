@@ -140,7 +140,10 @@ struct Param
     char useInvariants;	// generate class invariant checks
     char useIn;		// generate precondition checks
     char useOut;	// generate postcondition checks
-    char useArrayBounds; // generate array bounds checks
+    char useArrayBounds; // 0: no array bounds checks
+			 // 1: array bounds checks for safe functions only
+			 // 2: array bounds checks for all functions
+    char noboundscheck;	// no array bounds checking at all
     char useSwitchError; // check for switches without a default
     char useUnitTests;	// generate unittest code
     char useInline;	// inline expand functions
@@ -152,7 +155,6 @@ struct Param
     char nofloat;	// code should not pull in floating point support
     char Dversion;	// D version number
     char ignoreUnsupportedPragmas;	// rather than error on them
-    char safe;		// enforce safe memory model
 
     char *argv0;	// program name
     Array *imppath;	// array of char*'s of where to look for import modules

@@ -2573,7 +2573,7 @@ elem *AssignExp::toElem(IRState *irs)
 	    elem_print(enbytes);
 #endif
 
-	    if (global.params.useArrayBounds && eupr && ta->ty != Tpointer)
+	    if (irs->arrayBoundsCheck() && eupr && ta->ty != Tpointer)
 	    {
 		elem *c1;
 		elem *c2;
@@ -2678,7 +2678,7 @@ elem *AssignExp::toElem(IRState *irs)
 
 	    assert(e2->type->ty != Tpointer);
 
-	    if (!postblit && !global.params.useArrayBounds)
+	    if (!postblit && !irs->arrayBoundsCheck())
 	    {
 		elem *ex = el_same(&eto);
 
@@ -4228,7 +4228,7 @@ elem *SliceExp::toElem(IRState *irs)
 	// pointer is (ptr + lwr*sz)
 	// Combine as (length pair ptr)
 
-	if (global.params.useArrayBounds)
+	if (irs->arrayBoundsCheck())
 	{
 	    // Checks (unsigned compares):
 	    //	upr <= array.length
@@ -4357,7 +4357,7 @@ elem *IndexExp::toElem(IRState *irs)
 	//elem_print(keyti);
 	ep = el_params(n2, valuesize, keyti, n1, NULL);
 	e = el_bin(OPcall, TYnptr, el_var(s), ep);
-	if (global.params.useArrayBounds)
+	if (irs->arrayBoundsCheck())
 	{
 	    elem *ea;
 
@@ -4379,7 +4379,7 @@ elem *IndexExp::toElem(IRState *irs)
 	elem *einit = resolveLengthVar(lengthVar, &n1, t1);
 	elem *n2 = e2->toElem(irs);
 
-	if (global.params.useArrayBounds)
+	if (irs->arrayBoundsCheck())
 	{
 	    elem *elength;
 	    elem *n2x;

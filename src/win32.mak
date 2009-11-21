@@ -261,7 +261,7 @@ code.obj : $C\code.c
 	$(CC) -c $(MFLAGS) $C\code
 
 irstate.obj : irstate.h irstate.c
-	$(CC) -c $(MFLAGS) irstate
+	$(CC) -c $(MFLAGS) -I$(ROOT) irstate
 
 csymbol.obj : $C\symbol.c
 	$(CC) -c $(MFLAGS) $C\symbol -ocsymbol.obj

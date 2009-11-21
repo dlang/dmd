@@ -1,12 +1,15 @@
 
 // Compiler implementation of the D programming language
-// Copyright (c) 1999-2008 by Digital Mars
+// Copyright (c) 1999-2009 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // http://www.digitalmars.com
 
 #include <stdio.h>
 
+#include "mars.h"
+#include "mtype.h"
+#include "declaration.h"
 #include "irstate.h"
 
 IRState::IRState(IRState *irs, Statement *s)
@@ -162,3 +165,22 @@ FuncDeclaration *IRState::getFunc()
 }
 
 
+/**********************
+ * Return !=0 if do array bounds checking
+ */
+int IRState::arrayBoundsCheck()
+{
+    int result = global.params.useArrayBounds;
+
+    if (result == 1)
+    {	// For safe functions only
+	result = 0;
+	FuncDeclaration *fd = getFunc();
+	if (fd)
+	{   Type *t = fd->type;
+	    if (t->ty == Tfunction && ((TypeFunction *)t)->trust == TRUSTsafe)
+		result = 1;
+	}
+    }
+    return result;
+}

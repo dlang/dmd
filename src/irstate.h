@@ -52,6 +52,7 @@ struct IRState
     block *getSwitchBlock();
     block *getDefaultBlock();
     FuncDeclaration *getFunc();
+    int arrayBoundsCheck();
 };
 
 #endif /* DMD_CONTEXT_H */
