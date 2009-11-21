@@ -581,7 +581,7 @@ void Parser::composeStorageClass(StorageClass stc)
     if (u & (u - 1))
 	error("conflicting storage class %s", Token::toChars(token.value));
     u = stc;
-    u &= STCsafe | STCunsafe | STCtrusted;
+    u &= STCsafe | STCsystem | STCtrusted;
     if (u & (u - 1))
 	error("conflicting attribute @%s", token.toChars());
 }
@@ -606,10 +606,10 @@ StorageClass Parser::parseAttribute()
 	stc = STCsafe;
     else if (token.ident == Id::trusted)
 	stc = STCtrusted;
-    else if (token.ident == Id::unsafe)
-	stc = STCunsafe;
+    else if (token.ident == Id::system)
+	stc = STCsystem;
     else
-	error("valid attribute identifiers are @property, @safe, @trusted, @unsafe, not @%s", token.toChars());
+	error("valid attribute identifiers are @property, @safe, @trusted, @system, not @%s", token.toChars());
     return stc;
 }
 #endif
@@ -2321,8 +2321,8 @@ Type *Parser::parseBasicType2(Type *t)
 			    case STCsafe >> 32:
 				trust = TRUSTsafe;
 				break;
-			    case STCunsafe >> 32:
-				trust = TRUSTunsafe;
+			    case STCsystem >> 32:
+				trust = TRUSTsystem;
 				break;
 			    case STCtrusted >> 32:
 				trust = TRUSTtrusted;
@@ -2514,8 +2514,8 @@ Type *Parser::parseDeclarator(Type *t, Identifier **pident, TemplateParameters *
 				case STCsafe >> 32:
 				    tfunc->trust = TRUSTsafe;
 				    break;
-				case STCunsafe >> 32:
-				    tfunc->trust = TRUSTunsafe;
+				case STCsystem >> 32:
+				    tfunc->trust = TRUSTsystem;
 				    break;
 				case STCtrusted >> 32:
 				    tfunc->trust = TRUSTtrusted;
@@ -5230,8 +5230,8 @@ Expression *Parser::parsePrimaryExp()
 			    case STCsafe >> 32:
 				trust = TRUSTsafe;
 				break;
-			    case STCunsafe >> 32:
-				trust = TRUSTunsafe;
+			    case STCsystem >> 32:
+				trust = TRUSTsystem;
 				break;
 			    case STCtrusted >> 32:
 				trust = TRUSTtrusted;

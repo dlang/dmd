@@ -80,7 +80,7 @@ enum STC
 #define STCproperty	0x100000000LL
 #define STCsafe		0x200000000LL
 #define STCtrusted	0x400000000LL
-#define STCunsafe	0x800000000LL
+#define STCsystem	0x800000000LL
 
 struct Match
 {

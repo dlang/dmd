@@ -487,6 +487,11 @@ Expressions *arrayExpressionToCommonType(Scope *sc, Expressions *exps, Type **pt
 #if DMDV2
     /* The type is determined by applying ?: to each pair.
      */
+    /* Still have a problem with:
+     *	ubyte[][] = [ cast(ubyte[])"hello", [1]];
+     * which works if the array literal is initialized top down with the ubyte[][]
+     * type, but fails with this function doing bottom up typing.
+     */
     //printf("arrayExpressionToCommonType()\n");
     IntegerExp integerexp(0);
     CondExp condexp(0, &integerexp, NULL, NULL);
@@ -1272,7 +1277,7 @@ void Expression::checkSafety(Scope *sc, FuncDeclaration *f)
 {
     if (sc->func && sc->func->isSafe() && !sc->intypeof &&
 	!f->isSafe() && !f->isTrusted())
-	error("safe function '%s' cannot call unsafe function '%s'\n",
+	error("safe function '%s' cannot call system function '%s'\n",
 	    sc->func->toChars(), f->toChars());
 }
 #endif
@@ -6885,9 +6890,9 @@ Lagain:
 	    {
 		error("pure function '%s' cannot call impure delegate '%s'", sc->func->toChars(), e1->toChars());
 	    }
-	    if (sc->func && sc->func->isSafe() && tf->trust <= TRUSTunsafe)
+	    if (sc->func && sc->func->isSafe() && tf->trust <= TRUSTsystem)
 	    {
-		error("safe function '%s' cannot call unsafe delegate '%s'", sc->func->toChars(), e1->toChars());
+		error("safe function '%s' cannot call system delegate '%s'", sc->func->toChars(), e1->toChars());
 	    }
 	    goto Lcheckargs;
 	}
@@ -6899,9 +6904,9 @@ Lagain:
 	    {
 		error("pure function '%s' cannot call impure function pointer '%s'", sc->func->toChars(), e1->toChars());
 	    }
-	    if (sc->func && sc->func->isSafe() && !((TypeFunction *)t1)->trust <= TRUSTunsafe)
+	    if (sc->func && sc->func->isSafe() && !((TypeFunction *)t1)->trust <= TRUSTsystem)
 	    {
-		error("safe function '%s' cannot call unsafe function pointer '%s'", sc->func->toChars(), e1->toChars());
+		error("safe function '%s' cannot call system function pointer '%s'", sc->func->toChars(), e1->toChars());
 	    }
 	    e->type = t1;
 	    e1 = e;

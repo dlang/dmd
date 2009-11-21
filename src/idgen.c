@@ -74,7 +74,6 @@ Msgtable msgtable[] =
     { "coverage", "__coverage" },
     { "__vptr" },
     { "__monitor" },
-    { "system" },
 
     { "TypeInfo" },
     { "TypeInfo_Class" },
@@ -144,7 +143,7 @@ Msgtable msgtable[] =
     { "property" },
     { "safe" },
     { "trusted" },
-    { "unsafe" },
+    { "system" },
 
     // For inline assembler
     { "___out", "out" },

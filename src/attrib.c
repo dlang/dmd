@@ -374,8 +374,8 @@ void StorageClassDeclaration::setScope(Scope *sc)
 	    scstc &= ~(STCconst | STCimmutable | STCmanifest);
 	if (stc & (STCgshared | STCshared | STCtls))
 	    scstc &= ~(STCgshared | STCshared | STCtls);
-	if (stc & (STCsafe | STCtrusted | STCunsafe))
-	    scstc &= ~(STCsafe | STCtrusted | STCunsafe);
+	if (stc & (STCsafe | STCtrusted | STCsystem))
+	    scstc &= ~(STCsafe | STCtrusted | STCsystem);
 	scstc |= stc;
 
 	setScopeNewSc(sc, scstc, sc->linkage, sc->protection, sc->explicitProtection, sc->structalign);
@@ -399,8 +399,8 @@ void StorageClassDeclaration::semantic(Scope *sc)
 	    scstc &= ~(STCconst | STCimmutable | STCmanifest);
 	if (stc & (STCgshared | STCshared | STCtls))
 	    scstc &= ~(STCgshared | STCshared | STCtls);
-	if (stc & (STCsafe | STCtrusted | STCunsafe))
-	    scstc &= ~(STCsafe | STCtrusted | STCunsafe);
+	if (stc & (STCsafe | STCtrusted | STCsystem))
+	    scstc &= ~(STCsafe | STCtrusted | STCsystem);
 	scstc |= stc;
 
 	semanticNewSc(sc, scstc, sc->linkage, sc->protection, sc->explicitProtection, sc->structalign);

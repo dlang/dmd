@@ -3902,9 +3902,9 @@ Lcovariant:
     if (t1->isref != t2->isref)
 	goto Lnotcovariant;
 
-    /* Can convert safe/trusted to unsafe
+    /* Can convert safe/trusted to system
      */
-    if (t1->trust <= TRUSTunsafe && t2->trust >= TRUSTtrusted)
+    if (t1->trust <= TRUSTsystem && t2->trust >= TRUSTtrusted)
 	goto Lnotcovariant;
 
     //printf("\tcovaraint: 1\n");

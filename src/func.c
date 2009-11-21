@@ -754,7 +754,7 @@ void FuncDeclaration::semantic3(Scope *sc)
 	sc2->linkage = LINKd;
 	sc2->stc &= ~(STCauto | STCscope | STCstatic | STCabstract | STCdeprecated |
 			STC_TYPECTOR | STCfinal | STCtls | STCgshared | STCref |
-			STCproperty | STCsafe | STCtrusted | STCunsafe);
+			STCproperty | STCsafe | STCtrusted | STCsystem);
 	sc2->protection = PROTpublic;
 	sc2->explicitProtection = 0;
 	sc2->structalign = 8;
