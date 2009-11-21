@@ -487,6 +487,7 @@ Expressions *arrayExpressionToCommonType(Scope *sc, Expressions *exps, Type **pt
 #if DMDV2
     /* The type is determined by applying ?: to each pair.
      */
+    //printf("arrayExpressionToCommonType()\n");
     IntegerExp integerexp(0);
     CondExp condexp(0, &integerexp, NULL, NULL);
 
@@ -514,7 +515,9 @@ Expressions *arrayExpressionToCommonType(Scope *sc, Expressions *exps, Type **pt
 		condexp.semantic(sc);
 		exps->data[j0] = (void *)condexp.e1;
 		e = condexp.e2;
-		t0 = e->type;
+		j0 = i;
+		e0 = e;
+		t0 = e0->type;
 	    }
 	}
 	else

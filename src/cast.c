@@ -1525,11 +1525,9 @@ int typeMerge(Scope *sc, Expression *e, Type **pt, Expression **pe1, Expression 
 
     TY ty = (TY)Type::impcnvResult[t1b->ty][t2b->ty];
     if (ty != Terror)
-    {	TY ty1;
-	TY ty2;
-
-	ty1 = (TY)Type::impcnvType1[t1b->ty][t2b->ty];
-	ty2 = (TY)Type::impcnvType2[t1b->ty][t2b->ty];
+    {
+	TY ty1 = (TY)Type::impcnvType1[t1b->ty][t2b->ty];
+	TY ty2 = (TY)Type::impcnvType2[t1b->ty][t2b->ty];
 
 	if (t1b->ty == ty1)	// if no promotions
 	{
@@ -1607,16 +1605,24 @@ Lagain:
 	    goto Lincompatible;
     }
     else if ((t1->ty == Tsarray || t1->ty == Tarray) &&
-	     e2->op == TOKnull && t2->ty == Tpointer && t2->nextOf()->ty == Tvoid)
-    {	/*  (T[n] op void*)
-	 *  (T[] op void*)
+	     (e2->op == TOKnull && t2->ty == Tpointer && t2->nextOf()->ty == Tvoid ||
+	      e2->op == TOKarrayliteral && t2->ty == Tsarray && t2->nextOf()->ty == Tvoid && ((TypeSArray *)t2)->dim->toInteger() == 0)
+	    )
+    {	/*  (T[n] op void*)   => T[]
+	 *  (T[]  op void*)   => T[]
+	 *  (T[n] op void[0]) => T[]
+	 *  (T[]  op void[0]) => T[]
 	 */
 	goto Lx1;
     }
     else if ((t2->ty == Tsarray || t2->ty == Tarray) &&
-	     e1->op == TOKnull && t1->ty == Tpointer && t1->nextOf()->ty == Tvoid)
-    {	/*  (void* op T[n])
-	 *  (void* op T[])
+	     (e1->op == TOKnull && t1->ty == Tpointer && t1->nextOf()->ty == Tvoid ||
+	      e1->op == TOKarrayliteral && t1->ty == Tsarray && t1->nextOf()->ty == Tvoid && ((TypeSArray *)t1)->dim->toInteger() == 0)
+	    )
+    {	/*  (void*   op T[n]) => T[]
+	 *  (void*   op T[])  => T[]
+	 *  (void[0] op T[n]) => T[]
+	 *  (void[0] op T[])  => T[]
 	 */
 	goto Lx2;
     }
@@ -1713,7 +1719,7 @@ Lagain:
 	     e2->implicitConvTo(t1->nextOf()->arrayOf()))
     {
      Lx1:
-	t = t1->nextOf()->arrayOf();
+	t = t1->nextOf()->arrayOf();	// T[]
 	e1 = e1->castTo(sc, t);
 	e2 = e2->castTo(sc, t);
     }
