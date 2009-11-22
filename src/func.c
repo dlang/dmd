@@ -649,7 +649,7 @@ void FuncDeclaration::semantic(Scope *sc)
 	    Parameters *arguments = new Parameters();
 	    Parameter *a = NULL;
 	    if (outId)
-	    {	a = new Parameter(STCref, f->nextOf(), outId, NULL);
+	    {	a = new Parameter(STCref | STCconst, f->nextOf(), outId, NULL);
 		arguments->push(a);
 	    }
 	    TypeFunction *tf = new TypeFunction(arguments, Type::tvoid, 0, LINKd);
@@ -1020,15 +1020,16 @@ void FuncDeclaration::semantic3(Scope *sc)
 
 	    if (outId)
 	    {	// Declare result variable
-		VarDeclaration *v;
 		Loc loc = this->loc;
 
 		if (fensure)
 		    loc = fensure->loc;
 
-		v = new VarDeclaration(loc, type->nextOf(), outId, NULL);
+		VarDeclaration *v = new VarDeclaration(loc, type->nextOf(), outId, NULL);
 		v->noauto = 1;
 #if DMDV2
+		if (!isVirtual())
+		    v->storage_class |= STCconst;
 		if (f->isref)
 		{
 		    v->storage_class |= STCref | STCforeach;
