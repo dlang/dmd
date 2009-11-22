@@ -4312,8 +4312,11 @@ Statement *ThrowStatement::semantic(Scope *sc)
     FuncDeclaration *fd = sc->parent->isFuncDeclaration();
     fd->hasReturnExp |= 2;
 
+#if DMDV1
+    // See bugzilla 3388. Should this be or not?
     if (sc->incontract)
 	error("Throw statements cannot be in contracts");
+#endif
     exp = exp->semantic(sc);
     exp = resolveProperties(sc, exp);
     if (!exp->type->toBasetype()->isClassHandle())
