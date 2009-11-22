@@ -218,7 +218,7 @@ constfold.o: constfold.c
 	$(CC) -c $(CFLAGS) $<
 
 irstate.o: irstate.h irstate.c
-	$(CC) -c $(MFLAGS) irstate.c
+	$(CC) -c $(MFLAGS) -I$(ROOT) irstate.c
 
 csymbol.o : $C/symbol.c
 	$(CC) -c $(MFLAGS) $C/symbol.c -o csymbol.o
