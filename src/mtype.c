@@ -5291,6 +5291,11 @@ Type *TypeReturn::semantic(Loc loc, Scope *sc)
 	goto Lerr;
     }
     t = sc->func->type->nextOf();
+    if (!t)
+    {
+	error(loc, "cannot use typeof(return) inside function %s with inferred return type", sc->func->toChars());
+	goto Lerr;
+    }
     t = t->addMod(mod);
 
     if (idents.dim)
