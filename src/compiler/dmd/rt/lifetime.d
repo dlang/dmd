@@ -52,7 +52,7 @@ private
     extern (C) void   gc_free( void* p );
 
     extern (C) void*   gc_addrOf( void* p );
-    extern (C) size_t  gc_sizeOf( void* p );
+    extern (C) size_t  gc_sizeOf( const void* p );
     extern (C) BlkInfo gc_query( void* p );
 
     extern (C) void onFinalizeError( ClassInfo c, Throwable e );
