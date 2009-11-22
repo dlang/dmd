@@ -636,16 +636,16 @@ void dwarf_termfile()
 	    continue;
 #endif
 
-	// Set address to start of segment with DW_LNE_set_address
-	linebuf->writeByte(0);
-	linebuf->writeByte(5);
-	linebuf->writeByte(2);
-	dwarf_addrel(lineseg,linebuf->size(),seg);
-	linebuf->write32(0);
-
 	//printf("sd = %x, SDlinnum_count = %d\n", sd, sd->SDlinnum_count);
 	for (int i = 0; i < sd->SDlinnum_count; i++)
 	{   linnum_data *ld = &sd->SDlinnum_data[i];
+
+	    // Set address to start of segment with DW_LNE_set_address
+	    linebuf->writeByte(0);
+	    linebuf->writeByte(5);
+	    linebuf->writeByte(2);
+	    dwarf_addrel(lineseg,linebuf->size(),seg);
+	    linebuf->write32(0);
 
 	    // Dwarf2 6.2.2 State machine registers
 	    unsigned address = 0;	// instruction address
@@ -699,12 +699,12 @@ void dwarf_termfile()
 		if (lininc || addinc)
 		    linebuf->writeByte(DW_LNS_copy);
 	    }
-	}
 
-	// Write DW_LNE_end_sequence
-	linebuf->writeByte(0);
-	linebuf->writeByte(1);
-	linebuf->writeByte(1);
+	    // Write DW_LNE_end_sequence
+	    linebuf->writeByte(0);
+	    linebuf->writeByte(1);
+	    linebuf->writeByte(1);
+	}
     }
 
     debugline.total_length = linebuf->size() - 4;
