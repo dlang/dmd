@@ -3778,7 +3778,8 @@ Type *TypeFunction::syntaxCopy()
 }
 
 /*******************************
- * Covariant means that 'this' can substitute for 't'.
+ * Covariant means that 'this' can substitute for 't',
+ * i.e. a pure function is a match for an impure type.
  * Returns:
  *	0	types are distinct
  *	1	this is covariant with t
@@ -3832,7 +3833,8 @@ int Type::covariant(Type *t)
 #endif
 		    goto Ldistinct;
 	    }
-	    if ((arg1->storageClass & ~STCscope) != (arg2->storageClass & ~STCscope))
+	    const StorageClass sc = STCref | STCin | STCout | STClazy;
+	    if ((arg1->storageClass & sc) != (arg2->storageClass & sc))
 		inoutmismatch = 1;
 	    // We can add scope, but not subtract it
 	    if (!(arg1->storageClass & STCscope) && (arg2->storageClass & STCscope))
@@ -3849,7 +3851,7 @@ int Type::covariant(Type *t)
 	goto Lnotcovariant;
 
   {
-    // Return types
+	    // Return types
     Type *t1n = t1->next;
     Type *t2n = t2->next;
 

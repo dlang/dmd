@@ -2257,21 +2257,13 @@ elem *EqualExp::toElem(IRState *irs)
     //printf("EqualExp::toElem()\n");
     if (t1->ty == Tstruct)
     {	// Do bit compare of struct's
-	elem *es1;
-	elem *es2;
-	elem *ecount;
 
-	es1 = e1->toElem(irs);
-	es2 = e2->toElem(irs);
-#if 1
+	elem *es1 = e1->toElem(irs);
+	elem *es2 = e2->toElem(irs);
 	es1 = addressElem(es1, t1);
 	es2 = addressElem(es2, t2);
-#else
-	es1 = el_una(OPaddr, TYnptr, es1);
-	es2 = el_una(OPaddr, TYnptr, es2);
-#endif
 	e = el_param(es1, es2);
-	ecount = el_long(TYint, t1->size());
+	elem *ecount = el_long(TYint, t1->size());
 	e = el_bin(OPmemcmp, TYint, e, ecount);
 	e = el_bin(eop, TYint, e, el_long(TYint, 0));
 	el_setLoc(e,loc);
@@ -2279,35 +2271,28 @@ elem *EqualExp::toElem(IRState *irs)
 #if 0
     else if (t1->ty == Tclass && t2->ty == Tclass)
     {
-	elem *ec1;
-	elem *ec2;
-
-	ec1 = e1->toElem(irs);
-	ec2 = e2->toElem(irs);
+	elem *ec1 = e1->toElem(irs);
+	elem *ec2 = e2->toElem(irs);
 	e = el_bin(OPcall,TYint,el_var(rtlsym[RTLSYM_OBJ_EQ]),el_param(ec1, ec2));
     }
 #endif
     else if ((t1->ty == Tarray || t1->ty == Tsarray) &&
 	     (t2->ty == Tarray || t2->ty == Tsarray))
     {
-	elem *ea1;
-	elem *ea2;
-	elem *ep;
 	Type *telement = t1->nextOf()->toBasetype();
-	int rtlfunc;
 
-	ea1 = e1->toElem(irs);
+	elem *ea1 = e1->toElem(irs);
 	ea1 = array_toDarray(t1, ea1);
-	ea2 = e2->toElem(irs);
+	elem *ea2 = e2->toElem(irs);
 	ea2 = array_toDarray(t2, ea2);
 
 #if DMDV2
-	ep = el_params(telement->arrayOf()->getInternalTypeInfo(NULL)->toElem(irs),
+	elem *ep = el_params(telement->arrayOf()->getInternalTypeInfo(NULL)->toElem(irs),
 		ea2, ea1, NULL);
-	rtlfunc = RTLSYM_ARRAYEQ2;
+	int rtlfunc = RTLSYM_ARRAYEQ2;
 #else
-	ep = el_params(telement->getInternalTypeInfo(NULL)->toElem(irs), ea2, ea1, NULL);
-	rtlfunc = RTLSYM_ARRAYEQ;
+	elem *ep = el_params(telement->getInternalTypeInfo(NULL)->toElem(irs), ea2, ea1, NULL);
+	int rtlfunc = RTLSYM_ARRAYEQ;
 #endif
 	e = el_bin(OPcall, TYint, el_var(rtlsym[rtlfunc]), ep);
 	if (op == TOKnotequal)

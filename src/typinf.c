@@ -501,24 +501,6 @@ void TypeInfoStructDeclaration::toDt(dt_t **pdt)
 	tftostring = (TypeFunction *)tftostring->semantic(0, &sc);
     }
 
-    TypeFunction *tfeqptr;
-    {	// bool opEqual(const T*) const;
-	Scope sc;
-	Parameters *arguments = new Parameters;
-#if STRUCTTHISREF
-	// arg type is ref const T
-	Parameter *arg = new Parameter(STCref, tc->constOf(), NULL, NULL);
-#else
-	// arg type is const T*
-	Parameter *arg = new Parameter(STCin, tc->pointerTo(), NULL, NULL);
-#endif
-
-	arguments->push(arg);
-	tfeqptr = new TypeFunction(arguments, Type::tbool, 0, LINKd);
-	tfeqptr->mod = MODconst;
-	tfeqptr = (TypeFunction *)tfeqptr->semantic(0, &sc);
-    }
-
     TypeFunction *tfcmpptr;
     {
 	Scope sc;
@@ -550,22 +532,8 @@ void TypeInfoStructDeclaration::toDt(dt_t **pdt)
     else
 	dtdword(pdt, 0);
 
-    s = search_function(sd, Id::eq);
-    fdx = s ? s->isFuncDeclaration() : NULL;
-    if (fdx)
-    {
-	//printf("test1 %s, %s, %s\n", fdx->toChars(), fdx->type->toChars(), tfeqptr->toChars());
-	fd = fdx->overloadExactMatch(tfeqptr);
-	if (fd)
-	    dtxoff(pdt, fd->toSymbol(), 0, TYnptr);
-	else
-	{   fd = fdx->overloadExactMatch(tfcmpptr);
-	    if (fd)
-		fdx->error("must return bool, not int");
-	    //fdx->error("must be declared as extern (D) int %s(%s*)", fdx->toChars(), sd->toChars());
-	    dtdword(pdt, 0);
-	}
-    }
+    if (sd->eq)
+	dtxoff(pdt, sd->eq->toSymbol(), 0, TYnptr);
     else
 	dtdword(pdt, 0);
 

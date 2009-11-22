@@ -1846,8 +1846,9 @@ int fp1(void *param, FuncDeclaration *f)
     }
 
 #if DMDV2
-    /* Allow covariant matches, if it's just a const conversion
-     * of the return type
+    /* Allow covariant matches, as long as the return type
+     * is just a const conversion.
+     * This allows things like pure functions to match with an impure function type.
      */
     if (t->ty == Tfunction)
     {   TypeFunction *tf = (TypeFunction *)f->type;

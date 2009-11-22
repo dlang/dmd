@@ -123,6 +123,7 @@ struct StructDeclaration : AggregateDeclaration
 #if DMDV2
     int hasIdentityAssign;	// !=0 if has identity opAssign
     FuncDeclaration *cpctor;	// generated copy-constructor, if any
+    FuncDeclaration *eq;	// bool opEquals(ref const T), if any
 
     FuncDeclarations postblits;	// Array of postblit functions
     FuncDeclaration *postblit;	// aggregate postblit
@@ -139,7 +140,9 @@ struct StructDeclaration : AggregateDeclaration
 #endif
 #if DMDV2
     int needOpAssign();
+    int needOpEquals();
     FuncDeclaration *buildOpAssign(Scope *sc);
+    FuncDeclaration *buildOpEquals(Scope *sc);
     FuncDeclaration *buildPostBlit(Scope *sc);
     FuncDeclaration *buildCpCtor(Scope *sc);
 #endif

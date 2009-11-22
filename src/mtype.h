@@ -502,7 +502,7 @@ enum RET
 enum TRUST
 {
     TRUSTdefault = 0,
-    TRUSTsystem = 1,	// @unsafe (same as TRUSTdefault)
+    TRUSTsystem = 1,	// @system (same as TRUSTdefault)
     TRUSTtrusted = 2,	// @trusted
     TRUSTsafe = 3,	// @safe
 };

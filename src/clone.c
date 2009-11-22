@@ -71,6 +71,49 @@ Lneed:
 #undef X
 }
 
+/*******************************************
+ * We need an opEquals for the struct if
+ * any fields has an opEquals.
+ * Generate one if a user-specified one does not exist.
+ */
+
+int StructDeclaration::needOpEquals()
+{
+#define X 0
+    if (X) printf("StructDeclaration::needOpEquals() %s\n", toChars());
+
+    /* If any of the fields has an opEquals, then we
+     * need it too.
+     */
+    for (size_t i = 0; i < fields.dim; i++)
+    {
+	Dsymbol *s = (Dsymbol *)fields.data[i];
+	VarDeclaration *v = s->isVarDeclaration();
+	assert(v && v->storage_class & STCfield);
+	if (v->storage_class & STCref)
+	    continue;
+	Type *tv = v->type->toBasetype();
+	while (tv->ty == Tsarray)
+	{   TypeSArray *ta = (TypeSArray *)tv;
+	    tv = tv->nextOf()->toBasetype();
+	}
+	if (tv->ty == Tstruct)
+	{   TypeStruct *ts = (TypeStruct *)tv;
+	    StructDeclaration *sd = ts->sym;
+	    if (sd->eq)
+		goto Lneed;
+	}
+    }
+Ldontneed:
+    if (X) printf("\tdontneed\n");
+    return 0;
+
+Lneed:
+    if (X) printf("\tneed\n");
+    return 1;
+#undef X
+}
+
 /******************************************
  * Build opAssign for struct.
  *	S* opAssign(S s) { ... }
@@ -181,6 +224,75 @@ FuncDeclaration *StructDeclaration::buildOpAssign(Scope *sc)
 
     return fop;
 }
+
+/******************************************
+ * Build opEquals for struct.
+ *	const bool opEquals(const ref S s) { ... }
+ */
+
+FuncDeclaration *StructDeclaration::buildOpEquals(Scope *sc)
+{
+    if (!needOpEquals())
+	return NULL;
+    //printf("StructDeclaration::buildOpEquals() %s\n", toChars());
+    Loc loc = this->loc;
+
+    Parameters *parameters = new Parameters;
+#if STRUCTTHISREF
+    // bool opEquals(ref const T) const;
+    Parameter *param = new Parameter(STCref, type->constOf(), Id::p, NULL);
+#else
+    // bool opEquals(const T*) const;
+    Parameter *param = new Parameter(STCin, type->pointerTo(), Id::p, NULL);
+#endif
+
+    parameters->push(param);
+    TypeFunction *ftype = new TypeFunction(parameters, Type::tbool, 0, LINKd);
+    ftype->mod = MODconst;
+    ftype = (TypeFunction *)ftype->semantic(loc, sc);
+
+    FuncDeclaration *fop = new FuncDeclaration(loc, 0, Id::eq, STCundefined, ftype);
+
+    Expression *e = NULL;
+    /* Do memberwise compare
+     */
+    //printf("\tmemberwise compare\n");
+    for (size_t i = 0; i < fields.dim; i++)
+    {
+	Dsymbol *s = (Dsymbol *)fields.data[i];
+	VarDeclaration *v = s->isVarDeclaration();
+	assert(v && v->storage_class & STCfield);
+	if (v->storage_class & STCref)
+	    assert(0);			// what should we do with this?
+	// this.v == s.v;
+	EqualExp *ec = new EqualExp(TOKequal, loc,
+	    new DotVarExp(loc, new ThisExp(loc), v, 0),
+	    new DotVarExp(loc, new IdentifierExp(loc, Id::p), v, 0));
+	if (e)
+	    e = new AndAndExp(loc, e, ec);
+	else
+	    e = ec;
+    }
+    if (!e)
+	e = new IntegerExp(loc, 1, Type::tbool);
+    fop->fbody = new ReturnStatement(loc, e);
+
+    members->push(fop);
+    fop->addMember(sc, this, 1);
+
+    sc = sc->push();
+    sc->stc = 0;
+    sc->linkage = LINKd;
+
+    fop->semantic(sc);
+
+    sc->pop();
+
+    //printf("-StructDeclaration::buildOpEquals() %s\n", toChars());
+
+    return fop;
+}
+
 
 /*******************************************
  * Build copy constructor for struct.

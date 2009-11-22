@@ -232,6 +232,7 @@ StructDeclaration::StructDeclaration(Loc loc, Identifier *id)
     hasIdentityAssign = 0;
     cpctor = NULL;
     postblit = NULL;
+    eq = NULL;
 #endif
 
     // For forward references
@@ -251,7 +252,7 @@ Dsymbol *StructDeclaration::syntaxCopy(Dsymbol *s)
 }
 
 void StructDeclaration::semantic(Scope *sc)
-{   int i;
+{
     Scope *sc2;
 
     //printf("+StructDeclaration::semantic(this=%p, '%s')\n", this, toChars());
@@ -303,7 +304,7 @@ void StructDeclaration::semantic(Scope *sc)
     if (sizeok == 0)		// if not already done the addMember step
     {
 	int hasfunctions = 0;
-	for (i = 0; i < members->dim; i++)
+	for (int i = 0; i < members->dim; i++)
 	{
 	    Dsymbol *s = (Dsymbol *)members->data[i];
 	    //printf("adding member '%s' to '%s'\n", s->toChars(), this->toChars());
@@ -356,7 +357,7 @@ void StructDeclaration::semantic(Scope *sc)
     sc2->explicitProtection = 0;
 
     int members_dim = members->dim;
-    for (i = 0; i < members_dim; i++)
+    for (int i = 0; i < members_dim; i++)
     {
 	Dsymbol *s = (Dsymbol *)members->data[i];
 	s->semantic(sc2);
@@ -378,6 +379,10 @@ void StructDeclaration::semantic(Scope *sc)
 	}
     }
 
+#if DMDV1
+    /* This doesn't work for DMDV2 because (ref S) and (S) parameter
+     * lists will overload the same.
+     */
     /* The TypeInfo_Struct is expecting an opEquals and opCmp with
      * a parameter that is a pointer to the struct. But if there
      * isn't one, but is an opEquals or opCmp with a value, write
@@ -435,7 +440,39 @@ void StructDeclaration::semantic(Scope *sc)
 
 	id = Id::cmp;
     }
+#endif
 #if DMDV2
+    /* Try to find the opEquals function. Build it if necessary.
+     */
+    TypeFunction *tfeqptr;
+    {   // bool opEquals(const T*) const;
+        Parameters *parameters = new Parameters;
+#if STRUCTTHISREF
+        // bool opEquals(ref const T) const;
+        Parameter *param = new Parameter(STCref, type->constOf(), NULL, NULL);
+#else
+        // bool opEquals(const T*) const;
+        Parameter *param = new Parameter(STCin, type->pointerTo(), NULL, NULL);
+#endif
+
+        parameters->push(param);
+        tfeqptr = new TypeFunction(parameters, Type::tbool, 0, LINKd);
+        tfeqptr->mod = MODconst;
+        tfeqptr = (TypeFunction *)tfeqptr->semantic(0, sc2);
+
+	Dsymbol *s = search_function(this, Id::eq);
+	FuncDeclaration *fdx = s ? s->isFuncDeclaration() : NULL;
+	if (fdx)
+	{
+	    eq = fdx->overloadExactMatch(tfeqptr);
+	    if (!eq)
+		fdx->error("type signature should be %s not %s", tfeqptr->toChars(), fdx->type->toChars());
+	}
+
+	if (!eq)
+	    eq = buildOpEquals(sc2);
+    }
+
     dtor = buildDtor(sc2);
     postblit = buildPostBlit(sc2);
     cpctor = buildCpCtor(sc2);
@@ -478,7 +515,7 @@ void StructDeclaration::semantic(Scope *sc)
 
     // Determine if struct is all zeros or not
     zeroInit = 1;
-    for (i = 0; i < fields.dim; i++)
+    for (int i = 0; i < fields.dim; i++)
     {
 	Dsymbol *s = (Dsymbol *)fields.data[i];
 	VarDeclaration *vd = s->isVarDeclaration();
