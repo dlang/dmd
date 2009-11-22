@@ -1196,7 +1196,7 @@ void InterfaceDeclaration::semantic(Scope *sc)
 	// Skip if b has already appeared
 	for (int k = 0; k < i; k++)
 	{
-	    if (b == interfaces[i])
+	    if (b == interfaces[k])
 		goto Lcontinue;
 	}
 
