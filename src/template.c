@@ -494,6 +494,62 @@ int TemplateDeclaration::overloadInsert(Dsymbol *s)
     return TRUE;
 }
 
+/****************************
+ * Declare all the function parameters as variables
+ * and add them to the scope
+ */
+void TemplateDeclaration::makeParamNamesVisibleInConstraint(Scope *paramscope)
+{
+    /* We do this ONLY if there is only one function in the template.
+     */	 
+    FuncDeclaration *fd = onemember && onemember->toAlias() ?
+	onemember->toAlias()->isFuncDeclaration() : NULL;
+    if (fd)
+    {
+	paramscope->parent = fd;
+	Parameters *fparameters;		// function parameter list
+	int fvarargs;				// function varargs
+	if (fd->type)
+	{
+	    assert(fd->type->ty == Tfunction);
+	    TypeFunction *fdtype = (TypeFunction *)fd->type;
+	    fparameters = fdtype->parameters;
+	    fvarargs = fdtype->varargs;
+	}
+	else // Constructors don't have type's
+	{   CtorDeclaration *fctor = fd->isCtorDeclaration();
+	    assert(fctor);
+	    fparameters = fctor->arguments;
+	    fvarargs = fctor->varargs;
+	}
+	size_t nfparams = Parameter::dim(fparameters); // Num function parameters
+	for (int i = 0; i < nfparams; i++)
+	{
+	    Parameter *fparam = Parameter::getNth(fparameters, i)->syntaxCopy();
+	    if (!fparam->ident)
+		continue;			// don't add it, if it has no name
+	    Type *vtype = fparam->type->syntaxCopy();
+	    // isPure will segfault if called on a ctor, because fd->type is null.
+	    if (fd->type && fd->isPure())
+		vtype = vtype->addMod(MODconst);
+	    VarDeclaration *v = new VarDeclaration(loc, vtype, fparam->ident, NULL);
+	    v->storage_class |= STCparameter;
+	    // Not sure if this condition is correct/necessary.
+	    //   It's from func.c
+	    if (//fd->type && fd->type->ty == Tfunction &&
+	     fvarargs == 2 && i + 1 == nfparams)
+		v->storage_class |= STCvariadic;
+		
+	    v->storage_class |= fparam->storageClass & (STCin | STCout | STCref | STClazy | STCfinal | STC_TYPECTOR | STCnodtor);
+	    v->semantic(paramscope);
+	    if (!paramscope->insert(v))
+		error("parameter %s.%s is already defined", toChars(), v->toChars());
+	    else
+		v->parent = this;
+	}
+    }
+}
+
 /***************************************
  * Given that ti is an instance of this TemplateDeclaration,
  * deduce the types of the parameters to this, and store
@@ -605,6 +661,7 @@ MATCH TemplateDeclaration::matchWithInstance(TemplateInstance *ti,
     if (m && constraint && !(flag & 1))
     {	/* Check to see if constraint is satisfied.
 	 */
+	makeParamNamesVisibleInConstraint(paramscope);
 	Expression *e = constraint->syntaxCopy();
 	paramscope->flags |= SCOPEstaticif;
 	e = e->semantic(paramscope);
@@ -1150,6 +1207,7 @@ Lmatch:
     if (constraint)
     {	/* Check to see if constraint is satisfied.
 	 */
+	makeParamNamesVisibleInConstraint(paramscope);
 	Expression *e = constraint->syntaxCopy();
 	paramscope->flags |= SCOPEstaticif;
 	e = e->semantic(paramscope);

@@ -87,6 +87,8 @@ struct TemplateDeclaration : ScopeDsymbol
 
     TemplateTupleParameter *isVariadic();
     int isOverloadable();
+
+    void makeParamNamesVisibleInConstraint(Scope *paramscope);
 };
 
 struct TemplateParameter
