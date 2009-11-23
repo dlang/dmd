@@ -2723,7 +2723,15 @@ elem *ShlAssignExp::toElem(IRState *irs)
 
 elem *ShrAssignExp::toElem(IRState *irs)
 {
-    return toElemBin(irs,OPshrass);
+    //printf("ShrAssignExp::toElem() %s, %s\n", e1->type->toChars(), e1->toChars());
+    Type *t1 = e1->type;
+    if (e1->op == TOKcast)
+    {	/* Use the type before it was integrally promoted to int
+	 */
+	CastExp *ce = (CastExp *)e1;
+	t1 = ce->e1->type;
+    }
+    return toElemBin(irs, t1->isunsigned() ? OPshrass : OPashrass);
 }
 
 
@@ -2833,7 +2841,7 @@ elem *ShlExp::toElem(IRState *irs)
 
 elem *ShrExp::toElem(IRState *irs)
 {
-    return toElemBin(irs,OPshr);
+    return toElemBin(irs, e1->type->isunsigned() ? OPshr : OPashr);
 }
 
 

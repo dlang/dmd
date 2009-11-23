@@ -203,6 +203,7 @@ Loop:
 	case OPmulass:
 	case OPdivass:
 	case OPmodass:
+	case OPashrass:
 	case OPshrass:
 	case OPshlass:
 	case OPandass:
@@ -628,6 +629,7 @@ STATIC int local_getflags(elem *e,symbol *s)
 	    case OPmulass:
 	    case OPdivass:
 	    case OPmodass:
+	    case OPashrass:
 	    case OPshrass:
 	    case OPshlass:
 	    case OPandass:

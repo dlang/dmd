@@ -1366,10 +1366,11 @@ code *cdshass(elem *e,regm_t *pretregs)
   if (e1->Ecount && !(*pretregs & (ALLREGS | mBP)) && !isregvar(e1,&retregs,&reg))
 	*pretregs |= ALLREGS;
 
+#if SCPP
   // Do this until the rest of the compiler does OPshr/OPashr correctly
   if (oper == OPshrass)
 	oper = (uns) ? OPshrass : OPashrass;
-
+#endif
 
   // Select opcodes. op2 is used for msw for long shifts.
 

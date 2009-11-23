@@ -1217,6 +1217,7 @@ void elimass(elem *n)
 	case OPmodass:
 	case OPshlass:
 	case OPshrass:
+	case OPashrass:
 	    n->Eoper = opeqtoop(n->Eoper);
 	    break;
 	case OPpostinc:	/* (V i++ c) => V	*/
