@@ -2980,10 +2980,8 @@ elem *MulAssignExp::toElem(IRState *irs)
  */
 
 elem *ShlAssignExp::toElem(IRState *irs)
-{   elem *e;
-
-    e = toElemBin(irs,OPshlass);
-    return e;
+{
+    return toElemBin(irs,OPshlass);
 }
 
 
@@ -2992,7 +2990,15 @@ elem *ShlAssignExp::toElem(IRState *irs)
 
 elem *ShrAssignExp::toElem(IRState *irs)
 {
-    return toElemBin(irs,OPshrass);
+    //printf("ShrAssignExp::toElem() %s, %s\n", e1->type->toChars(), e1->toChars());
+    Type *t1 = e1->type;
+    if (e1->op == TOKcast)
+    {	/* Use the type before it was integrally promoted to int
+	 */
+	CastExp *ce = (CastExp *)e1;
+	t1 = ce->e1->type;
+    }
+    return toElemBin(irs, t1->isunsigned() ? OPshrass : OPashrass);
 }
 
 
@@ -3001,12 +3007,7 @@ elem *ShrAssignExp::toElem(IRState *irs)
 
 elem *UshrAssignExp::toElem(IRState *irs)
 {
-    elem *eleft  = e1->toElem(irs);
-    eleft->Ety = touns(eleft->Ety);
-    elem *eright = e2->toElem(irs);
-    elem *e = el_bin(OPshrass, type->totym(), eleft, eright);
-    el_setLoc(e, loc);
-    return e;
+    return toElemBin(irs, OPshrass);
 }
 
 
@@ -3102,7 +3103,7 @@ elem *ShlExp::toElem(IRState *irs)
 
 elem *ShrExp::toElem(IRState *irs)
 {
-    return toElemBin(irs,OPshr);
+    return toElemBin(irs, e1->type->isunsigned() ? OPshr : OPashr);
 }
 
 
@@ -3111,12 +3112,7 @@ elem *ShrExp::toElem(IRState *irs)
 
 elem *UshrExp::toElem(IRState *irs)
 {
-    elem *eleft  = e1->toElem(irs);
-    eleft->Ety = touns(eleft->Ety);
-    elem *eright = e2->toElem(irs);
-    elem *e = el_bin(OPshr, type->totym(), eleft, eright);
-    el_setLoc(e, loc);
-    return e;
+    return toElemBin(irs, OPshr);
 }
 
 /****************************************

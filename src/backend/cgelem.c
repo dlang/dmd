@@ -446,7 +446,7 @@ STATIC elem *fixconvop(elem *e)
 	if (OTwid(e->Eoper) &&
 		(cop == OPshtlng || cop == OPu16_32 ||
 		 cop == OPu8int || cop == OPs8int))
-	{   if (e->Eoper != OPshlass && e->Eoper != OPshrass)
+	{   if (e->Eoper != OPshlass && e->Eoper != OPshrass && e->Eoper != OPashrass)
 		e->E2 = el_una(icop,tym,e2);
 //dbg_printf("after1\n");
 //elem_print(e);
@@ -1267,7 +1267,7 @@ STATIC elem * elbitwise(elem *e)
 		if (ul == 0xFFFFFFFF)		/* if e1 & 0xFFFFFFFF	*/
 		    goto L1;
 		/* (x >> 16) & 0xFFFF => ((unsigned long)x >> 16)	*/
-		if (ul == 0xFFFF && e->Eoper == OPand && op == OPshr &&
+		if (ul == 0xFFFF && e->Eoper == OPand && (op == OPshr || op == OPashr) &&
 		    e1->E2->Eoper == OPconst && el_tolong(e1->E2) == 16)
 		{   elem *e11 = e1->E1;
 
@@ -1327,7 +1327,7 @@ STATIC elem * elbitwise(elem *e)
 
 		/* (x >> 8) & 0xFF => ((unsigned short)x >> 8)		*/
 		if (OPTIMIZER && i == 0xFF && e->Eoper == OPand &&
-		    op == OPshr && e1->E2->Eoper == OPconst && e1->E2->EV.Vint == 8)
+		    (op == OPshr || op == OPashr) && e1->E2->Eoper == OPconst && e1->E2->EV.Vint == 8)
 		{   elem *e11 = e1->E1;
 
 		    e11->Ety = touns(e11->Ety) | (e11->Ety & ~mTYbasic);
@@ -3891,13 +3891,9 @@ STATIC elem *elshl(elem *e)
 STATIC elem * elshr(elem *e)
 {
 #if TX86
-    elem *e1;
-    elem *e2;
-    tym_t ty;
-
-    ty = e->Ety;
-    e1 = e->E1;
-    e2 = e->E2;
+    tym_t ty = e->Ety;
+    elem *e1 = e->E1;
+    elem *e2 = e->E2;
 
     // (x >> 16) replaced with ((shtlng) x+2)
     if (OPTIMIZER &&

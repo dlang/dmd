@@ -1846,9 +1846,11 @@ code *cdshift(elem *e,regm_t *pretregs)
   uns = tyuns(tyml);
   oper = e->Eoper;
 
+#if SCPP
   // Do this until the rest of the compiler does OPshr/OPashr correctly
   if (oper == OPshr)
 	oper = (uns) ? OPshr : OPashr;
+#endif
 
   switch (oper)
   {	case OPshl:

@@ -1527,6 +1527,7 @@ elem * evalu8(elem *e)
     case OPshr:
 	if ((targ_ullong) i2 > sizeof(targ_ullong) * 8)
 	    i2 = sizeof(targ_ullong) * 8;
+#if SCPP
 	if (tyuns(tym))
 	{   //printf("unsigned\n");
 	    e->EV.Vullong = ((targ_ullong) l1) >> i2;
@@ -1535,7 +1536,21 @@ elem * evalu8(elem *e)
 	{   //printf("signed\n");
 	    e->EV.Vllong = l1 >> i2;
 	}
+#endif
+#if MARS
+	// Always unsigned
+	e->EV.Vullong = ((targ_ullong) l1) >> i2;
+#endif
 	break;
+
+#if MARS
+    case OPashr:
+	if ((targ_ullong) i2 > sizeof(targ_ullong) * 8)
+	    i2 = sizeof(targ_ullong) * 8;
+	// Always signed
+	e->EV.Vllong = l1 >> i2;
+	break;
+#endif
 
     case OPpair:
 	switch (tysize[tym])
