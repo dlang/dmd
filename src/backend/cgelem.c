@@ -3384,7 +3384,7 @@ L1:
 	    (sz = tysize(e2->Ety)) > CHARSIZE)
 	{   int op;
 
-	    assert(tyintegral(e2->Ety));
+	    assert(tyintegral(e2->Ety) || typtr(e2->Ety));
 #if TX86		/* ending up with byte ops in A regs */
 	    if (!(el_tolong(e2) & ~CHARMASK) &&
 		!(el_tolong(e1->E2) & ~CHARMASK)
