@@ -108,7 +108,7 @@ void __cdecl _d_local_unwind(struct DHandlerTable *handler_table, struct DEstabl
 EXCEPTION_DISPOSITION _d_framehandler(
             EXCEPTION_RECORD *exception_record,
             struct DEstablisherFrame *frame,
-            CONTEXT context,
+            CONTEXT *context,
             void *dispatcher_context)
 {
     struct DHandlerTable *handler_table;
@@ -425,7 +425,7 @@ __declspec(naked) void __cdecl _d_local_unwind2()
 EXCEPTION_DISPOSITION _d_monitor_handler(
             EXCEPTION_RECORD *exception_record,
             struct DEstablisherFrame *frame,
-            CONTEXT context,
+            CONTEXT *context,
             void *dispatcher_context)
 {
     if (exception_record->ExceptionFlags & EXCEPTION_UNWIND)
