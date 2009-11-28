@@ -209,6 +209,7 @@ Msgtable msgtable[] =
     { "opIn_r" },
     { "opStar" },
     { "opDot" },
+    { "opDispatch" },
     { "opImplicitCast" },
 
     { "classNew", "new" },

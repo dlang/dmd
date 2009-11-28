@@ -5981,10 +5981,34 @@ L1:
 	    Dsymbol *fd = search_function(sym, Id::opDot);
 	    if (fd)
 	    {   /* Rewrite e.ident as:
-		 *	e.opId().ident
+		 *	e.opDot().ident
 		 */
 		e = build_overload(e->loc, sc, e, NULL, fd->ident);
 		e = new DotIdExp(e->loc, e, ident);
+		return e->semantic(sc);
+	    }
+
+	    /* Look for overloaded opDispatch to see if we should forward request
+	     * to it.
+	     */
+	    fd = search_function(sym, Id::opDispatch);
+	    if (fd)
+	    {
+		/* Rewrite e.ident as:
+		 *	e.opDispatch!("ident")
+		 */
+		TemplateDeclaration *td = fd->isTemplateDeclaration();
+		if (!td)
+		{
+		    fd->error("must be a template opDispatch(string s), not a %s", fd->kind());
+		    return new ErrorExp();
+		}
+		StringExp *se = new StringExp(e->loc, ident->toChars());
+		TemplateInstance *ti = new TemplateInstance(e->loc, td->ident);
+		Objects *tiargs = new Objects();
+		tiargs->push(se);
+		ti->tiargs = tiargs;
+		e = new DotTemplateInstanceExp(e->loc, e, ti);
 		return e->semantic(sc);
 	    }
 	}
@@ -6472,10 +6496,34 @@ L1:
 		Dsymbol *fd = search_function(sym, Id::opDot);
 		if (fd)
 		{   /* Rewrite e.ident as:
-		     *	e.opId().ident
+		     *	e.opDot().ident
 		     */
 		    e = build_overload(e->loc, sc, e, NULL, fd->ident);
 		    e = new DotIdExp(e->loc, e, ident);
+		    return e->semantic(sc);
+		}
+
+		/* Look for overloaded opDispatch to see if we should forward request
+		 * to it.
+		 */
+		fd = search_function(sym, Id::opDispatch);
+		if (fd)
+		{
+		    /* Rewrite e.ident as:
+		     *	e.opDispatch!("ident")
+		     */
+		    TemplateDeclaration *td = fd->isTemplateDeclaration();
+		    if (!td)
+		    {
+			fd->error("must be a template opDispatch(string s), not a %s", fd->kind());
+			return new ErrorExp();
+		    }
+		    StringExp *se = new StringExp(e->loc, ident->toChars());
+		    TemplateInstance *ti = new TemplateInstance(e->loc, td->ident);
+		    Objects *tiargs = new Objects();
+		    tiargs->push(se);
+		    ti->tiargs = tiargs;
+		    e = new DotTemplateInstanceExp(e->loc, e, ti);
 		    return e->semantic(sc);
 		}
 	    }
