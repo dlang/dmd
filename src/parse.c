@@ -5602,8 +5602,9 @@ Expression *Parser::parseMulExp()
 	switch (token.value)
 	{
 	    case TOKmul: nextToken(); e2 = parseUnaryExp(); e = new MulExp(loc,e,e2); continue;
-	    case TOKdiv:   nextToken(); e2 = parseUnaryExp(); e = new DivExp(loc,e,e2); continue;
-	    case TOKmod:  nextToken(); e2 = parseUnaryExp(); e = new ModExp(loc,e,e2); continue;
+	    case TOKdiv: nextToken(); e2 = parseUnaryExp(); e = new DivExp(loc,e,e2); continue;
+	    case TOKmod: nextToken(); e2 = parseUnaryExp(); e = new ModExp(loc,e,e2); continue;
+	    case TOKpow: nextToken(); e2 = parseUnaryExp(); e = new PowExp(loc,e,e2); continue;
 
 	    default:
 		break;
@@ -5948,6 +5949,7 @@ Expression *Parser::parseAssignExp()
 	    X(TOKmulass,    MulAssignExp);
 	    X(TOKdivass,    DivAssignExp);
 	    X(TOKmodass,    ModAssignExp);
+	    //X(TOKpowass,    PowAssignExp);
 	    X(TOKandass,    AndAssignExp);
 	    X(TOKorass,     OrAssignExp);
 	    X(TOKxorass,    XorAssignExp);

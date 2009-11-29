@@ -1151,6 +1151,29 @@ void Lexer::scan(Token *t)
 		    t->value = TOKtilde;		// ~
 		return;
 
+#if DMDV2
+	    case '^':
+		p++;
+		if (*p == '^')
+		{   p++;
+#if 0
+		    if (*p == '=')
+		    {   p++;
+			t->value = TOKpowass;  // ^^=
+		    }
+		    else
+#endif
+			t->value = TOKpow;     // ^^
+		}
+		else if (*p == '=')
+		{   p++;
+		    t->value = TOKxorass;    // ^=
+		}
+		else
+		    t->value = TOKxor;       // ^
+		return;
+#endif
+
 #define SINGLE(c,tok) case c: p++; t->value = tok; return;
 
 	    SINGLE('(',	TOKlparen)
@@ -1181,8 +1204,9 @@ void Lexer::scan(Token *t)
 
 	    DOUBLE('*', TOKmul, '=', TOKmulass)
 	    DOUBLE('%', TOKmod, '=', TOKmodass)
+#if DMDV1
 	    DOUBLE('^', TOKxor, '=', TOKxorass)
-
+#endif
 #undef DOUBLE
 
 	    case '#':
@@ -3084,6 +3108,8 @@ void Lexer::initKeywords()
     Token::tochars[TOKorass]		= "|=";
     Token::tochars[TOKidentifier]	= "identifier";
     Token::tochars[TOKat]		= "@";
+    Token::tochars[TOKpow]		= "^^";
+    //Token::tochars[TOKpowass]		= "^^=";
 
      // For debugging
     Token::tochars[TOKerror]		= "error";

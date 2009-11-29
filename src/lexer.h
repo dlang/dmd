@@ -32,6 +32,7 @@ struct Module;
 	*	/	%	*=	/=	%=
 	&	| 	^	&=	|=	^=
 	=	!	~	@
+	^^	^^=
 	++	--
 	.	->	:	,
 	?	&&	||
@@ -162,6 +163,8 @@ enum TOK
 	TOKfile,
 	TOKshared,
 	TOKat,
+	TOKpow,
+	//TOKpowass,
 #endif
 
 	TOKMAX

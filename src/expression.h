@@ -1298,6 +1298,18 @@ struct ModExp : BinExp
     elem *toElem(IRState *irs);
 };
 
+#if DMDV2
+struct PowExp : BinExp
+{
+    PowExp(Loc loc, Expression *e1, Expression *e2);
+    Expression *semantic(Scope *sc);
+
+    // For operator overloading
+    Identifier *opId();
+    Identifier *opId_r();
+};
+#endif
+
 struct ShlExp : BinExp
 {
     ShlExp(Loc loc, Expression *e1, Expression *e2);

@@ -105,6 +105,11 @@ Identifier *DivExp::opId_r() { return Id::div_r; }
 Identifier *ModExp::opId()   { return Id::mod; }
 Identifier *ModExp::opId_r() { return Id::mod_r; }
 
+#if DMDV2
+Identifier *PowExp::opId()   { return Id::pow; }
+Identifier *PowExp::opId_r() { return Id::pow_r; }
+#endif
+
 Identifier *ShlExp::opId()   { return Id::shl; }
 Identifier *ShlExp::opId_r() { return Id::shl_r; }
 
@@ -142,6 +147,7 @@ Identifier * ShlAssignExp::opId()  { return Id::shlass;  }
 Identifier * ShrAssignExp::opId()  { return Id::shrass;  }
 Identifier *UshrAssignExp::opId()  { return Id::ushrass; }
 Identifier * CatAssignExp::opId()  { return Id::catass;  }
+//Identifier * PowAssignExp::opId()  { return Id::powass;  }
 
 int EqualExp::isCommutative()  { return TRUE; }
 Identifier *EqualExp::opId()   { return Id::eq; }

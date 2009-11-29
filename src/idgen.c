@@ -211,6 +211,9 @@ Msgtable msgtable[] =
     { "opDot" },
     { "opDispatch" },
     { "opImplicitCast" },
+    { "pow", "opPow" },
+    { "pow_r", "opPow_r" },
+    //{ "powass", "opPowAssign" },
 
     { "classNew", "new" },
     { "classDelete", "delete" },
@@ -271,6 +274,7 @@ Msgtable msgtable[] =
     { "cos" },
     { "tan" },
     { "_sqrt", "sqrt" },
+    { "_pow", "pow" },
     { "fabs" },
 
     // Traits

@@ -123,6 +123,7 @@ void initPrecedence()
     precedence[TOKmul] = PREC_mul;
     precedence[TOKdiv] = PREC_mul;
     precedence[TOKmod] = PREC_mul;
+    precedence[TOKpow] = PREC_mul;
 
     precedence[TOKadd] = PREC_add;
     precedence[TOKmin] = PREC_add;
@@ -182,6 +183,7 @@ void initPrecedence()
     precedence[TOKmulass] = PREC_assign;
     precedence[TOKdivass] = PREC_assign;
     precedence[TOKmodass] = PREC_assign;
+    //precedence[TOKpowass] = PREC_assign;
     precedence[TOKshlass] = PREC_assign;
     precedence[TOKshrass] = PREC_assign;
     precedence[TOKushrass] = PREC_assign;
@@ -9769,6 +9771,74 @@ Expression *ModExp::semantic(Scope *sc)
 	}
     }
     return this;
+}
+
+PowExp::PowExp(Loc loc, Expression *e1, Expression *e2)
+	: BinExp(loc, TOKpow, sizeof(PowExp), e1, e2)
+{
+}
+
+Expression *PowExp::semantic(Scope *sc)
+{   Expression *e;
+
+    if (type)
+	return this;
+
+    BinExp::semanticp(sc);
+    e = op_overload(sc);
+    if (e)
+	return e;
+
+    static int importMathChecked = 0;
+    if (!importMathChecked)
+    {
+	importMathChecked = 1;
+	for (int i = 0; i < Module::amodules.dim; i++)
+	{   Module *mi = (Module *)Module::amodules.data[i];
+	    //printf("\t[%d] %s\n", i, mi->toChars());
+	    if (mi->ident == Id::math &&
+		mi->parent->ident == Id::std &&
+		!mi->parent->parent)
+		goto L1;
+	}
+	error("must import std.math to use ^^ operator");
+
+     L1: ;
+    }
+
+    assert(e1->type && e2->type);
+    if ( (e1->type->isintegral() || e1->type->isfloating()) &&
+	 (e2->type->isintegral() || e2->type->isfloating()))
+    {
+	// For built-in numeric types, there are three cases:
+	// x ^^ 1   ----> x
+	// x ^^ 0.5 ----> sqrt(x)
+	// x ^^ y   ----> pow(x, y)
+	// TODO: backend support, especially for  e1 ^^ 2.
+	bool wantSqrt = false;	
+	e2 = e2->optimize(0);
+	if ((e2->op == TOKfloat64 && e2->toReal() == 1.0) ||
+	    (e2->op == TOKint64 && e2->toInteger() == 1))
+	{
+	    return e1;  // Replace x ^^ 1 with x.
+	}
+
+	e = new IdentifierExp(loc, Id::empty);
+	e = new DotIdExp(loc, e, Id::std);
+	e = new DotIdExp(loc, e, Id::math);
+	if (e2->op == TOKfloat64 && e2->toReal() == 0.5)
+	{   // Replace e1 ^^ 0.5 with .std.math.sqrt(x)
+	    e = new CallExp(loc, new DotIdExp(loc, e, Id::_sqrt), e1);
+	}
+	else 
+	{   // Replace e1 ^^ e2 with .std.math.pow(e1, e2)
+ 	    e = new CallExp(loc, new DotIdExp(loc, e, Id::_pow), e1, e2);	
+	}	
+	e = e->semantic(sc);
+	return e;
+    }
+    error("%s ^^ %s is not supported", e1->type->toChars(), e2->type->toChars() );
+    return new ErrorExp();
 }
 
 /************************************************************/
