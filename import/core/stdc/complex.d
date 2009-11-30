@@ -14,6 +14,7 @@
 module core.stdc.complex;
 
 extern (C):
+nothrow:
 
 alias creal complex;
 alias ireal imaginary;

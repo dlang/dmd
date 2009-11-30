@@ -14,6 +14,9 @@
 module core.stdc.ctype;
 
 extern (C):
+nothrow:
+pure:
+@safe:
 
 int isalnum(int c);
 int isalpha(int c);

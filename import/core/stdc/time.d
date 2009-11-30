@@ -18,6 +18,8 @@ private import core.stdc.stddef; // for size_t
 
 extern (C):
 
+nothrow:
+
 version( Windows )
 {
     struct tm
@@ -66,7 +68,7 @@ else version( freebsd )
 {
     enum clock_t CLOCKS_PER_SEC = 128;
 }
-else
+else version (linux)
 {
     enum clock_t CLOCKS_PER_SEC = 1000000;
 }

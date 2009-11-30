@@ -17,6 +17,7 @@ private import core.stdc.config;
 public import core.stdc.stddef; // for size_t, wchar_t
 
 extern (C):
+nothrow:
 
 struct div_t
 {
@@ -73,9 +74,9 @@ int     system(in char* string);
 void*   bsearch(in void* key, in void* base, size_t nmemb, size_t size, int function(in void*, in void*) compar);
 void    qsort(void* base, size_t nmemb, size_t size, int function(in void*, in void*) compar);
 
-int     abs(int j);
-c_long  labs(c_long j);
-long    llabs(long j);
+pure int     abs(int j);
+pure c_long  labs(c_long j);
+pure long    llabs(long j);
 
 div_t   div(int numer, int denom);
 ldiv_t  ldiv(c_long numer, c_long denom);

@@ -17,6 +17,10 @@ private import core.stdc.stddef; // for size_t
 
 extern (C):
 
+nothrow:
+
+@system:
+
 pure void* memchr(in void* s, int c, size_t n);
 pure int   memcmp(in void* s1, in void* s2, size_t n);
 void* memcpy(void* s1, in void* s2, size_t n);

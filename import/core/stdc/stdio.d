@@ -21,6 +21,7 @@ private
 }
 
 extern (C):
+nothrow:
 
 version( Windows )
 {

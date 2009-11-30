@@ -20,6 +20,7 @@ alias getErrno errno;
 alias setErrno errno;
 
 extern (C):
+nothrow:
 
 version( Windows )
 {

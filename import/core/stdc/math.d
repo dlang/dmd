@@ -16,6 +16,7 @@ module core.stdc.math;
 private import core.stdc.config;
 
 extern (C):
+nothrow:
 
 alias float  float_t;
 alias double double_t;

@@ -13,6 +13,8 @@
  */
 module core.sys.windows.windows;
 
+nothrow:
+
 version (Windows)
 {
 }

@@ -15,6 +15,8 @@ module core.stdc.locale;
 
 extern (C):
 
+nothrow:
+
 struct lconv
 {
     char* decimal_point;

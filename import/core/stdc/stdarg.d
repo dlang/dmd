@@ -13,6 +13,7 @@
  */
 module core.stdc.stdarg;
 
+@system:
 
 alias void* va_list;
 

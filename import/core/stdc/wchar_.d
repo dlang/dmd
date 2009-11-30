@@ -22,6 +22,8 @@ public import core.stdc.stdint;  // for WCHAR_MIN, WCHAR_MAX
 
 extern (C):
 
+nothrow:
+
 alias int     mbstate_t;
 alias wchar_t wint_t;
 
