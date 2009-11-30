@@ -5623,6 +5623,12 @@ DotIdExp::DotIdExp(Loc loc, Expression *e, Identifier *ident)
 }
 
 Expression *DotIdExp::semantic(Scope *sc)
+{
+    // Indicate we didn't come from CallExp::semantic()
+    return semantic(sc, 0);
+}
+
+Expression *DotIdExp::semantic(Scope *sc, int flag)
 {   Expression *e;
     Expression *eleft;
     Expression *eright;
@@ -5915,7 +5921,8 @@ Expression *DotIdExp::semantic(Scope *sc)
     else
     {
 	e = e1->type->dotExp(sc, e1, ident);
-	e = e->semantic(sc);
+	if (!(flag && e->op == TOKdotti))	// let CallExp::semantic() handle this
+	    e = e->semantic(sc);
 	return e;
     }
 }
@@ -6472,6 +6479,7 @@ Expression *CallExp::semantic(Scope *sc)
     /* This recognizes:
      *	expr.foo!(tiargs)(funcargs)
      */
+Ldotti:
     if (e1->op == TOKdotti && !e1->type)
     {	DotTemplateInstanceExp *se = (DotTemplateInstanceExp *)e1;
 	TemplateInstance *ti = se->ti;
@@ -6504,7 +6512,21 @@ Lagain:
     }
     else
     {
-	UnaExp::semantic(sc);
+	if (e1->op == TOKdot)
+	{   DotIdExp *die = (DotIdExp *)e1;
+	    e1 = die->semantic(sc, 1);
+	    /* Look for e1 having been rewritten to expr.opDispatch!(string)
+	     * We handle such earlier, so go back.
+	     * Note that in the rewrite, we carefully did not run semantic() on e1
+	     */
+	    if (e1->op == TOKdotti && !e1->type)
+	    {
+		goto Ldotti;
+	    }
+	}
+	else
+	    UnaExp::semantic(sc);
+
 
 	/* Look for e1 being a lazy parameter
 	 */

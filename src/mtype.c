@@ -1369,11 +1369,11 @@ Expression *Type::dotExp(Scope *sc, Expression *e, Identifier *ident)
 //		    if (!e->isConst())
 //			error(loc, ".init cannot be evaluated at compile time");
 		}
-		return e;
+		goto Lreturn;
 	    }
 #endif
-	    Expression *ex = defaultInit(e->loc);
-	    return ex;
+	    e = defaultInit(e->loc);
+	    goto Lreturn;
 	}
     }
     if (ident == Id::typeinfo)
@@ -1381,16 +1381,87 @@ Expression *Type::dotExp(Scope *sc, Expression *e, Identifier *ident)
 	if (!global.params.useDeprecated)
 	    error(e->loc, ".typeinfo deprecated, use typeid(type)");
 	e = getTypeInfo(sc);
-	return e;
     }
-    if (ident == Id::stringof)
+    else if (ident == Id::stringof)
     {	char *s = e->toChars();
 	e = new StringExp(e->loc, s, strlen(s), 'c');
-	Scope sc;
-	e = e->semantic(&sc);
-	return e;
     }
-    return getProperty(e->loc, ident);
+    else
+	e = getProperty(e->loc, ident);
+
+Lreturn:
+    e = e->semantic(sc);
+    return e;
+}
+
+/***************************************
+ * Figures out what to do with an undefined member reference
+ * for classes and structs.
+ */
+Expression *Type::noMember(Scope *sc, Expression *e, Identifier *ident)
+{
+    assert(ty == Tstruct || ty == Tclass);
+    AggregateDeclaration *sym = toDsymbol(sc)->isAggregateDeclaration();
+    assert(sym);
+
+    if (ident != Id::__sizeof &&
+	ident != Id::alignof &&
+	ident != Id::init &&
+	ident != Id::mangleof &&
+	ident != Id::stringof &&
+	ident != Id::offsetof)
+    {
+	/* See if we should forward to the alias this.
+	 */
+	if (sym->aliasthis)
+	{   /* Rewrite e.ident as:
+	     *	e.aliasthis.ident
+	     */
+	    e = new DotIdExp(e->loc, e, sym->aliasthis->ident);
+	    e = new DotIdExp(e->loc, e, ident);
+	    return e->semantic(sc);
+	}
+
+	/* Look for overloaded opDot() to see if we should forward request
+	 * to it.
+	 */
+	Dsymbol *fd = search_function(sym, Id::opDot);
+	if (fd)
+	{   /* Rewrite e.ident as:
+	     *	e.opDot().ident
+	     */
+	    e = build_overload(e->loc, sc, e, NULL, fd->ident);
+	    e = new DotIdExp(e->loc, e, ident);
+	    return e->semantic(sc);
+	}
+
+	/* Look for overloaded opDispatch to see if we should forward request
+	 * to it.
+	 */
+	fd = search_function(sym, Id::opDispatch);
+	if (fd)
+	{
+	    /* Rewrite e.ident as:
+	     *	e.opDispatch!("ident")
+	     */
+	    TemplateDeclaration *td = fd->isTemplateDeclaration();
+	    if (!td)
+	    {
+		fd->error("must be a template opDispatch(string s), not a %s", fd->kind());
+		return new ErrorExp();
+	    }
+	    StringExp *se = new StringExp(e->loc, ident->toChars());
+	    TemplateInstance *ti = new TemplateInstance(e->loc, td->ident);
+	    Objects *tiargs = new Objects();
+	    tiargs->push(se);
+	    ti->tiargs = tiargs;
+	    e = new DotTemplateInstanceExp(e->loc, e, ti);
+	    return e;
+	    //return e->semantic(sc);
+	}
+    }
+
+    return Type::dotExp(sc, e, ident);
 }
 
 unsigned Type::memalign(unsigned salign)
@@ -2182,7 +2253,8 @@ Expression *TypeBasic::dotExp(Scope *sc, Expression *e, Identifier *ident)
 		break;
 
 	    default:
-		return Type::getProperty(e->loc, ident);
+		e = Type::getProperty(e->loc, ident);
+		break;
 	}
     }
     else if (ident == Id::im)
@@ -2213,13 +2285,15 @@ Expression *TypeBasic::dotExp(Scope *sc, Expression *e, Identifier *ident)
 		break;
 
 	    default:
-		return Type::getProperty(e->loc, ident);
+		e = Type::getProperty(e->loc, ident);
+		break;
 	}
     }
     else
     {
 	return Type::dotExp(sc, e, ident);
     }
+    e = e->semantic(sc);
     return e;
 }
 
@@ -2518,6 +2592,7 @@ Expression *TypeArray::dotExp(Scope *sc, Expression *e, Identifier *ident)
     {
 	e = Type::dotExp(sc, e, ident);
     }
+    e = e->semantic(sc);
     return e;
 }
 
@@ -2816,6 +2891,7 @@ Expression *TypeSArray::dotExp(Scope *sc, Expression *e, Identifier *ident)
     {
 	e = TypeArray::dotExp(sc, e, ident);
     }
+    e = e->semantic(sc);
     return e;
 }
 
@@ -5957,62 +6033,7 @@ Expression *TypeStruct::dotExp(Scope *sc, Expression *e, Identifier *ident)
 L1:
     if (!s)
     {
-	if (ident != Id::__sizeof &&
-	    ident != Id::alignof &&
-	    ident != Id::init &&
-	    ident != Id::mangleof &&
-	    ident != Id::stringof &&
-	    ident != Id::offsetof)
-	{
-	    /* See if we should forward to the alias this.
-	     */
-	    if (sym->aliasthis)
-	    {	/* Rewrite e.ident as:
-		 *	e.aliasthis.ident
-		 */
-		e = new DotIdExp(e->loc, e, sym->aliasthis->ident);
-		e = new DotIdExp(e->loc, e, ident);
-		return e->semantic(sc);
-	    }
-
-	    /* Look for overloaded opDot() to see if we should forward request
-	     * to it.
-	     */
-	    Dsymbol *fd = search_function(sym, Id::opDot);
-	    if (fd)
-	    {   /* Rewrite e.ident as:
-		 *	e.opDot().ident
-		 */
-		e = build_overload(e->loc, sc, e, NULL, fd->ident);
-		e = new DotIdExp(e->loc, e, ident);
-		return e->semantic(sc);
-	    }
-
-	    /* Look for overloaded opDispatch to see if we should forward request
-	     * to it.
-	     */
-	    fd = search_function(sym, Id::opDispatch);
-	    if (fd)
-	    {
-		/* Rewrite e.ident as:
-		 *	e.opDispatch!("ident")
-		 */
-		TemplateDeclaration *td = fd->isTemplateDeclaration();
-		if (!td)
-		{
-		    fd->error("must be a template opDispatch(string s), not a %s", fd->kind());
-		    return new ErrorExp();
-		}
-		StringExp *se = new StringExp(e->loc, ident->toChars());
-		TemplateInstance *ti = new TemplateInstance(e->loc, td->ident);
-		Objects *tiargs = new Objects();
-		tiargs->push(se);
-		ti->tiargs = tiargs;
-		e = new DotTemplateInstanceExp(e->loc, e, ti);
-		return e->semantic(sc);
-	    }
-	}
-	return Type::dotExp(sc, e, ident);
+	return noMember(sc, e, ident);
     }
     if (!s->isFuncDeclaration())	// because of overloading
 	s->checkDeprecated(e->loc, sc);
@@ -6471,64 +6492,7 @@ L1:
 	}
 	else
 	{
-
-	    if (ident != Id::__sizeof &&
-		ident != Id::alignof &&
-		ident != Id::init &&
-		ident != Id::mangleof &&
-		ident != Id::stringof &&
-		ident != Id::offsetof)
-	    {
-		/* See if we should forward to the alias this.
-		 */
-		if (sym->aliasthis)
-		{   /* Rewrite e.ident as:
-		     *	e.aliasthis.ident
-		     */
-		    e = new DotIdExp(e->loc, e, sym->aliasthis->ident);
-		    e = new DotIdExp(e->loc, e, ident);
-		    return e->semantic(sc);
-		}
-
-		/* Look for overloaded opDot() to see if we should forward request
-		 * to it.
-		 */
-		Dsymbol *fd = search_function(sym, Id::opDot);
-		if (fd)
-		{   /* Rewrite e.ident as:
-		     *	e.opDot().ident
-		     */
-		    e = build_overload(e->loc, sc, e, NULL, fd->ident);
-		    e = new DotIdExp(e->loc, e, ident);
-		    return e->semantic(sc);
-		}
-
-		/* Look for overloaded opDispatch to see if we should forward request
-		 * to it.
-		 */
-		fd = search_function(sym, Id::opDispatch);
-		if (fd)
-		{
-		    /* Rewrite e.ident as:
-		     *	e.opDispatch!("ident")
-		     */
-		    TemplateDeclaration *td = fd->isTemplateDeclaration();
-		    if (!td)
-		    {
-			fd->error("must be a template opDispatch(string s), not a %s", fd->kind());
-			return new ErrorExp();
-		    }
-		    StringExp *se = new StringExp(e->loc, ident->toChars());
-		    TemplateInstance *ti = new TemplateInstance(e->loc, td->ident);
-		    Objects *tiargs = new Objects();
-		    tiargs->push(se);
-		    ti->tiargs = tiargs;
-		    e = new DotTemplateInstanceExp(e->loc, e, ti);
-		    return e->semantic(sc);
-		}
-	    }
-
-	    return Type::dotExp(sc, e, ident);
+	    return noMember(sc, e, ident);
 	}
     }
     if (!s->isFuncDeclaration())	// because of overloading

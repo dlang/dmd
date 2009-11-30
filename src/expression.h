@@ -820,6 +820,7 @@ struct DotIdExp : UnaExp
 
     DotIdExp(Loc loc, Expression *e, Identifier *ident);
     Expression *semantic(Scope *sc);
+    Expression *semantic(Scope *sc, int flag);
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
     void dump(int i);
 };
