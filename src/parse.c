@@ -3337,6 +3337,16 @@ Statement *Parser::parseStatement(int flags)
 		condition = parseStaticIfCondition();
 		goto Lcondition;
 	    }
+	    if (t->value == TOKstruct || t->value == TOKunion || t->value == TOKclass)
+	    {
+		nextToken();
+		Array *a = parseBlock();
+		Dsymbol *d = new StorageClassDeclaration(STCstatic, a);
+		s = new DeclarationStatement(loc, d);
+		if (flags & PSscope)
+		    s = new ScopeStatement(loc, s);
+		break;
+	    }
 	    goto Ldeclaration;
 	}
 
