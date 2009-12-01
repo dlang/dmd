@@ -683,7 +683,7 @@ void cgreg_spillreg_epilog(block *b,Symbol *s,code **pcstore,code **pcload)
 }
 
 /***************************
- * Map symbol s into register reg.
+ * Map symbol s into registers [NOREG,reglsw] or [regmsw, reglsw].
  */
 
 void cgreg_map(Symbol *s, unsigned regmsw, unsigned reglsw)
@@ -774,6 +774,23 @@ void cgreg_map(Symbol *s, unsigned regmsw, unsigned reglsw)
     }
 }
 
+/********************************************
+ * The register variables in this mask can not be in registers.
+ * "Unregister" them.
+ */
+
+void cgreg_unregister(regm_t conflict)
+{
+    assert(pass != PASSfinal);
+    for (int i = 0; i < globsym.top; i++)
+    {	symbol *s = globsym.tab[i];
+	if (s->Sfl == FLreg && s->Sregm & conflict)
+	{
+	    s->Sflags |= GTunregister;
+	}
+    }
+}
+
 /******************************************
  * Do register assignments.
  * Returns:
@@ -795,9 +812,62 @@ int cgreg_assign(Symbol *retsym)
     vec_t v;
 
     int si;
-    int flag;
+    int flag = FALSE;
 
-    flag = FALSE;
+    /* First do any 'unregistering' which might have happened in the last
+     * code gen pass.
+     */
+    for (si = 0; si < globsym.top; si++)
+    {	symbol *s = globsym.tab[si];
+
+	if (s->Sflags & GTunregister)
+	{
+	#if DEBUG
+	    if (debugr)
+	    {
+		printf("symbol '%s' %s register %s\n    ",
+		    s->Sident,
+		    (s->Sflags & SFLspill) ? "unspilled" : "unregistered",
+		    regstring[s->Sreglsw]);
+		vec_println(s->Slvreg);
+	    }
+	#endif
+	    flag = TRUE;
+	    s->Sflags &= ~(GTregcand | GTunregister | SFLspill);
+	    if (s->Sfl == FLreg)
+	    {
+		switch (s->Sclass)
+		{
+		    case SCauto:
+		    case SCregister:
+		    case SCtmp:
+		    case SCfastpar:
+			s->Sfl = FLauto;
+			break;
+		    case SCbprel:
+			s->Sfl = FLbprel;
+			break;
+		    case SCparameter:
+			s->Sfl = FLpara;
+			break;
+#if PSEUDO_REGS
+		    case SCpseudo:
+			s->Sfl = FLpseudo;
+			break;
+#endif
+		    case SCstack:
+			s->Sfl = FLstack;
+			break;
+		    default:
+#ifdef DEBUG
+			symbol_print(s);
+#endif
+			assert(0);
+		}
+	    }
+	}
+    }
+
     v = vec_calloc(dfotop);
 
     // Find symbol t, which is the most 'deserving' symbol that should be
@@ -805,15 +875,13 @@ int cgreg_assign(Symbol *retsym)
     t.sym = NULL;
     t.benefit = 0;
     for (si = 0; si < globsym.top; si++)
-    {
+    {	symbol *s = globsym.tab[si];
 	Reg u;
-	symbol *s;
 	unsigned reg;
 	tym_t ty;
 	unsigned sz;
 
 
-	s = globsym.tab[si];
 	u.sym = s;
 	if (!(s->Sflags & GTregcand) ||
 	    s->Sflags & SFLspill ||

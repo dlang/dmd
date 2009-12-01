@@ -1342,6 +1342,7 @@ struct Symbol
 	// OPTIMIZER and CODGEN
 	#define	GTregcand	0x100	// if Symbol is a register candidate
 	#define	SFLdead		0x800	// this variable is dead
+	#define GTunregister	0x2000000	// 'unregister' a previous register assignment
 
 	// OPTIMIZER only
 	#define	SFLunambig	0x400	// only accessible by unambiguous reference,
