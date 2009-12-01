@@ -761,7 +761,7 @@ void cgreg_used(unsigned bi,regm_t used);
 void cgreg_spillreg_prolog(block *b,Symbol *s,code **pcstore,code **pcload);
 void cgreg_spillreg_epilog(block *b,Symbol *s,code **pcstore,code **pcload);
 int cgreg_assign(Symbol *retsym);
-
+void cgreg_unregister(regm_t conflict);
 
 // cgsched.c
 void cgsched_pentium(code **pc,regm_t scratch);

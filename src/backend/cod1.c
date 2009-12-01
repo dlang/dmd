@@ -1392,6 +1392,20 @@ code *scodelem(elem *e,regm_t *pretregs,regm_t keepmsk,bool constflag)
 #endif
   assert((mfuncreg & (regcon.cse.mval & ~oldregcon)) == 0);
 
+  /* bugzilla 3521
+   * The problem is:
+   *	reg op (reg = exp)
+   * where reg must be preserved (in keepregs) while the expression to be evaluated
+   * must change it.
+   * The only solution is to make this variable not a register.
+   */
+  if (regcon.mvar & tosave)
+  {
+	//elem_print(e);
+	//printf("test1: regcon.mvar x%x tosave x%x\n", regcon.mvar, tosave);
+	cgreg_unregister(regcon.mvar & tosave);
+  }
+
   /* which registers can we use to save other registers in? */
   if (config.flags4 & CFG4space ||		// if optimize for space
       config.target_cpu >= TARGET_80486)	// PUSH/POP ops are 1 cycle
