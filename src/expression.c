@@ -640,7 +640,6 @@ void functionParameters(Loc loc, Scope *sc, TypeFunction *tf, Expressions *argum
 
     if (nargs > nparams && tf->varargs == 0)
 	error(loc, "expected %zu arguments, not %zu for non-variadic function type %s", nparams, nargs, tf->toChars());
-
     n = (nargs > nparams) ? nargs : nparams;	// n = max(nargs, nparams)
 
     int done = 0;
@@ -5755,7 +5754,7 @@ Expression *DotIdExp::semantic(Scope *sc, int flag)
 	 * The check for 'is sds our current module' is because
 	 * the current module should have access to its own imports.
 	 */
-	Dsymbol *s = ie->sds->search(loc, ident,
+	Dsymbol *s = ie->sds->search(loc, ident, //0);
 	    (ie->sds->isModule() && ie->sds != sc->module) ? 1 : 0);
 	if (s)
 	{
@@ -6126,137 +6125,102 @@ void DotVarExp::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
  *	foo.bar!(args)
  */
 
-DotTemplateInstanceExp::DotTemplateInstanceExp(Loc loc, Expression *e, TemplateInstance *ti)
+DotTemplateInstanceExp::DotTemplateInstanceExp(Loc loc, Expression *e, Identifier *name, Objects *tiargs)
 	: UnaExp(loc, TOKdotti, sizeof(DotTemplateInstanceExp), e)
 {
     //printf("DotTemplateInstanceExp()\n");
-    this->ti = ti;
+    this->ti = new TemplateInstance(loc, name);
+    this->ti->tiargs = tiargs;
 }
 
 Expression *DotTemplateInstanceExp::syntaxCopy()
 {
     DotTemplateInstanceExp *de = new DotTemplateInstanceExp(loc,
 	e1->syntaxCopy(),
-	(TemplateInstance *)ti->syntaxCopy(NULL));
+	ti->name,
+	TemplateInstance::arraySyntaxCopy(ti->tiargs));
     return de;
 }
 
-Expression *DotTemplateInstanceExp::semantic(Scope *sc)
-{   Dsymbol *s;
-    Dsymbol *s2;
-    TemplateDeclaration *td;
-    Expression *e;
-    Identifier *id;
-    Type *t1;
-    Expression *eleft = NULL;
-    Expression *eright;
+TemplateDeclaration *DotTemplateInstanceExp::getTempdecl(Scope *sc)
+{
+#if LOGSEMANTIC
+    printf("DotTemplateInstanceExp::getTempdecl('%s')\n", toChars());
+#endif
+    if (!ti->tempdecl)
+    {
+	Expression *e = new DotIdExp(loc, e1, ti->name);
+	e = e->semantic(sc);
+	if (e->op == TOKdottd)
+	{
+	    DotTemplateExp *dte = (DotTemplateExp *)e;
+	    ti->tempdecl = dte->td;
+	}
+	else if (e->op == TOKimport)
+	{   ScopeExp *se = (ScopeExp *)e;
+	    ti->tempdecl = se->sds->isTemplateDeclaration();
+	}
+    }
+    return ti->tempdecl;
+}
 
+Expression *DotTemplateInstanceExp::semantic(Scope *sc)
+{
 #if LOGSEMANTIC
     printf("DotTemplateInstanceExp::semantic('%s')\n", toChars());
 #endif
-    //e1->print();
-    //print();
-    e1 = e1->semantic(sc);
-    t1 = e1->type;
-    if (t1)
-	t1 = t1->toBasetype();
-    //t1->print();
-
-    /* Extract the following from e1:
-     *	s: the symbol which ti should be a member of
-     *	eleft: if not NULL, it is the 'this' pointer for ti
-     */
-
-    if (e1->op == TOKdotexp)
-    {	DotExp *de = (DotExp *)e1;
-	eleft = de->e1;
-	eright = de->e2;
-    }
-    else
-    {	eleft = NULL;
-	eright = e1;
-    }
-    if (eright->op == TOKimport)
+    Expression *eleft;
+    Expression *e = new DotIdExp(loc, e1, ti->name);
+L1:
+    e = e->semantic(sc);
+    if (e->op == TOKdottd)
     {
-	s = ((ScopeExp *)eright)->sds;
-    }
-    else if (e1->op == TOKtype)
-    {
-	s = t1->isClassHandle();
-	if (!s)
-	{   if (t1->ty == Tstruct)
-		s = ((TypeStruct *)t1)->sym;
-	    else
-		goto L1;
-	}
-    }
-    else if (t1 && (t1->ty == Tstruct || t1->ty == Tclass))
-    {
-	s = t1->toDsymbol(sc);
-	eleft = e1;
-    }
-    else if (t1 && t1->ty == Tpointer)
-    {
-	t1 = ((TypePointer *)t1)->next->toBasetype();
-	if (t1->ty != Tstruct)
-	    goto L1;
-	s = t1->toDsymbol(sc);
-	eleft = e1;
-    }
-    else
-    {
-      L1:
-	error("template %s is not a member of %s", ti->toChars(), e1->toChars());
-	goto Lerr;
-    }
-
-    assert(s);
-    id = ti->name;
-    s2 = s->search(loc, id, 0);
-    if (!s2)
-    {
-	if (!s->ident)
-	    error("template identifier %s is not a member of undefined %s", id->toChars(), s->kind());
-	else
-	    error("template identifier %s is not a member of %s %s", id->toChars(), s->kind(), s->ident->toChars());
-	goto Lerr;
-    }
-    s = s2;
-    s->semantic(sc);
-    s = s->toAlias();
-    td = s->isTemplateDeclaration();
-    if (!td)
-    {
-	error("%s is not a template", id->toChars());
-	goto Lerr;
-    }
-    if (global.errors)
-	goto Lerr;
-
-    ti->tempdecl = td;
-
-    if (eleft)
-    {	Declaration *v;
-
+	DotTemplateExp *dte = (DotTemplateExp *)e;
+	TemplateDeclaration *td = dte->td;
+	eleft = dte->e1;
+	ti->tempdecl = td;
 	ti->semantic(sc);
-	s = ti->inst->toAlias();
-	v = s->isDeclaration();
+	Dsymbol *s = ti->inst->toAlias();
+	Declaration *v = s->isDeclaration();
 	if (v)
 	{   e = new DotVarExp(loc, eleft, v);
 	    e = e->semantic(sc);
 	    return e;
 	}
-    }
-
-    e = new ScopeExp(loc, ti);
-    if (eleft)
-    {
+	e = new ScopeExp(loc, ti);
 	e = new DotExp(loc, eleft, e);
+	e = e->semantic(sc);
+	return e;
     }
-    e = e->semantic(sc);
-    return e;
+    else if (e->op == TOKimport)
+    {   ScopeExp *se = (ScopeExp *)e;
+	TemplateDeclaration *td = se->sds->isTemplateDeclaration();
+	if (!td)
+	{   error("%s is not a template", e->toChars());
+	    return new ErrorExp();
+	}
+	ti->tempdecl = td;
+	e = new ScopeExp(loc, ti);
+	e = e->semantic(sc);
+	return e;
+    }
+    else if (e->op == TOKdotexp)
+    {	DotExp *de = (DotExp *)e;
 
-Lerr:
+        if (de->e2->op == TOKimport)
+        {   // This should *really* be moved to ScopeExp::semantic()
+	    ScopeExp *se = (ScopeExp *)de->e2;
+	    de->e2 = new DsymbolExp(loc, se->sds);
+	    de->e2 = de->e2->semantic(sc);
+        }
+
+        if (de->e2->op == TOKtemplate)
+        {   TemplateExp *te = (TemplateExp *) de->e2;
+	    e = new DotTemplateExp(loc,de->e1,te->td);
+        }
+	goto L1;
+    }
+    error("%s isn't a template", e->toChars());
     return new ErrorExp();
 }
 
@@ -6460,18 +6424,17 @@ Expression *CallExp::semantic(Scope *sc)
 	     * If not, go with partial explicit specialization.
 	     */
 	    ti->semanticTiargs(sc);
-	    unsigned errors = global.errors;
-	    global.gag++;
-	    ti->semantic(sc);
-	    global.gag--;
-	    if (errors != global.errors)
+	    if (ti->needsTypeInference(sc))
 	    {
-		/* Didn't work, go with partial explicit specialization
+		/* Go with partial explicit specialization
 		 */
-		global.errors = errors;
 		targsi = ti->tiargs;
 		tierror = ti;			// for error reporting
 		e1 = new IdentifierExp(loc, ti->name);
+	    }
+	    else
+	    {
+		ti->semantic(sc);
 	    }
 	}
     }
@@ -6489,6 +6452,7 @@ Ldotti:
 	     * If not, go with partial explicit specialization.
 	     */
 	    ti->semanticTiargs(sc);
+#if 0
 	    Expression *etmp = e1->trySemantic(sc);
 	    if (etmp)
 		e1 = etmp;	// it worked
@@ -6498,6 +6462,24 @@ Ldotti:
 		tierror = ti;		// for error reporting
 		e1 = new DotIdExp(loc, se->e1, ti->name);
 	    }
+#else
+	    if (!ti->tempdecl)
+	    {
+		se->getTempdecl(sc);
+	    }
+	    if (ti->tempdecl && ti->needsTypeInference(sc))
+	    {
+		/* Go with partial explicit specialization
+		 */
+		targsi = ti->tiargs;
+		tierror = ti;			// for error reporting
+		e1 = new DotIdExp(loc, se->e1, ti->name);
+	    }
+	    else
+	    {
+		e1 = e1->semantic(sc);
+	    }
+#endif
 	}
     }
 #endif
@@ -6505,6 +6487,7 @@ Ldotti:
     istemp = 0;
 Lagain:
     //printf("Lagain: %s\n", toChars());
+//printf("test1 %s\n", toChars());
     f = NULL;
     if (e1->op == TOKthis || e1->op == TOKsuper)
     {
@@ -6959,8 +6942,7 @@ Lagain:
 	}
 	else
 	{   error("function expected before (), not %s of type %s", e1->toChars(), e1->type->toChars());
-	    type = Type::terror;
-	    return this;
+	    return new ErrorExp();
 	}
     }
     else if (e1->op == TOKvar)

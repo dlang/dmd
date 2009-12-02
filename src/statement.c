@@ -1875,11 +1875,9 @@ Lagain:
 		{   /* Call:
 		     *	aggr.apply!(fld)()
 		     */
-		    TemplateInstance *ti = new TemplateInstance(loc, idapply);
 		    Objects *tiargs = new Objects();
 		    tiargs->push(fld);
-		    ti->tiargs = tiargs;
-		    ec = new DotTemplateInstanceExp(loc, aggr, ti);
+		    ec = new DotTemplateInstanceExp(loc, aggr, idapply, tiargs);
 		}
 		else
 #endif

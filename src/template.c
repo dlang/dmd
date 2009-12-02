@@ -841,6 +841,7 @@ MATCH TemplateDeclaration::deduceFunctionTemplateMatch(Loc loc, Objects *targsi,
     Scope *paramscope = scope->push(paramsym);
 
     TemplateTupleParameter *tp = isVariadic();
+    int tp_is_declared = 0;
 
 #if 0
     for (i = 0; i < dedargs->dim; i++)
@@ -879,6 +880,7 @@ MATCH TemplateDeclaration::deduceFunctionTemplateMatch(Loc loc, Objects *targsi,
 		t->objects.data[i] = (void *)targsi->data[n + i];
 	    }
 	    declareParameter(paramscope, tp, t);
+	    tp_is_declared = 1;
 	}
 	else
 	    n = nargsi;
@@ -940,6 +942,8 @@ MATCH TemplateDeclaration::deduceFunctionTemplateMatch(Loc loc, Objects *targsi,
     {
 	if (nfparams == 0 && nfargs != 0)		// if no function parameters
 	{
+	    if (tp_is_declared)
+		goto L2;
 	    Tuple *t = new Tuple();
 	    //printf("t = %p\n", t);
 	    dedargs->data[parameters->dim - 1] = (void *)t;
@@ -966,6 +970,9 @@ MATCH TemplateDeclaration::deduceFunctionTemplateMatch(Loc loc, Objects *targsi,
 
 		if (fvarargs)		// variadic function doesn't
 		    goto Lnomatch;	// go with variadic template
+
+		if (tp_is_declared)
+		    goto L2;
 
 		/* The types of the function arguments
 		 * now form the tuple argument.
@@ -4351,6 +4358,46 @@ void TemplateInstance::declareParameters(Scope *sc)
     }
 }
 
+/*****************************************************
+ * Determine if template instance is really a template function,
+ * and that template function needs to infer types from the function
+ * arguments.
+ */
+
+int TemplateInstance::needsTypeInference(Scope *sc)
+{
+    //printf("TemplateInstance::needsTypeInference() %s\n", toChars());
+    if (!tempdecl)
+	tempdecl = findTemplateDeclaration(sc);
+    for (TemplateDeclaration *td = tempdecl; td; td = td->overnext)
+    {
+	/* If any of the overloaded template declarations need inference,
+	 * then return TRUE
+	 */
+	FuncDeclaration *fd;
+	if (!td->onemember ||
+	    (fd = td->onemember->toAlias()->isFuncDeclaration()) == NULL ||
+	    fd->type->ty != Tfunction)
+	{
+	    /* Not a template function, therefore type inference is not possible.
+	     */
+	    //printf("false\n");
+	    return FALSE;
+	}
+
+	/* Determine if the instance arguments, tiargs, are all that is necessary
+	 * to instantiate the template.
+	 */
+	TemplateTupleParameter *tp = td->isVariadic();
+	//printf("tp = %p, td->parameters->dim = %d, tiargs->dim = %d\n", tp, td->parameters->dim, tiargs->dim);
+	TypeFunction *fdtype = (TypeFunction *)fd->type;
+	if (Parameter::dim(fdtype->parameters) &&
+	    (tp || tiargs->dim < td->parameters->dim))
+	    return TRUE;
+    }
+    //printf("false\n");
+    return FALSE;
+}
 
 void TemplateInstance::semantic2(Scope *sc)
 {   int i;

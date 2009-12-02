@@ -5298,14 +5298,15 @@ Expression *Parser::parsePostExp(Expression *e)
 		    if (token.value == TOKnot && peekNext() != TOKis)
 		    {   // identifier!(template-argument-list)
 			TemplateInstance *tempinst = new TemplateInstance(loc, id);
+			Objects *tiargs;
 			nextToken();
 			if (token.value == TOKlparen)
 			    // ident!(template_arguments)
-			    tempinst->tiargs = parseTemplateArgumentList();
+			    tiargs = parseTemplateArgumentList();
 			else
 			    // ident!template_argument
-			    tempinst->tiargs = parseTemplateArgument();
-			e = new DotTemplateInstanceExp(loc, e, tempinst);
+			    tiargs = parseTemplateArgument();
+			e = new DotTemplateInstanceExp(loc, e, id, tiargs);
 		    }
 		    else
 			e = new DotIdExp(loc, e, id);

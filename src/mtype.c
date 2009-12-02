@@ -1451,11 +1451,10 @@ Expression *Type::noMember(Scope *sc, Expression *e, Identifier *ident)
 		return new ErrorExp();
 	    }
 	    StringExp *se = new StringExp(e->loc, ident->toChars());
-	    TemplateInstance *ti = new TemplateInstance(e->loc, td->ident);
 	    Objects *tiargs = new Objects();
 	    tiargs->push(se);
-	    ti->tiargs = tiargs;
-	    e = new DotTemplateInstanceExp(e->loc, e, ti);
+	    e = new DotTemplateInstanceExp(e->loc, e, Id::opDispatch, tiargs);
+	    ((DotTemplateInstanceExp *)e)->ti->tempdecl = td;
 	    return e;
 	    //return e->semantic(sc);
 	}

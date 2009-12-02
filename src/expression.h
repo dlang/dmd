@@ -854,8 +854,9 @@ struct DotTemplateInstanceExp : UnaExp
 {
     TemplateInstance *ti;
 
-    DotTemplateInstanceExp(Loc loc, Expression *e, TemplateInstance *ti);
+    DotTemplateInstanceExp(Loc loc, Expression *e, Identifier *name, Objects *tiargs);
     Expression *syntaxCopy();
+    TemplateDeclaration *getTempdecl(Scope *sc);
     Expression *semantic(Scope *sc);
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
     void dump(int indent);
