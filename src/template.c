@@ -4044,6 +4044,47 @@ void TemplateInstance::declareParameters(Scope *sc)
 }
 
 
+/*****************************************************
+ * Determine if template instance is really a template function,
+ * and that template function needs to infer types from the function
+ * arguments.
+ */
+
+int TemplateInstance::needsTypeInference(Scope *sc)
+{
+    //printf("TemplateInstance::needsTypeInference() %s\n", toChars());
+    if (!tempdecl)
+	tempdecl = findTemplateDeclaration(sc);
+    for (TemplateDeclaration *td = tempdecl; td; td = td->overnext)
+    {
+	/* If any of the overloaded template declarations need inference,
+	 * then return TRUE
+	 */
+	FuncDeclaration *fd;
+	if (!td->onemember ||
+	    (fd = td->onemember->toAlias()->isFuncDeclaration()) == NULL ||
+	    fd->type->ty != Tfunction)
+	{
+	    /* Not a template function, therefore type inference is not possible.
+	     */
+	    //printf("false\n");
+	    return FALSE;
+	}
+
+	/* Determine if the instance arguments, tiargs, are all that is necessary
+	 * to instantiate the template.
+	 */
+	TemplateTupleParameter *tp = td->isVariadic();
+	//printf("tp = %p, td->parameters->dim = %d, tiargs->dim = %d\n", tp, td->parameters->dim, tiargs->dim);
+	TypeFunction *fdtype = (TypeFunction *)fd->type;
+	if (Parameter::dim(fdtype->parameters) &&
+	    (tp || tiargs->dim < td->parameters->dim))
+	    return TRUE;
+    }
+    //printf("false\n");
+    return FALSE;
+}
+
 void TemplateInstance::semantic2(Scope *sc)
 {   int i;
 

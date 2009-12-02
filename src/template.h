@@ -301,6 +301,7 @@ struct TemplateInstance : ScopeDsymbol
     Dsymbol *toAlias();			// resolve real symbol
     const char *kind();
     int oneMember(Dsymbol **ps);
+    int needsTypeInference(Scope *sc);
     char *toChars();
     char *mangle();
     void printInstantiationTrace();

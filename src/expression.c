@@ -5866,7 +5866,66 @@ Expression *DotTemplateInstanceExp::syntaxCopy()
 }
 
 Expression *DotTemplateInstanceExp::semantic(Scope *sc)
-{   Dsymbol *s;
+{
+#if 1
+#if LOGSEMANTIC
+    printf("DotTemplateInstanceExp::semantic('%s')\n", toChars());
+#endif
+    Expression *eleft;
+    Expression *e = new DotIdExp(loc, e1, ti->name);
+L1:
+    e = e->semantic(sc);
+    if (e->op == TOKdottd)
+    {
+	DotTemplateExp *dte = (DotTemplateExp *)e;
+	TemplateDeclaration *td = dte->td;
+	eleft = dte->e1;
+	ti->tempdecl = td;
+	ti->semantic(sc);
+	Dsymbol *s = ti->inst->toAlias();
+	Declaration *v = s->isDeclaration();
+	if (v)
+	{   e = new DotVarExp(loc, eleft, v);
+	    e = e->semantic(sc);
+	    return e;
+	}
+	e = new ScopeExp(loc, ti);
+	e = new DotExp(loc, eleft, e);
+	e = e->semantic(sc);
+	return e;
+    }
+    else if (e->op == TOKimport)
+    {   ScopeExp *se = (ScopeExp *)e;
+	TemplateDeclaration *td = se->sds->isTemplateDeclaration();
+	if (!td)
+	{   error("%s is not a template", e->toChars());
+	    return new ErrorExp();
+	}
+	ti->tempdecl = td;
+	e = new ScopeExp(loc, ti);
+	e = e->semantic(sc);
+	return e;
+    }
+    else if (e->op == TOKdotexp)
+    {	DotExp *de = (DotExp *)e;
+
+        if (de->e2->op == TOKimport)
+        {   // This should *really* be moved to ScopeExp::semantic()
+	    ScopeExp *se = (ScopeExp *)de->e2;
+	    de->e2 = new DsymbolExp(loc, se->sds);
+	    de->e2 = de->e2->semantic(sc);
+        }
+
+        if (de->e2->op == TOKtemplate)
+        {   TemplateExp *te = (TemplateExp *) de->e2;
+	    e = new DotTemplateExp(loc,de->e1,te->td);
+        }
+	goto L1;
+    }
+    error("%s isn't a template", e->toChars());
+    return new ErrorExp();
+#else
+    Dsymbol *s;
     Dsymbol *s2;
     TemplateDeclaration *td;
     Expression *e;
@@ -5982,6 +6041,7 @@ Expression *DotTemplateInstanceExp::semantic(Scope *sc)
 
 Lerr:
     return new IntegerExp(loc, 0, Type::tint32);
+#endif
 }
 
 void DotTemplateInstanceExp::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
