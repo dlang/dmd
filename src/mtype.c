@@ -4215,6 +4215,8 @@ Type *TypeFunction::semantic(Loc loc, Scope *sc)
 	tf->trust = TRUSTsafe;
     if (sc->stc & STCtrusted)
 	tf->trust = TRUSTtrusted;
+    if (sc->stc & STCproperty)
+	tf->isproperty = TRUE;
 
     tf->linkage = sc->linkage;
 
@@ -4314,6 +4316,9 @@ Type *TypeFunction::semantic(Loc loc, Scope *sc)
 	tf->inuse = 0;
 	return terror;
     }
+
+    if (tf->isproperty && (tf->varargs || Parameter::dim(tf->parameters) > 1))
+	error(loc, "properties can only have zero or one parameter");
 
     if (tf->varargs == 1 && tf->linkage != LINKd && Parameter::dim(tf->parameters) == 0)
 	error(loc, "variadic functions with non-D linkage must have at least one parameter");
