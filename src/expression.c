@@ -2329,6 +2329,7 @@ Lagain:
 	if (!f->type->deco)
 	{
 	    error("forward reference to %s", toChars());
+	    return new ErrorExp();
 	}
 	return new VarExp(loc, f, hasOverloads);
     }
