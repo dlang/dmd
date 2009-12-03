@@ -804,7 +804,12 @@ MATCH TemplateDeclaration::deduceFunctionTemplateMatch(Loc loc, Objects *targsi,
 	else
 	    n = nargsi;
 
-	memcpy(dedargs->data, targsi->data, n * sizeof(*dedargs->data));
+	/* Test case for nargsi instead of n:
+	 *  string foo(T...)() { return ""; }
+	 *  void main() { foo!(int, char)(); }
+	 */
+	//memcpy(dedargs->data, targsi->data, n * sizeof(*dedargs->data));
+	memcpy(dedargs->data, targsi->data, nargsi * sizeof(*dedargs->data));
 
 	for (size_t i = 0; i < n; i++)
 	{   assert(i < parameters->dim);
