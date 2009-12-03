@@ -1882,6 +1882,9 @@ struct Param2
     Match *m;
 #if DMDV2
     Expression *ethis;
+    int property;	// 0: unintialized
+			// 1: seen @property
+			// 2: not @property
 #endif
     Expressions *arguments;
 };
@@ -1896,6 +1899,13 @@ int fp2(void *param, FuncDeclaration *f)
     {
 	m->anyf = f;
 	TypeFunction *tf = (TypeFunction *)f->type;
+
+	int property = (tf->isproperty) ? 1 : 2;
+	if (p->property == 0)
+	    p->property = property;
+	else if (p->property != property)
+	    error(f->loc, "cannot overload both property and non-property functions");
+
 	match = (MATCH) tf->callMatch(f->needThis() ? p->ethis : NULL, arguments);
 	//printf("test: match = %d\n", match);
 	if (match != MATCHnomatch)
@@ -1954,6 +1964,7 @@ void overloadResolveX(Match *m, FuncDeclaration *fstart,
     Param2 p;
     p.m = m;
     p.ethis = ethis;
+    p.property = 0;
     p.arguments = arguments;
     overloadApply(fstart, &fp2, &p);
 }
