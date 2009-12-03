@@ -3178,10 +3178,7 @@ Object *TemplateValueParameter::defaultArg(Loc loc, Scope *sc)
 	e = e->syntaxCopy();
 	e = e->semantic(sc);
 #if DMDV2
-	if (e->op == TOKdefault)
-	{   DefaultInitExp *de = (DefaultInitExp *)e;
-	    e = de->resolve(loc, sc);
-	}
+	e = e->resolveLoc(loc, sc);
 #endif
     }
     return e;

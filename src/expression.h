@@ -116,6 +116,7 @@ struct Expression : Object
     virtual IntRange getIntRange();
     virtual Expression *castTo(Scope *sc, Type *t);
     virtual void checkEscape();
+    virtual Expression *resolveLoc(Loc loc, Scope *sc);
     void checkScalar();
     void checkNoBool();
     Expression *checkIntegral();
@@ -728,6 +729,7 @@ struct UnaExp : Expression
     void scanForNestedRef(Scope *sc);
     Expression *interpretCommon(InterState *istate, Expression *(*fp)(Type *, Expression *));
     int canThrow();
+    Expression *resolveLoc(Loc loc, Scope *sc);
 
     int inlineCost(InlineCostState *ics);
     Expression *doInline(InlineDoState *ids);
@@ -1538,7 +1540,6 @@ struct DefaultInitExp : Expression
     enum TOK subop;		// which of the derived classes this is
 
     DefaultInitExp(Loc loc, enum TOK subop, int size);
-    virtual Expression *resolve(Loc loc, Scope *sc) = 0;
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
 };
 
@@ -1546,14 +1547,14 @@ struct FileInitExp : DefaultInitExp
 {
     FileInitExp(Loc loc);
     Expression *semantic(Scope *sc);
-    Expression *resolve(Loc loc, Scope *sc);
+    Expression *resolveLoc(Loc loc, Scope *sc);
 };
 
 struct LineInitExp : DefaultInitExp
 {
     LineInitExp(Loc loc);
     Expression *semantic(Scope *sc);
-    Expression *resolve(Loc loc, Scope *sc);
+    Expression *resolveLoc(Loc loc, Scope *sc);
 };
 #endif
 

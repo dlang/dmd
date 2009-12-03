@@ -668,14 +668,10 @@ void functionParameters(Loc loc, Scope *sc, TypeFunction *tf, Expressions *argum
 		    return;
 		}
 		arg = p->defaultArg;
+		arg = arg->copy();
 #if DMDV2
-		if (arg->op == TOKdefault)
-		{   DefaultInitExp *de = (DefaultInitExp *)arg;
-		    arg = de->resolve(loc, sc);
-		}
-		else
+		arg = arg->resolveLoc(loc, sc);		// __FILE__ and __LINE__
 #endif
-		    arg = arg->copy();
 		arguments->push(arg);
 		nargs++;
 	    }
@@ -1421,7 +1417,14 @@ int Expression::canThrow()
 #endif
 }
 
+/****************************************
+ * Resolve __LINE__ and __FILE__ to loc.
+ */
 
+Expression *Expression::resolveLoc(Loc loc, Scope *sc)
+{
+    return this;
+}
 
 Expressions *Expression::arraySyntaxCopy(Expressions *exps)
 {   Expressions *a = NULL;
@@ -5195,6 +5198,12 @@ int UnaExp::canThrow()
     return e1->canThrow();
 }
 #endif
+
+Expression *UnaExp::resolveLoc(Loc loc, Scope *sc)
+{
+    e1 = e1->resolveLoc(loc, sc);
+    return this;
+}
 
 void UnaExp::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 {
@@ -10644,7 +10653,7 @@ Expression *FileInitExp::semantic(Scope *sc)
     return this;
 }
 
-Expression *FileInitExp::resolve(Loc loc, Scope *sc)
+Expression *FileInitExp::resolveLoc(Loc loc, Scope *sc)
 {
     //printf("FileInitExp::resolve() %s\n", toChars());
     const char *s = loc.filename ? loc.filename : sc->module->ident->toChars();
@@ -10667,7 +10676,7 @@ Expression *LineInitExp::semantic(Scope *sc)
     return this;
 }
 
-Expression *LineInitExp::resolve(Loc loc, Scope *sc)
+Expression *LineInitExp::resolveLoc(Loc loc, Scope *sc)
 {
     Expression *e = new IntegerExp(loc, loc.linnum, Type::tint32);
     e = e->castTo(sc, type);
