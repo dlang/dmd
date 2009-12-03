@@ -4,13 +4,14 @@ TK=tk
 ROOT=root
 
 ## See: http://developer.apple.com/documentation/developertools/conceptual/cross_development/Using/chapter_3_section_2.html#//apple_ref/doc/uid/20002000-1114311-BABGCAAB
-#ENVP= MACOSX_DEPLOYMENT_TARGET=10.3
-#SDK=/Developer/SDKs/MacOSX10.4u.sdk
-##SDK=/Developer/SDKs/MacOSX10.6.sdk
-#LDFLAGS= -isysroot ${SDK} -Wl,-syslibroot,${SDK}
+ENVP= MACOSX_DEPLOYMENT_TARGET=10.3
+SDK=/Developer/SDKs/MacOSX10.4u.sdk #doesn't work because can't find <stdarg.h>
+SDK=/Developer/SDKs/MacOSX10.5.sdk
+#SDK=/Developer/SDKs/MacOSX10.6.sdk
+LDFLAGS= -isysroot ${SDK} -Wl,-syslibroot,${SDK}
 
-#CC=g++ -m32 -isysroot $(SDK)
-CC=g++ -m32
+CC=g++ -m32 -isysroot $(SDK)
+#CC=g++ -m32
 
 #OPT=-g -g3
 #OPT=-O2
@@ -93,7 +94,7 @@ SRC = win32.mak linux.mak osx.mak freebsd.mak solaris.mak \
 all: dmd
 
 dmd: id.o optabgen $(DMD_OBJS)
-	${ENVP} gcc -m32 -lstdc++ $(LDFLAGS) $(COV) $(DMD_OBJS) -o dmd
+	${ENVP} gcc -m32 -lstdc++ $(LDFLAGS) $(COV) $(DMD_OBJS) -o dmd -framework CoreServices
 
 clean:
 	rm -f $(DMD_OBJS) dmd optab.o id.o impcnvgen idgen id.c id.h \
