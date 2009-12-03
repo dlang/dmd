@@ -640,6 +640,7 @@ void functionParameters(Loc loc, Scope *sc, TypeFunction *tf, Expressions *argum
 
     if (nargs > nparams && tf->varargs == 0)
 	error(loc, "expected %zu arguments, not %zu for non-variadic function type %s", nparams, nargs, tf->toChars());
+
     n = (nargs > nparams) ? nargs : nparams;	// n = max(nargs, nparams)
 
     int done = 0;
@@ -664,7 +665,7 @@ void functionParameters(Loc loc, Scope *sc, TypeFunction *tf, Expressions *argum
 		    if (tf->varargs == 2 && i + 1 == nparams)
 			goto L2;
 		    error(loc, "expected %zu function arguments, not %zu", nparams, nargs);
-		    break;
+		    return;
 		}
 		arg = p->defaultArg;
 #if DMDV2
@@ -685,7 +686,9 @@ void functionParameters(Loc loc, Scope *sc, TypeFunction *tf, Expressions *argum
 		if (arg->implicitConvTo(p->type))
 		{
 		    if (nargs != nparams)
-		        error(loc, "expected %zu function arguments, not %zu", nparams, nargs);
+		    {	error(loc, "expected %zu function arguments, not %zu", nparams, nargs);
+			return;
+		    }
 		    goto L1;
 		}
 	     L2:
@@ -897,9 +900,8 @@ void functionParameters(Loc loc, Scope *sc, TypeFunction *tf, Expressions *argum
     // If D linkage and variadic, add _arguments[] as first argument
     if (tf->linkage == LINKd && tf->varargs == 1)
     {
-	Expression *e;
-
-	e = createTypeInfoArray(sc, (Expression **)&arguments->data[nparams],
+	assert(arguments->dim >= nparams);
+	Expression *e = createTypeInfoArray(sc, (Expression **)&arguments->data[nparams],
 		arguments->dim - nparams);
 	arguments->insert(0, e);
     }
