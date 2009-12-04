@@ -1775,7 +1775,7 @@ private __gshared bool multiThreadedFlag = false;
  * Returns:
  *  True if Thread.start() has been called in this process.
  */
-extern (C) bool thread_needLock()
+extern (C) bool thread_needLock() nothrow
 {
     return multiThreadedFlag;
 }
