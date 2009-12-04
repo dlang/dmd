@@ -24,9 +24,9 @@ private
     extern (C) void gc_collect();
     extern (C) void gc_minimize();
 
-    extern (C) uint gc_getAttr( void* p );
-    extern (C) uint gc_setAttr( void* p, uint a );
-    extern (C) uint gc_clrAttr( void* p, uint a );
+    extern (C) uint gc_getAttr( in void* p );
+    extern (C) uint gc_setAttr( in void* p, uint a );
+    extern (C) uint gc_clrAttr( in void* p, uint a );
 
     extern (C) void*  gc_malloc( size_t sz, uint ba = 0 );
     extern (C) void*  gc_calloc( size_t sz, uint ba = 0 );
@@ -35,8 +35,8 @@ private
     extern (C) size_t gc_reserve( size_t sz );
     extern (C) void   gc_free( void* p );
 
-    extern (C) void*   gc_addrOf( void* p );
-    extern (C) size_t  gc_sizeOf( void* p );
+    extern (C) void*   gc_addrOf( in void* p );
+    extern (C) size_t  gc_sizeOf( in void* p );
 
     struct BlkInfo_
     {
@@ -45,13 +45,13 @@ private
         uint   attr;
     }
 
-    extern (C) BlkInfo_ gc_query( void* p );
+    extern (C) BlkInfo_ gc_query( in void* p );
 
-    extern (C) void gc_addRoot( void* p );
-    extern (C) void gc_addRange( void* p, size_t sz );
+    extern (C) void gc_addRoot( in void* p );
+    extern (C) void gc_addRange( in void* p, size_t sz );
 
-    extern (C) void gc_removeRoot( void* p );
-    extern (C) void gc_removeRange( void* p );
+    extern (C) void gc_removeRoot( in void* p );
+    extern (C) void gc_removeRange( in void* p );
 }
 
 
@@ -146,7 +146,7 @@ struct GC
      *  A bit field containing any bits set for the memory block referenced by
      *  p or zero on error.
      */
-    static uint getAttr( void* p )
+    static uint getAttr( in void* p )
     {
         return gc_getAttr( p );
     }
@@ -165,7 +165,7 @@ struct GC
      *  The result of a call to getAttr after the specified bits have been
      *  set.
      */
-    static uint setAttr( void* p, uint a )
+    static uint setAttr( in void* p, uint a )
     {
         return gc_setAttr( p, a );
     }
@@ -185,7 +185,7 @@ struct GC
      *  The result of a call to getAttr after the specified bits have been
      *  cleared.
      */
-    static uint clrAttr( void* p, uint a )
+    static uint clrAttr( in void* p, uint a )
     {
         return gc_clrAttr( p, a );
     }
@@ -347,7 +347,7 @@ struct GC
      * Returns:
      *  The base address of the memory block referenced by p or null on error.
      */
-    static void* addrOf( void* p )
+    static void* addrOf( in void* p )
     {
         return gc_addrOf( p );
     }
@@ -366,7 +366,7 @@ struct GC
      * Returns:
      *  The size in bytes of the memory block referenced by p or zero on error.
      */
-    static size_t sizeOf( void* p )
+    static size_t sizeOf( in void* p )
     {
         return gc_sizeOf( p );
     }
@@ -387,7 +387,7 @@ struct GC
      *  Information regarding the memory block referenced by p or BlkInfo.init
      *  on error.
      */
-    static BlkInfo query( void* p )
+    static BlkInfo query( in void* p )
     {
         return gc_query( p );
     }
@@ -401,7 +401,7 @@ struct GC
      * Params:
      *  p = A pointer to a valid memory address or to null.
      */
-    static void addRoot( void* p )
+    static void addRoot( in void* p )
     {
         gc_addRoot( p );
     }
@@ -417,7 +417,7 @@ struct GC
      *  sz = The size in bytes of the block to add.  If sz is zero then the
      *       no operation will occur.  If p is null then sz must be zero.
      */
-    static void addRange( void* p, size_t sz )
+    static void addRange( in void* p, size_t sz )
     {
         gc_addRange( p, sz );
     }
@@ -430,7 +430,7 @@ struct GC
      *
      *  p  = A pointer to a valid memory address or to null.
      */
-    static void removeRoot( void* p )
+    static void removeRoot( in void* p )
     {
         gc_removeRoot( p );
     }
@@ -445,7 +445,7 @@ struct GC
      * Params:
      *  p  = A pointer to a valid memory address or to null.
      */
-    static void removeRange( void* p )
+    static void removeRange( in void* p )
     {
         gc_removeRange( p );
     }

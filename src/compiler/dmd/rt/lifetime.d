@@ -42,18 +42,18 @@ private
         uint   attr;
     }
 
-    extern (C) uint gc_getAttr( void* p );
-    extern (C) uint gc_setAttr( void* p, uint a );
-    extern (C) uint gc_clrAttr( void* p, uint a );
+    extern (C) uint gc_getAttr( in void* p );
+    extern (C) uint gc_setAttr( in void* p, uint a );
+    extern (C) uint gc_clrAttr( in void* p, uint a );
 
     extern (C) void*  gc_malloc( size_t sz, uint ba = 0 );
     extern (C) void*  gc_calloc( size_t sz, uint ba = 0 );
     extern (C) size_t gc_extend( void* p, size_t mx, size_t sz );
     extern (C) void   gc_free( void* p );
 
-    extern (C) void*   gc_addrOf( void* p );
-    extern (C) size_t  gc_sizeOf( const void* p );
-    extern (C) BlkInfo gc_query( void* p );
+    extern (C) void*   gc_addrOf( in void* p );
+    extern (C) size_t  gc_sizeOf( in void* p );
+    extern (C) BlkInfo gc_query( in void* p );
 
     extern (C) void onFinalizeError( ClassInfo c, Throwable e );
     extern (C) void onOutOfMemoryError();
