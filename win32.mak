@@ -85,6 +85,7 @@ MANIFEST= \
 	src/build-dmd.bat \
 	src/build-dmd.sh \
 	src/common/core/bitop.d \
+	src/common/core/cpuid.d \
 	src/common/core/exception.d \
 	src/common/core/memory.d \
 	src/common/core/runtime.d \

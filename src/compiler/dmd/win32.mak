@@ -59,7 +59,6 @@ MODULES_BASE= \
 
 MODULES_UTIL= \
 	rt\util\console.d \
-	rt\util\cpuid.d \
 	rt\util\ctype.d \
 	rt\util\hash.d \
 	rt\util\string.d \

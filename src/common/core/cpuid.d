@@ -42,7 +42,7 @@
  *    (See accompanying file LICENSE_1_0.txt or copy at
  *          http://www.boost.org/LICENSE_1_0.txt)
  */
-module rt.util.cpuid;
+module core.cpuid;
 
 // If optimizing for a particular processor, it is generally better
 // to identify based on features rather than model. NOTE: Normally

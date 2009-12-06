@@ -42,6 +42,7 @@ C_OBJS=errno.obj
 
 D_SRCS=\
 	core\bitop.d \
+	core\cpuid.d \
 	core\exception.d \
 	core\memory.d \
 	core\runtime.d \

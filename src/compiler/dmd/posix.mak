@@ -31,10 +31,10 @@ MODULES_BASE=$(addprefix rt/, aaA aApply aApplyR adi alloca arrayassign         
 # NOTE: a pre-compiled minit.obj has been provided in dmd for Win32 and
 #       minit.asm is not used by dmd for Linux
 # NOTE: deh.o is only needed for Win32, Linux uses deh2.o
-MODULES_UTIL=$(addprefix rt/util/,console cpuid ctype hash string utf)
-MODULES_TI=$(addprefix rt/typeinfo/ti_,AC Acdouble Acfloat Acreal Adouble	\
-        Afloat Ag Aint Along Areal Ashort byte C cdouble cfloat char creal	        \
-        dchar delegate double float idouble ifloat int ireal long ptr real	        \
+MODULES_UTIL=$(addprefix rt/util/,console ctype hash string utf)
+MODULES_TI=$(addprefix rt/typeinfo/ti_,AC Acdouble Acfloat Acreal Adouble	    \
+        Afloat Ag Aint Along Areal Ashort byte C cdouble cfloat char creal	    \
+        dchar delegate double float idouble ifloat int ireal long ptr real	    \
         short ubyte uint ulong ushort void wchar)
 C_SRCS=complex.c critical.c memory_osx.c monitor.c
 

@@ -12,7 +12,7 @@
  */
 module rt.arraydouble;
 
-private import rt.util.cpuid;
+private import core.cpuid;
 
 version (unittest)
 {
@@ -21,17 +21,17 @@ version (unittest)
      */
     int cpuid;
     const int CPUID_MAX = 5;
-    bool mmx()      { return cpuid == 1 && rt.util.cpuid.mmx(); }
-    bool sse()      { return cpuid == 2 && rt.util.cpuid.sse(); }
-    bool sse2()     { return cpuid == 3 && rt.util.cpuid.sse2(); }
-    bool amd3dnow() { return cpuid == 4 && rt.util.cpuid.amd3dnow(); }
+    bool mmx()      { return cpuid == 1 && core.cpuid.mmx(); }
+    bool sse()      { return cpuid == 2 && core.cpuid.sse(); }
+    bool sse2()     { return cpuid == 3 && core.cpuid.sse2(); }
+    bool amd3dnow() { return cpuid == 4 && core.cpuid.amd3dnow(); }
 }
 else
 {
-    alias rt.util.cpuid.mmx mmx;
-    alias rt.util.cpuid.sse sse;
-    alias rt.util.cpuid.sse2 sse2;
-    alias rt.util.cpuid.amd3dnow amd3dnow;
+    alias core.cpuid.mmx mmx;
+    alias core.cpuid.sse sse;
+    alias core.cpuid.sse2 sse2;
+    alias core.cpuid.amd3dnow amd3dnow;
 }
 
 //version = log;

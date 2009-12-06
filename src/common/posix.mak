@@ -18,7 +18,7 @@ LIBDIR=../../lib
 DOCDIR=../../doc
 IMPDIR=../../import
 LIBBASENAME=libdruntime-core.a
-MODULES=bitop exception memory runtime thread vararg \
+MODULES=bitop cpuid exception memory runtime thread vararg \
 	$(addprefix sync/,barrier condition config exception mutex rwmutex semaphore)
 BUILDS=debug release unittest
 
