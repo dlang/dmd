@@ -465,12 +465,26 @@ else version( freebsd )
 int fsync(int);
 */
 
+version( linux )
+{
+    int fsync(int);
+}
+else version( OSX )
+{
+    int fsync(int);
+}
+
 //
 // Synchronized I/O (SIO)
 //
 /*
 int fdatasync(int);
 */
+
+version( linux )
+{
+    int fdatasync(int);    
+}
 
 //
 // XOpen (XSI)
@@ -572,7 +586,7 @@ else version( OSX )
     int        usleep(useconds_t);
     pid_t      vfork();
 }
-else version (freebsd)
+else version( freebsd )
 {
     char*      crypt(in char*, in char*);
     //char*      ctermid(char*);
