@@ -180,16 +180,16 @@ MANIFEST= \
 	src/rt/util/string.d \
 	src/rt/util/utf.d \
 	src/tls.S \
-	src/gc_basic/gc.d \
-	src/gc_basic/gcalloc.d \
-	src/gc_basic/gcbits.d \
-	src/gc_basic/gcstats.d \
-	src/gc_basic/gcx.d \
-	src/gc_basic/posix.mak \
-	src/gc_basic/win32.mak \
-	src/gc_stub/gc.d \
-	src/gc_stub/posix.mak \
-	src/gc_stub/win32.mak \
+	src/gc/gc.d \
+	src/gc/gcalloc.d \
+	src/gc/gcbits.d \
+	src/gc/gcstats.d \
+	src/gc/gcx.d \
+	src/gc/posix.mak \
+	src/gc/win32.mak \
+	src/gcstub/gc.d \
+	src/gcstub/posix.mak \
+	src/gcstub/win32.mak \
 	src/sc.ini \
 	src/test-dmd.bat \
 	src/test-dmd.sh \
