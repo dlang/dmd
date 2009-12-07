@@ -82,8 +82,6 @@ MANIFEST= \
 	import/core/sys/windows/windows.d \
 	import/object.di \
 	import/std/intrinsic.di \
-	src/build-dmd.bat \
-	src/build-dmd.sh \
 	src/core/bitop.d \
 	src/core/cpuid.d \
 	src/core/exception.d \
@@ -100,13 +98,6 @@ MANIFEST= \
 	src/core/thread.d \
 	src/core/threadasm.S \
 	src/core/vararg.d \
-	src/complex.c \
-	src/critical.c \
-	src/deh.c \
-	src/mars.h \
-	src/memory_osx.c \
-	src/minit.asm \
-	src/monitor.c \
 	src/object_.d \
 	src/rt/aApply.d \
 	src/rt/aApplyR.d \
@@ -125,19 +116,27 @@ MANIFEST= \
 	src/rt/cast_.d \
 	src/rt/cmath2.d \
 	src/rt/compiler.d \
+	src/rt/complex.c \
 	src/rt/cover.d \
+	src/rt/critical.c \
+	src/rt/deh.c \
 	src/rt/deh2.d \
 	src/rt/dmain2.d \
 	src/rt/invariant.d \
 	src/rt/invariant_.d \
 	src/rt/lifetime.d \
 	src/rt/llmath.d \
+	src/rt/mars.h \
 	src/rt/memory.d \
+	src/rt/memory_osx.c \
 	src/rt/memset.d \
+	src/rt/minit.asm \
+	src/rt/monitor.c \
 	src/rt/obj.d \
 	src/rt/qsort.d \
 	src/rt/qsort2.d \
 	src/rt/switch_.d \
+	src/rt/tls.S \
 	src/rt/trace.d \
 	src/rt/typeinfo/ti_AC.d \
 	src/rt/typeinfo/ti_Acdouble.d \
@@ -179,21 +178,12 @@ MANIFEST= \
 	src/rt/util/hash.d \
 	src/rt/util/string.d \
 	src/rt/util/utf.d \
-	src/tls.S \
 	src/gc/gc.d \
 	src/gc/gcalloc.d \
 	src/gc/gcbits.d \
 	src/gc/gcstats.d \
 	src/gc/gcx.d \
-	src/gc/posix.mak \
-	src/gc/win32.mak \
-	src/gcstub/gc.d \
-	src/gcstub/posix.mak \
-	src/gcstub/win32.mak \
-	src/sc.ini \
-	src/test-dmd.bat \
-	src/test-dmd.sh \
-	src/unittest.d
+	src/gcstub/gc.d
 
 SRCS= \
 	src\core\bitop.d \
@@ -212,11 +202,11 @@ SRCS= \
 	src\core\sync\rwmutex.d \
 	src\core\sync\semaphore.d \
 	\
-	src\gc\basic\gc.d \
-	src\gc\basic\gcalloc.d \
-	src\gc\basic\gcbits.d \
-	src\gc\basic\gcstats.d \
-	src\gc\basic\gcx.d \
+	src\gc\gc.d \
+	src\gc\gcalloc.d \
+	src\gc\gcbits.d \
+	src\gc\gcstats.d \
+	src\gc\gcx.d \
 	\
 	src\object_.d \
 	\
@@ -330,6 +320,7 @@ DOCS=\
 	$(DOCDIR)\core\sync\semaphore.html
 
 IMPORTS=\
+    $(IMPDIR)\core\bitop.di \
 	$(IMPDIR)\core\cpuid.di \
 	$(IMPDIR)\core\exception.di \
 	$(IMPDIR)\core\memory.di \
@@ -344,8 +335,6 @@ IMPORTS=\
 	$(IMPDIR)\core\sync\condition.di \
 	$(IMPDIR)\core\sync\barrier.di \
 	$(IMPDIR)\core\sync\rwmutex.di
-
-# bitop.di is already published
 
 ######################## Doc .html file generation ##############################
 
@@ -397,6 +386,9 @@ $(DOCDIR)\core\sync\semaphore.html : src\core\sync\semaphore.d
 
 import: $(IMPORTS)
 
+$(IMPDIR)\core\bitop.di : src\core\bitop.d
+	$(DMD) -c -d -o- -Hf$@ $**
+
 $(IMPDIR)\core\cpuid.di : src\core\cpuid.d
 	$(DMD) -c -d -o- -Hf$@ $**
 
@@ -441,20 +433,20 @@ $(IMPDIR)\core\sync\semaphore.di : src\core\sync\semaphore.d
 errno_c.obj : src\core\stdc\errno.c
 	$(CC) -c $(CFLAGS) src\core\stdc\errno.c -oerrno_c.obj
 
-complex.obj : src\complex.c
-	$(CC) -c $(CFLAGS) src\complex.c
+complex.obj : src\rt\complex.c
+	$(CC) -c $(CFLAGS) src\rt\complex.c
 
-critical.obj : src\critical.c
-	$(CC) -c $(CFLAGS) src\critical.c
+critical.obj : src\rt\critical.c
+	$(CC) -c $(CFLAGS) src\rt\critical.c
 
-deh.obj : src\deh.c
-	$(CC) -c $(CFLAGS) src\deh.c
+deh.obj : src\rt\deh.c
+	$(CC) -c $(CFLAGS) src\rt\deh.c
 
-minit.obj : src\minit.asm
-	$(CC) -c $(CFLAGS) src\minit.asm
+minit.obj : src\rt\minit.asm
+	$(CC) -c $(CFLAGS) src\rt\minit.asm
 
-monitor.obj : src\monitor.c
-	$(CC) -c $(CFLAGS) src\monitor.c
+monitor.obj : src\rt\monitor.c
+	$(CC) -c $(CFLAGS) src\rt\monitor.c
 
 ################### Library generation #########################
 
