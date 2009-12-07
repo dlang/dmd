@@ -178,7 +178,6 @@ MANIFEST= \
 	src/compiler/dmd/rt/typeinfo/ti_void.d \
 	src/compiler/dmd/rt/typeinfo/ti_wchar.d \
 	src/compiler/dmd/rt/util/console.d \
-	src/compiler/dmd/rt/util/cpuid.d \
 	src/compiler/dmd/rt/util/ctype.d \
 	src/compiler/dmd/rt/util/hash.d \
 	src/compiler/dmd/rt/util/string.d \
@@ -205,6 +204,7 @@ MANIFEST= \
 
 SRCS= \
 	src\common\core\bitop.d \
+	src\common\core\cpuid.d \
 	src\common\core\exception.d \
 	src\common\core\memory.d \
 	src\common\core\runtime.d \
@@ -255,7 +255,6 @@ SRCS= \
 	src\compiler\dmd\rt\trace.d \
 	\
 	src\compiler\dmd\rt\util\console.d \
-	src\compiler\dmd\rt\util\cpuid.d \
 	src\compiler\dmd\rt\util\ctype.d \
 	src\compiler\dmd\rt\util\hash.d \
 	src\compiler\dmd\rt\util\string.d \
@@ -338,13 +337,14 @@ DOCS=\
 	$(DOCDIR)\core\sync\semaphore.html
 
 IMPORTS=\
-	$(IMPDIR)\core\sync\exception.di \
+	$(IMPDIR)\core\cpuid.di \
 	$(IMPDIR)\core\exception.di \
 	$(IMPDIR)\core\memory.di \
 	$(IMPDIR)\core\runtime.di \
 	$(IMPDIR)\core\thread.di \
 	$(IMPDIR)\core\vararg.di \
 	\
+	$(IMPDIR)\core\sync\exception.di \
 	$(IMPDIR)\core\sync\semaphore.di \
 	$(IMPDIR)\core\sync\mutex.di \
 	$(IMPDIR)\core\sync\config.di \
@@ -359,6 +359,9 @@ IMPORTS=\
 doc: $(DOCS)
 
 $(DOCDIR)\core\bitop.html : src\common\core\bitop.d
+	$(DMD) -c -d -o- -Df$@ $**
+	
+$(DOCDIR)\core\cpuid.html : src\common\core\cpuid.d
 	$(DMD) -c -d -o- -Df$@ $**
 
 $(DOCDIR)\core\exception.html : src\common\core\exception.d
@@ -400,6 +403,9 @@ $(DOCDIR)\core\sync\semaphore.html : src\common\core\sync\semaphore.d
 ######################## Header .di file generation ##############################
 
 import: $(IMPORTS)
+
+$(IMPDIR)\core\cpuid.di : src\common\core\cpuid.d
+	$(DMD) -c -d -o- -Hf$@ $**
 
 $(IMPDIR)\core\exception.di : src\common\core\exception.d
 	$(DMD) -c -d -o- -Hf$@ $**
