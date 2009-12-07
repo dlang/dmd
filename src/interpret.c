@@ -519,53 +519,8 @@ Expression *WhileStatement::interpret(InterState *istate)
 #if LOG
     printf("WhileStatement::interpret()\n");
 #endif
-    if (istate->start == this)
-	istate->start = NULL;
-    Expression *e;
-
-    if (istate->start)
-    {
-	e = body ? body->interpret(istate) : NULL;
-	if (istate->start)
-	    return NULL;
-	if (e == EXP_CANT_INTERPRET)
-	    return e;
-	if (e == EXP_BREAK_INTERPRET)
-	    return NULL;
-	if (e && e != EXP_CONTINUE_INTERPRET)
-	    return e;
-    }
-
-    while (1)
-    {
-	e = condition->interpret(istate);
-	if (e == EXP_CANT_INTERPRET)
-	    break;
-	if (!e->isConst())
-	{   e = EXP_CANT_INTERPRET;
-	    break;
-	}
-	if (e->isBool(TRUE))
-	{   e = body ? body->interpret(istate) : NULL;
-	    if (e == EXP_CANT_INTERPRET)
-		break;
-	    if (e == EXP_CONTINUE_INTERPRET)
-		continue;
-	    if (e == EXP_BREAK_INTERPRET)
-	    {	e = NULL;
-		break;
-	    }
-	    if (e)
-		break;
-	}
-	else if (e->isBool(FALSE))
-	{   e = NULL;
-	    break;
-	}
-	else
-	    assert(0);
-    }
-    return e;
+    assert(0);			// rewritten to ForStatement
+    return NULL;
 }
 
 Expression *DoStatement::interpret(InterState *istate)
