@@ -6,8 +6,8 @@ CC=dmc
 DOCDIR=doc
 IMPDIR=import
 
-DFLAGS=-O -release -nofloat -w -d -Isrc
-UDFLAGS=-O -release -nofloat -w -d -Isrc
+DFLAGS=-O -release -nofloat -w -d -Iimport -Isrc
+UDFLAGS=-O -release -nofloat -w -d -Iimport -Isrc
 
 CFLAGS=
 
@@ -341,92 +341,92 @@ IMPORTS=\
 doc: $(DOCS)
 
 $(DOCDIR)\core\bitop.html : src\core\bitop.d
-	$(DMD) -c -d -o- -Isrc -Df$@ $**
+	$(DMD) -c -d -o- -Iimport -Isrc -Df$@ $**
 	
 $(DOCDIR)\core\cpuid.html : src\core\cpuid.d
-	$(DMD) -c -d -o- -Isrc -Df$@ $**
+	$(DMD) -c -d -o- -Iimport -Isrc -Df$@ $**
 
 $(DOCDIR)\core\exception.html : src\core\exception.d
-	$(DMD) -c -d -o- -Isrc -Df$@ $**
+	$(DMD) -c -d -o- -Iimport -Isrc -Df$@ $**
 
 $(DOCDIR)\core\memory.html : src\core\memory.d
-	$(DMD) -c -d -o- -Isrc -Df$@ $**
+	$(DMD) -c -d -o- -Iimport -Isrc -Df$@ $**
 
 $(DOCDIR)\core\runtime.html : src\core\runtime.d
-	$(DMD) -c -d -o- -Isrc -Df$@ $**
+	$(DMD) -c -d -o- -Iimport -Isrc -Df$@ $**
 
 $(DOCDIR)\core\thread.html : src\core\thread.d
-	$(DMD) -c -d -o- -Isrc -Df$@ $**
+	$(DMD) -c -d -o- -Iimport -Isrc -Df$@ $**
 
 $(DOCDIR)\core\vararg.html : src\core\vararg.d
-	$(DMD) -c -d -o- -Isrc -Df$@ $**
+	$(DMD) -c -d -o- -Iimport -Isrc -Df$@ $**
 
 $(DOCDIR)\core\sync\barrier.html : src\core\sync\barrier.d
-	$(DMD) -c -d -o- -Isrc -Df$@ $**
+	$(DMD) -c -d -o- -Iimport -Isrc -Df$@ $**
 
 $(DOCDIR)\core\sync\condition.html : src\core\sync\condition.d
-	$(DMD) -c -d -o- -Isrc -Df$@ $**
+	$(DMD) -c -d -o- -Iimport -Isrc -Df$@ $**
 
 $(DOCDIR)\core\sync\config.html : src\core\sync\config.d
-	$(DMD) -c -d -o- -Isrc -Df$@ $**
+	$(DMD) -c -d -o- -Iimport -Isrc -Df$@ $**
 
 $(DOCDIR)\core\sync\exception.html : src\core\sync\exception.d
-	$(DMD) -c -d -o- -Isrc -Df$@ $**
+	$(DMD) -c -d -o- -Iimport -Isrc -Df$@ $**
 
 $(DOCDIR)\core\sync\mutex.html : src\core\sync\mutex.d
-	$(DMD) -c -d -o- -Isrc -Df$@ $**
+	$(DMD) -c -d -o- -Iimport -Isrc -Df$@ $**
 
 $(DOCDIR)\core\sync\rwmutex.html : src\core\sync\rwmutex.d
-	$(DMD) -c -d -o- -Isrc -Df$@ $**
+	$(DMD) -c -d -o- -Iimport -Isrc -Df$@ $**
 
 $(DOCDIR)\core\sync\semaphore.html : src\core\sync\semaphore.d
-	$(DMD) -c -d -o- -Isrc -Df$@ $**
+	$(DMD) -c -d -o- -Iimport -Isrc -Df$@ $**
 
 ######################## Header .di file generation ##############################
 
 import: $(IMPORTS)
 
 $(IMPDIR)\core\bitop.di : src\core\bitop.d
-	$(DMD) -c -d -o- -Isrc -Hf$@ $**
+	$(DMD) -c -d -o- -Iimport -Isrc -Hf$@ $**
 
 $(IMPDIR)\core\cpuid.di : src\core\cpuid.d
-	$(DMD) -c -d -o- -Isrc -Hf$@ $**
+	$(DMD) -c -d -o- -Iimport -Isrc -Hf$@ $**
 
 $(IMPDIR)\core\exception.di : src\core\exception.d
-	$(DMD) -c -d -o- -Isrc -Hf$@ $**
+	$(DMD) -c -d -o- -Iimport -Isrc -Hf$@ $**
 
 $(IMPDIR)\core\memory.di : src\core\memory.d
-	$(DMD) -c -d -o- -Isrc -Hf$@ $**
+	$(DMD) -c -d -o- -Iimport -Isrc -Hf$@ $**
 
 $(IMPDIR)\core\runtime.di : src\core\runtime.d
-	$(DMD) -c -d -o- -Isrc -Hf$@ $**
+	$(DMD) -c -d -o- -Iimport -Isrc -Hf$@ $**
 
 $(IMPDIR)\core\thread.di : src\core\thread.d
-	$(DMD) -c -d -o- -Isrc -Hf$@ $**
+	$(DMD) -c -d -o- -Iimport -Isrc -Hf$@ $**
 
 $(IMPDIR)\core\vararg.di : src\core\vararg.d
-	$(DMD) -c -d -o- -Isrc -Hf$@ $**
+	$(DMD) -c -d -o- -Iimport -Isrc -Hf$@ $**
 
 $(IMPDIR)\core\sync\barrier.di : src\core\sync\barrier.d
-	$(DMD) -c -d -o- -Isrc -Hf$@ $**
+	$(DMD) -c -d -o- -Iimport -Isrc -Hf$@ $**
 
 $(IMPDIR)\core\sync\condition.di : src\core\sync\condition.d
-	$(DMD) -c -d -o- -Isrc -Hf$@ $**
+	$(DMD) -c -d -o- -Iimport -Isrc -Hf$@ $**
 
 $(IMPDIR)\core\sync\config.di : src\core\sync\config.d
-	$(DMD) -c -d -o- -Isrc -Hf$@ $**
+	$(DMD) -c -d -o- -Iimport -Isrc -Hf$@ $**
 
 $(IMPDIR)\core\sync\exception.di : src\core\sync\exception.d
-	$(DMD) -c -d -o- -Isrc -Hf$@ $**
+	$(DMD) -c -d -o- -Iimport -Isrc -Hf$@ $**
 
 $(IMPDIR)\core\sync\mutex.di : src\core\sync\mutex.d
-	$(DMD) -c -d -o- -Isrc -Hf$@ $**
+	$(DMD) -c -d -o- -Iimport -Isrc -Hf$@ $**
 
 $(IMPDIR)\core\sync\rwmutex.di : src\core\sync\rwmutex.d
-	$(DMD) -c -d -o- -Isrc -Hf$@ $**
+	$(DMD) -c -d -o- -Iimport -Isrc -Hf$@ $**
 
 $(IMPDIR)\core\sync\semaphore.di : src\core\sync\semaphore.d
-	$(DMD) -c -d -o- -Isrc -Hf$@ $**
+	$(DMD) -c -d -o- -Iimport -Isrc -Hf$@ $**
 
 ################### C/ASM Targets ############################
 
