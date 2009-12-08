@@ -3924,9 +3924,30 @@ TemplateDeclaration *TemplateInstance::findTemplateDeclaration(Scope *sc)
 	id = name;
 	s = sc->search(loc, id, &scopesym);
 	if (!s)
-	{   error("identifier '%s' is not defined", id->toChars());
+	{   error("template '%s' is not defined", id->toChars());
 	    return NULL;
 	}
+
+	/* If an OverloadSet, look for a unique member that is a template declaration
+	 */
+	OverloadSet *os = s->isOverloadSet();
+	if (os)
+	{   s = NULL;
+	    for (int i = 0; i < os->a.dim; i++)
+	    {	Dsymbol *s2 = (Dsymbol *)os->a.data[i];
+		if (s2->isTemplateDeclaration())
+		{
+		    if (s)
+			error("ambiguous template declaration %s and %s", s->toPrettyChars(), s2->toPrettyChars());
+		    s = s2;
+		}
+	    }
+	    if (!s)
+	    {   error("template '%s' is not defined", id->toChars());
+		return NULL;
+	    }
+	}
+
 #if LOG
 	printf("It's an instance of '%s' kind '%s'\n", s->toChars(), s->kind());
 	if (s->parent)
