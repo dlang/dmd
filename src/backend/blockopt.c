@@ -20,6 +20,8 @@
 #include	<stdio.h>
 #include	<string.h>
 #include	<time.h>
+#include	<stdlib.h>
+
 #include	"cc.h"
 #include	"oper.h"
 #include	"el.h"
@@ -357,7 +359,11 @@ void block_free(block *b)
     {   case BCswitch:
 	case BCifthen:
 	case BCjmptab:
+#if MARS
+	    free(b->BS.Bswitch);
+#else
 	    MEM_PH_FREE(b->BS.Bswitch);
+#endif
 	    break;
 #if SCPP
 	case BCcatch:

@@ -998,7 +998,8 @@ void SwitchStatement::toIR(IRState *irs)
     block_appendexp(mystate.switchBlock, econd);
     block_next(blx,BCswitch,NULL);
 
-    targ_llong *pu = (targ_llong *) mem.malloc(sizeof(*pu) * (numcases + 1));
+    // Corresponding free is in block_free
+    targ_llong *pu = (targ_llong *) ::malloc(sizeof(*pu) * (numcases + 1));
     mystate.switchBlock->BS.Bswitch = pu;
     /* First pair is the number of cases, and the default block
      */
