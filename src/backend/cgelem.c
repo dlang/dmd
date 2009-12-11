@@ -462,6 +462,9 @@ STATIC elem *fixconvop(elem *e)
 				 el_bin(op,tycop,el_una(cop,tycop,ed),
 						      e2));
 
+//printf("after1\n");
+//elem_print(e);
+
 	if (op == OPdiv &&
 	    tybasic(e2->Ety) == TYcdouble)
 	{
@@ -507,12 +510,17 @@ STATIC elem *fixconvop(elem *e)
 	    e1->Ety = tymx;
 	    ex->E2 = el_una(icop,e1->Ety,ex->E2);
 	    ex->Ety = tymx;
+	    tym = tymx;
 
-	    *pe = el_una(copx, ed->Ety, ex);
-	    pe = &(*pe)->E1;
+	    if (ex->Ety != tyme)
+	    {	*pe = el_una(copx, ed->Ety, ex);
+		pe = &(*pe)->E1;
+	    }
 
 	    ed = ed->E1;
 	}
+//dbg_printf("after2\n");
+//elem_print(e);
 
 	e->Ety = tym;
 	if (tym != tyme &&
@@ -532,7 +540,7 @@ STATIC elem *fixconvop(elem *e)
 		el_free(e1->E1);
 		e1->E1 = el_copytree(T);
 	}
-//dbg_printf("after2\n");
+//dbg_printf("after3\n");
 //elem_print(e);
 	return e;
 }
