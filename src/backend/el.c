@@ -2057,12 +2057,15 @@ void shrinkLongDoubleConstantIfPossible(elem *e)
 {
     if (e->Eoper == OPconst && e->Ety == TYldouble)
     {
-	// Check to see if it can be converted into a double (this happens
-	// when the low bits are all zero, and the exponent is in the
-	// double range).
-	long double v = e->EV.Vldouble;
-	double vDouble;
-	double z = v;
+	/* Check to see if it can be converted into a double (this happens
+	 * when the low bits are all zero, and the exponent is in the
+	 * double range).
+	 * Use 'volatile' to prevent optimizer from folding away the conversions,
+	 * and thereby missing the truncation in the conversion to double.
+	 */
+	volatile long double v = e->EV.Vldouble;
+	volatile double vDouble;
+	volatile double z = v;
 	*(&vDouble) = v;
 	if (v == vDouble)	// This will fail if compiler does NaN incorrectly!
 	{
