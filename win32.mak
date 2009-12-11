@@ -301,7 +301,8 @@ SRCS= \
 # NOTE: a pre-compiled minit.obj has been provided in dmd for Win32 and
 #       minit.asm is not used by dmd for Linux
 
-OBJS= errno_c.obj complex.obj critical.obj deh.obj monitor.obj minit.obj
+OBJS= errno_c.obj complex.obj critical.obj deh.obj monitor.obj src\rt\minit.obj
+OBJS_TO_DELETE= errno_c.obj complex.obj critical.obj deh.obj monitor.obj
 
 DOCS=\
 	$(DOCDIR)\core\bitop.html \
@@ -442,7 +443,7 @@ critical.obj : src\rt\critical.c
 deh.obj : src\rt\deh.c
 	$(CC) -c $(CFLAGS) src\rt\deh.c
 
-minit.obj : src\rt\minit.asm
+src\rt\minit.obj : src\rt\minit.asm
 	$(CC) -c $(CFLAGS) src\rt\minit.asm
 
 monitor.obj : src\rt\monitor.c
@@ -466,4 +467,4 @@ install: druntime.zip
 	unzip -o druntime.zip -d /dmd2/src/druntime
 
 clean:
-	del $(DOCS) $(IMPORTS) $(DRUNTIME) $(OBJS)
+	del $(DOCS) $(IMPORTS) $(DRUNTIME) $(OBJS_TO_DELETE)
