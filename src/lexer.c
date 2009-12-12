@@ -647,15 +647,25 @@ void Lexer::scan(Token *t)
 	    case '_':
 	    case_ident:
 	    {   unsigned char c;
-		StringValue *sv;
-		Identifier *id;
 
-		do
+		while (1)
 		{
 		    c = *++p;
-		} while (isidchar(c) || (c & 0x80 && isUniAlpha(decodeUTF())));
-		sv = stringtable.update((char *)t->ptr, p - t->ptr);
-		id = (Identifier *) sv->ptrvalue;
+		    if (isidchar(c))
+			continue;
+		    else if (c & 0x80)
+		    {	unsigned char *s = p;
+			unsigned u = decodeUTF();
+			if (isUniAlpha(u))
+			    continue;
+			error("char 0x%04x not allowed in identifier", u);
+			p = s;
+		    }
+		    break;
+		}
+
+		StringValue *sv = stringtable.update((char *)t->ptr, p - t->ptr);
+		Identifier *id = (Identifier *) sv->ptrvalue;
 		if (!id)
 		{   id = new Identifier(sv->lstring.string,TOKidentifier);
 		    sv->ptrvalue = id;
@@ -1215,23 +1225,23 @@ void Lexer::scan(Token *t)
 		continue;
 
 	    default:
-	    {	unsigned char c = *p;
+	    {	unsigned c = *p;
 
 		if (c & 0x80)
-		{   unsigned u = decodeUTF();
+		{   c = decodeUTF();
 
 		    // Check for start of unicode identifier
-		    if (isUniAlpha(u))
+		    if (isUniAlpha(c))
 			goto case_ident;
 
-		    if (u == PS || u == LS)
+		    if (c == PS || c == LS)
 		    {
 			loc.linnum++;
 			p++;
 			continue;
 		    }
 		}
-		if (isprint(c))
+		if (c < 0x80 && isprint(c))
 		    error("unsupported char '%c'", c);
 		else
 		    error("unsupported char 0x%02x", c);
@@ -1496,7 +1506,7 @@ TOK Lexer::hexStringConstant(Token *t)
 		    if (u == PS || u == LS)
 			loc.linnum++;
 		    else
-			error("non-hex character \\u%x", u);
+			error("non-hex character \\u%04x", u);
 		}
 		else
 		    error("non-hex character '%c'", c);
