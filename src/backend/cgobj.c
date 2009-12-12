@@ -427,7 +427,10 @@ __declspec(naked) int __pascal insidx(char *p,unsigned index)
 __inline int insidx(char *p,unsigned index)
 {
     //if (index > 0x7FFF) printf("index = x%x\n",index);
-    if (index <= 127)
+    /* OFM spec says it could be <=0x7F, but that seems to cause
+     * "library is corrupted" messages. Unverified. See Bugzilla 3601
+     */
+    if (index < 0x7F)
     {	*p = index;
 	return 1;
     }
@@ -2723,12 +2726,16 @@ STATIC void objfixupp(struct FIXUP *f)
 	data[i+2] = fd = f->FUlcfd;
 	k = i;
 	i += 3 + insidx(&data[i+3],f->FUframedatum);
+	//printf("FUframedatum = x%x\n", f->FUframedatum);
 	if ((fd >> 4) == (fd & 3) && f->FUframedatum == f->FUtargetdatum)
 	{
 	    data[k + 2] = (fd & 15) | FD_F5;
 	}
 	else
-	    i += insidx(&data[i],f->FUtargetdatum);
+	{   i += insidx(&data[i],f->FUtargetdatum);
+	    //printf("FUtargetdatum = x%x\n", f->FUtargetdatum);
+	}
+	//printf("[%d]: %02x %02x %02x\n", k, data[k + 0] & 0xFF, data[k + 1] & 0xFF, data[k + 2] & 0xFF);
 	fn = f->FUnext;
 	mem_ffree(f);
   }
