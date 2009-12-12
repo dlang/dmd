@@ -143,19 +143,21 @@ void StructInitializer::addInit(Identifier *field, Initializer *value)
 
 Initializer *StructInitializer::semantic(Scope *sc, Type *t)
 {
-    TypeStruct *ts;
     int errors = 0;
 
     //printf("StructInitializer::semantic(t = %s) %s\n", t->toChars(), toChars());
     vars.setDim(field.dim);
     t = t->toBasetype();
     if (t->ty == Tstruct)
-    {	unsigned i;
+    {
 	unsigned fieldi = 0;
 
-	ts = (TypeStruct *)t;
+	TypeStruct *ts = (TypeStruct *)t;
 	ad = ts->sym;
-	for (i = 0; i < field.dim; i++)
+	if (ad->ctor)
+	    error("%s %s has constructors, cannot use { initializers }, use %s( initializers ) instead",
+		ad->kind(), ad->toChars(), ad->toChars());
+	for (size_t i = 0; i < field.dim; i++)
 	{
 	    Identifier *id = (Identifier *)field.data[i];
 	    Initializer *val = (Initializer *)value.data[i];
