@@ -1489,7 +1489,8 @@ complex_t IntegerExp::toComplex()
 
 int IntegerExp::isBool(int result)
 {
-    return result ? value != 0 : value == 0;
+    int r = toInteger() != 0;
+    return result ? r : !r;
 }
 
 Expression *IntegerExp::semantic(Scope *sc)
