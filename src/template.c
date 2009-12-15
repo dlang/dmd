@@ -3455,7 +3455,28 @@ void TemplateInstance::semantic(Scope *sc)
 
     if (sc->func || dosemantic3)
     {
-	semantic3(sc2);
+#if WINDOWS_SEH
+	__try
+	{
+#endif
+	    static int nest;
+	    if (++nest > 300)
+	    {
+		global.gag = 0;            // ensure error message gets printed
+		error("recursive expansion");
+		fatal();
+	    }
+	    semantic3(sc2);
+	    --nest;
+#if WINDOWS_SEH
+	}
+	__except (__ehfilter(GetExceptionInformation()))
+	{
+	    global.gag = 0;            // ensure error message gets printed
+	    error("recursive expansion");
+	    fatal();
+	}
+#endif
     }
 
   Laftersemantic:
@@ -3467,7 +3488,7 @@ void TemplateInstance::semantic(Scope *sc)
     if (global.errors != errorsave)
     {
 	error("error instantiating");
-	if (tinst && !global.gag)
+	if (tinst)
 	{   tinst->printInstantiationTrace();
 	    fatal();
 	}
@@ -3630,7 +3651,7 @@ TemplateDeclaration *TemplateInstance::findTemplateDeclaration(Scope *sc)
 	id = name;
 	s = sc->search(loc, id, &scopesym);
 	if (!s)
-	{   error("identifier '%s' is not defined", id->toChars());
+	{   error("template '%s' is not defined", id->toChars());
 	    return NULL;
 	}
 #if LOG
@@ -3936,20 +3957,18 @@ int TemplateInstance::hasNestedArgs(Objects *args)
 
 Identifier *TemplateInstance::genIdent()
 {   OutBuffer buf;
-    char *id;
-    Objects *args;
 
     //printf("TemplateInstance::genIdent('%s')\n", tempdecl->ident->toChars());
-    id = tempdecl->ident->toChars();
+    char *id = tempdecl->ident->toChars();
     buf.printf("__T%zu%s", strlen(id), id);
-    args = tiargs;
+    Objects *args = tiargs;
     for (int i = 0; i < args->dim; i++)
     {   Object *o = (Object *)args->data[i];
 	Type *ta = isType(o);
 	Expression *ea = isExpression(o);
 	Dsymbol *sa = isDsymbol(o);
 	Tuple *va = isTuple(o);
-	//printf("\to %p ta %p ea %p sa %p va %p\n", o, ta, ea, sa, va);
+	//printf("\to [%d] %p ta %p ea %p sa %p va %p\n", i, o, ta, ea, sa, va);
 	if (ta)
 	{
 	    buf.writeByte('T');
@@ -4147,10 +4166,81 @@ void TemplateInstance::semantic3(Scope *sc)
     }
 }
 
+/**************************************
+ * Given an error instantiating the TemplateInstance,
+ * give the nested TemplateInstance instantiations that got
+ * us here. Those are a list threaded into the nested scopes.
+ */
 void TemplateInstance::printInstantiationTrace()
 {
     if (global.gag)
 	return;
+
+    const int max_shown = 6;
+    const char format[] = "%s:        instantiated from here: %s\n";
+
+    // determine instantiation depth and number of recursive instantiations
+    int n_instantiations = 1;
+    int n_totalrecursions = 0;
+    for (TemplateInstance *cur = this; cur; cur = cur->tinst)
+    {
+	++n_instantiations;
+	// If two instantiations use the same declaration, they are recursive.
+	// (this works even if they are instantiated from different places in the
+	// same template).
+	// In principle, we could also check for multiple-template recursion, but it's
+	// probably not worthwhile.
+	if (cur->tinst && cur->tempdecl && cur->tinst->tempdecl
+	    && cur->tempdecl->loc.equals(cur->tinst->tempdecl->loc))
+	    ++n_totalrecursions;
+    }
+
+    // show full trace only if it's short or verbose is on
+    if (n_instantiations <= max_shown || global.params.verbose)
+    {
+	for (TemplateInstance *cur = this; cur; cur = cur->tinst)
+	{
+	    fprintf(stdmsg, format, cur->loc.toChars(), cur->toChars());
+	}
+    }
+    else if (n_instantiations - n_totalrecursions <= max_shown)
+    {
+	// By collapsing recursive instantiations into a single line,
+	// we can stay under the limit.
+	int recursionDepth=0;
+	for (TemplateInstance *cur = this; cur; cur = cur->tinst)
+	{
+	    if (cur->tinst && cur->tempdecl && cur->tinst->tempdecl
+		    && cur->tempdecl->loc.equals(cur->tinst->tempdecl->loc))
+	    {
+		++recursionDepth;
+	    }
+	    else
+	    {
+		if (recursionDepth)
+		    fprintf(stdmsg, "%s:        %d recursive instantiations from here: %s\n", cur->loc.toChars(), recursionDepth+2, cur->toChars());
+		else 
+		    fprintf(stdmsg,format, cur->loc.toChars(), cur->toChars());
+		recursionDepth = 0;
+	    }
+	}
+    }
+    else
+    {
+	// Even after collapsing the recursions, the depth is too deep.
+	// Just display the first few and last few instantiations.
+	size_t i = 0;
+	for (TemplateInstance *cur = this; cur; cur = cur->tinst)
+	{
+	    if (i == max_shown / 2)
+		fprintf(stdmsg,"    ... (%d instantiations, -v to show) ...\n", n_instantiations - max_shown);
+
+	    if (i < max_shown / 2 ||
+		i >= n_instantiations - max_shown + max_shown / 2)
+		fprintf(stdmsg, format, cur->loc.toChars(), cur->toChars());
+	    ++i;
+	}
+    }
 }
 
 void TemplateInstance::toObjFile(int multiobj)
@@ -4230,7 +4320,9 @@ Dsymbol *TemplateInstance::toAlias()
 	return inst->toAlias();
 
     if (aliasdecl)
+    {
 	return aliasdecl->toAlias();
+    }
 
     return inst;
 }
