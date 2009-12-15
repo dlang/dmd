@@ -3753,7 +3753,6 @@ void TemplateInstance::semantic(Scope *sc)
 	error("error instantiating");
 	if (tinst)
 	{   tinst->printInstantiationTrace();
-	    fatal();
 	}
 	errors = 1;
 	if (global.gag)

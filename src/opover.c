@@ -595,6 +595,12 @@ void inferApplyArgTypes(enum TOK op, Parameters *arguments, Expression *aggr)
 	    goto Laggr;
 
 	Laggr:
+	    Dsymbol *s = search_function(ad,
+			(op == TOKforeach_reverse) ? Id::applyReverse
+						   : Id::apply);
+	    if (s)
+		goto Lapply;			// prefer opApply
+
 	    if (arguments->dim == 1)
 	    {
 		if (!arg->type)
@@ -619,9 +625,6 @@ void inferApplyArgTypes(enum TOK op, Parameters *arguments, Expression *aggr)
 	     *	int opApply(int delegate(ref Type [, ...]) dg);
 	     * overload
 	     */
-	    Dsymbol *s = search_function(ad,
-			(op == TOKforeach_reverse) ? Id::applyReverse
-						   : Id::apply);
 	    if (s)
 	    {
 		FuncDeclaration *fd = s->isFuncDeclaration();
