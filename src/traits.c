@@ -78,6 +78,7 @@ Expression *TraitsExp::semantic(Scope *sc)
 	TemplateInstance::semanticTiargs(loc, sc, args, 1);
     size_t dim = args ? args->dim : 0;
     Object *o;
+    Declaration *d;
     FuncDeclaration *f;
 
 #define ISTYPE(cond) \
@@ -154,6 +155,20 @@ Expression *TraitsExp::semantic(Scope *sc)
     {
 	ISDSYMBOL((f = s->isFuncDeclaration()) != NULL && f->isFinal())
     }
+#if DMDV2
+    else if (ident == Id::isRef)
+    {
+	ISDSYMBOL((d = s->isDeclaration()) != NULL && d->isRef())
+    }
+    else if (ident == Id::isOut)
+    {
+	ISDSYMBOL((d = s->isDeclaration()) != NULL && d->isOut())
+    }
+    else if (ident == Id::isLazy)
+    {
+	ISDSYMBOL((d = s->isDeclaration()) != NULL && d->storage_class & STClazy)
+    }
+#endif
     else if (ident == Id::hasMember ||
 	     ident == Id::getMember ||
 	     ident == Id::getVirtualFunctions)
