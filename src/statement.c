@@ -3315,17 +3315,34 @@ Statement *ReturnStatement::semantic(Scope *sc)
 	{
 	}
 	else if (fd->inferRetType)
-	{
-	    if (fd->type->nextOf())
+	{   TypeFunction *tf = (TypeFunction *)fd->type;
+	    assert(tf->ty == Tfunction);
+	    Type *tfret = tf->nextOf();
+	    if (tfret)
 	    {
-		if (!exp->type->equals(fd->type->nextOf()))
+		if (!exp->type->equals(tfret))
 		    error("mismatched function return type inference of %s and %s",
-			exp->type->toChars(), fd->type->nextOf()->toChars());
+			exp->type->toChars(), tfret->toChars());
+
+		/* The "refness" is determined by the first return statement,
+		 * not all of them. This means:
+		 *    return 3; return x;  // ok, x can be a value
+		 *    return x; return 3;  // error, 3 is not an lvalue
+		 */
 	    }
 	    else
 	    {
-		((TypeFunction *)fd->type)->next = exp->type;
-		fd->type = fd->type->semantic(loc, sc);
+		if (tf->isref)
+		{   /* Determine "refness" of function return:
+		     * if it's an lvalue, return by ref, else return by value
+		     */
+		    if (exp->isLvalue())
+			;			// return by ref
+		    else
+			tf->isref = FALSE;	// return by value
+		}
+		tf->next = exp->type;
+		fd->type = tf->semantic(loc, sc);
 		if (!fd->tintro)
 		{   tret = fd->type->nextOf();
 		    tbret = tret->toBasetype();

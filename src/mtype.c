@@ -4253,6 +4253,8 @@ Type *TypeFunction::semantic(Loc loc, Scope *sc)
 	}
 	if (tf->next->isauto() && !(sc->flags & SCOPEctor))
 	    error(loc, "functions cannot return scope %s", tf->next->toChars());
+	if (tf->next->toBasetype()->ty == Tvoid)
+	    tf->isref = FALSE;			// rewrite "ref void" as just "void"
     }
 
     if (tf->parameters)

@@ -140,10 +140,14 @@ void FuncDeclaration::semantic(Scope *sc)
 	originalType = type;
     if (!type->deco)
     {
+	sc = sc->push();
+	sc->stc |= storage_class & STCref;	// forward refness to function type
+	type = type->semantic(loc, sc);
+	sc = sc->pop();
+
 	/* Apply const, immutable and shared storage class
 	 * to the function type
 	 */
-	type = type->semantic(loc, sc);
 	StorageClass stc = storage_class;
 	if (type->isInvariant())
 	    stc |= STCimmutable;
@@ -185,7 +189,7 @@ void FuncDeclaration::semantic(Scope *sc)
 		assert(0);
 	}
     }
-    //type->print();
+    storage_class &= ~STCref;
     if (type->ty != Tfunction)
     {
 	error("%s must be a function", toChars());
