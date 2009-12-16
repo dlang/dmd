@@ -2942,7 +2942,8 @@ MATCH TypeSArray::implicitConvTo(Type *to)
 	    return MATCHnomatch;
 
 	if (next->equals(ta->next) ||
-	    next->implicitConvTo(ta->next) >= MATCHconst ||
+//	    next->implicitConvTo(ta->next) >= MATCHconst ||
+	    next->constConv(ta->next) != MATCHnomatch ||
 	    (ta->next->isBaseOf(next, &offset) && offset == 0) ||
 	    ta->next->ty == Tvoid)
 	    return MATCHconvert;
@@ -3164,6 +3165,7 @@ MATCH TypeDArray::implicitConvTo(Type *to)
 	    return m;
 	}
 
+#if 0
 	/* Allow conversions of T[][] to const(T)[][]
 	 */
 	if (mod == ta->mod && next->ty == Tarray && ta->next->ty == Tarray)
@@ -3172,6 +3174,7 @@ MATCH TypeDArray::implicitConvTo(Type *to)
 	    if (m == MATCHconst)
 		return m;
 	}
+#endif
 
 	/* Conversion of array of derived to array of base
 	 */
@@ -4292,6 +4295,8 @@ Type *TypeFunction::semantic(Loc loc, Scope *sc)
 	    }
 	    if (!(arg->storageClass & STClazy) && t->ty == Tvoid)
 		error(loc, "cannot have parameter of type %s", arg->type->toChars());
+	    if (arg->storageClass & STCauto)
+		error(loc, "auto can only be used for template function parameters");
 
 	    if (arg->defaultArg)
 	    {
