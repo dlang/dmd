@@ -2779,7 +2779,12 @@ Type *TypeFunction::semantic(Loc loc, Scope *sc)
 	return this;
     }
     //printf("TypeFunction::semantic() this = %p\n", this);
+    //printf("TypeFunction::semantic() %s, sc->stc = %x\n", toChars(), sc->stc);
 
+    /* Copy in order to not mess up original.
+     * This can produce redundant copies if inferring return type,
+     * as semantic() will get called again on this.
+     */
     TypeFunction *tf = (TypeFunction *)mem.malloc(sizeof(TypeFunction));
     memcpy(tf, this, sizeof(TypeFunction));
     if (parameters)
@@ -2796,10 +2801,12 @@ Type *TypeFunction::semantic(Loc loc, Scope *sc)
     if (tf->next)
     {
 	tf->next = tf->next->semantic(loc,sc);
+#if !SARRAYVALUE
 	if (tf->next->toBasetype()->ty == Tsarray)
 	{   error(loc, "functions cannot return static array %s", tf->next->toChars());
 	    tf->next = Type::terror;
 	}
+#endif
 	if (tf->next->toBasetype()->ty == Tfunction)
 	{   error(loc, "functions cannot return a function");
 	    tf->next = Type::terror;
@@ -2822,35 +2829,51 @@ Type *TypeFunction::semantic(Loc loc, Scope *sc)
 
 	size_t dim = Parameter::dim(tf->parameters);
 	for (size_t i = 0; i < dim; i++)
-	{   Parameter *arg = Parameter::getNth(tf->parameters, i);
+	{   Parameter *fparam = Parameter::getNth(tf->parameters, i);
 
 	    tf->inuse++;
-	    arg->type = arg->type->semantic(loc, argsc);
+	    fparam->type = fparam->type->semantic(loc, argsc);
 	    if (tf->inuse == 1) tf->inuse--;
 
-	    Type *t = arg->type->toBasetype();
+	    Type *t = fparam->type->toBasetype();
 
-	    if (arg->storageClass & (STCout | STCref | STClazy))
+	    if (fparam->storageClass & (STCout | STCref | STClazy))
 	    {
 		if (t->ty == Tsarray)
 		    error(loc, "cannot have out or ref parameter of type %s", t->toChars());
 	    }
-	    if (!(arg->storageClass & STClazy) && t->ty == Tvoid)
-		error(loc, "cannot have parameter of type %s", arg->type->toChars());
+	    if (!(fparam->storageClass & STClazy) && t->ty == Tvoid)
+		error(loc, "cannot have parameter of type %s", fparam->type->toChars());
 
-	    if (arg->defaultArg)
+	    if (fparam->defaultArg)
 	    {
-		arg->defaultArg = arg->defaultArg->semantic(argsc);
-		arg->defaultArg = resolveProperties(argsc, arg->defaultArg);
-		arg->defaultArg = arg->defaultArg->implicitCastTo(argsc, arg->type);
+		fparam->defaultArg = fparam->defaultArg->semantic(argsc);
+		fparam->defaultArg = resolveProperties(argsc, fparam->defaultArg);
+		fparam->defaultArg = fparam->defaultArg->implicitCastTo(argsc, fparam->type);
 	    }
 
 	    /* If arg turns out to be a tuple, the number of parameters may
 	     * change.
 	     */
 	    if (t->ty == Ttuple)
-	    {	dim = Parameter::dim(tf->parameters);
+	    {
+		// Propagate storage class from tuple parameters to their element-parameters.
+		TypeTuple *tt = (TypeTuple *)t;
+		if (tt->arguments)
+		{
+		    size_t tdim = tt->arguments->dim;
+		    for (size_t j = 0; j < tdim; j++)
+		    {   Parameter *narg = (Parameter *)tt->arguments->data[j];
+			narg->storageClass = fparam->storageClass;
+		    }
+		}
+
+		/* Reset number of parameters, and back up one to do this arg again,
+		 * now that it is the first element of a tuple
+		 */
+		dim = Parameter::dim(tf->parameters);
 		i--;
+		continue;
 	    }
 	}
 	argsc->pop();
