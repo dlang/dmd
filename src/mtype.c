@@ -4272,40 +4272,40 @@ Type *TypeFunction::semantic(Loc loc, Scope *sc)
 
 	size_t dim = Parameter::dim(tf->parameters);
 	for (size_t i = 0; i < dim; i++)
-	{   Parameter *arg = Parameter::getNth(tf->parameters, i);
+	{   Parameter *fparam = Parameter::getNth(tf->parameters, i);
 
 	    tf->inuse++;
-	    arg->type = arg->type->semantic(loc, argsc);
+	    fparam->type = fparam->type->semantic(loc, argsc);
 	    if (tf->inuse == 1) tf->inuse--;
 
-	    arg->type = arg->type->addStorageClass(arg->storageClass);
+	    fparam->type = fparam->type->addStorageClass(fparam->storageClass);
 
-	    if (arg->storageClass & (STCauto | STCalias | STCstatic))
+	    if (fparam->storageClass & (STCauto | STCalias | STCstatic))
 	    {
-		if (!arg->type)
+		if (!fparam->type)
 		    continue;
 	    }
 
-	    Type *t = arg->type->toBasetype();
+	    Type *t = fparam->type->toBasetype();
 
-	    if (arg->storageClass & (STCout | STCref | STClazy))
+	    if (fparam->storageClass & (STCout | STCref | STClazy))
 	    {
 		//if (t->ty == Tsarray)
 		    //error(loc, "cannot have out or ref parameter of type %s", t->toChars());
-		if (arg->storageClass & STCout && arg->type->mod & (STCconst | STCimmutable))
+		if (fparam->storageClass & STCout && fparam->type->mod & (STCconst | STCimmutable))
 		    error(loc, "cannot have const or immutable out parameter of type %s", t->toChars());
 	    }
-	    if (!(arg->storageClass & STClazy) && t->ty == Tvoid)
-		error(loc, "cannot have parameter of type %s", arg->type->toChars());
+	    if (!(fparam->storageClass & STClazy) && t->ty == Tvoid)
+		error(loc, "cannot have parameter of type %s", fparam->type->toChars());
 
-	    if (arg->defaultArg)
+	    if (fparam->defaultArg)
 	    {
-		arg->defaultArg = arg->defaultArg->semantic(argsc);
-		arg->defaultArg = resolveProperties(argsc, arg->defaultArg);
-		arg->defaultArg = arg->defaultArg->implicitCastTo(argsc, arg->type);
+		fparam->defaultArg = fparam->defaultArg->semantic(argsc);
+		fparam->defaultArg = resolveProperties(argsc, fparam->defaultArg);
+		fparam->defaultArg = fparam->defaultArg->implicitCastTo(argsc, fparam->type);
 	    }
 
-	    /* If arg turns out to be a tuple, the number of parameters may
+	    /* If fparam turns out to be a tuple, the number of parameters may
 	     * change.
 	     */
 	    if (t->ty == Ttuple)
@@ -4317,11 +4317,11 @@ Type *TypeFunction::semantic(Loc loc, Scope *sc)
 		    size_t tdim = tt->arguments->dim;
 		    for (size_t j = 0; j < tdim; j++)
 		    {   Parameter *narg = (Parameter *)tt->arguments->data[j];
-			narg->storageClass = arg->storageClass;
+			narg->storageClass = fparam->storageClass;
 		    }
 		}
 
-		/* Reset number of parameters, and back up one to do this arg again,
+		/* Reset number of parameters, and back up one to do this fparam again,
 		 * now that it is the first element of a tuple
 		 */
 		dim = Parameter::dim(tf->parameters);
@@ -4332,16 +4332,16 @@ Type *TypeFunction::semantic(Loc loc, Scope *sc)
 	    /* Resolve "auto ref" storage class to be either ref or value,
 	     * based on the argument matching the parameter
 	     */
-	    if (arg->storageClass & STCauto)
+	    if (fparam->storageClass & STCauto)
 	    {
-		if (!(arg->storageClass & STCref))
+		if (!(fparam->storageClass & STCref))
 		    error(loc, "auto can only be used with ref for template function parameters");
 		if (fargs && i < fargs->dim)
 		{   Expression *farg = (Expression *)fargs->data[i];
 		    if (farg->isLvalue())
 			;				// ref parameter
 		    else
-			arg->storageClass &= ~STCref;	// value parameter
+			fparam->storageClass &= ~STCref;	// value parameter
 		}
 		else
 		    error(loc, "auto can only be used for template function parameters");
