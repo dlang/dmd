@@ -3839,6 +3839,7 @@ TypeFunction::TypeFunction(Parameters *parameters, Type *treturn, int varargs, e
     this->isproperty = false;
     this->isref = false;
     this->trust = TRUSTdefault;
+    this->fargs = NULL;
 }
 
 Type *TypeFunction::syntaxCopy()
@@ -3852,6 +3853,7 @@ Type *TypeFunction::syntaxCopy()
     t->isproperty = isproperty;
     t->isref = isref;
     t->trust = trust;
+    t->fargs = fargs;
     return t;
 }
 
@@ -4295,8 +4297,6 @@ Type *TypeFunction::semantic(Loc loc, Scope *sc)
 	    }
 	    if (!(arg->storageClass & STClazy) && t->ty == Tvoid)
 		error(loc, "cannot have parameter of type %s", arg->type->toChars());
-	    if (arg->storageClass & STCauto)
-		error(loc, "auto can only be used for template function parameters");
 
 	    if (arg->defaultArg)
 	    {
@@ -4309,8 +4309,42 @@ Type *TypeFunction::semantic(Loc loc, Scope *sc)
 	     * change.
 	     */
 	    if (t->ty == Ttuple)
-	    {	dim = Parameter::dim(tf->parameters);
+	    {
+		// Propagate storage class from tuple parameters to their element-parameters.
+		TypeTuple *tt = (TypeTuple *)t;
+		if (tt->arguments)
+		{
+		    size_t tdim = tt->arguments->dim;
+		    for (size_t j = 0; j < tdim; j++)
+		    {   Parameter *narg = (Parameter *)tt->arguments->data[j];
+			narg->storageClass = arg->storageClass;
+		    }
+		}
+
+		/* Reset number of parameters, and back up one to do this arg again,
+		 * now that it is the first element of a tuple
+		 */
+		dim = Parameter::dim(tf->parameters);
 		i--;
+		continue;
+	    }
+
+	    /* Resolve "auto ref" storage class to be either ref or value,
+	     * based on the argument matching the parameter
+	     */
+	    if (arg->storageClass & STCauto)
+	    {
+		if (!(arg->storageClass & STCref))
+		    error(loc, "auto can only be used with ref for template function parameters");
+		if (fargs && i < fargs->dim)
+		{   Expression *farg = (Expression *)fargs->data[i];
+		    if (farg->isLvalue())
+			;				// ref parameter
+		    else
+			arg->storageClass &= ~STCref;	// value parameter
+		}
+		else
+		    error(loc, "auto can only be used for template function parameters");
 	    }
 	}
 	argsc->pop();
@@ -6760,7 +6794,7 @@ TypeTuple::TypeTuple(Parameters *arguments)
 {
     //printf("TypeTuple(this = %p)\n", this);
     this->arguments = arguments;
-    //printf("TypeTuple() %s\n", toChars());
+    //printf("TypeTuple() %p, %s\n", this, toChars());
 #ifdef DEBUG
     if (arguments)
     {
@@ -6794,6 +6828,7 @@ TypeTuple::TypeTuple(Expressions *exps)
 	}
     }
     this->arguments = arguments;
+    //printf("TypeTuple() %p, %s\n", this, toChars());
 }
 
 Type *TypeTuple::syntaxCopy()

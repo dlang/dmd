@@ -615,6 +615,7 @@ struct FuncDeclaration : Declaration
     int needsClosure();
     Statement *mergeFrequire(Statement *);
     Statement *mergeFensure(Statement *);
+    Parameters *getParameters(int *pvarargs);
 
     static FuncDeclaration *genCfunc(Type *treturn, const char *name);
     static FuncDeclaration *genCfunc(Type *treturn, Identifier *id);

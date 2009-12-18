@@ -507,21 +507,8 @@ void TemplateDeclaration::makeParamNamesVisibleInConstraint(Scope *paramscope)
     if (fd)
     {
 	paramscope->parent = fd;
-	Parameters *fparameters;		// function parameter list
 	int fvarargs;				// function varargs
-	if (fd->type)
-	{
-	    assert(fd->type->ty == Tfunction);
-	    TypeFunction *fdtype = (TypeFunction *)fd->type;
-	    fparameters = fdtype->parameters;
-	    fvarargs = fdtype->varargs;
-	}
-	else // Constructors don't have type's
-	{   CtorDeclaration *fctor = fd->isCtorDeclaration();
-	    assert(fctor);
-	    fparameters = fctor->arguments;
-	    fvarargs = fctor->varargs;
-	}
+	Parameters *fparameters = fd->getParameters(&fvarargs);
 	size_t nfparams = Parameter::dim(fparameters); // Num function parameters
 	for (int i = 0; i < nfparams; i++)
 	{
@@ -915,20 +902,7 @@ MATCH TemplateDeclaration::deduceFunctionTemplateMatch(Loc loc, Objects *targsi,
     }
 #endif
 
-    if (fd->type)
-    {
-	assert(fd->type->ty == Tfunction);
-	TypeFunction *fdtype = (TypeFunction *)fd->type;
-	fparameters = fdtype->parameters;
-	fvarargs = fdtype->varargs;
-    }
-    else
-    {	CtorDeclaration *fctor = fd->isCtorDeclaration();
-	assert(fctor);
-	fparameters = fctor->arguments;
-	fvarargs = fctor->varargs;
-    }
-
+    fparameters = fd->getParameters(&fvarargs);
     nfparams = Parameter::dim(fparameters);	// number of function parameters
     nfargs = fargs ? fargs->dim : 0;		// number of function arguments
 
@@ -1458,7 +1432,7 @@ FuncDeclaration *TemplateDeclaration::deduceFunctionTemplate(Scope *sc, Loc loc,
      */
     assert((size_t)td_best->scope > 0x10000);
     ti = new TemplateInstance(loc, td_best, tdargs);
-    ti->semantic(sc);
+    ti->semantic(sc, fargs);
     fd = ti->toAlias()->isFuncDeclaration();
     if (!fd)
 	goto Lerror;
@@ -3406,6 +3380,11 @@ Dsymbol *TemplateInstance::syntaxCopy(Dsymbol *s)
 
 void TemplateInstance::semantic(Scope *sc)
 {
+    semantic(sc, NULL);
+}
+
+void TemplateInstance::semantic(Scope *sc, Expressions *fargs)
+{
     if (global.errors)
     {
 	if (!global.gag)
@@ -3501,6 +3480,34 @@ void TemplateInstance::semantic(Scope *sc)
 	    if (!match(o1, o2, tempdecl, sc))
 	    {
 		goto L1;
+	    }
+	}
+
+	/* Template functions may have different instantiations based on
+	 * "auto ref" parameters.
+	 */
+	if (fargs)
+	{
+	    FuncDeclaration *fd = ti->toAlias()->isFuncDeclaration();
+	    if (fd)
+	    {
+		Parameters *fparameters = fd->getParameters(NULL);
+		size_t nfparams = Parameter::dim(fparameters); // Num function parameters
+		for (int i = 0; i < nfparams && i < fargs->dim; i++)
+		{   Parameter *fparam = Parameter::getNth(fparameters, i);
+		    Expression *farg = (Expression *)fargs->data[i];
+		    if (fparam->storageClass & STCauto)		// if "auto ref"
+		    {
+			if (farg->isLvalue())
+			{   if (!(fparam->storageClass & STCref))
+				goto L1;			// auto ref's don't match
+			}
+			else
+			{   if (fparam->storageClass & STCref)
+				goto L1;			// auto ref's don't match
+			}
+		    }
+		}
 	    }
 	}
 
@@ -3645,6 +3652,22 @@ void TemplateInstance::semantic(Scope *sc)
 		//printf("setting aliasdecl\n");
 		aliasdecl = new AliasDeclaration(loc, s->ident, s);
 	    }
+	}
+    }
+
+    /* If function template declaration
+     */
+    if (fargs && aliasdecl)
+    {
+	FuncDeclaration *fd = aliasdecl->toAlias()->isFuncDeclaration();
+	if (fd)
+	{
+	    /* Transmit fargs to type so that TypeFunction::semantic() can
+	     * resolve any "auto ref" storage classes.
+	     */
+	    TypeFunction *tf = (TypeFunction *)fd->type;
+	    if (tf && tf->ty == Tfunction)
+		tf->fargs = fargs;
 	}
     }
 

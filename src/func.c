@@ -886,6 +886,7 @@ void FuncDeclaration::semantic3(Scope *sc)
 #endif
 	}
 
+#if 0
 	// Propagate storage class from tuple parameters to their element-parameters.
 	if (f->parameters)
 	{
@@ -903,6 +904,7 @@ void FuncDeclaration::semantic3(Scope *sc)
 		}
 	    }
 	}
+#endif
 
 	/* Declare all the function parameters as variables
 	 * and install them in parameters[]
@@ -2565,6 +2567,34 @@ Lyes:
     return 1;
 }
 #endif
+
+/*********************************************
+ * Return the function's parameter list, and whether
+ * it is variadic or not.
+ */
+
+Parameters *FuncDeclaration::getParameters(int *pvarargs)
+{   Parameters *fparameters;
+    int fvarargs;
+
+    if (type)
+    {
+	assert(type->ty == Tfunction);
+	TypeFunction *fdtype = (TypeFunction *)type;
+	fparameters = fdtype->parameters;
+	fvarargs = fdtype->varargs;
+    }
+    else // Constructors don't have type's
+    {   CtorDeclaration *fctor = isCtorDeclaration();
+	assert(fctor);
+	fparameters = fctor->arguments;
+	fvarargs = fctor->varargs;
+    }
+    if (pvarargs)
+	*pvarargs = fvarargs;
+    return fparameters;
+}
+
 
 /****************************** FuncAliasDeclaration ************************/
 

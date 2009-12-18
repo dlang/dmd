@@ -521,6 +521,7 @@ struct TypeFunction : TypeNext
     bool isref;		// true: returns a reference
     enum LINK linkage;	// calling convention
     enum TRUST trust;	// level of trust
+    Expressions *fargs;	// function arguments
 
     int inuse;
 

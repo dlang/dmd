@@ -1147,6 +1147,7 @@ Parameters *Parser::parseParameters(int *pvarargs)
 		case TOKlazy:	   stc = STClazy;	goto L2;
 		case TOKscope:	   stc = STCscope;	goto L2;
 		case TOKfinal:	   stc = STCfinal;	goto L2;
+		case TOKauto:	   stc = STCauto;	goto L2;
 		L2:
 		    if (storageClass & stc ||
 			(storageClass & STCin && stc & (STCconst | STCscope)) ||
@@ -4525,6 +4526,7 @@ int Parser::isParameters(Token **pt)
 	    case TOKref:
 	    case TOKlazy:
 	    case TOKfinal:
+	    case TOKauto:
 		continue;
 
 	    case TOKconst:
