@@ -4192,7 +4192,7 @@ Type *TypeFunction::semantic(Loc loc, Scope *sc)
 	return this;
     }
     //printf("TypeFunction::semantic() this = %p\n", this);
-    //printf("TypeFunction::semantic() %s, sc->stc = %x\n", toChars(), sc->stc);
+    //printf("TypeFunction::semantic() %s, sc->stc = %llx, fargs = %p\n", toChars(), sc->stc, fargs);
 
     /* Copy in order to not mess up original.
      * This can produce redundant copies if inferring return type,
@@ -4334,8 +4334,6 @@ Type *TypeFunction::semantic(Loc loc, Scope *sc)
 	     */
 	    if (fparam->storageClass & STCauto)
 	    {
-		if (!(fparam->storageClass & STCref))
-		    error(loc, "auto can only be used with ref for template function parameters");
 		if (fargs && i < fargs->dim)
 		{   Expression *farg = (Expression *)fargs->data[i];
 		    if (farg->isLvalue())
@@ -7180,6 +7178,9 @@ void Parameter::argsToCBuffer(OutBuffer *buf, HdrGenState *hgs, Parameters *argu
 		buf->writestring(", ");
 	    Parameter *arg = (Parameter *)arguments->data[i];
 
+	    if (arg->storageClass & STCauto)
+		buf->writestring("auto ");
+
 	    if (arg->storageClass & STCout)
 		buf->writestring("out ");
 	    else if (arg->storageClass & STCref)
@@ -7191,8 +7192,6 @@ void Parameter::argsToCBuffer(OutBuffer *buf, HdrGenState *hgs, Parameters *argu
 		buf->writestring("lazy ");
 	    else if (arg->storageClass & STCalias)
 		buf->writestring("alias ");
-	    else if (arg->storageClass & STCauto)
-		buf->writestring("auto ");
 
 	    StorageClass stc = arg->storageClass;
 	    if (arg->type && arg->type->mod & MODshared)

@@ -1199,6 +1199,10 @@ void Expression::checkEscape()
 {
 }
 
+void Expression::checkEscapeRef()
+{
+}
+
 void Expression::checkScalar()
 {
     if (!type->isscalar())
@@ -4129,14 +4133,14 @@ void SymOffExp::checkEscape()
     VarDeclaration *v = var->isVarDeclaration();
     if (v)
     {
-	if (!v->isDataseg())
+	if (!v->isDataseg() && !(v->storage_class & (STCref | STCout)))
 	{   /* BUG: This should be allowed:
 	     *   void foo()
 	     *   { int a;
 	     *     int* bar() { return &a; }
 	     *   }
 	     */
-	    error("escaping reference to local variable %s", v->toChars());
+	    error("escaping reference to local %s", v->toChars());
 	}
     }
 }
@@ -4316,6 +4320,16 @@ void VarExp::checkEscape()
 	    else if (v->storage_class & STCvariadic)
 		error("escaping reference to variadic parameter %s", v->toChars());
 	}
+    }
+}
+
+void VarExp::checkEscapeRef()
+{
+    VarDeclaration *v = var->isVarDeclaration();
+    if (v)
+    {
+	if (!v->isDataseg() && !(v->storage_class & (STCref | STCout)))
+	    error("escaping reference to local variable %s", v->toChars());
     }
 }
 
@@ -7208,6 +7222,11 @@ Expression *AddrExp::semantic(Scope *sc)
     return this;
 }
 
+void AddrExp::checkEscape()
+{
+    e1->checkEscapeRef();
+}
+
 /************************************************************/
 
 PtrExp::PtrExp(Loc loc, Expression *e)
@@ -7265,6 +7284,11 @@ int PtrExp::isLvalue()
     return 1;
 }
 #endif
+
+void PtrExp::checkEscapeRef()
+{
+    e1->checkEscape();
+}
 
 Expression *PtrExp::toLvalue(Scope *sc, Expression *e)
 {
@@ -7962,6 +7986,11 @@ void SliceExp::checkEscape()
     e1->checkEscape();
 }
 
+void SliceExp::checkEscapeRef()
+{
+    e1->checkEscapeRef();
+}
+
 #if DMDV2
 int SliceExp::isLvalue()
 {
@@ -8216,6 +8245,11 @@ Expression *CommaExp::semantic(Scope *sc)
 void CommaExp::checkEscape()
 {
     e2->checkEscape();
+}
+
+void CommaExp::checkEscapeRef()
+{
+    e2->checkEscapeRef();
 }
 
 #if DMDV2
@@ -10584,6 +10618,12 @@ void CondExp::checkEscape()
 {
     e1->checkEscape();
     e2->checkEscape();
+}
+
+void CondExp::checkEscapeRef()
+{
+    e1->checkEscapeRef();
+    e2->checkEscapeRef();
 }
 
 

@@ -3337,7 +3337,20 @@ Statement *ReturnStatement::semantic(Scope *sc)
 		     * if it's an lvalue, return by ref, else return by value
 		     */
 		    if (exp->isLvalue())
-			;			// return by ref
+		    {
+			/* Return by ref
+			 * (but first ensure it doesn't fail the "check for
+			 * escaping reference" test)
+			 */
+			unsigned errors = global.errors;
+			global.gag++;
+			exp->checkEscapeRef();
+			global.gag--;
+			if (errors != global.errors)
+			{   tf->isref = FALSE;	// return by value
+			    global.errors = errors;
+			}
+		    }
 		    else
 			tf->isref = FALSE;	// return by value
 		}
@@ -3450,17 +3463,14 @@ Statement *ReturnStatement::semantic(Scope *sc)
 	    else
 		exp = exp->toLvalue(sc, exp);
 
-	    if (exp->op == TOKvar)
-	    {	VarExp *ve = (VarExp *)exp;
-		VarDeclaration *v = ve->var->isVarDeclaration();
-		if (v && !v->isDataseg() && !(v->storage_class & (STCref | STCout)))
-		    error("escaping reference to local variable %s", v->toChars());
-	    }
+	    exp->checkEscapeRef();
 	}
-
-	//exp->dump(0);
-	//exp->print();
-	exp->checkEscape();
+	else
+	{
+	    //exp->dump(0);
+	    //exp->print();
+	    exp->checkEscape();
+	}
     }
 
     /* BUG: need to issue an error on:
