@@ -384,7 +384,7 @@ void Type::toCBuffer3(OutBuffer *buf, HdrGenState *hgs, int mod)
 	    case MODconst:
 		p = "const(";
 		goto L1;
-	    case MODinvariant:
+	    case MODimmutable:
 		p = "invariant(";
 	    L1:	buf->writestring(p);
 		toCBuffer2(buf, hgs, this->mod);

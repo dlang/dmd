@@ -4054,7 +4054,7 @@ Expression *VarExp::semantic(Scope *sc)
 #if DMDV2
 	if (sc->func && sc->func->isPure() && !sc->intypeof)
 	{
-	    if (v->isDataseg() && !v->isInvariant())
+	    if (v->isDataseg() && !v->isImmutable())
 		error("pure function '%s' cannot access mutable static data '%s'", sc->func->toChars(), v->toChars());
 	}
 #endif
@@ -4734,7 +4734,7 @@ Expression *IsExp::semantic(Scope *sc)
 
 	    case TOKinvariant:
 	    case TOKimmutable:
-		if (!targ->isInvariant())
+		if (!targ->isImmutable())
 		    goto Lno;
 		tded = targ;
 		break;
@@ -7384,7 +7384,7 @@ void CastExp::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 	    case MODconst:
 		buf->writestring(Token::tochars[TOKconst]);
 		break;
-	    case MODinvariant:
+	    case MODimmutable:
 		buf->writestring(Token::tochars[TOKimmutable]);
 		break;
 	    case MODshared:

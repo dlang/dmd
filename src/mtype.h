@@ -113,7 +113,7 @@ struct Type : Object
 	/* pick this order of numbers so switch statements work better
 	 */
 	#define MODconst     1	// type is const
-	#define MODinvariant 4	// type is invariant
+	#define MODimmutable 4	// type is invariant
 	#define MODshared    2	// type is shared
     char *deco;
     Type *pto;		// merged pointer to this type

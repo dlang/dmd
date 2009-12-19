@@ -61,7 +61,6 @@ enum STC
     STCctorinit     = 0x20000,		// can only be set inside constructor
     STCtemplateparameter = 0x40000,	// template parameter
     STCscope	    = 0x80000,		// template parameter
-    STCinvariant    = 0x100000,
     STCimmutable    = 0x100000,
     STCref	    = 0x200000,
     STCinit	    = 0x400000,		// has explicit initializer
@@ -125,7 +124,7 @@ struct Declaration : Dsymbol
     int isFinal()        { return storage_class & STCfinal; }
     int isAbstract()     { return storage_class & STCabstract; }
     int isConst()        { return storage_class & STCconst; }
-    int isInvariant()    { return storage_class & STCinvariant; }
+    int isImmutable()    { return storage_class & STCimmutable; }
     int isAuto()         { return storage_class & STCauto; }
     int isScope()        { return storage_class & (STCscope | STCauto); }
     int isSynchronized() { return storage_class & STCsynchronized; }

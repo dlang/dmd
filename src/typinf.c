@@ -116,7 +116,7 @@ Expression *Type::getTypeInfo(Scope *sc)
 	    t->vtinfo = new TypeInfoSharedDeclaration(t);
 	else if (t->isConst())
 	    t->vtinfo = new TypeInfoConstDeclaration(t);
-	else if (t->isInvariant())
+	else if (t->isImmutable())
 	    t->vtinfo = new TypeInfoInvariantDeclaration(t);
 	else
 #endif
@@ -733,7 +733,7 @@ int TypeDArray::builtinTypeInfo()
 #if DMDV2
     return !mod && (next->isTypeBasic() != NULL && !next->mod ||
 	// strings are so common, make them builtin
-	next->ty == Tchar && next->mod == MODinvariant);
+	next->ty == Tchar && next->mod == MODimmutable);
 #else
     return next->isTypeBasic() != NULL;
 #endif

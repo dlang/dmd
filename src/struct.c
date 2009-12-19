@@ -271,7 +271,7 @@ void StructDeclaration::semantic(Scope *sc)
     if (sc->stc & STCabstract)
 	error("structs, unions cannot be abstract");
 #if DMDV2
-    if (storage_class & STCinvariant)
+    if (storage_class & STCimmutable)
         type = type->invariantOf();
     else if (storage_class & STCconst)
         type = type->constOf();

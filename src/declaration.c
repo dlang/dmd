@@ -140,7 +140,7 @@ void Declaration::checkModify(Loc loc, Scope *sc, Type *t)
 	    const char *p = NULL;
 	    if (isConst())
 		p = "const";
-	    else if (isInvariant())
+	    else if (isImmutable())
 		p = "immutable";
 	    else if (storage_class & STCmanifest)
 		p = "enum";
