@@ -231,14 +231,14 @@ class ModuleInfo
     void function() ictor;
     void*[4] reserved;
 
-    static int opApply(int delegate(inout ModuleInfo));
+    static int opApply(int delegate(ref ModuleInfo));
 }
 
 class Throwable : Object
 {
     interface TraceInfo
     {
-        int opApply(int delegate(inout char[]));
+        int opApply(int delegate(ref char[]));
         string toString();
     }
 
@@ -312,12 +312,12 @@ struct AssociativeArray(Key, Value)
         return *cast(Key[]*) &a;
     }
 
-    int opApply(int delegate(inout Key, inout Value) dg)
+    int opApply(int delegate(ref Key, ref Value) dg)
     {
         return _aaApply2(p, Key.sizeof, cast(_dg2_t)dg);
     }
 
-    int opApply(int delegate(inout Value) dg)
+    int opApply(int delegate(ref Value) dg)
     {
         return _aaApply(p, Key.sizeof, cast(_dg_t)dg);
     }
