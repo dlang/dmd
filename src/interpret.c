@@ -1012,7 +1012,7 @@ Expression *getVarExp(Loc loc, InterState *istate, Declaration *d)
     if (v)
     {
 #if DMDV2
-	if ((v->isConst() || v->isInvariant() || v->storage_class & STCmanifest) && v->init && !v->value)
+	if ((v->isConst() || v->isImmutable() || v->storage_class & STCmanifest) && v->init && !v->value)
 #else
 	if (v->isConst() && v->init)
 #endif
@@ -1072,7 +1072,7 @@ Expression *DeclarationExp::interpret(InterState *istate)
 		e = NULL;
 	}
 #if DMDV2
-	else if (s == v && (v->isConst() || v->isInvariant()) && v->init)
+	else if (s == v && (v->isConst() || v->isImmutable()) && v->init)
 #else
 	else if (s == v && v->isConst() && v->init)
 #endif

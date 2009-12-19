@@ -1637,7 +1637,7 @@ MATCH Type::deduceType(Scope *sc, Type *tparam, TemplateParameters *parameters,
 	{
 	    case X(0, 0):
 	    case X(0, MODconst):
-	    case X(0, MODinvariant):
+	    case X(0, MODimmutable):
 	    case X(0, MODshared):
 	    case X(0, MODconst | MODshared):
 		// foo(U:U) T                              => T
@@ -1652,7 +1652,7 @@ MATCH Type::deduceType(Scope *sc, Type *tparam, TemplateParameters *parameters,
 		break;
 
 	    case X(MODconst, MODconst):
-	    case X(MODinvariant, MODinvariant):
+	    case X(MODimmutable, MODimmutable):
 	    case X(MODshared, MODshared):
 	    case X(MODconst | MODshared, MODconst | MODshared):
 		// foo(U:const(U))        const(T)         => T

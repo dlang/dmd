@@ -4202,7 +4202,7 @@ Expression *VarExp::semantic(Scope *sc)
     if (v)
     {
 #if 0
-	if ((v->isConst() || v->isInvariant()) &&
+	if ((v->isConst() || v->isImmutable()) &&
 	    type->toBasetype()->ty != Tsarray && v->init)
 	{
 	    ExpInitializer *ei = v->init->isExpInitializer();
@@ -4255,13 +4255,13 @@ Expression *VarExp::semantic(Scope *sc)
 	     * than those inside itself
 	     */
 	    if (hasPureParent && v->isDataseg() &&
-		!v->isInvariant())
+		!v->isImmutable())
 	    {
 		error("pure function '%s' cannot access mutable static data '%s'",
 		    sc->func->toChars(), v->toChars());
 	    }
 	    else if (sc->func->isPure() && sc->parent != v->parent &&
-		!v->isInvariant() &&
+		!v->isImmutable() &&
 		!(v->storage_class & STCmanifest))
 	    {
 		error("pure nested function '%s' cannot access mutable data '%s'",
@@ -4279,7 +4279,7 @@ Expression *VarExp::semantic(Scope *sc)
 #else
 	if (sc->func && sc->func->isPure() && !sc->intypeof)
 	{
-	    if (v->isDataseg() && !v->isInvariant())
+	    if (v->isDataseg() && !v->isImmutable())
 		error("pure function '%s' cannot access mutable static data '%s'", sc->func->toChars(), v->toChars());
 	}
 #endif
@@ -4962,7 +4962,7 @@ Expression *IsExp::semantic(Scope *sc)
 
 	    case TOKinvariant:
 	    case TOKimmutable:
-		if (!targ->isInvariant())
+		if (!targ->isImmutable())
 		    goto Lno;
 		tded = targ;
 		break;
@@ -6739,14 +6739,14 @@ Lagain:
 		if (tthis->ty == Tpointer)
 		    tthis = tthis->nextOf()->toBasetype();
 #if 0	// this checking should have been already done
-		if (f->type->isInvariant())
+		if (f->type->isImmutable())
 		{
-		    if (tthis->mod != MODinvariant)
+		    if (tthis->mod != MODimmutable)
 			error("%s can only be called with an immutable object", e1->toChars());
 		}
 		else if (f->type->isShared())
 		{
-		    if (tthis->mod != MODinvariant &&
+		    if (tthis->mod != MODimmutable &&
 			tthis->mod != MODshared &&
 			tthis->mod != (MODshared | MODconst))
 			error("shared %s can only be called with a shared or immutable object", e1->toChars());
@@ -7769,7 +7769,7 @@ void CastExp::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 	    case MODconst:
 		buf->writestring(Token::tochars[TOKconst]);
 		break;
-	    case MODinvariant:
+	    case MODimmutable:
 		buf->writestring(Token::tochars[TOKimmutable]);
 		break;
 	    case MODshared:

@@ -149,7 +149,7 @@ void FuncDeclaration::semantic(Scope *sc)
 	 * to the function type
 	 */
 	StorageClass stc = storage_class;
-	if (type->isInvariant())
+	if (type->isImmutable())
 	    stc |= STCimmutable;
 	if (type->isConst())
 	    stc |= STCconst;
@@ -213,7 +213,7 @@ void FuncDeclaration::semantic(Scope *sc)
     if (isAbstract() && !isVirtual())
 	error("non-virtual functions cannot be abstract");
 
-    if ((f->isConst() || f->isInvariant()) && !isThis())
+    if ((f->isConst() || f->isImmutable()) && !isThis())
 	error("without 'this' cannot be const/immutable");
 
     if (isAbstract() && isFinal())
@@ -797,7 +797,7 @@ void FuncDeclaration::semantic3(Scope *sc)
 			thandle = thandle->nextOf()->constOf()->pointerTo();
 		    }
 		}
-		else if (storage_class & STCimmutable || type->isInvariant())
+		else if (storage_class & STCimmutable || type->isImmutable())
 		{
 		    if (thandle->ty == Tclass)
 			thandle = thandle->invariantOf();

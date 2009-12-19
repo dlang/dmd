@@ -48,7 +48,7 @@ Expression *expandVar(int result, VarDeclaration *v)
     if (!v)
 	return e;
 
-    if (v->isConst() || v->isInvariant() || v->storage_class & STCmanifest)
+    if (v->isConst() || v->isImmutable() || v->storage_class & STCmanifest)
     {
 	if (!v->type)
 	{

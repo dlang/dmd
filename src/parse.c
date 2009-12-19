@@ -5475,7 +5475,7 @@ Expression *Parser::parseUnaryExp()
 	    }
 	    else if ((token.value == TOKimmutable || token.value == TOKinvariant) && peekNext() == TOKrparen)
 	    {
-		m = MODinvariant;
+		m = MODimmutable;
 		goto Lmod2;
 	    }
 	    else if (token.value == TOKshared && peekNext() == TOKrparen)

@@ -421,7 +421,7 @@ MATCH StructLiteralExp::implicitConvTo(Type *t)
 	    if (t->mod == 0)
 		te = te->mutableOf();
 	    else
-	    {	assert(t->mod == MODinvariant);
+	    {	assert(t->mod == MODimmutable);
 		te = te->invariantOf();
 	    }
 	    MATCH m2 = e->implicitConvTo(te);

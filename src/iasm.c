@@ -2009,7 +2009,7 @@ STATIC void asm_merge_symbol(OPND *o1, Dsymbol *s)
 	}
 	if ((v->isConst()
 #if DMDV2
-		|| v->isInvariant() || v->storage_class & STCmanifest
+		|| v->isImmutable() || v->storage_class & STCmanifest
 #endif
 	    ) && !v->type->isfloating() && v->init)
 	{   ExpInitializer *ei = v->init->isExpInitializer();

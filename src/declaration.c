@@ -140,7 +140,7 @@ void Declaration::checkModify(Loc loc, Scope *sc, Type *t)
 	    const char *p = NULL;
 	    if (isConst())
 		p = "const";
-	    else if (isInvariant())
+	    else if (isImmutable())
 		p = "immutable";
 	    else if (storage_class & STCmanifest)
 		p = "enum";
@@ -854,7 +854,7 @@ Lagain:
 	if (type->isShared())
 	    storage_class |= STCshared;
     }
-    else if (type->isInvariant())
+    else if (type->isImmutable())
 	storage_class |= STCimmutable;
     else if (type->isShared())
 	storage_class |= STCshared;
@@ -950,7 +950,7 @@ Lagain:
 	}
     }
 
-    if ((isConst() || isInvariant()) && !init && !fd)
+    if ((isConst() || isImmutable()) && !init && !fd)
     {	// Initialize by constructor only
 	storage_class |= STCctorinit;
     }
@@ -1161,7 +1161,7 @@ Lagain:
 	    }
 	}
 	else if (storage_class & (STCconst | STCimmutable | STCmanifest) ||
-		 type->isConst() || type->isInvariant() ||
+		 type->isConst() || type->isImmutable() ||
 		 parent->isAggregateDeclaration())
 	{
 	    /* Because we may need the results of a const declaration in a
@@ -1382,7 +1382,7 @@ ExpInitializer *VarDeclaration::getExpInitializer()
 
 Expression *VarDeclaration::getConstInitializer()
 {
-    if ((isConst() || isInvariant() || storage_class & STCmanifest) &&
+    if ((isConst() || isImmutable() || storage_class & STCmanifest) &&
 	storage_class & STCinit)
     {
 	ExpInitializer *ei = getExpInitializer();
@@ -1404,7 +1404,7 @@ int VarDeclaration::canTakeAddressOf()
      *	const int x = 3;
      * are not stored and hence cannot have their address taken.
      */
-    if ((isConst() || isInvariant()) &&
+    if ((isConst() || isImmutable()) &&
 	storage_class & STCinit &&
 	(!(storage_class & (STCstatic | STCextern)) || (storage_class & STCfield)) &&
 	(!parent || toParent()->isModule() || toParent()->isTemplateInstance()) &&

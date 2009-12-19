@@ -366,13 +366,13 @@ Type *Type::constOf()
 Type *Type::invariantOf()
 {
     //printf("Type::invariantOf() %p %s\n", this, toChars());
-    if (isInvariant())
+    if (isImmutable())
     {
 	return this;
     }
     if (ito)
     {
-	assert(ito->isInvariant());
+	assert(ito->isImmutable());
 	return ito;
     }
     Type *t = makeInvariant();
@@ -397,7 +397,7 @@ Type *Type::mutableOf()
 	    t = cto;
 	assert(!t || t->isMutable());
     }
-    else if (isInvariant())
+    else if (isImmutable())
     {	t = ito;
 	assert(!t || (t->isMutable() && !t->isShared()));
     }
@@ -426,7 +426,7 @@ Type *Type::mutableOf()
 		t->cto = this;
 		break;
 
-	    case MODinvariant:
+	    case MODimmutable:
 		t->ito = this;
 		break;
 
@@ -561,7 +561,7 @@ void Type::fixTo(Type *t)
 	    cto = t;
 	    break;
 
-	case X(0, MODinvariant):
+	case X(0, MODimmutable):
 	    ito = t;
 	    break;
 
@@ -578,7 +578,7 @@ void Type::fixTo(Type *t)
 	    cto = NULL;
 	    goto L2;
 
-	case X(MODconst, MODinvariant):
+	case X(MODconst, MODimmutable):
 	    ito = t;
 	    goto L2;
 
@@ -593,19 +593,19 @@ void Type::fixTo(Type *t)
 	    break;
 
 
-	case X(MODinvariant, 0):
+	case X(MODimmutable, 0):
 	    ito = NULL;
 	    goto L3;
 
-	case X(MODinvariant, MODconst):
+	case X(MODimmutable, MODconst):
 	    cto = t;
 	    goto L3;
 
-	case X(MODinvariant, MODshared):
+	case X(MODimmutable, MODshared):
 	    sto = t;
 	    goto L3;
 
-	case X(MODinvariant, MODshared | MODconst):
+	case X(MODimmutable, MODshared | MODconst):
 	    scto = t;
 	L3:
 	    t->ito = this;
@@ -623,7 +623,7 @@ void Type::fixTo(Type *t)
 	    cto = t;
 	    goto L4;
 
-	case X(MODshared, MODinvariant):
+	case X(MODshared, MODimmutable):
 	    ito = t;
 	    goto L4;
 
@@ -642,7 +642,7 @@ void Type::fixTo(Type *t)
 	    cto = t;
 	    break;
 
-	case X(MODshared | MODconst, MODinvariant):
+	case X(MODshared | MODconst, MODimmutable):
 	    ito = t;
 	    break;
 
@@ -672,19 +672,19 @@ void Type::check()
     {
 	case 0:
 	    if (cto) assert(cto->mod == MODconst);
-	    if (ito) assert(ito->mod == MODinvariant);
+	    if (ito) assert(ito->mod == MODimmutable);
 	    if (sto) assert(sto->mod == MODshared);
 	    if (scto) assert(scto->mod == (MODshared | MODconst));
 	    break;
 
 	case MODconst:
 	    if (cto) assert(cto->mod == 0);
-	    if (ito) assert(ito->mod == MODinvariant);
+	    if (ito) assert(ito->mod == MODimmutable);
 	    if (sto) assert(sto->mod == MODshared);
 	    if (scto) assert(scto->mod == (MODshared | MODconst));
 	    break;
 
-	case MODinvariant:
+	case MODimmutable:
 	    if (cto) assert(cto->mod == MODconst);
 	    if (ito) assert(ito->mod == 0);
 	    if (sto) assert(sto->mod == MODshared);
@@ -693,14 +693,14 @@ void Type::check()
 
 	case MODshared:
 	    if (cto) assert(cto->mod == MODconst);
-	    if (ito) assert(ito->mod == MODinvariant);
+	    if (ito) assert(ito->mod == MODimmutable);
 	    if (sto) assert(sto->mod == 0);
 	    if (scto) assert(scto->mod == (MODshared | MODconst));
 	    break;
 
 	case MODshared | MODconst:
 	    if (cto) assert(cto->mod == MODconst);
-	    if (ito) assert(ito->mod == MODinvariant);
+	    if (ito) assert(ito->mod == MODimmutable);
 	    if (sto) assert(sto->mod == MODshared);
 	    if (scto) assert(scto->mod == 0);
 	    break;
@@ -718,19 +718,19 @@ void Type::check()
 		break;
 
 	    case MODconst:
-		assert(tn->mod & MODinvariant || tn->mod & MODconst);
+		assert(tn->mod & MODimmutable || tn->mod & MODconst);
 		break;
 
-	    case MODinvariant:
-		assert(tn->mod == MODinvariant);
+	    case MODimmutable:
+		assert(tn->mod == MODimmutable);
 		break;
 
 	    case MODshared:
-		assert(tn->mod & MODinvariant || tn->mod & MODshared);
+		assert(tn->mod & MODimmutable || tn->mod & MODshared);
 		break;
 
 	    case MODshared | MODconst:
-		assert(tn->mod & MODinvariant || tn->mod & (MODshared | MODconst));
+		assert(tn->mod & MODimmutable || tn->mod & (MODshared | MODconst));
 		break;
 
 	    default:
@@ -769,7 +769,7 @@ Type *Type::makeInvariant()
     unsigned sz = sizeTy[ty];
     Type *t = (Type *)mem.malloc(sz);
     memcpy(t, this, sz);
-    t->mod = MODinvariant;
+    t->mod = MODimmutable;
     t->deco = NULL;
     t->arrayof = NULL;
     t->pto = NULL;
@@ -839,7 +839,7 @@ Type *Type::castMod(unsigned mod)
 	    t = constOf();
 	    break;
 
-	case MODinvariant:
+	case MODimmutable:
 	    t = invariantOf();
 	    break;
 
@@ -868,7 +868,7 @@ Type *Type::addMod(unsigned mod)
 
     /* Add anything to immutable, and it remains immutable
      */
-    if (!t->isInvariant())
+    if (!t->isImmutable())
     {
 	switch (mod)
 	{
@@ -882,7 +882,7 @@ Type *Type::addMod(unsigned mod)
 		    t = constOf();
 		break;
 
-	    case MODinvariant:
+	    case MODimmutable:
 		t = invariantOf();
 		break;
 
@@ -915,7 +915,7 @@ Type *Type::addStorageClass(StorageClass stc)
     unsigned mod = 0;
 
     if (stc & STCimmutable)
-	mod = MODinvariant;
+	mod = MODimmutable;
     else
     {	if (stc & (STCconst | STCin))
 	    mod = MODconst;
@@ -998,11 +998,11 @@ void Type::toDecoBuffer(OutBuffer *buf, int flag)
 
 	if (mod & MODconst)
 	    buf->writeByte('x');
-	else if (mod & MODinvariant)
+	else if (mod & MODimmutable)
 	    buf->writeByte('y');
 
 	// Cannot be both const and invariant
-	assert((mod & (MODconst | MODinvariant)) != (MODconst | MODinvariant));
+	assert((mod & (MODconst | MODimmutable)) != (MODconst | MODimmutable));
     }
     buf->writeByte(mangleChar[ty]);
 }
@@ -1045,7 +1045,7 @@ void Type::toCBuffer3(OutBuffer *buf, HdrGenState *hgs, int mod)
 
 	if (this->mod & MODshared)
 	    buf->writestring("shared(");
-	switch (this->mod & (MODconst | MODinvariant))
+	switch (this->mod & (MODconst | MODimmutable))
 	{
 	    case 0:
 		toCBuffer2(buf, hgs, this->mod);
@@ -1053,7 +1053,7 @@ void Type::toCBuffer3(OutBuffer *buf, HdrGenState *hgs, int mod)
 	    case MODconst:
 		p = "const(";
 		goto L1;
-	    case MODinvariant:
+	    case MODimmutable:
 		p = "immutable(";
 	    L1:	buf->writestring(p);
 		toCBuffer2(buf, hgs, this->mod);
@@ -1073,7 +1073,7 @@ void Type::modToBuffer(OutBuffer *buf)
         buf->writestring(" shared");
     if (mod & MODconst)
         buf->writestring(" const");
-    if (mod & MODinvariant)
+    if (mod & MODimmutable)
         buf->writestring(" immutable");
 }
 
@@ -1651,7 +1651,7 @@ Type *TypeNext::makeConst()
     TypeNext *t = (TypeNext *)Type::makeConst();
     if (ty != Tfunction && ty != Tdelegate &&
 	(next->deco || next->ty == Tfunction) &&
-        !next->isInvariant() && !next->isConst())
+        !next->isImmutable() && !next->isConst())
     {	if (next->isShared())
 	    t->next = next->sharedConstOf();
 	else
@@ -1669,13 +1669,13 @@ Type *TypeNext::makeInvariant()
 {
     //printf("TypeNext::makeInvariant() %s\n", toChars());
     if (ito)
-    {	assert(ito->isInvariant());
+    {	assert(ito->isImmutable());
 	return ito;
     }
     TypeNext *t = (TypeNext *)Type::makeInvariant();
     if (ty != Tfunction && ty != Tdelegate &&
 	(next->deco || next->ty == Tfunction) &&
-	!next->isInvariant())
+	!next->isImmutable())
     {	t->next = next->invariantOf();
     }
     if (ty == Taarray)
@@ -1695,7 +1695,7 @@ Type *TypeNext::makeShared()
     TypeNext *t = (TypeNext *)Type::makeShared();
     if (ty != Tfunction && ty != Tdelegate &&
 	(next->deco || next->ty == Tfunction) &&
-        !next->isInvariant() && !next->isShared())
+        !next->isImmutable() && !next->isShared())
     {
 	if (next->isConst())
 	    t->next = next->sharedConstOf();
@@ -1720,7 +1720,7 @@ Type *TypeNext::makeSharedConst()
     TypeNext *t = (TypeNext *)Type::makeSharedConst();
     if (ty != Tfunction && ty != Tdelegate &&
 	(next->deco || next->ty == Tfunction) &&
-        !next->isInvariant() && !next->isSharedConst())
+        !next->isImmutable() && !next->isSharedConst())
     {
 	t->next = next->sharedConstOf();
     }
@@ -3357,7 +3357,7 @@ Type *TypeAArray::semantic(Loc loc, Scope *sc)
     else
 	index = index->semantic(loc,sc);
 
-    if (index->nextOf() && !index->nextOf()->isInvariant())
+    if (index->nextOf() && !index->nextOf()->isImmutable())
     {
 	index = index->constOf()->mutableOf();
 #if 0
@@ -4016,7 +4016,7 @@ void TypeFunction::toDecoBuffer(OutBuffer *buf, int flag)
 	buf->writeByte('O');
     if (mod & MODconst)
 	buf->writeByte('x');
-    else if (mod & MODinvariant)
+    else if (mod & MODimmutable)
 	buf->writeByte('y');
 #endif
     switch (linkage)
@@ -4074,7 +4074,7 @@ void TypeFunction::toCBuffer(OutBuffer *buf, Identifier *ident, HdrGenState *hgs
      */
     if (mod & MODconst)
 	buf->writestring("const ");
-    if (mod & MODinvariant)
+    if (mod & MODimmutable)
 	buf->writestring("immutable ");
     if (mod & MODshared)
 	buf->writestring("shared ");
@@ -6260,7 +6260,7 @@ int TypeStruct::isAssignable()
      */
     for (size_t i = 0; i < sym->fields.dim; i++)
     {   VarDeclaration *v = (VarDeclaration *)sym->fields.data[i];
-	if (v->isConst() || v->isInvariant())
+	if (v->isConst() || v->isImmutable())
 	    return FALSE;
     }
     return TRUE;

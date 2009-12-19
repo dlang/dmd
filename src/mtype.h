@@ -115,8 +115,7 @@ struct Type : Object
 	/* pick this order of numbers so switch statements work better
 	 */
 	#define MODconst     1	// type is const
-	#define MODinvariant 4	// type is immutable
-	#define MODimmutable 4  // type is immutable
+	#define MODimmutable 4	// type is immutable
 	#define MODshared    2	// type is shared
     char *deco;
 
@@ -127,7 +126,7 @@ struct Type : Object
      */
 
     Type *cto;		// MODconst ? mutable version of this type : const version
-    Type *ito;		// MODinvariant ? mutable version of this type : invariant version
+    Type *ito;		// MODimmutable ? mutable version of this type : invariant version
     Type *sto;		// MODshared ? mutable version of this type : shared mutable version
     Type *scto;		// MODshared|MODconst ? mutable version of this type : shared const version
 
@@ -245,8 +244,8 @@ struct Type : Object
     virtual int checkBoolean();	// if can be converted to boolean value
     virtual void checkDeprecated(Loc loc, Scope *sc);
     int isConst()	{ return mod & MODconst; }
-    int isInvariant()	{ return mod & MODinvariant; }
-    int isMutable()	{ return !(mod & (MODconst | MODinvariant)); }
+    int isImmutable()	{ return mod & MODimmutable; }
+    int isMutable()	{ return !(mod & (MODconst | MODimmutable)); }
     int isShared()	{ return mod & MODshared; }
     int isSharedConst()	{ return mod == (MODshared | MODconst); }
     Type *constOf();
