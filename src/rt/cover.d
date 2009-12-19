@@ -311,7 +311,7 @@ string chomp( string str, string delim = null )
 }
 
 
-bool readFile( string name, inout char[] buf )
+bool readFile( string name, ref char[] buf )
 {
     version( Windows )
     {
@@ -377,7 +377,7 @@ bool readFile( string name, inout char[] buf )
 }
 
 
-void splitLines( char[] buf, inout char[][] lines )
+void splitLines( char[] buf, ref char[][] lines )
 {
     size_t  beg = 0,
             pos = 0;

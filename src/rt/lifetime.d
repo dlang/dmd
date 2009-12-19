@@ -851,7 +851,7 @@ size_t newCapacity(size_t newlength, size_t size)
 /**
  *
  */
-extern (C) byte[] _d_arrayappendcT(TypeInfo ti, inout byte[] x, ...)
+extern (C) byte[] _d_arrayappendcT(TypeInfo ti, ref byte[] x, ...)
 {
     auto sizeelem = ti.next.tsize();            // array element size
     auto info = gc_query(x.ptr);
@@ -895,7 +895,7 @@ extern (C) byte[] _d_arrayappendcT(TypeInfo ti, inout byte[] x, ...)
 /**
  * Append dchar to char[]
  */
-extern (C) char[] _d_arrayappendcd(inout char[] x, dchar c)
+extern (C) char[] _d_arrayappendcd(ref char[] x, dchar c)
 {
     const sizeelem = c.sizeof;            // array element size
     auto info = gc_query(x.ptr);
@@ -977,7 +977,7 @@ extern (C) char[] _d_arrayappendcd(inout char[] x, dchar c)
 /**
  * Append dchar to wchar[]
  */
-extern (C) wchar[] _d_arrayappendwd(inout wchar[] x, dchar c)
+extern (C) wchar[] _d_arrayappendwd(ref wchar[] x, dchar c)
 {
     const sizeelem = c.sizeof;            // array element size
     auto info = gc_query(x.ptr);

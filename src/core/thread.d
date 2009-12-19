@@ -1033,7 +1033,7 @@ class Thread
      * Returns:
      *  Zero if all elemented are visited, nonzero if not.
      */
-    static int opApply( int delegate( inout Thread ) dg )
+    static int opApply( int delegate( ref Thread ) dg )
     {
         synchronized( slock )
         {
@@ -1073,7 +1073,7 @@ class Thread
     {
         synchronized( slock )
         {
-            foreach( uint key, inout bool set; sm_local )
+            foreach( uint key, ref bool set; sm_local )
             {
                 if( !set )
                 {
@@ -2384,7 +2384,7 @@ class ThreadGroup
     /**
      * Operates on all threads currently tracked by this object.
      */
-    final int opApply( int delegate( inout Thread ) dg )
+    final int opApply( int delegate( ref Thread ) dg )
     {
         synchronized( this )
         {

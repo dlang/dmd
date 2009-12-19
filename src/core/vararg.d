@@ -30,7 +30,7 @@ alias void* va_list;
  *  paramn  = The identifier of the rightmost parameter in the function
  *            parameter list.
  */
-void va_start(T) ( out va_list ap, inout T parmn )
+void va_start(T) ( out va_list ap, ref T parmn )
 {
     ap = cast(va_list) ( cast(void*) &parmn + ( ( T.sizeof + int.sizeof - 1 ) & ~( int.sizeof - 1 ) ) );
 }
@@ -47,7 +47,7 @@ void va_start(T) ( out va_list ap, inout T parmn )
  *  The next argument in the sequence.  The result is undefined if ap
  *  does not point to a valid argument.
  */
-T va_arg(T) ( inout va_list ap )
+T va_arg(T) ( ref va_list ap )
 {
     T arg = *cast(T*) ap;
     ap = cast(va_list) ( cast(void*) ap + ( ( T.sizeof + int.sizeof - 1 ) & ~( int.sizeof - 1 ) ) );

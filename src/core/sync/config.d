@@ -20,7 +20,7 @@ version( Posix )
     private import core.sys.posix.sys.time;
 
 
-    void mktspec( inout timespec t, long delta = 0 )
+    void mktspec( ref timespec t, long delta = 0 )
     {
         static if( is( typeof( clock_gettime ) ) )
         {
@@ -39,7 +39,7 @@ version( Posix )
     }
 
 
-    void mvtspec( inout timespec t, long delta )
+    void mvtspec( ref timespec t, long delta )
     {
         if( delta == 0 )
             return;

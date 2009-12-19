@@ -86,7 +86,7 @@ Object _d_dynamic_cast(Object o, ClassInfo c)
     return o;
 }
 
-int _d_isbaseof2(ClassInfo oc, ClassInfo c, inout size_t offset)
+int _d_isbaseof2(ClassInfo oc, ClassInfo c, ref size_t offset)
 {   int i;
 
     if (oc is c)

@@ -1131,7 +1131,7 @@ class GC
     /**
      *
      */
-    int delegate(int delegate(inout void*)) rootIter()
+    int delegate(int delegate(ref void*)) rootIter()
     {
         if (!thread_needLock())
         {
@@ -1191,7 +1191,7 @@ class GC
     /**
      *
      */
-    int delegate(int delegate(inout Range)) rangeIter()
+    int delegate(int delegate(ref Range)) rangeIter()
     {
         if (!thread_needLock())
         {
@@ -1567,7 +1567,7 @@ struct Gcx
     /**
      *
      */
-    int rootIter(int delegate(inout void*) dg)
+    int rootIter(int delegate(ref void*) dg)
     {
         int result = 0;
         for( size_t i = 0; i < nroots; ++i )
@@ -1636,7 +1636,7 @@ struct Gcx
     /**
      *
      */
-    int rangeIter(int delegate(inout Range) dg)
+    int rangeIter(int delegate(ref Range) dg)
     {
         int result = 0;
         for( size_t i = 0; i < nranges; ++i )
