@@ -182,7 +182,10 @@ class TypeInfo_Invariant : TypeInfo_Const
 
 class TypeInfo_Shared : TypeInfo_Const
 {
+}
 
+class TypeInfo_Inout : TypeInfo_Const
+{
 }
 
 abstract class MemberInfo
