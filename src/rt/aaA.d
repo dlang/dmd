@@ -33,7 +33,7 @@ private
 
 // Auto-rehash and pre-allocate - Dave Fladebo
 
-immutable size_t[] prime_list = [
+static immutable size_t[] prime_list = [
               97UL,            389UL,
            1_543UL,          6_151UL,
           24_593UL,         98_317UL,

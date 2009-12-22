@@ -296,7 +296,7 @@ version(GNU){
 version(Really_D_InlineAsm_X86) {
 // Note that this code will also work for Itanium in x86 mode.
 
-shared uint max_cpuid, max_extended_cpuid;
+__gshared uint max_cpuid, max_extended_cpuid;
 
 // CPUID2: "cache and tlb information"
 void getcacheinfoCPUID2()

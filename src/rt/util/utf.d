@@ -60,7 +60,7 @@ unittest
 
 
 
-immutable UTF8stride =
+static immutable UTF8stride =
 [
     cast(ubyte)
     1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,
