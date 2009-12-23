@@ -170,6 +170,8 @@ enum TOK
 	TOKMAX
 };
 
+#define TOKwild TOKinout
+
 #define BASIC_TYPES			\
 	TOKwchar: case TOKdchar:		\
 	case TOKbit: case TOKbool: case TOKchar:	\

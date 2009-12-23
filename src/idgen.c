@@ -90,6 +90,7 @@ Msgtable msgtable[] =
     { "TypeInfo_Const" },
     { "TypeInfo_Invariant" },
     { "TypeInfo_Shared" },
+    { "TypeInfo_Wild", "TypeInfo_Inout" },
     { "elements" },
     { "_arguments_typeinfo" },
     { "_arguments" },

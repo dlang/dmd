@@ -155,17 +155,24 @@ void FuncDeclaration::semantic(Scope *sc)
 	    stc |= STCconst;
 	if (type->isShared() || storage_class & STCsynchronized)
 	    stc |= STCshared;
+	if (type->isWild())
+	    stc |= STCwild;
 	switch (stc & STC_TYPECTOR)
 	{
 	    case STCimmutable:
 	    case STCimmutable | STCconst:
 	    case STCimmutable | STCconst | STCshared:
 	    case STCimmutable | STCshared:
+	    case STCimmutable | STCwild:
+	    case STCimmutable | STCconst | STCwild:
+	    case STCimmutable | STCconst | STCshared | STCwild:
+	    case STCimmutable | STCshared | STCwild:
 		// Don't use toInvariant(), as that will do a merge()
 		type = type->makeInvariant();
 		goto Lmerge;
 
 	    case STCconst:
+	    case STCconst | STCwild:
 		type = type->makeConst();
 		goto Lmerge;
 
@@ -175,11 +182,22 @@ void FuncDeclaration::semantic(Scope *sc)
 
 	    case STCshared:
 		type = type->makeShared();
+		goto Lmerge;
+
+	    case STCwild:
+		type = type->makeWild();
+		goto Lmerge;
+
 	    Lmerge:
 		if (!(type->ty == Tfunction && !type->nextOf()))
 		    /* Can't do merge if return type is not known yet
 		     */
 		    type->deco = type->merge()->deco;
+		break;
+
+	    case STCshared | STCwild:
+	    case STCshared | STCconst | STCwild:
+		error("cannot mix shared with wild");
 		break;
 
 	    case 0:

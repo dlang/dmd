@@ -84,6 +84,8 @@ int REALALIGNSIZE = 2;
 int Tsize_t = Tuns32;
 int Tptrdiff_t = Tint32;
 
+int MODimplicitConv(unsigned char modfrom, unsigned char modto);
+
 /***************************** Type *****************************/
 
 ClassDeclaration *Type::typeinfo;
@@ -102,6 +104,7 @@ ClassDeclaration *Type::typeinfotypelist;
 ClassDeclaration *Type::typeinfoconst;
 ClassDeclaration *Type::typeinfoinvariant;
 ClassDeclaration *Type::typeinfoshared;
+ClassDeclaration *Type::typeinfowild;
 
 Type *Type::tvoidptr;
 Type *Type::tstring;
@@ -121,6 +124,8 @@ Type::Type(TY ty)
     this->ito = NULL;
     this->sto = NULL;
     this->scto = NULL;
+    this->wto = NULL;
+    this->swto = NULL;
 #endif
     this->pto = NULL;
     this->rto = NULL;
@@ -225,6 +230,7 @@ void Type::init()
     mangleChar[Twchar] = 'u';
     mangleChar[Tdchar] = 'w';
 
+    // '@' shouldn't appear anywhere in the deco'd names
     mangleChar[Tbit] = '@';
     mangleChar[Tinstance] = '@';
     mangleChar[Terror] = '@';
@@ -334,7 +340,7 @@ MATCH Type::constConv(Type *to)
 {
     if (equals(to))
 	return MATCHexact;
-    if (ty == to->ty && to->mod == MODconst)
+    if (ty == to->ty && MODimplicitConv(mod, to->mod))
 	return MATCHconst;
     return MATCHnomatch;
 }
@@ -394,50 +400,28 @@ Type *Type::mutableOf()
     {	if (isShared())
 	    t = sto;		// shared const => shared
 	else
-	    t = cto;
+	    t = cto;		// const => naked
 	assert(!t || t->isMutable());
     }
     else if (isImmutable())
-    {	t = ito;
+    {	t = ito;		// immutable => naked
 	assert(!t || (t->isMutable() && !t->isShared()));
+    }
+    else if (isWild())
+    {
+	if (isShared())
+	    t = sto;		// shared wild => shared
+	else
+	    t = wto;		// wild => naked
+	assert(!t || t->isMutable());
     }
     if (!t)
     {
-	unsigned sz = sizeTy[ty];
-	t = (Type *)mem.malloc(sz);
-	memcpy(t, this, sz);
-	t->mod =  mod & MODshared;
-	t->deco = NULL;
-	t->arrayof = NULL;
-	t->pto = NULL;
-	t->rto = NULL;
-	t->cto = NULL;
-	t->ito = NULL;
-	t->sto = NULL;
-	t->scto = NULL;
-	t->vtinfo = NULL;
+	t = makeMutable();
 	t = t->merge();
-
 	t->fixTo(this);
-
-	switch (mod)
-	{
-	    case MODconst:
-		t->cto = this;
-		break;
-
-	    case MODimmutable:
-		t->ito = this;
-		break;
-
-	    case MODshared | MODconst:
-		t->scto = this;
-		break;
-
-	    default:
-		assert(0);
-	}
     }
+    assert(t->isMutable());
     return t;
 }
 
@@ -482,6 +466,13 @@ Type *Type::sharedConstOf()
 
 /********************************
  * Make type unshared.
+ *	0            => 0
+ *	const        => const
+ *	immutable    => immutable
+ *	shared       => 0
+ *	shared const => const
+ *	wild         => wild
+ *	shared wild  => wild
  */
 
 Type *Type::unSharedOf()
@@ -493,6 +484,8 @@ Type *Type::unSharedOf()
     {
 	if (isConst())
 	    t = cto;	// shared const => const
+	else if (isWild())
+	    t = wto;	// shared wild => wild
 	else
 	    t = sto;
 	assert(!t || !t->isShared());
@@ -512,32 +505,62 @@ Type *Type::unSharedOf()
 	t->ito = NULL;
 	t->sto = NULL;
 	t->scto = NULL;
+	t->wto = NULL;
+	t->swto = NULL;
 	t->vtinfo = NULL;
 	t = t->merge();
 
 	t->fixTo(this);
-
-	switch (mod)
-	{
-	    case MODshared:
-		t->sto = this;
-		break;
-
-	    case MODshared | MODconst:
-		t->scto = this;
-		break;
-
-	    default:
-		assert(0);
-	}
     }
     assert(!t->isShared());
     return t;
 }
 
+/********************************
+ * Convert to 'wild'.
+ */
+
+Type *Type::wildOf()
+{
+    //printf("Type::wildOf() %p %s\n", this, toChars());
+    if (mod == MODwild)
+    {
+	return this;
+    }
+    if (wto)
+    {
+	assert(wto->isWild());
+	return wto;
+    }
+    Type *t = makeWild();
+    t = t->merge();
+    t->fixTo(this);
+    //printf("\t%p %s\n", t, t->toChars());
+    return t;
+}
+
+Type *Type::sharedWildOf()
+{
+    //printf("Type::sharedWildOf() %p, %s\n", this, toChars());
+    if (mod == (MODshared | MODwild))
+    {
+	return this;
+    }
+    if (swto)
+    {
+	assert(swto->mod == (MODshared | MODwild));
+	return swto;
+    }
+    Type *t = makeSharedWild();
+    t = t->merge();
+    t->fixTo(this);
+    //printf("\t%p\n", t);
+    return t;
+}
+
 /**********************************
  * For our new type 'this', which is type-constructed from t,
- * fill in the cto, ito, sto, scto shortcuts.
+ * fill in the cto, ito, sto, scto, wto shortcuts.
  */
 
 void Type::fixTo(Type *t)
@@ -554,7 +577,7 @@ void Type::fixTo(Type *t)
 #endif
 
     assert(mod != t->mod);
-#define X(m, n) (((m) << 3) | (n))
+#define X(m, n) (((m) << 4) | (n))
     switch (X(mod, t->mod))
     {
 	case X(0, MODconst):
@@ -573,6 +596,14 @@ void Type::fixTo(Type *t)
 	    scto = t;
 	    break;
 
+	case X(0, MODwild):
+	    wto = t;
+	    break;
+
+	case X(0, MODshared | MODwild):
+	    swto = t;
+	    break;
+
 
 	case X(MODconst, 0):
 	    cto = NULL;
@@ -588,6 +619,14 @@ void Type::fixTo(Type *t)
 
 	case X(MODconst, MODshared | MODconst):
 	    scto = t;
+	    goto L2;
+
+	case X(MODconst, MODwild):
+	    wto = t;
+	    goto L2;
+
+	case X(MODconst, MODshared | MODwild):
+	    swto = t;
 	L2:
 	    t->cto = this;
 	    break;
@@ -607,11 +646,21 @@ void Type::fixTo(Type *t)
 
 	case X(MODimmutable, MODshared | MODconst):
 	    scto = t;
+	    goto L3;
+
+	case X(MODimmutable, MODwild):
+	    wto = t;
+	    goto L3;
+
+	case X(MODimmutable, MODshared | MODwild):
+	    swto = t;
 	L3:
 	    t->ito = this;
 	    if (t->cto) t->cto->ito = this;
 	    if (t->sto) t->sto->ito = this;
 	    if (t->scto) t->scto->ito = this;
+	    if (t->wto) t->wto->ito = this;
+	    if (t->swto) t->swto->ito = this;
 	    break;
 
 
@@ -629,6 +678,14 @@ void Type::fixTo(Type *t)
 
 	case X(MODshared, MODshared | MODconst):
 	    scto = t;
+	    goto L4;
+
+	case X(MODshared, MODwild):
+	    wto = t;
+	    goto L4;
+
+	case X(MODshared, MODshared | MODwild):
+	    swto = t;
 	L4:
 	    t->sto = this;
 	    break;
@@ -636,21 +693,84 @@ void Type::fixTo(Type *t)
 
 	case X(MODshared | MODconst, 0):
 	    scto = NULL;
-	    break;
+	    goto L5;
 
 	case X(MODshared | MODconst, MODconst):
 	    cto = t;
-	    break;
+	    goto L5;
 
 	case X(MODshared | MODconst, MODimmutable):
 	    ito = t;
-	    break;
+	    goto L5;
+
+	case X(MODshared | MODconst, MODwild):
+	    wto = t;
+	    goto L5;
 
 	case X(MODshared | MODconst, MODshared):
 	    sto = t;
+	    goto L5;
+
+	case X(MODshared | MODconst, MODshared | MODwild):
+	    swto = t;
 	L5:
 	    t->scto = this;
 	    break;
+
+
+	case X(MODwild, 0):
+	    wto = NULL;
+	    goto L6;
+
+	case X(MODwild, MODconst):
+	    cto = t;
+	    goto L6;
+
+	case X(MODwild, MODimmutable):
+	    ito = t;
+	    goto L6;
+
+	case X(MODwild, MODshared):
+	    sto = t;
+	    goto L6;
+
+	case X(MODwild, MODshared | MODconst):
+	    scto = t;
+	    goto L6;
+
+	case X(MODwild, MODshared | MODwild):
+	    swto = t;
+	L6:
+	    t->wto = this;
+	    break;
+
+
+	case X(MODshared | MODwild, 0):
+	    swto = NULL;
+	    goto L7;
+
+	case X(MODshared | MODwild, MODconst):
+	    cto = t;
+	    goto L7;
+
+	case X(MODshared | MODwild, MODimmutable):
+	    ito = t;
+	    goto L7;
+
+	case X(MODshared | MODwild, MODshared):
+	    sto = t;
+	    goto L7;
+
+	case X(MODshared | MODwild, MODshared | MODconst):
+	    scto = t;
+	    goto L7;
+
+	case X(MODshared | MODwild, MODwild):
+	    wto = t;
+	L7:
+	    t->swto = this;
+	    break;
+
 
 	default:
 	    assert(0);
@@ -675,6 +795,8 @@ void Type::check()
 	    if (ito) assert(ito->mod == MODimmutable);
 	    if (sto) assert(sto->mod == MODshared);
 	    if (scto) assert(scto->mod == (MODshared | MODconst));
+	    if (wto) assert(wto->mod == MODwild);
+	    if (swto) assert(swto->mod == (MODshared | MODwild));
 	    break;
 
 	case MODconst:
@@ -682,6 +804,8 @@ void Type::check()
 	    if (ito) assert(ito->mod == MODimmutable);
 	    if (sto) assert(sto->mod == MODshared);
 	    if (scto) assert(scto->mod == (MODshared | MODconst));
+	    if (wto) assert(wto->mod == MODwild);
+	    if (swto) assert(swto->mod == (MODshared | MODwild));
 	    break;
 
 	case MODimmutable:
@@ -689,6 +813,8 @@ void Type::check()
 	    if (ito) assert(ito->mod == 0);
 	    if (sto) assert(sto->mod == MODshared);
 	    if (scto) assert(scto->mod == (MODshared | MODconst));
+	    if (wto) assert(wto->mod == MODwild);
+	    if (swto) assert(swto->mod == (MODshared | MODwild));
 	    break;
 
 	case MODshared:
@@ -696,6 +822,8 @@ void Type::check()
 	    if (ito) assert(ito->mod == MODimmutable);
 	    if (sto) assert(sto->mod == 0);
 	    if (scto) assert(scto->mod == (MODshared | MODconst));
+	    if (wto) assert(wto->mod == MODwild);
+	    if (swto) assert(swto->mod == (MODshared | MODwild));
 	    break;
 
 	case MODshared | MODconst:
@@ -703,6 +831,26 @@ void Type::check()
 	    if (ito) assert(ito->mod == MODimmutable);
 	    if (sto) assert(sto->mod == MODshared);
 	    if (scto) assert(scto->mod == 0);
+	    if (wto) assert(wto->mod == MODwild);
+	    if (swto) assert(swto->mod == (MODshared | MODwild));
+	    break;
+
+	case MODwild:
+	    if (cto) assert(cto->mod == MODconst);
+	    if (ito) assert(ito->mod == MODimmutable);
+	    if (sto) assert(sto->mod == MODshared);
+	    if (scto) assert(scto->mod == (MODshared | MODconst));
+	    if (wto) assert(wto->mod == 0);
+	    if (swto) assert(swto->mod == (MODshared | MODwild));
+	    break;
+
+	case MODshared | MODwild:
+	    if (cto) assert(cto->mod == MODconst);
+	    if (ito) assert(ito->mod == MODimmutable);
+	    if (sto) assert(sto->mod == MODshared);
+	    if (scto) assert(scto->mod == (MODshared | MODconst));
+	    if (wto) assert(wto->mod == MODwild);
+	    if (swto) assert(swto->mod == 0);
 	    break;
 
 	default:
@@ -733,6 +881,14 @@ void Type::check()
 		assert(tn->mod & MODimmutable || tn->mod & (MODshared | MODconst));
 		break;
 
+	    case MODwild:
+		assert(tn->mod);
+		break;
+
+	    case MODshared | MODwild:
+		assert(tn->mod == MODimmutable || tn->mod == (MODshared | MODconst) || tn->mod == (MODshared | MODwild));
+		break;
+
 	    default:
 		assert(0);
 	}
@@ -757,6 +913,8 @@ Type *Type::makeConst()
     t->ito = NULL;
     t->sto = NULL;
     t->scto = NULL;
+    t->wto = NULL;
+    t->swto = NULL;
     t->vtinfo = NULL;
     //printf("-Type::makeConst() %p, %s\n", t, toChars());
     return t;
@@ -778,6 +936,8 @@ Type *Type::makeInvariant()
     t->ito = NULL;
     t->sto = NULL;
     t->scto = NULL;
+    t->wto = NULL;
+    t->swto = NULL;
     t->vtinfo = NULL;
     return t;
 }
@@ -798,6 +958,8 @@ Type *Type::makeShared()
     t->ito = NULL;
     t->sto = NULL;
     t->scto = NULL;
+    t->wto = NULL;
+    t->swto = NULL;
     t->vtinfo = NULL;
     return t;
 }
@@ -818,6 +980,72 @@ Type *Type::makeSharedConst()
     t->ito = NULL;
     t->sto = NULL;
     t->scto = NULL;
+    t->wto = NULL;
+    t->swto = NULL;
+    t->vtinfo = NULL;
+    return t;
+}
+
+Type *Type::makeWild()
+{
+    if (wto)
+	return wto;
+    unsigned sz = sizeTy[ty];
+    Type *t = (Type *)mem.malloc(sz);
+    memcpy(t, this, sz);
+    t->mod = MODwild;
+    t->deco = NULL;
+    t->arrayof = NULL;
+    t->pto = NULL;
+    t->rto = NULL;
+    t->cto = NULL;
+    t->ito = NULL;
+    t->sto = NULL;
+    t->scto = NULL;
+    t->wto = NULL;
+    t->swto = NULL;
+    t->vtinfo = NULL;
+    return t;
+}
+
+Type *Type::makeSharedWild()
+{
+    if (swto)
+	return swto;
+    unsigned sz = sizeTy[ty];
+    Type *t = (Type *)mem.malloc(sz);
+    memcpy(t, this, sz);
+    t->mod = MODshared | MODwild;
+    t->deco = NULL;
+    t->arrayof = NULL;
+    t->pto = NULL;
+    t->rto = NULL;
+    t->cto = NULL;
+    t->ito = NULL;
+    t->sto = NULL;
+    t->scto = NULL;
+    t->wto = NULL;
+    t->swto = NULL;
+    t->vtinfo = NULL;
+    return t;
+}
+
+Type *Type::makeMutable()
+{
+    unsigned sz = sizeTy[ty];
+    Type *t = (Type *)mem.malloc(sz);
+    memcpy(t, this, sz);
+    t->mod =  mod & MODshared;
+    t->deco = NULL;
+    t->arrayof = NULL;
+    t->pto = NULL;
+    t->rto = NULL;
+    t->cto = NULL;
+    t->ito = NULL;
+    t->sto = NULL;
+    t->scto = NULL;
+    t->wto = NULL;
+    t->swto = NULL;
     t->vtinfo = NULL;
     return t;
 }
@@ -832,11 +1060,11 @@ Type *Type::castMod(unsigned mod)
     switch (mod)
     {
 	case 0:
-	    t = mutableOf();
+	    t = unSharedOf()->mutableOf();
 	    break;
 
 	case MODconst:
-	    t = constOf();
+	    t = unSharedOf()->constOf();
 	    break;
 
 	case MODimmutable:
@@ -844,11 +1072,19 @@ Type *Type::castMod(unsigned mod)
 	    break;
 
 	case MODshared:
-	    t = sharedOf();
+	    t = mutableOf()->sharedOf();
 	    break;
 
 	case MODshared | MODconst:
 	    t = sharedConstOf();
+	    break;
+
+	case MODwild:
+	    t = unSharedOf()->wildOf();
+	    break;
+
+	case MODshared | MODwild:
+	    t = sharedWildOf();
 	    break;
 
 	default:
@@ -870,6 +1106,7 @@ Type *Type::addMod(unsigned mod)
      */
     if (!t->isImmutable())
     {
+	//printf("addMod(%x) %s\n", mod, toChars());
 	switch (mod)
 	{
 	    case 0:
@@ -889,12 +1126,27 @@ Type *Type::addMod(unsigned mod)
 	    case MODshared:
 		if (isConst())
 		    t = sharedConstOf();
+		else if (isWild())
+		    t = sharedWildOf();
 		else
 		    t = sharedOf();
 		break;
 
 	    case MODshared | MODconst:
 		t = sharedConstOf();
+		break;
+
+	    case MODwild:
+		if (isConst())
+		    ;
+		else if (isShared())
+		    t = sharedWildOf();
+		else
+		    t = wildOf();
+		break;
+
+	    case MODshared | MODwild:
+		t = sharedWildOf();
 		break;
 
 	    default:
@@ -921,6 +1173,8 @@ Type *Type::addStorageClass(StorageClass stc)
 	    mod = MODconst;
 	if (stc & STCshared)
 	    mod |= MODshared;
+	if (stc & STCwild)
+	    mod |= MODwild;
     }
     return addMod(mod);
 }
@@ -983,6 +1237,98 @@ Type *Type::toBasetype()
     return this;
 }
 
+/***************************
+ * Return !=0 if modfrom can be implicitly converted to modto
+ */
+int MODimplicitConv(unsigned char modfrom, unsigned char modto)
+{
+    if (modfrom == modto)
+	return 1;
+
+    //printf("MODimplicitConv(from = %x, to = %x)\n", modfrom, modto);
+    #define X(m, n) (((m) << 4) | (n))
+    switch (X(modfrom, modto))
+    {
+	case X(0,            MODconst):
+	case X(MODimmutable, MODconst):
+	case X(MODwild,      MODconst):
+	case X(MODimmutable, MODconst | MODshared):
+	case X(MODshared,    MODconst | MODshared):
+	case X(MODwild | MODshared,    MODconst | MODshared):
+	    return 1;
+
+	default:
+	    return 0;
+    }
+    #undef X
+}
+
+/*********************************
+ * Mangling for mod.
+ */
+void MODtoDecoBuffer(OutBuffer *buf, unsigned char mod)
+{
+    switch (mod)
+    {   case 0:
+	    break;
+	case MODconst:
+	    buf->writeByte('x');
+	    break;
+	case MODimmutable:
+	    buf->writeByte('y');
+	    break;
+	case MODshared:
+	    buf->writeByte('O');
+	    break;
+	case MODshared | MODconst:
+	    buf->writestring("Ox");
+	    break;
+	case MODwild:
+	    buf->writestring("Ng");
+	    break;
+	case MODshared | MODwild:
+	    buf->writestring("ONg");
+	    break;
+	default:
+	    assert(0);
+    }
+}
+
+/*********************************
+ * Name for mod.
+ */
+void MODtoBuffer(OutBuffer *buf, unsigned char mod)
+{
+    switch (mod)
+    {   case 0:
+	    break;
+
+	case MODimmutable:
+	    buf->writestring(Token::tochars[TOKimmutable]);
+	    break;
+
+	case MODshared:
+	    buf->writestring(Token::tochars[TOKshared]);
+	    break;
+
+	case MODshared | MODconst:
+	    buf->writestring(Token::tochars[TOKshared]);
+	    buf->writeByte(' ');
+	case MODconst:
+	    buf->writestring(Token::tochars[TOKconst]);
+	    break;
+
+	case MODshared | MODwild:
+	    buf->writestring(Token::tochars[TOKshared]);
+	    buf->writeByte(' ');
+	case MODwild:
+	    buf->writestring(Token::tochars[TOKwild]);
+	    break;
+	default:
+	    assert(0);
+    }
+}
+
 /********************************
  * Name mangling.
  * Input:
@@ -993,16 +1339,7 @@ void Type::toDecoBuffer(OutBuffer *buf, int flag)
 {
     if (flag != mod && flag != 0x100)
     {
-	if (mod & MODshared)
-	    buf->writeByte('O');
-
-	if (mod & MODconst)
-	    buf->writeByte('x');
-	else if (mod & MODimmutable)
-	    buf->writeByte('y');
-
-	// Cannot be both const and invariant
-	assert((mod & (MODconst | MODimmutable)) != (MODconst | MODimmutable));
+	MODtoDecoBuffer(buf, mod);
     }
     buf->writeByte(mangleChar[ty]);
 }
@@ -1041,40 +1378,35 @@ void Type::toCBuffer2(OutBuffer *buf, HdrGenState *hgs, int mod)
 void Type::toCBuffer3(OutBuffer *buf, HdrGenState *hgs, int mod)
 {
     if (mod != this->mod)
-    {	const char *p;
-
+    {
 	if (this->mod & MODshared)
-	    buf->writestring("shared(");
-	switch (this->mod & (MODconst | MODimmutable))
 	{
-	    case 0:
-		toCBuffer2(buf, hgs, this->mod);
-		break;
-	    case MODconst:
-		p = "const(";
-		goto L1;
-	    case MODimmutable:
-		p = "immutable(";
-	    L1:	buf->writestring(p);
-		toCBuffer2(buf, hgs, this->mod);
-		buf->writeByte(')');
-		break;
-	    default:
-		assert(0);
+	    MODtoBuffer(buf, this->mod & MODshared);
+	    buf->writeByte('(');
 	}
-	if (this->mod & MODshared)
+	if (this->mod & ~MODshared)
+	{
+	    MODtoBuffer(buf, this->mod & ~MODshared);
+	    buf->writeByte('(');
+	    toCBuffer2(buf, hgs, this->mod);
 	    buf->writeByte(')');
+	}
+	else
+	    toCBuffer2(buf, hgs, this->mod);
+	if (this->mod & MODshared)
+	{
+	    buf->writeByte(')');
+	}
     }
 }
 
 void Type::modToBuffer(OutBuffer *buf)
 {
-    if (mod & MODshared)
-        buf->writestring(" shared");
-    if (mod & MODconst)
-        buf->writestring(" const");
-    if (mod & MODimmutable)
-        buf->writestring(" immutable");
+    if (mod)
+    {
+	buf->writeByte(' ');
+	MODtoBuffer(buf, mod);
+    }
 }
 
 /************************************
@@ -1544,6 +1876,24 @@ Type *Type::reliesOnTident()
     return NULL;
 }
 
+/***************************************
+ * Return !=0 if the type or any of its subtypes is wild.
+ */
+
+int Type::hasWild()
+{
+    return mod & MODwild;
+}
+
+/***************************************
+ * Return MOD bits matching argument type (targ) to wild parameter type (this).
+ */
+
+unsigned Type::wildMatch(Type *targ)
+{
+    return 0;
+}
+
 /********************************
  * We've mistakenly parsed this as a type.
  * Redo it as an Expression.
@@ -1630,6 +1980,35 @@ Type *TypeNext::reliesOnTident()
     return next->reliesOnTident();
 }
 
+int TypeNext::hasWild()
+{
+    return mod == MODwild || next->hasWild();
+}
+
+/***************************************
+ * Return MOD bits matching argument type (targ) to wild parameter type (this).
+ */
+
+unsigned TypeNext::wildMatch(Type *targ)
+{   unsigned mod;
+
+    Type *tb = targ->nextOf();
+    if (!tb)
+	return 0;
+    tb = tb->toBasetype();
+    if (tb->isMutable())
+	mod = MODmutable;
+    else if (tb->isConst() || tb->isWild())
+	return MODconst;
+    else if (tb->isImmutable())
+	mod = MODimmutable;
+    else
+	assert(0);
+    mod |= next->wildMatch(tb);
+    return mod;
+}
+
+
 /*******************************
  * For TypeFunction, nextOf() can return NULL if the function return
  * type is meant to be inferred, and semantic() hasn't yet ben run
@@ -1697,7 +2076,7 @@ Type *TypeNext::makeShared()
 	(next->deco || next->ty == Tfunction) &&
         !next->isImmutable() && !next->isShared())
     {
-	if (next->isConst())
+	if (next->isConst() || next->isWild())
 	    t->next = next->sharedConstOf();
 	else
 	    t->next = next->sharedOf();
@@ -1729,6 +2108,71 @@ Type *TypeNext::makeSharedConst()
 	((TypeAArray *)t)->impl = NULL;		// lazily recompute it
     }
     //printf("TypeNext::makeSharedConst() returns %p, %s\n", t, t->toChars());
+    return t;
+}
+
+Type *TypeNext::makeWild()
+{
+    //printf("TypeNext::makeWild() %s\n", toChars());
+    if (wto)
+    {	assert(wto->mod == MODwild);
+	return wto;
+    }    
+    TypeNext *t = (TypeNext *)Type::makeWild();
+    if (ty != Tfunction && ty != Tdelegate &&
+	(next->deco || next->ty == Tfunction) &&
+        !next->isImmutable() && !next->isConst() && !next->isWild())
+    {
+	if (next->isShared())
+	    t->next = next->sharedWildOf();
+	else
+	    t->next = next->wildOf();
+    }
+    if (ty == Taarray)
+    {
+	((TypeAArray *)t)->impl = NULL;		// lazily recompute it
+    }
+    //printf("TypeNext::makeWild() returns %p, %s\n", t, t->toChars());
+    return t;
+}
+
+Type *TypeNext::makeSharedWild()
+{
+    //printf("TypeNext::makeSharedWild() %s\n", toChars());
+    if (swto)
+    {	assert(swto->isSharedWild());
+	return swto;
+    }    
+    TypeNext *t = (TypeNext *)Type::makeSharedWild();
+    if (ty != Tfunction && ty != Tdelegate &&
+	(next->deco || next->ty == Tfunction) &&
+        !next->isImmutable() && !next->isSharedConst())
+    {
+	t->next = next->sharedWildOf();
+    }
+    if (ty == Taarray)
+    {
+	((TypeAArray *)t)->impl = NULL;		// lazily recompute it
+    }
+    //printf("TypeNext::makeSharedWild() returns %p, %s\n", t, t->toChars());
+    return t;
+}
+
+Type *TypeNext::makeMutable()
+{
+    //printf("TypeNext::makeMutable() %p, %s\n", this, toChars());
+    TypeNext *t = (TypeNext *)Type::makeMutable();
+    if (ty != Tfunction && ty != Tdelegate &&
+	(next->deco || next->ty == Tfunction) &&
+        next->isWild())
+    {
+	t->next = next->mutableOf();
+    }
+    if (ty == Taarray)
+    {
+	((TypeAArray *)t)->impl = NULL;		// lazily recompute it
+    }
+    //printf("TypeNext::makeMutable() returns %p, %s\n", t, t->toChars());
     return t;
 }
 
@@ -2925,7 +3369,7 @@ MATCH TypeSArray::implicitConvTo(Type *to)
     {
 	TypePointer *tp = (TypePointer *)to;
 
-	if (next->mod != tp->next->mod && tp->next->mod != MODconst)
+	if (!MODimplicitConv(next->mod, tp->next->mod))
 	    return MATCHnomatch;
 
 	if (tp->next->ty == Tvoid || next->constConv(tp->next) != MATCHnomatch)
@@ -2938,7 +3382,7 @@ MATCH TypeSArray::implicitConvTo(Type *to)
     {	int offset = 0;
 	TypeDArray *ta = (TypeDArray *)to;
 
-	if (next->mod != ta->next->mod && ta->next->mod != MODconst)
+	if (!MODimplicitConv(next->mod, ta->next->mod))
 	    return MATCHnomatch;
 
 	if (next->equals(ta->next) ||
@@ -3135,7 +3579,7 @@ MATCH TypeDArray::implicitConvTo(Type *to)
 	/* Allow conversion to void*
 	 */
 	if (tp->next->ty == Tvoid &&
-	    (next->mod == tp->next->mod || tp->next->mod == MODconst))
+	    MODimplicitConv(next->mod, tp->next->mod))
 	{
 	    return MATCHconvert;
 	}
@@ -3147,7 +3591,7 @@ MATCH TypeDArray::implicitConvTo(Type *to)
     {	int offset = 0;
 	TypeDArray *ta = (TypeDArray *)to;
 
-	if (!(next->mod == ta->next->mod || ta->next->mod == MODconst))
+	if (!MODimplicitConv(next->mod, ta->next->mod))
 	    return MATCHnomatch;	// not const-compatible
 
 	/* Allow conversion to void[]
@@ -3592,10 +4036,10 @@ MATCH TypeAArray::implicitConvTo(Type *to)
     if (to->ty == Taarray)
     {	TypeAArray *ta = (TypeAArray *)to;
 
-	if (!(next->mod == ta->next->mod || ta->next->mod == MODconst))
+	if (!MODimplicitConv(next->mod, ta->next->mod))
 	    return MATCHnomatch;	// not const-compatible
 
-	if (!(index->mod == ta->index->mod || ta->index->mod == MODconst))
+	if (!MODimplicitConv(index->mod, ta->index->mod))
 	    return MATCHnomatch;	// not const-compatible
 
 	MATCH m = next->constConv(ta->next);
@@ -3695,7 +4139,7 @@ MATCH TypePointer::implicitConvTo(Type *to)
     {	TypePointer *tp = (TypePointer *)to;
 	assert(tp->next);
 
-        if (!(next->mod == tp->next->mod || tp->next->mod == MODconst))
+	if (!MODimplicitConv(next->mod, tp->next->mod))
             return MATCHnomatch;        // not const-compatible
 
         /* Alloc conversion to void[]
@@ -3947,7 +4391,7 @@ int Type::covariant(Type *t)
 	 * forward references.
 	 */
 	if (((TypeClass *)t1n)->sym == ((TypeClass *)t2n)->sym &&
-	    t2n->mod == MODconst)
+	    MODimplicitConv(t1n->mod, t2n->mod))
 	    goto Lcovariant;
 
 	// If t1n is forward referenced:
@@ -3965,6 +4409,9 @@ int Type::covariant(Type *t)
 Lcovariant:
     /* Can convert mutable to const
      */
+    if (!MODimplicitConv(t2->mod, t1->mod))
+	goto Lnotcovariant;
+#if 0
     if (t1->mod != t2->mod)
     {
 	if (!(t1->mod & MODconst) && (t2->mod & MODconst))
@@ -3972,6 +4419,7 @@ Lcovariant:
 	if (!(t1->mod & MODshared) && (t2->mod & MODshared))
 	    goto Lnotcovariant;
     }
+#endif
 
     /* Can convert pure to impure, and nothrow to throw
      */
@@ -4011,14 +4459,7 @@ void TypeFunction::toDecoBuffer(OutBuffer *buf, int flag)
 	return;
     }
     inuse++;
-#if 1
-    if (mod & MODshared)
-	buf->writeByte('O');
-    if (mod & MODconst)
-	buf->writeByte('x');
-    else if (mod & MODimmutable)
-	buf->writeByte('y');
-#endif
+    MODtoDecoBuffer(buf, mod);
     switch (linkage)
     {
 	case LINKd:		mc = 'F';	break;
@@ -4046,7 +4487,7 @@ void TypeFunction::toDecoBuffer(OutBuffer *buf, int flag)
 		buf->writestring("Ne");
 		break;
 	    case TRUSTsafe:
-		buf->writestring("Nd");
+		buf->writestring("Nf");
 		break;
 	}
     }
@@ -4072,12 +4513,11 @@ void TypeFunction::toCBuffer(OutBuffer *buf, Identifier *ident, HdrGenState *hgs
 
     /* Use 'storage class' style for attributes
      */
-    if (mod & MODconst)
-	buf->writestring("const ");
-    if (mod & MODimmutable)
-	buf->writestring("immutable ");
-    if (mod & MODshared)
-	buf->writestring("shared ");
+    if (mod)
+    {
+	MODtoBuffer(buf, mod);
+	buf->writeByte(' ');
+    }
 
     if (ispure)
 	buf->writestring("pure ");
@@ -4239,6 +4679,7 @@ Type *TypeFunction::semantic(Loc loc, Scope *sc)
 	    }
 	}
 
+    bool wildreturn = FALSE;
     if (tf->next)
     {
 	tf->next = tf->next->semantic(loc,sc);
@@ -4260,8 +4701,12 @@ Type *TypeFunction::semantic(Loc loc, Scope *sc)
 	    error(loc, "functions cannot return scope %s", tf->next->toChars());
 	if (tf->next->toBasetype()->ty == Tvoid)
 	    tf->isref = FALSE;			// rewrite "ref void" as just "void"
+	if (tf->next->isWild())
+	    wildreturn = TRUE;
     }
 
+    bool wildparams = FALSE;
+    bool wildsubparams = FALSE;
     if (tf->parameters)
     {
 	/* Create a scope for evaluating the default arguments for the parameters
@@ -4297,6 +4742,15 @@ Type *TypeFunction::semantic(Loc loc, Scope *sc)
 	    }
 	    if (!(fparam->storageClass & STClazy) && t->ty == Tvoid)
 		error(loc, "cannot have parameter of type %s", fparam->type->toChars());
+
+	    if (t->isWild())
+	    {
+		wildparams = TRUE;
+		if (tf->next && !wildreturn)
+		    error(loc, "inout on parameter means inout must be on return type as well (if from D1 code, replace with 'ref')");
+	    }
+	    else if (!wildsubparams && t->hasWild())
+		wildsubparams = TRUE;
 
 	    if (fparam->defaultArg)
 	    {
@@ -4347,6 +4801,11 @@ Type *TypeFunction::semantic(Loc loc, Scope *sc)
 	}
 	argsc->pop();
     }
+    if (wildreturn && !wildparams)
+	error(loc, "inout on return means inout must be on a parameter as well for %s", toChars());
+    if (wildsubparams && wildparams)
+	error(loc, "inout must be all or none on top level for %s", toChars());
+
     if (tf->next)
 	tf->deco = tf->merge()->deco;
 
@@ -4380,6 +4839,8 @@ int TypeFunction::callMatch(Expression *ethis, Expressions *args)
 {
     //printf("TypeFunction::callMatch() %s\n", toChars());
     MATCH match = MATCHexact;		// assume exact match
+    bool exactwildmatch = FALSE;
+    bool wildmatch = FALSE;
 
     if (ethis)
     {	Type *t = ethis->type;
@@ -4387,7 +4848,7 @@ int TypeFunction::callMatch(Expression *ethis, Expressions *args)
 	    t = t->toBasetype()->nextOf();	// change struct* to struct
 	if (t->mod != mod)
 	{
-	    if (mod == MODconst)
+	    if (MODimplicitConv(t->mod, mod))
 		match = MATCHconst;
 	    else
 		return MATCHnomatch;
@@ -4433,7 +4894,7 @@ int TypeFunction::callMatch(Expression *ethis, Expressions *args)
 
 	if (p->storageClass & STCref)
 	{
-	    /* Don't allow static arrays to be passed to mutable refereces
+	    /* Don't allow static arrays to be passed to mutable references
 	     * to static arrays if the argument cannot be modified.
 	     */
 	    Type *targb = arg->type->toBasetype();
@@ -4441,8 +4902,7 @@ int TypeFunction::callMatch(Expression *ethis, Expressions *args)
 	    //printf("%s\n", targb->toChars());
 	    //printf("%s\n", tparb->toChars());
 	    if (targb->nextOf() && tparb->ty == Tsarray &&
-		targb->nextOf()->mod != tparb->nextOf()->mod &&
-		!tparb->nextOf()->isConst())
+		!MODimplicitConv(targb->nextOf()->mod, tparb->nextOf()->mod))
 		goto Nomatch;
 	}
 
@@ -4450,7 +4910,29 @@ int TypeFunction::callMatch(Expression *ethis, Expressions *args)
 		arg->type->ty != Tvoid)
 	    m = MATCHconvert;
 	else
+	{
 	    m = arg->implicitConvTo(p->type);
+	    if (p->type->isWild())
+	    {
+		if (m == MATCHnomatch)
+		{
+		    m = arg->implicitConvTo(p->type->constOf());
+		    if (m == MATCHnomatch)
+			m = arg->implicitConvTo(p->type->sharedConstOf());
+		    if (m != MATCHnomatch)
+			wildmatch = TRUE;	// mod matched to wild
+		}
+		else
+		    exactwildmatch = TRUE;	// wild matched to wild
+
+		/* If both are allowed, then there could be more than one
+		 * binding of mod to wild, leaving a gaping type hole.
+		 */
+		if (wildmatch && exactwildmatch)
+		    m = MATCHnomatch;
+	    }
+	}
+
 	//printf("\tm = %d\n", m);
 	if (m == MATCHnomatch)			// if no match
 	{
@@ -4531,16 +5013,14 @@ Nomatch:
 
 Type *TypeFunction::reliesOnTident()
 {
-    if (parameters)
-    {
-	for (size_t i = 0; i < parameters->dim; i++)
-	{   Parameter *arg = (Parameter *)parameters->data[i];
-	    Type *t = arg->type->reliesOnTident();
-	    if (t)
-		return t;
-	}
+    size_t dim = Parameter::dim(parameters);
+    for (size_t i = 0; i < dim; i++)
+    {   Parameter *fparam = Parameter::getNth(parameters, i);
+	Type *t = fparam->type->reliesOnTident();
+	if (t)
+	    return t;
     }
-    return next->reliesOnTident();
+    return next ? next->reliesOnTident() : NULL;
 }
 
 /***************************
@@ -5668,7 +6148,7 @@ MATCH TypeEnum::constConv(Type *to)
     if (equals(to))
 	return MATCHexact;
     if (ty == to->ty && sym == ((TypeEnum *)to)->sym &&
-	to->mod == MODconst)
+	MODimplicitConv(mod, to->mod))
 	return MATCHconst;
     return MATCHnomatch;
 }
@@ -5939,6 +6419,11 @@ int TypeTypedef::isZeroInit(Loc loc)
 int TypeTypedef::hasPointers()
 {
     return toBasetype()->hasPointers();
+}
+
+int TypeTypedef::hasWild()
+{
+    return mod & MODwild || toBasetype()->hasWild();
 }
 
 /***************************** TypeStruct *****************************/
@@ -6268,6 +6753,7 @@ int TypeStruct::isAssignable()
 
 int TypeStruct::hasPointers()
 {
+    // Probably should cache this information in sym rather than recompute
     StructDeclaration *s = sym;
 
     sym->size(0);		// give error for forward references
@@ -6289,7 +6775,7 @@ MATCH TypeStruct::implicitConvTo(Type *to)
     {	m = MATCHexact;		// exact match
 	if (mod != to->mod)
 	{
-	    if (to->mod == MODconst)
+	    if (MODimplicitConv(mod, to->mod))
 		m = MATCHconst;
 	    else
 	    {	/* Check all the fields. If they can all be converted,
@@ -6339,7 +6825,7 @@ MATCH TypeStruct::constConv(Type *to)
     if (equals(to))
 	return MATCHexact;
     if (ty == to->ty && sym == ((TypeStruct *)to)->sym &&
-	to->mod == MODconst)
+	MODimplicitConv(mod, to->mod))
 	return MATCHconst;
     return MATCHnomatch;
 }
@@ -6749,7 +7235,7 @@ MATCH TypeClass::constConv(Type *to)
     if (equals(to))
 	return MATCHexact;
     if (ty == to->ty && sym == ((TypeClass *)to)->sym &&
-	to->mod == MODconst)
+	MODimplicitConv(mod, to->mod))
 	return MATCHconst;
     return MATCHnomatch;
 }

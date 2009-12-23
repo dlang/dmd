@@ -627,12 +627,12 @@ Expression *callCpCtor(Loc loc, Scope *sc, Expression *e)
  *	3. do default promotions on arguments corresponding to ...
  *	4. add hidden _arguments[] argument
  *	5. call copy constructor for struct value arguments
+ * Returns:
+ *	return type from function
  */
 
-void functionParameters(Loc loc, Scope *sc, TypeFunction *tf, Expressions *arguments)
+Type *functionParameters(Loc loc, Scope *sc, TypeFunction *tf, Expressions *arguments)
 {
-    unsigned n;
-
     //printf("functionParameters()\n");
     assert(arguments);
     size_t nargs = arguments ? arguments->dim : 0;
@@ -641,8 +641,9 @@ void functionParameters(Loc loc, Scope *sc, TypeFunction *tf, Expressions *argum
     if (nargs > nparams && tf->varargs == 0)
 	error(loc, "expected %zu arguments, not %zu for non-variadic function type %s", nparams, nargs, tf->toChars());
 
-    n = (nargs > nparams) ? nargs : nparams;	// n = max(nargs, nparams)
+    unsigned n = (nargs > nparams) ? nargs : nparams;	// n = max(nargs, nparams)
 
+    unsigned wildmatch = 0;
     int done = 0;
     for (size_t i = 0; i < n; i++)
     {
@@ -665,7 +666,7 @@ void functionParameters(Loc loc, Scope *sc, TypeFunction *tf, Expressions *argum
 		    if (tf->varargs == 2 && i + 1 == nparams)
 			goto L2;
 		    error(loc, "expected %zu function arguments, not %zu", nparams, nargs);
-		    return;
+		    return tf->next;
 		}
 		arg = p->defaultArg;
 		arg = arg->copy();
@@ -683,7 +684,7 @@ void functionParameters(Loc loc, Scope *sc, TypeFunction *tf, Expressions *argum
 		{
 		    if (nargs != nparams)
 		    {	error(loc, "expected %zu function arguments, not %zu", nparams, nargs);
-			return;
+			return tf->next;
 		    }
 		    goto L1;
 		}
@@ -751,7 +752,7 @@ void functionParameters(Loc loc, Scope *sc, TypeFunction *tf, Expressions *argum
 		    default:
 			if (!arg)
 			{   error(loc, "not enough arguments");
-			    return;
+			    return tf->next;
 		        }
 			break;
 		}
@@ -769,7 +770,22 @@ void functionParameters(Loc loc, Scope *sc, TypeFunction *tf, Expressions *argum
 		    //printf("arg->type = %s, p->type = %s\n", arg->type->toChars(), p->type->toChars());
 		    if (arg->op == TOKtype)
 			arg->error("cannot pass type %s as function argument", arg->toChars());
-		    arg = arg->implicitCastTo(sc, p->type);
+		    if (p->type->isWild() && tf->next->isWild())
+		    {	Type *t = p->type;
+			MATCH m = arg->implicitConvTo(t);
+			if (m == MATCHnomatch)
+			{   t = t->constOf();
+			    m = arg->implicitConvTo(t);
+			    if (m == MATCHnomatch)
+			    {	t = t->sharedConstOf();
+				m = arg->implicitConvTo(t);
+			    }
+			    wildmatch |= p->type->wildMatch(arg->type);
+			}
+			arg = arg->implicitCastTo(sc, t);
+		    }
+		    else
+			arg = arg->implicitCastTo(sc, p->type);
 		    arg = arg->optimize(WANTvalue);
 		}
 	    }
@@ -901,6 +917,22 @@ void functionParameters(Loc loc, Scope *sc, TypeFunction *tf, Expressions *argum
 		arguments->dim - nparams);
 	arguments->insert(0, e);
     }
+    Type *tret = tf->next;
+    if (wildmatch)
+    {	/* Adjust function return type based on wildmatch
+	 */
+	//printf("wildmatch = x%x\n", wildmatch);
+	assert(tret->isWild());
+	if (wildmatch & MODconst || wildmatch & (wildmatch - 1))
+	    tret = tret->constOf();
+	else if (wildmatch & MODimmutable)
+	    tret = tret->invariantOf();
+	else
+	{   assert(wildmatch & MODmutable);
+	    tret = tret->mutableOf();
+	}
+    }
+    return tret;
 }
 
 /**************************************************
@@ -4972,6 +5004,12 @@ Expression *IsExp::semantic(Scope *sc)
 		    goto Lno;
 		tded = targ;
 		break;
+
+	    case TOKwild:
+		if (!targ->isWild())
+		    goto Lno;
+		tded = targ;
+		break;
 #endif
 
 	    case TOKsuper:
@@ -6133,7 +6171,7 @@ Expression *DotVarExp::modifiableLvalue(Scope *sc, Expression *e)
 	    !var->type->isAssignable() ||
 	    var->storage_class & STCmanifest
 	   )
-	    error("cannot modify const/immutable expression %s", toChars());
+	    error("cannot modify const/immutable/inout expression %s", toChars());
     }
 #endif
     return this;
@@ -6731,7 +6769,7 @@ Lagain:
 	    printf("e1 = %s\n", e1->toChars());
 	    printf("e1->type = %s\n", e1->type->toChars());
 #endif
-	    // Const member function can take const/immutable/mutable this
+	    // Const member function can take const/immutable/mutable/inout this
 	    if (!(f->type->isConst()))
 	    {
 		// Check for const/immutable compatibility
@@ -7009,11 +7047,10 @@ Lagain:
 
 Lcheckargs:
     assert(tf->ty == Tfunction);
-    type = tf->next;
 
     if (!arguments)
 	arguments = new Expressions();
-    functionParameters(loc, sc, tf, arguments);
+    type = functionParameters(loc, sc, tf, arguments);
 
     if (!type)
     {
@@ -7712,6 +7749,10 @@ Expression *CastExp::semantic(Scope *sc)
 		// Cast away pointer to shared
 		goto Lunsafe;
 
+	    if (t1bn->isWild() && !tobn->isConst() && !tobn->isWild())
+		// Cast wild to anything but const | wild
+		goto Lunsafe;
+
 	    if (tobn->isTypeBasic() && tobn->size() < t1bn->size())
 		// Allow things like casting a long* to an int*
 		;
@@ -7763,26 +7804,7 @@ void CastExp::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 	to->toCBuffer(buf, NULL, hgs);
     else
     {
-	switch (mod)
-	{   case 0:
-		break;
-	    case MODconst:
-		buf->writestring(Token::tochars[TOKconst]);
-		break;
-	    case MODimmutable:
-		buf->writestring(Token::tochars[TOKimmutable]);
-		break;
-	    case MODshared:
-		buf->writestring(Token::tochars[TOKshared]);
-		break;
-	    case MODshared | MODconst:
-		buf->writestring(Token::tochars[TOKshared]);
-		buf->writeByte(' ');
-		buf->writestring(Token::tochars[TOKconst]);
-		break;
-	    default:
-		assert(0);
-	}
+	MODtoBuffer(buf, mod);
     }
 #endif
     buf->writeByte(')');

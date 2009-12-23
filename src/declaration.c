@@ -858,6 +858,8 @@ Lagain:
 	storage_class |= STCimmutable;
     else if (type->isShared())
 	storage_class |= STCshared;
+    else if (type->isWild())
+	storage_class |= STCwild;
 
     if (isSynchronized())
     {
@@ -933,6 +935,13 @@ Lagain:
 	ident != Id::This)
     {
 	error("only parameters or foreach declarations can be ref");
+    }
+
+    if ((storage_class & (STCstatic | STCextern | STCtls | STCgshared | STCmanifest) ||
+	isDataseg()) &&
+	type->hasWild())
+    {
+	error("only fields, parameters or stack based variables can be inout");
     }
 #endif
 
@@ -1675,6 +1684,16 @@ TypeInfoSharedDeclaration::TypeInfoSharedDeclaration(Type *tinfo)
     : TypeInfoDeclaration(tinfo, 0)
 {
     type = Type::typeinfoshared->type;
+}
+#endif
+
+/***************************** TypeInfoWildDeclaration **********************/
+
+#if DMDV2
+TypeInfoWildDeclaration::TypeInfoWildDeclaration(Type *tinfo)
+    : TypeInfoDeclaration(tinfo, 0)
+{
+    type = Type::typeinfowild->type;
 }
 #endif
 

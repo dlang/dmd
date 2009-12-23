@@ -163,6 +163,12 @@ ClassDeclaration::ClassDeclaration(Loc loc, Identifier *id, BaseClasses *basecla
 		    Type::typeinfoshared->error("%s", msg);
 		Type::typeinfoshared = this;
 	    }
+
+	    if (id == Id::TypeInfo_Wild)
+	    {	if (Type::typeinfowild)
+		    Type::typeinfowild->error("%s", msg);
+		Type::typeinfowild = this;
+	    }
 #endif
 	}
 

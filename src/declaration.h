@@ -73,7 +73,8 @@ enum STC
     STCshared       = 0x20000000,	// accessible from multiple threads
     STCgshared      = 0x40000000,	// accessible from multiple threads
 					// but not typed as "shared"
-    STC_TYPECTOR    = (STCconst | STCimmutable | STCshared),
+    STCwild         = 0x80000000,	// for "wild" type constructor
+    STC_TYPECTOR    = (STCconst | STCimmutable | STCshared | STCwild),
 };
 
 #define STCproperty	0x100000000LL
@@ -451,6 +452,13 @@ struct TypeInfoInvariantDeclaration : TypeInfoDeclaration
 struct TypeInfoSharedDeclaration : TypeInfoDeclaration
 {
     TypeInfoSharedDeclaration(Type *tinfo);
+
+    void toDt(dt_t **pdt);
+};
+
+struct TypeInfoWildDeclaration : TypeInfoDeclaration
+{
+    TypeInfoWildDeclaration(Type *tinfo);
 
     void toDt(dt_t **pdt);
 };

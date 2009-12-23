@@ -121,6 +121,8 @@ Expression *Type::getTypeInfo(Scope *sc)
 	    t->vtinfo = new TypeInfoConstDeclaration(t);
 	else if (t->isImmutable())
 	    t->vtinfo = new TypeInfoInvariantDeclaration(t);
+	else if (t->isWild())
+	    t->vtinfo = new TypeInfoWildDeclaration(t);
 	else
 #endif
 	    t->vtinfo = t->getTypeInfoDeclaration();
@@ -259,6 +261,18 @@ void TypeInfoSharedDeclaration::toDt(dt_t **pdt)
     tm->getTypeInfo(NULL);
     dtxoff(pdt, tm->vtinfo->toSymbol(), 0, TYnptr);
 }
+
+void TypeInfoWildDeclaration::toDt(dt_t **pdt)
+{
+    //printf("TypeInfoWildDeclaration::toDt() %s\n", toChars());
+    dtxoff(pdt, Type::typeinfowild->toVtblSymbol(), 0, TYnptr); // vtbl for TypeInfo_Wild
+    dtdword(pdt, 0);			    // monitor
+    Type *tm = tinfo->mutableOf();
+    tm = tm->merge();
+    tm->getTypeInfo(NULL);
+    dtxoff(pdt, tm->vtinfo->toSymbol(), 0, TYnptr);
+}
+
 #endif
 
 void TypeInfoTypedefDeclaration::toDt(dt_t **pdt)

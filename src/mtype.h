@@ -117,18 +117,23 @@ struct Type : Object
 	#define MODconst     1	// type is const
 	#define MODimmutable 4	// type is immutable
 	#define MODshared    2	// type is shared
+	#define MODwild	     8	// type is wild
+	#define MODmutable   0x10	// type is mutable (only used in wildcard matching)
     char *deco;
 
     /* These are cached values that are lazily evaluated by constOf(), invariantOf(), etc.
      * They should not be referenced by anybody but mtype.c.
      * They can be NULL if not lazily evaluated yet.
      * Note that there is no "shared immutable", because that is just immutable
+     * Naked == no MOD bits
      */
 
-    Type *cto;		// MODconst ? mutable version of this type : const version
-    Type *ito;		// MODimmutable ? mutable version of this type : invariant version
-    Type *sto;		// MODshared ? mutable version of this type : shared mutable version
-    Type *scto;		// MODshared|MODconst ? mutable version of this type : shared const version
+    Type *cto;		// MODconst ? naked version of this type : const version
+    Type *ito;		// MODimmutable ? naked version of this type : immutable version
+    Type *sto;		// MODshared ? naked version of this type : shared mutable version
+    Type *scto;		// MODshared|MODconst ? naked version of this type : shared const version
+    Type *wto;		// MODwild ? naked version of this type : wild version
+    Type *swto;		// MODshared|MODwild ? naked version of this type : shared wild version
 
     Type *pto;		// merged pointer to this type
     Type *rto;		// reference to this type
@@ -193,6 +198,7 @@ struct Type : Object
     static ClassDeclaration *typeinfoconst;
     static ClassDeclaration *typeinfoinvariant;
     static ClassDeclaration *typeinfoshared;
+    static ClassDeclaration *typeinfowild;
 
     static Type *basic[TMAX];
     static unsigned char mangleChar[TMAX];
@@ -245,15 +251,20 @@ struct Type : Object
     virtual void checkDeprecated(Loc loc, Scope *sc);
     int isConst()	{ return mod & MODconst; }
     int isImmutable()	{ return mod & MODimmutable; }
-    int isMutable()	{ return !(mod & (MODconst | MODimmutable)); }
+    int isMutable()	{ return !(mod & (MODconst | MODimmutable | MODwild)); }
     int isShared()	{ return mod & MODshared; }
     int isSharedConst()	{ return mod == (MODshared | MODconst); }
+    int isWild()	{ return mod & MODwild; }
+    int isSharedWild()	{ return mod == (MODshared | MODwild); }
+    int isNaked()	{ return mod == 0; }
     Type *constOf();
     Type *invariantOf();
     Type *mutableOf();
     Type *sharedOf();
     Type *sharedConstOf();
     Type *unSharedOf();
+    Type *wildOf();
+    Type *sharedWildOf();
     void fixTo(Type *t);
     void check();
     Type *castMod(unsigned mod);
@@ -266,6 +277,9 @@ struct Type : Object
     virtual Type *makeInvariant();
     virtual Type *makeShared();
     virtual Type *makeSharedConst();
+    virtual Type *makeWild();
+    virtual Type *makeSharedWild();
+    virtual Type *makeMutable();
     virtual Dsymbol *toDsymbol(Scope *sc);
     virtual Type *toBasetype();
     virtual Type *toHeadMutable();
@@ -288,6 +302,8 @@ struct Type : Object
     virtual TypeInfoDeclaration *getTypeInfoDeclaration();
     virtual int builtinTypeInfo();
     virtual Type *reliesOnTident();
+    virtual int hasWild();
+    virtual unsigned wildMatch(Type *targ);
     virtual Expression *toExpression();
     virtual int hasPointers();
     virtual Type *nextOf();
@@ -314,11 +330,16 @@ struct TypeNext : Type
     void toDecoBuffer(OutBuffer *buf, int flag);
     void checkDeprecated(Loc loc, Scope *sc);
     Type *reliesOnTident();
+    int hasWild();
+    unsigned wildMatch(Type *targ);
     Type *nextOf();
     Type *makeConst();
     Type *makeInvariant();
     Type *makeShared();
     Type *makeSharedConst();
+    Type *makeWild();
+    Type *makeSharedWild();
+    Type *makeMutable();
     MATCH constConv(Type *to);
     void transitive();
 };
@@ -743,6 +764,7 @@ struct TypeTypedef : Type
     MATCH deduceType(Scope *sc, Type *tparam, TemplateParameters *parameters, Objects *dedtypes);
     TypeInfoDeclaration *getTypeInfoDeclaration();
     int hasPointers();
+    int hasWild();
     Type *toHeadMutable();
 #if CPP_MANGLE
     void toCppMangle(OutBuffer *buf, CppMangleState *cms);
@@ -856,5 +878,6 @@ extern int Tsize_t;
 extern int Tptrdiff_t;
 
 int arrayTypeCompatible(Loc loc, Type *t1, Type *t2);
+void MODtoBuffer(OutBuffer *buf, unsigned char mod);
 
 #endif /* DMD_MTYPE_H */
