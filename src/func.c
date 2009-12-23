@@ -177,6 +177,7 @@ void FuncDeclaration::semantic(Scope *sc)
 		goto Lmerge;
 
 	    case STCshared | STCconst:
+	    case STCshared | STCconst | STCwild:
 		type = type->makeSharedConst();
 		goto Lmerge;
 
@@ -188,16 +189,15 @@ void FuncDeclaration::semantic(Scope *sc)
 		type = type->makeWild();
 		goto Lmerge;
 
+	    case STCshared | STCwild:
+		type = type->makeSharedWild();
+		goto Lmerge;
+
 	    Lmerge:
 		if (!(type->ty == Tfunction && !type->nextOf()))
 		    /* Can't do merge if return type is not known yet
 		     */
 		    type->deco = type->merge()->deco;
-		break;
-
-	    case STCshared | STCwild:
-	    case STCshared | STCconst | STCwild:
-		error("cannot mix shared with wild");
 		break;
 
 	    case 0:
