@@ -550,6 +550,7 @@ void inferApplyArgTypes(enum TOK op, Parameters *arguments, Expression *aggr)
 	    break;
     }
 
+    Dsymbol *s;
     AggregateDeclaration *ad;
 
     Parameter *arg = (Parameter *)arguments->data[0];
@@ -595,7 +596,7 @@ void inferApplyArgTypes(enum TOK op, Parameters *arguments, Expression *aggr)
 	    goto Laggr;
 
 	Laggr:
-	    Dsymbol *s = search_function(ad,
+	    s = search_function(ad,
 			(op == TOKforeach_reverse) ? Id::applyReverse
 						   : Id::apply);
 	    if (s)
