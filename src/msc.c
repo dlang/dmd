@@ -43,7 +43,7 @@ void out_config_init()
 
     if (!config.target_cpu)
     {	config.target_cpu = TARGET_PentiumPro;
-	config.target_scheduler = config.target_cpu;
+	config.target_scheduler = 0; //config.target_cpu;
     }
     config.fulltypes = CVNONE;
     config.inline8087 = 1;
