@@ -247,7 +247,8 @@ Expression *FuncDeclaration::interpret(InterState *istate, Expressions *argument
 	}
     }
     // Don't restore the value of 'this' upon function return
-    if (needThis() && thisarg->op==TOKvar) {
+    if (needThis() && thisarg->op == TOKvar && istate)
+    {
 	VarDeclaration *thisvar = ((VarExp *)(thisarg))->var->isVarDeclaration();
     	for (size_t i = 0; i < istate->vars.dim; i++)
 	{   VarDeclaration *v = (VarDeclaration *)istate->vars.data[i];
