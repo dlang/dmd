@@ -1319,7 +1319,7 @@ code *getlvalue(code __ss *pcs,elem *e,regm_t keepmsk)
  */
 
 code *scodelem(elem *e,regm_t *pretregs,regm_t keepmsk,bool constflag)
-{ code *c,*cs1,*cs2;
+{ code *c,*cs1,*cs2,*cs3;
   unsigned i,j;
   regm_t oldmfuncreg,oldregcon,oldregimmed,overlap,tosave,touse;
   int adjesp;
@@ -1420,7 +1420,7 @@ code *scodelem(elem *e,regm_t *pretregs,regm_t keepmsk,bool constflag)
 	touse &= ~oldregimmed;
   }
 
-  cs1 = cs2 = NULL;
+  cs1 = cs2 = cs3 = NULL;
   adjesp = 0;
 
   for (i = 0; tosave; i++)
@@ -1460,7 +1460,7 @@ code *scodelem(elem *e,regm_t *pretregs,regm_t keepmsk,bool constflag)
 		cs1 = gen1(cs1,push);			/* PUSH i	*/
 		cs2 = cat(gen1(CNIL,pop),cs2);		/* POP i	*/
 	    }
-	    cs2 = cat(getregs(mi),cs2);
+	    cs3 = cat(getregs(mi),cs3);
 	    tosave &= ~mi;
 	}
   }
@@ -1502,7 +1502,7 @@ code *scodelem(elem *e,regm_t *pretregs,regm_t keepmsk,bool constflag)
 	printf("-scodelem(e=%p *pretregs=x%x keepmsk=x%x constflag=%d\n",
 		e,*pretregs,keepmsk,constflag);
 #endif
-  return cat3(cs1,c,cs2);
+  return cat4(cs1,c,cs3,cs2);
 }
 
 /*****************************
