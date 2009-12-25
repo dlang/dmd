@@ -5317,7 +5317,7 @@ void TypeQualified::resolveHelper(Loc loc, Scope *sc,
 		    {
 			id = (Identifier *)idents.data[i];
 			//printf("e: '%s', id: '%s', type = %p\n", e->toChars(), id->toChars(), e->type);
-			if (id == Id::offsetof)
+			if (id == Id::offsetof || !e->type)
 			{   e = new DotIdExp(e->loc, e, id);
 			    e = e->semantic(sc);
 			}
