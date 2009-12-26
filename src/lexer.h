@@ -164,7 +164,7 @@ enum TOK
 	TOKshared,
 	TOKat,
 	TOKpow,
-	//TOKpowass,
+	TOKpowass,
 #endif
 
 	TOKMAX

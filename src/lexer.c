@@ -1166,13 +1166,11 @@ void Lexer::scan(Token *t)
 		p++;
 		if (*p == '^')
 		{   p++;
-#if 0
 		    if (*p == '=')
 		    {   p++;
 			t->value = TOKpowass;  // ^^=
 		    }
 		    else
-#endif
 			t->value = TOKpow;     // ^^
 		}
 		else if (*p == '=')
@@ -3119,7 +3117,7 @@ void Lexer::initKeywords()
     Token::tochars[TOKidentifier]	= "identifier";
     Token::tochars[TOKat]		= "@";
     Token::tochars[TOKpow]		= "^^";
-    //Token::tochars[TOKpowass]		= "^^=";
+    Token::tochars[TOKpowass]		= "^^=";
 
      // For debugging
     Token::tochars[TOKerror]		= "error";

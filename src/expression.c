@@ -72,6 +72,7 @@ enum PREC
     PREC_shift,
     PREC_add,
     PREC_mul,
+    PREC_pow,
     PREC_unary,
     PREC_primary,
 };
@@ -119,6 +120,8 @@ void initPrecedence()
     precedence[TOKdelete] = PREC_unary;
     precedence[TOKnew] = PREC_unary;
     precedence[TOKcast] = PREC_unary;
+
+    precedence[TOKpow] = PREC_pow;
 
     precedence[TOKmul] = PREC_mul;
     precedence[TOKdiv] = PREC_mul;
@@ -183,7 +186,7 @@ void initPrecedence()
     precedence[TOKmulass] = PREC_assign;
     precedence[TOKdivass] = PREC_assign;
     precedence[TOKmodass] = PREC_assign;
-    //precedence[TOKpowass] = PREC_assign;
+    precedence[TOKpowass] = PREC_assign;
     precedence[TOKshlass] = PREC_assign;
     precedence[TOKshrass] = PREC_assign;
     precedence[TOKushrass] = PREC_assign;
@@ -3979,7 +3982,7 @@ Lagain:
 	    arg = resolveProperties(sc, arg);
 	    arg = arg->implicitCastTo(sc, Type::tsize_t);
 	    arg = arg->optimize(WANTvalue);
-	    if (arg->op == TOKint64 && (long long)arg->toInteger() < 0)
+	    if (arg->op == TOKint64 && (sinteger_t)arg->toInteger() < 0)
 		error("negative array index %s", arg->toChars());
 	    arguments->data[i] = (void *) arg;
 	    tb = ((TypeDArray *)tb)->next->toBasetype();
@@ -4776,16 +4779,19 @@ Expression *TypeidExp::semantic(Scope *sc)
 {   Expression *e;
 
 #if LOGSEMANTIC
-    printf("TypeidExp::semantic()\n");
+    printf("TypeidExp::semantic() %s\n", toChars());
 #endif
     Type *ta = isType(obj);
     Expression *ea = isExpression(obj);
     Dsymbol *sa = isDsymbol(obj);
 
+    //printf("ta %p ea %p sa %p\n", ta, ea, sa);
+
     if (ta)
     {
 	ta->resolve(loc, sc, &ea, &ta, &sa);
     }
+
     if (ea)
     {
 	ea = ea->semantic(sc);
@@ -4796,7 +4802,9 @@ Expression *TypeidExp::semantic(Scope *sc)
     }
 
     if (!ta)
-    {	error("no type for typeid(%s)", ea ? ea->toChars() : (sa ? sa->toChars() : ""));
+    {
+	//printf("ta %p ea %p sa %p\n", ta, ea, sa);
+	error("no type for typeid(%s)", ea ? ea->toChars() : (sa ? sa->toChars() : ""));
 	return new ErrorExp();
     }
 
@@ -6552,7 +6560,6 @@ Ldotti:
     istemp = 0;
 Lagain:
     //printf("Lagain: %s\n", toChars());
-//printf("test1 %s\n", toChars());
     f = NULL;
     if (e1->op == TOKthis || e1->op == TOKsuper)
     {
@@ -9857,57 +9864,113 @@ Expression *PowExp::semantic(Scope *sc)
     if (type)
 	return this;
 
+    //printf("PowExp::semantic() %s\n", toChars());
     BinExp::semanticp(sc);
     e = op_overload(sc);
     if (e)
 	return e;
 
-    static int importMathChecked = 0;
-    if (!importMathChecked)
-    {
-	importMathChecked = 1;
-	for (int i = 0; i < Module::amodules.dim; i++)
-	{   Module *mi = (Module *)Module::amodules.data[i];
-	    //printf("\t[%d] %s\n", i, mi->toChars());
-	    if (mi->ident == Id::math &&
-		mi->parent->ident == Id::std &&
-		!mi->parent->parent)
-		goto L1;
-	}
-	error("must import std.math to use ^^ operator");
-
-     L1: ;
-    }
-
     assert(e1->type && e2->type);
     if ( (e1->type->isintegral() || e1->type->isfloating()) &&
 	 (e2->type->isintegral() || e2->type->isfloating()))
     {
-	// For built-in numeric types, there are three cases:
-	// x ^^ 1   ----> x
-	// x ^^ 0.5 ----> sqrt(x)
-	// x ^^ y   ----> pow(x, y)
+	// For built-in numeric types, there are several cases.
 	// TODO: backend support, especially for  e1 ^^ 2.
+
 	bool wantSqrt = false;	
+	e1 = e1->optimize(0);
 	e2 = e2->optimize(0);
-	if ((e2->op == TOKfloat64 && e2->toReal() == 1.0) ||
-	    (e2->op == TOKint64 && e2->toInteger() == 1))
+	
+	// Replace 1 ^^ x or 1.0^^x by (x, 1)
+	if ((e1->op == TOKint64 && e1->toInteger() == 1) ||
+		(e1->op == TOKfloat64 && e1->toReal() == 1.0))
 	{
-	    return e1;  // Replace x ^^ 1 with x.
+	    typeCombine(sc);
+	    e = new CommaExp(loc, e2, e1);
+	    e = e->semantic(sc);
+	    return e;
+ 	}
+	// Replace -1 ^^ x by (x&1) ? -1 : 1, where x is integral
+	if (e2->type->isintegral() && e1->op == TOKint64 && (sinteger_t)e1->toInteger() == -1L)
+	{
+	    typeCombine(sc);
+	    Type* resultType = type;
+	    e = new AndExp(loc, e2, new IntegerExp(loc, 1, e2->type));
+	    e = new CondExp(loc, e, new IntegerExp(loc, -1L, resultType), new IntegerExp(loc, 1L, resultType));
+	    e = e->semantic(sc);
+	    return e;
+	}
+	// All other negative integral powers are illegal
+	if ((e1->type->isintegral()) && (e2->op == TOKint64) && (sinteger_t)e2->toInteger() < 0)
+	{
+	    error("cannot raise %s to a negative integer power. Did you mean (cast(real)%s)^^%s ?",
+		e1->type->toBasetype()->toChars(), e1->toChars(), e2->toChars());
+	    return new ErrorExp();
+	}
+	
+	// Deal with x^^2, x^^3 immediately, since they are of practical importance.
+	// Don't bother if x is a literal, since it will be constant-folded anyway.
+	if ( (  (e2->op == TOKint64 && (e2->toInteger() == 2 || e2->toInteger() == 3)) 
+	     ||	(e2->op == TOKfloat64 && (e2->toReal() == 2.0 || e2->toReal() == 3.0))
+	     ) && (e1->op == TOKint64 || e1->op == TOKfloat64)
+	   )
+	{
+	    typeCombine(sc);
+	    // Replace x^^2 with (tmp = x, tmp*tmp)
+	    // Replace x^^3 with (tmp = x, tmp*tmp*tmp) 
+	    Identifier *idtmp = Lexer::uniqueId("__tmp");
+	    VarDeclaration *tmp = new VarDeclaration(loc, e1->type->toBasetype(), idtmp, new ExpInitializer(0, e1));
+	    VarExp * ve = new VarExp(loc, tmp);
+	    Expression *ae = new DeclarationExp(loc, tmp);
+	    Expression *me = new MulExp(loc, ve, ve);
+	    if ( (e2->op == TOKint64 && e2->toInteger() == 3) 
+	      || (e2->op == TOKfloat64 && e2->toReal() == 3.0))
+		me = new MulExp(loc, me, ve);
+	    e = new CommaExp(loc, ae, me);
+	    e = e->semantic(sc);
+	    return e;
 	}
 
-	e = new IdentifierExp(loc, Id::empty);
-	e = new DotIdExp(loc, e, Id::std);
-	e = new DotIdExp(loc, e, Id::math);
-	if (e2->op == TOKfloat64 && e2->toReal() == 0.5)
-	{   // Replace e1 ^^ 0.5 with .std.math.sqrt(x)
-	    e = new CallExp(loc, new DotIdExp(loc, e, Id::_sqrt), e1);
+	static int importMathChecked = 0;
+	if (!importMathChecked)
+	{
+	    importMathChecked = 1;
+	    for (int i = 0; i < Module::amodules.dim; i++)
+	    {   Module *mi = (Module *)Module::amodules.data[i];
+		//printf("\t[%d] %s\n", i, mi->toChars());
+		if (mi->ident == Id::math &&
+		    mi->parent->ident == Id::std &&
+		    !mi->parent->parent)
+		    goto L1;
+	    }
+	    error("must import std.math to use ^^ operator");
+
+	 L1: ;
 	}
-	else 
-	{   // Replace e1 ^^ e2 with .std.math.pow(e1, e2)
- 	    e = new CallExp(loc, new DotIdExp(loc, e, Id::_pow), e1, e2);	
-	}	
-	e = e->semantic(sc);
+ 
+ 	e = new IdentifierExp(loc, Id::empty);
+ 	e = new DotIdExp(loc, e, Id::std);
+ 	e = new DotIdExp(loc, e, Id::math);
+ 	if (e2->op == TOKfloat64 && e2->toReal() == 0.5)
+ 	{   // Replace e1 ^^ 0.5 with .std.math.sqrt(x)
+	    typeCombine(sc);
+ 	    e = new CallExp(loc, new DotIdExp(loc, e, Id::_sqrt), e1);
+ 	}
+ 	else 
+	{
+	    // Replace e1 ^^ e2 with .std.math.pow(e1, e2)
+	    // We don't combine the types if raising to an integer power (because
+	    // integer powers are treated specially by std.math.pow).
+	    if (!e2->type->isintegral())
+		typeCombine(sc);
+	    e = new CallExp(loc, new DotIdExp(loc, e, Id::_pow), e1, e2);	
+ 	}	
+ 	e = e->semantic(sc);
+	// Always constant fold integer powers of literals. This will run the interpreter
+	// on .std.math.pow
+	if ((e1->op == TOKfloat64 || e1->op == TOKint64) && (e2->op == TOKint64))
+	    e = e->optimize(WANTvalue | WANTinterpret);
+
 	return e;
     }
     error("%s ^^ %s is not supported", e1->type->toChars(), e2->type->toChars() );

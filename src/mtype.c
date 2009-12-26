@@ -5246,6 +5246,7 @@ void TypeQualified::resolveHelper(Loc loc, Scope *sc,
 	Expression **pe, Type **pt, Dsymbol **ps)
 {
     VarDeclaration *v;
+    FuncDeclaration *fd;
     EnumMember *em;
     TupleDeclaration *td;
     Expression *e;
@@ -5338,32 +5339,17 @@ void TypeQualified::resolveHelper(Loc loc, Scope *sc,
 	v = s->isVarDeclaration();
 	if (v)
 	{
-#if 0
-	    // It's not a type, it's an expression
-	    Expression *e = v->getConstInitializer();
-	    if (e)
-	    {
-		*pe = e->copy();	// make copy so we can change loc
-		(*pe)->loc = loc;
-	    }
-	    else
-#endif
-	    {
-#if 0
-		WithScopeSymbol *withsym;
-		if (scopesym && (withsym = scopesym->isWithScopeSymbol()) != NULL)
-		{
-		    // Same as wthis.ident
-		    e = new VarExp(loc, withsym->withstate->wthis);
-		    e = new DotIdExp(loc, e, ident);
-		    //assert(0);	// BUG: should handle this
-		}
-		else
-#endif
-		    *pe = new VarExp(loc, v);
-	    }
+	    *pe = new VarExp(loc, v);
 	    return;
 	}
+#if 0
+	fd = s->isFuncDeclaration();
+	if (fd)
+	{
+	    *pe = new DsymbolExp(loc, fd, 1);
+	    return;
+	}
+#endif
 	em = s->isEnumMember();
 	if (em)
 	{

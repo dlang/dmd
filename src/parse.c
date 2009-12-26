@@ -5693,6 +5693,15 @@ Expression *Parser::parseUnaryExp()
 	    break;
     }
     assert(e);
+
+    // ^^ is right associative and has higher precedence than the unary operators
+    while (token.value == TOKpow)
+    {
+	nextToken();
+	Expression *e2 = parseUnaryExp();
+	e = new PowExp(loc, e, e2);
+    }
+
     return e;
 }
 
@@ -5709,7 +5718,6 @@ Expression *Parser::parseMulExp()
 	    case TOKmul: nextToken(); e2 = parseUnaryExp(); e = new MulExp(loc,e,e2); continue;
 	    case TOKdiv: nextToken(); e2 = parseUnaryExp(); e = new DivExp(loc,e,e2); continue;
 	    case TOKmod: nextToken(); e2 = parseUnaryExp(); e = new ModExp(loc,e,e2); continue;
-	    case TOKpow: nextToken(); e2 = parseUnaryExp(); e = new PowExp(loc,e,e2); continue;
 
 	    default:
 		break;
