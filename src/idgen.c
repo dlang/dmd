@@ -213,7 +213,7 @@ Msgtable msgtable[] =
     { "opImplicitCast" },
     { "pow", "opPow" },
     { "pow_r", "opPow_r" },
-    //{ "powass", "opPowAssign" },
+    { "powass", "opPowAssign" },
 
     { "classNew", "new" },
     { "classDelete", "delete" },

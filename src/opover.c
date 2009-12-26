@@ -147,7 +147,7 @@ Identifier * ShlAssignExp::opId()  { return Id::shlass;  }
 Identifier * ShrAssignExp::opId()  { return Id::shrass;  }
 Identifier *UshrAssignExp::opId()  { return Id::ushrass; }
 Identifier * CatAssignExp::opId()  { return Id::catass;  }
-//Identifier * PowAssignExp::opId()  { return Id::powass;  }
+Identifier * PowAssignExp::opId()  { return Id::powass;  }
 
 int EqualExp::isCommutative()  { return TRUE; }
 Identifier *EqualExp::opId()   { return Id::eq; }

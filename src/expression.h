@@ -1211,6 +1211,16 @@ ASSIGNEXP(Cat)
 #undef X
 #undef ASSIGNEXP
 
+// Only a reduced subset of operations for now.
+struct PowAssignExp : BinExp
+{
+    PowAssignExp(Loc loc, Expression *e1, Expression *e2);
+    Expression *semantic(Scope *sc);
+    
+    // For operator overloading
+    Identifier *opId();    
+};
+
 struct AddExp : BinExp
 {
     AddExp(Loc loc, Expression *e1, Expression *e2);

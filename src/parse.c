@@ -6062,7 +6062,7 @@ Expression *Parser::parseAssignExp()
 	    X(TOKmulass,    MulAssignExp);
 	    X(TOKdivass,    DivAssignExp);
 	    X(TOKmodass,    ModAssignExp);
-	    //X(TOKpowass,    PowAssignExp);
+	    X(TOKpowass,    PowAssignExp);
 	    X(TOKandass,    AndAssignExp);
 	    X(TOKorass,     OrAssignExp);
 	    X(TOKxorass,    XorAssignExp);
