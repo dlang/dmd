@@ -81,6 +81,7 @@ enum STC
 #define STCsafe		0x200000000LL
 #define STCtrusted	0x400000000LL
 #define STCsystem	0x800000000LL
+#define STCctfe		0x1000000000LL	// can be used in CTFE, even if it is static
 
 struct Match
 {
@@ -268,6 +269,7 @@ struct VarDeclaration : Declaration
     int isImportedSymbol();
     int isDataseg();
     int isThreadlocal();
+    int isCTFE();
     int hasPointers();
 #if DMDV2
     int canTakeAddressOf();

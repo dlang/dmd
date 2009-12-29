@@ -1444,7 +1444,7 @@ int VarDeclaration::isDataseg()
 {
 #if 0
     printf("VarDeclaration::isDataseg(%p, '%s')\n", this, toChars());
-    printf("%x, %p, %p\n", storage_class & (STCstatic | STCconst), parent->isModule(), parent->isTemplateInstance());
+    printf("%llx, isModule: %p, isTemplateInstance: %p\n", storage_class & (STCstatic | STCconst), parent->isModule(), parent->isTemplateInstance());
     printf("parent = '%s'\n", parent->toChars());
 #endif
     if (storage_class & STCmanifest)
@@ -1483,6 +1483,15 @@ int VarDeclaration::isThreadlocal()
     //printf("\treturn %d\n", i);
     return i;
 #endif
+}
+
+/********************************************
+ * Can variable be read and written by CTFE?
+ */
+
+int VarDeclaration::isCTFE()
+{
+    return (storage_class & STCctfe) || !isDataseg();
 }
 
 int VarDeclaration::hasPointers()

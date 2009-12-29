@@ -113,9 +113,9 @@ Expression *FuncDeclaration::interpret(InterState *istate, Expressions *argument
     assert(tb->ty == Tfunction);
     TypeFunction *tf = (TypeFunction *)tb;
     Type *tret = tf->next->toBasetype();
-    if (tf->varargs)
+    if (tf->varargs && arguments && parameters && arguments->dim != parameters->dim)
     {	cantInterpret = 1;
-	error("Variadic functions are not yet implemented in CTFE");
+	error("C-style variadic functions are not yet implemented in CTFE");
 	return NULL;
     }
     
@@ -1023,7 +1023,7 @@ Expression *getVarExp(Loc loc, InterState *istate, Declaration *d)
 	}
 	else
 	{   e = v->value;
-	    if (v->isDataseg())
+	    if (!v->isCTFE())
 	    {	error(loc, "static variable %s cannot be read at compile time", v->toChars());
 		e = EXP_CANT_INTERPRET;
 	    }
@@ -1615,12 +1615,12 @@ Expression *BinExp::interpretAssignCommon(InterState *istate, fp_t fp, int post)
 	VarExp *ve = (VarExp *)e1;
 	VarDeclaration *v = ve->var->isVarDeclaration();
 	assert(v);
-   	if (v && v->isDataseg())
+   	if (v && !v->isCTFE())
 	{   // Can't modify global or static data
 	    error("%s cannot be modified at compile time", v->toChars());
 	    return EXP_CANT_INTERPRET;
 	}
-	if (v && !v->isDataseg())
+	if (v && v->isCTFE())
 	{
 	    Expression *ev = v->value;
 	    if (fp && !ev)
@@ -1656,7 +1656,7 @@ Expression *BinExp::interpretAssignCommon(InterState *istate, fp_t fp, int post)
     else if (e1->op == TOKdotvar && aggregate->op == TOKvar)
     {	VarDeclaration *v = ((VarExp *)aggregate)->var->isVarDeclaration();
 
-	if (v->isDataseg())
+	if (!v->isCTFE())
 	{   // Can't modify global or static data
 	    error("%s cannot be modified at compile time", v->toChars());
 	    return EXP_CANT_INTERPRET;
@@ -1728,7 +1728,7 @@ Expression *BinExp::interpretAssignCommon(InterState *istate, fp_t fp, int post)
     {	SymOffExp *soe = (SymOffExp *)((PtrExp *)e1)->e1;
 	VarDeclaration *v = soe->var->isVarDeclaration();
 
-	if (v->isDataseg())
+	if (!v->isCTFE())
 	{
 	    error("%s cannot be modified at compile time", v->toChars());
 	    return EXP_CANT_INTERPRET;
@@ -1774,7 +1774,7 @@ Expression *BinExp::interpretAssignCommon(InterState *istate, fp_t fp, int post)
     {	IndexExp *ie = (IndexExp *)e1;
 	VarExp *ve = (VarExp *)ie->e1;
 	VarDeclaration *v = ve->var->isVarDeclaration();
-	if (!v || v->isDataseg())
+	if (!v || !v->isCTFE())
 	{
 	    error("%s cannot be modified at compile time", v ? v->toChars(): "void");
 	    return EXP_CANT_INTERPRET;
@@ -1937,7 +1937,7 @@ Expression *BinExp::interpretAssignCommon(InterState *istate, fp_t fp, int post)
         IndexExp * ie = (IndexExp *)aggregate;
 	VarExp *ve = (VarExp *)(ie->e1);
 	VarDeclaration *v = ve->var->isVarDeclaration();
-	if (!v || v->isDataseg())
+	if (!v || !v->isCTFE())
 	{
 	    error("%s cannot be modified at compile time", v ? v->toChars(): "void");
 	    return EXP_CANT_INTERPRET;
@@ -2029,7 +2029,7 @@ Expression *BinExp::interpretAssignCommon(InterState *istate, fp_t fp, int post)
         SliceExp * sexp = (SliceExp *)e1;
 	VarExp *ve = (VarExp *)(sexp->e1);
 	VarDeclaration *v = ve->var->isVarDeclaration();
-	if (!v || v->isDataseg())
+	if (!v || !v->isCTFE())
 	{
 	    error("%s cannot be modified at compile time", v->toChars());
 	    return EXP_CANT_INTERPRET;
