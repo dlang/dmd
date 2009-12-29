@@ -5983,6 +5983,10 @@ Dsymbol *TypeEnum::toDsymbol(Scope *sc)
 
 Type *TypeEnum::toBasetype()
 {
+    if (sym->scope)
+    {
+	sym->semantic(NULL);	// attempt to resolve forward reference
+    }
     if (!sym->memtype)
     {
 #ifdef DEBUG
