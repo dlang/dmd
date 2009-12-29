@@ -554,6 +554,22 @@ void StructDeclaration::semantic(Scope *sc)
     }
 }
 
+Dsymbol *StructDeclaration::search(Loc loc, Identifier *ident, int flags)
+{
+    //printf("%s.StructDeclaration::search('%s')\n", toChars(), ident->toChars());
+
+    if (scope)
+    	semantic(scope);
+
+    if (!members || !symtab)
+    {
+	error("is forward referenced when looking for '%s'", ident->toChars());
+	return NULL;
+    }
+
+    return ScopeDsymbol::search(loc, ident, flags);
+}
+
 void StructDeclaration::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 {   int i;
 
