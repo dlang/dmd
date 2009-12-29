@@ -48,6 +48,10 @@ Expression *interpret_aaLen(InterState *istate, Expressions *arguments);
 Expression *interpret_aaKeys(InterState *istate, Expressions *arguments);
 Expression *interpret_aaValues(InterState *istate, Expressions *arguments);
 
+Expression *interpret_length(InterState *istate, Expression *earg);
+Expression *interpret_keys(InterState *istate, Expression *earg, FuncDeclaration *fd);
+Expression *interpret_values(InterState *istate, Expression *earg, FuncDeclaration *fd);
+
 /*************************************
  * Attempt to interpret a function given the arguments.
  * Input:
@@ -66,12 +70,27 @@ Expression *FuncDeclaration::interpret(InterState *istate, Expressions *argument
 #endif
     if (global.errors)
 	return NULL;
+
+#if DMDV1
     if (ident == Id::aaLen)
 	return interpret_aaLen(istate, arguments);
     else if (ident == Id::aaKeys)
 	return interpret_aaKeys(istate, arguments);
     else if (ident == Id::aaValues)
 	return interpret_aaValues(istate, arguments);
+#endif
+#if DMDV2
+    if (thisarg &&
+	(!arguments || arguments->dim == 0))
+    {
+	if (ident == Id::length)
+	    return interpret_length(istate, thisarg);
+	else if (ident == Id::keys)
+	    return interpret_keys(istate, thisarg, this);
+	else if (ident == Id::values)
+	    return interpret_values(istate, thisarg, this);
+    }
+#endif
 
     if (cantInterpret || semanticRun == 3)
 	return NULL;
@@ -94,9 +113,9 @@ Expression *FuncDeclaration::interpret(InterState *istate, Expressions *argument
     assert(tb->ty == Tfunction);
     TypeFunction *tf = (TypeFunction *)tb;
     Type *tret = tf->next->toBasetype();
-    if (tf->varargs)
+    if (tf->varargs && arguments && parameters && arguments->dim != parameters->dim)
     {	cantInterpret = 1;
-	error("Variadic functions are not yet implemented in CTFE");
+	error("C-style variadic functions are not yet implemented in CTFE");
 	return NULL;
     }
     
@@ -1004,7 +1023,7 @@ Expression *getVarExp(Loc loc, InterState *istate, Declaration *d)
 	}
 	else
 	{   e = v->value;
-	    if (v->isDataseg())
+	    if (!v->isCTFE())
 	    {	error(loc, "static variable %s cannot be read at compile time", v->toChars());
 		e = EXP_CANT_INTERPRET;
 	    }
@@ -1596,12 +1615,12 @@ Expression *BinExp::interpretAssignCommon(InterState *istate, fp_t fp, int post)
 	VarExp *ve = (VarExp *)e1;
 	VarDeclaration *v = ve->var->isVarDeclaration();
 	assert(v);
-   	if (v && v->isDataseg())
+   	if (v && !v->isCTFE())
 	{   // Can't modify global or static data
 	    error("%s cannot be modified at compile time", v->toChars());
 	    return EXP_CANT_INTERPRET;
 	}
-	if (v && !v->isDataseg())
+	if (v && v->isCTFE())
 	{
 	    Expression *ev = v->value;
 	    if (fp && !ev)
@@ -1637,7 +1656,7 @@ Expression *BinExp::interpretAssignCommon(InterState *istate, fp_t fp, int post)
     else if (e1->op == TOKdotvar && aggregate->op == TOKvar)
     {	VarDeclaration *v = ((VarExp *)aggregate)->var->isVarDeclaration();
 
-	if (v->isDataseg())
+	if (!v->isCTFE())
 	{   // Can't modify global or static data
 	    error("%s cannot be modified at compile time", v->toChars());
 	    return EXP_CANT_INTERPRET;
@@ -1709,7 +1728,7 @@ Expression *BinExp::interpretAssignCommon(InterState *istate, fp_t fp, int post)
     {	SymOffExp *soe = (SymOffExp *)((PtrExp *)e1)->e1;
 	VarDeclaration *v = soe->var->isVarDeclaration();
 
-	if (v->isDataseg())
+	if (!v->isCTFE())
 	{
 	    error("%s cannot be modified at compile time", v->toChars());
 	    return EXP_CANT_INTERPRET;
@@ -1755,7 +1774,7 @@ Expression *BinExp::interpretAssignCommon(InterState *istate, fp_t fp, int post)
     {	IndexExp *ie = (IndexExp *)e1;
 	VarExp *ve = (VarExp *)ie->e1;
 	VarDeclaration *v = ve->var->isVarDeclaration();
-	if (!v || v->isDataseg())
+	if (!v || !v->isCTFE())
 	{
 	    error("%s cannot be modified at compile time", v ? v->toChars(): "void");
 	    return EXP_CANT_INTERPRET;
@@ -1918,7 +1937,7 @@ Expression *BinExp::interpretAssignCommon(InterState *istate, fp_t fp, int post)
         IndexExp * ie = (IndexExp *)aggregate;
 	VarExp *ve = (VarExp *)(ie->e1);
 	VarDeclaration *v = ve->var->isVarDeclaration();
-	if (!v || v->isDataseg())
+	if (!v || !v->isCTFE())
 	{
 	    error("%s cannot be modified at compile time", v ? v->toChars(): "void");
 	    return EXP_CANT_INTERPRET;
@@ -2010,7 +2029,7 @@ Expression *BinExp::interpretAssignCommon(InterState *istate, fp_t fp, int post)
         SliceExp * sexp = (SliceExp *)e1;
 	VarExp *ve = (VarExp *)(sexp->e1);
 	VarDeclaration *v = ve->var->isVarDeclaration();
-	if (!v || v->isDataseg())
+	if (!v || !v->isCTFE())
 	{
 	    error("%s cannot be modified at compile time", v->toChars());
 	    return EXP_CANT_INTERPRET;
@@ -2638,6 +2657,8 @@ Expression *DotVarExp::interpret(InterState *istate)
 
 /******************************* Special Functions ***************************/
 
+#if DMDV1
+
 Expression *interpret_aaLen(InterState *istate, Expressions *arguments)
 {
     if (!arguments || arguments->dim != 1)
@@ -2691,4 +2712,60 @@ Expression *interpret_aaValues(InterState *istate, Expressions *arguments)
     //printf("result is %s\n", e->toChars());
     return e;
 }
+
+#endif
+
+#if DMDV2
+
+Expression *interpret_length(InterState *istate, Expression *earg)
+{
+    //printf("interpret_length()\n");
+    earg = earg->interpret(istate);
+    if (earg == EXP_CANT_INTERPRET)
+	return NULL;
+    if (earg->op != TOKassocarrayliteral)
+	return NULL;
+    AssocArrayLiteralExp *aae = (AssocArrayLiteralExp *)earg;
+    Expression *e = new IntegerExp(aae->loc, aae->keys->dim, Type::tsize_t);
+    return e;
+}
+
+Expression *interpret_keys(InterState *istate, Expression *earg, FuncDeclaration *fd)
+{
+#if LOG
+    printf("interpret_keys()\n");
+#endif
+    earg = earg->interpret(istate);
+    if (earg == EXP_CANT_INTERPRET)
+	return NULL;
+    if (earg->op != TOKassocarrayliteral)
+	return NULL;
+    AssocArrayLiteralExp *aae = (AssocArrayLiteralExp *)earg;
+    Expression *e = new ArrayLiteralExp(aae->loc, aae->keys);
+    assert(fd->type->ty == Tfunction);
+    assert(fd->type->nextOf()->ty == Tarray);
+    Type *elemType = ((TypeFunction *)fd->type)->nextOf()->nextOf();
+    e->type = new TypeSArray(elemType, new IntegerExp(aae->keys->dim));
+    return e;
+}
+
+Expression *interpret_values(InterState *istate, Expression *earg, FuncDeclaration *fd)
+{
+    //printf("interpret_values()\n");
+    earg = earg->interpret(istate);
+    if (earg == EXP_CANT_INTERPRET)
+	return NULL;
+    if (earg->op != TOKassocarrayliteral)
+	return NULL;
+    AssocArrayLiteralExp *aae = (AssocArrayLiteralExp *)earg;
+    Expression *e = new ArrayLiteralExp(aae->loc, aae->values);
+    assert(fd->type->ty == Tfunction);
+    assert(fd->type->nextOf()->ty == Tarray);
+    Type *elemType = ((TypeFunction *)fd->type)->nextOf()->nextOf();
+    e->type = new TypeSArray(elemType, new IntegerExp(aae->values->dim));
+    //printf("result is %s\n", e->toChars());
+    return e;
+}
+
+#endif
 

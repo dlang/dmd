@@ -73,8 +73,15 @@ enum STC
     STCshared       = 0x20000000,	// accessible from multiple threads
     STCgshared      = 0x40000000,	// accessible from multiple threads
 					// but not typed as "shared"
-    STC_TYPECTOR    = (STCconst | STCimmutable | STCshared),
+    STCwild         = 0x80000000,	// for "wild" type constructor
+    STC_TYPECTOR    = (STCconst | STCimmutable | STCshared | STCwild),
 };
+
+#define STCproperty	0x100000000LL
+#define STCsafe		0x200000000LL
+#define STCtrusted	0x400000000LL
+#define STCsystem	0x800000000LL
+#define STCctfe		0x1000000000LL	// can be used in CTFE, even if it is static
 
 struct Match
 {
@@ -262,6 +269,7 @@ struct VarDeclaration : Declaration
     int isImportedSymbol();
     int isDataseg();
     int isThreadlocal();
+    int isCTFE();
     int hasPointers();
 #if DMDV2
     int canTakeAddressOf();

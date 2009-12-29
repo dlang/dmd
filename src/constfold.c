@@ -855,7 +855,7 @@ Expression *Equal(enum TOK op, Type *type, Expression *e1, Expression *e2)
 }
 
 Expression *Identity(enum TOK op, Type *type, Expression *e1, Expression *e2)
-{   Expression *e;
+{
     Loc loc = e1->loc;
     int cmp;
 
@@ -1059,6 +1059,9 @@ Expression *Cast(Type *type, Type *to, Expression *e1)
 	    return expType(to, e1);
 	}
     }
+
+    if (e1->op == TOKarrayliteral && e1->type->toBasetype() == tb)
+        return e1;
 
     if (e1->isConst() != 1)
 	return EXP_CANT_INTERPRET;

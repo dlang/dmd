@@ -697,6 +697,7 @@ void functionParameters(Loc loc, Scope *sc, TypeFunction *tf, Expressions *argum
 			Type *t = new TypeSArray(((TypeArray *)tb)->next, new IntegerExp(nargs - i));
 			t = t->semantic(loc, sc);
 			VarDeclaration *v = new VarDeclaration(loc, t, id, new VoidInitializer(loc));
+			v->storage_class |= STCctfe;
 			v->semantic(sc);
 			v->parent = sc->parent;
 			//sc->insert(v);
