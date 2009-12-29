@@ -131,6 +131,7 @@ struct StructDeclaration : AggregateDeclaration
     StructDeclaration(Loc loc, Identifier *id);
     Dsymbol *syntaxCopy(Dsymbol *s);
     void semantic(Scope *sc);
+    Dsymbol *search(Loc, Identifier *ident, int flags);
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
     char *mangle();
     const char *kind();
