@@ -5224,7 +5224,7 @@ void TypeSlice::toCBuffer2(OutBuffer *buf, HdrGenState *hgs, int mod)
 
 /***************************** Parameter *****************************/
 
-Parameter::Parameter(unsigned storageClass, Type *type, Identifier *ident, Expression *defaultArg)
+Parameter::Parameter(StorageClass storageClass, Type *type, Identifier *ident, Expression *defaultArg)
 {
     this->type = type;
     this->ident = ident;

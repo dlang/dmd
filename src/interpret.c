@@ -1157,9 +1157,7 @@ Expression *ArrayLiteralExp::interpret(InterState *istate)
 
 	    ex = e->interpret(istate);
 	    if (ex == EXP_CANT_INTERPRET)
-	    {   delete expsx;
-		return EXP_CANT_INTERPRET;
-	    }
+		goto Lerror;
 
 	    /* If any changes, do Copy On Write
 	     */
@@ -1181,14 +1179,18 @@ Expression *ArrayLiteralExp::interpret(InterState *istate)
     {
 	expandTuples(expsx);
 	if (expsx->dim != elements->dim)
-	{   delete expsx;
-	    return EXP_CANT_INTERPRET;
-	}
+	    goto Lerror;
 	ArrayLiteralExp *ae = new ArrayLiteralExp(loc, expsx);
 	ae->type = type;
 	return ae;
     }
     return this;
+
+Lerror:
+    if (expsx)
+	delete expsx;
+    error("cannot interpret array literal");
+    return EXP_CANT_INTERPRET;
 }
 
 Expression *AssocArrayLiteralExp::interpret(InterState *istate)

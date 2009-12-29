@@ -1311,7 +1311,7 @@ int VarDeclaration::isDataseg()
 {
 #if 0
     printf("VarDeclaration::isDataseg(%p, '%s')\n", this, toChars());
-    printf("%x, %p, %p\n", storage_class & (STCstatic | STCconst), parent->isModule(), parent->isTemplateInstance());
+    printf("%llx, %p, %p\n", storage_class & (STCstatic | STCconst), parent->isModule(), parent->isTemplateInstance());
     printf("parent = '%s'\n", parent->toChars());
 #endif
     Dsymbol *parent = this->toParent();
@@ -1340,6 +1340,8 @@ int VarDeclaration::isThreadlocal()
 
 int VarDeclaration::isCTFE()
 {
+    //printf("VarDeclaration::isCTFE(%p, '%s')\n", this, toChars());
+    //printf("%llx\n", storage_class);
     return (storage_class & STCctfe) || !isDataseg();
 }
 
