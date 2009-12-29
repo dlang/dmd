@@ -76,7 +76,7 @@ int ComplexExp::isConst()
 
 int NullExp::isConst()
 {
-    return 1;
+    return 0;
 }
 
 int SymOffExp::isConst()

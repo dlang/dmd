@@ -662,14 +662,14 @@ Expression *EqualExp::optimize(int result)
 }
 
 Expression *IdentityExp::optimize(int result)
-{   Expression *e;
-
+{
     //printf("IdentityExp::optimize(result = %d) %s\n", result, toChars());
     e1 = e1->optimize(WANTvalue | (result & WANTinterpret));
     e2 = e2->optimize(WANTvalue | (result & WANTinterpret));
-    e = this;
+    Expression *e = this;
 
-    if (this->e1->isConst() && this->e2->isConst())
+    if ((this->e1->isConst()     && this->e2->isConst()) ||
+	(this->e1->op == TOKnull && this->e2->op == TOKnull))
     {
 	e = Identity(op, type, this->e1, this->e2);
 	if (e == EXP_CANT_INTERPRET)
