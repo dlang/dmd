@@ -55,10 +55,23 @@ void EnumDeclaration::semantic(Scope *sc)
     Scope *sce;
 
     //printf("EnumDeclaration::semantic(sd = %p, '%s')\n", sc->scopesym, sc->scopesym->toChars());
-    if (symtab)			// if already done
-	return;
     if (!memtype)
 	memtype = Type::tint32;
+
+    if (symtab)			// if already done
+    {	if (!scope)
+	    return;		// semantic() already completed
+    }
+    else
+	symtab = new DsymbolTable();
+
+    Scope *scx = NULL;
+    if (scope)
+    {   sc = scope;
+        scx = scope;            // save so we don't make redundant copies
+        scope = NULL;
+    }
+
     if (sc->stc & STCdeprecated)
 	isdeprecated = 1;
 
