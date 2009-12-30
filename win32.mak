@@ -20,7 +20,6 @@ MANIFEST= \
 	README.txt \
 	posix.mak \
 	win32.mak \
-	import/core/bitop.di \
 	import/core/stdc/complex.d \
 	import/core/stdc/config.d \
 	import/core/stdc/ctype.d \
