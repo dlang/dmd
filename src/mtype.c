@@ -2123,10 +2123,7 @@ Expression *TypeDArray::defaultInit(Loc loc)
 #if LOGDEFAULTINIT
     printf("TypeDArray::defaultInit() '%s'\n", toChars());
 #endif
-    Expression *e;
-    e = new NullExp(loc);
-    e->type = this;
-    return e;
+    return new NullExp(loc, this);
 }
 
 int TypeDArray::isZeroInit(Loc loc)
@@ -2368,10 +2365,7 @@ Expression *TypeAArray::defaultInit(Loc loc)
 #if LOGDEFAULTINIT
     printf("TypeAArray::defaultInit() '%s'\n", toChars());
 #endif
-    Expression *e;
-    e = new NullExp(loc);
-    e->type = this;
-    return e;
+    return new NullExp(loc, this);
 }
 
 int TypeAArray::isZeroInit(Loc loc)
@@ -2484,10 +2478,7 @@ Expression *TypePointer::defaultInit(Loc loc)
 #if LOGDEFAULTINIT
     printf("TypePointer::defaultInit() '%s'\n", toChars());
 #endif
-    Expression *e;
-    e = new NullExp(loc);
-    e->type = this;
-    return e;
+    return new NullExp(loc, this);
 }
 
 int TypePointer::isZeroInit(Loc loc)
@@ -2551,9 +2542,7 @@ Expression *TypeReference::defaultInit(Loc loc)
 #if LOGDEFAULTINIT
     printf("TypeReference::defaultInit() '%s'\n", toChars());
 #endif
-    Expression *e = new NullExp(loc);
-    e->type = this;
-    return e;
+    return new NullExp(loc, this);
 }
 
 int TypeReference::isZeroInit(Loc loc)
@@ -3085,10 +3074,7 @@ Expression *TypeDelegate::defaultInit(Loc loc)
 #if LOGDEFAULTINIT
     printf("TypeDelegate::defaultInit() '%s'\n", toChars());
 #endif
-    Expression *e;
-    e = new NullExp(loc);
-    e->type = this;
-    return e;
+    return new NullExp(loc, this);
 }
 
 int TypeDelegate::isZeroInit(Loc loc)
@@ -4508,14 +4494,12 @@ unsigned TypeStruct::memalign(unsigned salign)
 }
 
 Expression *TypeStruct::defaultInit(Loc loc)
-{   Symbol *s;
-    Declaration *d;
-
+{
 #if LOGDEFAULTINIT
     printf("TypeStruct::defaultInit() '%s'\n", toChars());
 #endif
-    s = sym->toInitializer();
-    d = new SymbolDeclaration(sym->loc, s, sym);
+    Symbol *s = sym->toInitializer();
+    Declaration *d = new SymbolDeclaration(sym->loc, s, sym);
     assert(d);
     d->type = this;
     return new VarExp(sym->loc, d);
@@ -4938,10 +4922,7 @@ Expression *TypeClass::defaultInit(Loc loc)
 #if LOGDEFAULTINIT
     printf("TypeClass::defaultInit() '%s'\n", toChars());
 #endif
-    Expression *e;
-    e = new NullExp(loc);
-    e->type = this;
-    return e;
+    return new NullExp(loc, this);
 }
 
 int TypeClass::isZeroInit(Loc loc)

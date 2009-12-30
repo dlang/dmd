@@ -307,7 +307,7 @@ struct NullExp : Expression
 {
     unsigned char committed;	// !=0 if type is committed
 
-    NullExp(Loc loc);
+    NullExp(Loc loc, Type *t = NULL);
     Expression *semantic(Scope *sc);
     int isBool(int result);
     int isConst();
