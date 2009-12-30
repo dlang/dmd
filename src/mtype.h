@@ -231,6 +231,7 @@ struct Type : Object
     virtual Expression *dotExp(Scope *sc, Expression *e, Identifier *ident);
     virtual unsigned memalign(unsigned salign);
     virtual Expression *defaultInit(Loc loc = 0);
+    virtual Expression *defaultInitLiteral(Loc loc = 0);
     virtual int isZeroInit(Loc loc = 0);		// if initializer is 0
     virtual dt_t **toDt(dt_t **pdt);
     Identifier *getTypeInfoIdent(int internal);
@@ -529,6 +530,7 @@ struct TypeStruct : Type
     Expression *dotExp(Scope *sc, Expression *e, Identifier *ident);
     unsigned memalign(unsigned salign);
     Expression *defaultInit(Loc loc);
+    Expression *defaultInitLiteral(Loc loc);
     int isZeroInit(Loc loc);
     int checkBoolean();
     dt_t **toDt(dt_t **pdt);
