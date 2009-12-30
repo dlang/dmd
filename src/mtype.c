@@ -1556,6 +1556,18 @@ Expression *Type::defaultInit(Loc loc)
     return NULL;
 }
 
+/***************************************
+ * Use when we prefer the default initializer to be a literal,
+ * rather than a global immutable variable.
+ */
+Expression *Type::defaultInitLiteral(Loc loc)
+{
+#if LOGDEFAULTINIT
+    printf("Type::defaultInitLiteral() '%s'\n", toChars());
+#endif
+    return defaultInit(loc);
+}
+
 int Type::isZeroInit(Loc loc)
 {
     return 0;		// assume not
@@ -6699,6 +6711,35 @@ Expression *TypeStruct::defaultInit(Loc loc)
     d->type = this;
     return new VarExp(sym->loc, d);
 }
+
+/***************************************
+ * Use when we prefer the default initializer to be a literal,
+ * rather than a global immutable variable.
+ */
+Expression *TypeStruct::defaultInitLiteral(Loc loc)
+{
+#if LOGDEFAULTINIT
+    printf("TypeStruct::defaultInitLiteral() '%s'\n", toChars());
+#endif
+    Expressions *structelems = new Expressions();
+    structelems->setDim(sym->fields.dim);
+    for (size_t j = 0; j < structelems->dim; j++)
+    {
+	VarDeclaration *vd = (VarDeclaration *)(sym->fields.data[j]);
+	Expression *e;
+	if (vd->init)
+	    e = vd->init->toExpression();
+	else
+	    e = vd->type->defaultInitLiteral();
+	structelems->data[j] = e;
+    }
+    StructLiteralExp *structinit = new StructLiteralExp(loc, (StructDeclaration *)sym, structelems);
+    // Why doesn't the StructLiteralExp constructor do this, when
+    // sym->type != NULL ?
+    structinit->type = sym->type;
+    return structinit;
+}
+
 
 int TypeStruct::isZeroInit(Loc loc)
 {

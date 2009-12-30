@@ -1157,9 +1157,7 @@ Expression *ArrayLiteralExp::interpret(InterState *istate)
 
 	    ex = e->interpret(istate);
 	    if (ex == EXP_CANT_INTERPRET)
-	    {   delete expsx;
-		return EXP_CANT_INTERPRET;
-	    }
+		goto Lerror;
 
 	    /* If any changes, do Copy On Write
 	     */
@@ -1181,14 +1179,18 @@ Expression *ArrayLiteralExp::interpret(InterState *istate)
     {
 	expandTuples(expsx);
 	if (expsx->dim != elements->dim)
-	{   delete expsx;
-	    return EXP_CANT_INTERPRET;
-	}
+	    goto Lerror;
 	ArrayLiteralExp *ae = new ArrayLiteralExp(loc, expsx);
 	ae->type = type;
 	return ae;
     }
     return this;
+
+Lerror:
+    if (expsx)
+	delete expsx;
+    error("cannot interpret array literal");
+    return EXP_CANT_INTERPRET;
 }
 
 Expression *AssocArrayLiteralExp::interpret(InterState *istate)
@@ -1516,24 +1518,6 @@ ArrayLiteralExp *createBlockDuplicatedArrayLiteral(Type *type,
 
 
 /********************************
- * Necessary because defaultInit() for a struct is a VarExp, not a StructLiteralExp.
- */
-StructLiteralExp *createDefaultInitStructLiteral(Loc loc, StructDeclaration *sym)
-{
-    Expressions *structelems = new Expressions();
-    structelems->setDim(sym->fields.dim);
-    for (size_t j = 0; j < structelems->dim; j++)
-    {
-	structelems->data[j] = ((VarDeclaration *)(sym->fields.data[j]))->type->defaultInit();
-    }
-    StructLiteralExp *structinit = new StructLiteralExp(loc, sym, structelems);
-    // Why doesn't the StructLiteralExp constructor do this, when
-    // sym->type != NULL ?
-    structinit->type = sym->type;
-    return structinit;
-}
-
-/********************************
  *  Add v to the istate list, unless it already exists there.
  */
 void addVarToInterstate(InterState *istate, VarDeclaration *v)
@@ -1592,7 +1576,7 @@ Expression *BinExp::interpretAssignCommon(InterState *istate, fp_t fp, int post)
 	}
 	else if (v && v->value && (v->value->op==TOKindex || v->value->op == TOKdotvar))
 	{
-            // It is no longer be a TOKvar, eg when a[4] is passed by ref.
+            // It is no longer a TOKvar, eg when a[4] is passed by ref.
 	    e1 = v->value;	    
 	}
     }
@@ -1634,7 +1618,7 @@ Expression *BinExp::interpretAssignCommon(InterState *istate, fp_t fp, int post)
 		 */
 		if (v->type->toBasetype()->ty == Tstruct && e2->op == TOKint64)
 		{
-		    e2 = v->type->defaultInit();
+		    e2 = v->type->defaultInitLiteral();
 		}
 		e2 = Cast(v->type, v->type, e2);
 	    }
@@ -1960,8 +1944,7 @@ Expression *BinExp::interpretAssignCommon(InterState *istate, fp_t fp, int post)
 	    if (telem->ty != Tstruct) { return EXP_CANT_INTERPRET; }
 
 	    // Create a default struct literal...
-	    StructDeclaration *sym = ((TypeStruct *)telem)->sym;
-	    StructLiteralExp *structinit = createDefaultInitStructLiteral(v->loc, sym);
+	    Expression *structinit = telem->defaultInitLiteral(v->loc);
 
 	    // ... and use to create a blank array literal
 	    size_t dim = ((TypeSArray *)t)->dim->toInteger();
@@ -2642,10 +2625,15 @@ Expression *DotVarExp::interpret(InterState *istate)
 	    if (v)
 	    {	e = se->getField(type, v->offset);
 		if (!e)
+		{
+		    error("couldn't find field %s in %s", v->toChars(), type->toChars());
 		    e = EXP_CANT_INTERPRET;
+		}
 		return e;
 	    }
-	} else error("%s.%s is not yet implemented at compile time", ex->toChars(), var->toChars());
+	}
+	else
+	    error("%s.%s is not yet implemented at compile time", ex->toChars(), var->toChars());
     }
 
 #if LOG
