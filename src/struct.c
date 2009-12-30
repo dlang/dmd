@@ -297,6 +297,22 @@ void StructDeclaration::semantic(Scope *sc)
     sc2->explicitProtection = 0;
 
     int members_dim = members->dim;
+
+    /* Set scope so if there are forward references, we still might be able to
+     * resolve individual members like enums.
+     */
+    for (int i = 0; i < members_dim; i++)
+    {	Dsymbol *s = (Dsymbol *)members->data[i];
+	/* There are problems doing this in the general case because
+	 * Scope keeps track of things like 'offset'
+	 */
+	if (s->isEnumDeclaration() || (s->isAggregateDeclaration() && s->ident))
+	{
+	    //printf("setScope %s %s\n", s->kind(), s->toChars());
+	    s->setScope(sc2);
+	}
+    }
+
     for (i = 0; i < members_dim; i++)
     {
 	Dsymbol *s = (Dsymbol *)members->data[i];
