@@ -3112,7 +3112,13 @@ elem *ShrExp::toElem(IRState *irs)
 
 elem *UshrExp::toElem(IRState *irs)
 {
-    return toElemBin(irs, OPshr);
+    //return toElemBin(irs, OPshr);
+    elem *eleft  = e1->toElem(irs);
+    eleft->Ety = touns(eleft->Ety);
+    elem *eright = e2->toElem(irs);
+    elem *e = el_bin(OPshr, type->totym(), eleft, eright);
+    el_setLoc(e, loc);
+    return e;
 }
 
 /****************************************
