@@ -32,6 +32,7 @@ EnumDeclaration::EnumDeclaration(Loc loc, Identifier *id, Type *memtype)
     defaultval = NULL;
     sinit = NULL;
     isdeprecated = 0;
+    isdone = 0;
 }
 
 Dsymbol *EnumDeclaration::syntaxCopy(Dsymbol *s)
@@ -67,7 +68,7 @@ void EnumDeclaration::semantic(Scope *sc)
     }
 
     if (symtab)			// if already done
-    {	if (!scope)
+    {	if (isdone || !scope)
 	    return;		// semantic() already completed
     }
     else
@@ -116,6 +117,8 @@ void EnumDeclaration::semantic(Scope *sc)
 	}
 #endif
     }
+
+    isdone = 1;
 
     type = type->semantic(loc, sc);
     if (isAnonymous())

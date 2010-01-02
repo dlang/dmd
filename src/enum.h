@@ -42,6 +42,8 @@ struct EnumDeclaration : ScopeDsymbol
     Expression *defaultval;	// default initializer
 #endif
     int isdeprecated;
+    int isdone;			// 0: not done
+				// 1: semantic() successfully completed
 
     EnumDeclaration(Loc loc, Identifier *id, Type *memtype);
     Dsymbol *syntaxCopy(Dsymbol *s);

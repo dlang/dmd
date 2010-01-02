@@ -251,7 +251,7 @@ void ClassDeclaration::semantic(Scope *sc)
 	return;
     }
     if (symtab)
-    {	if (!scope)
+    {	if (sizeok == 1 || !scope)
 	{   //printf("\tsemantic for '%s' is already completed\n", toChars());
 	    return;		// semantic() already completed
 	}
