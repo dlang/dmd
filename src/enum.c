@@ -59,7 +59,7 @@ void EnumDeclaration::semantic(Scope *sc)
 	memtype = Type::tint32;
 
     if (symtab)			// if already done
-    {	if (!scope)
+    {	if (isdone || !scope)
 	    return;		// semantic() already completed
     }
     else
@@ -93,6 +93,8 @@ void EnumDeclaration::semantic(Scope *sc)
     {	error("base type must be of integral type, not %s", memtype->toChars());
 	memtype = Type::tint32;
     }
+
+    isdone = 1;
 
     t = isAnonymous() ? memtype : type;
     symtab = new DsymbolTable();
