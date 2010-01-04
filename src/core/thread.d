@@ -262,6 +262,8 @@ else version( Posix )
             else version( OSX )
             {
                 pthread_cleanup cleanup = void;
+                version( EnableBrokenOSX )
+                // TODO: Figure out why this is broken and fix it.
                 cleanup.push( &thread_cleanupHandler, cast(void*) obj );
             }
             else
@@ -315,6 +317,11 @@ else version( Posix )
             catch( Object o )
             {
                 obj.m_unhandled = o;
+            }
+            version( EnableBrokenOSX ) {} else
+            {
+                Thread.remove( obj );
+                obj.m_isRunning = false;
             }
             return null;
         }
@@ -1609,6 +1616,13 @@ extern (C) void thread_init()
     {
         Thread.sm_this = TlsAlloc();
         assert( Thread.sm_this != TLS_OUT_OF_INDEXES );
+    }
+    else version( OSX )
+    {
+        int status;
+
+        status = pthread_key_create( &Thread.sm_this, null );
+        assert( status == 0 );
     }
     else version( Posix )
     {
