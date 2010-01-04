@@ -232,7 +232,9 @@ class ModuleInfo
 
     void*           xgetMembers;
     void function() ictor;
-    void*[4] reserved;
+    void function() tlsctor;
+    void function() tlsdtor;
+    void*[2] reserved;
 
     static int opApply(int delegate(ref ModuleInfo));
 }

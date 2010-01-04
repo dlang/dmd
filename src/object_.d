@@ -1185,15 +1185,18 @@ class ModuleInfo
     TypeInfo_Class[]     localClasses;
     uint            flags;
 
-    void function() ctor;       // module static constructor (order dependent)
-    void function() dtor;       // module static destructor
+    void function() ctor;       // module shared static constructor (order dependent)
+    void function() dtor;       // module shared static destructor
     void function() unitTest;   // module unit tests
 
     void* xgetMembers;          // module getMembers() function
 
-    void function() ictor;      // module static constructor (order independent)
+    void function() ictor;      // module shared static constructor (order independent)
 
-    void*[4] reserved;          // for future expansion
+    void function() tlsctor;	// module thread local static constructor (order dependent)
+    void function() tlsdtor;	// module thread local static destructor
+
+    void*[2] reserved;          // for future expansion
 
     static int opApply(int delegate(ref ModuleInfo) dg)
     {
@@ -1265,6 +1268,9 @@ version (OSX)
 
 __gshared ModuleInfo[] _moduleinfo_dtors;
 __gshared uint         _moduleinfo_dtors_i;
+
+ModuleInfo[] _moduleinfo_tlsdtors;
+uint         _moduleinfo_tlsdtors_i;
 
 // Register termination function pointers
 extern (C) int _fatexit(void*);
@@ -1350,6 +1356,7 @@ extern (C) void _moduleCtor()
     debug(PRINTF) printf("_moduleinfo_dtors = x%x\n", cast(void*)_moduleinfo_dtors);
     _moduleIndependentCtors();
     _moduleCtor2(_moduleinfo_array, 0);
+    _moduleTlsCtor();
 }
 
 extern (C) void _moduleIndependentCtors()
@@ -1364,6 +1371,9 @@ extern (C) void _moduleIndependentCtors()
     }
 }
 
+/********************************************
+ * Run static constructors for shared global data.
+ */
 void _moduleCtor2(ModuleInfo[] mi, int skip)
 {
     debug(PRINTF) printf("_moduleCtor2(): %d modules\n", mi.length);
@@ -1384,7 +1394,7 @@ void _moduleCtor2(ModuleInfo[] mi, int skip)
             if (m.flags & MIctorstart)
             {   if (skip || m.flags & MIstandalone)
                     continue;
-                    throw new Exception("Cyclic dependency in module " ~ m.name);
+		throw new Exception("Cyclic dependency in module " ~ m.name);
             }
 
             m.flags |= MIctorstart;
@@ -1407,6 +1417,64 @@ void _moduleCtor2(ModuleInfo[] mi, int skip)
     }
 }
 
+/********************************************
+ * Run static constructors for thread local global data.
+ */
+
+void _moduleTlsCtor()
+{
+    void* p = alloca(_moduleinfo_array.length * ubyte.sizeof);
+    auto flags = cast(ubyte[])p[0 .. _moduleinfo_array.length];
+
+    _moduleinfo_tlsdtors = new ModuleInfo[_moduleinfo_array.length];
+
+    void _moduleTlsCtor2(ModuleInfo[] mi, int skip)
+    {
+	debug(PRINTF) printf("_moduleTlsCtor2(): %d modules\n", mi.length);
+	for (size_t i = 0; i < mi.length; i++)
+	{
+	    auto m = mi[i];
+
+	    debug(PRINTF) printf("\tmodule[%d] = '%p'\n", i, m);
+	    if (!m)
+		continue;
+	    debug(PRINTF) printf("\tmodule[%d] = '%.*s'\n", i, m.name);
+	    if (flags[i] & MIctordone)
+		continue;
+	    debug(PRINTF) printf("\tmodule[%d] = '%.*s', m = x%x\n", i, m.name, m);
+
+	    if (m.tlsctor || m.tlsdtor)
+	    {
+		if (flags[i] & MIctorstart)
+		{   if (skip || m.flags & MIstandalone)
+			continue;
+		    throw new Exception("Cyclic dependency in module " ~ m.name);
+		}
+
+		flags[i] |= MIctorstart;
+		_moduleTlsCtor2(m.importedModules, 0);
+		if (m.tlsctor)
+		    (*m.tlsctor)();
+		flags[i] &= ~MIctorstart;
+		flags[i] |= MIctordone;
+
+		// Now that construction is done, register the destructor
+		//printf("\tadding module dtor x%x\n", m);
+		assert(_moduleinfo_tlsdtors_i < _moduleinfo_tlsdtors.length);
+		_moduleinfo_tlsdtors[_moduleinfo_tlsdtors_i++] = m;
+	    }
+	    else
+	    {
+		flags[i] |= MIctordone;
+		_moduleTlsCtor2(m.importedModules, 1);
+	    }
+	}
+    }
+
+    _moduleTlsCtor2(_moduleinfo_array, 0);
+}
+
+
 /**
  * Destruct the modules.
  */
@@ -1418,6 +1486,7 @@ extern (C) void _moduleDtor()
 {
     debug(PRINTF) printf("_moduleDtor(): %d modules\n", _moduleinfo_dtors_i);
 
+    _moduleTlsDtor();
     for (uint i = _moduleinfo_dtors_i; i-- != 0;)
     {
         ModuleInfo m = _moduleinfo_dtors[i];
@@ -1429,6 +1498,23 @@ extern (C) void _moduleDtor()
         }
     }
     debug(PRINTF) printf("_moduleDtor() done\n");
+}
+
+extern (C) void _moduleTlsDtor()
+{
+    debug(PRINTF) printf("_moduleTlsDtor(): %d modules\n", _moduleinfo_tlsdtors_i);
+
+    for (uint i = _moduleinfo_tlsdtors_i; i-- != 0;)
+    {
+        ModuleInfo m = _moduleinfo_tlsdtors[i];
+
+        debug(PRINTF) printf("\tmodule[%d] = '%.*s', x%x\n", i, m.name, m);
+        if (m.tlsdtor)
+        {
+            (*m.tlsdtor)();
+        }
+    }
+    debug(PRINTF) printf("_moduleTlsDtor() done\n");
 }
 
 ///////////////////////////////////////////////////////////////////////////////
