@@ -697,7 +697,7 @@ class Thread
      * Returns:
      *  The name of this thread.
      */
-    final char[] name()
+    final string name()
     {
         synchronized( this )
         {
@@ -712,11 +712,11 @@ class Thread
      * Params:
      *  val = The new name of this thread.
      */
-    final void name( char[] val )
+    final void name( string val )
     {
         synchronized( this )
         {
-            m_name = val.dup;
+            m_name = val;
         }
     }
 
@@ -1271,7 +1271,7 @@ private:
     }
     ThreadAddr          m_addr;
     Call                m_call;
-    char[]              m_name;
+    string              m_name;
     union
     {
         void function() m_fn;
