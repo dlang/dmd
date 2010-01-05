@@ -106,7 +106,7 @@ void EnumDeclaration::semantic(Scope *sc)
 		scope = scx ? scx : new Scope(*sc);
 		scope->setNoFree();
 		scope->module->addDeferredSemantic(this);
-		printf("\tdeferring %s\n", toChars());
+		//printf("\tdeferring %s\n", toChars());
 		return;
 	    }
 	}
