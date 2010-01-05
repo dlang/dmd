@@ -72,7 +72,10 @@ void Module::genmoduleinfo()
 	    void *unitTest;
 	    const(MemberInfo[]) function(string) xgetMembers;	// module getMembers() function
 	    void *ictor;
-	    void*[4] reserved;
+	    void *sharedctor;
+	    void *shareddtor;
+	    uint index;
+	    void*[1] reserved;
        }
      */
     dt_t *dt = NULL;
@@ -126,13 +129,13 @@ void Module::genmoduleinfo()
     else
 	dtdword(&dt, 8|4);		// flags (4 means MIstandalone)
 
-    if (sctor)
-	dtxoff(&dt, sctor, 0, TYnptr);
+    if (ssharedctor)
+	dtxoff(&dt, ssharedctor, 0, TYnptr);
     else
 	dtdword(&dt, 0);
 
-    if (sdtor)
-	dtxoff(&dt, sdtor, 0, TYnptr);
+    if (sshareddtor)
+	dtxoff(&dt, sshareddtor, 0, TYnptr);
     else
 	dtdword(&dt, 0);
 
@@ -155,10 +158,19 @@ void Module::genmoduleinfo()
 	dtdword(&dt, 0);
 
 #if DMDV2
-    // void*[4] reserved;
-    dtdword(&dt, 0);
-    dtdword(&dt, 0);
-    dtdword(&dt, 0);
+    if (sctor)
+	dtxoff(&dt, sctor, 0, TYnptr);
+    else
+	dtdword(&dt, 0);
+
+    if (sdtor)
+	dtxoff(&dt, sdtor, 0, TYnptr);
+    else
+	dtdword(&dt, 0);
+
+    dtdword(&dt, 0);				// index
+
+    // void*[1] reserved;
     dtdword(&dt, 0);
 #endif
     //////////////////////////////////////////////

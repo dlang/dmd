@@ -32,6 +32,8 @@ struct PostBlitDeclaration;
 struct DtorDeclaration;
 struct StaticCtorDeclaration;
 struct StaticDtorDeclaration;
+struct SharedStaticCtorDeclaration;
+struct SharedStaticDtorDeclaration;
 struct ConditionalDeclaration;
 struct InvariantDeclaration;
 struct UnitTestDeclaration;
@@ -90,6 +92,8 @@ struct Parser : Lexer
     DtorDeclaration *parseDtor();
     StaticCtorDeclaration *parseStaticCtor();
     StaticDtorDeclaration *parseStaticDtor();
+    SharedStaticCtorDeclaration *parseSharedStaticCtor();
+    SharedStaticDtorDeclaration *parseSharedStaticDtor();
     InvariantDeclaration *parseInvariant();
     UnitTestDeclaration *parseUnitTest();
     NewDeclaration *parseNew();

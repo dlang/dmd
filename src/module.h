@@ -152,6 +152,8 @@ struct Module : Package
     Symbol *sictor;		// module order independent constructor
     Symbol *sctor;		// module constructor
     Symbol *sdtor;		// module destructor
+    Symbol *ssharedctor;	// module shared constructor
+    Symbol *sshareddtor;	// module shared destructor
     Symbol *stest;		// module unit test
 
     Symbol *sfilename;		// symbol for filename

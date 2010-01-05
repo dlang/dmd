@@ -93,6 +93,8 @@ Module::Module(char *filename, Identifier *ident, int doDocComment, int doHdrGen
     sictor = NULL;
     sctor = NULL;
     sdtor = NULL;
+    ssharedctor = NULL;
+    sshareddtor = NULL;
     stest = NULL;
     sfilename = NULL;
     root = 0;

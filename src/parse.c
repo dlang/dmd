@@ -302,25 +302,38 @@ Array *Parser::parseDeclDefs(int once)
 		break;
 
 	    case TOKconst:
-		if (peek(&token)->value == TOKlparen)
+		if (peekNext() == TOKlparen)
 		    goto Ldeclaration;
 		stc = STCconst;
 		goto Lstc;
 
 	    case TOKimmutable:
-		if (peek(&token)->value == TOKlparen)
+		if (peekNext() == TOKlparen)
 		    goto Ldeclaration;
 		stc = STCimmutable;
 		goto Lstc;
 
 	    case TOKshared:
-		if (peek(&token)->value == TOKlparen)
+	    {	TOK next = peekNext();
+		if (next == TOKlparen)
 		    goto Ldeclaration;
+		if (next == TOKstatic)
+		{   TOK next2 = peekNext2();
+		    if (next2 == TOKthis)
+		    {	s = parseSharedStaticCtor();
+			break;
+		    }
+		    if (next2 == TOKtilde)
+		    {	s = parseSharedStaticDtor();
+			break;
+		    }
+		}
 		stc = STCshared;
 		goto Lstc;
+	    }
 
 	    case TOKwild:
-		if (peek(&token)->value == TOKlparen)
+		if (peekNext() == TOKlparen)
 		    goto Ldeclaration;
 		stc = STCwild;
 		goto Lstc;
@@ -981,14 +994,34 @@ DtorDeclaration *Parser::parseDtor()
 
 StaticCtorDeclaration *Parser::parseStaticCtor()
 {
-    StaticCtorDeclaration *f;
     Loc loc = this->loc;
 
     nextToken();
     check(TOKlparen);
     check(TOKrparen);
 
-    f = new StaticCtorDeclaration(loc, 0);
+    StaticCtorDeclaration *f = new StaticCtorDeclaration(loc, 0);
+    parseContracts(f);
+    return f;
+}
+
+/*****************************************
+ * Parse a shared static constructor definition:
+ *	shared static this() { body }
+ * Current token is 'shared'.
+ */
+
+SharedStaticCtorDeclaration *Parser::parseSharedStaticCtor()
+{
+    Loc loc = this->loc;
+
+    nextToken();
+    nextToken();
+    nextToken();
+    check(TOKlparen);
+    check(TOKrparen);
+
+    SharedStaticCtorDeclaration *f = new SharedStaticCtorDeclaration(loc, 0);
     parseContracts(f);
     return f;
 }
@@ -1001,7 +1034,6 @@ StaticCtorDeclaration *Parser::parseStaticCtor()
 
 StaticDtorDeclaration *Parser::parseStaticDtor()
 {
-    StaticDtorDeclaration *f;
     Loc loc = this->loc;
 
     nextToken();
@@ -1009,7 +1041,29 @@ StaticDtorDeclaration *Parser::parseStaticDtor()
     check(TOKlparen);
     check(TOKrparen);
 
-    f = new StaticDtorDeclaration(loc, 0);
+    StaticDtorDeclaration *f = new StaticDtorDeclaration(loc, 0);
+    parseContracts(f);
+    return f;
+}
+
+/*****************************************
+ * Parse a shared static destructor definition:
+ *	shared static ~this() { body }
+ * Current token is 'shared'.
+ */
+
+SharedStaticDtorDeclaration *Parser::parseSharedStaticDtor()
+{
+    Loc loc = this->loc;
+
+    nextToken();
+    nextToken();
+    nextToken();
+    check(TOKthis);
+    check(TOKlparen);
+    check(TOKrparen);
+
+    SharedStaticDtorDeclaration *f = new SharedStaticDtorDeclaration(loc, 0);
     parseContracts(f);
     return f;
 }

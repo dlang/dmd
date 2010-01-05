@@ -121,8 +121,6 @@ struct Declaration : Dsymbol
 
     char *mangle();
     int isStatic() { return storage_class & STCstatic; }
-    virtual int isStaticConstructor();
-    virtual int isStaticDestructor();
     virtual int isDelete();
     virtual int isDataseg();
     virtual int isThreadlocal();
@@ -731,10 +729,10 @@ struct DtorDeclaration : FuncDeclaration
 struct StaticCtorDeclaration : FuncDeclaration
 {
     StaticCtorDeclaration(Loc loc, Loc endloc);
+    StaticCtorDeclaration(Loc loc, Loc endloc, const char *name);
     Dsymbol *syntaxCopy(Dsymbol *);
     void semantic(Scope *sc);
     AggregateDeclaration *isThis();
-    int isStaticConstructor();
     int isVirtual();
     int addPreInvariant();
     int addPostInvariant();
@@ -745,14 +743,23 @@ struct StaticCtorDeclaration : FuncDeclaration
     StaticCtorDeclaration *isStaticCtorDeclaration() { return this; }
 };
 
+struct SharedStaticCtorDeclaration : StaticCtorDeclaration
+{
+    SharedStaticCtorDeclaration(Loc loc, Loc endloc);
+    Dsymbol *syntaxCopy(Dsymbol *);
+    void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
+
+    SharedStaticCtorDeclaration *isSharedStaticCtorDeclaration() { return this; }
+};
+
 struct StaticDtorDeclaration : FuncDeclaration
 {   VarDeclaration *vgate;	// 'gate' variable
 
     StaticDtorDeclaration(Loc loc, Loc endloc);
+    StaticDtorDeclaration(Loc loc, Loc endloc, const char *name);
     Dsymbol *syntaxCopy(Dsymbol *);
     void semantic(Scope *sc);
     AggregateDeclaration *isThis();
-    int isStaticDestructor();
     int isVirtual();
     int addPreInvariant();
     int addPostInvariant();
@@ -761,6 +768,15 @@ struct StaticDtorDeclaration : FuncDeclaration
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
 
     StaticDtorDeclaration *isStaticDtorDeclaration() { return this; }
+};
+
+struct SharedStaticDtorDeclaration : StaticDtorDeclaration
+{
+    SharedStaticDtorDeclaration(Loc loc, Loc endloc);
+    Dsymbol *syntaxCopy(Dsymbol *);
+    void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
+
+    SharedStaticDtorDeclaration *isSharedStaticDtorDeclaration() { return this; }
 };
 
 struct InvariantDeclaration : FuncDeclaration
@@ -777,7 +793,6 @@ struct InvariantDeclaration : FuncDeclaration
 
     InvariantDeclaration *isInvariantDeclaration() { return this; }
 };
-
 
 struct UnitTestDeclaration : FuncDeclaration
 {

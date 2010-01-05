@@ -2985,12 +2985,16 @@ StaticCtorDeclaration::StaticCtorDeclaration(Loc loc, Loc endloc)
 {
 }
 
+StaticCtorDeclaration::StaticCtorDeclaration(Loc loc, Loc endloc, const char *name)
+    : FuncDeclaration(loc, endloc,
+      Identifier::generateId(name), STCstatic, NULL)
+{
+}
+
 Dsymbol *StaticCtorDeclaration::syntaxCopy(Dsymbol *s)
 {
-    StaticCtorDeclaration *scd;
-
     assert(!s);
-    scd = new StaticCtorDeclaration(loc, endloc);
+    StaticCtorDeclaration *scd = new StaticCtorDeclaration(loc, endloc);
     return FuncDeclaration::syntaxCopy(scd);
 }
 
@@ -3015,7 +3019,7 @@ void StaticCtorDeclaration::semantic(Scope *sc)
 	 */
 	Identifier *id = Lexer::idPool("__gate");
 	VarDeclaration *v = new VarDeclaration(0, Type::tint32, id, NULL);
-	v->storage_class = STCstatic;
+	v->storage_class = isSharedStaticCtorDeclaration() ? STCstatic : STCtls;
 	Statements *sa = new Statements();
 	Statement *s = new DeclarationStatement(0, v);
 	sa->push(s);
@@ -3049,11 +3053,6 @@ AggregateDeclaration *StaticCtorDeclaration::isThis()
     return NULL;
 }
 
-int StaticCtorDeclaration::isStaticConstructor()
-{
-    return TRUE;
-}
-
 int StaticCtorDeclaration::isVirtual()
 {
     return FALSE;
@@ -3079,6 +3078,26 @@ void StaticCtorDeclaration::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
     bodyToCBuffer(buf, hgs);
 }
 
+/********************************* SharedStaticCtorDeclaration ****************************/
+
+SharedStaticCtorDeclaration::SharedStaticCtorDeclaration(Loc loc, Loc endloc)
+    : StaticCtorDeclaration(loc, endloc, "_sharedStaticCtor")
+{
+}
+
+Dsymbol *SharedStaticCtorDeclaration::syntaxCopy(Dsymbol *s)
+{
+    assert(!s);
+    SharedStaticCtorDeclaration *scd = new SharedStaticCtorDeclaration(loc, endloc);
+    return FuncDeclaration::syntaxCopy(scd);
+}
+
+void SharedStaticCtorDeclaration::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
+{
+    buf->writestring("shared ");
+    StaticCtorDeclaration::toCBuffer(buf, hgs);
+}
+
 /********************************* StaticDtorDeclaration ****************************/
 
 StaticDtorDeclaration::StaticDtorDeclaration(Loc loc, Loc endloc)
@@ -3088,12 +3107,17 @@ StaticDtorDeclaration::StaticDtorDeclaration(Loc loc, Loc endloc)
     vgate = NULL;
 }
 
+StaticDtorDeclaration::StaticDtorDeclaration(Loc loc, Loc endloc, const char *name)
+    : FuncDeclaration(loc, endloc,
+      Identifier::generateId(name), STCstatic, NULL)
+{
+    vgate = NULL;
+}
+
 Dsymbol *StaticDtorDeclaration::syntaxCopy(Dsymbol *s)
 {
-    StaticDtorDeclaration *sdd;
-
     assert(!s);
-    sdd = new StaticDtorDeclaration(loc, endloc);
+    StaticDtorDeclaration *sdd = new StaticDtorDeclaration(loc, endloc);
     return FuncDeclaration::syntaxCopy(sdd);
 }
 
@@ -3124,7 +3148,7 @@ void StaticDtorDeclaration::semantic(Scope *sc)
 	 */
 	Identifier *id = Lexer::idPool("__gate");
 	VarDeclaration *v = new VarDeclaration(0, Type::tint32, id, NULL);
-	v->storage_class = STCstatic;
+	v->storage_class = isSharedStaticDtorDeclaration() ? STCstatic : STCtls;
 	Statements *sa = new Statements();
 	Statement *s = new DeclarationStatement(0, v);
 	sa->push(s);
@@ -3159,11 +3183,6 @@ AggregateDeclaration *StaticDtorDeclaration::isThis()
     return NULL;
 }
 
-int StaticDtorDeclaration::isStaticDestructor()
-{
-    return TRUE;
-}
-
 int StaticDtorDeclaration::isVirtual()
 {
     return FALSE;
@@ -3186,6 +3205,30 @@ void StaticDtorDeclaration::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
     buf->writestring("static ~this()");
     bodyToCBuffer(buf, hgs);
 }
+
+/********************************* SharedStaticDtorDeclaration ****************************/
+
+SharedStaticDtorDeclaration::SharedStaticDtorDeclaration(Loc loc, Loc endloc)
+    : StaticDtorDeclaration(loc, endloc, "_sharedStaticDtor")
+{
+}
+
+Dsymbol *SharedStaticDtorDeclaration::syntaxCopy(Dsymbol *s)
+{
+    assert(!s);
+    SharedStaticDtorDeclaration *sdd = new SharedStaticDtorDeclaration(loc, endloc);
+    return FuncDeclaration::syntaxCopy(sdd);
+}
+
+void SharedStaticDtorDeclaration::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
+{
+    if (!hgs->hdrgen)
+    {
+	buf->writestring("shared ");
+	StaticDtorDeclaration::toCBuffer(buf, hgs);
+    }
+}
+
 
 /********************************* InvariantDeclaration ****************************/
 

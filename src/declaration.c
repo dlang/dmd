@@ -51,16 +51,6 @@ unsigned Declaration::size(Loc loc)
     return type->size();
 }
 
-int Declaration::isStaticConstructor()
-{
-    return FALSE;
-}
-
-int Declaration::isStaticDestructor()
-{
-    return FALSE;
-}
-
 int Declaration::isDelete()
 {
     return FALSE;

@@ -43,6 +43,8 @@ struct PostBlitDeclaration;
 struct DtorDeclaration;
 struct StaticCtorDeclaration;
 struct StaticDtorDeclaration;
+struct SharedStaticCtorDeclaration;
+struct SharedStaticDtorDeclaration;
 struct InvariantDeclaration;
 struct UnitTestDeclaration;
 struct NewDeclaration;
@@ -204,6 +206,8 @@ struct Dsymbol : Object
     virtual DtorDeclaration *isDtorDeclaration() { return NULL; }
     virtual StaticCtorDeclaration *isStaticCtorDeclaration() { return NULL; }
     virtual StaticDtorDeclaration *isStaticDtorDeclaration() { return NULL; }
+    virtual SharedStaticCtorDeclaration *isSharedStaticCtorDeclaration() { return NULL; }
+    virtual SharedStaticDtorDeclaration *isSharedStaticDtorDeclaration() { return NULL; }
     virtual InvariantDeclaration *isInvariantDeclaration() { return NULL; }
     virtual UnitTestDeclaration *isUnitTestDeclaration() { return NULL; }
     virtual NewDeclaration *isNewDeclaration() { return NULL; }
