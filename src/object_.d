@@ -17,6 +17,8 @@
 
 module object;
 
+//debug=PRINTF;
+
 private
 {
     import core.stdc.string;
@@ -1196,7 +1198,9 @@ class ModuleInfo
     void function() tlsctor;	// module thread local static constructor (order dependent)
     void function() tlsdtor;	// module thread local static destructor
 
-    void*[2] reserved;          // for future expansion
+    uint index;			// index into _moduleinfo_array[]
+
+    void*[1] reserved;          // for future expansion
 
     static int opApply(int delegate(ref ModuleInfo) dg)
     {
@@ -1423,40 +1427,44 @@ void _moduleCtor2(ModuleInfo[] mi, int skip)
 
 void _moduleTlsCtor()
 {
+    debug(PRINTF) printf("_moduleTlsCtor()\n");
+
     void* p = alloca(_moduleinfo_array.length * ubyte.sizeof);
     auto flags = cast(ubyte[])p[0 .. _moduleinfo_array.length];
+    flags[] = 0;
+
+    foreach (i, m; _moduleinfo_array)
+	m.index = i;
 
     _moduleinfo_tlsdtors = new ModuleInfo[_moduleinfo_array.length];
 
     void _moduleTlsCtor2(ModuleInfo[] mi, int skip)
     {
-	debug(PRINTF) printf("_moduleTlsCtor2(): %d modules\n", mi.length);
-	for (size_t i = 0; i < mi.length; i++)
+	debug(PRINTF) printf("_moduleTlsCtor2(skip = %d): %d modules\n", skip, mi.length);
+	foreach (i, m; mi)
 	{
-	    auto m = mi[i];
-
 	    debug(PRINTF) printf("\tmodule[%d] = '%p'\n", i, m);
 	    if (!m)
 		continue;
 	    debug(PRINTF) printf("\tmodule[%d] = '%.*s'\n", i, m.name);
-	    if (flags[i] & MIctordone)
+	    if (flags[m.index] & MIctordone)
 		continue;
 	    debug(PRINTF) printf("\tmodule[%d] = '%.*s', m = x%x\n", i, m.name, m);
 
 	    if (m.tlsctor || m.tlsdtor)
 	    {
-		if (flags[i] & MIctorstart)
+		if (flags[m.index] & MIctorstart)
 		{   if (skip || m.flags & MIstandalone)
 			continue;
 		    throw new Exception("Cyclic dependency in module " ~ m.name);
 		}
 
-		flags[i] |= MIctorstart;
+		flags[m.index] |= MIctorstart;
 		_moduleTlsCtor2(m.importedModules, 0);
 		if (m.tlsctor)
 		    (*m.tlsctor)();
-		flags[i] &= ~MIctorstart;
-		flags[i] |= MIctordone;
+		flags[m.index] &= ~MIctorstart;
+		flags[m.index] |= MIctordone;
 
 		// Now that construction is done, register the destructor
 		//printf("\tadding module dtor x%x\n", m);
@@ -1465,7 +1473,7 @@ void _moduleTlsCtor()
 	    }
 	    else
 	    {
-		flags[i] |= MIctordone;
+		flags[m.index] |= MIctordone;
 		_moduleTlsCtor2(m.importedModules, 1);
 	    }
 	}
