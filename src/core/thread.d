@@ -77,6 +77,13 @@ private
             return rt_stackTop();
         }
     }
+    
+    
+    //
+    // exposed by compiler runtime
+    //
+    extern (C) void _moduleTlsCtor();
+    extern (C) void _moduleTlsDtor();
 }
 
 
@@ -143,14 +150,44 @@ version( Windows )
             // TODO: Consider putting an auto exception object here (using
             //       alloca) forOutOfMemoryError plus something to track
             //       whether an exception is in-flight?
+            
+            void append( Throwable t )
+            {
+                if( obj.m_unhandled is null )
+                    obj.m_unhandled = t;
+                else
+                {
+                    Throwable last = obj.m_unhandled;
+                    while( last.next !is null )
+                        last = last.next;
+                    last.next = t;
+                }
+            }
 
             try
             {
-                obj.run();
+                _moduleTlsCtor();
+                try
+                {
+                    obj.run();
+                }
+                catch( Throwable t )
+                {
+                    append( t );
+                }
+                catch( Object o )
+                {
+                    // TODO: Remove this once the compiler prevents it.
+                }
+                _moduleTlsDtor();
+            }
+            catch( Throwable t )
+            {
+                append( t );
             }
             catch( Object o )
             {
-                obj.m_unhandled = o;
+                // TODO: Remove this once the compiler prevents it.
             }
             return 0;
         }
@@ -310,13 +347,43 @@ else version( Posix )
             //       alloca) forOutOfMemoryError plus something to track
             //       whether an exception is in-flight?
 
+            void append( Throwable t )
+            {
+                if( obj.m_unhandled is null )
+                    obj.m_unhandled = t;
+                else
+                {
+                    Throwable last = obj.m_unhandled;
+                    while( last.next !is null )
+                        last = last.next;
+                    last.next = t;
+                }
+            }
+
             try
             {
-                obj.run();
+                _moduleTlsCtor();
+                try
+                {
+                    obj.run();
+                }
+                catch( Throwable t )
+                {
+                    append( t );
+                }
+                catch( Object o )
+                {
+                    // TODO: Remove this once the compiler prevents it.
+                }
+                _moduleTlsDtor();
+            }
+            catch( Throwable t )
+            {
+                append( t );
             }
             catch( Object o )
             {
-                obj.m_unhandled = o;
+                // TODO: Remove this once the compiler prevents it.
             }
             version( EnableBrokenOSX ) {} else
             {
@@ -653,7 +720,7 @@ class Thread
      *  Any exception not handled by this thread if rethrow = false, null
      *  otherwise.
      */
-    final Object join( bool rethrow = true )
+    final Throwable join( bool rethrow = true )
     {
         version( Windows )
         {
@@ -1283,7 +1350,7 @@ private:
         bool            m_isRunning;
     }
     bool                m_isDaemon;
-    Object              m_unhandled;
+    Throwable           m_unhandled;
 
 
 private:
@@ -2546,9 +2613,13 @@ private
         {
             obj.run();
         }
+        catch( Throwable t )
+        {
+            obj.m_unhandled = t;
+        }
         catch( Object o )
         {
-            obj.m_unhandled = o;
+            // TODO: Remove this once the compiler prevents it.
         }
 
         static if( is( ucontext_t ) )
@@ -2846,11 +2917,11 @@ class Fiber
         }
         if( m_unhandled )
         {
-            Object obj  = m_unhandled;
+            Throwable t = m_unhandled;
             m_unhandled = null;
             if( rethrow )
-                throw obj;
-            return obj;
+                throw t;
+            return t;
         }
         return null;
     }
@@ -2940,15 +3011,15 @@ class Fiber
      * throws obj in the calling fiber.
      *
      * Params:
-     *  obj = The object to throw.
+     *  t = The object to throw.
      *
      * In:
-     *  obj must not be null.
+     *  t must not be null.
      */
-    static void yieldAndThrow( Object obj )
+    static void yieldAndThrow( Throwable t )
     in
     {
-        assert( obj );
+        assert( t );
     }
     body
     {
@@ -2959,7 +3030,7 @@ class Fiber
         static if( is( ucontext_t ) )
           cur.m_ucur = &cur.m_utxt;
 
-        cur.m_unhandled = obj;
+        cur.m_unhandled = t;
         cur.m_state = State.HOLD;
         cur.switchOut();
         cur.m_state = State.EXEC;
@@ -3072,7 +3143,7 @@ private:
         void delegate() m_dg;
     }
     bool                m_isRunning;
-    Object              m_unhandled;
+    Throwable           m_unhandled;
     State               m_state;
 
 
