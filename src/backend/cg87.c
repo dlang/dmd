@@ -263,6 +263,7 @@ void note87(elem *e, unsigned offset, int i)
 	if (_8087elems[i].e)
 		printf("_8087elems[%d].e = %p\n",i,_8087elems[i].e);
 #endif
+	//if (i >= stackused) *(char*)0=0;
 	assert(i < stackused);
 	_8087elems[i].e = e;
 	_8087elems[i].offset = offset;
@@ -2000,8 +2001,24 @@ code *complex_eq87(elem *e,regm_t *pretregs)
 	    pop87();
 	}
 	sz = tysize(ty1) / 2;
-	c2 = loadea(e->E1,&cs,op1,op2,sz,0,0);
-	c2 = genfwait(c2);
+	if (*pretregs & mST01)
+	{
+	    cs.Iflags = 0;
+	    cs.Ijty = 0;
+	    cs.Iop = op1;
+	    c2 = getlvalue(&cs, e->E1, 0);
+	    cs.IEVoffset1 += sz;
+	    cs.Irm |= modregrm(0, op2, 0);
+	    c2 = cat(c2, makesure87(e->E2, sz, 0, 0));
+	    c2 = gen(c2, &cs);
+	    c2 = genfwait(c2);
+	    c2 = cat(c2, makesure87(e->E2,  0, 1, 0));
+	}
+	else
+	{
+	    c2 = loadea(e->E1,&cs,op1,op2,sz,0,0);
+	    c2 = genfwait(c2);
+	}
 	if (fxch)
 	    c2 = genf2(c2,0xD9,0xC8 + 1);	// FXCH ST(1)
 	cs.IEVoffset1 -= sz;
