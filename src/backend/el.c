@@ -58,6 +58,10 @@ static int eprm_cnt;			/* max # of allocs at any point	*/
 #include "xcoff.h"
 #endif
 
+#if TARGET_OSX
+extern void slist_add(Symbol *s);
+#endif
+
 /*******************************
  * Do our own storage allocation of elems.
  */
@@ -1255,9 +1259,11 @@ elem *el_picvar(symbol *s)
 	case SCcomdef:
 	case SCglobal:
 	case SCextern:
+#if 0
 	    if (s->Stype->Tty & mTYthread)
 		x = 0;
 	    else
+#endif
 		x = 1;
 	case_got:
 	{   if (!localgot)
@@ -1276,7 +1282,7 @@ elem *el_picvar(symbol *s)
 	    e->Eoper = OPrelconst;
 	    e->Ety = TYnptr;
 	    e = el_bin(OPadd, TYnptr, e, el_var(localgot));
-
+#if 1
 	    if (s->Stype->Tty & mTYthread)
 	    {
 		if (!tls_get_addr_sym)
@@ -1286,26 +1292,33 @@ elem *el_picvar(symbol *s)
 		     */
 		    tls_get_addr_sym = symbol_name("___tls_get_addr",SCglobal,type_fake(TYjfunc));
 		    symbol_keep(tls_get_addr_sym);
+		    slist_add(tls_get_addr_sym);
 		}
+		if (x == 1)
+		    e = el_una(OPind, TYnptr, e);
 		e = el_bin(OPcall, TYnptr, el_var(tls_get_addr_sym), e);
+		if (op == OPvar)
+		    e = el_una(OPind, TYnptr, e);
 	    }
-
-
-	    switch (op * 2 + x)
+	    else
+#endif
 	    {
-		case OPvar * 2 + 1:
-		    e = el_una(OPind, TYnptr, e);
-		    e = el_una(OPind, TYnptr, e);
-		    break;
-		case OPvar * 2 + 0:
-		case OPrelconst * 2 + 1:
-		    e = el_una(OPind, TYnptr, e);
-		    break;
-		case OPrelconst * 2 + 0:
-		    break;
-		default:
-		    assert(0);
-		    break;
+		switch (op * 2 + x)
+		{
+		    case OPvar * 2 + 1:
+			e = el_una(OPind, TYnptr, e);
+			e = el_una(OPind, TYnptr, e);
+			break;
+		    case OPvar * 2 + 0:
+		    case OPrelconst * 2 + 1:
+			e = el_una(OPind, TYnptr, e);
+			break;
+		    case OPrelconst * 2 + 0:
+			break;
+		    default:
+			assert(0);
+			break;
+		}
 	    }
 	    e->Ety = tym;
 	    break;
@@ -1425,6 +1438,7 @@ elem * el_var(symbol *s)
     //printf("el_var(s = '%s')\n", s->Sident);
     //printf("%x\n", s->Stype->Tty);
 #if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_SOLARIS
+    // OSX is currently always pic
     if (config.flags3 & CFG3pic &&
 #if TARGET_LINUX || TARGET_FREEBSD || TARGET_SOLARIS
 	!(s->Stype->Tty & mTYthread) &&
