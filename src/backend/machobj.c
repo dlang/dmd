@@ -1337,7 +1337,14 @@ void obj_ehsections()
 	obj_bytes(seg, 0, 4, NULL);
     seg = mach_getsegment("__tls_data", "__DATA", 2, S_REGULAR);
     if (MacVersion >= MacOSX_10_6)
+    {	Outbuffer *buf = SegData[seg]->SDbuf;
 	// Don't need to write if the size is already non-zero
+	if (buf->size() == 0)
+	    buf->writezeros(4);
+    }
+
+    seg = mach_getsegment("__tlscoal_nt", "__DATA", 4, S_COALESCED);
+    if (MacVersion >= MacOSX_10_6)
 	SegData[seg]->SDbuf->writezeros(4);
 
     seg = mach_getsegment("__tls_end", "__DATA", 2, S_REGULAR);
@@ -1346,6 +1353,7 @@ void obj_ehsections()
     if (MacVersion >= MacOSX_10_6)
 	obj_bytes(seg, 0, 4, NULL);
 
+#if 0
     /* Thread local comdat sections
      */
     seg = mach_getsegment("__tlscoal_beg", "__DATA", 2, S_REGULAR);
@@ -1363,6 +1371,7 @@ void obj_ehsections()
     objpubdef(seg, s_tlscoal_end, 0);
     if (MacVersion >= MacOSX_10_6)
 	obj_bytes(seg, 0, 4, NULL);
+#endif
 
     /* Module info sections
      */
@@ -1414,9 +1423,16 @@ int obj_comdat(Symbol *s)
     else if ((s->ty() & mTYLINK) == mTYthread)
     {
 	s->Sfl = FLtlsdata;
+#if 1
+	mach_getsegment("__tls_beg", "__DATA", 2, S_REGULAR);
+	mach_getsegment("__tls_data", "__DATA", 2, S_REGULAR);
+	s->Sseg = mach_getsegment("__tlscoal_nt", "__DATA", 4, S_COALESCED);
+	mach_getsegment("__tls_end", "__DATA", 2, S_REGULAR);
+#else
 	mach_getsegment("__tlscoal_beg", "__DATA", 2, S_REGULAR);
 	s->Sseg = mach_getsegment("__tlscoal_nt", "__DATA", 4, S_COALESCED);
 	mach_getsegment("__tlscoal", "__DATA", 2, S_REGULAR);
+#endif
     }
     else
     {
@@ -1562,6 +1578,7 @@ seg_data *obj_tlsseg()
     {
 	mach_getsegment("__tls_beg", "__DATA", 2, S_REGULAR);
 	seg_tlsseg = mach_getsegment("__tls_data", "__DATA", 2, S_REGULAR);
+	mach_getsegment("__tlscoal_nt", "__DATA", 4, S_COALESCED);
 	mach_getsegment("__tls_end", "__DATA", 2, S_REGULAR);
     }
     return SegData[seg_tlsseg];

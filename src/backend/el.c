@@ -1296,7 +1296,7 @@ elem *el_picvar(symbol *s)
 		}
 		if (x == 1)
 		    e = el_una(OPind, TYnptr, e);
-		e = el_bin(OPcall, TYnptr, el_var(tls_get_addr_sym), e);
+		e = el_bin(OPcallns, TYnptr, el_var(tls_get_addr_sym), e);
 		if (op == OPvar)
 		    e = el_una(OPind, TYnptr, e);
 	    }
