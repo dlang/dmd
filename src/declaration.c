@@ -1458,7 +1458,7 @@ int VarDeclaration::isDataseg()
 int VarDeclaration::isThreadlocal()
 {
     //printf("VarDeclaration::isThreadlocal(%p, '%s')\n", this, toChars());
-#if 0 || TARGET_OSX
+#if 0 //|| TARGET_OSX
     /* To be thread-local, must use the __thread storage class.
      * BUG: OSX doesn't support thread local yet.
      */

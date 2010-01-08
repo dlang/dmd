@@ -1335,8 +1335,9 @@ void obj_ehsections()
     objpubdef(seg, s_tls_beg, 0);
     if (MacVersion >= MacOSX_10_6)
 	obj_bytes(seg, 0, 4, NULL);
-    seg = mach_getsegment("__tlsdata", "__DATA", 2, S_REGULAR);
+    seg = mach_getsegment("__tls_data", "__DATA", 2, S_REGULAR);
     if (MacVersion >= MacOSX_10_6)
+	// Don't need to write if the size is already non-zero
 	SegData[seg]->SDbuf->writezeros(4);
 
     seg = mach_getsegment("__tls_end", "__DATA", 2, S_REGULAR);
@@ -1559,7 +1560,9 @@ seg_data *obj_tlsseg()
 
     if (seg_tlsseg == UNKNOWN)
     {
-	seg_tlsseg = mach_getsegment("__tlsdata", "__DATA", 2, S_REGULAR);
+	mach_getsegment("__tls_beg", "__DATA", 2, S_REGULAR);
+	seg_tlsseg = mach_getsegment("__tls_data", "__DATA", 2, S_REGULAR);
+	mach_getsegment("__tls_end", "__DATA", 2, S_REGULAR);
     }
     return SegData[seg_tlsseg];
 }
