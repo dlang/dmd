@@ -16,6 +16,11 @@ module core.thread;
 // this should be true for most architectures
 version = StackGrowsDown;
 
+//debug=PRINTF;
+private
+{
+    debug(PRINTF) import core.stdc.stdio;
+}
 
 ///////////////////////////////////////////////////////////////////////////////
 // Thread and Fiber Exceptions
@@ -48,12 +53,20 @@ class FiberException : Exception
 
 private
 {
+    extern (C)
+    {
+	// Functions from the C library.
+	void *memcpy(void *, const void *, size_t);
+    }
+
     //
     // exposed by compiler runtime
     //
     extern (C) void* rt_stackBottom();
     extern (C) void* rt_stackTop();
 
+    extern (C) void _moduleTlsCtor();
+    extern (C) void _moduleTlsDtor();
 
     void* getStackBottom()
     {
@@ -77,13 +90,6 @@ private
             return rt_stackTop();
         }
     }
-    
-    
-    //
-    // exposed by compiler runtime
-    //
-    extern (C) void _moduleTlsCtor();
-    extern (C) void _moduleTlsDtor();
 }
 
 
@@ -243,6 +249,17 @@ else version( Posix )
                     extern __thread int _tlsend;
                 }
             }
+	    else version (OSX)
+	    {
+		extern (C)
+		{
+		    extern __gshared
+		    {
+			void* _tls_beg;
+			void* _tls_end;
+		    }
+		}
+	    }
             else
             {
                 __gshared int   _tlsstart;
@@ -274,6 +291,7 @@ else version( Posix )
 
             static extern (C) void thread_cleanupHandler( void* arg )
             {
+		//printf("thread_cleanupHandler(%p)\n", arg);
                 Thread  obj = cast(Thread) arg;
                 assert( obj );
 
@@ -291,17 +309,13 @@ else version( Posix )
             //       implementation actually requires default initialization
             //       then pthread_cleanup should be restructured to maintain
             //       the current lack of a link dependency.
-            version( linux )
+            version( Posix )
             {
-                pthread_cleanup cleanup = void;
-                cleanup.push( &thread_cleanupHandler, cast(void*) obj );
-            }
-            else version( OSX )
-            {
-                pthread_cleanup cleanup = void;
-                version( EnableBrokenOSX )
-                // TODO: Figure out why this is broken and fix it.
-                cleanup.push( &thread_cleanupHandler, cast(void*) obj );
+		//printf("cleanup.push(%p)\n", cast(void*)obj);
+		/* cleanup must persist for longer than the stack frame of this
+		 * function, so just make it part of obj.
+		 */
+                obj.cleanup.push( &thread_cleanupHandler, cast(void*) obj );
             }
             else
             {
@@ -333,9 +347,24 @@ else version( Posix )
             Thread.add( &obj.m_main );
             Thread.setThis( obj );
 
-            void* pstart = cast(void*) &_tlsstart;
-            void* pend   = cast(void*) &_tlsend;
-            obj.m_tls = pstart[0 .. pend - pstart];
+	    version (OSX)
+	    {	/* OSX does not support TLS, so we do it ourselves.
+		 * The TLS data output by the compiler is bracketed by _tls_beg and _tls_end.
+		 * Make a copy of it for each thread.
+		 */
+		const sz = cast(void*)&_tls_end - cast(void*)&_tls_beg;
+		auto p = malloc(sz);
+		assert(p);
+		obj.m_tls = p[0 .. sz];
+		memcpy(p, &_tls_beg, sz);
+		scope (exit) { free(p); obj.m_tls = null; }
+	    }
+	    else
+	    {
+		auto pstart = cast(void*) &_tlsstart;
+		auto pend   = cast(void*) &_tlsend;
+		obj.m_tls = pstart[0 .. pend - pstart];
+	    }
 
             // NOTE: No GC allocations may occur until the stack pointers have
             //       been set and Thread.getThis returns a valid reference to
@@ -385,11 +414,8 @@ else version( Posix )
             {
                 // TODO: Remove this once the compiler prevents it.
             }
-            version( EnableBrokenOSX ) {} else
-            {
-                Thread.remove( obj );
-                obj.m_isRunning = false;
-            }
+            Thread.remove( obj );
+            obj.m_isRunning = false;
             return null;
         }
 
@@ -1263,9 +1289,24 @@ private:
         m_call = Call.NO;
         m_curr = &m_main;
 
-        void* pstart = cast(void*) &_tlsstart;
-        void* pend   = cast(void*) &_tlsend;
-        m_tls = pstart[0 .. pend - pstart];
+	version (OSX)
+	{   /* OSX does not support TLS, so we do it ourselves.
+	     * The TLS data output by the compiler is bracketed by _tls_beg and _tls_end.
+	     * Make a copy of it for the main thread.
+	     */
+	    const sz = cast(void*)&_tls_end - cast(void*)&_tls_beg;
+	    auto p = malloc(sz);
+	    assert(p);
+	    m_tls = p[0 .. sz];
+	    memcpy(p, &_tls_beg, sz);
+	    // Don't bother free'ing this at program end
+	}
+	else
+	{
+	    auto pstart = cast(void*) &_tlsstart;
+	    auto pend   = cast(void*) &_tlsend;
+	    m_tls = pstart[0 .. pend - pstart];
+	}
     }
 
 
@@ -1523,6 +1564,10 @@ private:
     Thread              prev;
     Thread              next;
 
+    version (Posix)
+    {
+	pthread_cleanup cleanup = void;	// hold linked list of cleanup calls
+    }
 
     ///////////////////////////////////////////////////////////////////////////
     // Global Context List Operations
@@ -3537,12 +3582,24 @@ version (OSX)
 {
     /* The Mach-O object file format does not allow for thread local storage
      * declarations. So, instead we roll our own by putting tls into
-     * the sections __tlsdata and __tlscoal_nt.
+     * the sections bracketed by _tls_beg and _tls_end
      */
 
+    /* This function is called by the code emitted by the compiler.
+     * It is expected to translate an address into the TLS static data
+     * to the corresponding address in the TLS dynamic per-thread data.
+     */
     extern (D)
     void* ___tls_get_addr(void* p)
     {
-        return p;
+	/* p is an address in the TLS static data emitted by the compiler.
+	 * If it isn't, something is disastrously wrong.
+	 */
+	//debug(PRINTF) printf("___tls_get_addr: %p %p %p\n", &_tls_beg, p, &_tls_end);
+	if (p < cast(void*)&_tls_beg || p >= cast(void*)&_tls_end)
+	    assert(0);
+	auto obj = Thread.getThis();
+	//debug(PRINTF) printf(" tls[] = %d, %p\n", obj.m_tls.length, obj.m_tls.ptr);
+        return obj.m_tls.ptr + (p - cast(void*)&_tls_beg);
     }
 }
