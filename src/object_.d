@@ -1434,7 +1434,10 @@ void _moduleTlsCtor()
     flags[] = 0;
 
     foreach (i, m; _moduleinfo_array)
-	m.index = i;
+    {
+	if (m)
+	    m.index = i;
+    }
 
     _moduleinfo_tlsdtors = new ModuleInfo[_moduleinfo_array.length];
 
@@ -1467,7 +1470,7 @@ void _moduleTlsCtor()
 		flags[m.index] |= MIctordone;
 
 		// Now that construction is done, register the destructor
-		//printf("\tadding module dtor x%x\n", m);
+		//printf("**** adding module tlsdtor %p, [%d]\n", m, _moduleinfo_tlsdtors_i);
 		assert(_moduleinfo_tlsdtors_i < _moduleinfo_tlsdtors.length);
 		_moduleinfo_tlsdtors[_moduleinfo_tlsdtors_i++] = m;
 	    }
@@ -1511,6 +1514,11 @@ extern (C) void _moduleDtor()
 extern (C) void _moduleTlsDtor()
 {
     debug(PRINTF) printf("_moduleTlsDtor(): %d modules\n", _moduleinfo_tlsdtors_i);
+  version(none)
+  { printf("_moduleinfo_tlsdtors = %d,%p\n", _moduleinfo_tlsdtors);
+    foreach (i,m; _moduleinfo_tlsdtors[0..11])
+	printf("[%d] = %p\n", i, m);
+  }
 
     for (uint i = _moduleinfo_tlsdtors_i; i-- != 0;)
     {
