@@ -1425,7 +1425,7 @@ void _moduleCtor2(ModuleInfo[] mi, int skip)
  * Run static constructors for thread local global data.
  */
 
-void _moduleTlsCtor()
+extern (C) void _moduleTlsCtor()
 {
     debug(PRINTF) printf("_moduleTlsCtor()\n");
 

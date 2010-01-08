@@ -50,7 +50,7 @@ extern (C) void thread_joinAll();
 version (OSX)
 {
     // The bottom of the stack
-    extern (C) void* __osx_stack_end = cast(void*)0xC0000000;
+    extern (C) __gshared void* __osx_stack_end = cast(void*)0xC0000000;
 }
 
 /***********************************
