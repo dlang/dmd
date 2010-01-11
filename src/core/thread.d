@@ -16,11 +16,6 @@ module core.thread;
 // this should be true for most architectures
 version = StackGrowsDown;
 
-//debug=PRINTF;
-private
-{
-    debug(PRINTF) import core.stdc.stdio;
-}
 
 ///////////////////////////////////////////////////////////////////////////////
 // Thread and Fiber Exceptions
@@ -53,20 +48,19 @@ class FiberException : Exception
 
 private
 {
-    extern (C)
-    {
-	// Functions from the C library.
-	void *memcpy(void *, const void *, size_t);
-    }
+    //
+    // from core.stdc.string
+    //
+    extern (C) void* memcpy(void*, const void*, size_t);
 
     //
     // exposed by compiler runtime
     //
     extern (C) void* rt_stackBottom();
     extern (C) void* rt_stackTop();
+    extern (C) void  rt_moduleTlsCtor();
+    extern (C) void  rt_moduleTlsDtor();
 
-    extern (C) void _moduleTlsCtor();
-    extern (C) void _moduleTlsDtor();
 
     void* getStackBottom()
     {
@@ -172,7 +166,7 @@ version( Windows )
 
             try
             {
-                _moduleTlsCtor();
+                rt_moduleTlsCtor();
                 try
                 {
                     obj.run();
@@ -185,7 +179,7 @@ version( Windows )
                 {
                     // TODO: Remove this once the compiler prevents it.
                 }
-                _moduleTlsDtor();
+                rt_moduleTlsDtor();
             }
             catch( Throwable t )
             {
@@ -249,17 +243,17 @@ else version( Posix )
                     extern __thread int _tlsend;
                 }
             }
-	    else version (OSX)
-	    {
-		extern (C)
-		{
-		    extern __gshared
-		    {
-			void* _tls_beg;
-			void* _tls_end;
-		    }
-		}
-	    }
+            else version( OSX )
+            {
+                extern (C)
+                {
+                    extern __gshared
+                    {
+                        void* _tls_beg;
+                        void* _tls_end;
+                    }
+                }
+            }
             else
             {
                 __gshared int   _tlsstart;
@@ -291,7 +285,6 @@ else version( Posix )
 
             static extern (C) void thread_cleanupHandler( void* arg )
             {
-		//printf("thread_cleanupHandler(%p)\n", arg);
                 Thread  obj = cast(Thread) arg;
                 assert( obj );
 
@@ -309,17 +302,18 @@ else version( Posix )
             //       implementation actually requires default initialization
             //       then pthread_cleanup should be restructured to maintain
             //       the current lack of a link dependency.
-            version( Posix )
+            static if( __traits( compiles, pthread_cleanup ) )
             {
-		//printf("cleanup.push(%p)\n", cast(void*)obj);
-		/* cleanup must persist for longer than the stack frame of this
-		 * function, so just make it part of obj.
-		 */
-                obj.cleanup.push( &thread_cleanupHandler, cast(void*) obj );
+                pthread_cleanup cleanup = void;
+                cleanup.push( &thread_cleanupHandler, cast(void*) obj );
+            }
+            else static if( __traits( compiles, pthread_cleanup_push ) )
+            {
+                pthread_cleanup_push( &thread_cleanupHandler, cast(void*) obj );
             }
             else
             {
-                pthread_cleanup_push( &thread_cleanupHandler, cast(void*) obj );
+                static assert( false, "Platform not supported." );
             }
 
             // NOTE: For some reason this does not always work for threads.
@@ -347,24 +341,24 @@ else version( Posix )
             Thread.add( &obj.m_main );
             Thread.setThis( obj );
 
-	    version (OSX)
-	    {	/* OSX does not support TLS, so we do it ourselves.
-		 * The TLS data output by the compiler is bracketed by _tls_beg and _tls_end.
-		 * Make a copy of it for each thread.
-		 */
-		const sz = cast(void*)&_tls_end - cast(void*)&_tls_beg;
-		auto p = malloc(sz);
-		assert(p);
-		obj.m_tls = p[0 .. sz];
-		memcpy(p, &_tls_beg, sz);
-		scope (exit) { free(p); obj.m_tls = null; }
-	    }
-	    else
-	    {
-		auto pstart = cast(void*) &_tlsstart;
-		auto pend   = cast(void*) &_tlsend;
-		obj.m_tls = pstart[0 .. pend - pstart];
-	    }
+            version( OSX )
+            {
+                // NOTE: OSX does not support TLS, so we do it ourselves.  The TLS
+                //       data output by the compiler is bracketed by _tls_beg and
+                //       _tls_end, so make a copy of it for each thread.
+                const sz = cast(void*) &_tls_end - cast(void*) &_tls_beg;
+                auto p = malloc( sz );
+                assert( p );
+                obj.m_tls = p[0 .. sz];
+                memcpy( p, &_tls_beg, sz );
+                scope (exit) { free( p ); obj.m_tls = null; }
+            }
+            else
+            {
+                auto pstart = cast(void*) &_tlsstart;
+                auto pend   = cast(void*) &_tlsend;
+                obj.m_tls = pstart[0 .. pend - pstart];
+            }
 
             // NOTE: No GC allocations may occur until the stack pointers have
             //       been set and Thread.getThis returns a valid reference to
@@ -391,7 +385,7 @@ else version( Posix )
 
             try
             {
-                _moduleTlsCtor();
+                rt_moduleTlsCtor();
                 try
                 {
                     obj.run();
@@ -404,7 +398,7 @@ else version( Posix )
                 {
                     // TODO: Remove this once the compiler prevents it.
                 }
-                _moduleTlsDtor();
+                rt_moduleTlsDtor();
             }
             catch( Throwable t )
             {
@@ -414,8 +408,16 @@ else version( Posix )
             {
                 // TODO: Remove this once the compiler prevents it.
             }
-            Thread.remove( obj );
-            obj.m_isRunning = false;
+
+            static if( __traits( compiles, pthread_cleanup ) )
+            {
+                cleanup.pop( 1 );
+            }
+            else static if( __traits( compiles, pthread_cleanup_push ) )
+            {
+                pthread_cleanup_pop( 1 );
+            }
+
             return null;
         }
 
@@ -1289,24 +1291,24 @@ private:
         m_call = Call.NO;
         m_curr = &m_main;
 
-	version (OSX)
-	{   /* OSX does not support TLS, so we do it ourselves.
-	     * The TLS data output by the compiler is bracketed by _tls_beg and _tls_end.
-	     * Make a copy of it for the main thread.
-	     */
-	    const sz = cast(void*)&_tls_end - cast(void*)&_tls_beg;
-	    auto p = malloc(sz);
-	    assert(p);
-	    m_tls = p[0 .. sz];
-	    memcpy(p, &_tls_beg, sz);
-	    // Don't bother free'ing this at program end
-	}
-	else
-	{
-	    auto pstart = cast(void*) &_tlsstart;
-	    auto pend   = cast(void*) &_tlsend;
-	    m_tls = pstart[0 .. pend - pstart];
-	}
+        version( OSX )
+        {
+            // NOTE: OSX does not support TLS, so we do it ourselves.  The TLS
+            //       data output by the compiler is bracketed by _tls_beg and
+            //       _tls_end, so make a copy of it for each thread.
+            const sz = cast(void*) &_tls_end - cast(void*) &_tls_beg;
+            auto p = malloc( sz );
+            assert( p );
+            m_tls = p[0 .. sz];
+            memcpy( p, &_tls_beg, sz );
+            // The free must happen at program end, if anywhere.
+        }
+        else
+        {
+            auto pstart = cast(void*) &_tlsstart;
+            auto pend   = cast(void*) &_tlsend;
+            m_tls = pstart[0 .. pend - pstart];
+        }
     }
 
 
@@ -1564,10 +1566,6 @@ private:
     Thread              prev;
     Thread              next;
 
-    version (Posix)
-    {
-	pthread_cleanup cleanup = void;	// hold linked list of cleanup calls
-    }
 
     ///////////////////////////////////////////////////////////////////////////
     // Global Context List Operations
@@ -1750,7 +1748,7 @@ extern (C) void thread_init()
         // NOTE: SA_RESTART indicates that system calls should restart if they
         //       are interrupted by a signal, but this is not available on all
         //       Posix systems, even those that support multithreading.
-        static if( is( typeof( SA_RESTART ) ) )
+        static if( __traits( compiles, SA_RESTART ) )
             sigusr1.sa_flags = SA_RESTART;
         else
             sigusr1.sa_flags   = 0;
@@ -2613,7 +2611,7 @@ private
 
 static this()
 {
-    static if( is( typeof( GetSystemInfo ) ) )
+    static if( __traits( compiles, GetSystemInfo ) )
     {
         SYSTEM_INFO info;
         GetSystemInfo( &info );
@@ -2621,8 +2619,8 @@ static this()
         PAGESIZE = info.dwPageSize;
         assert( PAGESIZE < int.max );
     }
-    else static if( is( typeof( sysconf ) ) &&
-                    is( typeof( _SC_PAGESIZE ) ) )
+    else static if( __traits( compiles, sysconf ) &&
+                    __traits( compiles, _SC_PAGESIZE ) )
     {
         PAGESIZE = cast(size_t) sysconf( _SC_PAGESIZE );
         assert( PAGESIZE < int.max );
@@ -2667,7 +2665,7 @@ private
             // TODO: Remove this once the compiler prevents it.
         }
 
-        static if( is( ucontext_t ) )
+        static if( __traits( compiles, ucontext_t ) )
           obj.m_ucur = &obj.m_utxt;
 
         obj.m_state = Fiber.State.TERM;
@@ -2754,7 +2752,7 @@ private
                 ret;
             }
         }
-        else static if( is( ucontext_t ) )
+        else static if( __traits( compiles, ucontext_t ) )
         {
             Fiber   cfib = Fiber.getThis();
             void*   ucur = cfib.m_ucur;
@@ -2939,14 +2937,14 @@ class Fiber
     {
         Fiber   cur = getThis();
 
-        static if( is( ucontext_t ) )
+        static if( __traits( compiles, ucontext_t ) )
           m_ucur = cur ? &cur.m_utxt : &Fiber.sm_utxt;
 
         setThis( this );
         this.switchIn();
         setThis( cur );
 
-        static if( is( ucontext_t ) )
+        static if( __traits( compiles, ucontext_t ) )
           m_ucur = null;
 
         // NOTE: If the fiber has terminated then the stack pointers must be
@@ -3042,7 +3040,7 @@ class Fiber
         assert( cur, "Fiber.yield() called with no active fiber" );
         assert( cur.m_state == State.EXEC );
 
-        static if( is( ucontext_t ) )
+        static if( __traits( compiles, ucontext_t ) )
           cur.m_ucur = &cur.m_utxt;
 
         cur.m_state = State.HOLD;
@@ -3072,7 +3070,7 @@ class Fiber
         assert( cur, "Fiber.yield() called with no active fiber" );
         assert( cur.m_state == State.EXEC );
 
-        static if( is( ucontext_t ) )
+        static if( __traits( compiles, ucontext_t ) )
           cur.m_ucur = &cur.m_utxt;
 
         cur.m_unhandled = t;
@@ -3127,7 +3125,7 @@ class Fiber
             status = pthread_key_create( &sm_this, null );
             assert( status == 0 );
 
-          static if( is( ucontext_t ) )
+          static if( __traits( compiles, ucontext_t ) )
           {
             status = getcontext( &sm_utxt );
             assert( status == 0 );
@@ -3222,7 +3220,7 @@ private:
         //       requires too much special logic to be worthwhile.
         m_ctxt = new Thread.Context;
 
-        static if( is( typeof( VirtualAlloc ) ) )
+        static if( __traits( compiles, VirtualAlloc ) )
         {
             // reserve memory for stack
             m_pmem = VirtualAlloc( null,
@@ -3272,7 +3270,7 @@ private:
             m_size = sz;
         }
         else
-        {   static if( is( typeof( mmap ) ) )
+        {   static if( __traits( compiles, mmap ) )
             {
                 m_pmem = mmap( null,
                                sz,
@@ -3283,11 +3281,11 @@ private:
                 if( m_pmem == MAP_FAILED )
                     m_pmem = null;
             }
-            else static if( is( typeof( valloc ) ) )
+            else static if( __traits( compiles, valloc ) )
             {
                 m_pmem = valloc( sz );
             }
-            else static if( is( typeof( malloc ) ) )
+            else static if( __traits( compiles, malloc ) )
             {
                 m_pmem = malloc( sz );
             }
@@ -3335,19 +3333,19 @@ private:
         //       global context list.
         Thread.remove( m_ctxt );
 
-        static if( is( typeof( VirtualAlloc ) ) )
+        static if( __traits( compiles, VirtualAlloc ) )
         {
             VirtualFree( m_pmem, 0, MEM_RELEASE );
         }
-        else static if( is( typeof( mmap ) ) )
+        else static if( __traits( compiles, mmap ) )
         {
             munmap( m_pmem, m_size );
         }
-        else static if( is( typeof( valloc ) ) )
+        else static if( __traits( compiles, valloc ) )
         {
             free( m_pmem );
         }
-        else static if( is( typeof( malloc ) ) )
+        else static if( __traits( compiles, malloc ) )
         {
             free( m_pmem );
         }
@@ -3454,7 +3452,7 @@ private:
 
             assert( cast(uint) pstack & 0x0f == 0 );
         }
-        else static if( is( ucontext_t ) )
+        else static if( __traits( compiles, ucontext_t ) )
         {
             getcontext( &m_utxt );
             m_utxt.uc_stack.ss_sp   = m_ctxt.bstack;
@@ -3471,7 +3469,7 @@ private:
     size_t          m_size;
     void*           m_pmem;
 
-    static if( is( ucontext_t ) )
+    static if( __traits( compiles, ucontext_t ) )
     {
         // NOTE: The static ucontext instance is used to represent the context
         //       of the main application thread.
@@ -3578,28 +3576,22 @@ private:
     }
 }
 
-version (OSX)
+version( OSX )
 {
-    /* The Mach-O object file format does not allow for thread local storage
-     * declarations. So, instead we roll our own by putting tls into
-     * the sections bracketed by _tls_beg and _tls_end
-     */
-
-    /* This function is called by the code emitted by the compiler.
-     * It is expected to translate an address into the TLS static data
-     * to the corresponding address in the TLS dynamic per-thread data.
-     */
-    extern (D)
-    void* ___tls_get_addr(void* p)
+    // NOTE: The Mach-O object file format does not allow for thread local
+    //       storage declarations. So instead we roll our own by putting tls
+    //       into the sections bracketed by _tls_beg and _tls_end.
+    //
+    //       This function is called by the code emitted by the compiler.  It
+    //       is expected to translate an address into the TLS static data to
+    //       the corresponding address in the TLS dynamic per-thread data.
+    extern (D) void* ___tls_get_addr( void* p )
     {
-	/* p is an address in the TLS static data emitted by the compiler.
-	 * If it isn't, something is disastrously wrong.
-	 */
-	//debug(PRINTF) printf("___tls_get_addr: %p %p %p\n", &_tls_beg, p, &_tls_end);
-	if (p < cast(void*)&_tls_beg || p >= cast(void*)&_tls_end)
-	    assert(0);
-	auto obj = Thread.getThis();
-	//debug(PRINTF) printf(" tls[] = %d, %p\n", obj.m_tls.length, obj.m_tls.ptr);
-        return obj.m_tls.ptr + (p - cast(void*)&_tls_beg);
+        // NOTE: p is an address in the TLS static data emitted by the
+        //       compiler.  If it isn't, something is disastrously wrong.
+        if( p < cast(void*) &_tls_beg || p >= cast(void*) &_tls_end )
+            assert( false );
+        auto obj = Thread.getThis();
+        return obj.m_tls.ptr + (p - cast(void*) &_tls_beg);
     }
 }

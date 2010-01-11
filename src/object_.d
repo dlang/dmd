@@ -1514,11 +1514,12 @@ extern (C) void _moduleDtor()
 extern (C) void _moduleTlsDtor()
 {
     debug(PRINTF) printf("_moduleTlsDtor(): %d modules\n", _moduleinfo_tlsdtors_i);
-  version(none)
-  { printf("_moduleinfo_tlsdtors = %d,%p\n", _moduleinfo_tlsdtors);
-    foreach (i,m; _moduleinfo_tlsdtors[0..11])
-	printf("[%d] = %p\n", i, m);
-  }
+    version(none)
+    {
+        printf("_moduleinfo_tlsdtors = %d,%p\n", _moduleinfo_tlsdtors);
+        foreach (i,m; _moduleinfo_tlsdtors[0..11])
+            printf("[%d] = %p\n", i, m);
+    }
 
     for (uint i = _moduleinfo_tlsdtors_i; i-- != 0;)
     {
@@ -1531,6 +1532,19 @@ extern (C) void _moduleTlsDtor()
         }
     }
     debug(PRINTF) printf("_moduleTlsDtor() done\n");
+}
+
+// Alias the TLS ctor and dtor using "rt_" prefixes, since these routines
+// must be called by core.thread.
+
+extern (C) void rt_moduleTlsCtor()
+{
+    _moduleTlsCtor();
+}
+
+extern (C) void rt_moduleTlsDtor()
+{
+    _moduleTlsDtor();
 }
 
 ///////////////////////////////////////////////////////////////////////////////
