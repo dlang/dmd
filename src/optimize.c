@@ -1,6 +1,6 @@
 
 // Compiler implementation of the D programming language
-// Copyright (c) 1999-2009 by Digital Mars
+// Copyright (c) 1999-2010 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // http://www.digitalmars.com
@@ -617,6 +617,22 @@ Expression *CommaExp::optimize(int result)
 {   Expression *e;
 
     //printf("CommaExp::optimize(result = %d) %s\n", result, toChars());
+    // Comma needs special treatment, because it may
+    // contain compiler-generated declarations. We can interpret them, but
+    // otherwise we must NOT attempt to constant-fold them.
+    // In particular, if the comma returns a temporary variable, it needs
+    // to be an lvalue (this is particularly important for struct constructors)
+
+    if (result & WANTinterpret)
+    {   // Interpreting comma needs special treatment, because it may
+        // contain compiler-generated declarations.
+	e = interpret(NULL);
+	return (e == EXP_CANT_INTERPRET) ?  this : e;
+    }
+    // Don't constant fold if it is a compiler-generated temporary.
+    if (e1->op == TOKdeclaration)
+       return this;
+
     e1 = e1->optimize(result & WANTinterpret);
     e2 = e2->optimize(result);
     if (!e1 || e1->op == TOKint64 || e1->op == TOKfloat64 || !e1->checkSideEffect(2))
@@ -702,8 +718,8 @@ Expression *SliceExp::optimize(int result)
     {	if (e1->op == TOKstring)
 	{   // Convert slice of string literal into dynamic array
 	    Type *t = e1->type->toBasetype();
-	    if (t->next)
-		e = e1->castTo(NULL, t->next->arrayOf());
+	    if (t->nextOf())
+		e = e1->castTo(NULL, t->nextOf()->arrayOf());
 	}
 	return e;
     }
