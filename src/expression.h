@@ -526,6 +526,7 @@ struct NewExp : Expression
 	Type *newtype, Expressions *arguments);
     Expression *syntaxCopy();
     Expression *semantic(Scope *sc);
+    Expression *interpret(InterState *istate);
     Expression *optimize(int result);
     elem *toElem(IRState *irs);
     int checkSideEffect(int flag);

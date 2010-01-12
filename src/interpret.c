@@ -52,6 +52,8 @@ Expression *interpret_length(InterState *istate, Expression *earg);
 Expression *interpret_keys(InterState *istate, Expression *earg, FuncDeclaration *fd);
 Expression *interpret_values(InterState *istate, Expression *earg, FuncDeclaration *fd);
 
+ArrayLiteralExp *createBlockDuplicatedArrayLiteral(Type *type, Expression *elem, size_t dim);
+
 /*************************************
  * Attempt to interpret a function given the arguments.
  * Input:
@@ -1349,6 +1351,23 @@ Expression *StructLiteralExp::interpret(InterState *istate)
 	return se;
     }
     return this;
+}
+
+Expression *NewExp::interpret(InterState *istate)
+{
+#if LOG
+    printf("NewExp::interpret() %s\n", toChars());
+#endif
+    if (newtype->ty == Tarray && arguments && arguments->dim == 1)
+    {
+	Expression *lenExpr = ((Expression *)(arguments->data[0]))->interpret(istate);
+	if (lenExpr == EXP_CANT_INTERPRET)
+	    return EXP_CANT_INTERPRET;
+	return createBlockDuplicatedArrayLiteral(newtype,
+	    newtype->defaultInitLiteral(), lenExpr->toInteger());
+    }
+    error("Cannot interpret %s at compile time", toChars());
+    return EXP_CANT_INTERPRET;
 }
 
 Expression *UnaExp::interpretCommon(InterState *istate, Expression *(*fp)(Type *, Expression *))
