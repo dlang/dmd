@@ -1,6 +1,6 @@
 
 // Compiler implementation of the D programming language
-// Copyright (c) 1999-2009 by Digital Mars
+// Copyright (c) 1999-2010 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // http://www.digitalmars.com
@@ -614,6 +614,7 @@ Expression *callCpCtor(Loc loc, Scope *sc, Expression *e)
 	 */
 	Identifier *idtmp = Lexer::uniqueId("__tmp");
 	VarDeclaration *tmp = new VarDeclaration(loc, tb, idtmp, new ExpInitializer(0, e));
+	tmp->storage_class |= STCctfe;
 	Expression *ae = new DeclarationExp(loc, tmp);
 	e = new CommaExp(loc, ae, new VarExp(loc, tmp));
 	e = e->semantic(sc);
@@ -2221,6 +2222,13 @@ Expression *IdentifierExp::semantic(Scope *sc)
 	}
 	return e->semantic(sc);
     }
+    if (ident == Id::ctfe)
+    {  // Create the magic __ctfe bool variable
+       VarDeclaration *vd = new VarDeclaration(loc, Type::tbool, Id::ctfe, NULL);
+       Expression *e = new VarExp(loc, vd);
+       e = e->semantic(sc);
+       return e;
+    }
     error("undefined identifier %s", ident->toChars());
     type = Type::terror;
     return this;
@@ -2349,7 +2357,7 @@ Lagain:
 	if ((v->storage_class & STCmanifest) && v->init)
 	{
 	    e = v->init->toExpression();
-	    e->semantic(sc);
+	    e = e->semantic(sc);
 	    return e;
 	}
 
@@ -6650,6 +6658,7 @@ Lagain:
 		// Create variable that will get constructed
 		Identifier *idtmp = Lexer::uniqueId("__ctmp");
 		VarDeclaration *tmp = new VarDeclaration(loc, t1, idtmp, NULL);
+		tmp->storage_class |= STCctfe;		
 		Expression *av = new DeclarationExp(loc, tmp);
 		av = new CommaExp(loc, av, new VarExp(loc, tmp));
 

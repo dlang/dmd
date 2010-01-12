@@ -1,6 +1,6 @@
 
 // Compiler implementation of the D programming language
-// Copyright (c) 1999-2008 by Digital Mars
+// Copyright (c) 1999-2010 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // http://www.digitalmars.com
@@ -151,6 +151,7 @@ FuncDeclaration *StructDeclaration::buildOpAssign(Scope *sc)
 	{
 	    tmp = new VarDeclaration(0, type, idtmp, new VoidInitializer(0));
 	    tmp->noauto = 1;
+	    tmp->storage_class |= STCctfe;
 	    e = new DeclarationExp(0, tmp);
 	    ec = new AssignExp(0,
 		new VarExp(0, tmp),

@@ -53,6 +53,7 @@ Msgtable msgtable[] =
     { "ptr" },
     { "funcptr" },
     { "dollar", "__dollar" },
+    { "ctfe", "__ctfe" },
     { "offset" },
     { "offsetof" },
     { "ModuleInfo" },

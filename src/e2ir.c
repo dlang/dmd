@@ -678,6 +678,12 @@ elem *SymbolExp::toElem(IRState *irs)
 	error("need 'this' to access member %s", toChars());
 	return el_long(TYint, 0);
     }
+
+    /* The magic variable __ctfe is always false at runtime
+     */
+    if (op == TOKvar && v && v->ident == Id::ctfe)
+	return el_long(type->totym(), 0);    
+
     s = var->toSymbol();
     fd = NULL;
     if (var->toParent2())

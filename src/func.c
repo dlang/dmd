@@ -264,7 +264,7 @@ void FuncDeclaration::semantic(Scope *sc)
     {
 	if (isCtorDeclaration())
 	{
-	    return;
+	    goto Ldone;
 	}
 #if 0
 	// Verify no constructors, destructors, etc.

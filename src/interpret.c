@@ -1,6 +1,6 @@
 
 // Compiler implementation of the D programming language
-// Copyright (c) 1999-2009 by Digital Mars
+// Copyright (c) 1999-2010 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // http://www.digitalmars.com
@@ -1013,6 +1013,11 @@ Expression *getVarExp(Loc loc, InterState *istate, Declaration *d)
     if (v)
     {
 #if DMDV2
+	/* Magic variable __ctfe always returns true when interpreting
+	 */
+	if (v->ident == Id::ctfe)
+	    return new IntegerExp(loc, 1, Type::tbool);
+
 	if ((v->isConst() || v->isImmutable() || v->storage_class & STCmanifest) && v->init && !v->value)
 #else
 	if (v->isConst() && v->init)
@@ -1020,6 +1025,16 @@ Expression *getVarExp(Loc loc, InterState *istate, Declaration *d)
 	{   e = v->init->toExpression();
 	    if (e && !e->type)
 		e->type = v->type;
+	}
+	else if (v->isCTFE() && !v->value)
+	{
+	    if (v->init)
+	    {
+		e = v->init->toExpression();
+		e = e->interpret(istate);
+	    }
+	    else // This should never happen
+		e = v->type->defaultInitLiteral();
 	}
 	else
 	{   e = v->value;
@@ -1584,13 +1599,16 @@ Expression *BinExp::interpretAssignCommon(InterState *istate, fp_t fp, int post)
     // To reduce code complexity of handling dotvar expressions,
     // extract the aggregate now.
     Expression *aggregate;
-    if (e1->op == TOKdotvar) {
+    if (e1->op == TOKdotvar)
+    {
         aggregate = ((DotVarExp *)e1)->e1;
 	// Get rid of 'this'.
         if (aggregate->op == TOKthis && istate->localThis)
-            aggregate = istate->localThis;	
+            aggregate = istate->localThis;
     }
-    
+    if (e1->op == TOKthis && istate->localThis)
+	e1 = istate->localThis;
+
     /* Assignment to variable of the form:
      *	v = e2
      */
@@ -1625,7 +1643,8 @@ Expression *BinExp::interpretAssignCommon(InterState *istate, fp_t fp, int post)
 	    if (e2 == EXP_CANT_INTERPRET)
 		return e2;
 
-	    addVarToInterstate(istate, v);
+	    if (istate)
+		addVarToInterstate(istate, v);
 	    v->value = e2;
 	    e = Cast(type, type, post ? ev : e2);
 	}
@@ -1670,16 +1689,21 @@ Expression *BinExp::interpretAssignCommon(InterState *istate, fp_t fp, int post)
 	     * on the void value - to do that we'd need a VoidExp.
 	     * That's probably a good enhancement idea.
 	     */
-	    v->value = v->type->defaultInit();
+	    v->value = v->type->defaultInitLiteral();
 	}
 	Expression *vie = v->value;
+	assert(vie != EXP_CANT_INTERPRET);
+
 	if (vie->op == TOKvar)
 	{
 	    Declaration *d = ((VarExp *)vie)->var;
 	    vie = getVarExp(e1->loc, istate, d);
 	}
 	if (vie->op != TOKstructliteral)
+	{
+	    error("Cannot assign %s=%s in CTFE", v->toChars(), vie->toChars());
 	    return EXP_CANT_INTERPRET;
+	}
 	StructLiteralExp *se = (StructLiteralExp *)vie;
 	VarDeclaration *vf = ((DotVarExp *)e1)->var->isVarDeclaration();
 	if (!vf)
@@ -2269,8 +2293,10 @@ Expression *CallExp::interpret(InterState *istate)
 	TypeFunction *tf = fd ? (TypeFunction *)(fd->type) : NULL;
 	if (tf)
 	{   // Member function call
-	    if(pthis->op == TOKthis)
-		pthis = istate->localThis;	    
+	    if (pthis->op == TOKthis)
+		pthis = istate->localThis;
+	    else if (pthis->op == TOKcomma)
+	        pthis = pthis->interpret(istate);
 	    Expression *eresult = fd->interpret(istate, arguments, pthis);
 	    if (eresult)
 		e = eresult;
@@ -2337,6 +2363,21 @@ Expression *CommaExp::interpret(InterState *istate)
 #if LOG
     printf("CommaExp::interpret() %s\n", toChars());
 #endif
+    // If the comma returns a temporary variable, it needs to be an lvalue
+    // (this is particularly important for struct constructors)
+    if (e1->op == TOKdeclaration && e2->op == TOKvar 
+       && ((DeclarationExp *)e1)->declaration == ((VarExp*)e2)->var)
+    {
+	VarExp* ve = (VarExp *)e2;
+	VarDeclaration *v = ve->var->isVarDeclaration();
+	if (!v->init && !v->value)
+	    v->value = v->type->defaultInitLiteral();
+	if (!v->value)
+	    v->value = v->init->toExpression();
+	v->value = v->value->interpret(istate);	
+	return e2;
+    }
+
     Expression *e = e1->interpret(istate);
     if (e != EXP_CANT_INTERPRET)
 	e = e2->interpret(istate);
