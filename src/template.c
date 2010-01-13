@@ -344,6 +344,7 @@ void TemplateDeclaration::semantic(Scope *sc)
 {
 #if LOG
     printf("TemplateDeclaration::semantic(this = %p, id = '%s')\n", this, ident->toChars());
+    printf("sc->stc = %llx\n", sc->stc);
 #endif
     if (semanticRun)
 	return;		// semantic() already run
@@ -811,7 +812,9 @@ MATCH TemplateDeclaration::deduceFunctionTemplateMatch(Loc loc, Objects *targsi,
 	printf("\tfarg[%d] is %s, type is %s\n", i, e->toChars(), e->type->toChars());
     }
     printf("fd = %s\n", fd->toChars());
-    printf("fd->type = %p\n", fd->type);
+    printf("fd->type = %s\n", fd->type->toChars());
+    if (ethis)
+	printf("ethis->type = %s\n", ethis->type->toChars());
 #endif
 
     assert((size_t)scope > 0x10000);
@@ -979,9 +982,9 @@ L1:
 
 L2:
 #if DMDV2
-    // Match 'ethis' to any TemplateThisParameter's
     if (ethis)
     {
+	// Match 'ethis' to any TemplateThisParameter's
 	for (size_t i = 0; i < parameters->dim; i++)
 	{   TemplateParameter *tp = (TemplateParameter *)parameters->data[i];
 	    TemplateThisParameter *ttp = tp->isTemplateThisParameter();
@@ -994,6 +997,34 @@ L2:
 		    goto Lnomatch;
 		if (m < match)
 		    match = m;		// pick worst match
+	    }
+	}
+
+	// Match attributes of ethis against attributes of fd
+	if (fd->type)
+	{
+	    Type *tthis = ethis->type;
+	    unsigned mod = fd->type->mod;
+	    StorageClass stc = scope->stc;
+	    if (stc & (STCshared | STCsynchronized))
+		mod |= MODshared;
+	    if (stc & STCimmutable)
+		mod |= MODimmutable;
+	    if (stc & STCconst)
+		mod |= MODconst;
+	    if (stc & STCwild)
+		mod |= MODwild;
+	    // Fix mod
+	    if (mod & MODimmutable)
+		mod = MODimmutable;
+	    if (mod & MODconst)
+		mod &= ~STCwild;
+	    if (tthis->mod != mod)
+	    {
+		if (!MODimplicitConv(tthis->mod, mod))
+		    goto Lnomatch;
+		if (MATCHconst < match)
+		    match = MATCHconst;
 	    }
 	}
     }
@@ -1356,6 +1387,7 @@ FuncDeclaration *TemplateDeclaration::deduceFunctionTemplate(Scope *sc, Loc loc,
 	printf("\t%s %s\n", arg->type->toChars(), arg->toChars());
 	//printf("\tty = %d\n", arg->type->ty);
     }
+    printf("stc = %llx\n", scope->stc);
 #endif
 
     for (TemplateDeclaration *td = this; td; td = td->overnext)

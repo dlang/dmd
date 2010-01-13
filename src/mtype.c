@@ -84,8 +84,6 @@ int REALALIGNSIZE = 2;
 int Tsize_t = Tuns32;
 int Tptrdiff_t = Tint32;
 
-int MODimplicitConv(unsigned char modfrom, unsigned char modto);
-
 /***************************** Type *****************************/
 
 ClassDeclaration *Type::typeinfo;
