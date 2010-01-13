@@ -1,5 +1,5 @@
 
-// Copyright (c) 1999-2009 by Digital Mars
+// Copyright (c) 1999-2010 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // http://www.digitalmars.com
@@ -113,10 +113,10 @@ int runLINK()
     }
 
     cmdbuf.writeByte(',');
-    if (global.params.run)
+    if (global.params.mapfile)
+	cmdbuf.writestring(global.params.mapfile);
+    else if (global.params.run)
 	cmdbuf.writestring("nul");
-//    if (mapfile)
-//	cmdbuf.writestring(output);
     cmdbuf.writeByte(',');
 
     for (i = 0; i < global.params.libfiles->dim; i++)
@@ -146,9 +146,10 @@ int runLINK()
 	writeFilename(&cmdbuf, global.params.resfile);
     }
 
-#if 0
-    if (mapfile)
+    if (global.params.map || global.params.mapfile)
 	cmdbuf.writestring("/m");
+
+#if 0
     if (debuginfo)
 	cmdbuf.writestring("/li");
     if (codeview)
@@ -251,6 +252,29 @@ int runLINK()
     else
 	argv.push((void *)"-m32");
 
+    if (global.params.map || global.params.mapfile)
+    {
+	argv.push((void *)"-Xlinker");
+#if __APPLE__
+	argv.push((void *)"-map");
+#else
+	argv.push((void *)"-Map");
+#endif
+	if (!global.params.mapfile)
+	{
+	    size_t elen = strlen(global.params.exefile);
+	    size_t extlen = strlen(global.map_ext);
+	    char *m = (char *)mem.malloc(elen + 1 + extlen + 1);
+	    memcpy(m, global.params.exefile, elen);
+	    m[elen] = '.';
+	    memcpy(m + elen + 1, global.map_ext, extlen);
+	    m[elen + 1 + extlen] = 0;
+	    global.params.mapfile = m;
+	}
+	argv.push((void *)"-Xlinker");
+	argv.push(global.params.mapfile);
+    }
+
     if (0 && global.params.exefile)
     {
 	/* This switch enables what is known as 'smart linking'
@@ -261,6 +285,7 @@ int runLINK()
 	 * in practice it does not, but just seems to be ignored.
 	 * Thomas Kuehne has verified that it works with ld 2.16.1.
 	 * BUG: disabled because it causes exception handling to fail
+	 * because EH sections are "unreferenced" and elided
 	 */
 	argv.push((void *)"-Xlinker");
 	argv.push((void *)"--gc-sections");
