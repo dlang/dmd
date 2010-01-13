@@ -1,6 +1,6 @@
 
 // Compiler implementation of the D programming language
-// Copyright (c) 1999-2009 by Digital Mars
+// Copyright (c) 1999-2010 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // http://www.digitalmars.com
@@ -55,6 +55,7 @@ Global::Global()
     doc_ext  = "html";
     ddoc_ext = "ddoc";
     json_ext = "json";
+    map_ext  = "map";
 
 #if TARGET_WINDOS
     obj_ext  = "obj";
@@ -236,6 +237,7 @@ Usage:\n\
   -Llinkerflag   pass linkerflag to link\n\
   -lib           generate library rather than object files\n\
   -man           open web browser on manual page\n\
+  -map           generate linker .map file\n\
   -nofloat       do not emit reference to floating point\n\
   -O             optimize\n\
   -o-            do not write object file\n\
@@ -385,6 +387,8 @@ int main(int argc, char *argv[])
 	    else if (strcmp(p + 1, "fPIC") == 0)
 		global.params.pic = 1;
 #endif
+	    else if (strcmp(p + 1, "map") == 0)
+		global.params.map = 1;
 	    else if (strcmp(p + 1, "multiobj") == 0)
 		global.params.multiobj = 1;
 	    else if (strcmp(p + 1, "g") == 0)
@@ -529,8 +533,8 @@ int main(int argc, char *argv[])
 	    else if (strcmp(p + 1, "release") == 0)
 		global.params.release = 1;
 #if DMDV2
-	    else if (strcmp(p + 1, "safe") == 0)
-		global.params.safe = 1;
+	    else if (strcmp(p + 1, "noboundscheck") == 0)
+		noboundscheck = 1;
 #endif
 	    else if (strcmp(p + 1, "unittest") == 0)
 		global.params.useUnitTests = 1;
@@ -903,6 +907,12 @@ int main(int argc, char *argv[])
 	    {
 		global.params.doXGeneration = 1;
 		global.params.xfilename = (char *)files.data[i];
+		continue;
+	    }
+
+	    if (FileName::equals(ext, global.map_ext))
+	    {
+		global.params.mapfile = (char *)files.data[i];
 		continue;
 	    }
 
