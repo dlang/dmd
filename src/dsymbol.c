@@ -562,20 +562,33 @@ void Dsymbol::checkDeprecated(Loc loc, Scope *sc)
 	// Don't complain if we're inside a deprecated symbol's scope
 	for (Dsymbol *sp = sc->parent; sp; sp = sp->parent)
 	{   if (sp->isDeprecated())
-		return;
+		goto L1;
 	}
 
 	for (; sc; sc = sc->enclosing)
 	{
 	    if (sc->scopesym && sc->scopesym->isDeprecated())
-		return;
+		goto L1;
 
 	    // If inside a StorageClassDeclaration that is deprecated
 	    if (sc->stc & STCdeprecated)
-		return;
+		goto L1;
 	}
 
 	error(loc, "is deprecated");
+    }
+
+  L1:
+    Declaration *d = isDeclaration();
+    if (d && d->storage_class & STCdisable)
+    {
+	if (!(sc->func && sc->func->storage_class & STCdisable))
+	{
+	    if (d->ident == Id::cpctor && d->toParent())
+		d->toParent()->error(loc, "is not copyable");
+	    else
+		error(loc, "is not callable");
+	}
     }
 }
 

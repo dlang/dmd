@@ -442,6 +442,7 @@ void StorageClassDeclaration::stcToCBuffer(OutBuffer *buf, StorageClass stc)
 	{ STCproperty,     TOKat },
 	{ STCsafe,         TOKat },
 	{ STCtrusted,      TOKat },
+	{ STCdisable,       TOKat },
 #endif
     };
 
@@ -459,6 +460,8 @@ void StorageClassDeclaration::stcToCBuffer(OutBuffer *buf, StorageClass stc)
 		    id = Id::safe;
 		else if (stc & STCtrusted)
 		    id = Id::trusted;
+		else if (stc & STCdisable)
+		    id = Id::disable;
 		else
 		    assert(0);
 		buf->writestring(id->toChars());

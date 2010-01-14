@@ -462,11 +462,11 @@ void AliasDeclaration::semantic(Scope *sc)
 
 #if DMDV2
     type = type->addStorageClass(storage_class);
-    if (storage_class & (STCref | STCnothrow | STCpure))
+    if (storage_class & (STCref | STCnothrow | STCpure | STCdisable))
     {	// For 'ref' to be attached to function types, and picked
 	// up by Type::resolve(), it has to go into sc.
 	sc = sc->push();
-	sc->stc |= storage_class & (STCref | STCnothrow | STCpure | STCshared);
+	sc->stc |= storage_class & (STCref | STCnothrow | STCpure | STCshared | STCdisable);
 	type->resolve(loc, sc, &e, &t, &s);
 	sc = sc->pop();
     }
@@ -1012,7 +1012,7 @@ Lagain:
     if (init)
     {
 	sc = sc->push();
-	sc->stc &= ~(STC_TYPECTOR | STCpure | STCnothrow | STCref);
+	sc->stc &= ~(STC_TYPECTOR | STCpure | STCnothrow | STCref | STCdisable);
 
 	ArrayInitializer *ai = init->isArrayInitializer();
 	if (ai && tb->ty == Taarray)

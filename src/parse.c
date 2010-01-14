@@ -632,8 +632,10 @@ StorageClass Parser::parseAttribute()
 	stc = STCtrusted;
     else if (token.ident == Id::system)
 	stc = STCsystem;
+    else if (token.ident == Id::disable)
+	stc = STCdisable;
     else
-	error("valid attribute identifiers are @property, @safe, @trusted, @system, not @%s", token.toChars());
+	error("valid attribute identifiers are @property, @safe, @trusted, @system, @disable not @%s", token.toChars());
     return stc;
 }
 #endif
@@ -2768,7 +2770,7 @@ Array *Parser::parseDeclarations(StorageClass storage_class)
 	    L1:
 		if (storage_class & stc)
 		    error("redundant storage class '%s'", token.toChars());
-		storage_class = (STC) (storage_class | stc);
+		storage_class = storage_class | stc;
 		composeStorageClass(storage_class);
 		nextToken();
 		continue;

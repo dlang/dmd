@@ -134,14 +134,14 @@ void FuncDeclaration::semantic(Scope *sc)
     semanticRun = 1;
 
     storage_class |= sc->stc & ~STCref;
-    //printf("function storage_class = x%x\n", storage_class);
+    //printf("function storage_class = x%llx, sc->stc = x%llx\n", storage_class, sc->stc);
 
     if (!originalType)
 	originalType = type;
     if (!type->deco)
     {
 	sc = sc->push();
-	sc->stc |= storage_class & STCref;	// forward refness to function type
+	sc->stc |= storage_class & STCref;	// forward to function type
 	type = type->semantic(loc, sc);
 	sc = sc->pop();
 
@@ -2843,6 +2843,7 @@ void PostBlitDeclaration::semantic(Scope *sc)
 {
     //printf("PostBlitDeclaration::semantic() %s\n", toChars());
     //printf("ident: %s, %s, %p, %p\n", ident->toChars(), Id::dtor->toChars(), ident, Id::dtor);
+    //printf("stc = x%llx\n", sc->stc);
     parent = sc->parent;
     Dsymbol *parent = toParent();
     StructDeclaration *ad = parent->isStructDeclaration();

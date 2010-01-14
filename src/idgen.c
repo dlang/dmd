@@ -145,6 +145,7 @@ Msgtable msgtable[] =
     { "safe" },
     { "trusted" },
     { "system" },
+    { "disable" },
 
     // For inline assembler
     { "___out", "out" },
