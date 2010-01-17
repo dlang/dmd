@@ -2418,7 +2418,14 @@ Statement *PragmaStatement::semantic(Scope *sc)
                 Expression *e = (Expression *)args->data[i];
 
                 e = e->semantic(sc);
+#if 1
 		e = e->optimize(WANTvalue | WANTinterpret);
+#else
+	        e = e->interpret(NULL);
+		if (e == EXP_CANT_INTERPRET)
+		    fprintf(stdmsg, ((Expression *)args->data[i])->toChars());
+                else
+#endif
                 if (e->op == TOKstring)
                 {
                     StringExp *se = (StringExp *)e;

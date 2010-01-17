@@ -340,7 +340,9 @@ Expression *NewExp::optimize(int result)
 }
 
 Expression *CallExp::optimize(int result)
-{   Expression *e = this;
+{
+    //printf("CallExp::optimize(result = %d) %s\n", result, toChars());
+    Expression *e = this;
 
     // Optimize parameters
     if (arguments)
@@ -354,17 +356,15 @@ Expression *CallExp::optimize(int result)
     }
 
     e1 = e1->optimize(result);
-    if (e1->op == TOKvar && result & WANTinterpret)
+    if (result & WANTinterpret)
     {
-	FuncDeclaration *fd = ((VarExp *)e1)->var->isFuncDeclaration();
-	if (fd)
-	{
-	    Expression *eresult = fd->interpret(NULL, arguments);
-	    if (eresult && eresult != EXP_VOID_INTERPRET)
-		e = eresult;
-	    else if (result & WANTinterpret)
-		error("cannot evaluate %s at compile time", toChars());
-	}
+        Expression *eresult = interpret(NULL);
+	if (eresult == EXP_CANT_INTERPRET)
+	    return e;
+	if (eresult && eresult != EXP_VOID_INTERPRET)
+	    e = eresult;
+	else
+	    error("cannot evaluate %s at compile time", toChars());
     }
     return e;
 }
