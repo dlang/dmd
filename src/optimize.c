@@ -465,6 +465,18 @@ Expression *CallExp::optimize(int result)
     }
 
     e1 = e1->optimize(result);
+#if 1
+    if (result & WANTinterpret)
+    {
+        Expression *eresult = interpret(NULL);
+	if (eresult == EXP_CANT_INTERPRET)
+	    return e;
+	if (eresult && eresult != EXP_VOID_INTERPRET)
+	    e = eresult;
+	else
+	    error("cannot evaluate %s at compile time", toChars());
+    }
+#else
     if (e1->op == TOKvar)
     {
 	FuncDeclaration *fd = ((VarExp *)e1)->var->isFuncDeclaration();
@@ -499,6 +511,7 @@ Expression *CallExp::optimize(int result)
 		error("cannot evaluate %s at compile time", toChars());
 	}
     }
+#endif
     return e;
 }
 
