@@ -1171,21 +1171,10 @@ L2:
 
 Lmatch:
 
-    /* Fill in any missing arguments with their defaults.
-     */
-    if (tp &&				// if tuple parameter and
-	fptupindex < 0 &&		// tuple parameter was not in function parameter list and
-	nargsi == dedargs->dim - 1)	// we're one argument short (i.e. no tuple argument)
-    {	// make tuple argument an empty tuple
-        Tuple *t = new Tuple();
-        dedargs->data[dedargs->dim - 1] = (void *)t;
-        nargsi++; 
-    }
-
     for (i = nargsi; i < dedargs->dim; i++)
     {
-	TemplateParameter *tp = (TemplateParameter *)parameters->data[i];
-	//printf("tp[%d] = %s\n", i, tp->ident->toChars());
+	TemplateParameter *tparam = (TemplateParameter *)parameters->data[i];
+	//printf("tparam[%d] = %s\n", i, tparam->ident->toChars());
 	/* For T:T*, the dedargs is the T*, dedtypes is the T
 	 * But for function templates, we really need them to match
 	 */
@@ -1198,28 +1187,37 @@ Lmatch:
 	{
 	    if (oded)
 	    {
-		if (tp->specialization())
+		if (tparam->specialization())
 		{   /* The specialization can work as long as afterwards
 		     * the oded == oarg
 		     */
 		    Declaration *sparam;
 		    dedargs->data[i] = (void *)oded;
-		    MATCH m2 = tp->matchArg(paramscope, dedargs, i, parameters, &dedtypes, &sparam, 0);
+		    MATCH m2 = tparam->matchArg(paramscope, dedargs, i, parameters, &dedtypes, &sparam, 0);
 		    //printf("m2 = %d\n", m2);
 		    if (!m2)
 			goto Lnomatch;
 		    if (m2 < match)
 			match = m2;		// pick worst match
 		    if (dedtypes.data[i] != oded)
-			error("specialization not allowed for deduced parameter %s", tp->ident->toChars());
+			error("specialization not allowed for deduced parameter %s", tparam->ident->toChars());
 		}
 	    }
 	    else
-	    {	oded = tp->defaultArg(loc, paramscope);
+	    {	oded = tparam->defaultArg(loc, paramscope);
 		if (!oded)
-		    goto Lnomatch;
+		{
+		    if (tp &&				// if tuple parameter and
+			fptupindex < 0 &&		// tuple parameter was not in function parameter list and
+			nargsi == dedargs->dim - 1)	// we're one argument short (i.e. no tuple argument)
+		    {   // make tuple argument an empty tuple
+			oded = (Object *)new Tuple();
+		    }
+		    else
+			goto Lnomatch;
+		}
 	    }
-	    declareParameter(paramscope, tp, oded);
+	    declareParameter(paramscope, tparam, oded);
 	    dedargs->data[i] = (void *)oded;
 	}
     }
