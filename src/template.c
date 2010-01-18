@@ -1173,6 +1173,15 @@ Lmatch:
 
     /* Fill in any missing arguments with their defaults.
      */
+    if (tp &&				// if tuple parameter and
+	fptupindex < 0 &&		// tuple parameter was not in function parameter list and
+	nargsi == dedargs->dim - 1)	// we're one argument short (i.e. no tuple argument)
+    {	// make tuple argument an empty tuple
+        Tuple *t = new Tuple();
+        dedargs->data[dedargs->dim - 1] = (void *)t;
+        nargsi++; 
+    }
+
     for (i = nargsi; i < dedargs->dim; i++)
     {
 	TemplateParameter *tp = (TemplateParameter *)parameters->data[i];
