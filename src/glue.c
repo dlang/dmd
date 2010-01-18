@@ -603,15 +603,21 @@ void FuncDeclaration::toObjFile(int multiobj)
 	{   objextdef("_main");
 #if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_SOLARIS
 	    obj_ehsections();	// initialize exception handling sections
-#else
+#endif
+#if TARGET_WINDOS
 	    objextdef("__acrtused_con");
 #endif
 	    obj_includelib(libname);
 	    s->Sclass = SCglobal;
 	}
 	else if (strcmp(s->Sident, "main") == 0 && linkage == LINKc)
+	{
+#if TARGET_WINDOS
+	    objextdef("__acrtused_con");	// bring in C startup code
+	    obj_includelib("snn.lib");		// bring in C runtime library
+#endif
 	    s->Sclass = SCglobal;
-
+	}
 	else if (func->isWinMain())
 	{
 	    objextdef("__acrtused");
