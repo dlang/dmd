@@ -1,5 +1,5 @@
 // Compiler implementation of the D programming language
-// Copyright (c) 1999-2009 by Digital Mars
+// Copyright (c) 1999-2010 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // http://www.digitalmars.com
@@ -132,6 +132,8 @@ void FuncDeclaration::semantic(Scope *sc)
     }
     assert(semanticRun <= 1);
     semanticRun = 1;
+
+    foverrides.setDim(0);	// reset in case semantic() is being retried for this function
 
     storage_class |= sc->stc & ~STCref;
     //printf("function storage_class = x%llx, sc->stc = x%llx\n", storage_class, sc->stc);
@@ -510,19 +512,21 @@ void FuncDeclaration::semantic(Scope *sc)
 			/* Only need to have a tintro if the vptr
 			 * offsets differ
 			 */
+			unsigned errors = global.errors;
+			global.gag++;            // suppress printing of error messages
 			int offset;
-			if (fdv->type->nextOf()->isBaseOf(type->nextOf(), &offset))
+			int baseOf = fdv->type->nextOf()->isBaseOf(type->nextOf(), &offset);
+			global.gag--;            // suppress printing of error messages
+			if (errors != global.errors)
+			{
+			    // any error in isBaseOf() is a forward reference error, so we bail out
+			    global.errors = errors;
+			    cd->sizeok = 2;    // can't finish due to forward reference
+			    return;
+			}
+			if (baseOf)
 			{
 			    ti = fdv->type;
-#if 0
-			    if (offset)
-				ti = fdv->type;
-			    else if (type->nextOf()->ty == Tclass)
-			    {   ClassDeclaration *cdn = ((TypeClass *)type->nextOf())->sym;
-				if (cdn && cdn->sizeok != 1)
-				    ti = fdv->type;
-			    }
-#endif
 			}
 		    }
 		    if (ti)
