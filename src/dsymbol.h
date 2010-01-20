@@ -1,6 +1,6 @@
 
 // Compiler implementation of the D programming language
-// Copyright (c) 1999-2009 by Digital Mars
+// Copyright (c) 1999-2010 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // http://www.digitalmars.com
@@ -95,6 +95,18 @@ enum PROT
     PROTexport,
 };
 
+/* State of symbol in winding its way through the passes of the compiler
+ */
+enum PASS
+{
+    PASSinit,		// initial state
+    PASSsemantic,	// semantic() started
+    PASSsemanticdone,	// semantic() done
+    PASSsemantic2,	// semantic2() run
+    PASSsemantic3,	// semantic3() started
+    PASSsemantic3done,	// semantic3() done
+    PASSobj,		// toObjFile() run
+};
 
 struct Dsymbol : Object
 {

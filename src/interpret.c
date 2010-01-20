@@ -94,7 +94,7 @@ Expression *FuncDeclaration::interpret(InterState *istate, Expressions *argument
     }
 #endif
 
-    if (cantInterpret || semanticRun == 3)
+    if (cantInterpret || semanticRun == PASSsemantic3)
 	return NULL;
 
     if (!fbody)
@@ -102,13 +102,13 @@ Expression *FuncDeclaration::interpret(InterState *istate, Expressions *argument
 	return NULL;
     }
 
-    if (semanticRun < 3 && scope)
+    if (semanticRun < PASSsemantic3 && scope)
     {
 	semantic3(scope);
 	if (global.errors)	// if errors compiling this function
 	    return NULL;
     }
-    if (semanticRun < 4)
+    if (semanticRun < PASSsemantic3done)
 	return NULL;
 
     Type *tb = type->toBasetype();

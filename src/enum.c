@@ -1,5 +1,5 @@
 
-// Copyright (c) 1999-2008 by Digital Mars
+// Copyright (c) 1999-2010 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // http://www.digitalmars.com
@@ -81,6 +81,8 @@ void EnumDeclaration::semantic(Scope *sc)
         scope = NULL;
     }
 
+    unsigned dprogress_save = Module::dprogress;
+
     if (sc->stc & STCdeprecated)
 	isdeprecated = 1;
 
@@ -106,6 +108,7 @@ void EnumDeclaration::semantic(Scope *sc)
 		scope = scx ? scx : new Scope(*sc);
 		scope->setNoFree();
 		scope->module->addDeferredSemantic(this);
+		Module::dprogress = dprogress_save;
 		//printf("\tdeferring %s\n", toChars());
 		return;
 	    }
@@ -119,6 +122,7 @@ void EnumDeclaration::semantic(Scope *sc)
     }
 
     isdone = 1;
+    Module::dprogress++;
 
     type = type->semantic(loc, sc);
     if (isAnonymous())

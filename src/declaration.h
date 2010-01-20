@@ -530,11 +530,7 @@ struct FuncDeclaration : Declaration
     ILS inlineStatus;
     int inlineNest;			// !=0 if nested inline
     int cantInterpret;			// !=0 if cannot interpret function
-    int semanticRun;			// 1 semantic() run
-					// 2 semantic2() run
-					// 3 semantic3() started
-					// 4 semantic3() done
-					// 5 toObjFile() run
+    enum PASS semanticRun;
 					// this function's frame ptr
     ForeachStatement *fes;		// if foreach body, this is the foreach
     int introducing;			// !=0 if 'introducing' function

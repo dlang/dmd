@@ -715,6 +715,8 @@ void AnonDeclaration::semantic(Scope *sc)
 	scope = NULL;
     }
 
+    unsigned dprogress_save = Module::dprogress;
+
     assert(sc->parent);
 
     Dsymbol *parent = sc->parent->pastMixin();
@@ -776,6 +778,7 @@ void AnonDeclaration::semantic(Scope *sc)
 		scope->setNoFree();
 		scope->module->addDeferredSemantic(this);
 	    }
+	    Module::dprogress = dprogress_save;
 	    //printf("\tforward reference %p\n", this);
 	    return;
 	}
