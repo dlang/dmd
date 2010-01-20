@@ -1,6 +1,6 @@
 
 // Compiler implementation of the D programming language
-// Copyright (c) 1999-2009 by Digital Mars
+// Copyright (c) 1999-2010 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // http://www.digitalmars.com
@@ -929,7 +929,8 @@ void Module::addDeferredSemantic(Dsymbol *s)
 
 void Module::runDeferredSemantic()
 {
-    size_t len;
+    if (dprogress == 0)
+	return;
 
     static int nested;
     if (nested)
@@ -937,6 +938,7 @@ void Module::runDeferredSemantic()
     //if (deferred.dim) printf("+Module::runDeferredSemantic('%s'), len = %d\n", toChars(), deferred.dim);
     nested++;
 
+    size_t len;
     do
     {
 	dprogress = 0;

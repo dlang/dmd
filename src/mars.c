@@ -1105,6 +1105,9 @@ int main(int argc, char *argv[])
     if (global.errors)
 	fatal();
 
+    Module::dprogress = 1;
+    Module::runDeferredSemantic();
+
     // Do pass 2 semantic analysis
     for (i = 0; i < modules.dim; i++)
     {

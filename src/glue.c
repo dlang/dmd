@@ -488,9 +488,9 @@ void FuncDeclaration::toObjFile(int multiobj)
 	return;
     }
 
-    if (semanticRun >= 5)	// if toObjFile() already run
+    if (semanticRun >= PASSobj)	// if toObjFile() already run
 	return;
-    semanticRun = 5;
+    semanticRun = PASSobj;
 
     if (!func->fbody)
     {

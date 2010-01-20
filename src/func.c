@@ -65,7 +65,7 @@ FuncDeclaration::FuncDeclaration(Loc loc, Loc endloc, Identifier *id, StorageCla
     inlineNest = 0;
     inlineAsm = 0;
     cantInterpret = 0;
-    semanticRun = 0;
+    semanticRun = PASSinit;
 #if DMDV1
     nestedFrameRef = 0;
 #endif
@@ -121,7 +121,7 @@ void FuncDeclaration::semantic(Scope *sc)
     printf("type: %p, %s\n", type, type->toChars());
 #endif
 
-    if (semanticRun && isFuncLiteralDeclaration())
+    if (semanticRun != PASSinit && isFuncLiteralDeclaration())
     {
 	/* Member functions that have return types that are
 	 * forward references can have semantic() run more than
@@ -130,8 +130,12 @@ void FuncDeclaration::semantic(Scope *sc)
 	 */
 	return;
     }
-    assert(semanticRun <= 1);
-    semanticRun = 1;
+    if (semanticRun == PASSsemanticdone)
+	return;
+    assert(semanticRun <= PASSsemantic);
+    semanticRun = PASSsemantic;
+
+    unsigned dprogress_save = Module::dprogress;
 
     foverrides.setDim(0);	// reset in case semantic() is being retried for this function
 
@@ -346,6 +350,7 @@ void FuncDeclaration::semantic(Scope *sc)
 
 	    case -2:	// can't determine because of fwd refs
 		cd->sizeok = 2;	// can't finish due to forward reference
+		Module::dprogress = dprogress_save;
 		return;
 
 	    default:
@@ -423,6 +428,7 @@ void FuncDeclaration::semantic(Scope *sc)
 
 		case -2:
 		    cd->sizeok = 2;	// can't finish due to forward reference
+		    Module::dprogress = dprogress_save;
 		    return;
 
 		default:
@@ -450,6 +456,7 @@ void FuncDeclaration::semantic(Scope *sc)
 			    // any error in isBaseOf() is a forward reference error, so we bail out
 			    global.errors = errors;
 			    cd->sizeok = 2;    // can't finish due to forward reference
+			    Module::dprogress = dprogress_save;
 			    return;
 			}
 			if (baseOf)
@@ -622,6 +629,9 @@ void FuncDeclaration::semantic(Scope *sc)
     }
 
 Ldone:
+    Module::dprogress++;
+    semanticRun = PASSsemanticdone;
+
     /* Save scope for possible later use (if we need the
      * function internals)
      */
@@ -658,9 +668,9 @@ void FuncDeclaration::semantic3(Scope *sc)
     //printf("\tlinkage = %d\n", sc->linkage);
 
     //printf(" sc->incontract = %d\n", sc->incontract);
-    if (semanticRun >= 3)
+    if (semanticRun >= PASSsemantic3)
 	return;
-    semanticRun = 3;
+    semanticRun = PASSsemantic3;
 
     if (!type || type->ty != Tfunction)
 	return;
@@ -1382,7 +1392,7 @@ void FuncDeclaration::semantic3(Scope *sc)
 	sc2->callSuper = 0;
 	sc2->pop();
     }
-    semanticRun = 4;
+    semanticRun = PASSsemantic3done;
 }
 
 void FuncDeclaration::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
