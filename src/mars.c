@@ -716,6 +716,7 @@ int main(int argc, char *argv[])
     }
     if (files.dim == 0)
     {	usage();
+halt();
 	return EXIT_FAILURE;
     }
 
