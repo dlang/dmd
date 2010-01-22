@@ -1,6 +1,6 @@
 
 // Compiler implementation of the D programming language
-// Copyright (c) 1999-2009 by Digital Mars
+// Copyright (c) 1999-2010 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // http://www.digitalmars.com
@@ -41,29 +41,31 @@
 
 /************************************************
  * Delegate to be passed to overloadApply() that looks
- * for virtual functions.
+ * for functions matching a trait.
  */
 
-struct Pvirtuals
+struct Ptrait
 {
     Expression *e1;
-    Expressions *exps;
+    Expressions *exps;		// collected results
+    Identifier *ident;		// which trait we're looking for
 };
 
-static int fpvirtuals(void *param, FuncDeclaration *f)
-{   Pvirtuals *p = (Pvirtuals *)param;
+static int fptraits(void *param, FuncDeclaration *f)
+{   Ptrait *p = (Ptrait *)param;
 
-    if (f->isVirtual())
-    {	Expression *e;
+    if (p->ident == Id::getVirtualFunctions && !f->isVirtual)
+	return 0;
 
-	if (p->e1->op == TOKdotvar)
-	{   DotVarExp *dve = (DotVarExp *)p->e1;
-	    e = new DotVarExp(0, dve->e1, f);
-	}
-	else
-	    e = new DsymbolExp(0, f);
-	p->exps->push(e);
+    Expression *e;
+
+    if (p->e1->op == TOKdotvar)
+    {   DotVarExp *dve = (DotVarExp *)p->e1;
+	e = new DotVarExp(0, dve->e1, f);
     }
+    else
+	e = new DsymbolExp(0, f);
+    p->exps->push(e);
     return 0;
 }
 
@@ -156,6 +158,10 @@ Expression *TraitsExp::semantic(Scope *sc)
 	ISDSYMBOL((f = s->isFuncDeclaration()) != NULL && f->isFinal())
     }
 #if DMDV2
+    else if (ident == Id::isStaticFunction)
+    {
+	ISDSYMBOL((f = s->isFuncDeclaration()) != NULL && !f->needThis())
+    }
     else if (ident == Id::isRef)
     {
 	ISDSYMBOL((d = s->isDeclaration()) != NULL && d->isRef())
@@ -168,9 +174,25 @@ Expression *TraitsExp::semantic(Scope *sc)
     {
 	ISDSYMBOL((d = s->isDeclaration()) != NULL && d->storage_class & STClazy)
     }
+    else if (ident == Id::identifier)
+    {	// Get identifier for symbol as a string literal
+        if (dim != 1)
+            goto Ldimerror;
+        Object *o = (Object *)args->data[0];
+        Dsymbol *s = getDsymbol(o);
+        if (!s || !s->ident)
+        {
+            error("argument %s has no identifier", o->toChars());
+            goto Lfalse;
+        }
+        StringExp *se = new StringExp(loc, s->ident->toChars());
+        return se->semantic(sc);
+    }
+
 #endif
     else if (ident == Id::hasMember ||
 	     ident == Id::getMember ||
+	     ident == Id::getOverloads ||
 	     ident == Id::getVirtualFunctions)
     {
 	if (dim != 2)
@@ -227,7 +249,8 @@ Expression *TraitsExp::semantic(Scope *sc)
 	    e = e->semantic(sc);
 	    return e;
 	}
-	else if (ident == Id::getVirtualFunctions)
+	else if (ident == Id::getVirtualFunctions ||
+		 ident == Id::getOverloads)
 	{
 	    unsigned errors = global.errors;
 	    Expression *ex = e;
@@ -235,7 +258,7 @@ Expression *TraitsExp::semantic(Scope *sc)
 	    if (errors < global.errors)
 		error("%s cannot be resolved", ex->toChars());
 
-	    /* Create tuple of virtual function overloads of e
+	    /* Create tuple of functions of e
 	     */
 	    //e->dump(0);
 	    Expressions *exps = new Expressions();
@@ -250,10 +273,11 @@ Expression *TraitsExp::semantic(Scope *sc)
 	    }
 	    else
 		f = NULL;
-	    Pvirtuals p;
+	    Ptrait p;
 	    p.exps = exps;
 	    p.e1 = e;
-	    overloadApply(f, fpvirtuals, &p);
+	    p.ident = ident;
+	    overloadApply(f, fptraits, &p);
 
 	    TupleExp *tup = new TupleExp(loc, exps);
 	    return tup->semantic(sc);
