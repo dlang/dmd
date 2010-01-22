@@ -309,8 +309,12 @@ void FuncDeclaration::semantic(Scope *sc)
 	    goto Ldone;
 	}
 
-	// Find index of existing function in vtbl[] to override
-	vi = findVtblIndex(&cd->vtbl, cd->baseClass ? cd->baseClass->vtbl.dim : 0);
+	/* Find index of existing function in base class's vtbl[] to override
+	 * (the index will be the same as in cd's current vtbl[])
+	 */
+	vi = cd->baseClass ? findVtblIndex(&cd->baseClass->vtbl, cd->baseClass->vtbl.dim)
+			   : -1;
+
 	switch (vi)
 	{
 	    case -1:
@@ -354,7 +358,7 @@ void FuncDeclaration::semantic(Scope *sc)
 		return;
 
 	    default:
-	    {   FuncDeclaration *fdv = (FuncDeclaration *)cd->vtbl.data[vi];
+	    {   FuncDeclaration *fdv = (FuncDeclaration *)cd->baseClass->vtbl.data[vi];
 		// This function is covariant with fdv
 		if (fdv->isFinal())
 		    error("cannot override final function %s", fdv->toPrettyChars());
@@ -1564,6 +1568,7 @@ int FuncDeclaration::overrides(FuncDeclaration *fd)
 /*************************************************
  * Find index of function in vtbl[0..dim] that
  * this function overrides.
+ * Prefer an exact match to a covariant one.
  * Returns:
  *	-1	didn't find one
  *	-2	can't determine because of forward references
@@ -1571,11 +1576,16 @@ int FuncDeclaration::overrides(FuncDeclaration *fd)
 
 int FuncDeclaration::findVtblIndex(Array *vtbl, int dim)
 {
+    FuncDeclaration *mismatch = NULL;
+    int bestvi = -1;
     for (int vi = 0; vi < dim; vi++)
     {
 	FuncDeclaration *fdv = ((Dsymbol *)vtbl->data[vi])->isFuncDeclaration();
 	if (fdv && fdv->ident == ident)
 	{
+	    if (type->equals(fdv->type))	// if exact match
+	        return vi;			// no need to look further
+
 	    int cov = type->covariant(fdv->type);
 	    //printf("\tbaseclass cov = %d\n", cov);
 	    switch (cov)
@@ -1584,15 +1594,12 @@ int FuncDeclaration::findVtblIndex(Array *vtbl, int dim)
 		    break;
 
 		case 1:
-		    return vi;
+	            bestvi = vi;	// covariant, but not identical
+	            break;		// keep looking for an exact match
 
 		case 2:
-		    //type->print();
-		    //fdv->type->print();
-		    //printf("%s %s\n", type->deco, fdv->type->deco);
-		    error("of type %s overrides but is not covariant with %s of type %s",
-			type->toChars(), fdv->toPrettyChars(), fdv->type->toChars());
-		    break;
+		    mismatch = fdv;	// overrides, but is not covariant
+		    break;		// keep looking for an exact match
 
 		case 3:
 		    return -2;	// forward references
@@ -1602,7 +1609,15 @@ int FuncDeclaration::findVtblIndex(Array *vtbl, int dim)
 	    }
 	}
     }
-    return -1;
+    if (bestvi == -1 && mismatch)
+    {
+	//type->print();
+	//mismatch->type->print();
+	//printf("%s %s\n", type->deco, mismatch->type->deco);
+	error("of type %s overrides but is not covariant with %s of type %s",
+	    type->toChars(), mismatch->toPrettyChars(), mismatch->type->toChars());
+    }
+    return bestvi;
 }
 
 /****************************************************
