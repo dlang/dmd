@@ -2757,19 +2757,14 @@ Dsymbol *CtorDeclaration::syntaxCopy(Dsymbol *s)
 
 void CtorDeclaration::semantic(Scope *sc)
 {
-    AggregateDeclaration *ad;
-    Type *tret;
-
     //printf("CtorDeclaration::semantic() %s\n", toChars());
-    if (type)
-	return;
-
     sc = sc->push();
     sc->stc &= ~STCstatic;		// not a static constructor
 
     parent = sc->parent;
     Dsymbol *parent = toParent2();
-    ad = parent->isAggregateDeclaration();
+    Type *tret;
+    AggregateDeclaration *ad = parent->isAggregateDeclaration();
     if (!ad || parent->isUnionDeclaration())
     {
 	error("constructors are only for class or struct definitions");
@@ -2779,7 +2774,8 @@ void CtorDeclaration::semantic(Scope *sc)
     {	tret = ad->handle;
 	assert(tret);
     }
-    type = new TypeFunction(arguments, tret, varargs, LINKd);
+    if (!type)
+	type = new TypeFunction(arguments, tret, varargs, LINKd);
 #if STRUCTTHISREF
     if (ad && ad->isStructDeclaration())
 	((TypeFunction *)type)->isref = 1;
@@ -2794,7 +2790,7 @@ void CtorDeclaration::semantic(Scope *sc)
     // Append:
     //	return this;
     // to the function body
-    if (fbody)
+    if (fbody && semanticRun < PASSsemantic)
     {
 	Expression *e = new ThisExp(loc);
 	Statement *s = new ReturnStatement(loc, e);
@@ -2880,9 +2876,11 @@ void PostBlitDeclaration::semantic(Scope *sc)
     {
 	error("post blits are only for struct/union definitions, not %s %s", parent->kind(), parent->toChars());
     }
-    else if (ident == Id::_postblit)
+    else if (ident == Id::_postblit && semanticRun < PASSsemantic)
 	ad->postblits.push(this);
-    type = new TypeFunction(NULL, Type::tvoid, FALSE, LINKd);
+
+    if (!type)
+	type = new TypeFunction(NULL, Type::tvoid, FALSE, LINKd);
 
     sc = sc->push();
     sc->stc &= ~STCstatic;		// not static
@@ -2951,9 +2949,11 @@ void DtorDeclaration::semantic(Scope *sc)
     {
 	error("destructors are only for class/struct/union definitions, not %s %s", parent->kind(), parent->toChars());
     }
-    else if (ident == Id::dtor)
+    else if (ident == Id::dtor && semanticRun < PASSsemantic)
 	ad->dtors.push(this);
-    type = new TypeFunction(NULL, Type::tvoid, FALSE, LINKd);
+
+    if (!type)
+	type = new TypeFunction(NULL, Type::tvoid, FALSE, LINKd);
 
     sc = sc->push();
     sc->stc &= ~STCstatic;		// not a static destructor
@@ -3033,13 +3033,14 @@ void StaticCtorDeclaration::semantic(Scope *sc)
 {
     //printf("StaticCtorDeclaration::semantic()\n");
 
-    type = new TypeFunction(NULL, Type::tvoid, FALSE, LINKd);
+    if (!type)
+	type = new TypeFunction(NULL, Type::tvoid, FALSE, LINKd);
 
     /* If the static ctor appears within a template instantiation,
      * it could get called multiple times by the module constructors
      * for different modules. Thus, protect it with a gate.
      */
-    if (inTemplateInstance())
+    if (inTemplateInstance() && semanticRun < PASSsemantic)
     {
 	/* Add this prefix to the function:
 	 *	static int gate;
@@ -3154,20 +3155,16 @@ Dsymbol *StaticDtorDeclaration::syntaxCopy(Dsymbol *s)
 
 void StaticDtorDeclaration::semantic(Scope *sc)
 {
-    ClassDeclaration *cd;
-    Type *tret;
+    ClassDeclaration *cd = sc->scopesym->isClassDeclaration();
 
-    cd = sc->scopesym->isClassDeclaration();
-    if (!cd)
-    {
-    }
-    type = new TypeFunction(NULL, Type::tvoid, FALSE, LINKd);
+    if (!type)
+	type = new TypeFunction(NULL, Type::tvoid, FALSE, LINKd);
 
     /* If the static ctor appears within a template instantiation,
      * it could get called multiple times by the module constructors
      * for different modules. Thus, protect it with a gate.
      */
-    if (inTemplateInstance())
+    if (inTemplateInstance() && semanticRun < PASSsemantic)
     {
 	/* Add this prefix to the function:
 	 *	static int gate;
@@ -3280,23 +3277,21 @@ Dsymbol *InvariantDeclaration::syntaxCopy(Dsymbol *s)
 
 void InvariantDeclaration::semantic(Scope *sc)
 {
-    AggregateDeclaration *ad;
-    Type *tret;
-
     parent = sc->parent;
     Dsymbol *parent = toParent();
-    ad = parent->isAggregateDeclaration();
+    AggregateDeclaration *ad = parent->isAggregateDeclaration();
     if (!ad)
     {
 	error("invariants are only for struct/union/class definitions");
 	return;
     }
-    else if (ad->inv && ad->inv != this)
+    else if (ad->inv && ad->inv != this && semanticRun < PASSsemantic)
     {
 	error("more than one invariant for %s", ad->toChars());
     }
     ad->inv = this;
-    type = new TypeFunction(NULL, Type::tvoid, FALSE, LINKd);
+    if (!type)
+	type = new TypeFunction(NULL, Type::tvoid, FALSE, LINKd);
 
     sc = sc->push();
     sc->stc &= ~STCstatic;		// not a static invariant
@@ -3363,7 +3358,8 @@ void UnitTestDeclaration::semantic(Scope *sc)
 {
     if (global.params.useUnitTests)
     {
-	type = new TypeFunction(NULL, Type::tvoid, FALSE, LINKd);
+	if (!type)
+	    type = new TypeFunction(NULL, Type::tvoid, FALSE, LINKd);
 	Scope *sc2 = sc->push();
 	sc2->linkage = LINKd;
 	FuncDeclaration::semantic(sc2);
@@ -3439,20 +3435,18 @@ Dsymbol *NewDeclaration::syntaxCopy(Dsymbol *s)
 
 void NewDeclaration::semantic(Scope *sc)
 {
-    ClassDeclaration *cd;
-    Type *tret;
-
     //printf("NewDeclaration::semantic()\n");
 
     parent = sc->parent;
     Dsymbol *parent = toParent();
-    cd = parent->isClassDeclaration();
+    ClassDeclaration *cd = parent->isClassDeclaration();
     if (!cd && !parent->isStructDeclaration())
     {
 	error("new allocators only are for class or struct definitions");
     }
-    tret = Type::tvoid->pointerTo();
-    type = new TypeFunction(arguments, tret, varargs, LINKd);
+    Type *tret = Type::tvoid->pointerTo();
+    if (!type)
+	type = new TypeFunction(arguments, tret, varargs, LINKd);
 
     type = type->semantic(loc, sc);
     assert(type->ty == Tfunction);
@@ -3525,18 +3519,17 @@ Dsymbol *DeleteDeclaration::syntaxCopy(Dsymbol *s)
 
 void DeleteDeclaration::semantic(Scope *sc)
 {
-    ClassDeclaration *cd;
-
     //printf("DeleteDeclaration::semantic()\n");
 
     parent = sc->parent;
     Dsymbol *parent = toParent();
-    cd = parent->isClassDeclaration();
+    ClassDeclaration *cd = parent->isClassDeclaration();
     if (!cd && !parent->isStructDeclaration())
     {
 	error("new allocators only are for class or struct definitions");
     }
-    type = new TypeFunction(arguments, Type::tvoid, 0, LINKd);
+    if (!type)
+	type = new TypeFunction(arguments, Type::tvoid, 0, LINKd);
 
     type = type->semantic(loc, sc);
     assert(type->ty == Tfunction);
