@@ -1475,7 +1475,8 @@ Expressions *Expression::arraySyntaxCopy(Expressions *exps)
 	for (int i = 0; i < a->dim; i++)
 	{   Expression *e = (Expression *)exps->data[i];
 
-	    e = e->syntaxCopy();
+	    if (e)
+		e = e->syntaxCopy();
 	    a->data[i] = e;
 	}
     }
