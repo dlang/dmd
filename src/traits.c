@@ -54,7 +54,7 @@ struct Ptrait
 static int fptraits(void *param, FuncDeclaration *f)
 {   Ptrait *p = (Ptrait *)param;
 
-    if (p->ident == Id::getVirtualFunctions && !f->isVirtual)
+    if (p->ident == Id::getVirtualFunctions && !f->isVirtual())
 	return 0;
 
     Expression *e;
