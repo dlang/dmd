@@ -1493,7 +1493,7 @@ Statement *ForeachStatement::semantic(Scope *sc)
 	      */
 	    Identifier *id = Lexer::uniqueId("__aggr");
 	    ExpInitializer *ie = new ExpInitializer(loc, new SliceExp(loc, aggr, NULL, NULL));
-	    VarDeclaration *tmp = new VarDeclaration(loc, aggr->type->nextOf()->arrayOf(), id, ie);
+	    VarDeclaration *tmp = new VarDeclaration(loc, tab->nextOf()->arrayOf(), id, ie);
 
 	    Expression *tmp_length = new DotIdExp(loc, new VarExp(loc, tmp), Id::length);
 
