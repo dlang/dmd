@@ -3861,11 +3861,17 @@ StructDeclaration *TypeAArray::getImpl()
 	     * But the instantiation can fail if it is a template specialization field
 	     * which has Tident's instead of real types.
 	     */
-	    TemplateInstance *ti = new TemplateInstance(loc, Id::AssociativeArray);
 	    Objects *tiargs = new Objects();
 	    tiargs->push(index);
 	    tiargs->push(next);
-	    ti->tiargs = tiargs;
+
+	    // Create .AssociativeArray!(index, next)
+	    DotTemplateInstanceExp *dti = new DotTemplateInstanceExp(loc,
+			new IdentifierExp(loc, Id::empty),
+			Id::AssociativeArray,
+			tiargs);
+	    dti->semantic(sc);
+            TemplateInstance *ti = dti->ti;
 
 	    ti->semantic(sc);
 	    ti->semantic2(sc);
