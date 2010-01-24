@@ -5986,8 +5986,15 @@ Dsymbol *TypeEnum::toDsymbol(Scope *sc)
 Type *TypeEnum::toBasetype()
 {
     if (sym->scope)
-    {
-	sym->semantic(NULL);	// attempt to resolve forward reference
+    {	// Enum is forward referenced. We don't need to resolve the whole thing,
+	// just the base type
+	if (sym->memtype)
+	{   sym->memtype = sym->memtype->semantic(sym->loc, sym->scope);
+	}
+	else
+	{   if (!sym->isAnonymous())
+		sym->memtype = Type::tint32;
+	}
     }
     if (!sym->memtype)
     {
