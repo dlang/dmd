@@ -311,7 +311,7 @@ void FuncDeclaration::semantic(Scope *sc)
 	    isInvariantDeclaration() ||
 	    isUnitTestDeclaration() || isNewDeclaration() || isDelete())
 	    error("special function not allowed in interface %s", id->toChars());
-	if (fbody)
+	if (fbody && isVirtual())
 	    error("function body is not abstract in interface %s", id->toChars());
     }
 
@@ -559,6 +559,28 @@ void FuncDeclaration::semantic(Scope *sc)
 	}
 
     L2: ;
+
+	/* Go through all the interface bases.
+	 * Disallow overriding any final functions in the interface(s).
+	 */
+	for (int i = 0; i < cd->interfaces_dim; i++)
+	{
+	    BaseClass *b = cd->interfaces[i];
+	    if (b->base)
+	    {
+		Dsymbol *s = search_function(b->base, ident);
+		if (s)
+		{
+		    FuncDeclaration *f = s->isFuncDeclaration();
+		    if (f)
+		    {
+			f = f->overloadExactMatch(type);
+			if (f && f->isFinal() && f->prot() != PROTprivate)
+			    error("cannot override final function %s.%s", b->base->toChars(), f->toPrettyChars());
+		    }
+		}
+	    }
+	}
     }
     else if (isOverride() && !parent->isTemplateInstance())
 	error("override only applies to class member functions");
@@ -2414,9 +2436,11 @@ int FuncDeclaration::isVirtual()
 	!(isStatic() || protection == PROTprivate || protection == PROTpackage) &&
 	toParent()->isClassDeclaration());
 #endif
+    Dsymbol *p = toParent();
     return isMember() &&
 	!(isStatic() || protection == PROTprivate || protection == PROTpackage) &&
-	toParent()->isClassDeclaration();
+	p->isClassDeclaration() &&
+	!(p->isInterfaceDeclaration() && isFinal());
 }
 
 int FuncDeclaration::isFinal()
