@@ -5,7 +5,7 @@
  * Macros:
  *      WIKI = Object
  *
- * Copyright: Copyright Digital Mars 2000 - 2009.
+ * Copyright: Copyright Digital Mars 2000 - 2010.
  * License:   <a href="http://www.boost.org/LICENSE_1_0.txt">Boost License 1.0</a>.
  * Authors:   Walter Bright, Sean Kelly
  *
@@ -1734,7 +1734,8 @@ struct AssociativeArray(Key, Value)
 
     Value[Key] rehash() @property
     {
-        return cast(Value[Key]) _aaRehash(&p, typeid(Value[Key]));
+        auto p = _aaRehash(&p, typeid(Value[Key]));
+        return *cast(Value[Key]*)(&p);
     }
 
     Value[] values() @property
