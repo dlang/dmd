@@ -12,8 +12,9 @@ UDFLAGS=-O -release -nofloat -w -d -Iimport -Isrc
 CFLAGS=
 
 DRUNTIME=lib\druntime.lib
+GCSTUB=lib\gcstub.obj
 
-target : $(DOCS) $(IMPORTS) $(DRUNTIME)
+target : $(DOCS) $(IMPORTS) $(DRUNTIME) $(GCSTUB)
 
 MANIFEST= \
 	LICENSE_1_0.txt \
@@ -448,6 +449,11 @@ src\rt\minit.obj : src\rt\minit.asm
 monitor.obj : src\rt\monitor.c
 	$(CC) -c $(CFLAGS) src\rt\monitor.c
 
+################### gcstub generation #########################
+
+$(GCSTUB) : src/gcstub/gc.d win32.mak
+	$(DMD) -c -of$(GCSTUB) src/gcstub/gc.d $(DFLAGS)
+
 ################### Library generation #########################
 
 $(DRUNTIME): $(OBJS) $(SRCS) win32.mak
@@ -466,4 +472,4 @@ install: druntime.zip
 	unzip -o druntime.zip -d /dmd2/src/druntime
 
 clean:
-	del $(DOCS) $(IMPORTS) $(DRUNTIME) $(OBJS_TO_DELETE)
+	del $(DOCS) $(IMPORTS) $(DRUNTIME) $(OBJS_TO_DELETE) $(GCSTUB)

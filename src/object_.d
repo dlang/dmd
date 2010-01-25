@@ -1180,10 +1180,10 @@ enum
 }
 
 
-class ModuleInfo
+struct ModuleInfo
 {
     string          name;
-    ModuleInfo[]    importedModules;
+    ModuleInfo*[]    importedModules;
     TypeInfo_Class[]     localClasses;
     uint            flags;
 
@@ -1202,7 +1202,7 @@ class ModuleInfo
 
     void*[1] reserved;          // for future expansion
 
-    static int opApply(int delegate(ref ModuleInfo) dg)
+    static int opApply(int delegate(ref ModuleInfo*) dg)
     {
         int ret = 0;
 
@@ -1219,7 +1219,7 @@ class ModuleInfo
 
 // Windows: this gets initialized by minit.asm
 // Posix: this gets initialized in _moduleCtor()
-extern (C) __gshared ModuleInfo[] _moduleinfo_array;
+extern (C) __gshared ModuleInfo*[] _moduleinfo_array;
 
 
 version (linux)
@@ -1229,7 +1229,7 @@ version (linux)
     struct ModuleReference
     {
         ModuleReference* next;
-        ModuleInfo       mod;
+        ModuleInfo*      mod;
     }
 
     extern (C) __gshared ModuleReference* _Dmodule_ref;   // start of linked list
@@ -1242,7 +1242,7 @@ version (FreeBSD)
     struct ModuleReference
     {
         ModuleReference* next;
-        ModuleInfo       mod;
+        ModuleInfo*      mod;
     }
 
     extern (C) __gshared ModuleReference* _Dmodule_ref;   // start of linked list
@@ -1255,7 +1255,7 @@ version (Solaris)
     struct ModuleReference
     {
         ModuleReference* next;
-        ModuleInfo       mod;
+        ModuleInfo*      mod;
     }
 
     extern (C) __gshared ModuleReference* _Dmodule_ref;   // start of linked list
@@ -1270,11 +1270,11 @@ version (OSX)
     }
 }
 
-__gshared ModuleInfo[] _moduleinfo_dtors;
-__gshared uint         _moduleinfo_dtors_i;
+__gshared ModuleInfo*[] _moduleinfo_dtors;
+__gshared uint          _moduleinfo_dtors_i;
 
-ModuleInfo[] _moduleinfo_tlsdtors;
-uint         _moduleinfo_tlsdtors_i;
+ModuleInfo*[] _moduleinfo_tlsdtors;
+uint          _moduleinfo_tlsdtors_i;
 
 // Register termination function pointers
 extern (C) int _fatexit(void*);
@@ -1293,7 +1293,7 @@ extern (C) void _moduleCtor()
 
         for (mr = _Dmodule_ref; mr; mr = mr.next)
             len++;
-        _moduleinfo_array = new ModuleInfo[len];
+        _moduleinfo_array = new ModuleInfo*[len];
         len = 0;
         for (mr = _Dmodule_ref; mr; mr = mr.next)
         {   _moduleinfo_array[len] = mr.mod;
@@ -1308,7 +1308,7 @@ extern (C) void _moduleCtor()
 
         for (mr = _Dmodule_ref; mr; mr = mr.next)
             len++;
-        _moduleinfo_array = new ModuleInfo[len];
+        _moduleinfo_array = new ModuleInfo*[len];
         len = 0;
         for (mr = _Dmodule_ref; mr; mr = mr.next)
         {   _moduleinfo_array[len] = mr.mod;
@@ -1323,7 +1323,7 @@ extern (C) void _moduleCtor()
 
         for (mr = _Dmodule_ref; mr; mr = mr.next)
             len++;
-        _moduleinfo_array = new ModuleInfo[len];
+        _moduleinfo_array = new ModuleInfo*[len];
         len = 0;
         for (mr = _Dmodule_ref; mr; mr = mr.next)
         {   _moduleinfo_array[len] = mr.mod;
@@ -1339,8 +1339,8 @@ extern (C) void _moduleCtor()
          * are of zero size and are in the two bracketing segments,
          * respectively.
          */
-         size_t length = cast(ModuleInfo*)&_minfo_end - cast(ModuleInfo*)&_minfo_beg;
-         _moduleinfo_array = (cast(ModuleInfo*)&_minfo_beg)[0 .. length];
+         size_t length = cast(ModuleInfo**)&_minfo_end - cast(ModuleInfo**)&_minfo_beg;
+         _moduleinfo_array = (cast(ModuleInfo**)&_minfo_beg)[0 .. length];
          debug printf("moduleinfo: ptr = %p, length = %d\n", _moduleinfo_array.ptr, _moduleinfo_array.length);
 
          debug foreach (m; _moduleinfo_array)
@@ -1356,7 +1356,7 @@ extern (C) void _moduleCtor()
         //_fatexit(&_STD_moduleDtor);
     }
 
-    _moduleinfo_dtors = new ModuleInfo[_moduleinfo_array.length];
+    _moduleinfo_dtors = new ModuleInfo*[_moduleinfo_array.length];
     debug(PRINTF) printf("_moduleinfo_dtors = x%x\n", cast(void*)_moduleinfo_dtors);
     _moduleIndependentCtors();
     _moduleCtor2(_moduleinfo_array, 0);
@@ -1378,14 +1378,14 @@ extern (C) void _moduleIndependentCtors()
 /********************************************
  * Run static constructors for shared global data.
  */
-void _moduleCtor2(ModuleInfo[] mi, int skip)
+void _moduleCtor2(ModuleInfo*[] mi, int skip)
 {
     debug(PRINTF) printf("_moduleCtor2(): %d modules\n", mi.length);
     for (uint i = 0; i < mi.length; i++)
     {
-        ModuleInfo m = mi[i];
+        ModuleInfo* m = mi[i];
 
-        debug(PRINTF) printf("\tmodule[%d] = '%p'\n", i, m);
+        debug(PRINTF) printf("\tmodule[%d] = %p\n", i, m);
         if (!m)
             continue;
         debug(PRINTF) printf("\tmodule[%d] = '%.*s'\n", i, m.name);
@@ -1439,9 +1439,9 @@ extern (C) void _moduleTlsCtor()
 	    m.index = i;
     }
 
-    _moduleinfo_tlsdtors = new ModuleInfo[_moduleinfo_array.length];
+    _moduleinfo_tlsdtors = new ModuleInfo*[_moduleinfo_array.length];
 
-    void _moduleTlsCtor2(ModuleInfo[] mi, int skip)
+    void _moduleTlsCtor2(ModuleInfo*[] mi, int skip)
     {
 	debug(PRINTF) printf("_moduleTlsCtor2(skip = %d): %d modules\n", skip, mi.length);
 	foreach (i, m; mi)
@@ -1500,7 +1500,7 @@ extern (C) void _moduleDtor()
     _moduleTlsDtor();
     for (uint i = _moduleinfo_dtors_i; i-- != 0;)
     {
-        ModuleInfo m = _moduleinfo_dtors[i];
+        ModuleInfo* m = _moduleinfo_dtors[i];
 
         debug(PRINTF) printf("\tmodule[%d] = '%.*s', x%x\n", i, m.name, m);
         if (m.dtor)
@@ -1523,7 +1523,7 @@ extern (C) void _moduleTlsDtor()
 
     for (uint i = _moduleinfo_tlsdtors_i; i-- != 0;)
     {
-        ModuleInfo m = _moduleinfo_tlsdtors[i];
+        ModuleInfo* m = _moduleinfo_tlsdtors[i];
 
         debug(PRINTF) printf("\tmodule[%d] = '%.*s', x%x\n", i, m.name, m);
         if (m.tlsdtor)

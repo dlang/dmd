@@ -219,10 +219,10 @@ class MemberInfo_function : MemberInfo
     uint flags();
 }
 
-class ModuleInfo
+struct ModuleInfo
 {
     string          name;
-    ModuleInfo[]    importedModules;
+    ModuleInfo*[]   importedModules;
     ClassInfo[]     localClasses;
     uint            flags;
 
@@ -236,7 +236,7 @@ class ModuleInfo
     void function() tlsdtor;
     void*[2] reserved;
 
-    static int opApply(int delegate(ref ModuleInfo));
+    static int opApply(int delegate(ref ModuleInfo*));
 }
 
 class Throwable : Object
