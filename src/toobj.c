@@ -49,10 +49,14 @@ void Module::genmoduleinfo()
     Symbol *msym = toSymbol();
     unsigned offset;
 #if DMDV2
-    unsigned sizeof_ModuleInfo = 18 * PTRSIZE;
+    unsigned sizeof_ModuleInfo = 16 * PTRSIZE;
 #else
     unsigned sizeof_ModuleInfo = 14 * PTRSIZE;
 #endif
+#if !MODULEINFO_IS_STRUCT
+    sizeof_ModuleInfo -= 2 * PTRSIZE;
+#endif
+printf("moduleinfo size = x%x\n", sizeof_ModuleInfo);
 
     //////////////////////////////////////////////
 
@@ -80,6 +84,7 @@ void Module::genmoduleinfo()
      */
     dt_t *dt = NULL;
 
+#if !MODULEINFO_IS_STRUCT
     if (moduleinfo)
 	dtxoff(&dt, moduleinfo->toVtblSymbol(), 0, TYnptr); // vtbl for ModuleInfo
     else
@@ -87,6 +92,7 @@ void Module::genmoduleinfo()
 	dtdword(&dt, 0);		// BUG: should be an assert()
     }
     dtdword(&dt, 0);			// monitor
+#endif
 
     // name[]
     const char *name = toPrettyChars();
