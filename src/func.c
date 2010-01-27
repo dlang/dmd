@@ -130,10 +130,21 @@ void FuncDeclaration::semantic(Scope *sc)
 	 */
 	return;
     }
+
+    parent = sc->parent;
+    Dsymbol *parent = toParent();
+
     if (semanticRun == PASSsemanticdone)
-	return;
-    assert(semanticRun <= PASSsemantic);
-    semanticRun = PASSsemantic;
+    {
+	if (!parent->isClassDeclaration())
+	    return;
+	// need to re-run semantic() in order to set the class's vtbl[]
+    }
+    else
+    {
+	assert(semanticRun <= PASSsemantic);
+	semanticRun = PASSsemantic;
+    }
 
     unsigned dprogress_save = Module::dprogress;
 
@@ -223,13 +234,7 @@ void FuncDeclaration::semantic(Scope *sc)
     size_t nparams = Parameter::dim(f->parameters);
 
     linkage = sc->linkage;
-//    if (!parent)
-    {
-	//parent = sc->scopesym;
-	parent = sc->parent;
-    }
     protection = sc->protection;
-    Dsymbol *parent = toParent();
 
     if (storage_class & STCscope)
 	error("functions cannot be scope");
@@ -671,7 +676,7 @@ void FuncDeclaration::semantic(Scope *sc)
 	}
     }
 
-    if (isVirtual())
+    if (isVirtual() && semanticRun != PASSsemanticdone)
     {
 	/* Rewrite contracts as nested functions, then call them.
 	 * Doing it as nested functions means that overriding functions

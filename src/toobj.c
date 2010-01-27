@@ -1,5 +1,5 @@
 
-// Copyright (c) 1999-2009 by Digital Mars
+// Copyright (c) 1999-2010 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // http://www.digitalmars.com
@@ -56,7 +56,7 @@ void Module::genmoduleinfo()
 #if !MODULEINFO_IS_STRUCT
     sizeof_ModuleInfo -= 2 * PTRSIZE;
 #endif
-printf("moduleinfo size = x%x\n", sizeof_ModuleInfo);
+    //printf("moduleinfo size = x%x\n", sizeof_ModuleInfo);
 
     //////////////////////////////////////////////
 
