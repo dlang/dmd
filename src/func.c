@@ -130,10 +130,20 @@ void FuncDeclaration::semantic(Scope *sc)
 	 */
 	return;
     }
+    parent = sc->parent;
+    Dsymbol *parent = toParent();
+
     if (semanticRun == PASSsemanticdone)
-	return;
-    assert(semanticRun <= PASSsemantic);
-    semanticRun = PASSsemantic;
+    {
+	if (!parent->isClassDeclaration())
+	    return;
+	// need to re-run semantic() in order to set the class's vtbl[]
+    }
+    else
+    {
+	assert(semanticRun <= PASSsemantic);
+	semanticRun = PASSsemantic;
+    }
 
     unsigned dprogress_save = Module::dprogress;
 
@@ -153,15 +163,9 @@ void FuncDeclaration::semantic(Scope *sc)
     size_t nparams = Parameter::dim(f->parameters);
 
     linkage = sc->linkage;
-//    if (!parent)
-    {
-	//parent = sc->scopesym;
-	parent = sc->parent;
-    }
     protection = sc->protection;
     storage_class |= sc->stc;
     //printf("function storage_class = x%x\n", storage_class);
-    Dsymbol *parent = toParent();
 
     if (ident == Id::ctor && !isCtorDeclaration())
 	error("_ctor is reserved for constructors");
@@ -239,7 +243,7 @@ void FuncDeclaration::semantic(Scope *sc)
 	    isInvariantDeclaration() ||
 	    isUnitTestDeclaration() || isNewDeclaration() || isDelete())
 	    error("special function not allowed in interface %s", id->toChars());
-	if (fbody)
+	if (fbody && isVirtual())
 	    error("function body is not abstract in interface %s", id->toChars());
     }
 
@@ -577,7 +581,7 @@ void FuncDeclaration::semantic(Scope *sc)
 	}
     }
 
-    if (isVirtual())
+    if (isVirtual() && semanticRun != PASSsemanticdone)
     {
 	/* Rewrite contracts as nested functions, then call them.
 	 * Doing it as nested functions means that overriding functions
