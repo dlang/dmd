@@ -750,7 +750,7 @@ Statement *UnrolledLoopStatement::syntaxCopy()
 
 Statement *UnrolledLoopStatement::semantic(Scope *sc)
 {
-    //printf("UnrolledLoopStatement::semantic(this = %p, sc = %p)\n", this, sc);
+    printf("UnrolledLoopStatement::semantic(this = %p, sc = %p)\n", this, sc);
 
     sc->noctor++;
     Scope *scd = sc->push();
@@ -762,6 +762,7 @@ Statement *UnrolledLoopStatement::semantic(Scope *sc)
 	Statement *s = (Statement *) statements->data[i];
 	if (s)
 	{
+	    printf("[%d]: %s\n", i, s->toChars());
 	    s = s->semantic(scd);
 	    statements->data[i] = s;
 	}
@@ -1409,7 +1410,7 @@ Statement *ForeachStatement::semantic(Scope *sc)
 		    arg->type = e->type;
 		    Initializer *ie = new ExpInitializer(0, e);
 		    VarDeclaration *v = new VarDeclaration(loc, arg->type, arg->ident, ie);
-		    if (e->isConst())
+		    if (e->isConst() || e->op == TOKstring)
 			v->storage_class |= STCconst;
 		    var = v;
 		}
