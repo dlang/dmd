@@ -1176,31 +1176,318 @@ enum
     MIctordone   = 2,   // finished construction
     MIstandalone = 4,   // module ctor does not depend on other module
                         // ctors being done first
-    MIhasictor   = 8,   // has ictor member
+    MItlsctor    = 8,
+    MItlsdtor    = 0x10,
+    MIctor       = 0x20,
+    MIdtor       = 0x40,
+    MIxgetMembers = 0x80,
+    MIictor      = 0x100,
+    MIunitTest   = 0x200,
+    MIimportedModules = 0x400,
+    MIlocalClasses = 0x800,
+    MInew        = 0x80000000	// it's the "new" layout
 }
 
 
 struct ModuleInfo
 {
-    string          name;
-    ModuleInfo*[]    importedModules;
-    TypeInfo_Class[]     localClasses;
-    uint            flags;
+    struct New
+    {
+	uint flags;
+	uint index;			// index into _moduleinfo_array[]
 
-    void function() ctor;       // module shared static constructor (order dependent)
-    void function() dtor;       // module shared static destructor
-    void function() unitTest;   // module unit tests
+	/* Order of appearance, depending on flags
+	 * tlsctor
+	 * tlsdtor
+	 * xgetMembers
+	 * ctor
+	 * dtor
+	 * ictor
+	 * importedModules
+	 * localClasses
+	 * name
+	 */
+    }
+    struct Old
+    {
+	string          name;
+	ModuleInfo*[]    importedModules;
+	TypeInfo_Class[]     localClasses;
+	uint            flags;
 
-    void* xgetMembers;          // module getMembers() function
+	void function() ctor;       // module shared static constructor (order dependent)
+	void function() dtor;       // module shared static destructor
+	void function() unitTest;   // module unit tests
 
-    void function() ictor;      // module shared static constructor (order independent)
+	void* xgetMembers;          // module getMembers() function
 
-    void function() tlsctor;	// module thread local static constructor (order dependent)
-    void function() tlsdtor;	// module thread local static destructor
+	void function() ictor;      // module shared static constructor (order independent)
 
-    uint index;			// index into _moduleinfo_array[]
+	void function() tlsctor;	// module thread local static constructor (order dependent)
+	void function() tlsdtor;	// module thread local static destructor
 
-    void*[1] reserved;          // for future expansion
+	uint index;			// index into _moduleinfo_array[]
+
+	void*[1] reserved;          // for future expansion
+    }
+
+    union
+    {
+	New n;
+	Old o;
+    }
+
+    @property isNew() { return n.flags & MInew; }
+
+    @property uint index() { return isNew ? n.index : o.index; }
+    @property void index(uint i) { if (isNew) n.index = i; else o.index = i; }
+
+    @property uint flags() { return isNew ? n.flags : o.flags; }
+    @property void flags(uint f) { if (isNew) n.flags = f; else o.flags = f; }
+
+    @property void function() tlsctor()
+    {
+	if (isNew)
+	{
+	    if (n.flags & MItlsctor)
+	    {
+		size_t off = New.sizeof;
+		return *cast(typeof(return)*)(cast(void*)(&this) + off);
+	    }
+	    return null;
+	}
+	else
+	    return o.tlsctor;
+    }
+
+    @property void function() tlsdtor()
+    {
+	if (isNew)
+	{
+	    if (n.flags & MItlsdtor)
+	    {
+		size_t off = New.sizeof;
+		if (n.flags & MItlsctor)
+		    off += o.tlsctor.sizeof;
+		return *cast(typeof(return)*)(cast(void*)(&this) + off);
+	    }
+	    return null;
+	}
+	else
+	    return o.tlsdtor;
+    }
+
+    @property void* xgetMembers()
+    {
+	if (isNew)
+	{
+	    if (n.flags & MIxgetMembers)
+	    {
+		size_t off = New.sizeof;
+		if (n.flags & MItlsctor)
+		    off += o.tlsctor.sizeof;
+		if (n.flags & MItlsdtor)
+		    off += o.tlsdtor.sizeof;
+		return *cast(typeof(return)*)(cast(void*)(&this) + off);
+	    }
+	    return null;
+	}
+	return o.xgetMembers;
+    }
+
+    @property void function() ctor()
+    {
+	if (isNew)
+	{
+	    if (n.flags & MIctor)
+	    {
+		size_t off = New.sizeof;
+		if (n.flags & MItlsctor)
+		    off += o.tlsctor.sizeof;
+		if (n.flags & MItlsdtor)
+		    off += o.tlsdtor.sizeof;
+		if (n.flags & MIxgetMembers)
+		    off += o.xgetMembers.sizeof;
+		return *cast(typeof(return)*)(cast(void*)(&this) + off);
+	    }
+	    return null;
+	}
+	return o.ctor;
+    }
+
+    @property void function() dtor()
+    {
+	if (isNew)
+	{
+	    if (n.flags & MIdtor)
+	    {
+		size_t off = New.sizeof;
+		if (n.flags & MItlsctor)
+		    off += o.tlsctor.sizeof;
+		if (n.flags & MItlsdtor)
+		    off += o.tlsdtor.sizeof;
+		if (n.flags & MIxgetMembers)
+		    off += o.xgetMembers.sizeof;
+		if (n.flags & MIctor)
+		    off += o.ctor.sizeof;
+		return *cast(typeof(return)*)(cast(void*)(&this) + off);
+	    }
+	    return null;
+	}
+	return o.ctor;
+    }
+
+    @property void function() ictor()
+    {
+	if (isNew)
+	{
+	    if (n.flags & MIictor)
+	    {
+		size_t off = New.sizeof;
+		if (n.flags & MItlsctor)
+		    off += o.tlsctor.sizeof;
+		if (n.flags & MItlsdtor)
+		    off += o.tlsdtor.sizeof;
+		if (n.flags & MIxgetMembers)
+		    off += o.xgetMembers.sizeof;
+		if (n.flags & MIctor)
+		    off += o.ctor.sizeof;
+		if (n.flags & MIdtor)
+		    off += o.ctor.sizeof;
+		return *cast(typeof(return)*)(cast(void*)(&this) + off);
+	    }
+	    return null;
+	}
+	return o.ictor;
+    }
+
+    @property void function() unitTest()
+    {
+	if (isNew)
+	{
+	    if (n.flags & MIunitTest)
+	    {
+		size_t off = New.sizeof;
+		if (n.flags & MItlsctor)
+		    off += o.tlsctor.sizeof;
+		if (n.flags & MItlsdtor)
+		    off += o.tlsdtor.sizeof;
+		if (n.flags & MIxgetMembers)
+		    off += o.xgetMembers.sizeof;
+		if (n.flags & MIctor)
+		    off += o.ctor.sizeof;
+		if (n.flags & MIdtor)
+		    off += o.ctor.sizeof;
+		if (n.flags & MIictor)
+		    off += o.ictor.sizeof;
+		return *cast(typeof(return)*)(cast(void*)(&this) + off);
+	    }
+	    return null;
+	}
+	return o.unitTest;
+    }
+
+    @property ModuleInfo*[] importedModules()
+    {
+	if (isNew)
+	{
+	    if (n.flags & MIimportedModules)
+	    {
+		size_t off = New.sizeof;
+		if (n.flags & MItlsctor)
+		    off += o.tlsctor.sizeof;
+		if (n.flags & MItlsdtor)
+		    off += o.tlsdtor.sizeof;
+		if (n.flags & MIxgetMembers)
+		    off += o.xgetMembers.sizeof;
+		if (n.flags & MIctor)
+		    off += o.ctor.sizeof;
+		if (n.flags & MIdtor)
+		    off += o.ctor.sizeof;
+		if (n.flags & MIictor)
+		    off += o.ictor.sizeof;
+		if (n.flags & MIunitTest)
+		    off += o.unitTest.sizeof;
+		auto plength = cast(size_t*)(cast(void*)(&this) + off);
+		ModuleInfo** pm = cast(ModuleInfo**)(plength + 1);
+		return pm[0 .. *plength];
+	    }
+	    return null;
+	}
+	return o.importedModules;
+    }
+
+    @property TypeInfo_Class[] localClasses()
+    {
+	if (isNew)
+	{
+	    if (n.flags & MIlocalClasses)
+	    {
+		size_t off = New.sizeof;
+		if (n.flags & MItlsctor)
+		    off += o.tlsctor.sizeof;
+		if (n.flags & MItlsdtor)
+		    off += o.tlsdtor.sizeof;
+		if (n.flags & MIxgetMembers)
+		    off += o.xgetMembers.sizeof;
+		if (n.flags & MIctor)
+		    off += o.ctor.sizeof;
+		if (n.flags & MIdtor)
+		    off += o.ctor.sizeof;
+		if (n.flags & MIictor)
+		    off += o.ictor.sizeof;
+		if (n.flags & MIunitTest)
+		    off += o.unitTest.sizeof;
+		if (n.flags & MIimportedModules)
+		{
+		    auto plength = cast(size_t*)(cast(void*)(&this) + off);
+		    off += size_t.sizeof + *plength * plength.sizeof;
+		}
+		auto plength = cast(size_t*)(cast(void*)(&this) + off);
+		TypeInfo_Class* pt = cast(TypeInfo_Class*)(plength + 1);
+		return pt[0 .. *plength];
+	    }
+	    return null;
+	}
+	return o.localClasses;
+    }
+
+    @property string name()
+    {
+	if (isNew)
+	{
+	    size_t off = New.sizeof;
+	    if (n.flags & MItlsctor)
+		off += o.tlsctor.sizeof;
+	    if (n.flags & MItlsdtor)
+		off += o.tlsdtor.sizeof;
+	    if (n.flags & MIxgetMembers)
+		off += o.xgetMembers.sizeof;
+	    if (n.flags & MIctor)
+		off += o.ctor.sizeof;
+	    if (n.flags & MIdtor)
+		off += o.ctor.sizeof;
+	    if (n.flags & MIictor)
+		off += o.ictor.sizeof;
+	    if (n.flags & MIunitTest)
+		off += o.unitTest.sizeof;
+	    if (n.flags & MIimportedModules)
+	    {
+		auto plength = cast(size_t*)(cast(void*)(&this) + off);
+		off += size_t.sizeof + *plength * plength.sizeof;
+	    }
+	    if (n.flags & MIlocalClasses)
+	    {
+		auto plength = cast(size_t*)(cast(void*)(&this) + off);
+		off += size_t.sizeof + *plength * plength.sizeof;
+	    }
+	    auto p = cast(immutable(char)*)(cast(void*)(&this) + off);
+	    auto len = strlen(p);
+	    return p[0 .. len];
+	}
+	return o.name;
+    }
+
 
     static int opApply(int delegate(ref ModuleInfo*) dg)
     {
@@ -1368,7 +1655,7 @@ extern (C) void _moduleIndependentCtors()
     debug(PRINTF) printf("_moduleIndependentCtors()\n");
     foreach (m; _moduleinfo_array)
     {
-        if (m && m.flags & MIhasictor && m.ictor)
+        if (m && m.ictor)
         {
             (*m.ictor)();
         }
@@ -1401,12 +1688,11 @@ void _moduleCtor2(ModuleInfo*[] mi, int skip)
 		throw new Exception("Cyclic dependency in module " ~ m.name);
             }
 
-            m.flags |= MIctorstart;
+            m.flags = m.flags | MIctorstart;
             _moduleCtor2(m.importedModules, 0);
             if (m.ctor)
                 (*m.ctor)();
-            m.flags &= ~MIctorstart;
-            m.flags |= MIctordone;
+            m.flags = (m.flags & ~MIctorstart) | MIctordone;
 
             // Now that construction is done, register the destructor
             //printf("\tadding module dtor x%x\n", m);
@@ -1415,7 +1701,7 @@ void _moduleCtor2(ModuleInfo*[] mi, int skip)
         }
         else
         {
-            m.flags |= MIctordone;
+            m.flags = m.flags | MIctordone;
             _moduleCtor2(m.importedModules, 1);
         }
     }

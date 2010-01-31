@@ -221,6 +221,7 @@ class MemberInfo_function : MemberInfo
 
 struct ModuleInfo
 {
+/+
     string          name;
     ModuleInfo*[]   importedModules;
     ClassInfo[]     localClasses;
@@ -235,6 +236,8 @@ struct ModuleInfo
     void function() tlsctor;
     void function() tlsdtor;
     void*[2] reserved;
++/
+    @property void function() unitTest();
 
     static int opApply(int delegate(ref ModuleInfo*));
 }

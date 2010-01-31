@@ -204,8 +204,12 @@ extern (C) bool runModuleUnitTests()
     {
         foreach( m; ModuleInfo )
         {
-            if( m && m.unitTest )
-                m.unitTest();
+	    if (m)
+	    {
+		auto fp = m.unitTest;
+		if (fp)
+		    fp();
+	    }
         }
         return true;
     }
