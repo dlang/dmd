@@ -320,6 +320,11 @@ void FuncDeclaration::semantic(Scope *sc)
 	    error("function body is not abstract in interface %s", id->toChars());
     }
 
+    /* Contracts can only appear without a body when they are virtual interface functions
+     */
+    if (!fbody && (fensure || frequire) && !(id && isVirtual()))
+	error("in and out contracts require function body");
+
     /* Template member functions aren't virtual:
      *   interface TestInterface { void tpl(T)(); }
      * and so won't work in interfaces
@@ -700,15 +705,15 @@ void FuncDeclaration::semantic(Scope *sc)
 	    fdrequire = fd;
 	}
 
+	if (!outId && f->nextOf() && f->nextOf()->toBasetype()->ty != Tvoid)
+	    outId = Id::result;	// provide a default
+
 	if (fensure)
 	{   /*   out (result) { ... }
 	     * becomes:
 	     *   tret __ensure(ref tret result) { ... }
 	     *   __ensure(result);
 	     */
-	    if (!outId && f->nextOf()->toBasetype()->ty != Tvoid)
-		outId = Id::result;	// provide a default
-
 	    Loc loc = fensure->loc;
 	    Parameters *arguments = new Parameters();
 	    Parameter *a = NULL;
@@ -784,6 +789,7 @@ void FuncDeclaration::semantic3(Scope *sc)
 	return;
     f = (TypeFunction *)(type);
 
+#if 0
     // Check the 'throws' clause
     if (fthrows)
     {
@@ -796,11 +802,12 @@ void FuncDeclaration::semantic3(Scope *sc)
 		error("can only throw classes, not %s", t->toChars());
 	}
     }
+#endif
 
     frequire = mergeFrequire(frequire);
     fensure = mergeFensure(fensure);
 
-    if (fbody || frequire)
+    if (fbody || frequire || fensure)
     {
 	/* Symbol table into which we place parameters and nested functions,
 	 * solely to diagnose name collisions.

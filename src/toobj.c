@@ -922,12 +922,9 @@ void InterfaceDeclaration::toObjFile(int multiobj)
 
     // Put out the members
     for (i = 0; i < members->dim; i++)
-    {
-	Dsymbol *member;
+    {	Dsymbol *member = (Dsymbol *)members->data[i];
 
-	member = (Dsymbol *)members->data[i];
-	if (!member->isFuncDeclaration())
-	    member->toObjFile(0);
+	member->toObjFile(0);
     }
 
     // Generate C symbols

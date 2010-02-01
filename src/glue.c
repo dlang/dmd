@@ -516,8 +516,6 @@ void Module::genobjfile(int multiobj)
 
 void FuncDeclaration::toObjFile(int multiobj)
 {
-    Symbol *s;
-    func_t *f;
     Symbol *senter;
     Symbol *sexit;
     FuncDeclaration *func = this;
@@ -559,8 +557,8 @@ void FuncDeclaration::toObjFile(int multiobj)
     if (global.params.verbose)
 	printf("function  %s\n",func->toChars());
 
-    s = func->toSymbol();
-    f = s->Sfunc;
+    Symbol *s = func->toSymbol();
+    func_t *f = s->Sfunc;
 
 #if TARGET_WINDOS
     /* This is done so that the 'this' pointer on the stack is the same

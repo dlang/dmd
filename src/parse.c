@@ -3108,7 +3108,8 @@ L1:
 	    goto L1;
 
 	default:
-	    error("semicolon expected following function declaration");
+	    if (!f->frequire && !f->fensure)		// allow these even with no body
+		error("semicolon expected following function declaration");
 	    break;
     }
     linkage = linksave;
