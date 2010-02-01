@@ -605,15 +605,15 @@ void FuncDeclaration::semantic(Scope *sc)
 	    fdrequire = fd;
 	}
 
+	if (!outId && f->nextOf()->toBasetype()->ty != Tvoid)
+	    outId = Id::result;	// provide a default
+
 	if (fensure)
 	{   /*   out (result) { ... }
 	     * becomes:
 	     *   tret __ensure(ref tret result) { ... }
 	     *   __ensure(result);
 	     */
-	    if (!outId && f->nextOf()->toBasetype()->ty != Tvoid)
-		outId = Id::result;	// provide a default
-
 	    Loc loc = fensure->loc;
 	    Parameters *arguments = new Parameters();
 	    Parameter *a = NULL;

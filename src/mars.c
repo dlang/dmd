@@ -75,13 +75,13 @@ Global::Global()
 #error "fix this"
 #endif
 
-    copyright = "Copyright (c) 1999-2009 by Digital Mars";
+    copyright = "Copyright (c) 1999-2010 by Digital Mars";
     written = "written by Walter Bright"
 #if TARGET_NET
     "\nMSIL back-end (alpha release) by Cristian L. Vlasceanu and associates.";
 #endif
     ;
-    version = "v1.056";
+    version = "v1.057";
     global.structalign = 8;
 
     memset(&params, 0, sizeof(Param));
