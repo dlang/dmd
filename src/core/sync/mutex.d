@@ -180,7 +180,7 @@ class Mutex :
 
     version( Posix )
     {
-        static this()
+        shared static this()
         {
             int rc = pthread_mutexattr_init( &sm_attr );
             assert( !rc );
@@ -190,7 +190,7 @@ class Mutex :
         }
 
 
-        static ~this()
+        shared static ~this()
         {
             int rc = pthread_mutexattr_destroy( &sm_attr );
             assert( !rc );

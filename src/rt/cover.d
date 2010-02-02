@@ -114,7 +114,7 @@ extern (C) void _d_cover_register( string filename, BitArray valid, uint[] data 
 }
 
 
-static ~this()
+shared static ~this()
 {
     const NUMLINES = 16384 - 1;
     const NUMCHARS = 16384 * 16 - 1;
