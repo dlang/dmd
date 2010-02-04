@@ -530,7 +530,7 @@ void elf_addrel(int seg, targ_size_t offset, unsigned type,
 #endif
 #if MACHOBJ
 int mach_getsegment(const char *sectname, const char *segname,
-	int align, int flags);
+	int align, int flags, int flags2 = 0);
 void mach_addrel(int seg, targ_size_t offset, symbol *targsym,
 	unsigned targseg, int rtype);
 #endif
