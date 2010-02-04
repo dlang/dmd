@@ -1,6 +1,6 @@
 
 // Compiler implementation of the D programming language
-// Copyright (c) 1999-2009 by Digital Mars
+// Copyright (c) 1999-2010 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // http://www.digitalmars.com
@@ -3359,7 +3359,6 @@ Statement *ReturnStatement::semantic(Scope *sc)
 	Statement *s = new ExpStatement(loc, exp);
 	exp = NULL;
 	s = s->semantic(sc);
-	loc = 0;
 	return new CompoundStatement(loc, s, this);
     }
 
