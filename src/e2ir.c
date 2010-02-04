@@ -223,6 +223,8 @@ elem *callfunc(Loc loc,
 	if (!fd->isVirtual() ||
 	    directcall ||		// BUG: fix
 	    fd->isFinal()
+	   /* Future optimization: || (whole program analysis && not overridden)
+	    */
 	   )
 	{
 	    // make static call

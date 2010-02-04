@@ -151,7 +151,7 @@ void FuncDeclaration::semantic(Scope *sc)
     foverrides.setDim(0);	// reset in case semantic() is being retried for this function
 
     storage_class |= sc->stc & ~STCref;
-    //printf("function storage_class = x%llx, sc->stc = x%llx\n", storage_class, sc->stc);
+    //printf("function storage_class = x%llx, sc->stc = x%llx, %x\n", storage_class, sc->stc, Declaration::isFinal());
 
     if (!originalType)
 	originalType = type;
@@ -2459,13 +2459,19 @@ int FuncDeclaration::isFinal()
 {
     ClassDeclaration *cd;
 #if 0
-    printf("FuncDeclaration::isFinal(%s)\n", toChars());
-    printf("%p %d %d %d %d\n", isMember(), isStatic(), protection == PROTprivate, isCtorDeclaration(), linkage != LINKd);
+    printf("FuncDeclaration::isFinal(%s), %x\n", toChars(), Declaration::isFinal());
+    printf("%p %d %d %d\n", isMember(), isStatic(), Declaration::isFinal(), ((cd = toParent()->isClassDeclaration()) != NULL && cd->storage_class & STCfinal));
     printf("result is %d\n",
 	isMember() &&
+	(Declaration::isFinal() ||
+	 ((cd = toParent()->isClassDeclaration()) != NULL && cd->storage_class & STCfinal)));
+    if (cd)
+	printf("\tmember of %s\n", cd->toChars());
+#if 0
 	!(isStatic() || protection == PROTprivate || protection == PROTpackage) &&
 	(cd = toParent()->isClassDeclaration()) != NULL &&
 	cd->storage_class & STCfinal);
+#endif
 #endif
     return isMember() &&
 	(Declaration::isFinal() ||
