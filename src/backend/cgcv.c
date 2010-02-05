@@ -1,5 +1,5 @@
 // Copyright (C) 1984-1998 by Symantec
-// Copyright (C) 2000-2009 by Digital Mars
+// Copyright (C) 2000-2010 by Digital Mars
 // All Rights Reserved
 // http://www.digitalmars.com
 // Written by Walter Bright
@@ -1677,14 +1677,14 @@ L1:
     switch (tym)
     {
 	case TYllong:
-	    if (next)
+	    if (t->Tnext)
 		goto Ldelegate;
 	    assert(dt);
 	    typidx = dt;
 	    break;
 
 	case TYullong:
-	    if (next)
+	    if (t->Tnext)
 		goto Ldarray;
 	    assert(dt);
 	    typidx = dt;
