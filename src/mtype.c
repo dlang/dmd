@@ -6799,6 +6799,9 @@ MATCH TypeStruct::implicitConvTo(Type *to)
 {   MATCH m;
 
     //printf("TypeStruct::implicitConvTo(%s => %s)\n", toChars(), to->toChars());
+    if (to->ty == Taarray)
+	to = ((TypeAArray*)to)->getImpl()->type;
+
     if (ty == to->ty && sym == ((TypeStruct *)to)->sym)
     {	m = MATCHexact;		// exact match
 	if (mod != to->mod)
