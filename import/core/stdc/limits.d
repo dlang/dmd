@@ -20,7 +20,7 @@ extern (C):
 enum CHAR_BIT       = 8;
 enum SCHAR_MIN      = byte.min;
 enum SCHAR_MAX      = byte.max;
-enum UCHAR_MAX      = ubyte.min;
+enum UCHAR_MAX      = ubyte.max;
 enum CHAR_MIN       = char.max;
 enum CHAR_MAX       = char.max;
 enum MB_LEN_MAX     = 2;
