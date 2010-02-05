@@ -2757,15 +2757,9 @@ const char *FuncLiteralDeclaration::kind()
 
 void FuncLiteralDeclaration::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 {
-    static Identifier *idfunc;
-    static Identifier *iddel;
-
-    if (!idfunc)
-	idfunc = new Identifier("function", 0);
-    if (!iddel)
-	iddel = new Identifier("delegate", 0);
-
-    type->toCBuffer(buf, ((tok == TOKdelegate) ? iddel : idfunc), hgs);
+    buf->writestring(kind());
+    buf->writeByte(' ');
+    type->toCBuffer(buf, NULL, hgs);
     bodyToCBuffer(buf, hgs);
 }
 
