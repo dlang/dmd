@@ -1295,7 +1295,7 @@ void obj_ehtables(Symbol *sfunc,targ_size_t size,Symbol *ehsym)
 void obj_ehsections()
 {
     //printf("obj_ehsections()\n");
-
+#if 0
     /* Determine Mac OSX version, and put out the sections slightly differently for each.
      * This is needed because the linker on OSX 10.5 behaves differently than
      * the linker on 10.6.
@@ -1319,29 +1319,16 @@ void obj_ehsections()
     /* Thread local storage sections
      */
     mach_getsegment("__tls_beg", "__DATA", 2, S_COALESCED, 4);
-    seg = mach_getsegment("__tls_data", "__DATA", 2, S_REGULAR);
-    if (MacVersion >= MacOSX_10_6)
-    {	Outbuffer *buf = SegData[seg]->SDbuf;
-	// Don't need to write if the size is already non-zero
-	if (buf->size() == 0)
-	    buf->writezeros(4);
-    }
-
-    seg = mach_getsegment("__tlscoal_nt", "__DATA", 4, S_COALESCED);
-    if (MacVersion >= MacOSX_10_6)
-	SegData[seg]->SDbuf->writezeros(4);
-
+    mach_getsegment("__tls_data", "__DATA", 2, S_REGULAR, 4);
+    mach_getsegment("__tlscoal_nt", "__DATA", 4, S_COALESCED, 4);
     mach_getsegment("__tls_end", "__DATA", 2, S_COALESCED, 4);
 
     /* Module info sections
      */
     mach_getsegment("__minfo_beg", "__DATA", 2, S_COALESCED, 4);
-
-    seg = mach_getsegment("__minfodata", "__DATA", 2, S_REGULAR);
-    if (MacVersion >= MacOSX_10_6)
-	SegData[seg]->SDbuf->writezeros(4);
-
+    mach_getsegment("__minfodata", "__DATA", 2, S_REGULAR, 4);
     mach_getsegment("__minfo_end", "__DATA", 2, S_COALESCED, 4);
+#endif
 }
 
 /*********************************
@@ -1376,7 +1363,7 @@ int obj_comdat(Symbol *s)
     {
 	s->Sfl = FLtlsdata;
 	mach_getsegment("__tls_beg", "__DATA", 2, S_COALESCED, 4);
-	mach_getsegment("__tls_data", "__DATA", 2, S_REGULAR);
+	mach_getsegment("__tls_data", "__DATA", 2, S_REGULAR, 4);
 	s->Sseg = mach_getsegment("__tlscoal_nt", "__DATA", 4, S_COALESCED);
 	mach_getsegment("__tls_end", "__DATA", 2, S_COALESCED, 4);
     }
@@ -1468,16 +1455,18 @@ int mach_getsegment(const char *sectname, const char *segname,
     if (flags2)
     {
 	/* If we don't write something to each seg, then the linker won't put
-	 * them in this necessary order. Don't know why linker is broken.
+	 * them in this necessary order. In fact, it will ignore the segment entirely.
 	 */
 	static SInt32 MacVersion;
 	if (!MacVersion)
 	    Gestalt(gestaltSystemVersion, &MacVersion);
 
-	type *t = type_fake(TYint);
-	t->Tmangle = mTYman_c;
-	symbol *s_deh_beg = symbol_name(sectname + 1, SCcomdat, t);
-	objpubdef(seg, s_deh_beg, 0);
+	if (flags == S_COALESCED)
+	{   type *t = type_fake(TYint);
+	    t->Tmangle = mTYman_c;
+	    symbol *s_deh_beg = symbol_name(sectname + 1, SCcomdat, t);
+	    objpubdef(seg, s_deh_beg, 0);
+	}
 	if (MacVersion >= MacOSX_10_6)
 	    obj_bytes(seg, 0, flags2, NULL);	// 12 is size of struct FuncTable in D runtime
     }
@@ -1543,7 +1532,7 @@ seg_data *obj_tlsseg()
     {
 	mach_getsegment("__tls_beg", "__DATA", 2, S_COALESCED, 4);
 	seg_tlsseg = mach_getsegment("__tls_data", "__DATA", 2, S_REGULAR);
-	mach_getsegment("__tlscoal_nt", "__DATA", 4, S_COALESCED);
+	mach_getsegment("__tlscoal_nt", "__DATA", 4, S_COALESCED, 4);
 	mach_getsegment("__tls_end", "__DATA", 2, S_COALESCED, 4);
     }
     return SegData[seg_tlsseg];
