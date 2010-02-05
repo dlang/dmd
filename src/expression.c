@@ -5914,6 +5914,8 @@ L1:
     e = e->semantic(sc);
     if (e->op == TOKdottd)
     {
+	if (global.errors)
+	    return new ErrorExp();	// TemplateInstance::semantic() will fail anyway
 	DotTemplateExp *dte = (DotTemplateExp *)e;
 	TemplateDeclaration *td = dte->td;
 	eleft = dte->e1;
