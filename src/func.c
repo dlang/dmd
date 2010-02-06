@@ -732,14 +732,14 @@ void FuncDeclaration::semantic3(Scope *sc)
 	if (ad)
 	{   VarDeclaration *v;
 
-	    if (isFuncLiteralDeclaration() && isNested())
+	    if (isFuncLiteralDeclaration() && isNested() && !sc->intypeof)
 	    {
-		error("literals cannot be class members");
+		error("function literals cannot be class members");
 		return;
 	    }
 	    else
 	    {
-		assert(!isNested());	// can't be both member and nested
+		assert(!isNested() || sc->intypeof);	// can't be both member and nested
 		assert(ad->handle);
 		v = new ThisDeclaration(loc, ad->handle);
 		v->storage_class |= STCparameter | STCin;
