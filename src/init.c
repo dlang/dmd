@@ -436,6 +436,7 @@ Expression *ArrayInitializer::toExpression()
 
     elements = new Expressions();
     elements->setDim(edim);
+    elements->zero();
     for (size_t i = 0, j = 0; i < value.dim; i++, j++)
     {
 	if (index.data[i])
