@@ -38,6 +38,8 @@ class Object
     static Object factory(string classname);
 }
 
+bool opEquals(Object lhs, Object rhs);
+
 struct Interface
 {
     TypeInfo_Class   classinfo;

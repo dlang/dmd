@@ -127,6 +127,24 @@ class Object
     }
 }
 
+/************************
+ * Returns true if lhs and rhs are equal.
+ */
+bool opEquals(Object lhs, Object rhs)
+{
+    // If aliased to the same object or both null => equal
+    if (lhs is rhs) return true;
+
+    // If either is null => non-equal
+    if (lhs is null || rhs is null) return false;
+
+    // If same exact type => one call to method opEquals
+    if (typeid(lhs) == typeid(rhs)) return lhs.opEquals(rhs);
+
+    // General case => symmetric calls to method opEquals
+    return lhs.opEquals(rhs) && rhs.opEquals(lhs);
+}
+
 /**
  * Information about an interface.
  * When an object is accessed via an interface, an Interface* appears as the
