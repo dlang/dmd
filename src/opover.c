@@ -700,6 +700,8 @@ L1:
  */
 Expression *BinExp::compare_overload(Scope *sc, Identifier *id)
 {
+    //printf("BinExp::compare_overload(id = %s) %s\n", id->toChars(), toChars());
+
     AggregateDeclaration *ad1 = isAggregate(e1->type);
     AggregateDeclaration *ad2 = isAggregate(e2->type);
 
@@ -713,6 +715,8 @@ Expression *BinExp::compare_overload(Scope *sc, Identifier *id)
     if (ad2)
     {
 	s_r = search_function(ad2, id);
+	if (s == s_r)
+	    s_r = NULL;
     }
 
     Objects *targsi = NULL;
@@ -737,6 +741,12 @@ Expression *BinExp::compare_overload(Scope *sc, Identifier *id)
 	memset(&m, 0, sizeof(m));
 	m.last = MATCHnomatch;
 
+	if (0 && s && s_r)
+	{
+	    printf("s  : %s\n", s->toPrettyChars());
+	    printf("s_r: %s\n", s_r->toPrettyChars());
+	}
+
 	if (s)
 	{
 	    FuncDeclaration *fd = s->isFuncDeclaration();
@@ -751,6 +761,7 @@ Expression *BinExp::compare_overload(Scope *sc, Identifier *id)
 	}
 	
 	FuncDeclaration *lastf = m.lastf;
+	int count = m.count;
 
 	if (s_r)
 	{
@@ -767,11 +778,25 @@ Expression *BinExp::compare_overload(Scope *sc, Identifier *id)
 
 	if (m.count > 1)
 	{
-	    // Error, ambiguous
-	    error("overloads %s and %s both match argument list for %s",
+	    /* The following if says "not ambiguous" if there's one match
+	     * from s and one from s_r, in which case we pick s.
+	     * This doesn't follow the spec, but is a workaround for the case
+	     * where opEquals was generated from templates and we cannot figure
+	     * out if both s and s_r came from the same declaration or not.
+	     * The test case is:
+	     *   import std.typecons;
+	     *   void main() {
+	     *	  assert(tuple("has a", 2u) == tuple("has a", 1));
+	     *   }
+	     */
+	    if (!(m.lastf == lastf && m.count == 2 && count == 1))
+	    {
+		// Error, ambiguous
+		error("overloads %s and %s both match argument list for %s",
 		    m.lastf->type->toChars(),
 		    m.nextf->type->toChars(),
 		    m.lastf->toChars());
+	    }
 	}
 	else if (m.last == MATCHnomatch)
 	{

@@ -9346,6 +9346,7 @@ Expression *ModAssignExp::semantic(Scope *sc)
 	checkComplexMulAssign();
 	return commonSemanticAssign(sc);
     }
+    return this;
 }
 
 /************************************************************/
