@@ -39,6 +39,7 @@ class Object
 }
 
 bool opEquals(Object lhs, Object rhs);
+bool opEquals(TypeInfo lhs, TypeInfo rhs);
 
 struct Interface
 {

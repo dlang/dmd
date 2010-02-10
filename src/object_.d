@@ -145,6 +145,32 @@ bool opEquals(Object lhs, Object rhs)
     return lhs.opEquals(rhs) && rhs.opEquals(lhs);
 }
 
+bool opEquals(TypeInfo lhs, TypeInfo rhs)
+{
+    // If aliased to the same object or both null => equal
+    if (lhs is rhs) return true;
+
+    // If either is null => non-equal
+    if (lhs is null || rhs is null) return false;
+
+    // If same exact type => one call to method opEquals
+    if (typeid(lhs) == typeid(rhs)) return lhs.opEquals(rhs);
+
+    //printf("%.*s and %.*s, %d %d\n", lhs.toString(), rhs.toString(), lhs.opEquals(rhs), rhs.opEquals(lhs));
+
+    // Factor out top level const
+    // (This still isn't right, should follow same rules as compiler does for type equality.)
+    TypeInfo_Const c = cast(TypeInfo_Const) lhs;
+    if (c)
+	lhs = c.base;
+    c = cast(TypeInfo_Const) rhs;
+    if (c)
+	rhs = c.base;
+
+    // General case => symmetric calls to method opEquals
+    return lhs.opEquals(rhs) && rhs.opEquals(lhs);
+}
+
 /**
  * Information about an interface.
  * When an object is accessed via an interface, an Interface* appears as the
