@@ -3092,6 +3092,8 @@ void Lexer::initKeywords()
     Token::tochars[TOKcast]		= "cast";
     Token::tochars[TOKplusplus]		= "++";
     Token::tochars[TOKminusminus]	= "--";
+    Token::tochars[TOKpreplusplus]	= "++";
+    Token::tochars[TOKpreminusminus]	= "--";
     Token::tochars[TOKtype]		= "type";
     Token::tochars[TOKquestion]		= "?";
     Token::tochars[TOKneg]		= "-";

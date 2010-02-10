@@ -1,6 +1,6 @@
 
 // Compiler implementation of the D programming language
-// Copyright (c) 1999-2009 by Digital Mars
+// Copyright (c) 1999-2010 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // http://www.digitalmars.com
@@ -159,6 +159,35 @@ Identifier *ArrayExp::opId()	{ return Id::index; }
 Identifier *PtrExp::opId()	{ return Id::opStar; }
 
 /************************************
+ * If type is a class or struct, return the symbol for it,
+ * else NULL
+ */
+AggregateDeclaration *isAggregate(Type *t)
+{
+    t = t->toBasetype();
+    if (t->ty == Tclass)
+    {
+	return ((TypeClass *)t)->sym;
+    }
+    else if (t->ty == Tstruct)
+    {
+	return ((TypeStruct *)t)->sym;
+    }
+    return NULL;
+}
+
+/*******************************************
+ * Helper function to turn operator into template argument list
+ */
+Objects *opToArg(enum TOK op)
+{
+    Expression *e = new StringExp(0, (char *)Token::toChars(op));
+    Objects *targsi = new Objects();
+    targsi->push(e);
+    return targsi;
+}
+
+/************************************
  * Operator overload.
  * Check for operator overload, if so, replace
  * with function call.
@@ -168,42 +197,136 @@ Identifier *PtrExp::opId()	{ return Id::opStar; }
 Expression *UnaExp::op_overload(Scope *sc)
 {
     //printf("UnaExp::op_overload() (%s)\n", toChars());
-    AggregateDeclaration *ad;
-    Dsymbol *fd;
-    Type *t1 = e1->type->toBasetype();
 
-    if (t1->ty == Tclass)
+#if DMDV2
+    if (e1->op == TOKarray)
     {
-	ad = ((TypeClass *)t1)->sym;
-	goto L1;
-    }
-    else if (t1->ty == Tstruct)
-    {
-	ad = ((TypeStruct *)t1)->sym;
+	ArrayExp *ae = (ArrayExp *)e1;
+	ae->e1 = ae->e1->semantic(sc);
+	ae->e1 = resolveProperties(sc, ae->e1);
 
-    L1:
-	fd = search_function(ad, opId());
-	if (fd)
+	AggregateDeclaration *ad = isAggregate(ae->e1->type);
+	if (ad)
 	{
-	    if (op == TOKarray)
+	    /* Rewrite as:
+	     *	a.opIndexUnary!("+")(args);
+	     */
+	    Dsymbol *fd = search_function(ad, Id::opIndexUnary);
+	    if (fd)
 	    {
-		/* Rewrite op e1[arguments] as:
-		 *    e1.fd(arguments)
-		 */
-		Expression *e = new DotIdExp(loc, e1, fd->ident);
-		ArrayExp *ae = (ArrayExp *)this;
+		Objects *targsi = opToArg(op);
+		Expression *e = new DotTemplateInstanceExp(loc, ae->e1, fd->ident, targsi);
 		e = new CallExp(loc, e, ae->arguments);
 		e = e->semantic(sc);
 		return e;
 	    }
-	    else
+
+	    // Didn't find it. Forward to aliasthis
+	    if (ad->aliasthis)
 	    {
-		// Rewrite +e1 as e1.add()
-		return build_overload(loc, sc, e1, NULL, fd->ident);
+		/* Rewrite op(a[arguments]) as:
+		 *	op(a.aliasthis[arguments])
+		 */
+		Expression *e1 = ae->copy();
+		((ArrayExp *)e1)->e1 = new DotIdExp(loc, ae->e1, ad->aliasthis->ident);
+		Expression *e = copy();
+		((UnaExp *)e)->e1 = e1;
+		e = e->semantic(sc);
+		return e;
 	    }
 	}
+    }
+    else if (e1->op == TOKslice)
+    {
+	SliceExp *se = (SliceExp *)e1;
+	se->e1 = se->e1->semantic(sc);
+	se->e1 = resolveProperties(sc, se->e1);
+
+	AggregateDeclaration *ad = isAggregate(se->e1->type);
+	if (ad)
+	{
+	    /* Rewrite as:
+	     *	a.opSliceUnary!("+")(lwr, upr);
+	     */
+	    Dsymbol *fd = search_function(ad, Id::opSliceUnary);
+	    if (fd)
+	    {
+		Expressions *a = new Expressions();
+		if (se->lwr)
+		{   a->push(se->lwr);
+		    a->push(se->upr);
+		}
+
+		Objects *targsi = opToArg(op);
+		Expression *e = new DotTemplateInstanceExp(loc, se->e1, fd->ident, targsi);
+		e = new CallExp(loc, e, a);
+		e = e->semantic(sc);
+		return e;
+	    }
+
+	    // Didn't find it. Forward to aliasthis
+	    if (ad->aliasthis)
+	    {
+		/* Rewrite op(a[lwr..upr]) as:
+		 *	op(a.aliasthis[lwr..upr])
+		 */
+		Expression *e1 = se->copy();
+		((SliceExp *)e1)->e1 = new DotIdExp(loc, se->e1, ad->aliasthis->ident);
+		Expression *e = copy();
+		((UnaExp *)e)->e1 = e1;
+		e = e->semantic(sc);
+		return e;
+	    }
+	}
+    }
+#endif
+
+    e1 = e1->semantic(sc);
+    e1 = resolveProperties(sc, e1);
+
+    AggregateDeclaration *ad = isAggregate(e1->type);
+    if (ad)
+    {
+	Dsymbol *fd = NULL;
+#if 1 // Old way, kept for compatibility with D1
+	if (op != TOKpreplusplus && op != TOKpreminusminus)
+	{   fd = search_function(ad, opId());
+	    if (fd)
+	    {
+		if (op == TOKarray)
+		{
+		    /* Rewrite op e1[arguments] as:
+		     *    e1.fd(arguments)
+		     */
+		    Expression *e = new DotIdExp(loc, e1, fd->ident);
+		    ArrayExp *ae = (ArrayExp *)this;
+		    e = new CallExp(loc, e, ae->arguments);
+		    e = e->semantic(sc);
+		    return e;
+		}
+		else
+		{
+		    // Rewrite +e1 as e1.add()
+		    return build_overload(loc, sc, e1, NULL, fd->ident);
+		}
+	    }
+	}
+#endif
 
 #if DMDV2
+	/* Rewrite as:
+	 *	e1.opUnary!("+")();
+	 */
+	fd = search_function(ad, Id::opUnary);
+	if (fd)
+	{
+	    Objects *targsi = opToArg(op);
+	    Expression *e = new DotTemplateInstanceExp(loc, e1, fd->ident, targsi);
+	    e = new CallExp(loc, e);
+	    e = e->semantic(sc);
+	    return e;
+	}
+
 	// Didn't find it. Forward to aliasthis
 	if (ad->aliasthis)
 	{
@@ -221,42 +344,105 @@ Expression *UnaExp::op_overload(Scope *sc)
     return NULL;
 }
 
+Expression *ArrayExp::op_overload(Scope *sc)
+{
+    //printf("ArrayExp::op_overload() (%s)\n", toChars());
+    AggregateDeclaration *ad = isAggregate(e1->type);
+    if (ad)
+    {
+	Dsymbol *fd = search_function(ad, opId());
+	if (fd)
+	{
+	    /* Rewrite op e1[arguments] as:
+	     *    e1.opIndex(arguments)
+	     */
+	    Expression *e = new DotIdExp(loc, e1, fd->ident);
+	    e = new CallExp(loc, e, arguments);
+	    e = e->semantic(sc);
+	    return e;
+	}
+
+	// Didn't find it. Forward to aliasthis
+	if (ad->aliasthis)
+	{
+	    /* Rewrite op(e1) as:
+	     *	op(e1.aliasthis)
+	     */
+	    Expression *e1 = new DotIdExp(loc, this->e1, ad->aliasthis->ident);
+	    Expression *e = copy();
+	    ((UnaExp *)e)->e1 = e1;
+	    e = e->semantic(sc);
+	    return e;
+	}
+    }
+    return NULL;
+}
+
+/***********************************************
+ * This is mostly the same as UnaryExp::op_overload(), but has
+ * a different rewrite.
+ */
+Expression *CastExp::op_overload(Scope *sc)
+{
+    //printf("CastExp::op_overload() (%s)\n", toChars());
+    AggregateDeclaration *ad = isAggregate(e1->type);
+    if (ad)
+    {
+	Dsymbol *fd = NULL;
+	/* Rewrite as:
+	 *	e1.opCast!(T)();
+	 */
+	fd = search_function(ad, Id::cast);
+	if (fd)
+	{
+#if 1 // Backwards compatibility with D1 if opCast is a function, not a template
+	    if (fd->isFuncDeclaration())
+	    {	// Rewrite as:  e1.opCast()
+		return build_overload(loc, sc, e1, NULL, fd->ident);
+	    }
+#endif
+	    Objects *targsi = new Objects();
+	    targsi->push(to);
+	    Expression *e = new DotTemplateInstanceExp(loc, e1, fd->ident, targsi);
+	    e = new CallExp(loc, e);
+	    e = e->semantic(sc);
+	    return e;
+	}
+
+	// Didn't find it. Forward to aliasthis
+	if (ad->aliasthis)
+	{
+	    /* Rewrite op(e1) as:
+	     *	op(e1.aliasthis)
+	     */
+	    Expression *e1 = new DotIdExp(loc, this->e1, ad->aliasthis->ident);
+	    Expression *e = copy();
+	    ((UnaExp *)e)->e1 = e1;
+	    e = e->semantic(sc);
+	    return e;
+	}
+    }
+    return NULL;
+}
 
 Expression *BinExp::op_overload(Scope *sc)
 {
     //printf("BinExp::op_overload() (%s)\n", toChars());
 
-    AggregateDeclaration *ad;
-    Type *t1 = e1->type->toBasetype();
-    Type *t2 = e2->type->toBasetype();
     Identifier *id = opId();
     Identifier *id_r = opId_r();
 
-    Match m;
     Expressions args1;
     Expressions args2;
     int argsset = 0;
 
-    AggregateDeclaration *ad1;
-    if (t1->ty == Tclass)
-	ad1 = ((TypeClass *)t1)->sym;
-    else if (t1->ty == Tstruct)
-	ad1 = ((TypeStruct *)t1)->sym;
-    else
-	ad1 = NULL;
-
-    AggregateDeclaration *ad2;
-    if (t2->ty == Tclass)
-	ad2 = ((TypeClass *)t2)->sym;
-    else if (t2->ty == Tstruct)
-	ad2 = ((TypeStruct *)t2)->sym;
-    else
-	ad2 = NULL;
+    AggregateDeclaration *ad1 = isAggregate(e1->type);
+    AggregateDeclaration *ad2 = isAggregate(e2->type);
 
     Dsymbol *s = NULL;
     Dsymbol *s_r = NULL;
-    FuncDeclaration *fd = NULL;
-    TemplateDeclaration *td = NULL;
+
+#if 1 // the old D1 scheme
     if (ad1 && id)
     {
 	s = search_function(ad1, id);
@@ -265,6 +451,31 @@ Expression *BinExp::op_overload(Scope *sc)
     {
 	s_r = search_function(ad2, id_r);
     }
+#endif
+
+    Objects *targsi = NULL;
+#if DMDV2
+    if (!s && !s_r && op != TOKequal && op != TOKnotequal)
+    {	/* Try the new D2 scheme, opBinary and opBinaryRight
+	 */
+	if (ad1)
+	    s = search_function(ad1, Id::opBinary);
+	if (ad2)
+	    s_r = search_function(ad2, Id::opBinaryRight);
+
+	// Set targsi, the template argument list, which will be the operator string
+	if (s || s_r)
+	{
+	    id = Id::opBinary;
+	    id_r = Id::opBinaryRight;
+
+	    Expression *e = new StringExp(loc, (char *)Token::toChars(op));
+	    e = e->semantic(sc);
+	    targsi = new Objects();
+	    targsi->push(e);
+	}
+    }
+#endif
 
     if (s || s_r)
     {
@@ -273,8 +484,6 @@ Expression *BinExp::op_overload(Scope *sc)
 	 *	b.opfunc_r(a)
 	 * and see which is better.
 	 */
-	Expression *e;
-	FuncDeclaration *lastf;
 
 	args1.setDim(1);
 	args1.data[0] = (void*) e1;
@@ -282,34 +491,35 @@ Expression *BinExp::op_overload(Scope *sc)
 	args2.data[0] = (void*) e2;
 	argsset = 1;
 
+	Match m;
 	memset(&m, 0, sizeof(m));
 	m.last = MATCHnomatch;
 
 	if (s)
 	{
-	    fd = s->isFuncDeclaration();
+	    FuncDeclaration *fd = s->isFuncDeclaration();
 	    if (fd)
 	    {
 		overloadResolveX(&m, fd, NULL, &args2);
 	    }
 	    else
-	    {   td = s->isTemplateDeclaration();
-		templateResolve(&m, td, sc, loc, NULL, NULL, &args2);
+	    {   TemplateDeclaration *td = s->isTemplateDeclaration();
+		templateResolve(&m, td, sc, loc, targsi, NULL, &args2);
 	    }
 	}
 	
-	lastf = m.lastf;
+	FuncDeclaration *lastf = m.lastf;
 
 	if (s_r)
 	{
-	    fd = s_r->isFuncDeclaration();
+	    FuncDeclaration *fd = s_r->isFuncDeclaration();
 	    if (fd)
 	    {
 		overloadResolveX(&m, fd, NULL, &args1);
 	    }
 	    else
-	    {   td = s_r->isTemplateDeclaration();
-		templateResolve(&m, td, sc, loc, NULL, NULL, &args1);
+	    {   TemplateDeclaration *td = s_r->isTemplateDeclaration();
+		templateResolve(&m, td, sc, loc, targsi, NULL, &args1);
 	    }
 	}
 
@@ -324,8 +534,11 @@ Expression *BinExp::op_overload(Scope *sc)
 	else if (m.last == MATCHnomatch)
 	{
 	    m.lastf = m.anyf;
+	    if (targsi)
+		goto L1;
 	}
 
+	Expression *e;
 	if (op == TOKplusplus || op == TOKminusminus)
 	    // Kludge because operator overloading regards e++ and e--
 	    // as unary, but it's implemented as a binary.
@@ -334,14 +547,16 @@ Expression *BinExp::op_overload(Scope *sc)
 	    e = build_overload(loc, sc, e1, NULL, id);
 	else if (lastf && m.lastf == lastf || m.last == MATCHnomatch)
 	    // Rewrite (e1 op e2) as e1.opfunc(e2)
-	    e = build_overload(loc, sc, e1, e2, id);
+	    e = build_overload(loc, sc, e1, e2, id, targsi);
 	else
 	    // Rewrite (e1 op e2) as e2.opfunc_r(e1)
-	    e = build_overload(loc, sc, e2, e1, id_r);
+	    e = build_overload(loc, sc, e2, e1, id_r, targsi);
 	return e;
     }
 
-    if (isCommutative())
+L1:
+#if 1 // Retained for D1 compatibility
+    if (isCommutative() && !targsi)
     {
 	s = NULL;
 	s_r = NULL;
@@ -369,33 +584,34 @@ Expression *BinExp::op_overload(Scope *sc)
 		args2.data[0] = (void*) e2;
 	    }
 
+	    Match m;
 	    memset(&m, 0, sizeof(m));
 	    m.last = MATCHnomatch;
 
 	    if (s_r)
 	    {
-		fd = s_r->isFuncDeclaration();
+		FuncDeclaration *fd = s_r->isFuncDeclaration();
 		if (fd)
 		{
 		    overloadResolveX(&m, fd, NULL, &args2);
 		}
 		else
-		{   td = s_r->isTemplateDeclaration();
-		    templateResolve(&m, td, sc, loc, NULL, NULL, &args2);
+		{   TemplateDeclaration *td = s_r->isTemplateDeclaration();
+		    templateResolve(&m, td, sc, loc, targsi, NULL, &args2);
 		}
 	    }
 	    FuncDeclaration *lastf = m.lastf;
 
 	    if (s)
 	    {
-		fd = s->isFuncDeclaration();
+		FuncDeclaration *fd = s->isFuncDeclaration();
 		if (fd)
 		{
 		    overloadResolveX(&m, fd, NULL, &args1);
 		}
 		else
-		{   td = s->isTemplateDeclaration();
-		    templateResolve(&m, td, sc, loc, NULL, NULL, &args1);
+		{   TemplateDeclaration *td = s->isTemplateDeclaration();
+		    templateResolve(&m, td, sc, loc, targsi, NULL, &args1);
 		}
 	    }
 
@@ -416,10 +632,10 @@ Expression *BinExp::op_overload(Scope *sc)
 	    if (lastf && m.lastf == lastf ||
 		id_r && m.last == MATCHnomatch)
 		// Rewrite (e1 op e2) as e1.opfunc_r(e2)
-		e = build_overload(loc, sc, e1, e2, id_r);
+		e = build_overload(loc, sc, e1, e2, id_r, targsi);
 	    else
 		// Rewrite (e1 op e2) as e2.opfunc(e1)
-		e = build_overload(loc, sc, e2, e1, id);
+		e = build_overload(loc, sc, e2, e1, id, targsi);
 
 	    // When reversing operands of comparison operators,
 	    // need to reverse the sense of the op
@@ -447,6 +663,7 @@ Expression *BinExp::op_overload(Scope *sc)
 	    return e;
 	}
     }
+#endif
 
 #if DMDV2
     // Try alias this on first operand
@@ -478,18 +695,410 @@ Expression *BinExp::op_overload(Scope *sc)
     return NULL;
 }
 
+/******************************************
+ * Common code for overloading of EqualExp and CmpExp
+ */
+Expression *BinExp::compare_overload(Scope *sc, Identifier *id)
+{
+    AggregateDeclaration *ad1 = isAggregate(e1->type);
+    AggregateDeclaration *ad2 = isAggregate(e2->type);
+
+    Dsymbol *s = NULL;
+    Dsymbol *s_r = NULL;
+
+    if (ad1)
+    {
+	s = search_function(ad1, id);
+    }
+    if (ad2)
+    {
+	s_r = search_function(ad2, id);
+    }
+
+    Objects *targsi = NULL;
+
+    if (s || s_r)
+    {
+	/* Try:
+	 *	a.opEquals(b)
+	 *	b.opEquals(a)
+	 * and see which is better.
+	 */
+
+	Expressions args1;
+	Expressions args2;
+
+	args1.setDim(1);
+	args1.data[0] = (void*) e1;
+	args2.setDim(1);
+	args2.data[0] = (void*) e2;
+
+	Match m;
+	memset(&m, 0, sizeof(m));
+	m.last = MATCHnomatch;
+
+	if (s)
+	{
+	    FuncDeclaration *fd = s->isFuncDeclaration();
+	    if (fd)
+	    {
+		overloadResolveX(&m, fd, NULL, &args2);
+	    }
+	    else
+	    {   TemplateDeclaration *td = s->isTemplateDeclaration();
+		templateResolve(&m, td, sc, loc, targsi, NULL, &args2);
+	    }
+	}
+	
+	FuncDeclaration *lastf = m.lastf;
+
+	if (s_r)
+	{
+	    FuncDeclaration *fd = s_r->isFuncDeclaration();
+	    if (fd)
+	    {
+		overloadResolveX(&m, fd, NULL, &args1);
+	    }
+	    else
+	    {   TemplateDeclaration *td = s_r->isTemplateDeclaration();
+		templateResolve(&m, td, sc, loc, targsi, NULL, &args1);
+	    }
+	}
+
+	if (m.count > 1)
+	{
+	    // Error, ambiguous
+	    error("overloads %s and %s both match argument list for %s",
+		    m.lastf->type->toChars(),
+		    m.nextf->type->toChars(),
+		    m.lastf->toChars());
+	}
+	else if (m.last == MATCHnomatch)
+	{
+	    m.lastf = m.anyf;
+	}
+
+	Expression *e;
+	if (lastf && m.lastf == lastf || m.last == MATCHnomatch)
+	    // Rewrite (e1 op e2) as e1.opfunc(e2)
+	    e = build_overload(loc, sc, e1, e2, id, targsi);
+	else
+	{   // Rewrite (e1 op e2) as e2.opfunc_r(e1)
+	    e = build_overload(loc, sc, e2, e1, id, targsi);
+
+	    // When reversing operands of comparison operators,
+	    // need to reverse the sense of the op
+	    switch (op)
+	    {
+		case TOKlt:	op = TOKgt;	break;
+		case TOKgt:	op = TOKlt;	break;
+		case TOKle:	op = TOKge;	break;
+		case TOKge:	op = TOKle;	break;
+
+		// Floating point compares
+		case TOKule:	op = TOKuge;	 break;
+		case TOKul:	op = TOKug;	 break;
+		case TOKuge:	op = TOKule;	 break;
+		case TOKug:	op = TOKul;	 break;
+
+		// The rest are symmetric
+		default:
+		    break;
+	    }
+	}
+
+	return e;
+    }
+
+    // Try alias this on first operand
+    if (ad1 && ad1->aliasthis)
+    {
+	/* Rewrite (e1 op e2) as:
+	 *	(e1.aliasthis op e2)
+	 */
+	Expression *e1 = new DotIdExp(loc, this->e1, ad1->aliasthis->ident);
+	Expression *e = copy();
+	((BinExp *)e)->e1 = e1;
+	e = e->semantic(sc);
+	return e;
+    }
+
+    // Try alias this on second operand
+    if (ad2 && ad2->aliasthis)
+    {
+	/* Rewrite (e1 op e2) as:
+	 *	(e1 op e2.aliasthis)
+	 */
+	Expression *e2 = new DotIdExp(loc, this->e2, ad2->aliasthis->ident);
+	Expression *e = copy();
+	((BinExp *)e)->e2 = e2;
+	e = e->semantic(sc);
+	return e;
+    }
+
+    return NULL;
+}
+
+Expression *EqualExp::op_overload(Scope *sc)
+{
+    //printf("EqualExp::op_overload() (%s)\n", toChars());
+
+    Type *t1 = e1->type->toBasetype();
+    Type *t2 = e2->type->toBasetype();
+    if (t1->ty == Tclass && t2->ty == Tclass)
+    {
+	/* Rewrite as:
+	 *	.object.opEquals(e1, e2)
+	 */
+	Expression *e = new IdentifierExp(loc, Id::empty);
+	e = new DotIdExp(loc, e, Id::object);
+	e = new DotIdExp(loc, e, Id::eq);
+	e = new CallExp(loc, e, e1, e2);
+	e = e->semantic(sc);
+	return e;
+    }
+
+    return compare_overload(sc, Id::eq);
+}
+
+Expression *CmpExp::op_overload(Scope *sc)
+{
+    //printf("CmpExp::op_overload() (%s)\n", toChars());
+
+    return compare_overload(sc, Id::cmp);
+}
+
+/*********************************
+ * Operator overloading for op=
+ */
+Expression *BinAssignExp::op_overload(Scope *sc)
+{
+    //printf("BinAssignExp::op_overload() (%s)\n", toChars());
+
+#if DMDV2
+    if (e1->op == TOKarray)
+    {
+	ArrayExp *ae = (ArrayExp *)e1;
+	ae->e1 = ae->e1->semantic(sc);
+	ae->e1 = resolveProperties(sc, ae->e1);
+
+	AggregateDeclaration *ad = isAggregate(ae->e1->type);
+	if (ad)
+	{
+	    /* Rewrite a[args]+=e2 as:
+	     *	a.opIndexOpAssign!("+")(e2, args);
+	     */
+	    Dsymbol *fd = search_function(ad, Id::opIndexOpAssign);
+	    if (fd)
+	    {
+		Expressions *a = new Expressions();
+		a->push(e2);
+		for (int i = 0; i < ae->arguments->dim; i++)
+		    a->push(ae->arguments->data[i]);
+
+		Objects *targsi = opToArg(op);
+		Expression *e = new DotTemplateInstanceExp(loc, ae->e1, fd->ident, targsi);
+		e = new CallExp(loc, e, a);
+		e = e->semantic(sc);
+		return e;
+	    }
+
+	    // Didn't find it. Forward to aliasthis
+	    if (ad->aliasthis)
+	    {
+		/* Rewrite a[arguments] op= e2 as:
+		 *	a.aliasthis[arguments] op= e2
+		 */
+		Expression *e1 = ae->copy();
+		((ArrayExp *)e1)->e1 = new DotIdExp(loc, ae->e1, ad->aliasthis->ident);
+		Expression *e = copy();
+		((UnaExp *)e)->e1 = e1;
+		e = e->semantic(sc);
+		return e;
+	    }
+	}
+    }
+    else if (e1->op == TOKslice)
+    {
+	SliceExp *se = (SliceExp *)e1;
+	se->e1 = se->e1->semantic(sc);
+	se->e1 = resolveProperties(sc, se->e1);
+
+	AggregateDeclaration *ad = isAggregate(se->e1->type);
+	if (ad)
+	{
+	    /* Rewrite a[lwr..upr]+=e2 as:
+	     *	a.opSliceOpAssign!("+")(e2, lwr, upr);
+	     */
+	    Dsymbol *fd = search_function(ad, Id::opSliceOpAssign);
+	    if (fd)
+	    {
+		Expressions *a = new Expressions();
+		a->push(e2);
+		if (se->lwr)
+		{   a->push(se->lwr);
+		    a->push(se->upr);
+		}
+
+		Objects *targsi = opToArg(op);
+		Expression *e = new DotTemplateInstanceExp(loc, se->e1, fd->ident, targsi);
+		e = new CallExp(loc, e, a);
+		e = e->semantic(sc);
+		return e;
+	    }
+
+	    // Didn't find it. Forward to aliasthis
+	    if (ad->aliasthis)
+	    {
+		/* Rewrite a[lwr..upr] op= e2 as:
+		 *	a.aliasthis[lwr..upr] op= e2
+		 */
+		Expression *e1 = se->copy();
+		((SliceExp *)e1)->e1 = new DotIdExp(loc, se->e1, ad->aliasthis->ident);
+		Expression *e = copy();
+		((UnaExp *)e)->e1 = e1;
+		e = e->semantic(sc);
+		return e;
+	    }
+	}
+    }
+#endif
+
+    BinExp::semantic(sc);
+    e2 = resolveProperties(sc, e2);
+
+    Identifier *id = opId();
+
+    Expressions args2;
+
+    AggregateDeclaration *ad1 = isAggregate(e1->type);
+
+    Dsymbol *s = NULL;
+
+#if 1 // the old D1 scheme
+    if (ad1 && id)
+    {
+	s = search_function(ad1, id);
+    }
+#endif
+
+    Objects *targsi = NULL;
+#if DMDV2
+    if (!s)
+    {	/* Try the new D2 scheme, opOpAssign
+	 */
+	if (ad1)
+	    s = search_function(ad1, Id::opOpAssign);
+
+	// Set targsi, the template argument list, which will be the operator string
+	if (s)
+	{
+	    id = Id::opOpAssign;
+
+	    Expression *e = new StringExp(loc, (char *)Token::toChars(op));
+	    e = e->semantic(sc);
+	    targsi = new Objects();
+	    targsi->push(e);
+	}
+    }
+#endif
+
+    if (s)
+    {
+	/* Try:
+	 *	a.opOpAssign(b)
+	 */
+
+	args2.setDim(1);
+	args2.data[0] = (void*) e2;
+
+	Match m;
+	memset(&m, 0, sizeof(m));
+	m.last = MATCHnomatch;
+
+	if (s)
+	{
+	    FuncDeclaration *fd = s->isFuncDeclaration();
+	    if (fd)
+	    {
+		overloadResolveX(&m, fd, NULL, &args2);
+	    }
+	    else
+	    {   TemplateDeclaration *td = s->isTemplateDeclaration();
+		templateResolve(&m, td, sc, loc, targsi, NULL, &args2);
+	    }
+	}
+	
+	if (m.count > 1)
+	{
+	    // Error, ambiguous
+	    error("overloads %s and %s both match argument list for %s",
+		    m.lastf->type->toChars(),
+		    m.nextf->type->toChars(),
+		    m.lastf->toChars());
+	}
+	else if (m.last == MATCHnomatch)
+	{
+	    m.lastf = m.anyf;
+	    if (targsi)
+		goto L1;
+	}
+
+	Expression *e;
+	// Rewrite (e1 op e2) as e1.opOpAssign(e2)
+	e = build_overload(loc, sc, e1, e2, id, targsi);
+	return e;
+    }
+
+L1:
+
+#if DMDV2
+    // Try alias this on first operand
+    if (ad1 && ad1->aliasthis)
+    {
+	/* Rewrite (e1 op e2) as:
+	 *	(e1.aliasthis op e2)
+	 */
+	Expression *e1 = new DotIdExp(loc, this->e1, ad1->aliasthis->ident);
+	Expression *e = copy();
+	((BinExp *)e)->e1 = e1;
+	e = e->semantic(sc);
+	return e;
+    }
+
+    // Try alias this on second operand
+    AggregateDeclaration *ad2 = isAggregate(e2->type);
+    if (ad2 && ad2->aliasthis)
+    {
+	/* Rewrite (e1 op e2) as:
+	 *	(e1 op e2.aliasthis)
+	 */
+	Expression *e2 = new DotIdExp(loc, this->e2, ad2->aliasthis->ident);
+	Expression *e = copy();
+	((BinExp *)e)->e2 = e2;
+	e = e->semantic(sc);
+	return e;
+    }
+#endif
+    return NULL;
+}
+
 /***********************************
  * Utility to build a function call out of this reference and argument.
  */
 
-Expression *build_overload(Loc loc, Scope *sc, Expression *ethis, Expression *earg, Identifier *id)
+Expression *build_overload(Loc loc, Scope *sc, Expression *ethis, Expression *earg,
+	Identifier *id, Objects *targsi)
 {
     Expression *e;
 
     //printf("build_overload(id = '%s')\n", id->toChars());
     //earg->print();
     //earg->type->print();
-    e = new DotIdExp(loc, ethis, id);
+    if (targsi)
+	e = new DotTemplateInstanceExp(loc, ethis, id, targsi);
+    else
+	e = new DotIdExp(loc, ethis, id);
 
     if (earg)
 	e = new CallExp(loc, e, earg);
@@ -779,7 +1388,7 @@ static void templateResolve(Match *m, TemplateDeclaration *td, Scope *sc, Loc lo
     FuncDeclaration *fd;
 
     assert(td);
-    fd = td->deduceFunctionTemplate(sc, loc, targsi, ethis, arguments);
+    fd = td->deduceFunctionTemplate(sc, loc, targsi, ethis, arguments, 1);
     if (!fd)
 	return;
     m->anyf = fd;

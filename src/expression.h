@@ -1,6 +1,6 @@
 
 // Compiler implementation of the D programming language
-// Copyright (c) 1999-2009 by Digital Mars
+// Copyright (c) 1999-2010 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // http://www.digitalmars.com
@@ -61,7 +61,7 @@ void initPrecedence();
 
 Expression *resolveProperties(Scope *sc, Expression *e);
 void accessCheck(Loc loc, Scope *sc, Expression *e, Declaration *d);
-Expression *build_overload(Loc loc, Scope *sc, Expression *ethis, Expression *earg, Identifier *id);
+Expression *build_overload(Loc loc, Scope *sc, Expression *ethis, Expression *earg, Identifier *id, Objects *targsi = NULL);
 Dsymbol *search_function(ScopeDsymbol *ad, Identifier *funcid);
 void inferApplyArgTypes(enum TOK op, Parameters *arguments, Expression *aggr);
 void argExpTypesToCBuffer(OutBuffer *buf, Expressions *arguments, HdrGenState *hgs);
@@ -125,7 +125,7 @@ struct Expression : Object
     void checkDeprecated(Scope *sc, Dsymbol *s);
     void checkPurity(Scope *sc, FuncDeclaration *f);
     void checkSafety(Scope *sc, FuncDeclaration *f);
-    virtual Expression *checkToBoolean();
+    virtual Expression *checkToBoolean(Scope *sc);
     Expression *checkToPointer();
     Expression *addressOf(Scope *sc);
     Expression *deref();
@@ -740,7 +740,7 @@ struct UnaExp : Expression
     Expression *doInline(InlineDoState *ids);
     Expression *inlineScan(InlineScanState *iss);
 
-    Expression *op_overload(Scope *sc);	// doesn't need to be virtual
+    virtual Expression *op_overload(Scope *sc);
 };
 
 struct BinExp : Expression
@@ -752,8 +752,6 @@ struct BinExp : Expression
     Expression *syntaxCopy();
     Expression *semantic(Scope *sc);
     Expression *semanticp(Scope *sc);
-    Expression *commonSemanticAssign(Scope *sc);
-    Expression *commonSemanticAssignIntegral(Scope *sc);
     int checkSideEffect(int flag);
     void checkComplexMulAssign();
     void checkComplexAddAssign();
@@ -776,14 +774,22 @@ struct BinExp : Expression
     Expression *inlineScan(InlineScanState *iss);
 
     Expression *op_overload(Scope *sc);
+    Expression *compare_overload(Scope *sc, Identifier *id);
 
     elem *toElemBin(IRState *irs, int op);
 };
 
 struct BinAssignExp : BinExp
 {
-    BinAssignExp(Loc loc, enum TOK op, int size, Expression *e1, Expression *e2);
-    int checkSideEffect(int flag);
+    BinAssignExp(Loc loc, enum TOK op, int size, Expression *e1, Expression *e2)
+	: BinExp(loc, op, size, e1, e2)
+    {
+    }
+
+    Expression *commonSemanticAssign(Scope *sc);
+    Expression *commonSemanticAssignIntegral(Scope *sc);
+
+    Expression *op_overload(Scope *sc);
 };
 
 /****************************************************************/
@@ -1015,7 +1021,7 @@ struct DeleteExp : UnaExp
 {
     DeleteExp(Loc loc, Expression *e);
     Expression *semantic(Scope *sc);
-    Expression *checkToBoolean();
+    Expression *checkToBoolean(Scope *sc);
     int checkSideEffect(int flag);
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
     elem *toElem(IRState *irs);
@@ -1044,6 +1050,7 @@ struct CastExp : UnaExp
 
     // For operator overloading
     Identifier *opId();
+    Expression *op_overload(Scope *sc);
 };
 
 
@@ -1103,6 +1110,7 @@ struct ArrayExp : UnaExp
 
     // For operator overloading
     Identifier *opId();
+    Expression *op_overload(Scope *sc);
 
     int inlineCost(InlineCostState *ics);
     Expression *doInline(InlineDoState *ids);
@@ -1167,12 +1175,21 @@ struct PostExp : BinExp
     elem *toElem(IRState *irs);
 };
 
+/* For both ++i and --i
+ */
+struct PreExp : UnaExp
+{
+    PreExp(enum TOK op, Loc loc, Expression *e);
+    Expression *semantic(Scope *sc);
+    void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
+};
+
 struct AssignExp : BinExp
 {   int ismemset;	// !=0 if setting the contents of an array
 
     AssignExp(Loc loc, Expression *e1, Expression *e2);
     Expression *semantic(Scope *sc);
-    Expression *checkToBoolean();
+    Expression *checkToBoolean(Scope *sc);
     Expression *interpret(InterState *istate);
     Identifier *opId();    // For operator overloading
     void buildArrayIdent(OutBuffer *buf, Expressions *arguments);
@@ -1181,7 +1198,7 @@ struct AssignExp : BinExp
 };
 
 #define ASSIGNEXP(op)	\
-struct op##AssignExp : BinExp					\
+struct op##AssignExp : BinAssignExp				\
 {								\
     op##AssignExp(Loc loc, Expression *e1, Expression *e2);	\
     Expression *semantic(Scope *sc);				\
@@ -1216,7 +1233,7 @@ ASSIGNEXP(Cat)
 #undef ASSIGNEXP
 
 // Only a reduced subset of operations for now.
-struct PowAssignExp : BinExp
+struct PowAssignExp : BinAssignExp
 {
     PowAssignExp(Loc loc, Expression *e1, Expression *e2);
     Expression *semantic(Scope *sc);
@@ -1439,7 +1456,7 @@ struct OrOrExp : BinExp
 {
     OrOrExp(Loc loc, Expression *e1, Expression *e2);
     Expression *semantic(Scope *sc);
-    Expression *checkToBoolean();
+    Expression *checkToBoolean(Scope *sc);
     int isBit();
     Expression *optimize(int result);
     Expression *interpret(InterState *istate);
@@ -1451,7 +1468,7 @@ struct AndAndExp : BinExp
 {
     AndAndExp(Loc loc, Expression *e1, Expression *e2);
     Expression *semantic(Scope *sc);
-    Expression *checkToBoolean();
+    Expression *checkToBoolean(Scope *sc);
     int isBit();
     Expression *optimize(int result);
     Expression *interpret(InterState *istate);
@@ -1470,6 +1487,7 @@ struct CmpExp : BinExp
     // For operator overloading
     int isCommutative();
     Identifier *opId();
+    Expression *op_overload(Scope *sc);
 
     elem *toElem(IRState *irs);
 };
@@ -1506,6 +1524,7 @@ struct EqualExp : BinExp
     // For operator overloading
     int isCommutative();
     Identifier *opId();
+    Expression *op_overload(Scope *sc);
 
     elem *toElem(IRState *irs);
 };
@@ -1538,7 +1557,7 @@ struct CondExp : BinExp
     int isLvalue();
     Expression *toLvalue(Scope *sc, Expression *e);
     Expression *modifiableLvalue(Scope *sc, Expression *e);
-    Expression *checkToBoolean();
+    Expression *checkToBoolean(Scope *sc);
     int checkSideEffect(int flag);
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
     MATCH implicitConvTo(Type *t);

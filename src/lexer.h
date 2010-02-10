@@ -96,8 +96,9 @@ enum TOK
 	TOKplusplus,	TOKminusminus,	TOKconstruct,	TOKblit,
 	TOKdot,		TOKarrow,	TOKcomma,
 	TOKquestion,	TOKandand,	TOKoror,
+	TOKpreplusplus,	TOKpreminusminus,
 
-// 104
+// 106
 	// Numeric literals
 	TOKint32v, TOKuns32v,
 	TOKint64v, TOKuns64v,

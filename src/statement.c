@@ -1060,7 +1060,7 @@ Statement *DoStatement::semantic(Scope *sc)
     condition = resolveProperties(sc, condition);
     condition = condition->optimize(WANTvalue);
 
-    condition = condition->checkToBoolean();
+    condition = condition->checkToBoolean(sc);
 
     return this;
 }
@@ -1161,7 +1161,7 @@ Statement *ForStatement::semantic(Scope *sc)
 	condition = condition->semantic(sc);
 	condition = resolveProperties(sc, condition);
 	condition = condition->optimize(WANTvalue);
-	condition = condition->checkToBoolean();
+	condition = condition->checkToBoolean(sc);
     }
     if (increment)
     {	increment = increment->semantic(sc);
@@ -2256,7 +2256,7 @@ Statement *IfStatement::semantic(Scope *sc)
 {
     condition = condition->semantic(sc);
     condition = resolveProperties(sc, condition);
-    condition = condition->checkToBoolean();
+    condition = condition->checkToBoolean(sc);
 
     // If we can short-circuit evaluate the if statement, don't do the
     // semantic analysis of the skipped code.

@@ -3423,6 +3423,8 @@ Statement *Parser::parseStatement(int flags)
 	case TOKmul:
 	case TOKmin:
 	case TOKadd:
+	case TOKtilde:
+	case TOKnot:
 	case TOKplusplus:
 	case TOKminusminus:
 	case TOKnew:
@@ -5543,13 +5545,15 @@ Expression *Parser::parseUnaryExp()
 	case TOKplusplus:
 	    nextToken();
 	    e = parseUnaryExp();
-	    e = new AddAssignExp(loc, e, new IntegerExp(loc, 1, Type::tint32));
+	    //e = new AddAssignExp(loc, e, new IntegerExp(loc, 1, Type::tint32));
+	    e = new PreExp(TOKpreplusplus, loc, e);
 	    break;
 
 	case TOKminusminus:
 	    nextToken();
 	    e = parseUnaryExp();
-	    e = new MinAssignExp(loc, e, new IntegerExp(loc, 1, Type::tint32));
+	    //e = new MinAssignExp(loc, e, new IntegerExp(loc, 1, Type::tint32));
+	    e = new PreExp(TOKpreminusminus, loc, e);
 	    break;
 
 	case TOKmul:
