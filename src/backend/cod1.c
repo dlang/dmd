@@ -1,5 +1,5 @@
 // Copyright (C) 1984-1998 by Symantec
-// Copyright (C) 2000-2009 by Digital Mars
+// Copyright (C) 2000-2010 by Digital Mars
 // All Rights Reserved
 // http://www.digitalmars.com
 // Written by Walter Bright
@@ -3362,6 +3362,8 @@ code *loaddata(elem *e,regm_t *pretregs)
 	    while ((i -= REGSIZE) >= 0)
 	    {
 		c1 = loadea(e,&cs,0x0B,reg,i,regm,0);	// OR reg,data+i
+		if (i == 0)
+		    c1->Iflags |= CFpsw;		// need the flags on last OR
 		c = cat(c,c1);
 	    }
 	}
