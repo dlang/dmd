@@ -7350,6 +7350,12 @@ Expression *CastExp::semantic(Scope *sc)
 	    }
 	}
     }
+
+    if (!e1->type)
+    {	error("cannot cast %s", e1->toChars());
+	return new ErrorExp();
+    }
+
     e = e1->castTo(sc, to);
     return e;
 }
