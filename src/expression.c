@@ -1105,14 +1105,10 @@ void Expression::error(const char *format, ...)
 
 void Expression::warning(const char *format, ...)
 {
-    if (global.params.warnings && !global.gag)
-    {
-	fprintf(stdmsg, "warning - ");
-	va_list ap;
-	va_start(ap, format);
-	::verror(loc, format, ap);
-	va_end( ap );
-    }
+    va_list ap;
+    va_start(ap, format);
+    ::vwarning(loc, format, ap);
+    va_end( ap );
 }
 
 void Expression::rvalue()

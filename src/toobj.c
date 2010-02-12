@@ -800,9 +800,9 @@ void ClassDeclaration::toObjFile(int multiobj)
 			{
 			    TypeFunction *tf = (TypeFunction *)fd->type;
 			    if (tf->ty == Tfunction)
-				warning("%s%s is hidden by %s\n", fd->toPrettyChars(), Parameter::argsTypesToChars(tf->parameters, tf->varargs), toChars());
+				error("%s%s is hidden by %s\n", fd->toPrettyChars(), Parameter::argsTypesToChars(tf->parameters, tf->varargs), toChars());
 			    else
-				warning("%s is hidden by %s\n", fd->toPrettyChars(), toChars());
+				error("%s is hidden by %s\n", fd->toPrettyChars(), toChars());
 			}
 			s = rtlsym[RTLSYM_DHIDDENFUNC];
 			break;

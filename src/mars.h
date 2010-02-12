@@ -235,7 +235,8 @@ struct Global
 
     Param params;
     unsigned errors;	// number of errors reported so far
-    unsigned gag;	// !=0 means gag reporting of errors
+    unsigned warnings;	// number of warnings reported so far
+    unsigned gag;	// !=0 means gag reporting of errors & warnings
 
     Global();
 };
@@ -376,6 +377,7 @@ typedef uint64_t StorageClass;
 void warning(Loc loc, const char *format, ...);
 void error(Loc loc, const char *format, ...);
 void verror(Loc loc, const char *format, va_list);
+void vwarning(Loc loc, const char *format, va_list);
 void fatal();
 void err_nomem();
 int runLINK();
