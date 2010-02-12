@@ -44,6 +44,7 @@ extern "C" char * __cdecl __locale_decpoint;
 #include "hdrgen.h"
 #include "parse.h"
 
+
 Expression *createTypeInfoArray(Scope *sc, Expression *args[], int dim);
 Expression *expandVar(int result, VarDeclaration *v);
 
@@ -1035,14 +1036,10 @@ void Expression::error(const char *format, ...)
 
 void Expression::warning(const char *format, ...)
 {
-    if (global.params.warnings && !global.gag)
-    {
-	fprintf(stdmsg, "warning - ");
-	va_list ap;
-	va_start(ap, format);
-	::verror(loc, format, ap);
-	va_end( ap );
-    }
+    va_list ap;
+    va_start(ap, format);
+    ::vwarning(loc, format, ap);
+    va_end( ap );
 }
 
 void Expression::rvalue()
@@ -1053,7 +1050,7 @@ void Expression::rvalue()
 	dump(0);
 	halt();
 #endif
-	type = Type::tint32;
+	type = Type::terror;
     }
 }
 
@@ -1115,6 +1112,9 @@ void Expression::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 void Expression::toMangleBuffer(OutBuffer *buf)
 {
     error("expression %s is not a valid template value argument", toChars());
+#ifdef DEBUG
+dump(0);
+#endif
 }
 
 /***************************************

@@ -101,14 +101,10 @@ void Statement::error(const char *format, ...)
 
 void Statement::warning(const char *format, ...)
 {
-    if (global.params.warnings && !global.gag)
-    {
-	fprintf(stdmsg, "warning - ");
-	va_list ap;
-	va_start(ap, format);
-	::verror(loc, format, ap);
-	va_end( ap );
-    }
+    va_list ap;
+    va_start(ap, format);
+    ::vwarning(loc, format, ap);
+    va_end( ap );
 }
 
 int Statement::hasBreak()
@@ -738,6 +734,7 @@ Statement *UnrolledLoopStatement::semantic(Scope *sc)
 	Statement *s = (Statement *) statements->data[i];
 	if (s)
 	{
+	    //printf("[%d]: %s\n", i, s->toChars());
 	    s = s->semantic(scd);
 	    statements->data[i] = s;
 	}
@@ -798,6 +795,7 @@ int UnrolledLoopStatement::blockExit()
     }
     return result;
 }
+
 
 int UnrolledLoopStatement::comeFrom()
 {   int comefrom = FALSE;

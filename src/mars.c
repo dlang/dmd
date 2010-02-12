@@ -138,14 +138,10 @@ void error(const char *filename, unsigned linnum, const char *format, ...)
 
 void warning(Loc loc, const char *format, ...)
 {
-    if (global.params.warnings && !global.gag)
-    {
-	fprintf(stdmsg, "warning - ");
-	va_list ap;
-	va_start(ap, format);
-	verror(loc, format, ap);
-	va_end( ap );
-    }
+    va_list ap;
+    va_start(ap, format);
+    vwarning(loc, format, ap);
+    va_end( ap );
 }
 
 void verror(Loc loc, const char *format, va_list ap)
@@ -172,6 +168,32 @@ void verror(Loc loc, const char *format, va_list ap)
 //halt();
     }
     global.errors++;
+}
+
+void vwarning(Loc loc, const char *format, va_list ap)
+{
+    if (global.params.warnings && !global.gag)
+    {
+	char *p = loc.toChars();
+
+	if (*p)
+	    fprintf(stdmsg, "%s: ", p);
+	mem.free(p);
+
+	fprintf(stdmsg, "Warning: ");
+#if _MSC_VER
+	// MS doesn't recognize %zu format
+	OutBuffer tmp;
+	tmp.vprintf(format, ap);
+	fprintf(stdmsg, "%s", tmp.toChars());
+#else
+	vfprintf(stdmsg, format, ap);
+#endif
+	fprintf(stdmsg, "\n");
+	fflush(stdmsg);
+//halt();
+	global.warnings++;	// warnings don't count if gagged
+    }
 }
 
 /***************************************
@@ -1172,7 +1194,9 @@ int main(int argc, char *argv[])
 	    m->inlineScan();
 	}
     }
-    if (global.errors)
+
+    // Do not attempt to generate output files if errors or warnings occurred
+    if (global.errors || global.warnings)
 	fatal();
 
     Library *library = NULL;

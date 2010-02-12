@@ -115,6 +115,10 @@ Type::Type(TY ty, Type *next)
 #if DMDV2
     this->cto = NULL;
     this->ito = NULL;
+    this->sto = NULL;
+    this->scto = NULL;
+    this->wto = NULL;
+    this->swto = NULL;
 #endif
     this->pto = NULL;
     this->rto = NULL;
@@ -732,14 +736,10 @@ void Type::error(Loc loc, const char *format, ...)
 
 void Type::warning(Loc loc, const char *format, ...)
 {
-    if (global.params.warnings && !global.gag)
-    {
-	fprintf(stdmsg, "warning - ");
-	va_list ap;
-	va_start(ap, format);
-	::verror(loc, format, ap);
-	va_end( ap );
-    }
+    va_list ap;
+    va_start(ap, format);
+    ::vwarning(loc, format, ap);
+    va_end( ap );
 }
 
 Identifier *Type::getTypeInfoIdent(int internal)
