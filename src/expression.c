@@ -7758,6 +7758,11 @@ Expression *CastExp::semantic(Scope *sc)
 	to = Type::terror;
     }
 
+    if (!e1->type)
+    {	error("cannot cast %s", e1->toChars());
+	return new ErrorExp();
+    }
+
 #if 1
     if (sc->func && sc->func->isSafe() && !sc->intypeof)
 #else
