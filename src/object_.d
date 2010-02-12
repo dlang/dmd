@@ -998,7 +998,23 @@ class TypeInfo_Const : TypeInfo
         return cast(string) ("const(" ~ base.toString() ~ ")");
     }
 
-    override equals_t opEquals(Object o) { return base.opEquals(o); }
+    //override equals_t opEquals(Object o) { return base.opEquals(o); }
+    override equals_t opEquals(Object o)
+    {
+        if (this is o)
+            return true;
+
+	if (typeid(this) != typeid(o))
+	    return false;
+
+        auto t = cast(TypeInfo_Const)o;
+        if (base.opEquals(t.base))
+        {
+            return true;
+        }
+        return false;
+    }
+
     override hash_t getHash(in void *p) { return base.getHash(p); }
     override equals_t equals(in void *p1, in void *p2) { return base.equals(p1, p2); }
     override int compare(in void *p1, in void *p2) { return base.compare(p1, p2); }
