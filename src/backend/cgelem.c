@@ -1,5 +1,5 @@
 // Copyright (C) 1985-1998 by Symantec
-// Copyright (C) 2000-2009 by Digital Mars
+// Copyright (C) 2000-2010 by Digital Mars
 // All Rights Reserved
 // http://www.digitalmars.com
 // Written by Walter Bright
@@ -4374,6 +4374,7 @@ beg:
 	      e1->Eoper == OPcomma)
 	  {	// Convert ((a,b) op c) to (a,(b op c))
 		e1->Ety = e->Ety;
+		e1->Enumbytes = e->Enumbytes;
 		e->E1 = e1->E2;
 		e1->E2 = e;
 		e = e1;

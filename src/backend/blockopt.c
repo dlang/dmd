@@ -1,5 +1,5 @@
 // Copyright (C) 1986-1997 by Symantec
-// Copyright (C) 2000-2009 by Digital Mars
+// Copyright (C) 2000-2010 by Digital Mars
 // All Rights Reserved
 // http://www.digitalmars.com
 // Written by Walter Bright
@@ -737,22 +737,21 @@ void brcombine()
 		{   elem *e;
 
 		    if (PARSER)
-		    {	type *t;
-
-			t = (bc2 == BCretexp) ? b2->Belem->ET : tsvoid;
+		    {
+			type *t = (bc2 == BCretexp) ? b2->Belem->ET : tsvoid;
 			e = el_bint(OPcolon2,t,b2->Belem,b3->Belem);
 			b->Belem = el_bint(OPcond,t,b->Belem,e);
 		    }
 		    else
-		    {	tym_t ty;
-
+		    {
 			if (EOP(b3->Belem))
 			    continue;
-			ty = (bc2 == BCretexp) ? b2->Belem->Ety : TYvoid;
+			tym_t ty = (bc2 == BCretexp) ? b2->Belem->Ety : TYvoid;
 			e = el_bin(OPcolon2,ty,b2->Belem,b3->Belem);
 			b->Belem = el_bin(OPcond,ty,b->Belem,e);
 		    }
 		    b->BC = bc2;
+		    b->Belem->Enumbytes = b2->Belem->Enumbytes;
 		    b2->Belem = NULL;
 		    b3->Belem = NULL;
 		    list_free(&b->Bsucc,FPNULL);
@@ -793,6 +792,7 @@ void brcombine()
 				e = el_bin(OPcolon2,b2->Belem->Ety,
 					b2->Belem,b3->Belem);
 				e = el_bin(OPcond,e->Ety,b->Belem,e);
+				e->Enumbytes = b2->Belem->Enumbytes;
 			    }
 			    else
 			    {
