@@ -3865,9 +3865,11 @@ StructDeclaration *TypeAArray::getImpl()
 	    tiargs->push(index);
 	    tiargs->push(next);
 
-	    // Create .AssociativeArray!(index, next)
+	    // Create .object.AssociativeArray!(index, next)
+	    Expression *e = new IdentifierExp(loc, Id::object);
+	    //e = new DotIdExp(loc, e, Id::object);
 	    DotTemplateInstanceExp *dti = new DotTemplateInstanceExp(loc,
-			new IdentifierExp(loc, Id::empty),
+			e,
 			Id::AssociativeArray,
 			tiargs);
 	    dti->semantic(sc);
