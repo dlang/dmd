@@ -115,7 +115,8 @@ Expression *FuncDeclaration::interpret(InterState *istate, Expressions *argument
     assert(tb->ty == Tfunction);
     TypeFunction *tf = (TypeFunction *)tb;
     Type *tret = tf->next->toBasetype();
-    if (tf->varargs && arguments && parameters && arguments->dim != parameters->dim)
+    if (tf->varargs && arguments &&
+	((parameters && arguments->dim != parameters->dim) || (!parameters && arguments->dim)))
     {	cantInterpret = 1;
 	error("C-style variadic functions are not yet implemented in CTFE");
 	return NULL;
