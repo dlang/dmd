@@ -1725,7 +1725,10 @@ Expression *Type::dotExp(Scope *sc, Expression *e, Identifier *ident)
 	e = getTypeInfo(sc);
     }
     else if (ident == Id::stringof)
-    {	char *s = e->toChars();
+    {	/* Bugzilla 3796: this should demangle e->type->deco rather than
+	 * pretty-printing the type.
+	 */
+	char *s = e->toChars();
 	e = new StringExp(e->loc, s, strlen(s), 'c');
     }
     else
@@ -7701,7 +7704,7 @@ void Parameter::argsToCBuffer(OutBuffer *buf, HdrGenState *hgs, Parameters *argu
 		buf->writestring("out ");
 	    else if (arg->storageClass & STCref)
 		buf->writestring((global.params.Dversion == 1)
-			? (char *)"inout " : (char *)"ref ");
+			? "inout " : "ref ");
 	    else if (arg->storageClass & STCin)
 		buf->writestring("in ");
 	    else if (arg->storageClass & STClazy)

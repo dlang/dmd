@@ -2576,7 +2576,7 @@ Type *Parser::parseDeclarator(Type *t, Identifier **pident, TemplateParameters *
 		Parameters *arguments = parseParameters(&varargs);
 		Type *tf = new TypeFunction(arguments, t, varargs, linkage);
 
-		/* Parse const/invariant/nothrow/pure postfix
+		/* Parse const/immutable/shared/inout/nothrow/pure postfix
 		 */
 		while (1)
 		{

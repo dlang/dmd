@@ -700,7 +700,9 @@ void VarDeclaration::semantic(Scope *sc)
     //if (strcmp(toChars(), "mul") == 0) halt();
 #endif
 
-    storage_class |= sc->stc;
+    /* Pick up storage classes from context, but skip synchronized
+     */
+    storage_class |= (sc->stc & ~STCsynchronized);
     if (storage_class & STCextern && init)
 	error("extern symbols cannot have initializers");
 
