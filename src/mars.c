@@ -192,7 +192,8 @@ void vwarning(Loc loc, const char *format, va_list ap)
 	fprintf(stdmsg, "\n");
 	fflush(stdmsg);
 //halt();
-	global.warnings++;	// warnings don't count if gagged
+	if (global.params.warnings == 1)
+	    global.warnings++;	// warnings don't count if gagged
     }
 }
 
@@ -277,6 +278,7 @@ Usage:\n\
   -version=ident compile in version code identified by ident\n\
   -vtls          list all variables going into thread local storage\n\
   -w             enable warnings\n\
+  -wi            enable informational warnings\n\
   -X             generate JSON file\n\
   -Xffilename    write JSON file to filename\n\
 ");
@@ -444,6 +446,8 @@ int main(int argc, char *argv[])
             }
 	    else if (strcmp(p + 1, "w") == 0)
 		global.params.warnings = 1;
+	    else if (strcmp(p + 1, "wi") == 0)
+		global.params.warnings = 2;
 	    else if (strcmp(p + 1, "O") == 0)
 		global.params.optimize = 1;
 	    else if (p[1] == 'o')
