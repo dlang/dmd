@@ -33,6 +33,7 @@ struct TypeInfoDeclaration;
 struct Dsymbol;
 struct TemplateInstance;
 struct CppMangleState;
+struct TemplateDeclaration;
 enum LINK;
 
 struct TypeBasic;
@@ -198,6 +199,8 @@ struct Type : Object
     static ClassDeclaration *typeinfoinvariant;
     static ClassDeclaration *typeinfoshared;
     static ClassDeclaration *typeinfowild;
+
+    static TemplateDeclaration *associativearray;
 
     static Type *basic[TMAX];
     static unsigned char mangleChar[TMAX];

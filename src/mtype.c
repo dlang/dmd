@@ -104,6 +104,8 @@ ClassDeclaration *Type::typeinfoinvariant;
 ClassDeclaration *Type::typeinfoshared;
 ClassDeclaration *Type::typeinfowild;
 
+TemplateDeclaration *Type::associativearray;
+
 Type *Type::tvoidptr;
 Type *Type::tstring;
 Type *Type::basic[TMAX];
@@ -3864,8 +3866,12 @@ StructDeclaration *TypeAArray::getImpl()
 	    tiargs->push(index);
 	    tiargs->push(next);
 
-	    // Create .object.AssociativeArray!(index, next)
-	    Expression *e = new IdentifierExp(loc, Id::object);
+	    // Create AssociativeArray!(index, next)
+#if 1
+	    TemplateInstance *ti = new TemplateInstance(loc, Type::associativearray, tiargs);
+#else
+	    //Expression *e = new IdentifierExp(loc, Id::object);
+	    Expression *e = new IdentifierExp(loc, Id::empty);
 	    //e = new DotIdExp(loc, e, Id::object);
 	    DotTemplateInstanceExp *dti = new DotTemplateInstanceExp(loc,
 			e,
@@ -3873,7 +3879,7 @@ StructDeclaration *TypeAArray::getImpl()
 			tiargs);
 	    dti->semantic(sc);
             TemplateInstance *ti = dti->ti;
-
+#endif
 	    ti->semantic(sc);
 	    ti->semantic2(sc);
 	    ti->semantic3(sc);

@@ -30,6 +30,7 @@
 #include "dsymbol.h"
 #include "identifier.h"
 #include "hdrgen.h"
+#include "id.h"
 
 #if WINDOWS_SEH
 #include <windows.h>
@@ -346,10 +347,15 @@ void TemplateDeclaration::semantic(Scope *sc)
 #if LOG
     printf("TemplateDeclaration::semantic(this = %p, id = '%s')\n", this, ident->toChars());
     printf("sc->stc = %llx\n", sc->stc);
+    printf("sc->module = %s\n", sc->module->toChars());
 #endif
     if (semanticRun)
 	return;		// semantic() already run
     semanticRun = 1;
+
+    if (sc->module && sc->module->ident == Id::object && ident == Id::AssociativeArray)
+    {	Type::associativearray = this;
+    }
 
     if (sc->func)
     {
