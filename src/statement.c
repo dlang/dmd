@@ -2088,11 +2088,21 @@ Statement *ForeachRangeStatement::semantic(Scope *sc)
     {
 	/* Must infer types from lwr and upr
 	 */
-	AddExp ea(loc, lwr, upr);
-	ea.typeCombine(sc);
-	arg->type = ea.type->mutableOf();
-	lwr = ea.e1;
-	upr = ea.e2;
+	Type *tlwr = lwr->type->toBasetype();
+	if (tlwr->ty == Tstruct || tlwr->ty == Tclass)
+	{
+	    /* Just picking the first really isn't good enough.
+	     */
+	    arg->type = lwr->type->mutableOf();
+	}
+	else
+	{
+	    AddExp ea(loc, lwr, upr);
+	    ea.typeCombine(sc);
+	    arg->type = ea.type->mutableOf();
+	    lwr = ea.e1;
+	    upr = ea.e2;
+	}
     }
 #if 1
     /* Convert to a for loop:
@@ -2126,18 +2136,30 @@ Statement *ForeachRangeStatement::semantic(Scope *sc)
 
     Expression *cond;
     if (op == TOKforeach_reverse)
-    {	// key-- > tmp
+    {
 	cond = new PostExp(TOKminusminus, loc, new VarExp(loc, key));
-	cond = new CmpExp(TOKgt, loc, cond, new VarExp(loc, tmp));
+	if (arg->type->isscalar())
+	    // key-- > tmp
+	    cond = new CmpExp(TOKgt, loc, cond, new VarExp(loc, tmp));
+	else
+	    // key-- != tmp
+	    cond = new EqualExp(TOKnotequal, loc, cond, new VarExp(loc, tmp));
     }
     else
-	// key < tmp
-	cond = new CmpExp(TOKlt, loc, new VarExp(loc, key), new VarExp(loc, tmp));
+    {
+	if (arg->type->isscalar())
+	    // key < tmp
+	    cond = new CmpExp(TOKlt, loc, new VarExp(loc, key), new VarExp(loc, tmp));
+	else
+	    // key != tmp
+	    cond = new EqualExp(TOKnotequal, loc, new VarExp(loc, key), new VarExp(loc, tmp));
+    }
 
     Expression *increment = NULL;
     if (op == TOKforeach)
 	// key += 1
-	increment = new AddAssignExp(loc, new VarExp(loc, key), new IntegerExp(1));
+	//increment = new AddAssignExp(loc, new VarExp(loc, key), new IntegerExp(1));
+	increment = new PreExp(TOKpreplusplus, loc, new VarExp(loc, key));
 
     ForStatement *fs = new ForStatement(loc, forinit, cond, increment, body);
     s = fs->semantic(sc);
