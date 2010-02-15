@@ -997,7 +997,7 @@ dt_t **TypeSArray::toDtElem(dt_t **pdt, Expression *e)
 	    (*pdt)->DTazeros = len;
 	    pdt = &((*pdt)->DTnext);
 	}
-	else if (e->op != TOKstring)
+	else if (e->op != TOKstring && e->op != TOKarrayliteral)
 	{
 	    for (i = 1; i < len; i++)
 	    {

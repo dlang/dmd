@@ -284,7 +284,7 @@ Object *objectSyntaxCopy(Object *o)
 /* ======================== TemplateDeclaration ============================= */
 
 TemplateDeclaration::TemplateDeclaration(Loc loc, Identifier *id,
-	TemplateParameters *parameters, Expression *constraint, Array *decldefs)
+	TemplateParameters *parameters, Expression *constraint, Array *decldefs, int ismixin)
     : ScopeDsymbol(id)
 {
 #if LOG
@@ -313,6 +313,7 @@ TemplateDeclaration::TemplateDeclaration(Loc loc, Identifier *id,
     this->semanticRun = 0;
     this->onemember = NULL;
     this->literal = 0;
+    this->ismixin = ismixin;
 }
 
 Dsymbol *TemplateDeclaration::syntaxCopy(Dsymbol *)
@@ -336,7 +337,7 @@ Dsymbol *TemplateDeclaration::syntaxCopy(Dsymbol *)
     if (constraint)
 	e = constraint->syntaxCopy();
     d = Dsymbol::arraySyntaxCopy(members);
-    td = new TemplateDeclaration(loc, ident, p, e, d);
+    td = new TemplateDeclaration(loc, ident, p, e, d, ismixin);
     return td;
 }
 
@@ -3536,6 +3537,10 @@ void TemplateInstance::semantic(Scope *sc, Expressions *fargs)
 	    return;		// error recovery
 	}
     }
+
+    // If tempdecl is a mixin, disallow it
+    if (tempdecl->ismixin)
+	error("mixin templates are not regular templates");
 
     hasNestedArgs(tiargs);
 

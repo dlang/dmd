@@ -226,6 +226,22 @@ Statement *ExpStatement::semantic(Scope *sc)
     if (exp)
     {
 	//printf("ExpStatement::semantic() %s\n", exp->toChars());
+
+#if 0	// Doesn't work because of difficulty dealing with things like a.b.c!(args).Foo!(args)
+	// See if this should be rewritten as a TemplateMixin
+	if (exp->op == TOKdeclaration)
+	{   DeclarationExp *de = (DeclarationExp *)exp;
+	    Dsymbol *s = de->declaration;
+
+	    printf("s: %s %s\n", s->kind(), s->toChars());
+	    VarDeclaration *v = s->isVarDeclaration();
+	    if (v)
+	    {
+		printf("%s, %d\n", v->type->toChars(), v->type->ty);
+	    }
+	}
+#endif
+
 	exp = exp->semantic(sc);
 	exp = resolveProperties(sc, exp);
 	exp->checkSideEffect(0);

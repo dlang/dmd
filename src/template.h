@@ -62,9 +62,10 @@ struct TemplateDeclaration : ScopeDsymbol
     Dsymbol *onemember;		// if !=NULL then one member of this template
 
     int literal;		// this template declaration is a literal
+    int ismixin;		// template declaration is only to be used as a mixin
 
     TemplateDeclaration(Loc loc, Identifier *id, TemplateParameters *parameters,
-	Expression *constraint, Array *decldefs);
+	Expression *constraint, Array *decldefs, int ismixin);
     Dsymbol *syntaxCopy(Dsymbol *);
     void semantic(Scope *sc);
     int overloadInsert(Dsymbol *s);

@@ -1,6 +1,6 @@
 
 // Compiler implementation of the D programming language
-// Copyright (c) 1999-2009 by Digital Mars
+// Copyright (c) 1999-2010 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // http://www.digitalmars.com
@@ -193,22 +193,33 @@ Array *Parser::parseDeclDefs(int once)
 		break;
 
 	    case TOKtemplate:
-		s = (Dsymbol *)parseTemplateDeclaration();
+		s = (Dsymbol *)parseTemplateDeclaration(0);
 		break;
 
 	    case TOKmixin:
 	    {	Loc loc = this->loc;
-		if (peek(&token)->value == TOKlparen)
-		{   // mixin(string)
-		    nextToken();
-		    check(TOKlparen, "mixin");
-		    Expression *e = parseAssignExp();
-		    check(TOKrparen);
-		    check(TOKsemicolon);
-		    s = new CompileDeclaration(loc, e);
-		    break;
+		switch (peekNext())
+		{
+		    case TOKlparen:
+			// mixin(string)
+			nextToken();
+			check(TOKlparen, "mixin");
+			Expression *e = parseAssignExp();
+			check(TOKrparen);
+			check(TOKsemicolon);
+			s = new CompileDeclaration(loc, e);
+			break;
+
+		    case TOKtemplate:
+			// mixin template
+			nextToken();
+			s = (Dsymbol *)parseTemplateDeclaration(1);
+			break;
+
+		    default:
+			s = parseMixin();
+			break;
 		}
-		s = parseMixin();
 		break;
 	    }
 
@@ -934,7 +945,7 @@ Dsymbol *Parser::parseCtor()
 	Array *decldefs = new Array();
 	decldefs->push(f);
 	TemplateDeclaration *tempdecl =
-	    new TemplateDeclaration(loc, f->ident, tpl, constraint, decldefs);
+	    new TemplateDeclaration(loc, f->ident, tpl, constraint, decldefs, 0);
 	return tempdecl;
     }
 
@@ -1522,7 +1533,7 @@ Dsymbol *Parser::parseAggregate()
 	Array *decldefs = new Array();
 	decldefs->push(a);
 	TemplateDeclaration *tempdecl =
-		new TemplateDeclaration(loc, id, tpl, constraint, decldefs);
+		new TemplateDeclaration(loc, id, tpl, constraint, decldefs, 0);
 	return tempdecl;
     }
 
@@ -1599,7 +1610,7 @@ Expression *Parser::parseConstraint()
  * Parse a TemplateDeclaration.
  */
 
-TemplateDeclaration *Parser::parseTemplateDeclaration()
+TemplateDeclaration *Parser::parseTemplateDeclaration(int ismixin)
 {
     TemplateDeclaration *tempdecl;
     Identifier *id;
@@ -1636,7 +1647,7 @@ TemplateDeclaration *Parser::parseTemplateDeclaration()
 	nextToken();
     }
 
-    tempdecl = new TemplateDeclaration(loc, id, tpl, constraint, decldefs);
+    tempdecl = new TemplateDeclaration(loc, id, tpl, constraint, decldefs, ismixin);
     return tempdecl;
 
 Lerr:
@@ -1970,7 +1981,7 @@ Objects *Parser::parseTemplateArgumentList2()
 			    Array *decldefs = new Array();
 			    decldefs->push(fd);
 			    TemplateDeclaration *tempdecl =
-				new TemplateDeclaration(fd->loc, fd->ident, tpl, NULL, decldefs);
+				new TemplateDeclaration(fd->loc, fd->ident, tpl, NULL, decldefs, 0);
 			    tempdecl->literal = 1;	// it's a template 'literal'
 			    tiargs->push(tempdecl);
 			    goto L1;
@@ -2928,7 +2939,7 @@ L2:
 		Array *decldefs = new Array();
 		decldefs->push(s);
 		TemplateDeclaration *tempdecl =
-		    new TemplateDeclaration(loc, s->ident, tpl, constraint, decldefs);
+		    new TemplateDeclaration(loc, s->ident, tpl, constraint, decldefs, 0);
 		s = tempdecl;
 	    }
 	    addComment(s, comment);

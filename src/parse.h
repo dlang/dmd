@@ -75,7 +75,7 @@ struct Parser : Lexer
     void composeStorageClass(StorageClass stc);
     StorageClass parseAttribute();
     Expression *parseConstraint();
-    TemplateDeclaration *parseTemplateDeclaration();
+    TemplateDeclaration *parseTemplateDeclaration(int ismixin);
     TemplateParameters *parseTemplateParameterList(int flag = 0);
     Dsymbol *parseMixin();
     Objects *parseTemplateArgumentList();
