@@ -201,7 +201,7 @@ Array *Parser::parseDeclDefs(int once)
 		switch (peekNext())
 		{
 		    case TOKlparen:
-			// mixin(string)
+		    {	// mixin(string)
 			nextToken();
 			check(TOKlparen, "mixin");
 			Expression *e = parseAssignExp();
@@ -209,7 +209,7 @@ Array *Parser::parseDeclDefs(int once)
 			check(TOKsemicolon);
 			s = new CompileDeclaration(loc, e);
 			break;
-
+		    }
 		    case TOKtemplate:
 			// mixin template
 			nextToken();
@@ -4947,7 +4947,7 @@ Expression *Parser::parsePrimaryExp()
 	case TOKidentifier:
 	    id = token.ident;
 	    nextToken();
-	    if (token.value == TOKnot && peekNext() != TOKis)
+	    if (token.value == TOKnot && (save = peekNext()) != TOKis && save != TOKin)
 	    {	// identifier!(template-argument-list)
 		TemplateInstance *tempinst;
 
@@ -5682,7 +5682,7 @@ Expression *Parser::parseUnaryExp()
 		{
 		    case TOKnot:
 			tk = peek(tk);
-			if (tk->value == TOKis)	// !is
+			if (tk->value == TOKis || tk->value == TOKin)	// !is or !in
 			    break;
 		    case TOKdot:
 		    case TOKplusplus:
@@ -5872,6 +5872,20 @@ Expression *Parser::parseRelExp()
 		e = new CmpExp(op, loc, e, e2);
 		continue;
 
+	    case TOKnot:		// could be !in
+printf("test1\n");
+		if (peekNext() == TOKin)
+		{
+printf("test2\n");
+		    nextToken();
+		    nextToken();
+		    e2 = parseShiftExp();
+		    e = new InExp(loc, e, e2);
+		    e = new NotExp(loc, e);
+		    continue;
+		}
+		break;
+
 	    case TOKin:
 		nextToken();
 		e2 = parseShiftExp();
@@ -5965,6 +5979,15 @@ Expression *Parser::parseCmpExp()
 	case TOKnot:
 	    // Attempt to identify '!is'
 	    t = peek(&token);
+	    if (t->value == TOKin)
+	    {
+		nextToken();
+		nextToken();
+		e2 = parseShiftExp();
+		e = new InExp(loc, e, e2);
+		e = new NotExp(loc, e);
+		break;
+	    }
 	    if (t->value != TOKis)
 		break;
 	    nextToken();
