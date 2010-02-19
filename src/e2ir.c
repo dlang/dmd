@@ -1,6 +1,6 @@
 
 // Compiler implementation of the D programming language
-// Copyright (c) 1999-2009 by Digital Mars
+// Copyright (c) 1999-2010 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // http://www.digitalmars.com
@@ -2312,6 +2312,20 @@ elem *EqualExp::toElem(IRState *irs)
 	if (op == TOKnotequal)
 	    e = el_bin(OPxor, TYint, e, el_long(TYint, 1));
 	el_setLoc(e,loc);
+    }
+    else if (t1->ty == Taarray && t2->ty == Taarray)
+    {	TypeAArray *taa = (TypeAArray *)t1;
+	Symbol *s = taa->aaGetSymbol("Equal", 0);
+	elem *ti = taa->getTypeInfo(NULL)->toElem(irs);
+	elem *ea1 = e1->toElem(irs);
+	elem *ea2 = e2->toElem(irs);
+	// aaEqual(ti, e1, e2)
+	elem *ep = el_params(ea2, ea1, ti, NULL);
+	e = el_bin(OPcall, TYnptr, el_var(s), ep);
+	if (op == TOKnotequal)
+	    e = el_bin(OPxor, TYint, e, el_long(TYint, 1));
+	el_setLoc(e,loc);
+	return e;
     }
     else
 	e = toElemBin(irs, eop);

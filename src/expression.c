@@ -5601,6 +5601,22 @@ Expression *FileExp::semantic(Scope *sc)
 	goto Lerror;
     }
 
+    /* Be wary of CWE-22: Improper Limitation of a Pathname to a Restricted Directory
+     * ('Path Traversal') attacks.
+     * http://cwe.mitre.org/data/definitions/22.html
+     */
+
+    /* Do harsh sanitizing by limiting the name's character set.
+     */
+    for (const char *p = name; *p; p++)
+    {
+	if (!(isalnum(*p) || *p == '.' || *p == '_'))
+	{
+	    error("file name characters are restricted to [a-zA-Z0-9._] not '%c'", *p);
+	    goto Lerror;
+	}
+    }
+
     if (name != FileName::name(name))
     {	error("use -Jpath switch to provide path for filename %s", name);
 	goto Lerror;
