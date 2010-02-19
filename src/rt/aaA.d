@@ -1,7 +1,7 @@
 /**
  * Implementation of associative arrays.
  *
- * Copyright: Copyright Digital Mars 2000 - 2009.
+ * Copyright: Copyright Digital Mars 2000 - 2010.
  * License:   <a href="http://www.boost.org/LICENSE_1_0.txt">Boost License 1.0</a>.
  * Authors:   Walter Bright, Sean Kelly
  *
@@ -869,4 +869,100 @@ BB* _d_assocarrayliteralT(TypeInfo_AssociativeArray ti, size_t length, ...)
         va_end(q);
     }
     return result;
+}
+
+/***********************************
+ * Compare AA contents for equality.
+ * Returns:
+ *	1	equal
+ *	0	not equal
+ */
+int _aaEqual(TypeInfo_AssociativeArray ti, AA e1, AA e2)
+{
+    //printf("_aaEqual()\n");
+    //printf("keyti = %.*s\n", ti.key.classinfo.name);
+    //printf("valueti = %.*s\n", ti.next.classinfo.name);
+
+    if (e1.a is e2.a)
+	return 1;
+
+    size_t len = _aaLen(e1);
+    if (len != _aaLen(e2))
+	return 0;
+
+    /* Algorithm: Visit each key/value pair in e1. If that key doesn't exist
+     * in e2, or if the value in e1 doesn't match the one in e2, the arrays
+     * are not equal, and exit early.
+     * After all pairs are checked, the arrays must be equal.
+     */
+
+    auto keyti = ti.key;
+    auto valueti = ti.next;
+    const keysize = aligntsize(keyti.tsize());
+    const len2 = e2.a.b.length;
+
+    int _aaKeys_x(aaA* e)
+    {
+        do
+        {
+	    auto pkey = cast(void*)(e + 1);
+	    auto pvalue = pkey + keysize;
+	    //printf("key = %d, value = %g\n", *cast(int*)pkey, *cast(double*)pvalue);
+
+	    // We have key/value for e1. See if they exist in e2
+
+	    auto key_hash = keyti.getHash(pkey);
+	    //printf("hash = %d\n", key_hash);
+	    const i = key_hash % len2;
+	    auto f = e2.a.b[i];
+	    while (1)
+	    {
+		//printf("f is %p\n", f);
+		if (f is null)
+		    return 0;			// key not found, so AA's are not equal
+		if (key_hash == f.hash)
+		{
+		    //printf("hash equals\n");
+		    auto c = keyti.compare(pkey, f + 1);
+		    if (c == 0)
+		    {	// Found key in e2. Compare values
+			//printf("key equals\n");
+			auto pvalue2 = cast(void *)(f + 1) + keysize;
+			if (valueti.equals(pvalue, pvalue2))
+			{
+			    //printf("value equals\n");
+			    break;
+			}
+			else
+			    return 0;		// values don't match, so AA's are not equal
+		    }
+		    f = (c < 0) ? f.left : f.right;
+		}
+		else
+		    f = (key_hash < f.hash) ? f.left : f.right;
+	    }
+
+	    // Look at next entry in e1
+            if (e.left)
+            {   if (!e.right)
+                {   e = e.left;
+                    continue;
+                }
+                if (_aaKeys_x(e.left) == 0)
+		    return 0;
+            }
+            e = e.right;
+        } while (e !is null);
+	return 1;			// this subtree matches
+    }
+
+    foreach (e; e1.a.b)
+    {
+        if (e)
+        {   if (_aaKeys_x(e) == 0)
+		return 0;
+	}
+    }
+
+    return 1;		// equal
 }
