@@ -353,6 +353,12 @@ struct AssociativeArray(Key, Value)
     {
 	return &opApply;
     }
+
+    Value get(Key key, lazy Value defaultValue)
+    {
+	auto p = key in *cast(Value[Key]*)(&p);
+	return p ? *p : defaultValue;
+    }
 }
 
 void clear(T)(T obj) if (is(T == class))
