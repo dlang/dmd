@@ -6517,7 +6517,7 @@ Expression *CallExp::semantic(Scope *sc)
 		return new RemoveExp(loc, dotid->e1, key);
 	    }
 	    else if (e1ty == Tarray || e1ty == Tsarray ||
-		     (e1ty == Taarray && dotid->ident != Id::apply && dotid->ident != Id::applyReverse))
+		     (0 && e1ty == Taarray && dotid->ident != Id::apply && dotid->ident != Id::applyReverse))
 	    {
 		if (!arguments)
 		    arguments = new Expressions();

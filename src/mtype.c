@@ -3927,7 +3927,7 @@ void TypeAArray::resolve(Loc loc, Scope *sc, Expression **pe, Type **pt, Dsymbol
 
 Expression *TypeAArray::dotExp(Scope *sc, Expression *e, Identifier *ident)
 {
-#if  LOGDOTEXP
+#if LOGDOTEXP
     printf("TypeAArray::dotExp(e = '%s', ident = '%s')\n", e->toChars(), ident->toChars());
 #endif
 #if 0
