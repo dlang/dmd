@@ -1076,6 +1076,9 @@ Dsymbol *ArrayScopeSymbol::search(Loc loc, Identifier *ident, int flags)
     {	VarDeclaration **pvar;
 	Expression *ce;
 
+	if (ident == Id::length && !global.params.useDeprecated)
+	    error("using 'length' inside [ ] is deprecated, use '$' instead");
+
     L1:
 
 	if (td)
