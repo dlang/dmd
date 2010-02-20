@@ -2105,6 +2105,27 @@ struct AssociativeArray(Key, Value)
     {
         return _aaApply(p, Key.sizeof, cast(_dg_t)dg);
     }
+
+    int delegate(int delegate(ref Key) dg) byKey()
+    {
+	// Discard the Value part and just do the Key
+	int foo(int delegate(ref Key) dg)
+	{
+	    int byKeydg(ref Key key, ref Value value)
+	    {
+		return dg(key);
+	    }
+
+	    return _aaApply2(p, Key.sizeof, cast(_dg2_t)&byKeydg);
+	}
+
+	return &foo;
+    }
+
+    int delegate(int delegate(ref Value) dg) byValue()
+    {
+	return &opApply;
+    }
 }
 
 
