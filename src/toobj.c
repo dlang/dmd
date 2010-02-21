@@ -169,8 +169,11 @@ void Module::genmoduleinfo()
     }
 
     // Put out module name as a 0-terminated string, to save bytes
+    nameoffset = dt_size(dt);
     const char *name = toPrettyChars();
-    dtnbytes(&dt, strlen(name) + 1, name);
+    namelen = strlen(name);
+    dtnbytes(&dt, namelen + 1, name);
+printf("nameoffset = x%x, namelen = %d\n", nameoffset, namelen);
 #else
     /* The layout is:
        {

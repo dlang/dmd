@@ -226,6 +226,13 @@ extern void backend_term();
 
 void usage()
 {
+#if TARGET_LINUX
+    const char fpic[] ="\
+  -fPIC          generate position independent code\n\
+";
+#else
+    const char fpic[] = "";
+#endif
     printf("Digital Mars D Compiler %s\n%s %s\n",
 	global.version, global.copyright, global.written);
     printf("\
@@ -246,7 +253,7 @@ Usage:\n\
   -debug=ident   compile in debug code identified by ident\n\
   -debuglib=name    set symbolic debug library to name\n\
   -defaultlib=name  set default library to name\n\
-  -deps=filename write module dependencies to filename\n\
+  -deps=filename write module dependencies to filename\n%s\
   -g             add symbolic debug info\n\
   -gc            add symbolic debug info, pretend to be C\n\
   -H             generate 'header' file\n\
@@ -281,7 +288,7 @@ Usage:\n\
   -wi            enable informational warnings\n\
   -X             generate JSON file\n\
   -Xffilename    write JSON file to filename\n\
-");
+", fpic);
 }
 
 int main(int argc, char *argv[])

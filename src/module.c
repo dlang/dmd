@@ -116,6 +116,9 @@ Module::Module(char *filename, Identifier *ident, int doDocComment, int doHdrGen
     cov = NULL;
     covb = NULL;
 
+    nameoffset = 0;
+    namelen = 0;
+
     srcfilename = FileName::defaultExt(filename, global.mars_ext);
     if (!srcfilename->equalsExt(global.mars_ext) &&
         !srcfilename->equalsExt(global.hdr_ext) &&

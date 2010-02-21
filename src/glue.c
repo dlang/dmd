@@ -457,6 +457,12 @@ void Module::genobjfile(int multiobj)
 	toModuleArray();
     }
 
+#if 1
+    // Always generate module info, because of templates and -cov
+    if (1 || needModuleInfo())
+	genmoduleinfo();
+#endif
+
     // If module assert
     for (int i = 0; i < 2; i++)
     {
@@ -502,12 +508,6 @@ void Module::genobjfile(int multiobj)
 	}
     }
 
-#if 1
-    // Always generate module info, because of templates and -cov
-    if (1 || needModuleInfo())
-	genmoduleinfo();
-#endif
-    
     obj_termfile();
 }
 
@@ -1168,21 +1168,17 @@ elem *Module::toEmodulename()
     {   Symbol *si;
 
 	/* Class ModuleInfo is defined in std.moduleinfo.
-	 * The first member is the name of it, char name[],
-	 * which will be at offset 8.
+	 * The module name will be at nameoffset from the start of it.
 	 */
 
 	si = toSymbol();
-#if 1
-	// Use this instead so -fPIC will work
+
+	//printf("nameoffset = x%x\n", nameoffset);
+	assert(nameoffset >= 4);
+
 	efilename = el_ptr(si);
-	efilename = el_bin(OPadd, TYnptr, efilename, el_long(TYuint, 8));
-	efilename = el_una(OPind, TYdarray, efilename);
-#else
-	efilename = el_var(si);
-	efilename->Ety = TYdarray;
-	efilename->EV.sp.Voffset += 8;
-#endif
+	efilename = el_bin(OPadd, TYnptr, efilename, el_long(TYsize_t, nameoffset));
+	efilename = el_pair(TYdarray, el_long(TYsize_t, namelen), efilename);
     }
     else // generate our own filename
     {
