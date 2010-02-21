@@ -173,7 +173,6 @@ void Module::genmoduleinfo()
     const char *name = toPrettyChars();
     namelen = strlen(name);
     dtnbytes(&dt, namelen + 1, name);
-printf("nameoffset = x%x, namelen = %d\n", nameoffset, namelen);
 #else
     /* The layout is:
        {
