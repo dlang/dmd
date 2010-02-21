@@ -6517,8 +6517,16 @@ Expression *CallExp::semantic(Scope *sc)
 		return new RemoveExp(loc, dotid->e1, key);
 	    }
 	    else if (e1ty == Tarray || e1ty == Tsarray ||
-		     (0 && e1ty == Taarray && dotid->ident != Id::apply && dotid->ident != Id::applyReverse))
+		     (e1ty == Taarray && dotid->ident != Id::apply && dotid->ident != Id::applyReverse))
 	    {
+		if (e1ty == Taarray)
+		{   TypeAArray *taa = (TypeAArray *)dotid->e1->type->toBasetype();
+		    assert(taa->ty == Taarray);
+		    StructDeclaration *sd = taa->getImpl();
+		    Dsymbol *s = sd->search(0, dotid->ident, 2);
+		    if (s)
+			goto L2;
+		}
 		if (!arguments)
 		    arguments = new Expressions();
 		arguments->shift(dotid->e1);
@@ -6528,6 +6536,8 @@ Expression *CallExp::semantic(Scope *sc)
 		e1 = new IdentifierExp(dotid->loc, dotid->ident);
 #endif
 	    }
+	 L2:
+	    ;
 	}
     }
 
