@@ -5606,25 +5606,9 @@ Expression *FileExp::semantic(Scope *sc)
      * http://cwe.mitre.org/data/definitions/22.html
      */
 
-    /* Do harsh sanitizing by limiting the name's character set.
-     */
-    for (const char *p = name; *p; p++)
-    {
-	if (!(isalnum(*p) || *p == '.' || *p == '_'))
-	{
-	    error("file name characters are restricted to [a-zA-Z0-9._] not '%c'", *p);
-	    goto Lerror;
-	}
-    }
-
-    if (name != FileName::name(name))
-    {	error("use -Jpath switch to provide path for filename %s", name);
-	goto Lerror;
-    }
-
-    name = FileName::searchPath(global.filePath, name, 0);
+    name = FileName::safeSearchPath(global.filePath, name);
     if (!name)
-    {	error("file %s cannot be found, check -Jpath", se->toChars());
+    {	error("file %s cannot be found or not in a path specified with -J", se->toChars());
 	goto Lerror;
     }
 

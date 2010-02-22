@@ -1,8 +1,8 @@
 
-// Copyright (c) 1999-2009 by Digital Mars
+// Copyright (c) 1999-2010 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
-// www.digitalmars.com
+// http://www.digitalmars.com
 // License for redistribution is by either the Artistic License
 // in artistic.txt, or the GNU General Public License in gnu.txt.
 // See the included readme.txt for details.
@@ -12,6 +12,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdarg.h>
+#include <limits.h>
 #include <string.h>
 #include <stdint.h>
 #include <assert.h>
@@ -810,6 +811,91 @@ char *FileName::searchPath(Array *path, const char *name, int cwd)
     return NULL;
 }
 
+
+/*************************************
+ * Search Path for file in a safe manner.
+ *
+ * Be wary of CWE-22: Improper Limitation of a Pathname to a Restricted Directory
+ * ('Path Traversal') attacks.
+ *	http://cwe.mitre.org/data/definitions/22.html
+ * More info:
+ *	https://www.securecoding.cert.org/confluence/display/seccode/FIO02-C.+Canonicalize+path+names+originating+from+untrusted+sources
+ * Returns:
+ *	NULL	file not found
+ *	!=NULL	mem.malloc'd file name
+ */
+
+char *FileName::safeSearchPath(Array *path, const char *name)
+{
+#if _WIN32
+    /* Disallow % / \ : and .. in name characters
+     */
+    for (const char *p = name; *p; p++)
+    {
+	char c = *p;
+	if (c == '\\' || c == '/' || c == ':' || c == '%' ||
+	    (c == '.' && p[1] == '.'))
+	{
+	    return NULL;
+	}
+    }
+
+    return FileName::searchPath(path, name, 0);
+#elif POSIX
+    /* Even with realpath(), we must check for // and disallow it
+     */
+    for (const char *p = name; *p; p++)
+    {
+	char c = *p;
+	if (c == '/' && p[1] == '/')
+	{
+	    return NULL;
+	}
+    }
+
+    if (path)
+    {	unsigned i;
+
+	/* Each path is converted to a cannonical name and then a check is done to see
+	 * that the searched name is really a child one of the the paths searched.
+	 */
+	for (i = 0; i < path->dim; i++)
+	{
+	    char *cname = NULL;
+	    char *cpath = canonicalName((char *)path->data[i]);
+	    //printf("FileName::safeSearchPath(): name=%s; path=%s; cpath=%s\n",
+	    //	    name, (char *)path->data[i], cpath);
+	    if (cpath == NULL)
+		goto cont;
+	    cname = canonicalName(combine(cpath, name));
+	    //printf("FileName::safeSearchPath(): cname=%s\n", cname);
+	    if (cname == NULL)
+		goto cont;
+	    //printf("FileName::safeSearchPath(): exists=%i "
+	    //	    "strncmp(cpath, cname, %i)=%i\n", exists(cname),
+	    //	    strlen(cpath), strncmp(cpath, cname, strlen(cpath)));
+	    // exists and name is *really* a "child" of path
+	    if (exists(cname) && strncmp(cpath, cname, strlen(cpath)) == 0)
+	    {
+		free(cpath);
+		char *p = mem.strdup(cname);
+		free(cname);
+		return p;
+	    }
+cont:
+	    if (cpath)
+		free(cpath);
+	    if (cname)
+		free(cname);
+	}
+    }
+    return NULL;
+#else
+    assert(0);
+#endif
+}
+
+
 int FileName::exists(const char *name)
 {
 #if POSIX
@@ -876,6 +962,52 @@ void FileName::ensurePathExists(const char *path)
 	}
     }
 }
+
+
+/******************************************
+ * Return canonical version of name in a malloc'd buffer.
+ * This code is high risk.
+ */
+char *FileName::canonicalName(const char *name)
+{
+#if linux
+    // Lovely glibc extension to do it for us
+    return canonicalize_file_name(name);
+#elif POSIX
+  #if _POSIX_VERSION >= 200809L || defined (linux)
+    // NULL destination buffer is allowed and preferred
+    return realpath(name, NULL);
+  #else
+    char *cname = NULL;
+    #if PATH_MAX
+	/* PATH_MAX must be defined as a constant in <limits.h>,
+	 * otherwise using it is unsafe due to TOCTOU
+	 */
+	size_t path_max = (size_t)PATH_MAX;
+	if (path_max > 0)
+	{
+	    /* Need to add one to PATH_MAX because of realpath() buffer overflow bug:
+	     * http://isec.pl/vulnerabilities/isec-0011-wu-ftpd.txt
+	     */
+	    cname = (char *)malloc(path_max + 1);
+	    if (cname == NULL)
+		return NULL;
+	}
+    #endif
+    return realpath(name, cname);
+  #endif
+#elif _WIN32
+    /* Apparently, there is no good way to do this on Windows.
+     * GetFullPathName isn't it.
+     */
+    assert(0);
+    return NULL;
+#else
+    assert(0);
+    return NULL;
+#endif
+}
+
 
 /****************************** File ********************************/
 
