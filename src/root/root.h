@@ -1,9 +1,9 @@
 
 
-// Copyright (c) 1999-2006 by Digital Mars
+// Copyright (c) 1999-2010 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
-// www.digitalmars.com
+// http://www.digitalmars.com
 // License for redistribution is by either the Artistic License
 // in artistic.txt, or the GNU General Public License in gnu.txt.
 // See the included readme.txt for details.
@@ -148,8 +148,10 @@ struct FileName : String
 
     void CopyTo(FileName *to);
     static char *searchPath(Array *path, const char *name, int cwd);
+    static char *safeSearchPath(Array *path, const char *name);
     static int exists(const char *name);
     static void ensurePathExists(const char *path);
+    static char *canonicalName(const char *name);
 };
 
 struct File : Object
