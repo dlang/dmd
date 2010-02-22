@@ -47,6 +47,7 @@ SYMBOL_MARS(MONITOR_PROLOG,  FLfunc,FREGSAVED,"_d_monitor_prolog",0,t) \
 SYMBOL_MARS(MONITOR_EPILOG,  FLfunc,FREGSAVED,"_d_monitor_epilog",0,t) \
 SYMBOL_MARS(DCOVER,	     FLfunc,FREGSAVED,"_d_cover_register", 0, t) \
 SYMBOL_MARS(DASSERT,	     FLfunc,FREGSAVED,"_d_assert", SFLexit, t) \
+SYMBOL_MARS(DASSERTM,	     FLfunc,FREGSAVED,"_d_assertm", SFLexit, t) \
 SYMBOL_MARS(DASSERT_MSG,     FLfunc,FREGSAVED,"_d_assert_msg", SFLexit, t) \
 SYMBOL_MARS(DARRAY,	     FLfunc,FREGSAVED,"_d_array_bounds", SFLexit, t) \
 SYMBOL_MARS(DINVARIANT,	     FLfunc,FREGSAVED,"D9invariant12_d_invariantFC6ObjectZv", 0, tsdlib) \
@@ -68,7 +69,7 @@ SYMBOL_MARS(CRITICALEXIT,  FLfunc,FREGSAVED,"_d_criticalexit",0, t) \
 SYMBOL_MARS(SWITCH_STRING, FLfunc,FREGSAVED,"_d_switch_string", 0, t) \
 SYMBOL_MARS(SWITCH_USTRING,FLfunc,FREGSAVED,"_d_switch_ustring", 0, t) \
 SYMBOL_MARS(SWITCH_DSTRING,FLfunc,FREGSAVED,"_d_switch_dstring", 0, t) \
-SYMBOL_MARS(DSWITCHERR,    FLfunc,FREGSAVED,"_d_switch_error", 0, t) \
+SYMBOL_MARS(DSWITCHERR,    FLfunc,FREGSAVED,"_d_switch_error", SFLexit, t) \
 SYMBOL_MARS(DHIDDENFUNC,   FLfunc,FREGSAVED,"_d_hidden_func", 0, t) \
 SYMBOL_MARS(NEWCLASS,	   FLfunc,FREGSAVED,"_d_newclass", 0, t) \
 SYMBOL_MARS(NEWARRAYT,     FLfunc,FREGSAVED,"_d_newarrayT", 0, t) \

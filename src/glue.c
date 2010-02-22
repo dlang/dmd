@@ -471,7 +471,6 @@ void Module::genobjfile(int multiobj)
 	if (ma)
 	{
 	    elem *elinnum;
-	    elem *efilename;
 
 	    localgot = NULL;
 
@@ -493,9 +492,9 @@ void Module::genobjfile(int multiobj)
 		elinnum = el_var(sp);
 	    }
 
-	    efilename = toEmodulename();
+	    elem *efilename = el_ptr(toSymbol());
 
-	    elem *e = el_var(rtlsym[i ? RTLSYM_DARRAY : RTLSYM_DASSERT]);
+	    elem *e = el_var(rtlsym[i ? RTLSYM_DARRAY : RTLSYM_DASSERTM]);
 	    e = el_bin(OPcall, TYvoid, e, el_param(elinnum, efilename));
 
 	    block *b = block_calloc();
@@ -1158,34 +1157,6 @@ Symbol *Module::gencritsec()
 /**************************************
  * Generate elem that is a pointer to the module file name.
  */
-
-elem *Module::toEmodulename()
-{
-   elem *efilename;
-
-    // Get filename
-    if (needModuleInfo())
-    {   Symbol *si;
-
-	/* Class ModuleInfo is defined in std.moduleinfo.
-	 * The module name will be at nameoffset from the start of it.
-	 */
-
-	si = toSymbol();
-
-	//printf("nameoffset = x%x\n", nameoffset);
-	assert(nameoffset >= 4);
-
-	efilename = el_ptr(si);
-	efilename = el_bin(OPadd, TYnptr, efilename, el_long(TYsize_t, nameoffset));
-	efilename = el_pair(TYdarray, el_long(TYsize_t, namelen), efilename);
-    }
-    else // generate our own filename
-    {
-	efilename = toEfilename();
-    }
-    return efilename;
-}
 
 elem *Module::toEfilename()
 {   elem *efilename;

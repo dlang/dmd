@@ -1152,16 +1152,13 @@ void GotoCaseStatement::toIR(IRState *irs)
 
 void SwitchErrorStatement::toIR(IRState *irs)
 {
-    elem *e;
-    elem *elinnum;
-    elem *efilename;
     Blockx *blx = irs->blx;
 
     //printf("SwitchErrorStatement::toIR()\n");
 
-    efilename = blx->module->toEmodulename();
-    elinnum = el_long(TYint, loc.linnum);
-    e = el_bin(OPcall, TYvoid, el_var(rtlsym[RTLSYM_DSWITCHERR]), el_param(elinnum, efilename));
+    elem *efilename = el_ptr(blx->module->toSymbol());
+    elem *elinnum = el_long(TYint, loc.linnum);
+    elem *e = el_bin(OPcall, TYvoid, el_var(rtlsym[RTLSYM_DSWITCHERR]), el_param(elinnum, efilename));
     block_appendexp(blx->curblock, e);
 }
 

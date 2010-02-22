@@ -170,7 +170,6 @@ struct Module : Package
 
     static Symbol *gencritsec();
     elem *toEfilename();
-    elem *toEmodulename();
 
     Symbol *toSymbol();
     void genmoduleinfo();
