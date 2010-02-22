@@ -41,6 +41,7 @@ private
         extern (C) uint function(void*, uint) gc_clrAttr;
 
         extern (C) void*  function(size_t, uint) gc_malloc;
+        extern (C) BlkInfo  function(size_t, uint) gc_malloc_bi;
         extern (C) void*  function(size_t, uint) gc_calloc;
         extern (C) void*  function(void*, size_t, uint ba) gc_realloc;
         extern (C) size_t function(void*, size_t, size_t) gc_extend;
@@ -74,6 +75,7 @@ private
         pthis.gc_clrAttr = &gc_clrAttr;
 
         pthis.gc_malloc = &gc_malloc;
+        pthis.gc_malloc_bi = &gc_malloc_bi;
         pthis.gc_calloc = &gc_calloc;
         pthis.gc_realloc = &gc_realloc;
         pthis.gc_extend = &gc_extend;
@@ -185,6 +187,18 @@ extern (C) void* gc_malloc( size_t sz, uint ba = 0 )
     if( proxy is null )
         return _gc.malloc( sz, ba );
     return proxy.gc_malloc( sz, ba );
+}
+
+extern (C) BlkInfo gc_malloc_bi( size_t sz, uint ba = 0 )
+{
+    if( proxy is null )
+    {
+        BlkInfo retval;
+        retval.base = _gc.malloc( sz, ba, &retval.size );
+        retval.attr = ba;
+        return retval;
+    }
+    return proxy.gc_malloc_bi( sz, ba );
 }
 
 extern (C) void* gc_calloc( size_t sz, uint ba = 0 )

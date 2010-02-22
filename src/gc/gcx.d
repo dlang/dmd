@@ -393,10 +393,12 @@ class GC
     /**
      *
      */
-    void *malloc(size_t size, uint bits = 0)
+    void *malloc(size_t size, uint bits = 0, size_t *alloc_size = null)
     {
         if (!size)
         {
+            if(alloc_size)
+                *alloc_size = 0;
             return null;
         }
 
@@ -405,7 +407,7 @@ class GC
         // when allocating.
         synchronized (gcLock)
         {
-            return mallocNoSync(size, bits);
+            return mallocNoSync(size, bits, alloc_size);
         }
     }
 
@@ -413,7 +415,7 @@ class GC
     //
     //
     //
-    private void *mallocNoSync(size_t size, uint bits = 0)
+    private void *mallocNoSync(size_t size, uint bits = 0, size_t *alloc_size = null)
     {
         assert(size != 0);
 
@@ -441,6 +443,8 @@ class GC
 
         if (bin < B_PAGE)
         {
+            if(alloc_size)
+                *alloc_size = binsize[bin];
             int  state     = gcx.disabled ? 1 : 0;
             bool collected = false;
 
@@ -477,7 +481,7 @@ class GC
         }
         else
         {
-            p = gcx.bigAlloc(size);
+            p = gcx.bigAlloc(size, alloc_size);
             if (!p)
                 onOutOfMemoryError();
         }
@@ -500,10 +504,12 @@ class GC
     /**
      *
      */
-    void *calloc(size_t size, uint bits = 0)
+    void *calloc(size_t size, uint bits = 0, size_t *alloc_size = null)
     {
         if (!size)
         {
+            if(alloc_size)
+                *alloc_size = 0;
             return null;
         }
 
@@ -512,7 +518,7 @@ class GC
         // when allocating.
         synchronized (gcLock)
         {
-            return callocNoSync(size, bits);
+            return callocNoSync(size, bits, alloc_size);
         }
     }
 
@@ -520,12 +526,12 @@ class GC
     //
     //
     //
-    private void *callocNoSync(size_t size, uint bits = 0)
+    private void *callocNoSync(size_t size, uint bits = 0, size_t *alloc_size = null)
     {
         assert(size != 0);
 
         //debug(PRINTF) printf("calloc: %x len %d\n", p, len);
-        void *p = mallocNoSync(size, bits);
+        void *p = mallocNoSync(size, bits, alloc_size);
         memset(p, 0, size);
         return p;
     }
@@ -534,14 +540,14 @@ class GC
     /**
      *
      */
-    void *realloc(void *p, size_t size, uint bits = 0)
+    void *realloc(void *p, size_t size, uint bits = 0, size_t *alloc_size = null)
     {
         // Since a finalizer could launch a new thread, we always need to lock
         // when collecting.  The safest way to do this is to simply always lock
         // when allocating.
         synchronized (gcLock)
         {
-            return reallocNoSync(p, size, bits);
+            return reallocNoSync(p, size, bits, alloc_size);
         }
     }
 
@@ -549,17 +555,19 @@ class GC
     //
     //
     //
-    private void *reallocNoSync(void *p, size_t size, uint bits = 0)
+    private void *reallocNoSync(void *p, size_t size, uint bits = 0, size_t *alloc_size = null)
     {
         if (!size)
         {   if (p)
             {   freeNoSync(p);
                 p = null;
             }
+            if(alloc_size)
+                *alloc_size = 0;
         }
         else if (!p)
         {
-            p = mallocNoSync(size, bits);
+            p = mallocNoSync(size, bits, alloc_size);
         }
         else
         {   void *p2;
@@ -591,7 +599,7 @@ class GC
                             }
                         }
                     }
-                    p2 = mallocNoSync(size, bits);
+                    p2 = mallocNoSync(size, bits, alloc_size);
                     if (psize < size)
                         size = psize;
                     //debug(PRINTF) printf("\tcopying %d bytes\n",size);
@@ -619,6 +627,8 @@ class GC
                             debug (MEMSTOMP) memset(p + size, 0xF2, psize - size);
                             pool.freePages(pagenum + newsz, psz - newsz);
                         }
+                        if(alloc_size)
+                            *alloc_size = newsz * PAGESIZE;
                         return p;
                     }
                     else if (pagenum + newsz <= pool.npages)
@@ -632,6 +642,8 @@ class GC
                                 {
                                     debug (MEMSTOMP) memset(p + psize, 0xF0, size - psize);
                                     memset(&pool.pagetable[pagenum + psz], B_PAGEPLUS, newsz - psz);
+                                    if(alloc_size)
+                                        *alloc_size = newsz * PAGESIZE;
                                     return p;
                                 }
                                 if (i == pool.ncommitted)
@@ -671,13 +683,15 @@ class GC
                             }
                         }
                     }
-                    p2 = mallocNoSync(size, bits);
+                    p2 = mallocNoSync(size, bits, alloc_size);
                     if (psize < size)
                         size = psize;
                     //debug(PRINTF) printf("\tcopying %d bytes\n",size);
                     memcpy(p2, p, size);
                     p = p2;
                 }
+                else if(alloc_size)
+                    *alloc_size = psize;
             }
         }
         return p;
@@ -1781,7 +1795,7 @@ struct Gcx
 
             if (bin <= B_PAGE)
             {
-                info.base = pool.baseAddr + (offset & notbinsize[bin]);
+                info.base = cast(void*)((cast(size_t)p) & notbinsize[bin]);
             }
             else if (bin == B_PAGEPLUS)
             {
@@ -1929,7 +1943,7 @@ struct Gcx
      * Allocate a chunk of memory that is larger than a page.
      * Return null if out of memory.
      */
-    void *bigAlloc(size_t size)
+    void *bigAlloc(size_t size, size_t *alloc_size = null)
     {
         Pool*  pool;
         size_t npages;
@@ -2006,6 +2020,8 @@ struct Gcx
         p = pool.baseAddr + pn * PAGESIZE;
         memset(cast(char *)p + size, 0, npages * PAGESIZE - size);
         debug (MEMSTOMP) memset(p, 0xF1, size);
+        if(alloc_size)
+            *alloc_size = npages * PAGESIZE;
         //debug(PRINTF) printf("\tp = %x\n", p);
         return p;
 
