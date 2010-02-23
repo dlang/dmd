@@ -3167,13 +3167,17 @@ Expression *ArrayLiteralExp::semantic(Scope *sc)
     if (type)
 	return this;
 
+    /* Perhaps an empty array literal [ ] should be rewritten as null?
+     */
+
     arrayExpressionSemantic(elements, sc);    // run semantic() on each element
     expandTuples(elements);
 
     Type *t0;
     elements = arrayExpressionToCommonType(sc, elements, &t0);
 
-    type = new TypeSArray(t0, new IntegerExp(elements->dim));
+    type = t0->arrayOf();
+    //type = new TypeSArray(t0, new IntegerExp(elements->dim));
     type = type->semantic(loc, sc);
     return this;
 }

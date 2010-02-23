@@ -1,5 +1,5 @@
 
-// Copyright (c) 1999-2009 by Digital Mars
+// Copyright (c) 1999-2010 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // http://www.digitalmars.com
@@ -1606,23 +1606,29 @@ Lagain:
     }
     else if ((t1->ty == Tsarray || t1->ty == Tarray) &&
 	     (e2->op == TOKnull && t2->ty == Tpointer && t2->nextOf()->ty == Tvoid ||
-	      e2->op == TOKarrayliteral && t2->ty == Tsarray && t2->nextOf()->ty == Tvoid && ((TypeSArray *)t2)->dim->toInteger() == 0)
+	      e2->op == TOKarrayliteral && t2->ty == Tsarray && t2->nextOf()->ty == Tvoid && ((TypeSArray *)t2)->dim->toInteger() == 0 ||
+	      e2->op == TOKarrayliteral && t2->ty == Tarray && t2->nextOf()->ty == Tvoid && ((ArrayLiteralExp *)e2)->elements->dim == 0)
 	    )
     {	/*  (T[n] op void*)   => T[]
 	 *  (T[]  op void*)   => T[]
 	 *  (T[n] op void[0]) => T[]
 	 *  (T[]  op void[0]) => T[]
+	 *  (T[n] op void[])  => T[]
+	 *  (T[]  op void[])  => T[]
 	 */
 	goto Lx1;
     }
     else if ((t2->ty == Tsarray || t2->ty == Tarray) &&
 	     (e1->op == TOKnull && t1->ty == Tpointer && t1->nextOf()->ty == Tvoid ||
-	      e1->op == TOKarrayliteral && t1->ty == Tsarray && t1->nextOf()->ty == Tvoid && ((TypeSArray *)t1)->dim->toInteger() == 0)
+	      e1->op == TOKarrayliteral && t1->ty == Tsarray && t1->nextOf()->ty == Tvoid && ((TypeSArray *)t1)->dim->toInteger() == 0 ||
+	      e1->op == TOKarrayliteral && t1->ty == Tarray && t1->nextOf()->ty == Tvoid && ((ArrayLiteralExp *)e1)->elements->dim == 0)
 	    )
     {	/*  (void*   op T[n]) => T[]
 	 *  (void*   op T[])  => T[]
 	 *  (void[0] op T[n]) => T[]
 	 *  (void[0] op T[])  => T[]
+	 *  (void[]  op T[n]) => T[]
+	 *  (void[]  op T[])  => T[]
 	 */
 	goto Lx2;
     }
@@ -1800,6 +1806,7 @@ Expression *BinExp::typeCombine(Scope *sc)
 
     if (op == TOKmin || op == TOKadd)
     {
+	// struct+struct, where the structs are the same type, and class+class are errors
 	if (t1->ty == Tstruct)
 	{
 	    if (t2->ty == Tstruct &&
