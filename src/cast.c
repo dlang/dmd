@@ -1960,12 +1960,15 @@ IntRange CastExp::getIntRange()
 
 IntRange DivExp::getIntRange()
 {
-    if (!e1->type->isunsigned() && !e2->type->isunsigned())
-	return Expression::getIntRange();
-
     IntRange ir;
     IntRange ir1 = e1->getIntRange();
     IntRange ir2 = e2->getIntRange();
+
+    if (!(e1->type->isunsigned() || ir1.imax < 0x8000000000000000ULL) &&
+	!(e2->type->isunsigned() || ir2.imax < 0x8000000000000000ULL))
+    {
+	return Expression::getIntRange();
+    }
 
     if (ir2.imax == 0 || ir2.imin == 0)
 	return Expression::getIntRange();
