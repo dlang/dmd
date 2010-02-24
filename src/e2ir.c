@@ -3318,6 +3318,7 @@ elem *CallExp::toElem(IRState *irs)
     FuncDeclaration *fd;
     Type *t1 = e1->type->toBasetype();
     Type *ectype = t1;
+    elem *eeq = NULL;
 
     elem *ehidden = irs->ehidden;
     irs->ehidden = NULL;
@@ -3387,9 +3388,36 @@ elem *CallExp::toElem(IRState *irs)
     else
     {
 	ec = e1->toElem(irs);
+	if (arguments && arguments->dim)
+	{
+	    /* The idea is to enforce expressions being evaluated left to right,
+	     * even though call trees are evaluated parameters first.
+	     * We just do a quick hack to catch the more obvious cases, though
+	     * we need to solve this generally.
+	     */
+	    if (ec->Eoper == OPind && el_sideeffect(ec->E1))
+	    {	/* Rewrite (*exp)(arguments) as:
+		 * tmp=exp, (*tmp)(arguments)
+		 */
+		elem *ec1 = ec->E1;
+		Symbol *stmp = symbol_genauto(type_fake(ec1->Ety));
+		eeq = el_bin(OPeq, ec->Ety, el_var(stmp), ec1);
+		ec->E1 = el_var(stmp);
+	    }
+	    else if (tybasic(ec->Ety) == TYdelegate && el_sideeffect(ec))
+	    {	/* Rewrite (exp)(arguments) as:
+		 * tmp=exp, (tmp)(arguments)
+		 */
+		Symbol *stmp = symbol_genauto(type_fake(ec->Ety));
+		eeq = el_bin(OPeq, ec->Ety, el_var(stmp), ec);
+		ec = el_var(stmp);
+	    }
+	}
     }
     ec = callfunc(loc, irs, directcall, type, ec, ectype, fd, t1, ehidden, arguments);
     el_setLoc(ec,loc);
+    if (eeq)
+	ec = el_combine(eeq, ec);
     return ec;
 }
 
