@@ -383,12 +383,15 @@ Expression *TraitsExp::semantic(Scope *sc)
 		if (t)
 		    t->semantic(loc, sc);
 		else if (e)
-		    e->semantic(sc);
+		{   e = e->semantic(sc);
+		    e = e->optimize(WANTvalue);
+		}
 	    }
 	    else
 	    {	e = isExpression(o);
 		if (e)
-		{   e->semantic(sc);
+		{   e = e->semantic(sc);
+		    e = e->optimize(WANTvalue);
 		}
 	    }
 
