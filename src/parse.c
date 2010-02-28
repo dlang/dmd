@@ -580,6 +580,7 @@ Array *Parser::parseDeclDefs(int once)
 		break;
 
 	    case TOKsemicolon:		// empty declaration
+		//error("empty declaration");
 		nextToken();
 		continue;
 
@@ -3597,6 +3598,8 @@ Statement *Parser::parseStatement(int flags)
 	case TOKlcurly:
 	{
 	    nextToken();
+	    //if (token.value == TOKsemicolon)
+		//error("use '{ }' for an empty statement, not a ';'");
 	    Statements *statements = new Statements();
 	    while (token.value != TOKrcurly && token.value != TOKeof)
 	    {

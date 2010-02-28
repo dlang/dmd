@@ -1,6 +1,6 @@
 
 // Compiler implementation of the D programming language
-// Copyright (c) 1999-2009 by Digital Mars
+// Copyright (c) 1999-2010 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // http://www.digitalmars.com
@@ -1346,7 +1346,7 @@ Expression *Cat(Type *type, Expression *e1, Expression *e2)
     Type *t2 = e2->type->toBasetype();
 
     //printf("Cat(e1 = %s, e2 = %s)\n", e1->toChars(), e2->toChars());
-    //printf("\tt1 = %s, t2 = %s\n", t1->toChars(), t2->toChars());
+    //printf("\tt1 = %s, t2 = %s, type = %s\n", t1->toChars(), t2->toChars(), type->toChars());
 
     if (e1->op == TOKnull && (e2->op == TOKint64 || e2->op == TOKstructliteral))
     {	e = e2;
@@ -1418,6 +1418,34 @@ Expression *Cat(Type *type, Expression *e1, Expression *e2)
 	    t = es1->type;
 	else
 	    t = es2->type;
+	es->type = type;
+	e = es;
+    }
+    else if (e1->op == TOKstring && e2->op == TOKarrayliteral &&
+	t2->nextOf()->isintegral())
+    {
+	// Concatenate the strings
+	StringExp *es1 = (StringExp *)e1;
+	ArrayLiteralExp *es2 = (ArrayLiteralExp *)e2;
+	size_t len = es1->len + es2->elements->dim;
+	int sz = es1->sz;
+
+	void *s = mem.malloc((len + 1) * sz);
+	memcpy(s, es1->string, es1->len * sz);
+	for (int i = 0; i < es2->elements->dim; i++)
+	{   Expression *es2e = (Expression *)es2->elements->data[i];
+	    if (es2e->op != TOKint64)
+		return EXP_CANT_INTERPRET;
+	    dinteger_t v = es2e->toInteger();
+	    memcpy((unsigned char *)s + (es1->len + i) * sz, &v, sz);
+	}
+
+	// Add terminating 0
+	memset((unsigned char *)s + len * sz, 0, sz);
+
+	StringExp *es = new StringExp(loc, s, len);
+	es->sz = sz;
+	es->committed = 0; //es1->committed;
 	es->type = type;
 	e = es;
     }
