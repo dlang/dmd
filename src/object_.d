@@ -29,6 +29,8 @@ private
 
     extern (C) void onOutOfMemoryError();
     extern (C) Object _d_newclass(TypeInfo_Class ci);
+    extern (C) void _d_arrayshrinkfit(TypeInfo ti, void[] arr);
+    extern (C) size_t _d_arraysetcapacity(TypeInfo ti, size_t newcapacity, void *arrptr);
 }
 
 // NOTE: For some reason, this declaration method doesn't work
@@ -2283,6 +2285,58 @@ version (unittest)
         return x != x;
     }
 }
+
+/**
+ * Get the current capacity of an array.  The capacity is the number of
+ * elements that can be appended before the array must be extended/reallocated.
+ */
+@property size_t capacity(T)(T[] arr)
+{
+    return _d_arraysetcapacity(typeid(T[]), 0, cast(void *)&arr);
+}
+
+/**
+ * Set the capacity of an array.  The capacity is the number of elements that
+ * can be appended before the array must be extended/reallocated.
+ *
+ * The return value is the new capacity of the array (which may be larger than
+ * the requested capacity).
+ */
+size_t setCapacity(T)(ref T[] arr, size_t newcapacity)
+{
+    return _d_arraysetcapacity(typeid(T[]), newcapacity, cast(void *)&arr);
+}
+
+/**
+ * Shrink the allocated elements to the given array.  This is useful if you
+ * would like to reuse a buffer with the append operator.  Use this only when
+ * you are sure no elements are in use beyond the array in the memory block.
+ * If there are, those elements could be overwritten by appending to this
+ * array.
+ */
+void shrinkToFit(T)(T[] arr)
+{
+    _d_arrayshrinkfit(typeid(T[]), *(cast(void[]*)&arr));
+}
+
+version (unittest) unittest
+{
+    {
+        int[] arr;
+        auto newcap = arr.setCapacity(2000);
+        assert(newcap >= 2000);
+        assert(newcap == arr.capacity);
+        auto ptr = arr.ptr;
+        foreach(i; 0..2000)
+            arr ~= i;
+        assert(ptr == arr.ptr);
+        arr = arr[0..1];
+        arr.shrinkToFit();
+        arr ~= 5;
+        assert(ptr == arr.ptr);
+    }
+}
+
 
 version (none)
 {

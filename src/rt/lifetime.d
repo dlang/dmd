@@ -469,6 +469,145 @@ void __insertBlkInfoCache(BlkInfo bi, BlkInfo *curpos)
 }
 
 /**
+ * Shrink the "allocated" length of an array to be the exact size of the array.
+ * It doesn't matter what the current allocated length of the array is, the
+ * user is telling the runtime that he knows what he is doing.
+ */
+extern(C) void _d_arrayshrinkfit(TypeInfo ti, void[] arr)
+{
+    // note, we do not care about shared.  We are setting the length no matter
+    // what, so no lock is required.
+    debug(PRINTF) printf("_d_arrayshrinkfit, elemsize = %d, arr.ptr = x%x arr.length = %d\n", ti.next.tsize(), arr.ptr, arr.length);
+    auto size = ti.next.tsize();                // array element size
+    auto cursize = arr.length * size;
+    auto   bic = __getBlkInfo(arr.ptr);
+    auto   info = bic ? *bic : gc_query(arr.ptr);
+    if(info.base)
+    {
+        if(info.size >= PAGESIZE)
+            // remove 4 from the current size
+            cursize -= (size_t.sizeof) * 2;
+        debug(PRINTF) printf("setting allocated size to %d\n", (arr.ptr - info.base) + cursize);
+        __setArrayAllocLength(info, (arr.ptr - info.base) + cursize, false);
+    }
+}
+
+/**
+ * set the array capacity.  If the array capacity isn't currently large enough
+ * to hold the requested capacity (in number of elements), then the array is
+ * resized/reallocated to the appropriate size.  Pass in a requested capacity
+ * of 0 to get the current capacity.  Returns the number of elements that can
+ * actually be stored once the resizing is done.
+ */
+extern(C) size_t _d_arraysetcapacity(TypeInfo ti, size_t newcapacity, Array *p)
+in
+{
+    assert(ti);
+    assert(!p.length || p.data);
+}
+body
+{
+    // step 1, get the block
+    auto isshared = ti.classinfo is TypeInfo_Shared.classinfo;
+    auto bic = !isshared ? __getBlkInfo(p.data) : null;
+    auto info = bic ? *bic : gc_query(p.data);
+    auto size = ti.next.tsize();
+    version (D_InlineAsm_X86)
+    {
+        size_t reqsize = void;
+
+        asm
+        {
+            mov EAX, newcapacity;
+            mul EAX, size;
+            mov reqsize, EAX;
+            jc  Loverflow;
+        }
+    }
+    else
+    {
+        size_t reqsize = size * newcapacity;
+
+        if (reqsize / newcapacity != size)
+            goto Loverflow;
+    }
+
+    // step 2, get the actual "allocated" size.  If the allocated size does not
+    // match what we expect, then we will need to reallocate anyways.
+
+    // TODO: this probably isn't correct for shared arrays
+    size_t curallocsize = void;
+    size_t curcapacity = void;
+    size_t offset = void;
+    if(info.base !is null)
+    {
+        if(info.size <= 256)
+            curallocsize = *(cast(ubyte *)(info.base + info.size - SMALLPAD));
+        else if(info.size < PAGESIZE)
+            curallocsize = *(cast(ushort *)(info.base + info.size - MEDPAD));
+        else
+            curallocsize = *(cast(size_t *)(info.base));
+
+        offset = p.data - __arrayStart(info);
+        if(offset + p.length * size != curallocsize)
+        {
+            curcapacity = 0;
+        }
+        else
+        {
+            // figure out the current capacity of the block from the point
+            // of view of the array.
+            curcapacity = info.size - offset - __arrayPad(info.size);
+        }
+    }
+    else
+    {
+        curallocsize = curcapacity = offset = 0;
+    }
+    debug(PRINTF) printf("_d_arraysetcapacity, p = x%d,%d, newcapacity=%d, info.size=%d, reqsize=%d, curallocsize=%d, curcapacity=%d, offset=%d\n", p.data, p.length, newcapacity, info.size, reqsize, curallocsize, curcapacity, offset);
+
+    if(curcapacity >= reqsize)
+    {
+        // no problems, the current allocated size is large enough.
+        return curcapacity / size;
+    }
+
+    // step 3, try to extend the array in place.
+    if(info.size >= PAGESIZE && curcapacity != 0)
+    {
+        auto extendsize = reqsize + offset + LARGEPAD - info.size;
+        auto u = gc_extend(p.data, extendsize, extendsize);
+        if(u)
+        {
+            // extend worked, save the new current allocated size
+            curcapacity = u - offset - LARGEPAD;
+            return curcapacity / size;
+        }
+    }
+
+    // step 4, if extending doesn't work, allocate a new array with at least the requested allocated size.
+    auto datasize = p.length * size;
+    info = gc_malloc_bi(reqsize + __arrayPad(reqsize), info.attr);
+    if(info.base is null)
+        goto Loverflow;
+    __setArrayAllocLength(info, datasize, isshared);
+    if(!isshared)
+        __insertBlkInfoCache(info, bic);
+
+    // copy the data over.
+    // note that malloc will have initialized the unallocated data to 0 if
+    // necessary, we do not need to do it here.
+    auto tgt = __arrayStart(info);
+    memcpy(tgt, p.data, datasize);
+    p.data = cast(byte *)tgt;
+    curcapacity = info.size - __arrayPad(info.size);
+    return curcapacity / size;
+
+Loverflow:
+    onOutOfMemoryError();
+}
+
+/**
  * Allocate a new array of length elements.
  * ti is the type of the resulting array, or pointer to element.
  * (For when the array is initialized to 0)
