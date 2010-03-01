@@ -627,13 +627,13 @@ enum PROT Dsymbol::prot()
  */
 
 
-Array *Dsymbol::arraySyntaxCopy(Array *a)
+Dsymbols *Dsymbol::arraySyntaxCopy(Dsymbols *a)
 {
 
-    Array *b = NULL;
+    Dsymbols *b = NULL;
     if (a)
     {
-	b = a->copy();
+	b = (Dsymbols *)a->copy();
 	for (int i = 0; i < b->dim; i++)
 	{
 	    Dsymbol *s = (Dsymbol *)b->data[i];

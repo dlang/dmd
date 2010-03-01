@@ -136,7 +136,7 @@ struct Dsymbol : Object
 
     int dyncast() { return DYNCAST_DSYMBOL; }	// kludge for template.isSymbol()
 
-    static Array *arraySyntaxCopy(Array *a);
+    static Dsymbols *arraySyntaxCopy(Dsymbols *a);
 
     virtual const char *toPrettyChars();
     virtual const char *kind();
@@ -248,7 +248,7 @@ struct Dsymbol : Object
 
 struct ScopeDsymbol : Dsymbol
 {
-    Array *members;		// all Dsymbol's in this scope
+    Dsymbols *members;		// all Dsymbol's in this scope
     DsymbolTable *symtab;	// members[] sorted into table
 
     Array *imports;		// imported ScopeDsymbol's

@@ -110,7 +110,7 @@ void obj_write_deferred(Library *library)
 	Identifier *id = new Identifier(idstr, TOKidentifier);
 
 	Module *md = new Module(mname, id, 0, 0);
-	md->members = new Array();
+	md->members = new Dsymbols();
 	md->members->push(s);	// its only 'member' is s
 	if (m)
 	{

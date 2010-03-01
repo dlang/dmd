@@ -3919,6 +3919,8 @@ Lagain:
 	    if (!arguments)
 		arguments = new Expressions();
 	    functionParameters(loc, sc, tf, arguments);
+
+	    type = type->addMod(tf->nextOf()->mod);
 	}
 	else
 	{
@@ -3965,7 +3967,9 @@ Lagain:
 	    sd->accessCheck(loc, sc, member);
 
 	    tf = (TypeFunction *)f->type;
-//	    type = tf->next;
+//<<>>
+	    type = tf->next;
+printf("test1 %s\n", tf->toChars());
 
 	    if (!arguments)
 		arguments = new Expressions();

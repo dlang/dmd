@@ -3307,6 +3307,7 @@ Statement *ReturnStatement::semantic(Scope *sc)
 	if (exp && exp->op != TOKthis)
 	    error("cannot return expression from constructor");
 	exp = new ThisExp(0);
+	exp->type = tret;
     }
 
     if (!exp)

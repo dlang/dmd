@@ -285,7 +285,7 @@ Object *objectSyntaxCopy(Object *o)
 /* ======================== TemplateDeclaration ============================= */
 
 TemplateDeclaration::TemplateDeclaration(Loc loc, Identifier *id,
-	TemplateParameters *parameters, Expression *constraint, Array *decldefs, int ismixin)
+	TemplateParameters *parameters, Expression *constraint, Dsymbols *decldefs, int ismixin)
     : ScopeDsymbol(id)
 {
 #if LOG
@@ -322,7 +322,6 @@ Dsymbol *TemplateDeclaration::syntaxCopy(Dsymbol *)
     //printf("TemplateDeclaration::syntaxCopy()\n");
     TemplateDeclaration *td;
     TemplateParameters *p;
-    Array *d;
 
     p = NULL;
     if (parameters)
@@ -337,7 +336,7 @@ Dsymbol *TemplateDeclaration::syntaxCopy(Dsymbol *)
     Expression *e = NULL;
     if (constraint)
 	e = constraint->syntaxCopy();
-    d = Dsymbol::arraySyntaxCopy(members);
+    Dsymbols *d = Dsymbol::arraySyntaxCopy(members);
     td = new TemplateDeclaration(loc, ident, p, e, d, ismixin);
     return td;
 }

@@ -881,7 +881,7 @@ void FuncDeclaration::semantic3(Scope *sc)
 		    assert(0);  // not implemented
 		}
 #endif
-		v = new ThisDeclaration(loc, thandle);
+		v = new ThisDeclaration(loc, isCtorDeclaration() ? ad->handle : thandle);
 		v->storage_class |= STCparameter;
 #if STRUCTTHISREF
 		if (thandle->ty == Tstruct)
@@ -2766,8 +2766,8 @@ void FuncLiteralDeclaration::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 
 /********************************* CtorDeclaration ****************************/
 
-CtorDeclaration::CtorDeclaration(Loc loc, Loc endloc, Parameters *arguments, int varargs)
-    : FuncDeclaration(loc, endloc, Id::ctor, STCundefined, NULL)
+CtorDeclaration::CtorDeclaration(Loc loc, Loc endloc, Parameters *arguments, int varargs, StorageClass stc)
+    : FuncDeclaration(loc, endloc, Id::ctor, stc, NULL)
 {
     this->arguments = arguments;
     this->varargs = varargs;
@@ -2776,9 +2776,7 @@ CtorDeclaration::CtorDeclaration(Loc loc, Loc endloc, Parameters *arguments, int
 
 Dsymbol *CtorDeclaration::syntaxCopy(Dsymbol *s)
 {
-    CtorDeclaration *f;
-
-    f = new CtorDeclaration(loc, endloc, NULL, varargs);
+    CtorDeclaration *f = new CtorDeclaration(loc, endloc, NULL, varargs, storage_class);
 
     f->outId = outId;
     f->frequire = frequire ? frequire->syntaxCopy() : NULL;
@@ -2809,9 +2807,11 @@ void CtorDeclaration::semantic(Scope *sc)
     else
     {	tret = ad->handle;
 	assert(tret);
+	tret = tret->addStorageClass(storage_class | sc->stc);
     }
     if (!type)
-	type = new TypeFunction(arguments, tret, varargs, LINKd);
+	type = new TypeFunction(arguments, tret, varargs, LINKd, storage_class);
+
 #if STRUCTTHISREF
     if (ad && ad->isStructDeclaration())
 	((TypeFunction *)type)->isref = 1;
@@ -2829,6 +2829,8 @@ void CtorDeclaration::semantic(Scope *sc)
     if (fbody && semanticRun < PASSsemantic)
     {
 	Expression *e = new ThisExp(loc);
+	if (parent->isClassDeclaration())
+	    e->type = tret;
 	Statement *s = new ReturnStatement(loc, e);
 	fbody = new CompoundStatement(loc, fbody, s);
     }

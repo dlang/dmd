@@ -4280,7 +4280,7 @@ int TypeReference::isZeroInit(Loc loc)
 
 /***************************** TypeFunction *****************************/
 
-TypeFunction::TypeFunction(Parameters *parameters, Type *treturn, int varargs, enum LINK linkage)
+TypeFunction::TypeFunction(Parameters *parameters, Type *treturn, int varargs, enum LINK linkage, StorageClass stc)
     : TypeNext(Tfunction, treturn)
 {
 //if (!treturn) *(char*)0=0;
@@ -4294,8 +4294,22 @@ TypeFunction::TypeFunction(Parameters *parameters, Type *treturn, int varargs, e
     this->ispure = false;
     this->isproperty = false;
     this->isref = false;
-    this->trust = TRUSTdefault;
     this->fargs = NULL;
+
+    if (stc & STCpure)
+	this->ispure = true;
+    if (stc & STCnothrow)
+	this->isnothrow = true;
+    if (stc & STCproperty)
+	this->isproperty = true;
+
+    this->trust = TRUSTdefault;
+    if (stc & STCsafe)
+	this->trust = TRUSTsafe;
+    if (stc & STCsystem)
+	this->trust = TRUSTsystem;
+    if (stc & STCtrusted)
+	this->trust = TRUSTtrusted;
 }
 
 Type *TypeFunction::syntaxCopy()

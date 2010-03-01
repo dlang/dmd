@@ -65,9 +65,9 @@ Parser::Parser(Module *module, unsigned char *base, unsigned length, int doDocCo
     //nextToken();		// start up the scanner
 }
 
-Array *Parser::parseModule()
+Dsymbols *Parser::parseModule()
 {
-    Array *decldefs;
+    Dsymbols *decldefs;
 
     // ModuleDeclation leads off
     if (token.value == TOKmodule)
@@ -138,14 +138,14 @@ Lerr:
     while (token.value != TOKsemicolon && token.value != TOKeof)
 	nextToken();
     nextToken();
-    return new Array();
+    return new Dsymbols();
 }
 
-Array *Parser::parseDeclDefs(int once)
+Dsymbols *Parser::parseDeclDefs(int once)
 {   Dsymbol *s;
-    Array *decldefs;
-    Array *a;
-    Array *aelse;
+    Dsymbols *decldefs;
+    Dsymbols *a;
+    Dsymbols *aelse;
     enum PROT prot;
     StorageClass stc;
     StorageClass storageClass;
@@ -153,7 +153,7 @@ Array *Parser::parseDeclDefs(int once)
     unsigned char *comment;
 
     //printf("Parser::parseDeclDefs()\n");
-    decldefs = new Array();
+    decldefs = new Dsymbols();
     do
     {
 	comment = token.blockComment;
@@ -652,14 +652,42 @@ StorageClass Parser::parseAttribute()
 }
 #endif
 
+/***********************************************
+ * Parse const/immutable/shared/inout/nothrow/pure postfix
+ */
+
+StorageClass Parser::parsePostfix()
+{
+    StorageClass stc = 0;
+
+    while (1)
+    {
+	switch (token.value)
+	{
+	    case TOKconst:		stc |= STCconst;		break;
+	    case TOKinvariant:
+	    case TOKimmutable:		stc |= STCimmutable;		break;
+	    case TOKshared:		stc |= STCshared;		break;
+	    case TOKwild:		stc |= STCwild;			break;
+	    case TOKnothrow:		stc |= STCnothrow;		break;
+	    case TOKpure:		stc |= STCpure;			break;
+	    case TOKat:			stc |= parseAttribute();	break;
+
+	    default:
+		composeStorageClass(stc);
+		return stc;
+	}
+	nextToken();
+    }
+}
 
 /********************************************
  * Parse declarations after an align, protection, or extern decl.
  */
 
-Array *Parser::parseBlock()
+Dsymbols *Parser::parseBlock()
 {
-    Array *a = NULL;
+    Dsymbols *a = NULL;
     Dsymbol *s;
 
     //printf("parseBlock()\n");
@@ -933,17 +961,16 @@ Dsymbol *Parser::parseCtor()
     {	tpl = parseTemplateParameterList();
 
 	int varargs;
-	Parameters *arguments = parseParameters(&varargs);
+	Parameters *parameters = parseParameters(&varargs);
+	StorageClass stc = parsePostfix();
 
-	Expression *constraint = NULL;
-	if (tpl)
-	    constraint = parseConstraint();
+	Expression *constraint = tpl ? parseConstraint() : NULL;
 
-	CtorDeclaration *f = new CtorDeclaration(loc, 0, arguments, varargs);
+	CtorDeclaration *f = new CtorDeclaration(loc, 0, parameters, varargs, stc);
 	parseContracts(f);
 
 	// Wrap a template around it
-	Array *decldefs = new Array();
+	Dsymbols *decldefs = new Dsymbols();
 	decldefs->push(f);
 	TemplateDeclaration *tempdecl =
 	    new TemplateDeclaration(loc, f->ident, tpl, constraint, decldefs, 0);
@@ -953,8 +980,9 @@ Dsymbol *Parser::parseCtor()
     /* Just a regular constructor
      */
     int varargs;
-    Parameters *arguments = parseParameters(&varargs);
-    CtorDeclaration *f = new CtorDeclaration(loc, 0, arguments, varargs);
+    Parameters *parameters = parseParameters(&varargs);
+    StorageClass stc = parsePostfix();
+    CtorDeclaration *f = new CtorDeclaration(loc, 0, parameters, varargs, stc);
     parseContracts(f);
     return f;
 }
@@ -1363,7 +1391,7 @@ EnumDeclaration *Parser::parseEnum()
     else if (token.value == TOKlcurly)
     {
 	//printf("enum definition\n");
-	e->members = new Array();
+	e->members = new Dsymbols();
 	nextToken();
 	unsigned char *comment = token.blockComment;
 	while (token.value != TOKrcurly)
@@ -1509,7 +1537,7 @@ Dsymbol *Parser::parseAggregate()
     {
 	//printf("aggregate definition\n");
 	nextToken();
-	Array *decl = parseDeclDefs(0);
+	Dsymbols *decl = parseDeclDefs(0);
 	if (token.value != TOKrcurly)
 	    error("} expected following member declarations in aggregate");
 	nextToken();
@@ -1531,7 +1559,7 @@ Dsymbol *Parser::parseAggregate()
     if (tpl)
     {	// Wrap a template around the aggregate declaration
 
-	Array *decldefs = new Array();
+	Dsymbols *decldefs = new Dsymbols();
 	decldefs->push(a);
 	TemplateDeclaration *tempdecl =
 		new TemplateDeclaration(loc, id, tpl, constraint, decldefs, 0);
@@ -1616,7 +1644,7 @@ TemplateDeclaration *Parser::parseTemplateDeclaration(int ismixin)
     TemplateDeclaration *tempdecl;
     Identifier *id;
     TemplateParameters *tpl;
-    Array *decldefs;
+    Dsymbols *decldefs;
     Expression *constraint = NULL;
     Loc loc = this->loc;
 
@@ -1979,7 +2007,7 @@ Objects *Parser::parseTemplateArgumentList2()
 
 			if (tpl)
 			{   // Wrap a template around function fd
-			    Array *decldefs = new Array();
+			    Dsymbols *decldefs = new Dsymbols();
 			    decldefs->push(fd);
 			    TemplateDeclaration *tempdecl =
 				new TemplateDeclaration(fd->loc, fd->ident, tpl, NULL, decldefs, 0);
@@ -2059,7 +2087,7 @@ Objects *Parser::parseTemplateArgument()
     return tiargs;
 }
 
-Import *Parser::parseImport(Array *decldefs, int isstatic)
+Import *Parser::parseImport(Dsymbols *decldefs, int isstatic)
 {   Import *s;
     Identifier *id;
     Identifier *aliasid = NULL;
@@ -2420,50 +2448,17 @@ Type *Parser::parseBasicType2(Type *t)
 		//	t function(parameter list) nothrow pure
 		Parameters *arguments;
 		int varargs;
-		bool ispure = false;
-		bool isnothrow = false;
-		bool isproperty = false;
 		enum TOK save = token.value;
-		enum TRUST trust = TRUSTdefault;
 
 		nextToken();
 		arguments = parseParameters(&varargs);
-		while (1)
-		{   // Postfixes
-		    if (token.value == TOKpure)
-			ispure = true;
-		    else if (token.value == TOKnothrow)
-			isnothrow = true;
-		    else if (token.value == TOKat)
-		    {	StorageClass stc = parseAttribute();
-			switch ((unsigned)(stc >> 32))
-			{   case STCproperty >> 32:
-				isproperty = true;
-				break;
-			    case STCsafe >> 32:
-				trust = TRUSTsafe;
-				break;
-			    case STCsystem >> 32:
-				trust = TRUSTsystem;
-				break;
-			    case STCtrusted >> 32:
-				trust = TRUSTtrusted;
-				break;
-			    case 0:
-				break;
-			    default:
-				assert(0);
-			}
-		    }
-		    else
-			break;
-		    nextToken();
-		}
-		TypeFunction *tf = new TypeFunction(arguments, t, varargs, linkage);
-		tf->ispure = ispure;
-		tf->isnothrow = isnothrow;
-		tf->isproperty = isproperty;
-		tf->trust = trust;
+
+		StorageClass stc = parsePostfix();
+		if (stc & (STCconst | STCimmutable | STCshared | STCwild))
+		    error("const/immutable/shared/inout attributes are only valid for non-static member functions");
+
+		TypeFunction *tf = new TypeFunction(arguments, t, varargs, linkage, stc);
+
 		if (save == TOKdelegate)
 		    t = new TypeDelegate(tf);
 		else
@@ -2586,80 +2581,31 @@ Type *Parser::parseDeclarator(Type *t, Identifier **pident, TemplateParameters *
 
 		int varargs;
 		Parameters *arguments = parseParameters(&varargs);
-		Type *tf = new TypeFunction(arguments, t, varargs, linkage);
 
 		/* Parse const/immutable/shared/inout/nothrow/pure postfix
 		 */
-		while (1)
-		{
-		    switch (token.value)
-		    {
-			case TOKconst:
-			    if (tf->isShared())
-				tf = tf->makeSharedConst();
-			    else
-				tf = tf->makeConst();
-			    nextToken();
-			    continue;
+		StorageClass stc = parsePostfix();
+		Type *tf = new TypeFunction(arguments, t, varargs, linkage, stc);
 
-			case TOKinvariant:
-			case TOKimmutable:
-			    tf = tf->makeInvariant();
-			    nextToken();
-			    continue;
-
-			case TOKshared:
-			    if (tf->isConst())
-				tf = tf->makeSharedConst();
-			    else
-				tf = tf->makeShared();
-			    nextToken();
-			    continue;
-
-			case TOKwild:
-			    if (tf->isShared())
-				tf = tf->makeSharedWild();
-			    else
-				tf = tf->makeWild();
-			    nextToken();
-			    continue;
-
-			case TOKnothrow:
-			    ((TypeFunction *)tf)->isnothrow = 1;
-			    nextToken();
-			    continue;
-
-			case TOKpure:
-			    ((TypeFunction *)tf)->ispure = 1;
-			    nextToken();
-			    continue;
-
-			case TOKat:
-			{   StorageClass stc = parseAttribute();
-			    TypeFunction *tfunc = (TypeFunction *)tf;
-			    switch ((unsigned)(stc >> 32))
-			    {	case STCproperty >> 32:
-				    tfunc->isproperty = 1;
-				    break;
-				case STCsafe >> 32:
-				    tfunc->trust = TRUSTsafe;
-				    break;
-				case STCsystem >> 32:
-				    tfunc->trust = TRUSTsystem;
-				    break;
-				case STCtrusted >> 32:
-				    tfunc->trust = TRUSTtrusted;
-				    break;
-				case 0:
-				    break;
-				default:
-				    assert(0);
-			    }
-			    nextToken();
-			    continue;
-			}
-		    }
-		    break;
+		if (stc & STCconst)
+		{   if (tf->isShared())
+			tf = tf->makeSharedConst();
+		    else
+			tf = tf->makeConst();
+		}
+		if (stc & STCimmutable)
+		    tf = tf->makeInvariant();
+		if (stc & STCshared)
+		{   if (tf->isConst())
+			tf = tf->makeSharedConst();
+		    else
+			tf = tf->makeShared();
+		}
+		if (stc & STCwild)
+		{   if (tf->isShared())
+			tf = tf->makeSharedWild();
+		    else
+			tf = tf->makeWild();
 		}
 
 		/* Insert tf into
@@ -2688,14 +2634,14 @@ Type *Parser::parseDeclarator(Type *t, Identifier **pident, TemplateParameters *
  * Return array of Declaration *'s.
  */
 
-Array *Parser::parseDeclarations(StorageClass storage_class)
+Dsymbols *Parser::parseDeclarations(StorageClass storage_class)
 {
     StorageClass stc;
     Type *ts;
     Type *t;
     Type *tfirst;
     Identifier *ident;
-    Array *a;
+    Dsymbols *a;
     enum TOK tok = TOKreserved;
     unsigned char *comment = token.blockComment;
     enum LINK link = linkage;
@@ -2720,7 +2666,7 @@ Array *Parser::parseDeclarations(StorageClass storage_class)
 		nextToken();
 		check(TOKthis);
 		check(TOKsemicolon);
-		a = new Array();
+		a = new Dsymbols();
 		a->push(s);
 		addComment(s, comment);
 		return a;
@@ -2816,7 +2762,7 @@ Array *Parser::parseDeclarations(StorageClass storage_class)
     {
 	AggregateDeclaration *s = (AggregateDeclaration *)parseAggregate();
 	s->storage_class |= storage_class;
-	a = new Array();
+	Dsymbols *a = new Dsymbols();
 	a->push(s);
 	addComment(s, comment);
 	return a;
@@ -2843,7 +2789,7 @@ Array *Parser::parseDeclarations(StorageClass storage_class)
 
 L2:
     tfirst = NULL;
-    a = new Array();
+    a = new Dsymbols();
 
     while (1)
     {
@@ -2882,7 +2828,7 @@ L2:
 		a->push(v);
 	    else
 	    {
-		Array *ax = new Array();
+		Dsymbols *ax = new Dsymbols();
 		ax->push(v);
 		Dsymbol *s = new LinkDeclaration(link, ax);
 		a->push(s);
@@ -2928,7 +2874,7 @@ L2:
 	    }
 	    else
 	    {
-		Array *ax = new Array();
+		Dsymbols *ax = new Dsymbols();
 		ax->push(f);
 		s = new LinkDeclaration(link, ax);
 	    }
@@ -2937,7 +2883,7 @@ L2:
 	    if (tpl)
 	    {
 		// Wrap a template around the function declaration
-		Array *decldefs = new Array();
+		Dsymbols *decldefs = new Dsymbols();
 		decldefs->push(s);
 		TemplateDeclaration *tempdecl =
 		    new TemplateDeclaration(loc, s->ident, tpl, constraint, decldefs, 0);
@@ -2961,7 +2907,7 @@ L2:
 		a->push(v);
 	    else
 	    {
-		Array *ax = new Array();
+		Dsymbols *ax = new Dsymbols();
 		ax->push(v);
 		Dsymbol *s = new LinkDeclaration(link, ax);
 		a->push(s);
@@ -2996,9 +2942,9 @@ L2:
  */
 
 #if DMDV2
-Array *Parser::parseAutoDeclarations(StorageClass storageClass, unsigned char *comment)
+Dsymbols *Parser::parseAutoDeclarations(StorageClass storageClass, unsigned char *comment)
 {
-    Array *a = new Array;
+    Dsymbols *a = new Dsymbols;
 
     while (1)
     {
@@ -3479,7 +3425,7 @@ Statement *Parser::parseStatement(int flags)
 	    if (t->value == TOKstruct || t->value == TOKunion || t->value == TOKclass)
 	    {
 		nextToken();
-		Array *a = parseBlock();
+		Dsymbols *a = parseBlock();
 		Dsymbol *d = new StorageClassDeclaration(STCstatic, a);
 		s = new DeclarationStatement(loc, d);
 		if (flags & PSscope)
@@ -5359,10 +5305,7 @@ Expression *Parser::parsePrimaryExp()
 	    int varargs;
 	    FuncLiteralDeclaration *fd;
 	    Type *t;
-	    bool isnothrow = false;
-	    bool ispure = false;
-	    bool isproperty = false;
-	    enum TRUST trust = TRUSTdefault;
+	    StorageClass stc = 0;
 
 	    if (token.value == TOKlcurly)
 	    {
@@ -5380,44 +5323,13 @@ Expression *Parser::parsePrimaryExp()
 		    t = parseBasicType2(t);	// function return type
 		}
 		arguments = parseParameters(&varargs);
-		while (1)
-		{
-		    if (token.value == TOKpure)
-			ispure = true;
-		    else if (token.value == TOKnothrow)
-			isnothrow = true;
-		    else if (token.value == TOKat)
-		    {	StorageClass stc = parseAttribute();
-			switch ((unsigned)(stc >> 32))
-			{   case STCproperty >> 32:
-				isproperty = true;
-				break;
-			    case STCsafe >> 32:
-				trust = TRUSTsafe;
-				break;
-			    case STCsystem >> 32:
-				trust = TRUSTsystem;
-				break;
-			    case STCtrusted >> 32:
-				trust = TRUSTtrusted;
-				break;
-			    case 0:
-				break;
-			    default:
-				assert(0);
-			}
-		    }
-		    else
-			break;
-		    nextToken();
-		}
+		stc = parsePostfix();
+		if (stc & (STCconst | STCimmutable | STCshared | STCwild))
+		    error("const/immutable/shared/inout attributes are only valid for non-static member functions");
 	    }
 
-	    TypeFunction *tf = new TypeFunction(arguments, t, varargs, linkage);
-	    tf->ispure = ispure;
-	    tf->isnothrow = isnothrow;
-	    tf->isproperty = isproperty;
-	    tf->trust = trust;
+	    TypeFunction *tf = new TypeFunction(arguments, t, varargs, linkage, stc);
+
 	    fd = new FuncLiteralDeclaration(loc, 0, tf, save, NULL);
 	    parseContracts(fd);
 	    e = new FuncExp(loc, fd);
@@ -6269,7 +6181,7 @@ Expression *Parser::parseNewExp(Expression *thisexp)
 	else
 	{
 	    nextToken();
-	    Array *decl = parseDeclDefs(0);
+	    Dsymbols *decl = parseDeclDefs(0);
 	    if (token.value != TOKrcurly)
 		error("class member expected");
 	    nextToken();

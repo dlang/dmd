@@ -65,7 +65,7 @@ struct TemplateDeclaration : ScopeDsymbol
     int ismixin;		// template declaration is only to be used as a mixin
 
     TemplateDeclaration(Loc loc, Identifier *id, TemplateParameters *parameters,
-	Expression *constraint, Array *decldefs, int ismixin);
+	Expression *constraint, Dsymbols *decldefs, int ismixin);
     Dsymbol *syntaxCopy(Dsymbol *);
     void semantic(Scope *sc);
     int overloadInsert(Dsymbol *s);

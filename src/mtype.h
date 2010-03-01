@@ -548,7 +548,7 @@ struct TypeFunction : TypeNext
 
     int inuse;
 
-    TypeFunction(Parameters *parameters, Type *treturn, int varargs, enum LINK linkage);
+    TypeFunction(Parameters *parameters, Type *treturn, int varargs, enum LINK linkage, StorageClass stc = 0);
     Type *syntaxCopy();
     Type *semantic(Loc loc, Scope *sc);
     void toDecoBuffer(OutBuffer *buf, int flag);
