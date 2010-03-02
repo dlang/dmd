@@ -383,17 +383,19 @@ Expression *resolveProperties(Scope *sc, Expression *e)
  * Perform semantic() on an array of Expressions.
  */
 
-void arrayExpressionSemantic(Expressions *exps, Scope *sc)
+Expressions *arrayExpressionSemantic(Expressions *exps, Scope *sc)
 {
     if (exps)
     {
 	for (size_t i = 0; i < exps->dim; i++)
 	{   Expression *e = (Expression *)exps->data[i];
-
-	    e = e->semantic(sc);
-	    exps->data[i] = (void *)e;
+	    if (e)
+	    {	e = e->semantic(sc);
+		exps->data[i] = (void *)e;
+	    }
 	}
     }
+    return exps;
 }
 
 
@@ -3337,11 +3339,12 @@ void AssocArrayLiteralExp::toMangleBuffer(OutBuffer *buf)
 
 // sd( e1, e2, e3, ... )
 
-StructLiteralExp::StructLiteralExp(Loc loc, StructDeclaration *sd, Expressions *elements)
+StructLiteralExp::StructLiteralExp(Loc loc, StructDeclaration *sd, Expressions *elements, Type *stype)
     : Expression(loc, TOKstructliteral, sizeof(StructLiteralExp))
 {
     this->sd = sd;
     this->elements = elements;
+    this->stype = stype;
     this->sym = NULL;
     this->soffset = 0;
     this->fillHoles = 1;
@@ -3349,7 +3352,7 @@ StructLiteralExp::StructLiteralExp(Loc loc, StructDeclaration *sd, Expressions *
 
 Expression *StructLiteralExp::syntaxCopy()
 {
-    return new StructLiteralExp(loc, sd, arraySyntaxCopy(elements));
+    return new StructLiteralExp(loc, sd, arraySyntaxCopy(elements), stype);
 }
 
 Expression *StructLiteralExp::semantic(Scope *sc)
@@ -3362,14 +3365,7 @@ Expression *StructLiteralExp::semantic(Scope *sc)
     if (type)
 	return this;
 
-    // Run semantic() on each element
-    for (size_t i = 0; i < elements->dim; i++)
-    {	e = (Expression *)elements->data[i];
-	if (!e)
-	    continue;
-	e = e->semantic(sc);
-	elements->data[i] = (void *)e;
-    }
+    elements = arrayExpressionSemantic(elements, sc);	// run semantic() on each element
     expandTuples(elements);
     size_t offset = 0;
     for (size_t i = 0; i < elements->dim; i++)
@@ -3392,6 +3388,8 @@ Expression *StructLiteralExp::semantic(Scope *sc)
 	offset = v->offset + v->type->size();
 
 	Type *telem = v->type;
+	if (stype)
+	    telem = telem->addMod(stype->mod);
 	while (!e->implicitConvTo(telem) && telem->toBasetype()->ty == Tsarray)
 	{   /* Static array initialization, as in:
 	     *	T[3][5] = e;
@@ -3439,7 +3437,7 @@ Expression *StructLiteralExp::semantic(Scope *sc)
 	elements->push(e);
     }
 
-    type = sd->type;
+    type = stype ? stype : sd->type;
     return this;
 }
 
@@ -3967,9 +3965,7 @@ Lagain:
 	    sd->accessCheck(loc, sc, member);
 
 	    tf = (TypeFunction *)f->type;
-//<<>>
 	    type = tf->next;
-printf("test1 %s\n", tf->toChars());
 
 	    if (!arguments)
 		arguments = new Expressions();
@@ -6169,56 +6165,56 @@ Expression *DotVarExp::modifiableLvalue(Scope *sc, Expression *e)
     printf("var->type = %s\n", var->type->toChars());
 #endif
 
-    if (var->isCtorinit())
-    {	// It's only modifiable if inside the right constructor
-	Dsymbol *s = sc->func;
-	while (1)
-	{
-	    FuncDeclaration *fd = NULL;
-	    if (s)
-		fd = s->isFuncDeclaration();
-	    if (fd &&
-		((fd->isCtorDeclaration() && var->storage_class & STCfield) ||
-		 (fd->isStaticCtorDeclaration() && !(var->storage_class & STCfield))) &&
-		fd->toParent() == var->toParent() &&
-		e1->op == TOKthis
-	       )
+    Type *t1 = e1->type->toBasetype();
+
+    if (!t1->isMutable() ||
+	(t1->ty == Tpointer && !t1->nextOf()->isMutable()) ||
+	!var->type->isMutable() ||
+	!var->type->isAssignable() ||
+	var->storage_class & STCmanifest
+       )
+    {
+	if (var->isCtorinit())
+	{   // It's only modifiable if inside the right constructor
+	    Dsymbol *s = sc->func;
+	    while (1)
 	    {
-		VarDeclaration *v = var->isVarDeclaration();
-		assert(v);
-		v->ctorinit = 1;
-		//printf("setting ctorinit\n");
-	    }
-	    else
-	    {
+		FuncDeclaration *fd = NULL;
 		if (s)
-		{   s = s->toParent2();
-		    continue;
+		    fd = s->isFuncDeclaration();
+		if (fd &&
+		    ((fd->isCtorDeclaration() && var->storage_class & STCfield) ||
+		     (fd->isStaticCtorDeclaration() && !(var->storage_class & STCfield))) &&
+		    fd->toParent() == var->toParent() &&
+		    e1->op == TOKthis
+		   )
+		{
+		    VarDeclaration *v = var->isVarDeclaration();
+		    assert(v);
+		    v->ctorinit = 1;
+		    //printf("setting ctorinit\n");
 		}
 		else
 		{
-		    const char *p = var->isStatic() ? "static " : "";
-		    error("can only initialize %sconst member %s inside %sconstructor",
-			p, var->toChars(), p);
+		    if (s)
+		    {   s = s->toParent2();
+			continue;
+		    }
+		    else
+		    {
+			const char *p = var->isStatic() ? "static " : "";
+			error("can only initialize %sconst member %s inside %sconstructor",
+			    p, var->toChars(), p);
+		    }
 		}
+		break;
 	    }
-	    break;
+	}
+	else
+	{
+	    error("cannot modify const/immutable/inout expression %s", toChars());
 	}
     }
-#if DMDV2
-    else
-    {
-	Type *t1 = e1->type->toBasetype();
-
-	if (!t1->isMutable() ||
-	    (t1->ty == Tpointer && !t1->nextOf()->isMutable()) ||
-	    !var->type->isMutable() ||
-	    !var->type->isAssignable() ||
-	    var->storage_class & STCmanifest
-	   )
-	    error("cannot modify const/immutable/inout expression %s", toChars());
-    }
-#endif
     return this;
 }
 
@@ -6729,11 +6725,11 @@ Lagain:
 
 	    if (e1->op != TOKtype)
 		error("%s %s does not overload ()", ad->kind(), ad->toChars());
+
 	    /* It's a struct literal
 	     */
-	    Expression *e = new StructLiteralExp(loc, (StructDeclaration *)ad, arguments);
+	    Expression *e = new StructLiteralExp(loc, (StructDeclaration *)ad, arguments, e1->type);
 	    e = e->semantic(sc);
-	    e->type = e1->type;		// in case e1->type was a typedef
 	    return e;
 	}
 	else if (t1->ty == Tclass)
@@ -6749,7 +6745,7 @@ Lagain:
 	}
     }
 
-    arrayExpressionSemantic(arguments, sc);
+    arguments = arrayExpressionSemantic(arguments, sc);
     preFunctionParameters(loc, sc, arguments);
 
     if (e1->op == TOKdotvar && t1->ty == Tfunction ||

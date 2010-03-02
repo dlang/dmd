@@ -87,7 +87,7 @@ void Declaration::checkModify(Loc loc, Scope *sc, Type *t)
     if (sc->incontract && isParameter())
 	error(loc, "cannot modify parameter '%s' in contract", toChars());
 
-    if (isCtorinit())
+    if (isCtorinit() && !t->isMutable())
     {	// It's only modifiable if inside the right constructor
 	Dsymbol *s = sc->func;
 	while (1)
@@ -957,8 +957,8 @@ Lagain:
 	}
     }
 
-    if ((isConst() || isImmutable()) && !init && !fd)
-    {	// Initialize by constructor only
+    if (!init && !fd)
+    {	// If not mutable, initializable by constructor only
 	storage_class |= STCctorinit;
     }
 

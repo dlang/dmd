@@ -5584,6 +5584,21 @@ Expression *Parser::parseUnaryExp()
 	    break;
 	}
 
+	case TOKwild:
+	case TOKshared:
+	case TOKconst:
+	case TOKinvariant:
+	case TOKimmutable:	// immutable(type)(arguments)
+	{
+	    Type *t = parseBasicType();
+	    if (token.value != TOKlparen)
+		error("(arguments) expected following type");
+	    e = new TypeExp(loc, t);
+	    e = new CallExp(loc, e, parseArguments());
+	    break;
+	}
+
+
 	case TOKlparen:
 	{   Token *tk;
 

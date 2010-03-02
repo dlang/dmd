@@ -159,6 +159,8 @@ void FuncDeclaration::semantic(Scope *sc)
     {
 	sc = sc->push();
 	sc->stc |= storage_class & STCref;	// forward to function type
+	if (isCtorDeclaration())
+	    sc->flags |= SCOPEctor;
 	type = type->semantic(loc, sc);
 	sc = sc->pop();
 
@@ -881,7 +883,8 @@ void FuncDeclaration::semantic3(Scope *sc)
 		    assert(0);  // not implemented
 		}
 #endif
-		v = new ThisDeclaration(loc, isCtorDeclaration() ? ad->handle : thandle);
+		v = new ThisDeclaration(loc, thandle);
+		//v = new ThisDeclaration(loc, isCtorDeclaration() ? ad->handle : thandle);
 		v->storage_class |= STCparameter;
 #if STRUCTTHISREF
 		if (thandle->ty == Tstruct)
@@ -1252,7 +1255,7 @@ void FuncDeclaration::semantic3(Scope *sc)
 		    for (int i = 0; i < cd->fields.dim; i++)
 		    {   VarDeclaration *v = (VarDeclaration *)cd->fields.data[i];
 
-			if (v->ctorinit == 0 && v->isCtorinit())
+			if (v->ctorinit == 0 && v->isCtorinit() && !v->type->isMutable())
 			    error("missing initializer for final field %s", v->toChars());
 		    }
 		}
@@ -1993,7 +1996,12 @@ int fp2(void *param, FuncDeclaration *f)
 	else if (p->property != property)
 	    error(f->loc, "cannot overload both property and non-property functions");
 
-	match = (MATCH) tf->callMatch(f->needThis() ? p->ethis : NULL, arguments);
+	/* For constructors, don't worry about the right type of ethis. It's a problem
+	 * anyway, because the constructor attribute may not match the ethis attribute,
+	 * but we don't care because the attribute on the ethis doesn't matter until
+	 * after it's constructed.
+	 */
+	match = (MATCH) tf->callMatch(f->needThis() && !f->isCtorDeclaration() ? p->ethis : NULL, arguments);
 	//printf("test: match = %d\n", match);
 	if (match != MATCHnomatch)
 	{
@@ -2810,7 +2818,7 @@ void CtorDeclaration::semantic(Scope *sc)
 	tret = tret->addStorageClass(storage_class | sc->stc);
     }
     if (!type)
-	type = new TypeFunction(arguments, tret, varargs, LINKd, storage_class);
+	type = new TypeFunction(arguments, tret, varargs, LINKd, storage_class | sc->stc);
 
 #if STRUCTTHISREF
     if (ad && ad->isStructDeclaration())
@@ -2818,10 +2826,6 @@ void CtorDeclaration::semantic(Scope *sc)
 #endif
     if (!originalType)
 	originalType = type;
-
-    sc->flags |= SCOPEctor;
-    type = type->semantic(loc, sc);
-    sc->flags &= ~SCOPEctor;
 
     // Append:
     //	return this;
