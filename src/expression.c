@@ -6288,6 +6288,8 @@ L1:
 	eleft = dte->e1;
 	ti->tempdecl = td;
 	ti->semantic(sc);
+	if (!ti->inst)			// if template failed to expand
+	    return new ErrorExp();
 	Dsymbol *s = ti->inst->toAlias();
 	Declaration *v = s->isDeclaration();
 	if (v)
