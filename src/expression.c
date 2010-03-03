@@ -5804,6 +5804,14 @@ Expression *DotVarExp::semantic(Scope *sc)
 		    e = e->semantic(sc);
 		    return e;
 		}
+		if (v->init)
+		{   Expression *e = v->init->toExpression();
+		    if (e)
+		    {	e = e->copy();
+			e = e->semantic(sc);
+			return e;
+		    }
+		}
 	    }
 	}
     }
