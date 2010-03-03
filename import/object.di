@@ -430,3 +430,15 @@ void shrinkToFit(T)(T[] arr)
 {
     _d_arrayshrinkfit(typeid(T[]), *(cast(void[]*)&arr));
 }
+
+bool _ArrayEq(T1, T2)(T1[] a1, T2[] a2)
+{
+    if (a1.length != a2.length)
+	return false;
+    foreach(i, a; a1)
+    {	if (a != a2[i])
+	    return false;
+    }
+    return true;
+}
+

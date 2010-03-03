@@ -2370,3 +2370,22 @@ version (none)
         throw new Exception(cast(string)(file ~ "(" ~ intToString(buf[], line) ~ "): " ~ (msg ? msg : "Enforcement failed")));
     }
 }
+
+
+/***************************************
+ * Helper function used to see if two containers of different
+ * types have the same contents in the same sequence.
+ */
+
+bool _ArrayEq(T1, T2)(T1[] a1, T2[] a2)
+{
+    if (a1.length != a2.length)
+	return false;
+    foreach(i, a; a1)
+    {	if (a != a2[i])
+	    return false;
+    }
+    return true;
+}
+
+
