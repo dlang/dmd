@@ -1287,7 +1287,7 @@ void FuncDeclaration::semantic3(Scope *sc)
 		assert(!returnLabel);
 	    }
 	    else if (!hasReturnExp && type->nextOf()->ty != Tvoid)
-		error("expected to return a value of type %s", type->nextOf()->toChars());
+		error("has no return statement, but is expected to return a value of type %s", type->nextOf()->toChars());
 	    else if (!inlineAsm)
 	    {
 #if DMDV2

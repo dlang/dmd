@@ -10645,6 +10645,29 @@ Expression *EqualExp::semantic(Scope *sc)
 		Token::toChars(op));
     }
 
+    if ((t1->ty == Tarray || t1->ty == Tsarray) &&
+	(t2->ty == Tarray || t2->ty == Tsarray))
+    {	Type *t1n = t1->nextOf()->toBasetype();
+	Type *t2n = t2->nextOf()->toBasetype();
+	if (t1n->constOf() != t2n->constOf() &&
+	    !((t1n->ty == Tchar || t1n->ty == Twchar || t1n->ty == Tdchar) &&
+	      (t2n->ty == Tchar || t2n->ty == Twchar || t2n->ty == Tdchar))
+	   )
+	{   /* Rewrite as:
+	     * _ArrayEq(e1, e2)
+	     */
+	    Expression *eq = new IdentifierExp(loc, Id::_ArrayEq);
+	    Expressions *args = new Expressions();
+	    args->push(e1);
+	    args->push(e2);
+	    e = new CallExp(loc, eq, args);
+	    if (op == TOKnotequal)
+		e = new NotExp(loc, e);
+	    e = e->semantic(sc);
+	    return e;
+	}
+    }
+
     //if (e2->op != TOKnull)
     {
 	e = op_overload(sc);

@@ -257,6 +257,7 @@ Msgtable msgtable[] =
     { "monitorexit", "_d_monitorexit" },
     { "criticalenter", "_d_criticalenter" },
     { "criticalexit", "_d_criticalexit" },
+    { "_ArrayEq" },
 
     // For pragma's
     { "GNU_asm" },
