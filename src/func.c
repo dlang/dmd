@@ -2002,7 +2002,7 @@ int fp2(void *param, FuncDeclaration *f)
 	 * after it's constructed.
 	 */
 	match = (MATCH) tf->callMatch(f->needThis() && !f->isCtorDeclaration() ? p->ethis : NULL, arguments);
-	//printf("test: match = %d\n", match);
+	//printf("test1: match = %d\n", match);
 	if (match != MATCHnomatch)
 	{
 	    if (match > m->last)
@@ -2164,6 +2164,7 @@ MATCH FuncDeclaration::leastAsSpecialized(FuncDeclaration *g)
 
 #if LOG_LEASTAS
     printf("%s.leastAsSpecialized(%s)\n", toChars(), g->toChars());
+    printf("%s, %s\n", type->toChars(), g->type->toChars());
 #endif
 
     /* This works by calling g() with f()'s parameters, and
@@ -2209,7 +2210,7 @@ MATCH FuncDeclaration::leastAsSpecialized(FuncDeclaration *g)
 	args.data[u] = e;
     }
 
-    MATCH m = (MATCH) tg->callMatch(NULL, &args);
+    MATCH m = (MATCH) tg->callMatch(NULL, &args, 1);
     if (m)
     {
         /* A variadic parameter list is less specialized than a

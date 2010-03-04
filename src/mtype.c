@@ -4857,11 +4857,13 @@ Type *TypeFunction::semantic(Loc loc, Scope *sc)
 /********************************
  * 'args' are being matched to function 'this'
  * Determine match level.
+ * Input:
+ *	flag	1	performing a partial ordering match
  * Returns:
  *	MATCHxxxx
  */
 
-int TypeFunction::callMatch(Expression *ethis, Expressions *args)
+int TypeFunction::callMatch(Expression *ethis, Expressions *args, int flag)
 {
     //printf("TypeFunction::callMatch() %s\n", toChars());
     MATCH match = MATCHexact;		// assume exact match
@@ -4937,7 +4939,13 @@ int TypeFunction::callMatch(Expression *ethis, Expressions *args)
 	    m = MATCHconvert;
 	else
 	{
-	    m = arg->implicitConvTo(p->type);
+	    //printf("%s of type %s implicitConvTo %s\n", arg->toChars(), arg->type->toChars(), p->type->toChars());
+	    if (flag)
+		// for partial ordering, value is an irrelevant mockup, just look at the type
+		m = arg->type->implicitConvTo(p->type);
+	    else
+		m = arg->implicitConvTo(p->type);
+	    //printf("match %d\n", m);
 	    if (p->type->isWild())
 	    {
 		if (m == MATCHnomatch)
