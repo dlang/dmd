@@ -1,6 +1,6 @@
 
 // Compiler implementation of the D programming language
-// Copyright (c) 1999-2009 by Digital Mars
+// Copyright (c) 1999-2010 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // http://www.digitalmars.com
@@ -13,6 +13,7 @@
 #include <assert.h>
 
 #include "rmem.h"
+#include "speller.h"
 
 #include "mars.h"
 #include "dsymbol.h"
@@ -330,6 +331,27 @@ Dsymbol *Dsymbol::search(Loc loc, Identifier *ident, int flags)
 {
     //printf("Dsymbol::search(this=%p,%s, ident='%s')\n", this, toChars(), ident->toChars());
     return NULL;
+}
+
+/***************************************************
+ * Search for symbol with correct spelling.
+ */
+
+void *symbol_search_fp(void *arg, const char *seed)
+{
+    Dsymbol *s = (Dsymbol *)arg;
+    Identifier id(seed, 0);
+    Module::clearCache();
+    s = s->search(0, &id, 4|2);
+    return s;
+}
+
+Dsymbol *Dsymbol::search_correct(Identifier *ident)
+{
+    if (global.gag)
+	return NULL;		// don't do it for speculative compiles; too time consuming
+
+    return (Dsymbol *)speller(ident->toChars(), &symbol_search_fp, this, idchars);
 }
 
 /***************************************

@@ -592,7 +592,7 @@ Expression *Type::getProperty(Loc loc, Identifier *ident)
     else if (ident == Id::size)
     {
 	error(loc, ".size property should be replaced with .sizeof");
-	e = new IntegerExp(loc, size(loc), Type::tsize_t);
+	e = new ErrorExp();
     }
     else if (ident == Id::alignof)
     {
@@ -630,8 +630,16 @@ Expression *Type::getProperty(Loc loc, Identifier *ident)
     }
     else
     {
-	error(loc, "no property '%s' for type '%s'", ident->toChars(), toChars());
-	e = new IntegerExp(loc, 1, Type::tint32);
+	Dsymbol *s = NULL;
+	if (ty == Tstruct || ty == Tclass || ty == Tenum || ty == Ttypedef)
+	    s = toDsymbol(NULL);
+	if (s)
+	    s = s->search_correct(ident);
+	if (s)
+	    error(loc, "no property '%s' for type '%s', did you mean '%s'?", ident->toChars(), toChars(), s->toChars());
+	else
+	    error(loc, "no property '%s' for type '%s'", ident->toChars(), toChars());
+	e = new ErrorExp();
     }
     return e;
 }

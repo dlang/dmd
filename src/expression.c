@@ -2091,7 +2091,21 @@ Expression *IdentifierExp::semantic(Scope *sc)
 	}
 	return e->semantic(sc);
     }
-    error("undefined identifier %s", ident->toChars());
+#if DMDV2
+    if (ident == Id::ctfe)
+    {  // Create the magic __ctfe bool variable
+       VarDeclaration *vd = new VarDeclaration(loc, Type::tbool, Id::ctfe, NULL);
+       Expression *e = new VarExp(loc, vd);
+       e = e->semantic(sc);
+       return e;
+    }
+#endif
+
+    s = sc->search_correct(ident);
+    if (s)
+	error("undefined identifier %s, did you mean %s %s?", ident->toChars(), s->kind(), s->toChars());
+    else
+	error("undefined identifier %s", ident->toChars());
     type = Type::terror;
     return this;
 }
