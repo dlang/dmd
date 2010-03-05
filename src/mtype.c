@@ -1646,7 +1646,15 @@ Expression *Type::getProperty(Loc loc, Identifier *ident)
     }
     else
     {
-	error(loc, "no property '%s' for type '%s'", ident->toChars(), toChars());
+	Dsymbol *s = NULL;
+	if (ty == Tstruct || ty == Tclass || ty == Tenum || ty == Ttypedef)
+	    s = toDsymbol(NULL);
+	if (s)
+	    s = s->search_correct(ident);
+	if (s)
+	    error(loc, "no property '%s' for type '%s', did you mean '%s'?", ident->toChars(), toChars(), s->toChars());
+	else
+	    error(loc, "no property '%s' for type '%s'", ident->toChars(), toChars());
 	e = new ErrorExp();
     }
     return e;

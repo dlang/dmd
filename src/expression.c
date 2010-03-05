@@ -2257,7 +2257,12 @@ Expression *IdentifierExp::semantic(Scope *sc)
        e = e->semantic(sc);
        return e;
     }
-    error("undefined identifier %s", ident->toChars());
+
+    s = sc->search_correct(ident);
+    if (s)
+	error("undefined identifier %s, did you mean %s %s?", ident->toChars(), s->kind(), s->toChars());
+    else
+	error("undefined identifier %s", ident->toChars());
     type = Type::terror;
     return this;
 }
@@ -5860,7 +5865,7 @@ Expression *DotIdExp::semantic(Scope *sc, int flag)
 	 * The check for 'is sds our current module' is because
 	 * the current module should have access to its own imports.
 	 */
-	Dsymbol *s = ie->sds->search(loc, ident, //0);
+	Dsymbol *s = ie->sds->search(loc, ident,
 	    (ie->sds->isModule() && ie->sds != sc->module) ? 1 : 0);
 	if (s)
 	{
@@ -10651,7 +10656,8 @@ Expression *EqualExp::semantic(Scope *sc)
 	Type *t2n = t2->nextOf()->toBasetype();
 	if (t1n->constOf() != t2n->constOf() &&
 	    !((t1n->ty == Tchar || t1n->ty == Twchar || t1n->ty == Tdchar) &&
-	      (t2n->ty == Tchar || t2n->ty == Twchar || t2n->ty == Tdchar))
+	      (t2n->ty == Tchar || t2n->ty == Twchar || t2n->ty == Tdchar)) &&
+	    !(t1n->ty == Tvoid || t2n->ty == Tvoid)
 	   )
 	{   /* Rewrite as:
 	     * _ArrayEq(e1, e2)

@@ -4043,7 +4043,12 @@ TemplateDeclaration *TemplateInstance::findTemplateDeclaration(Scope *sc)
 	id = name;
 	s = sc->search(loc, id, &scopesym);
 	if (!s)
-	{   error("template '%s' is not defined", id->toChars());
+	{
+	    s = sc->search_correct(id);
+	    if (s)
+		error("template '%s' is not defined, did you mean %s?", id->toChars(), s->toChars());
+	    else
+		error("template '%s' is not defined", id->toChars());
 	    return NULL;
 	}
 

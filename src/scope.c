@@ -1,5 +1,5 @@
 
-// Copyright (c) 1999-2005 by Digital Mars
+// Copyright (c) 1999-2010 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // http://www.digitalmars.com
@@ -11,6 +11,7 @@
 #include <assert.h>
 
 #include "root.h"
+#include "speller.h"
 
 #include "mars.h"
 #include "init.h"
@@ -358,4 +359,28 @@ void Scope::setNoFree()
 	//if (++i == 10)
 	    //assert(0);
     }
+}
+
+
+/************************************************
+ * Given the failed search attempt, try to find
+ * one with a close spelling.
+ */
+
+void *scope_search_fp(void *arg, const char *seed)
+{
+    //printf("scope_search_fp('%s')\n", seed);
+    Scope *sc = (Scope *)arg;
+    Identifier id(seed, 0);
+    Module::clearCache();
+    Dsymbol *s = sc->search(0, &id, NULL);
+    return s;
+}
+
+Dsymbol *Scope::search_correct(Identifier *ident)
+{
+    if (global.gag)
+	return NULL;		// don't do it for speculative compiles; too time consuming
+
+    return (Dsymbol *)speller(ident->toChars(), &scope_search_fp, this, idchars);
 }

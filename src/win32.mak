@@ -6,6 +6,7 @@
 
 D=
 DMDSVN=\svnproj\dmd\trunk\src
+#DMDSVN=\svnproj\dmd\branches\dmd-1.x\src
 SCROOT=$D\dm
 INCLUDE=$(SCROOT)\include
 CC=\dm\bin\dmc
@@ -95,7 +96,7 @@ OBJ8= go.obj gdag.obj gother.obj gflow.obj gloop.obj var.obj el.obj \
 # from ROOT
 
 ROOTOBJS= lstring.obj array.obj gnuc.obj man.obj rmem.obj port.obj root.obj \
-	stringtable.obj dchar.obj response.obj async.obj
+	stringtable.obj dchar.obj response.obj async.obj speller.obj
 
 OBJS= $(OBJ1) $(OBJ8) $(ROOTOBJS)
 
@@ -148,7 +149,8 @@ ROOTSRC= $(ROOT)\dchar.h $(ROOT)\dchar.c $(ROOT)\lstring.h \
 	$(ROOT)\rmem.h $(ROOT)\rmem.c $(ROOT)\port.h \
 	$(ROOT)\stringtable.h $(ROOT)\stringtable.c \
 	$(ROOT)\gnuc.h $(ROOT)\gnuc.c $(ROOT)\man.c $(ROOT)\port.c \
-	$(ROOT)\response.c $(ROOT)\async.h $(ROOT)\async.c
+	$(ROOT)\response.c $(ROOT)\async.h $(ROOT)\async.c \
+	$(ROOT)\speller.h $(ROOT)\speller.c
 
 MAKEFILES=win32.mak linux.mak osx.mak freebsd.mak solaris.mak
 
@@ -418,6 +420,9 @@ root.obj : $(ROOT)\root.c
 
 response.obj : $(ROOT)\response.c
 	$(CC) -c $(CFLAGS) $(ROOT)\response.c
+
+speller.obj : $(ROOT)\speller.h $(ROOT)\speller.c
+	$(CC) -c $(CFLAGS) $(ROOT)\speller.c
 
 stringtable.obj : $(ROOT)\stringtable.c
 	$(CC) -c $(CFLAGS) $(ROOT)\stringtable.c
