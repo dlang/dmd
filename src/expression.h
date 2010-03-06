@@ -791,6 +791,10 @@ struct BinAssignExp : BinExp
     Expression *commonSemanticAssignIntegral(Scope *sc);
 
     Expression *op_overload(Scope *sc);
+
+    int isLvalue();
+    Expression *toLvalue(Scope *sc, Expression *ex);
+    Expression *modifiableLvalue(Scope *sc, Expression *e);
 };
 
 /****************************************************************/

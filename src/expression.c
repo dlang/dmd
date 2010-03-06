@@ -5541,6 +5541,57 @@ Expression *BinAssignExp::commonSemanticAssignIntegral(Scope *sc)
     return this;
 }
 
+#if DMDV2
+int BinAssignExp::isLvalue()
+{
+    return 1;
+}
+
+Expression *BinAssignExp::toLvalue(Scope *sc, Expression *ex)
+{   Expression *e;
+
+    if (e1->op == TOKvar)
+    {
+	/* Convert (e1 op= e2) to
+	 *    e1 op= e2;
+	 *    e1
+	 */
+	e = e1->copy();
+	e = new CommaExp(loc, this, e);
+	e = e->semantic(sc);
+    }
+    else
+    {
+	/* Convert (e1 op= e2) to
+	 *    ref v = e1;
+	 *    v op= e2;
+	 *    v
+	 */
+
+	// ref v = e1;
+	Identifier *id = Lexer::uniqueId("__assignop");
+	ExpInitializer *ei = new ExpInitializer(loc, e1);
+	VarDeclaration *v = new VarDeclaration(loc, e1->type, id, ei);
+	v->storage_class |= STCref | STCforeach;
+	Expression *de = new DeclarationExp(loc, v);
+
+	// v op= e2
+	e1 = new VarExp(e1->loc, v);
+
+	e = new CommaExp(loc, de, this);
+	e = new CommaExp(loc, e, new VarExp(loc, v));
+	e = e->semantic(sc);
+    }
+    return e;
+}
+
+Expression *BinAssignExp::modifiableLvalue(Scope *sc, Expression *e)
+{
+    return toLvalue(sc, this);
+}
+
+#endif
+
 /************************************************************/
 
 CompileExp::CompileExp(Loc loc, Expression *e)
