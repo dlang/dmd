@@ -28,6 +28,7 @@ class Object
     hash_t   toHash();
     int      opCmp(Object o);
     equals_t opEquals(Object o);
+    equals_t opEquals(Object lhs, Object rhs);
 
     interface Monitor
     {

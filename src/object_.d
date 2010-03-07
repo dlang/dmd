@@ -104,6 +104,18 @@ class Object
     {
         return this is o;
     }
+    
+    equals_t opEquals(Object lhs, Object rhs)
+    {
+        if (lhs is rhs)
+            return true;
+        if (lhs is null || rhs is null)
+            return false;
+        if (typeid(lhs) == typeid(rhs))
+            return lhs.opEquals(rhs);
+        return lhs.opEquals(rhs) &&
+               rhs.opEquals(lhs);
+    }
 
     interface Monitor
     {
