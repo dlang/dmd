@@ -2296,13 +2296,14 @@ version (unittest)
 }
 
 /**
- * Set the capacity of an array.  The capacity is the number of elements that
- * can be appended before the array must be extended/reallocated.
+ * Try to reserve capacity for an array.  The capacity is the number of
+ * elements that the array can grow to before the array must be
+ * extended/reallocated.
  *
  * The return value is the new capacity of the array (which may be larger than
  * the requested capacity).
  */
-size_t setCapacity(T)(ref T[] arr, size_t newcapacity)
+size_t reserve(T)(ref T[] arr, size_t newcapacity)
 {
     return _d_arraysetcapacity(typeid(T[]), newcapacity, cast(void *)&arr);
 }

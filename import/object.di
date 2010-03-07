@@ -421,7 +421,7 @@ private
     return _d_arraysetcapacity(typeid(T[]), 0, cast(void *)&arr);
 }
 
-size_t setCapacity(T)(ref T[] arr, size_t newcapacity)
+size_t reserve(T)(ref T[] arr, size_t newcapacity)
 {
     return _d_arraysetcapacity(typeid(T[]), newcapacity, cast(void *)&arr);
 }
