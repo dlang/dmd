@@ -2287,8 +2287,9 @@ version (unittest)
 }
 
 /**
- * Get the current capacity of an array.  The capacity is the number of
- * elements that can be appended before the array must be extended/reallocated.
+ * (Property) Get the current capacity of an array.  The capacity is the number
+ * of elements that the array can grow to before the array must be
+ * extended/reallocated.
  */
 @property size_t capacity(T)(T[] arr)
 {
