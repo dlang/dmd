@@ -45,7 +45,7 @@ DMD_OBJS = \
 	unialpha.o toobj.o toctype.o toelfdebug.o entity.o doc.o macro.o \
 	hdrgen.o delegatize.o aa.o ti_achar.o toir.o interpret.o traits.o \
 	builtin.o clone.o aliasthis.o \
-	man.o arrayop.o port.o response.o async.o json.o \
+	man.o arrayop.o port.o response.o async.o json.o speller.o \
 	libmach.o machobj.o
 
 SRC = win32.mak linux.mak osx.mak freebsd.mak solaris.mak \
@@ -88,7 +88,8 @@ SRC = win32.mak linux.mak osx.mak freebsd.mak solaris.mak \
 	$(ROOT)/rmem.h $(ROOT)/rmem.c $(ROOT)/port.h $(ROOT)/port.c \
 	$(ROOT)/gnuc.h $(ROOT)/gnuc.c $(ROOT)/man.c \
 	$(ROOT)/stringtable.h $(ROOT)/stringtable.c \
-	$(ROOT)/response.c $(ROOT)/async.h $(ROOT)/async.c
+	$(ROOT)/response.c $(ROOT)/async.h $(ROOT)/async.c \
+	$(ROOT)/speller.h $(ROOT)/speller.c
 
 
 all: dmd
@@ -440,6 +441,9 @@ s2ir.o : $C/rtlsym.h statement.h s2ir.c
 
 scope.o: scope.c
 	$(CC) -c $(CFLAGS) $<
+
+speller.o: $(ROOT)/speller.c
+	$(CC) -c $(GFLAGS) -I$(ROOT) $<
 
 statement.o: statement.c
 	$(CC) -c $(CFLAGS) $<

@@ -1,5 +1,5 @@
 
-// Copyright (c) 1999-2009 by Digital Mars
+// Copyright (c) 1999-2010 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // http://www.digitalmars.com
@@ -1101,14 +1101,13 @@ void VarDeclaration::toObjFile(int multiobj)
 		ie->exp->implicitConvTo(tb->nextOf())
 		)
 	    {
-		int dim;
-
-		dim = ((TypeSArray *)tb)->dim->toInteger();
+		size_t = ((TypeSArray *)tb)->dim->toInteger();
 
 		// Duplicate Sdt 'dim-1' times, as we already have the first one
+		dt_t **pdt = &s->Sdt;
 		while (--dim > 0)
 		{
-		    ie->exp->toDt(&s->Sdt);
+		    pdt = ie->exp->toDt(pdt);
 		}
 	    }
 	}
