@@ -1992,6 +1992,21 @@ int TypeSArray::isZeroInit(Loc loc)
     return next->isZeroInit(loc);
 }
 
+Expression *TypeSArray::defaultInitLiteral(Loc loc)
+{
+#if LOGDEFAULTINIT
+    printf("TypeSArray::defaultInitLiteral() '%s'\n", toChars());
+#endif
+    size_t d = dim->toInteger();
+    Expression *elementinit = next->defaultInitLiteral(loc);
+    Expressions *elements = new Expressions();
+    elements->setDim(d);
+    for (size_t i = 0; i < d; i++)
+	elements->data[i] = elementinit;
+    ArrayLiteralExp *ae = new ArrayLiteralExp(0, elements);
+    ae->type = this;
+    return ae;
+}
 
 Expression *TypeSArray::toExpression()
 {

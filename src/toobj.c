@@ -1101,7 +1101,7 @@ void VarDeclaration::toObjFile(int multiobj)
 		ie->exp->implicitConvTo(tb->nextOf())
 		)
 	    {
-		size_t = ((TypeSArray *)tb)->dim->toInteger();
+		size_t dim = ((TypeSArray *)tb)->dim->toInteger();
 
 		// Duplicate Sdt 'dim-1' times, as we already have the first one
 		dt_t **pdt = &s->Sdt;
