@@ -2337,7 +2337,7 @@ version (unittest) unittest
 {
     {
         int[] arr;
-        auto newcap = arr.setCapacity(2000);
+        auto newcap = arr.reserve(2000);
         assert(newcap >= 2000);
         assert(newcap == arr.capacity);
         auto ptr = arr.ptr;
