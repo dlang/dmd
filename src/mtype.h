@@ -406,6 +406,7 @@ struct TypeSArray : TypeArray
     MATCH constConv(Type *to);
     MATCH implicitConvTo(Type *to);
     Expression *defaultInit(Loc loc);
+    Expression *defaultInitLiteral(Loc loc);
     dt_t **toDt(dt_t **pdt);
     dt_t **toDtElem(dt_t **pdt, Expression *e);
     MATCH deduceType(Scope *sc, Type *tparam, TemplateParameters *parameters, Objects *dedtypes);
