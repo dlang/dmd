@@ -640,10 +640,11 @@ extern (C) ulong _d_newarrayT(TypeInfo ti, size_t length)
         auto info = gc_malloc_bi(size + __arrayPad(size), !(ti.next.flags() & 1) ? BlkAttr.NO_SCAN : 0);
         debug(PRINTF) printf(" p = %p\n", info.base);
         // update the length of the array
-        memset(info.base, 0, size);
+        auto arrstart = __arrayStart(info);
+        memset(arrstart, 0, size);
         auto isshared = ti.classinfo is TypeInfo_Shared.classinfo;
         __setArrayAllocLength(info, size, isshared);
-        result = cast(ulong)length + (cast(ulong)cast(size_t)__arrayStart(info) << 32);
+        result = cast(ulong)length + (cast(ulong)cast(size_t)arrstart << 32);
     }
     return result;
 
@@ -683,28 +684,29 @@ extern (C) ulong _d_newarrayiT(TypeInfo ti, size_t length)
 
         auto info = gc_malloc_bi(size + __arrayPad(size), !(ti.next.flags() & 1) ? BlkAttr.NO_SCAN : 0);
         debug(PRINTF) printf(" p = %p\n", info.base);
+        auto arrstart = __arrayStart(info);
         if (isize == 1)
-            memset(info.base, *cast(ubyte*)q, size);
+            memset(arrstart, *cast(ubyte*)q, size);
         else if (isize == int.sizeof)
         {
             int init = *cast(int*)q;
             size /= int.sizeof;
             for (size_t u = 0; u < size; u++)
             {
-                (cast(int*)info.base)[u] = init;
+                (cast(int*)arrstart)[u] = init;
             }
         }
         else
         {
             for (size_t u = 0; u < size; u += isize)
             {
-                memcpy(info.base + u, q, isize);
+                memcpy(arrstart + u, q, isize);
             }
         }
         va_end(q);
         auto isshared = ti.classinfo is TypeInfo_Shared.classinfo;
         __setArrayAllocLength(info, size, isshared);
-        result = cast(ulong)length + (cast(ulong)cast(uint)__arrayStart(info) << 32);
+        result = cast(ulong)length + (cast(ulong)cast(uint)arrstart << 32);
     }
     return result;
 
