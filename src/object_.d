@@ -2322,13 +2322,18 @@ size_t reserve(T)(ref T[] arr, size_t newcapacity)
 }
 
 /**
- * Shrink the allocated elements to the given array.  This is useful if you
- * would like to reuse a buffer with the append operator.  Use this only when
- * you are sure no elements are in use beyond the array in the memory block.
- * If there are, those elements could be overwritten by appending to this
- * array.
+ * Assume that it is safe to append to this array.  Appends made to this array
+ * after calling this function may append in place, even if the array was a
+ * slice of a larger array to begin with.
+ *
+ * Use this only when you are sure no elements are in use beyond the array in
+ * the memory block.  If there are, those elements could be overwritten by
+ * appending to this array.
+ *
+ * Calling this function, and then using references to data located after the
+ * given array results in undefined behavior.
  */
-void shrinkToFit(T)(T[] arr)
+void assumeSafeAppend(T)(T[] arr)
 {
     _d_arrayshrinkfit(typeid(T[]), *(cast(void[]*)&arr));
 }

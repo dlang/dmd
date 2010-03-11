@@ -433,7 +433,7 @@ size_t reserve(T)(ref T[] arr, size_t newcapacity)
     return _d_arraysetcapacity(typeid(T[]), newcapacity, cast(void *)&arr);
 }
 
-void shrinkToFit(T)(T[] arr)
+void assumeSafeAppend(T)(T[] arr)
 {
     _d_arrayshrinkfit(typeid(T[]), *(cast(void[]*)&arr));
 }

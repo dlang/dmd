@@ -587,18 +587,28 @@ body
 
     // step 4, if extending doesn't work, allocate a new array with at least the requested allocated size.
     auto datasize = p.length * size;
-    info = gc_malloc_bi(reqsize + __arrayPad(reqsize), info.attr);
+    reqsize += __arrayPad(reqsize);
+    info = gc_malloc_bi(reqsize, info.attr);
     if(info.base is null)
         goto Loverflow;
+    // copy the data over.
+    // note that malloc will have initialized the data we did not request to 0.
+    auto tgt = __arrayStart(info);
+    memcpy(tgt, p.data, datasize);
+    if(!(info.attr & BlkAttr.NO_SCAN))
+    {
+        // need to memset the newly requested data, except for the data that
+        // malloc returned that we didn't request.
+        void *endptr = info.base + reqsize;
+        void *begptr = tgt + datasize;
+        memset(begptr, 0, endptr - begptr);
+    }
+
+    // set up the correct length
     __setArrayAllocLength(info, datasize, isshared);
     if(!isshared)
         __insertBlkInfoCache(info, bic);
 
-    // copy the data over.
-    // note that malloc will have initialized the unallocated data to 0 if
-    // necessary, we do not need to do it here.
-    auto tgt = __arrayStart(info);
-    memcpy(tgt, p.data, datasize);
     p.data = cast(byte *)tgt;
     curcapacity = info.size - __arrayPad(info.size);
     return curcapacity / size;
