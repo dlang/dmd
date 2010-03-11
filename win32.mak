@@ -96,6 +96,8 @@ MANIFEST= \
 	src/core/sync/rwmutex.d \
 	src/core/sync/semaphore.d \
 	src/core/thread.d \
+	src/core/thread_helper.d \
+	src/core/dll_helper.d \
 	src/core/threadasm.S \
 	src/core/vararg.d \
 	src/object_.d \
@@ -192,6 +194,8 @@ SRCS= \
 	src\core\memory.d \
 	src\core\runtime.d \
 	src\core\thread.d \
+	src\core\thread_helper.d \
+	src\core\dll_helper.d \
 	src\core\vararg.d \
 	\
 	src\core\sync\barrier.d \
@@ -327,6 +331,8 @@ IMPORTS=\
 	$(IMPDIR)\core\memory.di \
 	$(IMPDIR)\core\runtime.di \
 	$(IMPDIR)\core\thread.di \
+	$(IMPDIR)\core\thread_helper.di \
+	$(IMPDIR)\core\dll_helper.di \
 	$(IMPDIR)\core\vararg.di \
 	\
 	$(IMPDIR)\core\sync\exception.di \
@@ -403,6 +409,12 @@ $(IMPDIR)\core\runtime.di : src\core\runtime.d
 	$(DMD) -c -d -o- -Iimport -Isrc -Hf$@ $**
 
 $(IMPDIR)\core\thread.di : src\core\thread.d
+	$(DMD) -c -d -o- -Iimport -Isrc -Hf$@ $**
+
+$(IMPDIR)\core\thread_helper.di : src\core\thread_helper.d
+	$(DMD) -c -d -o- -Iimport -Isrc -Hf$@ $**
+
+$(IMPDIR)\core\dll_helper.di : src\core\dll_helper.d
 	$(DMD) -c -d -o- -Iimport -Isrc -Hf$@ $**
 
 $(IMPDIR)\core\vararg.di : src\core\vararg.d

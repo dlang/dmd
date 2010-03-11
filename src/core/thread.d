@@ -98,6 +98,7 @@ version( Windows )
     {
         import core.stdc.stdint : uintptr_t; // for _beginthreadex decl below
         import core.sys.windows.windows;
+        import core.thread_helper;
 
         const DWORD TLS_OUT_OF_INDEXES  = 0xFFFFFFFF;
 
@@ -191,7 +192,6 @@ version( Windows )
             }
             return 0;
         }
-
 
         //
         // Copy of the same-named function in phobos.std.thread--it uses the
@@ -1092,7 +1092,11 @@ class Thread
         //       on why this might occur.
         version( Windows )
         {
-            return cast(Thread) TlsGetValue( sm_this );
+            Thread t = cast(Thread) TlsGetValue( sm_this );
+	    if( t is null )
+		// if the thread has been attached from another thread, the tls value was not set
+		setThis( t = findThread( GetCurrentThreadId() ) );
+	    return t;
         }
         else version( Posix )
         {
@@ -1124,6 +1128,24 @@ class Thread
         }
     }
 
+    /**
+     * Search the list of all threads for a thread with the given thread identifier
+     *
+     * Params:
+     *  addr = The thread identifier to search for
+     * Returns:
+     *  the thread object associated with the thread identifier, null if not found
+     */
+    static Thread findThread( ThreadAddr addr )
+    {
+        synchronized( slock )
+        {
+	    foreach( Thread t; Thread )
+		if( t.m_addr == addr )
+		    return t;
+	}
+	return null;
+    }
 
     /**
      * Operates on all threads currently being tracked by the system.  The
@@ -1478,6 +1500,14 @@ private:
     // Add a context to the global context list.
     //
     static void add( Context* c )
+    {
+        synchronized( slock )
+        {
+	    add_nolock( c );
+	}
+    }
+
+    static void add_nolock( Context* c )
     in
     {
         assert( c );
@@ -1485,16 +1515,13 @@ private:
     }
     body
     {
-        synchronized( slock )
+        if( sm_cbeg )
         {
-            if( sm_cbeg )
-            {
-                c.next = sm_cbeg;
-                sm_cbeg.prev = c;
-            }
-            sm_cbeg = c;
-            ++sm_clen;
+            c.next = sm_cbeg;
+            sm_cbeg.prev = c;
         }
+        sm_cbeg = c;
+        ++sm_clen;
     }
 
 
@@ -1537,6 +1564,14 @@ private:
     // Add a thread to the global thread list.
     //
     static void add( Thread t )
+    {
+        synchronized( slock )
+	{
+	    add_nolock( t );
+	}
+    }
+
+    static void add_nolock( Thread t )
     in
     {
         assert( t );
@@ -1545,16 +1580,13 @@ private:
     }
     body
     {
-        synchronized( slock )
+	if( sm_tbeg )
         {
-            if( sm_tbeg )
-            {
-                t.next = sm_tbeg;
-                sm_tbeg.prev = t;
-            }
-            sm_tbeg = t;
-            ++sm_tlen;
+            t.next = sm_tbeg;
+            sm_tbeg.prev = t;
         }
+        sm_tbeg = t;
+        ++sm_tlen;
     }
 
 
@@ -1566,10 +1598,12 @@ private:
     {
         assert( t );
         assert( t.next || t.prev );
-        version( Windows )
+        version( none )
         {
             // NOTE: This doesn't work for Posix as m_isRunning must be set to
             //       false after the thread is removed during normal execution.
+            // NOTE: This doesn't work for Windows either because remove is called
+	    //       from the thread itself
             assert( !t.isRunning );
         }
     }
@@ -1693,44 +1727,102 @@ extern (C) void thread_init()
  */
 extern (C) void thread_attachThis()
 {
+    synchronized( Thread.slock )
+    {
+	version( Windows )
+	{
+	    Thread thisThread = thread_attach_nolock( GetCurrentThreadId(), getStackBottom() );
+	}
+	else version( Posix )
+	{
+	    Thread thisThread = thread_attach_nolock( pthread_self(), getStackBottom() );
+	}
+	Thread.setThis( thisThread );
+    }
+}
+
+/**
+ * Registers the thread with the given identifier for use with the D Runtime.  If this routine
+ * is called for a thread which is already registered, the result is undefined.
+ */
+extern (C) Thread thread_attach( Thread.ThreadAddr addr )
+{
+    synchronized( Thread.slock )
+    {
+	version( Windows )
+	{
+	    void* bstack = getThreadStackBottom( addr );
+	}
+	else version( Posix )
+	{
+	    void* bstack = null;
+	    assert( false ); // not implemented
+	}
+	return thread_attach_nolock( addr, bstack );
+	// setThis cannot be called, because it sets the value in the current thread, 
+	//  not in the thread ew just attached to
+    }
+}
+
+extern (C) Thread thread_attach_nolock( Thread.ThreadAddr addr, void* bstack )
+{
+    // the gc should not be touched before attaching to the thread, because
+    //  it might interfere with threads that use the GC, but won't suspend
+    //  this thread. So we use a Thread object created by an attached thread.
+    // This is not necessary for the main (first) thread, because there is no
+    // concurrent thread.
+    static __gshared Thread nextThread;
+    Thread thisThread = nextThread ? nextThread : new Thread();
+
     version( Windows )
     {
-        Thread          thisThread  = new Thread();
-        Thread.Context* thisContext = &thisThread.m_main;
-        assert( thisContext == thisThread.m_curr );
+	Thread.Context* thisContext = &thisThread.m_main;
+	assert( thisContext == thisThread.m_curr );
 
-        thisThread.m_addr  = GetCurrentThreadId();
-        thisThread.m_hndl  = GetCurrentThreadHandle();
-        thisContext.bstack = getStackBottom();
-        thisContext.tstack = thisContext.bstack;
+	thisThread.m_addr  = addr;
+	thisContext.bstack = bstack;
+	thisContext.tstack = thisContext.bstack;
 
-        thisThread.m_isDaemon = true;
+	auto pstart = cast(void*) &_tlsstart;
+	auto pend   = cast(void*) &_tlsend;
+	if( addr == GetCurrentThreadId() )
+	{
+	    thisThread.m_tls = pstart[0 .. pend - pstart];
+	    thisThread.m_hndl = GetCurrentThreadHandle();
+	}
+	else
+	{
+	    thisThread.m_hndl = OpenThreadHandle( addr );
+	    thisThread.m_tls = GetTlsDataAddress( thisThread.m_hndl )[0 .. pend - pstart];
+	}
 
-        Thread.setThis( thisThread );
+	thisThread.m_isDaemon = true;
     }
     else version( Posix )
     {
-        Thread          thisThread  = new Thread();
-        Thread.Context* thisContext = thisThread.m_curr;
-        assert( thisContext == &thisThread.m_main );
+	Thread.Context* thisContext = thisThread.m_curr;
+	assert( thisContext == &thisThread.m_main );
 
-        thisThread.m_addr  = pthread_self();
-        thisContext.bstack = getStackBottom();
-        thisContext.tstack = thisContext.bstack;
+	thisThread.m_addr  = addr;
+	thisContext.bstack = bstack;
+	thisContext.tstack = thisContext.bstack;
 
-        thisThread.m_isRunning = true;
-        thisThread.m_isDaemon  = true;
-
-        Thread.setThis( thisThread );
+	thisThread.m_isRunning = true;
+	thisThread.m_isDaemon  = true;
     }
     version( OSX )
     {
-        thisThread.m_tmach = pthread_mach_thread_np( thisThread.m_addr );
-        assert( thisThread.m_tmach != thisThread.m_tmach.init );
-    }    
+	thisThread.m_tmach = pthread_mach_thread_np( thisThread.m_addr );
+	assert( thisThread.m_tmach != thisThread.m_tmach.init );
+    }
 
-    Thread.add( thisThread );
-    Thread.add( thisContext );
+    Thread.add_nolock( thisThread );
+    Thread.add_nolock( thisContext );
+
+    // Now it is safe to alloc anything from the GC
+    nextThread = new Thread();
+
+    return thisThread;
 }
 
 
@@ -1741,6 +1833,17 @@ extern (C) void thread_attachThis()
 extern (C) void thread_detachThis()
 {
     Thread.remove( Thread.getThis() );
+}
+
+/**
+ * Deregisters the thread with the given thread identifier from use with the runtime.
+ * If this routine is called for a thread which is not registered, it does nothing.
+ */
+extern (C) void thread_detach( Thread.ThreadAddr addr )
+{
+    Thread t = Thread.findThread( addr );
+    if( t )
+	Thread.remove( t );
 }
 
 
@@ -1791,7 +1894,6 @@ shared static ~this()
 // Used for needLock below.
 private __gshared bool multiThreadedFlag = false;
 
-
 /**
  * This function is used to determine whether the the process is
  * multi-threaded.  Optimizations may only be performed on this
@@ -1806,6 +1908,12 @@ extern (C) bool thread_needLock() nothrow
     return multiThreadedFlag;
 }
 
+// a DLL needs to set multiThreadedFlag, because threads might be
+//  created from other parts of the program that are not under our control
+extern (C) void thread_setNeedLock(bool need) nothrow
+{
+    multiThreadedFlag = need;
+}
 
 // Used for suspendAll/resumeAll below.
 private __gshared uint suspendDepth = 0;
