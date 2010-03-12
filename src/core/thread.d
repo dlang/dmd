@@ -1745,6 +1745,8 @@ extern (C) void thread_attachThis()
  * Registers the thread with the given identifier for use with the D Runtime.  If this routine
  * is called for a thread which is already registered, the result is undefined.
  */
+version (Windows)
+{
 extern (C) Thread thread_attach( Thread.ThreadAddr addr )
 {
     synchronized( Thread.slock )
@@ -1762,6 +1764,7 @@ extern (C) Thread thread_attach( Thread.ThreadAddr addr )
 	// setThis cannot be called, because it sets the value in the current thread, 
 	//  not in the thread ew just attached to
     }
+}
 }
 
 extern (C) Thread thread_attach_nolock( Thread.ThreadAddr addr, void* bstack )
