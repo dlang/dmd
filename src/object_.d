@@ -2350,7 +2350,7 @@ version (unittest) unittest
             arr ~= i;
         assert(ptr == arr.ptr);
         arr = arr[0..1];
-        arr.shrinkToFit();
+        arr.assumeSafeAppend();
         arr ~= 5;
         assert(ptr == arr.ptr);
     }
