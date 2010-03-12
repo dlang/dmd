@@ -1,5 +1,14 @@
 /**
  * This module provides OS specific helper function for DLL support
+ *
+ * Copyright: Copyright Digital Mars 2010.
+ * License:   <a href="http://www.boost.org/LICENSE_1_0.txt">Boost License 1.0</a>.
+ * Authors:   Rainer Schuetze
+ *
+ *          Copyright Digital Mars 2010.
+ * Distributed under the Boost Software License, Version 1.0.
+ *    (See accompanying file LICENSE_1_0.txt or copy at
+ *          http://www.boost.org/LICENSE_1_0.txt)
  */
 
 module core.dll_helper;
@@ -13,7 +22,7 @@ version( Windows )
     public import core.thread_helper;
 
     ///////////////////////////////////////////////////////////////////
-    // support fixing implicite TLS for dynamically loaded DLLs on Windows XP
+    // support fixing implicit TLS for dynamically loaded DLLs on Windows XP
 
     extern (C)
     {
@@ -263,14 +272,29 @@ private:
     }
     
 public:
-    // fix implicite thread local storage for the case when a DLL is loaded
-    //  dynamically after process initialization
-    // the link time variables are passed to allow placing this function into
-    // a RTL DLL itself.
+    /* *****************************************************
+     * Fix implicit thread local storage for the case when a DLL is loaded
+     * dynamically after process initialization.
+     * The link time variables are passed to allow placing this function into
+     * an RTL DLL itself.
+     * The problem is described in Bugzilla 3342 and
+     * http://www.nynaeve.net/?p=187, to quote from the latter:
+     *
+     * "When a DLL using implicit TLS is loaded, because the loader doesn't process the TLS
+     *  directory, the _tls_index value is not initialized by the loader, nor is there space
+     *  allocated for module's TLS data in the ThreadLocalStoragePointer arrays of running
+     *  threads. The DLL continues to load, however, and things will appear to work... until the
+     *  first access to a __declspec(thread) variable occurs, that is."
+     *
+     * _tls_index is initialized by the compiler to 0, so we can use this as a test.
+     */
     bool dll_fixTLS( HINSTANCE hInstance, void* tlsstart, void* tlsend, void* tls_callbacks_a, int* tlsindex )
     {
-	// if the OS has allocated a TLS slot for us, we don't have to do anything
-	// tls_index 0 means: the OS has not done anything, or it has allocated slot 0
+	/* If the OS has allocated a TLS slot for us, we don't have to do anything
+	 * tls_index 0 means: the OS has not done anything, or it has allocated slot 0
+	 * Vista and later Windows systems should do this correctly and not need
+	 * this function.
+	 */
 	if( *tlsindex != 0 )
 	    return true;
 
@@ -298,7 +322,8 @@ public:
 	    return false;
 
 	ldrMod.TlsIndex = -1;  // flag TLS usage (not the index itself)
-	ldrMod.LoadCount = -1; // never unload, XP has no idea of reusing TLS entries
+	ldrMod.LoadCount = -1; // prevent unloading of the DLL,
+			       // since XP does not keep track of used TLS entries
 	return true;
     }
 
