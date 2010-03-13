@@ -1296,17 +1296,32 @@ void Expression::checkPurity(Scope *sc, FuncDeclaration *f)
 	 * i() can call h() and g() but not f()
 	 */
 	FuncDeclaration *outerfunc = sc->func;
-	while (outerfunc->toParent2() && outerfunc->toParent2()->isFuncDeclaration())
+	// Find the closest pure parent of the calling function
+	while (outerfunc->toParent2() &&
+		!outerfunc->isPure() &&
+		outerfunc->toParent2()->isFuncDeclaration())
 	{
 	    outerfunc = outerfunc->toParent2()->isFuncDeclaration();
 	}
-	if (outerfunc->isPure() && !sc->intypeof && (!f->isNested() && !f->isPure()))
-	    error("pure function '%s' cannot call impure function '%s'\n",
-		sc->func->toChars(), f->toChars());
+	// Find the closest pure parent of the called function
+	FuncDeclaration *calledparent = f;
+	while (calledparent->toParent2() && !calledparent->isPure()
+	    && calledparent->toParent2()->isFuncDeclaration() )
+	{
+	    calledparent = calledparent->toParent2()->isFuncDeclaration();
+	}
+	// If the caller has a pure parent, then either the called func must be pure,
+	// OR, they must have the same pure parent.
+	if (outerfunc->isPure() && !sc->intypeof && 
+	    !(f->isPure() || (calledparent == outerfunc)))
+	{
+	    error("pure function '%s' cannot call impure function '%s'",
+	    outerfunc->toChars(), f->toChars());
+	}
     }
 #else
     if (sc->func && sc->func->isPure() && !sc->intypeof && !f->isPure())
-	error("pure function '%s' cannot call impure function '%s'\n",
+	error("pure function '%s' cannot call impure function '%s'",
 	    sc->func->toChars(), f->toChars());
 #endif
 }
@@ -1315,7 +1330,7 @@ void Expression::checkSafety(Scope *sc, FuncDeclaration *f)
 {
     if (sc->func && sc->func->isSafe() && !sc->intypeof &&
 	!f->isSafe() && !f->isTrusted())
-	error("safe function '%s' cannot call system function '%s'\n",
+	error("safe function '%s' cannot call system function '%s'",
 	    sc->func->toChars(), f->toChars());
 }
 #endif
