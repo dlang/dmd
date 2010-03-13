@@ -9951,7 +9951,7 @@ Expression *MulExp::semantic(Scope *sc)
 	    if (t2->isimaginary())
 	    {	Expression *e;
 
-		switch (t1->ty)
+		switch (t1->toBasetype()->ty)
 		{
 		    case Timaginary32:	type = Type::tfloat32;	break;
 		    case Timaginary64:	type = Type::tfloat64;	break;
@@ -10025,7 +10025,7 @@ Expression *DivExp::semantic(Scope *sc)
 	{
 	    if (t2->isimaginary())
 	    {
-		switch (t1->ty)
+		switch (t1->toBasetype()->ty)
 		{
 		    case Timaginary32:	type = Type::tfloat32;	break;
 		    case Timaginary64:	type = Type::tfloat64;	break;
