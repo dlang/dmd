@@ -375,10 +375,16 @@ void clear(T)(T obj) if (is(T == class))
     version(none) // enforce isn't available in druntime
         _enforce(defaultCtor || (obj.classinfo.flags & 8) == 0);
     immutable size = obj.classinfo.init.length;
-    static if (is(typeof(obj.__dtor())))
+
+    auto ci2 = ci;
+    do
     {
-        obj.__dtor();
-    }
+        auto dtor = cast(void function(Object))ci2.destructor;
+        if (dtor)
+            dtor(obj);
+        ci2 = ci2.base;
+    } while (ci2)
+
     auto buf = (cast(void*) obj)[0 .. size];
     buf[] = obj.classinfo.init;
     if (defaultCtor)
