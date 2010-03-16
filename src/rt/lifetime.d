@@ -71,11 +71,12 @@ private
 
 enum : size_t
        {
-           LENGTHMASK = ~(cast(size_t)0x0ff),
            BIGLENGTHMASK = ~(cast(size_t)PAGESIZE - 1),
            SMALLPAD = 1,
            MEDPAD = ushort.sizeof,
            LARGEPAD = size_t.sizeof * 2 + 1,
+           MAXSMALLSIZE = 256-SMALLPAD,
+           MAXMEDSIZE = (PAGESIZE / 2) - MEDPAD
        }
 }
 
@@ -351,7 +352,7 @@ void *__arrayStart(BlkInfo info)
 
 size_t __arrayPad(size_t size)
 {
-    return (size & BIGLENGTHMASK) ? LARGEPAD : (size & LENGTHMASK) ? MEDPAD : SMALLPAD;
+    return size > MAXMEDSIZE ? LARGEPAD : (size > MAXSMALLSIZE ? MEDPAD : SMALLPAD);
 }
 
 /**
@@ -588,7 +589,9 @@ body
     // step 4, if extending doesn't work, allocate a new array with at least the requested allocated size.
     auto datasize = p.length * size;
     reqsize += __arrayPad(reqsize);
-    info = gc_malloc_bi(reqsize, info.attr);
+    // copy attributes from original block, or from the typeinfo if the
+    // original block doesn't exist.
+    info = gc_malloc_bi(reqsize, info.base ? info.attr : (!(ti.next.flags() & 1) ? BlkAttr.NO_SCAN : 0));
     if(info.base is null)
         goto Loverflow;
     // copy the data over.
@@ -601,6 +604,9 @@ body
         // malloc returned that we didn't request.
         void *endptr = info.base + reqsize;
         void *begptr = tgt + datasize;
+
+        // sanity check
+        assert(endptr >= begptr);
         memset(begptr, 0, endptr - begptr);
     }
 
@@ -1610,7 +1616,6 @@ body
             return y;
     }
 
-    debug(PRINTF) printf("_d_arraycatT(%d,%p ~ %d,%p)\n", x.length, x.ptr, y.length, y.ptr);
     auto sizeelem = ti.next.tsize();            // array element size
     debug(PRINTF) printf("_d_arraycatT(%d,%p ~ %d,%p sizeelem = %d)\n", x.length, x.ptr, y.length, y.ptr, sizeelem);
     size_t xlen = x.length * sizeelem;
