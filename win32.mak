@@ -309,6 +309,7 @@ OBJS= errno_c.obj complex.obj critical.obj deh.obj monitor.obj src\rt\minit.obj
 OBJS_TO_DELETE= errno_c.obj complex.obj critical.obj deh.obj monitor.obj
 
 DOCS=\
+	$(DOCDIR)\object.html \
 	$(DOCDIR)\core\bitop.html \
 	$(DOCDIR)\core\exception.html \
 	$(DOCDIR)\core\memory.html \
@@ -347,9 +348,12 @@ IMPORTS=\
 
 doc: $(DOCS)
 
+$(DOCDIR)\object.html : src\object_.d
+	$(DMD) -c -d -o- -Iimport -Isrc -Df$@ $**
+
 $(DOCDIR)\core\bitop.html : src\core\bitop.d
 	$(DMD) -c -d -o- -Iimport -Isrc -Df$@ $**
-	
+
 $(DOCDIR)\core\cpuid.html : src\core\cpuid.d
 	$(DMD) -c -d -o- -Iimport -Isrc -Df$@ $**
 
