@@ -2152,11 +2152,12 @@ struct AssociativeArray(Key, Value)
 
 void clear(T)(T obj) if (is(T == class))
 {
+    auto ci = obj.classinfo;
     auto defaultCtor =
-        cast(void function(Object)) obj.classinfo.defaultConstructor;
+        cast(void function(Object)) ci.defaultConstructor;
     version(none) // enforce isn't available in druntime
-        _enforce(defaultCtor || (obj.classinfo.flags & 8) == 0);
-    immutable size = obj.classinfo.init.length;
+        _enforce(defaultCtor || (ci.flags & 8) == 0);
+    immutable size = ci.init.length;
 
     auto ci2 = ci;
     do
@@ -2168,7 +2169,7 @@ void clear(T)(T obj) if (is(T == class))
     } while (ci2)
 
     auto buf = (cast(void*) obj)[0 .. size];
-    buf[] = obj.classinfo.init;
+    buf[] = ci.init;
     if (defaultCtor)
         defaultCtor(obj);
 }

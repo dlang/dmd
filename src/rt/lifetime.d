@@ -1775,4 +1775,22 @@ unittest
     assert(b.length == 3);
     for (i = 0; i < 3; i++)
         assert(b[i] == i + 1);
+
+    // test slice appending
+    b = a[0..1];
+    b ~= 4;
+    for(i = 0; i < 3; i++)
+        assert(a[i] == i + 1);
+
+    // test reserving
+    char[] arr = new char[4093];
+    for(i = 0; i < arr.length; i++)
+        arr[i] = cast(char)(i % 256);
+
+    // note that these two commands used to cause corruption, which may not be
+    // detected.
+    arr.reserve(4094);
+    auto arr2 = arr ~ "123";
+    assert(arr2[0..arr.length] == arr);
+    assert(arr2[arr.length..$] == "123");
 }
