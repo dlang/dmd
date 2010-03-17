@@ -607,9 +607,9 @@ void Dsymbol::checkDeprecated(Loc loc, Scope *sc)
 	if (!(sc->func && sc->func->storage_class & STCdisable))
 	{
 	    if (d->ident == Id::cpctor && d->toParent())
-		d->toParent()->error(loc, "is not copyable");
+		d->toParent()->error(loc, "is not copyable because it is annotated with @disable");
 	    else
-		error(loc, "is not callable");
+		error(loc, "is not callable because it is annotated with @disable");
 	}
     }
 }
