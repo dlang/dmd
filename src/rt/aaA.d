@@ -5,7 +5,6 @@
  * License:   <a href="http://www.boost.org/LICENSE_1_0.txt">Boost License 1.0</a>.
  * Authors:   Walter Bright, Sean Kelly
  *
- *          Copyright Digital Mars 2000 - 2009.
  * Distributed under the Boost Software License, Version 1.0.
  *    (See accompanying file LICENSE_1_0.txt or copy at
  *          http://www.boost.org/LICENSE_1_0.txt)
@@ -34,6 +33,8 @@ private
 // Auto-rehash and pre-allocate - Dave Fladebo
 
 static immutable size_t[] prime_list = [
+	       4UL, // because it fits in 16 bytes, and many AAs have only 1 or 2 elements
+	      31UL,
               97UL,            389UL,
            1_543UL,          6_151UL,
           24_593UL,         98_317UL,
