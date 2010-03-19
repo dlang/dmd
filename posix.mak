@@ -458,8 +458,8 @@ threadasm.o : src/core/threadasm.S
 $(DRUNTIME): $(OBJS) $(SRCS) win32.mak
 	$(DMD) -lib -of$(DRUNTIME) $(DFLAGS) $(SRCS) $(OBJS)
 
-unittest : $(SRCS) $(DRUNTIME)
-	$(DMD) $(UDFLAGS) -L/co -unittest src/unittest.d $(SRCS) $(DRUNTIME)
+unittest : $(SRCS) $(DRUNTIME) src/unittest.d
+	$(DMD) $(UDFLAGS) -unittest src/unittest.d $(SRCS) $(DRUNTIME)
 
 druntime.zip : zip
 

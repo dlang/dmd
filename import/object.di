@@ -403,7 +403,7 @@ void clear(T)(ref T obj) if (is(T == struct))
     buf[] = init[];
 }
 
-void clear(T : U[n], U, size_t n)(/*ref*/ T obj)
+void clear(T : U[n], U, size_t n)(ref T obj)
 {
     obj = T.init;
 }

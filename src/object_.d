@@ -2254,7 +2254,7 @@ version(unittest) unittest
    }
 }
 
-void clear(T : U[n], U, size_t n)(/*ref*/ T obj)
+void clear(T : U[n], U, size_t n)(ref T obj)
 {
     obj = T.init;
 }
