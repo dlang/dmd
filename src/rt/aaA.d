@@ -33,7 +33,6 @@ private
 // Auto-rehash and pre-allocate - Dave Fladebo
 
 static immutable size_t[] prime_list = [
-	       4UL, // because it fits in 16 bytes, and many AAs have only 1 or 2 elements
 	      31UL,
               97UL,            389UL,
            1_543UL,          6_151UL,
@@ -72,6 +71,7 @@ struct BB
     aaA*[] b;
     size_t nodes;       // total number of aaA nodes
     TypeInfo keyti;     // TODO: replace this with TypeInfo_AssociativeArray when available in _aaGet()
+    aaA*[4] binit;	// initial value of b[]
 }
 
 /* This is the type actually seen by the programmer, although
@@ -240,18 +240,12 @@ body
     auto keysize = aligntsize(keyti.tsize());
 
     if (!aa.a)
-        aa.a = new BB();
+    {   aa.a = new BB();
+	aa.a.b = aa.a.binit;
+    }
     //printf("aa = %p\n", aa);
     //printf("aa.a = %p\n", aa.a);
     aa.a.keyti = keyti;
-
-    if (!aa.a.b.length)
-    {
-        alias aaA *pa;
-        auto len = prime_list[0];
-
-        aa.a.b = new pa[len];
-    }
 
     auto key_hash = keyti.getHash(pkey);
     //printf("hash = %d\n", key_hash);
@@ -572,7 +566,10 @@ body
                 if (e)
                     _aaRehash_x(e);
             }
-            delete aa.b;
+	    if (aa.b.ptr == aa.binit.ptr)
+		aa.binit[] = null;
+	    else
+		delete aa.b;
 
             newb.nodes = aa.nodes;
             newb.keyti = aa.keyti;
