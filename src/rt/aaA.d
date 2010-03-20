@@ -59,8 +59,7 @@ struct Array
 
 struct aaA
 {
-    aaA *left;
-    aaA *right;
+    aaA *next;
     hash_t hash;
     /* key   */
     /* value */
@@ -179,28 +178,14 @@ out (result)
 {
     size_t len = 0;
 
-    void _aaLen_x(aaA* ex)
-    {
-        auto e = ex;
-        len++;
-
-        while (1)
-        {
-            if (e.right)
-               _aaLen_x(e.right);
-            e = e.left;
-            if (!e)
-                break;
-            len++;
-        }
-    }
-
     if (aa.a)
     {
         foreach (e; aa.a.b)
         {
-            if (e)
-                _aaLen_x(e);
+            while (e)
+	    {	len++;
+		e = e.next;
+	    }
         }
     }
     assert(len == result);
@@ -258,10 +243,8 @@ body
             auto c = keyti.compare(pkey, e + 1);
             if (c == 0)
                 goto Lret;
-            pe = (c < 0) ? &e.left : &e.right;
-        }
-        else
-            pe = (key_hash < e.hash) ? &e.left : &e.right;
+	}
+	pe = &e.next;
     }
 
     // Not found, create new elem
@@ -311,12 +294,10 @@ void* _aaGetRvalue(AA aa, TypeInfo keyti, size_t valuesize, ...)
             if (key_hash == e.hash)
             {
                 auto c = keyti.compare(pkey, e + 1);
-            if (c == 0)
-                return cast(void *)(e + 1) + keysize;
-                e = (c < 0) ? e.left : e.right;
+		if (c == 0)
+		    return cast(void *)(e + 1) + keysize;
             }
-            else
-                e = (key_hash < e.hash) ? e.left : e.right;
+            e = e.next;
         }
     }
     return null;    // not found, caller will throw exception
@@ -351,7 +332,7 @@ body
         {
             auto key_hash = keyti.getHash(pkey);
             //printf("hash = %d\n", key_hash);
-            size_t i = key_hash % len;
+            const i = key_hash % len;
             auto e = aa.a.b[i];
             while (e !is null)
             {
@@ -360,10 +341,8 @@ body
                     auto c = keyti.compare(pkey, e + 1);
                     if (c == 0)
                         return cast(void *)(e + 1) + aligntsize(keyti.tsize());
-                    e = (c < 0) ? e.left : e.right;
                 }
-                else
-                    e = (key_hash < e.hash) ? e.left : e.right;
+		e = e.next;
             }
         }
     }
@@ -395,39 +374,13 @@ void _aaDel(AA aa, TypeInfo keyti, ...)
                 auto c = keyti.compare(pkey, e + 1);
                 if (c == 0)
                 {
-                    if (!e.left && !e.right)
-                    {
-                        *pe = null;
-                    }
-                    else if (e.left && !e.right)
-                    {
-                        *pe = e.left;
-                         e.left = null;
-                    }
-                    else if (!e.left && e.right)
-                    {
-                        *pe = e.right;
-                         e.right = null;
-                    }
-                    else
-                    {
-                        *pe = e.left;
-                        e.left = null;
-                        do
-                            pe = &(*pe).right;
-                        while (*pe);
-                        *pe = e.right;
-                        e.right = null;
-                    }
-
+		    *pe = e.next;
                     aa.a.nodes--;
                     gc_free(e);
                     break;
                 }
-                pe = (c < 0) ? &e.left : &e.right;
             }
-            else
-                pe = (key_hash < e.hash) ? &e.left : &e.right;
+            pe = &e.next;
         }
     }
 }
@@ -447,25 +400,6 @@ body
     size_t resi;
     Array a;
 
-    void _aaValues_x(aaA* e)
-    {
-        do
-        {
-            memcpy(a.ptr + resi * valuesize,
-                   cast(byte*)e + aaA.sizeof + keysize,
-                   valuesize);
-            resi++;
-            if (e.left)
-            {   if (!e.right)
-                {   e = e.left;
-                    continue;
-                }
-                _aaValues_x(e.left);
-            }
-            e = e.right;
-        } while (e !is null);
-    }
-
     if (aa.a)
     {
         a.length = _aaLen(aa);
@@ -474,8 +408,14 @@ body
         resi = 0;
         foreach (e; aa.a.b)
         {
-            if (e)
-                _aaValues_x(e);
+	    while (e)
+	    {
+		memcpy(a.ptr + resi * valuesize,
+		       cast(byte*)e + aaA.sizeof + keysize,
+		       valuesize);
+		resi++;
+		e = e.next;
+	    }
         }
         assert(resi == a.length);
     }
@@ -498,56 +438,10 @@ out (result)
 }
 body
 {
-    BB newb;
-
-    void _aaRehash_x(aaA* olde)
-    {
-        while (1)
-        {
-            auto left = olde.left;
-            auto right = olde.right;
-            olde.left = null;
-            olde.right = null;
-
-            aaA *e;
-
-            //printf("rehash %p\n", olde);
-            auto key_hash = olde.hash;
-            size_t i = key_hash % newb.b.length;
-            auto pe = &newb.b[i];
-            while ((e = *pe) !is null)
-            {
-                //printf("\te = %p, e.left = %p, e.right = %p\n", e, e.left, e.right);
-                assert(e.left != e);
-                assert(e.right != e);
-                if (key_hash == e.hash)
-                {
-                    auto c = keyti.compare(olde + 1, e + 1);
-                    assert(c != 0);
-                    pe = (c < 0) ? &e.left : &e.right;
-                }
-                else
-                    pe = (key_hash < e.hash) ? &e.left : &e.right;
-            }
-            *pe = olde;
-
-            if (right)
-            {
-                if (!left)
-                {   olde = right;
-                    continue;
-                }
-                _aaRehash_x(right);
-            }
-            if (!left)
-                break;
-            olde = left;
-        }
-    }
-
     //printf("Rehash\n");
     if (paa.a)
     {
+	BB newb;
         auto aa = paa.a;
         auto len = _aaLen(*paa);
         if (len)
@@ -563,8 +457,13 @@ body
 
             foreach (e; aa.b)
             {
-                if (e)
-                    _aaRehash_x(e);
+                while (e)
+		{   auto enext = e.next;
+	            const j = e.hash % len;
+		    e.next = newb.b[j];
+		    newb.b[j] = e;
+		    e = enext;
+		}
             }
 	    if (aa.b.ptr == aa.binit.ptr)
 		aa.binit[] = null;
@@ -576,94 +475,30 @@ body
         }
 
         *paa.a = newb;
-        _aaBalance(paa);
     }
     return (*paa).a;
 }
 
-/********************************************
- * Balance an array.
- */
-
-void _aaBalance(AA* paa)
-{
-    //printf("_aaBalance()\n");
-    if (paa.a)
-    {
-        aaA*[16] tmp;
-        aaA*[] array = tmp;
-        auto aa = paa.a;
-        foreach (j, e; aa.b)
-        {
-            /* Temporarily store contents of bucket in array[]
-             */
-            size_t k = 0;
-            void addToArray(aaA* e)
-            {
-                while (e)
-                {   addToArray(e.left);
-                    if (k == array.length)
-                        array.length = array.length * 2;
-                    array[k++] = e;
-                    e = e.right;
-                }
-            }
-            addToArray(e);
-            /* The contents of the bucket are now sorted into array[].
-             * Rebuild the tree.
-             */
-            void buildTree(aaA** p, size_t x1, size_t x2)
-            {
-                if (x1 >= x2)
-                    *p = null;
-                else
-                {   auto mid = (x1 + x2) >> 1;
-                    *p = array[mid];
-                    buildTree(&(*p).left, x1, mid);
-                    buildTree(&(*p).right, mid + 1, x2);
-                }
-            }
-            auto p = &aa.b[j];
-            buildTree(p, 0, k);
-        }
-    }
-}
 /********************************************
  * Produce array of N byte keys from aa.
  */
 
 ArrayRet_t _aaKeys(AA aa, size_t keysize)
 {
-    byte[] res;
-    size_t resi;
-
-    void _aaKeys_x(aaA* e)
-    {
-        do
-        {
-            memcpy(&res[resi * keysize], cast(byte*)(e + 1), keysize);
-            resi++;
-            if (e.left)
-            {   if (!e.right)
-                {   e = e.left;
-                    continue;
-                }
-                _aaKeys_x(e.left);
-            }
-            e = e.right;
-        } while (e !is null);
-    }
-
     auto len = _aaLen(aa);
     if (!len)
         return 0;
-    res = (cast(byte*) gc_malloc(len * keysize,
+    auto res = (cast(byte*) gc_malloc(len * keysize,
                                  !(aa.a.keyti.flags() & 1) ? BlkAttr.NO_SCAN : 0))[0 .. len * keysize];
-    resi = 0;
+    size_t resi = 0;
     foreach (e; aa.a.b)
     {
-        if (e)
-            _aaKeys_x(e);
+        while (e)
+	{
+            memcpy(&res[resi * keysize], cast(byte*)(e + 1), keysize);
+            resi++;
+	    e = e.next;
+	}
     }
     assert(resi == len);
 
@@ -691,40 +526,16 @@ body
 
     //printf("_aaApply(aa = x%llx, keysize = %d, dg = x%llx)\n", aa.a, keysize, dg);
 
-    int treewalker(aaA* e)
-    {   int result;
-
-        do
-        {
-            //printf("treewalker(e = %p, dg = x%llx)\n", e, dg);
-            result = dg(cast(void *)(e + 1) + keysize);
-            if (result)
-                break;
-            if (e.right)
-            {   if (!e.left)
-                {
-                    e = e.right;
-                    continue;
-                }
-                result = treewalker(e.right);
-                if (result)
-                    break;
-            }
-            e = e.left;
-        } while (e);
-
-        return result;
-    }
-
     if (aa.a)
     {
         foreach (e; aa.a.b)
         {
-            if (e)
+            while (e)
             {
-                result = treewalker(e);
+	        result = dg(cast(void *)(e + 1) + keysize);
                 if (result)
                     break;
+		e = e.next;
             }
         }
     }
@@ -744,40 +555,16 @@ body
 
     //printf("_aaApply(aa = x%llx, keysize = %d, dg = x%llx)\n", aa.a, keysize, dg);
 
-    int treewalker(aaA* e)
-    {   int result;
-
-        do
-        {
-            //printf("treewalker(e = %p, dg = x%llx)\n", e, dg);
-            result = dg(cast(void *)(e + 1), cast(void *)(e + 1) + keysize);
-            if (result)
-                break;
-            if (e.right)
-            {   if (!e.left)
-                {
-                    e = e.right;
-                    continue;
-                }
-                result = treewalker(e.right);
-                if (result)
-                    break;
-            }
-            e = e.left;
-        } while (e);
-
-        return result;
-    }
-
     if (aa.a)
     {
         foreach (e; aa.a.b)
         {
-            if (e)
+            while (e)
             {
-                result = treewalker(e);
+		result = dg(cast(void *)(e + 1), cast(void *)(e + 1) + keysize);
                 if (result)
                     break;
+		e = e.next;
             }
         }
     }
@@ -856,10 +643,8 @@ BB* _d_assocarrayliteralT(TypeInfo_AssociativeArray ti, size_t length, ...)
                     auto c = keyti.compare(pkey, e + 1);
                     if (c == 0)
                         break;
-                    pe = (c < 0) ? &e.left : &e.right;
                 }
-                else
-                    pe = (key_hash < e.hash) ? &e.left : &e.right;
+		pe = &e.next;
             }
             memcpy(cast(void *)(e + 1) + keytsize, pvalue, valuesize);
         }
@@ -934,22 +719,12 @@ int _aaEqual(TypeInfo_AssociativeArray ti, AA e1, AA e2)
 			else
 			    return 0;		// values don't match, so AA's are not equal
 		    }
-		    f = (c < 0) ? f.left : f.right;
 		}
-		else
-		    f = (key_hash < f.hash) ? f.left : f.right;
+		f = f.next;
 	    }
 
 	    // Look at next entry in e1
-            if (e.left)
-            {   if (!e.right)
-                {   e = e.left;
-                    continue;
-                }
-                if (_aaKeys_x(e.left) == 0)
-		    return 0;
-            }
-            e = e.right;
+            e = e.next;
         } while (e !is null);
 	return 1;			// this subtree matches
     }
