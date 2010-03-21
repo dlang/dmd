@@ -453,9 +453,19 @@ class GC
                 switch (state)
                 {
                 case 0:
-                    gcx.fullcollectshell();
+                    auto freedpages = gcx.fullcollectshell();
                     collected = true;
-                    state = 1;
+                    if (freedpages < gcx.npools * ((POOLSIZE / PAGESIZE) / 8))
+		    {	/* Didn't free much, so try allocating more anyway.
+			 * Note: freedpages is not the amount of memory freed, it's the amount
+			 * of full pages freed. Perhaps this should instead be the amount of
+			 * memory freed.
+			 */
+			gcx.newPool(1);
+			state = 2;
+		    }
+		    else
+			state = 1;
                     continue;
                 case 1:
                     gcx.newPool(1);
@@ -1219,17 +1229,19 @@ class GC
 
 
     /**
-     * do full garbage collection
+     * Do full garbage collection.
+     * Return number of pages free'd.
      */
-    void fullCollect()
+    size_t fullCollect()
     {
         debug(PRINTF) printf("GC.fullCollect()\n");
+	size_t result;
 
         // Since a finalizer could launch a new thread, we always need to lock
         // when collecting.
         synchronized (gcLock)
         {
-            gcx.fullcollectshell();
+            result = gcx.fullcollectshell();
         }
 
         version (none)
@@ -1242,6 +1254,7 @@ class GC
         }
 
         gcx.log_collect();
+	return result;
     }
 
 
@@ -2062,8 +2075,10 @@ struct Gcx
         {   size_t n;
 
             n = npools;
-            if (n > 8)
-                n = 8;                  // cap pool size at 8 megs
+	    if (n > 32)
+		n = 32;			// cap pool size at 32 megs
+            else if (n > 8)
+                n = 16;
             n *= (POOLSIZE / PAGESIZE);
             if (npages < n)
                 npages = n;
