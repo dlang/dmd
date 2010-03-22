@@ -1692,12 +1692,13 @@ struct Gcx
 
 	    /* The pooltable[] is sorted by address, so do a binary search
 	     */
+	    auto pt = pooltable;
 	    int low = 0;
 	    int high = npools - 1;
 	    while (low <= high)
 	    {
 		size_t mid = (low + high) >> 1;
-		auto pool = pooltable[mid];
+		auto pool = pt[mid];
 		if (p < pool.baseAddr)
 		    high = mid - 1;
 		else if (p >= pool.topAddr)
@@ -2189,7 +2190,7 @@ struct Gcx
                 if ((cast(size_t)p & ~(PAGESIZE-1)) == pcache)
                     continue;
 
-                auto pool = findPool(p);
+		auto pool = findPool(p);
                 if (pool)
                 {
                     size_t offset = cast(size_t)(p - pool.baseAddr);
@@ -2231,13 +2232,12 @@ struct Gcx
                     if (!pool.mark.testSet(biti))
                     {
                         //if (log) debug(PRINTF) printf("\t\tmarking %x\n", p);
-                        //pool.mark.set(biti);
                         if (!pool.noscan.test(biti))
                         {
                             pool.scan.set(biti);
                             changes = 1;
                         }
-                        log_parent(sentinel_add(pool.baseAddr + biti * 16), sentinel_add(pbot));
+                        debug (LOGGING) log_parent(sentinel_add(pool.baseAddr + biti * 16), sentinel_add(pbot));
                     }
                 }
             }

@@ -78,8 +78,15 @@ struct GCBits
     }
     body
     {
-        //return (cast(bit *)(data + 1))[i];
-        return data[1 + (i >> BITS_SHIFT)] & (1 << (i & BITS_MASK));
+        version (none)
+        {
+            return std.intrinsic.bt(data + 1, i);   // this is actually slower! don't use
+        }
+	else
+	{
+	    //return (cast(bit *)(data + 1))[i];
+	    return data[1 + (i >> BITS_SHIFT)] & (1 << (i & BITS_MASK));
+	}
     }
 
     void set(size_t i)
@@ -108,7 +115,7 @@ struct GCBits
     {
         version (bitops)
         {
-            return std.intrinsic.btr(data + 1, i);
+            return std.intrinsic.btr(data + 1, i);   // this is faster!
         }
         else version (Asm86)
         {
@@ -140,7 +147,7 @@ struct GCBits
     {
         version (bitops)
         {
-            return std.intrinsic.bts(data + 1, i);
+            return std.intrinsic.bts(data + 1, i);   // this is faster!
         }
         else version (Asm86)
         {
