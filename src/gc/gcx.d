@@ -1685,21 +1685,26 @@ struct Gcx
     {
         if (p >= minAddr && p < maxAddr)
         {
-            if (npools == 1)
+            if (npools <= 1)
             {
-                return pooltable[0];
+                return npools == 0 ? null : pooltable[0];
             }
 
-            for (size_t i = 0; i < npools; i++)
-            {   Pool *pool;
-
-                pool = pooltable[i];
-                if (p < pool.topAddr)
-                {   if (pool.baseAddr <= p)
-                        return pool;
-                    break;
-                }
-            }
+	    /* The pooltable[] is sorted by address, so do a binary search
+	     */
+	    int low = 0;
+	    int high = npools - 1;
+	    while (low <= high)
+	    {
+		size_t mid = (low + high) >> 1;
+		auto pool = pooltable[mid];
+		if (p < pool.baseAddr)
+		    high = mid - 1;
+		else if (p >= pool.topAddr)
+		    low = mid + 1;
+		else
+		    return pool;
+	    }
         }
         return null;
     }
@@ -2084,6 +2089,8 @@ struct Gcx
                 npages = n;
         }
 
+	//printf("npages = %d\n", npages);
+
         pool = cast(Pool *)cstdlib.calloc(1, Pool.sizeof);
         if (pool)
         {
@@ -2174,8 +2181,7 @@ struct Gcx
         //printf("marking range: %p -> %p\n", pbot, ptop);
         for (; p1 < p2; p1++)
         {
-            Pool *pool;
-            byte *p = cast(byte *)(*p1);
+            auto p = cast(byte *)(*p1);
 
             //if (log) debug(PRINTF) printf("\tmark %x\n", p);
             if (p >= minAddr && p < maxAddr)
@@ -2183,21 +2189,28 @@ struct Gcx
                 if ((cast(size_t)p & ~(PAGESIZE-1)) == pcache)
                     continue;
 
-                pool = findPool(p);
+                auto pool = findPool(p);
                 if (pool)
                 {
                     size_t offset = cast(size_t)(p - pool.baseAddr);
-                    size_t biti;
+                    size_t biti = void;
                     size_t pn = offset / PAGESIZE;
                     Bins   bin = cast(Bins)pool.pagetable[pn];
 
                     //debug(PRINTF) printf("\t\tfound pool %x, base=%x, pn = %d, bin = %d, biti = x%x\n", pool, pool.baseAddr, pn, bin, biti);
 
                     // Adjust bit to be at start of allocated memory block
-                    if (bin <= B_PAGE)
+                    if (bin < B_PAGE)
                     {
                         biti = (offset & notbinsize[bin]) >> 4;
                         //debug(PRINTF) printf("\t\tbiti = x%x\n", biti);
+                    }
+                    else if (bin == B_PAGE)
+                    {
+                        biti = (offset & notbinsize[bin]) >> 4;
+                        //debug(PRINTF) printf("\t\tbiti = x%x\n", biti);
+
+                        pcache = cast(size_t)p & ~(PAGESIZE-1);
                     }
                     else if (bin == B_PAGEPLUS)
                     {
@@ -2205,6 +2218,8 @@ struct Gcx
                         {   --pn;
                         } while (cast(Bins)pool.pagetable[pn] == B_PAGEPLUS);
                         biti = pn * (PAGESIZE / 16);
+
+                        pcache = cast(size_t)p & ~(PAGESIZE-1);
                     }
                     else
                     {
@@ -2212,14 +2227,11 @@ struct Gcx
                         continue;
                     }
 
-                    if (bin >= B_PAGE) // Cache B_PAGE and B_PAGEPLUS lookups
-                        pcache = cast(size_t)p & ~(PAGESIZE-1);
-
                     //debug(PRINTF) printf("\t\tmark(x%x) = %d\n", biti, pool.mark.test(biti));
-                    if (!pool.mark.test(biti))
+                    if (!pool.mark.testSet(biti))
                     {
                         //if (log) debug(PRINTF) printf("\t\tmarking %x\n", p);
-                        pool.mark.set(biti);
+                        //pool.mark.set(biti);
                         if (!pool.noscan.test(biti))
                         {
                             pool.scan.set(biti);
@@ -2281,6 +2293,7 @@ struct Gcx
         Pool*  pool;
 
         debug(COLLECT_PRINTF) printf("Gcx.fullcollect()\n");
+	//printf("\tpool address range = %p .. %p\n", minAddr, maxAddr);
 
         thread_suspendAll();
 
@@ -2337,15 +2350,15 @@ struct Gcx
         }
 
         // Scan roots[]
-        debug(COLLECT_PRINTF) printf("scan roots[]\n");
+        debug(COLLECT_PRINTF) printf("\tscan roots[]\n");
         mark(roots, roots + nroots);
 
         // Scan ranges[]
-        debug(COLLECT_PRINTF) printf("scan ranges[]\n");
+        debug(COLLECT_PRINTF) printf("\tscan ranges[]\n");
         //log++;
         for (n = 0; n < nranges; n++)
         {
-            debug(COLLECT_PRINTF) printf("\t%x .. %x\n", ranges[n].pbot, ranges[n].ptop);
+            debug(COLLECT_PRINTF) printf("\t\t%x .. %x\n", ranges[n].pbot, ranges[n].ptop);
             mark(ranges[n].pbot, ranges[n].ptop);
         }
         //log--;
@@ -2353,44 +2366,41 @@ struct Gcx
         debug(COLLECT_PRINTF) printf("\tscan heap\n");
         while (anychanges)
         {
+            debug(COLLECT_PRINTF) printf("\t\tpass\n");
             anychanges = 0;
             for (n = 0; n < npools; n++)
             {
-                uint *bbase;
-                uint *b;
-                uint *btop;
-
                 pool = pooltable[n];
 
-                bbase = pool.scan.base();
-                btop = bbase + pool.scan.nwords;
-                for (b = bbase; b < btop;)
-                {   Bins   bin;
-                    size_t pn;
-                    size_t u;
-                    size_t bitm;
-                    byte*  o;
-
-                    bitm = *b;
+                auto bbase = pool.scan.base();
+                auto btop = bbase + pool.scan.nwords;
+                for (auto b = bbase; b < btop;)
+                {
+                    auto bitm = *b;
                     if (!bitm)
                     {   b++;
                         continue;
                     }
                     *b = 0;
 
-                    o = pool.baseAddr + (b - bbase) * 32 * 16;
+                    auto o = pool.baseAddr + (b - bbase) * 32 * 16;
                     if (!(bitm & 0xFFFF))
                     {
                         bitm >>= 16;
                         o += 16 * 16;
+                    }
+                    if (!(bitm & 0xFF))
+                    {
+                        bitm >>= 8;
+                        o += 8 * 16;
                     }
                     for (; bitm; o += 16, bitm >>= 1)
                     {
                         if (!(bitm & 1))
                             continue;
 
-                        pn = cast(size_t)(o - pool.baseAddr) / PAGESIZE;
-                        bin = cast(Bins)pool.pagetable[pn];
+                        auto pn = cast(size_t)(o - pool.baseAddr) / PAGESIZE;
+                        auto bin = cast(Bins)pool.pagetable[pn];
                         if (bin < B_PAGE)
                         {
                             mark(o, o + binsize[bin]);
@@ -2402,7 +2412,7 @@ struct Gcx
                                 while (pool.pagetable[pn - 1] != B_PAGE)
                                     pn--;
                             }
-                            u = 1;
+                            auto u = 1;
                             while (pn + u < pool.ncommitted && pool.pagetable[pn + u] == B_PAGEPLUS)
                                 u++;
                             mark(o, o + u * PAGESIZE);
@@ -2571,7 +2581,7 @@ struct Gcx
             }
         }
 
-        debug(COLLECT_PRINTF) printf("recovered pages = %d\n", recoveredpages);
+        debug(COLLECT_PRINTF) printf("\trecovered pages = %d\n", recoveredpages);
         debug(COLLECT_PRINTF) printf("\tfree'd %u bytes, %u pages from %u pools\n", freed, freedpages, npools);
 
         return freedpages + recoveredpages;

@@ -136,6 +136,38 @@ struct GCBits
         }
     }
 
+    uint testSet(size_t i)
+    {
+        version (bitops)
+        {
+            return std.intrinsic.bts(data + 1, i);
+        }
+        else version (Asm86)
+        {
+            asm
+            {
+                naked                   ;
+                mov     EAX,data[EAX]   ;
+                mov     ECX,i-4[ESP]    ;
+                bts     4[EAX],ECX      ;
+                sbb     EAX,EAX         ;
+                ret     4               ;
+            }
+        }
+        else
+        {   uint result;
+
+            //result = (cast(bit *)(data + 1))[i];
+            //(cast(bit *)(data + 1))[i] = 0;
+
+            uint* p = &data[1 + (i >> BITS_SHIFT)];
+            uint  mask = (1 << (i & BITS_MASK));
+            result = *p & mask;
+            *p |= mask;
+            return result;
+        }
+    }
+
     void zero()
     {
         memset(data + 1, 0, nwords * uint.sizeof);
