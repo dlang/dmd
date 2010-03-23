@@ -241,6 +241,7 @@ struct ModuleInfo
     void function() tlsdtor;
     void*[2] reserved;
 +/
+    @property string name();
     @property void function() unitTest();
 
     static int opApply(int delegate(ref ModuleInfo*));
