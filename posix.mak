@@ -9,7 +9,8 @@ UDFLAGS=-O -release -nofloat -w -d -Iimport -Isrc
 
 CFLAGS=-m32 -O
 
-DRUNTIME=libdruntime.a
+OBJDIR=obj
+DRUNTIME=lib/libdruntime.a
 
 target : import $(DRUNTIME) doc
 
@@ -305,7 +306,8 @@ SRCS= \
 # NOTE: a pre-compiled minit.obj has been provided in dmd for Win32 and
 #       minit.asm is not used by dmd for Linux
 
-OBJS= errno_c.o threadasm.o complex.o critical.o memory_osx.o monitor.o
+OBJS= $(OBJDIR)/errno_c.o $(OBJDIR)/threadasm.o $(OBJDIR)/complex.o	\
+$(OBJDIR)/critical.o $(OBJDIR)/memory_osx.o $(OBJDIR)/monitor.o
 
 DOCS=\
 	$(DOCDIR)/core/bitop.html \
@@ -343,115 +345,31 @@ IMPORTS=\
 
 ######################## Doc .html file generation ##############################
 
-doc: $(DOCS)
+html: $(DOCS)
 
-$(DOCDIR)/core/bitop.html : src/core/bitop.d
-	$(DMD) -c -d -o- -Iimport -Isrc -Df$@ $<
-	
-$(DOCDIR)/core/cpuid.html : src/core/cpuid.d
-	$(DMD) -c -d -o- -Iimport -Isrc -Df$@ $<
-
-$(DOCDIR)/core/exception.html : src/core/exception.d
-	$(DMD) -c -d -o- -Iimport -Isrc -Df$@ $<
-
-$(DOCDIR)/core/memory.html : src/core/memory.d
-	$(DMD) -c -d -o- -Iimport -Isrc -Df$@ $<
-
-$(DOCDIR)/core/runtime.html : src/core/runtime.d
-	$(DMD) -c -d -o- -Iimport -Isrc -Df$@ $<
-
-$(DOCDIR)/core/thread.html : src/core/thread.d
-	$(DMD) -c -d -o- -Iimport -Isrc -Df$@ $<
-
-$(DOCDIR)/core/vararg.html : src/core/vararg.d
-	$(DMD) -c -d -o- -Iimport -Isrc -Df$@ $<
-
-$(DOCDIR)/core/sync/barrier.html : src/core/sync/barrier.d
-	$(DMD) -c -d -o- -Iimport -Isrc -Df$@ $<
-
-$(DOCDIR)/core/sync/condition.html : src/core/sync/condition.d
-	$(DMD) -c -d -o- -Iimport -Isrc -Df$@ $<
-
-$(DOCDIR)/core/sync/config.html : src/core/sync/config.d
-	$(DMD) -c -d -o- -Iimport -Isrc -Df$@ $<
-
-$(DOCDIR)/core/sync/exception.html : src/core/sync/exception.d
-	$(DMD) -c -d -o- -Iimport -Isrc -Df$@ $<
-
-$(DOCDIR)/core/sync/mutex.html : src/core/sync/mutex.d
-	$(DMD) -c -d -o- -Iimport -Isrc -Df$@ $<
-
-$(DOCDIR)/core/sync/rwmutex.html : src/core/sync/rwmutex.d
-	$(DMD) -c -d -o- -Iimport -Isrc -Df$@ $<
-
-$(DOCDIR)/core/sync/semaphore.html : src/core/sync/semaphore.d
+$(DOCDIR)/core/%.html : src/core/%.d
 	$(DMD) -c -d -o- -Iimport -Isrc -Df$@ $<
 
 ######################## Header .di file generation ##############################
 
 import: $(IMPORTS)
 
-$(IMPDIR)/core/bitop.di : src/core/bitop.d
-	$(DMD) -c -d -o- -Iimport -Isrc -Hf$@ $<
-
-$(IMPDIR)/core/cpuid.di : src/core/cpuid.d
-	$(DMD) -c -d -o- -Iimport -Isrc -Hf$@ $<
-
-$(IMPDIR)/core/exception.di : src/core/exception.d
-	$(DMD) -c -d -o- -Iimport -Isrc -Hf$@ $<
-
-$(IMPDIR)/core/memory.di : src/core/memory.d
-	$(DMD) -c -d -o- -Iimport -Isrc -Hf$@ $<
-
-$(IMPDIR)/core/runtime.di : src/core/runtime.d
-	$(DMD) -c -d -o- -Iimport -Isrc -Hf$@ $<
-
-$(IMPDIR)/core/thread.di : src/core/thread.d
-	$(DMD) -c -d -o- -Iimport -Isrc -Hf$@ $<
-
-$(IMPDIR)/core/vararg.di : src/core/vararg.d
-	$(DMD) -c -d -o- -Iimport -Isrc -Hf$@ $<
-
-$(IMPDIR)/core/sync/barrier.di : src/core/sync/barrier.d
-	$(DMD) -c -d -o- -Iimport -Isrc -Hf$@ $<
-
-$(IMPDIR)/core/sync/condition.di : src/core/sync/condition.d
-	$(DMD) -c -d -o- -Iimport -Isrc -Hf$@ $<
-
-$(IMPDIR)/core/sync/config.di : src/core/sync/config.d
-	$(DMD) -c -d -o- -Iimport -Isrc -Hf$@ $<
-
-$(IMPDIR)/core/sync/exception.di : src/core/sync/exception.d
-	$(DMD) -c -d -o- -Iimport -Isrc -Hf$@ $<
-
-$(IMPDIR)/core/sync/mutex.di : src/core/sync/mutex.d
-	$(DMD) -c -d -o- -Iimport -Isrc -Hf$@ $<
-
-$(IMPDIR)/core/sync/rwmutex.di : src/core/sync/rwmutex.d
-	$(DMD) -c -d -o- -Iimport -Isrc -Hf$@ $<
-
-$(IMPDIR)/core/sync/semaphore.di : src/core/sync/semaphore.d
+$(IMPDIR)/core/%.di : src/core/%.d
 	$(DMD) -c -d -o- -Iimport -Isrc -Hf$@ $<
 
 ################### C/ASM Targets ############################
 
-complex.o : src/rt/complex.c
-	$(CC) -c $(CFLAGS) $<
+$(OBJDIR)/%.o : src/rt/%.c
+	@mkdir -p $(OBJDIR)
+	$(CC) -c $(CFLAGS) $< -o$@
 
-critical.o : src/rt/critical.c
-	$(CC) -c $(CFLAGS) $<
+$(OBJDIR)/errno_c.o : src/core/stdc/errno.c
+	@mkdir -p $(OBJDIR)
+	$(CC) -c $(CFLAGS) $< -o$@
 
-memory_osx.o : src/rt/memory_osx.c
-	$(CC) -c $(CFLAGS) $<
-
-monitor.o : src/rt/monitor.c
-	$(CC) -c $(CFLAGS) $<
-
-errno_c.o : src/core/stdc/errno.c
-	$(CC) -c $(CFLAGS) src/core/stdc/errno.c -oerrno_c.o
-
-threadasm.o : src/core/threadasm.S
-	$(CC) -c $(CFLAGS) $<
+$(OBJDIR)/threadasm.o : src/core/threadasm.S
+	@mkdir -p $(OBJDIR)
+	$(CC) -c $(CFLAGS) $< -o$@
 
 ################### Library generation #########################
 
@@ -461,11 +379,11 @@ $(DRUNTIME): $(OBJS) $(SRCS) win32.mak
 unittest : $(SRCS) $(DRUNTIME) src/unittest.d
 	$(DMD) $(UDFLAGS) -unittest src/unittest.d $(SRCS) $(DRUNTIME)
 
-druntime.zip : zip
+zip: druntime.zip
 
-zip:
-	rm druntime.zip
-	zip -u druntime $(MANIFEST) $(DOCS) $(IMPORTS) minit.o
+druntime.zip:
+	rm $@
+	zip -u $@ $(MANIFEST) $(DOCS) $(IMPORTS) minit.o
 
 install: druntime.zip
 	unzip -o druntime.zip -d /dmd2/src/druntime
