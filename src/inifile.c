@@ -59,9 +59,12 @@ char *strupr(char *s)
  * Input:
  *	argv0	program name (argv[0])
  *	inifile	.ini file name
+ * Returns:
+ *	file name of ini file
+ *	Note: this is a memory leak
  */
 
-void inifile(const char *argv0x, const char *inifilex)
+const char *inifile(const char *argv0x, const char *inifilex)
 {
     char *argv0 = (char *)argv0x;
     char *inifile = (char *)inifilex;	// do const-correct later
@@ -135,6 +138,9 @@ void inifile(const char *argv0x, const char *inifilex)
 		    if (1){
 		    // Search PATH for argv0
 		    const char *p = getenv("PATH");
+#if LOG
+		    printf("\tPATH='%s'\n", p);
+#endif
 		    Array *paths = FileName::splitPath(p);
 		    filename = FileName::searchPath(paths, argv0, 0);
 		    if (!filename)
@@ -163,7 +169,7 @@ void inifile(const char *argv0x, const char *inifilex)
     File file(filename);
 
     if (file.read())
-	return;			// error reading file
+	return filename;			// error reading file
 
     // Parse into lines
     int eof = 0;
@@ -315,6 +321,7 @@ void inifile(const char *argv0x, const char *inifilex)
      Lskip:
 	;
     }
+    return filename;
 }
 
 /********************

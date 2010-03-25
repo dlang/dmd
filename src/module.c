@@ -337,6 +337,15 @@ void Module::read(Loc loc)
     //printf("Module::read('%s') file '%s'\n", toChars(), srcfile->toChars());
     if (srcfile->read())
     {	error(loc, "cannot read file '%s'", srcfile->toChars());
+	if (!global.gag)
+	{   /* Print path
+	     */
+	    for (size_t i = 0; i < global.path->dim; i++)
+	    {
+		char *p = (char *)global.path->data[i];
+		fprintf(stdmsg, "import path[%d] = %s\n", i, p);
+	    }
+	}
 	fatal();
     }
 }

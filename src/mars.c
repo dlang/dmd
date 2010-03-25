@@ -226,6 +226,13 @@ extern void backend_term();
 
 void usage()
 {
+#if TARGET_LINUX
+    const char fpic[] ="\
+  -fPIC          generate position independent code\n\
+";
+#else
+    const char fpic[] = "";
+#endif
     printf("Digital Mars D Compiler %s\n%s %s\n",
 	global.version, global.copyright, global.written);
     printf("\
@@ -246,7 +253,7 @@ Usage:\n\
   -debug=ident   compile in debug code identified by ident\n\
   -debuglib=name    set symbolic debug library to name\n\
   -defaultlib=name  set default library to name\n\
-  -deps=filename write module dependencies to filename\n\
+  -deps=filename write module dependencies to filename\n%s\
   -g             add symbolic debug info\n\
   -gc            add symbolic debug info, pretend to be C\n\
   -H             generate 'header' file\n\
@@ -280,7 +287,7 @@ Usage:\n\
   -wi            enable informational warnings\n\
   -X             generate JSON file\n\
   -Xffilename    write JSON file to filename\n\
-");
+", fpic);
 }
 
 int main(int argc, char *argv[])
@@ -293,6 +300,7 @@ int main(int argc, char *argv[])
     int status = EXIT_SUCCESS;
     int argcstart = argc;
     int setdebuglib = 0;
+    const char *inifilename = NULL;
 
     // Check for malformed input
     if (argc < 1 || !argv)
@@ -381,9 +389,9 @@ int main(int argc, char *argv[])
     VersionCondition::addPredefinedGlobalIdent("all");
 
 #if _WIN32
-    inifile(argv[0], "sc.ini");
+    inifilename = inifile(argv[0], "sc.ini");
 #elif linux || __APPLE__ || __FreeBSD__ || __sun&&__SVR4
-    inifile(argv[0], "dmd.conf");
+    inifilename = inifile(argv[0], "dmd.conf");
 #else
 #error "fix this"
 #endif
@@ -847,6 +855,12 @@ int main(int argc, char *argv[])
     initPrecedence();
 
     backend_init();
+
+    if (global.params.verbose)
+    {	printf("binary    %s\n", argv[0]);
+	printf("version   %s\n", global.version);
+	printf("config    %s\n", inifilename ? inifilename : "(none)");
+    }
 
     //printf("%d source files\n",files.dim);
 
