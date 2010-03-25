@@ -302,6 +302,7 @@ int main(int argc, char *argv[])
     int argcstart = argc;
     int setdebuglib = 0;
     char noboundscheck = 0;
+    const char *inifilename = NULL;
 
     // Check for malformed input
     if (argc < 1 || !argv)
@@ -390,9 +391,9 @@ int main(int argc, char *argv[])
     VersionCondition::addPredefinedGlobalIdent("all");
 
 #if _WIN32
-    inifile(argv[0], "sc.ini");
+    inifilename = inifile(argv[0], "sc.ini");
 #elif linux || __APPLE__ || __FreeBSD__ || __sun&&__SVR4
-    inifile(argv[0], "dmd.conf");
+    inifilename = inifile(argv[0], "dmd.conf");
 #else
 #error "fix this"
 #endif
@@ -858,6 +859,12 @@ int main(int argc, char *argv[])
     initPrecedence();
 
     backend_init();
+
+    if (global.params.verbose)
+    {	printf("binary    %s\n", argv[0]);
+	printf("version   %s\n", global.version);
+	printf("config    %s\n", inifilename ? inifilename : "(none)");
+    }
 
     //printf("%d source files\n",files.dim);
 
