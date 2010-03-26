@@ -56,6 +56,7 @@ int AttribDeclaration::addMember(Scope *sc, ScopeDsymbol *sd, int memnum)
     {
 	for (unsigned i = 0; i < d->dim; i++)
 	{   Dsymbol *s = (Dsymbol *)d->data[i];
+	    //printf("\taddMember %s to %s\n", s->toChars(), sd->toChars());
 	    m |= s->addMember(sc, sd, m | memnum);
 	}
     }
@@ -1405,7 +1406,7 @@ Dsymbol *CompileDeclaration::syntaxCopy(Dsymbol *s)
 
 int CompileDeclaration::addMember(Scope *sc, ScopeDsymbol *sd, int memnum)
 {
-    //printf("CompileDeclaration::addMember(sc = %p, memnum = %d)\n", sc, memnum);
+    //printf("CompileDeclaration::addMember(sc = %p, sd = %p, memnum = %d)\n", sc, sd, memnum);
     this->sd = sd;
     if (memnum == 0)
     {	/* No members yet, so parse the mixin now
@@ -1419,7 +1420,7 @@ int CompileDeclaration::addMember(Scope *sc, ScopeDsymbol *sd, int memnum)
 
 void CompileDeclaration::compileIt(Scope *sc)
 {
-    //printf("CompileDeclaration::compileIt(loc = %d)\n", loc.linnum);
+    //printf("CompileDeclaration::compileIt(loc = %d) %s\n", loc.linnum, exp->toChars());
     exp = exp->semantic(sc);
     exp = resolveProperties(sc, exp);
     exp = exp->optimize(WANTvalue | WANTinterpret);

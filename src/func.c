@@ -1785,7 +1785,7 @@ int FuncDeclaration::overloadInsert(Dsymbol *s)
     FuncDeclaration *f;
     AliasDeclaration *a;
 
-    //printf("FuncDeclaration::overloadInsert(%s)\n", s->toChars());
+    //printf("FuncDeclaration::overloadInsert(s = %s) this = %s\n", s->toChars(), toChars());
     a = s->isAliasDeclaration();
     if (a)
     {
