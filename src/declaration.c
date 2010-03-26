@@ -560,6 +560,18 @@ int AliasDeclaration::overloadInsert(Dsymbol *s)
      */
 
     //printf("AliasDeclaration::overloadInsert('%s')\n", s->toChars());
+    if (aliassym) // see test/test56.d
+    {
+	Dsymbol *a = aliassym->toAlias();
+	FuncDeclaration *f = a->isFuncDeclaration();
+	if (f)	// BUG: what if it's a template?
+	{
+	    FuncAliasDeclaration *fa = new FuncAliasDeclaration(f);
+	    aliassym = fa;
+	    return fa->overloadInsert(s);
+	}
+    }
+
     if (overnext == NULL)
     {
 	if (s == this)
