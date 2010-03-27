@@ -1149,6 +1149,14 @@ Lagain:
 			   // Rewrite as e1.ctor(arguments)
 			    Expression *ector = new DotIdExp(loc, e1, Id::ctor);
 			    ei->exp = new CallExp(loc, ector, ei->exp);
+			    /* Before calling the constructor, initialize
+			     * variable with a bit copy of the default
+			     * initializer
+			     */
+			    Expression *e = new AssignExp(loc, e1, t->defaultInit(loc));
+			    e->op = TOKblit;
+			    e->type = t;
+			    ei->exp = new CommaExp(loc, e, ei->exp);
 			} 
 			else
 			/* Look for opCall
