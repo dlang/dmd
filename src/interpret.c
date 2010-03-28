@@ -2638,6 +2638,12 @@ Expression *CommaExp::interpret(InterState *istate)
     if (e1->op == TOKdeclaration && e2->op == TOKvar 
        && ((DeclarationExp *)e1)->declaration == ((VarExp*)e2)->var)
     {
+	// If there's no context for the variable to be created in,
+	// we need to create one now.
+	InterState istateComma;
+	if (!istate)
+	    istate = &istateComma;
+
 	VarExp* ve = (VarExp *)e2;
 	VarDeclaration *v = ve->var->isVarDeclaration();
 	if (!v->init && !v->value)
