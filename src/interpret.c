@@ -2566,7 +2566,7 @@ Expression *CallExp::interpret(InterState *istate)
     if (pthis && fd)
     {   // Member function call
 	if (pthis->op == TOKthis)
-	    pthis = istate->localThis;
+	    pthis = istate ? istate->localThis : NULL;
 	else if (pthis->op == TOKcomma)
 	    pthis = pthis->interpret(istate);
 	Expression *eresult = fd->interpret(istate, arguments, pthis);
