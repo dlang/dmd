@@ -1,6 +1,6 @@
 
 // Compiler implementation of the D programming language
-// Copyright (c) 1999-2009 by Digital Mars
+// Copyright (c) 1999-2010 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // http://www.digitalmars.com
@@ -104,11 +104,14 @@ Expression *Type::getInternalTypeInfo(Scope *sc)
 
 Expression *Type::getTypeInfo(Scope *sc)
 {
-    Expression *e;
-    Type *t;
-
     //printf("Type::getTypeInfo() %p, %s\n", this, toChars());
-    t = merge2();	// do this since not all Type's are merge'd
+    if (!Type::typeinfo)
+    {
+	error(0, "TypeInfo not found. object.d may be incorrectly installed or corrupt, compile with -v switch");
+	fatal();
+    }
+
+    Type *t = merge2();	// do this since not all Type's are merge'd
     if (!t->vtinfo)
     {
 #if DMDV2
@@ -140,7 +143,7 @@ Expression *Type::getTypeInfo(Scope *sc)
 	    }
 	}
     }
-    e = new VarExp(0, t->vtinfo);
+    Expression *e = new VarExp(0, t->vtinfo);
     e = e->addressOf(sc);
     e->type = t->vtinfo->type;		// do this so we don't get redundant dereference
     return e;
