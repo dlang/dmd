@@ -764,6 +764,7 @@ struct TypeTypedef : Type
     MATCH implicitConvTo(Type *to);
     MATCH constConv(Type *to);
     Expression *defaultInit(Loc loc);
+    Expression *defaultInitLiteral(Loc loc);
     int isZeroInit(Loc loc);
     dt_t **toDt(dt_t **pdt);
     MATCH deduceType(Scope *sc, Type *tparam, TemplateParameters *parameters, Objects *dedtypes);

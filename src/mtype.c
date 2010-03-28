@@ -1624,7 +1624,7 @@ Expression *Type::getProperty(Loc loc, Identifier *ident)
     {
 	if (ty == Tvoid)
 	    error(loc, "void does not have an initializer");
-	e = defaultInit(loc);
+	e = defaultInitLiteral(loc);
     }
     else if (ident == Id::mangleof)
     {	const char *s;
@@ -1724,7 +1724,7 @@ Expression *Type::dotExp(Scope *sc, Expression *e, Identifier *ident)
 		goto Lreturn;
 	    }
 #endif
-	    e = defaultInit(e->loc);
+	    e = defaultInitLiteral(e->loc);
 	    goto Lreturn;
 	}
     }
@@ -6117,7 +6117,7 @@ Expression *TypeEnum::getProperty(Loc loc, Identifier *ident)
     }
     else if (ident == Id::init)
     {
-	e = defaultInit(loc);
+	e = defaultInitLiteral(loc);
     }
     else if (ident == Id::stringof)
     {	char *s = toChars();
@@ -6440,6 +6440,22 @@ Expression *TypeTypedef::defaultInit(Loc loc)
 	e->type = tsa->next;
 	bt = tsa->next->toBasetype();
     }
+    return e;
+}
+
+Expression *TypeTypedef::defaultInitLiteral(Loc loc)
+{
+#if LOGDEFAULTINIT
+    printf("TypeTypedef::defaultInitLiteral() '%s'\n", toChars());
+#endif
+    if (sym->init)
+    {
+	//sym->init->toExpression()->print();
+	return sym->init->toExpression();
+    }
+    Type *bt = sym->basetype;
+    Expression *e = bt->defaultInitLiteral(loc);
+    e->type = this;
     return e;
 }
 
