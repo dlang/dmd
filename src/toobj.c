@@ -355,7 +355,10 @@ void ClassDeclaration::toObjFile(int multiobj)
     if (classinfo)
     {
 	if (classinfo->structsize != CLASSINFO_SIZE)
-	    error("D compiler and phobos' object.d are mismatched");
+	{
+	    error("mismatch between dmd and object.d or object.di found. Check installation and import paths with -v compiler switch.");
+	    fatal();
+	}
     }
 
     if (classinfo)
@@ -867,7 +870,13 @@ void InterfaceDeclaration::toObjFile(int multiobj)
     if (vtblInterfaces->dim)
     {
 	if (classinfo)
-	    assert(classinfo->structsize == CLASSINFO_SIZE);
+	{
+	    if (classinfo->structsize != CLASSINFO_SIZE)
+	    {
+		error("mismatch between dmd and object.d or object.di found. Check installation and import paths with -v compiler switch.");
+		fatal();
+	    }
+	}
 	offset = CLASSINFO_SIZE;
 	dtxoff(&dt, csym, offset, TYnptr);	// (*)
     }
