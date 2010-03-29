@@ -620,10 +620,12 @@ void Module::parse()
     // Update global list of modules
     if (!dst->insert(this))
     {
-	if (md)
-	    error(loc, "is in multiple packages %s", md->toChars());
-	else
-	    error(loc, "is in multiple defined");
+	Dsymbol *prev = dst->lookup(ident);
+	assert(prev);
+	Module *mprev = prev->isModule();
+	assert(mprev);
+	error(loc, "from file %s conflicts with another module %s from file %s",
+	    srcname, mprev->toChars(), mprev->srcfile->toChars());
     }
     else
     {
