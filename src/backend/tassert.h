@@ -19,7 +19,7 @@
  */
 
 #undef assert
-#define assert(e)	((e) || (local_assert(__LINE__), 0))
+#define assert(e)       ((e) || (local_assert(__LINE__), 0))
 
 void util_assert ( char * , int );
 #pragma noreturn(util_assert)

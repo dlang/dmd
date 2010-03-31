@@ -16,9 +16,9 @@
 
 struct Aobject
 {
-    symbol *AOsym;		// symbol for active object
-    targ_size_t AOoffset;	// offset from that object
-    symbol *AOfunc;		// cleanup function
+    symbol *AOsym;              // symbol for active object
+    targ_size_t AOoffset;       // offset from that object
+    symbol *AOfunc;             // cleanup function
 };
 
 

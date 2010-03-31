@@ -58,14 +58,14 @@ const char *Identifier::toHChars2()
     else if (this == Id::result) p = "result";
     else if (this == Id::returnLabel) p = "return";
     else
-    {	p = toChars();
-	if (*p == '_')
-	{
-	    if (memcmp(p, "_staticCtor", 11) == 0)
-		p = "static this";
-	    else if (memcmp(p, "_staticDtor", 11) == 0)
-		p = "static ~this";
-	}
+    {   p = toChars();
+        if (*p == '_')
+        {
+            if (memcmp(p, "_staticCtor", 11) == 0)
+                p = "static this";
+            else if (memcmp(p, "_staticDtor", 11) == 0)
+                p = "static ~this";
+        }
     }
 
     return p;

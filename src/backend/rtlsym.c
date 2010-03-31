@@ -12,24 +12,24 @@
 
 #if !SPP
 
-#include	<stdio.h>
-#include	<string.h>
-#include	<time.h>
-#include	"cc.h"
-#include	"type.h"
-#include	"oper.h"
-#include	"global.h"
-#include	"code.h"
+#include        <stdio.h>
+#include        <string.h>
+#include        <time.h>
+#include        "cc.h"
+#include        "type.h"
+#include        "oper.h"
+#include        "global.h"
+#include        "code.h"
 
-static char __file__[] = __FILE__;	/* for tassert.h		*/
-#include	"tassert.h"
+static char __file__[] = __FILE__;      /* for tassert.h                */
+#include        "tassert.h"
 
 Symbol *rtlsym[RTLSYM_MAX];
 
 #if MARS
-#define FREGSAVED	(mES | mBP | mBX | mSI | mDI)
+#define FREGSAVED       (mES | mBP | mBX | mSI | mDI)
 #else
-#define FREGSAVED	(mBP | mBX | mSI | mDI)
+#define FREGSAVED       (mBP | mBX | mSI | mDI)
 #endif
 
 static Symbol rtlsym2[RTLSYM_MAX];
@@ -45,52 +45,52 @@ void rtlsym_init()
     int i;
 
     if (!inited)
-    {	inited++;
+    {   inited++;
 
 #if MARS
-	fregsaved = FREGSAVED;
+        fregsaved = FREGSAVED;
 #endif
 
-	for (i = 0; i < RTLSYM_MAX; i++)
-	{
-	    rtlsym[i] = &rtlsym2[i];
+        for (i = 0; i < RTLSYM_MAX; i++)
+        {
+            rtlsym[i] = &rtlsym2[i];
 #ifdef DEBUG
-	    rtlsym[i]->id = IDsymbol;
+            rtlsym[i]->id = IDsymbol;
 #endif
-	    rtlsym[i]->Stype = tsclib;
-	    rtlsym[i]->Ssymnum = -1;
-	    rtlsym[i]->Sclass = SCextern;
-	    rtlsym[i]->Sfl = FLfunc;
+            rtlsym[i]->Stype = tsclib;
+            rtlsym[i]->Ssymnum = -1;
+            rtlsym[i]->Sclass = SCextern;
+            rtlsym[i]->Sfl = FLfunc;
 #if ELFOBJ || MACHOBJ
-	    rtlsym[i]->obj_si = (unsigned)-1;
-	    rtlsym[i]->dwarf_off = (unsigned)-1;
+            rtlsym[i]->obj_si = (unsigned)-1;
+            rtlsym[i]->dwarf_off = (unsigned)-1;
 #endif
-	    rtlsym[i]->Sregsaved = FREGSAVED;
-	}
+            rtlsym[i]->Sregsaved = FREGSAVED;
+        }
 
 #if MARS
-	t = type_fake(LARGECODE ? TYffunc : TYnfunc);
-	t->Tmangle = mTYman_c;
-	t->Tcount++;
+        t = type_fake(LARGECODE ? TYffunc : TYnfunc);
+        t->Tmangle = mTYman_c;
+        t->Tcount++;
 #endif
 
 #if MACHOBJ
-	type *tw = type_fake(TYnpfunc);
-	tw->Tmangle = mTYman_sys;
-	tw->Tcount++;
+        type *tw = type_fake(TYnpfunc);
+        tw->Tmangle = mTYman_sys;
+        tw->Tcount++;
 #else
-	type *tw = NULL;
+        type *tw = NULL;
 #endif
 
 #undef SYMBOL_Z
-#define SYMBOL_Z(e, fl, saved, n, flags, ty)				\
-	if (ty)	rtlsym[RTLSYM_##e]->Stype = ty;				\
-	if (fl != FLfunc) rtlsym[RTLSYM_##e]->Sfl = fl;			\
-	if (flags) rtlsym[RTLSYM_##e]->Sflags = flags;			\
-	if (saved != FREGSAVED) rtlsym[RTLSYM_##e]->Sregsaved = saved;	\
-	strcpy(rtlsym[RTLSYM_##e]->Sident, n);				\
+#define SYMBOL_Z(e, fl, saved, n, flags, ty)                            \
+        if (ty) rtlsym[RTLSYM_##e]->Stype = ty;                         \
+        if (fl != FLfunc) rtlsym[RTLSYM_##e]->Sfl = fl;                 \
+        if (flags) rtlsym[RTLSYM_##e]->Sflags = flags;                  \
+        if (saved != FREGSAVED) rtlsym[RTLSYM_##e]->Sregsaved = saved;  \
+        strcpy(rtlsym[RTLSYM_##e]->Sident, n);                          \
 
-	RTLSYMS
+        RTLSYMS
     }
 }
 
@@ -106,8 +106,8 @@ void rtlsym_reset()
 
     clib_inited = 0;
     for (i = 0; i < RTLSYM_MAX; i++)
-    {	rtlsym[i]->Sxtrnnum = 0;
-	rtlsym[i]->Stypidx = 0;
+    {   rtlsym[i]->Sxtrnnum = 0;
+        rtlsym[i]->Stypidx = 0;
     }
 }
 

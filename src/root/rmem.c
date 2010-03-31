@@ -1,6 +1,6 @@
 
-/* Copyright (c) 2000 Digital Mars	*/
-/* All Rights Reserved 			*/
+/* Copyright (c) 2000 Digital Mars      */
+/* All Rights Reserved                  */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -27,10 +27,10 @@ char *Mem::strdup(const char *s)
 
     if (s)
     {
-	p = ::strdup(s);
-	if (p)
-	    return p;
-	error();
+        p = ::strdup(s);
+        if (p)
+            return p;
+        error();
     }
     return NULL;
 }
@@ -39,12 +39,12 @@ void *Mem::malloc(size_t size)
 {   void *p;
 
     if (!size)
-	p = NULL;
+        p = NULL;
     else
     {
-	p = ::malloc(size);
-	if (!p)
-	    error();
+        p = ::malloc(size);
+        if (!p)
+            error();
     }
     return p;
 }
@@ -53,12 +53,12 @@ void *Mem::calloc(size_t size, size_t n)
 {   void *p;
 
     if (!size || !n)
-	p = NULL;
+        p = NULL;
     else
     {
-	p = ::calloc(size, n);
-	if (!p)
-	    error();
+        p = ::calloc(size, n);
+        if (!p)
+            error();
     }
     return p;
 }
@@ -66,22 +66,22 @@ void *Mem::calloc(size_t size, size_t n)
 void *Mem::realloc(void *p, size_t size)
 {
     if (!size)
-    {	if (p)
-	{   ::free(p);
-	    p = NULL;
-	}
+    {   if (p)
+        {   ::free(p);
+            p = NULL;
+        }
     }
     else if (!p)
     {
-	p = ::malloc(size);
-	if (!p)
-	    error();
+        p = ::malloc(size);
+        if (!p)
+            error();
     }
     else
     {
-	p = ::realloc(p, size);
-	if (!p)
-	    error();
+        p = ::realloc(p, size);
+        if (!p)
+            error();
     }
     return p;
 }
@@ -89,21 +89,21 @@ void *Mem::realloc(void *p, size_t size)
 void Mem::free(void *p)
 {
     if (p)
-	::free(p);
+        ::free(p);
 }
 
 void *Mem::mallocdup(void *o, size_t size)
 {   void *p;
 
     if (!size)
-	p = NULL;
+        p = NULL;
     else
     {
-	p = ::malloc(size);
-	if (!p)
-	    error();
-	else
-	    memcpy(p,o,size);
+        p = ::malloc(size);
+        if (!p)
+            error();
+        else
+            memcpy(p,o,size);
     }
     return p;
 }
@@ -120,16 +120,16 @@ void Mem::fullcollect()
 
 void Mem::mark(void *pointer)
 {
-    (void) pointer;		// necessary for VC /W4
+    (void) pointer;             // necessary for VC /W4
 }
 
 /* =================================================== */
 
 void * operator new(size_t m_size)
-{   
+{
     void *p = malloc(m_size);
     if (p)
-	return p;
+        return p;
     printf("Error: out of memory\n");
     exit(EXIT_FAILURE);
     return p;

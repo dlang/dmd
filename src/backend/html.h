@@ -18,16 +18,16 @@ struct Html
 {
     const char *sourcename;
 
-    unsigned char *base;	// pointer to start of buffer
-    unsigned char *end;		// past end of buffer
-    unsigned char *p;		// current character
-    unsigned linnum;		// current line number
+    unsigned char *base;        // pointer to start of buffer
+    unsigned char *end;         // past end of buffer
+    unsigned char *p;           // current character
+    unsigned linnum;            // current line number
 #if MARS
-    OutBuffer *dbuf;		// code source buffer
+    OutBuffer *dbuf;            // code source buffer
 #else
-    Outbuffer *dbuf;		// code source buffer
+    Outbuffer *dbuf;            // code source buffer
 #endif
-    int inCode;			// !=0 if in code
+    int inCode;                 // !=0 if in code
 
 
     Html(const char *sourcename, unsigned char *base, unsigned length);

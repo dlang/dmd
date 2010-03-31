@@ -26,8 +26,8 @@ struct ObjSymbol
 struct Library
 {
     File *libfile;
-    Array objmodules;	// ObjModule[]
-    Array objsymbols;	// ObjSymbol[]
+    Array objmodules;   // ObjModule[]
+    Array objsymbols;   // ObjSymbol[]
 
     StringTable tab;
 

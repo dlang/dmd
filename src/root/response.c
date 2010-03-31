@@ -57,7 +57,7 @@
  */
 
 struct Narg
-{   
+{
     int argc;   /* arg count      */
     int argvmax;   /* dimension of nargv[]   */
     char **argv;
@@ -67,7 +67,7 @@ static int addargp(struct Narg *n, char *p)
 {
     /* The 2 is to always allow room for a NULL argp at the end   */
     if (n->argc + 2 >= n->argvmax)
-    {   
+    {
         n->argvmax = n->argc + 2;
         n->argv = (char **) realloc(n->argv,n->argvmax * sizeof(char *));
         if (!n->argv)
@@ -106,7 +106,7 @@ int response_expand(int *pargc, char ***pargv)
                 bufend = buffer + strlen(buffer);
             }
             else
-            {   
+            {
                 long length;
                 int fd;
                 int nread;
@@ -115,10 +115,10 @@ int response_expand(int *pargc, char ***pargv)
 #if __DMC__
                 length = filesize(cp);
 #else
-		struct stat statbuf;
-		if (stat(cp, &statbuf))
-		    goto noexpand;
-		length = statbuf.st_size;
+                struct stat statbuf;
+                if (stat(cp, &statbuf))
+                    goto noexpand;
+                length = statbuf.st_size;
 #endif
                 if (length & 0xF0000000)   /* error or file too big */
                     goto noexpand;
@@ -145,14 +145,14 @@ int response_expand(int *pargc, char ***pargv)
             // The logic of this should match that in setargv()
 
             for (p = buffer; p < bufend; p++)
-            {   
+            {
                 char *d;
                 char c,lastc;
                 unsigned char instring;
                 int num_slashes,non_slashes;
 
                 switch (*p)
-                {   
+                {
                     case 26:      /* ^Z marks end of file      */
                         goto L2;
 
@@ -180,22 +180,22 @@ int response_expand(int *pargc, char ***pargv)
                             switch (c)
                             {
                                 case '"':
-                                    /* 
+                                    /*
                                         Yes this looks strange,but this is so that we are
                                         MS Compatible, tests have shown that:
                                         \\\\"foo bar"  gets passed as \\foo bar
                                         \\\\foo  gets passed as \\\\foo
-                                        \\\"foo gets passed as \"foo  
+                                        \\\"foo gets passed as \"foo
                                         and \"foo gets passed as "foo in VC!
                                      */
-                                    non_slashes = num_slashes % 2; 
+                                    non_slashes = num_slashes % 2;
                                     num_slashes = num_slashes / 2;
                                     for (; num_slashes > 0; num_slashes--)
                                     {
                                         d--;
                                         *d = '\0';
                                     }
-                                    
+
                                     if (non_slashes)
                                     {
                                         *(d-1) = c;
@@ -259,7 +259,7 @@ int response_expand(int *pargc, char ***pargv)
     }
     n.argv[n.argc] = NULL;
     if (recurse)
-    {   
+    {
         /* Recursively expand @filename   */
         if (response_expand(&n.argc,&n.argv))
             goto noexpand;

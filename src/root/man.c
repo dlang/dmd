@@ -28,9 +28,9 @@ void browse(const char *url)
 
 #if linux || __FreeBSD__ || __sun&&__SVR4
 
-#include	<sys/types.h>
-#include	<sys/wait.h>
-#include	<unistd.h>
+#include        <sys/types.h>
+#include        <sys/wait.h>
+#include        <unistd.h>
 
 void browse(const char *url)
 {
@@ -39,9 +39,9 @@ void browse(const char *url)
 
     const char *browser = getenv("BROWSER");
     if (browser)
-	browser = strdup(browser);
+        browser = strdup(browser);
     else
-	browser = "x-www-browser";
+        browser = "x-www-browser";
 
     args[0] = browser;
     args[1] = url;
@@ -50,9 +50,9 @@ void browse(const char *url)
     childpid = fork();
     if (childpid == 0)
     {
-	execvp(args[0], (char**)args);
-	perror(args[0]);		// failed to execute
-	return;
+        execvp(args[0], (char**)args);
+        perror(args[0]);                // failed to execute
+        return;
     }
 }
 
@@ -60,9 +60,9 @@ void browse(const char *url)
 
 #if __APPLE__
 
-#include	<sys/types.h>
-#include	<sys/wait.h>
-#include	<unistd.h>
+#include        <sys/types.h>
+#include        <sys/wait.h>
+#include        <unistd.h>
 
 void browse(const char *url)
 {
@@ -71,27 +71,27 @@ void browse(const char *url)
 
     char *browser = getenv("BROWSER");
     if (browser)
-    {	browser = strdup(browser);
-	args[0] = browser;
-	args[1] = url;
-	args[2] = NULL;
+    {   browser = strdup(browser);
+        args[0] = browser;
+        args[1] = url;
+        args[2] = NULL;
     }
     else
     {
-	//browser = "/Applications/Safari.app/Contents/MacOS/Safari";
-	args[0] = "open";
-	args[1] = "-a";
-	args[2] = "/Applications/Safari.app";
-	args[3] = url;
-	args[4] = NULL;
+        //browser = "/Applications/Safari.app/Contents/MacOS/Safari";
+        args[0] = "open";
+        args[1] = "-a";
+        args[2] = "/Applications/Safari.app";
+        args[3] = url;
+        args[4] = NULL;
     }
 
     childpid = fork();
     if (childpid == 0)
     {
-	execvp(args[0], (char**)args);
-	perror(args[0]);		// failed to execute
-	return;
+        execvp(args[0], (char**)args);
+        perror(args[0]);                // failed to execute
+        return;
     }
 }
 

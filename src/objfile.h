@@ -10,8 +10,8 @@ typedef unsigned SegOffset;
 
 enum ObjFormat
 {
-	NTCOFF,
-	ELF
+        NTCOFF,
+        ELF
 };
 
 struct ObjFile : File
@@ -21,15 +21,15 @@ struct ObjFile : File
 
     ObjFile *init(ObjFormat);
 
-    void comment(const char *);		// insert comment into object file
-    void modulename(const char *);	// set module name
-    void library(const char *);		// add default library
-    void startaddress(SegHandle seg, SegOffset offset);		// set start address
+    void comment(const char *);         // insert comment into object file
+    void modulename(const char *);      // set module name
+    void library(const char *);         // add default library
+    void startaddress(SegHandle seg, SegOffset offset);         // set start address
 
     // Segments
     enum SegHandle
-    {	code = 1,
-	data, bss
+    {   code = 1,
+        data, bss
     };
 
     SymHandle defineSym(const char *name, SegHandle seg, SegOffset offset);

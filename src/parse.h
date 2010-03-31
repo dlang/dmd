@@ -52,10 +52,10 @@ struct StaticAssert;
 
 enum ParseStatementFlags
 {
-    PSsemi = 1,		// empty ';' statements are allowed
-    PSscope = 2,	// start a new scope
-    PScurly = 4,	// { } statement is required
-    PScurlyscope = 8,	// { } starts a new scope
+    PSsemi = 1,         // empty ';' statements are allowed
+    PSscope = 2,        // start a new scope
+    PScurly = 4,        // { } statement is required
+    PScurlyscope = 8,   // { } starts a new scope
 };
 
 
@@ -63,8 +63,8 @@ struct Parser : Lexer
 {
     ModuleDeclaration *md;
     enum LINK linkage;
-    Loc endloc;			// set to location of last right curly
-    int inBrackets;		// inside [] of array index or slice
+    Loc endloc;                 // set to location of last right curly
+    int inBrackets;             // inside [] of array index or slice
 
     Parser(Module *module, unsigned char *base, unsigned length, int doDocComment);
 

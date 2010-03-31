@@ -24,7 +24,7 @@
 /********************************* AttribDeclaration ****************************/
 
 StaticAssert::StaticAssert(Loc loc, Expression *exp, Expression *msg)
-	: Dsymbol(Id::empty)
+        : Dsymbol(Id::empty)
 {
     this->loc = loc;
     this->exp = exp;
@@ -42,7 +42,7 @@ Dsymbol *StaticAssert::syntaxCopy(Dsymbol *s)
 
 int StaticAssert::addMember(Scope *sc, ScopeDsymbol *sd, int memnum)
 {
-    return 0;		// we didn't add anything
+    return 0;           // we didn't add anything
 }
 
 void StaticAssert::semantic(Scope *sc)
@@ -58,26 +58,26 @@ void StaticAssert::semantic2(Scope *sc)
     e = e->optimize(WANTvalue | WANTinterpret);
     if (e->isBool(FALSE))
     {
-	if (msg)
-	{   HdrGenState hgs;
-	    OutBuffer buf;
+        if (msg)
+        {   HdrGenState hgs;
+            OutBuffer buf;
 
-	    msg = msg->semantic(sc);
-	    msg = msg->optimize(WANTvalue | WANTinterpret);
-	    hgs.console = 1;
-	    msg->toCBuffer(&buf, &hgs);
-	    error("%s", buf.toChars());
-	}
-	else
-	    error("(%s) is false", exp->toChars());
-	if (sc->tinst)
-	    sc->tinst->printInstantiationTrace();
-	if (!global.gag)
-	      fatal();
+            msg = msg->semantic(sc);
+            msg = msg->optimize(WANTvalue | WANTinterpret);
+            hgs.console = 1;
+            msg->toCBuffer(&buf, &hgs);
+            error("%s", buf.toChars());
+        }
+        else
+            error("(%s) is false", exp->toChars());
+        if (sc->tinst)
+            sc->tinst->printInstantiationTrace();
+        if (!global.gag)
+              fatal();
     }
     else if (!e->isBool(TRUE))
     {
-	error("(%s) is not evaluatable at compile time", exp->toChars());
+        error("(%s) is not evaluatable at compile time", exp->toChars());
     }
 }
 
@@ -108,8 +108,8 @@ void StaticAssert::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
     exp->toCBuffer(buf, hgs);
     if (msg)
     {
-	buf->writeByte(',');
-	msg->toCBuffer(buf, hgs);
+        buf->writeByte(',');
+        msg->toCBuffer(buf, hgs);
     }
     buf->writestring(");");
     buf->writenl();

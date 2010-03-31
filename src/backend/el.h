@@ -10,14 +10,14 @@
  * For any other uses, please contact Digital Mars.
  */
 
-/* Routines to handle elems.				*/
+/* Routines to handle elems.                            */
 
 #if __SC__
 #pragma once
 #endif
 
 #ifndef EL_H
-#define EL_H	1
+#define EL_H    1
 
 #if TARGET_MAC
 #include "TGel.h"
@@ -25,124 +25,124 @@
 
 /******************************************
  * Elems:
- *	Elems are the basic tree element. They can be either
- *	terminal elems (leaves), unary elems (left subtree exists)
- *	or binary elems (left and right subtrees exist).
+ *      Elems are the basic tree element. They can be either
+ *      terminal elems (leaves), unary elems (left subtree exists)
+ *      or binary elems (left and right subtrees exist).
  */
 
 struct elem
 {
 #ifdef DEBUG
-    unsigned short	id;
-#define IDelem 0x4C45	// 'EL'
+    unsigned short      id;
+#define IDelem 0x4C45   // 'EL'
 #define elem_debug(e) assert((e)->id == IDelem)
 #else
 #define elem_debug(e)
 #endif
 
-    unsigned char Eoper;	// operator (OPxxxx)
-    unsigned char Ecount;	// # of parents of this elem - 1,
-				// always 0 until CSE elimination is done
-    union eve EV;		// variants for each type of elem
+    unsigned char Eoper;        // operator (OPxxxx)
+    unsigned char Ecount;       // # of parents of this elem - 1,
+                                // always 0 until CSE elimination is done
+    union eve EV;               // variants for each type of elem
     union
     {
-	// PARSER
-	struct
-	{
-	    struct TYPE *ET_;	// pointer to type of elem
-	    #define ET _EU._EP.ET_
+        // PARSER
+        struct
+        {
+            struct TYPE *ET_;   // pointer to type of elem
+            #define ET _EU._EP.ET_
 
-	    unsigned char PEFflags_;
-	    #define PEFflags _EU._EP.PEFflags_
-		#define PEFnotlvalue	1	// although elem may look like
-						// an lvalue, it isn't
-		#define PEFtemplate_id	0x10	// symbol is a template-id
-		#define PEFparentheses	0x20	// expression was within ()
-		#define PEFaddrmem	0x40	// address of member
-		#define PEFdependent	0x80	// value-dependent
+            unsigned char PEFflags_;
+            #define PEFflags _EU._EP.PEFflags_
+                #define PEFnotlvalue    1       // although elem may look like
+                                                // an lvalue, it isn't
+                #define PEFtemplate_id  0x10    // symbol is a template-id
+                #define PEFparentheses  0x20    // expression was within ()
+                #define PEFaddrmem      0x40    // address of member
+                #define PEFdependent    0x80    // value-dependent
 #if !TX86
-		#define PEFdblldbl	2	// long double return from dbl func
-		#define PEFfltldbl	4	// long double return from flt func
-		#define PEFstrsize	8	// The structure size for this
-						// node of type TYstruct is
-						// not the same as type_size
-						// of the struct.  This happens
-						// in C++ operator = generation
+                #define PEFdblldbl      2       // long double return from dbl func
+                #define PEFfltldbl      4       // long double return from flt func
+                #define PEFstrsize      8       // The structure size for this
+                                                // node of type TYstruct is
+                                                // not the same as type_size
+                                                // of the struct.  This happens
+                                                // in C++ operator = generation
 #endif
-	}_EP;
+        }_EP;
 
-	// OPTIMIZER
-	struct
-	{
-	    tym_t Ety_;			// data type (TYxxxx)
-	    #define Ety _EU._EO.Ety_
-	    unsigned Eexp_;		// index into expnod[]
-	    #define Eexp _EU._EO.Eexp_
+        // OPTIMIZER
+        struct
+        {
+            tym_t Ety_;                 // data type (TYxxxx)
+            #define Ety _EU._EO.Ety_
+            unsigned Eexp_;             // index into expnod[]
+            #define Eexp _EU._EO.Eexp_
 
-	    // These flags are all temporary markers, used once and then
-	    // thrown away.
-	    unsigned char Nflags_;	// NFLxxx
-	    #define Nflags _EU._EO.Nflags_
-		#define NFLli     1	// loop invariant
-		#define NFLnogoal 2	// evaluate elem for side effects only
-		#define NFLassign 8	// unambiguous assignment elem
-		#define NFLaecp 0x10	// AE or CP or VBE expression
-		#define NFLdelcse 0x40	// this is not the generating CSE
+            // These flags are all temporary markers, used once and then
+            // thrown away.
+            unsigned char Nflags_;      // NFLxxx
+            #define Nflags _EU._EO.Nflags_
+                #define NFLli     1     // loop invariant
+                #define NFLnogoal 2     // evaluate elem for side effects only
+                #define NFLassign 8     // unambiguous assignment elem
+                #define NFLaecp 0x10    // AE or CP or VBE expression
+                #define NFLdelcse 0x40  // this is not the generating CSE
 #if !TX86
-		#define NFLfcall  0x20  // flag that there has been a function call on RHS
-					// of an assignment of this LHS value hence do not
-					// propagate this assignment into a paramter list
-					// (see glocal.c)
+                #define NFLfcall  0x20  // flag that there has been a function call on RHS
+                                        // of an assignment of this LHS value hence do not
+                                        // propagate this assignment into a paramter list
+                                        // (see glocal.c)
 #endif
 #if MARS
-	    unsigned char Ejty_;		// original Jupiter/Mars type
-	    #define Ejty _EU._EO.Ejty_
+            unsigned char Ejty_;                // original Jupiter/Mars type
+            #define Ejty _EU._EO.Ejty_
 #endif
-	}_EO;
+        }_EO;
 
-	// CODGEN
-	struct
-	{
-	    // Ety2: Must be in same position as Ety!
-	    tym_t Ety2_;			// data type (TYxxxx)
-	    #define Ety2 _EU._EC.Ety2_
-	    unsigned char Ecomsub_;	// number of remaining references to
-					// this common subexp (used to determine
-					// first, intermediate, and last references
-					// to a CSE)
-	    #define Ecomsub _EU._EC.Ecomsub_
+        // CODGEN
+        struct
+        {
+            // Ety2: Must be in same position as Ety!
+            tym_t Ety2_;                        // data type (TYxxxx)
+            #define Ety2 _EU._EC.Ety2_
+            unsigned char Ecomsub_;     // number of remaining references to
+                                        // this common subexp (used to determine
+                                        // first, intermediate, and last references
+                                        // to a CSE)
+            #define Ecomsub _EU._EC.Ecomsub_
 
 #if TARGET_POWERPC
-	    unsigned char Gflags;
-	    #define	GFLassrval	1		// element is rvalue of an assign
-	    #define	GFLsignok	2		// element does not need sign extend
-	    #define 	GFLstrthis_fixed 	4	// strthis child elem has been fixed
-	    						// on first pass, do not do it again
+            unsigned char Gflags;
+            #define     GFLassrval      1               // element is rvalue of an assign
+            #define     GFLsignok       2               // element does not need sign extend
+            #define     GFLstrthis_fixed        4       // strthis child elem has been fixed
+                                                        // on first pass, do not do it again
 #endif
-	}_EC;
+        }_EC;
     }_EU;
 
-    targ_size_t Enumbytes;	// number of bytes for type if TYstruct | TYarray
-    TARGET_structELEM		// target specific additions
-    Srcpos Esrcpos;		// source file position
+    targ_size_t Enumbytes;      // number of bytes for type if TYstruct | TYarray
+    TARGET_structELEM           // target specific additions
+    Srcpos Esrcpos;             // source file position
 };
 
-#define typemask(e)	((!MARS && PARSER) ? (e)->ET->Tty : (e)->Ety )
-#define typetym(e)	((e)->ET->Tty)
-#define el_fl(e)	((enum FL)((e)->EV.sp.Vsym->Sfl))
-#define Eoffset		EV.sp.Voffset
-#define Esymnum		EV.sp.Vsymnum
+#define typemask(e)     ((!MARS && PARSER) ? (e)->ET->Tty : (e)->Ety )
+#define typetym(e)      ((e)->ET->Tty)
+#define el_fl(e)        ((enum FL)((e)->EV.sp.Vsym->Sfl))
+#define Eoffset         EV.sp.Voffset
+#define Esymnum         EV.sp.Vsymnum
 
 #define list_elem(list) ((elem *) list_ptr(list))
 #define list_setelem(list,ptr) list_ptr(list) = (elem *)(ptr)
-#define	cnst(e) ((e)->Eoper == OPconst)	/* Determine if elem is a constant */
-#define E1	  EV.eop.Eleft		/* left child			*/
-#define E2	  EV.eop.Eright		/* right child			*/
-#define Erd	  EV.sp.spu.Erd		// reaching definition
+#define cnst(e) ((e)->Eoper == OPconst) /* Determine if elem is a constant */
+#define E1        EV.eop.Eleft          /* left child                   */
+#define E2        EV.eop.Eright         /* right child                  */
+#define Erd       EV.sp.spu.Erd         // reaching definition
 
-#define el_int(a,b)	el_long(a,b)
+#define el_int(a,b)     el_long(a,b)
 
-typedef elem *elem_p;	/* try to reduce the symbol table size	*/
+typedef elem *elem_p;   /* try to reduce the symbol table size  */
 
 void el_init(void);
 void el_reset(void);
@@ -192,7 +192,7 @@ elem_p el_bint(unsigned,type *,elem_p ,elem_p);
 elem_p el_unat(unsigned,type *,elem_p);
 elem_p el_bin(unsigned,tym_t,elem_p ,elem_p);
 elem_p el_una(unsigned,tym_t,elem_p);
-#if LONGLONG	// DJB
+#if LONGLONG    // DJB
 elem_p el_longt(type *,targ_llong);
 #else
 elem_p el_longt(type *,targ_long);
@@ -224,7 +224,7 @@ elem_p * el_parent(elem_p ,elem_p *);
 #ifdef DEBUG
 void el_check(elem_p);
 #else
-#define el_check(e)	((void)0)
+#define el_check(e)     ((void)0)
 #endif
 
 elem *el_convfloat(elem *);

@@ -17,26 +17,26 @@
 
 #if !SPP
 
-#include	<stdio.h>
-#include	<string.h>
-#include	<time.h>
-#include	"cc.h"
-#include	"token.h"
-#include	"global.h"
-#include	"type.h"
-#include	"oper.h"
-#include	"el.h"
-#include	"parser.h"
-#include	"cpp.h"
-#include	"exh.h"
+#include        <stdio.h>
+#include        <string.h>
+#include        <time.h>
+#include        "cc.h"
+#include        "token.h"
+#include        "global.h"
+#include        "type.h"
+#include        "oper.h"
+#include        "el.h"
+#include        "parser.h"
+#include        "cpp.h"
+#include        "exh.h"
 #if TX86
-#include	"cgcv.h"
+#include        "cgcv.h"
 #endif
 
-#include	"iasm.h"
+#include        "iasm.h"
 
-static char __file__[] = __FILE__;	/* for tassert.h		*/
-#include	"tassert.h"
+static char __file__[] = __FILE__;      /* for tassert.h                */
+#include        "tassert.h"
 
 #if MARS
 EEcontext eecontext;
@@ -62,16 +62,16 @@ void eecontext_convs(unsigned marksi)
     for (u = marksi; u < top; u++)
     {   symbol *s;
 
-	s = ps->tab[u];
-	switch (s->Sclass)
-	{
-	    case SCauto:
-	    case SCtmp:
-	    case SCregister:
-		s->Sclass = SCstack;
-		s->Sfl = FLstack;
-		break;
-	}
+        s = ps->tab[u];
+        switch (s->Sclass)
+        {
+            case SCauto:
+            case SCtmp:
+            case SCregister:
+                s->Sclass = SCstack;
+                s->Sfl = FLstack;
+                break;
+        }
     }
 }
 
@@ -84,37 +84,37 @@ void eecontext_parse()
 {
     if (eecontext.EEimminent)
     {   type *t;
-	unsigned marksi;
-	symbol *s;
+        unsigned marksi;
+        symbol *s;
 
-	//printf("imminent\n");
-	marksi = globsym.top;
-	eecontext.EEin++;
-	s = symbol_genauto(tspvoid);
-	eecontext.EEelem = func_expr_dtor(TRUE);
-	t = eecontext.EEelem->ET;
-	if (tybasic(t->Tty) != TYvoid)
-	{   unsigned op;
-	    elem *e;
+        //printf("imminent\n");
+        marksi = globsym.top;
+        eecontext.EEin++;
+        s = symbol_genauto(tspvoid);
+        eecontext.EEelem = func_expr_dtor(TRUE);
+        t = eecontext.EEelem->ET;
+        if (tybasic(t->Tty) != TYvoid)
+        {   unsigned op;
+            elem *e;
 
-	    e = el_unat(OPind,t,el_var(s));
-	    op = tyaggregate(t->Tty) ? OPstreq : OPeq;
-	    eecontext.EEelem = el_bint(op,t,e,eecontext.EEelem);
-	}
-	eecontext.EEin--;
-	eecontext.EEimminent = 0;
-	eecontext.EEfunc = funcsym_p;
+            e = el_unat(OPind,t,el_var(s));
+            op = tyaggregate(t->Tty) ? OPstreq : OPeq;
+            eecontext.EEelem = el_bint(op,t,e,eecontext.EEelem);
+        }
+        eecontext.EEin--;
+        eecontext.EEimminent = 0;
+        eecontext.EEfunc = funcsym_p;
 
-	eecontext_convs(marksi);
+        eecontext_convs(marksi);
 
-	// Generate the typedef
-	if (eecontext.EEtypedef && config.fulltypes)
-	{   symbol *s;
+        // Generate the typedef
+        if (eecontext.EEtypedef && config.fulltypes)
+        {   symbol *s;
 
-	    s = symbol_name(eecontext.EEtypedef,SCtypedef,t);
-	    cv_outsym(s);
-	    symbol_free(s);
-	}
+            s = symbol_name(eecontext.EEtypedef,SCtypedef,t);
+            cv_outsym(s);
+            symbol_free(s);
+        }
     }
 }
 

@@ -39,15 +39,15 @@ Dsymbol *EnumDeclaration::syntaxCopy(Dsymbol *s)
 {
     Type *t = NULL;
     if (memtype)
-	t = memtype->syntaxCopy();
+        t = memtype->syntaxCopy();
 
     EnumDeclaration *ed;
     if (s)
-    {	ed = (EnumDeclaration *)s;
-	ed->memtype = t;
+    {   ed = (EnumDeclaration *)s;
+        ed->memtype = t;
     }
     else
-	ed = new EnumDeclaration(loc, ident, t);
+        ed = new EnumDeclaration(loc, ident, t);
     ScopeDsymbol::syntaxCopy(ed);
     return ed;
 }
@@ -59,20 +59,20 @@ void EnumDeclaration::semantic(Scope *sc)
 
     //printf("EnumDeclaration::semantic(sd = %p, '%s') %s\n", sc->scopesym, sc->scopesym->toChars(), toChars());
     //printf("EnumDeclaration::semantic() %s\n", toChars());
-    if (!members)		// enum ident;
-	return;
+    if (!members)               // enum ident;
+        return;
 
     if (!memtype && !isAnonymous())
-    {	// Set memtype if we can to reduce fwd reference errors
-	memtype = Type::tint32;	// case 1)  enum ident { ... }
+    {   // Set memtype if we can to reduce fwd reference errors
+        memtype = Type::tint32; // case 1)  enum ident { ... }
     }
 
-    if (symtab)			// if already done
-    {	if (isdone || !scope)
-	    return;		// semantic() already completed
+    if (symtab)                 // if already done
+    {   if (isdone || !scope)
+            return;             // semantic() already completed
     }
     else
-	symtab = new DsymbolTable();
+        symtab = new DsymbolTable();
 
     Scope *scx = NULL;
     if (scope)
@@ -84,7 +84,7 @@ void EnumDeclaration::semantic(Scope *sc)
     unsigned dprogress_save = Module::dprogress;
 
     if (sc->stc & STCdeprecated)
-	isdeprecated = 1;
+        isdeprecated = 1;
 
     parent = sc->parent;
 
@@ -97,27 +97,27 @@ void EnumDeclaration::semantic(Scope *sc)
 
     if (memtype)
     {
-	memtype = memtype->semantic(loc, sc);
+        memtype = memtype->semantic(loc, sc);
 
-	/* Check to see if memtype is forward referenced
-	 */
-	if (memtype->ty == Tenum)
-	{   EnumDeclaration *sym = (EnumDeclaration *)memtype->toDsymbol(sc);
-	    if (!sym->memtype || !sym->members || !sym->symtab || sym->scope)
-	    {	// memtype is forward referenced, so try again later
-		scope = scx ? scx : new Scope(*sc);
-		scope->setNoFree();
-		scope->module->addDeferredSemantic(this);
-		Module::dprogress = dprogress_save;
-		//printf("\tdeferring %s\n", toChars());
-		return;
-	    }
-	}
-#if 0	// Decided to abandon this restriction for D 2.0
-	if (!memtype->isintegral())
-	{   error("base type must be of integral type, not %s", memtype->toChars());
-	    memtype = Type::tint32;
-	}
+        /* Check to see if memtype is forward referenced
+         */
+        if (memtype->ty == Tenum)
+        {   EnumDeclaration *sym = (EnumDeclaration *)memtype->toDsymbol(sc);
+            if (!sym->memtype || !sym->members || !sym->symtab || sym->scope)
+            {   // memtype is forward referenced, so try again later
+                scope = scx ? scx : new Scope(*sc);
+                scope->setNoFree();
+                scope->module->addDeferredSemantic(this);
+                Module::dprogress = dprogress_save;
+                //printf("\tdeferring %s\n", toChars());
+                return;
+            }
+        }
+#if 0   // Decided to abandon this restriction for D 2.0
+        if (!memtype->isintegral())
+        {   error("base type must be of integral type, not %s", memtype->toChars());
+            memtype = Type::tint32;
+        }
 #endif
     }
 
@@ -126,154 +126,154 @@ void EnumDeclaration::semantic(Scope *sc)
 
     type = type->semantic(loc, sc);
     if (isAnonymous())
-    	sce = sc;
+        sce = sc;
     else
-    {	sce = sc->push(this);
-	sce->parent = this;
+    {   sce = sc->push(this);
+        sce->parent = this;
     }
     if (members->dim == 0)
-	error("enum %s must have at least one member", toChars());
+        error("enum %s must have at least one member", toChars());
     int first = 1;
     Expression *elast = NULL;
     for (int i = 0; i < members->dim; i++)
     {
-	EnumMember *em = ((Dsymbol *)members->data[i])->isEnumMember();
-	Expression *e;
+        EnumMember *em = ((Dsymbol *)members->data[i])->isEnumMember();
+        Expression *e;
 
-	if (!em)
-	    /* The e->semantic(sce) can insert other symbols, such as
-	     * template instances and function literals.
-	     */
-	    continue;
+        if (!em)
+            /* The e->semantic(sce) can insert other symbols, such as
+             * template instances and function literals.
+             */
+            continue;
 
-	//printf("  Enum member '%s'\n",em->toChars());
-	if (em->type)
-	    em->type = em->type->semantic(em->loc, sce);
-	e = em->value;
-	if (e)
-	{
-	    assert(e->dyncast() == DYNCAST_EXPRESSION);
-	    e = e->semantic(sce);
-	    e = e->optimize(WANTvalue | WANTinterpret);
-	    if (memtype)
-	    {
-		e = e->implicitCastTo(sce, memtype);
-		e = e->optimize(WANTvalue | WANTinterpret);
-		if (!isAnonymous())
-		    e = e->castTo(sce, type);
-		t = memtype;
-	    }
-	    else if (em->type)
-	    {
-		e = e->implicitCastTo(sce, em->type);
-		e = e->optimize(WANTvalue | WANTinterpret);
-		assert(isAnonymous());
-		t = e->type;
-	    }
-	    else
-		t = e->type;
-	}
-	else if (first)
-	{
-	    if (memtype)
-		t = memtype;
-	    else if (em->type)
-		t = em->type;
-	    else
-		t = Type::tint32;
-	    e = new IntegerExp(em->loc, 0, Type::tint32);
-	    e = e->implicitCastTo(sce, t);
-	    e = e->optimize(WANTvalue | WANTinterpret);
-	    if (!isAnonymous())
-		e = e->castTo(sce, type);
-	}
-	else
-	{
-	    // Set value to (elast + 1).
-	    // But first check that (elast != t.max)
-	    assert(elast);
-	    e = new EqualExp(TOKequal, em->loc, elast, t->getProperty(0, Id::max));
-	    e = e->semantic(sce);
-	    e = e->optimize(WANTvalue | WANTinterpret);
-	    if (e->toInteger())
-		error("overflow of enum value %s", elast->toChars());
+        //printf("  Enum member '%s'\n",em->toChars());
+        if (em->type)
+            em->type = em->type->semantic(em->loc, sce);
+        e = em->value;
+        if (e)
+        {
+            assert(e->dyncast() == DYNCAST_EXPRESSION);
+            e = e->semantic(sce);
+            e = e->optimize(WANTvalue | WANTinterpret);
+            if (memtype)
+            {
+                e = e->implicitCastTo(sce, memtype);
+                e = e->optimize(WANTvalue | WANTinterpret);
+                if (!isAnonymous())
+                    e = e->castTo(sce, type);
+                t = memtype;
+            }
+            else if (em->type)
+            {
+                e = e->implicitCastTo(sce, em->type);
+                e = e->optimize(WANTvalue | WANTinterpret);
+                assert(isAnonymous());
+                t = e->type;
+            }
+            else
+                t = e->type;
+        }
+        else if (first)
+        {
+            if (memtype)
+                t = memtype;
+            else if (em->type)
+                t = em->type;
+            else
+                t = Type::tint32;
+            e = new IntegerExp(em->loc, 0, Type::tint32);
+            e = e->implicitCastTo(sce, t);
+            e = e->optimize(WANTvalue | WANTinterpret);
+            if (!isAnonymous())
+                e = e->castTo(sce, type);
+        }
+        else
+        {
+            // Set value to (elast + 1).
+            // But first check that (elast != t.max)
+            assert(elast);
+            e = new EqualExp(TOKequal, em->loc, elast, t->getProperty(0, Id::max));
+            e = e->semantic(sce);
+            e = e->optimize(WANTvalue | WANTinterpret);
+            if (e->toInteger())
+                error("overflow of enum value %s", elast->toChars());
 
-	    // Now set e to (elast + 1)
-	    e = new AddExp(em->loc, elast, new IntegerExp(em->loc, 1, Type::tint32));
-	    e = e->semantic(sce);
-	    e = e->castTo(sce, elast->type);
-	    e = e->optimize(WANTvalue | WANTinterpret);
-	}
-	elast = e;
-	em->value = e;
+            // Now set e to (elast + 1)
+            e = new AddExp(em->loc, elast, new IntegerExp(em->loc, 1, Type::tint32));
+            e = e->semantic(sce);
+            e = e->castTo(sce, elast->type);
+            e = e->optimize(WANTvalue | WANTinterpret);
+        }
+        elast = e;
+        em->value = e;
 
-	// Add to symbol table only after evaluating 'value'
-	if (isAnonymous())
-	{
-	    /* Anonymous enum members get added to enclosing scope.
-	     */
-	    for (Scope *scx = sce; scx; scx = scx->enclosing)
-	    {
-		if (scx->scopesym)
-		{
-		    if (!scx->scopesym->symtab)
-			scx->scopesym->symtab = new DsymbolTable();
-		    em->addMember(sce, scx->scopesym, 1);
-		    break;
-		}
-	    }
-	}
-	else
-	    em->addMember(sc, this, 1);
+        // Add to symbol table only after evaluating 'value'
+        if (isAnonymous())
+        {
+            /* Anonymous enum members get added to enclosing scope.
+             */
+            for (Scope *scx = sce; scx; scx = scx->enclosing)
+            {
+                if (scx->scopesym)
+                {
+                    if (!scx->scopesym->symtab)
+                        scx->scopesym->symtab = new DsymbolTable();
+                    em->addMember(sce, scx->scopesym, 1);
+                    break;
+                }
+            }
+        }
+        else
+            em->addMember(sc, this, 1);
 
-	/* Compute .min, .max and .default values.
-	 * If enum doesn't have a name, we can never identify the enum type,
-	 * so there is no purpose for a .min, .max or .default
-	 */
-	if (!isAnonymous())
-	{
-	    if (first)
-	    {	defaultval = e;
-		minval = e;
-		maxval = e;
-	    }
-	    else
-	    {	Expression *ec;
+        /* Compute .min, .max and .default values.
+         * If enum doesn't have a name, we can never identify the enum type,
+         * so there is no purpose for a .min, .max or .default
+         */
+        if (!isAnonymous())
+        {
+            if (first)
+            {   defaultval = e;
+                minval = e;
+                maxval = e;
+            }
+            else
+            {   Expression *ec;
 
-		/* In order to work successfully with UDTs,
-		 * build expressions to do the comparisons,
-		 * and let the semantic analyzer and constant
-		 * folder give us the result.
-		 */
+                /* In order to work successfully with UDTs,
+                 * build expressions to do the comparisons,
+                 * and let the semantic analyzer and constant
+                 * folder give us the result.
+                 */
 
-		// Compute if(e < minval)
-		ec = new CmpExp(TOKlt, em->loc, e, minval);
-		ec = ec->semantic(sce);
-		ec = ec->optimize(WANTvalue | WANTinterpret);
-		if (ec->toInteger())
-		    minval = e;
+                // Compute if(e < minval)
+                ec = new CmpExp(TOKlt, em->loc, e, minval);
+                ec = ec->semantic(sce);
+                ec = ec->optimize(WANTvalue | WANTinterpret);
+                if (ec->toInteger())
+                    minval = e;
 
-		ec = new CmpExp(TOKgt, em->loc, e, maxval);
-		ec = ec->semantic(sce);
-		ec = ec->optimize(WANTvalue | WANTinterpret);
-		if (ec->toInteger())
-		    maxval = e;
-	    }
-	}
-	first = 0;
+                ec = new CmpExp(TOKgt, em->loc, e, maxval);
+                ec = ec->semantic(sce);
+                ec = ec->optimize(WANTvalue | WANTinterpret);
+                if (ec->toInteger())
+                    maxval = e;
+            }
+        }
+        first = 0;
     }
     //printf("defaultval = %lld\n", defaultval);
 
     //if (defaultval) printf("defaultval: %s %s\n", defaultval->toChars(), defaultval->type->toChars());
     if (sc != sce)
-	sce->pop();
+        sce->pop();
     //members->print();
 }
 
 int EnumDeclaration::oneMember(Dsymbol **ps)
 {
     if (isAnonymous())
-	return Dsymbol::oneMembers(members, ps);
+        return Dsymbol::oneMembers(members, ps);
     return Dsymbol::oneMember(ps);
 }
 
@@ -282,32 +282,32 @@ void EnumDeclaration::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 
     buf->writestring("enum ");
     if (ident)
-    {	buf->writestring(ident->toChars());
-	buf->writeByte(' ');
+    {   buf->writestring(ident->toChars());
+        buf->writeByte(' ');
     }
     if (memtype)
     {
-	buf->writestring(": ");
-	memtype->toCBuffer(buf, NULL, hgs);
+        buf->writestring(": ");
+        memtype->toCBuffer(buf, NULL, hgs);
     }
     if (!members)
     {
-	buf->writeByte(';');
-	buf->writenl();
-	return;
+        buf->writeByte(';');
+        buf->writenl();
+        return;
     }
     buf->writenl();
     buf->writeByte('{');
     buf->writenl();
     for (i = 0; i < members->dim; i++)
     {
-	EnumMember *em = ((Dsymbol *)members->data[i])->isEnumMember();
-	if (!em)
-	    continue;
-	//buf->writestring("    ");
-	em->toCBuffer(buf, hgs);
-	buf->writeByte(',');
-	buf->writenl();
+        EnumMember *em = ((Dsymbol *)members->data[i])->isEnumMember();
+        if (!em)
+            continue;
+        //buf->writestring("    ");
+        em->toCBuffer(buf, hgs);
+        buf->writeByte(',');
+        buf->writenl();
     }
     buf->writeByte('}');
     buf->writenl();
@@ -332,7 +332,7 @@ Dsymbol *EnumDeclaration::search(Loc loc, Identifier *ident, int flags)
 {
     //printf("%s.EnumDeclaration::search('%s')\n", toChars(), ident->toChars());
     if (scope)
-	// Try one last time to resolve this enum
+        // Try one last time to resolve this enum
         semantic(scope);
 
     if (!members || !symtab || scope)
@@ -359,34 +359,34 @@ Dsymbol *EnumMember::syntaxCopy(Dsymbol *s)
 {
     Expression *e = NULL;
     if (value)
-	e = value->syntaxCopy();
+        e = value->syntaxCopy();
 
     Type *t = NULL;
     if (type)
-	t = type->syntaxCopy();
+        t = type->syntaxCopy();
 
     EnumMember *em;
     if (s)
-    {	em = (EnumMember *)s;
-	em->loc = loc;
-	em->value = e;
-	em->type = t;
+    {   em = (EnumMember *)s;
+        em->loc = loc;
+        em->value = e;
+        em->type = t;
     }
     else
-	em = new EnumMember(loc, ident, e, t);
+        em = new EnumMember(loc, ident, e, t);
     return em;
 }
 
 void EnumMember::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 {
     if (type)
-	type->toCBuffer(buf, ident, hgs);
+        type->toCBuffer(buf, ident, hgs);
     else
-	buf->writestring(ident->toChars());
+        buf->writestring(ident->toChars());
     if (value)
     {
-	buf->writestring(" = ");
-	value->toCBuffer(buf, hgs);
+        buf->writestring(" = ");
+        value->toCBuffer(buf, hgs);
     }
 }
 

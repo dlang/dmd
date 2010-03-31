@@ -52,31 +52,31 @@ void writeBase36(OutBuffer *buf, unsigned i)
 {
     if (i >= 36)
     {
-	writeBase36(buf, i / 36);
-	i %= 36;
+        writeBase36(buf, i / 36);
+        i %= 36;
     }
     if (i < 10)
-	buf->writeByte(i + '0');
+        buf->writeByte(i + '0');
     else if (i < 36)
-	buf->writeByte(i - 10 + 'A');
+        buf->writeByte(i - 10 + 'A');
     else
-	assert(0);
+        assert(0);
 }
 
 int CppMangleState::substitute(OutBuffer *buf, void *p)
 {
     for (size_t i = 0; i < components.dim; i++)
     {
-	if (p == components.data[i])
-	{
-	    /* Sequence is S_, S0_, .., S9_, SA_, ..., SZ_, S10_, ...
-	     */
-	    buf->writeByte('S');
-	    if (i)
-		writeBase36(buf, i - 1);
-	    buf->writeByte('_');
-	    return 1;
-	}
+        if (p == components.data[i])
+        {
+            /* Sequence is S_, S0_, .., S9_, SA_, ..., SZ_, S10_, ...
+             */
+            buf->writeByte('S');
+            if (i)
+                writeBase36(buf, i - 1);
+            buf->writeByte('_');
+            return 1;
+        }
     }
     components.push(p);
     return 0;
@@ -92,12 +92,12 @@ void prefix_name(OutBuffer *buf, CppMangleState *cms, Dsymbol *s)
 {
     if (!cms->substitute(buf, s))
     {
-	Dsymbol *p = s->toParent();
-	if (p && !p->isModule())
-	{
-	    prefix_name(buf, cms, p);
-	}
-	source_name(buf, s);
+        Dsymbol *p = s->toParent();
+        if (p && !p->isModule())
+        {
+            prefix_name(buf, cms, p);
+        }
+        source_name(buf, s);
     }
 }
 
@@ -106,19 +106,19 @@ void cpp_mangle_name(OutBuffer *buf, CppMangleState *cms, Dsymbol *s)
     Dsymbol *p = s->toParent();
     if (p && !p->isModule())
     {
-	buf->writeByte('N');
+        buf->writeByte('N');
 
-	FuncDeclaration *fd = s->isFuncDeclaration();
-	if (fd->isConst())
-	    buf->writeByte('K');
+        FuncDeclaration *fd = s->isFuncDeclaration();
+        if (fd->isConst())
+            buf->writeByte('K');
 
-	prefix_name(buf, cms, p);
-	source_name(buf, s);
+        prefix_name(buf, cms, p);
+        source_name(buf, s);
 
-	buf->writeByte('E');
+        buf->writeByte('E');
     }
     else
-	source_name(buf, s);
+        source_name(buf, s);
 }
 
 
@@ -127,8 +127,8 @@ char *cpp_mangle(Dsymbol *s)
     /*
      * <mangled-name> ::= _Z <encoding>
      * <encoding> ::= <function name> <bare-function-type>
-     *	       ::= <data name>
-     *	       ::= <special-name>
+     *         ::= <data name>
+     *         ::= <special-name>
      */
 
     CppMangleState cms;
@@ -146,10 +146,10 @@ char *cpp_mangle(Dsymbol *s)
 
     FuncDeclaration *fd = s->isFuncDeclaration();
     if (fd)
-    {	// add <bare-function-type>
-	TypeFunction *tf = (TypeFunction *)fd->type;
-	assert(tf->ty == Tfunction);
-	Parameter::argsCppMangle(&buf, &cms, tf->parameters, tf->varargs);
+    {   // add <bare-function-type>
+        TypeFunction *tf = (TypeFunction *)fd->type;
+        assert(tf->ty == Tfunction);
+        Parameter::argsCppMangle(&buf, &cms, tf->parameters, tf->varargs);
     }
     buf.writeByte(0);
     return (char *)buf.extractData();
@@ -164,8 +164,8 @@ void Type::toCppMangle(OutBuffer *buf, CppMangleState *cms)
      * u <source-name>
      */
     if (!cms->substitute(buf, this))
-    {	assert(deco);
-	buf->printf("u%d%s", strlen(deco), deco);
+    {   assert(deco);
+        buf->printf("u%d%s", strlen(deco), deco);
     }
 }
 
@@ -174,63 +174,63 @@ void TypeBasic::toCppMangle(OutBuffer *buf, CppMangleState *cms)
     char p = 0;
 
     /* ABI spec says:
-     * v	void
-     * w	wchar_t
-     * b	bool
-     * c	char
-     * a	signed char
-     * h	unsigned char
-     * s	short
-     * t	unsigned short
-     * i	int
-     * j	unsigned int
-     * l	long
-     * m	unsigned long
-     * x	long long, __int64
-     * y	unsigned long long, __int64
-     * n	__int128
-     * o	unsigned __int128
-     * f	float
-     * d	double
-     * e	long double, __float80
-     * g	__float128
-     * z	ellipsis
-     * u <source-name>	# vendor extended type
+     * v        void
+     * w        wchar_t
+     * b        bool
+     * c        char
+     * a        signed char
+     * h        unsigned char
+     * s        short
+     * t        unsigned short
+     * i        int
+     * j        unsigned int
+     * l        long
+     * m        unsigned long
+     * x        long long, __int64
+     * y        unsigned long long, __int64
+     * n        __int128
+     * o        unsigned __int128
+     * f        float
+     * d        double
+     * e        long double, __float80
+     * g        __float128
+     * z        ellipsis
+     * u <source-name>  # vendor extended type
      */
 
     switch (ty)
     {
-	case Tvoid:	c = 'v';	break;
-	case Tint8:	c = 'a';	break;
-	case Tuns8:	c = 'h';	break;
-	case Tint16:	c = 's';	break;
-	case Tuns16:	c = 't';	break;
-	case Tint32:	c = 'i';	break;
-	case Tuns32:	c = 'j';	break;
-	case Tfloat32:	c = 'f';	break;
-	case Tint64:	c = 'x';	break;
-	case Tuns64:	c = 'y';	break;
-	case Tfloat64:	c = 'd';	break;
-	case Tfloat80:	c = 'e';	break;
-	case Tbool:	c = 'b';	break;
-	case Tchar:	c = 'c';	break;
-	case Twchar:	c = 't';	break;
-	case Tdchar:	c = 'w';	break;
+        case Tvoid:     c = 'v';        break;
+        case Tint8:     c = 'a';        break;
+        case Tuns8:     c = 'h';        break;
+        case Tint16:    c = 's';        break;
+        case Tuns16:    c = 't';        break;
+        case Tint32:    c = 'i';        break;
+        case Tuns32:    c = 'j';        break;
+        case Tfloat32:  c = 'f';        break;
+        case Tint64:    c = 'x';        break;
+        case Tuns64:    c = 'y';        break;
+        case Tfloat64:  c = 'd';        break;
+        case Tfloat80:  c = 'e';        break;
+        case Tbool:     c = 'b';        break;
+        case Tchar:     c = 'c';        break;
+        case Twchar:    c = 't';        break;
+        case Tdchar:    c = 'w';        break;
 
-	case Timaginary32: p = 'G'; c = 'f';	break;
-	case Timaginary64: p = 'G'; c = 'd';	break;
-	case Timaginary80: p = 'G'; c = 'e';	break;
-	case Tcomplex32:   p = 'C'; c = 'f';	break;
-	case Tcomplex64:   p = 'C'; c = 'd';	break;
-	case Tcomplex80:   p = 'C'; c = 'e';	break;
+        case Timaginary32: p = 'G'; c = 'f';    break;
+        case Timaginary64: p = 'G'; c = 'd';    break;
+        case Timaginary80: p = 'G'; c = 'e';    break;
+        case Tcomplex32:   p = 'C'; c = 'f';    break;
+        case Tcomplex64:   p = 'C'; c = 'd';    break;
+        case Tcomplex80:   p = 'C'; c = 'e';    break;
 
-	default:	assert(0);
+        default:        assert(0);
     }
     if (p)
     {
-	if (cms->substitute(buf, this))
-	    return;
-	buf->writeByte(p);
+        if (cms->substitute(buf, this))
+            return;
+        buf->writeByte(p);
     }
     buf->writeByte(c);
 }
@@ -239,8 +239,8 @@ void TypeBasic::toCppMangle(OutBuffer *buf, CppMangleState *cms)
 void TypeSArray::toCppMangle(OutBuffer *buf, CppMangleState *cms)
 {
     if (!cms->substitute(buf, this))
-    {	buf->printf("A%ju_", dim ? dim->toInteger() : 0);
-	next->toCppMangle(buf, cms);
+    {   buf->printf("A%ju_", dim ? dim->toInteger() : 0);
+        next->toCppMangle(buf, cms);
     }
 }
 
@@ -259,8 +259,8 @@ void TypeAArray::toCppMangle(OutBuffer *buf, CppMangleState *cms)
 void TypePointer::toCppMangle(OutBuffer *buf, CppMangleState *cms)
 {
     if (!cms->substitute(buf, this))
-    {	buf->writeByte('P');
-	next->toCppMangle(buf, cms);
+    {   buf->writeByte('P');
+        next->toCppMangle(buf, cms);
     }
 }
 
@@ -268,43 +268,43 @@ void TypePointer::toCppMangle(OutBuffer *buf, CppMangleState *cms)
 void TypeReference::toCppMangle(OutBuffer *buf, CppMangleState *cms)
 {
     if (!cms->substitute(buf, this))
-    {	buf->writeByte('R');
-	next->toCppMangle(buf, cms);
+    {   buf->writeByte('R');
+        next->toCppMangle(buf, cms);
     }
 }
 
 
 void TypeFunction::toCppMangle(OutBuffer *buf, CppMangleState *cms)
 {   /*
-     *	<function-type> ::= F [Y] <bare-function-type> E
-     *	<bare-function-type> ::= <signature type>+
-     *	# types are possible return type, then parameter types
+     *  <function-type> ::= F [Y] <bare-function-type> E
+     *  <bare-function-type> ::= <signature type>+
+     *  # types are possible return type, then parameter types
      */
 
     /* ABI says:
-	"The type of a non-static member function is considered to be different,
-	for the purposes of substitution, from the type of a namespace-scope or
-	static member function whose type appears similar. The types of two
-	non-static member functions are considered to be different, for the
-	purposes of substitution, if the functions are members of different
-	classes. In other words, for the purposes of substitution, the class of
-	which the function is a member is considered part of the type of
-	function."
+        "The type of a non-static member function is considered to be different,
+        for the purposes of substitution, from the type of a namespace-scope or
+        static member function whose type appears similar. The types of two
+        non-static member functions are considered to be different, for the
+        purposes of substitution, if the functions are members of different
+        classes. In other words, for the purposes of substitution, the class of
+        which the function is a member is considered part of the type of
+        function."
 
-	BUG: Right now, types of functions are never merged, so our simplistic
-	component matcher always finds them to be different.
-	We should use Type::equals on these, and use different
-	TypeFunctions for non-static member functions, and non-static
-	member functions of different classes.
+        BUG: Right now, types of functions are never merged, so our simplistic
+        component matcher always finds them to be different.
+        We should use Type::equals on these, and use different
+        TypeFunctions for non-static member functions, and non-static
+        member functions of different classes.
      */
     if (!cms->substitute(buf, this))
     {
-	buf->writeByte('F');
-	if (linkage == LINKc)
-	    buf->writeByte('Y');
-	next->toCppMangle(buf, cms);
-	Parameter::argsCppMangle(buf, cms, parameters, varargs);
-	buf->writeByte('E');
+        buf->writeByte('F');
+        if (linkage == LINKc)
+            buf->writeByte('Y');
+        next->toCppMangle(buf, cms);
+        Parameter::argsCppMangle(buf, cms, parameters, varargs);
+        buf->writeByte('E');
     }
 }
 
@@ -318,14 +318,14 @@ void TypeDelegate::toCppMangle(OutBuffer *buf, CppMangleState *cms)
 void TypeStruct::toCppMangle(OutBuffer *buf, CppMangleState *cms)
 {
     if (!cms->substitute(buf, sym))
-	cpp_mangle_name(buf, cms, sym);
+        cpp_mangle_name(buf, cms, sym);
 }
 
 
 void TypeEnum::toCppMangle(OutBuffer *buf, CppMangleState *cms)
 {
     if (!cms->substitute(buf, sym))
-	cpp_mangle_name(buf, cms, sym);
+        cpp_mangle_name(buf, cms, sym);
 }
 
 
@@ -338,9 +338,9 @@ void TypeTypedef::toCppMangle(OutBuffer *buf, CppMangleState *cms)
 void TypeClass::toCppMangle(OutBuffer *buf, CppMangleState *cms)
 {
     if (!cms->substitute(buf, this))
-    {	buf->writeByte('P');
-	if (!cms->substitute(buf, sym))
-	    cpp_mangle_name(buf, cms, sym);
+    {   buf->writeByte('P');
+        if (!cms->substitute(buf, sym))
+            cpp_mangle_name(buf, cms, sym);
     }
 }
 
@@ -350,30 +350,30 @@ void Parameter::argsCppMangle(OutBuffer *buf, CppMangleState *cms, Parameters *a
 {   int n = 0;
     if (arguments)
     {
-	for (size_t i = 0; i < arguments->dim; i++)
-	{   Parameter *arg = (Parameter *)arguments->data[i];
-	    Type *t = arg->type;
-	    if (arg->storageClass & (STCout | STCref))
-		t = t->referenceTo();
-	    else if (arg->storageClass & STClazy)
-	    {	// Mangle as delegate
-		Type *td = new TypeFunction(NULL, t, 0, LINKd);
-		td = new TypeDelegate(td);
-		t = t->merge();
-	    }
-	    if (t->ty == Tsarray)
-	    {	// Mangle static arrays as pointers
-		t = t->pointerTo();
-	    }
-	    t->toCppMangle(buf, cms);
+        for (size_t i = 0; i < arguments->dim; i++)
+        {   Parameter *arg = (Parameter *)arguments->data[i];
+            Type *t = arg->type;
+            if (arg->storageClass & (STCout | STCref))
+                t = t->referenceTo();
+            else if (arg->storageClass & STClazy)
+            {   // Mangle as delegate
+                Type *td = new TypeFunction(NULL, t, 0, LINKd);
+                td = new TypeDelegate(td);
+                t = t->merge();
+            }
+            if (t->ty == Tsarray)
+            {   // Mangle static arrays as pointers
+                t = t->pointerTo();
+            }
+            t->toCppMangle(buf, cms);
 
-	    n++;
-	}
+            n++;
+        }
     }
     if (varargs)
-	buf->writestring("z");
+        buf->writestring("z");
     else if (!n)
-	buf->writeByte('v');		// encode ( ) arguments
+        buf->writeByte('v');            // encode ( ) arguments
 }
 
 

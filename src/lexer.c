@@ -18,7 +18,7 @@
 #include <wchar.h>
 #include <stdlib.h>
 #include <assert.h>
-#include <time.h>	// for time() and ctime()
+#include <time.h>       // for time() and ctime()
 
 #include "rmem.h"
 
@@ -37,8 +37,8 @@ extern "C" char * __cdecl __locale_decpoint;
 
 extern int HtmlNamedEntity(unsigned char *p, int length);
 
-#define LS 0x2028	// UTF line separator
-#define PS 0x2029	// UTF paragraph separator
+#define LS 0x2028       // UTF line separator
+#define PS 0x2029       // UTF paragraph separator
 
 /********************************************
  * Do our own char maps
@@ -46,9 +46,9 @@ extern int HtmlNamedEntity(unsigned char *p, int length);
 
 static unsigned char cmtable[256];
 
-const int CMoctal =	0x1;
-const int CMhex =	0x2;
-const int CMidchar =	0x4;
+const int CMoctal =     0x1;
+const int CMhex =       0x2;
+const int CMidchar =    0x4;
 
 inline unsigned char isoctal (unsigned char c) { return cmtable[c] & CMoctal; }
 inline unsigned char ishex   (unsigned char c) { return cmtable[c] & CMhex; }
@@ -58,12 +58,12 @@ static void cmtable_init()
 {
     for (unsigned c = 0; c < sizeof(cmtable) / sizeof(cmtable[0]); c++)
     {
-	if ('0' <= c && c <= '7')
-	    cmtable[c] |= CMoctal;
-	if (isdigit(c) || ('a' <= c && c <= 'f') || ('A' <= c && c <= 'F'))
-	    cmtable[c] |= CMhex;
-	if (isalnum(c) || c == '_')
-	    cmtable[c] |= CMidchar;
+        if ('0' <= c && c <= '7')
+            cmtable[c] |= CMoctal;
+        if (isdigit(c) || ('a' <= c && c <= 'f') || ('A' <= c && c <= 'F'))
+            cmtable[c] |= CMhex;
+        if (isalnum(c) || c == '_')
+            cmtable[c] |= CMidchar;
     }
 }
 
@@ -77,9 +77,9 @@ void *Token::operator new(size_t size)
 
     if (Lexer::freelist)
     {
-	t = Lexer::freelist;
-	Lexer::freelist = t->next;
-	return t;
+        t = Lexer::freelist;
+        Lexer::freelist = t->next;
+        return t;
     }
 
     return ::operator new(size);
@@ -99,124 +99,124 @@ const char *Token::toChars()
     p = buffer;
     switch (value)
     {
-	case TOKint32v:
+        case TOKint32v:
 #if IN_GCC
-	    sprintf(buffer,"%d",(d_int32)int64value);
+            sprintf(buffer,"%d",(d_int32)int64value);
 #else
-	    sprintf(buffer,"%d",int32value);
+            sprintf(buffer,"%d",int32value);
 #endif
-	    break;
+            break;
 
-	case TOKuns32v:
-	case TOKcharv:
-	case TOKwcharv:
-	case TOKdcharv:
+        case TOKuns32v:
+        case TOKcharv:
+        case TOKwcharv:
+        case TOKdcharv:
 #if IN_GCC
-	    sprintf(buffer,"%uU",(d_uns32)uns64value);
+            sprintf(buffer,"%uU",(d_uns32)uns64value);
 #else
-	    sprintf(buffer,"%uU",uns32value);
+            sprintf(buffer,"%uU",uns32value);
 #endif
-	    break;
+            break;
 
-	case TOKint64v:
-	    sprintf(buffer,"%jdL",int64value);
-	    break;
+        case TOKint64v:
+            sprintf(buffer,"%jdL",int64value);
+            break;
 
-	case TOKuns64v:
-	    sprintf(buffer,"%juUL",uns64value);
-	    break;
+        case TOKuns64v:
+            sprintf(buffer,"%juUL",uns64value);
+            break;
 
 #if IN_GCC
-	case TOKfloat32v:
-	case TOKfloat64v:
-	case TOKfloat80v:
-	    float80value.format(buffer, sizeof(buffer));
-	    break;
-	case TOKimaginary32v:
-	case TOKimaginary64v:
-	case TOKimaginary80v:
-	    float80value.format(buffer, sizeof(buffer));
-	    // %% buffer
-	    strcat(buffer, "i");
-	    break;
+        case TOKfloat32v:
+        case TOKfloat64v:
+        case TOKfloat80v:
+            float80value.format(buffer, sizeof(buffer));
+            break;
+        case TOKimaginary32v:
+        case TOKimaginary64v:
+        case TOKimaginary80v:
+            float80value.format(buffer, sizeof(buffer));
+            // %% buffer
+            strcat(buffer, "i");
+            break;
 #else
-	case TOKfloat32v:
-	    sprintf(buffer,"%Lgf", float80value);
-	    break;
+        case TOKfloat32v:
+            sprintf(buffer,"%Lgf", float80value);
+            break;
 
-	case TOKfloat64v:
-	    sprintf(buffer,"%Lg", float80value);
-	    break;
+        case TOKfloat64v:
+            sprintf(buffer,"%Lg", float80value);
+            break;
 
-	case TOKfloat80v:
-	    sprintf(buffer,"%LgL", float80value);
-	    break;
+        case TOKfloat80v:
+            sprintf(buffer,"%LgL", float80value);
+            break;
 
-	case TOKimaginary32v:
-	    sprintf(buffer,"%Lgfi", float80value);
-	    break;
+        case TOKimaginary32v:
+            sprintf(buffer,"%Lgfi", float80value);
+            break;
 
-	case TOKimaginary64v:
-	    sprintf(buffer,"%Lgi", float80value);
-	    break;
+        case TOKimaginary64v:
+            sprintf(buffer,"%Lgi", float80value);
+            break;
 
-	case TOKimaginary80v:
-	    sprintf(buffer,"%LgLi", float80value);
-	    break;
+        case TOKimaginary80v:
+            sprintf(buffer,"%LgLi", float80value);
+            break;
 #endif
 
-	case TOKstring:
+        case TOKstring:
 #if CSTRINGS
-	    p = string;
+            p = string;
 #else
-	{   OutBuffer buf;
+        {   OutBuffer buf;
 
-	    buf.writeByte('"');
-	    for (size_t i = 0; i < len; )
-	    {	unsigned c;
+            buf.writeByte('"');
+            for (size_t i = 0; i < len; )
+            {   unsigned c;
 
-		utf_decodeChar((unsigned char *)ustring, len, &i, &c);
-		switch (c)
-		{
-		    case 0:
-			break;
+                utf_decodeChar((unsigned char *)ustring, len, &i, &c);
+                switch (c)
+                {
+                    case 0:
+                        break;
 
-		    case '"':
-		    case '\\':
-			buf.writeByte('\\');
-		    default:
-			if (isprint(c))
-			    buf.writeByte(c);
-			else if (c <= 0x7F)
-			    buf.printf("\\x%02x", c);
-			else if (c <= 0xFFFF)
-			    buf.printf("\\u%04x", c);
-			else
-			    buf.printf("\\U%08x", c);
-			continue;
-		}
-		break;
-	    }
-	    buf.writeByte('"');
-	    if (postfix)
-		buf.writeByte('"');
-	    buf.writeByte(0);
-	    p = (char *)buf.extractData();
-	}
+                    case '"':
+                    case '\\':
+                        buf.writeByte('\\');
+                    default:
+                        if (isprint(c))
+                            buf.writeByte(c);
+                        else if (c <= 0x7F)
+                            buf.printf("\\x%02x", c);
+                        else if (c <= 0xFFFF)
+                            buf.printf("\\u%04x", c);
+                        else
+                            buf.printf("\\U%08x", c);
+                        continue;
+                }
+                break;
+            }
+            buf.writeByte('"');
+            if (postfix)
+                buf.writeByte('"');
+            buf.writeByte(0);
+            p = (char *)buf.extractData();
+        }
 #endif
-	    break;
+            break;
 
-	case TOKidentifier:
-	case TOKenum:
-	case TOKstruct:
-	case TOKimport:
-	case BASIC_TYPES:
-	    p = ident->toChars();
-	    break;
+        case TOKidentifier:
+        case TOKenum:
+        case TOKstruct:
+        case TOKimport:
+        case BASIC_TYPES:
+            p = ident->toChars();
+            break;
 
-	default:
-	    p = toChars(value);
-	    break;
+        default:
+            p = toChars(value);
+            break;
     }
     return p;
 }
@@ -227,8 +227,8 @@ const char *Token::toChars(enum TOK value)
 
     p = tochars[value];
     if (!p)
-    {	sprintf(buffer,"TOK%d",value);
-	p = buffer;
+    {   sprintf(buffer,"TOK%d",value);
+        p = buffer;
     }
     return p;
 }
@@ -240,8 +240,8 @@ StringTable Lexer::stringtable;
 OutBuffer Lexer::stringbuffer;
 
 Lexer::Lexer(Module *mod,
-	unsigned char *base, unsigned begoffset, unsigned endoffset,
-	int doDocComment, int commentToken)
+        unsigned char *base, unsigned begoffset, unsigned endoffset,
+        int doDocComment, int commentToken)
     : loc(mod, 1)
 {
     //printf("Lexer::Lexer(%p,%d)\n",base,length);
@@ -261,37 +261,37 @@ Lexer::Lexer(Module *mod,
 
     if (p[0] == '#' && p[1] =='!')
     {
-	p += 2;
-	while (1)
-	{   unsigned char c = *p;
-	    switch (c)
-	    {
-		case '\n':
-		    p++;
-		    break;
+        p += 2;
+        while (1)
+        {   unsigned char c = *p;
+            switch (c)
+            {
+                case '\n':
+                    p++;
+                    break;
 
-		case '\r':
-		    p++;
-		    if (*p == '\n')
-			p++;
-		    break;
+                case '\r':
+                    p++;
+                    if (*p == '\n')
+                        p++;
+                    break;
 
-		case 0:
-		case 0x1A:
-		    break;
+                case 0:
+                case 0x1A:
+                    break;
 
-		default:
-		    if (c & 0x80)
-		    {   unsigned u = decodeUTF();
-			if (u == PS || u == LS)
-			    break;
-		    }
-		    p++;
-		    continue;
-	    }
-	    break;
-	}
-	loc.linnum = 2;
+                default:
+                    if (c & 0x80)
+                    {   unsigned u = decodeUTF();
+                        if (u == PS || u == LS)
+                            break;
+                    }
+                    p++;
+                    continue;
+            }
+            break;
+        }
+        loc.linnum = 2;
     }
 }
 
@@ -300,21 +300,21 @@ void Lexer::error(const char *format, ...)
 {
     if (mod && !global.gag)
     {
-	char *p = loc.toChars();
-	if (*p)
-	    fprintf(stdmsg, "%s: ", p);
-	mem.free(p);
+        char *p = loc.toChars();
+        if (*p)
+            fprintf(stdmsg, "%s: ", p);
+        mem.free(p);
 
-	va_list ap;
-	va_start(ap, format);
-	vfprintf(stdmsg, format, ap);
-	va_end(ap);
+        va_list ap;
+        va_start(ap, format);
+        vfprintf(stdmsg, format, ap);
+        va_end(ap);
 
-	fprintf(stdmsg, "\n");
-	fflush(stdmsg);
+        fprintf(stdmsg, "\n");
+        fflush(stdmsg);
 
-	if (global.errors >= 20)	// moderate blizzard of cascading messages
-	    fatal();
+        if (global.errors >= 20)        // moderate blizzard of cascading messages
+            fatal();
     }
     global.errors++;
 }
@@ -323,21 +323,21 @@ void Lexer::error(Loc loc, const char *format, ...)
 {
     if (mod && !global.gag)
     {
-	char *p = loc.toChars();
-	if (*p)
-	    fprintf(stdmsg, "%s: ", p);
-	mem.free(p);
+        char *p = loc.toChars();
+        if (*p)
+            fprintf(stdmsg, "%s: ", p);
+        mem.free(p);
 
-	va_list ap;
-	va_start(ap, format);
-	vfprintf(stdmsg, format, ap);
-	va_end(ap);
+        va_list ap;
+        va_start(ap, format);
+        vfprintf(stdmsg, format, ap);
+        va_end(ap);
 
-	fprintf(stdmsg, "\n");
-	fflush(stdmsg);
+        fprintf(stdmsg, "\n");
+        fflush(stdmsg);
 
-	if (global.errors >= 20)	// moderate blizzard of cascading messages
-	    fatal();
+        if (global.errors >= 20)        // moderate blizzard of cascading messages
+            fatal();
     }
     global.errors++;
 }
@@ -347,14 +347,14 @@ TOK Lexer::nextToken()
 
     if (token.next)
     {
-	t = token.next;
-	memcpy(&token,t,sizeof(Token));
-	t->next = freelist;
-	freelist = t;
+        t = token.next;
+        memcpy(&token,t,sizeof(Token));
+        t->next = freelist;
+        freelist = t;
     }
     else
     {
-	scan(&token);
+        scan(&token);
     }
     //token.print();
     return token.value;
@@ -364,13 +364,13 @@ Token *Lexer::peek(Token *ct)
 {   Token *t;
 
     if (ct->next)
-	t = ct->next;
+        t = ct->next;
     else
     {
-	t = new Token();
-	scan(t);
-	t->next = NULL;
-	ct->next = t;
+        t = new Token();
+        scan(t);
+        t->next = NULL;
+        ct->next = t;
     }
     return t;
 }
@@ -406,42 +406,42 @@ Token *Lexer::peekPastParen(Token *tk)
     int curlynest = 0;
     while (1)
     {
-	tk = peek(tk);
-	//tk->print();
-	switch (tk->value)
-	{
-	    case TOKlparen:
-		parens++;
-		continue;
+        tk = peek(tk);
+        //tk->print();
+        switch (tk->value)
+        {
+            case TOKlparen:
+                parens++;
+                continue;
 
-	    case TOKrparen:
-		--parens;
-		if (parens)
-		    continue;
-		tk = peek(tk);
-		break;
+            case TOKrparen:
+                --parens;
+                if (parens)
+                    continue;
+                tk = peek(tk);
+                break;
 
-	    case TOKlcurly:
-		curlynest++;
-		continue;
+            case TOKlcurly:
+                curlynest++;
+                continue;
 
-	    case TOKrcurly:
-		if (--curlynest >= 0)
-		    continue;
-		break;
+            case TOKrcurly:
+                if (--curlynest >= 0)
+                    continue;
+                break;
 
-	    case TOKsemicolon:
-		if (curlynest)
-		    continue;
-		break;
+            case TOKsemicolon:
+                if (curlynest)
+                    continue;
+                break;
 
-	    case TOKeof:
-		break;
+            case TOKeof:
+                break;
 
-	    default:
-		continue;
-	}
-	return tk;
+            default:
+                continue;
+        }
+        return tk;
     }
 }
 
@@ -449,7 +449,7 @@ Token *Lexer::peekPastParen(Token *tk)
  * Determine if string is a valid Identifier.
  * Placed here because of commonality with Lexer functionality.
  * Returns:
- *	0	invalid
+ *      0       invalid
  */
 
 int Lexer::isValidIdentifier(char *p)
@@ -458,22 +458,22 @@ int Lexer::isValidIdentifier(char *p)
     size_t idx;
 
     if (!p || !*p)
-	goto Linvalid;
+        goto Linvalid;
 
-    if (*p >= '0' && *p <= '9')		// beware of isdigit() on signed chars
-	goto Linvalid;
+    if (*p >= '0' && *p <= '9')         // beware of isdigit() on signed chars
+        goto Linvalid;
 
     len = strlen(p);
     idx = 0;
     while (p[idx])
     {   dchar_t dc;
 
-	const char *q = utf_decodeChar((unsigned char *)p, len, &idx, &dc);
-	if (q)
-	    goto Linvalid;
+        const char *q = utf_decodeChar((unsigned char *)p, len, &idx, &dc);
+        if (q)
+            goto Linvalid;
 
-	if (!((dc >= 0x80 && isUniAlpha(dc)) || isalnum(dc) || dc == '_'))
-	    goto Linvalid;
+        if (!((dc >= 0x80 && isUniAlpha(dc)) || isalnum(dc) || dc == '_'))
+            goto Linvalid;
     }
     return 1;
 
@@ -494,759 +494,759 @@ void Lexer::scan(Token *t)
     t->lineComment = NULL;
     while (1)
     {
-	t->ptr = p;
-	//printf("p = %p, *p = '%c'\n",p,*p);
-	switch (*p)
-	{
-	    case 0:
-	    case 0x1A:
-		t->value = TOKeof;			// end of file
-		return;
+        t->ptr = p;
+        //printf("p = %p, *p = '%c'\n",p,*p);
+        switch (*p)
+        {
+            case 0:
+            case 0x1A:
+                t->value = TOKeof;                      // end of file
+                return;
 
-	    case ' ':
-	    case '\t':
-	    case '\v':
-	    case '\f':
-		p++;
-		continue;			// skip white space
+            case ' ':
+            case '\t':
+            case '\v':
+            case '\f':
+                p++;
+                continue;                       // skip white space
 
-	    case '\r':
-		p++;
-		if (*p != '\n')			// if CR stands by itself
-		    loc.linnum++;
-		continue;			// skip white space
+            case '\r':
+                p++;
+                if (*p != '\n')                 // if CR stands by itself
+                    loc.linnum++;
+                continue;                       // skip white space
 
-	    case '\n':
-		p++;
-		loc.linnum++;
-		continue;			// skip white space
+            case '\n':
+                p++;
+                loc.linnum++;
+                continue;                       // skip white space
 
-	    case '0':  	case '1':   case '2':   case '3':   case '4':
-	    case '5':  	case '6':   case '7':   case '8':   case '9':
-		t->value = number(t);
-		return;
+            case '0':   case '1':   case '2':   case '3':   case '4':
+            case '5':   case '6':   case '7':   case '8':   case '9':
+                t->value = number(t);
+                return;
 
 #if CSTRINGS
-	    case '\'':
-		t->value = charConstant(t, 0);
-		return;
+            case '\'':
+                t->value = charConstant(t, 0);
+                return;
 
-	    case '"':
-		t->value = stringConstant(t,0);
-		return;
+            case '"':
+                t->value = stringConstant(t,0);
+                return;
 
-	    case 'l':
-	    case 'L':
-		if (p[1] == '\'')
-		{
-		    p++;
-		    t->value = charConstant(t, 1);
-		    return;
-		}
-		else if (p[1] == '"')
-		{
-		    p++;
-		    t->value = stringConstant(t, 1);
-		    return;
-		}
+            case 'l':
+            case 'L':
+                if (p[1] == '\'')
+                {
+                    p++;
+                    t->value = charConstant(t, 1);
+                    return;
+                }
+                else if (p[1] == '"')
+                {
+                    p++;
+                    t->value = stringConstant(t, 1);
+                    return;
+                }
 #else
-	    case '\'':
-		t->value = charConstant(t,0);
-		return;
+            case '\'':
+                t->value = charConstant(t,0);
+                return;
 
-	    case 'r':
-		if (p[1] != '"')
-		    goto case_ident;
-		p++;
-	    case '`':
-		t->value = wysiwygStringConstant(t, *p);
-		return;
+            case 'r':
+                if (p[1] != '"')
+                    goto case_ident;
+                p++;
+            case '`':
+                t->value = wysiwygStringConstant(t, *p);
+                return;
 
-	    case 'x':
-		if (p[1] != '"')
-		    goto case_ident;
-		p++;
-		t->value = hexStringConstant(t);
-		return;
+            case 'x':
+                if (p[1] != '"')
+                    goto case_ident;
+                p++;
+                t->value = hexStringConstant(t);
+                return;
 
 #if DMDV2
-	    case 'q':
-		if (p[1] == '"')
-		{
-		    p++;
-		    t->value = delimitedStringConstant(t);
-		    return;
-		}
-		else if (p[1] == '{')
-		{
-		    p++;
-		    t->value = tokenStringConstant(t);
-		    return;
-		}
-		else
-		    goto case_ident;
+            case 'q':
+                if (p[1] == '"')
+                {
+                    p++;
+                    t->value = delimitedStringConstant(t);
+                    return;
+                }
+                else if (p[1] == '{')
+                {
+                    p++;
+                    t->value = tokenStringConstant(t);
+                    return;
+                }
+                else
+                    goto case_ident;
 #endif
 
-	    case '"':
-		t->value = escapeStringConstant(t,0);
-		return;
+            case '"':
+                t->value = escapeStringConstant(t,0);
+                return;
 #if ! TEXTUAL_ASSEMBLY_OUT
-	    case '\\':			// escaped string literal
-	    {	unsigned c;
-		unsigned char *pstart = p;
+            case '\\':                  // escaped string literal
+            {   unsigned c;
+                unsigned char *pstart = p;
 
-		stringbuffer.reset();
-		do
-		{
-		    p++;
-		    switch (*p)
-		    {
-			case 'u':
-			case 'U':
-			case '&':
-			    c = escapeSequence();
-			    stringbuffer.writeUTF8(c);
-			    break;
+                stringbuffer.reset();
+                do
+                {
+                    p++;
+                    switch (*p)
+                    {
+                        case 'u':
+                        case 'U':
+                        case '&':
+                            c = escapeSequence();
+                            stringbuffer.writeUTF8(c);
+                            break;
 
-			default:
-			    c = escapeSequence();
-			    stringbuffer.writeByte(c);
-			    break;
-		    }
-		} while (*p == '\\');
-		t->len = stringbuffer.offset;
-		stringbuffer.writeByte(0);
-		t->ustring = (unsigned char *)mem.malloc(stringbuffer.offset);
-		memcpy(t->ustring, stringbuffer.data, stringbuffer.offset);
-		t->postfix = 0;
-		t->value = TOKstring;
-		if (!global.params.useDeprecated)
-		    error("Escape String literal %.*s is deprecated, use double quoted string literal \"%.*s\" instead", p - pstart, pstart, p - pstart, pstart);
-		return;
-	    }
+                        default:
+                            c = escapeSequence();
+                            stringbuffer.writeByte(c);
+                            break;
+                    }
+                } while (*p == '\\');
+                t->len = stringbuffer.offset;
+                stringbuffer.writeByte(0);
+                t->ustring = (unsigned char *)mem.malloc(stringbuffer.offset);
+                memcpy(t->ustring, stringbuffer.data, stringbuffer.offset);
+                t->postfix = 0;
+                t->value = TOKstring;
+                if (!global.params.useDeprecated)
+                    error("Escape String literal %.*s is deprecated, use double quoted string literal \"%.*s\" instead", p - pstart, pstart, p - pstart, pstart);
+                return;
+            }
 #endif
-	    case 'l':
-	    case 'L':
+            case 'l':
+            case 'L':
 #endif
-	    case 'a':  	case 'b':   case 'c':   case 'd':   case 'e':
-	    case 'f':  	case 'g':   case 'h':   case 'i':   case 'j':
-	    case 'k':  	            case 'm':   case 'n':   case 'o':
+            case 'a':   case 'b':   case 'c':   case 'd':   case 'e':
+            case 'f':   case 'g':   case 'h':   case 'i':   case 'j':
+            case 'k':               case 'm':   case 'n':   case 'o':
 #if DMDV2
-	    case 'p':  	/*case 'q': case 'r':*/ case 's':   case 't':
+            case 'p':   /*case 'q': case 'r':*/ case 's':   case 't':
 #else
-	    case 'p':  	case 'q': /*case 'r':*/ case 's':   case 't':
+            case 'p':   case 'q': /*case 'r':*/ case 's':   case 't':
 #endif
-	    case 'u':  	case 'v':   case 'w': /*case 'x':*/ case 'y':
-	    case 'z':
-	    case 'A':  	case 'B':   case 'C':   case 'D':   case 'E':
-	    case 'F':  	case 'G':   case 'H':   case 'I':   case 'J':
-	    case 'K':  	            case 'M':   case 'N':   case 'O':
-	    case 'P':  	case 'Q':   case 'R':   case 'S':   case 'T':
-	    case 'U':  	case 'V':   case 'W':   case 'X':   case 'Y':
-	    case 'Z':
-	    case '_':
-	    case_ident:
-	    {   unsigned char c;
+            case 'u':   case 'v':   case 'w': /*case 'x':*/ case 'y':
+            case 'z':
+            case 'A':   case 'B':   case 'C':   case 'D':   case 'E':
+            case 'F':   case 'G':   case 'H':   case 'I':   case 'J':
+            case 'K':               case 'M':   case 'N':   case 'O':
+            case 'P':   case 'Q':   case 'R':   case 'S':   case 'T':
+            case 'U':   case 'V':   case 'W':   case 'X':   case 'Y':
+            case 'Z':
+            case '_':
+            case_ident:
+            {   unsigned char c;
 
-		while (1)
-		{
-		    c = *++p;
-		    if (isidchar(c))
-			continue;
-		    else if (c & 0x80)
-		    {	unsigned char *s = p;
-			unsigned u = decodeUTF();
-			if (isUniAlpha(u))
-			    continue;
-			error("char 0x%04x not allowed in identifier", u);
-			p = s;
-		    }
-		    break;
-		}
+                while (1)
+                {
+                    c = *++p;
+                    if (isidchar(c))
+                        continue;
+                    else if (c & 0x80)
+                    {   unsigned char *s = p;
+                        unsigned u = decodeUTF();
+                        if (isUniAlpha(u))
+                            continue;
+                        error("char 0x%04x not allowed in identifier", u);
+                        p = s;
+                    }
+                    break;
+                }
 
-		StringValue *sv = stringtable.update((char *)t->ptr, p - t->ptr);
-		Identifier *id = (Identifier *) sv->ptrvalue;
-		if (!id)
-		{   id = new Identifier(sv->lstring.string,TOKidentifier);
-		    sv->ptrvalue = id;
-		}
-		t->ident = id;
-		t->value = (enum TOK) id->value;
-		anyToken = 1;
-		if (*t->ptr == '_')	// if special identifier token
-		{
-		    static char date[11+1];
-		    static char time[8+1];
-		    static char timestamp[24+1];
+                StringValue *sv = stringtable.update((char *)t->ptr, p - t->ptr);
+                Identifier *id = (Identifier *) sv->ptrvalue;
+                if (!id)
+                {   id = new Identifier(sv->lstring.string,TOKidentifier);
+                    sv->ptrvalue = id;
+                }
+                t->ident = id;
+                t->value = (enum TOK) id->value;
+                anyToken = 1;
+                if (*t->ptr == '_')     // if special identifier token
+                {
+                    static char date[11+1];
+                    static char time[8+1];
+                    static char timestamp[24+1];
 
-		    if (!date[0])	// lazy evaluation
-		    {   time_t t;
-			char *p;
+                    if (!date[0])       // lazy evaluation
+                    {   time_t t;
+                        char *p;
 
-			::time(&t);
-			p = ctime(&t);
-			assert(p);
-			sprintf(date, "%.6s %.4s", p + 4, p + 20);
-			sprintf(time, "%.8s", p + 11);
-			sprintf(timestamp, "%.24s", p);
-		    }
+                        ::time(&t);
+                        p = ctime(&t);
+                        assert(p);
+                        sprintf(date, "%.6s %.4s", p + 4, p + 20);
+                        sprintf(time, "%.8s", p + 11);
+                        sprintf(timestamp, "%.24s", p);
+                    }
 
 #if DMDV1
-		    if (mod && id == Id::FILE)
-		    {
-			t->ustring = (unsigned char *)(loc.filename ? loc.filename : mod->ident->toChars());
-			goto Lstr;
-		    }
-		    else if (mod && id == Id::LINE)
-		    {
-			t->value = TOKint64v;
-			t->uns64value = loc.linnum;
-		    }
-		    else
+                    if (mod && id == Id::FILE)
+                    {
+                        t->ustring = (unsigned char *)(loc.filename ? loc.filename : mod->ident->toChars());
+                        goto Lstr;
+                    }
+                    else if (mod && id == Id::LINE)
+                    {
+                        t->value = TOKint64v;
+                        t->uns64value = loc.linnum;
+                    }
+                    else
 #endif
-		    if (id == Id::DATE)
-		    {
-			t->ustring = (unsigned char *)date;
-			goto Lstr;
-		    }
-		    else if (id == Id::TIME)
-		    {
-			t->ustring = (unsigned char *)time;
-			goto Lstr;
-		    }
-		    else if (id == Id::VENDOR)
-		    {
-			t->ustring = (unsigned char *)"Digital Mars D";
-			goto Lstr;
-		    }
-		    else if (id == Id::TIMESTAMP)
-		    {
-			t->ustring = (unsigned char *)timestamp;
-		     Lstr:
-			t->value = TOKstring;
-		     Llen:
-			t->postfix = 0;
-			t->len = strlen((char *)t->ustring);
-		    }
-		    else if (id == Id::VERSIONX)
-		    {	unsigned major = 0;
-			unsigned minor = 0;
+                    if (id == Id::DATE)
+                    {
+                        t->ustring = (unsigned char *)date;
+                        goto Lstr;
+                    }
+                    else if (id == Id::TIME)
+                    {
+                        t->ustring = (unsigned char *)time;
+                        goto Lstr;
+                    }
+                    else if (id == Id::VENDOR)
+                    {
+                        t->ustring = (unsigned char *)"Digital Mars D";
+                        goto Lstr;
+                    }
+                    else if (id == Id::TIMESTAMP)
+                    {
+                        t->ustring = (unsigned char *)timestamp;
+                     Lstr:
+                        t->value = TOKstring;
+                     Llen:
+                        t->postfix = 0;
+                        t->len = strlen((char *)t->ustring);
+                    }
+                    else if (id == Id::VERSIONX)
+                    {   unsigned major = 0;
+                        unsigned minor = 0;
 
-			for (const char *p = global.version + 1; 1; p++)
-			{
-			    char c = *p;
-			    if (isdigit(c))
-				minor = minor * 10 + c - '0';
-			    else if (c == '.')
-			    {	major = minor;
-				minor = 0;
-			    }
-			    else
-				break;
-			}
-			t->value = TOKint64v;
-			t->uns64value = major * 1000 + minor;
-		    }
+                        for (const char *p = global.version + 1; 1; p++)
+                        {
+                            char c = *p;
+                            if (isdigit(c))
+                                minor = minor * 10 + c - '0';
+                            else if (c == '.')
+                            {   major = minor;
+                                minor = 0;
+                            }
+                            else
+                                break;
+                        }
+                        t->value = TOKint64v;
+                        t->uns64value = major * 1000 + minor;
+                    }
 #if DMDV2
-		    else if (id == Id::EOFX)
-		    {
-			t->value = TOKeof;
-			// Advance scanner to end of file
-			while (!(*p == 0 || *p == 0x1A))
-			    p++;
-		    }
+                    else if (id == Id::EOFX)
+                    {
+                        t->value = TOKeof;
+                        // Advance scanner to end of file
+                        while (!(*p == 0 || *p == 0x1A))
+                            p++;
+                    }
 #endif
-		}
-		//printf("t->value = %d\n",t->value);
-		return;
-	    }
+                }
+                //printf("t->value = %d\n",t->value);
+                return;
+            }
 
-	    case '/':
-		p++;
-		switch (*p)
-		{
-		    case '=':
-			p++;
-			t->value = TOKdivass;
-			return;
+            case '/':
+                p++;
+                switch (*p)
+                {
+                    case '=':
+                        p++;
+                        t->value = TOKdivass;
+                        return;
 
-		    case '*':
-			p++;
-			linnum = loc.linnum;
-			while (1)
-			{
-			    while (1)
-			    {	unsigned char c = *p;
-				switch (c)
-				{
-				    case '/':
-					break;
+                    case '*':
+                        p++;
+                        linnum = loc.linnum;
+                        while (1)
+                        {
+                            while (1)
+                            {   unsigned char c = *p;
+                                switch (c)
+                                {
+                                    case '/':
+                                        break;
 
-				    case '\n':
-					loc.linnum++;
-					p++;
-					continue;
+                                    case '\n':
+                                        loc.linnum++;
+                                        p++;
+                                        continue;
 
-				    case '\r':
-					p++;
-					if (*p != '\n')
-					    loc.linnum++;
-					continue;
+                                    case '\r':
+                                        p++;
+                                        if (*p != '\n')
+                                            loc.linnum++;
+                                        continue;
 
-				    case 0:
-				    case 0x1A:
-					error("unterminated /* */ comment");
-					p = end;
-					t->value = TOKeof;
-					return;
+                                    case 0:
+                                    case 0x1A:
+                                        error("unterminated /* */ comment");
+                                        p = end;
+                                        t->value = TOKeof;
+                                        return;
 
-				    default:
-					if (c & 0x80)
-					{   unsigned u = decodeUTF();
-					    if (u == PS || u == LS)
-						loc.linnum++;
-					}
-					p++;
-					continue;
-				}
-				break;
-			    }
-			    p++;
-			    if (p[-2] == '*' && p - 3 != t->ptr)
-				break;
-			}
-			if (commentToken)
-			{
-			    t->value = TOKcomment;
-			    return;
-			}
-			else if (doDocComment && t->ptr[2] == '*' && p - 4 != t->ptr)
-			{   // if /** but not /**/
-			    getDocComment(t, lastLine == linnum);
-			}
-			continue;
+                                    default:
+                                        if (c & 0x80)
+                                        {   unsigned u = decodeUTF();
+                                            if (u == PS || u == LS)
+                                                loc.linnum++;
+                                        }
+                                        p++;
+                                        continue;
+                                }
+                                break;
+                            }
+                            p++;
+                            if (p[-2] == '*' && p - 3 != t->ptr)
+                                break;
+                        }
+                        if (commentToken)
+                        {
+                            t->value = TOKcomment;
+                            return;
+                        }
+                        else if (doDocComment && t->ptr[2] == '*' && p - 4 != t->ptr)
+                        {   // if /** but not /**/
+                            getDocComment(t, lastLine == linnum);
+                        }
+                        continue;
 
-		    case '/':		// do // style comments
-			linnum = loc.linnum;
-			while (1)
-			{   unsigned char c = *++p;
-			    switch (c)
-			    {
-				case '\n':
-				    break;
+                    case '/':           // do // style comments
+                        linnum = loc.linnum;
+                        while (1)
+                        {   unsigned char c = *++p;
+                            switch (c)
+                            {
+                                case '\n':
+                                    break;
 
-				case '\r':
-				    if (p[1] == '\n')
-					p++;
-				    break;
+                                case '\r':
+                                    if (p[1] == '\n')
+                                        p++;
+                                    break;
 
-				case 0:
-				case 0x1A:
-				    if (commentToken)
-				    {
-					p = end;
-					t->value = TOKcomment;
-					return;
-				    }
-				    if (doDocComment && t->ptr[2] == '/')
-					getDocComment(t, lastLine == linnum);
-				    p = end;
-				    t->value = TOKeof;
-				    return;
+                                case 0:
+                                case 0x1A:
+                                    if (commentToken)
+                                    {
+                                        p = end;
+                                        t->value = TOKcomment;
+                                        return;
+                                    }
+                                    if (doDocComment && t->ptr[2] == '/')
+                                        getDocComment(t, lastLine == linnum);
+                                    p = end;
+                                    t->value = TOKeof;
+                                    return;
 
-				default:
-				    if (c & 0x80)
-				    {   unsigned u = decodeUTF();
-					if (u == PS || u == LS)
-					    break;
-				    }
-				    continue;
-			    }
-			    break;
-			}
+                                default:
+                                    if (c & 0x80)
+                                    {   unsigned u = decodeUTF();
+                                        if (u == PS || u == LS)
+                                            break;
+                                    }
+                                    continue;
+                            }
+                            break;
+                        }
 
-			if (commentToken)
-			{
-			    p++;
-			    loc.linnum++;
-			    t->value = TOKcomment;
-			    return;
-			}
-			if (doDocComment && t->ptr[2] == '/')
-			    getDocComment(t, lastLine == linnum);
+                        if (commentToken)
+                        {
+                            p++;
+                            loc.linnum++;
+                            t->value = TOKcomment;
+                            return;
+                        }
+                        if (doDocComment && t->ptr[2] == '/')
+                            getDocComment(t, lastLine == linnum);
 
-			p++;
-			loc.linnum++;
-			continue;
+                        p++;
+                        loc.linnum++;
+                        continue;
 
-		    case '+':
-		    {	int nest;
+                    case '+':
+                    {   int nest;
 
-			linnum = loc.linnum;
-			p++;
-			nest = 1;
-			while (1)
-			{   unsigned char c = *p;
-			    switch (c)
-			    {
-				case '/':
-				    p++;
-				    if (*p == '+')
-				    {
-					p++;
-					nest++;
-				    }
-				    continue;
+                        linnum = loc.linnum;
+                        p++;
+                        nest = 1;
+                        while (1)
+                        {   unsigned char c = *p;
+                            switch (c)
+                            {
+                                case '/':
+                                    p++;
+                                    if (*p == '+')
+                                    {
+                                        p++;
+                                        nest++;
+                                    }
+                                    continue;
 
-				case '+':
-				    p++;
-				    if (*p == '/')
-				    {
-					p++;
-					if (--nest == 0)
-					    break;
-				    }
-				    continue;
+                                case '+':
+                                    p++;
+                                    if (*p == '/')
+                                    {
+                                        p++;
+                                        if (--nest == 0)
+                                            break;
+                                    }
+                                    continue;
 
-				case '\r':
-				    p++;
-				    if (*p != '\n')
-					loc.linnum++;
-				    continue;
+                                case '\r':
+                                    p++;
+                                    if (*p != '\n')
+                                        loc.linnum++;
+                                    continue;
 
-				case '\n':
-				    loc.linnum++;
-				    p++;
-				    continue;
+                                case '\n':
+                                    loc.linnum++;
+                                    p++;
+                                    continue;
 
-				case 0:
-				case 0x1A:
-				    error("unterminated /+ +/ comment");
-				    p = end;
-				    t->value = TOKeof;
-				    return;
+                                case 0:
+                                case 0x1A:
+                                    error("unterminated /+ +/ comment");
+                                    p = end;
+                                    t->value = TOKeof;
+                                    return;
 
-				default:
-				    if (c & 0x80)
-				    {   unsigned u = decodeUTF();
-					if (u == PS || u == LS)
-					    loc.linnum++;
-				    }
-				    p++;
-				    continue;
-			    }
-			    break;
-			}
-			if (commentToken)
-			{
-			    t->value = TOKcomment;
-			    return;
-			}
-			if (doDocComment && t->ptr[2] == '+' && p - 4 != t->ptr)
-			{   // if /++ but not /++/
-			    getDocComment(t, lastLine == linnum);
-			}
-			continue;
-		    }
-		}
-		t->value = TOKdiv;
-		return;
+                                default:
+                                    if (c & 0x80)
+                                    {   unsigned u = decodeUTF();
+                                        if (u == PS || u == LS)
+                                            loc.linnum++;
+                                    }
+                                    p++;
+                                    continue;
+                            }
+                            break;
+                        }
+                        if (commentToken)
+                        {
+                            t->value = TOKcomment;
+                            return;
+                        }
+                        if (doDocComment && t->ptr[2] == '+' && p - 4 != t->ptr)
+                        {   // if /++ but not /++/
+                            getDocComment(t, lastLine == linnum);
+                        }
+                        continue;
+                    }
+                }
+                t->value = TOKdiv;
+                return;
 
-	    case '.':
-		p++;
-		if (isdigit(*p))
-		{   /* Note that we don't allow ._1 and ._ as being
-		     * valid floating point numbers.
-		     */
-		    p--;
-		    t->value = inreal(t);
-		}
-		else if (p[0] == '.')
-		{
-		    if (p[1] == '.')
-		    {   p += 2;
-			t->value = TOKdotdotdot;
-		    }
-		    else
-		    {   p++;
-			t->value = TOKslice;
-		    }
-		}
-		else
-		    t->value = TOKdot;
-		return;
+            case '.':
+                p++;
+                if (isdigit(*p))
+                {   /* Note that we don't allow ._1 and ._ as being
+                     * valid floating point numbers.
+                     */
+                    p--;
+                    t->value = inreal(t);
+                }
+                else if (p[0] == '.')
+                {
+                    if (p[1] == '.')
+                    {   p += 2;
+                        t->value = TOKdotdotdot;
+                    }
+                    else
+                    {   p++;
+                        t->value = TOKslice;
+                    }
+                }
+                else
+                    t->value = TOKdot;
+                return;
 
-	    case '&':
-		p++;
-		if (*p == '=')
-		{   p++;
-		    t->value = TOKandass;
-		}
-		else if (*p == '&')
-		{   p++;
-		    t->value = TOKandand;
-		}
-		else
-		    t->value = TOKand;
-		return;
+            case '&':
+                p++;
+                if (*p == '=')
+                {   p++;
+                    t->value = TOKandass;
+                }
+                else if (*p == '&')
+                {   p++;
+                    t->value = TOKandand;
+                }
+                else
+                    t->value = TOKand;
+                return;
 
-	    case '|':
-		p++;
-		if (*p == '=')
-		{   p++;
-		    t->value = TOKorass;
-		}
-		else if (*p == '|')
-		{   p++;
-		    t->value = TOKoror;
-		}
-		else
-		    t->value = TOKor;
-		return;
+            case '|':
+                p++;
+                if (*p == '=')
+                {   p++;
+                    t->value = TOKorass;
+                }
+                else if (*p == '|')
+                {   p++;
+                    t->value = TOKoror;
+                }
+                else
+                    t->value = TOKor;
+                return;
 
-	    case '-':
-		p++;
-		if (*p == '=')
-		{   p++;
-		    t->value = TOKminass;
-		}
+            case '-':
+                p++;
+                if (*p == '=')
+                {   p++;
+                    t->value = TOKminass;
+                }
 #if 0
-		else if (*p == '>')
-		{   p++;
-		    t->value = TOKarrow;
-		}
+                else if (*p == '>')
+                {   p++;
+                    t->value = TOKarrow;
+                }
 #endif
-		else if (*p == '-')
-		{   p++;
-		    t->value = TOKminusminus;
-		}
-		else
-		    t->value = TOKmin;
-		return;
+                else if (*p == '-')
+                {   p++;
+                    t->value = TOKminusminus;
+                }
+                else
+                    t->value = TOKmin;
+                return;
 
-	    case '+':
-		p++;
-		if (*p == '=')
-		{   p++;
-		    t->value = TOKaddass;
-		}
-		else if (*p == '+')
-		{   p++;
-		    t->value = TOKplusplus;
-		}
-		else
-		    t->value = TOKadd;
-		return;
+            case '+':
+                p++;
+                if (*p == '=')
+                {   p++;
+                    t->value = TOKaddass;
+                }
+                else if (*p == '+')
+                {   p++;
+                    t->value = TOKplusplus;
+                }
+                else
+                    t->value = TOKadd;
+                return;
 
-	    case '<':
-		p++;
-		if (*p == '=')
-		{   p++;
-		    t->value = TOKle;			// <=
-		}
-		else if (*p == '<')
-		{   p++;
-		    if (*p == '=')
-		    {   p++;
-			t->value = TOKshlass;		// <<=
-		    }
-		    else
-			t->value = TOKshl;		// <<
-		}
-		else if (*p == '>')
-		{   p++;
-		    if (*p == '=')
-		    {   p++;
-			t->value = TOKleg;		// <>=
-		    }
-		    else
-			t->value = TOKlg;		// <>
-		}
-		else
-		    t->value = TOKlt;			// <
-		return;
+            case '<':
+                p++;
+                if (*p == '=')
+                {   p++;
+                    t->value = TOKle;                   // <=
+                }
+                else if (*p == '<')
+                {   p++;
+                    if (*p == '=')
+                    {   p++;
+                        t->value = TOKshlass;           // <<=
+                    }
+                    else
+                        t->value = TOKshl;              // <<
+                }
+                else if (*p == '>')
+                {   p++;
+                    if (*p == '=')
+                    {   p++;
+                        t->value = TOKleg;              // <>=
+                    }
+                    else
+                        t->value = TOKlg;               // <>
+                }
+                else
+                    t->value = TOKlt;                   // <
+                return;
 
-	    case '>':
-		p++;
-		if (*p == '=')
-		{   p++;
-		    t->value = TOKge;			// >=
-		}
-		else if (*p == '>')
-		{   p++;
-		    if (*p == '=')
-		    {   p++;
-			t->value = TOKshrass;		// >>=
-		    }
-		    else if (*p == '>')
-		    {	p++;
-			if (*p == '=')
-			{   p++;
-			    t->value = TOKushrass;	// >>>=
-			}
-			else
-			    t->value = TOKushr;		// >>>
-		    }
-		    else
-			t->value = TOKshr;		// >>
-		}
-		else
-		    t->value = TOKgt;			// >
-		return;
+            case '>':
+                p++;
+                if (*p == '=')
+                {   p++;
+                    t->value = TOKge;                   // >=
+                }
+                else if (*p == '>')
+                {   p++;
+                    if (*p == '=')
+                    {   p++;
+                        t->value = TOKshrass;           // >>=
+                    }
+                    else if (*p == '>')
+                    {   p++;
+                        if (*p == '=')
+                        {   p++;
+                            t->value = TOKushrass;      // >>>=
+                        }
+                        else
+                            t->value = TOKushr;         // >>>
+                    }
+                    else
+                        t->value = TOKshr;              // >>
+                }
+                else
+                    t->value = TOKgt;                   // >
+                return;
 
-	    case '!':
-		p++;
-		if (*p == '=')
-		{   p++;
-		    if (*p == '=' && global.params.Dversion == 1)
-		    {	p++;
-			t->value = TOKnotidentity;	// !==
-		    }
-		    else
-			t->value = TOKnotequal;		// !=
-		}
-		else if (*p == '<')
-		{   p++;
-		    if (*p == '>')
-		    {	p++;
-			if (*p == '=')
-			{   p++;
-			    t->value = TOKunord; // !<>=
-			}
-			else
-			    t->value = TOKue;	// !<>
-		    }
-		    else if (*p == '=')
-		    {	p++;
-			t->value = TOKug;	// !<=
-		    }
-		    else
-			t->value = TOKuge;	// !<
-		}
-		else if (*p == '>')
-		{   p++;
-		    if (*p == '=')
-		    {	p++;
-			t->value = TOKul;	// !>=
-		    }
-		    else
-			t->value = TOKule;	// !>
-		}
-		else
-		    t->value = TOKnot;		// !
-		return;
+            case '!':
+                p++;
+                if (*p == '=')
+                {   p++;
+                    if (*p == '=' && global.params.Dversion == 1)
+                    {   p++;
+                        t->value = TOKnotidentity;      // !==
+                    }
+                    else
+                        t->value = TOKnotequal;         // !=
+                }
+                else if (*p == '<')
+                {   p++;
+                    if (*p == '>')
+                    {   p++;
+                        if (*p == '=')
+                        {   p++;
+                            t->value = TOKunord; // !<>=
+                        }
+                        else
+                            t->value = TOKue;   // !<>
+                    }
+                    else if (*p == '=')
+                    {   p++;
+                        t->value = TOKug;       // !<=
+                    }
+                    else
+                        t->value = TOKuge;      // !<
+                }
+                else if (*p == '>')
+                {   p++;
+                    if (*p == '=')
+                    {   p++;
+                        t->value = TOKul;       // !>=
+                    }
+                    else
+                        t->value = TOKule;      // !>
+                }
+                else
+                    t->value = TOKnot;          // !
+                return;
 
-	    case '=':
-		p++;
-		if (*p == '=')
-		{   p++;
-		    if (*p == '=' && global.params.Dversion == 1)
-		    {	p++;
-			t->value = TOKidentity;		// ===
-		    }
-		    else
-			t->value = TOKequal;		// ==
-		}
-		else
-		    t->value = TOKassign;		// =
-		return;
+            case '=':
+                p++;
+                if (*p == '=')
+                {   p++;
+                    if (*p == '=' && global.params.Dversion == 1)
+                    {   p++;
+                        t->value = TOKidentity;         // ===
+                    }
+                    else
+                        t->value = TOKequal;            // ==
+                }
+                else
+                    t->value = TOKassign;               // =
+                return;
 
-	    case '~':
-		p++;
-		if (*p == '=')
-		{   p++;
-		    t->value = TOKcatass;		// ~=
-		}
-		else
-		    t->value = TOKtilde;		// ~
-		return;
+            case '~':
+                p++;
+                if (*p == '=')
+                {   p++;
+                    t->value = TOKcatass;               // ~=
+                }
+                else
+                    t->value = TOKtilde;                // ~
+                return;
 
 #if DMDV2
-	    case '^':
-		p++;
-		if (*p == '^')
-		{   p++;
-		    if (*p == '=')
-		    {   p++;
-			t->value = TOKpowass;  // ^^=
-		    }
-		    else
-			t->value = TOKpow;     // ^^
-		}
-		else if (*p == '=')
-		{   p++;
-		    t->value = TOKxorass;    // ^=
-		}
-		else
-		    t->value = TOKxor;       // ^
-		return;
+            case '^':
+                p++;
+                if (*p == '^')
+                {   p++;
+                    if (*p == '=')
+                    {   p++;
+                        t->value = TOKpowass;  // ^^=
+                    }
+                    else
+                        t->value = TOKpow;     // ^^
+                }
+                else if (*p == '=')
+                {   p++;
+                    t->value = TOKxorass;    // ^=
+                }
+                else
+                    t->value = TOKxor;       // ^
+                return;
 #endif
 
 #define SINGLE(c,tok) case c: p++; t->value = tok; return;
 
-	    SINGLE('(',	TOKlparen)
-	    SINGLE(')', TOKrparen)
-	    SINGLE('[', TOKlbracket)
-	    SINGLE(']', TOKrbracket)
-	    SINGLE('{', TOKlcurly)
-	    SINGLE('}', TOKrcurly)
-	    SINGLE('?', TOKquestion)
-	    SINGLE(',', TOKcomma)
-	    SINGLE(';', TOKsemicolon)
-	    SINGLE(':', TOKcolon)
-	    SINGLE('$', TOKdollar)
-	    SINGLE('@', TOKat)
+            SINGLE('(', TOKlparen)
+            SINGLE(')', TOKrparen)
+            SINGLE('[', TOKlbracket)
+            SINGLE(']', TOKrbracket)
+            SINGLE('{', TOKlcurly)
+            SINGLE('}', TOKrcurly)
+            SINGLE('?', TOKquestion)
+            SINGLE(',', TOKcomma)
+            SINGLE(';', TOKsemicolon)
+            SINGLE(':', TOKcolon)
+            SINGLE('$', TOKdollar)
+            SINGLE('@', TOKat)
 
 #undef SINGLE
 
-#define DOUBLE(c1,tok1,c2,tok2)		\
-	    case c1:			\
-		p++;			\
-		if (*p == c2)		\
-		{   p++;		\
-		    t->value = tok2;	\
-		}			\
-		else			\
-		    t->value = tok1;	\
-		return;
+#define DOUBLE(c1,tok1,c2,tok2)         \
+            case c1:                    \
+                p++;                    \
+                if (*p == c2)           \
+                {   p++;                \
+                    t->value = tok2;    \
+                }                       \
+                else                    \
+                    t->value = tok1;    \
+                return;
 
-	    DOUBLE('*', TOKmul, '=', TOKmulass)
-	    DOUBLE('%', TOKmod, '=', TOKmodass)
+            DOUBLE('*', TOKmul, '=', TOKmulass)
+            DOUBLE('%', TOKmod, '=', TOKmodass)
 #if DMDV1
-	    DOUBLE('^', TOKxor, '=', TOKxorass)
+            DOUBLE('^', TOKxor, '=', TOKxorass)
 #endif
 #undef DOUBLE
 
-	    case '#':
-		p++;
-		pragma();
-		continue;
+            case '#':
+                p++;
+                pragma();
+                continue;
 
-	    default:
-	    {	unsigned c = *p;
+            default:
+            {   unsigned c = *p;
 
-		if (c & 0x80)
-		{   c = decodeUTF();
+                if (c & 0x80)
+                {   c = decodeUTF();
 
-		    // Check for start of unicode identifier
-		    if (isUniAlpha(c))
-			goto case_ident;
+                    // Check for start of unicode identifier
+                    if (isUniAlpha(c))
+                        goto case_ident;
 
-		    if (c == PS || c == LS)
-		    {
-			loc.linnum++;
-			p++;
-			continue;
-		    }
-		}
-		if (c < 0x80 && isprint(c))
-		    error("unsupported char '%c'", c);
-		else
-		    error("unsupported char 0x%02x", c);
-		p++;
-		continue;
-	    }
-	}
+                    if (c == PS || c == LS)
+                    {
+                        loc.linnum++;
+                        p++;
+                        continue;
+                    }
+                }
+                if (c < 0x80 && isprint(c))
+                    error("unsupported char '%c'", c);
+                else
+                    error("unsupported char 0x%02x", c);
+                p++;
+                continue;
+            }
+        }
     }
 }
 
@@ -1265,113 +1265,113 @@ unsigned Lexer::escapeSequence()
 
     switch (c)
     {
-	case '\'':
-	case '"':
-	case '?':
-	case '\\':
-	Lconsume:
-		p++;
-		break;
+        case '\'':
+        case '"':
+        case '?':
+        case '\\':
+        Lconsume:
+                p++;
+                break;
 
-	case 'a':	c = 7;		goto Lconsume;
-	case 'b':	c = 8;		goto Lconsume;
-	case 'f':	c = 12;		goto Lconsume;
-	case 'n':	c = 10;		goto Lconsume;
-	case 'r':	c = 13;		goto Lconsume;
-	case 't':	c = 9;		goto Lconsume;
-	case 'v':	c = 11;		goto Lconsume;
+        case 'a':       c = 7;          goto Lconsume;
+        case 'b':       c = 8;          goto Lconsume;
+        case 'f':       c = 12;         goto Lconsume;
+        case 'n':       c = 10;         goto Lconsume;
+        case 'r':       c = 13;         goto Lconsume;
+        case 't':       c = 9;          goto Lconsume;
+        case 'v':       c = 11;         goto Lconsume;
 
-	case 'u':
-		ndigits = 4;
-		goto Lhex;
-	case 'U':
-		ndigits = 8;
-		goto Lhex;
-	case 'x':
-		ndigits = 2;
-	Lhex:
-		p++;
-		c = *p;
-		if (ishex(c))
-		{   unsigned v;
+        case 'u':
+                ndigits = 4;
+                goto Lhex;
+        case 'U':
+                ndigits = 8;
+                goto Lhex;
+        case 'x':
+                ndigits = 2;
+        Lhex:
+                p++;
+                c = *p;
+                if (ishex(c))
+                {   unsigned v;
 
-		    n = 0;
-		    v = 0;
-		    while (1)
-		    {
-			if (isdigit(c))
-			    c -= '0';
-			else if (islower(c))
-			    c -= 'a' - 10;
-			else
-			    c -= 'A' - 10;
-			v = v * 16 + c;
-			c = *++p;
-			if (++n == ndigits)
-			    break;
-			if (!ishex(c))
-			{   error("escape hex sequence has %d hex digits instead of %d", n, ndigits);
-			    break;
-			}
-		    }
-		    if (ndigits != 2 && !utf_isValidDchar(v))
-		    {	error("invalid UTF character \\U%08x", v);
-			v = '?';	// recover with valid UTF character
-		    }
-		    c = v;
-		}
-		else
-		    error("undefined escape hex sequence \\%c\n",c);
-		break;
+                    n = 0;
+                    v = 0;
+                    while (1)
+                    {
+                        if (isdigit(c))
+                            c -= '0';
+                        else if (islower(c))
+                            c -= 'a' - 10;
+                        else
+                            c -= 'A' - 10;
+                        v = v * 16 + c;
+                        c = *++p;
+                        if (++n == ndigits)
+                            break;
+                        if (!ishex(c))
+                        {   error("escape hex sequence has %d hex digits instead of %d", n, ndigits);
+                            break;
+                        }
+                    }
+                    if (ndigits != 2 && !utf_isValidDchar(v))
+                    {   error("invalid UTF character \\U%08x", v);
+                        v = '?';        // recover with valid UTF character
+                    }
+                    c = v;
+                }
+                else
+                    error("undefined escape hex sequence \\%c\n",c);
+                break;
 
-	case '&':			// named character entity
-		for (unsigned char *idstart = ++p; 1; p++)
-		{
-		    switch (*p)
-		    {
-			case ';':
-			    c = HtmlNamedEntity(idstart, p - idstart);
-			    if (c == ~0)
-			    {   error("unnamed character entity &%.*s;", (int)(p - idstart), idstart);
-				c = ' ';
-			    }
-			    p++;
-			    break;
+        case '&':                       // named character entity
+                for (unsigned char *idstart = ++p; 1; p++)
+                {
+                    switch (*p)
+                    {
+                        case ';':
+                            c = HtmlNamedEntity(idstart, p - idstart);
+                            if (c == ~0)
+                            {   error("unnamed character entity &%.*s;", (int)(p - idstart), idstart);
+                                c = ' ';
+                            }
+                            p++;
+                            break;
 
-			default:
-			    if (isalpha(*p) ||
-				(p != idstart + 1 && isdigit(*p)))
-				continue;
-			    error("unterminated named entity");
-			    break;
-		    }
-		    break;
-		}
-		break;
+                        default:
+                            if (isalpha(*p) ||
+                                (p != idstart + 1 && isdigit(*p)))
+                                continue;
+                            error("unterminated named entity");
+                            break;
+                    }
+                    break;
+                }
+                break;
 
-	case 0:
-	case 0x1A:			// end of file
-		c = '\\';
-		break;
+        case 0:
+        case 0x1A:                      // end of file
+                c = '\\';
+                break;
 
-	default:
-		if (isoctal(c))
-		{   unsigned v;
+        default:
+                if (isoctal(c))
+                {   unsigned v;
 
-		    n = 0;
-		    v = 0;
-		    do
-		    {
-			v = v * 8 + (c - '0');
-			c = *++p;
-		    } while (++n < 3 && isoctal(c));
-		    c = v;
-		    if (c > 0xFF)
-			error("0%03o is larger than a byte", c);
-		}
-		else
-		    error("undefined escape sequence \\%c\n",c);
-		break;
+                    n = 0;
+                    v = 0;
+                    do
+                    {
+                        v = v * 8 + (c - '0');
+                        c = *++p;
+                    } while (++n < 3 && isoctal(c));
+                    c = v;
+                    if (c > 0xFF)
+                        error("0%03o is larger than a byte", c);
+                }
+                else
+                    error("undefined escape sequence \\%c\n",c);
+                break;
     }
     return c;
 }
@@ -1387,60 +1387,60 @@ TOK Lexer::wysiwygStringConstant(Token *t, int tc)
     stringbuffer.reset();
     while (1)
     {
-	c = *p++;
-	switch (c)
-	{
-	    case '\n':
-		loc.linnum++;
-		break;
+        c = *p++;
+        switch (c)
+        {
+            case '\n':
+                loc.linnum++;
+                break;
 
-	    case '\r':
-		if (*p == '\n')
-		    continue;	// ignore
-		c = '\n';	// treat EndOfLine as \n character
-		loc.linnum++;
-		break;
+            case '\r':
+                if (*p == '\n')
+                    continue;   // ignore
+                c = '\n';       // treat EndOfLine as \n character
+                loc.linnum++;
+                break;
 
-	    case 0:
-	    case 0x1A:
-		error("unterminated string constant starting at %s", start.toChars());
-		t->ustring = (unsigned char *)"";
-		t->len = 0;
-		t->postfix = 0;
-		return TOKstring;
+            case 0:
+            case 0x1A:
+                error("unterminated string constant starting at %s", start.toChars());
+                t->ustring = (unsigned char *)"";
+                t->len = 0;
+                t->postfix = 0;
+                return TOKstring;
 
-	    case '"':
-	    case '`':
-		if (c == tc)
-		{
-		    t->len = stringbuffer.offset;
-		    stringbuffer.writeByte(0);
-		    t->ustring = (unsigned char *)mem.malloc(stringbuffer.offset);
-		    memcpy(t->ustring, stringbuffer.data, stringbuffer.offset);
-		    stringPostfix(t);
-		    return TOKstring;
-		}
-		break;
+            case '"':
+            case '`':
+                if (c == tc)
+                {
+                    t->len = stringbuffer.offset;
+                    stringbuffer.writeByte(0);
+                    t->ustring = (unsigned char *)mem.malloc(stringbuffer.offset);
+                    memcpy(t->ustring, stringbuffer.data, stringbuffer.offset);
+                    stringPostfix(t);
+                    return TOKstring;
+                }
+                break;
 
-	    default:
-		if (c & 0x80)
-		{   p--;
-		    unsigned u = decodeUTF();
-		    p++;
-		    if (u == PS || u == LS)
-			loc.linnum++;
-		    stringbuffer.writeUTF8(u);
-		    continue;
-		}
-		break;
-	}
-	stringbuffer.writeByte(c);
+            default:
+                if (c & 0x80)
+                {   p--;
+                    unsigned u = decodeUTF();
+                    p++;
+                    if (u == PS || u == LS)
+                        loc.linnum++;
+                    stringbuffer.writeUTF8(u);
+                    continue;
+                }
+                break;
+        }
+        stringbuffer.writeByte(c);
     }
 }
 
 /**************************************
  * Lex hex strings:
- *	x"0A ae 34FE BD"
+ *      x"0A ae 34FE BD"
  */
 
 TOK Lexer::hexStringConstant(Token *t)
@@ -1453,70 +1453,70 @@ TOK Lexer::hexStringConstant(Token *t)
     stringbuffer.reset();
     while (1)
     {
-	c = *p++;
-	switch (c)
-	{
-	    case ' ':
-	    case '\t':
-	    case '\v':
-	    case '\f':
-		continue;			// skip white space
+        c = *p++;
+        switch (c)
+        {
+            case ' ':
+            case '\t':
+            case '\v':
+            case '\f':
+                continue;                       // skip white space
 
-	    case '\r':
-		if (*p == '\n')
-		    continue;			// ignore
-		// Treat isolated '\r' as if it were a '\n'
-	    case '\n':
-		loc.linnum++;
-		continue;
+            case '\r':
+                if (*p == '\n')
+                    continue;                   // ignore
+                // Treat isolated '\r' as if it were a '\n'
+            case '\n':
+                loc.linnum++;
+                continue;
 
-	    case 0:
-	    case 0x1A:
-		error("unterminated string constant starting at %s", start.toChars());
-		t->ustring = (unsigned char *)"";
-		t->len = 0;
-		t->postfix = 0;
-		return TOKstring;
+            case 0:
+            case 0x1A:
+                error("unterminated string constant starting at %s", start.toChars());
+                t->ustring = (unsigned char *)"";
+                t->len = 0;
+                t->postfix = 0;
+                return TOKstring;
 
-	    case '"':
-		if (n & 1)
-		{   error("odd number (%d) of hex characters in hex string", n);
-		    stringbuffer.writeByte(v);
-		}
-		t->len = stringbuffer.offset;
-		stringbuffer.writeByte(0);
-		t->ustring = (unsigned char *)mem.malloc(stringbuffer.offset);
-		memcpy(t->ustring, stringbuffer.data, stringbuffer.offset);
-		stringPostfix(t);
-		return TOKstring;
+            case '"':
+                if (n & 1)
+                {   error("odd number (%d) of hex characters in hex string", n);
+                    stringbuffer.writeByte(v);
+                }
+                t->len = stringbuffer.offset;
+                stringbuffer.writeByte(0);
+                t->ustring = (unsigned char *)mem.malloc(stringbuffer.offset);
+                memcpy(t->ustring, stringbuffer.data, stringbuffer.offset);
+                stringPostfix(t);
+                return TOKstring;
 
-	    default:
-		if (c >= '0' && c <= '9')
-		    c -= '0';
-		else if (c >= 'a' && c <= 'f')
-		    c -= 'a' - 10;
-		else if (c >= 'A' && c <= 'F')
-		    c -= 'A' - 10;
-		else if (c & 0x80)
-		{   p--;
-		    unsigned u = decodeUTF();
-		    p++;
-		    if (u == PS || u == LS)
-			loc.linnum++;
-		    else
-			error("non-hex character \\u%04x", u);
-		}
-		else
-		    error("non-hex character '%c'", c);
-		if (n & 1)
-		{   v = (v << 4) | c;
-		    stringbuffer.writeByte(v);
-		}
-		else
-		    v = c;
-		n++;
-		break;
-	}
+            default:
+                if (c >= '0' && c <= '9')
+                    c -= '0';
+                else if (c >= 'a' && c <= 'f')
+                    c -= 'a' - 10;
+                else if (c >= 'A' && c <= 'F')
+                    c -= 'A' - 10;
+                else if (c & 0x80)
+                {   p--;
+                    unsigned u = decodeUTF();
+                    p++;
+                    if (u == PS || u == LS)
+                        loc.linnum++;
+                    else
+                        error("non-hex character \\u%04x", u);
+                }
+                else
+                    error("non-hex character '%c'", c);
+                if (n & 1)
+                {   v = (v << 4) | c;
+                    stringbuffer.writeByte(v);
+                }
+                else
+                    v = c;
+                n++;
+                break;
+        }
     }
 }
 
@@ -1524,14 +1524,14 @@ TOK Lexer::hexStringConstant(Token *t)
 #if DMDV2
 /**************************************
  * Lex delimited strings:
- *	q"(foo(xxx))"   // "foo(xxx)"
- *	q"[foo(]"       // "foo("
- *	q"/foo]/"       // "foo]"
- *	q"HERE
- *	foo
- *	HERE"		// "foo\n"
+ *      q"(foo(xxx))"   // "foo(xxx)"
+ *      q"[foo(]"       // "foo("
+ *      q"/foo]/"       // "foo]"
+ *      q"HERE
+ *      foo
+ *      HERE"           // "foo\n"
  * Input:
- *	p is on the "
+ *      p is on the "
  */
 
 TOK Lexer::delimitedStringConstant(Token *t)
@@ -1549,122 +1549,122 @@ TOK Lexer::delimitedStringConstant(Token *t)
     stringbuffer.reset();
     while (1)
     {
-	c = *p++;
-	//printf("c = '%c'\n", c);
-	switch (c)
-	{
-	    case '\n':
-	    Lnextline:
-		loc.linnum++;
-		startline = 1;
-		if (blankrol)
-		{   blankrol = 0;
-		    continue;
-		}
-		if (hereid)
-		{
-		    stringbuffer.writeUTF8(c);
-		    continue;
-		}
-		break;
+        c = *p++;
+        //printf("c = '%c'\n", c);
+        switch (c)
+        {
+            case '\n':
+            Lnextline:
+                loc.linnum++;
+                startline = 1;
+                if (blankrol)
+                {   blankrol = 0;
+                    continue;
+                }
+                if (hereid)
+                {
+                    stringbuffer.writeUTF8(c);
+                    continue;
+                }
+                break;
 
-	    case '\r':
-		if (*p == '\n')
-		    continue;	// ignore
-		c = '\n';	// treat EndOfLine as \n character
-		goto Lnextline;
+            case '\r':
+                if (*p == '\n')
+                    continue;   // ignore
+                c = '\n';       // treat EndOfLine as \n character
+                goto Lnextline;
 
-	    case 0:
-	    case 0x1A:
-		goto Lerror;
+            case 0:
+            case 0x1A:
+                goto Lerror;
 
-	    default:
-		if (c & 0x80)
-		{   p--;
-		    c = decodeUTF();
-		    p++;
-		    if (c == PS || c == LS)
-			goto Lnextline;
-		}
-		break;
-	}
-	if (delimleft == 0)
-	{   delimleft = c;
-	    nest = 1;
-	    nestcount = 1;
-	    if (c == '(')
-		delimright = ')';
-	    else if (c == '{')
-		delimright = '}';
-	    else if (c == '[')
-		delimright = ']';
-	    else if (c == '<')
-		delimright = '>';
-	    else if (isalpha(c) || c == '_' || (c >= 0x80 && isUniAlpha(c)))
-	    {	// Start of identifier; must be a heredoc
-		Token t;
-		p--;
-		scan(&t);		// read in heredoc identifier
-		if (t.value != TOKidentifier)
-		{   error("identifier expected for heredoc, not %s", t.toChars());
-		    delimright = c;
-		}
-		else
-		{   hereid = t.ident;
-		    //printf("hereid = '%s'\n", hereid->toChars());
-		    blankrol = 1;
-		}
-		nest = 0;
-	    }
-	    else
-	    {	delimright = c;
-		nest = 0;
-		if (isspace(c))
-		    error("delimiter cannot be whitespace");
-	    }
-	}
-	else
-	{
-	    if (blankrol)
-	    {	error("heredoc rest of line should be blank");
-		blankrol = 0;
-		continue;
-	    }
-	    if (nest == 1)
-	    {
-		if (c == delimleft)
-		    nestcount++;
-		else if (c == delimright)
-		{   nestcount--;
-		    if (nestcount == 0)
-			goto Ldone;
-		}
-	    }
-	    else if (c == delimright)
-		goto Ldone;
-	    if (startline && isalpha(c) && hereid)
-	    {	Token t;
-		unsigned char *psave = p;
-		p--;
-		scan(&t);		// read in possible heredoc identifier
-		//printf("endid = '%s'\n", t.ident->toChars());
-		if (t.value == TOKidentifier && t.ident->equals(hereid))
-		{   /* should check that rest of line is blank
-		     */
-		    goto Ldone;
-		}
-		p = psave;
-	    }
-	    stringbuffer.writeUTF8(c);
-	    startline = 0;
-	}
+            default:
+                if (c & 0x80)
+                {   p--;
+                    c = decodeUTF();
+                    p++;
+                    if (c == PS || c == LS)
+                        goto Lnextline;
+                }
+                break;
+        }
+        if (delimleft == 0)
+        {   delimleft = c;
+            nest = 1;
+            nestcount = 1;
+            if (c == '(')
+                delimright = ')';
+            else if (c == '{')
+                delimright = '}';
+            else if (c == '[')
+                delimright = ']';
+            else if (c == '<')
+                delimright = '>';
+            else if (isalpha(c) || c == '_' || (c >= 0x80 && isUniAlpha(c)))
+            {   // Start of identifier; must be a heredoc
+                Token t;
+                p--;
+                scan(&t);               // read in heredoc identifier
+                if (t.value != TOKidentifier)
+                {   error("identifier expected for heredoc, not %s", t.toChars());
+                    delimright = c;
+                }
+                else
+                {   hereid = t.ident;
+                    //printf("hereid = '%s'\n", hereid->toChars());
+                    blankrol = 1;
+                }
+                nest = 0;
+            }
+            else
+            {   delimright = c;
+                nest = 0;
+                if (isspace(c))
+                    error("delimiter cannot be whitespace");
+            }
+        }
+        else
+        {
+            if (blankrol)
+            {   error("heredoc rest of line should be blank");
+                blankrol = 0;
+                continue;
+            }
+            if (nest == 1)
+            {
+                if (c == delimleft)
+                    nestcount++;
+                else if (c == delimright)
+                {   nestcount--;
+                    if (nestcount == 0)
+                        goto Ldone;
+                }
+            }
+            else if (c == delimright)
+                goto Ldone;
+            if (startline && isalpha(c) && hereid)
+            {   Token t;
+                unsigned char *psave = p;
+                p--;
+                scan(&t);               // read in possible heredoc identifier
+                //printf("endid = '%s'\n", t.ident->toChars());
+                if (t.value == TOKidentifier && t.ident->equals(hereid))
+                {   /* should check that rest of line is blank
+                     */
+                    goto Ldone;
+                }
+                p = psave;
+            }
+            stringbuffer.writeUTF8(c);
+            startline = 0;
+        }
     }
 
 Ldone:
     if (*p == '"')
-	p++;
+        p++;
     else
-	error("delimited string must end in %c\"", delimright);
+        error("delimited string must end in %c\"", delimright);
     t->len = stringbuffer.offset;
     stringbuffer.writeByte(0);
     t->ustring = (unsigned char *)mem.malloc(stringbuffer.offset);
@@ -1682,11 +1682,11 @@ Lerror:
 
 /**************************************
  * Lex delimited strings:
- *	q{ foo(xxx) } // " foo(xxx) "
- *	q{foo(}       // "foo("
- *	q{{foo}"}"}   // "{foo}"}""
+ *      q{ foo(xxx) } // " foo(xxx) "
+ *      q{foo(}       // "foo("
+ *      q{{foo}"}"}   // "{foo}"}""
  * Input:
- *	p is on the q
+ *      p is on the q
  */
 
 TOK Lexer::tokenStringConstant(Token *t)
@@ -1696,26 +1696,26 @@ TOK Lexer::tokenStringConstant(Token *t)
     unsigned char *pstart = ++p;
 
     while (1)
-    {	Token tok;
+    {   Token tok;
 
-	scan(&tok);
-	switch (tok.value)
-	{
-	    case TOKlcurly:
-		nest++;
-		continue;
+        scan(&tok);
+        switch (tok.value)
+        {
+            case TOKlcurly:
+                nest++;
+                continue;
 
-	    case TOKrcurly:
-		if (--nest == 0)
-		    goto Ldone;
-		continue;
+            case TOKrcurly:
+                if (--nest == 0)
+                    goto Ldone;
+                continue;
 
-	    case TOKeof:
-		goto Lerror;
+            case TOKeof:
+                goto Lerror;
 
-	    default:
-		continue;
-	}
+            default:
+                continue;
+        }
     }
 
 Ldone:
@@ -1748,70 +1748,70 @@ TOK Lexer::escapeStringConstant(Token *t, int wide)
     stringbuffer.reset();
     while (1)
     {
-	c = *p++;
-	switch (c)
-	{
+        c = *p++;
+        switch (c)
+        {
 #if !( TEXTUAL_ASSEMBLY_OUT )
-	    case '\\':
-		switch (*p)
-		{
-		    case 'u':
-		    case 'U':
-		    case '&':
-			c = escapeSequence();
-			stringbuffer.writeUTF8(c);
-			continue;
+            case '\\':
+                switch (*p)
+                {
+                    case 'u':
+                    case 'U':
+                    case '&':
+                        c = escapeSequence();
+                        stringbuffer.writeUTF8(c);
+                        continue;
 
-		    default:
-			c = escapeSequence();
-			break;
-		}
-		break;
+                    default:
+                        c = escapeSequence();
+                        break;
+                }
+                break;
 #endif
-	    case '\n':
-		loc.linnum++;
-		break;
+            case '\n':
+                loc.linnum++;
+                break;
 
-	    case '\r':
-		if (*p == '\n')
-		    continue;	// ignore
-		c = '\n';	// treat EndOfLine as \n character
-		loc.linnum++;
-		break;
+            case '\r':
+                if (*p == '\n')
+                    continue;   // ignore
+                c = '\n';       // treat EndOfLine as \n character
+                loc.linnum++;
+                break;
 
-	    case '"':
-		t->len = stringbuffer.offset;
-		stringbuffer.writeByte(0);
-		t->ustring = (unsigned char *)mem.malloc(stringbuffer.offset);
-		memcpy(t->ustring, stringbuffer.data, stringbuffer.offset);
-		stringPostfix(t);
-		return TOKstring;
+            case '"':
+                t->len = stringbuffer.offset;
+                stringbuffer.writeByte(0);
+                t->ustring = (unsigned char *)mem.malloc(stringbuffer.offset);
+                memcpy(t->ustring, stringbuffer.data, stringbuffer.offset);
+                stringPostfix(t);
+                return TOKstring;
 
-	    case 0:
-	    case 0x1A:
-		p--;
-		error("unterminated string constant starting at %s", start.toChars());
-		t->ustring = (unsigned char *)"";
-		t->len = 0;
-		t->postfix = 0;
-		return TOKstring;
+            case 0:
+            case 0x1A:
+                p--;
+                error("unterminated string constant starting at %s", start.toChars());
+                t->ustring = (unsigned char *)"";
+                t->len = 0;
+                t->postfix = 0;
+                return TOKstring;
 
-	    default:
-		if (c & 0x80)
-		{
-		    p--;
-		    c = decodeUTF();
-		    if (c == LS || c == PS)
-		    {	c = '\n';
-			loc.linnum++;
-		    }
-		    p++;
-		    stringbuffer.writeUTF8(c);
-		    continue;
-		}
-		break;
-	}
-	stringbuffer.writeByte(c);
+            default:
+                if (c & 0x80)
+                {
+                    p--;
+                    c = decodeUTF();
+                    if (c == LS || c == PS)
+                    {   c = '\n';
+                        loc.linnum++;
+                    }
+                    p++;
+                    stringbuffer.writeUTF8(c);
+                    continue;
+                }
+                break;
+        }
+        stringbuffer.writeByte(c);
     }
 }
 
@@ -1829,56 +1829,56 @@ TOK Lexer::charConstant(Token *t, int wide)
     switch (c)
     {
 #if ! TEXTUAL_ASSEMBLY_OUT
-	case '\\':
-	    switch (*p)
-	    {
-		case 'u':
-		    t->uns64value = escapeSequence();
-		    tk = TOKwcharv;
-		    break;
+        case '\\':
+            switch (*p)
+            {
+                case 'u':
+                    t->uns64value = escapeSequence();
+                    tk = TOKwcharv;
+                    break;
 
-		case 'U':
-		case '&':
-		    t->uns64value = escapeSequence();
-		    tk = TOKdcharv;
-		    break;
+                case 'U':
+                case '&':
+                    t->uns64value = escapeSequence();
+                    tk = TOKdcharv;
+                    break;
 
-		default:
-		    t->uns64value = escapeSequence();
-		    break;
-	    }
-	    break;
+                default:
+                    t->uns64value = escapeSequence();
+                    break;
+            }
+            break;
 #endif
-	case '\n':
-	L1:
-	    loc.linnum++;
-	case '\r':
-	case 0:
-	case 0x1A:
-	case '\'':
-	    error("unterminated character constant");
-	    return tk;
+        case '\n':
+        L1:
+            loc.linnum++;
+        case '\r':
+        case 0:
+        case 0x1A:
+        case '\'':
+            error("unterminated character constant");
+            return tk;
 
-	default:
-	    if (c & 0x80)
-	    {
-		p--;
-		c = decodeUTF();
-		p++;
-		if (c == LS || c == PS)
-		    goto L1;
-		if (c < 0xD800 || (c >= 0xE000 && c < 0xFFFE))
-		    tk = TOKwcharv;
-		else
-		    tk = TOKdcharv;
-	    }
-	    t->uns64value = c;
-	    break;
+        default:
+            if (c & 0x80)
+            {
+                p--;
+                c = decodeUTF();
+                p++;
+                if (c == LS || c == PS)
+                    goto L1;
+                if (c < 0xD800 || (c >= 0xE000 && c < 0xFFFE))
+                    tk = TOKwcharv;
+                else
+                    tk = TOKdcharv;
+            }
+            t->uns64value = c;
+            break;
     }
 
     if (*p != '\'')
-    {	error("unterminated character constant");
-	return tk;
+    {   error("unterminated character constant");
+        return tk;
     }
     p++;
     return tk;
@@ -1892,23 +1892,23 @@ void Lexer::stringPostfix(Token *t)
 {
     switch (*p)
     {
-	case 'c':
-	case 'w':
-	case 'd':
-	    t->postfix = *p;
-	    p++;
-	    break;
+        case 'c':
+        case 'w':
+        case 'd':
+            t->postfix = *p;
+            p++;
+            break;
 
-	default:
-	    t->postfix = 0;
-	    break;
+        default:
+            t->postfix = 0;
+            break;
     }
 }
 
 /***************************************
  * Read \u or \U unicode sequence
  * Input:
- *	u	'u' or 'U'
+ *      u       'u' or 'U'
  */
 
 #if 0
@@ -1923,22 +1923,22 @@ unsigned Lexer::wchar(unsigned u)
     value = 0;
     for (n = 0; 1; n++)
     {
-	++p;
-	if (n == nchars)
-	    break;
-	c = *p;
-	if (!ishex(c))
-	{   error("\\%c sequence must be followed by %d hex characters", u, nchars);
-	    break;
-	}
-	if (isdigit(c))
-	    c -= '0';
-	else if (islower(c))
-	    c -= 'a' - 10;
-	else
-	    c -= 'A' - 10;
-	value <<= 4;
-	value |= c;
+        ++p;
+        if (n == nchars)
+            break;
+        c = *p;
+        if (!ishex(c))
+        {   error("\\%c sequence must be followed by %d hex characters", u, nchars);
+            break;
+        }
+        if (isdigit(c))
+            c -= '0';
+        else if (islower(c))
+            c -= 'a' - 10;
+        else
+            c -= 'A' - 10;
+        value <<= 4;
+        value |= c;
     }
     return value;
 }
@@ -1947,26 +1947,26 @@ unsigned Lexer::wchar(unsigned u)
 /**************************************
  * Read in a number.
  * If it's an integer, store it in tok.TKutok.Vlong.
- *	integers can be decimal, octal or hex
- *	Handle the suffixes U, UL, LU, L, etc.
+ *      integers can be decimal, octal or hex
+ *      Handle the suffixes U, UL, LU, L, etc.
  * If it's double, store it in tok.TKutok.Vdouble.
  * Returns:
- *	TKnum
- *	TKdouble,...
+ *      TKnum
+ *      TKdouble,...
  */
 
 TOK Lexer::number(Token *t)
 {
     // We use a state machine to collect numbers
     enum STATE { STATE_initial, STATE_0, STATE_decimal, STATE_octal, STATE_octale,
-	STATE_hex, STATE_binary, STATE_hex0, STATE_binary0,
-	STATE_hexh, STATE_error };
+        STATE_hex, STATE_binary, STATE_hex0, STATE_binary0,
+        STATE_hexh, STATE_error };
     enum STATE state;
 
     enum FLAGS
-    {	FLAGS_decimal  = 1,		// decimal
-	FLAGS_unsigned = 2,		// u or U suffix
-	FLAGS_long     = 4,		// l or L suffix
+    {   FLAGS_decimal  = 1,             // decimal
+        FLAGS_unsigned = 2,             // u or U suffix
+        FLAGS_long     = 4,             // l or L suffix
     };
     enum FLAGS flags = FLAGS_decimal;
 
@@ -1983,364 +1983,364 @@ TOK Lexer::number(Token *t)
     start = p;
     while (1)
     {
-	c = *p;
-	switch (state)
-	{
-	    case STATE_initial:		// opening state
-		if (c == '0')
-		    state = STATE_0;
-		else
-		    state = STATE_decimal;
-		break;
+        c = *p;
+        switch (state)
+        {
+            case STATE_initial:         // opening state
+                if (c == '0')
+                    state = STATE_0;
+                else
+                    state = STATE_decimal;
+                break;
 
-	    case STATE_0:
-		flags = (FLAGS) (flags & ~FLAGS_decimal);
-		switch (c)
-		{
+            case STATE_0:
+                flags = (FLAGS) (flags & ~FLAGS_decimal);
+                switch (c)
+                {
 #if ZEROH
-		    case 'H':			// 0h
-		    case 'h':
-			goto hexh;
+                    case 'H':                   // 0h
+                    case 'h':
+                        goto hexh;
 #endif
-		    case 'X':
-		    case 'x':
-			state = STATE_hex0;
-			break;
+                    case 'X':
+                    case 'x':
+                        state = STATE_hex0;
+                        break;
 
-		    case '.':
-			if (p[1] == '.')	// .. is a separate token
-			    goto done;
-		    case 'i':
-		    case 'f':
-		    case 'F':
-			goto real;
+                    case '.':
+                        if (p[1] == '.')        // .. is a separate token
+                            goto done;
+                    case 'i':
+                    case 'f':
+                    case 'F':
+                        goto real;
 #if ZEROH
-		    case 'E':
-		    case 'e':
-			goto case_hex;
+                    case 'E':
+                    case 'e':
+                        goto case_hex;
 #endif
-		    case 'B':
-		    case 'b':
-			state = STATE_binary0;
-			break;
+                    case 'B':
+                    case 'b':
+                        state = STATE_binary0;
+                        break;
 
-		    case '0': case '1': case '2': case '3':
-		    case '4': case '5': case '6': case '7':
-			state = STATE_octal;
-			break;
-
-#if ZEROH
-		    case '8': case '9': case 'A':
-		    case 'C': case 'D': case 'F':
-		    case 'a': case 'c': case 'd': case 'f':
-		    case_hex:
-			state = STATE_hexh;
-			break;
-#endif
-		    case '_':
-			state = STATE_octal;
-			p++;
-			continue;
-
-		    case 'L':
-			if (p[1] == 'i')
-			    goto real;
-			goto done;
-
-		    default:
-			goto done;
-		}
-		break;
-
-	    case STATE_decimal:		// reading decimal number
-		if (!isdigit(c))
-		{
-#if ZEROH
-		    if (ishex(c)
-			|| c == 'H' || c == 'h'
-		       )
-			goto hexh;
-#endif
-		    if (c == '_')		// ignore embedded _
-		    {	p++;
-			continue;
-		    }
-		    if (c == '.' && p[1] != '.')
-			goto real;
-		    else if (c == 'i' || c == 'f' || c == 'F' ||
-			     c == 'e' || c == 'E')
-		    {
-	    real:	// It's a real number. Back up and rescan as a real
-			p = start;
-			return inreal(t);
-		    }
-		    else if (c == 'L' && p[1] == 'i')
-			goto real;
-		    goto done;
-		}
-		break;
-
-	    case STATE_hex0:		// reading hex number
-	    case STATE_hex:
-		if (!ishex(c))
-		{
-		    if (c == '_')		// ignore embedded _
-		    {	p++;
-			continue;
-		    }
-		    if (c == '.' && p[1] != '.')
-			goto real;
-		    if (c == 'P' || c == 'p' || c == 'i')
-			goto real;
-		    if (state == STATE_hex0)
-			error("Hex digit expected, not '%c'", c);
-		    goto done;
-		}
-		state = STATE_hex;
-		break;
+                    case '0': case '1': case '2': case '3':
+                    case '4': case '5': case '6': case '7':
+                        state = STATE_octal;
+                        break;
 
 #if ZEROH
-	    hexh:
-		state = STATE_hexh;
-	    case STATE_hexh:		// parse numbers like 0FFh
-		if (!ishex(c))
-		{
-		    if (c == 'H' || c == 'h')
-		    {
-			p++;
-			base = 16;
-			goto done;
-		    }
-		    else
-		    {
-			// Check for something like 1E3 or 0E24
-			if (memchr((char *)stringbuffer.data, 'E', stringbuffer.offset) ||
-			    memchr((char *)stringbuffer.data, 'e', stringbuffer.offset))
-			    goto real;
-			error("Hex digit expected, not '%c'", c);
-			goto done;
-		    }
-		}
-		break;
+                    case '8': case '9': case 'A':
+                    case 'C': case 'D': case 'F':
+                    case 'a': case 'c': case 'd': case 'f':
+                    case_hex:
+                        state = STATE_hexh;
+                        break;
 #endif
+                    case '_':
+                        state = STATE_octal;
+                        p++;
+                        continue;
 
-	    case STATE_octal:		// reading octal number
-	    case STATE_octale:		// reading octal number with non-octal digits
-		if (!isoctal(c))
-		{
+                    case 'L':
+                        if (p[1] == 'i')
+                            goto real;
+                        goto done;
+
+                    default:
+                        goto done;
+                }
+                break;
+
+            case STATE_decimal:         // reading decimal number
+                if (!isdigit(c))
+                {
 #if ZEROH
-		    if (ishex(c)
-			|| c == 'H' || c == 'h'
-		       )
-			goto hexh;
+                    if (ishex(c)
+                        || c == 'H' || c == 'h'
+                       )
+                        goto hexh;
 #endif
-		    if (c == '_')		// ignore embedded _
-		    {	p++;
-			continue;
-		    }
-		    if (c == '.' && p[1] != '.')
-			goto real;
-		    if (c == 'i')
-			goto real;
-		    if (isdigit(c))
-		    {
-			state = STATE_octale;
-		    }
-		    else
-			goto done;
-		}
-		break;
+                    if (c == '_')               // ignore embedded _
+                    {   p++;
+                        continue;
+                    }
+                    if (c == '.' && p[1] != '.')
+                        goto real;
+                    else if (c == 'i' || c == 'f' || c == 'F' ||
+                             c == 'e' || c == 'E')
+                    {
+            real:       // It's a real number. Back up and rescan as a real
+                        p = start;
+                        return inreal(t);
+                    }
+                    else if (c == 'L' && p[1] == 'i')
+                        goto real;
+                    goto done;
+                }
+                break;
 
-	    case STATE_binary0:		// starting binary number
-	    case STATE_binary:		// reading binary number
-		if (c != '0' && c != '1')
-		{
+            case STATE_hex0:            // reading hex number
+            case STATE_hex:
+                if (!ishex(c))
+                {
+                    if (c == '_')               // ignore embedded _
+                    {   p++;
+                        continue;
+                    }
+                    if (c == '.' && p[1] != '.')
+                        goto real;
+                    if (c == 'P' || c == 'p' || c == 'i')
+                        goto real;
+                    if (state == STATE_hex0)
+                        error("Hex digit expected, not '%c'", c);
+                    goto done;
+                }
+                state = STATE_hex;
+                break;
+
 #if ZEROH
-		    if (ishex(c)
-			|| c == 'H' || c == 'h'
-		       )
-			goto hexh;
+            hexh:
+                state = STATE_hexh;
+            case STATE_hexh:            // parse numbers like 0FFh
+                if (!ishex(c))
+                {
+                    if (c == 'H' || c == 'h')
+                    {
+                        p++;
+                        base = 16;
+                        goto done;
+                    }
+                    else
+                    {
+                        // Check for something like 1E3 or 0E24
+                        if (memchr((char *)stringbuffer.data, 'E', stringbuffer.offset) ||
+                            memchr((char *)stringbuffer.data, 'e', stringbuffer.offset))
+                            goto real;
+                        error("Hex digit expected, not '%c'", c);
+                        goto done;
+                    }
+                }
+                break;
 #endif
-		    if (c == '_')		// ignore embedded _
-		    {	p++;
-			continue;
-		    }
-		    if (state == STATE_binary0)
-		    {	error("binary digit expected");
-			state = STATE_error;
-			break;
-		    }
-		    else
-			goto done;
-		}
-		state = STATE_binary;
-		break;
 
-	    case STATE_error:		// for error recovery
-		if (!isdigit(c))	// scan until non-digit
-		    goto done;
-		break;
+            case STATE_octal:           // reading octal number
+            case STATE_octale:          // reading octal number with non-octal digits
+                if (!isoctal(c))
+                {
+#if ZEROH
+                    if (ishex(c)
+                        || c == 'H' || c == 'h'
+                       )
+                        goto hexh;
+#endif
+                    if (c == '_')               // ignore embedded _
+                    {   p++;
+                        continue;
+                    }
+                    if (c == '.' && p[1] != '.')
+                        goto real;
+                    if (c == 'i')
+                        goto real;
+                    if (isdigit(c))
+                    {
+                        state = STATE_octale;
+                    }
+                    else
+                        goto done;
+                }
+                break;
 
-	    default:
-		assert(0);
-	}
-	stringbuffer.writeByte(c);
-	p++;
+            case STATE_binary0:         // starting binary number
+            case STATE_binary:          // reading binary number
+                if (c != '0' && c != '1')
+                {
+#if ZEROH
+                    if (ishex(c)
+                        || c == 'H' || c == 'h'
+                       )
+                        goto hexh;
+#endif
+                    if (c == '_')               // ignore embedded _
+                    {   p++;
+                        continue;
+                    }
+                    if (state == STATE_binary0)
+                    {   error("binary digit expected");
+                        state = STATE_error;
+                        break;
+                    }
+                    else
+                        goto done;
+                }
+                state = STATE_binary;
+                break;
+
+            case STATE_error:           // for error recovery
+                if (!isdigit(c))        // scan until non-digit
+                    goto done;
+                break;
+
+            default:
+                assert(0);
+        }
+        stringbuffer.writeByte(c);
+        p++;
     }
 done:
-    stringbuffer.writeByte(0);		// terminate string
+    stringbuffer.writeByte(0);          // terminate string
     if (state == STATE_octale)
-	error("Octal digit expected");
+        error("Octal digit expected");
 
-    uinteger_t n;			// unsigned >=64 bit integer type
+    uinteger_t n;                       // unsigned >=64 bit integer type
 
     if (stringbuffer.offset == 2 && (state == STATE_decimal || state == STATE_0))
-	n = stringbuffer.data[0] - '0';
+        n = stringbuffer.data[0] - '0';
     else
     {
-	// Convert string to integer
+        // Convert string to integer
 #if __DMC__
-	errno = 0;
-	n = strtoull((char *)stringbuffer.data,NULL,base);
-	if (errno == ERANGE)
-	    error("integer overflow");
+        errno = 0;
+        n = strtoull((char *)stringbuffer.data,NULL,base);
+        if (errno == ERANGE)
+            error("integer overflow");
 #else
-	// Not everybody implements strtoull()
-	char *p = (char *)stringbuffer.data;
-	int r = 10, d;
+        // Not everybody implements strtoull()
+        char *p = (char *)stringbuffer.data;
+        int r = 10, d;
 
-	if (*p == '0')
-	{
-	    if (p[1] == 'x' || p[1] == 'X')
-		p += 2, r = 16;
-	    else if (p[1] == 'b' || p[1] == 'B')
-		p += 2, r = 2;
-	    else if (isdigit(p[1]))
-		p += 1, r = 8;
-	}
+        if (*p == '0')
+        {
+            if (p[1] == 'x' || p[1] == 'X')
+                p += 2, r = 16;
+            else if (p[1] == 'b' || p[1] == 'B')
+                p += 2, r = 2;
+            else if (isdigit(p[1]))
+                p += 1, r = 8;
+        }
 
-	n = 0;
-	while (1)
-	{
-	    if (*p >= '0' && *p <= '9')
-		d = *p - '0';
-	    else if (*p >= 'a' && *p <= 'z')
-		d = *p - 'a' + 10;
-	    else if (*p >= 'A' && *p <= 'Z')
-		d = *p - 'A' + 10;
-	    else
-		break;
-	    if (d >= r)
-		break;
-	    uinteger_t n2 = n * r;
-	    //printf("n2 / r = %llx, n = %llx\n", n2/r, n);
-	    if (n2 / r != n || n2 + d < n)
-	    {
-		error ("integer overflow");
-		break;
-	    }
+        n = 0;
+        while (1)
+        {
+            if (*p >= '0' && *p <= '9')
+                d = *p - '0';
+            else if (*p >= 'a' && *p <= 'z')
+                d = *p - 'a' + 10;
+            else if (*p >= 'A' && *p <= 'Z')
+                d = *p - 'A' + 10;
+            else
+                break;
+            if (d >= r)
+                break;
+            uinteger_t n2 = n * r;
+            //printf("n2 / r = %llx, n = %llx\n", n2/r, n);
+            if (n2 / r != n || n2 + d < n)
+            {
+                error ("integer overflow");
+                break;
+            }
 
-	    n = n2 + d;
-	    p++;
-	}
+            n = n2 + d;
+            p++;
+        }
 #endif
-	if (sizeof(n) > 8 &&
-	    n > 0xFFFFFFFFFFFFFFFFULL)	// if n needs more than 64 bits
-	    error("integer overflow");
+        if (sizeof(n) > 8 &&
+            n > 0xFFFFFFFFFFFFFFFFULL)  // if n needs more than 64 bits
+            error("integer overflow");
     }
 
     // Parse trailing 'u', 'U', 'l' or 'L' in any combination
     while (1)
     {   unsigned char f;
 
-	switch (*p)
-	{   case 'U':
-	    case 'u':
-		f = FLAGS_unsigned;
-		goto L1;
+        switch (*p)
+        {   case 'U':
+            case 'u':
+                f = FLAGS_unsigned;
+                goto L1;
 
-	    case 'l':
-		if (1 || !global.params.useDeprecated)
-		    error("'l' suffix is deprecated, use 'L' instead");
-	    case 'L':
-		f = FLAGS_long;
-	    L1:
-		p++;
-		if (flags & f)
-		    error("unrecognized token");
-		flags = (FLAGS) (flags | f);
-		continue;
-	    default:
-		break;
-	}
-	break;
+            case 'l':
+                if (1 || !global.params.useDeprecated)
+                    error("'l' suffix is deprecated, use 'L' instead");
+            case 'L':
+                f = FLAGS_long;
+            L1:
+                p++;
+                if (flags & f)
+                    error("unrecognized token");
+                flags = (FLAGS) (flags | f);
+                continue;
+            default:
+                break;
+        }
+        break;
     }
 
     switch (flags)
     {
-	case 0:
-	    /* Octal or Hexadecimal constant.
-	     * First that fits: int, uint, long, ulong
-	     */
-	    if (n & 0x8000000000000000LL)
-		    result = TOKuns64v;
-	    else if (n & 0xFFFFFFFF00000000LL)
-		    result = TOKint64v;
-	    else if (n & 0x80000000)
-		    result = TOKuns32v;
-	    else
-		    result = TOKint32v;
-	    break;
+        case 0:
+            /* Octal or Hexadecimal constant.
+             * First that fits: int, uint, long, ulong
+             */
+            if (n & 0x8000000000000000LL)
+                    result = TOKuns64v;
+            else if (n & 0xFFFFFFFF00000000LL)
+                    result = TOKint64v;
+            else if (n & 0x80000000)
+                    result = TOKuns32v;
+            else
+                    result = TOKint32v;
+            break;
 
-	case FLAGS_decimal:
-	    /* First that fits: int, long, long long
-	     */
-	    if (n & 0x8000000000000000LL)
-	    {	    error("signed integer overflow");
-		    result = TOKuns64v;
-	    }
-	    else if (n & 0xFFFFFFFF80000000LL)
-		    result = TOKint64v;
-	    else
-		    result = TOKint32v;
-	    break;
+        case FLAGS_decimal:
+            /* First that fits: int, long, long long
+             */
+            if (n & 0x8000000000000000LL)
+            {       error("signed integer overflow");
+                    result = TOKuns64v;
+            }
+            else if (n & 0xFFFFFFFF80000000LL)
+                    result = TOKint64v;
+            else
+                    result = TOKint32v;
+            break;
 
-	case FLAGS_unsigned:
-	case FLAGS_decimal | FLAGS_unsigned:
-	    /* First that fits: uint, ulong
-	     */
-	    if (n & 0xFFFFFFFF00000000LL)
-		    result = TOKuns64v;
-	    else
-		    result = TOKuns32v;
-	    break;
+        case FLAGS_unsigned:
+        case FLAGS_decimal | FLAGS_unsigned:
+            /* First that fits: uint, ulong
+             */
+            if (n & 0xFFFFFFFF00000000LL)
+                    result = TOKuns64v;
+            else
+                    result = TOKuns32v;
+            break;
 
-	case FLAGS_decimal | FLAGS_long:
-	    if (n & 0x8000000000000000LL)
-	    {	    error("signed integer overflow");
-		    result = TOKuns64v;
-	    }
-	    else
-		    result = TOKint64v;
-	    break;
+        case FLAGS_decimal | FLAGS_long:
+            if (n & 0x8000000000000000LL)
+            {       error("signed integer overflow");
+                    result = TOKuns64v;
+            }
+            else
+                    result = TOKint64v;
+            break;
 
-	case FLAGS_long:
-	    if (n & 0x8000000000000000LL)
-		    result = TOKuns64v;
-	    else
-		    result = TOKint64v;
-	    break;
+        case FLAGS_long:
+            if (n & 0x8000000000000000LL)
+                    result = TOKuns64v;
+            else
+                    result = TOKint64v;
+            break;
 
-	case FLAGS_unsigned | FLAGS_long:
-	case FLAGS_decimal | FLAGS_unsigned | FLAGS_long:
-	    result = TOKuns64v;
-	    break;
+        case FLAGS_unsigned | FLAGS_long:
+        case FLAGS_decimal | FLAGS_unsigned | FLAGS_long:
+            result = TOKuns64v;
+            break;
 
-	default:
-	    #ifdef DEBUG
-		printf("%x\n",flags);
-	    #endif
-	    assert(0);
+        default:
+            #ifdef DEBUG
+                printf("%x\n",flags);
+            #endif
+            assert(0);
     }
     t->uns64value = n;
     return result;
@@ -2349,8 +2349,8 @@ done:
 /**************************************
  * Read in characters, converting them to real.
  * Bugs:
- *	Exponent overflow not detected.
- *	Too much requested precision is not detected.
+ *      Exponent overflow not detected.
+ *      Too much requested precision is not detected.
  */
 
 TOK Lexer::inreal(Token *t)
@@ -2363,23 +2363,23 @@ __out (result)
 {
     switch (result)
     {
-	case TOKfloat32v:
-	case TOKfloat64v:
-	case TOKfloat80v:
-	case TOKimaginary32v:
-	case TOKimaginary64v:
-	case TOKimaginary80v:
-	    break;
+        case TOKfloat32v:
+        case TOKfloat64v:
+        case TOKfloat80v:
+        case TOKimaginary32v:
+        case TOKimaginary64v:
+        case TOKimaginary80v:
+            break;
 
-	default:
-	    assert(0);
+        default:
+            assert(0);
     }
 }
 __body
 #endif /* __DMC__ */
 {   int dblstate;
     unsigned c;
-    char hex;			// is this a hexadecimal-floating-constant?
+    char hex;                   // is this a hexadecimal-floating-constant?
     TOK result;
 
     //printf("Lexer::inreal()\n");
@@ -2389,72 +2389,72 @@ __body
 Lnext:
     while (1)
     {
-	// Get next char from input
-	c = *p++;
-	//printf("dblstate = %d, c = '%c'\n", dblstate, c);
-	while (1)
-	{
-	    switch (dblstate)
-	    {
-		case 0:			// opening state
-		    if (c == '0')
-			dblstate = 9;
-		    else if (c == '.')
-			dblstate = 3;
-		    else
-			dblstate = 1;
-		    break;
+        // Get next char from input
+        c = *p++;
+        //printf("dblstate = %d, c = '%c'\n", dblstate, c);
+        while (1)
+        {
+            switch (dblstate)
+            {
+                case 0:                 // opening state
+                    if (c == '0')
+                        dblstate = 9;
+                    else if (c == '.')
+                        dblstate = 3;
+                    else
+                        dblstate = 1;
+                    break;
 
-		case 9:
-		    dblstate = 1;
-		    if (c == 'X' || c == 'x')
-		    {	hex++;
-			break;
-		    }
-		case 1:			// digits to left of .
-		case 3:			// digits to right of .
-		case 7:			// continuing exponent digits
-		    if (!isdigit(c) && !(hex && isxdigit(c)))
-		    {
-			if (c == '_')
-			    goto Lnext;	// ignore embedded '_'
-			dblstate++;
-			continue;
-		    }
-		    break;
+                case 9:
+                    dblstate = 1;
+                    if (c == 'X' || c == 'x')
+                    {   hex++;
+                        break;
+                    }
+                case 1:                 // digits to left of .
+                case 3:                 // digits to right of .
+                case 7:                 // continuing exponent digits
+                    if (!isdigit(c) && !(hex && isxdigit(c)))
+                    {
+                        if (c == '_')
+                            goto Lnext; // ignore embedded '_'
+                        dblstate++;
+                        continue;
+                    }
+                    break;
 
-		case 2:			// no more digits to left of .
-		    if (c == '.')
-		    {   dblstate++;
-			break;
-		    }
-		case 4:			// no more digits to right of .
-		    if ((c == 'E' || c == 'e') ||
-			hex && (c == 'P' || c == 'p'))
-		    {   dblstate = 5;
-			hex = 0;	// exponent is always decimal
-			break;
-		    }
-		    if (hex)
-			error("binary-exponent-part required");
-		    goto done;
+                case 2:                 // no more digits to left of .
+                    if (c == '.')
+                    {   dblstate++;
+                        break;
+                    }
+                case 4:                 // no more digits to right of .
+                    if ((c == 'E' || c == 'e') ||
+                        hex && (c == 'P' || c == 'p'))
+                    {   dblstate = 5;
+                        hex = 0;        // exponent is always decimal
+                        break;
+                    }
+                    if (hex)
+                        error("binary-exponent-part required");
+                    goto done;
 
-		case 5:			// looking immediately to right of E
-		    dblstate++;
-		    if (c == '-' || c == '+')
-			break;
-		case 6:			// 1st exponent digit expected
-		    if (!isdigit(c))
-			error("exponent expected");
-		    dblstate++;
-		    break;
+                case 5:                 // looking immediately to right of E
+                    dblstate++;
+                    if (c == '-' || c == '+')
+                        break;
+                case 6:                 // 1st exponent digit expected
+                    if (!isdigit(c))
+                        error("exponent expected");
+                    dblstate++;
+                    break;
 
-		case 8:			// past end of exponent digits
-		    goto done;
-	    }
-	    break;
-	}
-	stringbuffer.writeByte(c);
+                case 8:                 // past end of exponent digits
+                    goto done;
+            }
+            break;
+        }
+        stringbuffer.writeByte(c);
     }
 done:
     p--;
@@ -2473,64 +2473,64 @@ done:
     errno = 0;
     switch (*p)
     {
-	case 'F':
-	case 'f':
+        case 'F':
+        case 'f':
 #ifdef IN_GCC
-	    real_t::parse((char *)stringbuffer.data, real_t::Float);
+            real_t::parse((char *)stringbuffer.data, real_t::Float);
 #else
-	    strtof((char *)stringbuffer.data, NULL);
+            strtof((char *)stringbuffer.data, NULL);
 #endif
-	    result = TOKfloat32v;
-	    p++;
-	    break;
+            result = TOKfloat32v;
+            p++;
+            break;
 
-	default:
+        default:
 #ifdef IN_GCC
-	    real_t::parse((char *)stringbuffer.data, real_t::Double);
-#else	    
-	    strtod((char *)stringbuffer.data, NULL);
+            real_t::parse((char *)stringbuffer.data, real_t::Double);
+#else
+            strtod((char *)stringbuffer.data, NULL);
 #endif
-	    result = TOKfloat64v;
-	    break;
+            result = TOKfloat64v;
+            break;
 
-	case 'l':
-	    if (!global.params.useDeprecated)
-		error("'l' suffix is deprecated, use 'L' instead");
-	case 'L':
-	    result = TOKfloat80v;
-	    p++;
-	    break;
+        case 'l':
+            if (!global.params.useDeprecated)
+                error("'l' suffix is deprecated, use 'L' instead");
+        case 'L':
+            result = TOKfloat80v;
+            p++;
+            break;
     }
     if (*p == 'i' || *p == 'I')
     {
-	if (!global.params.useDeprecated && *p == 'I')
-	    error("'I' suffix is deprecated, use 'i' instead");
-	p++;
-	switch (result)
-	{
-	    case TOKfloat32v:
-		result = TOKimaginary32v;
-		break;
-	    case TOKfloat64v:
-		result = TOKimaginary64v;
-		break;
-	    case TOKfloat80v:
-		result = TOKimaginary80v;
-		break;
-	}
+        if (!global.params.useDeprecated && *p == 'I')
+            error("'I' suffix is deprecated, use 'i' instead");
+        p++;
+        switch (result)
+        {
+            case TOKfloat32v:
+                result = TOKimaginary32v;
+                break;
+            case TOKfloat64v:
+                result = TOKimaginary64v;
+                break;
+            case TOKfloat80v:
+                result = TOKimaginary80v;
+                break;
+        }
     }
 #if _WIN32 && __DMC__
     __locale_decpoint = save;
 #endif
     if (errno == ERANGE)
-	error("number is not representable");
+        error("number is not representable");
     return result;
 }
 
 /*********************************************
  * Do pragma.
  * Currently, the only pragma supported is:
- *	#line linnum [filespec]
+ *      #line linnum [filespec]
  */
 
 void Lexer::pragma()
@@ -2542,95 +2542,95 @@ void Lexer::pragma()
 
     scan(&tok);
     if (tok.value != TOKidentifier || tok.ident != Id::line)
-	goto Lerr;
+        goto Lerr;
 
     scan(&tok);
     if (tok.value == TOKint32v || tok.value == TOKint64v)
-	linnum = tok.uns64value - 1;
+        linnum = tok.uns64value - 1;
     else
-	goto Lerr;
+        goto Lerr;
 
     while (1)
     {
-	switch (*p)
-	{
-	    case 0:
-	    case 0x1A:
-	    case '\n':
-	    Lnewline:
-		this->loc.linnum = linnum;
-		if (filespec)
-		    this->loc.filename = filespec;
-		return;
+        switch (*p)
+        {
+            case 0:
+            case 0x1A:
+            case '\n':
+            Lnewline:
+                this->loc.linnum = linnum;
+                if (filespec)
+                    this->loc.filename = filespec;
+                return;
 
-	    case '\r':
-		p++;
-		if (*p != '\n')
-		{   p--;
-		    goto Lnewline;
-		}
-		continue;
+            case '\r':
+                p++;
+                if (*p != '\n')
+                {   p--;
+                    goto Lnewline;
+                }
+                continue;
 
-	    case ' ':
-	    case '\t':
-	    case '\v':
-	    case '\f':
-		p++;
-		continue;			// skip white space
+            case ' ':
+            case '\t':
+            case '\v':
+            case '\f':
+                p++;
+                continue;                       // skip white space
 
-	    case '_':
-		if (mod && memcmp(p, "__FILE__", 8) == 0)
-		{
-		    p += 8;
-		    filespec = mem.strdup(loc.filename ? loc.filename : mod->ident->toChars());
-		}
-		continue;
+            case '_':
+                if (mod && memcmp(p, "__FILE__", 8) == 0)
+                {
+                    p += 8;
+                    filespec = mem.strdup(loc.filename ? loc.filename : mod->ident->toChars());
+                }
+                continue;
 
-	    case '"':
-		if (filespec)
-		    goto Lerr;
-		stringbuffer.reset();
-		p++;
-		while (1)
-		{   unsigned c;
+            case '"':
+                if (filespec)
+                    goto Lerr;
+                stringbuffer.reset();
+                p++;
+                while (1)
+                {   unsigned c;
 
-		    c = *p;
-		    switch (c)
-		    {
-			case '\n':
-			case '\r':
-			case 0:
-			case 0x1A:
-			    goto Lerr;
+                    c = *p;
+                    switch (c)
+                    {
+                        case '\n':
+                        case '\r':
+                        case 0:
+                        case 0x1A:
+                            goto Lerr;
 
-			case '"':
-			    stringbuffer.writeByte(0);
-			    filespec = mem.strdup((char *)stringbuffer.data);
-			    p++;
-			    break;
+                        case '"':
+                            stringbuffer.writeByte(0);
+                            filespec = mem.strdup((char *)stringbuffer.data);
+                            p++;
+                            break;
 
-			default:
-			    if (c & 0x80)
-			    {   unsigned u = decodeUTF();
-				if (u == PS || u == LS)
-				    goto Lerr;
-			    }
-			    stringbuffer.writeByte(c);
-			    p++;
-			    continue;
-		    }
-		    break;
-		}
-		continue;
+                        default:
+                            if (c & 0x80)
+                            {   unsigned u = decodeUTF();
+                                if (u == PS || u == LS)
+                                    goto Lerr;
+                            }
+                            stringbuffer.writeByte(c);
+                            p++;
+                            continue;
+                    }
+                    break;
+                }
+                continue;
 
-	    default:
-		if (*p & 0x80)
-		{   unsigned u = decodeUTF();
-		    if (u == PS || u == LS)
-			goto Lnewline;
-		}
-		goto Lerr;
-	}
+            default:
+                if (*p & 0x80)
+                {   unsigned u = decodeUTF();
+                    if (u == PS || u == LS)
+                        goto Lnewline;
+                }
+                goto Lerr;
+        }
     }
 
 Lerr:
@@ -2658,14 +2658,14 @@ unsigned Lexer::decodeUTF()
 
     // Check length of remaining string up to 6 UTF-8 characters
     for (len = 1; len < 6 && s[len]; len++)
-	;
+        ;
 
     idx = 0;
     msg = utf_decodeChar(s, len, &idx, &u);
     p += idx - 1;
     if (msg)
     {
-	error("%s", msg);
+        error("%s", msg);
     }
     return u;
 }
@@ -2688,29 +2688,29 @@ void Lexer::getDocComment(Token *t, unsigned lineComment)
 
     /* Start of comment text skips over / * *, / + +, or / / /
      */
-    unsigned char *q = t->ptr + 3;	// start of comment text
+    unsigned char *q = t->ptr + 3;      // start of comment text
 
     unsigned char *qend = p;
     if (ct == '*' || ct == '+')
-	qend -= 2;
+        qend -= 2;
 
     /* Scan over initial row of ****'s or ++++'s or ////'s
      */
     for (; q < qend; q++)
     {
-	if (*q != ct)
-	    break;
+        if (*q != ct)
+            break;
     }
 
     /* Remove trailing row of ****'s or ++++'s
      */
     if (ct != '/')
     {
-	for (; q < qend; qend--)
-	{
-	    if (qend[-1] != ct)
-		break;
-	}
+        for (; q < qend; qend--)
+        {
+            if (qend[-1] != ct)
+                break;
+        }
     }
 
     /* Comment is now [q .. qend].
@@ -2721,77 +2721,77 @@ void Lexer::getDocComment(Token *t, unsigned lineComment)
 
     for (; q < qend; q++)
     {
-	unsigned char c = *q;
+        unsigned char c = *q;
 
-	switch (c)
-	{
-	    case '*':
-	    case '+':
-		if (linestart && c == ct)
-		{   linestart = 0;
-		    /* Trim preceding whitespace up to preceding \n
-		     */
-		    while (buf.offset && (buf.data[buf.offset - 1] == ' ' || buf.data[buf.offset - 1] == '\t'))
-			buf.offset--;
-		    continue;
-		}
-		break;
+        switch (c)
+        {
+            case '*':
+            case '+':
+                if (linestart && c == ct)
+                {   linestart = 0;
+                    /* Trim preceding whitespace up to preceding \n
+                     */
+                    while (buf.offset && (buf.data[buf.offset - 1] == ' ' || buf.data[buf.offset - 1] == '\t'))
+                        buf.offset--;
+                    continue;
+                }
+                break;
 
-	    case ' ':
-	    case '\t':
-		break;
+            case ' ':
+            case '\t':
+                break;
 
-	    case '\r':
-		if (q[1] == '\n')
-		    continue;		// skip the \r
-		goto Lnewline;
+            case '\r':
+                if (q[1] == '\n')
+                    continue;           // skip the \r
+                goto Lnewline;
 
-	    default:
-		if (c == 226)
-		{
-		    // If LS or PS
-		    if (q[1] == 128 &&
-			(q[2] == 168 || q[2] == 169))
-		    {
-			q += 2;
-			goto Lnewline;
-		    }
-		}
-		linestart = 0;
-		break;
+            default:
+                if (c == 226)
+                {
+                    // If LS or PS
+                    if (q[1] == 128 &&
+                        (q[2] == 168 || q[2] == 169))
+                    {
+                        q += 2;
+                        goto Lnewline;
+                    }
+                }
+                linestart = 0;
+                break;
 
-	    Lnewline:
-		c = '\n';		// replace all newlines with \n
-	    case '\n':
-		linestart = 1;
+            Lnewline:
+                c = '\n';               // replace all newlines with \n
+            case '\n':
+                linestart = 1;
 
-		/* Trim trailing whitespace
-		 */
-		while (buf.offset && (buf.data[buf.offset - 1] == ' ' || buf.data[buf.offset - 1] == '\t'))
-		    buf.offset--;
+                /* Trim trailing whitespace
+                 */
+                while (buf.offset && (buf.data[buf.offset - 1] == ' ' || buf.data[buf.offset - 1] == '\t'))
+                    buf.offset--;
 
-		break;
-	}
-	buf.writeByte(c);
+                break;
+        }
+        buf.writeByte(c);
     }
 
     // Always end with a newline
     if (!buf.offset || buf.data[buf.offset - 1] != '\n')
-	buf.writeByte('\n');
+        buf.writeByte('\n');
 
     buf.writeByte(0);
 
     // It's a line comment if the start of the doc comment comes
     // after other non-whitespace on the same line.
     unsigned char** dc = (lineComment && anyToken)
-			 ? &t->lineComment
-			 : &t->blockComment;
+                         ? &t->lineComment
+                         : &t->blockComment;
 
     // Combine with previous doc comment, if any
     if (*dc)
-	*dc = combineComments(*dc, (unsigned char *)buf.data);
+        *dc = combineComments(*dc, (unsigned char *)buf.data);
     else
-	*dc = (unsigned char *)buf.extractData();
+        *dc = (unsigned char *)buf.extractData();
 }
 
 /********************************************
@@ -2806,20 +2806,20 @@ unsigned char *Lexer::combineComments(unsigned char *c1, unsigned char *c2)
     unsigned char *c = c2;
 
     if (c1)
-    {	c = c1;
-	if (c2)
-	{   size_t len1 = strlen((char *)c1);
-	    size_t len2 = strlen((char *)c2);
+    {   c = c1;
+        if (c2)
+        {   size_t len1 = strlen((char *)c1);
+            size_t len2 = strlen((char *)c2);
 
-	    c = (unsigned char *)mem.malloc(len1 + 1 + len2 + 1);
-	    memcpy(c, c1, len1);
-	    if (len1 && c1[len1 - 1] != '\n')
-	    {	c[len1] = '\n';
-		len1++;
-	    }
-	    memcpy(c + len1, c2, len2);
-	    c[len1 + len2] = 0;
-	}
+            c = (unsigned char *)mem.malloc(len1 + 1 + len2 + 1);
+            memcpy(c, c1, len1);
+            if (len1 && c1[len1 - 1] != '\n')
+            {   c[len1] = '\n';
+                len1++;
+            }
+            memcpy(c + len1, c2, len2);
+            c[len1 + len2] = 0;
+        }
     }
     return c;
 }
@@ -2835,8 +2835,8 @@ Identifier *Lexer::idPool(const char *s)
     Identifier *id = (Identifier *) sv->ptrvalue;
     if (!id)
     {
-	id = new Identifier(sv->lstring.string, TOKidentifier);
-	sv->ptrvalue = id;
+        id = new Identifier(sv->lstring.string, TOKidentifier);
+        sv->ptrvalue = id;
     }
     return id;
 }
@@ -2870,130 +2870,130 @@ struct Keyword
 
 static Keyword keywords[] =
 {
-//    {	"",		TOK	},
+//    { "",             TOK     },
 
-    {	"this",		TOKthis		},
-    {	"super",	TOKsuper	},
-    {	"assert",	TOKassert	},
-    {	"null",		TOKnull		},
-    {	"true",		TOKtrue		},
-    {	"false",	TOKfalse	},
-    {	"cast",		TOKcast		},
-    {	"new",		TOKnew		},
-    {	"delete",	TOKdelete	},
-    {	"throw",	TOKthrow	},
-    {	"module",	TOKmodule	},
-    {	"pragma",	TOKpragma	},
-    {	"typeof",	TOKtypeof	},
-    {	"typeid",	TOKtypeid	},
+    {   "this",         TOKthis         },
+    {   "super",        TOKsuper        },
+    {   "assert",       TOKassert       },
+    {   "null",         TOKnull         },
+    {   "true",         TOKtrue         },
+    {   "false",        TOKfalse        },
+    {   "cast",         TOKcast         },
+    {   "new",          TOKnew          },
+    {   "delete",       TOKdelete       },
+    {   "throw",        TOKthrow        },
+    {   "module",       TOKmodule       },
+    {   "pragma",       TOKpragma       },
+    {   "typeof",       TOKtypeof       },
+    {   "typeid",       TOKtypeid       },
 
-    {	"template",	TOKtemplate	},
+    {   "template",     TOKtemplate     },
 
-    {	"void",		TOKvoid		},
-    {	"byte",		TOKint8		},
-    {	"ubyte",	TOKuns8		},
-    {	"short",	TOKint16	},
-    {	"ushort",	TOKuns16	},
-    {	"int",		TOKint32	},
-    {	"uint",		TOKuns32	},
-    {	"long",		TOKint64	},
-    {	"ulong",	TOKuns64	},
-    {	"cent",		TOKcent,	},
-    {	"ucent",	TOKucent,	},
-    {	"float",	TOKfloat32	},
-    {	"double",	TOKfloat64	},
-    {	"real",		TOKfloat80	},
+    {   "void",         TOKvoid         },
+    {   "byte",         TOKint8         },
+    {   "ubyte",        TOKuns8         },
+    {   "short",        TOKint16        },
+    {   "ushort",       TOKuns16        },
+    {   "int",          TOKint32        },
+    {   "uint",         TOKuns32        },
+    {   "long",         TOKint64        },
+    {   "ulong",        TOKuns64        },
+    {   "cent",         TOKcent,        },
+    {   "ucent",        TOKucent,       },
+    {   "float",        TOKfloat32      },
+    {   "double",       TOKfloat64      },
+    {   "real",         TOKfloat80      },
 
-    {	"bool",		TOKbool		},
-    {	"char",		TOKchar		},
-    {	"wchar",	TOKwchar	},
-    {	"dchar",	TOKdchar	},
+    {   "bool",         TOKbool         },
+    {   "char",         TOKchar         },
+    {   "wchar",        TOKwchar        },
+    {   "dchar",        TOKdchar        },
 
-    {	"ifloat",	TOKimaginary32	},
-    {	"idouble",	TOKimaginary64	},
-    {	"ireal",	TOKimaginary80	},
+    {   "ifloat",       TOKimaginary32  },
+    {   "idouble",      TOKimaginary64  },
+    {   "ireal",        TOKimaginary80  },
 
-    {	"cfloat",	TOKcomplex32	},
-    {	"cdouble",	TOKcomplex64	},
-    {	"creal",	TOKcomplex80	},
+    {   "cfloat",       TOKcomplex32    },
+    {   "cdouble",      TOKcomplex64    },
+    {   "creal",        TOKcomplex80    },
 
-    {	"delegate",	TOKdelegate	},
-    {	"function",	TOKfunction	},
+    {   "delegate",     TOKdelegate     },
+    {   "function",     TOKfunction     },
 
-    {	"is",		TOKis		},
-    {	"if",		TOKif		},
-    {	"else",		TOKelse		},
-    {	"while",	TOKwhile	},
-    {	"for",		TOKfor		},
-    {	"do",		TOKdo		},
-    {	"switch",	TOKswitch	},
-    {	"case",		TOKcase		},
-    {	"default",	TOKdefault	},
-    {	"break",	TOKbreak	},
-    {	"continue",	TOKcontinue	},
-    {	"synchronized",	TOKsynchronized	},
-    {	"return",	TOKreturn	},
-    {	"goto",		TOKgoto		},
-    {	"try",		TOKtry		},
-    {	"catch",	TOKcatch	},
-    {	"finally",	TOKfinally	},
-    {	"with",		TOKwith		},
-    {	"asm",		TOKasm		},
-    {	"foreach",	TOKforeach	},
-    {	"foreach_reverse",	TOKforeach_reverse	},
-    {	"scope",	TOKscope	},
+    {   "is",           TOKis           },
+    {   "if",           TOKif           },
+    {   "else",         TOKelse         },
+    {   "while",        TOKwhile        },
+    {   "for",          TOKfor          },
+    {   "do",           TOKdo           },
+    {   "switch",       TOKswitch       },
+    {   "case",         TOKcase         },
+    {   "default",      TOKdefault      },
+    {   "break",        TOKbreak        },
+    {   "continue",     TOKcontinue     },
+    {   "synchronized", TOKsynchronized },
+    {   "return",       TOKreturn       },
+    {   "goto",         TOKgoto         },
+    {   "try",          TOKtry          },
+    {   "catch",        TOKcatch        },
+    {   "finally",      TOKfinally      },
+    {   "with",         TOKwith         },
+    {   "asm",          TOKasm          },
+    {   "foreach",      TOKforeach      },
+    {   "foreach_reverse",      TOKforeach_reverse      },
+    {   "scope",        TOKscope        },
 
-    {	"struct",	TOKstruct	},
-    {	"class",	TOKclass	},
-    {	"interface",	TOKinterface	},
-    {	"union",	TOKunion	},
-    {	"enum",		TOKenum		},
-    {	"import",	TOKimport	},
-    {	"mixin",	TOKmixin	},
-    {	"static",	TOKstatic	},
-    {	"final",	TOKfinal	},
-    {	"const",	TOKconst	},
-    {	"typedef",	TOKtypedef	},
-    {	"alias",	TOKalias	},
-    {	"override",	TOKoverride	},
-    {	"abstract",	TOKabstract	},
-    {	"volatile",	TOKvolatile	},
-    {	"debug",	TOKdebug	},
-    {	"deprecated",	TOKdeprecated	},
-    {	"in",		TOKin		},
-    {	"out",		TOKout		},
-    {	"inout",	TOKinout	},
-    {	"lazy",		TOKlazy		},
-    {	"auto",		TOKauto		},
+    {   "struct",       TOKstruct       },
+    {   "class",        TOKclass        },
+    {   "interface",    TOKinterface    },
+    {   "union",        TOKunion        },
+    {   "enum",         TOKenum         },
+    {   "import",       TOKimport       },
+    {   "mixin",        TOKmixin        },
+    {   "static",       TOKstatic       },
+    {   "final",        TOKfinal        },
+    {   "const",        TOKconst        },
+    {   "typedef",      TOKtypedef      },
+    {   "alias",        TOKalias        },
+    {   "override",     TOKoverride     },
+    {   "abstract",     TOKabstract     },
+    {   "volatile",     TOKvolatile     },
+    {   "debug",        TOKdebug        },
+    {   "deprecated",   TOKdeprecated   },
+    {   "in",           TOKin           },
+    {   "out",          TOKout          },
+    {   "inout",        TOKinout        },
+    {   "lazy",         TOKlazy         },
+    {   "auto",         TOKauto         },
 
-    {	"align",	TOKalign	},
-    {	"extern",	TOKextern	},
-    {	"private",	TOKprivate	},
-    {	"package",	TOKpackage	},
-    {	"protected",	TOKprotected	},
-    {	"public",	TOKpublic	},
-    {	"export",	TOKexport	},
+    {   "align",        TOKalign        },
+    {   "extern",       TOKextern       },
+    {   "private",      TOKprivate      },
+    {   "package",      TOKpackage      },
+    {   "protected",    TOKprotected    },
+    {   "public",       TOKpublic       },
+    {   "export",       TOKexport       },
 
-    {	"body",		TOKbody		},
-    {	"invariant",	TOKinvariant	},
-    {	"unittest",	TOKunittest	},
-    {	"version",	TOKversion	},
-    //{	"manifest",	TOKmanifest	},
+    {   "body",         TOKbody         },
+    {   "invariant",    TOKinvariant    },
+    {   "unittest",     TOKunittest     },
+    {   "version",      TOKversion      },
+    //{ "manifest",     TOKmanifest     },
 
     // Added after 1.0
-    {	"ref",		TOKref		},
-    {	"macro",	TOKmacro	},
+    {   "ref",          TOKref          },
+    {   "macro",        TOKmacro        },
 #if DMDV2
-    {	"pure",		TOKpure		},
-    {	"nothrow",	TOKnothrow	},
-    {	"__thread",	TOKtls		},
-    {	"__gshared",	TOKgshared	},
-    {	"__traits",	TOKtraits	},
-    {	"__overloadset", TOKoverloadset	},
-    {	"__FILE__",	TOKfile		},
-    {	"__LINE__",	TOKline		},
-    {	"shared",	TOKshared	},
-    {	"immutable",	TOKimmutable	},
+    {   "pure",         TOKpure         },
+    {   "nothrow",      TOKnothrow      },
+    {   "__thread",     TOKtls          },
+    {   "__gshared",    TOKgshared      },
+    {   "__traits",     TOKtraits       },
+    {   "__overloadset", TOKoverloadset },
+    {   "__FILE__",     TOKfile         },
+    {   "__LINE__",     TOKline         },
+    {   "shared",       TOKshared       },
+    {   "immutable",    TOKimmutable    },
 #endif
 };
 
@@ -3001,8 +3001,8 @@ int Token::isKeyword()
 {
     for (unsigned u = 0; u < sizeof(keywords) / sizeof(keywords[0]); u++)
     {
-	if (keywords[u].value == value)
-	    return 1;
+        if (keywords[u].value == value)
+            return 1;
     }
     return 0;
 }
@@ -3014,130 +3014,130 @@ void Lexer::initKeywords()
     unsigned nkeywords = sizeof(keywords) / sizeof(keywords[0]);
 
     if (global.params.Dversion == 1)
-	nkeywords -= 2;
+        nkeywords -= 2;
 
     cmtable_init();
 
     for (u = 0; u < nkeywords; u++)
-    {	const char *s;
+    {   const char *s;
 
-	//printf("keyword[%d] = '%s'\n",u, keywords[u].name);
-	s = keywords[u].name;
-	v = keywords[u].value;
-	sv = stringtable.insert(s, strlen(s));
-	sv->ptrvalue = (void *) new Identifier(sv->lstring.string,v);
+        //printf("keyword[%d] = '%s'\n",u, keywords[u].name);
+        s = keywords[u].name;
+        v = keywords[u].value;
+        sv = stringtable.insert(s, strlen(s));
+        sv->ptrvalue = (void *) new Identifier(sv->lstring.string,v);
 
-	//printf("tochars[%d] = '%s'\n",v, s);
-	Token::tochars[v] = s;
+        //printf("tochars[%d] = '%s'\n",v, s);
+        Token::tochars[v] = s;
     }
 
-    Token::tochars[TOKeof]		= "EOF";
-    Token::tochars[TOKlcurly]		= "{";
-    Token::tochars[TOKrcurly]		= "}";
-    Token::tochars[TOKlparen]		= "(";
-    Token::tochars[TOKrparen]		= ")";
-    Token::tochars[TOKlbracket]		= "[";
-    Token::tochars[TOKrbracket]		= "]";
-    Token::tochars[TOKsemicolon]	= ";";
-    Token::tochars[TOKcolon]		= ":";
-    Token::tochars[TOKcomma]		= ",";
-    Token::tochars[TOKdot]		= ".";
-    Token::tochars[TOKxor]		= "^";
-    Token::tochars[TOKxorass]		= "^=";
-    Token::tochars[TOKassign]		= "=";
-    Token::tochars[TOKconstruct]	= "=";
+    Token::tochars[TOKeof]              = "EOF";
+    Token::tochars[TOKlcurly]           = "{";
+    Token::tochars[TOKrcurly]           = "}";
+    Token::tochars[TOKlparen]           = "(";
+    Token::tochars[TOKrparen]           = ")";
+    Token::tochars[TOKlbracket]         = "[";
+    Token::tochars[TOKrbracket]         = "]";
+    Token::tochars[TOKsemicolon]        = ";";
+    Token::tochars[TOKcolon]            = ":";
+    Token::tochars[TOKcomma]            = ",";
+    Token::tochars[TOKdot]              = ".";
+    Token::tochars[TOKxor]              = "^";
+    Token::tochars[TOKxorass]           = "^=";
+    Token::tochars[TOKassign]           = "=";
+    Token::tochars[TOKconstruct]        = "=";
 #if DMDV2
-    Token::tochars[TOKblit]		= "=";
+    Token::tochars[TOKblit]             = "=";
 #endif
-    Token::tochars[TOKlt]		= "<";
-    Token::tochars[TOKgt]		= ">";
-    Token::tochars[TOKle]		= "<=";
-    Token::tochars[TOKge]		= ">=";
-    Token::tochars[TOKequal]		= "==";
-    Token::tochars[TOKnotequal]		= "!=";
-    Token::tochars[TOKnotidentity]	= "!is";
-    Token::tochars[TOKtobool]		= "!!";
+    Token::tochars[TOKlt]               = "<";
+    Token::tochars[TOKgt]               = ">";
+    Token::tochars[TOKle]               = "<=";
+    Token::tochars[TOKge]               = ">=";
+    Token::tochars[TOKequal]            = "==";
+    Token::tochars[TOKnotequal]         = "!=";
+    Token::tochars[TOKnotidentity]      = "!is";
+    Token::tochars[TOKtobool]           = "!!";
 
-    Token::tochars[TOKunord]		= "!<>=";
-    Token::tochars[TOKue]		= "!<>";
-    Token::tochars[TOKlg]		= "<>";
-    Token::tochars[TOKleg]		= "<>=";
-    Token::tochars[TOKule]		= "!>";
-    Token::tochars[TOKul]		= "!>=";
-    Token::tochars[TOKuge]		= "!<";
-    Token::tochars[TOKug]		= "!<=";
+    Token::tochars[TOKunord]            = "!<>=";
+    Token::tochars[TOKue]               = "!<>";
+    Token::tochars[TOKlg]               = "<>";
+    Token::tochars[TOKleg]              = "<>=";
+    Token::tochars[TOKule]              = "!>";
+    Token::tochars[TOKul]               = "!>=";
+    Token::tochars[TOKuge]              = "!<";
+    Token::tochars[TOKug]               = "!<=";
 
-    Token::tochars[TOKnot]		= "!";
-    Token::tochars[TOKtobool]		= "!!";
-    Token::tochars[TOKshl]		= "<<";
-    Token::tochars[TOKshr]		= ">>";
-    Token::tochars[TOKushr]		= ">>>";
-    Token::tochars[TOKadd]		= "+";
-    Token::tochars[TOKmin]		= "-";
-    Token::tochars[TOKmul]		= "*";
-    Token::tochars[TOKdiv]		= "/";
-    Token::tochars[TOKmod]		= "%";
-    Token::tochars[TOKslice]		= "..";
-    Token::tochars[TOKdotdotdot]	= "...";
-    Token::tochars[TOKand]		= "&";
-    Token::tochars[TOKandand]		= "&&";
-    Token::tochars[TOKor]		= "|";
-    Token::tochars[TOKoror]		= "||";
-    Token::tochars[TOKarray]		= "[]";
-    Token::tochars[TOKindex]		= "[i]";
-    Token::tochars[TOKaddress]		= "&";
-    Token::tochars[TOKstar]		= "*";
-    Token::tochars[TOKtilde]		= "~";
-    Token::tochars[TOKdollar]		= "$";
-    Token::tochars[TOKcast]		= "cast";
-    Token::tochars[TOKplusplus]		= "++";
-    Token::tochars[TOKminusminus]	= "--";
-    Token::tochars[TOKpreplusplus]	= "++";
-    Token::tochars[TOKpreminusminus]	= "--";
-    Token::tochars[TOKtype]		= "type";
-    Token::tochars[TOKquestion]		= "?";
-    Token::tochars[TOKneg]		= "-";
-    Token::tochars[TOKuadd]		= "+";
-    Token::tochars[TOKvar]		= "var";
-    Token::tochars[TOKaddass]		= "+=";
-    Token::tochars[TOKminass]		= "-=";
-    Token::tochars[TOKmulass]		= "*=";
-    Token::tochars[TOKdivass]		= "/=";
-    Token::tochars[TOKmodass]		= "%=";
-    Token::tochars[TOKshlass]		= "<<=";
-    Token::tochars[TOKshrass]		= ">>=";
-    Token::tochars[TOKushrass]		= ">>>=";
-    Token::tochars[TOKandass]		= "&=";
-    Token::tochars[TOKorass]		= "|=";
-    Token::tochars[TOKcatass]		= "~=";
-    Token::tochars[TOKcat]		= "~";
-    Token::tochars[TOKcall]		= "call";
-    Token::tochars[TOKidentity]		= "is";
-    Token::tochars[TOKnotidentity]	= "!is";
+    Token::tochars[TOKnot]              = "!";
+    Token::tochars[TOKtobool]           = "!!";
+    Token::tochars[TOKshl]              = "<<";
+    Token::tochars[TOKshr]              = ">>";
+    Token::tochars[TOKushr]             = ">>>";
+    Token::tochars[TOKadd]              = "+";
+    Token::tochars[TOKmin]              = "-";
+    Token::tochars[TOKmul]              = "*";
+    Token::tochars[TOKdiv]              = "/";
+    Token::tochars[TOKmod]              = "%";
+    Token::tochars[TOKslice]            = "..";
+    Token::tochars[TOKdotdotdot]        = "...";
+    Token::tochars[TOKand]              = "&";
+    Token::tochars[TOKandand]           = "&&";
+    Token::tochars[TOKor]               = "|";
+    Token::tochars[TOKoror]             = "||";
+    Token::tochars[TOKarray]            = "[]";
+    Token::tochars[TOKindex]            = "[i]";
+    Token::tochars[TOKaddress]          = "&";
+    Token::tochars[TOKstar]             = "*";
+    Token::tochars[TOKtilde]            = "~";
+    Token::tochars[TOKdollar]           = "$";
+    Token::tochars[TOKcast]             = "cast";
+    Token::tochars[TOKplusplus]         = "++";
+    Token::tochars[TOKminusminus]       = "--";
+    Token::tochars[TOKpreplusplus]      = "++";
+    Token::tochars[TOKpreminusminus]    = "--";
+    Token::tochars[TOKtype]             = "type";
+    Token::tochars[TOKquestion]         = "?";
+    Token::tochars[TOKneg]              = "-";
+    Token::tochars[TOKuadd]             = "+";
+    Token::tochars[TOKvar]              = "var";
+    Token::tochars[TOKaddass]           = "+=";
+    Token::tochars[TOKminass]           = "-=";
+    Token::tochars[TOKmulass]           = "*=";
+    Token::tochars[TOKdivass]           = "/=";
+    Token::tochars[TOKmodass]           = "%=";
+    Token::tochars[TOKshlass]           = "<<=";
+    Token::tochars[TOKshrass]           = ">>=";
+    Token::tochars[TOKushrass]          = ">>>=";
+    Token::tochars[TOKandass]           = "&=";
+    Token::tochars[TOKorass]            = "|=";
+    Token::tochars[TOKcatass]           = "~=";
+    Token::tochars[TOKcat]              = "~";
+    Token::tochars[TOKcall]             = "call";
+    Token::tochars[TOKidentity]         = "is";
+    Token::tochars[TOKnotidentity]      = "!is";
 
-    Token::tochars[TOKorass]		= "|=";
-    Token::tochars[TOKidentifier]	= "identifier";
-    Token::tochars[TOKat]		= "@";
-    Token::tochars[TOKpow]		= "^^";
-    Token::tochars[TOKpowass]		= "^^=";
+    Token::tochars[TOKorass]            = "|=";
+    Token::tochars[TOKidentifier]       = "identifier";
+    Token::tochars[TOKat]               = "@";
+    Token::tochars[TOKpow]              = "^^";
+    Token::tochars[TOKpowass]           = "^^=";
 
      // For debugging
-    Token::tochars[TOKerror]		= "error";
-    Token::tochars[TOKdotexp]		= "dotexp";
-    Token::tochars[TOKdotti]		= "dotti";
-    Token::tochars[TOKdotvar]		= "dotvar";
-    Token::tochars[TOKdottype]		= "dottype";
-    Token::tochars[TOKsymoff]		= "symoff";
-    Token::tochars[TOKarraylength]	= "arraylength";
-    Token::tochars[TOKarrayliteral]	= "arrayliteral";
+    Token::tochars[TOKerror]            = "error";
+    Token::tochars[TOKdotexp]           = "dotexp";
+    Token::tochars[TOKdotti]            = "dotti";
+    Token::tochars[TOKdotvar]           = "dotvar";
+    Token::tochars[TOKdottype]          = "dottype";
+    Token::tochars[TOKsymoff]           = "symoff";
+    Token::tochars[TOKarraylength]      = "arraylength";
+    Token::tochars[TOKarrayliteral]     = "arrayliteral";
     Token::tochars[TOKassocarrayliteral] = "assocarrayliteral";
-    Token::tochars[TOKstructliteral]	= "structliteral";
-    Token::tochars[TOKstring]		= "string";
-    Token::tochars[TOKdsymbol]		= "symbol";
-    Token::tochars[TOKtuple]		= "tuple";
-    Token::tochars[TOKdeclaration]	= "declaration";
-    Token::tochars[TOKdottd]		= "dottd";
-    Token::tochars[TOKon_scope_exit]	= "scope(exit)";
-    Token::tochars[TOKon_scope_success]	= "scope(success)";
-    Token::tochars[TOKon_scope_failure]	= "scope(failure)";
+    Token::tochars[TOKstructliteral]    = "structliteral";
+    Token::tochars[TOKstring]           = "string";
+    Token::tochars[TOKdsymbol]          = "symbol";
+    Token::tochars[TOKtuple]            = "tuple";
+    Token::tochars[TOKdeclaration]      = "declaration";
+    Token::tochars[TOKdottd]            = "dottd";
+    Token::tochars[TOKon_scope_exit]    = "scope(exit)";
+    Token::tochars[TOKon_scope_success] = "scope(success)";
+    Token::tochars[TOKon_scope_failure] = "scope(failure)";
 }

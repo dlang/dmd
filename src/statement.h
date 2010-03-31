@@ -66,13 +66,13 @@ struct code;
  */
 enum BE
 {
-    BEnone =	 0,
+    BEnone =     0,
     BEfallthru = 1,
     BEthrow =    2,
     BEreturn =   4,
     BEgoto =     8,
-    BEhalt =	 0x10,
-    BEbreak =	 0x20,
+    BEhalt =     0x10,
+    BEbreak =    0x20,
     BEcontinue = 0x40,
     BEany = (BEfallthru | BEthrow | BEreturn | BEgoto | BEhalt),
 };
@@ -323,18 +323,18 @@ struct ForStatement : Statement
 
 struct ForeachStatement : Statement
 {
-    enum TOK op;		// TOKforeach or TOKforeach_reverse
-    Parameters *arguments;	// array of Parameter*'s
+    enum TOK op;                // TOKforeach or TOKforeach_reverse
+    Parameters *arguments;      // array of Parameter*'s
     Expression *aggr;
     Statement *body;
 
     VarDeclaration *key;
     VarDeclaration *value;
 
-    FuncDeclaration *func;	// function we're lexically in
+    FuncDeclaration *func;      // function we're lexically in
 
-    Array cases;	// put breaks, continues, gotos and returns here
-    Array gotos;	// forward referenced goto's go here
+    Array cases;        // put breaks, continues, gotos and returns here
+    Array gotos;        // forward referenced goto's go here
 
     ForeachStatement(Loc loc, enum TOK op, Parameters *arguments, Expression *aggr, Statement *body);
     Statement *syntaxCopy();
@@ -356,8 +356,8 @@ struct ForeachStatement : Statement
 #if DMDV2
 struct ForeachRangeStatement : Statement
 {
-    enum TOK op;		// TOKforeach or TOKforeach_reverse
-    Parameter *arg;		// loop index variable
+    enum TOK op;                // TOKforeach or TOKforeach_reverse
+    Parameter *arg;             // loop index variable
     Expression *lwr;
     Expression *upr;
     Statement *body;
@@ -365,7 +365,7 @@ struct ForeachRangeStatement : Statement
     VarDeclaration *key;
 
     ForeachRangeStatement(Loc loc, enum TOK op, Parameter *arg,
-	Expression *lwr, Expression *upr, Statement *body);
+        Expression *lwr, Expression *upr, Statement *body);
     Statement *syntaxCopy();
     Statement *semantic(Scope *sc);
     int hasBreak();
@@ -389,7 +389,7 @@ struct IfStatement : Statement
     Statement *ifbody;
     Statement *elsebody;
 
-    VarDeclaration *match;	// for MatchExpression results
+    VarDeclaration *match;      // for MatchExpression results
 
     IfStatement(Loc loc, Parameter *arg, Expression *condition, Statement *ifbody, Statement *elsebody);
     Statement *syntaxCopy();
@@ -426,7 +426,7 @@ struct ConditionalStatement : Statement
 struct PragmaStatement : Statement
 {
     Identifier *ident;
-    Expressions *args;		// array of Expression's
+    Expressions *args;          // array of Expression's
     Statement *body;
 
     PragmaStatement(Loc loc, Identifier *ident, Expressions *args, Statement *body);
@@ -460,10 +460,10 @@ struct SwitchStatement : Statement
 
     DefaultStatement *sdefault;
     TryFinallyStatement *tf;
-    Array gotoCases;		// array of unresolved GotoCaseStatement's
-    Array *cases;		// array of CaseStatement's
-    int hasNoDefault;		// !=0 if no default statement
-    int hasVars;		// !=0 if has variable case values
+    Array gotoCases;            // array of unresolved GotoCaseStatement's
+    Array *cases;               // array of CaseStatement's
+    int hasNoDefault;           // !=0 if no default statement
+    int hasVars;                // !=0 if has variable case values
 
     SwitchStatement(Loc loc, Expression *c, Statement *b, bool isFinal);
     Statement *syntaxCopy();
@@ -484,8 +484,8 @@ struct CaseStatement : Statement
     Expression *exp;
     Statement *statement;
 
-    int index;		// which case it is (since we sort this)
-    block *cblock;	// back end: label for the block
+    int index;          // which case it is (since we sort this)
+    block *cblock;      // back end: label for the block
 
     CaseStatement(Loc loc, Expression *exp, Statement *s);
     Statement *syntaxCopy();
@@ -522,7 +522,7 @@ struct DefaultStatement : Statement
 {
     Statement *statement;
 #if IN_GCC
-    block *cblock;	// back end: label for the block
+    block *cblock;      // back end: label for the block
 #endif
 
     DefaultStatement(Loc loc, Statement *s);
@@ -555,8 +555,8 @@ struct GotoDefaultStatement : Statement
 
 struct GotoCaseStatement : Statement
 {
-    Expression *exp;		// NULL, or which case to goto
-    CaseStatement *cs;		// case statement it resolves to
+    Expression *exp;            // NULL, or which case to goto
+    CaseStatement *cs;          // case statement it resolves to
 
     GotoCaseStatement(Loc loc, Expression *exp);
     Statement *syntaxCopy();
@@ -787,7 +787,7 @@ struct LabelStatement : Statement
     Identifier *ident;
     Statement *statement;
     TryFinallyStatement *tf;
-    block *lblock;		// back end
+    block *lblock;              // back end
     int isReturnLabel;
 
     LabelStatement(Loc loc, Identifier *ident, Statement *statement);
@@ -820,10 +820,10 @@ struct AsmStatement : Statement
 {
     Token *tokens;
     code *asmcode;
-    unsigned asmalign;		// alignment of this statement
-    unsigned refparam;		// !=0 if function parameter is referenced
-    unsigned naked;		// !=0 if function is to be naked
-    unsigned regs;		// mask of registers modified
+    unsigned asmalign;          // alignment of this statement
+    unsigned refparam;          // !=0 if function parameter is referenced
+    unsigned naked;             // !=0 if function is to be naked
+    unsigned regs;              // mask of registers modified
 
     AsmStatement(Loc loc, Token *tokens);
     Statement *syntaxCopy();

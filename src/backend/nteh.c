@@ -12,28 +12,28 @@
 
 // Support for NT exception handling
 
-#include	<stdio.h>
-#include	<string.h>
-#include	<time.h>
+#include        <stdio.h>
+#include        <string.h>
+#include        <time.h>
 
-#include	"cc.h"
-#include	"el.h"
-#include	"code.h"
-#include	"oper.h"
-#include	"global.h"
-#include	"type.h"
-#include	"dt.h"
+#include        "cc.h"
+#include        "el.h"
+#include        "code.h"
+#include        "oper.h"
+#include        "global.h"
+#include        "type.h"
+#include        "dt.h"
 #if SCPP
-#include	"scope.h"
-#include	"parser.h"
-#include	"cpp.h"
-#include	"exh.h"
+#include        "scope.h"
+#include        "parser.h"
+#include        "cpp.h"
+#include        "exh.h"
 #endif
 
 #if !SPP && NTEXCEPTIONS
 
-static char __file__[] = __FILE__;	/* for tassert.h		*/
-#include	"tassert.h"
+static char __file__[] = __FILE__;      /* for tassert.h                */
+#include        "tassert.h"
 
 static symbol *s_table;
 static symbol *s_context;
@@ -43,19 +43,19 @@ static char s_name_ecode[] = "__ecode";
 
 static char text_nt[] =
     "struct __nt_context {"
-	"int esp; int info; int prev; int handler; int stable; int sindex; int ebp;"
+        "int esp; int info; int prev; int handler; int stable; int sindex; int ebp;"
      "};\n";
 
 // member stable is not used for MARS or C++
 
-int nteh_EBPoffset_sindex()	{ return -4; }
-int nteh_EBPoffset_prev()	{ return -nteh_contextsym_size() + 8; }
-int nteh_EBPoffset_info()	{ return -nteh_contextsym_size() + 4; }
-int nteh_EBPoffset_esp()	{ return -nteh_contextsym_size() + 0; }
+int nteh_EBPoffset_sindex()     { return -4; }
+int nteh_EBPoffset_prev()       { return -nteh_contextsym_size() + 8; }
+int nteh_EBPoffset_info()       { return -nteh_contextsym_size() + 4; }
+int nteh_EBPoffset_esp()        { return -nteh_contextsym_size() + 0; }
 
-int nteh_offset_sindex()	{ return MARS ? 16 : 20; }
-int nteh_offset_sindex_seh()	{ return 20; }
-int nteh_offset_info()		{ return 4; }
+int nteh_offset_sindex()        { return MARS ? 16 : 20; }
+int nteh_offset_sindex_seh()    { return 20; }
+int nteh_offset_info()          { return 4; }
 
 /***********************************
  */
@@ -63,15 +63,15 @@ int nteh_offset_info()		{ return 4; }
 unsigned char *nteh_context_string()
 {
     if (config.flags2 & CFG2seh)
-	return (unsigned char *)text_nt;
+        return (unsigned char *)text_nt;
     else
-	return NULL;
+        return NULL;
 }
 
 /*******************************
  * Get symbol for scope table for current function.
  * Returns:
- *	symbol of table
+ *      symbol of table
  */
 
 STATIC symbol *nteh_scopetable()
@@ -80,11 +80,11 @@ STATIC symbol *nteh_scopetable()
 
     if (!s_table)
     {
-	t = type_alloc(TYint);
-	s = symbol_generate(SCstatic,t);
-	s->Sseg = UNKNOWN;
-	symbol_keep(s);
-	s_table = s;
+        t = type_alloc(TYint);
+        s = symbol_generate(SCstatic,t);
+        s->Sseg = UNKNOWN;
+        symbol_keep(s);
+        s_table = s;
     }
     return s_table;
 }
@@ -95,9 +95,9 @@ STATIC symbol *nteh_scopetable()
 
 void nteh_gentables()
 {   symbol *s;
-    int sz;			// size so far
+    int sz;                     // size so far
     dt_t **pdt;
-    unsigned fsize;		// target size of function pointer
+    unsigned fsize;             // target size of function pointer
     long spoff;
     block *b;
     int guarddim;
@@ -111,19 +111,19 @@ void nteh_gentables()
 
 #if MARS
     /*
-	void*		pointer to start of function
-	unsigned	offset of ESP from EBP
-	unsigned	offset from start of function to return code
-	{   int last_index;	// previous index
-	    unsigned catchoffset;	// offset to catch block from symbol
-	    void *finally;	// finally code to execute
-	} guard[];
+        void*           pointer to start of function
+        unsigned        offset of ESP from EBP
+        unsigned        offset from start of function to return code
+        {   int last_index;     // previous index
+            unsigned catchoffset;       // offset to catch block from symbol
+            void *finally;      // finally code to execute
+        } guard[];
       catchoffset:
-	unsigned ncatches;	// number of catch blocks
-	{   void *type;		// symbol representing type
-	    unsigned bpoffset;	// EBP offset of catch variable
-	    void *handler;	// catch handler code
-	} catch[];
+        unsigned ncatches;      // number of catch blocks
+        {   void *type;         // symbol representing type
+            unsigned bpoffset;  // EBP offset of catch variable
+            void *handler;      // catch handler code
+        } catch[];
      */
 
     sz = 0;
@@ -143,11 +143,11 @@ void nteh_gentables()
     sz += intsize;
 
     // First, calculate starting catch offset
-    guarddim = 0;				// max dimension of guard[]
+    guarddim = 0;                               // max dimension of guard[]
     for (b = startblock; b; b = b->Bnext)
     {
-	if (b->BC == BC_try && b->Bscope_index >= guarddim)
-	    guarddim = b->Bscope_index + 1;
+        if (b->BC == BC_try && b->Bscope_index >= guarddim)
+            guarddim = b->Bscope_index + 1;
     }
     unsigned catchoffset = sz + guarddim * (3 * 4);
 
@@ -155,106 +155,106 @@ void nteh_gentables()
     i = 0;
     for (b = startblock; b; b = b->Bnext)
     {
-	if (b->BC == BC_try)
-	{   dt_t *dt;
-	    block *bhandler;
-	    int nsucc;
+        if (b->BC == BC_try)
+        {   dt_t *dt;
+            block *bhandler;
+            int nsucc;
 
-	    assert(b->Bscope_index >= i);
-	    if (i < b->Bscope_index)
-	    {
-		pdt = dtnzeros(pdt, (b->Bscope_index - i) * (3 * 4));
-		sz += (b->Bscope_index - i) * (3 * 4);
-	    }
-	    i = b->Bscope_index + 1;
+            assert(b->Bscope_index >= i);
+            if (i < b->Bscope_index)
+            {
+                pdt = dtnzeros(pdt, (b->Bscope_index - i) * (3 * 4));
+                sz += (b->Bscope_index - i) * (3 * 4);
+            }
+            i = b->Bscope_index + 1;
 
-	    nsucc = list_nitems(b->Bsucc);
-	    pdt = dtdword(pdt,b->Blast_index);	// parent index
+            nsucc = list_nitems(b->Bsucc);
+            pdt = dtdword(pdt,b->Blast_index);  // parent index
 
-	    if (b->jcatchvar)				// if try-catch
-	    {
-		pdt = dtdword(pdt,catchoffset);
-		pdt = dtdword(pdt,0);	// no finally handler
+            if (b->jcatchvar)                           // if try-catch
+            {
+                pdt = dtdword(pdt,catchoffset);
+                pdt = dtdword(pdt,0);   // no finally handler
 
-		catchoffset += 4 + (nsucc - 1) * (3 * 4);
-	    }
-	    else					// else try-finally
-	    {
-		assert(nsucc == 2);
-		pdt = dtdword(pdt,0);		// no catch offset
-		bhandler = list_block(list_next(b->Bsucc));
-		assert(bhandler->BC == BC_finally);
-		// To successor of BC_finally block
-		bhandler = list_block(bhandler->Bsucc);
-		pdt = dtcoff(pdt,bhandler->Boffset);	// finally handler address
-	    }
-	    sz += 4 + fsize * 2;
-	}
+                catchoffset += 4 + (nsucc - 1) * (3 * 4);
+            }
+            else                                        // else try-finally
+            {
+                assert(nsucc == 2);
+                pdt = dtdword(pdt,0);           // no catch offset
+                bhandler = list_block(list_next(b->Bsucc));
+                assert(bhandler->BC == BC_finally);
+                // To successor of BC_finally block
+                bhandler = list_block(bhandler->Bsucc);
+                pdt = dtcoff(pdt,bhandler->Boffset);    // finally handler address
+            }
+            sz += 4 + fsize * 2;
+        }
     }
 
     // Generate catch[]
     for (b = startblock; b; b = b->Bnext)
     {
-	if (b->BC == BC_try)
-	{   block *bhandler;
-	    int nsucc;
+        if (b->BC == BC_try)
+        {   block *bhandler;
+            int nsucc;
 
-	    if (b->jcatchvar)				// if try-catch
-	    {	list_t bl;
+            if (b->jcatchvar)                           // if try-catch
+            {   list_t bl;
 
-		nsucc = list_nitems(b->Bsucc);
-		pdt = dtdword(pdt,nsucc - 1);		// # of catch blocks
-		sz += 4;
+                nsucc = list_nitems(b->Bsucc);
+                pdt = dtdword(pdt,nsucc - 1);           // # of catch blocks
+                sz += 4;
 
-		for (bl = list_next(b->Bsucc); bl; bl = list_next(bl))
-		{
-		    block *bcatch = list_block(bl);
+                for (bl = list_next(b->Bsucc); bl; bl = list_next(bl))
+                {
+                    block *bcatch = list_block(bl);
 
-		    pdt = dtxoff(pdt,bcatch->Bcatchtype,0,TYjhandle);
+                    pdt = dtxoff(pdt,bcatch->Bcatchtype,0,TYjhandle);
 
-		    pdt = dtdword(pdt,cod3_bpoffset(b->jcatchvar));	// EBP offset
+                    pdt = dtdword(pdt,cod3_bpoffset(b->jcatchvar));     // EBP offset
 
-		    pdt = dtcoff(pdt,bcatch->Boffset);	// finally handler address
+                    pdt = dtcoff(pdt,bcatch->Boffset);  // finally handler address
 
-		    sz += 3 * 4;
-		}
-	    }
-	}
+                    sz += 3 * 4;
+                }
+            }
+        }
     }
 #else
     for (b = startblock; b; b = b->Bnext)
     {
-	if (b->BC == BC_try)
-	{   dt_t *dt;
-	    block *bhandler;
+        if (b->BC == BC_try)
+        {   dt_t *dt;
+            block *bhandler;
 
-	    pdt = dtdword(pdt,b->Blast_index);	// parent index
+            pdt = dtdword(pdt,b->Blast_index);  // parent index
 
-	    // If try-finally
-	    if (list_nitems(b->Bsucc) == 2)
-	    {
-		pdt = dtdword(pdt,0);		// filter address
-		bhandler = list_block(list_next(b->Bsucc));
-		assert(bhandler->BC == BC_finally);
-		// To successor of BC_finally block
-		bhandler = list_block(bhandler->Bsucc);
-	    }
-	    else // try-except
-	    {
-		bhandler = list_block(list_next(b->Bsucc));
-		assert(bhandler->BC == BC_filter);
-		pdt = dtcoff(pdt,bhandler->Boffset);	// filter address
-		bhandler = list_block(list_next(list_next(b->Bsucc)));
-		assert(bhandler->BC == BC_except);
-	    }
-	    pdt = dtcoff(pdt,bhandler->Boffset);	// handler address
-	    sz += 4 + fsize * 2;
-	}
+            // If try-finally
+            if (list_nitems(b->Bsucc) == 2)
+            {
+                pdt = dtdword(pdt,0);           // filter address
+                bhandler = list_block(list_next(b->Bsucc));
+                assert(bhandler->BC == BC_finally);
+                // To successor of BC_finally block
+                bhandler = list_block(bhandler->Bsucc);
+            }
+            else // try-except
+            {
+                bhandler = list_block(list_next(b->Bsucc));
+                assert(bhandler->BC == BC_filter);
+                pdt = dtcoff(pdt,bhandler->Boffset);    // filter address
+                bhandler = list_block(list_next(list_next(b->Bsucc)));
+                assert(bhandler->BC == BC_except);
+            }
+            pdt = dtcoff(pdt,bhandler->Boffset);        // handler address
+            sz += 4 + fsize * 2;
+        }
     }
 #endif
     assert(sz != 0);
 
-    outdata(s);			// output the scope table
+    outdata(s);                 // output the scope table
 #if MARS
     nteh_framehandler(s);
 #endif
@@ -269,31 +269,31 @@ void nteh_declarvars(Blockx *bx)
 {   symbol *s;
 
 #if MARS
-    if (!(bx->funcsym->Sfunc->Fflags3 & Fnteh))	// if haven't already done it
-    {	bx->funcsym->Sfunc->Fflags3 |= Fnteh;
-	s = symbol_name(s_name_context,SCbprel,tsint);
-	s->Soffset = -5 * 4;		// -6 * 4 for C __try, __except, __finally
-	s->Sflags |= SFLfree | SFLnodebug;
-	type_setty(&s->Stype,mTYvolatile | TYint);
-	symbol_add(s);
-	bx->context = s;
+    if (!(bx->funcsym->Sfunc->Fflags3 & Fnteh)) // if haven't already done it
+    {   bx->funcsym->Sfunc->Fflags3 |= Fnteh;
+        s = symbol_name(s_name_context,SCbprel,tsint);
+        s->Soffset = -5 * 4;            // -6 * 4 for C __try, __except, __finally
+        s->Sflags |= SFLfree | SFLnodebug;
+        type_setty(&s->Stype,mTYvolatile | TYint);
+        symbol_add(s);
+        bx->context = s;
     }
 #else
-    if (!(funcsym_p->Sfunc->Fflags3 & Fnteh))	// if haven't already done it
-    {	funcsym_p->Sfunc->Fflags3 |= Fnteh;
-	if (!s_context)
-	    s_context = scope_search(s_name_context_tag,CPP ? SCTglobal : SCTglobaltag);
-	symbol_debug(s_context);
+    if (!(funcsym_p->Sfunc->Fflags3 & Fnteh))   // if haven't already done it
+    {   funcsym_p->Sfunc->Fflags3 |= Fnteh;
+        if (!s_context)
+            s_context = scope_search(s_name_context_tag,CPP ? SCTglobal : SCTglobaltag);
+        symbol_debug(s_context);
 
-	s = symbol_name(s_name_context,SCbprel,s_context->Stype);
-	s->Soffset = -6 * 4;		// -5 * 4 for C++
-	s->Sflags |= SFLfree;
-	symbol_add(s);
-	type_setty(&s->Stype,mTYvolatile | TYstruct);
+        s = symbol_name(s_name_context,SCbprel,s_context->Stype);
+        s->Soffset = -6 * 4;            // -5 * 4 for C++
+        s->Sflags |= SFLfree;
+        symbol_add(s);
+        type_setty(&s->Stype,mTYvolatile | TYstruct);
 
-	s = symbol_name(s_name_ecode,SCauto,type_alloc(mTYvolatile | TYint));
-	s->Sflags |= SFLfree;
-	symbol_add(s);
+        s = symbol_name(s_name_ecode,SCauto,type_alloc(mTYvolatile | TYint));
+        s->Sflags |= SFLfree;
+        symbol_add(s);
     }
 #endif
 }
@@ -326,11 +326,11 @@ symbol *nteh_contextsym()
     symbol *sp;
 
     for (si = 0; 1; si++)
-    {	assert(si < globsym.top);
-	sp = globsym.tab[si];
-	symbol_debug(sp);
-	if (strcmp(sp->Sident,s_name_context) == 0)
-	    return sp;
+    {   assert(si < globsym.top);
+        sp = globsym.tab[si];
+        symbol_debug(sp);
+        if (strcmp(sp->Sident,s_name_context) == 0)
+            return sp;
     }
 }
 
@@ -344,23 +344,23 @@ unsigned nteh_contextsym_size()
     if (usednteh & NTEH_try)
     {
 #if MARS
-	sz = 5 * 4;
+        sz = 5 * 4;
 #elif SCPP
-	sz = 6 * 4;
+        sz = 6 * 4;
 #else
-	assert(0);
+        assert(0);
 #endif
-	assert(usedalloca != 1);
+        assert(usedalloca != 1);
     }
     else if (usednteh & NTEHcpp)
-    {	sz = 5 * 4;			// C++ context record
-	assert(usedalloca != 1);
+    {   sz = 5 * 4;                     // C++ context record
+        assert(usedalloca != 1);
     }
     else if (usednteh & NTEHpassthru)
-    {	sz = 1 * 4;
+    {   sz = 1 * 4;
     }
     else
-	sz = 0;				// no context record
+        sz = 0;                         // no context record
     return sz;
 }
 
@@ -373,11 +373,11 @@ symbol *nteh_ecodesym()
     symbol *sp;
 
     for (si = 0; 1; si++)
-    {	assert(si < globsym.top);
-	sp = globsym.tab[si];
-	symbol_debug(sp);
-	if (strcmp(sp->Sident,s_name_ecode) == 0)
-	    return sp;
+    {   assert(si < globsym.top);
+        sp = globsym.tab[si];
+        symbol_debug(sp);
+        if (strcmp(sp->Sident,s_name_ecode) == 0)
+            return sp;
     }
 }
 
@@ -412,92 +412,92 @@ code *nteh_prolog()
 
     if (usednteh & NTEHpassthru)
     {
-	/* An sindex value of -2 is a magic value that tells the
-	 * stack unwinder to skip this frame.
-	 */
-	assert(config.exe & (EX_LINUX | EX_LINUX64 | EX_OSX | EX_OSX64 | EX_FREEBSD | EX_FREEBSD64 | EX_SOLARIS | EX_SOLARIS64));
-	cs.Iop = 0x68;
-	cs.Iflags = 0;
-	cs.Ijty = 0;
-	cs.IFL2 = FLconst;
-	cs.IEV2.Vint = -2;
-	return gen(CNIL,&cs);			// PUSH -2
+        /* An sindex value of -2 is a magic value that tells the
+         * stack unwinder to skip this frame.
+         */
+        assert(config.exe & (EX_LINUX | EX_LINUX64 | EX_OSX | EX_OSX64 | EX_FREEBSD | EX_FREEBSD64 | EX_SOLARIS | EX_SOLARIS64));
+        cs.Iop = 0x68;
+        cs.Iflags = 0;
+        cs.Ijty = 0;
+        cs.IFL2 = FLconst;
+        cs.IEV2.Vint = -2;
+        return gen(CNIL,&cs);                   // PUSH -2
     }
 
     /* Generate instance of struct __nt_context on stack frame:
-	[  ]					// previous ebp already there
-	push	-1				// sindex
-	mov	EDX,FS:__except_list
-	push	offset FLAT:scope_table		// stable (not for MARS or C++)
-	push	offset FLAT:__except_handler3	// handler
-	push	EDX				// prev
-	mov	FS:__except_list,ESP
-	sub	ESP,8				// info, esp for __except support
+        [  ]                                    // previous ebp already there
+        push    -1                              // sindex
+        mov     EDX,FS:__except_list
+        push    offset FLAT:scope_table         // stable (not for MARS or C++)
+        push    offset FLAT:__except_handler3   // handler
+        push    EDX                             // prev
+        mov     FS:__except_list,ESP
+        sub     ESP,8                           // info, esp for __except support
      */
 
-//    useregs(mAX);			// What is this for?
+//    useregs(mAX);                     // What is this for?
 
     cs.Iop = 0x68;
     cs.Iflags = 0;
     cs.Ijty = 0;
     cs.IFL2 = FLconst;
     cs.IEV2.Vint = -1;
-    c1 = gen(CNIL,&cs);			// PUSH -1
+    c1 = gen(CNIL,&cs);                 // PUSH -1
 
     if (usednteh & NTEHcpp || MARS)
     {
-	// PUSH &framehandler
-	cs.IFL2 = FLframehandler;
+        // PUSH &framehandler
+        cs.IFL2 = FLframehandler;
 #if MARS
-	nteh_scopetable();
+        nteh_scopetable();
 #endif
     }
     else
     {
-	// Do stable
-	cs.Iflags |= CFoff;
-	cs.IFL2 = FLextern;
-	cs.IEVsym2 = nteh_scopetable();
-	cs.IEVoffset2 = 0;
-	c1 = gen(c1,&cs);			// PUSH &scope_table
+        // Do stable
+        cs.Iflags |= CFoff;
+        cs.IFL2 = FLextern;
+        cs.IEVsym2 = nteh_scopetable();
+        cs.IEVoffset2 = 0;
+        c1 = gen(c1,&cs);                       // PUSH &scope_table
 
-	cs.IFL2 = FLextern;
-	cs.IEVsym2 = rtlsym[RTLSYM_EXCEPT_HANDLER3];
-	makeitextern(rtlsym[RTLSYM_EXCEPT_HANDLER3]);
+        cs.IFL2 = FLextern;
+        cs.IEVsym2 = rtlsym[RTLSYM_EXCEPT_HANDLER3];
+        makeitextern(rtlsym[RTLSYM_EXCEPT_HANDLER3]);
     }
-    c = gen(NULL,&cs);				// PUSH &__except_handler3
+    c = gen(NULL,&cs);                          // PUSH &__except_handler3
 
     if (config.exe == EX_NT)
     {
-	makeitextern(rtlsym[RTLSYM_EXCEPT_LIST]);
+        makeitextern(rtlsym[RTLSYM_EXCEPT_LIST]);
     #if 0
-	cs.Iop = 0xFF;
-	cs.Irm = modregrm(0,6,BPRM);
-	cs.Iflags = CFfs;
-	cs.Ijty = 0;
-	cs.IFL1 = FLextern;
-	cs.IEVsym1 = rtlsym[RTLSYM_EXCEPT_LIST];
-	cs.IEVoffset1 = 0;
-	gen(c,&cs);				// PUSH FS:__except_list
+        cs.Iop = 0xFF;
+        cs.Irm = modregrm(0,6,BPRM);
+        cs.Iflags = CFfs;
+        cs.Ijty = 0;
+        cs.IFL1 = FLextern;
+        cs.IEVsym1 = rtlsym[RTLSYM_EXCEPT_LIST];
+        cs.IEVoffset1 = 0;
+        gen(c,&cs);                             // PUSH FS:__except_list
     #else
-	useregs(mDX);
-	cs.Iop = 0x8B;
-	cs.Irm = modregrm(0,DX,BPRM);
-	cs.Iflags = CFfs;
-	cs.Ijty = 0;
-	cs.IFL1 = FLextern;
-	cs.IEVsym1 = rtlsym[RTLSYM_EXCEPT_LIST];
-	cs.IEVoffset1 = 0;
-	gen(c1,&cs);				// MOV EDX,FS:__except_list
+        useregs(mDX);
+        cs.Iop = 0x8B;
+        cs.Irm = modregrm(0,DX,BPRM);
+        cs.Iflags = CFfs;
+        cs.Ijty = 0;
+        cs.IFL1 = FLextern;
+        cs.IEVsym1 = rtlsym[RTLSYM_EXCEPT_LIST];
+        cs.IEVoffset1 = 0;
+        gen(c1,&cs);                            // MOV EDX,FS:__except_list
 
-	gen1(c,0x50 + DX);			// PUSH EDX
+        gen1(c,0x50 + DX);                      // PUSH EDX
     #endif
-	cs.Iop = 0x89;
-	NEWREG(cs.Irm,SP);
-	gen(c,&cs);				// MOV FS:__except_list,ESP
+        cs.Iop = 0x89;
+        NEWREG(cs.Irm,SP);
+        gen(c,&cs);                             // MOV FS:__except_list,ESP
     }
 
-    c = genc2(c,0x81,modregrm(3,5,SP),8);	// SUB ESP,8
+    c = genc2(c,0x81,modregrm(3,5,SP),8);       // SUB ESP,8
 
     return cat(c1,c);
 }
@@ -509,11 +509,11 @@ code *nteh_prolog()
 code *nteh_epilog()
 {
     if (!(config.flags2 & CFG2seh))
-	return NULL;
+        return NULL;
 
     /* Generate:
-	mov	ECX,__context[EBP].prev
-	mov	FS:__except_list,ECX
+        mov     ECX,__context[EBP].prev
+        mov     FS:__except_list,ECX
      */
     code cs;
     code *c;
@@ -558,7 +558,7 @@ code *nteh_setsp(int op)
     cs.IFL1 = FLconst;
     // EBP offset of __context.esp
     cs.IEV1.Vint = nteh_EBPoffset_esp();
-    return gen(CNIL,&cs);		// MOV ESP,__context[EBP].esp
+    return gen(CNIL,&cs);               // MOV ESP,__context[EBP].esp
 }
 
 /****************************
@@ -571,34 +571,34 @@ code *nteh_filter(block *b)
 
     assert(b->BC == BC_filter);
     c = CNIL;
-    if (b->Bflags & BFLehcode)		// if referenced __ecode
+    if (b->Bflags & BFLehcode)          // if referenced __ecode
     {
-	/* Generate:
-		mov	EAX,__context[EBP].info
-		mov	EAX,[EAX]
-		mov	EAX,[EAX]
-		mov	__ecode[EBP],EAX
-	 */
+        /* Generate:
+                mov     EAX,__context[EBP].info
+                mov     EAX,[EAX]
+                mov     EAX,[EAX]
+                mov     __ecode[EBP],EAX
+         */
 
-	c = getregs(mAX);
+        c = getregs(mAX);
 
-	cs.Iop = 0x8B;
-	cs.Irm = modregrm(2,AX,BPRM);
-	cs.Iflags = 0;
-	cs.Ijty = 0;
-	cs.IFL1 = FLconst;
-	// EBP offset of __context.info
-	cs.IEV1.Vint = nteh_EBPoffset_info();
-	c = gen(c,&cs);			// MOV EAX,__context[EBP].info
-	cs.Irm = modregrm(0,AX,0);
-	gen(c,&cs);			// MOV EAX,[EAX]
-	gen(c,&cs);			// MOV EAX,[EAX]
-	cs.Iop = 0x89;
-	cs.Irm = modregrm(2,AX,BPRM);
-	cs.IFL1 = FLauto;
-	cs.IEVsym1 = nteh_ecodesym();
-	cs.IEVoffset1 = 0;
-	gen(c,&cs);			// MOV __ecode[EBP],EAX
+        cs.Iop = 0x8B;
+        cs.Irm = modregrm(2,AX,BPRM);
+        cs.Iflags = 0;
+        cs.Ijty = 0;
+        cs.IFL1 = FLconst;
+        // EBP offset of __context.info
+        cs.IEV1.Vint = nteh_EBPoffset_info();
+        c = gen(c,&cs);                 // MOV EAX,__context[EBP].info
+        cs.Irm = modregrm(0,AX,0);
+        gen(c,&cs);                     // MOV EAX,[EAX]
+        gen(c,&cs);                     // MOV EAX,[EAX]
+        cs.Iop = 0x89;
+        cs.Irm = modregrm(2,AX,BPRM);
+        cs.IFL1 = FLauto;
+        cs.IEVsym1 = nteh_ecodesym();
+        cs.IEVoffset1 = 0;
+        gen(c,&cs);                     // MOV __ecode[EBP],EAX
     }
     return c;
 }
@@ -611,18 +611,18 @@ void nteh_framehandler(symbol *scopetable)
 {   code *c;
 
     // Generate:
-    //	MOV	EAX,&scope_table
-    //	JMP	__cpp_framehandler
+    //  MOV     EAX,&scope_table
+    //  JMP     __cpp_framehandler
 
     if (scopetable)
     {
-	symbol_debug(scopetable);
-	c = gencs(NULL,0xB8+AX,0,FLextern,scopetable);	// MOV EAX,&scope_table
-	gencs(c,0xE9,0,FLfunc,rtlsym[RTLSYM_CPP_HANDLER]);	// JMP __cpp_framehandler
+        symbol_debug(scopetable);
+        c = gencs(NULL,0xB8+AX,0,FLextern,scopetable);  // MOV EAX,&scope_table
+        gencs(c,0xE9,0,FLfunc,rtlsym[RTLSYM_CPP_HANDLER]);      // JMP __cpp_framehandler
 
-	pinholeopt(c,NULL);
-	codout(c);
-	code_free(c);
+        pinholeopt(c,NULL);
+        codout(c);
+        code_free(c);
     }
 }
 
@@ -634,12 +634,12 @@ code *nteh_gensindex(int sindex)
 {   code *c;
 
     if (!(config.flags2 & CFG2seh))
-	return NULL;
+        return NULL;
 
     // Generate:
-    //	MOV	-4[EBP],sindex
+    //  MOV     -4[EBP],sindex
 
-    c = genc(NULL,0xC7,modregrm(1,0,BP),FLconst,(targ_uns)nteh_EBPoffset_sindex(),FLconst,sindex);	// 7 bytes long
+    c = genc(NULL,0xC7,modregrm(1,0,BP),FLconst,(targ_uns)nteh_EBPoffset_sindex(),FLconst,sindex);      // 7 bytes long
     c->Iflags |= CFvolatile;
 #ifdef DEBUG
     //assert(GENSINDEXSIZE == calccodsize(c));
@@ -663,94 +663,94 @@ code *cdsetjmp(elem *e,regm_t *pretregs)
 #if SCPP
     if (CPP && (funcsym_p->Sfunc->Fflags3 & Fcppeh || usednteh & NTEHcpp))
     {
-	/*  If in C++ try block
-	    If the frame that is calling setjmp has a try,catch block then
-	    the call to setjmp3 is as follows:
-	      __setjmp3(environment,3,__cpp_longjmp_unwind,trylevel,funcdata);
+        /*  If in C++ try block
+            If the frame that is calling setjmp has a try,catch block then
+            the call to setjmp3 is as follows:
+              __setjmp3(environment,3,__cpp_longjmp_unwind,trylevel,funcdata);
 
-	    __cpp_longjmp_unwind is a routine in the RTL. This is a 
-	    stdcall routine that will deal with unwinding for CPP Frames. 
-	    trylevel is the value that gets incremented at each catch, 
-	    constructor invocation.
-	    funcdata is the same value that you put into EAX prior to 
-	    cppframehandler getting called.
-	 */
-	symbol *s;
+            __cpp_longjmp_unwind is a routine in the RTL. This is a
+            stdcall routine that will deal with unwinding for CPP Frames.
+            trylevel is the value that gets incremented at each catch,
+            constructor invocation.
+            funcdata is the same value that you put into EAX prior to
+            cppframehandler getting called.
+         */
+        symbol *s;
 
-	s = except_gensym();
-	if (!s)
-	    goto L1;
+        s = except_gensym();
+        if (!s)
+            goto L1;
 
-	c = gencs(c,0x68,0,FLextern,s);			// PUSH &scope_table
-	stackpush += 4;
-	genadjesp(c,4);
+        c = gencs(c,0x68,0,FLextern,s);                 // PUSH &scope_table
+        stackpush += 4;
+        genadjesp(c,4);
 
-	c = genc1(c,0xFF,modregrm(1,6,BP),FLconst,(targ_uns)-4);
-						// PUSH trylevel
-	stackpush += 4;
-	genadjesp(c,4);
+        c = genc1(c,0xFF,modregrm(1,6,BP),FLconst,(targ_uns)-4);
+                                                // PUSH trylevel
+        stackpush += 4;
+        genadjesp(c,4);
 
-	cs.Iop = 0x68;
-	cs.Iflags = CFoff;
-	cs.Ijty = 0;
-	cs.IFL2 = FLextern;
-	cs.IEVsym2 = rtlsym[RTLSYM_CPP_LONGJMP];
-	cs.IEVoffset2 = 0;
-	c = gen(c,&cs);				// PUSH &_cpp_longjmp_unwind
-	stackpush += 4;
-	genadjesp(c,4);
+        cs.Iop = 0x68;
+        cs.Iflags = CFoff;
+        cs.Ijty = 0;
+        cs.IFL2 = FLextern;
+        cs.IEVsym2 = rtlsym[RTLSYM_CPP_LONGJMP];
+        cs.IEVoffset2 = 0;
+        c = gen(c,&cs);                         // PUSH &_cpp_longjmp_unwind
+        stackpush += 4;
+        genadjesp(c,4);
 
-	flag = 3;
+        flag = 3;
     }
     else
 #endif
     if (funcsym_p->Sfunc->Fflags3 & Fnteh)
     {
-	/*  If in NT SEH try block
-	    If the frame that is calling setjmp has a try, except block
-	    then the call to setjmp3 is as follows:
-	      __setjmp3(environment,2,__seh_longjmp_unwind,trylevel);
-	    __seth_longjmp_unwind is supplied by the RTL and is a stdcall
-	    function. It is the name that MSOFT uses, we should 
-	    probably use the same one.
-	    trylevel is the value that you increment at each try and 
-	    decrement at the close of the try.  This corresponds to the
-	    index field of the ehrec.
-	 */
-	int sindex_off;
+        /*  If in NT SEH try block
+            If the frame that is calling setjmp has a try, except block
+            then the call to setjmp3 is as follows:
+              __setjmp3(environment,2,__seh_longjmp_unwind,trylevel);
+            __seth_longjmp_unwind is supplied by the RTL and is a stdcall
+            function. It is the name that MSOFT uses, we should
+            probably use the same one.
+            trylevel is the value that you increment at each try and
+            decrement at the close of the try.  This corresponds to the
+            index field of the ehrec.
+         */
+        int sindex_off;
 
-	sindex_off = 20;		// offset of __context.sindex
-	cs.Iop = 0xFF;
-	cs.Irm = modregrm(2,6,BPRM);
-	cs.Iflags = 0;
-	cs.Ijty = 0;
-	cs.IFL1 = FLbprel;
-	cs.IEVsym1 = nteh_contextsym();
-	cs.IEVoffset1 = sindex_off;
-	c = gen(c,&cs);			// PUSH scope_index
-	stackpush += 4;
-	genadjesp(c,4);
+        sindex_off = 20;                // offset of __context.sindex
+        cs.Iop = 0xFF;
+        cs.Irm = modregrm(2,6,BPRM);
+        cs.Iflags = 0;
+        cs.Ijty = 0;
+        cs.IFL1 = FLbprel;
+        cs.IEVsym1 = nteh_contextsym();
+        cs.IEVoffset1 = sindex_off;
+        c = gen(c,&cs);                 // PUSH scope_index
+        stackpush += 4;
+        genadjesp(c,4);
 
-	cs.Iop = 0x68;
-	cs.Iflags = CFoff;
-	cs.Ijty = 0;
-	cs.IFL2 = FLextern;
-	cs.IEVsym2 = rtlsym[RTLSYM_LONGJMP];
-	cs.IEVoffset2 = 0;
-	c = gen(c,&cs);			// PUSH &_seh_longjmp_unwind
-	stackpush += 4;
-	genadjesp(c,4);
+        cs.Iop = 0x68;
+        cs.Iflags = CFoff;
+        cs.Ijty = 0;
+        cs.IFL2 = FLextern;
+        cs.IEVsym2 = rtlsym[RTLSYM_LONGJMP];
+        cs.IEVoffset2 = 0;
+        c = gen(c,&cs);                 // PUSH &_seh_longjmp_unwind
+        stackpush += 4;
+        genadjesp(c,4);
 
-	flag = 2;
+        flag = 2;
     }
     else
     {
-	/*  If the frame calling setjmp has neither a try..except, nor a 
-	    try..catch, then call setjmp3 as follows:
-	    _setjmp3(environment,0)
-	 */
+        /*  If the frame calling setjmp has neither a try..except, nor a
+            try..catch, then call setjmp3 as follows:
+            _setjmp3(environment,0)
+         */
     L1:
-	flag = 0;
+        flag = 0;
     }
 
     cs.Iop = 0x68;
@@ -758,16 +758,16 @@ code *cdsetjmp(elem *e,regm_t *pretregs)
     cs.Ijty = 0;
     cs.IFL2 = FLconst;
     cs.IEV2.Vint = flag;
-    c = gen(c,&cs);			// PUSH flag
+    c = gen(c,&cs);                     // PUSH flag
     stackpush += 4;
     genadjesp(c,4);
 
     c = cat(c,params(e->E1,REGSIZE));
 
     c = cat(c,getregs(~rtlsym[RTLSYM_SETJMP3]->Sregsaved & (ALLREGS | mES)));
-    gencs(c,0xE8,0,FLfunc,rtlsym[RTLSYM_SETJMP3]);	// CALL __setjmp3
+    gencs(c,0xE8,0,FLfunc,rtlsym[RTLSYM_SETJMP3]);      // CALL __setjmp3
 
-    c = genc2(c,0x81,modregrm(3,0,SP),stackpush - stackpushsave);	// ADD ESP,8
+    c = genc2(c,0x81,modregrm(3,0,SP),stackpush - stackpushsave);       // ADD ESP,8
     genadjesp(c,-(stackpush - stackpushsave));
 
     stackpush = stackpushsave;
@@ -814,20 +814,20 @@ code *nteh_unwind(regm_t retregs,unsigned index)
     cs.IFL1 = FLconst;
     // EBP offset of __context.prev
     cs.IEV1.Vint = nteh_EBPoffset_prev();
-    c = gen(c,&cs);				// LEA  ECX,contextsym
+    c = gen(c,&cs);                             // LEA  ECX,contextsym
 
-    genc2(c,0x68,0,index);			// PUSH index
-    gen1(c,0x50 + reg);				// PUSH ECX
+    genc2(c,0x68,0,index);                      // PUSH index
+    gen1(c,0x50 + reg);                         // PUSH ECX
 
 #if MARS
-    //gencs(c,0xB8+AX,0,FLextern,nteh_scopetable());	// MOV EAX,&scope_table
-    gencs(c,0x68,0,FLextern,nteh_scopetable());		// PUSH &scope_table
+    //gencs(c,0xB8+AX,0,FLextern,nteh_scopetable());    // MOV EAX,&scope_table
+    gencs(c,0x68,0,FLextern,nteh_scopetable());         // PUSH &scope_table
 
-    gencs(c,0xE8,0,FLfunc,rtlsym[local_unwind]);	// CALL __d_local_unwind2()
-    genc2(c,0x81,modregrm(3,0,SP),12);			// ADD ESP,12
+    gencs(c,0xE8,0,FLfunc,rtlsym[local_unwind]);        // CALL __d_local_unwind2()
+    genc2(c,0x81,modregrm(3,0,SP),12);                  // ADD ESP,12
 #else
-    gencs(c,0xE8,0,FLfunc,rtlsym[local_unwind]);	// CALL __local_unwind2()
-    genc2(c,0x81,modregrm(3,0,SP),8);			// ADD ESP,8
+    gencs(c,0xE8,0,FLfunc,rtlsym[local_unwind]);        // CALL __local_unwind2()
+    genc2(c,0x81,modregrm(3,0,SP),8);                   // ADD ESP,8
 #endif
 
     c = cat4(cs1,c,cs2,NULL);
@@ -867,16 +867,16 @@ code *linux_unwind(regm_t retregs,unsigned index)
     gensaverestore(retregs & desregs,&cs1,&cs2);
 
     c = getregs(desregs);
-    c = genc2(c,0x68,0,index);			// PUSH index
+    c = genc2(c,0x68,0,index);                  // PUSH index
 
 #if MARS
-//    gencs(c,0x68,0,FLextern,nteh_scopetable());		// PUSH &scope_table
+//    gencs(c,0x68,0,FLextern,nteh_scopetable());               // PUSH &scope_table
 
-    gencs(c,0xE8,0,FLfunc,rtlsym[local_unwind]);	// CALL __d_local_unwind2()
-    genc2(c,0x81,modregrm(3,0,SP),4);			// ADD ESP,12
+    gencs(c,0xE8,0,FLfunc,rtlsym[local_unwind]);        // CALL __d_local_unwind2()
+    genc2(c,0x81,modregrm(3,0,SP),4);                   // ADD ESP,12
 #else
-    gencs(c,0xE8,0,FLfunc,rtlsym[local_unwind]);	// CALL __local_unwind2()
-    genc2(c,0x81,modregrm(3,0,SP),8);			// ADD ESP,8
+    gencs(c,0xE8,0,FLfunc,rtlsym[local_unwind]);        // CALL __local_unwind2()
+    genc2(c,0x81,modregrm(3,0,SP),8);                   // ADD ESP,8
 #endif
 
     c = cat4(cs1,c,cs2,NULL);
@@ -894,11 +894,11 @@ code *linux_unwind(regm_t retregs,unsigned index)
 code *nteh_monitor_prolog(Symbol *shandle)
 {
     /*
-     *	PUSH	handle
-     *	PUSH	offset _d_monitor_handler
-     *	PUSH	FS:__except_list
-     *	MOV	FS:__except_list,ESP
-     *	CALL	_d_monitor_prolog
+     *  PUSH    handle
+     *  PUSH    offset _d_monitor_handler
+     *  PUSH    FS:__except_list
+     *  MOV     FS:__except_list,ESP
+     *  CALL    _d_monitor_prolog
      */
     code *c1 = NULL;
     code *c;
@@ -906,28 +906,28 @@ code *nteh_monitor_prolog(Symbol *shandle)
     Symbol *s;
     regm_t desregs;
 
-    assert(config.flags2 & CFG2seh);	// BUG: figure out how to implement for other EX's
+    assert(config.flags2 & CFG2seh);    // BUG: figure out how to implement for other EX's
 
     if (shandle->Sclass == SCfastpar)
-    {	assert(shandle->Spreg != DX);
-	c = gen1(NULL,0x50 + shandle->Spreg);	// PUSH shandle
+    {   assert(shandle->Spreg != DX);
+        c = gen1(NULL,0x50 + shandle->Spreg);   // PUSH shandle
     }
     else
     {
-	// PUSH shandle
+        // PUSH shandle
 #if 0
-	c = genc1(NULL,0xFF,modregrm(2,6,4),FLconst,4 * (1 + needframe) + shandle->Soffset + localsize);
-	c->Isib = modregrm(0,4,SP);
+        c = genc1(NULL,0xFF,modregrm(2,6,4),FLconst,4 * (1 + needframe) + shandle->Soffset + localsize);
+        c->Isib = modregrm(0,4,SP);
 #else
-	useregs(mCX);
-	c = genc1(NULL,0x8B,modregrm(2,CX,4),FLconst,4 * (1 + needframe) + shandle->Soffset + localsize);
-	c->Isib = modregrm(0,4,SP);
-	gen1(c,0x50 + CX);			// PUSH ECX
+        useregs(mCX);
+        c = genc1(NULL,0x8B,modregrm(2,CX,4),FLconst,4 * (1 + needframe) + shandle->Soffset + localsize);
+        c->Isib = modregrm(0,4,SP);
+        gen1(c,0x50 + CX);                      // PUSH ECX
 #endif
     }
 
     s = rtlsym[RTLSYM_MONITOR_HANDLER];
-    c = gencs(c,0x68,0,FLextern,s);		// PUSH offset _d_monitor_handler
+    c = gencs(c,0x68,0,FLextern,s);             // PUSH offset _d_monitor_handler
     makeitextern(s);
 
 #if 0
@@ -938,7 +938,7 @@ code *nteh_monitor_prolog(Symbol *shandle)
     cs.IFL1 = FLextern;
     cs.IEVsym1 = rtlsym[RTLSYM_EXCEPT_LIST];
     cs.IEVoffset1 = 0;
-    gen(c,&cs);				// PUSH FS:__except_list
+    gen(c,&cs);                         // PUSH FS:__except_list
 #else
     useregs(mDX);
     cs.Iop = 0x8B;
@@ -948,19 +948,19 @@ code *nteh_monitor_prolog(Symbol *shandle)
     cs.IFL1 = FLextern;
     cs.IEVsym1 = rtlsym[RTLSYM_EXCEPT_LIST];
     cs.IEVoffset1 = 0;
-    c1 = gen(c1,&cs);			// MOV EDX,FS:__except_list
+    c1 = gen(c1,&cs);                   // MOV EDX,FS:__except_list
 
-    gen1(c,0x50 + DX);			// PUSH EDX
+    gen1(c,0x50 + DX);                  // PUSH EDX
 #endif
 
     s = rtlsym[RTLSYM_MONITOR_PROLOG];
     desregs = ~s->Sregsaved & ALLREGS;
     c = cat(c,getregs(desregs));
-    c = gencs(c,0xE8,0,FLfunc,s);	// CALL _d_monitor_prolog
+    c = gencs(c,0xE8,0,FLfunc,s);       // CALL _d_monitor_prolog
 
     cs.Iop = 0x89;
     NEWREG(cs.Irm,SP);
-    gen(c,&cs);				// MOV FS:__except_list,ESP
+    gen(c,&cs);                         // MOV FS:__except_list,ESP
 
     return cat(c1,c);
 }
@@ -970,7 +970,7 @@ code *nteh_monitor_prolog(Symbol *shandle)
 /*************************************************
  * Release monitor, unhook monitor exception handler.
  * Input:
- *	retregs		registers to not destroy
+ *      retregs         registers to not destroy
  */
 
 #if MARS
@@ -978,8 +978,8 @@ code *nteh_monitor_prolog(Symbol *shandle)
 code *nteh_monitor_epilog(regm_t retregs)
 {
     /*
-     *	CALL	_d_monitor_epilog
-     *	POP	FS:__except_list
+     *  CALL    _d_monitor_epilog
+     *  POP     FS:__except_list
      */
     code cs;
     code *c;
@@ -990,7 +990,7 @@ code *nteh_monitor_epilog(regm_t retregs)
     regm_t desregs;
     Symbol *s;
 
-    assert(config.flags2 & CFG2seh);	// BUG: figure out how to implement for other EX's
+    assert(config.flags2 & CFG2seh);    // BUG: figure out how to implement for other EX's
 
     s = rtlsym[RTLSYM_MONITOR_EPILOG];
     //desregs = ~s->Sregsaved & ALLREGS;
@@ -998,7 +998,7 @@ code *nteh_monitor_epilog(regm_t retregs)
     gensaverestore(retregs & desregs,&cs1,&cs2);
 
     c = getregs(desregs);
-    c = gencs(c,0xE8,0,FLfunc,s);		// CALL __d_monitor_epilog
+    c = gencs(c,0xE8,0,FLfunc,s);               // CALL __d_monitor_epilog
 
     cs.Iop = 0x8F;
     cs.Irm = modregrm(0,0,BPRM);
@@ -1007,7 +1007,7 @@ code *nteh_monitor_epilog(regm_t retregs)
     cs.IFL1 = FLextern;
     cs.IEVsym1 = rtlsym[RTLSYM_EXCEPT_LIST];
     cs.IEVoffset1 = 0;
-    cpop = gen(NULL,&cs);			// POP FS:__except_list
+    cpop = gen(NULL,&cs);                       // POP FS:__except_list
 
     c = cat4(cs1,c,cs2,cpop);
     return c;

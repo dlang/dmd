@@ -37,14 +37,14 @@
 #elif _WIN32
 #include <dos.h>
 #include <sys\stat.h>
-#include	<windows.h>
+#include        <windows.h>
 #endif
 
 #if __DMC__ || __GNUC__
-static char __file__[] = __FILE__;	/* for tassert.h		*/
-#include	"tassert.h"
+static char __file__[] = __FILE__;      /* for tassert.h                */
+#include        "tassert.h"
 #else
-#include	<assert.h>
+#include        <assert.h>
 #endif
 
 #if _WINDLL
@@ -71,7 +71,7 @@ void os_error(int line)
 
 #if 1
 #undef dbg_printf
-#define dbg_printf	(void)
+#define dbg_printf      (void)
 #endif
 
 #define os_error() os_error(__LINE__)
@@ -92,24 +92,24 @@ void *globalrealloc(void *oldp,size_t newsize)
 
     // Initialize heap
     if (!hHeap)
-    {	hHeap = HeapCreate(0,0x10000,0);
-	if (!hHeap)
-	    os_error();
+    {   hHeap = HeapCreate(0,0x10000,0);
+        if (!hHeap)
+            os_error();
     }
 
-    newsize = (newsize + 3) & ~3L;	// round up to dwords
+    newsize = (newsize + 3) & ~3L;      // round up to dwords
     if (newsize == 0)
     {
-	if (oldp && HeapFree(hHeap,0,oldp) == FALSE)
-	    os_error();
-	p = NULL;
+        if (oldp && HeapFree(hHeap,0,oldp) == FALSE)
+            os_error();
+        p = NULL;
     }
     else if (!oldp)
     {
-	p = newsize ? HeapAlloc(hHeap,0,newsize) : NULL;
+        p = newsize ? HeapAlloc(hHeap,0,newsize) : NULL;
     }
     else
-	p = HeapReAlloc(hHeap,0,oldp,newsize);
+        p = HeapReAlloc(hHeap,0,oldp,newsize);
 #elif 1
     MEMORY_BASIC_INFORMATION query;
     void *p;
@@ -119,41 +119,41 @@ void *globalrealloc(void *oldp,size_t newsize)
         p = VirtualAlloc (NULL, newsize, MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE);
     else
     {
-	VirtualQuery (oldp, &query, sizeof(query));
-	if (!newsize)
-	{
-	    p = NULL;
-	    goto L1;
-	}
-	else
-	{   newsize = (newsize + 0xFFFF) & ~0xFFFFL;
-	    
-	    if (query.RegionSize >= newsize)
-		p = oldp;
-	    else
-	    {	p = VirtualAlloc(NULL,newsize,MEM_COMMIT | MEM_RESERVE,PAGE_READWRITE);
-		if (p)
-		    memcpy(p,oldp,query.RegionSize);
-	    L1:
-		bSuccess = VirtualFree(oldp,query.RegionSize,MEM_DECOMMIT);
-		if (bSuccess)
-		    bSuccess = VirtualFree(oldp,0,MEM_RELEASE);
-		if (!bSuccess)
-		    os_error();
-	    }
-	}
-    }	
+        VirtualQuery (oldp, &query, sizeof(query));
+        if (!newsize)
+        {
+            p = NULL;
+            goto L1;
+        }
+        else
+        {   newsize = (newsize + 0xFFFF) & ~0xFFFFL;
+
+            if (query.RegionSize >= newsize)
+                p = oldp;
+            else
+            {   p = VirtualAlloc(NULL,newsize,MEM_COMMIT | MEM_RESERVE,PAGE_READWRITE);
+                if (p)
+                    memcpy(p,oldp,query.RegionSize);
+            L1:
+                bSuccess = VirtualFree(oldp,query.RegionSize,MEM_DECOMMIT);
+                if (bSuccess)
+                    bSuccess = VirtualFree(oldp,0,MEM_RELEASE);
+                if (!bSuccess)
+                    os_error();
+            }
+        }
+    }
 #else
     void *p;
 
     if (!oldp)
-	p = (void *)GlobalAlloc (0, newsize);
+        p = (void *)GlobalAlloc (0, newsize);
     else if (!newsize)
-    {	GlobalFree(oldp);
-	p = NULL;
+    {   GlobalFree(oldp);
+        p = NULL;
     }
     else
-	p = (void *)GlobalReAlloc(oldp,newsize,0);
+        p = (void *)GlobalReAlloc(oldp,newsize,0);
 #endif
     dbg_printf("globalrealloc(oldp = %p, size = x%x) = %p\n",oldp,newsize,p);
     return p;
@@ -173,7 +173,7 @@ void *vmem_reserve(void *ptr,unsigned long size)
     dbg_printf("vmem_reserve(ptr = %p, size = x%lx) = %p\n",ptr,size,p);
     p = VirtualAlloc(ptr,size,MEM_RESERVE,PAGE_READWRITE);
     if (!p)
-	os_error();
+        os_error();
 #endif
     return p;
 }
@@ -181,8 +181,8 @@ void *vmem_reserve(void *ptr,unsigned long size)
 /*****************************************
  * Commit memory.
  * Returns:
- *	0	failure
- *	!=0	success
+ *      0       failure
+ *      !=0     success
  */
 
 int vmem_commit(void *ptr, unsigned long size)
@@ -191,7 +191,7 @@ int vmem_commit(void *ptr, unsigned long size)
     dbg_printf("vmem_commit(ptr = %p,size = x%lx)\n",ptr,size);
     i = (int) VirtualAlloc(ptr,size,MEM_COMMIT,PAGE_READWRITE);
     if (i == 0)
-	dbg_printf("failed to commit\n");
+        dbg_printf("failed to commit\n");
     return i;
 }
 
@@ -199,8 +199,8 @@ void vmem_decommit(void *ptr,unsigned long size)
 {
     dbg_printf("vmem_decommit(ptr = %p, size = x%lx)\n",ptr,size);
     if (ptr)
-    {	if (!VirtualFree(ptr, size, MEM_DECOMMIT))
-	    os_error();
+    {   if (!VirtualFree(ptr, size, MEM_DECOMMIT))
+            os_error();
     }
 }
 
@@ -209,22 +209,22 @@ void vmem_release(void *ptr,unsigned long size)
     dbg_printf("vmem_release(ptr = %p, size = x%lx)\n",ptr,size);
     if (ptr)
     {
-	if (!VirtualFree(ptr, 0, MEM_RELEASE))
-	    os_error();
+        if (!VirtualFree(ptr, 0, MEM_RELEASE))
+            os_error();
     }
 }
 
 /********************************************
  * Map file for read, copy on write, into virtual address space.
  * Input:
- *	ptr		address to map file to, if NULL then pick an address
- *	size		length of the file
- *	flag	0	read / write
- *		1	read / copy on write
- *		2	read only
+ *      ptr             address to map file to, if NULL then pick an address
+ *      size            length of the file
+ *      flag    0       read / write
+ *              1       read / copy on write
+ *              2       read only
  * Returns:
- *	NULL	failure
- *	ptr	pointer to start of mapped file
+ *      NULL    failure
+ *      ptr     pointer to start of mapped file
  */
 
 static HANDLE hFile = INVALID_HANDLE_VALUE;
@@ -243,63 +243,63 @@ void *vmem_mapfile(const char *filename,void *ptr,unsigned long size,int flag)
     dbg_printf("vmem_mapfile(filename = '%s', ptr = %p, size = x%lx, flag = %d)\n",filename,ptr,size,flag);
 
     hFile = CreateFile(filename, GENERIC_READ | GENERIC_WRITE,
-			FILE_SHARE_READ | FILE_SHARE_WRITE, NULL,
-			OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
+                        FILE_SHARE_READ | FILE_SHARE_WRITE, NULL,
+                        OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
     if (hFile == INVALID_HANDLE_VALUE)
-	goto L1;			// failure
+        goto L1;                        // failure
     dbg_printf(" file created\n");
 
     // Windows 95 does not implement PAGE_WRITECOPY (unfortunately treating
     // it just like PAGE_READWRITE).
-    if (flag == 1 && OsVerInfo.dwPlatformId == 1)	// Windows 95, 98, ME
-	hFileMap = NULL;
+    if (flag == 1 && OsVerInfo.dwPlatformId == 1)       // Windows 95, 98, ME
+        hFileMap = NULL;
     else
-	hFileMap = CreateFileMapping(hFile,NULL,
-		(flag == 1) ? PAGE_WRITECOPY : PAGE_READWRITE,0,size,NULL);
+        hFileMap = CreateFileMapping(hFile,NULL,
+                (flag == 1) ? PAGE_WRITECOPY : PAGE_READWRITE,0,size,NULL);
 
-    if (hFileMap == NULL)		// mapping failed
+    if (hFileMap == NULL)               // mapping failed
     {
 #if 1
-	// Win32s seems to always fail here.
-	DWORD nbytes;
+        // Win32s seems to always fail here.
+        DWORD nbytes;
 
-	dbg_printf(" mapping failed\n");
-	// If it was NT failing, assert.
-	assert(OsVerInfo.dwPlatformId != VER_PLATFORM_WIN32_NT);
+        dbg_printf(" mapping failed\n");
+        // If it was NT failing, assert.
+        assert(OsVerInfo.dwPlatformId != VER_PLATFORM_WIN32_NT);
 
-	// To work around, just read the file into memory.
-	assert(flag == 1);
-	preserve = vmem_reserve(ptr,size);
-	if (!preserve)
-	    goto L2;
-	if (!vmem_commit(preserve,size))
-	{
-	    vmem_release(preserve,size);
-	    preserve = NULL;
-	    goto L2;
-	}
-	preserve_size = size;
-	if (!ReadFile(hFile,preserve,size,&nbytes,NULL))
-	    os_error();
-	assert(nbytes == size);
-	if (CloseHandle(hFile) != TRUE)
-	    os_error();
-	hFile = INVALID_HANDLE_VALUE;
-	return preserve;
+        // To work around, just read the file into memory.
+        assert(flag == 1);
+        preserve = vmem_reserve(ptr,size);
+        if (!preserve)
+            goto L2;
+        if (!vmem_commit(preserve,size))
+        {
+            vmem_release(preserve,size);
+            preserve = NULL;
+            goto L2;
+        }
+        preserve_size = size;
+        if (!ReadFile(hFile,preserve,size,&nbytes,NULL))
+            os_error();
+        assert(nbytes == size);
+        if (CloseHandle(hFile) != TRUE)
+            os_error();
+        hFile = INVALID_HANDLE_VALUE;
+        return preserve;
 #else
-	// Instead of working around, we should find out why it failed.
-	os_error();
+        // Instead of working around, we should find out why it failed.
+        os_error();
 #endif
     }
     else
     {
-	dbg_printf(" mapping created\n");
-	pview = MapViewOfFileEx(hFileMap,flag ? FILE_MAP_COPY : FILE_MAP_WRITE,
-		0,0,size,ptr);
-	if (pview == NULL)			// mapping view failed
-	{   //os_error();
-	    goto L3;
-	}
+        dbg_printf(" mapping created\n");
+        pview = MapViewOfFileEx(hFileMap,flag ? FILE_MAP_COPY : FILE_MAP_WRITE,
+                0,0,size,ptr);
+        if (pview == NULL)                      // mapping view failed
+        {   //os_error();
+            goto L3;
+        }
     }
     dbg_printf(" pview = %p\n",pview);
 
@@ -307,18 +307,18 @@ void *vmem_mapfile(const char *filename,void *ptr,unsigned long size,int flag)
 
 Terminate:
     if (UnmapViewOfFile(pview) == FALSE)
-	os_error();
+        os_error();
     pview = NULL;
 L3:
     if (CloseHandle(hFileMap) != TRUE)
-	os_error();
+        os_error();
     hFileMap = NULL;
 L2:
     if (CloseHandle(hFile) != TRUE)
-	os_error();
+        os_error();
     hFile = INVALID_HANDLE_VALUE;
 L1:
-    return NULL;			// failure
+    return NULL;                        // failure
 }
 
 /*****************************
@@ -328,10 +328,10 @@ L1:
 void vmem_setfilesize(unsigned long size)
 {
     if (hFile != INVALID_HANDLE_VALUE)
-    {	if (SetFilePointer(hFile,size,NULL,FILE_BEGIN) == 0xFFFFFFFF)
-	    os_error();
-	if (SetEndOfFile(hFile) == FALSE)
-	    os_error();
+    {   if (SetFilePointer(hFile,size,NULL,FILE_BEGIN) == 0xFFFFFFFF)
+            os_error();
+        if (SetEndOfFile(hFile) == FALSE)
+            os_error();
     }
 }
 
@@ -350,27 +350,27 @@ void vmem_unmapfile()
 
 #if 0
     if (pview)
-    {	int i;
+    {   int i;
 
-	i = UnmapViewOfFile(pview);
-	dbg_printf("i = x%x\n",i);
-	if (i == FALSE)
-	    os_error();
+        i = UnmapViewOfFile(pview);
+        dbg_printf("i = x%x\n",i);
+        if (i == FALSE)
+            os_error();
     }
 #else
     // Note that under Windows 95, UnmapViewOfFile() seems to return random
     // values, not TRUE or FALSE.
     if (pview && UnmapViewOfFile(pview) == FALSE)
-	os_error();
+        os_error();
 #endif
     pview = NULL;
 
     if (hFileMap != NULL && CloseHandle(hFileMap) != TRUE)
-	os_error();
+        os_error();
     hFileMap = NULL;
 
     if (hFile != INVALID_HANDLE_VALUE && CloseHandle(hFile) != TRUE)
-	os_error();
+        os_error();
     hFile = INVALID_HANDLE_VALUE;
 }
 
@@ -389,23 +389,23 @@ void *vmem_baseaddr()
     // These values for the address were determined by trial and error.
     switch (OsVerInfo.dwPlatformId)
     {
-	case VER_PLATFORM_WIN32s:		// Win32s
-	    // The fact that this is a different address than other
-	    // WIN32 implementations causes us a lot of grief.
-	    p = (void *) 0xC0000000;
-	    break;
+        case VER_PLATFORM_WIN32s:               // Win32s
+            // The fact that this is a different address than other
+            // WIN32 implementations causes us a lot of grief.
+            p = (void *) 0xC0000000;
+            break;
 
-	case 1: //VER_PLATFORM_WIN32_WINDOWS:	// Windows 95
-	    // I've found 0x90000000..0xB work. All others fail.
-	default:				// unknown
-	    p = (void *) 0x90000000;
-	    break;
+        case 1: //VER_PLATFORM_WIN32_WINDOWS:   // Windows 95
+            // I've found 0x90000000..0xB work. All others fail.
+        default:                                // unknown
+            p = (void *) 0x90000000;
+            break;
 
-	case VER_PLATFORM_WIN32_NT:		// Windows NT
-	    // Pick a value that is not coincident with the base address
-	    // of any commonly used system DLLs.
-	    p = (void *) 0x38000000;
-	    break;
+        case VER_PLATFORM_WIN32_NT:             // Windows NT
+            // Pick a value that is not coincident with the base address
+            // of any commonly used system DLLs.
+            p = (void *) 0x38000000;
+            break;
     }
 
     return p;
@@ -439,21 +439,21 @@ void vmem_reservesize(unsigned long *psize)
 
     switch (OsVerInfo.dwPlatformId)
     {
-	case VER_PLATFORM_WIN32s:		// Win32s
-	case 1: //VER_PLATFORM_WIN32_WINDOWS:	// Windows 95
-	default:				// unknown
-	    size = (ms.dwAvailPageFile < ms.dwAvailVirtual)
-		? ms.dwAvailPageFile
-		: ms.dwAvailVirtual;
-	    size = (unsigned long long)size * 8 / 10;
-	    size &= ~0xFFFFL;
-	    if (size < *psize)
-		*psize = size;
-	    break;
+        case VER_PLATFORM_WIN32s:               // Win32s
+        case 1: //VER_PLATFORM_WIN32_WINDOWS:   // Windows 95
+        default:                                // unknown
+            size = (ms.dwAvailPageFile < ms.dwAvailVirtual)
+                ? ms.dwAvailPageFile
+                : ms.dwAvailVirtual;
+            size = (unsigned long long)size * 8 / 10;
+            size &= ~0xFFFFL;
+            if (size < *psize)
+                *psize = size;
+            break;
 
-	case VER_PLATFORM_WIN32_NT:		// Windows NT
-	    // NT can expand the paging file
-	    break;
+        case VER_PLATFORM_WIN32_NT:             // Windows NT
+            // NT can expand the paging file
+            break;
     }
 
 }
@@ -483,7 +483,7 @@ void os_loadlibrary(const char *dllname)
 {
     hdll = LoadLibrary((LPCTSTR) dllname);
     if (!hdll)
-	os_error();
+        os_error();
 }
 
 /*************************************************
@@ -493,9 +493,9 @@ void os_freelibrary()
 {
     if (hdll)
     {
-	if (FreeLibrary(hdll) != TRUE)
-	    os_error();
-	hdll = NULL;
+        if (FreeLibrary(hdll) != TRUE)
+            os_error();
+        hdll = NULL;
     }
 }
 
@@ -509,7 +509,7 @@ void *os_getprocaddress(const char *funcname)
     assert(hdll);
     fp = (void *)GetProcAddress(hdll,(LPCSTR)funcname);
     if (!fp)
-	os_error();
+        os_error();
     return fp;
 }
 
@@ -522,11 +522,11 @@ void *os_getprocaddress(const char *funcname)
 void os_term()
 {
     if (hHeap)
-    {	if (HeapDestroy(hHeap) == FALSE)
-	{   hHeap = NULL;
-	    os_error();
-	}
-	hHeap = NULL;
+    {   if (HeapDestroy(hHeap) == FALSE)
+        {   hHeap = NULL;
+            os_error();
+        }
+        hHeap = NULL;
     }
     os_freelibrary();
 }
@@ -548,43 +548,43 @@ void os_heapinit()
 {
     hHeap = HeapCreate(0,0x10000,0);
     if (!hHeap)
-	os_error();
+        os_error();
 }
 
 void os_heapterm()
 {
     if (hHeap)
-    {	if (HeapDestroy(hHeap) == FALSE)
-	    os_error();
+    {   if (HeapDestroy(hHeap) == FALSE)
+            os_error();
     }
 }
 
-void *	__cdecl calloc(size_t x,size_t y)
+void *  __cdecl calloc(size_t x,size_t y)
 {   size_t size;
 
     size = x * y;
     return size ? HeapAlloc(hHeap,HEAP_ZERO_MEMORY,size) : NULL;
 }
 
-void	__cdecl free(void *p)
+void    __cdecl free(void *p)
 {
     if (p && HeapFree(hHeap,0,p) == FALSE)
-	os_error();
+        os_error();
 }
 
-void *	__cdecl malloc(size_t size)
+void *  __cdecl malloc(size_t size)
 {
     return size ? HeapAlloc(hHeap,0,size) : NULL;
 }
 
-void *	__cdecl realloc(void *p,size_t newsize)
+void *  __cdecl realloc(void *p,size_t newsize)
 {
     if (newsize == 0)
-	free(p);
+        free(p);
     else if (!p)
-	p = malloc(newsize);
+        p = malloc(newsize);
     else
-	p = HeapReAlloc(hHeap,0,p,newsize);
+        p = HeapReAlloc(hHeap,0,p,newsize);
     return p;
 }
 
@@ -610,20 +610,20 @@ unsigned long os_unique()
 
 unsigned long os_unique()
 {
-    if (cputype() >= 5)			// if cpuid instruction supported
+    if (cputype() >= 5)                 // if cpuid instruction supported
     {
-	__asm
-	{
-		mov	EAX,1
-		cpuid
-		test	EDX,0x20	// is rdtsc supported?
-		jz	L1		// no
-		rdtsc
-	}
+        __asm
+        {
+                mov     EAX,1
+                cpuid
+                test    EDX,0x20        // is rdtsc supported?
+                jz      L1              // no
+                rdtsc
+        }
     }
     else
     {
-L1:	time(NULL);
+L1:     time(NULL);
     }
     return _EAX;
 }
@@ -632,9 +632,9 @@ L1:	time(NULL);
 
 /*******************************************
  * Return !=0 if file exists.
- *	0:	file doesn't exist
- *	1:	normal file
- *	2:	directory
+ *      0:      file doesn't exist
+ *      1:      normal file
+ *      2:      directory
  */
 
 int os_file_exists(const char *name)
@@ -645,24 +645,24 @@ int os_file_exists(const char *name)
 
     dw = GetFileAttributes(name);
     if (dw == -1L)
-	result = 0;
+        result = 0;
     else if (dw & FILE_ATTRIBUTE_DIRECTORY)
-	result = 2;
+        result = 2;
     else
-	result = 1;
+        result = 1;
     return result;
 #elif DOS386
     struct FIND *find;
 
     find = findfirst(name,FA_DIREC | FA_SYSTEM | FA_HIDDEN);
     if (!find)
-	return 0;
+        return 0;
     return (find->attribute & FA_DIREC) ? 2 : 1;
 #elif linux || __APPLE__ || __FreeBSD__ || __sun&&__SVR4
     struct stat buf;
 
-    return stat(name,&buf) == 0;	/* file exists if stat succeeded */
-    
+    return stat(name,&buf) == 0;        /* file exists if stat succeeded */
+
 #else
     return filesize(name) != -1L;
 #endif
@@ -690,7 +690,7 @@ long os_file_size(int fd)
 /**************************************************
  * For 16 bit programs, we need the 16 bit filename.
  * Returns:
- *	malloc'd string, NULL if none
+ *      malloc'd string, NULL if none
  */
 
 #if _WIN32
@@ -704,23 +704,23 @@ char *file_8dot3name(const char *filename)
 
     h = FindFirstFile(filename,&fileinfo);
     if (h == INVALID_HANDLE_VALUE)
-	return NULL;
+        return NULL;
     if (fileinfo.cAlternateFileName[0])
     {
-	for (i = strlen(filename); i > 0; i--)
-	    if (filename[i] == '\\' || filename[i] == ':')
-	    {   i++;
-		break;
-	    }
-	buf = (char *) malloc(i + 14);
-	if (buf)
-	{
-	    memcpy(buf,filename,i);
-	    strcpy(buf + i,fileinfo.cAlternateFileName);
-	}
+        for (i = strlen(filename); i > 0; i--)
+            if (filename[i] == '\\' || filename[i] == ':')
+            {   i++;
+                break;
+            }
+        buf = (char *) malloc(i + 14);
+        if (buf)
+        {
+            memcpy(buf,filename,i);
+            strcpy(buf + i,fileinfo.cAlternateFileName);
+        }
     }
     else
-	buf = strdup(filename);
+        buf = strdup(filename);
     FindClose(h);
     return buf;
 }
@@ -730,7 +730,7 @@ char *file_8dot3name(const char *filename)
 /**********************************************
  * Write a file.
  * Returns:
- *	0	success
+ *      0       success
  */
 
 int file_write(char *name, void *buffer, unsigned len)
@@ -739,17 +739,17 @@ int file_write(char *name, void *buffer, unsigned len)
     int fd;
     ssize_t numwritten;
 
-    fd = open(name, O_CREAT | O_WRONLY | O_TRUNC, 
-	    S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP);
+    fd = open(name, O_CREAT | O_WRONLY | O_TRUNC,
+            S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP);
     if (fd == -1)
-	goto err;
+        goto err;
 
     numwritten = ::write(fd, buffer, len);
     if (len != numwritten)
-	goto err2;
-    
+        goto err2;
+
     if (close(fd) == -1)
-	goto err;
+        goto err;
 
     return 0;
 
@@ -763,31 +763,31 @@ err:
     DWORD numwritten;
 
     h = CreateFile((LPTSTR)name,GENERIC_WRITE,0,NULL,CREATE_ALWAYS,
-	FILE_ATTRIBUTE_NORMAL | FILE_FLAG_SEQUENTIAL_SCAN,NULL);
+        FILE_ATTRIBUTE_NORMAL | FILE_FLAG_SEQUENTIAL_SCAN,NULL);
     if (h == INVALID_HANDLE_VALUE)
     {
-	if (GetLastError() == ERROR_PATH_NOT_FOUND)
-	{
-	    if (!file_createdirs(name))
-	    {
-		h = CreateFile((LPTSTR)name,GENERIC_WRITE,0,NULL,CREATE_ALWAYS,
-		    FILE_ATTRIBUTE_NORMAL | FILE_FLAG_SEQUENTIAL_SCAN,NULL);
-		if (h != INVALID_HANDLE_VALUE)
-		    goto Lok;
-	    }
-	}
-	goto err;
+        if (GetLastError() == ERROR_PATH_NOT_FOUND)
+        {
+            if (!file_createdirs(name))
+            {
+                h = CreateFile((LPTSTR)name,GENERIC_WRITE,0,NULL,CREATE_ALWAYS,
+                    FILE_ATTRIBUTE_NORMAL | FILE_FLAG_SEQUENTIAL_SCAN,NULL);
+                if (h != INVALID_HANDLE_VALUE)
+                    goto Lok;
+            }
+        }
+        goto err;
     }
 
 Lok:
     if (WriteFile(h,buffer,len,&numwritten,NULL) != TRUE)
-	goto err2;
+        goto err2;
 
     if (len != numwritten)
-	goto err2;
-    
+        goto err2;
+
     if (!CloseHandle(h))
-	goto err;
+        goto err;
     return 0;
 
 err2:
@@ -803,10 +803,10 @@ err:
 /********************************
  * Create directories up to filename.
  * Input:
- *	name	path/filename
+ *      name    path/filename
  * Returns:
- *	0	success
- *	!=0	failure
+ *      0       success
+ *      !=0     failure
  */
 
 int file_createdirs(char *name)
@@ -823,23 +823,23 @@ int file_createdirs(char *name)
 
     for (p = path + len; ; p--)
     {
-	if (p == path)
-	    goto Lfail;
-	switch (*p)
-	{
-	    case ':':
-	    case '/':
-	    case '\\':
-		*p = 0;
-		if (!CreateDirectory((LPTSTR)path, NULL))
-		{   // Failed
-		    if (file_createdirs(path))
-			goto Lfail;
-		    if (!CreateDirectory((LPTSTR)path, NULL))
-			goto Lfail;
-		}
-		return 0;
-	}
+        if (p == path)
+            goto Lfail;
+        switch (*p)
+        {
+            case ':':
+            case '/':
+            case '\\':
+                *p = 0;
+                if (!CreateDirectory((LPTSTR)path, NULL))
+                {   // Failed
+                    if (file_createdirs(path))
+                        goto Lfail;
+                    if (!CreateDirectory((LPTSTR)path, NULL))
+                        goto Lfail;
+                }
+                return 0;
+        }
     }
 
 Lfail:

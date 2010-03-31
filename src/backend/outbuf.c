@@ -22,9 +22,9 @@
 #include "mem.h"
 
 #if DEBUG
-static char __file__[] = __FILE__;	// for tassert.h
-#include	"tassert.h"
-#endif	
+static char __file__[] = __FILE__;      // for tassert.h
+#include        "tassert.h"
+#endif
 
 Outbuffer::Outbuffer()
 {
@@ -50,7 +50,7 @@ Outbuffer::~Outbuffer()
     mem_free(buf);
 #else
     if (buf)
-	free(buf);
+        free(buf);
 #endif
 }
 
@@ -64,48 +64,48 @@ void Outbuffer::reserve(unsigned nbytes)
 {
     if (pend - p < nbytes)
     {   unsigned oldlen = len;
-	unsigned used = p - buf;
+        unsigned used = p - buf;
 
-	if (inc > nbytes)
-	{
-	    len = used + inc;
-	}
-	else
-	{
-	    len = used + nbytes;
-	    if (len < 2 * oldlen)
-	    {   len = 2 * oldlen;
-	        if (len < 8)
-		    len = 8;
-	    }
-	}
+        if (inc > nbytes)
+        {
+            len = used + inc;
+        }
+        else
+        {
+            len = used + nbytes;
+            if (len < 2 * oldlen)
+            {   len = 2 * oldlen;
+                if (len < 8)
+                    len = 8;
+            }
+        }
 #if MEM_DEBUG
-	buf = (unsigned char *)mem_realloc(buf, len);
+        buf = (unsigned char *)mem_realloc(buf, len);
 #else
-	if (buf)
-	    buf = (unsigned char *) realloc(buf,len);
-	else
-	    buf = (unsigned char *) malloc(len);
+        if (buf)
+            buf = (unsigned char *) realloc(buf,len);
+        else
+            buf = (unsigned char *) malloc(len);
 #endif
-	pend = buf + len;
-	p = buf + used;
+        pend = buf + len;
+        p = buf + used;
     }
 }
 
 // Position buffer for output at a specified location and size.
-//	If data will extend buffer size, reserve space
-//	If data will rewrite existing data
-//		position for write and return previous buffer size
+//      If data will extend buffer size, reserve space
+//      If data will rewrite existing data
+//              position for write and return previous buffer size
 //
-//	If data will append to buffer
-//		position for write and return new size
+//      If data will append to buffer
+//              position for write and return new size
 int Outbuffer::position(unsigned pos, unsigned nbytes)
 {
     int current_sz = size();
-    unsigned char *fend = buf+pos+nbytes;	// future end of buffer
+    unsigned char *fend = buf+pos+nbytes;       // future end of buffer
     if (fend >= pend)
     {
-	reserve (fend - pend);
+        reserve (fend - pend);
     }
     setsize(pos);
     return pos+nbytes > current_sz ? pos+nbytes : current_sz;
@@ -115,7 +115,7 @@ int Outbuffer::position(unsigned pos, unsigned nbytes)
 void Outbuffer::write(const void *b, int len)
 {
     if (pend - p < len)
-	reserve(len);
+        reserve(len);
     memcpy(p,b,len);
     p += len;
 }
@@ -124,7 +124,7 @@ void Outbuffer::write(const void *b, int len)
 void *Outbuffer::writezeros(unsigned len)
 {
     if (pend - p < len)
-	reserve(len);
+        reserve(len);
     void *pstart = memset(p,0,len);
     p += len;
     return pstart;
@@ -136,7 +136,7 @@ void *Outbuffer::writezeros(unsigned len)
 void Outbuffer::writeByte(int v)
 {
     if (pend == p)
-	reserve(1);
+        reserve(1);
     *p++ = v;
 }
 
@@ -146,7 +146,7 @@ void Outbuffer::writeByte(int v)
 void Outbuffer::write32(long v)
 {
     if (pend - p < 4)
-	reserve(4);
+        reserve(4);
     *(long *)p = v;
     p += 4;
 }
@@ -159,7 +159,7 @@ void Outbuffer::write32(long v)
 void Outbuffer::write64(long long v)
 {
     if (pend - p < 8)
-	reserve(8);
+        reserve(8);
     *(long long *)p = v;
     p += 8;
 }
@@ -240,8 +240,8 @@ void Outbuffer::bracket(char c1,char c2)
 char *Outbuffer::toString()
 {
     if (pend == p)
-	reserve(1);
-    *p = 0;			// terminate string
+        reserve(1);
+    *p = 0;                     // terminate string
     return (char *)buf;
 }
 
@@ -260,28 +260,28 @@ void Outbuffer::writesLEB128(long value)
 
     while (1)
     {
-	unsigned char b = value & 0x7F;
+        unsigned char b = value & 0x7F;
 
-	value >>= 7;		// arithmetic right shift
-	if (value == 0 && !(b & 0x40) ||
-	    value == -1 && (b & 0x40))
-	{
-	     writeByte(b);
-	     break;
-	}
-	writeByte(b | 0x80);
+        value >>= 7;            // arithmetic right shift
+        if (value == 0 && !(b & 0x40) ||
+            value == -1 && (b & 0x40))
+        {
+             writeByte(b);
+             break;
+        }
+        writeByte(b | 0x80);
     }
 }
 
 void Outbuffer::writeuLEB128(unsigned long value)
 {
     do
-    {	unsigned char b = value & 0x7F;
+    {   unsigned char b = value & 0x7F;
 
-	value >>= 7;
-	if (value)
-	    b |= 0x80;
-	writeByte(b);
+        value >>= 7;
+        if (value)
+            b |= 0x80;
+        writeByte(b);
     } while (value);
 }
 

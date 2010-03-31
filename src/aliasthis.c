@@ -22,7 +22,7 @@
 
 
 AliasThis::AliasThis(Loc loc, Identifier *ident)
-    : Dsymbol(NULL)		// it's anonymous (no identifier)
+    : Dsymbol(NULL)             // it's anonymous (no identifier)
 {
     this->loc = loc;
     this->ident = ident;
@@ -41,20 +41,20 @@ void AliasThis::semantic(Scope *sc)
 {
     Dsymbol *parent = sc->parent;
     if (parent)
-	parent = parent->pastMixin();
+        parent = parent->pastMixin();
     AggregateDeclaration *ad = NULL;
     if (parent)
-	ad = parent->isAggregateDeclaration();
+        ad = parent->isAggregateDeclaration();
     if (ad)
     {
-	if (ad->aliasthis)
-	    error("there can be only one alias this");
-	assert(ad->members);
-	Dsymbol *s = ad->search(loc, ident, 0);
-	ad->aliasthis = s;
+        if (ad->aliasthis)
+            error("there can be only one alias this");
+        assert(ad->members);
+        Dsymbol *s = ad->search(loc, ident, 0);
+        ad->aliasthis = s;
     }
     else
-	error("alias this can only appear in struct or class declaration, not %s", parent ? parent->toChars() : "nowhere");
+        error("alias this can only appear in struct or class declaration, not %s", parent ? parent->toChars() : "nowhere");
 }
 
 const char *AliasThis::kind()

@@ -33,9 +33,9 @@ typedef size_t hash_t;
 #include <wchar.h>
 
 typedef wchar_t dchar;
-#define TEXT(x)		L##x
+#define TEXT(x)         L##x
 
-#define Dchar_mbmax	1
+#define Dchar_mbmax     1
 
 struct Dchar
 {
@@ -48,14 +48,14 @@ struct Dchar
     static int cmp(dchar *s1, dchar *s2)
     {
 #if __DMC__
-	if (!*s1 && !*s2)	// wcscmp is broken
-	    return 0;
+        if (!*s1 && !*s2)       // wcscmp is broken
+            return 0;
 #endif
-	return wcscmp(s1, s2);
+        return wcscmp(s1, s2);
 #if 0
-	return (*s1 == *s2)
-	    ? wcscmp(s1, s2)
-	    : ((int)*s1 - (int)*s2);
+        return (*s1 == *s2)
+            ? wcscmp(s1, s2)
+            : ((int)*s1 - (int)*s2);
 #endif
     }
     static int memcmp(const dchar *s1, const dchar *s2, int nchars) { return ::memcmp(s1, s2, nchars * sizeof(dchar)); }
@@ -68,7 +68,7 @@ struct Dchar
     static int toLower(dchar c) { return isUpper(c) ? towlower(c) : c; }
     static int toLower(dchar *p) { return toLower(*p); }
     static int toUpper(dchar c) { return isLower(c) ? towupper(c) : c; }
-    static dchar *dup(dchar *p) { return ::_wcsdup(p); }	// BUG: out of memory?
+    static dchar *dup(dchar *p) { return ::_wcsdup(p); }        // BUG: out of memory?
     static dchar *dup(char *p);
     static dchar *chr(dchar *p, unsigned c) { return wcschr(p, (dchar)c); }
     static dchar *rchr(dchar *p, unsigned c) { return wcsrchr(p, (dchar)c); }
@@ -89,16 +89,16 @@ struct Dchar
 #include <mbstring.h>
 
 typedef char dchar;
-#define TEXT(x)		x
+#define TEXT(x)         x
 
-#define Dchar_mbmax	MB_LEN_MAX
+#define Dchar_mbmax     MB_LEN_MAX
 
 #elif UTF8
 
 typedef char dchar;
-#define TEXT(x)		x
+#define TEXT(x)         x
 
-#define Dchar_mbmax	6
+#define Dchar_mbmax     6
 
 struct Dchar
 {
@@ -109,7 +109,7 @@ struct Dchar
     static int len(const dchar *p) { return strlen(p); }
     static int get(dchar *p);
     static int getprev(dchar *pstart, dchar *p)
-	{ return *dec(pstart, p) & 0xFF; }
+        { return *dec(pstart, p) & 0xFF; }
     static dchar *put(dchar *p, unsigned c);
     static int cmp(dchar *s1, dchar *s2) { return strcmp(s1, s2); }
     static int memcmp(const dchar *s1, const dchar *s2, int nchars) { return ::memcmp(s1, s2, nchars); }
@@ -122,11 +122,11 @@ struct Dchar
     static int toLower(dchar c) { return isUpper(c) ? tolower(c) : c; }
     static int toLower(dchar *p) { return toLower(*p); }
     static int toUpper(dchar c) { return isLower(c) ? toupper(c) : c; }
-    static dchar *dup(dchar *p) { return ::strdup(p); }	// BUG: out of memory?
+    static dchar *dup(dchar *p) { return ::strdup(p); } // BUG: out of memory?
     static dchar *chr(dchar *p, int c) { return strchr(p, c); }
     static dchar *rchr(dchar *p, int c) { return strrchr(p, c); }
     static dchar *memchr(dchar *p, int c, int count)
-	{ return (dchar *)::memchr(p, c, count); }
+        { return (dchar *)::memchr(p, c, count); }
     static dchar *cpy(dchar *s1, dchar *s2) { return strcpy(s1, s2); }
     static dchar *str(dchar *s1, dchar *s2) { return strstr(s1, s2); }
     static hash_t calcHash(const dchar *str, size_t len);
@@ -145,9 +145,9 @@ struct Dchar
 #endif
 
 typedef char dchar;
-#define TEXT(x)		x
+#define TEXT(x)         x
 
-#define Dchar_mbmax	1
+#define Dchar_mbmax     1
 
 struct Dchar
 {
@@ -169,12 +169,12 @@ struct Dchar
     static int toLower(dchar c) { return isupper(c) ? tolower(c) : c; }
     static int toLower(dchar *p) { return toLower(*p); }
     static int toUpper(dchar c) { return islower(c) ? toupper(c) : c; }
-    static dchar *dup(dchar *p) { return ::strdup(p); }	// BUG: out of memory?
+    static dchar *dup(dchar *p) { return ::strdup(p); } // BUG: out of memory?
 #endif
     static dchar *chr(dchar *p, int c) { return strchr(p, c); }
     static dchar *rchr(dchar *p, int c) { return strrchr(p, c); }
     static dchar *memchr(dchar *p, int c, int count)
-	{ return (dchar *)::memchr(p, c, count); }
+        { return (dchar *)::memchr(p, c, count); }
     static dchar *cpy(dchar *s1, dchar *s2) { return strcpy(s1, s2); }
     static dchar *str(dchar *s1, dchar *s2) { return strstr(s1, s2); }
     static hash_t calcHash(const dchar *str, size_t len);

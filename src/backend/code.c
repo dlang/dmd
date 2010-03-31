@@ -12,12 +12,12 @@
 
 #if !SPP
 
-#include	<stdio.h>
-#include	<time.h>
-#include	"cc.h"
-#include	"el.h"
-#include	"code.h"
-#include	"global.h"
+#include        <stdio.h>
+#include        <time.h>
+#include        "cc.h"
+#include        "el.h"
+#include        "code.h"
+#include        "global.h"
 
 static code *code_list;
 
@@ -30,34 +30,34 @@ static code *code_list;
 __declspec(naked) code *code_calloc()
 {
     if (sizeof(code) != 0x20)
-	util_assert("code",__LINE__);
+        util_assert("code",__LINE__);
     __asm
     {
-	mov	EAX,code_list
-	test	EAX,EAX
-	je	L20
-	mov	ECX,[EAX]
-	mov	code_list,ECX
-	jmp	L29
+        mov     EAX,code_list
+        test    EAX,EAX
+        je      L20
+        mov     ECX,[EAX]
+        mov     code_list,ECX
+        jmp     L29
 
-L20:	push	sizeof(code)
-	call	mem_fmalloc
-	;add	ESP,4
+L20:    push    sizeof(code)
+        call    mem_fmalloc
+        ;add    ESP,4
 L29:
-	xor	ECX,ECX
-	mov	DWORD PTR [EAX],0
+        xor     ECX,ECX
+        mov     DWORD PTR [EAX],0
 
-	mov	4[EAX],ECX	;these pair
-	mov	8[EAX],ECX
+        mov     4[EAX],ECX      ;these pair
+        mov     8[EAX],ECX
 
-	mov	12[EAX],ECX
-	mov	16[EAX],ECX
+        mov     12[EAX],ECX
+        mov     16[EAX],ECX
 
-	mov	20[EAX],ECX
-	mov	24[EAX],ECX
+        mov     20[EAX],ECX
+        mov     24[EAX],ECX
 
-	mov	28[EAX],ECX
-	ret
+        mov     28[EAX],ECX
+        ret
     }
 }
 
@@ -69,10 +69,10 @@ code *code_calloc()
 
     c = code_list;
     if (c)
-	code_list = code_next(c);
+        code_list = code_next(c);
     else
-	c = (code *)mem_fmalloc(sizeof(*c));
-    *c = czero;				// zero it out
+        c = (code *)mem_fmalloc(sizeof(*c));
+    *c = czero;                         // zero it out
     //dbg_printf("code_calloc: %p\n",c);
     return c;
 }
@@ -89,10 +89,10 @@ void code_free(code *cstart)
 
     for (pc = &cstart; (c = *pc) != NULL; pc = &code_next(c))
     {
-	if (c->Iop == ASM)
-	{
-	    mem_free(c->IEV1.as.bytes);
-	}
+        if (c->Iop == ASM)
+        {
+            mem_free(c->IEV1.as.bytes);
+        }
     }
     *pc = code_list;
     code_list = cstart;
@@ -109,10 +109,10 @@ void code_term()
     int count = 0;
 
     while (code_list)
-    {	cn = code_next(code_list);
-	mem_ffree(code_list);
-	code_list = cn;
-	count++;
+    {   cn = code_next(code_list);
+        mem_ffree(code_list);
+        code_list = cn;
+        count++;
     }
 #ifdef DEBUG
     printf("Max # of codes = %d\n",count);
@@ -122,7 +122,7 @@ void code_term()
     int count = 0;
 
     for (code *cn = code_list; cn; cn = code_next(cn))
-	count++;
+        count++;
     printf("Max # of codes = %d\n",count);
 #endif
 #endif

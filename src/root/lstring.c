@@ -44,7 +44,7 @@ Lstring *Lstring::append(const Lstring *s)
     Lstring *t;
 
     if (!s->length)
-	return this;
+        return this;
     t = alloc(length + s->length);
     memcpy(t->string, string, length * sizeof(dchar));
     memcpy(t->string + length, s->string, s->length * sizeof(dchar));
@@ -56,7 +56,7 @@ Lstring *Lstring::substring(int start, int end)
     Lstring *t;
 
     if (start == end)
-	return &zero;
+        return &zero;
     t = alloc(end - start);
     memcpy(t->string, string + start, (end - start) * sizeof(dchar));
     return t;

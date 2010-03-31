@@ -485,7 +485,7 @@ clean:
 	del elxxx.c cdxxx.c optab.c debtab.c fltables.c tytab.c
 	del impcnvtab.c
 
-zip : $(MAKEFILES)
+zip : detab $(MAKEFILES)
 	del dmdsrc.zip
 	zip32 dmdsrc $(MAKEFILES)
 	zip32 dmdsrc $(SRCS)
@@ -493,9 +493,14 @@ zip : $(MAKEFILES)
 	zip32 dmdsrc $(TKSRC)
 	zip32 dmdsrc $(ROOTSRC)
 
+################### Detab ################
+
+detab:
+	detab $(SRCS) $(ROOTSRC) $(TKSRC) $(BACKSRC)
+
 ################### Install ################
 
-install:
+install: detab
 	copy dmd.exe $(DIR)\windows\bin\ 
 	copy phobos\phobos.lib $(DIR)\windows\lib 
 	$(CP) $(SRCS) $(DIR)\src\dmd\ 
@@ -510,7 +515,9 @@ install:
 
 ################### Write to SVN ################
 
-svn:
+svn:	detab svn2
+
+svn2:
 	$(CP) $(SRCS) $(DMDSVN)\ 
 	$(CP) $(ROOTSRC) $(DMDSVN)\root\ 
 	$(CP) $(TKSRC) $(DMDSVN)\tk\  

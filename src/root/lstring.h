@@ -23,7 +23,7 @@ struct Lstring
     #pragma warning (disable : 4200)
     dchar string[];
 
-    static Lstring zero;	// 0 length string
+    static Lstring zero;        // 0 length string
 
     // No constructors because we want to be able to statically
     // initialize Lstring's, and Lstrings are of variable size.
@@ -55,14 +55,14 @@ struct Lstring
 
     static int cmp(const Lstring *s1, const Lstring *s2)
     {
-	int c = s2->length - s1->length;
-	return c ? c : Dchar::memcmp(s1->string, s2->string, s1->length);
+        int c = s2->length - s1->length;
+        return c ? c : Dchar::memcmp(s1->string, s2->string, s1->length);
     }
 
     static int icmp(const Lstring *s1, const Lstring *s2)
     {
-	int c = s2->length - s1->length;
-	return c ? c : Dchar::memicmp(s1->string, s2->string, s1->length);
+        int c = s2->length - s1->length;
+        return c ? c : Dchar::memicmp(s1->string, s2->string, s1->length);
     }
 
     Lstring *append(const Lstring *s);

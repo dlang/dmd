@@ -21,23 +21,23 @@
  * Bit masks for various optimizations.
  */
 
-typedef unsigned mftype;	/* a type big enough for all the flags	*/
+typedef unsigned mftype;        /* a type big enough for all the flags  */
 
-#define MFdc	1		// dead code
-#define MFda	2		// dead assignments
-#define MFdv	4		// dead variables
-#define MFreg	8		// register variables
-#define MFcse	0x10		// global common subexpressions
-#define MFvbe	0x20		// very busy expressions
-#define MFtime	0x40		// favor time (speed) over space
-#define MFli	0x80		// loop invariants
-#define MFliv	0x100		// loop induction variables
-#define MFcp	0x200		// copy propagation
-#define MFcnp	0x400		// constant propagation
-#define MFloop	0x800		// loop till no more changes
-#define MFtree	0x1000		// optelem (tree optimization)
-#define MFlocal	0x2000		// localize expressions
-#define MFall	(~0)		// do everything
+#define MFdc    1               // dead code
+#define MFda    2               // dead assignments
+#define MFdv    4               // dead variables
+#define MFreg   8               // register variables
+#define MFcse   0x10            // global common subexpressions
+#define MFvbe   0x20            // very busy expressions
+#define MFtime  0x40            // favor time (speed) over space
+#define MFli    0x80            // loop invariants
+#define MFliv   0x100           // loop induction variables
+#define MFcp    0x200           // copy propagation
+#define MFcnp   0x400           // constant propagation
+#define MFloop  0x800           // loop till no more changes
+#define MFtree  0x1000          // optelem (tree optimization)
+#define MFlocal 0x2000          // localize expressions
+#define MFall   (~0)            // do everything
 
 /**********************************
  * Definition elem vector, used for reaching definitions.
@@ -45,25 +45,25 @@ typedef unsigned mftype;	/* a type big enough for all the flags	*/
 
 typedef struct DN
     {
-	elem	*DNelem;	// pointer to definition elem
-	block	*DNblock;	// pointer to block that the elem is in
+        elem    *DNelem;        // pointer to definition elem
+        block   *DNblock;       // pointer to block that the elem is in
     } dn;
 
 /* Global Variables */
 extern unsigned optab[];
 extern mftype mfoptim;
-extern unsigned changes;	/* # of optimizations performed		*/
-extern struct DN *defnod;	/* array of definition elems		*/
-extern unsigned deftop;		/* # of entries in defnod[]		*/
-extern elem **expnod;		/* array of expression elems		*/
-extern unsigned exptop;		/* top of expnod[]			*/
-extern block **expblk;		/* parallel array of block pointers	*/
-extern vec_t defkill;		/* vector of AEs killed by an ambiguous	*/
-				/* definition				*/
-extern vec_t starkill;		/* vector of AEs killed by a definition	*/
-				/* of something that somebody could be	*/
-				/* pointing to				*/
-extern vec_t vptrkill;		/* vector of AEs killed by an access	*/
+extern unsigned changes;        /* # of optimizations performed         */
+extern struct DN *defnod;       /* array of definition elems            */
+extern unsigned deftop;         /* # of entries in defnod[]             */
+extern elem **expnod;           /* array of expression elems            */
+extern unsigned exptop;         /* top of expnod[]                      */
+extern block **expblk;          /* parallel array of block pointers     */
+extern vec_t defkill;           /* vector of AEs killed by an ambiguous */
+                                /* definition                           */
+extern vec_t starkill;          /* vector of AEs killed by a definition */
+                                /* of something that somebody could be  */
+                                /* pointing to                          */
+extern vec_t vptrkill;          /* vector of AEs killed by an access    */
 
 /* gdag.c */
 void builddags(void);
