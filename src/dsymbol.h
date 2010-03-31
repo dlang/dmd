@@ -85,7 +85,7 @@ struct Classsym;
 enum PROT
 {
     PROTundefined,
-    PROTnone,		// no access
+    PROTnone,           // no access
     PROTprivate,
     PROTpackage,
     PROTprotected,
@@ -97,13 +97,13 @@ enum PROT
  */
 enum PASS
 {
-    PASSinit,		// initial state
-    PASSsemantic,	// semantic() started
-    PASSsemanticdone,	// semantic() done
-    PASSsemantic2,	// semantic2() run
-    PASSsemantic3,	// semantic3() started
-    PASSsemantic3done,	// semantic3() done
-    PASSobj,		// toObjFile() run
+    PASSinit,           // initial state
+    PASSsemantic,       // semantic() started
+    PASSsemanticdone,   // semantic() done
+    PASSsemantic2,      // semantic2() run
+    PASSsemantic3,      // semantic3() started
+    PASSsemantic3done,  // semantic3() done
+    PASSobj,            // toObjFile() run
 };
 
 struct Dsymbol : Object
@@ -111,11 +111,11 @@ struct Dsymbol : Object
     Identifier *ident;
     Identifier *c_ident;
     Dsymbol *parent;
-    Symbol *csym;		// symbol for code generator
-    Symbol *isym;		// import version of csym
-    unsigned char *comment;	// documentation comment for this Dsymbol
-    Loc loc;			// where defined
-    Scope *scope;		// !=NULL means context to use for semantic()
+    Symbol *csym;               // symbol for code generator
+    Symbol *isym;               // import version of csym
+    unsigned char *comment;     // documentation comment for this Dsymbol
+    Loc loc;                    // where defined
+    Scope *scope;               // !=NULL means context to use for semantic()
 
     Dsymbol();
     Dsymbol(Identifier *);
@@ -132,13 +132,13 @@ struct Dsymbol : Object
     Dsymbol *toParent2();
     TemplateInstance *inTemplateInstance();
 
-    int dyncast() { return DYNCAST_DSYMBOL; }	// kludge for template.isSymbol()
+    int dyncast() { return DYNCAST_DSYMBOL; }   // kludge for template.isSymbol()
 
     static Array *arraySyntaxCopy(Array *a);
 
     virtual const char *toPrettyChars();
     virtual const char *kind();
-    virtual Dsymbol *toAlias();			// resolve real symbol
+    virtual Dsymbol *toAlias();                 // resolve real symbol
     virtual int addMember(Scope *sc, ScopeDsymbol *s, int memnum);
     virtual void setScope(Scope *sc);
     virtual void importAll(Scope *sc);
@@ -160,21 +160,21 @@ struct Dsymbol : Object
     virtual unsigned size(Loc loc);
     virtual int isforwardRef();
     virtual void defineRef(Dsymbol *s);
-    virtual AggregateDeclaration *isThis();	// is a 'this' required to access the member
-    virtual ClassDeclaration *isClassMember();	// are we a member of a class?
-    virtual int isExport();			// is Dsymbol exported?
-    virtual int isImportedSymbol();		// is Dsymbol imported?
-    virtual int isDeprecated();			// is Dsymbol deprecated?
+    virtual AggregateDeclaration *isThis();     // is a 'this' required to access the member
+    virtual ClassDeclaration *isClassMember();  // are we a member of a class?
+    virtual int isExport();                     // is Dsymbol exported?
+    virtual int isImportedSymbol();             // is Dsymbol imported?
+    virtual int isDeprecated();                 // is Dsymbol deprecated?
 #if DMDV2
     virtual int isOverloadable();
 #endif
-    virtual LabelDsymbol *isLabel();		// is this a LabelDsymbol?
-    virtual AggregateDeclaration *isMember();	// is this symbol a member of an AggregateDeclaration?
-    virtual Type *getType();			// is this a type?
+    virtual LabelDsymbol *isLabel();            // is this a LabelDsymbol?
+    virtual AggregateDeclaration *isMember();   // is this symbol a member of an AggregateDeclaration?
+    virtual Type *getType();                    // is this a type?
     virtual char *mangle();
-    virtual int needThis();			// need a 'this' pointer?
+    virtual int needThis();                     // need a 'this' pointer?
     virtual enum PROT prot();
-    virtual Dsymbol *syntaxCopy(Dsymbol *s);	// copy only syntax trees
+    virtual Dsymbol *syntaxCopy(Dsymbol *s);    // copy only syntax trees
     virtual int oneMember(Dsymbol **ps);
     static int oneMembers(Array *members, Dsymbol **ps);
     virtual int hasPointers();
@@ -187,14 +187,14 @@ struct Dsymbol : Object
 
     // Backend
 
-    virtual Symbol *toSymbol();			// to backend symbol
-    virtual void toObjFile(int multiobj);			// compile to .obj file
-    virtual int cvMember(unsigned char *p);	// emit cv debug info for member
+    virtual Symbol *toSymbol();                 // to backend symbol
+    virtual void toObjFile(int multiobj);                       // compile to .obj file
+    virtual int cvMember(unsigned char *p);     // emit cv debug info for member
 
-    Symbol *toImport();				// to backend import symbol
-    static Symbol *toImport(Symbol *s);		// to backend import symbol
+    Symbol *toImport();                         // to backend import symbol
+    static Symbol *toImport(Symbol *s);         // to backend import symbol
 
-    Symbol *toSymbolX(const char *prefix, int sclass, TYPE *t, const char *suffix);	// helper
+    Symbol *toSymbolX(const char *prefix, int sclass, TYPE *t, const char *suffix);     // helper
 
     // Eliminate need for dynamic_cast
     virtual Package *isPackage() { return NULL; }
@@ -245,11 +245,11 @@ struct Dsymbol : Object
 
 struct ScopeDsymbol : Dsymbol
 {
-    Array *members;		// all Dsymbol's in this scope
-    DsymbolTable *symtab;	// members[] sorted into table
+    Array *members;             // all Dsymbol's in this scope
+    DsymbolTable *symtab;       // members[] sorted into table
 
-    Array *imports;		// imported ScopeDsymbol's
-    unsigned char *prots;	// array of PROT, one for each import
+    Array *imports;             // imported ScopeDsymbol's
+    unsigned char *prots;       // array of PROT, one for each import
 
     ScopeDsymbol();
     ScopeDsymbol(Identifier *id);
@@ -288,9 +288,9 @@ struct WithScopeSymbol : ScopeDsymbol
 
 struct ArrayScopeSymbol : ScopeDsymbol
 {
-    Expression *exp;	// IndexExp or SliceExp
-    TypeTuple *type;	// for tuple[length]
-    TupleDeclaration *td;	// for tuples of objects
+    Expression *exp;    // IndexExp or SliceExp
+    TypeTuple *type;    // for tuple[length]
+    TupleDeclaration *td;       // for tuples of objects
     Scope *sc;
 
     ArrayScopeSymbol(Expression *e);
@@ -306,7 +306,7 @@ struct ArrayScopeSymbol : ScopeDsymbol
 #if DMDV2
 struct OverloadSet : Dsymbol
 {
-    Dsymbols a;		// array of Dsymbols
+    Dsymbols a;         // array of Dsymbols
 
     OverloadSet();
     void push(Dsymbol *s);
@@ -332,7 +332,7 @@ struct DsymbolTable : Object
 
     // Look for Dsymbol in table. If there, return it. If not, insert s and return that.
     Dsymbol *update(Dsymbol *s);
-    Dsymbol *insert(Identifier *ident, Dsymbol *s);	// when ident and s are not the same
+    Dsymbol *insert(Identifier *ident, Dsymbol *s);     // when ident and s are not the same
 };
 
 #endif /* DMD_DSYMBOL_H */

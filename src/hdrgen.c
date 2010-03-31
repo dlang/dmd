@@ -13,7 +13,7 @@
 #ifdef _DH
 
 #define PRETTY_PRINT
-#define TEST_EMIT_ALL  0	// For Testing
+#define TEST_EMIT_ALL  0        // For Testing
 
 #define LOG 0
 
@@ -69,7 +69,7 @@ void Module::genhdrfile()
 
     char *pt = FileName::path(hdrfile->toChars());
     if (*pt)
-	FileName::ensurePathExists(pt);
+        FileName::ensurePathExists(pt);
     mem.free(pt);
     hdrfile->writev();
 }
@@ -80,7 +80,7 @@ void Module::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
     if (md)
     {
         buf->writestring("module ");
-	buf->writestring(md->toChars());
+        buf->writestring(md->toChars());
         buf->writebyte(';');
         buf->writenl();
     }

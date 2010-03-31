@@ -13,259 +13,259 @@
 /**********************************
  * Symbol tokens:
  *
- * TKstar	*	TKdot		.	TKeq		=
- * TKand	&	TKlbra		[	TKaddass	+=
- * TKmin	-	TKrbra		]	TKminass	-=
- * TKnot	!	TKarrow		->	TKmulass	*=
- * TKcom	~	TKdiv		/	TKdivass	/=
- * TKplpl	++	TKmod		%	TKmodass	%=
- * TKlpar	(	TKxor		^	TKshrass	>>=
- * TKrpar	)	TKor		|	TKshlass	<<=
- * TKques	?	TKoror		||	TKandass	&=
- * TKcolon	:	TKandand	&&	TKxorass	^=
- * TKcomma	,	TKshl		<<	TKorass		|=
- * TKmimi	--	TKshr		>>	TKsemi		;
- * TKlcur	{	TKrcur		}	TKlt		<
- * TKle		<=	TKgt		>	TKge		>=
- * TKeqeq	==	TKne		!=	TKadd		+
- * TKellipsis	...	TKcolcol	::	TKdollar	$
+ * TKstar       *       TKdot           .       TKeq            =
+ * TKand        &       TKlbra          [       TKaddass        +=
+ * TKmin        -       TKrbra          ]       TKminass        -=
+ * TKnot        !       TKarrow         ->      TKmulass        *=
+ * TKcom        ~       TKdiv           /       TKdivass        /=
+ * TKplpl       ++      TKmod           %       TKmodass        %=
+ * TKlpar       (       TKxor           ^       TKshrass        >>=
+ * TKrpar       )       TKor            |       TKshlass        <<=
+ * TKques       ?       TKoror          ||      TKandass        &=
+ * TKcolon      :       TKandand        &&      TKxorass        ^=
+ * TKcomma      ,       TKshl           <<      TKorass         |=
+ * TKmimi       --      TKshr           >>      TKsemi          ;
+ * TKlcur       {       TKrcur          }       TKlt            <
+ * TKle         <=      TKgt            >       TKge            >=
+ * TKeqeq       ==      TKne            !=      TKadd           +
+ * TKellipsis   ...     TKcolcol        ::      TKdollar        $
  *
  * Other tokens:
  *
- * TKstring	string
- * TKfilespec	<filespec>
+ * TKstring     string
+ * TKfilespec   <filespec>
  */
 
 //#pragma once
 #ifndef TOKEN_H
-#define TOKEN_H	1
+#define TOKEN_H 1
 
 #if !TX86
-extern int skipping;	/* TRUE ==> skipping false part of #conditional */
+extern int skipping;    /* TRUE ==> skipping false part of #conditional */
 #endif
 
 #if !defined(TOKENS_ONLY) || TOKENS_ONLY
 // Keyword tokens. Needn't be ascii sorted
 typedef unsigned char enum_TK;
 enum TK {
-	TKauto,
-	TKbreak,
-	TKcase,
-	TKchar,
-	TKconst,
-	TKcontinue,
-	TKdefault,
-	TKdo,
-	TKdouble,
-	TKelse,
-	TKenum,
-	TKextern,
-	TKfloat,
-	TKfor,
-	TKgoto,
-	TKif,
-	TKint,
-	TKlong,
-	TKregister,
-	TKreturn,
-	TKshort,
-	TKsigned,
-	TKsizeof,
-	TKstatic,
-	TKstruct,
-	TKswitch,
-	TKtypedef,
-	TKunion,
-	TKunsigned,
-	TKvoid,
-	TKvolatile,
-	TKwhile,
+        TKauto,
+        TKbreak,
+        TKcase,
+        TKchar,
+        TKconst,
+        TKcontinue,
+        TKdefault,
+        TKdo,
+        TKdouble,
+        TKelse,
+        TKenum,
+        TKextern,
+        TKfloat,
+        TKfor,
+        TKgoto,
+        TKif,
+        TKint,
+        TKlong,
+        TKregister,
+        TKreturn,
+        TKshort,
+        TKsigned,
+        TKsizeof,
+        TKstatic,
+        TKstruct,
+        TKswitch,
+        TKtypedef,
+        TKunion,
+        TKunsigned,
+        TKvoid,
+        TKvolatile,
+        TKwhile,
 
-	// ANSI C99
-	TK_Complex,
-	TK_Imaginary,
-	TKrestrict,
+        // ANSI C99
+        TK_Complex,
+        TK_Imaginary,
+        TKrestrict,
 
 //#if CPP
-	TKbool,
-	TKcatch,
-	TKclass,
-	TKconst_cast,
-	TKdelete,
-	TKdynamic_cast,
-	TKexplicit,
-	TKfalse,
-	TKfriend,
-	TKinline,
-	TKmutable,
-	TKnamespace,
-	TKnew,
-	TKnullptr,
-	TKoperator,
-	TKoverload,
-	TKprivate,
-	TKprotected,
-	TKpublic,
-	TKreinterpret_cast,
-	TKstatic_cast,
-	TKtemplate,
-	TKthis,
-	TKthrow,
-	TKtrue,
-	TKtry,
-	TKtypeid,
-	TKtypename,
-	TKusing,
-	TKvirtual,
-	TKwchar_t,
-	TK_typeinfo,
-	TK_typemask,
+        TKbool,
+        TKcatch,
+        TKclass,
+        TKconst_cast,
+        TKdelete,
+        TKdynamic_cast,
+        TKexplicit,
+        TKfalse,
+        TKfriend,
+        TKinline,
+        TKmutable,
+        TKnamespace,
+        TKnew,
+        TKnullptr,
+        TKoperator,
+        TKoverload,
+        TKprivate,
+        TKprotected,
+        TKpublic,
+        TKreinterpret_cast,
+        TKstatic_cast,
+        TKtemplate,
+        TKthis,
+        TKthrow,
+        TKtrue,
+        TKtry,
+        TKtypeid,
+        TKtypename,
+        TKusing,
+        TKvirtual,
+        TKwchar_t,
+        TK_typeinfo,
+        TK_typemask,
 //#endif
 
-	TKasm,
-	TK_inf,
-	TK_nan,
-	TK_nans,
-	TK_i,		// imaginary constant i
-	TK_with,
-	TK_istype,
-	TK_cdecl,
-	TK_fortran,
-	TK_pascal,
+        TKasm,
+        TK_inf,
+        TK_nan,
+        TK_nans,
+        TK_i,           // imaginary constant i
+        TK_with,
+        TK_istype,
+        TK_cdecl,
+        TK_fortran,
+        TK_pascal,
 
-	TK_debug,
-	TK_in,
-	TK_out,
-	TK_body,
-	TK_invariant,
+        TK_debug,
+        TK_in,
+        TK_out,
+        TK_body,
+        TK_invariant,
 #if TX86
-	TK_Seg16,
-	TK_System,
-	TK__emit__,
-	TK_far,
-	TK_huge,
-	TK_near,
+        TK_Seg16,
+        TK_System,
+        TK__emit__,
+        TK_far,
+        TK_huge,
+        TK_near,
 
-	TK_asm,
-	TK_based,
-	TK_cs,
-	TK_declspec,
-	TK_except,
-	TK_export,
-	TK_far16,
-	TK_fastcall,
-	TK_finally,
-	TK_handle,
-	TK_java,
-	TK_int64,
-	TK_interrupt,
-	TK_leave,
-	TK_loadds,
-	TK_real80,
-	TK_saveregs,
-	TK_segname,
-	TK_ss,
-	TK_stdcall,
-	TK_syscall,
-	TK_try,
+        TK_asm,
+        TK_based,
+        TK_cs,
+        TK_declspec,
+        TK_except,
+        TK_export,
+        TK_far16,
+        TK_fastcall,
+        TK_finally,
+        TK_handle,
+        TK_java,
+        TK_int64,
+        TK_interrupt,
+        TK_leave,
+        TK_loadds,
+        TK_real80,
+        TK_saveregs,
+        TK_segname,
+        TK_ss,
+        TK_stdcall,
+        TK_syscall,
+        TK_try,
 #if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_SOLARIS
-	TK_attribute,
-	TK_extension,
-	TK_format,
-	TK_restrict,
-	TK_bltin_const,
+        TK_attribute,
+        TK_extension,
+        TK_format,
+        TK_restrict,
+        TK_bltin_const,
 #endif
 #else
-	TKcomp,
-	TKextended,
-	TK_handle,
-	TK_machdl,
-	TK_pasobj,
+        TKcomp,
+        TKextended,
+        TK_handle,
+        TK_machdl,
+        TK_pasobj,
 //#if CPP
-	TK__class,
-    	TKinherited,
+        TK__class,
+        TKinherited,
 //#endif
 #endif
-	TK_unaligned,
-	TKsymbol,			// special internal token
+        TK_unaligned,
+        TKsymbol,                       // special internal token
 
-#define KWMAX	(TK_unaligned + 1)	// number of keywords
+#define KWMAX   (TK_unaligned + 1)      // number of keywords
 
-	TKcolcol,		//	::
-	TKarrowstar,		//	->*
-	TKdotstar,		//	.*
+        TKcolcol,               //      ::
+        TKarrowstar,            //      ->*
+        TKdotstar,              //      .*
 
-	TKstar,TKand,TKmin,TKnot,TKcom,TKplpl,TKlpar,TKrpar,TKques,TKcolon,TKcomma,
-	TKmimi,TKlcur,TKdot,TKlbra,TKrbra,TKarrow,TKdiv,TKmod,TKxor,TKor,TKoror,
-	TKandand,TKshl,TKshr,TKrcur,TKeq,TKaddass,TKminass,TKmulass,TKdivass,
-	TKmodass,TKshrass,TKshlass,TKandass,TKxorass,TKorass,TKsemi,
-	TKadd,TKellipsis,
+        TKstar,TKand,TKmin,TKnot,TKcom,TKplpl,TKlpar,TKrpar,TKques,TKcolon,TKcomma,
+        TKmimi,TKlcur,TKdot,TKlbra,TKrbra,TKarrow,TKdiv,TKmod,TKxor,TKor,TKoror,
+        TKandand,TKshl,TKshr,TKrcur,TKeq,TKaddass,TKminass,TKmulass,TKdivass,
+        TKmodass,TKshrass,TKshlass,TKandass,TKxorass,TKorass,TKsemi,
+        TKadd,TKellipsis,
 #if !TX86 || TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_SOLARIS
-	TKdollar,
+        TKdollar,
 #endif
 
  /* The following relational tokens must be in the same order as the
     corresponding operators.
   */
- /*   ==     !=		*/
-	TKle,TKgt,TKlt,TKge,TKeqeq,TKne,
+ /*   ==     !=         */
+        TKle,TKgt,TKlt,TKge,TKeqeq,TKne,
 
- /*   !<>=    <>   <>=   !>    !>=  !<    !<=  !<>	*/
-	TKunord,TKlg,TKleg,TKule,TKul,TKuge,TKug,TKue,
+ /*   !<>=    <>   <>=   !>    !>=  !<    !<=  !<>      */
+        TKunord,TKlg,TKleg,TKule,TKul,TKuge,TKug,TKue,
 
-	TKstring,
-	TKfilespec,	/* <filespec>		*/
-	TKpragma,
-	TKnum,	/* integral number	*/
-	TKreal_f,
-	TKreal_d,
-	TKreal_da,
-	TKreal_ld,
-	TKident,	/* identifier		*/
-	TKeol,	/* end of line		*/
-	TKeof,	/* end of file		*/
-	TKnone,	/* no token		*/
-	TKMAX	/* number of tokens	*/
+        TKstring,
+        TKfilespec,     /* <filespec>           */
+        TKpragma,
+        TKnum,  /* integral number      */
+        TKreal_f,
+        TKreal_d,
+        TKreal_da,
+        TKreal_ld,
+        TKident,        /* identifier           */
+        TKeol,  /* end of line          */
+        TKeof,  /* end of file          */
+        TKnone, /* no token             */
+        TKMAX   /* number of tokens     */
 };
 #endif
 
 #if !defined(TOKENS_ONLY) || !TOKENS_ONLY
 struct token_t
 {
-    enum_TK TKval;		// what the token is
-    unsigned char TKflags;	// Token flags
-#define TKFfree		1	// free the token after it's scanned
-#define TKFinherited	2	// keyword INHERITED prior to token
-#define TKFpasstr	4	// pascal string
-    unsigned char TKty;		// TYxxxx for TKstring and TKnum
+    enum_TK TKval;              // what the token is
+    unsigned char TKflags;      // Token flags
+#define TKFfree         1       // free the token after it's scanned
+#define TKFinherited    2       // keyword INHERITED prior to token
+#define TKFpasstr       4       // pascal string
+    unsigned char TKty;         // TYxxxx for TKstring and TKnum
     union _TKutok
     {
-	// Scheme for short IDs avoids malloc/frees
-	struct _ident	// TKident
-	{   char *ident;	// pointer to identifier
-	    char idtext[4];	// if short identifier
-	} _idx;
+        // Scheme for short IDs avoids malloc/frees
+        struct _ident   // TKident
+        {   char *ident;        // pointer to identifier
+            char idtext[4];     // if short identifier
+        } _idx;
 
-	struct _uts	/* TKstring and TKfilespec		*/
-	{
-	    char *string;/* for strings (not null terminated)	*/
-	    int lenstr;	 /* length of string			*/
-	} uts;
-	symbol *sym;	// TKsymbol
-	int pragma;		// TKpragma: PRxxxx, pragma number
-				// -1 if unrecognized pragma
-	targ_long Vlong;	/* integer when TKnum		*/
+        struct _uts     /* TKstring and TKfilespec              */
+        {
+            char *string;/* for strings (not null terminated)   */
+            int lenstr;  /* length of string                    */
+        } uts;
+        symbol *sym;    // TKsymbol
+        int pragma;             // TKpragma: PRxxxx, pragma number
+                                // -1 if unrecognized pragma
+        targ_long Vlong;        /* integer when TKnum           */
 #if LONGLONG
-	targ_llong Vllong;
+        targ_llong Vllong;
 #else
 #define Vllong Vlong
 #endif
-	targ_float Vfloat;
-	targ_double Vdouble;
-	targ_ldouble Vldouble;
+        targ_float Vfloat;
+        targ_double Vdouble;
+        targ_ldouble Vldouble;
     } TKutok;
-    Srcpos TKsrcpos; 		// line number from where it was taken
-    token_t *TKnext;		// to create a list of tokens
+    Srcpos TKsrcpos;            // line number from where it was taken
+    token_t *TKnext;            // to create a list of tokens
 
 #ifdef DEBUG
     unsigned short id;
@@ -279,36 +279,36 @@ struct token_t
     void print();
 };
 
-#define TKstr		TKutok.uts.string
-#define TKlenstr	TKutok.uts.lenstr
-#define TKid		TKutok._idx.ident
-#define TKsym		TKutok.sym
+#define TKstr           TKutok.uts.string
+#define TKlenstr        TKutok.uts.lenstr
+#define TKid            TKutok._idx.ident
+#define TKsym           TKutok.sym
 
 // Use this for fast scans
-#define	_IDS	1	// start of identifier
-#define _ID	2	// identifier
-#define _TOK	4	// single character token
-#define _EOL	8	// end of line
-#define _MUL	0x10	// start of multibyte character sequence
-#define _BCS	0x20	// in basic-source-character-set
-#define _MTK	0x40	// could be multi-character token
-#define _ZFF	0x80	// 0 or 0xFF (must be sign bit)
+#define _IDS    1       // start of identifier
+#define _ID     2       // identifier
+#define _TOK    4       // single character token
+#define _EOL    8       // end of line
+#define _MUL    0x10    // start of multibyte character sequence
+#define _BCS    0x20    // in basic-source-character-set
+#define _MTK    0x40    // could be multi-character token
+#define _ZFF    0x80    // 0 or 0xFF (must be sign bit)
 
-#define istok(x)	(_chartype[(x) + 1] & _TOK)
-#define iseol(x)	(_chartype[(x) + 1] & _EOL)
-#define isidstart(x)	(_chartype[(x) + 1] & _IDS)
-#define isidchar(x)	(_chartype[(x) + 1] & (_IDS | _ID))
-#define ismulti(x)	(_chartype[(x) + 1] & _MUL)
-#define isbcs(x)	(_chartype[(x) + 1] & _BCS)
+#define istok(x)        (_chartype[(x) + 1] & _TOK)
+#define iseol(x)        (_chartype[(x) + 1] & _EOL)
+#define isidstart(x)    (_chartype[(x) + 1] & _IDS)
+#define isidchar(x)     (_chartype[(x) + 1] & (_IDS | _ID))
+#define ismulti(x)      (_chartype[(x) + 1] & _MUL)
+#define isbcs(x)        (_chartype[(x) + 1] & _BCS)
 
 /* from token.c */
 extern int igncomment;
 extern char *tok_arg;
 extern unsigned argmax;
-extern	token_t tok;
-extern	int ininclude;
-CEXTERN	char tok_ident[];	// identifier
-extern	unsigned char _chartype[];
+extern  token_t tok;
+extern  int ininclude;
+CEXTERN char tok_ident[];       // identifier
+extern  unsigned char _chartype[];
 #if TX86 || TARGET_MAC
 extern token_t *toklist;
 #endif
@@ -367,8 +367,8 @@ void token_term(void);
 int binary(const char *p , const char __near * __near *tab, int high);
 #endif
 
-#define ptoken()	rtoken(1)
-#define token()		rtoken(0)
+#define ptoken()        rtoken(1)
+#define token()         rtoken(0)
 
 /* from pragma.c */
 //enum_TK ptoken(void);
@@ -381,30 +381,30 @@ macro_t *defmac(const char *name , const char *text);
 int pragma_defined(void);
 
 #if SPP && TX86
-#define token_linnum()	getlinnum()
+#define token_linnum()  getlinnum()
 #endif
 
-//	listing control
-//	Listings can be produce via -l and SCpre
-//		-l	expand all characters not if'd out including 
-//			comments
-//		SCpre	list only characters to be compiled
-//			i.e. exclude comments and # preprocess lines
+//      listing control
+//      Listings can be produce via -l and SCpre
+//              -l      expand all characters not if'd out including
+//                      comments
+//              SCpre   list only characters to be compiled
+//                      i.e. exclude comments and # preprocess lines
 
 #if SPP
-#define SCPRE_LISTING_ON()	expflag--; assert(expflag >= 0)
-#define SCPRE_LISTING_OFF()	assert(expflag >= 0); expflag++
-#define EXPANDED_LISTING_ON()	expflag--; assert(expflag >= 0)
-#define EXPANDED_LISTING_OFF()	assert(expflag >= 0); expflag++
+#define SCPRE_LISTING_ON()      expflag--; assert(expflag >= 0)
+#define SCPRE_LISTING_OFF()     assert(expflag >= 0); expflag++
+#define EXPANDED_LISTING_ON()   expflag--; assert(expflag >= 0)
+#define EXPANDED_LISTING_OFF()  assert(expflag >= 0); expflag++
 #else
 #define SCPRE_LISTING_OFF()
 #define SCPRE_LISTING_ON()
-#define EXPANDED_LISTING_ON()	expflag--; assert(expflag >= 0)
-#define EXPANDED_LISTING_OFF()	assert(expflag >= 0); expflag++
+#define EXPANDED_LISTING_ON()   expflag--; assert(expflag >= 0)
+#define EXPANDED_LISTING_OFF()  assert(expflag >= 0); expflag++
 #endif
 
-#define EXPANDING_LISTING()	(expflag == 0)
-#define NOT_EXPANDING_LISTING()	(expflag)
+#define EXPANDING_LISTING()     (expflag == 0)
+#define NOT_EXPANDING_LISTING() (expflag)
 #endif
 
 /***********************************************
@@ -415,46 +415,46 @@ int pragma_defined(void);
 
 struct Token_lookahead
 {
-    int inited;			// 1 if initialized
-    token_t *toks;		// list of tokens
-    token_t **pend;		// pointer to end of that list
+    int inited;                 // 1 if initialized
+    token_t *toks;              // list of tokens
+    token_t **pend;             // pointer to end of that list
 
     void init()
     {
-	toks = NULL;
-	pend = &toks;
-	inited = 1;
+        toks = NULL;
+        pend = &toks;
+        inited = 1;
     }
 
     enum_TK lookahead()
     {
     #ifdef DEBUG
-	//assert(inited == 1);
+        //assert(inited == 1);
     #endif
-	*pend = token_copy();
-	(*pend)->TKflags |= TKFfree;
-	pend = &(*pend)->TKnext;
-	return stoken();
+        *pend = token_copy();
+        (*pend)->TKflags |= TKFfree;
+        pend = &(*pend)->TKnext;
+        return stoken();
     }
 
     void term()
     {
 #ifdef DEBUG
-	//assert(inited == 1);
+        //assert(inited == 1);
 #endif
-	inited--;
-	if (toks)
-	{
-	    token_unget();
-	    token_setlist(toks);
-	    stoken();
-	}
+        inited--;
+        if (toks)
+        {
+            token_unget();
+            token_setlist(toks);
+            stoken();
+        }
     }
 
     void discard()
     {
-	inited--;
-	token_free(toks);
+        inited--;
+        token_free(toks);
     }
 };
 

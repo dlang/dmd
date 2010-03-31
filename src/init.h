@@ -54,7 +54,7 @@ struct Initializer : Object
 
 struct VoidInitializer : Initializer
 {
-    Type *type;		// type that this will initialize to
+    Type *type;         // type that this will initialize to
 
     VoidInitializer(Loc loc);
     Initializer *syntaxCopy();
@@ -69,11 +69,11 @@ struct VoidInitializer : Initializer
 
 struct StructInitializer : Initializer
 {
-    Identifiers field;	// of Identifier *'s
-    Initializers value;	// parallel array of Initializer *'s
+    Identifiers field;  // of Identifier *'s
+    Initializers value; // parallel array of Initializer *'s
 
-    Array vars;		// parallel array of VarDeclaration *'s
-    AggregateDeclaration *ad;	// which aggregate this is for
+    Array vars;         // parallel array of VarDeclaration *'s
+    AggregateDeclaration *ad;   // which aggregate this is for
 
     StructInitializer(Loc loc);
     Initializer *syntaxCopy();
@@ -89,11 +89,11 @@ struct StructInitializer : Initializer
 
 struct ArrayInitializer : Initializer
 {
-    Expressions index;	// indices
-    Initializers value;	// of Initializer *'s
-    unsigned dim;	// length of array being initialized
-    Type *type;		// type that array will be used to initialize
-    int sem;		// !=0 if semantic() is run
+    Expressions index;  // indices
+    Initializers value; // of Initializer *'s
+    unsigned dim;       // length of array being initialized
+    Type *type;         // type that array will be used to initialize
+    int sem;            // !=0 if semantic() is run
 
     ArrayInitializer(Loc loc);
     Initializer *syntaxCopy();
@@ -105,7 +105,7 @@ struct ArrayInitializer : Initializer
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
 
     dt_t *toDt();
-    dt_t *toDtBit();	// for bit arrays
+    dt_t *toDtBit();    // for bit arrays
 
     ArrayInitializer *isArrayInitializer() { return this; }
 };

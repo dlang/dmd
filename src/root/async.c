@@ -43,7 +43,7 @@ struct AsyncRead
 AsyncRead *AsyncRead::create(size_t nfiles)
 {
     AsyncRead *aw = (AsyncRead *)mem.calloc(1, sizeof(AsyncRead) +
-				(nfiles - 1) * sizeof(FileData));
+                                (nfiles - 1) * sizeof(FileData));
     aw->filesmax = nfiles;
     return aw;
 }
@@ -64,22 +64,22 @@ void AsyncRead::start()
     //printf("aw->filesdim = %p %d\n", this, filesdim);
     if (filesdim)
     {
-	unsigned threadaddr;
-	hThread = (HANDLE) _beginthreadex(NULL,
-	    0,
-	    &startthread,
-	    this,
-	    0,
-	    (unsigned *)&threadaddr);
+        unsigned threadaddr;
+        hThread = (HANDLE) _beginthreadex(NULL,
+            0,
+            &startthread,
+            this,
+            0,
+            (unsigned *)&threadaddr);
 
-	if (hThread)
-	{
-	    SetThreadPriority(hThread, THREAD_PRIORITY_HIGHEST);
-	}
-	else
-	{
-	    assert(0);
-	}
+        if (hThread)
+        {
+            SetThreadPriority(hThread, THREAD_PRIORITY_HIGHEST);
+        }
+        else
+        {
+            assert(0);
+        }
     }
 }
 
@@ -87,7 +87,7 @@ int AsyncRead::read(size_t i)
 {
     FileData *f = &files[i];
     WaitForSingleObject(f->event, INFINITE);
-    Sleep(0);			// give up time slice
+    Sleep(0);                   // give up time slice
     return f->result;
 }
 
@@ -104,13 +104,13 @@ unsigned __stdcall startthread(void *p)
 
     //printf("aw->filesdim = %p %d\n", aw, aw->filesdim);
     for (size_t i = 0; i < aw->filesdim; i++)
-    {	FileData *f = &aw->files[i];
+    {   FileData *f = &aw->files[i];
 
-	f->result = f->file->read();
-	SetEvent(f->event);
+        f->result = f->file->read();
+        SetEvent(f->event);
     }
     _endthreadex(EXIT_SUCCESS);
-    return EXIT_SUCCESS;		// if skidding
+    return EXIT_SUCCESS;                // if skidding
 }
 
 #else
@@ -147,7 +147,7 @@ struct AsyncRead
 AsyncRead *AsyncRead::create(size_t nfiles)
 {
     AsyncRead *aw = (AsyncRead *)mem.calloc(1, sizeof(AsyncRead) +
-				(nfiles - 1) * sizeof(FileData));
+                                (nfiles - 1) * sizeof(FileData));
     aw->filesmax = nfiles;
     return aw;
 }

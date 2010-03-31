@@ -10,7 +10,7 @@
  * For any other uses, please contact Digital Mars.
  */
 
-/* Definitions only used by the parser			*/
+/* Definitions only used by the parser                  */
 
 //#pragma once
 #ifndef PARSER_H
@@ -18,17 +18,17 @@
 
 #if SCPP
 #ifndef SCOPE_H
-#include	"scope.h"
+#include        "scope.h"
 #endif
 #endif
 
 #ifndef __TYPE_H
-#include	"type.h"
+#include        "type.h"
 #endif
 
 #if TX86
-extern linkage_t linkage;	/* current linkage that is in effect	*/
-extern int linkage_spec;	/* !=0 if active linkage specification	*/
+extern linkage_t linkage;       /* current linkage that is in effect    */
+extern int linkage_spec;        /* !=0 if active linkage specification  */
 
 #if MEMMODELS == 1
 extern tym_t functypetab[LINK_MAXDIM];
@@ -42,21 +42,21 @@ extern mangle_t funcmangletab[LINK_MAXDIM];
 extern mangle_t varmangletab[LINK_MAXDIM];
 
 #else
-#include	"TGparser.h"
+#include        "TGparser.h"
 #endif
 
 #ifndef EL_H
-#include	"el.h"
+#include        "el.h"
 #endif
 
-/* Type matches	*/
-#define TMATCHnomatch	0	/* no match				*/
-#define TMATCHellipsis	0x01	/* match using ellipsis			*/
-#define TMATCHuserdef	0x09	/* match using user-defined conversions	*/
-#define TMATCHboolean	0x0E	// conversion of pointer or pointer-to-member to boolean
-#define TMATCHstandard	0xFA	/* match with standard conversions	*/
-#define TMATCHpromotions 0xFC	/* match using promotions		*/
-#define TMATCHexact	0xFF	/* exact type match			*/
+/* Type matches */
+#define TMATCHnomatch   0       /* no match                             */
+#define TMATCHellipsis  0x01    /* match using ellipsis                 */
+#define TMATCHuserdef   0x09    /* match using user-defined conversions */
+#define TMATCHboolean   0x0E    // conversion of pointer or pointer-to-member to boolean
+#define TMATCHstandard  0xFA    /* match with standard conversions      */
+#define TMATCHpromotions 0xFC   /* match using promotions               */
+#define TMATCHexact     0xFF    /* exact type match                     */
 
 typedef unsigned char match_t;
 
@@ -64,19 +64,19 @@ typedef unsigned char match_t;
 struct Match
 {
     match_t m;
-    match_t m2;		// for user defined conversion, this is the second
-			// sequence match level (the second sequence is the
-			// one on the result of the user defined conversion)
-    Symbol *s;		// user defined conversion function or constructor
-    int ref;		// !=0 if reference binding
+    match_t m2;         // for user defined conversion, this is the second
+                        // sequence match level (the second sequence is the
+                        // one on the result of the user defined conversion)
+    Symbol *s;          // user defined conversion function or constructor
+    int ref;            // !=0 if reference binding
     tym_t toplevelcv;
 
     Match()
-    {	m = 0;
-	m2 = 0;
-	s = NULL;
-	ref = 0;
-	toplevelcv = 0;
+    {   m = 0;
+        m2 = 0;
+        s = NULL;
+        ref = 0;
+        toplevelcv = 0;
     }
 
     static int cmp(Match& m1, Match& m2);
@@ -87,16 +87,16 @@ struct Match
  * Type of destructor call
  */
 
-#define DTORfree	1	// it is destructor's responsibility to
-				//   free the pointer
-#define DTORvecdel	2	// delete array syntax
-#define DTORmostderived	4	// destructor is invoked for most-derived
-				//  instance, not for a base class
-#define DTORvector	8	// destructor has been invoked for an
-				//   array of instances of known size
-#define DTORvirtual	0x10	// use virtual destructor, if any
-#define DTORnoeh	0x20	// do not append eh stuff
-#define DTORnoaccess	0x40	// do not perform access check
+#define DTORfree        1       // it is destructor's responsibility to
+                                //   free the pointer
+#define DTORvecdel      2       // delete array syntax
+#define DTORmostderived 4       // destructor is invoked for most-derived
+                                //  instance, not for a base class
+#define DTORvector      8       // destructor has been invoked for an
+                                //   array of instances of known size
+#define DTORvirtual     0x10    // use virtual destructor, if any
+#define DTORnoeh        0x20    // do not append eh stuff
+#define DTORnoaccess    0x40    // do not perform access check
 
 /***************************
  * Macros.
@@ -110,34 +110,34 @@ struct Match
 struct MACRO
 {
 #ifdef DEBUG
-    unsigned short	id;
+    unsigned short      id;
 #define IDmacro 0x614D
 #define macro_debug(m) assert((m)->id == IDmacro)
 #else
 #define macro_debug(m)
 #endif
 
-    char *Mtext;		// replacement text
-    list_t Marglist;		// list of arguments (as char*'s)
+    char *Mtext;                // replacement text
+    list_t Marglist;            // list of arguments (as char*'s)
     macro_t *ML,*MR;
 #if TX86
-    macro_t *Mnext;		// next macro in threaded list (all macros
-				// are on one list or another)
+    macro_t *Mnext;             // next macro in threaded list (all macros
+                                // are on one list or another)
 #endif
     unsigned char Mflags;
-#define	Mdefined	1	// if macro is defined
-#define Mfixeddef	2	// if can't be re/un defined
-#define Minuse		4	// if macro is currently being expanded
-#define Mellipsis	0x8	// if arglist had trailing ...
-#define Mnoparen	0x10	// if macro has no parentheses
-#define Mkeyword	0x20	// this is a C/C++ keyword
-#define Mconcat		0x40	// if macro uses concat operator
-#define Mnotexp 	0x80	// if macro should be expanded
-    unsigned char Mval;		// if Mkeyword, this is the TKval
-#if TX86    
-    char Mid[1];		// macro identifier
+#define Mdefined        1       // if macro is defined
+#define Mfixeddef       2       // if can't be re/un defined
+#define Minuse          4       // if macro is currently being expanded
+#define Mellipsis       0x8     // if arglist had trailing ...
+#define Mnoparen        0x10    // if macro has no parentheses
+#define Mkeyword        0x20    // this is a C/C++ keyword
+#define Mconcat         0x40    // if macro uses concat operator
+#define Mnotexp         0x80    // if macro should be expanded
+    unsigned char Mval;         // if Mkeyword, this is the TKval
+#if TX86
+    char Mid[1];                // macro identifier
 #else
-    str4 Mid[];			/* macro identifier as a 4 byte string */
+    str4 Mid[];                 /* macro identifier as a 4 byte string */
 #endif
 };
 
@@ -149,16 +149,16 @@ struct MACRO
  * Flags for #include files.
  */
 
-#define FQcwd		1	// search current working directory
-#define FQpath		2	// search INCLUDE path
-#define FQsystem	4	// this is a system include
+#define FQcwd           1       // search current working directory
+#define FQpath          2       // search INCLUDE path
+#define FQsystem        4       // this is a system include
 #if TX86
-#define FQtop		8	// top level file, already open
-#define FQqual		0x10	// filename is already qualified
+#define FQtop           8       // top level file, already open
+#define FQqual          0x10    // filename is already qualified
 #endif
 #if linux || __APPLE__ || __FreeBSD__ || __sun&&__SVR4
-#define FQnext		0x20	// search starts after directory
-#endif				// of last included file
+#define FQnext          0x20    // search starts after directory
+#endif                          // of last included file
 
 /***************************************************************************
  * Which block is active is maintained by the BLKLST, which is a backwardly
@@ -167,48 +167,48 @@ struct MACRO
 
 struct BLKLST
 {
-    /* unsigned because of the chars with the 8th bit set	*/
-    unsigned char  *BLtextp;	/* current position in text buffer	*/
-    unsigned char  *BLtext;	/* start of text buffer			*/
-    struct BLKLST  *BLprev;	/* enclosing blklst			*/
-    unsigned char   BLflags;	/* input block list flags		*/
-#	define BLspace	 0x01	/* we've put out an extra space		*/
-#	define BLexpanded 0x40	// already macro expanded; don't do it again
+    /* unsigned because of the chars with the 8th bit set       */
+    unsigned char  *BLtextp;    /* current position in text buffer      */
+    unsigned char  *BLtext;     /* start of text buffer                 */
+    struct BLKLST  *BLprev;     /* enclosing blklst                     */
+    unsigned char   BLflags;    /* input block list flags               */
+#       define BLspace   0x01   /* we've put out an extra space         */
+#       define BLexpanded 0x40  // already macro expanded; don't do it again
 #if IMPLIED_PRAGMA_ONCE
-#	define BLnew	 0x02	/* start of new file 			*/
-#	define BLfndif	 0x04	/* found initial #ifdef at start	*/
-#	define BLckendif 0x08	/* check if looking for EOF after #endif */
-#	define BLckonce  (BLnew|BLfndif|BLckendif)
-			 	/* check if file only included once	*/
-#	define BLclear	 0xf1	/* to clear implied pragma once flags	*/
+#       define BLnew     0x02   /* start of new file                    */
+#       define BLfndif   0x04   /* found initial #ifdef at start        */
+#       define BLckendif 0x08   /* check if looking for EOF after #endif */
+#       define BLckonce  (BLnew|BLfndif|BLckendif)
+                                /* check if file only included once     */
+#       define BLclear   0xf1   /* to clear implied pragma once flags   */
 #endif
 #if PRAGMA_ONCE
-#	define BLponce	 0x10	/* pragma - only include this file once	*/
+#       define BLponce   0x10   /* pragma - only include this file once */
 #endif
 #if TARGET_MAC
-#	define BFpdef	 0x20	/* pre-compilation definition block 	*/
+#       define BFpdef    0x20   /* pre-compilation definition block     */
 #endif
-    char	BLtyp;		/* type of block (BLxxxx)		*/
-#	define BLstr	2	/* string				*/
-#	define BLfile	3	/* a #include file			*/
-#	define BLarg	4	/* macro argument			*/
-#	define BLrtext	5	// random text
+    char        BLtyp;          /* type of block (BLxxxx)               */
+#       define BLstr    2       /* string                               */
+#       define BLfile   3       /* a #include file                      */
+#       define BLarg    4       /* macro argument                       */
+#       define BLrtext  5       // random text
 
-    list_t	BLaargs;	/* actual arguments			*/
-    list_t	BLeargs;	/* actual arguments			*/
-    int		BLnargs;	/* number of dummy args			*/
-    int		BLtextmax;	/* size of text buffer			*/
+    list_t      BLaargs;        /* actual arguments                     */
+    list_t      BLeargs;        /* actual arguments                     */
+    int         BLnargs;        /* number of dummy args                 */
+    int         BLtextmax;      /* size of text buffer                  */
 #if INDIVFILEIO
-    unsigned char *BLbuf;	// BLfile: file buffer
-    unsigned char *BLbufp;	// BLfile: next position in file buffer
+    unsigned char *BLbuf;       // BLfile: file buffer
+    unsigned char *BLbufp;      // BLfile: next position in file buffer
 #else
-    FILE	*BLstream;	/* BLfile				*/
+    FILE        *BLstream;      /* BLfile                               */
 #endif
-    Srcpos	BLsrcpos;	/* BLfile, position in that file	*/
+    Srcpos      BLsrcpos;       /* BLfile, position in that file        */
 #if SOURCE_OFFSETS
-    long 	BLfoffset;	/* BLfile, offset into file		*/
-    short 	BLcurcnt;	/* BLfile, current count from offset	*/
-    short 	BLlincnt;	/* BLfile, start of cur line from offset*/
+    long        BLfoffset;      /* BLfile, offset into file             */
+    short       BLcurcnt;       /* BLfile, current count from offset    */
+    short       BLlincnt;       /* BLfile, start of cur line from offset*/
 #endif
     TARGET_structBLKLST
 
@@ -227,30 +227,30 @@ extern int TokenCnt;
 #endif
 
 #if TX86
-/* Get filename for BLfile block	*/
-#define blklst_filename(b)	(srcpos_name((b)->BLsrcpos))
+/* Get filename for BLfile block        */
+#define blklst_filename(b)      (srcpos_name((b)->BLsrcpos))
 #endif
 
 /* Different types of special values that can occur in the character stream */
-#define PRE_ARG	0xFF	// the next char following is a parameter number
-			// If next char is PRE_ARG, then PRE_ARG is the char
-#define PRE_BRK 0xFE	// token separator
-#define PRE_STR 0xFA	// If immediately following PRE_ARG, then the
-			// parameter is to be 'stringized'
-#define PRE_EXP	0xFC	// following identifier may not be expanded as a macro
-#define PRE_CAT 0xFB	// concatenate tokens
-#define PRE_EOB 0	// end of block
-#define PRE_EOF 0	// end of file
-#define PRE_SPACE  0xFD	// token separator
+#define PRE_ARG 0xFF    // the next char following is a parameter number
+                        // If next char is PRE_ARG, then PRE_ARG is the char
+#define PRE_BRK 0xFE    // token separator
+#define PRE_STR 0xFA    // If immediately following PRE_ARG, then the
+                        // parameter is to be 'stringized'
+#define PRE_EXP 0xFC    // following identifier may not be expanded as a macro
+#define PRE_CAT 0xFB    // concatenate tokens
+#define PRE_EOB 0       // end of block
+#define PRE_EOF 0       // end of file
+#define PRE_SPACE  0xFD // token separator
 
-#define PRE_ARGMAX 0xFB	// maximum number of arguments to a macro
+#define PRE_ARGMAX 0xFB // maximum number of arguments to a macro
 
 #if 1
-#define EGCHAR()						\
-	((((xc = *btextp) != PRE_EOB && xc != PRE_ARG)	\
-	?   (btextp++,(config.flags2 & CFG2expand && (explist(xc),1)),1) \
-	:   egchar2()						\
-	),xc)
+#define EGCHAR()                                                \
+        ((((xc = *btextp) != PRE_EOB && xc != PRE_ARG)  \
+        ?   (btextp++,(config.flags2 & CFG2expand && (explist(xc),1)),1) \
+        :   egchar2()                                           \
+        ),xc)
 #else
 #define EGCHAR() egchar()
 #endif
@@ -259,21 +259,21 @@ extern int TokenCnt;
  * Function return value methods.
  */
 
-#define RET_REGS	1	/* returned in registers		*/
-#define RET_STACK	2	/* returned on stack			*/
-#define RET_STATIC	4	/* returned in static memory location	*/
-#define RET_NDPREG	8	/* returned in floating point register	*/
-#define RET_PSTACK	2	// returned on stack (DOS pascal style)
+#define RET_REGS        1       /* returned in registers                */
+#define RET_STACK       2       /* returned on stack                    */
+#define RET_STATIC      4       /* returned in static memory location   */
+#define RET_NDPREG      8       /* returned in floating point register  */
+#define RET_PSTACK      2       // returned on stack (DOS pascal style)
 
 /* from blklst.c */
-CEXTERN	blklst *bl;
-CEXTERN	unsigned char *btextp;
+CEXTERN blklst *bl;
+CEXTERN unsigned char *btextp;
 extern int blklst_deferfree;
 extern char *eline;
-extern int elinmax;		/* # of chars in buffer eline[]		*/
-extern int elini;		/* index into eline[]			*/
-extern int elinnum;		/* expanded line number			*/
-CEXTERN int expflag;		/* != 0 means not expanding list file	*/
+extern int elinmax;             /* # of chars in buffer eline[]         */
+extern int elini;               /* index into eline[]                   */
+extern int elinnum;             /* expanded line number                 */
+CEXTERN int expflag;            /* != 0 means not expanding list file   */
 blklst *blklst_getfileblock(void);
 void putback(int);
 #if PRAGMA_ONCE
@@ -313,23 +313,23 @@ symbol *adl_lookup(char *id, symbol *so, list_t arglist);
 
 /* exp2.c */
 extern elem *typechk(elem *,type *),
-	*exp2_cast(elem *,type *),
-	*cast(elem *,type *),
-	*doarray(elem *),
-	*doarrow(elem *),
-	*xfunccall(elem *efunc,elem *ethis,list_t pvirtbase,list_t arglist),
-	*exp2_gethidden(elem *e),
-	*dodotstar(elem *, elem *),
-	*reftostar(elem *),
-	*reftostart(elem *,type *),
-	*exp2_copytotemp(elem *),
-	*dofunc(elem *),
-	*builtinFunc(elem *),
-	*arraytoptr(elem *),
-	*convertchk(elem *),
-	*lptrtooffset(elem *),
-	*dodot(elem *,type *,bool bColcol),
-	*minscale(elem *);
+        *exp2_cast(elem *,type *),
+        *cast(elem *,type *),
+        *doarray(elem *),
+        *doarrow(elem *),
+        *xfunccall(elem *efunc,elem *ethis,list_t pvirtbase,list_t arglist),
+        *exp2_gethidden(elem *e),
+        *dodotstar(elem *, elem *),
+        *reftostar(elem *),
+        *reftostart(elem *,type *),
+        *exp2_copytotemp(elem *),
+        *dofunc(elem *),
+        *builtinFunc(elem *),
+        *arraytoptr(elem *),
+        *convertchk(elem *),
+        *lptrtooffset(elem *),
+        *dodot(elem *,type *,bool bColcol),
+        *minscale(elem *);
 elem *exp2_addr(elem *);
 void getarglist(list_t *);
 elem *exp2_ptrvbaseclass(elem *ethis,Classsym *stag,Classsym *sbase);
@@ -468,7 +468,7 @@ tym_t nwc_declspec();
 /* struct.c */
 type *stunspec(enum_TK tk, Symbol *s, Symbol *stempsym, param_t *template_argument_list);
 Classsym * n2_definestruct(char *struct_tag,unsigned flags,tym_t ptrtype,
-	symbol *stempsym,param_t *template_argument_list,int nestdecl);
+        symbol *stempsym,param_t *template_argument_list,int nestdecl);
 void n2_classfriends(Classsym *stag);
 int n2_isstruct(symbol * __ss *ps);
 void n2_addfunctoclass(Classsym *,Funcsym *,int flags);
@@ -500,7 +500,7 @@ type *enumspec(void);
 int type_covariant(type *t1, type *t2);
 
 /* ph.c */
-extern char *ph_directory;		/* directory to read PH files from	*/
+extern char *ph_directory;              /* directory to read PH files from      */
 #if MARS
 void ph_init();
 #else
@@ -525,29 +525,29 @@ void *ph_realloc(void *p , size_t nbytes,unsigned short uFlag);
 void ph_add_global_symdef(symbol *s, unsigned sctype);
 
 #if H_STYLE & H_OFFSET
-#define dohydrate	ph_hdradjust
-#define isdehydrated(p)	(ph_hdrbaseaddress <= (p) && (p) < ph_hdrmaxaddress)
-#define ph_hydrate(p)	((isdehydrated(*(void **)(p)) && (*(char **)(p) -= ph_hdradjust)),*(void **)(p))
-#define ph_dehydrate(p)	((void)(p))
+#define dohydrate       ph_hdradjust
+#define isdehydrated(p) (ph_hdrbaseaddress <= (p) && (p) < ph_hdrmaxaddress)
+#define ph_hydrate(p)   ((isdehydrated(*(void **)(p)) && (*(char **)(p) -= ph_hdradjust)),*(void **)(p))
+#define ph_dehydrate(p) ((void)(p))
 extern void *ph_hdrbaseaddress;
 extern void *ph_hdrmaxaddress;
 extern int   ph_hdradjust;
 #elif H_STYLE & H_BIT0
-#define dohydrate	1
-#define isdehydrated(p)	((int)(p) & 1)
+#define dohydrate       1
+#define isdehydrated(p) ((int)(p) & 1)
 extern int ph_hdradjust;
-#define ph_hydrate(p)	((isdehydrated(*(void **)(p)) && (*(char **)(p) -= ph_hdradjust)),*(void **)(p))
-#define ph_dehydrate(p)	((*(long *)(p)) && (*(long *)(p) |= 1))
+#define ph_hydrate(p)   ((isdehydrated(*(void **)(p)) && (*(char **)(p) -= ph_hdradjust)),*(void **)(p))
+#define ph_dehydrate(p) ((*(long *)(p)) && (*(long *)(p) |= 1))
 #elif H_STYLE & H_COMPLEX
-#define dohydrate	1
-#define isdehydrated(p)	((int)(p) & 1)
+#define dohydrate       1
+#define isdehydrated(p) ((int)(p) & 1)
 void *ph_hydrate(void *pp);
 void *ph_dehydrate(void *pp);
 #elif H_STYLE & H_NONE
-#define dohydrate	0
-#define isdehydrated(p)	0
-#define ph_hydrate(p)	(*(void **)(p))
-#define ph_dehydrate(p)	((void)(p))
+#define dohydrate       0
+#define isdehydrated(p) 0
+#define ph_hydrate(p)   (*(void **)(p))
+#define ph_dehydrate(p) ((void)(p))
 #else
 #error "H_STYLE set wrong"
 #endif
@@ -631,19 +631,19 @@ symbol *template_createsym(const char *id, type *t, symbol **proot);
 char *template_mangle(symbol *s , param_t *arglist);
 symbol *template_matchfunc(symbol *stemp, param_t *pl, int, match_t, param_t *ptal, symbol *stagfriend = NULL);
 symbol *template_matchfunctempl(symbol *sfunc, param_t *ptali, type *tf, symbol *stagfriend = NULL, int flags = 1);
-int template_match_expanded_type(type *ptyTemplate, param_t *ptpl, param_t *ptal, type *ptyActual, 
-	type *ptyFormal );
+int template_match_expanded_type(type *ptyTemplate, param_t *ptpl, param_t *ptal, type *ptyActual,
+        type *ptyFormal );
 int template_classname(char *vident, Classsym *stag);
 void template_free_ptal(param_t *ptal);
 #if TARGET_MAC
-bool template_match_expanded_type(type *ptyTemplate, param_t *ptal, type *ptyActual, 
-	type *ptyFormal );
+bool template_match_expanded_type(type *ptyTemplate, param_t *ptal, type *ptyActual,
+        type *ptyFormal );
 #endif
 int template_function_leastAsSpecialized(symbol *f1, symbol *f2, param_t *ptal);
 #if SCPP
 Match template_matchtype(type *tp,type *te,elem *ee,param_t *ptpl, param_t *ptal, int flags);
 Match template_deduce_ptal(type *tthis, symbol *sfunc, param_t *ptali,
-	Match *ma, int flags, param_t *pl, param_t **pptal);
+        Match *ma, int flags, param_t *pl, param_t **pptal);
 #endif
 void template_function_verify(symbol *sfunc, list_t arglist, param_t *ptali, int matchStage);
 int template_arglst_match(param_t *p1, param_t *p2);
@@ -665,7 +665,7 @@ void tmnf_free(TMNF *tmnf);
 void tmnf_hydrate(TMNF **ptmnf);
 void tmnf_dehydrate(TMNF **ptmnf);
 
-extern symlist_t template_ftlist;	// list of template function symbols
+extern symlist_t template_ftlist;       // list of template function symbols
 extern symbol *template_class_list;
 extern symbol **template_class_list_p;
 #if PUBLIC_EXT
@@ -686,25 +686,25 @@ void htod_decl(symbol *s);
 // from token.c
 extern char *Arg;
 
-/* tytostr.c	*/
+/* tytostr.c    */
 char *type_tostring(Outbuffer *,type *);
 char *param_tostring(Outbuffer *,type *);
 char *arglist_tostring(Outbuffer *,list_t el);
 char *ptpl_tostring(Outbuffer *, param_t *ptpl);
 char *el_tostring(Outbuffer *, elem *e);
 
-extern list_t pathlist;			// include paths
-extern list_t headers;			// pre-include files
+extern list_t pathlist;                 // include paths
+extern list_t headers;                  // pre-include files
 #if linux || __APPLE__ || __FreeBSD__ || __sun&&__SVR4
-extern list_t pathsyslist;		// include path for .h file overrides
+extern list_t pathsyslist;              // include path for .h file overrides
 #endif
 
-extern int structalign;			/* alignment for members of structures	*/
+extern int structalign;                 /* alignment for members of structures  */
 extern char dbcs;
-extern int colnumber;			/* current column number		*/
-CEXTERN	HINT xc;		/* character last read			*/
-extern targ_size_t	dsout;		/* # of bytes actually output to data	*/
-					/* segment, used to pad for alignment	*/
+extern int colnumber;                   /* current column number                */
+CEXTERN HINT xc;                /* character last read                  */
+extern targ_size_t      dsout;          /* # of bytes actually output to data   */
+                                        /* segment, used to pad for alignment   */
 extern char *fdepname;
 extern FILE *fdep;
 extern char *flstname,*fsymname,*fphreadname,*ftdbname;
@@ -717,18 +717,18 @@ extern FILE *fdmodule;
 extern FILE *fout;
 #endif
 
-CEXTERN	unsigned idhash;	// hash value of identifier
-extern tym_t pointertype;	// default data pointer type
-extern int level;		// declaration level
-				// -2: base class list
-				// -1: class body
-				// 0: top level
-				// 1: function parameter declarations
-				// 2: function local declarations
-				// 3+: compound statement decls
+CEXTERN unsigned idhash;        // hash value of identifier
+extern tym_t pointertype;       // default data pointer type
+extern int level;               // declaration level
+                                // -2: base class list
+                                // -1: class body
+                                // 0: top level
+                                // 1: function parameter declarations
+                                // 2: function local declarations
+                                // 3+: compound statement decls
 #if !TX86
-extern symbol *symlinkage;		/* symbol linkage table			*/
+extern symbol *symlinkage;              /* symbol linkage table                 */
 #endif
-extern param_t *paramlst;		/* function parameter list		*/
+extern param_t *paramlst;               /* function parameter list              */
 
 #endif /* PARSER_H */

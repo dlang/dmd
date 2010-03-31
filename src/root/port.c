@@ -197,7 +197,7 @@ double Port::floor(double d)
 double Port::pow(double x, double y)
 {
     if (y == 0)
-	return 1;		// even if x is NAN
+        return 1;               // even if x is NAN
     return ::pow(x, y);
 }
 
@@ -208,64 +208,64 @@ unsigned _int64 Port::strtoull(const char *p, char **pend, int base)
     int error;
     #define ULLONG_MAX ((unsigned _int64)~0I64)
 
-    while (isspace(*p))		/* skip leading white space	*/
-	p++;
+    while (isspace(*p))         /* skip leading white space     */
+        p++;
     if (*p == '+')
-	p++;
+        p++;
     switch (base)
     {   case 0:
-	    base = 10;		/* assume decimal base		*/
-	    if (*p == '0')
-	    {   base = 8;	/* could be octal		*/
-		    p++;
-		    switch (*p)
-		    {   case 'x':
-			case 'X':
-			    base = 16;	/* hex			*/
-			    p++;
-			    break;
+            base = 10;          /* assume decimal base          */
+            if (*p == '0')
+            {   base = 8;       /* could be octal               */
+                    p++;
+                    switch (*p)
+                    {   case 'x':
+                        case 'X':
+                            base = 16;  /* hex                  */
+                            p++;
+                            break;
 #if BINARY
-			case 'b':
-			case 'B':
-			    base = 2;	/* binary		*/
-			    p++;
-			    break;
+                        case 'b':
+                        case 'B':
+                            base = 2;   /* binary               */
+                            p++;
+                            break;
 #endif
-		    }
-	    }
-	    break;
-	case 16:			/* skip over '0x' and '0X'	*/
-	    if (*p == '0' && (p[1] == 'x' || p[1] == 'X'))
-		    p += 2;
-	    break;
+                    }
+            }
+            break;
+        case 16:                        /* skip over '0x' and '0X'      */
+            if (*p == '0' && (p[1] == 'x' || p[1] == 'X'))
+                    p += 2;
+            break;
 #if BINARY
-	case 2:			/* skip over '0b' and '0B'	*/
-	    if (*p == '0' && (p[1] == 'b' || p[1] == 'B'))
-		    p += 2;
-	    break;
+        case 2:                 /* skip over '0b' and '0B'      */
+            if (*p == '0' && (p[1] == 'b' || p[1] == 'B'))
+                    p += 2;
+            break;
 #endif
     }
     error = 0;
     for (;;)
     {   c = *p;
-	if (isdigit(c))
-		c -= '0';
-	else if (isalpha(c))
-		c = (c & ~0x20) - ('A' - 10);
-	else			/* unrecognized character	*/
-		break;
-	if (c >= base)		/* not in number base		*/
-		break;
-	if ((ULLONG_MAX - c) / base < number)
-		error = 1;
-	number = number * base + c;
-	p++;
+        if (isdigit(c))
+                c -= '0';
+        else if (isalpha(c))
+                c = (c & ~0x20) - ('A' - 10);
+        else                    /* unrecognized character       */
+                break;
+        if (c >= base)          /* not in number base           */
+                break;
+        if ((ULLONG_MAX - c) / base < number)
+                error = 1;
+        number = number * base + c;
+        p++;
     }
     if (pend)
-	*pend = (char *)p;
+        *pend = (char *)p;
     if (error)
     {   number = ULLONG_MAX;
-	errno = ERANGE;
+        errno = ERANGE;
     }
     return number;
 }
@@ -287,12 +287,12 @@ double Port::ull_to_double(ulonglong ull)
 
     if ((__int64) ull < 0)
     {
-	// MSVC doesn't implement the conversion
-	d = (double) (__int64)(ull -  0x8000000000000000i64);
-	d += (double)(signed __int64)(0x7FFFFFFFFFFFFFFFi64) + 1.0;
+        // MSVC doesn't implement the conversion
+        d = (double) (__int64)(ull -  0x8000000000000000i64);
+        d += (double)(signed __int64)(0x7FFFFFFFFFFFFFFFi64) + 1.0;
     }
     else
-	d = (double)(__int64)ull;
+        d = (double)(__int64)ull;
     return d;
 }
 
@@ -351,14 +351,14 @@ PortInitializer::PortInitializer()
     // constant folding.
     volatile long double foo;
     foo = NAN;
-    if (signbit(foo))	// signbit sometimes, not always, set
-	foo = -foo;	// turn off sign bit
+    if (signbit(foo))   // signbit sometimes, not always, set
+        foo = -foo;     // turn off sign bit
     Port::nan = foo;
 
 #if __FreeBSD__
     // LDBL_MAX comes out as infinity. Fix.
     static unsigned char x[sizeof(long double)] =
-	{ 0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFE,0x7F };
+        { 0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFE,0x7F };
     Port::ldbl_max = *(long double *)&x[0];
 #endif
 }
@@ -465,11 +465,11 @@ const wchar_t *Port::wlist_separator()
 char *Port::strupr(char *s)
 {
     char *t = s;
-    
+
     while (*s)
     {
-	*s = toupper(*s);
-	s++;
+        *s = toupper(*s);
+        s++;
     }
 
     return t;
@@ -479,7 +479,7 @@ char *Port::strupr(char *s)
 
 #if __sun&&__SVR4
 
-#define __C99FEATURES__ 1	// Needed on Solaris for NaN and more
+#define __C99FEATURES__ 1       // Needed on Solaris for NaN and more
 #include <math.h>
 #include <time.h>
 #include <sys/time.h>
@@ -511,8 +511,8 @@ PortInitializer::PortInitializer()
     // constant folding.
     volatile long double foo;
     foo = NAN;
-    if (signbit(foo))	// signbit sometimes, not always, set
-	foo = -foo;	// turn off sign bit
+    if (signbit(foo))   // signbit sometimes, not always, set
+        foo = -foo;     // turn off sign bit
     Port::nan = foo;
 }
 
@@ -604,11 +604,11 @@ const wchar_t *Port::wlist_separator()
 char *Port::strupr(char *s)
 {
     char *t = s;
-    
+
     while (*s)
     {
-	*s = toupper(*s);
-	s++;
+        *s = toupper(*s);
+        s++;
     }
 
     return t;
@@ -745,11 +745,11 @@ const wchar_t *Port::wlist_separator()
 char *Port::strupr(char *s)
 {
     char *t = s;
-    
+
     while (*s)
     {
-	*s = toupper(*s);
-	s++;
+        *s = toupper(*s);
+        s++;
     }
 
     return t;

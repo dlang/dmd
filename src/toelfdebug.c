@@ -65,7 +65,7 @@ void ClassDeclaration::toDebug()
 /*****************************************
  * Insert CV info into *p.
  * Returns:
- *	number of bytes written, or that would be written if p==NULL
+ *      number of bytes written, or that would be written if p==NULL
  */
 
 int Dsymbol::cvMember(unsigned char *p)

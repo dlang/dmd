@@ -23,9 +23,9 @@
 /********************************************
  * Convert from expression to delegate that returns the expression,
  * i.e. convert:
- *	expr
+ *      expr
  * to:
- *	t delegate() { return expr; }
+ *      t delegate() { return expr; }
  */
 
 Expression *Expression::toDelegate(Scope *sc, Type *t)
@@ -33,11 +33,11 @@ Expression *Expression::toDelegate(Scope *sc, Type *t)
     //printf("Expression::toDelegate(t = %s) %s\n", t->toChars(), toChars());
     TypeFunction *tf = new TypeFunction(NULL, t, 0, LINKd);
     FuncLiteralDeclaration *fld =
-	new FuncLiteralDeclaration(loc, loc, tf, TOKdelegate, NULL);
+        new FuncLiteralDeclaration(loc, loc, tf, TOKdelegate, NULL);
     Expression *e;
 #if 1
     sc = sc->push();
-    sc->parent = fld;		// set current function to be the delegate
+    sc->parent = fld;           // set current function to be the delegate
     e = this;
     e->scanForNestedRef(sc);
     sc = sc->pop();
@@ -60,14 +60,14 @@ void arrayExpressionScanForNestedRef(Scope *sc, Expressions *a)
     //printf("arrayExpressionScanForNestedRef(%p)\n", a);
     if (a)
     {
-	for (int i = 0; i < a->dim; i++)
-	{   Expression *e = (Expression *)a->data[i];
+        for (int i = 0; i < a->dim; i++)
+        {   Expression *e = (Expression *)a->data[i];
 
-	    if (e)
-	    {
-		e->scanForNestedRef(sc);
-	    }
-	}
+            if (e)
+            {
+                e->scanForNestedRef(sc);
+            }
+        }
     }
 }
 
@@ -81,7 +81,7 @@ void SymOffExp::scanForNestedRef(Scope *sc)
     //printf("SymOffExp::scanForNestedRef(%s)\n", toChars());
     VarDeclaration *v = var->isVarDeclaration();
     if (v)
-	v->checkNestedReference(sc, 0);
+        v->checkNestedReference(sc, 0);
 }
 
 void VarExp::scanForNestedRef(Scope *sc)
@@ -89,7 +89,7 @@ void VarExp::scanForNestedRef(Scope *sc)
     //printf("VarExp::scanForNestedRef(%s)\n", toChars());
     VarDeclaration *v = var->isVarDeclaration();
     if (v)
-	v->checkNestedReference(sc, 0);
+        v->checkNestedReference(sc, 0);
 }
 
 void ThisExp::scanForNestedRef(Scope *sc)
@@ -120,7 +120,7 @@ void NewExp::scanForNestedRef(Scope *sc)
     //printf("NewExp::scanForNestedRef(Scope *sc): %s\n", toChars());
 
     if (thisexp)
-	thisexp->scanForNestedRef(sc);
+        thisexp->scanForNestedRef(sc);
     arrayExpressionScanForNestedRef(sc, newargs);
     arrayExpressionScanForNestedRef(sc, arguments);
 }
@@ -149,8 +149,8 @@ void IndexExp::scanForNestedRef(Scope *sc)
     e1->scanForNestedRef(sc);
 
     if (lengthVar)
-    {	//printf("lengthVar\n");
-	lengthVar->parent = sc->parent;
+    {   //printf("lengthVar\n");
+        lengthVar->parent = sc->parent;
     }
     e2->scanForNestedRef(sc);
 }
@@ -161,13 +161,13 @@ void SliceExp::scanForNestedRef(Scope *sc)
     e1->scanForNestedRef(sc);
 
     if (lengthVar)
-    {	//printf("lengthVar\n");
-	lengthVar->parent = sc->parent;
+    {   //printf("lengthVar\n");
+        lengthVar->parent = sc->parent;
     }
     if (lwr)
-	lwr->scanForNestedRef(sc);
+        lwr->scanForNestedRef(sc);
     if (upr)
-	upr->scanForNestedRef(sc);
+        upr->scanForNestedRef(sc);
 }
 
 

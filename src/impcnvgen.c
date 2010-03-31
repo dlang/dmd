@@ -21,16 +21,16 @@ int integral_promotion(int t)
 {
     switch (t)
     {
-	case Tchar:
-	case Twchar:
-	case Tbit:
-	case Tbool:
-	case Tint8:
-	case Tuns8:
-	case Tint16:
-	case Tuns16:	return Tint32;
-	case Tdchar:	return Tuns32;
-	default:	return t;
+        case Tchar:
+        case Twchar:
+        case Tbit:
+        case Tbool:
+        case Tint8:
+        case Tuns8:
+        case Tint16:
+        case Tuns16:    return Tint32;
+        case Tdchar:    return Tuns32;
+        default:        return t;
     }
 }
 
@@ -39,17 +39,17 @@ void init()
 
     // Set conversion tables
     for (i = 0; i < TMAX; i++)
-	for (j = 0; j < TMAX; j++)
-	{   impcnvResult[i][j] = Terror;
-	    impcnvType1[i][j] = Terror;
-	    impcnvType2[i][j] = Terror;
-	    impcnvWarn[i][j] = 0;
-	}
+        for (j = 0; j < TMAX; j++)
+        {   impcnvResult[i][j] = Terror;
+            impcnvType1[i][j] = Terror;
+            impcnvType2[i][j] = Terror;
+            impcnvWarn[i][j] = 0;
+        }
 
-#define X(t1,t2, nt1,nt2, rt)		\
-	impcnvResult[t1][t2] = rt;	\
-	impcnvType1[t1][t2] = nt1;	\
-	impcnvType2[t1][t2] = nt2;
+#define X(t1,t2, nt1,nt2, rt)           \
+        impcnvResult[t1][t2] = rt;      \
+        impcnvType1[t1][t2] = nt1;      \
+        impcnvType2[t1][t2] = nt2;
 
     /* ======================= */
 
@@ -318,7 +318,7 @@ void init()
 
 #undef X
 
-#define Y(t1,t2)	impcnvWarn[t1][t2] = 1;
+#define Y(t1,t2)        impcnvWarn[t1][t2] = 1;
     Y(Tint8, Tbit)
     Y(Tuns8, Tbit)
     Y(Tint16, Tbit)
@@ -385,15 +385,15 @@ void init()
     Y(Tuns64, Tint64)
 
     for (i = 0; i < TMAX; i++)
-	for (j = 0; j < TMAX; j++)
-	{
-	    if (impcnvResult[i][j] == Terror)
-	    {
-		impcnvResult[i][j] = impcnvResult[j][i];
-		impcnvType1[i][j] = impcnvType2[j][i];
-		impcnvType2[i][j] = impcnvType1[j][i];
-	    }
-	}
+        for (j = 0; j < TMAX; j++)
+        {
+            if (impcnvResult[i][j] == Terror)
+            {
+                impcnvResult[i][j] = impcnvResult[j][i];
+                impcnvType1[i][j] = impcnvType2[j][i];
+                impcnvType2[i][j] = impcnvType1[j][i];
+            }
+        }
 }
 
 int main()
@@ -411,44 +411,44 @@ int main()
     fprintf(fp,"unsigned char Type::impcnvResult[TMAX][TMAX] =\n{\n");
     for (i = 0; i < TMAX; i++)
     {
-	for (j = 0; j < TMAX; j++)
-	{
-	    fprintf(fp, "%d,",impcnvResult[i][j]);
-	}
-	fprintf(fp, "\n");
+        for (j = 0; j < TMAX; j++)
+        {
+            fprintf(fp, "%d,",impcnvResult[i][j]);
+        }
+        fprintf(fp, "\n");
     }
     fprintf(fp,"};\n");
 
     fprintf(fp,"unsigned char Type::impcnvType1[TMAX][TMAX] =\n{\n");
     for (i = 0; i < TMAX; i++)
     {
-	for (j = 0; j < TMAX; j++)
-	{
-	    fprintf(fp, "%d,",impcnvType1[i][j]);
-	}
-	fprintf(fp, "\n");
+        for (j = 0; j < TMAX; j++)
+        {
+            fprintf(fp, "%d,",impcnvType1[i][j]);
+        }
+        fprintf(fp, "\n");
     }
     fprintf(fp,"};\n");
 
     fprintf(fp,"unsigned char Type::impcnvType2[TMAX][TMAX] =\n{\n");
     for (i = 0; i < TMAX; i++)
     {
-	for (j = 0; j < TMAX; j++)
-	{
-	    fprintf(fp, "%d,",impcnvType2[i][j]);
-	}
-	fprintf(fp, "\n");
+        for (j = 0; j < TMAX; j++)
+        {
+            fprintf(fp, "%d,",impcnvType2[i][j]);
+        }
+        fprintf(fp, "\n");
     }
     fprintf(fp,"};\n");
 
     fprintf(fp,"unsigned char Type::impcnvWarn[TMAX][TMAX] =\n{\n");
     for (i = 0; i < TMAX; i++)
     {
-	for (j = 0; j < TMAX; j++)
-	{
-	    fprintf(fp, "%d,",impcnvWarn[i][j]);
-	}
-	fprintf(fp, "\n");
+        for (j = 0; j < TMAX; j++)
+        {
+            fprintf(fp, "%d,",impcnvWarn[i][j]);
+        }
+        fprintf(fp, "\n");
     }
     fprintf(fp,"};\n");
 

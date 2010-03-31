@@ -40,7 +40,7 @@ struct AArray
 
     size_t length()
     {
-	return nodes;
+        return nodes;
     }
 
     /*************************************************
@@ -55,8 +55,8 @@ struct AArray
     /*************************************************
      * Determine if key is in aa.
      * Returns:
-     *	null	not in aa
-     *	!=null	in aa, return pointer to value
+     *  null    not in aa
+     *  !=null  in aa, return pointer to value
      */
 
     void* in(void *pkey);

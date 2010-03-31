@@ -9,22 +9,22 @@
 // in artistic.txt, or the GNU General Public License in gnu.txt.
 // See the included readme.txt for details.
 
-#include	<stdio.h>
-#include	<time.h>
-#include	<string.h>
-#include	<stdlib.h>
+#include        <stdio.h>
+#include        <time.h>
+#include        <string.h>
+#include        <stdlib.h>
 
 #if __DMC__
-#include	<new.h>
+#include        <new.h>
 #else
-#include	<new>
+#include        <new>
 #endif
 
-#include	"cc.h"
-#include	"global.h"
+#include        "cc.h"
+#include        "global.h"
 
-static char __file__[] = __FILE__;	/* for tassert.h		*/
-#include	"tassert.h"
+static char __file__[] = __FILE__;      /* for tassert.h                */
+#include        "tassert.h"
 
 /**********************************************
  * Do our own storage allocator, a replacement
@@ -33,10 +33,10 @@ static char __file__[] = __FILE__;	/* for tassert.h		*/
 
 struct Heap
 {
-    Heap *prev;		// previous heap
-    unsigned char *buf;	// buffer
-    unsigned char *p;	// high water mark
-    unsigned nleft;	// number of bytes left
+    Heap *prev;         // previous heap
+    unsigned char *buf; // buffer
+    unsigned char *p;   // high water mark
+    unsigned nleft;     // number of bytes left
 };
 
 Heap *heap=NULL;
@@ -60,9 +60,9 @@ void ph_term()
 
     for (h = heap; h; h = hprev)
     {
-	hprev = h->prev;
-	free(h->buf);
-	free(h);
+        hprev = h->prev;
+        free(h->buf);
+        free(h);
     }
 #endif
 }
@@ -73,14 +73,14 @@ void ph_newheap(size_t nbytes)
 
     h = (Heap *) malloc(sizeof(Heap));
     if (!h)
-	err_nomem();
+        err_nomem();
 
     newsize = (nbytes > 0xFF00) ? nbytes : 0xFF00;
     h->buf = (unsigned char *) malloc(newsize);
     if (!h->buf)
     {
-	free(h);
-	err_nomem();
+        free(h);
+        err_nomem();
     }
     h->nleft = newsize;
     h->p = h->buf;
@@ -98,7 +98,7 @@ void *ph_malloc(size_t nbytes)
     nbytes &= ~(sizeof(unsigned) - 1);
 
     if (nbytes >= heap->nleft)
-	ph_newheap(nbytes);
+        ph_newheap(nbytes);
     p = heap->p;
     heap->p += nbytes;
     heap->nleft -= nbytes;
@@ -112,16 +112,16 @@ __declspec(naked) void *ph_calloc(size_t nbytes)
 {
     _asm
     {
-	push	dword ptr 4[ESP]
-	call	ph_malloc
-	test	EAX,EAX
-	je	L25
-	push	dword ptr 4[ESP]
-	push	0
-	push	EAX
-	call	memset
-	add	ESP,0Ch
-L25:	ret	4
+        push    dword ptr 4[ESP]
+        call    ph_malloc
+        test    EAX,EAX
+        je      L25
+        push    dword ptr 4[ESP]
+        push    0
+        push    EAX
+        call    memset
+        add     ESP,0Ch
+L25:    ret     4
     }
 }
 #else
@@ -143,16 +143,16 @@ void * __cdecl ph_realloc(void *p,size_t nbytes)
 
     //dbg_printf("ph_realloc(%p,%d)\n",p,nbytes);
     if (!p)
-	return ph_malloc(nbytes);
+        return ph_malloc(nbytes);
     if (!nbytes)
-    {	ph_free(p);
-	return NULL;
+    {   ph_free(p);
+        return NULL;
     }
     newp = ph_malloc(nbytes);
     if (newp)
-    {	unsigned oldsize = ((unsigned *)p)[-1];
-	memcpy(newp,p,oldsize);
-	ph_free(p);
+    {   unsigned oldsize = ((unsigned *)p)[-1];
+        memcpy(newp,p,oldsize);
+        ph_free(p);
     }
     return newp;
 }
@@ -187,9 +187,9 @@ void __cdecl operator delete(void *p)
  */
 
 #ifdef DEBUG
-#define ARRAY_PROLOG	'prol'
-#define ARRAY_EPILOG	'epil'
-#define ARRAY_FILL	'f'
+#define ARRAY_PROLOG    'prol'
+#define ARRAY_EPILOG    'epil'
+#define ARRAY_FILL      'f'
 static int array_max_dim;
 
 /*********************************
@@ -207,7 +207,7 @@ void array_debug(void *a)
 
     // Since array contents are aligned pointers or NULL...
     for (int i = 0; i < length; i++)
-	assert((p[i] & 3) == 0);
+        assert((p[i] & 3) == 0);
 }
 
 #endif
@@ -218,28 +218,28 @@ void *array_new(int sizelem, int dim)
     size_t sz;
 
 #ifdef DEBUG
-    assert(sizelem == sizeof(void *));	// must be array of pointers
+    assert(sizelem == sizeof(void *));  // must be array of pointers
     if (!(dim >= 0 && dim < 10000))
-	printf("dim = %d\n",dim);
+        printf("dim = %d\n",dim);
     assert(dim >= 0 && dim < 10000);
     if (dim > array_max_dim)
-	array_max_dim = dim;
+        array_max_dim = dim;
 
     sz = sizeof(size_t) * (3 + dim);
     p = ph_calloc(sz);
     if (p)
-    {	p[0] = ARRAY_PROLOG;		// leading sentinel
-	p[1] = dim;
-	p[2 + dim] = ARRAY_EPILOG;	// trailing sentinel
-	p += 2;
-	array_debug(p);
+    {   p[0] = ARRAY_PROLOG;            // leading sentinel
+        p[1] = dim;
+        p[2 + dim] = ARRAY_EPILOG;      // trailing sentinel
+        p += 2;
+        array_debug(p);
     }
 #else
 
     sz = sizeof(size_t) * (1 + dim);
     p = ph_calloc(sz);
     if (p)
-	*p++ = dim;
+        *p++ = dim;
 #endif
     return (void *)p;
 }
@@ -292,31 +292,31 @@ void **array_renew(void *a,int newlength)
     int hsz = sizeof(void *);
 
     if (!a)
-	a = array_new(sz,newlength);
+        a = array_new(sz,newlength);
     else
     {
-	int oldlength = array_length(a);
+        int oldlength = array_length(a);
 #ifdef DEBUG
-	void *b = array_new(sizeof(void *),newlength);
-	int len = (oldlength < newlength) ? oldlength : newlength;
-	array_copy(a,0,b,0,len);
-	array_delete(a,sizeof(void *));
-	a = b;
+        void *b = array_new(sizeof(void *),newlength);
+        int len = (oldlength < newlength) ? oldlength : newlength;
+        array_copy(a,0,b,0,len);
+        array_delete(a,sizeof(void *));
+        a = b;
 #else
-	if (oldlength < newlength)
-	{
-	    (char *)a -= hsz;
-	    a = ph_realloc(a,hsz + newlength * sz);
-	    if (!a)
-		goto Lret;
-	    (char *)a += hsz;
-	    memset(&((void **)a)[oldlength],0,(newlength - oldlength) * sz);
-	}
-	else if (oldlength > newlength)
-	{
-	    ;
-	}
-	((size_t *)a)[-1] = newlength;
+        if (oldlength < newlength)
+        {
+            (char *)a -= hsz;
+            a = ph_realloc(a,hsz + newlength * sz);
+            if (!a)
+                goto Lret;
+            (char *)a += hsz;
+            memset(&((void **)a)[oldlength],0,(newlength - oldlength) * sz);
+        }
+        else if (oldlength > newlength)
+        {
+            ;
+        }
+        ((size_t *)a)[-1] = newlength;
 #endif
     }
 Lret:

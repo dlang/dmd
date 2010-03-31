@@ -14,36 +14,36 @@
 
 //#pragma once
 #ifndef GLOBAL_H
-#define GLOBAL_H	1
+#define GLOBAL_H        1
 
 #ifndef EL_H
-#include	"el.h"
+#include        "el.h"
 #endif
 
 #ifdef DEBUG
-CEXTERN char debuga;		/* cg - watch assignaddr()		*/
-CEXTERN char debugb;		/* watch block optimization		*/
-CEXTERN char debugc;		/* watch code generated			*/
-CEXTERN char debugd;		/* watch debug information generated	*/
-CEXTERN char debuge;		// dump eh info
-CEXTERN char debugf;		/* trees after dooptim			*/
-CEXTERN char debugg;		/* trees for code generator		*/
-CEXTERN char debugo;		// watch optimizer
-CEXTERN char debugr;		// watch register allocation
-CEXTERN char debugs;		/* watch common subexp eliminator	*/
-CEXTERN char debugt;		/* do test points			*/
+CEXTERN char debuga;            /* cg - watch assignaddr()              */
+CEXTERN char debugb;            /* watch block optimization             */
+CEXTERN char debugc;            /* watch code generated                 */
+CEXTERN char debugd;            /* watch debug information generated    */
+CEXTERN char debuge;            // dump eh info
+CEXTERN char debugf;            /* trees after dooptim                  */
+CEXTERN char debugg;            /* trees for code generator             */
+CEXTERN char debugo;            // watch optimizer
+CEXTERN char debugr;            // watch register allocation
+CEXTERN char debugs;            /* watch common subexp eliminator       */
+CEXTERN char debugt;            /* do test points                       */
 CEXTERN char debugu;
-CEXTERN char debugw;		/* watch progress			*/
-CEXTERN char debugx;		/* suppress predefined CPP stuff	*/
-CEXTERN char debugy;		/* watch output to il buffer		*/
+CEXTERN char debugw;            /* watch progress                       */
+CEXTERN char debugx;            /* suppress predefined CPP stuff        */
+CEXTERN char debugy;            /* watch output to il buffer            */
 #endif /* DEBUG */
 
-#define CR '\r'			// Used because the MPW version of the compiler warps
-#define LF '\n'			// \n into \r and \r into \n.  The translator version
-				// does not and this causes problems with the compilation
-				// with the translator
-#define CR_STR	"\r"
-#define LF_STR "\n"						
+#define CR '\r'                 // Used because the MPW version of the compiler warps
+#define LF '\n'                 // \n into \r and \r into \n.  The translator version
+                                // does not and this causes problems with the compilation
+                                // with the translator
+#define CR_STR  "\r"
+#define LF_STR "\n"
 
 struct seg_data;
 
@@ -52,32 +52,32 @@ struct seg_data;
  */
 
 CEXTERN const unsigned mask[16];
-CEXTERN	const unsigned long maskl[32];
+CEXTERN const unsigned long maskl[32];
 
 extern  char *argv0;
 CEXTERN char *finname,*foutname,*foutdir;
 
-CEXTERN	char OPTIMIZER,PARSER;
+CEXTERN char OPTIMIZER,PARSER;
 CEXTERN symtab_t globsym;
 #if AUTONEST
 CEXTERN int pushcount;
 #endif
 
-CEXTERN	Config config;			// precompiled part of configuration
-CEXTERN	Configv configv;		// non-ph part of configuration
-CEXTERN	char sytab[];
+CEXTERN Config config;                  // precompiled part of configuration
+CEXTERN Configv configv;                // non-ph part of configuration
+CEXTERN char sytab[];
 
-CEXTERN volatile int controlc_saw;	/* a control C was seen		*/
-CEXTERN unsigned maxblks;		/* array max for all block stuff		*/
-CEXTERN unsigned numblks;		/* number of basic blocks (if optimized) */
-CEXTERN	block *startblock;		/* beginning block of function	*/
+CEXTERN volatile int controlc_saw;      /* a control C was seen         */
+CEXTERN unsigned maxblks;               /* array max for all block stuff                */
+CEXTERN unsigned numblks;               /* number of basic blocks (if optimized) */
+CEXTERN block *startblock;              /* beginning block of function  */
 
-CEXTERN block **dfo;			/* array of depth first order	*/
-CEXTERN unsigned dfotop;		/* # of items in dfo[]		*/
-CEXTERN block **labelarr;		/* dynamically allocated array, index is label #*/
-CEXTERN unsigned labelmax;		/* size of labelarr[]				*/
-CEXTERN unsigned labeltop;		/* # of used entries in labelarr[]		*/
-CEXTERN block *curblock;		/* current block being read in			*/
+CEXTERN block **dfo;                    /* array of depth first order   */
+CEXTERN unsigned dfotop;                /* # of items in dfo[]          */
+CEXTERN block **labelarr;               /* dynamically allocated array, index is label #*/
+CEXTERN unsigned labelmax;              /* size of labelarr[]                           */
+CEXTERN unsigned labeltop;              /* # of used entries in labelarr[]              */
+CEXTERN block *curblock;                /* current block being read in                  */
 CEXTERN block *block_last;
 
 CEXTERN int errcnt;
@@ -94,7 +94,7 @@ Symbol *asm_define_label(const char *id);
 #if SCPP || MARS
 char *cpp_mangle(Symbol *s);
 #else
-#define cpp_mangle(s)	((s)->Sident)
+#define cpp_mangle(s)   ((s)->Sident)
 #endif
 
 // ee.c
@@ -103,7 +103,7 @@ void eecontext_parse();
 
 // exp2.c
 #define REP_THRESHOLD (REGSIZE * (6+ (REGSIZE == 4)))
-	/* doesn't belong here, but func to OPxxx is in exp2 */
+        /* doesn't belong here, but func to OPxxx is in exp2 */
 void exp2_setstrthis(elem *e,Symbol *s,targ_size_t offset,type *t);
 symbol *exp2_qualified_lookup(Classsym *sclass, int flags, int *pflags);
 
@@ -118,13 +118,13 @@ void util_assert(char *, int);
 #if __GNUC__
 #define util_malloc(n,size) mem_malloc((n)*(size))
 #define util_calloc(n,size) mem_calloc((n)*(size))
-#define util_free	mem_free
+#define util_free       mem_free
 #define util_realloc(oldp,n,size) mem_realloc(oldp,(n)*(size))
-#define parc_malloc	mem_malloc
-#define parc_calloc	mem_calloc
-#define parc_realloc	mem_realloc
-#define parc_strdup	mem_strdup
-#define parc_free	mem_free
+#define parc_malloc     mem_malloc
+#define parc_calloc     mem_calloc
+#define parc_realloc    mem_realloc
+#define parc_strdup     mem_strdup
+#define parc_free       mem_free
 #else
 void *util_malloc(unsigned n,unsigned size);
 void *util_calloc(unsigned n,unsigned size);
@@ -165,7 +165,7 @@ elem *poptelem3(elem *);
 elem *poptelem4(elem *);
 elem *selecte1(elem *,type *);
 
-//CEXTERN	type *declar(type *,char *,int);
+//CEXTERN       type *declar(type *,char *,int);
 
 /* from err.c */
 void err_message(const char *format,...);
@@ -211,7 +211,7 @@ void file_term(void);
 #if __NT__ && _WINDLL
 char *file_nettranslate(const char *filename,const char *mode);
 #else
-#define file_nettranslate(f,m)	((char *)(f))
+#define file_nettranslate(f,m)  ((char *)(f))
 #endif
 char *file_unique();
 
@@ -230,9 +230,9 @@ void chkassign(elem *);
 void chknosu(elem *);
 void chkunass(elem *);
 void chknoabstract(type *);
-CEXTERN	targ_llong msc_getnum(void);
-CEXTERN	targ_size_t alignmember(type *,targ_size_t,targ_size_t);
-CEXTERN	targ_size_t align(targ_size_t,targ_size_t);
+CEXTERN targ_llong msc_getnum(void);
+CEXTERN targ_size_t alignmember(type *,targ_size_t,targ_size_t);
+CEXTERN targ_size_t align(targ_size_t,targ_size_t);
 
 /* nteh.c */
 unsigned char *nteh_context_string();
@@ -327,8 +327,8 @@ void cg87_reset();
 
 unsigned char loadconst(elem *e, int im);
 
-/* From cgopt.c	*/
-CEXTERN	void opt(void);
+/* From cgopt.c */
+CEXTERN void opt(void);
 
 /* cgobj.c */
 void obj_init(Outbuffer *, const char *filename, const char *csegname);
@@ -391,7 +391,7 @@ void objfile_term();
 
 /* cod3.c */
 void cod3_thunk(Symbol *sthunk,Symbol *sfunc,unsigned p,tym_t thisty,
-	targ_size_t d,int i,targ_size_t d2);
+        targ_size_t d,int i,targ_size_t d2);
 
 #endif /* !TARGET_68000 */
 
@@ -446,7 +446,7 @@ void compdfo(void);
 #ifdef DEBUG
 
 /* debug.c */
-CEXTERN	const char __near *regstring[];
+CEXTERN const char __near *regstring[];
 
 void WRclass(enum SC c);
 void WRTYxx(tym_t t);
@@ -463,7 +463,7 @@ char *sym_ident(SYMIDX si);
 
 #endif
 
-/* cgelem.c	*/
+/* cgelem.c     */
 elem *doptelem(elem *,int);
 void postoptelem(elem *);
 unsigned swaprel(unsigned);
@@ -524,15 +524,15 @@ symbol * elf_sym_cdata(tym_t, char *, int );
 int  elf_data_cdata(char *str,int len,int *pseg);
 #if ELFOBJ
 int elf_getsegment(const char *name, const char *suffix,
-	int type, int flags, int align);
-void elf_addrel(int seg, targ_size_t offset, unsigned type, 
-			unsigned symidx, targ_size_t val);
+        int type, int flags, int align);
+void elf_addrel(int seg, targ_size_t offset, unsigned type,
+                        unsigned symidx, targ_size_t val);
 #endif
 #if MACHOBJ
 int mach_getsegment(const char *sectname, const char *segname,
-	int align, int flags, int flags2 = 0);
+        int align, int flags, int flags2 = 0);
 void mach_addrel(int seg, targ_size_t offset, symbol *targsym,
-	unsigned targseg, int rtype);
+        unsigned targseg, int rtype);
 #endif
 void elf_func_start(Symbol *sfunc);
 int elf_data_start(Symbol *sdata,int datasize,int seg);

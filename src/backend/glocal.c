@@ -12,41 +12,41 @@
 
 #if !DEMO && !SPP
 
-#include	<stdio.h>
-#include	<stdlib.h>
-#include	<time.h>
+#include        <stdio.h>
+#include        <stdlib.h>
+#include        <time.h>
 
 #if __sun&&__SVR4
-#include	<alloca.h>
+#include        <alloca.h>
 #endif
 
-#include	"cc.h"
-#include	"global.h"
-#include	"el.h"
-#include	"go.h"
-#include	"type.h"
-#include	"oper.h"
+#include        "cc.h"
+#include        "global.h"
+#include        "el.h"
+#include        "go.h"
+#include        "type.h"
+#include        "oper.h"
 
-static char __file__[] = __FILE__;	/* for tassert.h		*/
-#include	"tassert.h"
+static char __file__[] = __FILE__;      /* for tassert.h                */
+#include        "tassert.h"
 
 typedef struct loc_t
 {
     elem *e;
     int flags;
-#	define LFvolatile	1	// contains volatile refs or defs
-#	define LFambigref	2	// references ambiguous data
-#	define LFambigdef	4	// defines ambiguous data
-#	define LFsymref		8	// reference to symbol s
-#	define LFsymdef		0x10	// definition of symbol s
-#	define LFunambigref	0x20	// references unambiguous data other than s
-#	define LFunambigdef	0x40	// defines unambiguous data other than s
+#       define LFvolatile       1       // contains volatile refs or defs
+#       define LFambigref       2       // references ambiguous data
+#       define LFambigdef       4       // defines ambiguous data
+#       define LFsymref         8       // reference to symbol s
+#       define LFsymdef         0x10    // definition of symbol s
+#       define LFunambigref     0x20    // references unambiguous data other than s
+#       define LFunambigdef     0x40    // defines unambiguous data other than s
 #if TX86
-#	define LFinp		0x80	// input from I/O port
-#	define LFoutp		0x100	// output to I/O port
+#       define LFinp            0x80    // input from I/O port
+#       define LFoutp           0x100   // output to I/O port
 #endif
-#	define LFfloat		0x200	// sets float flags and/or depends on
-					// floating point settings
+#       define LFfloat          0x200   // sets float flags and/or depends on
+                                        // floating point settings
 } loc_t;
 
 static loc_t *loctab;
@@ -65,21 +65,21 @@ STATIC void local_symref(symbol *s);
 STATIC void local_symdef(symbol *s);
 
 #if TARGET_POWERPC
-static	bool	computing_params = FALSE;
+static  bool    computing_params = FALSE;
 #endif
 
 #if !TX86
-static	bool	fcall_seen = FALSE;
+static  bool    fcall_seen = FALSE;
 #endif
 
 ///////////////////////////////
 // This optimization attempts to replace sequences like:
-//	x = func();
-//	y = 3;
-//	z = x + 5;
+//      x = func();
+//      y = 3;
+//      z = x + 5;
 // with:
-//	y = 3;
-//	z = (x = func()) + 5;
+//      y = 3;
+//      z = (x = func()) + 5;
 // In other words, we attempt to localize expressions by moving them
 // as near as we can to where they are used. This should minimize
 // temporary generation and register usage.
@@ -93,30 +93,30 @@ void localize()
     locmax = globsym.symmax;
     loctab = (loc_t *) alloca(locmax * sizeof(*loctab));
 
-    for (b = startblock; b; b = b->Bnext)	/* for each block	 */
+    for (b = startblock; b; b = b->Bnext)       /* for each block        */
     {
-	loctop = 0;			// start over for each block
-	if (b->Belem &&
-	    /* Overly broad way to account for the case:
-	     * try
-	     * { i++;
-	     *   foo(); // throws exception
-	     *   i++;	// shouldn't combine previous i++ with this one
-	     * }
-	     */
-	    !b->Btry)
-	{
+        loctop = 0;                     // start over for each block
+        if (b->Belem &&
+            /* Overly broad way to account for the case:
+             * try
+             * { i++;
+             *   foo(); // throws exception
+             *   i++;   // shouldn't combine previous i++ with this one
+             * }
+             */
+            !b->Btry)
+        {
 #if TARGET_POWERPC
-	    fcall_seen = FALSE;
+            fcall_seen = FALSE;
 #endif
-	    local_exp(b->Belem,0);
-	}
+            local_exp(b->Belem,0);
+        }
     }
 }
 
 //////////////////////////////////////
 // Input:
-//	goal	!=0 if we want the result of the expression
+//      goal    !=0 if we want the result of the expression
 //
 
 STATIC void local_exp(elem *e,int goal)
@@ -129,379 +129,379 @@ Loop:
     elem_debug(e);
     int op = e->Eoper;
     switch (op)
-    {	case OPcomma:
-	    local_exp(e->E1,0);
-	    e = e->E2;
+    {   case OPcomma:
+            local_exp(e->E1,0);
+            e = e->E2;
 #if TARGET_POWERPC
-	    if (!goal)
-	    {
-	    	fcall_seen = FALSE;
-	    }
+            if (!goal)
+            {
+                fcall_seen = FALSE;
+            }
 #endif
-	    goto Loop;
+            goto Loop;
 
-	case OPandand:
-	case OPoror:
-	    local_exp(e->E1,1);
-	    loctop = 0;		// we can do better than this, fix later
-	    break;
+        case OPandand:
+        case OPoror:
+            local_exp(e->E1,1);
+            loctop = 0;         // we can do better than this, fix later
+            break;
 
-	case OPcolon:
-	case OPcolon2:
-	    loctop = 0;		// we can do better than this, fix later
-	    break;
+        case OPcolon:
+        case OPcolon2:
+            loctop = 0;         // we can do better than this, fix later
+            break;
 
-	case OPinfo:
-	    if (e->E1->Eoper == OPmark)
-	    {	loctop = 0;
-		e = e->E2;
-		goto Loop;
-	    }
-	    goto case_bin;
+        case OPinfo:
+            if (e->E1->Eoper == OPmark)
+            {   loctop = 0;
+                e = e->E2;
+                goto Loop;
+            }
+            goto case_bin;
 
-	case OPdtor:
-	case OPctor:
-	    loctop = 0;		// don't move expressions across ctor/dtor
-	    break;		// boundaries, it would goof up EH cleanup
+        case OPdtor:
+        case OPctor:
+            loctop = 0;         // don't move expressions across ctor/dtor
+            break;              // boundaries, it would goof up EH cleanup
 
-	case OPeq:
-	case OPstreq:
-	    e1 = e->E1;
-	    local_exp(e->E2,1);
-	    if (e1->Eoper == OPvar)
-	    {	s = e1->EV.sp.Vsym;
-		if (s->Sflags & SFLunambig)
-		{   local_symdef(s);
+        case OPeq:
+        case OPstreq:
+            e1 = e->E1;
+            local_exp(e->E2,1);
+            if (e1->Eoper == OPvar)
+            {   s = e1->EV.sp.Vsym;
+                if (s->Sflags & SFLunambig)
+                {   local_symdef(s);
 #if TX86
-		    if (!goal)
+                    if (!goal)
 #else
-		    if (!(goal || fcall_seen))
-			// do not localize if there is a function call on the rhs
+                    if (!(goal || fcall_seen))
+                        // do not localize if there is a function call on the rhs
 #endif
-			local_ins(e);
-		}
-		else
-		    local_ambigdef();
-	    }
-	    else
-	    {
-		assert(!OTleaf(e1->Eoper));
-		local_exp(e1->E1,1);
-		if (OTbinary(e1->Eoper))
-		    local_exp(e1->E2,1);
-		local_ambigdef();
-	    }
+                        local_ins(e);
+                }
+                else
+                    local_ambigdef();
+            }
+            else
+            {
+                assert(!OTleaf(e1->Eoper));
+                local_exp(e1->E1,1);
+                if (OTbinary(e1->Eoper))
+                    local_exp(e1->E2,1);
+                local_ambigdef();
+            }
 #if !TX86
-	    e1->Nflags |= (e->E2->Nflags & NFLfcall);
+            e1->Nflags |= (e->E2->Nflags & NFLfcall);
 #endif
-	    break;
+            break;
 
-	case OPpostinc:
-	case OPpostdec:
-	case OPaddass:
-	case OPminass:
-	case OPmulass:
-	case OPdivass:
-	case OPmodass:
-	case OPashrass:
-	case OPshrass:
-	case OPshlass:
-	case OPandass:
-	case OPxorass:
-	case OPorass:
-	    if (ERTOL(e))
-	    {	local_exp(e->E2,1);
-	case OPnegass:
-		e1 = e->E1;
-		op1 = e1->Eoper;
-		if (op1 != OPvar)
-		{
-		    local_exp(e1->E1,1);
-		    if (OTbinary(op1))
-			local_exp(e1->E2,1);
-		}
-		else if (loctop && (op == OPaddass || op == OPxorass))
-		{   unsigned u;
+        case OPpostinc:
+        case OPpostdec:
+        case OPaddass:
+        case OPminass:
+        case OPmulass:
+        case OPdivass:
+        case OPmodass:
+        case OPashrass:
+        case OPshrass:
+        case OPshlass:
+        case OPandass:
+        case OPxorass:
+        case OPorass:
+            if (ERTOL(e))
+            {   local_exp(e->E2,1);
+        case OPnegass:
+                e1 = e->E1;
+                op1 = e1->Eoper;
+                if (op1 != OPvar)
+                {
+                    local_exp(e1->E1,1);
+                    if (OTbinary(op1))
+                        local_exp(e1->E2,1);
+                }
+                else if (loctop && (op == OPaddass || op == OPxorass))
+                {   unsigned u;
 
-		    s = e1->EV.sp.Vsym;
-		    for (u = 0; u < loctop; u++)
-		    {	elem *em;
+                    s = e1->EV.sp.Vsym;
+                    for (u = 0; u < loctop; u++)
+                    {   elem *em;
 
-			em = loctab[u].e;
-			if (em->Eoper == op &&
-			    em->E1->EV.sp.Vsym == s &&
-			    tysize(em->Ety) == tysize(e1->Ety) &&
-			    em->E1->EV.sp.Voffset == e1->EV.sp.Voffset &&
-			    !el_sideeffect(em->E2)
-			   )
-			{   // Change (x += a),(x += b) to
-			    // (x + a),(x += a + b)
-			    changes++;
-			    e->E2 = el_bin(opeqtoop(op),e->E2->Ety,em->E2,e->E2);
-			    em->Eoper = opeqtoop(op);
-			    em->E2 = el_copytree(em->E2);
-			    local_rem(u);
+                        em = loctab[u].e;
+                        if (em->Eoper == op &&
+                            em->E1->EV.sp.Vsym == s &&
+                            tysize(em->Ety) == tysize(e1->Ety) &&
+                            em->E1->EV.sp.Voffset == e1->EV.sp.Voffset &&
+                            !el_sideeffect(em->E2)
+                           )
+                        {   // Change (x += a),(x += b) to
+                            // (x + a),(x += a + b)
+                            changes++;
+                            e->E2 = el_bin(opeqtoop(op),e->E2->Ety,em->E2,e->E2);
+                            em->Eoper = opeqtoop(op);
+                            em->E2 = el_copytree(em->E2);
+                            local_rem(u);
 #ifdef DEBUG
-			    if (debugc)
-			    {   dbg_printf("Combined equation ");
-				WReqn(e);
-				dbg_printf(";\n");
-				e = doptelem(e,GOALvalue);
-			    }
+                            if (debugc)
+                            {   dbg_printf("Combined equation ");
+                                WReqn(e);
+                                dbg_printf(";\n");
+                                e = doptelem(e,GOALvalue);
+                            }
 #endif
 
-			    break;
-			}
-		    }
-		}
-	    }
-	    else
-	    {
-		e1 = e->E1;
-		op1 = e1->Eoper;
-		if (op1 != OPvar)
-		{
-		    local_exp(e1->E1,1);
-		    if (OTbinary(op1))
-			local_exp(e1->E2,1);
-		}
-		if (loctop)
-		{   if (op1 == OPvar &&
-			((s = e1->EV.sp.Vsym)->Sflags & SFLunambig))
-			local_symref(s);
-		    else
-			local_ambigref();
-		}
-		local_exp(e->E2,1);
-	    }
-	    if (op1 == OPvar &&
-		((s = e1->EV.sp.Vsym)->Sflags & SFLunambig))
-	    {   local_symref(s);
-		local_symdef(s);
-		if (op == OPaddass || op == OPxorass)
-		    local_ins(e);
-	    }
-	    else if (loctop)
-	    {
-		local_remove(LFambigdef | LFambigref);
-	    }
-	    break;
+                            break;
+                        }
+                    }
+                }
+            }
+            else
+            {
+                e1 = e->E1;
+                op1 = e1->Eoper;
+                if (op1 != OPvar)
+                {
+                    local_exp(e1->E1,1);
+                    if (OTbinary(op1))
+                        local_exp(e1->E2,1);
+                }
+                if (loctop)
+                {   if (op1 == OPvar &&
+                        ((s = e1->EV.sp.Vsym)->Sflags & SFLunambig))
+                        local_symref(s);
+                    else
+                        local_ambigref();
+                }
+                local_exp(e->E2,1);
+            }
+            if (op1 == OPvar &&
+                ((s = e1->EV.sp.Vsym)->Sflags & SFLunambig))
+            {   local_symref(s);
+                local_symdef(s);
+                if (op == OPaddass || op == OPxorass)
+                    local_ins(e);
+            }
+            else if (loctop)
+            {
+                local_remove(LFambigdef | LFambigref);
+            }
+            break;
 #if TX86
-	case OPstrlen:
+        case OPstrlen:
 #endif
-	case OPind:
-	    local_exp(e->E1,1);
-	    local_ambigref();
-	    break;
+        case OPind:
+            local_exp(e->E1,1);
+            local_ambigref();
+            break;
 
-	case OPnewarray:
-	case OPmultinewarray:
-	    local_exp(e->E1,1);
-	    local_exp(e->E2,1);
-	    goto Lrd;
-
-#if TX86
-	case OPstrcmp:
-	case OPmemcmp:
-	case OPbt:
-	case OParray:
-	case OPfield:
-	    local_exp(e->E1,1);
-	    local_exp(e->E2,1);
-	    local_ambigref();
-	    break;
-
-	case OPstrcpy:
-	case OPmemcpy:
-	case OPstrcat:
-	case OPcall:
-	case OPcallns:
-	    local_exp(e->E2,1);
-	case OPstrctor:
-	case OPucall:
-	case OPucallns:
-	    local_exp(e->E1,1);
-	    goto Lrd;
-
-	case OPbtc:
-	case OPbtr:
-	case OPbts:
-	    local_exp(e->E1,1);
-	    local_exp(e->E2,1);
-	    goto Lrd;
-#else
-	case OPcall:
-	case OPcallns:
-	{
-#if TARGET_POWERPC		
-	    bool cp_save = computing_params;
-	    local_exp(e->E2,1);
-	    computing_params = cp_save;
-#else
-	    local_exp(e->E2,1);
-#endif
-	}
-	case OPstrctor:
-	case OPucall:
-	case OPucallns:
-	    fcall_seen = FALSE;
-	    local_exp(e->E1,1);
-	    
-	    e->Nflags |= NFLfcall;
-	    fcall_seen = TRUE;
-
-#endif
-	case OPasm:
-	Lrd:
-	    local_remove(LFfloat | LFambigref | LFambigdef);
-	    break;
+        case OPnewarray:
+        case OPmultinewarray:
+            local_exp(e->E1,1);
+            local_exp(e->E2,1);
+            goto Lrd;
 
 #if TX86
-	case OPmemset:
-	    local_exp(e->E2,1);
-	    if (e->E1->Eoper != OPvar)
-		/* Don't want to rearrange (p = get(); p memset 0;)
-		 * as elemxxx() will rearrange it back.
-		 */
-		local_exp(e->E1,1);
-	    local_ambigdef();
-	    break;
-#endif
+        case OPstrcmp:
+        case OPmemcmp:
+        case OPbt:
+        case OParray:
+        case OPfield:
+            local_exp(e->E1,1);
+            local_exp(e->E2,1);
+            local_ambigref();
+            break;
 
-	case OPvar:
-	    s = e->EV.sp.Vsym;
-	    if (loctop)
-	    {	unsigned u;
+        case OPstrcpy:
+        case OPmemcpy:
+        case OPstrcat:
+        case OPcall:
+        case OPcallns:
+            local_exp(e->E2,1);
+        case OPstrctor:
+        case OPucall:
+        case OPucallns:
+            local_exp(e->E1,1);
+            goto Lrd;
 
-		// If potential candidate for replacement
-#if TARGET_68K
-		if (s->Sflags & SFLunambig &&
-		   (config.inline68881 & CFG68881 || !(tyfloating(s->Sty))) )
+        case OPbtc:
+        case OPbtr:
+        case OPbts:
+            local_exp(e->E1,1);
+            local_exp(e->E2,1);
+            goto Lrd;
 #else
-		if (s->Sflags & SFLunambig)
-#endif
-		{
-		    for (u = 0; u < loctop; u++)
-		    {   elem *em;
-
-			em = loctab[u].e;
-			if (em->E1->EV.sp.Vsym == s &&
-			    (em->Eoper == OPeq || em->Eoper == OPstreq)
+        case OPcall:
+        case OPcallns:
+        {
 #if TARGET_POWERPC
-				&& !(computing_params && (em->Nflags & NFLfcall))
-#elif !TX86
-				&& !(em->Nflags & NFLfcall)
+            bool cp_save = computing_params;
+            local_exp(e->E2,1);
+            computing_params = cp_save;
+#else
+            local_exp(e->E2,1);
 #endif
-				)
-			{
-			    if (tysize(em->Ety) == tysize(e->Ety) &&
-				em->E1->EV.sp.Voffset == e->EV.sp.Voffset &&
-				(tyfloating(em->Ety) != 0) == (tyfloating(e->Ety) != 0))
-			    {
-#ifdef DEBUG
-				if (debugc)
-				{   dbg_printf("Moved equation ");
-				    WReqn(em);
-				    dbg_printf(";\n");
-				}
-#endif
-				changes++;
-				em->Ety = e->Ety;
-				el_copy(e,em);
-				em->E1 = em->E2 = NULL;
-				em->Eoper = OPconst;
-			    }
-			    local_rem(u);
-			    break;
-			}
-		    }
-		    local_symref(s);
-		}
-		else
-		    local_ambigref();		// ambiguous reference
-	    }
-	    break;
+        }
+        case OPstrctor:
+        case OPucall:
+        case OPucallns:
+            fcall_seen = FALSE;
+            local_exp(e->E1,1);
 
-	case OPremquo:
-	    if (e->E1->Eoper != OPvar)
-		goto case_bin;
-	    s = e->E1->EV.sp.Vsym;
-	    if (loctop)
-	    {
-		if (s->Sflags & SFLunambig
+            e->Nflags |= NFLfcall;
+            fcall_seen = TRUE;
+
+#endif
+        case OPasm:
+        Lrd:
+            local_remove(LFfloat | LFambigref | LFambigdef);
+            break;
+
+#if TX86
+        case OPmemset:
+            local_exp(e->E2,1);
+            if (e->E1->Eoper != OPvar)
+                /* Don't want to rearrange (p = get(); p memset 0;)
+                 * as elemxxx() will rearrange it back.
+                 */
+                local_exp(e->E1,1);
+            local_ambigdef();
+            break;
+#endif
+
+        case OPvar:
+            s = e->EV.sp.Vsym;
+            if (loctop)
+            {   unsigned u;
+
+                // If potential candidate for replacement
 #if TARGET_68K
-		   && (config.inline68881 & CFG68881 || !(tyfloating(s->Sty)))
+                if (s->Sflags & SFLunambig &&
+                   (config.inline68881 & CFG68881 || !(tyfloating(s->Sty))) )
+#else
+                if (s->Sflags & SFLunambig)
 #endif
-		   )
-		    local_symref(s);
-		else
-		    local_ambigref();		// ambiguous reference
-	    }
-	    goal = 1;
-	    e = e->E2;
-	    goto Loop;
+                {
+                    for (u = 0; u < loctop; u++)
+                    {   elem *em;
 
-	default:
-	    if (OTcommut(e->Eoper))
-	    {	// Since commutative operators may get their leaves
-		// swapped, we eliminate any that may be affected by that.
+                        em = loctab[u].e;
+                        if (em->E1->EV.sp.Vsym == s &&
+                            (em->Eoper == OPeq || em->Eoper == OPstreq)
+#if TARGET_POWERPC
+                                && !(computing_params && (em->Nflags & NFLfcall))
+#elif !TX86
+                                && !(em->Nflags & NFLfcall)
+#endif
+                                )
+                        {
+                            if (tysize(em->Ety) == tysize(e->Ety) &&
+                                em->E1->EV.sp.Voffset == e->EV.sp.Voffset &&
+                                (tyfloating(em->Ety) != 0) == (tyfloating(e->Ety) != 0))
+                            {
+#ifdef DEBUG
+                                if (debugc)
+                                {   dbg_printf("Moved equation ");
+                                    WReqn(em);
+                                    dbg_printf(";\n");
+                                }
+#endif
+                                changes++;
+                                em->Ety = e->Ety;
+                                el_copy(e,em);
+                                em->E1 = em->E2 = NULL;
+                                em->Eoper = OPconst;
+                            }
+                            local_rem(u);
+                            break;
+                        }
+                    }
+                    local_symref(s);
+                }
+                else
+                    local_ambigref();           // ambiguous reference
+            }
+            break;
 
-		for (u = 0; u < loctop;)
-		{
-		    int f1,f2,f;
-		    elem *eu;
+        case OPremquo:
+            if (e->E1->Eoper != OPvar)
+                goto case_bin;
+            s = e->E1->EV.sp.Vsym;
+            if (loctop)
+            {
+                if (s->Sflags & SFLunambig
+#if TARGET_68K
+                   && (config.inline68881 & CFG68881 || !(tyfloating(s->Sty)))
+#endif
+                   )
+                    local_symref(s);
+                else
+                    local_ambigref();           // ambiguous reference
+            }
+            goal = 1;
+            e = e->E2;
+            goto Loop;
 
-		    f = loctab[u].flags;
-		    eu = loctab[u].e;
-		    s = eu->E1->EV.sp.Vsym;
-		    f1 = local_getflags(e->E1,s);
-		    f2 = local_getflags(e->E2,s);
-		    if (f1 & f2 & LFsymref ||	// if both reference or
-			(f1 | f2) & LFsymdef ||	// either define
-			f & LFambigref && (f1 | f2) & LFambigdef ||
-			f & LFambigdef && (f1 | f2) & (LFambigref | LFambigdef)
-		       )
-			local_rem(u);
-		    else if (f & LFunambigdef && local_chkrem(e,eu->E2))
-			local_rem(u);
-		    else
-			u++;
-		}
-	    }
-	    if (EUNA(e))
-	    {	goal = 1;
-		e = e->E1;
-		goto Loop;
-	    }
-	case_bin:
-	    if (EBIN(e))
-	    {	local_exp(e->E1,1);
+        default:
+            if (OTcommut(e->Eoper))
+            {   // Since commutative operators may get their leaves
+                // swapped, we eliminate any that may be affected by that.
+
+                for (u = 0; u < loctop;)
+                {
+                    int f1,f2,f;
+                    elem *eu;
+
+                    f = loctab[u].flags;
+                    eu = loctab[u].e;
+                    s = eu->E1->EV.sp.Vsym;
+                    f1 = local_getflags(e->E1,s);
+                    f2 = local_getflags(e->E2,s);
+                    if (f1 & f2 & LFsymref ||   // if both reference or
+                        (f1 | f2) & LFsymdef || // either define
+                        f & LFambigref && (f1 | f2) & LFambigdef ||
+                        f & LFambigdef && (f1 | f2) & (LFambigref | LFambigdef)
+                       )
+                        local_rem(u);
+                    else if (f & LFunambigdef && local_chkrem(e,eu->E2))
+                        local_rem(u);
+                    else
+                        u++;
+                }
+            }
+            if (EUNA(e))
+            {   goal = 1;
+                e = e->E1;
+                goto Loop;
+            }
+        case_bin:
+            if (EBIN(e))
+            {   local_exp(e->E1,1);
 #if TARGET_POWERPC
 // for powerPC localize only the rightmost parameter otherwise this could potentially  cause
-// unnecessary spills set this to true only after the rigtmost parameter has already been 
+// unnecessary spills set this to true only after the rigtmost parameter has already been
 // computed
-		if (e->Eoper ==  OPparam)
-		{
-			computing_params = TRUE;
-		}
+                if (e->Eoper ==  OPparam)
+                {
+                        computing_params = TRUE;
+                }
 #endif
-		goal = 1;
-		e = e->E2;
-		goto Loop;
-	    }
-	    break;
-    }	// end of switch (e->Eoper)
+                goal = 1;
+                e = e->E2;
+                goto Loop;
+            }
+            break;
+    }   // end of switch (e->Eoper)
 
 #if !TX86
-	if (EUNA(e))
-	{
-		e->Nflags |= (e->E1->Nflags & NFLfcall);
-	}
-	
-	if (EBIN(e))
-	{
-		e->Nflags |= ((e->E1->Nflags | e->E2->Nflags) & NFLfcall);
-	}
+        if (EUNA(e))
+        {
+                e->Nflags |= (e->E1->Nflags & NFLfcall);
+        }
+
+        if (EBIN(e))
+        {
+                e->Nflags |= ((e->E1->Nflags | e->E2->Nflags) & NFLfcall);
+        }
 #endif
 }
 
@@ -510,7 +510,7 @@ Loop:
 // that e refs or defs.
 // Note that e is a binary operator.
 // Returns:
-//	!=0 if it does
+//      !=0 if it does
 
 STATIC int local_chkrem(elem *e,elem *eu)
 {   int f1,f2;
@@ -519,26 +519,26 @@ STATIC int local_chkrem(elem *e,elem *eu)
     int result = 0;
 
     while (1)
-    {	elem_debug(eu);
-	op = eu->Eoper;
-	if (OTassign(op) && eu->E1->Eoper == OPvar)
-	{   s = eu->E1->EV.sp.Vsym;
-	    f1 = local_getflags(e->E1,s);
-	    f2 = local_getflags(e->E2,s);
-	    if ((f1 | f2) & (LFsymref | LFsymdef))	// if either reference or define
-	    {   result = 1;
-		break;
-	    }
-	}
-	if (OTbinary(op))
-	{   if (local_chkrem(e,eu->E2))
-	    {	result = 1;
-		break;
-	    }
-	}
-	else if (!OTunary(op))
-	    break;			// leaf node
-	eu = eu->E1;
+    {   elem_debug(eu);
+        op = eu->Eoper;
+        if (OTassign(op) && eu->E1->Eoper == OPvar)
+        {   s = eu->E1->EV.sp.Vsym;
+            f1 = local_getflags(e->E1,s);
+            f2 = local_getflags(e->E2,s);
+            if ((f1 | f2) & (LFsymref | LFsymdef))      // if either reference or define
+            {   result = 1;
+                break;
+            }
+        }
+        if (OTbinary(op))
+        {   if (local_chkrem(e,eu->E2))
+            {   result = 1;
+                break;
+            }
+        }
+        else if (!OTunary(op))
+            break;                      // leaf node
+        eu = eu->E1;
     }
     return result;
 }
@@ -550,29 +550,29 @@ STATIC void local_ins(elem *e)
 {
     elem_debug(e);
     if (e->E1->Eoper == OPvar)
-    {	symbol *s;
+    {   symbol *s;
 
-	s = e->E1->EV.sp.Vsym;
-	symbol_debug(s);
-	if (s->Sflags & SFLunambig)	// if can only be referenced directly
-	{   int flags;
+        s = e->E1->EV.sp.Vsym;
+        symbol_debug(s);
+        if (s->Sflags & SFLunambig)     // if can only be referenced directly
+        {   int flags;
 
-	    flags = local_getflags(e->E2,NULL);
+            flags = local_getflags(e->E2,NULL);
 #if TX86
-	    if (!(flags & (LFvolatile | LFinp | LFoutp)) &&
+            if (!(flags & (LFvolatile | LFinp | LFoutp)) &&
 #else
-	    if (!(flags & LFvolatile) &&
+            if (!(flags & LFvolatile) &&
 #endif
-		!(e->E1->Ety & mTYvolatile))
-	    {
-		// Add e to the candidate array
-		//dbg_printf("local_ins('%s'), loctop = %d, locmax = %d\n",s->Sident,loctop,locmax);
-		assert(loctop < locmax);
-		loctab[loctop].e = e;
-		loctab[loctop].flags = flags;
-		loctop++;
-	    }
-	}
+                !(e->E1->Ety & mTYvolatile))
+            {
+                // Add e to the candidate array
+                //dbg_printf("local_ins('%s'), loctop = %d, locmax = %d\n",s->Sident,loctop,locmax);
+                assert(loctop < locmax);
+                loctab[loctop].e = e;
+                loctab[loctop].flags = flags;
+                loctop++;
+            }
+        }
     }
 }
 
@@ -585,8 +585,8 @@ STATIC void local_rem(unsigned u)
     //dbg_printf("local_rem(%u)\n",u);
     assert(u < loctop);
     if (u + 1 != loctop)
-    {	assert(u < loctop);
-	loctab[u] = loctab[loctop - 1];
+    {   assert(u < loctop);
+        loctab[u] = loctab[loctop - 1];
     }
     loctop--;
 }
@@ -599,127 +599,127 @@ STATIC int local_getflags(elem *e,symbol *s)
 
     elem_debug(e);
     if (s)
-	symbol_debug(s);
+        symbol_debug(s);
     flags = 0;
     while (1)
     {
-	if (e->Ety & mTYvolatile)
-	    flags |= LFvolatile;
-	switch (e->Eoper)
-	{
-	    case OPeq:
-	    case OPstreq:
-		if (e->E1->Eoper == OPvar)
-		{   symbol *s1;
+        if (e->Ety & mTYvolatile)
+            flags |= LFvolatile;
+        switch (e->Eoper)
+        {
+            case OPeq:
+            case OPstreq:
+                if (e->E1->Eoper == OPvar)
+                {   symbol *s1;
 
-		    s1 = e->E1->EV.sp.Vsym;
-		    if (s1->Sflags & SFLunambig)
-			flags |= (s1 == s) ? LFsymdef : LFunambigdef;
-		    else
-			flags |= LFambigdef;
-		}
-		else
-		    flags |= LFambigdef;
-		goto L1;
+                    s1 = e->E1->EV.sp.Vsym;
+                    if (s1->Sflags & SFLunambig)
+                        flags |= (s1 == s) ? LFsymdef : LFunambigdef;
+                    else
+                        flags |= LFambigdef;
+                }
+                else
+                    flags |= LFambigdef;
+                goto L1;
 
-	    case OPpostinc:
-	    case OPpostdec:
-	    case OPaddass:
-	    case OPminass:
-	    case OPmulass:
-	    case OPdivass:
-	    case OPmodass:
-	    case OPashrass:
-	    case OPshrass:
-	    case OPshlass:
-	    case OPandass:
-	    case OPxorass:
-	    case OPorass:
-		if (e->E1->Eoper == OPvar)
-		{   symbol *s1;
+            case OPpostinc:
+            case OPpostdec:
+            case OPaddass:
+            case OPminass:
+            case OPmulass:
+            case OPdivass:
+            case OPmodass:
+            case OPashrass:
+            case OPshrass:
+            case OPshlass:
+            case OPandass:
+            case OPxorass:
+            case OPorass:
+                if (e->E1->Eoper == OPvar)
+                {   symbol *s1;
 
-		    s1 = e->E1->EV.sp.Vsym;
-		    if (s1->Sflags & SFLunambig)
-			flags |= (s1 == s) ? LFsymdef | LFsymref
-					   : LFunambigdef | LFunambigref;
-		    else
-			flags |= LFambigdef | LFambigref;
-		}
-		else
-		    flags |= LFambigdef | LFambigref;
-	    L1:
-		flags |= local_getflags(e->E2,s);
-		e = e->E1;
-		break;
+                    s1 = e->E1->EV.sp.Vsym;
+                    if (s1->Sflags & SFLunambig)
+                        flags |= (s1 == s) ? LFsymdef | LFsymref
+                                           : LFunambigdef | LFunambigref;
+                    else
+                        flags |= LFambigdef | LFambigref;
+                }
+                else
+                    flags |= LFambigdef | LFambigref;
+            L1:
+                flags |= local_getflags(e->E2,s);
+                e = e->E1;
+                break;
 
-	    case OPucall:
-	    case OPucallns:
-	    case OPcall:
-	    case OPcallns:
-	    case OPnewarray:
-	    case OPmultinewarray:
+            case OPucall:
+            case OPucallns:
+            case OPcall:
+            case OPcallns:
+            case OPnewarray:
+            case OPmultinewarray:
 #if TX86
-	    case OPstrcat:
-	    case OPstrcpy:
-	    case OPmemcpy:
-	    case OPbtc:
-	    case OPbtr:
-	    case OPbts:
+            case OPstrcat:
+            case OPstrcpy:
+            case OPmemcpy:
+            case OPbtc:
+            case OPbtr:
+            case OPbts:
 #endif
-	    case OPstrctor:
-		flags |= LFambigref | LFambigdef;
-		break;
-
-#if TX86
-	    case OPmemset:
-		flags |= LFambigdef;
-		break;
-#endif
-
-	    case OPvar:
-		if (e->EV.sp.Vsym == s)
-		    flags |= LFsymref;
-		else if (!(e->EV.sp.Vsym->Sflags & SFLunambig))
-		    flags |= LFambigref;
-		break;
-
-	    case OPind:
-	    case OParray:
-	    case OPfield:
-#if TX86
-	    case OPstrlen:
-	    case OPstrcmp:
-	    case OPmemcmp:
-	    case OPbt:
-#endif
-		flags |= LFambigref;
-		break;
+            case OPstrctor:
+                flags |= LFambigref | LFambigdef;
+                break;
 
 #if TX86
-	    case OPinp:
-		flags |= LFinp;
-		break;
-
-	    case OPoutp:
-		flags |= LFoutp;
-		break;
+            case OPmemset:
+                flags |= LFambigdef;
+                break;
 #endif
-	}
-	if (EUNA(e))
-	{
-	    if (tyfloating(e->Ety))
-		flags |= LFfloat;
-	    e = e->E1;
-	}
-	else if (EBIN(e))
-	{
-	    if (tyfloating(e->Ety))
-		flags |= LFfloat;
-	    flags |= local_getflags(e->E2,s);
-	    e = e->E1;
-	}
-	else
-	    break;
+
+            case OPvar:
+                if (e->EV.sp.Vsym == s)
+                    flags |= LFsymref;
+                else if (!(e->EV.sp.Vsym->Sflags & SFLunambig))
+                    flags |= LFambigref;
+                break;
+
+            case OPind:
+            case OParray:
+            case OPfield:
+#if TX86
+            case OPstrlen:
+            case OPstrcmp:
+            case OPmemcmp:
+            case OPbt:
+#endif
+                flags |= LFambigref;
+                break;
+
+#if TX86
+            case OPinp:
+                flags |= LFinp;
+                break;
+
+            case OPoutp:
+                flags |= LFoutp;
+                break;
+#endif
+        }
+        if (EUNA(e))
+        {
+            if (tyfloating(e->Ety))
+                flags |= LFfloat;
+            e = e->E1;
+        }
+        else if (EBIN(e))
+        {
+            if (tyfloating(e->Ety))
+                flags |= LFfloat;
+            flags |= local_getflags(e->E2,s);
+            e = e->E1;
+        }
+        else
+            break;
     }
     return flags;
 }
@@ -733,10 +733,10 @@ STATIC void local_remove(int flags)
 
     for (u = 0; u < loctop;)
     {
-	if (loctab[u].flags & flags)
-	    local_rem(u);
-	else
-	    u++;
+        if (loctab[u].flags & flags)
+            local_rem(u);
+        else
+            u++;
     }
 }
 
@@ -749,10 +749,10 @@ STATIC void local_ambigref()
 
     for (u = 0; u < loctop;)
     {
-	if (loctab[u].flags & LFambigdef)
-	    local_rem(u);
-	else
-	    u++;
+        if (loctab[u].flags & LFambigdef)
+            local_rem(u);
+        else
+            u++;
     }
 }
 
@@ -765,10 +765,10 @@ STATIC void local_ambigdef()
 
     for (u = 0; u < loctop;)
     {
-	if (loctab[u].flags & (LFambigref | LFambigdef))
-	    local_rem(u);
-	else
-	    u++;
+        if (loctab[u].flags & (LFambigref | LFambigdef))
+            local_rem(u);
+        else
+            u++;
     }
 }
 
@@ -782,10 +782,10 @@ STATIC void local_symref(symbol *s)
     symbol_debug(s);
     for (u = 0; u < loctop;)
     {
-	if (local_getflags(loctab[u].e,s) & LFsymdef)
-	    local_rem(u);
-	else
-	    u++;
+        if (local_getflags(loctab[u].e,s) & LFsymdef)
+            local_rem(u);
+        else
+            u++;
     }
 }
 
@@ -799,10 +799,10 @@ STATIC void local_symdef(symbol *s)
     symbol_debug(s);
     for (u = 0; u < loctop;)
     {
-	if (local_getflags(loctab[u].e,s) & (LFsymref | LFsymdef))
-	    local_rem(u);
-	else
-	    u++;
+        if (local_getflags(loctab[u].e,s) & (LFsymref | LFsymdef))
+            local_rem(u);
+        else
+            u++;
     }
 }
 

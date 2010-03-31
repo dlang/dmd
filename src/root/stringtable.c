@@ -32,7 +32,7 @@ StringTable::~StringTable()
     // Zero out dangling pointers to help garbage collector.
     // Should zero out StringEntry's too.
     for (i = 0; i < count; i++)
-	table[i] = NULL;
+        table[i] = NULL;
 
     mem.free(table);
     table = NULL;
@@ -74,21 +74,21 @@ void **StringTable::search(const dchar *s, unsigned len)
     //printf("\thash = %d, u = %d\n",hash,u);
     while (*se)
     {
-	cmp = (*se)->hash - hash;
-	if (cmp == 0)
-	{
-	    cmp = (*se)->value.lstring.len() - len;
-	    if (cmp == 0)
-	    {
-		cmp = Dchar::memcmp(s,(*se)->value.lstring.toDchars(),len);
-		if (cmp == 0)
-		    break;
-	    }
-	}
-	if (cmp < 0)
-	    se = &(*se)->left;
-	else
-	    se = &(*se)->right;
+        cmp = (*se)->hash - hash;
+        if (cmp == 0)
+        {
+            cmp = (*se)->value.lstring.len() - len;
+            if (cmp == 0)
+            {
+                cmp = Dchar::memcmp(s,(*se)->value.lstring.toDchars(),len);
+                if (cmp == 0)
+                    break;
+            }
+        }
+        if (cmp < 0)
+            se = &(*se)->left;
+        else
+            se = &(*se)->right;
     }
     //printf("\treturn %p, %p\n",se, (*se));
     return (void **)se;
@@ -99,9 +99,9 @@ StringValue *StringTable::lookup(const dchar *s, unsigned len)
 
     se = *(StringEntry **)search(s,len);
     if (se)
-	return &se->value;
+        return &se->value;
     else
-	return NULL;
+        return NULL;
 }
 
 StringValue *StringTable::update(const dchar *s, unsigned len)
@@ -110,10 +110,10 @@ StringValue *StringTable::update(const dchar *s, unsigned len)
 
     pse = (StringEntry **)search(s,len);
     se = *pse;
-    if (!se)			// not in table: so create new entry
+    if (!se)                    // not in table: so create new entry
     {
-	se = StringEntry::alloc(s, len);
-	*pse = se;
+        se = StringEntry::alloc(s, len);
+        *pse = se;
     }
     return &se->value;
 }
@@ -125,11 +125,11 @@ StringValue *StringTable::insert(const dchar *s, unsigned len)
     pse = (StringEntry **)search(s,len);
     se = *pse;
     if (se)
-	return NULL;		// error: already in table
+        return NULL;            // error: already in table
     else
     {
-	se = StringEntry::alloc(s, len);
-	*pse = se;
+        se = StringEntry::alloc(s, len);
+        *pse = se;
     }
     return &se->value;
 }

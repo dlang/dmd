@@ -49,7 +49,7 @@ void Library::setFilename(char *dir, char *filename)
         arg = fn->toChars();
     }
     if (!FileName::absolute(arg))
-	arg = FileName::combine(dir, arg);
+        arg = FileName::combine(dir, arg);
     FileName *libfilename = FileName::defaultExt(arg, global.lib_ext);
 
     libfile = new File(libfilename);
@@ -58,7 +58,7 @@ void Library::setFilename(char *dir, char *filename)
 void Library::write()
 {
     if (global.params.verbose)
-	printf("library   %s\n", libfile->name->toChars());
+        printf("library   %s\n", libfile->name->toChars());
 
     OutBuffer libbuf;
     WriteLibToBuffer(&libbuf);
@@ -90,62 +90,62 @@ void Library::addLibrary(void *buf, size_t buflen)
  * Record types:
  */
 
-#define RHEADR	0x6E
-#define REGINT	0x70
-#define REDATA	0x72
-#define RIDATA	0x74
-#define OVLDEF	0x76
-#define ENDREC	0x78
-#define BLKDEF	0x7A
-#define BLKEND	0x7C
-#define DEBSYM	0x7E
-#define THEADR	0x80
-#define LHEADR	0x82
-#define PEDATA	0x84
-#define PIDATA	0x86
-#define COMENT	0x88
-#define MODEND	0x8A
-#define M386END 0x8B	/* 32 bit module end record */
-#define EXTDEF	0x8C
-#define TYPDEF	0x8E
-#define PUBDEF	0x90
-#define PUB386	0x91
-#define LOCSYM	0x92
-#define LINNUM	0x94
-#define LNAMES	0x96
-#define SEGDEF	0x98
-#define GRPDEF	0x9A
-#define FIXUPP	0x9C
-/*#define (none)	0x9E	*/
-#define LEDATA	0xA0
-#define LIDATA	0xA2
-#define LIBHED	0xA4
-#define LIBNAM	0xA6
-#define LIBLOC	0xA8
-#define LIBDIC	0xAA
-#define COMDEF	0xB0
-#define LEXTDEF	0xB4
-#define LPUBDEF	0xB6
-#define LCOMDEF	0xB8
-#define CEXTDEF	0xBC
-#define COMDAT	0xC2
-#define LINSYM	0xC4
-#define ALIAS	0xC6
-#define LLNAMES	0xCA
+#define RHEADR  0x6E
+#define REGINT  0x70
+#define REDATA  0x72
+#define RIDATA  0x74
+#define OVLDEF  0x76
+#define ENDREC  0x78
+#define BLKDEF  0x7A
+#define BLKEND  0x7C
+#define DEBSYM  0x7E
+#define THEADR  0x80
+#define LHEADR  0x82
+#define PEDATA  0x84
+#define PIDATA  0x86
+#define COMENT  0x88
+#define MODEND  0x8A
+#define M386END 0x8B    /* 32 bit module end record */
+#define EXTDEF  0x8C
+#define TYPDEF  0x8E
+#define PUBDEF  0x90
+#define PUB386  0x91
+#define LOCSYM  0x92
+#define LINNUM  0x94
+#define LNAMES  0x96
+#define SEGDEF  0x98
+#define GRPDEF  0x9A
+#define FIXUPP  0x9C
+/*#define (none)        0x9E    */
+#define LEDATA  0xA0
+#define LIDATA  0xA2
+#define LIBHED  0xA4
+#define LIBNAM  0xA6
+#define LIBLOC  0xA8
+#define LIBDIC  0xAA
+#define COMDEF  0xB0
+#define LEXTDEF 0xB4
+#define LPUBDEF 0xB6
+#define LCOMDEF 0xB8
+#define CEXTDEF 0xBC
+#define COMDAT  0xC2
+#define LINSYM  0xC4
+#define ALIAS   0xC6
+#define LLNAMES 0xCA
 
 
-#define LIBIDMAX (512 - 0x25 - 3 - 4)	// max size that will fit in dictionary
+#define LIBIDMAX (512 - 0x25 - 3 - 4)   // max size that will fit in dictionary
 
 
 struct ObjModule
 {
-    unsigned char *base;	// where are we holding it in memory
-    unsigned length;		// in bytes
-    unsigned short page;	// page module starts in output file
+    unsigned char *base;        // where are we holding it in memory
+    unsigned length;            // in bytes
+    unsigned short page;        // page module starts in output file
     unsigned char flags;
-#define MFgentheadr	1	// generate THEADR record
-#define MFtheadr	2	// module name comes from THEADR record
-    char *name;			// module name
+#define MFgentheadr     1       // generate THEADR record
+#define MFtheadr        2       // module name comes from THEADR record
+    char *name;                 // module name
 };
 
 static void parseName(unsigned char **pp, char *name)
@@ -156,7 +156,7 @@ static void parseName(unsigned char **pp, char *name)
     {
         len = p[1] & 0xFF;
         len |= (unsigned)p[2] << 8;
-	p += 3;
+        p += 3;
         assert(len <= LIBIDMAX);
     }
     memcpy(name, p, len);
@@ -181,23 +181,23 @@ void Library::addSymbol(ObjModule *om, char *name, int pickAny)
 #endif
     StringValue *s = tab.insert(name, strlen(name));
     if (!s)
-    {	// already in table
-	if (!pickAny)
-	{   s = tab.lookup(name, strlen(name));
-	    assert(s);
-	    ObjSymbol *os = (ObjSymbol *)s->ptrvalue;
-	    error("multiple definition of %s: %s and %s: %s",
-		om->name, name, os->om->name, os->name);
-	}
+    {   // already in table
+        if (!pickAny)
+        {   s = tab.lookup(name, strlen(name));
+            assert(s);
+            ObjSymbol *os = (ObjSymbol *)s->ptrvalue;
+            error("multiple definition of %s: %s and %s: %s",
+                om->name, name, os->om->name, os->name);
+        }
     }
     else
     {
-	ObjSymbol *os = new ObjSymbol();
-	os->name = strdup(name);
-	os->om = om;
-	s->ptrvalue = (void *)os;
+        ObjSymbol *os = new ObjSymbol();
+        os->name = strdup(name);
+        os->om = om;
+        s->ptrvalue = (void *)os;
 
-	objsymbols.push(os);
+        objsymbols.push(os);
     }
 }
 
@@ -213,141 +213,141 @@ void Library::scanObjModule(ObjModule *om)
     char name[LIBIDMAX + 1];
 
     Array names;
-    names.push(NULL);		// don't use index 0
+    names.push(NULL);           // don't use index 0
 
     assert(om);
-    easyomf = 0;				// assume not EASY-OMF
+    easyomf = 0;                                // assume not EASY-OMF
     unsigned char *pend = om->base + om->length;
 
     unsigned char *pnext;
     for (unsigned char *p = om->base; 1; p = pnext)
     {
-	assert(p < pend);
-	unsigned char recTyp = *p++;
-	unsigned short recLen = *(unsigned short *)p;
-	p += 2;
-	pnext = p + recLen;
-	recLen--;				// forget the checksum
+        assert(p < pend);
+        unsigned char recTyp = *p++;
+        unsigned short recLen = *(unsigned short *)p;
+        p += 2;
+        pnext = p + recLen;
+        recLen--;                               // forget the checksum
 
-	switch (recTyp)
-	{
-	    case LNAMES:
-	    case LLNAMES:
-		while (p + 1 < pnext)
-		{
-		    parseName(&p, name);
-		    names.push(strdup(name));
-		}
-		break;
+        switch (recTyp)
+        {
+            case LNAMES:
+            case LLNAMES:
+                while (p + 1 < pnext)
+                {
+                    parseName(&p, name);
+                    names.push(strdup(name));
+                }
+                break;
 
-	    case PUBDEF:
-		if (easyomf)
-		    recTyp = PUB386;		// convert to MS format
-	    case PUB386:
-		if (!(parseIdx(&p) | parseIdx(&p)))
-		    p += 2;			// skip seg, grp, frame
-		while (p + 1 < pnext)
-		{
-		    parseName(&p, name);
-		    p += (recTyp == PUBDEF) ? 2 : 4;	// skip offset
-		    parseIdx(&p);				// skip type index
-		    addSymbol(om, name);
-		}
-		break;
+            case PUBDEF:
+                if (easyomf)
+                    recTyp = PUB386;            // convert to MS format
+            case PUB386:
+                if (!(parseIdx(&p) | parseIdx(&p)))
+                    p += 2;                     // skip seg, grp, frame
+                while (p + 1 < pnext)
+                {
+                    parseName(&p, name);
+                    p += (recTyp == PUBDEF) ? 2 : 4;    // skip offset
+                    parseIdx(&p);                               // skip type index
+                    addSymbol(om, name);
+                }
+                break;
 
-	    case COMDAT:
-		if (easyomf)
-		    recTyp = COMDAT+1;		// convert to MS format
-	    case COMDAT+1:
-		int pickAny = 0;
+            case COMDAT:
+                if (easyomf)
+                    recTyp = COMDAT+1;          // convert to MS format
+            case COMDAT+1:
+                int pickAny = 0;
 
-		if (*p++ & 5)		// if continuation or local comdat
-		    break;
+                if (*p++ & 5)           // if continuation or local comdat
+                    break;
 
-		unsigned char attr = *p++;
-		if (attr & 0xF0)	// attr: if multiple instances allowed
-		    pickAny = 1;
-		p++;			// align
+                unsigned char attr = *p++;
+                if (attr & 0xF0)        // attr: if multiple instances allowed
+                    pickAny = 1;
+                p++;                    // align
 
-		p += 2;			// enum data offset
-		if (recTyp == COMDAT+1)
-		    p += 2;			// enum data offset
+                p += 2;                 // enum data offset
+                if (recTyp == COMDAT+1)
+                    p += 2;                     // enum data offset
 
-		parseIdx(&p);			// type index
+                parseIdx(&p);                   // type index
 
-		if ((attr & 0x0F) == 0)	// if explicit allocation
-		{   parseIdx(&p);		// base group
-		    parseIdx(&p);		// base segment
-		}
+                if ((attr & 0x0F) == 0) // if explicit allocation
+                {   parseIdx(&p);               // base group
+                    parseIdx(&p);               // base segment
+                }
 
-		unsigned idx = parseIdx(&p);	// public name index
-		if( idx == 0 || idx >= names.dim)
-		{
-		    //debug(printf("[s] name idx=%d, uCntNames=%d\n", idx, uCntNames));
-		    error("corrupt COMDAT");
-		    return;
-		}
+                unsigned idx = parseIdx(&p);    // public name index
+                if( idx == 0 || idx >= names.dim)
+                {
+                    //debug(printf("[s] name idx=%d, uCntNames=%d\n", idx, uCntNames));
+                    error("corrupt COMDAT");
+                    return;
+                }
 
-		//printf("[s] name='%s'\n",name);
-		addSymbol(om, (char *)names.data[idx],pickAny);
-		break;
+                //printf("[s] name='%s'\n",name);
+                addSymbol(om, (char *)names.data[idx],pickAny);
+                break;
 
-	    case ALIAS:
-		while (p + 1 < pnext)
-		{
-		    parseName(&p, name);
-		    addSymbol(om, name);
-		    parseName(&p, name);
-		}
-		break;
+            case ALIAS:
+                while (p + 1 < pnext)
+                {
+                    parseName(&p, name);
+                    addSymbol(om, name);
+                    parseName(&p, name);
+                }
+                break;
 
-	    case MODEND:
-	    case M386END:
-		result = 1;
-		goto Ret;
+            case MODEND:
+            case M386END:
+                result = 1;
+                goto Ret;
 
-	    case COMENT:
-		// Recognize Phar Lap EASY-OMF format
-		{   static unsigned char omfstr[7] =
-			{0x80,0xAA,'8','0','3','8','6'};
+            case COMENT:
+                // Recognize Phar Lap EASY-OMF format
+                {   static unsigned char omfstr[7] =
+                        {0x80,0xAA,'8','0','3','8','6'};
 
-		    if (recLen == sizeof(omfstr))
-		    {
-			for (unsigned i = 0; i < sizeof(omfstr); i++)
-			    if (*p++ != omfstr[i])
-				goto L1;
-			easyomf = 1;
-			break;
-		    L1:	;
-		    }
-		}
-		// Recognize .IMPDEF Import Definition Records
-		{   static unsigned char omfstr[] =
-			{0,0xA0,1};
+                    if (recLen == sizeof(omfstr))
+                    {
+                        for (unsigned i = 0; i < sizeof(omfstr); i++)
+                            if (*p++ != omfstr[i])
+                                goto L1;
+                        easyomf = 1;
+                        break;
+                    L1: ;
+                    }
+                }
+                // Recognize .IMPDEF Import Definition Records
+                {   static unsigned char omfstr[] =
+                        {0,0xA0,1};
 
-		    if (recLen >= 7)
-		    {
-			p++;
-			for (unsigned i = 1; i < sizeof(omfstr); i++)
-			    if (*p++ != omfstr[i])
-				goto L2;
-			p++;		// skip OrdFlag field
-			parseName(&p, name);
-			addSymbol(om, name);
-			break;
-		    L2:	;
-		    }
-		}
-		break;
+                    if (recLen >= 7)
+                    {
+                        p++;
+                        for (unsigned i = 1; i < sizeof(omfstr); i++)
+                            if (*p++ != omfstr[i])
+                                goto L2;
+                        p++;            // skip OrdFlag field
+                        parseName(&p, name);
+                        addSymbol(om, name);
+                        break;
+                    L2: ;
+                    }
+                }
+                break;
 
-	    default:
-		// ignore 
-		;
-	}
+            default:
+                // ignore
+                ;
+        }
     }
 Ret:
     for (u = 1; u < names.dim; u++)
-	free(names.data[u]);
+        free(names.data[u]);
 }
 
 /***************************************
@@ -363,13 +363,13 @@ void Library::addObject(const char *module_name, void *buf, size_t buflen)
     printf("Library::addObject(%s)\n", module_name ? module_name : "");
 #endif
     if (!buf)
-    {	assert(module_name);
-	FileName f((char *)module_name, 0);
-	File file(&f);
-	file.readv();
-	buf = file.buffer;
-	buflen = file.len;
-	file.ref = 1;
+    {   assert(module_name);
+        FileName f((char *)module_name, 0);
+        File file(&f);
+        file.readv();
+        buf = file.buffer;
+        buflen = file.len;
+        file.ref = 1;
     }
 
     unsigned g_page_size;
@@ -383,11 +383,11 @@ void Library::addObject(const char *module_name, void *buf, size_t buflen)
     #pragma pack(1)
     struct LibHeader
     {
-	unsigned char       recTyp;      // 0xF0
-	unsigned short      pagesize;
-	long                lSymSeek;
-	unsigned short      ndicpages;
-	unsigned char       flags;
+        unsigned char       recTyp;      // 0xF0
+        unsigned short      pagesize;
+        long                lSymSeek;
+        unsigned short      ndicpages;
+        unsigned char       flags;
     };
     #pragma pack()
 
@@ -397,29 +397,29 @@ void Library::addObject(const char *module_name, void *buf, size_t buflen)
     if (buflen < sizeof(LibHeader))
     {
       Lcorrupt:
-	error("corrupt object module");
+        error("corrupt object module");
     }
     LibHeader *lh = (LibHeader *)buf;
     if (lh->recTyp == 0xF0)
-    {	/* OMF library
-	 * The modules are all at buf[g_page_size .. lh->lSymSeek]
-	 */
-	islibrary = 1;
-	g_page_size = lh->pagesize + 3;
-	buf = (void *)(pstart + g_page_size);
-	if (lh->lSymSeek > buflen ||
-	    g_page_size > buflen)
-	    goto Lcorrupt;
-	buflen = lh->lSymSeek - g_page_size;
+    {   /* OMF library
+         * The modules are all at buf[g_page_size .. lh->lSymSeek]
+         */
+        islibrary = 1;
+        g_page_size = lh->pagesize + 3;
+        buf = (void *)(pstart + g_page_size);
+        if (lh->lSymSeek > buflen ||
+            g_page_size > buflen)
+            goto Lcorrupt;
+        buflen = lh->lSymSeek - g_page_size;
     }
     else if (lh->recTyp == '!' && memcmp(lh, "!<arch>\n", 8) == 0)
     {
-	error("COFF libraries not supported");
-	return;
+        error("COFF libraries not supported");
+        return;
     }
     else
-    {	// Not a library, assume OMF object module
-	g_page_size = 16;
+    {   // Not a library, assume OMF object module
+        g_page_size = 16;
     }
 
     /* Split up the buffer buf[0..buflen] into multiple object modules,
@@ -427,81 +427,81 @@ void Library::addObject(const char *module_name, void *buf, size_t buflen)
      */
 
     ObjModule *om = NULL;
-    int first_module	= 1;
+    int first_module    = 1;
 
     unsigned char *p = (unsigned char *)buf;
     unsigned char *pend = p + buflen;
     unsigned char *pnext;
-    for (; p < pend; p = pnext)		// for each OMF record
+    for (; p < pend; p = pnext)         // for each OMF record
     {
-	if (p + 3 >= pend)
-	    goto Lcorrupt;
-	unsigned char recTyp = *p;
-	unsigned short recLen = *(unsigned short *)(p + 1);
-	pnext = p + 3 + recLen;
-	if (pnext > pend)
-	    goto Lcorrupt;
-	recLen--;                          /* forget the checksum */
+        if (p + 3 >= pend)
+            goto Lcorrupt;
+        unsigned char recTyp = *p;
+        unsigned short recLen = *(unsigned short *)(p + 1);
+        pnext = p + 3 + recLen;
+        if (pnext > pend)
+            goto Lcorrupt;
+        recLen--;                          /* forget the checksum */
 
-	switch (recTyp)
-	{
-	    case LHEADR :
-	    case THEADR :
-		if (!om)
-		{   char name[LIBIDMAX + 1];
-		    om = new ObjModule();
-		    om->flags = 0;
-		    om->base = p;
-		    p += 3;
-		    parseName(&p, name);
-		    if (first_module && module_name && !islibrary)
-		    {	// Remove path and extension
-			om->name = strdup(FileName::name(module_name));
-			char *ext = FileName::ext(om->name);
-			if (ext)
-			    ext[-1] = 0;
-		    }
-		    else
-		    {	/* Use THEADR name as module name,
-			 * removing path and extension.
-			 */
-			om->name = strdup(FileName::name(name));
-			char *ext = FileName::ext(om->name);
-			if (ext)
-			    ext[-1] = 0;
-			
-			om->flags |= MFtheadr;
-		    }
-		    if (strcmp(name, "C") == 0)	   // old C compilers did this
-		    {	om->flags |= MFgentheadr;  // generate our own THEADR
-			om->base = pnext;	   // skip past THEADR
-		    }
-		    objmodules.push(om);
-		    first_module = 0;
-		}
-		break;
+        switch (recTyp)
+        {
+            case LHEADR :
+            case THEADR :
+                if (!om)
+                {   char name[LIBIDMAX + 1];
+                    om = new ObjModule();
+                    om->flags = 0;
+                    om->base = p;
+                    p += 3;
+                    parseName(&p, name);
+                    if (first_module && module_name && !islibrary)
+                    {   // Remove path and extension
+                        om->name = strdup(FileName::name(module_name));
+                        char *ext = FileName::ext(om->name);
+                        if (ext)
+                            ext[-1] = 0;
+                    }
+                    else
+                    {   /* Use THEADR name as module name,
+                         * removing path and extension.
+                         */
+                        om->name = strdup(FileName::name(name));
+                        char *ext = FileName::ext(om->name);
+                        if (ext)
+                            ext[-1] = 0;
 
-	    case MODEND :
-	    case M386END:
-		if (om)
-		{   om->page = (om->base - pstart) / g_page_size;
-		    om->length = pnext - om->base;
-		    om = NULL;
-		}
-		// Round up to next page
-		unsigned t = pnext - pstart;
-		t = (t + g_page_size - 1) & ~(unsigned)(g_page_size - 1);
-		pnext = pstart + t;
-		break;
+                        om->flags |= MFtheadr;
+                    }
+                    if (strcmp(name, "C") == 0)    // old C compilers did this
+                    {   om->flags |= MFgentheadr;  // generate our own THEADR
+                        om->base = pnext;          // skip past THEADR
+                    }
+                    objmodules.push(om);
+                    first_module = 0;
+                }
+                break;
 
-	    default:
-		// ignore 
-		;
-	}
+            case MODEND :
+            case M386END:
+                if (om)
+                {   om->page = (om->base - pstart) / g_page_size;
+                    om->length = pnext - om->base;
+                    om = NULL;
+                }
+                // Round up to next page
+                unsigned t = pnext - pstart;
+                t = (t + g_page_size - 1) & ~(unsigned)(g_page_size - 1);
+                pnext = pstart + t;
+                break;
+
+            default:
+                // ignore
+                ;
+        }
     }
 
     if (om)
-	goto Lcorrupt;		// missing MODEND record
+        goto Lcorrupt;          // missing MODEND record
 }
 
 
@@ -523,35 +523,35 @@ extern "C" int NameCompare(ObjSymbol **p1, ObjSymbol **p2)
 /***********************************
  * Calculates number of pages needed for dictionary
  * Returns:
- *	number of pages
+ *      number of pages
  */
 
 unsigned short Library::numDictPages(unsigned padding)
 {
-    unsigned short	ndicpages;
-    unsigned short	bucksForHash;
-    unsigned short	bucksForSize;
+    unsigned short      ndicpages;
+    unsigned short      bucksForHash;
+    unsigned short      bucksForSize;
     unsigned symSize = 0;
 
     for (int i = 0; i < objsymbols.dim; i++)
-    {	ObjSymbol *s = (ObjSymbol *)objsymbols.data[i];
+    {   ObjSymbol *s = (ObjSymbol *)objsymbols.data[i];
 
-	symSize += ( strlen(s->name) + 4 ) & ~1;
+        symSize += ( strlen(s->name) + 4 ) & ~1;
     }
 
     for (int i = 0; i < objmodules.dim; i++)
-    {	ObjModule *om = (ObjModule *)objmodules.data[i];
+    {   ObjModule *om = (ObjModule *)objmodules.data[i];
 
-	size_t len = strlen(om->name);
-	if (len > 0xFF)
-	    len += 2;			// Digital Mars long name extension
-	symSize += ( len + 4 + 1 ) & ~1;
+        size_t len = strlen(om->name);
+        if (len > 0xFF)
+            len += 2;                   // Digital Mars long name extension
+        symSize += ( len + 4 + 1 ) & ~1;
     }
 
     bucksForHash = (objsymbols.dim + objmodules.dim + HASHMOD - 3) /
-		(HASHMOD - 2);
+                (HASHMOD - 2);
     bucksForSize = (symSize + BUCKETSIZE - padding - padding - 1) /
-		(BUCKETSIZE - padding);
+                (BUCKETSIZE - padding);
 
     ndicpages = (bucksForHash > bucksForSize ) ? bucksForHash : bucksForSize;
     //printf("ndicpages = %u\n",ndicpages);
@@ -573,31 +573,31 @@ unsigned short Library::numDictPages(unsigned padding)
 
     for (int i = 0; 1; i++)
     {
-	if ( primes[i] == 0 )
-	{   // Quick and easy way is out.
-	    // Now try and find first prime number > ndicpages
-	    unsigned prime;
+        if ( primes[i] == 0 )
+        {   // Quick and easy way is out.
+            // Now try and find first prime number > ndicpages
+            unsigned prime;
 
-	    for (prime = (ndicpages + 1) | 1; 1; prime += 2)
-	    {   // Determine if prime is prime
-		for (unsigned u = 3; u < prime / 2; u += 2)
-		{
-		    if ((prime / u) * u == prime)
-			goto L1;
-		}
-		break;
+            for (prime = (ndicpages + 1) | 1; 1; prime += 2)
+            {   // Determine if prime is prime
+                for (unsigned u = 3; u < prime / 2; u += 2)
+                {
+                    if ((prime / u) * u == prime)
+                        goto L1;
+                }
+                break;
 
-	    L1: ;
-	    }
-	    ndicpages = prime;
-	    break;
-	}
+            L1: ;
+            }
+            ndicpages = prime;
+            break;
+        }
 
-	if (primes[i] > ndicpages)
-	{
-	    ndicpages = primes[i];
-	    break;
-	}
+        if (primes[i] > ndicpages)
+        {
+            ndicpages = primes[i];
+            break;
+        }
     }
 
     return ndicpages;
@@ -607,48 +607,48 @@ unsigned short Library::numDictPages(unsigned padding)
 /*******************************************
  * Write a single entry into dictionary.
  * Returns:
- *	0	failure
+ *      0       failure
  */
 
 static int EnterDict( unsigned char *bucketsP, unsigned short ndicpages, unsigned char *entry, unsigned entrylen )
 {
-    unsigned short	uStartIndex;
-    unsigned short	uStep;
-    unsigned short	uStartPage;
-    unsigned short	uPageStep;
-    unsigned short	uIndex;
-    unsigned short	uPage;
-    unsigned short	n;
-    unsigned		u;
-    unsigned		nbytes;
-    unsigned char	*aP;
-    unsigned char	*zP;
+    unsigned short      uStartIndex;
+    unsigned short      uStep;
+    unsigned short      uStartPage;
+    unsigned short      uPageStep;
+    unsigned short      uIndex;
+    unsigned short      uPage;
+    unsigned short      n;
+    unsigned            u;
+    unsigned            nbytes;
+    unsigned char       *aP;
+    unsigned char       *zP;
 
     aP = entry;
-    zP = aP + entrylen;		// point at last char in identifier
+    zP = aP + entrylen;         // point at last char in identifier
 
-    uStartPage	= 0;
-    uPageStep	= 0;
-    uStartIndex	= 0;
-    uStep	= 0;
+    uStartPage  = 0;
+    uPageStep   = 0;
+    uStartIndex = 0;
+    uStep       = 0;
 
     u = entrylen;
     while ( u-- )
     {
-	uStartPage  = _rotl( uStartPage,  2 ) ^ ( *aP   | 0x20 );
-	uStep       = _rotr( uStep,	  2 ) ^ ( *aP++ | 0x20 );
-	uStartIndex = _rotr( uStartIndex, 2 ) ^ ( *zP   | 0x20 );
-	uPageStep   = _rotl( uPageStep,	  2 ) ^ ( *zP-- | 0x20 );
+        uStartPage  = _rotl( uStartPage,  2 ) ^ ( *aP   | 0x20 );
+        uStep       = _rotr( uStep,       2 ) ^ ( *aP++ | 0x20 );
+        uStartIndex = _rotr( uStartIndex, 2 ) ^ ( *zP   | 0x20 );
+        uPageStep   = _rotl( uPageStep,   2 ) ^ ( *zP-- | 0x20 );
     }
 
     uStartPage %= ndicpages;
     uPageStep  %= ndicpages;
     if ( uPageStep == 0 )
-	uPageStep++;
+        uPageStep++;
     uStartIndex %= HASHMOD;
-    uStep	%= HASHMOD;
+    uStep       %= HASHMOD;
     if ( uStep == 0 )
-	uStep++;
+        uStep++;
 
     uPage = uStartPage;
     uIndex = uStartIndex;
@@ -656,47 +656,47 @@ static int EnterDict( unsigned char *bucketsP, unsigned short ndicpages, unsigne
     // number of bytes in entry
     nbytes = 1 + entrylen + 2;
     if (entrylen > 255)
-	nbytes += 2;
+        nbytes += 2;
 
     while (1)
     {
-	aP = &bucketsP[uPage * BUCKETPAGE];
-	uStartIndex = uIndex;
-	while (1)
-    	{
-	    if ( 0 == aP[ uIndex ] )
-	    {
-		// n = next available position in this page
-		n = aP[ HASHMOD ] << 1;
-		assert(n > HASHMOD);
+        aP = &bucketsP[uPage * BUCKETPAGE];
+        uStartIndex = uIndex;
+        while (1)
+        {
+            if ( 0 == aP[ uIndex ] )
+            {
+                // n = next available position in this page
+                n = aP[ HASHMOD ] << 1;
+                assert(n > HASHMOD);
 
-		// if off end of this page
-		if (n + nbytes > BUCKETPAGE )
-		{   aP[ HASHMOD ] = 0xFF;
-		    break;			// next page
-		}
-		else
-		{
-		    aP[ uIndex ] = n >> 1;
-		    memcpy( (aP + n), entry, nbytes );
-		    aP[ HASHMOD ] += (nbytes + 1) >> 1;
-		    if (aP[HASHMOD] == 0)
-			aP[HASHMOD] = 0xFF;
-		    return 1;
-		}
-	    }
-	    uIndex += uStep;
-	    uIndex %= 0x25;
-	    /*if (uIndex > 0x25)
-		uIndex -= 0x25;*/
-	    if( uIndex == uStartIndex )
-		break;
-	}
-	uPage += uPageStep;
-	if (uPage >= ndicpages)
-	    uPage -= ndicpages;
-	if( uPage == uStartPage )
-	    break;
+                // if off end of this page
+                if (n + nbytes > BUCKETPAGE )
+                {   aP[ HASHMOD ] = 0xFF;
+                    break;                      // next page
+                }
+                else
+                {
+                    aP[ uIndex ] = n >> 1;
+                    memcpy( (aP + n), entry, nbytes );
+                    aP[ HASHMOD ] += (nbytes + 1) >> 1;
+                    if (aP[HASHMOD] == 0)
+                        aP[HASHMOD] = 0xFF;
+                    return 1;
+                }
+            }
+            uIndex += uStep;
+            uIndex %= 0x25;
+            /*if (uIndex > 0x25)
+                uIndex -= 0x25;*/
+            if( uIndex == uStartIndex )
+                break;
+        }
+        uPage += uPageStep;
+        if (uPage >= ndicpages)
+            uPage -= ndicpages;
+        if( uPage == uStartPage )
+            break;
     }
 
     return 0;
@@ -705,7 +705,7 @@ static int EnterDict( unsigned char *bucketsP, unsigned short ndicpages, unsigne
 /*******************************************
  * Write the module and symbol names to the dictionary.
  * Returns:
- *	0	failure
+ *      0       failure
  */
 
 int Library::FillDict(unsigned char *bucketsP, unsigned short ndicpages)
@@ -716,26 +716,26 @@ int Library::FillDict(unsigned char *bucketsP, unsigned short ndicpages)
 
     // Add each of the module names
     for (int i = 0; i < objmodules.dim; i++)
-    {	ObjModule *om = (ObjModule *)objmodules.data[i];
+    {   ObjModule *om = (ObjModule *)objmodules.data[i];
 
-	unsigned short n = strlen( om->name );
-	if (n > 255)
-	{   entry[0] = 0xFF;
-	    entry[1] = 0;
-	    *(unsigned short *)(entry + 2) = n + 1;
-	    memcpy(entry + 4, om->name, n);
-	    n += 3;
-	}
-	else
-	{   entry[ 0 ] = 1 + n;
-	    memcpy(entry + 1, om->name, n );
-	}
-	entry[ n + 1 ] = '!';
-	*((unsigned short *)( n + 2 + entry )) = om->page;
-	if ( n & 1 )
-	    entry[ n + 2 + 2 ] = 0;
-	if ( !EnterDict( bucketsP, ndicpages, entry, n + 1 ) )
-	    return 0;
+        unsigned short n = strlen( om->name );
+        if (n > 255)
+        {   entry[0] = 0xFF;
+            entry[1] = 0;
+            *(unsigned short *)(entry + 2) = n + 1;
+            memcpy(entry + 4, om->name, n);
+            n += 3;
+        }
+        else
+        {   entry[ 0 ] = 1 + n;
+            memcpy(entry + 1, om->name, n );
+        }
+        entry[ n + 1 ] = '!';
+        *((unsigned short *)( n + 2 + entry )) = om->page;
+        if ( n & 1 )
+            entry[ n + 2 + 2 ] = 0;
+        if ( !EnterDict( bucketsP, ndicpages, entry, n + 1 ) )
+            return 0;
     }
 
     // Sort the symbols
@@ -743,27 +743,27 @@ int Library::FillDict(unsigned char *bucketsP, unsigned short ndicpages)
 
     // Add each of the symbols
     for (int i = 0; i < objsymbols.dim; i++)
-    {	ObjSymbol *os = (ObjSymbol *)objsymbols.data[i];
+    {   ObjSymbol *os = (ObjSymbol *)objsymbols.data[i];
 
-	unsigned short n = strlen( os->name );
-	if (n > 255)
-	{   entry[0] = 0xFF;
-	    entry[1] = 0;
-	    *(unsigned short *)(entry + 2) = n;
-	    memcpy(entry + 4, os->name, n);
-	    n += 3;
-	}
-	else
-	{   entry[ 0 ] = n;
-	    memcpy( entry + 1, os->name, n );
-	}
-	*((unsigned short *)( n + 1 + entry )) = os->om->page;
-	if ( (n & 1) == 0 )
-	    entry[ n + 3] = 0;
-	if ( !EnterDict( bucketsP, ndicpages, entry, n ) )
-	{
-	    return 0;
-	}
+        unsigned short n = strlen( os->name );
+        if (n > 255)
+        {   entry[0] = 0xFF;
+            entry[1] = 0;
+            *(unsigned short *)(entry + 2) = n;
+            memcpy(entry + 4, os->name, n);
+            n += 3;
+        }
+        else
+        {   entry[ 0 ] = n;
+            memcpy( entry + 1, os->name, n );
+        }
+        *((unsigned short *)( n + 1 + entry )) = os->om->page;
+        if ( (n & 1) == 0 )
+            entry[ n + 3] = 0;
+        if ( !EnterDict( bucketsP, ndicpages, entry, n ) )
+        {
+            return 0;
+        }
     }
     return 1;
 }
@@ -772,10 +772,10 @@ int Library::FillDict(unsigned char *bucketsP, unsigned short ndicpages)
 /**********************************************
  * Create and write library to libbuf.
  * The library consists of:
- *	library header
- *	object modules...
- *	dictionary header
- *	dictionary pages...
+ *      library header
+ *      object modules...
+ *      dictionary header
+ *      dictionary pages...
  */
 
 void Library::WriteLibToBuffer(OutBuffer *libbuf)
@@ -786,7 +786,7 @@ void Library::WriteLibToBuffer(OutBuffer *libbuf)
     for (int i = 0; i < objmodules.dim; i++)
     {   ObjModule *om = (ObjModule *)objmodules.data[i];
 
-	scanObjModule(om);
+        scanObjModule(om);
     }
 
     unsigned g_page_size = 16;
@@ -799,40 +799,40 @@ void Library::WriteLibToBuffer(OutBuffer *libbuf)
     {
       Lagain:
 #if LOG
-	printf("g_page_size = %d\n", g_page_size);
+        printf("g_page_size = %d\n", g_page_size);
 #endif
-	unsigned offset = g_page_size;
+        unsigned offset = g_page_size;
 
-	for (int i = 0; i < objmodules.dim; i++)
-	{   ObjModule *om = (ObjModule *)objmodules.data[i];
+        for (int i = 0; i < objmodules.dim; i++)
+        {   ObjModule *om = (ObjModule *)objmodules.data[i];
 
-	    unsigned page = offset / g_page_size;
-	    if (page > 0xFFFF)
-	    {   // Page size is too small, double it and try again
-		g_page_size *= 2;
-		goto Lagain;
-	    }
+            unsigned page = offset / g_page_size;
+            if (page > 0xFFFF)
+            {   // Page size is too small, double it and try again
+                g_page_size *= 2;
+                goto Lagain;
+            }
 
-	    // Write out the object module m
-	    if (om->flags & MFgentheadr)		// if generate THEADR record
-	    {
-		size_t size = strlen(om->name);
-		assert(size <= LIBIDMAX);
+            // Write out the object module m
+            if (om->flags & MFgentheadr)                // if generate THEADR record
+            {
+                size_t size = strlen(om->name);
+                assert(size <= LIBIDMAX);
 
-		offset += size + 5;
-		//offset += om->length - (size + 5);
-		offset += om->length;
-	    }
-	    else
-		offset += om->length;
+                offset += size + 5;
+                //offset += om->length - (size + 5);
+                offset += om->length;
+            }
+            else
+                offset += om->length;
 
-	    // Round the size of the file up to the next page size
-	    // by filling with 0s
-	    unsigned n = (g_page_size - 1) & offset;
-	    if (n)
-		offset += g_page_size - n;
-	}
-	break;
+            // Round the size of the file up to the next page size
+            // by filling with 0s
+            unsigned n = (g_page_size - 1) & offset;
+            if (n)
+                offset += g_page_size - n;
+        }
+        break;
     }
 
 
@@ -844,48 +844,48 @@ void Library::WriteLibToBuffer(OutBuffer *libbuf)
     /* Write each object module into the library
      */
     for (int i = 0; i < objmodules.dim; i++)
-    {	ObjModule *om = (ObjModule *)objmodules.data[i];
+    {   ObjModule *om = (ObjModule *)objmodules.data[i];
 
-	unsigned page = libbuf->offset / g_page_size;
-	assert(page <= 0xFFFF);
-	om->page = page;
+        unsigned page = libbuf->offset / g_page_size;
+        assert(page <= 0xFFFF);
+        om->page = page;
 
-	// Write out the object module om
-	if (om->flags & MFgentheadr)		// if generate THEADR record
-	{
-	    unsigned size = strlen(om->name);
-	    unsigned char header[4 + LIBIDMAX + 1];
+        // Write out the object module om
+        if (om->flags & MFgentheadr)            // if generate THEADR record
+        {
+            unsigned size = strlen(om->name);
+            unsigned char header[4 + LIBIDMAX + 1];
 
-	    header [0] = THEADR;
-	    header [1] = 2 + size;
-	    header [2] = 0;
-	    header [3] = size;
-	    assert(size <= 0xFF - 2);
+            header [0] = THEADR;
+            header [1] = 2 + size;
+            header [2] = 0;
+            header [3] = size;
+            assert(size <= 0xFF - 2);
 
-	    memcpy(4 + header, om->name, size);
+            memcpy(4 + header, om->name, size);
 
-	    // Compute and store record checksum
-	    unsigned n = size + 4;
-	    unsigned char checksum = 0;
-	    unsigned char *p = header;
-	    while (n--)
-	    {	checksum -= *p;
-		p++;
-	    }
-	    *p = checksum;
+            // Compute and store record checksum
+            unsigned n = size + 4;
+            unsigned char checksum = 0;
+            unsigned char *p = header;
+            while (n--)
+            {   checksum -= *p;
+                p++;
+            }
+            *p = checksum;
 
-	    libbuf->write(header, size + 5);
-	    //libbuf->write(om->base, om->length - (size + 5));
-	    libbuf->write(om->base, om->length);
-	}
-	else
-	    libbuf->write(om->base, om->length);
+            libbuf->write(header, size + 5);
+            //libbuf->write(om->base, om->length - (size + 5));
+            libbuf->write(om->base, om->length);
+        }
+        else
+            libbuf->write(om->base, om->length);
 
-	// Round the size of the file up to the next page size
-	// by filling with 0s
-	unsigned n = (g_page_size - 1) & libbuf->offset;
-	if (n)
-	    libbuf->fill0(g_page_size - n);
+        // Round the size of the file up to the next page size
+        // by filling with 0s
+        unsigned n = (g_page_size - 1) & libbuf->offset;
+        if (n)
+            libbuf->fill0(g_page_size - n);
     }
 
     // File offset of start of dictionary
@@ -903,44 +903,44 @@ void Library::WriteLibToBuffer(OutBuffer *libbuf)
     unsigned short padding = 32;
     for (;;)
     {
-	ndicpages = numDictPages(padding);
+        ndicpages = numDictPages(padding);
 
 #if LOG
-	printf("ndicpages = %d\n", ndicpages);
+        printf("ndicpages = %d\n", ndicpages);
 #endif
-	// Allocate dictionary
-	if (bucketsP)
-	    bucketsP = (unsigned char *)realloc(bucketsP, ndicpages * BUCKETPAGE);
-	else
-	    bucketsP = (unsigned char *)malloc(ndicpages * BUCKETPAGE);
-	assert(bucketsP);
-	memset(bucketsP, 0, ndicpages * BUCKETPAGE);
-	for (unsigned u = 0; u < ndicpages; u++)
-	{
-	    // 'next available' slot
-	    bucketsP[u * BUCKETPAGE + HASHMOD] = (HASHMOD + 1) >> 1;
-	}
+        // Allocate dictionary
+        if (bucketsP)
+            bucketsP = (unsigned char *)realloc(bucketsP, ndicpages * BUCKETPAGE);
+        else
+            bucketsP = (unsigned char *)malloc(ndicpages * BUCKETPAGE);
+        assert(bucketsP);
+        memset(bucketsP, 0, ndicpages * BUCKETPAGE);
+        for (unsigned u = 0; u < ndicpages; u++)
+        {
+            // 'next available' slot
+            bucketsP[u * BUCKETPAGE + HASHMOD] = (HASHMOD + 1) >> 1;
+        }
 
-	if (FillDict(bucketsP, ndicpages)) 
-	    break;
-	padding += 16;      // try again with more margins
+        if (FillDict(bucketsP, ndicpages))
+            break;
+        padding += 16;      // try again with more margins
     }
 
     // Write dictionary
     libbuf->write(bucketsP, ndicpages * BUCKETPAGE);
     if (bucketsP)
-	free(bucketsP);
+        free(bucketsP);
 
     // Create library header
     #pragma pack(1)
     struct Libheader
     {
-	unsigned char	recTyp;
-	unsigned short	recLen;
-	long		trailerPosn;
-	unsigned short	ndicpages;
-	unsigned char	flags;
-	char		filler[ 6 ];
+        unsigned char   recTyp;
+        unsigned short  recLen;
+        long            trailerPosn;
+        unsigned short  ndicpages;
+        unsigned char   flags;
+        char            filler[ 6 ];
     };
     #pragma pack()
 
@@ -951,7 +951,7 @@ void Library::WriteLibToBuffer(OutBuffer *libbuf)
     libHeader.trailerPosn = offset + (3 + size);
     libHeader.recLen = g_page_size - 3;
     libHeader.ndicpages = ndicpages;
-    libHeader.flags = 1;		// always case sensitive
+    libHeader.flags = 1;                // always case sensitive
 
     // Write library header at start of buffer
     memcpy(libbuf->data, &libHeader, sizeof(libHeader));

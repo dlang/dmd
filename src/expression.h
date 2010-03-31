@@ -42,7 +42,7 @@ struct ClassDeclaration;
 struct HdrGenState;
 struct BinExp;
 struct InterState;
-struct Symbol;		// back end symbol
+struct Symbol;          // back end symbol
 struct OverloadSet;
 
 enum TOK;
@@ -77,17 +77,17 @@ struct IntRange
 
 struct Expression : Object
 {
-    Loc loc;			// file location
-    enum TOK op;		// handy to minimize use of dynamic_cast
-    Type *type;			// !=NULL means that semantic() has been run
-    int size;			// # of bytes in Expression so we can copy() it
+    Loc loc;                    // file location
+    enum TOK op;                // handy to minimize use of dynamic_cast
+    Type *type;                 // !=NULL means that semantic() has been run
+    int size;                   // # of bytes in Expression so we can copy() it
 
     Expression(Loc loc, enum TOK op, int size);
     Expression *copy();
     virtual Expression *syntaxCopy();
     virtual Expression *semantic(Scope *sc);
 
-    int dyncast() { return DYNCAST_EXPRESSION; }	// kludge for template.isExpression()
+    int dyncast() { return DYNCAST_EXPRESSION; }        // kludge for template.isExpression()
 
     void print();
     char *toChars();
@@ -128,8 +128,8 @@ struct Expression : Object
     virtual void scanForNestedRef(Scope *sc);
 
     virtual Expression *optimize(int result);
-    #define WANTflags	1
-    #define WANTvalue	2
+    #define WANTflags   1
+    #define WANTvalue   2
     #define WANTinterpret 4
 
     virtual Expression *interpret(InterState *istate);
@@ -305,7 +305,7 @@ struct SuperExp : ThisExp
 
 struct NullExp : Expression
 {
-    unsigned char committed;	// !=0 if type is committed
+    unsigned char committed;    // !=0 if type is committed
 
     NullExp(Loc loc, Type *t = NULL);
     Expression *semantic(Scope *sc);
@@ -322,11 +322,11 @@ struct NullExp : Expression
 
 struct StringExp : Expression
 {
-    void *string;	// char, wchar, or dchar data
-    size_t len;		// number of chars, wchars, or dchars
-    unsigned char sz;	// 1: char, 2: wchar, 4: dchar
-    unsigned char committed;	// !=0 if type is committed
-    unsigned char postfix;	// 'c', 'w', 'd'
+    void *string;       // char, wchar, or dchar data
+    size_t len;         // number of chars, wchars, or dchars
+    unsigned char sz;   // 1: char, 2: wchar, 4: dchar
+    unsigned char committed;    // !=0 if type is committed
+    unsigned char postfix;      // 'c', 'w', 'd'
 
     StringExp(Loc loc, char *s);
     StringExp(Loc loc, void *s, size_t len);
@@ -426,13 +426,13 @@ struct AssocArrayLiteralExp : Expression
 
 struct StructLiteralExp : Expression
 {
-    StructDeclaration *sd;		// which aggregate this is for
-    Expressions *elements;	// parallels sd->fields[] with
-				// NULL entries for fields to skip
+    StructDeclaration *sd;              // which aggregate this is for
+    Expressions *elements;      // parallels sd->fields[] with
+                                // NULL entries for fields to skip
 
-    Symbol *sym;		// back end symbol to initialize with literal
-    size_t soffset;		// offset from start of s
-    int fillHoles;		// fill alignment 'holes' with zero
+    Symbol *sym;                // back end symbol to initialize with literal
+    size_t soffset;             // offset from start of s
+    int fillHoles;              // fill alignment 'holes' with zero
 
     StructLiteralExp(Loc loc, StructDeclaration *sd, Expressions *elements);
 
@@ -491,17 +491,17 @@ struct NewExp : Expression
 {
     /* thisexp.new(newargs) newtype(arguments)
      */
-    Expression *thisexp;	// if !NULL, 'this' for class being allocated
-    Expressions *newargs;	// Array of Expression's to call new operator
+    Expression *thisexp;        // if !NULL, 'this' for class being allocated
+    Expressions *newargs;       // Array of Expression's to call new operator
     Type *newtype;
-    Expressions *arguments;	// Array of Expression's
+    Expressions *arguments;     // Array of Expression's
 
-    CtorDeclaration *member;	// constructor function
-    NewDeclaration *allocator;	// allocator function
-    int onstack;		// allocate on stack
+    CtorDeclaration *member;    // constructor function
+    NewDeclaration *allocator;  // allocator function
+    int onstack;                // allocate on stack
 
     NewExp(Loc loc, Expression *thisexp, Expressions *newargs,
-	Type *newtype, Expressions *arguments);
+        Type *newtype, Expressions *arguments);
     Expression *syntaxCopy();
     Expression *semantic(Scope *sc);
     Expression *interpret(InterState *istate);
@@ -520,13 +520,13 @@ struct NewAnonClassExp : Expression
 {
     /* thisexp.new(newargs) class baseclasses { } (arguments)
      */
-    Expression *thisexp;	// if !NULL, 'this' for class being allocated
-    Expressions *newargs;	// Array of Expression's to call new operator
-    ClassDeclaration *cd;	// class being instantiated
-    Expressions *arguments;	// Array of Expression's to call class constructor
+    Expression *thisexp;        // if !NULL, 'this' for class being allocated
+    Expressions *newargs;       // Array of Expression's to call new operator
+    ClassDeclaration *cd;       // class being instantiated
+    Expressions *arguments;     // Array of Expression's to call class constructor
 
     NewAnonClassExp(Loc loc, Expression *thisexp, Expressions *newargs,
-	ClassDeclaration *cd, Expressions *arguments);
+        ClassDeclaration *cd, Expressions *arguments);
     Expression *syntaxCopy();
     Expression *semantic(Scope *sc);
     int checkSideEffect(int flag);
@@ -676,10 +676,10 @@ struct IsExp : Expression
      * is(targ id == tok2)
      */
     Type *targ;
-    Identifier *id;	// can be NULL
-    enum TOK tok;	// ':' or '=='
-    Type *tspec;	// can be NULL
-    enum TOK tok2;	// 'struct', 'union', 'typedef', etc.
+    Identifier *id;     // can be NULL
+    enum TOK tok;       // ':' or '=='
+    Type *tspec;        // can be NULL
+    enum TOK tok2;      // 'struct', 'union', 'typedef', etc.
 
     IsExp(Loc loc, Type *targ, Identifier *id, enum TOK tok, Type *tspec, enum TOK tok2);
     Expression *syntaxCopy();
@@ -706,7 +706,7 @@ struct UnaExp : Expression
     Expression *doInline(InlineDoState *ids);
     Expression *inlineScan(InlineScanState *iss);
 
-    Expression *op_overload(Scope *sc);	// doesn't need to be virtual
+    Expression *op_overload(Scope *sc); // doesn't need to be virtual
 };
 
 struct BinExp : Expression
@@ -798,7 +798,7 @@ struct DotIdExp : UnaExp
 struct DotTemplateExp : UnaExp
 {
     TemplateDeclaration *td;
-    
+
     DotTemplateExp(Loc loc, Expression *e, TemplateDeclaration *td);
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
 };
@@ -847,7 +847,7 @@ struct DelegateExp : UnaExp
 
 struct DotTypeExp : UnaExp
 {
-    Dsymbol *sym;		// symbol that represents a type
+    Dsymbol *sym;               // symbol that represents a type
 
     DotTypeExp(Loc loc, Expression *e, Dsymbol *sym);
     Expression *semantic(Scope *sc);
@@ -857,7 +857,7 @@ struct DotTypeExp : UnaExp
 
 struct CallExp : UnaExp
 {
-    Expressions *arguments;	// function arguments
+    Expressions *arguments;     // function arguments
 
     CallExp(Loc loc, Expression *e, Expressions *exps);
     CallExp(Loc loc, Expression *e);
@@ -977,7 +977,7 @@ struct DeleteExp : UnaExp
 struct CastExp : UnaExp
 {
     // Possible to cast to one type while painting to another type
-    Type *to;			// type to cast to
+    Type *to;                   // type to cast to
 
     CastExp(Loc loc, Expression *e, Type *t);
     Expression *syntaxCopy();
@@ -998,8 +998,8 @@ struct CastExp : UnaExp
 
 struct SliceExp : UnaExp
 {
-    Expression *upr;		// NULL if implicit 0
-    Expression *lwr;		// NULL if implicit [length - 1]
+    Expression *upr;            // NULL if implicit 0
+    Expression *lwr;            // NULL if implicit [length - 1]
     VarDeclaration *lengthVar;
 
     SliceExp(Loc loc, Expression *e1, Expression *lwr, Expression *upr);
@@ -1037,7 +1037,7 @@ struct ArrayLengthExp : UnaExp
 
 struct ArrayExp : UnaExp
 {
-    Expressions *arguments;		// Array of Expression's
+    Expressions *arguments;             // Array of Expression's
 
     ArrayExp(Loc loc, Expression *e1, Expressions *arguments);
     Expression *syntaxCopy();
@@ -1108,7 +1108,7 @@ struct PostExp : BinExp
 };
 
 struct AssignExp : BinExp
-{   int ismemset;	// !=0 if setting the contents of an array
+{   int ismemset;       // !=0 if setting the contents of an array
 
     AssignExp(Loc loc, Expression *e1, Expression *e2);
     Expression *semantic(Scope *sc);
@@ -1120,18 +1120,18 @@ struct AssignExp : BinExp
     elem *toElem(IRState *irs);
 };
 
-#define ASSIGNEXP(op)	\
-struct op##AssignExp : BinExp					\
-{								\
-    op##AssignExp(Loc loc, Expression *e1, Expression *e2);	\
-    Expression *semantic(Scope *sc);				\
-    Expression *interpret(InterState *istate);			\
+#define ASSIGNEXP(op)   \
+struct op##AssignExp : BinExp                                   \
+{                                                               \
+    op##AssignExp(Loc loc, Expression *e1, Expression *e2);     \
+    Expression *semantic(Scope *sc);                            \
+    Expression *interpret(InterState *istate);                  \
     X(void buildArrayIdent(OutBuffer *buf, Expressions *arguments);) \
-    X(Expression *buildArrayLoop(Parameters *fparams);)		\
-								\
-    Identifier *opId();    /* For operator overloading */	\
-								\
-    elem *toElem(IRState *irs);					\
+    X(Expression *buildArrayLoop(Parameters *fparams);)         \
+                                                                \
+    Identifier *opId();    /* For operator overloading */       \
+                                                                \
+    elem *toElem(IRState *irs);                                 \
 };
 
 #define X(a) a
@@ -1477,7 +1477,7 @@ struct CondExp : BinExp
 
 struct DefaultInitExp : Expression
 {
-    enum TOK subop;		// which of the derived classes this is
+    enum TOK subop;             // which of the derived classes this is
 
     DefaultInitExp(Loc loc, enum TOK subop, int size);
     virtual Expression *resolve(Loc loc, Scope *sc) = 0;
@@ -1503,11 +1503,11 @@ struct LineInitExp : DefaultInitExp
 
 /* Special values used by the interpreter
  */
-#define EXP_CANT_INTERPRET	((Expression *)1)
-#define EXP_CONTINUE_INTERPRET	((Expression *)2)
-#define EXP_BREAK_INTERPRET	((Expression *)3)
-#define EXP_GOTO_INTERPRET	((Expression *)4)
-#define EXP_VOID_INTERPRET	((Expression *)5)
+#define EXP_CANT_INTERPRET      ((Expression *)1)
+#define EXP_CONTINUE_INTERPRET  ((Expression *)2)
+#define EXP_BREAK_INTERPRET     ((Expression *)3)
+#define EXP_GOTO_INTERPRET      ((Expression *)4)
+#define EXP_VOID_INTERPRET      ((Expression *)5)
 
 Expression *expType(Type *type, Expression *e);
 

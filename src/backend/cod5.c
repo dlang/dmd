@@ -12,18 +12,18 @@
 
 #if !SPP
 
-#include	<stdio.h>
-#include	<string.h>
-#include	<time.h>
-#include	"cc.h"
-#include	"el.h"
-#include	"oper.h"
-#include	"code.h"
-#include	"global.h"
-#include	"type.h"
+#include        <stdio.h>
+#include        <string.h>
+#include        <time.h>
+#include        "cc.h"
+#include        "el.h"
+#include        "oper.h"
+#include        "code.h"
+#include        "global.h"
+#include        "type.h"
 
-static char __file__[] = __FILE__;	/* for tassert.h		*/
-#include	"tassert.h"
+static char __file__[] = __FILE__;      /* for tassert.h                */
+#include        "tassert.h"
 
 STATIC void pe_add(block *b);
 STATIC int need_prolog(block *b);
@@ -46,30 +46,30 @@ void cod5_prol_epi()
 
 goto L1;
     if (!(config.flags4 & CFG4optimized) ||
-	anyiasm ||
-	usedalloca ||
-	usednteh ||
-	tyf & (mTYnaked | mTYloadds) ||
-	tym == TYifunc ||
-	tym == TYmfunc ||	// can't yet handle ECX passed as parameter
-	tym == TYjfunc ||	// can't yet handle EAX passed as parameter
-	config.flags & (CFGalwaysframe | CFGtrace) ||
-//	config.fulltypes ||
-	(config.wflags & WFwindows && tyfarfunc(tym)) ||
-	need_prolog(startblock)
+        anyiasm ||
+        usedalloca ||
+        usednteh ||
+        tyf & (mTYnaked | mTYloadds) ||
+        tym == TYifunc ||
+        tym == TYmfunc ||       // can't yet handle ECX passed as parameter
+        tym == TYjfunc ||       // can't yet handle EAX passed as parameter
+        config.flags & (CFGalwaysframe | CFGtrace) ||
+//      config.fulltypes ||
+        (config.wflags & WFwindows && tyfarfunc(tym)) ||
+        need_prolog(startblock)
        )
-    {	// First block gets the prolog, all return blocks
-	// get the epilog.
-	//printf("not even a candidate\n");
+    {   // First block gets the prolog, all return blocks
+        // get the epilog.
+        //printf("not even a candidate\n");
     L1:
-	cod5_noprol();
-	return;
+        cod5_noprol();
+        return;
     }
 
     // Turn on BFLoutsideprolog for all blocks outside the ones needing the prolog.
 
     for (b = startblock; b; b = b->Bnext)
-	b->Bflags &= ~BFLoutsideprolog;			// start with them all off
+        b->Bflags &= ~BFLoutsideprolog;                 // start with them all off
 
     pe_add(startblock);
 
@@ -77,63 +77,63 @@ goto L1;
     bp = NULL;
     nepis = 0;
     for (b = startblock; b; b = b->Bnext)
-    {	int mark;
+    {   int mark;
 
-	if (b->Bflags & BFLoutsideprolog)
-	    continue;
+        if (b->Bflags & BFLoutsideprolog)
+            continue;
 
-	// If all predecessors are marked
-	mark = 0;
-	assert(b->Bpred);
-	for (bl = b->Bpred; bl; bl = list_next(bl))
-	{
-	    if (list_block(bl)->Bflags & BFLoutsideprolog)
-	    {
-		if (mark == 2)
-		    goto L1;
-		mark = 1;
-	    }
-	    else
-	    {
-		if (mark == 1)
-		    goto L1;
-		mark = 2;
-	    }
-	}
-	if (mark == 1)
-	{
-	    if (bp)		// if already have one
-		goto L1;
-	    bp = b;
-	}
+        // If all predecessors are marked
+        mark = 0;
+        assert(b->Bpred);
+        for (bl = b->Bpred; bl; bl = list_next(bl))
+        {
+            if (list_block(bl)->Bflags & BFLoutsideprolog)
+            {
+                if (mark == 2)
+                    goto L1;
+                mark = 1;
+            }
+            else
+            {
+                if (mark == 1)
+                    goto L1;
+                mark = 2;
+            }
+        }
+        if (mark == 1)
+        {
+            if (bp)             // if already have one
+                goto L1;
+            bp = b;
+        }
 
-	// See if b is an epilog
-	mark = 0;
-	for (bl = b->Bsucc; bl; bl = list_next(bl))
-	{
-	    if (list_block(bl)->Bflags & BFLoutsideprolog)
-	    {
-		if (mark == 2)
-		    goto L1;
-		mark = 1;
-	    }
-	    else
-	    {
-		if (mark == 1)
-		    goto L1;
-		mark = 2;
-	    }
-	}
-	if (mark == 1 || b->BC == BCret || b->BC == BCretexp)
-	{   b->Bflags |= BFLepilog;
-	    nepis++;
-	    if (nepis > 1 && config.flags4 & CFG4space)
-		goto L1;
-	}
+        // See if b is an epilog
+        mark = 0;
+        for (bl = b->Bsucc; bl; bl = list_next(bl))
+        {
+            if (list_block(bl)->Bflags & BFLoutsideprolog)
+            {
+                if (mark == 2)
+                    goto L1;
+                mark = 1;
+            }
+            else
+            {
+                if (mark == 1)
+                    goto L1;
+                mark = 2;
+            }
+        }
+        if (mark == 1 || b->BC == BCret || b->BC == BCretexp)
+        {   b->Bflags |= BFLepilog;
+            nepis++;
+            if (nepis > 1 && config.flags4 & CFG4space)
+                goto L1;
+        }
     }
     if (bp)
-    {	bp->Bflags |= BFLprolog;
-	//printf("=============== prolog opt\n");
+    {   bp->Bflags |= BFLprolog;
+        //printf("=============== prolog opt\n");
     }
 }
 
@@ -149,15 +149,15 @@ void cod5_noprol()
     startblock->Bflags |= BFLprolog;
     for (b = startblock; b; b = b->Bnext)
     {
-	b->Bflags &= ~BFLoutsideprolog;
-	switch (b->BC)
-	{   case BCret:
-	    case BCretexp:
-		b->Bflags |= BFLepilog;
-		break;
-	    default:
-		b->Bflags &= ~BFLepilog;
-	}
+        b->Bflags &= ~BFLoutsideprolog;
+        switch (b->BC)
+        {   case BCret:
+            case BCretexp:
+                b->Bflags |= BFLepilog;
+                break;
+            default:
+                b->Bflags &= ~BFLepilog;
+        }
     }
 }
 
@@ -170,12 +170,12 @@ STATIC void pe_add(block *b)
 {   list_t bl;
 
     if (b->Bflags & BFLoutsideprolog ||
-	need_prolog(b))
-	return;
+        need_prolog(b))
+        return;
 
     b->Bflags |= BFLoutsideprolog;
     for (bl = b->Bsucc; bl; bl = list_next(bl))
-	pe_add(list_block(bl));
+        pe_add(list_block(bl));
 }
 
 /**********************************************
@@ -185,15 +185,15 @@ STATIC void pe_add(block *b)
 STATIC int need_prolog(block *b)
 {
     if (b->Bregcon.used & fregsaved)
-	goto Lneed;
+        goto Lneed;
 
     // If block referenced a param in 16 bit code
     if (!I32 && b->Bflags & BFLrefparam)
-	goto Lneed;
+        goto Lneed;
 
     // If block referenced a stack local
     if (b->Bflags & BFLreflocal)
-	goto Lneed;
+        goto Lneed;
 
     return 0;
 

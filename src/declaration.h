@@ -41,73 +41,73 @@ enum MATCH;
 enum STC
 {
     STCundefined    = 0,
-    STCstatic	    = 1,
-    STCextern	    = 2,
-    STCconst	    = 4,
-    STCfinal	    = 8,
+    STCstatic       = 1,
+    STCextern       = 2,
+    STCconst        = 4,
+    STCfinal        = 8,
     STCabstract     = 0x10,
     STCparameter    = 0x20,
-    STCfield	    = 0x40,
-    STCoverride	    = 0x80,
+    STCfield        = 0x40,
+    STCoverride     = 0x80,
     STCauto         = 0x100,
     STCsynchronized = 0x200,
     STCdeprecated   = 0x400,
-    STCin           = 0x800,		// in parameter
-    STCout          = 0x1000,		// out parameter
-    STClazy	    = 0x2000,		// lazy parameter
-    STCforeach      = 0x4000,		// variable for foreach loop
-    STCcomdat       = 0x8000,		// should go into COMDAT record
-    STCvariadic     = 0x10000,		// variadic function argument
-    STCctorinit     = 0x20000,		// can only be set inside constructor
-    STCtemplateparameter = 0x40000,	// template parameter
-    STCscope	    = 0x80000,		// template parameter
+    STCin           = 0x800,            // in parameter
+    STCout          = 0x1000,           // out parameter
+    STClazy         = 0x2000,           // lazy parameter
+    STCforeach      = 0x4000,           // variable for foreach loop
+    STCcomdat       = 0x8000,           // should go into COMDAT record
+    STCvariadic     = 0x10000,          // variadic function argument
+    STCctorinit     = 0x20000,          // can only be set inside constructor
+    STCtemplateparameter = 0x40000,     // template parameter
+    STCscope        = 0x80000,          // template parameter
     STCimmutable    = 0x100000,
-    STCref	    = 0x200000,
-    STCinit	    = 0x400000,		// has explicit initializer
-    STCmanifest	    = 0x800000,		// manifest constant
-    STCnodtor	    = 0x1000000,	// don't run destructor
-    STCnothrow	    = 0x2000000,	// never throws exceptions
-    STCpure	    = 0x4000000,	// pure function
-    STCtls	    = 0x8000000,	// thread local
-    STCalias	    = 0x10000000,	// alias parameter
-    STCshared       = 0x20000000,	// accessible from multiple threads
-    STCgshared      = 0x40000000,	// accessible from multiple threads
-					// but not typed as "shared"
-    STCwild         = 0x80000000,	// for "wild" type constructor
+    STCref          = 0x200000,
+    STCinit         = 0x400000,         // has explicit initializer
+    STCmanifest     = 0x800000,         // manifest constant
+    STCnodtor       = 0x1000000,        // don't run destructor
+    STCnothrow      = 0x2000000,        // never throws exceptions
+    STCpure         = 0x4000000,        // pure function
+    STCtls          = 0x8000000,        // thread local
+    STCalias        = 0x10000000,       // alias parameter
+    STCshared       = 0x20000000,       // accessible from multiple threads
+    STCgshared      = 0x40000000,       // accessible from multiple threads
+                                        // but not typed as "shared"
+    STCwild         = 0x80000000,       // for "wild" type constructor
     STC_TYPECTOR    = (STCconst | STCimmutable | STCshared | STCwild),
 };
 
-#define STCproperty	0x100000000LL
-#define STCsafe		0x200000000LL
-#define STCtrusted	0x400000000LL
-#define STCsystem	0x800000000LL
-#define STCctfe		0x1000000000LL	// can be used in CTFE, even if it is static
+#define STCproperty     0x100000000LL
+#define STCsafe         0x200000000LL
+#define STCtrusted      0x400000000LL
+#define STCsystem       0x800000000LL
+#define STCctfe         0x1000000000LL  // can be used in CTFE, even if it is static
 
 struct Match
 {
-    int count;			// number of matches found
-    MATCH last;			// match level of lastf
-    FuncDeclaration *lastf;	// last matching function we found
-    FuncDeclaration *nextf;	// current matching function
-    FuncDeclaration *anyf;	// pick a func, any func, to use for error recovery
+    int count;                  // number of matches found
+    MATCH last;                 // match level of lastf
+    FuncDeclaration *lastf;     // last matching function we found
+    FuncDeclaration *nextf;     // current matching function
+    FuncDeclaration *anyf;      // pick a func, any func, to use for error recovery
 };
 
 void overloadResolveX(Match *m, FuncDeclaration *f,
-	Expression *ethis, Expressions *arguments);
+        Expression *ethis, Expressions *arguments);
 int overloadApply(FuncDeclaration *fstart,
-	int (*fp)(void *, FuncDeclaration *),
-	void *param);
+        int (*fp)(void *, FuncDeclaration *),
+        void *param);
 
 /**************************************************************/
 
 struct Declaration : Dsymbol
 {
     Type *type;
-    Type *originalType;		// before semantic analysis
+    Type *originalType;         // before semantic analysis
     StorageClass storage_class;
     enum PROT protection;
     enum LINK linkage;
-    int inuse;			// used to detect cycles
+    int inuse;                  // used to detect cycles
 
     Declaration(Identifier *id);
     void semantic(Scope *sc);
@@ -153,9 +153,9 @@ struct Declaration : Dsymbol
 struct TupleDeclaration : Declaration
 {
     Objects *objects;
-    int isexp;			// 1: expression tuple
+    int isexp;                  // 1: expression tuple
 
-    TypeTuple *tupletype;	// !=NULL if this is a type tuple
+    TypeTuple *tupletype;       // !=NULL if this is a type tuple
 
     TupleDeclaration(Loc loc, Identifier *ident, Objects *objects);
     Dsymbol *syntaxCopy(Dsymbol *);
@@ -172,10 +172,10 @@ struct TypedefDeclaration : Declaration
 {
     Type *basetype;
     Initializer *init;
-    int sem;			// 0: semantic() has not been run
-				// 1: semantic() is in progress
-				// 2: semantic() has been run
-				// 3: semantic2() has been run
+    int sem;                    // 0: semantic() has not been run
+                                // 1: semantic() is in progress
+                                // 2: semantic() has been run
+                                // 3: semantic2() has been run
 
     TypedefDeclaration(Loc loc, Identifier *ident, Type *basetype, Initializer *init);
     Dsymbol *syntaxCopy(Dsymbol *);
@@ -192,7 +192,7 @@ struct TypedefDeclaration : Declaration
 
     void toDocBuffer(OutBuffer *buf);
 
-    void toObjFile(int multiobj);			// compile to .obj file
+    void toObjFile(int multiobj);                       // compile to .obj file
     void toDebug();
     int cvMember(unsigned char *p);
 
@@ -207,7 +207,7 @@ struct TypedefDeclaration : Declaration
 struct AliasDeclaration : Declaration
 {
     Dsymbol *aliassym;
-    Dsymbol *overnext;		// next in overload list
+    Dsymbol *overnext;          // next in overload list
     int inSemantic;
 
     AliasDeclaration(Loc loc, Identifier *ident, Type *type);
@@ -235,24 +235,24 @@ struct VarDeclaration : Declaration
 {
     Initializer *init;
     unsigned offset;
-    int noauto;			// no auto semantics
+    int noauto;                 // no auto semantics
 #if DMDV2
     FuncDeclarations nestedrefs; // referenced by these lexically nested functions
-    bool isargptr;		// if parameter that _argptr points to
+    bool isargptr;              // if parameter that _argptr points to
 #else
-    int nestedref;		// referenced by a lexically nested function
+    int nestedref;              // referenced by a lexically nested function
 #endif
-    int ctorinit;		// it has been initialized in a ctor
-    int onstack;		// 1: it has been allocated on the stack
-				// 2: on stack, run destructor anyway
-    int canassign;		// it can be assigned to
-    Dsymbol *aliassym;		// if redone as alias to another symbol
-    Expression *value;		// when interpreting, this is the value
-				// (NULL if value not determinable)
+    int ctorinit;               // it has been initialized in a ctor
+    int onstack;                // 1: it has been allocated on the stack
+                                // 2: on stack, run destructor anyway
+    int canassign;              // it can be assigned to
+    Dsymbol *aliassym;          // if redone as alias to another symbol
+    Expression *value;          // when interpreting, this is the value
+                                // (NULL if value not determinable)
 #if DMDV2
-    VarDeclaration *rundtor;	// if !NULL, rundtor is tested at runtime to see
-				// if the destructor should be run. Used to prevent
-				// dtor calls on postblitted vars
+    VarDeclaration *rundtor;    // if !NULL, rundtor is tested at runtime to see
+                                // if the destructor should be run. Used to prevent
+                                // dtor calls on postblitted vars
 #endif
 
     VarDeclaration(Loc loc, Type *t, Identifier *id, Initializer *init);
@@ -283,7 +283,7 @@ struct VarDeclaration : Declaration
     Dsymbol *toAlias();
 
     Symbol *toSymbol();
-    void toObjFile(int multiobj);			// compile to .obj file
+    void toObjFile(int multiobj);                       // compile to .obj file
     int cvMember(unsigned char *p);
 
     // Eliminate need for dynamic_cast
@@ -347,7 +347,7 @@ struct TypeInfoDeclaration : VarDeclaration
     void toJsonBuffer(OutBuffer *buf);
 
     Symbol *toSymbol();
-    void toObjFile(int multiobj);			// compile to .obj file
+    void toObjFile(int multiobj);                       // compile to .obj file
     virtual void toDt(dt_t **pdt);
 };
 
@@ -469,9 +469,9 @@ struct ThisDeclaration : VarDeclaration
 
 enum ILS
 {
-    ILSuninitialized,	// not computed yet
-    ILSno,		// cannot inline
-    ILSyes,		// can inline
+    ILSuninitialized,   // not computed yet
+    ILSno,              // cannot inline
+    ILSyes,             // can inline
 };
 
 /**************************************************************/
@@ -479,13 +479,13 @@ enum ILS
 
 enum BUILTIN
 {
-    BUILTINunknown = -1,	// not known if this is a builtin
-    BUILTINnot,			// this is not a builtin
-    BUILTINsin,			// std.math.sin
-    BUILTINcos,			// std.math.cos
-    BUILTINtan,			// std.math.tan
-    BUILTINsqrt,		// std.math.sqrt
-    BUILTINfabs,		// std.math.fabs
+    BUILTINunknown = -1,        // not known if this is a builtin
+    BUILTINnot,                 // this is not a builtin
+    BUILTINsin,                 // std.math.sin
+    BUILTINcos,                 // std.math.cos
+    BUILTINtan,                 // std.math.tan
+    BUILTINsqrt,                // std.math.sqrt
+    BUILTINfabs,                // std.math.fabs
 };
 
 Expression *eval_builtin(enum BUILTIN builtin, Expressions *arguments);
@@ -496,72 +496,72 @@ enum BUILTIN { };
 
 struct FuncDeclaration : Declaration
 {
-    Array *fthrows;			// Array of Type's of exceptions (not used)
+    Array *fthrows;                     // Array of Type's of exceptions (not used)
     Statement *frequire;
     Statement *fensure;
     Statement *fbody;
 
-    FuncDeclarations foverrides;	// functions this function overrides
-    FuncDeclaration *fdrequire;		// function that does the in contract
-    FuncDeclaration *fdensure;		// function that does the out contract
+    FuncDeclarations foverrides;        // functions this function overrides
+    FuncDeclaration *fdrequire;         // function that does the in contract
+    FuncDeclaration *fdensure;          // function that does the out contract
 
-    Identifier *outId;			// identifier for out statement
-    VarDeclaration *vresult;		// variable corresponding to outId
-    LabelDsymbol *returnLabel;		// where the return goes
+    Identifier *outId;                  // identifier for out statement
+    VarDeclaration *vresult;            // variable corresponding to outId
+    LabelDsymbol *returnLabel;          // where the return goes
 
-    DsymbolTable *localsymtab;		// used to prevent symbols in different
-					// scopes from having the same name
-    VarDeclaration *vthis;		// 'this' parameter (member and nested)
-    VarDeclaration *v_arguments;	// '_arguments' parameter
+    DsymbolTable *localsymtab;          // used to prevent symbols in different
+                                        // scopes from having the same name
+    VarDeclaration *vthis;              // 'this' parameter (member and nested)
+    VarDeclaration *v_arguments;        // '_arguments' parameter
 #if IN_GCC
-    VarDeclaration *v_argptr;	        // '_argptr' variable
+    VarDeclaration *v_argptr;           // '_argptr' variable
 #endif
-    Dsymbols *parameters;		// Array of VarDeclaration's for parameters
-    DsymbolTable *labtab;		// statement label symbol table
-    Declaration *overnext;		// next in overload list
-    Loc endloc;				// location of closing curly bracket
-    int vtblIndex;			// for member functions, index into vtbl[]
-    int naked;				// !=0 if naked
-    int inlineAsm;			// !=0 if has inline assembler
+    Dsymbols *parameters;               // Array of VarDeclaration's for parameters
+    DsymbolTable *labtab;               // statement label symbol table
+    Declaration *overnext;              // next in overload list
+    Loc endloc;                         // location of closing curly bracket
+    int vtblIndex;                      // for member functions, index into vtbl[]
+    int naked;                          // !=0 if naked
+    int inlineAsm;                      // !=0 if has inline assembler
     ILS inlineStatus;
-    int inlineNest;			// !=0 if nested inline
-    int cantInterpret;			// !=0 if cannot interpret function
-    int semanticRun;			// 1 semantic() run
-					// 2 semantic2() run
-					// 3 semantic3() started
-					// 4 semantic3() done
-					// 5 toObjFile() run
-					// this function's frame ptr
-    ForeachStatement *fes;		// if foreach body, this is the foreach
-    int introducing;			// !=0 if 'introducing' function
-    Type *tintro;			// if !=NULL, then this is the type
-					// of the 'introducing' function
-					// this one is overriding
-    int inferRetType;			// !=0 if return type is to be inferred
+    int inlineNest;                     // !=0 if nested inline
+    int cantInterpret;                  // !=0 if cannot interpret function
+    int semanticRun;                    // 1 semantic() run
+                                        // 2 semantic2() run
+                                        // 3 semantic3() started
+                                        // 4 semantic3() done
+                                        // 5 toObjFile() run
+                                        // this function's frame ptr
+    ForeachStatement *fes;              // if foreach body, this is the foreach
+    int introducing;                    // !=0 if 'introducing' function
+    Type *tintro;                       // if !=NULL, then this is the type
+                                        // of the 'introducing' function
+                                        // this one is overriding
+    int inferRetType;                   // !=0 if return type is to be inferred
 
     // Things that should really go into Scope
-    int hasReturnExp;			// 1 if there's a return exp; statement
-					// 2 if there's a throw statement
-					// 4 if there's an assert(0)
-					// 8 if there's inline asm
+    int hasReturnExp;                   // 1 if there's a return exp; statement
+                                        // 2 if there's a throw statement
+                                        // 4 if there's an assert(0)
+                                        // 8 if there's inline asm
 
     // Support for NRVO (named return value optimization)
-    int nrvo_can;			// !=0 means we can do it
-    VarDeclaration *nrvo_var;		// variable to replace with shidden
-    Symbol *shidden;			// hidden pointer passed to function
+    int nrvo_can;                       // !=0 means we can do it
+    VarDeclaration *nrvo_var;           // variable to replace with shidden
+    Symbol *shidden;                    // hidden pointer passed to function
 
 #if DMDV2
-    enum BUILTIN builtin;		// set if this is a known, builtin
-					// function we can evaluate at compile
-					// time
+    enum BUILTIN builtin;               // set if this is a known, builtin
+                                        // function we can evaluate at compile
+                                        // time
 
-    int tookAddressOf;			// set if someone took the address of
-					// this function
-    Dsymbols closureVars;		// local variables in this function
-					// which are referenced by nested
-					// functions
+    int tookAddressOf;                  // set if someone took the address of
+                                        // this function
+    Dsymbols closureVars;               // local variables in this function
+                                        // which are referenced by nested
+                                        // functions
 #else
-    int nestedFrameRef;			// !=0 if nested variables referenced
+    int nestedFrameRef;                 // !=0 if nested variables referenced
 #endif
 
     FuncDeclaration(Loc loc, Loc endloc, Identifier *id, StorageClass storage_class, Type *type);
@@ -583,7 +583,7 @@ struct FuncDeclaration : Declaration
     LabelDsymbol *searchLabel(Identifier *ident);
     AggregateDeclaration *isThis();
     AggregateDeclaration *isMember2();
-    int getLevel(Loc loc, FuncDeclaration *fd);	// lexical nesting level difference
+    int getLevel(Loc loc, FuncDeclaration *fd); // lexical nesting level difference
     void appendExp(Expression *e);
     void appendState(Statement *s);
     char *mangle();
@@ -620,8 +620,8 @@ struct FuncDeclaration : Declaration
     static FuncDeclaration *genCfunc(Type *treturn, Identifier *id);
 
     Symbol *toSymbol();
-    Symbol *toThunkSymbol(int offset);	// thunk version
-    void toObjFile(int multiobj);			// compile to .obj file
+    Symbol *toThunkSymbol(int offset);  // thunk version
+    void toObjFile(int multiobj);                       // compile to .obj file
     int cvMember(unsigned char *p);
     void buildClosure(IRState *irs);
 
@@ -630,10 +630,10 @@ struct FuncDeclaration : Declaration
 
 #if DMDV2
 FuncDeclaration *resolveFuncCall(Scope *sc, Loc loc, Dsymbol *s,
-	Objects *tiargs,
-	Expression *ethis,
-	Expressions *arguments,
-	int flags);
+        Objects *tiargs,
+        Expression *ethis,
+        Expressions *arguments,
+        int flags);
 #endif
 
 struct FuncAliasDeclaration : FuncDeclaration
@@ -649,10 +649,10 @@ struct FuncAliasDeclaration : FuncDeclaration
 
 struct FuncLiteralDeclaration : FuncDeclaration
 {
-    enum TOK tok;			// TOKfunction or TOKdelegate
+    enum TOK tok;                       // TOKfunction or TOKdelegate
 
     FuncLiteralDeclaration(Loc loc, Loc endloc, Type *type, enum TOK tok,
-	ForeachStatement *fes);
+        ForeachStatement *fes);
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
     Dsymbol *syntaxCopy(Dsymbol *);
     int isNested();
@@ -736,7 +736,7 @@ struct StaticCtorDeclaration : FuncDeclaration
 };
 
 struct StaticDtorDeclaration : FuncDeclaration
-{   VarDeclaration *vgate;	// 'gate' variable
+{   VarDeclaration *vgate;      // 'gate' variable
 
     StaticDtorDeclaration(Loc loc, Loc endloc);
     Dsymbol *syntaxCopy(Dsymbol *);

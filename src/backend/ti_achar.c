@@ -29,7 +29,7 @@ hash_t TypeInfo_Achar::getHash(void *p)
 
     for (s = *(char**)p; *s; s++)
     {
-	hash = hash * 11 + *s;
+        hash = hash * 11 + *s;
     }
     return hash;
 }

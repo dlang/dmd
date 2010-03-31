@@ -23,93 +23,93 @@ struct Declaration;
 
 /* Register definitions */
 
-#define	AX	0
-#define	CX	1
-#define	DX	2
-#define	BX	3
-#define	SP	4
-#define	BP	5
-#define	SI	6
-#define	DI	7
+#define AX      0
+#define CX      1
+#define DX      2
+#define BX      3
+#define SP      4
+#define BP      5
+#define SI      6
+#define DI      7
 
-#define ES	9
-#define	PSW	10
-#define STACK	11	// top of stack
-#define MEM	12	// memory
-#define OTHER	13	// other things
-#define	ST0	14	// 8087 top of stack register
-#define ST01	15	// top two 8087 registers; for complex types
+#define ES      9
+#define PSW     10
+#define STACK   11      // top of stack
+#define MEM     12      // memory
+#define OTHER   13      // other things
+#define ST0     14      // 8087 top of stack register
+#define ST01    15      // top two 8087 registers; for complex types
 
-#define NOREG	100	// no register
+#define NOREG   100     // no register
 
-#define	AL	0
-#define	CL	1
-#define	DL	2
-#define	BL	3
-#define	AH	4
-#define	CH	5
-#define	DH	6
-#define	BH	7
+#define AL      0
+#define CL      1
+#define DL      2
+#define BL      3
+#define AH      4
+#define CH      5
+#define DH      6
+#define BH      7
 
-#define	mAX	1
-#define	mCX	2
-#define	mDX	4
-#define	mBX	8
-#define	mSP	0x10
-#define	mBP	0x20
-#define	mSI	0x40
-#define	mDI	0x80
-#define mES	(1 << ES)	// 0x200
-#define mPSW	(1 << PSW)	// 0x400
+#define mAX     1
+#define mCX     2
+#define mDX     4
+#define mBX     8
+#define mSP     0x10
+#define mBP     0x20
+#define mSI     0x40
+#define mDI     0x80
+#define mES     (1 << ES)       // 0x200
+#define mPSW    (1 << PSW)      // 0x400
 
-#define mSTACK	(1 << STACK)	// 0x800
-#define mMEM	(1 << MEM)	// 0x1000
-#define mOTHER	(1 << OTHER)	// 0x2000
+#define mSTACK  (1 << STACK)    // 0x800
+#define mMEM    (1 << MEM)      // 0x1000
+#define mOTHER  (1 << OTHER)    // 0x2000
 
-#define	mST0	(1 << ST0)	// 0x4000
-#define	mST01	(1 << ST01)	// 0x8000
+#define mST0    (1 << ST0)      // 0x4000
+#define mST01   (1 << ST01)     // 0x8000
 
 // Flags for getlvalue (must fit in regm_t)
-#define RMload	0x4000
-#define RMstore	0x8000
+#define RMload  0x4000
+#define RMstore 0x8000
 
 #if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_SOLARIS
     // To support positional independent code,
     // must be able to remove BX from available registers
-extern regm_t ALLREGS;			
-#define ALLREGS_INIT		(mAX|mBX|mCX|mDX|mSI|mDI)
-#define ALLREGS_INIT_PIC	(mAX|mCX|mDX|mSI|mDI)
-extern regm_t BYTEREGS;			
-#define BYTEREGS_INIT		(mAX|mBX|mCX|mDX)
-#define BYTEREGS_INIT_PIC	(mAX|mCX|mDX)
+extern regm_t ALLREGS;
+#define ALLREGS_INIT            (mAX|mBX|mCX|mDX|mSI|mDI)
+#define ALLREGS_INIT_PIC        (mAX|mCX|mDX|mSI|mDI)
+extern regm_t BYTEREGS;
+#define BYTEREGS_INIT           (mAX|mBX|mCX|mDX)
+#define BYTEREGS_INIT_PIC       (mAX|mCX|mDX)
 #else
-#define ALLREGS			(mAX|mBX|mCX|mDX|mSI|mDI)
-#define ALLREGS_INIT		ALLREGS
+#define ALLREGS                 (mAX|mBX|mCX|mDX|mSI|mDI)
+#define ALLREGS_INIT            ALLREGS
 #undef BYTEREGS
-#define BYTEREGS		(mAX|mBX|mCX|mDX)
+#define BYTEREGS                (mAX|mBX|mCX|mDX)
 #endif
 
 /* We use the same IDXREGS for the 386 as the 8088, because if
    we used ALLREGS, it would interfere with mMSW
  */
-#define IDXREGS		(mBX|mSI|mDI)
+#define IDXREGS         (mBX|mSI|mDI)
 
-#define FLOATREGS_32	mAX
-#define FLOATREGS2_32	mDX
-#define DOUBLEREGS_32	(mAX|mDX)
-#define DOUBLEREGS2_32	(mCX|mBX)
+#define FLOATREGS_32    mAX
+#define FLOATREGS2_32   mDX
+#define DOUBLEREGS_32   (mAX|mDX)
+#define DOUBLEREGS2_32  (mCX|mBX)
 
-#define FLOATREGS_16	(mDX|mAX)
-#define FLOATREGS2_16	(mCX|mBX)
-#define DOUBLEREGS_16	(mAX|mBX|mCX|mDX)
+#define FLOATREGS_16    (mDX|mAX)
+#define FLOATREGS2_16   (mCX|mBX)
+#define DOUBLEREGS_16   (mAX|mBX|mCX|mDX)
 
 /*#define _8087REGS (mST0|mST1|mST2|mST3|mST4|mST5|mST6|mST7)*/
 
-/* Segment registers	*/
-#define SEG_ES	0
-#define SEG_CS	1
-#define SEG_SS	2
-#define SEG_DS	3
+/* Segment registers    */
+#define SEG_ES  0
+#define SEG_CS  1
+#define SEG_SS  2
+#define SEG_DS  3
 
 /*********************
  * Masks for register pairs.
@@ -119,15 +119,15 @@ extern regm_t BYTEREGS;
 
 #if 0
 // Give us an extra one so we can enregister a long
-#define mMSW	(mCX|mDX|mDI|mES)	// most significant regs
-#define mLSW	(mAX|mBX|mSI)		// least significant regs
+#define mMSW    (mCX|mDX|mDI|mES)       // most significant regs
+#define mLSW    (mAX|mBX|mSI)           // least significant regs
 #else
-#define mMSW	(mCX|mDX|mES)		/* most significant regs	*/
-#define mLSW	(mAX|mBX|mSI|mDI)	/* least significant regs	*/
+#define mMSW    (mCX|mDX|mES)           /* most significant regs        */
+#define mLSW    (mAX|mBX|mSI|mDI)       /* least significant regs       */
 #endif
 
-/* Return !=0 if there is an SIB byte	*/
-#define issib(rm)	(((rm) & 7) == 4 && ((rm) & 0xC0) != 0xC0)
+/* Return !=0 if there is an SIB byte   */
+#define issib(rm)       (((rm) & 7) == 4 && ((rm) & 0xC0) != 0xC0)
 
 #if 0
 // relocation field size is always 32bits
@@ -147,71 +147,71 @@ extern regm_t BYTEREGS;
  * Some instructions.
  */
 
-#define SEGES	0x26
-#define SEGCS	0x2E
-#define SEGSS	0x36
-#define SEGDS	0x3E
-#define SEGFS	0x64
-#define SEGGS	0x65
+#define SEGES   0x26
+#define SEGCS   0x2E
+#define SEGSS   0x36
+#define SEGDS   0x3E
+#define SEGFS   0x64
+#define SEGGS   0x65
 
-#define	JMP	0xE9	/* Intra-Segment Direct	*/
-#define JMPS	0xEB	/* JMP SHORT		*/
-#define JCXZ	0xE3
-#define LOOP	0xE2
-#define LES	0xC4
-#define LEA	0x8D
+#define JMP     0xE9    /* Intra-Segment Direct */
+#define JMPS    0xEB    /* JMP SHORT            */
+#define JCXZ    0xE3
+#define LOOP    0xE2
+#define LES     0xC4
+#define LEA     0x8D
 
-#define JO	0x70
-#define JNO	0x71
-#define JC	0x72
-#define JB	0x72
-#define JNC	0x73
-#define JAE	0x73
-#define JE	0x74
-#define JNE	0x75
-#define JBE	0x76
-#define JA	0x77
-#define JS	0x78
-#define JNS	0x79
-#define JP	0x7A
-#define JNP	0x7B
-#define JL	0x7C
-#define JGE	0x7D
-#define JLE	0x7E
-#define JG	0x7F
+#define JO      0x70
+#define JNO     0x71
+#define JC      0x72
+#define JB      0x72
+#define JNC     0x73
+#define JAE     0x73
+#define JE      0x74
+#define JNE     0x75
+#define JBE     0x76
+#define JA      0x77
+#define JS      0x78
+#define JNS     0x79
+#define JP      0x7A
+#define JNP     0x7B
+#define JL      0x7C
+#define JGE     0x7D
+#define JLE     0x7E
+#define JG      0x7F
 
-/* NOP is used as a placeholder in the linked list of instructions, no	*/
-/* actual code will be generated for it.				*/
-#define NOP	0x2E	/* actually CS: (we don't use 0x90 because the	*/
-			/* silly Windows stuff wants to output 0x90's)	*/
+/* NOP is used as a placeholder in the linked list of instructions, no  */
+/* actual code will be generated for it.                                */
+#define NOP     0x2E    /* actually CS: (we don't use 0x90 because the  */
+                        /* silly Windows stuff wants to output 0x90's)  */
 
-#define ESCAPE	0x3E	// marker that special information is here
-			// (Iop2 is the type of special information)
-			// (Same as DS:, but we will never generate
-			// a separate DS: opcode anyway)
-    #define ESClinnum	1	// line number information
-    #define ESCctor	2	// object is constructed
-    #define ESCdtor	3	// object is destructed
-    #define ESCmark	4	// mark eh stack
-    #define ESCrelease	5	// release eh stack
-    #define ESCoffset	6	// set code offset for eh
-    #define ESCadjesp	7	// adjust ESP by IEV2.Vint
-    #define ESCmark2	8	// mark eh stack
-    #define ESCrelease2	9	// release eh stack
-    #define ESCframeptr	10	// replace with load of frame pointer
+#define ESCAPE  0x3E    // marker that special information is here
+                        // (Iop2 is the type of special information)
+                        // (Same as DS:, but we will never generate
+                        // a separate DS: opcode anyway)
+    #define ESClinnum   1       // line number information
+    #define ESCctor     2       // object is constructed
+    #define ESCdtor     3       // object is destructed
+    #define ESCmark     4       // mark eh stack
+    #define ESCrelease  5       // release eh stack
+    #define ESCoffset   6       // set code offset for eh
+    #define ESCadjesp   7       // adjust ESP by IEV2.Vint
+    #define ESCmark2    8       // mark eh stack
+    #define ESCrelease2 9       // release eh stack
+    #define ESCframeptr 10      // replace with load of frame pointer
 
-#define ASM	0x36	// string of asm bytes, actually an SS: opcode
+#define ASM     0x36    // string of asm bytes, actually an SS: opcode
 
 /*********************************
  * Macros to ease generating code
- * modregrm:	generate mod reg r/m field
- * NEWREG:	change reg field of x to r
- * genorreg:	OR  t,f
+ * modregrm:    generate mod reg r/m field
+ * NEWREG:      change reg field of x to r
+ * genorreg:    OR  t,f
  */
 
-#define modregrm(m,r,rm)	(((m)<<6)+((r)<<3)+(rm))
-#define NEWREG(x,r)		((x)=((x)&~(7<<3))|((r)<<3))
-#define genorreg(c,t,f)		genregs((c),0x09,(f),(t))
+#define modregrm(m,r,rm)        (((m)<<6)+((r)<<3)+(rm))
+#define NEWREG(x,r)             ((x)=((x)&~(7<<3))|((r)<<3))
+#define genorreg(c,t,f)         genregs((c),0x09,(f),(t))
 
 /**********************
  * C library routines.
@@ -220,49 +220,49 @@ extern regm_t BYTEREGS;
 
 enum CLIB
 {
-	CLIBlcmp,
-	CLIBlmul,
-	CLIBldiv,
-	CLIBlmod,
-	CLIBuldiv,
-	CLIBulmod,
+        CLIBlcmp,
+        CLIBlmul,
+        CLIBldiv,
+        CLIBlmod,
+        CLIBuldiv,
+        CLIBulmod,
 
 #if TARGET_WINDOS
-	CLIBdmul,CLIBddiv,CLIBdtst0,CLIBdtst0exc,CLIBdcmp,CLIBdcmpexc,CLIBdneg,CLIBdadd,CLIBdsub,
-	CLIBfmul,CLIBfdiv,CLIBftst0,CLIBftst0exc,CLIBfcmp,CLIBfcmpexc,CLIBfneg,CLIBfadd,CLIBfsub,
+        CLIBdmul,CLIBddiv,CLIBdtst0,CLIBdtst0exc,CLIBdcmp,CLIBdcmpexc,CLIBdneg,CLIBdadd,CLIBdsub,
+        CLIBfmul,CLIBfdiv,CLIBftst0,CLIBftst0exc,CLIBfcmp,CLIBfcmpexc,CLIBfneg,CLIBfadd,CLIBfsub,
 #endif
 
-	CLIBdbllng,CLIBlngdbl,CLIBdblint,CLIBintdbl,
-	CLIBdbluns,CLIBunsdbl,
-	CLIBdblulng,
+        CLIBdbllng,CLIBlngdbl,CLIBdblint,CLIBintdbl,
+        CLIBdbluns,CLIBunsdbl,
+        CLIBdblulng,
 #if TARGET_WINDOS
-	// used the GNU way of converting unsigned long long to signed
-	CLIBulngdbl,
+        // used the GNU way of converting unsigned long long to signed
+        CLIBulngdbl,
 #endif
-	CLIBdblflt,CLIBfltdbl,
-	CLIBdblllng,
-	CLIBllngdbl,
-	CLIBdblullng,
-	CLIBullngdbl,
-	CLIBdtst,
-	CLIBvptrfptr,CLIBcvptrfptr,
+        CLIBdblflt,CLIBfltdbl,
+        CLIBdblllng,
+        CLIBllngdbl,
+        CLIBdblullng,
+        CLIBullngdbl,
+        CLIBdtst,
+        CLIBvptrfptr,CLIBcvptrfptr,
 
-	CLIB87topsw,CLIBfltto87,CLIBdblto87,CLIBdblint87,CLIBdbllng87,
-	CLIBftst,
-	CLIBfcompp,
-	CLIBftest,
-	CLIBftest0,
-	CLIBfdiv87,
+        CLIB87topsw,CLIBfltto87,CLIBdblto87,CLIBdblint87,CLIBdbllng87,
+        CLIBftst,
+        CLIBfcompp,
+        CLIBftest,
+        CLIBftest0,
+        CLIBfdiv87,
 
-	// Complex numbers
-	CLIBcmul,
-	CLIBcdiv,
-	CLIBccmp,
+        // Complex numbers
+        CLIBcmul,
+        CLIBcdiv,
+        CLIBccmp,
 
-	CLIBu64_ldbl,
-	CLIBld_u64,
+        CLIBu64_ldbl,
+        CLIBld_u64,
 
-	CLIBMAX
+        CLIBMAX
 };
 
 /**********************************
@@ -271,82 +271,82 @@ enum CLIB
 
 union evc
 {
-    targ_int	Vint;		// also used for tmp numbers (FLtmp)
-    targ_uns	Vuns;
-    targ_long	Vlong;
+    targ_int    Vint;           // also used for tmp numbers (FLtmp)
+    targ_uns    Vuns;
+    targ_long   Vlong;
     struct
-    {	targ_size_t Vpointer;
-	int Vseg;		// segment the pointer is in
+    {   targ_size_t Vpointer;
+        int Vseg;               // segment the pointer is in
     }_EP;
-    Srcpos	Vsrcpos;	// source position for OPlinnum
-    struct elem  *Vtor;		// OPctor/OPdtor elem
-    struct block *Vswitch;	// when FLswitch and we have a switch table
-    code *Vcode;		// when code is target of a jump (FLcode)
-    struct block *Vblock;	// when block " (FLblock)
+    Srcpos      Vsrcpos;        // source position for OPlinnum
+    struct elem  *Vtor;         // OPctor/OPdtor elem
+    struct block *Vswitch;      // when FLswitch and we have a switch table
+    code *Vcode;                // when code is target of a jump (FLcode)
+    struct block *Vblock;       // when block " (FLblock)
     struct
     {
-	targ_size_t Voffset;	// offset from symbol
-	symbol	*Vsym;		// pointer to symbol table (FLfunc,FLextern)
+        targ_size_t Voffset;    // offset from symbol
+        symbol  *Vsym;          // pointer to symbol table (FLfunc,FLextern)
     } sp;
 #if MARS
     struct
     {
-	targ_size_t Voffset;	// offset from symbol
-	Declaration *Vsym;	// pointer to D symbol table
+        targ_size_t Voffset;    // offset from symbol
+        Declaration *Vsym;      // pointer to D symbol table
     } dsp;
     struct
     {
-	targ_size_t Voffset;	// offset from symbol
-	LabelDsymbol *Vsym;	// pointer to Label
+        targ_size_t Voffset;    // offset from symbol
+        LabelDsymbol *Vsym;     // pointer to Label
     } lab;
 #endif
     struct
     {   unsigned len;
-	char *bytes;
-    } as;			// asm node (FLasm)
+        char *bytes;
+    } as;                       // asm node (FLasm)
 };
 
 struct code
 {
     code *next;
     unsigned Iflags;
-#define CFes	          1	// generate an ES: segment override for this instr
-#define CFjmp16	          2	// need 16 bit jump offset (long branch)
-#define CFtarg	          4	// this code is the target of a jump
-#define CFseg	          8	// get segment of immediate value
-#define CFoff	       0x10	// get offset of immediate value
-#define CFss	       0x20	// generate an SS: segment override (not with
-				// CFes at the same time, though!)
-#define CFpsw	       0x40	// we need the flags result after this instruction
-#define	CFopsize       0x80	// prefix with operand size
-#define CFaddrsize    0x100 	// prefix with address size
-#define CFds	      0x200	// need DS override (not with es, ss, or cs )	
-#define CFcs	      0x400	// need CS override
-#define CFfs	      0x800	// need FS override
-#define CFgs	(CFcs | CFfs)	// need GS override
-#define CFwait       0x1000	// If I32 it indicates when to output a WAIT
-#define CFselfrel    0x2000 	// if self-relative
-#define CFunambig    0x4000    	// indicates cannot be accessed by other addressing
-			    	// modes
-#define CFtarg2	     0x8000	// like CFtarg, but we can't optimize this away
-#define CFvolatile  0x10000	// volatile reference, do not schedule
-#define CFclassinit 0x20000	// class init code
+#define CFes              1     // generate an ES: segment override for this instr
+#define CFjmp16           2     // need 16 bit jump offset (long branch)
+#define CFtarg            4     // this code is the target of a jump
+#define CFseg             8     // get segment of immediate value
+#define CFoff          0x10     // get offset of immediate value
+#define CFss           0x20     // generate an SS: segment override (not with
+                                // CFes at the same time, though!)
+#define CFpsw          0x40     // we need the flags result after this instruction
+#define CFopsize       0x80     // prefix with operand size
+#define CFaddrsize    0x100     // prefix with address size
+#define CFds          0x200     // need DS override (not with es, ss, or cs )
+#define CFcs          0x400     // need CS override
+#define CFfs          0x800     // need FS override
+#define CFgs    (CFcs | CFfs)   // need GS override
+#define CFwait       0x1000     // If I32 it indicates when to output a WAIT
+#define CFselfrel    0x2000     // if self-relative
+#define CFunambig    0x4000     // indicates cannot be accessed by other addressing
+                                // modes
+#define CFtarg2      0x8000     // like CFtarg, but we can't optimize this away
+#define CFvolatile  0x10000     // volatile reference, do not schedule
+#define CFclassinit 0x20000     // class init code
 
 #define CFPREFIX (CFSEG | CFopsize | CFaddrsize)
-#define CFSEG	(CFes | CFss | CFds | CFcs | CFfs | CFgs)
+#define CFSEG   (CFes | CFss | CFds | CFcs | CFfs | CFgs)
 
-    unsigned char Ijty;		// type of operand, 0 if unknown
+    unsigned char Ijty;         // type of operand, 0 if unknown
 
     unsigned char Iop;
-    unsigned char Irm;		// reg/mode
+    unsigned char Irm;          // reg/mode
 
-    unsigned char Iop2;		// second opcode byte
-    unsigned char Isib;		// SIB byte
+    unsigned char Iop2;         // second opcode byte
+    unsigned char Isib;         // SIB byte
 
-    unsigned char Iop3;		// third opcode byte
+    unsigned char Iop3;         // third opcode byte
 
-    unsigned char IFL1,IFL2;	// FLavors of 1st, 2nd operands
-    union evc IEV1;		// 1st operand, if any
+    unsigned char IFL1,IFL2;    // FLavors of 1st, 2nd operands
+    union evc IEV1;             // 1st operand, if any
       #define IEVpointer1 IEV1._EP.Vpointer
       #define IEVseg1     IEV1._EP.Vseg
       #define IEVsym1     IEV1.sp.Vsym
@@ -354,7 +354,7 @@ struct code
       #define IEVoffset1  IEV1.sp.Voffset
       #define IEVlsym1    IEV1.lab.Vsym
       #define IEVint1     IEV1.Vint
-    union evc IEV2;		// 2nd operand, if any
+    union evc IEV2;             // 2nd operand, if any
       #define IEVpointer2 IEV2._EP.Vpointer
       #define IEVseg2     IEV2._EP.Vseg
       #define IEVsym2     IEV2.sp.Vsym
@@ -362,13 +362,13 @@ struct code
       #define IEVoffset2  IEV2.sp.Voffset
       #define IEVlsym2    IEV2.lab.Vsym
       #define IEVint2     IEV2.Vint
-    void print();		// pretty-printer
+    void print();               // pretty-printer
 
-    code() { Ijty = 0; Isib = 0; }	// constructor
+    code() { Ijty = 0; Isib = 0; }      // constructor
 };
 
 // !=0 if we have to add FWAIT to floating point ops
-#define ADDFWAIT()	(config.target_cpu <= TARGET_80286)
+#define ADDFWAIT()      (config.target_cpu <= TARGET_80286)
 
 /********************** PUBLIC FUNCTIONS *******************/
 
@@ -376,42 +376,42 @@ code *code_calloc(void);
 void code_free (code *);
 void code_term(void);
 
-#define code_next(c)	((c)->next)
+#define code_next(c)    ((c)->next)
 
-//#define code_calloc()	((code *) mem_calloc(sizeof(code)))
+//#define code_calloc() ((code *) mem_calloc(sizeof(code)))
 
 typedef code *code_p;
 
 /**********************************
  * Set value in regimmed for reg.
  * NOTE: For 16 bit generator, this is always a (targ_short) sign-extended
- *	value.
+ *      value.
  */
 
 #define regimmed_set(reg,e) \
-	(regcon.immed.value[reg] = (e),regcon.immed.mval |= 1 << (reg))
+        (regcon.immed.value[reg] = (e),regcon.immed.mval |= 1 << (reg))
 
 extern con_t regcon;
 
 /****************************
  * Table of common subexpressions stored on the stack.
- *	csextab[]	array of info on saved CSEs
- *	CSEpe		pointer to saved elem
- *	CSEregm		mask of register that was saved (so for multi-
- *			register variables we know which part we have)
- *	cstop =		# of entries in table
+ *      csextab[]       array of info on saved CSEs
+ *      CSEpe           pointer to saved elem
+ *      CSEregm         mask of register that was saved (so for multi-
+ *                      register variables we know which part we have)
+ *      cstop =         # of entries in table
  */
 
 struct CSE
-{	elem	*e;		// pointer to elem
-	code	csimple;	// if CSEsimple, this is the code to regenerate it
-	regm_t	regm;		// mask of register stored there
-	char	flags;		// flag bytes
-#define CSEload		1	// set if the CSE was ever loaded
-#define CSEsimple	2	// CSE can be regenerated easilly
+{       elem    *e;             // pointer to elem
+        code    csimple;        // if CSEsimple, this is the code to regenerate it
+        regm_t  regm;           // mask of register stored there
+        char    flags;          // flag bytes
+#define CSEload         1       // set if the CSE was ever loaded
+#define CSEsimple       2       // CSE can be regenerated easilly
 
 // != 0 if CSE was ever loaded
-#define CSE_loaded(i)	(csextab[i].flags & CSEload)
+#define CSE_loaded(i)   (csextab[i].flags & CSEload)
 };
 
 /************************************
@@ -419,12 +419,12 @@ struct CSE
 
 struct NDP
 {
-    elem *e;			// which elem is stored here (NULL if none)
-    unsigned offset;		// offset from e (used for complex numbers)
+    elem *e;                    // which elem is stored here (NULL if none)
+    unsigned offset;            // offset from e (used for complex numbers)
 
     static NDP *save;
-    static int savemax;		// # of entries in save[]
-    static int savetop;		// # of entries used in save[]
+    static int savemax;         // # of entries in save[]
+    static int savetop;         // # of entries used in save[]
 };
 
 extern NDP _8087elems[8];
@@ -436,22 +436,22 @@ extern NDP _8087elems[8];
 
 extern unsigned usednteh;
 
-#define NTEH_try	1	// used _try statement
-#define NTEH_except	2	// used _except statement
-#define NTEHexcspec	4	// had C++ exception specification
-#define NTEHcleanup	8	// destructors need to be called
-#define NTEHtry		0x10	// had C++ try statement
-#define NTEHcpp		(NTEHexcspec | NTEHcleanup | NTEHtry)
-#define EHcleanup	0x20
-#define EHtry		0x40
-#define NTEHjmonitor	0x80	// uses Jupiter monitor
-#define NTEHpassthru	0x100
+#define NTEH_try        1       // used _try statement
+#define NTEH_except     2       // used _except statement
+#define NTEHexcspec     4       // had C++ exception specification
+#define NTEHcleanup     8       // destructors need to be called
+#define NTEHtry         0x10    // had C++ try statement
+#define NTEHcpp         (NTEHexcspec | NTEHcleanup | NTEHtry)
+#define EHcleanup       0x20
+#define EHtry           0x40
+#define NTEHjmonitor    0x80    // uses Jupiter monitor
+#define NTEHpassthru    0x100
 
 /********************** Code Generator State ***************/
 
 typedef struct CGstate
 {
-    int stackclean;	// if != 0, then clean the stack after function call
+    int stackclean;     // if != 0, then clean the stack after function call
 } CGstate;
 
 extern CGstate cgstate;
@@ -464,42 +464,42 @@ extern regm_t msavereg,mfuncreg,allregs;
 
 typedef code *cd_t (elem *e , regm_t *pretregs );
 
-extern	int BPRM;
-extern	regm_t FLOATREGS;
-extern	regm_t FLOATREGS2;
-extern	regm_t DOUBLEREGS;
-extern	const char datafl[],stackfl[],segfl[],flinsymtab[];
-extern	char needframe,usedalloca,gotref;
-extern	targ_size_t localsize,Toff,Poff,Aoff,
-	Poffset,funcoffset,
-	framehandleroffset,
-	Aoffset,Toffset,EEoffset;
-extern	int Aalign;
-extern	int cseg;
+extern  int BPRM;
+extern  regm_t FLOATREGS;
+extern  regm_t FLOATREGS2;
+extern  regm_t DOUBLEREGS;
+extern  const char datafl[],stackfl[],segfl[],flinsymtab[];
+extern  char needframe,usedalloca,gotref;
+extern  targ_size_t localsize,Toff,Poff,Aoff,
+        Poffset,funcoffset,
+        framehandleroffset,
+        Aoffset,Toffset,EEoffset;
+extern  int Aalign;
+extern  int cseg;
 #if TARGET_OSX
-extern	targ_size_t localgotoffset;
+extern  targ_size_t localgotoffset;
 #endif
 
 /* cgcod.c */
 extern int pass;
-#define PASSinit	0	// initial pass through code generator
-#define PASSreg		1	// register assignment pass
-#define PASSfinal	2	// final pass
+#define PASSinit        0       // initial pass through code generator
+#define PASSreg         1       // register assignment pass
+#define PASSfinal       2       // final pass
 
-extern	int dfoidx;
-extern	struct CSE *csextab;
-extern	unsigned cstop;
+extern  int dfoidx;
+extern  struct CSE *csextab;
+extern  unsigned cstop;
 #if TX86
-extern	bool floatreg;
+extern  bool floatreg;
 #endif
-extern	targ_size_t retoffset;
-extern	unsigned stackpush;
-extern	int stackchanged;
-extern	int refparam;
-extern	int reflocal;
-extern	char anyiasm;
-extern	char calledafunc;
-extern	code *(*cdxxx[])(elem *,regm_t *);
+extern  targ_size_t retoffset;
+extern  unsigned stackpush;
+extern  int stackchanged;
+extern  int refparam;
+extern  int reflocal;
+extern  char anyiasm;
+extern  char calledafunc;
+extern  code *(*cdxxx[])(elem *,regm_t *);
 
 void stackoffsets(int);
 void codgen (void );
@@ -516,7 +516,7 @@ void freenode (elem *e );
 int isregvar (elem *e , regm_t *pregm , unsigned *preg );
 #ifdef DEBUG
 code *allocreg (regm_t *pretregs , unsigned *preg , tym_t tym , int line , const char *file );
-#define allocreg(a,b,c)	allocreg((a),(b),(c),__LINE__,__FILE__)
+#define allocreg(a,b,c) allocreg((a),(b),(c),__LINE__,__FILE__)
 #else
 code *allocreg (regm_t *pretregs , unsigned *preg , tym_t tym );
 #endif
@@ -637,7 +637,7 @@ void code_hydrate(code **pc);
 void code_dehydrate(code **pc);
 
 /* cod4.c */
-extern	const unsigned dblreg[];
+extern  const unsigned dblreg[];
 extern int cdcmp_flag;
 
 code *modEA (unsigned Irm );
@@ -701,7 +701,7 @@ code *cdconvt87(elem *e, regm_t *pretregs);
 code *cload87(elem *e, regm_t *pretregs);
 
 #ifdef DEBUG
-#define pop87()	pop87(__LINE__,__FILE__)
+#define pop87() pop87(__LINE__,__FILE__)
 #endif
 
 /* iasm.c */
@@ -766,28 +766,28 @@ void cgreg_unregister(regm_t conflict);
 // cgsched.c
 void cgsched_pentium(code **pc,regm_t scratch);
 
-//	Data and code can be in any number of sections
-//	
-//	Generalize the Windows platform concept of CODE,DATA,UDATA,etc
-//	into multiple segments
+//      Data and code can be in any number of sections
+//
+//      Generalize the Windows platform concept of CODE,DATA,UDATA,etc
+//      into multiple segments
 
 #if OMFOBJ
 
-struct seg_data 
+struct seg_data
 {
-    int                  SDseg;		// omf file segment index
-    targ_size_t		 SDoffset;	// starting offset for data
+    int                  SDseg;         // omf file segment index
+    targ_size_t          SDoffset;      // starting offset for data
 
     bool isfarseg;
-    int seg;				// segment number
-    int lnameidx;			// lname idx of segment name
-    int classidx;			// lname idx of class name
-    unsigned attr;			// segment attribute
-    targ_size_t origsize;		// original size
-    long seek;				// seek position in output file
+    int seg;                            // segment number
+    int lnameidx;                       // lname idx of segment name
+    int classidx;                       // lname idx of class name
+    unsigned attr;                      // segment attribute
+    targ_size_t origsize;               // original size
+    long seek;                          // seek position in output file
 };
 
-extern	targ_size_t Coffset;
+extern  targ_size_t Coffset;
 
 #endif
 
@@ -800,35 +800,35 @@ typedef unsigned int IDXSYM;
 struct linnum_data
 {
     char *filename;
-    unsigned filenumber;	// corresponding file number for DW_LNS_set_file
+    unsigned filenumber;        // corresponding file number for DW_LNS_set_file
 
     unsigned linoff_count;
     unsigned linoff_max;
-    unsigned (*linoff)[2];	// [0] = line number, [1] = offset
+    unsigned (*linoff)[2];      // [0] = line number, [1] = offset
 };
 
-struct seg_data 
+struct seg_data
 {
-    int                  SDseg;		// segment index
-    IDXSEC		 SDshtidx;	// section header table index
-    targ_size_t		 SDoffset;	// starting offset for data
-    Outbuffer		*SDbuf;		// buffer to hold data
-    Outbuffer		*SDrel;		// buffer to hold relocation info
+    int                  SDseg;         // segment index
+    IDXSEC               SDshtidx;      // section header table index
+    targ_size_t          SDoffset;      // starting offset for data
+    Outbuffer           *SDbuf;         // buffer to hold data
+    Outbuffer           *SDrel;         // buffer to hold relocation info
 #if ELFOBJ
-    IDXSYM		 SDsymidx;	// each section is in the symbol table
-    IDXSEC		 SDrelidx;	// section header for relocation info
-    targ_size_t		 SDrelmaxoff;	// maximum offset encountered
-    int			 SDrelindex;	// maximum offset encountered
-    int			 SDrelcnt;	// number of relocations added
-    IDXSEC		 SDshtidxout;	// final section header table index
-    Symbol		*SDsym;		// if !=NULL, comdat symbol
+    IDXSYM               SDsymidx;      // each section is in the symbol table
+    IDXSEC               SDrelidx;      // section header for relocation info
+    targ_size_t          SDrelmaxoff;   // maximum offset encountered
+    int                  SDrelindex;    // maximum offset encountered
+    int                  SDrelcnt;      // number of relocations added
+    IDXSEC               SDshtidxout;   // final section header table index
+    Symbol              *SDsym;         // if !=NULL, comdat symbol
 #endif
 
-    unsigned		SDaranges_offset;	// if !=0, offset in .debug_aranges
+    unsigned            SDaranges_offset;       // if !=0, offset in .debug_aranges
 
-    unsigned		 SDlinnum_count;
-    unsigned		 SDlinnum_max;
-    linnum_data		*SDlinnum_data;	// array of line number / offset data
+    unsigned             SDlinnum_count;
+    unsigned             SDlinnum_max;
+    linnum_data         *SDlinnum_data; // array of line number / offset data
 
     int isCode();
 };

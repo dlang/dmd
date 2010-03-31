@@ -28,22 +28,22 @@
 #define MEM_PH_MALLOC mem_fmalloc
 #endif
 
-static char __file__[] = __FILE__;	/* for tassert.h		*/
-#include	"tassert.h"
+static char __file__[] = __FILE__;      /* for tassert.h                */
+#include        "tassert.h"
 
-static type *type_list = NULL;		// free list of types
-static param_t *param_list = NULL;	// free list of params
+static type *type_list = NULL;          // free list of types
+static param_t *param_list = NULL;      // free list of params
 
 #ifdef DEBUG
-static int type_num,type_max;	/* gather statistics on # of types	*/
+static int type_num,type_max;   /* gather statistics on # of types      */
 #endif
 
 typep_t tstypes[TYMAX];
 typep_t tsptr2types[TYMAX];
 
 typep_t tstrace,tsclib,tsjlib,tsdlib,
-	tslogical;
-typep_t	tspvoid,tspcvoid;
+        tslogical;
+typep_t tspvoid,tspcvoid;
 typep_t tsptrdiff, tssize;
 
 /*******************************
@@ -63,108 +63,108 @@ targ_size_t type_size(type *t)
 #endif
 #ifdef DEBUG
     if (tyb >= TYMAX)
-	/*type_print(t),*/
-	dbg_printf("tyb = x%x\n",tyb);
+        /*type_print(t),*/
+        dbg_printf("tyb = x%x\n",tyb);
 #endif
     assert(tyb < TYMAX);
     s = tysize[tyb];
     if (s == (targ_size_t) -1)
     {
-	switch (tyb)
-	{   
-	    // in case program plays games with function pointers
-	    case TYffunc:
-	    case TYfpfunc:
+        switch (tyb)
+        {
+            // in case program plays games with function pointers
+            case TYffunc:
+            case TYfpfunc:
 #if TARGET_MAC
-	    case TYpsfunc:
+            case TYpsfunc:
 #endif
 #if TX86
-	    case TYnfunc:	/* in case program plays games with function pointers */
-	    case TYhfunc:
-	    case TYnpfunc:
-	    case TYnsfunc:
-	    case TYfsfunc:
-	    case TYf16func:
-	    case TYifunc:
-	    case TYjfunc:
+            case TYnfunc:       /* in case program plays games with function pointers */
+            case TYhfunc:
+            case TYnpfunc:
+            case TYnsfunc:
+            case TYfsfunc:
+            case TYf16func:
+            case TYifunc:
+            case TYjfunc:
 #endif
 #if SCPP
-		if (ANSI)
-		    synerr(EM_unknown_size,"function"); /* size of function is not known */
+                if (ANSI)
+                    synerr(EM_unknown_size,"function"); /* size of function is not known */
 #endif
-		s = 1;
-		break;
-	    case TYarray:
-		if (t->Tflags & TFsizeunknown)
-		{
+                s = 1;
+                break;
+            case TYarray:
+                if (t->Tflags & TFsizeunknown)
+                {
 #if SCPP
-		    synerr(EM_unknown_size,"array");	/* size of array is unknown	*/
+                    synerr(EM_unknown_size,"array");    /* size of array is unknown     */
 #endif
-		    t->Tflags &= ~TFsizeunknown;
-		}
-		if (t->Tflags & TFvla)
-		{
-		    s = tysize[pointertype];
-		    break;
-		}
-		s = type_size(t->Tnext);
-		u = t->Tdim * (unsigned long) s;
+                    t->Tflags &= ~TFsizeunknown;
+                }
+                if (t->Tflags & TFvla)
+                {
+                    s = tysize[pointertype];
+                    break;
+                }
+                s = type_size(t->Tnext);
+                u = t->Tdim * (unsigned long) s;
 #if TX86 && SCPP
-		type_chksize(u);
+                type_chksize(u);
 #endif
-		s = u;
-		break;
-	    case TYstruct:
-		t = t->Ttag->Stype;	/* find main instance		*/
-					/* (for const struct X)		*/
-		if (t->Tflags & TFsizeunknown)
-		{
+                s = u;
+                break;
+            case TYstruct:
+                t = t->Ttag->Stype;     /* find main instance           */
+                                        /* (for const struct X)         */
+                if (t->Tflags & TFsizeunknown)
+                {
 #if SCPP
-		    template_instantiate_forward(t->Ttag);
-		    if (t->Tflags & TFsizeunknown)
-			synerr(EM_unknown_size,t->Tty & TYstruct ? prettyident(t->Ttag) : "struct");
-		    t->Tflags &= ~TFsizeunknown;
+                    template_instantiate_forward(t->Ttag);
+                    if (t->Tflags & TFsizeunknown)
+                        synerr(EM_unknown_size,t->Tty & TYstruct ? prettyident(t->Ttag) : "struct");
+                    t->Tflags &= ~TFsizeunknown;
 #endif
-		}
-		assert(t->Ttag);
-		s = t->Ttag->Sstruct->Sstructsize;
-		break;
+                }
+                assert(t->Ttag);
+                s = t->Ttag->Sstruct->Sstructsize;
+                break;
 #if SCPP
-	    case TYenum:
-		if (t->Ttag->Senum->SEflags & SENforward)
-		    synerr(EM_unknown_size, prettyident(t->Ttag));
-		s = type_size(t->Tnext);
-		break;
+            case TYenum:
+                if (t->Ttag->Senum->SEflags & SENforward)
+                    synerr(EM_unknown_size, prettyident(t->Ttag));
+                s = type_size(t->Tnext);
+                break;
 #endif
-	    case TYvoid:
-#if SCPP && TARGET_WINDOS		// GNUC allows it, so we will, too
-		synerr(EM_void_novalue);	// voids have no value
+            case TYvoid:
+#if SCPP && TARGET_WINDOS               // GNUC allows it, so we will, too
+                synerr(EM_void_novalue);        // voids have no value
 #endif
-		s = 1;
-		break;
+                s = 1;
+                break;
 #if SCPP
-	    case TYref:
-	    case TYmemptr:
-	    case TYvtshape:
-		s = tysize(tym_conv(t));
-		break;
+            case TYref:
+            case TYmemptr:
+            case TYvtshape:
+                s = tysize(tym_conv(t));
+                break;
 
-	    case TYident:
-		synerr(EM_unknown_size, t->Tident);
-		s = 1;
-		break;
+            case TYident:
+                synerr(EM_unknown_size, t->Tident);
+                s = 1;
+                break;
 #endif
 #if MARS
-	    case TYref:
-		s = tysize(TYnptr);
-		break;
+            case TYref:
+                s = tysize(TYnptr);
+                break;
 #endif
-	    default:
+            default:
 #ifdef DEBUG
-		WRTYxx(t->Tty);
+                WRTYxx(t->Tty);
 #endif
-		assert(0);
-	}
+                assert(0);
+        }
     }
     return s;
 }
@@ -180,31 +180,31 @@ L1:
     type_debug(t);
     switch (tybasic(t->Tty))
     {
-	case TYarray:
-	    if (t->Tflags & TFsizeunknown)
-		goto err;
-	    t = t->Tnext;
-	    goto L1;
-	case TYstruct:
-	    t = t->Ttag->Stype;		// find main instance
-					// (for const struct X)
-	    if (t->Tflags & TFsizeunknown)
-		goto err;
-	    sz = t->Ttag->Sstruct->Salignsize;
-	    if (sz > t->Ttag->Sstruct->Sstructalign)
-		sz = t->Ttag->Sstruct->Sstructalign;
-	    break;
+        case TYarray:
+            if (t->Tflags & TFsizeunknown)
+                goto err;
+            t = t->Tnext;
+            goto L1;
+        case TYstruct:
+            t = t->Ttag->Stype;         // find main instance
+                                        // (for const struct X)
+            if (t->Tflags & TFsizeunknown)
+                goto err;
+            sz = t->Ttag->Sstruct->Salignsize;
+            if (sz > t->Ttag->Sstruct->Sstructalign)
+                sz = t->Ttag->Sstruct->Sstructalign;
+            break;
 
-	case TYldouble:
-	case TYildouble:
-	case TYcldouble:
-	    sz = 2;
-	    break;
+        case TYldouble:
+        case TYildouble:
+        case TYcldouble:
+            sz = 2;
+            break;
 
-	default:
-	err:			// let type_size() handle error messages
-	    sz = type_size(t);
-	    break;
+        default:
+        err:                    // let type_size() handle error messages
+            sz = type_size(t);
+            break;
     }
     //printf("type_alignsize() = %d\n", sz);
     return sz;
@@ -221,15 +221,15 @@ targ_size_t type_paramsize(type *t)
 
     sz = 0;
     if (tyfunc(t->Tty))
-    {	param_t *p;
+    {   param_t *p;
 
-	for (p = t->Tparamtypes; p; p = p->Pnext)
-	{   size_t n;
+        for (p = t->Tparamtypes; p; p = p->Pnext)
+        {   size_t n;
 
-	    n = type_size(p->Ptype);
-	    n = align(REGSIZE,n);	// align to REGSIZE boundary
-	    sz += n;
-	}
+            n = type_size(p->Ptype);
+            n = align(REGSIZE,n);       // align to REGSIZE boundary
+            sz += n;
+        }
     }
     return sz;
 }
@@ -237,9 +237,9 @@ targ_size_t type_paramsize(type *t)
 /*****************************
  * Create a type & initialize it.
  * Input:
- *	ty = TYxxxx
+ *      ty = TYxxxx
  * Returns:
- *	pointer to newly created type.
+ *      pointer to newly created type.
  */
 
 type *type_alloc(tym_t ty)
@@ -248,26 +248,26 @@ type *type_alloc(tym_t ty)
 
     assert(tybasic(ty) != TYtemplate);
     if (type_list)
-    {	t = type_list;
-	type_list = t->Tnext;
+    {   t = type_list;
+        type_list = t->Tnext;
     }
     else
 #if TX86
-	t = (type *) mem_fmalloc(sizeof(type));
+        t = (type *) mem_fmalloc(sizeof(type));
 #else
-	t = (type *) MEM_PH_MALLOC(sizeof(type));
+        t = (type *) MEM_PH_MALLOC(sizeof(type));
 #endif
     tzero.Tty = ty;
     *t = tzero;
 #if SRCPOS_4TYPES
     if (PARSER && config.fulltypes)
-	t->Tsrcpos = getlinnum();
+        t->Tsrcpos = getlinnum();
 #endif
 #ifdef DEBUG
     t->id = IDtype;
     type_num++;
     if (type_num > type_max)
-	type_max = type_num;
+        type_max = type_num;
 #endif
     //dbg_printf("type_alloc() = %p ",t); WRTYxx(t->Tty); dbg_printf("\n");
     //if (t == (type*)0xB6B744) *(char*)0=0;
@@ -289,17 +289,17 @@ type *type_alloc_template(symbol *s)
 #endif
     t->Tty = TYtemplate;
     if (s->Stemplate->TMprimary)
-	s = s->Stemplate->TMprimary;
+        s = s->Stemplate->TMprimary;
     ((typetemp_t *)t)->Tsym = s;
 #if SRCPOS_4TYPES
     if (PARSER && config.fulltypes)
-	t->Tsrcpos = getlinnum();
+        t->Tsrcpos = getlinnum();
 #endif
 #ifdef DEBUG
     t->id = IDtype;
     type_num++;
     if (type_num > type_max)
-	type_max = type_num;
+        type_max = type_num;
     //dbg_printf("Alloc'ing template type %p ",t); WRTYxx(t->Tty); dbg_printf("\n");
 #endif
     return t;
@@ -308,9 +308,9 @@ type *type_alloc_template(symbol *s)
 /*****************************
  * Fake a type & initialize it.
  * Input:
- *	ty = TYxxxx
+ *      ty = TYxxxx
  * Returns:
- *	pointer to newly created type.
+ *      pointer to newly created type.
  */
 
 type *type_fake(tym_t ty)
@@ -321,8 +321,8 @@ type *type_fake(tym_t ty)
 #endif
     t = type_alloc(ty);
     if (typtr(ty) || tyfunc(ty))
-    {	t->Tnext = type_alloc(TYvoid);	/* fake with pointer to void	*/
-	t->Tnext->Tcount = 1;
+    {   t->Tnext = type_alloc(TYvoid);  /* fake with pointer to void    */
+        t->Tnext->Tcount = 1;
     }
     return t;
 }
@@ -370,39 +370,39 @@ void type_free(type *t)
 
     while (t)
     {
-	//dbg_printf("type_free(%p, Tcount = %d)\n", t, t->Tcount);
-	type_debug(t);
-	assert((int)t->Tcount != -1);
-	if (--t->Tcount)		/* if usage count doesn't go to 0 */
-	    break;
-	ty = tybasic(t->Tty);
-	if (tyfunc(ty))
-	{   param_free(&t->Tparamtypes);
-	    list_free(&t->Texcspec, (list_free_fp)type_free);
-	}
-	else if (ty == TYtemplate)
-	    param_free(&t->Tparamtypes);
-	else if (ty == TYident)
-	    MEM_PH_FREE(t->Tident);
-	else if (t->Tflags & TFvla && t->Tel)
-	    el_free(t->Tel);
+        //dbg_printf("type_free(%p, Tcount = %d)\n", t, t->Tcount);
+        type_debug(t);
+        assert((int)t->Tcount != -1);
+        if (--t->Tcount)                /* if usage count doesn't go to 0 */
+            break;
+        ty = tybasic(t->Tty);
+        if (tyfunc(ty))
+        {   param_free(&t->Tparamtypes);
+            list_free(&t->Texcspec, (list_free_fp)type_free);
+        }
+        else if (ty == TYtemplate)
+            param_free(&t->Tparamtypes);
+        else if (ty == TYident)
+            MEM_PH_FREE(t->Tident);
+        else if (t->Tflags & TFvla && t->Tel)
+            el_free(t->Tel);
 #if SCPP
-	else if (t->Talternate && typtr(ty))
-	    type_free(t->Talternate);
+        else if (t->Talternate && typtr(ty))
+            type_free(t->Talternate);
 #endif
 #if MARS
-	else if (t->Tkey && typtr(ty))
-	    type_free(t->Tkey);
+        else if (t->Tkey && typtr(ty))
+            type_free(t->Tkey);
 #endif
 #ifdef DEBUG
-	type_num--;
-	//dbg_printf("Free'ing type %p ",t); WRTYxx(t->Tty); dbg_printf("\n");
-	t->id = 0;			/* no longer a valid type	*/
+        type_num--;
+        //dbg_printf("Free'ing type %p ",t); WRTYxx(t->Tty); dbg_printf("\n");
+        t->id = 0;                      /* no longer a valid type       */
 #endif
-	tn = t->Tnext;
-	t->Tnext = type_list;
-	type_list = t;			/* link into free list		*/
-	t = tn;
+        tn = t->Tnext;
+        t->Tnext = type_list;
+        type_list = t;                  /* link into free list          */
+        t = tn;
     }
 }
 
@@ -412,7 +412,7 @@ type_count_free()
     {
     type *t;
     int count;
-    
+
     for(t=type_list;t;t=t->Tnext)
         count++;
     dbg_printf("types on free list %d with max of %d\n",count,type_max);
@@ -428,7 +428,7 @@ STATIC type * __near type_allocbasic(tym_t ty)
 
     t = type_alloc(ty);
     t->Tmangle = mTYman_c;
-    t->Tcount = 1;		/* so it is not inadvertantly free'd	*/
+    t->Tcount = 1;              /* so it is not inadvertantly free'd    */
     return t;
 }
 
@@ -465,41 +465,41 @@ void type_init()
 #if TARGET_POWERPC
 // for powerPC the size of  long double is user determined
     if (config.flags & CFGldblisdbl) {
-    	tsldouble = type_allocbasic(TYdouble); 	/* ldouble is same as double per user's request */
+        tsldouble = type_allocbasic(TYdouble);  /* ldouble is same as double per user's request */
     } else {
-	tsldouble = type_allocbasic(TYldouble);
+        tsldouble = type_allocbasic(TYldouble);
     }
 #else
     tsldouble = type_allocbasic(TYldouble);
 #endif
     tscomp = type_allocbasic(TYcomp);
-    chartype = tschar;				/* default is signed chars */
+    chartype = tschar;                          /* default is signed chars */
 #endif
     if (I64)
     {
-	TYptrdiff = TYllong;
-	TYsize = TYullong;
-	tsptrdiff = tsllong;
-	tssize = tsullong;
+        TYptrdiff = TYllong;
+        TYsize = TYullong;
+        tsptrdiff = tsllong;
+        tssize = tsullong;
     }
     else
     {
-	TYptrdiff = TYint;
-	TYsize = TYuint;
-	tsptrdiff = tsint;
-	tssize = tsuns;
+        TYptrdiff = TYint;
+        TYsize = TYuint;
+        tsptrdiff = tsint;
+        tssize = tsuns;
     }
 
 #if TX86
     chartype = (config.flags3 & CFG3ju) ? tsuchar : tschar;
 
     // Type of far library function
-    tsclib =	type_fake(LARGECODE ? TYfpfunc : TYnpfunc);
+    tsclib =    type_fake(LARGECODE ? TYfpfunc : TYnpfunc);
     tsclib->Tmangle = mTYman_c;
     tsclib->Tcount++;
 
     // Type of trace function
-    tstrace =	type_fake(I16 ? TYffunc : TYnfunc);
+    tstrace =   type_fake(I16 ? TYffunc : TYnfunc);
     tstrace->Tmangle = mTYman_c;
     tstrace->Tcount++;
 
@@ -508,7 +508,7 @@ void type_init()
     tspvoid->Tcount++;
 
     // Type of far library function
-    tsjlib =	type_fake(TYjfunc);
+    tsjlib =    type_fake(TYjfunc);
     tsjlib->Tmangle = mTYman_c;
     tsjlib->Tcount++;
 
@@ -526,10 +526,10 @@ void type_init()
 
     for (i = 0; i < TYMAX; i++)
     {
-	if (tstypes[i])
-	{   tsptr2types[i] = type_allocn(pointertype,tstypes[i]);
-	    tsptr2types[i]->Tcount++;
-	}
+        if (tstypes[i])
+        {   tsptr2types[i] = type_allocn(pointertype,tstypes[i]);
+            tsptr2types[i]->Tcount++;
+        }
     }
 #else
     type_list = NULL;
@@ -556,13 +556,13 @@ void type_term()
     for (i = 0; i < arraysize(tstypes); i++)
     {   type *t = tsptr2types[i];
 
-	if (t)
-	{   assert(!(t->Tty & (mTYconst | mTYvolatile | mTYimmutable | mTYshared)));
-	    assert(!(t->Tflags));
-	    assert(!(t->Tmangle));
-	    type_free(t);
-	}
-	type_free(tstypes[i]);
+        if (t)
+        {   assert(!(t->Tty & (mTYconst | mTYvolatile | mTYimmutable | mTYshared)));
+            assert(!(t->Tflags));
+            assert(!(t->Tmangle));
+            type_free(t);
+        }
+        type_free(tstypes[i]);
     }
 
     type_free(tsclib);
@@ -574,29 +574,29 @@ void type_term()
 #endif
 
     while (type_list)
-    {	tn = type_list->Tnext;
+    {   tn = type_list->Tnext;
 #if TX86
-	mem_ffree(type_list);
+        mem_ffree(type_list);
 #else
-	MEM_PH_FREE(type_list);
+        MEM_PH_FREE(type_list);
 #endif
-	type_list = tn;
+        type_list = tn;
     }
 
     while (param_list)
-    {	pn = param_list->Pnext;
+    {   pn = param_list->Pnext;
 #if TX86
-	mem_ffree(param_list);
+        mem_ffree(param_list);
 #else
-	MEM_PH_FREE(param_list);
+        MEM_PH_FREE(param_list);
 #endif
-	param_list = pn;
+        param_list = pn;
     }
 
 #ifdef DEBUG
     dbg_printf("Max # of types = %d\n",type_max);
     if (type_num != 0)
-	dbg_printf("type_num = %d\n",type_num);
+        dbg_printf("type_num = %d\n",type_num);
 /*    assert(type_num == 0);*/
 #endif
 }
@@ -617,54 +617,54 @@ type *type_copy(type *t)
     type_debug(t);
     if (tybasic(t->Tty) == TYtemplate)
     {
-	tn = type_alloc_template(((typetemp_t *)t)->Tsym);
+        tn = type_alloc_template(((typetemp_t *)t)->Tsym);
     }
     else
-	tn = type_alloc(t->Tty);
+        tn = type_alloc(t->Tty);
     *tn = *t;
     switch (tybasic(tn->Tty))
-    {	    case TYtemplate:
-		((typetemp_t *)tn)->Tsym = ((typetemp_t *)t)->Tsym;
-		goto L1;
+    {       case TYtemplate:
+                ((typetemp_t *)tn)->Tsym = ((typetemp_t *)t)->Tsym;
+                goto L1;
 
-	    case TYident:
-		tn->Tident = (char *)MEM_PH_STRDUP(t->Tident);
-		break;
+            case TYident:
+                tn->Tident = (char *)MEM_PH_STRDUP(t->Tident);
+                break;
 
-	    case TYarray:
-		if (tn->Tflags & TFvla)
-		    tn->Tel = el_copytree(tn->Tel);
-		break;
+            case TYarray:
+                if (tn->Tflags & TFvla)
+                    tn->Tel = el_copytree(tn->Tel);
+                break;
 
-	    default:
-		if (tyfunc(tn->Tty))
-		{
-		L1:
-		    tn->Tparamtypes = NULL;
-		    for (p = t->Tparamtypes; p; p = p->Pnext)
-		    {	param_t *pn;
+            default:
+                if (tyfunc(tn->Tty))
+                {
+                L1:
+                    tn->Tparamtypes = NULL;
+                    for (p = t->Tparamtypes; p; p = p->Pnext)
+                    {   param_t *pn;
 
-			pn = param_append_type(&tn->Tparamtypes,p->Ptype);
-			if (p->Pident)
-			{
-			    pn->Pident = (char *)MEM_PH_STRDUP(p->Pident);
-			}
-			assert(!p->Pelem);
-		    }
-		}
+                        pn = param_append_type(&tn->Tparamtypes,p->Ptype);
+                        if (p->Pident)
+                        {
+                            pn->Pident = (char *)MEM_PH_STRDUP(p->Pident);
+                        }
+                        assert(!p->Pelem);
+                    }
+                }
 #if SCPP
-		else if (tn->Talternate && typtr(tn->Tty))
-		    tn->Talternate->Tcount++;
+                else if (tn->Talternate && typtr(tn->Tty))
+                    tn->Talternate->Tcount++;
 #endif
 #if MARS
-		else if (tn->Tkey && typtr(tn->Tty))
-		    tn->Tkey->Tcount++;
+                else if (tn->Tkey && typtr(tn->Tty))
+                    tn->Tkey->Tcount++;
 #endif
-		break;
+                break;
     }
     if (tn->Tnext)
-    {	type_debug(tn->Tnext);
-	tn->Tnext->Tcount++;
+    {   type_debug(tn->Tnext);
+        tn->Tnext->Tcount++;
     }
     tn->Tcount = 0;
     return tn;
@@ -682,17 +682,17 @@ elem *type_vla_fix(type **pt)
 
     for (t = *pt; t; t = t->Tnext)
     {
-	type_debug(t);
-	if (tybasic(t->Tty) == TYarray && t->Tflags & TFvla && t->Tel)
-	{   symbol *s;
-	    elem *ec;
+        type_debug(t);
+        if (tybasic(t->Tty) == TYarray && t->Tflags & TFvla && t->Tel)
+        {   symbol *s;
+            elem *ec;
 
-	    s = symbol_genauto(tsuns);
-	    ec = el_var(s);
-	    ec = el_bint(OPeq, tsuns, ec, t->Tel);
-	    e = el_combine(e, ec);
-	    t->Tel = el_var(s);
-	}
+            s = symbol_genauto(tsuns);
+            ec = el_var(s);
+            ec = el_bint(OPeq, tsuns, ec, t->Tel);
+            e = el_combine(e, ec);
+            t->Tel = el_var(s);
+        }
     }
     return e;
 }
@@ -709,16 +709,16 @@ type *type_setty(type **pt,long newty)
     t = *pt;
     type_debug(t);
     if ((tym_t)newty != t->Tty)
-    {	if (t->Tcount > 1)		/* if other people pointing at t */
-	{   type *tn;
+    {   if (t->Tcount > 1)              /* if other people pointing at t */
+        {   type *tn;
 
-	    tn = type_copy(t);
-	    tn->Tcount++;
-	    type_free(t);
-	    t = tn;
-	    *pt = t;
-	}
-	t->Tty = newty;
+            tn = type_copy(t);
+            tn->Tcount++;
+            type_free(t);
+            t = tn;
+            *pt = t;
+        }
+        t->Tty = newty;
     }
     return t;
 }
@@ -730,8 +730,8 @@ type *type_setty(type **pt,long newty)
 type *type_settype(type **pt, type *t)
 {
     if (t)
-    {	type_debug(t);
-	t->Tcount++;
+    {   type_debug(t);
+        t->Tcount++;
     }
     type_free(*pt);
     return *pt = t;
@@ -748,16 +748,16 @@ type *type_setmangle(type **pt,mangle_t mangle)
     type_debug(t);
     if (mangle != type_mangle(t))
     {
-	if (t->Tcount > 1)		// if other people pointing at t
-	{   type *tn;
+        if (t->Tcount > 1)              // if other people pointing at t
+        {   type *tn;
 
-	    tn = type_copy(t);
-	    tn->Tcount++;
-	    type_free(t);
-	    t = tn;
-	    *pt = t;
-	}
-	t->Tmangle = mangle;
+            tn = type_copy(t);
+            tn->Tcount++;
+            type_free(t);
+            t = tn;
+            *pt = t;
+        }
+        t->Tmangle = mangle;
     }
     return t;
 }
@@ -783,16 +783,16 @@ type *type_setdim(type **pt,targ_size_t dim)
 {   type *t = *pt;
 
     type_debug(t);
-    if (t->Tcount > 1)			/* if other people pointing at t */
-    {	type *tn;
+    if (t->Tcount > 1)                  /* if other people pointing at t */
+    {   type *tn;
 
-	tn = type_copy(t);
-	tn->Tcount++;
-	type_free(t);
-	t = tn;
+        tn = type_copy(t);
+        tn->Tcount++;
+        type_free(t);
+        t = tn;
     }
-    t->Tflags &= ~TFsizeunknown; /* we have determined its size	*/
-    t->Tdim = dim;		/* index of array		*/
+    t->Tflags &= ~TFsizeunknown; /* we have determined its size */
+    t->Tdim = dim;              /* index of array               */
     return *pt = t;
 }
 
@@ -804,10 +804,10 @@ type *type_setdim(type **pt,targ_size_t dim)
 type *type_setdependent(type *t)
 {
     type_debug(t);
-    if (t->Tcount > 0 &&			/* if other people pointing at t */
-	!(t->Tflags & TFdependent))
+    if (t->Tcount > 0 &&                        /* if other people pointing at t */
+        !(t->Tflags & TFdependent))
     {
-	t = type_copy(t);
+        t = type_copy(t);
     }
     t->Tflags |= TFdependent;
     return t;
@@ -826,30 +826,30 @@ int type_isdependent(type *t)
     //type_print(t);
     for (tstart = t; t; t = t->Tnext)
     {
-	type_debug(t);
-	if (t->Tflags & TFdependent)
-	    goto Lisdependent;
-	if (tyfunc(t->Tty) || tybasic(t->Tty) == TYtemplate)
-	{
-	    for (param_t *p = t->Tparamtypes; p; p = p->Pnext)
-	    {
-		if (p->Ptype && type_isdependent(p->Ptype))
-		    goto Lisdependent;
-		if (p->Pelem && el_isdependent(p->Pelem))
-		    goto Lisdependent;
-	    }
-	}
-	else if (type_struct(t) &&
-		 (stempl = t->Ttag->Sstruct->Stempsym) != NULL)
-	{
-	    for (param_t *p = t->Ttag->Sstruct->Sarglist; p; p = p->Pnext)
-	    {
-		if (p->Ptype && type_isdependent(p->Ptype))
-		    goto Lisdependent;
-		if (p->Pelem && el_isdependent(p->Pelem))
-		    goto Lisdependent;
-	    }
-	}
+        type_debug(t);
+        if (t->Tflags & TFdependent)
+            goto Lisdependent;
+        if (tyfunc(t->Tty) || tybasic(t->Tty) == TYtemplate)
+        {
+            for (param_t *p = t->Tparamtypes; p; p = p->Pnext)
+            {
+                if (p->Ptype && type_isdependent(p->Ptype))
+                    goto Lisdependent;
+                if (p->Pelem && el_isdependent(p->Pelem))
+                    goto Lisdependent;
+            }
+        }
+        else if (type_struct(t) &&
+                 (stempl = t->Ttag->Sstruct->Stempsym) != NULL)
+        {
+            for (param_t *p = t->Ttag->Sstruct->Sarglist; p; p = p->Pnext)
+            {
+                if (p->Ptype && type_isdependent(p->Ptype))
+                    goto Lisdependent;
+                if (p->Pelem && el_isdependent(p->Pelem))
+                    goto Lisdependent;
+            }
+        }
     }
     //printf("\tis not dependent\n");
     return 0;
@@ -865,7 +865,7 @@ Lisdependent:
 /*******************************
  * Recursively check if type u is embedded in type t.
  * Returns:
- *	!= 0 if embedded
+ *      != 0 if embedded
  */
 
 int type_embed(type *t,type *u)
@@ -873,15 +873,15 @@ int type_embed(type *t,type *u)
 
     for (; t; t = t->Tnext)
     {
-	type_debug(t);
-	if (t == u)
-	    return 1;
-	if (tyfunc(t->Tty))
-	{
-	    for (p = t->Tparamtypes; p; p = p->Pnext)
-		if (type_embed(p->Ptype,u))
-		    return 1;
-	}
+        type_debug(t);
+        if (t == u)
+            return 1;
+        if (tyfunc(t->Tty))
+        {
+            for (p = t->Tparamtypes; p; p = p->Pnext)
+                if (type_embed(p->Ptype,u))
+                    return 1;
+        }
     }
     return 0;
 }
@@ -895,11 +895,11 @@ int type_isvla(type *t)
 {
     while (t)
     {
-	if (tybasic(t->Tty) != TYarray)
-	    break;
-	if (t->Tflags & TFvla)
-	    return 1;
-	t = t->Tnext;
+        if (tybasic(t->Tty) != TYarray)
+            break;
+        if (t->Tflags & TFvla)
+            return 1;
+        t = t->Tnext;
     }
     return 0;
 }
@@ -912,8 +912,8 @@ int type_jparam(type *t)
 {
     type_debug(t);
     return tyjparam(t->Tty) ||
-		((tybasic(t->Tty) == TYstruct || tybasic(t->Tty) == TYarray) && type_size(t) <= intsize &&
-		 type_size(t) != 3);
+                ((tybasic(t->Tty) == TYstruct || tybasic(t->Tty) == TYarray) && type_size(t) <= intsize &&
+                 type_size(t) != 3);
 }
 
 
@@ -931,69 +931,69 @@ void type_print(type *t)
   dbg_printf(" Tflags=x%x",t->Tflags);
   dbg_printf(" Tcount=%d",t->Tcount);
   if (!(t->Tflags & TFsizeunknown) &&
-	tybasic(t->Tty) != TYvoid &&
-	tybasic(t->Tty) != TYident &&
-	tybasic(t->Tty) != TYmfunc &&
-	tybasic(t->Tty) != TYarray &&
-	tybasic(t->Tty) != TYtemplate)
+        tybasic(t->Tty) != TYvoid &&
+        tybasic(t->Tty) != TYident &&
+        tybasic(t->Tty) != TYmfunc &&
+        tybasic(t->Tty) != TYarray &&
+        tybasic(t->Tty) != TYtemplate)
       dbg_printf(" Tsize=%d",type_size(t));
   dbg_printf(" Tnext=%p",t->Tnext);
   switch (tybasic(t->Tty))
-  {	case TYstruct:
-	case TYmemptr:
-	    dbg_printf(" Ttag=%p,'%s'",t->Ttag,t->Ttag->Sident);
+  {     case TYstruct:
+        case TYmemptr:
+            dbg_printf(" Ttag=%p,'%s'",t->Ttag,t->Ttag->Sident);
 #if TARGET_MAC
-	    dbg_printf(" Sfldlst=x%08lx Sflags=x%x",
-			    t->Ttag->Sstruct->Sfldlst,t->Ttag->Sstruct->Sflags);
+            dbg_printf(" Sfldlst=x%08lx Sflags=x%x",
+                            t->Ttag->Sstruct->Sfldlst,t->Ttag->Sstruct->Sflags);
 #else
-	    //dbg_printf(" Sfldlst=%p",t->Ttag->Sstruct->Sfldlst);
+            //dbg_printf(" Sfldlst=%p",t->Ttag->Sstruct->Sfldlst);
 #endif
-	    break;
-	case TYarray:
-	    dbg_printf(" Tdim=%d",t->Tdim);
-	    break;
-	case TYident:
-	    dbg_printf(" Tident='%s'",t->Tident);
-	    break;
-	case TYtemplate:
-	    dbg_printf(" Tsym='%s'",((typetemp_t *)t)->Tsym->Sident);
-	    {	param_t *p;
-		int i;
+            break;
+        case TYarray:
+            dbg_printf(" Tdim=%d",t->Tdim);
+            break;
+        case TYident:
+            dbg_printf(" Tident='%s'",t->Tident);
+            break;
+        case TYtemplate:
+            dbg_printf(" Tsym='%s'",((typetemp_t *)t)->Tsym->Sident);
+            {   param_t *p;
+                int i;
 
-		i = 1;
-		for (p = t->Tparamtypes; p; p = p->Pnext)
-		{   dbg_printf("\nTP%d (%p): ",i++,p);
-		    fflush(stdout);
-
-dbg_printf("Pident=%p,Ptype=%p,Pelem=%p,Pnext=%p ",p->Pident,p->Ptype,p->Pelem,p->Pnext);
-		    param_debug(p);
-		    if (p->Pident)
-			printf("'%s' ", p->Pident);
-		    if (p->Ptype)
-			type_print(p->Ptype);
-		    if (p->Pelem)
-			elem_print(p->Pelem);
-		}
-	    }
-	    break;
-	default:
-	    if (tyfunc(t->Tty))
-	    {	param_t *p;
-		int i;
-
-		i = 1;
-		for (p = t->Tparamtypes; p; p = p->Pnext)
-		{   dbg_printf("\nP%d (%p): ",i++,p);
-		    fflush(stdout);
+                i = 1;
+                for (p = t->Tparamtypes; p; p = p->Pnext)
+                {   dbg_printf("\nTP%d (%p): ",i++,p);
+                    fflush(stdout);
 
 dbg_printf("Pident=%p,Ptype=%p,Pelem=%p,Pnext=%p ",p->Pident,p->Ptype,p->Pelem,p->Pnext);
-		    param_debug(p);
-		    if (p->Pident)
-			printf("'%s' ", p->Pident);
-		    type_print(p->Ptype);
-		}
-	    }
-	    break;
+                    param_debug(p);
+                    if (p->Pident)
+                        printf("'%s' ", p->Pident);
+                    if (p->Ptype)
+                        type_print(p->Ptype);
+                    if (p->Pelem)
+                        elem_print(p->Pelem);
+                }
+            }
+            break;
+        default:
+            if (tyfunc(t->Tty))
+            {   param_t *p;
+                int i;
+
+                i = 1;
+                for (p = t->Tparamtypes; p; p = p->Pnext)
+                {   dbg_printf("\nP%d (%p): ",i++,p);
+                    fflush(stdout);
+
+dbg_printf("Pident=%p,Ptype=%p,Pelem=%p,Pnext=%p ",p->Pident,p->Ptype,p->Pelem,p->Pnext);
+                    param_debug(p);
+                    if (p->Pident)
+                        printf("'%s' ", p->Pident);
+                    type_print(p->Ptype);
+                }
+            }
+            break;
   }
   dbg_printf("\n");
   if (t->Tnext) type_print(t->Tnext);
@@ -1007,31 +1007,31 @@ void param_t::print()
 {
     dbg_printf("Pident=%p,Ptype=%p,Pelem=%p,Psym=%p,Pnext=%p\n",Pident,Ptype,Pelem,Psym,Pnext);
     if (Pident)
-	dbg_printf("\tPident = '%s'\n", Pident);
+        dbg_printf("\tPident = '%s'\n", Pident);
     if (Ptype)
-    {	dbg_printf("\tPtype =\n");
-	type_print(Ptype);
+    {   dbg_printf("\tPtype =\n");
+        type_print(Ptype);
     }
     if (Pelem)
-    {	dbg_printf("\tPelem =\n");
-	elem_print(Pelem);
+    {   dbg_printf("\tPelem =\n");
+        elem_print(Pelem);
     }
     if (Pdeftype)
-    {	dbg_printf("\tPdeftype =\n");
-	type_print(Pdeftype);
+    {   dbg_printf("\tPdeftype =\n");
+        type_print(Pdeftype);
     }
     if (Psym)
-    {	dbg_printf("\tPsym = '%s'\n", Psym->Sident);
+    {   dbg_printf("\tPsym = '%s'\n", Psym->Sident);
     }
     if (Pptpl)
-    {	dbg_printf("\tPptpl = %p\n", Pptpl);
+    {   dbg_printf("\tPptpl = %p\n", Pptpl);
     }
 }
 
 void param_t::print_list()
 {
     for (param_t *p = this; p; p = p->Pnext)
-	p->print();
+        p->print();
 }
 
 #endif /* DEBUG */
@@ -1048,54 +1048,54 @@ void type_hydrate(type **pt)
     assert(pt);
     while (isdehydrated(*pt))
     {
-	t = (type *) ph_hydrate(pt);
-	type_debug(t);
+        t = (type *) ph_hydrate(pt);
+        type_debug(t);
 #if !TX86
-	if (t->Tflags & TFhydrated)
-	    return;
+        if (t->Tflags & TFhydrated)
+            return;
 #if SOURCE_4TYPES
-	t->Tsrcpos.Sfilnum += File_Hydrate_Num;	/* file number relative header build */
+        t->Tsrcpos.Sfilnum += File_Hydrate_Num; /* file number relative header build */
 #endif
-	t->Tflags |= TFhydrated;
+        t->Tflags |= TFhydrated;
 #endif
-	switch (tybasic(t->Tty))
-	{
-	    case TYstruct:
-	    case TYenum:
-	    case TYmemptr:
-	    case TYvtshape:
-		// Cannot assume symbol is hydrated, because entire HX file
-		// may not have been hydrated.
-		Classsym_hydrate(&t->Ttag);
-		symbol_debug(t->Ttag);
-		break;
-	    case TYident:
-		ph_hydrate(&t->Tident);
-		break;
-	    case TYtemplate:
-		symbol_hydrate(&((typetemp_t *)t)->Tsym);
-		param_hydrate(&t->Tparamtypes);
-		break;
-	    case TYarray:
-		if (t->Tflags & TFvla)
-		    el_hydrate(&t->Tel);
-		break;
-	    default:
-		if (tyfunc(t->Tty))
-		{   param_hydrate(&t->Tparamtypes);
-		    list_hydrate(&t->Texcspec, (list_free_fp)type_hydrate);
-		}
+        switch (tybasic(t->Tty))
+        {
+            case TYstruct:
+            case TYenum:
+            case TYmemptr:
+            case TYvtshape:
+                // Cannot assume symbol is hydrated, because entire HX file
+                // may not have been hydrated.
+                Classsym_hydrate(&t->Ttag);
+                symbol_debug(t->Ttag);
+                break;
+            case TYident:
+                ph_hydrate(&t->Tident);
+                break;
+            case TYtemplate:
+                symbol_hydrate(&((typetemp_t *)t)->Tsym);
+                param_hydrate(&t->Tparamtypes);
+                break;
+            case TYarray:
+                if (t->Tflags & TFvla)
+                    el_hydrate(&t->Tel);
+                break;
+            default:
+                if (tyfunc(t->Tty))
+                {   param_hydrate(&t->Tparamtypes);
+                    list_hydrate(&t->Texcspec, (list_free_fp)type_hydrate);
+                }
 #if SCPP
-		else if (t->Talternate && typtr(t->Tty))
-		    type_hydrate(&t->Talternate);
+                else if (t->Talternate && typtr(t->Tty))
+                    type_hydrate(&t->Talternate);
 #endif
 #if MARS
-		else if (t->Tkey && typtr(t->Tty))
-		    type_hydrate(&t->Tkey);
+                else if (t->Tkey && typtr(t->Tty))
+                    type_hydrate(&t->Tkey);
 #endif
-		break;
-	}
-	pt = &t->Tnext;
+                break;
+        }
+        pt = &t->Tnext;
     }
 }
 #endif
@@ -1111,48 +1111,48 @@ void type_dehydrate(type **pt)
 
     while ((t = *pt) != NULL && !isdehydrated(t))
     {
-	ph_dehydrate(pt);
+        ph_dehydrate(pt);
 #if DEBUG_XSYMGEN
-	/* don't dehydrate types in HEAD when creating XSYM */
-	if (xsym_gen && (t->Tflags & TFhydrated))
-	    return;
+        /* don't dehydrate types in HEAD when creating XSYM */
+        if (xsym_gen && (t->Tflags & TFhydrated))
+            return;
 #endif
-	type_debug(t);
-	switch (tybasic(t->Tty))
-	{
-	    case TYstruct:
-	    case TYenum:
-	    case TYmemptr:
-	    case TYvtshape:
-		Classsym_dehydrate(&t->Ttag);
-		break;
-	    case TYident:
-		ph_dehydrate(&t->Tident);
-		break;
-	    case TYtemplate:
-		symbol_dehydrate(&((typetemp_t *)t)->Tsym);
-		param_dehydrate(&t->Tparamtypes);
-		break;
-	    case TYarray:
-		if (t->Tflags & TFvla)
-		    el_dehydrate(&t->Tel);
-		break;
-	    default:
-		if (tyfunc(t->Tty))
-		{   param_dehydrate(&t->Tparamtypes);
-		    list_dehydrate(&t->Texcspec, (list_free_fp)type_dehydrate);
-		}
+        type_debug(t);
+        switch (tybasic(t->Tty))
+        {
+            case TYstruct:
+            case TYenum:
+            case TYmemptr:
+            case TYvtshape:
+                Classsym_dehydrate(&t->Ttag);
+                break;
+            case TYident:
+                ph_dehydrate(&t->Tident);
+                break;
+            case TYtemplate:
+                symbol_dehydrate(&((typetemp_t *)t)->Tsym);
+                param_dehydrate(&t->Tparamtypes);
+                break;
+            case TYarray:
+                if (t->Tflags & TFvla)
+                    el_dehydrate(&t->Tel);
+                break;
+            default:
+                if (tyfunc(t->Tty))
+                {   param_dehydrate(&t->Tparamtypes);
+                    list_dehydrate(&t->Texcspec, (list_free_fp)type_dehydrate);
+                }
 #if SCPP
-		else if (t->Talternate && typtr(t->Tty))
-		    type_dehydrate(&t->Talternate);
+                else if (t->Talternate && typtr(t->Tty))
+                    type_dehydrate(&t->Talternate);
 #endif
 #if MARS
-		else if (t->Tkey && typtr(t->Tty))
-		    type_dehydrate(&t->Tkey);
+                else if (t->Tkey && typtr(t->Tty))
+                    type_dehydrate(&t->Tkey);
 #endif
-		break;
-	}
-	pt = &t->Tnext;
+                break;
+        }
+        pt = &t->Tnext;
     }
 }
 #endif
@@ -1171,15 +1171,15 @@ param_t *param_calloc()
 #endif
     if (param_list)
     {
-    	p = param_list;
-	param_list = p->Pnext;
+        p = param_list;
+        param_list = p->Pnext;
     }
     else
     {
 #if TX86
-	p = (param_t *) mem_fmalloc(sizeof(param_t));
+        p = (param_t *) mem_fmalloc(sizeof(param_t));
 #else
-	p = (param_t *) MEM_PH_MALLOC(sizeof(param_t));
+        p = (param_t *) MEM_PH_MALLOC(sizeof(param_t));
 #endif
     }
     *p = pzero;
@@ -1198,10 +1198,10 @@ param_t *param_append_type(param_t **pp,type *t)
 
     p = param_calloc();
     while (*pp)
-    {	param_debug(*pp);
-	pp = &((*pp)->Pnext);	/* find end of list	*/
+    {   param_debug(*pp);
+        pp = &((*pp)->Pnext);   /* find end of list     */
     }
-    *pp = p;			/* append p to list	*/
+    *pp = p;                    /* append p to list     */
     type_debug(t);
     p->Ptype = t;
     t->Tcount++;
@@ -1220,7 +1220,7 @@ void param_free_l(param_t *p)
 /***********************
  * Free parameter list.
  * Output:
- *	paramlst = NULL
+ *      paramlst = NULL
  */
 
 void param_free(param_t **pparamlst)
@@ -1230,23 +1230,23 @@ void param_free(param_t **pparamlst)
     debug_assert(PARSER);
 #endif
     for (p = *pparamlst; p; p = pn)
-    {	param_debug(p);
-	pn = p->Pnext;
-	type_free(p->Ptype);
+    {   param_debug(p);
+        pn = p->Pnext;
+        type_free(p->Ptype);
 #if TX86
-	mem_free(p->Pident);
+        mem_free(p->Pident);
 #else
-	MEM_PH_FREE(p->Pident);
+        MEM_PH_FREE(p->Pident);
 #endif
-	el_free(p->Pelem);
-	type_free(p->Pdeftype);
-	if (p->Pptpl)
-	    param_free(&p->Pptpl);
+        el_free(p->Pelem);
+        type_free(p->Pdeftype);
+        if (p->Pptpl)
+            param_free(&p->Pptpl);
 #ifdef DEBUG
-	p->id = 0;
+        p->id = 0;
 #endif
-	p->Pnext = param_list;
-	param_list = p;
+        p->Pnext = param_list;
+        param_list = p;
     }
     *pparamlst = NULL;
 }
@@ -1261,7 +1261,7 @@ unsigned param_t::length()
     param_t *p;
 
     for (p = this; p; p = p->Pnext)
-	nparams++;
+        nparams++;
     return nparams;
 }
 
@@ -1269,7 +1269,7 @@ unsigned param_t::length()
  * Create template-argument-list blank from
  * template-parameter-list
  * Input:
- *	ptali	initial template-argument-list
+ *      ptali   initial template-argument-list
  */
 
 param_t *param_t::createTal(param_t *ptali)
@@ -1281,37 +1281,37 @@ param_t *param_t::createTal(param_t *ptali)
 
     for (p = this; p; p = p->Pnext)
     {
-	*pp = param_calloc();
-	if (p->Pident)
-	{
-	    // Should find a way to just point rather than dup
-	    (*pp)->Pident = (char *)MEM_PH_STRDUP(p->Pident);
-	}
-	if (ptali)
-	{
-	    if (ptali->Ptype)
-	    {	(*pp)->Ptype = ptali->Ptype;
-		(*pp)->Ptype->Tcount++;
-	    }
-	    if (ptali->Pelem)
-	    {
-		elem *e = el_copytree(ptali->Pelem);
+        *pp = param_calloc();
+        if (p->Pident)
+        {
+            // Should find a way to just point rather than dup
+            (*pp)->Pident = (char *)MEM_PH_STRDUP(p->Pident);
+        }
+        if (ptali)
+        {
+            if (ptali->Ptype)
+            {   (*pp)->Ptype = ptali->Ptype;
+                (*pp)->Ptype->Tcount++;
+            }
+            if (ptali->Pelem)
+            {
+                elem *e = el_copytree(ptali->Pelem);
 #if SCPP
-		if (p->Ptype)
-		{   type *t = p->Ptype;
-		    t = template_tyident(t, ptalistart, this, 1);
-		    e = poptelem3(typechk(e, t));
-		    type_free(t);
-		}
+                if (p->Ptype)
+                {   type *t = p->Ptype;
+                    t = template_tyident(t, ptalistart, this, 1);
+                    e = poptelem3(typechk(e, t));
+                    type_free(t);
+                }
 #endif
-		(*pp)->Pelem = e;
-	    }
-	    (*pp)->Psym = ptali->Psym;
-	    (*pp)->Pflags = ptali->Pflags;
-	    assert(!ptali->Pptpl);
-	    ptali = ptali->Pnext;
-	}
-	pp = &(*pp)->Pnext;
+                (*pp)->Pelem = e;
+            }
+            (*pp)->Psym = ptali->Psym;
+            (*pp)->Pflags = ptali->Pflags;
+            assert(!ptali->Pptpl);
+            ptali = ptali->Pnext;
+        }
+        pp = &(*pp)->Pnext;
     }
     return ptal;
 }
@@ -1325,8 +1325,8 @@ param_t *param_t::search(char *id)
 
     for (p = this; p; p = p->Pnext)
     {
-	if (p->Pident && strcmp(p->Pident, id) == 0)
-	    break;
+        if (p->Pident && strcmp(p->Pident, id) == 0)
+            break;
     }
     return p;
 }
@@ -1341,9 +1341,9 @@ int param_t::searchn(char *id)
 
     for (p = this; p; p = p->Pnext)
     {
-	if (p->Pident && strcmp(p->Pident, id) == 0)
-	    return n;
-	n++;
+        if (p->Pident && strcmp(p->Pident, id) == 0)
+            return n;
+        n++;
     }
     return -1;
 }
@@ -1351,7 +1351,7 @@ int param_t::searchn(char *id)
 /*************************************
  * Search for member, create symbol as needed.
  * Used for symbol tables for VLA's such as:
- *	void func(int n, int a[n]);
+ *      void func(int n, int a[n]);
  */
 
 symbol *param_search(const char *name, param_t **pp)
@@ -1361,18 +1361,18 @@ symbol *param_search(const char *name, param_t **pp)
     p = (*pp)->search((char *)name);
     if (p)
     {
-	s = p->Psym;
-	if (!s)
-	{
-	    s = symbol_calloc(p->Pident);
-	    s->Sclass = SCparameter;
-	    s->Stype = p->Ptype;
-	    s->Stype->Tcount++;
+        s = p->Psym;
+        if (!s)
+        {
+            s = symbol_calloc(p->Pident);
+            s->Sclass = SCparameter;
+            s->Stype = p->Ptype;
+            s->Stype->Tcount++;
 #if SOURCE_4PARAMS
-	    s->Ssrcpos = p->Psrcpos;
+            s->Ssrcpos = p->Psrcpos;
 #endif
-	    p->Psym = s;
-	}
+            p->Psym = s;
+        }
     }
     return s;
 }
@@ -1388,34 +1388,34 @@ void param_hydrate(param_t **pp)
 
     assert(pp);
     if (isdehydrated(*pp))
-    {	while (*pp)
-	{   assert(isdehydrated(*pp));
-	    p = (param_t *) ph_hydrate(pp);
+    {   while (*pp)
+        {   assert(isdehydrated(*pp));
+            p = (param_t *) ph_hydrate(pp);
 #if SOURCE_4PARAMS
-	    p->Psrcpos.Sfilnum += File_Hydrate_Num;	/* file number relative header build */
+            p->Psrcpos.Sfilnum += File_Hydrate_Num;     /* file number relative header build */
 #endif
-	    param_debug(p);
+            param_debug(p);
 
-	    type_hydrate(&p->Ptype);
-	    if (p->Ptype)
-		type_debug(p->Ptype);
-	    ph_hydrate(&p->Pident);
-	    if (CPP)
-	    {
-		el_hydrate(&p->Pelem);
-		if (p->Pelem)
-		    elem_debug(p->Pelem);
-		type_hydrate(&p->Pdeftype);
-		if (p->Pptpl)
-		    param_hydrate(&p->Pptpl);
-		if (p->Psym)
-		    symbol_hydrate(&p->Psym);
-		if (p->PelemToken)
-		    token_hydrate(&p->PelemToken);
-	    }
+            type_hydrate(&p->Ptype);
+            if (p->Ptype)
+                type_debug(p->Ptype);
+            ph_hydrate(&p->Pident);
+            if (CPP)
+            {
+                el_hydrate(&p->Pelem);
+                if (p->Pelem)
+                    elem_debug(p->Pelem);
+                type_hydrate(&p->Pdeftype);
+                if (p->Pptpl)
+                    param_hydrate(&p->Pptpl);
+                if (p->Psym)
+                    symbol_hydrate(&p->Psym);
+                if (p->PelemToken)
+                    token_hydrate(&p->PelemToken);
+            }
 
-	    pp = &p->Pnext;
-	}
+            pp = &p->Pnext;
+        }
     }
 }
 #endif
@@ -1427,25 +1427,25 @@ void param_dehydrate(param_t **pp)
 
     assert(pp);
     while ((p = *pp) != NULL && !isdehydrated(p))
-    {	param_debug(p);
+    {   param_debug(p);
 
-	ph_dehydrate(pp);
-	if (p->Ptype && !isdehydrated(p->Ptype))
-	    type_debug(p->Ptype);
-	type_dehydrate(&p->Ptype);
-	ph_dehydrate(&p->Pident);
-	if (CPP)
-	{
-	    el_dehydrate(&p->Pelem);
-	    type_dehydrate(&p->Pdeftype);
-	    if (p->Pptpl)
-		param_dehydrate(&p->Pptpl);
-	    if (p->Psym)
-		symbol_dehydrate(&p->Psym);
-	    if (p->PelemToken)
-		token_dehydrate(&p->PelemToken);
-	}
-	pp = &p->Pnext;
+        ph_dehydrate(pp);
+        if (p->Ptype && !isdehydrated(p->Ptype))
+            type_debug(p->Ptype);
+        type_dehydrate(&p->Ptype);
+        ph_dehydrate(&p->Pident);
+        if (CPP)
+        {
+            el_dehydrate(&p->Pelem);
+            type_dehydrate(&p->Pdeftype);
+            if (p->Pptpl)
+                param_dehydrate(&p->Pptpl);
+            if (p->Psym)
+                symbol_dehydrate(&p->Psym);
+            if (p->PelemToken)
+                token_dehydrate(&p->PelemToken);
+        }
+        pp = &p->Pnext;
     }
 }
 #endif
@@ -1456,7 +1456,7 @@ void param_dehydrate(param_t **pp)
  * It's less complex because it doesn't do templates and
  * can rely on strict typechecking.
  * Returns:
- *	!=0 if types match.
+ *      !=0 if types match.
  */
 
 #if MARS
@@ -1468,41 +1468,41 @@ int typematch(type *t1,type *t2,int relax)
   tym = ~(mTYimport | mTYnaked);
 
   return t1 == t2 ||
-	    t1 && t2 &&
+            t1 && t2 &&
 
-	    (
-		/* ignore name mangling */
-		(t1ty = (t1->Tty & tym)) == (t2ty = (t2->Tty & tym))
-	    )
-		 &&
+            (
+                /* ignore name mangling */
+                (t1ty = (t1->Tty & tym)) == (t2ty = (t2->Tty & tym))
+            )
+                 &&
 
-	    (tybasic(t1ty) != TYarray || t1->Tdim == t2->Tdim ||
-	     t1->Tflags & TFsizeunknown || t2->Tflags & TFsizeunknown)
-		 &&
+            (tybasic(t1ty) != TYarray || t1->Tdim == t2->Tdim ||
+             t1->Tflags & TFsizeunknown || t2->Tflags & TFsizeunknown)
+                 &&
 
-	    (tybasic(t1ty) != TYstruct
-		&& tybasic(t1ty) != TYenum
-		&& tybasic(t1ty) != TYmemptr
-	     ||	t1->Ttag == t2->Ttag)
-		 &&
+            (tybasic(t1ty) != TYstruct
+                && tybasic(t1ty) != TYenum
+                && tybasic(t1ty) != TYmemptr
+             || t1->Ttag == t2->Ttag)
+                 &&
 
-	    typematch(t1->Tnext,t2->Tnext, 0)
-		 &&
+            typematch(t1->Tnext,t2->Tnext, 0)
+                 &&
 
-	    (!tyfunc(t1ty) ||
-	     ((t1->Tflags & TFfixed) == (t2->Tflags & TFfixed) &&
-		 paramlstmatch(t1->Tparamtypes,t2->Tparamtypes) ))
-	 ;
+            (!tyfunc(t1ty) ||
+             ((t1->Tflags & TFfixed) == (t2->Tflags & TFfixed) &&
+                 paramlstmatch(t1->Tparamtypes,t2->Tparamtypes) ))
+         ;
 }
 
 // Return TRUE if type lists match.
 
 int paramlstmatch(param_t *p1,param_t *p2)
 {
-	return p1 == p2 ||
-	    p1 && p2 && typematch(p1->Ptype,p2->Ptype,0) &&
-	    paramlstmatch(p1->Pnext,p2->Pnext)
-	    ;
+        return p1 == p2 ||
+            p1 && p2 && typematch(p1->Ptype,p2->Ptype,0) &&
+            paramlstmatch(p1->Pnext,p2->Pnext)
+            ;
 }
 
 #endif

@@ -12,43 +12,43 @@
 
 #if !SPP
 
-#include	<stdio.h>
-#include	<string.h>
-#include	<stdlib.h>
-#include	<time.h>
-#include	"cc.h"
-#include	"oper.h"
-#include	"global.h"
-#include	"parser.h"
-#include	"el.h"
-#include	"type.h"
-#include	"dt.h"
+#include        <stdio.h>
+#include        <string.h>
+#include        <stdlib.h>
+#include        <time.h>
+#include        "cc.h"
+#include        "oper.h"
+#include        "global.h"
+#include        "parser.h"
+#include        "el.h"
+#include        "type.h"
+#include        "dt.h"
 
-static char __file__[] = __FILE__;	/* for tassert.h		*/
-#include	"tassert.h"
+static char __file__[] = __FILE__;      /* for tassert.h                */
+#include        "tassert.h"
 
 static dt_t *dt_freelist;
 
 /**********************************************
  * Allocate a data definition struct.
  */
- 
+
 dt_t *dt_calloc(char dtx)
 {
     dt_t *dt;
     static dt_t dtzero;
-     
+
     if (dt_freelist)
     {
-	dt = dt_freelist;
-	dt_freelist = dt->DTnext;
-	*dt = dtzero;
+        dt = dt_freelist;
+        dt_freelist = dt->DTnext;
+        *dt = dtzero;
     }
     else
 #if TX86
-	dt = (dt_t *) mem_fcalloc(sizeof(dt_t));
+        dt = (dt_t *) mem_fcalloc(sizeof(dt_t));
 #else
-	dt = (dt_t *) MEM_PH_MALLOC(sizeof(dt_t));
+        dt = (dt_t *) MEM_PH_MALLOC(sizeof(dt_t));
 #endif
     dt->dt = dtx;
     return dt;
@@ -63,16 +63,16 @@ void dt_free(dt_t *dt)
 
     for (; dt; dt = dtn)
     {
-	switch (dt->dt)
-	{
-	    case DT_abytes:
-	    case DT_nbytes:
-		mem_free(dt->DTpbytes);
-		break;
-	}
-	dtn = dt->DTnext;
-	dt->DTnext = dt_freelist;
-	dt_freelist = dt;
+        switch (dt->dt)
+        {
+            case DT_abytes:
+            case DT_nbytes:
+                mem_free(dt->DTpbytes);
+                break;
+        }
+        dtn = dt->DTnext;
+        dt->DTnext = dt_freelist;
+        dt_freelist = dt;
     }
 }
 
@@ -86,13 +86,13 @@ void dt_term()
     dt_t *dtn;
 
     while (dt_freelist)
-    {	dtn = dt_freelist->DTnext;
+    {   dtn = dt_freelist->DTnext;
 #if TX86
-	mem_ffree(dt_freelist);
+        mem_ffree(dt_freelist);
 #else
-	MEM_PH_FREE(dt_freelist);
+        MEM_PH_FREE(dt_freelist);
 #endif
-	dt_freelist = dtn;
+        dt_freelist = dtn;
     }
 #endif
 }
@@ -109,14 +109,14 @@ dt_t **dtnzeros(dt_t **pdtend,targ_size_t size)
     //printf("dtnzeros(x%x)\n",size);
     assert((long) size >= 0);
     while (*pdtend)
-	pdtend = &((*pdtend)->DTnext);
+        pdtend = &((*pdtend)->DTnext);
     if (size)
-    {	dt = dt_calloc(DT_azeros);
-	dt->DTazeros = size;
-	*pdtend = dt;
-	pdtend = &dt->DTnext;
+    {   dt = dt_calloc(DT_azeros);
+        dt->DTazeros = size;
+        *pdtend = dt;
+        pdtend = &dt->DTnext;
 #if SCPP
-	dsout += size;
+        dsout += size;
 #endif
     }
     return pdtend;
@@ -140,26 +140,26 @@ dt_t ** dtnbytes(dt_t **pdtend,targ_size_t size,const char *ptr)
 {   dt_t *dt;
 
     while (*pdtend)
-	pdtend = &((*pdtend)->DTnext);
+        pdtend = &((*pdtend)->DTnext);
     if (size)
-    {	if (size == 1)
-	{   dt = dt_calloc(DT_1byte);
-	    dt->DTonebyte = *ptr;
-	}
-	else if (size <= 7)
-	{   dt = dt_calloc(DT_ibytes);
-	    dt->DTn = size;
-	    memcpy(dt->DTdata,ptr,size);
-	}
-	else
-	{
-	    dt = dt_calloc(DT_nbytes);
-	    dt->DTnbytes = size;
-	    dt->DTpbytes = (char *) MEM_PH_MALLOC(size);
-	    memcpy(dt->DTpbytes,ptr,size);
-	}
-	*pdtend = dt;
-	pdtend = &dt->DTnext;
+    {   if (size == 1)
+        {   dt = dt_calloc(DT_1byte);
+            dt->DTonebyte = *ptr;
+        }
+        else if (size <= 7)
+        {   dt = dt_calloc(DT_ibytes);
+            dt->DTn = size;
+            memcpy(dt->DTdata,ptr,size);
+        }
+        else
+        {
+            dt = dt_calloc(DT_nbytes);
+            dt->DTnbytes = size;
+            dt->DTpbytes = (char *) MEM_PH_MALLOC(size);
+            memcpy(dt->DTpbytes,ptr,size);
+        }
+        *pdtend = dt;
+        pdtend = &dt->DTnext;
     }
     return pdtend;
 }
@@ -172,7 +172,7 @@ dt_t **dtabytes(dt_t **pdtend,tym_t ty, targ_size_t offset, targ_size_t size, co
 {   dt_t *dt;
 
     while (*pdtend)
-	pdtend = &((*pdtend)->DTnext);
+        pdtend = &((*pdtend)->DTnext);
 
     dt = dt_calloc(DT_abytes);
     dt->DTnbytes = size;
@@ -194,7 +194,7 @@ dt_t ** dtdword(dt_t **pdtend,long value)
 {   dt_t *dt;
 
     while (*pdtend)
-	pdtend = &((*pdtend)->DTnext);
+        pdtend = &((*pdtend)->DTnext);
     dt = dt_calloc(DT_ibytes);
     dt->DTn = 4;
     *(long *)dt->DTdata = value;
@@ -210,7 +210,7 @@ dt_t ** dtdword(dt_t **pdtend,long value)
 dt_t ** dtcat(dt_t **pdtend,dt_t *dt)
 {
     while (*pdtend)
-	pdtend = &((*pdtend)->DTnext);
+        pdtend = &((*pdtend)->DTnext);
     *pdtend = dt;
     pdtend = &dt->DTnext;
     return pdtend;
@@ -224,7 +224,7 @@ dt_t ** dtcoff(dt_t **pdtend,targ_size_t offset)
 {   dt_t *dt;
 
     while (*pdtend)
-	pdtend = &((*pdtend)->DTnext);
+        pdtend = &((*pdtend)->DTnext);
     dt = dt_calloc(DT_coff);
     dt->Dty = TYcptr;
     dt->DToffset = offset;
@@ -242,7 +242,7 @@ dt_t ** dtxoff(dt_t **pdtend,symbol *s,targ_size_t offset,tym_t ty)
 
     symbol_debug(s);
     while (*pdtend)
-	pdtend = &((*pdtend)->DTnext);
+        pdtend = &((*pdtend)->DTnext);
     dt = dt_calloc(DT_xoff);
     dt->DTsym = s;
     dt->DToffset = offset;
@@ -261,48 +261,48 @@ void dt_optimize(dt_t *dt)
 {   dt_t *dtn;
 
     if (dt)
-    {	for (; 1; dt = dtn)
-	{
-	    dtn = dt->DTnext;
-	    if (!dtn)
-		break;
-	    switch (dt->dt)
-	    {
-		case DT_azeros:
-		    if (dtn->dt == DT_1byte && dtn->DTonebyte == 0)
-		    {
-			dt->DTazeros += 1;
-			goto L1;
-		    }
-		    else if (dtn->dt == DT_azeros)
-		    {
-			dt->DTazeros += dtn->DTazeros;
-			goto L1;
-		    }
-		    break;
+    {   for (; 1; dt = dtn)
+        {
+            dtn = dt->DTnext;
+            if (!dtn)
+                break;
+            switch (dt->dt)
+            {
+                case DT_azeros:
+                    if (dtn->dt == DT_1byte && dtn->DTonebyte == 0)
+                    {
+                        dt->DTazeros += 1;
+                        goto L1;
+                    }
+                    else if (dtn->dt == DT_azeros)
+                    {
+                        dt->DTazeros += dtn->DTazeros;
+                        goto L1;
+                    }
+                    break;
 
-		case DT_1byte:
-		    if (dt->DTonebyte == 0)
-		    {
-			if (dtn->dt == DT_1byte && dtn->DTonebyte == 0)
-			{
-			    dt->DTazeros = 2;
-			    goto L1;
-			}
-			else if (dtn->dt == DT_azeros)
-			{
-			    dt->DTazeros = 1 + dtn->DTazeros;
-			 L1:
-			    dt->dt = DT_azeros;
-			    dt->DTnext = dtn->DTnext;
-			    dtn->DTnext = NULL;
-			    dt_free(dtn);
-			    dtn = dt;
-			}
-		    }
-		    break;
-	    }
-	}
+                case DT_1byte:
+                    if (dt->DTonebyte == 0)
+                    {
+                        if (dtn->dt == DT_1byte && dtn->DTonebyte == 0)
+                        {
+                            dt->DTazeros = 2;
+                            goto L1;
+                        }
+                        else if (dtn->dt == DT_azeros)
+                        {
+                            dt->DTazeros = 1 + dtn->DTazeros;
+                         L1:
+                            dt->dt = DT_azeros;
+                            dt->DTnext = dtn->DTnext;
+                            dtn->DTnext = NULL;
+                            dt_free(dtn);
+                            dtn = dt;
+                        }
+                    }
+                    break;
+            }
+        }
     }
 }
 
@@ -315,7 +315,7 @@ void init_common(symbol *s)
     //printf("init_common('%s')\n", s->Sident);
     dtnzeros(&s->Sdt,type_size(s->Stype));
     if (s->Sdt)
-	s->Sdt->dt = DT_common;
+        s->Sdt->dt = DT_common;
 }
 
 /**********************************
@@ -329,35 +329,35 @@ unsigned dt_size(dt_t *dtstart)
     datasize = 0;
     for (dt = dtstart; dt; dt = dt->DTnext)
     {
-	switch (dt->dt)
-	{   case DT_abytes:
-		datasize += size(dt->Dty);
-		break;
-	    case DT_ibytes:
-		datasize += dt->DTn;
-		break;
-	    case DT_nbytes:
-		datasize += dt->DTnbytes;
-		break;
-	    case DT_symsize:
-	    case DT_azeros:
-		datasize += dt->DTazeros;
-		break;
-	    case DT_common:
-		break;
-	    case DT_xoff:
-	    case DT_coff:
-		datasize += size(dt->Dty);
-		break;
-	    case DT_1byte:
-		datasize++;
-		break;
-	    default:
+        switch (dt->dt)
+        {   case DT_abytes:
+                datasize += size(dt->Dty);
+                break;
+            case DT_ibytes:
+                datasize += dt->DTn;
+                break;
+            case DT_nbytes:
+                datasize += dt->DTnbytes;
+                break;
+            case DT_symsize:
+            case DT_azeros:
+                datasize += dt->DTazeros;
+                break;
+            case DT_common:
+                break;
+            case DT_xoff:
+            case DT_coff:
+                datasize += size(dt->Dty);
+                break;
+            case DT_1byte:
+                datasize++;
+                break;
+            default:
 #ifdef DEBUG
-		dbg_printf("dt = x%p, dt = %d\n",dt,dt->dt);
+                dbg_printf("dt = x%p, dt = %d\n",dt,dt->dt);
 #endif
-		assert(0);
-	}
+                assert(0);
+        }
     }
     return datasize;
 }

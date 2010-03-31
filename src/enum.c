@@ -36,15 +36,15 @@ Dsymbol *EnumDeclaration::syntaxCopy(Dsymbol *s)
 {
     Type *t = NULL;
     if (memtype)
-	t = memtype->syntaxCopy();
+        t = memtype->syntaxCopy();
 
     EnumDeclaration *ed;
     if (s)
-    {	ed = (EnumDeclaration *)s;
-	ed->memtype = t;
+    {   ed = (EnumDeclaration *)s;
+        ed->memtype = t;
     }
     else
-	ed = new EnumDeclaration(loc, ident, t);
+        ed = new EnumDeclaration(loc, ident, t);
     ScopeDsymbol::syntaxCopy(ed);
     return ed;
 }
@@ -57,14 +57,14 @@ void EnumDeclaration::semantic(Scope *sc)
 
     //printf("EnumDeclaration::semantic(sd = %p, '%s')\n", sc->scopesym, sc->scopesym->toChars());
     if (!memtype)
-	memtype = Type::tint32;
+        memtype = Type::tint32;
 
-    if (symtab)			// if already done
-    {	if (isdone || !scope)
-	    return;		// semantic() already completed
+    if (symtab)                 // if already done
+    {   if (isdone || !scope)
+            return;             // semantic() already completed
     }
     else
-	symtab = new DsymbolTable();
+        symtab = new DsymbolTable();
 
     Scope *scx = NULL;
     if (scope)
@@ -76,7 +76,7 @@ void EnumDeclaration::semantic(Scope *sc)
     unsigned dprogress_save = Module::dprogress;
 
     if (sc->stc & STCdeprecated)
-	isdeprecated = 1;
+        isdeprecated = 1;
 
     parent = sc->scopesym;
     memtype = memtype->semantic(loc, sc);
@@ -84,17 +84,17 @@ void EnumDeclaration::semantic(Scope *sc)
     /* Check to see if memtype is forward referenced
      */
     if (memtype->ty == Tenum)
-    {	EnumDeclaration *sym = (EnumDeclaration *)memtype->toDsymbol(sc);
-	if (!sym->memtype)
-	{
-	    error("base enum %s is forward referenced", sym->toChars());
-	    memtype = Type::tint32;
-	}
+    {   EnumDeclaration *sym = (EnumDeclaration *)memtype->toDsymbol(sc);
+        if (!sym->memtype)
+        {
+            error("base enum %s is forward referenced", sym->toChars());
+            memtype = Type::tint32;
+        }
     }
 
     if (!memtype->isintegral())
-    {	error("base type must be of integral type, not %s", memtype->toChars());
-	memtype = Type::tint32;
+    {   error("base type must be of integral type, not %s", memtype->toChars());
+        memtype = Type::tint32;
     }
 
     isdone = 1;
@@ -105,135 +105,135 @@ void EnumDeclaration::semantic(Scope *sc)
     sce = sc->push(this);
     sce->parent = this;
     number = 0;
-    if (!members)		// enum ident;
-	return;
+    if (!members)               // enum ident;
+        return;
     if (members->dim == 0)
-	error("enum %s must have at least one member", toChars());
+        error("enum %s must have at least one member", toChars());
     int first = 1;
     for (i = 0; i < members->dim; i++)
     {
-	EnumMember *em = ((Dsymbol *)members->data[i])->isEnumMember();
-	Expression *e;
+        EnumMember *em = ((Dsymbol *)members->data[i])->isEnumMember();
+        Expression *e;
 
-	if (!em)
-	    /* The e->semantic(sce) can insert other symbols, such as
-	     * template instances and function literals.
-	     */
-	    continue;
+        if (!em)
+            /* The e->semantic(sce) can insert other symbols, such as
+             * template instances and function literals.
+             */
+            continue;
 
-	//printf("Enum member '%s'\n",em->toChars());
-	e = em->value;
-	if (e)
-	{
-	    assert(e->dyncast() == DYNCAST_EXPRESSION);
-	    e = e->semantic(sce);
-	    e = e->optimize(WANTvalue);
-	    // Need to copy it because we're going to change the type
-	    e = e->copy();
-	    e = e->implicitCastTo(sc, memtype);
-	    e = e->optimize(WANTvalue);
-	    number = e->toInteger();
-	    e->type = t;
-	}
-	else
-	{   // Default is the previous number plus 1
+        //printf("Enum member '%s'\n",em->toChars());
+        e = em->value;
+        if (e)
+        {
+            assert(e->dyncast() == DYNCAST_EXPRESSION);
+            e = e->semantic(sce);
+            e = e->optimize(WANTvalue);
+            // Need to copy it because we're going to change the type
+            e = e->copy();
+            e = e->implicitCastTo(sc, memtype);
+            e = e->optimize(WANTvalue);
+            number = e->toInteger();
+            e->type = t;
+        }
+        else
+        {   // Default is the previous number plus 1
 
-	    // Check for overflow
-	    if (!first)
-	    {
-		switch (t->toBasetype()->ty)
-		{
-		    case Tbool:
-			if (number == 2)	goto Loverflow;
-			break;
+            // Check for overflow
+            if (!first)
+            {
+                switch (t->toBasetype()->ty)
+                {
+                    case Tbool:
+                        if (number == 2)        goto Loverflow;
+                        break;
 
-		    case Tint8:
-			if (number == 128) goto Loverflow;
-			break;
+                    case Tint8:
+                        if (number == 128) goto Loverflow;
+                        break;
 
-		    case Tchar:
-		    case Tuns8:
-			if (number == 256) goto Loverflow;
-			break;
+                    case Tchar:
+                    case Tuns8:
+                        if (number == 256) goto Loverflow;
+                        break;
 
-		    case Tint16:
-			if (number == 0x8000) goto Loverflow;
-			break;
+                    case Tint16:
+                        if (number == 0x8000) goto Loverflow;
+                        break;
 
-		    case Twchar:
-		    case Tuns16:
-			if (number == 0x10000) goto Loverflow;
-			break;
+                    case Twchar:
+                    case Tuns16:
+                        if (number == 0x10000) goto Loverflow;
+                        break;
 
-		    case Tint32:
-			if (number == 0x80000000) goto Loverflow;
-			break;
+                    case Tint32:
+                        if (number == 0x80000000) goto Loverflow;
+                        break;
 
-		    case Tdchar:
-		    case Tuns32:
-			if (number == 0x100000000LL) goto Loverflow;
-			break;
+                    case Tdchar:
+                    case Tuns32:
+                        if (number == 0x100000000LL) goto Loverflow;
+                        break;
 
-		    case Tint64:
-			if (number == 0x8000000000000000LL) goto Loverflow;
-			break;
+                    case Tint64:
+                        if (number == 0x8000000000000000LL) goto Loverflow;
+                        break;
 
-		    case Tuns64:
-			if (number == 0) goto Loverflow;
-			break;
+                    case Tuns64:
+                        if (number == 0) goto Loverflow;
+                        break;
 
-		    Loverflow:
-			error("overflow of enum value");
-			break;
+                    Loverflow:
+                        error("overflow of enum value");
+                        break;
 
-		    default:
-			assert(0);
-		}
-	    }
-	    e = new IntegerExp(em->loc, number, t);
-	}
-	em->value = e;
+                    default:
+                        assert(0);
+                }
+            }
+            e = new IntegerExp(em->loc, number, t);
+        }
+        em->value = e;
 
-	// Add to symbol table only after evaluating 'value'
-	if (isAnonymous())
-	{
-	    //sce->enclosing->insert(em);
-	    for (Scope *scx = sce->enclosing; scx; scx = scx->enclosing)
-	    {
-		if (scx->scopesym)
-		{
-		    if (!scx->scopesym->symtab)
-			scx->scopesym->symtab = new DsymbolTable();
-		    em->addMember(sce, scx->scopesym, 1);
-		    break;
-		}
-	    }
-	}
-	else
-	    em->addMember(sc, this, 1);
+        // Add to symbol table only after evaluating 'value'
+        if (isAnonymous())
+        {
+            //sce->enclosing->insert(em);
+            for (Scope *scx = sce->enclosing; scx; scx = scx->enclosing)
+            {
+                if (scx->scopesym)
+                {
+                    if (!scx->scopesym->symtab)
+                        scx->scopesym->symtab = new DsymbolTable();
+                    em->addMember(sce, scx->scopesym, 1);
+                    break;
+                }
+            }
+        }
+        else
+            em->addMember(sc, this, 1);
 
-	if (first)
-	{   first = 0;
-	    defaultval = number;
-	    minval = number;
-	    maxval = number;
-	}
-	else if (memtype->isunsigned())
-	{
-	    if (number < minval)
-		minval = number;
-	    if (number > maxval)
-		maxval = number;
-	}
-	else
-	{
-	    if ((sinteger_t)number < (sinteger_t)minval)
-		minval = number;
-	    if ((sinteger_t)number > (sinteger_t)maxval)
-		maxval = number;
-	}
+        if (first)
+        {   first = 0;
+            defaultval = number;
+            minval = number;
+            maxval = number;
+        }
+        else if (memtype->isunsigned())
+        {
+            if (number < minval)
+                minval = number;
+            if (number > maxval)
+                maxval = number;
+        }
+        else
+        {
+            if ((sinteger_t)number < (sinteger_t)minval)
+                minval = number;
+            if ((sinteger_t)number > (sinteger_t)maxval)
+                maxval = number;
+        }
 
-	number++;
+        number++;
     }
     //printf("defaultval = %lld\n", defaultval);
 
@@ -244,7 +244,7 @@ void EnumDeclaration::semantic(Scope *sc)
 int EnumDeclaration::oneMember(Dsymbol **ps)
 {
     if (isAnonymous())
-	return Dsymbol::oneMembers(members, ps);
+        return Dsymbol::oneMembers(members, ps);
     return Dsymbol::oneMember(ps);
 }
 
@@ -253,32 +253,32 @@ void EnumDeclaration::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 
     buf->writestring("enum ");
     if (ident)
-    {	buf->writestring(ident->toChars());
-	buf->writeByte(' ');
+    {   buf->writestring(ident->toChars());
+        buf->writeByte(' ');
     }
     if (memtype)
     {
-	buf->writestring(": ");
-	memtype->toCBuffer(buf, NULL, hgs);
+        buf->writestring(": ");
+        memtype->toCBuffer(buf, NULL, hgs);
     }
     if (!members)
     {
-	buf->writeByte(';');
-	buf->writenl();
-	return;
+        buf->writeByte(';');
+        buf->writenl();
+        return;
     }
     buf->writenl();
     buf->writeByte('{');
     buf->writenl();
     for (i = 0; i < members->dim; i++)
     {
-	EnumMember *em = ((Dsymbol *)members->data[i])->isEnumMember();
-	if (!em)
-	    continue;
-	//buf->writestring("    ");
-	em->toCBuffer(buf, hgs);
-	buf->writeByte(',');
-	buf->writenl();
+        EnumMember *em = ((Dsymbol *)members->data[i])->isEnumMember();
+        if (!em)
+            continue;
+        //buf->writestring("    ");
+        em->toCBuffer(buf, hgs);
+        buf->writeByte(',');
+        buf->writenl();
     }
     buf->writeByte('}');
     buf->writenl();
@@ -312,16 +312,16 @@ Dsymbol *EnumMember::syntaxCopy(Dsymbol *s)
 {
     Expression *e = NULL;
     if (value)
-	e = value->syntaxCopy();
+        e = value->syntaxCopy();
 
     EnumMember *em;
     if (s)
-    {	em = (EnumMember *)s;
-	em->loc = loc;
-	em->value = e;
+    {   em = (EnumMember *)s;
+        em->loc = loc;
+        em->value = e;
     }
     else
-	em = new EnumMember(loc, ident, e);
+        em = new EnumMember(loc, ident, e);
     return em;
 }
 
@@ -330,8 +330,8 @@ void EnumMember::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
     buf->writestring(ident->toChars());
     if (value)
     {
-	buf->writestring(" = ");
-	value->toCBuffer(buf, hgs);
+        buf->writestring(" = ");
+        value->toCBuffer(buf, hgs);
     }
 }
 

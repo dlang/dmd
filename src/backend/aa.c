@@ -65,18 +65,18 @@ void delnodes(aaA* e)
 
     do
     {
-	if (e->left)
-	{   if (!e->right)
-	    {	en = e;
-		e = e->left;
-		delete en;
-		continue;
-	    }
-	    delnodes(e->left);
-	}
-	en = e;
-	e = e->right;
-	delete en;
+        if (e->left)
+        {   if (!e->right)
+            {   en = e;
+                e = e->left;
+                delete en;
+                continue;
+            }
+            delnodes(e->left);
+        }
+        en = e;
+        e = e->right;
+        delete en;
     } while (e != NULL);
 }
 
@@ -84,13 +84,13 @@ AArray::~AArray()
 {
     if (buckets)
     {
-	for (size_t i = 0; i < buckets_length; i++)
-	{   aaA* e = buckets[i];
+        for (size_t i = 0; i < buckets_length; i++)
+        {   aaA* e = buckets[i];
 
-	    if (e)
-		delnodes(e);	// recursively free all nodes
-	}
-	delete [] buckets;
+            if (e)
+                delnodes(e);    // recursively free all nodes
+        }
+        delete [] buckets;
     }
 }
 
@@ -109,10 +109,10 @@ void* AArray::get(void *pkey)
 
     if (!buckets_length)
     {
-	typedef aaA* aaAp;
-	buckets_length = prime_list[0];
-	buckets = new aaAp[buckets_length];
-	memset(buckets, 0, buckets_length * sizeof(buckets[0]));
+        typedef aaA* aaAp;
+        buckets_length = prime_list[0];
+        buckets = new aaAp[buckets_length];
+        memset(buckets, 0, buckets_length * sizeof(buckets[0]));
     }
 
     hash_t key_hash = keyti->getHash(pkey);
@@ -122,18 +122,18 @@ void* AArray::get(void *pkey)
     while ((e = *pe) != NULL)
     {   int c;
 
-	c = key_hash - e->hash;
-	if (c == 0)
-	{
-	    c = keyti->compare(pkey, e + 1);
-	    if (c == 0)
-		goto Lret;
-	}
+        c = key_hash - e->hash;
+        if (c == 0)
+        {
+            c = keyti->compare(pkey, e + 1);
+            if (c == 0)
+                goto Lret;
+        }
 
-	if (c < 0)
-	    pe = &e->left;
-	else
-	    pe = &e->right;
+        if (c < 0)
+            pe = &e->left;
+        else
+            pe = &e->right;
     }
 
     // Not found, create new elem
@@ -150,8 +150,8 @@ void* AArray::get(void *pkey)
     //printf("length = %d, nodes = %d\n", buckets_length, nodes);
     if (nodes > buckets_length * 4)
     {
-	//printf("rehash()\n");
-	rehash();
+        //printf("rehash()\n");
+        rehash();
     }
 
 Lret:
@@ -162,8 +162,8 @@ Lret:
 /*************************************************
  * Determine if key is in aa.
  * Returns:
- *	NULL	not in aa
- *	!=NULL	in aa, return pointer to value
+ *      NULL    not in aa
+ *      !=NULL  in aa, return pointer to value
  */
 
 void* AArray::in(void *pkey)
@@ -173,26 +173,26 @@ void* AArray::in(void *pkey)
 
     if (len)
     {
-	hash_t key_hash = keyti->getHash(pkey);
-	//printf("hash = %d\n", key_hash);
-	size_t i = key_hash % len;
-	aaA *e = buckets[i];
-	while (e != NULL)
-	{   int c;
+        hash_t key_hash = keyti->getHash(pkey);
+        //printf("hash = %d\n", key_hash);
+        size_t i = key_hash % len;
+        aaA *e = buckets[i];
+        while (e != NULL)
+        {   int c;
 
-	    c = key_hash - e->hash;
-	    if (c == 0)
-	    {
-		c = keyti->compare(pkey, e + 1);
-		if (c == 0)
-		    return (char *)(e + 1) + aligntsize(keyti->tsize());
-	    }
+            c = key_hash - e->hash;
+            if (c == 0)
+            {
+                c = keyti->compare(pkey, e + 1);
+                if (c == 0)
+                    return (char *)(e + 1) + aligntsize(keyti->tsize());
+            }
 
-	    if (c < 0)
-		e = e->left;
-	    else
-		e = e->right;
-	}
+            if (c < 0)
+                e = e->left;
+            else
+                e = e->right;
+        }
     }
 
     // Not found
@@ -211,56 +211,56 @@ void AArray::del(void *pkey)
 
     if (buckets_length)
     {
-	hash_t key_hash = keyti->getHash(pkey);
-	//printf("hash = %d\n", key_hash);
-	size_t i = key_hash % buckets_length;
-	aaA** pe = &buckets[i];
-	while ((e = *pe) != NULL)	// NULL means not found
-	{   int c;
+        hash_t key_hash = keyti->getHash(pkey);
+        //printf("hash = %d\n", key_hash);
+        size_t i = key_hash % buckets_length;
+        aaA** pe = &buckets[i];
+        while ((e = *pe) != NULL)       // NULL means not found
+        {   int c;
 
-	    c = key_hash - e->hash;
-	    if (c == 0)
-	    {
-		c = keyti->compare(pkey, e + 1);
-		if (c == 0)
-		{
-		    if (!e->left && !e->right)
-		    {
-			*pe = NULL;
-		    }
-		    else if (e->left && !e->right)
-		    {
-			*pe = e->left;
-			 e->left = NULL;
-		    }
-		    else if (!e->left && e->right)
-		    {
-			*pe = e->right;
-			 e->right = NULL;
-		    }
-		    else
-		    {
-			*pe = e->left;
-			e->left = NULL;
-			do
-			    pe = &(*pe)->right;
-			while (*pe);
-			*pe = e->right;
-			e->right = NULL;
-		    }
+            c = key_hash - e->hash;
+            if (c == 0)
+            {
+                c = keyti->compare(pkey, e + 1);
+                if (c == 0)
+                {
+                    if (!e->left && !e->right)
+                    {
+                        *pe = NULL;
+                    }
+                    else if (e->left && !e->right)
+                    {
+                        *pe = e->left;
+                         e->left = NULL;
+                    }
+                    else if (!e->left && e->right)
+                    {
+                        *pe = e->right;
+                         e->right = NULL;
+                    }
+                    else
+                    {
+                        *pe = e->left;
+                        e->left = NULL;
+                        do
+                            pe = &(*pe)->right;
+                        while (*pe);
+                        *pe = e->right;
+                        e->right = NULL;
+                    }
 
-		    nodes--;
+                    nodes--;
 
-		    delete[] e;
-		    break;
-		}
-	    }
+                    delete[] e;
+                    break;
+                }
+            }
 
-	    if (c < 0)
-		pe = &e->left;
-	    else
-		pe = &e->right;
-	}
+            if (c < 0)
+                pe = &e->left;
+            else
+                pe = &e->right;
+        }
     }
 }
 
@@ -275,17 +275,17 @@ void *AArray::keys()
 
     if (nodes)
     {
-	size_t keysize = keyti->tsize();
+        size_t keysize = keyti->tsize();
 
-	typedef char* charp;
-	p = (void *)new charp[nodes * keysize];
-	void *q = p;
-	for (size_t i = 0; i < buckets_length; i++)
-	{   aaA* e = buckets[i];
+        typedef char* charp;
+        p = (void *)new charp[nodes * keysize];
+        void *q = p;
+        for (size_t i = 0; i < buckets_length; i++)
+        {   aaA* e = buckets[i];
 
-	    if (e)
-		q = keys_x(e, q, keysize);
-	}
+            if (e)
+                q = keys_x(e, q, keysize);
+        }
     }
     return p;
 }
@@ -294,15 +294,15 @@ void *AArray::keys_x(aaA* e, void *p, size_t keysize)
 {
     do
     {
-	memcpy(p, e + 1, keysize);
-	if (e->left)
-	{   if (!e->right)
-	    {   e = e->left;
-		continue;
-	    }
-	    p = keys_x(e->left, p, keysize);
-	}
-	e = e->right;
+        memcpy(p, e + 1, keysize);
+        if (e->left)
+        {   if (!e->right)
+            {   e = e->left;
+                continue;
+            }
+            p = keys_x(e->left, p, keysize);
+        }
+        e = e->right;
     } while (e != NULL);
     return p;
 }
@@ -317,14 +317,14 @@ void *AArray::values()
 
     if (nodes)
     {
-	p = (void *)new char[nodes * valuesize];
-	void *q = p;
-	for (size_t i = 0; i < buckets_length; i++)
-	{   aaA *e = buckets[i];
+        p = (void *)new char[nodes * valuesize];
+        void *q = p;
+        for (size_t i = 0; i < buckets_length; i++)
+        {   aaA *e = buckets[i];
 
-	    if (e)
-		q = values_x(e, q);
-	}
+            if (e)
+                q = values_x(e, q);
+        }
     }
     return p;
 }
@@ -334,18 +334,18 @@ void *AArray::values_x(aaA *e, void *p)
     size_t keysize = keyti->tsize();
     do
     {
-	memcpy(p,
-	       (char *)(e + 1) + keysize,
-	       valuesize);
-	p = (void *)((char *)p + valuesize);
-	if (e->left)
-	{   if (!e->right)
-	    {   e = e->left;
-		continue;
-	    }
-	    p = values_x(e->left, p);
-	}
-	e = e->right;
+        memcpy(p,
+               (char *)(e + 1) + keysize,
+               valuesize);
+        p = (void *)((char *)p + valuesize);
+        if (e->left)
+        {   if (!e->right)
+            {   e = e->left;
+                continue;
+            }
+            p = values_x(e->left, p);
+        }
+        e = e->right;
     } while (e != NULL);
     return p;
 }
@@ -360,34 +360,34 @@ void AArray::rehash()
     //printf("Rehash\n");
     if (buckets_length)
     {
-	size_t len = nodes;
+        size_t len = nodes;
 
-	if (len)
-	{   size_t i;
-	    aaA** newbuckets;
-	    size_t newbuckets_length;
+        if (len)
+        {   size_t i;
+            aaA** newbuckets;
+            size_t newbuckets_length;
 
-	    for (i = 0; i < sizeof(prime_list)/sizeof(prime_list[0]) - 1; i++)
-	    {
-		if (len <= prime_list[i])
-		    break;
-	    }
-	    newbuckets_length = prime_list[i];
-	    typedef aaA* aaAp;
-	    newbuckets = new aaAp[newbuckets_length];
-	    memset(newbuckets, 0, newbuckets_length * sizeof(newbuckets[0]));
+            for (i = 0; i < sizeof(prime_list)/sizeof(prime_list[0]) - 1; i++)
+            {
+                if (len <= prime_list[i])
+                    break;
+            }
+            newbuckets_length = prime_list[i];
+            typedef aaA* aaAp;
+            newbuckets = new aaAp[newbuckets_length];
+            memset(newbuckets, 0, newbuckets_length * sizeof(newbuckets[0]));
 
-	    for (i = 0; i < buckets_length; i++)
-	    {	aaA *e = buckets[i];
+            for (i = 0; i < buckets_length; i++)
+            {   aaA *e = buckets[i];
 
-		if (e)
-		    rehash_x(e, newbuckets, newbuckets_length);
-	    }
+                if (e)
+                    rehash_x(e, newbuckets, newbuckets_length);
+            }
 
-	    delete[] buckets;
-	    buckets = newbuckets;
-	    buckets_length = newbuckets_length;
-	}
+            delete[] buckets;
+            buckets = newbuckets;
+            buckets_length = newbuckets_length;
+        }
     }
 }
 
@@ -395,46 +395,46 @@ void AArray::rehash_x(aaA* olde, aaA** newbuckets, size_t newbuckets_length)
 {
     while (1)
     {
-	aaA* left = olde->left;
-	aaA* right = olde->right;
-	olde->left = NULL;
-	olde->right = NULL;
+        aaA* left = olde->left;
+        aaA* right = olde->right;
+        olde->left = NULL;
+        olde->right = NULL;
 
-	aaA* e;
+        aaA* e;
 
-	//printf("rehash %p\n", olde);
-	hash_t key_hash = olde->hash;
-	size_t i = key_hash % newbuckets_length;
-	aaA** pe = &newbuckets[i];
-	while ((e = *pe) != NULL)
-	{   int c;
+        //printf("rehash %p\n", olde);
+        hash_t key_hash = olde->hash;
+        size_t i = key_hash % newbuckets_length;
+        aaA** pe = &newbuckets[i];
+        while ((e = *pe) != NULL)
+        {   int c;
 
-	    //printf("\te = %p, e->left = %p, e->right = %p\n", e, e->left, e->right);
-	    assert(e->left != e);
-	    assert(e->right != e);
-	    c = key_hash - e->hash;
-	    if (c == 0)
-		c = keyti->compare(olde + 1, e + 1);
-	    if (c < 0)
-		pe = &e->left;
-	    else if (c > 0)
-		pe = &e->right;
-	    else
-		assert(0);
-	}
-	*pe = olde;
+            //printf("\te = %p, e->left = %p, e->right = %p\n", e, e->left, e->right);
+            assert(e->left != e);
+            assert(e->right != e);
+            c = key_hash - e->hash;
+            if (c == 0)
+                c = keyti->compare(olde + 1, e + 1);
+            if (c < 0)
+                pe = &e->left;
+            else if (c > 0)
+                pe = &e->right;
+            else
+                assert(0);
+        }
+        *pe = olde;
 
-	if (right)
-	{
-	    if (!left)
-	    {   olde = right;
-		continue;
-	    }
-	    rehash_x(right, newbuckets, newbuckets_length);
-	}
-	if (!left)
-	    break;
-	olde = left;
+        if (right)
+        {
+            if (!left)
+            {   olde = right;
+                continue;
+            }
+            rehash_x(right, newbuckets, newbuckets_length);
+        }
+        if (!left)
+            break;
+        olde = left;
     }
 }
 
@@ -454,18 +454,18 @@ int AArray::apply(void *parameter, dg2_t dg)
 
     if (nodes)
     {
-	size_t keysize = aligntsize(keyti->tsize());
+        size_t keysize = aligntsize(keyti->tsize());
 
-	for (size_t i = 0; i < buckets_length; i++)
-	{   aaA* e = buckets[i];
+        for (size_t i = 0; i < buckets_length; i++)
+        {   aaA* e = buckets[i];
 
-	    if (e)
-	    {
-		result = apply_x(e, dg, keysize, parameter);
-		if (result)
-		    break;
-	    }
-	}
+            if (e)
+            {
+                result = apply_x(e, dg, keysize, parameter);
+                if (result)
+                    break;
+            }
+        }
     }
     return result;
 }
@@ -475,21 +475,21 @@ int AArray::apply_x(aaA* e, dg2_t dg, size_t keysize, void *parameter)
 
     do
     {
-	//printf("apply_x(e = %p, dg = x%llx)\n", e, dg);
-	result = (*dg)(parameter, e + 1, (char *)(e + 1) + keysize);
-	if (result)
-	    break;
-	if (e->right)
-	{   if (!e->left)
-	    {
-		e = e->right;
-		continue;
-	    }
-	    result = apply_x(e->right, dg, keysize, parameter);
-	    if (result)
-		break;
-	}
-	e = e->left;
+        //printf("apply_x(e = %p, dg = x%llx)\n", e, dg);
+        result = (*dg)(parameter, e + 1, (char *)(e + 1) + keysize);
+        if (result)
+            break;
+        if (e->right)
+        {   if (!e->left)
+            {
+                e = e->right;
+                continue;
+            }
+            result = apply_x(e->right, dg, keysize, parameter);
+            if (result)
+                break;
+        }
+        e = e->left;
     } while (e);
 
     return result;

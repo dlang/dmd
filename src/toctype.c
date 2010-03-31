@@ -50,8 +50,8 @@ void slist_reset();
 type *Type::toCtype()
 {
     if (!ctype)
-    {	ctype = type_fake(totym());
-	ctype->Tcount++;
+    {   ctype = type_fake(totym());
+        ctype->Tcount++;
     }
     return ctype;
 }
@@ -72,9 +72,9 @@ type *TypeSArray::toCtype()
     if (!ctype)
     {   type *tn;
 
-	tn = next->toCtype();
-	ctype = type_allocn(TYarray, tn);
-	ctype->Tdim = dim->toInteger();
+        tn = next->toCtype();
+        ctype = type_allocn(TYarray, tn);
+        ctype->Tdim = dim->toInteger();
     }
     return ctype;
 }
@@ -83,49 +83,49 @@ type *TypeDArray::toCtype()
 {   type *t;
 
     if (ctype)
-	return ctype;
+        return ctype;
 
     if (0 && global.params.symdebug)
     {
-	/* Create a C type out of:
-	 *	struct _Array_T { size_t length; T* data; }
-	 */
-	Symbol *s;
-	char *id;
+        /* Create a C type out of:
+         *      struct _Array_T { size_t length; T* data; }
+         */
+        Symbol *s;
+        char *id;
 
-	assert(next->deco);
-	id = (char *) alloca(7 + strlen(next->deco) + 1);
-	sprintf(id, "_Array_%s", next->deco);
-	s = symbol_calloc(id);
-	s->Sclass = SCstruct;
-	s->Sstruct = struct_calloc();
-	s->Sstruct->Sflags |= 0;
-	s->Sstruct->Salignsize = alignsize();
-	s->Sstruct->Sstructalign = global.structalign;
-	s->Sstruct->Sstructsize = size(0);
-	slist_add(s);
+        assert(next->deco);
+        id = (char *) alloca(7 + strlen(next->deco) + 1);
+        sprintf(id, "_Array_%s", next->deco);
+        s = symbol_calloc(id);
+        s->Sclass = SCstruct;
+        s->Sstruct = struct_calloc();
+        s->Sstruct->Sflags |= 0;
+        s->Sstruct->Salignsize = alignsize();
+        s->Sstruct->Sstructalign = global.structalign;
+        s->Sstruct->Sstructsize = size(0);
+        slist_add(s);
 
-	Symbol *s1 = symbol_name("length", SCmember, Type::tsize_t->toCtype());
-	list_append(&s->Sstruct->Sfldlst, s1);
+        Symbol *s1 = symbol_name("length", SCmember, Type::tsize_t->toCtype());
+        list_append(&s->Sstruct->Sfldlst, s1);
 
-	Symbol *s2 = symbol_name("data", SCmember, next->pointerTo()->toCtype());
-	s2->Smemoff = Type::tsize_t->size();
-	list_append(&s->Sstruct->Sfldlst, s2);
+        Symbol *s2 = symbol_name("data", SCmember, next->pointerTo()->toCtype());
+        s2->Smemoff = Type::tsize_t->size();
+        list_append(&s->Sstruct->Sfldlst, s2);
 
-	t = type_alloc(TYstruct);
-	t->Ttag = (Classsym *)s;		// structure tag name
-	t->Tcount++;
-	s->Stype = t;
+        t = type_alloc(TYstruct);
+        t->Ttag = (Classsym *)s;                // structure tag name
+        t->Tcount++;
+        s->Stype = t;
     }
     else
     {
-	if (global.params.symdebug == 1)
-	{
-	    // Generate D symbolic debug info, rather than C
-	    t = type_allocn(TYdarray, next->toCtype());
-	}
-	else
-	    t = type_fake(TYdarray);
+        if (global.params.symdebug == 1)
+        {
+            // Generate D symbolic debug info, rather than C
+            t = type_allocn(TYdarray, next->toCtype());
+        }
+        else
+            t = type_fake(TYdarray);
     }
     t->Tcount++;
     ctype = t;
@@ -137,54 +137,54 @@ type *TypeAArray::toCtype()
 {   type *t;
 
     if (ctype)
-	return ctype;
+        return ctype;
 
     if (0 && global.params.symdebug)
     {
-	/* An associative array is represented by:
-	 *	struct AArray { size_t length; void* ptr; }
-	 */
+        /* An associative array is represented by:
+         *      struct AArray { size_t length; void* ptr; }
+         */
 
-	static Symbol *s;
+        static Symbol *s;
 
-	if (!s)
-	{
-	    s = symbol_calloc("_AArray");
-	    s->Sclass = SCstruct;
-	    s->Sstruct = struct_calloc();
-	    s->Sstruct->Sflags |= 0;
-	    s->Sstruct->Salignsize = alignsize();
-	    s->Sstruct->Sstructalign = global.structalign;
-	    s->Sstruct->Sstructsize = size(0);
-	    slist_add(s);
+        if (!s)
+        {
+            s = symbol_calloc("_AArray");
+            s->Sclass = SCstruct;
+            s->Sstruct = struct_calloc();
+            s->Sstruct->Sflags |= 0;
+            s->Sstruct->Salignsize = alignsize();
+            s->Sstruct->Sstructalign = global.structalign;
+            s->Sstruct->Sstructsize = size(0);
+            slist_add(s);
 
-	    Symbol *s1 = symbol_name("length", SCmember, Type::tsize_t->toCtype());
-	    list_append(&s->Sstruct->Sfldlst, s1);
+            Symbol *s1 = symbol_name("length", SCmember, Type::tsize_t->toCtype());
+            list_append(&s->Sstruct->Sfldlst, s1);
 
-	    Symbol *s2 = symbol_name("data", SCmember, Type::tvoidptr->toCtype());
-	    s2->Smemoff = Type::tsize_t->size();
-	    list_append(&s->Sstruct->Sfldlst, s2);
-	}
+            Symbol *s2 = symbol_name("data", SCmember, Type::tvoidptr->toCtype());
+            s2->Smemoff = Type::tsize_t->size();
+            list_append(&s->Sstruct->Sfldlst, s2);
+        }
 
-	t = type_alloc(TYstruct);
-	t->Ttag = (Classsym *)s;		// structure tag name
-	t->Tcount++;
-	s->Stype = t;
+        t = type_alloc(TYstruct);
+        t->Ttag = (Classsym *)s;                // structure tag name
+        t->Tcount++;
+        s->Stype = t;
     }
     else
     {
-	if (global.params.symdebug == 1)
-	{
-	    /* Generate D symbolic debug info, rather than C
-	     *   Tnext: element type
-	     *   Tkey: key type
-	     */
-	    t = type_allocn(TYaarray, next->toCtype());
-	    t->Tkey = key->toCtype();
-	    t->Tkey->Tcount++;
-	}
-	else
-	    t = type_fake(TYaarray);
+        if (global.params.symdebug == 1)
+        {
+            /* Generate D symbolic debug info, rather than C
+             *   Tnext: element type
+             *   Tkey: key type
+             */
+            t = type_allocn(TYaarray, next->toCtype());
+            t->Tkey = key->toCtype();
+            t->Tkey->Tcount++;
+        }
+        else
+            t = type_fake(TYaarray);
     }
     t->Tcount++;
     ctype = t;
@@ -198,18 +198,18 @@ type *TypePointer::toCtype()
 
     //printf("TypePointer::toCtype() %s\n", toChars());
     if (ctype)
-	return ctype;
+        return ctype;
 
     if (global.params.symdebug)
     {
-	t = type_alloc(TYnptr);
-	ctype = t;
-	tn = next->toCtype();
-	t->Tnext = tn;
-	tn->Tcount++;
+        t = type_alloc(TYnptr);
+        ctype = t;
+        tn = next->toCtype();
+        t->Tnext = tn;
+        tn->Tcount++;
     }
     else
-	t = type_fake(totym());
+        t = type_fake(totym());
     t->Tcount++;
     ctype = t;
     return t;
@@ -219,35 +219,35 @@ type *TypeFunction::toCtype()
 {   type *t;
 
     if (ctype)
-	return ctype;
+        return ctype;
 
     if (1)
     {
-	param_t *paramtypes;
-	tym_t tyf;
-	type *tp;
+        param_t *paramtypes;
+        tym_t tyf;
+        type *tp;
 
-	paramtypes = NULL;
-	size_t nparams = Parameter::dim(parameters);
-	for (size_t i = 0; i < nparams; i++)
-	{   Parameter *arg = Parameter::getNth(parameters, i);
-	    tp = arg->type->toCtype();
-	    if (arg->storageClass & (STCout | STCref))
-	    {   // C doesn't have reference types, so it's really a pointer
-		// to the parameter type
-		tp = type_allocn(TYref, tp);
-	    }
-	    param_append_type(&paramtypes,tp);
-	}
-	tyf = totym();
-	t = type_alloc(tyf);
-	t->Tflags |= TFprototype;
-	if (varargs != 1)
-	    t->Tflags |= TFfixed;
-	ctype = t;
-	t->Tnext = next->toCtype();
-	t->Tnext->Tcount++;
-	t->Tparamtypes = paramtypes;
+        paramtypes = NULL;
+        size_t nparams = Parameter::dim(parameters);
+        for (size_t i = 0; i < nparams; i++)
+        {   Parameter *arg = Parameter::getNth(parameters, i);
+            tp = arg->type->toCtype();
+            if (arg->storageClass & (STCout | STCref))
+            {   // C doesn't have reference types, so it's really a pointer
+                // to the parameter type
+                tp = type_allocn(TYref, tp);
+            }
+            param_append_type(&paramtypes,tp);
+        }
+        tyf = totym();
+        t = type_alloc(tyf);
+        t->Tflags |= TFprototype;
+        if (varargs != 1)
+            t->Tflags |= TFfixed;
+        ctype = t;
+        t->Tnext = next->toCtype();
+        t->Tnext->Tcount++;
+        t->Tparamtypes = paramtypes;
     }
     ctype = t;
     return t;
@@ -257,49 +257,49 @@ type *TypeDelegate::toCtype()
 {   type *t;
 
     if (ctype)
-	return ctype;
+        return ctype;
 
     if (0 && global.params.symdebug)
     {
-	/* A delegate consists of:
-	 *    _Delegate { void* frameptr; Function *funcptr; }
-	 */
+        /* A delegate consists of:
+         *    _Delegate { void* frameptr; Function *funcptr; }
+         */
 
-	static Symbol *s;
+        static Symbol *s;
 
-	if (!s)
-	{
-	    s = symbol_calloc("_Delegate");
-	    s->Sclass = SCstruct;
-	    s->Sstruct = struct_calloc();
-	    s->Sstruct->Sflags |= 0;
-	    s->Sstruct->Salignsize = alignsize();
-	    s->Sstruct->Sstructalign = global.structalign;
-	    s->Sstruct->Sstructsize = size(0);
-	    slist_add(s);
+        if (!s)
+        {
+            s = symbol_calloc("_Delegate");
+            s->Sclass = SCstruct;
+            s->Sstruct = struct_calloc();
+            s->Sstruct->Sflags |= 0;
+            s->Sstruct->Salignsize = alignsize();
+            s->Sstruct->Sstructalign = global.structalign;
+            s->Sstruct->Sstructsize = size(0);
+            slist_add(s);
 
-	    Symbol *s1 = symbol_name("frameptr", SCmember, Type::tvoidptr->toCtype());
-	    list_append(&s->Sstruct->Sfldlst, s1);
+            Symbol *s1 = symbol_name("frameptr", SCmember, Type::tvoidptr->toCtype());
+            list_append(&s->Sstruct->Sfldlst, s1);
 
-	    Symbol *s2 = symbol_name("funcptr", SCmember, Type::tvoidptr->toCtype());
-	    s2->Smemoff = Type::tvoidptr->size();
-	    list_append(&s->Sstruct->Sfldlst, s2);
-	}
+            Symbol *s2 = symbol_name("funcptr", SCmember, Type::tvoidptr->toCtype());
+            s2->Smemoff = Type::tvoidptr->size();
+            list_append(&s->Sstruct->Sfldlst, s2);
+        }
 
-	t = type_alloc(TYstruct);
-	t->Ttag = (Classsym *)s;		// structure tag name
-	t->Tcount++;
-	s->Stype = t;
+        t = type_alloc(TYstruct);
+        t->Ttag = (Classsym *)s;                // structure tag name
+        t->Tcount++;
+        s->Stype = t;
     }
     else
     {
-	if (global.params.symdebug == 1)
-	{
-	    // Generate D symbolic debug info, rather than C
-	    t = type_allocn(TYdelegate, next->toCtype());
-	}
-	else
-	    t = type_fake(TYdelegate);
+        if (global.params.symdebug == 1)
+        {
+            // Generate D symbolic debug info, rather than C
+            t = type_allocn(TYdelegate, next->toCtype());
+        }
+        else
+            t = type_fake(TYdelegate);
     }
 
     t->Tcount++;
@@ -313,7 +313,7 @@ type *TypeStruct::toCtype()
     Symbol *s;
 
     if (ctype)
-	return ctype;
+        return ctype;
 
     //printf("TypeStruct::toCtype() '%s'\n", sym->toChars());
     s = symbol_calloc(sym->toPrettyChars());
@@ -325,10 +325,10 @@ type *TypeStruct::toCtype()
     s->Sstruct->Sstructsize = sym->structsize;
 
     if (sym->isUnionDeclaration())
-	s->Sstruct->Sflags |= STRunion;
+        s->Sstruct->Sflags |= STRunion;
 
     t = type_alloc(TYstruct);
-    t->Ttag = (Classsym *)s;		// structure tag name
+    t->Ttag = (Classsym *)s;            // structure tag name
     t->Tcount++;
     s->Stype = t;
     slist_add(s);
@@ -337,13 +337,13 @@ type *TypeStruct::toCtype()
     /* Add in fields of the struct
      */
     if (global.params.symdebug)
-	for (int i = 0; i < sym->fields.dim; i++)
-	{   VarDeclaration *v = (VarDeclaration *)sym->fields.data[i];
+        for (int i = 0; i < sym->fields.dim; i++)
+        {   VarDeclaration *v = (VarDeclaration *)sym->fields.data[i];
 
-	    Symbol *s2 = symbol_name(v->ident->toChars(), SCmember, v->type->toCtype());
-	    s2->Smemoff = v->offset;
-	    list_append(&s->Sstruct->Sfldlst, s2);
-	}
+            Symbol *s2 = symbol_name(v->ident->toChars(), SCmember, v->type->toCtype());
+            s2->Smemoff = v->offset;
+            list_append(&s->Sstruct->Sfldlst, s2);
+        }
 
     //printf("t = %p, Tflags = x%x\n", t, t->Tflags);
     return t;
@@ -370,44 +370,44 @@ type *TypeClass::toCtype()
 
     //printf("TypeClass::toCtype() %s\n", toChars());
     if (ctype)
-	return ctype;
+        return ctype;
 
     if (global.params.symdebug)
     {
-	s = symbol_calloc(sym->toPrettyChars());
-	//s = symbol_calloc(deco);
-	s->Sclass = SCstruct;
-	s->Sstruct = struct_calloc();
-	s->Sstruct->Sflags |= STRclass;
-	s->Sstruct->Salignsize = sym->alignsize;
-	s->Sstruct->Sstructalign = sym->structalign;
-	s->Sstruct->Sstructsize = sym->structsize;
+        s = symbol_calloc(sym->toPrettyChars());
+        //s = symbol_calloc(deco);
+        s->Sclass = SCstruct;
+        s->Sstruct = struct_calloc();
+        s->Sstruct->Sflags |= STRclass;
+        s->Sstruct->Salignsize = sym->alignsize;
+        s->Sstruct->Sstructalign = sym->structalign;
+        s->Sstruct->Sstructsize = sym->structsize;
 
-	t = type_alloc(TYstruct);
-	t->Ttag = (Classsym *)s;		// structure tag name
-	t->Tcount++;
-	s->Stype = t;
-	slist_add(s);
+        t = type_alloc(TYstruct);
+        t->Ttag = (Classsym *)s;                // structure tag name
+        t->Tcount++;
+        s->Stype = t;
+        slist_add(s);
 
-	t = type_allocn(TYnptr, t);
+        t = type_allocn(TYnptr, t);
 
-	t->Tcount++;
-	ctype = t;
+        t->Tcount++;
+        ctype = t;
 
-	/* Add in fields of the class
-	 */
-	for (int i = 0; i < sym->fields.dim; i++)
-	{   VarDeclaration *v = (VarDeclaration *)sym->fields.data[i];
+        /* Add in fields of the class
+         */
+        for (int i = 0; i < sym->fields.dim; i++)
+        {   VarDeclaration *v = (VarDeclaration *)sym->fields.data[i];
 
-	    Symbol *s2 = symbol_name(v->ident->toChars(), SCmember, v->type->toCtype());
-	    s2->Smemoff = v->offset;
-	    list_append(&s->Sstruct->Sfldlst, s2);
-	}
+            Symbol *s2 = symbol_name(v->ident->toChars(), SCmember, v->type->toCtype());
+            s2->Smemoff = v->offset;
+            list_append(&s->Sstruct->Sfldlst, s2);
+        }
     }
     else
-    {	t = type_fake(totym());
-	t->Tcount++;
-	ctype = t;
+    {   t = type_fake(totym());
+        t->Tcount++;
+        ctype = t;
     }
     return t;
 }

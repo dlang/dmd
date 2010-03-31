@@ -48,21 +48,21 @@ struct Tuple : Object
 
 struct TemplateDeclaration : ScopeDsymbol
 {
-    TemplateParameters *parameters;	// array of TemplateParameter's
+    TemplateParameters *parameters;     // array of TemplateParameter's
 
-    TemplateParameters *origParameters;	// originals for Ddoc
+    TemplateParameters *origParameters; // originals for Ddoc
     Expression *constraint;
-    Array instances;			// array of TemplateInstance's
+    Array instances;                    // array of TemplateInstance's
 
-    TemplateDeclaration *overnext;	// next overloaded TemplateDeclaration
-    TemplateDeclaration *overroot;	// first in overnext list
+    TemplateDeclaration *overnext;      // next overloaded TemplateDeclaration
+    TemplateDeclaration *overroot;      // first in overnext list
 
-    int semanticRun;			// 1 semantic() run
+    int semanticRun;                    // 1 semantic() run
 
-    Dsymbol *onemember;		// if !=NULL then one member of this template
+    Dsymbol *onemember;         // if !=NULL then one member of this template
 
     TemplateDeclaration(Loc loc, Identifier *id, TemplateParameters *parameters,
-	Expression *constraint, Array *decldefs);
+        Expression *constraint, Array *decldefs);
     Dsymbol *syntaxCopy(Dsymbol *);
     void semantic(Scope *sc);
     int overloadInsert(Dsymbol *s);
@@ -92,15 +92,15 @@ struct TemplateDeclaration : ScopeDsymbol
 struct TemplateParameter
 {
     /* For type-parameter:
-     *	template Foo(ident)		// specType is set to NULL
-     *	template Foo(ident : specType)
+     *  template Foo(ident)             // specType is set to NULL
+     *  template Foo(ident : specType)
      * For value-parameter:
-     *	template Foo(valType ident)	// specValue is set to NULL
-     *	template Foo(valType ident : specValue)
+     *  template Foo(valType ident)     // specValue is set to NULL
+     *  template Foo(valType ident : specValue)
      * For alias-parameter:
-     *	template Foo(alias ident)
+     *  template Foo(alias ident)
      * For this-parameter:
-     *	template Foo(this ident)
+     *  template Foo(this ident)
      */
 
     Loc loc;
@@ -142,9 +142,9 @@ struct TemplateParameter
 struct TemplateTypeParameter : TemplateParameter
 {
     /* Syntax:
-     *	ident : specType = defaultType
+     *  ident : specType = defaultType
      */
-    Type *specType;	// type parameter: if !=NULL, this is the type specialization
+    Type *specType;     // type parameter: if !=NULL, this is the type specialization
     Type *defaultType;
 
     TemplateTypeParameter(Loc loc, Identifier *ident, Type *specType, Type *defaultType);
@@ -166,9 +166,9 @@ struct TemplateTypeParameter : TemplateParameter
 struct TemplateThisParameter : TemplateTypeParameter
 {
     /* Syntax:
-     *	this ident : specType = defaultType
+     *  this ident : specType = defaultType
      */
-    Type *specType;	// type parameter: if !=NULL, this is the type specialization
+    Type *specType;     // type parameter: if !=NULL, this is the type specialization
     Type *defaultType;
 
     TemplateThisParameter(Loc loc, Identifier *ident, Type *specType, Type *defaultType);
@@ -182,7 +182,7 @@ struct TemplateThisParameter : TemplateTypeParameter
 struct TemplateValueParameter : TemplateParameter
 {
     /* Syntax:
-     *	valType ident : specValue = defaultValue
+     *  valType ident : specValue = defaultValue
      */
 
     Type *valType;
@@ -209,7 +209,7 @@ struct TemplateValueParameter : TemplateParameter
 struct TemplateAliasParameter : TemplateParameter
 {
     /* Syntax:
-     *	specType ident : specAlias = defaultAlias
+     *  specType ident : specAlias = defaultAlias
      */
 
     Type *specAliasT;
@@ -237,7 +237,7 @@ struct TemplateAliasParameter : TemplateParameter
 struct TemplateTupleParameter : TemplateParameter
 {
     /* Syntax:
-     *	ident ...
+     *  ident ...
      */
 
     TemplateTupleParameter(Loc loc, Identifier *ident);
@@ -258,32 +258,32 @@ struct TemplateTupleParameter : TemplateParameter
 struct TemplateInstance : ScopeDsymbol
 {
     /* Given:
-     *	foo!(args) =>
-     *	    name = foo
-     *	    tiargs = args
+     *  foo!(args) =>
+     *      name = foo
+     *      tiargs = args
      */
     Identifier *name;
     //Array idents;
-    Objects *tiargs;		// Array of Types/Expressions of template
-				// instance arguments [int*, char, 10*10]
+    Objects *tiargs;            // Array of Types/Expressions of template
+                                // instance arguments [int*, char, 10*10]
 
-    Objects tdtypes;		// Array of Types/Expressions corresponding
-				// to TemplateDeclaration.parameters
-				// [int, char, 100]
+    Objects tdtypes;            // Array of Types/Expressions corresponding
+                                // to TemplateDeclaration.parameters
+                                // [int, char, 100]
 
-    TemplateDeclaration *tempdecl;	// referenced by foo.bar.abc
-    TemplateInstance *inst;		// refer to existing instance
-    TemplateInstance *tinst;		// enclosing template instance
-    ScopeDsymbol *argsym;		// argument symbol table
-    AliasDeclaration *aliasdecl;	// !=NULL if instance is an alias for its
-					// sole member
-    WithScopeSymbol *withsym;		// if a member of a with statement
-    int semanticRun;	// has semantic() been done?
-    int semantictiargsdone;	// has semanticTiargs() been done?
-    int nest;		// for recursion detection
-    int havetempdecl;	// 1 if used second constructor
-    Dsymbol *isnested;	// if referencing local symbols, this is the context
-    int errors;		// 1 if compiled with errors
+    TemplateDeclaration *tempdecl;      // referenced by foo.bar.abc
+    TemplateInstance *inst;             // refer to existing instance
+    TemplateInstance *tinst;            // enclosing template instance
+    ScopeDsymbol *argsym;               // argument symbol table
+    AliasDeclaration *aliasdecl;        // !=NULL if instance is an alias for its
+                                        // sole member
+    WithScopeSymbol *withsym;           // if a member of a with statement
+    int semanticRun;    // has semantic() been done?
+    int semantictiargsdone;     // has semanticTiargs() been done?
+    int nest;           // for recursion detection
+    int havetempdecl;   // 1 if used second constructor
+    Dsymbol *isnested;  // if referencing local symbols, this is the context
+    int errors;         // 1 if compiled with errors
 #ifdef IN_GCC
     /* On some targets, it is necessary to know whether a symbol
        will be emitted in the output or not before the symbol
@@ -300,7 +300,7 @@ struct TemplateInstance : ScopeDsymbol
     void semantic3(Scope *sc);
     void inlineScan();
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
-    Dsymbol *toAlias();			// resolve real symbol
+    Dsymbol *toAlias();                 // resolve real symbol
     const char *kind();
     int oneMember(Dsymbol **ps);
     int needsTypeInference(Scope *sc);
@@ -308,7 +308,7 @@ struct TemplateInstance : ScopeDsymbol
     char *mangle();
     void printInstantiationTrace();
 
-    void toObjFile(int multiobj);			// compile to .obj file
+    void toObjFile(int multiobj);                       // compile to .obj file
 
     // Internal
     static void semanticTiargs(Loc loc, Scope *sc, Objects *tiargs, int flags);
@@ -340,7 +340,7 @@ struct TemplateMixin : TemplateInstance
     char *toChars();
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
 
-    void toObjFile(int multiobj);			// compile to .obj file
+    void toObjFile(int multiobj);                       // compile to .obj file
 
     TemplateMixin *isTemplateMixin() { return this; }
 };

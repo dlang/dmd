@@ -50,9 +50,9 @@ struct Symbol;
 
 enum TY
 {
-    Tarray,		// dynamic array
-    Tsarray,		// static array
-    Taarray,		// associative array
+    Tarray,             // dynamic array
+    Tsarray,            // static array
+    Taarray,            // associative array
     Tpointer,
     Treference,
     Tfunction,
@@ -109,58 +109,58 @@ extern int Tptrdiff_t;
 struct Type : Object
 {
     TY ty;
-    unsigned char mod;	// modifiers MODxxxx
-	/* pick this order of numbers so switch statements work better
-	 */
-	#define MODconst     1	// type is const
-	#define MODimmutable 4	// type is invariant
-	#define MODshared    2	// type is shared
+    unsigned char mod;  // modifiers MODxxxx
+        /* pick this order of numbers so switch statements work better
+         */
+        #define MODconst     1  // type is const
+        #define MODimmutable 4  // type is invariant
+        #define MODshared    2  // type is shared
     char *deco;
-    Type *pto;		// merged pointer to this type
-    Type *rto;		// reference to this type
-    Type *arrayof;	// array of this type
-    TypeInfoDeclaration *vtinfo;	// TypeInfo object for this Type
+    Type *pto;          // merged pointer to this type
+    Type *rto;          // reference to this type
+    Type *arrayof;      // array of this type
+    TypeInfoDeclaration *vtinfo;        // TypeInfo object for this Type
 
-    type *ctype;	// for back end
+    type *ctype;        // for back end
 
-    #define tvoid	basic[Tvoid]
-    #define tint8	basic[Tint8]
-    #define tuns8	basic[Tuns8]
-    #define tint16	basic[Tint16]
-    #define tuns16	basic[Tuns16]
-    #define tint32	basic[Tint32]
-    #define tuns32	basic[Tuns32]
-    #define tint64	basic[Tint64]
-    #define tuns64	basic[Tuns64]
-    #define tfloat32	basic[Tfloat32]
-    #define tfloat64	basic[Tfloat64]
-    #define tfloat80	basic[Tfloat80]
+    #define tvoid       basic[Tvoid]
+    #define tint8       basic[Tint8]
+    #define tuns8       basic[Tuns8]
+    #define tint16      basic[Tint16]
+    #define tuns16      basic[Tuns16]
+    #define tint32      basic[Tint32]
+    #define tuns32      basic[Tuns32]
+    #define tint64      basic[Tint64]
+    #define tuns64      basic[Tuns64]
+    #define tfloat32    basic[Tfloat32]
+    #define tfloat64    basic[Tfloat64]
+    #define tfloat80    basic[Tfloat80]
 
     #define timaginary32 basic[Timaginary32]
     #define timaginary64 basic[Timaginary64]
     #define timaginary80 basic[Timaginary80]
 
-    #define tcomplex32	basic[Tcomplex32]
-    #define tcomplex64	basic[Tcomplex64]
-    #define tcomplex80	basic[Tcomplex80]
+    #define tcomplex32  basic[Tcomplex32]
+    #define tcomplex64  basic[Tcomplex64]
+    #define tcomplex80  basic[Tcomplex80]
 
-    #define tbit	basic[Tbit]
-    #define tbool	basic[Tbool]
-    #define tchar	basic[Tchar]
-    #define twchar	basic[Twchar]
-    #define tdchar	basic[Tdchar]
+    #define tbit        basic[Tbit]
+    #define tbool       basic[Tbool]
+    #define tchar       basic[Tchar]
+    #define twchar      basic[Twchar]
+    #define tdchar      basic[Tdchar]
 
     // Some special types
-    #define tshiftcnt	tint32		// right side of shift expression
-//    #define tboolean	tint32		// result of boolean expression
-    #define tboolean	tbool		// result of boolean expression
-    #define tindex	tint32		// array/ptr index
-    static Type *tvoidptr;		// void*
-    #define terror	basic[Terror]	// for error recovery
+    #define tshiftcnt   tint32          // right side of shift expression
+//    #define tboolean  tint32          // result of boolean expression
+    #define tboolean    tbool           // result of boolean expression
+    #define tindex      tint32          // array/ptr index
+    static Type *tvoidptr;              // void*
+    #define terror      basic[Terror]   // for error recovery
 
-    #define tsize_t	basic[Tsize_t]		// matches size_t alias
-    #define tptrdiff_t	basic[Tptrdiff_t]	// matches ptrdiff_t alias
-    #define thash_t	tsize_t			// matches hash_t alias
+    #define tsize_t     basic[Tsize_t]          // matches size_t alias
+    #define tptrdiff_t  basic[Tptrdiff_t]       // matches ptrdiff_t alias
+    #define thash_t     tsize_t                 // matches hash_t alias
 
     static ClassDeclaration *typeinfo;
     static ClassDeclaration *typeinfoclass;
@@ -209,7 +209,7 @@ struct Type : Object
     void toCBuffer3(OutBuffer *buf, HdrGenState *hgs, int mod);
     virtual int isbit();
     virtual int isintegral();
-    virtual int isfloating();	// real, imaginary, or complex
+    virtual int isfloating();   // real, imaginary, or complex
     virtual int isreal();
     virtual int isimaginary();
     virtual int iscomplex();
@@ -217,7 +217,7 @@ struct Type : Object
     virtual int isunsigned();
     virtual int isauto();
     virtual int isString();
-    virtual int checkBoolean();	// if can be converted to boolean value
+    virtual int checkBoolean(); // if can be converted to boolean value
     void checkDeprecated(Loc loc, Scope *sc);
     Type *pointerTo();
     Type *referenceTo();
@@ -232,7 +232,7 @@ struct Type : Object
     virtual unsigned memalign(unsigned salign);
     virtual Expression *defaultInit(Loc loc = 0);
     virtual Expression *defaultInitLiteral(Loc loc = 0);
-    virtual int isZeroInit(Loc loc = 0);		// if initializer is 0
+    virtual int isZeroInit(Loc loc = 0);                // if initializer is 0
     virtual dt_t **toDt(dt_t **pdt);
     Identifier *getTypeInfoIdent(int internal);
     virtual MATCH deduceType(Scope *sc, Type *tparam, TemplateParameters *parameters, Objects *dedtypes);
@@ -353,8 +353,8 @@ struct TypeDArray : TypeArray
 
 struct TypeAArray : TypeArray
 {
-    Type *index;		// key type for type checking
-    Type *key;			// actual key type
+    Type *index;                // key type for type checking
+    Type *key;                  // actual key type
 
     TypeAArray(Type *t, Type *index);
     Type *syntaxCopy();
@@ -407,16 +407,16 @@ struct TypeReference : Type
 
 enum RET
 {
-    RETregs	= 1,	// returned in registers
-    RETstack	= 2,	// returned on stack
+    RETregs     = 1,    // returned in registers
+    RETstack    = 2,    // returned on stack
 };
 
 struct TypeFunction : Type
 {
-    Parameters *parameters;	// function parameters
-    int varargs;	// 1: T t, ...) style for variable number of arguments
-			// 2: T t ...) style for variable number of arguments
-    enum LINK linkage;	// calling convention
+    Parameters *parameters;     // function parameters
+    int varargs;        // 1: T t, ...) style for variable number of arguments
+                        // 2: T t ...) style for variable number of arguments
+    enum LINK linkage;  // calling convention
 
     int inuse;
 
@@ -457,7 +457,7 @@ struct TypeDelegate : Type
 struct TypeQualified : Type
 {
     Loc loc;
-    Array idents;	// array of Identifier's representing ident.ident.ident etc.
+    Array idents;       // array of Identifier's representing ident.ident.ident etc.
 
     TypeQualified(TY ty, Loc loc);
     void syntaxCopyHelper(TypeQualified *t);
@@ -465,7 +465,7 @@ struct TypeQualified : Type
     void toCBuffer2Helper(OutBuffer *buf, HdrGenState *hgs);
     d_uns64 size(Loc loc);
     void resolveHelper(Loc loc, Scope *sc, Dsymbol *s, Dsymbol *scopesym,
-	Expression **pe, Type **pt, Dsymbol **ps);
+        Expression **pe, Type **pt, Dsymbol **ps);
 };
 
 struct TypeIdentifier : TypeQualified
@@ -651,7 +651,7 @@ struct TypeClass : Type
 
 struct TypeTuple : Type
 {
-    Parameters *arguments;	// types making up the tuple
+    Parameters *arguments;      // types making up the tuple
 
     TypeTuple(Parameters *arguments);
     TypeTuple(Expressions *exps);

@@ -4,15 +4,15 @@
 #ifndef ROOT_MEM_H
 #define ROOT_MEM_H
 
-#include <stddef.h>	// for size_t
+#include <stddef.h>     // for size_t
 
 typedef void (*FINALIZERPROC)(void* pObj, void* pClientData);
 
-struct GC;			// thread specific allocator
+struct GC;                      // thread specific allocator
 
 struct Mem
 {
-    GC *gc;			// pointer to our thread specific allocator
+    GC *gc;                     // pointer to our thread specific allocator
     Mem() { gc = NULL; }
 
     void init();
@@ -35,15 +35,15 @@ struct Mem
     void free_uncollectable(void *p);
     void *mallocdup(void *o, size_t size);
     void error();
-    void check(void *p);	// validate pointer
-    void fullcollect();		// do full garbage collection
-    void fullcollectNoStack();	// do full garbage collection, no scan stack
+    void check(void *p);        // validate pointer
+    void fullcollect();         // do full garbage collection
+    void fullcollectNoStack();  // do full garbage collection, no scan stack
     void mark(void *pointer);
     void addroots(char* pStart, char* pEnd);
     void removeroots(char* pStart);
     void setFinalizer(void* pObj, FINALIZERPROC pFn, void* pClientData);
     void setStackBottom(void *bottom);
-    GC *getThreadGC();		// get apartment allocator for this thread
+    GC *getThreadGC();          // get apartment allocator for this thread
 };
 
 extern Mem mem;

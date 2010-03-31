@@ -44,7 +44,7 @@ static void templateResolve(Match *m, TemplateDeclaration *td, Scope *sc, Loc lo
 
 int Expression::isCommutative()
 {
-    return FALSE;	// default is no reverse
+    return FALSE;       // default is no reverse
 }
 
 /***********************************
@@ -81,8 +81,8 @@ Identifier *InExp::opId()     { return Id::opIn; }
 Identifier *InExp::opId_r()     { return Id::opIn_r; }
 
 Identifier *PostExp::opId() { return (op == TOKplusplus)
-				? Id::postinc
-				: Id::postdec; }
+                                ? Id::postinc
+                                : Id::postdec; }
 
 int AddExp::isCommutative()  { return TRUE; }
 Identifier *AddExp::opId()   { return Id::add; }
@@ -145,7 +145,7 @@ Identifier *EqualExp::opId()   { return Id::eq; }
 int CmpExp::isCommutative()  { return TRUE; }
 Identifier *CmpExp::opId()   { return Id::cmp; }
 
-Identifier *ArrayExp::opId()	{ return Id::index; }
+Identifier *ArrayExp::opId()    { return Id::index; }
 
 
 /************************************
@@ -164,48 +164,48 @@ Expression *UnaExp::op_overload(Scope *sc)
 
     if (t1->ty == Tclass)
     {
-	ad = ((TypeClass *)t1)->sym;
-	goto L1;
+        ad = ((TypeClass *)t1)->sym;
+        goto L1;
     }
     else if (t1->ty == Tstruct)
     {
-	ad = ((TypeStruct *)t1)->sym;
+        ad = ((TypeStruct *)t1)->sym;
 
     L1:
-	fd = search_function(ad, opId());
-	if (fd)
-	{
-	    if (op == TOKarray)
-	    {
-		/* Rewrite op e1[arguments] as:
-		 *    e1.fd(arguments)
-		 */
-		Expression *e = new DotIdExp(loc, e1, fd->ident);
-		ArrayExp *ae = (ArrayExp *)this;
-		e = new CallExp(loc, e, ae->arguments);
-		e = e->semantic(sc);
-		return e;
-	    }
-	    else
-	    {
-		// Rewrite +e1 as e1.add()
-		return build_overload(loc, sc, e1, NULL, fd->ident);
-	    }
-	}
+        fd = search_function(ad, opId());
+        if (fd)
+        {
+            if (op == TOKarray)
+            {
+                /* Rewrite op e1[arguments] as:
+                 *    e1.fd(arguments)
+                 */
+                Expression *e = new DotIdExp(loc, e1, fd->ident);
+                ArrayExp *ae = (ArrayExp *)this;
+                e = new CallExp(loc, e, ae->arguments);
+                e = e->semantic(sc);
+                return e;
+            }
+            else
+            {
+                // Rewrite +e1 as e1.add()
+                return build_overload(loc, sc, e1, NULL, fd->ident);
+            }
+        }
 
 #if DMDV2
-	// Didn't find it. Forward to aliasthis
-	if (ad->aliasthis)
-	{
-	    /* Rewrite op(e1) as:
-	     *	op(e1.aliasthis)
-	     */
-	    Expression *e1 = new DotIdExp(loc, this->e1, ad->aliasthis->ident);
-	    Expression *e = copy();
-	    ((UnaExp *)e)->e1 = e1;
-	    e = e->semantic(sc);
-	    return e;
-	}
+        // Didn't find it. Forward to aliasthis
+        if (ad->aliasthis)
+        {
+            /* Rewrite op(e1) as:
+             *  op(e1.aliasthis)
+             */
+            Expression *e1 = new DotIdExp(loc, this->e1, ad->aliasthis->ident);
+            Expression *e = copy();
+            ((UnaExp *)e)->e1 = e1;
+            e = e->semantic(sc);
+            return e;
+        }
 #endif
     }
     return NULL;
@@ -229,19 +229,19 @@ Expression *BinExp::op_overload(Scope *sc)
 
     AggregateDeclaration *ad1;
     if (t1->ty == Tclass)
-	ad1 = ((TypeClass *)t1)->sym;
+        ad1 = ((TypeClass *)t1)->sym;
     else if (t1->ty == Tstruct)
-	ad1 = ((TypeStruct *)t1)->sym;
+        ad1 = ((TypeStruct *)t1)->sym;
     else
-	ad1 = NULL;
+        ad1 = NULL;
 
     AggregateDeclaration *ad2;
     if (t2->ty == Tclass)
-	ad2 = ((TypeClass *)t2)->sym;
+        ad2 = ((TypeClass *)t2)->sym;
     else if (t2->ty == Tstruct)
-	ad2 = ((TypeStruct *)t2)->sym;
+        ad2 = ((TypeStruct *)t2)->sym;
     else
-	ad2 = NULL;
+        ad2 = NULL;
 
     Dsymbol *s = NULL;
     Dsymbol *s_r = NULL;
@@ -249,221 +249,221 @@ Expression *BinExp::op_overload(Scope *sc)
     TemplateDeclaration *td = NULL;
     if (ad1 && id)
     {
-	s = search_function(ad1, id);
+        s = search_function(ad1, id);
     }
     if (ad2 && id_r)
     {
-	s_r = search_function(ad2, id_r);
+        s_r = search_function(ad2, id_r);
     }
 
     if (s || s_r)
     {
-	/* Try:
-	 *	a.opfunc(b)
-	 *	b.opfunc_r(a)
-	 * and see which is better.
-	 */
-	Expression *e;
-	FuncDeclaration *lastf;
+        /* Try:
+         *      a.opfunc(b)
+         *      b.opfunc_r(a)
+         * and see which is better.
+         */
+        Expression *e;
+        FuncDeclaration *lastf;
 
-	args1.setDim(1);
-	args1.data[0] = (void*) e1;
-	args2.setDim(1);
-	args2.data[0] = (void*) e2;
-	argsset = 1;
+        args1.setDim(1);
+        args1.data[0] = (void*) e1;
+        args2.setDim(1);
+        args2.data[0] = (void*) e2;
+        argsset = 1;
 
-	memset(&m, 0, sizeof(m));
-	m.last = MATCHnomatch;
+        memset(&m, 0, sizeof(m));
+        m.last = MATCHnomatch;
 
-	if (s)
-	{
-	    fd = s->isFuncDeclaration();
-	    if (fd)
-	    {
-		overloadResolveX(&m, fd, NULL, &args2);
-	    }
-	    else
-	    {   td = s->isTemplateDeclaration();
-		templateResolve(&m, td, sc, loc, NULL, NULL, &args2);
-	    }
-	}
-	
-	lastf = m.lastf;
+        if (s)
+        {
+            fd = s->isFuncDeclaration();
+            if (fd)
+            {
+                overloadResolveX(&m, fd, NULL, &args2);
+            }
+            else
+            {   td = s->isTemplateDeclaration();
+                templateResolve(&m, td, sc, loc, NULL, NULL, &args2);
+            }
+        }
 
-	if (s_r)
-	{
-	    fd = s_r->isFuncDeclaration();
-	    if (fd)
-	    {
-		overloadResolveX(&m, fd, NULL, &args1);
-	    }
-	    else
-	    {   td = s_r->isTemplateDeclaration();
-		templateResolve(&m, td, sc, loc, NULL, NULL, &args1);
-	    }
-	}
+        lastf = m.lastf;
 
-	if (m.count > 1)
-	{
-	    // Error, ambiguous
-	    error("overloads %s and %s both match argument list for %s",
-		    m.lastf->type->toChars(),
-		    m.nextf->type->toChars(),
-		    m.lastf->toChars());
-	}
-	else if (m.last == MATCHnomatch)
-	{
-	    m.lastf = m.anyf;
-	}
+        if (s_r)
+        {
+            fd = s_r->isFuncDeclaration();
+            if (fd)
+            {
+                overloadResolveX(&m, fd, NULL, &args1);
+            }
+            else
+            {   td = s_r->isTemplateDeclaration();
+                templateResolve(&m, td, sc, loc, NULL, NULL, &args1);
+            }
+        }
 
-	if (op == TOKplusplus || op == TOKminusminus)
-	    // Kludge because operator overloading regards e++ and e--
-	    // as unary, but it's implemented as a binary.
-	    // Rewrite (e1 ++ e2) as e1.postinc()
-	    // Rewrite (e1 -- e2) as e1.postdec()
-	    e = build_overload(loc, sc, e1, NULL, id);
-	else if (lastf && m.lastf == lastf || m.last == MATCHnomatch)
-	    // Rewrite (e1 op e2) as e1.opfunc(e2)
-	    e = build_overload(loc, sc, e1, e2, id);
-	else
-	    // Rewrite (e1 op e2) as e2.opfunc_r(e1)
-	    e = build_overload(loc, sc, e2, e1, id_r);
-	return e;
+        if (m.count > 1)
+        {
+            // Error, ambiguous
+            error("overloads %s and %s both match argument list for %s",
+                    m.lastf->type->toChars(),
+                    m.nextf->type->toChars(),
+                    m.lastf->toChars());
+        }
+        else if (m.last == MATCHnomatch)
+        {
+            m.lastf = m.anyf;
+        }
+
+        if (op == TOKplusplus || op == TOKminusminus)
+            // Kludge because operator overloading regards e++ and e--
+            // as unary, but it's implemented as a binary.
+            // Rewrite (e1 ++ e2) as e1.postinc()
+            // Rewrite (e1 -- e2) as e1.postdec()
+            e = build_overload(loc, sc, e1, NULL, id);
+        else if (lastf && m.lastf == lastf || m.last == MATCHnomatch)
+            // Rewrite (e1 op e2) as e1.opfunc(e2)
+            e = build_overload(loc, sc, e1, e2, id);
+        else
+            // Rewrite (e1 op e2) as e2.opfunc_r(e1)
+            e = build_overload(loc, sc, e2, e1, id_r);
+        return e;
     }
 
     if (isCommutative())
     {
-	s = NULL;
-	s_r = NULL;
-	if (ad1 && id_r)
-	{
-	    s_r = search_function(ad1, id_r);
-	}
-	if (ad2 && id)
-	{
-	    s = search_function(ad2, id);
-	}
+        s = NULL;
+        s_r = NULL;
+        if (ad1 && id_r)
+        {
+            s_r = search_function(ad1, id_r);
+        }
+        if (ad2 && id)
+        {
+            s = search_function(ad2, id);
+        }
 
-	if (s || s_r)
-	{
-	    /* Try:
-	     *	a.opfunc_r(b)
-	     *	b.opfunc(a)
-	     * and see which is better.
-	     */
-	    FuncDeclaration *lastf;
+        if (s || s_r)
+        {
+            /* Try:
+             *  a.opfunc_r(b)
+             *  b.opfunc(a)
+             * and see which is better.
+             */
+            FuncDeclaration *lastf;
 
-	    if (!argsset)
-	    {	args1.setDim(1);
-		args1.data[0] = (void*) e1;
-		args2.setDim(1);
-		args2.data[0] = (void*) e2;
-	    }
+            if (!argsset)
+            {   args1.setDim(1);
+                args1.data[0] = (void*) e1;
+                args2.setDim(1);
+                args2.data[0] = (void*) e2;
+            }
 
-	    memset(&m, 0, sizeof(m));
-	    m.last = MATCHnomatch;
+            memset(&m, 0, sizeof(m));
+            m.last = MATCHnomatch;
 
-	    if (s_r)
-	    {
-		fd = s_r->isFuncDeclaration();
-		if (fd)
-		{
-		    overloadResolveX(&m, fd, NULL, &args2);
-		}
-		else
-		{   td = s_r->isTemplateDeclaration();
-		    templateResolve(&m, td, sc, loc, NULL, NULL, &args2);
-		}
-	    }
-	    lastf = m.lastf;
+            if (s_r)
+            {
+                fd = s_r->isFuncDeclaration();
+                if (fd)
+                {
+                    overloadResolveX(&m, fd, NULL, &args2);
+                }
+                else
+                {   td = s_r->isTemplateDeclaration();
+                    templateResolve(&m, td, sc, loc, NULL, NULL, &args2);
+                }
+            }
+            lastf = m.lastf;
 
-	    if (s)
-	    {
-		fd = s->isFuncDeclaration();
-		if (fd)
-		{
-		    overloadResolveX(&m, fd, NULL, &args1);
-		}
-		else
-		{   td = s->isTemplateDeclaration();
-		    templateResolve(&m, td, sc, loc, NULL, NULL, &args1);
-		}
-	    }
+            if (s)
+            {
+                fd = s->isFuncDeclaration();
+                if (fd)
+                {
+                    overloadResolveX(&m, fd, NULL, &args1);
+                }
+                else
+                {   td = s->isTemplateDeclaration();
+                    templateResolve(&m, td, sc, loc, NULL, NULL, &args1);
+                }
+            }
 
-	    if (m.count > 1)
-	    {
-		// Error, ambiguous
-		error("overloads %s and %s both match argument list for %s",
-			m.lastf->type->toChars(),
-			m.nextf->type->toChars(),
-			m.lastf->toChars());
-	    }
-	    else if (m.last == MATCHnomatch)
-	    {
-		m.lastf = m.anyf;
-	    }
+            if (m.count > 1)
+            {
+                // Error, ambiguous
+                error("overloads %s and %s both match argument list for %s",
+                        m.lastf->type->toChars(),
+                        m.nextf->type->toChars(),
+                        m.lastf->toChars());
+            }
+            else if (m.last == MATCHnomatch)
+            {
+                m.lastf = m.anyf;
+            }
 
-	    Expression *e;
-	    if (lastf && m.lastf == lastf ||
-		id_r && m.last == MATCHnomatch)
-		// Rewrite (e1 op e2) as e1.opfunc_r(e2)
-		e = build_overload(loc, sc, e1, e2, id_r);
-	    else
-		// Rewrite (e1 op e2) as e2.opfunc(e1)
-		e = build_overload(loc, sc, e2, e1, id);
+            Expression *e;
+            if (lastf && m.lastf == lastf ||
+                id_r && m.last == MATCHnomatch)
+                // Rewrite (e1 op e2) as e1.opfunc_r(e2)
+                e = build_overload(loc, sc, e1, e2, id_r);
+            else
+                // Rewrite (e1 op e2) as e2.opfunc(e1)
+                e = build_overload(loc, sc, e2, e1, id);
 
-	    // When reversing operands of comparison operators,
-	    // need to reverse the sense of the op
-	    switch (op)
-	    {
-		case TOKlt:	op = TOKgt;	break;
-		case TOKgt:	op = TOKlt;	break;
-		case TOKle:	op = TOKge;	break;
-		case TOKge:	op = TOKle;	break;
+            // When reversing operands of comparison operators,
+            // need to reverse the sense of the op
+            switch (op)
+            {
+                case TOKlt:     op = TOKgt;     break;
+                case TOKgt:     op = TOKlt;     break;
+                case TOKle:     op = TOKge;     break;
+                case TOKge:     op = TOKle;     break;
 
-		// Floating point compares
-		case TOKule:	op = TOKuge;	 break;
-		case TOKul:	op = TOKug;	 break;
-		case TOKuge:	op = TOKule;	 break;
-		case TOKug:	op = TOKul;	 break;
+                // Floating point compares
+                case TOKule:    op = TOKuge;     break;
+                case TOKul:     op = TOKug;      break;
+                case TOKuge:    op = TOKule;     break;
+                case TOKug:     op = TOKul;      break;
 
-		// These are symmetric
-		case TOKunord:
-		case TOKlg:
-		case TOKleg:
-		case TOKue:
-		    break;
-	    }
+                // These are symmetric
+                case TOKunord:
+                case TOKlg:
+                case TOKleg:
+                case TOKue:
+                    break;
+            }
 
-	    return e;
-	}
+            return e;
+        }
     }
 
 #if DMDV2
     // Try alias this on first operand
     if (ad1 && ad1->aliasthis)
     {
-	/* Rewrite (e1 op e2) as:
-	 *	(e1.aliasthis op e2)
-	 */
-	Expression *e1 = new DotIdExp(loc, this->e1, ad1->aliasthis->ident);
-	Expression *e = copy();
-	((BinExp *)e)->e1 = e1;
-	e = e->semantic(sc);
-	return e;
+        /* Rewrite (e1 op e2) as:
+         *      (e1.aliasthis op e2)
+         */
+        Expression *e1 = new DotIdExp(loc, this->e1, ad1->aliasthis->ident);
+        Expression *e = copy();
+        ((BinExp *)e)->e1 = e1;
+        e = e->semantic(sc);
+        return e;
     }
 
     // Try alias this on second operand
     if (ad2 && ad2->aliasthis)
     {
-	/* Rewrite (e1 op e2) as:
-	 *	(e1 op e2.aliasthis)
-	 */
-	Expression *e2 = new DotIdExp(loc, this->e2, ad2->aliasthis->ident);
-	Expression *e = copy();
-	((BinExp *)e)->e2 = e2;
-	e = e->semantic(sc);
-	return e;
+        /* Rewrite (e1 op e2) as:
+         *      (e1 op e2.aliasthis)
+         */
+        Expression *e2 = new DotIdExp(loc, this->e2, ad2->aliasthis->ident);
+        Expression *e = copy();
+        ((BinExp *)e)->e2 = e2;
+        e = e->semantic(sc);
+        return e;
     }
 #endif
     return NULL;
@@ -483,9 +483,9 @@ Expression *build_overload(Loc loc, Scope *sc, Expression *ethis, Expression *ea
     e = new DotIdExp(loc, ethis, id);
 
     if (earg)
-	e = new CallExp(loc, e, earg);
+        e = new CallExp(loc, e, earg);
     else
-	e = new CallExp(loc, e);
+        e = new CallExp(loc, e);
 
     e = e->semantic(sc);
     return e;
@@ -503,18 +503,18 @@ Dsymbol *search_function(AggregateDeclaration *ad, Identifier *funcid)
 
     s = ad->search(0, funcid, 0);
     if (s)
-    {	Dsymbol *s2;
+    {   Dsymbol *s2;
 
-	//printf("search_function: s = '%s'\n", s->kind());
-	s2 = s->toAlias();
-	//printf("search_function: s2 = '%s'\n", s2->kind());
-	fd = s2->isFuncDeclaration();
-	if (fd && fd->type->ty == Tfunction)
-	    return fd;
+        //printf("search_function: s = '%s'\n", s->kind());
+        s2 = s->toAlias();
+        //printf("search_function: s2 = '%s'\n", s2->kind());
+        fd = s2->isFuncDeclaration();
+        if (fd && fd->type->ty == Tfunction)
+            return fd;
 
-	td = s2->isTemplateDeclaration();
-	if (td)
-	    return td;
+        td = s2->isTemplateDeclaration();
+        if (td)
+            return td;
     }
     return NULL;
 }
@@ -529,16 +529,16 @@ Dsymbol *search_function(AggregateDeclaration *ad, Identifier *funcid)
 void inferApplyArgTypes(enum TOK op, Parameters *arguments, Expression *aggr)
 {
     if (!arguments || !arguments->dim)
-	return;
+        return;
 
     /* Return if no arguments need types.
      */
     for (size_t u = 0; 1; u++)
-    {	if (u == arguments->dim)
-	    return;
-	Parameter *arg = (Parameter *)arguments->data[u];
-	if (!arg->type)
-	    break;
+    {   if (u == arguments->dim)
+            return;
+        Parameter *arg = (Parameter *)arguments->data[u];
+        if (!arg->type)
+            break;
     }
 
     AggregateDeclaration *ad;
@@ -546,97 +546,97 @@ void inferApplyArgTypes(enum TOK op, Parameters *arguments, Expression *aggr)
     Parameter *arg = (Parameter *)arguments->data[0];
     Type *taggr = aggr->type;
     if (!taggr)
-	return;
+        return;
     Type *tab = taggr->toBasetype();
     switch (tab->ty)
     {
-	case Tarray:
-	case Tsarray:
-	case Ttuple:
-	    if (arguments->dim == 2)
-	    {
-		if (!arg->type)
-		    arg->type = Type::tsize_t;	// key type
-		arg = (Parameter *)arguments->data[1];
-	    }
-	    if (!arg->type && tab->ty != Ttuple)
-		arg->type = tab->nextOf();	// value type
-	    break;
+        case Tarray:
+        case Tsarray:
+        case Ttuple:
+            if (arguments->dim == 2)
+            {
+                if (!arg->type)
+                    arg->type = Type::tsize_t;  // key type
+                arg = (Parameter *)arguments->data[1];
+            }
+            if (!arg->type && tab->ty != Ttuple)
+                arg->type = tab->nextOf();      // value type
+            break;
 
-	case Taarray:
-	{   TypeAArray *taa = (TypeAArray *)tab;
+        case Taarray:
+        {   TypeAArray *taa = (TypeAArray *)tab;
 
-	    if (arguments->dim == 2)
-	    {
-		if (!arg->type)
-		    arg->type = taa->index;	// key type
-		arg = (Parameter *)arguments->data[1];
-	    }
-	    if (!arg->type)
-		arg->type = taa->next;		// value type
-	    break;
-	}
+            if (arguments->dim == 2)
+            {
+                if (!arg->type)
+                    arg->type = taa->index;     // key type
+                arg = (Parameter *)arguments->data[1];
+            }
+            if (!arg->type)
+                arg->type = taa->next;          // value type
+            break;
+        }
 
-	case Tclass:
-	    ad = ((TypeClass *)tab)->sym;
-	    goto Laggr;
+        case Tclass:
+            ad = ((TypeClass *)tab)->sym;
+            goto Laggr;
 
-	case Tstruct:
-	    ad = ((TypeStruct *)tab)->sym;
-	    goto Laggr;
+        case Tstruct:
+            ad = ((TypeStruct *)tab)->sym;
+            goto Laggr;
 
-	Laggr:
+        Laggr:
 #if 0
-	    if (arguments->dim == 1)
-	    {
-		if (!arg->type)
-		{
-		    /* Look for an opNext() overload
-		     */
-		    Dsymbol *s = search_function(ad, Id::next);
-		    fd = s ? s->isFuncDeclaration() : NULL;
-		    if (!fd)
-			goto Lapply;
-		    arg->type = fd->type->next;
-		}
-		break;
-	    }
+            if (arguments->dim == 1)
+            {
+                if (!arg->type)
+                {
+                    /* Look for an opNext() overload
+                     */
+                    Dsymbol *s = search_function(ad, Id::next);
+                    fd = s ? s->isFuncDeclaration() : NULL;
+                    if (!fd)
+                        goto Lapply;
+                    arg->type = fd->type->next;
+                }
+                break;
+            }
 #endif
-	Lapply:
-	{   /* Look for an
-	     *	int opApply(int delegate(ref Type [, ...]) dg);
-	     * overload
-	     */
-	    Dsymbol *s = search_function(ad,
-			(op == TOKforeach_reverse) ? Id::applyReverse
-						   : Id::apply);
-	    if (s)
-	    {
-		FuncDeclaration *fd = s->isFuncDeclaration();
-		if (fd) 
-		    inferApplyArgTypesX(fd, arguments);
-	    }
-	    break;
-	}
+        Lapply:
+        {   /* Look for an
+             *  int opApply(int delegate(ref Type [, ...]) dg);
+             * overload
+             */
+            Dsymbol *s = search_function(ad,
+                        (op == TOKforeach_reverse) ? Id::applyReverse
+                                                   : Id::apply);
+            if (s)
+            {
+                FuncDeclaration *fd = s->isFuncDeclaration();
+                if (fd)
+                    inferApplyArgTypesX(fd, arguments);
+            }
+            break;
+        }
 
-	case Tdelegate:
-	{
-	    if (0 && aggr->op == TOKdelegate)
-	    {	DelegateExp *de = (DelegateExp *)aggr;
+        case Tdelegate:
+        {
+            if (0 && aggr->op == TOKdelegate)
+            {   DelegateExp *de = (DelegateExp *)aggr;
 
-		FuncDeclaration *fd = de->func->isFuncDeclaration();
-		if (fd)
-		    inferApplyArgTypesX(fd, arguments);
-	    }
-	    else
-	    {
-		inferApplyArgTypesY((TypeFunction *)tab->nextOf(), arguments);
-	    }
-	    break;
-	}
+                FuncDeclaration *fd = de->func->isFuncDeclaration();
+                if (fd)
+                    inferApplyArgTypesX(fd, arguments);
+            }
+            else
+            {
+                inferApplyArgTypesY((TypeFunction *)tab->nextOf(), arguments);
+            }
+            break;
+        }
 
-	default:
-	    break;		// ignore error, caught later
+        default:
+            break;              // ignore error, caught later
     }
 }
 
@@ -650,9 +650,9 @@ int fp3(void *param, FuncDeclaration *f)
     Parameters *arguments = (Parameters *)param;
     TypeFunction *tf = (TypeFunction *)f->type;
     if (inferApplyArgTypesY(tf, arguments) == 1)
-	return 0;
+        return 0;
     if (arguments->dim == 0)
-	return 1;
+        return 1;
     return 0;
 }
 
@@ -669,39 +669,39 @@ static void inferApplyArgTypesX(FuncDeclaration *fstart, Parameters *arguments)
 
     for (d = fstart; d; d = next)
     {
-	FuncDeclaration *f;
-	FuncAliasDeclaration *fa;
-	AliasDeclaration *a;
+        FuncDeclaration *f;
+        FuncAliasDeclaration *fa;
+        AliasDeclaration *a;
 
-	fa = d->isFuncAliasDeclaration();
-	if (fa)
-	{
-	    inferApplyArgTypesX(fa->funcalias, arguments);
-	    next = fa->overnext;
-	}
-	else if ((f = d->isFuncDeclaration()) != NULL)
-	{
-	    next = f->overnext;
+        fa = d->isFuncAliasDeclaration();
+        if (fa)
+        {
+            inferApplyArgTypesX(fa->funcalias, arguments);
+            next = fa->overnext;
+        }
+        else if ((f = d->isFuncDeclaration()) != NULL)
+        {
+            next = f->overnext;
 
-	    TypeFunction *tf = (TypeFunction *)f->type;
-	    if (inferApplyArgTypesY(tf, arguments) == 1)
-		continue;
-	    if (arguments->dim == 0)
-		return;
-	}
-	else if ((a = d->isAliasDeclaration()) != NULL)
-	{
-	    Dsymbol *s = a->toAlias();
-	    next = s->isDeclaration();
-	    if (next == a)
-		break;
-	    if (next == fstart)
-		break;
-	}
-	else
-	{   d->error("is aliased to a function");
-	    break;
-	}
+            TypeFunction *tf = (TypeFunction *)f->type;
+            if (inferApplyArgTypesY(tf, arguments) == 1)
+                continue;
+            if (arguments->dim == 0)
+                return;
+        }
+        else if ((a = d->isAliasDeclaration()) != NULL)
+        {
+            Dsymbol *s = a->toAlias();
+            next = s->isDeclaration();
+            if (next == a)
+                break;
+            if (next == fstart)
+                break;
+        }
+        else
+        {   d->error("is aliased to a function");
+            break;
+        }
     }
 }
 #endif
@@ -709,8 +709,8 @@ static void inferApplyArgTypesX(FuncDeclaration *fstart, Parameters *arguments)
 /******************************
  * Infer arguments from type of function.
  * Returns:
- *	0 match for this function
- *	1 no match for this function
+ *      0 match for this function
+ *      1 no match for this function
  */
 
 static int inferApplyArgTypesY(TypeFunction *tf, Parameters *arguments)
@@ -718,10 +718,10 @@ static int inferApplyArgTypesY(TypeFunction *tf, Parameters *arguments)
     Parameter *p;
 
     if (Parameter::dim(tf->parameters) != 1)
-	goto Lnomatch;
+        goto Lnomatch;
     p = Parameter::getNth(tf->parameters, 0);
     if (p->type->ty != Tdelegate)
-	goto Lnomatch;
+        goto Lnomatch;
     tf = (TypeFunction *)p->type->nextOf();
     assert(tf->ty == Tfunction);
 
@@ -730,26 +730,26 @@ static int inferApplyArgTypesY(TypeFunction *tf, Parameters *arguments)
      */
     nparams = Parameter::dim(tf->parameters);
     if (nparams == 0 || tf->varargs)
-	goto Lnomatch;		// not enough parameters
+        goto Lnomatch;          // not enough parameters
     if (arguments->dim != nparams)
-	goto Lnomatch;		// not enough parameters
+        goto Lnomatch;          // not enough parameters
 
     for (size_t u = 0; u < nparams; u++)
     {
-	Parameter *arg = (Parameter *)arguments->data[u];
-	Parameter *param = Parameter::getNth(tf->parameters, u);
-	if (arg->type)
-	{   if (!arg->type->equals(param->type))
-	    {
-		/* Cannot resolve argument types. Indicate an
-		 * error by setting the number of arguments to 0.
-		 */
-		arguments->dim = 0;
-		goto Lmatch;
-	    }
-	    continue;
-	}
-	arg->type = param->type;
+        Parameter *arg = (Parameter *)arguments->data[u];
+        Parameter *param = Parameter::getNth(tf->parameters, u);
+        if (arg->type)
+        {   if (!arg->type->equals(param->type))
+            {
+                /* Cannot resolve argument types. Indicate an
+                 * error by setting the number of arguments to 0.
+                 */
+                arguments->dim = 0;
+                goto Lmatch;
+            }
+            continue;
+        }
+        arg->type = param->type;
     }
   Lmatch:
     return 0;
@@ -768,18 +768,18 @@ static void templateResolve(Match *m, TemplateDeclaration *td, Scope *sc, Loc lo
     assert(td);
     fd = td->deduceFunctionTemplate(sc, loc, targsi, NULL, arguments);
     if (!fd)
-	return;
+        return;
     m->anyf = fd;
     if (m->last >= MATCHexact)
     {
-	m->nextf = fd;
-	m->count++;
+        m->nextf = fd;
+        m->count++;
     }
     else
     {
-	m->last = MATCHexact;
-	m->lastf = fd;
-	m->count = 1;
+        m->last = MATCHexact;
+        m->lastf = fd;
+        m->count = 1;
     }
 }
 

@@ -10,16 +10,16 @@
  * For any other uses, please contact Digital Mars.
  */
 
-/* Globals for C++				*/
+/* Globals for C++                              */
 
 //#pragma once
 #ifndef CPP_H
-#define CPP_H	1
+#define CPP_H   1
 
 typedef char *char_p;
 typedef symbol *symbol_p;
 
-/* Names for special variables	*/
+/* Names for special variables  */
 //extern char cpp_name[2*IDMAX + 1];
 extern char cpp_name_ct[];
 extern char cpp_name_dt[];
@@ -38,15 +38,15 @@ extern char cpp_name_priminv[];
 extern char cpp_name_none[];
 extern char cpp_name_invariant[];
 
-extern list_t cpp_stidtors;	// auto destructors that go in _STIxxxx
+extern list_t cpp_stidtors;     // auto destructors that go in _STIxxxx
 
 /* From init.c */
 extern bool init_staticctor;
 
 /* From cpp.c */
-/* List of elems which are the constructor and destructor calls to make	*/
-extern list_t constructor_list;		/* for _STIxxxx			*/
-extern list_t destructor_list;		/* for _STDxxxx			*/
+/* List of elems which are the constructor and destructor calls to make */
+extern list_t constructor_list;         /* for _STIxxxx                 */
+extern list_t destructor_list;          /* for _STDxxxx                 */
 extern symbol_p s_mptr;
 extern symbol_p s_genthunk;
 extern symbol_p s_vec_dtor;
@@ -117,23 +117,23 @@ symbol *mangle_tbl(int,type *,Classsym *,baseclass_t *);
 void cpp_alloctmps(elem *e);
 #if SCPP
 symbol *cpp_lookformatch(symbol *sfunc , type *tthis , list_t arglist,
-		Match *pmatch, symbol **pambig, match_t *pma, param_t *ptal,
-		unsigned flags, symbol *sfunc2, type *tthis2, symbol *stagfriend = NULL);
+                Match *pmatch, symbol **pambig, match_t *pma, param_t *ptal,
+                unsigned flags, symbol *sfunc2, type *tthis2, symbol *stagfriend = NULL);
 #endif
 
 #if TARGET_MAC
 elem *cpp_hdlptr(elem *e);
-#define M68HDL(e)	cpp_hdlptr(e)
+#define M68HDL(e)       cpp_hdlptr(e)
 #else
-#define M68HDL(e)	(e)
+#define M68HDL(e)       (e)
 #endif
 
 struct OPTABLE
-{   unsigned char tokn;		/* token(TKxxxx)		*/
-    unsigned char oper;		/* corresponding operator(OPxxxx) */
-    char __near *string;	/* identifier string		*/
-    char pretty[5];		/* for pretty-printing		*/
-    				/* longest OP is OPunord	*/
+{   unsigned char tokn;         /* token(TKxxxx)                */
+    unsigned char oper;         /* corresponding operator(OPxxxx) */
+    char __near *string;        /* identifier string            */
+    char pretty[5];             /* for pretty-printing          */
+                                /* longest OP is OPunord        */
 };
 
 #endif /* CPP_H */

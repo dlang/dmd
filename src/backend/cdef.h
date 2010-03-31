@@ -14,49 +14,49 @@
 /* Macros defined by the compiler, not the code:
 
     Compiler:
-	__SC__		Symantec compiler
-	__DMC__		Digital Mars compiler
-	_MSC_VER	Microsoft compiler
-	__GNUC__	Gnu compiler
+        __SC__          Symantec compiler
+        __DMC__         Digital Mars compiler
+        _MSC_VER        Microsoft compiler
+        __GNUC__        Gnu compiler
 
     Host operating system:
-	_WIN32		Microsoft NT, Windows 95, Windows 98, Win32s, Windows 2000
-	_WIN64		Windows for AMD64
-	linux		Linux
-	__APPLE__	Mac OSX
-	__FreeBSD__	FreeBSD
-	__sun&&__SVR4	Solaris, OpenSolaris (yes, both macros are necessary)
-	__OS2__		IBM OS/2
-	DOS386		32 bit DOS extended executable
-	DOS16RM		Rational Systems 286 DOS extender
+        _WIN32          Microsoft NT, Windows 95, Windows 98, Win32s, Windows 2000
+        _WIN64          Windows for AMD64
+        linux           Linux
+        __APPLE__       Mac OSX
+        __FreeBSD__     FreeBSD
+        __sun&&__SVR4   Solaris, OpenSolaris (yes, both macros are necessary)
+        __OS2__         IBM OS/2
+        DOS386          32 bit DOS extended executable
+        DOS16RM         Rational Systems 286 DOS extender
 
     Compiler executable type:
-	_WINDLL		if building a _WIN32 DLL
+        _WINDLL         if building a _WIN32 DLL
 
     Host CPU:
-	_M_I86		Intel processor
-	_M_AMD64	AMD 64 processor
+        _M_I86          Intel processor
+        _M_AMD64        AMD 64 processor
 
     Hosts no longer supported:
-	__INTSIZE==2	16 bit compilations
-	__OS2__		IBM OS/2
-	DOS386		32 bit DOS extended executable
-	DOS16RM		Rational Systems 286 DOS extender
-	_MSDOS		MSDOS
+        __INTSIZE==2    16 bit compilations
+        __OS2__         IBM OS/2
+        DOS386          32 bit DOS extended executable
+        DOS16RM         Rational Systems 286 DOS extender
+        _MSDOS          MSDOS
 
 Host systems no longer supported:
 
-	HOST_THINK
-	HOST_RAINBOW
-	HOST_MPW	Macintosh Programmers' Workbench
-	HOST_UNIX	Unix systems other than linux
-	HOST_MAC
+        HOST_THINK
+        HOST_RAINBOW
+        HOST_MPW        Macintosh Programmers' Workbench
+        HOST_UNIX       Unix systems other than linux
+        HOST_MAC
 
 One and only one of these macros must be set by the makefile:
 
-	SPP		Build C/C++ preprocessor
-	SCPP		Build C/C++ compiler
-	MARS		Build Mars compiler
+        SPP             Build C/C++ preprocessor
+        SCPP            Build C/C++ compiler
+        MARS            Build Mars compiler
  */
 
 /* Windows/DOS/DOSX Version
@@ -135,45 +135,45 @@ One and only one of these macros must be set by the makefile:
  */
 
 #ifndef CDEF_H
-#define CDEF_H	1
+#define CDEF_H  1
 
-#define VERSION "8.52.1"	// for banner and imbedding in .OBJ file
-#define VERSIONHEX "0x852"	// for __DMC__ macro
-#define VERSIONINT 0x852	// for precompiled headers and DLL version
+#define VERSION "8.52.1"        // for banner and imbedding in .OBJ file
+#define VERSIONHEX "0x852"      // for __DMC__ macro
+#define VERSIONINT 0x852        // for precompiled headers and DLL version
 
 
 /***********************************
  * Target machine types:
  */
 
-#define TX86		1		// target is Intel 80X86 processor
-#define TARGET_68K	0		// target is a 68K processor
-#define TARGET_POWERPC	0		// target is a PPC processor
-#define TARGET_MAC	0		// target is a macintosh
+#define TX86            1               // target is Intel 80X86 processor
+#define TARGET_68K      0               // target is a 68K processor
+#define TARGET_POWERPC  0               // target is a PPC processor
+#define TARGET_MAC      0               // target is a macintosh
 
 // Set to 1 using the makefile
 #ifndef TARGET_LINUX
-#define TARGET_LINUX	0		// target is a linux executable
+#define TARGET_LINUX    0               // target is a linux executable
 #endif
 
 // Set to 1 using the makefile
 #ifndef TARGET_OSX
-#define TARGET_OSX	0		// target is an OSX executable
+#define TARGET_OSX      0               // target is an OSX executable
 #endif
 
 // Set to 1 using the makefile
 #ifndef TARGET_FREEBSD
-#define TARGET_FREEBSD	0		// target is a FreeBSD executable
+#define TARGET_FREEBSD  0               // target is a FreeBSD executable
 #endif
 
 // Set to 1 using the makefile
 #ifndef TARGET_SOLARIS
-#define TARGET_SOLARIS	0		// target is a Solaris executable
+#define TARGET_SOLARIS  0               // target is a Solaris executable
 #endif
 
 // This is the default
 #ifndef TARGET_WINDOS
-#define TARGET_WINDOS	(!(TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_SOLARIS))
+#define TARGET_WINDOS   (!(TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_SOLARIS))
 #endif
 
 #if __GNUC__
@@ -181,116 +181,116 @@ One and only one of these macros must be set by the makefile:
 #endif
 
 #if _WINDLL
-#define SUFFIX	"nd"
+#define SUFFIX  "nd"
 #elif _WIN64
-#define SUFFIX	"a"
+#define SUFFIX  "a"
 #elif _WIN32
-#define SUFFIX	"n"
+#define SUFFIX  "n"
 #elif DOS386
-#define SUFFIX	"x"
+#define SUFFIX  "x"
 #elif DOS16RM
 #define SUFFIX  "r"
 #else
-#define SUFFIX	""
+#define SUFFIX  ""
 #endif
 
 // C++ Language Features
-#define ANGLE_BRACKET_HACK	0	// >> means two template arglist closes
+#define ANGLE_BRACKET_HACK      0       // >> means two template arglist closes
 
 // C Language Features
-#define CPP_COMMENT		1	// allow C++ style comments
+#define CPP_COMMENT             1       // allow C++ style comments
 
 // C/C++ Language Features
-#define PSEUDO_REGS		1
-#define INLINE_ASM		1	// support inline assembler
-#define HIDDENPARAM_1ST_ARG	1
-#define HEADER_LIST		1
-#define PASCAL_STRINGS		0
-#define KEYWORD_WITH		1
-#define EECONTEXT		1
-#define LOCALE			0	// locale support for Unicode conversion
-#define HEXFLOATS		1	// support hex floating point constants
-#define OVERLOAD_CV_PARAM	1	// if int foo(int i) and int foo(const int i)
-					// are different
+#define PSEUDO_REGS             1
+#define INLINE_ASM              1       // support inline assembler
+#define HIDDENPARAM_1ST_ARG     1
+#define HEADER_LIST             1
+#define PASCAL_STRINGS          0
+#define KEYWORD_WITH            1
+#define EECONTEXT               1
+#define LOCALE                  0       // locale support for Unicode conversion
+#define HEXFLOATS               1       // support hex floating point constants
+#define OVERLOAD_CV_PARAM       1       // if int foo(int i) and int foo(const int i)
+                                        // are different
 
 // Support generating code for 16 bit memory models
-#define SIXTEENBIT		(SCPP && TARGET_WINDOS)
+#define SIXTEENBIT              (SCPP && TARGET_WINDOS)
 
 /* Set for supporting the FLAT memory model.
  * This is not quite the same as !SIXTEENBIT, as one could
  * have near/far with 32 bit code.
  */
-#define TARGET_FLAT	(MARS || !TARGET_WINDOS)
+#define TARGET_FLAT     (MARS || !TARGET_WINDOS)
 
 
 #define STATEMENT_SCOPES CPP
 
 #if __GNUC__
-#define LONGLONG	1
+#define LONGLONG        1
 #elif __SC__ < 0x700 || _MSC_VER
-#define LONGLONG	0
+#define LONGLONG        0
 #else
-#define LONGLONG	1		// add in code to support 64 bit integral types
+#define LONGLONG        1               // add in code to support 64 bit integral types
 #endif
 
 #if __GNUC__
-#define LDOUBLE			0	// no support for true long doubles
+#define LDOUBLE                 0       // no support for true long doubles
 #else
-#define LDOUBLE		(config.exe == EX_NT)	// support true long doubles
+#define LDOUBLE         (config.exe == EX_NT)   // support true long doubles
 #endif
 
 // Precompiled header variations
-#define MEMORYHX	(_WINDLL && _WIN32)	// HX and SYM files are cached in memory
-#define MMFIO		(_WIN32 || linux || __APPLE__ || __FreeBSD__ || __sun&&__SVR4)	// if memory mapped files
-#define	LINEARALLOC	_WIN32	// if we can reserve address ranges
+#define MEMORYHX        (_WINDLL && _WIN32)     // HX and SYM files are cached in memory
+#define MMFIO           (_WIN32 || linux || __APPLE__ || __FreeBSD__ || __sun&&__SVR4)  // if memory mapped files
+#define LINEARALLOC     _WIN32  // if we can reserve address ranges
 
 // H_STYLE takes on one of these precompiled header methods
-#define H_NONE		1	// no hydration/dehydration necessary
-#define H_BIT0		2	// bit 0 of the pointer determines if pointer
-				// is dehydrated, an offset is added to
-				// hydrate it
-#define	H_OFFSET	4	// the address range of the pointer determines
-				// if pointer is dehydrated, and an offset is
-				// added to hydrate it. No dehydration necessary.
-#define H_COMPLEX	8	// dehydrated pointers have bit 0 set, hydrated
-				// pointers are in non-contiguous buffers
+#define H_NONE          1       // no hydration/dehydration necessary
+#define H_BIT0          2       // bit 0 of the pointer determines if pointer
+                                // is dehydrated, an offset is added to
+                                // hydrate it
+#define H_OFFSET        4       // the address range of the pointer determines
+                                // if pointer is dehydrated, and an offset is
+                                // added to hydrate it. No dehydration necessary.
+#define H_COMPLEX       8       // dehydrated pointers have bit 0 set, hydrated
+                                // pointers are in non-contiguous buffers
 
 // Do we need hydration code
-#define HYDRATE		(H_STYLE & (H_BIT0 | H_OFFSET | H_COMPLEX))
+#define HYDRATE         (H_STYLE & (H_BIT0 | H_OFFSET | H_COMPLEX))
 
 // Do we need dehydration code
-#define DEHYDRATE	(H_STYLE & (H_BIT0 | H_COMPLEX))
+#define DEHYDRATE       (H_STYLE & (H_BIT0 | H_COMPLEX))
 
 // Determine hydration style
-//	NT console:	H_NONE
-//	NT DLL:		H_OFFSET
-//	DOSX:		H_COMPLEX
+//      NT console:     H_NONE
+//      NT DLL:         H_OFFSET
+//      DOSX:           H_COMPLEX
 #if MARS
-#define H_STYLE		H_NONE			// precompiled headers only used for C/C++ compiler
+#define H_STYLE         H_NONE                  // precompiled headers only used for C/C++ compiler
 #else
 #if MMFIO
 #if _WINDLL
-#define	H_STYLE		H_OFFSET
+#define H_STYLE         H_OFFSET
 #else
-#define H_STYLE		H_OFFSET //H_NONE
+#define H_STYLE         H_OFFSET //H_NONE
 #endif
 #elif LINEARALLOC
-#define H_STYLE		H_BIT0
+#define H_STYLE         H_BIT0
 #else
-#define H_STYLE		H_COMPLEX
+#define H_STYLE         H_COMPLEX
 #endif
 #endif
 
 // NT structured exception handling
-//	0: no support
-//	1: old style
-//	2: new style
-#define NTEXCEPTIONS		2
+//      0: no support
+//      1: old style
+//      2: new style
+#define NTEXCEPTIONS            2
 
 // indivisible file I/O
-#define INDIVFILEIO		1
+#define INDIVFILEIO             1
 
-#define NEWSTATICDTOR		1	// support new style static destructors
+#define NEWSTATICDTOR           1       // support new style static destructors
 
 // For Shared Code Base
 #define TARGET_structBLOCK
@@ -320,7 +320,7 @@ One and only one of these macros must be set by the makefile:
 #define LF '\n'
 #define LF_STR "\n"
 #define CR '\r'
-#define ANSI	    config.ansi_c
+#define ANSI        config.ansi_c
 #define ANSI_STRICT config.ansi_c
 #define ANSI_RELAX  config.ansi_c
 #ifndef TRIGRAPHS
@@ -329,40 +329,40 @@ One and only one of these macros must be set by the makefile:
 #define ARG_TRUE
 #define ARG_FALSE
 #define T68000(x)
-#define T80x86(x)	x
+#define T80x86(x)       x
 
 // For Share MEM_ macros - default to mem_xxx package
-// PH		precompiled header
-// PARF		parser, life of function
-// PARC		parser, life of compilation
-// BEF		back end, function
-// BEC		back end, compilation
+// PH           precompiled header
+// PARF         parser, life of function
+// PARC         parser, life of compilation
+// BEF          back end, function
+// BEC          back end, compilation
 
-#define MEM_PH_FREE	 mem_free
-#define MEM_PARF_FREE	 mem_free
-#define MEM_PARC_FREE	 mem_free
-#define MEM_BEF_FREE	 mem_free
-#define MEM_BEC_FREE	 mem_free
+#define MEM_PH_FREE      mem_free
+#define MEM_PARF_FREE    mem_free
+#define MEM_PARC_FREE    mem_free
+#define MEM_BEF_FREE     mem_free
+#define MEM_BEC_FREE     mem_free
 
-#define MEM_PH_CALLOC	 mem_calloc
-#define MEM_PARC_CALLOC	 mem_calloc
-#define MEM_PARF_CALLOC	 mem_calloc
-#define MEM_BEF_CALLOC	 mem_calloc
-#define MEM_BEC_CALLOC	 mem_calloc
+#define MEM_PH_CALLOC    mem_calloc
+#define MEM_PARC_CALLOC  mem_calloc
+#define MEM_PARF_CALLOC  mem_calloc
+#define MEM_BEF_CALLOC   mem_calloc
+#define MEM_BEC_CALLOC   mem_calloc
 
-#define MEM_PH_MALLOC	 mem_malloc
-#define MEM_PARC_MALLOC	 mem_malloc
-#define MEM_PARF_MALLOC	 mem_malloc
-#define MEM_BEF_MALLOC	 mem_malloc
-#define MEM_BEC_MALLOC	 mem_malloc
+#define MEM_PH_MALLOC    mem_malloc
+#define MEM_PARC_MALLOC  mem_malloc
+#define MEM_PARF_MALLOC  mem_malloc
+#define MEM_BEF_MALLOC   mem_malloc
+#define MEM_BEC_MALLOC   mem_malloc
 
-#define MEM_PH_STRDUP	 mem_strdup
+#define MEM_PH_STRDUP    mem_strdup
 #define MEM_PARC_STRDUP  mem_strdup
 #define MEM_PARF_STRDUP  mem_strdup
 #define MEM_BEF_STRDUP   mem_strdup
 #define MEM_BEC_STRDUP   mem_strdup
 
-#define MEM_PH_REALLOC	 mem_realloc
+#define MEM_PH_REALLOC   mem_realloc
 #define MEM_PARC_REALLOC mem_realloc
 #define MEM_PARF_REALLOC mem_realloc
 #define MEM_PERM_REALLOC mem_realloc
@@ -381,13 +381,13 @@ One and only one of these macros must be set by the makefile:
 
 // If we are generating 32 bit code
 #if MARS
-#define I16	0		// no 16 bit code for D
-#define I32	(NPTRSIZE == 4)
-#define I64	(NPTRSIZE == 8)	// 1 if generating 64 bit code
+#define I16     0               // no 16 bit code for D
+#define I32     (NPTRSIZE == 4)
+#define I64     (NPTRSIZE == 8) // 1 if generating 64 bit code
 #else
-#define I16	(NPTRSIZE == 2)
-#define I32	(NPTRSIZE == 4)
-#define I64	(NPTRSIZE == 8)	// 1 if generating 64 bit code
+#define I16     (NPTRSIZE == 2)
+#define I32     (NPTRSIZE == 4)
+#define I64     (NPTRSIZE == 8) // 1 if generating 64 bit code
 #endif
 
 /**********************************
@@ -395,174 +395,174 @@ One and only one of these macros must be set by the makefile:
  */
 
 /* Define stuff that's different between VAX and IBMPC.
- * HOSTBYTESWAPPED	TRUE if on the host machine the bytes are
- *			swapped (TRUE for 6809, 68000, FALSE for 8088
- *			and VAX).
+ * HOSTBYTESWAPPED      TRUE if on the host machine the bytes are
+ *                      swapped (TRUE for 6809, 68000, FALSE for 8088
+ *                      and VAX).
  */
 
 
-#define EXIT_BREAK	255	// aborted compile with ^C
+#define EXIT_BREAK      255     // aborted compile with ^C
 
-/* Take advantage of machines that can store a word, lsb first	*/
-#if _M_I86		// if Intel processor
-#define TOWORD(ptr,val)	(*(unsigned short *)(ptr) = (unsigned short)(val))
-#define TOLONG(ptr,val)	(*(unsigned long *)(ptr) = (unsigned long)(val))
+/* Take advantage of machines that can store a word, lsb first  */
+#if _M_I86              // if Intel processor
+#define TOWORD(ptr,val) (*(unsigned short *)(ptr) = (unsigned short)(val))
+#define TOLONG(ptr,val) (*(unsigned long *)(ptr) = (unsigned long)(val))
 #else
-#define TOWORD(ptr,val)	(((ptr)[0] = (unsigned char)(val)),\
-			 ((ptr)[1] = (unsigned char)((val) >> 8)))
-#define TOLONG(ptr,val)	(((ptr)[0] = (unsigned char)(val)),\
-			 ((ptr)[1] = (unsigned char)((val) >> 8)),\
-			 ((ptr)[2] = (unsigned char)((val) >> 16)),\
-			 ((ptr)[3] = (unsigned char)((val) >> 24)))
+#define TOWORD(ptr,val) (((ptr)[0] = (unsigned char)(val)),\
+                         ((ptr)[1] = (unsigned char)((val) >> 8)))
+#define TOLONG(ptr,val) (((ptr)[0] = (unsigned char)(val)),\
+                         ((ptr)[1] = (unsigned char)((val) >> 8)),\
+                         ((ptr)[2] = (unsigned char)((val) >> 16)),\
+                         ((ptr)[3] = (unsigned char)((val) >> 24)))
 #endif
 
-#define TOOFFSET(a,b)	(I32 ? TOLONG(a,b) : TOWORD(a,b))
+#define TOOFFSET(a,b)   (I32 ? TOLONG(a,b) : TOWORD(a,b))
 
 /***************************
  * Target machine data types as they appear on the host.
  */
 
-typedef signed char	targ_char;
-typedef unsigned char	targ_uchar;
-typedef signed char	targ_schar;
-typedef short		targ_short;
-typedef unsigned short	targ_ushort;
-typedef long		targ_long;
-typedef unsigned long	targ_ulong;
+typedef signed char     targ_char;
+typedef unsigned char   targ_uchar;
+typedef signed char     targ_schar;
+typedef short           targ_short;
+typedef unsigned short  targ_ushort;
+typedef long            targ_long;
+typedef unsigned long   targ_ulong;
 #if LONGLONG
-typedef long long		targ_llong;
-typedef unsigned long long	targ_ullong;
+typedef long long               targ_llong;
+typedef unsigned long long      targ_ullong;
 #else
-#define targ_llong	targ_long
-#define targ_ullong	targ_ulong
+#define targ_llong      targ_long
+#define targ_ullong     targ_ulong
 #endif
-typedef float		targ_float;
-typedef double		targ_double;
-typedef long double	targ_ldouble;
+typedef float           targ_float;
+typedef double          targ_double;
+typedef long double     targ_ldouble;
 
 // Extract most significant register from constant
-#define MSREG(p)	((REGSIZE == 2) ? (p) >> 16 : ((sizeof(targ_llong) == 8) ? (p) >> 32 : 0))
+#define MSREG(p)        ((REGSIZE == 2) ? (p) >> 16 : ((sizeof(targ_llong) == 8) ? (p) >> 32 : 0))
 
-typedef long		targ_int;
-typedef unsigned long	targ_uns;
+typedef long            targ_int;
+typedef unsigned long   targ_uns;
 
 /* Sizes of base data types in bytes */
 
-#define CHARSIZE	1
-#define SHORTSIZE	2
-#define WCHARSIZE	2	// 2 for WIN32, 4 for linux/OSX/FreeBSD/Solaris
-#define LONGSIZE	4
-#define LLONGSIZE	8
-#define FLOATSIZE	4
-#define DOUBLESIZE	8
+#define CHARSIZE        1
+#define SHORTSIZE       2
+#define WCHARSIZE       2       // 2 for WIN32, 4 for linux/OSX/FreeBSD/Solaris
+#define LONGSIZE        4
+#define LLONGSIZE       8
+#define FLOATSIZE       4
+#define DOUBLESIZE      8
 #if TARGET_OSX
-#define LNGDBLSIZE	16	// 80 bit reals
+#define LNGDBLSIZE      16      // 80 bit reals
 #elif TARGET_LINUX || TARGET_FREEBSD || TARGET_SOLARIS
-#define LNGDBLSIZE	12	// 80 bit reals
+#define LNGDBLSIZE      12      // 80 bit reals
 #else
-#define LNGDBLSIZE	10	// 80 bit reals
+#define LNGDBLSIZE      10      // 80 bit reals
 #endif
-#define TMAXSIZE	LNGDBLSIZE	// largest size a constant can be
+#define TMAXSIZE        LNGDBLSIZE      // largest size a constant can be
 
 #if 0
-#define NDPSAVESIZE	DOUBLESIZE
+#define NDPSAVESIZE     DOUBLESIZE
 #else
-#define NDPSAVESIZE	LNGDBLSIZE
+#define NDPSAVESIZE     LNGDBLSIZE
 #endif
 
-#define intsize		tysize[TYint]
-#define REGSIZE		tysize[TYnptr]
-#define NPTRSIZE	tysize[TYnptr]
-#define FPTRSIZE	tysize[TYfptr]
-#define REGMASK		0xFFFF
+#define intsize         tysize[TYint]
+#define REGSIZE         tysize[TYnptr]
+#define NPTRSIZE        tysize[TYnptr]
+#define FPTRSIZE        tysize[TYfptr]
+#define REGMASK         0xFFFF
 
-typedef targ_int	targ_ptrdiff_t;	/* ptrdiff_t for target machine	 */
-typedef targ_uns	targ_size_t;	/* size_t for the target machine */
+typedef targ_int        targ_ptrdiff_t; /* ptrdiff_t for target machine  */
+typedef targ_uns        targ_size_t;    /* size_t for the target machine */
 
 /* Enable/disable various features
    (Some features may no longer work the old way when compiled out,
     I don't test the old ways once the new way is set.)
  */
-#define THUNKS		1	/* use thunks for virtual functions	*/
-#define SEPNEWDEL	1	// new/delete are not called within the ctor/dtor,
-				// they are separate
-#define VBTABLES	1	// use Microsoft object model
-#define UNICODE		1	// support Unicode (wchar_t is unsigned short)
-#define DLCMSGS		0	// if 1, have all messages in a file
-#define NEWMANGLE	TARGET_WINDOS	// use MS name mangling scheme
-#define NEWTEMPMANGLE	(!(config.flags4 & CFG4oldtmangle))	// do new template mangling
-#define USEDLLSHELL	_WINDLL
-#define FARCLASSES	1	// support near/far classes
-#define MFUNC		(I32) //0 && config.exe == EX_NT)	// member functions are TYmfunc
-#define AUTONEST	0	// overlap storage of nested auto's
-#define CV3		0	// 1 means support CV3 debug format
+#define THUNKS          1       /* use thunks for virtual functions     */
+#define SEPNEWDEL       1       // new/delete are not called within the ctor/dtor,
+                                // they are separate
+#define VBTABLES        1       // use Microsoft object model
+#define UNICODE         1       // support Unicode (wchar_t is unsigned short)
+#define DLCMSGS         0       // if 1, have all messages in a file
+#define NEWMANGLE       TARGET_WINDOS   // use MS name mangling scheme
+#define NEWTEMPMANGLE   (!(config.flags4 & CFG4oldtmangle))     // do new template mangling
+#define USEDLLSHELL     _WINDLL
+#define FARCLASSES      1       // support near/far classes
+#define MFUNC           (I32) //0 && config.exe == EX_NT)       // member functions are TYmfunc
+#define AUTONEST        0       // overlap storage of nested auto's
+#define CV3             0       // 1 means support CV3 debug format
 
 /* Object module format
  */
 #ifndef OMFOBJ
-#define OMFOBJ		TARGET_WINDOS
+#define OMFOBJ          TARGET_WINDOS
 #endif
 #ifndef ELFOBJ
-#define ELFOBJ		(TARGET_LINUX || TARGET_FREEBSD || TARGET_SOLARIS)
+#define ELFOBJ          (TARGET_LINUX || TARGET_FREEBSD || TARGET_SOLARIS)
 #endif
 #ifndef MACHOBJ
-#define MACHOBJ		TARGET_OSX
+#define MACHOBJ         TARGET_OSX
 #endif
 
 #define TOOLKIT_H
 
 /* Masks so we can easily check size */
-#define CHARMASK	(0xFFL)
-#define SHORTMASK	(0xFFFFL)
-#define INTMASK		SHORTMASK
-#define LONGMASK	0xFFFFFFFF
+#define CHARMASK        (0xFFL)
+#define SHORTMASK       (0xFFFFL)
+#define INTMASK         SHORTMASK
+#define LONGMASK        0xFFFFFFFF
 
 /* Common constants often checked for */
 #if LONGLONG
-#define LLONGMASK	0xFFFFFFFFFFFFFFFFLL
-#define ZEROLL		0LL
-#define MINLL		0x8000000000000000LL
-#define MAXLL		0x7FFFFFFFFFFFFFFFLL
+#define LLONGMASK       0xFFFFFFFFFFFFFFFFLL
+#define ZEROLL          0LL
+#define MINLL           0x8000000000000000LL
+#define MAXLL           0x7FFFFFFFFFFFFFFFLL
 #else
-#define LLONGMASK	0xFFFFFFFFLL
-#define ZEROLL		0L
-#define MINLL		0x80000000
-#define MAXLL		0x7FFFFFFF
+#define LLONGMASK       0xFFFFFFFFLL
+#define ZEROLL          0L
+#define MINLL           0x80000000
+#define MAXLL           0x7FFFFFFF
 #endif
 
 #ifndef MEMMODELS
-#define LARGEDATA	(config.memmodel & 6)
-#define LARGECODE	(config.memmodel & 5)
+#define LARGEDATA       (config.memmodel & 6)
+#define LARGECODE       (config.memmodel & 5)
 
-#define Smodel 0	/* 64k code, 64k data		*/
-#define Mmodel 1	/* large code, 64k data		*/
-#define Cmodel 2	/* 64k code, large data		*/
-#define Lmodel 3	/* large code, large data	*/
-#define Vmodel 4	/* large code, large data, vcm	*/
-#define MEMMODELS 5	/* number of memory models	*/
+#define Smodel 0        /* 64k code, 64k data           */
+#define Mmodel 1        /* large code, 64k data         */
+#define Cmodel 2        /* 64k code, large data         */
+#define Lmodel 3        /* large code, large data       */
+#define Vmodel 4        /* large code, large data, vcm  */
+#define MEMMODELS 5     /* number of memory models      */
 #endif
 
-/* Segments	*/
-#define CODE	1	/* code segment			*/
-#define DATA	2	/* initialized data		*/
-#define CDATA	3	/* constant data		*/
-#define UDATA	4	/* uninitialized data		*/
-#define UNKNOWN	0x7FFF	// unknown segment
-#define DGROUPIDX 1	/* group index of DGROUP	*/
+/* Segments     */
+#define CODE    1       /* code segment                 */
+#define DATA    2       /* initialized data             */
+#define CDATA   3       /* constant data                */
+#define UDATA   4       /* uninitialized data           */
+#define UNKNOWN 0x7FFF  // unknown segment
+#define DGROUPIDX 1     /* group index of DGROUP        */
 
-#define KEEPBITFIELDS 0	/* 0 means code generator cannot handle bit fields, */
-			/* so replace them with shifts and masks	*/
+#define KEEPBITFIELDS 0 /* 0 means code generator cannot handle bit fields, */
+                        /* so replace them with shifts and masks        */
 
 #if TARGET_OSX
-#define STACKALIGN	16
+#define STACKALIGN      16
 #else
-#define STACKALIGN	0
+#define STACKALIGN      0
 #endif
 
-#define REGMAX	10	// registers are numbered 0..10
+#define REGMAX  10      // registers are numbered 0..10
 
-typedef unsigned long	tym_t;		// data type big enough for type masks
-typedef int		SYMIDX;		// symbol table index
+typedef unsigned long   tym_t;          // data type big enough for type masks
+typedef int             SYMIDX;         // symbol table index
 
 #if 0
 #if defined(__DMC__) && __DMC__ < 0x81e
@@ -571,9 +571,9 @@ typedef int bool;
 #define bool int
 #endif
 
-#define _chkstack()	(void)0
+#define _chkstack()     (void)0
 
-/* For 32 bit compilations, we don't need far keyword	*/
+/* For 32 bit compilations, we don't need far keyword   */
 #if 1
 #define far
 #define _far
@@ -607,17 +607,17 @@ Written by Walter Bright"
  * Configuration
  */
 
-/* Linkage type		*/
+/* Linkage type         */
 typedef enum LINKAGE
 {
-    LINK_C,			/* C style				*/
-    LINK_CPP,			/* C++ style				*/
-    LINK_PASCAL,		/* Pascal style				*/
+    LINK_C,                     /* C style                              */
+    LINK_CPP,                   /* C++ style                            */
+    LINK_PASCAL,                /* Pascal style                         */
     LINK_FORTRAN,
     LINK_SYSCALL,
     LINK_STDCALL,
-    LINK_D,			// D code
-    LINK_MAXDIM			/* array dimension			*/
+    LINK_D,                     // D code
+    LINK_MAXDIM                 /* array dimension                      */
 } linkage_t;
 
 
@@ -626,231 +626,231 @@ typedef enum LINKAGE
 
 struct Config
 {
-    char language;		// 'C' = C, 'D' = C++
+    char language;              // 'C' = C, 'D' = C++
 //#define CPP (config.language == 'D')
-    char version[8];		// = VERSION
-    char exetype[3];		// distinguish exe types so PH
-				// files are distinct (= SUFFIX)
+    char version[8];            // = VERSION
+    char exetype[3];            // distinguish exe types so PH
+                                // files are distinct (= SUFFIX)
 
-    char target_cpu;		// instruction selection
-    char target_scheduler;	// instruction scheduling (normally same as selection)
-#define TARGET_8086		0
-#define TARGET_80286		2
-#define TARGET_80386		3
-#define TARGET_80486		4
-#define TARGET_Pentium		5
-#define TARGET_PentiumMMX	6
-#define TARGET_PentiumPro	7
-#define TARGET_PentiumII	8
-#define TARGET_AMD64		9	(32 or 64 bit mode)
+    char target_cpu;            // instruction selection
+    char target_scheduler;      // instruction scheduling (normally same as selection)
+#define TARGET_8086             0
+#define TARGET_80286            2
+#define TARGET_80386            3
+#define TARGET_80486            4
+#define TARGET_Pentium          5
+#define TARGET_PentiumMMX       6
+#define TARGET_PentiumPro       7
+#define TARGET_PentiumII        8
+#define TARGET_AMD64            9       (32 or 64 bit mode)
 
-    short versionint;		// intermediate file version (= VERSIONINT)
-    int defstructalign;		// struct alignment specified by command line
-    short hxversion;		// HX version number
+    short versionint;           // intermediate file version (= VERSIONINT)
+    int defstructalign;         // struct alignment specified by command line
+    short hxversion;            // HX version number
     char fulltypes;
-#define CVNONE	0		// No symbolic info
-#define CVOLD	1		// Codeview 1 symbolic info
-#define CV4	2		// Codeview 4 symbolic info
-#define CVSYM	3		// Symantec format
-#define CVTDB	4		// Symantec format written to file
-#define CVDWARF_C 5		// Dwarf in C format
-#define CVDWARF_D 6		// Dwarf in D format
-#define CVSTABS	7		// Elf Stabs in C format
+#define CVNONE  0               // No symbolic info
+#define CVOLD   1               // Codeview 1 symbolic info
+#define CV4     2               // Codeview 4 symbolic info
+#define CVSYM   3               // Symantec format
+#define CVTDB   4               // Symantec format written to file
+#define CVDWARF_C 5             // Dwarf in C format
+#define CVDWARF_D 6             // Dwarf in D format
+#define CVSTABS 7               // Elf Stabs in C format
 
-    unsigned wflags;		// flags for Windows code generation
-#	define WFwindows 1	// generating code for Windows app or DLL
-#	define WFdll	 2	// generating code for Windows DLL
-#	define WFincbp	 4	// mark far stack frame with inc BP / dec BP
-#	define WFloadds	 8	// assume __loadds for all functions
-#	define WFexpdef	 0x10	// generate export definition records for
-				// exported functions
-#	define WFss	 0x20	// load DS from SS
-#	define WFreduced 0x40	// skip DS load for non-exported functions
-#	define WFdgroup	 0x80	// load DS from DGROUP
-#	define WFexport	 0x100	// assume __export for all far functions
-#	define WFds	 0x200	// load DS from DS
-#	define WFmacros	 0x400	// define predefined windows macros
-#	define WFssneds	 0x800	// SS != DS
-#	define WFthunk	 0x1000	// use fixups instead of direct ref to CS
-#	define WFsaveds	 0x2000	// use push/pop DS for far functions
-#	define WFdsnedgroup 0x4000	// DS != DGROUP
-#	define WFexe	 0x8000	// generating code for Windows EXE
+    unsigned wflags;            // flags for Windows code generation
+#       define WFwindows 1      // generating code for Windows app or DLL
+#       define WFdll     2      // generating code for Windows DLL
+#       define WFincbp   4      // mark far stack frame with inc BP / dec BP
+#       define WFloadds  8      // assume __loadds for all functions
+#       define WFexpdef  0x10   // generate export definition records for
+                                // exported functions
+#       define WFss      0x20   // load DS from SS
+#       define WFreduced 0x40   // skip DS load for non-exported functions
+#       define WFdgroup  0x80   // load DS from DGROUP
+#       define WFexport  0x100  // assume __export for all far functions
+#       define WFds      0x200  // load DS from DS
+#       define WFmacros  0x400  // define predefined windows macros
+#       define WFssneds  0x800  // SS != DS
+#       define WFthunk   0x1000 // use fixups instead of direct ref to CS
+#       define WFsaveds  0x2000 // use push/pop DS for far functions
+#       define WFdsnedgroup 0x4000      // DS != DGROUP
+#       define WFexe     0x8000 // generating code for Windows EXE
 
-    char inline8087;		/* 0:	emulator
-				   1:	IEEE 754 inline 8087 code
-				   2:	fast inline 8087 code
-				 */
-    short memmodel;		// 0:S,X,N,F, 1:M, 2:C, 3:L, 4:V
-    unsigned exe;		// target operating system
-#define EX_DOSX		1	// DOSX 386 program
-#define EX_ZPM		2	// ZPM 286 program
-#define EX_RATIONAL	4	// RATIONAL 286 program
-#define EX_PHARLAP	8	// PHARLAP 386 program
-#define EX_COM		0x10	// MSDOS .COM program
-//#define EX_WIN16	0x20	// Windows 3.x 16 bit program
-#define EX_OS2		0x40	// OS/2 2.0 32 bit program
-#define EX_OS1		0x80	// OS/2 1.x 16 bit program
-#define EX_NT		0x100	// NT
-#define EX_MZ		0x200	// MSDOS real mode program
-#define EX_XENIX	0x400
-#define EX_SCOUNIX	0x800
-#define EX_UNIXSVR4	0x1000
-#define EX_LINUX	0x2000
-#define EX_WIN64	0x4000	// AMD64 and Windows (64 bit mode)
-#define EX_LINUX64	0x8000	// AMD64 and Linux (64 bit mode)
-#define EX_OSX		0x10000
-#define EX_OSX64	0x20000
-#define EX_FREEBSD	0x40000
-#define EX_FREEBSD64	0x80000
-#define EX_SOLARIS	0x100000
-#define EX_SOLARIS64	0x200000
+    char inline8087;            /* 0:   emulator
+                                   1:   IEEE 754 inline 8087 code
+                                   2:   fast inline 8087 code
+                                 */
+    short memmodel;             // 0:S,X,N,F, 1:M, 2:C, 3:L, 4:V
+    unsigned exe;               // target operating system
+#define EX_DOSX         1       // DOSX 386 program
+#define EX_ZPM          2       // ZPM 286 program
+#define EX_RATIONAL     4       // RATIONAL 286 program
+#define EX_PHARLAP      8       // PHARLAP 386 program
+#define EX_COM          0x10    // MSDOS .COM program
+//#define EX_WIN16      0x20    // Windows 3.x 16 bit program
+#define EX_OS2          0x40    // OS/2 2.0 32 bit program
+#define EX_OS1          0x80    // OS/2 1.x 16 bit program
+#define EX_NT           0x100   // NT
+#define EX_MZ           0x200   // MSDOS real mode program
+#define EX_XENIX        0x400
+#define EX_SCOUNIX      0x800
+#define EX_UNIXSVR4     0x1000
+#define EX_LINUX        0x2000
+#define EX_WIN64        0x4000  // AMD64 and Windows (64 bit mode)
+#define EX_LINUX64      0x8000  // AMD64 and Linux (64 bit mode)
+#define EX_OSX          0x10000
+#define EX_OSX64        0x20000
+#define EX_FREEBSD      0x40000
+#define EX_FREEBSD64    0x80000
+#define EX_SOLARIS      0x100000
+#define EX_SOLARIS64    0x200000
 
-#define EX_flat		(EX_OS2 | EX_NT | EX_LINUX | EX_WIN64 | EX_LINUX64 | \
-			 EX_OSX | EX_OSX64 | EX_FREEBSD | EX_FREEBSD64 | \
-			 EX_SOLARIS | EX_SOLARIS64)
-#define EX_dos		(EX_DOSX | EX_ZPM | EX_RATIONAL | EX_PHARLAP | \
-			 EX_COM | EX_MZ /*| EX_WIN16*/)
+#define EX_flat         (EX_OS2 | EX_NT | EX_LINUX | EX_WIN64 | EX_LINUX64 | \
+                         EX_OSX | EX_OSX64 | EX_FREEBSD | EX_FREEBSD64 | \
+                         EX_SOLARIS | EX_SOLARIS64)
+#define EX_dos          (EX_DOSX | EX_ZPM | EX_RATIONAL | EX_PHARLAP | \
+                         EX_COM | EX_MZ /*| EX_WIN16*/)
 
 /* CFGX: flags ignored in precompiled headers
  * CFGY: flags copied from precompiled headers into current config
  */
     unsigned long flags;
-#define CFGuchar	1	// chars are unsigned
-#define CFGsegs		2	// new code seg for each far func
-#define CFGtrace	4	// output trace functions
-#define CFGglobal	8	// make all static functions global
-#define CFGstack	0x20	// add stack overflow checking
-#define CFGalwaysframe	0x40	// always generate stack frame
-#define CFGnoebp	0x80	// do not use EBP as general purpose register
-#define CFGromable	0x100	// put switch tables in code segment
-#define CFGeasyomf	0x200	// generate Pharlap Easy-OMF format
-#define CFGfarvtbls	0x800	// store vtables in far segments
-#define CFGnoinlines	0x1000	// do not inline functions
-#define CFGnowarning	0x8000	// disable warnings
-#define CFGX	(CFGnowarning)
+#define CFGuchar        1       // chars are unsigned
+#define CFGsegs         2       // new code seg for each far func
+#define CFGtrace        4       // output trace functions
+#define CFGglobal       8       // make all static functions global
+#define CFGstack        0x20    // add stack overflow checking
+#define CFGalwaysframe  0x40    // always generate stack frame
+#define CFGnoebp        0x80    // do not use EBP as general purpose register
+#define CFGromable      0x100   // put switch tables in code segment
+#define CFGeasyomf      0x200   // generate Pharlap Easy-OMF format
+#define CFGfarvtbls     0x800   // store vtables in far segments
+#define CFGnoinlines    0x1000  // do not inline functions
+#define CFGnowarning    0x8000  // disable warnings
+#define CFGX    (CFGnowarning)
     unsigned long flags2;
-#define CFG2comdat	1	// use initialized common blocks
-#define CFG2nodeflib	2	// no default library imbedded in OBJ file
-#define CFG2browse	4	// generate browse records
-#define CFG2dyntyping	8	// generate dynamic typing information
-#define CFG2fulltypes	0x10	// don't optimize CV4 class info
-#define CFG2warniserr	0x20	// treat warnings as errors
-#define CFG2phauto	0x40	// automatic precompiled headers
-#define CFG2phuse	0x80	// use precompiled headers
-#define CFG2phgen	0x100	// generate precompiled header
-#define CFG2once	0x200	// only include header files once
-#define CFG2hdrdebug	0x400	// generate debug info for header
-#define CFG2phautoy	0x800	// fast build precompiled headers
-#define CFG2noobj	0x1000	// we are not generating a .OBJ file
-#define CFG2noerrmax	0x4000	// no error count maximum
-#define CFG2expand	0x8000	// expanded output to list file
-#define CFG2seh		0x10000	// use Win32 SEH to support any exception handling
-#define CFGX2	(CFG2warniserr | CFG2phuse | CFG2phgen | CFG2phauto | \
-		 CFG2once | CFG2hdrdebug | CFG2noobj | CFG2noerrmax | \
-		 CFG2expand | CFG2nodeflib)
+#define CFG2comdat      1       // use initialized common blocks
+#define CFG2nodeflib    2       // no default library imbedded in OBJ file
+#define CFG2browse      4       // generate browse records
+#define CFG2dyntyping   8       // generate dynamic typing information
+#define CFG2fulltypes   0x10    // don't optimize CV4 class info
+#define CFG2warniserr   0x20    // treat warnings as errors
+#define CFG2phauto      0x40    // automatic precompiled headers
+#define CFG2phuse       0x80    // use precompiled headers
+#define CFG2phgen       0x100   // generate precompiled header
+#define CFG2once        0x200   // only include header files once
+#define CFG2hdrdebug    0x400   // generate debug info for header
+#define CFG2phautoy     0x800   // fast build precompiled headers
+#define CFG2noobj       0x1000  // we are not generating a .OBJ file
+#define CFG2noerrmax    0x4000  // no error count maximum
+#define CFG2expand      0x8000  // expanded output to list file
+#define CFG2seh         0x10000 // use Win32 SEH to support any exception handling
+#define CFGX2   (CFG2warniserr | CFG2phuse | CFG2phgen | CFG2phauto | \
+                 CFG2once | CFG2hdrdebug | CFG2noobj | CFG2noerrmax | \
+                 CFG2expand | CFG2nodeflib)
     unsigned long flags3;
-#define CFG3ju		1	// char == unsigned char
-#define CFG3eh		4	// generate exception handling stuff
-#define CFG3strcod	8	// strings are placed in code segment
-#define CFG3eseqds	0x10	// ES == DS at all times
-#define CFG3ptrchk	0x20	// generate pointer validation code
-#define CFG3strictproto	0x40	// strict prototyping
-#define CFG3autoproto	0x80	// auto prototyping
-#define CFG3rtti	0x100	// add RTTI support
-#define CFG3relax	0x200	// relaxed type checking (C only)
-#define CFG3cpp		0x400	// C++ compile
-#define CFG3igninc	0x800	// ignore standard include directory
+#define CFG3ju          1       // char == unsigned char
+#define CFG3eh          4       // generate exception handling stuff
+#define CFG3strcod      8       // strings are placed in code segment
+#define CFG3eseqds      0x10    // ES == DS at all times
+#define CFG3ptrchk      0x20    // generate pointer validation code
+#define CFG3strictproto 0x40    // strict prototyping
+#define CFG3autoproto   0x80    // auto prototyping
+#define CFG3rtti        0x100   // add RTTI support
+#define CFG3relax       0x200   // relaxed type checking (C only)
+#define CFG3cpp         0x400   // C++ compile
+#define CFG3igninc      0x800   // ignore standard include directory
 #if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_SOLARIS
-#define CFG3mars	0x1000	// use mars libs and headers
-#define NO_FAR		(TRUE)	// always ignore __far and __huge keywords
+#define CFG3mars        0x1000  // use mars libs and headers
+#define NO_FAR          (TRUE)  // always ignore __far and __huge keywords
 #else
-#define CFG3nofar	0x1000	// ignore __far and __huge keywords
-#define NO_FAR		(config.flags3 & CFG3nofar)
+#define CFG3nofar       0x1000  // ignore __far and __huge keywords
+#define NO_FAR          (config.flags3 & CFG3nofar)
 #endif
-#define CFG3noline	0x2000	// do not output #line directives
-#define CFG3comment	0x4000	// leave comments in preprocessed output
-#define CFG3cppcomment	0x8000	// allow C++ style comments
-#define CFG3wkfloat	0x10000	// make floating point references weak externs
-#define CFG3digraphs	0x20000	// support ANSI C++ digraphs
+#define CFG3noline      0x2000  // do not output #line directives
+#define CFG3comment     0x4000  // leave comments in preprocessed output
+#define CFG3cppcomment  0x8000  // allow C++ style comments
+#define CFG3wkfloat     0x10000 // make floating point references weak externs
+#define CFG3digraphs    0x20000 // support ANSI C++ digraphs
 #if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_SOLARIS
-#define CFG3semirelax	0x40000	// moderate relaxed type checking
+#define CFG3semirelax   0x40000 // moderate relaxed type checking
 #endif
-#define CFG3pic		0x80000	// position independent code
-#define CFGX3	(CFG3strcod | CFG3ptrchk)
+#define CFG3pic         0x80000 // position independent code
+#define CFGX3   (CFG3strcod | CFG3ptrchk)
 
     unsigned long flags4;
-#define CFG4speed	1	// optimized for speed
-#define CFG4space	2	// optimized for space
-#define CFG4optimized	(CFG4speed | CFG4space)
-#define CFG4allcomdat	4	// place all functions in COMDATs
-#define CFG4fastfloat	8	// fast floating point (-ff)
-#define CFG4fdivcall	0x10	// make function call for FDIV opcodes
-#define CFG4tempinst	0x20	// instantiate templates for undefined functions
-#define CFG4oldstdmangle 0x40	// do stdcall mangling without @
-#define CFG4pascal	0x80	// default to pascal linkage
-#define CFG4stdcall	0x100	// default to std calling convention
-#define CFG4cacheph	0x200	// cache precompiled headers in memory
-#define CFG4alternate	0x400	// if alternate digraph tokens
-#define CFG4bool	0x800	// support 'bool' as basic type
-#define CFG4wchar_t	0x1000	// support 'wchar_t' as basic type
-#define CFG4notempexp	0x2000	// no instantiation of template functions
-#define CFG4anew	0x4000	// allow operator new[] and delete[] overloading
-#define CFG4oldtmangle	0x8000	// use old template name mangling
-#define CFG4dllrtl	0x10000	// link with DLL RTL
-#define CFG4noemptybaseopt 0x40000	// turn off empty base class optimization
-#define CFG4stackalign	CFG4speed	// align stack to 8 bytes
-#define CFG4nowchar_t	0x80000	// use unsigned short name mangling for wchar_t
-#define CFG4forscope	0x100000 // new C++ for scoping rules
-#define CFG4warnccast	0x200000 // warn about C style casts
-#define CFG4adl		0x400000 // argument dependent lookup
+#define CFG4speed       1       // optimized for speed
+#define CFG4space       2       // optimized for space
+#define CFG4optimized   (CFG4speed | CFG4space)
+#define CFG4allcomdat   4       // place all functions in COMDATs
+#define CFG4fastfloat   8       // fast floating point (-ff)
+#define CFG4fdivcall    0x10    // make function call for FDIV opcodes
+#define CFG4tempinst    0x20    // instantiate templates for undefined functions
+#define CFG4oldstdmangle 0x40   // do stdcall mangling without @
+#define CFG4pascal      0x80    // default to pascal linkage
+#define CFG4stdcall     0x100   // default to std calling convention
+#define CFG4cacheph     0x200   // cache precompiled headers in memory
+#define CFG4alternate   0x400   // if alternate digraph tokens
+#define CFG4bool        0x800   // support 'bool' as basic type
+#define CFG4wchar_t     0x1000  // support 'wchar_t' as basic type
+#define CFG4notempexp   0x2000  // no instantiation of template functions
+#define CFG4anew        0x4000  // allow operator new[] and delete[] overloading
+#define CFG4oldtmangle  0x8000  // use old template name mangling
+#define CFG4dllrtl      0x10000 // link with DLL RTL
+#define CFG4noemptybaseopt 0x40000      // turn off empty base class optimization
+#define CFG4stackalign  CFG4speed       // align stack to 8 bytes
+#define CFG4nowchar_t   0x80000 // use unsigned short name mangling for wchar_t
+#define CFG4forscope    0x100000 // new C++ for scoping rules
+#define CFG4warnccast   0x200000 // warn about C style casts
+#define CFG4adl         0x400000 // argument dependent lookup
 #define CFG4enumoverload 0x800000 // enum overloading
-#define CFG4implicitfromvoid 0x1000000	// allow implicit cast from void* to T*
-#define CFG4dependent        0x2000000	// dependent / non-dependent lookup
-#define CFG4wchar_is_long    0x4000000	// wchar_t is 4 bytes
-#define CFG4underscore       0x8000000	// prepend _ for C mangling
-#define CFGX4		(CFG4optimized | CFG4fastfloat | CFG4fdivcall | \
-			 CFG4tempinst | CFG4cacheph | CFG4notempexp | \
-			 CFG4stackalign | CFG4dependent)
-#define CFGY4		(CFG4nowchar_t | CFG4noemptybaseopt | CFG4adl | \
-			 CFG4enumoverload | CFG4implicitfromvoid | \
-			 CFG4wchar_is_long | CFG4underscore)
+#define CFG4implicitfromvoid 0x1000000  // allow implicit cast from void* to T*
+#define CFG4dependent        0x2000000  // dependent / non-dependent lookup
+#define CFG4wchar_is_long    0x4000000  // wchar_t is 4 bytes
+#define CFG4underscore       0x8000000  // prepend _ for C mangling
+#define CFGX4           (CFG4optimized | CFG4fastfloat | CFG4fdivcall | \
+                         CFG4tempinst | CFG4cacheph | CFG4notempexp | \
+                         CFG4stackalign | CFG4dependent)
+#define CFGY4           (CFG4nowchar_t | CFG4noemptybaseopt | CFG4adl | \
+                         CFG4enumoverload | CFG4implicitfromvoid | \
+                         CFG4wchar_is_long | CFG4underscore)
 
     unsigned long flags5;
-#define CFG5debug	1	// compile in __debug code
-#define CFG5in		2	// compile in __in code
-#define CFG5out		4	// compile in __out code
-#define CFG5invariant	8	// compile in __invariant code
+#define CFG5debug       1       // compile in __debug code
+#define CFG5in          2       // compile in __in code
+#define CFG5out         4       // compile in __out code
+#define CFG5invariant   8       // compile in __invariant code
 
 #if HTOD
-    unsigned htodFlags;		// configuration for htod
-#define HTODFinclude	1	// -hi drill down into #include files
-#define HTODFsysinclude	2	// -hs drill down into system #include files
-#define HTODFtypedef	4	// -ht drill down into typedefs
-#define HTODFcdecl	8	// -hc skip C declarations as comments
+    unsigned htodFlags;         // configuration for htod
+#define HTODFinclude    1       // -hi drill down into #include files
+#define HTODFsysinclude 2       // -hs drill down into system #include files
+#define HTODFtypedef    4       // -ht drill down into typedefs
+#define HTODFcdecl      8       // -hc skip C declarations as comments
 #endif
-    char ansi_c;		// strict ANSI C
-				// 89 for ANSI C89, 99 for ANSI C99
-    char asian_char;		/* 0: normal, 1: Japanese, 2: Chinese	*/
-				/* and Taiwanese, 3: Korean		*/
-    unsigned threshold;		// data larger than threshold is assumed to
-				// be far (16 bit models only)
-#define THRESHMAX 0xFFFF	// if threshold == THRESHMAX, all data defaults
-				// to near
-    enum LINKAGE linkage;	// default function call linkage
+    char ansi_c;                // strict ANSI C
+                                // 89 for ANSI C89, 99 for ANSI C99
+    char asian_char;            /* 0: normal, 1: Japanese, 2: Chinese   */
+                                /* and Taiwanese, 3: Korean             */
+    unsigned threshold;         // data larger than threshold is assumed to
+                                // be far (16 bit models only)
+#define THRESHMAX 0xFFFF        // if threshold == THRESHMAX, all data defaults
+                                // to near
+    enum LINKAGE linkage;       // default function call linkage
 };
 
 // Configuration that is not saved in precompiled header
 
 typedef struct Configv
 {
-    char addlinenumbers;	// put line number info in .OBJ file
-    char verbose;		// 0: compile quietly (no messages)
-				// 1: show progress to DLL (default)
-				// 2: full verbosity
-    char *csegname;		// code segment name
-    char *deflibname;		// default library name
-    enum LANG language;		// message language
-    int errmax;			// max error count
+    char addlinenumbers;        // put line number info in .OBJ file
+    char verbose;               // 0: compile quietly (no messages)
+                                // 1: show progress to DLL (default)
+                                // 2: full verbosity
+    char *csegname;             // code segment name
+    char *deflibname;           // default library name
+    enum LANG language;         // message language
+    int errmax;                 // max error count
 } Configv;
 
 struct Classsym;
@@ -858,29 +858,29 @@ struct Symbol;
 struct LIST;
 struct elem;
 
-typedef unsigned short regm_t;	// Register mask type
+typedef unsigned short regm_t;  // Register mask type
 struct immed_t
-{   targ_int value[REGMAX];	// immediate values in registers
-    regm_t mval;		// Mask of which values in regimmed.value[] are valid
+{   targ_int value[REGMAX];     // immediate values in registers
+    regm_t mval;                // Mask of which values in regimmed.value[] are valid
 };
 
 
 struct cse_t
-{   elem *value[REGMAX];	// expression values in registers
-    regm_t mval;		// mask of which values in value[] are valid
-    regm_t mops;		// subset of mval that contain common subs that need
-				// to be stored in csextab[] if they are destroyed
+{   elem *value[REGMAX];        // expression values in registers
+    regm_t mval;                // mask of which values in value[] are valid
+    regm_t mops;                // subset of mval that contain common subs that need
+                                // to be stored in csextab[] if they are destroyed
 };
 
 struct con_t
-{   cse_t cse;			// CSEs in registers
-    immed_t immed;		// immediate values in registers
-    regm_t mvar;		// mask of register variables
-    regm_t mpvar;		// mask of SCfastpar register variables
-    regm_t indexregs;		// !=0 if more than 1 uncommitted index register
-    regm_t used;		// mask of registers used
-    regm_t params;		// mask of registers which still contain register
-				// function parameters
+{   cse_t cse;                  // CSEs in registers
+    immed_t immed;              // immediate values in registers
+    regm_t mvar;                // mask of register variables
+    regm_t mpvar;               // mask of SCfastpar register variables
+    regm_t indexregs;           // !=0 if more than 1 uncommitted index register
+    regm_t used;                // mask of registers used
+    regm_t params;              // mask of registers which still contain register
+                                // function parameters
 };
 
 /*********************************
@@ -896,82 +896,82 @@ struct con_t
 
 union eve
 {
-	targ_char	Vchar;
-	targ_schar	Vschar;
-	targ_uchar	Vuchar;
-	targ_short	Vshort;
-	targ_ushort	Vushort;
-	targ_int	Vint;	 // also used for tmp numbers (FLtmp)
-	targ_uns	Vuns;
-	targ_long	Vlong;
-	targ_ulong	Vulong;
-	targ_llong	Vllong;
-	targ_ullong	Vullong;
-	targ_float	Vfloat;
-	targ_double	Vdouble;
-        targ_ldouble	Vldouble;
-	Complex_f	Vcfloat;
-	Complex_d	Vcdouble;
-	Complex_ld	Vcldouble;
-	targ_size_t	Vpointer;
-	targ_ptrdiff_t	Vptrdiff;
-	targ_uchar	Vreg;	// register number for OPreg elems
-	struct			// 48 bit 386 far pointer
-	{   targ_long	Voff;
-	    targ_ushort	Vseg;
-	} Vfp;
-	struct
-	{
-	    targ_size_t Voffset;// offset from symbol
-	    Symbol *Vsym;	// pointer to symbol table
-	    union
-	    {	struct PARAM *Vtal;	// template-argument-list for SCfunctempl,
-				// used only to transmit it to cpp_overload()
-		LIST *Erd;	// OPvar: reaching definitions
-	    } spu;
-	} sp;
-	struct
-	{
-	    targ_size_t Voffset;// member pointer offset
-	    Classsym *Vsym;	// struct tag
-	    elem *ethis;	// OPrelconst: 'this' for member pointer
-	} sm;
-	struct
-	{
-	    targ_size_t	Voffset;// offset from string
-	    char *Vstring;	// pointer to string (OPstring or OPasm)
-	    targ_size_t	Vstrlen;// length of string
-	} ss;
-	struct
-	{   
-	    elem *Eleft;	// left child for unary & binary nodes
-	    elem *Eright;	// right child for binary nodes
-	    Symbol *Edtor;	// OPctor: destructor
-	} eop;
-};				// variants for each type of elem
+        targ_char       Vchar;
+        targ_schar      Vschar;
+        targ_uchar      Vuchar;
+        targ_short      Vshort;
+        targ_ushort     Vushort;
+        targ_int        Vint;    // also used for tmp numbers (FLtmp)
+        targ_uns        Vuns;
+        targ_long       Vlong;
+        targ_ulong      Vulong;
+        targ_llong      Vllong;
+        targ_ullong     Vullong;
+        targ_float      Vfloat;
+        targ_double     Vdouble;
+        targ_ldouble    Vldouble;
+        Complex_f       Vcfloat;
+        Complex_d       Vcdouble;
+        Complex_ld      Vcldouble;
+        targ_size_t     Vpointer;
+        targ_ptrdiff_t  Vptrdiff;
+        targ_uchar      Vreg;   // register number for OPreg elems
+        struct                  // 48 bit 386 far pointer
+        {   targ_long   Voff;
+            targ_ushort Vseg;
+        } Vfp;
+        struct
+        {
+            targ_size_t Voffset;// offset from symbol
+            Symbol *Vsym;       // pointer to symbol table
+            union
+            {   struct PARAM *Vtal;     // template-argument-list for SCfunctempl,
+                                // used only to transmit it to cpp_overload()
+                LIST *Erd;      // OPvar: reaching definitions
+            } spu;
+        } sp;
+        struct
+        {
+            targ_size_t Voffset;// member pointer offset
+            Classsym *Vsym;     // struct tag
+            elem *ethis;        // OPrelconst: 'this' for member pointer
+        } sm;
+        struct
+        {
+            targ_size_t Voffset;// offset from string
+            char *Vstring;      // pointer to string (OPstring or OPasm)
+            targ_size_t Vstrlen;// length of string
+        } ss;
+        struct
+        {
+            elem *Eleft;        // left child for unary & binary nodes
+            elem *Eright;       // right child for binary nodes
+            Symbol *Edtor;      // OPctor: destructor
+        } eop;
+};                              // variants for each type of elem
 
 // Symbols
 
 #ifdef DEBUG
-#define	IDSYMBOL	IDsymbol,
+#define IDSYMBOL        IDsymbol,
 #else
 #define IDSYMBOL
 #endif
 
 #if SCPP
-#define SYMBOLZERO	0,0,0,
+#define SYMBOLZERO      0,0,0,
 #elif MARS
-#define SYMBOLZERO	0,0,
+#define SYMBOLZERO      0,0,
 #elif AUTONEST
-#define SYMBOLZERO	0,0,
+#define SYMBOLZERO      0,0,
 #else
 #define SYMBOLZERO
 #endif
 
 #if TARGET_LINUX || TARGET_FREEBSD || TARGET_SOLARIS
-#define UNIXFIELDS	(unsigned)-1,(unsigned)-1,0,0,
+#define UNIXFIELDS      (unsigned)-1,(unsigned)-1,0,0,
 #elif TARGET_OSX
-#define UNIXFIELDS	(unsigned)-1,(unsigned)-1,0,0,0,
+#define UNIXFIELDS      (unsigned)-1,(unsigned)-1,0,0,0,
 #else
 #define UNIXFIELDS
 #endif
@@ -984,72 +984,72 @@ typedef unsigned long SYMFLGS;
 #endif
 
 #define SYMBOLY(fl,regsaved,name,flags) \
-	{IDSYMBOL \
-	 (symbol *)0,(symbol *)0,(symbol *)0,(dt_t *)0,(type *)0,{0},\
-	 SYMBOLZERO\
-	 UNIXFIELDS\
-	 SCextern,(fl),(flags),0,0,0,0,0,0,0,{0},(regsaved),{name}}
+        {IDSYMBOL \
+         (symbol *)0,(symbol *)0,(symbol *)0,(dt_t *)0,(type *)0,{0},\
+         SYMBOLZERO\
+         UNIXFIELDS\
+         SCextern,(fl),(flags),0,0,0,0,0,0,0,{0},(regsaved),{name}}
 
 /**********************************
  * Storage classes
  * This macro is used to generate parallel tables and the enum values.
  */
 
-#define ENUMSCMAC	\
-    X(unde,	SCEXP|SCKEP|SCSCT)	/* undefined				*/ \
-    X(auto,	SCEXP|SCSS|SCRD	 )	/* automatic (stack)			*/ \
-    X(static,	SCEXP|SCKEP|SCSCT)	/* statically allocated			*/ \
-    X(extern,	SCEXP|SCKEP|SCSCT)	/* external				*/ \
-    X(register,	SCEXP|SCSS|SCRD	 )	/* registered variable			*/ \
-    X(pseudo,	SCEXP		 )	/* pseudo register variable		*/ \
-    X(global,	SCEXP|SCKEP|SCSCT)	/* top level global definition		*/ \
-    X(comdat,	SCEXP|SCKEP|SCSCT)	/* initialized common block		*/ \
-    X(parameter,SCEXP|SCSS	 )	/* function parameter			*/ \
-    X(regpar,	SCEXP|SCSS	 )	/* function register parameter		*/ \
-    X(fastpar,	SCEXP|SCSS	 )	/* function parameter passed in register */ \
-    X(typedef,	0		 )	/* type definition			*/ \
-    X(explicit,	0		 )	/* explicit				*/ \
-    X(mutable,	0		 )	/* mutable				*/ \
-    X(tmp,	SCEXP|SCSS|SCRD	 )	/* compiler generated temporary (just like SCauto \
-					   but doesn't overlay other SCauto's in scoping) */ \
-    X(label,	0		 )	/* goto label				*/ \
-    X(struct,	SCKEP		 )	/* struct/class/union tag name		*/ \
-    X(enum,	0		 )	/* enum tag name			*/ \
-    X(field,	SCEXP|SCKEP	 )	/* bit field of struct or union		*/ \
-    X(const,	SCEXP|SCSCT	 )	/* constant integer			*/ \
-    X(member,	SCEXP|SCKEP|SCSCT)	/* member of struct or union		*/ \
-    X(anon,	0		 )	/* member of anonymous union		*/ \
-    X(inline,	SCEXP|SCKEP	 )	/* for inline functions			*/ \
-    X(sinline,	SCEXP|SCKEP	 )	/* for static inline functions		*/ \
-    X(einline,	SCEXP|SCKEP	 )	/* for extern inline functions		*/ \
-    X(overload,	SCEXP		 )	/* for overloaded function names	*/ \
-    X(friend,	0		 )	/* friend of a class			*/ \
-    X(virtual,	0		 )	/* virtual function			*/ \
-    X(locstat,	SCEXP|SCSCT	 )	/* static, but local to a function	*/ \
-    X(template,	0		 )	/* class template			*/ \
-    X(functempl,0		 )	/* function template			*/ \
-    X(ftexpspec,0		 )	/* function template explicit specialization */ \
-    X(linkage,	0		 )	/* function linkage symbol		*/ \
-    X(public,	SCEXP|SCKEP|SCSCT)	/* generate a pubdef for this		*/ \
-    X(comdef,	SCEXP|SCKEP|SCSCT)	/* uninitialized common block		*/ \
-    X(bprel,	SCEXP|SCSS	 )	/* variable at fixed offset from frame pointer */ \
-    X(namespace,0		 )	/* namespace				*/ \
-    X(alias,	0		 )	/* alias to another symbol		*/ \
-    X(funcalias,0		 )	/* alias to another function symbol	*/ \
-    X(memalias,0		 )	/* alias to base class member		*/ \
-    X(stack,	SCEXP|SCSS	 )	/* offset from stack pointer (not frame pointer) */ \
-    X(adl,	0		 )	/* list of ADL symbols for overloading	*/ \
+#define ENUMSCMAC       \
+    X(unde,     SCEXP|SCKEP|SCSCT)      /* undefined                            */ \
+    X(auto,     SCEXP|SCSS|SCRD  )      /* automatic (stack)                    */ \
+    X(static,   SCEXP|SCKEP|SCSCT)      /* statically allocated                 */ \
+    X(extern,   SCEXP|SCKEP|SCSCT)      /* external                             */ \
+    X(register, SCEXP|SCSS|SCRD  )      /* registered variable                  */ \
+    X(pseudo,   SCEXP            )      /* pseudo register variable             */ \
+    X(global,   SCEXP|SCKEP|SCSCT)      /* top level global definition          */ \
+    X(comdat,   SCEXP|SCKEP|SCSCT)      /* initialized common block             */ \
+    X(parameter,SCEXP|SCSS       )      /* function parameter                   */ \
+    X(regpar,   SCEXP|SCSS       )      /* function register parameter          */ \
+    X(fastpar,  SCEXP|SCSS       )      /* function parameter passed in register */ \
+    X(typedef,  0                )      /* type definition                      */ \
+    X(explicit, 0                )      /* explicit                             */ \
+    X(mutable,  0                )      /* mutable                              */ \
+    X(tmp,      SCEXP|SCSS|SCRD  )      /* compiler generated temporary (just like SCauto \
+                                           but doesn't overlay other SCauto's in scoping) */ \
+    X(label,    0                )      /* goto label                           */ \
+    X(struct,   SCKEP            )      /* struct/class/union tag name          */ \
+    X(enum,     0                )      /* enum tag name                        */ \
+    X(field,    SCEXP|SCKEP      )      /* bit field of struct or union         */ \
+    X(const,    SCEXP|SCSCT      )      /* constant integer                     */ \
+    X(member,   SCEXP|SCKEP|SCSCT)      /* member of struct or union            */ \
+    X(anon,     0                )      /* member of anonymous union            */ \
+    X(inline,   SCEXP|SCKEP      )      /* for inline functions                 */ \
+    X(sinline,  SCEXP|SCKEP      )      /* for static inline functions          */ \
+    X(einline,  SCEXP|SCKEP      )      /* for extern inline functions          */ \
+    X(overload, SCEXP            )      /* for overloaded function names        */ \
+    X(friend,   0                )      /* friend of a class                    */ \
+    X(virtual,  0                )      /* virtual function                     */ \
+    X(locstat,  SCEXP|SCSCT      )      /* static, but local to a function      */ \
+    X(template, 0                )      /* class template                       */ \
+    X(functempl,0                )      /* function template                    */ \
+    X(ftexpspec,0                )      /* function template explicit specialization */ \
+    X(linkage,  0                )      /* function linkage symbol              */ \
+    X(public,   SCEXP|SCKEP|SCSCT)      /* generate a pubdef for this           */ \
+    X(comdef,   SCEXP|SCKEP|SCSCT)      /* uninitialized common block           */ \
+    X(bprel,    SCEXP|SCSS       )      /* variable at fixed offset from frame pointer */ \
+    X(namespace,0                )      /* namespace                            */ \
+    X(alias,    0                )      /* alias to another symbol              */ \
+    X(funcalias,0                )      /* alias to another function symbol     */ \
+    X(memalias,0                 )      /* alias to base class member           */ \
+    X(stack,    SCEXP|SCSS       )      /* offset from stack pointer (not frame pointer) */ \
+    X(adl,      0                )      /* list of ADL symbols for overloading  */ \
 
-    //X(union,SCKEP)	/* union tag name			*/
-    //X(class,SCKEP)	/* class tag name			*/
+    //X(union,SCKEP)    /* union tag name                       */
+    //X(class,SCKEP)    /* class tag name                       */
 
 #define ClassInline(c) ((c) == SCinline || (c) == SCsinline || (c) == SCeinline)
 #define SymInline(s)   ClassInline((s)->Sclass)
 
 enum SC {
-    #define X(a,b)	SC##a,
-	ENUMSCMAC	// generate the enum values
-	SCMAX		// array dimension
+    #define X(a,b)      SC##a,
+        ENUMSCMAC       // generate the enum values
+        SCMAX           // array dimension
     #undef X
 };
 

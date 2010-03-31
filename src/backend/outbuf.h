@@ -12,7 +12,7 @@
 
 //#pragma once
 
-#include	<string.h>
+#include        <string.h>
 
 // Output buffer
 
@@ -20,11 +20,11 @@
 
 struct Outbuffer
 {
-    unsigned char *buf;		// the buffer itself
-    unsigned char *pend;	// pointer past the end of the buffer
-    unsigned char *p;		// current position in buffer
-    unsigned len;		// size of buffer
-    unsigned inc;		// default increment size
+    unsigned char *buf;         // the buffer itself
+    unsigned char *pend;        // pointer past the end of the buffer
+    unsigned char *p;           // current position in buffer
+    unsigned len;               // size of buffer
+    unsigned inc;               // default increment size
 
     Outbuffer();
     Outbuffer(unsigned inc);
@@ -43,16 +43,16 @@ struct Outbuffer
     // Write an array to the buffer, no reserve check
     void writen(const void *b, int len)
     {
-	memcpy(p,b,len);
-	p += len;
+        memcpy(p,b,len);
+        p += len;
     }
 
     // Clear bytes, no reserve check
     void clearn(int len)
     {
-	int i;
-	for (i=0; i< len; i++)
-	    *p++ = 0;
+        int i;
+        for (i=0; i< len; i++)
+            *p++ = 0;
     }
 
     // Write an array to the buffer.
@@ -71,7 +71,7 @@ struct Outbuffer
      */
     void writeByten(char v)
     {
-	*p++ = v;
+        *p++ = v;
     }
 
     /**
@@ -85,12 +85,12 @@ struct Outbuffer
     void writeWordn(int v)
     {
 #if _WIN32
-	*(unsigned short *)p = v;
+        *(unsigned short *)p = v;
 #else
-	p[0] = v;
-	p[1] = v >> 8;
+        p[0] = v;
+        p[1] = v >> 8;
 #endif
-	p += 2;
+        p += 2;
     }
 
 
@@ -99,8 +99,8 @@ struct Outbuffer
      */
     void writeWord(int v)
     {
-	reserve(2);
-	writeWordn(v);
+        reserve(2);
+        writeWordn(v);
     }
 
 
@@ -109,17 +109,17 @@ struct Outbuffer
      */
     void writeShort(int v)
     {
-	if (pend - p < 2)
-	    reserve(2);
+        if (pend - p < 2)
+            reserve(2);
 #if 0
-	p[0] = ((unsigned char *)&v)[1];
-	p[1] = v;
+        p[0] = ((unsigned char *)&v)[1];
+        p[1] = v;
 #else
-	unsigned char *q = p;
-	q[0] = v >> 8;
-	q[1] = v;
+        unsigned char *q = p;
+        q[0] = v >> 8;
+        q[1] = v;
 #endif
-	p += 2;
+        p += 2;
     }
 
     /**
@@ -127,7 +127,7 @@ struct Outbuffer
      */
     void writeChar(int v)
     {
-	writeShort(v);
+        writeShort(v);
     }
 
     /**
@@ -167,7 +167,7 @@ struct Outbuffer
      */
     int size()
     {
-	return p - buf;
+        return p - buf;
     }
 
     char *toString();

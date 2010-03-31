@@ -21,9 +21,9 @@
 struct StringValue
 {
     union
-    {	int intvalue;
-	void *ptrvalue;
-	dchar *string;
+    {   int intvalue;
+        void *ptrvalue;
+        dchar *string;
     };
     Lstring lstring;
 };

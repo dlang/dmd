@@ -21,8 +21,8 @@
 /* ================================================== */
 
 /* DebugSymbol's happen for statements like:
- *	debug = identifier;
- *	debug = integer;
+ *      debug = identifier;
+ *      debug = integer;
  */
 
 DebugSymbol::DebugSymbol(Loc loc, Identifier *ident)
@@ -56,23 +56,23 @@ int DebugSymbol::addMember(Scope *sc, ScopeDsymbol *sd, int memnum)
     m = sd->isModule();
     if (ident)
     {
-	if (!m)
-	    error("declaration must be at module level");
-	else
-	{
-	    if (findCondition(m->debugidsNot, ident))
-		error("defined after use");
-	    if (!m->debugids)
-		m->debugids = new Array();
-	    m->debugids->push(ident->toChars());
-	}
+        if (!m)
+            error("declaration must be at module level");
+        else
+        {
+            if (findCondition(m->debugidsNot, ident))
+                error("defined after use");
+            if (!m->debugids)
+                m->debugids = new Array();
+            m->debugids->push(ident->toChars());
+        }
     }
     else
     {
-	if (!m)
-	    error("level declaration must be at module level");
-	else
-	    m->debuglevel = level;
+        if (!m)
+            error("level declaration must be at module level");
+        else
+            m->debuglevel = level;
     }
     return 0;
 }
@@ -86,9 +86,9 @@ void DebugSymbol::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 {
     buf->writestring("debug = ");
     if (ident)
-	buf->writestring(ident->toChars());
+        buf->writestring(ident->toChars());
     else
-	buf->printf("%u", level);
+        buf->printf("%u", level);
     buf->writestring(";");
     buf->writenl();
 }
@@ -101,8 +101,8 @@ const char *DebugSymbol::kind()
 /* ================================================== */
 
 /* VersionSymbol's happen for statements like:
- *	version = identifier;
- *	version = integer;
+ *      version = identifier;
+ *      version = integer;
  */
 
 VersionSymbol::VersionSymbol(Loc loc, Identifier *ident)
@@ -136,24 +136,24 @@ int VersionSymbol::addMember(Scope *sc, ScopeDsymbol *sd, int memnum)
     m = sd->isModule();
     if (ident)
     {
-	VersionCondition::checkPredefined(loc, ident->toChars());
-	if (!m)
-	    error("declaration must be at module level");
-	else
-	{
-	    if (findCondition(m->versionidsNot, ident))
-		error("defined after use");
-	    if (!m->versionids)
-		m->versionids = new Array();
-	    m->versionids->push(ident->toChars());
-	}
+        VersionCondition::checkPredefined(loc, ident->toChars());
+        if (!m)
+            error("declaration must be at module level");
+        else
+        {
+            if (findCondition(m->versionidsNot, ident))
+                error("defined after use");
+            if (!m->versionids)
+                m->versionids = new Array();
+            m->versionids->push(ident->toChars());
+        }
     }
     else
     {
-	if (!m)
-	    error("level declaration must be at module level");
-	else
-	    m->versionlevel = level;
+        if (!m)
+            error("level declaration must be at module level");
+        else
+            m->versionlevel = level;
     }
     return 0;
 }
@@ -166,9 +166,9 @@ void VersionSymbol::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 {
     buf->writestring("version = ");
     if (ident)
-	buf->writestring(ident->toChars());
+        buf->writestring(ident->toChars());
     else
-	buf->printf("%u", level);
+        buf->printf("%u", level);
     buf->writestring(";");
     buf->writenl();
 }

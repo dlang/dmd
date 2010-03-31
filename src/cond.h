@@ -30,9 +30,9 @@ int findCondition(Array *ids, Identifier *ident);
 struct Condition
 {
     Loc loc;
-    int inc;		// 0: not computed yet
-			// 1: include
-			// 2: do not include
+    int inc;            // 0: not computed yet
+                        // 1: include
+                        // 2: do not include
 
     Condition(Loc loc);
 
@@ -92,9 +92,9 @@ struct IftypeCondition : Condition
     /* iftype (targ id tok tspec)
      */
     Type *targ;
-    Identifier *id;	// can be NULL
-    enum TOK tok;	// ':' or '=='
-    Type *tspec;	// can be NULL
+    Identifier *id;     // can be NULL
+    enum TOK tok;       // ':' or '=='
+    Type *tspec;        // can be NULL
 
     IftypeCondition(Loc loc, Type *targ, Identifier *id, enum TOK tok, Type *tspec);
     Condition *syntaxCopy();

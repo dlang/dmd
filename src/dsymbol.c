@@ -63,10 +63,10 @@ int Dsymbol::equals(Object *o)
 {   Dsymbol *s;
 
     if (this == o)
-	return TRUE;
+        return TRUE;
     s = (Dsymbol *)(o);
     if (s && ident->equals(s->ident))
-	return TRUE;
+        return TRUE;
     return FALSE;
 }
 
@@ -87,9 +87,9 @@ Dsymbol *Dsymbol::syntaxCopy(Dsymbol *s)
 /**************************************
  * Determine if this symbol is only one.
  * Returns:
- *	FALSE, *ps = NULL: There are 2 or more symbols
- *	TRUE,  *ps = NULL: There are zero symbols
- *	TRUE,  *ps = symbol: The one and only one symbol
+ *      FALSE, *ps = NULL: There are 2 or more symbols
+ *      TRUE,  *ps = NULL: There are zero symbols
+ *      TRUE,  *ps = symbol: The one and only one symbol
  */
 
 int Dsymbol::oneMember(Dsymbol **ps)
@@ -110,29 +110,29 @@ int Dsymbol::oneMembers(Array *members, Dsymbol **ps)
 
     if (members)
     {
-	for (int i = 0; i < members->dim; i++)
-	{   Dsymbol *sx = (Dsymbol *)members->data[i];
+        for (int i = 0; i < members->dim; i++)
+        {   Dsymbol *sx = (Dsymbol *)members->data[i];
 
-	    int x = sx->oneMember(ps);
-	    //printf("\t[%d] kind %s = %d, s = %p\n", i, sx->kind(), x, *ps);
-	    if (!x)
-	    {
-		//printf("\tfalse 1\n");
-		assert(*ps == NULL);
-		return FALSE;
-	    }
-	    if (*ps)
-	    {
-		if (s)			// more than one symbol
-		{   *ps = NULL;
-		    //printf("\tfalse 2\n");
-		    return FALSE;
-		}
-		s = *ps;
-	    }
-	}
+            int x = sx->oneMember(ps);
+            //printf("\t[%d] kind %s = %d, s = %p\n", i, sx->kind(), x, *ps);
+            if (!x)
+            {
+                //printf("\tfalse 1\n");
+                assert(*ps == NULL);
+                return FALSE;
+            }
+            if (*ps)
+            {
+                if (s)                  // more than one symbol
+                {   *ps = NULL;
+                    //printf("\tfalse 2\n");
+                    return FALSE;
+                }
+                s = *ps;
+            }
+        }
     }
-    *ps = s;		// s is the one symbol, NULL if none
+    *ps = s;            // s is the one symbol, NULL if none
     //printf("\ttrue\n");
     return TRUE;
 }
@@ -160,24 +160,24 @@ const char *Dsymbol::toPrettyChars()
 
     //printf("Dsymbol::toPrettyChars() '%s'\n", toChars());
     if (!parent)
-	return toChars();
+        return toChars();
 
     len = 0;
     for (p = this; p; p = p->parent)
-	len += strlen(p->toChars()) + 1;
+        len += strlen(p->toChars()) + 1;
 
     s = (char *)mem.malloc(len);
     q = s + len - 1;
     *q = 0;
     for (p = this; p; p = p->parent)
     {
-	char *t = p->toChars();
-	len = strlen(t);
-	q -= len;
-	memcpy(q, t, len);
-	if (q == s)
-	    break;
-	q--;
+        char *t = p->toChars();
+        len = strlen(t);
+        q -= len;
+        memcpy(q, t, len);
+        if (q == s)
+            break;
+        q--;
 #if TARGET_NET
     if (AggregateDeclaration* ad = p->isAggregateDeclaration())
     {
@@ -188,7 +188,7 @@ const char *Dsymbol::toPrettyChars()
         }
     }
 #endif
-	*q = '.';
+        *q = '.';
     }
     return s;
 }
@@ -201,7 +201,7 @@ char *Dsymbol::locToChars()
     Module *m = getModule();
 
     if (m && m->srcfile)
-	loc.filename = m->srcfile->toChars();
+        loc.filename = m->srcfile->toChars();
     return loc.toChars();
 }
 
@@ -231,7 +231,7 @@ Dsymbol *Dsymbol::pastMixin()
 
     //printf("Dsymbol::pastMixin() %s\n", toChars());
     while (s && s->isTemplateMixin())
-	s = s->parent;
+        s = s->parent;
     return s;
 }
 
@@ -244,7 +244,7 @@ Dsymbol *Dsymbol::toParent2()
 {
     Dsymbol *s = parent;
     while (s && s->isTemplateInstance())
-	s = s->parent;
+        s = s->parent;
     return s;
 }
 
@@ -252,9 +252,9 @@ TemplateInstance *Dsymbol::inTemplateInstance()
 {
     for (Dsymbol *parent = this->parent; parent; parent = parent->parent)
     {
-	TemplateInstance *ti = parent->isTemplateInstance();
-	if (ti)
-	    return ti;
+        TemplateInstance *ti = parent->isTemplateInstance();
+        if (ti)
+            return ti;
     }
     return NULL;
 }
@@ -273,7 +273,7 @@ void Dsymbol::setScope(Scope *sc)
 {
     //printf("Dsymbol::setScope() %p %s\n", this, toChars());
     if (!sc->nofree)
-	sc->setNoFree();		// may need it even after semantic() finishes
+        sc->setNoFree();                // may need it even after semantic() finishes
     scope = sc;
 }
 
@@ -320,11 +320,11 @@ void Dsymbol::inlineScan()
 /*********************************************
  * Search for ident as member of s.
  * Input:
- *	flags:	1	don't find private members
- *		2	don't give error messages
- *		4	return NULL if ambiguous
+ *      flags:  1       don't find private members
+ *              2       don't give error messages
+ *              4       return NULL if ambiguous
  * Returns:
- *	NULL if not found
+ *      NULL if not found
  */
 
 Dsymbol *Dsymbol::search(Loc loc, Identifier *ident, int flags)
@@ -349,7 +349,7 @@ void *symbol_search_fp(void *arg, const char *seed)
 Dsymbol *Dsymbol::search_correct(Identifier *ident)
 {
     if (global.gag)
-	return NULL;		// don't do it for speculative compiles; too time consuming
+        return NULL;            // don't do it for speculative compiles; too time consuming
 
     return (Dsymbol *)speller(ident->toChars(), &symbol_search_fp, this, idchars);
 }
@@ -358,7 +358,7 @@ Dsymbol *Dsymbol::search_correct(Identifier *ident)
  * Search for identifier id as a member of 'this'.
  * id may be a template instance.
  * Returns:
- *	symbol found, NULL if not
+ *      symbol found, NULL if not
  */
 
 Dsymbol *Dsymbol::searchX(Loc loc, Scope *sc, Identifier *id)
@@ -369,38 +369,38 @@ Dsymbol *Dsymbol::searchX(Loc loc, Scope *sc, Identifier *id)
 
     switch (id->dyncast())
     {
-	case DYNCAST_IDENTIFIER:
-	    sm = s->search(loc, id, 0);
-	    break;
+        case DYNCAST_IDENTIFIER:
+            sm = s->search(loc, id, 0);
+            break;
 
-	case DYNCAST_DSYMBOL:
-	{   // It's a template instance
-	    //printf("\ttemplate instance id\n");
-	    Dsymbol *st = (Dsymbol *)id;
-	    TemplateInstance *ti = st->isTemplateInstance();
-	    id = ti->name;
-	    sm = s->search(loc, id, 0);
-	    if (!sm)
-	    {   error("template identifier %s is not a member of %s %s",
-		    id->toChars(), s->kind(), s->toChars());
-		return NULL;
-	    }
-	    sm = sm->toAlias();
-	    TemplateDeclaration *td = sm->isTemplateDeclaration();
-	    if (!td)
-	    {
-		error("%s is not a template, it is a %s", id->toChars(), sm->kind());
-		return NULL;
-	    }
-	    ti->tempdecl = td;
-	    if (!ti->semanticRun)
-		ti->semantic(sc);
-	    sm = ti->toAlias();
-	    break;
-	}
+        case DYNCAST_DSYMBOL:
+        {   // It's a template instance
+            //printf("\ttemplate instance id\n");
+            Dsymbol *st = (Dsymbol *)id;
+            TemplateInstance *ti = st->isTemplateInstance();
+            id = ti->name;
+            sm = s->search(loc, id, 0);
+            if (!sm)
+            {   error("template identifier %s is not a member of %s %s",
+                    id->toChars(), s->kind(), s->toChars());
+                return NULL;
+            }
+            sm = sm->toAlias();
+            TemplateDeclaration *td = sm->isTemplateDeclaration();
+            if (!td)
+            {
+                error("%s is not a template, it is a %s", id->toChars(), sm->kind());
+                return NULL;
+            }
+            ti->tempdecl = td;
+            if (!ti->semanticRun)
+                ti->semantic(sc);
+            sm = ti->toAlias();
+            break;
+        }
 
-	default:
-	    assert(0);
+        default:
+            assert(0);
     }
     return sm;
 }
@@ -432,11 +432,11 @@ AggregateDeclaration *Dsymbol::isThis()
     return NULL;
 }
 
-ClassDeclaration *Dsymbol::isClassMember()	// are we a member of a class?
+ClassDeclaration *Dsymbol::isClassMember()      // are we a member of a class?
 {
     Dsymbol *parent = toParent();
     if (parent && parent->isClassDeclaration())
-	return (ClassDeclaration *)parent;
+        return (ClassDeclaration *)parent;
     return NULL;
 }
 
@@ -467,12 +467,12 @@ int Dsymbol::isOverloadable()
 }
 #endif
 
-LabelDsymbol *Dsymbol::isLabel()		// is this a LabelDsymbol()?
+LabelDsymbol *Dsymbol::isLabel()                // is this a LabelDsymbol()?
 {
     return NULL;
 }
 
-AggregateDeclaration *Dsymbol::isMember()	// is this a member of an AggregateDeclaration?
+AggregateDeclaration *Dsymbol::isMember()       // is this a member of an AggregateDeclaration?
 {
     //printf("Dsymbol::isMember() %s\n", toChars());
     Dsymbol *parent = toParent();
@@ -496,24 +496,24 @@ int Dsymbol::addMember(Scope *sc, ScopeDsymbol *sd, int memnum)
     //printf("Dsymbol::addMember(this = %p, '%s' scopesym = '%s')\n", this, toChars(), sd->toChars());
     //printf("Dsymbol::addMember(this = %p, '%s' sd = %p, sd->symtab = %p)\n", this, toChars(), sd, sd->symtab);
     parent = sd;
-    if (!isAnonymous())		// no name, so can't add it to symbol table
+    if (!isAnonymous())         // no name, so can't add it to symbol table
     {
-	if (!sd->symtabInsert(this))	// if name is already defined
-	{
-	    Dsymbol *s2;
+        if (!sd->symtabInsert(this))    // if name is already defined
+        {
+            Dsymbol *s2;
 
-	    s2 = sd->symtab->lookup(ident);
-	    if (!s2->overloadInsert(this))
-	    {
-		sd->multiplyDefined(0, this, s2);
-	    }
-	}
-	if (sd->isAggregateDeclaration() || sd->isEnumDeclaration())
-	{
-	    if (ident == Id::__sizeof || ident == Id::alignof || ident == Id::mangleof)
-		error(".%s property cannot be redefined", ident->toChars());
-	}
-	return 1;
+            s2 = sd->symtab->lookup(ident);
+            if (!s2->overloadInsert(this))
+            {
+                sd->multiplyDefined(0, this, s2);
+            }
+        }
+        if (sd->isAggregateDeclaration() || sd->isEnumDeclaration())
+        {
+            if (ident == Id::__sizeof || ident == Id::alignof || ident == Id::mangleof)
+                error(".%s property cannot be redefined", ident->toChars());
+        }
+        return 1;
     }
     return 0;
 }
@@ -523,25 +523,25 @@ void Dsymbol::error(const char *format, ...)
     //printf("Dsymbol::error()\n");
     if (!global.gag)
     {
-	char *p = locToChars();
+        char *p = locToChars();
 
-	if (*p)
-	    fprintf(stdmsg, "%s: ", p);
-	mem.free(p);
+        if (*p)
+            fprintf(stdmsg, "%s: ", p);
+        mem.free(p);
 
-	fprintf(stdmsg, "Error: ");
-	if (isAnonymous())
-	    fprintf(stdmsg, "%s ", kind());
-	else
-	    fprintf(stdmsg, "%s %s ", kind(), toPrettyChars());
+        fprintf(stdmsg, "Error: ");
+        if (isAnonymous())
+            fprintf(stdmsg, "%s ", kind());
+        else
+            fprintf(stdmsg, "%s %s ", kind(), toPrettyChars());
 
-	va_list ap;
-	va_start(ap, format);
-	vfprintf(stdmsg, format, ap);
-	va_end(ap);
+        va_list ap;
+        va_start(ap, format);
+        vfprintf(stdmsg, format, ap);
+        va_end(ap);
 
-	fprintf(stdmsg, "\n");
-	fflush(stdmsg);
+        fprintf(stdmsg, "\n");
+        fflush(stdmsg);
     }
     global.errors++;
 
@@ -552,24 +552,24 @@ void Dsymbol::error(Loc loc, const char *format, ...)
 {
     if (!global.gag)
     {
-	char *p = loc.toChars();
-	if (!*p)
-	    p = locToChars();
+        char *p = loc.toChars();
+        if (!*p)
+            p = locToChars();
 
-	if (*p)
-	    fprintf(stdmsg, "%s: ", p);
-	mem.free(p);
+        if (*p)
+            fprintf(stdmsg, "%s: ", p);
+        mem.free(p);
 
-	fprintf(stdmsg, "Error: ");
-	fprintf(stdmsg, "%s %s ", kind(), toPrettyChars());
+        fprintf(stdmsg, "Error: ");
+        fprintf(stdmsg, "%s %s ", kind(), toPrettyChars());
 
-	va_list ap;
-	va_start(ap, format);
-	vfprintf(stdmsg, format, ap);
-	va_end(ap);
+        va_list ap;
+        va_start(ap, format);
+        vfprintf(stdmsg, format, ap);
+        va_end(ap);
 
-	fprintf(stdmsg, "\n");
-	fflush(stdmsg);
+        fprintf(stdmsg, "\n");
+        fflush(stdmsg);
     }
 
     global.errors++;
@@ -581,23 +581,23 @@ void Dsymbol::checkDeprecated(Loc loc, Scope *sc)
 {
     if (!global.params.useDeprecated && isDeprecated())
     {
-	// Don't complain if we're inside a deprecated symbol's scope
-	for (Dsymbol *sp = sc->parent; sp; sp = sp->parent)
-	{   if (sp->isDeprecated())
-		return;
-	}
+        // Don't complain if we're inside a deprecated symbol's scope
+        for (Dsymbol *sp = sc->parent; sp; sp = sp->parent)
+        {   if (sp->isDeprecated())
+                return;
+        }
 
-	for (; sc; sc = sc->enclosing)
-	{
-	    if (sc->scopesym && sc->scopesym->isDeprecated())
-		return;
+        for (; sc; sc = sc->enclosing)
+        {
+            if (sc->scopesym && sc->scopesym->isDeprecated())
+                return;
 
-	    // If inside a StorageClassDeclaration that is deprecated
-	    if (sc->stc & STCdeprecated)
-		return;
-	}
+            // If inside a StorageClassDeclaration that is deprecated
+            if (sc->stc & STCdeprecated)
+                return;
+        }
 
-	error(loc, "is deprecated");
+        error(loc, "is deprecated");
     }
 }
 
@@ -614,11 +614,11 @@ Module *Dsymbol::getModule()
     s = this;
     while (s)
     {
-	//printf("\ts = '%s'\n", s->toChars());
-	m = s->isModule();
-	if (m)
-	    return m;
-	s = s->parent;
+        //printf("\ts = '%s'\n", s->toChars());
+        m = s->isModule();
+        if (m)
+            return m;
+        s = s->parent;
     }
     return NULL;
 }
@@ -642,14 +642,14 @@ Array *Dsymbol::arraySyntaxCopy(Array *a)
     Array *b = NULL;
     if (a)
     {
-	b = a->copy();
-	for (int i = 0; i < b->dim; i++)
-	{
-	    Dsymbol *s = (Dsymbol *)b->data[i];
+        b = a->copy();
+        for (int i = 0; i < b->dim; i++)
+        {
+            Dsymbol *s = (Dsymbol *)b->data[i];
 
-	    s = s->syntaxCopy(NULL);
-	    b->data[i] = (void *)s;
-	}
+            s = s->syntaxCopy(NULL);
+            b->data[i] = (void *)s;
+        }
     }
     return b;
 }
@@ -663,14 +663,14 @@ Array *Dsymbol::arraySyntaxCopy(Array *a)
 void Dsymbol::addComment(unsigned char *comment)
 {
     //if (comment)
-	//printf("adding comment '%s' to symbol %p '%s'\n", comment, this, toChars());
+        //printf("adding comment '%s' to symbol %p '%s'\n", comment, this, toChars());
 
     if (!this->comment)
-	this->comment = comment;
+        this->comment = comment;
 #if 1
     else if (comment && strcmp((char *)comment, (char *)this->comment))
-    {	// Concatenate the two
-	this->comment = Lexer::combineComments(this->comment, comment);
+    {   // Concatenate the two
+        this->comment = Lexer::combineComments(this->comment, comment);
     }
 #endif
 }
@@ -721,9 +721,9 @@ Dsymbol *ScopeDsymbol::syntaxCopy(Dsymbol *s)
 
     ScopeDsymbol *sd;
     if (s)
-	sd = (ScopeDsymbol *)s;
+        sd = (ScopeDsymbol *)s;
     else
-	sd = new ScopeDsymbol(ident);
+        sd = new ScopeDsymbol(ident);
     sd->members = arraySyntaxCopy(members);
     return sd;
 }
@@ -737,63 +737,63 @@ Dsymbol *ScopeDsymbol::search(Loc loc, Identifier *ident, int flags)
     Dsymbol *s = symtab ? symtab->lookup(ident) : NULL;
     if (s)
     {
-	//printf("\ts = '%s.%s'\n",toChars(),s->toChars());
+        //printf("\ts = '%s.%s'\n",toChars(),s->toChars());
     }
     else if (imports)
     {
-	// Look in imported modules
-	for (int i = 0; i < imports->dim; i++)
-	{   ScopeDsymbol *ss = (ScopeDsymbol *)imports->data[i];
-	    Dsymbol *s2;
+        // Look in imported modules
+        for (int i = 0; i < imports->dim; i++)
+        {   ScopeDsymbol *ss = (ScopeDsymbol *)imports->data[i];
+            Dsymbol *s2;
 
-	    // If private import, don't search it
-	    if (flags & 1 && prots[i] == PROTprivate)
-		continue;
+            // If private import, don't search it
+            if (flags & 1 && prots[i] == PROTprivate)
+                continue;
 
-	    //printf("\tscanning import '%s', prots = %d, isModule = %p, isImport = %p\n", ss->toChars(), prots[i], ss->isModule(), ss->isImport());
-	    /* Don't find private members if ss is a module
-	     */
-	    s2 = ss->search(loc, ident, ss->isModule() ? 1 : 0);
-	    if (!s)
-		s = s2;
-	    else if (s2 && s != s2)
-	    {
-		if (s->toAlias() == s2->toAlias())
-		{
-		    /* After following aliases, we found the same symbol,
-		     * so it's not an ambiguity.
-		     * But if one alias is deprecated, prefer the other.
-		     */
-		    if (s->isDeprecated())
-			s = s2;
-		}
-		else
-		{
-		    /* Two imports of the same module should be regarded as
-		     * the same.
-		     */
-		    Import *i1 = s->isImport();
-		    Import *i2 = s2->isImport();
-		    if (!(i1 && i2 &&
-			  (i1->mod == i2->mod ||
-			   (!i1->parent->isImport() && !i2->parent->isImport() &&
-			    i1->ident->equals(i2->ident))
-			  )
-			 )
-		       )
-		    {
-			ss->multiplyDefined(loc, s, s2);
-			break;
-		    }
-		}
-	    }
-	}
-	if (s)
-	{
-	    Declaration *d = s->isDeclaration();
-	    if (d && d->protection == PROTprivate && !d->parent->isTemplateMixin())
-		error("%s is private", d->toPrettyChars());
-	}
+            //printf("\tscanning import '%s', prots = %d, isModule = %p, isImport = %p\n", ss->toChars(), prots[i], ss->isModule(), ss->isImport());
+            /* Don't find private members if ss is a module
+             */
+            s2 = ss->search(loc, ident, ss->isModule() ? 1 : 0);
+            if (!s)
+                s = s2;
+            else if (s2 && s != s2)
+            {
+                if (s->toAlias() == s2->toAlias())
+                {
+                    /* After following aliases, we found the same symbol,
+                     * so it's not an ambiguity.
+                     * But if one alias is deprecated, prefer the other.
+                     */
+                    if (s->isDeprecated())
+                        s = s2;
+                }
+                else
+                {
+                    /* Two imports of the same module should be regarded as
+                     * the same.
+                     */
+                    Import *i1 = s->isImport();
+                    Import *i2 = s2->isImport();
+                    if (!(i1 && i2 &&
+                          (i1->mod == i2->mod ||
+                           (!i1->parent->isImport() && !i2->parent->isImport() &&
+                            i1->ident->equals(i2->ident))
+                          )
+                         )
+                       )
+                    {
+                        ss->multiplyDefined(loc, s, s2);
+                        break;
+                    }
+                }
+            }
+        }
+        if (s)
+        {
+            Declaration *d = s->isDeclaration();
+            if (d && d->protection == PROTprivate && !d->parent->isTemplateMixin())
+                error("%s is private", d->toPrettyChars());
+        }
     }
     return s;
 }
@@ -805,25 +805,25 @@ void ScopeDsymbol::importScope(ScopeDsymbol *s, enum PROT protection)
     // No circular or redundant import's
     if (s != this)
     {
-	if (!imports)
-	    imports = new Array();
-	else
-	{
-	    for (int i = 0; i < imports->dim; i++)
-	    {   ScopeDsymbol *ss;
+        if (!imports)
+            imports = new Array();
+        else
+        {
+            for (int i = 0; i < imports->dim; i++)
+            {   ScopeDsymbol *ss;
 
-		ss = (ScopeDsymbol *) imports->data[i];
-		if (ss == s)			// if already imported
-		{
-		    if (protection > prots[i])
-			prots[i] = protection;	// upgrade access
-		    return;
-		}
-	    }
-	}
-	imports->push(s);
-	prots = (unsigned char *)mem.realloc(prots, imports->dim * sizeof(prots[0]));
-	prots[imports->dim - 1] = protection;
+                ss = (ScopeDsymbol *) imports->data[i];
+                if (ss == s)                    // if already imported
+                {
+                    if (protection > prots[i])
+                        prots[i] = protection;  // upgrade access
+                    return;
+                }
+            }
+        }
+        imports->push(s);
+        prots = (unsigned char *)mem.realloc(prots, imports->dim * sizeof(prots[0]));
+        prots[imports->dim - 1] = protection;
     }
 }
 
@@ -849,18 +849,18 @@ void ScopeDsymbol::multiplyDefined(Loc loc, Dsymbol *s1, Dsymbol *s2)
     printf("s2 = %p, '%s' kind = '%s', parent = %s\n", s2, s2->toChars(), s2->kind(), s2->parent ? s2->parent->toChars() : "");
 #endif
     if (loc.filename)
-    {	::error(loc, "%s at %s conflicts with %s at %s",
-	    s1->toPrettyChars(),
-	    s1->locToChars(),
-	    s2->toPrettyChars(),
-	    s2->locToChars());
+    {   ::error(loc, "%s at %s conflicts with %s at %s",
+            s1->toPrettyChars(),
+            s1->locToChars(),
+            s2->toPrettyChars(),
+            s2->locToChars());
     }
     else
     {
-	s1->error(loc, "conflicts with %s %s at %s",
-	    s2->kind(),
-	    s2->toPrettyChars(),
-	    s2->locToChars());
+        s1->error(loc, "conflicts with %s %s at %s",
+            s2->kind(),
+            s2->toPrettyChars(),
+            s2->locToChars());
     }
 }
 
@@ -872,15 +872,15 @@ Dsymbol *ScopeDsymbol::nameCollision(Dsymbol *s)
 
     sprev = symtab->lookup(s->ident);
     assert(sprev);
-    if (s->equals(sprev))		// if the same symbol
+    if (s->equals(sprev))               // if the same symbol
     {
-	if (s->isforwardRef())		// if second declaration is a forward reference
-	    return sprev;
-	if (sprev->isforwardRef())
-	{
-	    sprev->defineRef(s);	// copy data from s into sprev
-	    return sprev;
-	}
+        if (s->isforwardRef())          // if second declaration is a forward reference
+            return sprev;
+        if (sprev->isforwardRef())
+        {
+            sprev->defineRef(s);        // copy data from s into sprev
+            return sprev;
+        }
     }
     multiplyDefined(0, s, sprev);
     return sprev;
@@ -906,17 +906,17 @@ size_t ScopeDsymbol::dim(Array *members)
     size_t n = 0;
     if (members)
     {
-	for (size_t i = 0; i < members->dim; i++)
-	{   Dsymbol *s = (Dsymbol *)members->data[i];
-	    AttribDeclaration *a = s->isAttribDeclaration();
+        for (size_t i = 0; i < members->dim; i++)
+        {   Dsymbol *s = (Dsymbol *)members->data[i];
+            AttribDeclaration *a = s->isAttribDeclaration();
 
-	    if (a)
-	    {
-		n += dim(a->decl);
-	    }
-	    else
-		n++;
-	}
+            if (a)
+            {
+                n += dim(a->decl);
+            }
+            else
+                n++;
+        }
     }
     return n;
 }
@@ -925,43 +925,43 @@ size_t ScopeDsymbol::dim(Array *members)
 /***************************************
  * Get nth Dsymbol, folding in AttribDeclaration members.
  * Returns:
- *	Dsymbol*	nth Dsymbol
- *	NULL		not found, *pn gets incremented by the number
- *			of Dsymbols
+ *      Dsymbol*        nth Dsymbol
+ *      NULL            not found, *pn gets incremented by the number
+ *                      of Dsymbols
  */
 
 #if DMDV2
 Dsymbol *ScopeDsymbol::getNth(Array *members, size_t nth, size_t *pn)
 {
     if (!members)
-	return NULL;
+        return NULL;
 
     size_t n = 0;
     for (size_t i = 0; i < members->dim; i++)
     {   Dsymbol *s = (Dsymbol *)members->data[i];
-	AttribDeclaration *a = s->isAttribDeclaration();
+        AttribDeclaration *a = s->isAttribDeclaration();
 
-	if (a)
-	{
-	    s = getNth(a->decl, nth - n, &n);
-	    if (s)
-		return s;
-	}
-	else if (n == nth)
-	    return s;
-	else
-	    n++;
+        if (a)
+        {
+            s = getNth(a->decl, nth - n, &n);
+            if (s)
+                return s;
+        }
+        else if (n == nth)
+            return s;
+        else
+            n++;
     }
 
     if (pn)
-	*pn += n;
+        *pn += n;
     return NULL;
 }
 #endif
 
 /*******************************************
  * Look for member of the form:
- *	const(MemberInfo)[] getMembers(string);
+ *      const(MemberInfo)[] getMembers(string);
  * Returns NULL if not found
  */
 
@@ -976,20 +976,20 @@ FuncDeclaration *ScopeDsymbol::findGetMembers()
 
     if (!tfgetmembers)
     {
-	Scope sc;
-	Parameters *arguments = new Parameters;
-	Parameters *arg = new Parameter(STCin, Type::tchar->constOf()->arrayOf(), NULL, NULL);
-	arguments->push(arg);
+        Scope sc;
+        Parameters *arguments = new Parameters;
+        Parameters *arg = new Parameter(STCin, Type::tchar->constOf()->arrayOf(), NULL, NULL);
+        arguments->push(arg);
 
-	Type *tret = NULL;
-	tfgetmembers = new TypeFunction(arguments, tret, 0, LINKd);
-	tfgetmembers = (TypeFunction *)tfgetmembers->semantic(0, &sc);
+        Type *tret = NULL;
+        tfgetmembers = new TypeFunction(arguments, tret, 0, LINKd);
+        tfgetmembers = (TypeFunction *)tfgetmembers->semantic(0, &sc);
     }
     if (fdx)
-	fdx = fdx->overloadExactMatch(tfgetmembers);
+        fdx = fdx->overloadExactMatch(tfgetmembers);
 #endif
     if (fdx && fdx->isVirtual())
-	fdx = NULL;
+        fdx = NULL;
 
     return fdx;
 }
@@ -1041,101 +1041,101 @@ Dsymbol *ArrayScopeSymbol::search(Loc loc, Identifier *ident, int flags)
 {
     //printf("ArrayScopeSymbol::search('%s', flags = %d)\n", ident->toChars(), flags);
     if (ident == Id::length || ident == Id::dollar)
-    {	VarDeclaration **pvar;
-	Expression *ce;
+    {   VarDeclaration **pvar;
+        Expression *ce;
 
     L1:
 
-	if (td)
- 	{   /* $ gives the number of elements in the tuple
-	     */
-	    VarDeclaration *v = new VarDeclaration(loc, Type::tsize_t, Id::dollar, NULL);
-	    Expression *e = new IntegerExp(0, td->objects->dim, Type::tsize_t);
-	    v->init = new ExpInitializer(0, e);
-	    v->storage_class |= STCconst;
-	    return v;
-	}
+        if (td)
+        {   /* $ gives the number of elements in the tuple
+             */
+            VarDeclaration *v = new VarDeclaration(loc, Type::tsize_t, Id::dollar, NULL);
+            Expression *e = new IntegerExp(0, td->objects->dim, Type::tsize_t);
+            v->init = new ExpInitializer(0, e);
+            v->storage_class |= STCconst;
+            return v;
+        }
 
-	if (type)
- 	{   /* $ gives the number of type entries in the type tuple
-	     */
-	    VarDeclaration *v = new VarDeclaration(loc, Type::tsize_t, Id::dollar, NULL);
-	    Expression *e = new IntegerExp(0, type->arguments->dim, Type::tsize_t);
-	    v->init = new ExpInitializer(0, e);
-	    v->storage_class |= STCconst;
-	    return v;
-	}
+        if (type)
+        {   /* $ gives the number of type entries in the type tuple
+             */
+            VarDeclaration *v = new VarDeclaration(loc, Type::tsize_t, Id::dollar, NULL);
+            Expression *e = new IntegerExp(0, type->arguments->dim, Type::tsize_t);
+            v->init = new ExpInitializer(0, e);
+            v->storage_class |= STCconst;
+            return v;
+        }
 
-	if (exp->op == TOKindex)
-	{   /* array[index] where index is some function of $
-	     */
-	    IndexExp *ie = (IndexExp *)exp;
+        if (exp->op == TOKindex)
+        {   /* array[index] where index is some function of $
+             */
+            IndexExp *ie = (IndexExp *)exp;
 
-	    pvar = &ie->lengthVar;
-	    ce = ie->e1;
-	}
-	else if (exp->op == TOKslice)
-	{   /* array[lwr .. upr] where lwr or upr is some function of $
-	     */
-	    SliceExp *se = (SliceExp *)exp;
+            pvar = &ie->lengthVar;
+            ce = ie->e1;
+        }
+        else if (exp->op == TOKslice)
+        {   /* array[lwr .. upr] where lwr or upr is some function of $
+             */
+            SliceExp *se = (SliceExp *)exp;
 
-	    pvar = &se->lengthVar;
-	    ce = se->e1;
-	}
-	else
-	    /* Didn't find $, look in enclosing scope(s).
-	     */
-	    return NULL;
+            pvar = &se->lengthVar;
+            ce = se->e1;
+        }
+        else
+            /* Didn't find $, look in enclosing scope(s).
+             */
+            return NULL;
 
-	/* If we are indexing into an array that is really a type
-	 * tuple, rewrite this as an index into a type tuple and
-	 * try again.
-	 */
-	if (ce->op == TOKtype)
-	{
-	    Type *t = ((TypeExp *)ce)->type;
-	    if (t->ty == Ttuple)
-	    {	type = (TypeTuple *)t;
-		goto L1;
-	    }
-	}
+        /* If we are indexing into an array that is really a type
+         * tuple, rewrite this as an index into a type tuple and
+         * try again.
+         */
+        if (ce->op == TOKtype)
+        {
+            Type *t = ((TypeExp *)ce)->type;
+            if (t->ty == Ttuple)
+            {   type = (TypeTuple *)t;
+                goto L1;
+            }
+        }
 
-	/* *pvar is lazily initialized, so if we refer to $
-	 * multiple times, it gets set only once.
-	 */
-	if (!*pvar)		// if not already initialized
-	{   /* Create variable v and set it to the value of $,
-	     * which will be a constant.
-	     */
-	    VarDeclaration *v = new VarDeclaration(loc, Type::tsize_t, Id::dollar, NULL);
+        /* *pvar is lazily initialized, so if we refer to $
+         * multiple times, it gets set only once.
+         */
+        if (!*pvar)             // if not already initialized
+        {   /* Create variable v and set it to the value of $,
+             * which will be a constant.
+             */
+            VarDeclaration *v = new VarDeclaration(loc, Type::tsize_t, Id::dollar, NULL);
 
-	    if (ce->op == TOKstring)
-	    {	/* It is for a string literal, so the
-		 * length will be a const.
-		 */
-		Expression *e = new IntegerExp(0, ((StringExp *)ce)->len, Type::tsize_t);
-		v->init = new ExpInitializer(0, e);
-		v->storage_class |= STCconst;
-	    }
-	    else if (ce->op == TOKarrayliteral)
-	    {	/* It is for an array literal, so the
-		 * length will be a const.
-		 */
-		Expression *e = new IntegerExp(0, ((ArrayLiteralExp *)ce)->elements->dim, Type::tsize_t);
-		v->init = new ExpInitializer(0, e);
-		v->storage_class |= STCconst;
-	    }
-	    else if (ce->op == TOKtuple)
-	    {	/* It is for an expression tuple, so the
-		 * length will be a const.
-		 */
-		Expression *e = new IntegerExp(0, ((TupleExp *)ce)->exps->dim, Type::tsize_t);
-		v->init = new ExpInitializer(0, e);
-		v->storage_class |= STCconst;
-	    }
-	    *pvar = v;
-	}
-	return (*pvar);
+            if (ce->op == TOKstring)
+            {   /* It is for a string literal, so the
+                 * length will be a const.
+                 */
+                Expression *e = new IntegerExp(0, ((StringExp *)ce)->len, Type::tsize_t);
+                v->init = new ExpInitializer(0, e);
+                v->storage_class |= STCconst;
+            }
+            else if (ce->op == TOKarrayliteral)
+            {   /* It is for an array literal, so the
+                 * length will be a const.
+                 */
+                Expression *e = new IntegerExp(0, ((ArrayLiteralExp *)ce)->elements->dim, Type::tsize_t);
+                v->init = new ExpInitializer(0, e);
+                v->storage_class |= STCconst;
+            }
+            else if (ce->op == TOKtuple)
+            {   /* It is for an expression tuple, so the
+                 * length will be a const.
+                 */
+                Expression *e = new IntegerExp(0, ((TupleExp *)ce)->exps->dim, Type::tsize_t);
+                v->init = new ExpInitializer(0, e);
+                v->storage_class |= STCconst;
+            }
+            *pvar = v;
+        }
+        return (*pvar);
     }
     return NULL;
 }
@@ -1175,7 +1175,7 @@ Dsymbol *DsymbolTable::insert(Dsymbol *s)
 #endif
     sv = tab->insert(ident->toChars(), ident->len);
     if (!sv)
-	return NULL;		// already in table
+        return NULL;            // already in table
     sv->ptrvalue = s;
     return s;
 }
@@ -1186,7 +1186,7 @@ Dsymbol *DsymbolTable::insert(Identifier *ident, Dsymbol *s)
     //printf("DsymbolTable::insert()\n");
     sv = tab->insert(ident->toChars(), ident->len);
     if (!sv)
-	return NULL;		// already in table
+        return NULL;            // already in table
     sv->ptrvalue = s;
     return s;
 }

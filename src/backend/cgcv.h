@@ -10,7 +10,7 @@
  * For any other uses, please contact Digital Mars.
  */
 
-/* Header for cgcv.c	*/
+/* Header for cgcv.c    */
 
 #ifndef CGCV_H
 #define CGCV_H
@@ -28,17 +28,17 @@ unsigned long cv4_struct(Classsym *,int);
 
 /* =================== Added for MARS compiler ========================= */
 
-typedef unsigned long idx_t;	// type of type index
+typedef unsigned long idx_t;    // type of type index
 
-/* Data structure for a type record	*/
+/* Data structure for a type record     */
 
 #pragma pack(1)
 
 typedef struct DEBTYP_T
 {
-    unsigned prev;		// previous debtyp_t with same hash
-    unsigned short length;	// length of following array
-    unsigned char data[2];	// variable size array
+    unsigned prev;              // previous debtyp_t with same hash
+    unsigned short length;      // length of following array
+    unsigned char data[2];      // variable size array
 } debtyp_t;
 
 #pragma pack()
@@ -46,12 +46,12 @@ typedef struct DEBTYP_T
 struct Cgcv
 {
     long signature;
-    symlist_t list;		// deferred list of symbols to output
-    idx_t deb_offset;		// offset added to type index
-    unsigned sz_idx;		// size of stored type index
+    symlist_t list;             // deferred list of symbols to output
+    idx_t deb_offset;           // offset added to type index
+    unsigned sz_idx;            // size of stored type index
     int LCFDoffset;
     int LCFDpointer;
-    int FD_code;		// frame for references to code
+    int FD_code;                // frame for references to code
 };
 
 extern Cgcv cgcv;
@@ -66,10 +66,10 @@ unsigned cv4_typidx(type *t);
 idx_t cv4_arglist(type *t,unsigned *pnparam);
 unsigned char cv4_callconv(type *t);
 
-#define TOIDX(a,b)	((cgcv.sz_idx == 4) ? TOLONG(a,b) : TOWORD(a,b))
+#define TOIDX(a,b)      ((cgcv.sz_idx == 4) ? TOLONG(a,b) : TOWORD(a,b))
 
-#define DEBSYM	5		/* segment of symbol info		*/
-#define DEBTYP	6		/* segment of type info			*/
+#define DEBSYM  5               /* segment of symbol info               */
+#define DEBTYP  6               /* segment of type info                 */
 
 
 #endif

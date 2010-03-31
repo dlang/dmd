@@ -9,39 +9,39 @@
 
 // Routines to convert expressions to elems.
 
-#include	<stdio.h>
-#include	<string.h>
-#include	<time.h>
+#include        <stdio.h>
+#include        <string.h>
+#include        <time.h>
 
-#include	"cc.h"
-#include	"el.h"
-#include	"oper.h"
-#include	"global.h"
-#include	"code.h"
-#include	"type.h"
-#include	"dt.h"
+#include        "cc.h"
+#include        "el.h"
+#include        "oper.h"
+#include        "global.h"
+#include        "code.h"
+#include        "type.h"
+#include        "dt.h"
 
-static char __file__[] = __FILE__;	/* for tassert.h		*/
-#include	"tassert.h"
+static char __file__[] = __FILE__;      /* for tassert.h                */
+#include        "tassert.h"
 
 /**********************************************
  * Generate code for:
- *	(*eb)[ei] = ev;
+ *      (*eb)[ei] = ev;
  * ev should already be a bit type.
  * result:
- *	0	don't want result
- *	1	want result in flags
- *	2	want value of result
+ *      0       don't want result
+ *      1       want result in flags
+ *      2       want value of result
  */
 
 #if 1
-#define BIT_SHIFT	3
-#define BIT_MASK	7
-#define TYbit		TYuchar
+#define BIT_SHIFT       3
+#define BIT_MASK        7
+#define TYbit           TYuchar
 #else
-#define BIT_SHIFT	5
-#define BIT_MASK	31
-#define TYbit		TYuint
+#define BIT_SHIFT       5
+#define BIT_MASK        31
+#define TYbit           TYuint
 #endif
 
 elem *bit_assign(enum OPER op, elem *eb, elem *ei, elem *ev, int result)
@@ -62,18 +62,18 @@ elem *bit_assign(enum OPER op, elem *eb, elem *ei, elem *ev, int result)
     return e;
 #else
     /*
-	The idea is:
+        The idea is:
 
-	*(eb + (ei >> 5)) &= ~(1 << (ei & 31));
-	*(eb + (ei >> 5)) |= ev << (ei & 31);
-	ev;
+        *(eb + (ei >> 5)) &= ~(1 << (ei & 31));
+        *(eb + (ei >> 5)) |= ev << (ei & 31);
+        ev;
 
-	So we generate:
+        So we generate:
 
-	et = (eb + (ei >> 5));
-	em = (eit & 31);
-	*ett = (*et & ~(1 << em)) | (ev << em);
-	evt;
+        et = (eb + (ei >> 5));
+        em = (eit & 31);
+        *ett = (*et & ~(1 << em)) | (ev << em);
+        evt;
      */
 
     printf("bit_assign()\n");
@@ -110,13 +110,13 @@ elem *bit_assign(enum OPER op, elem *eb, elem *ei, elem *ev, int result)
 
 /**********************************************
  * Generate code for:
- *	(*eb)[ei]
+ *      (*eb)[ei]
  * ev should already be a bit type.
  * result:
- *	0	don't want result
- *	1	want result in flags
- *	2	want value of result
- *	3	?
+ *      0       don't want result
+ *      1       want result in flags
+ *      2       want value of result
+ *      3       ?
  */
 
 elem *bit_read(elem *eb, elem *ei, int result)

@@ -13,7 +13,7 @@
 #include <string.h>
 #include <assert.h>
 
-#if (defined (__SVR4) && defined (__sun)) 
+#if (defined (__SVR4) && defined (__sun))
 #include <alloca.h>
 #endif
 
@@ -63,7 +63,7 @@ void Array::mark()
 
     mem.mark(data);
     for (u = 0; u < dim; u++)
-	mem.mark(data[u]);	// BUG: what if arrays of Object's?
+        mem.mark(data[u]);      // BUG: what if arrays of Object's?
 }
 
 void Array::reserve(unsigned nentries)
@@ -71,8 +71,8 @@ void Array::reserve(unsigned nentries)
     //printf("Array::reserve: size = %d, offset = %d, nbytes = %d\n", size, offset, nbytes);
     if (allocdim - dim < nentries)
     {
-	allocdim = dim + nentries;
-	data = (void **)mem.realloc(data, allocdim * sizeof(*data));
+        allocdim = dim + nentries;
+        data = (void **)mem.realloc(data, allocdim * sizeof(*data));
     }
 }
 
@@ -80,7 +80,7 @@ void Array::setDim(unsigned newdim)
 {
     if (dim < newdim)
     {
-	reserve(newdim - dim);
+        reserve(newdim - dim);
     }
     dim = newdim;
 }
@@ -88,8 +88,8 @@ void Array::setDim(unsigned newdim)
 void Array::fixDim()
 {
     if (dim != allocdim)
-    {	data = (void **)mem.realloc(data, dim * sizeof(*data));
-	allocdim = dim;
+    {   data = (void **)mem.realloc(data, dim * sizeof(*data));
+        allocdim = dim;
     }
 }
 
@@ -124,14 +124,14 @@ void Array::insert(unsigned index, void *ptr)
 void Array::insert(unsigned index, Array *a)
 {
     if (a)
-    {	unsigned d;
+    {   unsigned d;
 
-	d = a->dim;
-	reserve(d);
-	if (dim != index)
-	    memmove(data + index + d, data + index, (dim - index) * sizeof(*data));
-	memcpy(data + index, a->data, d * sizeof(*data));
-	dim += d;
+        d = a->dim;
+        reserve(d);
+        if (dim != index)
+            memmove(data + index + d, data + index, (dim - index) * sizeof(*data));
+        memcpy(data + index, a->data, d * sizeof(*data));
+        dim += d;
     }
 }
 
@@ -163,8 +163,8 @@ char *Array::toChars()
     len = 2;
     for (u = 0; u < dim; u++)
     {
-	buf[u] = ((Object *)data[u])->toChars();
-	len += strlen(buf[u]) + 1;
+        buf[u] = ((Object *)data[u])->toChars();
+        len += strlen(buf[u]) + 1;
     }
     str = (char *)mem.malloc(len);
 
@@ -172,11 +172,11 @@ char *Array::toChars()
     p = str + 1;
     for (u = 0; u < dim; u++)
     {
-	if (u)
-	    *p++ = ',';
-	len = strlen(buf[u]);
-	memcpy(p,buf[u],len);
-	p += len;
+        if (u)
+            *p++ = ',';
+        len = strlen(buf[u]);
+        memcpy(p,buf[u],len);
+        p += len;
     }
     *p++ = ']';
     *p = 0;
@@ -197,7 +197,7 @@ int
 #if _WIN32
   __cdecl
 #endif
-	Array_sort_compare(const void *x, const void *y)
+        Array_sort_compare(const void *x, const void *y)
 {
     Object *ox = *(Object **)x;
     Object *oy = *(Object **)y;
@@ -209,7 +209,7 @@ void Array::sort()
 {
     if (dim)
     {
-	qsort(data, dim, sizeof(Object *), Array_sort_compare);
+        qsort(data, dim, sizeof(Object *), Array_sort_compare);
     }
 }
 
