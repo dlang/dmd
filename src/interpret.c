@@ -53,7 +53,7 @@ Expression *interpret_keys(InterState *istate, Expression *earg, FuncDeclaration
 Expression *interpret_values(InterState *istate, Expression *earg, FuncDeclaration *fd);
 
 ArrayLiteralExp *createBlockDuplicatedArrayLiteral(Type *type, Expression *elem, size_t dim);
-Expression * resolveReferences(Expression *e, Expression *thisval);
+Expression * resolveReferences(Expression *e, Expression *thisval, bool *isReference = NULL);
 
 /*************************************
  * Attempt to interpret a function given the arguments.
@@ -100,6 +100,8 @@ Expression *FuncDeclaration::interpret(InterState *istate, Expressions *argument
 
     if (!fbody)
     {   cantInterpret = 1;
+        error("cannot be interpreted at compile time,"
+            " because it has no available source code");
         return NULL;
     }
 
@@ -545,6 +547,13 @@ Expression *ReturnStatement::interpret(InterState *istate)
             if (e == EXP_CANT_INTERPRET)
                 error("ref return %s is not yet supported in CTFE", exp->toChars());
             return e;
+        }
+        if (tf->next && (tf->next->ty == Tdelegate) && istate->fd->closureVars.dim > 0)
+        {
+            // To support this, we need to copy all the closure vars
+            // into the delegate literal.
+            error("closures are not yet supported in CTFE");
+            return EXP_CANT_INTERPRET;
         }
     }
 #endif
@@ -1107,8 +1116,11 @@ Expression *DelegateExp::interpret(InterState *istate)
 // -------------------------------------------------------------
 // The variable used in a dotvar, index, or slice expression,
 // after 'out', 'ref', and 'this' have been removed.
-Expression * resolveReferences(Expression *e, Expression *thisval)
+// *isReference will be set to true if a reference was removed.
+Expression * resolveReferences(Expression *e, Expression *thisval, bool *isReference /*=NULL */)
 {
+    if (isReference)
+        *isReference = false;
     for(;;)
     {
         if (e->op == TOKthis)
@@ -1131,6 +1143,8 @@ Expression * resolveReferences(Expression *e, Expression *thisval)
                 VarExp *ve2 = (VarExp *)v->value;
                 if (!ve2->var->isSymbolDeclaration())
                 {
+                    if (isReference)
+                        *isReference = true;
                     e = v->value;
                     continue;
                 }
@@ -2087,7 +2101,8 @@ Expression *BinExp::interpretAssignCommon(InterState *istate, fp_t fp, int post)
         v->value = e2;
         return e2;
     }
-    e1 = resolveReferences(e1, istate->localThis);
+    bool destinationIsReference = false;
+    e1 = resolveReferences(e1, istate->localThis, &destinationIsReference);
 
     // Unless we have a simple var assignment, we're
     // only modifying part of the variable. So we need to make sure
@@ -2109,45 +2124,46 @@ Expression *BinExp::interpretAssignCommon(InterState *istate, fp_t fp, int post)
         // Strip of all of the leading dotvars.
         if (e1->op == TOKdotvar)
         {
-        int numDotVars = 0;
-        while(lastNonDotVar->op == TOKdotvar)
-        {
-            ++numDotVars;
-            if (lastNonDotVar->op == TOKdotvar)
-                lastNonDotVar = ((DotVarExp *)lastNonDotVar)->e1;
-            lastNonDotVar = resolveReferences(lastNonDotVar, istate->localThis);
-            assert(lastNonDotVar);
-        }
-        // We need the value of this first nonvar, since only part of it will be
-        // modified.
-        Expression * existing = lastNonDotVar->interpret(istate);
-        if (existing == EXP_CANT_INTERPRET)
-            return existing;
-        assert(newval !=EXP_CANT_INTERPRET);
-        newval = assignDotVar(rvs, numDotVars, existing, newval);
-        e1 = lastNonDotVar;
-    if (e1->op == TOKvar)
-    {
-        VarExp *ve = (VarExp *)e1;
-        VarDeclaration *v = ve->var->isVarDeclaration();
-        v->value = newval;
-        return e;
-    }
-                assert(newval !=EXP_CANT_INTERPRET);
+            int numDotVars = 0;
+            while(lastNonDotVar->op == TOKdotvar)
+            {
+                ++numDotVars;
+                if (lastNonDotVar->op == TOKdotvar)
+                    lastNonDotVar = ((DotVarExp *)lastNonDotVar)->e1;
+                lastNonDotVar = resolveReferences(lastNonDotVar, istate->localThis);
+                assert(lastNonDotVar);
+            }
+            // We need the value of this first nonvar, since only part of it will be
+            // modified.
+            Expression * existing = lastNonDotVar->interpret(istate);
+            if (existing == EXP_CANT_INTERPRET)
+                return existing;
+            assert(newval !=EXP_CANT_INTERPRET);
+            newval = assignDotVar(rvs, numDotVars, existing, newval);
+            e1 = lastNonDotVar;
+            if (e1->op == TOKvar)
+            {
+                VarExp *ve = (VarExp *)e1;
+                VarDeclaration *v = ve->var->isVarDeclaration();
+                v->value = newval;
+                return e;
+            }
+            assert(newval !=EXP_CANT_INTERPRET);
 
-    } // end tokdotvar
-    else {
-        Expression * existing = lastNonDotVar->interpret(istate);
-        if (existing == EXP_CANT_INTERPRET)
-            return existing;
-        // It might be a reference. Turn it into an rvalue, by interpreting again.
-        existing = existing->interpret(istate);
-        if (existing == EXP_CANT_INTERPRET)
-            return existing;
-                assert(newval !=EXP_CANT_INTERPRET);
-        newval = assignDotVar(rvs, 0, existing, newval);
-                assert(newval !=EXP_CANT_INTERPRET);
-    }
+        } // end tokdotvar
+        else
+        {
+            Expression * existing = lastNonDotVar->interpret(istate);
+            if (existing == EXP_CANT_INTERPRET)
+                return existing;
+            // It might be a reference. Turn it into an rvalue, by interpreting again.
+            existing = existing->interpret(istate);
+            if (existing == EXP_CANT_INTERPRET)
+                return existing;
+            assert(newval !=EXP_CANT_INTERPRET);
+            newval = assignDotVar(rvs, 0, existing, newval);
+            assert(newval !=EXP_CANT_INTERPRET);
+        }
         if (e1->op == TOKcall)
         {
                 istate->awaitingLvalueReturn = true;
@@ -2167,7 +2183,8 @@ Expression *BinExp::interpretAssignCommon(InterState *istate, fp_t fp, int post)
     {
         VarExp *ve = (VarExp *)e1;
         VarDeclaration *v = ve->var->isVarDeclaration();
-        addVarToInterstate(istate, v);
+        if (!destinationIsReference)
+            addVarToInterstate(istate, v);
         v->value = newval;
     }
     else if (e1->op == TOKindex)
@@ -2182,6 +2199,21 @@ Expression *BinExp::interpretAssignCommon(InterState *istate, fp_t fp, int post)
             VarDeclaration *v = ve->var->isVarDeclaration();
             if (v->value->op == TOKnull)
             {
+                if (v->type->ty == Taarray)
+                {   // Assign to empty associative array
+                    Expressions *valuesx = new Expressions();
+                    Expressions *keysx = new Expressions();
+                    Expression *index = ie->e2->interpret(istate);
+                    if (index == EXP_CANT_INTERPRET)
+                        return EXP_CANT_INTERPRET;
+                    valuesx->push(newval);
+                    keysx->push(index);
+                    Expression *aae2 = new AssocArrayLiteralExp(loc, keysx, valuesx);
+                    aae2->type = v->type;
+                    newval = aae2;
+                    v->value = newval;
+                    return e;
+                }
                 // This would be a runtime segfault
                 error("Cannot index null array %s", v->toChars());
                 return EXP_CANT_INTERPRET;
@@ -2508,6 +2540,12 @@ Expression *CallExp::interpret(InterState *istate)
     Expression * pthis = NULL;
     FuncDeclaration *fd = NULL;
     Expression *ecall = e1;
+    if (ecall->op == TOKcall)
+    {
+        ecall = e1->interpret(istate);
+        if (ecall == EXP_CANT_INTERPRET)
+            return ecall;
+    }
     if (ecall->op == TOKstar)
     {   // Calling a function pointer
         Expression * pe = ((PtrExp*)ecall)->e1;
@@ -2569,6 +2607,12 @@ Expression *CallExp::interpret(InterState *istate)
             pthis = istate ? istate->localThis : NULL;
         else if (pthis->op == TOKcomma)
             pthis = pthis->interpret(istate);
+        if (!fd->fbody)
+        {
+            error("%s cannot be interpreted at compile time,"
+                " because it has no available source code", fd->toChars());
+            return EXP_CANT_INTERPRET;
+        }
         Expression *eresult = fd->interpret(istate, arguments, pthis);
         if (eresult)
             e = eresult;
@@ -2611,6 +2655,12 @@ Expression *CallExp::interpret(InterState *istate)
         }
         else
         {
+            if (!fd->fbody)
+            {
+                error("%s cannot be interpreted at compile time,"
+                    " because it has no available source code", fd->toChars());
+                return EXP_CANT_INTERPRET;
+            }
             Expression *eresult = fd->interpret(istate, arguments);
             if (eresult)
                 e = eresult;
@@ -2650,7 +2700,12 @@ Expression *CommaExp::interpret(InterState *istate)
             v->value = v->type->defaultInitLiteral();
         if (!v->value)
             v->value = v->init->toExpression();
-        v->value = v->value->interpret(istate);
+        // Bug 4027. Copy constructors are a weird case where the
+        // initializer is a void function (the variable is modified
+        // through a reference parameter instead).
+        Expression *newval = v->value->interpret(istate);
+        if (newval != EXP_VOID_INTERPRET)
+            v->value = newval;
         return e2;
     }
 
