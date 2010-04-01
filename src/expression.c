@@ -7181,7 +7181,7 @@ Lcheckargs:
     if (!type)
     {
         error("forward reference to inferred return type of function call %s", toChars());
-        type = Type::terror;
+        return new ErrorExp();
     }
 
     if (f && f->tintro)
