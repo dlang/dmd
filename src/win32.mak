@@ -500,7 +500,9 @@ detab:
 
 ################### Install ################
 
-install: detab
+install: detab install2
+
+install2:
 	copy dmd.exe $(DIR)\windows\bin\ 
 	copy phobos\phobos.lib $(DIR)\windows\lib 
 	$(CP) $(SRCS) $(DIR)\src\dmd\ 
