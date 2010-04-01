@@ -28,12 +28,13 @@ private
     extern (C) uint gc_setAttr( in void* p, uint a );
     extern (C) uint gc_clrAttr( in void* p, uint a );
 
-    extern (C) void*  gc_malloc( size_t sz, uint ba = 0 );
-    extern (C) void*  gc_calloc( size_t sz, uint ba = 0 );
-    extern (C) void*  gc_realloc( void* p, size_t sz, uint ba = 0 );
-    extern (C) size_t gc_extend( void* p, size_t mx, size_t sz );
-    extern (C) size_t gc_reserve( size_t sz );
-    extern (C) void   gc_free( void* p );
+    extern (C) void*    gc_malloc( size_t sz, uint ba = 0 );
+    extern (C) void*    gc_calloc( size_t sz, uint ba = 0 );
+    extern (C) BlkInfo_ gc_qalloc( size_t sz, uint ba = 0 );
+    extern (C) void*    gc_realloc( void* p, size_t sz, uint ba = 0 );
+    extern (C) size_t   gc_extend( void* p, size_t mx, size_t sz );
+    extern (C) size_t   gc_reserve( size_t sz );
+    extern (C) void     gc_free( void* p );
 
     extern (C) void*   gc_addrOf( in void* p );
     extern (C) size_t  gc_sizeOf( in void* p );
@@ -212,6 +213,30 @@ struct GC
     static void* malloc( size_t sz, uint ba = 0 )
     {
         return gc_malloc( sz, ba );
+    }
+    
+    
+    /**
+     * Requests an aligned block of managed memory from the garbage collector.
+     * This memory may be deleted at will with a call to free, or it may be
+     * discarded and cleaned up automatically during a collection run.  If
+     * allocation fails, this function will call onOutOfMemory which is
+     * expected to throw an OutOfMemoryException.
+     *
+     * Params:
+     *  sz = The desired allocation size in bytes.
+     *  ba = A bitmask of the attributes to set on this block.
+     *
+     * Returns:
+     *  Information regarding the allocated memory block or BlkInfo.init on
+     *  error.
+     *
+     * Throws:
+     *  OutOfMemoryException on allocation failure.
+     */
+    static BlkInfo qalloc( size_t sz, uint ba = 0 )
+    {
+        return gc_qalloc( sz, ba );
     }
 
 
