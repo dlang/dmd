@@ -47,7 +47,7 @@ private
     extern (C) uint gc_clrAttr( in void* p, uint a );
 
     extern (C) void*  gc_malloc( size_t sz, uint ba = 0 );
-    extern (C) BlkInfo  gc_malloc_bi( size_t sz, uint ba = 0 );
+    extern (C) BlkInfo  gc_qalloc( size_t sz, uint ba = 0 );
     extern (C) void*  gc_calloc( size_t sz, uint ba = 0 );
     extern (C) size_t gc_extend( void* p, size_t mx, size_t sz );
     extern (C) void   gc_free( void* p );
@@ -110,7 +110,7 @@ extern (C) Object _d_newclass(ClassInfo ci)
     }
     else
     {
-        auto info = gc_malloc_bi(ci.init.length + __arrayPad(ci.init.length),
+        auto info = gc_qalloc(ci.init.length + __arrayPad(ci.init.length),
                       BlkAttr.FINALIZE | (ci.m_flags & 2 ? BlkAttr.NO_SCAN : 0));
         p = info.base;
         // only init ghost array length if noscan is set.  Scanned blocks are
@@ -591,7 +591,7 @@ body
     reqsize += __arrayPad(reqsize);
     // copy attributes from original block, or from the typeinfo if the
     // original block doesn't exist.
-    info = gc_malloc_bi(reqsize, info.base ? info.attr : (!(ti.next.flags() & 1) ? BlkAttr.NO_SCAN : 0));
+    info = gc_qalloc(reqsize, info.base ? info.attr : (!(ti.next.flags() & 1) ? BlkAttr.NO_SCAN : 0));
     if(info.base is null)
         goto Loverflow;
     // copy the data over.
@@ -653,7 +653,7 @@ extern (C) ulong _d_newarrayT(TypeInfo ti, size_t length)
         // increase the size by 1 if the actual requested size is < 256,
         // by size_t.sizeof if it's >= 256
         
-        auto info = gc_malloc_bi(size + __arrayPad(size), !(ti.next.flags() & 1) ? BlkAttr.NO_SCAN : 0);
+        auto info = gc_qalloc(size + __arrayPad(size), !(ti.next.flags() & 1) ? BlkAttr.NO_SCAN : 0);
         debug(PRINTF) printf(" p = %p\n", info.base);
         // update the length of the array
         auto arrstart = __arrayStart(info);
@@ -698,7 +698,7 @@ extern (C) ulong _d_newarrayiT(TypeInfo ti, size_t length)
         else
             size *= length;
 
-        auto info = gc_malloc_bi(size + __arrayPad(size), !(ti.next.flags() & 1) ? BlkAttr.NO_SCAN : 0);
+        auto info = gc_qalloc(size + __arrayPad(size), !(ti.next.flags() & 1) ? BlkAttr.NO_SCAN : 0);
         debug(PRINTF) printf(" p = %p\n", info.base);
         auto arrstart = __arrayStart(info);
         if (isize == 1)
@@ -758,7 +758,7 @@ extern (C) ulong _d_newarraymT(TypeInfo ti, int ndims, ...)
             else
             {
                 auto allocsize = (void[]).sizeof * dim;
-                auto info = gc_malloc_bi(allocsize + __arrayPad(allocsize));
+                auto info = gc_qalloc(allocsize + __arrayPad(allocsize));
                 auto isshared = ti.classinfo is TypeInfo_Shared.classinfo;
                 __setArrayAllocLength(info, allocsize, isshared);
                 p = __arrayStart(info)[0 .. dim];
@@ -815,7 +815,7 @@ extern (C) ulong _d_newarraymiT(TypeInfo ti, int ndims, ...)
             else
             {
                 auto allocsize = (void[]).sizeof * dim;
-                auto info = gc_malloc_bi(allocsize + __arrayPad(allocsize));
+                auto info = gc_qalloc(allocsize + __arrayPad(allocsize));
                 auto isshared = ti.classinfo is TypeInfo_Shared.classinfo;
                 __setArrayAllocLength(info, allocsize, isshared);
                 p = __arrayStart(info)[0 .. dim];
@@ -1081,7 +1081,7 @@ body
                         }
 
                         // couldn't do it, reallocate
-                        info = gc_malloc_bi(newsize + LARGEPAD, info.attr);
+                        info = gc_qalloc(newsize + LARGEPAD, info.attr);
                         __setArrayAllocLength(info, newsize, isshared);
                         if(!isshared)
                             __insertBlkInfoCache(info, bic);
@@ -1092,7 +1092,7 @@ body
                 else if(!__setArrayAllocLength(info, newsize + offset, isshared, size + offset))
                 {
                     // could not resize in place
-                    info = gc_malloc_bi(newsize + __arrayPad(newsize), info.attr);
+                    info = gc_qalloc(newsize + __arrayPad(newsize), info.attr);
                     __setArrayAllocLength(info, newsize, isshared);
                     if(!isshared)
                         __insertBlkInfoCache(info, bic);
@@ -1111,7 +1111,7 @@ body
         else
         {
             // pointer was null, need to allocate
-            auto info = gc_malloc_bi(newsize + __arrayPad(newsize), !(ti.next.flags() & 1) ? BlkAttr.NO_SCAN : 0);
+            auto info = gc_qalloc(newsize + __arrayPad(newsize), !(ti.next.flags() & 1) ? BlkAttr.NO_SCAN : 0);
             __setArrayAllocLength(info, newsize, isshared);
             if(!isshared)
                 __insertBlkInfoCache(info, null);
@@ -1228,7 +1228,7 @@ body
                         }
 
                         // couldn't do it, reallocate
-                        info = gc_malloc_bi(newsize + LARGEPAD, info.attr);
+                        info = gc_qalloc(newsize + LARGEPAD, info.attr);
                         __setArrayAllocLength(info, newsize, isshared);
                         if(!isshared)
                             __insertBlkInfoCache(info, bic);
@@ -1239,7 +1239,7 @@ body
                 else if(!__setArrayAllocLength(info, newsize + offset, isshared, size + offset))
                 {
                     // could not resize in place
-                    info = gc_malloc_bi(newsize + __arrayPad(newsize), info.attr);
+                    info = gc_qalloc(newsize + __arrayPad(newsize), info.attr);
                     __setArrayAllocLength(info, newsize, isshared);
                     if(!isshared)
                         __insertBlkInfoCache(info, bic);
@@ -1257,7 +1257,7 @@ body
         else
         {
             // length was zero, need to allocate
-            auto info = gc_malloc_bi(newsize + __arrayPad(newsize), !(ti.next.flags() & 1) ? BlkAttr.NO_SCAN : 0);
+            auto info = gc_qalloc(newsize + __arrayPad(newsize), !(ti.next.flags() & 1) ? BlkAttr.NO_SCAN : 0);
             __setArrayAllocLength(info, newsize, isshared);
             if(!isshared)
                 __insertBlkInfoCache(info, null);
@@ -1341,7 +1341,7 @@ extern (C) long _d_arrayappendT(TypeInfo ti, Array *px, byte[] y)
             }
 
             // couldn't do it, reallocate
-            info = gc_malloc_bi(newCapacity(newlength, sizeelem) + LARGEPAD, info.attr);
+            info = gc_qalloc(newCapacity(newlength, sizeelem) + LARGEPAD, info.attr);
             __setArrayAllocLength(info, newsize, isshared);
             if(!isshared)
                 __insertBlkInfoCache(info, bic);
@@ -1354,7 +1354,7 @@ extern (C) long _d_arrayappendT(TypeInfo ti, Array *px, byte[] y)
     {
         // could not resize in place
         auto allocsize = newCapacity(newlength, sizeelem);
-        info = gc_malloc_bi(allocsize + __arrayPad(allocsize), info.attr);
+        info = gc_qalloc(allocsize + __arrayPad(allocsize), info.attr);
         __setArrayAllocLength(info, newsize, isshared);
         if(!isshared)
             __insertBlkInfoCache(info, bic);
@@ -1625,7 +1625,7 @@ body
     if (!len)
         return null;
 
-    auto info = gc_malloc_bi(len + __arrayPad(len), !(ti.next.flags() & 1) ? BlkAttr.NO_SCAN : 0);
+    auto info = gc_qalloc(len + __arrayPad(len), !(ti.next.flags() & 1) ? BlkAttr.NO_SCAN : 0);
     byte* p = cast(byte*)__arrayStart(info);
     p[len] = 0; // guessing this is to optimize for null-terminated arrays?
     memcpy(p, x.ptr, xlen);
@@ -1658,7 +1658,7 @@ extern (C) byte[] _d_arraycatnT(TypeInfo ti, uint n, ...)
         return null;
 
     auto allocsize = length * size;
-    auto info = gc_malloc_bi(allocsize + __arrayPad(allocsize), !(ti.next.flags() & 1) ? BlkAttr.NO_SCAN : 0);
+    auto info = gc_qalloc(allocsize + __arrayPad(allocsize), !(ti.next.flags() & 1) ? BlkAttr.NO_SCAN : 0);
     auto isshared = ti.classinfo is TypeInfo_Shared.classinfo;
     __setArrayAllocLength(info, allocsize, isshared);
     a = __arrayStart(info);
@@ -1696,7 +1696,7 @@ extern (C) void* _d_arrayliteralT(TypeInfo ti, size_t length, ...)
     else
     {
         auto allocsize = length * sizeelem;
-        auto info = gc_malloc_bi(allocsize + __arrayPad(allocsize), !(ti.next.flags() & 1) ? BlkAttr.NO_SCAN : 0);
+        auto info = gc_qalloc(allocsize + __arrayPad(allocsize), !(ti.next.flags() & 1) ? BlkAttr.NO_SCAN : 0);
         auto isshared = ti.classinfo is TypeInfo_Shared.classinfo;
         __setArrayAllocLength(info, allocsize, isshared);
         result = __arrayStart(info);
@@ -1752,7 +1752,7 @@ body
     {
         auto sizeelem = ti.next.tsize();                // array element size
         auto size = a.length * sizeelem;
-        auto info = gc_malloc_bi(size + __arrayPad(size), !(ti.next.flags() & 1) ? BlkAttr.NO_SCAN : 0);
+        auto info = gc_qalloc(size + __arrayPad(size), !(ti.next.flags() & 1) ? BlkAttr.NO_SCAN : 0);
         auto isshared = ti.classinfo is TypeInfo_Shared.classinfo;
         __setArrayAllocLength(info, size, isshared);
         r.ptr = __arrayStart(info);
