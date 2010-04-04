@@ -73,15 +73,6 @@ Expression *FuncDeclaration::interpret(InterState *istate, Expressions *argument
 #endif
     if (global.errors)
         return NULL;
-
-#if DMDV1
-    if (ident == Id::aaLen)
-        return interpret_aaLen(istate, arguments);
-    else if (ident == Id::aaKeys)
-        return interpret_aaKeys(istate, arguments);
-    else if (ident == Id::aaValues)
-        return interpret_aaValues(istate, arguments);
-#endif
 #if DMDV2
     if (thisarg &&
         (!arguments || arguments->dim == 0))
@@ -2643,6 +2634,16 @@ Expression *CallExp::interpret(InterState *istate)
         }
         else
 #endif
+
+#if DMDV1
+        if (fd->ident == Id::aaLen)
+            return interpret_aaLen(istate, arguments);
+        else if (fd->ident == Id::aaKeys)
+            return interpret_aaKeys(istate, arguments);
+        else if (fd->ident == Id::aaValues)
+            return interpret_aaValues(istate, arguments);
+#endif
+
         // Inline .dup
         if (fd->ident == Id::adDup && arguments && arguments->dim == 2)
         {
@@ -3135,6 +3136,3 @@ Expression *interpret_values(InterState *istate, Expression *earg, FuncDeclarati
 }
 
 #endif
-
-
-

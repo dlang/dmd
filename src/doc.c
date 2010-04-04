@@ -965,6 +965,7 @@ void DocComment::parseSections(unsigned char *comment)
     {
         p = skipwhitespace(p);
         pstart = p;
+        pend = p;
 
         /* Find end of section, which is ended by one of:
          *      'identifier:' (but not inside a code section)
@@ -986,6 +987,7 @@ void DocComment::parseSections(unsigned char *comment)
                 // BUG: handle UTF PS and LS too
                 if (!*p || *p == '\r' || *p == '\n' && numdash >= 3)
                     inCode ^= 1;
+                pend = p;
             }
 
             if (!inCode && isIdStart(p))
@@ -1007,9 +1009,7 @@ void DocComment::parseSections(unsigned char *comment)
             while (1)
             {
                 if (!*p)
-                {   pend = p;
                     goto L1;
-                }
                 if (*p == '\n')
                 {   p++;
                     if (*p == '\n' && !summary && !namelen)
@@ -1021,6 +1021,7 @@ void DocComment::parseSections(unsigned char *comment)
                     break;
                 }
                 p++;
+                pend = p;
             }
             p = skipwhitespace(p);
         }
@@ -1820,6 +1821,12 @@ void highlightText(Scope *sc, Dsymbol *s, OutBuffer *buf, unsigned offset)
                     buf->remove(iLineStart, i - iLineStart + eollen);
                     i = iLineStart;
 
+                    if (inCode && (i <= iCodeStart))
+                    {   // Empty code section, just remove it completely.
+                        inCode = 0;
+                        break;
+                    }
+
                     if (inCode)
                     {
                         inCode = 0;
@@ -1841,6 +1848,7 @@ void highlightText(Scope *sc, Dsymbol *s, OutBuffer *buf, unsigned offset)
                         i = buf->insert(i, pre, sizeof(pre) - 1);
                         iCodeStart = i;
                         i--;            // place i on >
+                        leadingBlank = true;
                     }
                 }
                 break;
@@ -1893,6 +1901,8 @@ void highlightText(Scope *sc, Dsymbol *s, OutBuffer *buf, unsigned offset)
         }
     }
   Ldone:
+    if (inCode)
+        s->error("unmatched --- in DDoc comment");
     ;
 }
 
