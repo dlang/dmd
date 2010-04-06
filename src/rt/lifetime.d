@@ -409,13 +409,13 @@ BlkInfo *__getBlkInfo(void *interior)
             BlkInfo *ptr = __blkcache.ptr;
             for(int i = __nextBlkIdx; i >= 0; --i)
             {
-                if(ptr[i].base <= interior && (interior - ptr[i].base) < ptr.size)
+                if(ptr[i].base <= interior && (interior - ptr[i].base) < ptr[i].size)
                     return ptr + i;
             }
 
             for(int i = N_CACHE_BLOCKS - 1; i > __nextBlkIdx; --i)
             {
-                if(ptr[i].base <= interior && (interior - ptr[i].base) < ptr.size)
+                if(ptr[i].base <= interior && (interior - ptr[i].base) < ptr[i].size)
                     return ptr + i;
             }
         }
