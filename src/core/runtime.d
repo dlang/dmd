@@ -19,7 +19,7 @@ private
 
     alias bool function() ModuleUnitTester;
     alias bool function(Object) CollectHandler;
-    alias Exception.TraceInfo function( void* ptr = null ) TraceHandler;
+    alias Throwable.TraceInfo function( void* ptr = null ) TraceHandler;
 
     extern (C) void rt_setCollectHandler( CollectHandler h );
     extern (C) void rt_setTraceHandler( TraceHandler h );
@@ -30,6 +30,21 @@ private
 
     extern (C) void* rt_loadLibrary( in char[] name );
     extern (C) bool  rt_unloadLibrary( void* ptr );
+    
+    version( linux )
+    {
+        import core.stdc.stdlib : free;
+        import core.stdc.string : strlen;
+        extern (C) int    backtrace(void**, size_t);
+        extern (C) char** backtrace_symbols(void**, int);
+    }
+    else version( OSX )
+    {
+        import core.stdc.stdlib : free;
+        import core.stdc.string : strlen;
+        extern (C) int    backtrace(void**, size_t);
+        extern (C) char** backtrace_symbols(void**, int);
+    }
 }
 
 
@@ -214,4 +229,68 @@ extern (C) bool runModuleUnitTests()
         return true;
     }
     return Runtime.sm_moduleUnitTester();
+}
+
+
+///////////////////////////////////////////////////////////////////////////////
+// Default Implementations
+///////////////////////////////////////////////////////////////////////////////
+
+
+/** 
+ *
+ */
+Throwable.TraceInfo defaultTraceHandler( void* ptr = null )
+{
+    static if( __traits( compiles, backtrace ) )
+    {
+        class DefaultTraceInfo : Throwable.TraceInfo
+        {
+            this()
+            {
+                static enum MAXFRAMES = 128;
+                void*[MAXFRAMES]  callstack;
+
+                numframes = backtrace( callstack, MAXFRAMES );
+                framelist = backtrace_symbols( callstack, numframes );
+            }
+            
+            ~this()
+            {
+                free( framelist );
+            }
+            
+            int opApply( int delegate(ref char[]) dg )
+            {
+                // NOTE: The first 5 frames with the current implementation are
+                //       inside core.runtime and the object code, so eliminate
+                //       these for readability.  The alternative would be to
+                //       exclude the first N frames that have a prefix of:
+                //          "D4core7runtime19defaultTraceHandler"
+                //          "D6object12traceContext"
+                //          "D6object9Throwable6__ctor"
+                //          "D6object9Exception6__ctor"
+                static enum FIRSTFRAME = 5;
+                int ret = 0;
+
+                for( int i = FIRSTFRAME; i < numframes; ++i )
+                {
+                    ret = dg( framelist[i][0 .. strlen(framelist[i])] );
+                    if( ret )
+                        break;
+                }
+                return ret;
+            }
+        
+        private:
+            int     numframes; 
+            char**  framelist;
+        }
+        
+        return new DefaultTraceInfo;
+    }
+    else
+    {
+        return null;
+    }
 }

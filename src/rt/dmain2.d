@@ -331,6 +331,7 @@ extern (C) int main(int argc, char **argv)
             }
             catch (Throwable e)
             {
+                /+
                 while (e)
                 {
                     if (e.file)
@@ -353,6 +354,8 @@ extern (C) int main(int argc, char **argv)
                         console ("\n");
                     e = e.next;
                 }
+                +/
+                console (e.toString)("\n");
                 result = EXIT_FAILURE;
             }
             catch (Object o)
