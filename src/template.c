@@ -221,6 +221,27 @@ Lnomatch:
     return 0;   // nomatch;
 }
 
+
+/************************************
+ * Match an array of them.
+ */
+int arrayObjectMatch(Objects *oa1, Objects *oa2, TemplateDeclaration *tempdecl, Scope *sc)
+{
+    if (oa1 == oa2)
+        return 1;
+    if (oa1->dim != oa2->dim)
+        return 0;
+    for (size_t j = 0; j < oa1->dim; j++)
+    {   Object *o1 = (Object *)oa1->data[j];
+        Object *o2 = (Object *)oa2->data[j];
+        if (!match(o1, o2, tempdecl, sc))
+        {
+            return 0;
+        }
+    }
+    return 1;
+}
+
 /****************************************
  */
 
@@ -315,6 +336,7 @@ TemplateDeclaration::TemplateDeclaration(Loc loc, Identifier *id,
     this->onemember = NULL;
     this->literal = 0;
     this->ismixin = ismixin;
+    this->previous = NULL;
 }
 
 Dsymbol *TemplateDeclaration::syntaxCopy(Dsymbol *)
@@ -795,7 +817,7 @@ MATCH TemplateDeclaration::leastAsSpecialized(TemplateDeclaration *td2)
  *      match level
  */
 
-MATCH TemplateDeclaration::deduceFunctionTemplateMatch(Loc loc, Objects *targsi,
+MATCH TemplateDeclaration::deduceFunctionTemplateMatch(Scope *sc, Loc loc, Objects *targsi,
         Expression *ethis, Expressions *fargs,
         Objects *dedargs)
 {
@@ -1235,7 +1257,33 @@ Lmatch:
         makeParamNamesVisibleInConstraint(paramscope);
         Expression *e = constraint->syntaxCopy();
         paramscope->flags |= SCOPEstaticif;
+
+        /* Detect recursive attempts to instantiate this template declaration,
+         *  void foo(T)(T x) if (is(typeof(foo(x)))) { }
+         *  static assert(!is(typeof(bug4072(7))));
+         * Recursive attempts are regarded as a constraint failure.
+         */
+        for (Previous *p = previous; p; p = p->prev)
+        {
+            if (arrayObjectMatch(p->dedargs, dedargs, this, sc))
+                goto Lnomatch;
+            /* BUG: should also check for ref param differences
+             */
+        }
+        Previous pr;
+        pr.prev = previous;
+        pr.dedargs = dedargs;
+        previous = &pr;                 // add this to threaded list
+
+        int nerrors = global.errors;
+
         e = e->semantic(paramscope);
+
+        previous = pr.prev;             // unlink from threaded list
+
+        if (nerrors != global.errors)   // if any errors from evaluating the constraint, no match
+            goto Lnomatch;
+
         e = e->optimize(WANTvalue | WANTinterpret);
         if (e->isBool(TRUE))
             ;
@@ -1419,7 +1467,7 @@ FuncDeclaration *TemplateDeclaration::deduceFunctionTemplate(Scope *sc, Loc loc,
         MATCH m;
         Objects dedargs;
 
-        m = td->deduceFunctionTemplateMatch(loc, targsi, ethis, fargs, &dedargs);
+        m = td->deduceFunctionTemplateMatch(sc, loc, targsi, ethis, fargs, &dedargs);
         //printf("deduceFunctionTemplateMatch = %d\n", m);
         if (!m)                 // if no match
             continue;
@@ -3571,14 +3619,8 @@ void TemplateInstance::semantic(Scope *sc, Expressions *fargs)
         if (isnested && sc->parent != ti->parent)
             continue;
 #endif
-        for (size_t j = 0; j < tdtypes.dim; j++)
-        {   Object *o1 = (Object *)tdtypes.data[j];
-            Object *o2 = (Object *)ti->tdtypes.data[j];
-            if (!match(o1, o2, tempdecl, sc))
-            {
-                goto L1;
-            }
-        }
+        if (!arrayObjectMatch(&tdtypes, &ti->tdtypes, tempdecl, sc))
+            goto L1;
 
         /* Template functions may have different instantiations based on
          * "auto ref" parameters.

@@ -1,6 +1,6 @@
 
 // Compiler implementation of the D programming language
-// Copyright (c) 1999-2009 by Digital Mars
+// Copyright (c) 1999-2010 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // http://www.digitalmars.com
@@ -64,6 +64,12 @@ struct TemplateDeclaration : ScopeDsymbol
     int literal;                // this template declaration is a literal
     int ismixin;                // template declaration is only to be used as a mixin
 
+    struct Previous
+    {   Previous *prev;
+        Objects *dedargs;
+    };
+    Previous *previous;         // threaded list of previous instantiation attempts on stack
+
     TemplateDeclaration(Loc loc, Identifier *id, TemplateParameters *parameters,
         Expression *constraint, Dsymbols *decldefs, int ismixin);
     Dsymbol *syntaxCopy(Dsymbol *);
@@ -80,7 +86,7 @@ struct TemplateDeclaration : ScopeDsymbol
     MATCH matchWithInstance(TemplateInstance *ti, Objects *atypes, int flag);
     MATCH leastAsSpecialized(TemplateDeclaration *td2);
 
-    MATCH deduceFunctionTemplateMatch(Loc loc, Objects *targsi, Expression *ethis, Expressions *fargs, Objects *dedargs);
+    MATCH deduceFunctionTemplateMatch(Scope *sc, Loc loc, Objects *targsi, Expression *ethis, Expressions *fargs, Objects *dedargs);
     FuncDeclaration *deduceFunctionTemplate(Scope *sc, Loc loc, Objects *targsi, Expression *ethis, Expressions *fargs, int flags = 0);
     void declareParameter(Scope *sc, TemplateParameter *tp, Object *o);
 

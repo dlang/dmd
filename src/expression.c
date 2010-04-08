@@ -6819,6 +6819,18 @@ Lagain:
     }
 
     arguments = arrayExpressionSemantic(arguments, sc);
+
+    // If there was an error processing any argument,
+    // return an error without trying to resolve the function call.
+    if (arguments && arguments->dim)
+    {
+        for (int k = 0; k < arguments->dim; k++)
+        {   Expression *checkarg = (Expression *)arguments->data[k];
+            if (checkarg->op == TOKerror)
+                return checkarg;
+        }
+    }
+
     preFunctionParameters(loc, sc, arguments);
 
     if (e1->op == TOKdotvar && t1->ty == Tfunction ||
