@@ -1157,7 +1157,7 @@ class Thread
      * Returns:
      *  Zero if all elemented are visited, nonzero if not.
      */
-    static int opApply( int delegate( ref Thread ) dg )
+    static int opApply( scope int delegate( ref Thread ) dg )
     {
         synchronized( slock )
         {
@@ -2421,7 +2421,7 @@ class ThreadGroup
     /**
      * Operates on all threads currently tracked by this object.
      */
-    final int opApply( int delegate( ref Thread ) dg )
+    final int opApply( scope int delegate( ref Thread ) dg )
     {
         synchronized( this )
         {

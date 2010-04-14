@@ -260,7 +260,7 @@ Throwable.TraceInfo defaultTraceHandler( void* ptr = null )
                 free( framelist );
             }
             
-            int opApply( int delegate(ref char[]) dg )
+            int opApply( scope int delegate(ref char[]) dg )
             {
                 // NOTE: The first 5 frames with the current implementation are
                 //       inside core.runtime and the object code, so eliminate

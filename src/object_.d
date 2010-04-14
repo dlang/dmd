@@ -1121,7 +1121,7 @@ class Throwable : Object
 {
     interface TraceInfo
     {
-        int opApply(int delegate(ref char[]));
+        int opApply(scope int delegate(ref char[]));
     }
 
     string      msg;
@@ -1564,7 +1564,7 @@ struct ModuleInfo
     }
 
 
-    static int opApply(int delegate(ref ModuleInfo*) dg)
+    static int opApply(scope int delegate(ref ModuleInfo*) dg)
     {
         int ret = 0;
 
@@ -2078,10 +2078,10 @@ extern (C)
     void[] _aaKeys(void* p, size_t keysize, size_t valuesize);
     void* _aaRehash(void** pp, TypeInfo keyti);
 
-    extern (D) typedef int delegate(void *) _dg_t;
+    extern (D) typedef scope int delegate(void *) _dg_t;
     int _aaApply(void* aa, size_t keysize, _dg_t dg);
 
-    extern (D) typedef int delegate(void *, void *) _dg2_t;
+    extern (D) typedef scope int delegate(void *, void *) _dg2_t;
     int _aaApply2(void* aa, size_t keysize, _dg2_t dg);
 
     void* _d_assocarrayliteralT(TypeInfo_AssociativeArray ti, size_t length, ...);
@@ -2111,12 +2111,12 @@ struct AssociativeArray(Key, Value)
         return *cast(Key[]*) &a;
     }
 
-    int opApply(int delegate(ref Key, ref Value) dg)
+    int opApply(scope int delegate(ref Key, ref Value) dg)
     {
         return _aaApply2(p, Key.sizeof, cast(_dg2_t)dg);
     }
 
-    int opApply(int delegate(ref Value) dg)
+    int opApply(scope int delegate(ref Value) dg)
     {
         return _aaApply(p, Key.sizeof, cast(_dg_t)dg);
     }
