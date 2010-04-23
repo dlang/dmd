@@ -21,7 +21,7 @@ const char idchars[] = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123
  *      void*           value returned by fp() for first possible correct spelling
  */
 
-void *speller(const char *seed, fp_speller_t fp, void *fparg, const char *charset)
+void *spellerX(const char *seed, fp_speller_t fp, void *fparg, const char *charset, int flag)
 {
     size_t seedlen = strlen(seed);
     if (!seedlen)
@@ -36,7 +36,11 @@ void *speller(const char *seed, fp_speller_t fp, void *fparg, const char *charse
     for (int i = 0; i < seedlen; i++)
     {
         //printf("del buf = '%s'\n", buf);
-        void *p = (*fp)(fparg, buf);
+        void *p;
+        if (flag)
+            p = spellerX(buf, fp, fparg, charset, flag - 1);
+        else
+            p = (*fp)(fparg, buf);
         if (p)
             return p;
 
@@ -52,7 +56,11 @@ void *speller(const char *seed, fp_speller_t fp, void *fparg, const char *charse
         buf[i + 1] = seed[i];
 
         //printf("tra buf = '%s'\n", buf);
-        void *p = (*fp)(fparg, buf);
+        void *p;
+        if (flag)
+            p = spellerX(buf, fp, fparg, charset, flag - 1);
+        else
+            p = (*fp)(fparg, buf);
         if (p)
             return p;
 
@@ -70,7 +78,11 @@ void *speller(const char *seed, fp_speller_t fp, void *fparg, const char *charse
                 buf[i] = *s;
 
                 //printf("sub buf = '%s'\n", buf);
-                void *p = (*fp)(fparg, buf);
+                void *p;
+                if (flag)
+                    p = spellerX(buf, fp, fparg, charset, flag - 1);
+                else
+                    p = (*fp)(fparg, buf);
                 if (p)
                     return p;
             }
@@ -86,7 +98,11 @@ void *speller(const char *seed, fp_speller_t fp, void *fparg, const char *charse
                 buf[i] = *s;
 
                 //printf("ins buf = '%s'\n", buf);
-                void *p = (*fp)(fparg, buf);
+                void *p;
+                if (flag)
+                    p = spellerX(buf, fp, fparg, charset, flag - 1);
+                else
+                    p = (*fp)(fparg, buf);
                 if (p)
                     return p;
             }
@@ -96,3 +112,55 @@ void *speller(const char *seed, fp_speller_t fp, void *fparg, const char *charse
 
     return NULL;                // didn't find any corrections
 }
+
+void *speller(const char *seed, fp_speller_t fp, void *fparg, const char *charset)
+{
+    for (int distance = 0; distance < 2; distance++)
+    {   void *p = spellerX(seed, fp, fparg, charset, distance);
+        if (p)
+            return p;
+    }
+    return NULL;   // didn't find it
+}
+
+
+#if UNITTEST
+
+#include <stdio.h>
+#include <string.h>
+#include <assert.h>
+
+void *speller_test(void *fparg, const char *s)
+{
+    if (strcmp((char *)fparg, s) == 0)
+        return fparg;
+    return NULL;
+}
+
+void unittest_speller()
+{
+    static const char *cases[][3] =
+    {
+        { "hello", "hell",  "y" },
+        { "hello", "abcd",  "n" },
+        { "hello", "hel",   "y" },
+        { "ehllo", "helol", "y" },
+        { "hello", "helxxlo", "y" },
+        { "hello", "ehlxxlo", "n" },
+        { "hello", "heaao", "y" },
+    };
+    printf("unittest_speller()\n");
+    void *p = speller("hello", &speller_test, "hell", idchars);
+    assert(p != NULL);
+    for (int i = 0; i < sizeof(cases)/sizeof(cases[0]); i++)
+    {
+        void *p = speller(cases[i][0], &speller_test, (void *)cases[i][1], idchars);
+        if (p)
+            assert(cases[i][2][0] == 'y');
+        else
+            assert(cases[i][2][0] == 'n');
+    }
+    printf("unittest_speller() success\n");
+}
+
+#endif
