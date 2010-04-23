@@ -108,7 +108,7 @@ struct Expression : Object
     virtual void toMangleBuffer(OutBuffer *buf);
     virtual Expression *toLvalue(Scope *sc, Expression *e);
     virtual Expression *modifiableLvalue(Scope *sc, Expression *e);
-    Expression *implicitCastTo(Scope *sc, Type *t);
+    virtual Expression *implicitCastTo(Scope *sc, Type *t);
     virtual MATCH implicitConvTo(Type *t);
     virtual Expression *castTo(Scope *sc, Type *t);
     virtual void checkEscape();
@@ -188,6 +188,7 @@ struct ErrorExp : IntegerExp
 {
     ErrorExp();
 
+    Expression *implicitCastTo(Scope *sc, Type *t);
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
 };
 
