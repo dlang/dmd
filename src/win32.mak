@@ -25,7 +25,7 @@ TARGET=dmd
 XFLG=
 MODEL=n
 OPT=
-DEBUG=-gl -D
+DEBUG=-gl -D -DUNITTEST
 #PREC=-H -HItotal.h -HO
 PREC=
 LFLAGS=
@@ -63,7 +63,7 @@ dmd:
 ################ NT COMMAND LINE DEBUG #########################
 
 debdmd:
-	$(MAKE) OPT= "DEBUG=-D -g" LFLAGS=-L/ma/co dmd.exe
+	$(MAKE) OPT= "DEBUG=-D -g -DUNITTEST" LFLAGS=-L/ma/co dmd.exe
 
 #########################################
 
@@ -81,7 +81,7 @@ OBJ1= mars.obj enum.obj struct.obj dsymbol.obj import.obj id.obj \
 	builtin.obj clone.obj libomf.obj arrayop.obj irstate.obj \
 	glue.obj msc.obj ph.obj tk.obj s2ir.obj todt.obj e2ir.obj tocsym.obj \
 	util.obj bit.obj eh.obj toobj.obj toctype.obj tocvdebug.obj toir.obj \
-	json.obj
+	json.obj unittests.obj
 
 # from C/C++ compiler optimizer and back end
 
@@ -115,7 +115,7 @@ SRCS= mars.c enum.c struct.c dsymbol.c import.c idgen.c impcnvgen.c utf.h \
 	macro.h macro.c hdrgen.h hdrgen.c arraytypes.h \
 	delegatize.c toir.h toir.c interpret.c traits.c builtin.c \
 	clone.c lib.h libomf.c libelf.c libmach.c arrayop.c \
-	aliasthis.h aliasthis.c json.h json.c
+	aliasthis.h aliasthis.c json.h json.c unittests.c
 
 # From C++ compiler
 
@@ -378,6 +378,9 @@ toir.obj : $C\rtlsym.h expression.h toir.h toir.c
 
 tocsym.obj : $(CH) $(TOTALH) mars.h module.h tocsym.c
 	$(CC) -c $(MFLAGS) -I$(ROOT) tocsym
+
+unittests.obj : $(TOTALH) unittests.c
+	$(CC) -c $(CFLAGS) $(PREC) $*
 
 util.obj : util.c
 	$(CC) -c $(MFLAGS) util
