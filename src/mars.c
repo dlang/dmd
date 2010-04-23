@@ -81,7 +81,7 @@ Global::Global()
     "\nMSIL back-end (alpha release) by Cristian L. Vlasceanu and associates.";
 #endif
     ;
-    version = "v2.044";
+    version = "v2.043";
     global.structalign = 8;
 
     memset(&params, 0, sizeof(Param));
@@ -303,6 +303,8 @@ int main(int argc, char *argv[])
     int setdebuglib = 0;
     char noboundscheck = 0;
     const char *inifilename = NULL;
+
+    unittests();
 
     // Check for malformed input
     if (argc < 1 || !argv)

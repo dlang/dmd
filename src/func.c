@@ -229,7 +229,7 @@ void FuncDeclaration::semantic(Scope *sc)
     storage_class &= ~STCref;
     if (type->ty != Tfunction)
     {
-        error("%s must be a function", toChars());
+        error("%s must be a function instead of %s", toChars(), type->toChars());
         return;
     }
     f = (TypeFunction *)(type);
@@ -317,7 +317,7 @@ void FuncDeclaration::semantic(Scope *sc)
             isDtorDeclaration() ||
             isInvariantDeclaration() ||
             isUnitTestDeclaration() || isNewDeclaration() || isDelete())
-            error("special function not allowed in interface %s", id->toChars());
+            error("constructors, destructors, postblits, invariants, unittests, new and delete functions are not allowed in interface %s", id->toChars());
         if (fbody && isVirtual())
             error("function body is not abstract in interface %s", id->toChars());
     }
@@ -336,7 +336,7 @@ void FuncDeclaration::semantic(Scope *sc)
         (pd = toParent2()) != NULL &&
         (id = pd->isInterfaceDeclaration()) != NULL)
     {
-        error("template member function not allowed in interface %s", id->toChars());
+        error("template member functions are not allowed in interface %s", id->toChars());
     }
 
     cd = parent->isClassDeclaration();
@@ -422,7 +422,7 @@ void FuncDeclaration::semantic(Scope *sc)
                 if (isFinal())
                 {
                     if (isOverride())
-                        error("does not override any function");
+                        error("is marked as override, but does not override any function");
                     cd->vtblFinal.push(this);
                 }
                 else
@@ -653,7 +653,7 @@ void FuncDeclaration::semantic(Scope *sc)
         if (f->varargs)
         {
         Lmainerr:
-            error("parameters must be main() or main(char[][] args)");
+            error("parameters must be main() or main(string[] args)");
         }
     }
 

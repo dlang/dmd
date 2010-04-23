@@ -120,7 +120,9 @@ Dsymbols *Parser::parseModule()
 
             md = new ModuleDeclaration(a, id, safe);
 
-            check(TOKsemicolon, "module declaration");
+            if (token.value != TOKsemicolon)
+                error("';' expected following module declaration instead of %s", token.toChars());
+            nextToken();
             addComment(mod, comment);
         }
     }
@@ -204,7 +206,7 @@ Dsymbols *Parser::parseDeclDefs(int once)
                         check(TOKlparen, "mixin");
                         Expression *e = parseAssignExp();
                         check(TOKrparen);
-                        check(TOKsemicolon, "mixin (string)");
+                        check(TOKsemicolon);
                         s = new CompileDeclaration(loc, e);
                         break;
                     }
@@ -536,7 +538,9 @@ Dsymbols *Parser::parseDeclDefs(int once)
                         s = NULL;
                     }
                     nextToken();
-                    check(TOKsemicolon, "debug declaration");
+                    if (token.value != TOKsemicolon)
+                        error("semicolon expected");
+                    nextToken();
                     break;
                 }
 
@@ -557,7 +561,9 @@ Dsymbols *Parser::parseDeclDefs(int once)
                         s = NULL;
                     }
                     nextToken();
-                    check(TOKsemicolon, "version declaration");
+                    if (token.value != TOKsemicolon)
+                        error("semicolon expected");
+                    nextToken();
                     break;
                 }
                 condition = parseVersionCondition();
@@ -742,7 +748,7 @@ StaticAssert *Parser::parseStaticAssert()
         msg = parseAssignExp();
     }
     check(TOKrparen);
-    check(TOKsemicolon, "static assert");
+    check(TOKsemicolon);
     return new StaticAssert(loc, exp, msg);
 }
 
@@ -992,7 +998,7 @@ PostBlitDeclaration *Parser::parsePostBlit()
     Loc loc = this->loc;
 
     nextToken();
-    check(TOKthis, "=");
+    check(TOKthis);
     check(TOKlparen);
     check(TOKrparen);
 
@@ -1013,8 +1019,8 @@ DtorDeclaration *Parser::parseDtor()
     Loc loc = this->loc;
 
     nextToken();
-    check(TOKthis, "~");
-    check(TOKlparen, "~this");
+    check(TOKthis);
+    check(TOKlparen);
     check(TOKrparen);
 
     f = new DtorDeclaration(loc, 0);
@@ -1033,7 +1039,7 @@ StaticCtorDeclaration *Parser::parseStaticCtor()
     Loc loc = this->loc;
 
     nextToken();
-    check(TOKlparen, "static this");
+    check(TOKlparen);
     check(TOKrparen);
 
     StaticCtorDeclaration *f = new StaticCtorDeclaration(loc, 0);
@@ -1046,7 +1052,7 @@ StaticCtorDeclaration *Parser::parseStaticCtor()
  *      shared static this() { body }
  * Current token is 'shared'.
  */
-#if DMDV2
+
 SharedStaticCtorDeclaration *Parser::parseSharedStaticCtor()
 {
     Loc loc = this->loc;
@@ -1054,14 +1060,13 @@ SharedStaticCtorDeclaration *Parser::parseSharedStaticCtor()
     nextToken();
     nextToken();
     nextToken();
-    check(TOKlparen, "shared static this");
+    check(TOKlparen);
     check(TOKrparen);
 
     SharedStaticCtorDeclaration *f = new SharedStaticCtorDeclaration(loc, 0);
     parseContracts(f);
     return f;
 }
-#endif
 
 /*****************************************
  * Parse a static destructor definition:
@@ -1074,8 +1079,8 @@ StaticDtorDeclaration *Parser::parseStaticDtor()
     Loc loc = this->loc;
 
     nextToken();
-    check(TOKthis, "~");
-    check(TOKlparen, "~this");
+    check(TOKthis);
+    check(TOKlparen);
     check(TOKrparen);
 
     StaticDtorDeclaration *f = new StaticDtorDeclaration(loc, 0);
@@ -1088,7 +1093,7 @@ StaticDtorDeclaration *Parser::parseStaticDtor()
  *      shared static ~this() { body }
  * Current token is 'shared'.
  */
-#if DMDV2
+
 SharedStaticDtorDeclaration *Parser::parseSharedStaticDtor()
 {
     Loc loc = this->loc;
@@ -1096,15 +1101,14 @@ SharedStaticDtorDeclaration *Parser::parseSharedStaticDtor()
     nextToken();
     nextToken();
     nextToken();
-    check(TOKthis, "shared static ~");
-    check(TOKlparen, "shared static ~this");
+    check(TOKthis);
+    check(TOKlparen);
     check(TOKrparen);
 
     SharedStaticDtorDeclaration *f = new SharedStaticDtorDeclaration(loc, 0);
     parseContracts(f);
     return f;
 }
-#endif
 
 /*****************************************
  * Parse an invariant definition:
@@ -1202,7 +1206,7 @@ Parameters *Parser::parseParameters(int *pvarargs)
     int varargs = 0;
     int hasdefault = 0;
 
-    check(TOKlparen, "start of parameter list");
+    check(TOKlparen);
     while (1)
     {   Type *tb;
         Identifier *ai = NULL;
@@ -1437,7 +1441,7 @@ EnumDeclaration *Parser::parseEnum()
             else
             {   addComment(em, comment);
                 comment = NULL;
-                check(TOKcomma, "enum member");
+                check(TOKcomma);
             }
             addComment(em, comment);
             comment = token.blockComment;
@@ -1623,7 +1627,7 @@ Expression *Parser::parseConstraint()
     if (token.value == TOKif)
     {
         nextToken();    // skip over 'if'
-        check(TOKlparen, "if");
+        check(TOKlparen);
         e = parseExpression();
         check(TOKrparen);
     }
@@ -1865,7 +1869,7 @@ Dsymbol *Parser::parseMixin()
         if (token.value == TOKtypeof)
         {
             tqual = parseTypeof();
-            check(TOKdot, "typeof (expression)");
+            check(TOKdot);
         }
         if (token.value != TOKidentifier)
         {
@@ -1920,7 +1924,10 @@ Dsymbol *Parser::parseMixin()
         id = NULL;
 
     tm = new TemplateMixin(loc, id, tqual, idents, tiargs);
-    check(TOKsemicolon, "template mixin");
+    if (token.value != TOKsemicolon)
+        error("';' expected after mixin");
+    nextToken();
+
     return tm;
 }
 
@@ -2165,7 +2172,8 @@ Import *Parser::parseImport(Dsymbols *decldefs, int isstatic)
         nextToken();
     else
     {
-        check(TOKsemicolon, "import declaration");
+        error("';' expected");
+        nextToken();
     }
 
     return NULL;
@@ -2315,7 +2323,7 @@ Type *Parser::parseBasicType()
         case TOKconst:
             // const(type)
             nextToken();
-            check(TOKlparen, "const");
+            check(TOKlparen);
             t = parseType();
             check(TOKrparen);
             if (t->isShared())
@@ -2326,9 +2334,9 @@ Type *Parser::parseBasicType()
 
         case TOKinvariant:
         case TOKimmutable:
-            // immutable(type)
+            // invariant(type)
             nextToken();
-            check(TOKlparen, "immutable");
+            check(TOKlparen);
             t = parseType();
             check(TOKrparen);
             t = t->makeInvariant();
@@ -2337,7 +2345,7 @@ Type *Parser::parseBasicType()
         case TOKshared:
             // shared(type)
             nextToken();
-            check(TOKlparen, "shared");
+            check(TOKlparen);
             t = parseType();
             check(TOKrparen);
             if (t->isConst())
@@ -2351,7 +2359,7 @@ Type *Parser::parseBasicType()
         case TOKwild:
             // wild(type)
             nextToken();
-            check(TOKlparen, "inout");
+            check(TOKlparen);
             t = parseType();
             check(TOKrparen);
             if (t->isShared())
@@ -2657,7 +2665,7 @@ Dsymbols *Parser::parseDeclarations(StorageClass storage_class)
                 AliasThis *s = new AliasThis(this->loc, token.ident);
                 nextToken();
                 check(TOKthis);
-                check(TOKsemicolon, "alias identifier this");
+                check(TOKsemicolon);
                 a = new Dsymbols();
                 a->push(s);
                 addComment(s, comment);
@@ -2916,7 +2924,7 @@ L2:
                     continue;
 
                 default:
-                    error("semicolon expected to close declaration, not '%s'", token.toChars());
+                    error("semicolon expected, not '%s'", token.toChars());
                     break;
             }
         }
@@ -3045,7 +3053,7 @@ L1:
             nextToken();
             if (token.value != TOKlcurly)
             {
-                check(TOKlparen, "out");
+                check(TOKlparen);
                 if (token.value != TOKidentifier)
                     error("(identifier) following 'out' expected, not %s", token.toChars());
                 f->outId = token.ident;
@@ -3373,6 +3381,8 @@ Statement *Parser::parseStatement(int flags)
         case TOKmul:
         case TOKmin:
         case TOKadd:
+        case TOKtilde:
+        case TOKnot:
         case TOKplusplus:
         case TOKminusminus:
         case TOKnew:
@@ -3383,8 +3393,6 @@ Statement *Parser::parseStatement(int flags)
         case TOKis:
         case TOKlbracket:
 #if DMDV2
-        case TOKtilde:
-        case TOKnot:
         case TOKtraits:
         case TOKfile:
         case TOKline:
@@ -3524,7 +3532,7 @@ Statement *Parser::parseStatement(int flags)
                 check(TOKlparen, "mixin");
                 Expression *e = parseAssignExp();
                 check(TOKrparen);
-                check(TOKsemicolon, "mixin (string)");
+                check(TOKsemicolon);
                 s = new CompileStatement(loc, e);
                 break;
             }
@@ -3556,7 +3564,7 @@ Statement *Parser::parseStatement(int flags)
             Statement *body;
 
             nextToken();
-            check(TOKlparen, "while");
+            check(TOKlparen);
             condition = parseExpression();
             check(TOKrparen);
             body = parseStatement(PSscope);
@@ -3577,8 +3585,8 @@ Statement *Parser::parseStatement(int flags)
 
             nextToken();
             body = parseStatement(PSscope);
-            check(TOKwhile, "statement");
-            check(TOKlparen, "while");
+            check(TOKwhile);
+            check(TOKlparen);
             condition = parseExpression();
             check(TOKrparen);
             s = new DoStatement(loc, body, condition);
@@ -3593,7 +3601,7 @@ Statement *Parser::parseStatement(int flags)
             Statement *body;
 
             nextToken();
-            check(TOKlparen, "for");
+            check(TOKlparen);
             if (token.value == TOKsemicolon)
             {   init = NULL;
                 nextToken();
@@ -3609,7 +3617,7 @@ Statement *Parser::parseStatement(int flags)
             else
             {
                 condition = parseExpression();
-                check(TOKsemicolon, "for (init; condition"); /* ) */
+                check(TOKsemicolon, "for condition");
             }
             if (token.value == TOKrparen)
             {   increment = NULL;
@@ -3632,7 +3640,7 @@ Statement *Parser::parseStatement(int flags)
             enum TOK op = token.value;
 
             nextToken();
-            check(TOKlparen, "foreach");
+            check(TOKlparen);
 
             Parameters *arguments = new Parameters();
 
@@ -3672,7 +3680,7 @@ Statement *Parser::parseStatement(int flags)
                 }
                 break;
             }
-            check(TOKsemicolon, "foreach statement");
+            check(TOKsemicolon);
 
             Expression *aggr = parseExpression();
             if (token.value == TOKslice && arguments->dim == 1)
@@ -3701,7 +3709,7 @@ Statement *Parser::parseStatement(int flags)
             Statement *elsebody;
 
             nextToken();
-            check(TOKlparen, "if");
+            check(TOKlparen);
 
             if (token.value == TOKauto)
             {
@@ -3767,9 +3775,9 @@ Statement *Parser::parseStatement(int flags)
             if (peek(&token)->value != TOKlparen)
                 goto Ldeclaration;              // scope used as storage class
             nextToken();
-            check(TOKlparen, "scope");
+            check(TOKlparen);
             if (token.value != TOKidentifier)
-            {   error("scope (identifier) expected");
+            {   error("scope identifier expected");
                 goto Lerror;
             }
             else
@@ -3818,9 +3826,9 @@ Statement *Parser::parseStatement(int flags)
             Statement *body;
 
             nextToken();
-            check(TOKlparen, "pragma");
+            check(TOKlparen);
             if (token.value != TOKidentifier)
-            {   error("pragma(identifier expected");    /* ) */
+            {   error("pragma(identifier expected");
                 goto Lerror;
             }
             ident = token.ident;
@@ -3846,7 +3854,7 @@ Statement *Parser::parseStatement(int flags)
         Lswitch:
         {
             nextToken();
-            check(TOKlparen, "switch");
+            check(TOKlparen);
             Expression *condition = parseExpression();
             check(TOKrparen);
             Statement *body = parseStatement(PSscope);
@@ -3868,7 +3876,7 @@ Statement *Parser::parseStatement(int flags)
                 if (token.value != TOKcomma)
                     break;
             }
-            check(TOKcolon, "case expression");
+            check(TOKcolon);
 
 #if DMDV2
             /* case exp: .. case last:
@@ -3878,9 +3886,9 @@ Statement *Parser::parseStatement(int flags)
                 if (cases.dim > 1)
                     error("only one case allowed for start of case range");
                 nextToken();
-                check(TOKcase, "..");
+                check(TOKcase);
                 last = parseAssignExp();
-                check(TOKcolon, "case expression");
+                check(TOKcolon);
             }
 #endif
 
@@ -3918,7 +3926,7 @@ Statement *Parser::parseStatement(int flags)
             Statements *statements;
 
             nextToken();
-            check(TOKcolon, "default");
+            check(TOKcolon);
 
             statements = new Statements();
             while (token.value != TOKcase &&
@@ -3942,7 +3950,7 @@ Statement *Parser::parseStatement(int flags)
                 exp = NULL;
             else
                 exp = parseExpression();
-            check(TOKsemicolon, "return expression");
+            check(TOKsemicolon, "return statement");
             s = new ReturnStatement(loc, exp);
             break;
         }
@@ -4034,7 +4042,7 @@ Statement *Parser::parseStatement(int flags)
             Statement *body;
 
             nextToken();
-            check(TOKlparen, "with");
+            check(TOKlparen);
             exp = parseExpression();
             check(TOKrparen);
             body = parseStatement(PSscope);
@@ -4065,7 +4073,7 @@ Statement *Parser::parseStatement(int flags)
                 }
                 else
                 {
-                    check(TOKlparen, "catch");
+                    check(TOKlparen);
                     id = NULL;
                     t = parseType(&id);
                     check(TOKrparen);
@@ -4127,7 +4135,7 @@ Statement *Parser::parseStatement(int flags)
             // Defer parsing of AsmStatements until semantic processing.
 
             nextToken();
-            check(TOKlcurly, "asm");
+            check(TOKlcurly);
             toklist = NULL;
             ptoklist = &toklist;
             label = NULL;
@@ -5105,7 +5113,7 @@ Expression *Parser::parsePrimaryExp()
             Objects *args = NULL;
 
             nextToken();
-            check(TOKlparen, "__traits");
+            check(TOKlparen);
             if (token.value != TOKidentifier)
             {   error("__traits(identifier, args...) expected");
                 goto Lerr;
@@ -5265,7 +5273,7 @@ Expression *Parser::parsePrimaryExp()
                     values->push(e);
                     if (token.value == TOKrbracket)
                         break;
-                    check(TOKcomma, "literal element");
+                    check(TOKcomma);
                 }
             }
             check(TOKrbracket);
@@ -5430,7 +5438,7 @@ Expression *Parser::parsePostExp(Expression *e)
                                 arguments->push(arg);
                                 if (token.value == TOKrbracket)
                                     break;
-                                check(TOKcomma, "array literal element");
+                                check(TOKcomma);
                             }
                         }
                         e = new ArrayExp(loc, e, arguments);
@@ -5517,7 +5525,7 @@ Expression *Parser::parseUnaryExp()
         case TOKcast:                           // cast(type) expression
         {
             nextToken();
-            check(TOKlparen, "cast");
+            check(TOKlparen);
             /* Look for cast(), cast(const), cast(immutable),
              * cast(shared), cast(shared const), cast(wild), cast(shared wild)
              */
@@ -5794,10 +5802,11 @@ Expression *Parser::parseRelExp()
                 e = new CmpExp(op, loc, e, e2);
                 continue;
 
-#if DMDV2
             case TOKnot:                // could be !in
+printf("test1\n");
                 if (peekNext() == TOKin)
                 {
+printf("test2\n");
                     nextToken();
                     nextToken();
                     e2 = parseShiftExp();
@@ -5806,7 +5815,6 @@ Expression *Parser::parseRelExp()
                     continue;
                 }
                 break;
-#endif
 
             case TOKin:
                 nextToken();
@@ -5901,7 +5909,6 @@ Expression *Parser::parseCmpExp()
         case TOKnot:
             // Attempt to identify '!is'
             t = peek(&token);
-#if DMDV2
             if (t->value == TOKin)
             {
                 nextToken();
@@ -5911,7 +5918,6 @@ Expression *Parser::parseCmpExp()
                 e = new NotExp(loc, e);
                 break;
             }
-#endif
             if (t->value != TOKis)
                 break;
             nextToken();
@@ -6054,7 +6060,7 @@ Expression *Parser::parseCondExp()
     {
         nextToken();
         e1 = parseExpression();
-        check(TOKcolon, "condition ? expression");
+        check(TOKcolon);
         e2 = parseCondExp();
         e = new CondExp(loc, e, e1, e2);
     }
@@ -6144,10 +6150,10 @@ Expressions *Parser::parseArguments()
                 arguments->push(arg);
                 if (token.value == endtok)
                     break;
-                check(TOKcomma, "argument");
+                check(TOKcomma);
             }
         }
-        check(endtok, "argument list");
+        check(endtok);
     }
     return arguments;
 }

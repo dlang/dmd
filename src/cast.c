@@ -103,7 +103,7 @@ fflush(stdout);
 
     error("cannot implicitly convert expression (%s) of type %s to %s",
         toChars(), type->toChars(), t->toChars());
-    return new ErrorExp();
+    return castTo(sc, t);
 }
 
 Expression *StringExp::implicitCastTo(Scope *sc, Type *t)
@@ -117,11 +117,6 @@ Expression *StringExp::implicitCastTo(Scope *sc, Type *t)
         ((StringExp *)e)->committed = committed;
     }
     return e;
-}
-
-Expression *ErrorExp::implicitCastTo(Scope *sc, Type *t)
-{
-    return this;
 }
 
 /*******************************************
@@ -930,7 +925,6 @@ Expression *StringExp::castTo(Scope *sc, Type *t)
     if (!committed && t->ty == Tpointer && t->nextOf()->ty == Tvoid)
     {
         error("cannot convert string literal to void*");
-        return new ErrorExp();
     }
 
     StringExp *se = this;
@@ -1341,11 +1335,11 @@ Expression *SymOffExp::castTo(Scope *sc, Type *t)
                         }
                         else if (f->needThis())
                         {   error("no 'this' to create delegate for %s", f->toChars());
-                            return new ErrorExp();
+                            e = new ErrorExp();
                         }
                         else
                         {   error("cannot cast from function pointer to delegate");
-                            return new ErrorExp();
+                            e = new ErrorExp();
                         }
                     }
                     else
@@ -1852,7 +1846,7 @@ Expression *Expression::integralPromotions(Scope *sc)
     {
         case Tvoid:
             error("void has no value");
-            return new ErrorExp();
+            break;
 
         case Tint8:
         case Tuns8:

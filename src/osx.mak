@@ -45,7 +45,7 @@ DMD_OBJS = \
 	unialpha.o toobj.o toctype.o toelfdebug.o entity.o doc.o macro.o \
 	hdrgen.o delegatize.o aa.o ti_achar.o toir.o interpret.o traits.o \
 	builtin.o clone.o aliasthis.o \
-	man.o arrayop.o port.o response.o async.o json.o speller.o \
+	man.o arrayop.o port.o response.o async.o json.o speller.o unittests.o \
 	libmach.o machobj.o
 
 SRC = win32.mak linux.mak osx.mak freebsd.mak solaris.mak \
@@ -64,7 +64,7 @@ SRC = win32.mak linux.mak osx.mak freebsd.mak solaris.mak \
 	doc.h doc.c macro.h macro.c hdrgen.h hdrgen.c arraytypes.h \
 	delegatize.c toir.h toir.c interpret.c traits.c cppmangle.c \
 	builtin.c clone.c lib.h libomf.c libelf.c libmach.c arrayop.c \
-	aliasthis.h aliasthis.c json.h json.c \
+	aliasthis.h aliasthis.c json.h json.c unittests.c \
 	$C/cdef.h $C/cc.h $C/oper.h $C/ty.h $C/optabgen.c \
 	$C/global.h $C/parser.h $C/code.h $C/type.h $C/dt.h $C/cgcv.h \
 	$C/el.h $C/iasm.h $C/rtlsym.h $C/html.h \
@@ -503,6 +503,9 @@ utf.o: utf.h utf.c
 	$(CC) -c $(CFLAGS) utf.c
 
 unialpha.o: unialpha.c
+	$(CC) -c $(CFLAGS) $<
+
+unittests.o: unittests.c
 	$(CC) -c $(CFLAGS) $<
 
 var.o: $C/var.c optab.c

@@ -149,7 +149,7 @@ void unittest_speller()
         { "hello", "ehlxxlo", "n" },
         { "hello", "heaao", "y" },
     };
-    printf("unittest_speller()\n");
+    //printf("unittest_speller()\n");
     void *p = speller("hello", &speller_test, "hell", idchars);
     assert(p != NULL);
     for (int i = 0; i < sizeof(cases)/sizeof(cases[0]); i++)
@@ -160,7 +160,7 @@ void unittest_speller()
         else
             assert(cases[i][2][0] == 'n');
     }
-    printf("unittest_speller() success\n");
+    //printf("unittest_speller() success\n");
 }
 
 #endif
