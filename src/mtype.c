@@ -1610,7 +1610,7 @@ Expression *Type::getProperty(Loc loc, Identifier *ident)
         error(loc, ".size property should be replaced with .sizeof");
         e = new ErrorExp();
     }
-    else if (ident == Id::alignof)
+    else if (ident == Id::__alignof)
     {
         e = new IntegerExp(loc, alignsize(), Type::tsize_t);
     }
@@ -1760,7 +1760,7 @@ Expression *Type::noMember(Scope *sc, Expression *e, Identifier *ident)
     assert(sym);
 
     if (ident != Id::__sizeof &&
-        ident != Id::alignof &&
+        ident != Id::__alignof &&
         ident != Id::init &&
         ident != Id::mangleof &&
         ident != Id::stringof &&

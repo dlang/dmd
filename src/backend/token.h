@@ -364,6 +364,7 @@ void removext(void);
 void __near comment(void);
 void __near cppcomment(void);
 char *combinestrings(targ_size_t *plen);
+char *combinestrings(targ_size_t *plen, tym_t *pty);
 void __near inident(void);
 void inidentX(char *p);
 unsigned comphash(const char *p);

@@ -510,7 +510,7 @@ int Dsymbol::addMember(Scope *sc, ScopeDsymbol *sd, int memnum)
         }
         if (sd->isAggregateDeclaration() || sd->isEnumDeclaration())
         {
-            if (ident == Id::__sizeof || ident == Id::alignof || ident == Id::mangleof)
+            if (ident == Id::__sizeof || ident == Id::__alignof || ident == Id::mangleof)
                 error(".%s property cannot be redefined", ident->toChars());
         }
         return 1;

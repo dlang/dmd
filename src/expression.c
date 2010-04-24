@@ -6099,7 +6099,7 @@ Expression *DotIdExp::semantic(Scope *sc, int flag)
     }
     else if (t1b->ty == Tpointer &&
              ident != Id::init && ident != Id::__sizeof &&
-             ident != Id::alignof && ident != Id::offsetof &&
+             ident != Id::__alignof && ident != Id::offsetof &&
              ident != Id::mangleof && ident != Id::stringof)
     {   /* Rewrite:
          *   p.ident
