@@ -582,6 +582,7 @@ again:
 
         case TYbool:
         case TYwchar_t:
+        case TYchar16:
         case TYmemptr:
         case TYvtshape:
             tym = tym_conv(t);

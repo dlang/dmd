@@ -748,7 +748,7 @@ void fltables()
 void dotytab()
 {
     static tym_t _ptr[]      = { TYjhandle,TYnptr,TYsptr,TYcptr,TYf16ptr,TYfptr,TYhptr,
-                                 TYvptr };
+                                 TYvptr,TYnullptr };
     static tym_t _real[]     = { TYfloat,TYdouble,TYdouble_alias,TYldouble,
                                };
     static tym_t _imaginary[] = {
@@ -759,7 +759,8 @@ void dotytab()
                                };
     static tym_t _integral[] = { TYbool,TYchar,TYschar,TYuchar,TYshort,
                                  TYwchar_t,TYushort,TYenum,TYint,TYuint,
-                                 TYlong,TYulong,TYllong,TYullong,TYdchar };
+                                 TYlong,TYulong,TYllong,TYullong,TYdchar,
+                                 TYchar16 };
     static tym_t _ref[]      = { TYnref,TYfref,TYref };
 #if TARGET_MAC
     static tym_t _func[]     = { TYnfunc,TYffunc,TYnpfunc,TYfpfunc,TYpsfunc,
@@ -773,7 +774,7 @@ void dotytab()
 #if MARS
                                 TYwchar_t,
 #endif
-                                TYdchar,TYullong };
+                                TYdchar,TYullong,TYchar16 };
     static tym_t _mptr[]    = { TYmemptr };
     static tym_t _fv[]      = { TYfptr, TYvptr };
 #if TARGET_WINDOS
@@ -787,7 +788,7 @@ void dotytab()
     static tym_t _revfunc[] = { TYnpfunc,TYfpfunc,TYf16func,TYjfunc };
 #endif
     static tym_t _short[]     = { TYbool,TYchar,TYschar,TYuchar,TYshort,
-                                  TYwchar_t,TYushort };
+                                  TYwchar_t,TYushort,TYchar16 };
     static tym_t _aggregate[] = { TYstruct,TYarray };
 
     static struct
@@ -806,6 +807,7 @@ void dotytab()
 "char",         TYchar,         TYuchar,   TYchar,      1,      0x80,   0x70,
 "signed char",  TYschar,        TYuchar,   TYchar,      1,      0x80,   0x10,
 "unsigned char",TYuchar,        TYuchar,   TYchar,      1,      0x84,   0x20,
+"char16_t",     TYchar16,       TYchar16,  TYint,       2,      0x85,   0x21,
 "short",        TYshort,        TYushort,  TYint,       SHORTSIZE, 0x81,0x11,
 "wchar_t",      TYwchar_t,      TYwchar_t, TYint,       SHORTSIZE, 0x85,0x71,
 "unsigned short",TYushort,      TYushort,  TYint,       SHORTSIZE, 0x85,0x21,
@@ -835,6 +837,7 @@ void dotytab()
 
 "*",            TYptr,          TYptr,     TYptr,       2,  0x20,       0x100,
 "__near *",     TYjhandle,      TYjhandle, TYjhandle,   2,  0x20,       0x100,
+"nullptr_t",    TYnullptr,      TYnullptr, TYnptr,      2,  0x20,       0x100,
 "*",            TYnptr,         TYnptr,    TYnptr,      2,  0x20,       0x100,
 "__ss *",       TYsptr,         TYsptr,    TYsptr,      2,  0x20,       0x100,
 "__cs *",       TYcptr,         TYcptr,    TYcptr,      2,  0x20,       0x100,

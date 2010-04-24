@@ -196,6 +196,7 @@ struct ErrorExp : IntegerExp
 {
     ErrorExp();
 
+    Expression *implicitCastTo(Scope *sc, Type *t);
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
 };
 

@@ -212,6 +212,7 @@ One and only one of these macros must be set by the makefile:
 #define HEXFLOATS               1       // support hex floating point constants
 #define OVERLOAD_CV_PARAM       1       // if int foo(int i) and int foo(const int i)
                                         // are different
+#define CPP0X                   1       // support C++0x features
 
 // Support generating code for 16 bit memory models
 #define SIXTEENBIT              (SCPP && TARGET_WINDOS)
@@ -999,6 +1000,7 @@ typedef unsigned long SYMFLGS;
     X(unde,     SCEXP|SCKEP|SCSCT)      /* undefined                            */ \
     X(auto,     SCEXP|SCSS|SCRD  )      /* automatic (stack)                    */ \
     X(static,   SCEXP|SCKEP|SCSCT)      /* statically allocated                 */ \
+    X(thread,   SCEXP|SCKEP      )      /* thread local                         */ \
     X(extern,   SCEXP|SCKEP|SCSCT)      /* external                             */ \
     X(register, SCEXP|SCSS|SCRD  )      /* registered variable                  */ \
     X(pseudo,   SCEXP            )      /* pseudo register variable             */ \

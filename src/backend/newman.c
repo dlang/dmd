@@ -935,7 +935,6 @@ STATIC void cpp_basic_data_type(type *t)
         case TYint:     c = 'H';        goto dochar;
         case TYuint:    c = 'I';        goto dochar;
         case TYlong:    c = 'J';        goto dochar;
-        case TYdchar:   assert(0);
         case TYulong:   c = 'K';        goto dochar;
         case TYfloat:   c = 'M';        goto dochar;
         case TYdouble:  c = 'N';        goto dochar;
@@ -982,6 +981,10 @@ STATIC void cpp_basic_data_type(type *t)
         case TYcfloat:  c = 'U';        goto dochar2;
         case TYcdouble: c = 'V';        goto dochar2;
         case TYcldouble: c = 'W';       goto dochar2;
+
+        case TYchar16:   c = 'X';       goto dochar2;
+        case TYdchar:    c = 'Y';       goto dochar2;
+        case TYnullptr:  c = 'Z';       goto dochar2;
 
         dochar2:
             CHAR('_');

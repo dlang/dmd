@@ -100,7 +100,6 @@ enum TK {
         TKmutable,
         TKnamespace,
         TKnew,
-        TKnullptr,
         TKoperator,
         TKoverload,
         TKprivate,
@@ -121,6 +120,18 @@ enum TK {
         TK_typeinfo,
         TK_typemask,
 //#endif
+
+#if CPP0X
+        TKalignof,
+        TKchar16_t,
+        TKchar32_t,
+        TKconstexpr,
+        TKdecltype,
+        TKnoexcept,
+        TKnullptr,
+        TKstatic_assert,
+        TKthread_local,
+#endif
 
         TKasm,
         TK_inf,
