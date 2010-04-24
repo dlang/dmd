@@ -2121,6 +2121,7 @@ STATIC famlist * newfamlist(tym_t ty)
                 break;
             case TYshort:
             case TYushort:
+            case TYchar16:
             case TYwchar_t:             // BUG: what about 4 byte wchar_t's?
                 c.Vshort = 1;
                 break;
@@ -2132,6 +2133,7 @@ STATIC famlist * newfamlist(tym_t ty)
 #endif
             case TYnptr:
 #endif
+            case TYnullptr:
             case TYfptr:
             case TYvptr:
                 ty = TYint;
@@ -2146,6 +2148,7 @@ STATIC famlist * newfamlist(tym_t ty)
 #endif
             case TYlong:
             case TYulong:
+            case TYdchar:
             default:
                 c.Vlong = 1;
                 break;
@@ -3509,21 +3512,23 @@ STATIC famlist * flcmp(famlist *f1,famlist *f2)
                 break;
             case TYshort:
             case TYushort:
+            case TYchar16:
             case TYwchar_t:     // BUG: what about 4 byte wchar_t's?
-#if TX86
-#if JHANDLE
-            case TYjhandle:
-#endif
-            case TYnptr:
-            case TYsptr:
-            case TYcptr:
-#endif
             case_short:
                 if (t2->Vshort == 1 ||
                     t1->Vshort != 1 && f2->c2->EV.Vshort == 0)
                         goto Lf2;
                 break;
 
+#if TX86
+#if JHANDLE
+            case TYjhandle:
+#endif
+            case TYnullptr:
+            case TYnptr:        // BUG: 64 bit pointers?
+            case TYsptr:
+            case TYcptr:
+#endif
             case TYint:
             case TYuint:
                 if (intsize == SHORTSIZE)
@@ -3532,6 +3537,7 @@ STATIC famlist * flcmp(famlist *f1,famlist *f2)
                     goto case_long;
             case TYlong:
             case TYulong:
+            case TYdchar:
             case TYfptr:
             case TYvptr:
 #if TX86

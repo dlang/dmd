@@ -158,6 +158,7 @@ extern typep_t tsptr2types[TYMAX];
 #define tschar    tstypes[TYchar]
 #define tsschar   tstypes[TYschar]
 #define tsuchar   tstypes[TYuchar]
+#define tschar16  tstypes[TYchar16]
 #define tsshort   tstypes[TYshort]
 #define tsushort  tstypes[TYushort]
 #define tswchar_t tstypes[TYwchar_t]
@@ -180,6 +181,8 @@ extern typep_t tsptr2types[TYMAX];
 #define tscfloat   tstypes[TYcfloat]
 #define tscdouble  tstypes[TYcdouble]
 #define tscldouble tstypes[TYcldouble]
+
+#define tsnullptr tstypes[TYnullptr]
 
 extern typep_t tslogical;
 extern typep_t chartype;

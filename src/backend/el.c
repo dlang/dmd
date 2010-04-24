@@ -2387,6 +2387,7 @@ L1:
                     case TYshort:
                     case TYwchar_t:
                     case TYushort:
+                    case TYchar16:
                     case_short:
                         if (n1->EV.Vshort != n2->EV.Vshort)
                                 goto nomatch;
@@ -2424,6 +2425,7 @@ L1:
 #if JHANDLE
                     case TYjhandle:
 #endif
+                    case TYnullptr:
                     case TYnptr:
                     case TYsptr:
                     case TYcptr:
@@ -2707,6 +2709,7 @@ L1:
             break;
         case TYushort:
         case TYwchar_t:
+        case TYchar16:
         Ushort:
             result = e->EV.Vushort;
             break;
@@ -2721,6 +2724,7 @@ L1:
 #if JHANDLE
         case TYjhandle:
 #endif
+        case TYnullptr:
         case TYnptr:
         case TYsptr:
         case TYcptr:
@@ -3075,6 +3079,7 @@ void elem_print(elem *e)
 #if JHANDLE
                     case TYjhandle:
 #endif
+                    case TYnullptr:
                     case TYnptr:
                     case TYcptr:
 #endif
@@ -3101,6 +3106,7 @@ void elem_print(elem *e)
                     case TYshort:
                     case TYwchar_t:
                     case TYushort:
+                    case TYchar16:
                     L3:
 #if TX86
                         dbg_printf("%hd ",e->EV.Vint);

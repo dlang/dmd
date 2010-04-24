@@ -100,7 +100,6 @@ enum TK {
         TKmutable,
         TKnamespace,
         TKnew,
-        TKnullptr,
         TKoperator,
         TKoverload,
         TKprivate,
@@ -121,6 +120,18 @@ enum TK {
         TK_typeinfo,
         TK_typemask,
 //#endif
+
+#if CPP0X
+        TKalignof,
+        TKchar16_t,
+        TKchar32_t,
+        TKconstexpr,
+        TKdecltype,
+        TKnoexcept,
+        TKnullptr,
+        TKstatic_assert,
+        TKthread_local,
+#endif
 
         TKasm,
         TK_inf,
@@ -353,6 +364,7 @@ void removext(void);
 void __near comment(void);
 void __near cppcomment(void);
 char *combinestrings(targ_size_t *plen);
+char *combinestrings(targ_size_t *plen, tym_t *pty);
 void __near inident(void);
 void inidentX(char *p);
 unsigned comphash(const char *p);

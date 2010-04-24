@@ -594,7 +594,7 @@ Expression *Type::getProperty(Loc loc, Identifier *ident)
         error(loc, ".size property should be replaced with .sizeof");
         e = new ErrorExp();
     }
-    else if (ident == Id::alignof)
+    else if (ident == Id::__alignof)
     {
         e = new IntegerExp(loc, alignsize(), Type::tsize_t);
     }

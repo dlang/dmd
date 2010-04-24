@@ -42,7 +42,7 @@ Msgtable msgtable[] =
     { "init" },
     { "size" },
     { "__sizeof", "sizeof" },
-    { "alignof" },
+    { "__alignof", "alignof" },
     { "mangleof" },
     { "stringof" },
     { "tupleof" },

@@ -1694,6 +1694,7 @@ L1:
         case TYchar:
         case TYschar:
         case TYuchar:
+        case TYchar16:
         case TYshort:
         case TYushort:
         case TYint:
@@ -1963,6 +1964,11 @@ L1:
             tym = TYnptr;               // convert to C data type
             goto L1;                    // and try again
 #endif
+        case TYnullptr:
+            tym = TYnptr;
+            next = cv4_typidx(tsvoid);  // rewrite as void*
+            goto L1;
+
         default:
 #ifdef DEBUG
             WRTYxx(tym);
@@ -2380,6 +2386,7 @@ STATIC void cv4_func(Funcsym *s)
                 goto L1;
 
             case TYwchar_t:
+            case TYchar16:
             case TYshort:
             case TYushort:
                 goto case_ax;
@@ -2389,6 +2396,7 @@ STATIC void cv4_func(Funcsym *s)
 #if JHANDLE
             case TYjhandle:
 #endif
+            case TYnullptr:
             case TYnptr:
             case TYsptr:
             case TYcptr:

@@ -120,6 +120,7 @@ HINT boolres(elem *e)
             {   case TYchar:
                 case TYuchar:
                 case TYschar:
+                case TYchar16:
                 case TYshort:
                 case TYushort:
                 case TYint:
@@ -137,6 +138,7 @@ HINT boolres(elem *e)
 #if JHANDLE
                 case TYjhandle:
 #endif
+                case TYnullptr:
                 case TYnptr:
                 case TYsptr:
                 case TYcptr:

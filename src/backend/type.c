@@ -439,6 +439,8 @@ void type_init()
     tswchar_t = type_allocbasic(TYwchar_t);
     tsdchar   = type_allocbasic(TYdchar);
     tsvoid    = type_allocbasic(TYvoid);
+    tsnullptr = type_allocbasic(TYnullptr);
+    tschar16  = type_allocbasic(TYchar16);
     tsuchar   = type_allocbasic(TYuchar);
     tsschar   = type_allocbasic(TYschar);
     tschar    = type_allocbasic(TYchar);
