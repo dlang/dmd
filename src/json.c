@@ -214,11 +214,17 @@ void AttribDeclaration::toJsonBuffer(OutBuffer *buf)
 
     if (d)
     {
+        size_t offset = buf->offset;
         for (unsigned i = 0; i < d->dim; i++)
         {   Dsymbol *s = (Dsymbol *)d->data[i];
             //printf("AttribDeclaration::toJsonBuffer %s\n", s->toChars());
+            if (offset != buf->offset)
+            {   buf->writestring(",\n");
+                offset = buf->offset;
+            }
             s->toJsonBuffer(buf);
         }
+        JsonRemoveComma(buf);
     }
 }
 
