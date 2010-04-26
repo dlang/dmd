@@ -452,10 +452,8 @@ Expressions *arrayExpressiondoInline(Expressions *a, InlineDoState *ids)
         {   Expression *e = (Expression *)a->data[i];
 
             if (e)
-            {
                 e = e->doInline(ids);
-                newa->data[i] = (void *)e;
-            }
+            newa->data[i] = (void *)e;
         }
     }
     return newa;
