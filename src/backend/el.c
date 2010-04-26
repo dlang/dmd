@@ -2119,6 +2119,10 @@ elem *el_convert(elem *e)
             e = el_convstring(e);
             break;
 
+        case OPnullptr:
+            e = el_long(e->Ety, 0);
+            break;
+
         case OPmul:
             /* special floating-point case: allow x*2 to be x+x
              * in this case, we preserve the constant 2.

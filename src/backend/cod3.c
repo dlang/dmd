@@ -1142,7 +1142,7 @@ code *prolog()
     tym_t tyf;
     char enter;
     char pushds;
-    char farfunc;
+    unsigned farfunc;
     unsigned Foffset;
     targ_size_t xlocalsize;     // amount to subtract from ESP to make room for locals
     int pushalloc;

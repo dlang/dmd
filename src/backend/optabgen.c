@@ -135,6 +135,7 @@ int _ae[] = {OPvar,OPconst,OPrelconst,OPneg,
                 OPcallns,OPucallns,OPnullcheck,OPpair,OPrpair,
                 OPbsf,OPbsr,OPbt,OPbswap,OPb_8,
                 OPgot,OPremquo,
+                OPnullptr,
                 /*OPcomma,OPbit,OPoror,OPandand,OPcond,OPcolon,OPcolon2*/};
 int _exp[] = {OPvar,OPconst,OPrelconst,OPneg,OPabs,OPsqrt,OPrndtol,OPrint,
                 OPsin,OPcos,OPscale,OPyl2x,OPyl2xp1,
@@ -170,6 +171,7 @@ int _boolnop[] = {OPuadd,OPbool,OPs16_32,OPu16_32,
                 OPsfltdbl,OPdblsflt,
 #endif
                 OPu16_d,OPptrlptr,OPb_8,
+                OPnullptr,
                 };
 int _lvalue[] = {OPvar,OPind,OPcomma,OPbit,
                 OPfield,OParray};
@@ -442,6 +444,7 @@ void dotab()
         case OPmark:    X("mark",       elinfo,cdmark);
         case OPvoid:    X("void",       elzot, cdvoid);
         case OPhalt:    X("halt",       elzot, cdhalt);
+        case OPnullptr: X("nullptr",    elerr, cderr);
         case OPpair:    X("pair",       elpair, cdpair);
         case OPrpair:   X("rpair",      elpair, cdpair);
 
@@ -748,7 +751,7 @@ void fltables()
 void dotytab()
 {
     static tym_t _ptr[]      = { TYjhandle,TYnptr,TYsptr,TYcptr,TYf16ptr,TYfptr,TYhptr,
-                                 TYvptr,TYnullptr };
+                                 TYvptr };
     static tym_t _real[]     = { TYfloat,TYdouble,TYdouble_alias,TYldouble,
                                };
     static tym_t _imaginary[] = {
@@ -776,6 +779,7 @@ void dotytab()
 #endif
                                 TYdchar,TYullong,TYchar16 };
     static tym_t _mptr[]    = { TYmemptr };
+    static tym_t _nullptr[] = { TYnullptr };
     static tym_t _fv[]      = { TYfptr, TYvptr };
 #if TARGET_WINDOS
     static tym_t _farfunc[] = { TYffunc,TYfpfunc,TYfsfunc,TYfsysfunc };
@@ -837,7 +841,7 @@ void dotytab()
 
 "*",            TYptr,          TYptr,     TYptr,       2,  0x20,       0x100,
 "__near *",     TYjhandle,      TYjhandle, TYjhandle,   2,  0x20,       0x100,
-"nullptr_t",    TYnullptr,      TYnullptr, TYnptr,      2,  0x20,       0x100,
+"nullptr_t",    TYnullptr,      TYnullptr, TYptr,       2,  0x20,       0x100,
 "*",            TYnptr,         TYnptr,    TYnptr,      2,  0x20,       0x100,
 "__ss *",       TYsptr,         TYsptr,    TYsptr,      2,  0x20,       0x100,
 "__cs *",       TYcptr,         TYcptr,    TYcptr,      2,  0x20,       0x100,
@@ -877,8 +881,7 @@ void dotytab()
     };
 
     FILE *f;
-    static unsigned char tytab[64 * 4];
-    static unsigned char tytab2[64 * 4];
+    static unsigned tytab[64 * 4];
     static tym_t tytouns[64 * 4];
     static tym_t _tyrelax[TYMAX];
     static tym_t _tyequiv[TYMAX];
@@ -896,10 +899,10 @@ void dotytab()
                         tytab[arr[i] + 192] |= mask; \
                      };
 #define T2(arr,mask) for (i=0; i<arraysize(arr); i++) \
-                     {  tytab2[arr[i]] |= mask; \
-                        tytab2[arr[i] + 64] |= mask; \
-                        tytab2[arr[i] + 128] |= mask; \
-                        tytab2[arr[i] + 192] |= mask; \
+                     {  tytab[arr[i]] |= mask; \
+                        tytab[arr[i] + 64] |= mask; \
+                        tytab[arr[i] + 128] |= mask; \
+                        tytab[arr[i] + 192] |= mask; \
                      };
 
     T1(_ptr,      TYFLptr);
@@ -920,13 +923,14 @@ void dotytab()
     T2(_aggregate,TYFLaggregate);
     T2(_ref,      TYFLref);
     T2(_func,     TYFLfunc);
+    T2(_nullptr,  TYFLnullptr);
 
 #undef T1
 #undef T2
 
     f = fopen("tytab.c","w");
 
-    fprintf(f,"unsigned char tytab[] =\n{ ");
+    fprintf(f,"unsigned tytab[] =\n{ ");
     for (i = 0; i < arraysize(tytab); i++)
     {   fprintf(f,"0x%02x,",tytab[i]);
         if ((i & 7) == 7 && i < arraysize(tytab) - 1)
@@ -934,6 +938,7 @@ void dotytab()
     }
     fprintf(f,"\n};\n");
 
+#if 0
     fprintf(f,"unsigned char tytab2[] =\n{ ");
     for (i = 0; i < arraysize(tytab2); i++)
     {   fprintf(f,"0x%02x,",tytab2[i]);
@@ -941,6 +946,7 @@ void dotytab()
             fprintf(f,"\n  ");
     }
     fprintf(f,"\n};\n");
+#endif
 
     for (i = 0; i < arraysize(typetab); i++)
     {   tytouns[typetab[i].ty] = typetab[i].unsty;

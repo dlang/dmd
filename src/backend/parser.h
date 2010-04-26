@@ -310,6 +310,7 @@ void blklst_term();
 symbol *adl_lookup(char *id, symbol *so, list_t arglist);
 
 /* exp.c */
+extern elem *exp_sizeof(int);
 
 /* exp2.c */
 extern elem *typechk(elem *,type *),
@@ -464,6 +465,8 @@ void nwc_typematch(type *,type *,symbol *);
 int isexpression(void);
 void nwc_setlinkage(char *,long,mangle_t);
 tym_t nwc_declspec();
+void parse_static_assert();
+type *parse_decltype();
 
 /* struct.c */
 type *stunspec(enum_TK tk, Symbol *s, Symbol *stempsym, param_t *template_argument_list);
