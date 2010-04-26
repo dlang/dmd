@@ -307,19 +307,22 @@ void AggregateDeclaration::toJsonBuffer(OutBuffer *buf)
         }
     }
 
-    JsonString(buf, Pmembers);
-    buf->writestring(" : [\n");
-    size_t offset = buf->offset;
-    for (int i = 0; i < members->dim; i++)
-    {   Dsymbol *s = (Dsymbol *)members->data[i];
-        if (offset != buf->offset)
-        {   buf->writestring(",\n");
-            offset = buf->offset;
+    if (members)
+    {
+        JsonString(buf, Pmembers);
+        buf->writestring(" : [\n");
+        size_t offset = buf->offset;
+        for (int i = 0; i < members->dim; i++)
+        {   Dsymbol *s = (Dsymbol *)members->data[i];
+            if (offset != buf->offset)
+            {   buf->writestring(",\n");
+                offset = buf->offset;
+            }
+            s->toJsonBuffer(buf);
         }
-        s->toJsonBuffer(buf);
+        JsonRemoveComma(buf);
+        buf->writestring("]\n");
     }
-    JsonRemoveComma(buf);
-    buf->writestring("]\n");
 
     buf->writestring("}\n");
 }
@@ -386,19 +389,22 @@ void EnumDeclaration::toJsonBuffer(OutBuffer *buf)
     if (memtype)
         JsonProperty(buf, "base", memtype->toChars());
 
-    JsonString(buf, Pmembers);
-    buf->writestring(" : [\n");
-    size_t offset = buf->offset;
-    for (int i = 0; i < members->dim; i++)
-    {   Dsymbol *s = (Dsymbol *)members->data[i];
-        if (offset != buf->offset)
-        {   buf->writestring(",\n");
-            offset = buf->offset;
+    if (members)
+    {
+        JsonString(buf, Pmembers);
+        buf->writestring(" : [\n");
+        size_t offset = buf->offset;
+        for (int i = 0; i < members->dim; i++)
+        {   Dsymbol *s = (Dsymbol *)members->data[i];
+            if (offset != buf->offset)
+            {   buf->writestring(",\n");
+                offset = buf->offset;
+            }
+            s->toJsonBuffer(buf);
         }
-        s->toJsonBuffer(buf);
+        JsonRemoveComma(buf);
+        buf->writestring("]\n");
     }
-    JsonRemoveComma(buf);
-    buf->writestring("]\n");
 
     buf->writestring("}\n");
 }
