@@ -2106,8 +2106,7 @@ Expression *IdentifierExp::semantic(Scope *sc)
         error("undefined identifier %s, did you mean %s %s?", ident->toChars(), s->kind(), s->toChars());
     else
         error("undefined identifier %s", ident->toChars());
-    type = Type::terror;
-    return this;
+    return new ErrorExp();
 }
 
 char *IdentifierExp::toChars()
@@ -5666,8 +5665,7 @@ Expression *DotIdExp::semantic(Scope *sc)
             return e;
         }
         error("undefined identifier %s", toChars());
-        type = Type::tvoid;
-        return this;
+        return new ErrorExp();
     }
     else if (e1->type->ty == Tpointer &&
              ident != Id::init && ident != Id::__sizeof &&
