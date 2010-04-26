@@ -270,6 +270,7 @@ Expression *getRightThis(Loc loc, Scope *sc, AggregateDeclaration *ad,
              */
             e1->error("this for %s needs to be type %s not type %s",
                 var->toChars(), ad->toChars(), t->toChars());
+            e1 = new ErrorExp();
         }
     }
     return e1;
