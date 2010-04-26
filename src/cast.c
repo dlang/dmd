@@ -1653,21 +1653,30 @@ Lagain:
              (t2->ty == Tsarray || t2->ty == Tarray || t2->ty == Tpointer) &&
              t1->nextOf()->mod != t2->nextOf()->mod
             )
-    {
+    {   unsigned char mod = MODmerge(t1->nextOf()->mod, t2->nextOf()->mod);
+
         if (t1->ty == Tpointer)
-            t1 = t1->nextOf()->mutableOf()->constOf()->pointerTo();
+            t1 = t1->nextOf()->castMod(mod)->pointerTo();
         else
-            t1 = t1->nextOf()->mutableOf()->constOf()->arrayOf();
+            t1 = t1->nextOf()->castMod(mod)->arrayOf();
 
         if (t2->ty == Tpointer)
-            t2 = t2->nextOf()->mutableOf()->constOf()->pointerTo();
+            t2 = t2->nextOf()->castMod(mod)->pointerTo();
         else
-            t2 = t2->nextOf()->mutableOf()->constOf()->arrayOf();
+            t2 = t2->nextOf()->castMod(mod)->arrayOf();
         t = t1;
         goto Lagain;
     }
     else if (t1->ty == Tclass || t2->ty == Tclass)
     {
+        if (t1->mod != t2->mod)
+        {   unsigned char mod = MODmerge(t1->mod, t2->mod);
+            t1 = t1->castMod(mod);
+            t2 = t2->castMod(mod);
+            t = t1;
+            goto Lagain;
+        }
+
         while (1)
         {
             int i1 = e2->implicitConvTo(t1);
