@@ -3526,7 +3526,7 @@ void TemplateInstance::semantic(Scope *sc)
 
 void TemplateInstance::semantic(Scope *sc, Expressions *fargs)
 {
-    if (global.errors)
+    if (global.errors && name != Id::AssociativeArray)
     {
         if (!global.gag)
         {
