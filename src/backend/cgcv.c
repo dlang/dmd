@@ -1967,6 +1967,7 @@ L1:
         case TYnullptr:
             tym = TYnptr;
             next = cv4_typidx(tsvoid);  // rewrite as void*
+            t = tspvoid;
             goto L1;
 
         default:

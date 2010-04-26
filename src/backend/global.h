@@ -226,6 +226,7 @@ int type_chksize(unsigned long);
 tym_t tym_conv(type *);
 type * type_arrayroot(type *);
 void chklvalue(elem *);
+int tolvalue(elem **);
 void chkassign(elem *);
 void chknosu(elem *);
 void chkunass(elem *);

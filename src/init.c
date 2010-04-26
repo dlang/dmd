@@ -341,6 +341,7 @@ void ArrayInitializer::addInit(Expression *index, Initializer *value)
 Initializer *ArrayInitializer::semantic(Scope *sc, Type *t)
 {   unsigned i;
     unsigned length;
+    const unsigned long amax = 0x80000000;
 
     //printf("ArrayInitializer::semantic(%s)\n", t->toChars());
     if (sem)                            // if semantic() already run
@@ -357,15 +358,13 @@ Initializer *ArrayInitializer::semantic(Scope *sc, Type *t)
 
         default:
             error(loc, "cannot use array to initialize %s", type->toChars());
-            return this;
+            goto Lerr;
     }
 
     length = 0;
     for (i = 0; i < index.dim; i++)
-    {   Expression *idx;
-        Initializer *val;
-
-        idx = (Expression *)index.data[i];
+    {
+        Expression *idx = (Expression *)index.data[i];
         if (idx)
         {   idx = idx->semantic(sc);
             idx = idx->optimize(WANTvalue | WANTinterpret);
@@ -373,19 +372,35 @@ Initializer *ArrayInitializer::semantic(Scope *sc, Type *t)
             length = idx->toInteger();
         }
 
-        val = (Initializer *)value.data[i];
-        val = val->semantic(sc, t->next);
+        Initializer *val = (Initializer *)value.data[i];
+        val = val->semantic(sc, t->nextOf());
         value.data[i] = (void *)val;
         length++;
         if (length == 0)
-            error(loc, "array dimension overflow");
+        {   error(loc, "array dimension overflow");
+            goto Lerr;
+        }
         if (length > dim)
             dim = length;
     }
-    unsigned long amax = 0x80000000;
-    if ((unsigned long) dim * t->next->size() >= amax)
-        error(loc, "array dimension %u exceeds max of %ju", dim, amax / t->next->size());
+    if (t->ty == Tsarray)
+    {
+        dinteger_t edim = ((TypeSArray *)t)->dim->toInteger();
+        if (dim > edim)
+        {
+            error(loc, "array initializer has %u elements, but array length is %jd", dim, edim);
+            goto Lerr;
+        }
+    }
+
+    if ((unsigned long) dim * t->nextOf()->size() >= amax)
+    {   error(loc, "array dimension %u exceeds max of %ju", dim, amax / t->nextOf()->size());
+        goto Lerr;
+    }
     return this;
+
+Lerr:
+    return new ExpInitializer(loc, new ErrorExp());
 }
 
 /********************************
@@ -619,11 +634,11 @@ Initializer *ExpInitializer::semantic(Scope *sc, Type *t)
     // Look for the case of statically initializing an array
     // with a single member.
     if (tb->ty == Tsarray &&
-        !tb->next->equals(exp->type->toBasetype()->next) &&
-        exp->implicitConvTo(tb->next)
+        !tb->nextOf()->equals(exp->type->toBasetype()->nextOf()) &&
+        exp->implicitConvTo(tb->nextOf())
        )
     {
-        t = tb->next;
+        t = tb->nextOf();
     }
 
     exp = exp->implicitCastTo(sc, t);

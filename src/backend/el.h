@@ -52,7 +52,7 @@ struct elem
             struct TYPE *ET_;   // pointer to type of elem
             #define ET _EU._EP.ET_
 
-            unsigned char PEFflags_;
+            unsigned PEFflags_;
             #define PEFflags _EU._EP.PEFflags_
                 #define PEFnotlvalue    1       // although elem may look like
                                                 // an lvalue, it isn't
@@ -60,6 +60,7 @@ struct elem
                 #define PEFparentheses  0x20    // expression was within ()
                 #define PEFaddrmem      0x40    // address of member
                 #define PEFdependent    0x80    // value-dependent
+                #define PEFmember       0x100   // was a class member access
 #if !TX86
                 #define PEFdblldbl      2       // long double return from dbl func
                 #define PEFfltldbl      4       // long double return from flt func
@@ -69,6 +70,8 @@ struct elem
                                                 // of the struct.  This happens
                                                 // in C++ operator = generation
 #endif
+            Symbol *Emember_;                   // if PEFmember, this is the member
+            #define Emember _EU._EP.Emember_
         }_EP;
 
         // OPTIMIZER

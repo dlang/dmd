@@ -251,6 +251,7 @@ TARGET_CONVERSION_OPS
         OPcolon,                /* : as in ?:                   */
         OPcolon2,               // alternate version with different EH semantics
         OPstring,               /* address of string            */
+        OPnullptr,              // null pointer
         OPasm,                  /* in-line assembly code        */
         OPinfo,                 // attach info (used to attach ctor/dtor
         OPhalt,                 // insert HLT instruction

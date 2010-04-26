@@ -585,6 +585,7 @@ again:
         case TYchar16:
         case TYmemptr:
         case TYvtshape:
+        case TYnullptr:
             tym = tym_conv(t);
             break;
 

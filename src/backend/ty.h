@@ -151,7 +151,7 @@ extern int TYptrdiff, TYsize, TYsize_t;
 #define mTYnothrow      0x4000000       // nothrow function
 
 /* Flags in tytab[] array       */
-extern unsigned char tytab[];
+extern unsigned tytab[];
 #define TYFLptr         1
 #define TYFLreal        2
 #define TYFLintegral    4
@@ -161,20 +161,19 @@ extern unsigned char tytab[];
 #define TYFLmptr        0x40
 #define TYFLfv          0x80    /* TYfptr || TYvptr     */
 
-/* Flags in tytab2[] array      */
-extern unsigned char tytab2[];
 #if TX86
-#define TYFLfarfunc     1
-#define TYFLpascal      2       /* callee cleans up stack               */
-#define TYFLrevparam    4       /* function parameters are reversed     */
+#define TYFLfarfunc     0x100
+#define TYFLpascal      0x200       // callee cleans up stack
+#define TYFLrevparam    0x400       // function parameters are reversed
 #else
-#define TYFLcallstkc    1       /* callee cleans up stack               */
-#define TYFLrevparam    2       /* function parameters are reversed     */
+#define TYFLcallstkc    0x100       // callee cleans up stack
+#define TYFLrevparam    0x200       // function parameters are reversed
 #endif
-#define TYFLshort       0x10
-#define TYFLaggregate   0x20
-#define TYFLfunc        0x40
-#define TYFLref         0x80
+#define TYFLnullptr     0x800
+#define TYFLshort       0x1000
+#define TYFLaggregate   0x2000
+#define TYFLfunc        0x4000
+#define TYFLref         0x8000
 
 /* Groupings of types   */
 
@@ -182,9 +181,9 @@ extern unsigned char tytab2[];
 
 #define tyarithmetic(ty) (tytab[(ty) & 0xFF] & (TYFLintegral | TYFLreal | TYFLimaginary | TYFLcomplex))
 
-#define tyaggregate(ty) (tytab2[(ty) & 0xFF] & TYFLaggregate)
+#define tyaggregate(ty) (tytab[(ty) & 0xFF] & TYFLaggregate)
 
-#define tyscalar(ty)    (tytab[(ty) & 0xFF] & (TYFLintegral | TYFLreal | TYFLimaginary | TYFLcomplex | TYFLptr | TYFLmptr))
+#define tyscalar(ty)    (tytab[(ty) & 0xFF] & (TYFLintegral | TYFLreal | TYFLimaginary | TYFLcomplex | TYFLptr | TYFLmptr | TYFLnullptr))
 
 #define tyfloating(ty)  (tytab[(ty) & 0xFF] & (TYFLreal | TYFLimaginary | TYFLcomplex))
 
@@ -196,7 +195,7 @@ extern unsigned char tytab2[];
 
 #ifndef tyshort
 /* Types that are chars or shorts       */
-#define tyshort(ty)     (tytab2[(ty) & 0xFF] & TYFLshort)
+#define tyshort(ty)     (tytab[(ty) & 0xFF] & TYFLshort)
 #endif
 
 /* Detect TYlong or TYulong     */
@@ -211,12 +210,17 @@ extern unsigned char tytab2[];
 
 /* Use to detect a reference type */
 #ifndef tyref
-#define tyref(ty)       (tytab2[(ty) & 0xFF] & TYFLref)
+#define tyref(ty)       (tytab[(ty) & 0xFF] & TYFLref)
 #endif
 
 /* Use to detect a pointer type or a member pointer     */
 #ifndef tymptr
 #define tymptr(ty)      (tytab[(ty) & 0xFF] & (TYFLptr | TYFLmptr))
+#endif
+
+// Use to detect a nullptr type or a member pointer
+#ifndef tynullptr
+#define tynullptr(ty)      (tytab[(ty) & 0xFF] & TYFLnullptr)
 #endif
 
 /* Detect TYfptr or TYvptr      */
@@ -242,12 +246,12 @@ extern signed char tysize[];
 
 /* Detect function type */
 #ifndef tyfunc
-#define tyfunc(ty)      (tytab2[(ty) & 0xFF] & TYFLfunc)
+#define tyfunc(ty)      (tytab[(ty) & 0xFF] & TYFLfunc)
 #endif
 
 /* Detect function type where parameters are pushed in reverse order    */
 #ifndef tyrevfunc
-#define tyrevfunc(ty)   (tytab2[(ty) & 0xFF] & TYFLrevparam)
+#define tyrevfunc(ty)   (tytab[(ty) & 0xFF] & TYFLrevparam)
 #endif
 
 /* Detect unsigned types */
@@ -260,12 +264,12 @@ extern signed char tysize[];
 #define TYoffset TYuint         /* offset to an address         */
 
 /* Detect cpp function type (callee cleans up stack)    */
-#define typfunc(ty)     (tytab2[(ty) & 0xFF] & TYFLpascal)
+#define typfunc(ty)     (tytab[(ty) & 0xFF] & TYFLpascal)
 
 #else
 /* Detect cpp function type (callee cleans up stack)    */
 #ifndef typfunc
-#define typfunc(ty)     (tytab2[(ty) & 0xFF] & TYFLcallstkc)
+#define typfunc(ty)     (tytab[(ty) & 0xFF] & TYFLcallstkc)
 #endif
 #endif
 
@@ -277,7 +281,7 @@ extern const tym_t tytouns[];
 
 /* Determine if TYffunc or TYfpfunc (a far function) */
 #ifndef tyfarfunc
-#define tyfarfunc(ty)   (tytab2[(ty) & 0xFF] & TYFLfarfunc)
+#define tyfarfunc(ty)   (tytab[(ty) & 0xFF] & TYFLfarfunc)
 #endif
 
 // Determine if parameter can go in register for TYjfunc
