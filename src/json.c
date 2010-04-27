@@ -246,6 +246,7 @@ void StaticDtorDeclaration::toJsonBuffer(OutBuffer *buf) { }
 void ClassInfoDeclaration::toJsonBuffer(OutBuffer *buf)  { }
 void ModuleInfoDeclaration::toJsonBuffer(OutBuffer *buf) { }
 void TypeInfoDeclaration::toJsonBuffer(OutBuffer *buf)   { }
+void UnitTestDeclaration::toJsonBuffer(OutBuffer *buf)   { }
 #if DMDV2
 void PostBlitDeclaration::toJsonBuffer(OutBuffer *buf)   { }
 #endif
