@@ -150,6 +150,7 @@ struct Expression : Object
     virtual int inlineCost(InlineCostState *ics);
     virtual Expression *doInline(InlineDoState *ids);
     virtual Expression *inlineScan(InlineScanState *iss);
+    Expression *inlineCopy(Scope *sc);
 
     // For operator overloading
     virtual int isCommutative();

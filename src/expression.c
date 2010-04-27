@@ -680,7 +680,7 @@ Type *functionParameters(Loc loc, Scope *sc, TypeFunction *tf,
                     return tf->next;
                 }
                 arg = p->defaultArg;
-                arg = arg->copy();
+                arg = arg->inlineCopy(sc);
 #if DMDV2
                 arg = arg->resolveLoc(loc, sc);         // __FILE__ and __LINE__
 #endif
@@ -5335,9 +5335,8 @@ UnaExp::UnaExp(Loc loc, enum TOK op, int size, Expression *e1)
 }
 
 Expression *UnaExp::syntaxCopy()
-{   UnaExp *e;
-
-    e = (UnaExp *)copy();
+{
+    UnaExp *e = (UnaExp *)copy();
     e->type = NULL;
     e->e1 = e->e1->syntaxCopy();
     return e;
@@ -5383,9 +5382,8 @@ BinExp::BinExp(Loc loc, enum TOK op, int size, Expression *e1, Expression *e2)
 }
 
 Expression *BinExp::syntaxCopy()
-{   BinExp *e;
-
-    e = (BinExp *)copy();
+{
+    BinExp *e = (BinExp *)copy();
     e->type = NULL;
     e->e1 = e->e1->syntaxCopy();
     e->e2 = e->e2->syntaxCopy();
