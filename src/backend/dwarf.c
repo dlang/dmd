@@ -252,6 +252,7 @@ static Outbuffer *infobuf;
 
 static AArray *type_table;
 static AArray *functype_table;  // not sure why this cannot be combined with type_table
+static Outbuffer *functypebuf;
 
 #pragma pack(1)
 struct DebugInfoHeader
@@ -757,6 +758,8 @@ void dwarf_termfile()
     {   delete functype_table;
         functype_table = NULL;
     }
+    if (functypebuf)
+        functypebuf->setsize(0);
 }
 
 /*****************************************
@@ -1451,16 +1454,40 @@ unsigned dwarf_typidx(type *t)
         case TYjfunc:
 
         case TYnfunc:
-        {   unsigned paramcode;
-            unsigned params;
-
-            nextidx = dwarf_typidx(t->Tnext);
-            params = 0;
+        {
+            /* The dwarf typidx for the function type is completely determined by
+             * the return type typidx and the parameter typidx's. Thus, by
+             * caching these, we can cache the function typidx.
+             * Cache them in functypebuf[]
+             */
+            nextidx = dwarf_typidx(t->Tnext);                   // function return type
+            if (!functypebuf)
+                functypebuf = new Outbuffer();
+            unsigned functypebufidx = functypebuf->size();
+            functypebuf->write32(nextidx);
+            unsigned params = 0;
             for (param_t *p = t->Tparamtypes; p; p = p->Pnext)
             {   params = 1;
-                dwarf_typidx(p->Ptype);
+                unsigned paramidx = dwarf_typidx(p->Ptype);
+                functypebuf->write32(nextidx);
             }
 
+            /* If it's in the cache already, return the existing typidx
+             */
+            if (!functype_table)
+                functype_table = new AArray(&ti_atype, sizeof(unsigned));
+            Atype functype;
+            functype.start = functypebufidx;
+            functype.end = functypebuf->size();
+            unsigned *pidx = (unsigned *)functype_table->get(&functype);
+            if (*pidx)
+            {   // Reuse existing typidx
+                functypebuf->setsize(functypebufidx);
+                return *pidx;
+            }
+
+            /* Not in the cache, create a new typidx
+             */
             Outbuffer abuf;             // for abbrev
             abuf.writeByte(DW_TAG_subroutine_type);
             if (params)
@@ -1478,6 +1505,7 @@ unsigned dwarf_typidx(type *t)
             abuf.writeByte(0);                  abuf.writeByte(0);
             code = dwarf_abbrev_code(abuf.buf, abuf.size());
 
+            unsigned paramcode;
             if (params)
             {   abuf.reset();
                 abuf.writeByte(DW_TAG_formal_parameter);
@@ -1496,28 +1524,24 @@ unsigned dwarf_typidx(type *t)
             if (params)
                 infobuf->write32(idxsibling);   // DW_AT_sibling
             infobuf->writeByte(1);              // DW_AT_prototyped
-            if (nextidx)
+            if (nextidx)                        // if return type is not void
                 infobuf->write32(nextidx);      // DW_AT_type
 
             if (params)
-            {
+            {   unsigned *pparamidx = (unsigned *)(functypebuf->buf + functypebufidx);
                 for (param_t *p = t->Tparamtypes; p; p = p->Pnext)
                 {   infobuf->writeuLEB128(paramcode);
-                    unsigned x = dwarf_typidx(p->Ptype);
-                    infobuf->write32(x);        // DW_AT_type
+                    //unsigned x = dwarf_typidx(p->Ptype);
+                    infobuf->write32(*++pparamidx);        // DW_AT_type
                 }
                 infobuf->writeByte(0);          // end parameter list
 
+                // This is why the usual typidx caching does not work; this is unique every time
                 idxsibling = infobuf->size();
                 *(unsigned *)(infobuf->buf + siblingoffset) = idxsibling;
             }
-            if (!functype_table)
-                functype_table = new AArray(&ti_atype, sizeof(unsigned));
-            Atype functype;
-            functype.start = *((size_t *)t);
-            functype.end = *((size_t *)t) + sizeof(type);
-            unsigned *pidx = (unsigned *)functype_table->get(&functype);
-            *pidx = idx;
+
+            *pidx = idx;                        // remember it in the functype_table[] cache
             break;
         }
 
