@@ -869,6 +869,9 @@ void VarDeclaration::semantic(Scope *sc)
     else if (storage_class & STCtemplateparameter)
     {
     }
+    else if (storage_class & STCctfe)
+    {
+    }
     else
     {
         AggregateDeclaration *aad = sc->anonAgg;
