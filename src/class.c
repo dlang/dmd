@@ -61,7 +61,7 @@ ClassDeclaration::ClassDeclaration(Loc loc, Identifier *id, BaseClasses *basecla
     if (id)
     {   // Look for special class names
 
-        if (id == Id::__sizeof || id == Id::__alignof || id == Id::mangleof)
+        if (id == Id::__sizeof || id == Id::__xalignof || id == Id::mangleof)
             error("illegal class name");
 
         // BUG: What if this is the wrong TypeInfo, i.e. it is nested?

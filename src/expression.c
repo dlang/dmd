@@ -5043,7 +5043,7 @@ Expression *IsExp::semantic(Scope *sc)
     //printf("IsExp::semantic(%s)\n", toChars());
     if (id && !(sc->flags & SCOPEstaticif))
     {   error("can only declare type aliases within static if conditionals");
-        goto Lerr;
+        return new ErrorExp();
     }
 
     Type *t = targ->trySemantic(loc, sc);
@@ -6100,7 +6100,7 @@ Expression *DotIdExp::semantic(Scope *sc, int flag)
     }
     else if (t1b->ty == Tpointer &&
              ident != Id::init && ident != Id::__sizeof &&
-             ident != Id::__alignof && ident != Id::offsetof &&
+             ident != Id::__xalignof && ident != Id::offsetof &&
              ident != Id::mangleof && ident != Id::stringof)
     {   /* Rewrite:
          *   p.ident

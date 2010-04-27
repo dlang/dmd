@@ -44,7 +44,7 @@ Msgtable msgtable[] =
     { "init" },
     { "size" },
     { "__sizeof", "sizeof" },
-    { "__alignof", "alignof" },
+    { "__xalignof", "alignof" },
     { "mangleof" },
     { "stringof" },
     { "tupleof" },
