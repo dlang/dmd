@@ -798,6 +798,7 @@ struct UnitTestDeclaration : FuncDeclaration
     int addPreInvariant();
     int addPostInvariant();
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
+    void toJsonBuffer(OutBuffer *buf);
 
     UnitTestDeclaration *isUnitTestDeclaration() { return this; }
 };

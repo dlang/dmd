@@ -121,6 +121,7 @@ Scope::Scope(Scope *enclosing)
     this->noaccesscheck = enclosing->noaccesscheck;
     this->mustsemantic = enclosing->mustsemantic;
     this->intypeof = enclosing->intypeof;
+    this->inunittest = enclosing->inunittest;
     this->parameterSpecialization = enclosing->parameterSpecialization;
     this->callSuper = enclosing->callSuper;
     this->flags = 0;

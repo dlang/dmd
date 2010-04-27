@@ -5655,7 +5655,7 @@ Type *TypeIdentifier::semantic(Loc loc, Scope *sc)
         }
         else
             error(loc, "%s is used as a type", toChars());
-        t = tvoid;
+        t = terror;
     }
     //t->print();
     return t;
