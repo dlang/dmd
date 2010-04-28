@@ -152,7 +152,6 @@ elem *callfunc(Loc loc,
             {
                 ea = el_una(OPstrpar, TYstruct, ea);
                 ea->Enumbytes = ea->E1->Enumbytes;
-                //assert(ea->Enumbytes);
             }
             if (reverse)
                 ep = el_param(ep,ea);
