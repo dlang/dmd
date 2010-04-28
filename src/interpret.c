@@ -309,6 +309,7 @@ Expression *Statement::interpret(InterState *istate)
     printf("Statement::interpret()\n");
 #endif
     START()
+    error("Statement %s cannot be interpreted at compile time", this->toChars());
     return EXP_CANT_INTERPRET;
 }
 
@@ -1018,6 +1019,68 @@ Expression *LabelStatement::interpret(InterState *istate)
     return statement ? statement->interpret(istate) : NULL;
 }
 
+
+Expression *TryCatchStatement::interpret(InterState *istate)
+{
+#if LOG
+    printf("TryCatchStatement::interpret()\n");
+#endif
+    START()
+    error("try-catch statements are not yet supported in CTFE");
+    return EXP_CANT_INTERPRET;
+}
+
+
+Expression *TryFinallyStatement::interpret(InterState *istate)
+{
+#if LOG
+    printf("TryFinallyStatement::interpret()\n");
+#endif
+    START()
+    error("try-finally statements are not yet supported in CTFE");
+    return EXP_CANT_INTERPRET;
+}
+
+Expression *ThrowStatement::interpret(InterState *istate)
+{
+#if LOG
+    printf("ThrowStatement::interpret()\n");
+#endif
+    START()
+    error("throw statements are not yet supported in CTFE");
+    return EXP_CANT_INTERPRET;
+}
+
+Expression *OnScopeStatement::interpret(InterState *istate)
+{
+#if LOG
+    printf("OnScopeStatement::interpret()\n");
+#endif
+    START()
+    error("scope guard statements are not yet supported in CTFE");
+    return EXP_CANT_INTERPRET;
+}
+
+Expression *WithStatement::interpret(InterState *istate)
+{
+#if LOG
+    printf("WithStatement::interpret()\n");
+#endif
+    START()
+    error("with statements are not yet supported in CTFE");
+    return EXP_CANT_INTERPRET;
+}
+
+Expression *AsmStatement::interpret(InterState *istate)
+{
+#if LOG
+    printf("AsmStatement::interpret()\n");
+#endif
+    START()
+    error("asm statements cannot be interpreted at compile time");
+    return EXP_CANT_INTERPRET;
+}
+
 /******************************** Expression ***************************/
 
 Expression *Expression::interpret(InterState *istate)
@@ -1185,8 +1248,8 @@ Expression *getVarExp(Loc loc, InterState *istate, Declaration *d)
                 e = v->init->toExpression();
                 e = e->interpret(istate);
             }
-            else // This should never happen
-                e = v->type->defaultInitLiteral();
+            else
+                e = v->type->defaultInitLiteral(loc);
         }
         else
         {   e = v->value;
@@ -2063,7 +2126,7 @@ Expression *BinExp::interpretAssignCommon(InterState *istate, fp_t fp, int post)
         */
         if (type->toBasetype()->ty == Tstruct && newval->op == TOKint64)
         {
-            newval = type->defaultInitLiteral();
+            newval = type->defaultInitLiteral(loc);
         }
         newval = Cast(type, type, newval);
         e = newval;

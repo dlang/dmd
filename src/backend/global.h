@@ -193,7 +193,7 @@ void err_ambiguous(Symbol *,Symbol *);
 void err_noinstance(Symbol *s1,Symbol *s2);
 void err_redeclar(Symbol *s,type *t1,type *t2);
 void err_override(Symbol *sfbase,Symbol *sfder);
-void err_notamember(const char *id, Classsym *s);
+void err_notamember(const char *id, Classsym *s, symbol *alternate = NULL);
 
 /* exp.c */
 elem *expression(void),*const_exp(void),*assign_exp(void);
