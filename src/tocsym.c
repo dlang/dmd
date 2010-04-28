@@ -677,6 +677,26 @@ Symbol *Module::toModuleAssert()
     return massert;
 }
 
+Symbol *Module::toModuleUnittest()
+{
+    if (!munittest)
+    {
+        type *t;
+
+        t = type_alloc(TYjfunc);
+        t->Tflags |= TFprototype | TFfixed;
+        t->Tmangle = mTYman_d;
+        t->Tnext = tsvoid;
+        tsvoid->Tcount++;
+
+        munittest = toSymbolX("__unittest_fail", SCextern, t, "FiZv");
+        munittest->Sfl = FLextern;
+        munittest->Sflags |= SFLnodebug;
+        slist_add(munittest);
+    }
+    return munittest;
+}
+
 /******************************************
  */
 

@@ -1864,12 +1864,16 @@ elem *AssertExp::toElem(IRState *irs)
         else
         {
             // Construct: (e1 || ModuleAssert(line))
-            Symbol *sassert;
             Module *m = irs->blx->module;
             char *mname = m->srcfile->toChars();
 
             //printf("filename = '%s'\n", loc.filename);
             //printf("module = '%s'\n", m->srcfile->toChars());
+
+            /* Determine if we are in a unittest
+             */
+            FuncDeclaration *fd = irs->getFunc();
+            UnitTestDeclaration *ud = fd ? fd->isUnitTestDeclaration() : NULL;
 
             /* If the source file name has changed, probably due
              * to a #line directive.
@@ -1913,18 +1917,18 @@ elem *AssertExp::toElem(IRState *irs)
 
                 if (msg)
                 {   elem *emsg = msg->toElem(irs);
-                    ea = el_var(rtlsym[RTLSYM_DASSERT_MSG]);
+                    ea = el_var(rtlsym[ud ? RTLSYM_DUNITTEST_MSG : RTLSYM_DASSERT_MSG]);
                     ea = el_bin(OPcall, TYvoid, ea, el_params(el_long(TYint, loc.linnum), efilename, emsg, NULL));
                 }
                 else
                 {
-                    ea = el_var(rtlsym[RTLSYM_DASSERT]);
+                    ea = el_var(rtlsym[ud ? RTLSYM_DUNITTEST : RTLSYM_DASSERT]);
                     ea = el_bin(OPcall, TYvoid, ea, el_param(el_long(TYint, loc.linnum), efilename));
                 }
             }
             else
             {
-                sassert = m->toModuleAssert();
+                Symbol *sassert = ud ? m->toModuleUnittest() : m->toModuleAssert();
                 ea = el_bin(OPcall,TYvoid,el_var(sassert),
                     el_long(TYint, loc.linnum));
             }

@@ -118,6 +118,7 @@ void obj_write_deferred(Library *library)
             md->md = m->md;
             md->aimports.push(m);       // it only 'imports' m
             md->massert = m->massert;
+            md->munittest = m->munittest;
             md->marray = m->marray;
         }
 
@@ -449,11 +450,12 @@ void Module::genobjfile(int multiobj)
 
     if (global.params.multiobj)
     {   /* This is necessary because the main .obj for this module is written
-         * first, but determining whether marray or massert are needed is done
+         * first, but determining whether marray or massert or munittest are needed is done
          * possibly later in the doppelganger modules.
          * Another way to fix it is do the main one last.
          */
         toModuleAssert();
+        toModuleUnittest();
         toModuleArray();
     }
 
@@ -464,9 +466,17 @@ void Module::genobjfile(int multiobj)
 #endif
 
     // If module assert
-    for (int i = 0; i < 2; i++)
+    for (int i = 0; i < 3; i++)
     {
-        Symbol *ma = i ? marray : massert;
+        Symbol *ma;
+        unsigned rt;
+        switch (i)
+        {
+            case 0:     ma = marray;    rt = RTLSYM_DARRAY;     break;
+            case 1:     ma = massert;   rt = RTLSYM_DASSERTM;   break;
+            case 2:     ma = munittest; rt = RTLSYM_DUNITTESTM; break;
+            default:    assert(0);
+        }
 
         if (ma)
         {
@@ -477,9 +487,7 @@ void Module::genobjfile(int multiobj)
             // Call dassert(filename, line)
             // Get sole parameter, linnum
             {
-                Symbol *sp;
-
-                sp = symbol_calloc("linnum");
+                Symbol *sp = symbol_calloc("linnum");
                 sp->Stype = type_fake(TYint);
                 sp->Stype->Tcount++;
                 sp->Sclass = SCfastpar;
@@ -494,7 +502,7 @@ void Module::genobjfile(int multiobj)
 
             elem *efilename = el_ptr(toSymbol());
 
-            elem *e = el_var(rtlsym[i ? RTLSYM_DARRAY : RTLSYM_DASSERTM]);
+            elem *e = el_var(rtlsym[rt]);
             e = el_bin(OPcall, TYvoid, e, el_param(elinnum, efilename));
 
             block *b = block_calloc();
