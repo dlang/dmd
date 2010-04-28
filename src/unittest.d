@@ -1,3 +1,4 @@
+public import core.atomic;
 public import core.bitop;
 public import core.exception;
 public import core.memory;
@@ -14,11 +15,14 @@ public import core.sync.semaphore;
 void main()
 {
     // Bring in unit test for module by referencing a function in it
+    shared(int) i;
+    cas( &i, i.init, i.init + 1 ); // atomic
     bsf( 0 ); // bitop
     setAssertHandler( null ); // exception
     GC.enable(); // memory
     Runtime.collectHandler = null; // runtime
-    new Thread( {} ); // thread
+    static void fn() {}
+    new Thread( &fn ); // thread
     va_end( null ); // vararg
 
     auto m = new Mutex; // mutex

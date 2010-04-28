@@ -81,6 +81,7 @@ MANIFEST= \
 	import/core/sys/windows/windows.d \
 	import/object.di \
 	import/std/intrinsic.di \
+	src/core/atomic.d \
 	src/core/bitop.d \
 	src/core/cpuid.d \
 	src/core/exception.d \
@@ -185,6 +186,7 @@ MANIFEST= \
 	src/gcstub/gc.d
 
 SRCS= \
+	src/core/atomic.d \
 	src/core/bitop.d \
 	src/core/cpuid.d \
 	src/core/exception.d \
@@ -310,6 +312,7 @@ OBJS= $(OBJDIR)/errno_c.o $(OBJDIR)/threadasm.o $(OBJDIR)/complex.o	\
 $(OBJDIR)/critical.o $(OBJDIR)/memory_osx.o $(OBJDIR)/monitor.o
 
 DOCS=\
+	$(DOCDIR)/core/atomic.html \
 	$(DOCDIR)/core/bitop.html \
 	$(DOCDIR)/core/cpuid.html \
 	$(DOCDIR)/core/exception.html \
@@ -327,6 +330,7 @@ DOCS=\
 	$(DOCDIR)/core/sync/semaphore.html
 
 IMPORTS=\
+	$(IMPDIR)/core/atomic.di \
 	$(IMPDIR)/core/bitop.di \
 	$(IMPDIR)/core/cpuid.di \
 	$(IMPDIR)/core/exception.di \

@@ -82,6 +82,7 @@ MANIFEST= \
 	import/core/sys/windows/windows.d \
 	import/object.di \
 	import/std/intrinsic.di \
+	src/core/atomic.d \
 	src/core/bitop.d \
 	src/core/cpuid.d \
 	src/core/exception.d \
@@ -188,6 +189,7 @@ MANIFEST= \
 	src/gcstub/gc.d
 
 SRCS= \
+	src\core\atomic.d \
 	src\core\bitop.d \
 	src\core\cpuid.d \
 	src\core\exception.d \
@@ -310,6 +312,7 @@ OBJS_TO_DELETE= errno_c.obj complex.obj critical.obj deh.obj monitor.obj
 
 DOCS=\
 	$(DOCDIR)\object.html \
+	$(DOCDIR)\core\atomic.html \
 	$(DOCDIR)\core\bitop.html \
 	$(DOCDIR)\core\exception.html \
 	$(DOCDIR)\core\memory.html \
@@ -326,6 +329,7 @@ DOCS=\
 	$(DOCDIR)\core\sync\semaphore.html
 
 IMPORTS=\
+	$(IMPDIR)\core\atomic.di \
     $(IMPDIR)\core\bitop.di \
 	$(IMPDIR)\core\cpuid.di \
 	$(IMPDIR)\core\exception.di \
@@ -349,6 +353,9 @@ IMPORTS=\
 doc: $(DOCS)
 
 $(DOCDIR)\object.html : src\object_.d
+	$(DMD) -c -d -o- -Iimport -Isrc -Df$@ $**
+
+$(DOCDIR)\core\atomic.html : src\core\atomic.d
 	$(DMD) -c -d -o- -Iimport -Isrc -Df$@ $**
 
 $(DOCDIR)\core\bitop.html : src\core\bitop.d
@@ -396,6 +403,9 @@ $(DOCDIR)\core\sync\semaphore.html : src\core\sync\semaphore.d
 ######################## Header .di file generation ##############################
 
 import: $(IMPORTS)
+
+$(IMPDIR)\core\atomic.di : src\core\atomic.d
+	$(DMD) -c -d -o- -Iimport -Isrc -Hf$@ $**
 
 $(IMPDIR)\core\bitop.di : src\core\bitop.d
 	$(DMD) -c -d -o- -Iimport -Isrc -Hf$@ $**
