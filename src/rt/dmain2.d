@@ -112,6 +112,7 @@ extern (C) bool rt_unloadLibrary(void* ptr)
  */
 extern (C) void onAssertError(string file, size_t line);
 extern (C) void onAssertErrorMsg(string file, size_t line, string msg);
+extern (C) void onUnittestErrorMsg(string file, size_t line, string msg);
 extern (C) void onRangeError(string file, size_t line);
 extern (C) void onHiddenFuncError(Object o);
 extern (C) void onSwitchError(string file, size_t line);
@@ -124,23 +125,38 @@ extern (C) bool runModuleUnitTests();
  * These are internal callbacks for various language errors.
  */
 
-extern (C) void _d_assert(string file, uint line)
-{
-    onAssertError(file, line);
-}
-
-extern (C) static void _d_assert_msg(string msg, string file, uint line)
-{
-    onAssertErrorMsg(file, line, msg);
-}
-
 extern (C)
 {
-    // Use ModuleInfo to get file name
+    // Use ModuleInfo to get file name for "m" versions
 
     void _d_assertm(ModuleInfo* m, uint line)
     {
 	onAssertError(m.name, line);
+    }
+
+    void _d_assert_msg(string msg, string file, uint line)
+    {
+	onAssertErrorMsg(file, line, msg);
+    }
+
+    void _d_assert(string file, uint line)
+    {
+	onAssertError(file, line);
+    }
+
+    void _d_unittestm(ModuleInfo* m, uint line)
+    {
+	_d_unittest(m.name, line);
+    }
+
+    void _d_unittest_msg(string msg, string file, uint line)
+    {
+	onUnittestErrorMsg(file, line, msg);
+    }
+
+    void _d_unittest(string file, uint line)
+    {
+	_d_unittest_msg("unittest failure", file, line);
     }
 
     void _d_array_bounds(ModuleInfo* m, uint line)
@@ -152,6 +168,7 @@ extern (C)
     {
 	onSwitchError(m.name, line);
     }
+
 }
 
 extern (C) void _d_hidden_func()
@@ -394,6 +411,8 @@ extern (C) int main(int argc, char **argv)
         _moduleCtor();
         if (runModuleUnitTests())
             tryExec(&runMain);
+	else
+	    result = EXIT_FAILURE;
         thread_joinAll();
         _d_isHalting = true;
         _moduleDtor();

@@ -30,6 +30,9 @@ private
 
     extern (C) void* rt_loadLibrary( in char[] name );
     extern (C) bool  rt_unloadLibrary( void* ptr );
+
+    import rt.util.console;
+    import rt.util.string;
     
     version( linux )
     {
@@ -213,6 +216,9 @@ private:
  *  true if execution should continue after testing is complete and false if
  *  not.  Default behavior is to return true.
  */
+
+__gshared unittest_errors = false;
+
 extern (C) bool runModuleUnitTests()
 {
     if( Runtime.sm_moduleUnitTester is null )
@@ -226,11 +232,19 @@ extern (C) bool runModuleUnitTests()
 		    fp();
 	    }
         }
-        return true;
+        return !unittest_errors;
     }
     return Runtime.sm_moduleUnitTester();
 }
 
+extern (C) void onUnittestErrorMsg( string file, size_t line, string msg )
+{
+    unittest_errors = true;
+    char[10] tmp = void;
+    char[] buf;
+    buf = file ~ "(" ~ tmp.intToString(line) ~ "): " ~ msg;
+    console(cast(string)buf)("\n");
+}
 
 ///////////////////////////////////////////////////////////////////////////////
 // Default Implementations
