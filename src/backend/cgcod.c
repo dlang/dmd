@@ -624,7 +624,7 @@ void stackoffsets(int flags)
                     sz++;               // guard against 0 length structs
             }
 
-            //dbg_printf("symbol '%s', size = x%lx\n",s->Sident,(long)sz);
+            //dbg_printf("symbol '%s', size = x%lx, read = %x\n",s->Sident,(long)sz, s->Sflags & SFLread);
             assert((int)sz >= 0);
 
             if (pass == 1)

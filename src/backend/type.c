@@ -915,7 +915,7 @@ int type_jparam(type *t)
     type_debug(t);
     return tyjparam(t->Tty) ||
                 ((tybasic(t->Tty) == TYstruct || tybasic(t->Tty) == TYarray) && type_size(t) <= intsize &&
-                 type_size(t) != 3);
+                 type_size(t) != 3 && type_size(t) != 0);
 }
 
 
