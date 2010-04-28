@@ -1,5 +1,5 @@
 // Copyright (C) 1985-1998 by Symantec
-// Copyright (C) 2000-2009 by Digital Mars
+// Copyright (C) 2000-2010 by Digital Mars
 // All Rights Reserved
 // http://www.digitalmars.com
 // Written by Walter Bright
@@ -590,15 +590,15 @@ typedef int bool;
 #define COPYRIGHT "Copyright © 2001 Digital Mars"
 #else
 #ifdef DEBUG
-#define COPYRIGHT "Copyright (C) Digital Mars 2000-2009.  All Rights Reserved.\n\
+#define COPYRIGHT "Copyright (C) Digital Mars 2000-2010.  All Rights Reserved.\n\
 Written by Walter Bright\n\
 *****BETA TEST VERSION*****"
 #else
 #if linux
-#define COPYRIGHT "Copyright (C) Digital Mars 2000-2009.  All Rights Reserved.\n\
+#define COPYRIGHT "Copyright (C) Digital Mars 2000-2010.  All Rights Reserved.\n\
 Written by Walter Bright, Linux version by Pat Nelson"
 #else
-#define COPYRIGHT "Copyright (C) Digital Mars 2000-2009.  All Rights Reserved.\n\
+#define COPYRIGHT "Copyright (C) Digital Mars 2000-2010.  All Rights Reserved.\n\
 Written by Walter Bright"
 #endif
 #endif
