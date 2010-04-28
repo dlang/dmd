@@ -6868,7 +6868,9 @@ Lagain:
 
     arguments = arrayExpressionSemantic(arguments, sc);
 
-    // If there was an error processing any argument,
+    preFunctionParameters(loc, sc, arguments);
+
+    // If there was an error processing any argument, or the call,
     // return an error without trying to resolve the function call.
     if (arguments && arguments->dim)
     {
@@ -6878,8 +6880,8 @@ Lagain:
                 return checkarg;
         }
     }
-
-    preFunctionParameters(loc, sc, arguments);
+    if (e1->op == TOKerror)
+        return e1;
 
     if (e1->op == TOKdotvar && t1->ty == Tfunction ||
         e1->op == TOKdottd)
