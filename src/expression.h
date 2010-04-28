@@ -560,6 +560,7 @@ struct NewAnonClassExp : Expression
     int canThrow();
 };
 
+#if DMDV2
 struct SymbolExp : Expression
 {
     Declaration *var;
@@ -569,6 +570,7 @@ struct SymbolExp : Expression
 
     elem *toElem(IRState *irs);
 };
+#endif
 
 // Offset from symbol
 
