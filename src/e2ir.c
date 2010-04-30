@@ -1783,6 +1783,14 @@ elem *NewExp::toElem(IRState *irs)
 elem *NegExp::toElem(IRState *irs)
 {
     elem *e = el_una(OPneg, type->totym(), e1->toElem(irs));
+
+    Type *tb1 = e1->type->toBasetype();
+    if (tb1->ty == Tarray || tb1->ty == Tsarray)
+    {
+        error("Array operation %s not implemented", toChars());
+        e = el_long(type->totym(), 0);  // error recovery
+    }
+
     el_setLoc(e,loc);
     return e;
 }
@@ -1966,6 +1974,7 @@ elem *BinExp::toElemBin(IRState *irs,int op)
     elem *el = e1->toElem(irs);
     elem *er = e2->toElem(irs);
     elem *e = el_bin(op,tym,el,er);
+
     el_setLoc(e,loc);
     return e;
 }
@@ -1978,7 +1987,7 @@ elem *AddExp::toElem(IRState *irs)
     Type *tb1 = e1->type->toBasetype();
     Type *tb2 = e2->type->toBasetype();
 
-    if ((tb1->ty == Tarray || tb1->ty == Tsarray) &&
+    if ((tb1->ty == Tarray || tb1->ty == Tsarray) ||
         (tb2->ty == Tarray || tb2->ty == Tsarray)
        )
     {
@@ -1998,7 +2007,7 @@ elem *MinExp::toElem(IRState *irs)
     Type *tb1 = e1->type->toBasetype();
     Type *tb2 = e2->type->toBasetype();
 
-    if ((tb1->ty == Tarray || tb1->ty == Tsarray) &&
+    if ((tb1->ty == Tarray || tb1->ty == Tsarray) ||
         (tb2->ty == Tarray || tb2->ty == Tsarray)
        )
     {
@@ -2100,6 +2109,15 @@ elem *CatExp::toElem(IRState *irs)
 
 elem *MulExp::toElem(IRState *irs)
 {
+    Type *tb1 = e1->type->toBasetype();
+    Type *tb2 = e2->type->toBasetype();
+    if ((tb1->ty == Tarray || tb1->ty == Tsarray) ||
+        (tb2->ty == Tarray || tb2->ty == Tsarray)
+       )
+    {
+        error("Array operation %s not implemented", toChars());
+    }
+
     return toElemBin(irs,OPmul);
 }
 
@@ -2108,6 +2126,14 @@ elem *MulExp::toElem(IRState *irs)
 
 elem *DivExp::toElem(IRState *irs)
 {
+    Type *tb1 = e1->type->toBasetype();
+    Type *tb2 = e2->type->toBasetype();
+    if ((tb1->ty == Tarray || tb1->ty == Tsarray) ||
+        (tb2->ty == Tarray || tb2->ty == Tsarray)
+       )
+    {
+        error("Array operation %s not implemented", toChars());
+    }
     return toElemBin(irs,OPdiv);
 }
 
