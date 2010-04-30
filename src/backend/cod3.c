@@ -64,7 +64,7 @@ static int AAoff;               // offset of alloca temporary
 
 struct fixlist
 {   symbol      *Lsymbol;       // symbol we don't know about
-    short       Lseg;           // where the fixup is going (CODE or DATA, never UDATA)
+    int         Lseg;           // where the fixup is going (CODE or DATA, never UDATA)
     short       Lflags;         // CFxxxx
     targ_size_t Loffset;        // addr of reference to symbol
     targ_size_t Lval;           // value to add into location
