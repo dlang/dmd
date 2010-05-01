@@ -3941,42 +3941,47 @@ StructDeclaration *TypeAArray::getImpl()
     // Do it lazily
     if (!impl)
     {
-        if (!index->reliesOnTident() && !next->reliesOnTident())
+        Type *index = this->index;
+        Type *next = this->next;
+        if (index->reliesOnTident() || next->reliesOnTident())
         {
-            /* This is really a proxy for the template instance AssocArray!(index, next)
-             * But the instantiation can fail if it is a template specialization field
-             * which has Tident's instead of real types.
-             */
-            Objects *tiargs = new Objects();
-            tiargs->push(index);
-            tiargs->push(next);
-
-            // Create AssociativeArray!(index, next)
-#if 1
-            TemplateInstance *ti = new TemplateInstance(loc, Type::associativearray, tiargs);
-#else
-            //Expression *e = new IdentifierExp(loc, Id::object);
-            Expression *e = new IdentifierExp(loc, Id::empty);
-            //e = new DotIdExp(loc, e, Id::object);
-            DotTemplateInstanceExp *dti = new DotTemplateInstanceExp(loc,
-                        e,
-                        Id::AssociativeArray,
-                        tiargs);
-            dti->semantic(sc);
-            TemplateInstance *ti = dti->ti;
-#endif
-            ti->semantic(sc);
-            ti->semantic2(sc);
-            ti->semantic3(sc);
-            impl = ti->toAlias()->isStructDeclaration();
-#ifdef DEBUG
-            if (!impl)
-            {   Dsymbol *s = ti->toAlias();
-                printf("%s %s\n", s->kind(), s->toChars());
-            }
-#endif
-            assert(impl);
+            error(loc, "cannot create associative array %s", toChars());
+            index = terror;
+            next = terror;
         }
+        /* This is really a proxy for the template instance AssocArray!(index, next)
+         * But the instantiation can fail if it is a template specialization field
+         * which has Tident's instead of real types.
+         */
+        Objects *tiargs = new Objects();
+        tiargs->push(index);
+        tiargs->push(next);
+
+        // Create AssociativeArray!(index, next)
+#if 1
+        TemplateInstance *ti = new TemplateInstance(loc, Type::associativearray, tiargs);
+#else
+        //Expression *e = new IdentifierExp(loc, Id::object);
+        Expression *e = new IdentifierExp(loc, Id::empty);
+        //e = new DotIdExp(loc, e, Id::object);
+        DotTemplateInstanceExp *dti = new DotTemplateInstanceExp(loc,
+                    e,
+                    Id::AssociativeArray,
+                    tiargs);
+        dti->semantic(sc);
+        TemplateInstance *ti = dti->ti;
+#endif
+        ti->semantic(sc);
+        ti->semantic2(sc);
+        ti->semantic3(sc);
+        impl = ti->toAlias()->isStructDeclaration();
+#ifdef DEBUG
+        if (!impl)
+        {   Dsymbol *s = ti->toAlias();
+            printf("%s %s\n", s->kind(), s->toChars());
+        }
+#endif
+        assert(impl);
     }
     return impl;
 }
