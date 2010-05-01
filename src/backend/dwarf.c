@@ -1331,16 +1331,6 @@ unsigned dwarf_typidx(type *t)
     if (idx)
         return idx;
 
-    // Function type idx's are cached in functype_table[]
-    if (tyfunc(ty) && functype_table)
-    {    Atype functype;
-         functype.start = *((size_t *)t);
-         functype.end = *((size_t *)t) + sizeof(type);
-         unsigned *pidx = (unsigned *)functype_table->get(&functype);
-         if (pidx)
-             return *pidx;
-    }
-
     const char *name;
     unsigned char ate;
     ate = tyuns(t->Tty) ? DW_ATE_unsigned : DW_ATE_signed;
