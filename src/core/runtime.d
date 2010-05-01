@@ -31,9 +31,10 @@ private
     extern (C) void* rt_loadLibrary( in char[] name );
     extern (C) bool  rt_unloadLibrary( void* ptr );
 
-    import rt.util.console;
-    import rt.util.string;
-    
+    extern (C) void onAssertErrorMsg( string file, size_t line, string msg);
+
+    extern (C) __gshared void function ( string file, size_t line, string msg) unittestHandler = null;
+
     version( linux )
     {
         import core.stdc.stdlib : free;
@@ -240,10 +241,9 @@ extern (C) bool runModuleUnitTests()
 extern (C) void onUnittestErrorMsg( string file, size_t line, string msg )
 {
     unittest_errors = true;
-    char[10] tmp = void;
-    char[] buf;
-    buf = file ~ "(" ~ tmp.intToString(line) ~ "): " ~ msg;
-    console(cast(string)buf)("\n");
+    if (unittestHandler)
+	unittestHandler(file, line, msg);
+    onAssertErrorMsg(file, line, msg);
 }
 
 ///////////////////////////////////////////////////////////////////////////////

@@ -16,6 +16,7 @@ private
 {
     import rt.memory;
     import rt.util.console;
+    import rt.util.string;
     import core.stdc.stddef;
     import core.stdc.stdlib;
     import core.stdc.string;
@@ -68,6 +69,17 @@ extern (C)
     alias void  function(void*) gcSetFn;
     alias void  function()      gcClrFn;
 }
+
+extern (C) extern __gshared void function ( string file, size_t line, string msg) unittestHandler;
+
+extern (C) void unittestHandlerFunc( string file, size_t line, string msg )
+{
+    char[10] tmp = void;
+    char[] buf;
+    buf = file ~ "(" ~ tmp.intToString(line) ~ "): " ~ msg;
+    console(cast(string)buf)("\n");
+}
+
 
 extern (C) void* rt_loadLibrary(in char[] name)
 {
@@ -214,6 +226,7 @@ extern (C) bool rt_init(ExceptionHandler dg = null)
         version (Windows)
             _minit();
         _moduleCtor();
+	unittestHandler = &unittestHandlerFunc;
         runModuleUnitTests();
         return true;
     }
@@ -409,6 +422,7 @@ extern (C) int main(int argc, char **argv)
         version (Windows)
             _minit();
         _moduleCtor();
+	unittestHandler = &unittestHandlerFunc;
         if (runModuleUnitTests())
             tryExec(&runMain);
 	else
