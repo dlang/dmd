@@ -330,6 +330,7 @@ void AggregateDeclaration::toJsonBuffer(OutBuffer *buf)
         JsonRemoveComma(buf);
         buf->writestring("]\n");
     }
+    JsonRemoveComma(buf);
 
     buf->writestring("}\n");
 }
@@ -412,6 +413,7 @@ void EnumDeclaration::toJsonBuffer(OutBuffer *buf)
         JsonRemoveComma(buf);
         buf->writestring("]\n");
     }
+    JsonRemoveComma(buf);
 
     buf->writestring("}\n");
 }
