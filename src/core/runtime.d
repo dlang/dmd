@@ -243,7 +243,8 @@ extern (C) void onUnittestErrorMsg( string file, size_t line, string msg )
     unittest_errors = true;
     if (unittestHandler)
 	unittestHandler(file, line, msg);
-    onAssertErrorMsg(file, line, msg);
+    else
+	onAssertErrorMsg(file, line, msg);
 }
 
 ///////////////////////////////////////////////////////////////////////////////
