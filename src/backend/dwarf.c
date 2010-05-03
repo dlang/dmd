@@ -1123,6 +1123,7 @@ void cv_func(Funcsym *s)
 
 struct Atype
 {
+    Outbuffer *buf;
     size_t start;
     size_t end;
 };
@@ -1152,7 +1153,7 @@ hash_t TypeInfo_Atype::getHash(void *p)
     a = *(Atype *)p;
     for (i = a.start; i < a.end; i++)
     {
-        hash = hash * 11 + infobuf->buf[i];
+        hash = hash * 11 + a.buf->buf[i];
     }
     return hash;
 }
@@ -1164,7 +1165,7 @@ int TypeInfo_Atype::equals(void *p1, void *p2)
     size_t len = a1.end - a1.start;
 
     return len == a2.end - a2.start &&
-        memcmp(infobuf->buf + a1.start, infobuf->buf + a2.start, len) == 0;
+        memcmp(a1.buf->buf + a1.start, a1.buf->buf + a2.start, len) == 0;
 }
 
 int TypeInfo_Atype::compare(void *p1, void *p2)
@@ -1173,7 +1174,7 @@ int TypeInfo_Atype::compare(void *p1, void *p2)
     Atype a2 = *(Atype*)p2;
     size_t len = a1.end - a1.start;
     if (len == a2.end - a2.start)
-        return memcmp(infobuf->buf + a1.start, infobuf->buf + a2.start, len);
+        return memcmp(a1.buf->buf + a1.start, a1.buf->buf + a2.start, len);
     else if (len < a2.end - a2.start)
         return -1;
     else
@@ -1390,6 +1391,7 @@ unsigned dwarf_typidx(type *t)
             break;
 
         case TYnref:
+        case TYref:
         case TYnptr:
             if (!t->Tkey)
                 goto Lnptr;
@@ -1450,23 +1452,31 @@ unsigned dwarf_typidx(type *t)
              * caching these, we can cache the function typidx.
              * Cache them in functypebuf[]
              */
+            Outbuffer tmpbuf;
             nextidx = dwarf_typidx(t->Tnext);                   // function return type
-            if (!functypebuf)
-                functypebuf = new Outbuffer();
-            unsigned functypebufidx = functypebuf->size();
-            functypebuf->write32(nextidx);
+            tmpbuf.write32(nextidx);
             unsigned params = 0;
             for (param_t *p = t->Tparamtypes; p; p = p->Pnext)
             {   params = 1;
                 unsigned paramidx = dwarf_typidx(p->Ptype);
-                functypebuf->write32(nextidx);
+                //printf("1: paramidx = %d\n", paramidx);
+#ifdef DEBUG
+                if (!paramidx) type_print(p->Ptype);
+#endif
+                assert(paramidx);
+                tmpbuf.write32(paramidx);
             }
 
+            if (!functypebuf)
+                functypebuf = new Outbuffer();
+            unsigned functypebufidx = functypebuf->size();
+            functypebuf->write(tmpbuf.buf, tmpbuf.size());
             /* If it's in the cache already, return the existing typidx
              */
             if (!functype_table)
                 functype_table = new AArray(&ti_atype, sizeof(unsigned));
             Atype functype;
+            functype.buf = functypebuf;
             functype.start = functypebufidx;
             functype.end = functypebuf->size();
             unsigned *pidx = (unsigned *)functype_table->get(&functype);
@@ -1519,10 +1529,14 @@ unsigned dwarf_typidx(type *t)
 
             if (params)
             {   unsigned *pparamidx = (unsigned *)(functypebuf->buf + functypebufidx);
+                //printf("2: functypebufidx = %x, pparamidx = %p, size = %x\n", functypebufidx, pparamidx, functypebuf->size());
                 for (param_t *p = t->Tparamtypes; p; p = p->Pnext)
                 {   infobuf->writeuLEB128(paramcode);
                     //unsigned x = dwarf_typidx(p->Ptype);
-                    infobuf->write32(*++pparamidx);        // DW_AT_type
+                    unsigned paramidx = *++pparamidx;
+                    //printf("paramidx = %d\n", paramidx);
+                    assert(paramidx);
+                    infobuf->write32(paramidx);        // DW_AT_type
                 }
                 infobuf->writeByte(0);          // end parameter list
 
@@ -1852,6 +1866,7 @@ Lret:
      * discard this one and use the previous one.
      */
     Atype atype;
+    atype.buf = infobuf;
     atype.start = idx;
     atype.end = infobuf->size();
 
