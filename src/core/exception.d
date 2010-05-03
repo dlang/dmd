@@ -16,13 +16,23 @@ module core.exception;
 
 private
 {
-    alias void function( string file, size_t line, string msg = null ) assertHandlerType;
+    alias void function( string file, size_t line, string msg = null ) errorHandlerType;
 
     // NOTE: One assert handler is used for all threads.  Thread-local
     //       behavior should occur within the handler itself.  This delegate
     //       is __gshared for now based on the assumption that it will only
     //       set by the main thread during program initialization.
-    __gshared assertHandlerType assertHandler = null;
+    __gshared errorHandlerType assertHandler = null;
+
+    // For onUnittestErrorMsg implementation.
+    version (Windows)
+    {
+        import core.sys.windows.windows;
+    }
+    else version( Posix )
+    {
+        import core.sys.posix.unistd;
+    }
 }
 
 
@@ -142,7 +152,7 @@ class UnicodeException : Exception
  * Params:
  *  h = The new assert handler.  Set to null to use the default handler.
  */
-void setAssertHandler( assertHandlerType h )
+void setAssertHandler( errorHandlerType h )
 {
     assertHandler = h;
 }
@@ -183,6 +193,61 @@ extern (C) void onAssertErrorMsg( string file, size_t line, string msg )
     if( assertHandler is null )
         throw new AssertError( msg, file, line );
     assertHandler( file, line, msg );
+}
+
+
+/**
+ * A callback for unittest errors in D.  The user-supplied unittest handler
+ * will be called if one has been supplied, otherwise the error will be
+ * written to stderr.
+ *
+ * Params:
+ *  file = The name of the file that signaled this error.
+ *  line = The line number on which this error occurred.
+ *  msg  = An error message supplied by the user.
+ */
+extern (C) void onUnittestErrorMsg( string file, size_t line, string msg )
+{
+    static char[] intToString( char[] buf, uint val )
+    {
+        assert( buf.length > 9 );
+        auto p = buf.ptr + buf.length;
+
+        do
+        {
+            *--p = cast(char)(val % 10 + '0');
+        } while( val /= 10 );
+
+        return buf[p - buf.ptr .. $];
+    }
+
+    static struct Console
+    {
+        Console opCall( in char[] val )
+        {
+            version( Windows )
+            {
+                uint count = void;
+                WriteFile( GetStdHandle( 0xfffffff5 ), val.ptr, val.length, &count, null );
+            }
+            else version( Posix )
+            {
+                write( 2, val.ptr, val.length );
+            }
+            return this;
+        }
+
+
+        Console opCall( uint val )
+        {
+            char[10] tmp = void;
+            return opCall( intToString( tmp, val ) );
+        }
+    }
+
+    static __gshared Console console;
+
+    console( file )( "(" )( line )( "): " )( msg )( "\n" );
 }
 
 

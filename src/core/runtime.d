@@ -30,17 +30,15 @@ private
 
     extern (C) void* rt_loadLibrary( in char[] name );
     extern (C) bool  rt_unloadLibrary( void* ptr );
-
-    extern (C) void onAssertErrorMsg( string file, size_t line, string msg);
-
-    extern (C) __gshared void function ( string file, size_t line, string msg) unittestHandler = null;
-
+    
     version( linux )
     {
         import core.stdc.stdlib : free;
         import core.stdc.string : strlen;
         extern (C) int    backtrace(void**, size_t);
         extern (C) char** backtrace_symbols(void**, int);
+        extern (C) void   backtrace_symbols_fd(void**,int,int);
+        import core.sys.posix.signal; // segv handler
     }
     else version( OSX )
     {
@@ -48,6 +46,8 @@ private
         import core.stdc.string : strlen;
         extern (C) int    backtrace(void**, size_t);
         extern (C) char** backtrace_symbols(void**, int);
+        extern (C) void   backtrace_symbols_fd(void**,int,int);
+        import core.sys.posix.signal; // segv handler
     }
 }
 
@@ -217,35 +217,54 @@ private:
  *  true if execution should continue after testing is complete and false if
  *  not.  Default behavior is to return true.
  */
-
-__gshared unittest_errors = false;
-
 extern (C) bool runModuleUnitTests()
 {
+    static if( __traits( compiles, backtrace ) )
+    {
+        static extern (C) void unittestSegvHandler( int signum, siginfo_t* info, void* ptr )
+        {
+            static enum MAXFRAMES = 128;
+            void*[MAXFRAMES]  callstack;
+            int               numframes;
+
+            numframes = backtrace( callstack, MAXFRAMES );
+            backtrace_symbols_fd( callstack, numframes, 2 );
+        }
+
+        sigaction_t action = void;
+        sigaction_t oldseg = void;
+        sigaction_t oldbus = void;
+        
+        (cast(byte*) &action)[0 .. action.sizeof] = 0;
+        sigfillset( &action.sa_mask ); // block other signals
+        action.sa_flags = SA_SIGINFO | SA_RESETHAND;
+        action.sa_sigaction = &unittestSegvHandler;
+        sigaction( SIGSEGV, &action, &oldseg );
+        sigaction( SIGBUS, &action, &oldbus );
+        scope( exit )
+        {
+            sigaction( SIGSEGV, &oldseg, null );
+            sigaction( SIGBUS, &oldbus, null );
+        }
+    }
+
     if( Runtime.sm_moduleUnitTester is null )
     {
         foreach( m; ModuleInfo )
         {
-	    if (m)
-	    {
-		auto fp = m.unitTest;
-		if (fp)
-		    fp();
-	    }
+            if( m )
+            {
+                auto fp = m.unitTest;
+                
+                if( fp )
+                    fp();
+            }
         }
-        return !unittest_errors;
+        return true;
     }
     return Runtime.sm_moduleUnitTester();
 }
 
-extern (C) void onUnittestErrorMsg( string file, size_t line, string msg )
-{
-    unittest_errors = true;
-    if (unittestHandler)
-	unittestHandler(file, line, msg);
-    else
-	onAssertErrorMsg(file, line, msg);
-}
 
 ///////////////////////////////////////////////////////////////////////////////
 // Default Implementations

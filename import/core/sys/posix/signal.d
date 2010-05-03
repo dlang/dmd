@@ -701,6 +701,111 @@ version( linux )
     int sigpause(int);
     int sigrelse(int);
 }
+else version( OSX )
+{
+    enum SIGPOLL        = 7;
+    enum SIGPROF        = 27;
+    enum SIGSYS         = 12;
+    enum SIGTRAP        = 5;
+    enum SIGVTALRM      = 26;
+    enum SIGXCPU        = 24;
+    enum SIGXFSZ        = 25;
+
+    enum SA_ONSTACK     = 0x0001;
+    enum SA_RESETHAND   = 0x0004;
+    enum SA_RESTART     = 0x0002;
+    enum SA_SIGINFO     = 0x0040;
+    enum SA_NOCLDWAIT   = 0x0020;
+    enum SA_NODEFER     = 0x0010;
+    enum SS_ONSTACK     = 0x0001;
+    enum SS_DISABLE     = 0x0004;
+    enum MINSIGSTKSZ    = 32768;
+    enum SIGSTKSZ       = 131072;
+
+    //ucontext_t (defined in core.sys.posix.ucontext)
+    //mcontext_t (defined in core.sys.posix.ucontext)
+
+    struct stack_t
+    {
+        void*   ss_sp;
+        size_t  ss_size;
+        int     ss_flags;
+    }
+
+    struct sigstack
+    {
+        void*   ss_sp;
+        int     ss_onstack;
+    }
+
+    enum ILL_ILLOPC = 1;
+    enum ILL_ILLOPN = 4;
+    enum ILL_ILLADR = 5;
+    enum ILL_ILLTRP = 2;
+    enum ILL_PRVOPC = 3;
+    enum ILL_PRVREG = 6;
+    enum ILL_COPROC = 7;
+    enum ILL_BADSTK = 8;
+
+    enum FPE_INTDIV = 7;
+    enum FPE_INTOVF = 8;
+    enum FPE_FLTDIV = 1;
+    enum FPE_FLTOVF = 2;
+    enum FPE_FLTUND = 3;
+    enum FPE_FLTRES = 4;
+    enum FPE_FLTINV = 5;
+    enum FPE_FLTSUB = 6;
+
+    enum
+    {
+        SEGV_MAPERR = 1,
+        SEGV_ACCERR
+    }
+
+    enum
+    {
+        BUS_ADRALN = 1,
+        BUS_ADRERR,
+        BUS_OBJERR
+    }
+
+    enum
+    {
+        TRAP_BRKPT = 1,
+        TRAP_TRACE
+    }
+
+    enum
+    {
+        CLD_EXITED = 1,
+        CLD_KILLED,
+        CLD_DUMPED,
+        CLD_TRAPPED,
+        CLD_STOPPED,
+        CLD_CONTINUED
+    }
+
+    enum
+    {
+        POLL_IN = 1,
+        POLL_OUT,
+        POLL_MSG,
+        POLL_ERR,
+        POLL_PRI,
+        POLL_HUP
+    }
+
+    sigfn_t bsd_signal(int sig, sigfn_t func);
+    sigfn_t sigset(int sig, sigfn_t func);
+
+    int killpg(pid_t, int);
+    int sigaltstack(in stack_t*, stack_t*);
+    int sighold(int);
+    int sigignore(int);
+    int siginterrupt(int, int);
+    int sigpause(int);
+    int sigrelse(int);
+}
 
 //
 // Timer (TMR)
