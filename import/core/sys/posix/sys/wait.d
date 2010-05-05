@@ -127,7 +127,6 @@ pid_t waitpid(pid_t, int*, int);
 WEXITED
 WSTOPPED
 WCONTINUED
-WNOHANG
 WNOWAIT
 
 enum idtype_t
@@ -145,7 +144,6 @@ version( linux )
     enum WEXITED    = 4;
     enum WSTOPPED   = 2;
     enum WCONTINUED = 8;
-    enum WNOHANG    = 1;
     enum WNOWAIT    = 0x01000000;
 
     enum idtype_t
@@ -162,7 +160,6 @@ else version( OSX )
     enum WEXITED    = 0x00000004;
     enum WSTOPPED   = 0x00000008;
     enum WCONTINUED = 0x00000010;
-    enum WNOHANG    = 0x00000001;
     enum WNOWAIT    = 0x00000020;
 
     enum idtype_t

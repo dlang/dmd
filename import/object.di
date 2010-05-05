@@ -255,7 +255,7 @@ struct ModuleInfo
 	    Old o;
     }
 
-    @property isNew();
+    @property bool isNew();
     @property uint index();
     @property void index(uint i);
     @property uint flags();
