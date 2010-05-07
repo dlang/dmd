@@ -81,7 +81,7 @@ OBJ1= mars.obj enum.obj struct.obj dsymbol.obj import.obj id.obj \
 	builtin.obj clone.obj libomf.obj arrayop.obj irstate.obj \
 	glue.obj msc.obj ph.obj tk.obj s2ir.obj todt.obj e2ir.obj tocsym.obj \
 	util.obj bit.obj eh.obj toobj.obj toctype.obj tocvdebug.obj toir.obj \
-	json.obj unittests.obj
+	json.obj unittests.obj imphint.obj
 
 # from C/C++ compiler optimizer and back end
 
@@ -115,7 +115,7 @@ SRCS= mars.c enum.c struct.c dsymbol.c import.c idgen.c impcnvgen.c utf.h \
 	macro.h macro.c hdrgen.h hdrgen.c arraytypes.h \
 	delegatize.c toir.h toir.c interpret.c traits.c builtin.c \
 	clone.c lib.h libomf.c libelf.c libmach.c arrayop.c \
-	aliasthis.h aliasthis.c json.h json.c unittests.c
+	aliasthis.h aliasthis.c json.h json.c unittests.c imphint.c
 
 # From C++ compiler
 
@@ -309,6 +309,9 @@ glue.obj : $(CH) $(TOTALH) $C\rtlsym.h mars.h module.h glue.c
 
 html.obj : $(CH) $(TOTALH) $C\html.h $C\html.c
 	$(CC) -c -I$(ROOT) $(MFLAGS) $C\html
+
+imphint.obj : imphint.c
+	$(CC) -c $(CFLAGS) $*
 
 mars.obj : $(TOTALH) module.h mars.h mars.c
 	$(CC) -c $(CFLAGS) $(PREC) $* -Ae

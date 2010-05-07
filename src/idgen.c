@@ -277,10 +277,6 @@ Msgtable msgtable[] =
     { "DllMain" },
     { "tls_get_addr", "___tls_get_addr" },
 
-    // For special error messages
-    { "printf" },
-    { "writeln" },
-
     // Builtin functions
     { "std" },
     { "math" },

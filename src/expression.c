@@ -2281,10 +2281,9 @@ Expression *IdentifierExp::semantic(Scope *sc)
        return e;
     }
 
-    if (ident == Id::printf)
-        error("'printf' is not defined, perhaps you need to import core.stdc.stdio; ?");
-    else if (ident == Id::writeln)
-        error("'writeln' is not defined, perhaps you need to import std.stdio; ?");
+    const char *n = importHint(ident->toChars());
+    if (n)
+        error("'%s' is not defined, perhaps you need to import %s; ?", ident->toChars(), n);
     else
     {
         s = sc->search_correct(ident);

@@ -38,6 +38,7 @@ DMD_OBJS = \
 	hdrgen.o delegatize.o aa.o ti_achar.o toir.o interpret.o traits.o \
 	builtin.o clone.o aliasthis.o \
 	man.o arrayop.o port.o response.o async.o json.o speller.o unittests.o \
+	imphint.o \
 	libelf.o elfobj.o
 
 SRC = win32.mak linux.mak osx.mak freebsd.mak solaris.mak \
@@ -56,7 +57,7 @@ SRC = win32.mak linux.mak osx.mak freebsd.mak solaris.mak \
 	doc.h doc.c macro.h macro.c hdrgen.h hdrgen.c arraytypes.h \
 	delegatize.c toir.h toir.c interpret.c traits.c cppmangle.c \
 	builtin.c clone.c lib.h libomf.c libelf.c libmach.c arrayop.c \
-	aliasthis.h aliasthis.c json.h json.c unittests.c \
+	aliasthis.h aliasthis.c json.h json.c unittests.c imphint.c \
 	$C/cdef.h $C/cc.h $C/oper.h $C/ty.h $C/optabgen.c \
 	$C/global.h $C/parser.h $C/code.h $C/type.h $C/dt.h $C/cgcv.h \
 	$C/el.h $C/iasm.h $C/rtlsym.h $C/html.h \
@@ -329,6 +330,9 @@ identifier.o: identifier.c
 impcnvtab.o: mtype.h impcnvtab.c
 	$(CC) -c $(CFLAGS) -I$(ROOT) impcnvtab.c
 
+imphint.o: imphint.c
+	$(CC) -c $(CFLAGS) $<
+
 import.o: import.c
 	$(CC) -c $(CFLAGS) $<
 
@@ -534,6 +538,7 @@ gcov:
 	gcov glue.c
 	gcov iasm.c
 	gcov identifier.c
+	gcov imphint.c
 	gcov import.c
 	gcov inifile.c
 	gcov init.c
