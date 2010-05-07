@@ -5099,6 +5099,8 @@ Expression *IsExp::semantic(Scope *sc)
                 break;
 
             case TOKinvariant:
+                if (!global.params.useDeprecated)
+                    error("use of 'invariant' rather than 'immutable' is deprecated");
             case TOKimmutable:
                 if (!targ->isImmutable())
                     goto Lno;
