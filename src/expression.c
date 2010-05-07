@@ -2281,11 +2281,18 @@ Expression *IdentifierExp::semantic(Scope *sc)
        return e;
     }
 
-    s = sc->search_correct(ident);
-    if (s)
-        error("undefined identifier %s, did you mean %s %s?", ident->toChars(), s->kind(), s->toChars());
+    if (ident == Id::printf)
+        error("'printf' is not defined, perhaps you need to import core.stdc.stdio; ?");
+    else if (ident == Id::writeln)
+        error("'writeln' is not defined, perhaps you need to import std.stdio; ?");
     else
-        error("undefined identifier %s", ident->toChars());
+    {
+        s = sc->search_correct(ident);
+        if (s)
+            error("undefined identifier %s, did you mean %s %s?", ident->toChars(), s->kind(), s->toChars());
+        else
+            error("undefined identifier %s", ident->toChars());
+    }
     return new ErrorExp();
 }
 
