@@ -37,7 +37,7 @@ DMD_OBJS = \
 	unialpha.o toobj.o toctype.o toelfdebug.o entity.o doc.o macro.o \
 	hdrgen.o delegatize.o aa.o ti_achar.o toir.o interpret.o traits.o \
 	builtin.o clone.o aliasthis.o \
-	man.o arrayop.o port.o response.o async.o json.o speller.o unittests.o \
+	man.o arrayop.o port.o response.o async.o json.o speller.o aav.o unittests.o \
 	imphint.o \
 	libelf.o elfobj.o
 
@@ -82,6 +82,7 @@ SRC = win32.mak linux.mak osx.mak freebsd.mak solaris.mak \
 	$(ROOT)/gnuc.h $(ROOT)/gnuc.c $(ROOT)/man.c \
 	$(ROOT)/stringtable.h $(ROOT)/stringtable.c \
 	$(ROOT)/response.c $(ROOT)/async.h $(ROOT)/async.c \
+	$(ROOT)/aav.h $(ROOT)/aav.c \
 	$(ROOT)/speller.h $(ROOT)/speller.c
 
 
@@ -129,6 +130,9 @@ impcnvgen : mtype.h impcnvgen.c
 aa.o: $C/aa.h $C/tinfo.h $C/aa.c
 	$(CC) -c $(MFLAGS) -I. $C/aa.c
 
+aav.o: $(ROOT)/aav.c
+	$(CC) -c $(GFLAGS) -I$(ROOT) $<
+
 access.o: access.c
 	$(CC) -c $(CFLAGS) $<
 
@@ -148,7 +152,7 @@ attrib.o: attrib.c
 	$(CC) -c $(CFLAGS) $<
 
 bcomplex.o: $C/bcomplex.c
-	$(CC) -c $(MFLAGS) $C/bcomplex.c
+	$(CC) -c $(MFLAGS) $<
 
 bit.o: expression.h bit.c
 	$(CC) -c -I$(ROOT) $(MFLAGS) bit.c

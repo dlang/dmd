@@ -2273,6 +2273,7 @@ Expression *IdentifierExp::semantic(Scope *sc)
         }
         return e->semantic(sc);
     }
+#if DMDV2
     if (ident == Id::ctfe)
     {  // Create the magic __ctfe bool variable
        VarDeclaration *vd = new VarDeclaration(loc, Type::tbool, Id::ctfe, NULL);
@@ -2280,7 +2281,7 @@ Expression *IdentifierExp::semantic(Scope *sc)
        e = e->semantic(sc);
        return e;
     }
-
+#endif
     const char *n = importHint(ident->toChars());
     if (n)
         error("'%s' is not defined, perhaps you need to import %s; ?", ident->toChars(), n);

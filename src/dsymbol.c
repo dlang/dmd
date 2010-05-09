@@ -14,6 +14,7 @@
 
 #include "rmem.h"
 #include "speller.h"
+#include "aav.h"
 
 #include "mars.h"
 #include "dsymbol.h"
@@ -1210,16 +1211,23 @@ Dsymbol *ArrayScopeSymbol::search(Loc loc, Identifier *ident, int flags)
 
 DsymbolTable::DsymbolTable()
 {
+#if STRINGTABLE
     tab = new StringTable;
+#else
+    tab = NULL;
+#endif
 }
 
 DsymbolTable::~DsymbolTable()
 {
+#if STRINGTABLE
     delete tab;
+#endif
 }
 
 Dsymbol *DsymbolTable::lookup(Identifier *ident)
 {
+#if STRINGTABLE
 #ifdef DEBUG
     assert(ident);
     assert(tab);
@@ -1227,44 +1235,65 @@ Dsymbol *DsymbolTable::lookup(Identifier *ident)
     //printf("DsymbolTable::lookup(%s)\n", (char*)ident->string);
     StringValue *sv = tab->lookup((char*)ident->string, ident->len);
     return (Dsymbol *)(sv ? sv->ptrvalue : NULL);
+#else
+    //printf("DsymbolTable::lookup(%s)\n", (char*)ident->string);
+    return (Dsymbol *)_aaGetRvalue(tab, ident);
+#endif
 }
 
 Dsymbol *DsymbolTable::insert(Dsymbol *s)
-{   StringValue *sv;
-    Identifier *ident;
-
+{
     //printf("DsymbolTable::insert(this = %p, '%s')\n", this, s->ident->toChars());
-    ident = s->ident;
+    Identifier *ident = s->ident;
+#if STRINGTABLE
 #ifdef DEBUG
     assert(ident);
     assert(tab);
 #endif
-    sv = tab->insert(ident->toChars(), ident->len);
+    StringValue *sv = tab->insert(ident->toChars(), ident->len);
     if (!sv)
         return NULL;            // already in table
     sv->ptrvalue = s;
     return s;
+#else
+    Dsymbol **ps = (Dsymbol **)_aaGet(&tab, ident);
+    if (*ps)
+        return NULL;            // already in table
+    *ps = s;
+    return s;
+#endif
 }
 
 Dsymbol *DsymbolTable::insert(Identifier *ident, Dsymbol *s)
-{   StringValue *sv;
-
+{
     //printf("DsymbolTable::insert()\n");
-    sv = tab->insert(ident->toChars(), ident->len);
+#if STRINGTABLE
+    StringValue *sv = tab->insert(ident->toChars(), ident->len);
     if (!sv)
         return NULL;            // already in table
     sv->ptrvalue = s;
     return s;
+#else
+    Dsymbol **ps = (Dsymbol **)_aaGet(&tab, ident);
+    if (*ps)
+        return NULL;            // already in table
+    *ps = s;
+    return s;
+#endif
 }
 
 Dsymbol *DsymbolTable::update(Dsymbol *s)
-{   StringValue *sv;
-    Identifier *ident;
-
-    ident = s->ident;
-    sv = tab->update(ident->toChars(), ident->len);
+{
+    Identifier *ident = s->ident;
+#if STRINGTABLE
+    StringValue *sv = tab->update(ident->toChars(), ident->len);
     sv->ptrvalue = s;
     return s;
+#else
+    Dsymbol **ps = (Dsymbol **)_aaGet(&tab, ident);
+    *ps = s;
+    return s;
+#endif
 }
 
 

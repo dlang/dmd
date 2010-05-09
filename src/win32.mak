@@ -96,7 +96,7 @@ OBJ8= go.obj gdag.obj gother.obj gflow.obj gloop.obj var.obj el.obj \
 # from ROOT
 
 ROOTOBJS= lstring.obj array.obj gnuc.obj man.obj rmem.obj port.obj root.obj \
-	stringtable.obj dchar.obj response.obj async.obj speller.obj
+	stringtable.obj dchar.obj response.obj async.obj speller.obj aav.obj
 
 OBJS= $(OBJ1) $(OBJ8) $(ROOTOBJS)
 
@@ -150,7 +150,8 @@ ROOTSRC= $(ROOT)\dchar.h $(ROOT)\dchar.c $(ROOT)\lstring.h \
 	$(ROOT)\stringtable.h $(ROOT)\stringtable.c \
 	$(ROOT)\gnuc.h $(ROOT)\gnuc.c $(ROOT)\man.c $(ROOT)\port.c \
 	$(ROOT)\response.c $(ROOT)\async.h $(ROOT)\async.c \
-	$(ROOT)\speller.h $(ROOT)\speller.c
+	$(ROOT)\speller.h $(ROOT)\speller.c \
+	$(ROOT)\aav.h $(ROOT)\aav.c
 
 MAKEFILES=win32.mak linux.mak osx.mak freebsd.mak solaris.mak
 
@@ -396,6 +397,9 @@ tk.obj : tk.c
 	$(CC) -c $(MFLAGS) tk.c
 
 # ROOT
+
+aav.obj : $(ROOT)\aav.h $(ROOT)\aav.c
+	$(CC) -c $(CFLAGS) $(ROOT)\aav.c
 
 array.obj : $(ROOT)\array.c
 	$(CC) -c $(CFLAGS) $(ROOT)\array.c
