@@ -402,4 +402,6 @@ void obj_end(Library *library, File *objfile);
 void obj_append(Dsymbol *s);
 void obj_write_deferred(Library *library);
 
+const char *importHint(const char *s);
+
 #endif /* DMD_MARS_H */

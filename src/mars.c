@@ -1015,7 +1015,7 @@ int main(int argc, char *argv[])
          * its path and extension.
          */
 
-        Identifier *id = new Identifier(name, 0);
+        Identifier *id = Lexer::idPool(name);
         m = new Module((char *) files.data[i], id, global.params.doDocComments, global.params.doHdrGeneration);
         modules.push(m);
 
