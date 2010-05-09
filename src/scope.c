@@ -23,6 +23,7 @@
 #include "aggregate.h"
 #include "module.h"
 #include "id.h"
+#include "lexer.h"
 
 Scope *Scope::freelist = NULL;
 
@@ -370,10 +371,19 @@ void Scope::setNoFree()
 void *scope_search_fp(void *arg, const char *seed)
 {
     //printf("scope_search_fp('%s')\n", seed);
+
+    /* If not in the lexer's string table, it certainly isn't in the symbol table.
+     * Doing this first is a lot faster.
+     */
+    StringValue *sv = Lexer::stringtable.lookup(seed, strlen(seed));
+    if (!sv)
+        return NULL;
+    Identifier *id = (Identifier *)sv->ptrvalue;
+    assert(id);
+
     Scope *sc = (Scope *)arg;
-    Identifier id(seed, 0);
     Module::clearCache();
-    Dsymbol *s = sc->search(0, &id, NULL);
+    Dsymbol *s = sc->search(0, id, NULL);
     return s;
 }
 

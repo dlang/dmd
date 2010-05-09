@@ -81,7 +81,7 @@ OBJ1= mars.obj enum.obj struct.obj dsymbol.obj import.obj id.obj \
 	builtin.obj clone.obj libomf.obj arrayop.obj irstate.obj \
 	glue.obj msc.obj ph.obj tk.obj s2ir.obj todt.obj e2ir.obj tocsym.obj \
 	util.obj bit.obj eh.obj toobj.obj toctype.obj tocvdebug.obj toir.obj \
-	json.obj unittests.obj
+	json.obj unittests.obj imphint.obj
 
 # from C/C++ compiler optimizer and back end
 
@@ -96,7 +96,7 @@ OBJ8= go.obj gdag.obj gother.obj gflow.obj gloop.obj var.obj el.obj \
 # from ROOT
 
 ROOTOBJS= lstring.obj array.obj gnuc.obj man.obj rmem.obj port.obj root.obj \
-	stringtable.obj dchar.obj response.obj async.obj speller.obj
+	stringtable.obj dchar.obj response.obj async.obj speller.obj aav.obj
 
 OBJS= $(OBJ1) $(OBJ8) $(ROOTOBJS)
 
@@ -115,7 +115,7 @@ SRCS= mars.c enum.c struct.c dsymbol.c import.c idgen.c impcnvgen.c utf.h \
 	macro.h macro.c hdrgen.h hdrgen.c arraytypes.h \
 	delegatize.c toir.h toir.c interpret.c traits.c builtin.c \
 	clone.c lib.h libomf.c libelf.c libmach.c arrayop.c \
-	aliasthis.h aliasthis.c json.h json.c unittests.c
+	aliasthis.h aliasthis.c json.h json.c unittests.c imphint.c
 
 # From C++ compiler
 
@@ -150,7 +150,8 @@ ROOTSRC= $(ROOT)\dchar.h $(ROOT)\dchar.c $(ROOT)\lstring.h \
 	$(ROOT)\stringtable.h $(ROOT)\stringtable.c \
 	$(ROOT)\gnuc.h $(ROOT)\gnuc.c $(ROOT)\man.c $(ROOT)\port.c \
 	$(ROOT)\response.c $(ROOT)\async.h $(ROOT)\async.c \
-	$(ROOT)\speller.h $(ROOT)\speller.c
+	$(ROOT)\speller.h $(ROOT)\speller.c \
+	$(ROOT)\aav.h $(ROOT)\aav.c
 
 MAKEFILES=win32.mak linux.mak osx.mak freebsd.mak solaris.mak
 
@@ -310,6 +311,9 @@ glue.obj : $(CH) $(TOTALH) $C\rtlsym.h mars.h module.h glue.c
 html.obj : $(CH) $(TOTALH) $C\html.h $C\html.c
 	$(CC) -c -I$(ROOT) $(MFLAGS) $C\html
 
+imphint.obj : imphint.c
+	$(CC) -c $(CFLAGS) $*
+
 mars.obj : $(TOTALH) module.h mars.h mars.c
 	$(CC) -c $(CFLAGS) $(PREC) $* -Ae
 
@@ -393,6 +397,9 @@ tk.obj : tk.c
 	$(CC) -c $(MFLAGS) tk.c
 
 # ROOT
+
+aav.obj : $(ROOT)\aav.h $(ROOT)\aav.c
+	$(CC) -c $(CFLAGS) $(ROOT)\aav.c
 
 array.obj : $(ROOT)\array.c
 	$(CC) -c $(CFLAGS) $(ROOT)\array.c

@@ -2107,12 +2107,17 @@ Expression *IdentifierExp::semantic(Scope *sc)
        return e;
     }
 #endif
-
-    s = sc->search_correct(ident);
-    if (s)
-        error("undefined identifier %s, did you mean %s %s?", ident->toChars(), s->kind(), s->toChars());
+    const char *n = importHint(ident->toChars());
+    if (n)
+        error("'%s' is not defined, perhaps you need to import %s; ?", ident->toChars(), n);
     else
-        error("undefined identifier %s", ident->toChars());
+    {
+        s = sc->search_correct(ident);
+        if (s)
+            error("undefined identifier %s, did you mean %s %s?", ident->toChars(), s->kind(), s->toChars());
+        else
+            error("undefined identifier %s", ident->toChars());
+    }
     return new ErrorExp();
 }
 

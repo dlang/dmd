@@ -69,6 +69,7 @@ struct Expression;
 struct DeleteDeclaration;
 struct HdrGenState;
 struct OverloadSet;
+struct AA;
 #if TARGET_NET
 struct PragmaScope;
 #endif
@@ -319,7 +320,11 @@ struct OverloadSet : Dsymbol
 
 struct DsymbolTable : Object
 {
+#if STRINGTABLE
     StringTable *tab;
+#else
+    AA *tab;
+#endif
 
     DsymbolTable();
     ~DsymbolTable();

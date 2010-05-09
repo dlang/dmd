@@ -193,6 +193,8 @@ void *speller(const char *seed, fp_speller_t fp, void *fparg, const char *charse
     {   void *p = spellerX(seed, seedlen, fp, fparg, charset, distance);
         if (p)
             return p;
+//      if (seedlen > 10)
+//          break;
     }
     return NULL;   // didn't find it
 }
@@ -206,6 +208,7 @@ void *speller(const char *seed, fp_speller_t fp, void *fparg, const char *charse
 
 void *speller_test(void *fparg, const char *s)
 {
+    //printf("speller_test(%s, %s)\n", fparg, s);
     if (strcmp((char *)fparg, s) == 0)
         return fparg;
     return NULL;
@@ -230,7 +233,7 @@ void unittest_speller()
         { "hello", "helxxlo", "y" },
         { "hello", "ehlxxlo", "n" },
         { "hello", "heaao", "y" },
-        { "_123456789_123456789_123456789_123456789", "_123456789_123456789_123456789_1234567", "y" },
+        { "_123456789_123456789_123456789_123456789", "_123456789_123456789_123456789_12345678", "y" },
     };
     //printf("unittest_speller()\n");
     void *p = speller("hello", &speller_test, "hell", idchars);

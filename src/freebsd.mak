@@ -37,7 +37,8 @@ DMD_OBJS = \
 	unialpha.o toobj.o toctype.o toelfdebug.o entity.o doc.o macro.o \
 	hdrgen.o delegatize.o aa.o ti_achar.o toir.o interpret.o traits.o \
 	builtin.o clone.o aliasthis.o \
-	man.o arrayop.o port.o response.o async.o json.o speller.o unittests.o \
+	man.o arrayop.o port.o response.o async.o json.o speller.o aav.o unittests.o \
+	imphint.o \
 	libelf.o elfobj.o
 
 SRC = win32.mak linux.mak osx.mak freebsd.mak solaris.mak \
@@ -56,7 +57,7 @@ SRC = win32.mak linux.mak osx.mak freebsd.mak solaris.mak \
 	doc.h doc.c macro.h macro.c hdrgen.h hdrgen.c arraytypes.h \
 	delegatize.c toir.h toir.c interpret.c traits.c cppmangle.c \
 	builtin.c clone.c lib.h libomf.c libelf.c libmach.c arrayop.c \
-	aliasthis.h aliasthis.c json.h json.c unittests.c \
+	aliasthis.h aliasthis.c json.h json.c unittests.c imphint.c \
 	$C/cdef.h $C/cc.h $C/oper.h $C/ty.h $C/optabgen.c \
 	$C/global.h $C/parser.h $C/code.h $C/type.h $C/dt.h $C/cgcv.h \
 	$C/el.h $C/iasm.h $C/rtlsym.h $C/html.h \
@@ -81,6 +82,7 @@ SRC = win32.mak linux.mak osx.mak freebsd.mak solaris.mak \
 	$(ROOT)/gnuc.h $(ROOT)/gnuc.c $(ROOT)/man.c \
 	$(ROOT)/stringtable.h $(ROOT)/stringtable.c \
 	$(ROOT)/response.c $(ROOT)/async.h $(ROOT)/async.c \
+	$(ROOT)/aav.h $(ROOT)/aav.c \
 	$(ROOT)/speller.h $(ROOT)/speller.c
 
 
@@ -127,6 +129,9 @@ impcnvgen : mtype.h impcnvgen.c
 
 aa.o: $C/aa.h $C/tinfo.h $C/aa.c
 	$(CC) -c $(MFLAGS) -I. $C/aa.c
+
+aav.o: $(ROOT)/aav.c
+	$(CC) -c $(GFLAGS) -I$(ROOT) $<
 
 access.o: access.c
 	$(CC) -c $(CFLAGS) $<
@@ -328,6 +333,9 @@ identifier.o: identifier.c
 
 impcnvtab.o: mtype.h impcnvtab.c
 	$(CC) -c $(CFLAGS) -I$(ROOT) impcnvtab.c
+
+imphint.o: imphint.c
+	$(CC) -c $(CFLAGS) $<
 
 import.o: import.c
 	$(CC) -c $(CFLAGS) $<
@@ -534,6 +542,7 @@ gcov:
 	gcov glue.c
 	gcov iasm.c
 	gcov identifier.c
+	gcov imphint.c
 	gcov import.c
 	gcov inifile.c
 	gcov init.c
