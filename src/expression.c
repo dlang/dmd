@@ -2232,7 +2232,9 @@ Lagain:
     {
         //printf("Identifier '%s' is a variable, type '%s'\n", toChars(), v->type->toChars());
         if (!type)
-        {   type = v->type;
+        {   if (!v->type && v->scope)
+                v->semantic(v->scope);
+            type = v->type;
             if (!v->type)
             {   error("forward reference of %s", v->toChars());
                 type = Type::terror;
