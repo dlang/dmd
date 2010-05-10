@@ -275,6 +275,7 @@ Expression *getRightThis(Loc loc, Scope *sc, AggregateDeclaration *ad,
             }
             /* Can't find a path from e1 to ad
              */
+printf("t->ty = %d\n", t->ty);
             e1->error("this for %s needs to be type %s not type %s",
                 var->toChars(), ad->toChars(), t->toChars());
             e1 = new ErrorExp();
@@ -1076,6 +1077,7 @@ Expression *Expression::semantic(Scope *sc)
 
 Expression *Expression::trySemantic(Scope *sc)
 {
+    //printf("+trySemantic(%s)\n", toChars());
     unsigned errors = global.errors;
     global.gag++;
     Expression *e = semantic(sc);
@@ -1085,6 +1087,7 @@ Expression *Expression::trySemantic(Scope *sc)
         global.errors = errors;
         e = NULL;
     }
+    //printf("-trySemantic(%s)\n", toChars());
     return e;
 }
 

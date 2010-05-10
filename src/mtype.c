@@ -315,6 +315,7 @@ Type *Type::semantic(Loc loc, Scope *sc)
 
 Type *Type::trySemantic(Loc loc, Scope *sc)
 {
+    //printf("+trySemantic(%s) %d\n", toChars(), global.errors);
     unsigned errors = global.errors;
     global.gag++;                       // suppress printing of error messages
     Type *t = semantic(loc, sc);
@@ -324,6 +325,7 @@ Type *Type::trySemantic(Loc loc, Scope *sc)
         global.errors = errors;
         t = NULL;
     }
+    //printf("-trySemantic(%s) %d\n", toChars(), global.errors);
     return t;
 }
 

@@ -344,12 +344,12 @@ void ClassDeclaration::semantic(Scope *sc)
                 }
                 if (!tc->sym->symtab || tc->sym->sizeok == 0)
                 {   // Try to resolve forward reference
-                    if (sc->mustsemantic && tc->sym->scope)
+                    if (/*sc->mustsemantic &&*/ tc->sym->scope)
                         tc->sym->semantic(NULL);
                 }
                 if (!tc->sym->symtab || tc->sym->scope || tc->sym->sizeok == 0)
                 {
-                    //printf("%s: forward reference of base class %s\n", toChars(), tc->sym->toChars());
+                    printf("%s: forward reference of base class %s\n", toChars(), tc->sym->toChars());
                     //error("forward reference of base class %s", baseClass->toChars());
                     // Forward reference of base class, try again later
                     //printf("\ttry later, forward reference of base class %s\n", tc->sym->toChars());
@@ -412,7 +412,7 @@ void ClassDeclaration::semantic(Scope *sc)
 
             if (!tc->sym->symtab)
             {   // Try to resolve forward reference
-                if (sc->mustsemantic && tc->sym->scope)
+                if (/*sc->mustsemantic &&*/ tc->sym->scope)
                     tc->sym->semantic(NULL);
             }
 

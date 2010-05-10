@@ -3526,8 +3526,10 @@ void TemplateInstance::semantic(Scope *sc)
 
 void TemplateInstance::semantic(Scope *sc, Expressions *fargs)
 {
+    //printf("TemplateInstance::semantic('%s', this=%p)\n", toChars(), this);
     if (global.errors && name != Id::AssociativeArray)
     {
+        //printf("not instantiating %s due to %d errors\n", toChars(), global.errors);
         if (!global.gag)
         {
             /* Trying to soldier on rarely generates useful messages
@@ -3535,7 +3537,7 @@ void TemplateInstance::semantic(Scope *sc, Expressions *fargs)
              */
             fatal();
         }
-        return;
+//        return;
     }
 #if LOG
     printf("\n+TemplateInstance::semantic('%s', this=%p)\n", toChars(), this);
@@ -3553,6 +3555,9 @@ void TemplateInstance::semantic(Scope *sc, Expressions *fargs)
 
     if (semanticRun != 0)
     {
+#if LOG
+        printf("Recursive template expansion\n");
+#endif
         error(loc, "recursive template expansion");
 //      inst = this;
         return;
@@ -3918,7 +3923,11 @@ void TemplateInstance::semantic(Scope *sc, Expressions *fargs)
         }
         errors = 1;
         if (global.gag)
+        {   // Try to reset things so we can try again later to instantiate it
             tempdecl->instances.remove(tempdecl_instance_idx);
+            semanticRun = 0;
+            inst = NULL;
+        }
     }
 
 #if LOG

@@ -528,7 +528,7 @@ void AliasDeclaration::semantic(Scope *sc)
             s = NULL;
         }
     }
-    //printf("setting aliassym %p to %p\n", this, s);
+    //printf("setting aliassym %s to %s %s\n", toChars(), s->kind(), s->toChars());
     aliassym = s;
     this->inSemantic = 0;
 }
