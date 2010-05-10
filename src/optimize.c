@@ -46,6 +46,8 @@ Expression *fromConstInitializer(Expression *e1)
     if (e1->op == TOKvar)
     {   VarExp *ve = (VarExp *)e1;
         VarDeclaration *v = ve->var->isVarDeclaration();
+        if (v && !v->originalType && v->scope)  // semantic() not yet run
+            v->semantic (v->scope);
         if (v && v->isConst() && v->init)
         {   Expression *ei = v->init->toExpression();
             if (ei && ei->type)
