@@ -179,6 +179,8 @@ void AggregateDeclaration::addField(Scope *sc, VarDeclaration *v)
         }
 #endif
 
+        if (ts->sym->sizeok != 1 && ts->sym->scope)
+            ts->sym->semantic(NULL);
         if (ts->sym->sizeok != 1)
         {
             sizeok = 2;         // cannot finish; flag as forward referenced

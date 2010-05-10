@@ -275,7 +275,6 @@ Expression *getRightThis(Loc loc, Scope *sc, AggregateDeclaration *ad,
             }
             /* Can't find a path from e1 to ad
              */
-printf("t->ty = %d\n", t->ty);
             e1->error("this for %s needs to be type %s not type %s",
                 var->toChars(), ad->toChars(), t->toChars());
             e1 = new ErrorExp();
@@ -2445,6 +2444,8 @@ Lagain:
     if (f)
     {   //printf("'%s' is a function\n", f->toChars());
 
+        if (!f->originalType && f->scope)       // semantic not yet run
+            f->semantic(f->scope);
         if (!f->type->deco)
         {
             error("forward reference to %s", toChars());
