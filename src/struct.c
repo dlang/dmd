@@ -112,6 +112,8 @@ unsigned AggregateDeclaration::size(Loc loc)
     //printf("AggregateDeclaration::size() = %d\n", structsize);
     if (!members)
         error(loc, "unknown size");
+    if (sizeok != 1 && scope)
+        semantic(NULL);
     if (sizeok != 1)
     {   error(loc, "no size yet for forward reference");
         //*(char*)0=0;
