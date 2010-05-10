@@ -47,6 +47,8 @@ Expression *expandVar(int result, VarDeclaration *v)
     Expression *e = NULL;
     if (!v)
         return e;
+    if (!v->originalType && v->scope)   // semantic() not yet run
+        v->semantic (v->scope);
 
     if (v->isConst() || v->isImmutable() || v->storage_class & STCmanifest)
     {
