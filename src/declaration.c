@@ -500,7 +500,7 @@ void AliasDeclaration::semantic(Scope *sc)
     //printf("alias is a symbol %s %s\n", s->kind(), s->toChars());
     type = NULL;
     VarDeclaration *v = s->isVarDeclaration();
-    if (v && v->linkage == LINKdefault)
+    if (0 && v && v->linkage == LINKdefault)
     {
         error("forward reference of %s", v->toChars());
         s = NULL;
