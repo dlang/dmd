@@ -133,7 +133,7 @@ void FuncDeclaration::semantic(Scope *sc)
     parent = sc->parent;
     Dsymbol *parent = toParent();
 
-    if (semanticRun == PASSsemanticdone)
+    if (semanticRun >= PASSsemanticdone)
     {
         if (!parent->isClassDeclaration())
             return;

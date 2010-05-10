@@ -2280,6 +2280,9 @@ Lagain:
     f = s->isFuncDeclaration();
     if (f)
     {   //printf("'%s' is a function\n", f->toChars());
+
+        if (!f->originalType && f->scope)       // semantic not yet run
+            f->semantic(f->scope);
         if (!f->type->deco)
         {
             error("forward reference to %s", toChars());
