@@ -3494,33 +3494,36 @@ Expression *ScopeExp::semantic(Scope *sc)
 Lagain:
     ti = sds->isTemplateInstance();
     if (ti && !global.errors)
-    {   Dsymbol *s;
+    {
         if (!ti->semanticRun)
             ti->semantic(sc);
-        s = ti->inst->toAlias();
-        sds2 = s->isScopeDsymbol();
-        if (!sds2)
-        {   Expression *e;
-
-            //printf("s = %s, '%s'\n", s->kind(), s->toChars());
-            if (ti->withsym)
-            {
-                // Same as wthis.s
-                e = new VarExp(loc, ti->withsym->withstate->wthis);
-                e = new DotVarExp(loc, e, s->isDeclaration());
-            }
-            else
-                e = new DsymbolExp(loc, s);
-            e = e->semantic(sc);
-            //printf("-1ScopeExp::semantic()\n");
-            return e;
-        }
-        if (sds2 != sds)
+        if (ti->inst)
         {
-            sds = sds2;
-            goto Lagain;
+            Dsymbol *s = ti->inst->toAlias();
+            sds2 = s->isScopeDsymbol();
+            if (!sds2)
+            {   Expression *e;
+
+                //printf("s = %s, '%s'\n", s->kind(), s->toChars());
+                if (ti->withsym)
+                {
+                    // Same as wthis.s
+                    e = new VarExp(loc, ti->withsym->withstate->wthis);
+                    e = new DotVarExp(loc, e, s->isDeclaration());
+                }
+                else
+                    e = new DsymbolExp(loc, s);
+                e = e->semantic(sc);
+                //printf("-1ScopeExp::semantic()\n");
+                return e;
+            }
+            if (sds2 != sds)
+            {
+                sds = sds2;
+                goto Lagain;
+            }
+            //printf("sds = %s, '%s'\n", sds->kind(), sds->toChars());
         }
-        //printf("sds = %s, '%s'\n", sds->kind(), sds->toChars());
     }
     else
     {

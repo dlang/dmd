@@ -236,7 +236,7 @@ void unittest_speller()
         { "_123456789_123456789_123456789_123456789", "_123456789_123456789_123456789_12345678", "y" },
     };
     //printf("unittest_speller()\n");
-    void *p = speller("hello", &speller_test, "hell", idchars);
+    const void *p = speller("hello", &speller_test, (void *)"hell", idchars);
     assert(p != NULL);
     for (int i = 0; i < sizeof(cases)/sizeof(cases[0]); i++)
     {
