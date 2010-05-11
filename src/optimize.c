@@ -137,7 +137,7 @@ Expression *fromConstInitializer(int result, Expression *e1)
         VarDeclaration *v = ve->var->isVarDeclaration();
         e = expandVar(result, v);
         if (e)
-        {   if (e->type != e1->type)
+        {   if (e->type != e1->type && e1->type)
             {   // Type 'paint' operation
                 e = e->copy();
                 e->type = e1->type;
