@@ -52,6 +52,16 @@ private
 }
 
 
+static this()
+{
+    // NOTE: Some module ctors will run before this handler is set, so it's
+    //       still possible the app could exit without a stack trace.  If
+    //       this becomes an issue, the handler could be set in C main
+    //       before the module ctors are run.
+    Runtime.traceHandler = &defaultTraceHandler;
+}
+
+
 ///////////////////////////////////////////////////////////////////////////////
 // Runtime
 ///////////////////////////////////////////////////////////////////////////////
