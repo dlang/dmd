@@ -3372,7 +3372,7 @@ STATIC void elimbasivs(register loop *l)
                         }
                 }
 
-                cmes3("No uses, eliminating basic IV '%s' (%d)\n",(X->Sident)
+                cmes3("No uses, eliminating basic IV '%s' (%p)\n",(X->Sident)
                         ? (char *)X->Sident : "",X);
 
                 /* Dump the increment elem                              */
@@ -3435,7 +3435,7 @@ STATIC void elimopeqs(register loop *l)
                 }
             }
 
-            cmes3("No uses, eliminating opeq IV '%s' (%d)\n",(X->Sident)
+            cmes3("No uses, eliminating opeq IV '%s' (%p)\n",(X->Sident)
                     ? (char *)X->Sident : "",X);
 
             // Dump the increment elem
@@ -3607,7 +3607,7 @@ STATIC elem ** onlyref(symbol *x,loop *l,elem *incn,int *prefcount)
   sincn = incn;
 #ifdef DEBUG
   if (!(X->Ssymnum < globsym.top && l && incn))
-        dbg_printf("X = %d, globsym.top = %d, l = x%lx, incn = x%lx\n",X->Ssymnum,globsym.top,l,incn);
+        dbg_printf("X = %d, globsym.top = %d, l = %p, incn = %p\n",X->Ssymnum,globsym.top,l,incn);
 #endif
   assert(X->Ssymnum < globsym.top && l && incn);
   count = 0;

@@ -3023,7 +3023,7 @@ void elem_print(elem *e)
  && (e->PEFflags & PEFstrsize)
 #endif
                )
-                dbg_printf("%d ",e->Enumbytes);
+                dbg_printf("%ld ",e->Enumbytes);
             WRTYxx(e->ET->Tty);
         }
   }
@@ -3031,7 +3031,7 @@ void elem_print(elem *e)
   {
         if ((e->Eoper == OPstrpar || e->Eoper == OPstrctor || e->Eoper == OPstreq) ||
             e->Ety == TYstruct)
-            dbg_printf("%d ",e->Enumbytes);
+            dbg_printf("%ld ",e->Enumbytes);
         WRTYxx(e->Ety);
   }
   if (OTunary(e->Eoper))
@@ -3045,7 +3045,7 @@ void elem_print(elem *e)
   else if (OTbinary(e->Eoper))
   {
         if (!PARSER && e->Eoper == OPstreq)
-                dbg_printf("bytes=%d ",e->Enumbytes);
+                dbg_printf("bytes=%ld ",e->Enumbytes);
         dbg_printf("%p %p\n",e->E1,e->E2);
         elem_print(e->E1);
         elem_print(e->E2);
@@ -3055,18 +3055,18 @@ void elem_print(elem *e)
         switch (e->Eoper)
         {
             case OPrelconst:
-                dbg_printf(" %d+&",e->Eoffset);
+                dbg_printf(" %ld+&",e->Eoffset);
                 dbg_printf(" %s",e->EV.sp.Vsym->Sident);
                 break;
             case OPvar:
                 if (e->Eoffset)
-                    dbg_printf(" %d+",e->Eoffset);
+                    dbg_printf(" %ld+",e->Eoffset);
                 dbg_printf(" %s",e->EV.sp.Vsym->Sident);
                 break;
             case OPasm:
             case OPstring:
             case OPhstring:
-                dbg_printf(" '%s',%d\n",e->EV.ss.Vstring,e->EV.ss.Voffset);
+                dbg_printf(" '%s',%ld\n",e->EV.ss.Vstring,e->EV.ss.Voffset);
                 break;
             case OPconst:
                 tym = tybasic(typemask(e));
@@ -3113,7 +3113,7 @@ void elem_print(elem *e)
                     case TYchar16:
                     L3:
 #if TX86
-                        dbg_printf("%hd ",e->EV.Vint);
+                        dbg_printf("%ld ",e->EV.Vint);
                         break;
 #endif
                     case TYlong:

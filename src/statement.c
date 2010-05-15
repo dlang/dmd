@@ -2536,7 +2536,7 @@ Statement *PragmaStatement::semantic(Scope *sc)
                     fprintf(stdmsg, "%.*s", (int)se->len, (char *)se->string);
                 }
                 else
-                    fprintf(stdmsg, e->toChars());
+                    fprintf(stdmsg, "%s", e->toChars());
             }
             fprintf(stdmsg, "\n");
         }

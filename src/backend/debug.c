@@ -107,7 +107,7 @@ void WRTYxx(tym_t t)
 #endif
     t = tybasic(t);
     if (t >= TYMAX)
-    {   dbg_printf("TY %x\n",t);
+    {   dbg_printf("TY %lx\n",t);
         assert(0);
     }
     dbg_printf("TY%s ",tystring[tybasic(t)]);
@@ -137,10 +137,8 @@ void WRarglst(list_t a)
 
   if (!a) dbg_printf("0 args\n");
   while (a)
-  {     if (list_ptr(a))
-            dbg_printf("arg %d: '%s'\n",n,list_ptr(a));
-        else
-            dbg_printf("arg %d: NULL\n",n);
+  {     const char* c = (const char*)list_ptr(a);
+        dbg_printf("arg %d: '%s'\n", n, c ? c : "NULL");
         a = a->next;
         n++;
   }
@@ -187,7 +185,7 @@ void WReqn(elem *e)
         ferr(" ");
         WROP(e->Eoper);
         if (e->Eoper == OPstreq)
-            dbg_printf("%d",e->Enumbytes);
+            dbg_printf("%ld",e->Enumbytes);
         ferr(" ");
         if (OTbinary(e->E2->Eoper))
         {       nest++;
@@ -212,7 +210,7 @@ void WReqn(elem *e)
                         dbg_printf("%g ",e->EV.Vdouble);
                         break;
                     default:
-                        dbg_printf("%ld ",el_tolong(e));
+                        dbg_printf("%lld ",el_tolong(e));
                         break;
                 }
                 break;
@@ -224,7 +222,7 @@ void WReqn(elem *e)
                 if (e->EV.sp.Vsym->Ssymnum != -1)
                     dbg_printf("(%d)",e->EV.sp.Vsym->Ssymnum);
                 if (e->Eoffset != 0)
-                        dbg_printf(".%d",e->Eoffset);
+                        dbg_printf(".%ld",e->Eoffset);
                 break;
             case OPasm:
 #if TARGET_MAC
@@ -240,7 +238,7 @@ void WReqn(elem *e)
             case OPstring:
                 dbg_printf("\"%s\"",e->EV.ss.Vstring);
                 if (e->EV.ss.Voffset)
-                    dbg_printf("+%d",e->EV.ss.Voffset);
+                    dbg_printf("+%ld",e->EV.ss.Voffset);
                 break;
             case OPmark:
             case OPgot:
@@ -377,7 +375,7 @@ void WRblock(block *b)
                 dbg_printf("\tdefault: %p\n",list_block(bl));
                 while (ncases--)
                 {   bl = list_next(bl);
-                    dbg_printf("\tcase %ld: %p\n",*++pu,list_block(bl));
+                    dbg_printf("\tcase %lld: %p\n",*++pu,list_block(bl));
                 }
                 break;
             case BCiftrue:

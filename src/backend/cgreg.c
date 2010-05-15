@@ -920,7 +920,7 @@ int cgreg_assign(Symbol *retsym)
 
         #ifdef DEBUG
             if (debugr)
-            {   printf("symbol '%3s', ty x%x weight x%x sz %d\n   ",
+            {   printf("symbol '%3s', ty x%lx weight x%x sz %d\n   ",
                 s->Sident,ty,s->Sweight,sz);
                 vec_println(s->Srange);
             }

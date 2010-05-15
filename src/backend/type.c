@@ -64,7 +64,7 @@ targ_size_t type_size(type *t)
 #ifdef DEBUG
     if (tyb >= TYMAX)
         /*type_print(t),*/
-        dbg_printf("tyb = x%x\n",tyb);
+        dbg_printf("tyb = x%lx\n",tyb);
 #endif
     assert(tyb < TYMAX);
     s = tysize[tyb];
@@ -938,7 +938,7 @@ void type_print(type *t)
         tybasic(t->Tty) != TYmfunc &&
         tybasic(t->Tty) != TYarray &&
         tybasic(t->Tty) != TYtemplate)
-      dbg_printf(" Tsize=%d",type_size(t));
+      dbg_printf(" Tsize=%ld",type_size(t));
   dbg_printf(" Tnext=%p",t->Tnext);
   switch (tybasic(t->Tty))
   {     case TYstruct:
@@ -952,7 +952,7 @@ void type_print(type *t)
 #endif
             break;
         case TYarray:
-            dbg_printf(" Tdim=%d",t->Tdim);
+            dbg_printf(" Tdim=%ld",t->Tdim);
             break;
         case TYident:
             dbg_printf(" Tident='%s'",t->Tident);

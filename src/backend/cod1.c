@@ -529,7 +529,7 @@ code *loadea(elem *e,code __ss *cs,unsigned op,unsigned reg,targ_size_t offset,
 
 #ifdef DEBUG
   if (debugw)
-    printf("loadea: e=x%p cs=x%x op=x%x reg=%d offset=%ld keepmsk=x%x desmsk=x%x\n",
+    printf("loadea: e=x%p cs=x%p op=x%x reg=%d offset=%ld keepmsk=x%x desmsk=x%x\n",
             e,cs,op,reg,offset,keepmsk,desmsk);
 #endif
 
@@ -1572,7 +1572,7 @@ code *tstresult(regm_t regm,tym_t tym,unsigned saveflag)
 
 #ifdef DEBUG
   if (!(regm & (mBP | ALLREGS)))
-        printf("tstresult(regm = x%x, tym = x%x, saveflag = %d)\n",
+        printf("tstresult(regm = x%x, tym = x%lx, saveflag = %d)\n",
             regm,tym,saveflag);
 #endif
   assert(regm & (mBP | ALLREGS));

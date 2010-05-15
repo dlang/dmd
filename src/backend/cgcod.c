@@ -1884,7 +1884,7 @@ L3:
         {
 #ifdef DEBUG
             WRTYxx(tym);
-            printf("\nallocreg: fil %s lin %d, regcon.mvar x%x msavereg x%x *pretregs x%x, reg %d, tym x%x\n",
+            printf("\nallocreg: fil %s lin %d, regcon.mvar x%x msavereg x%x *pretregs x%x, reg %d, tym x%lx\n",
                 file,line,regcon.mvar,msavereg,*pretregs,*preg,tym);
 #endif
             assert(0);
@@ -2386,7 +2386,7 @@ if (regcon.cse.mval & 1) elem_print(regcon.cse.value[i]);
 #if DEBUG
                 if (EOP(e))
                 {
-                    printf("e = x%lx, op = x%x, emask = x%x, csemask = x%x\n",
+                    printf("e = %p, op = x%x, emask = x%x, csemask = x%x\n",
                         e,e->Eoper,emask,csemask);
                     //printf("mMSW = x%x, mLSW = x%x\n", mMSW, mLSW);
                     elem_print(e);
@@ -2442,14 +2442,14 @@ if (regcon.cse.mval & 1) elem_print(regcon.cse.value[i]);
         }
         if (!EOP(e)) goto reload;
 #if DEBUG
-        printf("e = x%lx, csemask = x%x, emask = x%x\n",e,csemask,emask);
+        printf("e = %p, csemask = x%x, emask = x%x\n",e,csemask,emask);
 #endif
         assert(0);
   }
   else
   {
 #if DEBUG
-        printf("e = x%p, tym = x%x\n",e,tym);
+        printf("e = %p, tym = x%lx\n",e,tym);
 #endif
         assert(0);
   }
@@ -2665,7 +2665,7 @@ L1:
 
 #ifdef DEBUG
 
-char *regm_str(regm_t rm)
+const char *regm_str(regm_t rm)
 {
     #define NUM 4
     #define SMAX 30

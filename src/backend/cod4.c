@@ -2699,7 +2699,7 @@ code *cdlngsht(elem *e,regm_t *pretregs)
 #ifdef DEBUG
   if (!(!*pretregs || retregs))
         WROP(e->Eoper),
-        printf(" *pretregs = x%x, retregs = x%x, e = x%x\n",*pretregs,retregs,e);
+        printf(" *pretregs = x%x, retregs = x%x, e = %p\n",*pretregs,retregs,e);
 #endif
   assert(!*pretregs || retregs);
   return cat(c,fixresult(e,retregs,pretregs));  /* lsw only             */
