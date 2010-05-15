@@ -40,6 +40,8 @@ extern int HtmlNamedEntity(unsigned char *p, int length);
 #define LS 0x2028       // UTF line separator
 #define PS 0x2029       // UTF paragraph separator
 
+void unittest_lexer();
+
 /********************************************
  * Do our own char maps
  */
@@ -3150,4 +3152,31 @@ void Lexer::initKeywords()
     Token::tochars[TOKon_scope_exit]    = "scope(exit)";
     Token::tochars[TOKon_scope_success] = "scope(success)";
     Token::tochars[TOKon_scope_failure] = "scope(failure)";
+
+#if UNITTEST
+    unittest_lexer();
+#endif
 }
+
+#if UNITTEST
+
+void unittest_lexer()
+{
+    //printf("unittest_lexer()\n");
+
+    /* Not much here, just trying things out.
+     */
+    const unsigned char text[] = "int";
+    Lexer lex1(NULL, (unsigned char *)text, 0, sizeof(text), 0, 0);
+    TOK tok;
+    tok = lex1.nextToken();
+    //printf("tok == %s, %d, %d\n", Token::toChars(tok), tok, TOKint32);
+    assert(tok == TOKint32);
+    tok = lex1.nextToken();
+    assert(tok == TOKeof);
+    tok = lex1.nextToken();
+    assert(tok == TOKeof);
+}
+
+#endif
+

@@ -87,6 +87,9 @@ void Declaration::checkModify(Loc loc, Scope *sc, Type *t)
     if (sc->incontract && isParameter())
         error(loc, "cannot modify parameter '%s' in contract", toChars());
 
+    if (sc->incontract && isResult())
+        error(loc, "cannot modify result '%s' in contract", toChars());
+
     if (isCtorinit() && !t->isMutable())
     {   // It's only modifiable if inside the right constructor
         Dsymbol *s = sc->func;
@@ -979,7 +982,8 @@ Lagain:
 
     enum TOK op = TOKconstruct;
     if (!init && !sc->inunion && !isStatic() && fd &&
-        (!(storage_class & (STCfield | STCin | STCforeach | STCparameter)) || (storage_class & STCout)) &&
+        (!(storage_class & (STCfield | STCin | STCforeach | STCparameter | STCresult))
+         || (storage_class & STCout)) &&
         type->size() != 0)
     {
         // Provide a default initializer

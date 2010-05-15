@@ -1106,6 +1106,7 @@ void FuncDeclaration::semantic3(Scope *sc)
 
                 VarDeclaration *v = new VarDeclaration(loc, type->nextOf(), outId, NULL);
                 v->noauto = 1;
+                v->storage_class |= STCresult;
 #if DMDV2
                 if (!isVirtual())
                     v->storage_class |= STCconst;

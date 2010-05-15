@@ -3459,6 +3459,7 @@ Statement *ReturnStatement::semantic(Scope *sc)
             {   // Declare vresult
                 VarDeclaration *v = new VarDeclaration(loc, tret, Id::result, NULL);
                 v->noauto = 1;
+                v->storage_class |= STCresult;
                 v->semantic(scx);
                 if (!scx->insert(v))
                     assert(0);
