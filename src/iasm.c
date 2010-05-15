@@ -856,7 +856,7 @@ STATIC opflag_t asm_determine_operand_flags(OPND *popnd)
                 return popnd->base->ty;
 #if DEBUG
         if (debuga)
-            printf("popnd->base = %s\n, popnd->pregDisp1 = %ld\n", popnd->base ? popnd->base->regstr : "NONE", popnd->pregDisp1);
+            printf("popnd->base = %s\n, popnd->pregDisp1 = %p\n", popnd->base ? popnd->base->regstr : "NONE", popnd->pregDisp1);
 #endif
         ps = popnd->s;
         Declaration *ds = ps ? ps->isDeclaration() : NULL;
@@ -1809,7 +1809,7 @@ STATIC int asm_is_fpreg(char *szReg)
 STATIC OPND *asm_merge_opnds(OPND *o1, OPND *o2)
 {
 #ifdef DEBUG
-    char *psz;
+    const char *psz;
 #endif
 #ifdef DEBUG
     if (debuga)
@@ -2271,7 +2271,7 @@ STATIC void asm_make_modrm_byte(
 
 #ifdef DEBUG
         if (debuga)
-            printf("This is an mod = %d, popnd->s =%ld, popnd->disp = %ld\n",
+            printf("This is an mod = %d, popnd->s =%p, popnd->disp = %ld\n",
                mrmb.modregrm.mod, s, popnd->disp);
 #endif
             if (!s || (!mrmb.modregrm.mod && popnd->disp))

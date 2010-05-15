@@ -3146,7 +3146,7 @@ code *simpleops(code *c,regm_t scratch)
 }
 
 #if DEBUG
-static char *fpops[] = {"fstp","fld","fop"};
+static const char *fpops[] = {"fstp","fld","fop"};
 void Cinfo::print()
 {
     Cinfo *ci = this;
@@ -3157,7 +3157,7 @@ void Cinfo::print()
         return;
     }
 
-    printf("Cinfo %x:  c %x, pair %x, sz %d, isz %d, flags - ",
+    printf("Cinfo %p:  c %p, pair %x, sz %d, isz %d, flags - ",
            ci,c,pair,sz,isz);
     if (ci->flags & CIFLarraybounds)
         printf("arraybounds,");
@@ -3169,7 +3169,7 @@ void Cinfo::print()
         printf("push,");
     if (ci->flags & ~(CIFLarraybounds|CIFLnostage|CIFLpush|CIFLea))
         printf("bad flag,");
-    printf("\n\tr %x w %x a %x reg %x uops %x sibmodrm %x spadjust %d\n",
+    printf("\n\tr %lx w %lx a %lx reg %x uops %x sibmodrm %x spadjust %ld\n",
             r,w,a,reg,uops,sibmodrm,spadjust);
     if (ci->fp_op)
         printf("\tfp_op %s, fxch_pre %x, fxch_post %x\n",

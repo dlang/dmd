@@ -528,7 +528,7 @@ void cssave (elem *e , regm_t regm , unsigned opsflag );
 bool evalinregister (elem *e );
 regm_t getscratch();
 code *codelem (elem *e , regm_t *pretregs , bool constflag );
-char *regm_str(regm_t rm);
+const char *regm_str(regm_t rm);
 
 /* cod1.c */
 extern int clib_inited;

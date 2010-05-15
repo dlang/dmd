@@ -3640,7 +3640,7 @@ targ_size_t codout(code *c)
   symbol *s;
 
 #ifdef DEBUG
-  if (debugc) printf("codout(%p), Coffset = x%x\n",c,Coffset);
+  if (debugc) printf("codout(%p), Coffset = x%lx\n",c,Coffset);
 #endif
 
   pgen = bytes;

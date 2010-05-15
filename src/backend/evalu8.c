@@ -1195,7 +1195,7 @@ elem * evalu8(elem *e)
                     break;
                 default:
 #ifdef DEBUG
-                    dbg_printf("tym = x%x\n",tym);
+                    dbg_printf("tym = x%lx\n",tym);
                     elem_print(e);
 #endif
                     assert(0);

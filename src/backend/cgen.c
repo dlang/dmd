@@ -247,7 +247,7 @@ code *genmovreg(code *c,unsigned to,unsigned from)
 {
 #if DEBUG
         if (to > ES || from > ES)
-                printf("genmovreg(c = x%lx, to = %d, from = %d)\n",c,to,from);
+                printf("genmovreg(c = %p, to = %d, from = %d)\n",c,to,from);
 #endif
         assert(to <= ES && from <= ES);
         if (to != from)
