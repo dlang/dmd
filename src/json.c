@@ -71,8 +71,9 @@ void json_generate(Array *modules)
         arg = fn->toChars();
     }
     else if (arg[0] == '-' && arg[1] == 0)
-    {   // Write to stdout
-        fwrite(buf.data, 1, buf.offset, stdout);
+    {   // Write to stdout; assume it succeeds
+        int n = fwrite(buf.data, 1, buf.offset, stdout);
+        assert(n == buf.offset);        // keep gcc happy about return values
         return;
     }
 //    if (!FileName::absolute(arg))
