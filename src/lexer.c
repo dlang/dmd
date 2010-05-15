@@ -2478,7 +2478,10 @@ done:
 #ifdef IN_GCC
             real_t::parse((char *)stringbuffer.data, real_t::Float);
 #else
-            strtof((char *)stringbuffer.data, NULL);
+            {   // Only interested in errno return
+                float f = strtof((char *)stringbuffer.data, NULL);
+                // Assign to f to keep gcc warnings at bay
+            }
 #endif
             result = TOKfloat32v;
             p++;
@@ -2488,7 +2491,14 @@ done:
 #ifdef IN_GCC
             real_t::parse((char *)stringbuffer.data, real_t::Double);
 #else
-            strtod((char *)stringbuffer.data, NULL);
+            /* Should do our own strtod(), since dmc and linux gcc
+             * accept 2.22507e-308, while apple gcc will only take
+             * 2.22508e-308. Not sure who is right.
+             */
+            {   // Only interested in errno return
+                double d = strtod((char *)stringbuffer.data, NULL);
+                // Assign to d to keep gcc warnings at bay
+            }
 #endif
             result = TOKfloat64v;
             break;

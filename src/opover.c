@@ -179,9 +179,28 @@ AggregateDeclaration *isAggregate(Type *t)
 /*******************************************
  * Helper function to turn operator into template argument list
  */
-Objects *opToArg(enum TOK op)
+Objects *opToArg(Scope *sc, enum TOK op)
 {
+    /* Remove the = from op=
+     */
+    switch (op)
+    {
+        case TOKaddass: op = TOKadd; break;
+        case TOKminass: op = TOKmin; break;
+        case TOKmulass: op = TOKmul; break;
+        case TOKdivass: op = TOKdiv; break;
+        case TOKmodass: op = TOKmod; break;
+        case TOKandass: op = TOKand; break;
+        case TOKorass:  op = TOKor;  break;
+        case TOKxorass: op = TOKxor; break;
+        case TOKshlass: op = TOKshl; break;
+        case TOKshrass: op = TOKshr; break;
+        case TOKushrass: op = TOKushr; break;
+        case TOKcatass: op = TOKcat; break;
+        case TOKpowass: op = TOKpow; break;
+    }
     Expression *e = new StringExp(0, (char *)Token::toChars(op));
+    e = e->semantic(sc);
     Objects *targsi = new Objects();
     targsi->push(e);
     return targsi;
@@ -214,7 +233,7 @@ Expression *UnaExp::op_overload(Scope *sc)
             Dsymbol *fd = search_function(ad, Id::opIndexUnary);
             if (fd)
             {
-                Objects *targsi = opToArg(op);
+                Objects *targsi = opToArg(sc, op);
                 Expression *e = new DotTemplateInstanceExp(loc, ae->e1, fd->ident, targsi);
                 e = new CallExp(loc, e, ae->arguments);
                 e = e->semantic(sc);
@@ -257,7 +276,7 @@ Expression *UnaExp::op_overload(Scope *sc)
                     a->push(se->upr);
                 }
 
-                Objects *targsi = opToArg(op);
+                Objects *targsi = opToArg(sc, op);
                 Expression *e = new DotTemplateInstanceExp(loc, se->e1, fd->ident, targsi);
                 e = new CallExp(loc, e, a);
                 e = e->semantic(sc);
@@ -320,7 +339,7 @@ Expression *UnaExp::op_overload(Scope *sc)
         fd = search_function(ad, Id::opUnary);
         if (fd)
         {
-            Objects *targsi = opToArg(op);
+            Objects *targsi = opToArg(sc, op);
             Expression *e = new DotTemplateInstanceExp(loc, e1, fd->ident, targsi);
             e = new CallExp(loc, e);
             e = e->semantic(sc);
@@ -468,11 +487,7 @@ Expression *BinExp::op_overload(Scope *sc)
         {
             id = Id::opBinary;
             id_r = Id::opBinaryRight;
-
-            Expression *e = new StringExp(loc, (char *)Token::toChars(op));
-            e = e->semantic(sc);
-            targsi = new Objects();
-            targsi->push(e);
+            targsi = opToArg(sc, op);
         }
     }
 #endif
@@ -921,7 +936,7 @@ Expression *BinAssignExp::op_overload(Scope *sc)
                 for (int i = 0; i < ae->arguments->dim; i++)
                     a->push(ae->arguments->data[i]);
 
-                Objects *targsi = opToArg(op);
+                Objects *targsi = opToArg(sc, op);
                 Expression *e = new DotTemplateInstanceExp(loc, ae->e1, fd->ident, targsi);
                 e = new CallExp(loc, e, a);
                 e = e->semantic(sc);
@@ -965,7 +980,7 @@ Expression *BinAssignExp::op_overload(Scope *sc)
                     a->push(se->upr);
                 }
 
-                Objects *targsi = opToArg(op);
+                Objects *targsi = opToArg(sc, op);
                 Expression *e = new DotTemplateInstanceExp(loc, se->e1, fd->ident, targsi);
                 e = new CallExp(loc, e, a);
                 e = e->semantic(sc);
@@ -1019,11 +1034,7 @@ Expression *BinAssignExp::op_overload(Scope *sc)
         if (s)
         {
             id = Id::opOpAssign;
-
-            Expression *e = new StringExp(loc, (char *)Token::toChars(op));
-            e = e->semantic(sc);
-            targsi = new Objects();
-            targsi->push(e);
+            targsi = opToArg(sc, op);
         }
     }
 #endif

@@ -170,7 +170,10 @@ void Outbuffer::write64(long long v)
  */
 void Outbuffer::writeFloat(float v)
 {
-    write32(*(long *)&v);
+    if (pend - p < sizeof(float))
+        reserve(sizeof(float));
+    *(float *)p = v;
+    p += sizeof(float);
 }
 
 /**
@@ -178,7 +181,10 @@ void Outbuffer::writeFloat(float v)
  */
 void Outbuffer::writeDouble(double v)
 {
-    write64(*(long long *)&v);
+    if (pend - p < sizeof(double))
+        reserve(sizeof(double));
+    *(double *)p = v;
+    p += sizeof(double);
 }
 
 /**

@@ -1231,16 +1231,23 @@ elem *RealExp::toElem(IRState *irs)
     {
         case TYfloat:
         case TYifloat:
+            /* This assignment involves a conversion, which
+             * unfortunately also converts SNAN to QNAN.
+             */
             c.Vfloat = value;
             if (Port::isSignallingNan(value))
+                // Put SNAN back, but this causes an aliasing warning from gcc
                 ((unsigned int*)&c.Vfloat)[0] &= 0xFFBFFFFFL;
             break;
 
         case TYdouble:
         case TYidouble:
-            c.Vdouble = value;  // unfortunately, this converts SNAN to QNAN
+            /* This assignment involves a conversion, which
+             * unfortunately also converts SNAN to QNAN.
+             */
+            c.Vdouble = value;
             if (Port::isSignallingNan(value))
-                // Put SNAN back
+                // Put SNAN back, but this causes an aliasing warning from gcc
                 ((unsigned int*)&c.Vdouble)[1] &= 0xFFF7FFFFL;
             break;
 

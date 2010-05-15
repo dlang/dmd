@@ -624,6 +624,7 @@ elem * evalu8(elem *e)
 
   /*elem_print(e);*/
   /*dbg_printf("x%lx ",l1); WROP(op); dbg_printf("x%lx = ",l2);*/
+#if 0
   if (0 && e2)
   {
       dbg_printf("d1 = %Lg, d2 = %Lg, op = %d, OPne = %d, tym = x%lx\n",d1,d2,op,OPne,tym);
@@ -631,6 +632,7 @@ elem * evalu8(elem *e)
       dbg_printf("d1 = x%08lx%08lx\n",((long*)&d1)[1],((long*)&d1)[0]);
       dbg_printf("d2 = x%08lx%08lx\n",((long*)&d2)[1],((long*)&d2)[0]);
   }
+#endif
   i = 0;
   switch (op)
   {
