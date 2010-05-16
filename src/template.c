@@ -3041,7 +3041,18 @@ Object *TemplateAliasParameter::specialization()
 
 Object *TemplateAliasParameter::defaultArg(Loc loc, Scope *sc)
 {
-    Object *o = aliasParameterSemantic(loc, sc, defaultAlias);
+    Object *da = defaultAlias;
+    Type *ta = isType(defaultAlias);
+    if (ta)
+    {
+       if (ta->ty == Tinstance)
+       {
+           // If the default arg is a template, instantiate for each type
+           da = ta->syntaxCopy();
+       }
+    }
+
+    Object *o = aliasParameterSemantic(loc, sc, da);
     return o;
 }
 
