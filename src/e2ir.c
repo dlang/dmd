@@ -1976,6 +1976,18 @@ elem *BinExp::toElemBin(IRState *irs,int op)
 {
     //printf("toElemBin() '%s'\n", toChars());
 
+    Type *tb1 = e1->type->toBasetype();
+    Type *tb2 = e2->type->toBasetype();
+
+    if ((tb1->ty == Tarray || tb1->ty == Tsarray) &&
+        (tb2->ty == Tarray || tb2->ty == Tsarray) &&
+        op != OPeq
+       )
+    {
+        error("Array operation %s not implemented", toChars());
+        return el_long(type->totym(), 0);  // error recovery
+    }
+
     tym_t tym = type->totym();
 
     elem *el = e1->toElem(irs);
@@ -1990,19 +2002,8 @@ elem *BinExp::toElemBin(IRState *irs,int op)
  */
 
 elem *AddExp::toElem(IRState *irs)
-{   elem *e;
-    Type *tb1 = e1->type->toBasetype();
-    Type *tb2 = e2->type->toBasetype();
-
-    if ((tb1->ty == Tarray || tb1->ty == Tsarray) ||
-        (tb2->ty == Tarray || tb2->ty == Tsarray)
-       )
-    {
-        error("Array operation %s not implemented", toChars());
-        e = el_long(type->totym(), 0);  // error recovery
-    }
-    else
-        e = toElemBin(irs,OPadd);
+{
+    elem *e = toElemBin(irs,OPadd);
     return e;
 }
 
@@ -2010,19 +2011,8 @@ elem *AddExp::toElem(IRState *irs)
  */
 
 elem *MinExp::toElem(IRState *irs)
-{   elem *e;
-    Type *tb1 = e1->type->toBasetype();
-    Type *tb2 = e2->type->toBasetype();
-
-    if ((tb1->ty == Tarray || tb1->ty == Tsarray) ||
-        (tb2->ty == Tarray || tb2->ty == Tsarray)
-       )
-    {
-        error("Array operation %s not implemented", toChars());
-        e = el_long(type->totym(), 0);  // error recovery
-    }
-    else
-        e = toElemBin(irs,OPmin);
+{
+    elem *e = toElemBin(irs,OPmin);
     return e;
 }
 
@@ -2116,15 +2106,6 @@ elem *CatExp::toElem(IRState *irs)
 
 elem *MulExp::toElem(IRState *irs)
 {
-    Type *tb1 = e1->type->toBasetype();
-    Type *tb2 = e2->type->toBasetype();
-    if ((tb1->ty == Tarray || tb1->ty == Tsarray) ||
-        (tb2->ty == Tarray || tb2->ty == Tsarray)
-       )
-    {
-        error("Array operation %s not implemented", toChars());
-    }
-
     return toElemBin(irs,OPmul);
 }
 
@@ -2133,14 +2114,6 @@ elem *MulExp::toElem(IRState *irs)
 
 elem *DivExp::toElem(IRState *irs)
 {
-    Type *tb1 = e1->type->toBasetype();
-    Type *tb2 = e2->type->toBasetype();
-    if ((tb1->ty == Tarray || tb1->ty == Tsarray) ||
-        (tb2->ty == Tarray || tb2->ty == Tsarray)
-       )
-    {
-        error("Array operation %s not implemented", toChars());
-    }
     return toElemBin(irs,OPdiv);
 }
 
@@ -2930,18 +2903,7 @@ elem *AssignExp::toElem(IRState *irs)
 elem *AddAssignExp::toElem(IRState *irs)
 {
     //printf("AddAssignExp::toElem() %s\n", toChars());
-    elem *e;
-    Type *tb1 = e1->type->toBasetype();
-    Type *tb2 = e2->type->toBasetype();
-
-    if ((tb1->ty == Tarray || tb1->ty == Tsarray) &&
-        (tb2->ty == Tarray || tb2->ty == Tsarray)
-       )
-    {
-        error("Array operations not implemented");
-    }
-    else
-        e = toElemBin(irs,OPaddass);
+    elem *e = toElemBin(irs,OPaddass);
     return e;
 }
 

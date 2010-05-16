@@ -1378,6 +1378,8 @@ void FuncDeclaration::semantic3(Scope *sc)
                     offset = p->type->size();
                 offset = (offset + 3) & ~3;     // assume stack aligns on 4
                 Expression *e = new SymOffExp(0, p, offset);
+                e->type = Type::tvoidptr;
+                //e = e->semantic(sc);
                 e = new AssignExp(0, e1, e);
                 e->type = t;
                 a->push(new ExpStatement(0, e));
