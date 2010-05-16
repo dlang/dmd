@@ -828,7 +828,7 @@ Expression *StringExp::castTo(Scope *sc, Type *t)
         case X(Tchar, Twchar):
             for (size_t u = 0; u < len;)
             {   unsigned c;
-                char *p = utf_decodeChar((unsigned char *)se->string, len, &u, &c);
+                const char *p = utf_decodeChar((unsigned char *)se->string, len, &u, &c);
                 if (p)
                     error("%s", p);
                 else
@@ -841,7 +841,7 @@ Expression *StringExp::castTo(Scope *sc, Type *t)
         case X(Tchar, Tdchar):
             for (size_t u = 0; u < len;)
             {   unsigned c;
-                char *p = utf_decodeChar((unsigned char *)se->string, len, &u, &c);
+                const char *p = utf_decodeChar((unsigned char *)se->string, len, &u, &c);
                 if (p)
                     error("%s", p);
                 buffer.write4(c);
@@ -853,7 +853,7 @@ Expression *StringExp::castTo(Scope *sc, Type *t)
         case X(Twchar,Tchar):
             for (size_t u = 0; u < len;)
             {   unsigned c;
-                char *p = utf_decodeWchar((unsigned short *)se->string, len, &u, &c);
+                const char *p = utf_decodeWchar((unsigned short *)se->string, len, &u, &c);
                 if (p)
                     error("%s", p);
                 else
@@ -866,7 +866,7 @@ Expression *StringExp::castTo(Scope *sc, Type *t)
         case X(Twchar,Tdchar):
             for (size_t u = 0; u < len;)
             {   unsigned c;
-                char *p = utf_decodeWchar((unsigned short *)se->string, len, &u, &c);
+                const char *p = utf_decodeWchar((unsigned short *)se->string, len, &u, &c);
                 if (p)
                     error("%s", p);
                 buffer.write4(c);

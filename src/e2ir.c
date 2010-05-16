@@ -904,16 +904,23 @@ elem *RealExp::toElem(IRState *irs)
     {
         case TYfloat:
         case TYifloat:
+            /* This assignment involves a conversion, which
+             * unfortunately also converts SNAN to QNAN.
+             */
             c.Vfloat = value;
             if (Port::isSignallingNan(value))
+                // Put SNAN back, but this causes an aliasing warning from gcc
                 ((unsigned int*)&c.Vfloat)[0] &= 0xFFBFFFFFL;
             break;
 
         case TYdouble:
         case TYidouble:
-            c.Vdouble = value;  // unfortunately, this converts SNAN to QNAN
+            /* This assignment involves a conversion, which
+             * unfortunately also converts SNAN to QNAN.
+             */
+            c.Vdouble = value;
             if (Port::isSignallingNan(value))
-                // Put SNAN back
+                // Put SNAN back, but this causes an aliasing warning from gcc
                 ((unsigned int*)&c.Vdouble)[1] &= 0xFFF7FFFFL;
             break;
 
@@ -1666,11 +1673,24 @@ elem *BinExp::toElemBin(IRState *irs,int op)
 {
     //printf("toElemBin() '%s'\n", toChars());
 
+    Type *tb1 = e1->type->toBasetype();
+    Type *tb2 = e2->type->toBasetype();
+
+    if ((tb1->ty == Tarray || tb1->ty == Tsarray) &&
+        (tb2->ty == Tarray || tb2->ty == Tsarray) &&
+        op != OPeq
+       )
+    {
+        error("Array operation %s not implemented", toChars());
+        return el_long(type->totym(), 0);  // error recovery
+    }
+
     tym_t tym = type->totym();
 
     elem *el = e1->toElem(irs);
     elem *er = e2->toElem(irs);
     elem *e = el_bin(op,tym,el,er);
+
     el_setLoc(e,loc);
     return e;
 }
@@ -1679,19 +1699,8 @@ elem *BinExp::toElemBin(IRState *irs,int op)
  */
 
 elem *AddExp::toElem(IRState *irs)
-{   elem *e;
-    Type *tb1 = e1->type->toBasetype();
-    Type *tb2 = e2->type->toBasetype();
-
-    if ((tb1->ty == Tarray || tb1->ty == Tsarray) ||
-        (tb2->ty == Tarray || tb2->ty == Tsarray)
-       )
-    {
-        error("Array operation %s not implemented", toChars());
-        e = el_long(type->totym(), 0);  // error recovery
-    }
-    else
-        e = toElemBin(irs,OPadd);
+{
+    elem *e = toElemBin(irs,OPadd);
     return e;
 }
 
@@ -1699,19 +1708,8 @@ elem *AddExp::toElem(IRState *irs)
  */
 
 elem *MinExp::toElem(IRState *irs)
-{   elem *e;
-    Type *tb1 = e1->type->toBasetype();
-    Type *tb2 = e2->type->toBasetype();
-
-    if ((tb1->ty == Tarray || tb1->ty == Tsarray) ||
-        (tb2->ty == Tarray || tb2->ty == Tsarray)
-       )
-    {
-        error("Array operation %s not implemented", toChars());
-        e = el_long(type->totym(), 0);  // error recovery
-    }
-    else
-        e = toElemBin(irs,OPmin);
+{
+    elem *e = toElemBin(irs,OPmin);
     return e;
 }
 
@@ -1996,12 +1994,9 @@ elem *EqualExp::toElem(IRState *irs)
     //printf("EqualExp::toElem()\n");
     if (t1->ty == Tstruct)
     {   // Do bit compare of struct's
-        elem *es1;
-        elem *es2;
-        elem *ecount;
 
-        es1 = e1->toElem(irs);
-        es2 = e2->toElem(irs);
+        elem *es1 = e1->toElem(irs);
+        elem *es2 = e2->toElem(irs);
 #if 1
         es1 = addressElem(es1, t1);
         es2 = addressElem(es2, t2);
@@ -2010,7 +2005,7 @@ elem *EqualExp::toElem(IRState *irs)
         es2 = el_una(OPaddr, TYnptr, es2);
 #endif
         e = el_param(es1, es2);
-        ecount = el_long(TYint, t1->size());
+        elem *ecount = el_long(TYint, t1->size());
         e = el_bin(OPmemcmp, TYint, e, ecount);
         e = el_bin(eop, TYint, e, el_long(TYint, 0));
         el_setLoc(e,loc);
@@ -2018,35 +2013,27 @@ elem *EqualExp::toElem(IRState *irs)
 #if 0
     else if (t1->ty == Tclass && t2->ty == Tclass)
     {
-        elem *ec1;
-        elem *ec2;
-
-        ec1 = e1->toElem(irs);
-        ec2 = e2->toElem(irs);
+        elem *ec1 = e1->toElem(irs);
+        elem *ec2 = e2->toElem(irs);
         e = el_bin(OPcall,TYint,el_var(rtlsym[RTLSYM_OBJ_EQ]),el_param(ec1, ec2));
     }
 #endif
     else if ((t1->ty == Tarray || t1->ty == Tsarray) &&
              (t2->ty == Tarray || t2->ty == Tsarray))
     {
-        elem *ea1;
-        elem *ea2;
-        elem *ep;
         Type *telement = t1->nextOf()->toBasetype();
-        int rtlfunc;
-
-        ea1 = e1->toElem(irs);
+        elem *ea1 = e1->toElem(irs);
         ea1 = array_toDarray(t1, ea1);
-        ea2 = e2->toElem(irs);
+        elem *ea2 = e2->toElem(irs);
         ea2 = array_toDarray(t2, ea2);
 
 #if DMDV2
-        ep = el_params(telement->arrayOf()->getInternalTypeInfo(NULL)->toElem(irs),
+        elem *ep = el_params(telement->arrayOf()->getInternalTypeInfo(NULL)->toElem(irs),
                 ea2, ea1, NULL);
-        rtlfunc = RTLSYM_ARRAYEQ2;
+        int rtlfunc = RTLSYM_ARRAYEQ2;
 #else
-        ep = el_params(telement->getInternalTypeInfo(NULL)->toElem(irs), ea2, ea1, NULL);
-        rtlfunc = RTLSYM_ARRAYEQ;
+        elem *ep = el_params(telement->getInternalTypeInfo(NULL)->toElem(irs), ea2, ea1, NULL);
+        int rtlfunc = RTLSYM_ARRAYEQ;
 #endif
         e = el_bin(OPcall, TYint, el_var(rtlsym[rtlfunc]), ep);
         if (op == TOKnotequal)
@@ -2203,10 +2190,9 @@ elem *AssignExp::toElem(IRState *irs)
 {   elem *e;
     IndexExp *ae;
     int r;
-    Type *t1b;
 
     //printf("AssignExp::toElem('%s')\n", toChars());
-    t1b = e1->type->toBasetype();
+    Type *t1b = e1->type->toBasetype();
 
     // Look for array.length = n
     if (e1->op == TOKarraylength)
@@ -2215,16 +2201,13 @@ elem *AssignExp::toElem(IRState *irs)
         //      _d_arraysetlength(e2, sizeelem, &ale->e1);
 
         ArrayLengthExp *ale = (ArrayLengthExp *)e1;
-        elem *p1;
         elem *p2;
-        elem *p3;
         elem *ep;
-        Type *t1;
 
-        p1 = e2->toElem(irs);
-        p3 = ale->e1->toElem(irs);
+        elem *p1 = e2->toElem(irs);
+        elem *p3 = ale->e1->toElem(irs);
         p3 = addressElem(p3, NULL);
-        t1 = ale->e1->type->toBasetype();
+        Type *t1 = ale->e1->type->toBasetype();
 
 #if 1
         // call _d_arraysetlengthT(ti, e2, &ale->e1);
@@ -2439,16 +2422,13 @@ elem *AssignExp::toElem(IRState *irs)
             /* It's array1[]=array2[]
              * which is a memcpy
              */
-            elem *eto;
-            elem *efrom;
-            elem *esize;
             elem *ep;
 
-            eto = e1->toElem(irs);
-            efrom = e2->toElem(irs);
+            elem *eto = e1->toElem(irs);
+            elem *efrom = e2->toElem(irs);
 
             unsigned size = t1->nextOf()->size();
-            esize = el_long(TYint, size);
+            elem *esize = el_long(TYint, size);
 
             if (e2->type->ty == Tpointer || !global.params.useArrayBounds)
             {   elem *epto;
@@ -2636,18 +2616,7 @@ elem *AssignExp::toElem(IRState *irs)
 elem *AddAssignExp::toElem(IRState *irs)
 {
     //printf("AddAssignExp::toElem() %s\n", toChars());
-    elem *e;
-    Type *tb1 = e1->type->toBasetype();
-    Type *tb2 = e2->type->toBasetype();
-
-    if ((tb1->ty == Tarray || tb1->ty == Tsarray) &&
-        (tb2->ty == Tarray || tb2->ty == Tsarray)
-       )
-    {
-        error("Array operations not implemented");
-    }
-    else
-        e = toElemBin(irs,OPaddass);
+    elem *e = toElemBin(irs,OPaddass);
     return e;
 }
 
@@ -2750,10 +2719,8 @@ elem *MulAssignExp::toElem(IRState *irs)
  */
 
 elem *ShlAssignExp::toElem(IRState *irs)
-{   elem *e;
-
-    e = toElemBin(irs,OPshlass);
-    return e;
+{
+    return toElemBin(irs,OPshlass);
 }
 
 

@@ -354,7 +354,7 @@ unsigned dt_size(dt_t *dtstart)
                 break;
             default:
 #ifdef DEBUG
-                dbg_printf("dt = x%p, dt = %d\n",dt,dt->dt);
+                dbg_printf("dt = %p, dt = %d\n",dt,dt->dt);
 #endif
                 assert(0);
         }

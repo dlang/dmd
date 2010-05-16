@@ -2510,7 +2510,7 @@ STATIC code * loadcse(elem *e,unsigned reg,regm_t regm)
         }
   }
 #if DEBUG
-  printf("loadcse(e = x%p, reg = %d, regm = x%x)\n",e,reg,regm);
+  printf("loadcse(e = %p, reg = %d, regm = x%x)\n",e,reg,regm);
 elem_print(e);
 #endif
   assert(0);
@@ -2542,7 +2542,7 @@ code *codelem(elem *e,regm_t *pretregs,bool constflag)
 
 #ifdef DEBUG
   if (debugw)
-  {     printf("+codelem(e=x%p,*pretregs=x%x) ",e,*pretregs);
+  {     printf("+codelem(e=%p,*pretregs=x%x) ",e,*pretregs);
         WROP(e->Eoper);
         printf("msavereg=x%x regcon.cse.mval=x%x regcon.cse.mops=x%x\n",
                 msavereg,regcon.cse.mval,regcon.cse.mops);
@@ -2554,7 +2554,7 @@ code *codelem(elem *e,regm_t *pretregs,bool constflag)
   if ((regcon.cse.mops & regcon.cse.mval) != regcon.cse.mops)
   {
 #ifdef DEBUG
-        printf("+codelem(e=x%p,*pretregs=x%x) ",e,*pretregs);
+        printf("+codelem(e=%p,*pretregs=x%x) ",e,*pretregs);
         elem_print(e);
         printf("msavereg=x%x regcon.cse.mval=x%x regcon.cse.mops=x%x\n",
                 msavereg,regcon.cse.mval,regcon.cse.mops);
@@ -2648,7 +2648,7 @@ code *codelem(elem *e,regm_t *pretregs,bool constflag)
 L1:
 #ifdef DEBUG
   if (debugw)
-  {     printf("-codelem(e=x%p,*pretregs=x%x) ",e,*pretregs);
+  {     printf("-codelem(e=%p,*pretregs=x%x) ",e,*pretregs);
         WROP(op);
         printf("msavereg=x%x regcon.cse.mval=x%x regcon.cse.mops=x%x\n",
                 msavereg,regcon.cse.mval,regcon.cse.mops);

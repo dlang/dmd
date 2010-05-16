@@ -1,5 +1,5 @@
 // utf.c
-// Copyright (c) 2003 by Digital Mars
+// Copyright (c) 2003-2010 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // http://www.digitalmars.com
@@ -28,11 +28,13 @@ int utf_isValidDchar(dchar_t c)
  *      !=NULL  error message string
  */
 
-char *utf_decodeChar(unsigned char *s, size_t len, size_t *pidx, dchar_t *presult)
+const char *utf_decodeChar(unsigned char *s, size_t len, size_t *pidx, dchar_t *presult)
 {
     dchar_t V;
     size_t i = *pidx;
     unsigned char u = s[i];
+
+    //printf("utf_decodeChar(s = %02x, %02x, %02x len = %d)\n", u, s[1], s[2], len);
 
     assert(i >= 0 && i < len);
 
@@ -117,10 +119,10 @@ char *utf_decodeChar(unsigned char *s, size_t len, size_t *pidx, dchar_t *presul
  *      !=NULL  error message string
  */
 
-char *utf_validateString(unsigned char *s, size_t len)
+const char *utf_validateString(unsigned char *s, size_t len)
 {
     size_t idx;
-    char *err = NULL;
+    const char *err = NULL;
     dchar_t dc;
 
     for (idx = 0; idx < len; )
@@ -141,9 +143,9 @@ char *utf_validateString(unsigned char *s, size_t len)
  */
 
 
-char *utf_decodeWchar(unsigned short *s, size_t len, size_t *pidx, dchar_t *presult)
+const char *utf_decodeWchar(unsigned short *s, size_t len, size_t *pidx, dchar_t *presult)
 {
-    char *msg;
+    const char *msg;
     size_t i = *pidx;
     unsigned u = s[i];
 

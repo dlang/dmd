@@ -143,7 +143,7 @@ void outdata(symbol *s)
         obj_export(s,0);        // export data definition
     for (dt = dtstart; dt; dt = dt->DTnext)
     {
-        //printf("dt = x%p, dt = %d\n",dt,dt->dt);
+        //printf("dt = %p, dt = %d\n",dt,dt->dt);
         switch (dt->dt)
         {   case DT_abytes:
             {   // Put out the data for the string, and
@@ -291,7 +291,7 @@ void outdata(symbol *s)
                 break;
             default:
 #ifdef DEBUG
-                dbg_printf("dt = x%p, dt = %d\n",dt,dt->dt);
+                dbg_printf("dt = %p, dt = %d\n",dt,dt->dt);
 #endif
                 assert(0);
         }
@@ -453,7 +453,7 @@ void outdata(symbol *s)
                 break;
             default:
 #ifdef DEBUG
-                dbg_printf("dt = x%p, dt = %d\n",dt,dt->dt);
+                dbg_printf("dt = %p, dt = %d\n",dt,dt->dt);
 #endif
                 assert(0);
         }

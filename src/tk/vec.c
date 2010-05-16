@@ -233,7 +233,7 @@ void vec_setbit(unsigned b,vec_t v)
 {
 #ifdef DEBUG
   if (!(v && b < vec_numbits(v)))
-        printf("vec_setbit(v = x%p,b = %d): numbits = %d dim = %d\n",
+        printf("vec_setbit(v = %p,b = %d): numbits = %d dim = %d\n",
             v,b,vec_numbits(v),vec_dim(v));
 #endif
   assert(v && b < vec_numbits(v));
@@ -647,7 +647,7 @@ void vec_print(vec_t v)
 { register unsigned i;
 
 #ifdef DEBUG
-  printf(" Vec x%p, numbits %d dim %d",v,vec_numbits(v),vec_dim(v));
+  printf(" Vec %p, numbits %d dim %d",v,vec_numbits(v),vec_dim(v));
   if (v)
   {     fputc('\t',stdout);
         for (i = 0; i < vec_numbits(v); i++)

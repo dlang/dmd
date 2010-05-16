@@ -538,7 +538,7 @@ STATIC elem * chkprop(elem *n,list_t rdlist)
                 WReqn(n);
                 dbg_printf(" replaced by ");
                 WReqn(foundelem);
-                dbg_printf("), x%p to x%p\n",foundelem,n);
+                dbg_printf("), %p to %p\n",foundelem,n);
         }
 #endif
         changes++;
