@@ -3026,15 +3026,23 @@ Statement *CaseRangeStatement::semantic(Scope *sc)
     first = first->semantic(sc);
     first = first->implicitCastTo(sc, sw->condition->type);
     first = first->optimize(WANTvalue | WANTinterpret);
-    dinteger_t fval = first->toInteger();
+    uinteger_t fval = first->toInteger();
 
     last = last->semantic(sc);
     last = last->implicitCastTo(sc, sw->condition->type);
     last = last->optimize(WANTvalue | WANTinterpret);
-    dinteger_t lval = last->toInteger();
+    uinteger_t lval = last->toInteger();
+
+    if ( (first->type->isunsigned()  &&  fval > lval) ||
+        (!first->type->isunsigned()  &&  (sinteger_t)fval > (sinteger_t)lval))
+    {
+        error("first case %s is greater than last case %s",
+            first->toChars(), last->toChars());
+        lval = fval;
+    }
 
     if (lval - fval > 256)
-    {   error("more than 256 cases in case range");
+    {   error("had %llu cases which is more than 256 cases in case range", lval - fval);
         lval = fval + 256;
     }
 
@@ -3049,10 +3057,10 @@ Statement *CaseRangeStatement::semantic(Scope *sc)
      */
 
     Statements *statements = new Statements();
-    for (dinteger_t i = fval; i <= lval; i++)
+    for (uinteger_t i = fval; i != lval + 1; i++)
     {
         Statement *s = statement;
-        if (i != lval)
+        if (i != lval)                          // if not last case
             s = new ExpStatement(loc, NULL);
         Expression *e = new IntegerExp(loc, i, first->type);
         Statement *cs = new CaseStatement(loc, e, s);
