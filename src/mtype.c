@@ -259,7 +259,7 @@ void Type::init()
         t = t->merge();
         basic[basetab[i]] = t;
     }
-    basic[Terror] = basic[Tint32];
+    basic[Terror] = new TypeError();
 
     tvoidptr = tvoid->pointerTo();
     tstring = tchar->invariantOf()->arrayOf();
@@ -2033,6 +2033,23 @@ uinteger_t Type::sizemask()
     }
     return m;
 }
+
+/* ============================= TypeError =========================== */
+
+TypeError::TypeError()
+        : Type(Terror)
+{
+}
+
+void TypeError::toCBuffer(OutBuffer *buf, Identifier *ident, HdrGenState *hgs)
+{
+    buf->writestring("_error_");
+}
+
+Expression *TypeError::getProperty(Loc loc, Identifier *ident) { return new ErrorExp(); }
+Expression *TypeError::dotExp(Scope *sc, Expression *e, Identifier *ident) { return new ErrorExp(); }
+Expression *TypeError::defaultInit(Loc loc) { return new ErrorExp(); }
+Expression *TypeError::defaultInitLiteral(Loc loc) { return new ErrorExp(); }
 
 /* ============================= TypeNext =========================== */
 

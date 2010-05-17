@@ -325,6 +325,18 @@ struct Type : Object
     virtual TypeBasic *isTypeBasic();
 };
 
+struct TypeError : Type
+{
+    TypeError();
+
+    void toCBuffer(OutBuffer *buf, Identifier *ident, HdrGenState *hgs);
+
+    Expression *getProperty(Loc loc, Identifier *ident);
+    Expression *dotExp(Scope *sc, Expression *e, Identifier *ident);
+    Expression *defaultInit(Loc loc);
+    Expression *defaultInitLiteral(Loc loc);
+};
+
 struct TypeNext : Type
 {
     Type *next;
