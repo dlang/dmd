@@ -113,8 +113,10 @@ struct Type : Object
         /* pick this order of numbers so switch statements work better
          */
         #define MODconst     1  // type is const
-        #define MODimmutable 4  // type is invariant
+        #define MODimmutable 4  // type is immutable
         #define MODshared    2  // type is shared
+        #define MODwild      8  // type is wild
+        #define MODmutable   0x10       // type is mutable (only used in wildcard matching)
     char *deco;
     Type *pto;          // merged pointer to this type
     Type *rto;          // reference to this type
@@ -259,6 +261,42 @@ struct Type : Object
     // For eliminating dynamic_cast
     virtual TypeBasic *isTypeBasic();
 };
+
+struct TypeError : Type
+{
+    TypeError();
+
+    void toCBuffer(OutBuffer *buf, Identifier *ident, HdrGenState *hgs);
+
+    Expression *getProperty(Loc loc, Identifier *ident);
+    Expression *dotExp(Scope *sc, Expression *e, Identifier *ident);
+    Expression *defaultInit(Loc loc);
+    Expression *defaultInitLiteral(Loc loc);
+};
+
+#if DMDV2
+struct TypeNext : Type
+{
+    Type *next;
+
+    TypeNext(TY ty, Type *next);
+    void toDecoBuffer(OutBuffer *buf, int flag);
+    void checkDeprecated(Loc loc, Scope *sc);
+    Type *reliesOnTident();
+    int hasWild();
+    unsigned wildMatch(Type *targ);
+    Type *nextOf();
+    Type *makeConst();
+    Type *makeInvariant();
+    Type *makeShared();
+    Type *makeSharedConst();
+    Type *makeWild();
+    Type *makeSharedWild();
+    Type *makeMutable();
+    MATCH constConv(Type *to);
+    void transitive();
+};
+#endif
 
 struct TypeBasic : Type
 {

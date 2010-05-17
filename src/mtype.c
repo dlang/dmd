@@ -201,6 +201,7 @@ void Type::init()
     mangleChar[Twchar] = 'u';
     mangleChar[Tdchar] = 'w';
 
+    // '@' shouldn't appear anywhere in the deco'd names
     mangleChar[Tbit] = '@';
     mangleChar[Tinstance] = '@';
     mangleChar[Terror] = '@';
@@ -226,7 +227,7 @@ void Type::init()
 
     for (i = 0; i < sizeof(basetab) / sizeof(basetab[0]); i++)
         basic[basetab[i]] = new TypeBasic(basetab[i]);
-    basic[Terror] = basic[Tint32];
+    basic[Terror] = new TypeError();
 
     tvoidptr = tvoid->pointerTo();
 
@@ -830,6 +831,23 @@ int Type::hasPointers()
 {
     return FALSE;
 }
+
+/* ============================= TypeError =========================== */
+
+TypeError::TypeError()
+        : Type(Terror, NULL)
+{
+}
+
+void TypeError::toCBuffer(OutBuffer *buf, Identifier *ident, HdrGenState *hgs)
+{
+    buf->writestring("_error_");
+}
+
+Expression *TypeError::getProperty(Loc loc, Identifier *ident) { return new ErrorExp(); }
+Expression *TypeError::dotExp(Scope *sc, Expression *e, Identifier *ident) { return new ErrorExp(); }
+Expression *TypeError::defaultInit(Loc loc) { return new ErrorExp(); }
+Expression *TypeError::defaultInitLiteral(Loc loc) { return new ErrorExp(); }
 
 /* ============================= TypeBasic =========================== */
 
@@ -1488,6 +1506,13 @@ MATCH TypeBasic::implicitConvTo(Type *to)
     if (this == to)
         return MATCHexact;
 
+#if DMDV2
+    if (ty == to->ty)
+    {
+        return (mod == to->mod) ? MATCHexact : MATCHconst;
+    }
+#endif
+
     if (ty == Tvoid || to->ty == Tvoid)
         return MATCHnomatch;
     if (to->ty == Tbool)
@@ -1503,16 +1528,18 @@ MATCH TypeBasic::implicitConvTo(Type *to)
             return MATCHnomatch;
 
 #if DMDV2
-        // If converting to integral
-        if (0 && global.params.Dversion > 1 && tob->flags & TFLAGSintegral)
+        // If converting from integral to integral
+        if (1 && tob->flags & TFLAGSintegral)
         {   d_uns64 sz = size(0);
             d_uns64 tosz = tob->size(0);
 
-            /* Can't convert to smaller size or, if same size, change sign
+            /* Can't convert to smaller size
              */
             if (sz > tosz)
                 return MATCHnomatch;
 
+            /* Can't change sign if same size
+             */
             /*if (sz == tosz && (flags ^ tob->flags) & TFLAGSunsigned)
                 return MATCHnomatch;*/
         }
