@@ -1434,6 +1434,10 @@ Expression *TypeBasic::defaultInit(Loc loc)
         case Tcomplex64:
         case Tcomplex80:
             return getProperty(loc, Id::nan);
+
+        case Tvoid:
+            error(loc, "void does not have a default initializer");
+            return new ErrorExp();
     }
     return new IntegerExp(loc, value, this);
 }

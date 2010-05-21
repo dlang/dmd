@@ -1380,7 +1380,8 @@ IntegerExp::IntegerExp(Loc loc, dinteger_t value, Type *type)
     if (type && !type->isscalar())
     {
         //printf("%s, loc = %d\n", toChars(), loc.linnum);
-        error("integral constant must be scalar type, not %s", type->toChars());
+        if (type->ty != Terror)
+            error("integral constant must be scalar type, not %s", type->toChars());
         type = Type::terror;
     }
     this->type = type;
