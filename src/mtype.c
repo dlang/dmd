@@ -2901,6 +2901,7 @@ Expression *TypeBasic::defaultInit(Loc loc)
 
         case Tvoid:
             error(loc, "void does not have a default initializer");
+            return new ErrorExp();
     }
     return new IntegerExp(loc, value, this);
 }
