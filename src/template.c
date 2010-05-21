@@ -76,6 +76,36 @@ Tuple *isTuple(Object *o)
     return (Tuple *)o;
 }
 
+/**************************************
+ * Is this Object an error?
+ */
+int isError(Object *o)
+{
+    Type *t = isType(o);
+    if (t)
+        return (t->ty == Terror);
+    Expression *e = isExpression(o);
+    if (e)
+        return (e->op == TOKerror);
+    Tuple *v = isTuple(o);
+    if (v)
+        return arrayObjectIsError(&v->objects);
+    return 0;
+}
+
+/**************************************
+ * Are any of the Objects an error?
+ */
+int arrayObjectIsError(Objects *args)
+{
+    for (size_t i = 0; i < args->dim; i++)
+    {
+        Object *o = (Object *)args->data[i];
+        if (isError(o))
+            return 1;
+    }
+    return 0;
+}
 
 /***********************
  * Try to get arg as a type.
@@ -3596,6 +3626,11 @@ void TemplateInstance::semantic(Scope *sc, Expressions *fargs)
          * (if we havetempdecl, then tiargs is already evaluated)
          */
         semanticTiargs(sc);
+        if (arrayObjectIsError(tiargs))
+        {   inst = this;
+            //printf("error return %p, %d\n", tempdecl, global.errors);
+            return;             // error recovery
+        }
 
         tempdecl = findTemplateDeclaration(sc);
         if (tempdecl)
@@ -4033,7 +4068,7 @@ void TemplateInstance::semanticTiargs(Loc loc, Scope *sc, Objects *tiargs, int f
         {
             if (!ea)
             {   assert(global.errors);
-                ea = new IntegerExp(0);
+                ea = new ErrorExp();
             }
             assert(ea);
             ea = ea->semantic(sc);

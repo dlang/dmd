@@ -1558,6 +1558,13 @@ unsigned dwarf_typidx(type *t)
                 DW_AT_type,             DW_FORM_ref4,
                 0,                      0,
             };
+            static unsigned char abbrevTypeArrayVoid[] =
+            {
+                DW_TAG_array_type,
+                1,                      // child (the subrange type)
+                DW_AT_sibling,          DW_FORM_ref4,
+                0,                      0,
+            };
             static unsigned char abbrevTypeSubrange[] =
             {
                 DW_TAG_subrange_type,
@@ -1573,7 +1580,6 @@ unsigned dwarf_typidx(type *t)
                 DW_AT_type,             DW_FORM_ref4,
                 0,                      0,
             };
-            unsigned code1 = dwarf_abbrev_code(abbrevTypeArray, sizeof(abbrevTypeArray));
             unsigned code2 = (t->Tflags & TFsizeunknown)
                 ? dwarf_abbrev_code(abbrevTypeSubrange2, sizeof(abbrevTypeSubrange2))
                 : dwarf_abbrev_code(abbrevTypeSubrange, sizeof(abbrevTypeSubrange));
@@ -1581,12 +1587,15 @@ unsigned dwarf_typidx(type *t)
             unsigned idxsibling = 0;
             unsigned siblingoffset;
             nextidx = dwarf_typidx(t->Tnext);
+            unsigned code1 = nextidx ? dwarf_abbrev_code(abbrevTypeArray, sizeof(abbrevTypeArray))
+                                     : dwarf_abbrev_code(abbrevTypeArrayVoid, sizeof(abbrevTypeArrayVoid));
             idx = infobuf->size();
 
             infobuf->writeuLEB128(code1);       // DW_TAG_array_type
             siblingoffset = infobuf->size();
             infobuf->write32(idxsibling);       // DW_AT_sibling
-            infobuf->write32(nextidx);          // DW_AT_type
+            if (nextidx)
+                infobuf->write32(nextidx);      // DW_AT_type
 
             infobuf->writeuLEB128(code2);       // DW_TAG_subrange_type
             infobuf->write32(idxbase);          // DW_AT_type
