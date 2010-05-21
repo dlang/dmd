@@ -349,6 +349,8 @@ Expression *isExpression(Object *o);
 Dsymbol *isDsymbol(Object *o);
 Type *isType(Object *o);
 Tuple *isTuple(Object *o);
+int arrayObjectIsError(Objects *args);
+int isError(Object *o);
 Type *getType(Object *o);
 Dsymbol *getDsymbol(Object *o);
 

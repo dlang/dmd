@@ -1,5 +1,5 @@
 
-// Copyright (c) 1999-2009 by Digital Mars
+// Copyright (c) 1999-2010 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // http://www.digitalmars.com
@@ -84,22 +84,25 @@ printf("%p %p type: %s to: %s\n", type->deco, t->deco, type->deco, t->deco);
 //printf("%p %p %p\n", type->nextOf()->arrayOf(), type, t);
 fflush(stdout);
 #endif
-    if (!t->deco)
-    {   /* Can happen with:
-         *    enum E { One }
-         *    class A
-         *    { static void fork(EDG dg) { dg(E.One); }
-         *      alias void delegate(E) EDG;
-         *    }
-         * Should eventually make it work.
-         */
-        error("forward reference to type %s", t->toChars());
-    }
-    else if (t->reliesOnTident())
-        error("forward reference to type %s", t->reliesOnTident()->toChars());
+    if (t->ty != Terror)
+    {
+        if (!t->deco)
+        {   /* Can happen with:
+             *    enum E { One }
+             *    class A
+             *    { static void fork(EDG dg) { dg(E.One); }
+             *      alias void delegate(E) EDG;
+             *    }
+             * Should eventually make it work.
+             */
+            error("forward reference to type %s", t->toChars());
+        }
+        else if (t->reliesOnTident())
+            error("forward reference to type %s", t->reliesOnTident()->toChars());
 
-    error("cannot implicitly convert expression (%s) of type %s to %s",
-        toChars(), type->toChars(), t->toChars());
+        error("cannot implicitly convert expression (%s) of type %s to %s",
+            toChars(), type->toChars(), t->toChars());
+    }
     return new ErrorExp();
 }
 
@@ -1545,6 +1548,7 @@ Expression *BinExp::typeCombine(Scope *sc)
         type = Type::terror;
         e1 = new ErrorExp();
         e2 = new ErrorExp();
+        return new ErrorExp();
     }
 Lret:
     if (!type)

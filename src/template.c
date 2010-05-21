@@ -75,6 +75,36 @@ Tuple *isTuple(Object *o)
     return (Tuple *)o;
 }
 
+/**************************************
+ * Is this Object an error?
+ */
+int isError(Object *o)
+{
+    Type *t = isType(o);
+    if (t)
+        return (t->ty == Terror);
+    Expression *e = isExpression(o);
+    if (e)
+        return (e->op == TOKerror);
+    Tuple *v = isTuple(o);
+    if (v)
+        return arrayObjectIsError(&v->objects);
+    return 0;
+}
+
+/**************************************
+ * Are any of the Objects an error?
+ */
+int arrayObjectIsError(Objects *args)
+{
+    for (size_t i = 0; i < args->dim; i++)
+    {
+        Object *o = (Object *)args->data[i];
+        if (isError(o))
+            return 1;
+    }
+    return 0;
+}
 
 /***********************
  * Try to get arg as a type.

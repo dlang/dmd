@@ -1998,7 +1998,9 @@ Statement *ForeachRangeStatement::semantic(Scope *sc)
         /* Must infer types from lwr and upr
          */
         AddExp ea(loc, lwr, upr);
-        ea.typeCombine(sc);
+        Expression *e = ea.typeCombine(sc);
+        if (e->op == TOKerror)
+            return this;
         arg->type = ea.type->mutableOf();
         lwr = ea.e1;
         upr = ea.e2;
