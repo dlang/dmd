@@ -2778,7 +2778,7 @@ elem *AssignExp::toElem(IRState *irs)
     {
         VarExp *ve = (VarExp *)e1;
         Declaration *s = ve->var;
-        if (s->storage_class & STCref)
+        if (s->storage_class & (STCout | STCref))
         {
 #if 0
             Expression *ae = e2->addressOf(NULL);
@@ -2818,7 +2818,7 @@ elem *AssignExp::toElem(IRState *irs)
     }
 #endif
 //if (op == TOKconstruct) printf("construct\n");
-    if (t1b->ty == Tstruct)
+    if (t1b->ty == Tstruct || t1b->ty == Tsarray)
     {   elem *eleft = e1->toElem(irs);
 
         if (e2->op == TOKint64)

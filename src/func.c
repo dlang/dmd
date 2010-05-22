@@ -1350,6 +1350,8 @@ void FuncDeclaration::semantic3(Scope *sc)
                         assert(v->init);
                         ExpInitializer *ie = v->init->isExpInitializer();
                         assert(ie);
+                        if (ie->exp->op == TOKconstruct)
+                            ie->exp->op = TOKassign; // construction occured in parameter processing
                         a->push(new ExpStatement(0, ie->exp));
                     }
                 }

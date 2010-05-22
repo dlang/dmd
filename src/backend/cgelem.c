@@ -2659,11 +2659,15 @@ CEXTERN elem * elstruct(elem *e)
             }
             break;
 #endif
-#if 0 && MARS
         case 0:
-            assert(0);          // no 0 length struct's
+            if (e->Eoper == OPstreq)
+            {   e->Eoper = OPcomma;
+                e = optelem(e,TRUE);
+            }
+            else
+                goto Ldefault;
             break;
-#endif
+
         default:
         Ldefault:
             if (e->Eoper == OPstreq)
