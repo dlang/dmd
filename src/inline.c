@@ -1340,6 +1340,7 @@ int FuncDeclaration::canInline(int hasthis, int hdrscan)
         goto Lno;
     }
 
+#if !SARRAYVALUE
     /* If any parameters are Tsarray's (which are passed by reference)
      * or out parameters (also passed by reference), don't do inlining.
      */
@@ -1348,10 +1349,11 @@ int FuncDeclaration::canInline(int hasthis, int hdrscan)
         for (int i = 0; i < parameters->dim; i++)
         {
             VarDeclaration *v = (VarDeclaration *)parameters->data[i];
-            if (v->isOut() || v->isRef() || v->type->toBasetype()->ty == Tsarray)
+            if (/*v->isOut() || v->isRef() ||*/ v->type->toBasetype()->ty == Tsarray)
                 goto Lno;
         }
     }
+#endif
 
     memset(&ics, 0, sizeof(ics));
     ics.hasthis = hasthis;
@@ -1480,6 +1482,7 @@ Expression *FuncDeclaration::doInline(InlineScanState *iss, Expression *ethis, A
             ve->type = arg->type;
 
             ei->exp = new AssignExp(vto->loc, ve, arg);
+            ei->exp->op = TOKconstruct;
             ei->exp->type = ve->type;
 //ve->type->print();
 //arg->type->print();

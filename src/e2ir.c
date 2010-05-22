@@ -2511,7 +2511,7 @@ elem *AssignExp::toElem(IRState *irs)
     {
         VarExp *ve = (VarExp *)e1;
         Declaration *s = ve->var;
-        if (s->storage_class & STCref)
+        if (s->storage_class & (STCout | STCref))
         {
             Expression *ae = e2->addressOf(NULL);
             e = ae->toElem(irs);
@@ -2545,7 +2545,7 @@ elem *AssignExp::toElem(IRState *irs)
         }
     }
 #endif
-    if (t1b->ty == Tstruct)
+    if (t1b->ty == Tstruct || t1b->ty == Tsarray)
     {
         if (e2->op == TOKint64)
         {   /* Implement:

@@ -1200,6 +1200,7 @@ void FuncDeclaration::semantic3(Scope *sc)
                         assert(v->init);
                         ExpInitializer *ie = v->init->isExpInitializer();
                         assert(ie);
+                        ie->exp->op = TOKassign; // construction occurred in parameter processing
                         a->push(new ExpStatement(0, ie->exp));
                     }
                 }
