@@ -2663,6 +2663,7 @@ CEXTERN elem * elstruct(elem *e)
             if (e->Eoper == OPstreq)
             {   e->Eoper = OPcomma;
                 e = optelem(e,TRUE);
+                again = 1;
             }
             else
                 goto Ldefault;
@@ -4176,7 +4177,7 @@ beg:
     if (controlc_saw)
         util_exit(EXIT_BREAK);
 #endif
-    //{ dbg_printf("xoptelem: %p ",e); WROP(e->Eoper); dbg_printf("\n"); }
+    //{ printf("xoptelem: %p ",e); WROP(e->Eoper); dbg_printf(" goal %d\n", goal); }
     assert(e);
     elem_debug(e);
     assert(e->Ecount == 0);             // no CSEs
@@ -4221,6 +4222,8 @@ beg:
         switch (op)
         {   case OPcomma:
                 e1 = e->E1 = optelem(e->E1,FALSE);
+//              if (e1 && !OTsideff(e1->Eoper))
+//                  e1 = e->E1 = optelem(e1, FALSE);
                 e2 = e->E2 = optelem(e->E2,rightgoal);
                 if (!e1)
                 {   if (!e2)
@@ -4582,7 +4585,7 @@ L1:
 
 elem *doptelem(elem *e,HINT goal)
 {
-    //printf("doptelem()\n");
+    //printf("doptelem(e = %p, goal = %d)\n", e, goal);
 #if TARGET_MAC
     extern int tree_b,tree_a;
     if(tree_b)
