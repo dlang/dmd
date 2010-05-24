@@ -370,17 +370,17 @@ int intrinsic_op(char *name)
         /* The names are mangled differently because of the pure and
          * nothrow attributes.
          */
-        "4math3cosFNaNbeZe",
-        "4math3sinFNaNbeZe",
-        "4math4fabsFNaNbeZe",
-        "4math4rintFNaNbeZe",
-        "4math4sqrtFNaNbdZd",
-        "4math4sqrtFNaNbeZe",
-        "4math4sqrtFNaNbfZf",
-        "4math4yl2xFNaNbeeZe",
-        "4math5ldexpFNaNbeiZe",
-        "4math6rndtolFNaNbeZl",
-        "4math6yl2xp1FNaNbeeZe",
+        "4math3cosFNaNbNfeZe",
+        "4math3sinFNaNbNfeZe",
+        "4math4fabsFNaNbNfeZe",
+        "4math4rintFNaNbNfeZe",
+        "4math4sqrtFNaNbNfdZd",
+        "4math4sqrtFNaNbNfeZe",
+        "4math4sqrtFNaNbNffZf",
+        "4math4yl2xFNaNbNfeeZe",
+        "4math5ldexpFNaNbNfeiZe",
+        "4math6rndtolFNaNbNfeZl",
+        "4math6yl2xp1FNaNbNfeeZe",
 
         "9intrinsic2btFNaNbxPkkZi",
         "9intrinsic3bsfFNaNbkZi",

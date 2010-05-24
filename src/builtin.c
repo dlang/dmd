@@ -31,7 +31,8 @@
  */
 enum BUILTIN FuncDeclaration::isBuiltin()
 {
-    static const char FeZe[] = "FNaNbeZe";      // pure nothrow real function(real)
+    static const char FeZe [] = "FNaNbNfeZe";      // @safe pure nothrow real function(real)
+    static const char FeZe2[] = "FNaNbNeeZe";      // @trusted pure nothrow real function(real)
 
     //printf("FuncDeclaration::isBuiltin() %s\n", toChars());
     if (builtin == BUILTINunknown)
@@ -45,7 +46,7 @@ enum BUILTIN FuncDeclaration::isBuiltin()
                 !parent->parent->parent)
             {
                 //printf("deco = %s\n", type->deco);
-                if (strcmp(type->deco, FeZe) == 0)
+                if (strcmp(type->deco, FeZe) == 0 || strcmp(type->deco, FeZe2) == 0)
                 {
                     if (ident == Id::sin)
                         builtin = BUILTINsin;
@@ -60,8 +61,8 @@ enum BUILTIN FuncDeclaration::isBuiltin()
                     //printf("builtin = %d\n", builtin);
                 }
                 // if float or double versions
-                else if (strcmp(type->deco, "FNaNbdZd") == 0 ||
-                         strcmp(type->deco, "FNaNbfZf") == 0)
+                else if (strcmp(type->deco, "FNaNbNfdZd") == 0 ||
+                         strcmp(type->deco, "FNaNbNffZf") == 0)
                 {
                     if (ident == Id::_sqrt)
                         builtin = BUILTINsqrt;
