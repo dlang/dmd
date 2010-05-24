@@ -1,6 +1,6 @@
 
 // Compiler implementation of the D programming language
-// Copyright (c) 1999-2009 by Digital Mars
+// Copyright (c) 1999-2010 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // http://www.digitalmars.com
@@ -460,7 +460,11 @@ void AliasDeclaration::semantic(Scope *sc)
      * try to alias y to 3.
      */
     s = type->toDsymbol(sc);
-    if (s && ((s->getType() && type->equals(s->getType())) || s->isEnumMember()))
+    if (s
+#if DMDV2
+        && ((s->getType() && type->equals(s->getType())) || s->isEnumMember())
+#endif
+        )
         goto L2;                        // it's a symbolic alias
 
 #if DMDV2
