@@ -2884,6 +2884,8 @@ elem *AssignExp::toElem(IRState *irs)
                 elem *e2 = this->e2->toElem(irs);
                 e = el_bin(OPstreq,tym,e1,e2);
                 e->Enumbytes = this->e1->type->size();
+                if (e->Enumbytes == 0)
+                    e->Eoper = OPcomma;
             }
             goto Lret;
         }
