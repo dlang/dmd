@@ -149,6 +149,8 @@ void FuncDeclaration::semantic(Scope *sc)
 
     foverrides.setDim(0);       // reset in case semantic() is being retried for this function
 
+    if (!originalType)
+        originalType = type;
     if (!type->deco)
     {
         type = type->semantic(loc, sc);

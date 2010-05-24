@@ -661,13 +661,14 @@ void ClassDeclaration::semantic(Scope *sc)
     if (!ctor && baseClass && baseClass->ctor)
     {
         //printf("Creating default this(){} for class %s\n", toChars());
-        ctor = new CtorDeclaration(loc, 0, NULL, 0);
+        CtorDeclaration *ctor = new CtorDeclaration(loc, 0, NULL, 0);
         ctor->fbody = new CompoundStatement(0, new Statements());
         members->push(ctor);
         ctor->addMember(sc, this, 1);
         *sc = scsave;   // why? What about sc->nofree?
         sc->offset = structsize;
         ctor->semantic(sc);
+        this->ctor = ctor;
         defaultCtor = ctor;
     }
 
