@@ -1236,8 +1236,8 @@ elem *RealExp::toElem(IRState *irs)
              */
             c.Vfloat = value;
             if (Port::isSignallingNan(value))
-                // Put SNAN back, but this causes an aliasing warning from gcc
-                ((unsigned int*)&c.Vfloat)[0] &= 0xFFBFFFFFL;
+                // Put SNAN back
+                c.Vuns &= 0xFFBFFFFFL;
             break;
 
         case TYdouble:
@@ -1247,8 +1247,8 @@ elem *RealExp::toElem(IRState *irs)
              */
             c.Vdouble = value;
             if (Port::isSignallingNan(value))
-                // Put SNAN back, but this causes an aliasing warning from gcc
-                ((unsigned int*)&c.Vdouble)[1] &= 0xFFF7FFFFL;
+                // Put SNAN back
+                c.Vullong &= 0xFFF7FFFFFFFFFFFFULL;
             break;
 
         case TYldouble:
@@ -1288,19 +1288,35 @@ elem *ComplexExp::toElem(IRState *irs)
         case TYcfloat:
             c.Vcfloat.re = (float) re;
             if (Port::isSignallingNan(re))
-                ((unsigned int*)&c.Vcfloat.re)[0] &= 0xFFBFFFFFL;
+            {   union { float f; unsigned i; } u;
+                u.f = c.Vcfloat.re;
+                u.i &= 0xFFBFFFFFL;
+                c.Vcfloat.re = u.f;
+            }
             c.Vcfloat.im = (float) im;
             if (Port::isSignallingNan(im))
-                ((unsigned int*)&c.Vcfloat.im)[0] &= 0xFFBFFFFFL;
+            {   union { float f; unsigned i; } u;
+                u.f = c.Vcfloat.im;
+                u.i &= 0xFFBFFFFFL;
+                c.Vcfloat.im = u.f;
+            }
             break;
 
         case TYcdouble:
             c.Vcdouble.re = (double) re;
             if (Port::isSignallingNan(re))
-                ((unsigned int*)&c.Vcdouble.re)[1] &= 0xFFF7FFFFL;
+            {   union { double d; unsigned long long i; } u;
+                u.d = c.Vcdouble.re;
+                u.i &= 0xFFF7FFFFFFFFFFFFULL;
+                c.Vcdouble.re = u.d;
+            }
             c.Vcdouble.im = (double) im;
             if (Port::isSignallingNan(re))
-                ((unsigned int*)&c.Vcdouble.im)[1] &= 0xFFF7FFFFL;
+            {   union { double d; unsigned long long i; } u;
+                u.d = c.Vcdouble.im;
+                u.i &= 0xFFF7FFFFFFFFFFFFULL;
+                c.Vcdouble.im = u.d;
+            }
             break;
 
         case TYcldouble:

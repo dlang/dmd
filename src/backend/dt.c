@@ -1,5 +1,5 @@
 // Copyright (C) 1984-1998 by Symantec
-// Copyright (C) 2000-2009 by Digital Mars
+// Copyright (C) 2000-2010 by Digital Mars
 // All Rights Reserved
 // http://www.digitalmars.com
 // Written by Walter Bright
@@ -197,7 +197,11 @@ dt_t ** dtdword(dt_t **pdtend,long value)
         pdtend = &((*pdtend)->DTnext);
     dt = dt_calloc(DT_ibytes);
     dt->DTn = 4;
-    *(long *)dt->DTdata = value;
+
+    union { char* cp; long* lp; } u;
+    u.cp = dt->DTdata;
+    *u.lp = value;
+
     *pdtend = dt;
     pdtend = &dt->DTnext;
     return pdtend;
