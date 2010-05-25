@@ -417,7 +417,9 @@ int Port::isInfinity(double r)
 #undef signbit
 int Port::Signbit(double r)
 {
-    return (long)(((long *)&r)[1] & 0x80000000);
+    union { double d; long long ll; } u;
+    u.d =  r;
+    return u.ll < 0;
 }
 
 double Port::floor(double d)

@@ -911,9 +911,9 @@ union eve
         targ_float      Vfloat;
         targ_double     Vdouble;
         targ_ldouble    Vldouble;
-        Complex_f       Vcfloat;
-        Complex_d       Vcdouble;
-        Complex_ld      Vcldouble;
+        Complex_f       Vcfloat;   // 2x float
+        Complex_d       Vcdouble;  // 2x double
+        Complex_ld      Vcldouble; // 2x long double
         targ_size_t     Vpointer;
         targ_ptrdiff_t  Vptrdiff;
         targ_uchar      Vreg;   // register number for OPreg elems
