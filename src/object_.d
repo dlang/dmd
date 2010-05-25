@@ -1189,6 +1189,13 @@ extern (C) void  rt_setTraceHandler(TraceHandler h)
     traceHandler = h;
 }
 
+/**
+ * Return the current trace handler
+ */
+extern (C) TraceHandler rt_getTraceHandler()
+{
+    return traceHandler;
+}
 
 /**
  * This function will be called when an exception is constructed.  The

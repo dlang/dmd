@@ -23,6 +23,7 @@ private
 
     extern (C) void rt_setCollectHandler( CollectHandler h );
     extern (C) void rt_setTraceHandler( TraceHandler h );
+    extern (C) TraceHandler rt_getTraceHandler();
 
     alias void delegate( Throwable ) ExceptionHandler;
     extern (C) bool rt_init( ExceptionHandler dg = null );
@@ -172,6 +173,13 @@ struct Runtime
         rt_setTraceHandler( h );
     }
 
+    /**
+     * Return the current trace handler
+     */
+    static TraceHandler traceHandler()
+    {
+        return rt_getTraceHandler();
+    }
 
     /**
      * Overrides the default collect hander with a user-supplied version.  This
