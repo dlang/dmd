@@ -2849,14 +2849,17 @@ Expression *TypeBasic::defaultInit(Loc loc)
      * so that uninitialised variables can be
      * detected even if exceptions are disabled.
      */
-    unsigned short snan[8] = { 0, 0, 0, 0xA000, 0x7FFF };
+    union
+    {   unsigned short us[8];
+        long double    ld;
+    } snan = {{ 0, 0, 0, 0xA000, 0x7FFF }};
     /*
      * Although long doubles are 10 bytes long, some
      * C ABIs pad them out to 12 or even 16 bytes, so
      * leave enough space in the snan array.
      */
     assert(REALSIZE <= sizeof(snan));
-    d_float80 fvalue = *(long double*)snan;
+    d_float80 fvalue = snan.ld;
 #endif
 
 #if LOGDEFAULTINIT
