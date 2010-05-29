@@ -623,9 +623,16 @@ void Module::parse()
         Dsymbol *prev = dst->lookup(ident);
         assert(prev);
         Module *mprev = prev->isModule();
-        assert(mprev);
-        error(loc, "from file %s conflicts with another module %s from file %s",
-            srcname, mprev->toChars(), mprev->srcfile->toChars());
+        if (mprev)
+            error(loc, "from file %s conflicts with another module %s from file %s",
+                srcname, mprev->toChars(), mprev->srcfile->toChars());
+        else
+        {
+            Package *pkg = prev->isPackage();
+            assert(pkg);
+            error(loc, "from file %s conflicts with package name %s",
+                srcname, pkg->toChars());
+        }
     }
     else
     {
