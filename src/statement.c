@@ -75,18 +75,25 @@ Statement *Statement::semantic(Scope *sc)
     return this;
 }
 
-// Same as semantic(), but do create a new scope
+Statement *Statement::semanticNoScope(Scope *sc)
+{
+    Statement *s = this;
+    if (!s->isCompoundStatement() && !s->isScopeStatement())
+        s = new CompoundStatement(loc, this);           // so scopeCode() gets called
+    s = s->semantic(sc);
+    return s;
+}
+
+// Same as semanticNoScope(), but do create a new scope
 
 Statement *Statement::semanticScope(Scope *sc, Statement *sbreak, Statement *scontinue)
-{   Scope *scd;
-    Statement *s;
-
-    scd = sc->push();
+{
+    Scope *scd = sc->push();
     if (sbreak)
         scd->sbreak = sbreak;
     if (scontinue)
         scd->scontinue = scontinue;
-    s = semantic(scd);
+    Statement *s = semanticNoScope(scd);
     scd->pop();
     return s;
 }
@@ -427,6 +434,13 @@ CompoundStatement::CompoundStatement(Loc loc, Statement *s1, Statement *s2)
     statements->reserve(2);
     statements->push(s1);
     statements->push(s2);
+}
+
+CompoundStatement::CompoundStatement(Loc loc, Statement *s1)
+    : Statement(loc)
+{
+    statements = new Statements();
+    statements->push(s1);
 }
 
 Statement *CompoundStatement::syntaxCopy()
@@ -1184,7 +1198,7 @@ Statement *ForStatement::semantic(Scope *sc)
     sc->sbreak = this;
     sc->scontinue = this;
     if (body)
-        body = body->semantic(sc);
+        body = body->semanticNoScope(sc);
     sc->noctor--;
 
     sc->pop();
@@ -1729,7 +1743,7 @@ Lagain:
             Parameter *a;
 
             if (!checkForArgTypes())
-            {   body = body->semantic(sc);
+            {   body = body->semanticNoScope(sc);
                 return this;
             }
 
@@ -2329,7 +2343,8 @@ Statement *IfStatement::semantic(Scope *sc)
     }
     else
         scd = sc->push();
-    ifbody = ifbody->semantic(scd);
+
+    ifbody = ifbody->semanticNoScope(scd);
     scd->pop();
 
     cs1 = sc->callSuper;
@@ -4233,7 +4248,7 @@ Statement *TryFinallyStatement::semantic(Scope *sc)
     sc->tf = this;
     sc->sbreak = NULL;
     sc->scontinue = NULL;       // no break or continue out of finally block
-    finalbody = finalbody->semantic(sc);
+    finalbody = finalbody->semanticNoScope(sc);
     sc->pop();
     if (!body)
         return finalbody;
@@ -4561,7 +4576,7 @@ Statement *LabelStatement::semantic(Scope *sc)
     sc->callSuper |= CSXlabel;
     sc->slabel = this;
     if (statement)
-        statement = statement->semantic(sc);
+        statement = statement->semanticNoScope(sc);
     sc->pop();
     return this;
 }
