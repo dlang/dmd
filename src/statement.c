@@ -75,18 +75,25 @@ Statement *Statement::semantic(Scope *sc)
     return this;
 }
 
-// Same as semantic(), but do create a new scope
+Statement *Statement::semanticNoScope(Scope *sc)
+{
+    Statement *s = this;
+    if (!s->isCompoundStatement() && !s->isScopeStatement())
+        s = new CompoundStatement(loc, this);           // so scopeCode() gets called
+    s = s->semantic(sc);
+    return s;
+}
+
+// Same as semanticNoScope(), but do create a new scope
 
 Statement *Statement::semanticScope(Scope *sc, Statement *sbreak, Statement *scontinue)
-{   Scope *scd;
-    Statement *s;
-
-    scd = sc->push();
+{
+    Scope *scd = sc->push();
     if (sbreak)
         scd->sbreak = sbreak;
     if (scontinue)
         scd->scontinue = scontinue;
-    s = semantic(scd);
+    Statement *s = semanticNoScope(scd);
     scd->pop();
     return s;
 }
@@ -392,6 +399,13 @@ CompoundStatement::CompoundStatement(Loc loc, Statement *s1, Statement *s2)
     statements->reserve(2);
     statements->push(s1);
     statements->push(s2);
+}
+
+CompoundStatement::CompoundStatement(Loc loc, Statement *s1)
+    : Statement(loc)
+{
+    statements = new Statements();
+    statements->push(s1);
 }
 
 Statement *CompoundStatement::syntaxCopy()
@@ -1065,7 +1079,8 @@ int DoStatement::blockExit()
     else
         result = BEfallthru;
     if (result & BEfallthru)
-    {   if (condition->canThrow())
+    {
+        if (condition->canThrow())
             result |= BEthrow;
         if (!(result & BEbreak) && condition->isBool(TRUE))
             result &= ~BEfallthru;
@@ -1148,7 +1163,7 @@ Statement *ForStatement::semantic(Scope *sc)
     sc->sbreak = this;
     sc->scontinue = this;
     if (body)
-        body = body->semantic(sc);
+        body = body->semanticNoScope(sc);
     sc->noctor--;
 
     sc->pop();
@@ -1661,24 +1676,17 @@ Statement *ForeachStatement::semantic(Scope *sc)
 #endif
         case Tdelegate:
         Lapply:
-        {   FuncDeclaration *fdapply;
-            Parameters *args;
+        {
             Expression *ec;
             Expression *e;
-            FuncLiteralDeclaration *fld;
             Parameter *a;
-            Type *t;
-            Expression *flde;
-            Identifier *id;
-            Type *tret;
 
-            tret = func->type->nextOf();
+            Type *tret = func->type->nextOf();
 
             // Need a variable to hold value from any return statements in body.
             if (!sc->func->vresult && tret && tret != Type::tvoid)
-            {   VarDeclaration *v;
-
-                v = new VarDeclaration(loc, tret, Id::result, NULL);
+            {
+                VarDeclaration *v = new VarDeclaration(loc, tret, Id::result, NULL);
                 v->noauto = 1;
                 v->semantic(sc);
                 if (!sc->insert(v))
@@ -1690,9 +1698,10 @@ Statement *ForeachStatement::semantic(Scope *sc)
             /* Turn body into the function literal:
              *  int delegate(ref T arg) { body }
              */
-            args = new Parameters();
+            Parameters *args = new Parameters();
             for (size_t i = 0; i < dim; i++)
             {   Parameter *arg = (Parameter *)arguments->data[i];
+                Identifier *id;
 
                 arg->type = arg->type->semantic(loc, sc);
                 if (arg->storageClass & STCref)
@@ -1700,27 +1709,24 @@ Statement *ForeachStatement::semantic(Scope *sc)
                 else
                 {   // Make a copy of the ref argument so it isn't
                     // a reference.
-                    VarDeclaration *v;
-                    Initializer *ie;
 
                     id = Lexer::uniqueId("__applyArg", i);
-
-                    ie = new ExpInitializer(0, new IdentifierExp(0, id));
-                    v = new VarDeclaration(0, arg->type, arg->ident, ie);
+                    Initializer *ie = new ExpInitializer(0, new IdentifierExp(0, id));
+                    VarDeclaration *v = new VarDeclaration(0, arg->type, arg->ident, ie);
                     s = new DeclarationStatement(0, v);
                     body = new CompoundStatement(loc, s, body);
                 }
                 a = new Parameter(STCref, arg->type, id, NULL);
                 args->push(a);
             }
-            t = new TypeFunction(args, Type::tint32, 0, LINKd);
-            fld = new FuncLiteralDeclaration(loc, 0, t, TOKdelegate, this);
+            Type *t = new TypeFunction(args, Type::tint32, 0, LINKd);
+            FuncLiteralDeclaration *fld = new FuncLiteralDeclaration(loc, 0, t, TOKdelegate, this);
             fld->fbody = body;
-            flde = new FuncExp(loc, fld);
+            Expression *flde = new FuncExp(loc, fld);
             flde = flde->semantic(sc);
 
             // Resolve any forward referenced goto's
-            for (int i = 0; i < gotos.dim; i++)
+            for (size_t i = 0; i < gotos.dim; i++)
             {   CompoundStatement *cs = (CompoundStatement *)gotos.data[i];
                 GotoStatement *gs = (GotoStatement *)cs->statements->data[0];
 
@@ -1750,6 +1756,7 @@ Statement *ForeachStatement::semantic(Scope *sc)
                 /* Call:
                  *      _aaApply(aggr, keysize, flde)
                  */
+                FuncDeclaration *fdapply;
                 if (dim == 2)
                     fdapply = FuncDeclaration::genCfunc(Type::tindex, "_aaApply2");
                 else
@@ -1794,7 +1801,7 @@ Statement *ForeachStatement::semantic(Scope *sc)
                 const char *r = (op == TOKforeach_reverse) ? "R" : "";
                 int j = sprintf(fdname, "_aApply%s%.*s%zd", r, 2, fntab[flag], dim);
                 assert(j < sizeof(fdname));
-                fdapply = FuncDeclaration::genCfunc(Type::tindex, fdname);
+                FuncDeclaration *fdapply = FuncDeclaration::genCfunc(Type::tindex, fdname);
 
                 ec = new VarExp(0, fdapply);
                 Expressions *exps = new Expressions();
@@ -2216,7 +2223,7 @@ Statement *IfStatement::semantic(Scope *sc)
     }
     else
         scd = sc->push();
-    ifbody = ifbody->semantic(scd);
+    ifbody = ifbody->semanticNoScope(scd);
     scd->pop();
 
     cs1 = sc->callSuper;
@@ -4015,7 +4022,7 @@ Statement *TryFinallyStatement::semantic(Scope *sc)
     sc->tf = this;
     sc->sbreak = NULL;
     sc->scontinue = NULL;       // no break or continue out of finally block
-    finalbody = finalbody->semantic(sc);
+    finalbody = finalbody->semanticNoScope(sc);
     sc->pop();
     return this;
 }
@@ -4332,7 +4339,7 @@ Statement *LabelStatement::semantic(Scope *sc)
     sc->callSuper |= CSXlabel;
     sc->slabel = this;
     if (statement)
-        statement = statement->semantic(sc);
+        statement = statement->semanticNoScope(sc);
     sc->pop();
     return this;
 }
