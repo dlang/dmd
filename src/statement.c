@@ -873,6 +873,7 @@ Statement *ScopeStatement::semantic(Scope *sc)
             if (sfinally)
             {
                 //printf("adding sfinally\n");
+                sfinally = sfinally->semantic(sc);
                 statement = new CompoundStatement(loc, statement, sfinally);
             }
         }
