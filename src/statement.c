@@ -77,9 +77,12 @@ Statement *Statement::semantic(Scope *sc)
 
 Statement *Statement::semanticNoScope(Scope *sc)
 {
+    //printf("Statement::semanticNoScope() %s\n", toChars());
     Statement *s = this;
     if (!s->isCompoundStatement() && !s->isScopeStatement())
+    {
         s = new CompoundStatement(loc, this);           // so scopeCode() gets called
+    }
     s = s->semantic(sc);
     return s;
 }
@@ -913,6 +916,7 @@ Statement *ScopeStatement::semantic(Scope *sc)
             if (sfinally)
             {
                 //printf("adding sfinally\n");
+                sfinally = sfinally->semantic(sc);
                 statement = new CompoundStatement(loc, statement, sfinally);
             }
         }
