@@ -1509,7 +1509,51 @@ Expression *FuncDeclaration::doInline(InlineScanState *iss, Expression *ethis, A
 //eb->type->print();
 //eb->print();
 //eb->dump(0);
-    return Expression::combine(e, eb);
+
+    e = Expression::combine(e, eb);
+
+    /* There's a problem if what the function returns is used subsequently as an
+     * lvalue, as in a struct return that is then used as a 'this'.
+     * If we take the address of the return value, we will be taking the address
+     * of the original, not the copy. Fix this by assigning the return value to
+     * a temporary, then returning the temporary. If the temporary is used as an
+     * lvalue, it will work.
+     * This only happens with struct returns.
+     * See Bugzilla 2127 for an example.
+     */
+    TypeFunction *tf = (TypeFunction*)type;
+    if (tf->next->ty == Tstruct)
+    {
+        /* Generate a new variable to hold the result and initialize it with the
+         * inlined body of the function:
+         *   tret __inlineretval = e;
+         */
+        ExpInitializer* ei = new ExpInitializer(loc, e);
+
+        Identifier* tmp = Identifier::generateId("__inlineretval");
+        VarDeclaration* vd = new VarDeclaration(loc, tf->next, tmp, ei);
+        vd->storage_class = tf->isref ? STCref : 0;
+        vd->linkage = tf->linkage;
+        vd->parent = iss->fd;
+
+        VarExp *ve = new VarExp(loc, vd);
+        ve->type = tf->next;
+
+        ei->exp = new AssignExp(loc, ve, e);
+        ei->exp->op = TOKconstruct;
+        ei->exp->type = ve->type;
+
+        DeclarationExp* de = new DeclarationExp(0, vd);
+        de->type = Type::tvoid;
+
+        // Chain the two together:
+        //   ( typeof(return) __inlineretval = ( inlined body )) , __inlineretval
+        e = Expression::combine(de, ve);
+
+        //fprintf(stderr, "CallExp::inlineScan: e = "); e->print();
+    }
+
+    return e;
 }
 
 
