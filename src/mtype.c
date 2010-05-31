@@ -3977,6 +3977,7 @@ Expression *TypeEnum::dotExp(Scope *sc, Expression *e, Identifier *ident)
             ident == Id::min ||
             ident == Id::init ||
             ident == Id::stringof ||
+            ident == Id::mangleof ||
             !sym->memtype
            )
         {
@@ -4020,6 +4021,10 @@ Expression *TypeEnum::getProperty(Loc loc, Identifier *ident)
         e = new StringExp(loc, s, strlen(s), 'c');
         Scope sc;
         e = e->semantic(&sc);
+    }
+    else if (ident == Id::mangleof)
+    {
+        e = Type::getProperty(loc, ident);
     }
     else
     {
