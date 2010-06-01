@@ -844,7 +844,7 @@ Dsymbol *ScopeDsymbol::search(Loc loc, Identifier *ident, int flags)
             if (d && d->protection == PROTprivate &&
                 !d->parent->isTemplateMixin() &&
                 !(flags & 2))
-                error("%s is private", d->toPrettyChars());
+                error(loc, "%s is private", d->toPrettyChars());
         }
     }
     return s;
