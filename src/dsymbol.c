@@ -793,7 +793,7 @@ Dsymbol *ScopeDsymbol::search(Loc loc, Identifier *ident, int flags)
         {
             Declaration *d = s->isDeclaration();
             if (d && d->protection == PROTprivate && !d->parent->isTemplateMixin())
-                error("%s is private", d->toPrettyChars());
+                error(loc, "%s is private", d->toPrettyChars());
         }
     }
     return s;
