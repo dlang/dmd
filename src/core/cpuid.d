@@ -115,8 +115,6 @@ public:
     bool sse42()        {return (miscfeatures&SSE42_BIT)!=0;}
     /// Is SSE4a supported?
     bool sse4a()        {return (amdmiscfeatures&SSE4A_BIT)!=0;}
-    /// Is SSE5 supported?
-    bool sse5()         {return (amdmiscfeatures&SSE5_BIT)!=0;}
     /// Is AMD 3DNOW supported?
     bool amd3dnow()     {return (amdfeatures&AMD_3DNOW_BIT)!=0;}
     /// Is AMD 3DNOW Ext supported?
@@ -284,7 +282,6 @@ version(X86_64) {
         LZCNT_BIT = 1<<5,
         SSE4A_BIT = 1<<6,       
         AMD_3DNOW_PREFETCH_BIT = 1<<8,
-        SSE5_BIT = 1<<11
     }
 
 version(GNU){
