@@ -1,5 +1,5 @@
 
-// Copyright (c) 1999-2009 by Digital Mars
+// Copyright (c) 1999-2010 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // http://www.digitalmars.com
@@ -32,6 +32,44 @@ extern int binary(const char *p , const char **tab, int high);
 
 StringTable arrayfuncs;
 
+/**********************************************
+ * Check that there are no uses of arrays without [].
+ */
+bool isArrayOpValid(Expression *e)
+{
+    if (e->op == TOKslice)
+        return true;
+    Type *tb = e->type->toBasetype();
+
+    if ( (tb->ty == Tarray) || (tb->ty == Tsarray) )
+    {
+        switch (e->op)
+        {
+            case TOKadd:
+            case TOKmin:
+            case TOKmul:
+            case TOKdiv:
+            case TOKmod:
+            case TOKxor:
+            case TOKand:
+            case TOKor:
+            case TOKpow:
+                 return isArrayOpValid(((BinExp *)e)->e1) && isArrayOpValid(((BinExp *)e)->e2);
+
+            case TOKcall:
+                 return false; // TODO: Decide if [] is required after arrayop calls.
+
+            case TOKneg:
+            case TOKtilde:
+                 return isArrayOpValid(((UnaExp *)e)->e1);
+
+            default:
+                return false;
+        }
+    }
+    return true;
+}
+
 /***********************************
  * Construct the array operation expression.
  */
@@ -43,6 +81,12 @@ Expression *BinExp::arrayOp(Scope *sc)
     if (type->toBasetype()->nextOf()->toBasetype()->ty == Tvoid)
     {
         error("Cannot perform array operations on void[] arrays");
+        return new ErrorExp();
+    }
+
+    if (!isArrayOpValid(e2))
+    {
+        e2->error("invalid array operation %s (did you forget a [] ?)", toChars());
         return new ErrorExp();
     }
 
