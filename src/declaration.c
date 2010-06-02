@@ -1363,7 +1363,7 @@ int VarDeclaration::isCTFE()
 {
     //printf("VarDeclaration::isCTFE(%p, '%s')\n", this, toChars());
     //printf("%llx\n", storage_class);
-    return (storage_class & STCctfe) || !isDataseg();
+    return (storage_class & STCctfe) != 0; // || !isDataseg();
 }
 
 int VarDeclaration::hasPointers()
