@@ -450,7 +450,27 @@ void StorageClassDeclaration::stcToCBuffer(OutBuffer *buf, StorageClass stc)
     {
         if (stc & table[i].stc)
         {
-            buf->writestring(Token::toChars(table[i].tok));
+            enum TOK tok = table[i].tok;
+#if DMDV2
+            if (tok == TOKat)
+            {   Identifier *id;
+
+                if (stc & STCproperty)
+                    id = Id::property;
+                else if (stc & STCsafe)
+                    id = Id::safe;
+                else if (stc & STCtrusted)
+                    id = Id::trusted;
+                else if (stc & STCdisable)
+                    id = Id::disable;
+                else
+                    assert(0);
+                buf->writeByte('@');
+                buf->writestring(id->toChars());
+            }
+            else
+#endif
+                buf->writestring(Token::toChars(tok));
             buf->writeByte(' ');
         }
     }
