@@ -3976,7 +3976,6 @@ Expression *TypeEnum::dotExp(Scope *sc, Expression *e, Identifier *ident)
         if (ident == Id::max ||
             ident == Id::min ||
             ident == Id::init ||
-            ident == Id::stringof ||
             ident == Id::mangleof ||
             !sym->memtype
            )
