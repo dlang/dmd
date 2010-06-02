@@ -132,6 +132,7 @@ Module::Module(char *filename, Identifier *ident, int doDocComment, int doHdrGen
     char *argobj;
     if (global.params.objname)
         argobj = global.params.objname;
+#if 0
     else if (global.params.preservePaths)
         argobj = filename;
     else
@@ -140,6 +141,19 @@ Module::Module(char *filename, Identifier *ident, int doDocComment, int doHdrGen
     {
         argobj = FileName::combine(global.params.objdir, argobj);
     }
+#else // Bugzilla 3547
+    else
+    {
+        if (global.params.preservePaths)
+            argobj = filename;
+        else
+            argobj = FileName::name(filename);
+        if (!FileName::absolute(argobj))
+        {
+            argobj = FileName::combine(global.params.objdir, argobj);
+        }
+    }
+#endif
 
     if (global.params.objname)
         objfilename = new FileName(argobj, 0);
