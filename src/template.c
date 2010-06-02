@@ -1386,8 +1386,10 @@ FuncDeclaration *TemplateDeclaration::deduceFunctionTemplate(Scope *sc, Loc loc,
     }
     if (td_ambig)
     {
-        error(loc, "matches more than one function template declaration:\n  %s\nand:\n  %s",
-                td_best->toChars(), td_ambig->toChars());
+        error(loc, "%s matches more than one template declaration, %s(%d):%s and %s(%d):%s",
+                toChars(),
+                td_best->loc.filename,  td_best->loc.linnum,  td_best->toChars(),
+                td_ambig->loc.filename, td_ambig->loc.linnum, td_ambig->toChars());
     }
 
     /* The best match is td_best with arguments tdargs.
@@ -3880,8 +3882,10 @@ TemplateDeclaration *TemplateInstance::findBestMatch(Scope *sc)
     }
     if (td_ambig)
     {
-        error("%s matches more than one template declaration, %s and %s",
-                toChars(), td_best->toChars(), td_ambig->toChars());
+        error("%s matches more than one template declaration, %s(%d):%s and %s(%d):%s",
+                toChars(),
+                td_best->loc.filename,  td_best->loc.linnum,  td_best->toChars(),
+                td_ambig->loc.filename, td_ambig->loc.linnum, td_ambig->toChars());
     }
 
     /* The best match is td_best
