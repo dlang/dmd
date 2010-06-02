@@ -1553,7 +1553,7 @@ int VarDeclaration::isThreadlocal()
 
 int VarDeclaration::isCTFE()
 {
-    return (storage_class & STCctfe) || !isDataseg();
+    return (storage_class & STCctfe) != 0; // || !isDataseg();
 }
 
 int VarDeclaration::hasPointers()
