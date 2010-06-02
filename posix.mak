@@ -4,7 +4,7 @@ DMD=dmd
 DOCDIR=doc
 IMPDIR=import
 
-DFLAGS=-O -release -nofloat -w -d -Iimport -Isrc
+DFLAGS=-O -release -inline -nofloat -w -d -Iimport -Isrc
 UDFLAGS=-O -release -nofloat -w -d -Iimport -Isrc
 
 CFLAGS=-m32 -O
@@ -19,75 +19,47 @@ MANIFEST= \
 	README.txt \
 	posix.mak \
 	win32.mak \
-	import/core/bitop.di \
-	import/core/stdc/complex.d \
-	import/core/stdc/config.d \
-	import/core/stdc/ctype.d \
-	import/core/stdc/errno.d \
-	import/core/stdc/fenv.d \
-	import/core/stdc/float_.d \
-	import/core/stdc/inttypes.d \
-	import/core/stdc/limits.d \
-	import/core/stdc/locale.d \
-	import/core/stdc/math.d \
-	import/core/stdc/signal.d \
-	import/core/stdc/stdarg.d \
-	import/core/stdc/stddef.d \
-	import/core/stdc/stdint.d \
-	import/core/stdc/stdio.d \
-	import/core/stdc/stdlib.d \
-	import/core/stdc/string.d \
-	import/core/stdc/tgmath.d \
-	import/core/stdc/time.d \
-	import/core/stdc/wchar_.d \
-	import/core/stdc/wctype.d \
-	import/core/sys/osx/mach/kern_return.d \
-	import/core/sys/osx/mach/port.d \
-	import/core/sys/osx/mach/semaphore.d \
-	import/core/sys/osx/mach/thread_act.d \
-	import/core/sys/posix/arpa/inet.d \
-	import/core/sys/posix/config.d \
-	import/core/sys/posix/dirent.d \
-	import/core/sys/posix/dlfcn.d \
-	import/core/sys/posix/fcntl.d \
-	import/core/sys/posix/inttypes.d \
-	import/core/sys/posix/net/if_.d \
-	import/core/sys/posix/netinet/in_.d \
-	import/core/sys/posix/netinet/tcp.d \
-	import/core/sys/posix/poll.d \
-	import/core/sys/posix/pthread.d \
-	import/core/sys/posix/pwd.d \
-	import/core/sys/posix/sched.d \
-	import/core/sys/posix/semaphore.d \
-	import/core/sys/posix/setjmp.d \
-	import/core/sys/posix/signal.d \
-	import/core/sys/posix/stdio.d \
-	import/core/sys/posix/stdlib.d \
-	import/core/sys/posix/sys/ipc.d \
-	import/core/sys/posix/sys/mman.d \
-	import/core/sys/posix/sys/select.d \
-	import/core/sys/posix/sys/shm.d \
-	import/core/sys/posix/sys/socket.d \
-	import/core/sys/posix/sys/stat.d \
-	import/core/sys/posix/sys/time.d \
-	import/core/sys/posix/sys/types.d \
-	import/core/sys/posix/sys/uio.d \
-	import/core/sys/posix/sys/wait.d \
-	import/core/sys/posix/termios.d \
-	import/core/sys/posix/time.d \
-	import/core/sys/posix/ucontext.d \
-	import/core/sys/posix/unistd.d \
-	import/core/sys/posix/utime.d \
-	import/core/sys/windows/windows.d \
+	\
 	import/object.di \
 	import/std/intrinsic.di \
+	\
+	src/object_.d \
+	\
 	src/core/atomic.d \
 	src/core/bitop.d \
 	src/core/cpuid.d \
+	src/core/dll_helper.d \
 	src/core/exception.d \
 	src/core/memory.d \
 	src/core/runtime.d \
+	src/core/thread.d \
+	src/core/thread_helper.d \
+	src/core/threadasm.S \
+	src/core/vararg.d \
+	\
+	src/core/stdc/complex.d \
+	src/core/stdc/config.d \
+	src/core/stdc/ctype.d \
 	src/core/stdc/errno.c \
+	src/core/stdc/errno.d \
+	src/core/stdc/fenv.d \
+	src/core/stdc/float_.d \
+	src/core/stdc/inttypes.d \
+	src/core/stdc/limits.d \
+	src/core/stdc/locale.d \
+	src/core/stdc/math.d \
+	src/core/stdc/signal.d \
+	src/core/stdc/stdarg.d \
+	src/core/stdc/stddef.d \
+	src/core/stdc/stdint.d \
+	src/core/stdc/stdio.d \
+	src/core/stdc/stdlib.d \
+	src/core/stdc/string.d \
+	src/core/stdc/tgmath.d \
+	src/core/stdc/time.d \
+	src/core/stdc/wchar_.d \
+	src/core/stdc/wctype.d \
+	\
 	src/core/sync/barrier.d \
 	src/core/sync/condition.d \
 	src/core/sync/config.d \
@@ -95,10 +67,59 @@ MANIFEST= \
 	src/core/sync/mutex.d \
 	src/core/sync/rwmutex.d \
 	src/core/sync/semaphore.d \
-	src/core/thread.d \
-	src/core/threadasm.S \
-	src/core/vararg.d \
-	src/object_.d \
+	\
+	src/core/sys/osx/mach/kern_return.d \
+	src/core/sys/osx/mach/port.d \
+	src/core/sys/osx/mach/semaphore.d \
+	src/core/sys/osx/mach/thread_act.d \
+	\
+	src/core/sys/posix/config.d \
+	src/core/sys/posix/dirent.d \
+	src/core/sys/posix/dlfcn.d \
+	src/core/sys/posix/fcntl.d \
+	src/core/sys/posix/inttypes.d \
+	src/core/sys/posix/net/if_.d \
+	src/core/sys/posix/poll.d \
+	src/core/sys/posix/pthread.d \
+	src/core/sys/posix/pwd.d \
+	src/core/sys/posix/sched.d \
+	src/core/sys/posix/semaphore.d \
+	src/core/sys/posix/setjmp.d \
+	src/core/sys/posix/signal.d \
+	src/core/sys/posix/stdio.d \
+	src/core/sys/posix/stdlib.d \
+	src/core/sys/posix/termios.d \
+	src/core/sys/posix/time.d \
+	src/core/sys/posix/ucontext.d \
+	src/core/sys/posix/unistd.d \
+	src/core/sys/posix/utime.d \
+	\
+	src/core/sys/posix/arpa/inet.d \
+	\
+	src/core/sys/posix/netinet/in_.d \
+	src/core/sys/posix/netinet/tcp.d \
+	\
+	src/core/sys/posix/sys/ipc.d \
+	src/core/sys/posix/sys/mman.d \
+	src/core/sys/posix/sys/select.d \
+	src/core/sys/posix/sys/shm.d \
+	src/core/sys/posix/sys/socket.d \
+	src/core/sys/posix/sys/stat.d \
+	src/core/sys/posix/sys/time.d \
+	src/core/sys/posix/sys/types.d \
+	src/core/sys/posix/sys/uio.d \
+	src/core/sys/posix/sys/wait.d \
+	\
+	src/core/sys/windows/windows.d \
+	\
+	src/gc/gc.d \
+	src/gc/gcalloc.d \
+	src/gc/gcbits.d \
+	src/gc/gcstats.d \
+	src/gc/gcx.d \
+	\
+	src/gcstub/gc.d \
+	\
 	src/rt/aApply.d \
 	src/rt/aApplyR.d \
 	src/rt/aaA.d \
@@ -138,6 +159,7 @@ MANIFEST= \
 	src/rt/switch_.d \
 	src/rt/tls.S \
 	src/rt/trace.d \
+	\
 	src/rt/typeinfo/ti_AC.d \
 	src/rt/typeinfo/ti_Acdouble.d \
 	src/rt/typeinfo/ti_Acfloat.d \
@@ -173,19 +195,16 @@ MANIFEST= \
 	src/rt/typeinfo/ti_ushort.d \
 	src/rt/typeinfo/ti_void.d \
 	src/rt/typeinfo/ti_wchar.d \
+	\
 	src/rt/util/console.d \
 	src/rt/util/ctype.d \
 	src/rt/util/hash.d \
 	src/rt/util/string.d \
-	src/rt/util/utf.d \
-	src/gc/gc.d \
-	src/gc/gcalloc.d \
-	src/gc/gcbits.d \
-	src/gc/gcstats.d \
-	src/gc/gcx.d \
-	src/gcstub/gc.d
+	src/rt/util/utf.d
 
 SRCS= \
+	src/object_.d \
+	\
 	src/core/atomic.d \
 	src/core/bitop.d \
 	src/core/cpuid.d \
@@ -194,6 +213,26 @@ SRCS= \
 	src/core/runtime.d \
 	src/core/thread.d \
 	src/core/vararg.d \
+	\
+	src/core/stdc/config.d \
+	src/core/stdc/ctype.d \
+	src/core/stdc/errno.d \
+	src/core/stdc/math.d \
+	src/core/stdc/signal.d \
+	src/core/stdc/stdarg.d \
+	src/core/stdc/stdio.d \
+	src/core/stdc/stdlib.d \
+	src/core/stdc/stdint.d \
+	src/core/stdc/stddef.d \
+	src/core/stdc/string.d \
+	src/core/stdc/time.d \
+	src/core/stdc/wchar_.d \
+	\
+	src/core/sys/posix/sys/select.d \
+	src/core/sys/posix/sys/socket.d \
+	src/core/sys/posix/sys/stat.d \
+	src/core/sys/posix/sys/wait.d \
+	src/core/sys/posix/netinet/in_.d \
 	\
 	src/core/sync/barrier.d \
 	src/core/sync/condition.d \
@@ -208,8 +247,6 @@ SRCS= \
 	src/gc/gcbits.d \
 	src/gc/gcstats.d \
 	src/gc/gcx.d \
-	\
-	src/object_.d \
 	\
 	src/rt/aaA.d \
 	src/rt/aApply.d \
@@ -281,27 +318,7 @@ SRCS= \
 	src/rt/typeinfo/ti_ulong.d \
 	src/rt/typeinfo/ti_ushort.d \
 	src/rt/typeinfo/ti_void.d \
-	src/rt/typeinfo/ti_wchar.d \
-	\
-	$(IMPDIR)/std/intrinsic.di \
-	$(IMPDIR)/core/stdc/config.d \
-	$(IMPDIR)/core/stdc/ctype.d \
-	$(IMPDIR)/core/stdc/errno.d \
-	$(IMPDIR)/core/stdc/math.d \
-	$(IMPDIR)/core/stdc/signal.d \
-	$(IMPDIR)/core/stdc/stdarg.d \
-	$(IMPDIR)/core/stdc/stdio.d \
-	$(IMPDIR)/core/stdc/stdlib.d \
-	$(IMPDIR)/core/stdc/stdint.d \
-	$(IMPDIR)/core/stdc/stddef.d \
-	$(IMPDIR)/core/stdc/string.d \
-	$(IMPDIR)/core/stdc/time.d \
-	$(IMPDIR)/core/stdc/wchar_.d \
-	$(IMPDIR)/core/sys/posix/sys/select.d \
-	$(IMPDIR)/core/sys/posix/sys/socket.d \
-	$(IMPDIR)/core/sys/posix/sys/stat.d \
-	$(IMPDIR)/core/sys/posix/sys/wait.d \
-	$(IMPDIR)/core/sys/posix/netinet/in_.d
+	src/rt/typeinfo/ti_wchar.d
 
 # NOTE: trace.d and cover.d are not necessary for a successful build
 #       as both are used for debugging features (profiling and coverage)
@@ -312,6 +329,7 @@ OBJS= $(OBJDIR)/errno_c.o $(OBJDIR)/threadasm.o $(OBJDIR)/complex.o	\
 $(OBJDIR)/critical.o $(OBJDIR)/memory_osx.o $(OBJDIR)/monitor.o
 
 DOCS=\
+	$(DOCDIR)/object.html \
 	$(DOCDIR)/core/atomic.html \
 	$(DOCDIR)/core/bitop.html \
 	$(DOCDIR)/core/cpuid.html \
@@ -333,23 +351,86 @@ IMPORTS=\
 	$(IMPDIR)/core/atomic.di \
 	$(IMPDIR)/core/bitop.di \
 	$(IMPDIR)/core/cpuid.di \
+	$(IMPDIR)/core/dll_helper.di \
 	$(IMPDIR)/core/exception.di \
 	$(IMPDIR)/core/memory.di \
 	$(IMPDIR)/core/runtime.di \
 	$(IMPDIR)/core/thread.di \
+	$(IMPDIR)/core/thread_helper.di \
 	$(IMPDIR)/core/vararg.di \
 	\
+	$(IMPDIR)/core/stdc/complex.di \
+	$(IMPDIR)/core/stdc/config.di \
+	$(IMPDIR)/core/stdc/ctype.di \
+	$(IMPDIR)/core/stdc/errno.di \
+	$(IMPDIR)/core/stdc/fenv.di \
+	$(IMPDIR)/core/stdc/float_.di \
+	$(IMPDIR)/core/stdc/inttypes.di \
+	$(IMPDIR)/core/stdc/limits.di \
+	$(IMPDIR)/core/stdc/locale.di \
+	$(IMPDIR)/core/stdc/math.di \
+	$(IMPDIR)/core/stdc/signal.di \
+	$(IMPDIR)/core/stdc/stdarg.di \
+	$(IMPDIR)/core/stdc/stddef.di \
+	$(IMPDIR)/core/stdc/stdint.di \
+	$(IMPDIR)/core/stdc/stdio.di \
+	$(IMPDIR)/core/stdc/stdlib.di \
+	$(IMPDIR)/core/stdc/string.di \
+	$(IMPDIR)/core/stdc/tgmath.di \
+	$(IMPDIR)/core/stdc/time.di \
+	$(IMPDIR)/core/stdc/wchar_.di \
+	$(IMPDIR)/core/stdc/wctype.di \
+	\
+	$(IMPDIR)/core/sync/barrier.di \
+	$(IMPDIR)/core/sync/condition.di \
+	$(IMPDIR)/core/sync/config.di \
 	$(IMPDIR)/core/sync/exception.di \
 	$(IMPDIR)/core/sync/mutex.di \
-	$(IMPDIR)/core/sync/config.di \
-	$(IMPDIR)/core/sync/condition.di \
-	$(IMPDIR)/core/sync/barrier.di \
 	$(IMPDIR)/core/sync/rwmutex.di \
-	$(IMPDIR)/core/sync/semaphore.di
+	$(IMPDIR)/core/sync/semaphore.di \
+	\
+	$(IMPDIR)/core/sys/osx/mach/kern_return.d \
+	$(IMPDIR)/core/sys/osx/mach/port.d \
+	$(IMPDIR)/core/sys/osx/mach/semaphore.d \
+	$(IMPDIR)/core/sys/osx/mach/thread_act.d \
+	$(IMPDIR)/core/sys/posix/arpa/inet.d \
+	$(IMPDIR)/core/sys/posix/config.d \
+	$(IMPDIR)/core/sys/posix/dirent.d \
+	$(IMPDIR)/core/sys/posix/dlfcn.d \
+	$(IMPDIR)/core/sys/posix/fcntl.d \
+	$(IMPDIR)/core/sys/posix/inttypes.d \
+	$(IMPDIR)/core/sys/posix/net/if_.d \
+	$(IMPDIR)/core/sys/posix/netinet/in_.d \
+	$(IMPDIR)/core/sys/posix/netinet/tcp.d \
+	$(IMPDIR)/core/sys/posix/poll.d \
+	$(IMPDIR)/core/sys/posix/pthread.d \
+	$(IMPDIR)/core/sys/posix/pwd.d \
+	$(IMPDIR)/core/sys/posix/sched.d \
+	$(IMPDIR)/core/sys/posix/semaphore.d \
+	$(IMPDIR)/core/sys/posix/setjmp.d \
+	$(IMPDIR)/core/sys/posix/signal.d \
+	$(IMPDIR)/core/sys/posix/stdio.d \
+	$(IMPDIR)/core/sys/posix/stdlib.d \
+	$(IMPDIR)/core/sys/posix/sys/ipc.d \
+	$(IMPDIR)/core/sys/posix/sys/mman.d \
+	$(IMPDIR)/core/sys/posix/sys/select.d \
+	$(IMPDIR)/core/sys/posix/sys/shm.d \
+	$(IMPDIR)/core/sys/posix/sys/socket.d \
+	$(IMPDIR)/core/sys/posix/sys/stat.d \
+	$(IMPDIR)/core/sys/posix/sys/time.d \
+	$(IMPDIR)/core/sys/posix/sys/types.d \
+	$(IMPDIR)/core/sys/posix/sys/uio.d \
+	$(IMPDIR)/core/sys/posix/sys/wait.d \
+	$(IMPDIR)/core/sys/posix/termios.d \
+	$(IMPDIR)/core/sys/posix/time.d \
+	$(IMPDIR)/core/sys/posix/ucontext.d \
+	$(IMPDIR)/core/sys/posix/unistd.d \
+	$(IMPDIR)/core/sys/posix/utime.d \
+	$(IMPDIR)/core/sys/windows/windows.d
 
 ######################## Doc .html file generation ##############################
 
-html: $(DOCS)
+doc: $(DOCS)
 
 $(DOCDIR)/core/%.html : src/core/%.d
 	$(DMD) -c -d -o- -Iimport -Isrc -Df$@ $<
@@ -378,7 +459,7 @@ $(OBJDIR)/threadasm.o : src/core/threadasm.S
 ################### Library generation #########################
 
 $(DRUNTIME): $(OBJS) $(SRCS) win32.mak
-	$(DMD) -lib -of$(DRUNTIME) $(DFLAGS) $(SRCS) $(OBJS)
+	$(DMD) -lib -of$(DRUNTIME) -Xfdruntime.json $(DFLAGS) $(SRCS) $(OBJS)
 
 unittest : $(SRCS) $(DRUNTIME) src/unittest.d
 	$(DMD) $(UDFLAGS) -unittest src/unittest.d $(SRCS) $(DRUNTIME)
