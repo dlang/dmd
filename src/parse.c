@@ -3199,6 +3199,7 @@ Initializer *Parser::parseInitializer()
                         {   t = peek(t);
                             if (t->value != TOKsemicolon &&
                                 t->value != TOKcomma &&
+                                t->value != TOKrbracket &&
                                 t->value != TOKrcurly)
                                 goto Lexpression;
                             break;
