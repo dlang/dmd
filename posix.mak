@@ -438,14 +438,14 @@ IMPORTS=\
 doc: $(DOCS)
 
 $(DOCDIR)/core/%.html : src/core/%.d
-	$(DMD) -c -d -o- -Iimport -Isrc -Df$@ $<
+	$(DMD) -c -d -o- -Isrc -Iimport -Df$@ $<
 
 ######################## Header .di file generation ##############################
 
 import: $(IMPORTS)
 
 $(IMPDIR)/core/%.di : src/core/%.d
-	$(DMD) -c -d -o- -Iimport -Isrc -Hf$@ $<
+	$(DMD) -c -d -o- -Isrc -Iimport -Hf$@ $<
 
 ################### C/ASM Targets ############################
 
