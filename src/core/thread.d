@@ -792,7 +792,7 @@ class Thread
      * Returns:
      *  The name of this thread.
      */
-    final string name()
+    final @property string name()
     {
         synchronized( this )
         {
@@ -807,7 +807,7 @@ class Thread
      * Params:
      *  val = The new name of this thread.
      */
-    final void name( string val )
+    final @property void name( string val )
     {
         synchronized( this )
         {
@@ -826,7 +826,7 @@ class Thread
      * Returns:
      *  true if this is a daemon thread.
      */
-    final bool isDaemon()
+    final @property bool isDaemon()
     {
         synchronized( this )
         {
@@ -845,7 +845,7 @@ class Thread
      * Params:
      *  val = The new daemon status for this thread.
      */
-    final void isDaemon( bool val )
+    final @property void isDaemon( bool val )
     {
         synchronized( this )
         {
@@ -860,7 +860,7 @@ class Thread
      * Returns:
      *  true if the thread is running, false if not.
      */
-    final bool isRunning()
+    final @property bool isRunning()
     {
         if( m_addr == m_addr.init )
         {
@@ -912,7 +912,7 @@ class Thread
      * Returns:
      *  The scheduling priority of this thread.
      */
-    final int priority()
+    final @property int priority()
     {
         version( Windows )
         {
@@ -936,7 +936,7 @@ class Thread
      * Params:
      *  val = The new scheduling priority of this thread.
      */
-    final void priority( int val )
+    final @property void priority( int val )
     {
         version( Windows )
         {
@@ -2933,7 +2933,7 @@ class Fiber
      * Returns:
      *  The state of this fiber as an enumerated value.
      */
-    final State state()
+    final @property State state()
     {
         return m_state;
     }

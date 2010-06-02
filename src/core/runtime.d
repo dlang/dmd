@@ -22,6 +22,8 @@ private
     alias Throwable.TraceInfo function( void* ptr = null ) TraceHandler;
 
     extern (C) void rt_setCollectHandler( CollectHandler h );
+    extern (C) CollectHandler rt_getCollectHandler();
+
     extern (C) void rt_setTraceHandler( TraceHandler h );
     extern (C) TraceHandler rt_getTraceHandler();
 
@@ -120,7 +122,7 @@ struct Runtime
      * Returns:
      *  true if the runtime is halting.
      */
-    static bool isHalting()
+    static @property bool isHalting()
     {
         return rt_isHalting();
     }
@@ -168,15 +170,18 @@ struct Runtime
      * Params:
      *  h = The new trace handler.  Set to null to use the default handler.
      */
-    static void traceHandler( TraceHandler h )
+    static @property void traceHandler( TraceHandler h )
     {
         rt_setTraceHandler( h );
     }
 
     /**
-     * Return the current trace handler
+     * Gets the current trace handler.
+     *
+     * Returns:
+     *  The current trace handler or null if no trace handler is set.
      */
-    static TraceHandler traceHandler()
+    static @property TraceHandler traceHandler()
     {
         return rt_getTraceHandler();
     }
@@ -192,9 +197,21 @@ struct Runtime
      * Params:
      *  h = The new collect handler.  Set to null to use the default handler.
      */
-    static void collectHandler( CollectHandler h )
+    static @property void collectHandler( CollectHandler h )
     {
         rt_setCollectHandler( h );
+    }
+    
+    
+    /**
+     * Gets the current collect handler.
+     *
+     * Returns:
+     *  The current collect handler or null if no trace handler is set.
+     */
+    static @property CollectHandler collectHandler()
+    {
+        return rt_getCollectHandler();
     }
 
 
@@ -207,9 +224,22 @@ struct Runtime
      * Params:
      *  h = The new unit tester.  Set to null to use the default unit tester.
      */
-    static void moduleUnitTester( ModuleUnitTester h )
+    static @property void moduleUnitTester( ModuleUnitTester h )
     {
         sm_moduleUnitTester = h;
+    }
+    
+    
+    /**
+     * Gets the current module unit tester.
+     *
+     * Returns:
+     *  The current module unit tester handler or null if no trace handler is
+     *  set.
+     */
+    static @property ModuleUnitTester moduleUnitTester()
+    {
+        return sm_moduleUnitTester;
     }
 
 

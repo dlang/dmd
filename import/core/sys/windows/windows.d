@@ -51,6 +51,7 @@ extern (Windows)
     alias const(WCHAR)* LPCWSTR, PCWSTR;
 
     alias uint DWORD;
+    alias ulong DWORD64;
     alias int BOOL;
     alias ubyte BYTE;
     alias ushort WORD;
@@ -1173,6 +1174,90 @@ struct CONTEXT
     DWORD   EFlags;             // MUST BE SANITIZED
     DWORD   Esp;
     DWORD   SegSs;
+}
+
+enum ADDRESS_MODE
+{
+    AddrMode1616,
+    AddrMode1632,
+    AddrModeReal,
+    AddrModeFlat
+}
+
+struct ADDRESS
+{
+    DWORD         Offset;
+    WORD          Segment;
+    ADDRESS_MODE  Mode;
+}
+
+struct ADDRESS64
+{
+    DWORD64       Offset;
+    WORD          Segment;
+    ADDRESS_MODE  Mode;
+}
+
+struct KDHELP
+{
+    DWORD       Thread;
+    DWORD       ThCallbackStack;
+    DWORD       NextCallback;
+    DWORD       FramePointer;
+    DWORD       KiCallUserMode;
+    DWORD       KeUserCallbackDispatcher;
+    DWORD       SystemRangeStart;
+    DWORD       ThCallbackBStore;
+    DWORD       KiUserExceptionDispatcher;
+    DWORD       StackBase;
+    DWORD       StackLimit;
+    DWORD[5]    Reserved;
+}
+
+struct KDHELP64
+{
+    DWORD64     Thread;
+    DWORD       ThCallbackStack;
+    DWORD       ThCallbackBStore;
+    DWORD       NextCallback;
+    DWORD       FramePointer;
+    DWORD64     KiCallUserMode;
+    DWORD64     KeUserCallbackDispatcher;
+    DWORD64     SystemRangeStart;
+    DWORD64     KiUserExceptionDispatcher;
+    DWORD64     StackBase;
+    DWORD64     StackLimit;
+    DWORD64[5]  Reserved;
+}
+
+struct STACKFRAME
+{
+    ADDRESS     AddrPC;
+    ADDRESS     AddrReturn;
+    ADDRESS     AddrFrame;
+    ADDRESS     AddrStack;
+    PVOID       FuncTableEntry;
+    DWORD[4]    Params;
+    BOOL        Far;
+    BOOL        Virtual;
+    DWORD[3]    Reserved;
+    KDHELP      KdHelp;
+    ADDRESS     AddrBStore;
+}
+
+struct STACKFRAME64
+{
+    ADDRESS64   AddrPC;
+    ADDRESS64   AddrReturn;
+    ADDRESS64   AddrFrame;
+    ADDRESS64   AddrStack;
+    ADDRESS64   AddrBStore;
+    PVOID       FuncTableEntry;
+    DWORD64[4]  Params;
+    BOOL        Far;
+    BOOL        Virtual;
+    DWORD64[3]  Reserved;
+    KDHELP64    KdHelp;
 }
 
 enum

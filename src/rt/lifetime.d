@@ -941,9 +941,18 @@ extern (C) void _d_callfinalizer(void* p)
 /**
  *
  */
-extern (C) void  rt_setCollectHandler(CollectHandler h)
+extern (C) void rt_setCollectHandler(CollectHandler h)
 {
     collectHandler = h;
+}
+
+
+/**
+ *
+ */
+extern (C) CollectHandler rt_getCollectHandler()
+{
+    return collectHandler;
 }
 
 
