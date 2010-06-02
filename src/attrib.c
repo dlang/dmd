@@ -452,6 +452,7 @@ void StorageClassDeclaration::stcToCBuffer(OutBuffer *buf, StorageClass stc)
         if (stc & table[i].stc)
         {
             enum TOK tok = table[i].tok;
+#if DMDV2
             if (tok == TOKat)
             {   Identifier *id;
 
@@ -465,9 +466,11 @@ void StorageClassDeclaration::stcToCBuffer(OutBuffer *buf, StorageClass stc)
                     id = Id::disable;
                 else
                     assert(0);
+                buf->writeByte('@');
                 buf->writestring(id->toChars());
             }
             else
+#endif
                 buf->writestring(Token::toChars(tok));
             buf->writeByte(' ');
         }
