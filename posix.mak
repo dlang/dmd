@@ -4,8 +4,8 @@ DMD=dmd
 DOCDIR=doc
 IMPDIR=import
 
-DFLAGS=-O -release -inline -nofloat -w -d -Iimport -Isrc
-UDFLAGS=-O -release -nofloat -w -d -Iimport -Isrc
+DFLAGS=-O -release -inline -nofloat -w -d -Isrc -Iimport
+UDFLAGS=-O -release -nofloat -w -d -Isrc -Iimport
 
 CFLAGS=-m32 -O
 
@@ -389,44 +389,49 @@ IMPORTS=\
 	$(IMPDIR)/core/sync/rwmutex.di \
 	$(IMPDIR)/core/sync/semaphore.di \
 	\
-	$(IMPDIR)/core/sys/osx/mach/kern_return.d \
-	$(IMPDIR)/core/sys/osx/mach/port.d \
-	$(IMPDIR)/core/sys/osx/mach/semaphore.d \
-	$(IMPDIR)/core/sys/osx/mach/thread_act.d \
-	$(IMPDIR)/core/sys/posix/arpa/inet.d \
-	$(IMPDIR)/core/sys/posix/config.d \
-	$(IMPDIR)/core/sys/posix/dirent.d \
-	$(IMPDIR)/core/sys/posix/dlfcn.d \
-	$(IMPDIR)/core/sys/posix/fcntl.d \
-	$(IMPDIR)/core/sys/posix/inttypes.d \
-	$(IMPDIR)/core/sys/posix/net/if_.d \
-	$(IMPDIR)/core/sys/posix/netinet/in_.d \
-	$(IMPDIR)/core/sys/posix/netinet/tcp.d \
-	$(IMPDIR)/core/sys/posix/poll.d \
-	$(IMPDIR)/core/sys/posix/pthread.d \
-	$(IMPDIR)/core/sys/posix/pwd.d \
-	$(IMPDIR)/core/sys/posix/sched.d \
-	$(IMPDIR)/core/sys/posix/semaphore.d \
-	$(IMPDIR)/core/sys/posix/setjmp.d \
-	$(IMPDIR)/core/sys/posix/signal.d \
-	$(IMPDIR)/core/sys/posix/stdio.d \
-	$(IMPDIR)/core/sys/posix/stdlib.d \
-	$(IMPDIR)/core/sys/posix/sys/ipc.d \
-	$(IMPDIR)/core/sys/posix/sys/mman.d \
-	$(IMPDIR)/core/sys/posix/sys/select.d \
-	$(IMPDIR)/core/sys/posix/sys/shm.d \
-	$(IMPDIR)/core/sys/posix/sys/socket.d \
-	$(IMPDIR)/core/sys/posix/sys/stat.d \
-	$(IMPDIR)/core/sys/posix/sys/time.d \
-	$(IMPDIR)/core/sys/posix/sys/types.d \
-	$(IMPDIR)/core/sys/posix/sys/uio.d \
-	$(IMPDIR)/core/sys/posix/sys/wait.d \
-	$(IMPDIR)/core/sys/posix/termios.d \
-	$(IMPDIR)/core/sys/posix/time.d \
-	$(IMPDIR)/core/sys/posix/ucontext.d \
-	$(IMPDIR)/core/sys/posix/unistd.d \
-	$(IMPDIR)/core/sys/posix/utime.d \
-	$(IMPDIR)/core/sys/windows/windows.d
+	$(IMPDIR)/core/sys/osx/mach/kern_return.di \
+	$(IMPDIR)/core/sys/osx/mach/port.di \
+	$(IMPDIR)/core/sys/osx/mach/semaphore.di \
+	$(IMPDIR)/core/sys/osx/mach/thread_act.di \
+	\
+	$(IMPDIR)/core/sys/posix/arpa/inet.di \
+	$(IMPDIR)/core/sys/posix/config.di \
+	$(IMPDIR)/core/sys/posix/dirent.di \
+	$(IMPDIR)/core/sys/posix/dlfcn.di \
+	$(IMPDIR)/core/sys/posix/fcntl.di \
+	$(IMPDIR)/core/sys/posix/inttypes.di \
+	$(IMPDIR)/core/sys/posix/poll.di \
+	$(IMPDIR)/core/sys/posix/pthread.di \
+	$(IMPDIR)/core/sys/posix/pwd.di \
+	$(IMPDIR)/core/sys/posix/sched.di \
+	$(IMPDIR)/core/sys/posix/semaphore.di \
+	$(IMPDIR)/core/sys/posix/setjmp.di \
+	$(IMPDIR)/core/sys/posix/signal.di \
+	$(IMPDIR)/core/sys/posix/stdio.di \
+	$(IMPDIR)/core/sys/posix/stdlib.di \
+	$(IMPDIR)/core/sys/posix/termios.di \
+	$(IMPDIR)/core/sys/posix/time.di \
+	$(IMPDIR)/core/sys/posix/ucontext.di \
+	$(IMPDIR)/core/sys/posix/unistd.di \
+	$(IMPDIR)/core/sys/posix/utime.di \
+	\
+	$(IMPDIR)/core/sys/posix/net/if_.di \
+	\
+	$(IMPDIR)/core/sys/posix/netinet/in_.di \
+	$(IMPDIR)/core/sys/posix/netinet/tcp.di \
+	\
+	$(IMPDIR)/core/sys/posix/sys/ipc.di \
+	$(IMPDIR)/core/sys/posix/sys/mman.di \
+	$(IMPDIR)/core/sys/posix/sys/select.di \
+	$(IMPDIR)/core/sys/posix/sys/shm.di \
+	$(IMPDIR)/core/sys/posix/sys/socket.di \
+	$(IMPDIR)/core/sys/posix/sys/stat.di \
+	$(IMPDIR)/core/sys/posix/sys/time.di \
+	$(IMPDIR)/core/sys/posix/sys/types.di \
+	$(IMPDIR)/core/sys/posix/sys/uio.di \
+	$(IMPDIR)/core/sys/posix/sys/wait.di \
+	\
+	$(IMPDIR)/core/sys/windows/windows.di
 
 ######################## Doc .html file generation ##############################
 
