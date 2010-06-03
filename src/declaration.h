@@ -97,6 +97,14 @@ int overloadApply(FuncDeclaration *fstart,
         int (*fp)(void *, FuncDeclaration *),
         void *param);
 
+enum Semantic
+{
+    SemanticStart,      // semantic has not been run
+    SemanticIn,         // semantic() is in progress
+    SemanticDone,       // semantic() has been run
+    Semantic2Done,      // semantic2() has been run
+};
+
 /**************************************************************/
 
 struct Declaration : Dsymbol
@@ -107,6 +115,8 @@ struct Declaration : Dsymbol
     enum PROT protection;
     enum LINK linkage;
     int inuse;                  // used to detect cycles
+
+    enum Semantic sem;
 
     Declaration(Identifier *id);
     void semantic(Scope *sc);
@@ -170,10 +180,6 @@ struct TypedefDeclaration : Declaration
 {
     Type *basetype;
     Initializer *init;
-    int sem;                    // 0: semantic() has not been run
-                                // 1: semantic() is in progress
-                                // 2: semantic() has been run
-                                // 3: semantic2() has been run
 
     TypedefDeclaration(Loc loc, Identifier *ident, Type *basetype, Initializer *init);
     Dsymbol *syntaxCopy(Dsymbol *);

@@ -1618,6 +1618,7 @@ dinteger_t IntegerExp::toInteger()
                  */
                 if (!global.errors)
                 {
+                    printf("e = %p, ty = %d\n", this, type->ty);
                     type->print();
                     assert(0);
                 }
@@ -4323,6 +4324,8 @@ Expression *VarExp::semantic(Scope *sc)
 #if LOGSEMANTIC
     printf("VarExp::semantic(%s)\n", toChars());
 #endif
+//    if (var->sem == SemanticStart && var->scope)      // if forward referenced
+//      var->semantic(sc);
     if (!type)
     {   type = var->type;
 #if 0

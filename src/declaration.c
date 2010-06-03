@@ -34,6 +34,7 @@ Declaration::Declaration(Identifier *id)
     protection = PROTundefined;
     linkage = LINKdefault;
     inuse = 0;
+    sem = SemanticStart;
 }
 
 void Declaration::semantic(Scope *sc)
@@ -255,7 +256,6 @@ TypedefDeclaration::TypedefDeclaration(Loc loc, Identifier *id, Type *basetype, 
     this->htype = NULL;
     this->hbasetype = NULL;
 #endif
-    this->sem = 0;
     this->loc = loc;
     this->sinit = NULL;
 }
@@ -296,10 +296,10 @@ Dsymbol *TypedefDeclaration::syntaxCopy(Dsymbol *s)
 void TypedefDeclaration::semantic(Scope *sc)
 {
     //printf("TypedefDeclaration::semantic(%s) sem = %d\n", toChars(), sem);
-    if (sem == 0)
-    {   sem = 1;
+    if (sem == SemanticStart)
+    {   sem = SemanticIn;
         basetype = basetype->semantic(loc, sc);
-        sem = 2;
+        sem = SemanticDone;
 #if DMDV2
         type = type->addStorageClass(storage_class);
 #endif
@@ -308,7 +308,7 @@ void TypedefDeclaration::semantic(Scope *sc)
             semantic2(sc);
         storage_class |= sc->stc & STCdeprecated;
     }
-    else if (sem == 1)
+    else if (sem == SemanticIn)
     {
         error("circular definition");
     }
@@ -317,8 +317,8 @@ void TypedefDeclaration::semantic(Scope *sc)
 void TypedefDeclaration::semantic2(Scope *sc)
 {
     //printf("TypedefDeclaration::semantic2(%s) sem = %d\n", toChars(), sem);
-    if (sem == 2)
-    {   sem = 3;
+    if (sem == SemanticDone)
+    {   sem = Semantic2Done;
         if (init)
         {
             init = init->semantic(sc, basetype);
@@ -497,6 +497,7 @@ void AliasDeclaration::semantic(Scope *sc)
     else if (t)
     {
         type = t;
+        //printf("\talias resolved to type %s\n", type->toChars());
     }
     if (overnext)
         ScopeDsymbol::multiplyDefined(0, this, overnext);
@@ -716,6 +717,15 @@ void VarDeclaration::semantic(Scope *sc)
     printf("linkage = %d\n", sc->linkage);
     //if (strcmp(toChars(), "mul") == 0) halt();
 #endif
+
+//    if (sem > SemanticStart)
+//      return;
+//    sem = SemanticIn;
+
+    if (scope)
+    {   sc = scope;
+        scope = NULL;
+    }
 
     /* Pick up storage classes from context, but skip synchronized
      */
@@ -1306,6 +1316,7 @@ Lagain:
         }
         sc = sc->pop();
     }
+    sem = SemanticDone;
 }
 
 void VarDeclaration::semantic2(Scope *sc)
@@ -1324,6 +1335,7 @@ void VarDeclaration::semantic2(Scope *sc)
         init = init->semantic(sc, type);
         inuse--;
     }
+    sem = Semantic2Done;
 }
 
 const char *VarDeclaration::kind()

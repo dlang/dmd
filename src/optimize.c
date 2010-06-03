@@ -122,7 +122,7 @@ Expression *expandVar(int result, VarDeclaration *v)
         }
     }
 L1:
-    //if (e) printf("\te = %s, e->type = %s\n", e->toChars(), e->type->toChars());
+    //if (e) printf("\te = %p, %s, e->type = %d, %s\n", e, e->toChars(), e->type->ty, e->type->toChars());
     return e;
 }
 
@@ -135,9 +135,10 @@ Expression *fromConstInitializer(int result, Expression *e1)
     if (e1->op == TOKvar)
     {   VarExp *ve = (VarExp *)e1;
         VarDeclaration *v = ve->var->isVarDeclaration();
+        int fwdref = (v && !v->originalType && v->scope);
         e = expandVar(result, v);
         if (e)
-        {   if (e->type != e1->type && e1->type)
+        {   if (e->type != e1->type && e1->type && e1->type->ty != Tident)
             {   // Type 'paint' operation
                 e = e->copy();
                 e->type = e1->type;
