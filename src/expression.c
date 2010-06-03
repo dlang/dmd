@@ -736,10 +736,7 @@ Type *functionParameters(Loc loc, Scope *sc, TypeFunction *tf,
 
                             Expression *e = new VarExp(loc, v);
                             e = new IndexExp(loc, e, new IntegerExp(u + 1 - nparams));
-                            AssignExp *ae = new AssignExp(loc, e, a);
-#if DMDV2
-                            ae->op = TOKconstruct;
-#endif
+                            ConstructExp *ae = new ConstructExp(loc, e, a);
                             if (c)
                                 c = new CommaExp(loc, c, ae);
                             else
@@ -5144,9 +5141,9 @@ Expression *IsExp::semantic(Scope *sc)
                 else
                 {   ClassDeclaration *cd = ((TypeClass *)targ)->sym;
                     Parameters *args = new Parameters;
-                    args->reserve(cd->baseclasses.dim);
-                    for (size_t i = 0; i < cd->baseclasses.dim; i++)
-                    {   BaseClass *b = (BaseClass *)cd->baseclasses.data[i];
+                    args->reserve(cd->baseclasses->dim);
+                    for (size_t i = 0; i < cd->baseclasses->dim; i++)
+                    {   BaseClass *b = (BaseClass *)cd->baseclasses->data[i];
                         args->push(new Parameter(STCin, b->type, NULL, NULL));
                     }
                     tded = new TypeTuple(args);
@@ -9133,6 +9130,14 @@ Expression *AssignExp::checkToBoolean(Scope *sc)
 
     error("'=' does not give a boolean result");
     return new ErrorExp();
+}
+
+/************************************************************/
+
+ConstructExp::ConstructExp(Loc loc, Expression *e1, Expression *e2)
+    : AssignExp(loc, e1, e2)
+{
+    op = TOKconstruct;
 }
 
 /************************************************************/

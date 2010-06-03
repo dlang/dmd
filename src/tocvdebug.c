@@ -525,8 +525,8 @@ void ClassDeclaration::toDebug()
     fnamelen = 2;
 
     // Add in base classes
-    for (i = 0; i < baseclasses.dim; i++)
-    {   BaseClass *bc = (BaseClass *)baseclasses.data[i];
+    for (i = 0; i < baseclasses->dim; i++)
+    {   BaseClass *bc = (BaseClass *)baseclasses->data[i];
 
         nfields++;
         fnamelen += 6 + cv4_numericbytes(bc->offset);
@@ -558,8 +558,8 @@ void ClassDeclaration::toDebug()
     p += 2;
 
     // Add in base classes
-    for (i = 0; i < baseclasses.dim; i++)
-    {   BaseClass *bc = (BaseClass *)baseclasses.data[i];
+    for (i = 0; i < baseclasses->dim; i++)
+    {   BaseClass *bc = (BaseClass *)baseclasses->data[i];
         idx_t typidx;
         unsigned attribute;
 

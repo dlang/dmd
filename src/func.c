@@ -1397,8 +1397,7 @@ void FuncDeclaration::semantic3(Scope *sc)
                 Expression *e = new VarExp(0, v_arguments);
                 e = new DotIdExp(0, e, Id::elements);
                 Expression *e1 = new VarExp(0, _arguments);
-                e = new AssignExp(0, e1, e);
-                e->op = TOKconstruct;
+                e = new ConstructExp(0, e1, e);
                 e = e->semantic(sc2);
                 a->push(new ExpStatement(0, e));
             }

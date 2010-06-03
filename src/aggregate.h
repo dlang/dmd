@@ -209,7 +209,7 @@ struct ClassDeclaration : AggregateDeclaration
     Array vtbl;                         // Array of FuncDeclaration's making up the vtbl[]
     Array vtblFinal;                    // More FuncDeclaration's that aren't in vtbl[]
 
-    BaseClasses baseclasses;            // Array of BaseClass's; first is super,
+    BaseClasses *baseclasses;           // Array of BaseClass's; first is super,
                                         // rest are Interface's
 
     int interfaces_dim;

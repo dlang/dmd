@@ -1003,8 +1003,7 @@ Lagain:
             Expression *e = new IntegerExp(loc, 0, Type::tint32);
             Expression *e1;
             e1 = new VarExp(loc, this);
-            e = new AssignExp(loc, e1, e);
-            e->op = TOKconstruct;
+            e = new ConstructExp(loc, e1, e);
             e->type = e1->type;         // don't type check this, it would fail
             init = new ExpInitializer(loc, e);
             return;

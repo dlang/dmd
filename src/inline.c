@@ -1486,8 +1486,7 @@ Expression *FuncDeclaration::doInline(InlineScanState *iss, Expression *ethis, A
             //ve->type = vto->type;
             ve->type = arg->type;
 
-            ei->exp = new AssignExp(vto->loc, ve, arg);
-            ei->exp->op = TOKconstruct;
+            ei->exp = new ConstructExp(vto->loc, ve, arg);
             ei->exp->type = ve->type;
 //ve->type->print();
 //arg->type->print();
@@ -1539,8 +1538,7 @@ Expression *FuncDeclaration::doInline(InlineScanState *iss, Expression *ethis, A
         VarExp *ve = new VarExp(loc, vd);
         ve->type = tf->next;
 
-        ei->exp = new AssignExp(loc, ve, e);
-        ei->exp->op = TOKconstruct;
+        ei->exp = new ConstructExp(loc, ve, e);
         ei->exp->type = ve->type;
 
         DeclarationExp* de = new DeclarationExp(0, vd);

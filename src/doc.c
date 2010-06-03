@@ -856,8 +856,8 @@ void ClassDeclaration::toDocBuffer(OutBuffer *buf)
             buf->printf("%s $(DDOC_PSYMBOL %s)", kind(), toChars());
         }
         int any = 0;
-        for (int i = 0; i < baseclasses.dim; i++)
-        {   BaseClass *bc = (BaseClass *)baseclasses.data[i];
+        for (int i = 0; i < baseclasses->dim; i++)
+        {   BaseClass *bc = (BaseClass *)baseclasses->data[i];
 
             if (bc->protection == PROTprivate)
                 continue;
