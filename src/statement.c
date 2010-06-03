@@ -1286,6 +1286,7 @@ ForeachStatement::ForeachStatement(Loc loc, enum TOK op, Parameters *arguments,
 
 Statement *ForeachStatement::syntaxCopy()
 {
+    printf("ForeachStatement::syntaxCopy()\n");
     Parameters *args = Parameter::arraySyntaxCopy(arguments);
     Expression *exp = aggr->syntaxCopy();
     ForeachStatement *s = new ForeachStatement(loc, op, args, exp,

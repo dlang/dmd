@@ -310,11 +310,17 @@ struct OutBuffer : Object
 struct Array : Object
 {
     unsigned dim;
-    unsigned allocdim;
     void **data;
 
+  private:
+    unsigned allocdim;
+    #define SMALLARRAYCAP       1
+    void *smallarray[SMALLARRAYCAP];    // inline storage for small arrays
+
+  public:
     Array();
     ~Array();
+    //Array(const Array&);
     void mark();
     char *toChars();
 

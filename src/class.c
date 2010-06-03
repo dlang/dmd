@@ -1,6 +1,6 @@
 
 // Compiler implementation of the D programming language
-// Copyright (c) 1999-2009 by Digital Mars
+// Copyright (c) 1999-2010 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // http://www.digitalmars.com
@@ -38,7 +38,8 @@ ClassDeclaration::ClassDeclaration(Loc loc, Identifier *id, BaseClasses *basecla
     static char msg[] = "only object.d can define this reserved class name";
 
     if (baseclasses)
-        this->baseclasses = *baseclasses;
+        // Actually, this is a transfer
+        this->baseclasses.append(baseclasses);
     baseClass = NULL;
 
     interfaces_dim = 0;

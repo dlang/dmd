@@ -1,8 +1,8 @@
 
-// Copyright (c) 1999-2009 by Digital Mars
+// Copyright (c) 1999-2010 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
-// www.digitalmars.com
+// http://www.digitalmars.com
 // License for redistribution is by either the Artistic License
 // in artistic.txt, or the GNU General Public License in gnu.txt.
 // See the included readme.txt for details.
@@ -48,14 +48,15 @@
 
 Array::Array()
 {
-    data = NULL;
+    data = SMALLARRAYCAP ? &smallarray[0] : NULL;
     dim = 0;
-    allocdim = 0;
+    allocdim = SMALLARRAYCAP;
 }
 
 Array::~Array()
 {
-    mem.free(data);
+    if (data != &smallarray[0])
+        mem.free(data);
 }
 
 void Array::mark()
@@ -68,11 +69,30 @@ void Array::mark()
 
 void Array::reserve(unsigned nentries)
 {
-    //printf("Array::reserve: size = %d, offset = %d, nbytes = %d\n", size, offset, nbytes);
+    //printf("Array::reserve: dim = %d, allocdim = %d, nentries = %d\n", dim, allocdim, nentries);
     if (allocdim - dim < nentries)
     {
-        allocdim = dim + nentries;
-        data = (void **)mem.realloc(data, allocdim * sizeof(*data));
+        if (allocdim == 0)
+        {   // Not properly initialized, someone memset it to zero
+            if (nentries <= SMALLARRAYCAP)
+            {   allocdim = SMALLARRAYCAP;
+                data = SMALLARRAYCAP ? &smallarray[0] : NULL;
+            }
+            else
+            {   allocdim = nentries;
+                data = (void **)mem.malloc(allocdim * sizeof(*data));
+            }
+        }
+        else if (allocdim == SMALLARRAYCAP)
+        {
+            allocdim = dim + nentries;
+            data = (void **)mem.malloc(allocdim * sizeof(*data));
+            memcpy(data, &smallarray[0], dim * sizeof(*data));
+        }
+        else
+        {   allocdim = dim + nentries;
+            data = (void **)mem.realloc(data, allocdim * sizeof(*data));
+        }
     }
 }
 
@@ -88,7 +108,17 @@ void Array::setDim(unsigned newdim)
 void Array::fixDim()
 {
     if (dim != allocdim)
-    {   data = (void **)mem.realloc(data, dim * sizeof(*data));
+    {
+        if (allocdim >= SMALLARRAYCAP)
+        {
+            if (dim <= SMALLARRAYCAP)
+            {
+                memcpy(&smallarray[0], data, dim * sizeof(*data));
+                mem.free(data);
+            }
+            else
+                data = (void **)mem.realloc(data, dim * sizeof(*data));
+        }
         allocdim = dim;
     }
 }
