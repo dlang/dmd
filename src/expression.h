@@ -1134,6 +1134,11 @@ struct AssignExp : BinExp
     elem *toElem(IRState *irs);
 };
 
+struct ConstructExp : AssignExp
+{
+    ConstructExp(Loc loc, Expression *e1, Expression *e2);
+};
+
 #define ASSIGNEXP(op)   \
 struct op##AssignExp : BinExp                                   \
 {                                                               \

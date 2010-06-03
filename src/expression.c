@@ -4797,9 +4797,9 @@ Expression *IsExp::semantic(Scope *sc)
                 else
                 {   ClassDeclaration *cd = ((TypeClass *)targ)->sym;
                     Parameters *args = new Parameters;
-                    args->reserve(cd->baseclasses.dim);
-                    for (size_t i = 0; i < cd->baseclasses.dim; i++)
-                    {   BaseClass *b = (BaseClass *)cd->baseclasses.data[i];
+                    args->reserve(cd->baseclasses->dim);
+                    for (size_t i = 0; i < cd->baseclasses->dim; i++)
+                    {   BaseClass *b = (BaseClass *)cd->baseclasses->data[i];
                         args->push(new Parameter(STCin, b->type, NULL, NULL));
                     }
                     tded = new TypeTuple(args);
@@ -8364,6 +8364,14 @@ Expression *AssignExp::checkToBoolean()
 
     error("'=' does not give a boolean result");
     return this;
+}
+
+/************************************************************/
+
+ConstructExp::ConstructExp(Loc loc, Expression *e1, Expression *e2)
+    : AssignExp(loc, e1, e2)
+{
+    op = TOKconstruct;
 }
 
 /************************************************************/
