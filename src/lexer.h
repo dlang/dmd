@@ -1,6 +1,6 @@
 
 // Compiler implementation of the D programming language
-// Copyright (c) 1999-2008 by Digital Mars
+// Copyright (c) 1999-2010 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // http://www.digitalmars.com
@@ -31,7 +31,8 @@ struct Module;
         +       -       +=      -=
         *       /       %       *=      /=      %=
         &       |       ^       &=      |=      ^=
-        =       !       ~
+        =       !       ~       @
+        ^^      ^^=
         ++      --
         .       ->      :       ,
         ?       &&      ||
@@ -95,8 +96,9 @@ enum TOK
         TOKplusplus,    TOKminusminus,  TOKconstruct,   TOKblit,
         TOKdot,         TOKarrow,       TOKcomma,
         TOKquestion,    TOKandand,      TOKoror,
+        TOKpreplusplus, TOKpreminusminus,
 
-// 104
+// 106
         // Numeric literals
         TOKint32v, TOKuns32v,
         TOKint64v, TOKuns64v,
@@ -124,7 +126,7 @@ enum TOK
         TOKchar, TOKwchar, TOKdchar, TOKbit, TOKbool,
         TOKcent, TOKucent,
 
-// 150
+// 152
         // Aggregates
         TOKstruct, TOKclass, TOKinterface, TOKunion, TOKenum, TOKimport,
         TOKtypedef, TOKalias, TOKoverride, TOKdelegate, TOKfunction,
@@ -133,7 +135,7 @@ enum TOK
         TOKalign, TOKextern, TOKprivate, TOKprotected, TOKpublic, TOKexport,
         TOKstatic, /*TOKvirtual,*/ TOKfinal, TOKconst, TOKabstract, TOKvolatile,
         TOKdebug, TOKdeprecated, TOKin, TOKout, TOKinout, TOKlazy,
-        TOKauto, TOKpackage, TOKmanifest,
+        TOKauto, TOKpackage, TOKmanifest, TOKimmutable,
 
         // Statements
         TOKif, TOKelse, TOKwhile, TOKfor, TOKdo, TOKswitch,
@@ -158,13 +160,19 @@ enum TOK
         TOKpure,
         TOKnothrow,
         TOKtls,
+        TOKgshared,
         TOKline,
         TOKfile,
         TOKshared,
+        TOKat,
+        TOKpow,
+        TOKpowass,
 #endif
 
         TOKMAX
 };
+
+#define TOKwild TOKinout
 
 #define BASIC_TYPES                     \
         TOKwchar: case TOKdchar:                \
@@ -275,6 +283,7 @@ struct Lexer
 
     TOK nextToken();
     TOK peekNext();
+    TOK peekNext2();
     void scan(Token *t);
     Token *peek(Token *t);
     Token *peekPastParen(Token *t);
