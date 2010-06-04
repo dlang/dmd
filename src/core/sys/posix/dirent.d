@@ -150,15 +150,18 @@ else version( freebsd )
 
     dirent* readdir(DIR*);
 }
-else
+else version( Posix )
 {
     dirent* readdir(DIR*);
 }
 
-int     closedir(DIR*);
-DIR*    opendir(in char*);
-//dirent* readdir(DIR*);
-void    rewinddir(DIR*);
+version( Posix )
+{
+    int     closedir(DIR*);
+    DIR*    opendir(in char*);
+    //dirent* readdir(DIR*);
+    void    rewinddir(DIR*);
+}
 
 //
 // Thread-Safe Functions (TSF)

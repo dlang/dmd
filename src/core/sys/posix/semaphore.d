@@ -71,15 +71,18 @@ else version( freebsd )
     enum SEM_FAILED = cast(sem_t*) null;
 }
 
-int sem_close(sem_t*);
-int sem_destroy(sem_t*);
-int sem_getvalue(sem_t*, int*);
-int sem_init(sem_t*, int, uint);
-sem_t* sem_open(in char*, int, ...);
-int sem_post(sem_t*);
-int sem_trywait(sem_t*);
-int sem_unlink(in char*);
-int sem_wait(sem_t*);
+version( Posix )
+{
+    int sem_close(sem_t*);
+    int sem_destroy(sem_t*);
+    int sem_getvalue(sem_t*, int*);
+    int sem_init(sem_t*, int, uint);
+    sem_t* sem_open(in char*, int, ...);
+    int sem_post(sem_t*);
+    int sem_trywait(sem_t*);
+    int sem_unlink(in char*);
+    int sem_wait(sem_t*);
+}
 
 //
 // Timeouts (TMO)

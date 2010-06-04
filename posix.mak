@@ -443,7 +443,7 @@ $(DOCDIR)/core/%.html : src/core/%.d
 ######################## Header .di file generation ##############################
 
 import: $(IMPORTS)
-
+	
 $(IMPDIR)/core/%.di : src/core/%.d
 	$(DMD) -c -d -o- -Isrc -Iimport -Hf$@ $<
 

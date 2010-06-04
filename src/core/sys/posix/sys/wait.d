@@ -112,13 +112,12 @@ else version( freebsd )
     extern (D) int  WSTOPSIG( int status )     { return status >> 8;                     }
     extern (D) int  WTERMSIG( int status )     { return _WSTATUS( status );              }
 }
-else
-{
-    static assert( false );
-}
 
-pid_t wait(int*);
-pid_t waitpid(pid_t, int*, int);
+version( Posix )
+{
+    pid_t wait(int*);
+    pid_t waitpid(pid_t, int*, int);
+}
 
 //
 // XOpen (XSI)

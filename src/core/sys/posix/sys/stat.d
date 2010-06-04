@@ -325,14 +325,17 @@ else version( freebsd )
     extern (D) bool S_ISSOCK( mode_t mode ) { return S_ISTYPE( mode, S_IFSOCK ); }
 }
 
-int    chmod(in char*, mode_t);
-int    fchmod(int, mode_t);
-//int    fstat(int, stat_t*);
-//int    lstat(in char*, stat_t*);
-int    mkdir(in char*, mode_t);
-int    mkfifo(in char*, mode_t);
-//int    stat(in char*, stat_t*);
-mode_t umask(mode_t);
+version( Posix )
+{
+    int    chmod(in char*, mode_t);
+    int    fchmod(int, mode_t);
+    //int    fstat(int, stat_t*);
+    //int    lstat(in char*, stat_t*);
+    int    mkdir(in char*, mode_t);
+    int    mkfifo(in char*, mode_t);
+    //int    stat(in char*, stat_t*);
+    mode_t umask(mode_t);
+}
 
 version( linux )
 {
@@ -354,7 +357,7 @@ version( linux )
     int   stat(in char*, stat_t*);
   }
 }
-else
+else version( Posix )
 {
     int   fstat(int, stat_t*);
     int   lstat(in char*, stat_t*);

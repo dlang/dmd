@@ -233,9 +233,12 @@ else version( freebsd )
     int open(in char*, int, ...);
 }
 
-//int creat(in char*, mode_t);
-int fcntl(int, int, ...);
-//int open(in char*, int, ...);
+version( Posix )
+{
+    //int creat(in char*, mode_t);
+    int fcntl(int, int, ...);
+    //int open(in char*, int, ...);
+}
 
 //
 // Advisory Information (ADV)

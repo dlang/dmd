@@ -454,7 +454,7 @@ else version( OSX )
 IPPROTO_RAW
 */
 
-version (linux )
+version( linux )
 {
     enum uint IPPROTO_RAW = 255;
 }

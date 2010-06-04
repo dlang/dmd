@@ -163,19 +163,22 @@ version( linux )
     off_t ftello(FILE*);
   }
 }
-else
+else version( Posix )
 {
     int   fseeko(FILE*, off_t, int);
     off_t ftello(FILE*);
 }
 
-char*  ctermid(char*);
-FILE*  fdopen(int, in char*);
-int    fileno(FILE*);
-//int    fseeko(FILE*, off_t, int);
-//off_t  ftello(FILE*);
-char*  gets(char*);
-FILE*  popen(in char*, in char*);
+version( Posix )
+{
+    char*  ctermid(char*);
+    FILE*  fdopen(int, in char*);
+    int    fileno(FILE*);
+    //int    fseeko(FILE*, off_t, int);
+    //off_t  ftello(FILE*);
+    char*  gets(char*);
+    FILE*  popen(in char*, in char*);
+}
 
 //
 // Thread-Safe Functions (TSF)

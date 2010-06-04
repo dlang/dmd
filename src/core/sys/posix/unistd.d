@@ -20,71 +20,74 @@ public import core.sys.posix.sys.types; // for size_t, ssize_t, uid_t, gid_t, of
 
 extern (C):
 
-enum STDIN_FILENO  = 0;
-enum STDOUT_FILENO = 1;
-enum STDERR_FILENO = 2;
+version( Posix )
+{
+    enum STDIN_FILENO  = 0;
+    enum STDOUT_FILENO = 1;
+    enum STDERR_FILENO = 2;
 
-char*   optarg;
-int     optind;
-int     opterr;
-int     optopt;
+    char*   optarg;
+    int     optind;
+    int     opterr;
+    int     optopt;
 
-int     access(in char*, int);
-uint    alarm(uint);
-int     chdir(in char*);
-int     chown(in char*, uid_t, gid_t);
-int     close(int);
-size_t  confstr(int, char*, size_t);
-int     dup(int);
-int     dup2(int, int);
-int     execl(in char*, in char*, ...);
-int     execle(in char*, in char*, ...);
-int     execlp(in char*, in char*, ...);
-int     execv(in char*, in char**);
-int     execve(in char*, in char**, in char**);
-int     execvp(in char*, in char**);
-void    _exit(int);
-int     fchown(int, uid_t, gid_t);
-pid_t   fork();
-c_long  fpathconf(int, int);
-//int     ftruncate(int, off_t);
-char*   getcwd(char*, size_t);
-gid_t   getegid();
-uid_t   geteuid();
-gid_t   getgid();
-int     getgroups(int, gid_t *);
-int     gethostname(char*, size_t);
-char*   getlogin();
-int     getlogin_r(char*, size_t);
-int     getopt(int, in char**, in char*);
-pid_t   getpgrp();
-pid_t   getpid();
-pid_t   getppid();
-uid_t   getuid();
-int     isatty(int);
-int     link(in char*, in char*);
-//off_t   lseek(int, off_t, int);
-c_long  pathconf(in char*, int);
-int     pause();
-int     pipe(int[2]);
-ssize_t read(int, void*, size_t);
-ssize_t readlink(in char*, char*, size_t);
-int     rmdir(in char*);
-int     setegid(gid_t);
-int     seteuid(uid_t);
-int     setgid(gid_t);
-int     setpgid(pid_t, pid_t);
-pid_t   setsid();
-int     setuid(uid_t);
-uint    sleep(uint);
-int     symlink(in char*, in char*);
-c_long  sysconf(int);
-pid_t   tcgetpgrp(int);
-int     tcsetpgrp(int, pid_t);
-char*   ttyname(int);
-int     ttyname_r(int, char*, size_t);
-int     unlink(in char*);
-ssize_t write(int, in void*, size_t);
+    int     access(in char*, int);
+    uint    alarm(uint);
+    int     chdir(in char*);
+    int     chown(in char*, uid_t, gid_t);
+    int     close(int);
+    size_t  confstr(int, char*, size_t);
+    int     dup(int);
+    int     dup2(int, int);
+    int     execl(in char*, in char*, ...);
+    int     execle(in char*, in char*, ...);
+    int     execlp(in char*, in char*, ...);
+    int     execv(in char*, in char**);
+    int     execve(in char*, in char**, in char**);
+    int     execvp(in char*, in char**);
+    void    _exit(int);
+    int     fchown(int, uid_t, gid_t);
+    pid_t   fork();
+    c_long  fpathconf(int, int);
+    //int     ftruncate(int, off_t);
+    char*   getcwd(char*, size_t);
+    gid_t   getegid();
+    uid_t   geteuid();
+    gid_t   getgid();
+    int     getgroups(int, gid_t *);
+    int     gethostname(char*, size_t);
+    char*   getlogin();
+    int     getlogin_r(char*, size_t);
+    int     getopt(int, in char**, in char*);
+    pid_t   getpgrp();
+    pid_t   getpid();
+    pid_t   getppid();
+    uid_t   getuid();
+    int     isatty(int);
+    int     link(in char*, in char*);
+    //off_t   lseek(int, off_t, int);
+    c_long  pathconf(in char*, int);
+    int     pause();
+    int     pipe(int[2]);
+    ssize_t read(int, void*, size_t);
+    ssize_t readlink(in char*, char*, size_t);
+    int     rmdir(in char*);
+    int     setegid(gid_t);
+    int     seteuid(uid_t);
+    int     setgid(gid_t);
+    int     setpgid(pid_t, pid_t);
+    pid_t   setsid();
+    int     setuid(uid_t);
+    uint    sleep(uint);
+    int     symlink(in char*, in char*);
+    c_long  sysconf(int);
+    pid_t   tcgetpgrp(int);
+    int     tcsetpgrp(int, pid_t);
+    char*   ttyname(int);
+    int     ttyname_r(int, char*, size_t);
+    int     unlink(in char*);
+    ssize_t write(int, in void*, size_t);
+}
 
 version( linux )
 {
@@ -112,7 +115,7 @@ else version( freebsd )
     off_t lseek(int, off_t, int);
     int   ftruncate(int, off_t);
 }
-else
+else version( Posix )
 {
     off_t lseek(int, off_t, int);
     int   ftruncate(int, off_t);

@@ -86,24 +86,27 @@ int raise(int sig);                    (defined in core.stdc.signal)
 
 //sig_atomic_t (defined in core.stdc.signal)
 
-enum
+version( Posix )
 {
-  SIGEV_SIGNAL,
-  SIGEV_NONE,
-  SIGEV_THREAD
+    enum
+    {
+      SIGEV_SIGNAL,
+      SIGEV_NONE,
+      SIGEV_THREAD
+    }
+
+    union sigval
+    {
+        int     sival_int;
+        void*   sival_ptr;
+    }
+
+    private extern (C) int __libc_current_sigrtmin();
+    private extern (C) int __libc_current_sigrtmax();
+
+    alias __libc_current_sigrtmin SIGRTMIN;
+    alias __libc_current_sigrtmax SIGRTMAX;
 }
-
-union sigval
-{
-    int     sival_int;
-    void*   sival_ptr;
-}
-
-private extern (C) int __libc_current_sigrtmin();
-private extern (C) int __libc_current_sigrtmax();
-
-alias __libc_current_sigrtmin SIGRTMIN;
-alias __libc_current_sigrtmax SIGRTMAX;
 
 version( linux )
 {
@@ -178,25 +181,28 @@ else version( freebsd )
     enum SIGURG     = 16;
 }
 
-struct sigaction_t
+version( Posix )
 {
-    static if( true /* __USE_POSIX199309 */ )
+    struct sigaction_t
     {
-        union
+        static if( true /* __USE_POSIX199309 */ )
+        {
+            union
+            {
+                sigfn_t     sa_handler;
+                sigactfn_t  sa_sigaction;
+            }
+        }
+        else
         {
             sigfn_t     sa_handler;
-            sigactfn_t  sa_sigaction;
         }
-    }
-    else
-    {
-        sigfn_t     sa_handler;
-    }
-    sigset_t        sa_mask;
-    int             sa_flags;
+        sigset_t        sa_mask;
+        int             sa_flags;
 
-    version( OSX ) {} else {
-    void function() sa_restorer;
+        version( OSX ) {} else {
+        void function() sa_restorer;
+        }
     }
 }
 

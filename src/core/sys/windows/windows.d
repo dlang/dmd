@@ -13,13 +13,6 @@
  */
 module core.sys.windows.windows;
 
-version (Windows)
-{
-}
-else
-{
-    static assert(0);       // Windows only
-}
 
 extern (Windows)
 {
@@ -76,7 +69,7 @@ extern (Windows)
     alias uint *PUINT;
 
 // ULONG_PTR must be able to store a pointer as an integral type
-version(Win64)
+version (Win64)
 {
     alias  long INT_PTR;
     alias ulong UINT_PTR;
@@ -87,7 +80,7 @@ version(Win64)
     alias  long * PLONG_PTR;
     alias ulong * PULONG_PTR;
 }
-version(Win32)
+else // Win32
 {
     alias  int INT_PTR;
     alias uint UINT_PTR;

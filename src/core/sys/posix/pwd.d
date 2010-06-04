@@ -82,8 +82,11 @@ else version( freebsd )
     }
 }
 
-passwd* getpwnam(in char*);
-passwd* getpwuid(uid_t);
+version( Posix )
+{
+    passwd* getpwnam(in char*);
+    passwd* getpwuid(uid_t);
+}
 
 //
 // Thread-Safe Functions (TSF)
