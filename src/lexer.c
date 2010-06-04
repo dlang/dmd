@@ -1,6 +1,6 @@
 
 // Compiler implementation of the D programming language
-// Copyright (c) 1999-2009 by Digital Mars
+// Copyright (c) 1999-2010 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // http://www.digitalmars.com
@@ -592,6 +592,7 @@ void Lexer::scan(Token *t)
             case '"':
                 t->value = escapeStringConstant(t,0);
                 return;
+
 #if ! TEXTUAL_ASSEMBLY_OUT
             case '\\':                  // escaped string literal
             {   unsigned c;
@@ -622,11 +623,14 @@ void Lexer::scan(Token *t)
                 memcpy(t->ustring, stringbuffer.data, stringbuffer.offset);
                 t->postfix = 0;
                 t->value = TOKstring;
+#if DMDV2
                 if (!global.params.useDeprecated)
                     error("Escape String literal %.*s is deprecated, use double quoted string literal \"%.*s\" instead", p - pstart, pstart, p - pstart, pstart);
+#endif
                 return;
             }
 #endif
+
             case 'l':
             case 'L':
 #endif
@@ -1197,8 +1201,9 @@ void Lexer::scan(Token *t)
             SINGLE(';', TOKsemicolon)
             SINGLE(':', TOKcolon)
             SINGLE('$', TOKdollar)
+#if DMDV2
             SINGLE('@', TOKat)
-
+#endif
 #undef SINGLE
 
 #define DOUBLE(c1,tok1,c2,tok2)         \
@@ -1621,8 +1626,10 @@ TOK Lexer::delimitedStringConstant(Token *t)
             else
             {   delimright = c;
                 nest = 0;
+#if DMDV2
                 if (isspace(c))
                     error("delimiter cannot be whitespace");
+#endif
             }
         }
         else
@@ -1644,7 +1651,11 @@ TOK Lexer::delimitedStringConstant(Token *t)
             }
             else if (c == delimright)
                 goto Ldone;
-            if (startline && isalpha(c) && hereid)
+            if (startline && isalpha(c)
+#if DMDV2
+                            && hereid
+#endif
+                           )
             {   Token t;
                 unsigned char *psave = p;
                 p--;
@@ -3129,9 +3140,11 @@ void Lexer::initKeywords()
 
     Token::tochars[TOKorass]            = "|=";
     Token::tochars[TOKidentifier]       = "identifier";
+#if DMDV2
     Token::tochars[TOKat]               = "@";
     Token::tochars[TOKpow]              = "^^";
     Token::tochars[TOKpowass]           = "^^=";
+#endif
 
      // For debugging
     Token::tochars[TOKerror]            = "error";
