@@ -331,6 +331,7 @@ struct TypeError : Type
 
     void toCBuffer(OutBuffer *buf, Identifier *ident, HdrGenState *hgs);
 
+    d_uns64 size(Loc loc);
     Expression *getProperty(Loc loc, Identifier *ident);
     Expression *dotExp(Scope *sc, Expression *e, Identifier *ident);
     Expression *defaultInit(Loc loc);

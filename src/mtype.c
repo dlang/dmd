@@ -2046,6 +2046,7 @@ void TypeError::toCBuffer(OutBuffer *buf, Identifier *ident, HdrGenState *hgs)
     buf->writestring("_error_");
 }
 
+d_uns64 TypeError::size(Loc loc) { return 1; }
 Expression *TypeError::getProperty(Loc loc, Identifier *ident) { return new ErrorExp(); }
 Expression *TypeError::dotExp(Scope *sc, Expression *e, Identifier *ident) { return new ErrorExp(); }
 Expression *TypeError::defaultInit(Loc loc) { return new ErrorExp(); }
