@@ -21,9 +21,6 @@ public import core.sys.posix.sys.types; // for pid_t
 
 extern (C):
 
-private alias void function(int) sigfn_t;
-private alias void function(int, siginfo_t*, void*) sigactfn_t;
-
 //
 // Required
 //
@@ -88,6 +85,9 @@ int raise(int sig);                    (defined in core.stdc.signal)
 
 version( Posix )
 {
+    private alias void function(int) sigfn_t;
+    private alias void function(int, siginfo_t*, void*) sigactfn_t;
+    
     enum
     {
       SIGEV_SIGNAL,
