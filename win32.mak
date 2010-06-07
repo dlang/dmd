@@ -11,8 +11,8 @@ UDFLAGS=-O -release -nofloat -w -d -Isrc -Iimport
 
 CFLAGS=
 
-DRUNTIME=lib\druntime.lib
-GCSTUB=lib\gcstub.obj
+DRUNTIME=lib/druntime.lib
+GCSTUB=lib/gcstub.obj
 
 target : $(DOCS) $(IMPORTS) $(DRUNTIME) $(GCSTUB)
 
@@ -434,305 +434,305 @@ IMPORTS=\
 
 doc: $(DOCS)
 
-$(DOCDIR)\object.html : src\object_.d
+$(DOCDIR)/object.html : src/object_.d
 	$(DMD) -c -d -o- -Isrc -Iimport -Df$@ $**
 
-$(DOCDIR)\core\atomic.html : src\core\atomic.d
+$(DOCDIR)/core/atomic.html : src/core/atomic.d
 	$(DMD) -c -d -o- -Isrc -Iimport -Df$@ $**
 
-$(DOCDIR)\core\bitop.html : src\core\bitop.d
+$(DOCDIR)/core/bitop.html : src/core/bitop.d
 	$(DMD) -c -d -o- -Isrc -Iimport -Df$@ $**
 
-$(DOCDIR)\core\cpuid.html : src\core\cpuid.d
+$(DOCDIR)/core/cpuid.html : src/core/cpuid.d
 	$(DMD) -c -d -o- -Isrc -Iimport -Df$@ $**
 
-$(DOCDIR)\core\exception.html : src\core\exception.d
+$(DOCDIR)/core/exception.html : src/core/exception.d
 	$(DMD) -c -d -o- -Isrc -Iimport -Df$@ $**
 
-$(DOCDIR)\core\memory.html : src\core\memory.d
+$(DOCDIR)/core/memory.html : src/core/memory.d
 	$(DMD) -c -d -o- -Isrc -Iimport -Df$@ $**
 
-$(DOCDIR)\core\runtime.html : src\core\runtime.d
+$(DOCDIR)/core/runtime.html : src/core/runtime.d
 	$(DMD) -c -d -o- -Isrc -Iimport -Df$@ $**
 
-$(DOCDIR)\core\thread.html : src\core\thread.d
+$(DOCDIR)/core/thread.html : src/core/thread.d
 	$(DMD) -c -d -o- -Isrc -Iimport -Df$@ $**
 
-$(DOCDIR)\core\vararg.html : src\core\vararg.d
+$(DOCDIR)/core/vararg.html : src/core/vararg.d
 	$(DMD) -c -d -o- -Isrc -Iimport -Df$@ $**
 
-$(DOCDIR)\core\sync\barrier.html : src\core\sync\barrier.d
+$(DOCDIR)/core/sync/barrier.html : src/core/sync/barrier.d
 	$(DMD) -c -d -o- -Isrc -Iimport -Df$@ $**
 
-$(DOCDIR)\core\sync\condition.html : src\core\sync\condition.d
+$(DOCDIR)/core/sync/condition.html : src/core/sync/condition.d
 	$(DMD) -c -d -o- -Isrc -Iimport -Df$@ $**
 
-$(DOCDIR)\core\sync\config.html : src\core\sync\config.d
+$(DOCDIR)/core/sync/config.html : src/core/sync/config.d
 	$(DMD) -c -d -o- -Isrc -Iimport -Df$@ $**
 
-$(DOCDIR)\core\sync\exception.html : src\core\sync\exception.d
+$(DOCDIR)/core/sync/exception.html : src/core/sync/exception.d
 	$(DMD) -c -d -o- -Isrc -Iimport -Df$@ $**
 
-$(DOCDIR)\core\sync\mutex.html : src\core\sync\mutex.d
+$(DOCDIR)/core/sync/mutex.html : src/core/sync/mutex.d
 	$(DMD) -c -d -o- -Isrc -Iimport -Df$@ $**
 
-$(DOCDIR)\core\sync\rwmutex.html : src\core\sync\rwmutex.d
+$(DOCDIR)/core/sync/rwmutex.html : src/core/sync/rwmutex.d
 	$(DMD) -c -d -o- -Isrc -Iimport -Df$@ $**
 
-$(DOCDIR)\core\sync\semaphore.html : src\core\sync\semaphore.d
+$(DOCDIR)/core/sync/semaphore.html : src/core/sync/semaphore.d
 	$(DMD) -c -d -o- -Isrc -Iimport -Df$@ $**
 
 ######################## Header .di file generation ##############################
 
 import: $(IMPORTS)
 
-$(IMPDIR)\core\atomic.di : src\core\atomic.d
+$(IMPDIR)/core/atomic.di : src/core/atomic.d
 	$(DMD) -c -d -o- -Isrc -Iimport -Hf$@ $**
 
-$(IMPDIR)\core\bitop.di : src\core\bitop.d
+$(IMPDIR)/core/bitop.di : src/core/bitop.d
 	$(DMD) -c -d -o- -Isrc -Iimport -Hf$@ $**
 
-$(IMPDIR)\core\cpuid.di : src\core\cpuid.d
+$(IMPDIR)/core/cpuid.di : src/core/cpuid.d
 	$(DMD) -c -d -o- -Isrc -Iimport -Hf$@ $**
 	
-$(IMPDIR)\core\dll_helper.di : src\core\dll_helper.d
+$(IMPDIR)/core/dll_helper.di : src/core/dll_helper.d
 	$(DMD) -c -d -o- -Isrc -Iimport -Hf$@ $**
 
-$(IMPDIR)\core\exception.di : src\core\exception.d
+$(IMPDIR)/core/exception.di : src/core/exception.d
 	$(DMD) -c -d -o- -Isrc -Iimport -Hf$@ $**
 
-$(IMPDIR)\core\memory.di : src\core\memory.d
+$(IMPDIR)/core/memory.di : src/core/memory.d
 	$(DMD) -c -d -o- -Isrc -Iimport -Hf$@ $**
 
-$(IMPDIR)\core\runtime.di : src\core\runtime.d
+$(IMPDIR)/core/runtime.di : src/core/runtime.d
 	$(DMD) -c -d -o- -Isrc -Iimport -Hf$@ $**
 
-$(IMPDIR)\core\thread.di : src\core\thread.d
+$(IMPDIR)/core/thread.di : src/core/thread.d
 	$(DMD) -c -d -o- -Isrc -Iimport -Hf$@ $**
 
-$(IMPDIR)\core\thread_helper.di : src\core\thread_helper.d
+$(IMPDIR)/core/thread_helper.di : src/core/thread_helper.d
 	$(DMD) -c -d -o- -Isrc -Iimport -Hf$@ $**
 
-$(IMPDIR)\core\vararg.di : src\core\vararg.d
+$(IMPDIR)/core/vararg.di : src/core/vararg.d
 	$(DMD) -c -d -o- -Isrc -Iimport -Hf$@ $**
 
-$(IMPDIR)\core\stdc\complex.di : src\core\stdc\complex.d
+$(IMPDIR)/core/stdc/complex.di : src/core/stdc/complex.d
 	$(DMD) -c -d -o- -Isrc -Iimport -Hf$@ $**
 
-$(IMPDIR)\core\stdc\config.di : src\core\stdc\config.d
+$(IMPDIR)/core/stdc/config.di : src/core/stdc/config.d
 	$(DMD) -c -d -o- -Isrc -Iimport -Hf$@ $**
 
-$(IMPDIR)\core\stdc\ctype.di : src\core\stdc\ctype.d
+$(IMPDIR)/core/stdc/ctype.di : src/core/stdc/ctype.d
 	$(DMD) -c -d -o- -Isrc -Iimport -Hf$@ $**
 
-$(IMPDIR)\core\stdc\errno.di : src\core\stdc\errno.d
+$(IMPDIR)/core/stdc/errno.di : src/core/stdc/errno.d
 	$(DMD) -c -d -o- -Isrc -Iimport -Hf$@ $**
 
-$(IMPDIR)\core\stdc\fenv.di : src\core\stdc\fenv.d
+$(IMPDIR)/core/stdc/fenv.di : src/core/stdc/fenv.d
 	$(DMD) -c -d -o- -Isrc -Iimport -Hf$@ $**
 
-$(IMPDIR)\core\stdc\float_.di : src\core\stdc\float_.d
+$(IMPDIR)/core/stdc/float_.di : src/core/stdc/float_.d
 	$(DMD) -c -d -o- -Isrc -Iimport -Hf$@ $**
 
-$(IMPDIR)\core\stdc\inttypes.di : src\core\stdc\inttypes.d
+$(IMPDIR)/core/stdc/inttypes.di : src/core/stdc/inttypes.d
 	$(DMD) -c -d -o- -Isrc -Iimport -Hf$@ $**
 
-$(IMPDIR)\core\stdc\limits.di : src\core\stdc\limits.d
+$(IMPDIR)/core/stdc/limits.di : src/core/stdc/limits.d
 	$(DMD) -c -d -o- -Isrc -Iimport -Hf$@ $**
 
-$(IMPDIR)\core\stdc\locale.di : src\core\stdc\locale.d
+$(IMPDIR)/core/stdc/locale.di : src/core/stdc/locale.d
 	$(DMD) -c -d -o- -Isrc -Iimport -Hf$@ $**
 
-$(IMPDIR)\core\stdc\math.di : src\core\stdc\math.d
+$(IMPDIR)/core/stdc/math.di : src/core/stdc/math.d
 	$(DMD) -c -d -o- -Isrc -Iimport -Hf$@ $**
 
-$(IMPDIR)\core\stdc\signal.di : src\core\stdc\signal.d
+$(IMPDIR)/core/stdc/signal.di : src/core/stdc/signal.d
 	$(DMD) -c -d -o- -Isrc -Iimport -Hf$@ $**
 
-$(IMPDIR)\core\stdc\stdarg.di : src\core\stdc\stdarg.d
+$(IMPDIR)/core/stdc/stdarg.di : src/core/stdc/stdarg.d
 	$(DMD) -c -d -o- -Isrc -Iimport -Hf$@ $**
 
-$(IMPDIR)\core\stdc\stddef.di : src\core\stdc\stddef.d
+$(IMPDIR)/core/stdc/stddef.di : src/core/stdc/stddef.d
 	$(DMD) -c -d -o- -Isrc -Iimport -Hf$@ $**
 
-$(IMPDIR)\core\stdc\stdint.di : src\core\stdc\stdint.d
+$(IMPDIR)/core/stdc/stdint.di : src/core/stdc/stdint.d
 	$(DMD) -c -d -o- -Isrc -Iimport -Hf$@ $**
 
-$(IMPDIR)\core\stdc\stdio.di : src\core\stdc\stdio.d
+$(IMPDIR)/core/stdc/stdio.di : src/core/stdc/stdio.d
 	$(DMD) -c -d -o- -Isrc -Iimport -Hf$@ $**
 
-$(IMPDIR)\core\stdc\stdlib.di : src\core\stdc\stdlib.d
+$(IMPDIR)/core/stdc/stdlib.di : src/core/stdc/stdlib.d
 	$(DMD) -c -d -o- -Isrc -Iimport -Hf$@ $**
 
-$(IMPDIR)\core\stdc\string.di : src\core\stdc\string.d
+$(IMPDIR)/core/stdc/string.di : src/core/stdc/string.d
 	$(DMD) -c -d -o- -Isrc -Iimport -Hf$@ $**
 
-$(IMPDIR)\core\stdc\tgmath.di : src\core\stdc\tgmath.d
+$(IMPDIR)/core/stdc/tgmath.di : src/core/stdc/tgmath.d
 	$(DMD) -c -d -o- -Isrc -Iimport -Hf$@ $**
 
-$(IMPDIR)\core\stdc\time.di : src\core\stdc\time.d
+$(IMPDIR)/core/stdc/time.di : src/core/stdc/time.d
 	$(DMD) -c -d -o- -Isrc -Iimport -Hf$@ $**
 
-$(IMPDIR)\core\stdc\wchar_.di : src\core\stdc\wchar_.d
+$(IMPDIR)/core/stdc/wchar_.di : src/core/stdc/wchar_.d
 	$(DMD) -c -d -o- -Isrc -Iimport -Hf$@ $**
 
-$(IMPDIR)\core\stdc/wctype.di : src\core\stdc/wctype.d
+$(IMPDIR)/core/stdc/wctype.di : src/core/stdc/wctype.d
 	$(DMD) -c -d -o- -Isrc -Iimport -Hf$@ $**
 
-$(IMPDIR)\core\sync\barrier.di : src\core\sync\barrier.d
+$(IMPDIR)/core/sync/barrier.di : src/core/sync/barrier.d
 	$(DMD) -c -d -o- -Isrc -Iimport -Hf$@ $**
 
-$(IMPDIR)\core\sync\condition.di : src\core\sync\condition.d
+$(IMPDIR)/core/sync/condition.di : src/core/sync/condition.d
 	$(DMD) -c -d -o- -Isrc -Iimport -Hf$@ $**
 
-$(IMPDIR)\core\sync\config.di : src\core\sync\config.d
+$(IMPDIR)/core/sync/config.di : src/core/sync/config.d
 	$(DMD) -c -d -o- -Isrc -Iimport -Hf$@ $**
 
-$(IMPDIR)\core\sync\exception.di : src\core\sync\exception.d
+$(IMPDIR)/core/sync/exception.di : src/core/sync/exception.d
 	$(DMD) -c -d -o- -Isrc -Iimport -Hf$@ $**
 
-$(IMPDIR)\core\sync\mutex.di : src\core\sync\mutex.d
+$(IMPDIR)/core/sync/mutex.di : src/core/sync/mutex.d
 	$(DMD) -c -d -o- -Isrc -Iimport -Hf$@ $**
 
-$(IMPDIR)\core\sync\rwmutex.di : src\core\sync\rwmutex.d
+$(IMPDIR)/core/sync/rwmutex.di : src/core/sync/rwmutex.d
 	$(DMD) -c -d -o- -Isrc -Iimport -Hf$@ $**
 
-$(IMPDIR)\core\sync\semaphore.di : src\core\sync\semaphore.d
+$(IMPDIR)/core/sync/semaphore.di : src/core/sync/semaphore.d
 	$(DMD) -c -d -o- -Isrc -Iimport -Hf$@ $**
 
-$(IMPDIR)\core\sys\osx\mach\kern_return.di : src\core\sys\osx\mach\kern_return.d
+$(IMPDIR)/core/sys/osx/mach/kern_return.di : src/core/sys/osx/mach/kern_return.d
 	$(DMD) -c -d -o- -Isrc -Iimport -Hf$@ $**
 
-$(IMPDIR)\core\sys\osx\mach\port.di : src\core\sys\osx\mach\port.d
+$(IMPDIR)/core/sys/osx/mach/port.di : src/core/sys/osx/mach/port.d
 	$(DMD) -c -d -o- -Isrc -Iimport -Hf$@ $**
 
-$(IMPDIR)\core\sys\osx\mach\semaphore.di : src\core\sys\osx\mach\semaphore.d
+$(IMPDIR)/core/sys/osx/mach/semaphore.di : src/core/sys/osx/mach/semaphore.d
 	$(DMD) -c -d -o- -Isrc -Iimport -Hf$@ $**
 
-$(IMPDIR)\core\sys\osx\mach\thread_act.di : src\core\sys\osx\mach\thread_act.d
+$(IMPDIR)/core/sys/osx/mach/thread_act.di : src/core/sys/osx/mach/thread_act.d
 	$(DMD) -c -d -o- -Isrc -Iimport -Hf$@ $**
 
-$(IMPDIR)\core\sys\posix\arpa\inet.di : src\core\sys\posix\arpa\inet.d
+$(IMPDIR)/core/sys/posix/arpa/inet.di : src/core/sys/posix/arpa/inet.d
 	$(DMD) -c -d -o- -Isrc -Iimport -Hf$@ $**
 
-$(IMPDIR)\core\sys\posix\config.di : src\core\sys\posix\config.d
+$(IMPDIR)/core/sys/posix/config.di : src/core/sys/posix/config.d
 	$(DMD) -c -d -o- -Isrc -Iimport -Hf$@ $**
 
-$(IMPDIR)\core\sys\posix\dirent.di : src\core\sys\posix\dirent.d
+$(IMPDIR)/core/sys/posix/dirent.di : src/core/sys/posix/dirent.d
 	$(DMD) -c -d -o- -Isrc -Iimport -Hf$@ $**
 
-$(IMPDIR)\core\sys\posix\dlfcn.di : src\core\sys\posix\dlfcn.d
+$(IMPDIR)/core/sys/posix/dlfcn.di : src/core/sys/posix/dlfcn.d
 	$(DMD) -c -d -o- -Isrc -Iimport -Hf$@ $**
 
-$(IMPDIR)\core\sys\posix\fcntl.di : src\core\sys\posix\fcntl.d
+$(IMPDIR)/core/sys/posix/fcntl.di : src/core/sys/posix/fcntl.d
 	$(DMD) -c -d -o- -Isrc -Iimport -Hf$@ $**
 
-$(IMPDIR)\core\sys\posix\inttypes.di : src\core\sys\posix\inttypes.d
+$(IMPDIR)/core/sys/posix/inttypes.di : src/core/sys/posix/inttypes.d
 	$(DMD) -c -d -o- -Isrc -Iimport -Hf$@ $**
 
-$(IMPDIR)\core\sys\posix\net\if_.di : src\core\sys\posix\net\if_.d
+$(IMPDIR)/core/sys/posix/net/if_.di : src/core/sys/posix/net/if_.d
 	$(DMD) -c -d -o- -Isrc -Iimport -Hf$@ $**
 
-$(IMPDIR)\core\sys\posix\netinet\in_.di : src\core\sys\posix\netinet\in_.d
+$(IMPDIR)/core/sys/posix/netinet/in_.di : src/core/sys/posix/netinet/in_.d
 	$(DMD) -c -d -o- -Isrc -Iimport -Hf$@ $**
 
-$(IMPDIR)\core\sys\posix\netinet\tcp.di : src\core\sys\posix\netinet\tcp.d
+$(IMPDIR)/core/sys/posix/netinet/tcp.di : src/core/sys/posix/netinet/tcp.d
 	$(DMD) -c -d -o- -Isrc -Iimport -Hf$@ $**
 
-$(IMPDIR)\core\sys\posix\poll.di : src\core\sys\posix\poll.d
+$(IMPDIR)/core/sys/posix/poll.di : src/core/sys/posix/poll.d
 	$(DMD) -c -d -o- -Isrc -Iimport -Hf$@ $**
 
-$(IMPDIR)\core\sys\posix\pthread.di : src\core\sys\posix\pthread.d
+$(IMPDIR)/core/sys/posix/pthread.di : src/core/sys/posix/pthread.d
 	$(DMD) -c -d -o- -Isrc -Iimport -Hf$@ $**
 
-$(IMPDIR)\core\sys\posix\pwd.di : src\core\sys\posix\pwd.d
+$(IMPDIR)/core/sys/posix/pwd.di : src/core/sys/posix/pwd.d
 	$(DMD) -c -d -o- -Isrc -Iimport -Hf$@ $**
 
-$(IMPDIR)\core\sys\posix\sched.di : src\core\sys\posix\sched.d
+$(IMPDIR)/core/sys/posix/sched.di : src/core/sys/posix/sched.d
 	$(DMD) -c -d -o- -Isrc -Iimport -Hf$@ $**
 
-$(IMPDIR)\core\sys\posix\semaphore.di : src\core\sys\posix\semaphore.d
+$(IMPDIR)/core/sys/posix/semaphore.di : src/core/sys/posix/semaphore.d
 	$(DMD) -c -d -o- -Isrc -Iimport -Hf$@ $**
 
-$(IMPDIR)\core\sys\posix\setjmp.di : src\core\sys\posix\setjmp.d
+$(IMPDIR)/core/sys/posix/setjmp.di : src/core/sys/posix/setjmp.d
 	$(DMD) -c -d -o- -Isrc -Iimport -Hf$@ $**
 
-$(IMPDIR)\core\sys\posix\signal.di : src\core\sys\posix\signal.d
+$(IMPDIR)/core/sys/posix/signal.di : src/core/sys/posix/signal.d
 	$(DMD) -c -d -o- -Isrc -Iimport -Hf$@ $**
 
-$(IMPDIR)\core\sys\posix\stdio.di : src\core\sys\posix\stdio.d
+$(IMPDIR)/core/sys/posix/stdio.di : src/core/sys/posix/stdio.d
 	$(DMD) -c -d -o- -Isrc -Iimport -Hf$@ $**
 
-$(IMPDIR)\core\sys\posix\stdlib.di : src\core\sys\posix\stdlib.d
+$(IMPDIR)/core/sys/posix/stdlib.di : src/core/sys/posix/stdlib.d
 	$(DMD) -c -d -o- -Isrc -Iimport -Hf$@ $**
 
-$(IMPDIR)\core\sys\posix\sys\ipc.di : src\core\sys\posix\sys\ipc.d
+$(IMPDIR)/core/sys/posix/sys/ipc.di : src/core/sys/posix/sys/ipc.d
 	$(DMD) -c -d -o- -Isrc -Iimport -Hf$@ $**
 
-$(IMPDIR)\core\sys\posix\sys\mman.di : src\core\sys\posix\sys\mman.d
+$(IMPDIR)/core/sys/posix/sys/mman.di : src/core/sys/posix/sys/mman.d
 	$(DMD) -c -d -o- -Isrc -Iimport -Hf$@ $**
 
-$(IMPDIR)\core\sys\posix\sys\select.di : src\core\sys\posix\sys\select.d
+$(IMPDIR)/core/sys/posix/sys/select.di : src/core/sys/posix/sys/select.d
 	$(DMD) -c -d -o- -Isrc -Iimport -Hf$@ $**
 
-$(IMPDIR)\core\sys\posix\sys\shm.di : src\core\sys\posix\sys\shm.d
+$(IMPDIR)/core/sys/posix/sys/shm.di : src/core/sys/posix/sys/shm.d
 	$(DMD) -c -d -o- -Isrc -Iimport -Hf$@ $**
 
-$(IMPDIR)\core\sys\posix\sys\socket.di : src\core\sys\posix\sys\socket.d
+$(IMPDIR)/core/sys/posix/sys/socket.di : src/core/sys/posix/sys/socket.d
 	$(DMD) -c -d -o- -Isrc -Iimport -Hf$@ $**
 
-$(IMPDIR)\core\sys\posix\sys\stat.di : src\core\sys\posix\sys\stat.d
+$(IMPDIR)/core/sys/posix/sys/stat.di : src/core/sys/posix/sys/stat.d
 	$(DMD) -c -d -o- -Isrc -Iimport -Hf$@ $**
 
-$(IMPDIR)\core\sys\posix\sys\time.di : src\core\sys\posix\sys\time.d
+$(IMPDIR)/core/sys/posix/sys/time.di : src/core/sys/posix/sys/time.d
 	$(DMD) -c -d -o- -Isrc -Iimport -Hf$@ $**
 
-$(IMPDIR)\core\sys\posix\sys\types.di : src\core\sys\posix\sys\types.d
+$(IMPDIR)/core/sys/posix/sys/types.di : src/core/sys/posix/sys/types.d
 	$(DMD) -c -d -o- -Isrc -Iimport -Hf$@ $**
 
-$(IMPDIR)\core\sys\posix\sys\uio.di : src\core\sys\posix\sys\uio.d
+$(IMPDIR)/core/sys/posix/sys/uio.di : src/core/sys/posix/sys/uio.d
 	$(DMD) -c -d -o- -Isrc -Iimport -Hf$@ $**
 
-$(IMPDIR)\core\sys\posix\sys\wait.di : src\core\sys\posix\sys\wait.d
+$(IMPDIR)/core/sys/posix/sys/wait.di : src/core/sys/posix/sys/wait.d
 	$(DMD) -c -d -o- -Isrc -Iimport -Hf$@ $**
 
-$(IMPDIR)\core\sys\posix\termios.di : src\core\sys\posix\termios.d
+$(IMPDIR)/core/sys/posix/termios.di : src/core/sys/posix/termios.d
 	$(DMD) -c -d -o- -Isrc -Iimport -Hf$@ $**
 
-$(IMPDIR)\core\sys\posix\time.di : src\core\sys\posix\time.d
+$(IMPDIR)/core/sys/posix/time.di : src/core/sys/posix/time.d
 	$(DMD) -c -d -o- -Isrc -Iimport -Hf$@ $**
 
-$(IMPDIR)\core\sys\posix\ucontext.di : src\core\sys\posix\ucontext.d
+$(IMPDIR)/core/sys/posix/ucontext.di : src/core/sys/posix/ucontext.d
 	$(DMD) -c -d -o- -Isrc -Iimport -Hf$@ $**
 
-$(IMPDIR)\core\sys\posix\unistd.di : src\core\sys\posix\unistd.d
+$(IMPDIR)/core/sys/posix/unistd.di : src/core/sys/posix/unistd.d
 	$(DMD) -c -d -o- -Isrc -Iimport -Hf$@ $**
 
-$(IMPDIR)\core\sys\posix\utime.di : \core\sys\posix\utime.d
+$(IMPDIR)/core/sys/posix/utime.di : /core/sys/posix/utime.d
 	$(DMD) -c -d -o- -Isrc -Iimport -Hf$@ $**
 
-$(IMPDIR)\core\sys\windows\windows.di : src\core\sys\windows\windows.d
+$(IMPDIR)/core/sys/windows/windows.di : src/core/sys/windows/windows.d
 	$(DMD) -c -d -o- -Isrc -Iimport -Hf$@ $**
 
 ################### C/ASM Targets ############################
 
-errno_c.obj : src\core\stdc\errno.c
-	$(CC) -c $(CFLAGS) src\core\stdc\errno.c -oerrno_c.obj
+errno_c.obj : src/core/stdc/errno.c
+	$(CC) -c $(CFLAGS) src/core/stdc/errno.c -oerrno_c.obj
 
-complex.obj : src\rt\complex.c
-	$(CC) -c $(CFLAGS) src\rt\complex.c
+complex.obj : src/rt/complex.c
+	$(CC) -c $(CFLAGS) src/rt/complex.c
 
-critical.obj : src\rt\critical.c
-	$(CC) -c $(CFLAGS) src\rt\critical.c
+critical.obj : src/rt/critical.c
+	$(CC) -c $(CFLAGS) src/rt/critical.c
 
-deh.obj : src\rt\deh.c
-	$(CC) -c $(CFLAGS) src\rt\deh.c
+deh.obj : src/rt/deh.c
+	$(CC) -c $(CFLAGS) src/rt/deh.c
 
-src\rt\minit.obj : src\rt\minit.asm
-	$(CC) -c $(CFLAGS) src\rt\minit.asm
+src/rt/minit.obj : src/rt/minit.asm
+	$(CC) -c $(CFLAGS) src/rt/minit.asm
 
-monitor.obj : src\rt\monitor.c
-	$(CC) -c $(CFLAGS) src\rt\monitor.c
+monitor.obj : src/rt/monitor.c
+	$(CC) -c $(CFLAGS) src/rt/monitor.c
 
 ################### gcstub generation #########################
 
@@ -744,14 +744,14 @@ $(GCSTUB) : src/gcstub/gc.d win32.mak
 $(DRUNTIME): $(OBJS) $(SRCS) win32.mak
 	$(DMD) -lib -of$(DRUNTIME) -Xfdruntime.json $(DFLAGS) $(SRCS) $(OBJS)
 
-unittest : $(SRCS) $(DRUNTIME) src\unittest.d
-	$(DMD) $(UDFLAGS) -L/co -unittest src\unittest.d $(SRCS) $(DRUNTIME)
+unittest : $(SRCS) $(DRUNTIME) src/unittest.d
+	$(DMD) $(UDFLAGS) -L/co -unittest src/unittest.d $(SRCS) $(DRUNTIME)
 
 zip: druntime.zip
 
 druntime.zip:
 	del druntime.zip
-	zip32 -u druntime $(MANIFEST) $(DOCS) $(IMPORTS) src\rt\minit.obj
+	zip32 -u druntime $(MANIFEST) $(DOCS) $(IMPORTS) src/rt/minit.obj
 
 install: druntime.zip
 	unzip -o druntime.zip -d /dmd2/src/druntime
