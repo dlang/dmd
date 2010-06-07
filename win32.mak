@@ -708,7 +708,7 @@ $(IMPDIR)/core/sys/posix/ucontext.di : src/core/sys/posix/ucontext.d
 $(IMPDIR)/core/sys/posix/unistd.di : src/core/sys/posix/unistd.d
 	$(DMD) -c -d -o- -Isrc -Iimport -Hf$@ $**
 
-$(IMPDIR)/core/sys/posix/utime.di : /core/sys/posix/utime.d
+$(IMPDIR)/core/sys/posix/utime.di : src/core/sys/posix/utime.d
 	$(DMD) -c -d -o- -Isrc -Iimport -Hf$@ $**
 
 $(IMPDIR)/core/sys/windows/windows.di : src/core/sys/windows/windows.d
