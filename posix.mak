@@ -439,6 +439,9 @@ doc: $(DOCS)
 
 $(DOCDIR)/core/%.html : src/core/%.d
 	$(DMD) -c -d -o- -Isrc -Iimport -Df$@ $<
+	
+$(DOCDIR)/object.html : src/object_.d
+	$(DMD) -c -d -o- -Isrc -Iimport -Df$@ $<
 
 ######################## Header .di file generation ##############################
 
