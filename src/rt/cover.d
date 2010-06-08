@@ -132,7 +132,7 @@ shared static ~this()
 
         if( merge )
         {
-            if( !readFile( addExt( baseName( c.filename ), "lst" ), lstbuf ) )
+            if( !readFile( appendFN(dstpath, addExt( baseName( c.filename ), "lst" )), lstbuf ) )
                 break;
             splitLines( lstbuf, lstlines );
 
@@ -161,7 +161,7 @@ shared static ~this()
             }
         }
 
-        FILE* flst = fopen( (addExt( baseName( c.filename ), "lst\0" )).ptr, "wb" );
+        FILE* flst = fopen( appendFN(dstpath, (addExt(baseName( c.filename ), "lst\0" ))).ptr, "wb" );
 
         if( !flst )
             continue; //throw new Exception( "Error opening file for write: " ~ lstfn );
@@ -205,9 +205,10 @@ shared static ~this()
     }
 }
 
-
 string appendFN( string path, string name )
 {
+    if (!path.length) return name;
+    
     version( Windows )
         const char sep = '\\';
     else
@@ -224,21 +225,21 @@ string appendFN( string path, string name )
 
 string baseName( string name, string ext = null )
 {
-    auto i = name.length;
-    for( ; i > 0; --i )
+    string ret;
+    foreach (c; name)
     {
-        version( Windows )
+        switch (c)
         {
-            if( name[i - 1] == ':' || name[i - 1] == '\\' )
-                break;
-        }
-        else version( Posix )
-        {
-            if( name[i - 1] == '/' )
-                break;
+        case ':':
+        case '\\':
+        case '/':
+            ret ~= '-';
+            break;
+        default:
+            ret ~= c;
         }
     }
-    return chomp( name[i .. $], ext ? ext : "" );
+    return chomp( ret, ext ? ext : "" );
 }
 
 
