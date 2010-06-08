@@ -544,14 +544,16 @@ void cpuidX86()
     features = d;
     miscfeatures = c;
     amdfeatures = 0;
-    amdmiscfeatures = 0;
+    amdmiscfeatures = 0;    
     if (max_extended_cpuid >= 0x8000_0001) {
         asm {
             mov EAX, 0x8000_0001;
             cpuid;
-            mov amdmiscfeatures, ECX;
-            mov amdfeatures, EDX;
+            mov c, ECX;
+            mov d, EDX;
         }
+        amdmiscfeatures = c;
+        amdfeatures = d;            
     }
     // Try to detect fraudulent vendorIDs
     if (amd3dnow) probablyIntel = false;
