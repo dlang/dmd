@@ -414,6 +414,7 @@ void StorageClassDeclaration::stcToCBuffer(OutBuffer *buf, StorageClass stc)
     {
         StorageClass stc;
         enum TOK tok;
+        Identifier *id;
     };
 
     static SCstring table[] =
@@ -441,11 +442,11 @@ void StorageClassDeclaration::stcToCBuffer(OutBuffer *buf, StorageClass stc)
         { STCref,          TOKref },
         { STCtls,          TOKtls },
         { STCgshared,      TOKgshared },
-        { STCproperty,     TOKat },
-        { STCsafe,         TOKat },
-        { STCtrusted,      TOKat },
-        { STCsystem,       TOKat },
-        { STCdisable,      TOKat },
+        { STCproperty,     TOKat,       Id::property },
+        { STCsafe,         TOKat,       Id::safe },
+        { STCtrusted,      TOKat,       Id::trusted },
+        { STCsystem,       TOKat,       Id::system },
+        { STCdisable,      TOKat,       Id::disable },
 #endif
     };
 
@@ -456,22 +457,9 @@ void StorageClassDeclaration::stcToCBuffer(OutBuffer *buf, StorageClass stc)
             enum TOK tok = table[i].tok;
 #if DMDV2
             if (tok == TOKat)
-            {   Identifier *id;
-
-                if (stc & STCproperty)
-                    id = Id::property;
-                else if (stc & STCsafe)
-                    id = Id::safe;
-                else if (stc & STCtrusted)
-                    id = Id::trusted;
-                else if (stc & STCsystem)
-                    id = Id::system;
-                else if (stc & STCdisable)
-                    id = Id::disable;
-                else
-                    assert(0);
+            {
                 buf->writeByte('@');
-                buf->writestring(id->toChars());
+                buf->writestring(table[i].id->toChars());
             }
             else
 #endif

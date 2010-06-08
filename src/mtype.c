@@ -4670,6 +4670,10 @@ void TypeFunction::toCBuffer(OutBuffer *buf, Identifier *ident, HdrGenState *hgs
 
     switch (trust)
     {
+        case TRUSTsystem:
+            buf->writestring("@system ");
+            break;
+
         case TRUSTtrusted:
             buf->writestring("@trusted ");
             break;
@@ -4753,6 +4757,10 @@ void TypeFunction::toCBuffer2(OutBuffer *buf, HdrGenState *hgs, int mod)
 
     switch (trust)
     {
+        case TRUSTsystem:
+            buf->writestring("@system ");
+            break;
+
         case TRUSTtrusted:
             buf->writestring(" @trusted");
             break;
