@@ -68,7 +68,7 @@ version( Posix )
     //off_t   lseek(int, off_t, int);
     c_long  pathconf(in char*, int);
     int     pause();
-    int     pipe(int[2]);
+    int     pipe(ref int[2]);
     ssize_t read(int, void*, size_t);
     ssize_t readlink(in char*, char*, size_t);
     int     rmdir(in char*);
@@ -495,7 +495,7 @@ version( linux )
 /*
 char*      crypt(in char*, in char*);
 char*      ctermid(char*);
-void       encrypt(char[64], int);
+void       encrypt(ref char[64], int);
 int        fchdir(int);
 c_long     gethostid();
 pid_t      getpgid(pid_t);
@@ -521,7 +521,7 @@ version( linux )
 {
     char*      crypt(in char*, in char*);
     char*      ctermid(char*);
-    void       encrypt(char[64], int);
+    void       encrypt(ref char[64], int);
     int        fchdir(int);
     c_long     gethostid();
     pid_t      getpgid(pid_t);
@@ -568,7 +568,7 @@ else version( OSX )
 {
     char*      crypt(in char*, in char*);
     char*      ctermid(char*);
-    void       encrypt(char[64], int);
+    void       encrypt(ref char[64], int);
     int        fchdir(int);
     c_long     gethostid();
     pid_t      getpgid(pid_t);
