@@ -193,10 +193,7 @@ version( Windows )
             return 0;
         }
 
-        //
-        // Copy of the same-named function in phobos.std.thread--it uses the
-        // Windows naming convention to be consistent with GetCurrentThreadId
-        //
+
         HANDLE GetCurrentThreadHandle()
         {
             const uint DUPLICATE_SAME_ACCESS = 0x00000002;

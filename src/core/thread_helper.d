@@ -15,8 +15,8 @@ module core.thread_helper;
 
 version( Windows )
 {
-    import std.c.windows.windows;
-    import std.c.stdlib;
+    import core.sys.windows.windows;
+    import core.stdc.stdlib;
 
     public import core.thread;
 
@@ -153,16 +153,16 @@ private:
 	    char* buf;
 	    for( ; ; )
 	    {
-		buf = cast(char*) std.c.stdlib.malloc(sz);
+		buf = cast(char*) core.stdc.stdlib.malloc(sz);
 		if(!buf)
 	    	    return false;
 		rc = (*fn)( SystemProcessInformation, buf, sz, &retLength );
 		if( rc != STATUS_INFO_LENGTH_MISMATCH )
 		    break;
-		std.c.stdlib.free( buf );
+		core.stdc.stdlib.free( buf );
 		sz *= 2;
 	    }
-	    scope(exit) std.c.stdlib.free( buf );
+	    scope(exit) core.stdc.stdlib.free( buf );
 
 	    if(rc != 0)
 		return false;

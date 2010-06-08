@@ -15,7 +15,7 @@ module core.dll_helper;
 
 version( Windows )
 {
-    import std.c.windows.windows;
+    import core.sys.windows.windows;
     import core.stdc.string;
     import core.runtime;
 
