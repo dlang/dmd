@@ -433,6 +433,7 @@ void StorageClassDeclaration::stcToCBuffer(OutBuffer *buf, StorageClass stc)
         { STCout,          TOKout },
         { STCin,           TOKin },
 #if DMDV2
+        { STCmanifest,     TOKenum },
         { STCimmutable,    TOKimmutable },
         { STCshared,       TOKshared },
         { STCnothrow,      TOKnothrow },
@@ -443,7 +444,8 @@ void StorageClassDeclaration::stcToCBuffer(OutBuffer *buf, StorageClass stc)
         { STCproperty,     TOKat },
         { STCsafe,         TOKat },
         { STCtrusted,      TOKat },
-        { STCdisable,       TOKat },
+        { STCsystem,       TOKat },
+        { STCdisable,      TOKat },
 #endif
     };
 
@@ -462,6 +464,8 @@ void StorageClassDeclaration::stcToCBuffer(OutBuffer *buf, StorageClass stc)
                     id = Id::safe;
                 else if (stc & STCtrusted)
                     id = Id::trusted;
+                else if (stc & STCsystem)
+                    id = Id::system;
                 else if (stc & STCdisable)
                     id = Id::disable;
                 else
