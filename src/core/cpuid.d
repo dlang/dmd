@@ -513,31 +513,36 @@ void getCpuInfo0B()
 void cpuidX86()
 {
     char * venptr = vendorID.ptr;
+    uint a, b, c, d, a2;
     asm {
         mov EAX, 0;
         cpuid;
-        mov max_cpuid, EAX;
+        mov a, EAX;
         mov EAX, venptr;
         mov [EAX], EBX;
         mov [EAX + 4], EDX;
         mov [EAX + 8], ECX;
         mov EAX, 0x8000_0000;
         cpuid;
-        mov max_extended_cpuid, EAX;
+        mov a2, EAX;
     }
+    max_cpuid = a;
+    max_extended_cpuid = a2;
+    
     
     probablyIntel = vendorID == "GenuineIntel";
     probablyAMD = vendorID == "AuthenticAMD";
-    uint a, b, c, d;
     uint apic = 0; // brand index, apic id
     asm {
         mov EAX, 1; // model, stepping
         cpuid;
         mov a, EAX;
         mov apic, EBX;
-        mov miscfeatures, ECX;
-        mov features, EDX;
+        mov c, ECX;
+        mov d, EDX;
     }
+    features = d;
+    miscfeatures = c;
     amdfeatures = 0;
     amdmiscfeatures = 0;
     if (max_extended_cpuid >= 0x8000_0001) {
