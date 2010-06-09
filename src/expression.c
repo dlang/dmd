@@ -5277,8 +5277,8 @@ Expression *IsExp::semantic(Scope *sc)
          * is(targ : tspec)
          */
         tspec = tspec->semantic(loc, sc);
-        //printf("targ  = %s\n", targ->toChars());
-        //printf("tspec = %s\n", tspec->toChars());
+        //printf("targ  = %s, %s\n", targ->toChars(), targ->deco);
+        //printf("tspec = %s, %s\n", tspec->toChars(), tspec->deco);
         if (tok == TOKcolon)
         {   if (targ->implicitConvTo(tspec))
                 goto Lyes;
@@ -5303,11 +5303,11 @@ Lyes:
         if (sc->sd)
             s->addMember(sc, sc->sd, 1);
     }
-//printf("Lyes\n");
+    //printf("Lyes\n");
     return new IntegerExp(loc, 1, Type::tbool);
 
 Lno:
-//printf("Lno\n");
+    //printf("Lno\n");
     return new IntegerExp(loc, 0, Type::tbool);
 
 Lerr:
@@ -6429,7 +6429,27 @@ L1:
         Dsymbol *s = ti->inst->toAlias();
         Declaration *v = s->isDeclaration();
         if (v)
-        {   e = new DotVarExp(loc, eleft, v);
+        {
+            /* Fix for Bugzilla 4003
+             * The problem is a class template member function v returning a reference to the same
+             * type as the enclosing template instantiation. This results in a nested instantiation,
+             * which of course gets short circuited. The return type then gets set to
+             * the template instance type before instantiation, rather than after.
+             * We can detect this by the deco not being set. If so, go ahead and retry
+             * the return type semantic.
+             * The offending code is the return type from std.typecons.Tuple.slice:
+             *    ref Tuple!(Types[from .. to]) slice(uint from, uint to)()
+             *    {
+             *        return *cast(typeof(return) *) &(field[from]);
+             *    }
+             * and this line from the following unittest:
+             *    auto s = a.slice!(1, 3);
+             * where s's type wound up not having semantic() run on it.
+             */
+            if (v->type && !v->type->deco)
+                v->type = v->type->semantic(v->loc, sc);
+
+            e = new DotVarExp(loc, eleft, v);
             e = e->semantic(sc);
             return e;
         }

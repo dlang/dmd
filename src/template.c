@@ -3569,7 +3569,7 @@ void TemplateInstance::semantic(Scope *sc)
 
 void TemplateInstance::semantic(Scope *sc, Expressions *fargs)
 {
-    //printf("TemplateInstance::semantic('%s', this=%p)\n", toChars(), this);
+    //printf("TemplateInstance::semantic('%s', this=%p, gag = %d)\n", toChars(), this, global.gag);
     if (global.errors && name != Id::AssociativeArray)
     {
         //printf("not instantiating %s due to %d errors\n", toChars(), global.errors);

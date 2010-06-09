@@ -137,7 +137,9 @@ void FuncDeclaration::semantic(Scope *sc)
     if (semanticRun >= PASSsemanticdone)
     {
         if (!parent->isClassDeclaration())
+        {
             return;
+        }
         // need to re-run semantic() in order to set the class's vtbl[]
     }
     else
@@ -2314,12 +2316,12 @@ AggregateDeclaration *FuncDeclaration::isMember2()
 //printf("\ts = '%s', parent = '%s', kind = %s\n", s->toChars(), s->parent->toChars(), s->parent->kind());
         ad = s->isMember();
         if (ad)
-{   //printf("test4\n");
+{
             break;
 }
         if (!s->parent ||
             (!s->parent->isTemplateInstance()))
-{   //printf("test5\n");
+{
             break;
 }
     }

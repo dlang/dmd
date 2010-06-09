@@ -7689,7 +7689,8 @@ Type *TypeSlice::semantic(Loc loc, Scope *sc)
         args->push(arg);
     }
 
-    return new TypeTuple(args);
+    Type *t = new TypeTuple(args)->semantic(loc, sc);
+    return t;
 }
 
 void TypeSlice::resolve(Loc loc, Scope *sc, Expression **pe, Type **pt, Dsymbol **ps)
