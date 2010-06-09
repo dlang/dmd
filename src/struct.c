@@ -190,11 +190,22 @@ void AggregateDeclaration::addField(Scope *sc, VarDeclaration *v)
     memsize = v->type->size(loc);
     memalignsize = v->type->alignsize();
     xalign = v->type->memalign(sc->structalign);
+#if 0
     alignmember(xalign, memalignsize, &sc->offset);
     v->offset = sc->offset;
     sc->offset += memsize;
     if (sc->offset > structsize)
         structsize = sc->offset;
+#else
+    size_t ofs = sc->offset;
+    alignmember(xalign, memalignsize, &ofs);
+    v->offset = ofs;
+    ofs += memsize;
+    if (ofs > structsize)
+        structsize = ofs;
+    if (!isUnionDeclaration())
+        sc->offset = ofs;
+#endif
     if (sc->structalign < memalignsize)
         memalignsize = sc->structalign;
     if (alignsize < memalignsize)
@@ -327,8 +338,6 @@ void StructDeclaration::semantic(Scope *sc)
     {
         Dsymbol *s = (Dsymbol *)members->data[i];
         s->semantic(sc2);
-        if (isUnionDeclaration())
-            sc2->offset = 0;
 #if 0
         if (sizeok == 2)
         {   //printf("forward reference\n");
