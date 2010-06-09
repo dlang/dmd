@@ -1105,18 +1105,24 @@ char *Expression::toChars()
 
 void Expression::error(const char *format, ...)
 {
-    va_list ap;
-    va_start(ap, format);
-    ::verror(loc, format, ap);
-    va_end( ap );
+    if (type != Type::terror)
+    {
+        va_list ap;
+        va_start(ap, format);
+        ::verror(loc, format, ap);
+        va_end( ap );
+    }
 }
 
 void Expression::warning(const char *format, ...)
 {
-    va_list ap;
-    va_start(ap, format);
-    ::vwarning(loc, format, ap);
-    va_end( ap );
+    if (type != Type::terror)
+    {
+        va_list ap;
+        va_start(ap, format);
+        ::vwarning(loc, format, ap);
+        va_end( ap );
+    }
 }
 
 void Expression::rvalue()
@@ -1246,7 +1252,7 @@ void Expression::checkEscapeRef()
 
 void Expression::checkScalar()
 {
-    if (!type->isscalar())
+    if (!type->isscalar() && type->toBasetype() != Type::terror)
         error("'%s' is not a scalar, it is a %s", toChars(), type->toChars());
     rvalue();
 }
@@ -1260,7 +1266,8 @@ void Expression::checkNoBool()
 Expression *Expression::checkIntegral()
 {
     if (!type->isintegral())
-    {   error("'%s' is not of integral type, it is a %s", toChars(), type->toChars());
+    {   if (type->toBasetype() != Type::terror)
+            error("'%s' is not of integral type, it is a %s", toChars(), type->toChars());
         return new ErrorExp();
     }
     rvalue();
@@ -1270,7 +1277,8 @@ Expression *Expression::checkIntegral()
 Expression *Expression::checkArithmetic()
 {
     if (!type->isintegral() && !type->isfloating())
-    {   error("'%s' is not of arithmetic type, it is a %s", toChars(), type->toChars());
+    {   if (type->toBasetype() != Type::terror)
+            error("'%s' is not of arithmetic type, it is a %s", toChars(), type->toChars());
         return new ErrorExp();
     }
     rvalue();
@@ -1400,8 +1408,8 @@ Expression *Expression::checkToBoolean(Scope *sc)
     }
 
     if (!type->checkBoolean())
-    {
-        error("expression %s of type %s does not have a boolean value", toChars(), type->toChars());
+    {   if (type->toBasetype() != Type::terror)
+            error("expression %s of type %s does not have a boolean value", toChars(), type->toChars());
         return new ErrorExp();
     }
     return this;
@@ -1828,6 +1836,11 @@ ErrorExp::ErrorExp()
     : IntegerExp(0, 0, Type::terror)
 {
     op = TOKerror;
+}
+
+Expression *ErrorExp::toLvalue(Scope *sc, Expression *e)
+{
+    return this;
 }
 
 void ErrorExp::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
@@ -5527,9 +5540,12 @@ int BinExp::canThrow()
 
 void BinExp::incompatibleTypes()
 {
-    error("incompatible types for ((%s) %s (%s)): '%s' and '%s'",
-         e1->toChars(), Token::toChars(op), e2->toChars(),
-         e1->type->toChars(), e2->type->toChars());
+    if (e1->type->toBasetype() != Type::terror &&
+        e2->type->toBasetype() != Type::terror
+       )
+        error("incompatible types for ((%s) %s (%s)): '%s' and '%s'",
+             e1->toChars(), Token::toChars(op), e2->toChars(),
+             e1->type->toChars(), e2->type->toChars());
 }
 
 /********************** BinAssignExp **************************************/
@@ -7531,6 +7547,7 @@ Expression *PtrExp::semantic(Scope *sc)
 
             default:
                 error("can only * a pointer, not a '%s'", e1->type->toChars());
+            case Terror:
                 return new ErrorExp();
         }
         rvalue();
@@ -8150,11 +8167,15 @@ Expression *SliceExp::semantic(Scope *sc)
     {   lwr = lwr->semantic(sc2);
         lwr = resolveProperties(sc2, lwr);
         lwr = lwr->implicitCastTo(sc2, Type::tsize_t);
+        if (lwr->type == Type::terror)
+            goto Lerr;
     }
     if (upr)
     {   upr = upr->semantic(sc2);
         upr = resolveProperties(sc2, upr);
         upr = upr->implicitCastTo(sc2, Type::tsize_t);
+        if (upr->type == Type::terror)
+            goto Lerr;
     }
 
     if (sc2 != sc)
@@ -8210,7 +8231,7 @@ Expression *SliceExp::semantic(Scope *sc)
         else
         {
             error("string slice [%ju .. %ju] is out of bounds", i1, i2);
-            e = new ErrorExp();
+            goto Lerr;
         }
         return e;
     }
@@ -8232,6 +8253,7 @@ Lerror:
     else
         s = t->toChars();
     error("%s cannot be sliced with []", s);
+Lerr:
     e = new ErrorExp();
     return e;
 }
@@ -8414,6 +8436,8 @@ Expression *ArrayExp::semantic(Scope *sc)
         {   error("%s has no value", e->toChars());
             goto Lerr;
         }
+        else if (e->type == Type::terror)
+            goto Lerr;
         arguments->data[i] = (void *)e;
     }
 
@@ -8594,9 +8618,11 @@ Expression *IndexExp::semantic(Scope *sc)
     if (!e2->type)
     {
         error("%s has no value", e2->toChars());
-        return new ErrorExp();
+        goto Lerr;
     }
     e2 = resolveProperties(sc, e2);
+    if (e2->type == Type::terror)
+        goto Lerr;
 
     if (t1->ty == Tsarray || t1->ty == Tarray || t1->ty == Ttuple)
         sc = sc->pop();
@@ -8682,9 +8708,13 @@ Expression *IndexExp::semantic(Scope *sc)
         default:
             error("%s must be an array or pointer type, not %s",
                 e1->toChars(), e1->type->toChars());
-            return new ErrorExp();
+        case Terror:
+            goto Lerr;
     }
     return e;
+
+Lerr:
+    return new ErrorExp();
 }
 
 #if DMDV2
@@ -9395,7 +9425,8 @@ Expression *CatAssignExp::semantic(Scope *sc)
     }
     else
     {
-        error("cannot append type %s to type %s", tb2->toChars(), tb1->toChars());
+        if (tb1 != Type::terror && tb2 != Type::terror)
+            error("cannot append type %s to type %s", tb2->toChars(), tb1->toChars());
         e = new ErrorExp();
     }
     return e;
@@ -9741,7 +9772,7 @@ Expression *PowAssignExp::semantic(Scope *sc)
         e = e->semantic(sc);
         return e;
     }
-    error("%s ^^= %s is not supported", e1->type->toChars(), e2->type->toChars() );
+    incompatibleTypes();
     return new ErrorExp();
 }
 
@@ -10023,8 +10054,7 @@ Expression *CatExp::semantic(Scope *sc)
         else
         {
             //printf("(%s) ~ (%s)\n", e1->toChars(), e2->toChars());
-            error("Can only concatenate arrays, not (%s ~ %s)",
-                e1->type->toChars(), e2->type->toChars());
+            incompatibleTypes();
             return new ErrorExp();
         }
         e->type = e->type->semantic(loc, sc);
@@ -10333,7 +10363,7 @@ Expression *PowExp::semantic(Scope *sc)
 
         return e;
     }
-    error("%s ^^ %s is not supported", e1->type->toChars(), e2->type->toChars() );
+    incompatibleTypes();
     return new ErrorExp();
 }
 
@@ -10665,24 +10695,30 @@ Expression *InExp::semantic(Scope *sc)
 
     //type = Type::tboolean;
     Type *t2b = e2->type->toBasetype();
-    if (t2b->ty != Taarray)
+    switch (t2b->ty)
     {
-        error("rvalue of in expression must be an associative array, not %s", e2->type->toChars());
-        return new ErrorExp();
-    }
-    else
-    {
-        TypeAArray *ta = (TypeAArray *)t2b;
-
-        // Special handling for array keys
-        if (!arrayTypeCompatible(e1->loc, e1->type, ta->index))
+        case Taarray:
         {
-            // Convert key to type of key
-            e1 = e1->implicitCastTo(sc, ta->index);
+            TypeAArray *ta = (TypeAArray *)t2b;
+
+#if DMDV2
+            // Special handling for array keys
+            if (!arrayTypeCompatible(e1->loc, e1->type, ta->index))
+#endif
+            {
+                // Convert key to type of key
+                e1 = e1->implicitCastTo(sc, ta->index);
+            }
+
+            // Return type is pointer to value
+            type = ta->nextOf()->pointerTo();
+            break;
         }
 
-        // Return type is pointer to value
-        type = ta->nextOf()->pointerTo();
+        default:
+            error("rvalue of in expression must be an associative array, not %s", e2->type->toChars());
+        case Terror:
+            return new ErrorExp();
     }
     return this;
 }

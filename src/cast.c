@@ -87,7 +87,7 @@ printf("%p %p type: %s to: %s\n", type->deco, t->deco, type->deco, t->deco);
 //printf("%p %p %p\n", type->nextOf()->arrayOf(), type, t);
 fflush(stdout);
 #endif
-    if (t->ty != Terror)
+    if (t->ty != Terror && type->ty != Terror)
     {
         if (!t->deco)
         {   /* Can happen with:

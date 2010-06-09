@@ -1170,8 +1170,9 @@ Expression *Cast(Type *type, Type *to, Expression *e1)
     }
     else
     {
-        error(loc, "cannot cast %s to %s", e1->type->toChars(), type->toChars());
-        e = new IntegerExp(loc, 0, Type::tint32);
+        if (type != Type::terror)
+            error(loc, "cannot cast %s to %s", e1->type->toChars(), type->toChars());
+        e = new ErrorExp();
     }
     return e;
 }

@@ -7689,7 +7689,7 @@ Type *TypeSlice::semantic(Loc loc, Scope *sc)
         args->push(arg);
     }
 
-    Type *t = new TypeTuple(args)->semantic(loc, sc);
+    Type *t = (new TypeTuple(args))->semantic(loc, sc);
     return t;
 }
 
