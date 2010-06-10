@@ -205,7 +205,7 @@ void AggregateDeclaration::addField(Scope *sc, VarDeclaration *v)
     if (sc->offset > structsize)
         structsize = sc->offset;
 #else
-    size_t ofs = sc->offset;
+    unsigned ofs = sc->offset;
     alignmember(xalign, memalignsize, &ofs);
     v->offset = ofs;
     ofs += memsize;

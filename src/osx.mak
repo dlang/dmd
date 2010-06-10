@@ -123,7 +123,7 @@ $(idgen_output) : idgen
 
 idgen : idgen.c
 	${ENVP} $(CC) idgen.c -o idgen
-
+	./idgen
 
 ######### impcnvgen generates some source
 
