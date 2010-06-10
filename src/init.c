@@ -155,7 +155,7 @@ Initializer *StructInitializer::semantic(Scope *sc, Type *t)
         TypeStruct *ts = (TypeStruct *)t;
         ad = ts->sym;
         if (ad->ctor)
-            error("%s %s has constructors, cannot use { initializers }, use %s( initializers ) instead",
+            error(loc, "%s %s has constructors, cannot use { initializers }, use %s( initializers ) instead",
                 ad->kind(), ad->toChars(), ad->toChars());
         for (size_t i = 0; i < field.dim; i++)
         {
