@@ -3973,7 +3973,7 @@ void Catch::semantic(Scope *sc)
         type = new TypeIdentifier(0, Id::Object);
     type = type->semantic(loc, sc);
     if (!type->toBasetype()->isClassHandle())
-        error("can only catch class objects, not '%s'", type->toChars());
+        error(loc, "can only catch class objects, not '%s'", type->toChars());
     else if (ident)
     {
         var = new VarDeclaration(loc, type, ident, NULL);

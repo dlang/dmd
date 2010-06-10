@@ -10,8 +10,10 @@ CC=g++ -m32
 
 #COV=-fprofile-arcs -ftest-coverage
 
-#GFLAGS = -Wno-deprecated -D__near= -D__pascal= -fno-exceptions -g -DDEBUG=1 $(COV)
-GFLAGS = -Wno-deprecated -D__near= -D__pascal= -fno-exceptions -O2
+WARNINGS=-Wno-deprecated -Wstrict-aliasing
+
+#GFLAGS = $(WARNINGS) -D__near= -D__pascal= -fno-exceptions -g -DDEBUG=1 $(COV)
+GFLAGS = $(WARNINGS) -D__near= -D__pascal= -fno-exceptions -O2
 
 CFLAGS = $(GFLAGS) -I$(ROOT) -D__I86__=1 -DMARS=1 -DTARGET_FREEBSD=1 -D_DH
 MFLAGS = $(GFLAGS) -I$C -I$(TK) -D__I86__=1 -DMARS=1 -DTARGET_FREEBSD=1 -D_DH
@@ -88,7 +90,7 @@ SRC = win32.mak linux.mak osx.mak freebsd.mak solaris.mak \
 
 all: dmd
 
-dmd: id.o optabgen $(DMD_OBJS)
+dmd: $(DMD_OBJS)
 	gcc -m32 -lstdc++ $(COV) $(DMD_OBJS) -o dmd
 
 clean:
@@ -103,29 +105,30 @@ optabgen: $C/optabgen.c $C/cc.h $C/oper.h
 	$(CC) $(MFLAGS) $< -o optabgen
 	./optabgen
 
-debtab.c optab.c cdxxx.c elxxx.c fltables.c tytab.c : optabgen
-	./optabgen
+optabgen_output = debtab.c optab.c cdxxx.c elxxx.c fltables.c tytab.c
+$(optabgen_output) : optabgen
 
 ######## idgen generates some source
 
-id.h id.c : idgen
-	./idgen
+idgen_output = id.h id.c
+$(idgen_output) : idgen
 
 idgen : idgen.c
 	$(CC) idgen.c -o idgen
-
-id.o : id.h id.c
-	$(CC) -c $(CFLAGS) id.c
+	./idgen
 
 ######### impcnvgen generates some source
 
-impcnvtab.c : impcnvgen
-	./impcnvgen
+impcnvtab_output = impcnvtab.c
+$(impcnvtab_output) : impcnvgen
 
 impcnvgen : mtype.h impcnvgen.c
 	$(CC) $(CFLAGS) impcnvgen.c -o impcnvgen
+	./impcnvgen
 
 #########
+
+$(DMD_OBJS) : $(idgen_output) $(optabgen_output) $(impcnvgen_output)
 
 aa.o: $C/aa.h $C/tinfo.h $C/aa.c
 	$(CC) -c $(MFLAGS) -I. $C/aa.c
@@ -327,6 +330,9 @@ html.o: $(CH) $(TOTALH) $C/html.h $C/html.c
 
 iasm.o : $(CH) $(TOTALH) $C/iasm.h iasm.c
 	$(CC) -c $(MFLAGS) -I$(ROOT) iasm.c
+
+id.o : id.h id.c
+	$(CC) -c $(CFLAGS) id.c
 
 identifier.o: identifier.c
 	$(CC) -c $(CFLAGS) $<
