@@ -8564,6 +8564,21 @@ int CommaExp::isBool(int result)
 
 int CommaExp::checkSideEffect(int flag)
 {
+    /* Check for compiler-generated code of the form  auto __tmp, e, __tmp;
+     * In such cases, only check e for side effect (it's OK for __tmp to have
+     * no side effect).
+     * See Bugzilla 4231 for discussion
+     */
+    CommaExp* firstComma = this;
+    while (firstComma->e1->op == TOKcomma)
+        firstComma = (CommaExp *)firstComma->e1;
+    if (firstComma->e1->op == TOKdeclaration &&
+        e2->op == TOKvar &&
+        ((DeclarationExp *)firstComma->e1)->declaration == ((VarExp*)e2)->var)
+    {
+        return e1->checkSideEffect(flag);
+    }
+
     if (flag == 2)
         return e1->checkSideEffect(2) || e2->checkSideEffect(2);
     else
