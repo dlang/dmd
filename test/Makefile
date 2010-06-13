@@ -46,9 +46,9 @@ $(RESULTS_DIR)/runnable/%.d.out: runnable/%.d $(RESULTS_DIR)/.created $(RESULTS_
 	$(RESULTS_DIR)/combinations $$p_args | while read x; do \
 	    echo "dmd args: $$r_args $$x" >> $@; \
 	    $(DMD) $$r_args $$x -od$(@D) -of$$t $<; \
-	    if [ $$? -ne 0 ]; then break; fi; \
+	    if [ $$? -ne 0 ]; then exit 1; fi; \
 	    $$t >> $@ 2>&1 && rm $$t $$t.o; \
-	    if [ $$? -ne 0 ]; then break; fi; \
+	    if [ $$? -ne 0 ]; then exit 1; fi; \
 	    echo >> $@; \
        	done
 
@@ -64,7 +64,7 @@ $(RESULTS_DIR)/compilable/%.d.out: compilable/%.d $(RESULTS_DIR)/.created $(RESU
 	$(RESULTS_DIR)/combinations $$p_args | while read x; do \
 	    echo "dmd args: $$r_args $$x" >> $@; \
 	    $(DMD) -c $$r_args $$x -od$(@D) -of$$t.o $<; \
-	    if [ $$? -ne 0 ]; then break; fi; \
+	    if [ $$? -ne 0 ]; then exit 1; fi; \
 	    rm -f $$t.o; \
 	    echo >> $@; \
        	done
@@ -81,7 +81,7 @@ $(RESULTS_DIR)/fail_compilation/%.d.out: fail_compilation/%.d $(RESULTS_DIR)/.cr
 	$(RESULTS_DIR)/combinations $$p_args | while read x; do \
 	    echo "dmd args: $$r_args $$x" >> $@; \
 	    $(DMD) -c $$r_args $$x -od$(@D) -of$$t.o $< 2>/dev/null; \
-	    if [ $$? -eq 0 ]; then rm -f $$t.o; echo "$< should have failed to compile but succeeded instead"; /bin/false; break; fi; \
+	    if [ $$? -eq 0 ]; then rm -f $$t.o; echo "$< should have failed to compile but succeeded instead"; exit 1; break; fi; \
 	    echo >> $@; \
        	done
 
