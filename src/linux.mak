@@ -91,7 +91,7 @@ SRC = win32.mak linux.mak osx.mak freebsd.mak solaris.mak \
 all: dmd
 
 dmd: $(DMD_OBJS)
-	gcc -m32 -lstdc++ $(COV) $(DMD_OBJS) -o dmd
+	gcc -m32 -lstdc++ -lpthread $(COV) $(DMD_OBJS) -o dmd
 
 clean:
 	rm -f $(DMD_OBJS) dmd optab.o id.o impcnvgen idgen id.c id.h \
