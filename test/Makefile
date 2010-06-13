@@ -61,7 +61,7 @@ run_tests: start_runnable_tests
 
 run_runnable_tests: $(runnable_test_results)
 
-start_runnable_tests:
+start_runnable_tests: $(RESULTS_DIR)/.created $(RESULTS_DIR)/combinations
 	@echo "Running runnable tests"
 	$(QUIET)$(MAKE) --no-print-directory run_runnable_tests
 
