@@ -40,15 +40,18 @@ $(RESULTS_DIR)/runnable/%.d.out: runnable/%.d $(RESULTS_DIR)/.created $(RESULTS_
 	t=$(@D)/$*; \
 	r_args=`grep REQUIRED_ARGS $<`; \
 	p_args=`grep PERMUTE_ARGS  $<`; \
+	extra_source=`grep EXTRA_SOURCE $<`; \
 	if [ ! -z "$$r_args" ]; then r_args="$${r_args/*REQUIRED_ARGS:/}"; fi; \
 	if [ -z "$$p_args" ]; then p_args="$(ARGS)"; else p_args="$${p_args/*PERMUTE_ARGS:/}"; fi; \
-	echo -e " ... $<  required: $$r_args\tpermuted args: $$p_args"; \
+	if [ ! -z "$$extra_source" ]; then extra_source="$${extra_source/*EXTRA_SOURCE:/}"; fi; \
+	echo -e " ... $< \trequired: $$r_args\tpermuted args: $$p_args"; \
 	$(RESULTS_DIR)/combinations $$p_args | while read x; do \
 	    echo "dmd args: $$r_args $$x" >> $@; \
-	    $(DMD) $$r_args $$x -od$(@D) -of$$t $<; \
+	    $(DMD) -I$(<D) $$r_args $$x -od$(@D) -of$$t $< $${extra_source/imports/runnable\/imports}; \
 	    if [ $$? -ne 0 ]; then exit 1; fi; \
-	    $$t >> $@ 2>&1 && rm $$t $$t.o; \
-	    if [ $$? -ne 0 ]; then exit 1; fi; \
+	    $$t >> $@ 2>&1; \
+	    if [ $$? -ne 0 ]; then cat $@; rm -f $$t $$t.o $@; exit 1; fi; \
+	    rm -f $$t $$t.o; \
 	    echo >> $@; \
        	done
 
@@ -60,10 +63,10 @@ $(RESULTS_DIR)/compilable/%.d.out: compilable/%.d $(RESULTS_DIR)/.created $(RESU
 	p_args=`grep PERMUTE_ARGS  $<`; \
 	if [ ! -z "$$r_args" ]; then r_args="$${r_args/*REQUIRED_ARGS:/}"; fi; \
 	if [ -z "$$p_args" ]; then p_args="$(ARGS)"; else p_args="$${p_args/*PERMUTE_ARGS:/}"; fi; \
-	echo -e " ... $<  required: $$r_args\tpermuted args: $$p_args"; \
+	echo -e " ... $< \trequired: $$r_args\tpermuted args: $$p_args"; \
 	$(RESULTS_DIR)/combinations $$p_args | while read x; do \
 	    echo "dmd args: $$r_args $$x" >> $@; \
-	    $(DMD) -c $$r_args $$x -od$(@D) -of$$t.o $<; \
+	    $(DMD) -I$(<D) $$r_args $$x -od$(@D) -of$$t.o -c $<; \
 	    if [ $$? -ne 0 ]; then exit 1; fi; \
 	    rm -f $$t.o; \
 	    echo >> $@; \
@@ -77,23 +80,15 @@ $(RESULTS_DIR)/fail_compilation/%.d.out: fail_compilation/%.d $(RESULTS_DIR)/.cr
 	p_args=`grep PERMUTE_ARGS  $<`; \
 	if [ ! -z "$$r_args" ]; then r_args="$${r_args/*REQUIRED_ARGS:/}"; fi; \
 	if [ -z "$$p_args" ]; then p_args="$(ARGS)"; else p_args="$${p_args/*PERMUTE_ARGS:/}"; fi; \
-	echo -e " ... $<  required: $$r_args\tpermuted args: $$p_args"; \
+	echo -e " ... $< \trequired: $$r_args\tpermuted args: $$p_args"; \
 	$(RESULTS_DIR)/combinations $$p_args | while read x; do \
 	    echo "dmd args: $$r_args $$x" >> $@; \
-	    $(DMD) -c $$r_args $$x -od$(@D) -of$$t.o $< 2>/dev/null; \
+	    $(DMD) -I$(<D) $$r_args $$x -od$(@D) -of$$t.o -c $< 2> /dev/null; \
 	    if [ $$? -eq 0 ]; then rm -f $$t.o; echo "$< should have failed to compile but succeeded instead"; exit 1; break; fi; \
 	    echo >> $@; \
        	done
 
 all: run_tests
-
-debug:
-	@echo "runnable_tests: $(runnable_tests)"
-	@echo "compilable_tests: $(compilable_tests)"
-	@echo "fail_compilation_tests: $(fail_compilation_tests)"
-	@echo "runnable_test_results: $(runnable_test_results)"
-	@echo "compilable_test_results: $(compilable_test_results)"
-	@echo "fail_compilation_test_results: $(fail_compilation_test_results)"
 
 clean:
 	@echo "Removing output directory: $(RESULTS_DIR)"
