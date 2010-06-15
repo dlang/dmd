@@ -14,8 +14,8 @@
 #                        default: (none)
 #   PERMUTE_ARGS:        the set of arguments to permute in multiple $(DMD) invocations
 #                        default: the make variable ARGS (see below)
-#
-# NOTE: the bash scripting below fails if the .d file has dos style line endings
+#   EXTRA_SOURCE:        list of extra files to build and link along with the test
+#                        default: (none)
 
 SHELL=/bin/bash
 DMD=../src/dmd
@@ -36,14 +36,15 @@ fail_compilation_test_results=$(addsuffix .out,$(addprefix $(RESULTS_DIR)/,$(fai
 
 $(RESULTS_DIR)/runnable/%.d.out: runnable/%.d $(RESULTS_DIR)/.created $(RESULTS_DIR)/combinations $(DMD)
 	$(QUIET) \
+	shopt -s extglob; \
 	rm -f $@; \
 	t=$(@D)/$*; \
-	r_args=`grep REQUIRED_ARGS $<`; \
-	p_args=`grep PERMUTE_ARGS  $<`; \
+	r_args=`grep REQUIRED_ARGS $< | tr -d \\\\r\\\\n`; \
+	p_args=`grep PERMUTE_ARGS  $< | tr -d \\\\r\\\\n`; \
 	extra_source=`grep EXTRA_SOURCE $<`; \
-	if [ ! -z "$$r_args" ]; then r_args="$${r_args/*REQUIRED_ARGS:/}"; fi; \
-	if [ -z "$$p_args" ]; then p_args="$(ARGS)"; else p_args="$${p_args/*PERMUTE_ARGS:/}"; fi; \
-	if [ ! -z "$$extra_source" ]; then extra_source="$${extra_source/*EXTRA_SOURCE:/}"; fi; \
+	if [ ! -z "$$r_args" ]; then r_args="$${r_args/*REQUIRED_ARGS:*( )/}"; fi; \
+	if [ -z "$$p_args" ]; then p_args="$(ARGS)"; else p_args="$${p_args/*PERMUTE_ARGS:*( )/}"; fi; \
+	if [ ! -z "$$extra_source" ]; then extra_source="$${extra_source/*EXTRA_SOURCE:*( )/}"; fi; \
 	echo -e " ... $< \trequired: $$r_args\tpermuted args: $$p_args"; \
 	$(RESULTS_DIR)/combinations $$p_args | while read x; do \
 	    echo "dmd args: $$r_args $$x" >> $@; \
@@ -57,12 +58,13 @@ $(RESULTS_DIR)/runnable/%.d.out: runnable/%.d $(RESULTS_DIR)/.created $(RESULTS_
 
 $(RESULTS_DIR)/compilable/%.d.out: compilable/%.d $(RESULTS_DIR)/.created $(RESULTS_DIR)/combinations $(DMD)
 	$(QUIET) \
+	shopt -s extglob; \
 	rm -f $@; \
 	t=$(@D)/$*; \
-	r_args=`grep REQUIRED_ARGS $<`; \
-	p_args=`grep PERMUTE_ARGS  $<`; \
-	if [ ! -z "$$r_args" ]; then r_args="$${r_args/*REQUIRED_ARGS:/}"; fi; \
-	if [ -z "$$p_args" ]; then p_args="$(ARGS)"; else p_args="$${p_args/*PERMUTE_ARGS:/}"; fi; \
+	r_args=`grep REQUIRED_ARGS $< | tr -d \\\\r\\\\n`; \
+	p_args=`grep PERMUTE_ARGS  $< | tr -d \\\\r\\\\n`; \
+	if [ ! -z "$$r_args" ]; then r_args="$${r_args/*REQUIRED_ARGS:*( )/}"; fi; \
+	if [ -z "$$p_args" ]; then p_args="$(ARGS)"; else p_args="$${p_args/*PERMUTE_ARGS:*( )/}"; fi; \
 	echo -e " ... $< \trequired: $$r_args\tpermuted args: $$p_args"; \
 	$(RESULTS_DIR)/combinations $$p_args | while read x; do \
 	    echo "dmd args: $$r_args $$x" >> $@; \
@@ -74,12 +76,13 @@ $(RESULTS_DIR)/compilable/%.d.out: compilable/%.d $(RESULTS_DIR)/.created $(RESU
 
 $(RESULTS_DIR)/fail_compilation/%.d.out: fail_compilation/%.d $(RESULTS_DIR)/.created $(RESULTS_DIR)/combinations $(DMD)
 	$(QUIET) \
+	shopt -s extglob; \
 	rm -f $@; \
 	t=$(@D)/$*; \
-	r_args=`grep REQUIRED_ARGS $<`; \
-	p_args=`grep PERMUTE_ARGS  $<`; \
-	if [ ! -z "$$r_args" ]; then r_args="$${r_args/*REQUIRED_ARGS:/}"; fi; \
-	if [ -z "$$p_args" ]; then p_args="$(ARGS)"; else p_args="$${p_args/*PERMUTE_ARGS:/}"; fi; \
+	r_args=`grep REQUIRED_ARGS $< | tr -d \\\\r\\\\n`; \
+	p_args=`grep PERMUTE_ARGS  $< | tr -d \\\\r\\\\n`; \
+	if [ ! -z "$$r_args" ]; then r_args="$${r_args/*REQUIRED_ARGS:*( )/}"; fi; \
+	if [ -z "$$p_args" ]; then p_args="$(ARGS)"; else p_args="$${p_args/*PERMUTE_ARGS:*( )/}"; fi; \
 	echo -e " ... $< \trequired: $$r_args\tpermuted args: $$p_args"; \
 	$(RESULTS_DIR)/combinations $$p_args | while read x; do \
 	    echo "dmd args: $$r_args $$x" >> $@; \
