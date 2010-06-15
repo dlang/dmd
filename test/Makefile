@@ -124,4 +124,4 @@ start_fail_compilation_tests: $(RESULTS_DIR)/.created $(RESULTS_DIR)/combination
 
 $(RESULTS_DIR)/combinations: combinations.d $(RESULTS_DIR)/.created
 	@echo "Building combinations tool"
-	$(QUIET)dmd -od$(RESULTS_DIR) -of$(RESULTS_DIR)/combinations combinations.d
+	$(QUIET)$(DMD) -od$(RESULTS_DIR) -of$(RESULTS_DIR)/combinations combinations.d
