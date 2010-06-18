@@ -164,10 +164,14 @@ void OmToHeader(Header *h, ObjModule *om)
     assert(len <= 12);
     memset(h->file_time + len, ' ', 12 - len);
 
+    if (om->user_id > 999999)           // yes, it happens
+        om->user_id = 0;                // don't really know what to do here
     len = sprintf(h->user_id, "%u", om->user_id);
     assert(len <= 6);
     memset(h->user_id + len, ' ', 6 - len);
 
+    if (om->group_id > 999999)          // yes, it happens
+        om->group_id = 0;               // don't really know what to do here
     len = sprintf(h->group_id, "%u", om->group_id);
     assert(len <= 6);
     memset(h->group_id + len, ' ', 6 - len);
