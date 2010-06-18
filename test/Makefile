@@ -1,6 +1,7 @@
 # Execute the dmd test suite
 #
 # Targets:
+#
 #    default | all:      run all unit tests that haven't been run yet
 #
 #    run_tests:          run all tests
@@ -10,11 +11,17 @@
 #
 #
 # In-test variables:
-#   REQUIRED_ARGS:       arguments to add to the $(DMD) command line
+#
+#   EXECUTE_ARGS:        parameters to add to the execution of the test
 #                        default: (none)
+#
+#   EXTRA_SOURCE:        list of extra files to build and link along with the test
+#                        default: (none)
+#
 #   PERMUTE_ARGS:        the set of arguments to permute in multiple $(DMD) invocations
 #                        default: the make variable ARGS (see below)
-#   EXTRA_SOURCE:        list of extra files to build and link along with the test
+#
+#   REQUIRED_ARGS:       arguments to add to the $(DMD) command line
 #                        default: (none)
 
 SHELL=/bin/bash
@@ -23,7 +30,6 @@ RESULTS_DIR=test_results
 QUIET=@
 
 ARGS=-inline -release -gc -O -unittest -fPIC
-#ARGS=-inline
 
 runnable_tests=$(wildcard runnable/*.d)
 runnable_test_results=$(addsuffix .out,$(addprefix $(RESULTS_DIR)/,$(runnable_tests)))
@@ -41,16 +47,18 @@ $(RESULTS_DIR)/runnable/%.d.out: runnable/%.d $(RESULTS_DIR)/.created $(RESULTS_
 	t=$(@D)/$*; \
 	r_args=`grep REQUIRED_ARGS $< | tr -d \\\\r\\\\n`; \
 	p_args=`grep PERMUTE_ARGS  $< | tr -d \\\\r\\\\n`; \
-	extra_source=`grep EXTRA_SOURCE $<`; \
+	e_args=`grep EXECUTE_ARGS  $< | tr -d \\\\r\\\\n`; \
+	extra_source=`grep EXTRA_SOURCE $< | tr -d \\\\r\\\\n`; \
 	if [ ! -z "$$r_args" ]; then r_args="$${r_args/*REQUIRED_ARGS:*( )/}"; fi; \
 	if [ -z "$$p_args" ]; then p_args="$(ARGS)"; else p_args="$${p_args/*PERMUTE_ARGS:*( )/}"; fi; \
+	if [ ! -z "$$e_args" ]; then e_args="$${e_args/*EXECUTE_ARGS:*( )/}"; fi; \
 	if [ ! -z "$$extra_source" ]; then extra_source="$${extra_source/*EXTRA_SOURCE:*( )/}"; fi; \
-	echo -e " ... $< \trequired: $$r_args\tpermuted args: $$p_args"; \
+	printf " ... %-30s required: %-5s permuted args: %s\n" "$<" "$$r_args" "$$p_args"; \
 	$(RESULTS_DIR)/combinations $$p_args | while read x; do \
 	    echo "dmd args: $$r_args $$x" >> $@; \
 	    $(DMD) -I$(<D) $$r_args $$x -od$(@D) -of$$t $< $${extra_source/imports/runnable\/imports}; \
 	    if [ $$? -ne 0 ]; then exit 1; fi; \
-	    $$t >> $@ 2>&1; \
+	    $$t $$e_args >> $@ 2>&1; \
 	    if [ $$? -ne 0 ]; then cat $@; rm -f $$t $$t.o $@; exit 1; fi; \
 	    rm -f $$t $$t.o; \
 	    echo >> $@; \
@@ -65,7 +73,7 @@ $(RESULTS_DIR)/compilable/%.d.out: compilable/%.d $(RESULTS_DIR)/.created $(RESU
 	p_args=`grep PERMUTE_ARGS  $< | tr -d \\\\r\\\\n`; \
 	if [ ! -z "$$r_args" ]; then r_args="$${r_args/*REQUIRED_ARGS:*( )/}"; fi; \
 	if [ -z "$$p_args" ]; then p_args="$(ARGS)"; else p_args="$${p_args/*PERMUTE_ARGS:*( )/}"; fi; \
-	echo -e " ... $< \trequired: $$r_args\tpermuted args: $$p_args"; \
+	printf " ... %-30s required: %-5s permuted args: %s\n" "$<" "$$r_args" "$$p_args"; \
 	$(RESULTS_DIR)/combinations $$p_args | while read x; do \
 	    echo "dmd args: $$r_args $$x" >> $@; \
 	    $(DMD) -I$(<D) $$r_args $$x -od$(@D) -of$$t.o -c $<; \
@@ -83,7 +91,7 @@ $(RESULTS_DIR)/fail_compilation/%.d.out: fail_compilation/%.d $(RESULTS_DIR)/.cr
 	p_args=`grep PERMUTE_ARGS  $< | tr -d \\\\r\\\\n`; \
 	if [ ! -z "$$r_args" ]; then r_args="$${r_args/*REQUIRED_ARGS:*( )/}"; fi; \
 	if [ -z "$$p_args" ]; then p_args="$(ARGS)"; else p_args="$${p_args/*PERMUTE_ARGS:*( )/}"; fi; \
-	echo -e " ... $< \trequired: $$r_args\tpermuted args: $$p_args"; \
+	printf " ... %-30s required: %-5s permuted args: %s\n" "$<" "$$r_args" "$$p_args"; \
 	$(RESULTS_DIR)/combinations $$p_args | while read x; do \
 	    echo "dmd args: $$r_args $$x" >> $@; \
 	    $(DMD) -I$(<D) $$r_args $$x -od$(@D) -of$$t.o -c $< 2> /dev/null; \
