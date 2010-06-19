@@ -357,9 +357,17 @@ int runLINK()
 
     waitpid(childpid, &status, 0);
 
-    status=WEXITSTATUS(status);
-    if (status)
-        printf("--- errorlevel %d\n", status);
+    if (WIFEXITED(status))
+    {
+        status = WEXITSTATUS(status);
+        if (status)
+            printf("--- errorlevel %d\n", status);
+    }
+    else if (WIFSIGNALED(status))
+    {
+        printf("--- killed by signal %d\n", WTERMSIG(status));
+        status = 1;
+    }
     return status;
 #else
     printf ("Linking is not yet supported for this version of DMD.\n");
@@ -546,7 +554,16 @@ int runProgram()
 
     waitpid(childpid, &status, 0);
 
-    status = WEXITSTATUS(status);
+    if (WIFEXITED(status))
+    {
+        status = WEXITSTATUS(status);
+        //printf("--- errorlevel %d\n", status);
+    }
+    else if (WIFSIGNALED(status))
+    {
+        printf("--- killed by signal %d\n", WTERMSIG(status));
+        status = 1;
+    }
     return status;
 #else
     assert(0);
