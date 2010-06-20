@@ -15,7 +15,7 @@
 #   EXECUTE_ARGS:        parameters to add to the execution of the test
 #                        default: (none)
 #
-#   EXTRA_SOURCE:        list of extra files to build and link along with the test
+#   EXTRA_SOURCES:       list of extra files to build and link along with the test
 #                        default: (none)
 #
 #   PERMUTE_ARGS:        the set of arguments to permute in multiple $(DMD) invocations
@@ -48,16 +48,17 @@ $(RESULTS_DIR)/runnable/%.d.out: runnable/%.d $(RESULTS_DIR)/.created $(RESULTS_
 	r_args=`grep REQUIRED_ARGS $< | tr -d \\\\r\\\\n`; \
 	p_args=`grep PERMUTE_ARGS  $< | tr -d \\\\r\\\\n`; \
 	e_args=`grep EXECUTE_ARGS  $< | tr -d \\\\r\\\\n`; \
-	extra_source=`grep EXTRA_SOURCE $< | tr -d \\\\r\\\\n`; \
+	extra_sources=`grep EXTRA_SOURCES $< | tr -d \\\\r\\\\n`; \
 	if [ ! -z "$$r_args" ]; then r_args="$${r_args/*REQUIRED_ARGS:*( )/}"; fi; \
 	if [ -z "$$p_args" ]; then p_args="$(ARGS)"; else p_args="$${p_args/*PERMUTE_ARGS:*( )/}"; fi; \
 	if [ ! -z "$$e_args" ]; then e_args="$${e_args/*EXECUTE_ARGS:*( )/}"; fi; \
-	if [ ! -z "$$extra_source" ]; then extra_source="$${extra_source/*EXTRA_SOURCE:*( )/}"; fi; \
-	printf " ... %-30s required: %-5s permuted args: %s\n" "$<" "$$r_args" "$$p_args"; \
+	if [ ! -z "$$extra_sources" ]; then extra_sources=($${extra_sources/*EXTRA_SOURCES:*( )/}); fi; \
+	printf " ... %-30s required: %-5s permuted args: %s extra sources: %s\n" "$<" "$$r_args" "$$p_args" "$$extra_sources"; \
 	$(RESULTS_DIR)/combinations $$p_args | while read x; do \
 	    echo "dmd args: $$r_args $$x" >> $@; \
-	    $(DMD) -I$(<D) $$r_args $$x -od$(@D) -of$$t $< $${extra_source/imports/runnable\/imports}; \
-	    if [ $$? -ne 0 ]; then exit 1; fi; \
+	    echo $(DMD) -I$(<D) $$r_args $$x -od$(@D) -of$$t $< $${extra_sources[*]/imports/runnable\/imports}; \
+	    $(DMD) -I$(<D) $$r_args $$x -od$(@D) -of$$t $< $${extra_sources[*]/imports/runnable\/imports}; \
+	    if [ $$? -ne 0 ]; then rm -f $$t.d.out; exit 1; fi; \
 	    $$t $$e_args >> $@ 2>&1; \
 	    if [ $$? -ne 0 ]; then cat $@; rm -f $$t $$t.o $@; exit 1; fi; \
 	    rm -f $$t $$t.o; \

@@ -1,5 +1,5 @@
 // see also: bug 8
-// EXTRA_SOURCE: imports/bug846.d
+// EXTRA_SOURCES: imports/bug846.d
 
 import imports.bug846;
 
