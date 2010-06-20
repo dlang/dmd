@@ -56,7 +56,6 @@ $(RESULTS_DIR)/runnable/%.d.out: runnable/%.d $(RESULTS_DIR)/.created $(RESULTS_
 	printf " ... %-30s required: %-5s permuted args: %s extra sources: %s\n" "$<" "$$r_args" "$$p_args" "$$extra_sources"; \
 	$(RESULTS_DIR)/combinations $$p_args | while read x; do \
 	    echo "dmd args: $$r_args $$x" >> $@; \
-	    echo $(DMD) -I$(<D) $$r_args $$x -od$(@D) -of$$t $< $${extra_sources[*]/imports/runnable\/imports}; \
 	    $(DMD) -I$(<D) $$r_args $$x -od$(@D) -of$$t $< $${extra_sources[*]/imports/runnable\/imports}; \
 	    if [ $$? -ne 0 ]; then rm -f $$t.d.out; exit 1; fi; \
 	    $$t $$e_args >> $@ 2>&1; \
