@@ -53,7 +53,7 @@ $(RESULTS_DIR)/runnable/%.d.out: runnable/%.d $(RESULTS_DIR)/.created $(RESULTS_
 	if [ -z "$$p_args" ]; then p_args="$(ARGS)"; else p_args="$${p_args/*PERMUTE_ARGS:*( )/}"; fi; \
 	if [ ! -z "$$e_args" ]; then e_args="$${e_args/*EXECUTE_ARGS:*( )/}"; fi; \
 	if [ ! -z "$$extra_sources" ]; then extra_sources=($${extra_sources/*EXTRA_SOURCES:*( )/}); fi; \
-	printf " ... %-30s required: %-5s permuted args: %s extra sources: %s\n" "$<" "$$r_args" "$$p_args" "$$extra_sources"; \
+	printf " ... %-30s required: %-5s permuted args: %s\n" "$<" "$$r_args" "$$p_args"; \
 	$(RESULTS_DIR)/combinations $$p_args | while read x; do \
 	    echo "dmd args: $$r_args $$x" >> $@; \
 	    $(DMD) -I$(<D) $$r_args $$x -od$(@D) -of$$t $< $${extra_sources[*]/imports/runnable\/imports}; \
