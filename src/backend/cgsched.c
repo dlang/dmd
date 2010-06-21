@@ -90,7 +90,8 @@ void cgsched_pentium(code **pc,regm_t scratch)
     //printf("scratch = x%02x\n",scratch);
     if (config.target_scheduler >= TARGET_80486)
     {
-        *pc = peephole(*pc,0);
+        if (!I64)
+            *pc = peephole(*pc,0);
         if (I32)                        // forget about 16 bit code
         {
             if (config.target_cpu == TARGET_Pentium ||
@@ -153,11 +154,11 @@ static unsigned char pentcycl[256] =
  */
 
 #define F       mPSW            // flags
-#define EA      0x10000
-#define R       0x20000         // register (reg of modregrm field)
-#define N       0x40000         // other things modified, not swappable
-#define B       0x80000         // it's a byte operation
-#define C       0x100000        // floating point flags
+#define EA      0x100000
+#define R       0x200000        // register (reg of modregrm field)
+#define N       0x400000        // other things modified, not swappable
+#define B       0x800000        // it's a byte operation
+#define C       0x1000000       // floating point flags
 #define S       mST0            // floating point stack
 
 static unsigned long oprw[256][2] =
@@ -1874,7 +1875,7 @@ if (c2->IEVpointer1 + sz2 <= c1->IEVpointer1) printf("t5\n");
         }
 
         // If referring to distinct types, then no dependency
-        if (c1->Ijty && c2->Ijty && c1->Ijty != c2->Ijty)
+        if (c1->Irex && c2->Irex && c1->Irex != c2->Irex)
             goto Lswap;
 
         ifl1 = c1->IFL1;

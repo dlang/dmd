@@ -1031,7 +1031,7 @@ code *cdframeptr(elem *e, regm_t *pretregs)
     cs.Iop = ESCAPE;
     cs.Iop2 = ESCframeptr;
     cs.Iflags = 0;
-    cs.Ijty = 0;
+    cs.Irex = 0;
     cs.Irm = reg;
     c1 = gen(cg,&cs);
 
@@ -3949,7 +3949,7 @@ STATIC void do32bit(enum FL fl,union evc *uev,int flags)
   switch (fl)
   {
     case FLconst:
-        assert(sizeof(targ_size_t) == 4);
+        assert(sizeof(targ_size_t) == 4 || sizeof(targ_size_t) == 8);
         ad = * (targ_size_t *) uev;
     L1:
         GENP(4,&ad);

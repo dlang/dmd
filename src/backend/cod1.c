@@ -535,7 +535,7 @@ code *loadea(elem *e,code __ss *cs,unsigned op,unsigned reg,targ_size_t offset,
 
   assert(e);
   cs->Iflags = 0;
-  cs->Ijty = 0;
+  cs->Irex = 0;
   cs->Iop = op;
   if (I32 && op >= 0x100)               /* if 2 byte opcode             */
   {     cs->Iop = op >> 8;
@@ -723,7 +723,7 @@ code *getlvalue(code __ss *pcs,elem *e,regm_t keepmsk)
         fl = FLoper;
   pcs->IFL1 = fl;
   pcs->Iflags = CFoff;                  /* only want offsets            */
-  pcs->Ijty = 0;
+  pcs->Irex = 0;
   pcs->IEVoffset1 = 0;
   ty = e->Ety;
   if (tyfloating(ty))
@@ -2706,7 +2706,7 @@ code *params(elem *e,unsigned stackalign)
 
   c = CNIL;
   cs.Iflags = 0;
-  cs.Ijty = 0;
+  cs.Irex = 0;
   switch (e->Eoper)
   {
 #if SCPP
@@ -3300,7 +3300,7 @@ code *loaddata(elem *e,regm_t *pretregs)
   }
   sz = tysize[tym];
   cs.Iflags = 0;
-  cs.Ijty = 0;
+  cs.Irex = 0;
   if (*pretregs == mPSW)
   {
         regm = allregs;

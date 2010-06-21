@@ -32,13 +32,22 @@ struct Declaration;
 #define SI      6
 #define DI      7
 
-#define ES      9
-#define PSW     10
-#define STACK   11      // top of stack
-#define MEM     12      // memory
-#define OTHER   13      // other things
-#define ST0     14      // 8087 top of stack register
-#define ST01    15      // top two 8087 registers; for complex types
+#define R8      8
+#define R9      9
+#define R10     10
+#define R11     11
+#define R12     12
+#define R13     13
+#define R14     14
+#define R15     15
+
+#define ES      16
+#define PSW     17
+#define STACK   18      // top of stack
+#define MEM     19      // memory
+#define OTHER   20      // other things
+#define ST0     21      // 8087 top of stack register
+#define ST01    22      // top two 8087 registers; for complex types
 
 #define NOREG   100     // no register
 
@@ -59,15 +68,24 @@ struct Declaration;
 #define mBP     0x20
 #define mSI     0x40
 #define mDI     0x80
-#define mES     (1 << ES)       // 0x200
-#define mPSW    (1 << PSW)      // 0x400
+#define mR8     (1 << R8)
+#define mR9     (1 << R9)
+#define mR10    (1 << R10)
+#define mR11    (1 << R11)
+#define mR12    (1 << R12)
+#define mR13    (1 << R13)
+#define mR14    (1 << R14)
+#define mR15    (1 << R15)
 
-#define mSTACK  (1 << STACK)    // 0x800
-#define mMEM    (1 << MEM)      // 0x1000
-#define mOTHER  (1 << OTHER)    // 0x2000
+#define mES     (1 << ES)       // 0x10000
+#define mPSW    (1 << PSW)      // 0x20000
 
-#define mST0    (1 << ST0)      // 0x4000
-#define mST01   (1 << ST01)     // 0x8000
+#define mSTACK  (1 << STACK)    // 0x40000
+#define mMEM    (1 << MEM)      // 0x80000
+#define mOTHER  (1 << OTHER)    // 0x100000
+
+#define mST0    (1 << ST0)      // 0x200000
+#define mST01   (1 << ST01)     // 0x400000
 
 // Flags for getlvalue (must fit in regm_t)
 #define RMload  0x4000
@@ -213,6 +231,12 @@ extern regm_t BYTEREGS;
 #define NEWREG(x,r)             ((x)=((x)&~(7<<3))|((r)<<3))
 #define genorreg(c,t,f)         genregs((c),0x09,(f),(t))
 
+#define REX     0x40            // REX prefix byte, OR'd with the following bits:
+#define REX_W   8               // 0 = default operand size, 1 = 64 bit operand size
+#define REX_R   4               // high bit of reg field of modregrm
+#define REX_X   2               // high bit of sib index reg
+#define REX_B   1               // high bit of rm field, sib base reg, or opcode reg
+
 /**********************
  * C library routines.
  * See callclib().
@@ -301,7 +325,7 @@ union evc
     } lab;
 #endif
     struct
-    {   unsigned len;
+    {   size_t len;
         char *bytes;
     } as;                       // asm node (FLasm)
 };
@@ -335,7 +359,7 @@ struct code
 #define CFPREFIX (CFSEG | CFopsize | CFaddrsize)
 #define CFSEG   (CFes | CFss | CFds | CFcs | CFfs | CFgs)
 
-    unsigned char Ijty;         // type of operand, 0 if unknown
+    unsigned char Irex;         // REX prefix
 
     unsigned char Iop;
     unsigned char Irm;          // reg/mode
@@ -364,7 +388,7 @@ struct code
       #define IEVint2     IEV2.Vint
     void print();               // pretty-printer
 
-    code() { Ijty = 0; Isib = 0; }      // constructor
+    code() { Irex = 0; Isib = 0; }      // constructor
 };
 
 // !=0 if we have to add FWAIT to floating point ops
