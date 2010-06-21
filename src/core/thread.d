@@ -3360,7 +3360,7 @@ private:
                 pstack += int.sizeof * 20;
             }
 
-            assert( cast(uint) pstack & 0x0f == 0 );
+            assert( (cast(uint) pstack & 0x0f) == 0 );
         }
         else static if( __traits( compiles, ucontext_t ) )
         {
