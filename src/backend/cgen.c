@@ -273,7 +273,7 @@ code *genjmp(code *c,unsigned op,unsigned fltarg,block *targ)
 
     cs.Iop = op;
     cs.Iflags = 0;
-    cs.Ijty = 0;
+    cs.Irex = 0;
     if (op != JMP)                      /* if not already long branch   */
           cs.Iflags = CFjmp16;          /* assume long branch for op = 0x7x */
     cs.IFL2 = fltarg;                   /* FLblock (or FLcode)          */
@@ -316,7 +316,7 @@ code *gencs(code *c,unsigned op,unsigned rm,unsigned FL2,symbol *s)
     cs.Iop = op;
     cs.Irm = rm;
     cs.Iflags = 0;
-    cs.Ijty = 0;
+    cs.Irex = 0;
     cs.IFL2 = FL2;
     cs.IEVsym2 = s;
     cs.IEVoffset2 = 0;
@@ -335,7 +335,7 @@ code *genc2(code *c,unsigned op,unsigned rm,targ_uns EV2)
         cs.Iop = op;
     cs.Irm = rm;
     cs.Iflags = CFoff;
-    cs.Ijty = 0;
+    cs.Irex = 0;
     cs.IFL2 = FLconst;
     cs.IEV2.Vuns = EV2;
     return gen(c,&cs);
@@ -354,7 +354,7 @@ code *genc1(code *c,unsigned op,unsigned rm,unsigned FL1,targ_uns EV1)
     cs.Irm = rm;
     cs.Isib = rm >> 8;
     cs.Iflags = CFoff;
-    cs.Ijty = 0;
+    cs.Irex = 0;
     cs.IFL1 = FL1;
     cs.IEV1.Vuns = EV1;
     return gen(c,&cs);
@@ -373,7 +373,7 @@ code *genc(code *c,unsigned op,unsigned rm,unsigned FL1,targ_uns EV1,unsigned FL
     cs.Irm = rm;
     cs.Isib = rm >> 8;
     cs.Iflags = CFoff;
-    cs.Ijty = 0;
+    cs.Irex = 0;
     cs.IFL1 = FL1;
     cs.IEV1.Vuns = EV1;
     assert(FL2 < FLMAX);
@@ -398,7 +398,7 @@ code *genmulimm(code *c,unsigned r1,unsigned r2,targ_int imm)
         case 5:
             cs.Iop = LEA;
             cs.Iflags = 0;
-            cs.Ijty = 0;
+            cs.Irex = 0;
             buildEA(&cs,r2,r2,4,0);
             cs.Irm |= modregrm(0,r1,0);
             c = gen(c,&cs);
@@ -427,7 +427,7 @@ code *genlinnum(code *c,Srcpos srcpos)
     cs.Iop = ESCAPE;
     cs.Iop2 = ESClinnum;
     cs.Iflags = 0;
-    cs.Ijty = 0;
+    cs.Irex = 0;
     cs.IFL1 = 0;
     cs.IFL2 = 0;
     cs.IEV2.Vsrcpos = srcpos;
@@ -465,7 +465,7 @@ code *genadjesp(code *c, int offset)
         cs.Iop = ESCAPE;
         cs.Iop2 = ESCadjesp;
         cs.Iflags = 0;
-        cs.Ijty = 0;
+        cs.Irex = 0;
         cs.IEV2.Vint = offset;
         return gen(c,&cs);
     }

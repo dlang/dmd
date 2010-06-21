@@ -477,8 +477,13 @@ typedef unsigned long   targ_uns;
 #define FPTRSIZE        tysize[TYfptr]
 #define REGMASK         0xFFFF
 
+#if TARGET_LINUX
+typedef targ_llong      targ_ptrdiff_t; /* ptrdiff_t for target machine  */
+typedef targ_ullong     targ_size_t;    /* size_t for the target machine */
+#else
 typedef targ_int        targ_ptrdiff_t; /* ptrdiff_t for target machine  */
 typedef targ_uns        targ_size_t;    /* size_t for the target machine */
+#endif
 
 /* Enable/disable various features
    (Some features may no longer work the old way when compiled out,
@@ -560,7 +565,7 @@ typedef targ_uns        targ_size_t;    /* size_t for the target machine */
 #define STACKALIGN      0
 #endif
 
-#define REGMAX  10      // registers are numbered 0..10
+#define REGMAX  17      // registers are numbered 0..10
 
 typedef unsigned long   tym_t;          // data type big enough for type masks
 typedef int             SYMIDX;         // symbol table index
@@ -859,7 +864,7 @@ struct Symbol;
 struct LIST;
 struct elem;
 
-typedef unsigned short regm_t;  // Register mask type
+typedef unsigned regm_t;        // Register mask type
 struct immed_t
 {   targ_int value[REGMAX];     // immediate values in registers
     regm_t mval;                // Mask of which values in regimmed.value[] are valid

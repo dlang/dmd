@@ -418,7 +418,7 @@ code *nteh_prolog()
         assert(config.exe & (EX_LINUX | EX_LINUX64 | EX_OSX | EX_OSX64 | EX_FREEBSD | EX_FREEBSD64 | EX_SOLARIS | EX_SOLARIS64));
         cs.Iop = 0x68;
         cs.Iflags = 0;
-        cs.Ijty = 0;
+        cs.Irex = 0;
         cs.IFL2 = FLconst;
         cs.IEV2.Vint = -2;
         return gen(CNIL,&cs);                   // PUSH -2
@@ -439,7 +439,7 @@ code *nteh_prolog()
 
     cs.Iop = 0x68;
     cs.Iflags = 0;
-    cs.Ijty = 0;
+    cs.Irex = 0;
     cs.IFL2 = FLconst;
     cs.IEV2.Vint = -1;
     c1 = gen(CNIL,&cs);                 // PUSH -1
@@ -474,7 +474,7 @@ code *nteh_prolog()
         cs.Iop = 0xFF;
         cs.Irm = modregrm(0,6,BPRM);
         cs.Iflags = CFfs;
-        cs.Ijty = 0;
+        cs.Irex = 0;
         cs.IFL1 = FLextern;
         cs.IEVsym1 = rtlsym[RTLSYM_EXCEPT_LIST];
         cs.IEVoffset1 = 0;
@@ -484,7 +484,7 @@ code *nteh_prolog()
         cs.Iop = 0x8B;
         cs.Irm = modregrm(0,DX,BPRM);
         cs.Iflags = CFfs;
-        cs.Ijty = 0;
+        cs.Irex = 0;
         cs.IFL1 = FLextern;
         cs.IEVsym1 = rtlsym[RTLSYM_EXCEPT_LIST];
         cs.IEVoffset1 = 0;
@@ -529,7 +529,7 @@ code *nteh_epilog()
     cs.Iop = 0x8B;
     cs.Irm = modregrm(2,reg,BPRM);
     cs.Iflags = 0;
-    cs.Ijty = 0;
+    cs.Irex = 0;
     cs.IFL1 = FLconst;
     // EBP offset of __context.prev
     cs.IEV1.Vint = nteh_EBPoffset_prev();
@@ -554,7 +554,7 @@ code *nteh_setsp(int op)
     cs.Iop = op;
     cs.Irm = modregrm(2,SP,BPRM);
     cs.Iflags = 0;
-    cs.Ijty = 0;
+    cs.Irex = 0;
     cs.IFL1 = FLconst;
     // EBP offset of __context.esp
     cs.IEV1.Vint = nteh_EBPoffset_esp();
@@ -585,7 +585,7 @@ code *nteh_filter(block *b)
         cs.Iop = 0x8B;
         cs.Irm = modregrm(2,AX,BPRM);
         cs.Iflags = 0;
-        cs.Ijty = 0;
+        cs.Irex = 0;
         cs.IFL1 = FLconst;
         // EBP offset of __context.info
         cs.IEV1.Vint = nteh_EBPoffset_info();
@@ -692,7 +692,7 @@ code *cdsetjmp(elem *e,regm_t *pretregs)
 
         cs.Iop = 0x68;
         cs.Iflags = CFoff;
-        cs.Ijty = 0;
+        cs.Irex = 0;
         cs.IFL2 = FLextern;
         cs.IEVsym2 = rtlsym[RTLSYM_CPP_LONGJMP];
         cs.IEVoffset2 = 0;
@@ -723,7 +723,7 @@ code *cdsetjmp(elem *e,regm_t *pretregs)
         cs.Iop = 0xFF;
         cs.Irm = modregrm(2,6,BPRM);
         cs.Iflags = 0;
-        cs.Ijty = 0;
+        cs.Irex = 0;
         cs.IFL1 = FLbprel;
         cs.IEVsym1 = nteh_contextsym();
         cs.IEVoffset1 = sindex_off;
@@ -733,7 +733,7 @@ code *cdsetjmp(elem *e,regm_t *pretregs)
 
         cs.Iop = 0x68;
         cs.Iflags = CFoff;
-        cs.Ijty = 0;
+        cs.Irex = 0;
         cs.IFL2 = FLextern;
         cs.IEVsym2 = rtlsym[RTLSYM_LONGJMP];
         cs.IEVoffset2 = 0;
@@ -755,7 +755,7 @@ code *cdsetjmp(elem *e,regm_t *pretregs)
 
     cs.Iop = 0x68;
     cs.Iflags = 0;
-    cs.Ijty = 0;
+    cs.Irex = 0;
     cs.IFL2 = FLconst;
     cs.IEV2.Vint = flag;
     c = gen(c,&cs);                     // PUSH flag
@@ -810,7 +810,7 @@ code *nteh_unwind(regm_t retregs,unsigned index)
     cs.Iop = 0x8D;
     cs.Irm = modregrm(2,reg,BPRM);
     cs.Iflags = 0;
-    cs.Ijty = 0;
+    cs.Irex = 0;
     cs.IFL1 = FLconst;
     // EBP offset of __context.prev
     cs.IEV1.Vint = nteh_EBPoffset_prev();
@@ -934,7 +934,7 @@ code *nteh_monitor_prolog(Symbol *shandle)
     cs.Iop = 0xFF;
     cs.Irm = modregrm(0,6,BPRM);
     cs.Iflags = CFfs;
-    cs.Ijty = 0;
+    cs.Irex = 0;
     cs.IFL1 = FLextern;
     cs.IEVsym1 = rtlsym[RTLSYM_EXCEPT_LIST];
     cs.IEVoffset1 = 0;
@@ -944,7 +944,7 @@ code *nteh_monitor_prolog(Symbol *shandle)
     cs.Iop = 0x8B;
     cs.Irm = modregrm(0,DX,BPRM);
     cs.Iflags = CFfs;
-    cs.Ijty = 0;
+    cs.Irex = 0;
     cs.IFL1 = FLextern;
     cs.IEVsym1 = rtlsym[RTLSYM_EXCEPT_LIST];
     cs.IEVoffset1 = 0;
@@ -1003,7 +1003,7 @@ code *nteh_monitor_epilog(regm_t retregs)
     cs.Iop = 0x8F;
     cs.Irm = modregrm(0,0,BPRM);
     cs.Iflags = CFfs;
-    cs.Ijty = 0;
+    cs.Irex = 0;
     cs.IFL1 = FLextern;
     cs.IEVsym1 = rtlsym[RTLSYM_EXCEPT_LIST];
     cs.IEVoffset1 = 0;

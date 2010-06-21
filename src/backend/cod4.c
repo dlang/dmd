@@ -1684,7 +1684,7 @@ code *cdcmp(elem *e,regm_t *pretregs)
   c = CNIL;
   ce = CNIL;
   cs.Iflags = (I32 && sz == SHORTSIZE) ? CFopsize : 0;
-  cs.Ijty = 0;
+  cs.Irex = 0;
   if (sz > REGSIZE)
         ce = gennop(ce);
 
@@ -2094,7 +2094,7 @@ code *longcmp(elem *e,bool jcond,unsigned fltarg,code *targ)
   }
 
   cs.Iflags = 0;
-  cs.Ijty = 0;
+  cs.Irex = 0;
 
   ce = gennop(CNIL);
   retregs = ALLREGS;
@@ -2829,7 +2829,7 @@ code *cdfar16( elem *e, regm_t *pretregs)
     cs.Iop = 0xC1;
     cs.Irm = modregrm(3,0,reg);
     cs.Iflags = 0;
-    cs.Ijty = 0;
+    cs.Irex = 0;
     cs.IFL2 = FLconst;
     cs.IEV2.Vuns = 16;
 

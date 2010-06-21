@@ -148,7 +148,7 @@ code *cdorth(elem *e,regm_t *pretregs)
   byte = (sz == 1);
   word = (I32 && sz == SHORTSIZE) ? CFopsize : 0;
   cs.Iflags = 0;
-  cs.Ijty = 0;
+  cs.Irex = 0;
   test = FALSE;                         /* assume we destroyed lvalue   */
   cr = CNIL;                            /* initialize                   */
 
@@ -382,7 +382,7 @@ code *cdorth(elem *e,regm_t *pretregs)
             cs.Irm = modregrm(2,reg,4);
             cs.Isib = modregrm(ss,reg1,reg2);
             cs.Iflags = CFoff;
-            cs.Ijty = 0;
+            cs.Irex = 0;
             cs.IFL1 = FLconst;
             cs.IEV1.Vuns = edisp->EV.Vuns;
 
@@ -739,7 +739,7 @@ code *cdmul(elem *e,regm_t *pretregs)
 
     keepregs = 0;
     cs.Iflags = 0;
-    cs.Ijty = 0;
+    cs.Irex = 0;
     c = cg = cr = CNIL;                         // initialize
     e2 = e->E2;
     e1 = e->E1;
@@ -1652,7 +1652,7 @@ code *cdcond(elem *e,regm_t *pretregs)
         cs.Iop = ESCAPE;
         cs.Iop2 = ESCmark2;
         cs.Iflags = 0;
-        cs.Ijty = 0;
+        cs.Irex = 0;
         c1 = cat(gen(CNIL,&cs),c1);
         cs.Iop2 = ESCrelease2;
         c1 = gen(c1,&cs);
@@ -3628,7 +3628,7 @@ code *getoffset(elem *e,unsigned reg)
   enum FL fl;
 
   cs.Iflags = 0;
-  cs.Ijty = 0;
+  cs.Irex = 0;
   assert(e->Eoper == OPvar || e->Eoper == OPrelconst);
   fl = el_fl(e);
   switch (fl)
@@ -3666,7 +3666,7 @@ code *getoffset(elem *e,unsigned reg)
         css.Iop = 0x8B;
         css.Irm = modregrm(0, reg, BPRM);
         css.Iflags = CFgs;
-        css.Ijty = 0;
+        css.Irex = 0;
         css.IFL1 = FLconst;
         css.IEV1.Vuns = 0;
         c = gen(c, &css);               // MOV reg,GS:[00000000]
@@ -3676,7 +3676,7 @@ code *getoffset(elem *e,unsigned reg)
             cs.Iop = 0x81;
             cs.Irm = modregrm(3,0,reg);
             cs.Iflags = CFoff;
-            css.Ijty = 0;
+            css.Irex = 0;
             cs.IFL2 = fl;
             cs.IEVsym2 = e->EV.sp.Vsym;
             cs.IEVoffset2 = e->EV.sp.Voffset;
@@ -3686,7 +3686,7 @@ code *getoffset(elem *e,unsigned reg)
             cs.Iop = 0x03;
             cs.Irm = modregrm(0,reg,BPRM);
             cs.Iflags = CFoff;
-            css.Ijty = 0;
+            css.Irex = 0;
             cs.IFL1 = fl;
             cs.IEVsym1 = e->EV.sp.Vsym;
             cs.IEVoffset1 = e->EV.sp.Voffset;
@@ -4375,7 +4375,7 @@ code *cdinfo(elem *e,regm_t *pretregs)
                 cs.Iop = ESCAPE;
                 cs.Iop2 = ESCmark;
                 cs.Iflags = 0;
-                cs.Ijty = 0;
+                cs.Irex = 0;
                 c = gen(CNIL,&cs);
                 c = cat(c,codelem(e->E2,pretregs,FALSE));
                 cs.Iop2 = ESCrelease;
@@ -4413,7 +4413,7 @@ code *cdctor(elem *e,regm_t *pretregs)
     cs.Iop = ESCAPE;
     cs.Iop2 = ESCctor;
     cs.Iflags = 0;
-    cs.Ijty = 0;
+    cs.Irex = 0;
     cs.IFL1 = FLctor;
     cs.IEV1.Vtor = e;
     c = gen(CNIL,&cs);
@@ -4445,7 +4445,7 @@ code *cddtor(elem *e,regm_t *pretregs)
     cs.Iop = ESCAPE;
     cs.Iop2 = ESCdtor;
     cs.Iflags = 0;
-    cs.Ijty = 0;
+    cs.Irex = 0;
     cs.IFL1 = FLdtor;
     cs.IEV1.Vtor = e;
     c = gen(CNIL,&cs);

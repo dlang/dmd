@@ -51,7 +51,7 @@ struct seg_data;
  * Bit masks
  */
 
-CEXTERN const unsigned mask[16];
+CEXTERN const unsigned mask[32];
 CEXTERN const unsigned long maskl[32];
 
 extern  char *argv0;
@@ -447,7 +447,7 @@ void compdfo(void);
 #ifdef DEBUG
 
 /* debug.c */
-CEXTERN const char __near *regstring[];
+CEXTERN const char *regstring[];
 
 void WRclass(enum SC c);
 void WRTYxx(tym_t t);
@@ -536,7 +536,7 @@ void mach_addrel(int seg, targ_size_t offset, symbol *targsym,
         unsigned targseg, int rtype);
 #endif
 void elf_func_start(Symbol *sfunc);
-int elf_data_start(Symbol *sdata,int datasize,int seg);
+int elf_data_start(Symbol *sdata, targ_size_t datasize, int seg);
 void elf_func_term(Symbol *sfunc);
 unsigned elf_addstr(Outbuffer *strtab, const char *);
 

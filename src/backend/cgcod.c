@@ -1531,7 +1531,7 @@ regm_t regmask(tym_t tym, tym_t tyf)
             return DOUBLEREGS;
         case TYllong:
         case TYullong:
-            return I32 ? mDX | mAX : DOUBLEREGS;
+            return I64 ? mAX : (I32 ? mDX | mAX : DOUBLEREGS);
         case TYldouble:
         case TYildouble:
             return mST0;
@@ -1606,7 +1606,7 @@ unsigned findreg(regm_t regm
  */
 
 void freenode(elem *e)
-{ register unsigned i;
+{ unsigned i;
 
   elem_debug(e);
   //dbg_printf("freenode(%p) : comsub = %d, count = %d\n",e,e->Ecomsub,e->Ecount);
@@ -1945,7 +1945,7 @@ code *getregs(regm_t r)
  */
 
 STATIC code * cse_save(regm_t ms)
-{   register unsigned reg,i,op;
+{   unsigned reg,i,op;
     code *c = NULL;
     regm_t regm;
 
@@ -2668,7 +2668,7 @@ L1:
 const char *regm_str(regm_t rm)
 {
     #define NUM 4
-    #define SMAX 30
+    #define SMAX 64
     static char str[NUM][SMAX + 1];
     static int i;
     char *p;
@@ -2688,7 +2688,7 @@ const char *regm_str(regm_t rm)
         i = 0;
     s = p;
     *p = 0;
-    for (j = 0; j < 16; j++)
+    for (j = 0; j < 23; j++)
     {
         if (mask[j] & rm)
         {

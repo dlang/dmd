@@ -1530,7 +1530,7 @@ code *load87(elem *e,unsigned eoffset,regm_t *pretregs,elem *eleft,int op)
             cs.Iflags = CFwait;
         else
             cs.Iflags = 0;
-        cs.Ijty = 0;
+        cs.Irex = 0;
         opr = oprev[op + 1];
         ty = tybasic(e->Ety);
         if ((ty == TYldouble || ty == TYildouble) &&
@@ -1887,7 +1887,7 @@ code *eq87(elem *e,regm_t *pretregs)
         // Doesn't work if ST(0) gets saved to the stack by getlvalue()
         c2 = loadea(e->E1,&cs,op1,op2,0,0,0);
 #else
-        cs.Ijty = 0;
+        cs.Irex = 0;
         cs.Iflags = 0;
         cs.Iop = op1;
         if (*pretregs & (mST0 | ALLREGS | mBP)) // if want result on stack too
@@ -1967,7 +1967,7 @@ code *complex_eq87(elem *e,regm_t *pretregs)
 
         assert(e->Eoper == OPeq);
         cs.Iflags = ADDFWAIT() ? CFwait : 0;
-        cs.Ijty = 0;
+        cs.Irex = 0;
         retregs = mST01 | (*pretregs & mPSW);
         c1 = codelem(e->E2,&retregs,FALSE);
         ty1 = tybasic(e->E1->Ety);
@@ -2004,7 +2004,7 @@ code *complex_eq87(elem *e,regm_t *pretregs)
         if (*pretregs & mST01)
         {
             cs.Iflags = 0;
-            cs.Ijty = 0;
+            cs.Irex = 0;
             cs.Iop = op1;
             c2 = getlvalue(&cs, e->E1, 0);
             cs.IEVoffset1 += sz;
@@ -3179,7 +3179,7 @@ STATIC code *genrnd(code *c, short cw)
         code cs;
         cs.Iop = 0xD9;
         cs.Iflags = CFoff;
-        cs.Ijty = 0;
+        cs.Irex = 0;
         cs.IEVsym1 = rnddir;
         cs.IFL1 = rnddir->Sfl;
         cs.IEVoffset1 = 0;

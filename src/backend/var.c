@@ -1,5 +1,5 @@
 // Copyright (C) 1985-1998 by Symantec
-// Copyright (C) 2000-2009 by Digital Mars
+// Copyright (C) 2000-2010 by Digital Mars
 // All Rights Reserved
 // http://www.digitalmars.com
 // Written by Walter Bright
@@ -173,8 +173,11 @@ tym_t pointertype;              /* default data pointer type            */
  * Bit masks
  */
 
-const unsigned mask[16] =
-        {1,2,4,8,16,32,64,128,256,512,1024,2048,4096,8192,16384,0x8000};
+const unsigned mask[32] =
+        {1,2,4,8,16,32,64,128,256,512,1024,2048,4096,8192,16384,0x8000,
+         0x10000,0x20000,0x40000,0x80000,0x100000,0x200000,0x400000,0x800000,
+         0x1000000,0x2000000,0x4000000,0x8000000,
+         0x10000000,0x20000000,0x40000000,0x80000000};
 
 #if 0
 const unsigned long maskl[32] =
@@ -232,8 +235,9 @@ vec_t   defkill = NULL,         /* vector of AEs killed by an ambiguous */
 
 /* From debug.c */
 #if DEBUG
-const char *regstring[16] = {"AX","CX","DX","BX","SP","BP","SI","DI",
-                            "8","ES","PSW","STACK","MEM","OTHER",
+const char *regstring[23] = {"AX","CX","DX","BX","SP","BP","SI","DI",
+                             "R8","R9","R10","R11","R12","R13","R14","R15",
+                             "ES","PSW","STACK","MEM","OTHER",
                                 "ST0", "ST01"};
 #endif
 
