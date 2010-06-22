@@ -44,12 +44,10 @@ struct Declaration;
 #define ES      16
 #define PSW     17
 #define STACK   18      // top of stack
-#define MEM     19      // memory
-#define OTHER   20      // other things
-#define ST0     21      // 8087 top of stack register
-#define ST01    22      // top two 8087 registers; for complex types
+#define ST0     19      // 8087 top of stack register
+#define ST01    20      // top two 8087 registers; for complex types
 
-#define NOREG   100     // no register
+#define NOREG   21     // no register
 
 #define AL      0
 #define CL      1
@@ -81,8 +79,6 @@ struct Declaration;
 #define mPSW    (1 << PSW)      // 0x20000
 
 #define mSTACK  (1 << STACK)    // 0x40000
-#define mMEM    (1 << MEM)      // 0x80000
-#define mOTHER  (1 << OTHER)    // 0x100000
 
 #define mST0    (1 << ST0)      // 0x200000
 #define mST01   (1 << ST01)     // 0x400000
@@ -389,6 +385,19 @@ struct code
     void print();               // pretty-printer
 
     code() { Irex = 0; Isib = 0; }      // constructor
+
+    void orReg(unsigned reg)
+    {   if (reg & 8)
+            Irex |= REX_R;
+        Irm |= modregrm(0, reg & 7, 0);
+    }
+
+    void setReg(unsigned reg)
+    {
+        Irex &= ~REX_R;
+        Irm &= ~modregrm(0, 7, 0);
+        orReg(reg);
+    }
 };
 
 // !=0 if we have to add FWAIT to floating point ops

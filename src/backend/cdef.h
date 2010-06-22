@@ -984,7 +984,7 @@ union eve
 
 typedef unsigned long SYMFLGS;
 #if MARS
-#define SYM_PREDEF_SZ 35
+#define SYM_PREDEF_SZ 40
 #else
 #define SYM_PREDEF_SZ 22
 #endif

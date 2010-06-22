@@ -763,7 +763,7 @@ void dotytab()
     static tym_t _integral[] = { TYbool,TYchar,TYschar,TYuchar,TYshort,
                                  TYwchar_t,TYushort,TYenum,TYint,TYuint,
                                  TYlong,TYulong,TYllong,TYullong,TYdchar,
-                                 TYchar16 };
+                                 TYchar16, TYcent, TYucent };
     static tym_t _ref[]      = { TYnref,TYfref,TYref };
 #if TARGET_MAC
     static tym_t _func[]     = { TYnfunc,TYffunc,TYnpfunc,TYfpfunc,TYpsfunc,
@@ -777,7 +777,7 @@ void dotytab()
 #if MARS
                                 TYwchar_t,
 #endif
-                                TYdchar,TYullong,TYchar16 };
+                                TYdchar,TYullong,TYucent,TYchar16 };
     static tym_t _mptr[]    = { TYmemptr };
     static tym_t _nullptr[] = { TYnullptr };
     static tym_t _fv[]      = { TYfptr, TYvptr };
@@ -826,6 +826,8 @@ void dotytab()
 "dchar",        TYdchar,        TYdchar,   TYlong,      4,         0x86,0x78,
 "long long",    TYllong,        TYullong,  TYllong,     LLONGSIZE, 0x82,0x13,
 "uns long long",TYullong,       TYullong,  TYllong,     LLONGSIZE, 0x86,0x23,
+"cent",         TYcent,         TYucent,   TYcent,      16,        0x82,0x13,
+"ucent",        TYucent,        TYucent,   TYcent,      16,        0x86,0x23,
 "float",        TYfloat,        TYfloat,   TYfloat,     FLOATSIZE, 0x88,0x40,
 "double",       TYdouble,       TYdouble,  TYdouble,    DOUBLESIZE,0x89,0x41,
 "double alias", TYdouble_alias, TYdouble_alias,  TYdouble_alias,8, 0x89,0x41,

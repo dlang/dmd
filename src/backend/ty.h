@@ -99,7 +99,11 @@ enum TYM
     TYhfunc             = 0x39, // C function with hidden parameter
     TYnref              = 0x3A, // near reference
     TYfref              = 0x3B, // far reference
-    TYMAX               = 0x3C,
+
+    TYcent              = 0x3C, // 128 bit signed integer
+    TYucent             = 0x3D, // 128 bit unsigned integer
+
+    TYMAX               = 0x3E,
 
 #if MARS
 #define TYaarray        TYnptr

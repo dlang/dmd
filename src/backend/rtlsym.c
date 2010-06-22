@@ -47,6 +47,7 @@ void rtlsym_init()
     if (!inited)
     {   inited++;
 
+        //printf("rtlsym_init()\n");
 #if MARS
         fregsaved = FREGSAVED;
 #endif

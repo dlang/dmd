@@ -141,7 +141,7 @@ Symbol *Dsymbol::toImport(Symbol *sym)
     id = (char *) alloca(6 + strlen(n) + 1 + sizeof(type_paramsize(sym->Stype))*3 + 1);
     if (sym->Stype->Tmangle == mTYman_std && tyfunc(sym->Stype->Tty))
     {
-        sprintf(id,"_imp__%s@%lu",n,type_paramsize(sym->Stype));
+        sprintf(id,"_imp__%s@%lu",n,(unsigned long)type_paramsize(sym->Stype));
     }
     else if (sym->Stype->Tmangle == mTYman_d)
         sprintf(id,"_imp_%s",n);
