@@ -153,13 +153,14 @@ static unsigned char pentcycl[256] =
  * For each opcode, determine read [0] and written [1] masks.
  */
 
-#define F       mPSW            // flags
 #define EA      0x100000
 #define R       0x200000        // register (reg of modregrm field)
 #define N       0x400000        // other things modified, not swappable
 #define B       0x800000        // it's a byte operation
 #define C       0x1000000       // floating point flags
-#define S       mST0            // floating point stack
+#define mMEM    0x2000000       // memory
+#define S       0x4000000       // floating point stack
+#define F       0x8000000       // flags
 
 static unsigned long oprw[256][2] =
 {
@@ -1314,7 +1315,7 @@ STATIC void getinfo(Cinfo *ci,code *c)
             op2 = c->Iop2;
             if ((op2 & 0xF0) == 0x80)           // if Jxx instructions
             {
-                ci->r = mPSW | N;
+                ci->r = F | N;
                 ci->w = N;
                 goto Lret;
             }

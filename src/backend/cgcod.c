@@ -1509,6 +1509,7 @@ regm_t regmask(tym_t tym, tym_t tyf)
         case TYsptr:
         case TYcptr:
             return mAX;
+
         case TYfloat:
         case TYifloat:
             if (config.exe & EX_flat)
@@ -1521,17 +1522,26 @@ regm_t regmask(tym_t tym, tym_t tyf)
         case TYfptr:
         case TYhptr:
             return mDX | mAX;
+
+        case TYcent:
+        case TYucent:
+            assert(I64);
+            return mDX | mAX;
+
         case TYvptr:
             return mDX | mBX;
+
         case TYdouble:
         case TYdouble_alias:
         case TYidouble:
             if (config.exe & EX_flat)
                 return mST0;
             return DOUBLEREGS;
+
         case TYllong:
         case TYullong:
             return I64 ? mAX : (I32 ? mDX | mAX : DOUBLEREGS);
+
         case TYldouble:
         case TYildouble:
             return mST0;
