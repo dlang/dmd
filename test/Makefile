@@ -12,6 +12,10 @@
 #
 # In-test variables:
 #
+#   COMPILE_SEPARATELY:  if present, forces each .d file to compile separately and linked
+#                        together in an extra setp.
+#                        default: (none, aka compile/link all in one step)
+#
 #   EXECUTE_ARGS:        parameters to add to the execution of the test
 #                        default: (none)
 #
@@ -48,19 +52,36 @@ $(RESULTS_DIR)/runnable/%.d.out: runnable/%.d $(RESULTS_DIR)/.created $(RESULTS_
 	r_args=`grep REQUIRED_ARGS $< | tr -d \\\\r\\\\n`; \
 	p_args=`grep PERMUTE_ARGS  $< | tr -d \\\\r\\\\n`; \
 	e_args=`grep EXECUTE_ARGS  $< | tr -d \\\\r\\\\n`; \
+	grep -q COMPILE_SEPARATELY $<; separate=$$?; \
 	extra_sources=`grep EXTRA_SOURCES $< | tr -d \\\\r\\\\n`; \
 	if [ ! -z "$$r_args" ]; then r_args="$${r_args/*REQUIRED_ARGS:*( )/}"; fi; \
 	if [ -z "$$p_args" ]; then p_args="$(ARGS)"; else p_args="$${p_args/*PERMUTE_ARGS:*( )/}"; fi; \
 	if [ ! -z "$$e_args" ]; then e_args="$${e_args/*EXECUTE_ARGS:*( )/}"; fi; \
-	if [ ! -z "$$extra_sources" ]; then extra_sources=($${extra_sources/*EXTRA_SOURCES:*( )/}); fi; \
+	if [ ! -z "$$extra_sources" ]; then \
+	  extra_sources=($${extra_sources/*EXTRA_SOURCES:*( )/}); \
+	  extra_files="$${extra_sources[*]/imports/runnable/imports}"; \
+	fi; \
 	printf " ... %-30s required: %-5s permuted args: %s\n" "$<" "$$r_args" "$$p_args"; \
 	$(RESULTS_DIR)/combinations $$p_args | while read x; do \
 	    echo "dmd args: $$r_args $$x" >> $@; \
-	    $(DMD) -I$(<D) $$r_args $$x -od$(@D) -of$$t $< $${extra_sources[*]/imports/runnable\/imports}; \
-	    if [ $$? -ne 0 ]; then rm -f $$t.d.out; exit 1; fi; \
+	    if [ $$separate -ne 0 ]; then \
+	      $(DMD) -I$(<D) $$r_args $$x -od$(@D) -of$$t $< $$extra_files >> $@ 2>&1; \
+	      if [ $$? -ne 0 ]; then cat $@; rm -f $@; exit 1; fi; \
+	    else \
+              echo "separate compilation" >> $@; \
+	      for file in $< $$extra_files; do \
+		$(DMD) -I$(<D) $$r_args $$x -od$(@D) -c $$file >> $@ 2>&1; \
+		if [ $$? -ne 0 ]; then cat $@; rm -f $@; exit 1; fi; \
+	      done; \
+	      ofiles=($${extra_sources[*]/imports\//}); \
+	      ofiles=($${ofiles[*]/%.d/.o}); \
+	      ofiles=($${ofiles[*]/#/$(@D)\/}); \
+	      $(DMD) -od$(@D) -of$$t $$t.o $${ofiles[*]} >> $@ 2>&1; \
+	      if [ $$? -ne 0 ]; then cat $@; rm -f $@; exit 1; fi; \
+	    fi; \
 	    $$t $$e_args >> $@ 2>&1; \
-	    if [ $$? -ne 0 ]; then cat $@; rm -f $$t $$t.o $@; exit 1; fi; \
-	    rm -f $$t $$t.o; \
+	    rm -f $$t $$t.o $$ofiles; \
+	    if [ $$? -ne 0 ]; then cat $@; rm -f $@; exit 1; fi; \
 	    echo >> $@; \
        	done
 
@@ -76,8 +97,8 @@ $(RESULTS_DIR)/compilable/%.d.out: compilable/%.d $(RESULTS_DIR)/.created $(RESU
 	printf " ... %-30s required: %-5s permuted args: %s\n" "$<" "$$r_args" "$$p_args"; \
 	$(RESULTS_DIR)/combinations $$p_args | while read x; do \
 	    echo "dmd args: $$r_args $$x" >> $@; \
-	    $(DMD) -I$(<D) $$r_args $$x -od$(@D) -of$$t.o -c $<; \
-	    if [ $$? -ne 0 ]; then exit 1; fi; \
+	    $(DMD) -I$(<D) $$r_args $$x -od$(@D) -of$$t.o -c $< >> $@ 2>&1; \
+	    if [ $$? -ne 0 ]; then cat $@; rm -f $@; exit 1; fi; \
 	    rm -f $$t.o; \
 	    echo >> $@; \
        	done
@@ -94,8 +115,8 @@ $(RESULTS_DIR)/fail_compilation/%.d.out: fail_compilation/%.d $(RESULTS_DIR)/.cr
 	printf " ... %-30s required: %-5s permuted args: %s\n" "$<" "$$r_args" "$$p_args"; \
 	$(RESULTS_DIR)/combinations $$p_args | while read x; do \
 	    echo "dmd args: $$r_args $$x" >> $@; \
-	    $(DMD) -I$(<D) $$r_args $$x -od$(@D) -of$$t.o -c $< 2> /dev/null; \
-	    if [ $$? -eq 0 ]; then rm -f $$t.o; echo "$< should have failed to compile but succeeded instead"; exit 1; break; fi; \
+	    $(DMD) -I$(<D) $$r_args $$x -od$(@D) -of$$t.o -c $< >> $@ 2>&1; \
+	    if [ $$? -eq 0 ]; then cat $@; rm -f $@ $$t.o; echo "$< should have failed to compile but succeeded instead"; exit 1; break; fi; \
 	    echo >> $@; \
        	done
 
