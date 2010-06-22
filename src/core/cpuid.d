@@ -90,9 +90,9 @@ public:
     /// Returns vendor string, for display purposes only.
     /// Do NOT use this to determine features!
     /// Note that some CPUs have programmable vendorIDs.
-    char[] vendor()     {return vendorID;}
+    string vendor()     {return cast(string)vendorID;}
     /// Returns processor string, for display purposes only
-    char[] processor()  {return processorName;}    
+    string processor()  {return processorName;}    
     
     /// The data caches. If there are fewer than 5 physical caches levels,
     /// the remaining levels are set to uint.max (== entire memory space)
@@ -191,6 +191,7 @@ public:
     bool preferPentium1() { return family < 6 || (family==6 && model < 0xF && !probablyIntel); }
 
 __gshared:
+    // All these values are set only once, and never subsequently modified.
 public:
     /// Processor type (vendor-dependent).
     /// This should be visible ONLY for display purposes.
@@ -199,8 +200,8 @@ public:
 private:
     bool probablyIntel; // true = _probably_ an Intel processor, might be faking
     bool probablyAMD; // true = _probably_ an AMD processor
+    string processorName;
     char [12] vendorID;
-    char [] processorName;
     char [48] processorNameBuffer;
     uint features = 0;     // mmx, sse, sse2, hyperthreading, etc
     uint miscfeatures = 0; // sse3, etc.
@@ -304,7 +305,7 @@ void getcacheinfoCPUID2()
         // Values from http://www.sandpile.org/ia32/cpuid.htm.
         // Includes Itanium and non-Intel CPUs.
         //
-        immutable ubyte [48+12] ids = [
+        static immutable ubyte [63] ids = [
             0x0A, 0x0C, 0x0D, 0x2C, 0x60, 0x0E, 0x66, 0x67, 0x68,
             // level 2 cache
             0x41, 0x42, 0x43, 0x44, 0x45, 0x78, 0x79, 0x7A, 0x7B, 0x7C, 0x7D, 0x7F,
@@ -316,7 +317,7 @@ void getcacheinfoCPUID2()
             0xD0, 0xD1, 0xD2, 0xD6, 0xD7, 0xD8, 0xDC, 0xDD, 0xDE,
             0xE2, 0xE3, 0xE4, 0xEA, 0xEB, 0xEC
         ];
-        immutable uint [48+12] sizes = [
+        static immutable uint [63] sizes = [
             8, 16, 16, 64, 16, 24, 8, 16, 32,
             128, 256, 512, 1024, 2048, 1024, 128, 256, 512, 1024, 2048, 512,
             256, 512, 1024, 2048, 512, 1024, 4096, 6*1024,
@@ -327,7 +328,7 @@ void getcacheinfoCPUID2()
             2*1024, 4*1024, 8*1024, 12*1024, 28*1024, 24*1024
         ];
     // CPUBUG: Pentium M reports 0x2C but tests show it is only 4-way associative
-        immutable ubyte [48+12] ways = [
+        static immutable ubyte [63] ways = [
             2, 4, 4, 8, 8, 6, 4, 4, 4,
             4, 4, 4, 4, 4, 4, 8, 8, 8, 8, 8, 2,
             8, 8, 8, 8, 4, 8, 16, 24,
@@ -614,9 +615,9 @@ void cpuidX86()
         int start = 0, end = 0;
         while (processorNameBuffer[start] == ' ') { ++start; }
         while (processorNameBuffer[$-end-1] == 0) { ++end; }
-        processorName = processorNameBuffer[start..$-end];
+        processorName = cast(string)(processorNameBuffer[start..$-end]);
     } else {
-        processorName[] = "Unknown CPU";
+        processorName = "Unknown CPU";
     }
     // Determine cache sizes
     
