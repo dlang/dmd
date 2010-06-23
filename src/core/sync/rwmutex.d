@@ -174,7 +174,7 @@ class ReadWriteMutex
         this()
         {
             m_proxy.link = this;
-            (cast(void**) this)[1] = &m_proxy;
+            this.__monitor = &m_proxy;
         }
 
 
@@ -277,7 +277,7 @@ class ReadWriteMutex
         this()
         {
             m_proxy.link = this;
-            (cast(void**) this)[1] = &m_proxy;
+            this.__monitor = &m_proxy;
         }
 
 
