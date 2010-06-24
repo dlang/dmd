@@ -41,7 +41,7 @@ targ_size_t localsize,          /* amt subtracted from SP for local vars */
         Poff,Aoff;              // comsubexps, params, regs, autos
 
 /* The following are initialized for the 8088. cod3_set386() will
-   change them if generating code for the 386.
+ * change them if generating code for the 386, cod3_set64() for 64 bit code.
  */
 int     BPRM = 6;               /* R/M value for [BP] or [EBP]          */
 regm_t  fregsaved = mBP | mSI | mDI;    // mask of registers saved across

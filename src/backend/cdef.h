@@ -565,7 +565,7 @@ typedef targ_uns        targ_size_t;    /* size_t for the target machine */
 #define STACKALIGN      0
 #endif
 
-#define REGMAX  17      // registers are numbered 0..10
+#define REGMAX  29      // registers are numbered 0..10
 
 typedef unsigned long   tym_t;          // data type big enough for type masks
 typedef int             SYMIDX;         // symbol table index

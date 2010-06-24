@@ -1,5 +1,5 @@
 // Copyright (C) 1985-1996 by Symantec
-// Copyright (C) 2000-2009 by Digital Mars
+// Copyright (C) 2000-2010 by Digital Mars
 // All Rights Reserved
 // http://www.digitalmars.com
 // Written by Walter Bright
@@ -41,13 +41,24 @@ struct Declaration;
 #define R14     14
 #define R15     15
 
-#define ES      16
-#define PSW     17
-#define STACK   18      // top of stack
-#define ST0     19      // 8087 top of stack register
-#define ST01    20      // top two 8087 registers; for complex types
+#define XMM0    16
+#define XMM1    17
+#define XMM2    18
+#define XMM3    19
+#define XMM4    20
+#define XMM5    21
+#define XMM6    22
+#define XMM7    23
 
-#define NOREG   21     // no register
+/* There are also XMM8..XMM15 */
+
+#define ES      24
+#define PSW     25
+#define STACK   26      // top of stack
+#define ST0     27      // 8087 top of stack register
+#define ST01    28      // top two 8087 registers; for complex types
+
+#define NOREG   29     // no register
 
 #define AL      0
 #define CL      1
@@ -66,6 +77,7 @@ struct Declaration;
 #define mBP     0x20
 #define mSI     0x40
 #define mDI     0x80
+
 #define mR8     (1 << R8)
 #define mR9     (1 << R9)
 #define mR10    (1 << R10)
@@ -74,6 +86,15 @@ struct Declaration;
 #define mR13    (1 << R13)
 #define mR14    (1 << R14)
 #define mR15    (1 << R15)
+
+#define mXMM0   (1 << XMM0)
+#define mXMM1   (1 << XMM1)
+#define mXMM2   (1 << XMM2)
+#define mXMM3   (1 << XMM3)
+#define mXMM4   (1 << XMM4)
+#define mXMM5   (1 << XMM5)
+#define mXMM6   (1 << XMM6)
+#define mXMM7   (1 << XMM7)
 
 #define mES     (1 << ES)       // 0x10000
 #define mPSW    (1 << PSW)      // 0x20000
@@ -107,6 +128,11 @@ extern regm_t BYTEREGS;
    we used ALLREGS, it would interfere with mMSW
  */
 #define IDXREGS         (mBX|mSI|mDI)
+
+#define FLOATREGS_64    mAX
+#define FLOATREGS2_64   mDX
+#define DOUBLEREGS_64   mAX
+#define DOUBLEREGS2_64  mDX
 
 #define FLOATREGS_32    mAX
 #define FLOATREGS2_32   mDX
@@ -219,11 +245,18 @@ extern regm_t BYTEREGS;
 /*********************************
  * Macros to ease generating code
  * modregrm:    generate mod reg r/m field
+ * modregxrm:   reg could be R8..R15
+ * modregrmx:   rm could be R8..R15
+ * modregxrmx:  reg or rm could be R8..R15
  * NEWREG:      change reg field of x to r
  * genorreg:    OR  t,f
  */
 
-#define modregrm(m,r,rm)        (((m)<<6)+((r)<<3)+(rm))
+#define modregrm(m,r,rm)        (((m)<<6)|((r)<<3)|(rm))
+#define modregxrm(m,r,rm)       ((((r)&8)<<15)|modregrm((m),(r)&7,rm))
+#define modregrmx(m,r,rm)       ((((rm)&8)<<13)|modregrm((m),r,(rm)&7))
+#define modregxrmx(m,r,rm)      ((((r)&8)<<15)|(((rm)&8)<<13)|modregrm((m),(r)&7,(rm)&7))
+
 #define NEWREG(x,r)             ((x)=((x)&~(7<<3))|((r)<<3))
 #define genorreg(c,t,f)         genregs((c),0x09,(f),(t))
 
@@ -294,6 +327,7 @@ union evc
     targ_int    Vint;           // also used for tmp numbers (FLtmp)
     targ_uns    Vuns;
     targ_long   Vlong;
+    targ_size_t Vsize_t;
     struct
     {   targ_size_t Vpointer;
         int Vseg;               // segment the pointer is in
@@ -757,6 +791,7 @@ code *nteh_monitor_epilog(regm_t retregs);
 // cgen.c
 code *code_last(code *c);
 void code_orflag(code *c,unsigned flag);
+void code_orrex(code *c,unsigned rex);
 code * __pascal cat (code *c1 , code *c2 );
 code * cat3 (code *c1 , code *c2 , code *c3 );
 code * cat4 (code *c1 , code *c2 , code *c3 , code *c4 );
@@ -772,9 +807,9 @@ code *genmovreg (code *c , unsigned to , unsigned from );
 code *genjmp (code *c , unsigned op , unsigned fltarg , block *targ );
 code *gencsi (code *c , unsigned op , unsigned rm , unsigned FL2 , SYMIDX si );
 code *gencs (code *c , unsigned op , unsigned rm , unsigned FL2 , symbol *s );
-code *genc2 (code *c , unsigned op , unsigned rm , targ_uns EV2 );
-code *genc1 (code *c , unsigned op , unsigned rm , unsigned FL1 , targ_uns EV1 );
-code *genc (code *c , unsigned op , unsigned rm , unsigned FL1 , targ_uns EV1 , unsigned FL2 , targ_uns EV2 );
+code *genc2 (code *c , unsigned op , unsigned rm , targ_size_t EV2 );
+code *genc1 (code *c , unsigned op , unsigned rm , unsigned FL1 , targ_size_t EV1 );
+code *genc (code *c , unsigned op , unsigned rm , unsigned FL1 , targ_size_t EV1 , unsigned FL2 , targ_size_t EV2 );
 code *genmulimm(code *c,unsigned r1,unsigned r2,targ_int imm);
 code *genlinnum(code *,Srcpos);
 void cgen_linnum(code **pc,Srcpos srcpos);
@@ -782,9 +817,9 @@ void cgen_prelinnum(code **pc,Srcpos srcpos);
 code *genadjesp(code *c, int offset);
 code *gennop(code *);
 code *genshift(code *);
-code *movregconst (code *c , unsigned reg , targ_int value , regm_t flags );
-bool reghasvalue (regm_t regm , targ_int value , unsigned *preg );
-code *regwithvalue (code *c , regm_t regm , targ_int value , unsigned *preg , regm_t flags );
+code *movregconst (code *c , unsigned reg , targ_size_t value , regm_t flags );
+bool reghasvalue (regm_t regm , targ_size_t value , unsigned *preg );
+code *regwithvalue (code *c , regm_t regm , targ_size_t value , unsigned *preg , regm_t flags );
 
 // cgreg.c
 void cgreg_init();
