@@ -119,6 +119,7 @@ struct Param
 {
     char obj;           // write object file
     char link;          // perform link
+    char dll;           // generate shared dynamic library
     char lib;           // write library file instead of object file(s)
     char multiobj;      // break one object file into multiple ones
     char oneobj;        // write one object file instead of multiple ones
@@ -142,7 +143,10 @@ struct Param
     char useInvariants; // generate class invariant checks
     char useIn;         // generate precondition checks
     char useOut;        // generate postcondition checks
-    char useArrayBounds; // generate array bounds checks
+    char useArrayBounds; // 0: no array bounds checks
+                         // 1: array bounds checks for safe functions only
+                         // 2: array bounds checks for all functions
+    char noboundscheck; // no array bounds checking at all
     char useSwitchError; // check for switches without a default
     char useUnitTests;  // generate unittest code
     char useInline;     // inline expand functions
@@ -221,6 +225,7 @@ struct Global
     const char *sym_ext;
     const char *obj_ext;
     const char *lib_ext;
+    const char *dll_ext;
     const char *doc_ext;        // for Ddoc generated files
     const char *ddoc_ext;       // for Ddoc macro include files
     const char *hdr_ext;        // for D 'header' import files

@@ -210,11 +210,20 @@ int runLINK()
     argv.push((void *)cc);
     argv.insert(1, global.params.objfiles);
 
+#if __APPLE__
+    // If we are on Mac OS X and linking a dynamic library,
+    // add the "-dynamiclib" flag
+    if (global.params.dll)
+        argv.push((void *) "-dynamiclib");
+#endif
+
     // None of that a.out stuff. Use explicit exe file name, or
     // generate one from name of first source file.
     argv.push((void *)"-o");
     if (global.params.exefile)
     {
+        if (global.params.dll)
+            global.params.exefile = FileName::forceExt(global.params.exefile, global.dll_ext)->toChars();
         argv.push(global.params.exefile);
     }
     else
@@ -231,6 +240,9 @@ int runLINK()
             ex = (char *)mem.malloc(e - n + 1);
             memcpy(ex, n, e - n);
             ex[e - n] = 0;
+            // If generating dll then force dll extension
+            if (global.params.dll)
+                ex = FileName::forceExt(ex, global.dll)->toChars();
         }
         else
             ex = (char *)"a.out";       // no extension, so give up
