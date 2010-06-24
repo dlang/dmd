@@ -194,8 +194,7 @@ tryagain:
 #endif
         msavereg = 0;
     nretblocks = 0;
-    mfuncreg = fregsaved;
-//  mfuncreg = mBP|mES|ALLREGS;         // so we can see which are used
+    mfuncreg = fregsaved;               // so we can see which are used
                                         // (bit is cleared each time
                                         //  we use one)
     for (b = startblock; b; b = b->Bnext)
@@ -946,7 +945,7 @@ STATIC void blcodgen(block *bl)
         case BCjcatch:
             // Mark all registers as destroyed. This will prevent
             // register assignments to variables used in catch blocks.
-            c = cat(c,getregs(I32 ? allregs : (ALLREGS | mES)));
+            c = cat(c,getregs((I32 | I64) ? allregs : (ALLREGS | mES)));
 #if 0 && TARGET_LINUX
             if (config.flags3 & CFG3pic && !(allregs & mBX))
             {
@@ -1512,6 +1511,8 @@ regm_t regmask(tym_t tym, tym_t tyf)
 
         case TYfloat:
         case TYifloat:
+            if (I64)
+                return mXMM0;
             if (config.exe & EX_flat)
                 return mST0;
         case TYlong:
@@ -1534,6 +1535,8 @@ regm_t regmask(tym_t tym, tym_t tyf)
         case TYdouble:
         case TYdouble_alias:
         case TYidouble:
+            if (I64)
+                return mXMM0;
             if (config.exe & EX_flat)
                 return mST0;
             return DOUBLEREGS;
@@ -1548,10 +1551,12 @@ regm_t regmask(tym_t tym, tym_t tyf)
 
         case TYcfloat:
 #if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_SOLARIS
-            if (tybasic(tyf) == TYnfunc)
+            if (I32 && tybasic(tyf) == TYnfunc)
                 return mDX | mAX;
 #endif
         case TYcdouble:
+            if (I64)
+                return mXMM0 | mXMM1;
         case TYcldouble:
             return mST01;
 
@@ -1594,13 +1599,27 @@ unsigned findreg(regm_t regm
 #ifdef DEBUG
 #define findreg(regm) findreg((regm),__LINE__,__FILE__)
 #endif
-{ int i;
-
-  for (i = 0; i < REGMAX; i++)
-        if (mask[i] & regm)
-                return i;
+{
 #ifdef DEBUG
-  printf("findreg(x%x, line=%d, file='%s')\n",regm,line,file);
+    regm_t regmsave = regm;
+#endif
+    int i = 0;
+    while (1)
+    {
+        if (!(regm & 0xF))
+        {
+            regm >>= 4;
+            i += 4;
+            if (!regm)
+                break;
+        }
+        if (regm & 1)
+            return i;
+        regm >>= 1;
+        i++;
+    }
+#ifdef DEBUG
+  printf("findreg(x%x, line=%d, file='%s')\n",regmsave,line,file);
   fflush(stdout);
 #endif
   assert(0);
@@ -1881,7 +1900,7 @@ L3:
             reg = (msreg == ES) ? lsreg : msreg;
             retregs = mask[msreg] | mask[lsreg];
         }
-        else if (!I32 && (tym == TYdouble || tym == TYdouble_alias))
+        else if (I16 && (tym == TYdouble || tym == TYdouble_alias))
         {
 #ifdef DEBUG
             if (retregs != DOUBLEREGS)
@@ -2037,7 +2056,7 @@ STATIC code * cse_save(regm_t ms)
                 {   reg = 0;            // the real reg number
                     op = 0x8C;          // segment reg mov
                 }
-                c = genc1(c,op,modregrm(2,reg,BPRM),FLcs,(targ_uns) i);
+                c = genc1(c,op,modregxrm(2, reg, BPRM),FLcs,(targ_uns) i);
                 reflocal = TRUE;
             }
         }
@@ -2086,7 +2105,7 @@ STATIC int cse_simple(elem *e,int i)
     int sz;
 
     sz = tysize[tybasic(e->Ety)];
-    if (I32 &&                                  // don't bother with 16 bit code
+    if (!I16 &&                                  // don't bother with 16 bit code
         e->Eoper == OPadd &&
         sz == REGSIZE &&
         e->E2->Eoper == OPconst &&
@@ -2110,7 +2129,7 @@ STATIC int cse_simple(elem *e,int i)
         sz <= REGSIZE &&
         e->E1->Eoper == OPvar &&
         isregvar(e->E1,&regm,&reg) &&
-        (I32 || regm & IDXREGS) &&
+        (I32 || I64 || regm & IDXREGS) &&
         !(e->E1->EV.sp.Vsym->Sflags & SFLspill)
        )
     {
@@ -2144,7 +2163,7 @@ void cssave(elem *e,regm_t regm,unsigned opsflag)
   if (e->Ecount && e->Ecomsub)
   {
         //printf("cssave(e = %p, regm = x%x, opsflag = %d)\n", e, regm, opsflag);
-        if (!opsflag && pass != PASSfinal && I32)
+        if (!opsflag && pass != PASSfinal && (I32 || I64))
             return;
 
         //printf("cssave(e = %p, regm = x%x, opsflag = x%x)\n", e, regm, opsflag);
@@ -2200,7 +2219,7 @@ bool evalinregister(elem *e)
         if (e->Ecount == e->Ecomsub)    /* elem is a CSE that needs     */
                                         /* to be generated              */
         {
-            if (I32 && pass == PASSfinal && sz <= REGSIZE)
+            if ((I32 || I64) && pass == PASSfinal && sz <= REGSIZE)
             {
                 // Do it only if at least 2 registers are available
                 regm_t m;
@@ -2348,7 +2367,7 @@ if (regcon.cse.mval & 1) elem_print(regcon.cse.value[i]);
                             retregs = allregs;
                         c = allocreg(&retregs,&reg,tym);
                         cr = &csextab[i].csimple;
-                        NEWREG(cr->Irm,reg);
+                        cr->setReg(reg);
                         c = gen(c,cr);
                         goto L10;
                     }
@@ -2360,7 +2379,7 @@ if (regcon.cse.mval & 1) elem_print(regcon.cse.value[i]);
                         {                       // CMP cs[BP],0
                             c = genc(NULL,0x81 ^ byte,modregrm(2,7,BPRM),
                                         FLcs,i, FLconst,(targ_uns) 0);
-                            if (REGSIZE == 4 && sz == 2)
+                            if (I32 && sz == 2)
                                 c->Iflags |= CFopsize;
                         }
                         else
@@ -2370,7 +2389,7 @@ if (regcon.cse.mval & 1) elem_print(regcon.cse.value[i]);
                                     retregs = BYTEREGS;
                             c = allocreg(&retregs,&reg,tym);
                                             // MOV reg,cs[BP]
-                            c = genc1(c,0x8B,modregrm(2,reg,BPRM),FLcs,(targ_uns) i);
+                            c = genc1(c,0x8B,modregxrm(2,reg,BPRM),FLcs,(targ_uns) i);
                         L10:
                             regcon.cse.mval |= mask[reg]; // cs is in a reg
                             regcon.cse.value[reg] = e;
@@ -2439,7 +2458,7 @@ if (regcon.cse.mval & 1) elem_print(regcon.cse.value[i]);
   }
   else if (tym == TYdouble || tym == TYdouble_alias)    // double
   {
-        assert(!I32);
+        assert(I16);
         if (((csemask | emask) & DOUBLEREGS_16) == DOUBLEREGS_16)
         {
             for (reg = AX; reg != -1; reg = dblreg[reg])
@@ -2516,7 +2535,7 @@ STATIC code * loadcse(elem *e,unsigned reg,regm_t regm)
                 {       op = 0x8E;
                         reg = 0;
                 }
-                return genc1(c,op,modregrm(2,reg,BPRM),FLcs,(targ_uns) i);
+                return genc1(c,op,modregxrm(2,reg,BPRM),FLcs,(targ_uns) i);
         }
   }
 #if DEBUG
@@ -2641,6 +2660,8 @@ code *codelem(elem *e,regm_t *pretregs,bool constflag)
                 case TYulong:
                 case TYllong:
                 case TYullong:
+                case TYcent:
+                case TYucent:
 #if !TARGET_FLAT
                 case TYfptr:
                 case TYhptr:

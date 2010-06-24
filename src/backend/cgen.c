@@ -1,5 +1,5 @@
 // Copyright (C) 1985-1998 by Symantec
-// Copyright (C) 2000-2009 by Digital Mars
+// Copyright (C) 2000-2010 by Digital Mars
 // All Rights Reserved
 // http://www.digitalmars.com
 // Written by Walter Bright
@@ -48,6 +48,19 @@ void code_orflag(code *c,unsigned flag)
     {   while (c->next)
             c = c->next;
         c->Iflags |= flag;
+    }
+}
+
+/*****************************
+ * Set rex bits on last code in list.
+ */
+
+void code_orrex(code *c,unsigned rex)
+{
+    if (rex && c)
+    {   while (c->next)
+            c = c->next;
+        c->Irex |= rex;
     }
 }
 
@@ -141,7 +154,7 @@ code *gen(code *c,code *cs)
         ce->IFL2 == FLconst &&
         (ce->Iop == 0x81 || ce->Iop == 0x80) &&
         reghasvalue((ce->Iop == 0x80) ? BYTEREGS : ALLREGS,ce->IEV2.Vlong,&reg) &&
-        !(ce->Iflags & CFopsize && !I32)
+        !(ce->Iflags & CFopsize && I16)
        )
     {   // See if we can replace immediate instruction with register instruction
         static unsigned char regop[8] =
@@ -187,6 +200,7 @@ code *gen2(code *c,unsigned op,unsigned rm)
   else
         ce->Iop = op;
   ce->Irm = rm;
+  ce->Irex = rm >> 16;
   if (c)
   {     cstart = c;
         while (code_next(c)) c = code_next(c);  /* find end of list     */
@@ -203,6 +217,7 @@ code *gen2sib(code *c,unsigned op,unsigned rm,unsigned sib)
   ce->Iop = op;
   ce->Irm = rm;
   ce->Isib = sib;
+  ce->Irex = rm >> 16;
   if (c)
   {     cstart = c;
         while (code_next(c)) c = code_next(c);  /* find end of list     */
@@ -212,11 +227,11 @@ code *gen2sib(code *c,unsigned op,unsigned rm,unsigned sib)
 }
 
 code *genregs(code *c,unsigned op,unsigned dstreg,unsigned srcreg)
-{ return gen2(c,op,modregrm(3,dstreg,srcreg)); }
+{ return gen2(c,op,modregxrmx(3,dstreg,srcreg)); }
 
 code *gentstreg(code *c,unsigned t)
 {
-    c = gen2(c,0x85,modregrm(3,t,t));   // TEST t,t
+    c = gen2(c,0x85,modregxrmx(3,t,t));   // TEST t,t
     code_orflag(c,CFpsw);
     return c;
 }
@@ -316,7 +331,7 @@ code *gencs(code *c,unsigned op,unsigned rm,unsigned FL2,symbol *s)
     cs.Iop = op;
     cs.Irm = rm;
     cs.Iflags = 0;
-    cs.Irex = 0;
+    cs.Irex = rm >> 16;
     cs.IFL2 = FL2;
     cs.IEVsym2 = s;
     cs.IEVoffset2 = 0;
@@ -324,7 +339,7 @@ code *gencs(code *c,unsigned op,unsigned rm,unsigned FL2,symbol *s)
     return gen(c,&cs);
 }
 
-code *genc2(code *c,unsigned op,unsigned rm,targ_uns EV2)
+code *genc2(code *c,unsigned op,unsigned rm,targ_size_t EV2)
 {   code cs;
 
     if (op > 0xFF)
@@ -335,9 +350,9 @@ code *genc2(code *c,unsigned op,unsigned rm,targ_uns EV2)
         cs.Iop = op;
     cs.Irm = rm;
     cs.Iflags = CFoff;
-    cs.Irex = 0;
+    cs.Irex = rm >> 16;
     cs.IFL2 = FLconst;
-    cs.IEV2.Vuns = EV2;
+    cs.IEV2.Vsize_t = EV2;
     return gen(c,&cs);
 }
 
@@ -345,7 +360,7 @@ code *genc2(code *c,unsigned op,unsigned rm,targ_uns EV2)
  * Generate code.
  */
 
-code *genc1(code *c,unsigned op,unsigned rm,unsigned FL1,targ_uns EV1)
+code *genc1(code *c,unsigned op,unsigned rm,unsigned FL1,targ_size_t EV1)
 {   code cs;
 
     assert(FL1 < FLMAX);
@@ -353,10 +368,10 @@ code *genc1(code *c,unsigned op,unsigned rm,unsigned FL1,targ_uns EV1)
     cs.Iop = op;
     cs.Irm = rm;
     cs.Isib = rm >> 8;
+    cs.Irex = rm >> 16;
     cs.Iflags = CFoff;
-    cs.Irex = 0;
     cs.IFL1 = FL1;
-    cs.IEV1.Vuns = EV1;
+    cs.IEV1.Vsize_t = EV1;
     return gen(c,&cs);
 }
 
@@ -364,7 +379,7 @@ code *genc1(code *c,unsigned op,unsigned rm,unsigned FL1,targ_uns EV1)
  * Generate code.
  */
 
-code *genc(code *c,unsigned op,unsigned rm,unsigned FL1,targ_uns EV1,unsigned FL2,targ_uns EV2)
+code *genc(code *c,unsigned op,unsigned rm,unsigned FL1,targ_size_t EV1,unsigned FL2,targ_size_t EV2)
 {   code cs;
 
     assert(FL1 < FLMAX);
@@ -372,13 +387,13 @@ code *genc(code *c,unsigned op,unsigned rm,unsigned FL1,targ_uns EV1,unsigned FL
     cs.Iop = op;
     cs.Irm = rm;
     cs.Isib = rm >> 8;
+    cs.Irex = rm >> 16;
     cs.Iflags = CFoff;
-    cs.Irex = 0;
     cs.IFL1 = FL1;
-    cs.IEV1.Vuns = EV1;
+    cs.IEV1.Vsize_t = EV1;
     assert(FL2 < FLMAX);
     cs.IFL2 = FL2;
-    cs.IEV2.Vuns = EV2;
+    cs.IEV2.Vsize_t = EV2;
     return gen(c,&cs);
 }
 
@@ -400,11 +415,11 @@ code *genmulimm(code *c,unsigned r1,unsigned r2,targ_int imm)
             cs.Iflags = 0;
             cs.Irex = 0;
             buildEA(&cs,r2,r2,4,0);
-            cs.Irm |= modregrm(0,r1,0);
+            cs.orReg(r1);
             c = gen(c,&cs);
             break;
         default:
-            c = genc2(c,0x69,modregrm(3,r1,r2),imm);    // IMUL r1,r2,imm
+            c = genc2(c,0x69,modregxrmx(3,r1,r2),imm);    // IMUL r1,r2,imm
             break;
     }
     return c;
@@ -460,7 +475,7 @@ void cgen_prelinnum(code **pc,Srcpos srcpos)
 code *genadjesp(code *c, int offset)
 {   code cs;
 
-    if (I32 && offset)
+    if (!I16 && offset)
     {
         cs.Iop = ESCAPE;
         cs.Iop2 = ESCadjesp;
@@ -512,24 +527,26 @@ code *genshift(code *c)
  * Else
  *      don't care about flags
  * If flags & 1 then byte move
- * If flags & 2 then short move (for 386)
+ * If flags & 2 then short move (for I32 and I64)
  * If flags & 4 then don't disturb unused portion of register
+ * If flags & 16 then reg is a byte register AL..BH
+ * If flags & 64 then 64 bit move (I64 only)
  * Returns:
  *      code (if any) generated
  */
 
-code *movregconst(code *c,unsigned reg,targ_int value,regm_t flags)
+code *movregconst(code *c,unsigned reg,targ_size_t value,regm_t flags)
 {   unsigned r;
     regm_t regm;
     regm_t mreg;
-    targ_int regv;
+    targ_size_t regv;
 
 #define genclrreg(a,r) genregs(a,0x31,r,r)
 
     regm = regcon.immed.mval & mask[reg];
     regv = regcon.immed.value[reg];
 
-    if (flags & 1)
+    if (flags & 1)      // 8 bits
     {   unsigned msk;
 
         value &= 0xFF;
@@ -539,11 +556,14 @@ code *movregconst(code *c,unsigned reg,targ_int value,regm_t flags)
         if (regm && (regv & 0xFF) == value)
             goto L2;
 
-        if ((reg & 4) && regcon.immed.mval & mask[reg & 3] &&
+        if (flags & 16 && reg & 4 &&    // if an H byte register
+            regcon.immed.mval & mask[reg & 3] &&
             (((regv = regcon.immed.value[reg & 3]) >> 8) & 0xFF) == value)
             goto L2;
 
-        // Avoid byte register loads on Pentium Pro and Pentium II
+        /* Avoid byte register loads on Pentium Pro and Pentium II
+         * to avoid dependency stalls.
+         */
         if (config.flags4 & CFG4speed &&
             config.target_cpu >= TARGET_PentiumPro && !(flags & 4))
             goto L3;
@@ -558,7 +578,7 @@ code *movregconst(code *c,unsigned reg,targ_int value,regm_t flags)
                 {   c = genregs(c,0x8A,reg,r);          // MOV regL,rL
                     goto L2;
                 }
-                if (((regcon.immed.value[r] >> 8) & 0xFF) == value)
+                if (r < 4 && ((regcon.immed.value[r] >> 8) & 0xFF) == value)
                 {   c = genregs(c,0x8A,reg,r | 4);      // MOV regL,rH
                     goto L2;
                 }
@@ -568,7 +588,8 @@ code *movregconst(code *c,unsigned reg,targ_int value,regm_t flags)
 
         if (value == 0 && !(flags & 8))
         {
-            if (!(flags & 4) && !(reg & 4))
+            if (!(flags & 4) &&                 // if we can set the whole register
+                !(flags & 16 && reg & 4))       // and reg is not an H register
             {   c = genregs(c,0x31,reg,reg);    // XOR reg,reg
                 regimmed_set(reg,value);
                 regv = 0;
@@ -578,24 +599,27 @@ code *movregconst(code *c,unsigned reg,targ_int value,regm_t flags)
             flags &= ~mPSW;                     // flags already set by XOR
         }
         else
-            c = genc2(c,0xC6,modregrm(3,0,reg),value);  /* MOV regL,value */
+            c = genc2(c,0xC6,modregrmx(3,0,reg),value);  /* MOV regL,value */
     L2:
         if (flags & mPSW)
             genregs(c,0x84,reg,reg);            // TEST regL,regL
 
         if (regm)
-            regimmed_set(reg,(regv & 0xFFFFFF00) | value);
-        else if ((reg & 4) && regcon.immed.mval & mask[reg & 3])
-            regimmed_set((reg & 3),(regv & 0xFFFF00FF) | (value << 8));
+            // Set just the 'L' part of the register value
+            regimmed_set(reg,(regv & ~(targ_size_t)0xFF) | value);
+        else if (flags & 16 && reg & 4 && regcon.immed.mval & mask[reg & 3])
+            // Set just the 'H' part of the register value
+            regimmed_set((reg & 3),(regv & ~(targ_size_t)0xFF00) | (value << 8));
         return c;
     }
 L3:
-    if (!I32)
+    if (I16)
         value = (targ_short) value;             /* sign-extend MSW      */
+    else if (I32)
+        value = (targ_int) value;
 
-    if (I32 && flags & 2)
-    {   code *c1;
-
+    if (!I16 && flags & 2)                      // load 16 bit value
+    {
         value &= 0xFFFF;
         if (value == 0)
             goto L1;
@@ -603,20 +627,29 @@ L3:
         {
             if (flags & mPSW)
                 goto L1;
-            c1 = genc2(CNIL,0xC7,modregrm(3,0,reg),value); /* MOV reg,value */
-            c1->Iflags |= CFopsize;
+            code *c1 = genc2(CNIL,0xC7,modregrmx(3,0,reg),value); // MOV reg,value
+            c1->Iflags |= CFopsize;             // yes, even for I64
             c = cat(c,c1);
             if (regm)
-                regimmed_set(reg,(regv & 0xFFFF0000) | value);
+                // High bits of register are not affected by 16 bit load
+                regimmed_set(reg,(regv & ~(targ_size_t)0xFFFF) | value);
         }
         return c;
     }
 L1:
 
     /* If we already have the right value in the right register */
-    if (regm && regv == value)
+    if (regm && (regv & 0xFFFFFFFF) == (value & 0xFFFFFFFF) && !(flags & 64))
     {   if (flags & mPSW)
             c = gentstreg(c,reg);
+    }
+    else if (flags & 64 && regm && regv == value)
+    {   // Look at the full 64 bits
+        if (flags & mPSW)
+        {
+            c = gentstreg(c,reg);
+            code_orrex(c, REX_W);
+        }
     }
     else
     {
@@ -625,16 +658,31 @@ L1:
             switch (value)
             {   case 0:
                     c = genclrreg(c,reg);
+                    if (flags & 64)
+                        code_orrex(c, REX_W);
                     break;
                 case 1:
+                    if (I64)
+                        goto L4;
                     c = genclrreg(c,reg);
                     goto inc;
                 case -1:
+                    if (I64)
+                        goto L4;
                     c = genclrreg(c,reg);
                     goto dec;
                 default:
-                    c = genc2(c,0xC7,modregrm(3,0,reg),value); /* MOV reg,value */
-                    gentstreg(c,reg);
+                L4:
+                    if (flags & 64)
+                    {
+                        c = genc2(c,0xC7,(REX_W << 16) | modregrmx(3,0,reg),value); // MOV reg,value64
+                        gentstreg(c,reg);
+                        code_orrex(c, REX_W);
+                    }
+                    else
+                    {   c = genc2(c,0xC7,modregrmx(3,0,reg),value); /* MOV reg,value */
+                        gentstreg(c,reg);
+                    }
                     break;
             }
         }
@@ -656,7 +704,7 @@ L1:
                         goto done;
                     }
                 }
-                else
+                else if (I16)
                 {
                     if (reg == AX &&
                         (targ_short) value == (signed char) regv)
@@ -675,13 +723,15 @@ L1:
             }
             if (value == 0 && !(flags & 8) && config.target_cpu >= TARGET_80486)
             {   c = genclrreg(c,reg);           // CLR reg
+                if (flags & 64)
+                    code_orrex(c, REX_W);
                 goto done;
             }
 
-            if (regm && !(flags & 8))
+            if (!I64 && regm && !(flags & 8))
             {   if (regv + 1 == value ||
                     /* Catch case of (0xFFFF+1 == 0) for 16 bit compiles */
-                    (!I32 && (targ_short)(regv + 1) == (targ_short)value))
+                    (I16 && (targ_short)(regv + 1) == (targ_short)value))
                 {
                 inc:
                     c = gen1(c,0x40 + reg);     /* INC reg              */
@@ -700,17 +750,22 @@ L1:
             for (mreg = regcon.immed.mval; mreg; mreg >>= 1)
             {
 #ifdef DEBUG
-                assert(I32 || regcon.immed.value[r] == (targ_short)regcon.immed.value[r]);
+                assert(!I16 || regcon.immed.value[r] == (targ_short)regcon.immed.value[r]);
 #endif
                 if (mreg & 1 && regcon.immed.value[r] == value)
                 {   c = genmovreg(c,reg,r);
+                    if (flags & 64)
+                        code_orrex(c, REX_W);
                     goto done;
                 }
                 r++;
             }
 
             if (value == 0 && !(flags & 8))
-                c = genclrreg(c,reg);           // CLR reg
+            {   c = genclrreg(c,reg);           // CLR reg
+                if (flags & 64)
+                    code_orrex(c, REX_W);
+            }
             else
             {   /* See if we can just load a byte       */
                 if (regm & BYTEREGS &&
@@ -721,12 +776,16 @@ L1:
                     {   c = movregconst(c,reg,value,(flags & 8) |4|1);  // load regL
                         return c;
                     }
-                    if ((regv & 0xFFFF00FF) == (value & 0xFFFF00FF))
-                    {   c = movregconst(c,4|reg,value >> 8,(flags & 8) |4|1); // load regH
+                    if (regm & (mAX|mBX|mCX|mDX) &&
+                        (regv & ~(targ_size_t)0xFF00) == (value & ~(targ_size_t)0xFF00))
+                    {   c = movregconst(c,4|reg,value >> 8,(flags & 8) |4|1|16); // load regH
                         return c;
                     }
                 }
-                c = genc2(c,0xC7,modregrm(3,0,reg),value); /* MOV reg,value */
+                if (flags & 64)
+                    c = genc2(c,0xC7,(REX_W << 16) | modregrmx(3,0,reg),value); // MOV reg,value64
+                else
+                    c = genc2(c,0xC7,modregrmx(3,0,reg),value); // MOV reg,value
             }
         }
     done:
@@ -740,7 +799,7 @@ L1:
  * If so, return !=0 and set *preg to which register it is.
  */
 
-bool reghasvalue(regm_t regm,targ_int value,unsigned *preg)
+bool reghasvalue(regm_t regm,targ_size_t value,unsigned *preg)
 {   unsigned r;
     regm_t mreg;
 
@@ -764,7 +823,7 @@ bool reghasvalue(regm_t regm,targ_int value,unsigned *preg)
  *      *preg   the register selected
  */
 
-code *regwithvalue(code *c,regm_t regm,targ_int value,unsigned *preg,regm_t flags)
+code *regwithvalue(code *c,regm_t regm,targ_size_t value,unsigned *preg,regm_t flags)
 {   unsigned reg;
 
     if (!preg)
