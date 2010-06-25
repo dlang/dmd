@@ -242,7 +242,7 @@ int runLINK()
             ex[e - n] = 0;
             // If generating dll then force dll extension
             if (global.params.dll)
-                ex = FileName::forceExt(ex, global.dll)->toChars();
+                ex = FileName::forceExt(ex, global.dll_ext)->toChars();
         }
         else
             ex = (char *)"a.out";       // no extension, so give up
