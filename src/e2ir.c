@@ -1693,7 +1693,7 @@ elem *BinExp::toElemBin(IRState *irs,int op)
 
     if ((tb1->ty == Tarray || tb1->ty == Tsarray) &&
         (tb2->ty == Tarray || tb2->ty == Tsarray) &&
-        op != OPeq
+        op != OPeq && op != OPandand && op != OPoror
        )
     {
         error("Array operation %s not implemented", toChars());
