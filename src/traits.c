@@ -397,8 +397,8 @@ Expression *TraitsExp::semantic(Scope *sc)
 
             global.gag--;
             if (errors != global.errors)
-            {   if (global.gag == 0)
-                    global.errors = errors;
+            {
+                global.errors = errors;
                 goto Lfalse;
             }
         }
