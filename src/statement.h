@@ -795,7 +795,8 @@ struct LabelStatement : Statement
     Statement *statement;
     TryFinallyStatement *tf;
     block *lblock;              // back end
-    int isReturnLabel;
+
+    Array *fwdrefs;             // forward references to this LabelStatement
 
     LabelStatement(Loc loc, Identifier *ident, Statement *statement);
     Statement *syntaxCopy();

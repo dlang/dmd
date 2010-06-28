@@ -1188,7 +1188,6 @@ void FuncDeclaration::semantic3(Scope *sc)
             if (fensure)
             {   returnLabel = new LabelDsymbol(Id::returnLabel);
                 LabelStatement *ls = new LabelStatement(0, Id::returnLabel, fensure);
-                ls->isReturnLabel = 1;
                 returnLabel->statement = ls;
             }
             sc2 = sc2->pop();

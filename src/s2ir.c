@@ -1,6 +1,6 @@
 
 // Compiler implementation of the D programming language
-// Copyright (c) 2000-2009 by Digital Mars
+// Copyright (c) 2000-2010 by Digital Mars
 // All Rights Reserved
 // Written by Walter Bright
 // http://www.digitalmars.com
@@ -78,9 +78,7 @@ void setScopeIndex(Blockx *blx, block *b, int scope_index)
 
 block *block_calloc(Blockx *blx)
 {
-    block *b;
-
-    b = block_calloc();
+    block *b = block_calloc();
     b->Btry = blx->tryblock;
     return b;
 }
@@ -89,20 +87,25 @@ block *block_calloc(Blockx *blx)
  * Convert label to block.
  */
 
-block *labelToBlock(Loc loc, Blockx *blx, LabelDsymbol *label)
+block *labelToBlock(Loc loc, Blockx *blx, LabelDsymbol *label, int flag = 0)
 {
-    LabelStatement *s;
-
     if (!label->statement)
     {
         error(loc, "undefined label %s", label->toChars());
         return NULL;
     }
-    s = label->statement;
+    LabelStatement *s = label->statement;
     if (!s->lblock)
     {   s->lblock = block_calloc(blx);
-        if (s->isReturnLabel)
-            s->lblock->Btry = NULL;
+        s->lblock->Btry = NULL;         // fill this in later
+
+        if (flag)
+        {
+            // Keep track of the forward reference to this block, so we can check it later
+            if (!s->fwdrefs)
+                s->fwdrefs = new Array();
+            s->fwdrefs->push(s->lblock);
+        }
     }
     return s->lblock;
 }
@@ -815,8 +818,6 @@ void VolatileStatement::toIR(IRState *irs)
 
 void GotoStatement::toIR(IRState *irs)
 {
-    block *b;
-    block *bdest;
     Blockx *blx = irs->blx;
 
     if (!label->statement)
@@ -826,13 +827,12 @@ void GotoStatement::toIR(IRState *irs)
     if (tf != label->statement->tf)
         error("cannot goto forward out of or into finally block");
 
-    bdest = labelToBlock(loc, blx, label);
+    block *bdest = labelToBlock(loc, blx, label, 1);
     if (!bdest)
         return;
-    b = blx->curblock;
+    block *b = blx->curblock;
     incUsage(irs, loc);
 
-    // Adjust exception handler scope index if in different try blocks
     if (b->Btry != bdest->Btry)
     {
         // Check that bdest is in an enclosing try block
@@ -845,8 +845,6 @@ void GotoStatement::toIR(IRState *irs)
                 break;
             }
         }
-
-        //setScopeIndex(blx, b, bdest->Btry ? bdest->Btry->Bscope_index : -1);
     }
 
     list_append(&b->Bsucc,bdest);
@@ -863,11 +861,34 @@ void LabelStatement::toIR(IRState *irs)
 
     if (lblock)
     {
-        // We had made a guess about which tryblock the label is in.
-        // Error if we guessed wrong.
-        // BUG: should fix this
-        if (lblock->Btry != blx->tryblock)
-            error("cannot goto forward into different try block level");
+        // At last, we know which try block this label is inside
+        lblock->Btry = blx->tryblock;
+
+        /* Go through the forward references and check.
+         */
+        if (fwdrefs)
+        {
+            for (int i = 0; i < fwdrefs->dim; i++)
+            {   block *b = (block *)fwdrefs->data[i];
+
+                if (b->Btry != lblock->Btry)
+                {
+                    // Check that lblock is in an enclosing try block
+                    for (block *bt = b->Btry; bt != lblock->Btry; bt = bt->Btry)
+                    {
+                        if (!bt)
+                        {
+                            //printf("b->Btry = %p, lblock->Btry = %p\n", b->Btry, lblock->Btry);
+                            error("cannot goto into try block");
+                            break;
+                        }
+                    }
+                }
+
+            }
+            delete fwdrefs;
+            fwdrefs = NULL;
+        }
     }
     else
         lblock = block_calloc(blx);
@@ -1569,98 +1590,11 @@ void TryFinallyStatement::toIR(IRState *irs)
 }
 
 /****************************************
- * Builds the following:
- *      monitorenter(esync)
- *      _try
- *      { block }
- *      _finally
- *      monitorexit(esync)
- *      _ret
  */
 
 void SynchronizedStatement::toIR(IRState *irs)
 {
     assert(0);
-#if 0
-    block *b;
-    block *tryblock;
-    elem *e;
-    Blockx *blx = irs->blx;
-    block *breakblock;
-    block *contblock;
-
-#if SEH
-    nteh_declarvars(blx);
-#endif
-
-    incUsage(irs, loc);
-    Symbol *monitorenter = rtlsym[RTLSYM_MONITORENTER];
-    Symbol *monitorexit = rtlsym[RTLSYM_MONITOREXIT];
-    if (!esync)
-    {
-        if (exp)
-        {   /* Produce:
-             *  tmp = exp;
-             * then esync on tmp
-             */
-            Symbol *tmp = symbol_genauto(type_fake(TYnptr));
-            e = exp->toElem(irs);
-            e = el_bin(OPeq, TYnptr, el_var(tmp), e);
-            block_appendexp(blx->curblock, e);
-            esync = el_var(tmp);
-        }
-        else
-        {   /* esync will be a pointer to the global critical section.
-             */
-            Symbol *scrit = Module::gencritsec();
-
-            esync = el_ptr(scrit);
-            monitorenter = rtlsym[RTLSYM_CRITICALENTER];
-            monitorexit  = rtlsym[RTLSYM_CRITICALEXIT];
-        }
-    }
-    // monitorenter(esync)
-    e = el_bin(OPcall, TYvoid, el_var(monitorenter), esync);
-    block_appendexp(blx->curblock, e);
-
-    // monitorexit(esync)
-    elem *eexit = el_bin(OPcall, TYvoid, el_var(monitorexit), el_copytree(esync));
-
-    tryblock = block_goto(blx, BCgoto, NULL);
-
-    int previndex = blx->scope_index;
-    tryblock->Blast_index = previndex;
-    tryblock->Bscope_index = blx->next_index++;
-    blx->scope_index = tryblock->Bscope_index;
-
-    // Set the current scope index
-    setScopeIndex(blx, tryblock, tryblock->Bscope_index);
-
-    blx->tryblock = tryblock;
-    block_goto(blx, BC_try, NULL);
-    IRState bodyirs(irs, this);
-    breakblock = block_calloc(blx);
-    contblock = block_calloc(blx);
-    if (body)
-        body->toIR(&bodyirs);
-    blx->tryblock = tryblock->Btry;
-
-    setScopeIndex(blx, blx->curblock, previndex);
-    blx->scope_index = previndex;
-
-    block_goto(blx, BCgoto, breakblock);
-    block *finallyblock = block_goto(blx, BCgoto, contblock);
-    list_append(&tryblock->Bsucc, finallyblock);
-
-    block_goto(blx, BC_finally, NULL);
-
-    block_appendexp(blx->curblock, eexit);
-    block *retblock = blx->curblock;
-    block_next(blx, BC_ret, NULL);
-
-    list_append(&finallyblock->Bsucc, blx->curblock);
-    list_append(&retblock->Bsucc, blx->curblock);
-#endif
 }
 
 
