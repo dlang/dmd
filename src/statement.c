@@ -3766,10 +3766,12 @@ Statement *WithStatement::semantic(Scope *sc)
     else if (exp->op == TOKtype)
     {   TypeExp *es = (TypeExp *)exp;
 
-        sym = es->type->toDsymbol(sc)->isScopeDsymbol();
+        Dsymbol *s = es->type->toDsymbol(sc);
+        sym = s ? s->isScopeDsymbol() : NULL;
         if (!sym)
-        {   error("%s has no members", es->toChars());
-            body = body->semantic(sc);
+        {   error("with type %s has no members", es->toChars());
+            if (body)
+                body = body->semantic(sc);
             return this;
         }
     }
