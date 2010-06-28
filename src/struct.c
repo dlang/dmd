@@ -503,7 +503,10 @@ void StructDeclaration::semantic(Scope *sc)
                 fdx->error("type signature should be %s not %s", tfeqptr->toChars(), fdx->type->toChars());
         }
 
-        if (!eq)
+        TemplateDeclaration *td = s ? s->isTemplateDeclaration() : NULL;
+        // BUG: should also check that td is a function template, not just a template
+
+        if (!eq && !td)
             eq = buildOpEquals(sc2);
     }
 
