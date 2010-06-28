@@ -89,20 +89,25 @@ block *block_calloc(Blockx *blx)
  * Convert label to block.
  */
 
-block *labelToBlock(Loc loc, Blockx *blx, LabelDsymbol *label)
+block *labelToBlock(Loc loc, Blockx *blx, LabelDsymbol *label, int flag = 0)
 {
-    LabelStatement *s;
-
     if (!label->statement)
     {
         error(loc, "undefined label %s", label->toChars());
         return NULL;
     }
-    s = label->statement;
+    LabelStatement *s = label->statement;
     if (!s->lblock)
     {   s->lblock = block_calloc(blx);
-        if (s->isReturnLabel)
-            s->lblock->Btry = NULL;
+        s->lblock->Btry = NULL;         // fill this in later
+
+        if (flag)
+        {
+            // Keep track of the forward reference to this block, so we can check it later
+            if (!s->fwdrefs)
+                s->fwdrefs = new Array();
+            s->fwdrefs->push(s->lblock);
+        }
     }
     return s->lblock;
 }
@@ -809,7 +814,7 @@ void GotoStatement::toIR(IRState *irs)
     if (tf != label->statement->tf)
         error("cannot goto forward out of or into finally block");
 
-    bdest = labelToBlock(loc, blx, label);
+    bdest = labelToBlock(loc, blx, label, 1);
     if (!bdest)
         return;
     b = blx->curblock;
@@ -846,11 +851,34 @@ void LabelStatement::toIR(IRState *irs)
 
     if (lblock)
     {
-        // We had made a guess about which tryblock the label is in.
-        // Error if we guessed wrong.
-        // BUG: should fix this
-        if (lblock->Btry != blx->tryblock)
-            error("cannot goto forward into different try block level");
+        // At last, we know which try block this label is inside
+        lblock->Btry = blx->tryblock;
+
+        /* Go through the forward references and check.
+         */
+        if (fwdrefs)
+        {
+            for (int i = 0; i < fwdrefs->dim; i++)
+            {   block *b = (block *)fwdrefs->data[i];
+
+                if (b->Btry != lblock->Btry)
+                {
+                    // Check that lblock is in an enclosing try block
+                    for (block *bt = b->Btry; bt != lblock->Btry; bt = bt->Btry)
+                    {
+                        if (!bt)
+                        {
+                            //printf("b->Btry = %p, lblock->Btry = %p\n", b->Btry, lblock->Btry);
+                            error("cannot goto into try block");
+                            break;
+                        }
+                    }
+                }
+
+            }
+            delete fwdrefs;
+            fwdrefs = NULL;
+        }
     }
     else
         lblock = block_calloc(blx);
