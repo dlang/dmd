@@ -1110,8 +1110,9 @@ Expression *Expression::interpret(InterState *istate)
 
 Expression *ThisExp::interpret(InterState *istate)
 {
-    if (istate->localThis)
+    if (istate && istate->localThis)
         return istate->localThis->interpret(istate);
+    error("value of 'this' is not known at compile time");
     return EXP_CANT_INTERPRET;
 }
 
@@ -2105,6 +2106,11 @@ Expression *BinExp::interpretAssignCommon(InterState *istate, fp_t fp, int post)
 #endif
     Expression *e = EXP_CANT_INTERPRET;
     Expression *e1 = this->e1;
+    if (!istate)
+    {
+        error("value of %s is not known at compile time", e1->toChars());
+        return e;
+    }
 
     if (fp)
     {
