@@ -1499,6 +1499,33 @@ Expression *BinExp::scaleFactor(Scope *sc)
 }
 
 /**************************************
+ * Return true if e is an empty array literal with dimensionality
+ * equal to or less than type of other array.
+ * [], [[]], [[[]]], etc.
+ * I.e., make sure that [1,2] is compatible with [],
+ * [[1,2]] is compatible with [[]], etc.
+ */
+bool isVoidArrayLiteral(Expression *e, Type *other)
+{
+    while (e->op == TOKarrayliteral && e->type->ty == Tarray
+        && (((ArrayLiteralExp *)e)->elements->dim == 1))
+    {
+        e = (Expression *)((ArrayLiteralExp *)e)->elements->data[0];
+        if (other->ty == Tsarray || other->ty == Tarray)
+            other = other->nextOf();
+        else
+            return false;
+    }
+    if (other->ty != Tsarray && other->ty != Tarray)
+        return false;
+    Type *t = e->type;
+    return (e->op == TOKarrayliteral && t->ty == Tarray &&
+        t->nextOf()->ty == Tvoid &&
+        ((ArrayLiteralExp *)e)->elements->dim == 0);
+}
+
+
+/**************************************
  * Combine types.
  * Output:
  *      *pt     merged type, if *pt is not NULL
@@ -1615,8 +1642,9 @@ Lagain:
     }
     else if ((t1->ty == Tsarray || t1->ty == Tarray) &&
              (e2->op == TOKnull && t2->ty == Tpointer && t2->nextOf()->ty == Tvoid ||
+              // if e2 is void[]
               e2->op == TOKarrayliteral && t2->ty == Tsarray && t2->nextOf()->ty == Tvoid && ((TypeSArray *)t2)->dim->toInteger() == 0 ||
-              e2->op == TOKarrayliteral && t2->ty == Tarray && t2->nextOf()->ty == Tvoid && ((ArrayLiteralExp *)e2)->elements->dim == 0)
+              isVoidArrayLiteral(e2, t1))
             )
     {   /*  (T[n] op void*)   => T[]
          *  (T[]  op void*)   => T[]
@@ -1630,7 +1658,7 @@ Lagain:
     else if ((t2->ty == Tsarray || t2->ty == Tarray) &&
              (e1->op == TOKnull && t1->ty == Tpointer && t1->nextOf()->ty == Tvoid ||
               e1->op == TOKarrayliteral && t1->ty == Tsarray && t1->nextOf()->ty == Tvoid && ((TypeSArray *)t1)->dim->toInteger() == 0 ||
-              e1->op == TOKarrayliteral && t1->ty == Tarray && t1->nextOf()->ty == Tvoid && ((ArrayLiteralExp *)e1)->elements->dim == 0)
+              isVoidArrayLiteral(e1, t2))
             )
     {   /*  (void*   op T[n]) => T[]
          *  (void*   op T[])  => T[]
