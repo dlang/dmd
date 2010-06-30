@@ -1,5 +1,5 @@
 // Copyright (C) 1984-1995 by Symantec
-// Copyright (C) 2000-2009 by Digital Mars
+// Copyright (C) 2000-2010 by Digital Mars
 // All Rights Reserved
 // http://www.digitalmars.com
 // Written by Walter Bright
@@ -101,7 +101,7 @@ void dt_free(dt_t *);
 
 dt_t **dtnbytes(dt_t **,targ_size_t,const char *);
 dt_t **dtabytes(dt_t **pdtend,tym_t ty, targ_size_t offset, targ_size_t size, const char *ptr);
-dt_t **dtdword(dt_t **,long value);
+dt_t **dtdword(dt_t **, int value);
 dt_t **dtnzeros(dt_t **pdtend,targ_size_t size);
 dt_t **dtxoff(dt_t **pdtend,symbol *s,targ_size_t offset,tym_t ty);
 dt_t **dtselfoff(dt_t **pdtend,targ_size_t offset,tym_t ty);

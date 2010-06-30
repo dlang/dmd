@@ -133,7 +133,7 @@ struct Outbuffer
     /**
      * Writes a 32 bit int.
      */
-    void write32(long v);
+    void write32(int v);
 
     /**
      * Writes a 64 bit long.
@@ -173,7 +173,7 @@ struct Outbuffer
     char *toString();
     void setsize(unsigned size);
 
-    void writesLEB128(long value);
-    void writeuLEB128(unsigned long value);
+    void writesLEB128(int value);
+    void writeuLEB128(unsigned value);
 
 };

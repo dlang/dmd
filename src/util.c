@@ -265,12 +265,9 @@ void *util_malloc(unsigned n,unsigned size)
 #elif UTIL_PH
     return ph_malloc(n * size);
 #else
-    void *p;
-    unsigned long nbytes;
-
-    nbytes = (unsigned long) n * (unsigned long) size;
-    p = malloc(nbytes);
-    if (!p && (size_t)nbytes)
+    size_t nbytes = (size_t)n * (size_t)size;
+    void *p = malloc(nbytes);
+    if (!p && nbytes)
         err_nomem();
     return p;
 #endif
@@ -292,12 +289,9 @@ void *util_calloc(unsigned n,unsigned size)
 #elif UTIL_PH
     return ph_calloc(n * size);
 #else
-    void *p;
-    unsigned long nbytes;
-
-    nbytes = (unsigned long) n * (unsigned long) size;
-    p = calloc(n,size);
-    if (!p && (size_t)nbytes)
+    size_t nbytes = (size_t) n * (size_t) size;
+    void *p = calloc(n,size);
+    if (!p && nbytes)
         err_nomem();
     return p;
 #endif
@@ -333,12 +327,9 @@ void *util_realloc(void *oldp,unsigned n,unsigned size)
 #elif UTIL_PH
     return ph_realloc(oldp,n * size);
 #else
-    void *p;
-    unsigned long nbytes;
-
-    nbytes = (unsigned long) n * (unsigned long) size;
-    p = realloc(oldp,nbytes);
-    if (!p && (size_t)nbytes)
+    size_t nbytes = (size_t) n * (size_t) size;
+    void *p = realloc(oldp,nbytes);
+    if (!p && nbytes)
         err_nomem();
     return p;
 #endif

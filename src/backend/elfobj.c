@@ -1,5 +1,5 @@
 // Copyright (C) ?-1998 by Symantec
-// Copyright (C) 2000-2009 by Digital Mars
+// Copyright (C) 2000-2010 by Digital Mars
 // All Rights Reserved
 // http://www.digitalmars.com
 /*
@@ -563,48 +563,77 @@ void obj_init(Outbuffer *objbuf, const char *filename, const char *csegname)
         symtab_strings->writeByte(0);
     }
 
-    static char section_names_init[] =
-      "\0.symtab\0.strtab\0.shstrtab\0.text\0.data\0.bss\0.note\0\
-.comment\0.rel.text\0.rel.data\0.rodata";
-    #define SEC_NAMIDX_NONE     0
-    #define SEC_NAMIDX_SYMS     1       // .symtab
-    #define SEC_NAMIDX_STRS     9       // .strtab
-    #define SEC_NAMIDX_SECS     17      // .shstrtab
-    #define SEC_NAMIDX_TEXT     27      // .text
-    #define SEC_NAMIDX_DATA     33      // .data
-    #define SEC_NAMIDX_BSS      39      // .bss
-    #define SEC_NAMIDX_NOTE     44      // .note
-    #define SEC_NAMIDX_COM      50      // .comment
-    #define SEC_NAMIDX_TEXTREL  59      // .rel.text
-    #define SEC_NAMIDX_DATAREL  69      // .rel.data
-    #define SEC_NAMIDX_RODATA   79      // .rodata
-
-    if (section_names)
-        section_names->setsize(sizeof(section_names_init));
-    else
-    {   section_names = new Outbuffer(512);
-        section_names->reserve(1024);
-        section_names->writen(section_names_init, sizeof(section_names_init));
-    }
-
     if (SECbuf)
         SECbuf->setsize(0);
     section_cnt = 0;
 
-    // name,type,flags,addr,offset,size,link,info,addralign,entsize
-    elf_newsection2(0,               SHT_NULL,   0,                     0,0,0,0,0, 0,0);
-    elf_newsection2(SEC_NAMIDX_TEXT,SHT_PROGDEF,SHF_ALLOC|SHF_EXECINSTR,0,0,0,0,0, 16,0);
-    elf_newsection2(SEC_NAMIDX_TEXTREL,SHT_REL, 0,0,0,0,SHI_SYMTAB,      SHI_TEXT,4,8);
-    elf_newsection2(SEC_NAMIDX_DATA,SHT_PROGDEF,SHF_ALLOC|SHF_WRITE,   0,0,0,0,0, 4,0);
-    elf_newsection2(SEC_NAMIDX_DATAREL,SHT_REL, 0,0,0,0,SHI_SYMTAB,      SHI_DATA,4,8);
-    elf_newsection2(SEC_NAMIDX_BSS, SHT_NOBITS,SHF_ALLOC|SHF_WRITE,   0,0,0,0,0, 32,0);
-    elf_newsection2(SEC_NAMIDX_RODATA,SHT_PROGDEF,SHF_ALLOC,           0,0,0,0,0, 1,0);
-    elf_newsection2(SEC_NAMIDX_STRS,SHT_STRTAB, 0,                      0,0,0,0,0, 1,0);
-    elf_newsection2(SEC_NAMIDX_SYMS,SHT_SYMTAB, 0,                      0,0,0,0,0, 4,0);
-    elf_newsection2(SEC_NAMIDX_SECS,SHT_STRTAB, 0,                      0,0,0,0,0, 1,0);
-    elf_newsection2(SEC_NAMIDX_COM, SHT_PROGDEF,0,                      0,0,0,0,0, 1,0);
-    elf_newsection2(SEC_NAMIDX_NOTE,SHT_NOTE,   0,                      0,0,0,0,0, 1,0);
+    if (I64)
+    {
+        static char section_names_init64[] =
+          "\0.symtab\0.strtab\0.shstrtab\0.text\0.data\0.bss\0.note\0.comment\0.rodata\0.rela.text\0.rela.data";
+        #define NAMIDX_NONE      0
+        #define NAMIDX_SYMTAB    1       // .symtab
+        #define NAMIDX_STRTAB    9       // .strtab
+        #define NAMIDX_SHSTRTAB 17      // .shstrtab
+        #define NAMIDX_TEXT     27      // .text
+        #define NAMIDX_DATA     33      // .data
+        #define NAMIDX_BSS      39      // .bss
+        #define NAMIDX_NOTE     44      // .note
+        #define NAMIDX_COMMENT  50      // .comment
+        #define NAMIDX_RODATA   59      // .rodata
+        #define NAMIDX_RELTEXT  67      // .rel.text and .rela.text
+        #define NAMIDX_RELDATA  77      // .rel.data
+        #define NAMIDX_RELDATA64 78      // .rela.data
 
+        if (section_names)
+            section_names->setsize(sizeof(section_names_init64));
+        else
+        {   section_names = new Outbuffer(512);
+            section_names->reserve(1024);
+            section_names->writen(section_names_init64, sizeof(section_names_init64));
+        }
+
+        // name,type,flags,addr,offset,size,link,info,addralign,entsize
+        elf_newsection2(0,               SHT_NULL,   0,                 0,0,0,0,0, 0,0);
+        elf_newsection2(NAMIDX_TEXT,SHT_PROGDEF,SHF_ALLOC|SHF_EXECINSTR,0,0,0,0,0, 4,0);
+        elf_newsection2(NAMIDX_RELTEXT,SHT_RELA, 0,0,0,0,SHI_SYMTAB,     SHI_TEXT, 8,8);
+        elf_newsection2(NAMIDX_DATA,SHT_PROGDEF,SHF_ALLOC|SHF_WRITE,    0,0,0,0,0, 8,0);
+        elf_newsection2(NAMIDX_RELDATA64,SHT_RELA, 0,0,0,0,SHI_SYMTAB,   SHI_DATA, 8,8);
+        elf_newsection2(NAMIDX_BSS, SHT_NOBITS,SHF_ALLOC|SHF_WRITE,     0,0,0,0,0, 16,0);
+        elf_newsection2(NAMIDX_RODATA,SHT_PROGDEF,SHF_ALLOC,            0,0,0,0,0, 1,0);
+        elf_newsection2(NAMIDX_STRTAB,SHT_STRTAB, 0,                    0,0,0,0,0, 1,0);
+        elf_newsection2(NAMIDX_SYMTAB,SHT_SYMTAB, 0,                    0,0,0,0,0, 8,0);
+        elf_newsection2(NAMIDX_SHSTRTAB,SHT_STRTAB, 0,                  0,0,0,0,0, 1,0);
+        elf_newsection2(NAMIDX_COMMENT, SHT_PROGDEF,0,                  0,0,0,0,0, 1,0);
+        elf_newsection2(NAMIDX_NOTE,SHT_NOTE,   0,                      0,0,0,0,0, 1,0);
+    }
+    else
+    {
+        static char section_names_init[] =
+          "\0.symtab\0.strtab\0.shstrtab\0.text\0.data\0.bss\0.note\0.comment\0.rodata\0.rel.text\0.rel.data";
+
+        if (section_names)
+            section_names->setsize(sizeof(section_names_init));
+        else
+        {   section_names = new Outbuffer(512);
+            section_names->reserve(1024);
+            section_names->writen(section_names_init, sizeof(section_names_init));
+        }
+
+        // name,type,flags,addr,offset,size,link,info,addralign,entsize
+        elf_newsection2(0,               SHT_NULL,   0,                 0,0,0,0,0, 0,0);
+        elf_newsection2(NAMIDX_TEXT,SHT_PROGDEF,SHF_ALLOC|SHF_EXECINSTR,0,0,0,0,0, 16,0);
+        elf_newsection2(NAMIDX_RELTEXT,SHT_REL, 0,0,0,0,SHI_SYMTAB,      SHI_TEXT, 4,8);
+        elf_newsection2(NAMIDX_DATA,SHT_PROGDEF,SHF_ALLOC|SHF_WRITE,    0,0,0,0,0, 4,0);
+        elf_newsection2(NAMIDX_RELDATA,SHT_REL, 0,0,0,0,SHI_SYMTAB,      SHI_DATA, 4,8);
+        elf_newsection2(NAMIDX_BSS, SHT_NOBITS,SHF_ALLOC|SHF_WRITE,     0,0,0,0,0, 32,0);
+        elf_newsection2(NAMIDX_RODATA,SHT_PROGDEF,SHF_ALLOC,            0,0,0,0,0, 1,0);
+        elf_newsection2(NAMIDX_STRTAB,SHT_STRTAB, 0,                    0,0,0,0,0, 1,0);
+        elf_newsection2(NAMIDX_SYMTAB,SHT_SYMTAB, 0,                    0,0,0,0,0, 4,0);
+        elf_newsection2(NAMIDX_SHSTRTAB,SHT_STRTAB, 0,                  0,0,0,0,0, 1,0);
+        elf_newsection2(NAMIDX_COMMENT, SHT_PROGDEF,0,                  0,0,0,0,0, 1,0);
+        elf_newsection2(NAMIDX_NOTE,SHT_NOTE,   0,                      0,0,0,0,0, 1,0);
+    }
 
     if (SYMbuf)
         SYMbuf->setsize(0);
@@ -766,7 +795,7 @@ void *elf_renumbersyms()
         {
             if (I64)
             {
-                Elf64_Rel *rel = (Elf64_Rel *) pseg->SDrel->buf;
+                Elf64_Rela *rel = (Elf64_Rela *) pseg->SDrel->buf;
                 for (int r = 0; r < pseg->SDrelcnt; r++)
                 {
                     unsigned t = ELF64_R_TYPE(rel->r_info);
@@ -1006,7 +1035,10 @@ void obj_term()
             sechdr = &SecHdrTab[seg->SDrelidx];
             sechdr->sh_size = seg->SDrel->size();
             sechdr->sh_offset = foffset;
-            assert(seg->SDrelcnt == seg->SDrel->size() / sizeof(Elf32_Rel));
+            if (I64)
+                assert(seg->SDrelcnt == seg->SDrel->size() / sizeof(Elf64_Rela));
+            else
+                assert(seg->SDrelcnt == seg->SDrel->size() / sizeof(Elf32_Rel));
             fobjbuf->write(seg->SDrel->buf, sechdr->sh_size);
             foffset += sechdr->sh_size;
         }
@@ -2174,7 +2206,7 @@ unsigned obj_bytes(int seg, targ_size_t offset, unsigned nbytes, void *p)
  * Input:
  *      seg =           where the address is going
  *      offset =        offset within seg
- *      type =          ELF relocation type
+ *      type =          ELF relocation type RI_TYPE_XXXX
  *      index =         Related symbol table index
  *      val =           addend or displacement from address
  */
@@ -2216,21 +2248,38 @@ void elf_addrel(int seg, targ_size_t offset, unsigned type,
             char *p = (char *)alloca(len);
             memcpy(p, section_name, len);
 
-            relidx = elf_newsection(".rel", p, SHT_REL, 0);
+            relidx = elf_newsection(I64 ? ".rela" : ".rel", p, I64 ? SHT_RELA : SHT_REL, 0);
             segdata->SDrelidx = relidx;
         }
-        Elf32_Shdr *relsec = &SecHdrTab[relidx];
-        relsec->sh_link = SHI_SYMTAB;
-        relsec->sh_info = secidx;
-        relsec->sh_entsize = I64 ? sizeof(Elf64_Rel) : sizeof(Elf32_Rel);
-        relsec->sh_addralign = 4;
+
+        if (I64)
+        {
+            /* Note that we're using Elf32_Shdr here instead of Elf64_Shdr. This is to make
+             * the code a bit simpler. In obj_term(), we translate the Elf32_Shdr into the proper
+             * Elf64_Shdr.
+             */
+            Elf32_Shdr *relsec = &SecHdrTab[relidx];
+            relsec->sh_link = SHI_SYMTAB;
+            relsec->sh_info = secidx;
+            relsec->sh_entsize = sizeof(Elf64_Rela);
+            relsec->sh_addralign = 8;
+        }
+        else
+        {
+            Elf32_Shdr *relsec = &SecHdrTab[relidx];
+            relsec->sh_link = SHI_SYMTAB;
+            relsec->sh_info = secidx;
+            relsec->sh_entsize = sizeof(Elf32_Rel);
+            relsec->sh_addralign = 4;
+        }
     }
 
     if (I64)
     {
-        Elf64_Rel rel;
+        Elf64_Rela rel;
         rel.r_offset = offset;          // build relocation information
         rel.r_info = ELF64_R_INFO(symidx,type);
+        rel.r_addend = 0;
         buf = segdata->SDrel;
         buf->write(&rel,sizeof(rel));
         segdata->SDrelcnt++;
@@ -2239,9 +2288,8 @@ void elf_addrel(int seg, targ_size_t offset, unsigned type,
             segdata->SDrelmaxoff = offset;
         else
         {   // insert numerically
-            int i;
-            Elf64_Rel *relbuf = (Elf64_Rel *)buf->buf;
-            i = relbuf[segdata->SDrelindex].r_offset > offset ? 0 : segdata->SDrelindex;
+            Elf64_Rela *relbuf = (Elf64_Rela *)buf->buf;
+            int i = relbuf[segdata->SDrelindex].r_offset > offset ? 0 : segdata->SDrelindex;
             while (i < segdata->SDrelcnt)
             {
                 if (relbuf[i].r_offset > offset)
@@ -2249,7 +2297,7 @@ void elf_addrel(int seg, targ_size_t offset, unsigned type,
                 i++;
             }
             assert(i != segdata->SDrelcnt);     // slide greater offsets down
-            memmove(relbuf+i+1,relbuf+i,sizeof(Elf64_Rel) * (segdata->SDrelcnt - i - 1));
+            memmove(relbuf+i+1,relbuf+i,sizeof(Elf64_Rela) * (segdata->SDrelcnt - i - 1));
             *(relbuf+i) = rel;          // copy to correct location
             segdata->SDrelindex = i;    // next entry usually greater
         }
@@ -2267,9 +2315,8 @@ void elf_addrel(int seg, targ_size_t offset, unsigned type,
             segdata->SDrelmaxoff = offset;
         else
         {   // insert numerically
-            int i;
             Elf32_Rel *relbuf = (Elf32_Rel *)buf->buf;
-            i = relbuf[segdata->SDrelindex].r_offset > offset ? 0 : segdata->SDrelindex;
+            int i = relbuf[segdata->SDrelindex].r_offset > offset ? 0 : segdata->SDrelindex;
             while (i < segdata->SDrelcnt)
             {
                 if (relbuf[i].r_offset > offset)

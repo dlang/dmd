@@ -29,7 +29,6 @@
 #if _WIN32
 #include <windows.h>
 #include <direct.h>
-#include <errno.h>
 #endif
 
 #if POSIX
@@ -958,13 +957,7 @@ void FileName::ensurePathExists(const char *path)
 #if POSIX
                 if (mkdir(path, 0777))
 #endif
-		{
-		    /* Don't error out if another instance of dmd just created
-		     * this directory
-		     */
-		    if (errno != EEXIST)
-			error("cannot create directory %s", path);
-		}
+                    error("cannot create directory %s", path);
             }
         }
     }
@@ -1756,7 +1749,7 @@ void OutBuffer::writeUTF16(unsigned w)
 void OutBuffer::write4(unsigned w)
 {
     reserve(4);
-    *(unsigned long *)(this->data + offset) = w;
+    *(unsigned *)(this->data + offset) = w;
     offset += 4;
 }
 

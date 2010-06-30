@@ -1,6 +1,6 @@
 
 // Compiler implementation of the D programming language
-// Copyright (c) 1999-2009 by Digital Mars
+// Copyright (c) 1999-2010 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // http://www.digitalmars.com
@@ -27,6 +27,7 @@ static char __file__[] = __FILE__;      /* for tassert.h                */
 #include        "tassert.h"
 
 extern Global global;
+extern int REALSIZE;
 
 Config config;
 Configv configv;
@@ -230,6 +231,9 @@ void util_set64()
             tysize[TYfptr + i] = 10;    // NOTE: There are codgen test that check
             tysize[TYvptr + i] = 10;    // tysize[x] == tysize[TYfptr] so don't set
             tysize[TYfref + i] = 10;    // tysize[TYfptr] to tysize[TYnptr]
+            tysize[TYldouble + i] = REALSIZE;
+            tysize[TYildouble + i] = REALSIZE;
+            tysize[TYcldouble + i] = 2 * REALSIZE;
         }
     }
 

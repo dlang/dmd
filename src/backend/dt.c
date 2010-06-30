@@ -190,7 +190,7 @@ dt_t **dtabytes(dt_t **pdtend,tym_t ty, targ_size_t offset, targ_size_t size, co
  * Construct a DTibytes record, and return it.
  */
 
-dt_t ** dtdword(dt_t **pdtend,long value)
+dt_t ** dtdword(dt_t **pdtend, int value)
 {   dt_t *dt;
 
     while (*pdtend)
@@ -198,7 +198,7 @@ dt_t ** dtdword(dt_t **pdtend,long value)
     dt = dt_calloc(DT_ibytes);
     dt->DTn = 4;
 
-    union { char* cp; long* lp; } u;
+    union { char* cp; int* lp; } u;
     u.cp = dt->DTdata;
     *u.lp = value;
 

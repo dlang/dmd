@@ -3026,6 +3026,7 @@ code *cdbscan(elem *e, regm_t *pretregs)
         reg = findreg(retregs);
         cs.Irm = modregrm(3,0,reg);
         cs.Iflags = 0;
+        cs.Irex = 0;
     }
 
     retregs = *pretregs & allregs;

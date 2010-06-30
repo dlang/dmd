@@ -1,5 +1,5 @@
 
-// Copyright (c) 1999-2009 by Digital Mars
+// Copyright (c) 1999-2010 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // http://www.digitalmars.com
@@ -83,7 +83,18 @@ int dwarf_getsegment(const char *name, int align)
 void dwarf_addrel(int seg, targ_size_t offset, int targseg)
 {
 #if ELFOBJ
-    elf_addrel(seg, offset, RI_TYPE_SYM32, MAP_SEG2SYMIDX(targseg),0);
+    elf_addrel(seg, offset, I64 ? R_X86_64_32 : RI_TYPE_SYM32, MAP_SEG2SYMIDX(targseg),0);
+#elif MACHOBJ
+    mach_addrel(seg, offset, NULL, targseg, 0);
+#else
+    assert(0);
+#endif
+}
+
+void dwarf_addrel64(int seg, targ_size_t offset, int targseg)
+{
+#if ELFOBJ
+    elf_addrel(seg, offset, R_X86_64_64, MAP_SEG2SYMIDX(targseg),0);
 #elif MACHOBJ
     mach_addrel(seg, offset, NULL, targseg, 0);
 #else
@@ -644,10 +655,20 @@ void dwarf_termfile()
 
             // Set address to start of segment with DW_LNE_set_address
             linebuf->writeByte(0);
-            linebuf->writeByte(5);
-            linebuf->writeByte(2);
-            dwarf_addrel(lineseg,linebuf->size(),seg);
-            linebuf->write32(0);
+            if (I64)
+            {
+                linebuf->writeByte(9);
+                linebuf->writeByte(2);
+                dwarf_addrel64(lineseg,linebuf->size(),seg);
+                linebuf->write64(0);
+            }
+            else
+            {
+                linebuf->writeByte(5);
+                linebuf->writeByte(2);
+                dwarf_addrel(lineseg,linebuf->size(),seg);
+                linebuf->write32(0);
+            }
 
             // Dwarf2 6.2.2 State machine registers
             unsigned address = 0;       // instruction address

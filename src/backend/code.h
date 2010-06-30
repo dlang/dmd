@@ -95,6 +95,7 @@ struct Declaration;
 #define mXMM5   (1 << XMM5)
 #define mXMM6   (1 << XMM6)
 #define mXMM7   (1 << XMM7)
+#define XMMREGS  (mXMM0 |mXMM1 |mXMM2 |mXMM3 |mXMM4 |mXMM5 |mXMM6 |mXMM7)
 
 #define mES     (1 << ES)       // 0x10000
 #define mPSW    (1 << PSW)      // 0x20000
@@ -180,7 +181,7 @@ extern regm_t BYTEREGS;
 //
 // Note: even for linux targets, CFaddrsize can be set by the inline
 // assembler.
-#define is32bitaddr(x,Iflags) ((x) ^(((Iflags) & CFaddrsize) !=0))
+#define is32bitaddr(x,Iflags) (I64 || ((x) ^(((Iflags) & CFaddrsize) !=0)))
 #endif
 
 /*******************
@@ -694,9 +695,9 @@ targ_size_t cod3_bpoffset(symbol *s);
 void pinholeopt (code *c , block *bn );
 void jmpaddr (code *c );
 int code_match(code *c1,code *c2);
-targ_size_t calcblksize (code *c);
-targ_size_t calccodsize(code *c);
-targ_size_t codout (code *c );
+unsigned calcblksize (code *c);
+unsigned calccodsize(code *c);
+unsigned codout (code *c );
 void addtofixlist (symbol *s , targ_size_t soffset , int seg , targ_size_t val , int flags );
 void searchfixlist (symbol *s );
 void outfixlist (void );

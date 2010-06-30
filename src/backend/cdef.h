@@ -407,7 +407,7 @@ One and only one of these macros must be set by the makefile:
 /* Take advantage of machines that can store a word, lsb first  */
 #if _M_I86              // if Intel processor
 #define TOWORD(ptr,val) (*(unsigned short *)(ptr) = (unsigned short)(val))
-#define TOLONG(ptr,val) (*(unsigned long *)(ptr) = (unsigned long)(val))
+#define TOLONG(ptr,val) (*(unsigned *)(ptr) = (unsigned)(val))
 #else
 #define TOWORD(ptr,val) (((ptr)[0] = (unsigned char)(val)),\
                          ((ptr)[1] = (unsigned char)((val) >> 8)))
@@ -428,8 +428,8 @@ typedef unsigned char   targ_uchar;
 typedef signed char     targ_schar;
 typedef short           targ_short;
 typedef unsigned short  targ_ushort;
-typedef long            targ_long;
-typedef unsigned long   targ_ulong;
+typedef int             targ_long;
+typedef unsigned        targ_ulong;
 #if LONGLONG
 typedef long long               targ_llong;
 typedef unsigned long long      targ_ullong;
@@ -444,8 +444,8 @@ typedef long double     targ_ldouble;
 // Extract most significant register from constant
 #define MSREG(p)        ((REGSIZE == 2) ? (p) >> 16 : ((sizeof(targ_llong) == 8) ? (p) >> 32 : 0))
 
-typedef long            targ_int;
-typedef unsigned long   targ_uns;
+typedef int             targ_int;
+typedef unsigned        targ_uns;
 
 /* Sizes of base data types in bytes */
 
@@ -567,7 +567,7 @@ typedef targ_uns        targ_size_t;    /* size_t for the target machine */
 
 #define REGMAX  29      // registers are numbered 0..10
 
-typedef unsigned long   tym_t;          // data type big enough for type masks
+typedef unsigned        tym_t;          // data type big enough for type masks
 typedef int             SYMIDX;         // symbol table index
 
 #if 0
@@ -720,7 +720,7 @@ struct Config
 /* CFGX: flags ignored in precompiled headers
  * CFGY: flags copied from precompiled headers into current config
  */
-    unsigned long flags;
+    unsigned flags;
 #define CFGuchar        1       // chars are unsigned
 #define CFGsegs         2       // new code seg for each far func
 #define CFGtrace        4       // output trace functions
@@ -734,7 +734,7 @@ struct Config
 #define CFGnoinlines    0x1000  // do not inline functions
 #define CFGnowarning    0x8000  // disable warnings
 #define CFGX    (CFGnowarning)
-    unsigned long flags2;
+    unsigned flags2;
 #define CFG2comdat      1       // use initialized common blocks
 #define CFG2nodeflib    2       // no default library imbedded in OBJ file
 #define CFG2browse      4       // generate browse records
@@ -754,7 +754,7 @@ struct Config
 #define CFGX2   (CFG2warniserr | CFG2phuse | CFG2phgen | CFG2phauto | \
                  CFG2once | CFG2hdrdebug | CFG2noobj | CFG2noerrmax | \
                  CFG2expand | CFG2nodeflib)
-    unsigned long flags3;
+    unsigned flags3;
 #define CFG3ju          1       // char == unsigned char
 #define CFG3eh          4       // generate exception handling stuff
 #define CFG3strcod      8       // strings are placed in code segment
@@ -784,7 +784,7 @@ struct Config
 #define CFG3pic         0x80000 // position independent code
 #define CFGX3   (CFG3strcod | CFG3ptrchk)
 
-    unsigned long flags4;
+    unsigned flags4;
 #define CFG4speed       1       // optimized for speed
 #define CFG4space       2       // optimized for space
 #define CFG4optimized   (CFG4speed | CFG4space)
@@ -821,7 +821,7 @@ struct Config
                          CFG4enumoverload | CFG4implicitfromvoid | \
                          CFG4wchar_is_long | CFG4underscore)
 
-    unsigned long flags5;
+    unsigned flags5;
 #define CFG5debug       1       // compile in __debug code
 #define CFG5in          2       // compile in __in code
 #define CFG5out         4       // compile in __out code
@@ -982,7 +982,7 @@ union eve
 #define UNIXFIELDS
 #endif
 
-typedef unsigned long SYMFLGS;
+typedef unsigned SYMFLGS;
 #if MARS
 #define SYM_PREDEF_SZ 40
 #else

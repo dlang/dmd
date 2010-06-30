@@ -75,10 +75,12 @@ int REALALIGNSIZE = 16;
 int REALSIZE = 12;
 int REALPAD = 2;
 int REALALIGNSIZE = 4;
-#else
+#elif TARGET_WINDOS
 int REALSIZE = 10;
 int REALPAD = 0;
 int REALALIGNSIZE = 2;
+#else
+#error "fix this"
 #endif
 
 int Tsize_t = Tuns32;
@@ -268,9 +270,11 @@ void Type::init()
     {
         PTRSIZE = 8;
         if (global.params.isLinux || global.params.isFreeBSD || global.params.isSolaris)
-            REALSIZE = 10;
-        else
-            REALSIZE = 8;
+        {
+            REALSIZE = 16;
+            REALPAD = 6;
+            REALALIGNSIZE = 16;
+        }
         Tsize_t = Tuns64;
         Tptrdiff_t = Tint64;
     }

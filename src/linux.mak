@@ -3,7 +3,9 @@ C=backend
 TK=tk
 ROOT=root
 
-CC=g++ -m32
+MODEL=-m32
+
+CC=g++ $(MODEL)
 
 #OPT=-g -g3
 #OPT=-O2
@@ -51,7 +53,7 @@ SRC = win32.mak linux.mak osx.mak freebsd.mak solaris.mak \
 	inifile.c iasm.c module.c scope.c dump.c init.h init.c attrib.h \
 	attrib.c opover.c class.c mangle.c bit.c tocsym.c func.c inline.c \
 	access.c complex_t.h irstate.h irstate.c glue.c msc.c ph.c tk.c \
-	s2ir.c todt.c e2ir.c util.c identifier.h parse.h objfile.h \
+	s2ir.c todt.c e2ir.c util.c identifier.h parse.h \
 	scope.h enum.h import.h mars.h module.h mtype.h dsymbol.h \
 	declaration.h lexer.h expression.h irstate.h statement.h eh.c \
 	utf.h utf.c staticassert.h staticassert.c unialpha.c \
@@ -91,7 +93,7 @@ SRC = win32.mak linux.mak osx.mak freebsd.mak solaris.mak \
 all: dmd
 
 dmd: $(DMD_OBJS)
-	gcc -m32 -lstdc++ -lpthread $(COV) $(DMD_OBJS) -o dmd
+	gcc $(MODEL) -lstdc++ -lpthread $(COV) $(DMD_OBJS) -o dmd
 
 clean:
 	rm -f $(DMD_OBJS) dmd optab.o id.o impcnvgen idgen id.c id.h \
@@ -461,7 +463,7 @@ stringtable.o: $(ROOT)/stringtable.c
 	$(CC) -c $(GFLAGS) -I$(ROOT) $<
 
 strtold.o: $C/strtold.c
-	gcc -m32 -c $C/strtold.c
+	gcc $(MODEL) -c $C/strtold.c
 
 struct.o: struct.c
 	$(CC) -c $(CFLAGS) $<
