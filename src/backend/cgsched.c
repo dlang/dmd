@@ -60,13 +60,13 @@ struct Cinfo
 #define CIFLnostage     4       // don't stage these instructions
 #define CIFLpush        8       // it's a push we can swap around
 
-    unsigned long r;    // read mask
-    unsigned long w;    // write mask
-    unsigned long a;    // registers used in addressing mode
+    unsigned r;         // read mask
+    unsigned w;         // write mask
+    unsigned a;         // registers used in addressing mode
     unsigned char reg;  // reg field of modregrm byte
     unsigned char uops; // Pentium Pro micro-ops
     unsigned sibmodrm;  // (sib << 8) + mod__rm byte
-    long spadjust;      // if !=0, then amount ESP changes as a result of this
+    unsigned spadjust;  // if !=0, then amount ESP changes as a result of this
                         // instruction being executed
     int fpuadjust;      // if !=0, then amount FPU stack changes as a result
                         // of this instruction being executed
@@ -162,7 +162,7 @@ static unsigned char pentcycl[256] =
 #define S       0x4000000       // floating point stack
 #define F       0x8000000       // flags
 
-static unsigned long oprw[256][2] =
+static unsigned oprw[256][2] =
 {
         // 00
         EA|R|B, F|EA|B,         // ADD
@@ -489,7 +489,7 @@ static unsigned long oprw[256][2] =
  * Same thing, but for groups.
  */
 
-static unsigned long grprw[8][8][2] =
+static unsigned grprw[8][8][2] =
 {
         // Grp 1
         EA,     F|EA,           // ADD
@@ -549,7 +549,7 @@ static unsigned long grprw[8][8][2] =
  *          [1] = write
  */
 
-static unsigned long grpf1[8][8][2] =
+static unsigned grpf1[8][8][2] =
 {
         // 0xD8
         EA|S,   S|C,    // FADD  float
@@ -1178,7 +1178,7 @@ STATIC void getinfo(Cinfo *ci,code *c)
     unsigned char irm,mod,reg,rm;
     unsigned a32;
     int pc;
-    unsigned long r,w;
+    unsigned r,w;
     int sz = I32 ? 4 : 2;
 
     ci->r = 0;
@@ -1661,9 +1661,9 @@ Lret:
 STATIC int pair_test(Cinfo *cu,Cinfo *cv)
 {   unsigned pcu;
     unsigned pcv;
-    unsigned long r1,w1;
-    unsigned long r2,w2;
-    unsigned long x;
+    unsigned r1,w1;
+    unsigned r2,w2;
+    unsigned x;
 
     pcu = cu->pair;
     if (!(pcu & PU))
@@ -1706,7 +1706,7 @@ Lnopair:
  */
 
 STATIC int pair_agi(Cinfo *c1,Cinfo *c2)
-{   unsigned long x;
+{   unsigned x;
 
     x = c1->w & c2->a;
     return x && !(x == mSP && c1->pair & c2->pair & PE);
@@ -1792,8 +1792,8 @@ STATIC int conflict(Cinfo *ci1,Cinfo *ci2,int fpsched)
 {   code *c;
     code *c1;
     code *c2;
-    unsigned long r1,w1,a1;
-    unsigned long r2,w2,a2;
+    unsigned r1,w1,a1;
+    unsigned r2,w2,a2;
     int sz1,sz2;
     int i = 0;
     int delay_clocks;
@@ -1871,7 +1871,7 @@ if (c2->IEVpointer1 + sz2 <= c1->IEVpointer1) printf("t5\n");
         // If other than the memory reference is a conflict
         if (w1 & r2 & ~mMEM || (r1 | w1) & w2 & ~mMEM)
         {   if (i) printf("\t1\n");
-            if (i) printf("r1=%lx, w1=%lx, a1=%lx, sz1=%d, r2=%lx, w2=%lx, a2=%lx, sz2=%d\n",r1,w1,a1,sz1,r2,w2,a2,sz2);
+            if (i) printf("r1=%x, w1=%x, a1=%x, sz1=%d, r2=%x, w2=%x, a2=%x, sz2=%d\n",r1,w1,a1,sz1,r2,w2,a2,sz2);
             goto Lconflict;
         }
 

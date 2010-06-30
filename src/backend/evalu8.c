@@ -1894,7 +1894,7 @@ elem * evalu8(elem *e)
         }
         else
 #endif
-        e->EV.Vldouble = (unsigned long) l1;
+        e->EV.Vldouble = (unsigned) l1;
         break;
     case OPd_s16:
         e->EV.Vint = d1;
@@ -1939,10 +1939,10 @@ elem * evalu8(elem *e)
         e->EV.Vlong = (targ_long)d1;
         break;
     case OPu32_d:
-        e->EV.Vdouble = (unsigned long) l1;
+        e->EV.Vdouble = (unsigned) l1;
         break;
     case OPs32_d:
-        e->EV.Vdouble = (long) l1;
+        e->EV.Vdouble = (int) l1;
         break;
     case OPd_s16:
         e->EV.Vint = (targ_int)d1;

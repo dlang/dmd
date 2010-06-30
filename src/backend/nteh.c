@@ -843,7 +843,6 @@ code *nteh_unwind(regm_t retregs,unsigned index)
 
 code *linux_unwind(regm_t retregs,unsigned index)
 {   code *c;
-    code cs;
     code *cs1;
     code *cs2;
     int i;

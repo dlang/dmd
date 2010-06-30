@@ -350,15 +350,20 @@ void Module::read(Loc loc)
 {
     //printf("Module::read('%s') file '%s'\n", toChars(), srcfile->toChars());
     if (srcfile->read())
-    {   error(loc, "cannot read file '%s'", srcfile->toChars());
+    {   error(loc, "is in file '%s' which cannot be read", srcfile->toChars());
         if (!global.gag)
         {   /* Print path
              */
-            for (size_t i = 0; i < global.path->dim; i++)
+            if (global.path)
             {
-                char *p = (char *)global.path->data[i];
-                fprintf(stdmsg, "import path[%d] = %s\n", i, p);
+                for (int i = 0; i < global.path->dim; i++)
+                {
+                    char *p = (char *)global.path->data[i];
+                    fprintf(stdmsg, "import path[%d] = %s\n", i, p);
+                }
             }
+            else
+                fprintf(stdmsg, "Specify path to file '%s' with -I switch\n", srcfile->toChars());
         }
         fatal();
     }

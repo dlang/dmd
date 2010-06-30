@@ -148,6 +148,7 @@ code *gen(code *c,code *cs)
 #ifdef DEBUG                            /* this is a high usage routine */
     assert(cs);
 #endif
+    assert(I64 || cs->Irex == 0);
     ce = code_calloc();
     *ce = *cs;
     if (config.flags4 & CFG4optimized &&

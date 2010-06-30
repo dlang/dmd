@@ -1862,8 +1862,12 @@ returnelem:
 
 elem *el_convfloat(elem *e)
 {
+    unsigned char buffer[32];
+
 #if TX86
     assert(config.inline8087);
+
+    // Do not convert if the constants can be loaded with the special FPU instructions
     if (tycomplex(e->Ety))
     {
         if (loadconst(e, 0) && loadconst(e, 1))
@@ -1871,40 +1875,66 @@ elem *el_convfloat(elem *e)
     }
     else if (loadconst(e, 0))
         return e;
+
     changes++;
-    int sz = tysize(e->Ety);
-#if LNGDBLSIZE == 12
-    if (sz == 12 || sz == 24)
+    tym_t ty = e->Ety;
+    int sz = tysize(ty);
+    assert(sz <= sizeof(buffer));
+    void *p;
+    switch (tybasic(ty))
     {
-        unsigned short *p = (unsigned short *)&e->EV.Vfloat;
-        p[5] = 0;               // fill in 2 byte hole
-        if (sz == 24)
-            p[11] = 0;          // other 2 byte hole
+        case TYfloat:
+        case TYifloat:
+            p = &e->EV.Vfloat;
+            assert(sz == sizeof(e->EV.Vfloat));
+            break;
+
+        case TYdouble:
+        case TYidouble:
+        case TYdouble_alias:
+            p = &e->EV.Vdouble;
+            assert(sz == sizeof(e->EV.Vdouble));
+            break;
+
+        case TYldouble:
+        case TYildouble:
+            /* The size, alignment, and padding of long doubles may be different
+             * from host to target
+             */
+            p = buffer;
+            memset(buffer, 0, sz);                      // ensure padding is 0
+            memcpy(buffer, &e->EV.Vldouble, 10);
+            break;
+
+        case TYcfloat:
+            p = &e->EV.Vcfloat;
+            assert(sz == sizeof(e->EV.Vcfloat));
+            break;
+
+        case TYcdouble:
+            p = &e->EV.Vcdouble;
+            assert(sz == sizeof(e->EV.Vcdouble));
+            break;
+
+        case TYcldouble:
+            p = buffer;
+            memset(buffer, 0, sz);
+            memcpy(buffer, &e->EV.Vcldouble.re, 10);
+            memcpy(buffer + tysize(TYldouble), &e->EV.Vcldouble.im, 10);
+            break;
+
+        default:
+            assert(0);
     }
-#endif
-#if LNGDBLSIZE == 16
-    if ((sz == 16 && !tycomplex(e->Ety)) || sz == 32)
-    {
-        unsigned short *p = (unsigned short *)&e->EV.Vfloat;
-        p[5] = 0;               // fill in 6 byte hole
-        p[6] = 0;
-        p[7] = 0;
-        if (sz == 32)
-        {   p[13] = 0;          // other 6 byte hole
-            p[14] = 0;
-            p[15] = 0;
-        }
-    }
-#endif
 #if 0
+    printf("%gL+%gLi\n", (double)e->EV.Vcldouble.re, (double)e->EV.Vcldouble.im);
     printf("el_convfloat() %g %g sz=%d\n", e->EV.Vcdouble.re, e->EV.Vcdouble.im, sz);
 printf("el_convfloat(): sz = %d\n", sz);
 unsigned short *p = (unsigned short *)&e->EV.Vcldouble;
 for (int i = 0; i < sz/2; i++) printf("%04x ", p[i]);
 printf("\n");
 #endif
-    symbol *s  = out_readonly_sym(e->Ety, &e->EV.Vfloat, sz);
-    tym_t ty = e->Ety;
+    symbol *s  = out_readonly_sym(ty, p, sz);
     el_free(e);
     e = el_var(s);
     e->Ety = ty;
@@ -2836,7 +2866,7 @@ int el_allbits(elem *e,int bit)
                 break;
         case 2: value = (short) value;
                 break;
-        case 4: value = (long) value;
+        case 4: value = (int) value;
                 break;
         case 8: break;
         default:
@@ -3023,7 +3053,7 @@ void elem_print(elem *e)
  && (e->PEFflags & PEFstrsize)
 #endif
                )
-                dbg_printf("%ld ",e->Enumbytes);
+                dbg_printf("%d ",e->Enumbytes);
             WRTYxx(e->ET->Tty);
         }
   }
@@ -3031,7 +3061,7 @@ void elem_print(elem *e)
   {
         if ((e->Eoper == OPstrpar || e->Eoper == OPstrctor || e->Eoper == OPstreq) ||
             e->Ety == TYstruct)
-            dbg_printf("%ld ",e->Enumbytes);
+            dbg_printf("%d ",e->Enumbytes);
         WRTYxx(e->Ety);
   }
   if (OTunary(e->Eoper))
@@ -3045,7 +3075,7 @@ void elem_print(elem *e)
   else if (OTbinary(e->Eoper))
   {
         if (!PARSER && e->Eoper == OPstreq)
-                dbg_printf("bytes=%ld ",e->Enumbytes);
+                dbg_printf("bytes=%d ",e->Enumbytes);
         dbg_printf("%p %p\n",e->E1,e->E2);
         elem_print(e->E1);
         elem_print(e->E2);
@@ -3113,7 +3143,7 @@ void elem_print(elem *e)
                     case TYchar16:
                     L3:
 #if TX86
-                        dbg_printf("%ld ",e->EV.Vint);
+                        dbg_printf("%d ",e->EV.Vint);
                         break;
 #endif
                     case TYlong:
@@ -3125,7 +3155,7 @@ void elem_print(elem *e)
                     case TYhptr:
 #endif
                     L1:
-                        dbg_printf("%ldL ",e->EV.Vlong);
+                        dbg_printf("%dL ",e->EV.Vlong);
                         break;
 
                     case TYllong:

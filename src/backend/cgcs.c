@@ -470,14 +470,14 @@ STATIC unsigned cs_comphash(elem *e)
     hash = e->Ety + op;
 #endif
     if (!OTleaf(op))
-    {   hash += (int) e->E1;
+    {   hash += (size_t) e->E1;
         if (OTbinary(op))
-                hash += (int) e->E2;
+                hash += (size_t) e->E2;
     }
     else
     {   hash += e->EV.Vint;
         if (op == OPvar || op == OPrelconst)
-                hash += (int) e->EV.sp.Vsym;
+                hash += (size_t) e->EV.sp.Vsym;
     }
     return hash;
 }
