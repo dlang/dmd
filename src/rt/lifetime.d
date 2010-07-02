@@ -574,7 +574,7 @@ body
         {
             // figure out the current capacity of the block from the point
             // of view of the array.
-            curcapacity = info.size - offset - __arrayPad(info.size);
+            curcapacity = info.size - offset - arraypad;
         }
     }
     else
