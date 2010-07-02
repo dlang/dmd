@@ -350,6 +350,11 @@ void *__arrayStart(BlkInfo info)
     return info.base + ((info.size & BIGLENGTHMASK) ? 2*size_t.sizeof : 0);
 }
 
+/**
+  get the padding required to allocate size bytes.  Note that the padding is
+  NOT included in the passed in size.  Therefore, do NOT call this function
+  with the size of an allocated block.
+  */
 size_t __arrayPad(size_t size)
 {
     return size > MAXMEDSIZE ? LARGEPAD : (size > MAXSMALLSIZE ? MEDPAD : SMALLPAD);
@@ -540,14 +545,25 @@ body
     size_t curallocsize = void;
     size_t curcapacity = void;
     size_t offset = void;
+    size_t arraypad = void;
     if(info.base !is null)
     {
         if(info.size <= 256)
+        {
             curallocsize = *(cast(ubyte *)(info.base + info.size - SMALLPAD));
+            arraypad = SMALLPAD;
+        }
         else if(info.size < PAGESIZE)
+        {
             curallocsize = *(cast(ushort *)(info.base + info.size - MEDPAD));
+            arraypad = MEDPAD;
+        }
         else
+        {
             curallocsize = *(cast(size_t *)(info.base));
+            arraypad = LARGEPAD;
+        }
+
 
         offset = p.data - __arrayStart(info);
         if(offset + p.length * size != curallocsize)
@@ -616,7 +632,18 @@ body
         __insertBlkInfoCache(info, bic);
 
     p.data = cast(byte *)tgt;
-    curcapacity = info.size - __arrayPad(info.size);
+
+    // determine the padding.  This has to be done manually because __arrayPad
+    // assumes you are not counting the pad size, and info.size does include
+    // the pad.
+    if(info.size <= 256)
+        arraypad = SMALLPAD;
+    else if(info.size < PAGESIZE)
+        arraypad = MEDPAD;
+    else
+        arraypad = SMALLPAD;
+
+    curcapacity = info.size - arraypad;
     return curcapacity / size;
 
 Loverflow:
