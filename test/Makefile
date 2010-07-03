@@ -80,8 +80,9 @@ $(RESULTS_DIR)/runnable/%.d.out: runnable/%.d $(RESULTS_DIR)/.created $(RESULTS_
 	      if [ $$? -ne 0 ]; then cat $@; rm -f $@; exit 1; fi; \
 	    fi; \
 	    $$t $$e_args >> $@ 2>&1; \
+	    rc=$$?; \
 	    rm -f $$t $$t.o $${ofiles[*]}; \
-	    if [ $$? -ne 0 ]; then cat $@; rm -f $@; exit 1; fi; \
+	    if [ $$rc -ne 0 ]; then cat $@; rm -f $@; exit 1; fi; \
 	    echo >> $@; \
        	done
 
