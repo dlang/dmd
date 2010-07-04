@@ -58,6 +58,19 @@ char *obj_mangle2(Symbol *s,char *dest);
 #define cpp_mangle(s) ((s)->Sident)
 #endif
 
+/***************************************************
+ * Correspondence of relocation types
+ *      386             32 bit in 64      64 in 64
+ *      RI_TYPE_SYM32   R_X86_64_32       R_X86_64_64
+ *      RI_TYPE_GOTOFF  R_X86_64_PC32     R_X86_64_
+ *      RI_TYPE_GOTPC   R_X86_64_         R_X86_64_
+ *      RI_TYPE_GOT32   R_X86_64_         R_X86_64_
+ *      RI_TYPE_TLS_GD  R_X86_64_TLSGD    R_X86_64_
+ *      RI_TYPE_TLS_IE  R_X86_64_GOTTPOFF R_X86_64_
+ *      RI_TYPE_TLS_LE  R_X86_64_TPOFF32  R_X86_64_
+ *      RI_TYPE_PLT32   R_X86_64_PLT32    R_X86_64_
+ *      RI_TYPE_PC32    R_X86_64_PC32     R_X86_64_
+ */
 
 /******************************************
  */
@@ -79,7 +92,6 @@ STATIC char * objmodtoseg (const char *modname);
 STATIC void obj_browse_flush();
 STATIC void objfixupp (struct FIXUP *);
 STATIC void ledata_new (int seg,targ_size_t offset);
-static int obj_align(Symbol *s);
 void obj_tlssections();
 
 static IDXSYM elf_addsym(IDXSTR sym, targ_size_t val, unsigned sz,
@@ -1253,17 +1265,6 @@ void obj_user(const char *p)
 void obj_wkext(Symbol *s1,Symbol *s2)
 {
     //dbg_printf("obj_wkext(Symbol *%s,Symbol *s2)\n",s1->Sident,s2->Sident);
-#if 0
-    char buffer[2+2+2];
-    int i;
-
-    buffer[0] = 0x80;
-    buffer[1] = 0xA8;
-    i = 2;
-    i += insidx(&buffer[2],s1->Sxtrnnum);
-    i += insidx(&buffer[i],s2->Sxtrnnum);
-    objrecord(COMENT,buffer,i);
-#endif
 }
 
 /*******************************
@@ -1274,11 +1275,9 @@ void obj_wkext(Symbol *s1,Symbol *s2)
  */
 
 void obj_filename(const char *modname)
-{   unsigned strtab_idx;
-    unsigned symtab_idx;
-
+{
     //dbg_printf("obj_filename(char *%s)\n",modname);
-    strtab_idx = elf_addstr(symtab_strings,modname);
+    unsigned strtab_idx = elf_addstr(symtab_strings,modname);
     elf_addsym(strtab_idx,0,0,STT_FILE,STB_LOCAL,SHT_ABS);
 }
 
@@ -1294,33 +1293,6 @@ void obj_compiler()
     //dbg_printf("Comment data size %d\n",comment_data->size());
 }
 
-#if 0
-/********************************
- * Convert module name to code segment name.
- * Output:
- *      mem_malloc'd code seg name
- */
-
-STATIC char * objmodtoseg(const char *modname)
-{   char *csegname = NULL;
-
-    if (LARGECODE)              // if need to add in module name
-    {   int i;
-        char *m;
-        static const char suffix[] = "_TEXT";
-
-        // Prepend the module name to the beginning of the _TEXT
-        m = filespecgetroot(filespecname(modname));
-        strupr(m);
-        i = strlen(m);
-        csegname = mem_malloc(i + sizeof(suffix));
-        strcpy(csegname,m);
-        strcat(csegname,suffix);
-        mem_free(m);
-    }
-    return csegname;
-}
-#endif
 
 //#if NEWSTATICDTOR
 
@@ -1351,7 +1323,7 @@ void obj_staticctor(Symbol *s,int dtor,int none)
         buf->write64(s->Soffset);
     else
         buf->write32(s->Soffset);
-    elf_addrel(seg,SegData[seg]->SDoffset,RI_TYPE_SYM32,STI_TEXT,0);
+    elf_addrel(seg,SegData[seg]->SDoffset,I64 ? R_X86_64_64 : RI_TYPE_SYM32,STI_TEXT,0);
     SegData[seg]->SDoffset = buf->size();
 }
 
@@ -1376,8 +1348,7 @@ void obj_staticdtor(Symbol *s)
         buf->write64(s->Soffset);
     else
         buf->write32(s->Soffset);
-    //elf_addrel(seg,0,RI_TYPE_SYM32,STI_TEXT,0);
-    elf_addrel(seg,SegData[seg]->SDoffset,RI_TYPE_SYM32,s->Sxtrnnum,0);
+    elf_addrel(seg,SegData[seg]->SDoffset,I64 ? R_X86_64_64 : RI_TYPE_SYM32,s->Sxtrnnum,0);
     SegData[seg]->SDoffset = buf->size();
 }
 
@@ -1406,17 +1377,14 @@ void obj_ehtables(Symbol *sfunc,targ_size_t size,Symbol *ehsym)
 {
     //dbg_printf("obj_ehtables(%s) \n",sfunc->Sident);
 
-    symbol *ehtab_entry;
-    dt_t **pdte;
-
-    ehtab_entry = symbol_generate(SCstatic,type_alloc(TYint));
+    symbol *ehtab_entry = symbol_generate(SCstatic,type_alloc(TYint));
     symbol_keep(ehtab_entry);
     elf_getsegment(".deh_beg", NULL, SHT_PROGDEF, SHF_ALLOC, 4);
     ehtab_entry->Sseg = elf_getsegment(".deh_eh", NULL, SHT_PROGDEF, SHF_ALLOC, 4);
     elf_getsegment(".deh_end", NULL, SHT_PROGDEF, SHF_ALLOC, 4);
     ehtab_entry->Stype->Tmangle = mTYman_c;
     ehsym->Stype->Tmangle = mTYman_c;
-    pdte = &ehtab_entry->Sdt;
+    dt_t **pdte = &ehtab_entry->Sdt;
     pdte = dtxoff(pdte,sfunc,0,TYnptr);
     pdte = dtxoff(pdte,ehsym,0,TYnptr);
     pdte = dtnbytes(pdte,4,(char *)&sfunc->Ssize);
@@ -1428,14 +1396,11 @@ void obj_ehtables(Symbol *sfunc,targ_size_t size,Symbol *ehsym)
  */
 
 void obj_ehsections()
-{   int sec;
-    IDXSYM symidx;
-    IDXSTR namidx;
-
-    sec = elf_getsegment(".deh_beg", NULL, SHT_PROGDEF, SHF_ALLOC, 4);
+{
+    int sec = elf_getsegment(".deh_beg", NULL, SHT_PROGDEF, SHF_ALLOC, 4);
     //obj_bytes(sec, 0, 4, NULL);
 
-    namidx = elf_addstr(symtab_strings,"_deh_beg");
+    IDXSTR namidx = elf_addstr(symtab_strings,"_deh_beg");
     elf_addsym(namidx, 0, 0, STT_OBJECT, STB_GLOBAL, MAP_SEG2SECIDX(sec));
     //elf_addsym(namidx, 0, 4, STT_OBJECT, STB_GLOBAL, MAP_SEG2SECIDX(sec));
 
@@ -1693,7 +1658,7 @@ seg_data *obj_tlsseg()
     if (seg_tlsseg == UNKNOWN)
     {
         seg_tlsseg = elf_getsegment(tlssegname, NULL, SHT_PROGDEF,
-            SHF_ALLOC|SHF_WRITE|SHF_TLS, 4);
+            SHF_ALLOC|SHF_WRITE|SHF_TLS, I64 ? 16 : 4);
     }
     return SegData[seg_tlsseg];
 }
@@ -1715,7 +1680,7 @@ seg_data *obj_tlsseg_bss()
     if (seg_tlsseg_bss == UNKNOWN)
     {
         seg_tlsseg_bss = elf_getsegment(tlssegname, NULL, SHT_NOBITS,
-            SHF_ALLOC|SHF_WRITE|SHF_TLS, 4);
+            SHF_ALLOC|SHF_WRITE|SHF_TLS, I64 ? 16 : 4);
     }
     return SegData[seg_tlsseg_bss];
 }
@@ -1726,24 +1691,22 @@ seg_data *obj_tlsseg_bss()
  */
 
 void obj_alias(const char *n1,const char *n2)
-{   unsigned len;
-    char *buffer;
-
+{
     dbg_printf("obj_alias(%s,%s)\n",n1,n2);
     assert(0);
 #if NOT_DONE
-    buffer = (char *) alloca(strlen(n1) + strlen(n2) + 2 * ONS_OHD);
-    len = obj_namestring(buffer,n1);
+    char *buffer = (char *) alloca(strlen(n1) + strlen(n2) + 2 * ONS_OHD);
+    unsigned len = obj_namestring(buffer,n1);
     len += obj_namestring(buffer + len,n2);
     objrecord(ALIAS,buffer,len);
 #endif
 }
 
-char *unsstr (unsigned value)
+char *unsstr(unsigned value)
 {
-    static char buffer [64];
+    static char buffer[64];
 
-    sprintf (buffer, "%d", value);
+    sprintf(buffer, "%d", value);
     return buffer;
 }
 
@@ -1755,7 +1718,6 @@ char *unsstr (unsigned value)
 
 char *obj_mangle2(Symbol *s,char *dest)
 {
-    size_t len;
     char *name;
 
     //dbg_printf("obj_mangle('%s'), mangle = x%x\n",s->Sident,type_mangle(s->Stype));
@@ -1768,7 +1730,7 @@ char *obj_mangle2(Symbol *s,char *dest)
 #else
     name = s->Sident;
 #endif
-    len = strlen(name);                 // # of bytes in name
+    size_t len = strlen(name);                 // # of bytes in name
     //dbg_printf("len %d\n",len);
     switch (type_mangle(s->Stype))
     {
@@ -1832,11 +1794,8 @@ char *obj_mangle2(Symbol *s,char *dest)
  */
 
 void obj_export(Symbol *s,unsigned argsize)
-{   char *coment;
-    size_t len;
-
+{
     //dbg_printf("obj_export(%s,%d)\n",s->Sident,argsize);
-
 }
 
 /*******************************
@@ -2002,13 +1961,12 @@ int objextdef(const char *name)
 
 int objextern(Symbol *s)
 {
-    IDXSTR namidx;
     int symtype,sectype;
-    targ_size_t size;
+    unsigned size;
 
     //dbg_printf("objextern('%s') %x\n",s->Sident,s->Svalue);
     symbol_debug(s);
-    namidx = elf_addmangled(s);
+    IDXSTR namidx = elf_addmangled(s);
 
 #if SCPP
     if (s->Sscope && !tyfunc(s->ty()))
@@ -2051,10 +2009,11 @@ int obj_comdef(Symbol *s,targ_size_t size,targ_size_t count)
     //printf("obj_comdef('%s',%d,%d)\n",s->Sident,size,count);
     symbol_debug(s);
 
+    int align = I64 ? 16 : 4;
     if (s->ty() & mTYthread)
     {
         s->Sseg = elf_getsegment(".tbss.", cpp_mangle(s),
-                SHT_NOBITS, SHF_ALLOC|SHF_WRITE|SHF_TLS, 4);
+                SHT_NOBITS, SHF_ALLOC|SHF_WRITE|SHF_TLS, align);
         s->Sfl = FLtlsdata;
         SegData[s->Sseg]->SDsym = s;
         SegData[s->Sseg]->SDoffset += size * count;
@@ -2065,7 +2024,7 @@ int obj_comdef(Symbol *s,targ_size_t size,targ_size_t count)
     else
     {
         s->Sseg = elf_getsegment(".bss.", cpp_mangle(s),
-                SHT_NOBITS, SHF_ALLOC|SHF_WRITE, 4);
+                SHT_NOBITS, SHF_ALLOC|SHF_WRITE, align);
         s->Sfl = FLudata;
         SegData[s->Sseg]->SDsym = s;
         SegData[s->Sseg]->SDoffset += size * count;
@@ -2362,20 +2321,31 @@ void reftodatseg(int seg,targ_size_t offset,targ_size_t val,
     }
     else*/
     {
-        unsigned type = RI_TYPE_SYM32;
+        int relinfo;
 
-        if (MAP_SEG2TYP(seg) == CODE && config.flags3 & CFG3pic)
-            type = RI_TYPE_GOTOFF;
-        else if (MAP_SEG2SEC(targetdatum)->sh_flags & SHF_TLS)
-            type = config.flags3 & CFG3pic ? RI_TYPE_TLS_GD : RI_TYPE_TLS_LE;
+        if (I64)
+        {
+            if (MAP_SEG2TYP(seg) == CODE && config.flags3 & CFG3pic)
+                relinfo = R_X86_64_PC32;
+            else if (MAP_SEG2SEC(targetdatum)->sh_flags & SHF_TLS)
+                relinfo = config.flags3 & CFG3pic ? R_X86_64_TLSGD : R_X86_64_TPOFF32;
+            else
+                relinfo = R_X86_64_32;
+        }
+        else
+        {
+            if (MAP_SEG2TYP(seg) == CODE && config.flags3 & CFG3pic)
+                relinfo = RI_TYPE_GOTOFF;
+            else if (MAP_SEG2SEC(targetdatum)->sh_flags & SHF_TLS)
+                relinfo = config.flags3 & CFG3pic ? RI_TYPE_TLS_GD : RI_TYPE_TLS_LE;
+            else
+                relinfo = RI_TYPE_SYM32;
+        }
 
-        elf_addrel(seg,offset,type,STI_RODAT,0);
+        elf_addrel(seg, offset, relinfo, STI_RODAT, 0);
     }
-    if (I64)
-        buf->write64(val);
-    else
-        buf->write32(val);
-    if (save > offset + NPTRSIZE)
+    buf->write32(val);
+    if (save > offset + 4)
         buf->setsize(save);
 }
 
@@ -2410,15 +2380,15 @@ void reftocodseg(int seg,targ_size_t offset,targ_size_t val)
 #endif
     {
         val = val - funcsym_p->Soffset;
-        elf_addrel(seg,offset,
-                (config.flags3 & CFG3pic) ? RI_TYPE_GOTOFF : RI_TYPE_SYM32,
-                funcsym_p->Sxtrnnum,0);
+        int relinfo;
+        if (I64)
+            relinfo = (config.flags3 & CFG3pic) ? R_X86_64_PC32 : R_X86_64_32;
+        else
+            relinfo = (config.flags3 & CFG3pic) ? RI_TYPE_GOTOFF : RI_TYPE_SYM32;
+        elf_addrel(seg,offset, relinfo, funcsym_p->Sxtrnnum, 0);
     }
-    if (I64)
-        buf->write64(val);
-    else
-        buf->write32(val);
-    if (save > offset + NPTRSIZE)
+    buf->write32(val);
+    if (save > offset + 4)
         buf->setsize(save);
 }
 
@@ -2432,8 +2402,9 @@ void reftocodseg(int seg,targ_size_t offset,targ_size_t val)
  *      flags =         CFselfrel: self-relative
  *                      CFseg: get segment
  *                      CFoff: get offset
+ *                      CFoffset64: 64 bit fixup
  * Returns:
- *      number of bytes in reference (2 or 4 or 8)
+ *      number of bytes in reference (4 or 8)
  */
 
 int reftoident(int seg, targ_size_t offset, Symbol *s, targ_size_t val,
@@ -2445,6 +2416,7 @@ int reftoident(int seg, targ_size_t offset, Symbol *s, targ_size_t val,
     elf_u32_f32 relinfo,refseg;
     int segtyp = MAP_SEG2TYP(seg);
     //assert(val == 0);
+    int retsize = (flags & CFoffset64) ? 8 : 4;
 
 #if 0
     dbg_printf("\nreftoident('%s' seg %d, offset x%lx, val x%lx, flags x%x)\n",
@@ -2472,14 +2444,26 @@ int reftoident(int seg, targ_size_t offset, Symbol *s, targ_size_t val,
     {
         case SClocstat:
             buf = SegData[seg]->SDbuf;
-            refseg = /*(OPT_IS_SET(OPTfwritable_strings)) ?
-                STI_DATA : */STI_RODAT;
-            relinfo = config.flags3 & CFG3pic ?
-                  RI_TYPE_GOTOFF:RI_TYPE_SYM32,STI_RODAT;
-            if (s->Sfl == FLtlsdata)
-                relinfo = config.flags3 & CFG3pic ? RI_TYPE_TLS_GD : RI_TYPE_TLS_LE;
-            elf_addrel(seg,offset,relinfo,refseg,0);
             if (I64)
+            {
+                if (s->Sfl == FLtlsdata)
+                    relinfo = config.flags3 & CFG3pic ? R_X86_64_TLSGD : R_X86_64_TPOFF32;
+                else
+                    relinfo = config.flags3 & CFG3pic ? R_X86_64_PC32 : R_X86_64_32;
+            }
+            else
+            {
+                if (s->Sfl == FLtlsdata)
+                    relinfo = config.flags3 & CFG3pic ? RI_TYPE_TLS_GD : RI_TYPE_TLS_LE;
+                else
+                    relinfo = config.flags3 & CFG3pic ? RI_TYPE_GOTOFF : RI_TYPE_SYM32;
+            }
+            if (flags & CFoffset64 && relinfo == R_X86_64_32)
+            {
+                relinfo = R_X86_64_64;
+            }
+            elf_addrel(seg,offset,relinfo,STI_RODAT,0);
+            if (retsize == 8)
                 buf->write64(val + s->Soffset);
             else
                 buf->write32(val + s->Soffset);
@@ -2506,7 +2490,7 @@ int reftoident(int seg, targ_size_t offset, Symbol *s, targ_size_t val,
             {   // not in symbol table yet - class might change
                 //dbg_printf("\tadding %s to fixlist\n",s->Sident);
                 addtofixlist(s,offset,seg,val,flags);
-                return NPTRSIZE;
+                return retsize;
             }
             else
             {
@@ -2522,14 +2506,18 @@ int reftoident(int seg, targ_size_t offset, Symbol *s, targ_size_t val,
                            s->Sclass == SCstatic)) // or is pic, but declared static
                     {                   // Can use PC relative
                         //dbg_printf("\tdoing PC relative\n");
-                        val = (s->Soffset+val) - (offset+NPTRSIZE);
+                        val = (s->Soffset+val) - (offset+4);
                     }
                     else
                     {
-                        val = (targ_size_t)-NPTRSIZE;
+                        val = (targ_size_t)-4;
                         //dbg_printf("\tadding relocation\n");
+                        if (I64)
+                            relinfo = config.flags3 & CFG3pic ?  R_X86_64_PLT32 : R_X86_64_PC32;
+                        else
+                            relinfo = config.flags3 & CFG3pic ?  RI_TYPE_PLT32 : RI_TYPE_PC32;
                         elf_addrel(seg,offset,
-                                config.flags3 & CFG3pic ?  RI_TYPE_PLT32 : RI_TYPE_PC32,
+                                relinfo,
                                 s->Sxtrnnum,0);
                     }
                 }
@@ -2544,52 +2532,78 @@ int reftoident(int seg, targ_size_t offset, Symbol *s, targ_size_t val,
                         if (!(config.flags3 & CFG3pic) ||       // all static refs from normal code
                              segtyp == DATA)    // or refs from data from posi indp
                         {
-                           relinfo = RI_TYPE_SYM32;
+                           relinfo = I64 ? R_X86_64_32 : RI_TYPE_SYM32;
                         }
                         else
                         {
-                            relinfo = RI_TYPE_GOTOFF;
+                            relinfo = I64 ? R_X86_64_PC32 : RI_TYPE_GOTOFF;
                         }
                     }
                     else if (config.flags3 & CFG3pic && s == GOTsym)
                     {                   // relocation for Gbl Offset Tab
-                        relinfo =  RI_TYPE_GOTPC;
+                        relinfo =  I64 ? R_X86_64_NONE : RI_TYPE_GOTPC;
                     }
                     else if (segtyp == DATA)
-                    {                   // relocation from with in DATA seg
-                        relinfo = RI_TYPE_SYM32;
+                    {                   // relocation from within DATA seg
+                        relinfo = I64 ? R_X86_64_32 : RI_TYPE_SYM32;
                     }
                     else
-                    {                   // relocation from with in CODE seg
-                        relinfo = config.flags3 & CFG3pic ?
-                             RI_TYPE_GOT32 : RI_TYPE_SYM32;
+                    {                   // relocation from within CODE seg
+                        if (I64)
+                            relinfo = config.flags3 & CFG3pic ? R_X86_64_NONE : R_X86_64_32;
+                        else
+                            relinfo = config.flags3 & CFG3pic ? RI_TYPE_GOT32 : RI_TYPE_SYM32;
                     }
                     if ((s->ty() & mTYLINK) & mTYthread)
                     {
-                        if (config.flags3 & CFG3pic)
+                        if (I64)
                         {
-                            if (s->Sclass == SCstatic)
-                                relinfo = RI_TYPE_TLS_LE;  // TLS_GD?
+                            if (config.flags3 & CFG3pic)
+                            {
+                                if (s->Sclass == SCstatic)
+                                    relinfo = R_X86_64_TPOFF32;  // TLS_GD?
+                                else
+                                    relinfo = R_X86_64_GOTTPOFF;
+                            }
                             else
-                                relinfo = RI_TYPE_TLS_IE;
+                            {
+                                if (s->Sclass == SCstatic)
+                                    relinfo = R_X86_64_TPOFF32;
+                                else
+                                    relinfo = R_X86_64_GOTTPOFF;
+                            }
                         }
                         else
                         {
-                            if (s->Sclass == SCstatic)
-                                relinfo = RI_TYPE_TLS_LE;
+                            if (config.flags3 & CFG3pic)
+                            {
+                                if (s->Sclass == SCstatic)
+                                    relinfo = RI_TYPE_TLS_LE;  // TLS_GD?
+                                else
+                                    relinfo = RI_TYPE_TLS_IE;
+                            }
                             else
-                                relinfo = RI_TYPE_TLS_IE;
+                            {
+                                if (s->Sclass == SCstatic)
+                                    relinfo = RI_TYPE_TLS_LE;
+                                else
+                                    relinfo = RI_TYPE_TLS_IE;
+                            }
                         }
+                    }
+                    if (flags & CFoffset64 && relinfo == R_X86_64_32)
+                    {
+                        relinfo = R_X86_64_64;
                     }
                     //printf("\t\t************* adding relocation\n");
                     elf_addrel(seg,offset,relinfo,refseg,0);
                 }
 outaddrval:
-                if (I64)
+                if (retsize == 8)
                     buf->write64(val);
                 else
                     buf->write32(val);
-                if (save > offset + NPTRSIZE)
+                if (save > offset + retsize)
                     buf->setsize(save);
             }
             break;
@@ -2613,7 +2627,7 @@ outaddrval:
 #endif
             assert(0);
     }
-    return NPTRSIZE;
+    return retsize;
 }
 
 /*****************************************
@@ -2635,18 +2649,6 @@ void obj_far16thunk(Symbol *s)
 void obj_fltused()
 {
     //dbg_printf("obj_fltused()\n");
-}
-
-static int obj_align(Symbol *s)
-{
-    if (type_size(s->Stype) == CHARSIZE)
-        return 1;
-    else if (type_size(s->Stype) == SHORTSIZE)
-        return 2;
-    else if (type_size(s->Stype) == LONGSIZE)
-        return 4;
-    else
-        return I64 ? 8 : 4;
 }
 
 /************************************
@@ -2716,16 +2718,7 @@ long elf_align(FILE *fd, targ_size_t size,long foffset)
 
 void obj_moduleinfo(Symbol *scc)
 {
-    int offset, codeOffset, refOffset;
-    Outbuffer *buf;
-    int seg;
-
-    /* Put in the ModuleInfo reference for some reason. */
-    /*{
-        seg = DATA;
-        offset = SegData[seg]->SDoffset;
-        SegData[seg]->SDoffset += reftoident(seg, offset, scc, 0, CFoff);
-    }*/
+    int codeOffset, refOffset;
 
     /* Put in the ModuleReference. */
     {
@@ -2735,17 +2728,22 @@ void obj_moduleinfo(Symbol *scc)
          *      ModuleReference* module;
          * }
          */
-        seg = DATA;
+        const int seg = DATA;
+        alignOffset(seg, NPTRSIZE);
         SegData[seg]->SDoffset = SegData[seg]->SDbuf->size();
         refOffset = SegData[seg]->SDoffset;
         SegData[seg]->SDbuf->writezeros(NPTRSIZE);
         SegData[seg]->SDoffset += NPTRSIZE;
         SegData[seg]->SDoffset += reftoident(seg, SegData[seg]->SDoffset, scc, 0, CFoff);
+        alignOffset(seg, NPTRSIZE);
     }
 
-    /* Constructor that links the ModuleReference into the code. */
+    /* Constructor that links the ModuleReference to the head of
+     * the list pointed to by _Dmoduleref
+     */
     {
         /*      ret
+         * codeOffset:
          *      pushad
          *      mov     EAX,&ModuleReference
          *      mov     ECX,_DmoduleRef
@@ -2756,11 +2754,13 @@ void obj_moduleinfo(Symbol *scc)
          *      ret
          */
 
-        seg = CODE;
-        buf = SegData[seg]->SDbuf;
+        const int reltype = I64 ? R_X86_64_32 : RI_TYPE_SYM32;
+        const int refsize = 4;                          // use 32 bit relocations, even in 64 bit mode
+
+        const int seg = CODE;
+        Outbuffer *buf = SegData[seg]->SDbuf;
         SegData[seg]->SDoffset = buf->size();
         codeOffset = SegData[seg]->SDoffset + 1;
-//      codeOffset = SegData[seg]->SDoffset;
         buf->writeByte(0xC3); /* ret */
 
         buf->writeByte(0x60); /* pushad */
@@ -2768,12 +2768,12 @@ void obj_moduleinfo(Symbol *scc)
         /* movl ModuleReference*, %eax */
         buf->writeByte(0xB8);
         buf->write32(refOffset);
-        elf_addrel(seg, codeOffset + 2, RI_TYPE_SYM32, STI_DATA, 0);
+        elf_addrel(seg, codeOffset + 2, reltype, STI_DATA, 0);
 
         /* movl _Dmodule_ref, %ecx */
         buf->writeByte(0xB9);
-        buf->write32(0);//offset);
-        elf_addrel(seg, codeOffset + 7, RI_TYPE_SYM32, objextern("_Dmodule_ref"), 0);
+        buf->write32(0);
+        elf_addrel(seg, codeOffset + 7, reltype, objextern("_Dmodule_ref"), 0);
 
         buf->writeByte(0x8B); buf->writeByte(0x11); /* movl (%ecx), %edx */
         buf->writeByte(0x89); buf->writeByte(0x10); /* movl %edx, (%eax) */
@@ -2784,57 +2784,17 @@ void obj_moduleinfo(Symbol *scc)
         SegData[seg]->SDoffset = buf->size();
     }
 
-    /* Create the linked list-generating code. */
-    seg = elf_getsegment(".ctors", NULL, SHT_PROGDEF, SHF_ALLOC|SHF_WRITE,4);
+    /* Add reference to constructor into ".ctors" segment
+     */
+    const int seg = elf_getsegment(".ctors", NULL, SHT_PROGDEF, SHF_ALLOC|SHF_WRITE, NPTRSIZE);
 
-    buf = SegData[seg]->SDbuf;
+    Outbuffer *buf = SegData[seg]->SDbuf;
     buf->write32(codeOffset);
-    elf_addrel(seg, SegData[seg]->SDoffset, RI_TYPE_SYM32, STI_TEXT, 0);
+    elf_addrel(seg, SegData[seg]->SDoffset, I64 ? R_X86_64_64 : RI_TYPE_SYM32, STI_TEXT, 0);
     SegData[seg]->SDoffset += NPTRSIZE;
 }
 
 #endif
-
-/************************************
- * Output long word of data.
- * Input:
- *      seg     CODE, DATA, CDATA, UDATA
- *      offset  offset of start of data
- *      data    long word of data
- *   Present only if size == 2:
- *      lcfd    LCxxxx | FDxxxx
- *      if (FD_F2 | FD_T6)
- *              idx1 = external Symbol #
- *      else
- *              idx1 = frame datum
- *              idx2 = target datum
- */
-
-void obj_long(int seg,targ_size_t offset,unsigned long data,
-        unsigned lcfd,unsigned idx1,unsigned idx2)
-{
-    printf ("obj_long\n");
-    exit (1);
-    /*
-    unsigned i;
-
-    if (
-        (seg != obj.ledata->lseg ||             // or segments don't match
-         obj.ledata->i + tysize[TYfptr] > LEDATAMAX || // or it'll overflow
-         offset < obj.ledata->offset || // underflow
-         offset > obj.ledata->offset + obj.ledata->i
-        )
-     )
-        ledata_new(seg,offset);
-  i = offset - obj.ledata->offset;
-  if (obj.ledata->i < i + tysize[TYfptr])
-        obj.ledata->i = i + tysize[TYfptr];
-  TOLONG(obj.ledata->data + i,data);
-  if (I32)                              // if 6 byte far pointers
-        TOWORD(obj.ledata->data + i + LONGSIZE,0);              // fill out seg
-  addfixup(offset - obj.ledata->offset,lcfd,idx1,idx2);
-  */
-}
 
 /*************************************
  */

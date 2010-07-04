@@ -1,7 +1,7 @@
 
 /*
  * Copyright (c) 1992-1999 by Symantec
- * Copyright (c) 1999-2008 by Digital Mars
+ * Copyright (c) 1999-2010 by Digital Mars
  * All Rights Reserved
  * http://www.digitalmars.com
  * Written by Mike Cote, John Micco and Walter Bright
@@ -45,6 +45,7 @@
 #define _rd     0
 #define _16_bit 0x20
 #define _32_bit 0x40
+#define _64_bit 0x10000
 #define _I386   0x80            // opcode is only for 386 and later
 #define _16_bit_addr    0x100
 #define _32_bit_addr    0x200
@@ -70,18 +71,19 @@
 // Operand flags - usOp1, usOp2, usOp3
 //
 
-typedef unsigned short opflag_t;
+typedef unsigned opflag_t;
 
 // Operand flags for normal opcodes
 
 #define _r8     CONSTRUCT_FLAGS( _8, _reg, _normal, 0 )
 #define _r16    CONSTRUCT_FLAGS(_16, _reg, _normal, 0 )
 #define _r32    CONSTRUCT_FLAGS(_32, _reg, _normal, 0 )
+#define _r64    CONSTRUCT_FLAGS(_64, _reg, _normal, 0 )
 #define _m8     CONSTRUCT_FLAGS(_8, _m, _normal, 0 )
 #define _m16    CONSTRUCT_FLAGS(_16, _m, _normal, 0 )
 #define _m32    CONSTRUCT_FLAGS(_32, _m, _normal, 0 )
 #define _m48    CONSTRUCT_FLAGS( _48, _m, _normal, 0 )
-#define _m64    CONSTRUCT_FLAGS( _anysize, _m, _normal, 0 )
+#define _m64    CONSTRUCT_FLAGS( _64, _m, _normal, 0 )
 #define _m128   CONSTRUCT_FLAGS( _anysize, _m, _normal, 0 )
 #define _rm8    CONSTRUCT_FLAGS(_8, _rm, _normal, 0 )
 #define _rm16   CONSTRUCT_FLAGS(_16, _rm, _normal, 0 )
@@ -109,8 +111,8 @@ typedef unsigned short opflag_t;
                                                 // Label (in current function)
 
 #define _mmm32  CONSTRUCT_FLAGS( 0, _m, 0, _32)
-#define _mmm64  CONSTRUCT_FLAGS( 0, _m, 0, _64)
-#define _mmm128 CONSTRUCT_FLAGS( 0, _m, 0, _128)
+#define _mmm64  CONSTRUCT_FLAGS( _64, _m, 0, _f64)
+#define _mmm128 CONSTRUCT_FLAGS( 0, _m, 0, _f128)
 
 #define _xmm_m32 CONSTRUCT_FLAGS( _32, _m, _rspecial, 0)
 #define _xmm_m64 CONSTRUCT_FLAGS( _anysize, _m, _rspecial, 0)
@@ -126,21 +128,31 @@ typedef unsigned short opflag_t;
 // normal opcode variants and only asm_determine_operator_flags should
 // need to care.
 //
-#define _fm80   CONSTRUCT_FLAGS( 0, _m, 0, _80 )
-#define _fm64   CONSTRUCT_FLAGS( 0, _m, 0, _64 )
-#define _fm128  CONSTRUCT_FLAGS( 0, _m, 0, _128 )
-#define _fanysize (_64 | _80 | _112 | _224)
+#define _fm80   CONSTRUCT_FLAGS( 0, _m, 0, _f80 )
+#define _fm64   CONSTRUCT_FLAGS( 0, _m, 0, _f64 )
+#define _fm128  CONSTRUCT_FLAGS( 0, _m, 0, _f128 )
+#define _fanysize (_f64 | _f80 | _f112 )
 
 #define _float_m CONSTRUCT_FLAGS( _anysize, _float, 0, _fanysize)
 
 #define _st     CONSTRUCT_FLAGS( 0, _float, 0, _rst )   // stack register 0
-#define _m112   CONSTRUCT_FLAGS( 0, _m, 0, _112 )
-#define _m224   CONSTRUCT_FLAGS( 0, _m, 0, _224 )
+#define _m112   CONSTRUCT_FLAGS( 0, _m, 0, _f112 )
+#define _m224   _m112
 #define _m512   _m224
 #define _sti    CONSTRUCT_FLAGS( 0, _float, 0, _rsti )
 
 ////////////////// FLAGS /////////////////////////////////////
 
+#if 1
+// bit size                      5      3     3         7
+#define CONSTRUCT_FLAGS( uSizemask, aopty, amod, uRegmask ) \
+    ( (uSizemask) | (aopty) << 5 | (amod) << 8 | (uRegmask) << 11)
+
+#define ASM_GET_uSizemask(us)   ((us) & 0x1F)
+#define ASM_GET_aopty(us)       ((ASM_OPERAND_TYPE)(((us) >> 5) & 7))
+#define ASM_GET_amod(us)        ((ASM_MODIFIERS)(((us) >> 8) & 7))
+#define ASM_GET_uRegmask(us)    (((us) >> 11) & 0x7F)
+#else
 #define CONSTRUCT_FLAGS( uSizemask, aopty, amod, uRegmask ) \
     ( (uSizemask) | (aopty) << 4 | (amod) << 7 | (uRegmask) << 10)
 
@@ -148,14 +160,15 @@ typedef unsigned short opflag_t;
 #define ASM_GET_aopty(us)       ((ASM_OPERAND_TYPE)(((us) & 0x70) >> 4))
 #define ASM_GET_amod(us)        ((ASM_MODIFIERS)(((us) & 0x380) >> 7))
 #define ASM_GET_uRegmask(us)    (((us) & 0xFC00) >> 10)
+#endif
 
-
-// For uSizemask (4 bits)
+// For uSizemask (5 bits)
 #define _8  0x1
 #define _16 0x2
 #define _32 0x4
 #define _48 0x8
-#define _anysize (_8 | _16 | _32 | _48 )
+#define _64 0x10
+#define _anysize (_8 | _16 | _32 | _48 | _64 )
 
 // For aopty (3 bits)
 enum ASM_OPERAND_TYPE {
@@ -182,16 +195,15 @@ enum ASM_MODIFIERS {
     _flbl           // Label
 };
 
-// For uRegmask (6 bits)
+// For uRegmask (7 bits)
 
 // uRegmask flags when aopty == _float
 #define _rst    0x1
 #define _rsti   0x2
-#define _64     0x4
-#define _80     0x8
-#define _128    0x40
-#define _112    0x10
-#define _224    0x20
+#define _f64    0x4
+#define _f80    0x8
+#define _f112   0x10
+#define _f128   0x20
 
 // _seg register values (amod == _rseg)
 //
@@ -220,6 +232,8 @@ enum ASM_MODIFIERS {
 #define _eax    CONSTRUCT_FLAGS( 0, 0, _normal, 0x04 )  // EAX register
 #define _dx     CONSTRUCT_FLAGS( 0, 0, _normal, 0x08 )  // DX register
 #define _cl     CONSTRUCT_FLAGS( 0, 0, _normal, 0x10 )  // CL register
+#define _rax    CONSTRUCT_FLAGS( 0, 0, _normal, 0x40 )  // RAX register
+
 
 #define _rplus_r        0x20
 #define _plus_r CONSTRUCT_FLAGS( 0, 0, 0, _rplus_r )
@@ -283,7 +297,7 @@ void asm_process_fixup( block **ppblockLabels );
 
 typedef struct _PTRNTAB3 {
         unsigned usOpcode;
-        unsigned short usFlags;
+        unsigned usFlags;
         opflag_t usOp1;
         opflag_t usOp2;
         opflag_t usOp3;
@@ -291,21 +305,21 @@ typedef struct _PTRNTAB3 {
 
 typedef struct _PTRNTAB2 {
         unsigned usOpcode;
-        unsigned short usFlags;
+        unsigned usFlags;
         opflag_t usOp1;
         opflag_t usOp2;
 } PTRNTAB2, * PPTRNTAB2, ** PPPTRNTAB2;
 
 typedef struct _PTRNTAB1 {
         unsigned usOpcode;
-        unsigned short usFlags;
+        unsigned usFlags;
         opflag_t usOp1;
 } PTRNTAB1, * PPTRNTAB1, ** PPPTRNTAB1;
 
 typedef struct _PTRNTAB0 {
         unsigned usOpcode;
         #define ASM_END 0xffff          // special opcode meaning end of table
-        unsigned short usFlags;
+        unsigned usFlags;
 } PTRNTAB0, * PPTRNTAB0, ** PPPTRNTAB0;
 
 typedef union _PTRNTAB {

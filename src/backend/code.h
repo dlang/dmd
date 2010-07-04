@@ -386,6 +386,7 @@ struct code
 #define CFtarg2      0x8000     // like CFtarg, but we can't optimize this away
 #define CFvolatile  0x10000     // volatile reference, do not schedule
 #define CFclassinit 0x20000     // class init code
+#define CFoffset64  0x40000     // offset is 64 bits
 
 #define CFPREFIX (CFSEG | CFopsize | CFaddrsize)
 #define CFSEG   (CFes | CFss | CFds | CFcs | CFfs | CFgs)

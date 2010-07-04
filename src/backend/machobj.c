@@ -2326,28 +2326,6 @@ void obj_moduleinfo(Symbol *scc)
 
 #endif
 
-/************************************
- * Output long word of data.
- * Input:
- *      seg     CODE, DATA, CDATA, UDATA
- *      offset  offset of start of data
- *      data    long word of data
- *   Present only if size == 2:
- *      lcfd    LCxxxx | FDxxxx
- *      if (FD_F2 | FD_T6)
- *              idx1 = external Symbol #
- *      else
- *              idx1 = frame datum
- *              idx2 = target datum
- */
-
-void obj_long(int seg,targ_size_t offset,unsigned long data,
-        unsigned lcfd,unsigned idx1,unsigned idx2)
-{
-    printf("obj_long\n");
-    exit(1);
-}
-
 /*************************************
  */
 

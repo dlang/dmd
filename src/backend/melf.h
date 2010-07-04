@@ -341,32 +341,35 @@ typedef struct {
 
         // X86-64 Relocation types
 
-        #define R_X86_64_NONE      0
-        #define R_X86_64_64        1
-        #define R_X86_64_PC32      2
-        #define R_X86_64_GOT32     3
-        #define R_X86_64_PLT32     4
-        #define R_X86_64_COPY      5
-        #define R_X86_64_GLOB_DAT  6
-        #define R_X86_64_JUMP_SLOT 7
-        #define R_X86_64_RELATIVE  8
-        #define R_X86_64_GOTPCREL  9
-        #define R_X86_64_32       10
-        #define R_X86_64_32S      11
-        #define R_X86_64_16       12
-        #define R_X86_64_PC16     13
-        #define R_X86_64_8        14
-        #define R_X86_64_PC8      15
-        #define R_X86_64_DTPMOD64 16
-        #define R_X86_64_DTPOFF64 17
-        #define R_X86_64_TPOFF64  18
-        #define R_X86_64_TLSGD    19
-        #define R_X86_64_TLSLD    20
-        #define R_X86_64_DTPOFF32 21
-        #define R_X86_64_GOTTPOFF 22
-        #define R_X86_64_TPOFF32  23
-        #define R_X86_64_GNU_VTINHERIT 250
-        #define R_X86_64_GNU_VTENTRY   251
+        #define R_X86_64_NONE      0     // -- No relocation
+        #define R_X86_64_64        1     // 64 Direct 64 bit
+        #define R_X86_64_PC32      2     // 32 PC relative 32 bit signed
+        #define R_X86_64_GOT32     3     // 32 32 bit GOT entry
+        #define R_X86_64_PLT32     4     // 32 bit PLT address
+        #define R_X86_64_COPY      5     // -- Copy symbol at runtime
+        #define R_X86_64_GLOB_DAT  6     // 64 Create GOT entry
+        #define R_X86_64_JUMP_SLOT 7     // 64 Create PLT entry
+        #define R_X86_64_RELATIVE  8     // 64 Adjust by program base
+        #define R_X86_64_GOTPCREL  9     // 32 32 bit signed pc relative offset to GOT
+        #define R_X86_64_32       10     // 32 Direct 32 bit zero extended
+        #define R_X86_64_32S      11     // 32 Direct 32 bit sign extended
+        #define R_X86_64_16       12     // 16 Direct 16 bit zero extended
+        #define R_X86_64_PC16     13     // 16 16 bit sign extended pc relative
+        #define R_X86_64_8        14     //  8 Direct 8 bit sign extended
+        #define R_X86_64_PC8      15     //  8 8 bit sign extended pc relative
+        #define R_X86_64_DTPMOD64 16     // 64 ID of module containing symbol
+        #define R_X86_64_DTPOFF64 17     // 64 Offset in TLS block
+        #define R_X86_64_TPOFF64  18     // 64 Offset in initial TLS block
+        #define R_X86_64_TLSGD    19     // 32 PC relative offset to GD GOT block
+        #define R_X86_64_TLSLD    20     // 32 PC relative offset to LD GOT block
+        #define R_X86_64_DTPOFF32 21     // 32 Offset in TLS block
+        #define R_X86_64_GOTTPOFF 22     // 32 PC relative offset to IE GOT entry
+        #define R_X86_64_TPOFF32  23     // 32 Offset in initial TLS block
+        #define R_X86_64_PC64     24     // 64
+        #define R_X86_64_GOTOFF64 25     // 64
+        #define R_X86_64_GOTPC32  26     // 32
+        #define R_X86_64_GNU_VTINHERIT 250    // GNU C++ hack
+        #define R_X86_64_GNU_VTENTRY   251    // GNU C++ hack
 } Elf64_Rel;
 
 typedef struct {
