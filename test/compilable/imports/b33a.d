@@ -1,4 +1,4 @@
-module imports.test33a;
+module imports.b33a;
 
 struct IsEqual( T )
 {

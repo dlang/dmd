@@ -1,5 +1,4 @@
 // PERMUTE_ARGS:
-// EXTRA_SOURCES: import/test1imp.d
 
 class File
 {

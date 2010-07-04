@@ -5,9 +5,11 @@
 #    default | all:      run all unit tests that haven't been run yet
 #
 #    run_tests:          run all tests
-#    run_runnable_tests: run just the runnable tests
+#    run_runnable_tests:         run just the runnable tests
+#    run_compilable_tests:       run just the runnable tests
+#    run_fail_compilation_tests: run just the runnable tests
 #
-#    clean:              remove any temporary or result files from prevous runs
+#    clean:              remove all temporary or result files from prevous runs
 #
 #
 # In-test variables:
@@ -29,11 +31,10 @@
 #                        default: (none)
 
 SHELL=/bin/bash
-DMD=../src/dmd
-RESULTS_DIR=test_results
 QUIET=@
-
-ARGS=-inline -release -gc -O -unittest -fPIC
+export DMD=../src/dmd
+export RESULTS_DIR=test_results
+export ARGS=-inline -release -gc -O -unittest -fPIC
 
 runnable_tests=$(wildcard runnable/*.d)
 runnable_test_results=$(addsuffix .out,$(addprefix $(RESULTS_DIR)/,$(runnable_tests)))
@@ -45,81 +46,13 @@ fail_compilation_tests=$(wildcard fail_compilation/*.d)
 fail_compilation_test_results=$(addsuffix .out,$(addprefix $(RESULTS_DIR)/,$(fail_compilation_tests)))
 
 $(RESULTS_DIR)/runnable/%.d.out: runnable/%.d $(RESULTS_DIR)/.created $(RESULTS_DIR)/combinations $(DMD)
-	$(QUIET) \
-	shopt -s extglob; \
-	rm -f $@; \
-	t=$(@D)/$*; \
-	r_args=`grep REQUIRED_ARGS $< | tr -d \\\\r\\\\n`; \
-	p_args=`grep PERMUTE_ARGS  $< | tr -d \\\\r\\\\n`; \
-	e_args=`grep EXECUTE_ARGS  $< | tr -d \\\\r\\\\n`; \
-	grep -q COMPILE_SEPARATELY $<; separate=$$?; \
-	extra_sources=`grep EXTRA_SOURCES $< | tr -d \\\\r\\\\n`; \
-	if [ ! -z "$$r_args" ]; then r_args="$${r_args/*REQUIRED_ARGS:*( )/}"; fi; \
-	if [ -z "$$p_args" ]; then p_args="$(ARGS)"; else p_args="$${p_args/*PERMUTE_ARGS:*( )/}"; fi; \
-	if [ ! -z "$$e_args" ]; then e_args="$${e_args/*EXECUTE_ARGS:*( )/}"; fi; \
-	if [ ! -z "$$extra_sources" ]; then \
-	  extra_sources=($${extra_sources/*EXTRA_SOURCES:*( )/}); \
-	  extra_files="$${extra_sources[*]/imports/runnable/imports}"; \
-	fi; \
-	printf " ... %-30s required: %-5s permuted args: %s\n" "$<" "$$r_args" "$$p_args"; \
-	$(RESULTS_DIR)/combinations $$p_args | while read x; do \
-	    echo "dmd args: $$r_args $$x" >> $@; \
-	    if [ $$separate -ne 0 ]; then \
-	      $(DMD) -I$(<D) $$r_args $$x -od$(@D) -of$$t $< $$extra_files >> $@ 2>&1; \
-	      if [ $$? -ne 0 ]; then cat $@; rm -f $@; exit 1; fi; \
-	    else \
-              echo "separate compilation" >> $@; \
-	      for file in $< $$extra_files; do \
-		$(DMD) -I$(<D) $$r_args $$x -od$(@D) -c $$file >> $@ 2>&1; \
-		if [ $$? -ne 0 ]; then cat $@; rm -f $@; exit 1; fi; \
-	      done; \
-	      ofiles=($${extra_sources[*]/imports\//}); \
-	      ofiles=($${ofiles[*]/%.d/.o}); \
-	      ofiles=($${ofiles[*]/#/$(@D)\/}); \
-	      $(DMD) -od$(@D) -of$$t $$t.o $${ofiles[*]} >> $@ 2>&1; \
-	      if [ $$? -ne 0 ]; then cat $@; rm -f $@; exit 1; fi; \
-	    fi; \
-	    $$t $$e_args >> $@ 2>&1; \
-	    rc=$$?; \
-	    rm -f $$t $$t.o $${ofiles[*]}; \
-	    if [ $$rc -ne 0 ]; then cat $@; rm -f $@; exit 1; fi; \
-	    echo >> $@; \
-       	done
+	$(QUIET) ./do_test.sh $(<D) $*
 
 $(RESULTS_DIR)/compilable/%.d.out: compilable/%.d $(RESULTS_DIR)/.created $(RESULTS_DIR)/combinations $(DMD)
-	$(QUIET) \
-	shopt -s extglob; \
-	rm -f $@; \
-	t=$(@D)/$*; \
-	r_args=`grep REQUIRED_ARGS $< | tr -d \\\\r\\\\n`; \
-	p_args=`grep PERMUTE_ARGS  $< | tr -d \\\\r\\\\n`; \
-	if [ ! -z "$$r_args" ]; then r_args="$${r_args/*REQUIRED_ARGS:*( )/}"; fi; \
-	if [ -z "$$p_args" ]; then p_args="$(ARGS)"; else p_args="$${p_args/*PERMUTE_ARGS:*( )/}"; fi; \
-	printf " ... %-30s required: %-5s permuted args: %s\n" "$<" "$$r_args" "$$p_args"; \
-	$(RESULTS_DIR)/combinations $$p_args | while read x; do \
-	    echo "dmd args: $$r_args $$x" >> $@; \
-	    $(DMD) -I$(<D) $$r_args $$x -od$(@D) -of$$t.o -c $< >> $@ 2>&1; \
-	    if [ $$? -ne 0 ]; then cat $@; rm -f $@; exit 1; fi; \
-	    rm -f $$t.o; \
-	    echo >> $@; \
-       	done
+	$(QUIET) ./do_test.sh $(<D) $*
 
 $(RESULTS_DIR)/fail_compilation/%.d.out: fail_compilation/%.d $(RESULTS_DIR)/.created $(RESULTS_DIR)/combinations $(DMD)
-	$(QUIET) \
-	shopt -s extglob; \
-	rm -f $@; \
-	t=$(@D)/$*; \
-	r_args=`grep REQUIRED_ARGS $< | tr -d \\\\r\\\\n`; \
-	p_args=`grep PERMUTE_ARGS  $< | tr -d \\\\r\\\\n`; \
-	if [ ! -z "$$r_args" ]; then r_args="$${r_args/*REQUIRED_ARGS:*( )/}"; fi; \
-	if [ -z "$$p_args" ]; then p_args="$(ARGS)"; else p_args="$${p_args/*PERMUTE_ARGS:*( )/}"; fi; \
-	printf " ... %-30s required: %-5s permuted args: %s\n" "$<" "$$r_args" "$$p_args"; \
-	$(RESULTS_DIR)/combinations $$p_args | while read x; do \
-	    echo "dmd args: $$r_args $$x" >> $@; \
-	    $(DMD) -I$(<D) $$r_args $$x -od$(@D) -of$$t.o -c $< >> $@ 2>&1; \
-	    if [ $$? -eq 0 ]; then cat $@; rm -f $@ $$t.o; echo "$< should have failed to compile but succeeded instead"; exit 1; break; fi; \
-	    echo >> $@; \
-       	done
+	$(QUIET) ./do_test.sh $(<D) $*
 
 all: run_tests
 

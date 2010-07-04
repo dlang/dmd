@@ -1,4 +1,4 @@
-// EXTRA_SOURCES: imports/testb33a.d
+// EXTRA_SOURCES: imports/b33a.d
 // PERMUTE_ARGS:
 
 module b33;
