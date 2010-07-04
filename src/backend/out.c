@@ -433,14 +433,15 @@ void outdata(symbol *s)
                 offset += dt->DTazeros;
                 break;
             case DT_xoff:
-            {   symbol *sb;
-
-                sb = dt->DTsym;          // get external symbol pointer
+            {
+                symbol *sb = dt->DTsym;          // get external symbol pointer
                 a = dt->DToffset; // offset from it
                 if (tyreg(dt->Dty))
                     flags = CFoff;
                 else
                     flags = CFoff | CFseg;
+                if (I64)
+                    flags |= CFoffset64;
                 offset += reftoident(seg,offset,sb,a,flags);
                 break;
             }

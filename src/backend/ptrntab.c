@@ -843,8 +843,8 @@ PTRNTAB2  aptb2IN[] = /* IN */ {
 };
 PTRNTAB2  aptb2INS[] = /* INS */ {
         { 0x6c, _modsi, _rm8, _dx },
-        { 0x6d, _modsi|_16_bit, _rm16 | _16_bit, _dx },
-        { 0x6d, _32_bit|_modsi, _rm32 | _32_bit, _dx },
+        { 0x6d, _modsi|_16_bit, _rm16, _dx },
+        { 0x6d, _32_bit|_modsi, _rm32, _dx },
         { ASM_END, 0, 0, 0 }
 };
 

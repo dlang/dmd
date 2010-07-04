@@ -1,7 +1,7 @@
 
 /*
  * Copyright (c) 1992-1999 by Symantec
- * Copyright (c) 1999-2009 by Digital Mars
+ * Copyright (c) 1999-2010 by Digital Mars
  * All Rights Reserved
  * http://www.digitalmars.com
  * Written by Mike Cote, John Micco and Walter Bright
@@ -37,6 +37,7 @@
 #include        "scope.h"
 #include        "init.h"
 #include        "enum.h"
+#include        "module.h"
 
 // C/C++ compiler
 #define SCOPE_H 1               // avoid conflicts with D's Scope
@@ -55,8 +56,12 @@
 
 // I32 isn't set correctly yet because this is the front end, and I32
 // is a backend flag
+#undef I16
 #undef I32
+#undef I64
+#define I16 0
 #define I32 (global.params.isX86_64 == 0)
+#define I64 (global.params.isX86_64 == 1)
 
 //#define EXTRA_DEBUG 1
 
@@ -306,6 +311,115 @@ static REG regtab[] =
 "XMM7", 7,      _xmm,
 };
 
+// 64 bit only registers
+#define _RAX    0
+#define _RBX    3
+#define _RCX    1
+#define _RDX    2
+#define _RSI    6
+#define _RDI    7
+#define _RBP    5
+#define _RSP    4
+#define _R8     8
+#define _R9     9
+#define _R10    10
+#define _R11    11
+#define _R12    12
+#define _R13    13
+#define _R14    14
+#define _R15    15
+
+#define _R8D    8
+#define _R9D    9
+#define _R10D   10
+#define _R11D   11
+#define _R12D   12
+#define _R13D   13
+#define _R14D   14
+#define _R15D   15
+
+#define _R8W    8
+#define _R9W    9
+#define _R10W   10
+#define _R11W   11
+#define _R12W   12
+#define _R13W   13
+#define _R14W   13
+#define _R15W   15
+
+#define _SIL    6
+#define _DIL    7
+#define _BPL    5
+#define _SPL    4
+#define _R8B    8
+#define _R9B    9
+#define _R10B   10
+#define _R11B   11
+#define _R12B   12
+#define _R13B   13
+#define _R14B   14
+#define _R15B   15
+
+static REG regtab64[] =
+{
+"RAX",  _RAX,   _r64 | _rax,
+"RBX",  _RBX,   _r64,
+"RCX",  _RCX,   _r64,
+"RDX",  _RDX,   _r64,
+"RSI",  _RSI,   _r64,
+"RDI",  _RDI,   _r64,
+"RBP",  _RBP,   _r64,
+"RSP",  _RSP,   _r64,
+"R8",   _R8,    _r64,
+"R9",   _R9,    _r64,
+"R10",  _R10,   _r64,
+"R11",  _R11,   _r64,
+"R12",  _R12,   _r64,
+"R13",  _R13,   _r64,
+"R14",  _R14,   _r64,
+"R15",  _R15,   _r64,
+
+"R8D",  _R8D,   _r32,
+"R9D",  _R9D,   _r32,
+"R10D", _R10D,  _r32,
+"R11D", _R11D,  _r32,
+"R12D", _R12D,  _r32,
+"R13D", _R13D,  _r32,
+"R14D", _R14D,  _r32,
+"R15D", _R15D,  _r32,
+
+"R8W",  _R8W,   _r16,
+"R9W",  _R9W,   _r16,
+"R10W", _R10W,  _r16,
+"R11W", _R11W,  _r16,
+"R12W", _R12W,  _r16,
+"R13W", _R13W,  _r16,
+"R14W", _R14W,  _r16,
+"R15W", _R15W,  _r16,
+
+"SIL",  _SIL,   _r8,
+"DIL",  _DIL,   _r8,
+"BPL",  _BPL,   _r8,
+"SPL",  _SPL,   _r8,
+"R8B",  _R8B,   _r8,
+"R9B",  _R9B,   _r8,
+"R10B", _R10B,  _r8,
+"R11B", _R11B,  _r8,
+"R12B", _R12B,  _r8,
+"R13B", _R13B,  _r8,
+"R14B", _R14B,  _r8,
+"R15B", _R15B,  _r8,
+
+"XMM8",   8,    _xmm,
+"XMM9",   9,    _xmm,
+"XMM10", 10,    _xmm,
+"XMM11", 11,    _xmm,
+"XMM12", 12,    _xmm,
+"XMM13", 13,    _xmm,
+"XMM14", 14,    _xmm,
+"XMM15", 15,    _xmm,
+};
+
 typedef enum {
     ASM_JUMPTYPE_UNSPECIFIED,
     ASM_JUMPTYPE_SHORT,
@@ -368,7 +482,7 @@ STATIC void asm_make_modrm_byte(
         unsigned char *puchOpcode, unsigned *pusIdx,
 #endif
         code *pc,
-        unsigned short usFlags,
+        unsigned usFlags,
         OPND *popnd, OPND *popnd2);
 STATIC regm_t asm_modify_regs(PTRNTAB ptb, OPND *popnd1, OPND *popnd2);
 STATIC void asm_output_flags(opflag_t usFlags);
@@ -388,7 +502,7 @@ STATIC void asm_chktok(enum TOK toknum, unsigned errnum);
 STATIC code *asm_db_parse(OP *pop);
 STATIC code *asm_da_parse(OP *pop);
 
-unsigned short compute_hashkey(char *);
+unsigned compute_hashkey(char *);
 
 
 /*******************************
@@ -478,7 +592,11 @@ STATIC PTRNTAB asm_classify(OP *pop, OPND *popnd1, OPND *popnd2, OPND *popnd3,
 PARAM_ERROR:
                 asmerr(EM_nops_expected, usActual, asm_opstr(pop), usNumops);
         }
-        *pusNumops = usNumops;
+        *pusNumops = asmstate.ucItype == ITfloat ? usActual : usNumops;
+        if (usActual < usNumops)
+            *pusNumops = usActual;
+        else
+            *pusNumops = usNumops;
 //
 //      The number of arguments matches, now check to find the opcode
 //      in the associated opcode table
@@ -498,9 +616,10 @@ RETRY:
                 {
                         //printf("table    = "); asm_output_flags(pptb1->usOp1); printf("\n");
                         bMatch1 = asm_match_flags(usFlags1, pptb1->usOp1);
+                        //printf("bMatch1 = x%x\n", bMatch1);
                         if (bMatch1)
                         {   if (pptb1->usOpcode == 0x68 &&
-                                I32 &&
+                                !I16 &&
                                 pptb1->usOp1 == _imm16
                               )
                                 // Don't match PUSH imm16 in 32 bit code
@@ -802,10 +921,10 @@ STATIC opflag_t asm_determine_float_flags(OPND *popnd)
     if (popnd->segreg)
     {
         us = asm_float_type_size(popnd->ptype, &usFloat);
-        if (I32)
-            return(CONSTRUCT_FLAGS(us, _m, _addr32, usFloat));
-        else
+        if (I16)
             return(CONSTRUCT_FLAGS(us, _m, _addr16, usFloat));
+        else
+            return(CONSTRUCT_FLAGS(us, _m, _addr32, usFloat));
     }
 
 #if 0
@@ -819,11 +938,11 @@ STATIC opflag_t asm_determine_float_flags(OPND *popnd)
 
             case Tfloat64:
                 popnd->s = dconst(popnd->real);
-                return(CONSTRUCT_FLAGS(0, _m, _normal, _64));
+                return(CONSTRUCT_FLAGS(0, _m, _normal, _f64));
 
             case Tfloat80:
                 popnd->s = ldconst(popnd->real);
-                return(CONSTRUCT_FLAGS(0, _m, _normal, _80));
+                return(CONSTRUCT_FLAGS(0, _m, _normal, _f80));
         }
     }
 #endif
@@ -867,7 +986,7 @@ STATIC opflag_t asm_determine_operand_flags(OPND *popnd)
         if (popnd->pregDisp1 && !popnd->base)
         {
             if (ps && ps->isLabel() && sz == _anysize)
-                sz = I32 ? _32 : _16;
+                sz = I16 ? _16 : _32;
             return (popnd->pregDisp1->ty & _r32)
                 ? CONSTRUCT_FLAGS(sz, _m, _addr32, 0)
                 : CONSTRUCT_FLAGS(sz, _m, _addr16, 0);
@@ -875,9 +994,9 @@ STATIC opflag_t asm_determine_operand_flags(OPND *popnd)
         else if (ps)
         {
                 if (popnd->bOffset || popnd->bSeg || ps == asmstate.psLocalsize)
-                    return I32
-                        ? CONSTRUCT_FLAGS(_32, _imm, _normal, 0)
-                        : CONSTRUCT_FLAGS(_16, _imm, _normal, 0);
+                    return I16
+                        ? CONSTRUCT_FLAGS(_16, _imm, _normal, 0)
+                        : CONSTRUCT_FLAGS(_32, _imm, _normal, 0);
 
                 if (ps->isLabel())
                 {
@@ -904,24 +1023,24 @@ STATIC opflag_t asm_determine_operand_flags(OPND *popnd)
                                 goto case_near;
                             }
                             else
-                                us = I32
-                                    ? CONSTRUCT_FLAGS(_8|_32, _rel, _flbl,0)
-                                    : CONSTRUCT_FLAGS(_8|_16, _rel, _flbl,0);
+                                us = I16
+                                    ? CONSTRUCT_FLAGS(_8|_16, _rel, _flbl,0)
+                                    : CONSTRUCT_FLAGS(_8|_32, _rel, _flbl,0);
                             break;
 
                         case ASM_JUMPTYPE_NEAR:
                         case_near:
-                            us = I32
-                                ? CONSTRUCT_FLAGS(_32, _rel, _flbl, 0)
-                                : CONSTRUCT_FLAGS(_16, _rel, _flbl, 0);
+                            us = I16
+                                ? CONSTRUCT_FLAGS(_16, _rel, _flbl, 0)
+                                : CONSTRUCT_FLAGS(_32, _rel, _flbl, 0);
                             break;
                         case ASM_JUMPTYPE_SHORT:
                             us = CONSTRUCT_FLAGS(_8, _rel, _flbl, 0);
                             break;
                         case ASM_JUMPTYPE_FAR:
-                            us = I32
-                                ? CONSTRUCT_FLAGS(_48, _rel, _flbl, 0)
-                                : CONSTRUCT_FLAGS(_32, _rel, _flbl, 0);
+                            us = I16
+                                ? CONSTRUCT_FLAGS(_32, _rel, _flbl, 0)
+                                : CONSTRUCT_FLAGS(_48, _rel, _flbl, 0);
                             break;
                         default:
                             assert(0);
@@ -974,18 +1093,17 @@ STATIC opflag_t asm_determine_operand_flags(OPND *popnd)
         }
         if (popnd->segreg /*|| popnd->bPtr*/)
         {
-            amod = I32 ? _addr32 : _addr16;
+            amod = I16 ? _addr16 : _addr32;
             if (asmstate.ucItype == ITjump)
             {
             L1:
                 opty = _m;
-                if (I32)
-                {   if (sz == _48)
+                if (I16)
+                {   if (sz == _32)
                         opty = _mnoi;
                 }
                 else
-                {
-                    if (sz == _32)
+                {   if (sz == _48)
                         opty = _mnoi;
                 }
                 us = CONSTRUCT_FLAGS(sz,opty,amod,0);
@@ -1026,13 +1144,13 @@ STATIC code *asm_emit(Loc loc,
         #define emit(op)        ((void)(op))
 #endif
         Identifier *id;
-//      unsigned short us;
+//      unsigned us;
         unsigned char *puc;
         unsigned usDefaultseg;
         code *pc = NULL;
         OPND *popndTmp;
         ASM_OPERAND_TYPE    aoptyTmp;
-        unsigned short  uSizemaskTmp;
+        unsigned  uSizemaskTmp;
         REG     *pregSegment;
         code    *pcPrefix = NULL;
         unsigned            uSizemask1 =0, uSizemask2 =0, uSizemask3 =0;
@@ -1097,7 +1215,7 @@ STATIC code *asm_emit(Loc loc,
 
         asmstate.statement->regs |= asm_modify_regs(ptb, popnd1, popnd2);
 
-        if (!I32 && ptb.pptb0->usFlags & _I386)
+        if (I16 && ptb.pptb0->usFlags & _I386)
         {
             switch (usNumops)
             {
@@ -1132,7 +1250,7 @@ L386_WARNING2:
         {
             case 0:
                 if ((I32 && (ptb.pptb0->usFlags & _16_bit)) ||
-                        (!I32 && (ptb.pptb0->usFlags & _32_bit)))
+                        (I16 && (ptb.pptb0->usFlags & _32_bit)))
                 {
                         emit(0x66);
                         pc->Iflags |= CFopsize;
@@ -1150,7 +1268,7 @@ L386_WARNING2:
                        (ptb.pptb2->usFlags & _16_bit_addr)
                      )
                     ) ||
-                     (!I32 &&
+                     (I16 &&
                        (amod2 == _addr32 ||
                         (uSizemaskTable2 & _32 && aoptyTable2 == _rel) ||
                         (uSizemaskTable2 & _48 && aoptyTable2 == _mnoi) ||
@@ -1181,7 +1299,7 @@ L386_WARNING2:
                        (uSizemaskTable1 & _16 && aoptyTable1 == _rel) ||
                         (uSizemaskTable1 & _32 && aoptyTable1 == _mnoi) ||
                         (ptb.pptb1->usFlags & _16_bit_addr))) ||
-                     (!I32 &&
+                     (I16 &&
                       (amod1 == _addr32 ||
                         (uSizemaskTable1 & _32 && aoptyTable1 == _rel) ||
                         (uSizemaskTable1 & _48 && aoptyTable1 == _mnoi) ||
@@ -1200,7 +1318,7 @@ L386_WARNING2:
                 // If the size of the operand is unknown, assume that it is
                 // the default size
                 if ((I32 && (ptb.pptb0->usFlags & _16_bit)) ||
-                    (!I32 && (ptb.pptb0->usFlags & _32_bit)))
+                    (I16 && (ptb.pptb0->usFlags & _32_bit)))
                 {
                     //if (asmstate.ucItype != ITjump)
                     {   emit(0x66);
@@ -1750,7 +1868,7 @@ STATIC opflag_t asm_float_type_size(Type *ptype, opflag_t *pusFloat)
     {
         int sz = (int)ptype->size();
         if (sz == REALSIZE)
-        {   *pusFloat = _80;
+        {   *pusFloat = _f80;
             return 0;
         }
         switch (sz)
@@ -1760,7 +1878,10 @@ STATIC opflag_t asm_float_type_size(Type *ptype, opflag_t *pusFloat)
             case 4:
                 return _32;
             case 8:
-                *pusFloat = _64;
+                *pusFloat = _f64;
+                return 0;
+            case 10:
+                *pusFloat = _f80;
                 return 0;
             default:
                 break;
@@ -2010,7 +2131,7 @@ STATIC void asm_merge_symbol(OPND *o1, Dsymbol *s)
 #if DMDV2
                 || v->isImmutable() || v->storage_class & STCmanifest
 #endif
-            ) && !v->type->isfloating())
+            ) && !v->type->isfloating() && v->init)
         {   ExpInitializer *ei = v->init->isExpInitializer();
 
             if (ei)
@@ -2050,7 +2171,7 @@ STATIC void asm_make_modrm_byte(
         unsigned char *puchOpcode, unsigned *pusIdx,
 #endif
         code *pc,
-        unsigned short usFlags,
+        unsigned usFlags,
         OPND *popnd, OPND *popnd2)
 {
     #undef modregrm
@@ -2086,7 +2207,7 @@ STATIC void asm_make_modrm_byte(
     unsigned        uSizemask =0;
     ASM_OPERAND_TYPE    aopty;
     ASM_MODIFIERS           amod;
-    unsigned short          uRegmask;
+    unsigned          uRegmask;
     unsigned char           bOffsetsym = FALSE;
 
 #if 0
@@ -2207,8 +2328,8 @@ STATIC void asm_make_modrm_byte(
             assert(d);
             if (d->isDataseg() || d->isCodeseg())
             {
-                if (( I32 && amod == _addr16) ||
-                    (!I32 && amod == _addr32))
+                if ((I32 && amod == _addr16) ||
+                    (I16 && amod == _addr32))
                     asmerr(EM_bad_addr_mode);   // illegal addressing mode
                 goto DATA_REF;
             }
@@ -2221,7 +2342,7 @@ STATIC void asm_make_modrm_byte(
             mrmb.modregrm.mod = 0x3;
             mrmb.modregrm.rm |= popnd->base->val;
     }
-    else if (amod == _addr16 || (amod == _flbl && !I32))
+    else if (amod == _addr16 || (amod == _flbl && I16))
     {   unsigned rm;
 
 #ifdef DEBUG
@@ -2632,7 +2753,7 @@ STATIC unsigned char asm_match_flags(opflag_t usOp, opflag_t usTable)
     unsigned char       bRetval = FALSE;
     unsigned            uSizemaskOp;
     unsigned            uSizemaskTable;
-    unsigned char       bSizematch;
+    unsigned            bSizematch;
 
     //printf("asm_match_flags(usOp = x%x, usTable = x%x)\n", usOp, usTable);
     if (asmstate.ucItype == ITfloat)
@@ -2758,7 +2879,7 @@ STATIC unsigned char asm_match_float_flags(opflag_t usOp, opflag_t usTable)
     ASM_MODIFIERS       amodOp;
     unsigned            uRegmaskTable;
     unsigned            uRegmaskOp;
-    unsigned char       bRegmatch;
+    unsigned            bRegmatch;
 
 
 //
@@ -2841,6 +2962,8 @@ STATIC void asm_output_flags(opflag_t usFlags)
                 printf("_32 ");
             if (uSizemask & _48)
                 printf("_48 ");
+            if (uSizemask & _64)
+                printf("_64 ");
         }
 
         printf("_");
@@ -2882,6 +3005,8 @@ STATIC void asm_output_flags(opflag_t usFlags)
                 if (uRegmask & 4) printf("_eax ");
                 if (uRegmask & 8) printf("_dx ");
                 if (uRegmask & 0x10) printf("_cl ");
+                if (uRegmask & 0x40) printf("_rax ");
+                if (uRegmask & 0x20) printf("_rplus_r ");
                 return;
             case _rseg:
                 printf("rseg     ");
@@ -2977,6 +3102,16 @@ STATIC REG *asm_reg_lookup(char *s)
             return &regtab[i];
         }
     }
+    if (I64)
+    {
+        for (i = 0; i < sizeof(regtab64) / sizeof(regtab64[0]); i++)
+        {
+            if (strcmp(s,regtab64[i].regstr) == 0)
+            {
+                return &regtab64[i];
+            }
+        }
+    }
     return NULL;
 }
 
@@ -3033,6 +3168,7 @@ STATIC unsigned asm_type_size(Type * ptype)
             case 2:     u = _16;        break;
             case 4:     u = _32;        break;
             case 6:     u = _48;        break;
+            case 8:     if (I64) u = _64;        break;
         }
     }
     return u;
@@ -4232,6 +4368,12 @@ regm_t iasm_regs(block *bp)
 Statement *AsmStatement::semantic(Scope *sc)
 {
     //printf("AsmStatement::semantic()\n");
+
+#if DMDV2
+    if (sc->func && sc->func->isSafe())
+        error("inline assembler not allowed in @safe function %s", sc->func->toChars());
+#endif
+
     OP *o;
     OPND *o1 = NULL,*o2 = NULL, *o3 = NULL;
     PTRNTAB ptb;
@@ -4415,3 +4557,4 @@ AFTER_EMIT:
     //return asmstate.bReturnax;
     return this;
 }
+

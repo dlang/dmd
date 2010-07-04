@@ -1,5 +1,5 @@
 // Copyright (C) 1985-1995 by Symantec
-// Copyright (C) 2000-2009 by Digital Mars
+// Copyright (C) 2000-2010 by Digital Mars
 // All Rights Reserved
 // http://www.digitalmars.com
 // Written by Walter Bright
@@ -125,7 +125,7 @@ struct elem
         }_EC;
     }_EU;
 
-    targ_size_t Enumbytes;      // number of bytes for type if TYstruct | TYarray
+    unsigned Enumbytes;         // number of bytes for type if TYstruct | TYarray
     TARGET_structELEM           // target specific additions
     Srcpos Esrcpos;             // source file position
 };
