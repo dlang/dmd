@@ -25,6 +25,9 @@ rm -f ${output_file}
 r_args=`grep REQUIRED_ARGS ${input_file} | tr -d \\\\r\\\\n`
 if [ ! -z "${r_args}" ]; then
     r_args="${r_args/*REQUIRED_ARGS:*( )/}"
+    if [ ! -z "${r_args}" ]; then
+        extra_space=" "
+    fi
 fi
 
 p_args=`grep PERMUTE_ARGS ${input_file} | tr -d \\\\r\\\\n`
@@ -59,12 +62,12 @@ else
 fi
 
 
-printf " ... %-30s required: %-5s permuted args: %s\n" "${input_file}" "${r_args}" "${p_args}"
+printf " ... %-25s %s%s(%s)\n" "${input_file}" "${r_args}" "${extra_space}" "${p_args}"
 
 ${RESULTS_DIR}/combinations ${p_args} | while read x; do
-    echo "dmd args: ${r_args} $x" >> ${output_file}
 
     if [ ${separate} -ne 0 ]; then
+        echo ${DMD} -I${input_dir} ${r_args} $x -od${output_dir} -of${test_app} ${extra_compile_args} ${input_file} ${extra_files} >> ${output_file}
         ${DMD} -I${input_dir} ${r_args} $x -od${output_dir} -of${test_app} ${extra_compile_args} ${input_file} ${extra_files} >> ${output_file} 2>&1
         if [ $? -ne ${expect_compile_rc} ]; then
             cat ${output_file}
@@ -72,8 +75,8 @@ ${RESULTS_DIR}/combinations ${p_args} | while read x; do
             exit 1
         fi
     else
-        echo "separate compilation" >> ${output_file}
         for file in ${input_file} ${extra_files}; do
+            echo ${DMD} -I${input_dir} ${r_args} $x -od${output_dir} -c $file >> ${output_file}
             ${DMD} -I${input_dir} ${r_args} $x -od${output_dir} -c $file >> ${output_file} 2>&1
             if [ $? -ne ${expect_compile_rc} ]; then
                 cat ${output_file}
@@ -82,11 +85,12 @@ ${RESULTS_DIR}/combinations ${p_args} | while read x; do
             fi
         done
 
-        if [ "${input_dir}" = "runnable" ]; then
-            ofiles=(${extra_sources[*]/imports\//})
-            ofiles=(${ofiles[*]/%.d/.o})
-            ofiles=(${ofiles[*]/#/${output_dir}\/})
+        ofiles=(${extra_sources[*]/imports\//})
+        ofiles=(${ofiles[*]/%.d/.o})
+        ofiles=(${ofiles[*]/#/${output_dir}\/})
 
+        if [ "${input_dir}" = "runnable" ]; then
+            echo ${DMD} -od${output_dir} -of${test_app} ${test_app}.o ${ofiles[*]} >> ${output_file}
             ${DMD} -od${output_dir} -of${test_app} ${test_app}.o ${ofiles[*]} >> ${output_file} 2>&1
             if [ $? -ne 0 ]; then
                 cat ${output_file}
@@ -97,6 +101,7 @@ ${RESULTS_DIR}/combinations ${p_args} | while read x; do
     fi
 
     if [ "${input_dir}" = "runnable" ]; then
+        echo ${test_app} ${e_args} >> ${output_file}
         ${test_app} ${e_args} >> ${output_file} 2>&1
         if [ $? -ne 0 ]; then
             cat ${output_file}

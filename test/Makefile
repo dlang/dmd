@@ -9,6 +9,9 @@
 #    run_compilable_tests:       run just the runnable tests
 #    run_fail_compilation_tests: run just the runnable tests
 #
+#    quick:              run all tests with no default permuted args
+#                        (individual test specified options still honored)
+#
 #    clean:              remove all temporary or result files from prevous runs
 #
 #
@@ -55,6 +58,9 @@ $(RESULTS_DIR)/fail_compilation/%.d.out: fail_compilation/%.d $(RESULTS_DIR)/.cr
 	$(QUIET) ./do_test.sh $(<D) $*
 
 all: run_tests
+
+quick:
+	$(MAKE) ARGS="" run_tests
 
 clean:
 	@echo "Removing output directory: $(RESULTS_DIR)"
