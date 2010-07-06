@@ -29,195 +29,195 @@ private:
     ///////////////////////////////////////////////////////////////////
     struct thread_helper_aux
     {
-	// don't let symbols leak into other modules
-	
-	const SystemProcessInformation = 5;
-	const STATUS_INFO_LENGTH_MISMATCH = 0xc0000004;
+        // don't let symbols leak into other modules
+        
+        const SystemProcessInformation = 5;
+        const STATUS_INFO_LENGTH_MISMATCH = 0xc0000004;
 
-	// abbreviated versions of these structs (full info can be found 
-	//  here: http://undocumented.ntinternals.net )
-	struct _SYSTEM_PROCESS_INFORMATION
-	{
-	    int NextEntryOffset; // When this entry is 0, there are no more processes to be read.
-	    int NumberOfThreads;
-	    int[15] fill1;
-	    int ProcessId;
-	    int[28] fill2;
-	
-	    // SYSTEM_THREAD_INFORMATION or SYSTEM_EXTENDED_THREAD_INFORMATION structures follow.
-	}
-
-	struct _SYSTEM_THREAD_INFORMATION
-	{
-	    int[8] fill1;
-	    int ProcessId;
-	    int ThreadId;
-	    int[6] fill2;
-	}
-
-	alias extern(Windows)
-	HRESULT fnNtQuerySystemInformation( uint SystemInformationClass, void* info, uint infoLength, uint* ReturnLength );
-
-	const ThreadBasicInformation = 0;
-
-	struct THREAD_BASIC_INFORMATION 
-	{
-	    int    ExitStatus;
-	    void** TebBaseAddress;
-	    int    ProcessId;
-	    int    ThreadId;
-	    int    AffinityMask;
-	    int    Priority;
-	    int    BasePriority;
+        // abbreviated versions of these structs (full info can be found 
+        //  here: http://undocumented.ntinternals.net )
+        struct _SYSTEM_PROCESS_INFORMATION
+        {
+            int NextEntryOffset; // When this entry is 0, there are no more processes to be read.
+            int NumberOfThreads;
+            int[15] fill1;
+            int ProcessId;
+            int[28] fill2;
+        
+            // SYSTEM_THREAD_INFORMATION or SYSTEM_EXTENDED_THREAD_INFORMATION structures follow.
         }
 
-	alias extern(Windows)
-	int fnNtQueryInformationThread( HANDLE ThreadHandle, uint ThreadInformationClass, void* buf, uint size, uint* ReturnLength );
+        struct _SYSTEM_THREAD_INFORMATION
+        {
+            int[8] fill1;
+            int ProcessId;
+            int ThreadId;
+            int[6] fill2;
+        }
 
-	const SYNCHRONIZE = 0x00100000;
-	const THREAD_GET_CONTEXT = 8;
-	const THREAD_QUERY_INFORMATION = 0x40;
-	const THREAD_SUSPEND_RESUME = 2;
+        alias extern(Windows)
+        HRESULT fnNtQuerySystemInformation( uint SystemInformationClass, void* info, uint infoLength, uint* ReturnLength );
 
-	///////////////////////////////////////////////////////////////////
-	// get the thread environment block (TEB) of the thread with the given handle
-	static void** getTEB( HANDLE hnd )
-	{
-	    HANDLE nthnd = GetModuleHandleA( "NTDLL" );
-	    assert( nthnd, "cannot get module handle for ntdll" );
-	    fnNtQueryInformationThread* fn = cast(fnNtQueryInformationThread*) GetProcAddress( nthnd, "NtQueryInformationThread" );
-	    assert( fn, "cannot find NtQueryInformationThread in ntdll" );
+        const ThreadBasicInformation = 0;
 
-	    THREAD_BASIC_INFORMATION tbi;
-	    int Status = (*fn)(hnd, ThreadBasicInformation, &tbi, tbi.sizeof, null);
-	    assert(Status == 0);
-	
-	    return tbi.TebBaseAddress;
-	}
+        struct THREAD_BASIC_INFORMATION 
+        {
+            int    ExitStatus;
+            void** TebBaseAddress;
+            int    ProcessId;
+            int    ThreadId;
+            int    AffinityMask;
+            int    Priority;
+            int    BasePriority;
+        }
 
-	// get the thread environment block (TEB) of the thread with the given identifier
-	static void** getTEB( uint id )
-	{
-	    HANDLE hnd = OpenThread( THREAD_QUERY_INFORMATION, FALSE, id );
-	    assert( hnd, "OpenThread failed" );
+        alias extern(Windows)
+        int fnNtQueryInformationThread( HANDLE ThreadHandle, uint ThreadInformationClass, void* buf, uint size, uint* ReturnLength );
 
-	    void** teb = getTEB( hnd );
-	    CloseHandle( hnd );
-	    return teb;
-	}
+        const SYNCHRONIZE = 0x00100000;
+        const THREAD_GET_CONTEXT = 8;
+        const THREAD_QUERY_INFORMATION = 0x40;
+        const THREAD_SUSPEND_RESUME = 2;
 
-	// get linear address of TEB of current thread
-	static void** getTEB()
-	{
-	    asm
-	    {
-		naked;
-		mov EAX,FS:[0x18];
-		ret;
-	    }
-	}
+        ///////////////////////////////////////////////////////////////////
+        // get the thread environment block (TEB) of the thread with the given handle
+        static void** getTEB( HANDLE hnd )
+        {
+            HANDLE nthnd = GetModuleHandleA( "NTDLL" );
+            assert( nthnd, "cannot get module handle for ntdll" );
+            fnNtQueryInformationThread* fn = cast(fnNtQueryInformationThread*) GetProcAddress( nthnd, "NtQueryInformationThread" );
+            assert( fn, "cannot find NtQueryInformationThread in ntdll" );
 
-	// get the stack bottom (the top address) of the thread with the given handle
-	static void* getThreadStackBottom( HANDLE hnd )
-	{
-	    void** teb = getTEB( hnd );
-	    return teb[1];
-	}
+            THREAD_BASIC_INFORMATION tbi;
+            int Status = (*fn)(hnd, ThreadBasicInformation, &tbi, tbi.sizeof, null);
+            assert(Status == 0);
+        
+            return tbi.TebBaseAddress;
+        }
 
-	// get the stack bottom (the top address) of the thread with the given identifier
-	static void* getThreadStackBottom( uint id )
-	{
-	    void** teb = getTEB( id );
-	    return teb[1];
-	}
+        // get the thread environment block (TEB) of the thread with the given identifier
+        static void** getTEB( uint id )
+        {
+            HANDLE hnd = OpenThread( THREAD_QUERY_INFORMATION, FALSE, id );
+            assert( hnd, "OpenThread failed" );
 
-	// create a thread handle with full access to the thread with the given identifier
-	static HANDLE OpenThreadHandle( uint id )
-	{
-	    return OpenThread( SYNCHRONIZE|THREAD_GET_CONTEXT|THREAD_QUERY_INFORMATION|THREAD_SUSPEND_RESUME, FALSE, id );
-	}
+            void** teb = getTEB( hnd );
+            CloseHandle( hnd );
+            return teb;
+        }
 
-	///////////////////////////////////////////////////////////////////
-	// enumerate threads of the given process calling the passed function on each thread
-	// using function instead of delegate here to avoid allocating closure
-	static bool enumProcessThreads( uint procid, bool function( uint id, void* context ) dg, void* context )
-	{
-	    HANDLE hnd = GetModuleHandleA( "NTDLL" );
-	    fnNtQuerySystemInformation* fn = cast(fnNtQuerySystemInformation*) GetProcAddress( hnd, "NtQuerySystemInformation" );
-	    if( !fn )
-		return false;
+        // get linear address of TEB of current thread
+        static void** getTEB()
+        {
+            asm
+            {
+                naked;
+                mov EAX,FS:[0x18];
+                ret;
+            }
+        }
 
-	    uint sz = 16384;
-	    uint retLength;
-	    HRESULT rc;
-	    char* buf;
-	    for( ; ; )
-	    {
-		buf = cast(char*) core.stdc.stdlib.malloc(sz);
-		if(!buf)
-	    	    return false;
-		rc = (*fn)( SystemProcessInformation, buf, sz, &retLength );
-		if( rc != STATUS_INFO_LENGTH_MISMATCH )
-		    break;
-		core.stdc.stdlib.free( buf );
-		sz *= 2;
-	    }
-	    scope(exit) core.stdc.stdlib.free( buf );
+        // get the stack bottom (the top address) of the thread with the given handle
+        static void* getThreadStackBottom( HANDLE hnd )
+        {
+            void** teb = getTEB( hnd );
+            return teb[1];
+        }
 
-	    if(rc != 0)
-		return false;
+        // get the stack bottom (the top address) of the thread with the given identifier
+        static void* getThreadStackBottom( uint id )
+        {
+            void** teb = getTEB( id );
+            return teb[1];
+        }
 
-	    auto pinfo = cast(_SYSTEM_PROCESS_INFORMATION*) buf;
-	    auto pend  = cast(_SYSTEM_PROCESS_INFORMATION*) (buf + retLength);
-	    for( ; pinfo < pend; )
-	    {
-		if( pinfo.ProcessId == procid )
-		{
-		    auto tinfo = cast(_SYSTEM_THREAD_INFORMATION*)(pinfo + 1);
-		    for( int i = 0; i < pinfo.NumberOfThreads; i++, tinfo++ )
-			if( tinfo.ProcessId == procid )
-			    if( !dg( tinfo.ThreadId, context ) )
-				return false;
-		}
-		if( pinfo.NextEntryOffset == 0 )
-		    break;
-		pinfo = cast(_SYSTEM_PROCESS_INFORMATION*) (cast(char*) pinfo + pinfo.NextEntryOffset);
-	    }
-	    return true;
-	}
+        // create a thread handle with full access to the thread with the given identifier
+        static HANDLE OpenThreadHandle( uint id )
+        {
+            return OpenThread( SYNCHRONIZE|THREAD_GET_CONTEXT|THREAD_QUERY_INFORMATION|THREAD_SUSPEND_RESUME, FALSE, id );
+        }
 
-	static bool enumProcessThreads( bool function( uint id, void* context ) dg, void* context )
-	{
-	    return enumProcessThreads( GetCurrentProcessId(), dg, context );
-	}
+        ///////////////////////////////////////////////////////////////////
+        // enumerate threads of the given process calling the passed function on each thread
+        // using function instead of delegate here to avoid allocating closure
+        static bool enumProcessThreads( uint procid, bool function( uint id, void* context ) dg, void* context )
+        {
+            HANDLE hnd = GetModuleHandleA( "NTDLL" );
+            fnNtQuerySystemInformation* fn = cast(fnNtQuerySystemInformation*) GetProcAddress( hnd, "NtQuerySystemInformation" );
+            if( !fn )
+                return false;
 
-	// execute function on the TLS for the given thread
-	static void impersonate_thread( uint id, void function() fn )
-	{
-	    if( id == GetCurrentThreadId() )
-	    {
-		fn();
-		return;
-	    }
+            uint sz = 16384;
+            uint retLength;
+            HRESULT rc;
+            char* buf;
+            for( ; ; )
+            {
+                buf = cast(char*) core.stdc.stdlib.malloc(sz);
+                if(!buf)
+                    return false;
+                rc = (*fn)( SystemProcessInformation, buf, sz, &retLength );
+                if( rc != STATUS_INFO_LENGTH_MISMATCH )
+                    break;
+                core.stdc.stdlib.free( buf );
+                sz *= 2;
+            }
+            scope(exit) core.stdc.stdlib.free( buf );
 
-	    // temporarily set current TLS data pointer to the data pointer of the referenced thread
-	    void** curteb = getTEB();
-	    void** teb    = getTEB( id );
-	    assert( teb && curteb );
+            if(rc != 0)
+                return false;
 
-	    void** curtlsarray = cast(void**) curteb[11];
-	    void** tlsarray    = cast(void**) teb[11];
-	    if( !curtlsarray || !tlsarray )
-		return;
+            auto pinfo = cast(_SYSTEM_PROCESS_INFORMATION*) buf;
+            auto pend  = cast(_SYSTEM_PROCESS_INFORMATION*) (buf + retLength);
+            for( ; pinfo < pend; )
+            {
+                if( pinfo.ProcessId == procid )
+                {
+                    auto tinfo = cast(_SYSTEM_THREAD_INFORMATION*)(pinfo + 1);
+                    for( int i = 0; i < pinfo.NumberOfThreads; i++, tinfo++ )
+                        if( tinfo.ProcessId == procid )
+                            if( !dg( tinfo.ThreadId, context ) )
+                                return false;
+                }
+                if( pinfo.NextEntryOffset == 0 )
+                    break;
+                pinfo = cast(_SYSTEM_PROCESS_INFORMATION*) (cast(char*) pinfo + pinfo.NextEntryOffset);
+            }
+            return true;
+        }
 
-	    void** curtlsdata = cast(void**) curtlsarray[_tls_index];
-	    void** tlsdata    = cast(void**) tlsarray[_tls_index];
-	    if( !curtlsdata || !tlsdata )
-		return;
+        static bool enumProcessThreads( bool function( uint id, void* context ) dg, void* context )
+        {
+            return enumProcessThreads( GetCurrentProcessId(), dg, context );
+        }
 
-	    curtlsarray[_tls_index] = tlsdata;
-	    fn();
-	    curtlsarray[_tls_index] = curtlsdata;
+        // execute function on the TLS for the given thread
+        static void impersonate_thread( uint id, void function() fn )
+        {
+            if( id == GetCurrentThreadId() )
+            {
+                fn();
+                return;
+            }
+
+            // temporarily set current TLS data pointer to the data pointer of the referenced thread
+            void** curteb = getTEB();
+            void** teb    = getTEB( id );
+            assert( teb && curteb );
+
+            void** curtlsarray = cast(void**) curteb[11];
+            void** tlsarray    = cast(void**) teb[11];
+            if( !curtlsarray || !tlsarray )
+                return;
+
+            void** curtlsdata = cast(void**) curtlsarray[_tls_index];
+            void** tlsdata    = cast(void**) tlsarray[_tls_index];
+            if( !curtlsdata || !tlsdata )
+                return;
+
+            curtlsarray[_tls_index] = tlsdata;
+            fn();
+            curtlsarray[_tls_index] = curtlsdata;
         }
     }
 
@@ -230,24 +230,24 @@ public:
 
     void* GetTlsDataAddress( HANDLE hnd )
     {
-	if( void** teb = getTEB( hnd ) )
-	    if( void** tlsarray = cast(void**) teb[11] )
-		return tlsarray[_tls_index];
-	return null;
+        if( void** teb = getTEB( hnd ) )
+            if( void** tlsarray = cast(void**) teb[11] )
+                return tlsarray[_tls_index];
+        return null;
     }
     
     ///////////////////////////////////////////////////////////////////
     // run _moduleTlsCtor in the context of the given thread
     void thread_moduleTlsCtor( uint id )
     {
-	thread_helper_aux.impersonate_thread(id, &_moduleTlsCtor);
+        thread_helper_aux.impersonate_thread(id, &_moduleTlsCtor);
     }
 
     ///////////////////////////////////////////////////////////////////
     // run _moduleTlsDtor in the context of the given thread
     void thread_moduleTlsDtor( uint id )
     {
-	thread_helper_aux.impersonate_thread(id, &_moduleTlsDtor);
+        thread_helper_aux.impersonate_thread(id, &_moduleTlsDtor);
     }
 }
 
