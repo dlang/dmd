@@ -34,6 +34,8 @@ private
     extern (C) void* rt_loadLibrary( in char[] name );
     extern (C) bool  rt_unloadLibrary( void* ptr );
     
+    extern (C) string[] rt_args();
+    
     version( linux )
     {
         import core.stdc.stdlib : free;
@@ -125,6 +127,18 @@ struct Runtime
     static @property bool isHalting()
     {
         return rt_isHalting();
+    }
+    
+    
+    /**
+     * Returns the arguments supplied when the process was started.
+     *
+     * Returns:
+     *  The arguments supplied when this process was started.
+     */
+    static @property string[] args()
+    {
+        return rt_args();
     }
 
 

@@ -189,6 +189,13 @@ extern (C) bool rt_isHalting()
     return _d_isHalting;
 }
 
+__gshared string[] _d_args = null;
+
+extern (C) string[] rt_args()
+{
+    return _d_args;
+}
+
 // This variable is only ever set by a debugger on initialization so it should
 // be fine to leave it as __gshared.
 extern (C) __gshared bool rt_trapExceptions = true;
@@ -277,7 +284,7 @@ int main(char[][] args);
  * function and catch any unhandled exceptions.
  */
 
-extern (C) int main(int argc, char **argv)
+extern (C) int main(int argc, char** argv)
 {
     char[][] args;
     int result;
@@ -335,6 +342,7 @@ extern (C) int main(int argc, char **argv)
         }
         args = am[0 .. argc];
     }
+    _d_args = cast(string[]) args;
 
     bool trapExceptions = rt_trapExceptions;
 
