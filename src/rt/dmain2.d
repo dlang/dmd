@@ -20,7 +20,7 @@ private
     import core.stdc.stddef;
     import core.stdc.stdlib;
     import core.stdc.string;
-    //import core.stdc.stdio;	// for printf()
+    //import core.stdc.stdio;   // for printf()
 }
 
 version (Windows)
@@ -132,42 +132,42 @@ extern (C)
 
     void _d_assertm(ModuleInfo* m, uint line)
     {
-	onAssertError(m.name, line);
+        onAssertError(m.name, line);
     }
 
     void _d_assert_msg(string msg, string file, uint line)
     {
-	onAssertErrorMsg(file, line, msg);
+        onAssertErrorMsg(file, line, msg);
     }
 
     void _d_assert(string file, uint line)
     {
-	onAssertError(file, line);
+        onAssertError(file, line);
     }
 
     void _d_unittestm(ModuleInfo* m, uint line)
     {
-	_d_unittest(m.name, line);
+        _d_unittest(m.name, line);
     }
 
     void _d_unittest_msg(string msg, string file, uint line)
     {
-	onUnittestErrorMsg(file, line, msg);
+        onUnittestErrorMsg(file, line, msg);
     }
 
     void _d_unittest(string file, uint line)
     {
-	_d_unittest_msg("unittest failure", file, line);
+        _d_unittest_msg("unittest failure", file, line);
     }
 
     void _d_array_bounds(ModuleInfo* m, uint line)
     {
-	onRangeError(m.name, line);
+        onRangeError(m.name, line);
     }
 
     void _d_switch_error(ModuleInfo* m, uint line)
     {
-	onSwitchError(m.name, line);
+        onSwitchError(m.name, line);
     }
 
 }
@@ -420,8 +420,8 @@ extern (C) int main(int argc, char** argv)
         _moduleCtor();
         if (runModuleUnitTests())
             tryExec(&runMain);
-	else
-	    result = EXIT_FAILURE;
+        else
+            result = EXIT_FAILURE;
         thread_joinAll();
         _d_isHalting = true;
         _moduleDtor();

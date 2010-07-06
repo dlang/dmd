@@ -232,8 +232,8 @@ struct Runtime
     /**
      * Overrides the default module unit tester with a user-supplied version.
      * This routine will be called once on program initialization.  The return
-     * value of this routine indicates to the runtime whether the body of the
-     * program will be executed.
+     * value of this routine indicates to the runtime whether the tests ran
+     * without error.
      *
      * Params:
      *  h = The new unit tester.  Set to null to use the default unit tester.
@@ -312,6 +312,7 @@ extern (C) bool runModuleUnitTests()
 
     if( Runtime.sm_moduleUnitTester is null )
     {
+        size_t failed = 0;
         foreach( m; ModuleInfo )
         {
             if( m )
@@ -319,10 +320,19 @@ extern (C) bool runModuleUnitTests()
                 auto fp = m.unitTest;
                 
                 if( fp )
-                    fp();
+                {
+                    try
+                    {
+                        fp();
+                    }
+                    catch( Throwable e )
+                    {
+                        failed++;
+                    }
+                }
             }
         }
-        return true;
+        return failed == 0;
     }
     return Runtime.sm_moduleUnitTester();
 }
