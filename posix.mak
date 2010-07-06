@@ -12,6 +12,8 @@ CFLAGS=-m32 -O
 OBJDIR=obj
 DRUNTIME=lib/libdruntime.a
 
+DOCFMT=
+
 target : import $(DRUNTIME) doc
 
 MANIFEST= \
@@ -330,22 +332,22 @@ $(OBJDIR)/critical.o $(OBJDIR)/memory_osx.o $(OBJDIR)/monitor.o
 
 DOCS=\
 	$(DOCDIR)/object.html \
-	$(DOCDIR)/core/atomic.html \
-	$(DOCDIR)/core/bitop.html \
-	$(DOCDIR)/core/cpuid.html \
-	$(DOCDIR)/core/exception.html \
-	$(DOCDIR)/core/memory.html \
-	$(DOCDIR)/core/runtime.html \
-	$(DOCDIR)/core/thread.html \
-	$(DOCDIR)/core/vararg.html \
+	$(DOCDIR)/core_atomic.html \
+	$(DOCDIR)/core_bitop.html \
+	$(DOCDIR)/core_cpuid.html \
+	$(DOCDIR)/core_exception.html \
+	$(DOCDIR)/core_memory.html \
+	$(DOCDIR)/core_runtime.html \
+	$(DOCDIR)/core_thread.html \
+	$(DOCDIR)/core_vararg.html \
 	\
-	$(DOCDIR)/core/sync/barrier.html \
-	$(DOCDIR)/core/sync/condition.html \
-	$(DOCDIR)/core/sync/config.html \
-	$(DOCDIR)/core/sync/exception.html \
-	$(DOCDIR)/core/sync/mutex.html \
-	$(DOCDIR)/core/sync/rwmutex.html \
-	$(DOCDIR)/core/sync/semaphore.html
+	$(DOCDIR)/core_sync_barrier.html \
+	$(DOCDIR)/core_sync_condition.html \
+	$(DOCDIR)/core_sync_config.html \
+	$(DOCDIR)/core_sync_exception.html \
+	$(DOCDIR)/core_sync_mutex.html \
+	$(DOCDIR)/core_sync_rwmutex.html \
+	$(DOCDIR)/core_sync_semaphore.html
 
 IMPORTS=\
 	$(IMPDIR)/core/atomic.di \
@@ -437,11 +439,14 @@ IMPORTS=\
 
 doc: $(DOCS)
 
-$(DOCDIR)/core/%.html : src/core/%.d
-	$(DMD) -c -d -o- -Isrc -Iimport -Df$@ $<
-	
 $(DOCDIR)/object.html : src/object_.d
-	$(DMD) -c -d -o- -Isrc -Iimport -Df$@ $<
+	$(DMD) -c -d -o- -Isrc -Iimport -Df$@ $(DOCFMT) $<
+
+$(DOCDIR)/core_%.html : src/core/%.d
+	$(DMD) -c -d -o- -Isrc -Iimport -Df$@ $(DOCFMT) $<
+	
+$(DOCDIR)/core_sync_%.html : src/core/sync/%.d
+	$(DMD) -c -d -o- -Isrc -Iimport -Df$@ $(DOCFMT) $<
 
 ######################## Header .di file generation ##############################
 

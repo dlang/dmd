@@ -14,6 +14,8 @@ CFLAGS=
 DRUNTIME=lib\druntime.lib
 GCSTUB=lib\gcstub.obj
 
+DOCFMT=
+
 target : $(DOCS) $(IMPORTS) $(DRUNTIME) $(GCSTUB)
 
 MANIFEST= \
@@ -327,22 +329,22 @@ OBJS_TO_DELETE= errno_c.obj complex.obj critical.obj deh.obj monitor.obj
 
 DOCS=\
 	$(DOCDIR)\object.html \
-	$(DOCDIR)\core\atomic.html \
-	$(DOCDIR)\core\bitop.html \
-	$(DOCDIR)\core\cpuid.html \
-	$(DOCDIR)\core\exception.html \
-	$(DOCDIR)\core\memory.html \
-	$(DOCDIR)\core\runtime.html \
-	$(DOCDIR)\core\thread.html \
-	$(DOCDIR)\core\vararg.html \
+	$(DOCDIR)\core_atomic.html \
+	$(DOCDIR)\core_bitop.html \
+	$(DOCDIR)\core_cpuid.html \
+	$(DOCDIR)\core_exception.html \
+	$(DOCDIR)\core_memory.html \
+	$(DOCDIR)\core_runtime.html \
+	$(DOCDIR)\core_thread.html \
+	$(DOCDIR)\core_vararg.html \
 	\
-	$(DOCDIR)\core\sync\barrier.html \
-	$(DOCDIR)\core\sync\condition.html \
-	$(DOCDIR)\core\sync\config.html \
-	$(DOCDIR)\core\sync\exception.html \
-	$(DOCDIR)\core\sync\mutex.html \
-	$(DOCDIR)\core\sync\rwmutex.html \
-	$(DOCDIR)\core\sync\semaphore.html
+	$(DOCDIR)\core_sync_barrier.html \
+	$(DOCDIR)\core_sync_condition.html \
+	$(DOCDIR)\core_sync_config.html \
+	$(DOCDIR)\core_sync_exception.html \
+	$(DOCDIR)\core_sync_mutex.html \
+	$(DOCDIR)\core_sync_rwmutex.html \
+	$(DOCDIR)\core_sync_semaphore.html
 
 IMPORTS=\
 	$(IMPDIR)\core\atomic.di \
@@ -435,52 +437,52 @@ IMPORTS=\
 doc: $(DOCS)
 
 $(DOCDIR)\object.html : src\object_.d
-	$(DMD) -c -d -o- -Isrc -Iimport -Df$@ $**
+	$(DMD) -c -d -o- -Isrc -Iimport -Df$@ $(DOCFMT) $**
 
-$(DOCDIR)\core\atomic.html : src\core\atomic.d
-	$(DMD) -c -d -o- -Isrc -Iimport -Df$@ $**
+$(DOCDIR)\core_atomic.html : src\core\atomic.d
+	$(DMD) -c -d -o- -Isrc -Iimport -Df$@ $(DOCFMT) $**
 
-$(DOCDIR)\core\bitop.html : src\core\bitop.d
-	$(DMD) -c -d -o- -Isrc -Iimport -Df$@ $**
+$(DOCDIR)\core_bitop.html : src\core\bitop.d
+	$(DMD) -c -d -o- -Isrc -Iimport -Df$@ $(DOCFMT) $**
 
-$(DOCDIR)\core\cpuid.html : src\core\cpuid.d
-	$(DMD) -c -d -o- -Isrc -Iimport -Df$@ $**
+$(DOCDIR)\core_cpuid.html : src\core\cpuid.d
+	$(DMD) -c -d -o- -Isrc -Iimport -Df$@ $(DOCFMT) $**
 
-$(DOCDIR)\core\exception.html : src\core\exception.d
-	$(DMD) -c -d -o- -Isrc -Iimport -Df$@ $**
+$(DOCDIR)\core_exception.html : src\core\exception.d
+	$(DMD) -c -d -o- -Isrc -Iimport -Df$@ $(DOCFMT) $**
 
-$(DOCDIR)\core\memory.html : src\core\memory.d
-	$(DMD) -c -d -o- -Isrc -Iimport -Df$@ $**
+$(DOCDIR)\core_memory.html : src\core\memory.d
+	$(DMD) -c -d -o- -Isrc -Iimport -Df$@ $(DOCFMT) $**
 
-$(DOCDIR)\core\runtime.html : src\core\runtime.d
-	$(DMD) -c -d -o- -Isrc -Iimport -Df$@ $**
+$(DOCDIR)\core_runtime.html : src\core\runtime.d
+	$(DMD) -c -d -o- -Isrc -Iimport -Df$@ $(DOCFMT) $**
 
-$(DOCDIR)\core\thread.html : src\core\thread.d
-	$(DMD) -c -d -o- -Isrc -Iimport -Df$@ $**
+$(DOCDIR)\core_thread.html : src\core\thread.d
+	$(DMD) -c -d -o- -Isrc -Iimport -Df$@ $(DOCFMT) $**
 
-$(DOCDIR)\core\vararg.html : src\core\vararg.d
-	$(DMD) -c -d -o- -Isrc -Iimport -Df$@ $**
+$(DOCDIR)\core_vararg.html : src\core\vararg.d
+	$(DMD) -c -d -o- -Isrc -Iimport -Df$@ $(DOCFMT) $**
 
-$(DOCDIR)\core\sync\barrier.html : src\core\sync\barrier.d
-	$(DMD) -c -d -o- -Isrc -Iimport -Df$@ $**
+$(DOCDIR)\core_sync_barrier.html : src\core\sync\barrier.d
+	$(DMD) -c -d -o- -Isrc -Iimport -Df$@ $(DOCFMT) $**
 
-$(DOCDIR)\core\sync\condition.html : src\core\sync\condition.d
-	$(DMD) -c -d -o- -Isrc -Iimport -Df$@ $**
+$(DOCDIR)\core_sync_condition.html : src\core\sync\condition.d
+	$(DMD) -c -d -o- -Isrc -Iimport -Df$@ $(DOCFMT) $**
 
-$(DOCDIR)\core\sync\config.html : src\core\sync\config.d
-	$(DMD) -c -d -o- -Isrc -Iimport -Df$@ $**
+$(DOCDIR)\core_sync_config.html : src\core\sync\config.d
+	$(DMD) -c -d -o- -Isrc -Iimport -Df$@ $(DOCFMT) $**
 
-$(DOCDIR)\core\sync\exception.html : src\core\sync\exception.d
-	$(DMD) -c -d -o- -Isrc -Iimport -Df$@ $**
+$(DOCDIR)\core_sync_exception.html : src\core\sync\exception.d
+	$(DMD) -c -d -o- -Isrc -Iimport -Df$@ $(DOCFMT) $**
 
-$(DOCDIR)\core\sync\mutex.html : src\core\sync\mutex.d
-	$(DMD) -c -d -o- -Isrc -Iimport -Df$@ $**
+$(DOCDIR)\core_sync_mutex.html : src\core\sync\mutex.d
+	$(DMD) -c -d -o- -Isrc -Iimport -Df$@ $(DOCFMT) $**
 
-$(DOCDIR)\core\sync\rwmutex.html : src\core\sync\rwmutex.d
-	$(DMD) -c -d -o- -Isrc -Iimport -Df$@ $**
+$(DOCDIR)\core_sync_rwmutex.html : src\core\sync\rwmutex.d
+	$(DMD) -c -d -o- -Isrc -Iimport -Df$@ $(DOCFMT) $**
 
-$(DOCDIR)\core\sync\semaphore.html : src\core\sync\semaphore.d
-	$(DMD) -c -d -o- -Isrc -Iimport -Df$@ $**
+$(DOCDIR)\core_sync_semaphore.html : src\core\sync\semaphore.d
+	$(DMD) -c -d -o- -Isrc -Iimport -Df$@ $(DOCFMT) $**
 
 ######################## Header .di file generation ##############################
 
