@@ -22,6 +22,7 @@ module object;
 
 private
 {
+    import core.atomic;
     import core.stdc.string;
     import core.stdc.stdlib;
     import rt.util.hash;
@@ -1965,9 +1966,7 @@ body
     auto i = m.impl;
     if (i is null)
     {
-        _d_monitor_lock(cast(Object) owner);
-        m.refs++;
-        _d_monitor_unlock(cast(Object) owner);
+        atomicOp!("+=")(m.refs, cast(size_t) 1);
         ownee.__monitor = owner.__monitor;
         return;
     }
@@ -1992,10 +1991,8 @@ extern (C) void _d_monitordelete(Object h, bool det)
         IMonitor i = m.impl;
         if (i is null)
         {
-            _d_monitor_lock(h);
-            auto refs = --m.refs;
-            _d_monitor_unlock(h);
-            if (!refs)
+            auto s = cast(shared(Monitor)*) m;
+            if(!atomicOp!("-=")(s.refs, cast(size_t) 1))
             {
                 _d_monitor_devt(m, h);
                 _d_monitor_destroy(h);
