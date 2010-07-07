@@ -1933,17 +1933,47 @@ struct Monitor
     IMonitor impl;
     /* internal */
     DEvent[] devt;
+    size_t   refs;
     /* stuff */
 }
 
 Monitor* getMonitor(Object h)
 {
-    return cast(Monitor*) (cast(void**) h)[1];
+    return cast(Monitor*) h.__monitor;
 }
 
 void setMonitor(Object h, Monitor* m)
 {
-    (cast(void**) h)[1] = m;
+    h.__monitor = m;
+}
+
+void setSameMutex(shared Object ownee, shared Object owner)
+in
+{
+    assert(ownee.__monitor is null);
+}
+body
+{
+    auto m = cast(shared(Monitor)*) owner.__monitor;
+
+    if (m is null)
+    {
+        _d_monitor_create(cast(Object) owner);
+        m = cast(shared(Monitor)*) owner.__monitor;
+    }
+    
+    auto i = m.impl;
+    if (i is null)
+    {
+        _d_monitor_lock(cast(Object) owner);
+        m.refs++;
+        _d_monitor_unlock(cast(Object) owner);
+        ownee.__monitor = owner.__monitor;
+        return;
+    }
+    // If m.impl is set (ie. if this is a user-created monitor), assume
+    // the monitor is garbage collected and simply copy the reference.
+    ownee.__monitor = owner.__monitor;
 }
 
 extern (C) void _d_monitor_create(Object);
@@ -1953,6 +1983,8 @@ extern (C) int  _d_monitor_unlock(Object);
 
 extern (C) void _d_monitordelete(Object h, bool det)
 {
+    // det is true when the object is being destroyed deterministically (ie.
+    // when it is explicitly deleted or is a scope object whose time is up).
     Monitor* m = getMonitor(h);
 
     if (m !is null)
@@ -1960,13 +1992,24 @@ extern (C) void _d_monitordelete(Object h, bool det)
         IMonitor i = m.impl;
         if (i is null)
         {
-            _d_monitor_devt(m, h);
-            _d_monitor_destroy(h);
-            setMonitor(h, null);
+            _d_monitor_lock(h);
+            auto refs = --m.refs;
+            _d_monitor_unlock(h);
+            if (!refs)
+            {
+                _d_monitor_devt(m, h);
+                _d_monitor_destroy(h);
+                setMonitor(h, null);
+            }
             return;
         }
+        // NOTE: Since a monitor can be shared via setSameMutex it isn't safe
+        //       to explicitly delete user-created monitors--there's no
+        //       refcount and it may have multiple owners.
+        /+
         if (det && (cast(void*) i) !is (cast(void*) h))
             delete i;
+        +/
         setMonitor(h, null);
     }
 }

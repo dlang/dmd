@@ -33,8 +33,9 @@
 // This is what the monitor reference in Object points to
 typedef struct Monitor
 {
-    void* impl; // for user-level monitors
-    Array devt; // for internal monitors
+    void*  impl; // for user-level monitors
+    Array  devt; // for internal monitors
+    size_t refs; // reference count
 
 #if _WIN32
     CRITICAL_SECTION mon;
@@ -90,6 +91,7 @@ void _d_monitor_create(Object *h)
         assert(cs);
         InitializeCriticalSection(&cs->mon);
         h->monitor = (void *)cs;
+        cs->refs = 1;
         cs = NULL;
     }
     LeaveCriticalSection(&_monitor_critsec);
@@ -178,6 +180,7 @@ void _d_monitor_create(Object *h)
         assert(cs);
         pthread_mutex_init(&cs->mon, & _monitors_attr);
         h->monitor = (void *)cs;
+        cs->refs = 1;
         cs = NULL;
     }
     pthread_mutex_unlock(&_monitor_critsec);
