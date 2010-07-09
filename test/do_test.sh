@@ -32,7 +32,9 @@ fi
 
 p_args=`grep PERMUTE_ARGS ${input_file} | tr -d \\\\r\\\\n`
 if [ -z "${p_args}" ]; then
-    p_args="${ARGS}"
+    if [ "${input_dir}" != "fail_compilation" ]; then
+        p_args="${ARGS}"
+    fi
 else
     p_args="${p_args/*PERMUTE_ARGS:*( )/}"
 fi
@@ -56,9 +58,9 @@ if [ "${input_dir}" != "runnable" ]; then
 fi
 
 if [ "${input_dir}" != "fail_compilation" ]; then
-    expect_compile_rc=0
-else
     expect_compile_rc=1
+else
+    expect_compile_rc=0
 fi
 
 
@@ -69,7 +71,7 @@ ${RESULTS_DIR}/combinations ${p_args} | while read x; do
     if [ ${separate} -ne 0 ]; then
         echo ${DMD} -I${input_dir} ${r_args} $x -od${output_dir} -of${test_app} ${extra_compile_args} ${input_file} ${extra_files} >> ${output_file}
         ${DMD} -I${input_dir} ${r_args} $x -od${output_dir} -of${test_app} ${extra_compile_args} ${input_file} ${extra_files} >> ${output_file} 2>&1
-        if [ $? -ne ${expect_compile_rc} ]; then
+        if [ $? -eq ${expect_compile_rc} ]; then
             cat ${output_file}
             rm -f ${output_file}
             exit 1
@@ -78,7 +80,7 @@ ${RESULTS_DIR}/combinations ${p_args} | while read x; do
         for file in ${input_file} ${extra_files}; do
             echo ${DMD} -I${input_dir} ${r_args} $x -od${output_dir} -c $file >> ${output_file}
             ${DMD} -I${input_dir} ${r_args} $x -od${output_dir} -c $file >> ${output_file} 2>&1
-            if [ $? -ne ${expect_compile_rc} ]; then
+            if [ $? -eq ${expect_compile_rc} ]; then
                 cat ${output_file}
                 rm -f ${output_file}
                 exit 1
@@ -92,7 +94,7 @@ ${RESULTS_DIR}/combinations ${p_args} | while read x; do
         if [ "${input_dir}" = "runnable" ]; then
             echo ${DMD} -od${output_dir} -of${test_app} ${test_app}.o ${ofiles[*]} >> ${output_file}
             ${DMD} -od${output_dir} -of${test_app} ${test_app}.o ${ofiles[*]} >> ${output_file} 2>&1
-            if [ $? -ne 0 ]; then
+            if [ $? -eq ${expect_compile_rc} ]; then
                 cat ${output_file}
                 rm -f ${output_file}
                 exit 1

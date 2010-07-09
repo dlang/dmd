@@ -1,0 +1,8 @@
+void main()
+{
+    synchronized( foo )
+    {
+
+    }
+}
+

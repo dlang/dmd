@@ -1,0 +1,2 @@
+template T(void *p){ }
+
