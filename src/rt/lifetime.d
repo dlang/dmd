@@ -997,6 +997,7 @@ extern (C) void rt_finalize(void* p, bool det = true)
         if (*pc)
         {
             ClassInfo c = **pc;
+            byte[]    w = c.init;
 
             try
             {
@@ -1014,6 +1015,7 @@ extern (C) void rt_finalize(void* p, bool det = true)
                 }
                 if ((cast(void**)p)[1]) // if monitor is not null
                     _d_monitordelete(cast(Object)p, det);
+                (cast(byte*) p)[0 .. w.length] = w[];
             }
             catch (Throwable e)
             {
