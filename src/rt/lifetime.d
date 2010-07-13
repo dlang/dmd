@@ -29,10 +29,11 @@ private
 {
     enum BlkAttr : uint
     {
-        FINALIZE = 0b0000_0001,
-        NO_SCAN  = 0b0000_0010,
-        NO_MOVE  = 0b0000_0100,
-        ALL_BITS = 0b1111_1111
+        FINALIZE   = 0b0000_0001,
+        NO_SCAN    = 0b0000_0010,
+        NO_MOVE    = 0b0000_0100,
+        APPENDABLE = 0b0000_1000,
+        ALL_BITS   = 0b1111_1111
     }
 
     struct BlkInfo
@@ -74,7 +75,8 @@ enum : size_t
            BIGLENGTHMASK = ~(cast(size_t)PAGESIZE - 1),
            SMALLPAD = 1,
            MEDPAD = ushort.sizeof,
-           LARGEPAD = size_t.sizeof * 2 + 1,
+           LARGEPREFIX = 16, // 16 bytes padding at the front of the array
+           LARGEPAD = LARGEPREFIX + 1,
            MAXSMALLSIZE = 256-SMALLPAD,
            MAXMEDSIZE = (PAGESIZE / 2) - MEDPAD
        }
@@ -115,14 +117,6 @@ extern (C) Object _d_newclass(ClassInfo ci)
         p = info.base;
         // only init ghost array length if noscan is set.  Scanned blocks are
         // initialized to 0 by the gc.
-        if(ci.flags & 2)
-        {
-            // initialize the ghost array length at the end of the block.  This
-            // prevents accidental stomping in the case where a class contains
-            // a static array and someone tries to append to a slice of that
-            // array.
-            *((cast(size_t *)(p + info.size)) - 1) = 0;
-        }
         debug(PRINTF) printf(" p = %p\n", p);
     }
 
@@ -228,18 +222,18 @@ private class ArrayAllocLengthLock
   future that the block is unshared, we may be able to change this, but I'm not
   sure it's important.
 
-  In order to do put the length at the front, we have to provide 2*size_t bytes
-  buffer space in case the block has to be aligned properly.  For example, on a
-  32-bit OS, doubles should be 8-byte aligned.  In addition, we need the
-  sentinel byte to prevent accidental pointers to the next block.  Because of
-  the extra overhead, we only do this for page size and above, where the
-  overhead is minimal compared to the block size.
+  In order to do put the length at the front, we have to provide 16 bytes
+  buffer space in case the block has to be aligned properly.  In x86, certain
+  SSE instructions will only work if the data is 16-byte aligned.  In addition,
+  we need the sentinel byte to prevent accidental pointers to the next block.
+  Because of the extra overhead, we only do this for page size and above, where
+  the overhead is minimal compared to the block size.
 
   So for those blocks, it looks like:
 
   |N*elemsize|padding|elem0|elem1|...|elemN-1|emptyspace|sentinelbyte|
 
-  where elem0 starts 8 bytes after the first byte.
+  where elem0 starts 16 bytes after the first byte.
   */
 bool __setArrayAllocLength(ref BlkInfo info, size_t newlength, bool isshared, size_t oldlength = ~0)
 {
@@ -347,7 +341,7 @@ bool __setArrayAllocLength(ref BlkInfo info, size_t newlength, bool isshared, si
   */
 void *__arrayStart(BlkInfo info)
 {
-    return info.base + ((info.size & BIGLENGTHMASK) ? 2*size_t.sizeof : 0);
+    return info.base + ((info.size & BIGLENGTHMASK) ? LARGEPREFIX : 0);
 }
 
 /**
@@ -491,8 +485,8 @@ extern(C) void _d_arrayshrinkfit(TypeInfo ti, void[] arr)
     if(info.base)
     {
         if(info.size >= PAGESIZE)
-            // remove 4 from the current size
-            cursize -= (size_t.sizeof) * 2;
+            // remove prefix from the current stored size
+            cursize -= LARGEPREFIX;
         debug(PRINTF) printf("setting allocated size to %d\n", (arr.ptr - info.base) + cursize);
         __setArrayAllocLength(info, (arr.ptr - info.base) + cursize, false);
     }
@@ -641,7 +635,7 @@ body
     else if(info.size < PAGESIZE)
         arraypad = MEDPAD;
     else
-        arraypad = SMALLPAD;
+        arraypad = LARGEPAD;
 
     curcapacity = info.size - arraypad;
     return curcapacity / size;
@@ -677,9 +671,7 @@ extern (C) ulong _d_newarrayT(TypeInfo ti, size_t length)
         }
         else
             size *= length;
-        // increase the size by 1 if the actual requested size is < 256,
-        // by size_t.sizeof if it's >= 256
-        
+        // increase the size by the array pad.
         auto info = gc_qalloc(size + __arrayPad(size), !(ti.next.flags() & 1) ? BlkAttr.NO_SCAN : 0);
         debug(PRINTF) printf(" p = %p\n", info.base);
         // update the length of the array
@@ -1123,7 +1115,7 @@ body
                         __setArrayAllocLength(info, newsize, isshared);
                         if(!isshared)
                             __insertBlkInfoCache(info, bic);
-                        newdata = cast(byte *)(info.base + size_t.sizeof * 2);
+                        newdata = cast(byte *)(info.base + LARGEPREFIX);
                         newdata[0 .. size] = p.data[0 .. size];
                     }
                 }
@@ -1270,7 +1262,7 @@ body
                         __setArrayAllocLength(info, newsize, isshared);
                         if(!isshared)
                             __insertBlkInfoCache(info, bic);
-                        newdata = cast(byte *)(info.base + size_t.sizeof * 2);
+                        newdata = cast(byte *)(info.base + LARGEPREFIX);
                         newdata[0 .. size] = p.data[0 .. size];
                     }
                 }
@@ -1383,7 +1375,7 @@ extern (C) long _d_arrayappendT(TypeInfo ti, Array *px, byte[] y)
             __setArrayAllocLength(info, newsize, isshared);
             if(!isshared)
                 __insertBlkInfoCache(info, bic);
-            auto newdata = cast(byte *)info.base + size_t.sizeof * 2;
+            auto newdata = cast(byte *)info.base + LARGEPREFIX;
             memcpy(newdata, px.data, length * sizeelem);
             px.data = newdata;
         }

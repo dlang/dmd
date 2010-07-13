@@ -19,7 +19,8 @@ void main()
     cas( &i, i.init, i.init + 1 ); // atomic
     bsf( 0 ); // bitop
     setAssertHandler( null ); // exception
-    GC.enable(); // memory
+    // SES - disabled because you cannot enable the GC without disabling it.
+    //GC.enable(); // memory
     Runtime.collectHandler = null; // runtime
     static void fn() {}
     new Thread( &fn ); // thread
