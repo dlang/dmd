@@ -206,6 +206,8 @@ extern (C) void onAssertErrorMsg( string file, size_t line, string msg )
  *  line = The line number on which this error occurred.
  *  msg  = An error message supplied by the user.
  */
+extern (C) extern __gshared bool unittest_errors;
+
 extern (C) void onUnittestErrorMsg( string file, size_t line, string msg )
 {
     static char[] intToString( char[] buf, uint val )
@@ -247,6 +249,7 @@ extern (C) void onUnittestErrorMsg( string file, size_t line, string msg )
 
     static __gshared Console console;
 
+    unittest_errors = true;
     console( file )( "(" )( line )( "): " )( msg )( "\n" );
 }
 
