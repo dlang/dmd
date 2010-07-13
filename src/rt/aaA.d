@@ -19,10 +19,11 @@ private
 
     enum BlkAttr : uint
     {
-        FINALIZE = 0b0000_0001,
-        NO_SCAN  = 0b0000_0010,
-        NO_MOVE  = 0b0000_0100,
-        ALL_BITS = 0b1111_1111
+        FINALIZE    = 0b0000_0001,
+        NO_SCAN     = 0b0000_0010,
+        NO_MOVE     = 0b0000_0100,
+        APPENDABLE  = 0b0000_1000,
+        ALL_BITS    = 0b1111_1111
     }
 
     extern (C) void* gc_malloc( size_t sz, uint ba = 0 );

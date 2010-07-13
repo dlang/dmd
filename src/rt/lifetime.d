@@ -112,11 +112,9 @@ extern (C) Object _d_newclass(ClassInfo ci)
     }
     else
     {
-        auto info = gc_qalloc(ci.init.length + __arrayPad(ci.init.length),
+        // TODO: should this be + 1 to avoid having pointers to the next block?
+        p = gc_malloc(ci.init.length,
                       BlkAttr.FINALIZE | (ci.m_flags & 2 ? BlkAttr.NO_SCAN : 0));
-        p = info.base;
-        // only init ghost array length if noscan is set.  Scanned blocks are
-        // initialized to 0 by the gc.
         debug(PRINTF) printf(" p = %p\n", p);
     }
 
@@ -482,7 +480,7 @@ extern(C) void _d_arrayshrinkfit(TypeInfo ti, void[] arr)
     auto cursize = arr.length * size;
     auto   bic = __getBlkInfo(arr.ptr);
     auto   info = bic ? *bic : gc_query(arr.ptr);
-    if(info.base)
+    if(info.base && (info.attr & BlkAttr.APPENDABLE))
     {
         if(info.size >= PAGESIZE)
             // remove prefix from the current stored size
@@ -540,7 +538,7 @@ body
     size_t curcapacity = void;
     size_t offset = void;
     size_t arraypad = void;
-    if(info.base !is null)
+    if(info.base !is null && (info.attr & BlkAttr.APPENDABLE))
     {
         if(info.size <= 256)
         {
@@ -601,7 +599,7 @@ body
     reqsize += __arrayPad(reqsize);
     // copy attributes from original block, or from the typeinfo if the
     // original block doesn't exist.
-    info = gc_qalloc(reqsize, info.base ? info.attr : (!(ti.next.flags() & 1) ? BlkAttr.NO_SCAN : 0));
+    info = gc_qalloc(reqsize, (info.base ? info.attr : (!(ti.next.flags() & 1) ? BlkAttr.NO_SCAN : 0)) | BlkAttr.APPENDABLE);
     if(info.base is null)
         goto Loverflow;
     // copy the data over.
@@ -672,7 +670,7 @@ extern (C) ulong _d_newarrayT(TypeInfo ti, size_t length)
         else
             size *= length;
         // increase the size by the array pad.
-        auto info = gc_qalloc(size + __arrayPad(size), !(ti.next.flags() & 1) ? BlkAttr.NO_SCAN : 0);
+        auto info = gc_qalloc(size + __arrayPad(size), !(ti.next.flags() & 1) ? BlkAttr.NO_SCAN | BlkAttr.APPENDABLE : BlkAttr.APPENDABLE);
         debug(PRINTF) printf(" p = %p\n", info.base);
         // update the length of the array
         auto arrstart = __arrayStart(info);
@@ -717,7 +715,7 @@ extern (C) ulong _d_newarrayiT(TypeInfo ti, size_t length)
         else
             size *= length;
 
-        auto info = gc_qalloc(size + __arrayPad(size), !(ti.next.flags() & 1) ? BlkAttr.NO_SCAN : 0);
+        auto info = gc_qalloc(size + __arrayPad(size), !(ti.next.flags() & 1) ? BlkAttr.NO_SCAN | BlkAttr.APPENDABLE : BlkAttr.APPENDABLE);
         debug(PRINTF) printf(" p = %p\n", info.base);
         auto arrstart = __arrayStart(info);
         if (isize == 1)
@@ -1082,57 +1080,71 @@ body
                 size_t size = p.length * sizeelem;
                 auto   bic = !isshared ? __getBlkInfo(p.data) : null;
                 auto   info = bic ? *bic : gc_query(p.data);
-                // calculate the extent of the array given the base.
-                size_t offset = p.data - __arrayStart(info);
-                if(info.size >= PAGESIZE)
+                if(info.base && (info.attr & BlkAttr.APPENDABLE))
                 {
-                    // size of array is at the front of the block
-                    if(!__setArrayAllocLength(info, newsize + offset, isshared, size + offset))
+                    // calculate the extent of the array given the base.
+                    size_t offset = p.data - __arrayStart(info);
+                    if(info.size >= PAGESIZE)
                     {
-                        // check to see if it failed because there is not
-                        // enough space
-                        if(*(cast(size_t*)info.base) == size + offset)
+                        // size of array is at the front of the block
+                        if(!__setArrayAllocLength(info, newsize + offset, isshared, size + offset))
                         {
-                            // not enough space, try extending
-                            auto extendsize = newsize + offset + LARGEPAD - info.size;
-                            auto u = gc_extend(p.data, extendsize, extendsize);
-                            if(u)
+                            // check to see if it failed because there is not
+                            // enough space
+                            if(*(cast(size_t*)info.base) == size + offset)
                             {
-                                // extend worked, now try setting the length
-                                // again.
-                                info.size = u;
-                                if(__setArrayAllocLength(info, newsize + offset, isshared, size + offset))
+                                // not enough space, try extending
+                                auto extendsize = newsize + offset + LARGEPAD - info.size;
+                                auto u = gc_extend(p.data, extendsize, extendsize);
+                                if(u)
                                 {
-                                    if(!isshared)
-                                        __insertBlkInfoCache(info, bic);
-                                    goto L1;
+                                    // extend worked, now try setting the length
+                                    // again.
+                                    info.size = u;
+                                    if(__setArrayAllocLength(info, newsize + offset, isshared, size + offset))
+                                    {
+                                        if(!isshared)
+                                            __insertBlkInfoCache(info, bic);
+                                        goto L1;
+                                    }
                                 }
                             }
-                        }
 
-                        // couldn't do it, reallocate
-                        info = gc_qalloc(newsize + LARGEPAD, info.attr);
-                        __setArrayAllocLength(info, newsize, isshared);
-                        if(!isshared)
-                            __insertBlkInfoCache(info, bic);
-                        newdata = cast(byte *)(info.base + LARGEPREFIX);
-                        newdata[0 .. size] = p.data[0 .. size];
+                            // couldn't do it, reallocate
+                            info = gc_qalloc(newsize + LARGEPAD, info.attr);
+                            __setArrayAllocLength(info, newsize, isshared);
+                            if(!isshared)
+                                __insertBlkInfoCache(info, bic);
+                            newdata = cast(byte *)(info.base + LARGEPREFIX);
+                            newdata[0 .. size] = p.data[0 .. size];
+                        }
+                        else if(!isshared && !bic)
+                        {
+                            // add this to the cache, it wasn't present previously.
+                            __insertBlkInfoCache(info, null);
+                        }
+                    }
+                    else if(!__setArrayAllocLength(info, newsize + offset, isshared, size + offset))
+                    {
+                        // could not resize in place
+                        info = gc_qalloc(newsize + __arrayPad(newsize), info.attr);
+                        goto L2;
+                    }
+                    else if(!isshared && !bic)
+                    {
+                        // add this to the cache, it wasn't present previously.
+                        __insertBlkInfoCache(info, null);
                     }
                 }
-                else if(!__setArrayAllocLength(info, newsize + offset, isshared, size + offset))
+                else
                 {
-                    // could not resize in place
-                    info = gc_qalloc(newsize + __arrayPad(newsize), info.attr);
+                    info = gc_qalloc(newsize + __arrayPad(newsize), (info.base ? info.attr : !(ti.next.flags() & 1) ? BlkAttr.NO_SCAN : 0) | BlkAttr.APPENDABLE);
+                L2:
                     __setArrayAllocLength(info, newsize, isshared);
                     if(!isshared)
                         __insertBlkInfoCache(info, bic);
                     newdata = cast(byte *)__arrayStart(info);
                     newdata[0 .. size] = p.data[0 .. size];
-                }
-                else if(!isshared && !bic)
-                {
-                    // add this to the cache, it wasn't present previously.
-                    __insertBlkInfoCache(info, null);
                 }
              L1:
                 newdata[size .. newsize] = 0;
@@ -1141,7 +1153,7 @@ body
         else
         {
             // pointer was null, need to allocate
-            auto info = gc_qalloc(newsize + __arrayPad(newsize), !(ti.next.flags() & 1) ? BlkAttr.NO_SCAN : 0);
+            auto info = gc_qalloc(newsize + __arrayPad(newsize), !(ti.next.flags() & 1) ? BlkAttr.NO_SCAN | BlkAttr.APPENDABLE : BlkAttr.APPENDABLE);
             __setArrayAllocLength(info, newsize, isshared);
             if(!isshared)
                 __insertBlkInfoCache(info, null);
@@ -1231,55 +1243,71 @@ body
 
                 // calculate the extent of the array given the base.
                 size_t offset = p.data - __arrayStart(info);
-                if(info.size >= PAGESIZE)
+                if(info.base && (info.attr & BlkAttr.APPENDABLE))
                 {
-                    // size of array is at the front of the block
-                    if(!__setArrayAllocLength(info, newsize + offset, isshared, size + offset))
+                    if(info.size >= PAGESIZE)
                     {
-                        // check to see if it failed because there is not
-                        // enough space
-                        if(*(cast(size_t*)info.base) == size + offset)
+                        // size of array is at the front of the block
+                        if(!__setArrayAllocLength(info, newsize + offset, isshared, size + offset))
                         {
-                            // not enough space, try extending
-                            auto extendsize = newsize + offset + LARGEPAD - info.size;
-                            auto u = gc_extend(p.data, extendsize, extendsize);
-                            if(u)
+                            // check to see if it failed because there is not
+                            // enough space
+                            if(*(cast(size_t*)info.base) == size + offset)
                             {
-                                // extend worked, now try setting the length
-                                // again.
-                                info.size = u;
-                                if(__setArrayAllocLength(info, newsize + offset, isshared, size + offset))
+                                // not enough space, try extending
+                                auto extendsize = newsize + offset + LARGEPAD - info.size;
+                                auto u = gc_extend(p.data, extendsize, extendsize);
+                                if(u)
                                 {
-                                    if(!isshared)
-                                        __insertBlkInfoCache(info, bic);
-                                    goto L1;
+                                    // extend worked, now try setting the length
+                                    // again.
+                                    info.size = u;
+                                    if(__setArrayAllocLength(info, newsize + offset, isshared, size + offset))
+                                    {
+                                        if(!isshared)
+                                            __insertBlkInfoCache(info, bic);
+                                        goto L1;
+                                    }
                                 }
                             }
-                        }
 
-                        // couldn't do it, reallocate
-                        info = gc_qalloc(newsize + LARGEPAD, info.attr);
-                        __setArrayAllocLength(info, newsize, isshared);
-                        if(!isshared)
-                            __insertBlkInfoCache(info, bic);
-                        newdata = cast(byte *)(info.base + LARGEPREFIX);
-                        newdata[0 .. size] = p.data[0 .. size];
+                            // couldn't do it, reallocate
+                            info = gc_qalloc(newsize + LARGEPAD, info.attr);
+                            __setArrayAllocLength(info, newsize, isshared);
+                            if(!isshared)
+                                __insertBlkInfoCache(info, bic);
+                            newdata = cast(byte *)(info.base + LARGEPREFIX);
+                            newdata[0 .. size] = p.data[0 .. size];
+                        }
+                        else if(!isshared && !bic)
+                        {
+                            // add this to the cache, it wasn't present previously.
+                            __insertBlkInfoCache(info, null);
+                        }
+                    }
+                    else if(!__setArrayAllocLength(info, newsize + offset, isshared, size + offset))
+                    {
+                        // could not resize in place
+                        info = gc_qalloc(newsize + __arrayPad(newsize), info.attr);
+                        // goto sucks, but this is for optimization.
+                        goto L2;
+                    }
+                    else if(!isshared && !bic)
+                    {
+                        // add this to the cache, it wasn't present previously.
+                        __insertBlkInfoCache(info, null);
                     }
                 }
-                else if(!__setArrayAllocLength(info, newsize + offset, isshared, size + offset))
+                else
                 {
-                    // could not resize in place
-                    info = gc_qalloc(newsize + __arrayPad(newsize), info.attr);
+                    // not appendable or not part of the heap yet.
+                    info = gc_qalloc(newsize + __arrayPad(newsize), (info.base ? info.attr : !(ti.next.flags() & 1) ? BlkAttr.NO_SCAN : 0) | BlkAttr.APPENDABLE);
+                L2:
                     __setArrayAllocLength(info, newsize, isshared);
                     if(!isshared)
                         __insertBlkInfoCache(info, bic);
                     newdata = cast(byte *)__arrayStart(info);
                     newdata[0 .. size] = p.data[0 .. size];
-                }
-                else if(!isshared && !bic)
-                {
-                    // add this to the cache, it wasn't present previously.
-                    __insertBlkInfoCache(info, null);
                 }
                 L1: ;
             }
@@ -1287,7 +1315,7 @@ body
         else
         {
             // length was zero, need to allocate
-            auto info = gc_qalloc(newsize + __arrayPad(newsize), !(ti.next.flags() & 1) ? BlkAttr.NO_SCAN : 0);
+            auto info = gc_qalloc(newsize + __arrayPad(newsize), !(ti.next.flags() & 1) ? BlkAttr.NO_SCAN | BlkAttr.APPENDABLE : BlkAttr.APPENDABLE);
             __setArrayAllocLength(info, newsize, isshared);
             if(!isshared)
                 __insertBlkInfoCache(info, null);
@@ -1327,7 +1355,7 @@ Loverflow:
 
 
 /**
- * Append y[] to array x[].
+ * Append y[] to array pointed to by px
  * size is size of each array element.
  */
 extern (C) long _d_arrayappendT(TypeInfo ti, Array *px, byte[] y)
@@ -1344,57 +1372,72 @@ extern (C) long _d_arrayappendT(TypeInfo ti, Array *px, byte[] y)
 
     // calculate the extent of the array given the base.
     size_t offset = px.data - __arrayStart(info);
-    if(info.size >= PAGESIZE)
+    if(info.attr & BlkAttr.APPENDABLE)
     {
-        // size of array is at the front of the block
-        if(!__setArrayAllocLength(info, newsize + offset, isshared, size + offset))
+        if(info.size >= PAGESIZE)
         {
-            // check to see if it failed because there is not
-            // enough space
-            if(*(cast(size_t*)info.base) == size + offset)
+            // size of array is at the front of the block
+            if(!__setArrayAllocLength(info, newsize + offset, isshared, size + offset))
             {
-                // not enough space, try extending
-                auto extendsize = newsize + offset + LARGEPAD - info.size;
-                auto u = gc_extend(px.data, extendsize, extendsize);
-                if(u)
+                // check to see if it failed because there is not
+                // enough space
+                if(*(cast(size_t*)info.base) == size + offset)
                 {
-                    // extend worked, now try setting the length
-                    // again.
-                    info.size = u;
-                    if(__setArrayAllocLength(info, newsize + offset, isshared, size + offset))
+                    // not enough space, try extending
+                    auto extendsize = newsize + offset + LARGEPAD - info.size;
+                    auto u = gc_extend(px.data, extendsize, extendsize);
+                    if(u)
                     {
-                        if(!isshared)
-                            __insertBlkInfoCache(info, bic);
-                        goto L1;
+                        // extend worked, now try setting the length
+                        // again.
+                        info.size = u;
+                        if(__setArrayAllocLength(info, newsize + offset, isshared, size + offset))
+                        {
+                            if(!isshared)
+                                __insertBlkInfoCache(info, bic);
+                            goto L1;
+                        }
                     }
                 }
-            }
 
-            // couldn't do it, reallocate
-            info = gc_qalloc(newCapacity(newlength, sizeelem) + LARGEPAD, info.attr);
-            __setArrayAllocLength(info, newsize, isshared);
-            if(!isshared)
-                __insertBlkInfoCache(info, bic);
-            auto newdata = cast(byte *)info.base + LARGEPREFIX;
-            memcpy(newdata, px.data, length * sizeelem);
-            px.data = newdata;
+                // couldn't do it, reallocate
+                info = gc_qalloc(newCapacity(newlength, sizeelem) + LARGEPAD, info.attr);
+                __setArrayAllocLength(info, newsize, isshared);
+                if(!isshared)
+                    __insertBlkInfoCache(info, bic);
+                auto newdata = cast(byte *)info.base + LARGEPREFIX;
+                memcpy(newdata, px.data, length * sizeelem);
+                px.data = newdata;
+            }
+            else if(!isshared && !bic)
+            {
+                __insertBlkInfoCache(info, null);
+            }
+        }
+        else if(!__setArrayAllocLength(info, newsize + offset, isshared, size + offset))
+        {
+            // could not resize in place
+            auto allocsize = newCapacity(newlength, sizeelem);
+            info = gc_qalloc(allocsize + __arrayPad(allocsize), info.attr);
+            goto L2;
+        }
+        else if(!isshared && !bic)
+        {
+            __insertBlkInfoCache(info, null);
         }
     }
-    else if(!__setArrayAllocLength(info, newsize + offset, isshared, size + offset))
+    else
     {
-        // could not resize in place
+        // not appendable or is null
         auto allocsize = newCapacity(newlength, sizeelem);
-        info = gc_qalloc(allocsize + __arrayPad(allocsize), info.attr);
+        info = gc_qalloc(allocsize + __arrayPad(allocsize), (info.base ? info.attr : !(ti.next.flags() & 1) ? BlkAttr.NO_SCAN : 0) | BlkAttr.APPENDABLE);
+    L2:
         __setArrayAllocLength(info, newsize, isshared);
         if(!isshared)
             __insertBlkInfoCache(info, bic);
         auto newdata = cast(byte *)__arrayStart(info);
         memcpy(newdata, px.data, length * sizeelem);
         px.data = newdata;
-    }
-    else if(!isshared && !bic)
-    {
-        __insertBlkInfoCache(info, null);
     }
 
 
@@ -1480,56 +1523,10 @@ size_t newCapacity(size_t newlength, size_t size)
 /**
  *
  */
-version(none)
+extern (C) long _d_arrayappendcT(TypeInfo ti, Array *x, ...)
 {
-    // no clue why this was special cased...
-    extern (C) byte[] _d_arrayappendcT(TypeInfo ti, ref byte[] x, ...)
-    {
-        auto sizeelem = ti.next.tsize();            // array element size
-        auto info = gc_query(x.ptr);
-        auto length = x.length;
-        auto newlength = length + 1;
-        auto newsize = newlength * sizeelem;
-
-        assert(info.size == 0 || length * sizeelem <= info.size);
-
-        debug(PRINTF) printf("_d_arrayappendcT(sizeelem = %d, ptr = %p, length = %d, cap = %d)\n", sizeelem, x.ptr, x.length, info.size);
-
-        if (info.size <= newsize || info.base != x.ptr)
-        {   byte* newdata;
-
-            if (info.size >= PAGESIZE && info.base == x.ptr)
-            {   // Try to extend in-place
-                auto u = gc_extend(x.ptr, (newsize + 1) - info.size, (newsize + 1) - info.size);
-                if (u)
-                {
-                    goto L1;
-                }
-            }
-            debug(PRINTF) printf("_d_arrayappendcT(length = %d, newlength = %d, cap = %d)\n", length, newlength, info.size);
-            auto newcap = newCapacity(newlength, sizeelem);
-            assert(newcap >= newlength * sizeelem);
-            newdata = cast(byte *)gc_malloc(newcap + 1, info.attr);
-            memcpy(newdata, x.ptr, length * sizeelem);
-            (cast(void**)(&x))[1] = newdata;
-        }
-L1:
-        byte *argp = cast(byte *)(&ti + 2);
-
-        *cast(size_t *)&x = newlength;
-        x.ptr[length * sizeelem .. newsize] = argp[0 .. sizeelem];
-        assert((cast(size_t)x.ptr & 15) == 0);
-        assert(gc_sizeOf(x.ptr) > x.length * sizeelem);
-        return x;
-    }
-}
-else
-{
-    extern (C) long _d_arrayappendcT(TypeInfo ti, Array *x, ...)
-    {
-        byte *argp = cast(byte*)(&ti + 2);
-        return _d_arrayappendT(ti, x, argp[0..1]);
-    }
+    byte *argp = cast(byte*)(&ti + 2);
+    return _d_arrayappendT(ti, x, argp[0..1]);
 }
 
 
@@ -1655,7 +1652,7 @@ body
     if (!len)
         return null;
 
-    auto info = gc_qalloc(len + __arrayPad(len), !(ti.next.flags() & 1) ? BlkAttr.NO_SCAN : 0);
+    auto info = gc_qalloc(len + __arrayPad(len), !(ti.next.flags() & 1) ? BlkAttr.NO_SCAN | BlkAttr.APPENDABLE : BlkAttr.APPENDABLE);
     byte* p = cast(byte*)__arrayStart(info);
     p[len] = 0; // guessing this is to optimize for null-terminated arrays?
     memcpy(p, x.ptr, xlen);
@@ -1688,7 +1685,7 @@ extern (C) byte[] _d_arraycatnT(TypeInfo ti, uint n, ...)
         return null;
 
     auto allocsize = length * size;
-    auto info = gc_qalloc(allocsize + __arrayPad(allocsize), !(ti.next.flags() & 1) ? BlkAttr.NO_SCAN : 0);
+    auto info = gc_qalloc(allocsize + __arrayPad(allocsize), !(ti.next.flags() & 1) ? BlkAttr.NO_SCAN | BlkAttr.APPENDABLE : BlkAttr.APPENDABLE);
     auto isshared = ti.classinfo is TypeInfo_Shared.classinfo;
     __setArrayAllocLength(info, allocsize, isshared);
     a = __arrayStart(info);
@@ -1726,7 +1723,7 @@ extern (C) void* _d_arrayliteralT(TypeInfo ti, size_t length, ...)
     else
     {
         auto allocsize = length * sizeelem;
-        auto info = gc_qalloc(allocsize + __arrayPad(allocsize), !(ti.next.flags() & 1) ? BlkAttr.NO_SCAN : 0);
+        auto info = gc_qalloc(allocsize + __arrayPad(allocsize), !(ti.next.flags() & 1) ? BlkAttr.NO_SCAN | BlkAttr.APPENDABLE : BlkAttr.APPENDABLE);
         auto isshared = ti.classinfo is TypeInfo_Shared.classinfo;
         __setArrayAllocLength(info, allocsize, isshared);
         result = __arrayStart(info);
@@ -1782,7 +1779,7 @@ body
     {
         auto sizeelem = ti.next.tsize();                // array element size
         auto size = a.length * sizeelem;
-        auto info = gc_qalloc(size + __arrayPad(size), !(ti.next.flags() & 1) ? BlkAttr.NO_SCAN : 0);
+        auto info = gc_qalloc(size + __arrayPad(size), !(ti.next.flags() & 1) ? BlkAttr.NO_SCAN | BlkAttr.APPENDABLE : BlkAttr.APPENDABLE);
         auto isshared = ti.classinfo is TypeInfo_Shared.classinfo;
         __setArrayAllocLength(info, size, isshared);
         r.ptr = __arrayStart(info);
