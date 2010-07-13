@@ -29,7 +29,7 @@ static code *code_list;
 
 __declspec(naked) code *code_calloc()
 {
-    if (sizeof(code) != 0x20)
+    if (sizeof(code) != 0x24)
         util_assert("code",__LINE__);
     __asm
     {
@@ -57,6 +57,7 @@ L29:
         mov     24[EAX],ECX
 
         mov     28[EAX],ECX
+        mov     32[EAX],ECX
         ret
     }
 }
@@ -67,6 +68,7 @@ code *code_calloc()
 {   code *c;
     static code czero;
 
+    //printf("code %x\n", sizeof(code));
     c = code_list;
     if (c)
         code_list = code_next(c);

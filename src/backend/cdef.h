@@ -559,12 +559,6 @@ typedef targ_uns        targ_size_t;    /* size_t for the target machine */
 #define KEEPBITFIELDS 0 /* 0 means code generator cannot handle bit fields, */
                         /* so replace them with shifts and masks        */
 
-#if TARGET_OSX
-#define STACKALIGN      16
-#else
-#define STACKALIGN      0
-#endif
-
 #define REGMAX  29      // registers are numbered 0..10
 
 typedef unsigned        tym_t;          // data type big enough for type masks

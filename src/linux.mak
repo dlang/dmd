@@ -26,7 +26,7 @@ TOTALH=
 
 DMD_OBJS = \
 	access.o array.o attrib.o bcomplex.o bit.o blockopt.o \
-	cast.o code.o cg.o cg87.o cgcod.o cgcs.o cgcv.o cgelem.o cgen.o \
+	cast.o code.o cg.o cg87.o cgcod.o cgcs.o cgelem.o cgen.o \
 	cgreg.o cgsched.o class.o cod1.o cod2.o cod3.o cod4.o cod5.o \
 	constfold.o irstate.o dchar.o cond.o debug.o \
 	declaration.o dsymbol.o dt.o dump.o e2ir.o ee.o eh.o el.o \

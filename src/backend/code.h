@@ -106,8 +106,8 @@ struct Declaration;
 #define mST01   (1 << ST01)     // 0x400000
 
 // Flags for getlvalue (must fit in regm_t)
-#define RMload  0x4000
-#define RMstore 0x8000
+#define RMload  (1 << 30)
+#define RMstore (1 << 31)
 
 #if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_SOLARIS
     // To support positional independent code,
@@ -258,7 +258,10 @@ extern regm_t BYTEREGS;
 #define modregrmx(m,r,rm)       ((((rm)&8)<<13)|modregrm((m),r,(rm)&7))
 #define modregxrmx(m,r,rm)      ((((r)&8)<<15)|(((rm)&8)<<13)|modregrm((m),(r)&7,(rm)&7))
 
+#define NEWREXR(x,r)            ((x)=((x)&~REX_R)|(((r)&8)>>1))
 #define NEWREG(x,r)             ((x)=((x)&~(7<<3))|((r)<<3))
+#define code_newreg(c,r)        (NEWREG((c)->Irm,(r)&7),NEWREXR((c)->Irex,(r)))
+
 #define genorreg(c,t,f)         genregs((c),0x09,(f),(t))
 
 #define REX     0x40            // REX prefix byte, OR'd with the following bits:
@@ -391,15 +394,25 @@ struct code
 #define CFPREFIX (CFSEG | CFopsize | CFaddrsize)
 #define CFSEG   (CFes | CFss | CFds | CFcs | CFfs | CFgs)
 
-    unsigned char Irex;         // REX prefix
 
     unsigned char Iop;
-    unsigned char Irm;          // reg/mode
-
     unsigned char Iop2;         // second opcode byte
-    unsigned char Isib;         // SIB byte
-
     unsigned char Iop3;         // third opcode byte
+
+    union
+    {   unsigned _Iea;
+        struct
+        {
+            unsigned char _Irm;          // reg/mode
+            unsigned char _Isib;         // SIB byte
+            unsigned char _Irex;         // REX prefix
+        } _ea;
+    } _EA;
+
+#define Iea _EA._Iea
+#define Irm _EA._ea._Irm
+#define Isib _EA._ea._Isib
+#define Irex _EA._ea._Irex
 
     unsigned char IFL1,IFL2;    // FLavors of 1st, 2nd operands
     union evc IEV1;             // 1st operand, if any
@@ -545,6 +558,7 @@ extern  targ_size_t localsize,Toff,Poff,Aoff,
         Aoffset,Toffset,EEoffset;
 extern  int Aalign;
 extern  int cseg;
+extern  int STACKALIGN;
 #if TARGET_OSX
 extern  targ_size_t localgotoffset;
 #endif
@@ -598,6 +612,7 @@ bool evalinregister (elem *e );
 regm_t getscratch();
 code *codelem (elem *e , regm_t *pretregs , bool constflag );
 const char *regm_str(regm_t rm);
+int numbitsset(regm_t);
 
 /* cod1.c */
 extern int clib_inited;
@@ -611,13 +626,14 @@ code *gencodelem(code *c,elem *e,regm_t *pretregs,bool constflag);
 void gensaverestore(regm_t, code **, code **);
 code *genstackclean(code *c,unsigned numpara,regm_t keepmsk);
 code *logexp (elem *e , int jcond , unsigned fltarg , code *targ );
-code *loadea (elem *e , code __ss *cs , unsigned op , unsigned reg , targ_size_t offset , regm_t keepmsk , regm_t desmsk );
+code *loadea (elem *e , code *cs , unsigned op , unsigned reg , targ_size_t offset , regm_t keepmsk , regm_t desmsk );
 unsigned getaddrmode (regm_t idxregs );
+void setaddrmode(code *c, regm_t idxregs);
 void getlvalue_msw(code *);
 void getlvalue_lsw(code *);
-code *getlvalue (code __ss *pcs , elem *e , regm_t keepmsk );
+code *getlvalue (code *pcs , elem *e , regm_t keepmsk );
 code *scodelem (elem *e , regm_t *pretregs , regm_t keepmsk , bool constflag );
-code *fltregs (code __ss *pcs , tym_t tym );
+code *fltregs (code *pcs , tym_t tym );
 code *tstresult (regm_t regm , tym_t tym , unsigned saveflag );
 code *fixresult (elem *e , regm_t retregs , regm_t *pretregs );
 code *callclib (elem *e , unsigned clib , regm_t *pretregs , regm_t keepmask );
@@ -628,7 +644,7 @@ code *offsetinreg (elem *e , regm_t *pretregs );
 code *loaddata (elem *e , regm_t *pretregs );
 
 /* cod2.c */
-regm_t idxregm (unsigned rm,unsigned sib);
+regm_t idxregm(code *c);
 #if TARGET_WINDOS
 code *opdouble (elem *e , regm_t *pretregs , unsigned clib );
 #endif
@@ -679,7 +695,7 @@ void doswitch (block *b );
 void outjmptab (block *b );
 void outswitab (block *b );
 int jmpopcode (elem *e );
-void cod3_ptrchk(code * __ss *pc,code __ss *pcs,regm_t keepmsk);
+void cod3_ptrchk(code **pc,code *pcs,regm_t keepmsk);
 code *prolog (void );
 void epilog (block *b);
 cd_t cdframeptr;
@@ -709,7 +725,7 @@ void code_dehydrate(code **pc);
 extern  const unsigned dblreg[];
 extern int cdcmp_flag;
 
-code *modEA (unsigned Irm );
+code *modEA(code *c);
 cd_t cdeq;
 cd_t cdaddass;
 cd_t cdmulass;
@@ -803,6 +819,8 @@ code *gen1 (code *c , unsigned op );
 code *gen2 (code *c , unsigned op , unsigned rm );
 code *gen2sib(code *c,unsigned op,unsigned rm,unsigned sib);
 code *genregs (code *c , unsigned op , unsigned dstreg , unsigned srcreg );
+code *genpush (code *c , unsigned reg );
+code *genpop (code *c , unsigned reg );
 code *gentstreg (code *c , unsigned reg );
 code *genasm (code *c , char *s , unsigned slen );
 code *genmovreg (code *c , unsigned to , unsigned from );
