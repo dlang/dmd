@@ -53,3 +53,9 @@ regm_t  DOUBLEREGS = DOUBLEREGS_16;
 
 symbol *localgot;               // reference to GOT for this function
 symbol *tls_get_addr_sym;       // function __tls_get_addr
+
+#if TARGET_OSX
+int STACKALIGN = 16;
+#else
+int STACKALIGN = 0;
+#endif

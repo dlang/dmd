@@ -110,7 +110,7 @@ const char *asmerrmsgs[] =
     "bad integral operand",
     "identifier expected",
     "not struct",
-    "nops expected",
+    "%u operands found for %s instead of the expected %u",
     "bad type/size of operands '%s'",
     "constant initializer expected",
     "undefined identifier '%s'",
@@ -592,7 +592,6 @@ STATIC PTRNTAB asm_classify(OP *pop, OPND *popnd1, OPND *popnd2, OPND *popnd3,
 PARAM_ERROR:
                 asmerr(EM_nops_expected, usActual, asm_opstr(pop), usNumops);
         }
-        *pusNumops = asmstate.ucItype == ITfloat ? usActual : usNumops;
         if (usActual < usNumops)
             *pusNumops = usActual;
         else
@@ -1494,14 +1493,20 @@ L386_WARNING2:
                 if (((aoptyTable1 == _reg || aoptyTable1 == _float) &&
                      amodTable1 == _normal && (uRegmaskTable1 & _rplus_r)))
                 {
-                        if (asmstate.ucItype == ITfloat)
-                                pc->Irm += popnd1->base->val;
-                        else if (pc->Iop == 0x0f)
-                                pc->Iop2 += popnd1->base->val;
-                        else
-                                pc->Iop += popnd1->base->val;
+                    unsigned reg = popnd1->base->val;
+                    if (reg & 8)
+                    {   reg &= 7;
+                        pc->Irex |= REX_B;
+                        assert(I64);
+                    }
+                    if (asmstate.ucItype == ITfloat)
+                        pc->Irm += reg;
+                    else if (pc->Iop == 0x0f)
+                        pc->Iop2 += reg;
+                    else
+                        pc->Iop += reg;
 #ifdef DEBUG
-                        auchOpcode[usIdx-1] += popnd1->base->val;
+                    auchOpcode[usIdx-1] += reg;
 #endif
                 }
                 else
@@ -1625,15 +1630,20 @@ printf("usOpcode = %x\n", usOpcode);
                              amodTable1 == _normal &&
                              (uRegmaskTable1 & _rplus_r)))
                         {
-                                if (asmstate.ucItype == ITfloat)
-                                        pc->Irm += popnd1->base->val;
-                                else
-                                if (pc->Iop == 0x0f)
-                                        pc->Iop2 += popnd1->base->val;
-                                else
-                                        pc->Iop += popnd1->base->val;
+                            unsigned reg = popnd1->base->val;
+                            if (reg & 8)
+                            {   reg &= 7;
+                                pc->Irex |= REX_B;
+                                assert(I64);
+                            }
+                            if (asmstate.ucItype == ITfloat)
+                                pc->Irm += reg;
+                            else if (pc->Iop == 0x0f)
+                                pc->Iop2 += reg;
+                            else
+                                pc->Iop += reg;
 #ifdef DEBUG
-                                auchOpcode[usIdx-1] += popnd1->base->val;
+                            auchOpcode[usIdx-1] += reg;
 #endif
                         }
                         else
@@ -1641,15 +1651,20 @@ printf("usOpcode = %x\n", usOpcode);
                              amodTable2 == _normal &&
                              (uRegmaskTable2 & _rplus_r)))
                         {
-                                if (asmstate.ucItype == ITfloat)
-                                        pc->Irm += popnd2->base->val;
-                                else
-                                if (pc->Iop == 0x0f)
-                                        pc->Iop2 += popnd2->base->val;
-                                else
-                                        pc->Iop += popnd2->base->val;
+                            unsigned reg = popnd2->base->val;
+                            if (reg & 8)
+                            {   reg &= 7;
+                                pc->Irex |= REX_B;
+                                assert(I64);
+                            }
+                            if (asmstate.ucItype == ITfloat)
+                                pc->Irm += reg;
+                            else if (pc->Iop == 0x0f)
+                                pc->Iop2 += reg;
+                            else
+                                pc->Iop += reg;
 #ifdef DEBUG
-                                auchOpcode[usIdx-1] += popnd2->base->val;
+                            auchOpcode[usIdx-1] += reg;
 #endif
                         }
                         else if (ptb.pptb0->usOpcode == 0xF30FD6 ||
@@ -1715,15 +1730,20 @@ printf("usOpcode = %x\n", usOpcode);
                              amodTable1 == _normal &&
                              (uRegmaskTable1 &_rplus_r)))
                         {
-                                if (asmstate.ucItype == ITfloat)
-                                        pc->Irm += popnd1->base->val;
-                                else
-                                if (pc->Iop == 0x0f)
-                                        pc->Iop2 += popnd1->base->val;
-                                else
-                                        pc->Iop += popnd1->base->val;
+                            unsigned reg = popnd1->base->val;
+                            if (reg & 8)
+                            {   reg &= 7;
+                                pc->Irex |= REX_B;
+                                assert(I64);
+                            }
+                            if (asmstate.ucItype == ITfloat)
+                                pc->Irm += reg;
+                            else if (pc->Iop == 0x0f)
+                                pc->Iop2 += reg;
+                            else
+                                pc->Iop += reg;
 #ifdef DEBUG
-                                auchOpcode[usIdx-1] += popnd1->base->val;
+                            auchOpcode[usIdx-1] += reg;
 #endif
                         }
                         else
@@ -1731,15 +1751,20 @@ printf("usOpcode = %x\n", usOpcode);
                              amodTable2 == _normal &&
                              (uRegmaskTable2 &_rplus_r)))
                         {
-                                if (asmstate.ucItype == ITfloat)
-                                        pc->Irm += popnd1->base->val;
-                                else
-                                if (pc->Iop == 0x0f)
-                                        pc->Iop2 += popnd1->base->val;
-                                else
-                                        pc->Iop += popnd2->base->val;
+                            unsigned reg = popnd1->base->val;
+                            if (reg & 8)
+                            {   reg &= 7;
+                                pc->Irex |= REX_B;
+                                assert(I64);
+                            }
+                            if (asmstate.ucItype == ITfloat)
+                                pc->Irm += reg;
+                            else if (pc->Iop == 0x0f)
+                                pc->Iop2 += reg;
+                            else
+                                pc->Iop += reg;
 #ifdef DEBUG
-                                auchOpcode[usIdx-1] += popnd2->base->val;
+                            auchOpcode[usIdx-1] += reg;
 #endif
                         }
                         else
@@ -2672,54 +2697,15 @@ STATIC regm_t asm_modify_regs(PTRNTAB ptb, OPND *popnd1, OPND *popnd2)
         popnd1 = NULL;
         break;
     }
-    if (popnd1 && ASM_GET_aopty(popnd1->usFlags) == _reg) {
-        switch (ASM_GET_amod(popnd1->usFlags)) {
+    if (popnd1 && ASM_GET_aopty(popnd1->usFlags) == _reg)
+    {
+        switch (ASM_GET_amod(popnd1->usFlags))
+        {
         default:
-            if (ASM_GET_uSizemask(popnd1->usFlags) == _8) {
-                switch(popnd1->base->val) {
-                    case _AL:
-                    case _AH:
-                        usRet |= mAX;
-                        break;
-                    case _BL:
-                    case _BH:
-                        usRet |= mBX;
-                        break;
-                    case _CL:
-                    case _CH:
-                        usRet |= mCX;
-                        break;
-                    case _DL:
-                    case _DH:
-                        usRet |= mDX;
-                        break;
-                    default:
-                        assert(0);
-                }
-            }
-            else {
-                switch (popnd1->base->val) {
-                    case _AX:
-                        usRet |= mAX;
-                        break;
-                    case _BX:
-                        usRet |= mBX;
-                        break;
-                    case _CX:
-                        usRet |= mCX;
-                        break;
-                    case _DX:
-                        usRet |= mDX;
-                        break;
-                    case _SI:
-                        usRet |= mSI;
-                        break;
-                    case _DI:
-                        usRet |= mDI;
-                        break;
-                }
-            }
+            usRet |= 1 << popnd1->base->val;
+            usRet &= ~(mBP | mSP);              // ignore changing these
             break;
+
         case _rseg:
             //if (popnd1->base->val == _ES)
                 //usRet |= mES;

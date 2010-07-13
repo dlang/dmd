@@ -36,7 +36,6 @@ STATIC void resetEcomsub(elem *e);
 STATIC code * loadcse(elem *,unsigned,regm_t);
 STATIC void blcodgen(block *);
 STATIC void cgcod_eh();
-STATIC int numbitsset(regm_t);
 STATIC code * cse_save(regm_t ms);
 STATIC int cse_simple(elem *e,int i);
 STATIC code * comsub(elem *,regm_t *);
@@ -1573,7 +1572,7 @@ regm_t regmask(tym_t tym, tym_t tyf)
  * Count the number of bits set in a register mask.
  */
 
-STATIC int numbitsset(regm_t regm)
+int numbitsset(regm_t regm)
 {   int n;
 
     n = 0;

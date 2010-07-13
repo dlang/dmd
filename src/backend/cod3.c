@@ -286,6 +286,7 @@ void cod3_set64()
     FLOATREGS = FLOATREGS_64;
     FLOATREGS2 = FLOATREGS2_64;
     DOUBLEREGS = DOUBLEREGS_64;
+    STACKALIGN = 16;
 
     for (unsigned i = 0x80; i < 0x90; i++)
         inssize2[i] = W|T|6;
@@ -369,29 +370,16 @@ void doswitch(block *b)
         if (val > vmax) vmax = val;
         if (val < vmin) vmin = val;
         if (REGSIZE == 2)
-        {   unsigned short ms;
-
-#if __DMC__
-            ms = ((unsigned short *)&val)[1];
-#else
-            ms = (val >> 16) & 0xFFFF;
-#endif
+        {
+            unsigned short ms = (val >> 16) & 0xFFFF;
             if (n == 0)
                 msw = ms;
             else if (msw != ms)
                 mswsame = 0;
         }
         else // REGSIZE == 4
-        {   targ_ulong ms;
-
-#if __DMC__
-            /* This statement generates garbage for ms under g++,
-             * I don't know why.
-             */
-            ms = ((targ_ulong *)&val)[1];
-#else
-            ms = (val >> 32) & 0xFFFFFFFF;
-#endif
+        {
+            targ_ulong ms = (val >> 32) & 0xFFFFFFFF;
             if (n == 0)
                 msw = ms;
             else if (msw != ms)
@@ -402,9 +390,48 @@ void doswitch(block *b)
     //dbg_printf("vmax = x%lx, vmin = x%lx, vmax-vmin = x%lx\n",vmax,vmin,vmax - vmin);
     flags = (config.flags & CFGromable) ? CFcs : 0; // table is in code seg
 
+    if (I64)
+    {   // For now, just generate basic if-then sequence to get us running
+        retregs = ALLREGS;
+        b->BC = BCifthen;
+        c = scodelem(e,&retregs,0,TRUE);
+        assert(!dword);                 // 128 bit switches not supported
+        reg = findreg(retregs);         // reg that result is in
+        bl = b->Bsucc;
+        for (n = 0; n < ncases; n++)
+        {   code *cx;
+            val = *p;
+            if (sz == 4)
+                cx = genc2(CNIL,0x81,modregrmx(3,7,reg),val);  // CMP reg,val
+            else if (sz == 8)
+            {
+                if (val == (int)val)    // if val is a 64 bit value sign-extended from 32 bits
+                {
+                    cx = genc2(CNIL,0x81,modregrmx(3,7,reg),val);  // CMP reg,value32
+                    cx->Irex |= REX_W;  // 64 bit operand
+                }
+                else
+                {   unsigned sreg;
+                                                                // MOV sreg,value64
+                    cx = regwithvalue(CNIL, ALLREGS & ~mask[reg], val, &sreg, 64);
+                    cx = genregs(cx,0x3B,reg,sreg);             // CMP reg,sreg
+                    code_orrex(cx, REX_W);
+                }
+            }
+            else
+                assert(0);
+            bl = list_next(bl);
+            genjmp(cx,JE,FLblock,list_block(bl));       // JE caseaddr
+            c = cat(c,cx);
+            p++;
+        }
+        if (list_block(b->Bsucc) != b->Bnext) /* if default is not next block */
+                c = cat(c,genjmp(CNIL,JMP,FLblock,list_block(b->Bsucc)));
+        ce = NULL;
+    }
     // Need to do research on MACHOBJ to see about better methods
-    if (MACHOBJ || ncases <= 3)                 // generate if-then sequence
-    {
+    else if (MACHOBJ || ncases <= 3)
+    {   // generate if-then sequence
         retregs = ALLREGS;
     L1:
         b->BC = BCifthen;
@@ -845,7 +872,7 @@ L1:
  *              into the lvalue
  */
 
-void cod3_ptrchk(code * __ss *pc,code __ss *pcs,regm_t keepmsk)
+void cod3_ptrchk(code **pc,code *pcs,regm_t keepmsk)
 {   code *c;
     code *cs2;
     unsigned char rm,sib;
@@ -857,6 +884,7 @@ void cod3_ptrchk(code * __ss *pc,code __ss *pcs,regm_t keepmsk)
     regm_t used;
     int i;
 
+    assert(!I64);
     if (!I16 && pcs->Iflags & (CFes | CFss | CFcs | CFds | CFfs | CFgs))
         return;         // not designed to deal with 48 bit far pointers
 
@@ -949,7 +977,7 @@ void cod3_ptrchk(code * __ss *pc,code __ss *pcs,regm_t keepmsk)
     c = gen1(c,0x50 + reg);             // PUSH reg
 
     // Rewrite the addressing mode in *pcs so it is just 0[reg]
-    pcs->Irm = getaddrmode(idxregs);
+    setaddrmode(pcs, idxregs);
     pcs->IFL1 = FLoffset;
     pcs->IEV1.Vuns = 0;
 
@@ -1029,26 +1057,22 @@ Lcant:
 
 code *cdframeptr(elem *e, regm_t *pretregs)
 {
-    regm_t retregs;
     unsigned reg;
-    code *cg;
-    code *c1;
     code cs;
 
-    retregs = *pretregs & allregs;
+    regm_t retregs = *pretregs & allregs;
     if  (!retregs)
         retregs = allregs;
-    cg = allocreg(&retregs, &reg, TYint);
-    //c1 = genmovreg(cg, reg, BP);
+    code *cg = allocreg(&retregs, &reg, TYint);
 
     cs.Iop = ESCAPE;
     cs.Iop2 = ESCframeptr;
     cs.Iflags = 0;
     cs.Irex = 0;
     cs.Irm = reg;
-    c1 = gen(cg,&cs);
+    cg = gen(cg,&cs);
 
-    return cat(c1,fixresult(e,retregs,pretregs));
+    return cat(cg,fixresult(e,retregs,pretregs));
 }
 
 /***************************************
@@ -1855,9 +1879,8 @@ void epilog(block *b)
          (config.flags2 & CFG2comdat && SymInline(funcsym_p))
         )
        )
-    {   symbol *s;
-
-        s = rtlsym[farfunc ? RTLSYM_TRACE_EPI_F : RTLSYM_TRACE_EPI_N];
+    {
+        symbol *s = rtlsym[farfunc ? RTLSYM_TRACE_EPI_F : RTLSYM_TRACE_EPI_N];
         makeitextern(s);
         c = gencs(c,I16 ? 0x9A : 0xE8,0,FLfunc,s);      // CALLF _trace
         if (!I16)
@@ -1875,21 +1898,25 @@ void epilog(block *b)
         spoff += intsize;
     }
 
-    reg = 7;
-    regm = 1 << 7;
+    /* Pop all the general purpose registers saved on the stack
+     * by the prolog code. Remember to do them in the reverse
+     * order they were pushed.
+     */
+    reg = I64 ? R15 : DI;
+    regm = 1 << reg;
     topop = fregsaved & ~mfuncreg;
 #ifdef DEBUG
-    if (topop & ~0xFF)
+    if (topop & ~0xFFFF)
         printf("fregsaved = x%x, mfuncreg = x%x\n",fregsaved,mfuncreg);
 #endif
-    assert(!(topop & ~0xFF));
+    assert(!(topop & ~0xFFFF));
     while (topop)
     {   if (topop & regm)
-        {       c = gen1(c,0x58 + reg);         /* POP reg              */
-                if (reg & 8)
-                    code_orrex(c, REX_B);
-                topop &= ~regm;
-                spoff += intsize;
+        {   c = gen1(c,0x58 + reg);         // POP reg
+            if (reg & 8)
+                code_orrex(c, REX_B);
+            topop &= ~regm;
+            spoff += intsize;
         }
         regm >>= 1;
         reg--;
@@ -1995,7 +2022,7 @@ Lopt:
     // If last instruction in ce is ADD SP,imm, and first instruction
     // in c sets SP, we can dump the ADD.
     cr = code_last(ce);
-    if (cr && c)
+    if (cr && c && !I64)
     {
         if (cr->Iop == 0x81 && cr->Irm == modregrm(3,0,SP))     // if ADD SP,imm
         {
@@ -2026,7 +2053,7 @@ Lopt:
     retsize += calcblksize(c);          // compute size of function epilog
     b->Bcode = cat(ce,c);
 }
-
+
 /*******************************
  * Return offset of SP from BP.
  */
@@ -2386,17 +2413,17 @@ int branch(block *bl,int flag)
             {
                 if (op == JMP)
                 {   c->Iop = JMPS;              // JMP SHORT
-                    bytesaved += I32 ? 3 : 1;
+                    bytesaved += I16 ? 1 : 3;
                 }
                 else                            // else Jcond
                 {   c->Iflags &= ~CFjmp16;      // a branch is ok
-                    bytesaved += I32 ? 4 : 3;
+                    bytesaved += I16 ? 3 : 4;
 
                     // Replace a cond jump around a call to a function that
                     // never returns with a cond jump to that function.
                     if (config.flags4 & CFG4optimized &&
                         config.target_cpu >= TARGET_80386 &&
-                        disp == (I32 ? 5 : 3) &&
+                        disp == (I16 ? 3 : 5) &&
                         cn &&
                         cn->Iop == 0xE8 &&
                         cn->IFL2 == FLfunc &&
@@ -2544,21 +2571,28 @@ void assignaddrc(code *c)
             }
             if (c->Iop2 == ESCframeptr)
             {   // Convert to load of frame pointer
+                // c->Irm is the register to use
                 if (hasframe)
                 {   // MOV reg,EBP
                     c->Iop = 0x89;
-                    c->Irm = modregrm(3,BP,c->Irm);
+                    if (c->Irm & 8)
+                        c->Irex |= REX_B;
+                    c->Irm = modregrm(3,BP,c->Irm & 7);
                 }
                 else
                 {   // LEA reg,EBPtoESP[ESP]
                     c->Iop = 0x8D;
-                    c->Irm = modregrm(2,c->Irm,4);
+                    if (c->Irm & 8)
+                        c->Irex |= REX_R;
+                    c->Irm = modregrm(2,c->Irm & 7,4);
                     c->Isib = modregrm(0,4,SP);
                     c->Iflags = CFoff;
                     c->IFL1 = FLconst;
                     c->IEV1.Vuns = EBPtoESP;
                 }
             }
+            if (I64)
+                c->Irex |= REX_W;
             continue;
         }
         else
@@ -2648,6 +2682,11 @@ void assignaddrc(code *c)
                         {   assert(reg < 4);    /* must be a BYTEREGS   */
                             reg |= 4;           /* convert to high byte reg */
                         }
+                        if (reg & 8)
+                        {   assert(I64);
+                            c->Irex |= REX_B;
+                            reg &= 7;
+                        }
                         c->Irm = (c->Irm & modregrm(0,7,0))
                                 | modregrm(3,0,reg);
                         assert(c->Iop != LES && c->Iop != LEA);
@@ -2662,7 +2701,7 @@ void assignaddrc(code *c)
                     {   /* Convert to ESP relative address instead of EBP */
                         unsigned char rm;
 
-                        assert(I32);
+                        assert(!I16);
                         c->IEVpointer1 += EBPtoESP;
                         rm = c->Irm;
                         if ((rm & 7) == 4)              // if SIB byte
@@ -2886,12 +2925,12 @@ void pinholeopt(code *c,block *b)
   if (b)
   {     bn = b->Bnext;
         usespace = (config.flags4 & CFG4space && b->BC != BCasm);
-        useopsize = (!I32 || (config.flags4 & CFG4space && b->BC != BCasm));
+        useopsize = (I16 || (config.flags4 & CFG4space && b->BC != BCasm));
   }
   else
   {     bn = NULL;
         usespace = (config.flags4 & CFG4space);
-        useopsize = (!I32 || config.flags4 & CFG4space);
+        useopsize = (I16 || config.flags4 & CFG4space);
   }
   for (; c; c = code_next(c))
   {
@@ -2901,8 +2940,8 @@ void pinholeopt(code *c,block *b)
             ins = inssize2[c->Iop2];
         else
             ins = inssize[c->Iop];
-        if (ins & M)            /* if modregrm byte             */
-        {   int longop = (c->Iflags & CFopsize) ? !I32 : I32;
+        if (!I64 && ins & M)            // if modregrm byte
+        {   int longop = (c->Iflags & CFopsize) ? I16 : I32;
             int local_BPRM = BPRM;
 
             if (c->Iflags & CFaddrsize)
@@ -2926,12 +2965,7 @@ void pinholeopt(code *c,block *b)
                     u = (short) u;
 
                 // Replace CMP reg,0 with TEST reg,reg
-#if 0
-                // BUG: is this the right one?
-                if ((op & 0xFC) == 0x80 &&
-#else
                 if ((op & 0xFE) == 0x80 &&
-#endif
                     rm >= modregrm(3,7,AX) &&
                     u == 0)
                 {       c->Iop = (op & 1) | 0x84;
@@ -4028,7 +4062,7 @@ STATIC void do64bit(enum FL fl,union evc *uev,int flags)
             return;
         case FLdatseg:
             FLUSH();
-            reftodatseg(cseg,offset,uev->_EP.Vpointer,uev->_EP.Vseg,flags);
+            reftodatseg(cseg,offset,uev->_EP.Vpointer,uev->_EP.Vseg,CFoffset64 | flags);
             break;
         case FLframehandler:
             framehandleroffset = OFFSET();
@@ -4059,7 +4093,7 @@ STATIC void do64bit(enum FL fl,union evc *uev,int flags)
 #endif
             FLUSH();
             s = uev->sp.Vsym;               /* symbol pointer               */
-            reftoident(cseg,offset,s,uev->sp.Voffset,flags);
+            reftoident(cseg,offset,s,uev->sp.Voffset,CFoffset64 | flags);
             break;
 
 #if TARGET_OSX
@@ -4073,7 +4107,7 @@ STATIC void do64bit(enum FL fl,union evc *uev,int flags)
             s = uev->sp.Vsym;               /* symbol pointer               */
             assert(!(TARGET_FLAT && tyfarfunc(s->ty())));
             FLUSH();
-            reftoident(cseg,offset,s,0,flags);
+            reftoident(cseg,offset,s,0,CFoffset64 | flags);
             break;
 
         case FLblock:                       /* displacement to another block */

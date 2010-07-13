@@ -163,7 +163,7 @@ code *gen(code *c,code *cs)
 
 //printf("replacing 0x%02x, val = x%lx\n",ce->Iop,ce->IEV2.Vlong);
         ce->Iop = regop[(ce->Irm & modregrm(0,7,0)) >> 3] | (ce->Iop & 1);
-        ce->Irm = (ce->Irm & modregrm(3,0,7)) | modregrm(0,reg,0);
+        code_newreg(ce, reg);
     }
     code_next(ce) = CNIL;
     if (c)
@@ -200,8 +200,7 @@ code *gen2(code *c,unsigned op,unsigned rm)
   }
   else
         ce->Iop = op;
-  ce->Irm = rm;
-  ce->Irex = rm >> 16;
+  ce->Iea = rm;
   if (c)
   {     cstart = c;
         while (code_next(c)) c = code_next(c);  /* find end of list     */
@@ -218,7 +217,9 @@ code *gen2sib(code *c,unsigned op,unsigned rm,unsigned sib)
   ce->Iop = op;
   ce->Irm = rm;
   ce->Isib = sib;
-  ce->Irex = rm >> 16;
+  ce->Irex = (rm | (sib & (REX_B << 16))) >> 16;
+  if (sib & (REX_R << 16))
+        ce->Irex |= REX_X;
   if (c)
   {     cstart = c;
         while (code_next(c)) c = code_next(c);  /* find end of list     */
@@ -234,6 +235,22 @@ code *gentstreg(code *c,unsigned t)
 {
     c = gen2(c,0x85,modregxrmx(3,t,t));   // TEST t,t
     code_orflag(c,CFpsw);
+    return c;
+}
+
+code *genpush(code *c, unsigned reg)
+{
+    c = gen1(c, 0x50 + (reg & 7));
+    if (reg & 8)
+        code_orrex(c, REX_B);
+    return c;
+}
+
+code *genpop(code *c, unsigned reg)
+{
+    c = gen1(c, 0x58 + (reg & 7));
+    if (reg & 8)
+        code_orrex(c, REX_B);
     return c;
 }
 
@@ -326,13 +343,12 @@ code *genjmp(code *c,unsigned op,unsigned fltarg,block *targ)
     return cat(c,cj);
 }
 
-code *gencs(code *c,unsigned op,unsigned rm,unsigned FL2,symbol *s)
+code *gencs(code *c,unsigned op,unsigned ea,unsigned FL2,symbol *s)
 {   code cs;
 
     cs.Iop = op;
-    cs.Irm = rm;
+    cs.Iea = ea;
     cs.Iflags = 0;
-    cs.Irex = rm >> 16;
     cs.IFL2 = FL2;
     cs.IEVsym2 = s;
     cs.IEVoffset2 = 0;
@@ -340,7 +356,7 @@ code *gencs(code *c,unsigned op,unsigned rm,unsigned FL2,symbol *s)
     return gen(c,&cs);
 }
 
-code *genc2(code *c,unsigned op,unsigned rm,targ_size_t EV2)
+code *genc2(code *c,unsigned op,unsigned ea,targ_size_t EV2)
 {   code cs;
 
     if (op > 0xFF)
@@ -349,9 +365,8 @@ code *genc2(code *c,unsigned op,unsigned rm,targ_size_t EV2)
     }
     else
         cs.Iop = op;
-    cs.Irm = rm;
+    cs.Iea = ea;
     cs.Iflags = CFoff;
-    cs.Irex = rm >> 16;
     cs.IFL2 = FLconst;
     cs.IEV2.Vsize_t = EV2;
     return gen(c,&cs);
@@ -361,15 +376,13 @@ code *genc2(code *c,unsigned op,unsigned rm,targ_size_t EV2)
  * Generate code.
  */
 
-code *genc1(code *c,unsigned op,unsigned rm,unsigned FL1,targ_size_t EV1)
+code *genc1(code *c,unsigned op,unsigned ea,unsigned FL1,targ_size_t EV1)
 {   code cs;
 
     assert(FL1 < FLMAX);
     assert(op < 256);
     cs.Iop = op;
-    cs.Irm = rm;
-    cs.Isib = rm >> 8;
-    cs.Irex = rm >> 16;
+    cs.Iea = ea;
     cs.Iflags = CFoff;
     cs.IFL1 = FL1;
     cs.IEV1.Vsize_t = EV1;
@@ -380,15 +393,13 @@ code *genc1(code *c,unsigned op,unsigned rm,unsigned FL1,targ_size_t EV1)
  * Generate code.
  */
 
-code *genc(code *c,unsigned op,unsigned rm,unsigned FL1,targ_size_t EV1,unsigned FL2,targ_size_t EV2)
+code *genc(code *c,unsigned op,unsigned ea,unsigned FL1,targ_size_t EV1,unsigned FL2,targ_size_t EV2)
 {   code cs;
 
     assert(FL1 < FLMAX);
     assert(op < 256);
     cs.Iop = op;
-    cs.Irm = rm;
-    cs.Isib = rm >> 8;
-    cs.Irex = rm >> 16;
+    cs.Iea = ea;
     cs.Iflags = CFoff;
     cs.IFL1 = FL1;
     cs.IEV1.Vsize_t = EV1;

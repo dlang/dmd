@@ -88,6 +88,7 @@ typedef unsigned opflag_t;
 #define _rm8    CONSTRUCT_FLAGS(_8, _rm, _normal, 0 )
 #define _rm16   CONSTRUCT_FLAGS(_16, _rm, _normal, 0 )
 #define _rm32   CONSTRUCT_FLAGS(_32, _rm, _normal, 0)
+#define _rm64   CONSTRUCT_FLAGS(_64, _rm, _normal, 0)
 #define _r32m16 CONSTRUCT_FLAGS(_32|_16, _rm, _normal, 0)
 #define _imm8   CONSTRUCT_FLAGS(_8, _imm, _normal, 0 )
 #define _imm16  CONSTRUCT_FLAGS(_16, _imm, _normal, 0)
