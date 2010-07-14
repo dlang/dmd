@@ -2,11 +2,11 @@
  * This module contains all functions related to an object's lifetime:
  * allocation, resizing, deallocation, and finalization.
  *
- * Copyright: Copyright Digital Mars 2000 - 2009.
+ * Copyright: Copyright Digital Mars 2000 - 2010.
  * License:   <a href="http://www.boost.org/LICENSE_1_0.txt">Boost License 1.0</a>.
- * Authors:   Walter Bright, Sean Kelly
+ * Authors:   Walter Bright, Sean Kelly, Steven Schveighoffer
  *
- *          Copyright Digital Mars 2000 - 2009.
+ *          Copyright Digital Mars 2000 - 2010.
  * Distributed under the Boost Software License, Version 1.0.
  *    (See accompanying file LICENSE_1_0.txt or copy at
  *          http://www.boost.org/LICENSE_1_0.txt)
@@ -21,6 +21,7 @@ private
     import core.stdc.stdlib;
     import core.stdc.string;
     import core.stdc.stdarg;
+    import core.bitop;
     debug(PRINTF) import core.stdc.stdio;
 }
 
@@ -365,12 +366,17 @@ static if(N_CACHE_BLOCKS==1)
 else
 {
     //version=simple_cache; // uncomment to test simple cache strategy
+    //version=random_cache; // uncomment to test random cache strategy
 
     // ensure N_CACHE_BLOCKS is power of 2.
     static assert(!((N_CACHE_BLOCKS - 1) & N_CACHE_BLOCKS));
 
     // note this is TLS, so no need to sync.
     BlkInfo __blkcache[N_CACHE_BLOCKS];
+    version(random_cache)
+    {
+        int __nextRndNum = 0;
+    }
     int __nextBlkIdx;
 }
 
@@ -442,6 +448,23 @@ void __insertBlkInfoCache(BlkInfo bi, BlkInfo *curpos)
                 __blkcache.ptr[__nextBlkIdx] = bi;
                 __nextBlkIdx = (__nextBlkIdx+1) & (N_CACHE_BLOCKS - 1);
             }
+        }
+        else version(random_cache)
+        {
+            // strategy: if the block currently is in the cache, move the
+            // current block index to the a random element and evict that
+            // element.
+            auto cache = __blkcache.ptr;
+            if(!curpos)
+            {
+                __nextBlkIdx = (__nextRndNum = 1664525 * __nextRndNum + 1013904223) & (N_CACHE_BLOCKS - 1);
+                curpos = cache + __nextBlkIdx;
+            }
+            else
+            {
+                __nextBlkIdx = curpos - cache;
+            }
+            *curpos = bi;
         }
         else
         {
@@ -1381,11 +1404,12 @@ extern (C) long _d_arrayappendT(TypeInfo ti, Array *px, byte[] y)
             {
                 // check to see if it failed because there is not
                 // enough space
+                auto newcap = newCapacity(newlength, sizeelem);
                 if(*(cast(size_t*)info.base) == size + offset)
                 {
                     // not enough space, try extending
-                    auto extendsize = newsize + offset + LARGEPAD - info.size;
-                    auto u = gc_extend(px.data, extendsize, extendsize);
+                    int extendoffset = offset + LARGEPAD - info.size;
+                    auto u = gc_extend(px.data, newsize + extendoffset, newcap + extendoffset);
                     if(u)
                     {
                         // extend worked, now try setting the length
@@ -1401,7 +1425,7 @@ extern (C) long _d_arrayappendT(TypeInfo ti, Array *px, byte[] y)
                 }
 
                 // couldn't do it, reallocate
-                info = gc_qalloc(newCapacity(newlength, sizeelem) + LARGEPAD, info.attr);
+                info = gc_qalloc(newcap + LARGEPAD, info.attr);
                 __setArrayAllocLength(info, newsize, isshared);
                 if(!isshared)
                     __insertBlkInfoCache(info, bic);
@@ -1486,7 +1510,7 @@ size_t newCapacity(size_t newlength, size_t size)
 
             // redo above line using only integer math
 
-            static int log2plus1(size_t c)
+            /*static int log2plus1(size_t c)
             {   int i;
 
                 if (c == 0)
@@ -1496,7 +1520,7 @@ size_t newCapacity(size_t newlength, size_t size)
                     {
                     }
                 return i;
-            }
+            }*/
 
             /* The following setting for mult sets how much bigger
              * the new size will be over what is actually needed.
@@ -1504,13 +1528,22 @@ size_t newCapacity(size_t newlength, size_t size)
              * More means faster but more memory consumption.
              */
             //long mult = 100 + (1000L * size) / (6 * log2plus1(newcap));
-            long mult = 100 + (1000L * size) / log2plus1(newcap);
+            //long mult = 100 + (1000L * size) / log2plus1(newcap);
+            long mult = 100 + (1000L) / (bsr(newcap) + 1);
 
             // testing shows 1.02 for large arrays is about the point of diminishing return
-            if (mult < 102)
-                mult = 102;
-            newext = cast(size_t)((newcap * mult) / 100);
-            newext -= newext % size;
+            //
+            // Commented out because the multipler will never be < 102.  In order for it to be < 2,
+            // then 1000L / (bsr(x) + 1) must be > 2.  The highest bsr(x) + 1
+            // could be is 65 (64th bit set), and 1000L / 64 is much larger
+            // than 2.  We need 500 bit integers for 101 to be achieved :)
+            /*if (mult < 102)
+                mult = 102;*/
+            /*newext = cast(size_t)((newcap * mult) / 100);
+            newext -= newext % size;*/
+            // This version rounds up to the next element, and avoids using
+            // mod.
+            newext = cast(size_t)((newlength * mult + 99) / 100) * size;
             debug(PRINTF) printf("mult: %2.2f, alloc: %2.2f\n",mult/100.0,newext / cast(double)size);
         }
         newcap = newext > newcap ? newext : newcap;
