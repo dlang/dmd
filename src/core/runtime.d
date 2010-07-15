@@ -279,9 +279,6 @@ private:
  *  true if execution should continue after testing is complete and false if
  *  not.  Default behavior is to return true.
  */
-
-extern (C) __gshared unittest_errors = false;
-
 extern (C) bool runModuleUnitTests()
 {
     static if( __traits( compiles, backtrace ) )
@@ -315,6 +312,7 @@ extern (C) bool runModuleUnitTests()
 
     if( Runtime.sm_moduleUnitTester is null )
     {
+        size_t failed = 0;
         foreach( m; ModuleInfo )
         {
             if( m )
@@ -322,10 +320,19 @@ extern (C) bool runModuleUnitTests()
                 auto fp = m.unitTest;
                 
                 if( fp )
-                    fp();
+                {
+                    try
+                    {
+                        fp();
+                    }
+                    catch( Throwable e )
+                    {
+                        failed++;
+                    }
+                }
             }
         }
-        return !unittest_errors;
+        return failed == 0;
     }
     return Runtime.sm_moduleUnitTester();
 }
