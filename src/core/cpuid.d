@@ -495,7 +495,7 @@ void getCpuInfo0B()
             mov ECX, level;
             cpuid;
             mov a, EAX;
-            mov b, EAX;
+            mov b, EBX;
             mov c, ECX;
             mov d, EDX;        
         }
