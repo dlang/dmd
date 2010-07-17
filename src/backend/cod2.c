@@ -3735,7 +3735,7 @@ code *getoffset(elem *e,unsigned reg)
   code *c;
 
   cs.Iflags = 0;
-  unsigned char rex = I64 ? REX_W : 0;
+  unsigned char rex = 0;
   cs.Irex = rex;
   assert(e->Eoper == OPvar || e->Eoper == OPrelconst);
   enum FL fl = el_fl(e);

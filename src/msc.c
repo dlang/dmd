@@ -40,6 +40,7 @@ struct Environment;
 
 void out_config_init()
 {
+    //printf("out_config_init()\n");
     Param *params = &global.params;
 
     if (!config.target_cpu)

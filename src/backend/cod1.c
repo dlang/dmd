@@ -14,6 +14,7 @@
 
 #include        <stdio.h>
 #include        <string.h>
+#include        <stdlib.h>
 #include        <time.h>
 #include        "cc.h"
 #include        "el.h"
@@ -326,6 +327,7 @@ void gensaverestore2(regm_t regm,code **csave,code **crestore)
     code *cs1 = *csave;
     code *cs2 = *crestore;
 
+    //printf("gensaverestore2(%x)\n", regm);
     regm &= mBP | mES | ALLREGS;
     for (int i = 0; regm; i++)
     {
@@ -1665,7 +1667,7 @@ code *tstresult(regm_t regm,tym_t tym,unsigned saveflag)
 
 #ifdef DEBUG
   if (!(regm & (mBP | ALLREGS)))
-        printf("tstresult(regm = x%x, tym = x%lx, saveflag = %d)\n",
+        printf("tstresult(regm = x%x, tym = x%x, saveflag = %d)\n",
             regm,tym,saveflag);
 #endif
   assert(regm & (mBP | ALLREGS));
@@ -2309,15 +2311,17 @@ code *cdfunc(elem *e,regm_t *pretregs)
   c = CNIL;
   keepmsk = 0;
   if (OTbinary(e->Eoper))               // if parameters
-  {     unsigned stackalign = REGSIZE;
-        elem *en;
-        regm_t retregs;
-
-        if (!I16)
+  {
+        if (I16)
         {
+            c = cat(c, params(e->E2,2));   // push parameters
+        }
+        else if (I32)
+        {
+            unsigned stackalign = REGSIZE;
             tym_t tyf = tybasic(e->E1->Ety);
 
-            // First compute numpara, the total pushed on the stack
+            // First compute numpara, the total bytes pushed on the stack
             switch (tyf)
             {   case TYf16func:
                     stackalign = 2;
@@ -2365,22 +2369,21 @@ code *cdfunc(elem *e,regm_t *pretregs)
             switch (tyf)
             {   case TYf16func:
                     stackalign = 2;
-                    break;
+                    goto Ldefault2;
                 case TYmfunc:   // last parameter goes into ECX
                     preg = CX;
                     goto L1;
                 case TYjfunc:   // last parameter goes into EAX
                     preg = AX;
                     goto L1;
-
                 L1:
-                    elem *ep;
+                {   elem *ep;
+                    elem *en;
                     for (ep = e->E2; ep->Eoper == OPparam; ep = en)
                     {
                         c = cat(c,params(ep->E1,stackalign));
                         en = ep->E2;
                         freenode(ep);
-                        ep = en;
                     }
                     if (tyf == TYjfunc &&
                         // This must match type_jparam()
@@ -2394,7 +2397,7 @@ code *cdfunc(elem *e,regm_t *pretregs)
                     }
                     // preg is the register to put the parameter ep in
                     keepmsk = mask[preg];       // don't change preg when evaluating func address
-                    retregs = keepmsk;
+                    regm_t retregs = keepmsk;
                     if (ep->Eoper == OPstrthis)
                     {   code *c2;
 
@@ -2411,9 +2414,133 @@ code *cdfunc(elem *e,regm_t *pretregs)
                         c = cat(c,cp);
                     }
                     goto Lret;
+                }
+                default:
+                Ldefault2:
+                    c = cat(c, params(e->E2,stackalign));   // push parameters
+                    break;
             }
         }
-        c = cat(c, params(e->E2,stackalign));   // push parameters
+        else
+        {   assert(I64);
+
+            struct Parameter { elem *e; int reg; };
+
+            #ifdef DEBUG
+            #define PARAMETERS_DIM 3
+            #else
+            #define PARAMETERS_DIM 10
+            #endif
+            Parameter parameters_tmp[PARAMETERS_DIM];
+            Parameter *parameters = parameters_tmp;
+            size_t parameters_dim = PARAMETERS_DIM;
+
+            // Load up parameters[]
+            elem *ep;
+            elem *en;
+            int np = 0;
+            for (ep = e->E2; ep->Eoper == OPparam; ep = en)
+            {
+                if (np + 1 == parameters_dim)   // if not space for 2 more
+                {   // Grow parameters[]
+                    parameters_dim = np + 16;
+                    Parameter *p = (Parameter *)alloca(parameters_dim * sizeof(Parameter));
+                    parameters = (Parameter *)memcpy(p, parameters, np * sizeof(Parameter));
+                }
+                parameters[np++].e = ep->E1;
+                en = ep->E2;
+                freenode(ep);
+            }
+            parameters[np++].e = ep;
+
+            unsigned stackalign = REGSIZE;
+            tym_t tyf = tybasic(e->E1->Ety);
+
+            // Compute numpara, the total bytes pushed on the stack
+            int r = 0;
+            int xmmcnt = XMM0;
+            for (int i = np; --i >= 0;)
+            {
+                static const unsigned char argregs[6] = { DI,SI,DX,CX,R8,R9 };
+                elem *ep = parameters[i].e;
+                tym_t ty = ep->Ety;
+                if (r < sizeof(argregs)/sizeof(argregs[0]))     // if more arg regs
+                {
+                    if (
+                        // This must match type_jparam()
+                        ty64reg(ty) ||
+                        ((tybasic(ty) == TYstruct || tybasic(ty) == TYarray) &&
+                         ep->Enumbytes <= REGSIZE && ep->Enumbytes != 3 && ep->Enumbytes)
+                        )
+                    {
+                        parameters[i].reg = argregs[r];
+                        r++;
+                        continue;       // goes in register, not stack
+                    }
+                }
+                else if (xmmcnt < XMM7)
+                {
+                    if (tyfloating(ty) && tysize(ty) <= 8)
+                    {
+                        parameters[i].reg = xmmcnt;
+                        xmmcnt++;
+                        continue;       // goes in register, not stack
+                    }
+                }
+                parameters[i].reg = -1;         // -1 means no register
+                numpara += paramsize(ep,stackalign);
+            }
+            assert((numpara & (REGSIZE - 1)) == 0);
+            assert((stackpush & (REGSIZE - 1)) == 0);
+
+            /* Adjust start of the stack so after all args are pushed,
+             * the stack will be aligned.
+             */
+            if (STACKALIGN == 16 && (numpara + stackpush) & (STACKALIGN - 1))
+            {
+                numalign = STACKALIGN - ((numpara + stackpush) & (STACKALIGN - 1));
+                c = genc2(NULL,0x81,(REX_W << 16) | modregrm(3,5,SP),numalign); // SUB ESP,numalign
+                c = genadjesp(c, numalign);
+                stackpush += numalign;
+                stackpushsave += numalign;
+            }
+
+            /* Parameters go into the registers RDI,RSI,RDX,RCX,R8,R9
+             * float and double parameters go into XMM0..XMM7
+             * For variadic functions, count of XMM registers used goes in AL
+             */
+            for (int i = 0; i < np; i++)
+            {
+                elem *ep = parameters[i].e;
+                int preg = parameters[i].reg;
+                if (preg == -1)
+                    c = cat(c,params(ep,stackalign));
+                else
+                {
+                    // Goes in register preg, not stack
+                    regm_t retregs = mask[preg];
+                    if (ep->Eoper == OPstrthis)
+                    {
+                        code *c1 = getregs(retregs);
+                        // LEA preg,np[ESP]
+                        unsigned np = stackpush - ep->EV.Vuns;   // stack delta to parameter
+                        code *c2 = genc1(CNIL,0x8D,(REX_W << 16) |
+                                             (modregrm(0,4,SP) << 8) |
+                                              modregxrm(2,preg,4), FLconst,np);
+                        c = cat3(c,c1,c2);
+                    }
+                    else
+                    {   code *cp = scodelem(ep,&retregs,keepmsk,FALSE);
+                        c = cat(c,cp);
+                    }
+                    keepmsk |= retregs;      // don't change preg when evaluating func address
+                }
+            }
+            if (e->Eflags & EFLAGS_variadic)
+            {   movregconst(c,AX,xmmcnt - XMM0,1);
+                keepmsk |= mAX;
+            }
+        }
     }
     else
     {
@@ -2434,14 +2561,14 @@ code *cdfunc(elem *e,regm_t *pretregs)
     }
 Lret:
     cgstate.stackclean--;
-    if (!I16)
+    if (I16)
+        numpara = stackpush - stackpushsave;
+    else
     {
         if (numpara != stackpush - stackpushsave)
             printf("numpara = %d, stackpush = %d, stackpushsave = %d\n", numpara, stackpush, stackpushsave);
         assert(numpara == stackpush - stackpushsave);
     }
-    else
-        numpara = stackpush - stackpushsave;
     return cat(c,funccall(e,numpara,numalign,pretregs,keepmsk));
 }
 

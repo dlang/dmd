@@ -43,6 +43,9 @@ struct elem
     unsigned char Eoper;        // operator (OPxxxx)
     unsigned char Ecount;       // # of parents of this elem - 1,
                                 // always 0 until CSE elimination is done
+    unsigned char Eflags;
+    #define EFLAGS_variadic 1   // variadic function call
+
     union eve EV;               // variants for each type of elem
     union
     {
