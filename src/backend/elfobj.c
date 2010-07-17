@@ -2718,6 +2718,8 @@ long elf_align(FILE *fd, targ_size_t size,long foffset)
 
 void obj_moduleinfo(Symbol *scc)
 {
+//    if (I64) return;          // for now, until Phobos64 works
+
     int codeOffset, refOffset;
 
     /* Put in the ModuleReference. */
@@ -2734,8 +2736,7 @@ void obj_moduleinfo(Symbol *scc)
         refOffset = SegData[seg]->SDoffset;
         SegData[seg]->SDbuf->writezeros(NPTRSIZE);
         SegData[seg]->SDoffset += NPTRSIZE;
-        SegData[seg]->SDoffset += reftoident(seg, SegData[seg]->SDoffset, scc, 0, CFoff);
-        alignOffset(seg, NPTRSIZE);
+        SegData[seg]->SDoffset += reftoident(seg, SegData[seg]->SDoffset, scc, 0, CFoffset64 | CFoff);
     }
 
     /* Constructor that links the ModuleReference to the head of
@@ -2763,23 +2764,27 @@ void obj_moduleinfo(Symbol *scc)
         codeOffset = SegData[seg]->SDoffset + 1;
         buf->writeByte(0xC3); /* ret */
 
-        buf->writeByte(0x60); /* pushad */
+        int off = 0;
+        if (I32)
+        {   buf->writeByte(0x60); // PUSHAD
+            off = 1;
+        }
 
         /* movl ModuleReference*, %eax */
         buf->writeByte(0xB8);
         buf->write32(refOffset);
-        elf_addrel(seg, codeOffset + 2, reltype, STI_DATA, 0);
+        elf_addrel(seg, codeOffset + off + 1, reltype, STI_DATA, 0);
 
         /* movl _Dmodule_ref, %ecx */
         buf->writeByte(0xB9);
         buf->write32(0);
-        elf_addrel(seg, codeOffset + 7, reltype, objextern("_Dmodule_ref"), 0);
+        elf_addrel(seg, codeOffset + off + 6, reltype, objextern("_Dmodule_ref"), 0);
 
         buf->writeByte(0x8B); buf->writeByte(0x11); /* movl (%ecx), %edx */
         buf->writeByte(0x89); buf->writeByte(0x10); /* movl %edx, (%eax) */
         buf->writeByte(0x89); buf->writeByte(0x01); /* movl %eax, (%ecx) */
 
-        buf->writeByte(0x61); /* popad */
+        if (I32) buf->writeByte(0x61); // POPAD
         buf->writeByte(0xC3); /* ret */
         SegData[seg]->SDoffset = buf->size();
     }

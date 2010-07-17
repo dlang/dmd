@@ -139,6 +139,8 @@ void codgen()
         ALLREGS = ALLREGS_INIT;
         BYTEREGS = value;
     }
+    if (I64)
+        ALLREGS = mAX|mBX|mCX|mDX|mSI|mDI| mR8|mR9|mR10|mR11|mR12|mR13|mR14|mR15;
 #endif
     allregs = ALLREGS;
     if (0 && config.flags3 & CFG3pic)
@@ -1912,7 +1914,7 @@ L3:
         {
 #ifdef DEBUG
             WRTYxx(tym);
-            printf("\nallocreg: fil %s lin %d, regcon.mvar x%x msavereg x%x *pretregs x%x, reg %d, tym x%lx\n",
+            printf("\nallocreg: fil %s lin %d, regcon.mvar x%x msavereg x%x *pretregs x%x, reg %d, tym x%x\n",
                 file,line,regcon.mvar,msavereg,*pretregs,*preg,tym);
 #endif
             assert(0);
@@ -2477,7 +2479,7 @@ if (regcon.cse.mval & 1) elem_print(regcon.cse.value[i]);
   else
   {
 #if DEBUG
-        printf("e = %p, tym = x%lx\n",e,tym);
+        printf("e = %p, tym = x%x\n",e,tym);
 #endif
         assert(0);
   }

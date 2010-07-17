@@ -197,6 +197,9 @@ extern unsigned tytab[];
 
 #define tyreal(ty)      (tytab[(ty) & 0xFF] & TYFLreal)
 
+// Fits into 64 bit register
+#define ty64reg(ty)     (tytab[(ty) & 0xFF] & (TYFLintegral | TYFLptr))
+
 #ifndef tyshort
 /* Types that are chars or shorts       */
 #define tyshort(ty)     (tytab[(ty) & 0xFF] & TYFLshort)

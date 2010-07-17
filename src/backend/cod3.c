@@ -1171,18 +1171,12 @@ STATIC int obj_namestring(char *p,const char *name)
  */
 
 code *prolog()
-{   code *c;
+{
     SYMIDX si;
     unsigned reg;
-    regm_t topush;
-    tym_t tym;
-    tym_t tyf;
     char enter;
-    char pushds;
-    unsigned farfunc;
     unsigned Foffset;
     unsigned xlocalsize;     // amount to subtract from ESP to make room for locals
-    int pushalloc;
     unsigned pushallocreg;
     char guessneedframe;
 
@@ -1191,13 +1185,13 @@ code *prolog()
     regcon.immed.mval = 0;                      /* no values in registers yet   */
     EBPtoESP = -REGSIZE;
     hasframe = 0;
-    pushds = 0;
+    char pushds = 0;
     BPoff = 0;
-    c = CNIL;
-    pushalloc = 0;
-    tyf = funcsym_p->ty();
-    tym = tybasic(tyf);
-    farfunc = tyfarfunc(tym);
+    code *c = CNIL;
+    int pushalloc = 0;
+    tym_t tyf = funcsym_p->ty();
+    tym_t tym = tybasic(tyf);
+    unsigned farfunc = tyfarfunc(tym);
     pushallocreg = (tyf == TYmfunc) ? CX : AX;
     if (config.flags & CFGalwaysframe || funcsym_p->Sfunc->Fflags3 & Ffakeeh)
         needframe = 1;
@@ -1263,7 +1257,7 @@ Lagain:
     Toff = NDPoff - align(0,Toffset);
     localsize = -Toff;
 
-    topush = fregsaved & ~mfuncreg;     // mask of registers that need saving
+    regm_t topush = fregsaved & ~mfuncreg;     // mask of registers that need saving
     int npush = 0;                      // number of registers that need saving
     for (regm_t x = topush; x; x >>= 1)
         npush += x & 1;
@@ -1345,15 +1339,16 @@ Lagain:
             goto Lagain;
     }
 
-#if SIXTEENBIT
-    if (config.wflags & WFwindows && farfunc)
+    if (I16 && config.wflags & WFwindows && farfunc)
     {   int wflags;
         int segreg;
 
+#if SCPP
         // alloca() can't be because the 'special' parameter won't be at
         // a known offset from BP.
         if (usedalloca == 1)
             synerr(EM_alloca_win);      // alloca() can't be in Windows functions
+#endif
 
         wflags = config.wflags;
         if (wflags & WFreduced && !(tyf & mTYexport))
@@ -1405,7 +1400,6 @@ Lagain:
         hasframe = 1;                   /* we have a stack frame        */
     }
     else
-#endif
     if (needframe)                      // if variables or parameters
     {
         if (config.wflags & WFincbp && farfunc)
@@ -1659,7 +1653,9 @@ Lagain:
     while (topush)                      /* while registers to push      */
     {   reg = findreg(topush);
         topush &= ~mask[reg];
-        c = gen1(c,0x50 + reg);
+        c = gen1(c,0x50 + (reg & 7));
+        if (reg & 8)
+            code_orrex(c, REX_B);
         EBPtoESP += REGSIZE;
 #if ELFOBJ || MACHOBJ
         if (config.fulltypes)
@@ -1912,7 +1908,7 @@ void epilog(block *b)
     assert(!(topop & ~0xFFFF));
     while (topop)
     {   if (topop & regm)
-        {   c = gen1(c,0x58 + reg);         // POP reg
+        {   c = gen1(c,0x58 + (reg & 7));         // POP reg
             if (reg & 8)
                 code_orrex(c, REX_B);
             topop &= ~regm;
@@ -4347,7 +4343,7 @@ STATIC void do8bit(enum FL fl,union evc *uev)
 
 void addtofixlist(symbol *s,targ_size_t soffset,int seg,targ_size_t val,int flags)
 {       fixlist *ln;
-        static char zeros[6];
+        static char zeros[8];
         int numbytes;
 
         //printf("addtofixlist(%p '%s')\n",s,s->Sident);
@@ -4883,7 +4879,7 @@ void code::print()
             {
                 case FLconst:
                 case FLoffset:
-                    printf(" int = %4ld",c->IEV1.Vuns);
+                    printf(" int = %4d",c->IEV1.Vuns);
                     break;
                 case FLblock:
                     printf(" block = %p",c->IEV1.Vblock);
@@ -4918,7 +4914,7 @@ void code::print()
         switch (c->IFL2)
         {
             case FLconst:
-                printf(" int = %4ld",c->IEV2.Vuns);
+                printf(" int = %4d",c->IEV2.Vuns);
                 break;
             case FLblock:
                 printf(" block = %p",c->IEV2.Vblock);

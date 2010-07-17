@@ -286,15 +286,21 @@ elem *callfunc(Loc loc,
             e = el_una(op,tyret,ep);
     }
     else if (ep)
-        /* Do not do "no side effect" calls if a hidden parameter is passed,
+    {   /* Do not do "no side effect" calls if a hidden parameter is passed,
          * as the return value is stored through the hidden parameter, which
          * is a side effect.
          */
         e = el_bin((tf->ispure && tf->isnothrow && (retmethod != RETstack)) ?
                 OPcallns : OPcall,tyret,ec,ep);
+        if (tf->varargs)
+            e->Eflags |= EFLAGS_variadic;
+    }
     else
-        e = el_una((tf->ispure && tf->isnothrow && (retmethod != RETstack)) ?
+    {   e = el_una((tf->ispure && tf->isnothrow && (retmethod != RETstack)) ?
                 OPucallns : OPucall,tyret,ec);
+        if (tf->varargs)
+            e->Eflags |= EFLAGS_variadic;
+    }
 
     if (retmethod == RETstack)
     {
@@ -2077,6 +2083,7 @@ elem *CatExp::toElem(IRState *irs)
                            ta->getTypeInfo(NULL)->toElem(irs),
                            NULL);
             e = el_bin(OPcall, TYdarray, el_var(rtlsym[RTLSYM_ARRAYCATNT]), ep);
+            e->Eflags |= EFLAGS_variadic;
 #else
             ep = el_params(
                            ep,
@@ -2084,6 +2091,7 @@ elem *CatExp::toElem(IRState *irs)
                            el_long(TYint, tn->size()),
                            NULL);
             e = el_bin(OPcall, TYdarray, el_var(rtlsym[RTLSYM_ARRAYCATN]), ep);
+            e->Eflags |= EFLAGS_variadic;
 #endif
         }
         else
@@ -4562,11 +4570,13 @@ elem *ArrayLiteralExp::toElem(IRState *irs)
 
     // call _d_arrayliteralT(ti, dim, ...)
     e = el_bin(OPcall,TYnptr,el_var(rtlsym[RTLSYM_ARRAYLITERALT]),e);
+    e->Eflags |= EFLAGS_variadic;
 #else
     e = el_param(e, el_long(TYint, tb->next->size()));
 
     // call _d_arrayliteral(size, dim, ...)
     e = el_bin(OPcall,TYnptr,el_var(rtlsym[RTLSYM_ARRAYLITERAL]),e);
+    e->Eflags |= EFLAGS_variadic;
 #endif
     if (tb->ty == Tarray)
     {
@@ -4636,6 +4646,7 @@ elem *AssocArrayLiteralExp::toElem(IRState *irs)
 
     // call _d_assocarrayliteralT(ti, dim, ...)
     e = el_bin(OPcall,TYnptr,el_var(rtlsym[RTLSYM_ASSOCARRAYLITERALT]),e);
+    e->Eflags |= EFLAGS_variadic;
 
     el_setLoc(e,loc);
     return e;
