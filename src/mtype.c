@@ -4743,7 +4743,12 @@ void TypeFunction::toCBuffer2(OutBuffer *buf, HdrGenState *hgs, int mod)
         buf->writestring(p);
     buf->writestring(" function");
     Parameter::argsToCBuffer(buf, hgs, parameters, varargs);
+    attributesToCBuffer(buf, mod);
+    inuse--;
+}
 
+void TypeFunction::attributesToCBuffer(OutBuffer *buf, int mod)
+{
     /* Use postfix style for attributes
      */
     if (mod != this->mod)
@@ -4762,7 +4767,7 @@ void TypeFunction::toCBuffer2(OutBuffer *buf, HdrGenState *hgs, int mod)
     switch (trust)
     {
         case TRUSTsystem:
-            buf->writestring("@system ");
+            buf->writestring(" @system");
             break;
 
         case TRUSTtrusted:
@@ -4773,7 +4778,6 @@ void TypeFunction::toCBuffer2(OutBuffer *buf, HdrGenState *hgs, int mod)
             buf->writestring(" @safe");
             break;
     }
-    inuse--;
 }
 
 Type *TypeFunction::semantic(Loc loc, Scope *sc)
@@ -5279,6 +5283,7 @@ void TypeDelegate::toCBuffer2(OutBuffer *buf, HdrGenState *hgs, int mod)
     tf->next->toCBuffer2(buf, hgs, 0);
     buf->writestring(" delegate");
     Parameter::argsToCBuffer(buf, hgs, tf->parameters, tf->varargs);
+    tf->attributesToCBuffer(buf, mod);
 }
 
 Expression *TypeDelegate::defaultInit(Loc loc)
