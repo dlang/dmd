@@ -1460,20 +1460,41 @@ elem * el_var(symbol *s)
 #if TARGET_OSX
         ;
 #elif TARGET_LINUX || TARGET_FREEBSD || TARGET_SOLARIS
-        ;               // add GS: override in back end
-        /* Generate:
-         *      MOV reg,GS:[00000000]
+        /* For 32 bit:
+         * Generate for var locals:
+         *      MOV reg,GS:[00000000]   // add GS: override in back end
          *      ADD reg, offset s@TLS_LE
          *      e => *(&s + *(GS:0))
-         * for locals, and for globals:
+         * For var globals:
          *      MOV reg,GS:[00000000]
          *      ADD reg, s@TLS_IE
          *      e => *(s + *(GS:0))
          * note different fixup
+         *****************************************
+         * For 64 bit:
+         * Generate for var locals:
+         *      MOV reg,FS:s@TPOFF32
+         * For var globals:
+         *      MOV RAX,s@GOTTPOFF[RIP]
+         *      MOV reg,FS:[RAX]
+         *
+         * For address of locals:
+         *      MOV RAX,FS:[00]
+         *      LEA reg,s@TPOFF32[RAX]
+         *      e => &s + *(FS:0)
+         * For address of globals:
+         *      MOV reg,FS:[00]
+         *      MOV RAX,s@GOTTPOFF[RIP]
+         *      ADD reg,RAX
+         *      e => s + *(FS:0)
+         * This leaves us with a problem, as the 'var' version cannot simply have
+         * its address taken, as what is the address of FS:s ? The (not so efficient)
+         * solution is to just use the second address form, and * it.
+         * Turns out that is identical to the 32 bit version, except GS => FS and the
+         * fixups are different.
+         * In the future, we should figure out a way to optimize to the 'var' version.
          */
-        elem *e1,*e2;
-
-        e1 = el_calloc();
+        elem *e1 = el_calloc();
         e1->EV.sp.Vsym = s;
         if (s->Sclass == SCstatic || s->Sclass == SClocstat)
         {   e1->Eoper = OPrelconst;
@@ -1485,8 +1506,11 @@ elem * el_var(symbol *s)
             e1->Ety = TYnptr;
         }
 
-        // We'll fix this up in the back end to be GS:[0000]
-        e2 = el_calloc();
+        /* Fake GS:[0000] as a load of _tls_array, and then in the back end recognize
+         * the fake and rewrite it as GS:[0000] (or FS:[0000] for I64), because there is
+         * no way to represent segment overrides in the elem nodes.
+         */
+        elem *e2 = el_calloc();
         e2->Eoper = OPvar;
         e2->EV.sp.Vsym = rtlsym[RTLSYM_TLS_ARRAY];
         e2->Ety = e2->EV.sp.Vsym->ty();
@@ -3085,18 +3109,18 @@ void elem_print(elem *e)
         switch (e->Eoper)
         {
             case OPrelconst:
-                dbg_printf(" %ld+&",e->Eoffset);
+                dbg_printf(" %lld+&",(unsigned long long)e->Eoffset);
                 dbg_printf(" %s",e->EV.sp.Vsym->Sident);
                 break;
             case OPvar:
                 if (e->Eoffset)
-                    dbg_printf(" %ld+",e->Eoffset);
+                    dbg_printf(" %lld+",(unsigned long long)e->Eoffset);
                 dbg_printf(" %s",e->EV.sp.Vsym->Sident);
                 break;
             case OPasm:
             case OPstring:
             case OPhstring:
-                dbg_printf(" '%s',%ld\n",e->EV.ss.Vstring,e->EV.ss.Voffset);
+                dbg_printf(" '%s',%lld\n",e->EV.ss.Vstring,(unsigned long long)e->EV.ss.Voffset);
                 break;
             case OPconst:
                 tym = tybasic(typemask(e));

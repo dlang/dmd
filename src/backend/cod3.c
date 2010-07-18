@@ -66,7 +66,7 @@ static int AAoff;               // offset of alloca temporary
 struct fixlist
 {   symbol      *Lsymbol;       // symbol we don't know about
     int         Lseg;           // where the fixup is going (CODE or DATA, never UDATA)
-    short       Lflags;         // CFxxxx
+    int         Lflags;         // CFxxxx
     targ_size_t Loffset;        // addr of reference to symbol
     targ_size_t Lval;           // value to add into location
 #if TARGET_OSX
@@ -3466,14 +3466,14 @@ unsigned calccodsize(code *c)
         case NOP:
         case ESCAPE:
             size = 0;                   // since these won't be output
-            goto Lret;
+            goto Lret2;
 
         case ASM:
             if (c->Iflags == CFaddrsize)        // kludge for DA inline asm
                 size = NPTRSIZE;
             else
                 size = c->IEV1.as.len;
-            goto Lret;
+            goto Lret2;
 
         case 0xA1:
         case 0xA3:
@@ -3590,10 +3590,11 @@ unsigned calccodsize(code *c)
 Lret:
     if (c->Irex)
         size++;
+Lret2:
     //printf("op = x%02x, size = %d\n",op,size);
     return size;
 }
-
+
 /********************************
  * Return !=0 if codes match.
  */
@@ -3881,7 +3882,7 @@ unsigned codout(code *c)
                               (rm & 7) == 5))
                             break;
                     case 0x80:
-                        do32bit((enum FL)c->IFL1,&c->IEV1,CFoff);
+                        do32bit((enum FL)c->IFL1,&c->IEV1,CFoff | CFpc32);
                         break;
                 }
             }
@@ -4134,6 +4135,7 @@ STATIC void do32bit(enum FL fl,union evc *uev,int flags)
   targ_size_t ad;
   long tmp;
 
+  //printf("do32bit(flags = x%x)\n", flags);
   switch (fl)
   {
     case FLconst:
@@ -4361,6 +4363,8 @@ void addtofixlist(symbol *s,targ_size_t soffset,int seg,targ_size_t val,int flag
         fixlist::start = ln;
 #if TARGET_FLAT
         numbytes = tysize[TYnptr];
+        if (I64 && !(flags & CFoffset64))
+            numbytes = 4;
         assert(!(flags & CFseg));
 #else
         switch (flags & (CFoff | CFseg))

@@ -390,6 +390,7 @@ struct code
 #define CFvolatile  0x10000     // volatile reference, do not schedule
 #define CFclassinit 0x20000     // class init code
 #define CFoffset64  0x40000     // offset is 64 bits
+#define CFpc32      0x80000     // I64: PC relative 32 bit fixup
 
 #define CFPREFIX (CFSEG | CFopsize | CFaddrsize)
 #define CFSEG   (CFes | CFss | CFds | CFcs | CFfs | CFgs)

@@ -559,8 +559,8 @@ code *loadea(elem *e,code *cs,unsigned op,unsigned reg,targ_size_t offset,
 
 #ifdef DEBUG
   if (debugw)
-    printf("loadea: e=%p cs=%p op=x%x reg=%d offset=%ld keepmsk=x%x desmsk=x%x\n",
-            e,cs,op,reg,offset,keepmsk,desmsk);
+    printf("loadea: e=%p cs=%p op=x%x reg=%d offset=%lld keepmsk=x%x desmsk=x%x\n",
+            e,cs,op,reg,(unsigned long long)offset,keepmsk,desmsk);
 #endif
 
   assert(e);
@@ -1285,11 +1285,23 @@ code *getlvalue(code *pcs,elem *e,regm_t keepmsk)
         if (s->Sident[0] == '_' && memcmp(s->Sident + 1,"tls_array",10) == 0)
         {
 #if TARGET_LINUX || TARGET_FREEBSD || TARGET_SOLARIS
-            // Rewrite as GS:[0000]
-            pcs->Irm = modregrm(0, 0, BPRM);
-            pcs->IFL1 = FLconst;
-            pcs->IEV1.Vuns = 0;
-            pcs->Iflags = CFgs;
+            // Rewrite as GS:[0000], or FS:[0000] for 64 bit
+            if (I64)
+            {
+                pcs->Irm = modregrm(0, 0, 4);
+                pcs->Isib = modregrm(0, 4, 5);  // don't use [RIP] addressing
+                pcs->IFL1 = FLconst;
+                pcs->IEV1.Vuns = 0;
+                pcs->Iflags = CFfs;
+            }
+            else
+            {
+                pcs->Irm = modregrm(0, 0, BPRM);
+                pcs->IFL1 = FLconst;
+                pcs->IEV1.Vuns = 0;
+                pcs->Iflags = CFgs;
+            }
+            break;
 #else
             pcs->Iflags |= CFfs;                // add FS: override
 #endif
