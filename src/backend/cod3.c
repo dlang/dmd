@@ -36,6 +36,7 @@ static char __file__[] = __FILE__;      /* for tassert.h                */
 #endif
 
 extern targ_size_t retsize;
+STATIC void pinholeopt_unittest();
 STATIC void do8bit (enum FL,union evc *);
 STATIC void do16bit (enum FL,union evc *,int);
 STATIC void do32bit (enum FL,union evc *,int);
@@ -2903,12 +2904,16 @@ targ_size_t cod3_bpoffset(symbol *s)
 
 void pinholeopt(code *c,block *b)
 { targ_size_t a;
-  unsigned op,mod,rm,reg,ereg;
+  unsigned op,mod;
   unsigned char ins;
   int usespace;
   int useopsize;
   int space;
   block *bn;
+
+#ifdef DEBUG
+    static int tested; if (!tested) { tested++; pinholeopt_unittest(); }
+#endif
 
 #if 0
   code *cstart = c;
@@ -2936,48 +2941,51 @@ void pinholeopt(code *c,block *b)
             ins = inssize2[c->Iop2];
         else
             ins = inssize[c->Iop];
-        if (!I64 && ins & M)            // if modregrm byte
-        {   int longop = (c->Iflags & CFopsize) ? I16 : I32;
+        if (ins & M)            // if modregrm byte
+        {   int shortop = (c->Iflags & CFopsize) ? !I16 : I16;
             int local_BPRM = BPRM;
 
             if (c->Iflags & CFaddrsize)
                 local_BPRM ^= 5 ^ 6;    // toggle between 5 and 6
 
-            rm = c->Irm;
-            reg = rm & (7<<3);          // isolate reg field
-            ereg = rm & 7;
+            unsigned rm = c->Irm;
+            unsigned reg = rm & modregrm(0,7,0);          // isolate reg field
+            unsigned ereg = rm & 7;
+            //printf("c = %p, op = %02x rm = %02x\n", c, op, rm);
 
             /* If immediate second operand      */
             if ((ins & T || op == 0xF6 || op == 0xF7) &&
                 c->IFL2 == FLconst)
-            {   int flags;
-                targ_long u;
-
-                flags = c->Iflags & CFpsw;      /* if want result in flags */
-                u = c->IEV2.Vuns;
+            {
+                int flags = c->Iflags & CFpsw;      /* if want result in flags */
+                targ_long u = c->IEV2.Vuns;
                 if (ins & E)
                     u = (signed char) u;
-                else if (!longop)
+                else if (shortop)
                     u = (short) u;
 
                 // Replace CMP reg,0 with TEST reg,reg
-                if ((op & 0xFE) == 0x80 &&
+                if ((op & 0xFE) == 0x80 &&              // 80 is CMP R8,imm8; 81 is CMP reg,imm
                     rm >= modregrm(3,7,AX) &&
                     u == 0)
                 {       c->Iop = (op & 1) | 0x84;
                         c->Irm = modregrm(3,ereg,ereg);
+                        if (c->Irex & REX_B)
+                            c->Irex |= REX_R;
                         goto L1;
                 }
 
                 /* Optimize ANDs with an immediate constant             */
                 if ((op == 0x81 || op == 0x80) && reg == modregrm(0,4,0))
                 {
-                    if (rm >= modregrm(3,4,AX))
+                    if (rm >= modregrm(3,4,AX))         // AND reg,imm
                     {
                         if (u == 0)
                         {       /* Replace with XOR reg,reg     */
                                 c->Iop = 0x30 | (op & 1);
-                                NEWREG(c->Irm,rm & 7);
+                                c->Irm = modregrm(3,ereg,ereg);
+                                if (c->Irex & REX_B)
+                                    c->Irex |= REX_R;
                                 goto L1;
                         }
                         if (u == 0xFFFFFFFF && !flags)
@@ -2989,15 +2997,15 @@ void pinholeopt(code *c,block *b)
                     {   // If we can do the operation in one byte
 
                         // If EA is not SI or DI
-                        if (rm < modregrm(3,4,SP) &&
+                        if ((rm < modregrm(3,4,SP) || I64) &&
                             (config.flags4 & CFG4space ||
                              config.target_cpu < TARGET_PentiumPro)
                            )
                         {
                             if ((u & 0xFFFFFF00) == 0xFFFFFF00)
                                 goto L2;
-                            else
-                            {   if (longop)
+                            else if (rm < modregrm(3,0,0) || (!c->Irex && ereg < 4))
+                            {   if (!shortop)
                                 {   if ((u & 0xFFFF00FF) == 0xFFFF00FF)
                                         goto L3;
                                 }
@@ -3008,7 +3016,7 @@ void pinholeopt(code *c,block *b)
                                 }
                             }
                         }
-                        if (longop && useopsize)
+                        if (!shortop && useopsize)
                         {
                             if ((u & 0xFFFF0000) == 0xFFFF0000)
                             {   c->Iflags ^= CFopsize;
@@ -3022,16 +3030,20 @@ void pinholeopt(code *c,block *b)
                             }
                             if (rm >= modregrm(3,4,AX))
                             {
-                                if (u == 0xFF && rm <= modregrm(3,4,BX))
+                                if (u == 0xFF && (rm <= modregrm(3,4,BX) || I64))
                                 {   c->Iop2 = 0xB6;     /* MOVZX        */
                                     c->Iop = 0x0F;
-                                    NEWREG(c->Irm,rm & 7);
+                                    c->Irm = modregrm(3,ereg,ereg);
+                                    if (c->Irex & REX_B)
+                                        c->Irex |= REX_R;
                                     goto L1;
                                 }
                                 if (u == 0xFFFF)
                                 {   c->Iop2 = 0xB7;     /* MOVZX        */
                                     c->Iop = 0x0F;
-                                    NEWREG(c->Irm,rm & 7);
+                                    c->Irm = modregrm(3,ereg,ereg);
+                                    if (c->Irex & REX_B)
+                                        c->Irex |= REX_R;
                                     goto L1;
                                 }
                             }
@@ -3042,10 +3054,11 @@ void pinholeopt(code *c,block *b)
                 /* Look for ADD,OR,SUB,XOR with u that we can eliminate */
                 if (!flags &&
                     (op == 0x81 || op == 0x80) &&
-                    (reg == modregrm(0,0,0) || reg == modregrm(0,1,0) ||
-                     reg == modregrm(0,5,0) || reg == modregrm(0,6,0))
+                    (reg == modregrm(0,0,0) || reg == modregrm(0,1,0) ||  // ADD,OR
+                     reg == modregrm(0,5,0) || reg == modregrm(0,6,0))    // SUB, XOR
                    )
-                {       if (u == 0)
+                {
+                        if (u == 0)
                         {
                                 c->Iop = NOP;
                                 goto L1;
@@ -3056,7 +3069,7 @@ void pinholeopt(code *c,block *b)
                                 c->Irm ^= modregrm(0,6^2,0);
                                 goto L1;
                         }
-                        if (longop &&
+                        if (!shortop &&
                             useopsize &&
                             op == 0x81 &&
                             (u & 0xFFFF0000) == 0 &&
@@ -3075,7 +3088,7 @@ void pinholeopt(code *c,block *b)
                     // See if we can replace a dword with a word
                     // (avoid for 32 bit instructions, because CFopsize
                     //  is too slow)
-                    if (longop && useopsize)
+                    if (!shortop && useopsize)
                     {   if ((u & 0xFFFF0000) == 0)
                         {   c->Iflags ^= CFopsize;
                             goto L1;
@@ -3101,8 +3114,9 @@ void pinholeopt(code *c,block *b)
                             c->Iflags &= ~CFopsize;
                             goto L1;
                         }
-                        if ((u & 0xFFFF00FF) == 0 ||
-                            (!longop && (u & 0xFF) == 0))
+                        if (((u & 0xFFFF00FF) == 0 ||
+                             (shortop && (u & 0xFF) == 0)) &&
+                            (rm < modregrm(3,0,0) || (!c->Irex && ereg < 4)))
                         {
                         L3:
                             c->IEV2.Vuns >>= 8;
@@ -3125,20 +3139,22 @@ void pinholeopt(code *c,block *b)
                 }
 
                 // Try to replace TEST reg,-1 with TEST reg,reg
-                if (op == 0xF6 && rm >= modregrm(3,0,AX))
-                {       if (u == ~0)
+                if (op == 0xF6 && rm >= modregrm(3,0,AX) && rm <= modregrm(3,0,7)) // TEST regL,immed8
+                {       if ((u & 0xFF) == 0xFF)
                         {
                            L4:  c->Iop = 0x84;          // TEST regL,regL
-                                c->Irm |= ereg << 3;
+                                c->Irm = modregrm(3,ereg,ereg);
+                                if (c->Irex & REX_B)
+                                    c->Irex |= REX_R;
                                 c->Iflags &= ~CFopsize;
                                 goto L1;
                         }
                 }
-                if (op == 0xF7 && rm >= modregrm(3,0,AX) && ereg < SP)
+                if (op == 0xF7 && rm >= modregrm(3,0,AX) && rm <= modregrm(3,0,7) && (I64 || ereg < 4))
                 {       if (u == 0xFF)
                                 goto L4;
-                        if (u == ~0xFF && !longop)
-                        {       rm |= 4;                /* to regH      */
+                        if ((u & 0xFFFF) == 0xFF00 && shortop && !c->Irex && ereg < 4)
+                        {       ereg |= 4;                /* to regH      */
                                 goto L4;
                         }
                 }
@@ -3162,7 +3178,10 @@ void pinholeopt(code *c,block *b)
 
             /* Look for AX short form */
             if (ins & A)
-            {   if (rm == modregrm(0,AX,local_BPRM) && (op & ~3) == 0x88)
+            {   if (rm == modregrm(0,AX,local_BPRM) &&
+                    !(c->Irex & REX_R) &&               // and it's AX, not R8
+                    (op & ~3) == 0x88 &&
+                    !I64)
                 {       op = ((op & 3) + 0xA0) ^ 2;
                         /* 8A-> A0 */
                         /* 8B-> A1 */
@@ -3174,18 +3193,19 @@ void pinholeopt(code *c,block *b)
                 }
 
                 /* Replace MOV REG1,REG2 with MOV EREG1,EREG2   */
-                else if (I32 &&
+                else if (!I16 &&
                          (op == 0x89 || op == 0x8B) &&
                          (rm & 0xC0) == 0xC0 &&
                          (!b || b->BC != BCasm)
                         )
                     c->Iflags &= ~CFopsize;
 
-                else if ((rm & 0xC7) == 0xC0)
+                // If rm is AX
+                else if ((rm & modregrm(3,0,7)) == modregrm(3,0,AX) && !(c->Irex & (REX_R | REX_B)))
                 {       switch (op)
                         {   case 0x80:  op = reg | 4; break;
                             case 0x81:  op = reg | 5; break;
-                            case 0x87:  op = 0x90 + (reg>>3); break;
+                            case 0x87:  op = 0x90 + (reg>>3); break;    // XCHG
                             case 0xF6:
                                 if (reg == 0)
                                     op = 0xA8;  /* TEST AL,immed8       */
@@ -3207,8 +3227,8 @@ void pinholeopt(code *c,block *b)
                     case 0xFF:
                         switch (reg)
                         {   case 6<<3: op = 0x50+ereg; break;/* PUSH*/
-                            case 0<<3: op = 0x40+ereg; break; /* INC*/
-                            case 1<<3: op = 0x48+ereg; break; /* DEC*/
+                            case 0<<3: if (!I64) op = 0x40+ereg; break; /* INC*/
+                            case 1<<3: if (!I64) op = 0x48+ereg; break; /* DEC*/
                         }
                         break;
                     case 0x8F:  op = 0x58 + ereg; break;
@@ -3226,7 +3246,9 @@ void pinholeopt(code *c,block *b)
             {
                 c->Iop &= 1;
                 c->Irm = (rm & modregrm(3,0,7)) | (ereg << 3);
-                if (!(c->Iflags & CFpsw) && I32)
+                if (c->Irex & REX_B)
+                    c->Irex |= REX_R;
+                if (!(c->Iflags & CFpsw) && !I16)
                     c->Iflags &= ~CFopsize;
                 goto L1;
             }
@@ -3239,11 +3261,11 @@ void pinholeopt(code *c,block *b)
                 c->IFL1 == FLconst)      // and it's a constant
             {
                 a = c->IEVpointer1;
-                if (a == 0 && (rm & 7) != local_BPRM &&         // if 0 disp
-                    !(local_BPRM == 5 && (rm & 7) == 4 && (c->Isib & 7) == BP)
+                if (a == 0 && (rm & 7) != local_BPRM &&         // if 0[disp]
+                    !(local_BPRM == 5 && (rm & 7) == 4 && (c->Isib & 7) == BP && !(c->Irex & REX_B))
                    )
                     c->Irm &= 0x3F;
-                else if (I32)
+                else if (!I16)
                 {
                     if ((targ_size_t)(targ_schar)a == a)
                         c->Irm ^= 0xC0;                 /* do 8 sx      */
@@ -3258,7 +3280,7 @@ void pinholeopt(code *c,block *b)
                 mod = c->Irm & modregrm(3,0,0);
                 if (mod == 0)
                 {
-                    if (I32)
+                    if (!I16)
                     {
                         switch (rm)
                         {
@@ -3291,6 +3313,14 @@ void pinholeopt(code *c,block *b)
                 {       c->Iop = 0x8B;          /* MOV reg,BP   */
                         c->Irm = modregrm(3,0,BP) + reg;
                 }
+            }
+
+            // Replace [R13] with 0[R13]
+            if (c->Irex & REX_B && (c->Irm & modregrm(3,0,5)) == modregrm(0,0,5))
+            {
+                c->Irm |= modregrm(1,0,0);
+                c->IFL1 = FLconst;
+                c->IEVpointer1 = 0;
             }
         }
         else
@@ -3328,14 +3358,15 @@ void pinholeopt(code *c,block *b)
 
                 case 0x68:                      // PUSH immed16
                     if (c->IFL2 == FLconst)
-                    {   targ_long u;
-
-                        u = c->IEV2.Vuns;
-                        if ((c->Iflags & CFopsize) ? !I32 : I32)
-                        {   if (u == (signed char) u)
+                    {
+                        targ_long u = c->IEV2.Vuns;
+                        if (I64 ||
+                            ((c->Iflags & CFopsize) ? I16 : I32))
+                        {   // PUSH 32/64 bit operand
+                            if (u == (signed char) u)
                                 c->Iop = 0x6A;          // PUSH immed8
                         }
-                        else
+                        else // PUSH 16 bit operand
                         {   if ((short)u == (signed char) u)
                                 c->Iop = 0x6A;          // PUSH immed8
                         }
@@ -3352,7 +3383,76 @@ void pinholeopt(code *c,block *b)
   }
 #endif
 }
-
+
+#ifdef DEBUG
+STATIC void pinholeopt_unittest()
+{
+    //printf("pinholeopt_unittest()\n");
+    struct CS { unsigned model,op,ea,ev1,ev2,flags; } tests[][2] =
+    {
+        // XOR reg,immed                            NOT regL
+        {{ 16,0x81,modregrm(3,6,BX),0,0xFF,0 },    { 0,0xF6,modregrm(3,2,BX),0,0xFF }},
+
+#if 0 // only if config.flags4 & CFG4space
+        // TEST regL,immed8
+        {{ 0,0xF6,modregrm(3,0,BX),0,0xFF,0 },    { 0,0x84,modregrm(3,BX,BX),0,0xFF }},
+        {{ 0,0xF7,modregrm(3,0,BX),0,0xFF,0 },    { 0,0x84,modregrm(3,BX,BX),0,0xFF }},
+        {{ 64,0xF6,modregrmx(3,0,R8),0,0xFF,0 },  { 0,0x84,modregxrmx(3,R8,R8),0,0xFF }},
+        {{ 64,0xF7,modregrmx(3,0,R8),0,0xFF,0 },  { 0,0x84,modregxrmx(3,R8,R8),0,0xFF }},
+#endif
+
+        // PUSH immed => PUSH immed8
+        {{ 0,0x68,0,0,0 },    { 0,0x6A,0,0,0 }},
+        {{ 0,0x68,0,0,0x7F }, { 0,0x6A,0,0,0x7F }},
+        {{ 0,0x68,0,0,0x80 }, { 0,0x68,0,0,0x80 }},
+        {{ 16,0x68,0,0,0,CFopsize },    { 0,0x6A,0,0,0,CFopsize }},
+        {{ 16,0x68,0,0,0x7F,CFopsize }, { 0,0x6A,0,0,0x7F,CFopsize }},
+        {{ 16,0x68,0,0,0x80,CFopsize }, { 0,0x68,0,0,0x80,CFopsize }},
+        {{ 16,0x68,0,0,0x10000,0 },     { 0,0x6A,0,0,0x10000,0 }},
+        {{ 16,0x68,0,0,0x10000,CFopsize }, { 0,0x68,0,0,0x10000,CFopsize }},
+        {{ 32,0x68,0,0,0,CFopsize },    { 0,0x6A,0,0,0,CFopsize }},
+        {{ 32,0x68,0,0,0x7F,CFopsize }, { 0,0x6A,0,0,0x7F,CFopsize }},
+        {{ 32,0x68,0,0,0x80,CFopsize }, { 0,0x68,0,0,0x80,CFopsize }},
+        {{ 32,0x68,0,0,0x10000,CFopsize },    { 0,0x6A,0,0,0x10000,CFopsize }},
+        {{ 32,0x68,0,0,0x8000,CFopsize }, { 0,0x68,0,0,0x8000,CFopsize }},
+    };
+
+    //config.flags4 |= CFG4space;
+    for (int i = 0; i < sizeof(tests)/sizeof(tests[0]); i++)
+    {   CS *pin  = &tests[i][0];
+        CS *pout = &tests[i][1];
+        code cs;
+        memset(&cs, 0, sizeof(cs));
+        if (pin->model)
+        {
+            if (I16 && pin->model != 16)
+                continue;
+            if (I32 && pin->model != 32)
+                continue;
+            if (I64 && pin->model != 64)
+                continue;
+        }
+        //printf("[%d]\n", i);
+        cs.Iop = pin->op;
+        cs.Iea = pin->ea;
+        cs.IFL1 = FLconst;
+        cs.IFL2 = FLconst;
+        cs.IEV1.Vuns = pin->ev1;
+        cs.IEV2.Vuns = pin->ev2;
+        cs.Iflags = pin->flags;
+        pinholeopt(&cs, NULL);
+        if (cs.Iop != pout->op)
+        {   printf("[%d] Iop = x%02x, pout = x%02x\n", i, cs.Iop, pout->op);
+            assert(0);
+        }
+        assert(cs.Iea == pout->ea);
+        assert(cs.IEV1.Vuns == pout->ev1);
+        assert(cs.IEV2.Vuns == pout->ev2);
+        assert(cs.Iflags == pout->flags);
+    }
+}
+#endif
+
 /**************************
  * Compute jump addresses for FLcode.
  * Note: only works for forward referenced code.
@@ -3567,8 +3667,15 @@ unsigned calccodsize(code *c)
                 size++;
             switch (mod)
             {   case 0:
-                    if (issib(rm) && (c->Isib & 7) == 5 || (rm & 7) == 5)
+                    if (issib(rm) && (c->Isib & 7) == 5 ||
+                        (rm & 7) == 5)
                         size += 4;      /* disp32                       */
+                    if (c->Irex & REX_B && (rm & 7) == 5)
+                        /* Instead of selecting R13, this mode is an [RIP] relative
+                         * address. Although valid, it's redundant, and should not
+                         * be generated. Instead, generate 0[R13] instead of [R13].
+                         */
+                        assert(0);
                     break;
                 case 0x40:
                     size++;             /* disp8                        */
@@ -3734,7 +3841,7 @@ unsigned codout(code *c)
   symbol *s;
 
 #ifdef DEBUG
-  if (debugc) printf("codout(%p), Coffset = x%lx\n",c,Coffset);
+  if (debugc) printf("codout(%p), Coffset = x%llx\n",c,(unsigned long long)Coffset);
 #endif
 
   pgen = bytes;
@@ -4895,7 +5002,7 @@ void code::print()
                 case 0:
                     break;
                 case FLdatseg:
-                    printf(" %d.%lx",c->IEVseg1,c->IEVpointer1);
+                    printf(" %d.%llx",c->IEVseg1,(unsigned long long)c->IEVpointer1);
                     break;
                 case FLauto:
                 case FLreg:
@@ -4930,7 +5037,7 @@ void code::print()
             case FLframehandler:
                 break;
             case FLdatseg:
-                printf(" %d.%lx",c->IEVseg2,c->IEVpointer2);
+                printf(" %d.%llx",c->IEVseg2,(unsigned long long)c->IEVpointer2);
                 break;
             case FLauto:
             case FLreg:

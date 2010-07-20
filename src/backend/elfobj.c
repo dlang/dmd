@@ -86,6 +86,15 @@ symbol *elfobj_getGOTsym()
     return GOTsym;
 }
 
+void elfobj_refGOTsym()
+{
+    if (!GOTsym)
+    {
+        symbol *s = elfobj_getGOTsym();
+        objextern(s);
+    }
+}
+
 static void objfile_write(FILE *fd, void *buffer, unsigned len);
 
 STATIC char * objmodtoseg (const char *modname);
@@ -2313,8 +2322,10 @@ void reftodatseg(int seg,targ_size_t offset,targ_size_t val,
     buf = SegData[seg]->SDbuf;
     save = buf->size();
     buf->setsize(offset);
-    //dbg_printf("reftodatseg(seg=%d, offset=x%lx, val=x%lx,data %x, flags %x )\n",
-    //  seg,offset,val,targetdatum,flags);
+#if 0
+    printf("reftodatseg(seg=%d, offset=x%llx, val=x%llx,data %x, flags %x)\n",
+        seg,(unsigned long long)offset,(unsigned long long)val,targetdatum,flags);
+#endif
     /*if (OPT_IS_SET(OPTfwritable_strings))
     {
         elf_addrel(seg,offset,RI_TYPE_SYM32,STI_DATA,0);
@@ -2419,9 +2430,9 @@ int reftoident(int seg, targ_size_t offset, Symbol *s, targ_size_t val,
     int retsize = (flags & CFoffset64) ? 8 : 4;
 
 #if 0
-    dbg_printf("\nreftoident('%s' seg %d, offset x%lx, val x%lx, flags x%x)\n",
+    printf("\nreftoident('%s' seg %d, offset x%llx, val x%llx, flags x%x)\n",
         s->Sident,seg,offset,val,flags);
-    dbg_printf("Sseg = %d, Sxtrnnum = %d\n",s->Sseg,s->Sxtrnnum);
+    dbg_printf("Sseg = %d, Sxtrnnum = %d, retsize = %d\n",s->Sseg,s->Sxtrnnum,retsize);
     symbol_print(s);
 #endif
 
@@ -2520,6 +2531,8 @@ int reftoident(int seg, targ_size_t offset, Symbol *s, targ_size_t val,
                                 relinfo,
                                 s->Sxtrnnum,0);
                     }
+                    if (I64)
+                        val += 4;
                 }
                 else
                 {       // code to code code to data, data to code, data to data refs
@@ -2550,7 +2563,11 @@ int reftoident(int seg, targ_size_t offset, Symbol *s, targ_size_t val,
                     else
                     {                   // relocation from within CODE seg
                         if (I64)
-                            relinfo = config.flags3 & CFG3pic ? R_X86_64_NONE : R_X86_64_32;
+                        {   if (config.flags3 & CFG3pic)
+                                relinfo = R_X86_64_GOTPCREL;
+                            else
+                                relinfo = (flags & CFpc32) ? R_X86_64_PC32 : R_X86_64_32;
+                        }
                         else
                             relinfo = config.flags3 & CFG3pic ? RI_TYPE_GOT32 : RI_TYPE_SYM32;
                     }
@@ -2560,14 +2577,14 @@ int reftoident(int seg, targ_size_t offset, Symbol *s, targ_size_t val,
                         {
                             if (config.flags3 & CFG3pic)
                             {
-                                if (s->Sclass == SCstatic)
-                                    relinfo = R_X86_64_TPOFF32;  // TLS_GD?
+                                if (s->Sclass == SCstatic || s->Sclass == SClocstat)
+                                    relinfo = R_X86_64_TLSGD;  // TLS_GD?
                                 else
-                                    relinfo = R_X86_64_GOTTPOFF;
+                                    relinfo = R_X86_64_TLSGD;
                             }
                             else
                             {
-                                if (s->Sclass == SCstatic)
+                                if (s->Sclass == SCstatic || s->Sclass == SClocstat)
                                     relinfo = R_X86_64_TPOFF32;
                                 else
                                     relinfo = R_X86_64_GOTTPOFF;

@@ -1343,6 +1343,100 @@ elem *el_picvar(symbol *s)
     e->EV.sp.Vsym = s;
     e->Ety = s->ty();
 
+    /* For 32 bit:
+     *      CALL __i686.get_pc_thunk.bx@PC32
+     *      ADD  EBX,offset _GLOBAL_OFFSET_TABLE_@GOTPC[2]
+     * Generate for var locals:
+     *      MOV  reg,s@GOTOFF[014h][EBX]
+     * For var globals:
+     *      MOV  EAX,s@GOT32[EBX]
+     *      MOV  reg,[EAX]
+     * For TLS var locals and globals:
+     *      MOV  EAX,s@TLS_GD[EBX]
+     *      CALL ___tls_get_addr@PLT32
+     *      MOV  reg,[EAX]
+     *****************************************
+     * Generate for var locals:
+     *      MOV reg,s@PC32[RIP]
+     * For var globals:
+     *      MOV RAX,s@GOTPCREL[RIP]
+     *      MOV reg,[RAX]
+     * For TLS var locals and globals:
+     *      0x66
+     *      LEA DI,s@TLSGD[RIP]
+     *      0x66
+     *      0x66
+     *      0x48 (REX | REX_W)
+     *      CALL __tls_get_addr@PLT32
+     *      MOV reg,[RAX]
+     */
+
+    if (I64)
+    {
+        elfobj_refGOTsym();
+        switch (s->Sclass)
+        {
+            case SCstatic:
+            case SClocstat:
+                x = 0;
+                goto case_got64;
+
+            case SCcomdat:
+            case SCcomdef:
+            case SCglobal:
+            case SCextern:
+                x = 1;
+            case_got64:
+            {
+                int op = e->Eoper;
+                tym_t tym = e->Ety;
+                e->Ety = TYnptr;
+
+                if (s->Stype->Tty & mTYthread)
+                {
+                    /* Add "volatile" to prevent e from being common subexpressioned.
+                     * This is so we can preserve the magic sequence of instructions
+                     * that the gnu linker patches:
+                     *   lea EDI,x@tlsgd[RIP], call __tls_get_addr@plt
+                     *      =>
+                     *   mov EAX,gs[0], sub EAX,x@tpoff
+                     */
+                    e->Eoper = OPrelconst;
+                    e->Ety |= mTYvolatile;
+                    if (!tls_get_addr_sym)
+                    {
+                        /* void *__tls_get_addr(void *ptr);
+                         * Parameter ptr is passed in RDI, matching TYnfunc calling convention.
+                         */
+                        tls_get_addr_sym = symbol_name("__tls_get_addr",SCglobal,type_fake(TYnfunc));
+                        symbol_keep(tls_get_addr_sym);
+                    }
+                    e = el_bin(OPcall, TYnptr, el_var(tls_get_addr_sym), e);
+                }
+
+                switch (op * 2 + x)
+                {
+                    case OPvar * 2 + 1:
+                        e = el_una(OPind, TYnptr, e);
+                        break;
+                    case OPvar * 2 + 0:
+                    case OPrelconst * 2 + 1:
+                        break;
+                    case OPrelconst * 2 + 0:
+                        e = el_una(OPaddr, TYnptr, e);
+                        break;
+                    default:
+                        assert(0);
+                        break;
+                }
+                e->Ety = tym;
+                break;
+            }
+            default:
+                break;
+        }
+    }
+    else
     switch (s->Sclass)
     {
         /* local (and thread) symbols get only one level of indirection;
@@ -1441,7 +1535,7 @@ elem * el_var(symbol *s)
     // OSX is currently always pic
     if (config.flags3 & CFG3pic &&
 #if TARGET_LINUX || TARGET_FREEBSD || TARGET_SOLARIS
-        !(s->Stype->Tty & mTYthread) &&
+        (!(s->Stype->Tty & mTYthread) || I64) &&
 #endif
         !tyfunc(s->ty()))
         // Position Independent Code
@@ -1494,6 +1588,8 @@ elem * el_var(symbol *s)
          * fixups are different.
          * In the future, we should figure out a way to optimize to the 'var' version.
          */
+        if (I64)
+            elfobj_refGOTsym();
         elem *e1 = el_calloc();
         e1->EV.sp.Vsym = s;
         if (s->Sclass == SCstatic || s->Sclass == SClocstat)
