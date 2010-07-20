@@ -1954,18 +1954,16 @@ struct Gcx
                     break;
             }
             if (pn < ncommitted)
-            {
-                n++;
                 continue;
-            }
             pool.Dtor();
             cstdlib.free(pool);
             memmove(pooltable + n,
                     pooltable + n + 1,
                     (--npools - n) * (Pool*).sizeof);
-            minAddr = pooltable[0].baseAddr;
-            maxAddr = pooltable[npools - 1].topAddr;
+            n--;
         }
+        minAddr = pooltable[0].baseAddr;
+        maxAddr = pooltable[npools - 1].topAddr;
     }
 
 
