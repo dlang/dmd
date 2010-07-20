@@ -155,7 +155,8 @@ bool opEquals(Object lhs, Object rhs)
     if (lhs is null || rhs is null) return false;
 
     // If same exact type => one call to method opEquals
-    if (typeid(lhs) == typeid(rhs)) return lhs.opEquals(rhs);
+    if (typeid(lhs) is typeid(rhs) || typeid(lhs).opEquals(typeid(rhs)))
+        return lhs.opEquals(rhs);
 
     // General case => symmetric calls to method opEquals
     return lhs.opEquals(rhs) && rhs.opEquals(lhs);
