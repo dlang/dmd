@@ -117,6 +117,13 @@ Lneed:
 /******************************************
  * Build opAssign for struct.
  *      S* opAssign(S s) { ... }
+ *
+ * Note that s will be constructed onto the stack, probably copy-constructed.
+ * Then, the body is:
+ *      S tmp = *this;  // bit copy
+ *      *this = s;      // bit copy
+ *      tmp.dtor();
+ * Instead of running the destructor on s, run it on tmp instead.
  */
 
 FuncDeclaration *StructDeclaration::buildOpAssign(Scope *sc)

@@ -1344,8 +1344,12 @@ code *getlvalue(code *pcs,elem *e,regm_t keepmsk)
             pcs->Iflags |= CFcs | CFoff;
         }
 #if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_SOLARIS
-//      if (fl == FLtlsdata || s->ty() & mTYthread)
-//          pcs->Iflags |= CFgs;
+        if (I64 && config.flags3 & CFG3pic &&
+            (fl == FLtlsdata || s->ty() & mTYthread))
+        {
+            pcs->Iflags |= CFopsize;
+            pcs->Irex = 0x48;
+        }
 #endif
         pcs->IEVsym1 = s;
         pcs->IEVoffset1 = e->EV.sp.Voffset;
@@ -2693,10 +2697,22 @@ STATIC code * funccall(elem *e,unsigned numpara,unsigned numalign,regm_t *pretre
             ce->Iflags |= farfunc ? (CFseg | CFoff) : (CFselfrel | CFoff);
 #if TARGET_LINUX
             if (s == tls_get_addr_sym)
-            {   /* Append a NOP so GNU linker has patch room
-                 */
-                ce = gen1(ce, 0x90);            // NOP
-                code_orflag(ce, CFvolatile);    // don't schedule it
+            {
+                if (I32)
+                {
+                    /* Append a NOP so GNU linker has patch room
+                     */
+                    ce = gen1(ce, 0x90);        // NOP
+                    code_orflag(ce, CFvolatile);    // don't schedule it
+                }
+                else
+                {   /* Prepend 66 66 48 so GNU linker has patch room
+                     */
+                    assert(I64);
+                    ce->Irex = REX | REX_W;
+                    ce = cat(gen1(CNIL, 0x66), ce);
+                    ce = cat(gen1(CNIL, 0x66), ce);
+                }
             }
 #endif
         }

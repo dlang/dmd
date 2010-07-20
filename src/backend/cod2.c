@@ -3751,7 +3751,26 @@ code *getoffset(elem *e,unsigned reg)
 
     case FLtlsdata:
 #if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_SOLARIS
-    {   /* Generate:
+    {
+      L5:
+        if (I64 && config.flags3 & CFG3pic)
+        {
+            /* Generate:
+             *   LEA DI,s@TLSGD[RIP]
+             */
+            assert(reg == DI);
+            code css;
+            css.Irex = REX | REX_W;
+            css.Iop = 0x8D;             // LEA
+            css.Irm = modregrm(0,DI,5);
+            css.Iflags = CFopsize;
+            css.IFL1 = fl;
+            css.IEVsym1 = e->EV.sp.Vsym;
+            css.IEVoffset1 = e->EV.sp.Voffset;
+            c = gen(NULL, &css);
+            return c;
+        }
+        /* Generate:
          *      MOV reg,GS:[00000000]
          *      ADD reg, offset s@TLS_LE
          * for locals, and for globals:
@@ -3759,7 +3778,6 @@ code *getoffset(elem *e,unsigned reg)
          *      ADD reg, s@TLS_IE
          * note different fixup
          */
-      L5:
         int stack = 0;
         c = NULL;
         if (reg == STACK)

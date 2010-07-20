@@ -167,7 +167,7 @@ extern regm_t BYTEREGS;
 #define mLSW    (mAX|mBX|mSI|mDI)       /* least significant regs       */
 #endif
 
-/* Return !=0 if there is an SIB byte   */
+/* Return !=0 if there is a SIB byte   */
 #define issib(rm)       (((rm) & 7) == 4 && ((rm) & 0xC0) != 0xC0)
 
 #if 0
