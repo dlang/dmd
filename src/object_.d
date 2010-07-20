@@ -1730,7 +1730,8 @@ extern (C) void _moduleCtor()
     debug(PRINTF) printf("_moduleinfo_dtors = x%x\n", cast(void*)_moduleinfo_dtors);
     _moduleIndependentCtors();
     _moduleCtor2(_moduleinfo_array, 0);
-    _moduleTlsCtor();
+    // NOTE: _moduleTlsCtor is now called manually by dmain2
+    //_moduleTlsCtor();
 }
 
 extern (C) void _moduleIndependentCtors()
@@ -1866,7 +1867,8 @@ extern (C) void _moduleDtor()
 {
     debug(PRINTF) printf("_moduleDtor(): %d modules\n", _moduleinfo_dtors_i);
 
-    _moduleTlsDtor();
+    // NOTE: _moduleTlsDtor is now called manually by dmain2
+    //_moduleTlsDtor();
     for (uint i = _moduleinfo_dtors_i; i-- != 0;)
     {
         ModuleInfo* m = _moduleinfo_dtors[i];

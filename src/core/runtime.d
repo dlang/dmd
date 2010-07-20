@@ -124,7 +124,7 @@ struct Runtime
      * Returns:
      *  true if the runtime is halting.
      */
-    static @property bool isHalting()
+    deprecated static @property bool isHalting()
     {
         return rt_isHalting();
     }

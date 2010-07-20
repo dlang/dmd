@@ -418,10 +418,12 @@ extern (C) int main(int argc, char** argv)
         version (Windows)
             _minit();
         _moduleCtor();
+        _moduleTlsCtor();
         if (runModuleUnitTests())
             tryExec(&runMain);
         else
             result = EXIT_FAILURE;
+        _moduleTlsDtor();
         thread_joinAll();
         _d_isHalting = true;
         _moduleDtor();
