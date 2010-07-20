@@ -136,6 +136,7 @@ int    fileno(FILE*);
 int    fseeko(FILE*, off_t, int);
 off_t  ftello(FILE*);
 char*  gets(char*);
+int    pclose(FILE*);
 FILE*  popen(in char*, in char*);
 */
 
@@ -177,6 +178,7 @@ version( Posix )
     //int    fseeko(FILE*, off_t, int);
     //off_t  ftello(FILE*);
     char*  gets(char*);
+    int    pclose(FILE*);
     FILE*  popen(in char*, in char*);
 }
 
