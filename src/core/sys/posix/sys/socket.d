@@ -127,7 +127,7 @@ int     setsockopt(int, int, int, in void*, socklen_t);
 int     shutdown(int, int);
 int     socket(int, int, int);
 int     sockatmark(int);
-int     socketpair(int, int, int, int[2]);
+int     socketpair(int, int, int, ref int[2]);
 */
 
 version( linux )
@@ -285,7 +285,7 @@ version( linux )
     int     shutdown(int, int);
     int     socket(int, int, int);
     int     sockatmark(int);
-    int     socketpair(int, int, int, int[2]);
+    int     socketpair(int, int, int, ref int[2]);
 }
 else version( OSX )
 {
@@ -434,7 +434,7 @@ else version( OSX )
     int     shutdown(int, int);
     int     socket(int, int, int);
     int     sockatmark(int);
-    int     socketpair(int, int, int, int[2]);
+    int     socketpair(int, int, int, ref int[2]);
 }
 else version( freebsd )
 {
@@ -585,7 +585,7 @@ else version( freebsd )
     int     shutdown(int, int);
     int     socket(int, int, int);
     int     sockatmark(int);
-    int     socketpair(int, int, int, int[2]);
+    int     socketpair(int, int, int, ref int[2]);
 }
 
 //

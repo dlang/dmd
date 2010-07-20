@@ -43,7 +43,7 @@ int getitimer(int, itimerval*);
 int gettimeofday(timeval*, void*);
 int select(int, fd_set*, fd_set*, fd_set*, timeval*); (defined in core.sys.posix.sys.signal)
 int setitimer(int, in itimerval*, itimerval*);
-int utimes(in char*, in timeval[2]); // LEGACY
+int utimes(in char*, ref const(timeval)[2]); // LEGACY
 */
 
 version( linux )
@@ -67,7 +67,7 @@ version( linux )
     int getitimer(int, itimerval*);
     int gettimeofday(timeval*, void*);
     int setitimer(int, in itimerval*, itimerval*);
-    int utimes(in char*, in timeval[2]); // LEGACY
+    int utimes(in char*, ref const(timeval)[2]); // LEGACY
 }
 else version( OSX )
 {
@@ -93,7 +93,7 @@ else version( OSX )
     int getitimer(int, itimerval*);
     int gettimeofday(timeval*, timezone_t*); // timezone_t* is normally void*
     int setitimer(int, in itimerval*, itimerval*);
-    int utimes(in char*, in timeval[2]);
+    int utimes(in char*, ref const(timeval)[2]);
 }
 else version( freebsd )
 {
@@ -119,5 +119,5 @@ else version( freebsd )
     int getitimer(int, itimerval*);
     int gettimeofday(timeval*, timezone_t*); // timezone_t* is normally void*
     int setitimer(int, in itimerval*, itimerval*);
-    int utimes(in char*, in timeval[2]);
+    int utimes(in char*, ref const(timeval)[2]);
 }
