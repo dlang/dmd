@@ -437,7 +437,5 @@ extern (C) int main(int argc, char** argv)
         _STD_critical_term();
         _STD_monitor_staticdtor();
     }
-    if (result == EXIT_FAILURE)
-        abort();
     return result;
 }
