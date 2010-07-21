@@ -335,7 +335,6 @@ public:
         if( !dll_fixTLS( hInstance, tlsstart, tlsend, tls_callbacks_a, tlsindex ) )
             return false;
 
-        thread_setNeedLock(true);
         Runtime.initialize();
 
         if( !attach_threads )
@@ -344,9 +343,9 @@ public:
         // attach to all other threads
         return enumProcessThreads(
             function (uint id, void* context) { 
-                if( !Thread.findThread( id ) )
+                if( !thread_findByAddr( id ) )
                 {
-                    thread_attach( id );
+                    thread_attachByAddrB( id, getThreadStackBottom( id ) );
                     thread_moduleTlsCtor( id );
                 }
                 return true; 
@@ -367,7 +366,7 @@ public:
         if( detach_threads )
             enumProcessThreads( 
                 function (uint id, void* context) { 
-                    if( id != GetCurrentThreadId() && Thread.findThread( id ) ) 
+                    if( id != GetCurrentThreadId() && thread_findByAddr( id ) ) 
                     {
                         thread_moduleTlsDtor( id );
                         thread_detach( id ); 
@@ -381,7 +380,7 @@ public:
     // to be called from DllMain with reason DLL_THREAD_ATTACH
     void dll_thread_attach( bool attach_thread = true, bool initTls = true )
     {
-        if( attach_thread && !Thread.findThread( GetCurrentThreadId() ) )
+        if( attach_thread && !thread_findByAddr( GetCurrentThreadId() ) )
             thread_attachThis(); 
         if( initTls && !_moduleinfo_tlsdtors_i ) // avoid duplicate calls
             _moduleTlsCtor();
