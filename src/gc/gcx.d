@@ -1234,6 +1234,18 @@ class GC
             return &gcx.rangeIter;
         }
     }
+    
+    
+    /**
+     *
+     */
+    void atomic(scope void delegate() fn)
+    {
+        synchronized(gcLock)
+        {
+            fn();
+        }
+    }
 
 
     /**
