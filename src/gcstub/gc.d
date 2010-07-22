@@ -76,8 +76,6 @@ private
 
         extern (C) void function(void*) gc_removeRoot;
         extern (C) void function(void*) gc_removeRange;
-        
-        extern (C) void function(scope void delegate()) gc_atomic;
     }
 
     __gshared Proxy  pthis;
@@ -112,8 +110,6 @@ private
 
         pthis.gc_removeRoot = &gc_removeRoot;
         pthis.gc_removeRange = &gc_removeRange;
-        
-        pthis.gc_atomic = &gc_atomic;
     }
 
     __gshared void** roots  = null;
@@ -349,11 +345,6 @@ extern (C) void gc_removeRange( void *p )
         assert( false );
     }
     return proxy.gc_removeRange( p );
-}
-
-extern (C) void gc_atomic( scope void delegate() fn )
-{
-    fn();
 }
 
 extern (C) Proxy* gc_getProxy()

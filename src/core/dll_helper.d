@@ -345,7 +345,7 @@ public:
             function (uint id, void* context) { 
                 if( !thread_findByAddr( id ) )
                 {
-                    thread_attachByAddrB( id, getThreadStackBottom( id ) );
+                    thread_attachByAddr( id );
                     thread_moduleTlsCtor( id );
                 }
                 return true; 

@@ -28,8 +28,6 @@ private
     __gshared gc_t _gc;
 
     extern (C) void thread_init();
-    
-    alias scope void delegate() gc_atom;
 
     struct Proxy
     {
@@ -60,8 +58,6 @@ private
 
         extern (C) void function(void*) gc_removeRoot;
         extern (C) void function(void*) gc_removeRange;
-        
-        extern (C) void function(gc_atom) gc_atomic;
     }
 
     __gshared Proxy  pthis;
@@ -96,8 +92,6 @@ private
 
         pthis.gc_removeRoot = &gc_removeRoot;
         pthis.gc_removeRange = &gc_removeRange;
-        
-        pthis.gc_atomic = &gc_atomic;
     }
 }
 
@@ -305,13 +299,6 @@ extern (C) void gc_removeRange( void* p )
     if( proxy is null )
         return _gc.removeRange( p );
     return proxy.gc_removeRange( p );
-}
-
-extern (C) void gc_atomic( gc_atom fn )
-{
-    if( proxy is null )
-        return _gc.atomic( fn );
-    return proxy.gc_atomic( fn );
 }
 
 extern (C) Proxy* gc_getProxy()

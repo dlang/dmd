@@ -49,6 +49,13 @@ class FiberException : Exception
 private
 {
     //
+    // from core.memory
+    //
+    extern (C) void  gc_enable();
+    extern (C) void  gc_disable();
+    extern (C) void* gc_malloc(size_t sz, uint ba = 0);
+
+    //
     // from core.stdc.string
     //
     extern (C) void* memcpy(void*, const void*, size_t);
@@ -102,6 +109,7 @@ version( Windows )
     {
         import core.stdc.stdint : uintptr_t; // for _beginthreadex decl below
         import core.sys.windows.windows;
+        import core.thread_helper; // for OpenThreadHandle
 
         const DWORD TLS_OUT_OF_INDEXES  = 0xFFFFFFFF;
 
@@ -1288,6 +1296,12 @@ private:
     // Local storage
     //
     __gshared TLSKey    sm_this;
+    
+    
+    //
+    // Main process thread
+    //
+    __gshared Thread    sm_main;
 
 
     //
@@ -1696,8 +1710,16 @@ extern (C) void thread_init()
         status = pthread_key_create( &Thread.sm_this, null );
         assert( status == 0 );
     }
+    Thread.sm_main = thread_attachThis();
+}
 
-    thread_attachThis();
+
+/**
+ *
+ */
+extern (C) bool thread_isMainThread()
+{
+    return Thread.getThis() is Thread.sm_main;
 }
 
 
@@ -1705,41 +1727,78 @@ extern (C) void thread_init()
  * Registers the calling thread for use with the D Runtime.  If this routine
  * is called for a thread which is already registered, the result is undefined.
  */
-extern (C) void thread_attachThis()
+extern (C) Thread thread_attachThis()
 {
+    gc_disable(); scope(exit) gc_enable();
+    
+    Thread          thisThread  = new Thread();
+    Thread.Context* thisContext = &thisThread.m_main;
+    assert( thisContext == thisThread.m_curr );
+
     version( Windows )
     {
-        thread_attachByAddrB( GetCurrentThreadId(), getStackBottom() );
+        thisThread.m_addr  = GetCurrentThreadId();
+        thisThread.m_hndl  = GetCurrentThreadHandle();
+        thisContext.bstack = getStackBottom();
+        thisContext.tstack = thisContext.bstack;
+    }
+    else version( Posix )
+    {
+        thisThread.m_addr  = pthread_self();
+        thisContext.bstack = getStackBottom();
+        thisContext.tstack = thisContext.bstack;
+        
+        thisThread.m_isRunning = true;
+    }
+    thisThread.m_isDaemon = true;
+    Thread.setThis( thisThread );
+
+    version( OSX )
+    {
+        thisThread.m_tmach = pthread_mach_thread_np( thisThread.m_addr );
+        assert( thisThread.m_tmach != thisThread.m_tmach.init );
+    }
+
+    version( OSX )
+    {
+        // NOTE: OSX does not support TLS, so we do it ourselves.  The TLS
+        //       data output by the compiler is bracketed by _tls_beg and
+        //       _tls_end, so make a copy of it for each thread.
+        const sz = cast(void*) &_tls_end - cast(void*) &_tls_beg;
+        auto p = gc_malloc(sz);
+        thisThread.m_tls = p[0 .. sz];
+        memcpy( p, &_tls_beg, sz );
+        // used gc_malloc so no need to free
     }
     else
     {
-        thread_attachByAddrB( pthread_self(), getStackBottom() );
+        auto pstart = cast(void*) &_tlsstart;
+        auto pend   = cast(void*) &_tlsend;
+        thisThread.m_tls = pstart[0 .. pend - pstart];
     }
+
+    Thread.add( thisThread );
+    Thread.add( thisContext );
+    if( Thread.sm_main !is null )
+        multiThreadedFlag = true;
+    return thisThread;
 }
 
 
-version( none )
+version( Windows )
 {
     /// ditto
-    extern (C) void thread_attachByAddr( Thread.ThreadAddr addr )
+    extern (C) Thread thread_attachByAddr( Thread.ThreadAddr addr )
     {
-        thread_attachByAddrB( addr, getStackByAddr() );
+        return thread_attachByAddrB( addr, getThreadStackBottom( addr ) );
     }
-}
 
 
-// ditto
-extern (C) void thread_attachByAddrB( Thread.ThreadAddr addr, void* bstack )
-{
-    // NOTE: Since the calling thread is not yet visible to the GC, any memory
-    //       allocated from the GC will vanish if a collection occurs.  Also,
-    //       it isn't safe to simply hold Thread.slock because a deadlock will
-    //       occur on the GC mutex if another thread blocks trying to acquire
-    //       Thread.slock to perform a collection.  To resolve this issue, the
-    //       GC is asked to perform our work atomically in relation to other
-    //       allocations.
-    void doAttach()
+    /// ditto
+    extern (C) Thread thread_attachByAddrB( Thread.ThreadAddr addr, void* bstack )
     {
+        gc_disable(); scope(exit) gc_enable();
+
         Thread          thisThread  = new Thread();
         Thread.Context* thisContext = &thisThread.m_main;
         assert( thisContext == thisThread.m_curr );
@@ -1747,43 +1806,78 @@ extern (C) void thread_attachByAddrB( Thread.ThreadAddr addr, void* bstack )
         version( Windows )
         {
             thisThread.m_addr  = addr;
-            thisThread.m_hndl  = GetCurrentThreadHandle();
-            thisContext.bstack = getStackBottom();
+            thisContext.bstack = bstack;
             thisContext.tstack = thisContext.bstack;
-
-            thisThread.m_isDaemon = true;
-
-            Thread.setThis( thisThread );
+            
+            if( addr == GetCurrentThreadId() )
+            {
+                thisThread.m_hndl = GetCurrentThreadHandle();
+            }
+            else
+            {
+                thisThread.m_hndl = OpenThreadHandle( addr );
+            }
         }
         else version( Posix )
         {
-            thisThread.m_addr  = pthread_self();
-            thisContext.bstack = getStackBottom();
+            thisThread.m_addr  = addr;
+            thisContext.bstack = bstack;
             thisContext.tstack = thisContext.bstack;
 
             thisThread.m_isRunning = true;
-            thisThread.m_isDaemon  = true;
-
-            Thread.setThis( thisThread );
         }
+        thisThread.m_isDaemon = true;
+        Thread.setThis( thisThread );
+
         version( OSX )
         {
             thisThread.m_tmach = pthread_mach_thread_np( thisThread.m_addr );
             assert( thisThread.m_tmach != thisThread.m_tmach.init );
-        }    
+        }
+        
+        version( OSX )
+        {
+            // NOTE: OSX does not support TLS, so we do it ourselves.  The TLS
+            //       data output by the compiler is bracketed by _tls_beg and
+            //       _tls_end, so make a copy of it for each thread.
+            const sz = cast(void*) &_tls_end - cast(void*) &_tls_beg;
+            auto p = gc_malloc(sz);
+            assert( p );
+            obj.m_tls = p[0 .. sz];
+            memcpy( p, &_tls_beg, sz );
+            // used gc_malloc so no need to free
+        }
+        else version( Windows )
+        {
+            if( addr == GetCurrentThreadId() )
+            {
+                auto pstart = cast(void*) &_tlsstart;
+                auto pend   = cast(void*) &_tlsend;
+                obj.m_tls = pstart[0 .. pend - pstart];
+            }
+            else
+            {
+                // TODO: This seems wrong.  If we're binding threads from
+                //       a DLL, will they always have space reserved for
+                //       the TLS chunk we expect?  I don't know Windows
+                //       well enough to say.
+                auto pstart = cast(void*) &_tlsstart;
+                auto pend   = cast(void*) &_tlsend;
+                auto pos    = GetTlsDataAddress( thisThread.m_hndl );
+                thisThread.m_tls = pos[0 .. pend - pstart];
+            }
+        }
+        else
+        {
+            static assert( false, "Platform not supported." );
+        }
 
         Thread.add( thisThread );
         Thread.add( thisContext );
+        if( Thread.sm_main !is null )
+            multiThreadedFlag = true;
+        return thisThread;
     }
-    
-    auto wasThreaded  = multiThreadedFlag;
-    multiThreadedFlag = true;
-    scope( failure )
-    {
-        if( !wasThreaded )
-            multiThreadedFlag = false;
-    }
-    gc_atomic( &doAttach );    
 }
 
 
@@ -3358,9 +3452,9 @@ private:
     {
         // NOTE: The static ucontext instance is used to represent the context
         //       of the main application thread.
-        static ucontext_t   sm_utxt = void;
-        ucontext_t          m_utxt  = void;
-        ucontext_t*         m_ucur  = null;
+        __gshared ucontext_t    sm_utxt = void;
+        ucontext_t              m_utxt  = void;
+        ucontext_t*             m_ucur  = null;
     }
 
 
