@@ -549,6 +549,7 @@ void dwarf_CFA_args_size(size_t sz);
 #if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_SOLARIS
 void elfobj_gotref(symbol *s);
 symbol *elfobj_getGOTsym();
+void elfobj_refGOTsym();
 elem * exp_isconst();
 elem *lnx_builtin_next_arg(elem *efunc,list_t arglist);
 char *lnx_redirect_funcname(const char *);
