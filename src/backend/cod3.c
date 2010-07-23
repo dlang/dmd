@@ -2941,7 +2941,7 @@ void pinholeopt(code *c,block *b)
             ins = inssize2[c->Iop2];
         else
             ins = inssize[c->Iop];
-        if (ins & M)            // if modregrm byte
+        if (I32 && ins & M)            // if modregrm byte
         {   int shortop = (c->Iflags & CFopsize) ? !I16 : I16;
             int local_BPRM = BPRM;
 

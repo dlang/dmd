@@ -2247,7 +2247,7 @@ void elf_addrel(int seg, targ_size_t offset, unsigned type,
         Elf64_Rela rel;
         rel.r_offset = offset;          // build relocation information
         rel.r_info = ELF64_R_INFO(symidx,type);
-        rel.r_addend = 0;
+        rel.r_addend = val;
         buf = segdata->SDrel;
         buf->write(&rel,sizeof(rel));
         segdata->SDrelcnt++;
@@ -2521,18 +2521,18 @@ int reftoident(int seg, targ_size_t offset, Symbol *s, targ_size_t val,
                     }
                     else
                     {
-                        val = (targ_size_t)-4;
                         //dbg_printf("\tadding relocation\n");
                         if (I64)
-                            relinfo = config.flags3 & CFG3pic ?  R_X86_64_PLT32 : R_X86_64_PC32;
+                        {   relinfo = config.flags3 & CFG3pic ?  R_X86_64_PLT32 : R_X86_64_PC32;
+                            elf_addrel(seg,offset, relinfo, s->Sxtrnnum, -4);
+                            val = 0;
+                        }
                         else
-                            relinfo = config.flags3 & CFG3pic ?  RI_TYPE_PLT32 : RI_TYPE_PC32;
-                        elf_addrel(seg,offset,
-                                relinfo,
-                                s->Sxtrnnum,0);
+                        {   relinfo = config.flags3 & CFG3pic ?  RI_TYPE_PLT32 : RI_TYPE_PC32;
+                            elf_addrel(seg,offset, relinfo, s->Sxtrnnum, 0);
+                            val = (targ_size_t)-4;
+                        }
                     }
-                    if (I64)
-                        val += 4;
                 }
                 else
                 {       // code to code code to data, data to code, data to data refs
