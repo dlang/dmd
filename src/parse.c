@@ -5456,6 +5456,121 @@ void Parser::addComment(Dsymbol *s, unsigned char *blockComment)
     token.lineComment = NULL;
 }
 
+/**********************************
+ * Set operator precedence for each operator.
+ */
 
-/********************************* ***************************/
+void initPrecedence()
+{
+    precedence[TOKdotvar] = PREC_primary;
+    precedence[TOKimport] = PREC_primary;
+    precedence[TOKidentifier] = PREC_primary;
+    precedence[TOKthis] = PREC_primary;
+    precedence[TOKsuper] = PREC_primary;
+    precedence[TOKint64] = PREC_primary;
+    precedence[TOKfloat64] = PREC_primary;
+    precedence[TOKnull] = PREC_primary;
+    precedence[TOKstring] = PREC_primary;
+    precedence[TOKarrayliteral] = PREC_primary;
+    precedence[TOKtypeid] = PREC_primary;
+    precedence[TOKis] = PREC_primary;
+    precedence[TOKassert] = PREC_primary;
+    precedence[TOKfunction] = PREC_primary;
+    precedence[TOKvar] = PREC_primary;
+#if DMDV2
+    precedence[TOKdefault] = PREC_primary;
+#endif
+
+    // post
+    precedence[TOKdotti] = PREC_primary;
+    precedence[TOKdot] = PREC_primary;
+//  precedence[TOKarrow] = PREC_primary;
+    precedence[TOKplusplus] = PREC_primary;
+    precedence[TOKminusminus] = PREC_primary;
+    precedence[TOKcall] = PREC_primary;
+    precedence[TOKslice] = PREC_primary;
+    precedence[TOKarray] = PREC_primary;
+
+    precedence[TOKaddress] = PREC_unary;
+    precedence[TOKstar] = PREC_unary;
+    precedence[TOKneg] = PREC_unary;
+    precedence[TOKuadd] = PREC_unary;
+    precedence[TOKnot] = PREC_unary;
+    precedence[TOKtobool] = PREC_add;
+    precedence[TOKtilde] = PREC_unary;
+    precedence[TOKdelete] = PREC_unary;
+    precedence[TOKnew] = PREC_unary;
+    precedence[TOKcast] = PREC_unary;
+
+    precedence[TOKmul] = PREC_mul;
+    precedence[TOKdiv] = PREC_mul;
+    precedence[TOKmod] = PREC_mul;
+
+    precedence[TOKadd] = PREC_add;
+    precedence[TOKmin] = PREC_add;
+    precedence[TOKcat] = PREC_add;
+
+    precedence[TOKshl] = PREC_shift;
+    precedence[TOKshr] = PREC_shift;
+    precedence[TOKushr] = PREC_shift;
+
+    precedence[TOKlt] = PREC_rel;
+    precedence[TOKle] = PREC_rel;
+    precedence[TOKgt] = PREC_rel;
+    precedence[TOKge] = PREC_rel;
+    precedence[TOKunord] = PREC_rel;
+    precedence[TOKlg] = PREC_rel;
+    precedence[TOKleg] = PREC_rel;
+    precedence[TOKule] = PREC_rel;
+    precedence[TOKul] = PREC_rel;
+    precedence[TOKuge] = PREC_rel;
+    precedence[TOKug] = PREC_rel;
+    precedence[TOKue] = PREC_rel;
+    precedence[TOKin] = PREC_rel;
+
+#if 0
+    precedence[TOKequal] = PREC_equal;
+    precedence[TOKnotequal] = PREC_equal;
+    precedence[TOKidentity] = PREC_equal;
+    precedence[TOKnotidentity] = PREC_equal;
+#else
+    /* Note that we changed precedence, so that < and != have the same
+     * precedence. This change is in the parser, too.
+     */
+    precedence[TOKequal] = PREC_rel;
+    precedence[TOKnotequal] = PREC_rel;
+    precedence[TOKidentity] = PREC_rel;
+    precedence[TOKnotidentity] = PREC_rel;
+#endif
+
+    precedence[TOKand] = PREC_and;
+
+    precedence[TOKxor] = PREC_xor;
+
+    precedence[TOKor] = PREC_or;
+
+    precedence[TOKandand] = PREC_andand;
+
+    precedence[TOKoror] = PREC_oror;
+
+    precedence[TOKquestion] = PREC_cond;
+
+    precedence[TOKassign] = PREC_assign;
+    precedence[TOKconstruct] = PREC_assign;
+    precedence[TOKblit] = PREC_assign;
+    precedence[TOKaddass] = PREC_assign;
+    precedence[TOKminass] = PREC_assign;
+    precedence[TOKcatass] = PREC_assign;
+    precedence[TOKmulass] = PREC_assign;
+    precedence[TOKdivass] = PREC_assign;
+    precedence[TOKmodass] = PREC_assign;
+    precedence[TOKshlass] = PREC_assign;
+    precedence[TOKshrass] = PREC_assign;
+    precedence[TOKushrass] = PREC_assign;
+    precedence[TOKandass] = PREC_assign;
+    precedence[TOKorass] = PREC_assign;
+    precedence[TOKxorass] = PREC_assign;
+
+    precedence[TOKcomma] = PREC_expr;
+}
 

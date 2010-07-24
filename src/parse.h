@@ -143,4 +143,30 @@ struct Parser : Lexer
     void addComment(Dsymbol *s, unsigned char *blockComment);
 };
 
+// Operator precedence - greater values are higher precedence
+
+enum PREC
+{
+    PREC_zero,
+    PREC_expr,
+    PREC_assign,
+    PREC_cond,
+    PREC_oror,
+    PREC_andand,
+    PREC_or,
+    PREC_xor,
+    PREC_and,
+    PREC_equal,
+    PREC_rel,
+    PREC_shift,
+    PREC_add,
+    PREC_mul,
+    PREC_unary,
+    PREC_primary,
+};
+
+enum PREC precedence[TOKMAX];
+
+void initPrecedence();
+
 #endif /* DMD_PARSE_H */
