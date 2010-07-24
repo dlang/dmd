@@ -2941,7 +2941,7 @@ void pinholeopt(code *c,block *b)
             ins = inssize2[c->Iop2];
         else
             ins = inssize[c->Iop];
-        if (I32 && ins & M)            // if modregrm byte
+        if (ins & M)            // if modregrm byte
         {   int shortop = (c->Iflags & CFopsize) ? !I16 : I16;
             int local_BPRM = BPRM;
 
@@ -3318,6 +3318,7 @@ void pinholeopt(code *c,block *b)
             // Replace [R13] with 0[R13]
             if (c->Irex & REX_B && (c->Irm & modregrm(3,0,5)) == modregrm(0,0,5))
             {
+printf("test1\n");
                 c->Irm |= modregrm(1,0,0);
                 c->IFL1 = FLconst;
                 c->IEVpointer1 = 0;
@@ -3392,6 +3393,9 @@ STATIC void pinholeopt_unittest()
     {
         // XOR reg,immed                            NOT regL
         {{ 16,0x81,modregrm(3,6,BX),0,0xFF,0 },    { 0,0xF6,modregrm(3,2,BX),0,0xFF }},
+
+        // MOV 0[BX],3                               MOV [BX],3
+        {{ 16,0xC7,modregrm(2,0,7),0,3},           { 0,0xC7,modregrm(0,0,7),0,3 }},
 
 #if 0 // only if config.flags4 & CFG4space
         // TEST regL,immed8

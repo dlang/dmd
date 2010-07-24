@@ -286,6 +286,10 @@ void Dsymbol::importAll(Scope *sc)
  * Does semantic analysis on the public face of declarations.
  */
 
+void Dsymbol::semantic0(Scope *sc)
+{
+}
+
 void Dsymbol::semantic(Scope *sc)
 {
     error("%p has no semantic routine", this);
