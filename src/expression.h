@@ -81,7 +81,8 @@ struct Expression : Object
     Loc loc;                    // file location
     enum TOK op;                // handy to minimize use of dynamic_cast
     Type *type;                 // !=NULL means that semantic() has been run
-    int size;                   // # of bytes in Expression so we can copy() it
+    unsigned char size;         // # of bytes in Expression so we can copy() it
+    unsigned char parens;       // if this is a parenthesized expression
 
     Expression(Loc loc, enum TOK op, int size);
     Expression *copy();

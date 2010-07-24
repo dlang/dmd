@@ -116,6 +116,7 @@ struct Parser : Lexer
     void check(Loc loc, enum TOK value);
     void check(enum TOK value);
     void check(enum TOK value, const char *string);
+    void checkParens(enum TOK value, Expression *e);
     int isDeclaration(Token *t, int needId, enum TOK endtok, Token **pt);
     int isBasicType(Token **pt);
     int isDeclarator(Token **pt, int *haveId, enum TOK endtok);
@@ -131,8 +132,10 @@ struct Parser : Lexer
     Expression *parseMulExp();
     Expression *parseAddExp();
     Expression *parseShiftExp();
+#if DMDV1
     Expression *parseRelExp();
     Expression *parseEqualExp();
+#endif
     Expression *parseCmpExp();
     Expression *parseAndExp();
     Expression *parseXorExp();
@@ -148,5 +151,32 @@ struct Parser : Lexer
 
     void addComment(Dsymbol *s, unsigned char *blockComment);
 };
+
+// Operator precedence - greater values are higher precedence
+
+enum PREC
+{
+    PREC_zero,
+    PREC_expr,
+    PREC_assign,
+    PREC_cond,
+    PREC_oror,
+    PREC_andand,
+    PREC_or,
+    PREC_xor,
+    PREC_and,
+    PREC_equal,
+    PREC_rel,
+    PREC_shift,
+    PREC_add,
+    PREC_mul,
+    PREC_pow,
+    PREC_unary,
+    PREC_primary,
+};
+
+extern enum PREC precedence[TOKMAX];
+
+void initPrecedence();
 
 #endif /* DMD_PARSE_H */
