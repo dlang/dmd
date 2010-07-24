@@ -448,6 +448,8 @@ int main(int argc, char *argv[])
             {   error("use -profile instead of -gt\n");
                 global.params.trace = 1;
             }
+            else if (strcmp(p + 1, "m32") == 0)
+                global.params.isX86_64 = 0;
             else if (strcmp(p + 1, "m64") == 0)
                 global.params.isX86_64 = 1;
             else if (strcmp(p + 1, "profile") == 0)
