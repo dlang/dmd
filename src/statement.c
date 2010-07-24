@@ -1895,7 +1895,12 @@ Lagain:
                  */
                 Expressions *exps = new Expressions();
                 exps->push(flde);
-                e = new CallExp(loc, aggr, exps);
+                if (aggr->op == TOKdelegate &&
+                    ((DelegateExp *)aggr)->func->isNested())
+                    // See Bugzilla 3560
+                    e = new CallExp(loc, ((DelegateExp *)aggr)->e1, exps);
+                else
+                    e = new CallExp(loc, aggr, exps);
                 e = e->semantic(sc);
                 if (e->type != Type::tint32)
                     error("opApply() function for %s must return an int", tab->toChars());
