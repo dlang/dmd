@@ -52,6 +52,34 @@ Dsymbol *EnumDeclaration::syntaxCopy(Dsymbol *s)
     return ed;
 }
 
+void EnumDeclaration::semantic0(Scope *sc)
+{
+    /* This function is a hack to get around a significant problem.
+     * The members of anonymous enums, like:
+     *  enum { A, B, C }
+     * don't get installed into the symbol table until after they are
+     * semantically analyzed, yet they're supposed to go into the enclosing
+     * scope's table. Hence, when forward referenced, they come out as
+     * 'undefined'. The real fix is to add them in at addSymbol() time.
+     * But to get code to compile, we'll just do this quick hack at the moment
+     * to compile it if it doesn't depend on anything else.
+     */
+
+    if (isdone || !scope)
+        return;
+    if (!isAnonymous() || memtype)
+        return;
+    for (int i = 0; i < members->dim; i++)
+    {
+        EnumMember *em = ((Dsymbol *)members->data[i])->isEnumMember();
+        if (em && (em->type || em->value))
+            return;
+    }
+
+    // Can do it
+    semantic(sc);
+}
+
 void EnumDeclaration::semantic(Scope *sc)
 {
     Type *t;
