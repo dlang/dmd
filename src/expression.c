@@ -6387,6 +6387,11 @@ Expression *DelegateExp::semantic(Scope *sc)
         AggregateDeclaration *ad = func->toParent()->isAggregateDeclaration();
         if (func->needThis())
             e1 = getRightThis(loc, sc, ad, e1, func);
+        if (ad && ad->type != e1->type)
+        {   // A downcast is required for interfaces, see Bugzilla 3706
+            e1 = new CastExp(loc, e1, ad->type);
+            e1 = e1->semantic(sc);
+        }
     }
     return this;
 }
