@@ -1,5 +1,5 @@
 // Copyright (C) 1986-1998 by Symantec
-// Copyright (C) 2000-2009 by Digital Mars
+// Copyright (C) 2000-2010 by Digital Mars
 // All Rights Reserved
 // http://www.digitalmars.com
 // Written by Walter Bright
@@ -477,7 +477,12 @@ STATIC elem * chkprop(elem *n,list_t rdlist)
         //printf("\trd: "); WReqn(d); printf("\n");
         if (d->Eoper == OPasm)          /* OPasm elems ruin everything  */
             goto noprop;
+#if 0
+        // Runs afoul of Buzilla 4506
         if (OTassign(d->Eoper) && EBIN(d))      // if assignment elem
+#else
+        if (OTassign(d->Eoper))      // if assignment elem
+#endif
         {   elem *t = Elvalue(d);
 
             if (t->Eoper == OPvar)
