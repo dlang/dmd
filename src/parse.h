@@ -165,7 +165,7 @@ enum PREC
     PREC_primary,
 };
 
-enum PREC precedence[TOKMAX];
+extern enum PREC precedence[TOKMAX];
 
 void initPrecedence();
 

@@ -5460,6 +5460,8 @@ void Parser::addComment(Dsymbol *s, unsigned char *blockComment)
  * Set operator precedence for each operator.
  */
 
+enum PREC precedence[TOKMAX];
+
 void initPrecedence()
 {
     precedence[TOKdotvar] = PREC_primary;
