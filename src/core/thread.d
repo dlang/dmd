@@ -1853,7 +1853,7 @@ version( Windows )
             {
                 auto pstart = cast(void*) &_tlsstart;
                 auto pend   = cast(void*) &_tlsend;
-                obj.m_tls = pstart[0 .. pend - pstart];
+                thisThread.m_tls = pstart[0 .. pend - pstart];
             }
             else
             {

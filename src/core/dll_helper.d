@@ -369,7 +369,7 @@ public:
                     if( id != GetCurrentThreadId() && thread_findByAddr( id ) ) 
                     {
                         thread_moduleTlsDtor( id );
-                        thread_detach( id ); 
+                        thread_detachByAddr( id ); 
                     }
                     return true; 
                 }, null );
