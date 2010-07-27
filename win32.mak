@@ -16,7 +16,7 @@ GCSTUB=lib\gcstub.obj
 
 DOCFMT=
 
-target : $(DOCS) $(IMPORTS) $(DRUNTIME) $(GCSTUB)
+target : import $(DRUNTIME) doc $(GCSTUB)
 
 MANIFEST= \
 	LICENSE_1_0.txt \
