@@ -54,6 +54,16 @@ private
         extern (C) void   backtrace_symbols_fd(void**,int,int);
         import core.sys.posix.signal; // segv handler
     }
+    
+    // For runModuleUnitTests error reporting.
+    version (Windows)
+    {
+        import core.sys.windows.windows;
+    }
+    else version( Posix )
+    {
+        import core.sys.posix.unistd;
+    }
 }
 
 
@@ -279,9 +289,6 @@ private:
  *  true if execution should continue after testing is complete and false if
  *  not.  Default behavior is to return true.
  */
-
-extern (C) __gshared unittest_errors = false;
-
 extern (C) bool runModuleUnitTests()
 {
     static if( __traits( compiles, backtrace ) )
@@ -313,8 +320,28 @@ extern (C) bool runModuleUnitTests()
         }
     }
 
+    static struct Console
+    {
+        Console opCall( in char[] val )
+        {
+            version( Windows )
+            {
+                uint count = void;
+                WriteFile( GetStdHandle( 0xfffffff5 ), val.ptr, val.length, &count, null );
+            }
+            else version( Posix )
+            {
+                write( 2, val.ptr, val.length );
+            }
+            return this;
+        }
+    }
+
+    static __gshared Console console;
+
     if( Runtime.sm_moduleUnitTester is null )
     {
+        size_t failed = 0;
         foreach( m; ModuleInfo )
         {
             if( m )
@@ -322,10 +349,20 @@ extern (C) bool runModuleUnitTests()
                 auto fp = m.unitTest;
                 
                 if( fp )
-                    fp();
+                {
+                    try
+                    {
+                        fp();
+                    }
+                    catch( Throwable e )
+                    {
+                        console( e.toString )( "\n" );
+                        failed++;
+                    }
+                }
             }
         }
-        return !unittest_errors;
+        return failed == 0;
     }
     return Runtime.sm_moduleUnitTester();
 }
