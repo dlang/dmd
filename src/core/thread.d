@@ -1212,6 +1212,14 @@ class Thread
             assert( PRIORITY_MAX != -1 );
         }
     }
+    
+    
+    ///////////////////////////////////////////////////////////////////////////
+    // Stuff That Should Go Away
+    ///////////////////////////////////////////////////////////////////////////
+    
+    
+    deprecated alias thread_findByAddr findThread;
 
 
 private:
@@ -1878,6 +1886,22 @@ version( Windows )
             multiThreadedFlag = true;
         return thisThread;
     }
+    
+    
+    /// This should be handled automatically by thread_attach.
+    deprecated extern (C) void thread_setNeedLock( bool need ) nothrow
+    {
+        if( need )
+            multiThreadedFlag = true;
+    }
+    
+    
+    /// Renamed to be more consistent with other extern (C) routines.
+    deprecated alias thread_attachByAddr thread_attach;
+    
+
+    /// ditto
+    deprecated alias thread_detachByAddr thread_detach;
 }
 
 
