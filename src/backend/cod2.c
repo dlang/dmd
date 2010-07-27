@@ -3866,6 +3866,15 @@ code *getoffset(elem *e,unsigned reg)
         {   cs.Iop = 0xB8 + (reg & 7);  // MOV reg,immed16
             if (reg & 8)
                 cs.Irex |= REX_B;
+            if (I64 && config.flags3 & CFG3pic)
+            {   // LEA reg,immed32[RIP]
+                cs.Irex |= REX_W;
+                cs.Iop = 0x8D;
+                cs.Irm = modregrm(0,reg & 7,5);
+                cs.IFL1 = fl;
+                cs.IEVsym1 = cs.IEVsym2;
+                cs.IEVoffset1 = cs.IEVoffset2;
+            }
             c = NULL;
         }
         cs.Iflags = CFoff;              /* want offset only             */

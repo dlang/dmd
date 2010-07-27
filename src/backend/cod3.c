@@ -3318,7 +3318,6 @@ void pinholeopt(code *c,block *b)
             // Replace [R13] with 0[R13]
             if (c->Irex & REX_B && (c->Irm & modregrm(3,0,5)) == modregrm(0,0,5))
             {
-printf("test1\n");
                 c->Irm |= modregrm(1,0,0);
                 c->IFL1 = FLconst;
                 c->IEVpointer1 = 0;
@@ -3700,7 +3699,10 @@ unsigned calccodsize(code *c)
 
 Lret:
     if (c->Irex)
-        size++;
+    {   size++;
+        if (c->Irex & REX_W && (op & 0xF8) == 0xB8)
+            size += 4;
+    }
 Lret2:
     //printf("op = x%02x, size = %d\n",op,size);
     return size;
@@ -4034,6 +4036,7 @@ unsigned codout(code *c)
                         case 0xA3:
                             if (I64 && c->Irex)
                             {
+                        do64:
                                 do64bit((enum FL)c->IFL2,&c->IEV2,flags);
                                 break;
                             }
@@ -4064,7 +4067,11 @@ unsigned codout(code *c)
                         case 0xE8:              // CALL rel
                         case 0xE9:              // JMP  rel
                             flags |= CFselfrel;
+                            goto case_default;
+
                         default:
+                            if (I64 && (op & 0xF8) == 0xB8 && c->Irex & REX_W)
+                                goto do64;
                         case_default:
                             if (c->Iflags & CFopsize)
                                 goto do16;
