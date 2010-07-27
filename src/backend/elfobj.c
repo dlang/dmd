@@ -2333,11 +2333,14 @@ void reftodatseg(int seg,targ_size_t offset,targ_size_t val,
     else*/
     {
         int relinfo;
+        targ_size_t v = 0;
 
         if (I64)
         {
             if (MAP_SEG2TYP(seg) == CODE && config.flags3 & CFG3pic)
-                relinfo = R_X86_64_PC32;
+            {   relinfo = R_X86_64_PC32;
+                //v = -4L;
+            }
             else if (MAP_SEG2SEC(targetdatum)->sh_flags & SHF_TLS)
                 relinfo = config.flags3 & CFG3pic ? R_X86_64_TLSGD : R_X86_64_TPOFF32;
             else
@@ -2353,7 +2356,7 @@ void reftodatseg(int seg,targ_size_t offset,targ_size_t val,
                 relinfo = RI_TYPE_SYM32;
         }
 
-        elf_addrel(seg, offset, relinfo, STI_RODAT, 0);
+        elf_addrel(seg, offset, relinfo, STI_RODAT, v);
     }
     buf->write32(val);
     if (save > offset + 4)
@@ -2392,11 +2395,12 @@ void reftocodseg(int seg,targ_size_t offset,targ_size_t val)
     {
         val = val - funcsym_p->Soffset;
         int relinfo;
+        targ_size_t v = 0;
         if (I64)
             relinfo = (config.flags3 & CFG3pic) ? R_X86_64_PC32 : R_X86_64_32;
         else
             relinfo = (config.flags3 & CFG3pic) ? RI_TYPE_GOTOFF : RI_TYPE_SYM32;
-        elf_addrel(seg,offset, relinfo, funcsym_p->Sxtrnnum, 0);
+        elf_addrel(seg,offset, relinfo, funcsym_p->Sxtrnnum, v);
     }
     buf->write32(val);
     if (save > offset + 4)
@@ -2428,6 +2432,7 @@ int reftoident(int seg, targ_size_t offset, Symbol *s, targ_size_t val,
     int segtyp = MAP_SEG2TYP(seg);
     //assert(val == 0);
     int retsize = (flags & CFoffset64) ? 8 : 4;
+    targ_size_t v = 0;
 
 #if 0
     printf("\nreftoident('%s' seg %d, offset x%llx, val x%llx, flags x%x)\n",
@@ -2460,7 +2465,10 @@ int reftoident(int seg, targ_size_t offset, Symbol *s, targ_size_t val,
                 if (s->Sfl == FLtlsdata)
                     relinfo = config.flags3 & CFG3pic ? R_X86_64_TLSGD : R_X86_64_TPOFF32;
                 else
-                    relinfo = config.flags3 & CFG3pic ? R_X86_64_PC32 : R_X86_64_32;
+                {   relinfo = config.flags3 & CFG3pic ? R_X86_64_PC32 : R_X86_64_32;
+                    if (config.flags3 & CFG3pic)
+                        v = -4L;
+                }
             }
             else
             {
@@ -2473,7 +2481,7 @@ int reftoident(int seg, targ_size_t offset, Symbol *s, targ_size_t val,
             {
                 relinfo = R_X86_64_64;
             }
-            elf_addrel(seg,offset,relinfo,STI_RODAT,0);
+            elf_addrel(seg,offset,relinfo,STI_RODAT,v);
             if (retsize == 8)
                 buf->write64(val + s->Soffset);
             else
@@ -2613,7 +2621,8 @@ int reftoident(int seg, targ_size_t offset, Symbol *s, targ_size_t val,
                         relinfo = R_X86_64_64;
                     }
                     //printf("\t\t************* adding relocation\n");
-                    elf_addrel(seg,offset,relinfo,refseg,0);
+                    targ_size_t v = (relinfo == R_X86_64_PC32) ? -4 : 0;
+                    elf_addrel(seg,offset,relinfo,refseg,v);
                 }
 outaddrval:
                 if (retsize == 8)
@@ -2787,15 +2796,33 @@ void obj_moduleinfo(Symbol *scc)
             off = 1;
         }
 
-        /* movl ModuleReference*, %eax */
-        buf->writeByte(0xB8);
-        buf->write32(refOffset);
-        elf_addrel(seg, codeOffset + off + 1, reltype, STI_DATA, 0);
+        if (I64 && config.flags3 & CFG3pic)
+        {   // LEA RAX,ModuleReference[RIP]
+            buf->writeByte(REX | REX_W);
+            buf->writeByte(0x8D);
+            buf->writeByte(modregrm(0,AX,5));
+            buf->write32(refOffset);
+            elf_addrel(seg, codeOffset + off + 3, R_X86_64_PC32, STI_DATA, -4);
 
-        /* movl _Dmodule_ref, %ecx */
-        buf->writeByte(0xB9);
-        buf->write32(0);
-        elf_addrel(seg, codeOffset + off + 6, reltype, objextern("_Dmodule_ref"), 0);
+            // LEA RCX,_DmoduleRef[RIP]
+            buf->writeByte(REX | REX_W);
+            buf->writeByte(0x8D);
+            buf->writeByte(modregrm(0,CX,5));
+            buf->write32(0);
+            elf_addrel(seg, codeOffset + off + 10, R_X86_64_PC32, objextern("_Dmodule_ref"), -4);
+        }
+        else
+        {
+            /* movl ModuleReference*, %eax */
+            buf->writeByte(0xB8);
+            buf->write32(refOffset);
+            elf_addrel(seg, codeOffset + off + 1, reltype, STI_DATA, 0);
+
+            /* movl _Dmodule_ref, %ecx */
+            buf->writeByte(0xB9);
+            buf->write32(0);
+            elf_addrel(seg, codeOffset + off + 6, reltype, objextern("_Dmodule_ref"), 0);
+        }
 
         buf->writeByte(0x8B); buf->writeByte(0x11); /* movl (%ecx), %edx */
         buf->writeByte(0x89); buf->writeByte(0x10); /* movl %edx, (%eax) */
