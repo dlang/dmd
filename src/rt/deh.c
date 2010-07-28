@@ -46,6 +46,9 @@ extern ClassInfo D6object5Error7__ClassZ;
 
 typedef int (__pascal *fp_t)();   // function pointer in ambient memory model
 
+void _d_setexception(Object*);
+void _d_newexception(Object*);
+
 // The layout of DEstablisherFrame is the same for C++
 
 struct DEstablisherFrame
@@ -172,11 +175,15 @@ EXCEPTION_DISPOSITION _d_framehandler(
                         regebp = (int)&frame->ebp;              // EBP for this frame
                         *(void **)(regebp + (pcb->bpoffset)) = pti;
 
+                        _d_setexception(pti);
+
                         // Have system call all finally blocks in intervening frames
                         _global_unwind(frame, exception_record);
 
                         // Call all the finally blocks skipped in this frame
                         _d_local_unwind(handler_table, frame, ndx);
+
+                        _d_setexception(NULL);
 
                         frame->table_index = prev_ndx;  // we are out of this handler
 
@@ -226,6 +233,7 @@ void __stdcall _d_throw(Object *h)
 {
     //printf("_d_throw(h = %p, &h = %p)\n", h, &h);
     //printf("\tvptr = %p\n", *(void **)h);
+    _d_newexception(h);
     RaiseException(STATUS_DIGITAL_MARS_D_EXCEPTION,
                    EXCEPTION_NONCONTINUABLE,
                    1, (DWORD *)&h);
