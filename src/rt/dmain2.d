@@ -38,6 +38,30 @@ version (Windows)
     pragma(lib, "shell32.lib"); // needed for CommandLineToArgvW
 }
 
+version (all)
+{
+    Throwable _d_localexception = null;
+
+    // TODO: Make this accept Throwable instead.
+    extern (C) void _d_setexception(Object* o)
+    {
+        auto t = cast(Throwable) o;
+        if (t !is null)
+            _d_localexception = t;
+    }
+    
+    // TODO: Make this accept Throwable instead.
+    extern (C) void _d_newexception(Object* o)
+    {
+        auto t = cast(Throwable) o;
+
+        if (t !is null)
+        {
+            t.next = _d_localexception;
+        }
+    }
+}
+
 extern (C) void _STI_monitor_staticctor();
 extern (C) void _STD_monitor_staticdtor();
 extern (C) void _STI_critical_init();
