@@ -40,25 +40,16 @@ version (Windows)
 
 version (all)
 {
-    Throwable _d_localexception = null;
+    Throwable _d_unhandled = null;
 
     // TODO: Make this accept Throwable instead.
-    extern (C) void _d_setexception(Object* o)
+    extern (C) void _d_setunhandled(Object* o)
     {
         auto t = cast(Throwable) o;
+        
         if (t !is null)
-            _d_localexception = t;
-    }
-    
-    // TODO: Make this accept Throwable instead.
-    extern (C) void _d_newexception(Object* o)
-    {
-        auto t = cast(Throwable) o;
-
-        if (t !is null)
-        {
-            t.next = _d_localexception;
-        }
+            t.next = _d_unhandled;
+        _d_unhandled = t;
     }
 }
 

@@ -24,8 +24,7 @@ extern (C)
 
     int _d_isbaseof(ClassInfo oc, ClassInfo c);
     
-    void _d_setexception(Object* o);
-    void _d_newexception(Object* o);
+    void _d_setunhandled(Object* o);
 }
 
 alias int (*fp_t)();   // function pointer in ambient memory model
@@ -160,7 +159,7 @@ extern (Windows) void _d_throw(Object *h)
         mov regebp,EBP  ;
     }
     
-    _d_newexception(h);
+    _d_setunhandled(h);
 
 //static uint abc;
 //if (++abc == 2) *(char *)0=0;
@@ -256,6 +255,8 @@ extern (Windows) void _d_throw(Object *h)
 
                     if (_d_isbaseof(ci, pcb.type))
                     {   // Matched the catch type, so we've found the handler.
+                    
+                        _d_setunhandled(null);
 
                         // Initialize catch variable
                         *cast(void **)(regebp + (pcb.bpoffset)) = h;
@@ -286,8 +287,6 @@ extern (Windows) void _d_throw(Object *h)
                 // accesses all items on the stack as relative to EBP.
 
                 void *blockaddr = phi.finally_code;
-                
-                _d_setexception(h);
 
                 version (OSX)
                 {
@@ -317,8 +316,6 @@ extern (Windows) void _d_throw(Object *h)
                         pop         EBX             ;
                     }
                 }
-                
-                _d_setexception(null);
             }
         }
     }
