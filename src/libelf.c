@@ -161,6 +161,8 @@ void OmToHeader(Header *h, ObjModule *om)
     assert(len <= 12);
     memset(h->file_time + len, ' ', 12 - len);
 
+    if (om->user_id > 999999)
+        om->user_id = 0;
     len = sprintf(h->user_id, "%u", om->user_id);
     assert(len <= 6);
     memset(h->user_id + len, ' ', 6 - len);
