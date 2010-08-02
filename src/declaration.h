@@ -745,6 +745,7 @@ struct StaticCtorDeclaration : FuncDeclaration
     StaticCtorDeclaration *isStaticCtorDeclaration() { return this; }
 };
 
+#if DMDV2
 struct SharedStaticCtorDeclaration : StaticCtorDeclaration
 {
     SharedStaticCtorDeclaration(Loc loc, Loc endloc);
@@ -753,6 +754,7 @@ struct SharedStaticCtorDeclaration : StaticCtorDeclaration
 
     SharedStaticCtorDeclaration *isSharedStaticCtorDeclaration() { return this; }
 };
+#endif
 
 struct StaticDtorDeclaration : FuncDeclaration
 {   VarDeclaration *vgate;      // 'gate' variable
@@ -772,6 +774,7 @@ struct StaticDtorDeclaration : FuncDeclaration
     StaticDtorDeclaration *isStaticDtorDeclaration() { return this; }
 };
 
+#if DMDV2
 struct SharedStaticDtorDeclaration : StaticDtorDeclaration
 {
     SharedStaticDtorDeclaration(Loc loc, Loc endloc);
@@ -780,6 +783,7 @@ struct SharedStaticDtorDeclaration : StaticDtorDeclaration
 
     SharedStaticDtorDeclaration *isSharedStaticDtorDeclaration() { return this; }
 };
+#endif
 
 struct InvariantDeclaration : FuncDeclaration
 {

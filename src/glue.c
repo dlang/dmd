@@ -1,6 +1,6 @@
 
 // Compiler implementation of the D programming language
-// Copyright (c) 1999-2009 by Digital Mars
+// Copyright (c) 1999-2010 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // http://www.digitalmars.com
@@ -356,6 +356,7 @@ void Module::genobjfile(int multiobj)
         {
             localgot = NULL;
             sctor = toSymbolX("__modctor", SCglobal, t, moddeco);
+#if DMDV2
             cstate.CSpsymtab = &sctor->Sfunc->Flocsym;
 
             for (int i = 0; i < ectorgates.dim; i++)
@@ -366,6 +367,7 @@ void Module::genobjfile(int multiobj)
                 e = el_bin(OPaddass, TYint, e, el_long(TYint, 1));
                 ector = el_combine(ector, e);
             }
+#endif
 
             block *b = block_calloc();
             b->BC = BCret;
@@ -389,6 +391,7 @@ void Module::genobjfile(int multiobj)
             writefunc(sdtor);
         }
 
+#if DMDV2
         if (esharedctor || esharedctorgates.dim)
         {
             localgot = NULL;
@@ -425,6 +428,7 @@ void Module::genobjfile(int multiobj)
             sshareddtor->Sfunc->Fstartblock = b;
             writefunc(sshareddtor);
         }
+#endif
 
         if (etest)
         {
@@ -815,8 +819,9 @@ void FuncDeclaration::toObjFile(int multiobj)
         bx.member = func;
         bx.module = getModule();
         irs.blx = &bx;
-
+#if DMDV2
         buildClosure(&irs);
+#endif
 
 #if 0
         if (func->isSynchronized())
@@ -890,18 +895,22 @@ void FuncDeclaration::toObjFile(int multiobj)
     }
 
     // If static constructor
+#if DMDV2
     if (isSharedStaticCtorDeclaration())        // must come first because it derives from StaticCtorDeclaration
     {
         elem *e = el_una(OPucall, TYvoid, el_var(s));
         esharedctor = el_combine(esharedctor, e);
     }
-    else if (isStaticCtorDeclaration())
+    else
+#endif
+    if (isStaticCtorDeclaration())
     {
         elem *e = el_una(OPucall, TYvoid, el_var(s));
         ector = el_combine(ector, e);
     }
 
     // If static destructor
+#if DMDV2
     if (isSharedStaticDtorDeclaration())        // must come first because it derives from StaticDtorDeclaration
     {
         elem *e;
@@ -923,7 +932,9 @@ void FuncDeclaration::toObjFile(int multiobj)
         eshareddtor = el_combine(e, eshareddtor);
 #endif
     }
-    else if (isStaticDtorDeclaration())
+    else
+#endif
+    if (isStaticDtorDeclaration())
     {
         elem *e;
 
