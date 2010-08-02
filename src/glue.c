@@ -736,9 +736,8 @@ void FuncDeclaration::toObjFile(int multiobj)
     if (reverse)
     {   // Reverse params[] entries
         for (i = 0; i < pi/2; i++)
-        {   Symbol *sptmp;
-
-            sptmp = params[i];
+        {
+            Symbol *sptmp = params[i];
             params[i] = params[pi - 1 - i];
             params[pi - 1 - i] = sptmp;
         }
@@ -789,16 +788,53 @@ void FuncDeclaration::toObjFile(int multiobj)
         symbol_add(sp);
     }
 
-    // First parameter goes in register
+    // Determine register assignments
     if (pi)
     {
-        Symbol *sp = params[0];
-        if ((tyf == TYjfunc || tyf == TYmfunc) &&
-            type_jparam(sp->Stype))
-        {   sp->Sclass = SCfastpar;
-            sp->Spreg = (tyf == TYjfunc) ? AX : CX;
-            sp->Sfl = FLauto;
-            //printf("'%s' is SCfastpar\n",sp->Sident);
+        if (global.params.isX86_64)
+        {
+            // Order of assignment of pointer or integer parameters
+            static const unsigned char argregs[6] = { DI,SI,DX,CX,R8,R9 };
+            int r = 0;
+            int xmmcnt = XMM0;
+
+            for (int i = 0; i < pi; i++)
+            {   Symbol *sp = params[i];
+                tym_t ty = tybasic(sp->Stype->Tty);
+                // BUG: doesn't work for structs
+                if (r < sizeof(argregs)/sizeof(argregs[0]))
+                {
+                    if (type_jparam(sp->Stype))
+                    {
+                        sp->Sclass = SCfastpar;
+                        sp->Spreg = r;
+                        sp->Sfl = FLauto;
+                        ++r;
+                    }
+                }
+                if (xmmcnt < XMM7)
+                {
+                    if (tyfloating(ty) && tysize(ty) <= 8)
+                    {
+                        sp->Sclass = SCfastpar;
+                        sp->Spreg = xmmcnt;
+                        sp->Sfl = FLauto;
+                        ++xmmcnt;
+                    }
+                }
+            }
+        }
+        else
+        {
+            // First parameter goes in register
+            Symbol *sp = params[0];
+            if ((tyf == TYjfunc || tyf == TYmfunc) &&
+                type_jparam(sp->Stype))
+            {   sp->Sclass = SCfastpar;
+                sp->Spreg = (tyf == TYjfunc) ? AX : CX;
+                sp->Sfl = FLauto;
+                //printf("'%s' is SCfastpar\n",sp->Sident);
+            }
         }
     }
 
