@@ -98,6 +98,14 @@ int overloadApply(FuncDeclaration *fstart,
         int (*fp)(void *, FuncDeclaration *),
         void *param);
 
+enum Semantic
+{
+    SemanticStart,      // semantic has not been run
+    SemanticIn,         // semantic() is in progress
+    SemanticDone,       // semantic() has been run
+    Semantic2Done,      // semantic2() has been run
+};
+
 /**************************************************************/
 
 struct Declaration : Dsymbol
@@ -456,6 +464,13 @@ struct TypeInfoSharedDeclaration : TypeInfoDeclaration
 
     void toDt(dt_t **pdt);
 };
+
+struct TypeInfoWildDeclaration : TypeInfoDeclaration
+{
+    TypeInfoWildDeclaration(Type *tinfo);
+
+    void toDt(dt_t **pdt);
+};
 #endif
 
 /**************************************************************/
@@ -598,6 +613,8 @@ struct FuncDeclaration : Declaration
     int isCodeseg();
     int isOverloadable();
     int isPure();
+    int isSafe();
+    int isTrusted();
     virtual int isNested();
     int needThis();
     virtual int isVirtual();
@@ -735,6 +752,17 @@ struct StaticCtorDeclaration : FuncDeclaration
     StaticCtorDeclaration *isStaticCtorDeclaration() { return this; }
 };
 
+#if DMDV2
+struct SharedStaticCtorDeclaration : StaticCtorDeclaration
+{
+    SharedStaticCtorDeclaration(Loc loc, Loc endloc);
+    Dsymbol *syntaxCopy(Dsymbol *);
+    void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
+
+    SharedStaticCtorDeclaration *isSharedStaticCtorDeclaration() { return this; }
+};
+#endif
+
 struct StaticDtorDeclaration : FuncDeclaration
 {   VarDeclaration *vgate;      // 'gate' variable
 
@@ -753,6 +781,17 @@ struct StaticDtorDeclaration : FuncDeclaration
     StaticDtorDeclaration *isStaticDtorDeclaration() { return this; }
 };
 
+#if DMDV2
+struct SharedStaticDtorDeclaration : StaticDtorDeclaration
+{
+    SharedStaticDtorDeclaration(Loc loc, Loc endloc);
+    Dsymbol *syntaxCopy(Dsymbol *);
+    void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
+
+    SharedStaticDtorDeclaration *isSharedStaticDtorDeclaration() { return this; }
+};
+#endif
+
 struct InvariantDeclaration : FuncDeclaration
 {
     InvariantDeclaration(Loc loc, Loc endloc);
@@ -767,7 +806,6 @@ struct InvariantDeclaration : FuncDeclaration
 
     InvariantDeclaration *isInvariantDeclaration() { return this; }
 };
-
 
 struct UnitTestDeclaration : FuncDeclaration
 {

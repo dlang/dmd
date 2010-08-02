@@ -160,6 +160,9 @@ struct Module : Package
     Symbol *massert;            // module assert function
     Symbol *toModuleAssert();   // get module assert function
 
+    Symbol *munittest;          // module unittest failure function
+    Symbol *toModuleUnittest(); // get module unittest failure function
+
     Symbol *marray;             // module array bounds function
     Symbol *toModuleArray();    // get module array bounds function
 
