@@ -1759,48 +1759,64 @@ Lcont:
 #endif
                  (config.flags4 & CFG4optimized || !config.fulltypes)))
             {
+                // Ignore it, as it is never referenced
                 ;
             }
             else
             {
                 targ_size_t offset = Aoff + BPoff + s->Soffset;
+                int op = 0x89;                  // MOV x[EBP],preg
+                if (preg >= XMM0 && preg <= XMM15)
+                {
+                    if (sz == 8)
+                        op = 0xF20F11;          // MOVSD x[EBP],preg
+                    else
+                    {
+                        assert(sz == 4);
+                        op = 0xF30F11;          // MOVSS x[EBP],preg
+                    }
+                }
                 if (hasframe)
                 {
                     if (!(pushalloc && preg == pushallocreg))
-                    {   // MOV x[EBP],preg
-                        c2 = genc1(CNIL,0x89,
+                    {
+                        // MOV x[EBP],preg
+                        c2 = genc1(CNIL,op,
                             modregxrm(2,preg,BPRM),FLconst, offset);
+                        if (preg >= XMM0 && preg <= XMM15)
+                        {
+                        }
+                        else
+                        {
 //printf("%s Aoff = %d, BPoff = %d, Soffset = %d\n", s->Sident, Aoff, BPoff, s->Soffset);
-//                      if (offset & 2)
-//                          c2->Iflags |= CFopsize;
-                        if (I64 && sz == 8)
-                            code_orrex(c2, REX_W);
+//                          if (offset & 2)
+//                              c2->Iflags |= CFopsize;
+                            if (I64 && sz == 8)
+                                code_orrex(c2, REX_W);
+                        }
                         c = cat(c, c2);
                     }
                 }
                 else
                 {
-                    code *clast;
-
                     offset += EBPtoESP;
-#if 1
                     if (!(pushalloc && preg == pushallocreg))
-#else
-                    if (offset == 0 && (clast = code_last(c)) != NULL &&
-                        (clast->Iop & 0xF8) == 0x50)
                     {
-                        clast->Iop = 0x50 + preg;
-                    }
-                    else
-#endif
-                    {   // MOV offset[ESP],preg
+                        // MOV offset[ESP],preg
                         // BUG: byte size?
-                        c2 = genc1(CNIL,0x89,modregxrm(2,preg,4),FLconst,offset);
-                        c2->Isib = modregrm(0,4,SP);
-                        if (I64 && sz == 8)
-                            c2->Irex |= REX_W;
-//                      if (offset & 2)
-//                          c2->Iflags |= CFopsize;
+                        c2 = genc1(CNIL,op,
+                            (modregrm(0,4,SP) << 8) |
+                            modregxrm(2,preg,4),FLconst,offset);
+                        if (preg >= XMM0 && preg <= XMM15)
+                        {
+                        }
+                        else
+                        {
+                            if (I64 && sz == 8)
+                                c2->Irex |= REX_W;
+//                          if (offset & 2)
+//                              c2->Iflags |= CFopsize;
+                        }
                         c = cat(c,c2);
                     }
                 }

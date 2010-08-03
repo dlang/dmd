@@ -64,6 +64,36 @@ void code_orrex(code *c,unsigned rex)
     }
 }
 
+/**************************************
+ * Set the opcode fields in cs.
+ * This is ridiculously complex, cs.Iop should
+ * just be an unsigned.
+ */
+code *setOpcode(code *c, code *cs, unsigned op)
+{
+    cs->Iflags = 0;
+    if (op > 0xFF)
+    {
+        switch (op & 0xFF0000)
+        {
+            case 0:
+                break;
+            case 0x660000:
+                cs->Iflags = CFopsize;
+                break;
+            case 0xF20000:                      // REPNE
+            case 0xF30000:                      // REP/REPE
+                c = gen1(c, op >> 16);
+                break;
+        }
+        cs->Iop = op >> 8;
+        cs->Iop2 = op & 0xFF;
+    }
+    else
+        cs->Iop = op;
+    return c;
+}
+
 /*****************************
  * Concatenate two code lists together. Return pointer to result.
  */
@@ -380,10 +410,16 @@ code *genc1(code *c,unsigned op,unsigned ea,unsigned FL1,targ_size_t EV1)
 {   code cs;
 
     assert(FL1 < FLMAX);
-    assert(op < 256);
-    cs.Iop = op;
+    if (op > 0xFF)
+    {
+        c = setOpcode(c, &cs, op);
+        cs.Iflags |= CFoff;
+    }
+    else
+    {   cs.Iop = op;
+        cs.Iflags = CFoff;
+    }
     cs.Iea = ea;
-    cs.Iflags = CFoff;
     cs.IFL1 = FL1;
     cs.IEV1.Vsize_t = EV1;
     return gen(c,&cs);
