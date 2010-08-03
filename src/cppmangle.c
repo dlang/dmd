@@ -1,6 +1,6 @@
 
 // Compiler implementation of the D programming language
-// Copyright (c) 1999-2009 by Digital Mars
+// Copyright (c) 1999-2010 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // http://www.digitalmars.com
@@ -197,6 +197,9 @@ void TypeBasic::toCppMangle(OutBuffer *buf, CppMangleState *cms)
      * z        ellipsis
      * u <source-name>  # vendor extended type
      */
+
+    if (isConst())
+        buf->writeByte('K');
 
     switch (ty)
     {
