@@ -49,8 +49,9 @@ struct Declaration;
 #define XMM5    21
 #define XMM6    22
 #define XMM7    23
+/* There are also XMM8..XMM14 */
+#define XMM15   31
 
-/* There are also XMM8..XMM15 */
 
 #define ES      24
 #define PSW     25
@@ -811,6 +812,7 @@ code *nteh_monitor_epilog(regm_t retregs);
 code *code_last(code *c);
 void code_orflag(code *c,unsigned flag);
 void code_orrex(code *c,unsigned rex);
+code *setOpcode(code *c, code *cs, unsigned op);
 code * __pascal cat (code *c1 , code *c2 );
 code * cat3 (code *c1 , code *c2 , code *c3 );
 code * cat4 (code *c1 , code *c2 , code *c3 , code *c4 );

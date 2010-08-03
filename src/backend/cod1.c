@@ -555,7 +555,7 @@ Lret:
 code *loadea(elem *e,code *cs,unsigned op,unsigned reg,targ_size_t offset,
         regm_t keepmsk,regm_t desmsk)
 {
-  code *c,*cg,*cd;
+  code *c,*cg,*cd,*cprefix;
 
 #ifdef DEBUG
   if (debugw)
@@ -566,11 +566,11 @@ code *loadea(elem *e,code *cs,unsigned op,unsigned reg,targ_size_t offset,
   assert(e);
   cs->Iflags = 0;
   cs->Irex = 0;
-  cs->Iop = op;
-  if (!I16 && op >= 0x100)               // if 2 byte opcode
-  {     cs->Iop = op >> 8;
-        cs->Iop2 = op;
-  }
+  cprefix = NULL;
+  if (op > 0xFF)               // if 2 byte opcode
+        cprefix = setOpcode(NULL, cs, op);
+  else
+        cs->Iop = op;
   tym_t tym = e->Ety;
   int sz = tysize(tym);
 
@@ -675,7 +675,7 @@ L2:
             cs->Iop = NOP;
   }
 
-  return cat4(c,cg,cd,gen(CNIL,cs));
+  return cat4(c,cg,cd,gen(cprefix,cs));
 }
 
 /**************************
@@ -3643,7 +3643,7 @@ code *loaddata(elem *e,regm_t *pretregs)
   }
   /* not for flags only */
   flags = *pretregs & mPSW;             /* save original                */
-  forregs = *pretregs & (mBP | ALLREGS | mES);
+  forregs = *pretregs & (mBP | ALLREGS | mES | XMMREGS);
   if (*pretregs & mSTACK)
         forregs |= DOUBLEREGS;
   if (e->Eoper == OPconst)
@@ -3760,6 +3760,13 @@ code *loaddata(elem *e,regm_t *pretregs)
                 cssave(e,mask[nreg],FALSE);
             }
         }
+    }
+    else if (forregs & XMMREGS)
+    {
+        assert(sz == 4 || sz == 8);             // float or double
+        unsigned op = (sz == 4) ? 0xF30F10 : 0xF20F10;
+        ce = loadea(e,&cs,op,reg,0,RMload,0); // MOVSS/MOVSD reg,data
+        c = cat(c,ce);
     }
     else if (sz <= REGSIZE)
     {

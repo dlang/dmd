@@ -1793,7 +1793,7 @@ code *allocreg(regm_t *pretregs,unsigned *preg,tym_t tym
 #endif
         tym = tybasic(tym);
         size = tysize[tym];
-        *pretregs &= mES | allregs;
+        *pretregs &= mES | allregs | XMMREGS;
         retregs = *pretregs;
         if ((retregs & regcon.mvar) == retregs) // if exactly in reg vars
         {
