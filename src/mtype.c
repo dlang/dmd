@@ -2545,7 +2545,7 @@ Expression *TypeBasic::getProperty(Loc loc, Identifier *ident)
             case Tfloat64:      fvalue = DBL_MAX;       goto Lfvalue;
             case Tcomplex80:
             case Timaginary80:
-            case Tfloat80:      fvalue = LDBL_MAX;      goto Lfvalue;
+            case Tfloat80:      fvalue = Port::ldbl_max; goto Lfvalue;
         }
     }
     else if (ident == Id::min)
