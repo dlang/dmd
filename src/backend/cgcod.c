@@ -1357,10 +1357,10 @@ STATIC void cgcod_eh()
         stack = NULL;
         for (c = b->Bcode; c; c = code_next(c))
         {
-            if (c->Iop == ESCAPE)
+            if ((c->Iop & 0xFF) == ESCAPE)
             {
                 c1 = NULL;
-                switch (c->Iop2)
+                switch (c->Iop & 0xFF00)
                 {
                     case ESCctor:
 //printf("ESCctor\n");
@@ -1396,7 +1396,7 @@ STATIC void cgcod_eh()
                             }
                             else
                             {   except_pair_append(c,idx - 1);
-                                c->Iop2 = ESCoffset;
+                                c->Iop = ESCAPE | ESCoffset;
                             }
                         }
                         except_release();

@@ -231,16 +231,16 @@ extern regm_t BYTEREGS;
                         // (Iop2 is the type of special information)
                         // (Same as DS:, but we will never generate
                         // a separate DS: opcode anyway)
-    #define ESClinnum   1       // line number information
-    #define ESCctor     2       // object is constructed
-    #define ESCdtor     3       // object is destructed
-    #define ESCmark     4       // mark eh stack
-    #define ESCrelease  5       // release eh stack
-    #define ESCoffset   6       // set code offset for eh
-    #define ESCadjesp   7       // adjust ESP by IEV2.Vint
-    #define ESCmark2    8       // mark eh stack
-    #define ESCrelease2 9       // release eh stack
-    #define ESCframeptr 10      // replace with load of frame pointer
+    #define ESClinnum   (1 << 8)       // line number information
+    #define ESCctor     (2 << 8)       // object is constructed
+    #define ESCdtor     (3 << 8)       // object is destructed
+    #define ESCmark     (4 << 8)       // mark eh stack
+    #define ESCrelease  (5 << 8)       // release eh stack
+    #define ESCoffset   (6 << 8)       // set code offset for eh
+    #define ESCadjesp   (7 << 8)       // adjust ESP by IEV2.Vint
+    #define ESCmark2    (8 << 8)       // mark eh stack
+    #define ESCrelease2 (9 << 8)       // release eh stack
+    #define ESCframeptr (10 << 8)      // replace with load of frame pointer
 
 #define ASM     0x36    // string of asm bytes, actually an SS: opcode
 
@@ -397,9 +397,7 @@ struct code
 #define CFSEG   (CFes | CFss | CFds | CFcs | CFfs | CFgs)
 
 
-    unsigned char Iop;
-    unsigned char Iop2;         // second opcode byte
-    unsigned char Iop3;         // third opcode byte
+    unsigned Iop;
 
     union
     {   unsigned _Iea;

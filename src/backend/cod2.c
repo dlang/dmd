@@ -1714,12 +1714,11 @@ code *cdcond(elem *e,regm_t *pretregs)
 
         // This is necessary so that any cleanup code on one branch
         // is redone on the other branch.
-        cs.Iop = ESCAPE;
-        cs.Iop2 = ESCmark2;
+        cs.Iop = ESCAPE | ESCmark2;
         cs.Iflags = 0;
         cs.Irex = 0;
         c1 = cat(gen(CNIL,&cs),c1);
-        cs.Iop2 = ESCrelease2;
+        cs.Iop = ESCAPE | ESCrelease2;
         c1 = gen(c1,&cs);
   }
 #endif
@@ -2428,8 +2427,7 @@ code *cdind(elem *e,regm_t *pretregs)
         else if (!I16 && sz == REGSIZE + 2)      // if far pointer
         {       retregs = ALLREGS & ~idxregs;
                 c = cat(c,allocreg(&retregs,&reg,TYint));
-                cs.Iop = 0x0F;
-                cs.Iop2 = 0xB7;
+                cs.Iop = 0x0FB7;
                 cs.Irm |= modregrm(0,reg,0);
                 getlvalue_msw(&cs);
                 ce = gen(CNIL,&cs);             /* MOVZX reg,msw        */
@@ -4529,13 +4527,12 @@ code *cdinfo(elem *e,regm_t *pretregs)
                 if (config.exe == EX_NT)
                     usednteh |= NTEHcleanup;
 #endif
-                cs.Iop = ESCAPE;
-                cs.Iop2 = ESCmark;
+                cs.Iop = ESCAPE | ESCmark;
                 cs.Iflags = 0;
                 cs.Irex = 0;
                 c = gen(CNIL,&cs);
                 c = cat(c,codelem(e->E2,pretregs,FALSE));
-                cs.Iop2 = ESCrelease;
+                cs.Iop = ESCAPE | ESCrelease;
                 gen(c,&cs);
             }
             freenode(e->E1);
@@ -4567,8 +4564,7 @@ code *cdctor(elem *e,regm_t *pretregs)
         usednteh |= NTEHcleanup;
 #endif
     assert(*pretregs == 0);
-    cs.Iop = ESCAPE;
-    cs.Iop2 = ESCctor;
+    cs.Iop = ESCAPE | ESCctor;
     cs.Iflags = 0;
     cs.Irex = 0;
     cs.IFL1 = FLctor;
@@ -4599,8 +4595,7 @@ code *cddtor(elem *e,regm_t *pretregs)
         usednteh |= NTEHcleanup;
 #endif
     assert(*pretregs == 0);
-    cs.Iop = ESCAPE;
-    cs.Iop2 = ESCdtor;
+    cs.Iop = ESCAPE | ESCdtor;
     cs.Iflags = 0;
     cs.Irex = 0;
     cs.IFL1 = FLdtor;
