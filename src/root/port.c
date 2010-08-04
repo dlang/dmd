@@ -322,6 +322,9 @@ char *Port::strupr(char *s)
 #include <bits/nan.h>
 #include <bits/mathdef.h>
 #endif
+#if __FreeBSD__ && __i386__
+#include <ieeefp.h>
+#endif
 #include <time.h>
 #include <sys/time.h>
 #include <unistd.h>
@@ -355,11 +358,13 @@ PortInitializer::PortInitializer()
         foo = -foo;     // turn off sign bit
     Port::nan = foo;
 
-#if __FreeBSD__
+#if __FreeBSD__ && __i386__
     // LDBL_MAX comes out as infinity. Fix.
     static unsigned char x[sizeof(long double)] =
         { 0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFE,0x7F };
     Port::ldbl_max = *(long double *)&x[0];
+    // FreeBSD defaults to double precision. Switch to extended precision.
+    fpsetprec(FP_PE);
 #endif
 }
 
