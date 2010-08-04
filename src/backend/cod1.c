@@ -555,7 +555,7 @@ Lret:
 code *loadea(elem *e,code *cs,unsigned op,unsigned reg,targ_size_t offset,
         regm_t keepmsk,regm_t desmsk)
 {
-  code *c,*cg,*cd,*cprefix;
+  code *c,*cg,*cd;
 
 #ifdef DEBUG
   if (debugw)
@@ -566,11 +566,7 @@ code *loadea(elem *e,code *cs,unsigned op,unsigned reg,targ_size_t offset,
   assert(e);
   cs->Iflags = 0;
   cs->Irex = 0;
-  cprefix = NULL;
-  if (op > 0xFF)               // if 2 byte opcode
-        cprefix = setOpcode(NULL, cs, op);
-  else
-        cs->Iop = op;
+  cs->Iop = op;
   tym_t tym = e->Ety;
   int sz = tysize(tym);
 
@@ -665,7 +661,7 @@ L2:
   }
 
   // Eliminate MOV reg,reg
-  if ((cs->Iop & 0xFC) == 0x88 &&
+  if ((cs->Iop & ~3) == 0x88 &&
       (cs->Irm & 0xC7) == modregrm(3,0,reg & 7))
   {
         unsigned r = cs->Irm & 7;
@@ -675,7 +671,7 @@ L2:
             cs->Iop = NOP;
   }
 
-  return cat4(c,cg,cd,gen(cprefix,cs));
+  return cat4(c,cg,cd,gen(NULL,cs));
 }
 
 /**************************
@@ -808,7 +804,7 @@ code *getlvalue(code *pcs,elem *e,regm_t keepmsk)
         if (e->Eoper == OPvar && fl == FLgot)
         {
             code *c1;
-            int saveop = pcs->Iop;
+            unsigned saveop = pcs->Iop;
             idxregs = allregs & ~keepmsk;       // get a scratch register
             c = allocreg(&idxregs,&reg,TYptr);
             pcs->Irm = modregrm(2,reg,BX);      // BX has GOT
@@ -1733,8 +1729,7 @@ code *tstresult(regm_t regm,tym_t tym,unsigned saveflag)
             if (I32)
             {
                 if (tyfv(tym))
-                {   c = genregs(CNIL,0x0F,scrreg,reg);
-                    c->Iop2 = 0xB7;                     /* MOVZX scrreg,msreg   */
+                {   c = genregs(CNIL,0x0FB7,scrreg,reg); // MOVZX scrreg,msreg
                     ce = cat(ce,c);
                 }
                 else
@@ -3592,7 +3587,7 @@ code *loaddata(elem *e,regm_t *pretregs)
 
                 // Convert to TEST instruction if EA is a register
                 // (to avoid register contention on Pentium)
-                if ((c->Iop & 0xFE) == 0x38 &&
+                if ((c->Iop & ~1) == 0x38 &&
                     (c->Irm & modregrm(3,0,0)) == modregrm(3,0,0)
                    )
                 {   c->Iop = (c->Iop & 1) | 0x84;

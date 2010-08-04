@@ -66,31 +66,10 @@ void code_orrex(code *c,unsigned rex)
 
 /**************************************
  * Set the opcode fields in cs.
- * This is ridiculously complex, cs.Iop should
- * just be an unsigned.
  */
 code *setOpcode(code *c, code *cs, unsigned op)
 {
-    cs->Iflags = 0;
-    if (op > 0xFF)
-    {
-        switch (op & 0xFF0000)
-        {
-            case 0:
-                break;
-            case 0x660000:
-                cs->Iflags = CFopsize;
-                break;
-            case 0xF20000:                      // REPNE
-            case 0xF30000:                      // REP/REPE
-                c = gen1(c, op >> 16);
-                break;
-        }
-        cs->Iop = op >> 8;
-        cs->Iop2 = op & 0xFF;
-    }
-    else
-        cs->Iop = op;
+    cs->Iop = op;
     return c;
 }
 
@@ -224,12 +203,7 @@ code *gen2(code *c,unsigned op,unsigned rm)
 
   cstart = ce = code_calloc();
   /*cxcalloc++;*/
-  if (op > 0xFF)
-  {     ce->Iop = op >> 8;
-        ce->Iop2 = op & 0xFF;
-  }
-  else
-        ce->Iop = op;
+  ce->Iop = op;
   ce->Iea = rm;
   if (c)
   {     cstart = c;
@@ -334,7 +308,7 @@ code *genjmp(code *c,unsigned op,unsigned fltarg,block *targ)
     code *cj;
     code *cnop;
 
-    cs.Iop = op;
+    cs.Iop = op & 0xFF;
     cs.Iflags = 0;
     cs.Irex = 0;
     if (op != JMP)                      /* if not already long branch   */
@@ -389,12 +363,7 @@ code *gencs(code *c,unsigned op,unsigned ea,unsigned FL2,symbol *s)
 code *genc2(code *c,unsigned op,unsigned ea,targ_size_t EV2)
 {   code cs;
 
-    if (op > 0xFF)
-    {   cs.Iop = op >> 8;
-        cs.Iop2 = op & 0xFF;
-    }
-    else
-        cs.Iop = op;
+    cs.Iop = op;
     cs.Iea = ea;
     cs.Iflags = CFoff;
     cs.IFL2 = FLconst;
@@ -410,15 +379,8 @@ code *genc1(code *c,unsigned op,unsigned ea,unsigned FL1,targ_size_t EV1)
 {   code cs;
 
     assert(FL1 < FLMAX);
-    if (op > 0xFF)
-    {
-        c = setOpcode(c, &cs, op);
-        cs.Iflags |= CFoff;
-    }
-    else
-    {   cs.Iop = op;
-        cs.Iflags = CFoff;
-    }
+    cs.Iop = op;
+    cs.Iflags = CFoff;
     cs.Iea = ea;
     cs.IFL1 = FL1;
     cs.IEV1.Vsize_t = EV1;
@@ -433,7 +395,6 @@ code *genc(code *c,unsigned op,unsigned ea,unsigned FL1,targ_size_t EV1,unsigned
 {   code cs;
 
     assert(FL1 < FLMAX);
-    assert(op < 256);
     cs.Iop = op;
     cs.Iea = ea;
     cs.Iflags = CFoff;
@@ -487,8 +448,7 @@ code *genlinnum(code *c,Srcpos srcpos)
     printf("genlinnum(Sfilptr = %p, Slinnum = %u)\n", srcpos.Sfilptr, srcpos.Slinnum);
 #endif
 #endif
-    cs.Iop = ESCAPE;
-    cs.Iop2 = ESClinnum;
+    cs.Iop = ESCAPE | ESClinnum;
     cs.Iflags = 0;
     cs.Irex = 0;
     cs.IFL1 = 0;
@@ -525,8 +485,7 @@ code *genadjesp(code *c, int offset)
 
     if (!I16 && offset)
     {
-        cs.Iop = ESCAPE;
-        cs.Iop2 = ESCadjesp;
+        cs.Iop = ESCAPE | ESCadjesp;
         cs.Iflags = 0;
         cs.Irex = 0;
         cs.IEV2.Vint = offset;

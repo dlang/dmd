@@ -778,7 +778,9 @@ STATIC int uops(code *c)
     int op;
     int op2;
 
-    op = c->Iop;
+    op = c->Iop & 0xFF;
+    if ((c->Iop & 0xFF00) == 0x0F00)
+        op = 0x0F;
     n = insuops[op];
     if (!n)                             // if special case
     {   unsigned char irm,mod,reg,rm;
@@ -983,7 +985,7 @@ STATIC int uops(code *c)
                 break;
 
             case 0x0F:
-                op2 = c->Iop2;
+                op2 = c->Iop & 0xFF;
                 if ((op2 & 0xF0) == 0x80)       // Jcc
                 {   n = 1;
                     break;
@@ -1025,7 +1027,9 @@ STATIC int pair_class(code *c)
     // Of course, with Intel this is *never* simple, and Intel's
     // documentation is vague about the specifics.
 
-    op = c->Iop;
+    op = c->Iop & 0xFF;
+    if ((c->Iop & 0xFF00) == 0x0F00)
+        op = 0x0F;
     pc = pentcycl[op];
     a32 = I32;
     if (c->Iflags & CFaddrsize)
@@ -1037,7 +1041,7 @@ STATIC int pair_class(code *c)
     switch (op)
     {
         case 0x0F:                              // 2 byte opcode
-            if ((c->Iop2 & 0xF0) == 0x80)       // if Jcc
+            if ((c->Iop & 0xF0) == 0x80)        // if Jcc
                 pc = PV | PF;
             break;
 
@@ -1184,7 +1188,9 @@ STATIC void getinfo(Cinfo *ci,code *c)
     ci->r = 0;
     ci->w = 0;
     ci->a = 0;
-    op = c->Iop;
+    op = c->Iop & 0xFF;
+    if ((c->Iop & 0xFF00) == 0x0F00)
+        op = 0x0F;
     //printf("\tgetinfo %x, op %x \n",c,op);
     pc = pentcycl[op];
     a32 = I32;
@@ -1312,7 +1318,7 @@ STATIC void getinfo(Cinfo *ci,code *c)
             break;
 
         case 0x0F:
-            op2 = c->Iop2;
+            op2 = c->Iop & 0xFF;
             if ((op2 & 0xF0) == 0x80)           // if Jxx instructions
             {
                 ci->r = F | N;
@@ -1761,7 +1767,7 @@ STATIC code * cnext(code *c)
         if (c->Iflags & (CFtarg | CFtarg2))
             break;
         if (!(c->Iop == NOP ||
-              (c->Iop == ESCAPE && c->Iop2 == ESClinnum)))
+              c->Iop == (ESCAPE | ESClinnum)))
             break;
     }
     return c;
@@ -1884,7 +1890,7 @@ if (c2->IEVpointer1 + sz2 <= c1->IEVpointer1) printf("t5\n");
 
         // Special case: Allow indexed references using registers other than
         // ESP and EBP to be swapped with PUSH instructions
-        if (((c1->Iop & 0xF8) == 0x50 ||        // PUSH reg
+        if (((c1->Iop & ~7) == 0x50 ||          // PUSH reg
              c1->Iop == 0x6A ||                 // PUSH imm8
              c1->Iop == 0x68 ||                 // PUSH imm16/imm32
              (c1->Iop == 0xFF && ci1->reg == 6) // PUSH EA
@@ -1904,7 +1910,7 @@ if (c2->IEVpointer1 + sz2 <= c1->IEVpointer1) printf("t5\n");
 
         // Special case: Allow indexed references using registers other than
         // ESP and EBP to be swapped with PUSH instructions
-        if (((c2->Iop & 0xF8) == 0x50 ||        // PUSH reg
+        if (((c2->Iop & ~7) == 0x50 ||          // PUSH reg
              c2->Iop == 0x6A ||                 // PUSH imm8
              c2->Iop == 0x68 ||                 // PUSH imm16/imm32
              (c2->Iop == 0xFF && ci2->reg == 6) // PUSH EA
@@ -2299,7 +2305,7 @@ int Schedule::insert(Cinfo *ci)
 
         // Look for special case swap
         if (movesp &&
-            (cit->c->Iop & 0xF8) == 0x50 &&             // if PUSH reg1
+            (cit->c->Iop & ~7) == 0x50 &&               // if PUSH reg1
             (cit->c->Iop & 7) != reg2 &&                // if reg1 != reg2
             ((signed char)c->IEVpointer1) >= -cit->spadjust
            )
@@ -2522,7 +2528,7 @@ Linsert:
                     break;
 
             if (i >= j && tbl[i - j] &&
-                   (tbl[i - j]->c->Iop & 0xF8) == 0x50 &&       // if PUSH reg1
+                   (tbl[i - j]->c->Iop & ~7) == 0x50 &&       // if PUSH reg1
                    (tbl[i - j]->c->Iop & 7) != reg2 &&  // if reg1 != reg2
                    (signed char)c->IEVpointer1 >= REGSIZE)
             {
@@ -2664,7 +2670,7 @@ STATIC code * csnip(code *c)
             if (c->Iflags & (CFtarg | CFtarg2))
                 break;
             if (!(c->Iop == NOP ||
-                  (c->Iop == ESCAPE && c->Iop2 == ESClinnum) ||
+                  c->Iop == (ESCAPE | ESClinnum) ||
                   c->Iflags & iflags))
                 break;
         }
@@ -2688,7 +2694,7 @@ code *schedule(code *c,regm_t scratch)
     sch.initialize(0);                  // initialize scheduling table
     while (c)
     {
-        if ((c->Iop == NOP || c->Iop == ESCAPE || c->Iflags & CFclassinit) &&
+        if ((c->Iop == NOP || (c->Iop & 0xFF) == ESCAPE || c->Iflags & CFclassinit) &&
             !(c->Iflags & (CFtarg | CFtarg2)))
         {   code *cn;
 
@@ -2851,7 +2857,7 @@ code *peephole(code *cstart,regm_t scratch)
 
         // Do:
         //      PUSH    reg
-        if (I32 && (c->Iop & 0xF8) == 0x50)
+        if (I32 && (c->Iop & ~7) == 0x50)
         {   unsigned reg = c->Iop & 7;
 
             //  MOV     [ESP],reg       =>      NOP

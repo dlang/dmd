@@ -1370,13 +1370,11 @@ L386_WARNING2:
         }
         unsigned usOpcode = ptb.pptb0->usOpcode;
 
+        pc->Iop = usOpcode;
         if ((usOpcode & 0xFFFFFF00) == 0x660F3A00 ||    // SSE4
             (usOpcode & 0xFFFFFF00) == 0x660F3800)      // SSE4
         {
-            pc->Iflags |= CFopsize;
-            pc->Iop = 0x0F;
-            pc->Iop2 = (usOpcode >> 8) & 0xFF;
-            pc->Iop3 = usOpcode & 0xFF;
+            pc->Iop = 0x66000F00 | ((usOpcode >> 8) & 0xFF) | ((usOpcode & 0xFF) << 16);
             goto L3;
         }
         switch (usOpcode & 0xFF0000)
@@ -1385,19 +1383,16 @@ L386_WARNING2:
                 break;
 
             case 0x660000:
-                pc->Iflags |= CFopsize;
                 usOpcode &= 0xFFFF;
-                break;
+                goto L3;
 
             case 0xF20000:                      // REPNE
             case 0xF30000:                      // REP/REPE
                 // BUG: What if there's an address size prefix or segment
                 // override prefix? Must the REP be adjacent to the rest
                 // of the opcode?
-                pcPrefix = code_calloc();
-                pcPrefix->Iop = usOpcode >> 16;
                 usOpcode &= 0xFFFF;
-                break;
+                goto L3;
 
             case 0x0F0000:                      // an AMD instruction
                 puc = ((unsigned char *) &usOpcode);
@@ -1406,8 +1401,7 @@ L386_WARNING2:
                 emit(puc[2]);
                 emit(puc[1]);
                 emit(puc[0]);
-                pc->Iop = puc[2];
-                pc->Iop2 = puc[1];
+                pc->Iop >>= 8;
                 pc->IEVint2 = puc[0];
                 pc->IFL2 = FLconst;
                 goto L3;
@@ -1418,8 +1412,7 @@ L386_WARNING2:
                 emit(puc[2]);
                 emit(puc[1]);
                 emit(puc[0]);
-                pc->Iop = puc[2];
-                pc->Iop2 = puc[1];
+                pc->Iop >>= 8;
                 pc->Irm = puc[0];
                 goto L3;
         }
@@ -1430,7 +1423,7 @@ L386_WARNING2:
             emit(puc[0]);
             pc->Iop = puc[1];
             if (pc->Iop == 0x0f)
-                pc->Iop2 = puc[0];
+                pc->Iop = 0x0F00 | puc[0];
             else
             {
                 if (usOpcode == 0xDFE0) // FSTSW AX
@@ -1448,7 +1441,6 @@ L386_WARNING2:
         else
         {
             emit(usOpcode);
-            pc->Iop = usOpcode;
         }
     L3: ;
 
@@ -1471,7 +1463,7 @@ L386_WARNING2:
 
                 label = s->isLabel();
                 if (label)
-                {   if ((pc->Iop & 0xF0) == 0x70)
+                {   if ((pc->Iop & ~0x0F) == 0x70)
                         pc->Iflags |= CFjmp16;
                     if (usNumops == 1)
                     {   pc->IFL2 = FLblock;
@@ -1501,8 +1493,6 @@ L386_WARNING2:
                     }
                     if (asmstate.ucItype == ITfloat)
                         pc->Irm += reg;
-                    else if (pc->Iop == 0x0f)
-                        pc->Iop2 += reg;
                     else
                         pc->Iop += reg;
 #ifdef DEBUG
@@ -1638,8 +1628,6 @@ printf("usOpcode = %x\n", usOpcode);
                             }
                             if (asmstate.ucItype == ITfloat)
                                 pc->Irm += reg;
-                            else if (pc->Iop == 0x0f)
-                                pc->Iop2 += reg;
                             else
                                 pc->Iop += reg;
 #ifdef DEBUG
@@ -1659,8 +1647,6 @@ printf("usOpcode = %x\n", usOpcode);
                             }
                             if (asmstate.ucItype == ITfloat)
                                 pc->Irm += reg;
-                            else if (pc->Iop == 0x0f)
-                                pc->Iop2 += reg;
                             else
                                 pc->Iop += reg;
 #ifdef DEBUG
@@ -1738,8 +1724,6 @@ printf("usOpcode = %x\n", usOpcode);
                             }
                             if (asmstate.ucItype == ITfloat)
                                 pc->Irm += reg;
-                            else if (pc->Iop == 0x0f)
-                                pc->Iop2 += reg;
                             else
                                 pc->Iop += reg;
 #ifdef DEBUG
@@ -1759,8 +1743,6 @@ printf("usOpcode = %x\n", usOpcode);
                             }
                             if (asmstate.ucItype == ITfloat)
                                 pc->Irm += reg;
-                            else if (pc->Iop == 0x0f)
-                                pc->Iop2 += reg;
                             else
                                 pc->Iop += reg;
 #ifdef DEBUG
@@ -1785,7 +1767,7 @@ printf("usOpcode = %x\n", usOpcode);
         }
 L2:
 
-        if ((pc->Iop & 0xF8) == 0xD8 &&
+        if ((pc->Iop & ~7) == 0xD8 &&
             ADDFWAIT() &&
             !(ptb.pptb0->usFlags & _nfwait))
                 pc->Iflags |= CFwait;

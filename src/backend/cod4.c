@@ -1240,8 +1240,7 @@ code *cdmulass(elem *e,regm_t *pretregs)
                 cr = codelem(e2,&retregs,FALSE); /* load rvalue in reg  */
                 cl = getlvalue(&cs,e1,retregs); /* get EA               */
                 cg = getregs(retregs);          /* destroy these regs   */
-                cs.Iop = 0x0F;                  /* IMUL resreg,EA       */
-                cs.Iop2 = 0xAF;
+                cs.Iop = 0x0FAF;                // IMUL resreg,EA
                 resreg = findreg(retregs);
                 opr = resreg;
             }
@@ -2586,8 +2585,8 @@ code *cdshtlng(elem *e,regm_t *pretregs)
             }
             else
             {
-                c3 = genregs(CNIL,0x0F,reg,reg);
-                c3->Iop2 = (op == OPu16_32) ? 0xB7 : 0xBF; /* MOVZX/MOVSX reg,reg */
+                unsigned iop = (op == OPu16_32) ? 0x0FB7 : 0x0FBF; /* MOVZX/MOVSX reg,reg */
+                c3 = genregs(CNIL,iop,reg,reg);
             }
             c2 = cat(c2,c3);
         }
@@ -2740,8 +2739,9 @@ code *cdbyteint(elem *e,regm_t *pretregs)
                     c3 = genc2(c3,0x81,modregrm(3,4,reg),0xFF);
                 }
                 else
-                {   c3 = genregs(c3,0x0F,reg,reg);
-                    c3->Iop2 = (op == OPu8int) ? 0xB6 : 0xBE; /* MOVZX/MOVSX reg,reg */
+                {
+                    unsigned iop = (op == OPu8int) ? 0x0FB6 : 0x0FBE; // MOVZX/MOVSX reg,reg
+                    c3 = genregs(c3,iop,reg,reg);
                 }
             }
         }
@@ -3049,8 +3049,7 @@ code *cdbt(elem *e, regm_t *pretregs)
 //    if (e2->Eoper == OPconst && e2->EV.Vuns < 0x100)  // should do this instead?
     if (e2->Eoper == OPconst)
     {
-        cs.Iop = 0x0F;
-        cs.Iop2 = 0xBA;                         // BT rm,imm8
+        cs.Iop = 0x0FBA;                         // BT rm,imm8
         cs.Irm |= modregrm(0,mode,0);
         cs.Iflags |= CFpsw | word;
         cs.IFL2 = FLconst;
@@ -3077,8 +3076,7 @@ code *cdbt(elem *e, regm_t *pretregs)
         c2 = scodelem(e2,&retregs,idxregs,TRUE);
         reg = findreg(retregs);
 
-        cs.Iop = 0x0F;
-        cs.Iop2 = op;                           // BT rm,reg
+        cs.Iop = 0x0F00 | op;                     // BT rm,reg
         code_newreg(&cs,reg);
         cs.Iflags |= CFpsw | word;
         c2 = gen(c2,&cs);
@@ -3153,8 +3151,7 @@ code *cdbscan(elem *e, regm_t *pretregs)
         retregs = allregs;
     cg = allocreg(&retregs, &reg, e->Ety);
 
-    cs.Iop = 0x0F;
-    cs.Iop2 = (e->Eoper == OPbsf) ? 0xBC : 0xBD;        // BSF/BSR reg,EA
+    cs.Iop = (e->Eoper == OPbsf) ? 0x0FBC : 0x0FBD;        // BSF/BSR reg,EA
     code_newreg(&cs, reg);
     if (!I16 && sz == SHORTSIZE)
         cs.Iflags |= CFopsize;
