@@ -97,6 +97,7 @@ struct DCatchInfo
 
 #define STATUS_DIGITAL_MARS_D_EXCEPTION         MAKE_EXCEPTION_CODE(3,'D',1)
 
+void __stdcall _d_throw(Object *h);
 Object *_d_translate_se_to_d_exception(EXCEPTION_RECORD *exception_record);
 void __cdecl _d_local_unwind(struct DHandlerTable *handler_table, struct DEstablisherFrame *frame, int stop_index);
 
@@ -140,8 +141,7 @@ EXCEPTION_DISPOSITION _d_framehandler(
         // if this exception was system-generated and bypassed _d_throw,
         // generate an exception object for it and propagate it normally
         // so that chaining will work properly
-        if (exception_record->ExceptionCode !=
-            STATUS_DIGITAL_MARS_D_EXCEPTION && _d_getunhandled())
+        if (exception_record->ExceptionCode != STATUS_DIGITAL_MARS_D_EXCEPTION)
         {
             pti = _d_translate_se_to_d_exception(exception_record);
             _d_throw(pti);
