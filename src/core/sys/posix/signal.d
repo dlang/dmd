@@ -181,6 +181,20 @@ else version( FreeBSD )
     enum SIGURG     = 16;
 }
 
+version( FreeBSD )
+{
+    struct sigaction_t
+    {
+        union
+        {
+            sigfn_t     sa_handler;
+            sigactfn_t  sa_sigaction;
+        }
+        int      sa_flags;
+        sigset_t sa_mask;
+    }
+}
+else
 version( Posix )
 {
     struct sigaction_t
@@ -490,7 +504,7 @@ else version( FreeBSD )
     }
 
     int kill(pid_t, int);
-    int sigaction(int, in sigaction_t*, sigaction_t);
+    int sigaction(int, in sigaction_t*, sigaction_t*);
     int sigaddset(sigset_t*, int);
     int sigdelset(sigset_t*, int);
     int sigemptyset(sigset_t *);
@@ -802,6 +816,125 @@ else version( OSX )
     }
 
     sigfn_t bsd_signal(int sig, sigfn_t func);
+    sigfn_t sigset(int sig, sigfn_t func);
+
+    int killpg(pid_t, int);
+    int sigaltstack(in stack_t*, stack_t*);
+    int sighold(int);
+    int sigignore(int);
+    int siginterrupt(int, int);
+    int sigpause(int);
+    int sigrelse(int);
+}
+else version( FreeBSD )
+{
+    // No SIGPOLL on *BSD
+    enum SIGPROF        = 27;
+    enum SIGSYS         = 12;
+    enum SIGTRAP        = 5;
+    enum SIGVTALRM      = 26;
+    enum SIGXCPU        = 24;
+    enum SIGXFSZ        = 25;
+
+    enum
+    {
+        SA_ONSTACK      = 0x0001,
+        SA_RESTART      = 0x0002,
+        SA_RESETHAND    = 0x0004,
+        SA_NODEFER      = 0x0010,
+        SA_NOCLDWAIT    = 0x0020,
+        SA_SIGINFO      = 0x0040,
+    }
+
+    enum
+    {
+        SS_ONSTACK = 0x0001,
+        SS_DISABLE = 0x0004,
+    }
+
+    enum MINSIGSTKSZ = 512 * 4;
+    enum SIGSTKSZ    = (MINSIGSTKSZ + 32768);
+;
+    //ucontext_t (defined in core.sys.posix.ucontext)
+    //mcontext_t (defined in core.sys.posix.ucontext)
+
+    struct stack_t
+    {
+        void*   ss_sp;
+        size_t  ss_size;
+        int     ss_flags;
+    }
+
+    struct sigstack
+    {
+        void*   ss_sp;
+        int     ss_onstack;
+    }
+
+    enum
+    {
+        ILL_ILLOPC = 1,
+        ILL_ILLOPN,
+        ILL_ILLADR,
+        ILL_ILLTRP,
+        ILL_PRVOPC,
+        ILL_PRVREG,
+        ILL_COPROC,
+        ILL_BADSTK,
+    }
+
+    enum
+    {
+        BUS_ADRALN = 1,
+        BUS_ADRERR,
+        BUS_OBJERR,
+    }
+
+    enum
+    {
+        SEGV_MAPERR = 1,
+        SEGV_ACCERR,
+    }
+
+    enum
+    {
+        FPE_INTOVF = 1,
+        FPE_INTDIV,
+        FPE_FLTDIV,
+        FPE_FLTOVF,
+        FPE_FLTUND,
+        FPE_FLTRES,
+        FPE_FLTINV,
+        FPE_FLTSUB,
+    }
+
+    enum
+    {
+        TRAP_BRKPT = 1,
+        TRAP_TRACE,
+    }
+
+    enum
+    {
+        CLD_EXITED = 1,
+        CLD_KILLED,
+        CLD_DUMPED,
+        CLD_TRAPPED,
+        CLD_STOPPED,
+        CLD_CONTINUED,
+    }
+
+    enum
+    {
+        POLL_IN = 1,
+        POLL_OUT,
+        POLL_MSG,
+        POLL_ERR,
+        POLL_PRI,
+        POLL_HUP,
+    }
+
+    //sigfn_t bsd_signal(int sig, sigfn_t func);
     sigfn_t sigset(int sig, sigfn_t func);
 
     int killpg(pid_t, int);

@@ -468,37 +468,123 @@ extern (D)
     int isunordered(real x, real y)        { return (x !<>= y); }
 }
 
-// NOTE: FreeBSD < 8-CURRENT doesn't appear to support *l, but we can
-//       approximate.
+/* NOTE: freebsd < 8-CURRENT doesn't appear to support *l, but we can
+ *       approximate.
+ * A lot of them were added in 8.0-RELEASE, and so a lot of these workarounds
+ * should then be removed.
+ */
+// NOTE: FreeBSD 8.0-RELEASE doesn't support log2* nor these *l functions:
+//         acoshl, asinhl, atanhl, coshl, sinhl, tanhl, cbrtl, powl, expl,
+//         expm1l, logl, log1pl, log10l, erfcl, erfl, lgammal, tgammal;
+//       but we can approximate.
 version( FreeBSD )
 {
+  version (all) // < 8-CURRENT
+  {
+    real    acosl(real x) { return acos(x); }
+    real    asinl(real x) { return asin(x); }
+    real    atanl(real x) { return atan(x); }
+    real    atan2l(real y, real x) { return atan2(y, x); }
+    real    cosl(real x) { return cos(x); }
+    real    sinl(real x) { return sin(x); }
+    real    tanl(real x) { return tan(x); }
+    real    exp2l(real x) { return exp2(x); }
+    real    frexpl(real value, int* exp) { return frexp(value, exp); }
+    int     ilogbl(real x) { return ilogb(x); }
+    real    ldexpl(real x, int exp) { return ldexp(x, exp); }
+    real    logbl(real x) { return logb(x); }
+    //real    modfl(real value, real *iptr); // nontrivial conversion
+    real    scalbnl(real x, int n) { return scalbn(x, n); }
+    real    scalblnl(real x, c_long n) { return scalbln(x, n); }
+    real    fabsl(real x) { return fabs(x); }
+    real    hypotl(real x, real y) { return hypot(x, y); }
+    real    sqrtl(real x) { return sqrt(x); }
+    real    ceill(real x) { return ceil(x); }
+    real    floorl(real x) { return floor(x); }
+    real    nearbyintl(real x) { return nearbyint(x); }
+    real    rintl(real x) { return rint(x); }
+    c_long  lrintl(real x) { return lrint(x); }
+    real    roundl(real x) { return round(x); }
+    c_long  lroundl(real x) { return lround(x); }
+    long    llroundl(real x) { return llround(x); }
+    real    truncl(real x) { return trunc(x); }
+    real    fmodl(real x, real y) { return fmod(x, y); }
+    real    remainderl(real x, real y) { return remainder(x, y); }
+    real    remquol(real x, real y, int* quo) { return remquo(x, y, quo); }
+    real    copysignl(real x, real y) { return copysign(x, y); }
+//  double  nan(char* tagp);
+//  float   nanf(char* tagp);
+//  real    nanl(char* tagp);
+    real    nextafterl(real x, real y) { return nextafter(x, y); }
+    real    nexttowardl(real x, real y) { return nexttoward(x, y); }
+    real    fdiml(real x, real y) { return fdim(x, y); }
+    real    fmaxl(real x, real y) { return fmax(x, y); }
+    real    fminl(real x, real y) { return fmin(x, y); }
+    real    fmal(real x, real y, real z) { return fma(x, y, z); }
+  }
+  else
+  {
+    real    acosl(real x);
+    real    asinl(real x);
+    real    atanl(real x);
+    real    atan2l(real y, real x);
+    real    cosl(real x);
+    real    sinl(real x);
+    real    tanl(real x);
+    real    exp2l(real x);
+    real    frexpl(real value, int* exp);
+    int     ilogbl(real x);
+    real    ldexpl(real x, int exp);
+    real    logbl(real x);
+    real    modfl(real value, real *iptr);
+    real    scalbnl(real x, int n);
+    real    scalblnl(real x, c_long n);
+    real    fabsl(real x);
+    real    hypotl(real x, real y);
+    real    sqrtl(real x);
+    real    ceill(real x);
+    real    floorl(real x);
+    real    nearbyintl(real x);
+    real    rintl(real x);
+    c_long  lrintl(real x);
+    real    roundl(real x);
+    c_long  lroundl(real x);
+    long    llroundl(real x);
+    real    truncl(real x);
+    real    fmodl(real x, real y);
+    real    remainderl(real x, real y);
+    real    remquol(real x, real y, int* quo);
+    real    copysignl(real x, real y);
+    double  nan(char* tagp);
+    float   nanf(char* tagp);
+    real    nanl(char* tagp);
+    real    nextafterl(real x, real y);
+    real    nexttowardl(real x, real y);
+    real    fdiml(real x, real y);
+    real    fmaxl(real x, real y);
+    real    fminl(real x, real y);
+    real    fmal(real x, real y, real z);
+  }
     double  acos(double x);
     float   acosf(float x);
-    real    acosl(real x) { return acos(x); }
 
     double  asin(double x);
     float   asinf(float x);
-    real    asinl(real x) { return asin(x); }
 
     double  atan(double x);
     float   atanf(float x);
-    real    atanl(real x) { return atan(x); }
 
     double  atan2(double y, double x);
     float   atan2f(float y, float x);
-    real    atan2l(real y, real x) { return atan2(y, x); }
 
     double  cos(double x);
     float   cosf(float x);
-    real    cosl(real x) { return cos(x); }
 
     double  sin(double x);
     float   sinf(float x);
-    real    sinl(real x) { return sin(x); }
 
     double  tan(double x);
     float   tanf(float x);
-    real    tanl(real x) { return tan(x); }
 
     double  acosh(double x);
     float   acoshf(float x);
@@ -530,7 +616,6 @@ version( FreeBSD )
 
     double  exp2(double x);
     float   exp2f(float x);
-    real    exp2l(real x) { return exp2(x); }
 
     double  expm1(double x);
     float   expm1f(float x);
@@ -538,15 +623,12 @@ version( FreeBSD )
 
     double  frexp(double value, int* exp);
     float   frexpf(float value, int* exp);
-    real    frexpl(real value, int* exp) { return frexp(value, exp); }
 
     int     ilogb(double x);
     int     ilogbf(float x);
-    int     ilogbl(real x) { return ilogb(x); }
 
     double  ldexp(double x, int exp);
     float   ldexpf(float x, int exp);
-    real    ldexpl(real x, int exp) { return ldexp(x, exp); }
 
     double  log(double x);
     float   logf(float x);
@@ -567,20 +649,15 @@ version( FreeBSD )
 
     double  logb(double x);
     float   logbf(float x);
-    real    logbl(real x) { return logb(x); }
 
     double  modf(double value, double* iptr);
     float   modff(float value, float* iptr);
-    //real    modfl(real value, real *iptr); // nontrivial conversion
 
     double  scalbn(double x, int n);
     float   scalbnf(float x, int n);
-    real    scalbnl(real x, int n) { return scalbn(x, n); }
 
     double  scalbln(double x, c_long n);
     float   scalblnf(float x, c_long n);
-    real    scalblnl(real x, c_long n) { return scalbln(x, n); }
-
 
     double  cbrt(double x);
     float   cbrtf(float x);
@@ -588,11 +665,9 @@ version( FreeBSD )
 
     double  fabs(double x);
     float   fabsf(float x);
-    real    fabsl(real x) { return fabs(x); }
 
     double  hypot(double x, double y);
     float   hypotf(float x, float y);
-    real    hypotl(real x, real y) { return hypot(x, y); }
 
     double  pow(double x, double y);
     float   powf(float x, float y);
@@ -600,7 +675,6 @@ version( FreeBSD )
 
     double  sqrt(double x);
     float   sqrtf(float x);
-    real    sqrtl(real x) { return sqrt(x); }
 
     double  erf(double x);
     float   erff(float x);
@@ -620,23 +694,18 @@ version( FreeBSD )
 
     double  ceil(double x);
     float   ceilf(float x);
-    real    ceill(real x) { return ceil(x); }
 
     double  floor(double x);
     float   floorf(float x);
-    real    floorl(real x) { return floor(x); }
 
     double  nearbyint(double x);
     float   nearbyintf(float x);
-    real    nearbyintl(real x) { return nearbyint(x); }
 
     double  rint(double x);
     float   rintf(float x);
-    real    rintl(real x) { return rint(x); }
 
     c_long  lrint(double x);
     c_long  lrintf(float x);
-    c_long  lrintl(real x) { return lrint(x); }
 
     long    llrint(double x);
     long    llrintf(float x);
@@ -644,63 +713,45 @@ version( FreeBSD )
 
     double  round(double x);
     float   roundf(float x);
-    real    roundl(real x) { return round(x); }
 
     c_long  lround(double x);
     c_long  lroundf(float x);
-    c_long  lroundl(real x) { return lround(x); }
 
     long    llround(double x);
     long    llroundf(float x);
-    long    llroundl(real x) { return llround(x); }
 
     double  trunc(double x);
     float   truncf(float x);
-    real    truncl(real x) { return trunc(x); }
 
     double  fmod(double x, double y);
     float   fmodf(float x, float y);
-    real    fmodl(real x, real y) { return fmod(x, y); }
 
     double  remainder(double x, double y);
     float   remainderf(float x, float y);
-    real    remainderl(real x, real y) { return remainder(x, y); }
 
     double  remquo(double x, double y, int* quo);
     float   remquof(float x, float y, int* quo);
-    real    remquol(real x, real y, int* quo) { return remquo(x, y, quo); }
 
     double  copysign(double x, double y);
     float   copysignf(float x, float y);
-    real    copysignl(real x, real y) { return copysign(x, y); }
-
-//  double  nan(char* tagp);
-//  float   nanf(char* tagp);
-//  real    nanl(char* tagp);
 
     double  nextafter(double x, double y);
     float   nextafterf(float x, float y);
-    real    nextafterl(real x, real y) { return nextafter(x, y); }
 
     double  nexttoward(double x, real y);
     float   nexttowardf(float x, real y);
-    real    nexttowardl(real x, real y) { return nexttoward(x, y); }
 
     double  fdim(double x, double y);
     float   fdimf(float x, float y);
-    real    fdiml(real x, real y) { return fdim(x, y); }
 
     double  fmax(double x, double y);
     float   fmaxf(float x, float y);
-    real    fmaxl(real x, real y) { return fmax(x, y); }
 
     double  fmin(double x, double y);
     float   fminf(float x, float y);
-    real    fminl(real x, real y) { return fmin(x, y); }
 
     double  fma(double x, double y, double z);
     float   fmaf(float x, float y, float z);
-    real    fmal(real x, real y, real z) { return fma(x, y, z); }
 }
 else
 {

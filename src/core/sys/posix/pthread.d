@@ -18,6 +18,8 @@ public import core.sys.posix.sys.types;
 public import core.sys.posix.sched;
 public import core.sys.posix.time;
 
+import core.stdc.stdint;
+
 extern (C):
 
 //
@@ -168,6 +170,45 @@ else version( OSX )
         PTHREAD_PROCESS_SHARED  = 1
     }
 }
+else version( FreeBSD )
+{
+    enum
+    {
+        PTHREAD_DETACHED            = 0x1,
+        PTHREAD_INHERIT_SCHED       = 0x4,
+        PTHREAD_NOFLOAT             = 0x8,
+
+        PTHREAD_CREATE_DETACHED     = PTHREAD_DETACHED,
+        PTHREAD_CREATE_JOINABLE     = 0,
+        PTHREAD_EXPLICIT_SCHED      = 0,
+    }
+
+    enum
+    {
+        PTHREAD_PROCESS_PRIVATE     = 0,
+        PTHREAD_PROCESS_SHARED      = 1,
+    }
+
+    enum
+    {
+        PTHREAD_CANCEL_ENABLE       = 0,
+        PTHREAD_CANCEL_DISABLE      = 1,
+        PTHREAD_CANCEL_DEFERRED     = 0,
+        PTHREAD_CANCEL_ASYNCHRONOUS = 2,
+    }
+
+    enum PTHREAD_CANCELED = cast(void*) -1;
+
+    enum PTHREAD_NEEDS_INIT = 0;
+    enum PTHREAD_DONE_INIT  = 1;
+
+    //enum PTHREAD_ONCE_INIT = { PTHREAD_NEEDS_INIT, null };
+
+    enum PTHREAD_MUTEX_INITIALIZER              = null;
+    enum PTHREAD_ADAPTIVE_MUTEX_INITIALIZER_NP  = null;
+    enum PTHREAD_COND_INITIALIZER               = null;
+    enum PTHREAD_RWLOCK_INITIALIZER             = null;
+}
 
 version( Posix )
 {
@@ -246,6 +287,33 @@ else version( OSX )
         }
     }
 }
+else version( FreeBSD )
+{
+    alias void function(void*) _pthread_cleanup_routine;
+
+    struct _pthread_cleanup_info
+    {
+        uintptr_t[8]    pthread_cleanup_pad;
+    }
+
+    struct pthread_cleanup
+    {
+        _pthread_cleanup_info __cleanup_info__ = void;
+
+        void push()( _pthread_cleanup_routine cleanup_routine, void* cleanup_arg )
+        {
+            __pthread_cleanup_push_imp( cleanup_routine, cleanup_arg, &__cleanup_info__ );
+        }
+
+        void pop()( int execute )
+        {
+            __pthread_cleanup_pop_imp( execute );
+        }
+    }
+
+    void __pthread_cleanup_push_imp(_pthread_cleanup_routine, void*, _pthread_cleanup_info*);
+    void __pthread_cleanup_pop_imp(int);
+}
 else version( Posix )
 {
     void pthread_cleanup_push(void function(void*), void*);
@@ -321,6 +389,18 @@ version( linux )
     int pthread_barrierattr_init(pthread_barrierattr_t*);
     int pthread_barrierattr_setpshared(pthread_barrierattr_t*, int);
 }
+else version( FreeBSD )
+{
+    enum PTHREAD_BARRIER_SERIAL_THREAD = -1;
+
+    int pthread_barrier_destroy(pthread_barrier_t*);
+    int pthread_barrier_init(pthread_barrier_t*, in pthread_barrierattr_t*, uint);
+    int pthread_barrier_wait(pthread_barrier_t*);
+    int pthread_barrierattr_destroy(pthread_barrierattr_t*);
+    int pthread_barrierattr_getpshared(in pthread_barrierattr_t*, int*);
+    int pthread_barrierattr_init(pthread_barrierattr_t*);
+    int pthread_barrierattr_setpshared(pthread_barrierattr_t*, int);
+}
 
 //
 // Clock (CS)
@@ -345,6 +425,14 @@ version( linux )
 {
     int pthread_spin_destroy(pthread_spinlock_t*);
     int pthread_spin_init(pthread_spinlock_t*, int);
+    int pthread_spin_lock(pthread_spinlock_t*);
+    int pthread_spin_trylock(pthread_spinlock_t*);
+    int pthread_spin_unlock(pthread_spinlock_t*);
+}
+else version( FreeBSD )
+{
+    int pthread_spin_init(pthread_spinlock_t*, int);
+    int pthread_spin_destroy(pthread_spinlock_t*);
     int pthread_spin_lock(pthread_spinlock_t*);
     int pthread_spin_trylock(pthread_spinlock_t*);
     int pthread_spin_unlock(pthread_spinlock_t*);
@@ -426,6 +514,10 @@ version( linux )
 {
     int pthread_getcpuclockid(pthread_t, clockid_t*);
 }
+else version( FreeBSD )
+{
+    int pthread_getcpuclockid(pthread_t, clockid_t*);
+}
 
 //
 // Timeouts (TMO)
@@ -443,6 +535,12 @@ version( linux )
     int pthread_rwlock_timedwrlock(pthread_rwlock_t*, in timespec*);
 }
 else version( OSX )
+{
+    int pthread_mutex_timedlock(pthread_mutex_t*, timespec*);
+    int pthread_rwlock_timedrdlock(pthread_rwlock_t*, in timespec*);
+    int pthread_rwlock_timedwrlock(pthread_rwlock_t*, in timespec*);
+}
+else version( FreeBSD )
 {
     int pthread_mutex_timedlock(pthread_mutex_t*, timespec*);
     int pthread_rwlock_timedrdlock(pthread_rwlock_t*, in timespec*);
@@ -589,3 +687,13 @@ int pthread_mutexattr_setpshared(pthread_mutexattr_t*, int);
 int pthread_rwlockattr_getpshared(in pthread_rwlockattr_t*, int*);
 int pthread_rwlockattr_setpshared(pthread_rwlockattr_t*, int);
 */
+version( FreeBSD )
+{
+    int pthread_condattr_getpshared(in pthread_condattr_t*, int*);
+    int pthread_condattr_setpshared(pthread_condattr_t*, int);
+    int pthread_mutexattr_getpshared(in pthread_mutexattr_t*, int*);
+    int pthread_mutexattr_setpshared(pthread_mutexattr_t*, int);
+    int pthread_rwlockattr_getpshared(in pthread_rwlockattr_t*, int*);
+    int pthread_rwlockattr_setpshared(pthread_rwlockattr_t*, int);
+}
+

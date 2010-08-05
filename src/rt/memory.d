@@ -26,12 +26,7 @@ private
     }
     version( FreeBSD )
     {
-        version = SimpleLibcStackEnd;
-
-        version( SimpleLibcStackEnd )
-        {
-            extern (C) extern __gshared void* __libc_stack_end;
-        }
+        extern (C) int sysctlbyname( const(char)*, void*, size_t*, void*, size_t );
     }
     version( Solaris )
     {
@@ -87,7 +82,14 @@ extern (C) void* rt_stackBottom()
     }
     else version( FreeBSD )
     {
-        return __libc_stack_end;
+        static void* kern_usrstack;
+
+        if( kern_usrstack == kern_usrstack.init )
+        {
+            size_t len = kern_usrstack.sizeof;
+            sysctlbyname( "kern.usrstack", &kern_usrstack, &len, null, 0 );
+        }
+        return kern_usrstack;
     }
     else version( Solaris )
     {

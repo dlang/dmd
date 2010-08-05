@@ -90,8 +90,8 @@ else version( OSX )
 }
 else version( FreeBSD )
 {
-    alias uint16_t in_port_t; // TODO: verify
-    alias uint32_t in_addr_t; // TODO: verify
+    alias uint16_t in_port_t;
+    alias uint32_t in_addr_t;
 
     struct in_addr
     {
@@ -105,10 +105,10 @@ else version( FreeBSD )
     uint32_t ntohl(uint32_t);
     uint16_t ntohs(uint16_t);
 
-    in_addr_t inet_addr(in char*);
-    char*     inet_ntoa(in_addr);
-    char*     inet_ntop(int, in void*, char*, socklen_t);
-    int       inet_pton(int, in char*, void*);
+    in_addr_t       inet_addr(in char*);
+    char*           inet_ntoa(in_addr);
+    const(char)*    inet_ntop(int, in void*, char*, socklen_t);
+    int             inet_pton(int, in char*, void*);
 }
 
 //

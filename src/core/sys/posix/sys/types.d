@@ -141,7 +141,7 @@ else version( OSX )
 }
 else version( FreeBSD )
 {
-    //clock_t
+    // clock_t (defined in core.stdc.time)
     alias ulong     fsblkcnt_t;
     alias ulong     fsfilcnt_t;
     alias long      id_t;

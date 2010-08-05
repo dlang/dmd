@@ -18,6 +18,11 @@ private
     import core.stdc.config;
     import core.stdc.stddef; // for size_t
     import core.stdc.stdarg; // for va_list
+
+  version (FreeBSD)
+  {
+    import core.sys.posix.sys.types;
+  }
 }
 
 extern (C):
@@ -89,17 +94,17 @@ else version ( FreeBSD )
         L_tmpnam     = 1024
     }
 
-    private
+    struct __sbuf
     {
-        struct __sbuf
-        {
-            ubyte *_base;
-            int _size;
-        }
-        struct __sFILEX
-        {
+        ubyte *_base;
+        int _size;
+    }
+    alias _iobuf __sFILE;
 
-        }
+    union __mbstate_t // <sys/_types.h>
+    {
+        char[128]   _mbstate8;
+        long        _mbstateL;
     }
 }
 else
@@ -180,31 +185,37 @@ struct _iobuf
     }
     else version( FreeBSD )
     {
-        ubyte*    _p;
-        int       _r;
-        int       _w;
-        short     _flags;
-        short     _file;
-        __sbuf    _bf;
-        int       _lbfsize;
+	ubyte*          _p;
+	int             _r;
+	int             _w;
+	short           _flags;
+	short           _file;
+	__sbuf          _bf;
+	int             _lbfsize;
 
-        void* function()                        _cookie;
-        int* function(void*)                    _close;
-        int* function(void*, char*, int)        _read;
-        fpos_t* function(void*, fpos_t, int)    _seek;
-        int* function(void*, char *, int)       _write;
+	void*           _cookie;
+	int     function(void*)                 _close;
+	int     function(void*, char*, int)     _read;
+	fpos_t  function(void*, fpos_t, int)    _seek;
+	int     function(void*, in char*, int)  _write;
 
-        __sbuf    _ub;
-        __sFILEX* _extra;
-        int       _ur;
+	__sbuf          _ub;
+	ubyte*          _up;
+	int             _ur;
 
-        ubyte[3]  _ubuf;
-        ubyte[1]  _nbuf;
+	ubyte[3]        _ubuf;
+	ubyte[1]        _nbuf;
 
-        __sbuf    _lb;
+	__sbuf          _lb;
 
-        int       _blksize;
-        fpos_t    _offset;
+	int             _blksize;
+	fpos_t          _offset;
+
+	pthread_mutex_t _fl_mutex;
+	pthread_t       _fl_owner;
+	int             _fl_count;
+	int             _orientation;
+	__mbstate_t     _mbstate;
     }
     else
     {
@@ -289,11 +300,20 @@ else version( OSX )
 }
 else version( FreeBSD )
 {
-    private extern shared FILE[3] __sF;
+    enum
+    {
+        _IOFBF = 0,
+        _IOLBF = 1,
+        _IONBF = 2,
+    }
 
-    shared stdin  = &__sF[0];
-    shared stdout = &__sF[1];
-    shared stderr = &__sF[2];
+    private extern shared FILE* __stdinp;
+    private extern shared FILE* __stdoutp;
+    private extern shared FILE* __stderrp;
+
+    alias __stdinp  stdin;
+    alias __stdoutp stdout;
+    alias __stderrp stderr;
 }
 else
 {

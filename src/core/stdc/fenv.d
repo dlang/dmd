@@ -117,8 +117,8 @@ else version( OSX )
 }
 else version( FreeBSD )
 {
-    private extern fenv_t __fe_dfl_env;
-    fenv_t* FE_DFL_ENV = &__fe_dfl_env;
+    private extern const fenv_t __fe_dfl_env;
+    const fenv_t* FE_DFL_ENV = &__fe_dfl_env;
 }
 else
 {

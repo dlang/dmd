@@ -194,9 +194,13 @@ else version( FreeBSD )
     enum F_SETFL        = 4;
     enum F_GETOWN       = 5;
     enum F_SETOWN       = 6;
-    enum F_GETLK        = 7;
-    enum F_SETLK        = 8;
-    enum F_SETLKW       = 9;
+    enum F_GETLK        = 11;
+    enum F_SETLK        = 12;
+    enum F_SETLKW       = 13;
+    enum F_OGETLK       = 7;
+    enum F_OSETLK       = 8;
+    enum F_OSETLKW      = 9;
+    enum F_DUP2FD       = 10;
 
     enum FD_CLOEXEC     = 1;
 
@@ -206,7 +210,7 @@ else version( FreeBSD )
 
     enum O_CREAT        = 0x0200;
     enum O_EXCL         = 0x0800;
-    enum O_NOCTTY       = 0;
+    enum O_NOCTTY       = 0x8000;
     enum O_TRUNC        = 0x0400;
 
     enum O_RDONLY       = 0x0000;
@@ -221,6 +225,16 @@ else version( FreeBSD )
     //enum O_RSYNC
 
     struct flock
+    {
+        off_t   l_start;
+        off_t   l_len;
+        pid_t   l_pid;
+        short   l_type;
+        short   l_whence;
+        int     l_sysid;
+    }
+
+    struct oflock
     {
         off_t   l_start;
         off_t   l_len;

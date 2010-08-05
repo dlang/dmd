@@ -262,6 +262,14 @@ else version( Posix )
                     }
                 }
             }
+            else version( FreeBSD )
+            {
+                extern (C)
+                {
+                    extern void* _tlsstart;
+                    extern void* _tlsend;
+                }
+            }
             else
             {
                 __gshared int   _tlsstart;

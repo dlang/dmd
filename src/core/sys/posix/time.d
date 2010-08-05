@@ -158,8 +158,7 @@ else version( OSX )
 }
 else version( FreeBSD )
 {
-    enum CLOCK_PROCESS_CPUTIME_ID   = 2; // (TMR|CPT)
-    enum CLOCK_THREAD_CPUTIME_ID    = 3; // (TMR|TCT)
+    enum CLOCK_THREAD_CPUTIME_ID    = 15;
 
     // NOTE: See above for why this is commented out.
     //
@@ -178,7 +177,7 @@ else version( FreeBSD )
     enum CLOCK_REALTIME     = 0;
     enum TIMER_ABSTIME      = 0x01;
 
-    //alias int clockid_t;
+    alias int clockid_t; // <sys/_types.h>
     alias int timer_t;
 
     int clock_getres(clockid_t, timespec*);
@@ -255,8 +254,6 @@ else version( OSX )
 }
 else version( FreeBSD )
 {
-    extern __gshared c_long timezone;
-
     //tm*   getdate(in char*);
     char* strptime(in char*, in char*, tm*);
 }

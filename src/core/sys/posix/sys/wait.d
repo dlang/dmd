@@ -93,7 +93,6 @@ else version( FreeBSD )
 {
     enum WNOHANG        = 1;
     enum WUNTRACED      = 2;
-    enum WCONTINUED     = 4;
 
     private
     {
@@ -170,3 +169,12 @@ else version( OSX )
 
     int waitid(idtype_t, id_t, siginfo_t*, int);    
 }
+else version (FreeBSD)
+{
+    enum WSTOPPED       = WUNTRACED;
+    enum WCONTINUED     = 4;
+    enum WNOWAIT        = 8;
+
+    // http://www.freebsd.org/projects/c99/
+}
+

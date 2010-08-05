@@ -140,6 +140,65 @@ version( linux )
         }
     }
 }
+else version( FreeBSD )
+{
+    // <machine/ucontext.h>
+    version( X86 )
+    {
+        alias int __register_t;
+
+        struct mcontext_t
+        {
+            __register_t    mc_onstack;
+            __register_t    mc_gs;
+            __register_t    mc_fs;
+            __register_t    mc_es;
+            __register_t    mc_ds;
+            __register_t    mc_edi;
+            __register_t    mc_esi;
+            __register_t    mc_ebp;
+            __register_t    mc_isp;
+            __register_t    mc_ebx;
+            __register_t    mc_edx;
+            __register_t    mc_ecx;
+            __register_t    mc_eax;
+            __register_t    mc_trapno;
+            __register_t    mc_err;
+            __register_t    mc_eip;
+            __register_t    mc_cs;
+            __register_t    mc_eflags;
+            __register_t    mc_esp;
+            __register_t    mc_ss;
+
+            int             mc_len;
+            int             mc_fpformat;
+            int             mc_ownedfp;
+            int[1]          mc_spare1;
+
+            align(16)
+            int[128]        mc_fpstate;
+
+            __register_t    mc_fsbase;
+            __register_t    mc_gsbase;
+
+            int[6]          mc_spare2;
+        }
+    }
+
+    // <ucontext.h>
+    enum UCF_SWAPPED = 0x00000001;
+
+    struct ucontext_t
+    {
+        sigset_t        uc_sigmask;
+        mcontext_t      uc_mcontext;
+
+        ucontext_t*     uc_link;
+        stack_t         uc_stack;
+        int             uc_flags;
+        int[4]          __spare__;
+    }
+}
 
 //
 // Obsolescent (OB)

@@ -476,6 +476,10 @@ else version( OSX )
 {
     int fsync(int);
 }
+else version( FreeBSD )
+{
+    int fsync(int);
+}
 
 //
 // Synchronized I/O (SIO)
@@ -593,7 +597,7 @@ else version( FreeBSD )
 {
     char*      crypt(in char*, in char*);
     //char*      ctermid(char*);
-    void       encrypt(char*, int);
+    void       encrypt(ref char[64], int);
     int        fchdir(int);
     c_long     gethostid();
     int        getpgid(pid_t);

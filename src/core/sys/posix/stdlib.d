@@ -83,6 +83,10 @@ version( linux )
 {
     int posix_memalign(void**, size_t, size_t);
 }
+else version( FreeBSD )
+{
+    int posix_memalign(void**, size_t, size_t);
+}
 
 //
 // C Extension (CX)

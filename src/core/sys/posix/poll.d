@@ -107,14 +107,14 @@ else version( OSX )
 }
 else version( FreeBSD )
 {
+    alias uint nfds_t;
+
     struct pollfd
     {
         int     fd;
         short   events;
         short   revents;
     };
-
-    alias uint nfds_t;
 
     enum
     {

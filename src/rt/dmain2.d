@@ -53,6 +53,11 @@ version (all)
     }
 }
 
+version (FreeBSD)
+{
+    import core.stdc.fenv;
+}
+
 extern (C) void _STI_monitor_staticctor();
 extern (C) void _STD_monitor_staticdtor();
 extern (C) void _STI_critical_init();
@@ -311,6 +316,22 @@ extern (C) int main(int argc, char** argv)
          * of the main thread's stack, so save the address of that.
          */
         __osx_stack_end = cast(void*)&argv;
+    }
+
+    version (FreeBSD) version (D_InlineAsm_X86)
+    {
+        /*
+         * FreeBSD/i386 sets the FPU precision mode to 53 bit double.
+         * Make it 64 bit extended.
+         */
+        ushort fpucw;
+        asm
+        {
+            fstsw   fpucw;
+            or      fpucw, 0b11_00_111111; // 11: use 64 bit extended-precision
+                                           // 111111: mask all FP exceptions
+            fldcw   fpucw;
+        }
     }
 
     version (Posix)

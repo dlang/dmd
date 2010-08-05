@@ -80,7 +80,6 @@ else version( FreeBSD )
     enum SCHED_FIFO     = 1;
     enum SCHED_OTHER    = 2;
     enum SCHED_RR       = 3;
-    //SCHED_SPORADIC (SS|TSP)
 }
 
 version( Posix )

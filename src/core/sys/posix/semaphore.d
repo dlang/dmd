@@ -63,9 +63,6 @@ else version( OSX )
 }
 else version( FreeBSD )
 {
-    enum SEM_MAGIC  = 0x09fa4012;
-    enum SEM_USER   = 0;
-
     alias void* sem_t;
 
     enum SEM_FAILED = cast(sem_t*) null;

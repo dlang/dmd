@@ -24,8 +24,8 @@ extern (C):
 /*
 jmp_buf
 
-int  setjmp(jmp_buf);
-void longjmp(jmp_buf, int);
+int  setjmp(ref jmp_buf);
+void longjmp(ref jmp_buf, int);
 */
 
 version( linux )
@@ -71,7 +71,32 @@ version( linux )
     alias __jmp_buf_tag[1] jmp_buf;
 
     alias _setjmp setjmp; // see XOpen block
-    void longjmp(jmp_buf, int);
+    void longjmp(ref jmp_buf, int);
+}
+else version( FreeBSD )
+{
+    // <machine/setjmp.h>
+    version( X86 )
+    {
+        enum _JBLEN = 11;
+        struct _jmp_buf { int[_JBLEN + 1] _jb; }
+    }
+    else version( X86_64)
+    {
+        enum _JBLEN = 12;
+        struct _jmp_buf { c_long[_JBLEN] _jb; }
+    }
+    else version( SPARC )
+    {
+        enum _JBLEN = 5;
+        struct _jmp_buf { c_long[_JBLEN + 1] _jb; }
+    }
+    else
+        static assert(0);
+    alias _jmp_buf[1] jmp_buf;
+
+    int  setjmp(ref jmp_buf);
+    void longjmp(ref jmp_buf, int);
 }
 
 //
@@ -92,6 +117,34 @@ version( linux )
     alias __sigsetjmp sigsetjmp;
     void siglongjmp(sigjmp_buf, int);
 }
+else version( FreeBSD )
+{
+    // <machine/setjmp.h>
+    version( X86 )
+    {
+        struct _sigjmp_buf { int[_JBLEN + 1] _ssjb; }
+    }
+    else version( X86_64)
+    {
+        struct _sigjmp_buf { c_long[_JBLEN] _sjb; }
+    }
+    else version( SPARC )
+    {
+        enum _JBLEN         = 5;
+        enum _JB_FP         = 0;
+        enum _JB_PC         = 1;
+        enum _JB_SP         = 2;
+        enum _JB_SIGMASK    = 3;
+        enum _JB_SIGFLAG    = 5;
+        struct _sigjmp_buf { c_long[_JBLEN + 1] _sjb; }
+    }
+    else
+        static assert(0);
+    alias _sigjmp_buf[1] sigjmp_buf;
+
+    int  sigsetjmp(ref sigjmp_buf);
+    void siglongjmp(ref sigjmp_buf, int);
+}
 
 //
 // XOpen (XSI)
@@ -103,6 +156,11 @@ void _longjmp(jmp_buf, int);
 
 version( linux )
 {
-    int  _setjmp(jmp_buf);
-    void _longjmp(jmp_buf, int);
+    int  _setjmp(ref jmp_buf);
+    void _longjmp(ref jmp_buf, int);
+}
+else version( FreeBSD )
+{
+    int  _setjmp(ref jmp_buf);
+    void _longjmp(ref jmp_buf, int);
 }

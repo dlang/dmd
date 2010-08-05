@@ -82,7 +82,7 @@ void _STD_critical_term()
 
 /* ================================= linux ============================ */
 
-#if linux || __APPLE__
+#if linux || __APPLE__ || __FreeBSD__
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -90,8 +90,10 @@ void _STD_critical_term()
 
 // PTHREAD_MUTEX_RECURSIVE is the "standard" symbol,
 // while the _NP version is specific to Linux
-#ifndef PTHREAD_MUTEX_RECURSIVE
+#if linux
+#  ifndef PTHREAD_MUTEX_RECURSIVE
 #    define PTHREAD_MUTEX_RECURSIVE PTHREAD_MUTEX_RECURSIVE_NP
+#  endif
 #endif
 
 /******************************************
