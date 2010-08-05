@@ -260,9 +260,15 @@ extern (C) void onHiddenFuncError( Object o )
  */
 extern (C) void onOutOfMemoryError()
 {
-    // NOTE: Since an out of memory condition exists, no allocation must occur
-    //       while generating this object.
-    throw cast(OutOfMemoryError) cast(void*) OutOfMemoryError.classinfo.init;
+    /* NOTE: Since an out of memory condition exists, no allocation must occur
+     * while generating this object, so place it in a preallocated buffer.
+     */
+    __gshared void[10 * size_t.sizeof] buffer = void;
+    auto len = OutOfMemoryError.classinfo.init.length;
+    if (len > buffer.sizeof)
+	assert(0);		// HLT even in release mode
+    buffer[0..len] = OutOfMemoryError.classinfo.init[];
+    throw cast(OutOfMemoryError) buffer.ptr;
 }
 
 
