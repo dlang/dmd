@@ -2001,8 +2001,9 @@ elem *BinExp::toElemBin(IRState *irs,int op)
     Type *tb1 = e1->type->toBasetype();
     Type *tb2 = e2->type->toBasetype();
 
-    if ((tb1->ty == Tarray || tb1->ty == Tsarray) &&
-        (tb2->ty == Tarray || tb2->ty == Tsarray) &&
+    if ((tb1->ty == Tarray || tb1->ty == Tsarray ||
+         tb2->ty == Tarray || tb2->ty == Tsarray) &&
+        tb2->ty != Tvoid &&
         op != OPeq && op != OPandand && op != OPoror
        )
     {
