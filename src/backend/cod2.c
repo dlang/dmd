@@ -359,7 +359,10 @@ code *cdorth(elem *e,regm_t *pretregs)
                 regm_t regm;
                 if (e11->Eoper == OPvar && isregvar(e11,&regm,&reg1))
                 {
-                    retregs = regm;
+                    if (tysize[tybasic(e11->Ety)]<= REGSIZE)
+                        retregs = mask[reg1]; // only want the LSW
+                    else
+                        retregs = regm;
                     c1 = NULL;
                     freenode(e11);
                 }
@@ -374,6 +377,9 @@ code *cdorth(elem *e,regm_t *pretregs)
                     sregs = ALLREGS & ~rretregs;
                 c3 = allocreg(&sregs,&reg,ty);
             }
+
+            assert((retregs & (retregs - 1)) == 0); // must be only one register
+            assert((rretregs & (rretregs - 1)) == 0); // must be only one register
 
             reg1 = findreg(retregs);
             reg2 = findreg(rretregs);
