@@ -345,7 +345,7 @@ else version( OSX )
     int     tcsetattr(int, int, in termios*);
 
 }
-else version ( freebsd )
+else version ( FreeBSD )
 {
     alias ubyte cc_t;
     alias uint  speed_t;

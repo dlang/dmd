@@ -56,7 +56,7 @@ else version( OSX )
     void* dlopen(in char*, int);
     void* dlsym(void*, in char*);
 }
-else version( freebsd )
+else version( FreeBSD )
 {
     enum RTLD_LAZY      = 1;
     enum RTLD_NOW       = 2;

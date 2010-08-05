@@ -61,7 +61,7 @@ else version( OSX )
 
     enum SEM_FAILED = cast(sem_t*) null;
 }
-else version( freebsd )
+else version( FreeBSD )
 {
     enum SEM_MAGIC  = 0x09fa4012;
     enum SEM_USER   = 0;
@@ -99,7 +99,7 @@ else version( OSX )
 {
     int sem_timedwait(sem_t*, in timespec*);
 }
-else version( freebsd )
+else version( FreeBSD )
 {
     int sem_timedwait(sem_t*, in timespec*);
 }

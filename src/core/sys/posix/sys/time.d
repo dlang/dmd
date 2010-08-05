@@ -95,7 +95,7 @@ else version( OSX )
     int setitimer(int, in itimerval*, itimerval*);
     int utimes(in char*, ref const(timeval)[2]);
 }
-else version( freebsd )
+else version( FreeBSD )
 {
     struct timeval
     {

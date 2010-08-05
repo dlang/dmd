@@ -367,7 +367,7 @@ else version( OSX )
     }
   }
 }
-else version( freebsd )
+else version( FreeBSD )
 {
     enum
     {
@@ -468,9 +468,9 @@ extern (D)
     int isunordered(real x, real y)        { return (x !<>= y); }
 }
 
-// NOTE: freebsd < 8-CURRENT doesn't appear to support *l, but we can
+// NOTE: FreeBSD < 8-CURRENT doesn't appear to support *l, but we can
 //       approximate.
-version( freebsd )
+version( FreeBSD )
 {
     double  acos(double x);
     float   acosf(float x);

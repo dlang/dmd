@@ -250,7 +250,7 @@ else version( OSX )
     extern (D) bool S_ISLNK( mode_t mode )  { return S_ISTYPE( mode, S_IFLNK );  }
     extern (D) bool S_ISSOCK( mode_t mode ) { return S_ISTYPE( mode, S_IFSOCK ); }
 }
-else version( freebsd )
+else version( FreeBSD )
 {
     struct stat_t
     {
@@ -413,7 +413,7 @@ else version( OSX )
 
     int mknod(in char*, mode_t, dev_t);
 }
-else version( freebsd )
+else version( FreeBSD )
 {
     enum S_IFMT     = 0170000;
     enum S_IFBLK    = 0060000;

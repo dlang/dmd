@@ -32,7 +32,7 @@ else version( OSX )
 {
     enum TCP_NODELAY = 1;
 }
-else version( freebsd )
+else version( FreeBSD )
 {
     enum TCP_NODELAY = 1;
 }

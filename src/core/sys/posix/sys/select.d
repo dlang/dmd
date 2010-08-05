@@ -164,7 +164,7 @@ else version( OSX )
     int pselect(int, fd_set*, fd_set*, fd_set*, in timespec*, in sigset_t*);
     int select(int, fd_set*, fd_set*, fd_set*, timeval*);
 }
-else version( freebsd )
+else version( FreeBSD )
 {
     private
     {

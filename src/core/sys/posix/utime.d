@@ -51,7 +51,7 @@ else version( OSX )
 
     int utime(in char*, in utimbuf*);
 }
-else version( freebsd )
+else version( FreeBSD )
 {
     struct utimbuf
     {

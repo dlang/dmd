@@ -436,7 +436,7 @@ else version( OSX )
     int     sockatmark(int);
     int     socketpair(int, int, int, ref int[2]);
 }
-else version( freebsd )
+else version( FreeBSD )
 {
     alias uint   socklen_t;
     alias ubyte  sa_family_t;
@@ -609,7 +609,7 @@ else version( OSX )
         AF_INET6    = 30
     }
 }
-else version( freebsd )
+else version( FreeBSD )
 {
     enum
     {
@@ -638,7 +638,7 @@ else version( OSX )
         SOCK_RAW    = 3
     }
 }
-else version( freebsd )
+else version( FreeBSD )
 {
     enum
     {

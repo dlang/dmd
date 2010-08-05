@@ -41,7 +41,7 @@ else version( OSX )
         byte[104]   sun_path;
     }
 }
-else version( freebsd )
+else version( FreeBSD )
 {
     struct sockaddr_un
     {

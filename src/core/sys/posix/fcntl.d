@@ -185,7 +185,7 @@ else version( OSX )
     int creat(in char*, mode_t);
     int open(in char*, int, ...);
 }
-else version( freebsd )
+else version( FreeBSD )
 {
     enum F_DUPFD        = 0;
     enum F_GETFD        = 1;

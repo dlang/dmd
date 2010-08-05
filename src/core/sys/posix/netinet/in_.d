@@ -116,7 +116,7 @@ else version( OSX )
     
     enum INET_ADDRSTRLEN       = 16;
 }
-else version( freebsd )
+else version( FreeBSD )
 {
     private enum __SOCK_SIZE__ = 16;
 

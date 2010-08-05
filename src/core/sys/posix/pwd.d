@@ -64,7 +64,7 @@ else version( OSX )
         time_t  pw_expire;
     }
 }
-else version( freebsd )
+else version( FreeBSD )
 {
     struct passwd
     {
@@ -106,7 +106,7 @@ else version( OSX )
     int getpwnam_r(in char*, passwd*, char*, size_t, passwd**);
     int getpwuid_r(uid_t, passwd*, char*, size_t, passwd**);
 }
-else version( freebsd )
+else version( FreeBSD )
 {
     int getpwnam_r(in char*, passwd*, char*, size_t, passwd**);
     int getpwuid_r(uid_t, passwd*, char*, size_t, passwd**);
@@ -132,7 +132,7 @@ else version ( OSX )
     passwd* getpwent();
     void    setpwent();
 }
-else version ( freebsd )
+else version ( FreeBSD )
 {
     void    endpwent();
     passwd* getpwent();

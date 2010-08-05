@@ -88,7 +88,7 @@ else version( OSX )
     char*     inet_ntop(int, in void*, char*, socklen_t);
     int       inet_pton(int, in char*, void*);
 }
-else version( freebsd )
+else version( FreeBSD )
 {
     alias uint16_t in_port_t; // TODO: verify
     alias uint32_t in_addr_t; // TODO: verify
@@ -126,7 +126,7 @@ else version( OSX )
 {
     enum INET6_ADDRSTRLEN = 46;
 }
-else version( freebsd )
+else version( FreeBSD )
 {
     enum INET6_ADDRSTRLEN = 46;
 }

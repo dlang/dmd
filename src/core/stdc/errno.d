@@ -281,7 +281,7 @@ else version( OSX )
     enum ETIME              = 101;      // STREAM ioctl timeout
     enum ELAST              = 101;      // Must be equal largest errno
 }
-else version( freebsd )
+else version( FreeBSD )
 {
     enum EPERM              = 1;        // Operation not permitted
     enum ENOENT             = 2;        // No such file or directory

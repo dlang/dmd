@@ -110,7 +110,7 @@ version( linux )
     int   ftruncate(int, off_t);
   }
 }
-else version( freebsd )
+else version( FreeBSD )
 {
     off_t lseek(int, off_t, int);
     int   ftruncate(int, off_t);
@@ -448,7 +448,7 @@ else version( OSX )
     enum F_TLOCK    = 2;
     enum F_TEST     = 3;
 }
-else version( freebsd )
+else version( FreeBSD )
 {
     enum F_OK       = 0;
     enum R_OK       = 0x04;
@@ -589,7 +589,7 @@ else version( OSX )
     int        usleep(useconds_t);
     pid_t      vfork();
 }
-else version( freebsd )
+else version( FreeBSD )
 {
     char*      crypt(in char*, in char*);
     //char*      ctermid(char*);

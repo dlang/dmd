@@ -80,7 +80,7 @@ version( linux )
     int   shmdt(in void*);
     int   shmget(key_t, size_t, int);
 }
-else version( freebsd )
+else version( FreeBSD )
 {
     enum SHM_RDONLY     = 010000;
     enum SHM_RND        = 020000;

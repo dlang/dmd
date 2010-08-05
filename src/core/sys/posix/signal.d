@@ -156,7 +156,7 @@ else version( OSX )
     enum SIGUSR2    = 31;
     enum SIGURG     = 16;
 }
-else version( freebsd )
+else version( FreeBSD )
 {
     //SIGABRT (defined in core.stdc.signal)
     enum SIGALRM    = 14;
@@ -439,7 +439,7 @@ else version( OSX )
     int sigsuspend(in sigset_t*);
     int sigwait(in sigset_t*, int*);
 }
-else version( freebsd )
+else version( FreeBSD )
 {
     struct sigset_t
     {
@@ -843,7 +843,7 @@ else version( OSX )
         c_long  tv_nsec;
     }
 }
-else version( freebsd )
+else version( FreeBSD )
 {
     struct timespec
     {
@@ -906,7 +906,7 @@ version( linux )
     int sigtimedwait(in sigset_t*, siginfo_t*, in timespec*);
     int sigwaitinfo(in sigset_t*, siginfo_t*);
 }
-else version( freebsd )
+else version( FreeBSD )
 {
     struct sigevent
     {
@@ -947,7 +947,7 @@ else version( OSX )
     int pthread_kill(pthread_t, int);
     int pthread_sigmask(int, in sigset_t*, sigset_t*);
 }
-else version( freebsd )
+else version( FreeBSD )
 {
     int pthread_kill(pthread_t, int);
     int pthread_sigmask(int, in sigset_t*, sigset_t*);

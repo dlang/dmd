@@ -43,7 +43,7 @@ else version( OSX )
 {
     time_t timegm(tm*); // non-standard
 }
-else version( freebsd )
+else version( FreeBSD )
 {
     time_t timegm(tm*); // non-standard
 }
@@ -156,7 +156,7 @@ else version( OSX )
 {
     int nanosleep(in timespec*, timespec*);
 }
-else version( freebsd )
+else version( FreeBSD )
 {
     enum CLOCK_PROCESS_CPUTIME_ID   = 2; // (TMR|CPT)
     enum CLOCK_THREAD_CPUTIME_ID    = 3; // (TMR|TCT)
@@ -217,7 +217,7 @@ else version( OSX )
     tm*   gmtime_r(in time_t*, tm*);
     tm*   localtime_r(in time_t*, tm*);
 }
-else version( freebsd )
+else version( FreeBSD )
 {
     char* asctime_r(in tm*, char*);
     char* ctime_r(in time_t*, char*);

@@ -53,7 +53,7 @@ else version( OSX )
     enum POSIX_MADV_WILLNEED    = 3;
     enum POSIX_MADV_DONTNEED    = 4;
 }
-else version( freebsd )
+else version( FreeBSD )
 {
     enum POSIX_MADV_NORMAL      = 0;
     enum POSIX_MADV_RANDOM      = 1;
@@ -86,7 +86,7 @@ else version( OSX )
     enum PROT_WRITE     = 0x02;
     enum PROT_EXEC      = 0x04;
 }
-else version( freebsd )
+else version( FreeBSD )
 {
     enum PROT_NONE      = 0x00;
     enum PROT_READ      = 0x01;
@@ -122,7 +122,7 @@ else version( OSX )
     void* mmap(void*, size_t, int, int, int, off_t);
     int   munmap(void*, size_t);
 }
-else version( freebsd )
+else version( FreeBSD )
 {
     void* mmap(void*, size_t, int, int, int, off_t);
     int   munmap(void*, size_t);
@@ -177,7 +177,7 @@ else version( OSX )
 
     int msync(void*, size_t, int);
 }
-else version( freebsd )
+else version( FreeBSD )
 {
     enum MAP_SHARED     = 0x0001;
     enum MAP_PRIVATE    = 0x0002;
@@ -221,7 +221,7 @@ else version( OSX )
     int mlockall(int);
     int munlockall();
 }
-else version( freebsd )
+else version( FreeBSD )
 {
     enum MCL_CURRENT    = 0x0001;
     enum MCL_FUTURE     = 0x0002;
@@ -248,7 +248,7 @@ else version( OSX )
     int mlock(in void*, size_t);
     int munlock(in void*, size_t);
 }
-else version( freebsd )
+else version( FreeBSD )
 {
     int mlock(in void*, size_t);
     int munlock(in void*, size_t);
@@ -265,7 +265,7 @@ version( OSX )
 {
     int mprotect(void*, size_t, int);
 }
-else version( freebsd )
+else version( FreeBSD )
 {
     int mprotect(void*, size_t, int);
 }
@@ -288,7 +288,7 @@ else version( OSX )
     int shm_open(in char*, int, mode_t);
     int shm_unlink(in char*);
 }
-else version( freebsd )
+else version( FreeBSD )
 {
     int shm_open(in char*, int, mode_t);
     int shm_unlink(in char*);

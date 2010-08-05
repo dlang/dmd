@@ -19,7 +19,7 @@ private static import core.stdc.complex;
 
 extern (C):
 
-version( freebsd )
+version( FreeBSD )
 {
     alias core.stdc.math.acos          acos;
     alias core.stdc.math.acosf         acos;

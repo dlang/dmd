@@ -89,7 +89,7 @@ else version( OSX )
     extern (D) int  WSTOPSIG( int status )     { return status >> 8;                     }
     extern (D) int  WTERMSIG( int status )     { return _WSTATUS( status );              }
 }
-else version( freebsd )
+else version( FreeBSD )
 {
     enum WNOHANG        = 1;
     enum WUNTRACED      = 2;
