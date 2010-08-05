@@ -382,6 +382,7 @@ extern (C) int main(int argc, char** argv)
 
     bool trapExceptions = rt_trapExceptions;
 
+version (all) { // TrapExceptions
     void tryExec(scope void delegate() dg)
     {
 
@@ -467,6 +468,38 @@ extern (C) int main(int argc, char** argv)
     }
 
     tryExec(&runAll);
+} else {
+    void runMain()
+    {
+        scope(exit)
+        {
+            if (_d_unhandled !is null)
+                console (_d_unhandled.toString)("\n");
+            // weird things happen if we don't abort here
+            abort();
+        }
+        _moduleCtor();
+        _moduleTlsCtor();
+        scope(exit)
+        {
+            _moduleTlsDtor();
+            thread_joinAll();
+            _d_isHalting = true;
+            _moduleDtor();
+        }
+        result = main(args);
+    }
+
+    gc_init();
+    initStaticDataGC();
+    version (Windows)
+        _minit();
+    if (runModuleUnitTests())
+        runMain();
+    else
+        result = EXIT_FAILURE;
+    gc_term();
+} // end version(!TrapExceptions)
 
     version (Posix)
     {

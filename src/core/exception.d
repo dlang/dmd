@@ -260,14 +260,17 @@ extern (C) void onHiddenFuncError( Object o )
  */
 extern (C) void onOutOfMemoryError()
 {
-    /* NOTE: Since an out of memory condition exists, no allocation must occur
-     * while generating this object, so place it in a preallocated buffer.
-     */
+    // NOTE: Since an out of memory condition exists, no allocation must occur
+    //       while generating this object, so place it in a static buffer.
+    //
+    // TODO: This won't work with chaining, since all threads share a single
+    //       instance.  Should probably just revert to using the init instance
+    //       and special casing the handling of an OOME in the chaining code.
     __gshared void[10 * size_t.sizeof] buffer = void;
     auto len = OutOfMemoryError.classinfo.init.length;
-    if (len > buffer.sizeof)
-	assert(0);		// HLT even in release mode
-    buffer[0..len] = OutOfMemoryError.classinfo.init[];
+    if( len > buffer.sizeof )
+	    assert( false ); // HLT even in release mode
+    buffer[0 .. len] = OutOfMemoryError.classinfo.init[];
     throw cast(OutOfMemoryError) buffer.ptr;
 }
 

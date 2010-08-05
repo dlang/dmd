@@ -56,7 +56,7 @@ private
     }
     
     // For runModuleUnitTests error reporting.
-    version (Windows)
+    version( Windows )
     {
         import core.sys.windows.windows;
     }
