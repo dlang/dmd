@@ -12,6 +12,16 @@
 #include <assert.h>
 #include <math.h>
 
+#if __FreeBSD__
+extern "C"
+{
+    long double sinl(long double);
+    long double cosl(long double);
+    long double tanl(long double);
+    long double sqrtl(long double);
+}
+#endif
+
 #include "mars.h"
 #include "declaration.h"
 #include "attrib.h"

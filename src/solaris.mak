@@ -3,15 +3,19 @@ C=backend
 TK=tk
 ROOT=root
 
-CC=g++ -m32
+MODEL=-m32
+
+CC=g++ $(MODEL)
 
 #OPT=-g -g3
 #OPT=-O2
 
 #COV=-fprofile-arcs -ftest-coverage
 
-#GFLAGS = -Wno-deprecated -D__near= -D__pascal= -fno-exceptions -g -DDEBUG=1 $(COV)
-GFLAGS = -Wno-deprecated -D__near= -D__pascal= -fno-exceptions -O2
+WARNINGS=-Wno-deprecated -Wstrict-aliasing
+
+#GFLAGS = $(WARNINGS) -D__near= -D__pascal= -fno-exceptions -g -DDEBUG=1 -DUNITTEST $(COV)
+GFLAGS = $(WARNINGS) -D__near= -D__pascal= -fno-exceptions -O2
 
 CFLAGS = $(GFLAGS) -I$(ROOT) -D__I86__=1 -DMARS=1 -DTARGET_SOLARIS=1 -D_DH
 MFLAGS = $(GFLAGS) -I$C -I$(TK) -D__I86__=1 -DMARS=1 -DTARGET_SOLARIS=1 -D_DH
@@ -49,7 +53,7 @@ SRC = win32.mak linux.mak osx.mak freebsd.mak solaris.mak \
 	inifile.c iasm.c module.c scope.c dump.c init.h init.c attrib.h \
 	attrib.c opover.c class.c mangle.c bit.c tocsym.c func.c inline.c \
 	access.c complex_t.h irstate.h irstate.c glue.c msc.c ph.c tk.c \
-	s2ir.c todt.c e2ir.c util.c identifier.h parse.h objfile.h \
+	s2ir.c todt.c e2ir.c util.c identifier.h parse.h \
 	scope.h enum.h import.h mars.h module.h mtype.h dsymbol.h \
 	declaration.h lexer.h expression.h irstate.h statement.h eh.c \
 	utf.h utf.c staticassert.h staticassert.c unialpha.c \
@@ -88,8 +92,8 @@ SRC = win32.mak linux.mak osx.mak freebsd.mak solaris.mak \
 
 all: dmd
 
-dmd: id.o optabgen $(DMD_OBJS)
-	gcc -m32 -lstdc++ $(COV) $(DMD_OBJS) -o dmd
+dmd: $(DMD_OBJS)
+	gcc $(MODEL) -lstdc++ -lpthread $(COV) $(DMD_OBJS) -o dmd
 
 clean:
 	rm -f $(DMD_OBJS) dmd optab.o id.o impcnvgen idgen id.c id.h \
@@ -103,29 +107,30 @@ optabgen: $C/optabgen.c $C/cc.h $C/oper.h
 	$(CC) $(MFLAGS) $< -o optabgen
 	./optabgen
 
-debtab.c optab.c cdxxx.c elxxx.c fltables.c tytab.c : optabgen
-	./optabgen
+optabgen_output = debtab.c optab.c cdxxx.c elxxx.c fltables.c tytab.c
+$(optabgen_output) : optabgen
 
 ######## idgen generates some source
 
-id.h id.c : idgen
-	./idgen
+idgen_output = id.h id.c
+$(idgen_output) : idgen
 
 idgen : idgen.c
 	$(CC) idgen.c -o idgen
-
-id.o : id.h id.c
-	$(CC) -c $(CFLAGS) id.c
+	./idgen
 
 ######### impcnvgen generates some source
 
-impcnvtab.c : impcnvgen
-	./impcnvgen
+impcnvtab_output = impcnvtab.c
+$(impcnvtab_output) : impcnvgen
 
 impcnvgen : mtype.h impcnvgen.c
 	$(CC) $(CFLAGS) impcnvgen.c -o impcnvgen
+	./impcnvgen
 
 #########
+
+$(DMD_OBJS) : $(idgen_output) $(optabgen_output) $(impcnvgen_output)
 
 aa.o: $C/aa.h $C/tinfo.h $C/aa.c
 	$(CC) -c $(MFLAGS) -I. $C/aa.c
@@ -152,7 +157,7 @@ attrib.o: attrib.c
 	$(CC) -c $(CFLAGS) $<
 
 bcomplex.o: $C/bcomplex.c
-	$(CC) -c $(MFLAGS) $C/bcomplex.c
+	$(CC) -c $(MFLAGS) $<
 
 bit.o: expression.h bit.c
 	$(CC) -c -I$(ROOT) $(MFLAGS) bit.c
@@ -328,6 +333,9 @@ html.o: $(CH) $(TOTALH) $C/html.h $C/html.c
 iasm.o : $(CH) $(TOTALH) $C/iasm.h iasm.c
 	$(CC) -c $(MFLAGS) -I$(ROOT) iasm.c
 
+id.o : id.h id.c
+	$(CC) -c $(CFLAGS) id.c
+
 identifier.o: identifier.c
 	$(CC) -c $(CFLAGS) $<
 
@@ -455,7 +463,7 @@ stringtable.o: $(ROOT)/stringtable.c
 	$(CC) -c $(GFLAGS) -I$(ROOT) $<
 
 strtold.o: $C/strtold.c
-	gcc -m32 -c $C/strtold.c
+	gcc $(MODEL) -c $C/strtold.c
 
 struct.o: struct.c
 	$(CC) -c $(CFLAGS) $<
