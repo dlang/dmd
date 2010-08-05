@@ -43,13 +43,30 @@ version (all)
     Throwable _d_unhandled = null;
 
     // TODO: Make this accept Throwable instead.
-    extern (C) void _d_setunhandled(Object* o)
+    extern (C) Object* _d_setunhandled(Object* o)
     {
         auto t = cast(Throwable) o;
-        
-        if (t !is null)
-            t.next = _d_unhandled;
-        _d_unhandled = t;
+
+        if (t is null)
+        {
+            _d_unhandled = t;
+            return o;
+        }
+        if (_d_unhandled !is null)
+        {
+            t.next = _d_unhandled.next;
+            _d_unhandled.next = t;
+        }
+        else
+        {
+            _d_unhandled = t;
+        }
+        return cast(Object*) _d_unhandled;
+    }
+    
+    extern (C) Object* _d_getunhandled()
+    {
+        return cast(Object*) _d_unhandled;
     }
 }
 
