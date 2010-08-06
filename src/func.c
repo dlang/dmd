@@ -1216,19 +1216,38 @@ void FuncDeclaration::semantic3(Scope *sc)
 #else
                 Type *t = argptr->type;
                 VarDeclaration *p;
-                unsigned offset;
+                unsigned offset = 0;
 
                 Expression *e1 = new VarExp(0, argptr);
+                // Find the last non-ref parameter
                 if (parameters && parameters->dim)
-                    p = (VarDeclaration *)parameters->data[parameters->dim - 1];
+                {
+                    int lastNonref = parameters->dim -1;
+                    p = (VarDeclaration *)parameters->data[lastNonref];
+                    /* The trouble with out and ref parameters is that taking
+                     * the address of it doesn't work, because later processing
+                     * adds in an extra level of indirection. So we skip over them.
+                     */
+                    while (p->storage_class & (STCout | STCref))
+                    {
+                        --lastNonref;
+                        offset += PTRSIZE;
+                        if (lastNonref < 0)
+                        {
+                            p = v_arguments;
+                            break;
+                        }
+                        p = (VarDeclaration *)parameters->data[lastNonref];
+                    }
+                }
                 else
                     p = v_arguments;            // last parameter is _arguments[]
                 if (p->storage_class & STClazy)
                     // If the last parameter is lazy, it's the size of a delegate
-                    offset = PTRSIZE * 2;
+                    offset += PTRSIZE * 2;
                 else
-                    offset = p->type->size();
-                offset = (offset + 3) & ~3;     // assume stack aligns on 4
+                    offset += p->type->size();
+                offset = (offset + PTRSIZE - 1) & ~(PTRSIZE - 1);  // assume stack aligns on pointer size
                 Expression *e = new SymOffExp(0, p, offset);
                 e->type = Type::tvoidptr;
                 //e = e->semantic(sc);
