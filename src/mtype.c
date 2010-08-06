@@ -4743,6 +4743,9 @@ Expression *TypeClass::dotExp(Scope *sc, Expression *e, Identifier *ident)
         exps->reserve(sym->fields.dim);
         for (size_t i = 0; i < sym->fields.dim; i++)
         {   VarDeclaration *v = (VarDeclaration *)sym->fields.data[i];
+            // Don't include hidden 'this' pointer
+            if (v->isThisDeclaration())
+                continue;
             Expression *fe = new DotVarExp(e->loc, e, v);
             exps->push(fe);
         }
