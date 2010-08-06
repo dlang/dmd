@@ -1,6 +1,6 @@
 
 // Compiler implementation of the D programming language
-// Copyright (c) 1999-2009 by Digital Mars
+// Copyright (c) 1999-2010 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // http://www.digitalmars.com
@@ -692,7 +692,8 @@ dt_t **StructLiteralExp::toDt(dt_t **pdt)
                 assert(sz <= vsz);
 
                 unsigned dim = 1;
-                for (Type *vt = v->type->toBasetype();
+                Type *vt;
+                for (vt = v->type->toBasetype();
                      vt->ty == Tsarray;
                      vt = vt->next->toBasetype())
                 {   TypeSArray *tsa = (TypeSArray *)vt;
@@ -708,7 +709,7 @@ dt_t **StructLiteralExp::toDt(dt_t **pdt)
                         if (v->init)
                             d = v->init->toDt();
                         else
-                            v->type->toDt(&d);
+                            vt->toDt(&d);
                     }
                     pdt = dtcat(pdt, d);
                     d = NULL;
