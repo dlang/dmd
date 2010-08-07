@@ -454,8 +454,8 @@ class TypeInfo_StaticArray : TypeInfo
 {
     override string toString()
     {
-        char[10] tmp = void;
-        return cast(string)(value.toString() ~ "[" ~ tmp.intToString(len) ~ "]");
+        char[20] tmp = void;
+        return cast(string)(value.toString() ~ "[" ~ tmp.ulongToString(len) ~ "]");
     }
 
     override equals_t opEquals(Object o)
@@ -1149,14 +1149,14 @@ class Throwable : Object
 
     override string toString()
     {
-        char[10] tmp = void;
+        char[20] tmp = void;
         char[]   buf;
 
         for (Throwable e = this; e !is null; e = e.next)
         {
             if (e.file)
             {
-               buf ~= e.classinfo.name ~ "@" ~ e.file ~ "(" ~ tmp.intToString(e.line) ~ "): " ~ e.msg;
+               buf ~= e.classinfo.name ~ "@" ~ e.file ~ "(" ~ tmp.ulongToString(e.line) ~ "): " ~ e.msg;
             }
             else
             {
@@ -1804,7 +1804,7 @@ extern (C) void _moduleTlsCtor()
     auto flags = cast(ubyte[])p[0 .. _moduleinfo_array.length];
     flags[] = 0;
 
-    foreach (i, m; _moduleinfo_array)
+    foreach (uint i, m; _moduleinfo_array)
     {
 	if (m)
 	    m.index = i;
@@ -1969,7 +1969,7 @@ body
     auto i = m.impl;
     if (i is null)
     {
-        atomicOp!("+=")(m.refs, cast(size_t) 1);
+        atomicOp!("+=")(m.refs, cast(size_t)1);
         ownee.__monitor = owner.__monitor;
         return;
     }
@@ -2450,7 +2450,7 @@ version (none)
     private void _bailOut(string file, int line, in char[] msg)
     {
         char[21] buf;
-        throw new Exception(cast(string)(file ~ "(" ~ intToString(buf[], line) ~ "): " ~ (msg ? msg : "Enforcement failed")));
+        throw new Exception(cast(string)(file ~ "(" ~ ulongToString(buf[], line) ~ "): " ~ (msg ? msg : "Enforcement failed")));
     }
 }
 

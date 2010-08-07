@@ -23,18 +23,15 @@ module core.atomic;
 
 version( D_InlineAsm_X86 )
 {
-    version( X86 )
-    {
-        version = AsmX86;
-        version = AsmX86_32;
-        enum has64BitCAS = true;
-    }
-    else version( X86_64 )
-    {
-        version = AsmX86;
-        version = AsmX86_64;
-        enum has64BitCAS = true;
-    }
+    version = AsmX86;
+    version = AsmX86_32;
+    enum has64BitCAS = true;
+}
+version( D_InlineAsm_X86_64 )
+{
+    version = AsmX86;
+    version = AsmX86_64;
+    enum has64BitCAS = true;
 }
 
 

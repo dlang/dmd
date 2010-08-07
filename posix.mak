@@ -4,10 +4,12 @@ DMD=dmd
 DOCDIR=doc
 IMPDIR=import
 
-DFLAGS=-O -release -inline -nofloat -w -d -Isrc -Iimport
-UDFLAGS=-O -release -nofloat -w -d -Isrc -Iimport
+MODEL=32
 
-CFLAGS=-m32 -O
+DFLAGS=-m$(MODEL) -O -release -inline -nofloat -w -d -Isrc -Iimport
+UDFLAGS=-m$(MODEL) -O -release -nofloat -w -d -Isrc -Iimport
+
+CFLAGS=-m$(MODEL) -O
 
 OBJDIR=obj
 DRUNTIME=lib/libdruntime.a

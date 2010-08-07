@@ -913,6 +913,27 @@ else version (X86)
         }
     }
 }
+else version (X86_64)
+{
+    extern (D)
+    {
+        void QueryPerformanceCounter(timer_t* ctr)
+        {
+            asm
+            {   naked                   ;
+                rdtsc                   ;
+                mov   [RDI],EAX         ;
+                mov   4[RDI],EDX        ;
+                ret                     ;
+            }
+        }
+
+        void QueryPerformanceFrequency(timer_t* freq)
+        {
+            *freq = 3579545;
+        }
+    }
+}
 else
 {
     static assert(0);

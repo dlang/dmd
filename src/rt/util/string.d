@@ -15,9 +15,23 @@ module rt.util.string;
 
 private import core.stdc.string;
 
+// This should be renamed to uintToString()
 char[] intToString( char[] buf, uint val )
 {
     assert( buf.length > 9 );
+    auto p = buf.ptr + buf.length;
+
+    do
+    {
+        *--p = cast(char)(val % 10 + '0');
+    } while( val /= 10 );
+
+    return buf[p - buf.ptr .. $];
+}
+
+char[] ulongToString( char[] buf, ulong val )
+{
+    assert( buf.length >= 20 );
     auto p = buf.ptr + buf.length;
 
     do
