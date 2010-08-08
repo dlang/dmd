@@ -46,8 +46,7 @@ extern ClassInfo D6object5Error7__ClassZ;
 
 typedef int (__pascal *fp_t)();   // function pointer in ambient memory model
 
-Object* _d_setunhandled(Object*);
-Object* _d_getunhandled();
+void _d_setunhandled(Object*);
 
 // The layout of DEstablisherFrame is the same for C++
 
@@ -97,7 +96,6 @@ struct DCatchInfo
 
 #define STATUS_DIGITAL_MARS_D_EXCEPTION         MAKE_EXCEPTION_CODE(3,'D',1)
 
-void __stdcall _d_throw(Object *h);
 Object *_d_translate_se_to_d_exception(EXCEPTION_RECORD *exception_record);
 void __cdecl _d_local_unwind(struct DHandlerTable *handler_table, struct DEstablisherFrame *frame, int stop_index);
 
@@ -137,15 +135,6 @@ EXCEPTION_DISPOSITION _d_framehandler(
         ClassInfo *ci;
 
         ci = NULL;                      // only compute it if we need it
-        
-        // if this exception was system-generated and bypassed _d_throw,
-        // generate an exception object for it and propagate it normally
-        // so that chaining will work properly
-        if (exception_record->ExceptionCode != STATUS_DIGITAL_MARS_D_EXCEPTION)
-        {
-            pti = _d_translate_se_to_d_exception(exception_record);
-            _d_throw(pti);
-        }
 
         // walk through handler table, checking each handler
         // with an index smaller than the current table_index
@@ -185,15 +174,17 @@ EXCEPTION_DISPOSITION _d_framehandler(
                         regebp = (int)&frame->ebp;              // EBP for this frame
                         *(void **)(regebp + (pcb->bpoffset)) = pti;
 
+                        _d_setunhandled(pti);
+
                         // Have system call all finally blocks in intervening frames
                         _global_unwind(frame, exception_record);
 
                         // Call all the finally blocks skipped in this frame
                         _d_local_unwind(handler_table, frame, ndx);
 
-                        frame->table_index = prev_ndx;  // we are out of this handler
-                        
                         _d_setunhandled(NULL);
+
+                        frame->table_index = prev_ndx;  // we are out of this handler
 
                         // Jump to catch block. Does not return.
                         {
@@ -241,7 +232,6 @@ void __stdcall _d_throw(Object *h)
 {
     //printf("_d_throw(h = %p, &h = %p)\n", h, &h);
     //printf("\tvptr = %p\n", *(void **)h);
-    h = _d_setunhandled(h);
     RaiseException(STATUS_DIGITAL_MARS_D_EXCEPTION,
                    EXCEPTION_NONCONTINUABLE,
                    1, (DWORD *)&h);
