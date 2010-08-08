@@ -1701,8 +1701,8 @@ struct Gcx
 	    /* The pooltable[] is sorted by address, so do a binary search
 	     */
 	    auto pt = pooltable;
-	    int low = 0;
-	    int high = npools - 1;
+	    size_t low = 0;
+	    size_t high = npools - 1;
 	    while (low <= high)
 	    {
 		size_t mid = (low + high) >> 1;
@@ -2269,26 +2269,80 @@ struct Gcx
             __builtin_unwind_init();
             sp = & sp;
         }
-        else
+        else version( D_InlineAsm_X86 )
         {
-        asm
-        {
-            pushad              ;
-            mov sp[EBP],ESP     ;
+	    asm
+	    {
+		pushad              ;
+		mov sp[EBP],ESP     ;
+	    }
         }
-        }
+	else version ( D_InlineAsm_X86_64 )
+	{
+	    asm
+	    {
+		push RAX ;
+		push RBX ;
+		push RCX ;
+		push RDX ;
+		push RSI ;
+		push RDI ;
+		push RBP ;
+		push R8  ;
+		push R9  ;
+		push R10  ;
+		push R11  ;
+		push R12  ;
+		push R13  ;
+		push R14  ;
+		push R15  ;
+		push EAX ;   // 16 byte align the stack
+	    }
+	}
+	else
+	{
+	    static assert( false, "Architecture not supported." );
+	}
+
         result = fullcollect(sp);
-        version (GNU)
-        {
-            // nothing to do
-        }
-        else
-        {
-        asm
-        {
-            popad               ;
-        }
-        }
+
+	version( GNU )
+	{
+	    // registers will be popped automatically
+	}
+	else version( D_InlineAsm_X86 )
+	{
+	    asm
+	    {
+		popad;
+	    }
+	}
+	else version ( D_InlineAsm_X86_64 )
+	{
+	    asm
+	    {
+		pop EAX ;   // 16 byte align the stack
+		pop R15  ;
+		pop R14  ;
+		pop R13  ;
+		pop R12  ;
+		pop R11  ;
+		pop R10  ;
+		pop R9  ;
+		pop R8  ;
+		pop RBP ;
+		pop RDI ;
+		pop RSI ;
+		pop RDX ;
+		pop RCX ;
+		pop RBX ;
+		pop RAX ;
+	    }
+	}
+	else
+	{
+	    static assert( false, "Architecture not supported." );
+	}
         return result;
     }
 
@@ -2439,12 +2493,10 @@ struct Gcx
         size_t freed = 0;
         for (n = 0; n < npools; n++)
         {   size_t pn;
-            size_t ncommitted;
-            uint*  bbase;
 
             pool = pooltable[n];
-            bbase = pool.mark.base();
-            ncommitted = pool.ncommitted;
+            auto bbase = pool.mark.base();
+            auto ncommitted = pool.ncommitted;
             for (pn = 0; pn < ncommitted; pn++, bbase += PAGESIZE / (32 * 16))
             {
                 Bins bin = cast(Bins)pool.pagetable[pn];

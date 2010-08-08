@@ -48,14 +48,14 @@ version( linux )
     private
     {
         alias c_long __fd_mask;
-        enum __NFDBITS = 8 * __fd_mask.sizeof;
+        enum uint __NFDBITS = 8 * __fd_mask.sizeof;
 
-        extern (D) int __FDELT( int d )
+        extern (D) auto __FDELT( int d )
         {
             return d / __NFDBITS;
         }
 
-        extern (D) int __FDMASK( int d )
+        extern (D) auto __FDMASK( int d )
         {
             return cast(__fd_mask) 1 << ( d % __NFDBITS );
         }
@@ -73,7 +73,7 @@ version( linux )
         fdset.fds_bits[__FDELT( fd )] &= ~__FDMASK( fd );
     }
 
-    extern (D) int  FD_ISSET( int fd, fd_set* fdset )
+    extern (D) int FD_ISSET( int fd, fd_set* fdset )
     {
         return fdset.fds_bits[__FDELT( fd )] & __FDMASK( fd );
     }
