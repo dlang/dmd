@@ -23,7 +23,8 @@ extern (C)
     }
 
     int _d_isbaseof(ClassInfo oc, ClassInfo c);
-    Object* _d_setunhandled(Object* o);
+    
+    void _d_setunhandled(Object* o);
 }
 
 alias int (*fp_t)();   // function pointer in ambient memory model
@@ -158,7 +159,7 @@ extern (Windows) void _d_throw(Object *h)
         mov regebp,EBP  ;
     }
     
-    h = _d_setunhandled(h);
+    _d_setunhandled(h);
 
 //static uint abc;
 //if (++abc == 2) *(char *)0=0;
