@@ -43,30 +43,13 @@ version (all)
     Throwable _d_unhandled = null;
 
     // TODO: Make this accept Throwable instead.
-    extern (C) Object* _d_setunhandled(Object* o)
+    extern (C) void _d_setunhandled(Object* o)
     {
         auto t = cast(Throwable) o;
-
-        if (t is null)
-        {
-            _d_unhandled = t;
-            return o;
-        }
-        if (_d_unhandled !is null)
-        {
-            t.next = _d_unhandled.next;
-            _d_unhandled.next = t;
-        }
-        else
-        {
-            _d_unhandled = t;
-        }
-        return cast(Object*) _d_unhandled;
-    }
-    
-    extern (C) Object* _d_getunhandled()
-    {
-        return cast(Object*) _d_unhandled;
+        
+        if (t !is null)
+            t.next = _d_unhandled;
+        _d_unhandled = t;
     }
 }
 
@@ -399,7 +382,6 @@ extern (C) int main(int argc, char** argv)
 
     bool trapExceptions = rt_trapExceptions;
 
-version (all) { // TrapExceptions
     void tryExec(scope void delegate() dg)
     {
 
@@ -485,38 +467,6 @@ version (all) { // TrapExceptions
     }
 
     tryExec(&runAll);
-} else {
-    void runMain()
-    {
-        scope(exit)
-        {
-            if (_d_unhandled !is null)
-                console (_d_unhandled.toString)("\n");
-            // weird things happen if we don't abort here
-            abort();
-        }
-        _moduleCtor();
-        _moduleTlsCtor();
-        scope(exit)
-        {
-            _moduleTlsDtor();
-            thread_joinAll();
-            _d_isHalting = true;
-            _moduleDtor();
-        }
-        result = main(args);
-    }
-
-    gc_init();
-    initStaticDataGC();
-    version (Windows)
-        _minit();
-    if (runModuleUnitTests())
-        runMain();
-    else
-        result = EXIT_FAILURE;
-    gc_term();
-} // end version(!TrapExceptions)
 
     version (Posix)
     {
