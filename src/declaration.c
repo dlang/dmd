@@ -1321,6 +1321,9 @@ void VarDeclaration::checkNestedReference(Scope *sc, Loc loc)
             nestedref = 1;
             fdv->nestedFrameRef = 1;
             //printf("var %s in function %s is nested ref\n", toChars(), fdv->toChars());
+            // __dollar creates problems because it isn't a real variable Bugzilla 3326
+            if (ident == Id::dollar)
+                ::error(loc, "cannnot use $ inside a function literal");
         }
     }
 }
