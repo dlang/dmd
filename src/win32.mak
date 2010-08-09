@@ -1,5 +1,5 @@
 #_ win32.mak
-# Copyright (C) 1999-2009 by Digital Mars, http://www.digitalmars.com
+# Copyright (C) 1999-2010 by Digital Mars, http://www.digitalmars.com
 # Written by Walter Bright
 # All Rights Reserved
 # Build dmd with Digital Mars C++ compiler
@@ -495,7 +495,7 @@ clean:
 	del elxxx.c cdxxx.c optab.c debtab.c fltables.c tytab.c
 	del impcnvtab.c
 
-zip : detab $(MAKEFILES)
+zip : detab tolf $(MAKEFILES)
 	del dmdsrc.zip
 	zip32 dmdsrc $(MAKEFILES)
 	zip32 dmdsrc $(SRCS)
@@ -507,6 +507,9 @@ zip : detab $(MAKEFILES)
 
 detab:
 	detab $(SRCS) $(ROOTSRC) $(TKSRC) $(BACKSRC)
+
+tolf:
+	tolf $(SRCS) $(ROOTSRC) $(TKSRC) $(BACKSRC) $(MAKEFILES)
 
 ################### Install ################
 
@@ -527,7 +530,7 @@ install2:
 
 ################### Write to SVN ################
 
-svn:	detab svn2
+svn:	detab tolf svn2
 
 svn2:
 	$(CP) $(SRCS) $(DMDSVN)\ 

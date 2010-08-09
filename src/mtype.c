@@ -6336,6 +6336,10 @@ Expression *TypeEnum::defaultInit(Loc loc)
 
 int TypeEnum::isZeroInit(Loc loc)
 {
+    if (!sym->defaultval && sym->scope)
+    {   // Enum is forward referenced. We need to resolve the whole thing.
+        sym->semantic(NULL);
+    }
     if (!sym->defaultval)
     {
 #ifdef DEBUG

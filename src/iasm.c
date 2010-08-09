@@ -551,12 +551,9 @@ STATIC PTRNTAB asm_classify(OP *pop, OPND *popnd1, OPND *popnd2, OPND *popnd3,
         unsigned usNumops;
         unsigned usActual;
         PTRNTAB ptbRet = { NULL };
-        opflag_t usFlags1 = 0 ;
-        opflag_t usFlags2 = 0;
-        opflag_t usFlags3 = 0;
-        PTRNTAB1 *pptb1;
-        PTRNTAB2 *pptb2;
-        PTRNTAB3 *pptb3;
+        opflag_t opflags1 = 0 ;
+        opflag_t opflags2 = 0;
+        opflag_t opflags3 = 0;
         char    bFake = FALSE;
 
         unsigned char   bMatch1, bMatch2, bMatch3, bRetry = FALSE;
@@ -568,17 +565,17 @@ STATIC PTRNTAB asm_classify(OP *pop, OPND *popnd1, OPND *popnd2, OPND *popnd3,
             usNumops = 0;
         else
         {
-            popnd1->usFlags = usFlags1 = asm_determine_operand_flags(popnd1);
+            popnd1->usFlags = opflags1 = asm_determine_operand_flags(popnd1);
             if (!popnd2)
                 usNumops = 1;
             else
             {
-                popnd2->usFlags = usFlags2 = asm_determine_operand_flags(popnd2);
+                popnd2->usFlags = opflags2 = asm_determine_operand_flags(popnd2);
                 if (!popnd3)
                     usNumops = 2;
                 else
                 {
-                    popnd3->usFlags = usFlags3 = asm_determine_operand_flags(popnd3);
+                    popnd3->usFlags = opflags3 = asm_determine_operand_flags(popnd3);
                     usNumops = 3;
                 }
             }
@@ -609,39 +606,40 @@ RETRY:
                 goto RETURN_IT;
 
             case 1:
-                //printf("usFlags1 = "); asm_output_flags(usFlags1); printf("\n");
-                for (pptb1 = pop->ptb.pptb1; pptb1->usOpcode != ASM_END;
-                        pptb1++)
+            {   //printf("opflags1 = "); asm_output_flags(opflags1); printf("\n");
+                PTRNTAB1 *table1;
+                for (table1 = pop->ptb.pptb1; table1->usOpcode != ASM_END;
+                        table1++)
                 {
-                        //printf("table    = "); asm_output_flags(pptb1->usOp1); printf("\n");
-                        bMatch1 = asm_match_flags(usFlags1, pptb1->usOp1);
+                        //printf("table    = "); asm_output_flags(table1->usOp1); printf("\n");
+                        bMatch1 = asm_match_flags(opflags1, table1->usOp1);
                         //printf("bMatch1 = x%x\n", bMatch1);
                         if (bMatch1)
-                        {   if (pptb1->usOpcode == 0x68 &&
+                        {   if (table1->usOpcode == 0x68 &&
                                 !I16 &&
-                                pptb1->usOp1 == _imm16
+                                table1->usOp1 == _imm16
                               )
                                 // Don't match PUSH imm16 in 32 bit code
                                 continue;
                             break;
                         }
                         if ((asmstate.ucItype == ITimmed) &&
-                            asm_match_flags(usFlags1,
+                            asm_match_flags(opflags1,
                                 CONSTRUCT_FLAGS(_8 | _16 | _32, _imm, _normal,
                                                  0)) &&
-                                popnd1->disp == pptb1->usFlags)
+                                popnd1->disp == table1->usFlags)
                             break;
                         if ((asmstate.ucItype == ITopt ||
                              asmstate.ucItype == ITfloat) &&
                             !usNumops &&
-                            !pptb1->usOp1)
+                            !table1->usOp1)
                         {
                             if (usNumops > 1)
                                 goto PARAM_ERROR;
                             break;
                         }
                 }
-                if (pptb1->usOpcode == ASM_END)
+                if (table1->usOpcode == ASM_END)
                 {
 #ifdef DEBUG
                     if (debuga)
@@ -669,7 +667,7 @@ RETRY:
 TYPE_SIZE_ERROR:
                         if (popnd1 && ASM_GET_aopty(popnd1->usFlags) != _reg)
                         {
-                            usFlags1 = popnd1->usFlags |= _anysize;
+                            opflags1 = popnd1->usFlags |= _anysize;
                             if (asmstate.ucItype == ITjump)
                             {
                                 if (bRetry && popnd1->s && !popnd1->s->isLabel())
@@ -682,13 +680,13 @@ TYPE_SIZE_ERROR:
                             }
                         }
                         if (popnd2 && ASM_GET_aopty(popnd2->usFlags) != _reg) {
-                            usFlags2 = popnd2->usFlags |= (_anysize);
+                            opflags2 = popnd2->usFlags |= (_anysize);
                             if (asmstate.ucItype == ITjump)
                                 popnd2->usFlags |= CONSTRUCT_FLAGS(0, 0, 0,
                                         _fanysize);
                         }
                         if (popnd3 && ASM_GET_aopty(popnd3->usFlags) != _reg) {
-                            usFlags3 = popnd3->usFlags |= (_anysize);
+                            opflags3 = popnd3->usFlags |= (_anysize);
                             if (asmstate.ucItype == ITjump)
                                 popnd3->usFlags |= CONSTRUCT_FLAGS(0, 0, 0,
                                         _fanysize);
@@ -701,35 +699,36 @@ TYPE_SIZE_ERROR:
                         goto RETRY;
 
                 }
-                ptbRet.pptb1 = pptb1;
+                ptbRet.pptb1 = table1;
                 goto RETURN_IT;
-
+            }
             case 2:
-                //printf("usFlags1 = "); asm_output_flags(usFlags1); printf(" ");
-                //printf("usFlags2 = "); asm_output_flags(usFlags2); printf("\n");
-                for (pptb2 = pop->ptb.pptb2;
-                     pptb2->usOpcode != ASM_END;
-                     pptb2++)
+            {   //printf("opflags1 = "); asm_output_flags(opflags1); printf(" ");
+                //printf("opflags2 = "); asm_output_flags(opflags2); printf("\n");
+                PTRNTAB2 *table2;
+                for (table2 = pop->ptb.pptb2;
+                     table2->usOpcode != ASM_END;
+                     table2++)
                 {
-                        //printf("table1   = "); asm_output_flags(pptb2->usOp1); printf(" ");
-                        //printf("table2   = "); asm_output_flags(pptb2->usOp2); printf("\n");
-                        bMatch1 = asm_match_flags(usFlags1, pptb2->usOp1);
-                        bMatch2 = asm_match_flags(usFlags2, pptb2->usOp2);
+                        //printf("table1   = "); asm_output_flags(table2->usOp1); printf(" ");
+                        //printf("table2   = "); asm_output_flags(table2->usOp2); printf("\n");
+                        bMatch1 = asm_match_flags(opflags1, table2->usOp1);
+                        bMatch2 = asm_match_flags(opflags2, table2->usOp2);
                         //printf("match1 = %d, match2 = %d\n",bMatch1,bMatch2);
                         if (bMatch1 && bMatch2) {
 
                             //printf("match\n");
 
-// OK, if they both match and the first op in the table is not AL
-// or size of 8 and the second is immediate 8,
-// then check to see if the constant
-// is a signed 8 bit constant.  If so, then do not match, otherwise match
-//
+                            /* If they both match and the first op in the table is not AL
+                             * or size of 8 and the second is immediate 8,
+                             * then check to see if the constant
+                             * is a signed 8 bit constant.  If so, then do not match, otherwise match
+                             */
                             if (!bRetry &&
-                                !((ASM_GET_uSizemask(pptb2->usOp1) & _8) ||
-                                  (ASM_GET_uRegmask(pptb2->usOp1) & _al)) &&
-                                (ASM_GET_aopty(pptb2->usOp2) == _imm) &&
-                                (ASM_GET_uSizemask(pptb2->usOp2) & _8))
+                                !((ASM_GET_uSizemask(table2->usOp1) & _8) ||
+                                  (ASM_GET_uRegmask(table2->usOp1) & _al)) &&
+                                (ASM_GET_aopty(table2->usOp2) == _imm) &&
+                                (ASM_GET_uSizemask(table2->usOp2) & _8))
                             {
 
                                 if (popnd2->disp <= SCHAR_MAX)
@@ -746,11 +745,11 @@ TYPE_SIZE_ERROR:
                                 switch (usNumops)
                                 {
                                     case 0:
-                                        if (!pptb2->usOp1)
+                                        if (!table2->usOp1)
                                             goto Lfound2;
                                         break;
                                     case 1:
-                                        if (bMatch1 && !pptb2->usOp2)
+                                        if (bMatch1 && !table2->usOp2)
                                             goto Lfound2;
                                         break;
                                     case 2:
@@ -761,16 +760,16 @@ TYPE_SIZE_ERROR:
                         }
 #if 0
                         if (asmstate.ucItype == ITshift &&
-                            !pptb2->usOp2 &&
+                            !table2->usOp2 &&
                             bMatch1 && popnd2->disp == 1 &&
-                            asm_match_flags(usFlags2,
+                            asm_match_flags(opflags2,
                                 CONSTRUCT_FLAGS(_8|_16|_32, _imm,_normal,0))
                           )
                             break;
 #endif
                 }
             Lfound2:
-                if (pptb2->usOpcode == ASM_END)
+                if (table2->usOpcode == ASM_END)
                 {
 #ifdef DEBUG
                     if (debuga)
@@ -802,16 +801,19 @@ TYPE_SIZE_ERROR:
 #endif
                     goto TYPE_SIZE_ERROR;
                 }
-                ptbRet.pptb2 = pptb2;
+                ptbRet.pptb2 = table2;
                 goto RETURN_IT;
-        case 3:
-                for (pptb3 = pop->ptb.pptb3;
-                     pptb3->usOpcode != ASM_END;
-                     pptb3++)
+            }
+            case 3:
+            {
+                PTRNTAB3 *table3;
+                for (table3 = pop->ptb.pptb3;
+                     table3->usOpcode != ASM_END;
+                     table3++)
                 {
-                        bMatch1 = asm_match_flags(usFlags1, pptb3->usOp1);
-                        bMatch2 = asm_match_flags(usFlags2, pptb3->usOp2);
-                        bMatch3 = asm_match_flags(usFlags3, pptb3->usOp3);
+                        bMatch1 = asm_match_flags(opflags1, table3->usOp1);
+                        bMatch2 = asm_match_flags(opflags2, table3->usOp2);
+                        bMatch3 = asm_match_flags(opflags3, table3->usOp3);
                         if (bMatch1 && bMatch2 && bMatch3)
                             goto Lfound3;
                         if (asmstate.ucItype == ITopt)
@@ -819,15 +821,15 @@ TYPE_SIZE_ERROR:
                             switch (usNumops)
                             {
                                 case 0:
-                                        if (!pptb3->usOp1)
+                                        if (!table3->usOp1)
                                             goto Lfound3;
                                         break;
                                 case 1:
-                                        if (bMatch1 && !pptb3->usOp2)
+                                        if (bMatch1 && !table3->usOp2)
                                             goto Lfound3;
                                         break;
                                 case 2:
-                                        if (bMatch1 && bMatch2 && !pptb3->usOp3)
+                                        if (bMatch1 && bMatch2 && !table3->usOp3)
                                             goto Lfound3;
                                         break;
                                 case 3:
@@ -838,7 +840,7 @@ TYPE_SIZE_ERROR:
                         }
                 }
             Lfound3:
-                if (pptb3->usOpcode == ASM_END)
+                if (table3->usOpcode == ASM_END)
                 {
 #ifdef DEBUG
                     if (debuga)
@@ -872,8 +874,9 @@ TYPE_SIZE_ERROR:
 #endif
                     goto TYPE_SIZE_ERROR;
                 }
-                ptbRet.pptb3 = pptb3;
+                ptbRet.pptb3 = table3;
                 goto RETURN_IT;
+            }
         }
 RETURN_IT:
         if (bRetry && !bFake)
@@ -986,7 +989,7 @@ STATIC opflag_t asm_determine_operand_flags(OPND *popnd)
         {
             if (ps && ps->isLabel() && sz == _anysize)
                 sz = I16 ? _16 : _32;
-            return (popnd->pregDisp1->ty & _r32)
+            return (popnd->pregDisp1->ty & (_r32 | _r64))
                 ? CONSTRUCT_FLAGS(sz, _m, _addr32, 0)
                 : CONSTRUCT_FLAGS(sz, _m, _addr16, 0);
         }
@@ -1588,6 +1591,8 @@ printf("test4 %d,%d,%d,%d\n",
 );
 printf("usOpcode = %x\n", usOpcode);
 #endif
+                        if (popnd1->usFlags == _r64)
+                            pc->Irex |= REX_W;
                         if (ptb.pptb0->usOpcode == 0x0F7E ||    // MOVD _rm32,_mm
                             ptb.pptb0->usOpcode == 0x660F7E     // MOVD _rm32,_xmm
                            )
@@ -1616,6 +1621,9 @@ printf("usOpcode = %x\n", usOpcode);
                 }
                 else
                 {
+                        if (popnd2->usFlags == _r64)
+                            pc->Irex |= REX_W;
+
                         if (((aoptyTable1 == _reg || aoptyTable1 == _float) &&
                              amodTable1 == _normal &&
                              (uRegmaskTable1 & _rplus_r)))
@@ -1839,7 +1847,7 @@ STATIC void asmerr(int errnum, ...)
 
     printf("\n");
     fflush(stdout);
-
+halt();
     longjmp(asmstate.env,1);
 }
 
@@ -2390,7 +2398,7 @@ STATIC void asm_make_modrm_byte(
                 case Y(_DI):    rm = 5; break;
 
                 default:
-                    asmerr(EM_bad_addr_mode);   // illegal addressing mode
+                    asmerr("bad 16 bit index address mode");
             }
             #undef X
             #undef Y
@@ -2909,12 +2917,12 @@ STATIC unsigned char asm_match_float_flags(opflag_t usOp, opflag_t usTable)
 /*******************************
  */
 
-STATIC void asm_output_flags(opflag_t usFlags)
+STATIC void asm_output_flags(opflag_t opflags)
 {
-        ASM_OPERAND_TYPE    aopty = ASM_GET_aopty(usFlags);
-        ASM_MODIFIERS       amod = ASM_GET_amod(usFlags);
-        unsigned            uRegmask = ASM_GET_uRegmask(usFlags);
-        unsigned            uSizemask = ASM_GET_uSizemask(usFlags);
+        ASM_OPERAND_TYPE    aopty = ASM_GET_aopty(opflags);
+        ASM_MODIFIERS       amod = ASM_GET_amod(opflags);
+        unsigned            uRegmask = ASM_GET_uRegmask(opflags);
+        unsigned            uSizemask = ASM_GET_uSizemask(opflags);
 
         if (uSizemask == _anysize)
             printf("_anysize ");

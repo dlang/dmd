@@ -295,6 +295,8 @@ code *genmovreg(code *c,unsigned to,unsigned from)
                         c = genregs(c,0x8C,0,to);
                 else
                         c = genregs(c,0x89,from,to);
+                if (I64)
+                        code_orrex(c, REX_W);
         }
         return c;
 }

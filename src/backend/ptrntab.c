@@ -812,6 +812,7 @@ PTRNTAB2  aptb2CMPXCHG[] = /* CMPXCHG */ {
                                                 // instruction
         { 0xfb1, _I386 | _cw | _16_bit|_mod2,   _rm16,  _r16 },
         { 0xfb1, _I386 | _cd | _32_bit|_mod2,   _rm32,  _r32 },
+        { 0xfb1, _I386 | _cq | _64_bit|_mod2,   _rm64,  _r64 },
         { ASM_END, 0, 0, 0 }
 };
 PTRNTAB2  aptb2DIV[] = /* DIV */ {
@@ -908,9 +909,11 @@ PTRNTAB2 aptb2MOV[] = /* MOV */ {
         { 0x88, _r,             _rm8,           _r8             },
         { 0x89, _r|_16_bit,     _rm16,          _r16            },
         { 0x89, _r|_32_bit,     _rm32,          _r32            },
+        { 0x89, _r|_64_bit,     _rm64,          _r64            },
         { 0x8a, _r,             _r8,            _rm8            },
         { 0x8b, _r|_16_bit,     _r16,           _rm16           },
         { 0x8b, _r|_32_bit,     _r32,           _rm32           },
+        { 0x8b, _r|_64_bit,     _r64,           _rm64           },
         { 0x8c, _r,             _rm16,          _seg|_ds|_es| _ss | _fs | _gs | _cs },
         { 0x8e, _r,             _seg|_ds|_es|_ss|_fs|_gs|_cs,   _rm16 },
         { 0xb0, _rb,            _r8 | _plus_r,  _imm8           },
