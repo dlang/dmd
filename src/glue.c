@@ -807,7 +807,7 @@ void FuncDeclaration::toObjFile(int multiobj)
                     if (type_jparam(sp->Stype))
                     {
                         sp->Sclass = SCfastpar;
-                        sp->Spreg = r;
+                        sp->Spreg = argregs[r];
                         sp->Sfl = FLauto;
                         ++r;
                     }

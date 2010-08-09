@@ -36,6 +36,7 @@
 #define _cb     _modrm
 #define _cw     _modrm
 #define _cd     _modrm
+#define _cq     _modrm
 #define _cp     _modrm
 #define _ib     0
 #define _iw     0

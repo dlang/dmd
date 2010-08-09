@@ -109,7 +109,7 @@ SRCS= mars.c enum.c struct.c dsymbol.c import.c idgen.c impcnvgen.c utf.h \
 	eh.c toctype.c class.c mangle.c bit.c tocsym.c func.c inline.c \
 	access.c complex_t.h unialpha.c irstate.h irstate.c glue.c msc.c \
 	ph.c tk.c s2ir.c todt.c e2ir.c util.c toobj.c cppmangle.c \
-	identifier.h parse.h scope.h enum.h import.h \
+	identifier.h parse.h objfile.h scope.h enum.h import.h \
 	typinf.c tocvdebug.c toelfdebug.c mars.h module.h mtype.h dsymbol.h \
 	declaration.h lexer.h expression.h statement.h doc.h doc.c \
 	macro.h macro.c hdrgen.h hdrgen.c arraytypes.h \
@@ -495,7 +495,7 @@ clean:
 	del elxxx.c cdxxx.c optab.c debtab.c fltables.c tytab.c
 	del impcnvtab.c
 
-zip : detab $(MAKEFILES)
+zip : detab tolf $(MAKEFILES)
 	del dmdsrc.zip
 	zip32 dmdsrc $(MAKEFILES)
 	zip32 dmdsrc $(SRCS)
@@ -507,6 +507,9 @@ zip : detab $(MAKEFILES)
 
 detab:
 	detab $(SRCS) $(ROOTSRC) $(TKSRC) $(BACKSRC)
+
+tolf:
+	tolf $(SRCS) $(ROOTSRC) $(TKSRC) $(BACKSRC) $(MAKEFILES)
 
 ################### Install ################
 
@@ -527,7 +530,7 @@ install2:
 
 ################### Write to SVN ################
 
-svn:	detab svn2
+svn:	detab tolf svn2
 
 svn2:
 	$(CP) $(SRCS) $(DMDSVN)\ 
