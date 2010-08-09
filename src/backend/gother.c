@@ -492,6 +492,9 @@ STATIC elem * chkprop(elem *n,list_t rdlist)
                     !tyscalar(t->Ety))
                     goto noprop;        // not worth bothering with these cases
 
+                if (d->Eoper == OPnegass)
+                    goto noprop;        // don't bother with this case, either
+
                 /* Everything must match or we must skip this variable  */
                 /* (in case of assigning to overlapping unions, etc.)   */
                 if (t->EV.sp.Voffset != noff ||
