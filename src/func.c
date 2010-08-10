@@ -1518,10 +1518,10 @@ void FuncDeclaration::semantic3(Scope *sc)
                     if (v->type->toBasetype()->ty == Tsarray)
                         continue;
 
-                    Expression *e = v->callAutoDtor(sc);
+                    Expression *e = v->callAutoDtor(sc2);
                     if (e)
                     {   Statement *s = new ExpStatement(0, e);
-                        s = s->semantic(sc);
+                        s = s->semantic(sc2);
                         if (fbody->blockExit() == BEfallthru)
                             fbody = new CompoundStatement(0, fbody, s);
                         else
@@ -2369,7 +2369,7 @@ int FuncDeclaration::getLevel(Loc loc, FuncDeclaration *fd)
     level = 0;
     while (fd != s && fdparent != s->toParent2())
     {
-        //printf("\ts = '%s'\n", s->toChars());
+        //printf("\ts = %s, '%s'\n", s->kind(), s->toChars());
         FuncDeclaration *thisfd = s->isFuncDeclaration();
         if (thisfd)
         {   if (!thisfd->isNested() && !thisfd->vthis)
@@ -2393,7 +2393,8 @@ int FuncDeclaration::getLevel(Loc loc, FuncDeclaration *fd)
     return level;
 
 Lerr:
-    error(loc, "cannot access frame of function %s", fd->toChars());
+    error(loc, "cannot access frame of function %s", fd->toPrettyChars());
+halt();
     return 1;
 }
 
