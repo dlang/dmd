@@ -403,14 +403,20 @@ void StructDeclaration::semantic(Scope *sc)
             break;
         }
 #endif
+
+#if 0   /* Decided to allow this because if the field is initialized by copying it from
+         * a correctly initialized struct, it will work.
+         */
         Type *t;
         if (s->isDeclaration() &&
             (t = s->isDeclaration()->type) != NULL &&
             t->toBasetype()->ty == Tstruct)
         {   StructDeclaration *sd = (StructDeclaration *)t->toDsymbol(sc);
             if (sd->isnested)
-                error("inner struct %s cannot be a field", sd->toChars());
+                error("inner struct %s cannot be the type for field %s as it must embed a reference to its enclosing %s",
+                     sd->toChars(), s->toChars(), sd->toParent2()->toPrettyChars());
         }
+#endif
     }
 
 #if DMDV1
