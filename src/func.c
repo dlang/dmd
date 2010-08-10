@@ -2394,7 +2394,6 @@ int FuncDeclaration::getLevel(Loc loc, FuncDeclaration *fd)
 
 Lerr:
     error(loc, "cannot access frame of function %s", fd->toPrettyChars());
-halt();
     return 1;
 }
 
