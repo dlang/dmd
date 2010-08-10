@@ -1113,7 +1113,9 @@ elem *Dsymbol_toElem(Dsymbol *s, IRState *irs)
         s = s->toAlias();
         if (s != vd)
             return Dsymbol_toElem(s, irs);
-        if (vd->isStatic() || vd->storage_class & (STCextern | STCtls | STCgshared))
+        if (vd->storage_class & STCmanifest)
+            return NULL;
+        else if (vd->isStatic() || vd->storage_class & (STCextern | STCtls | STCgshared))
             vd->toObjFile(0);
         else
         {
