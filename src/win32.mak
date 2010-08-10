@@ -135,7 +135,8 @@ BACKSRC= $C\cdef.h $C\cc.h $C\oper.h $C\ty.h $C\optabgen.c \
 	$C\elfobj.c $C\cv4.h $C\dwarf2.h $C\cpp.h $C\exh.h $C\go.h \
 	$C\dwarf.c $C\dwarf.h $C\cppman.c $C\machobj.c \
 	$C\strtold.c $C\aa.h $C\aa.c $C\tinfo.h $C\ti_achar.c \
-	$C\md5.h $C\md5.c
+	$C\md5.h $C\md5.c \
+	$C\backend.txt
 
 # From TK
 
