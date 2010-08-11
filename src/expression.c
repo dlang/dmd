@@ -7150,6 +7150,11 @@ Lcheckargs:
         arguments = new Expressions();
     type = functionParameters(loc, sc, tf, arguments);
 
+    if (!type && f && f->scope)
+    {   f->semantic3(f->scope);
+        type = f->type->nextOf();
+    }
+
     if (!type)
     {
         error("forward reference to inferred return type of function call %s", toChars());
