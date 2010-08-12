@@ -493,7 +493,7 @@ Expression *callCpCtor(Loc loc, Scope *sc, Expression *e)
  */
 
 Type *functionParameters(Loc loc, Scope *sc, TypeFunction *tf,
-        Expressions *arguments)
+        Expressions *arguments, FuncDeclaration *fd)
 {
     //printf("functionParameters()\n");
     assert(arguments);
@@ -779,6 +779,11 @@ Type *functionParameters(Loc loc, Scope *sc, TypeFunction *tf,
                 arguments->dim - nparams);
         arguments->insert(0, e);
     }
+
+    // If inferring return type, and semantic3() needs to be run if not already run
+    if (!tf->next && fd->inferRetType)
+        fd->semantic3(fd->scope);
+
     Type *tret = tf->next;
     if (wildmatch)
     {   /* Adjust function return type based on wildmatch
@@ -3836,7 +3841,7 @@ Lagain:
 
             if (!arguments)
                 arguments = new Expressions();
-            functionParameters(loc, sc, tf, arguments);
+            functionParameters(loc, sc, tf, arguments, f);
 
             type = type->addMod(tf->nextOf()->mod);
         }
@@ -3861,7 +3866,7 @@ Lagain:
             assert(allocator);
 
             tf = (TypeFunction *)f->type;
-            functionParameters(loc, sc, tf, newargs);
+            functionParameters(loc, sc, tf, newargs, f);
         }
         else
         {
@@ -3893,7 +3898,7 @@ Lagain:
 
             if (!arguments)
                 arguments = new Expressions();
-            functionParameters(loc, sc, tf, arguments);
+            functionParameters(loc, sc, tf, arguments, f);
         }
         else
         {
@@ -3917,7 +3922,7 @@ Lagain:
             assert(allocator);
 
             tf = (TypeFunction *)f->type;
-            functionParameters(loc, sc, tf, newargs);
+            functionParameters(loc, sc, tf, newargs, f);
 #if 0
             e = new VarExp(loc, f);
             e = new CallExp(loc, e, newargs);
@@ -7148,12 +7153,7 @@ Lcheckargs:
 
     if (!arguments)
         arguments = new Expressions();
-    type = functionParameters(loc, sc, tf, arguments);
-
-    if (!type && f && f->scope)
-    {   f->semantic3(f->scope);
-        type = f->type->nextOf();
-    }
+    type = functionParameters(loc, sc, tf, arguments, f);
 
     if (!type)
     {
