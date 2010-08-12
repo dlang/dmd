@@ -57,14 +57,15 @@ private
         APPENDABLE  = 0b0000_1000,
         ALL_BITS    = 0b1111_1111
     }
-
+}
     struct BlkInfo
     {
         void*  base;
         size_t size;
         uint   attr;
     }
-
+private
+{
     extern (C) void* rt_stackBottom();
     extern (C) void* rt_stackTop();
 
