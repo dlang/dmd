@@ -351,11 +351,15 @@ void ClassDeclaration::toObjFile(int multiobj)
        }
      */
     dt_t *dt = NULL;
-    offset = CLASSINFO_SIZE;                    // must be ClassInfo.size
+    unsigned classinfo_size = global.params.isX86_64 ? CLASSINFO_SIZE_64 : CLASSINFO_SIZE;    // must be ClassInfo.size
+    offset = classinfo_size;
     if (classinfo)
     {
-        if (classinfo->structsize != CLASSINFO_SIZE)
+        if (classinfo->structsize != classinfo_size)
         {
+#ifdef DEBUG
+            printf("CLASSINFO_SIZE = x%x, classinfo->structsize = x%x\n", offset, classinfo->structsize);
+#endif
             error("mismatch between dmd and object.d or object.di found. Check installation and import paths with -v compiler switch.");
             fatal();
         }
@@ -502,24 +506,21 @@ void ClassDeclaration::toObjFile(int multiobj)
     for (i = 0; i < vtblInterfaces->dim; i++)
     {   BaseClass *b = (BaseClass *)vtblInterfaces->data[i];
         ClassDeclaration *id = b->base;
-        int j;
 
         //printf("    interface[%d] is '%s'\n", i, id->toChars());
-        j = 0;
+        int j = 0;
         if (id->vtblOffset())
         {
             // First entry is ClassInfo reference
             //dtxoff(&dt, id->toSymbol(), 0, TYnptr);
 
             // First entry is struct Interface reference
-            dtxoff(&dt, csym, CLASSINFO_SIZE + i * (4 * PTRSIZE), TYnptr);
+            dtxoff(&dt, csym, classinfo_size + i * (4 * PTRSIZE), TYnptr);
             j = 1;
         }
         assert(id->vtbl.dim == b->vtbl.dim);
         for (; j < id->vtbl.dim; j++)
         {
-            FuncDeclaration *fd;
-
             assert(j < b->vtbl.dim);
 #if 0
             Object *o = (Object *)b->vtbl.data[j];
@@ -531,7 +532,7 @@ void ClassDeclaration::toObjFile(int multiobj)
                 printf("s->kind() = '%s'\n", s->kind());
             }
 #endif
-            fd = (FuncDeclaration *)b->vtbl.data[j];
+            FuncDeclaration *fd = (FuncDeclaration *)b->vtbl.data[j];
             if (fd)
                 dtxoff(&dt, fd->toThunkSymbol(b->offset), 0, TYnptr);
             else
@@ -564,7 +565,7 @@ void ClassDeclaration::toObjFile(int multiobj)
                     //dtxoff(&dt, id->toSymbol(), 0, TYnptr);
 
                     // First entry is struct Interface reference
-                    dtxoff(&dt, cd->toSymbol(), CLASSINFO_SIZE + k * (4 * PTRSIZE), TYnptr);
+                    dtxoff(&dt, cd->toSymbol(), classinfo_size + k * (4 * PTRSIZE), TYnptr);
                     j = 1;
                 }
 
@@ -609,7 +610,7 @@ void ClassDeclaration::toObjFile(int multiobj)
                         //dtxoff(&dt, id->toSymbol(), 0, TYnptr);
 
                         // First entry is struct Interface reference
-                        dtxoff(&dt, cd->toSymbol(), CLASSINFO_SIZE + k * (4 * PTRSIZE), TYnptr);
+                        dtxoff(&dt, cd->toSymbol(), classinfo_size + k * (4 * PTRSIZE), TYnptr);
                         j = 1;
                     }
 
@@ -717,7 +718,7 @@ unsigned ClassDeclaration::baseVtblOffset(BaseClass *bc)
     int i;
 
     //printf("ClassDeclaration::baseVtblOffset('%s', bc = %p)\n", toChars(), bc);
-    csymoffset = CLASSINFO_SIZE;
+    csymoffset = global.params.isX86_64 ? CLASSINFO_SIZE_64 : CLASSINFO_SIZE;    // must be ClassInfo.size
     csymoffset += vtblInterfaces->dim * (4 * PTRSIZE);
 
     for (i = 0; i < vtblInterfaces->dim; i++)
@@ -799,10 +800,7 @@ void InterfaceDeclaration::toObjFile(int multiobj)
 
     // Put out the members
     for (i = 0; i < members->dim; i++)
-    {
-        Dsymbol *member;
-
-        member = (Dsymbol *)members->data[i];
+    {   Dsymbol *member = (Dsymbol *)members->data[i];
         if (!member->isFuncDeclaration())
             member->toObjFile(0);
     }
@@ -869,15 +867,15 @@ void InterfaceDeclaration::toObjFile(int multiobj)
     dtdword(&dt, vtblInterfaces->dim);
     if (vtblInterfaces->dim)
     {
+        offset = global.params.isX86_64 ? CLASSINFO_SIZE_64 : CLASSINFO_SIZE;    // must be ClassInfo.size
         if (classinfo)
         {
-            if (classinfo->structsize != CLASSINFO_SIZE)
+            if (classinfo->structsize != offset)
             {
                 error("mismatch between dmd and object.d or object.di found. Check installation and import paths with -v compiler switch.");
                 fatal();
             }
         }
-        offset = CLASSINFO_SIZE;
         dtxoff(&dt, csym, offset, TYnptr);      // (*)
     }
     else

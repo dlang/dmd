@@ -2477,9 +2477,9 @@ code *cdshtlng(elem *e,regm_t *pretregs)
   unsigned reg;
   unsigned char op;
   regm_t retregs;
-  int e1comsub;
 
-  e1comsub = e->E1->Ecount;
+  //printf("cdshtlng(e = %p, *pretregs = %s)\n", e, regm_str(*pretregs));
+  int e1comsub = e->E1->Ecount;
   if ((*pretregs & (ALLREGS | mBP)) == 0)       // if don't need result in regs
     c = codelem(e->E1,pretregs,FALSE);  /* then conversion isn't necessary */
 
@@ -2520,7 +2520,31 @@ code *cdshtlng(elem *e,regm_t *pretregs)
 
         c = cat3(c,ce,fixresult(e,retregs | regm,pretregs));
   }
-  else if (!I16 && (op == OPs16_32 || op == OPu16_32))
+  else if (I64 && op == OPu32_64)
+  {
+        elem *e1 = e->E1;
+        retregs = *pretregs;
+        if (e1->Eoper == OPvar || (e1->Eoper == OPind && !e1->Ecount))
+        {   code cs;
+
+            c1 = allocreg(&retregs,&reg,TYint);
+            c2 = NULL;
+            c3 = loadea(e1,&cs,0x8B,reg,0,retregs,retregs);        //  MOV Ereg,EA
+            freenode(e1);
+        }
+        else
+        {
+            *pretregs &= ~mPSW;                 // flags are set by eval of e1
+            c1 = codelem(e1,&retregs,FALSE);
+            c2 = getregs(retregs);
+            reg = findreg(retregs);
+            c3 = genregs(NULL,0x89,reg,reg);    // MOV Ereg,Ereg
+        }
+        c4 = fixresult(e,retregs,pretregs);
+        c = cat4(c1,c2,c3,c4);
+  }
+  else if (!I16 && (op == OPs16_32 || op == OPu16_32) ||
+            I64 && op == OPs32_64)
   {
     elem *e11;
 
@@ -2540,7 +2564,7 @@ code *cdshtlng(elem *e,regm_t *pretregs)
         freenode(e11);
         freenode(e1);
     }
-    else if (e1->Eoper == OPvar ||
+    else if (e1->Eoper == OPvar && op != OPs32_64 ||
         (e1->Eoper == OPind && !e1->Ecount))
     {   code cs;
         unsigned opcode;
@@ -2559,12 +2583,13 @@ code *cdshtlng(elem *e,regm_t *pretregs)
     L2:
         retregs = *pretregs;
         *pretregs &= ~mPSW;             /* flags are already set        */
+        if (op == OPs32_64)
+            retregs = mAX;
         c1 = codelem(e1,&retregs,FALSE);
         c2 = getregs(retregs);
         if (op == OPu16_32 && c1)
-        {   code *cx;
-
-            cx = code_last(c1);
+        {
+            code *cx = code_last(c1);
             if (cx->Iop == 0x81 && (cx->Irm & modregrm(3,7,0)) == modregrm(3,4,0))
             {
                 // Convert AND of a word to AND of a dword, zeroing upper word
@@ -2576,6 +2601,10 @@ code *cdshtlng(elem *e,regm_t *pretregs)
         }
         if (op == OPs16_32 && retregs == mAX)
             c2 = gen1(c2,0x98);         /* CWDE                         */
+        else if (op == OPs32_64 && retregs == mAX)
+        {   c2 = gen1(c2,0x98);         /* CDQE                         */
+            code_orrex(c2, REX_W);
+        }
         else
         {
             reg = findreg(retregs);
@@ -2822,7 +2851,8 @@ code *cdlngsht(elem *e,regm_t *pretregs)
 
 /**********************************************
  * Get top 32 bits of 64 bit value (I32)
- * or top 16 bits of 32 bit value (16 bit code).
+ * or top 16 bits of 32 bit value (I16)
+ * or top 64 bits of 128 bit value (I64).
  * OPmsw
  */
 
@@ -2835,7 +2865,7 @@ code *cdmsw(elem *e,regm_t *pretregs)
 
     retregs = *pretregs ? ALLREGS : 0;
     c = codelem(e->E1,&retregs,FALSE);
-    retregs &= mMSW;                    // want LSW only
+    retregs &= mMSW;                    // want MSW only
 
     // We "destroy" a reg by assigning it the result of a new e, even
     // though the values are the same. Weakness of our CSE strategy that

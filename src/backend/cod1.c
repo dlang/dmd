@@ -1801,8 +1801,7 @@ code *fixresult(elem *e,regm_t retregs,regm_t *pretregs)
   tym_t tym;
   int sz;
 
-//  printf("fixresult(e = %p, retregs = %s, *pretregs = %s)\n",
-//      e,regm_str(retregs),regm_str(*pretregs));
+  //printf("fixresult(e = %p, retregs = %s, *pretregs = %s)\n",e,regm_str(retregs),regm_str(*pretregs));
   if (*pretregs == 0) return CNIL;      /* if don't want result         */
   assert(e && retregs);                 /* need something to work with  */
   forccs = *pretregs & mPSW;
@@ -3326,11 +3325,9 @@ code *params(elem *e,unsigned stackalign)
         c = cat(c,ce);
         goto ret;
     case OPconst:
-    {   targ_int *pi;
-        targ_short *ps;
+    {
         char pushi = 0;
         unsigned flag = 0;
-        int i;
         int regsize = REGSIZE;
         targ_int value;
 
@@ -3343,7 +3340,7 @@ code *params(elem *e,unsigned stackalign)
             value = ((unsigned short *)&e->EV.Vldouble)[4];
             stackpush += sz;
             ce = genadjesp(NULL,sz);
-            for (i = 2; i >= 0; i--)
+            for (int i = 2; i >= 0; i--)
             {
                 if (reghasvalue(allregs, value, &reg))
                     ce = gen1(ce,0x50 + reg);           // PUSH reg
@@ -3354,9 +3351,9 @@ code *params(elem *e,unsigned stackalign)
             goto L2;
         }
 
-        assert(sz <= LNGDBLSIZE);
-        i = sz;
-        if (I32 && i == 2)
+        assert(I64 || sz <= LNGDBLSIZE);
+        int i = sz;
+        if (!I16 && i == 2)
             flag = CFopsize;
 
         if (config.target_cpu >= TARGET_80286)
@@ -3372,15 +3369,18 @@ code *params(elem *e,unsigned stackalign)
 
         stackpush += sz;
         ce = genadjesp(NULL,sz);
-        pi = (targ_long *) &e->EV.Vdouble;
-        ps = (targ_short *) pi;
+        targ_uns *pi = (targ_uns *) &e->EV.Vdouble;
+        targ_ushort *ps = (targ_ushort *) pi;
+        targ_ullong *pl = (targ_ullong *)pi;
         i /= regsize;
         do
         {   code *cp;
 
             if (i)                      /* be careful not to go negative */
                 i--;
-            value = (regsize == 4) ? pi[i] : ps[i];
+            targ_size_t value = (regsize == 4) ? pi[i] : ps[i];
+            if (regsize == 8)
+                value = pl[i];
             if (pushi)
             {
                 if (regsize == REGSIZE && reghasvalue(allregs,value,&reg))
@@ -3466,11 +3466,11 @@ code *params(elem *e,unsigned stackalign)
             c = cat3(c,c1,c2);
             goto ret;
         }
-        else if (!I32 && (tym == TYdouble || tym == TYdouble_alias))
+        else if (I16 && (tym == TYdouble || tym == TYdouble_alias))
             retregs = mSTACK;
   }
 #if LONGLONG
-  else if (!I32 && sz == 8)             // if long long
+  else if (I16 && sz == 8)             // if long long
         retregs = mSTACK;
 #endif
   c = cat(c,scodelem(e,&retregs,0,TRUE));
@@ -3710,8 +3710,13 @@ code *loaddata(elem *e,regm_t *pretregs)
                 ce = movregconst(ce,BX,p[2],0);
             }
         }
+        else if (I64 && sz == 16)
+        {
+            ce = movregconst(CNIL,findreglsw(forregs),e->EV.Vcent.lsw,0);
+            ce = movregconst(ce,findregmsw(forregs),e->EV.Vcent.msw,0);
+        }
         else
-                assert(0);
+            assert(0);
         c = cat(c,ce);
   }
   else

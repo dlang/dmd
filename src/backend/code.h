@@ -98,13 +98,13 @@ struct Declaration;
 #define mXMM7   (1 << XMM7)
 #define XMMREGS  (mXMM0 |mXMM1 |mXMM2 |mXMM3 |mXMM4 |mXMM5 |mXMM6 |mXMM7)
 
-#define mES     (1 << ES)       // 0x10000
-#define mPSW    (1 << PSW)      // 0x20000
+#define mES     (1 << ES)       // 0x1000000
+#define mPSW    (1 << PSW)      // 0x2000000
 
-#define mSTACK  (1 << STACK)    // 0x40000
+#define mSTACK  (1 << STACK)    // 0x4000000
 
-#define mST0    (1 << ST0)      // 0x200000
-#define mST01   (1 << ST01)     // 0x400000
+#define mST0    (1 << ST0)      // 0x20000000
+#define mST01   (1 << ST01)     // 0x40000000
 
 // Flags for getlvalue (must fit in regm_t)
 #define RMload  (1 << 30)
@@ -396,9 +396,14 @@ struct code
 #define CFPREFIX (CFSEG | CFopsize | CFaddrsize)
 #define CFSEG   (CFes | CFss | CFds | CFcs | CFfs | CFgs)
 
-
+    /* The op code can be 1 to 3 bytes
+     */
     unsigned Iop;
 
+    /* The _EA is the "effective address" for the instruction, and consists of the modregrm byte,
+     * the sib byte, and the REX prefix byte. The 16 bit code generator just used the modregrm,
+     * the 32 bit x86 added the sib, and the 64 bit one added the rex.
+     */
     union
     {   unsigned _Iea;
         struct
@@ -413,6 +418,12 @@ struct code
 #define Irm _EA._ea._Irm
 #define Isib _EA._ea._Isib
 #define Irex _EA._ea._Irex
+
+
+    /* IFL1 and IEV1 are the first operand, which usually winds up being the offset to the Effective
+     * Address. IFL1 is the tag saying which variant type is in IEV1. IFL2 and IEV2 is the second
+     * operand, usually for immediate instructions.
+     */
 
     unsigned char IFL1,IFL2;    // FLavors of 1st, 2nd operands
     union evc IEV1;             // 1st operand, if any

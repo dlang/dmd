@@ -2960,6 +2960,10 @@ L1:
             // Can happen as result of syntax errors
             assert(errcnt);
 #else
+#ifdef DEBUG
+            elem_print(e);
+            *(char*)0=0;
+#endif
             assert(0);
 #endif
     }
@@ -3285,6 +3289,11 @@ void elem_print(elem *e)
 
                     case TYullong:
                         dbg_printf("%lluLL ",e->EV.Vullong);
+                        break;
+
+                    case TYcent:
+                    case TYucent:
+                        dbg_printf("%lluLL+%lluLL ", e->EV.Vcent.msw, e->EV.Vcent.lsw);
                         break;
 
                     case TYfloat:

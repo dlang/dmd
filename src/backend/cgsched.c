@@ -3178,7 +3178,7 @@ void Cinfo::print()
     if (ci->flags & ~(CIFLarraybounds|CIFLnostage|CIFLpush|CIFLea))
         printf("bad flag,");
     printf("\n\tr %lx w %lx a %lx reg %x uops %x sibmodrm %x spadjust %ld\n",
-            r,w,a,reg,uops,sibmodrm,spadjust);
+            (long)r,(long)w,(long)a,reg,uops,sibmodrm,(long)spadjust);
     if (ci->fp_op)
         printf("\tfp_op %s, fxch_pre %x, fxch_post %x\n",
                 fpops[fp_op-1],fxch_pre,fxch_post);

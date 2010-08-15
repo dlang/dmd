@@ -238,7 +238,7 @@ vec_t   defkill = NULL,         /* vector of AEs killed by an ambiguous */
 const char *regstring[32] = {"AX","CX","DX","BX","SP","BP","SI","DI",
                              "R8","R9","R10","R11","R12","R13","R14","R15",
                              "XMM0","XMM1","XMM2","XMM3","XMM4","XMM5","XMM6","XMM7",
-                             "ES","PSW","STACK","ST0", "ST01"};
+                             "ES","PSW","STACK","ST0","ST01","NOREG","RMload","RMstore"};
 #endif
 
 /* From nwc.c */
