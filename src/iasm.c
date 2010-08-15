@@ -1248,14 +1248,22 @@ L386_WARNING2:
             }
         }
 
+        if (ptb.pptb0->usFlags & _64_bit && !I64)
+            error(asmstate.loc, "use -m64 to compile 64 bit instructions");
+
         switch (usNumops)
         {
             case 0:
-                if ((I32 && (ptb.pptb0->usFlags & _16_bit)) ||
+                if (((I32 | I64) && (ptb.pptb0->usFlags & _16_bit)) ||
                         (I16 && (ptb.pptb0->usFlags & _32_bit)))
                 {
                         emit(0x66);
                         pc->Iflags |= CFopsize;
+                }
+                else if (I64 && (ptb.pptb0->usFlags & _64_bit))
+                {
+                        emit(REX | REX_W);
+                        pc->Irex |= REX_W;
                 }
                 break;
 

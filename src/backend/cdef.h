@@ -894,6 +894,12 @@ struct con_t
  * size of the data on the TARGET, not the host.
  */
 
+struct Cent
+{
+    targ_ullong lsw;
+    targ_ullong msw;
+};
+
 union eve
 {
         targ_char       Vchar;
@@ -907,6 +913,7 @@ union eve
         targ_ulong      Vulong;
         targ_llong      Vllong;
         targ_ullong     Vullong;
+        Cent            Vcent;
         targ_float      Vfloat;
         targ_double     Vdouble;
         targ_ldouble    Vldouble;

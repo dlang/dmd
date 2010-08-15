@@ -207,6 +207,25 @@ dt_t ** dtdword(dt_t **pdtend, int value)
     return pdtend;
 }
 
+dt_t ** dtsize_t(dt_t **pdtend, targ_size_t value)
+{   dt_t *dt;
+
+    while (*pdtend)
+        pdtend = &((*pdtend)->DTnext);
+    dt = dt_calloc(DT_ibytes);
+    dt->DTn = NPTRSIZE;
+
+    union { char* cp; int* lp; } u;
+    u.cp = dt->DTdata;
+    *u.lp = value;
+    if (NPTRSIZE == 8)
+        u.lp[1] = value >> 32;
+
+    *pdtend = dt;
+    pdtend = &dt->DTnext;
+    return pdtend;
+}
+
 /**********************
  * Concatenate two dt_t's.
  */

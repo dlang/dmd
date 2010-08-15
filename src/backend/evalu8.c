@@ -581,7 +581,7 @@ elem * evalu8(elem *e)
     elem_debug(e);
     e1 = e->E1;
 
-    //printf("evalu8(): "); //elem_print(e);
+    //printf("evalu8(): "); elem_print(e);
     elem_debug(e1);
     if (e1->Eoper == OPconst)
     {
@@ -1199,7 +1199,7 @@ elem * evalu8(elem *e)
                     break;
                 default:
 #ifdef DEBUG
-                    dbg_printf("tym = x%lx\n",tym);
+                    dbg_printf("tym = x%x\n",tym);
                     elem_print(e);
 #endif
                     assert(0);
@@ -2046,6 +2046,9 @@ elem * evalu8(elem *e)
                 break;
             case 8:
                 e->EV.Vllong = (l1 >> 32) & 0xFFFFFFFF;
+                break;
+            case 16:
+                e->EV.Vllong = e1->EV.Vcent.msw;
                 break;
             default:
                 assert(0);

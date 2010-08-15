@@ -1844,7 +1844,7 @@ L3:
             if (!regcon.indexregs && r & ~mLSW)
                 r &= ~mLSW;
 
-            if (pass == PASSfinal && r & ~lastretregs && I32)
+            if (pass == PASSfinal && r & ~lastretregs && !I16)
             {   // Try not to always allocate the same register,
                 // to schedule better
 
@@ -2720,7 +2720,7 @@ const char *regm_str(regm_t rm)
         i = 0;
     s = p;
     *p = 0;
-    for (j = 0; j < 23; j++)
+    for (j = 0; j < 32; j++)
     {
         if (mask[j] & rm)
         {

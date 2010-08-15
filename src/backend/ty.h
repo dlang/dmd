@@ -107,8 +107,8 @@ enum TYM
 
 #if MARS
 #define TYaarray        TYnptr
-#define TYdelegate      TYllong
-#define TYdarray        TYullong
+#define TYdelegate      (I64 ? TYcent : TYllong)
+#define TYdarray        (I64 ? TYucent : TYullong)
 #endif
 };
 
@@ -198,7 +198,7 @@ extern unsigned tytab[];
 #define tyreal(ty)      (tytab[(ty) & 0xFF] & TYFLreal)
 
 // Fits into 64 bit register
-#define ty64reg(ty)     (tytab[(ty) & 0xFF] & (TYFLintegral | TYFLptr))
+#define ty64reg(ty)     (tytab[(ty) & 0xFF] & (TYFLintegral | TYFLptr) && tysize(ty) <= NPTRSIZE)
 
 #ifndef tyshort
 /* Types that are chars or shorts       */

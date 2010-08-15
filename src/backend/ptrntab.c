@@ -1,5 +1,5 @@
 // Copyright (C) 1985-1998 by Symantec
-// Copyright (C) 2000-2009 by Digital Mars
+// Copyright (C) 2000-2010 by Digital Mars
 // All Rights Reserved
 // http://www.digitalmars.com
 /*
@@ -52,6 +52,9 @@ PTRNTAB0 aptb0CBW[] = /* CBW */ {
 PTRNTAB0 aptb0CWDE[] = /* CWDE */ {
         { 0x98, _32_bit | _I386 | _modax }
 };
+PTRNTAB0 aptb0CDQE[] = /* CDQE */ {
+        { 0x98, _64_bit | _modax }
+};
 PTRNTAB0 aptb0CLC[] =  /* CLC */ {
         { 0xf8, 0 }
 };
@@ -91,6 +94,10 @@ PTRNTAB0 aptb0CWD[] =  /* CWD */ {
 
 PTRNTAB0 aptb0CDQ[] =  /* CDQ */ {
         { 0x99, _32_bit | _I386 | _modaxdx }
+};
+
+PTRNTAB0 aptb0CQO[] =  /* CQO */ {
+        { 0x99, _64_bit | _modaxdx }
 };
 
 PTRNTAB0 aptb0DAA[] =  /* DAA */ {
@@ -3158,6 +3165,7 @@ getsec
         X("call",       ITjump | 1,     (P) aptb1CALL ) \
         X("cbw",        0,              aptb0CBW ) \
         X("cdq",        0,              aptb0CDQ ) \
+        X("cdqe",       0,              aptb0CDQE ) \
         X("clc",        0,              aptb0CLC ) \
         X("cld",        0,              aptb0CLD ) \
         X("clflush",    1,              (P) aptb1CLFLUSH ) \
@@ -3208,6 +3216,7 @@ getsec
         X("comisd",     2,              (P) aptb2COMISD ) \
         X("comiss",     2,              (P) aptb2COMISS ) \
         X("cpuid",      0,              aptb0CPUID ) \
+        X("cqo",        0,              aptb0CQO ) \
         X("cvtdq2pd",   2,              (P) aptb2CVTDQ2PD ) \
         X("cvtdq2ps",   2,              (P) aptb2CVTDQ2PS ) \
         X("cvtpd2dq",   2,              (P) aptb2CVTPD2DQ ) \

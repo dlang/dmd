@@ -984,12 +984,12 @@ void SwitchStatement::toIR(IRState *irs)
          * will be the symbol for it.
          */
         dt_t *dt = NULL;
-        Symbol *si = symbol_generate(SCstatic,type_fake(TYullong));
+        Symbol *si = symbol_generate(SCstatic,type_fake(TYdarray));
 #if MACHOBJ
         si->Sseg = DATA;
 #endif
-        dtdword(&dt, numcases);
-        dtxoff(&dt, si, 8, TYnptr);
+        dtsize_t(&dt, numcases);
+        dtxoff(&dt, si, PTRSIZE * 2, TYnptr);
 
         for (int i = 0; i < numcases; i++)
         {   CaseStatement *cs = (CaseStatement *)cases->data[i];

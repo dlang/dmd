@@ -1999,9 +1999,8 @@ STATIC elem * eldiv(elem *e)
         }
 #if TARGET_MAC
         if (j != -1)
-        {   elem *ea;
-
-            ea = el_copytree(e->E1);
+        {
+            elem *ea = el_copytree(e->E1);
             e2->EV.Vint = j;
             e->Eoper = OPshr;
             e->E1->Ety = touns(tym);
@@ -2086,9 +2085,8 @@ STATIC elem * eldiv(elem *e)
                     ;
                 else
                 {
-                    int op;
-
-                    op = OPmsw;
+                    assert(sz == 2 || sz == 4);
+                    int op = OPmsw;
                     if (e->Eoper == OPdiv)
                     {
                         op = (sz == 2) ? OP32_16 : OP64_32;
@@ -3821,7 +3819,7 @@ STATIC elem * el64_32(elem *e)
 
     case OPshr:                 // OP64_32(x >> 32) => OPmsw(x)
         if (e1->E2->Eoper == OPconst &&
-            el_tolong(e1->E2) == 32)
+            el_tolong(e1->E2) == 32 && !I64)
         {
             e->Eoper = OPmsw;
             e->E1 = el_selecte1(e->E1);

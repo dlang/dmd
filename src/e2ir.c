@@ -437,7 +437,7 @@ elem *array_toDarray(Type *t, elem *e)
         case Tsarray:
             e = addressElem(e, t);
             dim = ((TypeSArray *)t)->dim->toInteger();
-            e = el_pair(TYullong, el_long(TYint, dim), e);
+            e = el_pair(TYdarray, el_long(TYint, dim), e);
             break;
 
         default:
@@ -503,7 +503,7 @@ elem *array_toDarray(Type *t, elem *e)
                 }
             }
             dim = 1;
-            e = el_pair(TYullong, el_long(TYint, dim), e);
+            e = el_pair(TYdarray, el_long(TYint, dim), e);
             break;
     }
     return el_combine(ef, e);
@@ -546,7 +546,7 @@ elem *sarray_toDarray(Loc loc, Type *tfrom, Type *tto, elem *e)
   L1:
     elem *elen = el_long(TYint, dim);
     e = addressElem(e, tfrom);
-    e = el_pair(TYullong, elen, e);
+    e = el_pair(TYdarray, elen, e);
     return e;
 }
 
@@ -596,6 +596,7 @@ elem *setArray(elem *eptr, elem *edim, Type *tb, elem *evalue, IRState *irs, int
             case 2:      r = RTLSYM_MEMSET16;   break;
             case 4:      r = RTLSYM_MEMSET32;   break;
             case 8:      r = RTLSYM_MEMSET64;   break;
+            case 16:     r = RTLSYM_MEMSET128;  break;
             default:     r = RTLSYM_MEMSETN;    break;
         }
 
@@ -1070,7 +1071,7 @@ elem *FuncExp::toElem(IRState *irs)
     if (fd->isNested())
     {
         elem *ethis = getEthis(loc, irs, fd);
-        e = el_pair(TYullong, ethis, e);
+        e = el_pair(TYdelegate, ethis, e);
     }
 
     irs->deferToObj->push(fd);
@@ -2660,7 +2661,7 @@ elem *AssignExp::toElem(IRState *irs)
                 elength = el_copytree(enbytes);
             e = setArray(n1, enbytes, tb, evalue, irs, op);
         Lpair:
-            e = el_pair(TYullong, elength, e);
+            e = el_pair(TYdarray, elength, e);
         Lret2:
             e = el_combine(einit, e);
             //elem_print(e);
@@ -3315,12 +3316,12 @@ elem *DelegateExp::toElem(IRState *irs)
     }
     if (ethis->Eoper == OPcomma)
     {
-        ethis->E2 = el_pair(TYullong, ethis->E2, ep);
-        ethis->Ety = TYullong;
+        ethis->E2 = el_pair(TYdelegate, ethis->E2, ep);
+        ethis->Ety = TYdelegate;
         e = ethis;
     }
     else
-        e = el_pair(TYullong, ethis, ep);
+        e = el_pair(TYdelegate, ethis, ep);
     el_setLoc(e,loc);
     return e;
 }
@@ -4370,7 +4371,7 @@ elem *SliceExp::toElem(IRState *irs)
         elem *elength = el_bin(OPmin, TYint, eupr, elwr2);
         eptr = el_bin(OPadd, TYnptr, eptr, el_bin(OPmul, TYint, el_copytree(elwr2), el_long(TYint, sz)));
 
-        e = el_pair(TYullong, elength, eptr);
+        e = el_pair(TYdarray, elength, eptr);
         e = el_combine(elwr, e);
         e = el_combine(einit, e);
     }
@@ -4583,7 +4584,7 @@ elem *ArrayLiteralExp::toElem(IRState *irs)
 #endif
     if (tb->ty == Tarray)
     {
-        e = el_pair(TYullong, el_long(TYint, dim), e);
+        e = el_pair(TYdarray, el_long(TYint, dim), e);
     }
     else if (tb->ty == Tpointer)
     {
