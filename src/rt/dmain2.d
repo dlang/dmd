@@ -271,6 +271,7 @@ extern (C) bool rt_term(ExceptionHandler dg = null)
 {
     try
     {
+        _moduleTlsDtor();
         thread_joinAll();
         _d_isHalting = true;
         _moduleDtor();
