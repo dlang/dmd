@@ -242,6 +242,7 @@ extern (C) bool rt_init(ExceptionHandler dg = null)
         version (Windows)
             _minit();
         _moduleCtor();
+        _moduleTlsCtor();
         runModuleUnitTests();
         return true;
     }
