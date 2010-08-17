@@ -1,6 +1,6 @@
 
 // Compiler implementation of the D programming language
-// Copyright (c) 1999-2009 by Digital Mars
+// Copyright (c) 1999-2010 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // http://www.digitalmars.com
@@ -356,6 +356,78 @@ void Module::gendocfile()
     mem.free(pt);
     docfile->writev();
 #endif
+}
+
+/****************************************************
+ * Having unmatched parentheses can hose the output of Ddoc,
+ * as the macros depend on properly nested parentheses.
+ * Fix by replacing unmatched ( with $(LPAREN) and unmatched ) with $(RPAREN).
+ */
+void escapeStrayParenthesis(OutBuffer *buf, unsigned start, Loc loc)
+{
+    unsigned par_open = 0;
+
+    for (unsigned u = start; u < buf->offset; u++)
+    {
+        unsigned char c = buf->data[u];
+        switch(c)
+        {
+            case '(':
+                par_open++;
+                break;
+
+            case ')':
+                if (par_open == 0)
+                {
+                    //stray ')'
+                    if (global.params.warnings)
+                        warning(loc, "Ddoc: Stray ')'. This may cause incorrect Ddoc output."
+                        " Use $(RPAREN) instead for unpaired right parentheses.");
+                    buf->remove(u, 1); //remove the )
+                    buf->insert(u, "$(RPAREN)", 9); //insert this instead
+                    u += 8; //skip over newly inserted macro
+                }
+                else
+                    par_open--;
+                break;
+#if 0
+            // For this to work, loc must be set to the beginning of the passed
+            // text which is currently not possible
+            // (loc is set to the Loc of the Dsymbol)
+            case '\n':
+                loc.linnum++;
+                break;
+#endif
+        }
+    }
+
+    if (par_open)                       // if any unmatched lparens
+    {   par_open = 0;
+        for (unsigned u = buf->offset; u > start;)
+        {   u--;
+            unsigned char c = buf->data[u];
+            switch(c)
+            {
+                case ')':
+                    par_open++;
+                    break;
+
+                case '(':
+                    if (par_open == 0)
+                    {
+                        //stray '('
+                        if (global.params.warnings)
+                            warning(loc, "Ddoc: Stray '('. This may cause incorrect Ddoc output."
+                            " Use $(LPAREN) instead for unpaired left parentheses.");
+                        buf->remove(u, 1); //remove the (
+                        buf->insert(u, "$(LPAREN)", 9); //insert this instead
+                    }
+                    else
+                        par_open--;
+                    break;
+            }
+        }
+    }
 }
 
 /******************************* emitComment **********************************/
@@ -1082,6 +1154,7 @@ void DocComment::writeSections(Scope *sc, Dsymbol *s, OutBuffer *buf)
                 buf->writestring("$(DDOC_SUMMARY ");
                     unsigned o = buf->offset;
                     buf->write(sec->body, sec->bodylen);
+                    escapeStrayParenthesis(buf, o, s->loc);
                     highlightText(sc, s, buf, o);
                 buf->writestring(")\n");
             }
@@ -1119,10 +1192,12 @@ void Section::write(DocComment *dc, Scope *sc, Dsymbol *s, OutBuffer *buf)
         buf->writestring("$(DDOC_SECTION ");
             // Replace _ characters with spaces
             buf->writestring("$(DDOC_SECTION_H ");
+            unsigned o = buf->offset;
             for (unsigned u = 0; u < namelen; u++)
             {   unsigned char c = name[u];
                 buf->writeByte((c == '_') ? ' ' : c);
             }
+            escapeStrayParenthesis(buf, o, s->loc);
             buf->writestring(":)\n");
     }
     else
@@ -1132,6 +1207,7 @@ void Section::write(DocComment *dc, Scope *sc, Dsymbol *s, OutBuffer *buf)
   L1:
     unsigned o = buf->offset;
     buf->write(body, bodylen);
+    escapeStrayParenthesis(buf, o, s->loc);
     highlightText(sc, s, buf, o);
     buf->writestring(")\n");
 }
@@ -1213,12 +1289,14 @@ void ParamSection::write(DocComment *dc, Scope *sc, Dsymbol *s, OutBuffer *buf)
                         arg->type->toCBuffer(buf, arg->ident, &hgs);
                     else
                         buf->write(namestart, namelen);
+                    escapeStrayParenthesis(buf, o, s->loc);
                     highlightCode(sc, s, buf, o);
                 buf->writestring(")\n");
 
                 buf->writestring("$(DDOC_PARAM_DESC ");
                     o = buf->offset;
                     buf->write(textstart, textlen);
+                    escapeStrayParenthesis(buf, o, s->loc);
                     highlightText(sc, s, buf, o);
                 buf->writestring(")");
             buf->writestring(")\n");
