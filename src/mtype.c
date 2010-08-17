@@ -5258,6 +5258,16 @@ d_uns64 TypeDelegate::size(Loc loc)
     return PTRSIZE * 2;
 }
 
+unsigned TypeDelegate::alignsize()
+{
+    // See Bugzilla 942 for discussion
+#if 0
+    return PTRSIZE;
+#else
+    return PTRSIZE * 2;
+#endif
+}
+
 MATCH TypeDelegate::implicitConvTo(Type *to)
 {
     //printf("TypeDelegate::implicitConvTo(this=%p, to=%p)\n", this, to);

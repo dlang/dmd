@@ -613,9 +613,9 @@ code *loadea(elem *e,code *cs,unsigned op,unsigned reg,targ_size_t offset,
                                 {
                                     cs->Irm = modregrm(3,reg & 7,i & 7);
                                     if (reg & 8)
-                                        code_orrex(cs, REX_R);
+                                        cs->Irex |= REX_R;
                                     if (i & 8)
-                                        code_orrex(cs, REX_B);
+                                        cs->Irex |= REX_B;
                                 }
                                 c = CNIL;
                                 goto L2;
@@ -1123,9 +1123,8 @@ code *getlvalue(code *pcs,elem *e,regm_t keepmsk)
          *      [MOV    ES,segment]
          *      EA =    [ES:]c[idxreg]
          */
-
         if (e1isadd && e12->Eoper == OPconst &&
-            tysize(e12->Ety) == REGSIZE &&
+            (tysize(e12->Ety) == REGSIZE || (I64 && tysize(e12->Ety) == 4)) &&
             (!e1->Ecount || !e1free)
            )
         {   int ss;
@@ -1133,7 +1132,7 @@ code *getlvalue(code *pcs,elem *e,regm_t keepmsk)
             pcs->IEV1.Vuns = e12->EV.Vuns;
             freenode(e12);
             if (e1free) freenode(e1);
-            if (I32 && e11->Eoper == OPadd && !e11->Ecount &&
+            if (!I16 && e11->Eoper == OPadd && !e11->Ecount &&
                 tysize(e11->Ety) == REGSIZE)
             {
                 e12 = e11->E2;
@@ -1426,8 +1425,8 @@ code *scodelem(elem *e,regm_t *pretregs,regm_t keepmsk,bool constflag)
 
 #ifdef DEBUG
   if (debugw)
-        printf("+scodelem(e=%p *pretregs=x%x keepmsk=x%x constflag=%d\n",
-                e,*pretregs,keepmsk,constflag);
+        printf("+scodelem(e=%p *pretregs=%s keepmsk=%s constflag=%d\n",
+                e,regm_str(*pretregs),regm_str(keepmsk),constflag);
 #endif
   elem_debug(e);
   if (constflag)
@@ -1438,10 +1437,9 @@ code *scodelem(elem *e,regm_t *pretregs,regm_t keepmsk,bool constflag)
             (regm & *pretregs) == regm &&       // in one of the right regs
             e->EV.sp.Voffset == 0
            )
-        {       unsigned sz1,sz2;
-
-                sz1 = tysize(e->Ety);
-                sz2 = tysize(e->EV.sp.Vsym->Stype->Tty);
+        {
+                unsigned sz1 = tysize(e->Ety);
+                unsigned sz2 = tysize(e->EV.sp.Vsym->Stype->Tty);
                 if (sz1 <= REGSIZE && sz2 > REGSIZE)
                     regm &= mLSW;
                 c = fixresult(e,regm,pretregs);

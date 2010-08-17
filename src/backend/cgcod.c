@@ -140,7 +140,9 @@ void codgen()
         BYTEREGS = value;
     }
     if (I64)
-        ALLREGS = mAX|mBX|mCX|mDX|mSI|mDI| mR8|mR9|mR10|mR11|mR12|mR13|mR14|mR15;
+    {   ALLREGS = mAX|mBX|mCX|mDX|mSI|mDI| mR8|mR9|mR10|mR11|mR12|mR13|mR14|mR15;
+        BYTEREGS = ALLREGS;
+    }
 #endif
     allregs = ALLREGS;
     if (0 && config.flags3 & CFG3pic)
@@ -2285,7 +2287,7 @@ STATIC code * comsub(elem *e,regm_t *pretregs)
     int forcc;                  // !=0 if we evaluate for condition codes
     int forregs;                // !=0 if we evaluate into registers
 
-    //printf("comsub(e = %p, *pretregs = x%x)\n",e,*pretregs);
+    //printf("comsub(e = %p, *pretregs = %s)\n",e,regm_str(*pretregs));
     elem_debug(e);
 #ifdef DEBUG
     if (e->Ecomsub > e->Ecount)
@@ -2572,7 +2574,7 @@ code *codelem(elem *e,regm_t *pretregs,bool constflag)
 
 #ifdef DEBUG
   if (debugw)
-  {     printf("+codelem(e=%p,*pretregs=x%x) ",e,*pretregs);
+  {     printf("+codelem(e=%p,*pretregs=%s) ",e,regm_str(*pretregs));
         WROP(e->Eoper);
         printf("msavereg=x%x regcon.cse.mval=x%x regcon.cse.mops=x%x\n",
                 msavereg,regcon.cse.mval,regcon.cse.mops);
