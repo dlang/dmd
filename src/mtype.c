@@ -3124,6 +3124,16 @@ d_uns64 TypeDelegate::size(Loc loc)
     return PTRSIZE * 2;
 }
 
+unsigned TypeDelegate::alignsize()
+{
+    // See Bugzilla 942 for discussion
+#if 0
+    return PTRSIZE;
+#else
+    return PTRSIZE * 2;
+#endif
+}
+
 void TypeDelegate::toCBuffer2(OutBuffer *buf, HdrGenState *hgs, int mod)
 {
     if (mod != this->mod)

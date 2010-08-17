@@ -823,12 +823,14 @@ PTRNTAB2  aptb2CMPXCHG[] = /* CMPXCHG */ {
         { ASM_END, 0, 0, 0 }
 };
 PTRNTAB2  aptb2DIV[] = /* DIV */ {
-        { 0xf6, _6,                     _al,            _rm8 },
+        { 0xf6, _6,                             _al,            _rm8 },
         { 0xf7, _6 | _16_bit | _moddx,          _ax,            _rm16 },
         { 0xf7, _6 | _32_bit | _moddx,          _eax,           _rm32 },
+        { 0xf7, _6 | _64_bit | _moddx,          _rax,           _rm64 },
         { 0xf6, _6 | _modax,                    _rm8,           0 },
-        { 0xf7, _6 | _16_bit | _modaxdx,                _rm16,          0 },
-        { 0xf7, _6 | _32_bit | _modaxdx,                _rm32,          0 },
+        { 0xf7, _6 | _16_bit | _modaxdx,        _rm16,          0 },
+        { 0xf7, _6 | _32_bit | _modaxdx,        _rm32,          0 },
+        { 0xf7, _6 | _64_bit | _modaxdx,        _rm64,          0 },
         { ASM_END, 0, 0, 0 }
 };
 PTRNTAB2  aptb2ENTER[] = /* ENTER */ {
@@ -837,11 +839,13 @@ PTRNTAB2  aptb2ENTER[] = /* ENTER */ {
 };
 PTRNTAB2  aptb2IDIV[] = /* IDIV */ {
         { 0xf6, _7,                     _al,            _rm8 },
-        { 0xf7, _7|_16_bit|_moddx,              _ax,            _rm16 },
-        { 0xf7, _7|_32_bit|_moddx,              _eax,           _rm32 },
-        { 0xf6, _7 | _modax,                    _rm8,           0 },
+        { 0xf7, _7|_16_bit|_moddx,      _ax,            _rm16 },
+        { 0xf7, _7|_32_bit|_moddx,      _eax,           _rm32 },
+        { 0xf7, _7|_64_bit|_moddx,      _rax,           _rm64 },
+        { 0xf6, _7 | _modax,            _rm8,           0 },
         { 0xf7, _7|_16_bit|_modaxdx,    _rm16,          0 },
         { 0xf7, _7|_32_bit|_modaxdx,    _rm32,          0 },
+        { 0xf7, _7|_64_bit|_modaxdx,    _rm64,          0 },
         { ASM_END, 0, 0, 0 }
 };
 PTRNTAB2  aptb2IN[] = /* IN */ {
@@ -975,9 +979,11 @@ PTRNTAB2  aptb2MUL[] = /* MUL */ {
         { 0xf6, _4,                     _al,    _rm8 },
         { 0xf7, _4|_16_bit|_moddx,      _ax,    _rm16 },
         { 0xf7, _4|_32_bit|_moddx,      _eax,   _rm32 },
+        { 0xf7, _4|_64_bit|_moddx,      _rax,   _rm64 },
         { 0xf6, _4|_modax,              _rm8,   0 },
         { 0xf7, _4|_16_bit|_modaxdx,    _rm16,  0 },
         { 0xf7, _4|_32_bit|_modaxdx,    _rm32,  0 },
+        { 0xf7, _4|_64_bit|_modaxdx,    _rm64,  0 },
         { ASM_END, 0, 0, 0 }
 };
 PTRNTAB2  aptb2OR[] = /* OR */ {
@@ -1280,17 +1286,22 @@ PTRNTAB2  aptb2CMOVNLE[] = {
 PTRNTAB3  aptb3IMUL[] = /* IMUL */ {
         { 0x0faf,       _r|_16_bit,             _r16,   _rm16, 0 },
         { 0x0faf,       _r|_32_bit,             _r32,   _rm32, 0 },
+        { 0x0faf,       _r|_64_bit,             _r64,   _rm64, 0 },
         { 0xf6, _5|_modax,                      _rm8,   0, 0 },
         { 0xf7, _5|_16_bit|_modaxdx,            _rm16,  0, 0 },
         { 0xf7, _5|_32_bit|_modaxdx,            _rm32,  0, 0 },
+        { 0xf7, _5|_64_bit|_modaxdx,            _rm64,  0, 0 },
         { 0x6b, _r|_ib|_16_bit,         _r16,   _imm8, 0 },
         { 0x6b, _r|_ib|_32_bit,         _r32,   _imm8, 0 },
         { 0x69, _r|_iw|_16_bit,         _r16,   _imm16, 0 },
         { 0x69, _r|_id|_32_bit,         _r32,   _imm32, 0 },
+        { 0x69, _r|_id|_64_bit,         _r64,   _imm32, 0 },
         { 0x6b, _r|_ib|_16_bit,         _r16,   _rm16,  _imm8 },
         { 0x6b, _r|_ib|_32_bit,         _r32,   _rm32,  _imm8 },
+        { 0x6b, _r|_ib|_64_bit,         _r64,   _rm64,  _imm8 },
         { 0x69, _r|_iw|_16_bit,         _r16,   _rm16,  _imm16 },
         { 0x69, _r|_id|_32_bit,         _r32,   _rm32,  _imm32 },
+        { 0x69, _r|_id|_64_bit,         _r64,   _rm64,  _imm32 },
         { ASM_END, 0, 0, 0 }
 };
 PTRNTAB3  aptb3SHLD[] = /* SHLD */ {

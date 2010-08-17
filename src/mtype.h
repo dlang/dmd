@@ -482,6 +482,7 @@ struct TypeDelegate : Type
     Type *syntaxCopy();
     Type *semantic(Loc loc, Scope *sc);
     d_uns64 size(Loc loc);
+    unsigned alignsize();
     void toCBuffer2(OutBuffer *buf, HdrGenState *hgs, int mod);
     Expression *defaultInit(Loc loc);
     int isZeroInit(Loc loc);

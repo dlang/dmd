@@ -3654,10 +3654,10 @@ unsigned calccodsize(code *c)
                     }
                 }
                 else if (iflags & CFopsize)
-                {   if (I32)
-                        size -= 2;
-                    else
+                {   if (I16)
                         size += 2;
+                    else
+                        size -= 2;
                 }
             }
             if (iflags & CFaddrsize)
@@ -5008,22 +5008,25 @@ void WRcodlst(code *c)
 
 void code::print()
 {
-  unsigned op,rm;
-  unsigned char ins;
-  code *c = this;
+    unsigned char ins;
+    code *c = this;
 
-  if (c == CNIL)
-  {     printf("code 0\n");
+    if (c == CNIL)
+    {   printf("code 0\n");
         return;
-  }
-  op = c->Iop;
+    }
 
+    unsigned op = c->Iop;
     if ((c->Iop & 0xFF00) == 0x0F00)
         ins = inssize2[op & 0xFF];
     else
         ins = inssize[op & 0xFF];
 
-  printf("code %p: nxt=%p op=%02x",c,code_next(c),op);
+    printf("code %p: nxt=%p ",c,code_next(c));
+    if (c->Irex)
+        printf("rex=%x ", c->Irex);
+    printf("op=%02x",op);
+
   if ((op & 0xFF) == ESCAPE)
   {     if ((op & 0xFF00) == ESClinnum)
         {   printf(" linnum = %d\n",c->IEV2.Vsrcpos.Slinnum);
@@ -5034,7 +5037,7 @@ void code::print()
   if (c->Iflags)
         printf(" flg=%x",c->Iflags);
   if (ins & M)
-  {     rm = c->Irm;
+  {     unsigned rm = c->Irm;
         printf(" rm=%02x=%d,%d,%d",rm,(rm>>6)&3,(rm>>3)&7,rm&7);
         if (I32 && issib(rm))
         {   unsigned char sib = c->Isib;
