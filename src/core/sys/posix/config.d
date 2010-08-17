@@ -19,14 +19,7 @@ extern (C):
 
 version( linux )
 {
-  version( X86_64 )
-  {
     enum bool  __USE_LARGEFILE64    = true;
-  }
-  else
-  {
-    enum bool  __USE_LARGEFILE64    = false;
-  }
     enum bool  __USE_FILE_OFFSET64  = __USE_LARGEFILE64;
     enum bool  __REDIRECT           = false;
 }
