@@ -386,8 +386,8 @@ void init()
     Y(Tint64, Tdchar)
     Y(Tuns64, Tdchar)
 
-    Y(Tint64, Tuns64)
-    Y(Tuns64, Tint64)
+//    Y(Tint64, Tuns64)
+//    Y(Tuns64, Tint64)
 
     for (i = 0; i < TMAX; i++)
         for (j = 0; j < TMAX; j++)
