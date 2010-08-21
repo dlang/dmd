@@ -1820,8 +1820,10 @@ L1:
             case OPu16_d:
             case OPs16_d:
             case OPs32_d:
-            case OPs64_d:
                 goto ret0;
+
+            case OPs64_d:
+                goto ret1;
 
             default:
                 goto ret1;
