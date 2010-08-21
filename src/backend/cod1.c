@@ -1163,7 +1163,7 @@ code *getlvalue(code *pcs,elem *e,regm_t keepmsk)
          */
 
         if (!I16 && e1isadd && (!e1->Ecount || !e1free) &&
-            tysize[e1ty] == REGSIZE)
+            (tysize[e1ty] == REGSIZE || (I64 && tysize[e1ty] == 4)))
         {   code *c2;
             regm_t idxregs2;
             unsigned base,index;
@@ -3539,7 +3539,7 @@ code *loaddata(elem *e,regm_t *pretregs)
 
 #ifdef DEBUG
   if (debugw)
-        printf("loaddata(e = %p,*pretregs = x%x)\n",e,*pretregs);
+        printf("loaddata(e = %p,*pretregs = %s)\n",e,regm_str(*pretregs));
   //elem_print(e);
 #endif
   assert(e);

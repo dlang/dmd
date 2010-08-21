@@ -4149,10 +4149,9 @@ elem *IndexExp::toElem(IRState *irs)
 
         n1 = array_toPtr(t1, n1);
 
-        {   elem *escale;
-
-            escale = el_long(TYint, t1->nextOf()->size());
-            n2 = el_bin(OPmul, TYint, n2, escale);
+        {
+            elem *escale = el_long(TYsize_t, t1->nextOf()->size());
+            n2 = el_bin(OPmul, TYsize_t, n2, escale);
             e = el_bin(OPadd, TYnptr, n1, n2);
             e = el_una(OPind, type->totym(), e);
             if (tybasic(e->Ety) == TYstruct || tybasic(e->Ety) == TYarray)
