@@ -446,14 +446,14 @@ $(DOCDIR)/object.html : src/object_.d
 
 $(DOCDIR)/core_%.html : src/core/%.d
 	$(DMD) -c -d -o- -Isrc -Iimport -Df$@ $(DOCFMT) $<
-	
+
 $(DOCDIR)/core_sync_%.html : src/core/sync/%.d
 	$(DMD) -c -d -o- -Isrc -Iimport -Df$@ $(DOCFMT) $<
 
 ######################## Header .di file generation ##############################
 
 import: $(IMPORTS)
-	
+
 $(IMPDIR)/core/%.di : src/core/%.d
 	$(DMD) -c -d -o- -Isrc -Iimport -Hf$@ $<
 

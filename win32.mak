@@ -496,7 +496,7 @@ $(IMPDIR)\core\bitop.di : src\core\bitop.d
 
 $(IMPDIR)\core\cpuid.di : src\core\cpuid.d
 	$(DMD) -c -d -o- -Isrc -Iimport -Hf$@ $**
-	
+
 $(IMPDIR)\core\dll_helper.di : src\core\dll_helper.d
 	$(DMD) -c -d -o- -Isrc -Iimport -Hf$@ $**
 
