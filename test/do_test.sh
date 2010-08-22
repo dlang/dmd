@@ -53,6 +53,11 @@ fi
 grep -q COMPILE_SEPARATELY ${input_file}
 separate=$?
 
+post_script=`grep POST_SCRIPT ${input_file} | tr -d \\\\r\\\\n`
+if [ ! -z "${post_script}" ]; then
+    post_script="${post_script/*POST_SCRIPT:*( )/}"
+fi
+
 if [ "${input_dir}" != "runnable" ]; then
     extra_compile_args="-c"
 fi
@@ -105,6 +110,16 @@ ${RESULTS_DIR}/combinations ${p_args} | while read x; do
     if [ "${input_dir}" = "runnable" ]; then
         echo ${test_app} ${e_args} >> ${output_file}
         ${test_app} ${e_args} >> ${output_file} 2>&1
+        if [ $? -ne 0 ]; then
+            cat ${output_file}
+            rm -f ${output_file}
+            exit 1
+        fi
+    fi
+
+    if [ ! -z ${post_script} ]; then
+        echo "Executing post-test script: ${post_script}" >> ${output_file}
+        ${post_script} >> ${output_file} 2>&1
         if [ $? -ne 0 ]; then
             cat ${output_file}
             rm -f ${output_file}

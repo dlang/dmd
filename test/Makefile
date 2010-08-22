@@ -30,6 +30,9 @@
 #   PERMUTE_ARGS:        the set of arguments to permute in multiple $(DMD) invocations
 #                        default: the make variable ARGS (see below)
 #
+#   POST_SCRIPT:         name of script to execute after test run
+#                        default: (none)
+#
 #   REQUIRED_ARGS:       arguments to add to the $(DMD) command line
 #                        default: (none)
 
