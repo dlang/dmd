@@ -1,0 +1,50 @@
+       |// PERMUTE_ARGS:
+       |// REQUIRED_ARGS: -cov
+       |// POST_SCRIPT: runnable/extra-files/sieve-postscript.sh
+       |
+       |/* Eratosthenes Sieve prime number calculation. */
+       |
+       |import std.stdio;
+       | 
+       |bool flags[8191];
+       | 
+       |int sieve()
+       |{
+      1|    int count;
+       |
+      1|    writefln("10 iterations");
+     22|    for (int iter = 1; iter <= 10; iter++)
+       |    {
+     10|        count = 0;
+     10|        flags[] = true;
+ 163840|        for (int i = 0; i < flags.length; i++)
+       |        {
+  81910|            if (flags[i])
+       |            {
+  18990|                int prime = i + i + 3;
+  18990|                int k = i + prime;
+ 168980|                while (k < flags.length)
+       |                {
+ 149990|                    flags[k] = false;
+ 149990|                    k += prime;
+       |                }
+  18990|                count += 1;
+       |            }
+       |        }
+       |    }
+      1|    writefln("%d primes", count);
+      1|    return 0;
+       |}
+       |
+       |extern(C) void dmd_coverDestPath(string path);
+       |
+       |int main()
+       |{
+       |
+      1|    dmd_coverDestPath("test_results/runnable");
+       |
+      1|    sieve();
+       |
+      1|    return 0;
+       |}
+runnable/sieve.d is 100% covered

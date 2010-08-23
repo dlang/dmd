@@ -11,3 +11,5 @@ if [ ! -f ${tracelog} ]; then
     exit 1
 fi
 
+rm ${RESULTS_DIR}/runnable/hello-profile.d.trace.{def,log}
+
