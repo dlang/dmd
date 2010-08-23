@@ -49,7 +49,8 @@ DMD_OBJS = \
 	builtin.o clone.o aliasthis.o \
 	man.o arrayop.o port.o response.o async.o json.o speller.o aav.o unittests.o \
 	imphint.o argtypes.o \
-	libmach.o machobj.o
+	libmach.o machobj.o \
+	objc.o
 
 SRC = win32.mak linux.mak osx.mak freebsd.mak solaris.mak \
 	mars.c enum.c struct.c dsymbol.c import.c idgen.c impcnvgen.c \
@@ -68,7 +69,11 @@ SRC = win32.mak linux.mak osx.mak freebsd.mak solaris.mak \
 	delegatize.c toir.h toir.c interpret.c traits.c cppmangle.c \
 	builtin.c clone.c lib.h libomf.c libelf.c libmach.c arrayop.c \
 	aliasthis.h aliasthis.c json.h json.c unittests.c imphint.c \
+<<<<<<< HEAD
 	argtypes.c \
+=======
+	objc.c \
+>>>>>>> extern (Obj-C) interfaces with explicit method names.
 	$C/cdef.h $C/cc.h $C/oper.h $C/ty.h $C/optabgen.c \
 	$C/global.h $C/parser.h $C/code.h $C/type.h $C/dt.h $C/cgcv.h \
 	$C/el.h $C/iasm.h $C/rtlsym.h $C/html.h \
@@ -277,7 +282,7 @@ dump.o: dump.c
 dwarf.o: $C/dwarf.h $C/dwarf.c
 	$(CC) -c $(MFLAGS) -I. $C/dwarf.c
 
-e2ir.o: $C/rtlsym.h expression.h toir.h e2ir.c
+e2ir.o: $C/rtlsym.h expression.h toir.h objc.h e2ir.c
 	$(CC) -c -I$(ROOT) $(MFLAGS) e2ir.c
 
 ee.o: $C/ee.c
@@ -418,6 +423,9 @@ mtype.o: mtype.c
 nteh.o: $C/rtlsym.h $C/nteh.c
 	$(CC) -c $(MFLAGS) $C/nteh.c
 
+objc.o: objc.c $(ROOT)/root.h $(ROOT)/stringtable.h
+	$(CC) -c -I$C -I$(TK) $(CFLAGS) $<
+
 opover.o: opover.c
 	$(CC) -c $(CFLAGS) $<
 
@@ -433,7 +441,7 @@ out.o: $C/out.c
 outbuf.o : $C/outbuf.h $C/outbuf.c
 	$(CC) -c $(MFLAGS) $C/outbuf.c
 
-parse.o: parse.c
+parse.o: parse.c objc.h
 	$(CC) -c $(CFLAGS) $<
 
 ph.o: ph.c

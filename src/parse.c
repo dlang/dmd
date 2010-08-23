@@ -34,6 +34,10 @@
 #include "version.h"
 #include "aliasthis.h"
 
+#if DMD_OBJC
+#include "objc.h"
+#endif
+
 // How multiple declarations are parsed.
 // If 1, treat as C.
 // If 0, treat:
@@ -809,6 +813,20 @@ enum LINK Parser::parseLinkage()
                 nextToken();
             }
         }
+        else if (id == Id::Obj) // Looking for tokens "Obj-C"
+        {
+            if (token.value == TOKmin)
+            {   nextToken();
+                if (token.ident == Id::C)
+                {   link = LINKobjc;
+                    nextToken();
+                }
+                else
+                    goto LinvalidLinkage;
+            }
+            else
+                goto LinvalidLinkage;
+        }
         else if (id == Id::System)
         {
 #if _WIN32
@@ -819,7 +837,8 @@ enum LINK Parser::parseLinkage()
         }
         else
         {
-            error("valid linkage identifiers are D, C, C++, Pascal, Windows, System");
+        LinvalidLinkage:
+            error("valid linkage identifiers are D, C, C++, Obj-C, Pascal, Windows, System");
             link = LINKd;
         }
     }
@@ -2879,6 +2898,17 @@ L2:
             FuncDeclaration *f =
                 new FuncDeclaration(loc, 0, ident, storage_class, t);
             addComment(f, comment);
+#if DMD_OBJC
+            f->objcSelector = parseObjCSelector();
+            if (f->objcSelector) {
+                if (linkage != LINKobjc)
+                    error("function must have Obj-C linkage to attach a selector");
+                if (tpl)
+                    error("function template cannot have an Obj-C selector attached");
+                if (f->objcSelector->paramCount != tf->parameters->dim)
+                    error("number of colons in Obj-C selector must match the number of parameters");
+            }
+#endif
             if (tpl)
                 constraint = parseConstraint();
             parseContracts(f);
@@ -2948,6 +2978,60 @@ L2:
     }
     return a;
 }
+
+#if DMD_OBJC
+/*****************************************
+ * Parse Obj-C selector name enclosed in brackets. Such as:
+ *   [setObject:forKey:otherArgs::]
+ * Return NULL when no bracket found.
+ */
+
+ObjcSelector *Parser::parseObjCSelector()
+{
+    if (token.value != TOKlbracket)
+        return NULL; // no selector
+    
+    ObjcSelectorBuilder selBuilder;
+    nextToken();
+    while (1)
+    {
+        switch (token.value)
+        {
+            case TOKidentifier:
+            Lcaseident:
+                selBuilder.addIdentifier(token.ident);
+                break;
+            case TOKcolon:
+                selBuilder.addColon();
+                break;
+            case TOKrbracket:
+                goto Lendloop;
+            default:
+                // special case to allow D keywords in Obj-C selector names
+                if (token.ident)
+                    goto Lcaseident;
+                goto Lparseerror;
+        }
+        nextToken();
+    }
+Lendloop:
+    nextToken();
+    if (!selBuilder.isValid())
+    {   error("illegal Obj-C selector name");
+        return NULL;
+    }
+    return ObjcSelector::lookup(&selBuilder);
+    
+Lparseerror:
+    error("illegal Obj-C selector name");
+    // exit bracket ignoring content
+    while (token.value != TOKrbracket && token.value != TOKeof)
+        nextToken();
+    nextToken();
+    return NULL;
+}
+#endif
+
 
 /*****************************************
  * Parse auto declarations of the form:

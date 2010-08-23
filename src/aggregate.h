@@ -256,6 +256,9 @@ struct ClassDeclaration : AggregateDeclaration
 #if DMDV2
     virtual int isCPPinterface();
 #endif
+#if DMD_OBJC
+    virtual int isObjCinterface();
+#endif
     int isAbstract();
     virtual int vtblOffset();
     const char *kind();
@@ -285,6 +288,9 @@ struct InterfaceDeclaration : ClassDeclaration
 #if DMDV2
     int cpp;                            // !=0 if this is a C++ interface
 #endif
+#if DMD_OBJC
+    int objc;                           // !=0 if this is an Obj-C interface
+#endif
     InterfaceDeclaration(Loc loc, Identifier *id, BaseClasses *baseclasses);
     Dsymbol *syntaxCopy(Dsymbol *s);
     void semantic(Scope *sc);
@@ -295,6 +301,9 @@ struct InterfaceDeclaration : ClassDeclaration
     int vtblOffset();
 #if DMDV2
     int isCPPinterface();
+#endif
+#if DMD_OBJC
+    int isObjCinterface();
 #endif
     virtual int isCOMinterface();
 

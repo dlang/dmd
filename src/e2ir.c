@@ -159,6 +159,19 @@ elem *callfunc(Loc loc,
                 ep = el_param(ea,ep);
         }
     }
+    
+#if DMD_OBJC
+    if (fd->getObjCSelector())
+    {
+        // using objc-style "virtual" call
+        // add hidden argument (second to 'this') for selector used by dispatch function
+        elem *esel = fd->getObjCSelector()->toElem();
+        if (reverse)
+            ep = el_param(esel,ep);
+        else
+            ep = el_param(ep,esel);
+    }
+#endif
 
     if (retmethod == RETstack)
     {
@@ -229,6 +242,14 @@ elem *callfunc(Loc loc,
             // make static call
             ec = el_var(sfunc);
         }
+#if DMD_OBJC
+        else if (fd->getObjCSelector())
+        {
+            // make objc-style "virtual" call using dispatch function
+            Type *tret = tf->next;
+            ec = el_var(ObjcSymbols::getMsgSend(tret, ehidden != 0));
+        }
+#endif
         else
         {
             // make virtual call

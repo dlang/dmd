@@ -709,6 +709,10 @@ void FuncDeclaration::toObjFile(int multiobj)
     pi = (v_arguments != NULL);
     if (parameters)
         pi += parameters->dim;
+//#if DMD_OBJC
+//    if (func->getObjCSelector())
+//        pi += 1; // Extra arument for Obj-C selector
+//#endif
     // Allow extra 2 for sthis and shidden
     params = (Symbol **)alloca((pi + 2) * sizeof(Symbol *));
 
@@ -742,6 +746,26 @@ void FuncDeclaration::toObjFile(int multiobj)
             params[pi - 1 - i] = sptmp;
         }
     }
+    
+//#if DMD_OBJC
+//    if (func->getObjCSelector())
+//    {
+//        // Need to add Obj-C self and _cmd arguments as last/first parameters
+//        error("Obj-C method ABI not implemented yet.");
+//        ObjcSelector *sel = func->getObjCSelector();
+//#if 0
+//        // self and _cmd becomes last parameters
+//        params[pi] = sel->getSymbol();
+//        params[pi+1] = sthis;
+//#else
+//        // self and _cmd becomes first parameters
+//        memmove(params + 2, params, pi * sizeof(params[0]));
+//        params[0] = sthis;
+//        params[1] = sel->getSymbol();
+//#endif
+//        pi += 2;
+//    }
+//#endif
 
     if (shidden)
     {
@@ -1147,6 +1171,7 @@ unsigned TypeFunction::totym()
             break;
 
         case LINKc:
+        case LINKobjc:
             tyf = TYnfunc;
 #if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_SOLARIS
             if (I32 && retStyle() == RETstack)

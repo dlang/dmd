@@ -287,6 +287,8 @@ void ClassDeclaration::semantic(Scope *sc)
 
     if (sc->linkage == LINKcpp)
         error("cannot create C++ classes");
+    if (sc->linkage == LINKobjc)
+        error("cannot create Obj-C classes");
 
     // Expand any tuples in baseclasses[]
     for (i = 0; i < baseclasses->dim; )
@@ -1037,6 +1039,13 @@ int ClassDeclaration::isCPPinterface()
 }
 #endif
 
+#if DMD_OBJC
+int ClassDeclaration::isObjCinterface()
+{
+    return 0;
+}
+#endif
+
 
 /****************************************
  */
@@ -1175,6 +1184,14 @@ void InterfaceDeclaration::semantic(Scope *sc)
 
     if (!baseclasses->dim && sc->linkage == LINKcpp)
         cpp = 1;
+    if (sc->linkage == LINKobjc)
+    {
+#if DMD_OBJC
+        objc = 1;
+#elif
+        error("Obj-C interfaces not supported");
+#endif
+    }
 
     // Check for errors, handle forward references
     for (i = 0; i < baseclasses->dim; )
@@ -1291,6 +1308,10 @@ void InterfaceDeclaration::semantic(Scope *sc)
         sc->linkage = LINKwindows;
     else if (isCPPinterface())
         sc->linkage = LINKcpp;
+#if DMD_OBJC
+    else if (isObjCinterface())
+        sc->linkage = LINKobjc;
+#endif
     sc->structalign = 8;
     structalign = sc->structalign;
     sc->offset = PTRSIZE * 2;
@@ -1421,6 +1442,13 @@ int InterfaceDeclaration::isCOMinterface()
 int InterfaceDeclaration::isCPPinterface()
 {
     return cpp;
+}
+#endif
+
+#if DMD_OBJC
+int InterfaceDeclaration::isObjCinterface()
+{
+    return objc;
 }
 #endif
 

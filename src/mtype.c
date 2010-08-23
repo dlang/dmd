@@ -4647,6 +4647,7 @@ void TypeFunction::toDecoBuffer(OutBuffer *buf, int flag)
         case LINKwindows:       mc = 'W';       break;
         case LINKpascal:        mc = 'V';       break;
         case LINKcpp:           mc = 'R';       break;
+        case LINKobjc:          mc = 'O';       break;
         default:
             assert(0);
     }
@@ -4734,6 +4735,7 @@ void TypeFunction::toCBuffer(OutBuffer *buf, Identifier *ident, HdrGenState *hgs
             case LINKwindows:   p = "Windows "; break;
             case LINKpascal:    p = "Pascal ";  break;
             case LINKcpp:       p = "C++ ";     break;
+            case LINKobjc:      p = "Obj-C ";   break;
             default:
                 assert(0);
         }
@@ -4770,6 +4772,7 @@ void TypeFunction::toCBuffer2(OutBuffer *buf, HdrGenState *hgs, int mod)
             case LINKwindows:   p = " Windows"; break;
             case LINKpascal:    p = " Pascal";  break;
             case LINKcpp:       p = " C++";     break;
+            case LINKobjc:      p = " Obj-C";   break;
             default:
                 assert(0);
         }

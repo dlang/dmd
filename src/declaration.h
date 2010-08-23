@@ -18,6 +18,9 @@
 #include "dsymbol.h"
 #include "lexer.h"
 #include "mtype.h"
+#if DMD_OBJC
+#include "objc.h"
+#endif
 
 struct Expression;
 struct Statement;
@@ -526,6 +529,9 @@ struct FuncDeclaration : Declaration
     DsymbolTable *localsymtab;          // used to prevent symbols in different
                                         // scopes from having the same name
     VarDeclaration *vthis;              // 'this' parameter (member and nested)
+#if DMD_OBJC
+    ObjcSelector *objcSelector;         // Obj-C method selector (member function only)
+#endif
     VarDeclaration *v_arguments;        // '_arguments' parameter
 #if IN_GCC
     VarDeclaration *v_argptr;           // '_argptr' variable
@@ -629,6 +635,9 @@ struct FuncDeclaration : Declaration
     Statement *mergeFrequire(Statement *);
     Statement *mergeFensure(Statement *);
     Parameters *getParameters(int *pvarargs);
+#if DMD_OBJC
+    ObjcSelector *getObjCSelector() { return objcSelector; }
+#endif
 
     static FuncDeclaration *genCfunc(Type *treturn, const char *name);
     static FuncDeclaration *genCfunc(Type *treturn, Identifier *id);

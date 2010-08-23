@@ -385,6 +385,7 @@ Symbol *FuncDeclaration::toSymbol()
                     break;
 
                 case LINKc:
+                case LINKobjc:
                     t->Tmangle = mTYman_c;
                     break;
 
