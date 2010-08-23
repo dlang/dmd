@@ -5,12 +5,12 @@ alias void* id; // untyped Obj-C object pointer
 
 extern (Obj-C)
 interface Class {
-	NSObject alloc() [alloc];
+	NSObject alloc(); // implicit selector
 }
 
 extern (Obj-C)
 interface NSObject {
-	NSObject initWithUTF8String(in char *str) [initWithUTF8String:];
+	NSObject initWithUTF8String(in char *str); // implicit selector
 	void release() [release];
 }
 

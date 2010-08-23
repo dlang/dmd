@@ -51,6 +51,9 @@ FuncDeclaration::FuncDeclaration(Loc loc, Loc endloc, Identifier *id, StorageCla
     fbody = NULL;
     localsymtab = NULL;
     vthis = NULL;
+#if DMD_OBJC
+    objcSelector = NULL;
+#endif
     v_arguments = NULL;
 #if IN_GCC
     v_argptr = NULL;
@@ -2569,6 +2572,15 @@ int FuncDeclaration::isVirtual()
         toParent()->isClassDeclaration());
 #endif
     Dsymbol *p = toParent();
+#if DMD_OBJC
+    if (linkage == LINKobjc)
+    {   // final member functions are kept virtual with Obj-C linkage because
+        // the Obj-C runtime always use dynamic dispatch.
+        return isMember() &&
+            !(protection == PROTprivate || protection == PROTpackage) &&
+            p->isClassDeclaration();
+    }
+#endif
     return isMember() &&
         !(isStatic() || protection == PROTprivate || protection == PROTpackage) &&
         p->isClassDeclaration() &&
@@ -2816,6 +2828,22 @@ Parameters *FuncDeclaration::getParameters(int *pvarargs)
         *pvarargs = fvarargs;
     return fparameters;
 }
+
+#if DMD_OBJC
+/*********************************************
+ * Return the Obj-C selector for this function, or create one if this is a 
+ * virtual member with Obj-C linkage.
+ */
+
+ObjcSelector *FuncDeclaration::getObjCSelector()
+{
+    if (objcSelector == NULL && linkage == LINKobjc && isVirtual() && type)
+    {   TypeFunction *ftype = (TypeFunction *)type;
+        objcSelector = ObjcSelector::create(ident, ftype->parameters->dim);
+    }
+    return objcSelector;
+}
+#endif
 
 
 /****************************** FuncAliasDeclaration ************************/
