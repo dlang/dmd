@@ -393,7 +393,7 @@ tryagain:
                 flag = TRUE;
             }
         }
-        if (I32 && !(config.flags4 & CFG4optimized))
+        if (!I16 && !(config.flags4 & CFG4optimized))
             break;                      // use the long conditional jmps
     } while (flag);                     // loop till no more bytes saved
 #ifdef DEBUG

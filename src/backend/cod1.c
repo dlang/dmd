@@ -1872,19 +1872,28 @@ code *fixresult(elem *e,regm_t retregs,regm_t *pretregs)
         {
             c = allocreg(pretregs,&rreg,tym); /* allocate return regs   */
             if (sz > REGSIZE)
-            {   unsigned msreg,lsreg;
-                unsigned msrreg,lsrreg;
-
-                msreg = findregmsw(retregs);
-                lsreg = findreglsw(retregs);
-                msrreg = findregmsw(*pretregs);
-                lsrreg = findreglsw(*pretregs);
+            {
+                unsigned msreg = findregmsw(retregs);
+                unsigned lsreg = findreglsw(retregs);
+                unsigned msrreg = findregmsw(*pretregs);
+                unsigned lsrreg = findreglsw(*pretregs);
 
                 ce = genmovreg(ce,msrreg,msreg); /* MOV msrreg,msreg    */
                 ce = genmovreg(ce,lsrreg,lsreg); /* MOV lsrreg,lsreg    */
             }
+            else if (retregs & XMMREGS)
+            {
+                reg = findreg(retregs & XMMREGS);
+                // MOVD floatreg, XMM?
+                ce = genfltreg(ce,0xF20F11,reg - XMM0,0);
+                // MOV rreg,floatreg
+                ce = genfltreg(ce,0x8B,rreg,0);
+                if (sz == 8)
+                    code_orrex(ce,REX_W);
+            }
             else
-            {   reg = findreg(retregs & (mBP | ALLREGS));
+            {
+                reg = findreg(retregs & (mBP | ALLREGS));
                 ce = genmovreg(ce,rreg,reg);    /* MOV rreg,reg         */
             }
         }
@@ -1912,6 +1921,8 @@ int clib_inited = 0;            // != 0 if initialized
 
 code *callclib(elem *e,unsigned clib,regm_t *pretregs,regm_t keepmask)
 {
+    //printf("callclib(e = %p, clib = %d, *pretregs = %s, keepmask = %s\n", e, clib, regm_str(*pretregs), regm_str(keepmask));
+    //elem_print(e);
 #if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_SOLARIS
   static symbol lib[] =
   {
@@ -2098,6 +2109,7 @@ code *callclib(elem *e,unsigned clib,regm_t *pretregs,regm_t keepmask)
         #define INF32           1       // if 32 bit only
         #define INFfloat        2       // if this is floating point
         #define INFwkdone       4       // if weak extern is already done
+        #define INF64           8       // if 64 bit only
     char push87;                        // # of pushes onto the 8087 stack
     char pop87;                         // # of pops off of the 8087 stack
   } info[CLIBMAX] =
@@ -2175,8 +2187,8 @@ code *callclib(elem *e,unsigned clib,regm_t *pretregs,regm_t keepmask)
     {mST01,mST01,0,INF32|INFfloat,0,2}, // _Cdiv
     {mPSW, mPSW, 0,INF32|INFfloat,0,4}, // _Ccmp
 
-    {mST0,mST0,0,INF32|INFfloat,2,1},   // _U64_LDBL
-    {0,mDX|mAX,0,INF32|INFfloat,1,2},   // __LDBLULLNG
+    {mST0,mST0,0,INF32|INF64|INFfloat,2,1},   // _U64_LDBL
+    {0,mDX|mAX,0,INF32|INF64|INFfloat,1,2},   // __LDBLULLNG
   };
 
   if (!clib_inited)                             /* if not initialized   */
@@ -2219,7 +2231,8 @@ code *callclib(elem *e,unsigned clib,regm_t *pretregs,regm_t keepmask)
 
   assert(clib < CLIBMAX);
   symbol *s = &lib[clib];
-  assert(I32 || !(info[clib].flags & INF32));
+  if (I16)
+        assert(!(info[clib].flags & (INF32 | INF64)));
   code *cpop = CNIL;
   code *c = getregs((~s->Sregsaved & (mES | mBP | ALLREGS)) & ~keepmask); // mask of regs destroyed
   keepmask &= ~s->Sregsaved;
@@ -3610,12 +3623,10 @@ code *loaddata(elem *e,regm_t *pretregs)
             ce = loadea(e,&cs,0x0B,reg,0,regm,0);       /* OR reg,data */
             c = cat(c,ce);
         }
-        else if (sz == 8)
-        {   code *c1;
-            int i;
-
+        else if (sz == 8 || (I64 && sz == 2 * REGSIZE && !tyfloating(tym)))
+        {
             c = allocreg(&regm,&reg,TYoffset);  /* get a register */
-            i = sz - REGSIZE;
+            int i = sz - REGSIZE;
             ce = loadea(e,&cs,0x8B,reg,i,0,0);  /* MOV reg,data+6 */
             if (tyfloating(tym))                // TYdouble or TYdouble_alias
                 gen2(ce,0xD1,modregrm(3,4,reg));        // SHL reg,1
@@ -3623,16 +3634,21 @@ code *loaddata(elem *e,regm_t *pretregs)
 
             while ((i -= REGSIZE) >= 0)
             {
-                c1 = loadea(e,&cs,0x0B,reg,i,regm,0);   // OR reg,data+i
+                code *c1 = loadea(e,&cs,0x0B,reg,i,regm,0);   // OR reg,data+i
                 if (i == 0)
                     c1->Iflags |= CFpsw;                // need the flags on last OR
                 c = cat(c,c1);
             }
         }
-        else if (sz == LNGDBLSIZE)                      // TYldouble
+        else if (sz == tysize[TYldouble])               // TYldouble
             return load87(e,0,pretregs,NULL,-1);
         else
+        {
+#ifdef DEBUG
+            elem_print(e);
+#endif
             assert(0);
+        }
         return c;
   }
   /* not for flags only */

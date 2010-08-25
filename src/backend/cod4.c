@@ -2878,7 +2878,8 @@ code *cdmsw(elem *e,regm_t *pretregs)
 #ifdef DEBUG
     if (!(!*pretregs || retregs))
     {   WROP(e->Eoper);
-        printf(" *pretregs = x%x, retregs = x%x\n",*pretregs,retregs);
+        printf(" *pretregs = %s, retregs = %s\n",regm_str(*pretregs),regm_str(retregs));
+        elem_print(e);
     }
 #endif
     assert(!*pretregs || retregs);

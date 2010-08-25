@@ -2072,7 +2072,7 @@ STATIC elem * eldiv(elem *e)
         {   int sz = tysize(tym);
 
             // See if we can replace with OPremquo
-            if (sz == intsize)
+            if (sz == REGSIZE && !I64)  // need cent and ucent working for I64 to work
             {
                 // Don't do it if there are special code sequences in the
                 // code generator (see cdmul())

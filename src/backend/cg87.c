@@ -210,7 +210,21 @@ void pop87(
  * necessary to preserve anything that might run off the end of the stack.
  */
 
-code *push87()
+#undef push87
+
+#ifdef DEBUG
+code *push87(int line, const char *file);
+code *push87() { return push87(__LINE__,__FILE__); }
+#endif
+
+code *push87(
+#ifdef DEBUG
+        int line, const char *file
+#endif
+        )
+#ifdef DEBUG
+#define push87() push87(__LINE__,__FILE__)
+#endif
 {
         code *c;
         int i;
@@ -229,7 +243,9 @@ code *push87()
         }
         else
         {
-                if (NDPP) dbg_printf("push87(%d)\n",stackused);
+#ifdef DEBUG
+                if (NDPP) dbg_printf("push87(%s(%d): %d)\n", file, line, stackused);
+#endif
                 stackused++;
                 assert(stackused <= 8);
         }
@@ -489,10 +505,9 @@ code * genfltreg(code *c,unsigned opcode,unsigned reg,targ_size_t offset)
 {
         floatreg = TRUE;
         reflocal = TRUE;
-        if ((opcode & 0xF8) == 0xD8)
+        if ((opcode & ~7) == 0xD8)
             c = genfwait(c);
-        unsigned grex = I64 ? (REX_W << 16) : 0;
-        return genc1(c,opcode,grex | modregxrm(2,reg,BPRM),FLfltreg,offset);
+        return genc1(c,opcode,modregxrm(2,reg,BPRM),FLfltreg,offset);
 }
 
 /*******************************
@@ -841,7 +856,31 @@ code *fixresult87(elem *e,regm_t retregs,regm_t *pretregs)
                 c1 = genftst(c1,e,!(*pretregs & mST0)); // FTST
             }
         }
-        assert(!(*pretregs & mST0) || (retregs & mST0));
+        if (*pretregs & mST0 && retregs & XMMREGS)
+        {
+            assert(sz <= DOUBLESIZE);
+            unsigned mf = (sz == FLOATSIZE) ? MFfloat : MFdouble;
+            // MOVD floatreg,XMM?
+            unsigned reg = findreg(retregs);
+            c1 = genfltreg(c1,0xF20F11,reg - XMM0,0);
+            c2 = push87();
+            c2 = genfltreg(c2,ESC(mf,1),0,0);                 // FLD float/double ptr fltreg
+        }
+        else if (retregs & mST0 && *pretregs & XMMREGS)
+        {
+            assert(sz <= DOUBLESIZE);
+            unsigned mf = (sz == FLOATSIZE) ? MFfloat : MFdouble;
+            // FSTP floatreg
+            pop87();
+            c1 = genfltreg(c1,ESC(mf,1),3,0);
+            genfwait(c1);
+            // MOVD XMM?,floatreg
+            unsigned reg;
+            c2 = allocreg(pretregs,&reg,(sz == FLOATSIZE) ? TYfloat : TYdouble);
+            c2 = genfltreg(c2,0xF20F10,reg -XMM0,0);
+        }
+        else
+            assert(!(*pretregs & mST0) || (retregs & mST0));
     }
     if (*pretregs & mST0)
         note87(e,0,0);
@@ -1716,7 +1755,7 @@ code *load87(elem *e,unsigned eoffset,regm_t *pretregs,elem *eleft,int op)
                     retregs = ALLREGS;
                     c = codelem(e->E1,&retregs,FALSE);
                 L3:
-                    if (!I32 && e->Eoper != OPs16_d)
+                    if (I16 && e->Eoper != OPs16_d)
                     {
                         /* MOV floatreg+2,reg   */
                         reg = findregmsw(retregs);
@@ -3321,6 +3360,36 @@ code *fixresult_complex87(elem *e,regm_t retregs,regm_t *pretregs)
         if (*pretregs & mPSW)
             c2 = genctst(c2,e,0);               // FTST
     }
+    else if ((tym == TYcfloat || tym == TYcdouble) &&
+             *pretregs & (mXMM0|mXMM1) && retregs & mST01)
+    {
+        if (*pretregs & mPSW && !(retregs & mPSW))
+            c1 = genctst(c1,e,0);               // FTST
+        pop87();
+        c1 = genfltreg(c1, ESC(MFdouble,1),3,0); // FSTP floatreg
+        genfwait(c1);
+        c2 = getregs(mXMM0|mXMM1);
+        c2 = genfltreg(c2, 0xF20F10, XMM1 - XMM0, 0);    // MOVD XMM1,floatreg
+
+        pop87();
+        c2 = genfltreg(c2, ESC(MFdouble,1),3,0); // FSTP floatreg
+        genfwait(c2);
+        c2 = genfltreg(c2, 0xF20F10, XMM0 - XMM0, 0);    // MOVD XMM0,floatreg
+    }
+    else if ((tym == TYcfloat || tym == TYcdouble) &&
+             retregs & (mXMM0|mXMM1) && *pretregs & mST01)
+    {
+        c1 = push87();
+        c1 = genfltreg(c1, 0xF20F11, XMM0-XMM0, 0);        // MOVD floatreg, XMM0
+        genfltreg(c1, 0xDD, 0, 0);              // FLD double ptr floatreg
+
+        c2 = push87();
+        c2 = genfltreg(c2, 0xF20F11, XMM1-XMM0, 0);        // MOV floatreg, XMM1
+        genfltreg(c2, 0xDD, 0, 0);              // FLD double ptr floatreg
+
+        if (*pretregs & mPSW)
+            c2 = genctst(c2,e,0);               // FTST
+    }
     else
     {   if (*pretregs & mPSW)
         {   if (!(retregs & mPSW))
@@ -3398,6 +3467,7 @@ __body
     symbol *s;
     int i;
 
+    //printf("cload87(e = %p, *pretregs = %s)\n", e, regm_str(*pretregs));
     sz = tysize[ty] / 2;
     memset(&cs, 0, sizeof(cs));
     if (ADDFWAIT())
