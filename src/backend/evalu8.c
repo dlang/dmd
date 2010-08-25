@@ -192,6 +192,12 @@ HINT boolres(elem *e)
                                        on RHS of && || expressions */
                     b = 0;
                     break;
+
+                case TYcent:
+                case TYucent:
+                    b = e->EV.Vcent.lsw || e->EV.Vcent.msw;
+                    break;
+
                 default:
 #ifdef DEBUG
                     WRTYxx(typemask(e));

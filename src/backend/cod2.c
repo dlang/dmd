@@ -227,7 +227,7 @@ code *cdorth(elem *e,regm_t *pretregs)
                 value &= 0xFFFFFFFF;
             if (reghasvalue(byte ? BYTEREGS : ALLREGS,value,&reg))
                 goto L11;
-            if (sz == 8)
+            if (sz == 8 && !I64)
             {
                 assert(value == (int)value);    // sign extend imm32
             }
@@ -409,6 +409,7 @@ code *cdorth(elem *e,regm_t *pretregs)
             cs.Iop = 0x8D;                      // LEA reg,c[reg1*ss][reg2]
             cs.Irm = modregrm(2,reg & 7,4);
             cs.Isib = modregrm(ss,reg1 & 7,reg2 & 7);
+            assert(reg2 != BP);
             cs.Iflags = CFoff;
             cs.Irex = 0;
             if (reg & 8)
@@ -776,6 +777,7 @@ code *cdmul(elem *e,regm_t *pretregs)
         return cat(c,codelem(e->E2,pretregs,FALSE));
     }
 
+    //printf("cdmul(e = %p, *pretregs = %s)\n", e, regm_str(*pretregs));
     keepregs = 0;
     cs.Iflags = 0;
     cs.Irex = 0;
@@ -1027,13 +1029,14 @@ code *cdmul(elem *e,regm_t *pretregs)
                     L4:
                     {
 #if 1
-                        regm_t regm = byte ? BYTEREGS : ALLREGS;        // don't use EBP
+                        regm_t regm = byte ? BYTEREGS : ALLREGS;
+                        regm &= ~(mBP | mR13);                  // don't use EBP
                         cl = codelem(e->E1,&regm,TRUE);
                         unsigned r = findreg(regm);
 
                         if (ss2)
                         {   // Don't use EBP
-                            resreg &= ~mBP;
+                            resreg &= ~(mBP | mR13);
                             if (!resreg)
                                 resreg = retregs;
                         }
@@ -1041,6 +1044,7 @@ code *cdmul(elem *e,regm_t *pretregs)
 
                         c = gen2sib(CNIL,0x8D,grex | modregxrm(0,reg,4),
                                               modregxrmx(ss,r,r));
+                        assert((r & 7) != BP);
                         if (ss2)
                         {
                             gen2sib(c,0x8D,grex | modregxrm(0,reg,4),
@@ -1088,18 +1092,20 @@ code *cdmul(elem *e,regm_t *pretregs)
                     L5:
                     {
                                 // Don't use EBP
-                                resreg &= ~mBP;
+                                resreg &= ~(mBP | mR13);
                                 if (!resreg)
                                     resreg = retregs;
                                 cl = allocreg(&resreg,&reg,TYint);
 
-                                regm_t sregm = ALLREGS & ~resreg;
+                                regm_t sregm = (ALLREGS & ~mR13) & ~resreg;
                                 cl = cat(cl,codelem(e->E1,&sregm,FALSE));
                                 unsigned sreg = findreg(sregm);
                                 cg = getregs(resreg | sregm);
                                 // LEA reg,[sreg * 4][sreg]
                                 // SHL sreg,shift
                                 // LEA reg,[sreg * 8][reg]
+                                assert((sreg & 7) != BP);
+                                assert((reg & 7) != BP);
                                 c = gen2sib(CNIL,0x8D,grex | modregxrm(0,reg,4),
                                                       modregxrmx(2,sreg,sreg));
                                 if (shift)
@@ -1208,6 +1214,7 @@ code *cdmul(elem *e,regm_t *pretregs)
         goto L2;
     default:                                    /* OPconst and operators */
     L2:
+        //printf("test2 %p, retregs = %s rretregs = %s resreg = %s\n", e, regm_str(retregs), regm_str(rretregs), regm_str(resreg));
         cl = codelem(e1,&retregs,FALSE);        /* eval left leaf       */
         cr = scodelem(e2,&rretregs,retregs,TRUE);       /* get rvalue   */
         if (sz <= REGSIZE)

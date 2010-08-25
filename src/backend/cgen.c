@@ -160,6 +160,8 @@ code *gen(code *c,code *cs)
     assert(I64 || cs->Irex == 0);
     ce = code_calloc();
     *ce = *cs;
+    //printf("ce = %p %02x\n", ce, ce->Iop);
+    if (ce->Iop == LEA && ce->Irm == 4 && ce->Isib == 0x6D && ce->IFL1 == FLunde) *(char*)0=0;
     if (config.flags4 & CFG4optimized &&
         ce->IFL2 == FLconst &&
         (ce->Iop == 0x81 || ce->Iop == 0x80) &&
@@ -170,7 +172,7 @@ code *gen(code *c,code *cs)
         static unsigned char regop[8] =
                 { 0x00,0x08,0x10,0x18,0x20,0x28,0x30,0x38 };
 
-//printf("replacing 0x%02x, val = x%lx\n",ce->Iop,ce->IEV2.Vlong);
+        //printf("replacing 0x%02x, val = x%lx\n",ce->Iop,ce->IEV2.Vlong);
         ce->Iop = regop[(ce->Irm & modregrm(0,7,0)) >> 3] | (ce->Iop & 1);
         code_newreg(ce, reg);
     }
@@ -189,6 +191,7 @@ code *gen1(code *c,unsigned op)
 
   ce = code_calloc();
   ce->Iop = op;
+  assert(op != LEA);
   if (c)
   {     cstart = c;
         while (code_next(c)) c = code_next(c);  /* find end of list     */
@@ -218,6 +221,7 @@ code *gen2sib(code *c,unsigned op,unsigned rm,unsigned sib)
 
   cstart = ce = code_calloc();
   /*cxcalloc++;*/
+  if (op == LEA && (rm & 0xFF) == 4 && (sib & 0xFF) == 0x6D) *(char*)0=0;
   ce->Iop = op;
   ce->Irm = rm;
   ce->Isib = sib;
@@ -386,6 +390,7 @@ code *genc1(code *c,unsigned op,unsigned ea,unsigned FL1,targ_size_t EV1)
     cs.Iea = ea;
     cs.IFL1 = FL1;
     cs.IEV1.Vsize_t = EV1;
+if (cs.Iop == LEA && cs.IFL1 == FLunde) *(char*)0=0;
     return gen(c,&cs);
 }
 

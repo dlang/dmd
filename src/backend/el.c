@@ -2563,6 +2563,12 @@ L1:
                         if (n1->EV.Vllong != n2->EV.Vllong)
                                 goto nomatch;
                         break;
+                    case TYcent:
+                    case TYucent:
+                        if (n1->EV.Vcent.lsw != n2->EV.Vcent.lsw ||
+                            n1->EV.Vcent.msw != n2->EV.Vcent.msw)
+                                goto nomatch;
+                        break;
                     case TYenum:
                         if (PARSER)
                         {   tym = n1->ET->Tnext->Tty;

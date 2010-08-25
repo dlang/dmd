@@ -286,7 +286,7 @@ dt_t *ArrayInitializer::toDt()
 
             d = NULL;
             if (tb->ty == Tarray)
-                dtdword(&d, dim);
+                dtsize_t(&d, dim);
             dtxoff(&d, s, 0, TYnptr);
             break;
 
@@ -401,7 +401,7 @@ dt_t *ArrayInitializer::toDtBit()
 
             d = NULL;
             if (tb->ty == Tarray)
-                dtdword(&d, dim);
+                dtsize_t(&d, dim);
             dtxoff(&d, s, 0, TYnptr);
             break;
 
@@ -543,7 +543,7 @@ dt_t **StringExp::toDt(dt_t **pdt)
     switch (t->ty)
     {
         case Tarray:
-            dtdword(pdt, len);
+            dtsize_t(pdt, len);
             pdt = dtabytes(pdt, TYnptr, 0, (len + 1) * sz, (char *)string);
             break;
 
@@ -599,7 +599,7 @@ dt_t **ArrayLiteralExp::toDt(dt_t **pdt)
         case Tpointer:
         case Tarray:
             if (t->ty == Tarray)
-                dtdword(pdt, elements->dim);
+                dtsize_t(pdt, elements->dim);
             if (d)
             {
                 // Create symbol, and then refer to it
@@ -611,7 +611,7 @@ dt_t **ArrayLiteralExp::toDt(dt_t **pdt)
                 dtxoff(pdt, s, 0, TYnptr);
             }
             else
-                dtdword(pdt, 0);
+                dtsize_t(pdt, 0);
 
             break;
 
@@ -789,7 +789,7 @@ void ClassDeclaration::toDt(dt_t **pdt)
 
     // Put in first two members, the vtbl[] and the monitor
     dtxoff(pdt, toVtblSymbol(), 0, TYnptr);
-    dtdword(pdt, 0);                    // monitor
+    dtsize_t(pdt, 0);                    // monitor
 
     // Put in the rest
     toDt2(pdt, this);

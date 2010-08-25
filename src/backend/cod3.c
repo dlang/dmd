@@ -3494,7 +3494,7 @@ void jmpaddr(code *c)
                 }
                 if (!ci)
                     goto Lbackjmp;      // couldn't find it
-                if (I32 || op == JMP || op == JMPS || op == JCXZ)
+                if (!I16 || op == JMP || op == JMPS || op == JCXZ)
                         c->IEVpointer2 = ad;
                 else                    /* else conditional             */
                 {       if (!(c->Iflags & CFjmp16))     /* if branch    */
@@ -3505,7 +3505,7 @@ void jmpaddr(code *c)
                                 code_next(code_next(c)) = cn;
                                 c->Iop = op ^ 1;        /* converse jmp */
                                 c->Iflags &= ~CFjmp16;
-                                c->IEVpointer2 = I32 ? 5 : 3;
+                                c->IEVpointer2 = I16 ? 3 : 5;
                                 cn = code_next(c);
                                 cn->Iop = JMP;          /* long jump    */
                                 cn->IFL2 = FLconst;
@@ -3542,7 +3542,11 @@ unsigned calcblksize(code *c)
 {   unsigned size;
 
     for (size = 0; c; c = code_next(c))
-        size += calccodsize(c);
+    {
+        unsigned sz = calccodsize(c);
+        //printf("off=%02x, sz = %d, code %p: op=%02x\n", size, sz, c, c->Iop);
+        size += sz;
+    }
 //printf("calcblksize(c = x%x) = %d\n", c, size);
     return size;
 }
@@ -5039,7 +5043,7 @@ void code::print()
   if (ins & M)
   {     unsigned rm = c->Irm;
         printf(" rm=%02x=%d,%d,%d",rm,(rm>>6)&3,(rm>>3)&7,rm&7);
-        if (I32 && issib(rm))
+        if (!I16 && issib(rm))
         {   unsigned char sib = c->Isib;
             printf(" sib=%02x=%d,%d,%d",sib,(sib>>6)&3,(sib>>3)&7,sib&7);
         }
