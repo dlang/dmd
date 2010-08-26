@@ -324,17 +324,24 @@ void AttribDeclaration::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 {
     if (decl)
     {
-        buf->writenl();
-        buf->writeByte('{');
-        buf->writenl();
-        for (unsigned i = 0; i < decl->dim; i++)
+        if (decl->dim == 0)
+            buf->writestring("{}");
+        else if (decl->dim == 1)
+            ((Dsymbol *)decl->data[0])->toCBuffer(buf, hgs);
+        else
         {
-            Dsymbol *s = (Dsymbol *)decl->data[i];
+            buf->writenl();
+            buf->writeByte('{');
+            buf->writenl();
+            for (unsigned i = 0; i < decl->dim; i++)
+            {
+                Dsymbol *s = (Dsymbol *)decl->data[i];
 
-            buf->writestring("    ");
-            s->toCBuffer(buf, hgs);
+                buf->writestring("    ");
+                s->toCBuffer(buf, hgs);
+            }
+            buf->writeByte('}');
         }
-        buf->writeByte('}');
     }
     else
         buf->writeByte(';');

@@ -3108,6 +3108,7 @@ void CaseRangeStatement::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
     first->toCBuffer(buf, hgs);
     buf->writestring(": .. case ");
     last->toCBuffer(buf, hgs);
+    buf->writebyte(':');
     buf->writenl();
     statement->toCBuffer(buf, hgs);
 }
