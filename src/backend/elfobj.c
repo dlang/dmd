@@ -38,6 +38,9 @@
 
 #include        "dwarf.h"
 
+#include        "aa.h"
+#include        "tinfo.h"
+
 //#define DEBSYM 0x7E
 
 static Outbuffer *fobjbuf;
@@ -122,6 +125,74 @@ static long elf_align(FILE *fd, targ_size_t size, long offset);
 static Outbuffer *section_names;
 #define SEC_NAMES_INIT  800
 #define SEC_NAMES_INC   400
+
+// Hash table for section_names
+AArray *section_names_hashtable;
+
+/* ====================== Cached Strings in section_names ================= */
+
+struct TypeInfo_Idxstr : TypeInfo
+{
+    const char* toString();
+    hash_t getHash(void *p);
+    int equals(void *p1, void *p2);
+    int compare(void *p1, void *p2);
+    size_t tsize();
+    void swap(void *p1, void *p2);
+};
+
+TypeInfo_Idxstr ti_idxstr;
+
+const char* TypeInfo_Idxstr::toString()
+{
+    return "IDXSTR";
+}
+
+hash_t TypeInfo_Idxstr::getHash(void *p)
+{
+    IDXSTR a = *(IDXSTR *)p;
+    hash_t hash = 0;
+    for (const char *s = (char *)(section_names->buf + a);
+         *s;
+         s++)
+    {
+        hash = hash * 11 + *s;
+    }
+    return hash;
+}
+
+int TypeInfo_Idxstr::equals(void *p1, void *p2)
+{
+    IDXSTR a1 = *(IDXSTR*)p1;
+    IDXSTR a2 = *(IDXSTR*)p2;
+    const char *s1 = (char *)(section_names->buf + a1);
+    const char *s2 = (char *)(section_names->buf + a2);
+
+    return strcmp(s1, s2) == 0;
+}
+
+int TypeInfo_Idxstr::compare(void *p1, void *p2)
+{
+    IDXSTR a1 = *(IDXSTR*)p1;
+    IDXSTR a2 = *(IDXSTR*)p2;
+    const char *s1 = (char *)(section_names->buf + a1);
+    const char *s2 = (char *)(section_names->buf + a2);
+
+    return strcmp(s1, s2);
+}
+
+size_t TypeInfo_Idxstr::tsize()
+{
+    return sizeof(IDXSTR);
+}
+
+void TypeInfo_Idxstr::swap(void *p1, void *p2)
+{
+    assert(0);
+}
+
+
+/* ======================================================================== */
 
 // String Table  - String table for all other names
 static Outbuffer *symtab_strings;
@@ -253,52 +324,45 @@ IDXSTR elf_addstr(Outbuffer *strtab, const char *str)
 
 static IDXSTR elf_findstr(Outbuffer *strtab, const char *str, const char *suffix)
 {
+    //printf("elf_findstr(strtab = %p, str = %s, suffix = %s\n", strtab, str ? str : "", suffix ? suffix : "");
+
+    size_t len = strlen(str);
+
+    // Combine str~suffix and have buf point to the combination
+#ifdef DEBUG
+    char tmpbuf[25];    // to exercise the alloca() code path
+#else
+    char tmpbuf[1024];  // the alloca() code path is slow
+#endif
+    const char *buf;
+    if (suffix)
+    {
+        size_t suffixlen = strlen(suffix);
+        if (len + suffixlen >= sizeof(tmpbuf))
+        {
+             buf = (char *)alloca(len + suffixlen + 1);
+             assert(buf);
+        }
+        else
+        {
+             buf = tmpbuf;
+        }
+        memcpy((char *)buf, str, len);
+        memcpy((char *)buf + len, suffix, suffixlen + 1);
+        len += suffixlen;
+    }
+    else
+        buf = str;
+
+    // Linear search, slow
     const char *ent = (char *)strtab->buf+1;
     const char *pend = ent+strtab->size() - 1;
-    const char *s = str;
-    const char *sx = suffix;
-    int len = strlen(str);
-
-    if (suffix)
-        len += strlen(suffix);
-
-    while(ent < pend)
+    while (ent + len < pend)
     {
-        if(*ent == 0)                   // end of table entry
-        {
-            if(*s == 0 && !sx)          // end of string - found a match
-            {
-                return ent - (const char *)strtab->buf - len;
-            }
-            else                        // table entry too short
-            {
-                s = str;                // back to beginning of string
-                sx = suffix;
-                ent++;                  // start of next table entry
-            }
-        }
-        else if (*s == 0 && sx && *sx == *ent)
-        {                               // matched first string
-            s = sx+1;                   // switch to suffix
-            ent++;
-            sx = NULL;
-        }
-        else                            // continue comparing
-        {
-            if (*ent == *s)
-            {                           // Have a match going
-                ent++;
-                s++;
-            }
-            else                        // no match
-            {
-                while(*ent != 0)        // skip to end of entry
-                    ent++;
-                ent++;                  // start of next table entry
-                s = str;                // back to beginning of string
-                sx = suffix;
-            }
-        }
+        if (memcmp(buf, ent, len + 1) == 0)
+            return ent - (const char *)strtab->buf;
+        ent = (const char *)memchr(ent, 0, pend - ent);
+        ent += 1;
     }
     return 0;                   // never found match
 }
@@ -467,23 +531,20 @@ static IDXSEC elf_newsection2(
 static IDXSEC elf_newsection(const char *name, const char *suffix,
         elf_u32_f32 type, elf_u32_f32 flags)
 {
-    Elf32_Shdr sec;
+    // dbg_printf("elf_newsection(%s,%s,type %d, flags x%x)\n",
+    //        name?name:"",suffix?suffix:"",type,flags);
 
-//    dbg_printf("elf_newsection(%s,%s,type %d, flags x%x)\n",
-//        name?name:"",suffix?suffix:"",type,flags);
-
-#if 1
-    int namidx = elf_addstr(section_names,name);
-#else
-    int namidx = section_names->size();
+    IDXSTR namidx = section_names->size();
     section_names->writeString(name);
-#endif
-                                        // name in section names table
-    if (suffix)                         // suffix - back up over NUL and
-    {                                   //          append suffix string
-        section_names->setsize(section_names->size()-1);
+    if (suffix)
+    {   // Append suffix string
+        section_names->setsize(section_names->size() - 1);  // back up over terminating 0
         section_names->writeString(suffix);
-    };
+    }
+    IDXSTR *pidx = (IDXSTR *)section_names_hashtable->get(&namidx);
+    assert(!*pidx);             // must not already exist
+    *pidx = namidx;
+
     return elf_newsection2(namidx,type,flags,0,0,0,0,0,0,0);
 }
 
@@ -614,6 +675,10 @@ void obj_init(Outbuffer *objbuf, const char *filename, const char *csegname)
             section_names->writen(section_names_init64, sizeof(section_names_init64));
         }
 
+        if (section_names_hashtable)
+            delete section_names_hashtable;
+        section_names_hashtable = new AArray(&ti_idxstr, sizeof(IDXSTR));
+
         // name,type,flags,addr,offset,size,link,info,addralign,entsize
         elf_newsection2(0,               SHT_NULL,   0,                 0,0,0,0,0, 0,0);
         elf_newsection2(NAMIDX_TEXT,SHT_PROGDEF,SHF_ALLOC|SHF_EXECINSTR,0,0,0,0,0, 4,0);
@@ -627,6 +692,19 @@ void obj_init(Outbuffer *objbuf, const char *filename, const char *csegname)
         elf_newsection2(NAMIDX_SHSTRTAB,SHT_STRTAB, 0,                  0,0,0,0,0, 1,0);
         elf_newsection2(NAMIDX_COMMENT, SHT_PROGDEF,0,                  0,0,0,0,0, 1,0);
         elf_newsection2(NAMIDX_NOTE,SHT_NOTE,   0,                      0,0,0,0,0, 1,0);
+
+        IDXSTR namidx;
+        namidx = NAMIDX_TEXT;      *(IDXSTR *)section_names_hashtable->get(&namidx) = namidx;
+        namidx = NAMIDX_RELTEXT;   *(IDXSTR *)section_names_hashtable->get(&namidx) = namidx;
+        namidx = NAMIDX_DATA;      *(IDXSTR *)section_names_hashtable->get(&namidx) = namidx;
+        namidx = NAMIDX_RELDATA64; *(IDXSTR *)section_names_hashtable->get(&namidx) = namidx;
+        namidx = NAMIDX_BSS;       *(IDXSTR *)section_names_hashtable->get(&namidx) = namidx;
+        namidx = NAMIDX_RODATA;    *(IDXSTR *)section_names_hashtable->get(&namidx) = namidx;
+        namidx = NAMIDX_STRTAB;    *(IDXSTR *)section_names_hashtable->get(&namidx) = namidx;
+        namidx = NAMIDX_SYMTAB;    *(IDXSTR *)section_names_hashtable->get(&namidx) = namidx;
+        namidx = NAMIDX_SHSTRTAB;  *(IDXSTR *)section_names_hashtable->get(&namidx) = namidx;
+        namidx = NAMIDX_COMMENT;   *(IDXSTR *)section_names_hashtable->get(&namidx) = namidx;
+        namidx = NAMIDX_NOTE;      *(IDXSTR *)section_names_hashtable->get(&namidx) = namidx;
     }
     else
     {
@@ -637,9 +715,13 @@ void obj_init(Outbuffer *objbuf, const char *filename, const char *csegname)
             section_names->setsize(sizeof(section_names_init));
         else
         {   section_names = new Outbuffer(512);
-            section_names->reserve(1024);
+            section_names->reserve(100*1024);
             section_names->writen(section_names_init, sizeof(section_names_init));
         }
+
+        if (section_names_hashtable)
+            delete section_names_hashtable;
+        section_names_hashtable = new AArray(&ti_idxstr, sizeof(IDXSTR));
 
         // name,type,flags,addr,offset,size,link,info,addralign,entsize
         elf_newsection2(0,               SHT_NULL,   0,                 0,0,0,0,0, 0,0);
@@ -654,6 +736,19 @@ void obj_init(Outbuffer *objbuf, const char *filename, const char *csegname)
         elf_newsection2(NAMIDX_SHSTRTAB,SHT_STRTAB, 0,                  0,0,0,0,0, 1,0);
         elf_newsection2(NAMIDX_COMMENT, SHT_PROGDEF,0,                  0,0,0,0,0, 1,0);
         elf_newsection2(NAMIDX_NOTE,SHT_NOTE,   0,                      0,0,0,0,0, 1,0);
+
+        IDXSTR namidx;
+        namidx = NAMIDX_TEXT;      *(IDXSTR *)section_names_hashtable->get(&namidx) = namidx;
+        namidx = NAMIDX_RELTEXT;   *(IDXSTR *)section_names_hashtable->get(&namidx) = namidx;
+        namidx = NAMIDX_DATA;      *(IDXSTR *)section_names_hashtable->get(&namidx) = namidx;
+        namidx = NAMIDX_RELDATA;   *(IDXSTR *)section_names_hashtable->get(&namidx) = namidx;
+        namidx = NAMIDX_BSS;       *(IDXSTR *)section_names_hashtable->get(&namidx) = namidx;
+        namidx = NAMIDX_RODATA;    *(IDXSTR *)section_names_hashtable->get(&namidx) = namidx;
+        namidx = NAMIDX_STRTAB;    *(IDXSTR *)section_names_hashtable->get(&namidx) = namidx;
+        namidx = NAMIDX_SYMTAB;    *(IDXSTR *)section_names_hashtable->get(&namidx) = namidx;
+        namidx = NAMIDX_SHSTRTAB;  *(IDXSTR *)section_names_hashtable->get(&namidx) = namidx;
+        namidx = NAMIDX_COMMENT;   *(IDXSTR *)section_names_hashtable->get(&namidx) = namidx;
+        namidx = NAMIDX_NOTE;      *(IDXSTR *)section_names_hashtable->get(&namidx) = namidx;
     }
 
     if (SYMbuf)
@@ -1556,9 +1651,19 @@ int elf_getsegment(const char *name, const char *suffix, int type, int flags,
 {
     //printf("elf_getsegment(%s,%s,flags %x, align %d)\n",name,suffix,flags,align);
 
-    IDXSTR namidx;
-    if (namidx = elf_findstr(section_names,name,suffix))
-    {                                   // this section name exists
+    // Add name~suffix to the section_names table
+    IDXSTR namidx = section_names->size();
+    section_names->writeString(name);
+    if (suffix)
+    {   // Append suffix string
+        section_names->setsize(section_names->size() - 1);  // back up over terminating 0
+        section_names->writeString(suffix);
+    }
+    IDXSTR *pidx = (IDXSTR *)section_names_hashtable->get(&namidx);
+    if (*pidx)
+    {   // this section name already exists
+        section_names->setsize(namidx);                 // remove addition
+        namidx = *pidx;
         for (int seg = CODE; seg <= seg_count; seg++)
         {                               // should be in segment table
             if (MAP_SEG2SEC(seg)->sh_name == namidx)
@@ -1569,9 +1674,10 @@ int elf_getsegment(const char *name, const char *suffix, int type, int flags,
         assert(0);      // but it's not a segment
         // FIX - should be an error message conflict with section names
     }
+    *pidx = namidx;
 
     //dbg_printf("\tNew segment - %d size %d\n", seg,SegData[seg]->SDbuf);
-    IDXSEC shtidx = elf_newsection(name,suffix,type,flags);
+    IDXSEC shtidx = elf_newsection2(namidx,type,flags,0,0,0,0,0,0,0);
     SecHdrTab[shtidx].sh_addralign = align;
     IDXSYM symidx = elf_addsym(0, 0, 0, STT_SECTION, STB_LOCAL, shtidx);
     int seg = elf_getsegment2(shtidx, symidx, 0);
