@@ -72,7 +72,10 @@ MANIFEST= \
 	src\core\sync\rwmutex.d \
 	src\core\sync\semaphore.d \
 	\
+	src\core\sys\osx\mach\dyld.d \
+	src\core\sys\osx\mach\getsect.d \
 	src\core\sys\osx\mach\kern_return.d \
+	src\core\sys\osx\mach\loader.d \
 	src\core\sys\osx\mach\port.d \
 	src\core\sys\osx\mach\semaphore.d \
 	src\core\sys\osx\mach\thread_act.d \
@@ -147,6 +150,8 @@ MANIFEST= \
 	src\rt\deh.c \
 	src\rt\deh2.d \
 	src\rt\dmain2.d \
+	src\rt\dylib_fixes.c \
+	src\rt\image.d \
 	src\rt\invariant.d \
 	src\rt\invariant_.d \
 	src\rt\lifetime.d \
@@ -496,7 +501,7 @@ $(IMPDIR)\core\bitop.di : src\core\bitop.d
 
 $(IMPDIR)\core\cpuid.di : src\core\cpuid.d
 	$(DMD) -c -d -o- -Isrc -Iimport -Hf$@ $**
-
+	
 $(IMPDIR)\core\dll_helper.di : src\core\dll_helper.d
 	$(DMD) -c -d -o- -Isrc -Iimport -Hf$@ $**
 
