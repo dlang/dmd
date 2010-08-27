@@ -3947,6 +3947,9 @@ Expression *VarExp::semantic(Scope *sc)
 #endif
     }
 
+    if (type && !type->deco)
+        type = type->semantic(loc, sc);
+
     /* Fix for 1161 doesn't work because it causes protection
      * problems when instantiating imported templates passing private
      * variables as alias template parameters.
@@ -5479,7 +5482,9 @@ Expression *DotIdExp::semantic(Scope *sc)
                         e->type = v->type;
                     }
                 }
-                return e->deref();
+                //return e->deref();
+                e = e->deref();
+                return e->semantic(sc);
             }
 
             FuncDeclaration *f = s->isFuncDeclaration();
