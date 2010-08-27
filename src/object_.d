@@ -44,14 +44,14 @@ private
 version(X86_64)
 {
     alias ulong size_t;
-    alias long  sizediff_t;
     alias long  ptrdiff_t;
+    alias long  sizediff_t;
 }
 else
 {
-    alias uint size_t;
-    alias int  sizediff_t;
-    alias int  ptrdiff_t;
+    alias uint  size_t;
+    alias int   ptrdiff_t;
+    alias int   sizediff_t;
 }
 
 alias size_t hash_t;
@@ -108,7 +108,7 @@ class Object
     {
         return this is o;
     }
-
+    
     equals_t opEquals(Object lhs, Object rhs)
     {
         if (lhs is rhs)
@@ -1721,7 +1721,7 @@ extern (C) void _moduleCtor()
              //printf("\t%p\n", m);
              printf("\t%.*s\n", m.name);
          }
-    }
+    }    
 
     version (Windows)
     {
@@ -1967,7 +1967,7 @@ body
         _d_monitor_create(cast(Object) owner);
         m = cast(shared(Monitor)*) owner.__monitor;
     }
-
+    
     auto i = m.impl;
     if (i is null)
     {
@@ -2427,7 +2427,7 @@ version (none)
 {
     // enforce() copied from Phobos std.contracts for clear(), left out until
     // we decide whether to use it.
-
+    
 
     T _enforce(T, string file = __FILE__, int line = __LINE__)
         (T value, lazy const(char)[] msg = null)

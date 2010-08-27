@@ -14,14 +14,7 @@ module object;
 
 alias typeof(int.sizeof)                    size_t;
 alias typeof(cast(void*)0 - cast(void*)0)   ptrdiff_t;
-static if (size_t.sizeof == 4)
-{
-    alias int sizediff_t;
-}
-else
-{
-    alias long sizediff_t;
-}
+alias ptrdiff_t                             sizediff_t;
 
 alias size_t hash_t;
 alias bool equals_t;
