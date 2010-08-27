@@ -76,7 +76,7 @@ else version( OSX )
     alias long      off_t;
     alias int       pid_t;
     //size_t (defined in core.stdc.stddef)
-    alias size_t    ssize_t;
+    alias c_long    ssize_t;
     //time_t (defined in core.stdc.time)
     alias uint      uid_t;
 }
@@ -92,7 +92,7 @@ else version( FreeBSD )
     alias long      off_t;
     alias int       pid_t;
     //size_t (defined in core.stdc.stddef)
-    alias size_t    ssize_t;
+    alias c_long    ssize_t;
     //time_t (defined in core.stdc.time)
     alias uint      uid_t;
     alias uint      fflags_t;
