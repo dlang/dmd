@@ -474,7 +474,7 @@ Expression *BinExp::op_overload(Scope *sc)
 
     Objects *targsi = NULL;
 #if DMDV2
-    if (!s && !s_r && op != TOKequal && op != TOKnotequal)
+    if (!s && !s_r && op != TOKequal && op != TOKnotequal && op != TOKassign)
     {   /* Try the new D2 scheme, opBinary and opBinaryRight
          */
         if (ad1)
