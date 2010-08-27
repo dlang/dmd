@@ -104,7 +104,7 @@ block *labelToBlock(Loc loc, Blockx *blx, LabelDsymbol *label, int flag = 0)
             // Keep track of the forward reference to this block, so we can check it later
             if (!s->fwdrefs)
                 s->fwdrefs = new Array();
-            s->fwdrefs->push(s->lblock);
+            s->fwdrefs->push(blx->curblock);
         }
     }
     return s->lblock;
