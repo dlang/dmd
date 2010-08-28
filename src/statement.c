@@ -2127,8 +2127,6 @@ Statement *ForeachRangeStatement::semantic(Scope *sc)
         {
             AddExp ea(loc, lwr, upr);
             Expression *e = ea.typeCombine(sc);
-            if (e->op == TOKerror)
-                return this;
             arg->type = ea.type->mutableOf();
             lwr = ea.e1;
             upr = ea.e2;
