@@ -3962,7 +3962,7 @@ Expression *VarExp::semantic(Scope *sc)
         if (v->isConst() && v->type && type->toBasetype()->ty != Tsarray && v->init)
         {
             ExpInitializer *ei = v->init->isExpInitializer();
-            if (ei)
+            if (ei && ei->exp->type)
             {
                 //ei->exp->implicitCastTo(sc, type)->print();
                 return ei->exp->implicitCastTo(sc, type);
