@@ -1089,19 +1089,26 @@ L2:
 #endif
 
     // Loop through the function parameters
-    for (i = 0; i < nfparams; i++)
+    for (size_t parami = 0; parami < nfparams; parami++)
     {
         /* Skip over function parameters which wound up
          * as part of a template tuple parameter.
          */
-        if (i == fptupindex)
-        {   if (fptupindex == nfparams - 1)
-                break;
-            i += tuple_dim - 1;
+        if (parami == fptupindex)
             continue;
-        }
+        /* Set i = index into function arguments
+         * Function parameters correspond to function arguments as follows.
+         * Note that tuple_dim may be zero, and there may be default or
+         * variadic arguments at the end.
+         *  arg [0..fptupindex] == param[0..fptupindex]
+         *  arg [fptupindex..fptupindex+tuple_dim] == param[fptupindex]
+         *  arg[fputupindex+dim.. ] == param[fptupindex+1.. ]
+         */
+        i = parami;
+        if (fptupindex >= 0 && parami > fptupindex)
+            i += tuple_dim - 1;
 
-        Parameter *fparam = Parameter::getNth(fparameters, i);
+        Parameter *fparam = Parameter::getNth(fparameters, parami);
 
         if (i >= nfargs)                // if not enough arguments
         {
