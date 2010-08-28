@@ -370,7 +370,7 @@ void DeclarationStatement::scopeCode(Scope *sc, Statement **sentry, Statement **
             if (v)
             {   Expression *e;
 
-                e = v->callAutoDtor(sc);
+                e = v->callScopeDtor(sc);
                 if (e)
                 {
                     //printf("dtor is: "); e->print();
@@ -1695,7 +1695,7 @@ Statement *ForeachStatement::semantic(Scope *sc)
             if (!sc->func->vresult && tret && tret != Type::tvoid)
             {
                 VarDeclaration *v = new VarDeclaration(loc, tret, Id::result, NULL);
-                v->noauto = 1;
+                v->noscope = 1;
                 v->semantic(sc);
                 if (!sc->insert(v))
                     assert(0);
@@ -2223,7 +2223,7 @@ Statement *IfStatement::semantic(Scope *sc)
 
         Type *t = arg->type ? arg->type : condition->type;
         match = new VarDeclaration(loc, t, arg->ident, NULL);
-        match->noauto = 1;
+        match->noscope = 1;
         match->semantic(scd);
         if (!scd->insert(match))
             assert(0);
@@ -3297,7 +3297,7 @@ Statement *ReturnStatement::semantic(Scope *sc)
             if (!fd->vresult)
             {   // Declare vresult
                 VarDeclaration *v = new VarDeclaration(loc, tret, Id::result, NULL);
-                v->noauto = 1;
+                v->noscope = 1;
                 v->semantic(scx);
                 if (!scx->insert(v))
                     assert(0);

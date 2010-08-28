@@ -674,7 +674,7 @@ VarDeclaration::VarDeclaration(Loc loc, Type *type, Identifier *id, Initializer 
 #endif
     this->loc = loc;
     offset = 0;
-    noauto = 0;
+    noscope = 0;
 #if DMDV2
     isargptr = FALSE;
 #endif
@@ -804,6 +804,8 @@ void VarDeclaration::semantic(Scope *sc)
             error("no definition of struct %s", ts->toChars());
         }
     }
+    if ((storage_class & STCauto) && !inferred)
+       error("storage class 'auto' has no effect if type is not inferred, did you mean 'scope'?");
 
     if (tb->ty == Ttuple)
     {   /* Instead, declare variables for each of the tuple elements
@@ -937,14 +939,14 @@ void VarDeclaration::semantic(Scope *sc)
     }
 #endif
 
-    if (type->isauto() && !noauto)
+    if (type->isscope() && !noscope)
     {
         if (storage_class & (STCfield | STCout | STCref | STCstatic) || !fd)
         {
             error("globals, statics, fields, ref and out parameters cannot be auto");
         }
 
-        if (!(storage_class & (STCauto | STCscope)))
+        if (!(storage_class & STCscope))
         {
             if (!(storage_class & STCparameter) && ident != Id::withSym)
                 error("reference to scope class must be scope");
@@ -1378,15 +1380,15 @@ int VarDeclaration::hasPointers()
 }
 
 /******************************************
- * If a variable has an auto destructor call, return call for it.
+ * If a variable has a scope destructor call, return call for it.
  * Otherwise, return NULL.
  */
 
-Expression *VarDeclaration::callAutoDtor(Scope *sc)
+Expression *VarDeclaration::callScopeDtor(Scope *sc)
 {   Expression *e = NULL;
 
-    //printf("VarDeclaration::callAutoDtor() %s\n", toChars());
-    if (storage_class & (STCauto | STCscope) && !noauto)
+    //printf("VarDeclaration::callScopeDtor() %s\n", toChars());
+    if (storage_class & (STCauto | STCscope) && !noscope)
     {
         for (ClassDeclaration *cd = type->isClassHandle();
              cd;
@@ -1592,7 +1594,7 @@ TypeInfoTupleDeclaration::TypeInfoTupleDeclaration(Type *tinfo)
 ThisDeclaration::ThisDeclaration(Loc loc, Type *t)
    : VarDeclaration(loc, t, Id::This, NULL)
 {
-    noauto = 1;
+    noscope = 1;
 }
 
 Dsymbol *ThisDeclaration::syntaxCopy(Dsymbol *s)

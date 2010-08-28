@@ -504,7 +504,7 @@ ClassDeclaration *Type::isClassHandle()
     return NULL;
 }
 
-int Type::isauto()
+int Type::isscope()
 {
     return FALSE;
 }
@@ -1927,7 +1927,7 @@ Type *TypeSArray::semantic(Loc loc, Scope *sc)
             tbn = next = tint32;
             break;
     }
-    if (tbn->isauto())
+    if (tbn->isscope())
         error(loc, "cannot have array of auto %s", tbn->toChars());
     return merge();
 }
@@ -2105,8 +2105,8 @@ Type *TypeDArray::semantic(Loc loc, Scope *sc)
             tn = next = tint32;
             break;
     }
-    if (tn->isauto())
-        error(loc, "cannot have array of auto %s", tn->toChars());
+    if (tn->isscope())
+        error(loc, "cannot have array of scope %s", tn->toChars());
     if (next != tn)
         //deco = NULL;                  // redo
         return tn->arrayOf();
@@ -2302,7 +2302,7 @@ Type *TypeAArray::semantic(Loc loc, Scope *sc)
             error(loc, "can't have associative array of %s", next->toChars());
             break;
     }
-    if (next->isauto())
+    if (next->isscope())
         error(loc, "cannot have array of auto %s", next->toChars());
 
     return merge();
@@ -2872,8 +2872,8 @@ Type *TypeFunction::semantic(Loc loc, Scope *sc)
         {   error(loc, "functions cannot return a tuple");
             tf->next = Type::terror;
         }
-        if (tf->next->isauto() && !(sc->flags & SCOPEctor))
-            error(loc, "functions cannot return auto %s", tf->next->toChars());
+        if (tf->next->isscope() && !(sc->flags & SCOPEctor))
+            error(loc, "functions cannot return scope %s", tf->next->toChars());
     }
 
     if (tf->parameters)
@@ -5012,9 +5012,9 @@ ClassDeclaration *TypeClass::isClassHandle()
     return sym;
 }
 
-int TypeClass::isauto()
+int TypeClass::isscope()
 {
-    return sym->isauto;
+    return sym->isscope;
 }
 
 int TypeClass::isBaseOf(Type *t, int *poffset)

@@ -4007,7 +4007,7 @@ void VarExp::checkEscape()
         // if reference type
         if (tb->ty == Tarray || tb->ty == Tsarray || tb->ty == Tclass)
         {
-            if ((v->isAuto() || v->isScope()) && !v->noauto)
+            if (v->isScope() && !v->noscope)
                 error("escaping reference to auto local %s", v->toChars());
             else if (v->storage_class & STCvariadic)
                 error("escaping reference to variadic parameter %s", v->toChars());
