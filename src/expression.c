@@ -4275,26 +4275,31 @@ Expression *VarExp::semantic(Scope *sc)
                 outerfunc = parent->isFuncDeclaration();
             }
 
-            /* If ANY of its enclosing functions are pure,
-             * it cannot do anything impure.
-             * If it is pure, it cannot access any mutable variables other
-             * than those inside itself
+            /* Magic variable __ctfe never violates pure or safe
              */
-            if (hasPureParent && v->isDataseg() &&
-                !v->isImmutable())
+            if (v->ident != Id::ctfe)
             {
-                error("pure function '%s' cannot access mutable static data '%s'",
-                    sc->func->toChars(), v->toChars());
-            }
-            else if (sc->func->isPure() &&
-                sc->parent->pastMixin() != v->parent->pastMixin() &&
-                !v->isImmutable() &&
-                !(v->storage_class & STCmanifest))
-            {
-                error("pure nested function '%s' cannot access mutable data '%s'",
-                    sc->func->toChars(), v->toChars());
-                if (v->isEnumDeclaration())
-                    error("enum");
+                /* If ANY of its enclosing functions are pure,
+                 * it cannot do anything impure.
+                 * If it is pure, it cannot access any mutable variables other
+                 * than those inside itself
+                 */
+                if (hasPureParent && v->isDataseg() &&
+                    !v->isImmutable())
+                {
+                    error("pure function '%s' cannot access mutable static data '%s'",
+                        sc->func->toChars(), v->toChars());
+                }
+                else if (sc->func->isPure() &&
+                    sc->parent->pastMixin() != v->parent->pastMixin() &&
+                    !v->isImmutable() &&
+                    !(v->storage_class & STCmanifest))
+                {
+                    error("pure nested function '%s' cannot access mutable data '%s'",
+                        sc->func->toChars(), v->toChars());
+                    if (v->isEnumDeclaration())
+                        error("enum");
+                }
             }
 
             /* Do not allow safe functions to access __gshared data
