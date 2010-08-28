@@ -819,6 +819,23 @@ int ClassDeclaration::isBaseOf(ClassDeclaration *cd, int *poffset)
     return 0;
 }
 
+/*********************************************
+ * Determine if 'this' has complete base class information.
+ * This is used to detect forward references in covariant overloads.
+ */
+
+int ClassDeclaration::isBaseInfoComplete()
+{
+    if (!baseClass)
+        return 0;
+    for (int i = 0; i < baseclasses->dim; i++)
+    {   BaseClass *b = (BaseClass *)baseclasses->data[i];
+        if (!b->base || !b->base->isBaseInfoComplete())
+            return 0;
+    }
+    return 1;
+}
+
 Dsymbol *ClassDeclaration::search(Loc loc, Identifier *ident, int flags)
 {
     Dsymbol *s;
@@ -1308,6 +1325,22 @@ int InterfaceDeclaration::isBaseOf(BaseClass *bc, int *poffset)
     if (poffset)
         *poffset = 0;
     return 0;
+}
+
+/*********************************************
+ * Determine if 'this' has clomplete base class information.
+ * This is used to detect forward references in covariant overloads.
+ */
+
+int InterfaceDeclaration::isBaseInfoComplete()
+{
+    assert(!baseClass);
+    for (int i = 0; i < baseclasses->dim; i++)
+    {   BaseClass *b = (BaseClass *)baseclasses->data[i];
+        if (!b->base || !b->base->isBaseInfoComplete ())
+            return 0;
+    }
+    return 1;
 }
 
 /****************************************
