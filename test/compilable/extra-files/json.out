@@ -1,0 +1,17 @@
+[
+{
+"kind" : "module",
+"file" : "compilable\/json.d",
+"members" : [
+{
+"name" : "X",
+"kind" : "struct",
+"line" : 5}
+,
+{
+"name" : "Y",
+"kind" : "enum",
+"line" : 7}
+]
+}
+]
