@@ -1107,7 +1107,7 @@ void FuncDeclaration::semantic3(Scope *sc)
                     loc = fensure->loc;
 
                 VarDeclaration *v = new VarDeclaration(loc, type->nextOf(), outId, NULL);
-                v->noauto = 1;
+                v->noscope = 1;
                 v->storage_class |= STCresult;
 #if DMDV2
                 if (!isVirtual())
@@ -1518,7 +1518,7 @@ void FuncDeclaration::semantic3(Scope *sc)
                     if (v->type->toBasetype()->ty == Tsarray)
                         continue;
 
-                    Expression *e = v->callAutoDtor(sc2);
+                    Expression *e = v->callScopeDtor(sc2);
                     if (e)
                     {   Statement *s = new ExpStatement(0, e);
                         s = s->semantic(sc2);

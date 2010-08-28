@@ -196,7 +196,7 @@ ClassDeclaration::ClassDeclaration(Loc loc, Identifier *id, BaseClasses *basecla
     }
 
     com = 0;
-    isauto = 0;
+    isscope = 0;
     isabstract = 0;
     inuse = 0;
 }
@@ -479,7 +479,7 @@ void ClassDeclaration::semantic(Scope *sc)
 
         // Inherit properties from base class
         com = baseClass->isCOMclass();
-        isauto = baseClass->isauto;
+        isscope = baseClass->isscope;
         vthis = baseClass->vthis;
         storage_class |= baseClass->storage_class & STC_TYPECTOR;
     }
@@ -563,8 +563,10 @@ void ClassDeclaration::semantic(Scope *sc)
         }
     }
 
-    if (storage_class & (STCauto | STCscope))
-        isauto = 1;
+    if (storage_class & STCauto)
+        error("storage class 'auto' is invalid when declaring a class, did you mean to use 'scope'?");
+    if (storage_class & STCscope)
+        isscope = 1;
     if (storage_class & STCabstract)
         isabstract = 1;
     if (storage_class & STCimmutable)

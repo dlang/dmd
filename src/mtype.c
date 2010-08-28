@@ -1576,7 +1576,7 @@ ClassDeclaration *Type::isClassHandle()
     return NULL;
 }
 
-int Type::isauto()
+int Type::isscope()
 {
     return FALSE;
 }
@@ -3397,8 +3397,8 @@ Type *TypeSArray::semantic(Loc loc, Scope *sc)
             tbn = next = tint32;
             break;
     }
-    if (tbn->isauto())
-        error(loc, "cannot have array of auto %s", tbn->toChars());
+    if (tbn->isscope())
+        error(loc, "cannot have array of scope %s", tbn->toChars());
     return merge();
 }
 
@@ -3626,8 +3626,8 @@ Type *TypeDArray::semantic(Loc loc, Scope *sc)
             break;
         }
     }
-    if (tn->isauto())
-        error(loc, "cannot have array of auto %s", tn->toChars());
+    if (tn->isscope())
+        error(loc, "cannot have array of scope %s", tn->toChars());
 
     next = tn;
     transitive();
@@ -3829,8 +3829,8 @@ Type *TypeNewArray::semantic(Loc loc, Scope *sc)
             break;
         }
     }
-    if (tn->isauto())
-        error(loc, "cannot have array of auto %s", tn->toChars());
+    if (tn->isscope())
+        error(loc, "cannot have array of scope %s", tn->toChars());
 
     next = tn;
     transitive();
@@ -3957,8 +3957,8 @@ printf("index->ito->ito = x%x\n", index->ito->ito);
             error(loc, "can't have associative array of %s", next->toChars());
             return Type::terror;
     }
-    if (next->isauto())
-    {   error(loc, "cannot have array of auto %s", next->toChars());
+    if (next->isscope())
+    {   error(loc, "cannot have array of scope %s", next->toChars());
         return Type::terror;
     }
     return merge();
@@ -4857,7 +4857,7 @@ Type *TypeFunction::semantic(Loc loc, Scope *sc)
         {   error(loc, "functions cannot return a tuple");
             tf->next = Type::terror;
         }
-        if (tf->next->isauto() && !(sc->flags & SCOPEctor))
+        if (tf->next->isscope() && !(sc->flags & SCOPEctor))
             error(loc, "functions cannot return scope %s", tf->next->toChars());
         if (tf->next->toBasetype()->ty == Tvoid)
             tf->isref = FALSE;                  // rewrite "ref void" as just "void"
@@ -7419,9 +7419,9 @@ ClassDeclaration *TypeClass::isClassHandle()
     return sym;
 }
 
-int TypeClass::isauto()
+int TypeClass::isscope()
 {
-    return sym->isauto;
+    return sym->isscope;
 }
 
 int TypeClass::isBaseOf(Type *t, int *poffset)
