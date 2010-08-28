@@ -42,7 +42,7 @@ export DMD=../src/dmd
 export RESULTS_DIR=test_results
 export ARGS=-inline -release -gc -O -unittest -fPIC
 
-runnable_tests=$(wildcard runnable/*.d)
+runnable_tests=$(wildcard runnable/*.d) $(wildcard runnable/*.html)
 runnable_test_results=$(addsuffix .out,$(addprefix $(RESULTS_DIR)/,$(runnable_tests)))
 
 compilable_tests=$(wildcard compilable/*.d)
@@ -52,13 +52,16 @@ fail_compilation_tests=$(wildcard fail_compilation/*.d)
 fail_compilation_test_results=$(addsuffix .out,$(addprefix $(RESULTS_DIR)/,$(fail_compilation_tests)))
 
 $(RESULTS_DIR)/runnable/%.d.out: runnable/%.d $(RESULTS_DIR)/.created $(RESULTS_DIR)/combinations $(DMD)
-	$(QUIET) ./do_test.sh $(<D) $*
+	$(QUIET) ./do_test.sh $(<D) $* d
+
+$(RESULTS_DIR)/runnable/%.html.out: runnable/%.html $(RESULTS_DIR)/.created $(RESULTS_DIR)/combinations $(DMD)
+	$(QUIET) ./do_test.sh $(<D) $* html
 
 $(RESULTS_DIR)/compilable/%.d.out: compilable/%.d $(RESULTS_DIR)/.created $(RESULTS_DIR)/combinations $(DMD)
-	$(QUIET) ./do_test.sh $(<D) $*
+	$(QUIET) ./do_test.sh $(<D) $* d
 
 $(RESULTS_DIR)/fail_compilation/%.d.out: fail_compilation/%.d $(RESULTS_DIR)/.created $(RESULTS_DIR)/combinations $(DMD)
-	$(QUIET) ./do_test.sh $(<D) $*
+	$(QUIET) ./do_test.sh $(<D) $* d
 
 all: run_tests
 

@@ -6,6 +6,7 @@
 # cmd line args
 input_dir=$1    # ex: runnable
 test_name=$2    # ex: pi
+test_extension=$3 # ex: d html or sh
 
 # env vars
 # ARGS        == default set of dmd command line args to test combinatorially
@@ -15,9 +16,9 @@ test_name=$2    # ex: pi
 # enable support for expressions like *( ) in substitutions
 shopt -s extglob
 
-input_file=${input_dir}/${test_name}.d
+input_file=${input_dir}/${test_name}.${test_extension}
 output_dir=${RESULTS_DIR}/${input_dir}
-output_file=${output_dir}/${test_name}.d.out
+output_file=${output_dir}/${test_name}.${test_extension}.out
 test_app=${output_dir}/${test_name}
 
 rm -f ${output_file}

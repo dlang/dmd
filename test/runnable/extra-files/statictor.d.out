@@ -1,0 +1,11 @@
+../src/dmd -Irunnable -odtest_results/runnable -oftest_results/runnable/statictor runnable/statictor.d
+test_results/runnable/statictor
+shared static this()
+Foo static ctor
+static ctor
+Bar static ctor
+Bar static dtor
+static dtor
+Foo static dtor
+shared static this()
+Executing post-test script: runnable/extra-files/statictor-postscript.sh
