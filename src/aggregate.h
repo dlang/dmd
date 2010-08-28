@@ -240,6 +240,7 @@ struct ClassDeclaration : AggregateDeclaration
     #define OFFSET_RUNTIME 0x76543210
     virtual int isBaseOf(ClassDeclaration *cd, int *poffset);
 
+    virtual int isBaseInfoComplete();
     Dsymbol *search(Loc, Identifier *ident, int flags);
 #if DMDV2
     int isFuncHidden(FuncDeclaration *fd);
@@ -289,6 +290,7 @@ struct InterfaceDeclaration : ClassDeclaration
     int isBaseOf(ClassDeclaration *cd, int *poffset);
     int isBaseOf(BaseClass *bc, int *poffset);
     const char *kind();
+    int isBaseInfoComplete();
     int vtblOffset();
 #if DMDV2
     int isCPPinterface();
