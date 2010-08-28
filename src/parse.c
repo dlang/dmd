@@ -1706,7 +1706,7 @@ TemplateParameters *Parser::parseTemplateParameterList(int flag)
     if (flag || token.value != TOKrparen)
     {   int isvariadic = 0;
 
-        while (1)
+        while (token.value != TOKrparen)
         {   TemplateParameter *tp;
             Identifier *tp_ident = NULL;
             Type *tp_spectype = NULL;
@@ -1959,10 +1959,8 @@ Objects *Parser::parseTemplateArgumentList2()
     nextToken();
 
     // Get TemplateArgumentList
-    if (token.value != endtok)
+    while (token.value != endtok)
     {
-        while (1)
-        {
             // See if it is an Expression or a Type
             if (isDeclaration(&token, 0, TOKreserved, NULL))
             {   // Template argument is a type
@@ -2026,7 +2024,6 @@ Objects *Parser::parseTemplateArgumentList2()
             if (token.value != TOKcomma)
                 break;
             nextToken();
-        }
     }
     check(endtok, "template argument list");
     return tiargs;
@@ -5265,10 +5262,8 @@ Expression *Parser::parsePrimaryExp()
             Expressions *keys = NULL;
 
             nextToken();
-            if (token.value != TOKrbracket)
+            while (token.value != TOKrbracket && token.value != TOKeof)
             {
-                while (token.value != TOKeof)
-                {
                     Expression *e = parseAssignExp();
                     if (token.value == TOKcolon && (keys || values->dim == 0))
                     {   nextToken();
@@ -5286,9 +5281,8 @@ Expression *Parser::parsePrimaryExp()
                     if (token.value == TOKrbracket)
                         break;
                     check(TOKcomma);
-                }
             }
-            check(TOKrbracket);
+            check(loc, TOKrbracket);
 
             if (keys)
                 e = new AssocArrayLiteralExp(loc, keys, values);
@@ -5443,10 +5437,9 @@ Expression *Parser::parsePostExp(Expression *e)
                         if (token.value == TOKcomma)
                         {
                             nextToken();
-                            while (1)
-                            {   Expression *arg;
-
-                                arg = parseAssignExp();
+                            while (token.value != TOKrbracket && token.value != TOKeof)
+                            {
+                                Expression *arg = parseAssignExp();
                                 arguments->push(arg);
                                 if (token.value == TOKrbracket)
                                     break;
@@ -6145,16 +6138,13 @@ Expressions *Parser::parseArguments()
 
     {
         nextToken();
-        if (token.value != endtok)
+        while (token.value != endtok)
         {
-            while (1)
-            {
                 arg = parseAssignExp();
                 arguments->push(arg);
                 if (token.value == endtok)
                     break;
                 check(TOKcomma);
-            }
         }
         check(endtok);
     }
