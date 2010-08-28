@@ -4286,7 +4286,8 @@ Expression *VarExp::semantic(Scope *sc)
                 error("pure function '%s' cannot access mutable static data '%s'",
                     sc->func->toChars(), v->toChars());
             }
-            else if (sc->func->isPure() && sc->parent != v->parent &&
+            else if (sc->func->isPure() &&
+                sc->parent->pastMixin() != v->parent->pastMixin() &&
                 !v->isImmutable() &&
                 !(v->storage_class & STCmanifest))
             {
