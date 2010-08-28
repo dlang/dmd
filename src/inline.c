@@ -282,11 +282,6 @@ int BinExp::inlineCost(InlineCostState *ics)
 
 int CallExp::inlineCost(InlineCostState *ics)
 {
-    // Bugzilla 3500: super.func() calls must be devirtualized, and the inliner
-    // can't handle that at present.
-    if (e1->op == TOKdotvar && ((DotVarExp *)e1)->e1->op == TOKsuper)
-        return COST_MAX;
-
     return 1 + e1->inlineCost(ics) + arrayInlineCost(ics, arguments);
 }
 
