@@ -2704,18 +2704,26 @@ int Type::covariant(Type *t)
 
     if (t1n->equals(t2n))
         goto Lcovariant;
-    if (t1n->ty != Tclass || t2n->ty != Tclass)
-        goto Lnotcovariant;
-
-    // If t1n is forward referenced:
-    ClassDeclaration *cd = ((TypeClass *)t1n)->sym;
-    if (!cd->baseClass && cd->baseclasses->dim && !cd->isInterfaceDeclaration())
+    if (t1n->ty == Tclass && t2n->ty == Tclass)
     {
-        return 3;
-    }
+        ClassDeclaration *cd = ((TypeClass *)t1n)->sym;
+        ClassDeclaration *cd2 = ((TypeClass *)t2n)->sym;
+        if (cd == cd2)
+            goto Lcovariant;
 
+        // If t1n is forward referenced:
+#if 0
+        if (!cd->baseClass && cd->baseclasses->dim && !cd->isInterfaceDeclaration())
+#else
+        if (!cd->isBaseInfoComplete())
+#endif
+        {
+            return 3;
+        }
+    }
     if (t1n->implicitConvTo(t2n))
         goto Lcovariant;
+
     goto Lnotcovariant;
     }
 

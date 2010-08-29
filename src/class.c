@@ -829,7 +829,7 @@ int ClassDeclaration::isBaseOf(ClassDeclaration *cd, int *poffset)
 int ClassDeclaration::isBaseInfoComplete()
 {
     if (!baseClass)
-        return 0;
+        return ident == Id::Object;
     for (int i = 0; i < baseclasses->dim; i++)
     {   BaseClass *b = (BaseClass *)baseclasses->data[i];
         if (!b->base || !b->base->isBaseInfoComplete())
