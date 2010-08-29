@@ -42,7 +42,7 @@ export DMD=../src/dmd
 export RESULTS_DIR=test_results
 export ARGS=-inline -release -gc -O -unittest -fPIC
 
-runnable_tests=$(wildcard runnable/*.d) $(wildcard runnable/*.html)
+runnable_tests=$(wildcard runnable/*.d) $(wildcard runnable/*.html) $(wildcard runnable/*.sh)
 runnable_test_results=$(addsuffix .out,$(addprefix $(RESULTS_DIR)/,$(runnable_tests)))
 
 compilable_tests=$(wildcard compilable/*.d)
@@ -56,6 +56,10 @@ $(RESULTS_DIR)/runnable/%.d.out: runnable/%.d $(RESULTS_DIR)/.created $(RESULTS_
 
 $(RESULTS_DIR)/runnable/%.html.out: runnable/%.html $(RESULTS_DIR)/.created $(RESULTS_DIR)/combinations $(DMD)
 	$(QUIET) ./do_test.sh $(<D) $* html
+
+$(RESULTS_DIR)/runnable/%.sh.out: runnable/%.sh $(RESULTS_DIR)/.created $(RESULTS_DIR)/combinations $(DMD)
+	$(QUIET) echo " ... $(<D)/$*.sh"
+	$(QUIET) ./$(<D)/$*.sh
 
 $(RESULTS_DIR)/compilable/%.d.out: compilable/%.d $(RESULTS_DIR)/.created $(RESULTS_DIR)/combinations $(DMD)
 	$(QUIET) ./do_test.sh $(<D) $* d
