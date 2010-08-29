@@ -4540,7 +4540,7 @@ int Type::covariant(Type *t)
 
         // If t1n is forward referenced:
         ClassDeclaration *cd = ((TypeClass *)t1n)->sym;
-#if 1
+#if 0
         if (!cd->baseClass && cd->baseclasses->dim && !cd->isInterfaceDeclaration())
 #else
         if (!cd->isBaseInfoComplete())
