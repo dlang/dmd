@@ -449,12 +449,12 @@ void test21()
 
 /* ================================ */
 
-auto class AutoClass{
+scope class AutoClass{
 }
 
 void test22()
 {
-	auto AutoClass ac = new AutoClass();
+	scope AutoClass ac = new AutoClass();
 
 	with(ac){
 	}
@@ -464,7 +464,7 @@ void test22()
 
 int status23;
 
-auto class C23{
+scope class C23{
 	~this(){
 		assert(status23==0);
 		status23--;
@@ -474,7 +474,7 @@ auto class C23{
 
 void foo23(){
 	assert(status23==0);
-	auto C23 ac = new C23();
+	scope C23 ac = new C23();
 }
 
 void test23()
@@ -490,7 +490,7 @@ void test23()
 
 int status24;
 
-auto class C24{
+scope class C24{
 	this(){
 		assert(status24==0);
 		status24+=2;
@@ -503,7 +503,7 @@ auto class C24{
 }
 
 void check24(){
-	auto C24 ac = new C24();
+	scope C24 ac = new C24();
 	throw new Exception("check error");
 }
 
@@ -638,7 +638,7 @@ class C30
 void test30()
 {
 	try{
-		auto C30 m = new C30();
+		scope C30 m = new C30();
 		assert(status30 == 1);
 		delete m;
 	}catch(Error e){

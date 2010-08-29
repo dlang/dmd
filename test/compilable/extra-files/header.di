@@ -1,9 +1,7 @@
 // D import file generated from 'compilable/header.d'
 module foo.bar;
-private 
-{
-    import std.stdio;
-}
+private import std.stdio;
+
 pragma (lib, "test");
 pragma (msg, "Hello World");
 typedef double mydbl = 10;
@@ -260,10 +258,8 @@ void templ(T val)
 pragma (msg, "Invalid destination type.");
 }
 }
-static 
-{
-    char[] charArray = ['"','\''];
-}
+static char[] charArray = ['"','\''];
+
 class Point
 {
     auto x = 10;

@@ -3,7 +3,7 @@
 class F { }
 
 int test1() {
-    auto F f = new F(); // comment out and warning goes away
+    scope F f = new F(); // comment out and warning goes away
     return 0;
 }
 

@@ -212,7 +212,7 @@ void test10()
 
 /*****************************************/
 
-auto class T11
+scope class T11
 {
     this(){}
     ~this(){}
@@ -220,7 +220,7 @@ auto class T11
 
 void test11()
 {
-    auto T11 t=new T11();
+    scope T11 t=new T11();
     int i=1;
     switch(i)
     {

@@ -892,7 +892,7 @@ class A44 {
 }
 class B44 : A44 { }
 
-void foo44() {  auto B44 b = new B44; }
+void foo44() { scope B44 b = new B44; }
 
 void test44()
 {

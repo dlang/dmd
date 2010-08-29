@@ -736,7 +736,7 @@ class Foo33
 
 void foo33()
 {
-    auto Foo33 f = new(3) Foo33;
+    scope Foo33 f = new(3) Foo33;
 }
 
 void test33()

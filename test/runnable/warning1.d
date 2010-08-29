@@ -6,7 +6,7 @@ extern(C) int printf(const char*, ...);
 class F { }
 int foo()
 {
-    auto F f = new F(); // comment out and warning goes away
+    scope F f = new F(); // comment out and warning goes away
     return 0;
 }
 

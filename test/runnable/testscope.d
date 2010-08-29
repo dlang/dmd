@@ -36,7 +36,7 @@ void test1()
 {
     try
     {
-	auto Foo f = new Foo();
+	scope Foo f = new Foo();
 	assert(0);
     }
     catch (Eh)

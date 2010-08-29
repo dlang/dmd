@@ -3,7 +3,7 @@ import std.c.stdio;
 
 /******************************************/
 
-auto class Foo
+scope class Foo
 {
     static int x;
 
@@ -16,7 +16,7 @@ auto class Foo
 
 int test1x()
 {
-    auto Foo f = new Foo();
+    scope Foo f = new Foo();
     return 6;
 }
 
@@ -24,7 +24,7 @@ int test1x()
 void test1()
 {
     {
-	auto Foo f = new Foo();
+	scope Foo f = new Foo();
     }
     int c;
 
@@ -34,15 +34,15 @@ void test1()
     assert(Foo.x == 2);
 
     if (c != 6)
-	auto Foo h = new Foo();
+	scope Foo h = new Foo();
     assert(Foo.x == 2);
 
     if (c == 6)
-	auto Foo j = new Foo();
+	scope Foo j = new Foo();
     assert(Foo.x == 3);
 
     {
-	auto Foo g = null, k = new Foo();
+	scope Foo g = null, k = new Foo();
 	assert(Foo.x == 3);
     }
     assert(Foo.x == 4);
@@ -52,7 +52,7 @@ void test1()
 
 int ax;
 
-auto class A2
+scope class A2
 {
   this()
   {
@@ -71,7 +71,7 @@ auto class A2
 void test2()
 {
   {
-    auto A2 a = new A2();
+    scope A2 a = new A2();
     printf("Hello world.\n");
   }
   assert(ax == 1001);
@@ -83,11 +83,11 @@ void test2()
 
 int status3;
 
-auto class Parent3
+scope class Parent3
 {
 }
 
-auto class Child3 : Parent3
+scope class Child3 : Parent3
 {
 	this(){
 		assert(status3==0);
@@ -102,7 +102,7 @@ auto class Child3 : Parent3
 
 void foo3()
 {
-	auto Parent3 o = new Child3();
+	scope Parent3 o = new Child3();
 	assert(status3==1);
 }
 

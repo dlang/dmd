@@ -49,7 +49,7 @@ void test2()
     delete i;
 
   {
-    auto I j = new C();
+    scope I j = new C();
   }
 }
 

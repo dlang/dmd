@@ -25,11 +25,9 @@ k = 2;
 }
 class C3
 {
-    @property 
-{
-    int get()
+    @property int get()
 {
 return 0;
 }
-}
+
 }
