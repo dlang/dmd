@@ -6289,6 +6289,7 @@ void initPrecedence()
     // post
     precedence[TOKdotti] = PREC_primary;
     precedence[TOKdot] = PREC_primary;
+    precedence[TOKdottd] = PREC_primary;
 //  precedence[TOKarrow] = PREC_primary;
     precedence[TOKplusplus] = PREC_primary;
     precedence[TOKminusminus] = PREC_primary;

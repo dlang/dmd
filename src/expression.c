@@ -6531,7 +6531,6 @@ Expression *CallExp::semantic(Scope *sc)
     /* Transform:
      *  array.id(args) into .id(array,args)
      *  aa.remove(arg) into delete aa[arg]
-     *  super.id(args) into parent.id(args)
      */
     if (e1->op == TOKdot)
     {
@@ -6578,20 +6577,6 @@ Expression *CallExp::semantic(Scope *sc)
 #else
                 e1 = new IdentifierExp(dotid->loc, dotid->ident);
 #endif
-            }
-            else if (e1ty == Tclass && dotid->e1->op == TOKsuper)
-            {
-                // rewrite super.id into this.baseclass.id
-
-                FuncDeclaration *fd = hasThis(sc);
-
-                Dsymbol *s = fd->toParent();
-                while (s && s->isTemplateInstance())
-                    s = s->toParent();
-
-                ClassDeclaration *cd = s->isClassDeclaration();
-                Expression *dte = new DotTypeExp(dotid->loc, new ThisExp(dotid->loc), cd->baseClass);
-                e1 = new DotIdExp(dotid->loc, dte, dotid->ident);
             }
 
          L2:
@@ -6961,7 +6946,6 @@ Lagain:
     }
     else if (e1->op == TOKsuper)
     {
-        // TODO: rewrite this to lower super(...) to baseclass(...) ?
         // Base class constructor call
         ClassDeclaration *cd = NULL;
 

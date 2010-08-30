@@ -3362,7 +3362,7 @@ elem *CallExp::toElem(IRState *irs)
         {
             switch (ex->op)
             {
-                case TOKsuper:          // super(args) ctor calls
+                case TOKsuper:          // super.member() calls directly
                 case TOKdottype:        // type.member() calls directly
                     directcall = 1;
                     break;
