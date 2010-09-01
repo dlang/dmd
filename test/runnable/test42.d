@@ -698,7 +698,7 @@ int foo45(int i)
 
 void test45()
 {
-   version(Windows)
+   version (Windows)  // this test fails in -release because asserts will be removed
    {
       assert(foo45(0)==2);
       try{
@@ -3457,6 +3457,287 @@ static assert(A196.sizeof == B196.sizeof);
 
 /***************************************************/
 
+template Compileable(int z) { bool OK;}
+
+struct Bug3569 {
+    int bar() { return 7; }
+}
+
+struct Bug3569b {
+    Bug3569 foo;
+    void crash() {
+        static assert(!is(typeof(Compileable!(foo.bar()))));
+        static assert(!is(typeof(Compileable!((foo = Bug3569.init).bar()))));
+    }
+}
+
+void test197()
+{
+}
+
+/***************************************************/
+
+void test198()	// Bugzilla 4506
+{
+    int c = 1;
+    for (int k = 0; k < 2; k++) {
+        assert((k == 0 && c == 1) || (k == 1 && c == -1));
+        c *= -1;
+    }
+}
+
+/***************************************************/
+
+// Bugzilla 4514
+void g199(void delegate(void*, void*) d) { }
+
+struct X199 {
+    void f(void*, void*) {}
+    void n()
+    {
+        g199(&f);
+    }
+}
+
+/***************************************************/
+// Bugzilla 4443
+
+struct Struct4443
+{
+    int x;
+    char[5] unused;
+}
+
+void foo4443(Struct4443 *dest, Struct4443[] arr)
+{
+    int junk = arr[$-1].x;
+    if (dest || arr[$-1].x) {
+        *dest = arr[$-1];
+    }
+}
+
+void test200()
+{
+    Struct4443[1] a;
+    Struct4443 info;
+    foo4443(&info, a);
+}
+
+/***************************************************/
+
+// Bugzilla 2931
+
+struct Bug2931 {
+        int val[3][4];
+}
+
+struct Outer2931 {
+        Bug2931 p = Bug2931(67);  // Applies to struct static initializers too
+        int zoom = 2;
+        int move = 3;
+        int scale = 4;
+}
+
+int bug2931()
+{
+  Outer2931 v;
+  assert(v.move==3);
+  assert(v.scale == 4);
+  return v.zoom;
+}
+
+int bug2931_2()
+{
+  Outer2931 v;
+  assert(v.move==3);
+  for (int i = 0; i < 4; i++)
+  { for (int j = 0; j < 3; j++)
+    {
+	printf("[%d][%d] = %d\n", j, i, v.p.val[j][i]);
+	if (i == 0 && j == 0)
+	    assert(v.p.val[j][i] == 67);
+	else
+	    assert(v.p.val[j][i] == 0);
+    }
+  }
+  printf("v.zoom = %d\n", v.zoom);
+  assert(v.scale == 4);
+  return v.zoom;
+}
+
+static assert(bug2931()==2);
+
+void test201() {
+    assert(bug2931()==2);
+    assert(bug2931_2()==2);
+}
+
+
+/***************************************************/
+
+import std.stdarg;
+
+void foo202(int x, ...) {
+    printf("%d arguments\n", _arguments.length);
+    for (int i = 0; i < _arguments.length; i++) {   
+        int j = va_arg!(int)(_argptr);
+        printf("\t%d\n", j);
+	assert(j == i + 2);
+    }
+}
+
+void fooRef202(ref int x, ...) {
+    printf("%d arguments\n", _arguments.length);
+    for (int i = 0; i < _arguments.length; i++) {   
+        int j = va_arg!(int)(_argptr);
+        printf("\t%d\n", j);
+	assert(j == i + 2);
+    }
+}
+
+void test202()
+{
+    foo202(1, 2, 3, 4, 5);
+
+    printf("---\n");
+
+    int x = 1;
+    fooRef202(x, 2, 3, 4, 5);
+}
+
+/***************************************************/
+// Bugzilla 1418
+
+class A203
+{
+    char name = 'A';
+    class B203
+    {
+        char name = 'B';
+    }
+}
+
+void test203()
+{
+    class C203
+    {
+    char name = 'C';
+    }
+
+    auto a = new A203;
+    auto b = a.new B203;
+    auto c = new C203;
+
+    writeln(a.tupleof); // prints: A
+    writeln(b.tupleof); // prints: B main.A
+    writeln(c.tupleof); // prints: C 0000
+    assert(a.tupleof.length == 1 && a.tupleof[0] == 'A');
+    assert(b.tupleof.length == 1 && b.tupleof[0] == 'B');
+    assert(c.tupleof.length == 1 && c.tupleof[0] == 'C');
+}
+
+/***************************************************/
+// Bugzilla 4516
+
+struct A204 { B204 b; }
+enum B204 { Z }
+
+/***************************************************/
+// Bugzilla 4503
+
+class Collection205(T) { }
+ICollection c;
+
+alias Collection205!int ICollection;
+
+/***************************************************/
+
+enum TaskStatus:int { Building=-1, }
+
+TaskStatus test206(char[] s){
+    char[] t="TaskStatus".dup;
+    if (s.length>t.length && s[0..t.length]==t){
+        long res=0;
+        if (s[t.length]=='-') res= -res;	// <= OPnegass
+        return cast(TaskStatus)cast(int)res;
+    }
+    assert(0);
+}
+
+/***************************************************/
+
+struct UN {   double dd;    long ll; }
+bool cmp( UN * pU ) {   return pU.dd >= pU.ll ? true : false; }
+
+struct UN2 {  real dd; long ll; }
+bool cmp2( UN2 * pU ) {  return pU.dd >= pU.ll ? true : false; }
+
+struct UN3 {  double dd; int ll; }
+bool cmp3( UN3 * pU ) {  return pU.dd >= pU.ll ? true : false; }
+
+void test207()
+{
+   static UN u = { 10.50, 10 };
+   auto i = cmp(&u);
+   printf( "%d\n", cmp( &u ) );
+   assert(i);
+
+   static UN2 u2 = { 10.50, 10 };
+   i = cmp2(&u2);
+   assert(i);
+
+   static UN3 u3 = { 10.50, 10 };
+   i = cmp3(&u3);
+   assert(i);
+
+   static UN3 u3_1 = { 9.50, 10 };
+   i = cmp3(&u3_1);
+   assert(!i);
+}
+
+/***************************************************/
+
+template fail4302() {
+    static assert(0);
+}
+template bug4302() {
+   alias fail4302!() bad;
+}
+static if (is(bug4302!())) {}
+
+/***************************************************/
+
+template tough4302()
+{
+  template bar()
+  { 
+     template far()
+     {
+         static assert(0);
+     }
+     alias far!() par;
+  }
+  static if (is(bar!())) {}
+}
+
+alias tough4302!() tougher;
+
+/***************************************************/
+
+// Bugzilla 190
+
+//typedef int avocado;
+//void test208(avocado x208 = .x208) { }
+//avocado x208;
+
+/***************************************************/
+// Bugzilla 3493
+
+const bar209 = foo209;
+const int * foo209 = null;
+
+/***************************************************/
+
 int main()
 {
     test1();
@@ -3645,6 +3926,15 @@ int main()
 
     test193();
     test194();
+
+    test198();
+
+    test200();
+    test201();
+    test202();
+    test203();
+
+//    test208();
 
     writefln("Success");
     return 0;

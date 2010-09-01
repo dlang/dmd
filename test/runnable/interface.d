@@ -55,10 +55,35 @@ void test2()
 
 /*******************************************/
 
+interface I3 {
+    void h();
+}
+interface K3 {
+    void f();
+}
+
+interface J3 : I3, K3 {}
+
+class A3 : J3 {
+    void f(){ }
+    void h(){ } 
+}
+
+void test3()
+{
+    auto a = new A3();
+    J3 b = a;
+    K3 c = a;
+    assert(&b.f == &c.f); // Bugzilla 3706
+}
+
+/*******************************************/
+
 int main()
 {
     test1();
     test2();
+    test3();
 
     printf("Success\n");
     return 0;

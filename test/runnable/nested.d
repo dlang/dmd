@@ -1465,6 +1465,23 @@ void test54()
     auto c = new A;
     assert(c.bar(4) == 44);
 }
+/*******************************************/
+
+void test55()
+{
+    int localvar = 7;
+
+    int inner(int delegate(ref int) dg) {
+        int k = localvar;
+        return 0;
+    }
+
+    int a = localvar * localvar; // This modifies the EAX register
+
+    foreach (entry; &inner)
+    {
+    }
+}
 
 /*******************************************/
 
@@ -1524,6 +1541,7 @@ int main()
     test52();
     test53();
     test54();
+    test55();
 
     printf("Success\n");
     return 0;

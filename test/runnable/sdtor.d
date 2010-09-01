@@ -1273,6 +1273,52 @@ void test51()
 
 /**********************************/
 
+string s52;
+
+struct A52
+{
+    int m;
+    this(this)
+    {
+        printf("this(this) %p\n", &this);
+      s52 ~= 'a';
+    }
+    ~this()
+    {
+        printf("~this() %p\n", &this);
+      s52 ~= 'b';
+    }
+    A52 copy()
+    {
+      s52 ~= 'c';
+      A52 another = this;
+      return another;
+    }
+}
+
+void test52()
+{
+  {
+    A52 a;
+    A52 b = a.copy();
+    printf("a: %p, b: %p\n", &a, &b);
+  }
+    printf("s = '%.*s'\n", s52);
+    assert(s52 == "caabbb");
+}
+
+/**********************************/
+// 4339
+
+struct A53 {
+    invariant() {   }
+    ~this() { }
+    void opAssign(A53 a) {}
+    int blah(A53 a) { return 0; }
+}
+
+/**********************************/
+
 int main()
 {
     test1();
@@ -1326,6 +1372,7 @@ int main()
     test49();
     test50();
     test51();
+    test52();
 
     printf("Success\n");
     return 0;

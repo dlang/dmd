@@ -1972,6 +1972,154 @@ static assert(A110.s == "Boo!(int)");
 
 /***************************************************/
 
+// 3716
+void test111()
+{
+    auto k1 = true ? [1,2] : []; // OK
+    auto k2 = true ? [[1,2]] : [[]];
+    auto k3 = true ? [] : [[1,2]];
+    auto k4 = true ? [[[]]] : [[[1,2]]];
+    auto k5 = true ? [[[1,2]]] : [[[]]];
+    auto k6 = true ? [] : [[[]]];
+    static assert(!is(typeof(true ? [[[]]] : [[1,2]]))); // Must fail
+}
+
+/***************************************************/
+// 4303
+
+template foo112() if (__traits(compiles,undefined))
+{
+    enum foo112 = false;
+}
+
+template foo112() if (true)
+{
+    enum foo112 = true;
+}
+
+pragma(msg,__traits(compiles,foo112!()));
+static assert(__traits(compiles,foo112!()));
+
+const bool bar112 = foo112!();
+
+
+/***************************************************/
+
+struct File113
+{
+    this(int name) { }
+
+    ~this() { }
+
+    void opAssign(File113 rhs) { }
+
+    struct ByLine
+    {
+        File113 file;
+
+        this(int) { }
+
+    }
+
+    ByLine byLine()
+    {
+        return ByLine(1);
+    }
+}
+
+auto filter113(File113.ByLine rs)
+{
+    struct Filter
+    {
+	this(File113.ByLine r) { }
+    }
+
+    return Filter(rs);
+}
+
+void test113()
+{
+    auto f = File113(1);
+    auto rx = f.byLine();
+    auto file = filter113(rx);
+}
+
+/***************************************************/
+
+template foo114(fun...)
+{
+    auto foo114(int[] args)
+    {
+	return 1;
+    }
+}
+
+pragma(msg, typeof(foo114!"a + b"([1,2,3])));
+
+/***************************************************/
+// Bugzilla 3935
+
+struct Foo115 {
+    void opBinary(string op)(Foo other) {
+        pragma(msg, "op: " ~ op);
+	assert(0);
+    }
+}
+
+void test115()
+{
+    Foo115 f;
+    f = f;
+}
+
+/***************************************************/
+// Bugzilla 2477
+
+void foo116(T,)(T t) { T x; }
+
+void test116()
+{
+    int[] data = [1,2,3,];  // OK
+
+    data = [ 1,2,3, ];  // fails
+    auto i = data[1,];
+    foo116!(int)(3);
+    foo116!(int,)(3);
+    foo116!(int,)(3,);
+}
+
+/***************************************************/
+// Bugzilla 4291
+
+void test117() pure
+{
+    mixin declareVariable;
+    var = 42;
+    mixin declareFunction;
+    readVar();
+}
+template declareVariable() { int var; }
+template declareFunction()
+{
+    int readVar() { return var; }
+}
+
+/***************************************************/
+// Bugzilla 4177
+
+pure real log118(real x) {
+    if (__ctfe)
+        return 0.0;
+    else
+        return 1.0;
+}
+
+enum x118 = log118(4.0);
+
+void test118() {}
+
+/***************************************************/
+
 int main()
 {
     test1();
@@ -2083,6 +2231,15 @@ int main()
     test107();
 
     test109();
+
+    test111();
+
+    test113();
+
+    test115();
+    test116();
+    test117();
+    test118();
 
     printf("Success\n");
     return 0;

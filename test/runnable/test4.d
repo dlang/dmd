@@ -1373,6 +1373,8 @@ void test54()
 	{
 		printf("catch %.*s\n", e.msg);
 		assert(e.msg == "second");
+		//assert(e.msg == "first");
+		//assert(e.next.msg == "second");
 		assert(status==3);
 	}
 	printf("success54\n");
@@ -1391,7 +1393,10 @@ void foo55()
     catch (Exception e)
     {
 	printf("inner catch %p\n", e);
+	printf("e.msg == %.*s\n", e.msg);
 	assert(e.msg == "second");
+	//assert(e.msg == "first");
+	//assert(e.next.msg == "second");
     }
 }
 

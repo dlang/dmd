@@ -1018,6 +1018,21 @@ void test38()
     sort!( (int x,int y){ return x + i > y; } )(arr);
 }
 
+/*********************************************************/
+
+void bug4652(U, T...)(long y, T x, U num) {}
+void bug4652default(T) (T value, int x=2) {}
+void bug4652default(T) (T value, int y) {}
+void bug4676(T...)(T args, string str) {}
+void bug4676(T...)(T args) {}
+
+void instantiate4652()
+{
+    bug4652(2, 'c', 27, 'e', 'f',1); // rejects-valid
+    bug4652(2, 1);  // infinite loop on valid code
+    bug4652default(true);
+    bug4676(1, 2, 3);
+}
 
 /*********************************************************/
 

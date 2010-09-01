@@ -881,6 +881,35 @@ void test14()
 
 /**************************************/
 
+// 3983
+
+struct Fug
+{
+    bool opEquals(ref const Fug y) const {
+        return false;
+    }
+}
+
+struct Fig
+{
+   Fug f;
+   bool opEquals(Tdummy=void)(ref const Fig y) const {
+      return false;
+   }
+
+   bool opEquals(T: int)(T y) const {
+      return false;
+   }
+}
+
+void test15()
+{
+  Fig fx, fy;
+  if (fx==2) {}
+}
+
+/**************************************/
+
 int main()
 {
     test1();
@@ -897,6 +926,7 @@ int main()
     test12();
     test13();
     test14();
+    test15();
 
     printf("Success\n");
     return 0;
