@@ -16,6 +16,13 @@ test_extension=$3 # ex: d html or sh
 # enable support for expressions like *( ) in substitutions
 shopt -s extglob
 
+# NOTE: $? tests below test for greater than 125:
+#   126 -- command found but isn't executable
+#   127 -- command not found
+#   128+N -- N is the signal that caused the process to exit
+#            for example, segv == 11, so $? will be 139
+#                         abort == 6, so $? will be 134
+
 input_file=${input_dir}/${test_name}.${test_extension}
 output_dir=${RESULTS_DIR}/${input_dir}
 output_file=${output_dir}/${test_name}.${test_extension}.out
@@ -77,7 +84,7 @@ ${RESULTS_DIR}/combinations ${p_args} | while read x; do
     if [ ${separate} -ne 0 ]; then
         echo ${DMD} -I${input_dir} ${r_args} $x -od${output_dir} -of${test_app} ${extra_compile_args} ${input_file} ${extra_files} >> ${output_file}
         ${DMD} -I${input_dir} ${r_args} $x -od${output_dir} -of${test_app} ${extra_compile_args} ${input_file} ${extra_files} >> ${output_file} 2>&1
-        if [ $? -eq ${expect_compile_rc} ]; then
+        if [ $? -eq ${expect_compile_rc} -o $? -gt 125 ]; then
             cat ${output_file}
             rm -f ${output_file}
             exit 1
@@ -86,7 +93,7 @@ ${RESULTS_DIR}/combinations ${p_args} | while read x; do
         for file in ${input_file} ${extra_files}; do
             echo ${DMD} -I${input_dir} ${r_args} $x -od${output_dir} -c $file >> ${output_file}
             ${DMD} -I${input_dir} ${r_args} $x -od${output_dir} -c $file >> ${output_file} 2>&1
-            if [ $? -eq ${expect_compile_rc} ]; then
+            if [ $? -eq ${expect_compile_rc} -o $? -gt 125 ]; then
                 cat ${output_file}
                 rm -f ${output_file}
                 exit 1
@@ -100,7 +107,7 @@ ${RESULTS_DIR}/combinations ${p_args} | while read x; do
         if [ "${input_dir}" = "runnable" ]; then
             echo ${DMD} -od${output_dir} -of${test_app} ${test_app}.o ${ofiles[*]} >> ${output_file}
             ${DMD} -od${output_dir} -of${test_app} ${test_app}.o ${ofiles[*]} >> ${output_file} 2>&1
-            if [ $? -eq ${expect_compile_rc} ]; then
+            if [ $? -eq ${expect_compile_rc} -o $? -gt 125 ]; then
                 cat ${output_file}
                 rm -f ${output_file}
                 exit 1

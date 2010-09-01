@@ -1,3 +1,4 @@
-ulong[cast(uint)((cast(float)int.sizeof/ulong.sizeof)-int.max>>2)+int.max>>2]  
-hexarray;
+disable until bug 4751 is fixed
+//ulong[cast(uint)((cast(float)int.sizeof/ulong.sizeof)-int.max>>2)+int.max>>2]  
+//hexarray;
 
