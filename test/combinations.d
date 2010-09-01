@@ -15,7 +15,7 @@ void main(string[] args)
             {
                 if (printed)
                     printf(" ");
-                printf("%*s", args[j].length, args[j].ptr);
+                printf("%.*s", args[j].length, args[j].ptr);
                 printed = true;
             }
         }
