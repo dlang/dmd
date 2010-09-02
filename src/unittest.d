@@ -1,5 +1,7 @@
 public import core.atomic;
 public import core.bitop;
+public import core.cpuid;
+public import core.demangle;
 public import core.exception;
 public import core.memory;
 public import core.runtime;
@@ -18,6 +20,8 @@ void main()
     shared(int) i;
     cas( &i, i.init, i.init + 1 ); // atomic
     bsf( 0 ); // bitop
+    mmx(); // cpuid
+    demangle( "" ); // demangle
     setAssertHandler( null ); // exception
     // SES - disabled because you cannot enable the GC without disabling it.
     //GC.enable(); // memory

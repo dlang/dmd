@@ -1,13 +1,6 @@
 /**
 * The atomic module is intended to provide some basic support for lock-free
-* concurrent programming.  Some common operations are defined, each of which
-* may be performed using the specified memory barrier or a less granular
-* barrier if the hardware does not support the version requested.  This
-* model is based on a design by Alexander Terekhov as outlined in
-* <a href=http://groups.google.com/groups?threadm=3E4820EE.6F408B25%40web.de>
-* this thread</a>.  Another useful reference for memory ordering on modern
-* architectures is <a href=http://www.linuxjournal.com/article/8211>this
-* article by Paul McKenney</a>.
+* concurrent programming.
  *
  * Copyright: Copyright Sean Kelly 2005 - 2019.
  * License:   <a href="http://www.boost.org/LICENSE_1_0.txt">Boost License 1.0</a>.

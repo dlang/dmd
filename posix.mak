@@ -32,6 +32,7 @@ MANIFEST= \
 	src/core/atomic.d \
 	src/core/bitop.d \
 	src/core/cpuid.d \
+	src/core/demangle.d \
 	src/core/dll_helper.d \
 	src/core/exception.d \
 	src/core/memory.d \
@@ -217,6 +218,7 @@ SRCS= \
 	src/core/atomic.d \
 	src/core/bitop.d \
 	src/core/cpuid.d \
+	src/core/demangle.d \
 	src/core/exception.d \
 	src/core/memory.d \
 	src/core/runtime.d \
@@ -342,6 +344,7 @@ DOCS=\
 	$(DOCDIR)/core_atomic.html \
 	$(DOCDIR)/core_bitop.html \
 	$(DOCDIR)/core_cpuid.html \
+	$(DOCDIR)/core_demangle.html \
 	$(DOCDIR)/core_exception.html \
 	$(DOCDIR)/core_memory.html \
 	$(DOCDIR)/core_runtime.html \
@@ -360,6 +363,7 @@ IMPORTS=\
 	$(IMPDIR)/core/atomic.di \
 	$(IMPDIR)/core/bitop.di \
 	$(IMPDIR)/core/cpuid.di \
+	$(IMPDIR)/core/demangle.di \
 	$(IMPDIR)/core/dll_helper.di \
 	$(IMPDIR)/core/exception.di \
 	$(IMPDIR)/core/memory.di \
