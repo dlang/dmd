@@ -3094,7 +3094,7 @@ class Fiber
      * Returns:
      *  The state of this fiber as an enumerated value.
      */
-    final @property State state()
+    final @property State state() const
     {
         return m_state;
     }
