@@ -28,7 +28,7 @@ OPT=
 DEBUG=-gl -D -DUNITTEST
 #PREC=-H -HItotal.h -HO
 PREC=
-LFLAGS=
+LFLAGS=/CO
 
 LINKN=$(SCROOT)\bin\link /de
 
