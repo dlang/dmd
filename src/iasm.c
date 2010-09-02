@@ -1855,7 +1855,6 @@ STATIC void asmerr(int errnum, ...)
 
     printf("\n");
     fflush(stdout);
-halt();
     longjmp(asmstate.env,1);
 }
 
