@@ -12,6 +12,12 @@
  */
 module rt.llmath;
 
+version (Windows)
+{
+}
+else
+{
+
 extern (C):
 
 
@@ -530,3 +536,4 @@ ulong __LDBLULLNG()
 }
 
 
+}
