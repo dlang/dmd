@@ -1,4 +1,10 @@
 
+## Copy command
+CP=cp
+
+## Directory where dmd has been installed
+DIR=\dmd2
+
 DMD=dmd
 
 CC=dmc
@@ -772,6 +778,7 @@ druntime.zip:
 
 install: druntime.zip
 	unzip -o druntime.zip -d \dmd2\src\druntime
+	$(CP) $(DOCS) $(DIR)\html\d\phobos
 
 clean:
 	del $(DOCS) $(IMPORTS) $(DRUNTIME) $(OBJS_TO_DELETE) $(GCSTUB)
