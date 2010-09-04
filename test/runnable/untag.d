@@ -101,9 +101,9 @@ void untag(string txt, string filename) {
                         "Could not find closing tag: "~txt);
             }
         } else {
-            string code;
-            findConsume(txt, ';', appender(&code));
-            switch (code) {
+            auto app = appender!string();
+            findConsume(txt, ';', app);
+            switch (app.data) {
             case "#160;": case "#32;": case "reg;": case "nbsp;":
                 writeChar(' ');
                 break;
@@ -120,7 +120,7 @@ void untag(string txt, string filename) {
                 writeChar('"');
                 break;
             default:
-                throw new Exception(text("Unknown code: &", code));
+                throw new Exception(text("Unknown code: &", app.data));
                 break;
             }
         }
