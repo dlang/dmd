@@ -1,10 +1,4 @@
 
-## Copy command
-CP=cp
-
-## Directory where dmd has been installed
-DIR=\dmd2
-
 DMD=dmd
 
 CC=dmc
@@ -38,7 +32,6 @@ MANIFEST= \
 	src\core\atomic.d \
 	src\core\bitop.d \
 	src\core\cpuid.d \
-	src\core\demangle.d \
 	src\core\dll_helper.d \
 	src\core\exception.d \
 	src\core\memory.d \
@@ -224,7 +217,6 @@ SRCS= \
 	src\core\atomic.d \
 	src\core\bitop.d \
 	src\core\cpuid.d \
-	src\core\demangle.d \
 	src\core\dll_helper.d \
 	src\core\exception.d \
 	src\core\memory.d \
@@ -345,7 +337,6 @@ DOCS=\
 	$(DOCDIR)\core_atomic.html \
 	$(DOCDIR)\core_bitop.html \
 	$(DOCDIR)\core_cpuid.html \
-	$(DOCDIR)\core_demangle.html \
 	$(DOCDIR)\core_exception.html \
 	$(DOCDIR)\core_memory.html \
 	$(DOCDIR)\core_runtime.html \
@@ -364,7 +355,6 @@ IMPORTS=\
 	$(IMPDIR)\core\atomic.di \
 	$(IMPDIR)\core\bitop.di \
 	$(IMPDIR)\core\cpuid.di \
-	$(IMPDIR)\core\demangle.di \
 	$(IMPDIR)\core\dll_helper.di \
 	$(IMPDIR)\core\exception.di \
 	$(IMPDIR)\core\memory.di \
@@ -462,9 +452,6 @@ $(DOCDIR)\core_bitop.html : src\core\bitop.d
 
 $(DOCDIR)\core_cpuid.html : src\core\cpuid.d
 	$(DMD) -c -d -o- -Isrc -Iimport -Df$@ $(DOCFMT) $**
-	
-$(DOCDIR)\core_demangle.html : src\core\demangle.d
-	$(DMD) -c -d -o- -Isrc -Iimport -Df$@ $(DOCFMT) $**
 
 $(DOCDIR)\core_exception.html : src\core\exception.d
 	$(DMD) -c -d -o- -Isrc -Iimport -Df$@ $(DOCFMT) $**
@@ -513,9 +500,6 @@ $(IMPDIR)\core\bitop.di : src\core\bitop.d
 	$(DMD) -c -d -o- -Isrc -Iimport -Hf$@ $**
 
 $(IMPDIR)\core\cpuid.di : src\core\cpuid.d
-	$(DMD) -c -d -o- -Isrc -Iimport -Hf$@ $**
-	
-$(IMPDIR)\core\demangle.di : src\core\demangle.d
 	$(DMD) -c -d -o- -Isrc -Iimport -Hf$@ $**
 	
 $(IMPDIR)\core\dll_helper.di : src\core\dll_helper.d
@@ -778,7 +762,6 @@ druntime.zip:
 
 install: druntime.zip
 	unzip -o druntime.zip -d \dmd2\src\druntime
-	$(CP) $(DOCS) $(DIR)\html\d\phobos
 
 clean:
 	del $(DOCS) $(IMPORTS) $(DRUNTIME) $(OBJS_TO_DELETE) $(GCSTUB)
