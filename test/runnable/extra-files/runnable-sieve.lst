@@ -41,7 +41,7 @@
        |int main()
        |{
        |
-      1|    dmd_coverDestPath("test_results/runnable");
+      1|    dmd_coverDestPath("test_results/runnable/");
        |
       1|    sieve();
        |

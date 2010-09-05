@@ -41,7 +41,7 @@ extern(C) void dmd_coverDestPath(string path);
 int main()
 {
 
-    dmd_coverDestPath("test_results/runnable");
+    dmd_coverDestPath("test_results/runnable/");
 
     sieve();
 
