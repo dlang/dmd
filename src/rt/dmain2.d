@@ -48,6 +48,9 @@ version (all)
         auto t = cast(Throwable) o;
         
         if (t !is null)
+        {
+            if (cast(byte*) t is t.classinfo.init.ptr)
+                return;
             t.next = _d_unhandled;
         _d_unhandled = t;
     }
