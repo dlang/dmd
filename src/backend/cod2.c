@@ -387,7 +387,7 @@ code *cdorth(elem *e,regm_t *pretregs)
             if (ss2)
             {
                 assert(reg != reg2);
-                if (reg1 == BP)
+                if ((reg1 & 7) == BP)
                 {   static unsigned imm32[4] = {1+1,2+1,4+1,8+1};
 
                     // IMUL reg,imm32
