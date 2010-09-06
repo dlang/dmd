@@ -3569,6 +3569,12 @@ STATIC famlist * flcmp(famlist *f1,famlist *f2)
 #endif
                         goto Lf2;
                 break;
+            case TYllong:
+            case TYullong:
+                if (t2->Vllong == 1 ||
+                    t1->Vllong != 1 && f2->c2->EV.Vllong == 0)
+                        goto Lf2;
+                break;
             default:
                 assert(0);
         }

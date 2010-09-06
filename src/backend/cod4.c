@@ -2355,8 +2355,8 @@ code *cdcnvt(elem *e, regm_t *pretregs)
         OPcvptrfptr,    CLIBcvptrfptr,
   };
 
+//printf("cdcnvt: *pretregs = %s\n", regm_str(*pretregs));
 //elem_print(e);
-//printf("*pretregs = x%x\n", *pretregs);
 
   if (!*pretregs)
         return codelem(e->E1,pretregs,FALSE);
@@ -2385,7 +2385,7 @@ code *cdcnvt(elem *e, regm_t *pretregs)
                 if (OTcall(e->E1->Eoper) && !(*pretregs & allregs))
                 {
                     retregs = regmask(e->E1->Ety, e->E1->E1->Ety);
-                    if (retregs & (mST01 | mST0))       // if return in ST0
+                    if (retregs & (mXMM1 | mXMM0 |mST01 | mST0))       // if return in ST0
                     {
                         c1 = codelem(e->E1,pretregs,FALSE);
                         if (*pretregs & mST0)

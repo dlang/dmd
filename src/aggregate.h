@@ -189,7 +189,7 @@ struct BaseClass
 };
 
 #if DMDV2
-#define CLASSINFO_SIZE_64  (0x3C+12+4)     // value of ClassInfo.size
+#define CLASSINFO_SIZE_64  0x98         // value of ClassInfo.size
 #define CLASSINFO_SIZE  (0x3C+12+4)     // value of ClassInfo.size
 #else
 #define CLASSINFO_SIZE  (0x3C+12+4)     // value of ClassInfo.size
