@@ -1626,7 +1626,7 @@ elem *AssertExp::toElem(IRState *irs)
 
                     id = loc.filename;
                     len = strlen(id);
-                    dtdword(&dt, len);
+                    dtsize_t(&dt, len);
                     dtabytes(&dt,TYnptr, 0, len + 1, id);
 
                     assertexp_sfilename = symbol_generate(SCstatic,type_fake(TYdarray));
