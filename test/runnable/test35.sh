@@ -1,25 +1,26 @@
 #!/bin/bash
 
 dir=${RESULTS_DIR}/runnable
+dmddir=${RESULTS_DIR}${SEP}runnable
 output_file=${dir}/test35.sh.out
 
 rm -f ${output_file}
 
-$DMD -Irunnable -od${dir} -c runnable/extra-files/test35.d >> ${output_file}
+$DMD -Irunnable -od${dmddir} -c runnable/extra-files/test35.d >> ${output_file}
 if [ $? -ne 0 ]; then
     cat ${output_file}
     rm -f ${output_file}
     exit 1
 fi
 
-$DMD -od${dir} -c -release runnable/imports/test35a.d >> ${output_file}
+$DMD -od${dmddir} -c -release runnable/imports/test35a.d >> ${output_file}
 if [ $? -ne 0 ]; then
     cat ${output_file}
     rm -f ${output_file}
     exit 1
 fi
 
-$DMD -of${dir}/test35 ${dir}/test35.o ${dir}/test35a.o >> ${output_file}
+$DMD -of${dmddir}${SEP}test35 ${dir}/test35${OBJ} ${dir}/test35a${OBJ} >> ${output_file}
 if [ $? -ne 0 ]; then
     cat ${output_file}
     rm -f ${output_file}
@@ -33,5 +34,5 @@ if [ $? -ne 0 ]; then
     exit 1
 fi
 
-rm ${dir}/{test35.o,test35a.o,test35}
+rm ${dir}/{test35${OBJ},test35a${OBJ},test35}
 

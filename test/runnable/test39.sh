@@ -1,32 +1,39 @@
 #!/bin/bash
 
 dir=${RESULTS_DIR}/runnable
+dmddir=${RESULTS_DIR}${SEP}runnable
 output_file=${dir}/test39.sh.out
 
 rm -f ${output_file}
 
-$DMD -Irunnable -od${dir} -c runnable/extra-files/test39.d >> ${output_file}
+$DMD -Irunnable -od${dmddir} -c runnable/extra-files/test39.d >> ${output_file}
 if [ $? -ne 0 ]; then
     cat ${output_file}
     rm -f ${output_file}
     exit 1
 fi
 
-$DMD -Irunnable -od${dir} -c runnable/imports/test39a.d >> ${output_file}
+$DMD -Irunnable -od${dmddir} -c runnable/imports/test39a.d >> ${output_file}
 if [ $? -ne 0 ]; then
     cat ${output_file}
     rm -f ${output_file}
     exit 1
 fi
 
-ar -r ${dir}/test39a.a ${dir}/test39a.o >> ${output_file} 2>&1
+if [ ${OS} == "win32" ]; then
+    lib -c ${dmddir}${SEP}test39a.lib ${dmddir}${SEP}test39a.obj >> ${output_file} 2>&1
+    LIBEXT=.lib
+else
+    ar -r ${dir}/test39a.a ${dir}/test39a.o >> ${output_file} 2>&1
+    LIBEXT=.a
+fi
 if [ $? -ne 0 ]; then
     cat ${output_file}
     rm -f ${output_file}
     exit 1
 fi
 
-$DMD -of${dir}/test39 ${dir}/test39.o ${dir}/test39a.a >> ${output_file}
+$DMD -of${dmddir}${SEP}test39 ${dir}/test39${OBJ} ${dir}/test39a${LIBEXT} >> ${output_file}
 if [ $? -ne 0 ]; then
     cat ${output_file}
     rm -f ${output_file}
@@ -40,5 +47,5 @@ if [ $? -ne 0 ]; then
     exit 1
 fi
 
-rm ${dir}/{test39.o,test39a.o,test39a.a,test39}
+rm ${dir}/{test39${OBJ},test39a${OBJ},test39a${LIBEXT},test39}
 

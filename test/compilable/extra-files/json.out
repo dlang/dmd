@@ -1,7 +1,6 @@
 [
 {
 "kind" : "module",
-"file" : "compilable\/json.d",
 "members" : [
 {
 "name" : "X",

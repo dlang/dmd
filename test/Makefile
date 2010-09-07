@@ -36,11 +36,48 @@
 #   REQUIRED_ARGS:       arguments to add to the $(DMD) command line
 #                        default: (none)
 
+ifeq (,$(OS))
+    OS:=$(shell uname)
+    ifeq (Darwin,$(OS))
+        OS:=osx
+    else
+        ifeq (Linux,$(OS))
+            OS:=posix
+        else
+            ifeq (FreeBSD,$(OS))
+                OS:=freebsd
+            else
+                $(error Unrecognized or unsupported OS for uname: $(OS))
+            endif
+        endif
+    endif
+else
+    ifeq (Windows_NT,$(OS))
+	OS=win32
+    endif
+endif
+export OS
+
 SHELL=/bin/bash
 QUIET=@
-export DMD=../src/dmd
 export RESULTS_DIR=test_results
+
+ifeq ($(OS),win32)
+export ARGS=-inline -release -g -O -unittest
+export DMD=../src/dmd.exe
+export EXE=.exe
+export OBJ=.obj
+export DSEP=\\
+export SEP=$(shell echo '\')
+# bug in vim syntax hilighting, needed to kick it back into life: ')
+else
 export ARGS=-inline -release -gc -O -unittest -fPIC
+export DMD=../src/dmd
+export EXE=
+export OBJ=.o
+export DSEP=/
+export SEP=/
+endif
 
 runnable_tests=$(wildcard runnable/*.d) $(wildcard runnable/*.html) $(wildcard runnable/*.sh)
 runnable_test_results=$(addsuffix .out,$(addprefix $(RESULTS_DIR)/,$(runnable_tests)))
@@ -106,4 +143,5 @@ start_fail_compilation_tests: $(RESULTS_DIR)/.created $(RESULTS_DIR)/combination
 
 $(RESULTS_DIR)/combinations: combinations.d $(RESULTS_DIR)/.created
 	@echo "Building combinations tool"
-	$(QUIET)$(DMD) -od$(RESULTS_DIR) -of$(RESULTS_DIR)/combinations combinations.d
+	$(QUIET)$(DMD) -od$(RESULTS_DIR) -of$(RESULTS_DIR)$(DSEP)combinations combinations.d
+

@@ -1,4 +1,3 @@
-// D import file generated from 'compilable/header.d'
 module foo.bar;
 private import std.stdio;
 

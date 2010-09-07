@@ -7,7 +7,13 @@ import std.math: poly;
 extern(C)
 {
     int printf(const char*, ...);
-    int snprintf(char*, size_t, const char*, ...);
+    version(Windows)
+    {
+        int _snprintf(char*, size_t, const char*, ...);
+        alias _snprintf snprintf;
+    }
+    else
+        int snprintf(char*, size_t, const char*, ...);
 }
 
 /*************************************/

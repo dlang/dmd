@@ -1,6 +1,9 @@
 #!/bin/bash
 
-diff runnable/extra-files/hello-profile.d.trace.def ${RESULTS_DIR}/runnable/hello-profile.d.trace.def
+# strip out Dmain since it's symbol differs between windows and non-windows
+grep -v Dmain ${RESULTS_DIR}/runnable/hello-profile.d.trace.def > ${RESULTS_DIR}/runnable/hello-profile.d.trace.def2
+
+diff -w runnable/extra-files/hello-profile.d.trace.def ${RESULTS_DIR}/runnable/hello-profile.d.trace.def2
 if [ $? -ne 0 ]; then
     exit 1;
 fi
@@ -11,5 +14,5 @@ if [ ! -f ${tracelog} ]; then
     exit 1
 fi
 
-rm ${RESULTS_DIR}/runnable/hello-profile.d.trace.{def,log}
+rm ${RESULTS_DIR}/runnable/hello-profile.d.trace.{def,def2,log}
 

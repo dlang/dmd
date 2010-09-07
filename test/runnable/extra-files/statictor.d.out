@@ -1,4 +1,3 @@
-../src/dmd -Irunnable -odtest_results/runnable -oftest_results/runnable/statictor runnable/statictor.d
 test_results/runnable/statictor
 shared static this()
 Foo static ctor

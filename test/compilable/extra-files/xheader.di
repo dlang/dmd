@@ -1,4 +1,3 @@
-// D import file generated from 'compilable/xheader.d'
 class C
 {
 }

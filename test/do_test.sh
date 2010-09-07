@@ -13,6 +13,12 @@ test_extension=$3 # ex: d html or sh
 # DMD         == compiler path and filename
 # RESULTS_DIR == directory for temporary files and output
 
+# tedious env vars
+# DSEP        == \\ or / depending on windows or not
+# SEP         == \ or / depending on windows or not
+# OBJ         == .obj or .o
+# EXE         == .exe or <null>
+
 # enable support for expressions like *( ) in substitutions
 shopt -s extglob
 
@@ -24,9 +30,10 @@ shopt -s extglob
 #                         abort == 6, so $? will be 134
 
 input_file=${input_dir}/${test_name}.${test_extension}
-output_dir=${RESULTS_DIR}/${input_dir}
-output_file=${output_dir}/${test_name}.${test_extension}.out
-test_app=${output_dir}/${test_name}
+output_dir=${RESULTS_DIR}${SEP}${input_dir}
+output_file=${RESULTS_DIR}/${input_dir}/${test_name}.${test_extension}.out
+test_app_dmd=${output_dir}${SEP}${test_name}
+test_app_exe=${RESULTS_DIR}/${input_dir}/${test_name}
 
 rm -f ${output_file}
 
@@ -45,6 +52,9 @@ if [ -z "${p_args}" ]; then
     fi
 else
     p_args="${p_args/*PERMUTE_ARGS:*( )/}"
+    if [ ${OS} == "win32" ]; then
+        p_args="${p_args/-fPIC/}"
+    fi
 fi
 
 e_args=`grep EXECUTE_ARGS  ${input_file} | tr -d \\\\r\\\\n`
@@ -54,9 +64,16 @@ fi
 
 extra_sources=`grep EXTRA_SOURCES ${input_file} | tr -d \\\\r\\\\n`
 if [ ! -z "${extra_sources}" ]; then
+    # remove the field name, leaving just the list of files
     extra_sources=(${extra_sources/*EXTRA_SOURCES:*( )/})
-    extra_files="${extra_sources[*]/imports/${input_dir}/imports}"
+    # prepend the test dir (ie, runnable) to each extra file
+    extra_sources=(${extra_sources[*]/imports\//${input_dir}\/imports\/})
+    all_sources=(${input_file} ${extra_sources[*]})
+else
+    all_sources=(${input_file})
 fi
+# replace / with the correct separator
+all_sources=(${all_sources[*]//\//${SEP}})
 
 grep -q COMPILE_SEPARATELY ${input_file}
 separate=$?
@@ -82,17 +99,17 @@ printf " ... %-25s %s%s(%s)\n" "${input_file}" "${r_args}" "${extra_space}" "${p
 ${RESULTS_DIR}/combinations ${p_args} | while read x; do
 
     if [ ${separate} -ne 0 ]; then
-        echo ${DMD} -I${input_dir} ${r_args} $x -od${output_dir} -of${test_app} ${extra_compile_args} ${input_file} ${extra_files} >> ${output_file}
-        ${DMD} -I${input_dir} ${r_args} $x -od${output_dir} -of${test_app} ${extra_compile_args} ${input_file} ${extra_files} >> ${output_file} 2>&1
+        echo ${DMD} -I${input_dir} ${r_args} $x -od${output_dir} -of${test_app_dmd} ${extra_compile_args} ${all_sources[*]} >> ${output_file}
+             ${DMD} -I${input_dir} ${r_args} $x -od${output_dir} -of${test_app_dmd} ${extra_compile_args} ${all_sources[*]} >> ${output_file} 2>&1
         if [ $? -eq ${expect_compile_rc} -o $? -gt 125 ]; then
             cat ${output_file}
             rm -f ${output_file}
             exit 1
         fi
     else
-        for file in ${input_file} ${extra_files}; do
+        for file in ${all_sources[*]}; do
             echo ${DMD} -I${input_dir} ${r_args} $x -od${output_dir} -c $file >> ${output_file}
-            ${DMD} -I${input_dir} ${r_args} $x -od${output_dir} -c $file >> ${output_file} 2>&1
+                 ${DMD} -I${input_dir} ${r_args} $x -od${output_dir} -c $file >> ${output_file} 2>&1
             if [ $? -eq ${expect_compile_rc} -o $? -gt 125 ]; then
                 cat ${output_file}
                 rm -f ${output_file}
@@ -100,13 +117,13 @@ ${RESULTS_DIR}/combinations ${p_args} | while read x; do
             fi
         done
 
-        ofiles=(${extra_sources[*]/imports\//})
-        ofiles=(${ofiles[*]/%.d/.o})
-        ofiles=(${ofiles[*]/#/${output_dir}\/})
+        all_os=(${all_sources[*]/%.d/${OBJ}})
+        all_os=(${all_os[*]/${DSEP}imports${DSEP}/${SEP}})
+        all_os=(${all_os[*]/#/${RESULTS_DIR}${SEP}})
 
         if [ "${input_dir}" = "runnable" ]; then
-            echo ${DMD} -od${output_dir} -of${test_app} ${test_app}.o ${ofiles[*]} >> ${output_file}
-            ${DMD} -od${output_dir} -of${test_app} ${test_app}.o ${ofiles[*]} >> ${output_file} 2>&1
+            echo ${DMD} -od${output_dir} -of${test_app_dmd} ${all_os[*]} >> ${output_file}
+                 ${DMD} -od${output_dir} -of${test_app_dmd} ${all_os[*]} >> ${output_file} 2>&1
             if [ $? -eq ${expect_compile_rc} -o $? -gt 125 ]; then
                 cat ${output_file}
                 rm -f ${output_file}
@@ -116,8 +133,8 @@ ${RESULTS_DIR}/combinations ${p_args} | while read x; do
     fi
 
     if [ "${input_dir}" = "runnable" ]; then
-        echo ${test_app} ${e_args} >> ${output_file}
-        ${test_app} ${e_args} >> ${output_file} 2>&1
+        echo ${test_app_exe} ${e_args} >> ${output_file}
+             ${test_app_exe} ${e_args} >> ${output_file} 2>&1
         if [ $? -ne 0 ]; then
             cat ${output_file}
             rm -f ${output_file}
@@ -135,7 +152,8 @@ ${RESULTS_DIR}/combinations ${p_args} | while read x; do
         fi
     fi
 
-    rm -f ${test_app} ${test_app}.o ${ofiles[*]}
+    rm -f ${test_app_exe} ${test_app_exe}${OBJ} ${all_os[*]}
 
     echo >> ${output_file}
 done
+

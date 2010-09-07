@@ -8,8 +8,14 @@ extern(C)
 {
     int atoi(const char*);
     int printf(const char*, ...);
-    int snprintf(char*, size_t, const char*, ...);
     size_t strlen(const char*);
+    version(Windows)
+    {
+        int _snprintf(char*, size_t, const char*, ...);
+        alias _snprintf snprintf;
+    }
+    else
+        int snprintf(char*, size_t, const char*, ...);
 }
 
 /***********************************/
