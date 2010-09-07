@@ -5264,12 +5264,12 @@ d_uns64 TypeDelegate::size(Loc loc)
 
 unsigned TypeDelegate::alignsize()
 {
+#if DMDV1
     // See Bugzilla 942 for discussion
-#if 0
-    return PTRSIZE;
-#else
-    return PTRSIZE * 2;
+    if (!global.params.isX86_64)
+        return PTRSIZE * 2;
 #endif
+    return PTRSIZE;
 }
 
 MATCH TypeDelegate::implicitConvTo(Type *to)
