@@ -1224,7 +1224,7 @@ elem *Module::toEfilename()
 
         id = srcfile->toChars();
         len = strlen(id);
-        dtdword(&dt, len);
+        dtsize_t(&dt, len);
         dtabytes(&dt,TYnptr, 0, len + 1, id);
 
         sfilename = symbol_generate(SCstatic,type_fake(TYdarray));
