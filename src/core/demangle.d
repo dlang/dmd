@@ -33,7 +33,7 @@ import core.stdc.stdlib : strtold;
  *  The demangled name or the original string if the name is not a mangled D
  *  name.
  */
-char[] demangle( string buf, char[] dst = null )
+char[] demangle( const(char)[] buf, char[] dst = null )
 {
     // NOTE: This implementation currently only works with mangled function
     //       names as they exist in an object file.  Type names mangled via
@@ -240,7 +240,7 @@ char[] demangle( string buf, char[] dst = null )
         next();
     }
     
-    void matchS( string val )
+    void matchS( const(char)[] val )
     {
         foreach( e; val )
         {
@@ -264,7 +264,7 @@ char[] demangle( string buf, char[] dst = null )
         Digit
         Digit Number
     */
-    string sliceNumber()
+    const(char)[] sliceNumber()
     {
         debug(trace) printf( "sliceNumber+\n" );
         debug(trace) scope(success) printf( "sliceNumber-\n" );
@@ -692,7 +692,8 @@ char[] demangle( string buf, char[] dst = null )
                     error();
                 }
             }
-        
+            
+            beg = len;
             put( "(" );
             scope(success)
             {
@@ -1257,8 +1258,8 @@ char[] demangle( string buf, char[] dst = null )
             }
             if( dst.length < buf.length )
                 dst.length = buf.length;
-            dst[] = buf[];
-            return dst;
+            dst[0 .. buf.length] = buf[];
+            return dst[0 .. buf.length];
         }
     }
 }
