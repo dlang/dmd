@@ -135,6 +135,7 @@ struct _iobuf
     }
     else version( linux )
     {
+        int     flags;
         char*   _read_ptr;
         char*   _read_end;
         char*   _read_base;
@@ -249,7 +250,7 @@ version( Windows )
         _IONBF   = 4,
         _IOREAD  = 1,     // non-standard
         _IOWRT   = 2,     // non-standard
-        _IOMYBUF = 8,     // non-standard       
+        _IOMYBUF = 8,     // non-standard
         _IOEOF   = 0x10,  // non-standard
         _IOERR   = 0x20,  // non-standard
         _IOSTRG  = 0x40,  // non-standard
