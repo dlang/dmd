@@ -135,7 +135,7 @@ struct _iobuf
     }
     else version( linux )
     {
-        int     flags;
+        int     _flags;
         char*   _read_ptr;
         char*   _read_end;
         char*   _read_base;
