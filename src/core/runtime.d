@@ -460,8 +460,8 @@ Throwable.TraceInfo defaultTraceHandler( void* ptr = null )
                 {
                     // format is:
                     // module(_D6module4funcAFZv) [0x00000000]
-                    char* bptr = memchr( buf.ptr, '(', buf.length );
-                    char* eptr = memchr( buf.ptr, ')', buf.length );
+                    auto bptr = cast(char*) memchr( buf.ptr, '(', buf.length );
+                    auto eptr = cast(char*) memchr( buf.ptr, ')', buf.length );
                     
                     if( bptr++ && eptr )
                     {
