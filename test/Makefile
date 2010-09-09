@@ -88,21 +88,21 @@ compilable_test_results=$(addsuffix .out,$(addprefix $(RESULTS_DIR)/,$(compilabl
 fail_compilation_tests=$(wildcard fail_compilation/*.d)
 fail_compilation_test_results=$(addsuffix .out,$(addprefix $(RESULTS_DIR)/,$(fail_compilation_tests)))
 
-$(RESULTS_DIR)/runnable/%.d.out: runnable/%.d $(RESULTS_DIR)/.created $(RESULTS_DIR)/combinations $(DMD)
-	$(QUIET) ./do_test.sh $(<D) $* d
+$(RESULTS_DIR)/runnable/%.d.out: runnable/%.d $(RESULTS_DIR)/.created $(RESULTS_DIR)/d_do_test $(DMD)
+	$(QUIET) ./$(RESULTS_DIR)/d_do_test $(<D) $* d
 
-$(RESULTS_DIR)/runnable/%.html.out: runnable/%.html $(RESULTS_DIR)/.created $(RESULTS_DIR)/combinations $(DMD)
-	$(QUIET) ./do_test.sh $(<D) $* html
+$(RESULTS_DIR)/runnable/%.html.out: runnable/%.html $(RESULTS_DIR)/.created $(RESULTS_DIR)/d_do_test $(DMD)
+	$(QUIET) ./$(RESULTS_DIR)/d_do_test $(<D) $* html
 
-$(RESULTS_DIR)/runnable/%.sh.out: runnable/%.sh $(RESULTS_DIR)/.created $(RESULTS_DIR)/combinations $(DMD)
+$(RESULTS_DIR)/runnable/%.sh.out: runnable/%.sh $(RESULTS_DIR)/.created $(RESULTS_DIR)/d_do_test $(DMD)
 	$(QUIET) echo " ... $(<D)/$*.sh"
 	$(QUIET) ./$(<D)/$*.sh
 
-$(RESULTS_DIR)/compilable/%.d.out: compilable/%.d $(RESULTS_DIR)/.created $(RESULTS_DIR)/combinations $(DMD)
-	$(QUIET) ./do_test.sh $(<D) $* d
+$(RESULTS_DIR)/compilable/%.d.out: compilable/%.d $(RESULTS_DIR)/.created $(RESULTS_DIR)/d_do_test $(DMD)
+	$(QUIET) ./$(RESULTS_DIR)/d_do_test $(<D) $* d
 
-$(RESULTS_DIR)/fail_compilation/%.d.out: fail_compilation/%.d $(RESULTS_DIR)/.created $(RESULTS_DIR)/combinations $(DMD)
-	$(QUIET) ./do_test.sh $(<D) $* d
+$(RESULTS_DIR)/fail_compilation/%.d.out: fail_compilation/%.d $(RESULTS_DIR)/.created $(RESULTS_DIR)/d_do_test $(DMD)
+	$(QUIET) ./$(RESULTS_DIR)/d_do_test $(<D) $* d
 
 all: run_tests
 
@@ -125,23 +125,23 @@ run_tests: start_runnable_tests start_compilable_tests start_fail_compilation_te
 
 run_runnable_tests: $(runnable_test_results)
 
-start_runnable_tests: $(RESULTS_DIR)/.created $(RESULTS_DIR)/combinations
+start_runnable_tests: $(RESULTS_DIR)/.created $(RESULTS_DIR)/d_do_test
 	@echo "Running runnable tests"
 	$(QUIET)$(MAKE) --no-print-directory run_runnable_tests
 
 run_compilable_tests: $(compilable_test_results)
 
-start_compilable_tests: $(RESULTS_DIR)/.created $(RESULTS_DIR)/combinations
+start_compilable_tests: $(RESULTS_DIR)/.created $(RESULTS_DIR)/d_do_test
 	@echo "Running compilable tests"
 	$(QUIET)$(MAKE) --no-print-directory run_compilable_tests
 
 run_fail_compilation_tests: $(fail_compilation_test_results)
 
-start_fail_compilation_tests: $(RESULTS_DIR)/.created $(RESULTS_DIR)/combinations
+start_fail_compilation_tests: $(RESULTS_DIR)/.created $(RESULTS_DIR)/d_do_test
 	@echo "Running fail compilation tests"
 	$(QUIET)$(MAKE) --no-print-directory run_fail_compilation_tests
 
-$(RESULTS_DIR)/combinations: combinations.d $(RESULTS_DIR)/.created
-	@echo "Building combinations tool"
-	$(QUIET)$(DMD) -od$(RESULTS_DIR) -of$(RESULTS_DIR)$(DSEP)combinations combinations.d
+$(RESULTS_DIR)/d_do_test: d_do_test.d $(RESULTS_DIR)/.created
+	@echo "Building d_do_test tool"
+	$(QUIET)$(DMD) -od$(RESULTS_DIR) -of$(RESULTS_DIR)$(DSEP)d_do_test d_do_test.d
 
