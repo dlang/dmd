@@ -658,11 +658,11 @@ void test19()
     assert(cast(void*)c + 12 == cast(void*)ifoo);
 
     string s = ifoo.classinfo.name;
-    printf("%*s\n", s.length, s.ptr);
+    printf("%.*s\n", s.length, s.ptr);
     assert(s == "interface2.IFoo19");
 
     s = (cast(Object)ifoo).toString;
-    printf("%*s\n", s.length, s.ptr);
+    printf("%.*s\n", s.length, s.ptr);
     assert(s == "interface2.Child19");
 }
 

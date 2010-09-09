@@ -815,7 +815,7 @@ class Foo38
 {
     static void display_name()
     {
-	printf("%*s\n", Object.classinfo.name.length, Object.classinfo.name.ptr);
+	printf("%.*s\n", Object.classinfo.name.length, Object.classinfo.name.ptr);
 	assert(Object.classinfo.name == "object.Object");
 	assert(super.classinfo.name == "object.Object");
 	assert(this.classinfo.name == "test12.Foo38");
@@ -975,7 +975,7 @@ void test45()
 
     foreach (Shell s; a)
     {
-	printf("%*s\n", s.str.length, s.str.ptr);
+	printf("%.*s\n", s.str.length, s.str.ptr);
     }
 
     assert(a[0].str == "betty");
@@ -1158,7 +1158,7 @@ void test55()
 
 void writefln(string s)
 {
-    printf("%*s\n", s.length, s.ptr);
+    printf("%.*s\n", s.length, s.ptr);
 }
 
 void test56()
@@ -1188,7 +1188,7 @@ void test56()
 void writefln(wstring ws)
 {
     string s = toUTF8(ws);
-    printf("%*s\n", s.length, s.ptr);
+    printf("%.*s\n", s.length, s.ptr);
 }
 
 void test57()

@@ -1098,11 +1098,11 @@ void test43()
 {
     string s;
 
-    s = __FILE__; printf("file = '%*s'\n", s.length, s.ptr);
+    s = __FILE__; printf("file = '%.*s'\n", s.length, s.ptr);
     printf("line = %d\n", __LINE__);
-    s = __DATE__; printf("date = '%*s'\n", s.length, s.ptr);
-    s = __TIME__; printf("time = '%*s'\n", s.length, s.ptr);
-    s = __TIMESTAMP__; printf("timestamp = '%*s'\n", s.length, s.ptr);
+    s = __DATE__; printf("date = '%.*s'\n", s.length, s.ptr);
+    s = __TIME__; printf("time = '%.*s'\n", s.length, s.ptr);
+    s = __TIMESTAMP__; printf("timestamp = '%.*s'\n", s.length, s.ptr);
 }
 
 /* ================================ */

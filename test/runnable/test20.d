@@ -1034,13 +1034,13 @@ const char[3][13] month = [
 
 void test53()
 {
-    printf("%*s\n", month[1].length, month[1].ptr);
-    printf("%*s\n", month[2].length, month[2].ptr);
-    printf("%*s\n", month[3].length, month[3].ptr);
-    printf("%*s\n", month[4].length, month[4].ptr);
-    printf("%*s\n", month[5].length, month[5].ptr);
-    printf("%*s\n", month[6].length, month[6].ptr);
-    printf("%*s\n", month[8].length, month[8].ptr);
+    printf("%.*s\n", month[1].length, month[1].ptr);
+    printf("%.*s\n", month[2].length, month[2].ptr);
+    printf("%.*s\n", month[3].length, month[3].ptr);
+    printf("%.*s\n", month[4].length, month[4].ptr);
+    printf("%.*s\n", month[5].length, month[5].ptr);
+    printf("%.*s\n", month[6].length, month[6].ptr);
+    printf("%.*s\n", month[8].length, month[8].ptr);
 
     assert(month[1] == "Jan");
     assert(month[2] == "Feb");
@@ -1099,12 +1099,12 @@ void test55()
   str = str ~ c;
   uvw = c ~ uvw;
 
-  printf("%*s\n", str.length, str.ptr);
+  printf("%.*s\n", str.length, str.ptr);
   assert(str == "a");
   assert(uvw == "a");
 
   c = 'b';
-  printf("%*s\n", str.length, str.ptr);
+  printf("%.*s\n", str.length, str.ptr);
   assert(str == "a");
   assert(uvw == "a");
 }

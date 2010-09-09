@@ -86,11 +86,11 @@ void test3()
 
 void test4()
 {    
-     printf("main() : (-128 >= 0)=%*s, (-128 <= 0)=%*s\n", 
+     printf("main() : (-128 >= 0)=%.*s, (-128 <= 0)=%.*s\n", 
               (-128 >= 0 ? "true" : "false"),
               (-128 <= 0 ?  "true" : "false"));     
 
-     printf("main() : (128 >= 0)=%*s, (128 <= 0)=%*s\n", 
+     printf("main() : (128 >= 0)=%.*s, (128 <= 0)=%.*s\n", 
               (128 >= 0 ? "true" : "false"),
               (128 <= 0 ?  "true" : "false"));
               
@@ -215,7 +215,7 @@ void test10()
 {
     auto i = 5u;
     auto s = typeid(typeof(i)).toString;
-    printf("%*s\n", s.length, s.ptr);
+    printf("%.*s\n", s.length, s.ptr);
     assert(typeid(typeof(i)) == typeid(uint));
 }
 
@@ -593,7 +593,7 @@ void test27()
 {   int x;
 
     string s = (int*function(int ...)[]).mangleof;
-    printf("%*s\n", s.length, s.ptr);
+    printf("%.*s\n", s.length, s.ptr);
     assert((int*function(int ...)[]).mangleof == "APFiXPi");
     assert(x.mangleof == "i");
 }
