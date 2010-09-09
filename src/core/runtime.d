@@ -40,7 +40,7 @@ private
     {
         import core.demangle;
         import core.stdc.stdlib : free;
-        import core.stdc.string : strlen;
+        import core.stdc.string : strlen, memchr;
         extern (C) int    backtrace(void**, size_t);
         extern (C) char** backtrace_symbols(void**, int);
         extern (C) void   backtrace_symbols_fd(void**,int,int);
@@ -453,6 +453,25 @@ Throwable.TraceInfo defaultTraceHandler( void* ptr = null )
                             fixbuf[bsym + m.length .. bsym + m.length + tail] = buf[esym .. $];
                             return fixbuf[0 .. bsym + m.length + tail];
                         }
+                    }
+                    return buf;
+                }
+                else version( linux )
+                {
+                    // format is:
+                    // module(_D6module4funcAFZv) [0x00000000]
+                    char* bptr = memchr( buf.ptr, '(', buf.length );
+                    char* eptr = memchr( buf.ptr, ')', buf.length );
+                    
+                    if( bptr++ && eptr )
+                    {
+                        size_t bsym = bptr - buf.ptr;
+                        size_t esym = eptr - buf.ptr;
+                        auto tail = buf.length - esym;
+                        fixbuf[0 .. bsym] = buf[0 .. bsym];
+                        auto m = demangle( buf[bsym .. esym], fixbuf[bsym .. $] );
+                        fixbuf[bsym + m.length .. bsym + m.length + tail] = buf[esym .. $];
+                        return fixbuf[0 .. bsym + m.length + tail];
                     }
                     return buf;
                 }
