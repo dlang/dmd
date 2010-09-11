@@ -8356,8 +8356,7 @@ Expression *ArrayExp::toLvalue(Scope *sc, Expression *e)
 
 
 void ArrayExp::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
-{   int i;
-
+{
     expToCBuffer(buf, hgs, e1, PREC_primary);
     buf->writeByte('[');
     argsToCBuffer(buf, arguments, hgs);
@@ -8394,6 +8393,12 @@ Expression *DotExp::semantic(Scope *sc)
     return this;
 }
 
+void DotExp::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
+{
+    expToCBuffer(buf, hgs, e1, PREC_primary);
+    buf->writeByte('.');
+    expToCBuffer(buf, hgs, e2, PREC_primary);
+}
 
 /************************* CommaExp ***********************************/
 

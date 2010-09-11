@@ -1134,6 +1134,7 @@ struct DotExp : BinExp
 {
     DotExp(Loc loc, Expression *e1, Expression *e2);
     Expression *semantic(Scope *sc);
+    void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
 };
 
 struct CommaExp : BinExp
