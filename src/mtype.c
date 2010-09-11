@@ -3976,6 +3976,12 @@ StructDeclaration *TypeAArray::getImpl()
             error(loc, "cannot create associative array %s", toChars());
             index = terror;
             next = terror;
+
+            // Head off future failures
+            StructDeclaration *s = new StructDeclaration(0, NULL);
+            s->type = terror;
+            impl = s;
+            return impl;
         }
         /* This is really a proxy for the template instance AssocArray!(index, next)
          * But the instantiation can fail if it is a template specialization field
