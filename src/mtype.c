@@ -7008,7 +7008,19 @@ MATCH TypeStruct::implicitConvTo(Type *to)
 
     //printf("TypeStruct::implicitConvTo(%s => %s)\n", toChars(), to->toChars());
     if (to->ty == Taarray)
+    {
+        /* If there is an error instantiating AssociativeArray!(), it shouldn't
+         * be reported -- it just means implicit conversion is impossible.
+         */
+        ++global.gag;
+        int errs = global.errors;
         to = ((TypeAArray*)to)->getImpl()->type;
+        --global.gag;
+        if (errs != global.errors)
+        {   global.errors = errs;
+            return MATCHnomatch;
+        }
+    }
 
     if (ty == to->ty && sym == ((TypeStruct *)to)->sym)
     {   m = MATCHexact;         // exact match
