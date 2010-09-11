@@ -4628,6 +4628,7 @@ int TemplateInstance::needsTypeInference(Scope *sc)
     //printf("TemplateInstance::needsTypeInference() %s\n", toChars());
     if (!tempdecl)
         tempdecl = findTemplateDeclaration(sc);
+    int multipleMatches = FALSE;
     for (TemplateDeclaration *td = tempdecl; td; td = td->overnext)
     {
         /* If any of the overloaded template declarations need inference,
@@ -4653,9 +4654,14 @@ int TemplateInstance::needsTypeInference(Scope *sc)
         if (Parameter::dim(fdtype->parameters) &&
             (tp || tiargs->dim < td->parameters->dim))
             return TRUE;
+        /* If there is more than one function template which matches, we may
+         * need type inference (see Bugzilla 4430)
+         */
+        if (td != tempdecl)
+            multipleMatches = TRUE;
     }
     //printf("false\n");
-    return FALSE;
+    return multipleMatches;
 }
 
 void TemplateInstance::semantic2(Scope *sc)
