@@ -5491,6 +5491,7 @@ void initPrecedence()
     precedence[TOKsymoff] = PREC_primary;
     precedence[TOKstructliteral] = PREC_primary;
     precedence[TOKarraylength] = PREC_primary;
+    precedence[TOKtuple] = PREC_primary;
 #if DMDV2
     precedence[TOKtraits] = PREC_primary;
     precedence[TOKdefault] = PREC_primary;

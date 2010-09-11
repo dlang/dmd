@@ -7746,6 +7746,12 @@ Expression *DotExp::semantic(Scope *sc)
     return this;
 }
 
+void DotExp::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
+{
+    expToCBuffer(buf, hgs, e1, PREC_primary);
+    buf->writeByte('.');
+    expToCBuffer(buf, hgs, e2, PREC_primary);
+}
 
 /************************* CommaExp ***********************************/
 
