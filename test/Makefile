@@ -53,7 +53,11 @@ ifeq (,$(OS))
     endif
 else
     ifeq (Windows_NT,$(OS))
-	OS=win32
+	OS:=win32
+    else
+        ifeq (Win_32,$(OS))
+	    OS:=win32
+        endif
     endif
 endif
 export OS
