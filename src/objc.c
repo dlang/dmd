@@ -143,6 +143,7 @@ ObjcSelector::ObjcSelector(const char *sv, size_t len, size_t pcount)
     stringvalue = sv;
     stringlen = len;
     paramCount = pcount;
+    element = NULL;
 }	
 
 ObjcSelector *ObjcSelector::lookup(ObjcSelectorBuilder *builder)
