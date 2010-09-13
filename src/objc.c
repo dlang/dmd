@@ -210,7 +210,7 @@ elem *ObjcSelector::toElem()
 
         element = el_var(sselref);
     }
-    return element;
+    return el_copytree(element); // not creating a copy can cause problems with optimizer
 }
 
 
@@ -279,6 +279,6 @@ elem *ObjcClassReference::toElem()
 
         element = el_var(sclsref);
     }
-    return element;
+    return el_copytree(element); // not creating a copy can cause problems with optimizer
 }
 
