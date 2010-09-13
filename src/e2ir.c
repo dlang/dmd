@@ -229,6 +229,15 @@ elem *callfunc(Loc loc,
         {
             // Evaluate ec for side effects
             eside = ec;
+
+#if DMD_OBJC
+            if (fd->getObjCSelector())
+            {
+                // Looks like a "static" Obj-C member function:
+                // use reference to metaclass as ethis
+                ethis = ObjcClassReference::lookup(fd->isMember2()->ident)->toElem();
+            }
+#endif
         }
         sfunc = fd->toSymbol();
 
@@ -246,6 +255,7 @@ elem *callfunc(Loc loc,
         else if (fd->getObjCSelector())
         {
             // make objc-style "virtual" call using dispatch function
+            assert(ethis);
             Type *tret = tf->next;
             ec = el_var(ObjcSymbols::getMsgSend(tret, ehidden != 0));
         }

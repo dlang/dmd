@@ -2574,8 +2574,10 @@ int FuncDeclaration::isVirtual()
     Dsymbol *p = toParent();
 #if DMD_OBJC
     if (linkage == LINKobjc)
-    {   // final member functions are kept virtual with Obj-C linkage because
-        // the Obj-C runtime always use dynamic dispatch.
+    {   // * final member functions are kept virtual with Obj-C linkage because
+        //   the Obj-C runtime always use dynamic dispatch.
+        // * static member functions are kept virtual too, as they represent 
+        //   methods of the metaclass.
         return isMember() &&
             !(protection == PROTprivate || protection == PROTpackage) &&
             p->isClassDeclaration();

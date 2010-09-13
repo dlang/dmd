@@ -62,4 +62,20 @@ struct ObjcSelector
 	static ObjcSelector *create(Identifier *ident, size_t pcount);
 };
 
+struct ObjcClassReference
+{
+	static StringTable stringtable;
+	static int incnum;
+	
+	const char *stringvalue;
+	size_t stringlen;
+	elem *element;
+	
+	ObjcClassReference(const char *sv, size_t len);
+	elem *toElem();
+	
+	static ObjcClassReference *lookup(const char *s, size_t len);
+	static ObjcClassReference *lookup(Identifier *ident);
+};
+
 #endif

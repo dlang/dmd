@@ -96,8 +96,6 @@ Symbol *ObjcSymbols::getModuleInfo()
 }
 
 
-
-
 void ObjcSelectorBuilder::addIdentifier(Identifier *id)
 {
     assert(partCount < 10);
@@ -134,6 +132,8 @@ const char *ObjcSelectorBuilder::toString()
     return s;
 }
 
+
+// MARK: Selector
 
 StringTable ObjcSelector::stringtable;
 int ObjcSelector::incnum = 0;
@@ -209,6 +209,75 @@ elem *ObjcSelector::toElem()
         ++selcount;
 
         element = el_var(sselref);
+    }
+    return element;
+}
+
+
+// MARK: Class Reference
+
+StringTable ObjcClassReference::stringtable;
+int ObjcClassReference::incnum = 0;
+
+ObjcClassReference::ObjcClassReference(const char *sv, size_t len)
+{
+    stringvalue = sv;
+    stringlen = len;
+    element = NULL;
+}	
+
+ObjcClassReference *ObjcClassReference::lookup(const char *s, size_t len)
+{
+    StringValue *sv = stringtable.update(s, len);
+    ObjcClassReference *sel = (ObjcClassReference *) sv->ptrvalue;
+    if (!sel)
+    {
+        sel = new ObjcClassReference(sv->lstring.string, len);
+        sv->ptrvalue = sel;
+    }
+    return sel;
+}
+
+ObjcClassReference *ObjcClassReference::lookup(Identifier *ident)
+{
+	return lookup(ident->string, ident->len);
+}
+
+
+elem *ObjcClassReference::toElem()
+{
+    if (element == NULL)
+    {
+        ObjcSymbols::getImageInfo();
+        ObjcSymbols::getModuleInfo();
+        
+        printf("classref=%s len=%lu\n", stringvalue, stringlen);
+        
+        static size_t classcount = 0;
+        char namestr[42];
+        
+        // create data
+        dt_t *dt = NULL;
+        sprintf(namestr, "L_OBJC_CLASS_NAME_%lu", classcount);
+        Symbol *sclsname = ObjcSymbols::getCString(stringvalue, stringlen, namestr);
+        dtxoff(&dt, sclsname, 0, TYnptr);
+        
+        // find segment
+        static int seg = -1;
+        if (seg == -1)
+            seg = mach_getsegment("__cls_refs", "__OBJC", sizeof(size_t), S_LITERAL_POINTERS | S_ATTR_NO_DEAD_STRIP, 0);
+        
+        // create symbol
+        Symbol *sclsref;
+        sprintf(namestr, "L_OBJC_CLASS_REFERENCES_%lu", classcount);
+        sclsref = symbol_name(namestr, SCstatic, type_fake(TYnptr));
+        sclsref->Sdt = dt;
+        sclsref->Sseg = seg;
+        outdata(sclsref);
+        
+        ++classcount;
+
+        element = el_var(sclsref);
     }
     return element;
 }
