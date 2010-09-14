@@ -28,7 +28,7 @@ for x in "${a[@]}"; do
         exit 1
     fi
 
-    rm ${dir}/{test2${OBJ},test2}
+    rm ${dir}/{test2${OBJ},test2${EXE}}
 
     echo >> ${output_file}
 done

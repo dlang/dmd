@@ -34,5 +34,5 @@ if [ $? -ne 0 ]; then
     exit 1
 fi
 
-rm ${dir}/{test35${OBJ},test35a${OBJ},test35}
+rm ${dir}/{test35${OBJ},test35a${OBJ},test35${EXE}}
 

@@ -291,6 +291,7 @@ int main(string[] args)
                         (testArgs.mode == TestMode.RUN ? test_app_dmd : objfile),
                         (testArgs.mode == TestMode.RUN ? "" : "-c "),
                         join(testArgs.sources, " "));
+                version(Windows) command ~= " -map nul.map";
                 execute(f, command, testArgs.mode != TestMode.FAIL_COMPILE);
             }
             else
@@ -310,6 +311,7 @@ int main(string[] args)
                 {
                     // link .o's into an executable
                     string command = format("%s -od%s -of%s %s", envData.dmd, output_dir, test_app_dmd, join(toCleanup, " "));
+                    version(Windows) command ~= " -map nul.map";
 
                     // add after building the command so that before now, it's purely the .o's involved
                     toCleanup ~= test_app_dmd;
