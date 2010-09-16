@@ -103,13 +103,50 @@ Symbol *ObjcSymbols::getClassName(const char *s, size_t len) {
     {
         static size_t classnamecount = 0;
         char namestr[42];
-        sprintf(namestr, "L_OBJC_CLASS_NAME_%lu", classnamecount);
+        sprintf(namestr, "L_OBJC_CLASS_NAME_%lu", classnamecount++);
         sy = getCString(s, len, namestr);
         sv->ptrvalue = sy;
-		++classnamecount;
+		classnamecount;
     }
     return sy;
 }
+
+
+Symbol *ObjcSymbols::getClassReference(const char *s, size_t len)
+{
+	static StringTable stringtable;
+	StringValue *sv = stringtable.update(s, len);
+    Symbol *sy = (Symbol *) sv->ptrvalue;
+    if (!sy)
+    {
+		// create data
+        dt_t *dt = NULL;
+        Symbol *sclsname = getClassName(s, len);
+        dtxoff(&dt, sclsname, 0, TYnptr);
+	
+        // find segment for class references
+        static int seg = -1;
+        if (seg == -1)
+            seg = mach_getsegment("__cls_refs", "__OBJC", sizeof(size_t), S_LITERAL_POINTERS | S_ATTR_NO_DEAD_STRIP, 0);
+        
+        static size_t classrefcount = 0;
+        char namestr[42];
+        sprintf(namestr, "L_OBJC_CLASS_REFERENCES_%lu", classrefcount++);
+        sy = symbol_name(namestr, SCstatic, type_fake(TYnptr));
+        sy->Sdt = dt;
+        sy->Sseg = seg;
+        outdata(sy);
+		
+        sv->ptrvalue = sy;
+    }
+    return sy;
+}
+
+Symbol *ObjcSymbols::getClassReference(Identifier *ident)
+{
+	return getClassReference(ident->string, ident->len);
+}
+
 
 
 void ObjcSelectorBuilder::addIdentifier(Identifier *id)
@@ -225,72 +262,6 @@ elem *ObjcSelector::toElem()
         ++selcount;
 
         element = el_var(sselref);
-    }
-    return el_copytree(element); // not creating a copy can cause problems with optimizer
-}
-
-
-// MARK: Class Reference
-
-StringTable ObjcClassReference::stringtable;
-int ObjcClassReference::incnum = 0;
-
-ObjcClassReference::ObjcClassReference(const char *sv, size_t len)
-{
-    stringvalue = sv;
-    stringlen = len;
-    element = NULL;
-}	
-
-ObjcClassReference *ObjcClassReference::lookup(const char *s, size_t len)
-{
-    StringValue *sv = stringtable.update(s, len);
-    ObjcClassReference *sel = (ObjcClassReference *) sv->ptrvalue;
-    if (!sel)
-    {
-        sel = new ObjcClassReference(sv->lstring.string, len);
-        sv->ptrvalue = sel;
-    }
-    return sel;
-}
-
-ObjcClassReference *ObjcClassReference::lookup(Identifier *ident)
-{
-	return lookup(ident->string, ident->len);
-}
-
-
-elem *ObjcClassReference::toElem()
-{
-    if (element == NULL)
-    {
-        ObjcSymbols::getImageInfo();
-        ObjcSymbols::getModuleInfo();
-        
-        Symbol *sclsname = ObjcSymbols::getClassName(stringvalue, stringlen);
-        
-        // create data
-        dt_t *dt = NULL;
-        dtxoff(&dt, sclsname, 0, TYnptr);
-        
-        // find segment for class references
-        static int seg = -1;
-        if (seg == -1)
-            seg = mach_getsegment("__cls_refs", "__OBJC", sizeof(size_t), S_LITERAL_POINTERS | S_ATTR_NO_DEAD_STRIP, 0);
-        
-        // create symbol
-        Symbol *sclsref;
-        static size_t classcount = 0;
-        char namestr[42];
-        sprintf(namestr, "L_OBJC_CLASS_REFERENCES_%lu", classcount);
-        sclsref = symbol_name(namestr, SCstatic, type_fake(TYnptr));
-        sclsref->Sdt = dt;
-        sclsref->Sseg = seg;
-        outdata(sclsref);
-        
-        ++classcount;
-
-        element = el_var(sclsref);
     }
     return el_copytree(element); // not creating a copy can cause problems with optimizer
 }

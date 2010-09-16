@@ -235,7 +235,7 @@ elem *callfunc(Loc loc,
             {
                 // Looks like a "static" Objective-C member function:
                 // use reference to metaclass as ethis
-                ethis = ObjcClassReference::lookup(fd->isMember2()->ident)->toElem();
+                ethis = el_var(ObjcSymbols::getClassReference(fd->isMember2()->ident));
             }
 #endif
         }

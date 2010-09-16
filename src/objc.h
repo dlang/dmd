@@ -29,6 +29,8 @@ struct ObjcSymbols
 	static Symbol *getModuleInfo();
 	
 	static Symbol *getClassName(const char *str, size_t len);
+	static Symbol *getClassReference(const char *str, size_t len);
+	static Symbol *getClassReference(Identifier *ident);
 };
 
 // Helper class to efficiently build a selector from identifiers and colon tokens
@@ -62,22 +64,6 @@ struct ObjcSelector
 	static ObjcSelector *lookup(ObjcSelectorBuilder *builder);
 	static ObjcSelector *lookup(const char *s, size_t len, size_t pcount);
 	static ObjcSelector *create(Identifier *ident, size_t pcount);
-};
-
-struct ObjcClassReference
-{
-	static StringTable stringtable;
-	static int incnum;
-	
-	const char *stringvalue;
-	size_t stringlen;
-	elem *element;
-	
-	ObjcClassReference(const char *sv, size_t len);
-	elem *toElem();
-	
-	static ObjcClassReference *lookup(const char *s, size_t len);
-	static ObjcClassReference *lookup(Identifier *ident);
 };
 
 #endif
