@@ -27,6 +27,8 @@ struct ObjcSymbols
 	static Symbol *getCString(const char *str, size_t len, const char *symbolName);
 	static Symbol *getImageInfo();
 	static Symbol *getModuleInfo();
+	
+	static Symbol *getClassName(const char *str, size_t len);
 };
 
 // Helper class to efficiently build a selector from identifiers and colon tokens

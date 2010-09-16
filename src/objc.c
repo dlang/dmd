@@ -95,6 +95,22 @@ Symbol *ObjcSymbols::getModuleInfo()
     return sinfo;
 }
 
+Symbol *ObjcSymbols::getClassName(const char *s, size_t len) {
+	static StringTable stringtable;
+    StringValue *sv = stringtable.update(s, len);
+    Symbol *sy = (Symbol *) sv->ptrvalue;
+    if (!sy)
+    {
+        static size_t classnamecount = 0;
+        char namestr[42];
+        sprintf(namestr, "L_OBJC_CLASS_NAME_%lu", classnamecount);
+        sy = getCString(s, len, namestr);
+        sv->ptrvalue = sy;
+		++classnamecount;
+    }
+    return sy;
+}
+
 
 void ObjcSelectorBuilder::addIdentifier(Identifier *id)
 {
@@ -251,24 +267,21 @@ elem *ObjcClassReference::toElem()
         ObjcSymbols::getImageInfo();
         ObjcSymbols::getModuleInfo();
         
-        printf("classref=%s len=%lu\n", stringvalue, stringlen);
-        
-        static size_t classcount = 0;
-        char namestr[42];
+        Symbol *sclsname = ObjcSymbols::getClassName(stringvalue, stringlen);
         
         // create data
         dt_t *dt = NULL;
-        sprintf(namestr, "L_OBJC_CLASS_NAME_%lu", classcount);
-        Symbol *sclsname = ObjcSymbols::getCString(stringvalue, stringlen, namestr);
         dtxoff(&dt, sclsname, 0, TYnptr);
         
-        // find segment
+        // find segment for class references
         static int seg = -1;
         if (seg == -1)
             seg = mach_getsegment("__cls_refs", "__OBJC", sizeof(size_t), S_LITERAL_POINTERS | S_ATTR_NO_DEAD_STRIP, 0);
         
         // create symbol
         Symbol *sclsref;
+        static size_t classcount = 0;
+        char namestr[42];
         sprintf(namestr, "L_OBJC_CLASS_REFERENCES_%lu", classcount);
         sclsref = symbol_name(namestr, SCstatic, type_fake(TYnptr));
         sclsref->Sdt = dt;
