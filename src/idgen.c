@@ -128,7 +128,7 @@ Msgtable msgtable[] =
     { "Windows" },
     { "Pascal" },
     { "System" },
-    { "Obj" },
+    { "Objective" },
 
     { "exit" },
     { "success" },

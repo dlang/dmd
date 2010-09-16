@@ -93,7 +93,7 @@ void unittests();
 // Set if C++ mangling is done by the front end
 #define CPP_MANGLE (DMDV2 && (TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_SOLARIS))
 
-// Obj-C Support
+// Objective-C Support
 #define DMD_OBJC (DMDV2 && TARGET_OSX)
 
 /* Other targets are TARGET_LINUX, TARGET_OSX, TARGET_FREEBSD and

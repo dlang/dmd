@@ -233,7 +233,7 @@ elem *callfunc(Loc loc,
 #if DMD_OBJC
             if (fd->getObjCSelector())
             {
-                // Looks like a "static" Obj-C member function:
+                // Looks like a "static" Objective-C member function:
                 // use reference to metaclass as ethis
                 ethis = ObjcClassReference::lookup(fd->isMember2()->ident)->toElem();
             }

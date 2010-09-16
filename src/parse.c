@@ -813,7 +813,7 @@ enum LINK Parser::parseLinkage()
                 nextToken();
             }
         }
-        else if (id == Id::Obj) // Looking for tokens "Obj-C"
+        else if (id == Id::Objective) // Looking for tokens "Objective-C"
         {
             if (token.value == TOKmin)
             {   nextToken();
@@ -838,7 +838,7 @@ enum LINK Parser::parseLinkage()
         else
         {
         LinvalidLinkage:
-            error("valid linkage identifiers are D, C, C++, Obj-C, Pascal, Windows, System");
+            error("valid linkage identifiers are D, C, C++, Objective-C, Pascal, Windows, System");
             link = LINKd;
         }
     }
@@ -2902,11 +2902,11 @@ L2:
             f->objcSelector = parseObjCSelector();
             if (f->objcSelector) {
                 if (linkage != LINKobjc)
-                    error("function must have Obj-C linkage to attach a selector");
+                    error("function must have Objective-C linkage to attach a selector");
                 if (tpl)
-                    error("function template cannot have an Obj-C selector attached");
+                    error("function template cannot have an Objective-C selector attached");
                 if (f->objcSelector->paramCount != tf->parameters->dim)
-                    error("number of colons in Obj-C selector must match the number of parameters");
+                    error("number of colons in Objective-C selector must match the number of parameters");
             }
 #endif
             if (tpl)
@@ -2981,7 +2981,7 @@ L2:
 
 #if DMD_OBJC
 /*****************************************
- * Parse Obj-C selector name enclosed in brackets. Such as:
+ * Parse Objective-C selector name enclosed in brackets. Such as:
  *   [setObject:forKey:otherArgs::]
  * Return NULL when no bracket found.
  */
@@ -3007,7 +3007,7 @@ ObjcSelector *Parser::parseObjCSelector()
             case TOKrbracket:
                 goto Lendloop;
             default:
-                // special case to allow D keywords in Obj-C selector names
+                // special case to allow D keywords in Objective-C selector names
                 if (token.ident)
                     goto Lcaseident;
                 goto Lparseerror;
@@ -3017,13 +3017,13 @@ ObjcSelector *Parser::parseObjCSelector()
 Lendloop:
     nextToken();
     if (!selBuilder.isValid())
-    {   error("illegal Obj-C selector name");
+    {   error("illegal Objective-C selector name");
         return NULL;
     }
     return ObjcSelector::lookup(&selBuilder);
     
 Lparseerror:
-    error("illegal Obj-C selector name");
+    error("illegal Objective-C selector name");
     // exit bracket ignoring content
     while (token.value != TOKrbracket && token.value != TOKeof)
         nextToken();

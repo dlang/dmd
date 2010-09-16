@@ -711,7 +711,7 @@ void FuncDeclaration::toObjFile(int multiobj)
         pi += parameters->dim;
 //#if DMD_OBJC
 //    if (func->getObjCSelector())
-//        pi += 1; // Extra arument for Obj-C selector
+//        pi += 1; // Extra arument for Objective-C selector
 //#endif
     // Allow extra 2 for sthis and shidden
     params = (Symbol **)alloca((pi + 2) * sizeof(Symbol *));
@@ -750,8 +750,8 @@ void FuncDeclaration::toObjFile(int multiobj)
 //#if DMD_OBJC
 //    if (func->getObjCSelector())
 //    {
-//        // Need to add Obj-C self and _cmd arguments as last/first parameters
-//        error("Obj-C method ABI not implemented yet.");
+//        // Need to add Objective-C self and _cmd arguments as last/first parameters
+//        error("Objective-C method ABI not implemented yet.");
 //        ObjcSelector *sel = func->getObjCSelector();
 //#if 0
 //        // self and _cmd becomes last parameters

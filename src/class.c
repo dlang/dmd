@@ -288,7 +288,7 @@ void ClassDeclaration::semantic(Scope *sc)
     if (sc->linkage == LINKcpp)
         error("cannot create C++ classes");
     if (sc->linkage == LINKobjc)
-        error("cannot create Obj-C classes");
+        error("cannot create Objective-C classes");
 
     // Expand any tuples in baseclasses[]
     for (i = 0; i < baseclasses->dim; )
@@ -1189,7 +1189,7 @@ void InterfaceDeclaration::semantic(Scope *sc)
 #if DMD_OBJC
         objc = 1;
 #elif
-        error("Obj-C interfaces not supported");
+        error("Objective-C interfaces not supported");
 #endif
     }
 

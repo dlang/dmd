@@ -550,7 +550,7 @@ void LinkDeclaration::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
         case LINKcpp:           p = "C++";              break;
         case LINKwindows:       p = "Windows";          break;
         case LINKpascal:        p = "Pascal";           break;
-        case LINKobjc:          p = "Obj-C";            break;
+        case LINKobjc:          p = "Objective-C";      break;
         default:
             assert(0);
             break;

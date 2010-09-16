@@ -530,7 +530,7 @@ struct FuncDeclaration : Declaration
                                         // scopes from having the same name
     VarDeclaration *vthis;              // 'this' parameter (member and nested)
 #if DMD_OBJC
-    ObjcSelector *objcSelector;         // Obj-C method selector (member function only)
+    ObjcSelector *objcSelector;         // Objective-C method selector (member function only)
 #endif
     VarDeclaration *v_arguments;        // '_arguments' parameter
 #if IN_GCC

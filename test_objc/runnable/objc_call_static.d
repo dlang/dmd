@@ -1,5 +1,5 @@
 
-extern (Obj-C)
+extern (Objective-C)
 interface NSObject {
 	static NSObject alloc();
 	static NSObject allocWithZone(void* zone);

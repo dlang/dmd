@@ -1,2 +1,2 @@
 
-extern (Obj-C) void NSLog();
+extern (Objective-C) void NSLog();

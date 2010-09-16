@@ -1,14 +1,14 @@
 
 import std.c.stdio;
 
-alias void* id; // untyped Obj-C object pointer
+alias void* id; // untyped Objective-C object pointer
 
-extern (Obj-C)
+extern (Objective-C)
 interface Class {
 	NSObject alloc(); // implicit selector
 }
 
-extern (Obj-C)
+extern (Objective-C)
 interface NSObject {
 	NSObject initWithUTF8String(in char *str); // implicit selector
 	void release() [release];

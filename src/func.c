@@ -2574,8 +2574,8 @@ int FuncDeclaration::isVirtual()
     Dsymbol *p = toParent();
 #if DMD_OBJC
     if (linkage == LINKobjc)
-    {   // * final member functions are kept virtual with Obj-C linkage because
-        //   the Obj-C runtime always use dynamic dispatch.
+    {   // * final member functions are kept virtual with Objective-C linkage 
+        //   because the Objective-C runtime always use dynamic dispatch.
         // * static member functions are kept virtual too, as they represent 
         //   methods of the metaclass.
         return isMember() &&
@@ -2833,8 +2833,8 @@ Parameters *FuncDeclaration::getParameters(int *pvarargs)
 
 #if DMD_OBJC
 /*********************************************
- * Return the Obj-C selector for this function, or create one if this is a 
- * virtual member with Obj-C linkage.
+ * Return the Objective-C selector for this function, or create one if this is a 
+ * virtual member with Objective-C linkage.
  */
 
 ObjcSelector *FuncDeclaration::getObjCSelector()

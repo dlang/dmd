@@ -289,7 +289,7 @@ struct InterfaceDeclaration : ClassDeclaration
     int cpp;                            // !=0 if this is a C++ interface
 #endif
 #if DMD_OBJC
-    int objc;                           // !=0 if this is an Obj-C interface
+    int objc;                           // !=0 if this is an Objective-C interface
 #endif
     InterfaceDeclaration(Loc loc, Identifier *id, BaseClasses *baseclasses);
     Dsymbol *syntaxCopy(Dsymbol *s);
