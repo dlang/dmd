@@ -216,7 +216,7 @@ cgreg.o: $C/cgreg.c
 cgsched.o: $C/rtlsym.h $C/cgsched.c
 	$(CC) -c $(MFLAGS) $C/cgsched.c
 
-class.o: class.c
+class.o: class.c objc.h
 	$(CC) -c $(CFLAGS) $<
 
 clone.o: clone.c
@@ -423,7 +423,7 @@ mtype.o: mtype.c
 nteh.o: $C/rtlsym.h $C/nteh.c
 	$(CC) -c $(MFLAGS) $C/nteh.c
 
-objc.o: objc.c $(ROOT)/root.h $(ROOT)/stringtable.h
+objc.o: objc.c objc.h $(ROOT)/root.h $(ROOT)/stringtable.h
 	$(CC) -c -I$C -I$(TK) $(CFLAGS) $<
 
 opover.o: opover.c
@@ -510,7 +510,7 @@ toelfdebug.o: $(CH) $(TOTALH) mars.h toelfdebug.c
 toir.o: $C/rtlsym.h expression.h toir.h toir.c
 	$(CC) -c -I$(ROOT) $(MFLAGS) toir.c
 
-toobj.o: $(CH) $(TOTALH) mars.h module.h toobj.c
+toobj.o: $(CH) $(TOTALH) mars.h module.h objc.c toobj.c
 	$(CC) -c $(MFLAGS) -I$(ROOT) toobj.c
 
 traits.o: $(TOTALH) traits.c

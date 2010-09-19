@@ -100,7 +100,7 @@ Symbol *ObjcSymbols::getImageInfo()
     return sinfo;
 }
 
-Symbol *ObjcSymbols::getModuleInfo()
+Symbol *ObjcSymbols::getModuleInfo(ClassDeclarations *cls, ClassDeclarations *cat)
 {
     static Symbol *sinfo = NULL;
     if (!sinfo) {
@@ -108,35 +108,35 @@ Symbol *ObjcSymbols::getModuleInfo()
         dtdword(&dt, 7);  // version
         dtdword(&dt, 16); // size
         dtxoff(&dt, ObjcSymbols::getCString("", 0, "L_CLASS_NAME_"), 0, TYnptr); // name
-        dtxoff(&dt, ObjcSymbols::getSymbolMap(), 0, TYnptr); // symtabs
+        dtxoff(&dt, ObjcSymbols::getSymbolMap(cls, cat), 0, TYnptr); // symtabs
 
         sinfo = symbol_name("L_OBJC_MODULE_INFO", SCstatic, type_allocn(TYarray, tschar));
         sinfo->Sdt = dt;
         sinfo->Sseg = mach_getsegment("__module_info", "__OBJC", sizeof(size_t), 0);
         outdata(sinfo);
+        
+        ObjcSymbols::getImageInfo();
     }
     return sinfo;
 }
 
-Symbol *ObjcSymbols::getSymbolMap()
+Symbol *ObjcSymbols::getSymbolMap(ClassDeclarations *cls, ClassDeclarations *cat)
 {
     static Symbol *sinfo = NULL;
     if (!sinfo) {
-        size_t classcount = 0;
-        size_t catcount = 0;
-        Symbol **classsym;
-        Symbol **catsym;
+        size_t classcount = cls->dim;
+        size_t catcount = cat->dim;
     
         dt_t *dt = NULL;
         dtdword(&dt, 0); // selector refs count (unused)
         dtdword(&dt, 0); // selector refs ptr (unused)
         dtdword(&dt, classcount + (catcount << 16)); // class count / category count (expects little-endian)
         
-        for (size_t i = 0; i < classcount; ++i)
-            dtxoff(&dt, classsym[i], 0, TYnptr); // reference to class
+        for (size_t i = 0; i < cls->dim; ++i)
+            dtxoff(&dt, ((ClassDeclaration *)cls->data[i])->sobjccls, 0, TYnptr); // reference to class
             
         for (size_t i = 0; i < catcount; ++i)
-            dtxoff(&dt, catsym[i], 0, TYnptr); // reference to category
+            dtxoff(&dt, ((ClassDeclaration *)cat->data[i])->sobjccls, 0, TYnptr); // reference to category
 
         sinfo = symbol_name("L_OBJC_SYMBOLS", SCstatic, type_allocn(TYarray, tschar));
         sinfo->Sdt = dt;
@@ -407,9 +407,6 @@ Symbol *ObjcSelector::toSymbol()
 {
     if (symbol == NULL)
     {
-        ObjcSymbols::getImageInfo();
-        ObjcSymbols::getModuleInfo();
-        
 		// create data
         dt_t *dt = NULL;
         Symbol *sselname = ObjcSymbols::getMethVarName(stringvalue, stringlen);
@@ -454,6 +451,9 @@ ObjcClassDeclaration::ObjcClassDeclaration(ClassDeclaration *cdecl, int ismeta)
 
 void ObjcClassDeclaration::toObjFile(int multiobj)
 {
+    if (cdecl->objcextern)
+        return; // only a declaration for an externally-defined class
+
     dt_t *dt = NULL;
     toDt(&dt);
     
@@ -533,13 +533,15 @@ Symbol *ObjcClassDeclaration::getIVarList()
    
     char *sname = prefixSymbolName(cdecl->ident->string, cdecl->ident->len, "L_OBJC_INSTANCE_VARIABLES_", 26);
     Symbol *sym = symbol_name(sname, SCstatic, type_fake(TYnptr));
+    sym->Sdt = dt;
+    sym->Sseg = mach_getsegment("__instance_vars", "__OBJC", sizeof(size_t), 0);
     return sym;
 }
 
 Symbol *ObjcClassDeclaration::getMethodList()
 {
     StorageClass wantedStorCls = !ismeta ? 0 : STCstatic;
-    size_t methodcount;
+    size_t methodcount = 0;
     
     size_t members_dim = cdecl->members->dim;
     for (size_t i = 0; i < members_dim; ++i)

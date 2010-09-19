@@ -53,6 +53,10 @@ struct AttribDeclaration : Dsymbol
     int hasPointers();
     void checkCtorConstInit();
     void addLocalClass(ClassDeclarations *);
+#if DMD_OBJC
+    void addObjcSymbols(ClassDeclarations *classes, ClassDeclarations *categories);
+#endif
+
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
     void toJsonBuffer(OutBuffer *buf);
     AttribDeclaration *isAttribDeclaration() { return this; }

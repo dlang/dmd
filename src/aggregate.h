@@ -232,7 +232,9 @@ struct ClassDeclaration : AggregateDeclaration
 #endif
     int inuse;                          // to prevent recursive attempts
 #if DMD_OBJC
-    int objc;                           // !=0 if this is an Objective-C interface
+    int objc;                           // !=0 if this is an Objective-C class/interface
+    int objcextern;                     // !=0 if this is a delcaration for a class defined externally
+    Symbol *sobjccls;                   // generated symbol for this class (if not objcextern)
 #endif
 
     ClassDeclaration(Loc loc, Identifier *id, BaseClasses *baseclasses);
@@ -271,6 +273,9 @@ struct ClassDeclaration : AggregateDeclaration
     PROT getAccess(Dsymbol *smember);   // determine access to smember
 
     void addLocalClass(ClassDeclarations *);
+#if DMD_OBJC
+    void addObjcSymbols(ClassDeclarations *classes, ClassDeclarations *categories);
+#endif
 
     // Back end
     void toObjFile(int multiobj);                       // compile to .obj file

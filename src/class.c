@@ -61,6 +61,10 @@ ClassDeclaration::ClassDeclaration(Loc loc, Identifier *id, BaseClasses *basecla
 
     vtblsym = NULL;
     vclassinfo = NULL;
+    
+    objc = 0;
+    objcextern = 0;
+    sobjccls = NULL;
 
     if (id)
     {   // Look for special class names
@@ -291,8 +295,9 @@ void ClassDeclaration::semantic(Scope *sc)
     {
 #if DMD_OBJC
         objc = 1;
+        objcextern = 1;
 #elif
-        error("Objective-C interfaces not supported");
+        error("Objective-C classes not supported");
 #endif
     }
 
@@ -451,7 +456,11 @@ void ClassDeclaration::semantic(Scope *sc)
         i++;
     }
 
-
+#if DMD_OBJC
+    if (objc || (baseClass && baseClass->objc))
+        objc = 1;
+    else // Objective-C classes do not inherit from Object */
+#endif
     // If no base class, and this is not an Object, use Object as base class
     if (!baseClass && ident != Id::Object)
     {
@@ -1102,10 +1111,19 @@ void ClassDeclaration::addLocalClass(ClassDeclarations *aclasses)
 {
 #ifdef DMD_OBJC
     if (objc)
-        return; // don't add Objective-C class to the module info.
+        return;
 #endif
     aclasses->push(this);
 }
+
+#if DMD_OBJC
+void ClassDeclaration::addObjcSymbols(ClassDeclarations *classes, ClassDeclarations *categories)
+{
+    if (objc && !objcextern)
+        classes->push(this);
+}
+#endif
+
 
 /********************************* InterfaceDeclaration ****************************/
 
@@ -1198,6 +1216,11 @@ void InterfaceDeclaration::semantic(Scope *sc)
     {
 #if DMD_OBJC
         objc = 1;
+        // In the abscense of a better solution, classes with Objective-C linkage
+        // are only a declaration. A class that derives from one with Objective-C
+        // linkage but which does not have Objective-C linkage itself will 
+        // generate a definition in the object file.
+        objcextern = 1; // this one is only a declaration
 #elif
         error("Objective-C interfaces not supported");
 #endif

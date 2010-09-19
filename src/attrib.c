@@ -320,6 +320,20 @@ void AttribDeclaration::addLocalClass(ClassDeclarations *aclasses)
     }
 }
 
+#if DMD_OBJC
+void AttribDeclaration::addObjcSymbols(ClassDeclarations *classes, ClassDeclarations *categories)
+{
+    Dsymbols *d = include(NULL, NULL);
+
+    if (d)
+    {
+        for (unsigned i = 0; i < d->dim; i++)
+        {   Dsymbol *s = (Dsymbol *)d->data[i];
+            s->addObjcSymbols(classes, categories);
+        }
+    }
+}
+#endif
 
 void AttribDeclaration::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 {

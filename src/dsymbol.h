@@ -183,6 +183,10 @@ struct Dsymbol : Object
     static int oneMembers(Array *members, Dsymbol **ps);
     virtual int hasPointers();
     virtual void addLocalClass(ClassDeclarations *) { }
+#if DMD_OBJC
+    virtual void addObjcSymbols(ClassDeclarations *classes, ClassDeclarations *categories) { }
+#endif
+    
     virtual void checkCtorConstInit() { }
 
     virtual void addComment(unsigned char *comment);

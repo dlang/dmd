@@ -27,8 +27,8 @@ struct ObjcSymbols
 	static Symbol *getMsgSend(Type *ret, int hasHiddenArg);	
 	static Symbol *getCString(const char *str, size_t len, const char *symbolName);
 	static Symbol *getImageInfo();
-	static Symbol *getModuleInfo();
-	static Symbol *getSymbolMap();
+	static Symbol *getModuleInfo(ClassDeclarations *cls, ClassDeclarations *cat);
+	static Symbol *getSymbolMap(ClassDeclarations *cls, ClassDeclarations *cat);
 
 	static Symbol *getClassName(const char *str, size_t len);
 	static Symbol *getClassName(Identifier *ident);

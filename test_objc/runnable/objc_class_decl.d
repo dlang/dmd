@@ -1,11 +1,13 @@
 
 extern (Objective-C)
 class NSObject {
+	void* isa; // pointer to class object
+
 	static NSObject alloc();
-	NSObject init() { return null; }
+	NSObject init();
 }
 
 void main() {
 	NSObject obj1 = NSObject.alloc().init();
-	assert(obj1 is null);
+	assert(obj1 !is null);
 }
