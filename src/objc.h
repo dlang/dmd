@@ -16,6 +16,7 @@
 
 struct Identifier;
 struct Symbol;
+struct FuncDeclaration;
 
 struct ObjcSymbols
 {
@@ -27,10 +28,19 @@ struct ObjcSymbols
 	static Symbol *getCString(const char *str, size_t len, const char *symbolName);
 	static Symbol *getImageInfo();
 	static Symbol *getModuleInfo();
-	
+	static Symbol *getSymbolMap();
+
 	static Symbol *getClassName(const char *str, size_t len);
+	static Symbol *getClassName(Identifier *ident);
 	static Symbol *getClassReference(const char *str, size_t len);
 	static Symbol *getClassReference(Identifier *ident);
+	
+	static Symbol *getMethVarName(const char *str, size_t len);	
+	static Symbol *getMethVarName(Identifier *ident);	
+	static Symbol *getMethVarType(const char *str, size_t len);	
+	static Symbol *getMethVarType(Dsymbol **types, size_t dim);
+	static Symbol *getMethVarType(Dsymbol *type);
+	static Symbol *getMethVarType(FuncDeclaration *func);
 };
 
 // Helper class to efficiently build a selector from identifiers and colon tokens
@@ -56,14 +66,41 @@ struct ObjcSelector
 	const char *stringvalue;
 	size_t stringlen;
 	size_t paramCount;
-	elem *element;
+	Symbol *symbol;
 	
 	ObjcSelector(const char *sv, size_t len, size_t pcount);
+	Symbol *toSymbol();
 	elem *toElem();
 	
 	static ObjcSelector *lookup(ObjcSelectorBuilder *builder);
 	static ObjcSelector *lookup(const char *s, size_t len, size_t pcount);
 	static ObjcSelector *create(Identifier *ident, size_t pcount);
+};
+
+
+struct ObjcClassDeclaration
+{
+	ClassDeclaration *cdecl;
+	int ismeta;
+	Symbol *symbol;
+	Symbol *sprotocols;
+
+	ObjcClassDeclaration(ClassDeclaration *cdecl, int ismeta = 0);
+	void toObjFile(int multiobj);
+	void toDt(dt_t **pdt);
+	
+	Symbol *getMetaclass();
+	Symbol *getIVarList();
+	Symbol *getMethodList();
+	Symbol *getProtocolList();
+};
+
+struct ObjcMethodDeclaration
+{
+	FuncDeclaration *fdecl;
+
+	ObjcMethodDeclaration(FuncDeclaration *fdecl);
+	void toObjFile(int multiobj);
 };
 
 #endif

@@ -231,6 +231,9 @@ struct ClassDeclaration : AggregateDeclaration
     VarDeclaration *vthis;              // 'this' parameter if this class is nested
 #endif
     int inuse;                          // to prevent recursive attempts
+#if DMD_OBJC
+    int objc;                           // !=0 if this is an Objective-C interface
+#endif
 
     ClassDeclaration(Loc loc, Identifier *id, BaseClasses *baseclasses);
     Dsymbol *syntaxCopy(Dsymbol *s);
@@ -288,9 +291,6 @@ struct InterfaceDeclaration : ClassDeclaration
 #if DMDV2
     int cpp;                            // !=0 if this is a C++ interface
 #endif
-#if DMD_OBJC
-    int objc;                           // !=0 if this is an Objective-C interface
-#endif
     InterfaceDeclaration(Loc loc, Identifier *id, BaseClasses *baseclasses);
     Dsymbol *syntaxCopy(Dsymbol *s);
     void semantic(Scope *sc);
@@ -301,9 +301,6 @@ struct InterfaceDeclaration : ClassDeclaration
     int vtblOffset();
 #if DMDV2
     int isCPPinterface();
-#endif
-#if DMD_OBJC
-    int isObjCinterface();
 #endif
     virtual int isCOMinterface();
 

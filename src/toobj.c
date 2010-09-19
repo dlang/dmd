@@ -432,6 +432,14 @@ void ClassDeclaration::toObjFile(int multiobj)
     }
 #endif
 
+#if DMD_OBJC
+    if (objc)
+    {   ObjcClassDeclaration objcdecl(this);
+        objcdecl.toObjFile(multiobj);
+        return; // skip rest of output
+    }
+#endif
+
     // Generate C symbols
     toSymbol();
     toVtblSymbol();

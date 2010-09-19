@@ -288,7 +288,13 @@ void ClassDeclaration::semantic(Scope *sc)
     if (sc->linkage == LINKcpp)
         error("cannot create C++ classes");
     if (sc->linkage == LINKobjc)
-        error("cannot create Objective-C classes");
+    {
+#if DMD_OBJC
+        objc = 1;
+#elif
+        error("Objective-C interfaces not supported");
+#endif
+    }
 
     // Expand any tuples in baseclasses[]
     for (i = 0; i < baseclasses->dim; )
@@ -1042,7 +1048,7 @@ int ClassDeclaration::isCPPinterface()
 #if DMD_OBJC
 int ClassDeclaration::isObjCinterface()
 {
-    return 0;
+    return objc;
 }
 #endif
 
@@ -1094,6 +1100,10 @@ const char *ClassDeclaration::kind()
 
 void ClassDeclaration::addLocalClass(ClassDeclarations *aclasses)
 {
+#ifdef DMD_OBJC
+    if (objc)
+        return; // don't add Objective-C class to the module info.
+#endif
     aclasses->push(this);
 }
 
@@ -1442,13 +1452,6 @@ int InterfaceDeclaration::isCOMinterface()
 int InterfaceDeclaration::isCPPinterface()
 {
     return cpp;
-}
-#endif
-
-#if DMD_OBJC
-int InterfaceDeclaration::isObjCinterface()
-{
-    return objc;
 }
 #endif
 
