@@ -49,11 +49,28 @@ extern (C) void* rt_stackBottom()
 {
     version( Windows )
     {
-        asm
+        version( D_InlineAsm_X86 )
         {
-            naked;
-            mov EAX,FS:4;
-            ret;
+            asm
+            {
+                naked;
+                mov EAX,FS:4;
+                ret;
+            }
+        }
+        else version( D_InlineAsm_X86_64 )
+        {
+            static assert( false, "is this right?" );
+            asm
+            {
+                naked;
+                mov RAX,FS:8;
+                ret;
+            }
+        }
+        else
+        {
+            static assert( false, "Platform not supported." );
         }
     }
     else version( linux )

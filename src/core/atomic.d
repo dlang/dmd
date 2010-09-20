@@ -2,7 +2,7 @@
 * The atomic module is intended to provide some basic support for lock-free
 * concurrent programming.
  *
- * Copyright: Copyright Sean Kelly 2005 - 2019.
+ * Copyright: Copyright Sean Kelly 2005 - 2010.
  * License:   <a href="http://www.boost.org/LICENSE_1_0.txt">Boost License 1.0</a>.
  * Authors:   Sean Kelly
  *
