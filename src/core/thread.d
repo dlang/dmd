@@ -448,6 +448,7 @@ else version( Posix )
             }
 
             // NOTE: Normal cleanup is handled by scope(exit).
+            
             static if( __traits( compiles, pthread_cleanup ) )
             {
                 cleanup.pop( 0 );
@@ -481,28 +482,28 @@ else version( Posix )
                     pushad;
                 }
             }
-	    else version ( D_InlineAsm_X86_64 )
+            else version ( D_InlineAsm_X86_64 )
             {
-		asm
-		{
-		    // Not sure what goes here, pushad is invalid in 64 bit code
-		    push RAX ;
-		    push RBX ;
-		    push RCX ;
-		    push RDX ;
-		    push RSI ;
-		    push RDI ;
-		    push RBP ;
-		    push R8  ;
-		    push R9  ;
-		    push R10  ;
-		    push R11  ;
-		    push R12  ;
-		    push R13  ;
-		    push R14  ;
-		    push R15  ;
-		    push EAX ;   // 16 byte align the stack
-		}
+                asm
+                {
+                    // Not sure what goes here, pushad is invalid in 64 bit code
+                    push RAX ;
+                    push RBX ;
+                    push RCX ;
+                    push RDX ;
+                    push RSI ;
+                    push RDI ;
+                    push RBP ;
+                    push R8  ;
+                    push R9  ;
+                    push R10 ;
+                    push R11 ;
+                    push R12 ;
+                    push R13 ;
+                    push R14 ;
+                    push R15 ;
+                    push EAX ;   // 16 byte align the stack
+                }
             }
             else version( GNU )
             {
@@ -557,28 +558,28 @@ else version( Posix )
                     popad;
                 }
             }
-	    else version ( D_InlineAsm_X86_64 )
+            else version ( D_InlineAsm_X86_64 )
             {
-		asm
-		{
-		    // Not sure what goes here, popad is invalid in 64 bit code
-		    pop EAX ;   // 16 byte align the stack
-		    pop R15  ;
-		    pop R14  ;
-		    pop R13  ;
-		    pop R12  ;
-		    pop R11  ;
-		    pop R10  ;
-		    pop R9  ;
-		    pop R8  ;
-		    pop RBP ;
-		    pop RDI ;
-		    pop RSI ;
-		    pop RDX ;
-		    pop RCX ;
-		    pop RBX ;
-		    pop RAX ;
-		}
+                asm
+                {
+                    // Not sure what goes here, popad is invalid in 64 bit code
+                    pop EAX ;   // 16 byte align the stack
+                    pop R15 ;
+                    pop R14 ;
+                    pop R13 ;
+                    pop R12 ;
+                    pop R11 ;
+                    pop R10 ;
+                    pop R9  ;
+                    pop R8  ;
+                    pop RBP ;
+                    pop RDI ;
+                    pop RSI ;
+                    pop RDX ;
+                    pop RCX ;
+                    pop RBX ;
+                    pop RAX ;
+                }
             }
             else version( GNU )
             {
@@ -1187,14 +1188,10 @@ class Thread
         {
             auto t = cast(Thread) pthread_getspecific( sm_this );
             
-            // NOTE: If this thread was attached via thread_attachByAddr then
-            //       this TLS lookup won't initially be set, so when the TLS
-            //       lookup fails, try an exhaustive search.
-            if( t is null )
-            {
-                t = thread_findByAddr( pthread_self() );
-                setThis( t );
-            }
+            // NOTE: See the comment near thread_findByAddr() for why the
+            //       secondary thread_findByAddr lookup can't be done on
+            //       Posix.  However, because thread_attachByAddr() is for
+            //       Windows only, the secondary lookup is pointless anyway.
             return t;
         }
     }
@@ -1866,6 +1863,16 @@ extern (C) Thread thread_attachThis()
 
 version( Windows )
 {
+    // NOTE: These calls are not safe on Posix systems that use signals to
+    //       perform garbage collection.  The suspendHandler uses getThis()
+    //       to get the thread handle so getThis() must be a simple call.
+    //       Mutexes can't safely be acquired inside signal handlers, and
+    //       even if they could, the mutex needed (Thread.slock) is held by
+    //       thread_suspendAll().  So in short, these routines will remain
+    //       Windows-specific.  If they are truly needed elsewhere, the
+    //       suspendHandler will need a way to call a version of getThis()
+    //       that only does the TLS lookup without the fancy fallback stuff.
+    
     /// ditto
     extern (C) Thread thread_attachByAddr( Thread.ThreadAddr addr )
     {
@@ -2011,8 +2018,8 @@ static Thread thread_findByAddr( Thread.ThreadAddr addr )
     {
         foreach( t; Thread )
         {
-	        if( t.m_addr == addr )
-	            return t;
+                if( t.m_addr == addr )
+                    return t;
         }
     }
     return null;
