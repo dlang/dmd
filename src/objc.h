@@ -17,6 +17,7 @@
 struct Identifier;
 struct Symbol;
 struct FuncDeclaration;
+struct ClassDeclaration;
 
 struct ObjcSymbols
 {
@@ -41,6 +42,8 @@ struct ObjcSymbols
 	static Symbol *getMethVarType(Dsymbol **types, size_t dim);
 	static Symbol *getMethVarType(Dsymbol *type);
 	static Symbol *getMethVarType(FuncDeclaration *func);
+	
+	static Symbol *getProtocolSymbol(ClassDeclaration *interface);
 };
 
 // Helper class to efficiently build a selector from identifiers and colon tokens
@@ -95,12 +98,18 @@ struct ObjcClassDeclaration
 	Symbol *getProtocolList();
 };
 
-struct ObjcMethodDeclaration
+struct ObjcProtocolDeclaration
 {
-	FuncDeclaration *fdecl;
+	ClassDeclaration *idecl;
+	Symbol *symbol;
 
-	ObjcMethodDeclaration(FuncDeclaration *fdecl);
+	ObjcProtocolDeclaration(ClassDeclaration *idecl);
 	void toObjFile(int multiobj);
+	void toDt(dt_t **pdt);
+	
+	Symbol *getMethodList(int wantsClassMethods);
+	Symbol *getProtocolList();
 };
+
 
 #endif

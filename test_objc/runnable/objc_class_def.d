@@ -7,8 +7,22 @@ class NSObject {
 	NSObject init();
 }
 
-class TestObject : NSObject {
+extern (Objective-C)
+interface TestInterfaceBase {
+	static void test1();
+	static void test2();
+}
+
+extern (Objective-C)
+interface TestInterface : TestInterfaceBase {
+	void test();
+	static void test2();
+}
+
+class TestObject : NSObject, TestInterface {
 	int val;
+	
+	extern (Objective-C) void test() {}
 }
 
 void main() {
