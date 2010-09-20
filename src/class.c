@@ -619,6 +619,12 @@ void ClassDeclaration::semantic(Scope *sc)
         sc->linkage = LINKc;
 #endif
     }
+#if DMD_OBJC
+    else if (objc)
+    {
+        sc->linkage = LINKobjc;
+    }
+#endif
     sc->protection = PROTpublic;
     sc->explicitProtection = 0;
     sc->structalign = 8;
