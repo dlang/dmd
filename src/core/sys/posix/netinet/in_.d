@@ -218,8 +218,8 @@ version ( linux )
         uint32_t    sin6_scope_id;
     }
 
-    extern in6_addr in6addr_any;
-    extern in6_addr in6addr_loopback;
+    extern __gshared in6_addr in6addr_any;
+    extern __gshared in6_addr in6addr_loopback;
 
     struct ipv6_mreq
     {
@@ -341,8 +341,8 @@ else version( OSX )
         uint32_t    sin6_scope_id;
     }
 
-    extern in6_addr in6addr_any;
-    extern in6_addr in6addr_loopback;
+    extern __gshared in6_addr in6addr_any;
+    extern __gshared in6_addr in6addr_loopback;
 
     struct ipv6_mreq
     {
@@ -465,8 +465,8 @@ else version( FreeBSD )
         uint32_t    sin6_scope_id;
     }
 
-    extern const in6_addr in6addr_any;
-    extern const in6_addr in6addr_loopback;
+    extern __gshared const in6_addr in6addr_any;
+    extern __gshared const in6_addr in6addr_loopback;
 
     struct ipv6_mreq
     {
