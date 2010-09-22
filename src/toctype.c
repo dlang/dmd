@@ -229,15 +229,11 @@ type *TypeFunction::toCtype()
 
     if (1)
     {
-        param_t *paramtypes;
-        tym_t tyf;
-        type *tp;
-
-        paramtypes = NULL;
+        param_t *paramtypes = NULL;
         size_t nparams = Parameter::dim(parameters);
         for (size_t i = 0; i < nparams; i++)
         {   Parameter *arg = Parameter::getNth(parameters, i);
-            tp = arg->type->toCtype();
+            type *tp = arg->type->toCtype();
             if (arg->storageClass & (STCout | STCref))
             {   // C doesn't have reference types, so it's really a pointer
                 // to the parameter type
@@ -245,12 +241,13 @@ type *TypeFunction::toCtype()
             }
             param_append_type(&paramtypes,tp);
         }
-        tyf = totym();
+        tym_t tyf = totym();
         t = type_alloc(tyf);
         t->Tflags |= TFprototype;
         if (varargs != 1)
             t->Tflags |= TFfixed;
         ctype = t;
+        assert(next);           // function return type should exist
         t->Tnext = next->toCtype();
         t->Tnext->Tcount++;
         t->Tparamtypes = paramtypes;

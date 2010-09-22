@@ -786,7 +786,15 @@ void ClassDeclaration::toObjFile(int multiobj)
 
         //printf("\tvtbl[%d] = %p\n", i, fd);
         if (fd && (fd->fbody || !isAbstract()))
-        {   Symbol *s = fd->toSymbol();
+        {
+            // Ensure function has a return value (Bugzilla 4869)
+            if (fd->type->ty == Tfunction && !((TypeFunction *)fd->type)->next)
+            {
+                assert(fd->scope);
+                fd->semantic3(fd->scope);
+            }
+
+            Symbol *s = fd->toSymbol();
 
 #if DMDV2
             if (isFuncHidden(fd))
