@@ -69,10 +69,12 @@ struct ObjcSelector
 	const char *stringvalue;
 	size_t stringlen;
 	size_t paramCount;
-	Symbol *symbol;
+	Symbol *namesymbol;
+	Symbol *refsymbol;
 	
 	ObjcSelector(const char *sv, size_t len, size_t pcount);
-	Symbol *toSymbol();
+	Symbol *toNameSymbol();
+	Symbol *toRefSymbol();
 	elem *toElem();
 	
 	static ObjcSelector *lookup(ObjcSelectorBuilder *builder);

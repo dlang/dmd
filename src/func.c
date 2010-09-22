@@ -585,6 +585,55 @@ void FuncDeclaration::semantic(Scope *sc)
 
     L2: ;
 
+#if DMD_OBJC
+        // Check for Objective-C selector inherited form overriden functions
+        for (size_t i = 0; i < foverrides.dim; ++i)
+        {
+            FuncDeclaration *foverride = (FuncDeclaration *)foverrides.data[i];
+            if (foverride && foverride->objcSelector)
+            {
+                if (!objcSelector)
+                    objcSelector = foverride->objcSelector; // inherit selector
+                else if (objcSelector != foverride->objcSelector)
+                    error("Objective-C selector %s must be the same as selector %s in overriden function.", objcSelector->stringvalue, foverride->objcSelector->stringvalue);
+            }
+        }
+        
+        // Add to class method lists
+        getObjCSelector(); // create a selector if needed
+        if (objcSelector && cd)
+        {
+            StringValue *sv;
+            if ((storage_class & STCstatic) == 0)
+            {
+                cd->objcInstMethodList.push(this);
+                if (cd->objcInstMethods == NULL)
+                    cd->objcInstMethods = new StringTable;
+                sv = cd->objcInstMethods->update(objcSelector->stringvalue, objcSelector->stringlen);
+            }
+            else
+            {
+                cd->objcClsMethodList.push(this);
+                if (cd->objcClsMethods == NULL)
+                    cd->objcClsMethods = new StringTable;
+                sv = cd->objcClsMethods->update(objcSelector->stringvalue, objcSelector->stringlen);
+            }
+            
+            if (sv->ptrvalue)
+            {   // check if the selector is already in use by another method
+                FuncDeclaration *selowner = (FuncDeclaration *)sv->ptrvalue;
+                for (size_t i = 0; i < foverrides.dim; ++i)
+                    if (foverrides.data[i] == selowner)
+                        goto Lnodupsel;
+                error("Objcective-C selector %s already in use by function %s.", objcSelector->stringvalue, selowner->ident->string);
+                
+            Lnodupsel:
+                ; // ok: selector in use, 
+            }
+            sv->ptrvalue = this;
+        }
+#endif
+
         /* Go through all the interface bases.
          * Disallow overriding any final functions in the interface(s).
          */

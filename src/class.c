@@ -65,6 +65,8 @@ ClassDeclaration::ClassDeclaration(Loc loc, Identifier *id, BaseClasses *basecla
     objc = 0;
     objcextern = 0;
     sobjccls = NULL;
+    objcInstMethods = NULL;
+    objcClsMethods = NULL;
 
     if (id)
     {   // Look for special class names

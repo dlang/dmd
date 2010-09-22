@@ -235,6 +235,10 @@ struct ClassDeclaration : AggregateDeclaration
     int objc;                           // !=0 if this is an Objective-C class/interface
     int objcextern;                     // !=0 if this is a delcaration for a class defined externally
     Symbol *sobjccls;                   // generated symbol for this class (if not objcextern)
+    StringTable *objcInstMethods;        // table of selectors for instance methods
+    StringTable *objcClsMethods;         // table of selectors for class methods
+    Array objcInstMethodList;           // list of non-inherited instance methods
+    Array objcClsMethodList;            // list of non-inherited class methods
 #endif
 
     ClassDeclaration(Loc loc, Identifier *id, BaseClasses *baseclasses);

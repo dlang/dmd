@@ -81,7 +81,6 @@ Symbol *ObjcSymbols::getCString(const char *str, size_t len, const char *symbolN
     s = symbol_name(symbolName, SCstatic, type_allocn(TYarray, tschar));
     s->Sdt = dt;
     s->Sseg = seg;
-//	outdata(s);
     return s;
 }
 
@@ -90,7 +89,8 @@ Symbol *ObjcSymbols::getImageInfo()
     static Symbol *sinfo = NULL;
     if (!sinfo) {
         dt_t *dt = NULL;
-        dtnzeros(&dt, 8); // all zeros means no GC
+        dtdword(&dt, 0); // version
+        dtdword(&dt, 16); // flags
 
         sinfo = symbol_name("L_OBJC_IMAGE_INFO", SCstatic, type_allocn(TYarray, tschar));
         sinfo->Sdt = dt;
@@ -218,7 +218,7 @@ Symbol *ObjcSymbols::getMethVarName(const char *s, size_t len)
         sprintf(namestr, "L_OBJC_METH_VAR_NAME_%lu", classnamecount++);
         sy = getCString(s, len, namestr);
         sv->ptrvalue = sy;
-		classnamecount;
+		++classnamecount;
     }
     return sy;
 }
@@ -240,7 +240,8 @@ Symbol *ObjcSymbols::getMethVarType(const char *s, size_t len)
         sprintf(namestr, "L_OBJC_METH_VAR_TYPE_%lu", classnamecount++);
         sy = getCString(s, len, namestr);
         sv->ptrvalue = sy;
-		classnamecount;
+        outdata(sy);
+		++classnamecount;
     }
     return sy;
 }
@@ -387,7 +388,8 @@ ObjcSelector::ObjcSelector(const char *sv, size_t len, size_t pcount)
     stringvalue = sv;
     stringlen = len;
     paramCount = pcount;
-    symbol = NULL;
+    namesymbol = NULL;
+    refsymbol = NULL;
 }	
 
 ObjcSelector *ObjcSelector::lookup(ObjcSelectorBuilder *builder)
@@ -419,14 +421,22 @@ ObjcSelector *ObjcSelector::create(Identifier *ident, size_t pcount)
 }
 
 
-Symbol *ObjcSelector::toSymbol()
+Symbol *ObjcSelector::toNameSymbol()
 {
-    if (symbol == NULL)
+    if (namesymbol == NULL)
+		namesymbol = ObjcSymbols::getMethVarName(stringvalue, stringlen);
+    return namesymbol;
+}
+
+Symbol *ObjcSelector::toRefSymbol()
+{
+    if (refsymbol == NULL)
     {
 		// create data
         dt_t *dt = NULL;
-        Symbol *sselname = ObjcSymbols::getMethVarName(stringvalue, stringlen);
-        dtxoff(&dt, sselname, 0, TYnptr);
+        Symbol *sselname = toNameSymbol();
+        dtxoff(&dt, sselname, 0*0x9877660, TYnptr);
+    
         
         // find segment
         static int seg = -1;
@@ -437,19 +447,19 @@ Symbol *ObjcSelector::toSymbol()
         static size_t selcount = 0;
         char namestr[42];
         sprintf(namestr, "L_OBJC_SELECTOR_REFERENCES_%lu", selcount);
-        symbol = symbol_name(namestr, SCstatic, type_fake(TYnptr));
-        symbol->Sdt = dt;
-        symbol->Sseg = seg;
-        outdata(symbol);
+        refsymbol = symbol_name(namestr, SCstatic, type_fake(TYnptr));
+        refsymbol->Sdt = dt;
+        refsymbol->Sseg = seg;
+        outdata(refsymbol);
         
         ++selcount;
     }
-    return symbol; // not creating a copy can cause problems with optimizer
+    return refsymbol; // not creating a copy can cause problems with optimizer
 }
 
 elem *ObjcSelector::toElem()
 {
-    return el_var(toSymbol());
+    return el_var(toRefSymbol());
 }
 
 
@@ -490,8 +500,8 @@ void ObjcClassDeclaration::toDt(dt_t **pdt)
     dtxoff(pdt, ObjcSymbols::getClassName(cdecl->baseClass->ident), 0, TYnptr); // name of superclass
     dtxoff(pdt, ObjcSymbols::getClassName(cdecl->ident), 0, TYnptr); // name of class
     dtdword(pdt, 0); // version (for serialization)
-    dtdword(pdt, ismeta ? 2 : 1); // info flags (0x1: regular class; 0x2: metaclass) 
-    dtdword(pdt, cdecl->size(cdecl->loc)); // instance size in bytes
+    dtdword(pdt, !ismeta ? 1 : 2); // info flags (0x1: regular class; 0x2: metaclass) 
+    dtdword(pdt, !ismeta ? cdecl->size(cdecl->loc) : 48); // instance size in bytes
     
     Symbol *ivars = getIVarList();
     if (ivars)    dtxoff(pdt, ivars, 0, TYnptr); // instance variable list
@@ -556,29 +566,20 @@ Symbol *ObjcClassDeclaration::getIVarList()
 
 Symbol *ObjcClassDeclaration::getMethodList()
 {
-    StorageClass wantedStorCls = !ismeta ? 0 : STCstatic;
-    size_t methodcount = 0;
-    
-    size_t members_dim = cdecl->members->dim;
-    for (size_t i = 0; i < members_dim; ++i)
-    {
-        FuncDeclaration *func = ((Dsymbol *)cdecl->members->data[i])->isFuncDeclaration();
-        if (func && func->getObjCSelector() && (func->storage_class & STCstatic) == wantedStorCls)
-            ++methodcount;
-    }
-    
-    if (!methodcount) // no member, no method list.
+    Array *methods = !ismeta ? &cdecl->objcInstMethodList : &cdecl->objcClsMethodList;;
+    if (!methods->dim) // no member, no method list.
         return NULL;
     
     dt_t *dt = NULL;
     dtdword(&dt, 0); // unused
-    dtdword(&dt, methodcount); // method count
-    for (size_t i = 0; i < members_dim; ++i)
+    dtdword(&dt, methods->dim); // method count
+    for (size_t i = 0; i < methods->dim; ++i)
     {
-        FuncDeclaration *func = ((Dsymbol *)cdecl->members->data[i])->isFuncDeclaration();
-        if (func && func->getObjCSelector() && (func->storage_class & STCstatic) == wantedStorCls)
+        FuncDeclaration *func = ((Dsymbol *)methods->data[i])->isFuncDeclaration();
+        if (func && func->fbody)
         {
-            dtxoff(&dt, func->getObjCSelector()->toSymbol(), 0, TYnptr); // method name
+            assert(func->getObjCSelector());
+            dtxoff(&dt, func->getObjCSelector()->toNameSymbol(), 0, TYnptr); // method name
             dtxoff(&dt, ObjcSymbols::getMethVarType(func), 0, TYnptr); // method type string
             dtxoff(&dt, func->toSymbol(), 0, TYnptr); // function implementation
         }
@@ -684,7 +685,7 @@ Symbol *ObjcProtocolDeclaration::getMethodList(int wantsClassMethods)
         FuncDeclaration *func = ((Dsymbol *)idecl->members->data[i])->isFuncDeclaration();
         if (func && func->getObjCSelector() && (func->storage_class & STCstatic) == wantedStorCls)
         {
-            dtxoff(&dt, func->getObjCSelector()->toSymbol(), 0, TYnptr); // method name
+            dtxoff(&dt, func->getObjCSelector()->toNameSymbol(), 0, TYnptr); // method name
             dtxoff(&dt, ObjcSymbols::getMethVarType(func), 0, TYnptr); // method type string
         }
     }

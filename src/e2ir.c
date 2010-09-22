@@ -161,7 +161,7 @@ elem *callfunc(Loc loc,
     }
     
 #if DMD_OBJC
-    if (fd->getObjCSelector())
+    if (fd && fd->getObjCSelector())
     {
         // using objc-style "virtual" call
         // add hidden argument (second to 'this') for selector used by dispatch function
