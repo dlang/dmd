@@ -1504,6 +1504,16 @@ Statement *FuncDeclaration::mergeFrequire(Statement *sf)
     for (int i = 0; i < foverrides.dim; i++)
     {
         FuncDeclaration *fdv = (FuncDeclaration *)foverrides.data[i];
+
+        /* The semantic pass on the contracts of the overridden functions must
+         * be completed before code generation occurs (bug 3602).
+         */
+        if (fdv->fdrequire && fdv->fdrequire->semanticRun != PASSsemantic3done)
+        {
+            assert(fdv->scope);
+            fdv->semantic3(fdv->scope);
+        }
+
         sf = fdv->mergeFrequire(sf);
         if (fdv->fdrequire)
         {
