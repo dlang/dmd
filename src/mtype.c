@@ -4108,6 +4108,18 @@ Expression *TypeEnum::defaultInit(Loc loc)
 
 int TypeEnum::isZeroInit(Loc loc)
 {
+    if (!sym->isdone && sym->scope)
+    {   // Enum is forward referenced. We need to resolve the whole thing.
+        sym->semantic(NULL);
+    }
+    if (!sym->isdone)
+    {
+#ifdef DEBUG
+        printf("3: ");
+#endif
+        error(loc, "enum %s is forward referenced", sym->toChars());
+        return 0;
+    }
     return (sym->defaultval == 0);
 }
 
