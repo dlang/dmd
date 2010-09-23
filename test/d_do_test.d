@@ -204,7 +204,7 @@ void execute(ref File f, string command, bool expectpass)
     scope(exit) if (std.file.exists(filename)) std.file.remove(filename);
 
     f.writeln(command);
-    auto rc = system(command ~ "> " ~ filename ~ " 2>&1");
+    auto rc = system(command ~ " > " ~ filename ~ " 2>&1");
 
     f.write(readText(filename));
 
