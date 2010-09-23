@@ -138,7 +138,15 @@ Expression *fromConstInitializer(int result, Expression *e1)
         int fwdref = (v && !v->originalType && v->scope);
         e = expandVar(result, v);
         if (e)
-        {   if (e->type != e1->type && e1->type && e1->type->ty != Tident)
+        {
+            // If it is a comma expression involving a declaration, we mustn't
+            // perform a copy -- we'd get two declarations of the same variable.
+            // See bugzilla 4465.
+            if (e->op == TOKcomma && ((CommaExp *)e)->e1->op == TOKdeclaration)
+                 e = e1;
+            else
+
+            if (e->type != e1->type && e1->type && e1->type->ty != Tident)
             {   // Type 'paint' operation
                 e = e->copy();
                 e->type = e1->type;
