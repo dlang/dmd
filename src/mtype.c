@@ -4415,13 +4415,13 @@ TypeFunction::TypeFunction(Parameters *parameters, Type *treturn, int varargs, e
     this->linkage = linkage;
     this->inuse = 0;
     this->isnothrow = false;
-    this->ispure = false;
+    this->purity = PUREimpure;
     this->isproperty = false;
     this->isref = false;
     this->fargs = NULL;
 
     if (stc & STCpure)
-        this->ispure = true;
+        this->purity = PUREstrong;
     if (stc & STCnothrow)
         this->isnothrow = true;
     if (stc & STCproperty)
@@ -4443,7 +4443,7 @@ Type *TypeFunction::syntaxCopy()
     TypeFunction *t = new TypeFunction(params, treturn, varargs, linkage);
     t->mod = mod;
     t->isnothrow = isnothrow;
-    t->ispure = ispure;
+    t->purity = purity;
     t->isproperty = isproperty;
     t->isref = isref;
     t->trust = trust;
@@ -4577,7 +4577,7 @@ Lcovariant:
 
     /* Can convert pure to impure, and nothrow to throw
      */
-    if (!t1->ispure && t2->ispure)
+    if (!t1->purity && t2->purity)
         goto Lnotcovariant;
 
     if (!t1->isnothrow && t2->isnothrow)
@@ -4625,9 +4625,9 @@ void TypeFunction::toDecoBuffer(OutBuffer *buf, int flag)
             assert(0);
     }
     buf->writeByte(mc);
-    if (ispure || isnothrow || isproperty || isref || trust)
+    if (purity || isnothrow || isproperty || isref || trust)
     {
-        if (ispure)
+        if (purity)
             buf->writestring("Na");
         if (isnothrow)
             buf->writestring("Nb");
@@ -4673,7 +4673,7 @@ void TypeFunction::toCBuffer(OutBuffer *buf, Identifier *ident, HdrGenState *hgs
         buf->writeByte(' ');
     }
 
-    if (ispure)
+    if (purity)
         buf->writestring("pure ");
     if (isnothrow)
         buf->writestring("nothrow ");
@@ -4765,7 +4765,7 @@ void TypeFunction::attributesToCBuffer(OutBuffer *buf, int mod)
     {
         modToBuffer(buf);
     }
-    if (ispure)
+    if (purity)
         buf->writestring(" pure");
     if (isnothrow)
         buf->writestring(" nothrow");
@@ -4817,7 +4817,7 @@ Type *TypeFunction::semantic(Loc loc, Scope *sc)
     }
 
     if (sc->stc & STCpure)
-        tf->ispure = TRUE;
+        tf->purity = PUREstrong;
     if (sc->stc & STCnothrow)
         tf->isnothrow = TRUE;
     if (sc->stc & STCref)
@@ -4971,6 +4971,75 @@ Type *TypeFunction::semantic(Loc loc, Scope *sc)
         error(loc, "inout on return means inout must be on a parameter as well for %s", toChars());
     if (wildsubparams && wildparams)
         error(loc, "inout must be all or none on top level for %s", toChars());
+
+    if (tf->purity)
+    {   /* Evaluate what kind of purity based on the modifiers for the parameters
+         */
+        tf->purity = PUREstrong;        // assume strong until something weakens it
+        if (tf->parameters)
+        {
+            size_t dim = Parameter::dim(tf->parameters);
+            for (size_t i = 0; i < dim; i++)
+            {   Parameter *fparam = Parameter::getNth(tf->parameters, i);
+                if (fparam->storageClass & STClazy)
+                {
+                    /* We could possibly allow this by doing further analysis on the
+                     * lazy parameter to see if it's pure.
+                     */
+                    error(loc, "cannot have lazy parameters to a pure function");
+                }
+                if (fparam->storageClass & STCout)
+                {
+                    tf->purity = PUREweak;
+                    break;
+                }
+                if (!fparam->type)
+                    continue;
+                if (fparam->storageClass & STCref)
+                {
+                    if (!(fparam->type->mod & (MODconst | MODimmutable | MODwild)))
+                    {   tf->purity = PUREweak;
+                        break;
+                    }
+                    if (fparam->type->mod & MODconst)
+                    {   tf->purity = PUREconst;
+                        continue;
+                    }
+                }
+                Type *t = fparam->type->toBasetype();
+                if (!t->hasPointers())
+                    continue;
+                if (t->mod & (MODimmutable | MODwild))
+                    continue;
+                /* The rest of this is too strict; fix later.
+                 * For example, the only pointer members of a struct may be immutable,
+                 * which would maintain strong purity.
+                 */
+                if (t->mod & MODconst)
+                {   tf->purity = PUREconst;
+                    continue;
+                }
+                Type *tn = t->nextOf();
+                if (tn)
+                {   tn = tn->toBasetype();
+                    if (tn->ty == Tpointer || tn->ty == Tarray)
+                    {   /* Accept immutable(T)* and immutable(T)[] as being strongly pure
+                         */
+                        if (tn->mod & (MODimmutable | MODwild))
+                            continue;
+                        if (tn->mod & MODconst)
+                        {   tf->purity = PUREconst;
+                            continue;
+                        }
+                    }
+                }
+                /* Should catch delegates and function pointers, and fold in their purity
+                 */
+                tf->purity = PUREweak;          // err on the side of too strict
+                break;
+            }
+        }
+    }
 
     if (tf->next)
         tf->deco = tf->merge()->deco;
@@ -5214,7 +5283,7 @@ bool TypeFunction::parameterEscapes(Parameter *p)
     if (p->storageClass & (STCscope | STClazy))
         return FALSE;
 
-    if (ispure)
+    if (purity)
     {   /* With pure functions, we need only be concerned if p escapes
          * via any return statement.
          */

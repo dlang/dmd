@@ -290,13 +290,13 @@ elem *callfunc(Loc loc,
          * as the return value is stored through the hidden parameter, which
          * is a side effect.
          */
-        e = el_bin((tf->ispure && tf->isnothrow && (retmethod != RETstack)) ?
+        e = el_bin((tf->purity == PUREstrong && tf->isnothrow && (retmethod != RETstack)) ?
                 OPcallns : OPcall,tyret,ec,ep);
         if (tf->varargs)
             e->Eflags |= EFLAGS_variadic;
     }
     else
-    {   e = el_una((tf->ispure && tf->isnothrow && (retmethod != RETstack)) ?
+    {   e = el_una((tf->purity == PUREstrong && tf->isnothrow && (retmethod != RETstack)) ?
                 OPucallns : OPucall,tyret,ec);
         if (tf->varargs)
             e->Eflags |= EFLAGS_variadic;

@@ -7076,7 +7076,7 @@ Lagain:
         {   TypeDelegate *td = (TypeDelegate *)t1;
             assert(td->next->ty == Tfunction);
             tf = (TypeFunction *)(td->next);
-            if (sc->func && sc->func->isPure() && !tf->ispure)
+            if (sc->func && sc->func->isPure() && !tf->purity)
             {
                 error("pure function '%s' cannot call impure delegate '%s'", sc->func->toChars(), e1->toChars());
             }
@@ -7090,7 +7090,7 @@ Lagain:
         {
             Expression *e = new PtrExp(loc, e1);
             t1 = ((TypePointer *)t1)->next;
-            if (sc->func && sc->func->isPure() && !((TypeFunction *)t1)->ispure)
+            if (sc->func && sc->func->isPure() && !((TypeFunction *)t1)->purity)
             {
                 error("pure function '%s' cannot call impure function pointer '%s'", sc->func->toChars(), e1->toChars());
             }
@@ -7213,9 +7213,9 @@ int CallExp::checkSideEffect(int flag)
      * then this expression has no side effects.
      */
     Type *t = e1->type->toBasetype();
-    if (t->ty == Tfunction && ((TypeFunction *)t)->ispure)
+    if (t->ty == Tfunction && ((TypeFunction *)t)->purity)
         return 0;
-    if (t->ty == Tdelegate && ((TypeFunction *)((TypeDelegate *)t)->next)->ispure)
+    if (t->ty == Tdelegate && ((TypeFunction *)((TypeDelegate *)t)->next)->purity)
         return 0;
 #endif
     return 1;

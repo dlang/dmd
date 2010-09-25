@@ -545,6 +545,14 @@ enum TRUST
     TRUSTsafe = 3,      // @safe
 };
 
+enum PURE
+{
+    PUREimpure = 0,     // not pure at all
+    PUREweak = 1,       // no mutable globals are read or written
+    PUREconst = 2,      // parameters are values or const
+    PUREstrong = 3,     // parameters are values or immutable
+};
+
 struct TypeFunction : TypeNext
 {
     // .next is the return type
@@ -553,11 +561,11 @@ struct TypeFunction : TypeNext
     int varargs;        // 1: T t, ...) style for variable number of arguments
                         // 2: T t ...) style for variable number of arguments
     bool isnothrow;     // true: nothrow
-    bool ispure;        // true: pure
     bool isproperty;    // can be called without parentheses
     bool isref;         // true: returns a reference
     enum LINK linkage;  // calling convention
     enum TRUST trust;   // level of trust
+    enum PURE purity;   // PURExxxx
     Expressions *fargs; // function arguments
 
     int inuse;

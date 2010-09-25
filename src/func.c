@@ -858,8 +858,8 @@ void FuncDeclaration::semantic3(Scope *sc)
 #if STRUCTTHISREF
                 thandle = thandle->addMod(type->mod);
                 thandle = thandle->addStorageClass(storage_class);
-                if (isPure())
-                    thandle = thandle->addMod(MODconst);
+                //if (isPure())
+                    //thandle = thandle->addMod(MODconst);
 #else
                 if (storage_class & STCconst || type->isConst())
                 {
@@ -1003,8 +1003,8 @@ void FuncDeclaration::semantic3(Scope *sc)
                     arg->ident = id = Identifier::generateId("_param_", i);
                 }
                 Type *vtype = arg->type;
-                if (isPure())
-                    vtype = vtype->addMod(MODconst);
+                //if (isPure())
+                    //vtype = vtype->addMod(MODconst);
                 VarDeclaration *v = new VarDeclaration(loc, vtype, id, NULL);
                 //printf("declaring parameter %s of type %s\n", v->toChars(), v->type->toChars());
                 v->storage_class |= STCparameter;
@@ -2536,11 +2536,21 @@ int FuncDeclaration::isOverloadable()
     return 1;                   // functions can be overloaded
 }
 
-int FuncDeclaration::isPure()
+enum PURE FuncDeclaration::isPure()
 {
     //printf("FuncDeclaration::isPure() '%s'\n", toChars());
     assert(type->ty == Tfunction);
-    return ((TypeFunction *)this->type)->ispure;
+    enum PURE purity = ((TypeFunction *)this->type)->purity;
+    if (purity > PUREweak && needThis())
+    {   // The attribute of the 'this' reference affects purity strength
+        if (type->mod & (MODimmutable | MODwild))
+            ;
+        else if (type->mod & MODconst && purity > PUREconst)
+            purity = PUREconst;
+        else
+            purity = PUREweak;
+    }
+    return purity;
 }
 
 int FuncDeclaration::isSafe()

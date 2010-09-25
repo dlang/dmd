@@ -37,6 +37,7 @@ enum PROT;
 enum LINK;
 enum TOK;
 enum MATCH;
+enum PURE;
 
 #define STCundefined    0LL
 #define STCstatic       1LL
@@ -605,7 +606,7 @@ struct FuncDeclaration : Declaration
     int isAbstract();
     int isCodeseg();
     int isOverloadable();
-    int isPure();
+    enum PURE isPure();
     int isSafe();
     int isTrusted();
     virtual int isNested();
