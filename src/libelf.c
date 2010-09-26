@@ -142,14 +142,14 @@ void OmToHeader(Header *h, ObjModule *om)
         len = strlen(om->name);
         memcpy(h->object_name, om->name, len);
         h->object_name[len] = '/';
-        assert(len < OBJECT_NAME_SIZE);
-        memset(h->object_name + len + 1, ' ', OBJECT_NAME_SIZE - (len + 1));
     }
     else
     {
         len = sprintf(h->object_name, "/%d", om->name_offset);
         h->object_name[len] = ' ';
     }
+    assert(len < OBJECT_NAME_SIZE);
+    memset(h->object_name + len + 1, ' ', OBJECT_NAME_SIZE - (len + 1));
 
     /* In the following sprintf's, don't worry if the trailing 0
      * that sprintf writes goes off the end of the field. It will
