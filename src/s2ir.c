@@ -1438,11 +1438,7 @@ void ThrowStatement::toIR(IRState *irs)
 
     incUsage(irs, loc);
     elem *e = exp->toElem(irs);
-#if 0
-    e = el_bin(OPcall, TYvoid, el_var(rtlsym[RTLSYM_LTHROW]),e);
-#else
-    e = el_bin(OPcall, TYvoid, el_var(rtlsym[RTLSYM_THROW]),e);
-#endif
+    e = el_bin(OPcall, TYvoid, el_var(rtlsym[I64 ? RTLSYM_THROW64 : RTLSYM_THROW]),e);
     block_appendexp(blx->curblock, e);
 }
 
