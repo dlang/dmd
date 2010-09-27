@@ -397,6 +397,65 @@ int intrinsic_op(char *name)
         "9intrinsic5outpwFNbktZt",
 #endif
     };
+    static const char *namearray64[] =
+    {
+#if DMDV1
+        "4math3cosFeZe",
+        "4math3sinFeZe",
+        "4math4fabsFeZe",
+        "4math4rintFeZe",
+        "4math4sqrtFdZd",
+        "4math4sqrtFeZe",
+        "4math4sqrtFfZf",
+        "4math4yl2xFeeZe",
+        "4math5ldexpFeiZe",
+        "4math6rndtolFeZl",
+        "4math6yl2xp1FeeZe",
+
+        "9intrinsic2btFPkkZi",
+        "9intrinsic3bsfFkZi",
+        "9intrinsic3bsrFkZi",
+        "9intrinsic3btcFPmmZi",
+        "9intrinsic3btrFPmmZi",
+        "9intrinsic3btsFPmmZi",
+        "9intrinsic3inpFkZh",
+        "9intrinsic4inplFkZk",
+        "9intrinsic4inpwFkZt",
+        "9intrinsic4outpFkhZh",
+        "9intrinsic5bswapFkZk",
+        "9intrinsic5outplFkkZk",
+        "9intrinsic5outpwFktZt",
+#elif DMDV2
+        /* The names are mangled differently because of the pure and
+         * nothrow attributes.
+         */
+        "4math3cosFNaNbNfeZe",
+        "4math3sinFNaNbNfeZe",
+        "4math4fabsFNaNbNfeZe",
+        "4math4rintFNaNbNfeZe",
+        "4math4sqrtFNaNbNfdZd",
+        "4math4sqrtFNaNbNfeZe",
+        "4math4sqrtFNaNbNffZf",
+        "4math4yl2xFNaNbNfeeZe",
+        "4math5ldexpFNaNbNfeiZe",
+        "4math6rndtolFNaNbNfeZl",
+        "4math6yl2xp1FNaNbNfeeZe",
+
+        "9intrinsic2btFNaNbxPkkZi",
+        "9intrinsic3bsfFNaNbkZi",
+        "9intrinsic3bsrFNaNbkZi",
+        "9intrinsic3btcFNbPmmZi",
+        "9intrinsic3btrFNbPmmZi",
+        "9intrinsic3btsFNbPmmZi",
+        "9intrinsic3inpFNbkZh",
+        "9intrinsic4inplFNbkZk",
+        "9intrinsic4inpwFNbkZt",
+        "9intrinsic4outpFNbkhZh",
+        "9intrinsic5bswapFNaNbkZk",
+        "9intrinsic5outplFNbkkZk",
+        "9intrinsic5outpwFNbktZt",
+#endif
+    };
     static unsigned char ioptab[] =
     {
         OPcos,
@@ -426,12 +485,10 @@ int intrinsic_op(char *name)
         OPoutp,
     };
 
-    int i;
-    size_t length;
-
 #ifdef DEBUG
+    assert(sizeof(namearray) == sizeof(namearray64));
     assert(sizeof(namearray) / sizeof(char *) == sizeof(ioptab));
-    for (i = 0; i < sizeof(namearray) / sizeof(char *) - 1; i++)
+    for (int i = 0; i < sizeof(namearray) / sizeof(char *) - 1; i++)
     {
         if (strcmp(namearray[i], namearray[i + 1]) >= 0)
         {
@@ -439,15 +496,24 @@ int intrinsic_op(char *name)
             assert(0);
         }
     }
+    assert(sizeof(namearray64) / sizeof(char *) == sizeof(ioptab));
+    for (int i = 0; i < sizeof(namearray64) / sizeof(char *) - 1; i++)
+    {
+        if (strcmp(namearray64[i], namearray64[i + 1]) >= 0)
+        {
+            printf("namearray64[%d] = '%s'\n", i, namearray64[i]);
+            assert(0);
+        }
+    }
 #endif
 
-    length = strlen(name);
+    size_t length = strlen(name);
     if (length < 11 ||
         !(name[7] == 'm' || name[7] == 'i') ||
         memcmp(name, "_D3std", 6) != 0)
         return -1;
 
-    i = binary(name + 6, namearray, sizeof(namearray) / sizeof(char *));
+    int i = binary(name + 6, I64 ? namearray64 : namearray, sizeof(namearray) / sizeof(char *));
     return (i == -1) ? i : ioptab[i];
 }
 

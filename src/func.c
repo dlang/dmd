@@ -2545,7 +2545,7 @@ enum PURE FuncDeclaration::isPure()
     {   // The attribute of the 'this' reference affects purity strength
         if (type->mod & (MODimmutable | MODwild))
             ;
-        else if (type->mod & MODconst && purity > PUREconst)
+        else if (type->mod & MODconst && purity >= PUREconst)
             purity = PUREconst;
         else
             purity = PUREweak;
