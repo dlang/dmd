@@ -317,30 +317,26 @@ STATIC code * opnegassdbl(elem *e,regm_t *pretregs)
  */
 
 code *cdeq(elem *e,regm_t *pretregs)
-{ regm_t retregs;
-  tym_t tyml;
+{
   tym_t tymll;
   unsigned reg;
   int i;
   code *cl,*cr,*c,cs;
-  elem *e2,*e1;
   elem *e11;
   bool widen;                   /* TRUE means byte widen                */
   int nwords;                   /* # of words to transfer               */
-  unsigned sz;                  // # of bytes to transfer
   bool regvar;                  /* TRUE means evaluate into register variable */
   regm_t varregm;
   unsigned varreg;
   targ_int postinc;
-  int e2oper;
 
   //printf("cdeq(e = %p, *pretregs = %s)\n", e, regm_str(*pretregs));
   //elem_print(e);
-  e1 = e->E1;
-  e2 = e->E2;
-  e2oper = e2->Eoper;
-  tyml = tybasic(e1->Ety);              /* type of lvalue               */
-  retregs = *pretregs;
+  elem *e1 = e->E1;
+  elem *e2 = e->E2;
+  int e2oper = e2->Eoper;
+  tym_t tyml = tybasic(e1->Ety);              /* type of lvalue               */
+  regm_t retregs = *pretregs;
 
   if (tyfloating(tyml) && config.inline8087)
   {
@@ -359,7 +355,7 @@ code *cdeq(elem *e,regm_t *pretregs)
             return eq87(e,pretregs);
   }
 
-  sz = tysize[tyml];
+  unsigned sz = tysize[tyml];           // # of bytes to transfer
   assert((int)sz > 0);
 
   if (retregs == 0)                     /* if no return value           */
@@ -521,7 +517,7 @@ code *cdeq(elem *e,regm_t *pretregs)
                             if (!I16 && i == 2)      // if 16 bit operand
                                 cs.Iflags |= CFopsize;
                             if (I64 && sz == 8)
-                                assert(cs.Irex & REX_W);
+                                cs.Irex |= REX_W;
                         }
                         cl = gen(cl,&cs);           /* MOV EA,const */
 
