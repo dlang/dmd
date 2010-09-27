@@ -4128,6 +4128,9 @@ int TryCatchStatement::blockExit()
     for (size_t i = 0; i < catches->dim; i++)
     {
         Catch *c = (Catch *)catches->data[i];
+        if (c->type == Type::terror)
+            continue;
+
         catchresult |= c->blockExit();
 
         /* If we're catching Object, then there is no throwing
@@ -4203,7 +4206,12 @@ void Catch::semantic(Scope *sc)
         type = new TypeIdentifier(0, Id::Object);
     type = type->semantic(loc, sc);
     if (!type->toBasetype()->isClassHandle())
-        error(loc, "can only catch class objects, not '%s'", type->toChars());
+    {
+        if (type != Type::terror)
+        {   error(loc, "can only catch class objects, not '%s'", type->toChars());
+            type = Type::terror;
+        }
+    }
     else if (ident)
     {
         var = new VarDeclaration(loc, type, ident, NULL);
