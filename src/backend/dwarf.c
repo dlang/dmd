@@ -506,8 +506,14 @@ void dwarf_initfile(const char *filename)
     infobuf->writeString(cwd);                  // DW_AT_comp_dir as DW_FORM_string
     free(cwd);
 
-    infobuf->write32(0);                        // DW_AT_low_pc
-    infobuf->write32(0);                        // DW_AT_entry_pc
+    if (I64)
+    {   infobuf->write64(0);                    // DW_AT_low_pc
+        infobuf->write64(0);                    // DW_AT_entry_pc
+    }
+    else
+    {   infobuf->write32(0);                    // DW_AT_low_pc
+        infobuf->write32(0);                    // DW_AT_entry_pc
+    }
 
     dwarf_addrel(infoseg,infobuf->size(),debug_ranges_seg);
     infobuf->write32(0);                        // DW_AT_ranges
@@ -1127,30 +1133,56 @@ void dwarf_func_term(Symbol *sfunc)
         dwarf_addrel(debug_ranges_seg, offset + 4, seg);
 
         /* ============= debug_loc =========================== */
-#if 1
-        // set the entry for this function in .debug_loc segment
-        dwarf_addrel(debug_loc_seg, debug_loc_buf->size(), seg);
-        debug_loc_buf->write32(funcoffset + 0);
-        dwarf_addrel(debug_loc_seg, debug_loc_buf->size(), seg);
-        debug_loc_buf->write32(funcoffset + 1);
-        debug_loc_buf->write32(0x04740002);
 
-        dwarf_addrel(debug_loc_seg, debug_loc_buf->size(), seg);
-        debug_loc_buf->write32(funcoffset + 1);
-        dwarf_addrel(debug_loc_seg, debug_loc_buf->size(), seg);
-        debug_loc_buf->write32(funcoffset + 3);
-        debug_loc_buf->write32(0x08740002);
+        if (I64)
+        {
+            // set the entry for this function in .debug_loc segment
+            dwarf_addrel64(debug_loc_seg, debug_loc_buf->size(), seg, 0);
+            debug_loc_buf->write64(funcoffset + 0);
+            dwarf_addrel64(debug_loc_seg, debug_loc_buf->size(), seg, 0);
+            debug_loc_buf->write64(funcoffset + 1);
+            debug_loc_buf->write32(0x08770002);         // DW_OP_breg7: 8
 
-        dwarf_addrel(debug_loc_seg, debug_loc_buf->size(), seg);
-        debug_loc_buf->write32(funcoffset + 3);
-        dwarf_addrel(debug_loc_seg, debug_loc_buf->size(), seg);
-        debug_loc_buf->write32(funcoffset + sfunc->Ssize);
-        //debug_loc_buf->write32(0x08750002);
-        debug_loc_buf->write32(0x00750002);
+            dwarf_addrel64(debug_loc_seg, debug_loc_buf->size(), seg, 0);
+            debug_loc_buf->write64(funcoffset + 1);
+            dwarf_addrel64(debug_loc_seg, debug_loc_buf->size(), seg, 0);
+            debug_loc_buf->write64(funcoffset + 3);
+            debug_loc_buf->write32(0x10770002);         // DW_OP_breg7: 16
 
-        debug_loc_buf->write32(0);              // 2 words of 0 end it
-        debug_loc_buf->write32(0);
-#endif
+            dwarf_addrel64(debug_loc_seg, debug_loc_buf->size(), seg, 0);
+            debug_loc_buf->write64(funcoffset + 3);
+            dwarf_addrel64(debug_loc_seg, debug_loc_buf->size(), seg, 0);
+            debug_loc_buf->write64(funcoffset + sfunc->Ssize);
+            debug_loc_buf->write32(0x10760002);         // DW_OP_breg6: 16
+
+            debug_loc_buf->write64(0);              // 2 words of 0 end it
+            debug_loc_buf->write64(0);
+        }
+        else
+        {
+            // set the entry for this function in .debug_loc segment
+            dwarf_addrel(debug_loc_seg, debug_loc_buf->size(), seg);
+            debug_loc_buf->write32(funcoffset + 0);
+            dwarf_addrel(debug_loc_seg, debug_loc_buf->size(), seg);
+            debug_loc_buf->write32(funcoffset + 1);
+            debug_loc_buf->write32(0x04740002);
+
+            dwarf_addrel(debug_loc_seg, debug_loc_buf->size(), seg);
+            debug_loc_buf->write32(funcoffset + 1);
+            dwarf_addrel(debug_loc_seg, debug_loc_buf->size(), seg);
+            debug_loc_buf->write32(funcoffset + 3);
+            debug_loc_buf->write32(0x08740002);
+
+            dwarf_addrel(debug_loc_seg, debug_loc_buf->size(), seg);
+            debug_loc_buf->write32(funcoffset + 3);
+            dwarf_addrel(debug_loc_seg, debug_loc_buf->size(), seg);
+            debug_loc_buf->write32(funcoffset + sfunc->Ssize);
+            //debug_loc_buf->write32(0x08750002);
+            debug_loc_buf->write32(0x00750002);
+
+            debug_loc_buf->write32(0);              // 2 words of 0 end it
+            debug_loc_buf->write32(0);
+        }
 }
 
 
