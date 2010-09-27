@@ -4845,7 +4845,6 @@ elem *StructLiteralExp::toElem(IRState *irs)
             if (soffset)
                 e1 = el_bin(OPadd, TYnptr, e1, el_long(TYsize_t, soffset));
         }
-        e1 = el_bin(OPadd, TYnptr, e1, el_long(TYsize_t, v->offset));
         e1 = setEthis(loc, irs, e1, sd);
 
         e = el_combine(e, e1);
