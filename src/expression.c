@@ -5242,7 +5242,8 @@ Expression *AssertExp::semantic(Scope *sc)
     if (e1->isBool(FALSE))
     {
         FuncDeclaration *fd = sc->parent->isFuncDeclaration();
-        fd->hasReturnExp |= 4;
+        if (fd)
+            fd->hasReturnExp |= 4;
 
         if (!global.params.useAssert)
         {   Expression *e = new HaltExp(loc);
@@ -9602,6 +9603,14 @@ RemoveExp::RemoveExp(Loc loc, Expression *e1, Expression *e2)
         : BinExp(loc, TOKremove, sizeof(RemoveExp), e1, e2)
 {
     type = Type::tvoid;
+}
+
+void RemoveExp::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
+{
+    expToCBuffer(buf, hgs, e1, PREC_primary);
+    buf->writestring(".remove(");
+    expToCBuffer(buf, hgs, e2, PREC_assign);
+    buf->writestring(")");
 }
 
 /************************************************************/
