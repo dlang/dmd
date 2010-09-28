@@ -2793,6 +2793,7 @@ L2:
  * Get offset of far pointer (OPoffset).
  * Convert int to byte (OP16_8).
  * Convert long long to long (OP64_32).
+ * OP128_64
  */
 
 code *cdlngsht(elem *e,regm_t *pretregs)
@@ -2806,6 +2807,7 @@ code *cdlngsht(elem *e,regm_t *pretregs)
         case OPoffset:
         case OP16_8:
         case OP64_32:
+        case OP128_64:
             break;
 
         default:
@@ -2823,7 +2825,9 @@ code *cdlngsht(elem *e,regm_t *pretregs)
         else
         {   retregs = *pretregs ? ALLREGS : 0;
             c = codelem(e->E1,&retregs,FALSE);
-            if (I16 || I32 && (e->Eoper == OPoffset || e->Eoper == OP64_32))
+            if (I16 ||
+                I32 && (e->Eoper == OPoffset || e->Eoper == OP64_32) ||
+                I64 && (e->Eoper == OPoffset || e->Eoper == OP128_64))
                 retregs &= mLSW;                /* want LSW only        */
         }
   }

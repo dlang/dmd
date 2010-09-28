@@ -372,6 +372,7 @@ STATIC void ecom(elem **pe)
     case OPc_r: case OPc_i:
     case OPu8int: case OPs8int: case OPint8:
     case OPulngllng: case OPlngllng: case OP64_32: case OPmsw:
+    case OPu64_128: case OPs64_128: case OP128_64:
     case OPd_s64: case OPs64_d: case OPd_u64: case OPu64_d:
 #if TARGET_MAC
     case OPsfltdbl: OPcase OPdblsflt:

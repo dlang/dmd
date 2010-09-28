@@ -55,6 +55,7 @@ int _unary[] =
          OPd_ld, OPld_d,OPc_r,OPc_i,
          OPu32_64,OPlngllng,OP64_32,OPmsw,
          OPd_s64,OPs64_d,OPd_u64,OPu64_d,OPld_u64,
+         OP128_64,OPs64_128,OPu64_128,
 #if TARGET_MAC
          OPsfltdbl,OPdblsflt,
 #endif
@@ -128,6 +129,7 @@ int _ae[] = {OPvar,OPconst,OPrelconst,OPneg,
                 OPd_ld,OPld_d,OPc_r,OPc_i,
                 OPu32_64,OPlngllng,OP64_32,OPmsw,
                 OPd_s64,OPs64_d,OPd_u64,OPu64_d,OPld_u64,
+                OP128_64,OPs64_128,OPu64_128,
 #if TARGET_MAC
                 OPsfltdbl,OPdblsflt,
 #endif
@@ -151,6 +153,7 @@ int _exp[] = {OPvar,OPconst,OPrelconst,OPneg,OPabs,OPsqrt,OPrndtol,OPrint,
                 OPd_ld, OPld_d,OPc_r,OPc_i,
                 OPu32_64,OPlngllng,OP64_32,OPmsw,
                 OPd_s64,OPs64_d,OPd_u64,OPu64_d,OPld_u64,
+                OP128_64,OPs64_128,OPu64_128,
 #if TARGET_MAC
                 OPsfltdbl,OPdblsflt,
 #endif
@@ -167,6 +170,7 @@ int _boolnop[] = {OPuadd,OPbool,OPs16_32,OPu16_32,
                 OPf_d,OPvptrfptr,OPcvptrfptr,OPu8int,OPs8_16,
                 OPd_ld, OPld_d,
                 OPu32_64,OPlngllng,/*OP64_32,OPmsw,*/
+                OPs64_128,OPu64_128,
 #if TARGET_MAC
                 OPsfltdbl,OPdblsflt,
 #endif
@@ -562,6 +566,9 @@ void dotab()
         case OPu32_64:  X("u32_64",     evalu8, cdshtlng);
         case OPs32_64:  X("s32_64",     evalu8, cdshtlng);
         case OP64_32:   X("64_32",      el64_32, cdlngsht);
+        case OPu64_128: X("u64_128",    evalu8, cdshtlng);
+        case OPs64_128: X("s64_128",    evalu8, cdshtlng);
+        case OP128_64:  X("128_64",     el64_32, cdlngsht);
         case OPmsw:     X("msw",        evalu8, cdmsw);
 
         case OPd_s64:   X("d_s64",      evalu8, cdcnvt);

@@ -2448,7 +2448,7 @@ elem *AssignExp::toElem(IRState *irs)
             elem *efrom = e2->toElem(irs);
 
             unsigned size = t1->nextOf()->size();
-            elem *esize = el_long(TYint, size);
+            elem *esize = el_long(TYsize_t, size);
 
             if (e2->type->ty == Tpointer || !global.params.useArrayBounds)
             {   elem *epto;
@@ -2467,10 +2467,10 @@ elem *AssignExp::toElem(IRState *irs)
                 else
                 {
                     // It's not a constant, so pull it from the dynamic array
-                    elen = el_una(OP64_32, TYint, el_copytree(ex));
+                    elen = el_una(I64 ? OP128_64 : OP64_32, TYsize_t, el_copytree(ex));
                 }
 
-                esize = el_bin(OPmul, TYint, elen, esize);
+                esize = el_bin(OPmul, TYsize_t, elen, esize);
                 epto = array_toPtr(e1->type, ex);
                 epfr = array_toPtr(e2->type, efrom);
 #if 1

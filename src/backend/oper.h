@@ -177,6 +177,9 @@ enum OPER
         OPu32_64,       // unsigned long to long long
         OPs32_64,       // long to long long
         OP64_32,        // long long to long
+        OPu64_128,
+        OPs64_128,
+        OP128_64,
 #define OPsfltdbl       OPunde
 #define OPdblsflt       OPunde
         OPoffset,       // get offset of far pointer

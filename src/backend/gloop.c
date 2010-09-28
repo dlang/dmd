@@ -1110,6 +1110,9 @@ STATIC void markinvar(elem *n,vec_t rd)
         case OPd_s64:   case OPd_u64:
         case OPs64_d:
         case OPu64_d:
+        case OP128_64:
+        case OPs64_128:
+        case OPu64_128:
 #endif
 #if !(TARGET_POWERPC)
         case OPabs:
