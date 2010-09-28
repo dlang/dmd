@@ -7787,11 +7787,11 @@ Type *TypeSlice::semantic(Loc loc, Scope *sc)
     TypeTuple *tt = (TypeTuple *)tbn;
 
     lwr = semanticLength(sc, tbn, lwr);
-    lwr = lwr->optimize(WANTvalue);
+    lwr = lwr->optimize(WANTvalue | WANTinterpret);
     uinteger_t i1 = lwr->toUInteger();
 
     upr = semanticLength(sc, tbn, upr);
-    upr = upr->optimize(WANTvalue);
+    upr = upr->optimize(WANTvalue | WANTinterpret);
     uinteger_t i2 = upr->toUInteger();
 
     if (!(i1 <= i2 && i2 <= tt->arguments->dim))
@@ -7831,11 +7831,11 @@ void TypeSlice::resolve(Loc loc, Scope *sc, Expression **pe, Type **pt, Dsymbol 
             sc = sc->push(sym);
 
             lwr = lwr->semantic(sc);
-            lwr = lwr->optimize(WANTvalue);
+            lwr = lwr->optimize(WANTvalue | WANTinterpret);
             uinteger_t i1 = lwr->toUInteger();
 
             upr = upr->semantic(sc);
-            upr = upr->optimize(WANTvalue);
+            upr = upr->optimize(WANTvalue | WANTinterpret);
             uinteger_t i2 = upr->toUInteger();
 
             sc = sc->pop();
