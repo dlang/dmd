@@ -2035,15 +2035,31 @@ elem * evalu8(elem *e)
 #endif
         e->EV.Vint = l1;
         break;
+
     case OP64_32:
         e->EV.Vlong = l1;
         break;
-    case OPlngllng:
+    case OPs32_64:
         e->EV.Vllong = (targ_long) l1;
         break;
-    case OPulngllng:
+    case OPu32_64:
         e->EV.Vllong = (targ_ulong) l1;
         break;
+
+    case OP128_64:
+        e->EV.Vllong = e1->EV.Vcent.lsw;
+        break;
+    case OPs64_128:
+        e->EV.Vcent.lsw = e1->EV.Vllong;
+        e->EV.Vcent.msw = 0;
+        if ((targ_llong)e->EV.Vcent.lsw < 0)
+            e->EV.Vcent.msw = ~(targ_ullong)0;
+        break;
+    case OPu64_128:
+        e->EV.Vcent.lsw = e1->EV.Vullong;
+        e->EV.Vcent.msw = 0;
+        break;
+
     case OPmsw:
         switch (tysize(tym))
         {

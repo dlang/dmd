@@ -381,8 +381,8 @@ STATIC elem *fixconvop(elem *e)
                 OPd_s32,        // OPs32_d
                 OPs16_d,        /* OPd_s16      */
                 OPd_s16,        /* OPs16_d      */
-                OPu16_d,        /* OPdbluns     */
-                OPdbluns,       /* OPu16_d      */
+                OPu16_d,        // OPd_u16
+                OPd_u16,        // OPu16_d
                 OPu32_d,        /* OPd_u32      */
                 OPd_u32,        /* OPu32_d      */
                 OPs64_d,        // OPd_s64
@@ -393,15 +393,18 @@ STATIC elem *fixconvop(elem *e)
                 OPd_f,          // OPf_d
                 0,              /* OPvptrfptr   */
                 0,              /* OPcvptrfptr  */
-                OPlngsht,       /* OPshtlng     */
-                OPlngsht,       /* OPu16_32     */
-                OPshtlng,       /* OPlngsht     */
-                OPint8,         /* OPu8int      */
-                OPint8,         /* OPs8int      */
-                OPs8int,        /* OPint8       */
-                OP64_32,        // OPulngllng
-                OP64_32,        // OPlngllng
-                OPlngllng,      // OP64_32
+                OP32_16,        // OPs16_32
+                OP32_16,        // OPu16_32
+                OPs16_32,       // OP32_16
+                OP16_8,         // OPu8_16
+                OP16_8,         // OPs8_16
+                OPs8_16,        // OP16_8
+                OP64_32,        // OPu32_64
+                OP64_32,        // OPs32_64
+                OPs32_64,       // OP64_32
+                OP128_64,       // OPu64_128
+                OP128_64,       // OPs64_128
+                OPs64_128,      // OP128_64
                 OPptrlptr,      /* OPoffset     */
                 OPoffset,       /* OPptrlptr    */
                 OPfromfar16,    /* OPtofar16    */
@@ -3787,7 +3790,7 @@ STATIC elem * ellngsht(elem *e)
 
 /************************
  * Optimize conversions of long longs to ints.
- * OP64_32
+ * OP64_32, OP128_64
  */
 
 STATIC elem * el64_32(elem *e)
@@ -3798,6 +3801,8 @@ STATIC elem * el64_32(elem *e)
   {
     case OPs32_64:
     case OPu32_64:
+    case OPs64_128:
+    case OPu64_128:
     case OPpair:
         if (tysize(ty) != tysize(e->E1->E1->Ety))
             break;
@@ -3819,7 +3824,9 @@ STATIC elem * el64_32(elem *e)
 
     case OPshr:                 // OP64_32(x >> 32) => OPmsw(x)
         if (e1->E2->Eoper == OPconst &&
-            el_tolong(e1->E2) == 32 && !I64)
+            (e->Eoper == OP64_32 && el_tolong(e1->E2) == 32 && !I64 ||
+             e->Eoper == OP128_64 && el_tolong(e1->E2) == 64 && I64)
+           )
         {
             e->Eoper = OPmsw;
             e->E1 = el_selecte1(e->E1);
