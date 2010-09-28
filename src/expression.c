@@ -7478,8 +7478,8 @@ Expression *SliceExp::semantic(Scope *sc)
 
     if (t->ty == Ttuple)
     {
-        lwr = lwr->optimize(WANTvalue);
-        upr = upr->optimize(WANTvalue);
+        lwr = lwr->optimize(WANTvalue | WANTinterpret);
+        upr = upr->optimize(WANTvalue | WANTinterpret);
         uinteger_t i1 = lwr->toUInteger();
         uinteger_t i2 = upr->toUInteger();
 
