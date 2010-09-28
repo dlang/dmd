@@ -1297,25 +1297,31 @@ Lagain:
                 }
                 else if (ei)
                 {
-                    if (isDataseg())
-                        /* static const/invariant does CTFE
-                         */
+                    if (isDataseg() || (storage_class & STCmanifest))
                         e = e->optimize(WANTvalue | WANTinterpret);
                     else
                         e = e->optimize(WANTvalue);
-                    if (e->op == TOKint64 || e->op == TOKstring || e->op == TOKfloat64)
+                    switch (e->op)
                     {
-                        ei->exp = e;            // no errors, keep result
-                    }
+                        case TOKint64:
+                        case TOKfloat64:
+                        case TOKstring:
+                        case TOKarrayliteral:
+                        case TOKassocarrayliteral:
+                        case TOKstructliteral:
+                        case TOKnull:
+                            ei->exp = e;            // no errors, keep result
+                            break;
+
+                        default:
 #if DMDV2
-                    else
-                    {
-                        /* Save scope for later use, to try again
-                         */
-                        scope = new Scope(*sc);
-                        scope->setNoFree();
-                    }
+                            /* Save scope for later use, to try again
+                             */
+                            scope = new Scope(*sc);
+                            scope->setNoFree();
 #endif
+                            break;
+                    }
                 }
                 else
                     init = i2;          // no errors, keep result
