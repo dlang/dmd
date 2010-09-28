@@ -1186,20 +1186,31 @@ void VarDeclaration::semantic(Scope *sc)
                 }
                 else if (ei)
                 {
-                    e = e->optimize(WANTvalue | WANTinterpret);
-                    if (e->op == TOKint64 || e->op == TOKstring || e->op == TOKfloat64)
-                    {
-                        ei->exp = e;            // no errors, keep result
-                    }
-#if DMDV2
+                    if (isDataseg() || (storage_class & STCmanifest))
+                        e = e->optimize(WANTvalue | WANTinterpret);
                     else
+                        e = e->optimize(WANTvalue);
+                    switch (e->op)
                     {
-                        /* Save scope for later use, to try again
-                         */
-                        scope = new Scope(*sc);
-                        scope->setNoFree();
-                    }
+                        case TOKint64:
+                        case TOKfloat64:
+                        case TOKstring:
+                        case TOKarrayliteral:
+                        case TOKassocarrayliteral:
+                        case TOKstructliteral:
+                        case TOKnull:
+                            ei->exp = e;            // no errors, keep result
+                            break;
+
+                        default:
+#if DMDV2
+                            /* Save scope for later use, to try again
+                             */
+                            scope = new Scope(*sc);
+                            scope->setNoFree();
 #endif
+                            break;
+                    }
                 }
                 else
                     init = i2;          // no errors, keep result
