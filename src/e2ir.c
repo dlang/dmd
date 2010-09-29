@@ -103,7 +103,7 @@ elem *callfunc(Loc loc,
         tf = (TypeFunction *)(t->nextOf());
         ethis = ec;
         ec = el_same(&ethis);
-        ethis = el_una(OP64_32, TYnptr, ethis); // get this
+        ethis = el_una(I64 ? OP128_64 : OP64_32, TYnptr, ethis); // get this
         ec = array_toPtr(t, ec);                // get funcptr
         ec = el_una(OPind, tf->totym(), ec);
     }
@@ -123,10 +123,9 @@ elem *callfunc(Loc loc,
         int j = (tf->linkage == LINKd && tf->varargs == 1);
 
         for (i = 0; i < arguments->dim ; i++)
-        {   Expression *arg;
+        {   Expression *arg = (Expression *)arguments->data[i];
             elem *ea;
 
-            arg = (Expression *)arguments->data[i];
             //printf("\targ[%d]: %s\n", i, arg->toChars());
 
             size_t nparams = Parameter::dim(tf->parameters);
@@ -226,16 +225,13 @@ elem *callfunc(Loc loc,
         else
         {
             // make virtual call
-            elem *ev;
-            unsigned vindex;
-
             assert(ethis);
-            ev = el_same(&ethis);
+            elem *ev = el_same(&ethis);
             ev = el_una(OPind, TYnptr, ev);
-            vindex = fd->vtblIndex;
+            unsigned vindex = fd->vtblIndex;
 
             // Build *(ev + vindex * 4)
-            ec = el_bin(OPadd,TYnptr,ev,el_long(TYint, vindex * 4));
+            ec = el_bin(OPadd,TYnptr,ev,el_long(TYint, vindex * tysize[TYnptr]));
             ec = el_una(OPind,TYnptr,ec);
             ec = el_una(OPind,tybasic(sfunc->Stype->Tty),ec);
         }
@@ -2451,14 +2447,12 @@ elem *AssignExp::toElem(IRState *irs)
             elem *esize = el_long(TYsize_t, size);
 
             if (e2->type->ty == Tpointer || !global.params.useArrayBounds)
-            {   elem *epto;
-                elem *epfr;
-                elem *elen;
-                elem *ex;
+            {
 
-                ex = el_same(&eto);
+                elem *ex = el_same(&eto);
 
                 // Determine if elen is a constant
+                elem *elen;
                 if (eto->Eoper == OPpair &&
                     eto->E1->Eoper == OPconst)
                 {
@@ -2471,8 +2465,8 @@ elem *AssignExp::toElem(IRState *irs)
                 }
 
                 esize = el_bin(OPmul, TYsize_t, elen, esize);
-                epto = array_toPtr(e1->type, ex);
-                epfr = array_toPtr(e2->type, efrom);
+                elem *epto = array_toPtr(e1->type, ex);
+                elem *epfr = array_toPtr(e2->type, efrom);
 #if 1
                 // memcpy() is faster, so if we can't beat 'em, join 'em
                 e = el_params(esize, epfr, epto, NULL);

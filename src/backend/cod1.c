@@ -2312,6 +2312,26 @@ code *callclib(elem *e,unsigned clib,regm_t *pretregs,regm_t keepmask)
     return cat(cat(c,cpop),fixresult(e,retregs,pretregs));
 }
 
+/*************************************************
+ * Helper function for converting OPparam's into array of Parameters.
+ */
+struct Parameter { elem *e; int reg; };
+
+void fillParameters(elem *e, Parameter *parameters, int *pi)
+{
+    if (e->Eoper == OPparam)
+    {
+        fillParameters(e->E1, parameters, pi);
+        fillParameters(e->E2, parameters, pi);
+        freenode(e);
+    }
+    else
+    {
+        parameters[*pi].e = e;
+        (*pi)++;
+    }
+}
+
 
 /*******************************
  * Generate code sequence for function call.
@@ -2445,34 +2465,13 @@ code *cdfunc(elem *e,regm_t *pretregs)
         else
         {   assert(I64);
 
-            struct Parameter { elem *e; int reg; };
+            int np = el_nparams(e->E2);
+            Parameter *parameters = (Parameter *)alloca(np * sizeof(Parameter));
 
-            #ifdef DEBUG
-            #define PARAMETERS_DIM 3
-            #else
-            #define PARAMETERS_DIM 10
-            #endif
-            Parameter parameters_tmp[PARAMETERS_DIM];
-            Parameter *parameters = parameters_tmp;
-            size_t parameters_dim = PARAMETERS_DIM;
-
-            // Load up parameters[]
-            elem *ep;
-            elem *en;
-            int np = 0;
-            for (ep = e->E2; ep->Eoper == OPparam; ep = en)
-            {
-                if (np + 1 == parameters_dim)   // if not space for 2 more
-                {   // Grow parameters[]
-                    parameters_dim = np + 16;
-                    Parameter *p = (Parameter *)alloca(parameters_dim * sizeof(Parameter));
-                    parameters = (Parameter *)memcpy(p, parameters, np * sizeof(Parameter));
-                }
-                parameters[np++].e = ep->E1;
-                en = ep->E2;
-                freenode(ep);
+            { int n = 0;
+              fillParameters(e->E2, parameters, &n);
+              assert(n == np);
             }
-            parameters[np++].e = ep;
 
             unsigned stackalign = REGSIZE;
             tym_t tyf = tybasic(e->E1->Ety);
