@@ -107,7 +107,7 @@ elem *callfunc(Loc loc,
         tf = (TypeFunction *)(t->nextOf());
         ethis = ec;
         ec = el_same(&ethis);
-        ethis = el_una(OP64_32, TYnptr, ethis); // get this
+        ethis = el_una(I64 ? OP128_64 : OP64_32, TYnptr, ethis); // get this
         ec = array_toPtr(t, ec);                // get funcptr
         ec = el_una(OPind, tf->totym(), ec);
     }
@@ -241,7 +241,8 @@ elem *callfunc(Loc loc,
             vindex = fd->vtblIndex;
 
             // Build *(ev + vindex * 4)
-            ec = el_bin(OPadd,TYnptr,ev,el_long(TYint, vindex * 4));
+if (I32) assert(tysize[TYnptr] == 4);
+            ec = el_bin(OPadd,TYnptr,ev,el_long(TYint, vindex * tysize[TYnptr]));
             ec = el_una(OPind,TYnptr,ec);
             ec = el_una(OPind,tybasic(sfunc->Stype->Tty),ec);
         }
@@ -2718,7 +2719,7 @@ elem *AssignExp::toElem(IRState *irs)
             elem *efrom = e2->toElem(irs);
 
             unsigned size = t1->nextOf()->size();
-            elem *esize = el_long(TYint, size);
+            elem *esize = el_long(TYsize_t, size);
 
             /* Determine if we need to do postblit
              */
@@ -2742,10 +2743,10 @@ elem *AssignExp::toElem(IRState *irs)
                 else
                 {
                     // It's not a constant, so pull it from the dynamic array
-                    elen = el_una(OP64_32, TYint, el_copytree(ex));
+                    elen = el_una(I64 ? OP128_64 : OP64_32, TYsize_t, el_copytree(ex));
                 }
 
-                esize = el_bin(OPmul, TYint, elen, esize);
+                esize = el_bin(OPmul, TYsize_t, elen, esize);
                 elem *epto = array_toPtr(e1->type, ex);
                 elem *epfr = array_toPtr(e2->type, efrom);
 #if 1

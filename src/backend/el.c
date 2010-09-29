@@ -393,6 +393,19 @@ elem *el_params(void **args, int length)
                     el_params(args + mid, length - mid));
 }
 
+/***************************************
+ * Return a list of the parameters.
+ */
+
+int el_nparams(elem *e)
+{
+    if (e->Eoper == OPparam)
+    {
+        return el_nparams(e->E1) + el_nparams(e->E2);
+    }
+    else
+        return 1;
+}
 
 /*************************************
  * Create a quad word out of two dwords.
