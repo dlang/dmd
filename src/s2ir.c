@@ -415,7 +415,7 @@ void ForeachStatement::toIR(IRState *irs)
          * Initialize spmax = sp + array.length * size
          */
         spmax = symbol_genauto(TYnptr);
-        e = el_bin(OPmul, TYint, elength, el_long(TYint, tab->nextOf()->size()));
+        e = el_bin(OPmul, TYsize_t, elength, el_long(TYsize_t, tab->nextOf()->size()));
         e = el_bin(OPadd, TYnptr, el_var(sp), e);
         e = el_bin(OPeq, TYnptr, el_var(spmax), e);
 
@@ -470,7 +470,7 @@ void ForeachStatement::toIR(IRState *irs)
         }
         else
         {   // Construct (sp--)
-            e = el_bin(OPminass, TYnptr, el_var(sp), el_long(TYint, tab->nextOf()->size()));
+            e = el_bin(OPminass, TYnptr, el_var(sp), el_long(TYsize_t, tab->nextOf()->size()));
         }
         block_appendexp(blx->curblock, e);
     }
@@ -582,7 +582,7 @@ void ForeachStatement::toIR(IRState *irs)
         }
         else
         {   // Construct (sp++)
-            e = el_bin(OPaddass, TYnptr, el_var(sp), el_long(TYint, tab->nextOf()->size()));
+            e = el_bin(OPaddass, TYnptr, el_var(sp), el_long(TYsize_t, tab->nextOf()->size()));
         }
         mystate.contBlock->Belem = e;
     }
