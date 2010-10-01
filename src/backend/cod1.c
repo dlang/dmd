@@ -638,7 +638,11 @@ L1:
           op == 0x0FB7 || op == 0x0FBF ||       /* MOVZX/MOVSX          */
           (op & 0xFFF8) == 0xD8 ||              /* 8087 instructions    */
           op == 0x8D)                           /* LEA                  */
+        {
             cs->Iflags &= ~CFopsize;
+            if (reg == 6 && op == 0xFF)         // if PUSH
+                cs->Irex &= ~REX_W;             // REX is ignored for PUSH anyway
+        }
   }
   else if ((op & 0xFFF8) == 0xD8 && ADDFWAIT())
         cs->Iflags |= CFwait;
@@ -786,7 +790,7 @@ code *getlvalue(code *pcs,elem *e,regm_t keepmsk)
   unsigned sz = tysize(ty);
   if (tyfloating(ty))
         obj_fltused();
-  else if (I64 && sz == 8)
+  else if (I64 && (sz == 8 || sz == 16))
         pcs->Irex |= REX_W;
   if (!I16 && sz == SHORTSIZE)
         pcs->Iflags |= CFopsize;

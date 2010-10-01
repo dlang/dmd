@@ -3877,14 +3877,16 @@ code *getoffset(elem *e,unsigned reg)
         {   cs.Iop = 0xB8 + (reg & 7);  // MOV reg,immed16
             if (reg & 8)
                 cs.Irex |= REX_B;
-            if (I64 && config.flags3 & CFG3pic)
-            {   // LEA reg,immed32[RIP]
-                cs.Irex |= REX_W;
-                cs.Iop = 0x8D;
-                cs.Irm = modregrm(0,reg & 7,5);
-                cs.IFL1 = fl;
-                cs.IEVsym1 = cs.IEVsym2;
-                cs.IEVoffset1 = cs.IEVoffset2;
+            if (I64)
+            {   cs.Irex |= REX_W;
+                if (config.flags3 & CFG3pic)
+                {   // LEA reg,immed32[RIP]
+                    cs.Iop = 0x8D;
+                    cs.Irm = modregrm(0,reg & 7,5);
+                    cs.IFL1 = fl;
+                    cs.IEVsym1 = cs.IEVsym2;
+                    cs.IEVoffset1 = cs.IEVoffset2;
+                }
             }
             c = NULL;
         }
@@ -3933,6 +3935,8 @@ code *getoffset(elem *e,unsigned reg)
             c = allocreg(&retregs,&reg,TYoffset);
             reg = findreg(retregs);
             c = cat(c,loadea(e,&cs,0x8D,reg,0,0,0));    /* LEA reg,EA   */
+            if (I64)
+                code_orrex(c, REX_W);
             c = gen1(c,0x50 + (reg & 7));               // PUSH reg
             if (reg & 8)
                 code_orrex(c, REX_B);
@@ -3940,7 +3944,10 @@ code *getoffset(elem *e,unsigned reg)
             stackchanged = 1;
         }
         else
-            c = loadea(e,&cs,0x8D,reg,0,0,0);   /* LEA reg,EA           */
+        {   c = loadea(e,&cs,0x8D,reg,0,0,0);   /* LEA reg,EA           */
+            if (I64)
+                code_orrex(c, REX_W);
+        }
         break;
     default:
 #ifdef DEBUG

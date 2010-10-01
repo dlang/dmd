@@ -1,6 +1,6 @@
 
 // Compiler implementation of the D programming language
-// Copyright (c) 2000-2009 by Digital Mars
+// Copyright (c) 2000-2010 by Digital Mars
 // All Rights Reserved
 // Written by Walter Bright
 // http://www.digitalmars.com
@@ -78,9 +78,7 @@ void setScopeIndex(Blockx *blx, block *b, int scope_index)
 
 block *block_calloc(Blockx *blx)
 {
-    block *b;
-
-    b = block_calloc();
+    block *b = block_calloc();
     b->Btry = blx->tryblock;
     return b;
 }
@@ -419,7 +417,7 @@ void ForeachStatement::toIR(IRState *irs)
          * Initialize spmax = sp + array.length * size
          */
         spmax = symbol_genauto(TYnptr);
-        e = el_bin(OPmul, TYint, elength, el_long(TYint, tab->nextOf()->size()));
+        e = el_bin(OPmul, TYsize_t, elength, el_long(TYsize_t, tab->nextOf()->size()));
         e = el_bin(OPadd, TYnptr, el_var(sp), e);
         e = el_bin(OPeq, TYnptr, el_var(spmax), e);
 
@@ -474,7 +472,7 @@ void ForeachStatement::toIR(IRState *irs)
         }
         else
         {   // Construct (sp--)
-            e = el_bin(OPminass, TYnptr, el_var(sp), el_long(TYint, tab->nextOf()->size()));
+            e = el_bin(OPminass, TYnptr, el_var(sp), el_long(TYsize_t, tab->nextOf()->size()));
         }
         block_appendexp(blx->curblock, e);
     }
@@ -510,7 +508,7 @@ void ForeachStatement::toIR(IRState *irs)
     {
         assert(irs->sclosure);
         evalue = el_var(irs->sclosure);
-        evalue = el_bin(OPadd, TYnptr, evalue, el_long(TYint, value->offset));
+        evalue = el_bin(OPadd, TYnptr, evalue, el_long(TYsize_t, value->offset));
         evalue = el_una(OPind, value->type->totym(), evalue);
     }
     else
@@ -566,7 +564,7 @@ void ForeachStatement::toIR(IRState *irs)
         }
         else
         {   // Construct (sp++)
-            e = el_bin(OPaddass, TYnptr, el_var(sp), el_long(TYint, tab->nextOf()->size()));
+            e = el_bin(OPaddass, TYnptr, el_var(sp), el_long(TYsize_t, tab->nextOf()->size()));
         }
         mystate.contBlock->Belem = e;
     }
@@ -627,7 +625,7 @@ void ForeachRangeStatement::toIR(IRState *irs)
     {
         assert(irs->sclosure);
         ekey = el_var(irs->sclosure);
-        ekey = el_bin(OPadd, TYnptr, ekey, el_long(TYint, key->offset));
+        ekey = el_bin(OPadd, TYnptr, ekey, el_long(TYsize_t, key->offset));
         ekey = el_una(OPind, keytym, ekey);
     }
     else
@@ -803,8 +801,6 @@ void VolatileStatement::toIR(IRState *irs)
 
 void GotoStatement::toIR(IRState *irs)
 {
-    block *b;
-    block *bdest;
     Blockx *blx = irs->blx;
 
     if (!label->statement)
@@ -814,10 +810,10 @@ void GotoStatement::toIR(IRState *irs)
     if (tf != label->statement->tf)
         error("cannot goto forward out of or into finally block");
 
-    bdest = labelToBlock(loc, blx, label, 1);
+    block *bdest = labelToBlock(loc, blx, label, 1);
     if (!bdest)
         return;
-    b = blx->curblock;
+    block *b = blx->curblock;
     incUsage(irs, loc);
 
     // Adjust exception handler scope index if in different try blocks
@@ -1163,16 +1159,13 @@ void GotoCaseStatement::toIR(IRState *irs)
 
 void SwitchErrorStatement::toIR(IRState *irs)
 {
-    elem *e;
-    elem *elinnum;
-    elem *efilename;
     Blockx *blx = irs->blx;
 
     //printf("SwitchErrorStatement::toIR()\n");
 
-    efilename = blx->module->toEmodulename();
-    elinnum = el_long(TYint, loc.linnum);
-    e = el_bin(OPcall, TYvoid, el_var(rtlsym[RTLSYM_DSWITCHERR]), el_param(elinnum, efilename));
+    elem *efilename = blx->module->toEmodulename();
+    elem *elinnum = el_long(TYint, loc.linnum);
+    elem *e = el_bin(OPcall, TYvoid, el_var(rtlsym[RTLSYM_DSWITCHERR]), el_param(elinnum, efilename));
     block_appendexp(blx->curblock, e);
 }
 
@@ -1562,98 +1555,11 @@ void TryFinallyStatement::toIR(IRState *irs)
 }
 
 /****************************************
- * Builds the following:
- *      monitorenter(esync)
- *      _try
- *      { block }
- *      _finally
- *      monitorexit(esync)
- *      _ret
  */
 
 void SynchronizedStatement::toIR(IRState *irs)
 {
     assert(0);
-#if 0
-    block *b;
-    block *tryblock;
-    elem *e;
-    Blockx *blx = irs->blx;
-    block *breakblock;
-    block *contblock;
-
-#if SEH
-    nteh_declarvars(blx);
-#endif
-
-    incUsage(irs, loc);
-    Symbol *monitorenter = rtlsym[RTLSYM_MONITORENTER];
-    Symbol *monitorexit = rtlsym[RTLSYM_MONITOREXIT];
-    if (!esync)
-    {
-        if (exp)
-        {   /* Produce:
-             *  tmp = exp;
-             * then esync on tmp
-             */
-            Symbol *tmp = symbol_genauto(type_fake(TYnptr));
-            e = exp->toElem(irs);
-            e = el_bin(OPeq, TYnptr, el_var(tmp), e);
-            block_appendexp(blx->curblock, e);
-            esync = el_var(tmp);
-        }
-        else
-        {   /* esync will be a pointer to the global critical section.
-             */
-            Symbol *scrit = Module::gencritsec();
-
-            esync = el_ptr(scrit);
-            monitorenter = rtlsym[RTLSYM_CRITICALENTER];
-            monitorexit  = rtlsym[RTLSYM_CRITICALEXIT];
-        }
-    }
-    // monitorenter(esync)
-    e = el_bin(OPcall, TYvoid, el_var(monitorenter), esync);
-    block_appendexp(blx->curblock, e);
-
-    // monitorexit(esync)
-    elem *eexit = el_bin(OPcall, TYvoid, el_var(monitorexit), el_copytree(esync));
-
-    tryblock = block_goto(blx, BCgoto, NULL);
-
-    int previndex = blx->scope_index;
-    tryblock->Blast_index = previndex;
-    tryblock->Bscope_index = blx->next_index++;
-    blx->scope_index = tryblock->Bscope_index;
-
-    // Set the current scope index
-    setScopeIndex(blx, tryblock, tryblock->Bscope_index);
-
-    blx->tryblock = tryblock;
-    block_goto(blx, BC_try, NULL);
-    IRState bodyirs(irs, this);
-    breakblock = block_calloc(blx);
-    contblock = block_calloc(blx);
-    if (body)
-        body->toIR(&bodyirs);
-    blx->tryblock = tryblock->Btry;
-
-    setScopeIndex(blx, blx->curblock, previndex);
-    blx->scope_index = previndex;
-
-    block_goto(blx, BCgoto, breakblock);
-    block *finallyblock = block_goto(blx, BCgoto, contblock);
-    list_append(&tryblock->Bsucc, finallyblock);
-
-    block_goto(blx, BC_finally, NULL);
-
-    block_appendexp(blx->curblock, eexit);
-    block *retblock = blx->curblock;
-    block_next(blx, BC_ret, NULL);
-
-    list_append(&finallyblock->Bsucc, blx->curblock);
-    list_append(&retblock->Bsucc, blx->curblock);
-#endif
 }
 
 

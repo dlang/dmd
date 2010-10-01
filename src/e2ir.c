@@ -1403,21 +1403,22 @@ elem *NewExp::toElem(IRState *irs)
     }
     else if (t->ty == Tpointer)
     {
-        d_uns64 elemsize = t->next->size();
-        Expression *di = t->next->defaultInit();
+        TypePointer *tp = (TypePointer *)t;
+        d_uns64 elemsize = tp->next->size();
+        Expression *di = tp->next->defaultInit();
         d_uns64 disize = di->type->size();
 
         // call _d_newarrayT(ti, 1)
         e = el_long(TYsize_t, 1);
         e = el_param(e, type->getTypeInfo(NULL)->toElem(irs));
 
-        int rtl = t->next->isZeroInit() ? RTLSYM_NEWARRAYT : RTLSYM_NEWARRAYIT;
+        int rtl = tp->next->isZeroInit() ? RTLSYM_NEWARRAYT : RTLSYM_NEWARRAYIT;
         e = el_bin(OPcall,TYdarray,el_var(rtlsym[rtl]),e);
 
         // The new functions return an array, so convert to a pointer
         // e -> (unsigned)(e >> 32)
         e = el_bin(OPshr, TYdarray, e, el_long(TYint, 32));
-        e = el_una(OP64_32, t->totym(), e);
+        e = el_una(I64 ? OP128_64 : OP64_32, t->totym(), e);
     }
     else
     {
@@ -2302,12 +2303,12 @@ elem *AssignExp::toElem(IRState *irs)
                 einit = resolveLengthVar(are->lengthVar, &n1, ta);
                 enbytes = el_copytree(n1);
                 n1 = array_toPtr(ta, n1);
-                enbytes = el_una(OP64_32, TYint, enbytes);
+                enbytes = el_una(I64 ? OP128_64 : OP64_32, TYsize_t, enbytes);
             }
             else if (ta->ty == Tpointer)
             {
                 n1 = el_same(&n1x);
-                enbytes = el_long(TYint, -1);   // largest possible index
+                enbytes = el_long(TYsize_t, -1);   // largest possible index
                 einit = NULL;
             }
 
@@ -3269,14 +3270,22 @@ elem *CastExp::toElem(IRState *irs)
         {
             // e1 -> *(&e1 + 4)
             e = el_una(OPaddr, TYnptr, e);
-            e = el_bin(OPadd, TYnptr, e, el_long(TYint, 4));
+            e = el_bin(OPadd, TYnptr, e, el_long(TYsize_t, tysize[TYnptr]));
             e = el_una(OPind,t->totym(),e);
         }
         else
         {
             // e1 -> (unsigned)(e1 >> 32)
-            e = el_bin(OPshr, TYullong, e, el_long(TYint, 32));
-            e = el_una(OP64_32, t->totym(), e);
+            if (I64)
+            {
+                e = el_bin(OPshr, TYucent, e, el_long(TYint, 64));
+                e = el_una(OP128_64, t->totym(), e);
+            }
+            else
+            {
+                e = el_bin(OPshr, TYullong, e, el_long(TYint, 32));
+                e = el_una(OP64_32, t->totym(), e);
+            }
         }
         goto Lret;
     }
@@ -3919,34 +3928,26 @@ Lret:
 elem *ArrayLengthExp::toElem(IRState *irs)
 {
     elem *e = e1->toElem(irs);
-    e = el_una(OP64_32, type->totym(), e);
+    e = el_una(I64 ? OP128_64 : OP64_32, type->totym(), e);
     el_setLoc(e,loc);
     return e;
 }
 
 elem *SliceExp::toElem(IRState *irs)
-{   elem *e;
-    Type *t1;
-
+{
     //printf("SliceExp::toElem()\n");
-    t1 = e1->type->toBasetype();
-    e = e1->toElem(irs);
+    Type *t1 = e1->type->toBasetype();
+    elem *e = e1->toElem(irs);
     if (lwr)
-    {   elem *elwr;
-        elem *elwr2;
-        elem *eupr;
-        elem *eptr;
-        elem *einit;
-        int sz;
+    {
+        elem *einit = resolveLengthVar(lengthVar, &e, t1);
 
-        einit = resolveLengthVar(lengthVar, &e, t1);
+        int sz = t1->nextOf()->size();
 
-        sz = t1->nextOf()->size();
+        elem *elwr = lwr->toElem(irs);
+        elem *eupr = upr->toElem(irs);
 
-        elwr = lwr->toElem(irs);
-        eupr = upr->toElem(irs);
-
-        elwr2 = el_same(&elwr);
+        elem *elwr2 = el_same(&elwr);
 
         // Create an array reference where:
         // length is (upr - lwr)
@@ -3971,7 +3972,7 @@ elem *SliceExp::toElem(IRState *irs)
                 // Just do lwr <= upr check
 
                 eupr2 = el_same(&eupr);
-                eupr2->Ety = TYuint;                    // make sure unsigned comparison
+                eupr2->Ety = TYsize_t;                    // make sure unsigned comparison
                 c1 = el_bin(OPle, TYint, elwr2, eupr2);
                 c1 = el_combine(eupr, c1);
                 goto L2;
@@ -3980,7 +3981,7 @@ elem *SliceExp::toElem(IRState *irs)
             {   TypeSArray *tsa = (TypeSArray *)t1;
                 dinteger_t length = tsa->dim->toInteger();
 
-                elength = el_long(TYuint, length);
+                elength = el_long(TYsize_t, length);
                 goto L1;
             }
             else if (t1->ty == Tarray)
@@ -3991,12 +3992,12 @@ elem *SliceExp::toElem(IRState *irs)
                 {
                     elength = e;
                     e = el_same(&elength);
-                    elength = el_una(OP64_32, TYuint, elength);
+                    elength = el_una(I64 ? OP128_64 : OP64_32, TYsize_t, elength);
                 }
             L1:
                 eupr2 = el_same(&eupr);
                 c1 = el_bin(OPle, TYint, eupr, elength);
-                eupr2->Ety = TYuint;                    // make sure unsigned comparison
+                eupr2->Ety = TYsize_t;                    // make sure unsigned comparison
                 c2 = el_bin(OPle, TYint, elwr2, eupr2);
                 c1 = el_bin(OPandand, TYint, c1, c2);   // (c1 && c2)
 
@@ -4014,7 +4015,7 @@ elem *SliceExp::toElem(IRState *irs)
             }
         }
 
-        eptr = array_toPtr(e1->type, e);
+        elem *eptr = array_toPtr(e1->type, e);
 
         elem *elength = el_bin(OPmin, TYint, eupr, elwr2);
         eptr = el_bin(OPadd, TYnptr, eptr, el_bin(OPmul, TYint, el_copytree(elwr2), el_long(TYint, sz)));
@@ -4035,10 +4036,9 @@ elem *IndexExp::toElem(IRState *irs)
 {   elem *e;
     elem *n1 = e1->toElem(irs);
     elem *eb = NULL;
-    Type *t1;
 
     //printf("IndexExp::toElem() %s\n", toChars());
-    t1 = e1->type->toBasetype();
+    Type *t1 = e1->type->toBasetype();
     if (t1->ty == Taarray)
     {
         // set to:
@@ -4048,7 +4048,6 @@ elem *IndexExp::toElem(IRState *irs)
         elem *keyti;
         elem *ep;
         int vsize = taa->next->size();
-        elem *valuesize;
         Symbol *s;
 
         // n2 becomes the index, also known as the key
@@ -4065,7 +4064,7 @@ elem *IndexExp::toElem(IRState *irs)
             //printf("numbytes = %d\n", n2->Enumbytes);
             assert(n2->Enumbytes);
         }
-        valuesize = el_long(TYuint, vsize);     // BUG: should be TYsize_t
+        elem *valuesize = el_long(TYuint, vsize);       // BUG: should be TYsize_t
         //printf("valuesize: "); elem_print(valuesize);
         if (modifiable)
         {
@@ -4085,15 +4084,12 @@ elem *IndexExp::toElem(IRState *irs)
         e = el_bin(OPcall, TYnptr, el_var(s), ep);
         if (global.params.useArrayBounds)
         {
-            elem *n;
             elem *ea;
 
-            n = el_same(&e);
+            elem *n = el_same(&e);
 
             // Construct: ((e || ModuleAssert(line)),n)
-            Symbol *sassert;
-
-            sassert = irs->blx->module->toModuleArray();
+            Symbol *sassert = irs->blx->module->toModuleArray();
             ea = el_bin(OPcall,TYvoid,el_var(sassert),
                 el_long(TYint, loc.linnum));
             e = el_bin(OPoror,TYvoid,e,ea);
@@ -4118,14 +4114,14 @@ elem *IndexExp::toElem(IRState *irs)
             {   TypeSArray *tsa = (TypeSArray *)t1;
                 dinteger_t length = tsa->dim->toInteger();
 
-                elength = el_long(TYuint, length);
+                elength = el_long(TYsize_t, length);
                 goto L1;
             }
             else if (t1->ty == Tarray)
             {
                 elength = n1;
                 n1 = el_same(&elength);
-                elength = el_una(OP64_32, TYuint, elength);
+                elength = el_una(I64 ? OP128_64 : OP64_32, TYsize_t, elength);
             L1:
                 n2x = n2;
                 n2 = el_same(&n2x);
@@ -4385,9 +4381,33 @@ elem *StructLiteralExp::toElem(IRState *irs)
             if (t1b->ty == Tsarray)
             {
                 if (t2b->implicitConvTo(t1b))
-                {   elem *esize = el_long(TYsize_t, t1b->size());
-                    ep = array_toPtr(el->type, ep);
-                    e1 = el_bin(OPmemcpy, TYnptr, e1, el_param(ep, esize));
+                {
+#if DMDV2
+                    // Determine if postblit is needed
+                    int postblit = 0;
+                    if (needsPostblit(t1b))
+                        postblit = 1;
+
+                    if (postblit)
+                    {
+                        /* Generate:
+                         *      _d_arrayctor(ti, From: ep, To: e1)
+                         */
+                        Expression *ti = t1b->nextOf()->toBasetype()->getTypeInfo(NULL);
+                        elem *esize = el_long(TYsize_t, ((TypeSArray *)t1b)->dim->toInteger());
+                        e1 = el_pair(TYdarray, esize, e1);
+                        ep = el_pair(TYdarray, el_copytree(esize), array_toPtr(el->type, ep));
+                        ep = el_params(e1, ep, ti->toElem(irs), NULL);
+                        int rtl = RTLSYM_ARRAYCTOR;
+                        e1 = el_bin(OPcall, type->totym(), el_var(rtlsym[rtl]), ep);
+                    }
+                    else
+#endif
+                    {
+                        elem *esize = el_long(TYsize_t, t1b->size());
+                        ep = array_toPtr(el->type, ep);
+                        e1 = el_bin(OPmemcpy, TYnptr, e1, el_param(ep, esize));
+                    }
                 }
                 else
                 {
@@ -4407,17 +4427,14 @@ elem *StructLiteralExp::toElem(IRState *irs)
                     e1->Enumbytes = v->type->size();
                 }
 #if DMDV2
-                /* Call postBlit() on e1
+                /* Call postblit() on e1
                  */
-                Type *tb = v->type->toBasetype();
-                if (tb->ty == Tstruct)
-                {   StructDeclaration *sd = ((TypeStruct *)tb)->sym;
-                    if (sd->postblit)
-                    {   FuncDeclaration *fd = sd->postblit;
-                        ec = el_copytree(ec);
-                        ec = callfunc(loc, irs, 1, Type::tvoid, ec, tb->pointerTo(), fd, fd->type, NULL, NULL);
-                        e1 = el_bin(OPcomma, ec->Ety, e1, ec);
-                    }
+                StructDeclaration *sd = needsPostblit(v->type);
+                if (sd)
+                {   FuncDeclaration *fd = sd->postblit;
+                    ec = el_copytree(ec);
+                    ec = callfunc(loc, irs, 1, Type::tvoid, ec, sd->type->pointerTo(), fd, fd->type, NULL, NULL);
+                    e1 = el_bin(OPcomma, ec->Ety, e1, ec);
                 }
 #endif
             }
@@ -4443,7 +4460,6 @@ elem *StructLiteralExp::toElem(IRState *irs)
             if (soffset)
                 e1 = el_bin(OPadd, TYnptr, e1, el_long(TYsize_t, soffset));
         }
-        e1 = el_bin(OPadd, TYnptr, e1, el_long(TYsize_t, v->offset));
         e1 = setEthis(loc, irs, e1, sd);
 
         e = el_combine(e, e1);

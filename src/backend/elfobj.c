@@ -2536,7 +2536,6 @@ void reftocodseg(int seg,targ_size_t offset,targ_size_t val)
 int reftoident(int seg, targ_size_t offset, Symbol *s, targ_size_t val,
         int flags)
 {
-    tym_t ty;
     bool external = TRUE;
     Outbuffer *buf;
     elf_u32_f32 relinfo,refseg;
@@ -2552,7 +2551,7 @@ int reftoident(int seg, targ_size_t offset, Symbol *s, targ_size_t val,
     symbol_print(s);
 #endif
 
-    ty = s->ty();
+    tym_t ty = s->ty();
     if (s->Sxtrnnum)
     {                           // identifier is defined somewhere else
         if (I64)
@@ -2664,7 +2663,10 @@ int reftoident(int seg, targ_size_t offset, Symbol *s, targ_size_t val,
                         if (!(config.flags3 & CFG3pic) ||       // all static refs from normal code
                              segtyp == DATA)    // or refs from data from posi indp
                         {
-                           relinfo = I64 ? R_X86_64_32 : RI_TYPE_SYM32;
+                            if (I64)
+                                relinfo = (flags & CFpc32) ? R_X86_64_PC32 : R_X86_64_32;
+                            else
+                                relinfo = RI_TYPE_SYM32;
                         }
                         else
                         {
