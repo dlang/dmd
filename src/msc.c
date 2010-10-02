@@ -163,6 +163,8 @@ void out_config_init()
         cod3_set386();
     }
 
+    rtlsym_init();
+
 #ifdef DEBUG
     debugb = params->debugb;
     debugc = params->debugc;
@@ -358,7 +360,8 @@ void backend_init()
     ph_init();
     block_init();
     type_init();
-    rtlsym_init();
+
+    fregsaved = I64 ? mBP | mBX | mR12 | mR13 | mR14 | mR15 | mES : mES | mBP | mBX | mSI | mDI;
 }
 
 void backend_term()
