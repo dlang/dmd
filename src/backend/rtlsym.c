@@ -1,5 +1,5 @@
 // Copyright (C) 1996-1998 by Symantec
-// Copyright (C) 2000-2009 by Digital Mars
+// Copyright (C) 2000-2010 by Digital Mars
 // All Rights Reserved
 // http://www.digitalmars.com
 // Written by Walter Bright
@@ -27,7 +27,8 @@ static char __file__[] = __FILE__;      /* for tassert.h                */
 Symbol *rtlsym[RTLSYM_MAX];
 
 #if MARS
-#define FREGSAVED       (mES | mBP | mBX | mSI | mDI)
+// This varies depending on C ABI
+#define FREGSAVED       fregsaved
 #else
 #define FREGSAVED       (mBP | mBX | mSI | mDI)
 #endif
@@ -47,10 +48,7 @@ void rtlsym_init()
     if (!inited)
     {   inited++;
 
-        //printf("rtlsym_init()\n");
-#if MARS
-        fregsaved = FREGSAVED;
-#endif
+        //printf("rtlsym_init(%s)\n", regm_str(FREGSAVED));
 
         for (i = 0; i < RTLSYM_MAX; i++)
         {

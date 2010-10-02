@@ -1915,7 +1915,7 @@ void epilog(block *b)
     topop = fregsaved & ~mfuncreg;
 #ifdef DEBUG
     if (topop & ~0xFFFF)
-        printf("fregsaved = x%x, mfuncreg = x%x\n",fregsaved,mfuncreg);
+        printf("fregsaved = x%x, mfuncreg = x%x\n",regm_str(fregsaved),regm_str(mfuncreg));
 #endif
     assert(!(topop & ~0xFFFF));
     while (topop)

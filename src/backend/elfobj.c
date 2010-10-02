@@ -2417,7 +2417,7 @@ void elf_addrel(int seg, targ_size_t offset, unsigned type,
  *      offset =        offset within seg
  *      val =           displacement from address
  *      targetdatum =   DATA, CDATA or UDATA, depending where the address is
- *      flags =         CFoff, CFseg
+ *      flags =         CFoff, CFseg, CFoffset64
  * Example:
  *      int *abc = &def[3];
  *      to allocate storage:
@@ -2448,7 +2448,16 @@ void reftodatseg(int seg,targ_size_t offset,targ_size_t val,
 
         if (I64)
         {
-            if (MAP_SEG2TYP(seg) == CODE && config.flags3 & CFG3pic)
+            if (flags & CFoffset64)
+            {
+                relinfo = R_X86_64_64;
+                elf_addrel(seg, offset, relinfo, STI_RODAT, v);
+                buf->write64(val);
+                if (save > offset + 8)
+                    buf->setsize(save);
+                return;
+            }
+            else if (MAP_SEG2TYP(seg) == CODE && config.flags3 & CFG3pic)
             {   relinfo = R_X86_64_PC32;
                 //v = -4L;
             }
@@ -2529,6 +2538,8 @@ void reftocodseg(int seg,targ_size_t offset,targ_size_t val)
  *                      CFseg: get segment
  *                      CFoff: get offset
  *                      CFoffset64: 64 bit fixup
+ *                      CFpc32: I64: PC relative 32 bit fixup
+ *                      CFaddend8: I64: fixup addend is -8
  * Returns:
  *      number of bytes in reference (4 or 8)
  */
@@ -2735,6 +2746,8 @@ int reftoident(int seg, targ_size_t offset, Symbol *s, targ_size_t val,
                     }
                     //printf("\t\t************* adding relocation\n");
                     targ_size_t v = (relinfo == R_X86_64_PC32) ? -4 : 0;
+                    if (relinfo == R_X86_64_PC32 && flags & CFaddend8)
+                        v = -8;
                     elf_addrel(seg,offset,relinfo,refseg,v);
                 }
 outaddrval:

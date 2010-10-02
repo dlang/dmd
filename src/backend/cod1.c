@@ -695,7 +695,10 @@ unsigned getaddrmode(regm_t idxregs)
     }
     else
     {   unsigned reg = findreg(idxregs & (ALLREGS | mBP));
-        mode = modregrmx(2,0,reg);
+        if (reg == R12)
+            mode = (REX_B << 16) | (modregrm(0,4,4) << 8) | modregrm(2,0,4);
+        else
+            mode = modregrmx(2,0,reg);
     }
     return mode;
 }
@@ -704,6 +707,7 @@ void setaddrmode(code *c, regm_t idxregs)
 {
     unsigned mode = getaddrmode(idxregs);
     c->Irm = mode & 0xFF;
+    c->Isib = mode >> 8;
     c->Irex &= ~REX_B;
     c->Irex |= mode >> 16;
 }
@@ -2561,7 +2565,9 @@ code *cdfunc(elem *e,regm_t *pretregs)
                 }
             }
             if (e->Eflags & EFLAGS_variadic)
-            {   movregconst(c,AX,xmmcnt - XMM0,1);
+            {   code *c1 = getregs(mAX);
+                c1 = movregconst(c1,AX,xmmcnt - XMM0,1);
+                c = cat(c, c1);
                 keepmsk |= mAX;
             }
         }

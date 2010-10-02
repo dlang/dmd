@@ -406,6 +406,8 @@ void outdata(symbol *s)
                     flags = CFoff;
                 else
                     flags = CFoff | CFseg;
+                if (I64)
+                    flags |= CFoffset64;
                 if (tybasic(dt->Dty) == TYcptr)
                     reftocodseg(seg,offset,dt->DTabytes);
 #if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_SOLARIS
