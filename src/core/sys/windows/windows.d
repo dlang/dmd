@@ -131,7 +131,7 @@ else // Win32
     alias ACCESS_MASK *PACCESS_MASK;
     alias ACCESS_MASK REGSAM;
 
-    alias int (*FARPROC)();
+    alias int function() FARPROC;
 
     alias UINT WPARAM;
     alias LONG LPARAM;
@@ -2114,7 +2114,7 @@ export void PostQuitMessage(int nExitCode);
 export LRESULT DefWindowProcA(HWND hWnd, UINT Msg, WPARAM wParam, LPARAM lParam);
 export HMODULE GetModuleHandleA(LPCSTR lpModuleName);
 
-alias LRESULT (* WNDPROC)(HWND, UINT, WPARAM, LPARAM);
+alias LRESULT function (HWND, UINT, WPARAM, LPARAM) WNDPROC;
 
 struct WNDCLASSEXA {
     UINT        cbSize;
@@ -2613,7 +2613,7 @@ enum
 
 export LRESULT SendMessageA(HWND hWnd, UINT Msg, WPARAM wParam, LPARAM lParam);
 
-alias UINT (*LPOFNHOOKPROC) (HWND, UINT, WPARAM, LPARAM);
+alias UINT function (HWND, UINT, WPARAM, LPARAM) LPOFNHOOKPROC;
 
 struct OPENFILENAMEA {
    DWORD        lStructSize;
@@ -3136,7 +3136,7 @@ BOOL ScrollConsoleScreenBufferA(HANDLE hConsoleOutput, in SMALL_RECT *lpScrollRe
 BOOL ScrollConsoleScreenBufferW(HANDLE hConsoleOutput, in SMALL_RECT *lpScrollRectangle, in SMALL_RECT *lpClipRectangle, COORD dwDestinationOrigin, in CHAR_INFO *lpFill);
 BOOL SetConsoleWindowInfo(HANDLE hConsoleOutput, BOOL bAbsolute, in SMALL_RECT *lpConsoleWindow);
 BOOL SetConsoleTextAttribute(HANDLE hConsoleOutput, WORD wAttributes);
-alias BOOL(*PHANDLER_ROUTINE)(DWORD CtrlType);
+alias BOOL function(DWORD CtrlType) PHANDLER_ROUTINE;
 BOOL SetConsoleCtrlHandler(PHANDLER_ROUTINE HandlerRoutine, BOOL Add);
 BOOL GenerateConsoleCtrlEvent( DWORD dwCtrlEvent, DWORD dwProcessGroupId);
 BOOL AllocConsole();
