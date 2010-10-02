@@ -158,7 +158,7 @@ extern (C) void _d_delinterface(void** p)
 
 
 // used for deletion
-private extern (D) alias void (*fp_t)(Object);
+private extern (D) alias void function (Object) fp_t;
 
 
 /**
