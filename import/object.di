@@ -130,7 +130,7 @@ class TypeInfo_Class : TypeInfo
     Interface[] interfaces;
     TypeInfo_Class   base;
     void*       destructor;
-    void(*classInvariant)(Object);
+    void function(Object) classInvariant;
     uint        m_flags;
     //  1:      // is IUnknown or is derived from IUnknown
     //  2:      // has no possible pointers into GC memory
