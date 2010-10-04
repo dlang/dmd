@@ -1038,11 +1038,16 @@ STATIC void blcodgen(block *bl)
                             if (npush & (STACKALIGN - 1))
                             {   nalign = STACKALIGN - (npush & (STACKALIGN - 1));
                                 cs = genc2(cs,0x81,modregrm(3,5,SP),nalign); // SUB ESP,nalign
+                                if (I64)
+                                    code_orrex(cs, REX_W);
                             }
                         }
                         cs = genc(cs,0xE8,0,0,0,FLblock,(long)list_block(bf->Bsucc));
                         if (nalign)
-                            cs = genc2(cs,0x81,modregrm(3,0,SP),nalign); // ADD ESP,nalign
+                        {   cs = genc2(cs,0x81,modregrm(3,0,SP),nalign); // ADD ESP,nalign
+                            if (I64)
+                                code_orrex(cs, REX_W);
+                        }
                         c = cat3(c,cs,cr);
                     }
                 }
@@ -1093,11 +1098,17 @@ STATIC void blcodgen(block *bl)
             if (config.flags3 & CFG3pic)
             {
                 if (STACKALIGN == 16)
-                    c = genc2(c,0x81,modregrm(3,5,SP),12); // SUB ESP,12
+                {   c = genc2(c,0x81,modregrm(3,5,SP),12); // SUB ESP,12
+                    if (I64)
+                        code_orrex(c, REX_W);
+                }
                 // CALL bl->Bsucc
                 c = genc(c,0xE8,0,0,0,FLblock,(long)list_block(bl->Bsucc));
                 if (STACKALIGN == 16)
-                    c = genc2(c,0x81,modregrm(3,0,SP),12); // ADD ESP,12
+                {   c = genc2(c,0x81,modregrm(3,0,SP),12); // ADD ESP,12
+                    if (I64)
+                        code_orrex(c, REX_W);
+                }
                 // JMP list_next(bl->Bsucc)
                 nextb = list_block(list_next(bl->Bsucc));
                 goto L2;
@@ -1229,12 +1240,17 @@ STATIC void blcodgen(block *bl)
                             if (npush & (STACKALIGN - 1))
                             {   nalign = STACKALIGN - (npush & (STACKALIGN - 1));
                                 cs = genc2(cs,0x81,modregrm(3,5,SP),nalign); // SUB ESP,nalign
+                                if (I64)
+                                    code_orrex(cs, REX_W);
                             }
                         }
                         // CALL bf->Bsucc
                         cs = genc(cs,0xE8,0,0,0,FLblock,(long)list_block(bf->Bsucc));
                         if (nalign)
-                            cs = genc2(cs,0x81,modregrm(3,0,SP),nalign); // ADD ESP,nalign
+                        {   cs = genc2(cs,0x81,modregrm(3,0,SP),nalign); // ADD ESP,nalign
+                            if (I64)
+                                code_orrex(cs, REX_W);
+                        }
                         bl->Bcode = c = cat3(c,cs,cr);
                     }
                 }

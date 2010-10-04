@@ -644,6 +644,8 @@ code *cdorth(elem *e,regm_t *pretregs)
                     cs.Irex |= REX_R;
                 if (reg & 8)
                     cs.Irex |= REX_B;
+                if (I64 && sz == 8)
+                    cs.Irex |= REX_W;
                 cs.IFL2 = (e2->Eoper == OPconst) ? FLconst : el_fl(e2);
                 /* Modify instruction for special cases */
                 switch (e->Eoper)
@@ -853,7 +855,7 @@ code *cdmul(elem *e,regm_t *pretregs)
   {
     case OPu16_32:
     case OPshtlng:
-    case OPulngllng:
+    case OPu32_64:
     case OPlngllng:
         if (sz != 2 * REGSIZE || oper != OPmul || e1->Eoper != e2->Eoper ||
             e1->Ecount || e2->Ecount)
@@ -1989,7 +1991,7 @@ code *cdshift(elem *e,regm_t *pretregs)
                     oper == OPshl &&
                     !e1->Ecount &&
                     (e1->Eoper == OPshtlng  || e1->Eoper == OPu16_32 ||
-                     e1->Eoper == OPlngllng || e1->Eoper == OPulngllng)
+                     e1->Eoper == OPlngllng || e1->Eoper == OPu32_64)
                    )
                 {   // Handle (shtlng)s << 16
                     regm_t r;
@@ -2372,7 +2374,7 @@ code *cdind(elem *e,regm_t *pretregs)
   elem *e1;
   unsigned sz;
 
-  //printf("cdind(e = %p, *pretregs = x%x)\n",e,*pretregs);
+  //printf("cdind(e = %p, *pretregs = %s)\n",e,regm_str(*pretregs));
   tym = tybasic(e->Ety);
   if (tyfloating(tym))
   {
@@ -2413,6 +2415,7 @@ code *cdind(elem *e,regm_t *pretregs)
   byte = tybyte(tym) != 0;
 
   c = getlvalue(&cs,e,RMload);          // get addressing mode
+  //printf("Irex = %02x, Irm = x%02x, Isib = x%02x\n", cs.Irex, cs.Irm, cs.Isib);
   /*fprintf(stderr,"cd2 :\n"); WRcodlst(c);*/
   if (*pretregs == 0)
         return c;
@@ -3648,6 +3651,8 @@ code *cdrelconst(elem *e,regm_t *pretregs)
   if (*pretregs & mPSW)
   {     *pretregs &= ~mPSW;
         c = gentstreg(c,SP);            // SP is never 0
+        if (I64)
+            code_orrex(c, REX_W);
   }
   if (!*pretregs)
         return c;
