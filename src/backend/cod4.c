@@ -2674,6 +2674,7 @@ code *cdbyteint(elem *e,regm_t *pretregs)
     if ((*pretregs & (ALLREGS | mBP)) == 0)     // if don't need result in regs
         return codelem(e->E1,pretregs,FALSE); /* then conversion isn't necessary */
 
+    //printf("cdbyteint(e = %p, *pretregs = %s\n", e, regm_str(*pretregs));
     op = e->Eoper;
     e1 = e->E1;
     c0 = NULL;
@@ -2761,7 +2762,7 @@ code *cdbyteint(elem *e,regm_t *pretregs)
 
                 if (config.flags4 & CFG4speed && op == OPu8_16)
                 {   // AND reg,0xFF
-                    c3 = genc2(c3,0x81,modregrm(3,4,reg),0xFF);
+                    c3 = genc2(c3,0x81,modregrmx(3,4,reg),0xFF);
                 }
                 else
                 {

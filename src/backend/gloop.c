@@ -1105,7 +1105,7 @@ STATIC void markinvar(elem *n,vec_t rd)
 #endif
 
 #if LONGLONG
-        case OPlngllng: case OPulngllng:
+        case OPlngllng: case OPu32_64:
         case OP64_32:
         case OPd_s64:   case OPd_u64:
         case OPs64_d:

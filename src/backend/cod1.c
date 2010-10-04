@@ -631,6 +631,9 @@ L1:
         getlvalue_msw(cs);
   else
         cs->IEVoffset1 += offset;
+  if (I64 && reg >= 4 && sz == 1)               // if byte register
+        // Can only address those 8 bit registers if a REX byte is present
+        cs->Irex |= REX;
   code_newreg(cs, reg);                         // OR in reg field
   if (!I16)
   {
@@ -1594,10 +1597,14 @@ code *scodelem(elem *e,regm_t *pretregs,regm_t keepmsk,bool constflag)
             regcon.immed.mval = 0;      // prevent reghasvalue() optimizations
                                         // because c hasn't been executed yet
             cs1 = genc2(cs1,0x81,grex | modregrm(3,5,SP),sz);  // SUB ESP,sz
+            if (I64)
+                code_orrex(cs1, REX_W);
             regcon.immed.mval = mval_save;
             cs1 = genadjesp(cs1, sz);
 
             code *cx = genc2(CNIL,0x81,grex | modregrm(3,0,SP),sz);  // ADD ESP,sz
+            if (I64)
+                code_orrex(cx, REX_W);
             cx = genadjesp(cx, -sz);
             cs2 = cat(cx, cs2);
         }
@@ -2473,6 +2480,7 @@ code *cdfunc(elem *e,regm_t *pretregs)
         else
         {   assert(I64);
 
+            // Easier to deal with parameters as an array: parameters[0..np]
             int np = el_nparams(e->E2);
             Parameter *parameters = (Parameter *)alloca(np * sizeof(Parameter));
 
@@ -3590,6 +3598,8 @@ code *loaddata(elem *e,regm_t *pretregs)
         {       /* TRUE:        OR SP,SP        (SP is never 0)         */
                 /* FALSE:       CMP SP,SP       (always equal)          */
                 c = genregs(CNIL,(boolres(e)) ? 0x09 : 0x39,SP,SP);
+                if (I64)
+                    code_orrex(c, REX_W);
         }
         else if (sz <= REGSIZE)
         {

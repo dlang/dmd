@@ -1429,7 +1429,7 @@ STATIC elem * elbitwise(elem *e)
                 op == OPs8int   && (ul & 0xFFFFFFFFFFFFFF80LL) == 0 ||
                 op == OPu8int   && (ul & 0xFFFFFFFFFFFFFF00LL) == 0 ||
                 op == OPlngllng && (ul & 0xFFFFFFFF80000000LL) == 0 ||
-                op == OPulngllng&& (ul & 0xFFFFFFFF00000000LL) == 0
+                op == OPu32_64&& (ul & 0xFFFFFFFF00000000LL) == 0
                )
 #else
             if (op == OPshtlng  && (ul & 0xFFFF8000) == 0 ||
@@ -1445,7 +1445,7 @@ STATIC elem * elbitwise(elem *e)
                         e1->Eoper = OPu8int;
 #if __INTSIZE == 4
                     else if (op == OPlngllng  && (ul & 0x80000000) == 0)
-                        e1->Eoper = OPulngllng;
+                        e1->Eoper = OPu32_64;
 #endif
                 }
 
@@ -1557,7 +1557,7 @@ STATIC elem * elnot(elem *e)
         case OPu16_32:
         case OPu8int:
         case OPs8int:
-        case OPulngllng:
+        case OPu32_64:
         case OPlngllng:
         case OPptrlptr:
             e1->Eoper = e->Eoper;

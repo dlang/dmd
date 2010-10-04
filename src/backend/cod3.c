@@ -1915,7 +1915,7 @@ void epilog(block *b)
     topop = fregsaved & ~mfuncreg;
 #ifdef DEBUG
     if (topop & ~0xFFFF)
-        printf("fregsaved = x%x, mfuncreg = x%x\n",regm_str(fregsaved),regm_str(mfuncreg));
+        printf("fregsaved = x%x, mfuncreg = x%x\n",fregsaved,mfuncreg);
 #endif
     assert(!(topop & ~0xFFFF));
     while (topop)
@@ -4036,8 +4036,16 @@ unsigned codout(code *c)
                               (rm & 7) == 5))
                             break;
                     case 0x80:
-                        do32bit((enum FL)c->IFL1,&c->IEV1,CFoff | CFpc32);
+                    {   int flags = CFoff;
+                        if (I64)
+                        {   if (ins & T)
+                                flags |= CFaddend8;
+                            if ((rm & modregrm(3,0,7)) == modregrm(0,0,5))      // if disp32[RIP]
+                                flags |= CFpc32;
+                        }
+                        do32bit((enum FL)c->IFL1,&c->IEV1,flags);
                         break;
+                    }
                 }
             }
             else
