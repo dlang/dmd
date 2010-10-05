@@ -2495,14 +2495,37 @@ Type *Parser::parseDeclarator(Type *t, Identifier **pident, TemplateParameters *
             break;
 
         case TOKlparen:
-            /* Parse things with parentheses around the identifier, like:
-             *  int (*ident[3])[]
-             * although the D style would be:
-             *  int[]*[3] ident
+            if (peekNext() == TOKmul ||                 // like: T (*fp)();
+                peekNext() == TOKlparen                 // like: T ((*fp))();
+                /* || peekNext() == TOKlbracket*/)      // like: T ([] a)
+            {
+                /* Parse things with parentheses around the identifier, like:
+                 *  int (*ident[3])[]
+                 * although the D style would be:
+                 *  int[]*[3] ident
+                 */
+                if (!global.params.useDeprecated)
+                {
+                    error("C-style function pointer and pointer to array syntax is deprecated. Use 'function' to declare function pointers");
+                }
+                nextToken();
+                ts = parseDeclarator(t, pident);
+                check(TOKrparen);
+                break;
+            }
+            ts = t;
+            Token *peekt = &token;
+            /* Completely disallow C-style things like:
+             *   T (a);
+             * Improve error messages for the common bug of a missing return type
+             * by looking to see if (a) looks like a parameter list.
              */
-            nextToken();
-            ts = parseDeclarator(t, pident);
-            check(TOKrparen);
+            if (isParameters(&peekt)) {
+                error("function declaration without return type. "
+                "(Note that constructors are always named 'this')");
+            }
+            else
+                error("unexpected ( in declarator");
             break;
 
         default:
