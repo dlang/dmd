@@ -1343,7 +1343,10 @@ code *getlvalue(code *pcs,elem *e,regm_t keepmsk)
                 pcs->Irm |= 4;                  // use 2nd byte of register
             }
             else
-                assert(!e->EV.sp.Voffset);
+            {   assert(!e->EV.sp.Voffset);
+                if (I64 && sz == 1 && s->Sreglsw >= 4)
+                    pcs->Irex |= REX;
+            }
         }
         else if (s->ty() & mTYcs && !(fl == FLextern && LARGECODE))
         {

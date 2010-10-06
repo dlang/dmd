@@ -1652,7 +1652,7 @@ code *cdcmp(elem *e,regm_t *pretregs)
   int fl;
   int flag;
 
-  //printf("cdcmp(e = %p, retregs = x%x\n",e,*pretregs);
+  //printf("cdcmp(e = %p, retregs = %s)\n",e,regm_str(*pretregs));
   // Collect extra parameter. This is pretty ugly...
   flag = cdcmp_flag;
   cdcmp_flag = 0;
@@ -1778,6 +1778,8 @@ code *cdcmp(elem *e,regm_t *pretregs)
             code_orrex(c, rex);
             if (!I16 && sz == SHORTSIZE)
                 c->Iflags |= CFopsize;          /* compare only 16 bits */
+            if (I64 && byte && (reg >= 4 || rreg >= 4))
+                c->Irex |= REX;                 // address byte registers
         }
         else
         {   assert(sz <= 2 * REGSIZE);
@@ -1834,6 +1836,8 @@ code *cdcmp(elem *e,regm_t *pretregs)
             c = genregs(NULL,0x85 ^ byte,reg,reg);      // TEST reg,reg
             c->Iflags |= (cs.Iflags & CFopsize) | CFpsw;
             code_orrex(c, rex);
+            if (I64 && byte && reg >= 4)
+                c->Irex |= REX;                 // address byte registers
             retregs = mPSW;
             break;
         }
@@ -2013,6 +2017,8 @@ code *cdcmp(elem *e,regm_t *pretregs)
             {   assert(reg < 4);
                 cs.Irm |= 4;                    // use upper register half
             }
+            if (I64 && reg >= 4)
+                cs.Irex |= REX;                 // address byte registers
         }
         else if (sz <= REGSIZE)
         {                                       /* CMP reg,const        */
@@ -2079,6 +2085,8 @@ code *cdcmp(elem *e,regm_t *pretregs)
             freenode(e1);
             cs.Iop = 0x39 ^ byte ^ reverse;
             code_newreg(&cs,reg);
+            if (I64 && byte && reg >= 4)
+                cs.Irex |= REX;                 // address byte registers
             c = gen(c,&cs);
             freenode(e2);
             break;
