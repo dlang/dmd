@@ -495,7 +495,7 @@ void Module::genobjfile(int multiobj)
                 sp->Stype = type_fake(TYint);
                 sp->Stype->Tcount++;
                 sp->Sclass = SCfastpar;
-                sp->Spreg = AX;
+                sp->Spreg = I64 ? DI : AX;
                 sp->Sflags &= ~SFLspill;
                 sp->Sfl = FLpara;       // FLauto?
                 cstate.CSpsymtab = &ma->Sfunc->Flocsym;

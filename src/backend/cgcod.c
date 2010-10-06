@@ -2076,6 +2076,8 @@ STATIC code * cse_save(regm_t ms)
                     op = 0x8C;          // segment reg mov
                 }
                 c = genc1(c,op,modregxrm(2, reg, BPRM),FLcs,(targ_uns) i);
+                if (I64)
+                    code_orrex(c, REX_W);
                 reflocal = TRUE;
             }
         }
@@ -2140,6 +2142,12 @@ STATIC int cse_simple(elem *e,int i)
         // Make this an LEA instruction
         c->Iop = 0x8D;                          // LEA
         buildEA(c,reg,-1,1,e->E2->EV.Vuns);
+        if (I64)
+        {   if (sz == 8)
+                c->Irex |= REX_W;
+            else if (sz == 1 && reg >= 4)
+                c->Irex |= REX;
+        }
 
         csextab[i].flags |= CSEsimple;
         return 1;
@@ -2160,6 +2168,12 @@ STATIC int cse_simple(elem *e,int i)
         buildEA(c,reg,-1,1,0);
         if (sz == 2 && I32)
             c->Iflags |= CFopsize;
+        else if (I64)
+        {   if (sz == 8)
+                c->Irex |= REX_W;
+            else if (sz == 1 && reg >= 4)
+                c->Irex |= REX;
+        }
 
         csextab[i].flags |= CSEsimple;
         return 1;
@@ -2273,6 +2287,7 @@ bool evalinregister(elem *e)
                 return (emask & mMSW) && (emask & mLSW);
         return TRUE;                    /* cop-out for now              */
 }
+
 /*******************************************************
  * Return mask of scratch registers.
  */
@@ -2409,6 +2424,8 @@ if (regcon.cse.mval & 1) elem_print(regcon.cse.value[i]);
                             c = allocreg(&retregs,&reg,tym);
                                             // MOV reg,cs[BP]
                             c = genc1(c,0x8B,modregxrm(2,reg,BPRM),FLcs,(targ_uns) i);
+                            if (I64)
+                                code_orrex(c, REX_W);
                         L10:
                             regcon.cse.mval |= mask[reg]; // cs is in a reg
                             regcon.cse.value[reg] = e;
@@ -2554,7 +2571,10 @@ STATIC code * loadcse(elem *e,unsigned reg,regm_t regm)
                 {       op = 0x8E;
                         reg = 0;
                 }
-                return genc1(c,op,modregxrm(2,reg,BPRM),FLcs,(targ_uns) i);
+                c = genc1(c,op,modregxrm(2,reg,BPRM),FLcs,(targ_uns) i);
+                if (I64)
+                    code_orrex(c, REX_W);
+                return c;
         }
   }
 #if DEBUG

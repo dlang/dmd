@@ -3595,10 +3595,12 @@ elem *CastExp::toElem(IRState *irs)
     Type *tfrom = e1->type->toBasetype();
     Type *t = to->toBasetype();         // skip over typedef's
 
+#if DMDV2
     if (tfrom->ty == Taarray)
         tfrom = ((TypeAArray*)tfrom)->getImpl()->type;
     if (t->ty == Taarray)
         t = ((TypeAArray*)t)->getImpl()->type;
+#endif
 
     if (t->equals(tfrom))
         goto Lret;
@@ -3662,34 +3664,22 @@ elem *CastExp::toElem(IRState *irs)
         unsigned tsize = t->nextOf()->size();
 
         if (fsize != tsize)
-        {
-            elem *ep;
-
-            ep = el_params(e, el_long(TYint, fsize), el_long(TYint, tsize), NULL);
+        {   // Array element sizes do not match, so we must adjust the dimensions
+            elem *ep = el_params(e, el_long(TYint, fsize), el_long(TYint, tsize), NULL);
             e = el_bin(OPcall, type->totym(), el_var(rtlsym[RTLSYM_ARRAYCAST]), ep);
         }
         goto Lret;
     }
 
-#if 0
-    // Convert from dynamic array string literal to static array
-    if (tty == Tsarray && fty == Tarray && e1->op == TOKstring)
-    {
-        goto Lret;      // treat as a 'paint'
-    }
-#endif
-
     // Casting from base class to derived class requires a runtime check
     if (fty == Tclass && tty == Tclass)
     {
         // Casting from derived class to base class is a no-op
-        ClassDeclaration *cdfrom;
-        ClassDeclaration *cdto;
         int offset;
         int rtl = RTLSYM_DYNAMIC_CAST;
 
-        cdfrom = tfrom->isClassHandle();
-        cdto   = t->isClassHandle();
+        ClassDeclaration *cdfrom = tfrom->isClassHandle();
+        ClassDeclaration *cdto   = t->isClassHandle();
         if (cdfrom->isInterfaceDeclaration())
         {
             rtl = RTLSYM_INTERFACE_CAST;
@@ -3724,17 +3714,14 @@ elem *CastExp::toElem(IRState *irs)
             if (offset)
             {   /* Rewrite cast as (e ? e + offset : null)
                  */
-                elem *etmp;
-                elem *ex;
-
                 if (e1->op == TOKthis)
                 {   // Assume 'this' is never null, so skip null check
-                    e = el_bin(OPadd, TYnptr, e, el_long(TYint, offset));
+                    e = el_bin(OPadd, TYnptr, e, el_long(TYsize_t, offset));
                 }
                 else
                 {
-                    etmp = el_same(&e);
-                    ex = el_bin(OPadd, TYnptr, etmp, el_long(TYint, offset));
+                    elem *etmp = el_same(&e);
+                    elem *ex = el_bin(OPadd, TYnptr, etmp, el_long(TYsize_t, offset));
                     ex = el_bin(OPcolon, TYnptr, ex, el_long(TYnptr, 0));
                     e = el_bin(OPcond, TYnptr, e, ex);
                 }
@@ -3744,9 +3731,7 @@ elem *CastExp::toElem(IRState *irs)
 
         /* The offset from cdfrom=>cdto can only be determined at runtime.
          */
-        elem *ep;
-
-        ep = el_param(el_ptr(cdto->toSymbol()), e);
+        elem *ep = el_param(el_ptr(cdto->toSymbol()), e);
         e = el_bin(OPcall, TYnptr, el_var(rtlsym[rtl]), ep);
         goto Lret;
     }
@@ -3756,12 +3741,15 @@ elem *CastExp::toElem(IRState *irs)
     if (ftym == ttym)
         goto Lret;
 
+    /* Reduce combinatorial explosion by rewriting the 'to' and 'from' types to a
+     * generic equivalent (as far as casting goes)
+     */
     switch (tty)
     {
         case Tpointer:
             if (fty == Tdelegate)
                 goto Lpaint;
-            tty = Tuns32;
+            tty = I64 ? Tuns64 : Tuns32;
             break;
 
         case Tchar:     tty = Tuns8;    break;
@@ -3772,8 +3760,6 @@ elem *CastExp::toElem(IRState *irs)
         case Tbool:
         {
             // Construct e?true:false
-            elem *eq;
-
             e = el_una(OPbool, ttym, e);
             goto Lret;
         }
@@ -3781,7 +3767,7 @@ elem *CastExp::toElem(IRState *irs)
 
     switch (fty)
     {
-        case Tpointer:  fty = Tuns32;   break;
+        case Tpointer:  fty = I64 ? Tuns64 : Tuns32;  break;
         case Tchar:     fty = Tuns8;    break;
         case Twchar:    fty = Tuns16;   break;
         case Tdchar:    fty = Tuns32;   break;
@@ -3791,29 +3777,6 @@ elem *CastExp::toElem(IRState *irs)
 Lagain:
     switch (X(fty,tty))
     {
-#if 0
-        case X(Tbit,Tint8):
-        case X(Tbit,Tuns8):
-                                goto Lpaint;
-        case X(Tbit,Tint16):
-        case X(Tbit,Tuns16):
-        case X(Tbit,Tint32):
-        case X(Tbit,Tuns32):    eop = OPu8_16;  goto Leop;
-        case X(Tbit,Tint64):
-        case X(Tbit,Tuns64):
-        case X(Tbit,Tfloat32):
-        case X(Tbit,Tfloat64):
-        case X(Tbit,Tfloat80):
-        case X(Tbit,Tcomplex32):
-        case X(Tbit,Tcomplex64):
-        case X(Tbit,Tcomplex80):
-                                e = el_una(OPu8_16, TYuint, e);
-                                fty = Tuns32;
-                                goto Lagain;
-        case X(Tbit,Timaginary32):
-        case X(Tbit,Timaginary64):
-        case X(Tbit,Timaginary80): goto Lzero;
-#endif
         /* ============================= */
 
         case X(Tbool,Tint8):

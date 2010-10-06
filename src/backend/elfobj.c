@@ -686,7 +686,7 @@ void obj_init(Outbuffer *objbuf, const char *filename, const char *csegname)
         elf_newsection2(NAMIDX_DATA,SHT_PROGDEF,SHF_ALLOC|SHF_WRITE,    0,0,0,0,0, 8,0);
         elf_newsection2(NAMIDX_RELDATA64,SHT_RELA, 0,0,0,0,SHI_SYMTAB,   SHI_DATA, 8,0x18);
         elf_newsection2(NAMIDX_BSS, SHT_NOBITS,SHF_ALLOC|SHF_WRITE,     0,0,0,0,0, 16,0);
-        elf_newsection2(NAMIDX_RODATA,SHT_PROGDEF,SHF_ALLOC,            0,0,0,0,0, 1,0);
+        elf_newsection2(NAMIDX_RODATA,SHT_PROGDEF,SHF_ALLOC,            0,0,0,0,0, 16,0);
         elf_newsection2(NAMIDX_STRTAB,SHT_STRTAB, 0,                    0,0,0,0,0, 1,0);
         elf_newsection2(NAMIDX_SYMTAB,SHT_SYMTAB, 0,                    0,0,0,0,0, 8,0);
         elf_newsection2(NAMIDX_SHSTRTAB,SHT_STRTAB, 0,                  0,0,0,0,0, 1,0);
