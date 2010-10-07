@@ -2531,7 +2531,7 @@ code *cdind(elem *e,regm_t *pretregs)
 
             cs.Iop = 0x8B;
             /* Be careful not to interfere with index registers */
-            if (I32)
+            if (!I16)
             {
                 /* Can't handle if both result registers are used in    */
                 /* the addressing mode.                                 */
@@ -2545,16 +2545,14 @@ code *cdind(elem *e,regm_t *pretregs)
                     // We can run out of registers, so if that's possible,
                     // give us *one* of the idxregs
                     if ((retregs & ~regcon.mvar & mLSW) == 0)
-                    {   regm_t x;
-
-                        x = idxregs & mLSW;
+                    {
+                        regm_t x = idxregs & mLSW;
                         if (x)
                             retregs |= mask[findreg(x)];        // give us one idxreg
                     }
                     else if ((retregs & ~regcon.mvar & mMSW) == 0)
-                    {   regm_t x;
-
-                        x = idxregs & mMSW;
+                    {
+                        regm_t x = idxregs & mMSW;
                         if (x)
                             retregs |= mask[findreg(x)];        // give us one idxreg
                     }
@@ -2566,7 +2564,7 @@ code *cdind(elem *e,regm_t *pretregs)
                 lsreg = findreglsw(retregs);
                 if (mask[reg] & idxregs)                /* reg is in addr mode */
                 {
-                    cs.Irm |= modregrm(0,lsreg,0);
+                    code_newreg(&cs,lsreg);
                     ce = gen(CNIL,&cs);                 /* MOV lsreg,lsw */
                     if (sz == REGSIZE + 2)
                         cs.Iflags |= CFopsize;
@@ -2575,7 +2573,7 @@ code *cdind(elem *e,regm_t *pretregs)
                 }
                 else
                 {
-                    cs.Irm |= modregrm(0,reg,0);
+                    code_newreg(&cs,reg);
                     getlvalue_msw(&cs);
                     ce = gen(CNIL,&cs);                 // MOV reg,msw
                     if (sz == REGSIZE + 2)

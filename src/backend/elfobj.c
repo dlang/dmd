@@ -2539,7 +2539,6 @@ void reftocodseg(int seg,targ_size_t offset,targ_size_t val)
  *                      CFoff: get offset
  *                      CFoffset64: 64 bit fixup
  *                      CFpc32: I64: PC relative 32 bit fixup
- *                      CFaddend8: I64: fixup addend is -8
  * Returns:
  *      number of bytes in reference (4 or 8)
  */
@@ -2745,9 +2744,23 @@ int reftoident(int seg, targ_size_t offset, Symbol *s, targ_size_t val,
                         relinfo = R_X86_64_64;
                     }
                     //printf("\t\t************* adding relocation\n");
+                    targ_size_t v = 0;
+                    if (I64 && relinfo == R_X86_64_PC32)
+                    {
+                        assert(retsize == 4);
+                        if (val > 0xFFFFFFFF)
+                        {   /* The value to be added is bigger than 32 bits, so we
+                             * transfer it to the 64 bit addend of the fixup record
+                             */
+                            v = val;
+                            val = 0;
+                        }
+                    }
+#if 0
                     targ_size_t v = (relinfo == R_X86_64_PC32) ? -4 : 0;
                     if (relinfo == R_X86_64_PC32 && flags & CFaddend8)
                         v = -8;
+#endif
                     elf_addrel(seg,offset,relinfo,refseg,v);
                 }
 outaddrval:
