@@ -39,7 +39,7 @@ extern targ_size_t retsize;
 STATIC void pinholeopt_unittest();
 STATIC void do8bit (enum FL,union evc *);
 STATIC void do16bit (enum FL,union evc *,int);
-STATIC void do32bit (enum FL,union evc *,int);
+STATIC void do32bit (enum FL,union evc *,int,targ_size_t = 0);
 STATIC void do64bit (enum FL,union evc *,int);
 
 static int hasframe;            /* !=0 if this function has a stack frame */
@@ -4037,13 +4037,23 @@ unsigned codout(code *c)
                             break;
                     case 0x80:
                     {   int flags = CFoff;
+                        targ_size_t val = 0;
                         if (I64)
-                        {   if (ins & T)
-                                flags |= CFaddend8;
+                        {
                             if ((rm & modregrm(3,0,7)) == modregrm(0,0,5))      // if disp32[RIP]
-                                flags |= CFpc32;
+                            {   flags |= CFpc32;
+                                val = -4;
+                                if (ins & T)
+                                {   if (ins & E)
+                                        val = -5;
+                                    else if (c->Iflags & CFopsize)
+                                        val = -6;
+                                    else
+                                        val = -8;
+                                }
+                            }
                         }
-                        do32bit((enum FL)c->IFL1,&c->IEV1,flags);
+                        do32bit((enum FL)c->IFL1,&c->IEV1,flags,val);
                         break;
                     }
                 }
@@ -4304,7 +4314,7 @@ STATIC void do64bit(enum FL fl,union evc *uev,int flags)
 }
 
 
-STATIC void do32bit(enum FL fl,union evc *uev,int flags)
+STATIC void do32bit(enum FL fl,union evc *uev,int flags, targ_size_t val)
 { char *p;
   symbol *s;
   targ_size_t ad;
@@ -4358,7 +4368,7 @@ STATIC void do32bit(enum FL fl,union evc *uev,int flags)
 #endif
         FLUSH();
         s = uev->sp.Vsym;               /* symbol pointer               */
-        reftoident(cseg,offset,s,uev->sp.Voffset,flags);
+        reftoident(cseg,offset,s,uev->sp.Voffset + val,flags);
         break;
 
 #if TARGET_OSX

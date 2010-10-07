@@ -392,7 +392,6 @@ struct code
 #define CFclassinit 0x20000     // class init code
 #define CFoffset64  0x40000     // offset is 64 bits
 #define CFpc32      0x80000     // I64: PC relative 32 bit fixup
-#define CFaddend8   0x100000    // I64: addend is -8
 
 #define CFPREFIX (CFSEG | CFopsize | CFaddrsize)
 #define CFSEG   (CFes | CFss | CFds | CFcs | CFfs | CFgs)
