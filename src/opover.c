@@ -682,7 +682,8 @@ L1:
 
 #if DMDV2
     // Try alias this on first operand
-    if (ad1 && ad1->aliasthis)
+    if (ad1 && ad1->aliasthis &&
+        !(op == TOKassign && ad2 && ad1 == ad2))   // See Bugzilla 2943
     {
         /* Rewrite (e1 op e2) as:
          *      (e1.aliasthis op e2)
@@ -695,7 +696,11 @@ L1:
     }
 
     // Try alias this on second operand
-    if (ad2 && ad2->aliasthis)
+    if (ad2 && ad2->aliasthis &&
+        /* Bugzilla 2943: make sure that when we're copying the struct, we don't
+         * just copy the alias this member
+         */
+        !(op == TOKassign && ad1 && ad1 == ad2))
     {
         /* Rewrite (e1 op e2) as:
          *      (e1 op e2.aliasthis)
