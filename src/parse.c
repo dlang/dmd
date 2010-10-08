@@ -2508,6 +2508,7 @@ Type *Parser::parseDeclarator(Type *t, Identifier **pident, TemplateParameters *
                 break;
             }
             ts = t;
+        {
             Token *peekt = &token;
             /* Completely disallow C-style things like:
              *   T (a);
@@ -2520,6 +2521,7 @@ Type *Parser::parseDeclarator(Type *t, Identifier **pident, TemplateParameters *
             }
             else
                 error("unexpected ( in declarator");
+        }
             break;
 
         default:
