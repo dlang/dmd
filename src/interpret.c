@@ -564,13 +564,13 @@ Expression *ReturnStatement::interpret(InterState *istate)
     }
 #endif
 
-#if LOG
     Expression *e = exp->interpret(istate);
-    printf("e = %p\n", e);
+    if (e == EXP_CANT_INTERPRET)
+        return e;
+    // Convert lvalues into rvalues (See Bugzilla 4825 for rationale)
+    if (e->op == TOKvar)
+        e = e->interpret(istate);
     return e;
-#else
-    return exp->interpret(istate);
-#endif
 }
 
 Expression *BreakStatement::interpret(InterState *istate)
