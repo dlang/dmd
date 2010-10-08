@@ -1,8 +1,9 @@
 
-// Copyright (c) 1999-2007 by Digital Mars
+// Copyright (c) 1999-2010 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // http://www.digitalmars.com
+// http://www.dsource.org/projects/dmd/browser/trunk/src/staticassert.c
 // License for redistribution is by either the Artistic License
 // in artistic.txt, or the GNU General Public License in gnu.txt.
 // See the included readme.txt for details.
@@ -55,6 +56,8 @@ void StaticAssert::semantic2(Scope *sc)
 
     //printf("StaticAssert::semantic2() %s\n", toChars());
     e = exp->semantic(sc);
+    if (e->op == TOKerror)
+        return;
     e = e->optimize(WANTvalue | WANTinterpret);
     if (e->isBool(FALSE))
     {
