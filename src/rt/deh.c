@@ -46,7 +46,8 @@ extern ClassInfo D6object5Error7__ClassZ;
 
 typedef int (__pascal *fp_t)();   // function pointer in ambient memory model
 
-void _d_setunhandled(Object*);
+void _d_setUnhandled(Object*);
+void _d_createTrace(Object*);
 
 // The layout of DEstablisherFrame is the same for C++
 
@@ -174,7 +175,7 @@ EXCEPTION_DISPOSITION _d_framehandler(
                         regebp = (int)&frame->ebp;              // EBP for this frame
                         *(void **)(regebp + (pcb->bpoffset)) = pti;
 
-                        _d_setunhandled(pti);
+                        _d_setUnhandled(pti);
 
                         // Have system call all finally blocks in intervening frames
                         _global_unwind(frame, exception_record);
@@ -182,7 +183,7 @@ EXCEPTION_DISPOSITION _d_framehandler(
                         // Call all the finally blocks skipped in this frame
                         _d_local_unwind(handler_table, frame, ndx);
 
-                        _d_setunhandled(NULL);
+                        _d_setUnhandled(NULL);
 
                         frame->table_index = prev_ndx;  // we are out of this handler
 
@@ -232,6 +233,8 @@ void __stdcall _d_throw(Object *h)
 {
     //printf("_d_throw(h = %p, &h = %p)\n", h, &h);
     //printf("\tvptr = %p\n", *(void **)h);
+    _d_createTrace(h);
+    _d_setUnhandled(h);
     RaiseException(STATUS_DIGITAL_MARS_D_EXCEPTION,
                    EXCEPTION_NONCONTINUABLE,
                    1, (DWORD *)&h);
@@ -253,6 +256,7 @@ Object *_d_create_exception_object(ClassInfo *ci, char *msg)
         exc->msglen = strlen(msg);
         exc->msg = msg;
     }
+    _d_createTrace((Object *)exc);
     return (Object *)exc;
 }
 

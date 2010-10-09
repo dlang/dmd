@@ -400,15 +400,23 @@ Throwable.TraceInfo defaultTraceHandler( void* ptr = null )
             
             int opApply( scope int delegate(ref char[]) dg )
             {
-                // NOTE: The first 5 frames with the current implementation are
-                //       inside core.runtime and the object code, so eliminate
-                //       these for readability.  The alternative would be to
-                //       exclude the first N frames that have a prefix of:
-                //          "D4core7runtime19defaultTraceHandler"
-                //          "D6object12traceContext"
-                //          "D6object9Throwable6__ctor"
-                //          "D6object9Exception6__ctor"
-                static enum FIRSTFRAME = 5;
+                version( Posix )
+                {
+                    // NOTE: The first 5 frames with the current implementation are
+                    //       inside core.runtime and the object code, so eliminate
+                    //       these for readability.  The alternative would be to
+                    //       exclude the first N frames that are in a list of
+                    //       mangled function names.
+                    static enum FIRSTFRAME = 5;
+                }
+                else
+                {
+                    // NOTE: On Windows, the number of frames to exclude is based on
+                    //       whether the exception is user or system-generated, so
+                    //       it may be necessary to exclude a list of function names
+                    //       instead.
+                    static enum FIRSTFRAME = 0;
+                }
                 int ret = 0;
 
                 for( int i = FIRSTFRAME; i < numframes; ++i )

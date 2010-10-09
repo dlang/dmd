@@ -21,10 +21,13 @@ extern (C)
         void* _deh_beg;
         void* _deh_end;
     }
+    
+    Throwable.TraceInfo _d_traceContext(void* ptr = null);
 
     int _d_isbaseof(ClassInfo oc, ClassInfo c);
     
-    void _d_setunhandled(Object* o);
+    void _d_setUnhandled(Object*);
+    void _d_createTrace(Object*);
 }
 
 alias int (*fp_t)();   // function pointer in ambient memory model
@@ -158,8 +161,9 @@ extern (Windows) void _d_throw(Object *h)
     {
         mov regebp,EBP  ;
     }
-    
-    _d_setunhandled(h);
+
+    _d_createTrace(h);
+    _d_setUnhandled(h);
 
 //static uint abc;
 //if (++abc == 2) *(char *)0=0;
@@ -256,7 +260,7 @@ extern (Windows) void _d_throw(Object *h)
                     if (_d_isbaseof(ci, pcb.type))
                     {   // Matched the catch type, so we've found the handler.
                     
-                        _d_setunhandled(null);
+                        _d_setUnhandled(null);
 
                         // Initialize catch variable
                         *cast(void **)(regebp + (pcb.bpoffset)) = h;

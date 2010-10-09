@@ -1138,7 +1138,7 @@ class Throwable : Object
     {
         this.msg = msg;
         this.next = next;
-        this.info = traceContext();
+        //this.info = _d_traceContext();
     }
 
     this(string msg, string file, size_t line, Throwable next = null)
@@ -1146,7 +1146,7 @@ class Throwable : Object
         this(msg, next);
         this.file = file;
         this.line = line;
-        this.info = traceContext();
+        //this.info = _d_traceContext();
     }
 
     override string toString()
@@ -1215,7 +1215,7 @@ extern (C) TraceHandler rt_getTraceHandler()
  *  An object describing the current calling context or null if no handler is
  *  supplied.
  */
-Throwable.TraceInfo traceContext(void* ptr = null)
+extern (C) Throwable.TraceInfo _d_traceContext(void* ptr = null)
 {
     if (traceHandler is null)
         return null;
