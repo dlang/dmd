@@ -1,3 +1,4 @@
+// REQUIRED_ARGS: -d
 
 module testxxx8;
 

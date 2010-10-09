@@ -1,3 +1,4 @@
+// REQUIRED_ARGS: -d
 
 import std.utf: toUTF8;
 

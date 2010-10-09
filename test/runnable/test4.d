@@ -1,4 +1,5 @@
 // PERMUTE_ARGS:
+// REQUIRED_ARGS: -d
 
 import core.exception;
 import core.stdc.math;
