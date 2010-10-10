@@ -278,7 +278,7 @@ PTRNTAB1 aptb1POP[] = /* POP */ {
         { 0x8f, _0 | _32_bit,   _m32},
         { 0x58, _rw | _16_bit, _r16 | _plus_r },
         { 0x58, _rd | _32_bit, _r32 | _plus_r },
-        { 0x58, _r | _64_bit,   _r64 | _plus_r },
+        { 0x58, _r | _32_bit,   _r64 | _plus_r },       // REX_W override is implicit
         { 0x1f, 0,      _ds | _seg },
         { 0x07, _modes, _es | _seg},
         { 0x17, 0,      _ss | _seg},
@@ -292,7 +292,7 @@ PTRNTAB1 aptb1PUSH[] = /* PUSH */ {
         { 0xff, _6 | _64_bit,   _m64 },
         { 0x50, _r | _16_bit,   _r16 | _plus_r },
         { 0x50, _r | _32_bit,   _r32 | _plus_r },
-        { 0x50, _r | _64_bit,   _r64 | _plus_r },
+        { 0x50, _r | _32_bit,   _r64 | _plus_r },       // REX_W override is implicit
         { 0x6a, 0,_imm8 },
         { 0x68, _16_bit,_imm16 },
         { 0x68, _16_bit,_rel16 },

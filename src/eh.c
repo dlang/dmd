@@ -1,7 +1,17 @@
-//_ eh.c
-// Copyright (c) 2000-2009 by Digital Mars, http://www.digitalmars.com
-// All Rights Reserved
-// Written by Walter Bright
+/*
+ * Copyright (c) 1994-1998 by Symantec
+ * Copyright (c) 2000-2010 by Digital Mars
+ * All Rights Reserved
+ * http://www.digitalmars.com
+ * http://www.dsource.org/projects/dmd/browser/branches/dmd-1.x/src/eh.c
+ * http://www.dsource.org/projects/dmd/browser/trunk/src/eh.c
+ * Written by Walter Bright
+ *
+ * This source file is made available for personal use
+ * only. The license is in /dmd/src/dmd/backendlicense.txt
+ * For any other uses, please contact Digital Mars.
+ */
+
 // Support for D exception handling
 
 #include        <stdio.h>
@@ -45,7 +55,7 @@ symbol *except_gentables()
     symbol_keep(s);
     symbol_debug(s);
 
-    fsize = 4;
+    fsize = NPTRSIZE;
     pdt = &s->Sdt;
     sz = 0;
 
@@ -67,7 +77,7 @@ symbol *except_gentables()
             void *handler;      // catch handler code
         } catch[];
      */
-#define GUARD_SIZE      5       // number of 4 byte values in one guard
+#define GUARD_SIZE      (I64 ? 3*8 : 5*4)     // number of bytes in one guard
 
     sz = 0;
 
@@ -97,10 +107,10 @@ symbol *except_gentables()
 //              b->BC, b->Bscope_index, b->Blast_index, b->Boffset);
     }
 
-    pdt = dtdword(pdt,guarddim);
-    sz += 4;
+    pdt = dtsize_t(pdt,guarddim);
+    sz += NPTRSIZE;
 
-    unsigned catchoffset = sz + guarddim * (GUARD_SIZE * 4);
+    unsigned catchoffset = sz + guarddim * GUARD_SIZE;
 
     // Generate guard[]
     i = 0;
@@ -108,25 +118,22 @@ symbol *except_gentables()
     {
         //printf("b = %p, b->Btry = %p, b->offset = %x\n", b, b->Btry, b->Boffset);
         if (b->BC == BC_try)
-        {   dt_t *dt;
-            block *bhandler;
-            int nsucc;
-            unsigned endoffset;
-            block *bn;
-
+        {
             assert(b->Bscope_index >= i);
             if (i < b->Bscope_index)
-            {   int fillsize = (b->Bscope_index - i) * (GUARD_SIZE * 4);
+            {   int fillsize = (b->Bscope_index - i) * GUARD_SIZE;
                 pdt = dtnzeros(pdt, fillsize);
                 sz += fillsize;
             }
             i = b->Bscope_index + 1;
 
-            nsucc = list_nitems(b->Bsucc);
+            int nsucc = list_nitems(b->Bsucc);
+            //printf("DHandlerInfo: offset = %x", (int)(b->Boffset - startblock->Boffset));
             pdt = dtdword(pdt,b->Boffset - startblock->Boffset);        // offset to start of block
 
             // Compute ending offset
-            for (bn = b->Bnext; 1; bn = bn->Bnext)
+            unsigned endoffset;
+            for (block *bn = b->Bnext; 1; bn = bn->Bnext)
             {
                 //printf("\tbn = %p, bn->Btry = %p, bn->offset = %x\n", bn, bn->Btry, bn->Boffset);
                 assert(bn);
@@ -135,6 +142,7 @@ symbol *except_gentables()
                      break;
                 }
             }
+            //printf(" endoffset = %x, prev_index = %d\n", endoffset, b->Blast_index);
             pdt = dtdword(pdt,endoffset);               // offset past end of guarded block
 
             pdt = dtdword(pdt,b->Blast_index);          // parent index
@@ -142,22 +150,22 @@ symbol *except_gentables()
             if (b->jcatchvar)                           // if try-catch
             {
                 pdt = dtdword(pdt,catchoffset);
-                pdt = dtdword(pdt,0);                   // no finally handler
+                pdt = dtsize_t(pdt,0);                  // no finally handler
 
-                catchoffset += 4 + (nsucc - 1) * (3 * 4);
+                catchoffset += NPTRSIZE + (nsucc - 1) * (3 * NPTRSIZE);
             }
             else                                        // else try-finally
             {
                 assert(nsucc == 2);
                 pdt = dtdword(pdt,0);           // no catch offset
-                bhandler = list_block(list_next(b->Bsucc));
+                block *bhandler = list_block(list_next(b->Bsucc));
                 assert(bhandler->BC == BC_finally);
                 // To successor of BC_finally block
                 bhandler = list_block(bhandler->Bsucc);
                 pdt = dtxoff(pdt,funcsym_p,bhandler->Boffset - startblock->Boffset, TYnptr);    // finally handler address
                 //pdt = dtcoff(pdt,bhandler->Boffset);  // finally handler address
             }
-            sz += GUARD_SIZE + 4;
+            sz += GUARD_SIZE;
         }
     }
 
@@ -172,8 +180,8 @@ symbol *except_gentables()
             {   list_t bl;
 
                 nsucc = list_nitems(b->Bsucc);
-                pdt = dtdword(pdt,nsucc - 1);           // # of catch blocks
-                sz += 4;
+                pdt = dtsize_t(pdt,nsucc - 1);           // # of catch blocks
+                sz += NPTRSIZE;
 
                 for (bl = list_next(b->Bsucc); bl; bl = list_next(bl))
                 {
@@ -181,12 +189,12 @@ symbol *except_gentables()
 
                     pdt = dtxoff(pdt,bcatch->Bcatchtype,0,TYjhandle);
 
-                    pdt = dtdword(pdt,cod3_bpoffset(b->jcatchvar));     // EBP offset
+                    pdt = dtsize_t(pdt,cod3_bpoffset(b->jcatchvar));     // EBP offset
 
                     pdt = dtxoff(pdt,funcsym_p,bcatch->Boffset - startblock->Boffset, TYnptr);  // catch handler address
                     //pdt = dtcoff(pdt,bcatch->Boffset);        // catch handler address
 
-                    sz += 3 * 4;
+                    sz += 3 * NPTRSIZE;
                 }
             }
         }
