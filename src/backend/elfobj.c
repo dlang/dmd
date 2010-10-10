@@ -1488,16 +1488,23 @@ void obj_ehtables(Symbol *sfunc,targ_size_t size,Symbol *ehsym)
 
     symbol *ehtab_entry = symbol_generate(SCstatic,type_alloc(TYint));
     symbol_keep(ehtab_entry);
-    elf_getsegment(".deh_beg", NULL, SHT_PROGDEF, SHF_ALLOC, 4);
-    ehtab_entry->Sseg = elf_getsegment(".deh_eh", NULL, SHT_PROGDEF, SHF_ALLOC, 4);
-    elf_getsegment(".deh_end", NULL, SHT_PROGDEF, SHF_ALLOC, 4);
+    elf_getsegment(".deh_beg", NULL, SHT_PROGDEF, SHF_ALLOC, NPTRSIZE);
+    int seg = elf_getsegment(".deh_eh", NULL, SHT_PROGDEF, SHF_ALLOC, NPTRSIZE);
+    ehtab_entry->Sseg = seg;
+    Outbuffer *buf = SegData[seg]->SDbuf;
+    elf_getsegment(".deh_end", NULL, SHT_PROGDEF, SHF_ALLOC, NPTRSIZE);
     ehtab_entry->Stype->Tmangle = mTYman_c;
     ehsym->Stype->Tmangle = mTYman_c;
-    dt_t **pdte = &ehtab_entry->Sdt;
-    pdte = dtxoff(pdte,sfunc,0,TYnptr);
-    pdte = dtxoff(pdte,ehsym,0,TYnptr);
-    pdte = dtnbytes(pdte,4,(char *)&sfunc->Ssize);
-    outdata(ehtab_entry);
+    if (I64)
+    {   reftoident(seg, buf->size(), sfunc, 0, CFoff | CFoffset64);
+        reftoident(seg, buf->size(), ehsym, 0, CFoff | CFoffset64);
+        buf->write64(sfunc->Ssize);
+    }
+    else
+    {   reftoident(seg, buf->size(), sfunc, 0, CFoff);
+        reftoident(seg, buf->size(), ehsym, 0, CFoff);
+        buf->write32(sfunc->Ssize);
+    }
 }
 
 /*********************************************
@@ -1506,16 +1513,16 @@ void obj_ehtables(Symbol *sfunc,targ_size_t size,Symbol *ehsym)
 
 void obj_ehsections()
 {
-    int sec = elf_getsegment(".deh_beg", NULL, SHT_PROGDEF, SHF_ALLOC, 4);
+    int sec = elf_getsegment(".deh_beg", NULL, SHT_PROGDEF, SHF_ALLOC, NPTRSIZE);
     //obj_bytes(sec, 0, 4, NULL);
 
     IDXSTR namidx = elf_addstr(symtab_strings,"_deh_beg");
     elf_addsym(namidx, 0, 0, STT_OBJECT, STB_GLOBAL, MAP_SEG2SECIDX(sec));
     //elf_addsym(namidx, 0, 4, STT_OBJECT, STB_GLOBAL, MAP_SEG2SECIDX(sec));
 
-    elf_getsegment(".deh_eh", NULL, SHT_PROGDEF, SHF_ALLOC, 4);
+    elf_getsegment(".deh_eh", NULL, SHT_PROGDEF, SHF_ALLOC, NPTRSIZE);
 
-    sec = elf_getsegment(".deh_end", NULL, SHT_PROGDEF, SHF_ALLOC, 4);
+    sec = elf_getsegment(".deh_end", NULL, SHT_PROGDEF, SHF_ALLOC, NPTRSIZE);
     namidx = elf_addstr(symtab_strings,"_deh_end");
     elf_addsym(namidx, 0, 0, STT_OBJECT, STB_GLOBAL, MAP_SEG2SECIDX(sec));
 
@@ -1529,18 +1536,19 @@ void obj_ehsections()
 void obj_tlssections()
 {
     IDXSTR namidx;
+    int align = I64 ? 16 : 4;
 
-    int sec = elf_getsegment(".tdata", NULL, SHT_PROGDEF, SHF_ALLOC|SHF_WRITE|SHF_TLS, 4);
-    obj_bytes(sec, 0, 4, NULL);
+    int sec = elf_getsegment(".tdata", NULL, SHT_PROGDEF, SHF_ALLOC|SHF_WRITE|SHF_TLS, align);
+    obj_bytes(sec, 0, align, NULL);
 
     namidx = elf_addstr(symtab_strings,"_tlsstart");
-    elf_addsym(namidx, 0, 4, STT_TLS, STB_GLOBAL, MAP_SEG2SECIDX(sec));
+    elf_addsym(namidx, 0, align, STT_TLS, STB_GLOBAL, MAP_SEG2SECIDX(sec));
 
-    elf_getsegment(".tdata.", NULL, SHT_PROGDEF, SHF_ALLOC|SHF_WRITE|SHF_TLS, 4);
+    elf_getsegment(".tdata.", NULL, SHT_PROGDEF, SHF_ALLOC|SHF_WRITE|SHF_TLS, align);
 
-    sec = elf_getsegment(".tcommon", NULL, SHT_NOBITS, SHF_ALLOC|SHF_WRITE|SHF_TLS, 4);
+    sec = elf_getsegment(".tcommon", NULL, SHT_NOBITS, SHF_ALLOC|SHF_WRITE|SHF_TLS, align);
     namidx = elf_addstr(symtab_strings,"_tlsend");
-    elf_addsym(namidx, 0, 4, STT_TLS, STB_GLOBAL, MAP_SEG2SECIDX(sec));
+    elf_addsym(namidx, 0, align, STT_TLS, STB_GLOBAL, MAP_SEG2SECIDX(sec));
 }
 
 /*********************************
@@ -1557,6 +1565,7 @@ int obj_comdat(Symbol *s)
     const char *prefix;
     int type;
     int flags;
+    int align = 4;
 
     //printf("obj_comdat(Symbol *%s\n",s->Sident);
     //symbol_print(s);
@@ -1574,7 +1583,9 @@ int obj_comdat(Symbol *s)
         /* Ensure that ".tdata" precedes any other .tdata. section, as the ld
          * linker script fails to work right.
          */
-        elf_getsegment(".tdata", NULL, SHT_PROGDEF, SHF_ALLOC|SHF_WRITE|SHF_TLS, 4);
+        if (I64)
+            align = 16;
+        elf_getsegment(".tdata", NULL, SHT_PROGDEF, SHF_ALLOC|SHF_WRITE|SHF_TLS, align);
 
         s->Sfl = FLtlsdata;
         prefix = ".tdata.";
@@ -1583,6 +1594,8 @@ int obj_comdat(Symbol *s)
     }
     else
     {
+        if (I64)
+            align = 16;
         s->Sfl = FLdata;
         //prefix = ".gnu.linkonce.d.";
         prefix = ".data.";
@@ -1590,7 +1603,7 @@ int obj_comdat(Symbol *s)
         flags = SHF_ALLOC|SHF_WRITE;
     }
 
-    s->Sseg = elf_getsegment(prefix, cpp_mangle(s), type, flags, 4);
+    s->Sseg = elf_getsegment(prefix, cpp_mangle(s), type, flags, align);
                                 // find or create new segment
     SegData[s->Sseg]->SDsym = s;
     if (s->Sfl == FLdata || s->Sfl == FLtlsdata)
@@ -1934,7 +1947,7 @@ void obj_export(Symbol *s,unsigned argsize)
 int elf_data_start(Symbol *sdata, targ_size_t datasize, int seg)
 {
     targ_size_t alignbytes;
-    //dbg_printf("elf_data_start(%s,size %d,seg %d)\n",sdata->Sident,datasize,seg);
+    //printf("elf_data_start(%s,size %llx,seg %d)\n",sdata->Sident,datasize,seg);
     //symbol_print(sdata);
 
     if (sdata->Sseg == UNKNOWN) // if we don't know then there
@@ -2586,8 +2599,19 @@ int reftoident(int seg, targ_size_t offset, Symbol *s, targ_size_t val,
                     relinfo = config.flags3 & CFG3pic ? R_X86_64_TLSGD : R_X86_64_TPOFF32;
                 else
                 {   relinfo = config.flags3 & CFG3pic ? R_X86_64_PC32 : R_X86_64_32;
-                    if (config.flags3 & CFG3pic)
-                        v = -4L;
+                    if (flags & CFpc32)
+                        relinfo = R_X86_64_PC32;
+                    if (relinfo == R_X86_64_PC32)
+                    {
+                        assert(retsize == 4);
+                        if (val > 0xFFFFFFFF)
+                        {   /* The value to be added is bigger than 32 bits, so we
+                             * transfer it to the 64 bit addend of the fixup record
+                             */
+                            v = val;
+                            val = 0;
+                        }
+                    }
                 }
             }
             else
@@ -2963,8 +2987,14 @@ void obj_moduleinfo(Symbol *scc)
             elf_addrel(seg, codeOffset + off + 6, reltype, objextern("_Dmodule_ref"), 0);
         }
 
+        if (I64)
+            buf->writeByte(REX | REX_W);
         buf->writeByte(0x8B); buf->writeByte(0x11); /* movl (%ecx), %edx */
+        if (I64)
+            buf->writeByte(REX | REX_W);
         buf->writeByte(0x89); buf->writeByte(0x10); /* movl %edx, (%eax) */
+        if (I64)
+            buf->writeByte(REX | REX_W);
         buf->writeByte(0x89); buf->writeByte(0x01); /* movl %eax, (%ecx) */
 
         if (I32) buf->writeByte(0x61); // POPAD

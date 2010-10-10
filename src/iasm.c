@@ -4,6 +4,8 @@
  * Copyright (c) 1999-2010 by Digital Mars
  * All Rights Reserved
  * http://www.digitalmars.com
+ * http://www.dsource.org/projects/dmd/browser/branches/dmd-1.x/src/iasm.c
+ * http://www.dsource.org/projects/dmd/browser/trunk/src/iasm.c
  * Written by Mike Cote, John Micco and Walter Bright
  * D version by Walter Bright
  *
@@ -1251,6 +1253,12 @@ L386_WARNING2:
         if (ptb.pptb0->usFlags & _64_bit && !I64)
             error(asmstate.loc, "use -m64 to compile 64 bit instructions");
 
+        if (I64 && (ptb.pptb0->usFlags & _64_bit))
+        {
+            emit(REX | REX_W);
+            pc->Irex |= REX_W;
+        }
+
         switch (usNumops)
         {
             case 0:
@@ -1259,11 +1267,6 @@ L386_WARNING2:
                 {
                         emit(0x66);
                         pc->Iflags |= CFopsize;
-                }
-                else if (I64 && (ptb.pptb0->usFlags & _64_bit))
-                {
-                        emit(REX | REX_W);
-                        pc->Irex |= REX_W;
                 }
                 break;
 
@@ -1599,8 +1602,6 @@ printf("test4 %d,%d,%d,%d\n",
 );
 printf("usOpcode = %x\n", usOpcode);
 #endif
-                        if (popnd1->usFlags == _r64)
-                            pc->Irex |= REX_W;
                         if (ptb.pptb0->usOpcode == 0x0F7E ||    // MOVD _rm32,_mm
                             ptb.pptb0->usOpcode == 0x660F7E     // MOVD _rm32,_xmm
                            )
@@ -1629,9 +1630,6 @@ printf("usOpcode = %x\n", usOpcode);
                 }
                 else
                 {
-                        if (popnd2->usFlags == _r64)
-                            pc->Irex |= REX_W;
-
                         if (((aoptyTable1 == _reg || aoptyTable1 == _float) &&
                              amodTable1 == _normal &&
                              (uRegmaskTable1 & _rplus_r)))
