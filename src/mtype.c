@@ -4109,6 +4109,7 @@ Expression *TypeEnum::defaultInit(Loc loc)
 
 int TypeEnum::isZeroInit(Loc loc)
 {
+    //printf("TypeEnum::isZeroInit() '%s'\n", toChars());
     if (!sym->isdone && sym->scope)
     {   // Enum is forward referenced. We need to resolve the whole thing.
         sym->semantic(NULL);
