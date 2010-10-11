@@ -2509,8 +2509,8 @@ code *cdfunc(elem *e,regm_t *pretregs)
                         // This must match type_jparam()
                         ty64reg(ty) ||
                         ((tybasic(ty) == TYstruct || tybasic(ty) == TYarray) &&
-                         ep->Enumbytes <= REGSIZE && ep->Enumbytes != 3 && ep->Enumbytes)
-                        )
+                         (ep->Enumbytes == 1 || ep->Enumbytes == 2 || ep->Enumbytes == 4 || ep->Enumbytes == 8))
+                       )
                     {
                         parameters[i].reg = argregs[r];
                         r++;
