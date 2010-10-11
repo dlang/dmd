@@ -773,7 +773,7 @@ Loverflow:
 /**
  *
  */
-extern (C) ulong _d_newarraymT(TypeInfo ti, int ndims, ...)
+extern (C) ulong _d_newarraymT(TypeInfo ti, size_t ndims, ...)
 {
     ulong result;
 
@@ -782,11 +782,11 @@ extern (C) ulong _d_newarraymT(TypeInfo ti, int ndims, ...)
         result = 0;
     else
     {   va_list q;
-        va_start!(int)(q, ndims);
+        va_start!(size_t)(q, ndims);
 
-        void[] foo(TypeInfo ti, size_t* pdim, int ndims)
+        void[] foo(TypeInfo ti, size_t* pdim, size_t ndims)
         {
-            size_t dim = *pdim;
+            auto dim = *pdim;
             void[] p;
 
             debug(PRINTF) printf("foo(ti = %p, ti.next = %p, dim = %d, ndims = %d\n", ti, ti.next, dim, ndims);
@@ -802,7 +802,7 @@ extern (C) ulong _d_newarraymT(TypeInfo ti, int ndims, ...)
                 auto isshared = ti.classinfo is TypeInfo_Shared.classinfo;
                 __setArrayAllocLength(info, allocsize, isshared);
                 p = __arrayStart(info)[0 .. dim];
-                for (int i = 0; i < dim; i++)
+                for (size_t i = 0; i < dim; i++)
                 {
                     (cast(void[]*)p.ptr)[i] = foo(ti.next, pdim + 1, ndims - 1);
                 }
@@ -810,13 +810,13 @@ extern (C) ulong _d_newarraymT(TypeInfo ti, int ndims, ...)
             return p;
         }
 
-        size_t* pdim = cast(size_t *)q;
+        auto pdim = cast(size_t *)q;
         result = cast(ulong)foo(ti, pdim, ndims);
         debug(PRINTF) printf("result = %llx\n", result);
 
         version (none)
         {
-            for (int i = 0; i < ndims; i++)
+            for (size_t i = 0; i < ndims; i++)
             {
                 printf("index %d: %d\n", i, va_arg!(int)(q));
             }
@@ -830,7 +830,7 @@ extern (C) ulong _d_newarraymT(TypeInfo ti, int ndims, ...)
 /**
  *
  */
-extern (C) ulong _d_newarraymiT(TypeInfo ti, int ndims, ...)
+extern (C) ulong _d_newarraymiT(TypeInfo ti, size_t ndims, ...)
 {
     ulong result;
 
@@ -840,9 +840,9 @@ extern (C) ulong _d_newarraymiT(TypeInfo ti, int ndims, ...)
     else
     {
         va_list q;
-        va_start!(int)(q, ndims);
+        va_start!(size_t)(q, ndims);
 
-        void[] foo(TypeInfo ti, size_t* pdim, int ndims)
+        void[] foo(TypeInfo ti, size_t* pdim, size_t ndims)
         {
             size_t dim = *pdim;
             void[] p;
@@ -859,7 +859,7 @@ extern (C) ulong _d_newarraymiT(TypeInfo ti, int ndims, ...)
                 auto isshared = ti.classinfo is TypeInfo_Shared.classinfo;
                 __setArrayAllocLength(info, allocsize, isshared);
                 p = __arrayStart(info)[0 .. dim];
-                for (int i = 0; i < dim; i++)
+                for (size_t i = 0; i < dim; i++)
                 {
                     (cast(void[]*)p.ptr)[i] = foo(ti.next, pdim + 1, ndims - 1);
                 }
@@ -873,7 +873,7 @@ extern (C) ulong _d_newarraymiT(TypeInfo ti, int ndims, ...)
 
         version (none)
         {
-            for (int i = 0; i < ndims; i++)
+            for (size_t i = 0; i < ndims; i++)
             {
                 printf("index %d: %d\n", i, va_arg!(int)(q));
                 printf("init = %d\n", va_arg!(int)(q));
