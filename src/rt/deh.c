@@ -234,7 +234,7 @@ void __stdcall _d_throw(Object *h)
     //printf("_d_throw(h = %p, &h = %p)\n", h, &h);
     //printf("\tvptr = %p\n", *(void **)h);
     _d_createTrace(h);
-    _d_setUnhandled(h);
+    //_d_setUnhandled(h);
     RaiseException(STATUS_DIGITAL_MARS_D_EXCEPTION,
                    EXCEPTION_NONCONTINUABLE,
                    1, (DWORD *)&h);
