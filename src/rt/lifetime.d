@@ -670,14 +670,14 @@ Loverflow:
  * ti is the type of the resulting array, or pointer to element.
  * (For when the array is initialized to 0)
  */
-extern (C) ulong _d_newarrayT(TypeInfo ti, size_t length)
+extern (C) void[] _d_newarrayT(TypeInfo ti, size_t length)
 {
-    ulong result;
+    void[] result;
     auto size = ti.next.tsize();                // array element size
 
     debug(PRINTF) printf("_d_newarrayT(length = x%x, size = %d)\n", length, size);
     if (length == 0 || size == 0)
-        result = 0;
+        result = null;
     else
     {
         version (D_InlineAsm_X86)
@@ -700,7 +700,7 @@ extern (C) ulong _d_newarrayT(TypeInfo ti, size_t length)
         memset(arrstart, 0, size);
         auto isshared = ti.classinfo is TypeInfo_Shared.classinfo;
         __setArrayAllocLength(info, size, isshared);
-        result = cast(ulong)length + (cast(ulong)cast(size_t)arrstart << 32);
+	result = arrstart[0..length];
     }
     return result;
 
@@ -711,15 +711,15 @@ Loverflow:
 /**
  * For when the array has a non-zero initializer.
  */
-extern (C) ulong _d_newarrayiT(TypeInfo ti, size_t length)
+extern (C) void[] _d_newarrayiT(TypeInfo ti, size_t length)
 {
-    ulong result;
+    void[] result;
     auto size = ti.next.tsize();                // array element size
 
     debug(PRINTF) printf("_d_newarrayiT(length = %d, size = %d)\n", length, size);
 
     if (length == 0 || size == 0)
-        result = 0;
+        result = null;
     else
     {
         auto initializer = ti.next.init();
@@ -762,7 +762,7 @@ extern (C) ulong _d_newarrayiT(TypeInfo ti, size_t length)
         va_end(q);
         auto isshared = ti.classinfo is TypeInfo_Shared.classinfo;
         __setArrayAllocLength(info, size, isshared);
-        result = cast(ulong)length + (cast(ulong)cast(uint)arrstart << 32);
+	result = arrstart[0..length];
     }
     return result;
 
@@ -773,13 +773,13 @@ Loverflow:
 /**
  *
  */
-extern (C) ulong _d_newarraymT(TypeInfo ti, size_t ndims, ...)
+extern (C) void[] _d_newarraymT(TypeInfo ti, size_t ndims, ...)
 {
-    ulong result;
+    void[] result;
 
     debug(PRINTF) printf("_d_newarraymT(ndims = %d)\n", ndims);
     if (ndims == 0)
-        result = 0;
+        result = null;
     else
     {   va_list q;
         va_start!(size_t)(q, ndims);
@@ -811,7 +811,7 @@ extern (C) ulong _d_newarraymT(TypeInfo ti, size_t ndims, ...)
         }
 
         auto pdim = cast(size_t *)q;
-        result = cast(ulong)foo(ti, pdim, ndims);
+        result = foo(ti, pdim, ndims);
         debug(PRINTF) printf("result = %llx\n", result);
 
         version (none)
@@ -830,13 +830,13 @@ extern (C) ulong _d_newarraymT(TypeInfo ti, size_t ndims, ...)
 /**
  *
  */
-extern (C) ulong _d_newarraymiT(TypeInfo ti, size_t ndims, ...)
+extern (C) void[] _d_newarraymiT(TypeInfo ti, size_t ndims, ...)
 {
-    ulong result;
+    void[] result;
 
     debug(PRINTF) printf("_d_newarraymiT(ndims = %d)\n", ndims);
     if (ndims == 0)
-        result = 0;
+        result = null;
     else
     {
         va_list q;
@@ -868,7 +868,7 @@ extern (C) ulong _d_newarraymiT(TypeInfo ti, size_t ndims, ...)
         }
 
         size_t* pdim = cast(size_t *)q;
-        result = cast(ulong)foo(ti, pdim, ndims);
+        result = foo(ti, pdim, ndims);
         debug(PRINTF) printf("result = %llx\n", result);
 
         version (none)
