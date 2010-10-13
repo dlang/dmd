@@ -481,6 +481,10 @@ void TypeInfoStructDeclaration::toDt(dt_t **pdt)
      *  xgetMembers;
      *  xdtor;
      *  xpostblit;
+     *  uint m_align;
+     *  version (X86_64)
+     *      TypeInfo m_arg1;
+     *      TypeInfo m_arg2;
      *
      *  name[]
      */
@@ -611,6 +615,16 @@ void TypeInfoStructDeclaration::toDt(dt_t **pdt)
     else
         dtsize_t(pdt, 0);                        // xpostblit
 #endif
+
+    // uint m_align;
+    dtsize_t(pdt, tc->alignsize());
+
+    if (global.params.isX86_64)
+    {
+        dtsize_t(pdt, 0);                        // m_arg1
+        dtsize_t(pdt, 0);                        // m_arg2
+    }
+
     // name[]
     dtnbytes(pdt, namelen + 1, name);
 }
@@ -618,8 +632,7 @@ void TypeInfoStructDeclaration::toDt(dt_t **pdt)
 void TypeInfoClassDeclaration::toDt(dt_t **pdt)
 {
     //printf("TypeInfoClassDeclaration::toDt() %s\n", tinfo->toChars());
-    assert(0);
-#if 0
+#if DMDV1
     dtxoff(pdt, Type::typeinfoclass->toVtblSymbol(), 0, TYnptr); // vtbl for TypeInfoClass
     dtsize_t(pdt, 0);                        // monitor
 
@@ -632,6 +645,8 @@ void TypeInfoClassDeclaration::toDt(dt_t **pdt)
         tc->sym->vclassinfo = new ClassInfoDeclaration(tc->sym);
     s = tc->sym->vclassinfo->toSymbol();
     dtxoff(pdt, s, 0, TYnptr);          // ClassInfo for tinfo
+#else
+    assert(0);
 #endif
 }
 
@@ -647,7 +662,11 @@ void TypeInfoInterfaceDeclaration::toDt(dt_t **pdt)
     Symbol *s;
 
     if (!tc->sym->vclassinfo)
+#if DMDV1
+        tc->sym->vclassinfo = new ClassInfoDeclaration(tc->sym);
+#else
         tc->sym->vclassinfo = new TypeInfoClassDeclaration(tc);
+#endif
     s = tc->sym->vclassinfo->toSymbol();
     dtxoff(pdt, s, 0, TYnptr);          // ClassInfo for tinfo
 }
