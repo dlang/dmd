@@ -70,6 +70,17 @@ class TypeInfo_Ai : TypeInfo
     {
         return typeid(int);
     }
+
+    override size_t talign()
+    {
+        return (int[]).alignof;
+    }
+
+    version (X86_64) override int argTypes(out TypeInfo arg1, out TypeInfo arg2)
+    {   arg1 = typeid(size_t);
+        arg2 = typeid(void*);
+        return 0;
+    }
 }
 
 unittest

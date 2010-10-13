@@ -75,4 +75,15 @@ class TypeInfo_c : TypeInfo
 
         return (cast(creal *)&r)[0 .. 1];
     }
+
+    override size_t talign()
+    {
+        return creal.alignof;
+    }
+
+    version (X86_64) override int argTypes(out TypeInfo arg1, out TypeInfo arg2)
+    {   arg1 = typeid(real);
+	arg2 = typeid(real);
+        return 0;
+    }
 }

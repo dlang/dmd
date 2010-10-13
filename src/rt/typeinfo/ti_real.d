@@ -74,4 +74,9 @@ class TypeInfo_e : TypeInfo
 
         return (cast(real *)&r)[0 .. 1];
     }
+
+    override size_t talign()
+    {
+        return real.alignof;
+    }
 }

@@ -294,6 +294,18 @@ class TypeInfo
     void destroy(void* p) {}
     /// Run the postblit on the object and all its sub-objects
     void postblit(void* p) {}
+
+
+    /// Return alignment of type
+    size_t talign() { return tsize(); }
+
+    /** Return internal info on arguments fitting into 8byte.
+     * See X86-64 ABI 3.2.3
+     */
+    version (X86_64) int argTypes(out TypeInfo arg1, out TypeInfo arg2)
+    {   arg1 = this;
+        return 0;
+    }
 }
 
 class TypeInfo_Typedef : TypeInfo
@@ -318,6 +330,12 @@ class TypeInfo_Typedef : TypeInfo
     override TypeInfo next() { return base.next(); }
     override uint flags() { return base.flags(); }
     override void[] init() { return m_init.length ? m_init : base.init(); }
+
+    override size_t talign() { return base.talign(); }
+
+    version (X86_64) override int argTypes(out TypeInfo arg1, out TypeInfo arg2)
+    {   return base.argTypes(arg1, arg2);
+    }
 
     TypeInfo base;
     string   name;
@@ -450,6 +468,17 @@ class TypeInfo_Array : TypeInfo
     }
 
     override uint flags() { return 1; }
+
+    override size_t talign()
+    {
+        return (void[]).alignof;
+    }
+
+    version (X86_64) override int argTypes(out TypeInfo arg1, out TypeInfo arg2)
+    {   arg1 = typeid(size_t);
+        arg2 = typeid(void*);
+        return 0;
+    }
 }
 
 class TypeInfo_StaticArray : TypeInfo
@@ -557,6 +586,16 @@ class TypeInfo_StaticArray : TypeInfo
 
     TypeInfo value;
     size_t   len;
+
+    override size_t talign()
+    {
+        return value.talign();
+    }
+
+    version (X86_64) override int argTypes(out TypeInfo arg1, out TypeInfo arg2)
+    {
+        return value.argTypes(arg1, arg2);
+    }
 }
 
 class TypeInfo_AssociativeArray : TypeInfo
@@ -589,6 +628,16 @@ class TypeInfo_AssociativeArray : TypeInfo
     TypeInfo key;
 
     TypeInfo impl;
+
+    override size_t talign()
+    {
+        return (char[int]).alignof;
+    }
+
+    version (X86_64) override int argTypes(out TypeInfo arg1, out TypeInfo arg2)
+    {   arg1 = typeid(void*);
+        return 0;
+    }
 }
 
 class TypeInfo_Function : TypeInfo
@@ -642,6 +691,17 @@ class TypeInfo_Delegate : TypeInfo
     override uint flags() { return 1; }
 
     TypeInfo next;
+
+    override size_t talign()
+    {   alias int delegate() dg;
+        return dg.alignof;
+    }
+
+    version (X86_64) override int argTypes(out TypeInfo arg1, out TypeInfo arg2)
+    {   arg1 = typeid(void*);
+        arg2 = typeid(void*);
+        return 0;
+    }
 }
 
 class TypeInfo_Class : TypeInfo
@@ -912,6 +972,8 @@ class TypeInfo_Struct : TypeInfo
 
     override uint flags() { return m_flags; }
 
+    override size_t talign() { return m_align; }
+
     override void destroy(void* p)
     {
         if (xdtor)
@@ -937,6 +999,19 @@ class TypeInfo_Struct : TypeInfo
     const(MemberInfo[]) function(in char[]) xgetMembers;
     void function(void*)                    xdtor;
     void function(void*)                    xpostblit;
+
+    uint m_align;
+
+    version (X86_64)
+    {
+        override int argTypes(out TypeInfo arg1, out TypeInfo arg2)
+        {   arg1 = m_arg1;
+            arg2 = m_arg2;
+            return 0;
+        }
+        TypeInfo m_arg1;
+        TypeInfo m_arg2;
+    }
 }
 
 class TypeInfo_Tuple : TypeInfo
@@ -1008,6 +1083,16 @@ class TypeInfo_Tuple : TypeInfo
     {
         assert(0);
     }
+
+    override size_t talign()
+    {
+        assert(0);
+    }
+
+    version (X86_64) override int argTypes(out TypeInfo arg1, out TypeInfo arg2)
+    {
+        assert(0);
+    }
 }
 
 class TypeInfo_Const : TypeInfo
@@ -1043,6 +1128,12 @@ class TypeInfo_Const : TypeInfo
     override TypeInfo next() { return base.next(); }
     override uint flags() { return base.flags(); }
     override void[] init() { return base.init(); }
+
+    override size_t talign() { return base.talign(); }
+
+    version (X86_64) override int argTypes(out TypeInfo arg1, out TypeInfo arg2)
+    {   return base.argTypes(arg1, arg2);
+    }
 
     TypeInfo base;
 }

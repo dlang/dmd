@@ -72,6 +72,8 @@ class TypeInfo
     OffsetTypeInfo[] offTi();
     void destroy(void* p);
     void postblit(void* p);
+    size_t talign();
+    version (X86_64) int argTypes(out TypeInfo arg1, out TypeInfo arg2);
 }
 
 class TypeInfo_Typedef : TypeInfo
@@ -170,6 +172,14 @@ class TypeInfo_Struct : TypeInfo
     const(MemberInfo[]) function(in char[]) xgetMembers;
     void function(void*)                    xdtor;
     void function(void*)                    xpostblit;
+
+    uint m_align;
+
+    version (X86_64)
+    {
+        TypeInfo m_arg1;
+        TypeInfo m_arg2;
+    }
 }
 
 class TypeInfo_Tuple : TypeInfo

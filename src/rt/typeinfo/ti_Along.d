@@ -71,6 +71,17 @@ class TypeInfo_Al : TypeInfo
     {
         return typeid(long);
     }
+
+    override size_t talign()
+    {
+        return (long[]).alignof;
+    }
+
+    version (X86_64) override int argTypes(out TypeInfo arg1, out TypeInfo arg2)
+    {   arg1 = typeid(size_t);
+        arg2 = typeid(void*);
+        return 0;
+    }
 }
 
 

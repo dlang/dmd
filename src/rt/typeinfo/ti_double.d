@@ -74,4 +74,9 @@ class TypeInfo_d : TypeInfo
 
         return (cast(double *)&r)[0 .. 1];
     }
+
+    override size_t talign()
+    {
+        return double.alignof;
+    }
 }
