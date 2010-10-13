@@ -1385,7 +1385,7 @@ elem *NewExp::toElem(IRState *irs)
         }
         else
         {   // Multidimensional array allocations
-            e = el_long(TYint, arguments->dim);
+            e = el_long(TYsize_t, arguments->dim);
             for (size_t i = 0; i < arguments->dim; i++)
             {
                 Expression *arg = (Expression *)arguments->data[i];     // gives array length
