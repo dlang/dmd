@@ -82,6 +82,8 @@ enum STC
 #define STCtrusted      0x400000000LL
 #define STCsystem       0x800000000LL
 #define STCctfe         0x1000000000LL  // can be used in CTFE, even if it is static
+#define STCdisable      0x2000000000LL  // for functions that are not callable
+#define STCresult       0x4000000000LL  // for result variables passed to out contracts
 
 struct Match
 {
@@ -531,6 +533,7 @@ struct FuncDeclaration : Declaration
 #if IN_GCC
     VarDeclaration *v_argptr;           // '_argptr' variable
 #endif
+    VarDeclaration *v_argsave;          // save area for args passed in registers for variadic functions
     Dsymbols *parameters;               // Array of VarDeclaration's for parameters
     DsymbolTable *labtab;               // statement label symbol table
     Declaration *overnext;              // next in overload list

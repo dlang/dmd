@@ -1,8 +1,12 @@
 
-// Copyright (c) 1999-2009 by Digital Mars
+// Copyright (c) 1999-2010 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // http://www.digitalmars.com
+// http://www.dsource.org/projects/dmd/browser/branches/dmd-1.x/src/toctype.c
+// License for redistribution is by either the Artistic License
+// in artistic.txt, or the GNU General Public License in gnu.txt.
+// See the included readme.txt for details.
 
 #include <stdio.h>
 #include <stddef.h>
@@ -63,8 +67,12 @@ type *Type::toCParamtype()
 
 type *TypeSArray::toCParamtype()
 {
+#if SARRAYVALUE
+    return toCtype();
+#else
     // arrays are passed as pointers
     return next->pointerTo()->toCtype();
+#endif
 }
 
 type *TypeSArray::toCtype()
@@ -318,7 +326,7 @@ type *TypeStruct::toCtype()
     s->Sstruct = struct_calloc();
     s->Sstruct->Sflags |= 0;
     s->Sstruct->Salignsize = sym->alignsize;
-    s->Sstruct->Sstructalign = sym->structalign;
+    s->Sstruct->Sstructalign = sym->alignsize;
     s->Sstruct->Sstructsize = sym->structsize;
 
     if (sym->isUnionDeclaration())
@@ -332,6 +340,7 @@ type *TypeStruct::toCtype()
     ctype = t;
 
     /* Add in fields of the struct
+     * (after setting ctype to avoid infinite recursion)
      */
     if (global.params.symdebug)
         for (int i = 0; i < sym->fields.dim; i++)

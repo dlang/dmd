@@ -1,9 +1,10 @@
 
 // Compiler implementation of the D programming language
-// Copyright (c) 1999-2008 by Digital Mars
+// Copyright (c) 1999-2010 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // http://www.digitalmars.com
+// http://www.dsource.org/projects/dmd/browser/branches/dmd-1.x/src/idgen.c
 // License for redistribution is by either the Artistic License
 // in artistic.txt, or the GNU General Public License in gnu.txt.
 // See the included readme.txt for details.
@@ -227,6 +228,10 @@ Msgtable msgtable[] =
     { "main" },
     { "WinMain" },
     { "DllMain" },
+
+    // varargs implementation
+    { "va_argsave_t", "__va_argsave_t" },
+    { "va_argsave", "__va_argsave" },
 };
 
 

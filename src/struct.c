@@ -1,6 +1,6 @@
 
 // Compiler implementation of the D programming language
-// Copyright (c) 1999-2009 by Digital Mars
+// Copyright (c) 1999-2010 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // http://www.digitalmars.com
@@ -45,10 +45,9 @@ AggregateDeclaration::AggregateDeclaration(Loc loc, Identifier *id)
     stag = NULL;
     sinit = NULL;
 #if DMDV2
-    dtor = NULL;
-
     ctor = NULL;
     defaultCtor = NULL;
+    aliasthis = NULL;
 #endif
 }
 
@@ -206,11 +205,14 @@ void AggregateDeclaration::addField(Scope *sc, VarDeclaration *v)
     if (!isUnionDeclaration())
         sc->offset = ofs;
 #endif
-    if (sc->structalign < memalignsize)
+    if (global.params.isX86_64 && sc->structalign == 8 && memalignsize == 16)
+        /* Not sure how to handle this */
+        ;
+    else if (sc->structalign < memalignsize)
         memalignsize = sc->structalign;
     if (alignsize < memalignsize)
         alignsize = memalignsize;
-    //printf("\talignsize = %d\n", alignsize);
+    //printf("\t%s: alignsize = %d\n", toChars(), alignsize);
 
     v->storage_class |= STCfield;
     //printf(" addField '%s' to '%s' at offset %d, size = %d\n", v->toChars(), toChars(), v->offset, memsize);
@@ -228,6 +230,7 @@ StructDeclaration::StructDeclaration(Loc loc, Identifier *id)
     hasIdentityAssign = 0;
     cpctor = NULL;
     postblit = NULL;
+    eq = NULL;
 #endif
 
     // For forward references
@@ -247,12 +250,12 @@ Dsymbol *StructDeclaration::syntaxCopy(Dsymbol *s)
 }
 
 void StructDeclaration::semantic(Scope *sc)
-{   int i;
+{
     Scope *sc2;
 
-    //printf("+StructDeclaration::semantic(this=%p, '%s')\n", this, toChars());
+    //printf("+StructDeclaration::semantic(this=%p, '%s', sizeok = %d)\n", this, toChars(), sizeok);
 
-    //static int count; if (++count == 20) *(char*)0=0;
+    //static int count; if (++count == 20) halt();
 
     assert(type);
     if (!members)                       // if forward reference
@@ -300,7 +303,7 @@ void StructDeclaration::semantic(Scope *sc)
 
     if (sizeok == 0)            // if not already done the addMember step
     {
-        for (i = 0; i < members->dim; i++)
+        for (int i = 0; i < members->dim; i++)
         {
             Dsymbol *s = (Dsymbol *)members->data[i];
             //printf("adding member '%s' to '%s'\n", s->toChars(), this->toChars());
@@ -334,7 +337,7 @@ void StructDeclaration::semantic(Scope *sc)
         }
     }
 
-    for (i = 0; i < members_dim; i++)
+    for (int i = 0; i < members_dim; i++)
     {
         Dsymbol *s = (Dsymbol *)members->data[i];
         s->semantic(sc2);
@@ -404,6 +407,40 @@ void StructDeclaration::semantic(Scope *sc)
         id = Id::cmp;
     }
 #if DMDV2
+    /* Try to find the opEquals function. Build it if necessary.
+     */
+    TypeFunction *tfeqptr;
+    {   // bool opEquals(const T*) const;
+        Parameters *parameters = new Parameters;
+#if STRUCTTHISREF
+        // bool opEquals(ref const T) const;
+        Parameter *param = new Parameter(STCref, type->constOf(), NULL, NULL);
+#else
+        // bool opEquals(const T*) const;
+        Parameter *param = new Parameter(STCin, type->pointerTo(), NULL, NULL);
+#endif
+
+        parameters->push(param);
+        tfeqptr = new TypeFunction(parameters, Type::tbool, 0, LINKd);
+        tfeqptr->mod = MODconst;
+        tfeqptr = (TypeFunction *)tfeqptr->semantic(0, sc2);
+
+        Dsymbol *s = search_function(this, Id::eq);
+        FuncDeclaration *fdx = s ? s->isFuncDeclaration() : NULL;
+        if (fdx)
+        {
+            eq = fdx->overloadExactMatch(tfeqptr);
+            if (!eq)
+                fdx->error("type signature should be %s not %s", tfeqptr->toChars(), fdx->type->toChars());
+        }
+
+        TemplateDeclaration *td = s ? s->isTemplateDeclaration() : NULL;
+        // BUG: should also check that td is a function template, not just a template
+
+        if (!eq && !td)
+            eq = buildOpEquals(sc2);
+    }
+
     dtor = buildDtor(sc2);
     postblit = buildPostBlit(sc2);
     cpctor = buildCpCtor(sc2);
@@ -448,7 +485,7 @@ void StructDeclaration::semantic(Scope *sc)
 
     // Determine if struct is all zeros or not
     zeroInit = 1;
-    for (i = 0; i < fields.dim; i++)
+    for (int i = 0; i < fields.dim; i++)
     {
         Dsymbol *s = (Dsymbol *)fields.data[i];
         VarDeclaration *vd = s->isVarDeclaration();
@@ -474,7 +511,7 @@ void StructDeclaration::semantic(Scope *sc)
     /* Look for special member functions.
      */
 #if DMDV2
-    ctor =   (CtorDeclaration *)search(0, Id::ctor, 0);
+    ctor = search(0, Id::ctor, 0);
 #endif
     inv =    (InvariantDeclaration *)search(0, Id::classInvariant, 0);
     aggNew =       (NewDeclaration *)search(0, Id::classNew,       0);
