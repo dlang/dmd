@@ -529,6 +529,7 @@ struct FuncDeclaration : Declaration
 #if IN_GCC
     VarDeclaration *v_argptr;           // '_argptr' variable
 #endif
+    VarDeclaration *v_argsave;          // save area for args passed in registers for variadic functions
     Dsymbols *parameters;               // Array of VarDeclaration's for parameters
     DsymbolTable *labtab;               // statement label symbol table
     Declaration *overnext;              // next in overload list

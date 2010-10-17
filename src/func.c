@@ -55,6 +55,7 @@ FuncDeclaration::FuncDeclaration(Loc loc, Loc endloc, Identifier *id, StorageCla
 #if IN_GCC
     v_argptr = NULL;
 #endif
+    v_argsave = NULL;
     parameters = NULL;
     labtab = NULL;
     overnext = NULL;
@@ -959,6 +960,20 @@ void FuncDeclaration::semantic3(Scope *sc)
                 argptr->parent = this;
             }
 #endif
+        }
+        if (global.params.isX86_64 && f->varargs && f->linkage == LINKc)
+        {   // Declare save area for varargs registers
+            Type *t = new TypeIdentifier(loc, Id::va_argsave_t);
+            t = t->semantic(loc, sc);
+            if (t == Type::terror)
+                error("must import std.c.stdarg to use variadic functions");
+            else
+            {
+                v_argsave = new VarDeclaration(loc, t, Id::va_argsave, NULL);
+                v_argsave->semantic(sc2);
+                sc2->insert(v_argsave);
+                v_argsave->parent = this;
+            }
         }
 
 #if 0

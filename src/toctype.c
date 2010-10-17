@@ -1,8 +1,12 @@
 
-// Copyright (c) 1999-2009 by Digital Mars
+// Copyright (c) 1999-2010 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // http://www.digitalmars.com
+// http://www.dsource.org/projects/dmd/browser/trunk/src/toctype.c
+// License for redistribution is by either the Artistic License
+// in artistic.txt, or the GNU General Public License in gnu.txt.
+// See the included readme.txt for details.
 
 #include <stdio.h>
 #include <stddef.h>
@@ -324,7 +328,7 @@ type *TypeStruct::toCtype()
     s->Sstruct = struct_calloc();
     s->Sstruct->Sflags |= 0;
     s->Sstruct->Salignsize = sym->alignsize;
-    s->Sstruct->Sstructalign = sym->structalign;
+    s->Sstruct->Sstructalign = sym->alignsize;
     s->Sstruct->Sstructsize = sym->structsize;
 
     if (sym->isUnionDeclaration())

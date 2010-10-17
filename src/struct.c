@@ -214,11 +214,14 @@ void AggregateDeclaration::addField(Scope *sc, VarDeclaration *v)
     if (!isUnionDeclaration())
         sc->offset = ofs;
 #endif
-    if (sc->structalign < memalignsize)
+    if (global.params.isX86_64 && sc->structalign == 8 && memalignsize == 16)
+        /* Not sure how to handle this */
+        ;
+    else if (sc->structalign < memalignsize)
         memalignsize = sc->structalign;
     if (alignsize < memalignsize)
         alignsize = memalignsize;
-    //printf("\talignsize = %d\n", alignsize);
+    //printf("\t%s: alignsize = %d\n", toChars(), alignsize);
 
     v->storage_class |= STCfield;
     //printf(" addField '%s' to '%s' at offset %d, size = %d\n", v->toChars(), toChars(), v->offset, memsize);
