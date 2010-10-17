@@ -13,7 +13,7 @@
 
 #ifdef __DMC__
 #pragma once
-#endif /* __DMC__ */
+#endif /* __DMC__ mtype.h   Thu Oct 14 2010 */
 
 #include "root.h"
 #include "stringtable.h"
@@ -47,6 +47,7 @@ typedef TYPE type;
 typedef struct TYPE type;
 #endif
 struct Symbol;
+struct TypeTuple;
 
 enum TY
 {
@@ -246,6 +247,7 @@ struct Type : Object
     virtual Type *reliesOnTident();
     virtual Expression *toExpression();
     virtual int hasPointers();
+    virtual TypeTuple *toArgTypes();
     Type *next;
     Type *nextOf() { return next; }
 
@@ -325,6 +327,7 @@ struct TypeBasic : Type
     Expression *defaultInit(Loc loc);
     int isZeroInit(Loc loc);
     int builtinTypeInfo();
+    TypeTuple *toArgTypes();
 
     // For eliminating dynamic_cast
     TypeBasic *isTypeBasic();
@@ -362,6 +365,7 @@ struct TypeSArray : TypeArray
     TypeInfoDeclaration *getTypeInfoDeclaration();
     Expression *toExpression();
     int hasPointers();
+    TypeTuple *toArgTypes();
 
     type *toCtype();
     type *toCParamtype();
@@ -386,6 +390,7 @@ struct TypeDArray : TypeArray
     int builtinTypeInfo();
     TypeInfoDeclaration *getTypeInfoDeclaration();
     int hasPointers();
+    TypeTuple *toArgTypes();
 
     type *toCtype();
 };
@@ -409,6 +414,7 @@ struct TypeAArray : TypeArray
     int checkBoolean();
     TypeInfoDeclaration *getTypeInfoDeclaration();
     int hasPointers();
+    TypeTuple *toArgTypes();
 
     // Back end
     Symbol *aaGetSymbol(const char *func, int flags);
@@ -429,6 +435,7 @@ struct TypePointer : Type
     int isZeroInit(Loc loc);
     TypeInfoDeclaration *getTypeInfoDeclaration();
     int hasPointers();
+    TypeTuple *toArgTypes();
 
     type *toCtype();
 };
@@ -490,6 +497,7 @@ struct TypeDelegate : Type
     TypeInfoDeclaration *getTypeInfoDeclaration();
     Expression *dotExp(Scope *sc, Expression *e, Identifier *ident);
     int hasPointers();
+    TypeTuple *toArgTypes();
 
     type *toCtype();
 };
@@ -578,6 +586,7 @@ struct TypeStruct : Type
     MATCH deduceType(Scope *sc, Type *tparam, TemplateParameters *parameters, Objects *dedtypes);
     TypeInfoDeclaration *getTypeInfoDeclaration();
     int hasPointers();
+    TypeTuple *toArgTypes();
 
     type *toCtype();
 };
@@ -608,6 +617,7 @@ struct TypeEnum : Type
     MATCH deduceType(Scope *sc, Type *tparam, TemplateParameters *parameters, Objects *dedtypes);
     TypeInfoDeclaration *getTypeInfoDeclaration();
     int hasPointers();
+    TypeTuple *toArgTypes();
 #if CPP_MANGLE
     void toCppMangle(OutBuffer *buf, CppMangleState *cms);
 #endif
@@ -647,6 +657,7 @@ struct TypeTypedef : Type
     MATCH deduceType(Scope *sc, Type *tparam, TemplateParameters *parameters, Objects *dedtypes);
     TypeInfoDeclaration *getTypeInfoDeclaration();
     int hasPointers();
+    TypeTuple *toArgTypes();
 
     type *toCtype();
     type *toCParamtype();
@@ -675,6 +686,7 @@ struct TypeClass : Type
     int checkBoolean();
     TypeInfoDeclaration *getTypeInfoDeclaration();
     int hasPointers();
+    TypeTuple *toArgTypes();
     int builtinTypeInfo();
 #if DMDV2
     Type *toHeadMutable();
@@ -695,6 +707,9 @@ struct TypeTuple : Type
 
     TypeTuple(Parameters *arguments);
     TypeTuple(Expressions *exps);
+    TypeTuple();
+    TypeTuple(Type *t1);
+    TypeTuple(Type *t1, Type *t2);
     Type *syntaxCopy();
     Type *semantic(Loc loc, Scope *sc);
     int equals(Object *o);

@@ -42,7 +42,7 @@ DMD_OBJS = \
 	hdrgen.o delegatize.o aa.o ti_achar.o toir.o interpret.o traits.o \
 	builtin.o clone.o aliasthis.o \
 	man.o arrayop.o port.o response.o async.o json.o speller.o aav.o unittests.o \
-	imphint.o \
+	imphint.o argtypes.o \
 	libelf.o elfobj.o
 
 SRC = win32.mak linux.mak osx.mak freebsd.mak solaris.mak \
@@ -62,6 +62,7 @@ SRC = win32.mak linux.mak osx.mak freebsd.mak solaris.mak \
 	delegatize.c toir.h toir.c interpret.c traits.c cppmangle.c \
 	builtin.c clone.c lib.h libomf.c libelf.c libmach.c arrayop.c \
 	aliasthis.h aliasthis.c json.h json.c unittests.c imphint.c \
+	argtypes.c \
 	$C/cdef.h $C/cc.h $C/oper.h $C/ty.h $C/optabgen.c \
 	$C/global.h $C/parser.h $C/code.h $C/type.h $C/dt.h $C/cgcv.h \
 	$C/el.h $C/iasm.h $C/rtlsym.h $C/html.h \
@@ -142,6 +143,9 @@ access.o: access.c
 	$(CC) -c $(CFLAGS) $<
 
 aliasthis.o: aliasthis.c
+	$(CC) -c $(CFLAGS) $<
+
+argtypes.o: argtypes.c
 	$(CC) -c $(CFLAGS) $<
 
 array.o: $(ROOT)/array.c

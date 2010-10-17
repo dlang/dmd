@@ -152,6 +152,7 @@ enum TOK
         TOKunittest,
 
         // Added after 1.0
+        TOKargTypes,
         TOKref,
         TOKmacro,
 #if DMDV2

@@ -4436,6 +4436,7 @@ Expression *Parser::parsePrimaryExp()
                          token.value == TOKsuper ||
                          token.value == TOKenum ||
                          token.value == TOKinterface ||
+                         token.value == TOKargTypes ||
 #if DMDV2
                          token.value == TOKconst && peek(&token)->value == TOKrparen ||
                          token.value == TOKinvariant && peek(&token)->value == TOKrparen ||

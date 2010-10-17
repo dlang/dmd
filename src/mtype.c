@@ -5139,6 +5139,29 @@ TypeTuple::TypeTuple(Expressions *exps)
     this->arguments = arguments;
 }
 
+/*******************************************
+ * Type tuple with 0, 1 or 2 types in it.
+ */
+TypeTuple::TypeTuple()
+    : Type(Ttuple, NULL)
+{
+    arguments = new Parameters();
+}
+
+TypeTuple::TypeTuple(Type *t1)
+    : Type(Ttuple, NULL)
+{
+    arguments = new Parameters();
+    arguments->push(new Parameter(0, t1, NULL, NULL));
+}
+
+TypeTuple::TypeTuple(Type *t1, Type *t2)
+    : Type(Ttuple, NULL)
+{
+    arguments = new Parameters();
+    arguments->push(new Parameter(0, t1, NULL, NULL));
+    arguments->push(new Parameter(0, t2, NULL, NULL));
+}
 Type *TypeTuple::syntaxCopy()
 {
     Parameters *args = Parameter::arraySyntaxCopy(arguments);

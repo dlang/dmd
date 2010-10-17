@@ -1175,6 +1175,7 @@ code *prolog()
     unsigned xlocalsize;     // amount to subtract from ESP to make room for locals
     unsigned pushallocreg;
     char guessneedframe;
+    regm_t namedargs = 0;
 
     //printf("cod3.prolog(), needframe = %d, Aalign = %d\n", needframe, Aalign);
     debugx(debugw && printf("funcstart()\n"));
@@ -1460,6 +1461,7 @@ Lagain:
         if (xlocalsize)                 /* if any stack offset          */
         {
         Ladjstack:
+#if !TARGET_LINUX               // seems that Linux doesn't need to fault in stack pages
             if ((config.flags & CFGstack && !(I32 && xlocalsize < 0x1000)) // if stack overflow check
 #if TARGET_WINDOS
                 || (xlocalsize >= 0x1000 && config.exe & EX_flat)
@@ -1477,6 +1479,10 @@ Lagain:
                 }
                 else
                 {
+                    /* Watch out for 64 bit code where EDX is passed as a register parameter
+                     */
+                    int reg = I64 ? R11 : DX;  // scratch register
+
                     /*      MOV     EDX, xlocalsize/0x1000
                      *  L1: SUB     ESP, 0x1000
                      *      TEST    [ESP],ESP
@@ -1484,25 +1490,30 @@ Lagain:
                      *      JNE     L1
                      *      SUB     ESP, xlocalsize % 0x1000
                      */
-                    code *csub;
-
-                    c = movregconst(c, DX, xlocalsize / 0x1000, FALSE);
-                    csub = genc2(NULL,0x81,modregrm(3,5,SP),0x1000);
+                    c = movregconst(c, reg, xlocalsize / 0x1000, FALSE);
+                    code *csub = genc2(NULL,0x81,modregrm(3,5,SP),0x1000);
                     if (I64)
                         code_orrex(csub, REX_W);
                     code_orflag(csub, CFtarg2);
                     gen2sib(csub, 0x85, modregrm(0,SP,4),modregrm(0,4,SP));
-                    gen1(csub, 0x48 + DX);
-                    genc2(csub,JNE,0,(targ_uns)-12);
-                    regimmed_set(DX,0);             // EDX is now 0
+                    if (I64)
+                    {   gen2(csub, 0xFF, (REX_W << 16) | modregrmx(3,0,R11));   // DEC R11
+                        genc2(csub,JNE,0,(targ_uns)-14);
+                    }
+                    else
+                    {   gen1(csub, 0x48 + DX);                  // DEC EDX
+                        genc2(csub,JNE,0,(targ_uns)-12);
+                    }
+                    regimmed_set(reg,0);             // reg is now 0
                     genc2(csub,0x81,modregrm(3,5,SP),xlocalsize & 0xFFF);
                     if (I64)
                         code_orrex(csub, REX_W);
                     c = cat(c,csub);
-                    useregs(mDX);
+                    useregs(mask[reg]);
                 }
             }
             else
+#endif
             {
                 if (enter)
                 {   // ENTER xlocalsize,0
@@ -1738,7 +1749,10 @@ Lcont:
             c = cat(c,c2);
         }
         else if (s->Sclass == SCfastpar)
-        {   unsigned preg = s->Spreg;
+        {   // Argument is passed in a register
+            unsigned preg = s->Spreg;
+
+            namedargs |= mask[preg];
 
             if (s->Sfl == FLreg)
             {   // MOV reg,preg
@@ -1816,6 +1830,153 @@ Lcont:
                     }
                 }
             }
+        }
+    }
+
+    /* Load arguments passed in registers into the varargs save area
+     * so they can be accessed by va_arg().
+     */
+    if (I64 && variadic(funcsym_p->Stype))
+    {
+        /* Look for __va_argsave
+         */
+        symbol *sv = NULL;
+        for (SYMIDX si = 0; si < globsym.top; si++)
+        {   symbol *s = globsym.tab[si];
+            if (s->Sident[0] == '_' && strcmp(s->Sident, "__va_argsave") == 0)
+            {   sv = s;
+                break;
+            }
+        }
+
+        if (sv)
+        {
+        /* Generate code to move any arguments passed in registers into
+         * the stack variable __va_argsave,
+         * so we can reference it via pointers through va_arg().
+         *   struct __va_argsave_t {
+         *     size_t[6] regs;
+         *     real[8] fpregs;
+         *     uint offset_regs;
+         *     uint offset_fpregs;
+         *     void* stack_args;
+         *     void* reg_args;
+         *   }
+         *
+            MOV     voff+0*8[RBP],EDI
+            MOV     voff+1*8[RBP],ESI
+            MOV     voff+2*8[RBP],RDX
+            MOV     voff+3*8[RBP],RCX
+            MOV     voff+4*8[RBP],R8
+            MOV     voff+5*8[RBP],R9
+            MOVZX   EAX,AL                      // AL = 0..8, # of XMM registers used
+            SHL     EAX,2                       // 4 bytes for each MOVAPS
+            LEA     RDX,offset L2[RIP]
+            SUB     RDX,RAX
+            LEA     RAX,voff+6*8+0x7F[RBP]
+            JMP     EDX
+            MOVAPS  -0x0F[RAX],XMM7             // only save XMM registers if actually used
+            MOVAPS  -0x1F[RAX],XMM6
+            MOVAPS  -0x2F[RAX],XMM5
+            MOVAPS  -0x3F[RAX],XMM4
+            MOVAPS  -0x4F[RAX],XMM3
+            MOVAPS  -0x5F[RAX],XMM2
+            MOVAPS  -0x6F[RAX],XMM1
+            MOVAPS  -0x7F[RAX],XMM0
+          L2:
+            MOV     1[RAX],offset_regs          // set __va_argsave.offset_regs
+            MOV     5[RAX],offset_fpregs        // set __va_argsave.offset_fpregs
+            LEA     RDX, Poff+Poffset[RBP]
+            MOV     9[RAX],RDX                  // set __va_argsave.stack_args
+            SUB     RAX,6*8+0x7F                // point to start of __va_argsave
+            MOV     6*8+8*16+4+4+8[RAX],RAX     // set __va_argsave.reg_args
+        */
+        targ_size_t voff = Aoff + BPoff + sv->Soffset;  // EBP offset of start of sv
+        const int vregnum = 6;
+        const unsigned vsize = vregnum * 8 + 8 * 16;
+        code *cv = CNIL;
+
+        static unsigned char regs[vregnum] = { DI,SI,DX,CX,R8,R9 };
+
+        if (!hasframe)
+            voff += EBPtoESP;
+        for (int i = 0; i < vregnum; i++)
+        {
+            unsigned r = regs[i];
+            if (!(mask[r] & namedargs))         // named args are already dealt with
+            {   unsigned ea = (REX_W << 16) | modregxrm(2,r,BPRM);
+                if (!hasframe)
+                    ea = (REX_W << 16) | (modregrm(0,4,SP) << 8) | modregxrm(2,r,4);
+                cv = genc1(cv,0x89,ea,FLconst,voff + i*8);
+            }
+        }
+
+        cv = genregs(cv,0x0FB6,AX,AX);                          // MOVZX EAX,AL
+        genc2(cv,0xC1,modregrm(3,4,AX),2);                      // SHL EAX,2
+        int raxoff = voff+6*8+0x7F;
+        unsigned L2offset = (raxoff < -0x7F) ? 0x2C : 0x29;
+        if (!hasframe)
+            L2offset += 1;                                      // +1 for sib byte
+        // LEA RDX,offset L2[RIP]
+        genc1(cv,0x8D,(REX_W << 16) | modregrm(0,DX,5),FLconst,L2offset);
+        genregs(cv,0x29,AX,DX);                                 // SUB RDX,RAX
+        code_orrex(cv, REX_W);
+        // LEA RAX,voff+vsize-6*8-16+0x7F[RBP]
+        unsigned ea = (REX_W << 16) | modregrm(2,AX,BPRM);
+        if (!hasframe)
+            // add sib byte for [RSP] addressing
+            ea = (REX_W << 16) | (modregrm(0,4,SP) << 8) | modregxrm(2,AX,4);
+        genc1(cv,0x8D,ea,FLconst,raxoff);
+        gen2(cv,0xFF,modregrm(3,4,DX));                         // JMP EDX
+        for (int i = 0; i < 8; i++)
+        {
+            // MOVAPS -15-16*i[RAX],XMM7-i
+            genc1(cv,0x0F29,modregrm(0,XMM7-i,0),FLconst,-15-16*i);
+        }
+
+        /* Compute offset_regs and offset_fpregs
+         */
+        unsigned offset_regs = 0;
+        unsigned offset_fpregs = vregnum * 8;
+        for (int i = AX; i <= XMM7; i++)
+        {   regm_t m = mask[i];
+            if (m & namedargs)
+            {
+                if (m & (mDI|mSI|mDX|mCX|mR8|mR9))
+                    offset_regs += 8;
+                else if (m & XMMREGS)
+                    offset_fpregs += 16;
+                namedargs &= ~m;
+                if (!namedargs)
+                    break;
+            }
+        }
+        // MOV 1[RAX],offset_regs
+        genc(cv,0xC7,modregrm(2,0,AX),FLconst,1,FLconst,offset_regs);
+
+        // MOV 5[RAX],offset_fpregs
+        genc(cv,0xC7,modregrm(2,0,AX),FLconst,5,FLconst,offset_fpregs);
+
+        // LEA RDX, Poff+Poffset[RBP]
+        ea = modregrm(2,DX,BPRM);
+        if (!hasframe)
+            ea = (modregrm(0,4,SP) << 8) | modregrm(2,DX,4);
+        Poffset = (Poffset + (REGSIZE - 1)) & ~(REGSIZE - 1);
+        genc1(cv,0x8D,(REX_W << 16) | ea,FLconst,Poff + Poffset);
+
+        // MOV 9[RAX],RDX
+        genc1(cv,0x89,(REX_W << 16) | modregrm(2,DX,AX),FLconst,9);
+
+        // SUB RAX,6*8+0x7F             // point to start of __va_argsave
+        genc2(cv,0x2D,0,6*8+0x7F);
+        code_orrex(cv, REX_W);
+
+        // MOV 6*8+8*16+4+4+8[RAX],RAX  // set __va_argsave.reg_args
+        genc1(cv,0x89,(REX_W << 16) | modregrm(2,AX,AX),FLconst,6*8+8*16+4+4+8);
+
+        pinholeopt(cv, NULL);
+        useregs(mDX|mAX);
+        c = cat(c,cv);
         }
     }
 

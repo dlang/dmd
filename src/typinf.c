@@ -73,9 +73,7 @@ Expression *Type::getInternalTypeInfo(Scope *sc)
             goto Linternal;
 
         case Tarray:
-            // convert to corresponding dynamic array type
-            t = t->nextOf()->mutableOf()->arrayOf();
-            if (t->nextOf()->ty != Tclass)
+            if (t->next->ty != Tclass)
                 break;
             goto Linternal;
 
@@ -337,12 +335,8 @@ void TypeInfoEnumDeclaration::toDt(dt_t **pdt)
      *  void[] m_init;
      */
 
-    if (sd->memtype)
-    {   sd->memtype->getTypeInfo(NULL);
-        dtxoff(pdt, sd->memtype->vtinfo->toSymbol(), 0, TYnptr);        // TypeInfo for enum members
-    }
-    else
-        dtsize_t(pdt, 0);
+    sd->memtype->getTypeInfo(NULL);
+    dtxoff(pdt, sd->memtype->vtinfo->toSymbol(), 0, TYnptr);    // TypeInfo for enum members
 
     const char *name = sd->toPrettyChars();
     size_t namelen = strlen(name);
@@ -473,15 +467,12 @@ void TypeInfoStructDeclaration::toDt(dt_t **pdt)
     /* Put out:
      *  char[] name;
      *  void[] init;
-     *  hash_t function(in void*) xtoHash;
-     *  bool function(in void*, in void*) xopEquals;
-     *  int function(in void*, in void*) xopCmp;
-     *  string function(const(void)*) xtoString;
+     *  hash_t function(void*) xtoHash;
+     *  int function(void*,void*) xopEquals;
+     *  int function(void*,void*) xopCmp;
+     *  char[] function(void*) xtoString;
      *  uint m_flags;
      *  uint m_align;
-     *  xgetMembers;
-     *  xdtor;
-     *  xpostblit;
      *  version (X86_64)
      *      TypeInfo m_arg1;
      *      TypeInfo m_arg2;
@@ -517,14 +508,13 @@ void TypeInfoStructDeclaration::toDt(dt_t **pdt)
         Scope sc;
 
         tftohash = new TypeFunction(NULL, Type::thash_t, 0, LINKd);
-        tftohash->mod = MODconst;
         tftohash = (TypeFunction *)tftohash->semantic(0, &sc);
 
-        tftostring = new TypeFunction(NULL, Type::tchar->invariantOf()->arrayOf(), 0, LINKd);
+        tftostring = new TypeFunction(NULL, Type::tchar->arrayOf(), 0, LINKd);
         tftostring = (TypeFunction *)tftostring->semantic(0, &sc);
     }
 
-    TypeFunction *tfcmpptr;
+    TypeFunction *tfeqptr;
     {
         Scope sc;
         Parameters *arguments = new Parameters;
@@ -537,10 +527,22 @@ void TypeInfoStructDeclaration::toDt(dt_t **pdt)
 #endif
 
         arguments->push(arg);
-        tfcmpptr = new TypeFunction(arguments, Type::tint32, 0, LINKd);
-        tfcmpptr->mod = MODconst;
-        tfcmpptr = (TypeFunction *)tfcmpptr->semantic(0, &sc);
+        tfeqptr = new TypeFunction(arguments, Type::tint32, 0, LINKd);
+        tfeqptr = (TypeFunction *)tfeqptr->semantic(0, &sc);
     }
+
+#if 0
+    TypeFunction *tfeq;
+    {
+        Scope sc;
+        Array *arguments = new Array;
+        Parameter *arg = new Parameter(In, tc, NULL, NULL);
+
+        arguments->push(arg);
+        tfeq = new TypeFunction(arguments, Type::tint32, 0, LINKd);
+        tfeq = (TypeFunction *)tfeq->semantic(0, &sc);
+    }
+#endif
 
     s = search_function(sd, Id::tohash);
     fdx = s ? s->isFuncDeclaration() : NULL;
@@ -555,27 +557,25 @@ void TypeInfoStructDeclaration::toDt(dt_t **pdt)
     else
         dtsize_t(pdt, 0);
 
-    if (sd->eq)
-        dtxoff(pdt, sd->eq->toSymbol(), 0, TYnptr);
-    else
-        dtsize_t(pdt, 0);
-
-    s = search_function(sd, Id::cmp);
+    s = search_function(sd, Id::eq);
     fdx = s ? s->isFuncDeclaration() : NULL;
-    if (fdx)
+    for (int i = 0; i < 2; i++)
     {
-        //printf("test1 %s, %s, %s\n", fdx->toChars(), fdx->type->toChars(), tfeqptr->toChars());
-        fd = fdx->overloadExactMatch(tfcmpptr);
-        if (fd)
-        {   dtxoff(pdt, fd->toSymbol(), 0, TYnptr);
-            //printf("test2\n");
+        if (fdx)
+        {   fd = fdx->overloadExactMatch(tfeqptr);
+            if (fd)
+                dtxoff(pdt, fd->toSymbol(), 0, TYnptr);
+            else
+                //fdx->error("must be declared as extern (D) int %s(%s*)", fdx->toChars(), sd->toChars());
+                dtsize_t(pdt, 0);
         }
         else
             //fdx->error("must be declared as extern (D) int %s(%s*)", fdx->toChars(), sd->toChars());
             dtsize_t(pdt, 0);
+
+        s = search_function(sd, Id::cmp);
+        fdx = s ? s->isFuncDeclaration() : NULL;
     }
-    else
-        dtsize_t(pdt, 0);
 
     s = search_function(sd, Id::tostring);
     fdx = s ? s->isFuncDeclaration() : NULL;
@@ -620,8 +620,20 @@ void TypeInfoStructDeclaration::toDt(dt_t **pdt)
 #endif
     if (global.params.isX86_64)
     {
-        dtsize_t(pdt, 0);                        // m_arg1
-        dtsize_t(pdt, 0);                        // m_arg2
+        TypeTuple *tup = tc->toArgTypes();
+        assert(tup->arguments->dim <= 2);
+        for (int i = 0; i < 2; i++)
+        {
+            if (i < tup->arguments->dim)
+            {
+                Type *targ = ((Parameter *)tup->arguments->data[i])->type;
+                targ = targ->merge();
+                targ->getTypeInfo(NULL);
+                dtxoff(pdt, targ->vtinfo->toSymbol(), 0, TYnptr);       // m_argi
+            }
+            else
+                dtsize_t(pdt, 0);                    // m_argi
+        }
     }
 
     // name[]
@@ -631,7 +643,6 @@ void TypeInfoStructDeclaration::toDt(dt_t **pdt)
 void TypeInfoClassDeclaration::toDt(dt_t **pdt)
 {
     //printf("TypeInfoClassDeclaration::toDt() %s\n", tinfo->toChars());
-#if DMDV1
     dtxoff(pdt, Type::typeinfoclass->toVtblSymbol(), 0, TYnptr); // vtbl for TypeInfoClass
     dtsize_t(pdt, 0);                        // monitor
 
@@ -644,9 +655,6 @@ void TypeInfoClassDeclaration::toDt(dt_t **pdt)
         tc->sym->vclassinfo = new ClassInfoDeclaration(tc->sym);
     s = tc->sym->vclassinfo->toSymbol();
     dtxoff(pdt, s, 0, TYnptr);          // ClassInfo for tinfo
-#else
-    assert(0);
-#endif
 }
 
 void TypeInfoInterfaceDeclaration::toDt(dt_t **pdt)
@@ -661,11 +669,7 @@ void TypeInfoInterfaceDeclaration::toDt(dt_t **pdt)
     Symbol *s;
 
     if (!tc->sym->vclassinfo)
-#if DMDV1
         tc->sym->vclassinfo = new ClassInfoDeclaration(tc->sym);
-#else
-        tc->sym->vclassinfo = new TypeInfoClassDeclaration(tc);
-#endif
     s = tc->sym->vclassinfo->toSymbol();
     dtxoff(pdt, s, 0, TYnptr);          // ClassInfo for tinfo
 }
