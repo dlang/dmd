@@ -2517,7 +2517,7 @@ code *cdfunc(elem *e,regm_t *pretregs)
                         continue;       // goes in register, not stack
                     }
                 }
-                if (xmmcnt < XMM7)
+                if (xmmcnt <= XMM7)
                 {
                     if (tyfloating(ty) && tysize(ty) <= 8)
                     {

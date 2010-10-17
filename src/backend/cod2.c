@@ -2515,7 +2515,14 @@ code *cdind(elem *e,regm_t *pretregs)
         assert(!byte || retregs & BYTEREGS);
         c = cat(c,allocreg(&retregs,&reg,tym)); /* alloc registers */
         }
-        if (sz <= REGSIZE)
+        if (retregs & XMMREGS)
+        {
+            assert(sz == 4 || sz == 8);         // float or double
+            cs.Iop = (sz == 4) ? 0xF30F10 : 0xF20F10;
+            reg -= XMM0;
+            goto L2;
+        }
+        else if (sz <= REGSIZE)
         {
                 cs.Iop = 0x8B ^ byte;
         L2:     code_newreg(&cs,reg);

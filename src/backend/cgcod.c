@@ -626,7 +626,7 @@ void stackoffsets(int flags)
                     sz++;               // guard against 0 length structs
             }
 
-            //dbg_printf("symbol '%s', size = x%lx, read = %x\n",s->Sident,(long)sz, s->Sflags & SFLread);
+            //printf("symbol '%s', size = x%lx, align = %d, read = %x\n",s->Sident,(long)sz, (int)type_alignsize(s->Stype), s->Sflags & SFLread);
             assert((int)sz >= 0);
 
             if (pass == 1)
@@ -655,7 +655,7 @@ void stackoffsets(int flags)
                     //printf("fastpar '%s' sz = %d, auto offset =  x%lx\n",s->Sident,sz,(long)s->Soffset);
 
                     // Align doubles to 8 byte boundary
-                    if (I32 && type_alignsize(s->Stype) > REGSIZE)
+                    if (!I16 && type_alignsize(s->Stype) > REGSIZE)
                         Aalign = type_alignsize(s->Stype);
                 }
                 continue;
@@ -724,7 +724,7 @@ void stackoffsets(int flags)
                         vec_setbit(si,tbl);
 
                     // Align doubles to 8 byte boundary
-                    if (I32 && type_alignsize(s->Stype) > REGSIZE)
+                    if (!I16 && type_alignsize(s->Stype) > REGSIZE)
                         Aalign = type_alignsize(s->Stype);
                 L2:
                     break;
