@@ -1,4 +1,3 @@
-// PERMUTE_ARGS: -inline -release -g -unittest
 
 import std.stdio;
 
@@ -2017,7 +2016,8 @@ struct S {
 
 int badfoo(){
    S[2] c;
-   c[4].x=6;  // array bounds error
+   int w = 4;
+   c[w].x=6;  // array bounds error
    return 7;
 }
 
