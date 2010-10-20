@@ -771,6 +771,7 @@ void FuncDeclaration::semantic3(Scope *sc)
 {   TypeFunction *f;
     VarDeclaration *argptr = NULL;
     VarDeclaration *_arguments = NULL;
+    int nerrors = global.errors;
 
     if (!parent)
     {
@@ -1589,7 +1590,11 @@ void FuncDeclaration::semantic3(Scope *sc)
         sc2->callSuper = 0;
         sc2->pop();
     }
-    semanticRun = PASSsemantic3done;
+
+    if (global.gag && global.errors != nerrors)
+        semanticRun = PASSsemanticdone; // Ensure errors get reported again
+    else
+        semanticRun = PASSsemantic3done;
 }
 
 void FuncDeclaration::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
