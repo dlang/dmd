@@ -2120,6 +2120,121 @@ void test118() {}
 
 /***************************************************/
 
+void bug4465()
+{
+    const a = 2 ^^ 2;
+    int b = a;
+}
+
+/***************************************************/
+
+pure void foo(int *p)
+{
+    *p = 3;
+}
+
+pure void test120()
+{
+    int i;
+    foo(&i);
+    assert(i == 3);
+}
+
+/***************************************************/
+// 4866
+
+immutable int[3] statik = [ 1, 2, 3 ];
+enum immutable(int)[] dynamic = statik;
+
+static assert(is(typeof(dynamic) == immutable(int)[]));
+static if (! is(typeof(dynamic) == immutable(int)[]))
+{
+    static assert(0);   // (7)
+}
+pragma(msg, "!! ", typeof(dynamic));
+
+/***************************************************/
+// 2943
+
+struct Foo2943
+{
+    int a;
+    int b;
+    alias b this;
+}
+
+void test122()
+{
+    Foo2943 foo, foo2;
+    foo.a = 1;
+    foo.b = 2;
+    foo2.a = 3;
+    foo2.b = 4;
+
+    foo2 = foo;
+    assert(foo2.a == foo.a);
+}
+
+/***************************************************/
+// 4641
+
+struct S123 {
+    int i;
+    alias i this;
+}
+
+void test123() {
+    S123[int] ss;
+    ss[0] = S123.init; // This line causes Range Violation.
+}
+
+/***************************************************/
+// 2451
+
+struct Foo124 {
+    int z = 3;
+    void opAssign(Foo124 x) { z= 2;}
+}
+
+struct Bar124 {
+    int z = 3;
+    this(this){ z = 17; }
+}
+
+void test124() {
+    Foo124[string] stuff;
+    stuff["foo"] = Foo124.init;
+    assert(stuff["foo"].z == 2);
+
+    Bar124[string] stuff2;
+    Bar124 q;
+    stuff2["dog"] = q;
+    assert(stuff2["dog"].z == 17);   
+}
+
+/***************************************************/
+
+void doNothing() {}
+
+void bug5071(short d, ref short c) {
+   assert(c==0x76);
+
+    void closure() {
+        auto c2 = c;
+        auto d2 = d;
+        doNothing();
+    }
+    auto useless = &closure;    
+}
+
+void test125()
+{
+   short c = 0x76;
+   bug5071(7, c);
+}
+
+/***************************************************/
+
 int main()
 {
     test1();
@@ -2240,6 +2355,13 @@ int main()
     test116();
     test117();
     test118();
+
+    test120();
+
+    test122();
+    test123();
+    test124();
+    test125();
 
     printf("Success\n");
     return 0;

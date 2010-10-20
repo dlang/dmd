@@ -645,6 +645,12 @@ void FuncDeclaration::buildClosure(IRState *irs)
                 memalignsize = memsize;
                 xalign = global.structalign;
             }
+            else if (v->isRef() || v->isOut())
+            {    // reference parameters are just pointers
+                memsize = PTRSIZE;
+                memalignsize = memsize;
+                xalign = global.structalign;
+            }
             else
 #endif
             {
