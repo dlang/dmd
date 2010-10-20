@@ -1943,6 +1943,8 @@ code *eq87(elem *e,regm_t *pretregs)
             cs.Iflags |= CFwait;
         c2 = gen(c2, &cs);
 #if LNGDBLSIZE == 12
+        if (tysize[TYldouble] == 12)
+        {
         /* This deals with the fact that 10 byte reals really
          * occupy 12 bytes by zeroing the extra 2 bytes.
          */
@@ -1955,6 +1957,7 @@ code *eq87(elem *e,regm_t *pretregs)
             cs.IEV2.Vint = 0;
             cs.Iflags |= CFopsize;
             c2 = gen(c2, &cs);
+        }
         }
 #endif
         if (tysize[TYldouble] == 16)

@@ -1862,7 +1862,8 @@ Lcont:
          *     void* stack_args;
          *     void* reg_args;
          *   }
-         *
+         * The MOVAPS instructions seg fault if data is not aligned on
+         * 16 bytes, so this gives us a nice check to ensure no mistakes.
             MOV     voff+0*8[RBP],EDI
             MOV     voff+1*8[RBP],ESI
             MOV     voff+2*8[RBP],RDX

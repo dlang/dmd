@@ -613,7 +613,12 @@ code *movregconst(code *c,unsigned reg,targ_size_t value,regm_t flags)
             flags &= ~mPSW;                     // flags already set by XOR
         }
         else
-            c = genc2(c,0xC6,modregrmx(3,0,reg),value);  /* MOV regL,value */
+        {   c = genc2(c,0xC6,modregrmx(3,0,reg),value);  /* MOV regL,value */
+            if (reg >= 4 && I64)
+            {
+                code_orrex(c, REX);
+            }
+        }
     L2:
         if (flags & mPSW)
             genregs(c,0x84,reg,reg);            // TEST regL,regL

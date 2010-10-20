@@ -588,6 +588,7 @@ void stackoffsets(int flags)
 {
     symbol *s;
     targ_size_t Amax,sz;
+    unsigned alignsize;
     int offi;
     targ_size_t offstack[20];
     vec_t tbl = NULL;
@@ -609,30 +610,30 @@ void stackoffsets(int flags)
     {
         for (int si = 0; si < globsym.top; si++)
         {   s = globsym.tab[si];
-#if 1
             if (s->Sflags & SFLdead ||
                 (!anyiasm && !(s->Sflags & SFLread) && s->Sflags & SFLunambig &&
 #if MARS
-                 // This variable has been reference by a nested function
+                 /* mTYvolatile was set if s has been reference by a nested function
+                  * meaning we'd better allocate space for it
+                  */
                  !(s->Stype->Tty & mTYvolatile) &&
 #endif
                  (config.flags4 & CFG4optimized || !config.fulltypes))
                 )
                 sz = 0;
             else
-#endif
             {   sz = type_size(s->Stype);
                 if (sz == 0)
-                    sz++;               // guard against 0 length structs
+                    sz++;               // can't handle 0 length structs
             }
+            alignsize = type_alignsize(s->Stype);
 
             //printf("symbol '%s', size = x%lx, align = %d, read = %x\n",s->Sident,(long)sz, (int)type_alignsize(s->Stype), s->Sflags & SFLread);
             assert((int)sz >= 0);
 
             if (pass == 1)
             {
-//break;
-                if (s->Sclass == SCfastpar)
+                if (s->Sclass == SCfastpar)     // if parameter s is passed in a register
                 {
                     /* Allocate in second pass in order to get these
                      * right next to the stack frame pointer, EBP.
@@ -655,8 +656,8 @@ void stackoffsets(int flags)
                     //printf("fastpar '%s' sz = %d, auto offset =  x%lx\n",s->Sident,sz,(long)s->Soffset);
 
                     // Align doubles to 8 byte boundary
-                    if (!I16 && type_alignsize(s->Stype) > REGSIZE)
-                        Aalign = type_alignsize(s->Stype);
+                    if (!I16 && alignsize > REGSIZE)
+                        Aalign = alignsize;
                 }
                 continue;
             }
@@ -747,8 +748,10 @@ void stackoffsets(int flags)
 
                 case SCparameter:
                     Poffset = align(REGSIZE,Poffset); /* align on word stack boundary */
+                    if (I64 && alignsize == 16 && Poffset & 8)
+                        Poffset += 8;
                     s->Soffset = Poffset;
-                    //dbg_printf("param offset =  x%lx\n",(long)s->Soffset);
+                    //printf("%s param offset =  x%lx, alignsize = %d\n",s->Sident,(long)s->Soffset, (int)alignsize);
                     Poffset += (s->Sflags & SFLdouble)
                                 ? type_size(tsdouble)   // float passed as double
                                 : type_size(s->Stype);
@@ -776,6 +779,8 @@ void stackoffsets(int flags)
     }
     Aoffset = Amax;
     Aoffset = align(0,Aoffset);
+    if (Aalign > REGSIZE)
+        Aoffset = (Aoffset + Aalign - 1) & ~(Aalign - 1);
     //printf("Aligned Aoffset = x%lx, Toffset = x%lx\n", (long)Aoffset,(long)Toffset);
     Toffset = align(0,Toffset);
 
