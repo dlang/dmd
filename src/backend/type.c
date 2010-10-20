@@ -198,7 +198,15 @@ L1:
         case TYldouble:
         case TYildouble:
         case TYcldouble:
+#if TARGET_OSX
+            sz = 16;
+#elif TARGET_LINUX || TARGET_FREEBSD || TARGET_SOLARIS
+            sz = I64 ? 16 : 4;
+#elif TARGET_WINDOS
             sz = 2;
+#else
+#error "fix this"
+#endif
             break;
 
         default:
