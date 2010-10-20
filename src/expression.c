@@ -8961,7 +8961,26 @@ Expression *AssignExp::semantic(Scope *sc)
         if (op == TOKassign)
         {
             Expression *e = op_overload(sc);
-            if (e)
+            if (e && e1->op == TOKindex &&
+                ((IndexExp *)e1)->e1->type->toBasetype()->ty == Taarray)
+            {
+                // Deal with AAs (Bugzilla 2451)
+                // Rewrite as:
+                // e1 = (typeof(e2) tmp = void, tmp = e2, tmp);
+                Identifier *id = Lexer::uniqueId("__aatmp");
+                VarDeclaration *v = new VarDeclaration(loc, e2->type,
+                    id, new VoidInitializer(NULL));
+                v->storage_class |= STCctfe;
+
+                Expression *de = new DeclarationExp(loc, v);
+                VarExp *ve = new VarExp(loc, v);
+
+                AssignExp *ae = new AssignExp(loc, ve, e2);
+                e = ae->op_overload(sc);
+                e2 = new CommaExp(loc, new CommaExp(loc, de, e), ve);
+                e2 = e2->semantic(sc);
+            }
+            else if (e)
                 return e;
         }
         else if (op == TOKconstruct && !refinit)
