@@ -5123,11 +5123,15 @@ Expression *CompileExp::semantic(Scope *sc)
 #endif
     UnaExp::semantic(sc);
     e1 = resolveProperties(sc, e1);
+    if (!e1->type->isString())
+    {
+        error("argument to mixin must be a string type, not %s\n", e1->type->toChars());
+        return new ErrorExp();
+    }
     e1 = e1->optimize(WANTvalue | WANTinterpret);
     if (e1->op != TOKstring)
     {   error("argument to mixin must be a string, not (%s)", e1->toChars());
-        type = Type::terror;
-        return this;
+        return new ErrorExp();
     }
     StringExp *se = (StringExp *)e1;
     se = se->toUTF8(sc);
