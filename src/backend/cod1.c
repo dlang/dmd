@@ -2495,6 +2495,7 @@ code *cdfunc(elem *e,regm_t *pretregs)
             unsigned stackalign = REGSIZE;
             tym_t tyf = tybasic(e->E1->Ety);
 
+            // Figure out which parameters go in registers
             // Compute numpara, the total bytes pushed on the stack
             int r = 0;
             int xmmcnt = XMM0;
@@ -2526,9 +2527,15 @@ code *cdfunc(elem *e,regm_t *pretregs)
                         continue;       // goes in register, not stack
                     }
                 }
+
+                // Parameter i goes on the stack
                 parameters[i].reg = -1;         // -1 means no register
+                unsigned alignsize = el_alignsize(ep);
+                if (alignsize > stackalign)
+                    numpara = (numpara + (alignsize - 1)) & ~(alignsize - 1);
                 numpara += paramsize(ep,stackalign);
             }
+
             assert((numpara & (REGSIZE - 1)) == 0);
             assert((stackpush & (REGSIZE - 1)) == 0);
 

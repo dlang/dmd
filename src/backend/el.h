@@ -238,7 +238,7 @@ elem *el_convfloat(elem *);
 elem *el_convstring(elem *);
 elem *el_convert(elem *e);
 int el_isdependent(elem *);
-
+unsigned el_alignsize(elem *);
 
 #if  (TARGET_POWERPC)
 // convert float | double constants to memory constants

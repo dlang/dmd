@@ -237,9 +237,11 @@ extern unsigned tytab[];
 
 /* Array to give the size in bytes of a type, -1 means error    */
 extern signed char tysize[];
+extern signed char tyalignsize[];
 
 // Give size of type
 #define tysize(ty)      tysize[(ty) & 0xFF]
+#define tyalignsize(ty) tyalignsize[(ty) & 0xFF]
 
 /* All data types that fit in exactly 8 bits    */
 #ifndef tybyte

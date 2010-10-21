@@ -305,6 +305,8 @@ Usage:\n\
 ", fpic);
 }
 
+extern signed char tyalignsize[];
+
 int main(int argc, char *argv[])
 {
     int i;
