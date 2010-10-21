@@ -3121,6 +3121,34 @@ int el_isdependent(elem *e)
     return 0;
 }
 
+/****************************************
+ * Return alignment size of elem.
+ */
+
+unsigned el_alignsize(elem *e)
+{
+    tym_t tym = tybasic(e->Ety);
+    unsigned alignsize = tyalignsize(tym);
+    if (alignsize == (unsigned)-1)
+    {
+        switch (tym)
+        {
+            case TYstruct:
+                // BUG: this is not the alignment size of a struct, see type_alignsize()
+                alignsize = e->Enumbytes;
+                break;
+
+            default:
+#ifdef DEBUG
+                WRTYxx(tym);
+#endif
+                assert(0);
+                break;
+        }
+    }
+    return alignsize;
+}
+
 /*******************************
  * Check for errors in a tree.
  */

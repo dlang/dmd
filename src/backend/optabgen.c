@@ -987,6 +987,40 @@ void dotytab()
     }
     fprintf(f,"\n};\n");
 
+    for (i = 0; i < arraysize(tysize); i++)
+        tysize[i] = 0;
+    for (i = 0; i < arraysize(typetab); i++)
+    {   signed char sz = typetab[i].size;
+        switch (typetab[i].ty)
+        {
+            case TYldouble:
+            case TYildouble:
+            case TYcldouble:
+#if TARGET_OSX
+                sz = 16;
+#elif TARGET_LINUX || TARGET_FREEBSD || TARGET_SOLARIS
+                sz = 4;
+#elif TARGET_WINDOS
+                sz = 2;
+#else
+#error "fix this"
+#endif
+                break;
+        }
+        tysize[typetab[i].ty | 0x00] = sz;
+        tysize[typetab[i].ty | 0x40] = sz;
+        tysize[typetab[i].ty | 0x80] = sz;
+        tysize[typetab[i].ty | 0xC0] = sz;
+        /*printf("tyalignsize[%d] = %d\n",typetab[i].ty,typetab[i].size);*/
+    }
+    fprintf(f,"signed char tyalignsize[] =\n{ ");
+    for (i = 0; i < arraysize(tysize); i++)
+    {   fprintf(f,"%d,",tysize[i]);
+        if ((i & 7) == 7 && i < arraysize(tysize) - 1)
+            fprintf(f,"\n  ");
+    }
+    fprintf(f,"\n};\n");
+
     for (i = 0; i < arraysize(typetab); i++)
     {   _tyrelax[typetab[i].ty] = typetab[i].relty;
         /*printf("_tyrelax[%d] = %d\n",typetab[i].ty,typetab[i].relty);*/
