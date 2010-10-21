@@ -2023,12 +2023,6 @@ int badfoo(){
 
 int badglobal = 1;
 
-int badfoo2(){
-   S[] c;
-   c[7].x=6;  // uninitialized error
-   return 7;
-}
-
 int badfoo3(){
    S[2] c;
    c[badglobal].x=6;  // global index error
@@ -2071,9 +2065,15 @@ int badfoo8()
 }
 
 
-template Compileable(int z) { bool OK;}
+template Compileable(int z) { bool OK=true;}
 static assert(!is(typeof(Compileable!(badfoo()).OK)));
-static assert(!is(typeof(Compileable!(badfoo2()).OK)));
+static assert(!is(typeof(Compileable!(
+(){
+   S[] c;
+   return c[7].x;  // uninitialized error
+}()).OK
+)));
+static assert(is(typeof(Compileable!(0).OK)));
 static assert(!is(typeof(Compileable!(badfoo3()).OK)));
 static assert(!is(typeof(Compileable!(badfoo4()).OK)));
 //static assert(!is(typeof(Compileable!(badfoo5()).OK)));
@@ -2659,8 +2659,6 @@ int bug4052() {
 }
 static assert(bug4052()==4052);
 
-template Compileable(int z) { bool OK;}
-
 int bug4252()
 {
     char [] s = "abc".dup;
@@ -2695,8 +2693,6 @@ int setlen2()
 static assert(setlen2()==14);
 
 /************************************************/
-
-template Compileable(int z) { bool OK;}
 
 int bug4257(ref int x) {
   return 3;
