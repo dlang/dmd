@@ -2333,7 +2333,7 @@ code *callclib(elem *e,unsigned clib,regm_t *pretregs,regm_t keepmask)
 /*************************************************
  * Helper function for converting OPparam's into array of Parameters.
  */
-struct Parameter { elem *e; int reg; };
+struct Parameter { elem *e; int reg; unsigned numalign; };
 
 void fillParameters(elem *e, Parameter *parameters, int *pi)
 {
@@ -2531,8 +2531,12 @@ code *cdfunc(elem *e,regm_t *pretregs)
                 // Parameter i goes on the stack
                 parameters[i].reg = -1;         // -1 means no register
                 unsigned alignsize = el_alignsize(ep);
+                parameters[i].numalign = 0;
                 if (alignsize > stackalign)
-                    numpara = (numpara + (alignsize - 1)) & ~(alignsize - 1);
+                {   unsigned newnumpara = (numpara + (alignsize - 1)) & ~(alignsize - 1);
+                    parameters[i].numalign = newnumpara - numpara;
+                    numpara = newnumpara;
+                }
                 numpara += paramsize(ep,stackalign);
             }
 
@@ -2545,7 +2549,7 @@ code *cdfunc(elem *e,regm_t *pretregs)
             if (STACKALIGN == 16 && (numpara + stackpush) & (STACKALIGN - 1))
             {
                 numalign = STACKALIGN - ((numpara + stackpush) & (STACKALIGN - 1));
-                c = genc2(NULL,0x81,(REX_W << 16) | modregrm(3,5,SP),numalign); // SUB ESP,numalign
+                c = genc2(NULL,0x81,(REX_W << 16) | modregrm(3,5,SP),numalign); // SUB RSP,numalign
                 c = genadjesp(c, numalign);
                 stackpush += numalign;
                 stackpushsave += numalign;
@@ -2560,7 +2564,16 @@ code *cdfunc(elem *e,regm_t *pretregs)
                 elem *ep = parameters[i].e;
                 int preg = parameters[i].reg;
                 if (preg == -1)
+                {
                     c = cat(c,params(ep,stackalign));
+                    unsigned numalign = parameters[i].numalign;
+                    if (numalign)
+                    {
+                        c = genc2(c,0x81,(REX_W << 16) | modregrm(3,5,SP),numalign); // SUB RSP,numalign
+                        c = genadjesp(c, numalign);
+                        stackpush += numalign;
+                    }
+                }
                 else
                 {
                     // Goes in register preg, not stack
@@ -2568,7 +2581,7 @@ code *cdfunc(elem *e,regm_t *pretregs)
                     if (ep->Eoper == OPstrthis)
                     {
                         code *c1 = getregs(retregs);
-                        // LEA preg,np[ESP]
+                        // LEA preg,np[RSP]
                         unsigned np = stackpush - ep->EV.Vuns;   // stack delta to parameter
                         code *c2 = genc1(CNIL,0x8D,(REX_W << 16) |
                                              (modregrm(0,4,SP) << 8) |
