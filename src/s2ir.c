@@ -527,7 +527,7 @@ void ForeachStatement::toIR(IRState *irs)
         {
             e = el_bin(OPeq, tym, evalue, el_una(OPind, tym, e));
             e->Eoper = OPstreq;
-            e->Enumbytes = value->type->size();
+            e->ET = value->type->toCtype();
 #if DMDV2
             // Call postblit on e
             if (sd)
@@ -559,7 +559,7 @@ void ForeachStatement::toIR(IRState *irs)
                 e = el_bin(OPeq, tym, evalue, el_una(OPind, tym, e));
                 e->Eoper = OPstreq;
                 e->Ejty = e->Ety = TYstruct;
-                e->Enumbytes = value->type->size();
+                e->ET = value->type->toCtype();
             }
         }
         else
@@ -1241,7 +1241,7 @@ void ReturnStatement::toIR(IRState *irs)
                 op = (tybasic(ety) == TYstruct) ? OPstreq : OPeq;
                 es = el_bin(op, ety, es, e);
                 if (op == OPstreq)
-                    es->Enumbytes = exp->type->size();
+                    es->ET = exp->type->toCtype();
 #if DMDV2
                 /* Call postBlit() on *shidden
                  */

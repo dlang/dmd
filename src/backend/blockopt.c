@@ -503,26 +503,26 @@ void block_appendexp(block *b,elem *e)
         ec = *pe;
         if (ec != NULL)
         {
+            type *t = e->ET;
+
+            if (t)
+                type_debug(t);
+            elem_debug(e);
 #if MARS
             tym_t ty = e->Ety;
-            targ_size_t enumbytes = e->Enumbytes;
 
             elem_debug(e);
             /* Build tree such that (a,b) => (a,(b,e))  */
             while (ec->Eoper == OPcomma)
             {
                 ec->Ety = ty;
-                ec->Enumbytes = enumbytes;
+                ec->ET = t;
                 pe = &(ec->E2);
                 ec = *pe;
             }
             e = el_bin(OPcomma,ty,ec,e);
-            e->Enumbytes = enumbytes;
+            e->ET = t;
 #else
-            type *t = e->ET;
-
-            type_debug(t);
-            elem_debug(e);
             /* Build tree such that (a,b) => (a,(b,e))  */
             while (ec->Eoper == OPcomma)
             {
@@ -751,7 +751,7 @@ void brcombine()
                         b->Belem = el_bin(OPcond,ty,b->Belem,e);
                     }
                     b->BC = bc2;
-                    b->Belem->Enumbytes = b2->Belem->Enumbytes;
+                    b->Belem->ET = b2->Belem->ET;
                     b2->Belem = NULL;
                     b3->Belem = NULL;
                     list_free(&b->Bsucc,FPNULL);
@@ -792,7 +792,7 @@ void brcombine()
                                 e = el_bin(OPcolon2,b2->Belem->Ety,
                                         b2->Belem,b3->Belem);
                                 e = el_bin(OPcond,e->Ety,b->Belem,e);
-                                e->Enumbytes = b2->Belem->Enumbytes;
+                                e->ET = b2->Belem->ET;
                             }
                             else
                             {
@@ -1979,6 +1979,7 @@ STATIC elem * assignparams(elem **pe,int *psi,elem **pe2)
         int op;
         unsigned numbytes;
         elem *es;
+        type *t;
 
         assert(si < globsym.top);
         sp = globsym.tab[si];
@@ -1986,11 +1987,10 @@ STATIC elem * assignparams(elem **pe,int *psi,elem **pe2)
         s->Sfl = FLauto;
         op = OPeq;
         if (e->Eoper == OPstrpar)
-        {   elem *ex;
-
+        {
             op = OPstreq;
-            numbytes = e->Enumbytes;
-            ex = e;
+            t = e->ET;
+            elem *ex = e;
             e = e->E1;
             ex->E1 = NULL;
             el_free(ex);
@@ -1999,11 +1999,11 @@ STATIC elem * assignparams(elem **pe,int *psi,elem **pe2)
         es->Ety = e->Ety;
         e = el_bin(op,TYvoid,es,e);
         if (op == OPstreq)
-            e->Enumbytes = numbytes;
+            e->ET = t;
         *pe2 = el_bin(op,TYvoid,el_var(sp),el_copytree(es));
         (*pe2)->E1->Ety = es->Ety;
         if (op == OPstreq)
-            (*pe2)->Enumbytes = numbytes;
+            (*pe2)->ET = t;
         *psi = ++si;
         *pe = NULL;
     }

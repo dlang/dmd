@@ -185,7 +185,7 @@ void WReqn(elem *e)
         ferr(" ");
         WROP(e->Eoper);
         if (e->Eoper == OPstreq)
-            dbg_printf("%ld",(long)e->Enumbytes);
+            dbg_printf("%ld",(long)type_size(e->ET));
         ferr(" ");
         if (OTbinary(e->E2->Eoper))
         {       nest++;

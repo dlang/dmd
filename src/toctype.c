@@ -415,7 +415,6 @@ type *TypeClass::toCtype()
             list_append(&s->Sstruct->Sfldlst, s2);
         }
 
-
     return t;
 }
 

@@ -75,7 +75,7 @@ STATIC elem * cgel_lvalue(elem *e)
             e1->E1 = e11->E2;
             e11->E2 = e;
             e11->Ety = e->Ety;
-            e11->Enumbytes = e->Enumbytes;
+            e11->ET = e->ET;
             e = e11;
             goto L1;
         }
@@ -93,7 +93,7 @@ STATIC elem * cgel_lvalue(elem *e)
         e->Eoper = OPcomma;
         e1->Eoper = op;
         e1->Ety = e->Ety;
-        e1->Enumbytes = e->Enumbytes;
+        e1->ET = e->ET;
         e->E1 = e1->E1;
         e1->E1 = e1->E2;
         e1->E2 = e->E2;
@@ -634,14 +634,25 @@ STATIC elem * elstrcpy(elem *e)
 #endif
         case OPstring:
             /* Replace strcpy(e1,"string") with memcpy(e1,"string",sizeof("string")) */
+#if 0
+            // As memcpy
+            e->Eoper = OPmemcpy;
+            elem *en = el_long(TYsize_t, strlen(e->E2->EV.ss.Vstring) + 1);
+            e->E2 = el_bin(OPparam,TYvoid,e->E2,en);
+#else
+            // As streq
             e->Eoper = OPstreq;
-            e->Enumbytes = strlen(e->E2->EV.ss.Vstring) + 1;
+            type *t = type_allocn(TYarray, tschar);
+            t->Tdim = strlen(e->E2->EV.ss.Vstring) + 1;
+            e->ET = t;
+            t->Tcount++;
             e->E1 = el_una(OPind,TYstruct,e->E1);
             e->E2 = el_una(OPind,TYstruct,e->E2);
 
             e = el_bin(OPcomma,e->Ety,e,el_copytree(e->E1->E1));
             if (el_sideeffect(e->E2))
                 fixside(&e->E1->E1->E1,&e->E2);
+#endif
             e = optelem(e,TRUE);
             break;
     }
@@ -771,9 +782,13 @@ STATIC elem * elmemxxx(elem *e)
                         el_free(ex);
                         return optelem(e, TRUE);
                     }
+#if 1
                     // Convert OPmemcpy to OPstreq
                     e->Eoper = OPstreq;
-                    e->Enumbytes = el_tolong(ex->E2);
+                    type *t = type_allocn(TYarray, tschar);
+                    t->Tdim = el_tolong(ex->E2);
+                    e->ET = t;
+                    t->Tcount++;
                     e->E1 = el_una(OPind,TYstruct,e->E1);
                     e->E2 = el_una(OPind,TYstruct,ex->E1);
                     ex->E1 = NULL;
@@ -785,6 +800,7 @@ STATIC elem * elmemxxx(elem *e)
                     if (el_sideeffect(e->E2))
                         fixside(&e->E1->E1->E1,&e->E2);
                     return optelem(e,TRUE);
+#endif
                 }
                 break;
 
@@ -2414,7 +2430,6 @@ L1:
 STATIC elem * elind(elem *e)
 { elem *e1;
   tym_t tym;
-  unsigned numbytes;
 
   tym = e->Ety;
   e1 = e->E1;
@@ -2425,7 +2440,7 @@ STATIC elem * elind(elem *e)
           if (el_fl(e1) != FLdatseg)
 #endif
           {
-            e->E1->Enumbytes = e->Enumbytes;
+            e->E1->ET = e->ET;
             e = el_selecte1(e);
             e->Eoper = OPvar;
             e->Ety = tym;               /* preserve original type       */
@@ -2449,12 +2464,12 @@ STATIC elem * elind(elem *e)
             break;
         case OPcomma:
             // Replace (*(ea,eb)) with (ea,*eb)
-            e->E1->Enumbytes = e->Enumbytes;
-            numbytes = e->Enumbytes;
+            e->E1->ET = e->ET;
+            type *t = e->ET;
             e = el_selecte1(e);
             e->Ety = tym;
             e->E2 = el_una(OPind,tym,e->E2);
-            e->E2->Enumbytes = numbytes;
+            e->E2->ET = t;
 #if TX86
             again = 1;
             return e;
@@ -2629,7 +2644,8 @@ CEXTERN elem * elstruct(elem *e)
     if (e->Eoper == OPstreq && (e->E1->Eoper == OPcomma || OTassign(e->E1->Eoper)))
         return cgel_lvalue(e);
     //printf("\tnumbytes = %d\n", (int)e->Enumbytes);
-    switch ((int) e->Enumbytes)
+    if (e->ET)
+    switch ((int) type_size(e->ET))
     {
 #if TX86 || TARGET_68K
         // powerPC rtm structs are always in memory
@@ -4390,7 +4406,7 @@ beg:
               e1->Eoper == OPcomma)
           {     // Convert ((a,b) op c) to (a,(b op c))
                 e1->Ety = e->Ety;
-                e1->Enumbytes = e->Enumbytes;
+                e1->ET = e->ET;
                 e->E1 = e1->E2;
                 e1->E2 = e;
                 e = e1;

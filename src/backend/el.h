@@ -52,9 +52,6 @@ struct elem
         // PARSER
         struct
         {
-            struct TYPE *ET_;   // pointer to type of elem
-            #define ET _EU._EP.ET_
-
             unsigned PEFflags_;
             #define PEFflags _EU._EP.PEFflags_
                 #define PEFnotlvalue    1       // although elem may look like
@@ -128,7 +125,7 @@ struct elem
         }_EC;
     }_EU;
 
-    unsigned Enumbytes;         // number of bytes for type if TYstruct | TYarray
+    struct TYPE *ET;            // pointer to type of elem if TYstruct | TYarray
     TARGET_structELEM           // target specific additions
     Srcpos Esrcpos;             // source file position
 };
