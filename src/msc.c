@@ -330,7 +330,7 @@ elem *exp2_copytotemp(elem *e)
     if (e->Ety == TYstruct)
     {
         eeq->Eoper = OPstreq;
-        eeq->Enumbytes = e->Enumbytes;
+        eeq->ET = e->ET;
     }
     return el_bin(OPcomma,e->Ety,eeq,el_var(stmp));
 }

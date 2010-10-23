@@ -397,7 +397,7 @@ elem *poptelem(elem *e)
                 else if (tybasic(e->ET->Tty) == TYstruct || tybasic(e->ET->Tty) == TYarray)
                     {
                     to_sz = LONGSIZE;
-                    e1->Enumbytes = e->Enumbytes;
+                    e1->ET = e->ET;
                     }
                 if(to_sz == frm_sz)
                 {       /* convert *(&var) to var       */

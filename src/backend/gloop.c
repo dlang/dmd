@@ -1338,7 +1338,7 @@ void updaterd(elem *n,vec_t GEN,vec_t KILL)
         targ_size_t tsize;
         targ_size_t ttop;
 
-        tsize = (op == OPstreq) ? n->Enumbytes : tysize(t->Ety);
+        tsize = (op == OPstreq) ? type_size(n->ET) : tysize(t->Ety);
         ttop = toff + tsize;
 
         //printf("updaterd: "); WReqn(n); printf(" toff=%d, tsize=%d\n", toff, tsize);
@@ -1364,7 +1364,7 @@ void updaterd(elem *n,vec_t GEN,vec_t KILL)
 
             // If t completely overlaps tn1
             tn1size = (tn->Eoper == OPstreq)
-                ? tn->Enumbytes : tysize(tn1->Ety);
+                ? type_size(tn->ET) : tysize(tn1->Ety);
             if (toff <= tn1->EV.sp.Voffset &&
                 tn1->EV.sp.Voffset + tn1size <= ttop)
             {

@@ -688,9 +688,11 @@ void FuncDeclaration::buildClosure(IRState *irs)
             ex = el_bin(OPadd, TYnptr, el_var(sclosure), el_long(TYint, v->offset));
             ex = el_una(OPind, tym, ex);
             if (ex->Ety == TYstruct)
-            {   ex->Enumbytes = v->type->size();
+            {
+                ::type *t = v->type->toCtype();
+                ex->ET = t;
                 ex = el_bin(OPstreq, tym, ex, el_var(v->toSymbol()));
-                ex->Enumbytes = v->type->size();
+                ex->ET = t;
             }
             else
                 ex = el_bin(OPeq, tym, ex, el_var(v->toSymbol()));

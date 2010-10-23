@@ -528,7 +528,7 @@ void ForeachStatement::toIR(IRState *irs)
         if (tybasic(tym) == TYstruct)
         {
             e->Eoper = OPstreq;
-            e->Enumbytes = value->type->size();
+            e->ET = value->type->toCtype();
 #if DMDV2
             // Call postblit on e
             if (sd)
@@ -544,7 +544,7 @@ void ForeachStatement::toIR(IRState *irs)
         {
             e->Eoper = OPstreq;
             e->Ejty = e->Ety = TYstruct;
-            e->Enumbytes = value->type->size();
+            e->ET = value->type->toCtype();
         }
     }
     incUsage(irs, loc);
@@ -1219,15 +1219,12 @@ void ReturnStatement::toIR(IRState *irs)
             {
                 // Return value via hidden pointer passed as parameter
                 // Write *shidden=exp; return shidden;
-                int op;
-                tym_t ety;
-
-                ety = e->Ety;
+                tym_t ety = e->Ety;
                 es = el_una(OPind,ety,el_var(irs->shidden));
-                op = (tybasic(ety) == TYstruct) ? OPstreq : OPeq;
+                int op = (tybasic(ety) == TYstruct) ? OPstreq : OPeq;
                 es = el_bin(op, ety, es, e);
                 if (op == OPstreq)
-                    es->Enumbytes = exp->type->size();
+                    es->ET = exp->type->toCtype();
 #if DMDV2
                 /* Call postBlit() on *shidden
                  */

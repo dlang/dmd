@@ -795,7 +795,7 @@ elem * el_bin(unsigned op,tym_t ty,elem *e1,elem *e2)
     e->E1 = e1;
     e->E2 = e2;
     if (op == OPcomma && tyaggregate(ty))
-        e->Enumbytes = e2->Enumbytes;
+        e->ET = e2->ET;
     return e;
 }
 
@@ -2507,7 +2507,7 @@ L1:
         else if (OPTIMIZER)
         {
             if (op == OPstrpar || op == OPstrctor)
-            {   if (n1->Enumbytes != n2->Enumbytes)
+            {   if (/*n1->Enumbytes != n2->Enumbytes ||*/ n1->ET != n2->ET)
                     goto nomatch;
             }
             n1 = n1->E1;
@@ -2530,7 +2530,7 @@ L1:
         if (!PARSER)
         {
             if (op == OPstreq)
-            {   if (n1->Enumbytes != n2->Enumbytes)
+            {   if (/*n1->Enumbytes != n2->Enumbytes ||*/ n1->ET != n2->ET)
                     goto nomatch;
             }
         }
@@ -3131,20 +3131,8 @@ unsigned el_alignsize(elem *e)
     unsigned alignsize = tyalignsize(tym);
     if (alignsize == (unsigned)-1)
     {
-        switch (tym)
-        {
-            case TYstruct:
-                // BUG: this is not the alignment size of a struct, see type_alignsize()
-                alignsize = e->Enumbytes;
-                break;
-
-            default:
-#ifdef DEBUG
-                WRTYxx(tym);
-#endif
-                assert(0);
-                break;
-        }
+        assert(e->ET);
+        alignsize = type_alignsize(e->ET);
     }
     return alignsize;
 }
@@ -3224,7 +3212,7 @@ void elem_print(elem *e)
  && (e->PEFflags & PEFstrsize)
 #endif
                )
-                dbg_printf("%d ",e->Enumbytes);
+                dbg_printf("%d ", type_size(e->ET));
             WRTYxx(e->ET->Tty);
         }
   }
@@ -3232,7 +3220,7 @@ void elem_print(elem *e)
   {
         if ((e->Eoper == OPstrpar || e->Eoper == OPstrctor || e->Eoper == OPstreq) ||
             e->Ety == TYstruct)
-            dbg_printf("%d ",e->Enumbytes);
+            dbg_printf("%d ", type_size(e->ET));
         WRTYxx(e->Ety);
   }
   if (OTunary(e->Eoper))
@@ -3246,7 +3234,7 @@ void elem_print(elem *e)
   else if (OTbinary(e->Eoper))
   {
         if (!PARSER && e->Eoper == OPstreq)
-                dbg_printf("bytes=%d ",e->Enumbytes);
+                dbg_printf("bytes=%d ", type_size(e->ET));
         dbg_printf("%p %p\n",e->E1,e->E2);
         elem_print(e->E1);
         elem_print(e->E2);

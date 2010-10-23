@@ -2393,10 +2393,12 @@ code *cdfunc(elem *e,regm_t *pretregs)
                     {
                         numpara += paramsize(ep->E1,stackalign);
                     }
+                    unsigned sz;
                     if (tyf == TYjfunc &&
                         // This must match type_jparam()
                         !(tyjparam(ep->Ety) ||
-                          ((tybasic(ep->Ety) == TYstruct || tybasic(ep->Ety) == TYarray) && ep->Enumbytes <= intsize && ep->Enumbytes != 3 && ep->Enumbytes)
+                          ((tybasic(ep->Ety) == TYstruct || tybasic(ep->Ety) == TYarray) &&
+                           (sz = type_size(ep->ET)) <= intsize && sz != 3 && sz)
                          )
                         )
                     {
@@ -2444,10 +2446,12 @@ code *cdfunc(elem *e,regm_t *pretregs)
                         en = ep->E2;
                         freenode(ep);
                     }
+                    unsigned sz;
                     if (tyf == TYjfunc &&
                         // This must match type_jparam()
                         !(tyjparam(ep->Ety) ||
-                          ((tybasic(ep->Ety) == TYstruct || tybasic(ep->Ety) == TYarray) && ep->Enumbytes <= intsize && ep->Enumbytes != 3 && ep->Enumbytes)
+                          ((tybasic(ep->Ety) == TYstruct || tybasic(ep->Ety) == TYarray) &&
+                           (sz = type_size(ep->ET)) <= intsize && sz != 3 && sz)
                          )
                         )
                     {
@@ -2505,12 +2509,12 @@ code *cdfunc(elem *e,regm_t *pretregs)
                 elem *ep = parameters[i].e;
                 tym_t ty = ep->Ety;
                 if (r < sizeof(argregs)/sizeof(argregs[0]))     // if more arg regs
-                {
+                {   unsigned sz;
                     if (
                         // This must match type_jparam()
                         ty64reg(ty) ||
                         ((tybasic(ty) == TYstruct || tybasic(ty) == TYarray) &&
-                         (ep->Enumbytes == 1 || ep->Enumbytes == 2 || ep->Enumbytes == 4 || ep->Enumbytes == 8))
+                         ((sz = type_size(ep->ET)) == 1 || sz == 2 || sz == 4 || sz == 8))
                        )
                     {
                         parameters[i].reg = argregs[r];
@@ -2946,7 +2950,7 @@ targ_size_t paramsize(elem *e,unsigned stackalign)
     if (tyscalar(tym))
         szb = size(tym);
     else if (tym == TYstruct)
-        szb = e->Enumbytes;
+        szb = type_size(e->ET);
     else
     {
 #ifdef DEBUG
@@ -2999,7 +3003,7 @@ code *params(elem *e,unsigned stackalign)
   if (tyscalar(tym))
         szb = size(tym);
   else if (tym == TYstruct)
-        szb = e->Enumbytes;
+        szb = type_size(e->ET);
   else
   {
 #ifdef DEBUG

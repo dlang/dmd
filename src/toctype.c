@@ -378,30 +378,29 @@ type *TypeClass::toCtype()
     if (ctype)
         return ctype;
 
+    s = symbol_calloc(sym->toPrettyChars());
+    s->Sclass = SCstruct;
+    s->Sstruct = struct_calloc();
+    s->Sstruct->Sflags |= STRclass;
+    s->Sstruct->Salignsize = sym->alignsize;
+    s->Sstruct->Sstructalign = sym->structalign;
+    s->Sstruct->Sstructsize = sym->structsize;
+
+    t = type_alloc(TYstruct);
+    t->Ttag = (Classsym *)s;                // structure tag name
+    t->Tcount++;
+    s->Stype = t;
+    slist_add(s);
+
+    t = type_allocn(TYnptr, t);
+
+    t->Tcount++;
+    ctype = t;
+
+    /* Add in fields of the class
+     * (after setting ctype to avoid infinite recursion)
+     */
     if (global.params.symdebug)
-    {
-        s = symbol_calloc(sym->toPrettyChars());
-        //s = symbol_calloc(deco);
-        s->Sclass = SCstruct;
-        s->Sstruct = struct_calloc();
-        s->Sstruct->Sflags |= STRclass;
-        s->Sstruct->Salignsize = sym->alignsize;
-        s->Sstruct->Sstructalign = sym->structalign;
-        s->Sstruct->Sstructsize = sym->structsize;
-
-        t = type_alloc(TYstruct);
-        t->Ttag = (Classsym *)s;                // structure tag name
-        t->Tcount++;
-        s->Stype = t;
-        slist_add(s);
-
-        t = type_allocn(TYnptr, t);
-
-        t->Tcount++;
-        ctype = t;
-
-        /* Add in fields of the class
-         */
         for (int i = 0; i < sym->fields.dim; i++)
         {   VarDeclaration *v = (VarDeclaration *)sym->fields.data[i];
 
@@ -409,12 +408,7 @@ type *TypeClass::toCtype()
             s2->Smemoff = v->offset;
             list_append(&s->Sstruct->Sfldlst, s2);
         }
-    }
-    else
-    {   t = type_fake(totym());
-        t->Tcount++;
-        ctype = t;
-    }
+
     return t;
 }
 

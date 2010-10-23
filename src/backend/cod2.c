@@ -3474,12 +3474,11 @@ code *cdstreq(elem *e,regm_t *pretregs)
 { code *c1,*c2,*c3;
   code *c1a;
   regm_t srcregs,dstregs;               /* source & destination reg masks */
-  targ_uns numbytes;
   char need_DS = FALSE;
   elem *e1 = e->E1,*e2 = e->E2;
   int segreg;
 
-    numbytes = e->Enumbytes;              // # of bytes in structure/union
+    unsigned numbytes = type_size(e->ET);              // # of bytes in structure/union
     unsigned char rex = I64 ? REX_W : 0;
 
     //printf("cdstreq(e = %p, *pretregs = x%x)\n", e, *pretregs);
@@ -3623,7 +3622,7 @@ code *cdstreq(elem *e,regm_t *pretregs)
     {   /* ES:DI points past what we want       */
         regm_t retregs;
 
-        genc2(c3,0x81,(rex << 16) | modregrm(3,5,DI),e->Enumbytes);   // SUB DI,numbytes
+        genc2(c3,0x81,(rex << 16) | modregrm(3,5,DI), type_size(e->ET));   // SUB DI,numbytes
         retregs = mDI;
         if (*pretregs & mMSW && !(config.exe & EX_flat))
             retregs |= mES;
