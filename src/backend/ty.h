@@ -258,7 +258,7 @@ extern signed char tyalignsize[];
 #define tyfunc(ty)      (tytab[(ty) & 0xFF] & TYFLfunc)
 #endif
 
-/* Detect function type where parameters are pushed in reverse order    */
+/* Detect function type where parameters are pushed left to right    */
 #ifndef tyrevfunc
 #define tyrevfunc(ty)   (tytab[(ty) & 0xFF] & TYFLrevparam)
 #endif

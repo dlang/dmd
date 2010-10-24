@@ -248,10 +248,8 @@ void util_set64()
             tysize[TYldouble + i] = REALSIZE;
             tysize[TYildouble + i] = REALSIZE;
             tysize[TYcldouble + i] = 2 * REALSIZE;
-        }
 
-        for (i = 0; i < 0x100; i += 0x40)
-        {   tyalignsize[TYenum + i] = LONGSIZE;
+            tyalignsize[TYenum + i] = LONGSIZE;
             tyalignsize[TYint  + i] = LONGSIZE;
             tyalignsize[TYuint + i] = LONGSIZE;
             tyalignsize[TYnullptr + i] = 8;
@@ -269,6 +267,7 @@ void util_set64()
 #else
             assert(0);
 #endif
+            tytab[TYjfunc + i] &= ~TYFLpascal;  // set so caller cleans the stack (as in C)
         }
     }
 

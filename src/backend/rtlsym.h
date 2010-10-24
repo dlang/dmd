@@ -82,6 +82,7 @@ SYMBOL_MARS(NEWARRAYMT,    FLfunc,FREGSAVED,"_d_newarraymT", 0, t) \
 SYMBOL_MARS(NEWARRAYMIT,   FLfunc,FREGSAVED,"_d_newarraymiT", 0, t) \
 SYMBOL_MARS(ARRAYLITERALT, FLfunc,FREGSAVED,"_d_arrayliteralT", 0, t) \
 SYMBOL_MARS(ASSOCARRAYLITERALT, FLfunc,FREGSAVED,"_d_assocarrayliteralT", 0, t) \
+SYMBOL_MARS(ASSOCARRAYLITERALTX, FLfunc,FREGSAVED,"_d_assocarrayliteralTX", 0, t) \
 SYMBOL_MARS(CALLFINALIZER, FLfunc,FREGSAVED,"_d_callfinalizer", 0, t) \
 SYMBOL_MARS(CALLINTERFACEFINALIZER, FLfunc,FREGSAVED,"_d_callinterfacefinalizer", 0, t) \
 SYMBOL_MARS(DELCLASS,      FLfunc,FREGSAVED,"_d_delclass", 0, t) \
