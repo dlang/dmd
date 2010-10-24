@@ -403,12 +403,11 @@ MATCH StringExp::implicitConvTo(Type *t)
     printf("StringExp::implicitConvTo(this=%s, committed=%d, type=%s, t=%s)\n",
         toChars(), committed, type->toChars(), t->toChars());
 #endif
-    if (!committed)
-    {
     if (!committed && t->ty == Tpointer && t->next->ty == Tvoid)
     {
         return MATCHnomatch;
     }
+    if (!committed)
     if (type->ty == Tsarray || type->ty == Tarray || type->ty == Tpointer)
     {
         if (type->next->ty == Tchar)
@@ -427,14 +426,15 @@ MATCH StringExp::implicitConvTo(Type *t)
                 L1:
                     if (t->next->ty == Tchar)
                         return MATCHexact;
-                    else if (t->next->ty == Twchar)
-                        return MATCHexact;
-                    else if (t->next->ty == Tdchar)
-                        return MATCHexact;
+                    else if (!committed)
+                    {   if (t->next->ty == Twchar)
+                            return MATCHexact;
+                        else if (t->next->ty == Tdchar)
+                            return MATCHexact;
+                    }
                     break;
             }
         }
-    }
     }
     return Expression::implicitConvTo(t);
 #if 0

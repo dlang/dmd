@@ -2876,7 +2876,7 @@ STATIC code * funccall(elem *e,unsigned numpara,unsigned numalign,regm_t *pretre
 
     // If stack needs cleanup
     if (OTbinary(e->Eoper) &&
-        (!typfunc(tym1) || I64) &&
+        !typfunc(tym1) &&
       !(s && s->Sflags & SFLexit))
     {
         if (tym1 == TYhfunc)

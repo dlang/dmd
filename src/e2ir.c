@@ -230,7 +230,7 @@ elem *callfunc(Loc loc,
             unsigned vindex = fd->vtblIndex;
 
             // Build *(ev + vindex * 4)
-            ec = el_bin(OPadd,TYnptr,ev,el_long(TYint, vindex * tysize[TYnptr]));
+            ec = el_bin(OPadd,TYnptr,ev,el_long(TYsize_t, vindex * tysize[TYnptr]));
             ec = el_una(OPind,TYnptr,ec);
             ec = el_una(OPind,tybasic(sfunc->Stype->Tty),ec);
         }
@@ -382,7 +382,7 @@ elem *array_toPtr(Type *t, elem *e)
                 e = el_una(OPmsw, TYnptr, e);
 #else
                 e = el_una(OPaddr, TYnptr, e);
-                e = el_bin(OPadd, TYnptr, e, el_long(TYint, 4));
+                e = el_bin(OPadd, TYnptr, e, el_long(TYsize_t, 4));
                 e = el_una(OPind, TYnptr, e);
 #endif
             }
@@ -420,7 +420,7 @@ elem *array_toDarray(Type *t, elem *e)
         case Tsarray:
             e = el_una(OPaddr, TYnptr, e);
             dim = ((TypeSArray *)t)->dim->toInteger();
-            e = el_pair(TYdarray, el_long(TYint, dim), e);
+            e = el_pair(TYdarray, el_long(TYsize_t, dim), e);
             break;
 
         default:
@@ -486,7 +486,7 @@ elem *array_toDarray(Type *t, elem *e)
                 }
             }
             dim = 1;
-            e = el_pair(TYdarray, el_long(TYint, dim), e);
+            e = el_pair(TYdarray, el_long(TYsize_t, dim), e);
             break;
     }
     return el_combine(ef, e);
@@ -528,7 +528,7 @@ elem *sarray_toDarray(Loc loc, Type *tfrom, Type *tto, elem *e)
         dim = (dim * fsize) / tsize;
     }
   L1:
-    elen = el_long(TYint, dim);
+    elen = el_long(TYsize_t, dim);
     e = el_una(OPaddr, TYnptr, e);
     e = el_pair(TYdarray, elen, e);
     return e;
@@ -568,7 +568,7 @@ elem *setArray(elem *eptr, elem *edim, Type *tb, elem *evalue)
             default:
                 r = RTLSYM_MEMSETN;
                 evalue = el_una(OPaddr, TYnptr, evalue);
-                elem *esz = el_long(TYint, sz);
+                elem *esz = el_long(TYsize_t, sz);
                 e = el_params(esz, edim, evalue, eptr, NULL);
                 e = el_bin(OPcall,TYnptr,el_var(rtlsym[r]),e);
                 return e;
@@ -578,7 +578,7 @@ elem *setArray(elem *eptr, elem *edim, Type *tb, elem *evalue)
         evalue->Eoper == OPconst && el_allbits(evalue, 0))
     {
         r = RTLSYM_MEMSET8;
-        edim = el_bin(OPmul, TYuint, edim, el_long(TYuint, sz));
+        edim = el_bin(OPmul, TYsize_t, edim, el_long(TYsize_t, sz));
     }
 
     if (tybasic(evalue->Ety) == TYstruct)
@@ -1280,7 +1280,7 @@ elem *NewExp::toElem(IRState *irs)
             }
             ethis = thisexp->toElem(irs);
             if (offset)
-                ethis = el_bin(OPadd, TYnptr, ethis, el_long(TYint, offset));
+                ethis = el_bin(OPadd, TYnptr, ethis, el_long(TYsize_t, offset));
 
             if (!cd->vthis)
             {
@@ -1288,7 +1288,7 @@ elem *NewExp::toElem(IRState *irs)
             }
             else
             {
-                ey = el_bin(OPadd, TYnptr, ey, el_long(TYint, cd->vthis->offset));
+                ey = el_bin(OPadd, TYnptr, ey, el_long(TYsize_t, cd->vthis->offset));
                 ey = el_una(OPind, TYnptr, ey);
                 ey = el_bin(OPeq, TYnptr, ey, ethis);
             }
@@ -1354,7 +1354,7 @@ elem *NewExp::toElem(IRState *irs)
                 ethis = el_una(OPaddr, TYnptr, ethis);
             }
 
-            ey = el_bin(OPadd, TYnptr, ey, el_long(TYint, cd->vthis->offset));
+            ey = el_bin(OPadd, TYnptr, ey, el_long(TYsize_t, cd->vthis->offset));
             ey = el_una(OPind, TYnptr, ey);
             ey = el_bin(OPeq, TYnptr, ey, ethis);
 
@@ -1477,7 +1477,7 @@ elem *SymOffExp::toElem(IRState *irs)
                 e = el_una(OPind, s->ty(), e);
             else if (nrvo)
             {   e = el_una(OPind, TYnptr, e);
-                e = el_bin(OPadd, e->Ety, e, el_long(TYint, offset));
+                e = el_bin(OPadd, e->Ety, e, el_long(TYsize_t, offset));
             }
             goto L1;
         }
@@ -1488,11 +1488,11 @@ elem *SymOffExp::toElem(IRState *irs)
         e = el_var(s);
         e->Ety = TYnptr;
         if (offset)
-            e = el_bin(OPadd, TYnptr, e, el_long(TYint, offset));
+            e = el_bin(OPadd, TYnptr, e, el_long(TYsize_t, offset));
     }
     else
     {   e = nrvo ? el_var(s) : el_ptr(s);
-        e = el_bin(OPadd, e->Ety, e, el_long(TYint, offset));
+        e = el_bin(OPadd, e->Ety, e, el_long(TYsize_t, offset));
     }
 
 L1:
@@ -1774,7 +1774,7 @@ elem *CatExp::toElem(IRState *irs)
 #if 1
             ep = el_params(
                            ep,
-                           el_long(TYint, n),
+                           el_long(TYsize_t, n),
                            ta->getTypeInfo(NULL)->toElem(irs),
                            NULL);
             e = el_bin(OPcall, TYdarray, el_var(rtlsym[RTLSYM_ARRAYCATNT]), ep);
@@ -1782,8 +1782,8 @@ elem *CatExp::toElem(IRState *irs)
 #else
             ep = el_params(
                            ep,
-                           el_long(TYint, n),
-                           el_long(TYint, tn->size()),
+                           el_long(TYsize_t, n),
+                           el_long(TYsize_t, tn->size()),
                            NULL);
             e = el_bin(OPcall, TYdarray, el_var(rtlsym[RTLSYM_ARRAYCATN]), ep);
             e->Eflags |= EFLAGS_variadic;
@@ -1801,7 +1801,7 @@ elem *CatExp::toElem(IRState *irs)
             ep = el_params(e2, e1, ta->getTypeInfo(NULL)->toElem(irs), NULL);
             e = el_bin(OPcall, TYdarray, el_var(rtlsym[RTLSYM_ARRAYCATT]), ep);
 #else
-            ep = el_params(el_long(TYint, tn->size()), e2, e1, NULL);
+            ep = el_params(el_long(TYsize_t, tn->size()), e2, e1, NULL);
             e = el_bin(OPcall, TYdarray, el_var(rtlsym[RTLSYM_ARRAYCAT]), ep);
 #endif
         }
@@ -2027,7 +2027,7 @@ elem *EqualExp::toElem(IRState *irs)
         es2 = el_una(OPaddr, TYnptr, es2);
 #endif
         e = el_param(es1, es2);
-        elem *ecount = el_long(TYint, t1->size());
+        elem *ecount = el_long(TYsize_t, t1->size());
         e = el_bin(OPmemcmp, TYint, e, ecount);
         e = el_bin(eop, TYint, e, el_long(TYint, 0));
         el_setLoc(e,loc);
@@ -2112,7 +2112,7 @@ elem *IdentityExp::toElem(IRState *irs)
         es2 = addressElem(es2, e2->type);
         //es2 = el_una(OPaddr, TYnptr, es2);
         e = el_param(es1, es2);
-        ecount = el_long(TYint, t1->size());
+        ecount = el_long(TYsize_t, t1->size());
         e = el_bin(OPmemcmp, TYint, e, ecount);
         e = el_bin(eop, TYint, e, el_long(TYint, 0));
         el_setLoc(e,loc);
@@ -2151,8 +2151,12 @@ elem *InExp::toElem(IRState *irs)
 
 
     // set to:
+#if 1
+    //  aaInX(aa, keyti, key);
+    key = addressElem(key, e1->type);
+    Symbol *s = taa->aaGetSymbol("InX", 0);
+#else
     //  aaIn(aa, keyti, key);
-
     if (tybasic(key->Ety) == TYstruct)
     {
         key = el_una(OPstrpar, TYstruct, key);
@@ -2165,8 +2169,8 @@ elem *InExp::toElem(IRState *irs)
         assert(e1->type->size() == taa->index->size());
         key->ET = taa->index->toCtype();
     }
-
     Symbol *s = taa->aaGetSymbol("In", 0);
+#endif
     keyti = taa->key->getInternalTypeInfo(NULL)->toElem(irs);
     ep = el_params(key, keyti, aa, NULL);
     e = el_bin(OPcall, type->totym(), el_var(s), ep);
@@ -2188,6 +2192,10 @@ elem *RemoveExp::toElem(IRState *irs)
     elem *ep;
     elem *keyti;
 
+#if 1
+    ekey = addressElem(ekey, e1->type);
+    Symbol *s = taa->aaGetSymbol("DelX", 0);
+#else
     if (tybasic(ekey->Ety) == TYstruct)
     {
         ekey = el_una(OPstrpar, TYstruct, ekey);
@@ -2195,6 +2203,7 @@ elem *RemoveExp::toElem(IRState *irs)
     }
 
     Symbol *s = taa->aaGetSymbol("Del", 0);
+#endif
     keyti = taa->key->getInternalTypeInfo(NULL)->toElem(irs);
     ep = el_params(ekey, keyti, ea, NULL);
     e = el_bin(OPcall, TYnptr, el_var(s), ep);
@@ -2242,10 +2251,10 @@ elem *AssignExp::toElem(IRState *irs)
         }
         else
         {
-            p2 = el_long(TYint, t1->next->size());
+            p2 = el_long(TYsize_t, t1->next->size());
             ep = el_params(p3, p2, p1, NULL);   // c function
             Expression *init = t1->next->defaultInit();
-            ep = el_param(el_long(TYint, init->type->size()), ep);
+            ep = el_param(el_long(TYsize_t, init->type->size()), ep);
             elem *ei = init->toElem(irs);
             ep = el_param(ei, ep);
             r = RTLSYM_ARRAYSETLENGTH3;
@@ -2377,9 +2386,9 @@ elem *AssignExp::toElem(IRState *irs)
 
                 el_free(enbytes);
                 elwr2 = el_copytree(elwr);
-                elwr2 = el_bin(OPmul, TYint, elwr2, el_long(TYint, sz));
+                elwr2 = el_bin(OPmul, TYsize_t, elwr2, el_long(TYsize_t, sz));
                 n1 = el_bin(OPadd, TYnptr, n1, elwr2);
-                enbytes = el_bin(OPmin, TYint, eupr, elwr);
+                enbytes = el_bin(OPmin, TYsize_t, eupr, elwr);
                 elength = el_copytree(enbytes);
             }
             else
@@ -2567,8 +2576,8 @@ elem *AssignExp::toElem(IRState *irs)
              *  memset(&struct, 0, struct.sizeof)
              */
             elem *el = e1->toElem(irs);
-            elem *enbytes = el_long(TYint, e1->type->size());
-            elem *evalue = el_long(TYint, 0);
+            elem *enbytes = el_long(TYsize_t, e1->type->size());
+            elem *evalue = el_long(TYsize_t, 0);
 
             el = el_una(OPaddr, TYnptr, el);
             e = el_param(enbytes, evalue);
@@ -2952,7 +2961,7 @@ elem *DotVarExp::toElem(IRState *irs)
     if (tb1->ty != Tclass && tb1->ty != Tpointer)
         //e = el_una(OPaddr, TYnptr, e);
         e = addressElem(e, tb1);
-    e = el_bin(OPadd, TYnptr, e, el_long(TYint, v ? v->offset : 0));
+    e = el_bin(OPadd, TYnptr, e, el_long(TYsize_t, v ? v->offset : 0));
     e = el_una(OPind, type->totym(), e);
     if (tybasic(e->Ety) == TYstruct)
     {
@@ -3006,7 +3015,7 @@ elem *DelegateExp::toElem(IRState *irs)
             vindex = func->vtblIndex;
 
             // Build *(ep + vindex * 4)
-            ep = el_bin(OPadd,TYnptr,ep,el_long(TYint, vindex * 4));
+            ep = el_bin(OPadd,TYnptr,ep,el_long(TYsize_t, vindex * 4));
             ep = el_una(OPind,TYnptr,ep);
         }
 
@@ -3320,7 +3329,7 @@ elem *CastExp::toElem(IRState *irs)
 
         if (fsize != tsize)
         {   // Array element sizes do not match, so we must adjust the dimensions
-            elem *ep = el_params(e, el_long(TYint, fsize), el_long(TYint, tsize), NULL);
+            elem *ep = el_params(e, el_long(TYsize_t, fsize), el_long(TYsize_t, tsize), NULL);
             e = el_bin(OPcall, type->totym(), el_var(rtlsym[RTLSYM_ARRAYCAST]), ep);
         }
         goto Lret;
@@ -3990,8 +3999,8 @@ elem *SliceExp::toElem(IRState *irs)
 
         elem *eptr = array_toPtr(e1->type, e);
 
-        elem *elength = el_bin(OPmin, TYint, eupr, elwr2);
-        eptr = el_bin(OPadd, TYnptr, eptr, el_bin(OPmul, TYint, el_copytree(elwr2), el_long(TYint, sz)));
+        elem *elength = el_bin(OPmin, TYsize_t, eupr, elwr2);
+        eptr = el_bin(OPadd, TYnptr, eptr, el_bin(OPmul, TYsize_t, el_copytree(elwr2), el_long(TYsize_t, sz)));
 
         e = el_pair(TYdarray, elength, eptr);
         e = el_combine(elwr, e);
@@ -4015,44 +4024,38 @@ elem *IndexExp::toElem(IRState *irs)
     if (t1->ty == Taarray)
     {
         // set to:
-        //      *aaGet(aa, keyti, valuesize, index);
+        //      *aaGetX(aa, keyti, valuesize, &key);
 
         TypeAArray *taa = (TypeAArray *)t1;
-        elem *keyti;
-        elem *ep;
         int vsize = taa->next->size();
         Symbol *s;
 
         // n2 becomes the index, also known as the key
         elem *n2 = e2->toElem(irs);
-        if (tybasic(n2->Ety) == TYstruct || tybasic(n2->Ety) == TYarray)
-        {
-            n2 = el_una(OPstrpar, TYstruct, n2);
-            n2->ET = n2->E1->ET;
-            if (taa->index->ty == Tsarray)
-            {
-                assert(e2->type->size() == taa->index->size());
-                n2->ET = taa->index->toCtype();
-            }
-            //printf("numbytes = %d\n", n2->Enumbytes);
-        }
-        elem *valuesize = el_long(TYuint, vsize);       // BUG: should be TYsize_t
+
+        /* Turn n2 into a pointer to the index. If it's an lvalue,
+         * take the address of it. If not, copy it to a temp and
+         * take the address of that.
+         */
+        n2 = addressElem(n2, taa->key);
+
+        elem *valuesize = el_long(TYsize_t, vsize);
         //printf("valuesize: "); elem_print(valuesize);
         if (modifiable)
         {
             n1 = el_una(OPaddr, TYnptr, n1);
-            s = taa->aaGetSymbol("Get", 1);
+            s = taa->aaGetSymbol("GetX", 1);
         }
         else
         {
-            s = taa->aaGetSymbol("GetRvalue", 1);
+            s = taa->aaGetSymbol("GetRvalueX", 1);
         }
         //printf("taa->key = %s\n", taa->key->toChars());
-        keyti = taa->key->getInternalTypeInfo(NULL)->toElem(irs);
+        elem *keyti = taa->key->getInternalTypeInfo(NULL)->toElem(irs);
         //keyti = taa->key->getTypeInfo(NULL)->toElem(irs);
         //printf("keyti:\n");
         //elem_print(keyti);
-        ep = el_params(n2, valuesize, keyti, n1, NULL);
+        elem *ep = el_params(n2, valuesize, keyti, n1, NULL);
         e = el_bin(OPcall, TYnptr, el_var(s), ep);
         if (global.params.useArrayBounds)
         {
@@ -4153,7 +4156,7 @@ elem *ArrayLiteralExp::toElem(IRState *irs)
     {   Expressions args;
         dim = elements->dim;
         args.setDim(dim + 1);           // +1 for number of args parameter
-        e = el_long(TYint, dim);
+        e = el_long(TYsize_t, dim);
         args.data[dim] = (void *)e;
         for (size_t i = 0; i < dim; i++)
         {   Expression *el = (Expression *)elements->data[i];
@@ -4175,7 +4178,7 @@ elem *ArrayLiteralExp::toElem(IRState *irs)
     }
     else
     {   dim = 0;
-        e = el_long(TYint, 0);
+        e = el_long(TYsize_t, 0);
     }
     Type *tb = type->toBasetype();
 #if 1
@@ -4185,7 +4188,7 @@ elem *ArrayLiteralExp::toElem(IRState *irs)
     e = el_bin(OPcall,TYnptr,el_var(rtlsym[RTLSYM_ARRAYLITERALT]),e);
     e->Eflags |= EFLAGS_variadic;
 #else
-    e = el_param(e, el_long(TYint, tb->next->size()));
+    e = el_param(e, el_long(TYsize_t, tb->next->size()));
 
     // call _d_arrayliteral(size, dim, ...)
     e = el_bin(OPcall,TYnptr,el_var(rtlsym[RTLSYM_ARRAYLITERAL]),e);
@@ -4193,7 +4196,7 @@ elem *ArrayLiteralExp::toElem(IRState *irs)
 #endif
     if (tb->ty == Tarray)
     {
-        e = el_pair(TYdarray, el_long(TYint, dim), e);
+        e = el_pair(TYdarray, el_long(TYsize_t, dim), e);
     }
     else if (tb->ty == Tpointer)
     {
@@ -4210,12 +4213,11 @@ elem *ArrayLiteralExp::toElem(IRState *irs)
 
 
 elem *AssocArrayLiteralExp::toElem(IRState *irs)
-{   elem *e;
-    size_t dim;
-
+{
     //printf("AssocArrayLiteralExp::toElem() %s\n", toChars());
-    dim = keys->dim;
-    e = el_long(TYint, dim);
+    // call _d_assocarrayliteralT(TypeInfo_AssociativeArray ti, size_t length, ...)
+    size_t dim = keys->dim;
+    elem *e = el_long(TYsize_t, dim);
     for (size_t i = 0; i < dim; i++)
     {   Expression *el = (Expression *)keys->data[i];
 
@@ -4228,8 +4230,8 @@ elem *AssocArrayLiteralExp::toElem(IRState *irs)
                 ep = el_una(OPstrpar, TYstruct, ep);
                 ep->ET = el->type->toCtype();
             }
-//printf("[%d] %s\n", i, el->toChars());
-//elem_print(ep);
+            //printf("[%d] %s\n", i, el->toChars());
+            //elem_print(ep);
             e = el_param(ep, e);
             el = (Expression *)values->data[i];
         }

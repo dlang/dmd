@@ -461,7 +461,11 @@ struct TypeFunction : Type
 {
     Parameters *parameters;     // function parameters
     int varargs;        // 1: T t, ...) style for variable number of arguments
+                        //    if extern (C) then this is C style va_args
+                        //    if extern (D) then D style va_args
                         // 2: T t ...) style for variable number of arguments
+                        //    where the args are stored in a local, and a
+                        //    dynamic array is passed to the function
     enum LINK linkage;  // calling convention
 
     int inuse;
