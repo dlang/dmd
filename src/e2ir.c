@@ -1710,7 +1710,7 @@ elem *NewExp::toElem(IRState *irs)
 
             // The new functions return an array, so convert to a pointer
             // ex -> (unsigned)(e >> 32)
-            e = el_bin(OPshr, TYdarray, e, el_long(TYint, 32));
+            e = el_bin(OPshr, TYdarray, e, el_long(TYint, PTRSIZE * 8));
             ex = el_una(OP64_32, TYnptr, e);
 
             ectype = NULL;

@@ -8039,6 +8039,8 @@ Expression *SliceExp::semantic(Scope *sc)
             goto Lerror;
         }
     }
+    else if (t == Type::terror)
+        goto Lerr;
     else
         goto Lerror;
 

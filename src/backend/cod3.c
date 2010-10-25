@@ -1704,7 +1704,7 @@ Lcont:
     for (si = 0; si < globsym.top; si++)
     {   symbol *s = globsym.tab[si];
         code *c2;
-        unsigned sz = tysize(s->ty());
+        unsigned sz = type_size(s->Stype);
 
         if ((s->Sclass == SCregpar || s->Sclass == SCparameter) &&
             s->Sfl == FLreg &&
@@ -1731,9 +1731,8 @@ Lcont:
                 c2->IEVpointer1 += EBPtoESP;
             }
             if (sz > REGSIZE)
-            {   code *c3;
-
-                c3 = genc1(CNIL,0x8B,
+            {
+                code *c3 = genc1(CNIL,0x8B,
                     modregxrm(2,s->Sregmsw,BPRM),FLconst,Poff + s->Soffset + REGSIZE);
                 if (I64)
                     c3->Irex |= REX_W;
@@ -1797,7 +1796,7 @@ Lcont:
                         }
                         else
                         {
-//printf("%s Aoff = %d, BPoff = %d, Soffset = %d\n", s->Sident, Aoff, BPoff, s->Soffset);
+//printf("%s Aoff = %d, BPoff = %d, Soffset = %d, sz = %d\n", s->Sident, (int)Aoff, (int)BPoff, (int)s->Soffset, (int)sz);
 //                          if (offset & 2)
 //                              c2->Iflags |= CFopsize;
                             if (I64 && sz == 8)
