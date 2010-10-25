@@ -258,6 +258,8 @@ code *cdorth(elem *e,regm_t *pretregs)
       !nest &&                          // could cause infinite recursion if e->Ecount
       (sz == REGSIZE || (I64 && sz == 4)))  // far pointers aren't handled
   {
+        unsigned rex = (sz == 8) ? REX_W : 0;
+
         // Handle the case of (e + &var)
         int e1oper = e1->Eoper;
         if ((e2oper == OPrelconst && (config.target_cpu >= TARGET_Pentium || (!e2->Ecount && stackfl[el_fl(e2)])))
@@ -282,7 +284,10 @@ code *cdorth(elem *e,regm_t *pretregs)
             c = cat(c,allocreg(pretregs,&reg,ty));
             cs.Iop = 0x8D;
             code_newreg(&cs, reg);
-            return gen(c,&cs);          /* LEA reg,EA                   */
+            c = gen(c,&cs);          // LEA reg,EA
+            if (rex)
+                code_orrex(c, rex);
+            return c;
         }
 
         // Handle the case of ((e + c) + e2)
@@ -399,6 +404,8 @@ code *cdorth(elem *e,regm_t *pretregs)
                     if (reg1 & 8)
                         code_orrex(c, REX_X | REX_B);
                 }
+                if (rex)
+                    code_orrex(c, rex);
                 reg1 = reg;
                 ss = ss2;                               // use *2 for scale
             }
@@ -411,7 +418,7 @@ code *cdorth(elem *e,regm_t *pretregs)
             cs.Isib = modregrm(ss,reg1 & 7,reg2 & 7);
             assert(reg2 != BP);
             cs.Iflags = CFoff;
-            cs.Irex = 0;
+            cs.Irex = rex;
             if (reg & 8)
                 cs.Irex |= REX_R;
             if (reg1 & 8)
@@ -2172,10 +2179,10 @@ code *cdshift(elem *e,regm_t *pretregs)
         }
         else if (sz == 2 * REGSIZE &&
                  config.target_cpu >= TARGET_80386)
-        {   unsigned hreg,lreg;
-
-            hreg = resreg;
-            lreg = sreg;
+        {
+            unsigned hreg = resreg;
+            unsigned lreg = sreg;
+            unsigned rex = I64 ? (REX_W << 16) : 0;
             if (e2isconst)
             {
                 cr = NULL;
@@ -2186,7 +2193,7 @@ code *cdshift(elem *e,regm_t *pretregs)
                     {   //      SHR hreg,shiftcnt
                         //      MOV lreg,hreg
                         //      XOR hreg,hreg
-                        c = genc2(NULL,0xC1,modregrm(3,s1,hreg),shiftcnt - (REGSIZE * 8));
+                        c = genc2(NULL,0xC1,rex | modregrm(3,s1,hreg),shiftcnt - (REGSIZE * 8));
                         c = genmovreg(c,lreg,hreg);
                         c = movregconst(c,hreg,0,0);
                     }
@@ -2195,14 +2202,14 @@ code *cdshift(elem *e,regm_t *pretregs)
                         //      SAR     hreg,31
                         //      SHRD    lreg,hreg,shiftcnt
                         c = genmovreg(NULL,lreg,hreg);
-                        c = genc2(c,0xC1,modregrm(3,s1,hreg),(REGSIZE * 8) - 1);
-                        c = genc2(c,0x0FAC,modregrm(3,hreg,lreg),shiftcnt - (REGSIZE * 8));
+                        c = genc2(c,0xC1,rex | modregrm(3,s1,hreg),(REGSIZE * 8) - 1);
+                        c = genc2(c,0x0FAC,rex | modregrm(3,hreg,lreg),shiftcnt - (REGSIZE * 8));
                     }
                     else
                     {   //      SHL lreg,shiftcnt
                         //      MOV hreg,lreg
                         //      XOR lreg,lreg
-                        c = genc2(NULL,0xC1,modregrm(3,s1,lreg),shiftcnt - (REGSIZE * 8));
+                        c = genc2(NULL,0xC1,rex | modregrm(3,s1,lreg),shiftcnt - (REGSIZE * 8));
                         c = genmovreg(c,hreg,lreg);
                         c = movregconst(c,lreg,0,0);
                     }
@@ -2212,14 +2219,14 @@ code *cdshift(elem *e,regm_t *pretregs)
                     if (oper == OPshr || oper == OPashr)
                     {   //      SHRD    lreg,hreg,shiftcnt
                         //      SHR/SAR hreg,shiftcnt
-                        c = genc2(NULL,0x0FAC,modregrm(3,hreg,lreg),shiftcnt);
-                        c = genc2(c,0xC1,modregrm(3,s1,hreg),shiftcnt);
+                        c = genc2(NULL,0x0FAC,rex | modregrm(3,hreg,lreg),shiftcnt);
+                        c = genc2(c,0xC1,rex | modregrm(3,s1,hreg),shiftcnt);
                     }
                     else
                     {   //      SHLD hreg,lreg,shiftcnt
                         //      SHL  lreg,shiftcnt
-                        c = genc2(NULL,0x0FA4,modregrm(3,lreg,hreg),shiftcnt);
-                        c = genc2(c,0xC1,modregrm(3,s1,lreg),shiftcnt);
+                        c = genc2(NULL,0x0FA4,rex | modregrm(3,lreg,hreg),shiftcnt);
+                        c = genc2(c,0xC1,rex | modregrm(3,s1,lreg),shiftcnt);
                     }
                 }
                 freenode(e2);

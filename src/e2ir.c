@@ -1417,7 +1417,7 @@ elem *NewExp::toElem(IRState *irs)
 
         // The new functions return an array, so convert to a pointer
         // e -> (unsigned)(e >> 32)
-        e = el_bin(OPshr, TYdarray, e, el_long(TYint, 32));
+        e = el_bin(OPshr, TYdarray, e, el_long(TYint, PTRSIZE * 8));
         e = el_una(I64 ? OP128_64 : OP64_32, t->totym(), e);
     }
     else
@@ -2151,26 +2151,30 @@ elem *InExp::toElem(IRState *irs)
 
 
     // set to:
-#if 1
-    //  aaInX(aa, keyti, key);
-    key = addressElem(key, e1->type);
-    Symbol *s = taa->aaGetSymbol("InX", 0);
-#else
-    //  aaIn(aa, keyti, key);
-    if (tybasic(key->Ety) == TYstruct)
+    Symbol *s;
+    if (I64)
     {
-        key = el_una(OPstrpar, TYstruct, key);
-        key->ET = key->E1->ET;
+        //  aaInX(aa, keyti, key);
+        key = addressElem(key, e1->type);
+        s = taa->aaGetSymbol("InX", 0);
     }
-    else if (tybasic(key->Ety) == TYarray && taa->index->ty == Tsarray)
-    {   // e2->elem() turns string literals into a TYarray, so the
-        // length is lost. Restore it.
-        key = el_una(OPstrpar, TYstruct, key);
-        assert(e1->type->size() == taa->index->size());
-        key->ET = taa->index->toCtype();
+    else
+    {
+        //  aaIn(aa, keyti, key);
+        if (tybasic(key->Ety) == TYstruct)
+        {
+            key = el_una(OPstrpar, TYstruct, key);
+            key->ET = key->E1->ET;
+        }
+        else if (tybasic(key->Ety) == TYarray && taa->index->ty == Tsarray)
+        {   // e2->elem() turns string literals into a TYarray, so the
+            // length is lost. Restore it.
+            key = el_una(OPstrpar, TYstruct, key);
+            assert(e1->type->size() == taa->index->size());
+            key->ET = taa->index->toCtype();
+        }
+        s = taa->aaGetSymbol("In", 0);
     }
-    Symbol *s = taa->aaGetSymbol("In", 0);
-#endif
     keyti = taa->key->getInternalTypeInfo(NULL)->toElem(irs);
     ep = el_params(key, keyti, aa, NULL);
     e = el_bin(OPcall, type->totym(), el_var(s), ep);
@@ -2192,18 +2196,22 @@ elem *RemoveExp::toElem(IRState *irs)
     elem *ep;
     elem *keyti;
 
-#if 1
-    ekey = addressElem(ekey, e1->type);
-    Symbol *s = taa->aaGetSymbol("DelX", 0);
-#else
-    if (tybasic(ekey->Ety) == TYstruct)
+    Symbol *s;
+    if (I64)
     {
-        ekey = el_una(OPstrpar, TYstruct, ekey);
-        ekey->ET = ekey->E1->ET;
+        ekey = addressElem(ekey, e1->type);
+        s = taa->aaGetSymbol("DelX", 0);
     }
+    else
+    {
+        if (tybasic(ekey->Ety) == TYstruct)
+        {
+            ekey = el_una(OPstrpar, TYstruct, ekey);
+            ekey->ET = ekey->E1->ET;
+        }
 
-    Symbol *s = taa->aaGetSymbol("Del", 0);
-#endif
+        s = taa->aaGetSymbol("Del", 0);
+    }
     keyti = taa->key->getInternalTypeInfo(NULL)->toElem(irs);
     ep = el_params(ekey, keyti, ea, NULL);
     e = el_bin(OPcall, TYnptr, el_var(s), ep);
@@ -4033,22 +4041,39 @@ elem *IndexExp::toElem(IRState *irs)
         // n2 becomes the index, also known as the key
         elem *n2 = e2->toElem(irs);
 
-        /* Turn n2 into a pointer to the index. If it's an lvalue,
-         * take the address of it. If not, copy it to a temp and
-         * take the address of that.
-         */
-        n2 = addressElem(n2, taa->key);
+        if (I64)
+        {
+            /* Turn n2 into a pointer to the index. If it's an lvalue,
+             * take the address of it. If not, copy it to a temp and
+             * take the address of that.
+             */
+            n2 = addressElem(n2, taa->key);
+        }
+        else
+        {
+            if (tybasic(n2->Ety) == TYstruct || tybasic(n2->Ety) == TYarray)
+            {
+                n2 = el_una(OPstrpar, TYstruct, n2);
+                n2->ET = n2->E1->ET;
+                if (taa->index->ty == Tsarray)
+                {
+                    assert(e2->type->size() == taa->index->size());
+                    n2->ET = taa->index->toCtype();
+                }
+                //printf("numbytes = %d\n", n2->Enumbytes);
+            }
+        }
 
         elem *valuesize = el_long(TYsize_t, vsize);
         //printf("valuesize: "); elem_print(valuesize);
         if (modifiable)
         {
             n1 = el_una(OPaddr, TYnptr, n1);
-            s = taa->aaGetSymbol("GetX", 1);
+            s = taa->aaGetSymbol(I64 ? "GetX" : "Get", 1);
         }
         else
         {
-            s = taa->aaGetSymbol("GetRvalueX", 1);
+            s = taa->aaGetSymbol(I64 ? "GetRvalueX" : "GetRvalue", 1);
         }
         //printf("taa->key = %s\n", taa->key->toChars());
         elem *keyti = taa->key->getInternalTypeInfo(NULL)->toElem(irs);

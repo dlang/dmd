@@ -1775,7 +1775,10 @@ Statement *ForeachStatement::semantic(Scope *sc)
                 Expressions *exps = new Expressions();
                 exps->push(aggr);
                 size_t keysize = taa->key->size();
-                keysize = (keysize + (PTRSIZE-1)) & ~(PTRSIZE-1);
+                if (global.params.isX86_64)
+                    keysize = (keysize + 15) & ~15;
+                else
+                    keysize = (keysize + PTRSIZE - 1) & ~(PTRSIZE - 1);
                 exps->push(new IntegerExp(0, keysize, Type::tsize_t));
                 exps->push(flde);
                 e = new CallExp(loc, ec, exps);
