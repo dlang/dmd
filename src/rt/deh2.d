@@ -148,7 +148,7 @@ size_t __eh_find_caller(size_t regbp, size_t *pretaddr)
  * Throw a D object.
  */
 
-extern (Windows) void _d_throw(Object *h)
+extern (C) void _d_throwc(Object *h)
 {
     size_t regebp;
 

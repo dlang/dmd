@@ -229,7 +229,7 @@ int _d_exception_filter(struct _EXCEPTION_POINTERS *eptrs,
  * Throw a D object.
  */
 
-void __stdcall _d_throw(Object *h)
+void _d_throwc(Object *h)
 {
     //printf("_d_throw(h = %p, &h = %p)\n", h, &h);
     //printf("\tvptr = %p\n", *(void **)h);
