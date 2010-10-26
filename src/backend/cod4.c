@@ -1738,8 +1738,40 @@ code *cdcmp(elem *e,regm_t *pretregs)
         cl = codelem(e1,&retregs,FALSE);
         retregs = mCX | mBX;
         cr = scodelem(e2,&retregs,mDX | mAX,FALSE);
-        retregs = 0;
-        c = callclib(e,CLIBlcmp,&retregs,0);    /* gross, but it works  */
+
+        if (I16)
+        {
+            retregs = 0;
+            c = callclib(e,CLIBlcmp,&retregs,0);    /* gross, but it works  */
+        }
+        else
+        {
+            /* Generate:
+             *      CMP  EDX,ECX
+             *      JNE  C1
+             *      XOR  EDX,EDX
+             *      CMP  EAX,EBX
+             *      JZ   C1
+             *      JA   C3
+             *      DEC  EDX
+             *      JMP  C1
+             * C3:  INC  EDX
+             * C1:
+             */
+             c = getregs(mDX);
+             c = genregs(c,0x39,CX,DX);         // CMP EDX,ECX
+             code *c1 = gennop(CNIL);
+             genjmp(c,JNE,FLcode,(block *)c1);  // JNE C1
+             movregconst(c,DX,0,0);             // XOR EDX,EDX
+             genregs(c,0x39,BX,AX);             // CMP EAX,EBX
+             genjmp(c,JE,FLcode,(block *)c1);   // JZ C1
+             code *c3 = gen1(CNIL,0x40 + DX);   // INC EDX
+             genjmp(c,JA,FLcode,(block *)c3);   // JA C3
+             gen1(c,0x48 + DX);                 // DEC EDX
+             genjmp(c,JMPS,FLcode,(block *)c1); // JMP C1
+             c = cat4(c,c3,c1,CNIL);
+             retregs = mPSW;
+        }
         goto L3;
   }
 
