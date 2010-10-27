@@ -4422,7 +4422,7 @@ TypeFunction::TypeFunction(Parameters *parameters, Type *treturn, int varargs, e
     this->fargs = NULL;
 
     if (stc & STCpure)
-        this->purity = PUREstrong;
+        this->purity = PUREfwdref;
     if (stc & STCnothrow)
         this->isnothrow = true;
     if (stc & STCproperty)
@@ -4818,7 +4818,7 @@ Type *TypeFunction::semantic(Loc loc, Scope *sc)
     }
 
     if (sc->stc & STCpure)
-        tf->purity = PUREstrong;
+        tf->purity = PUREfwdref;
     if (sc->stc & STCnothrow)
         tf->isnothrow = TRUE;
     if (sc->stc & STCref)
@@ -4973,7 +4973,36 @@ Type *TypeFunction::semantic(Loc loc, Scope *sc)
     if (wildsubparams && wildparams)
         error(loc, "inout must be all or none on top level for %s", toChars());
 
-    if (tf->purity)
+    if (tf->next)
+        tf->deco = tf->merge()->deco;
+
+    if (tf->inuse)
+    {   error(loc, "recursive type");
+        tf->inuse = 0;
+        return terror;
+    }
+
+    if (tf->isproperty && (tf->varargs || Parameter::dim(tf->parameters) > 1))
+        error(loc, "properties can only have zero or one parameter");
+
+    if (tf->varargs == 1 && tf->linkage != LINKd && Parameter::dim(tf->parameters) == 0)
+        error(loc, "variadic functions with non-D linkage must have at least one parameter");
+
+    /* Don't return merge(), because arg identifiers and default args
+     * can be different
+     * even though the types match
+     */
+    return tf;
+}
+
+
+/********************************************
+ * Do this lazily, as the parameter types might be forward referenced.
+ */
+void TypeFunction::purityLevel()
+{
+    TypeFunction *tf = this;
+    if (tf->purity == PUREfwdref)
     {   /* Evaluate what kind of purity based on the modifiers for the parameters
          */
         tf->purity = PUREstrong;        // assume strong until something weakens it
@@ -4987,7 +5016,7 @@ Type *TypeFunction::semantic(Loc loc, Scope *sc)
                     /* We could possibly allow this by doing further analysis on the
                      * lazy parameter to see if it's pure.
                      */
-                    error(loc, "cannot have lazy parameters to a pure function");
+                    error(0, "cannot have lazy parameters to a pure function");
                 }
                 if (fparam->storageClass & STCout)
                 {
@@ -5041,28 +5070,8 @@ Type *TypeFunction::semantic(Loc loc, Scope *sc)
             }
         }
     }
-
-    if (tf->next)
-        tf->deco = tf->merge()->deco;
-
-    if (tf->inuse)
-    {   error(loc, "recursive type");
-        tf->inuse = 0;
-        return terror;
-    }
-
-    if (tf->isproperty && (tf->varargs || Parameter::dim(tf->parameters) > 1))
-        error(loc, "properties can only have zero or one parameter");
-
-    if (tf->varargs == 1 && tf->linkage != LINKd && Parameter::dim(tf->parameters) == 0)
-        error(loc, "variadic functions with non-D linkage must have at least one parameter");
-
-    /* Don't return merge(), because arg identifiers and default args
-     * can be different
-     * even though the types match
-     */
-    return tf;
 }
+
 
 /********************************
  * 'args' are being matched to function 'this'

@@ -551,6 +551,7 @@ enum PURE
     PUREweak = 1,       // no mutable globals are read or written
     PUREconst = 2,      // parameters are values or const
     PUREstrong = 3,     // parameters are values or immutable
+    PUREfwdref = 4,     // it's pure, but not known which level yet
 };
 
 struct TypeFunction : TypeNext
@@ -573,6 +574,7 @@ struct TypeFunction : TypeNext
     TypeFunction(Parameters *parameters, Type *treturn, int varargs, enum LINK linkage, StorageClass stc = 0);
     Type *syntaxCopy();
     Type *semantic(Loc loc, Scope *sc);
+    void purityLevel();
     void toDecoBuffer(OutBuffer *buf, int flag);
     void toCBuffer(OutBuffer *buf, Identifier *ident, HdrGenState *hgs);
     void toCBuffer2(OutBuffer *buf, HdrGenState *hgs, int mod);

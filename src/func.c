@@ -2560,7 +2560,10 @@ enum PURE FuncDeclaration::isPure()
 {
     //printf("FuncDeclaration::isPure() '%s'\n", toChars());
     assert(type->ty == Tfunction);
-    enum PURE purity = ((TypeFunction *)this->type)->purity;
+    TypeFunction *tf = (TypeFunction *)type;
+    enum PURE purity = tf->purity;
+    if (purity == PUREfwdref)
+        tf->purityLevel();
     if (purity > PUREweak && needThis())
     {   // The attribute of the 'this' reference affects purity strength
         if (type->mod & (MODimmutable | MODwild))
