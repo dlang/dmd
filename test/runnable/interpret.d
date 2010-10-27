@@ -1,3 +1,4 @@
+// PERMUTE_ARGS: -inline -release -g -unittest
 
 import std.stdio;
 
