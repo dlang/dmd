@@ -82,6 +82,15 @@ struct ObjcSelector
 	static ObjcSelector *create(Identifier *ident, size_t pcount);
 };
 
+struct ObjcClassRefExp : Expression
+{
+	ClassDeclaration *cdecl;
+	
+	ObjcClassRefExp(Loc loc, ClassDeclaration *cdecl);
+	void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
+	elem *toElem(IRState *irs);
+};
+
 
 struct ObjcClassDeclaration
 {
@@ -112,6 +121,5 @@ struct ObjcProtocolDeclaration
 	Symbol *getMethodList(int wantsClassMethods);
 	Symbol *getProtocolList();
 };
-
 
 #endif

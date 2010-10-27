@@ -7549,6 +7549,15 @@ L1:
             e = de->semantic(sc);
             return e;
         }
+#if DMD_OBJC
+        else if (sym->objc && d->isFuncDeclaration() && d->isStatic() && ((FuncDeclaration *)d)->getObjCSelector())
+        {
+            // Objective-C class methods uses the class object as 'this'
+            DotVarExp *de = new DotVarExp(e->loc, new ObjcClassRefExp(e->loc, sym), d);
+            e = de->semantic(sc);
+            return e;
+        }
+#endif
         else
         {
             VarExp *ve = new VarExp(e->loc, d, 1);

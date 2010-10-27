@@ -620,15 +620,14 @@ void FuncDeclaration::semantic(Scope *sc)
             }
             
             if (sv->ptrvalue)
-            {   // check if the selector is already in use by another method
+            {   // check if the other function with the same selector is
+                // overriden by this one
                 FuncDeclaration *selowner = (FuncDeclaration *)sv->ptrvalue;
-                for (size_t i = 0; i < foverrides.dim; ++i)
-                    if (foverrides.data[i] == selowner)
-                        goto Lnodupsel;
-                error("Objcective-C selector %s already in use by function %s.", objcSelector->stringvalue, selowner->ident->string);
+                if (!overrides(selowner))
+                    error("Objcective-C selector %s already in use by function %s.", objcSelector->stringvalue, selowner->ident->string);
                 
             Lnodupsel:
-                ; // ok: selector in use, 
+                ; // ok: selector in use by one of the function we override
             }
             sv->ptrvalue = this;
         }
@@ -2459,6 +2458,15 @@ AggregateDeclaration *FuncDeclaration::isThis()
     {
         ad = isMember2();
     }
+#if DMD_OBJC
+    else if (getObjCSelector()) // static Objective-C functions
+    {
+        // Use Objective-C class object as 'this'
+        ClassDeclaration *cd = isMember2()->isClassDeclaration();
+        if (cd->objc)
+            ad = cd; //cd->getObjcClassDeclaration();
+    }
+#endif
     //printf("-FuncDeclaration::isThis() %p\n", ad);
     return ad;
 }

@@ -63,11 +63,26 @@ Expression *expandVar(int result, VarDeclaration *v);
 Expression *getRightThis(Loc loc, Scope *sc, AggregateDeclaration *ad,
         Expression *e1, Declaration *var)
 {
-    //printf("\ngetRightThis(e1 = %s, ad = %s, var = %s)\n", e1->toChars(), ad->toChars(), var->toChars());
+    printf("\ngetRightThis(e1 = %s, ad = %s, var = %s)\n", e1->toChars(), ad->toChars(), var->toChars());
  L1:
     Type *t = e1->type->toBasetype();
-    //printf("e1->type = %s, var->type = %s\n", e1->type->toChars(), var->type->toChars());
+    printf("e1->type = %s, var->type = %s\n", e1->type->toChars(), var->type->toChars());
 
+#if DMD_OBJC
+    if (e1->op == TOKobjcclsref)
+    {
+        // We already have an Objective-C class reference, just use that as 'this'.
+    }
+	else if (//t->isClassHandle() && t->isClassHandle() == ad &&
+		ad->isClassDeclaration() && ((ClassDeclaration *)ad)->objc && 
+		var->isFuncDeclaration() && ((FuncDeclaration *)var)->isStatic() &&
+		((FuncDeclaration *)var)->getObjCSelector())
+	{
+        // Create class reference from the class declaration
+		e1 = new ObjcClassRefExp(e1->loc, (ClassDeclaration *)ad);
+	}
+	else
+#endif
     /* If e1 is not the 'this' pointer for ad
      */
     if (ad &&

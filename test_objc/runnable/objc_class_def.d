@@ -7,23 +7,24 @@ class NSObject {
 	NSObject init();
 }
 
-import std.stdio;
+import std.c.stdio;
 
 class TestObject : NSObject {
 	int val;
 
-//	static void load() { writeln("hello load"); }
-	static void initialize() { writeln("hello initialize"); }
-//	static TestObject alloc() { writeln("hello alloc"); return null; }
-	TestObject init() { writeln("init"); return null; }
-	TestObject init2() { writeln("init2"); return init(); }
+//	static void load() { printf("hello load".ptr); }
+	static void initialize() { printf("hello initialize"); }
+//	static TestObject alloc() { printf("hello alloc"); return null; }
+	TestObject init() { printf("init"); return null; }
+	TestObject init2() { printf("init2"); return init(); }
 }
 
 void main() {
-	NSObject obj1 = NSObject.alloc().init();
-	assert(obj1 !is null);
+//	NSObject obj1 = NSObject.alloc();
+//	obj1.init();
+//	assert(obj1 !iMs null);
 	
-	writeln("main");
+	printf("main");
 	NSObject obj2 = TestObject.alloc().init();
 	assert(obj2 is null);
 }

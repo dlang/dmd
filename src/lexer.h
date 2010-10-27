@@ -170,6 +170,10 @@ enum TOK
         TOKpowass,
 #endif
 
+#if DMD_OBJC
+        TOKobjcclsref, // Objective-C class reference
+#endif
+
         TOKMAX
 };
 

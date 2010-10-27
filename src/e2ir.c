@@ -233,9 +233,8 @@ elem *callfunc(Loc loc,
 #if DMD_OBJC
             if (fd->getObjCSelector())
             {
-                // Looks like a "static" Objective-C member function:
-                // use reference to metaclass as ethis
-                ethis = el_var(ObjcSymbols::getClassReference(fd->isMember2()->ident));
+                // All functions with a selector need a this pointer.
+                assert(ethis);
             }
 #endif
         }

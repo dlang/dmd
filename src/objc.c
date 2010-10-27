@@ -463,6 +463,25 @@ elem *ObjcSelector::toElem()
 }
 
 
+ObjcClassRefExp::ObjcClassRefExp(Loc loc, ClassDeclaration *cdecl)
+    : Expression(loc, TOKobjcclsref, sizeof(ObjcClassRefExp))
+{
+    this->cdecl = cdecl;
+	this->type = cdecl->getType();
+}
+
+void ObjcClassRefExp::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
+{
+    buf->writestring(cdecl->ident->string);
+    buf->writestring(".class");
+}
+
+
+elem *ObjcClassRefExp::toElem(IRState *irs)
+{
+    return el_var(ObjcSymbols::getClassReference(cdecl->ident));
+}
+
 
 // MARK: ObjcClassDeclaration
 
