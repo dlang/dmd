@@ -250,7 +250,7 @@ Expression *UnaExp::op_overload(Scope *sc)
                 ((ArrayExp *)e1)->e1 = new DotIdExp(loc, ae->e1, ad->aliasthis->ident);
                 Expression *e = copy();
                 ((UnaExp *)e)->e1 = e1;
-                e = e->semantic(sc);
+                e = e->trySemantic(sc);
                 return e;
             }
         }
@@ -293,7 +293,7 @@ Expression *UnaExp::op_overload(Scope *sc)
                 ((SliceExp *)e1)->e1 = new DotIdExp(loc, se->e1, ad->aliasthis->ident);
                 Expression *e = copy();
                 ((UnaExp *)e)->e1 = e1;
-                e = e->semantic(sc);
+                e = e->trySemantic(sc);
                 return e;
             }
         }
@@ -355,7 +355,7 @@ Expression *UnaExp::op_overload(Scope *sc)
             Expression *e1 = new DotIdExp(loc, this->e1, ad->aliasthis->ident);
             Expression *e = copy();
             ((UnaExp *)e)->e1 = e1;
-            e = e->semantic(sc);
+            e = e->trySemantic(sc);
             return e;
         }
 #endif
@@ -390,7 +390,7 @@ Expression *ArrayExp::op_overload(Scope *sc)
             Expression *e1 = new DotIdExp(loc, this->e1, ad->aliasthis->ident);
             Expression *e = copy();
             ((UnaExp *)e)->e1 = e1;
-            e = e->semantic(sc);
+            e = e->trySemantic(sc);
             return e;
         }
     }
@@ -437,7 +437,7 @@ Expression *CastExp::op_overload(Scope *sc)
             Expression *e1 = new DotIdExp(loc, this->e1, ad->aliasthis->ident);
             Expression *e = copy();
             ((UnaExp *)e)->e1 = e1;
-            e = e->semantic(sc);
+            e = e->trySemantic(sc);
             return e;
         }
     }
@@ -691,7 +691,7 @@ L1:
         Expression *e1 = new DotIdExp(loc, this->e1, ad1->aliasthis->ident);
         Expression *e = copy();
         ((BinExp *)e)->e1 = e1;
-        e = e->semantic(sc);
+        e = e->trySemantic(sc);
         return e;
     }
 
@@ -708,7 +708,7 @@ L1:
         Expression *e2 = new DotIdExp(loc, this->e2, ad2->aliasthis->ident);
         Expression *e = copy();
         ((BinExp *)e)->e2 = e2;
-        e = e->semantic(sc);
+        e = e->trySemantic(sc);
         return e;
     }
 #endif
@@ -864,7 +864,7 @@ Expression *BinExp::compare_overload(Scope *sc, Identifier *id)
         Expression *e1 = new DotIdExp(loc, this->e1, ad1->aliasthis->ident);
         Expression *e = copy();
         ((BinExp *)e)->e1 = e1;
-        e = e->semantic(sc);
+        e = e->trySemantic(sc);
         return e;
     }
 
@@ -877,7 +877,7 @@ Expression *BinExp::compare_overload(Scope *sc, Identifier *id)
         Expression *e2 = new DotIdExp(loc, this->e2, ad2->aliasthis->ident);
         Expression *e = copy();
         ((BinExp *)e)->e2 = e2;
-        e = e->semantic(sc);
+        e = e->trySemantic(sc);
         return e;
     }
 
@@ -958,7 +958,7 @@ Expression *BinAssignExp::op_overload(Scope *sc)
                 ((ArrayExp *)e1)->e1 = new DotIdExp(loc, ae->e1, ad->aliasthis->ident);
                 Expression *e = copy();
                 ((UnaExp *)e)->e1 = e1;
-                e = e->semantic(sc);
+                e = e->trySemantic(sc);
                 return e;
             }
         }
@@ -1002,7 +1002,7 @@ Expression *BinAssignExp::op_overload(Scope *sc)
                 ((SliceExp *)e1)->e1 = new DotIdExp(loc, se->e1, ad->aliasthis->ident);
                 Expression *e = copy();
                 ((UnaExp *)e)->e1 = e1;
-                e = e->semantic(sc);
+                e = e->trySemantic(sc);
                 return e;
             }
         }
@@ -1103,7 +1103,7 @@ L1:
         Expression *e1 = new DotIdExp(loc, this->e1, ad1->aliasthis->ident);
         Expression *e = copy();
         ((BinExp *)e)->e1 = e1;
-        e = e->semantic(sc);
+        e = e->trySemantic(sc);
         return e;
     }
 
@@ -1117,7 +1117,7 @@ L1:
         Expression *e2 = new DotIdExp(loc, this->e2, ad2->aliasthis->ident);
         Expression *e = copy();
         ((BinExp *)e)->e2 = e2;
-        e = e->semantic(sc);
+        e = e->trySemantic(sc);
         return e;
     }
 #endif

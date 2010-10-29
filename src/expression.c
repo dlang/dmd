@@ -9298,6 +9298,7 @@ CatAssignExp::CatAssignExp(Loc loc, Expression *e1, Expression *e2)
 Expression *CatAssignExp::semantic(Scope *sc)
 {   Expression *e;
 
+    //printf("CatAssignExp::semantic() %s\n", toChars());
     e = op_overload(sc);
     if (e)
         return e;
