@@ -4003,7 +4003,7 @@ int NewExp::checkSideEffect(int flag)
 #if DMDV2
 int NewExp::canThrow(bool mustNotThrow)
 {
-    return 1;
+    return 0;           // regard storage allocation failures as not recoverable
 }
 #endif
 
@@ -7258,7 +7258,7 @@ int CallExp::canThrow(bool mustNotThrow)
     if (t->ty == Tdelegate && ((TypeFunction *)((TypeDelegate *)t)->next)->isnothrow)
         return 0;
     if (mustNotThrow)
-        error("%s is not nothrow", e1->toChars());    
+        error("%s is not nothrow", e1->toChars());
     return 1;
 }
 #endif

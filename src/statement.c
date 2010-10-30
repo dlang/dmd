@@ -646,7 +646,6 @@ int CompoundStatement::blockExit(bool mustNotThrow)
             else
             {
                 result &= ~BEfallthru;
-                int oldresult = result;
                 result |= s->blockExit(mustNotThrow);
             }
         }
@@ -3271,9 +3270,8 @@ SwitchErrorStatement::SwitchErrorStatement(Loc loc)
 
 int SwitchErrorStatement::blockExit(bool mustNotThrow)
 {
-    if (mustNotThrow)
-        error("switch without default may throw SwitchError");
-    return BEthrow;
+    // Switch errors are non-recoverable
+    return BEhalt;
 }
 
 
