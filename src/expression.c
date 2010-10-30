@@ -6990,6 +6990,21 @@ Lagain:
             // See if we need to adjust the 'this' pointer
             AggregateDeclaration *ad = f->isThis();
             ClassDeclaration *cd = ue->e1->type->isClassHandle();
+#if DMD_OBJC && 0
+            if (ad && cd && cd->objc && f->isStatic() && f->getObjCSelector())
+            {   // Convert this to a call to the corresponding function
+                // on the Objective-C class object
+                if (ad == cd->getObjCMetaClass())
+                {   // ad already of the right type
+                    
+                }
+                else
+                {   // need to get class from object
+                    
+                }
+            }
+            else
+#endif
             if (ad && cd && ad->isClassDeclaration() && ad != cd &&
                 ue->e1->op != TOKsuper)
             {

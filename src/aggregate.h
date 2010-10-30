@@ -233,12 +233,12 @@ struct ClassDeclaration : AggregateDeclaration
     int inuse;                          // to prevent recursive attempts
 #if DMD_OBJC
     int objc;                           // !=0 if this is an Objective-C class/interface
+    int objcmeta;                       // !=0 if this is an Objective-C metaclass
     int objcextern;                     // !=0 if this is a delcaration for a class defined externally
     Symbol *sobjccls;                   // generated symbol for this class (if not objcextern)
-    StringTable *objcInstMethods;        // table of selectors for instance methods
-    StringTable *objcClsMethods;         // table of selectors for class methods
-    Array objcInstMethodList;           // list of non-inherited instance methods
-    Array objcClsMethodList;            // list of non-inherited class methods
+    StringTable *objcMethods;           // table of selectors for methods
+    Array objcMethodList;               // list of non-inherited methods
+    ClassDeclaration *metaclass;        // class declaration for metaclass
 #endif
 
     ClassDeclaration(Loc loc, Identifier *id, BaseClasses *baseclasses);
@@ -267,6 +267,8 @@ struct ClassDeclaration : AggregateDeclaration
 #endif
 #if DMD_OBJC
     virtual int isObjCinterface();
+    ClassDeclaration *getObjCMetaClass();
+    ClassDeclaration *getObjCSuperClass();
 #endif
     int isAbstract();
     virtual int vtblOffset();

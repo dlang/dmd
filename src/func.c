@@ -266,6 +266,11 @@ void FuncDeclaration::semantic(Scope *sc)
     if (isAbstract() && fbody)
         error("abstract functions cannot have bodies");
 #endif
+#if DMD_OBJC
+    // Because static functions are virtual in Objective-C objects
+    if (isAbstract() && isStatic())
+        error("static functions cannot be abstract");
+#endif
 
 #if 0
     if (isStaticConstructor() || isStaticDestructor())
@@ -406,6 +411,12 @@ void FuncDeclaration::semantic(Scope *sc)
             goto Ldone;
         }
 
+#ifdef DMD_OBJC
+        // Handle static functions, which are virtual functions of the metaclass,
+        // by shifting the class declaration to the metaclass.
+        if (cd->objc && isStatic())
+            cd = cd->getObjCMetaClass();
+#endif
         /* Find index of existing function in base class's vtbl[] to override
          * (the index will be the same as in cd's current vtbl[])
          */
@@ -586,50 +597,41 @@ void FuncDeclaration::semantic(Scope *sc)
     L2: ;
 
 #if DMD_OBJC
-        // Check for Objective-C selector inherited form overriden functions
-        for (size_t i = 0; i < foverrides.dim; ++i)
+        if (cd->objc)
         {
-            FuncDeclaration *foverride = (FuncDeclaration *)foverrides.data[i];
-            if (foverride && foverride->objcSelector)
+            // Check for Objective-C selector inherited form overriden functions
+            for (size_t i = 0; i < foverrides.dim; ++i)
             {
-                if (!objcSelector)
-                    objcSelector = foverride->objcSelector; // inherit selector
-                else if (objcSelector != foverride->objcSelector)
-                    error("Objective-C selector %s must be the same as selector %s in overriden function.", objcSelector->stringvalue, foverride->objcSelector->stringvalue);
-            }
-        }
-        
-        // Add to class method lists
-        getObjCSelector(); // create a selector if needed
-        if (objcSelector && cd)
-        {
-            StringValue *sv;
-            if ((storage_class & STCstatic) == 0)
-            {
-                cd->objcInstMethodList.push(this);
-                if (cd->objcInstMethods == NULL)
-                    cd->objcInstMethods = new StringTable;
-                sv = cd->objcInstMethods->update(objcSelector->stringvalue, objcSelector->stringlen);
-            }
-            else
-            {
-                cd->objcClsMethodList.push(this);
-                if (cd->objcClsMethods == NULL)
-                    cd->objcClsMethods = new StringTable;
-                sv = cd->objcClsMethods->update(objcSelector->stringvalue, objcSelector->stringlen);
+                FuncDeclaration *foverride = (FuncDeclaration *)foverrides.data[i];
+                if (foverride && foverride->objcSelector)
+                {
+                    if (!objcSelector)
+                        objcSelector = foverride->objcSelector; // inherit selector
+                    else if (objcSelector != foverride->objcSelector)
+                        error("Objective-C selector %s must be the same as selector %s in overriden function.", objcSelector->stringvalue, foverride->objcSelector->stringvalue);
+                }
             }
             
-            if (sv->ptrvalue)
-            {   // check if the other function with the same selector is
-                // overriden by this one
-                FuncDeclaration *selowner = (FuncDeclaration *)sv->ptrvalue;
-                if (!overrides(selowner))
-                    error("Objcective-C selector %s already in use by function %s.", objcSelector->stringvalue, selowner->ident->string);
+            // Add to class method lists
+            getObjCSelector(); // create a selector if needed
+            if (objcSelector && cd)
+            {
+                assert(isStatic() ? cd->objcmeta : !cd->objcmeta);
+
+                cd->objcMethodList.push(this);
+                if (cd->objcMethods == NULL)
+                    cd->objcMethods = new StringTable;
+                StringValue *sv = cd->objcMethods->update(objcSelector->stringvalue, objcSelector->stringlen);
                 
-            Lnodupsel:
-                ; // ok: selector in use by one of the function we override
+                if (sv->ptrvalue)
+                {   // check if the other function with the same selector is
+                    // overriden by this one
+                    FuncDeclaration *selowner = (FuncDeclaration *)sv->ptrvalue;
+                    if (!overrides(selowner))
+                        error("Objcective-C selector %s already in use by function %s.", objcSelector->stringvalue, selowner->toChars());
+                }
+                sv->ptrvalue = this;
             }
-            sv->ptrvalue = this;
         }
 #endif
 
@@ -2464,7 +2466,7 @@ AggregateDeclaration *FuncDeclaration::isThis()
         // Use Objective-C class object as 'this'
         ClassDeclaration *cd = isMember2()->isClassDeclaration();
         if (cd->objc)
-            ad = cd; //cd->getObjcClassDeclaration();
+            ad = cd->getObjCMetaClass();
     }
 #endif
     //printf("-FuncDeclaration::isThis() %p\n", ad);

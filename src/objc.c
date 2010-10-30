@@ -463,11 +463,13 @@ elem *ObjcSelector::toElem()
 }
 
 
+// MARK: Class References
+
 ObjcClassRefExp::ObjcClassRefExp(Loc loc, ClassDeclaration *cdecl)
     : Expression(loc, TOKobjcclsref, sizeof(ObjcClassRefExp))
 {
     this->cdecl = cdecl;
-	this->type = cdecl->getType();
+	this->type = cdecl->getObjCMetaClass()->getType();
 }
 
 void ObjcClassRefExp::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
@@ -585,7 +587,7 @@ Symbol *ObjcClassDeclaration::getIVarList()
 
 Symbol *ObjcClassDeclaration::getMethodList()
 {
-    Array *methods = !ismeta ? &cdecl->objcInstMethodList : &cdecl->objcClsMethodList;;
+    Array *methods = !ismeta ? &cdecl->objcMethodList : &cdecl->getObjCMetaClass()->objcMethodList;;
     if (!methods->dim) // no member, no method list.
         return NULL;
     

@@ -65,8 +65,7 @@ ClassDeclaration::ClassDeclaration(Loc loc, Identifier *id, BaseClasses *basecla
     objc = 0;
     objcextern = 0;
     sobjccls = NULL;
-    objcInstMethods = NULL;
-    objcClsMethods = NULL;
+    objcMethods = NULL;
 
     if (id)
     {   // Look for special class names
@@ -1066,6 +1065,45 @@ int ClassDeclaration::isCPPinterface()
 int ClassDeclaration::isObjCinterface()
 {
     return objc;
+}
+
+ClassDeclaration *ClassDeclaration::getObjCMetaClass()
+{
+    if (!metaclass && objc)
+    {
+        if (!objcmeta)
+        {   // This is a standard class, create new metaclass for it by
+			// deriving the superclass's metaclass
+            BaseClasses *baseClasses = new BaseClasses();
+            baseClasses->push(getObjCSuperClass());
+            metaclass = new ClassDeclaration(loc, ident, baseclasses);
+            metaclass->objc = 1;
+            metaclass->objcmeta = 1;
+            metaclass->objcextern = objcextern;
+        }
+        else
+        {   // This is a metaclass; the metaclass of a metaclass is the root 
+			// metaclass. Look at the superclass's metaclass metaclass, or use 
+			// this if there is no superclass (we're the root then).
+			ClassDeclaration *base = getObjCSuperClass();
+			if (base)
+				metaclass = base->getObjCMetaClass();
+			else
+				metaclass = this; // this is the root
+        }
+    }
+    return metaclass;
+}
+
+ClassDeclaration *ClassDeclaration::getObjCSuperClass()
+{
+	if (baseclasses->dim > 0)
+	{
+		ClassDeclaration *base = ((BaseClass *)baseclasses->data[0])->base;
+		if (base && base->objc)
+			return base;
+	}
+	return NULL;
 }
 #endif
 
