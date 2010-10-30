@@ -257,13 +257,13 @@ Expressions *arrayExpressionSemantic(Expressions *exps, Scope *sc)
  */
 
 #if DMDV2
-int arrayExpressionCanThrow(Expressions *exps)
+int arrayExpressionCanThrow(Expressions *exps, bool mustNotThrow)
 {
     if (exps)
     {
         for (size_t i = 0; i < exps->dim; i++)
         {   Expression *e = (Expression *)exps->data[i];
-            if (e && e->canThrow())
+            if (e && e->canThrow(mustNotThrow))
                 return 1;
         }
     }
@@ -1355,9 +1355,11 @@ int Expression::isBit()
 /********************************
  * Can this expression throw an exception?
  * Valid only after semantic() pass.
+ *
+ * If 'mustNotThrow' is true, generate an error if it throws
  */
 
-int Expression::canThrow()
+int Expression::canThrow(bool mustNotThrow)
 {
 #if DMDV2
     return FALSE;
@@ -3117,7 +3119,7 @@ int ArrayLiteralExp::isBool(int result)
 }
 
 #if DMDV2
-int ArrayLiteralExp::canThrow()
+int ArrayLiteralExp::canThrow(bool mustNotThrow)
 {
     return 1;   // because it can fail allocating memory
 }
@@ -3212,7 +3214,7 @@ int AssocArrayLiteralExp::isBool(int result)
 }
 
 #if DMDV2
-int AssocArrayLiteralExp::canThrow()
+int AssocArrayLiteralExp::canThrow(bool mustNotThrow)
 {
     return 1;
 }
@@ -3461,9 +3463,9 @@ int StructLiteralExp::checkSideEffect(int flag)
 }
 
 #if DMDV2
-int StructLiteralExp::canThrow()
+int StructLiteralExp::canThrow(bool mustNotThrow)
 {
-    return arrayExpressionCanThrow(elements);
+    return arrayExpressionCanThrow(elements, mustNotThrow);
 }
 #endif
 
@@ -3999,7 +4001,7 @@ int NewExp::checkSideEffect(int flag)
 }
 
 #if DMDV2
-int NewExp::canThrow()
+int NewExp::canThrow(bool mustNotThrow)
 {
     return 1;
 }
@@ -4073,7 +4075,7 @@ int NewAnonClassExp::checkSideEffect(int flag)
 }
 
 #if DMDV2
-int NewAnonClassExp::canThrow()
+int NewAnonClassExp::canThrow(bool mustNotThrow)
 {
     return 1;
 }
@@ -4547,9 +4549,9 @@ int TupleExp::checkSideEffect(int flag)
 }
 
 #if DMDV2
-int TupleExp::canThrow()
+int TupleExp::canThrow(bool mustNotThrow)
 {
-    return arrayExpressionCanThrow(exps);
+    return arrayExpressionCanThrow(exps, mustNotThrow);
 }
 #endif
 
@@ -4735,12 +4737,12 @@ int DeclarationExp::checkSideEffect(int flag)
 }
 
 #if DMDV2
-int DeclarationExp::canThrow()
+int DeclarationExp::canThrow(bool mustNotThrow)
 {
     VarDeclaration *v = declaration->isVarDeclaration();
     if (v && v->init)
     {   ExpInitializer *ie = v->init->isExpInitializer();
-        return ie && ie->exp->canThrow();
+        return ie && ie->exp->canThrow(mustNotThrow);
     }
     return 0;
 }
@@ -5256,9 +5258,9 @@ Expression *UnaExp::semantic(Scope *sc)
 }
 
 #if DMDV2
-int UnaExp::canThrow()
+int UnaExp::canThrow(bool mustNotThrow)
 {
-    return e1->canThrow();
+    return e1->canThrow(mustNotThrow);
 }
 #endif
 
@@ -5402,9 +5404,9 @@ int BinExp::isunsigned()
 }
 
 #if DMDV2
-int BinExp::canThrow()
+int BinExp::canThrow(bool mustNotThrow)
 {
-    return e1->canThrow() || e2->canThrow();
+    return e1->canThrow(mustNotThrow) || e2->canThrow(mustNotThrow);
 }
 #endif
 
@@ -5720,7 +5722,7 @@ int AssertExp::checkSideEffect(int flag)
 }
 
 #if DMDV2
-int AssertExp::canThrow()
+int AssertExp::canThrow(bool mustNotThrow)
 {
     /* assert()s are non-recoverable errors, so functions that
      * use them can be considered "nothrow"
@@ -7228,10 +7230,10 @@ int CallExp::checkSideEffect(int flag)
 }
 
 #if DMDV2
-int CallExp::canThrow()
+int CallExp::canThrow(bool mustNotThrow)
 {
     //printf("CallExp::canThrow() %s\n", toChars());
-    if (e1->canThrow())
+    if (e1->canThrow(mustNotThrow))
         return 1;
 
     /* If any of the arguments can throw, then this expression can throw
@@ -7239,7 +7241,7 @@ int CallExp::canThrow()
     for (size_t i = 0; i < arguments->dim; i++)
     {   Expression *e = (Expression *)arguments->data[i];
 
-        if (e && e->canThrow())
+        if (e && e->canThrow(mustNotThrow))
             return 1;
     }
 
@@ -7255,7 +7257,8 @@ int CallExp::canThrow()
         return 0;
     if (t->ty == Tdelegate && ((TypeFunction *)((TypeDelegate *)t)->next)->isnothrow)
         return 0;
-
+    if (mustNotThrow)
+        error("%s is not nothrow", e1->toChars());    
     return 1;
 }
 #endif
@@ -11102,9 +11105,9 @@ int CondExp::checkSideEffect(int flag)
 }
 
 #if DMDV2
-int CondExp::canThrow()
+int CondExp::canThrow(bool mustNotThrow)
 {
-    return econd->canThrow() || e1->canThrow() || e2->canThrow();
+    return econd->canThrow(mustNotThrow) || e1->canThrow(mustNotThrow) || e2->canThrow(mustNotThrow);
 }
 #endif
 

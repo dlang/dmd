@@ -136,8 +136,9 @@ int Statement::usesEH()
 }
 
 /* Only valid after semantic analysis
+ * If 'mustNotThrow' is true, generate an error if it throws
  */
-int Statement::blockExit()
+int Statement::blockExit(bool mustNotThrow)
 {
     printf("Statement::blockExit(%p)\n", this);
     printf("%s\n", toChars());
@@ -265,7 +266,7 @@ Statement *ExpStatement::semantic(Scope *sc)
     return this;
 }
 
-int ExpStatement::blockExit()
+int ExpStatement::blockExit(bool mustNotThrow)
 {   int result = BEfallthru;
 
     if (exp)
@@ -278,7 +279,7 @@ int ExpStatement::blockExit()
             if (a->e1->isBool(FALSE))   // if it's an assert(0)
                 return BEhalt;
         }
-        if (exp->canThrow())
+        if (exp->canThrow(mustNotThrow))
             result |= BEthrow;
     }
     return result;
@@ -627,7 +628,7 @@ int CompoundStatement::usesEH()
     return FALSE;
 }
 
-int CompoundStatement::blockExit()
+int CompoundStatement::blockExit(bool mustNotThrow)
 {
     //printf("CompoundStatement::blockExit(%p) %d\n", this, statements->dim);
     int result = BEfallthru;
@@ -639,13 +640,14 @@ int CompoundStatement::blockExit()
 //printf("%s\n", s->toChars());
             if (!(result & BEfallthru) && !s->comeFrom())
             {
-                if (s->blockExit() != BEhalt && !s->isEmpty())
+                if (s->blockExit(mustNotThrow) != BEhalt && !s->isEmpty())
                     s->warning("statement is not reachable");
             }
             else
             {
                 result &= ~BEfallthru;
-                result |= s->blockExit();
+                int oldresult = result;
+                result |= s->blockExit(mustNotThrow);
             }
         }
     }
@@ -839,14 +841,14 @@ int UnrolledLoopStatement::usesEH()
     return FALSE;
 }
 
-int UnrolledLoopStatement::blockExit()
+int UnrolledLoopStatement::blockExit(bool mustNotThrow)
 {
     int result = BEfallthru;
     for (size_t i = 0; i < statements->dim; i++)
     {   Statement *s = (Statement *) statements->data[i];
         if (s)
         {
-            int r = s->blockExit();
+            int r = s->blockExit(mustNotThrow);
             result |= r & ~(BEbreak | BEcontinue);
         }
     }
@@ -942,10 +944,10 @@ int ScopeStatement::usesEH()
     return statement ? statement->usesEH() : FALSE;
 }
 
-int ScopeStatement::blockExit()
+int ScopeStatement::blockExit(bool mustNotThrow)
 {
     //printf("ScopeStatement::blockExit(%p)\n", statement);
-    return statement ? statement->blockExit() : BEfallthru;
+    return statement ? statement->blockExit(mustNotThrow) : BEfallthru;
 }
 
 
@@ -1015,18 +1017,18 @@ int WhileStatement::usesEH()
     return body ? body->usesEH() : 0;
 }
 
-int WhileStatement::blockExit()
+int WhileStatement::blockExit(bool mustNotThrow)
 {
     assert(0);
     //printf("WhileStatement::blockExit(%p)\n", this);
 
     int result = BEnone;
-    if (condition->canThrow())
+    if (condition->canThrow(mustNotThrow))
         result |= BEthrow;
     if (condition->isBool(TRUE))
     {
         if (body)
-        {   result |= body->blockExit();
+        {   result |= body->blockExit(mustNotThrow);
             if (result & BEbreak)
                 result |= BEfallthru;
         }
@@ -1038,7 +1040,7 @@ int WhileStatement::blockExit()
     else
     {
         if (body)
-            result |= body->blockExit();
+            result |= body->blockExit(mustNotThrow);
         result |= BEfallthru;
     }
     result &= ~(BEbreak | BEcontinue);
@@ -1110,11 +1112,11 @@ int DoStatement::usesEH()
     return body ? body->usesEH() : 0;
 }
 
-int DoStatement::blockExit()
+int DoStatement::blockExit(bool mustNotThrow)
 {   int result;
 
     if (body)
-    {   result = body->blockExit();
+    {   result = body->blockExit(mustNotThrow);
         if (result == BEbreak)
             return BEfallthru;
         if (result & BEcontinue)
@@ -1124,7 +1126,7 @@ int DoStatement::blockExit()
         result = BEfallthru;
     if (result & BEfallthru)
     {
-        if (condition->canThrow())
+        if (condition->canThrow(mustNotThrow))
             result |= BEthrow;
         if (!(result & BEbreak) && condition->isBool(TRUE))
             result &= ~BEfallthru;
@@ -1235,16 +1237,16 @@ int ForStatement::usesEH()
     return (init && init->usesEH()) || body->usesEH();
 }
 
-int ForStatement::blockExit()
+int ForStatement::blockExit(bool mustNotThrow)
 {   int result = BEfallthru;
 
     if (init)
-    {   result = init->blockExit();
+    {   result = init->blockExit(mustNotThrow);
         if (!(result & BEfallthru))
             return result;
     }
     if (condition)
-    {   if (condition->canThrow())
+    {   if (condition->canThrow(mustNotThrow))
             result |= BEthrow;
         if (condition->isBool(TRUE))
             result &= ~BEfallthru;
@@ -1254,12 +1256,12 @@ int ForStatement::blockExit()
     else
         result &= ~BEfallthru;  // the body must do the exiting
     if (body)
-    {   int r = body->blockExit();
+    {   int r = body->blockExit(mustNotThrow);
         if (r & (BEbreak | BEgoto))
             result |= BEfallthru;
         result |= r & ~(BEfallthru | BEbreak | BEcontinue);
     }
-    if (increment && increment->canThrow())
+    if (increment && increment->canThrow(mustNotThrow))
         result |= BEthrow;
     return result;
 }
@@ -2005,15 +2007,15 @@ int ForeachStatement::usesEH()
     return body->usesEH();
 }
 
-int ForeachStatement::blockExit()
+int ForeachStatement::blockExit(bool mustNotThrow)
 {   int result = BEfallthru;
 
-    if (aggr->canThrow())
+    if (aggr->canThrow(mustNotThrow))
         result |= BEthrow;
 
     if (body)
     {
-        result |= body->blockExit() & ~(BEbreak | BEcontinue);
+        result |= body->blockExit(mustNotThrow) & ~(BEbreak | BEcontinue);
     }
     return result;
 }
@@ -2235,19 +2237,19 @@ int ForeachRangeStatement::usesEH()
     return body->usesEH();
 }
 
-int ForeachRangeStatement::blockExit()
+int ForeachRangeStatement::blockExit(bool mustNotThrow)
 {
     assert(0);
     int result = BEfallthru;
 
-    if (lwr && lwr->canThrow())
+    if (lwr && lwr->canThrow(mustNotThrow))
         result |= BEthrow;
-    else if (upr && upr->canThrow())
+    else if (upr && upr->canThrow(mustNotThrow))
         result |= BEthrow;
 
     if (body)
     {
-        result |= body->blockExit() & ~(BEbreak | BEcontinue);
+        result |= body->blockExit(mustNotThrow) & ~(BEbreak | BEcontinue);
     }
     return result;
 }
@@ -2373,35 +2375,35 @@ int IfStatement::usesEH()
     return (ifbody && ifbody->usesEH()) || (elsebody && elsebody->usesEH());
 }
 
-int IfStatement::blockExit()
+int IfStatement::blockExit(bool mustNotThrow)
 {
     //printf("IfStatement::blockExit(%p)\n", this);
 
     int result = BEnone;
-    if (condition->canThrow())
+    if (condition->canThrow(mustNotThrow))
         result |= BEthrow;
     if (condition->isBool(TRUE))
     {
         if (ifbody)
-            result |= ifbody->blockExit();
+            result |= ifbody->blockExit(mustNotThrow);
         else
             result |= BEfallthru;
     }
     else if (condition->isBool(FALSE))
     {
         if (elsebody)
-            result |= elsebody->blockExit();
+            result |= elsebody->blockExit(mustNotThrow);
         else
             result |= BEfallthru;
     }
     else
     {
         if (ifbody)
-            result |= ifbody->blockExit();
+            result |= ifbody->blockExit(mustNotThrow);
         else
             result |= BEfallthru;
         if (elsebody)
-            result |= elsebody->blockExit();
+            result |= elsebody->blockExit(mustNotThrow);
         else
             result |= BEfallthru;
     }
@@ -2493,11 +2495,11 @@ int ConditionalStatement::usesEH()
     return (ifbody && ifbody->usesEH()) || (elsebody && elsebody->usesEH());
 }
 
-int ConditionalStatement::blockExit()
+int ConditionalStatement::blockExit(bool mustNotThrow)
 {
-    int result = ifbody->blockExit();
+    int result = ifbody->blockExit(mustNotThrow);
     if (elsebody)
-        result |= elsebody->blockExit();
+        result |= elsebody->blockExit(mustNotThrow);
     return result;
 }
 
@@ -2637,14 +2639,14 @@ int PragmaStatement::usesEH()
     return body && body->usesEH();
 }
 
-int PragmaStatement::blockExit()
+int PragmaStatement::blockExit(bool mustNotThrow)
 {
     int result = BEfallthru;
 #if 0 // currently, no code is generated for Pragma's, so it's just fallthru
     if (arrayExpressionCanThrow(args))
         result |= BEthrow;
     if (body)
-        result |= body->blockExit();
+        result |= body->blockExit(mustNotThrow);
 #endif
     return result;
 }
@@ -2699,7 +2701,7 @@ Statement *StaticAssertStatement::semantic(Scope *sc)
     return NULL;
 }
 
-int StaticAssertStatement::blockExit()
+int StaticAssertStatement::blockExit(bool mustNotThrow)
 {
     return BEfallthru;
 }
@@ -2866,13 +2868,13 @@ int SwitchStatement::usesEH()
     return body ? body->usesEH() : 0;
 }
 
-int SwitchStatement::blockExit()
+int SwitchStatement::blockExit(bool mustNotThrow)
 {   int result = BEnone;
-    if (condition->canThrow())
+    if (condition->canThrow(mustNotThrow))
         result |= BEthrow;
 
     if (body)
-    {   result |= body->blockExit();
+    {   result |= body->blockExit(mustNotThrow);
         if (result & BEbreak)
         {   result |= BEfallthru;
             result &= ~BEbreak;
@@ -3005,9 +3007,9 @@ int CaseStatement::usesEH()
     return statement->usesEH();
 }
 
-int CaseStatement::blockExit()
+int CaseStatement::blockExit(bool mustNotThrow)
 {
-    return statement->blockExit();
+    return statement->blockExit(mustNotThrow);
 }
 
 
@@ -3158,9 +3160,9 @@ int DefaultStatement::usesEH()
     return statement->usesEH();
 }
 
-int DefaultStatement::blockExit()
+int DefaultStatement::blockExit(bool mustNotThrow)
 {
-    return statement->blockExit();
+    return statement->blockExit(mustNotThrow);
 }
 
 
@@ -3197,7 +3199,7 @@ Statement *GotoDefaultStatement::semantic(Scope *sc)
     return this;
 }
 
-int GotoDefaultStatement::blockExit()
+int GotoDefaultStatement::blockExit(bool mustNotThrow)
 {
     return BEgoto;
 }
@@ -3243,7 +3245,7 @@ Statement *GotoCaseStatement::semantic(Scope *sc)
     return this;
 }
 
-int GotoCaseStatement::blockExit()
+int GotoCaseStatement::blockExit(bool mustNotThrow)
 {
     return BEgoto;
 }
@@ -3267,8 +3269,10 @@ SwitchErrorStatement::SwitchErrorStatement(Loc loc)
 {
 }
 
-int SwitchErrorStatement::blockExit()
+int SwitchErrorStatement::blockExit(bool mustNotThrow)
 {
+    if (mustNotThrow)
+        error("switch without default may throw SwitchError");
     return BEthrow;
 }
 
@@ -3591,10 +3595,10 @@ Statement *ReturnStatement::semantic(Scope *sc)
     return this;
 }
 
-int ReturnStatement::blockExit()
+int ReturnStatement::blockExit(bool mustNotThrow)
 {   int result = BEreturn;
 
-    if (exp && exp->canThrow())
+    if (exp && exp->canThrow(mustNotThrow))
         result |= BEthrow;
     return result;
 }
@@ -3684,7 +3688,7 @@ Statement *BreakStatement::semantic(Scope *sc)
     return this;
 }
 
-int BreakStatement::blockExit()
+int BreakStatement::blockExit(bool mustNotThrow)
 {
     //printf("BreakStatement::blockExit(%p) = x%x\n", this, ident ? BEgoto : BEbreak);
     return ident ? BEgoto : BEbreak;
@@ -3785,7 +3789,7 @@ Statement *ContinueStatement::semantic(Scope *sc)
     return this;
 }
 
-int ContinueStatement::blockExit()
+int ContinueStatement::blockExit(bool mustNotThrow)
 {
     return ident ? BEgoto : BEcontinue;
 }
@@ -3931,9 +3935,9 @@ int SynchronizedStatement::usesEH()
     return TRUE;
 }
 
-int SynchronizedStatement::blockExit()
+int SynchronizedStatement::blockExit(bool mustNotThrow)
 {
-    return body ? body->blockExit() : BEfallthru;
+    return body ? body->blockExit(mustNotThrow) : BEfallthru;
 }
 
 
@@ -4044,13 +4048,13 @@ int WithStatement::usesEH()
     return body ? body->usesEH() : 0;
 }
 
-int WithStatement::blockExit()
+int WithStatement::blockExit(bool mustNotThrow)
 {
     int result = BEnone;
-    if (exp->canThrow())
+    if (exp->canThrow(mustNotThrow))
         result = BEthrow;
     if (body)
-        result |= body->blockExit();
+        result |= body->blockExit(mustNotThrow);
     else
         result |= BEfallthru;
     return result;
@@ -4119,10 +4123,10 @@ int TryCatchStatement::usesEH()
     return TRUE;
 }
 
-int TryCatchStatement::blockExit()
+int TryCatchStatement::blockExit(bool mustNotThrow)
 {
     assert(body);
-    int result = body->blockExit();
+    int result = body->blockExit(false);
 
     int catchresult = 0;
     for (size_t i = 0; i < catches->dim; i++)
@@ -4131,7 +4135,7 @@ int TryCatchStatement::blockExit()
         if (c->type == Type::terror)
             continue;
 
-        catchresult |= c->blockExit();
+        catchresult |= c->blockExit(mustNotThrow);
 
         /* If we're catching Object, then there is no throwing
          */
@@ -4141,6 +4145,10 @@ int TryCatchStatement::blockExit()
         {
             result &= ~BEthrow;
         }
+    }
+    if (mustNotThrow && (result & BEthrow))
+    {
+        body->blockExit(mustNotThrow); // now explain why this is nothrow
     }
     return result | catchresult;
 }
@@ -4223,9 +4231,9 @@ void Catch::semantic(Scope *sc)
     sc->pop();
 }
 
-int Catch::blockExit()
+int Catch::blockExit(bool mustNotThrow)
 {
-    return handler ? handler->blockExit() : BEfallthru;
+    return handler ? handler->blockExit(mustNotThrow) : BEfallthru;
 }
 
 void Catch::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
@@ -4275,7 +4283,7 @@ Statement *TryFinallyStatement::semantic(Scope *sc)
         return finalbody;
     if (!finalbody)
         return body;
-    if (body->blockExit() == BEfallthru)
+    if (body->blockExit(false) == BEfallthru)
     {   Statement *s = new CompoundStatement(loc, body, finalbody);
         return s;
     }
@@ -4307,10 +4315,10 @@ int TryFinallyStatement::usesEH()
     return TRUE;
 }
 
-int TryFinallyStatement::blockExit()
+int TryFinallyStatement::blockExit(bool mustNotThrow)
 {
     if (body)
-        return body->blockExit();
+        return body->blockExit(mustNotThrow);
     return BEfallthru;
 }
 
@@ -4337,7 +4345,7 @@ Statement *OnScopeStatement::semantic(Scope *sc)
     return this;
 }
 
-int OnScopeStatement::blockExit()
+int OnScopeStatement::blockExit(bool mustNotThrow)
 {   // At this point, this statement is just an empty placeholder
     return BEfallthru;
 }
@@ -4433,8 +4441,10 @@ Statement *ThrowStatement::semantic(Scope *sc)
     return this;
 }
 
-int ThrowStatement::blockExit()
+int ThrowStatement::blockExit(bool mustNotThrow)
 {
+    if (mustNotThrow)
+        error("%s is thrown but not caught", exp->type->toChars());
     return BEthrow;  // obviously
 }
 
@@ -4486,9 +4496,9 @@ Statements *VolatileStatement::flatten(Scope *sc)
     return a;
 }
 
-int VolatileStatement::blockExit()
+int VolatileStatement::blockExit(bool mustNotThrow)
 {
-    return statement ? statement->blockExit() : BEfallthru;
+    return statement ? statement->blockExit(mustNotThrow) : BEfallthru;
 }
 
 
@@ -4548,7 +4558,7 @@ Statement *GotoStatement::semantic(Scope *sc)
     return this;
 }
 
-int GotoStatement::blockExit()
+int GotoStatement::blockExit(bool mustNotThrow)
 {
     //printf("GotoStatement::blockExit(%p)\n", this);
     return BEgoto;
@@ -4631,10 +4641,10 @@ int LabelStatement::usesEH()
     return statement ? statement->usesEH() : FALSE;
 }
 
-int LabelStatement::blockExit()
+int LabelStatement::blockExit(bool mustNotThrow)
 {
     //printf("LabelStatement::blockExit(%p)\n", this);
-    return statement ? statement->blockExit() : BEfallthru;
+    return statement ? statement->blockExit(mustNotThrow) : BEfallthru;
 }
 
 
@@ -4696,8 +4706,10 @@ int AsmStatement::comeFrom()
     return TRUE;
 }
 
-int AsmStatement::blockExit()
+int AsmStatement::blockExit(bool mustNotThrow)
 {
+    if (mustNotThrow)
+        error("asm statements are assumed to throw", toChars());
     // Assume the worst
     return BEfallthru | BEthrow | BEreturn | BEgoto | BEhalt;
 }

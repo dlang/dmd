@@ -1309,8 +1309,10 @@ void FuncDeclaration::semantic3(Scope *sc)
             else if (!inlineAsm)
             {
 #if DMDV2
-                int blockexit = fbody ? fbody->blockExit() : BEfallthru;
-                if (f->isnothrow && blockexit & BEthrow)
+                // Check for errors related to 'nothrow'.
+                int nothrowErrors = global.errors;
+                int blockexit = fbody ? fbody->blockExit(f->isnothrow) : BEfallthru;
+                if (f->isnothrow && (global.errors != nothrowErrors) )
                     error("'%s' is nothrow yet may throw", toChars());
 
                 int offend = blockexit & BEfallthru;
@@ -1538,7 +1540,7 @@ void FuncDeclaration::semantic3(Scope *sc)
                     if (e)
                     {   Statement *s = new ExpStatement(0, e);
                         s = s->semantic(sc2);
-                        if (fbody->blockExit() == BEfallthru)
+                        if (fbody->blockExit(f->isnothrow) == BEfallthru)
                             fbody = new CompoundStatement(0, fbody, s);
                         else
                             fbody = new TryFinallyStatement(0, fbody, s);
@@ -3471,6 +3473,8 @@ void UnitTestDeclaration::semantic(Scope *sc)
         if (!type)
             type = new TypeFunction(NULL, Type::tvoid, FALSE, LINKd);
         Scope *sc2 = sc->push();
+        // It makes no sense for unit tests to be pure or nothrow.
+        sc2->stc &= ~(STCnothrow | STCpure);
         sc2->linkage = LINKd;
         FuncDeclaration::semantic(sc2);
         sc2->pop();
