@@ -1,12 +1,14 @@
 /**
-* The atomic module is intended to provide some basic support for lock-free
+* The atomic module provides basic support for lock-free
 * concurrent programming.
  *
  * Copyright: Copyright Sean Kelly 2005 - 2010.
- * License:   <a href="http://www.boost.org/LICENSE_1_0.txt">Boost License 1.0</a>.
+ * License:   $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Authors:   Sean Kelly
- *
- *          Copyright Sean Kelly 2005 - 2010.
+ * Source:    $(DRUNTIMESRC core/_atomic.d)
+ */
+
+/*          Copyright Sean Kelly 2005 - 2010.
  * Distributed under the Boost Software License, Version 1.0.
  *    (See accompanying file LICENSE_1_0.txt or copy at
  *          http://www.boost.org/LICENSE_1_0.txt)
