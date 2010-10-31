@@ -412,11 +412,14 @@ void FuncDeclaration::semantic(Scope *sc)
         }
 
 #ifdef DMD_OBJC
-        // Handle static functions, which are virtual functions of the metaclass,
-        // by shifting the class declaration to the metaclass.
+        // Handle Objective-C static member functions, which are virtual
+        // functions of the metaclass, by changing the parent class 
+        // declaration to the metaclass.
         if (cd->objc && isStatic())
-            cd = cd->getObjCMetaClass();
+            if (!cd->objcmeta) // but check that it hasn't already been done
+                parent = cd = cd->getObjCMetaClass();
 #endif
+
         /* Find index of existing function in base class's vtbl[] to override
          * (the index will be the same as in cd's current vtbl[])
          */

@@ -13,18 +13,17 @@ class TestObject : NSObject {
 	int val;
 
 //	static void load() { printf("hello load".ptr); }
-	static void initialize() { printf("hello initialize"); }
+	static void initialize() { printf("hello initialize\n"); }
 //	static TestObject alloc() { printf("hello alloc"); return null; }
-	TestObject init() { printf("init"); return null; }
-	TestObject init2() { printf("init2"); return init(); }
+	TestObject init() { printf("init\n"); return null; }
+	TestObject init2() { printf("init2\n"); return init(); }
 }
 
 void main() {
-//	NSObject obj1 = NSObject.alloc();
-//	obj1.init();
-//	assert(obj1 !iMs null);
+//	NSObject obj1 = NSObject.alloc().init();
+//	assert(obj1 !is null);
 	
 	printf("main");
 	NSObject obj2 = TestObject.alloc().init();
-	assert(obj2 is null);
+	//assert(obj2 is null);
 }

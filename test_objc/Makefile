@@ -37,7 +37,7 @@ SHELL=/bin/bash
 QUIET=@
 export DMD=../src/dmd
 export RESULTS_DIR=test_results
-export ARGS=-inline -release -gc -O -unittest -fPIC
+export ARGS=-inline -release -gc -O -unittest #-fPIC
 
 runnable_tests=$(wildcard runnable/*.d)
 runnable_test_results=$(addsuffix .out,$(addprefix $(RESULTS_DIR)/,$(runnable_tests)))

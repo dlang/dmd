@@ -63,9 +63,11 @@ ClassDeclaration::ClassDeclaration(Loc loc, Identifier *id, BaseClasses *basecla
     vclassinfo = NULL;
     
     objc = 0;
+    objcmeta = 0;
     objcextern = 0;
     sobjccls = NULL;
     objcMethods = NULL;
+    metaclass = NULL;
 
     if (id)
     {   // Look for special class names
@@ -387,6 +389,9 @@ void ClassDeclaration::semantic(Scope *sc)
                 else
                 {   baseClass = tc->sym;
                     b->base = baseClass;
+#if DMD_OBJC
+                    assert(baseClass == NULL || objcmeta == baseClass->objcmeta);
+#endif
                 }
              L7: ;
             }
@@ -459,8 +464,8 @@ void ClassDeclaration::semantic(Scope *sc)
 
 #if DMD_OBJC
     if (objc || (baseClass && baseClass->objc))
-        objc = 1;
-    else // Objective-C classes do not inherit from Object */
+        objc = 1; // Objective-C classes do not inherit from Object
+    else
 #endif
     // If no base class, and this is not an Object, use Object as base class
     if (!baseClass && ident != Id::Object)
@@ -488,6 +493,34 @@ void ClassDeclaration::semantic(Scope *sc)
 
     interfaces_dim = baseclasses->dim;
     interfaces = (BaseClass **)baseclasses->data;
+    
+#if DMD_OBJC
+    if (objc && !objcmeta && !metaclass)
+	{   // Create meta class derived from all our base's metaclass
+        BaseClasses *metabases = new BaseClasses();
+        for (size_t i = 0; i < baseclasses->dim; ++i)
+        {   ClassDeclaration *basecd = ((BaseClass *)baseclasses->data[i])->base;
+            assert(basecd);
+            if (basecd->objc)
+            {   assert(basecd->metaclass);
+                assert(basecd->metaclass->objcmeta);
+                assert(basecd->metaclass->type->ty == Tclass);
+                assert(((TypeClass *)basecd->metaclass->type)->sym == basecd->metaclass);
+                BaseClass *metabase = new BaseClass(basecd->metaclass->type, PROTpublic);
+                metabase->base = basecd->metaclass;
+                metabases->push(metabase);
+            }
+            else
+                error("all base classes and interfaces for an Objective-C object must be extern (Objective-C)");
+        }
+        metaclass = new ClassDeclaration(loc, ident, metabases);
+        metaclass->storage_class |= STCstatic;
+        metaclass->objc = 1;
+        metaclass->objcmeta = 1;
+        metaclass->objcextern = objcextern;
+        metaclass->aliasthis = this;
+    }
+#endif
 
 
     if (baseClass)
@@ -636,6 +669,11 @@ void ClassDeclaration::semantic(Scope *sc)
 //      if (isnested)
 //          sc->offset += PTRSIZE;      // room for uplevel context pointer
     }
+#if DMD_OBJC
+    else if (objc)
+    {   // no hidden member for an Objective-C class (Legacy Runtime)
+    }
+#endif
     else
     {   sc->offset = PTRSIZE * 2;       // allow room for __vptr and __monitor
         alignsize = PTRSIZE;
@@ -644,6 +682,10 @@ void ClassDeclaration::semantic(Scope *sc)
     Scope scsave = *sc;
     int members_dim = members->dim;
     sizeok = 0;
+#if DMD_OBJC
+    if (metaclass)
+        metaclass->members = new Dsymbols();
+#endif
 
     /* Set scope so if there are forward references, we still might be able to
      * resolve individual members like enums.
@@ -672,6 +714,10 @@ void ClassDeclaration::semantic(Scope *sc)
         structsize = 0;
         alignsize = 0;
         structalign = 0;
+#if DMD_OBJC
+        if (metaclass)
+            metaclass->members = NULL;
+#endif
 
         sc = sc->pop();
 
@@ -762,6 +808,11 @@ void ClassDeclaration::semantic(Scope *sc)
 
     dtor = buildDtor(sc);
 
+#if DMD_OBJC
+    if (metaclass)
+        metaclass->semantic(sc);
+#endif
+    
     sc->pop();
 
 #if 0 // Do not call until toObjfile() because of forward references
@@ -1069,41 +1120,19 @@ int ClassDeclaration::isObjCinterface()
 
 ClassDeclaration *ClassDeclaration::getObjCMetaClass()
 {
-    if (!metaclass && objc)
+    if (!metaclass && objcmeta)
     {
-        if (!objcmeta)
-        {   // This is a standard class, create new metaclass for it by
-			// deriving the superclass's metaclass
-            BaseClasses *baseClasses = new BaseClasses();
-            baseClasses->push(getObjCSuperClass());
-            metaclass = new ClassDeclaration(loc, ident, baseclasses);
-            metaclass->objc = 1;
-            metaclass->objcmeta = 1;
-            metaclass->objcextern = objcextern;
-        }
+        if (baseClass)
+            return baseClass->getObjCMetaClass();
         else
-        {   // This is a metaclass; the metaclass of a metaclass is the root 
-			// metaclass. Look at the superclass's metaclass metaclass, or use 
-			// this if there is no superclass (we're the root then).
-			ClassDeclaration *base = getObjCSuperClass();
-			if (base)
-				metaclass = base->getObjCMetaClass();
-			else
-				metaclass = this; // this is the root
-        }
+            return this;
     }
     return metaclass;
 }
 
 ClassDeclaration *ClassDeclaration::getObjCSuperClass()
 {
-	if (baseclasses->dim > 0)
-	{
-		ClassDeclaration *base = ((BaseClass *)baseclasses->data[0])->base;
-		if (base && base->objc)
-			return base;
-	}
-	return NULL;
+	return baseClass;
 }
 #endif
 

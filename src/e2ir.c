@@ -1939,7 +1939,15 @@ elem *AssertExp::toElem(IRState *irs)
         e = e1->toElem(irs);
 
         InvariantDeclaration *inv = (InvariantDeclaration *)(void *)1;
-
+        
+#if DMD_OBJC
+        if (global.params.useInvariants && t1->ty == Tclass &&
+            ((TypeClass *)t1)->sym->objc)
+        {
+            // FIXME: skipping invariant for objc classes (for now)
+        }
+        else
+#endif
         // If e1 is a class object, call the class invariant on it
         if (global.params.useInvariants && t1->ty == Tclass &&
             !((TypeClass *)t1)->sym->isInterfaceDeclaration())

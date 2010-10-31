@@ -6991,19 +6991,19 @@ Lagain:
             AggregateDeclaration *ad = f->isThis();
             ClassDeclaration *cd = ue->e1->type->isClassHandle();
 #if DMD_OBJC && 0
-            if (ad && cd && cd->objc && f->isStatic() && f->getObjCSelector())
-            {   // Convert this to a call to the corresponding function
-                // on the Objective-C class object
-                if (ad == cd->getObjCMetaClass())
-                {   // ad already of the right type
-                    
-                }
-                else
-                {   // need to get class from object
-                    
-                }
-            }
-            else
+            ClassDeclaration *cad = ad->isClassDeclaration();
+//            if (ad && cd && cd->objc && ad->isClassDeclaration() && ((ClassDeclaration *)ad)->objc && f->getObjCSelector())
+//            {
+//                ClassDeclaration *cad = (ClassDeclaration *)ad;
+//                if (cad->objcmeta && cd->getObjCMetaClass() == ad)
+//                {
+//                    // need to go from object to class
+//                }
+//                else if (!cad->objcmeta)
+//                {
+//                    // need to convert to base class
+//                }
+//            }
 #endif
             if (ad && cd && ad->isClassDeclaration() && ad != cd &&
                 ue->e1->op != TOKsuper)

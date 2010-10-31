@@ -478,7 +478,6 @@ void ObjcClassRefExp::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
     buf->writestring(".class");
 }
 
-
 elem *ObjcClassRefExp::toElem(IRState *irs)
 {
     return el_var(ObjcSymbols::getClassReference(cdecl->ident));
