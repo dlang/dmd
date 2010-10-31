@@ -1,24 +1,31 @@
 
 extern (Objective-C)
-class NSObject {
+extern class NSObject {
 	void* isa; // pointer to class object
+
+	static NSObject alloc();
+	NSObject init();
 }
 
 extern (Objective-C)
 interface TestInterfaceBase {
-	static void test1();
-	static void test2();
+	void test1z();
+	static void test2z();
 }
 
 extern (Objective-C)
 interface TestInterface : TestInterfaceBase {
-	void test();
-	static void test2();
+	void testz();
+	static void test22z();
 }
 
 class TestObject : NSObject, TestInterface {
+	void test() {}
+	static void test2z() {}
+	void test1z() {}
 }
 
 void main() {
+	auto o = TestObject.alloc().init();
 	// runtime initialization will test things
 }

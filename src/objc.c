@@ -325,6 +325,8 @@ Symbol *ObjcSymbols::getMethVarType(Dsymbol *s)
 
 Symbol *ObjcSymbols::getProtocolSymbol(ClassDeclaration *interface)
 {
+	assert(interface->objcmeta == 0);
+	
 	static StringTable stringtable;
     StringValue *sv = stringtable.update(interface->ident->string, interface->ident->len);
     Symbol *sy = (Symbol *) sv->ptrvalue;
@@ -586,7 +588,7 @@ Symbol *ObjcClassDeclaration::getIVarList()
 
 Symbol *ObjcClassDeclaration::getMethodList()
 {
-    Array *methods = !ismeta ? &cdecl->objcMethodList : &cdecl->getObjCMetaClass()->objcMethodList;;
+    Array *methods = !ismeta ? &cdecl->objcMethodList : &cdecl->getObjCMetaClass()->objcMethodList;
     if (!methods->dim) // no member, no method list.
         return NULL;
     
@@ -630,7 +632,7 @@ Symbol *ObjcClassDeclaration::getProtocolList()
     for (size_t i = 0; i < cdecl->interfaces_dim; ++i)
     {
         if (!cdecl->interfaces[i]->base->objc)
-            error("Only extern (Objective-C) interfaces are supported on an extern (Objective-C) class");
+            error("Only Objective-C interfaces are supported on an Objective-C class");
         
         dtxoff(&dt, ObjcSymbols::getProtocolSymbol(cdecl->interfaces[i]->base), 0, TYnptr); // pointer to protocol decl
     }
@@ -668,7 +670,7 @@ void ObjcProtocolDeclaration::toObjFile(int multiobj)
 
 void ObjcProtocolDeclaration::toDt(dt_t **pdt)
 {
-    dtdword(pdt, 0); // a zero goes here for some reason
+    dtdword(pdt, 0); // isa pointer, initialized by the runtime
     dtxoff(pdt, ObjcSymbols::getClassName(idecl->ident), 0, TYnptr); // protocol name
     
     Symbol *protocols = getProtocolList();
@@ -684,31 +686,20 @@ void ObjcProtocolDeclaration::toDt(dt_t **pdt)
 
 Symbol *ObjcProtocolDeclaration::getMethodList(int wantsClassMethods)
 {
-    StorageClass wantedStorCls = !wantsClassMethods ? 0 : STCstatic;
-    size_t methodcount = 0;
-    
-    size_t members_dim = idecl->members->dim;
-    for (size_t i = 0; i < members_dim; ++i)
-    {
-        FuncDeclaration *func = ((Dsymbol *)idecl->members->data[i])->isFuncDeclaration();
-        if (func && func->getObjCSelector() && (func->storage_class & STCstatic) == wantedStorCls)
-            ++methodcount;
-    }
-    
-    if (!methodcount) // no member, no method list.
+    Array *methods = !wantsClassMethods ? &idecl->objcMethodList : &idecl->getObjCMetaClass()->objcMethodList;
+    if (!methods->dim) // no member, no method list.
         return NULL;
-    
-    dt_t *dt = NULL;
-    dtdword(&dt, methodcount); // method count
-    for (size_t i = 0; i < members_dim; ++i)
-    {
-        FuncDeclaration *func = ((Dsymbol *)idecl->members->data[i])->isFuncDeclaration();
-        if (func && func->getObjCSelector() && (func->storage_class & STCstatic) == wantedStorCls)
-        {
-            dtxoff(&dt, func->getObjCSelector()->toNameSymbol(), 0, TYnptr); // method name
-            dtxoff(&dt, ObjcSymbols::getMethVarType(func), 0, TYnptr); // method type string
-        }
-    }
+
+	dt_t *dt = NULL;
+    dtdword(&dt, methods->dim); // method count
+    for (size_t i = 0; i < methods->dim; ++i)
+	{
+		FuncDeclaration *func = ((Dsymbol *)methods->data[i])->isFuncDeclaration();
+		assert(func);
+		assert(func->getObjCSelector());
+		dtxoff(&dt, func->getObjCSelector()->toNameSymbol(), 0, TYnptr); // method name
+		dtxoff(&dt, ObjcSymbols::getMethVarType(func), 0, TYnptr); // method type string
+	}
     
     char *sname;
     if (!wantsClassMethods)
@@ -733,13 +724,13 @@ Symbol *ObjcProtocolDeclaration::getProtocolList()
     for (size_t i = 0; i < idecl->interfaces_dim; ++i)
     {
         if (!idecl->interfaces[i]->base->objc)
-            error("Only extern (Objective-C) interfaces are supported on an extern (Objective-C) class");
+            error("Only Objective-C interfaces are supported on an Objective-C interface");
         
         dtxoff(&dt, ObjcSymbols::getProtocolSymbol(idecl->interfaces[i]->base), 0, TYnptr); // pointer to protocol decl
     }
     dtdword(&dt, 0); // null-terminate the list
     
-    char *sname = prefixSymbolName(idecl->ident->string, idecl->ident->len, "L_OBJC_CLASS_PROTOCOLS_", 23);
+    char *sname = prefixSymbolName(idecl->ident->string, idecl->ident->len, "L_OBJC_PROTOCOL_REFS_", 21);
     Symbol *sprotocols = symbol_name(sname, SCstatic, type_fake(TYnptr));
     sprotocols->Sdt = dt;
     sprotocols->Sseg = mach_getsegment("__cat_cls_meth", "__OBJC", sizeof(size_t), 0);

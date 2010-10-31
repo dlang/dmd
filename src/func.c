@@ -416,8 +416,12 @@ void FuncDeclaration::semantic(Scope *sc)
         // functions of the metaclass, by changing the parent class 
         // declaration to the metaclass.
         if (cd->objc && isStatic())
-            if (!cd->objcmeta) // but check that it hasn't already been done
-                parent = cd = cd->getObjCMetaClass();
+        {   if (!cd->objcmeta) // but check that it hasn't already been done
+            {   ClassDeclaration *metacd = cd->getObjCMetaClass();
+                assert(metacd);
+                parent = cd = metacd;
+            }
+        }
 #endif
 
         /* Find index of existing function in base class's vtbl[] to override

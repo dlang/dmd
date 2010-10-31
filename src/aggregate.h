@@ -314,6 +314,10 @@ struct InterfaceDeclaration : ClassDeclaration
     int isCPPinterface();
 #endif
     virtual int isCOMinterface();
+    
+#if DMD_OBJC
+    void addObjcSymbols(ClassDeclarations *classes, ClassDeclarations *categories);
+#endif
 
     void toObjFile(int multiobj);                       // compile to .obj file
     Symbol *toSymbol();

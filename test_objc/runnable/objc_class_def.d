@@ -20,10 +20,10 @@ class TestObject : NSObject {
 }
 
 void main() {
-//	NSObject obj1 = NSObject.alloc().init();
-//	assert(obj1 !is null);
+	NSObject obj1 = NSObject.alloc().init();
+	assert(obj1 !is null);
 	
 	printf("main");
 	NSObject obj2 = TestObject.alloc().init();
-	//assert(obj2 is null);
+	assert(obj2 is null);
 }

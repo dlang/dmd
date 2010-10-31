@@ -389,9 +389,6 @@ void ClassDeclaration::semantic(Scope *sc)
                 else
                 {   baseClass = tc->sym;
                     b->base = baseClass;
-#if DMD_OBJC
-                    assert(baseClass == NULL || objcmeta == baseClass->objcmeta);
-#endif
                 }
              L7: ;
             }
@@ -511,7 +508,7 @@ void ClassDeclaration::semantic(Scope *sc)
                 metabases->push(metabase);
             }
             else
-                error("all base classes and interfaces for an Objective-C object must be extern (Objective-C)");
+                error("base class and interfaces for an Objective-C class must be extern (Objective-C)");
         }
         metaclass = new ClassDeclaration(loc, ident, metabases);
         metaclass->storage_class |= STCstatic;
@@ -1194,7 +1191,7 @@ void ClassDeclaration::addLocalClass(ClassDeclarations *aclasses)
 #if DMD_OBJC
 void ClassDeclaration::addObjcSymbols(ClassDeclarations *classes, ClassDeclarations *categories)
 {
-    if (objc && !objcextern)
+    if (objc && !objcextern && !objcmeta)
         classes->push(this);
 }
 #endif
@@ -1322,6 +1319,25 @@ void InterfaceDeclaration::semantic(Scope *sc)
         }
         else
         {
+#if DMD_OBJC
+            // Check for mixin Objective-C and non-Objective-C interfaces
+            if (!objc && tc->sym->objc)
+            {   if (i == 0)
+                {   // This is the first -- there's no non-Objective-C interface before this one.
+                    // Implicitly switch this interface to Objective-C.
+                    objc = 1; 
+                }
+                else
+                    goto Lobjcmix; // same error as below
+            }
+            else if (objc && !tc->sym->objc)
+            {
+            Lobjcmix:
+                error ("cannot mix Objective-C and non-Objective-C interfaces");
+                baseclasses->remove(i);
+                continue;
+            }
+#endif
             // Check for duplicate interfaces
             for (size_t j = 0; j < i; j++)
             {
@@ -1362,6 +1378,36 @@ void InterfaceDeclaration::semantic(Scope *sc)
 
     interfaces_dim = baseclasses->dim;
     interfaces = (BaseClass **)baseclasses->data;
+        
+#if DMD_OBJC
+    if (objc && !objcmeta && !metaclass)
+    {   // Create meta class derived from all our base's metaclass
+        BaseClasses *metabases = new BaseClasses();
+        for (size_t i = 0; i < baseclasses->dim; ++i)
+        {   ClassDeclaration *basecd = ((BaseClass *)baseclasses->data[i])->base;
+            assert(basecd);
+            InterfaceDeclaration *baseid = basecd->isInterfaceDeclaration();
+            assert(baseid);
+            if (baseid->objc)
+            {   assert(baseid->metaclass);
+                assert(baseid->metaclass->objcmeta);
+                assert(baseid->metaclass->type->ty == Tclass);
+                assert(((TypeClass *)baseid->metaclass->type)->sym == baseid->metaclass);
+                BaseClass *metabase = new BaseClass(baseid->metaclass->type, PROTpublic);
+                metabase->base = baseid->metaclass;
+                metabases->push(metabase);
+            }
+            else
+                error("base interfaces for an Objective-C interface must be extern (Objective-C)");
+        }
+        metaclass = new InterfaceDeclaration(loc, ident, metabases);
+        metaclass->storage_class |= STCstatic;
+        metaclass->objc = 1;
+        metaclass->objcmeta = 1;
+        metaclass->objcextern = objcextern;
+        metaclass->aliasthis = this;
+    }
+#endif
 
     interfaceSemantic(sc);
 
@@ -1424,6 +1470,10 @@ void InterfaceDeclaration::semantic(Scope *sc)
     structalign = sc->structalign;
     sc->offset = PTRSIZE * 2;
     inuse++;
+#if DMD_OBJC
+    if (metaclass)
+        metaclass->members = new Dsymbols();
+#endif
     for (i = 0; i < members->dim; i++)
     {
         Dsymbol *s = (Dsymbol *)members->data[i];
@@ -1431,6 +1481,10 @@ void InterfaceDeclaration::semantic(Scope *sc)
     }
     inuse--;
     //members->print();
+#if DMD_OBJC
+    if (metaclass)
+        metaclass->semantic(sc);
+#endif
     sc->pop();
     //printf("-InterfaceDeclaration::semantic(%s), type = %p\n", toChars(), type);
 }
@@ -1550,6 +1604,13 @@ int InterfaceDeclaration::isCOMinterface()
 int InterfaceDeclaration::isCPPinterface()
 {
     return cpp;
+}
+#endif
+
+#if DMD_OBJC
+void InterfaceDeclaration::addObjcSymbols(ClassDeclarations *classes, ClassDeclarations *categories)
+{
+    // nothing to do
 }
 #endif
 
