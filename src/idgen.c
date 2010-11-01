@@ -100,6 +100,7 @@ Msgtable msgtable[] =
     { "_match" },
     { "destroy" },
     { "postblit" },
+    { "_cmd" },
 
     { "LINE", "__LINE__" },
     { "FILE", "__FILE__" },

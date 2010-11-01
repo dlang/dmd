@@ -53,6 +53,7 @@ FuncDeclaration::FuncDeclaration(Loc loc, Loc endloc, Identifier *id, StorageCla
     vthis = NULL;
 #if DMD_OBJC
     objcSelector = NULL;
+    vobjccmd = NULL;
 #endif
     v_arguments = NULL;
 #if IN_GCC
@@ -966,6 +967,17 @@ void FuncDeclaration::semantic3(Scope *sc)
                     assert(0);
                 v->parent = this;
                 vthis = v;
+                
+                if (getObjCSelector())
+                {
+                    v = new VarDeclaration(loc, Type::tvoidptr, Id::_cmd, NULL);
+                    v->storage_class |= STCparameter;
+                    v->semantic(sc2);
+                    if (!sc2->insert(v))
+                        assert(0);
+                    v->parent = this;
+                    vobjccmd = v;
+                }
             }
         }
         else if (isNested())

@@ -531,6 +531,7 @@ struct FuncDeclaration : Declaration
     VarDeclaration *vthis;              // 'this' parameter (member and nested)
 #if DMD_OBJC
     ObjcSelector *objcSelector;         // Objective-C method selector (member function only)
+	VarDeclaration *vobjccmd;           // Objective-C implicit selector parameter
 #endif
     VarDeclaration *v_arguments;        // '_arguments' parameter
 #if IN_GCC

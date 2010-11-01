@@ -13,6 +13,7 @@ class NSObject {
 class TestObject : NSObject {
 	void test(immutable(char)* param) {
 		assert(param[0] == 'h', "expects 'hello' param, found something else (probably the selector)");
+        assert((cast(ubyte*)_cmd)[0] == 't', "expects 'test' _cmd (implicit selector variable)");
 	}
 }
 
