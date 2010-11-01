@@ -668,7 +668,7 @@ void ClassDeclaration::semantic(Scope *sc)
     }
 #if DMD_OBJC
     else if (objc)
-    {   // no hidden member for an Objective-C class (Legacy Runtime)
+    {   sc->offset = 0; // no hidden member for an Objective-C class
     }
 #endif
     else
@@ -1503,6 +1503,14 @@ void InterfaceDeclaration::semantic(Scope *sc)
 
 int InterfaceDeclaration::isBaseOf(ClassDeclaration *cd, int *poffset)
 {
+#if DMD_OBJC
+    if (poffset && objc && cd->objc)
+    {   // Objective-C interfaces inside Objective-C classes have no offset.
+        // Set offset to zero then set poffset to null to avoid it being changed.
+        *poffset = 0;
+        poffset = NULL;
+    }
+#endif
     unsigned j;
 
     //printf("%s.InterfaceDeclaration::isBaseOf(cd = '%s')\n", toChars(), cd->toChars());
@@ -1541,6 +1549,14 @@ int InterfaceDeclaration::isBaseOf(ClassDeclaration *cd, int *poffset)
 int InterfaceDeclaration::isBaseOf(BaseClass *bc, int *poffset)
 {
     //printf("%s.InterfaceDeclaration::isBaseOf(bc = '%s')\n", toChars(), bc->base->toChars());
+#if DMD_OBJC
+    if (poffset && objc && bc->base && bc->base->objc)
+    {   // Objective-C interfaces inside Objective-C classes have no offset.
+        // Set offset to zero then set poffset to null to avoid it being changed.
+        *poffset = 0;
+        poffset = NULL;
+    }
+#endif
     for (unsigned j = 0; j < bc->baseInterfaces_dim; j++)
     {
         BaseClass *b = &bc->baseInterfaces[j];

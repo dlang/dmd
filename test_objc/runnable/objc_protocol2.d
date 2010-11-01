@@ -1,6 +1,6 @@
 
 extern (Objective-C)
-extern class NSObject {
+class NSObject {
 	void* isa; // pointer to class object
 
 	static NSObject alloc();
@@ -19,10 +19,10 @@ interface TestInterface : TestInterfaceBase {
 	static void test22z();
 }
 
-class TestObject : NSObject, TestInterface {
+class TestObject : NSObject/*, TestInterface*/ {
 	void test() {}
 	static void test2z() {}
-	void test1z() {}
+	TestObject init() { return null; }
 }
 
 void main() {

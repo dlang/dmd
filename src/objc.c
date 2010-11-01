@@ -547,6 +547,7 @@ Symbol *ObjcClassDeclaration::getMetaclass()
 	{	// regular class: return metaclass with the same name
 		ObjcClassDeclaration meta(cdecl, 1);
         meta.toObjFile(0);
+        sprotocols = meta.sprotocols;
         return meta.symbol;
 	}
 	else

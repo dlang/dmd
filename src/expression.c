@@ -63,10 +63,10 @@ Expression *expandVar(int result, VarDeclaration *v);
 Expression *getRightThis(Loc loc, Scope *sc, AggregateDeclaration *ad,
         Expression *e1, Declaration *var)
 {
-    printf("\ngetRightThis(e1 = %s, ad = %s, var = %s)\n", e1->toChars(), ad->toChars(), var->toChars());
+    //printf("\ngetRightThis(e1 = %s, ad = %s, var = %s)\n", e1->toChars(), ad->toChars(), var->toChars());
  L1:
     Type *t = e1->type->toBasetype();
-    printf("e1->type = %s, var->type = %s\n", e1->type->toChars(), var->type->toChars());
+    //printf("e1->type = %s, var->type = %s\n", e1->type->toChars(), var->type->toChars());
 
 #if DMD_OBJC
     if (e1->op == TOKobjcclsref)
