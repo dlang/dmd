@@ -21,19 +21,7 @@ import core.stdc.string : memmove;
 import core.stdc.stdlib : strtold;
 
 
-/**
- * Demangles D mangled names.  If it is not a D mangled name, it returns its
- * argument name.
- *
- * Params:
- *  buf = The string to demangle.
- *  dst = An optional destination buffer.
- *
- * Returns:
- *  The demangled name or the original string if the name is not a mangled D
- *  name.
- */
-char[] demangle( const(char)[] buf, char[] dst = null )
+private struct Demangle
 {
     // NOTE: This implementation currently only works with mangled function
     //       names as they exist in an object file.  Type names mangled via
@@ -51,11 +39,34 @@ char[] demangle( const(char)[] buf, char[] dst = null )
     //       with a larger buffer.  Since this generally means only one
     //       allocation during the course of a parsing run, this is still
     //       faster than assembling the result piecemeal.
+    
+    
+    enum AddType { yes, no }
+    
+    
+    this( const(char)[] buf_, char[] dst_ = null )
+    {
+        this( buf_, AddType.no, dst_ );
+    }
+    
+    
+    this( const(char)[] buf_, AddType addType_, char[] dst_ = null )
+    {
+        buf     = buf_;
+        addType = addType_;
+        dst     = dst_;
+    }
+
 
     enum minBufSize = 4000;
 
-    size_t  pos = 0;
-    size_t  len = 0;
+
+    const(char)[]   buf     = null;
+    char[]          dst     = null;
+    size_t          pos     = 0;
+    size_t          len     = 0;
+    AddType         addType = AddType.no;
+    
     
     static class ParseException : Exception
     {
@@ -65,6 +76,7 @@ char[] demangle( const(char)[] buf, char[] dst = null )
         }
     }
     
+    
     static class OverflowException : Exception
     {
         this( string msg )
@@ -72,6 +84,7 @@ char[] demangle( const(char)[] buf, char[] dst = null )
             super( msg );
         }
     }
+    
     
     static void error( string msg = "Invalid symbol" )
     {
@@ -81,6 +94,7 @@ char[] demangle( const(char)[] buf, char[] dst = null )
         
     }
     
+    
     static void overflow( string msg = "Buffer overflow" )
     {
         //throw new OverflowException( msg );
@@ -88,14 +102,24 @@ char[] demangle( const(char)[] buf, char[] dst = null )
         throw cast(OverflowException) cast(void*) OverflowException.classinfo.init;
     }
     
+    
     //////////////////////////////////////////////////////////////////////////
     // Type Testing and Conversion
     //////////////////////////////////////////////////////////////////////////
+    
+    
+    static bool isAlpha( char val )
+    {
+        return ('a' <= val && 'z' >= val) ||
+               ('A' <= val && 'Z' >= val);
+    }
+    
     
     static bool isDigit( char val )
     {
         return '0' <= val && '9' >= val;
     }
+    
     
     static bool isHexDigit( char val )
     {
@@ -104,11 +128,6 @@ char[] demangle( const(char)[] buf, char[] dst = null )
                ('A' <= val && 'F' >= val);
     }
     
-    static bool isAlpha( char val )
-    {
-        return ('a' <= val && 'z' >= val) ||
-               ('A' <= val && 'Z' >= val);
-    }
     
     static ubyte ascii2hex( char val )
     {
@@ -126,9 +145,11 @@ char[] demangle( const(char)[] buf, char[] dst = null )
         }
     }
     
+    
     //////////////////////////////////////////////////////////////////////////
     // Data Output
     //////////////////////////////////////////////////////////////////////////
+    
     
     static bool contains( const(char)[] a, const(char)[] b )
     {
@@ -136,6 +157,7 @@ char[] demangle( const(char)[] buf, char[] dst = null )
                b.ptr >= a.ptr &&
                b.ptr + b.length <= a.ptr + a.length;
     }
+    
     
     char[] shift( const(char)[] val )
     {
@@ -163,6 +185,7 @@ char[] demangle( const(char)[] buf, char[] dst = null )
         return null;
     }
     
+    
     char[] append( const(char)[] val )
     {
         if( val.length )
@@ -184,6 +207,7 @@ char[] demangle( const(char)[] buf, char[] dst = null )
         return null;
     }
 
+
     char[] put( const(char)[] val )
     {
         if( val.length )
@@ -195,6 +219,7 @@ char[] demangle( const(char)[] buf, char[] dst = null )
         return null;
     }
     
+    
     void pad( const(char)[] val )
     {
         if( val.length )
@@ -204,6 +229,7 @@ char[] demangle( const(char)[] buf, char[] dst = null )
         }
     }
 
+
     void silent( lazy void dg )
     {
         debug(trace) printf( "silent+\n" );
@@ -211,9 +237,11 @@ char[] demangle( const(char)[] buf, char[] dst = null )
         auto n = len; dg(); len = n;
     }
     
+    
     //////////////////////////////////////////////////////////////////////////
     // Parsing Utility
     //////////////////////////////////////////////////////////////////////////
+
 
     char tok()
     {
@@ -222,11 +250,13 @@ char[] demangle( const(char)[] buf, char[] dst = null )
         return char.init;
     }
     
+    
     void test( char val )
     {
         if( val != tok() )
             error();
     }
+    
     
     void next()
     {
@@ -234,13 +264,15 @@ char[] demangle( const(char)[] buf, char[] dst = null )
             error();
     }
     
+    
     void match( char val )
     {
         test( val );
         next();
     }
     
-    void matchS( const(char)[] val )
+    
+    void match( const(char)[] val )
     {
         foreach( e; val )
         {
@@ -249,15 +281,18 @@ char[] demangle( const(char)[] buf, char[] dst = null )
         }
     }
     
+    
     void eat( char val )
     {
         if( val == tok() )
             next();
     }
     
+    
     //////////////////////////////////////////////////////////////////////////
     // Parsing Implementation
     //////////////////////////////////////////////////////////////////////////
+
 
     /*
     Number:
@@ -284,6 +319,7 @@ char[] demangle( const(char)[] buf, char[] dst = null )
         }    
     }
 
+
     size_t decodeNumber()
     {
         debug(trace) printf( "decodeNumber+\n" );
@@ -301,6 +337,7 @@ char[] demangle( const(char)[] buf, char[] dst = null )
         }
         return val;
     }
+
 
     void parseReal()
     {
@@ -353,6 +390,7 @@ char[] demangle( const(char)[] buf, char[] dst = null )
         put( tbuf[0 .. tlen] );
     }
     
+    
     /*
     LName:
         Number Name
@@ -393,6 +431,7 @@ char[] demangle( const(char)[] buf, char[] dst = null )
         put( buf[pos .. pos + n] );
         pos += n;
     }
+    
     
     /*
     Type:
@@ -850,7 +889,7 @@ char[] demangle( const(char)[] buf, char[] dst = null )
         case 'E': // TypeEnum (E LName)
         case 'T': // TypeTypedef (T LName)
             next();
-            parseLName();
+            parseQualifiedName();
             return dst[beg .. len];
         case 'D': // TypeDelegate (D TypeFunction)
             next();
@@ -978,6 +1017,7 @@ char[] demangle( const(char)[] buf, char[] dst = null )
         }
     }
     
+    
     /*
     Value:
         n
@@ -1061,7 +1101,7 @@ char[] demangle( const(char)[] buf, char[] dst = null )
                 put( (cast(char*) &v)[0 .. 1] );
             }
             put( "\"" );
-            if( 'a' != tok() )
+            if( 'a' != t )
                 put( (cast(char*) &t)[0 .. 1] );
             return;
         case 'A':
@@ -1072,6 +1112,7 @@ char[] demangle( const(char)[] buf, char[] dst = null )
             error();
         }
     }
+    
     
     /*
     TemplateArgs:
@@ -1106,13 +1147,14 @@ char[] demangle( const(char)[] buf, char[] dst = null )
             case 'S':
                 next();
                 if( n ) put( ", " );
-                parseLName();
+                parseQualifiedName();
                 continue;
             default:
                 return;
             }
         }
     }
+    
     
     /*
     TemplateInstanceName:
@@ -1127,7 +1169,7 @@ char[] demangle( const(char)[] buf, char[] dst = null )
         scope(failure) pos = sav;
         auto n = decodeNumber();
         auto beg = pos;
-        matchS( "__T" );
+        match( "__T" );
         parseLName();
         put( "!(" );
         parseTemplateArgs();
@@ -1136,6 +1178,7 @@ char[] demangle( const(char)[] buf, char[] dst = null )
             error( "Template name length mismatch" );
         put( ")" );
     }
+    
     
     bool mayBeTemplateInstanceName()
     {
@@ -1150,6 +1193,7 @@ char[] demangle( const(char)[] buf, char[] dst = null )
                pos < buf.length && '_' == buf[pos++] &&
                pos < buf.length && 'T' == buf[pos++];
     }
+    
     
     /*
     SymbolName:
@@ -1189,6 +1233,7 @@ char[] demangle( const(char)[] buf, char[] dst = null )
         }
     }
     
+    
     /*
     QualifiedName:
         SymbolName
@@ -1210,6 +1255,7 @@ char[] demangle( const(char)[] buf, char[] dst = null )
         return dst[beg .. len];
     }
 
+
     /*
     MangledName:
         _D QualifiedName Type
@@ -1227,41 +1273,66 @@ char[] demangle( const(char)[] buf, char[] dst = null )
         debug(info) printf( "name (%.*s)\n", cast(int) name.length, name.ptr );
         if( 'M' == tok() )
             next(); // has 'this' pointer
-        parseType( name );
+        if( addType )
+            parseType( name );
     }
-    
-    while( true )
+
+
+    char[] opCall()
     {
-        try
+        while( true )
         {
-            debug(info) printf( "demangle(%.*s)\n", cast(int) buf.length, buf.ptr );
-            parseMangledName();
-            return dst[0 .. len];
-        }
-        catch( OverflowException e )
-        {
-            debug(trace) printf( "overflow... restarting\n" );
-            auto a = minBufSize;
-            auto b = 2 * dst.length;
-            auto newsz = a < b ? b : a;
-            debug(info) printf( "growing dst to %lu bytes\n", newsz );
-            dst.length = newsz;
-            pos = len = 0;
-            continue;
-        }
-        catch( ParseException e )
-        {
-            debug
+            try
             {
-                auto msg = e.toString;
-                printf( "error: %.*s\n", cast(int) msg.length, msg.ptr );
+                debug(info) printf( "demangle(%.*s)\n", cast(int) buf.length, buf.ptr );
+                parseMangledName();
+                return dst[0 .. len];
             }
-            if( dst.length < buf.length )
-                dst.length = buf.length;
-            dst[0 .. buf.length] = buf[];
-            return dst[0 .. buf.length];
+            catch( OverflowException e )
+            {
+                debug(trace) printf( "overflow... restarting\n" );
+                auto a = minBufSize;
+                auto b = 2 * dst.length;
+                auto newsz = a < b ? b : a;
+                debug(info) printf( "growing dst to %lu bytes\n", newsz );
+                dst.length = newsz;
+                pos = len = 0;
+                continue;
+            }
+            catch( ParseException e )
+            {
+                debug(info)
+                {
+                    auto msg = e.toString;
+                    printf( "error: %.*s\n", cast(int) msg.length, msg.ptr );
+                }
+                if( dst.length < buf.length )
+                    dst.length = buf.length;
+                dst[0 .. buf.length] = buf[];
+                return dst[0 .. buf.length];
+            }
         }
     }
+}
+
+
+/**
+ * Demangles D mangled names.  If it is not a D mangled name, it returns its
+ * argument name.
+ *
+ * Params:
+ *  buf = The string to demangle.
+ *  dst = An optional destination buffer.
+ *
+ * Returns:
+ *  The demangled name or the original string if the name is not a mangled D
+ *  name.
+ */
+char[] demangle( const(char)[] buf, char[] dst = null )
+{
+    //return Demangle(buf, dst)();
+    auto d = Demangle(buf, dst);
+    return d();
 }
 
 
@@ -1276,8 +1347,8 @@ unittest
         [ "_D8demangle8demangleFAaZAa", "char[] demangle.demangle(char[])" ],
         [ "_D6object6Object8opEqualsFC6ObjectZi", "int object.Object.opEquals(class Object)" ],
         [ "_D4test2dgDFiYd", "double delegate(int, ...) test.dg" ],
-        //[ "_D4test58__T9factorialVde67666666666666860140VG5aa5_68656c6c6fVPvnZ9factorialf", "float test.factorial!(double 4.2, char[5] \"hello\"c, void* null).factorial" ],
-        //[ "_D4test101__T9factorialVde67666666666666860140Vrc9a999999999999d9014000000000000000c00040VG5aa5_68656c6c6fVPvnZ9factorialf", "float test.factorial!(double 4.2, cdouble 6.8+3i, char[5] \"hello\"c, void* null).factorial" ],
+        [ "_D4test58__T9factorialVde67666666666666860140VG5aa5_68656c6c6fVPvnZ9factorialf", "float test.factorial!(double 4.2, char[5] \"hello\"c, void* null).factorial" ],
+        [ "_D4test101__T9factorialVde67666666666666860140Vrc9a999999999999d9014000000000000000c00040VG5aa5_68656c6c6fVPvnZ9factorialf", "float test.factorial!(double 4.2, cdouble 6.8+3i, char[5] \"hello\"c, void* null).factorial" ],
         [ "_D4test34__T3barVG3uw3_616263VG3wd3_646566Z1xi", "int test.bar!(wchar[3] \"abc\"w, dchar[3] \"def\"d).x" ],
         [ "_D8demangle4testFLC6ObjectLDFLiZiZi", "int demangle.test(lazy class Object, lazy int delegate(lazy int))"],
         [ "_D8demangle4testFAiXi", "int demangle.test(int[] ...)"],
@@ -1297,4 +1368,50 @@ unittest
                 ~ name[1] ~ "'");
         */
     }
+}
+
+
+/*
+ *
+ */
+string decodeDmdString( char[] ln, ref int p )
+{
+    string s;
+    uint zlen, zpos;
+
+    // decompress symbol
+    while( p < ln.length )
+    {
+        int ch = cast(ubyte) ln[p++];
+        if( (ch & 0xc0) == 0xc0 )
+        {
+            zlen = (ch & 0x7) + 1;
+            zpos = ((ch >> 3) & 7) + 1; // + zlen;
+            if( zpos > s.length )
+                break;
+            s ~= s[$ - zpos .. $ - zpos + zlen];
+        }
+        else if( ch >= 0x80 )
+        {
+            if( p >= ln.length )
+                break;
+            int ch2 = cast(ubyte) ln[p++];
+            zlen = (ch2 & 0x7f) | ((ch & 0x38) << 4);
+            if( p >= ln.length )
+                break;
+            int ch3 = cast(ubyte) ln[p++];
+            zpos = (ch3 & 0x7f) | ((ch & 7) << 7);
+            if( zpos > s.length )
+                break;
+            s ~= s[$ - zpos .. $ - zpos + zlen];
+        }
+        else if( Demangle.isAlpha(cast(char)ch) || Demangle.isDigit(cast(char)ch) || ch == '_' )
+            s ~= cast(char) ch;
+        else
+        {
+            p--;
+            break;
+        }
+    }
+    return s;
 }
