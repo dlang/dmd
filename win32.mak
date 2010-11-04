@@ -40,6 +40,7 @@ MANIFEST= \
 	src\core\thread.d \
 	src\core\thread_helper.d \
 	src\core\threadasm.S \
+	src\core\time.d \
 	src\core\vararg.d \
 	\
 	src\core\stdc\complex.d \
@@ -225,6 +226,7 @@ SRCS= \
 	src\core\runtime.d \
 	src\core\thread.d \
 	src\core\thread_helper.d \
+	src\core\time.d \
 	src\core\vararg.d \
 	\
 	src\core\stdc\config.d \
@@ -344,6 +346,7 @@ DOCS=\
 	$(DOCDIR)\core_memory.html \
 	$(DOCDIR)\core_runtime.html \
 	$(DOCDIR)\core_thread.html \
+	$(DOCDIR)\core_time.html \
 	$(DOCDIR)\core_vararg.html \
 	\
 	$(DOCDIR)\core_sync_barrier.html \
@@ -365,6 +368,7 @@ IMPORTS=\
 	$(IMPDIR)\core\runtime.di \
 	$(IMPDIR)\core\thread.di \
 	$(IMPDIR)\core\thread_helper.di \
+	$(IMPDIR)\core\time.di \
 	$(IMPDIR)\core\vararg.di \
 	\
 	$(IMPDIR)\core\stdc\complex.di \
@@ -471,6 +475,9 @@ $(DOCDIR)\core_runtime.html : src\core\runtime.d
 
 $(DOCDIR)\core_thread.html : src\core\thread.d
 	$(DMD) -c -d -o- -Isrc -Iimport -Df$@ $(DOCFMT) $**
+	
+$(DOCDIR)\core_time.html : src\core\time.d
+	$(DMD) -c -d -o- -Isrc -Iimport -Df$@ $(DOCFMT) $**
 
 $(DOCDIR)\core_vararg.html : src\core\vararg.d
 	$(DMD) -c -d -o- -Isrc -Iimport -Df$@ $(DOCFMT) $**
@@ -528,6 +535,9 @@ $(IMPDIR)\core\thread.di : src\core\thread.d
 	$(DMD) -c -d -o- -Isrc -Iimport -Hf$@ $**
 
 $(IMPDIR)\core\thread_helper.di : src\core\thread_helper.d
+	$(DMD) -c -d -o- -Isrc -Iimport -Hf$@ $**
+	
+$(IMPDIR)\core\time.di : src\core\time.d
 	$(DMD) -c -d -o- -Isrc -Iimport -Hf$@ $**
 
 $(IMPDIR)\core\vararg.di : src\core\vararg.d

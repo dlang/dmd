@@ -16,6 +16,9 @@
 module core.thread;
 
 
+public import core.time; // for Duration
+
+
 // this should be true for most architectures
 version = StackGrowsDown;
 
@@ -1048,8 +1051,87 @@ class Thread
     ///////////////////////////////////////////////////////////////////////////
     // Actions on Calling Thread
     ///////////////////////////////////////////////////////////////////////////
+    
+    
+    /**
+     * Suspends the calling thread for at least the supplied period.  This may
+     * result in multiple OS calls if period is greater than the maximum sleep
+     * duration supported by the operating system.
+     *
+     * Params:
+     *  val = The minimum duration the calling thread should be suspended.
+     *
+     * In:
+     *  period must be non-negative.
+     *
+     * Example:
+     * ------------------------------------------------------------------------
+     *
+     * Thread.sleep( milliseconds( 50 ) );  // sleep for 50 milliseconds
+     * Thread.sleep( seconds( 5 ) );        // sleep for 5 seconds
+     *
+     * ------------------------------------------------------------------------
+     */
+    static void sleep( Duration val )
+    in
+    {
+        assert( !val.isNegative );
+    }
+    body
+    {
+        version( Windows )
+        {
+            enum : uint
+            {
+                MAX_SLEEP_MILLIS = uint.max - 1
+            }
 
+            // NOTE: In instances where all other threads in the process have a
+            //       lower priority than the current thread, the current thread
+            //       will not yield with a sleep time of zero.  However, unlike
+            //       yield(), the user is not asking for a yield to occur but
+            //       only for execution to suspend for the requested interval.
+            //       Therefore, expected performance may not be met if a yield
+            //       is forced upon the user.
+            while( val.totalMilliseconds > MAX_SLEEP_MILLIS )
+            {
+                Sleep( MAX_SLEEP_MILLIS );
+                val -= MAX_SLEEP_MILLIS;
+            }
+            Sleep( cast(uint) val.totalMilliseconds );
+        }
+        else version( Posix )
+        {
+            timespec tin  = void;
+            timespec tout = void;
 
+            enum : uint
+            {
+                NANOS_PER_SECOND = 1000_000_000
+            }
+            
+            if( val.totalSeconds > tin.tv_sec.max )
+            {
+                tin.tv_sec  = tin.tv_sec.max;
+                tin.tv_nsec = cast(typeof(tin.tv_nsec)) (val.totalNanoseconds % NANOS_PER_SECOND);
+            }
+            else
+            {
+                tin.tv_sec  = cast(typeof(tin.tv_sec)) val.totalSeconds;
+                tin.tv_nsec = cast(typeof(tin.tv_nsec)) (val.totalNanoseconds % NANOS_PER_SECOND);
+            }
+            while( true )
+            {
+                if( !nanosleep( &tin, &tout ) )
+                    return;
+                if( getErrno() != EINTR )
+                    throw new ThreadException( "Unable to sleep for the specified duration" );
+                tin = tout;
+            }
+        }
+    }
+    
+    
     /**
      * Suspends the calling thread for at least the supplied period.  This may
      * result in multiple OS calls if period is greater than the maximum sleep
@@ -1077,63 +1159,12 @@ class Thread
     }
     body
     {
-        version( Windows )
+        enum : uint
         {
-            enum : uint
-            {
-                TICKS_PER_MILLI  = 10_000,
-                MAX_SLEEP_MILLIS = uint.max - 1
-            }
-
-            // NOTE: In instances where all other threads in the process have a
-            //       lower priority than the current thread, the current thread
-            //       will not yield with a sleep time of zero.  However, unlike
-            //       yield(), the user is not asking for a yield to occur but
-            //       only for execution to suspend for the requested interval.
-            //       Therefore, expected performance may not be met if a yield
-            //       is forced upon the user.
-            period /= TICKS_PER_MILLI;
-            while( period > MAX_SLEEP_MILLIS )
-            {
-                Sleep( MAX_SLEEP_MILLIS );
-                period -= MAX_SLEEP_MILLIS;
-            }
-            Sleep( cast(uint) period );
+            NANOS_PER_TICK = 100,
         }
-        else version( Posix )
-        {
-            timespec tin  = void;
-            timespec tout = void;
 
-            enum : uint
-            {
-                NANOS_PER_TICK   = 100,
-                TICKS_PER_SECOND = 10_000_000,
-            }
-            enum : typeof(period)
-            {
-                MAX_SLEEP_TICKS = cast(typeof(period)) tin.tv_sec.max * TICKS_PER_SECOND
-            }
-
-            if( period > MAX_SLEEP_TICKS )
-            {
-                tin.tv_sec = tin.tv_sec.max;
-                tin.tv_nsec = 0;
-            }
-            else
-            {
-                tin.tv_sec = cast(typeof(tin.tv_sec)) (period / TICKS_PER_SECOND);
-                tin.tv_nsec = cast(typeof(tin.tv_nsec)) (period % TICKS_PER_SECOND) * NANOS_PER_TICK;
-            }
-            while( true )
-            {
-                if( !nanosleep( &tin, &tout ) )
-                    return;
-                if( getErrno() != EINTR )
-                    throw new ThreadException( "Unable to sleep for the specified duration" );
-                tin = tout;
-            }
-        }
+        sleep( nanoseconds( period * NANOS_PER_TICK ) );
     }
 
 

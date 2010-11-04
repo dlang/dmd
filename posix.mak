@@ -40,6 +40,7 @@ MANIFEST= \
 	src/core/thread.d \
 	src/core/thread_helper.d \
 	src/core/threadasm.S \
+	src/core/time.d \
 	src/core/vararg.d \
 	\
 	src/core/stdc/complex.d \
@@ -223,6 +224,7 @@ SRCS= \
 	src/core/memory.d \
 	src/core/runtime.d \
 	src/core/thread.d \
+	src/core/time.d \
 	src/core/vararg.d \
 	\
 	src/core/stdc/config.d \
@@ -349,6 +351,7 @@ DOCS=\
 	$(DOCDIR)/core_memory.html \
 	$(DOCDIR)/core_runtime.html \
 	$(DOCDIR)/core_thread.html \
+	$(DOCDIR)/core_time.html \
 	$(DOCDIR)/core_vararg.html \
 	\
 	$(DOCDIR)/core_sync_barrier.html \
@@ -369,6 +372,7 @@ IMPORTS=\
 	$(IMPDIR)/core/memory.di \
 	$(IMPDIR)/core/runtime.di \
 	$(IMPDIR)/core/thread.di \
+	$(IMPDIR)/core/time.di \
 	$(IMPDIR)/core/thread_helper.di \
 	$(IMPDIR)/core/vararg.di \
 	\
