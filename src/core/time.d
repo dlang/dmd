@@ -28,6 +28,12 @@ private
 //////////////////////////////////////////////////////////////////////////////
 
 
+/**
+ * Represents a span of time.
+ *
+ * Authors: Based on the design of boost::time_duration by Jeff Garland and
+ *          Bart Garst of CrystalClear Software, Inc.
+ */
 struct Duration
 {
     alias int   DayType;
