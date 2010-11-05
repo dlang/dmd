@@ -1090,7 +1090,7 @@ class Thread
             //       only for execution to suspend for the requested interval.
             //       Therefore, expected performance may not be met if a yield
             //       is forced upon the user.
-            while( val.totalMilliseconds > MAX_SLEEP_MILLIS )
+            while( val > maxSleepMillis )
             {
                 Sleep( cast(uint)
                        maxSleepMillis.totalMilliseconds );
