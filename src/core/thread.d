@@ -1081,10 +1081,7 @@ class Thread
     {
         version( Windows )
         {
-            enum : uint
-            {
-                MAX_SLEEP_MILLIS = uint.max - 1
-            }
+            auto maxSleepMillis = milliseconds( uint.max - 1 );
 
             // NOTE: In instances where all other threads in the process have a
             //       lower priority than the current thread, the current thread
@@ -1095,8 +1092,9 @@ class Thread
             //       is forced upon the user.
             while( val.totalMilliseconds > MAX_SLEEP_MILLIS )
             {
-                Sleep( MAX_SLEEP_MILLIS );
-                val -= MAX_SLEEP_MILLIS;
+                Sleep( cast(uint)
+                       maxSleepMillis.totalMilliseconds );
+                val -= maxSleepMillis;
             }
             Sleep( cast(uint) val.totalMilliseconds );
         }
