@@ -1178,10 +1178,10 @@ Type *Type::addStorageClass(StorageClass stc)
     else
     {   if (stc & (STCconst | STCin))
             mod = MODconst;
+        else if (stc & STCwild)         // const takes precedence over wild
+            mod |= MODwild;
         if (stc & STCshared)
             mod |= MODshared;
-        if (stc & STCwild)
-            mod |= MODwild;
     }
     return addMod(mod);
 }
