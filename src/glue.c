@@ -710,7 +710,7 @@ void FuncDeclaration::toObjFile(int multiobj)
     if (parameters)
         pi += parameters->dim;
 #if DMD_OBJC
-    if (getObjCSelector())
+    if (objcSelector)
         pi += 1; // Extra arument for Objective-C selector
 #endif
     // Allow extra 2 for sthis and shidden
@@ -761,7 +761,7 @@ void FuncDeclaration::toObjFile(int multiobj)
     }
     
 #if DMD_OBJC
-    if (getObjCSelector())
+    if (objcSelector)
     {
         // Need to add Objective-C self and _cmd arguments as last/first parameters
         //        error("Objective-C method ABI not implemented yet.");

@@ -601,8 +601,8 @@ Symbol *ObjcClassDeclaration::getMethodList()
         FuncDeclaration *func = ((Dsymbol *)methods->data[i])->isFuncDeclaration();
         if (func && func->fbody)
         {
-            assert(func->getObjCSelector());
-            dtxoff(&dt, func->getObjCSelector()->toNameSymbol(), 0, TYnptr); // method name
+            assert(func->objcSelector);
+            dtxoff(&dt, func->objcSelector->toNameSymbol(), 0, TYnptr); // method name
             dtxoff(&dt, ObjcSymbols::getMethVarType(func), 0, TYnptr); // method type string
             dtxoff(&dt, func->toSymbol(), 0, TYnptr); // function implementation
         }
@@ -697,8 +697,8 @@ Symbol *ObjcProtocolDeclaration::getMethodList(int wantsClassMethods)
 	{
 		FuncDeclaration *func = ((Dsymbol *)methods->data[i])->isFuncDeclaration();
 		assert(func);
-		assert(func->getObjCSelector());
-		dtxoff(&dt, func->getObjCSelector()->toNameSymbol(), 0, TYnptr); // method name
+		assert(func->objcSelector);
+		dtxoff(&dt, func->objcSelector->toNameSymbol(), 0, TYnptr); // method name
 		dtxoff(&dt, ObjcSymbols::getMethVarType(func), 0, TYnptr); // method type string
 	}
     

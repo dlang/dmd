@@ -76,7 +76,7 @@ Expression *getRightThis(Loc loc, Scope *sc, AggregateDeclaration *ad,
 	else if (//t->isClassHandle() && t->isClassHandle() == ad &&
 		ad->isClassDeclaration() && ((ClassDeclaration *)ad)->objc && 
 		var->isFuncDeclaration() && ((FuncDeclaration *)var)->isStatic() &&
-		((FuncDeclaration *)var)->getObjCSelector())
+		((FuncDeclaration *)var)->objcSelector)
 	{
         // Create class reference from the class declaration
 		e1 = new ObjcClassRefExp(e1->loc, (ClassDeclaration *)ad);
@@ -6992,7 +6992,7 @@ Lagain:
             ClassDeclaration *cd = ue->e1->type->isClassHandle();
 #if DMD_OBJC && 0
             ClassDeclaration *cad = ad->isClassDeclaration();
-//            if (ad && cd && cd->objc && ad->isClassDeclaration() && ((ClassDeclaration *)ad)->objc && f->getObjCSelector())
+//            if (ad && cd && cd->objc && ad->isClassDeclaration() && ((ClassDeclaration *)ad)->objc && f->objcSelector)
 //            {
 //                ClassDeclaration *cad = (ClassDeclaration *)ad;
 //                if (cad->objcmeta && cd->getObjCMetaClass() == ad)

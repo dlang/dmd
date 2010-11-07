@@ -637,7 +637,7 @@ struct FuncDeclaration : Declaration
     Statement *mergeFensure(Statement *);
     Parameters *getParameters(int *pvarargs);
 #if DMD_OBJC
-    ObjcSelector *getObjCSelector();
+    void createObjCSelector();
 #endif
 
     static FuncDeclaration *genCfunc(Type *treturn, const char *name);

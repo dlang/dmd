@@ -621,7 +621,7 @@ void FuncDeclaration::semantic(Scope *sc)
             }
             
             // Add to class method lists
-            getObjCSelector(); // create a selector if needed
+            createObjCSelector(); // create a selector if needed
             if (objcSelector && cd)
             {
                 assert(isStatic() ? cd->objcmeta : !cd->objcmeta);
@@ -968,8 +968,9 @@ void FuncDeclaration::semantic3(Scope *sc)
                     assert(0);
                 v->parent = this;
                 vthis = v;
-                
-                if (getObjCSelector())
+
+#if DMD_OBJC
+                if (objcSelector)
                 {
                     v = new VarDeclaration(loc, Type::tvoidptr, Id::_cmd, NULL);
                     v->storage_class |= STCparameter;
@@ -979,6 +980,7 @@ void FuncDeclaration::semantic3(Scope *sc)
                     v->parent = this;
                     vobjccmd = v;
                 }
+#endif
             }
         }
         else if (isNested())
@@ -2481,7 +2483,7 @@ AggregateDeclaration *FuncDeclaration::isThis()
         ad = isMember2();
     }
 #if DMD_OBJC
-    else if (getObjCSelector()) // static Objective-C functions
+    else if (objcSelector) // static Objective-C functions
     {
         // Use Objective-C class object as 'this'
         ClassDeclaration *cd = isMember2()->isClassDeclaration();
@@ -2912,17 +2914,16 @@ Parameters *FuncDeclaration::getParameters(int *pvarargs)
 
 #if DMD_OBJC
 /*********************************************
- * Return the Objective-C selector for this function, or create one if this is a 
+ * Create the Objective-C selector for this function if this is a 
  * virtual member with Objective-C linkage.
  */
 
-ObjcSelector *FuncDeclaration::getObjCSelector()
+void FuncDeclaration::createObjCSelector()
 {
     if (objcSelector == NULL && linkage == LINKobjc && isVirtual() && type)
     {   TypeFunction *ftype = (TypeFunction *)type;
         objcSelector = ObjcSelector::create(ident, ftype->parameters->dim);
     }
-    return objcSelector;
 }
 #endif
 

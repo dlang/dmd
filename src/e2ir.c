@@ -161,11 +161,11 @@ elem *callfunc(Loc loc,
     }
     
 #if DMD_OBJC
-    if (fd && fd->getObjCSelector())
+    if (fd && fd->objcSelector)
     {
         // using objc-style "virtual" call
         // add hidden argument (second to 'this') for selector used by dispatch function
-        elem *esel = fd->getObjCSelector()->toElem();
+        elem *esel = fd->objcSelector->toElem();
         if (reverse)
             ep = el_param(esel,ep);
         else
@@ -231,7 +231,7 @@ elem *callfunc(Loc loc,
             eside = ec;
 
 #if DMD_OBJC
-            if (fd->getObjCSelector())
+            if (fd->objcSelector)
             {
                 // All functions with a selector need a this pointer.
                 assert(ethis);
@@ -251,7 +251,7 @@ elem *callfunc(Loc loc,
             ec = el_var(sfunc);
         }
 #if DMD_OBJC
-        else if (fd->getObjCSelector())
+        else if (fd->objcSelector)
         {
             // make objc-style "virtual" call using dispatch function
             assert(ethis);
