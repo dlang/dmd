@@ -2235,6 +2235,58 @@ void test125()
 
 /***************************************************/
 
+struct Foo126
+{
+   static Foo126 opCall(in Foo126 _f) pure
+   {
+       return _f;
+   }
+}
+
+/***************************************************/
+
+struct Tuple127(S...)
+{
+    S expand;
+    alias expand this;
+}
+
+alias Tuple127!(int, int) Foo127;
+
+void test127()
+{
+    Foo127[] m_array;
+    Foo127 f;
+    m_array ~= f;
+}
+
+/***************************************************/
+
+struct Bug4434 {}
+alias const Bug4434* IceConst4434;
+alias shared Bug4434* IceShared4434;
+alias shared Bug4434[] IceSharedArray4434;
+alias immutable Bug4434* IceImmutable4434;
+alias shared const Bug4434* IceSharedConst4434;
+
+alias int MyInt4434;
+alias const MyInt4434[3] IceConstInt4434;
+
+alias immutable string[] Bug4830;
+
+/***************************************************/
+// 4254
+
+void bub(const inout int other) {}
+
+void test128()
+{
+    bub(1);
+}
+
+
+/***************************************************/
+
 int main()
 {
     test1();
@@ -2362,6 +2414,9 @@ int main()
     test123();
     test124();
     test125();
+
+    test127();
+    test128();
 
     printf("Success\n");
     return 0;
