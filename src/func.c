@@ -635,10 +635,11 @@ void FuncDeclaration::semantic(Scope *sc)
                 {   // check if the other function with the same selector is
                     // overriden by this one
                     FuncDeclaration *selowner = (FuncDeclaration *)sv->ptrvalue;
-                    if (!overrides(selowner))
-                        error("Objcective-C selector %s already in use by function %s.", objcSelector->stringvalue, selowner->toChars());
+                    if (selowner != this && !overrides(selowner))
+                        error("Objcective-C selector '%s' already in use by function '%s'.", objcSelector->stringvalue, selowner->toChars());
                 }
-                sv->ptrvalue = this;
+                else
+                    sv->ptrvalue = this;
             }
         }
 #endif
