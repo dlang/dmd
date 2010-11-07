@@ -2922,7 +2922,7 @@ void FuncDeclaration::createObjCSelector()
 {
     if (objcSelector == NULL && linkage == LINKobjc && isVirtual() && type)
     {   TypeFunction *ftype = (TypeFunction *)type;
-        objcSelector = ObjcSelector::create(ident, ftype->parameters->dim);
+        objcSelector = ObjcSelector::create(this);
     }
 }
 #endif

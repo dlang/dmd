@@ -80,6 +80,7 @@ struct ObjcSelector
 	static ObjcSelector *lookup(ObjcSelectorBuilder *builder);
 	static ObjcSelector *lookup(const char *s, size_t len, size_t pcount);
 	static ObjcSelector *create(Identifier *ident, size_t pcount);
+	static ObjcSelector *create(FuncDeclaration *fdecl);
 };
 
 struct ObjcClassRefExp : Expression

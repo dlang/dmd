@@ -411,13 +411,17 @@ ObjcSelector *ObjcSelector::lookup(const char *s, size_t len, size_t pcount)
     return sel;
 }
 
-ObjcSelector *ObjcSelector::create(Identifier *ident, size_t pcount)
+ObjcSelector *ObjcSelector::create(FuncDeclaration *fdecl)
 {
     // create a selector by adding a semicolon for each parameter
     ObjcSelectorBuilder selbuilder;
-    selbuilder.addIdentifier(ident);
+    selbuilder.addIdentifier(fdecl->ident);
+    
+    TypeFunction *ftype = (TypeFunction *)fdecl->type;
+    size_t pcount = ftype->parameters->dim;
     for (size_t i = 0; i < pcount; ++i)
         selbuilder.addColon();
+    // TODO: Mangle parameter types in selector
     
     return lookup(&selbuilder);
 }
