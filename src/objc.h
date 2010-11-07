@@ -99,6 +99,8 @@ struct ObjcClassDeclaration
 	int ismeta;
 	Symbol *symbol;
 	Symbol *sprotocols;
+    
+    static ClassDeclaration *getObjcMetaClass(ClassDeclaration *cdecl);
 
 	ObjcClassDeclaration(ClassDeclaration *cdecl, int ismeta = 0);
 	void toObjFile(int multiobj);

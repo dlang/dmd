@@ -6995,7 +6995,7 @@ Lagain:
 //            if (ad && cd && cd->objc && ad->isClassDeclaration() && ((ClassDeclaration *)ad)->objc && f->objcSelector)
 //            {
 //                ClassDeclaration *cad = (ClassDeclaration *)ad;
-//                if (cad->objcmeta && cd->getObjCMetaClass() == ad)
+//                if (cad->objcmeta && cd->metaclass == ad)
 //                {
 //                    // need to go from object to class
 //                }

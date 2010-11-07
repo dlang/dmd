@@ -418,9 +418,8 @@ void FuncDeclaration::semantic(Scope *sc)
         // declaration to the metaclass.
         if (cd->objc && isStatic())
         {   if (!cd->objcmeta) // but check that it hasn't already been done
-            {   ClassDeclaration *metacd = cd->getObjCMetaClass();
-                assert(metacd);
-                parent = cd = metacd;
+            {   assert(cd->metaclass);
+                parent = cd = cd->metaclass;
             }
         }
 #endif
@@ -2488,7 +2487,8 @@ AggregateDeclaration *FuncDeclaration::isThis()
         // Use Objective-C class object as 'this'
         ClassDeclaration *cd = isMember2()->isClassDeclaration();
         if (cd->objc)
-            ad = cd->getObjCMetaClass();
+            if (!cd->objcmeta) // but check that it hasn't already been done
+                ad = cd->metaclass;
     }
 #endif
     //printf("-FuncDeclaration::isThis() %p\n", ad);

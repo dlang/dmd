@@ -1118,23 +1118,6 @@ int ClassDeclaration::isObjCinterface()
 {
     return objc;
 }
-
-ClassDeclaration *ClassDeclaration::getObjCMetaClass()
-{
-    if (!metaclass && objcmeta)
-    {
-        if (baseClass)
-            return baseClass->getObjCMetaClass();
-        else
-            return this;
-    }
-    return metaclass;
-}
-
-ClassDeclaration *ClassDeclaration::getObjCSuperClass()
-{
-	return baseClass;
-}
 #endif
 
 

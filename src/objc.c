@@ -475,7 +475,7 @@ ObjcClassRefExp::ObjcClassRefExp(Loc loc, ClassDeclaration *cdecl)
     : Expression(loc, TOKobjcclsref, sizeof(ObjcClassRefExp))
 {
     this->cdecl = cdecl;
-	this->type = cdecl->getObjCMetaClass()->getType();
+	this->type = ObjcClassDeclaration::getObjcMetaClass(cdecl)->getType();
 }
 
 void ObjcClassRefExp::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
@@ -491,6 +491,23 @@ elem *ObjcClassRefExp::toElem(IRState *irs)
 
 
 // MARK: ObjcClassDeclaration
+
+/* ClassDeclaration::metaclass contains the metaclass from the semantic point
+ of view. This function returns the metaclass from the Objective-C runtime's
+ point of view. Here, the metaclass of a metaclass is the root metaclass, not
+ nil, and the root metaclass's metaclass is itself. */
+ClassDeclaration *ObjcClassDeclaration::getObjcMetaClass(ClassDeclaration *cdecl)
+{
+    if (!cdecl->metaclass && cdecl->objcmeta)
+    {
+        if (cdecl->baseClass)
+            return getObjcMetaClass(cdecl->baseClass);
+        else
+            return cdecl;
+    }
+    else
+        return cdecl->metaclass;
+}
 
 ObjcClassDeclaration::ObjcClassDeclaration(ClassDeclaration *cdecl, int ismeta)
 {
@@ -593,7 +610,7 @@ Symbol *ObjcClassDeclaration::getIVarList()
 
 Symbol *ObjcClassDeclaration::getMethodList()
 {
-    Array *methods = !ismeta ? &cdecl->objcMethodList : &cdecl->getObjCMetaClass()->objcMethodList;
+    Array *methods = !ismeta ? &cdecl->objcMethodList : &cdecl->metaclass->objcMethodList;
     if (!methods->dim) // no member, no method list.
         return NULL;
     
@@ -691,7 +708,7 @@ void ObjcProtocolDeclaration::toDt(dt_t **pdt)
 
 Symbol *ObjcProtocolDeclaration::getMethodList(int wantsClassMethods)
 {
-    Array *methods = !wantsClassMethods ? &idecl->objcMethodList : &idecl->getObjCMetaClass()->objcMethodList;
+    Array *methods = !wantsClassMethods ? &idecl->objcMethodList : &idecl->metaclass->objcMethodList;
     if (!methods->dim) // no member, no method list.
         return NULL;
 

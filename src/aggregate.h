@@ -267,8 +267,6 @@ struct ClassDeclaration : AggregateDeclaration
 #endif
 #if DMD_OBJC
     virtual int isObjCinterface();
-    ClassDeclaration *getObjCMetaClass();
-    ClassDeclaration *getObjCSuperClass();
 #endif
     int isAbstract();
     virtual int vtblOffset();
