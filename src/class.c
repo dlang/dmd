@@ -515,7 +515,6 @@ void ClassDeclaration::semantic(Scope *sc)
         metaclass->objc = 1;
         metaclass->objcmeta = 1;
         metaclass->objcextern = objcextern;
-        metaclass->aliasthis = this;
     }
 #endif
 
@@ -925,6 +924,11 @@ int ClassDeclaration::isBaseOf(ClassDeclaration *cd, int *poffset)
 
 int ClassDeclaration::isBaseInfoComplete()
 {
+#if DMD_OBJC
+    if (objc)
+    {}  // skip !baseClass check for Objective-C objects
+    else
+#endif
     if (!baseClass)
         return ident == Id::Object;
     for (int i = 0; i < baseclasses->dim; i++)
