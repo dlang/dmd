@@ -2135,7 +2135,7 @@ Type *TypeNext::makeConst()
     }
     TypeNext *t = (TypeNext *)Type::makeConst();
     if (ty != Tfunction && ty != Tdelegate &&
-        (next->deco || next->ty == Tfunction) &&
+        //(next->deco || next->ty == Tfunction) &&
         !next->isImmutable() && !next->isConst())
     {   if (next->isShared())
             t->next = next->sharedConstOf();
@@ -2159,7 +2159,7 @@ Type *TypeNext::makeInvariant()
     }
     TypeNext *t = (TypeNext *)Type::makeInvariant();
     if (ty != Tfunction && ty != Tdelegate &&
-        (next->deco || next->ty == Tfunction) &&
+        //(next->deco || next->ty == Tfunction) &&
         !next->isImmutable())
     {   t->next = next->invariantOf();
     }
@@ -2179,7 +2179,7 @@ Type *TypeNext::makeShared()
     }
     TypeNext *t = (TypeNext *)Type::makeShared();
     if (ty != Tfunction && ty != Tdelegate &&
-        (next->deco || next->ty == Tfunction) &&
+        //(next->deco || next->ty == Tfunction) &&
         !next->isImmutable() && !next->isShared())
     {
         if (next->isConst() || next->isWild())
@@ -2204,7 +2204,7 @@ Type *TypeNext::makeSharedConst()
     }
     TypeNext *t = (TypeNext *)Type::makeSharedConst();
     if (ty != Tfunction && ty != Tdelegate &&
-        (next->deco || next->ty == Tfunction) &&
+        //(next->deco || next->ty == Tfunction) &&
         !next->isImmutable() && !next->isSharedConst())
     {
         t->next = next->sharedConstOf();
@@ -2226,7 +2226,7 @@ Type *TypeNext::makeWild()
     }
     TypeNext *t = (TypeNext *)Type::makeWild();
     if (ty != Tfunction && ty != Tdelegate &&
-        (next->deco || next->ty == Tfunction) &&
+        //(next->deco || next->ty == Tfunction) &&
         !next->isImmutable() && !next->isConst() && !next->isWild())
     {
         if (next->isShared())
@@ -2251,7 +2251,7 @@ Type *TypeNext::makeSharedWild()
     }
     TypeNext *t = (TypeNext *)Type::makeSharedWild();
     if (ty != Tfunction && ty != Tdelegate &&
-        (next->deco || next->ty == Tfunction) &&
+        //(next->deco || next->ty == Tfunction) &&
         !next->isImmutable() && !next->isSharedConst())
     {
         t->next = next->sharedWildOf();
@@ -2269,7 +2269,7 @@ Type *TypeNext::makeMutable()
     //printf("TypeNext::makeMutable() %p, %s\n", this, toChars());
     TypeNext *t = (TypeNext *)Type::makeMutable();
     if (ty != Tfunction && ty != Tdelegate &&
-        (next->deco || next->ty == Tfunction) &&
+        //(next->deco || next->ty == Tfunction) &&
         next->isWild())
     {
         t->next = next->mutableOf();
