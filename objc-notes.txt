@@ -280,15 +280,28 @@ different libraries, to define new methods that will apply to existing classes.
 		@propety size_t length() [length];
 	}
 	
-	class NSString [LastCharacter]
+	extern (Objective-C)
+	__objc_category LastCharacter : NSString
 	{
-		wchar lastCharacter() @property { return characterAtIndex(length-1); }
+		wchar lastCharacter() @property;
+	}
+	
+	unittest
+	{
+		NSString s = "hello";
+		assert(s.lastCharacter == 'o');
 	}
 
-The `class NSString [LastCharacter]` syntax declares a category named
-`LastCharacter` which adds one method to the `NSString` class.
+The `__objc_category LastCharacter : NSString` syntax maps to an Objective-C 
+category named `LastCharacter` adding methods to the `NSString` class. Methods
+in the category are dispatched dynamically, so you can override them in 
+a subclass of `NSString`, or in an category of that subclass.
 
-{Note: this just a draft idea at this stage.}
+Having two categories defining a function with the same selector will make the 
+Objective-C runtime use one of the two implementations in both cases.
+
+{Question: should we mangled the category name in the selector to avoid 
+conflicts between different categories?}
 
 
 ## `NSString` Literals {unimplemented}
@@ -495,6 +508,13 @@ all work as expected when defining Objective-C classes in D.
 Note that `invariant` will only be called upon entering public functions 
 defined in D. External Objective-C function won't check the invariants since
 Objective-C is unaware of this feature.
+
+
+## Global Functions
+
+Objective-C uses the same global functions as in C. As a convenience, global
+functions tagged with `extern (Objective-C)` will automatically become 
+`extern (C)`.
 
 
 ### Inner Classes {unimplemented}
