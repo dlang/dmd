@@ -4169,7 +4169,8 @@ STATIC elem * elparam(elem *e)
 {
     if (!OPTIMIZER)
     {
-        elparamx(e);
+        if (!I64)
+            elparamx(e);
     }
     return e;
 }

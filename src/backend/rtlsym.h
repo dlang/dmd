@@ -78,10 +78,10 @@ SYMBOL_MARS(DHIDDENFUNC,   FLfunc,FREGSAVED,"_d_hidden_func", 0, t) \
 SYMBOL_MARS(NEWCLASS,      FLfunc,FREGSAVED,"_d_newclass", 0, t) \
 SYMBOL_MARS(NEWARRAYT,     FLfunc,FREGSAVED,"_d_newarrayT", 0, t) \
 SYMBOL_MARS(NEWARRAYIT,    FLfunc,FREGSAVED,"_d_newarrayiT", 0, t) \
-SYMBOL_MARS(NEWARRAYMT,    FLfunc,FREGSAVED,"_d_newarraymT", 0, t) \
-SYMBOL_MARS(NEWARRAYMIT,   FLfunc,FREGSAVED,"_d_newarraymiT", 0, t) \
-SYMBOL_MARS(ARRAYLITERALT, FLfunc,FREGSAVED,"_d_arrayliteralT", 0, t) \
-SYMBOL_MARS(ASSOCARRAYLITERALT, FLfunc,FREGSAVED,"_d_assocarrayliteralT", 0, t) \
+SYMBOL_MARS(NEWARRAYMT,    FLfunc,FREGSAVED,"_d_newarraymT", 0, tv) \
+SYMBOL_MARS(NEWARRAYMIT,   FLfunc,FREGSAVED,"_d_newarraymiT", 0, tv) \
+SYMBOL_MARS(ARRAYLITERALT, FLfunc,FREGSAVED,"_d_arrayliteralT", 0, tv) \
+SYMBOL_MARS(ASSOCARRAYLITERALT, FLfunc,FREGSAVED,"_d_assocarrayliteralT", 0, tv) \
 SYMBOL_MARS(ASSOCARRAYLITERALTX, FLfunc,FREGSAVED,"_d_assocarrayliteralTX", 0, t) \
 SYMBOL_MARS(CALLFINALIZER, FLfunc,FREGSAVED,"_d_callfinalizer", 0, t) \
 SYMBOL_MARS(CALLINTERFACEFINALIZER, FLfunc,FREGSAVED,"_d_callinterfacefinalizer", 0, t) \
@@ -96,9 +96,9 @@ SYMBOL_MARS(DYNAMIC_CAST,  FLfunc,FREGSAVED,"_d_dynamic_cast", 0, t) \
 SYMBOL_MARS(INTERFACE_CAST,FLfunc,FREGSAVED,"_d_interface_cast", 0, t) \
 SYMBOL_MARS(FATEXIT,       FLfunc,FREGSAVED,"_fatexit", 0, t) \
 SYMBOL_MARS(ARRAYCATT,     FLfunc,FREGSAVED,"_d_arraycatT", 0, t) \
-SYMBOL_MARS(ARRAYCATNT,    FLfunc,FREGSAVED,"_d_arraycatnT", 0, t) \
+SYMBOL_MARS(ARRAYCATNT,    FLfunc,FREGSAVED,"_d_arraycatnT", 0, tv) \
 SYMBOL_MARS(ARRAYAPPENDT,  FLfunc,FREGSAVED,"_d_arrayappendT", 0, t) \
-SYMBOL_MARS(ARRAYAPPENDCT,  FLfunc,FREGSAVED,"_d_arrayappendcT", 0, t) \
+SYMBOL_MARS(ARRAYAPPENDCT,  FLfunc,FREGSAVED,"_d_arrayappendcT", 0, tv) \
 SYMBOL_MARS(ARRAYAPPENDCD,  FLfunc,FREGSAVED,"_d_arrayappendcd", 0, t) \
 SYMBOL_MARS(ARRAYAPPENDWD,  FLfunc,FREGSAVED,"_d_arrayappendwd", 0, t) \
 SYMBOL_MARS(ARRAYSETLENGTHT,FLfunc,FREGSAVED,"_d_arraysetlengthT", 0, t) \

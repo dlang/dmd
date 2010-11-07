@@ -1207,6 +1207,7 @@ Lagain:
      *          DS                      (if Windows prolog/epilog)
      *          exception handling context symbol
      *  Aoff    autos and regs
+     *  regsave.off  any saved registers
      *  Foff    floating register
      *  AAoff   alloca temporary
      *  CSoff   common subs
@@ -1245,8 +1246,9 @@ Lagain:
             Aoff -= sz - (sz & (Aalign - 1));
     }
 
+    regsave.off = Aoff - align(0,regsave.top);
     Foffset = floatreg ? DOUBLESIZE : 0;
-    Foff = Aoff - align(0,Foffset);
+    Foff = regsave.off - align(0,Foffset);
     assert(usedalloca != 1);
     AAoff = usedalloca ? (Foff - REGSIZE) : Foff;
     CSoff = AAoff - align(0,cstop * REGSIZE);
@@ -2914,6 +2916,11 @@ void assignaddrc(code *c)
                 c->IEVpointer1 = sn * REGSIZE + CSoff + BPoff;
                 c->Iflags |= CFunambig;
                 goto L2;
+            case FLregsave:
+                sn = c->IEV1.Vuns;
+                c->IEVpointer1 = sn + regsave.off + BPoff;
+                c->Iflags |= CFunambig;
+                goto L2;
             case FLndp:
 #if MARS
                 assert(c->IEV1.Vuns < NDP::savetop);
@@ -2999,20 +3006,13 @@ void assignaddrc(code *c)
             case FLstack:
                 c->IEVpointer2 += s->Soffset + EBPtoESP - base;
                 break;
-#if 0
-            case FLcs:
-                sn = c->IEV2.Vuns;
-                c->IEVpointer2 = sn * 2 + CSoff + BPoff;
-                break;
-            case FLndp:
-                c->IEVpointer2 = c->IEV2.Vuns * NDPSAVESIZE + NDPoff + BPoff;
-                break;
-#else
+
             case FLcs:
             case FLndp:
+            case FLregsave:
                 assert(0);
                 /* NOTREACHED */
-#endif
+
             case FLconst:
                 break;
 

@@ -1367,6 +1367,107 @@ elem *NewExp::toElem(IRState *irs)
         e = el_combine(ex, ey);
         e = el_combine(e, ez);
     }
+#if DMDV2
+    else if (t->ty == Tpointer && t->nextOf()->toBasetype()->ty == Tstruct)
+    {
+        Symbol *csym;
+
+        t = newtype->toBasetype();
+        assert(t->ty == Tstruct);
+        TypeStruct *tclass = (TypeStruct *)(t);
+        StructDeclaration *cd = tclass->sym;
+
+        /* Things to do:
+         * 1) ex: call allocator
+         * 2) ey: set vthis for nested classes
+         * 3) ez: call constructor
+         */
+
+        elem *ex = NULL;
+        elem *ey = NULL;
+        elem *ez = NULL;
+
+        if (allocator)
+        {   elem *ei;
+            Symbol *si;
+
+            ex = el_var(allocator->toSymbol());
+            ex = callfunc(loc, irs, 1, type, ex, allocator->type,
+                        allocator, allocator->type, NULL, newargs);
+
+            si = tclass->sym->toInitializer();
+            ei = el_var(si);
+
+            if (cd->isNested())
+            {
+                ey = el_same(&ex);
+                ez = el_copytree(ey);
+            }
+            else if (member)
+                ez = el_same(&ex);
+
+            if (!member)
+            {   /* Statically intialize with default initializer
+                 */
+                ex = el_una(OPind, TYstruct, ex);
+                ex = el_bin(OPstreq, TYnptr, ex, ei);
+                ex->ET = tclass->toCtype();
+                ex = el_una(OPaddr, TYnptr, ex);
+            }
+            ectype = tclass;
+        }
+        else
+        {
+            d_uns64 elemsize = cd->size(loc);
+
+            // call _d_newarrayT(ti, 1)
+            e = el_long(TYsize_t, 1);
+            e = el_param(e, type->getTypeInfo(NULL)->toElem(irs));
+
+            int rtl = t->isZeroInit() ? RTLSYM_NEWARRAYT : RTLSYM_NEWARRAYIT;
+            e = el_bin(OPcall,TYdarray,el_var(rtlsym[rtl]),e);
+
+            // The new functions return an array, so convert to a pointer
+            // ex -> (unsigned)(e >> 32)
+            e = el_bin(OPshr, TYdarray, e, el_long(TYint, PTRSIZE * 8));
+            ex = el_una(OP64_32, TYnptr, e);
+
+            ectype = NULL;
+
+            if (cd->isNested())
+            {
+                ey = el_same(&ex);
+                ez = el_copytree(ey);
+            }
+            else if (member)
+                ez = el_same(&ex);
+//elem_print(ex);
+//elem_print(ey);
+//elem_print(ez);
+        }
+
+        if (cd->isNested())
+        {   /* Initialize cd->vthis:
+             *  *(ey + cd.vthis.offset) = this;
+             */
+            ey = setEthis(loc, irs, ey, cd);
+        }
+
+        if (member)
+        {   // Call constructor
+            ez = callfunc(loc, irs, 1, type, ez, ectype, member, member->type, NULL, arguments);
+#if STRUCTTHISREF
+            /* Structs return a ref, which gets automatically dereferenced.
+             * But we want a pointer to the instance.
+             */
+            ez = el_una(OPaddr, TYnptr, ez);
+#endif
+        }
+
+        e = el_combine(ex, ey);
+        e = el_combine(e, ez);
+    }
+#endif
     else if (t->ty == Tarray)
     {
         TypeDArray *tda = (TypeDArray *)(t);
@@ -1380,7 +1481,7 @@ elem *NewExp::toElem(IRState *irs)
 
             // call _d_newT(ti, arg)
             e = el_param(e, type->getTypeInfo(NULL)->toElem(irs));
-            int rtl = t->next->isZeroInit() ? RTLSYM_NEWARRAYT : RTLSYM_NEWARRAYIT;
+            int rtl = tda->next->isZeroInit() ? RTLSYM_NEWARRAYT : RTLSYM_NEWARRAYIT;
             e = el_bin(OPcall,TYdarray,el_var(rtlsym[rtl]),e);
         }
         else
@@ -1399,6 +1500,7 @@ elem *NewExp::toElem(IRState *irs)
 
             int rtl = t->isZeroInit() ? RTLSYM_NEWARRAYMT : RTLSYM_NEWARRAYMIT;
             e = el_bin(OPcall,TYdarray,el_var(rtlsym[rtl]),e);
+            e->Eflags |= EFLAGS_variadic;
         }
     }
     else if (t->ty == Tpointer)
@@ -1596,7 +1698,6 @@ elem *AssertExp::toElem(IRState *irs)
         else
         {
             // Construct: (e1 || ModuleAssert(line))
-            Symbol *sassert;
             Module *m = irs->blx->module;
             char *mname = m->srcfile->toChars();
 
@@ -1656,7 +1757,7 @@ elem *AssertExp::toElem(IRState *irs)
             }
             else
             {
-                sassert = m->toModuleAssert();
+                Symbol *sassert = m->toModuleAssert();
                 ea = el_bin(OPcall,TYvoid,el_var(sassert),
                     el_long(TYint, loc.linnum));
             }
@@ -1672,11 +1773,9 @@ elem *AssertExp::toElem(IRState *irs)
 }
 
 elem *PostExp::toElem(IRState *irs)
-{   elem *e;
-    elem *einc;
-
-    e = e1->toElem(irs);
-    einc = e2->toElem(irs);
+{
+    elem *e = e1->toElem(irs);
+    elem *einc = e2->toElem(irs);
     e = el_bin((op == TOKplusplus) ? OPpostinc : OPpostdec,
                 e->Ety,e,einc);
     el_setLoc(e,loc);
@@ -2708,6 +2807,7 @@ elem *CatAssignExp::toElem(IRState *irs)
         {   // Append element
             elem *ep = el_params(e2, e1, this->e1->type->getTypeInfo(NULL)->toElem(irs), NULL);
             e = el_bin(OPcall, TYdarray, el_var(rtlsym[RTLSYM_ARRAYAPPENDCT]), ep);
+            e->Eflags |= EFLAGS_variadic;
         }
         el_setLoc(e,loc);
     }
@@ -4171,6 +4271,17 @@ elem *TupleExp::toElem(IRState *irs)
     return e;
 }
 
+#if DMDV2
+elem *tree_insert(Expressions *args, int low, int high)
+{
+    assert(low < high);
+    if (low + 1 == high)
+        return (elem *)args->data[low];
+    int mid = (low + high) >> 1;
+    return el_param(tree_insert(args, low, mid),
+                    tree_insert(args, mid, high));
+}
+#endif
 
 elem *ArrayLiteralExp::toElem(IRState *irs)
 {   elem *e;
@@ -4261,7 +4372,12 @@ elem *AssocArrayLiteralExp::toElem(IRState *irs)
             el = (Expression *)values->data[i];
         }
     }
-    e = el_param(e, type->getTypeInfo(NULL)->toElem(irs));
+
+    Type *t = type->toBasetype();
+    assert(t->ty == Taarray);
+    TypeAArray *ta = (TypeAArray *)t;
+
+    e = el_param(e, ta->getTypeInfo(NULL)->toElem(irs));
 
     // call _d_assocarrayliteralT(ti, dim, ...)
     e = el_bin(OPcall,TYnptr,el_var(rtlsym[RTLSYM_ASSOCARRAYLITERALT]),e);

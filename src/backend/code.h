@@ -522,6 +522,27 @@ struct NDP
 
 extern NDP _8087elems[8];
 
+/************************************
+ * Register save state.
+ */
+
+extern "C++"
+{
+struct REGSAVE
+{
+    targ_size_t off;            // offset on stack
+    unsigned top;               // high water mark
+    unsigned idx;               // current number in use
+    int alignment;              // 8 or 16
+
+    void reset();
+    code *save(code *c, int reg, unsigned *pidx);
+    code *restore(code *c, int reg, unsigned idx);
+};
+
+extern REGSAVE regsave;
+}
+
 /*******************************
  * As we generate code, collect information about
  * what parts of NT exception handling we need.

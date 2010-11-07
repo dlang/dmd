@@ -47,6 +47,8 @@ targ_size_t Toffset;            // offset of temporaries
 targ_size_t EEoffset;           // offset of SCstack variables from ESP
 int Aalign;                     // alignment for Aoffset
 
+REGSAVE regsave;
+
 CGstate cgstate;                // state of code generator
 
 /************************************
@@ -169,6 +171,7 @@ tryagain:
     cgstate.stackclean = 1;
     retsym = NULL;
 
+    regsave.reset();
     memset(_8087elems,0,sizeof(_8087elems));
 
     usednteh = 0;

@@ -860,4 +860,64 @@ code *regwithvalue(code *c,regm_t regm,targ_size_t value,unsigned *preg,regm_t f
     return c;
 }
 
+/*************************************************
+ * Allocate register temporaries
+ */
+
+void REGSAVE::reset()
+{
+    off = 0;
+    top = 0;
+    idx = 0;
+    alignment = REGSIZE;
+}
+
+code *REGSAVE::save(code *c, int reg, unsigned *pidx)
+{
+    unsigned i;
+    if (reg >= XMM0)
+    {
+        alignment = 16;
+        idx = (idx + 15) & ~15;
+        i = idx;
+        idx += 16;
+        // MOVD idx[RBP],xmm
+        c = genc1(c,0xF20F11,modregxrm(2, reg - XMM0, BPRM),FLregsave,(targ_uns) i);
+    }
+    else
+    {
+        if (!alignment)
+            alignment = REGSIZE;
+        i = idx;
+        idx += REGSIZE;
+        // MOV idx[RBP],reg
+        c = genc1(c,0x89,modregxrm(2, reg, BPRM),FLregsave,(targ_uns) i);
+        if (I64)
+            code_orrex(c, REX_W);
+    }
+    reflocal = TRUE;
+    if (idx > top)
+        top = idx;              // keep high water mark
+    *pidx = i;
+    return c;
+}
+
+code *REGSAVE::restore(code *c, int reg, unsigned idx)
+{
+    if (reg >= XMM0)
+    {
+        assert(alignment == 16);
+        // MOVD xmm,idx[RBP]
+        c = genc1(c,0xF20F10,modregxrm(2, reg - XMM0, BPRM),FLregsave,(targ_uns) idx);
+    }
+    else
+    {   // MOV reg,idx[RBP]
+        c = genc1(c,0x8B,modregxrm(2, reg, BPRM),FLregsave,(targ_uns) idx);
+        if (I64)
+            code_orrex(c, REX_W);
+    }
+    return c;
+}
+
+
 #endif // !SPP

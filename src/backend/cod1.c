@@ -616,6 +616,8 @@ code *loadea(elem *e,code *cs,unsigned op,unsigned reg,targ_size_t offset,
                                         cs->Irex |= REX_R;
                                     if (i & 8)
                                         cs->Irex |= REX_B;
+                                    if (sz == 1 && I64 && i >= 4)
+                                        cs->Irex |= REX;
                                 }
                                 c = CNIL;
                                 goto L2;
@@ -2547,6 +2549,11 @@ code *cdfunc(elem *e,regm_t *pretregs)
             assert((numpara & (REGSIZE - 1)) == 0);
             assert((stackpush & (REGSIZE - 1)) == 0);
 
+            /* Should consider reordering the order of evaluation of the parameters
+             * so that args that go into registers are evaluated after args that get
+             * pushed. We can reorder args that are constants or relconst's.
+             */
+
             /* Adjust start of the stack so after all args are pushed,
              * the stack will be aligned.
              */
@@ -2559,6 +2566,12 @@ code *cdfunc(elem *e,regm_t *pretregs)
                 stackpushsave += numalign;
             }
 
+            unsigned idxsave = regsave.idx;
+            int regsaved[XMM7 + 1];
+            memset(regsaved, -1, sizeof(regsaved));
+            code *crest = NULL;
+            regm_t saved = 0;
+
             /* Parameters go into the registers RDI,RSI,RDX,RCX,R8,R9
              * float and double parameters go into XMM0..XMM7
              * For variadic functions, count of XMM registers used goes in AL
@@ -2569,7 +2582,35 @@ code *cdfunc(elem *e,regm_t *pretregs)
                 int preg = parameters[i].reg;
                 if (preg == -1)
                 {
-                    c = cat(c,params(ep,stackalign));
+                    /* Push parameter on stack, but keep track of registers used
+                     * in the process. If they interfere with keepmsk, we'll have
+                     * to save/restore them.
+                     */
+                    code *csave = NULL;
+                    regm_t overlap = msavereg & keepmsk;
+                    msavereg |= keepmsk;
+                    code *cp = params(ep,stackalign);
+                    regm_t tosave = keepmsk & ~msavereg;
+                    msavereg &= ~keepmsk | overlap;
+
+                    // tosave is the mask to save and restore
+                    for (int j = 0; tosave; j++)
+                    {   regm_t mi = mask[j];
+                        assert(j <= XMM7);
+                        if (mi & tosave)
+                        {
+                            unsigned idx;
+                            csave = regsave.save(csave, j, &idx);
+                            crest = regsave.restore(crest, j, idx);
+                            saved |= mi;
+                            keepmsk &= ~mi;             // don't need to keep these for rest of params
+                            tosave &= ~mi;
+                        }
+                    }
+
+                    c = cat4(c, csave, cp, NULL);
+
+                    // Alignment for parameter comes after it got pushed
                     unsigned numalign = parameters[i].numalign;
                     if (numalign)
                     {
@@ -2599,6 +2640,13 @@ code *cdfunc(elem *e,regm_t *pretregs)
                     keepmsk |= retregs;      // don't change preg when evaluating func address
                 }
             }
+
+            // Restore any register parameters we saved
+            c = cat4(c, getregs(saved), crest, NULL);
+            keepmsk |= saved;
+            regsave.idx = idxsave;              // the regsave area forms a stack, reuse it
+
+            // Variadic functions store the number of XMM registers used in AL
             if (e->Eflags & EFLAGS_variadic)
             {   code *c1 = getregs(mAX);
                 c1 = movregconst(c1,AX,xmmcnt - XMM0,1);

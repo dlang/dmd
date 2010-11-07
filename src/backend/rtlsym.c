@@ -42,15 +42,13 @@ static Symbol rtlsym2[RTLSYM_MAX];
 void rtlsym_init()
 {
     static int inited;
-    type *t;
-    int i;
 
     if (!inited)
     {   inited++;
 
         //printf("rtlsym_init(%s)\n", regm_str(FREGSAVED));
 
-        for (i = 0; i < RTLSYM_MAX; i++)
+        for (int i = 0; i < RTLSYM_MAX; i++)
         {
             rtlsym[i] = &rtlsym2[i];
 #ifdef DEBUG
@@ -68,9 +66,14 @@ void rtlsym_init()
         }
 
 #if MARS
-        t = type_fake(LARGECODE ? TYffunc : TYnfunc);
+        type *t = type_fake(LARGECODE ? TYffunc : TYnfunc);
         t->Tmangle = mTYman_c;
         t->Tcount++;
+
+        // Variadic function
+        type *tv = type_fake(LARGECODE ? TYffunc : TYnfunc);
+        tv->Tmangle = mTYman_c;
+        tv->Tcount++;
 #endif
 
 #if MACHOBJ
