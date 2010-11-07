@@ -510,7 +510,7 @@ void ClassDeclaration::semantic(Scope *sc)
             else
                 error("base class and interfaces for an Objective-C class must be extern (Objective-C)");
         }
-        metaclass = new ClassDeclaration(loc, ident, metabases);
+        metaclass = new ClassDeclaration(loc, Id::Class, metabases);
         metaclass->storage_class |= STCstatic;
         metaclass->objc = 1;
         metaclass->objcmeta = 1;
@@ -1204,7 +1204,7 @@ Dsymbol *InterfaceDeclaration::syntaxCopy(Dsymbol *s)
     if (s)
         id = (InterfaceDeclaration *)s;
     else
-        id = new InterfaceDeclaration(loc, ident, NULL);
+        id = new InterfaceDeclaration(loc, Id::Class, NULL);
 
     ClassDeclaration::syntaxCopy(id);
     return id;
