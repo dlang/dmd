@@ -1649,6 +1649,7 @@ elem *NewExp::toElem(IRState *irs)
         e = el_combine(ex, ey);
         e = el_combine(e, ez);
     }
+#if DMDV2
     else if (t->ty == Tpointer && t->nextOf()->toBasetype()->ty == Tstruct)
     {
         Symbol *csym;
@@ -1748,6 +1749,7 @@ elem *NewExp::toElem(IRState *irs)
         e = el_combine(ex, ey);
         e = el_combine(e, ez);
     }
+#endif
     else if (t->ty == Tarray)
     {
         TypeDArray *tda = (TypeDArray *)(t);
@@ -1780,6 +1782,7 @@ elem *NewExp::toElem(IRState *irs)
 
             int rtl = t->isZeroInit() ? RTLSYM_NEWARRAYMT : RTLSYM_NEWARRAYMIT;
             e = el_bin(OPcall,TYdarray,el_var(rtlsym[rtl]),e);
+            e->Eflags |= EFLAGS_variadic;
         }
     }
     else if (t->ty == Tpointer)
@@ -2991,6 +2994,7 @@ elem *CatAssignExp::toElem(IRState *irs)
         {   // Append element
             elem *ep = el_params(e2, e1, this->e1->type->getTypeInfo(NULL)->toElem(irs), NULL);
             e = el_bin(OPcall, TYdarray, el_var(rtlsym[RTLSYM_ARRAYAPPENDCT]), ep);
+            e->Eflags |= EFLAGS_variadic;
         }
         el_setLoc(e,loc);
     }
@@ -4485,7 +4489,7 @@ elem *TupleExp::toElem(IRState *irs)
     return e;
 }
 
-
+#if DMDV2
 elem *tree_insert(Expressions *args, int low, int high)
 {
     assert(low < high);
@@ -4495,6 +4499,7 @@ elem *tree_insert(Expressions *args, int low, int high)
     return el_param(tree_insert(args, low, mid),
                     tree_insert(args, mid, high));
 }
+#endif
 
 elem *ArrayLiteralExp::toElem(IRState *irs)
 {   elem *e;
@@ -4562,12 +4567,11 @@ elem *ArrayLiteralExp::toElem(IRState *irs)
 
 
 elem *AssocArrayLiteralExp::toElem(IRState *irs)
-{   elem *e;
-    size_t dim;
-
+{
     //printf("AssocArrayLiteralExp::toElem() %s\n", toChars());
-    dim = keys->dim;
-    e = el_long(TYsize_t, dim);
+    // call _d_assocarrayliteralT(TypeInfo_AssociativeArray ti, size_t length, ...)
+    size_t dim = keys->dim;
+    elem *e = el_long(TYsize_t, dim);
     for (size_t i = 0; i < dim; i++)
     {   Expression *el = (Expression *)keys->data[i];
 
@@ -4580,8 +4584,8 @@ elem *AssocArrayLiteralExp::toElem(IRState *irs)
                 ep = el_una(OPstrpar, TYstruct, ep);
                 ep->ET = el->type->toCtype();
             }
-//printf("[%d] %s\n", i, el->toChars());
-//elem_print(ep);
+            //printf("[%d] %s\n", i, el->toChars());
+            //elem_print(ep);
             e = el_param(ep, e);
             el = (Expression *)values->data[i];
         }

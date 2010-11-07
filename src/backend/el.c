@@ -3212,7 +3212,7 @@ void elem_print(elem *e)
  && (e->PEFflags & PEFstrsize)
 #endif
                )
-                dbg_printf("%d ", type_size(e->ET));
+                dbg_printf("%d ", (int)type_size(e->ET));
             WRTYxx(e->ET->Tty);
         }
   }
@@ -3220,7 +3220,7 @@ void elem_print(elem *e)
   {
         if ((e->Eoper == OPstrpar || e->Eoper == OPstrctor || e->Eoper == OPstreq) ||
             e->Ety == TYstruct)
-            dbg_printf("%d ", type_size(e->ET));
+            dbg_printf("%d ", (int)type_size(e->ET));
         WRTYxx(e->Ety);
   }
   if (OTunary(e->Eoper))
@@ -3234,7 +3234,7 @@ void elem_print(elem *e)
   else if (OTbinary(e->Eoper))
   {
         if (!PARSER && e->Eoper == OPstreq)
-                dbg_printf("bytes=%d ", type_size(e->ET));
+                dbg_printf("bytes=%d ", (int)type_size(e->ET));
         dbg_printf("%p %p\n",e->E1,e->E2);
         elem_print(e->E1);
         elem_print(e->E2);

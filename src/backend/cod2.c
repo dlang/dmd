@@ -745,6 +745,8 @@ code *cdorth(elem *e,regm_t *pretregs)
             else
                 c = cat(c,loadea(e2,&cs,op2,reg,REGSIZE,retregs,0));
         }
+        else if (I64 && sz == 8)
+            code_orrex(c, REX_W);
         freenode(e2);
         break;
   }
@@ -2534,6 +2536,8 @@ code *cdind(elem *e,regm_t *pretregs)
                 cs.Iop = 0x8B ^ byte;
         L2:     code_newreg(&cs,reg);
                 ce = gen(CNIL,&cs);     /* MOV reg,[idx]                */
+                if (byte && reg >= 4)
+                    code_orrex(ce, REX);
         }
         else if ((tym == TYfptr || tym == TYhptr) && retregs & mES)
         {

@@ -636,6 +636,8 @@ code *cdeq(elem *e,regm_t *pretregs)
                     break;
                 if (sz == 2)            // if 16 bit operand
                     cs.Iflags |= CFopsize;
+                else if (sz == 1 && reg >= 4)
+                    cs.Irex |= REX;
                 c = gen(c,&cs);         // MOV EA+offset,reg
                 if (sz <= REGSIZE)
                     break;

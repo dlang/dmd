@@ -652,10 +652,10 @@ void fltables()
         static char indatafl[] =        /* is FLxxxx a data type?       */
         { FLdata,FLudata,FLreg,FLpseudo,FLauto,FLpara,FLextern,FLtmp,
           FLcs,FLfltreg,FLallocatmp,FLdatseg,FLndp,FLfardata,FLtlsdata,FLbprel,
-          FLstack };
+          FLstack,FLregsave };
 
         static char instackfl[] =       /* is FLxxxx a stack data type? */
-        { FLauto,FLpara,FLtmp,FLcs,FLfltreg,FLallocatmp,FLndp,FLbprel,FLstack };
+        { FLauto,FLpara,FLtmp,FLcs,FLfltreg,FLallocatmp,FLndp,FLbprel,FLstack,FLregsave };
 
         static char inflinsymtab[] =    /* is FLxxxx in the symbol table? */
         { FLdata,FLudata,FLreg,FLpseudo,FLauto,FLpara,FLextern,FLtmp,FLfunc,
@@ -700,6 +700,7 @@ void fltables()
                 case FLblock:   segfl[i] = CS;  break;
                 case FLblockoff: segfl[i] = CS; break;
                 case FLcs:      segfl[i] = SS;  break;
+                case FLregsave: segfl[i] = SS;  break;
                 case FLcsdata:  segfl[i] = CS;  break;
                 case FLndp:     segfl[i] = SS;  break;
                 case FLswitch:  segfl[i] = -1;  break;

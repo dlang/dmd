@@ -1530,6 +1530,7 @@ enum FL
         FLdatseg,       // ref to data segment offset
         FLctor,         // constructed object
         FLdtor,         // destructed object
+        FLregsave,      // ref to saved register on stack, int contains offset
 #if TX86
         FLndp,          // saved 8087 register
         FLfardata,      // ref to far data segment

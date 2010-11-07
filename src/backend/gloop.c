@@ -2168,6 +2168,8 @@ STATIC famlist * newfamlist(tym_t ty)
         {
 #if TX86
             ty = (tybasic(ty) == TYhptr) ? TYlong : TYint;
+            if (I64)
+                ty = TYllong;
 #else
             ty = TYint;
 #endif
@@ -2603,7 +2605,7 @@ STATIC void ivfamelems(register Iv *biv,register elem **pn)
                                         c2ty = TYlong;
                                     else
 #endif
-                                        c2ty = TYint;
+                                        c2ty = I64 ? TYllong : TYint;
                                 }
                           L1:
                                 fl->c2 = el_bin(op,c2ty,fl->c2,el_copytree(n2));
@@ -2979,7 +2981,7 @@ STATIC bool funcprev(Iv *biv,famlist *fl)
                     tymin = TYlong;
                 else
 #endif
-                    tymin = TYint;              /* type of (ptr - ptr) */
+                    tymin = I64 ? TYllong : TYint;         /* type of (ptr - ptr) */
         }
 
 #if TX86
@@ -3151,7 +3153,7 @@ STATIC void elimbasivs(register loop *l)
                          c1 & ~0x7FFFFFFFL)
                        )
                         continue;
-#if LONGLONG && __INTSIZE == 4
+#if LONGLONG && __INTSIZE >= 4
                     if (sz == LLONGSIZE &&
                         ((ref->E2->Eoper == OPconst &&
                         c1 * el_tolong(ref->E2) & ~0x7FFFFFFFFFFFFFFFLL) ||
@@ -3299,7 +3301,7 @@ STATIC void elimbasivs(register loop *l)
 #if TX86
                                 if (tybasic(ne->E1->Ety) == TYfptr &&
                                     tybasic(ne->E2->Ety) == TYfptr)
-                                {   ne->Ety = TYint;
+                                {   ne->Ety = I64 ? TYllong : TYint;
                                     if (tylong(ty) && intsize == 2)
                                         ne = el_una(OPshtlng,ty,ne);
                                 }
