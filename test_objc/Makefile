@@ -30,16 +30,60 @@
 #   PERMUTE_ARGS:        the set of arguments to permute in multiple $(DMD) invocations
 #                        default: the make variable ARGS (see below)
 #
+#   POST_SCRIPT:         name of script to execute after test run
+#                        default: (none)
+#
 #   REQUIRED_ARGS:       arguments to add to the $(DMD) command line
 #                        default: (none)
 
+ifeq (,$(OS))
+    OS:=$(shell uname)
+    ifeq (Darwin,$(OS))
+        OS:=osx
+    else
+        ifeq (Linux,$(OS))
+            OS:=posix
+        else
+            ifeq (FreeBSD,$(OS))
+                OS:=freebsd
+            else
+                $(error Unrecognized or unsupported OS for uname: $(OS))
+            endif
+        endif
+    endif
+else
+    ifeq (Windows_NT,$(OS))
+	OS:=win32
+    else
+        ifeq (Win_32,$(OS))
+	    OS:=win32
+        endif
+    endif
+endif
+export OS
+
 SHELL=/bin/bash
 QUIET=@
-export DMD=../src/dmd
 export RESULTS_DIR=test_results
-export ARGS=-inline -release -gc -O -unittest #-fPIC
 
-runnable_tests=$(wildcard runnable/*.d)
+ifeq ($(OS),win32)
+export ARGS=-inline -release -g -O -unittest
+export DMD=../src/dmd.exe
+export EXE=.exe
+export OBJ=.obj
+export DSEP=\\
+export SEP=$(shell echo '\')
+# bug in vim syntax hilighting, needed to kick it back into life: ')
+else
+export ARGS=-inline -release -gc -O -unittest #-fPIC
+export DMD=../src/dmd
+export EXE=
+export OBJ=.o
+export DSEP=/
+export SEP=/
+endif
+
+runnable_tests=$(wildcard runnable/*.d) $(wildcard runnable/*.html) $(wildcard runnable/*.sh)
 runnable_test_results=$(addsuffix .out,$(addprefix $(RESULTS_DIR)/,$(runnable_tests)))
 
 compilable_tests=$(wildcard compilable/*.d)
@@ -48,14 +92,21 @@ compilable_test_results=$(addsuffix .out,$(addprefix $(RESULTS_DIR)/,$(compilabl
 fail_compilation_tests=$(wildcard fail_compilation/*.d)
 fail_compilation_test_results=$(addsuffix .out,$(addprefix $(RESULTS_DIR)/,$(fail_compilation_tests)))
 
-$(RESULTS_DIR)/runnable/%.d.out: runnable/%.d $(RESULTS_DIR)/.created $(RESULTS_DIR)/combinations $(RESULTS_DIR)/objc_code.o $(DMD)
-	$(QUIET) ./do_test.sh $(<D) $*
+$(RESULTS_DIR)/runnable/%.d.out: runnable/%.d $(RESULTS_DIR)/.created $(RESULTS_DIR)/d_do_test $(DMD)
+	$(QUIET) ./$(RESULTS_DIR)/d_do_test $(<D) $* d
 
-$(RESULTS_DIR)/compilable/%.d.out: compilable/%.d $(RESULTS_DIR)/.created $(RESULTS_DIR)/combinations $(DMD)
-	$(QUIET) ./do_test.sh $(<D) $*
+$(RESULTS_DIR)/runnable/%.html.out: runnable/%.html $(RESULTS_DIR)/.created $(RESULTS_DIR)/d_do_test $(DMD)
+	$(QUIET) ./$(RESULTS_DIR)/d_do_test $(<D) $* html
 
-$(RESULTS_DIR)/fail_compilation/%.d.out: fail_compilation/%.d $(RESULTS_DIR)/.created $(RESULTS_DIR)/combinations $(DMD)
-	$(QUIET) ./do_test.sh $(<D) $*
+$(RESULTS_DIR)/runnable/%.sh.out: runnable/%.sh $(RESULTS_DIR)/.created $(RESULTS_DIR)/d_do_test $(DMD)
+	$(QUIET) echo " ... $(<D)/$*.sh"
+	$(QUIET) ./$(<D)/$*.sh
+
+$(RESULTS_DIR)/compilable/%.d.out: compilable/%.d $(RESULTS_DIR)/.created $(RESULTS_DIR)/d_do_test $(DMD)
+	$(QUIET) ./$(RESULTS_DIR)/d_do_test $(<D) $* d
+
+$(RESULTS_DIR)/fail_compilation/%.d.out: fail_compilation/%.d $(RESULTS_DIR)/.created $(RESULTS_DIR)/d_do_test $(DMD)
+	$(QUIET) ./$(RESULTS_DIR)/d_do_test $(<D) $* d
 
 all: run_tests
 
@@ -78,30 +129,23 @@ run_tests: start_runnable_tests start_compilable_tests start_fail_compilation_te
 
 run_runnable_tests: $(runnable_test_results)
 
-start_runnable_tests: $(RESULTS_DIR)/.created $(RESULTS_DIR)/combinations
+start_runnable_tests: $(RESULTS_DIR)/.created $(RESULTS_DIR)/d_do_test
 	@echo "Running runnable tests"
 	$(QUIET)$(MAKE) --no-print-directory run_runnable_tests
 
 run_compilable_tests: $(compilable_test_results)
 
-start_compilable_tests: $(RESULTS_DIR)/.created $(RESULTS_DIR)/combinations
+start_compilable_tests: $(RESULTS_DIR)/.created $(RESULTS_DIR)/d_do_test
 	@echo "Running compilable tests"
 	$(QUIET)$(MAKE) --no-print-directory run_compilable_tests
 
 run_fail_compilation_tests: $(fail_compilation_test_results)
 
-start_fail_compilation_tests: $(RESULTS_DIR)/.created $(RESULTS_DIR)/combinations
+start_fail_compilation_tests: $(RESULTS_DIR)/.created $(RESULTS_DIR)/d_do_test
 	@echo "Running fail compilation tests"
 	$(QUIET)$(MAKE) --no-print-directory run_fail_compilation_tests
 
-$(RESULTS_DIR)/combinations: combinations.d $(RESULTS_DIR)/.created
-	@echo "Building combinations tool"
-	$(QUIET)$(DMD) -od$(RESULTS_DIR) -of$(RESULTS_DIR)/combinations combinations.d
+$(RESULTS_DIR)/d_do_test: d_do_test.d $(RESULTS_DIR)/.created
+	@echo "Building d_do_test tool"
+	$(QUIET)$(DMD) -od$(RESULTS_DIR) -of$(RESULTS_DIR)$(DSEP)d_do_test d_do_test.d
 
-
-# Obj-C test code compiled with GCC
-
-GCC=gcc -m32
-
-$(RESULTS_DIR)/objc_code.o: runnable/objc_code/*.m
-	$(GCC) runnable/objc_code/*.m -c -o $(RESULTS_DIR)/objc_code.o
