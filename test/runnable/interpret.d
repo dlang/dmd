@@ -2717,6 +2717,35 @@ void bug4257b() {
 }
 
 /************************************************/
+// 5117
+
+static int dummy5117 = test5117();
+
+int test5117()
+{
+    S5117 s;
+    s.change();
+    assert(s.value == 1);       // (7) succeeds
+
+    R5117 r;
+    r.s.change();
+    assert(r.s.value == 1);     // (11) fails, value == 0
+
+    return 0;
+}
+
+struct S5117
+{
+    int value;
+    void change() { value = 1; }
+}
+
+struct R5117
+{
+    S5117 s;
+}
+
+/************************************************/
 
 int main()
 {

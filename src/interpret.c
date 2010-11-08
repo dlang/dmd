@@ -55,6 +55,7 @@ Expression *interpret_values(InterState *istate, Expression *earg, FuncDeclarati
 ArrayLiteralExp *createBlockDuplicatedArrayLiteral(Type *type, Expression *elem, size_t dim);
 Expression * resolveReferences(Expression *e, Expression *thisval, bool *isReference = NULL);
 Expression *getVarExp(Loc loc, InterState *istate, Declaration *d);
+VarDeclaration *findParentVar(Expression *e, Expression *thisval);
 
 /*************************************
  * Attempt to interpret a function given the arguments.
@@ -220,9 +221,9 @@ Expression *FuncDeclaration::interpret(InterState *istate, Expressions *argument
         }
     }
     // Don't restore the value of 'this' upon function return
-    if (needThis() && thisarg->op == TOKvar && istate)
+    if (needThis() && istate)
     {
-        VarDeclaration *thisvar = ((VarExp *)(thisarg))->var->isVarDeclaration();
+        VarDeclaration *thisvar = findParentVar(thisarg, istate->localThis);
         for (size_t i = 0; i < istate->vars.dim; i++)
         {   VarDeclaration *v = (VarDeclaration *)istate->vars.data[i];
             if (v == thisvar)
