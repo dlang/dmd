@@ -19,6 +19,8 @@
 // declaration from mach backend
 extern int mach_getsegment(const char *sectname, const char *segname, int align, int flags, int flags2);
 
+#define DMD_OBJC_ALIGN 2
+
 // Utility for concatenating names with a prefix
 static char *prefixSymbolName(const char *name, size_t name_len, const char *prefix, size_t prefix_len)
 {
@@ -38,6 +40,66 @@ static char *prefixSymbolName(const char *name, size_t name_len, const char *pre
     return sname;
 }
 
+enum ObjcSegment
+{
+    SEGcat_inst_meth,
+    SEGcat_cls_meth,
+    SEGstring_object,
+    SEGcstring_object,
+    SEGmessage_refs,
+    SEGsel_fixup,
+    SEGcls_refs,
+    SEGclass,
+    SEGmeta_class,
+    SEGcls_meth,
+    SEGinst_meth,
+    SEGprotocol,
+    SEGcstring,
+    SEGcategory,
+    SEGclass_vars,
+    SEGinstance_vars,
+    SEGmodule_info,
+    SEGsymbols,
+    SEGprotocol_ext,
+    SEGclass_ext,
+    SEGproperty,
+    SEGimage_info,
+    SEG_MAX
+};
+
+static int objc_getsegment(enum ObjcSegment segid)
+{
+    static int seg[SEG_MAX] = {0};
+    if (seg[segid] != 0)
+        return seg[segid];
+    
+    // initialize
+    int align = 2;
+    seg[SEGcat_cls_meth] = mach_getsegment("__cat_cls_meth", "__OBJC", align, S_ATTR_NO_DEAD_STRIP, 0);
+    seg[SEGcat_inst_meth] = mach_getsegment("__cat_inst_meth", "__OBJC", align, S_ATTR_NO_DEAD_STRIP, 0);
+    seg[SEGstring_object] = mach_getsegment("__string_object", "__OBJC", align, S_ATTR_NO_DEAD_STRIP, 0);
+    seg[SEGcstring_object] = mach_getsegment("__cstring_object", "__OBJC", align, S_ATTR_NO_DEAD_STRIP, 0);
+    seg[SEGmessage_refs] = mach_getsegment("__message_refs", "__OBJC", align, S_ATTR_NO_DEAD_STRIP | S_LITERAL_POINTERS, 0);
+    seg[SEGsel_fixup] = mach_getsegment("__sel_fixup", "__OBJC", align, S_ATTR_NO_DEAD_STRIP, 0);
+    seg[SEGcls_refs] = mach_getsegment("__cls_refs", "__OBJC", align, S_ATTR_NO_DEAD_STRIP | S_LITERAL_POINTERS, 0);
+    seg[SEGclass] = mach_getsegment("__class", "__OBJC", align, S_ATTR_NO_DEAD_STRIP, 0);
+    seg[SEGmeta_class] = mach_getsegment("__meta_class", "__OBJC", align, S_ATTR_NO_DEAD_STRIP, 0);
+    seg[SEGcls_meth] = mach_getsegment("__cls_meth", "__OBJC", align, S_ATTR_NO_DEAD_STRIP, 0);
+    seg[SEGinst_meth] = mach_getsegment("__inst_meth", "__OBJC", align, S_ATTR_NO_DEAD_STRIP, 0);
+    seg[SEGprotocol] = mach_getsegment("__protocol", "__OBJC", align, S_ATTR_NO_DEAD_STRIP, 0);
+    seg[SEGcstring] = mach_getsegment("__cstring", "__TEXT", align, S_CSTRING_LITERALS, 0);
+    seg[SEGcategory] = mach_getsegment("__category", "__OBJC", align, S_ATTR_NO_DEAD_STRIP, 0);
+    seg[SEGclass_vars] = mach_getsegment("__class_vars", "__OBJC", align, S_ATTR_NO_DEAD_STRIP, 0);
+    seg[SEGinstance_vars] = mach_getsegment("__instance_vars", "__OBJC", align, S_ATTR_NO_DEAD_STRIP, 0);
+    seg[SEGmodule_info] = mach_getsegment("__module_info", "__OBJC", align, S_ATTR_NO_DEAD_STRIP, 0);
+    seg[SEGsymbols] = mach_getsegment("__symbols", "__OBJC", align, S_ATTR_NO_DEAD_STRIP, 0);
+    seg[SEGprotocol_ext] = mach_getsegment("__protocol_ext", "__OBJC", align, S_ATTR_NO_DEAD_STRIP, 0);
+    seg[SEGclass_ext] = mach_getsegment("__class_ext", "__OBJC", align, S_ATTR_NO_DEAD_STRIP, 0);
+    seg[SEGproperty] = mach_getsegment("__property", "__OBJC", align, S_ATTR_NO_DEAD_STRIP, 0);
+    seg[SEGimage_info] = mach_getsegment("__image_info", "__OBJC", align, S_ATTR_NO_DEAD_STRIP, 0);
+
+    return seg[segid];
+}
 
 
 Symbol *ObjcSymbols::msgSend = NULL;
@@ -74,7 +136,7 @@ Symbol *ObjcSymbols::getCString(const char *str, size_t len, const char *symbolN
     // find segment
     static int seg = -1;
     if (seg == -1)
-        seg = mach_getsegment("__cstring", "__TEXT", sizeof(size_t), S_CSTRING_LITERALS, 0);
+        seg = objc_getsegment(SEGcstring);
 
     // create symbol
     Symbol *s;
@@ -94,7 +156,7 @@ Symbol *ObjcSymbols::getImageInfo()
 
         sinfo = symbol_name("L_OBJC_IMAGE_INFO", SCstatic, type_allocn(TYarray, tschar));
         sinfo->Sdt = dt;
-        sinfo->Sseg = mach_getsegment("__image_info", "__OBJC", sizeof(size_t), 0);
+        sinfo->Sseg = objc_getsegment(SEGimage_info);
         outdata(sinfo);
     }
     return sinfo;
@@ -112,7 +174,7 @@ Symbol *ObjcSymbols::getModuleInfo(ClassDeclarations *cls, ClassDeclarations *ca
 
         sinfo = symbol_name("L_OBJC_MODULE_INFO", SCstatic, type_allocn(TYarray, tschar));
         sinfo->Sdt = dt;
-        sinfo->Sseg = mach_getsegment("__module_info", "__OBJC", sizeof(size_t), 0);
+        sinfo->Sseg = objc_getsegment(SEGmodule_info);
         outdata(sinfo);
         
         ObjcSymbols::getImageInfo();
@@ -140,7 +202,7 @@ Symbol *ObjcSymbols::getSymbolMap(ClassDeclarations *cls, ClassDeclarations *cat
 
         sinfo = symbol_name("L_OBJC_SYMBOLS", SCstatic, type_allocn(TYarray, tschar));
         sinfo->Sdt = dt;
-        sinfo->Sseg = mach_getsegment("__symbols", "__OBJC", sizeof(size_t), 0);
+        sinfo->Sseg = objc_getsegment(SEGsymbols);
         outdata(sinfo);
     }
     return sinfo;
@@ -184,7 +246,7 @@ Symbol *ObjcSymbols::getClassReference(const char *s, size_t len)
         // find segment for class references
         static int seg = -1;
         if (seg == -1)
-            seg = mach_getsegment("__cls_refs", "__OBJC", sizeof(size_t), S_LITERAL_POINTERS | S_ATTR_NO_DEAD_STRIP, 0);
+            seg = objc_getsegment(SEGcls_refs);
         
         static size_t classrefcount = 0;
         char namestr[42];
@@ -447,7 +509,7 @@ Symbol *ObjcSelector::toRefSymbol()
         // find segment
         static int seg = -1;
         if (seg == -1)
-            seg = mach_getsegment("__message_refs", "__OBJC", sizeof(size_t), S_LITERAL_POINTERS | S_ATTR_NO_DEAD_STRIP, 0);
+            seg = objc_getsegment(SEGmessage_refs);
         
         // create symbol
         static size_t selcount = 0;
@@ -533,7 +595,7 @@ void ObjcClassDeclaration::toObjFile(int multiobj)
         sname = prefixSymbolName(cdecl->ident->string, cdecl->ident->len, "L_OBJC_METACLASS_", 17);
     symbol = symbol_name(sname, SCstatic, type_fake(TYnptr));
     symbol->Sdt = dt;
-    symbol->Sseg = mach_getsegment((!ismeta ? "__class" : "__metaclass"), "__OBJC", sizeof(size_t), 0);
+    symbol->Sseg = objc_getsegment((!ismeta ? SEGclass : SEGmeta_class));
     outdata(symbol);
 }
 
@@ -604,7 +666,7 @@ Symbol *ObjcClassDeclaration::getIVarList()
     char *sname = prefixSymbolName(cdecl->ident->string, cdecl->ident->len, "L_OBJC_INSTANCE_VARIABLES_", 26);
     Symbol *sym = symbol_name(sname, SCstatic, type_fake(TYnptr));
     sym->Sdt = dt;
-    sym->Sseg = mach_getsegment("__instance_vars", "__OBJC", sizeof(size_t), 0);
+    sym->Sseg = objc_getsegment(SEGinstance_vars);
     return sym;
 }
 
@@ -636,7 +698,7 @@ Symbol *ObjcClassDeclaration::getMethodList()
         sname = prefixSymbolName(cdecl->ident->string, cdecl->ident->len, "L_OBJC_CLASS_METHODS_", 21);
     Symbol *sym = symbol_name(sname, SCstatic, type_fake(TYnptr));
     sym->Sdt = dt;
-    sym->Sseg = mach_getsegment((!ismeta ? "__inst_meth" : "__cls_meth"), "__OBJC", sizeof(size_t), 0);
+    sym->Sseg = objc_getsegment((!ismeta ? SEGinst_meth : SEGcls_meth));
     return sym;
 }
 
@@ -663,7 +725,7 @@ Symbol *ObjcClassDeclaration::getProtocolList()
     char *sname = prefixSymbolName(cdecl->ident->string, cdecl->ident->len, "L_OBJC_CLASS_PROTOCOLS_", 23);
     sprotocols = symbol_name(sname, SCstatic, type_fake(TYnptr));
     sprotocols->Sdt = dt;
-    sprotocols->Sseg = mach_getsegment("__cat_cls_meth", "__OBJC", sizeof(size_t), 0);
+    sprotocols->Sseg = objc_getsegment(SEGcat_cls_meth);
     outdata(sprotocols);
     return sprotocols;
 }
@@ -686,7 +748,7 @@ void ObjcProtocolDeclaration::toObjFile(int multiobj)
     char *sname = prefixSymbolName(idecl->ident->string, idecl->ident->len, "L_OBJC_PROTOCOL_", 16);
     symbol = symbol_name(sname, SCstatic, type_fake(TYnptr));
     symbol->Sdt = dt;
-    symbol->Sseg = mach_getsegment("__protocol", "__OBJC", sizeof(size_t), 0);
+    symbol->Sseg = objc_getsegment(SEGprotocol);
     outdata(symbol);
 }
 
@@ -730,7 +792,7 @@ Symbol *ObjcProtocolDeclaration::getMethodList(int wantsClassMethods)
         sname = prefixSymbolName(idecl->ident->string, idecl->ident->len, "L_OBJC_PROTOCOL_CLASS_METHODS_", 30);
     Symbol *sym = symbol_name(sname, SCstatic, type_fake(TYnptr));
     sym->Sdt = dt;
-    sym->Sseg = mach_getsegment((!wantsClassMethods ? "__cat_inst_meth" : "__cat_cls_meth"), "__OBJC", sizeof(size_t), 0);
+    sym->Sseg = objc_getsegment((!wantsClassMethods ? SEGcat_inst_meth : SEGcat_cls_meth));
     return sym;
 }
 
@@ -755,7 +817,7 @@ Symbol *ObjcProtocolDeclaration::getProtocolList()
     char *sname = prefixSymbolName(idecl->ident->string, idecl->ident->len, "L_OBJC_PROTOCOL_REFS_", 21);
     Symbol *sprotocols = symbol_name(sname, SCstatic, type_fake(TYnptr));
     sprotocols->Sdt = dt;
-    sprotocols->Sseg = mach_getsegment("__cat_cls_meth", "__OBJC", sizeof(size_t), 0);
+    sprotocols->Sseg = objc_getsegment(SEGcat_cls_meth);
     outdata(sprotocols);
     return sprotocols;
 }
