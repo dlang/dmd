@@ -103,7 +103,7 @@ void outthunk(symbol *sthunk,symbol *sfunc,unsigned p,tym_t thisty,
 
 #if TX86
 
-void outdata(symbol *s)
+void outdata(symbol *s, int noalign)
 {
 #if HTOD
     return;
@@ -219,7 +219,7 @@ void outdata(symbol *s)
                         {   seg_data *pseg = obj_tlsseg_bss();
 #if ELFOBJ || MACHOBJ
                             s->Sseg = pseg->SDseg;
-                            elf_data_start(s, datasize, pseg->SDseg);
+                            elf_data_start(s, datasize, pseg->SDseg, noalign);
                             obj_lidata(pseg->SDseg, pseg->SDoffset, datasize);
 #else
                             targ_size_t TDoffset = pseg->SDoffset;
@@ -235,7 +235,7 @@ void outdata(symbol *s)
                         }
                         default:
 #if ELFOBJ || MACHOBJ
-                            seg = elf_data_start(s,datasize,UDATA);
+                            seg = elf_data_start(s,datasize,UDATA,noalign);
                             obj_lidata(s->Sseg,s->Soffset,datasize);
 #else
                             seg = UDATA;
@@ -347,7 +347,7 @@ void outdata(symbol *s)
         {   seg_data *pseg = obj_tlsseg();
 #if ELFOBJ || MACHOBJ
             s->Sseg = pseg->SDseg;
-            elf_data_start(s, datasize, s->Sseg);
+            elf_data_start(s, datasize, s->Sseg, noalign);
 //          s->Soffset = pseg->SDoffset;
 #else
             targ_size_t TDoffset = pseg->SDoffset;
@@ -362,7 +362,7 @@ void outdata(symbol *s)
         case mTYnear:
         case 0:
 #if ELFOBJ || MACHOBJ
-            seg = elf_data_start(s,datasize,DATA);
+            seg = elf_data_start(s,datasize,DATA,noalign);
 #else
             seg = DATA;
             alignOffset(DATA, datasize);

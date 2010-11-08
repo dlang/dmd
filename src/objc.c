@@ -749,7 +749,7 @@ void ObjcProtocolDeclaration::toObjFile(int multiobj)
     symbol = symbol_name(sname, SCstatic, type_fake(TYnptr));
     symbol->Sdt = dt;
     symbol->Sseg = objc_getsegment(SEGprotocol);
-    outdata(symbol);
+    outdata(symbol, 1);
 }
 
 void ObjcProtocolDeclaration::toDt(dt_t **pdt)

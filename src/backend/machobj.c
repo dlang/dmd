@@ -1686,11 +1686,12 @@ void obj_export(Symbol *s,unsigned argsize)
  *      sdata           data symbol
  *      datasize        output size
  *      seg             default seg if not known
+ *      noalign         set to 1 to avoid alignment
  * Returns:
  *      actual seg
  */
 
-int elf_data_start(Symbol *sdata, targ_size_t datasize, int seg)
+int elf_data_start(Symbol *sdata, targ_size_t datasize, int seg, int noalign)
 {
     targ_size_t alignbytes;
     //dbg_printf("elf_data_start(%s,size %d,seg %d)\n",sdata->Sident,datasize,seg);
@@ -1701,7 +1702,7 @@ int elf_data_start(Symbol *sdata, targ_size_t datasize, int seg)
     else
         seg = sdata->Sseg;
     targ_size_t offset = Offset(seg);
-    alignbytes = align(datasize, offset) - offset;
+    alignbytes = noalign ? 0 : align(datasize, offset) - offset;
     if (alignbytes)
         obj_lidata(seg, offset, alignbytes);
     sdata->Soffset = offset + alignbytes;
