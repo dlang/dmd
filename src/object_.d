@@ -27,6 +27,7 @@ private
     import core.stdc.stdlib;
     import rt.util.hash;
     import rt.util.string;
+    import rt.util.console;
     debug(PRINTF) import core.stdc.stdio;
 
     extern (C) void onOutOfMemoryError();
@@ -1737,8 +1738,8 @@ version (OSX)
 __gshared ModuleInfo*[] _moduleinfo_dtors;
 __gshared uint          _moduleinfo_dtors_i;
 
-ModuleInfo*[] _moduleinfo_tlsdtors;
-uint          _moduleinfo_tlsdtors_i;
+__gshared ModuleInfo*[] _moduleinfo_tlsdtors;
+__gshared uint          _moduleinfo_tlsdtors_i;
 
 // Register termination function pointers
 extern (C) int _fatexit(void*);
@@ -1820,10 +1821,22 @@ extern (C) void _moduleCtor()
         //_fatexit(&_STD_moduleDtor);
     }
 
-    _moduleinfo_dtors = new ModuleInfo*[_moduleinfo_array.length];
-    debug(PRINTF) printf("_moduleinfo_dtors = x%x\n", cast(void*)_moduleinfo_dtors);
+    //_moduleinfo_dtors = new ModuleInfo*[_moduleinfo_array.length];
+    //debug(PRINTF) printf("_moduleinfo_dtors = x%x\n", cast(void*)_moduleinfo_dtors);
+    // this will determine the constructor/destructor order, and check for
+    // cycles for both shared and TLS ctors
+    _checkModCtors();
+
     _moduleIndependentCtors();
-    _moduleCtor2(_moduleinfo_array, 0);
+    // now, call the module constructors in the designated order
+    foreach(i; 0.._moduleinfo_dtors_i)
+    {
+        ModuleInfo *mi = _moduleinfo_dtors[i];
+        if(mi.ctor)
+            (*mi.ctor)();
+    }
+
+    //_moduleCtor2(_moduleinfo_array, 0);
     // NOTE: _moduleTlsCtor is now called manually by dmain2
     //_moduleTlsCtor();
 }
@@ -1841,48 +1854,227 @@ extern (C) void _moduleIndependentCtors()
 }
 
 /********************************************
- * Run static constructors for shared global data.
+ * Check for cycles on module constructors, and establish an order for module
+ * constructors.
  */
-void _moduleCtor2(ModuleInfo*[] mi, int skip)
+extern(C) void _checkModCtors()
 {
-    debug(PRINTF) printf("_moduleCtor2(): %d modules\n", mi.length);
-    for (uint i = 0; i < mi.length; i++)
+    // Create an array of modules that will determine the order of construction
+    // (and destruction in reverse).
+    auto dtors = _moduleinfo_dtors = new ModuleInfo*[_moduleinfo_array.length];
+    size_t dtoridx = 0;
+
+    // this pointer will identify the module where the cycle was detected.
+    ModuleInfo *cycleModule;
+
+    // allocate some stack arrays that will be used throughout the process.
+    ubyte* p = cast(ubyte *)alloca(_moduleinfo_array.length * ubyte.sizeof);
+    auto reachable = p[0.._moduleinfo_array.length];
+
+    p = cast(ubyte *)alloca(_moduleinfo_array.length * ubyte.sizeof);
+    auto flags = p[0.._moduleinfo_array.length];
+
+
+    // find all the non-trivial dependencies (that is, dependencies that have a
+    // ctor or dtor) of a given module.  Doing this, we can 'skip over' the
+    // trivial modules to get at the non-trivial ones.
+    size_t _findDependencies(ModuleInfo *current, bool orig = true)
     {
-        ModuleInfo* m = mi[i];
-
-        debug(PRINTF) printf("\tmodule[%d] = %p\n", i, m);
-        if (!m)
-            continue;
-        debug(PRINTF) printf("\tmodule[%d] = '%.*s'\n", i, m.name);
-        if (m.flags & MIctordone)
-            continue;
-        debug(PRINTF) printf("\tmodule[%d] = '%.*s', m = x%x\n", i, m.name, m);
-
-        if (m.ctor || m.dtor)
+        auto idx = current.index;
+        if(reachable[idx])
+            return 0;
+        size_t result = 0;
+        reachable[idx] = 1;
+        if(!orig && (flags[idx] & (MIctor | MIdtor)) && !(flags[idx] & MIstandalone))
+            // non-trivial, stop here
+            return result + 1;
+        foreach(ModuleInfo *m; current.importedModules)
         {
-            if (m.flags & MIctorstart)
-            {   if (skip || m.flags & MIstandalone)
-                    continue;
-		throw new Exception("Cyclic dependency in module " ~ m.name);
+            result += _findDependencies(m, false);
+        }
+        return result;
+    }
+
+    void println(string msg[]...)
+    {
+        version(Windows)
+            immutable ret = "\r\n";
+        else
+            immutable ret = "\n";
+        foreach(m; msg)
+        {
+            // write message to stderr
+            console(m);
+        }
+        console(ret);
+    }
+
+    bool printCycle(ModuleInfo *current, ModuleInfo *target, bool orig = true)
+    {
+        if(reachable[current.index])
+            // already visited
+            return false;
+        if(current is target)
+            // found path
+            return true;
+        reachable[current.index] = 1;
+        if(!orig && (flags[current.index] & (MIctor | MIdtor)) && !(flags[current.index] & MIstandalone))
+            // don't go through modules with ctors/dtors that aren't
+            // standalone.
+            return false;
+        // search connections from current to see if we can get to target
+        foreach(m; current.importedModules)
+        {
+            if(printCycle(m, target, false))
+            {
+                // found the path, print this module
+                if(orig)
+                    println("imported from ", current.name, " containing module ctor/dtor");
+                else
+                    println("   imported from (", current.name, ")");
+                return true;
+            }
+        }
+        return false;
+    }
+
+    // This function will determine the order of construction/destruction and
+    // check for cycles.
+    bool _checkModCtors2(ModuleInfo *current)
+    {
+        // we only get called if current has a dtor or a ctor, so no need to
+        // check that.  First, determine what non-trivial elements are
+        // reachable.
+        reachable[] = 0;
+        uint nmodules = _findDependencies(current);
+
+        // allocate the dependencies on the stack
+        ModuleInfo **p = cast(ModuleInfo **)alloca(nmodules * (ModuleInfo*).sizeof);
+        auto dependencies = p[0..nmodules];
+        uint depidx = 0;
+        // fill in the dependencies
+        foreach(i, r; reachable)
+        {
+            if(r)
+            {
+                ModuleInfo *m = _moduleinfo_array[i];
+                if(m !is current && (flags[i] & (MIctor | MIdtor)) && !(flags[i] & MIstandalone))
+                {
+                    dependencies[depidx++] = m;
+                }
+            }
+        }
+        assert(depidx == nmodules);
+
+        // ok, now perform cycle detection
+        auto curidx = current.index;
+        flags[curidx] |= MIctorstart;
+        bool valid = true;
+        foreach(m; dependencies)
+        {
+            auto mflags = flags[m.index];
+            if(mflags & MIctorstart)
+            {
+                // found a cycle, but we don't care if the MIstandalone flag is
+                // set, this is a guarantee that there are no cycles in this
+                // module (not sure what triggers it)
+                println("Cyclic dependency in module ", m.name);
+                cycleModule = m;
+                valid = false;
+
+                // use the currently allocated dtor path to record the loop
+                // that contains module ctors/dtors only.
+                dtoridx = dtors.length;
+            }
+            else if(!(mflags & MIctordone))
+            {
+                valid = _checkModCtors2(m);
             }
 
-            m.flags = m.flags | MIctorstart;
-            _moduleCtor2(m.importedModules, 0);
-            if (m.ctor)
-                (*m.ctor)();
-            m.flags = (m.flags & ~MIctorstart) | MIctordone;
 
-            // Now that construction is done, register the destructor
-            //printf("\tadding module dtor x%x\n", m);
-            assert(_moduleinfo_dtors_i < _moduleinfo_dtors.length);
-            _moduleinfo_dtors[_moduleinfo_dtors_i++] = m;
+            if(!valid)
+            {
+                // cycle detected, now, we must print in reverse order the
+                // module include cycle.  For this, we need to traverse the
+                // graph of trivial modules again, this time printing them.
+                reachable[] = 0;
+                printCycle(current, m);
+
+                // record this as a module that was used in the loop.
+                dtors[--dtoridx] = current;
+                if(current is cycleModule)
+                {
+                    // print the cycle
+                    println("Cycle detected between modules with ctors/dtors:");
+                    foreach(cm; dtors[dtoridx..$])
+                    {
+                        console(cm.name)(" -> ");
+                    }
+                    println(cycleModule.name);
+                    throw new Exception("Aborting!");
+                }
+                return false;
+            }
         }
-        else
+        flags[curidx] = (flags[curidx] & ~MIctorstart) | MIctordone;
+        // add this module to the construction order list
+        dtors[dtoridx++] = current;
+        return true;
+    }
+
+    void _checkModCtors3()
+    {
+        foreach(m; _moduleinfo_array)
         {
-            m.flags = m.flags | MIctordone;
-            _moduleCtor2(m.importedModules, 1);
+            auto flag = flags[m.index];
+            if((flag & (MIctor | MIdtor)) && !(flag & MIctordone))
+            {
+                if(flag & MIstandalone)
+                {
+                    // no need to run a check on this one, but we do need to call its ctor/dtor
+                    dtors[dtoridx++] = m;
+                }
+                _checkModCtors2(m);
+            }
         }
     }
+
+    // ok, now we need to assign indexes, and also initialize the flags
+    foreach(i, m; _moduleinfo_array)
+    {
+        m.index = i;
+        ubyte flag = m.flags & MIstandalone;
+        if(m.dtor)
+            flag |= MIdtor;
+        if(m.ctor)
+            flag |= MIctor;
+        flags[i] = flag;
+    }
+
+    // everything's all set up for shared ctors
+    _checkModCtors3();
+
+    // store the number of dtors/ctors
+    _moduleinfo_dtors_i = dtoridx;
+
+    // set up everything for tls ctors
+    dtors = _moduleinfo_tlsdtors = new ModuleInfo*[_moduleinfo_array.length];
+    dtoridx = 0;
+    foreach(i, m; _moduleinfo_array)
+    {
+        ubyte flag = m.flags & MIstandalone;
+        if(m.tlsdtor)
+            flag |= MIdtor;
+        if(m.tlsctor)
+            flag |= MIctor;
+        flags[i] = flag;
+    }
+
+    // ok, run it
+    _checkModCtors3();
+
+    // store the number of dtors/ctors
+    _moduleinfo_tlsdtors_i = dtoridx;
 }
 
 /********************************************
@@ -1891,62 +2083,14 @@ void _moduleCtor2(ModuleInfo*[] mi, int skip)
 
 extern (C) void _moduleTlsCtor()
 {
-    debug(PRINTF) printf("_moduleTlsCtor()\n");
-
-    void* p = alloca(_moduleinfo_array.length * ubyte.sizeof);
-    auto flags = cast(ubyte[])p[0 .. _moduleinfo_array.length];
-    flags[] = 0;
-
-    foreach (uint i, m; _moduleinfo_array)
+    // call the module constructors in the correct order as determined by the
+    // check routine.
+    foreach(i; 0.._moduleinfo_tlsdtors_i)
     {
-	if (m)
-	    m.index = i;
+        ModuleInfo *mi = _moduleinfo_tlsdtors[i];
+        if(mi.tlsctor)
+            (*mi.tlsctor)();
     }
-
-    _moduleinfo_tlsdtors = new ModuleInfo*[_moduleinfo_array.length];
-
-    void _moduleTlsCtor2(ModuleInfo*[] mi, int skip)
-    {
-	debug(PRINTF) printf("_moduleTlsCtor2(skip = %d): %d modules\n", skip, mi.length);
-	foreach (i, m; mi)
-	{
-	    debug(PRINTF) printf("\tmodule[%d] = '%p'\n", i, m);
-	    if (!m)
-		continue;
-	    debug(PRINTF) printf("\tmodule[%d] = '%.*s'\n", i, m.name);
-	    if (flags[m.index] & MIctordone)
-		continue;
-	    debug(PRINTF) printf("\tmodule[%d] = '%.*s', m = x%x\n", i, m.name, m);
-
-	    if (m.tlsctor || m.tlsdtor)
-	    {
-		if (flags[m.index] & MIctorstart)
-		{   if (skip || m.flags & MIstandalone)
-			continue;
-		    throw new Exception("Cyclic dependency in module " ~ m.name);
-		}
-
-		flags[m.index] |= MIctorstart;
-		_moduleTlsCtor2(m.importedModules, 0);
-		if (m.tlsctor)
-		    (*m.tlsctor)();
-		flags[m.index] &= ~MIctorstart;
-		flags[m.index] |= MIctordone;
-
-		// Now that construction is done, register the destructor
-		//printf("**** adding module tlsdtor %p, [%d]\n", m, _moduleinfo_tlsdtors_i);
-		assert(_moduleinfo_tlsdtors_i < _moduleinfo_tlsdtors.length);
-		_moduleinfo_tlsdtors[_moduleinfo_tlsdtors_i++] = m;
-	    }
-	    else
-	    {
-		flags[m.index] |= MIctordone;
-		_moduleTlsCtor2(m.importedModules, 1);
-	    }
-	}
-    }
-
-    _moduleTlsCtor2(_moduleinfo_array, 0);
 }
 
 
