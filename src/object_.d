@@ -714,7 +714,7 @@ class TypeInfo_Class : TypeInfo
         TypeInfo_Class c;
         return this is o ||
                 ((c = cast(TypeInfo_Class)o) !is null &&
-                 this.info.name == c.classinfo.name);
+                 this.info.name == c.info.name);
     }
 
     override hash_t getHash(in void* p)
