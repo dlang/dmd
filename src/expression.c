@@ -8971,9 +8971,10 @@ Expression *AssignExp::semantic(Scope *sc)
             {
                 // Deal with AAs (Bugzilla 2451)
                 // Rewrite as:
-                // e1 = (typeof(e2) tmp = void, tmp = e2, tmp);
+                // e1 = (typeof(aa.value) tmp = void, tmp = e2, tmp);
+                Type * aaValueType = ((TypeAArray *)((IndexExp*)e1)->e1->type->toBasetype())->next;
                 Identifier *id = Lexer::uniqueId("__aatmp");
-                VarDeclaration *v = new VarDeclaration(loc, e2->type,
+                VarDeclaration *v = new VarDeclaration(loc, aaValueType,
                     id, new VoidInitializer(NULL));
                 v->storage_class |= STCctfe;
 
