@@ -19,7 +19,7 @@ interface TestInterface : TestInterfaceBase {
 	static void test22z();
 }
 
-class TestObject : NSObject/*, TestInterface*/ {
+class TestObject : NSObject, TestInterface {
 	void test() {}
 	static void test2z() {}
 	TestObject init() { return null; }
