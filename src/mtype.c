@@ -2268,9 +2268,9 @@ Type *TypeNext::makeMutable()
 {
     //printf("TypeNext::makeMutable() %p, %s\n", this, toChars());
     TypeNext *t = (TypeNext *)Type::makeMutable();
-    if (ty != Tfunction && ty != Tdelegate &&
+    if ((ty != Tfunction && ty != Tdelegate &&
         //(next->deco || next->ty == Tfunction) &&
-        next->isWild())
+        next->isWild()) || ty == Tsarray)
     {
         t->next = next->mutableOf();
     }
@@ -3367,7 +3367,7 @@ Type *TypeSArray::semantic(Loc loc, Scope *sc)
             {
               Loverflow:
                 error(loc, "index %jd overflow for static array", d1);
-                dim = new IntegerExp(0, 1, tsize_t);
+                goto Lerror;
             }
         }
     }
@@ -3381,7 +3381,7 @@ Type *TypeSArray::semantic(Loc loc, Scope *sc)
 
             if (d >= tt->arguments->dim)
             {   error(loc, "tuple index %ju exceeds %u", d, tt->arguments->dim);
-                return Type::terror;
+                goto Lerror;
             }
             Parameter *arg = (Parameter *)tt->arguments->data[(size_t)d];
             return arg->type;
@@ -3389,18 +3389,30 @@ Type *TypeSArray::semantic(Loc loc, Scope *sc)
         case Tstruct:
         {   TypeStruct *ts = (TypeStruct *)tbn;
             if (ts->sym->isnested)
-                error(loc, "cannot have array of inner structs %s", ts->toChars());
+            {   error(loc, "cannot have array of inner structs %s", ts->toChars());
+                goto Lerror;
+            }
             break;
         }
         case Tfunction:
         case Tnone:
             error(loc, "can't have array of %s", tbn->toChars());
-            tbn = next = tint32;
-            break;
+            goto Lerror;
     }
     if (tbn->isscope())
-        error(loc, "cannot have array of scope %s", tbn->toChars());
-    return merge();
+    {   error(loc, "cannot have array of scope %s", tbn->toChars());
+        goto Lerror;
+    }
+
+    /* Ensure things like const(immutable(T)[3]) become immutable(T[3])
+     * and const(T)[3] become const(T[3])
+     */
+    t = addMod(next->mod);
+
+    return t->merge();
+
+Lerror:
+    return Type::terror;
 }
 
 void TypeSArray::toDecoBuffer(OutBuffer *buf, int flag)
