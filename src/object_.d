@@ -705,6 +705,11 @@ class TypeInfo_Delegate : TypeInfo
     }
 }
 
+/**
+ * Runtime type information about a class.
+ * Can be retrieved from an object instance by using the
+ * $(LINK2 ../property.html#classinfo, .classinfo) property.
+ */
 class TypeInfo_Class : TypeInfo
 {
     override string toString() { return info.name; }
