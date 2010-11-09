@@ -3705,8 +3705,7 @@ version( OSX )
     {
         // NOTE: p is an address in the TLS static data emitted by the
         //       compiler.  If it isn't, something is disastrously wrong.
-        if( p < cast(void*) &_tls_beg || p >= cast(void*) &_tls_end )
-            assert( false );
+        assert( p >= cast(void*) &_tls_beg && p < cast(void*) &_tls_end );
         auto obj = Thread.getThis();
         return obj.m_tls.ptr + (p - cast(void*) &_tls_beg);
     }
