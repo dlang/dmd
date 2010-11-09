@@ -3571,7 +3571,7 @@ private:
         else static if( __traits( compiles, ucontext_t ) )
         {
             getcontext( &m_utxt );
-            m_utxt.uc_stack.ss_sp   = m_ctxt.bstack;
+            m_utxt.uc_stack.ss_sp   = m_pmem;
             m_utxt.uc_stack.ss_size = m_size;
             makecontext( &m_utxt, &fiber_entryPoint, 0 );
             // NOTE: If ucontext is being used then the top of the stack will
