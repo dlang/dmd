@@ -4191,7 +4191,15 @@ Identifier *TemplateInstance::genIdent()
                 error("forward reference of %s", d->toChars());
             else
             {
-                char *p = sa->mangle();
+                const char *p = sa->mangle();
+
+                /* Bugzilla 3043: if the first character of p is a digit this
+                 * causes ambiguity issues because the digits of the two numbers are adjacent.
+                 * Current demanglers resolve this by trying various places to separate the
+                 * numbers until one gets a successful demangle.
+                 * Unfortunately, fixing this ambiguity will break existing binary
+                 * compatibility and the demanglers, so we'll leave it as is.
+                 */
                 buf.printf("%zu%s", strlen(p), p);
             }
         }
