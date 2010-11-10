@@ -3687,6 +3687,10 @@ private:
 
         // NOTE: As above, these operations must be performed in a strict order
         //       to prevent Bad Things from happening.
+        // NOTE: If use of this fiber is multiplexed across threads, the thread
+        //       used here may be different from the one above, so get the
+        //       current thread handle.
+        tobj = Thread.getThis();
         volatile tobj.m_lock = false;
         tobj.m_curr.tstack = tobj.m_curr.bstack;
     }
