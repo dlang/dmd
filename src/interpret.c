@@ -224,6 +224,8 @@ Expression *FuncDeclaration::interpret(InterState *istate, Expressions *argument
     if (needThis() && istate)
     {
         VarDeclaration *thisvar = findParentVar(thisarg, istate->localThis);
+        if (!thisvar) // it's a reference. Find which variable it refers to.
+            thisvar = findParentVar(thisarg->interpret(istate), istate->localThis);
         for (size_t i = 0; i < istate->vars.dim; i++)
         {   VarDeclaration *v = (VarDeclaration *)istate->vars.data[i];
             if (v == thisvar)
