@@ -816,7 +816,7 @@ void ClassDeclaration::toDt2(dt_t **pdt, ClassDeclaration *cd)
     }
     else
     {
-        offset = 8;
+        offset = PTRSIZE * 2;
     }
 
     // Note equivalence of this loop to struct's
@@ -879,7 +879,7 @@ void ClassDeclaration::toDt2(dt_t **pdt, ClassDeclaration *cd)
         assert(csymoffset != ~0);
         dtxoff(pdt, csym, csymoffset, TYnptr);
 #endif
-        offset = b->offset + 4;
+        offset = b->offset + PTRSIZE;
     }
 
     if (offset < structsize)
