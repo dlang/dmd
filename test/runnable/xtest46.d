@@ -2287,6 +2287,17 @@ void test128()
 
 /***************************************************/
 
+pure nothrow @safe auto bug4915a() {  return 0; }
+pure nothrow @safe int  bug4915b() { return bug4915a(); }
+
+void bug4915c()
+{
+    pure nothrow @safe int d() { return 0; }
+    int e() pure nothrow @safe { return d(); }    
+}
+
+/***************************************************/
+
 int main()
 {
     test1();

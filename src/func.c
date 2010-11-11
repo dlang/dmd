@@ -161,7 +161,9 @@ void FuncDeclaration::semantic(Scope *sc)
     if (!type->deco)
     {
         sc = sc->push();
-        sc->stc |= storage_class & STCref;      // forward to function type
+        sc->stc |= storage_class & (STCref | STCnothrow | STCpure | STCdisable
+            | STCsafe | STCtrusted | STCsystem);      // forward to function type
+
         if (isCtorDeclaration())
             sc->flags |= SCOPEctor;
         type = type->semantic(loc, sc);
