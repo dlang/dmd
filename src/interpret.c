@@ -2710,11 +2710,15 @@ Expression *CallExp::interpret(InterState *istate)
             VarDeclaration *vd = ((VarExp *)((PtrExp*)ecall)->e1)->var->isVarDeclaration();
             if (vd && vd->value && vd->value->op == TOKsymoff)
                 fd = ((SymOffExp *)vd->value)->var->isFuncDeclaration();
-            else {
-                ecall = vd->value->interpret(istate);
+            else
+            {
+                ecall = getVarExp(loc, istate, vd);
+                if (ecall == EXP_CANT_INTERPRET)
+                    return ecall;
+
                 if (ecall->op == TOKsymoff)
-                        fd = ((SymOffExp *)ecall)->var->isFuncDeclaration();
-                }
+                    fd = ((SymOffExp *)ecall)->var->isFuncDeclaration();
+            }
         }
         else
             ecall = ((PtrExp*)ecall)->e1->interpret(istate);
