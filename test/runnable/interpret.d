@@ -2747,6 +2747,25 @@ struct R5117
 
 /************************************************/
 
+enum dummy5117b = test5117b();
+
+int test5117b()
+{
+    S5117b s;
+    getRef5117b(s).change();
+    assert(s.value == 1);     // fails, value == 0
+    return 0;
+}
+ref S5117b getRef5117b(ref S5117b s) { return s; }
+
+struct S5117b
+{
+    int value;
+    void change() { value = 1; }
+}
+
+/************************************************/
+
 int main()
 {
     test1();

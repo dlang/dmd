@@ -1379,7 +1379,7 @@ void addToReg57(const(void)[] a, int b, bool v)
     if (!v)
 	writefln("X");
     auto key = a~(cast(void*)&b)[0..4];
-    reg57[key] = v;
+    reg57[cast(immutable(void)[])key] = v;
     writefln("OK");
 }
 

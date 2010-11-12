@@ -107,8 +107,8 @@ void test3()
 
 void test4()
 {
-    int[ubyte[]] b;
-    ubyte[] x;
+    int[const(ubyte)[]] b;
+    const(ubyte)[] x;
     b[x] = 3;
     assert(b[x] == 3);
 }
@@ -117,8 +117,8 @@ void test4()
 
 void test5()
 {
-    int[short[]] b;
-    short[] x;
+    int[immutable(short)[]] b;
+    immutable(short)[] x;
     b[x] = 3;
     assert(b[x] == 3);
 }
@@ -127,8 +127,8 @@ void test5()
 
 void test6()
 {
-    int[int[]] b;
-    int[] x;
+    int[const(int)[]] b;
+    const(int)[] x;
     b[x] = 3;
     assert(b[x] == 3);
 }
@@ -137,8 +137,8 @@ void test6()
 
 void test7()
 {
-    int[uint[]] b;
-    uint[] x;
+    int[immutable(uint)[]] b;
+    immutable(uint)[] x;
     b[x] = 3;
     assert(b[x] == 3);
 }
@@ -147,8 +147,8 @@ void test7()
 
 void test8()
 {
-    int[long[]] b;
-    long[] x;
+    int[immutable(long)[]] b;
+    immutable(long)[] x;
     b[x] = 3;
     assert(b[x] == 3);
 }
@@ -157,8 +157,8 @@ void test8()
 
 void test9()
 {
-    int[ulong[]] b;
-    ulong[] x;
+    int[immutable(ulong)[]] b;
+    immutable(ulong)[] x;
     b[x] = 3;
     assert(b[x] == 3);
 }
@@ -167,13 +167,13 @@ void test9()
 
 class A10 {}
  
-int[A10[]] foo10;
+int[immutable(A10)[]] foo10;
  
 void test10()
 {
-  A10[] key = new A10[2];
+  auto key = new immutable(A10)[2];
 
-  key[0] = new A10();
+  cast()(key[0]) = new A10();
   foo10[key] = 0;
   assert(key in foo10);
   assert(!(key !in foo10));
@@ -777,6 +777,36 @@ void test32()
 
 /************************************************/
 
+template ICE3996(T : V[K], K, V) {}
+
+struct Bug3996 {}
+
+static assert(!is( ICE3996!(Bug3996) ));
+
+/************************************************/
+
+void bug4826c(T)(int[int] value, T x) {}
+
+void test34()
+{
+   AssociativeArray!(int, int) z;
+   bug4826c(z,1);
+}
+
+/************************************************/
+// 5131
+
+struct ICE35 {
+    ICE35 opAssign(int x) { return this; }
+};
+
+void test35() {
+    ICE35[string] a;
+    a["ICE?"] = 1;
+}
+
+/************************************************/
+
 int main()
 {
 printf("before test 1\n");   test1();
@@ -811,6 +841,9 @@ printf("before test 29\n");   test29();
 printf("before test 30\n");   test30();
 printf("before test 31\n");   test31();
 printf("before test 32\n");   test32();
+
+    test34();
+    test35();
 
     printf("Success\n");
     return 0;

@@ -393,11 +393,11 @@ void test20()
 
 void test21()
 {
-    int[char[]] esdom;
+    int[string] esdom;
     auto f = new File("runnable/extra-files/test15.txt");
 
     while(!f.eof())
-	esdom[f.readLine()] = 0;
+	esdom[cast(string)f.readLine()] = 0;
     f.close();
     esdom.rehash;
 }

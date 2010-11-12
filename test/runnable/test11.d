@@ -587,9 +587,9 @@ void test28()
 
 void test29()
 {
-  int[byte[]] foo;
+  int[immutable(byte)[]] foo;
   
-  static byte[] bar = [ 65, 66, 67 ];
+  static immutable(byte)[] bar = [ 65, 66, 67 ];
   
   foo[bar] = 1;
   assert(foo[bar] == 1);
