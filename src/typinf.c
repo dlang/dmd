@@ -148,6 +148,8 @@ Expression *Type::getTypeInfo(Scope *sc)
             }
         }
     }
+    if (!vtinfo)
+        vtinfo = t->vtinfo;     // Types aren't merged, but we can share the vtinfo's
     Expression *e = new VarExp(0, t->vtinfo);
     e = e->addressOf(sc);
     e->type = t->vtinfo->type;          // do this so we don't get redundant dereference
