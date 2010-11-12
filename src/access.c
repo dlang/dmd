@@ -253,7 +253,6 @@ void AggregateDeclaration::accessCheck(Loc loc, Scope *sc, Dsymbol *smember)
     if (!result)
     {
         error(loc, "member %s is not accessible", smember->toChars());
-halt();
     }
 }
 
