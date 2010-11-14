@@ -4958,7 +4958,9 @@ Expression *BinExp::commonSemanticAssign(Scope *sc)
 
         if (e1->op == TOKslice)
         {   // T[] op= ...
-            typeCombine(sc);
+            e = typeCombine(sc);
+            if (e->op == TOKerror)
+                return e;
             type = e1->type;
             return arrayOp(sc);
         }
@@ -4996,7 +4998,9 @@ Expression *BinExp::commonSemanticAssignIntegral(Scope *sc)
 
         if (e1->op == TOKslice)
         {   // T[] op= ...
-            typeCombine(sc);
+            e = typeCombine(sc);
+            if (e->op == TOKerror)
+                return e;
             type = e1->type;
             return arrayOp(sc);
         }
@@ -8343,7 +8347,9 @@ Expression *AddAssignExp::semantic(Scope *sc)
 
     if (e1->op == TOKslice)
     {
-        typeCombine(sc);
+        e = typeCombine(sc);
+        if (e->op == TOKerror)
+            return e;
         type = e1->type;
         return arrayOp(sc);
     }
@@ -8446,7 +8452,9 @@ Expression *MinAssignExp::semantic(Scope *sc)
 
     if (e1->op == TOKslice)
     {   // T[] -= ...
-        typeCombine(sc);
+        e = typeCombine(sc);
+        if (e->op == TOKerror)
+            return e;
         type = e1->type;
         return arrayOp(sc);
     }
@@ -8579,7 +8587,9 @@ Expression *MulAssignExp::semantic(Scope *sc)
 
     if (e1->op == TOKslice)
     {   // T[] -= ...
-        typeCombine(sc);
+        e = typeCombine(sc);
+        if (e->op == TOKerror)
+            return e;
         type = e1->type;
         return arrayOp(sc);
     }
@@ -8652,7 +8662,9 @@ Expression *DivAssignExp::semantic(Scope *sc)
 
     if (e1->op == TOKslice)
     {   // T[] -= ...
-        typeCombine(sc);
+        e = typeCombine(sc);
+        if (e->op == TOKerror)
+            return e;
         type = e1->type;
         return arrayOp(sc);
     }
