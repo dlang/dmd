@@ -3516,7 +3516,11 @@ MATCH TemplateTupleParameter::matchArg(Scope *sc,
      */
     assert(i + 1 == dedtypes->dim);     // must be the last one
     Tuple *ovar;
-    if (i + 1 == tiargs->dim && isTuple((Object *)tiargs->data[i]))
+
+    if (dedtypes->data[i] && isTuple((Object *)dedtypes->data[i]))
+        // It was already been deduced
+        ovar = isTuple((Object *)dedtypes->data[i]);
+    else if (i + 1 == tiargs->dim && isTuple((Object *)tiargs->data[i]))
         ovar = isTuple((Object *)tiargs->data[i]);
     else
     {

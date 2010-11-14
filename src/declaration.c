@@ -154,6 +154,7 @@ void Declaration::checkModify(Loc loc, Scope *sc, Type *t)
 TupleDeclaration::TupleDeclaration(Loc loc, Identifier *id, Objects *objects)
     : Declaration(id)
 {
+    this->loc = loc;
     this->type = NULL;
     this->objects = objects;
     this->isexp = 0;

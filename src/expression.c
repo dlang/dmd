@@ -5120,7 +5120,7 @@ Expression *IsExp::semantic(Scope *sc)
             tded = (Type *)dedtypes.data[0];
             if (!tded)
                 tded = targ;
-
+#if DMDV2
             Objects tiargs;
             tiargs.setDim(1);
             tiargs.data[0] = (void *)targ;
@@ -5135,16 +5135,16 @@ Expression *IsExp::semantic(Scope *sc)
                 if (m == MATCHnomatch)
                     goto Lno;
                 s->semantic(sc);
-                if (!sc->insert(s))
-                    error("declaration %s is already defined", s->toChars());
 #if 0
                 Object *o = (Object *)dedtypes.data[i];
                 Dsymbol *s = TemplateDeclaration::declareParameter(loc, sc, tp, o);
 #endif
                 if (sc->sd)
                     s->addMember(sc, sc->sd, 1);
+                else if (!sc->insert(s))
+                    error("declaration %s is already defined", s->toChars());
             }
-
+#endif
             goto Lyes;
         }
     }
