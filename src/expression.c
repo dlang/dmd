@@ -2105,7 +2105,7 @@ Lagain:
     {
         //printf("Identifier '%s' is a variable, type '%s'\n", toChars(), v->type->toChars());
         if (!type)
-        {   if (!v->type && v->scope)
+        {   if ((!v->type || !v->type->deco) && v->scope)
                 v->semantic(v->scope);
             type = v->type;
             if (!v->type)
