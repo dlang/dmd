@@ -6004,7 +6004,7 @@ Type *TypeTypeof::semantic(Loc loc, Scope *sc)
 {   Expression *e;
     Type *t;
 
-    //printf("TypeTypeof::semantic() %p\n", this);
+    //printf("TypeTypeof::semantic() %s\n", toChars());
 
     //static int nest; if (++nest == 50) *(char*)0=0;
 

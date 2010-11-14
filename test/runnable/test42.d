@@ -50,7 +50,7 @@ void test3()
 {
     auto i = mixin("__LINE__");
     writefln("%d", i);
-    assert(i == 51);
+    assert(i == 49);
 }
 
 /***************************************************/
@@ -700,13 +700,13 @@ void test45()
 {
    version (Windows)  // this test fails in -release because asserts will be removed
    {
-      assert(foo45(0)==2);
-      try{
-         foo45(1);
-      }catch{
-         return cast(void)0;
-      }
-      assert(0);
+   assert(foo45(0)==2);
+   try{
+      foo45(1);
+   }catch{
+      return cast(void)0;
+   }
+   assert(0);
    }
 }
 
@@ -3737,6 +3737,94 @@ const bar209 = foo209;
 const int * foo209 = null;
 
 /***************************************************/
+// 3418
+
+void test210()
+{
+    ulong a = 1; 
+    a = cast(ulong)(a * 2.0L);
+}
+
+/***************************************************/
+
+static assert(!is(typeof(Object.tupleof[2000]=0)));
+
+/***************************************************/
+
+struct Ghost {}
+
+void bug4430(T)(int x)   {}
+void bug4430(T)(Ghost x) {}
+
+void test212()
+{
+    bug4430!(char)( 777 );
+}
+
+/***************************************************/
+// 4768
+
+struct A213 { B213 b; }
+enum B213 { Z213 = 2 }
+
+void test213()
+{
+   A213 x;
+   assert(x.b == 2);
+}
+
+/***************************************************/
+
+void g214(int j) { }
+
+void test214()
+{
+    struct S
+    {
+        int i;
+        void f() { g214(i); }
+    }
+    auto s = S();
+}
+
+/***************************************************/
+
+template Q(s...) { alias s q; }
+
+void test215()
+{
+    class C {}
+    enum assocarrayliteral = Q!( [1:2] ).q.stringof;
+    enum complex80 = Q!( 1+1.0i ).q.stringof;
+    //enum dottype = Q!( C.Object.toString ).q.stringof;
+    enum halt = (assert(0), 0).stringof;    // ICE w/ -release
+    //enum remove = Q!( [1:2].remove(1) ).q.stringof;
+    enum templat = Q!( Q ).q.stringof;
+}
+
+/***************************************************/
+// 4941
+
+template T216(_...) { alias _ T216; }
+size_t mid216(size_t n) { return n/2; }
+
+alias T216!(int, int)[0 .. mid216($)] A216;
+alias T216!(1, 2, 3)[0 .. mid216($)] B216;
+
+void test216()
+{
+    T216!(int, int, int) values;
+    auto slice = values[0 .. mid216($)];   // C
+}
+
+/***************************************************/
+
+int bug4529a() { return 0; }
+int function() bug4529b;
+auto ivorBomb1 = typeid(typeof(bug4529a));
+auto ivorBomb2 = typeid(typeof(bug4529b));
+
+/***************************************************/
 
 int main()
 {
@@ -3935,6 +4023,14 @@ int main()
     test203();
 
 //    test208();
+
+    test210();
+
+    test212();
+    test213();
+    test214();
+    test215();
+    test216();
 
     writefln("Success");
     return 0;
