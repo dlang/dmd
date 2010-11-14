@@ -762,6 +762,9 @@ void obj_term()
         }
     }
 
+    /* Apparently having the filesize field greater than the vmsize field is an
+     * error, and is happening sometimes.
+     */
     segment_cmd.vmsize = vmaddr;
     segment_cmd.filesize = foffset - segment_cmd.fileoff;
 

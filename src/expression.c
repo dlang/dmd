@@ -4770,6 +4770,31 @@ Expression *IsExp::semantic(Scope *sc)
             tded = (Type *)dedtypes.data[0];
             if (!tded)
                 tded = targ;
+#if DMDV2
+            Objects tiargs;
+            tiargs.setDim(1);
+            tiargs.data[0] = (void *)targ;
+
+            /* Declare trailing parameters
+             */
+            for (int i = 1; i < parameters->dim; i++)
+            {   TemplateParameter *tp = (TemplateParameter *)parameters->data[i];
+                Declaration *s = NULL;
+
+                m = tp->matchArg(sc, &tiargs, i, parameters, &dedtypes, &s);
+                if (m == MATCHnomatch)
+                    goto Lno;
+                s->semantic(sc);
+#if 0
+                Object *o = (Object *)dedtypes.data[i];
+                Dsymbol *s = TemplateDeclaration::declareParameter(loc, sc, tp, o);
+#endif
+                if (sc->sd)
+                    s->addMember(sc, sc->sd, 1);
+                else if (!sc->insert(s))
+                    error("declaration %s is already defined", s->toChars());
+            }
+#endif
             goto Lyes;
         }
     }
