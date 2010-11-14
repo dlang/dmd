@@ -90,7 +90,9 @@ Expression *BinExp::arrayOp(Scope *sc)
 {
     //printf("BinExp::arrayOp() %s\n", toChars());
 
-    if (type->toBasetype()->nextOf()->toBasetype()->ty == Tvoid)
+    Type *tb = type->toBasetype();
+    assert(tb->ty == Tarray || tb->ty == Tsarray);
+    if (tb->nextOf()->toBasetype()->ty == Tvoid)
     {
         error("Cannot perform array operations on void[] arrays");
         return new ErrorExp();
