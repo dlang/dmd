@@ -2048,7 +2048,8 @@ extern(C) void _checkModCtors()
                     // no need to run a check on this one, but we do need to call its ctor/dtor
                     dtors[dtoridx++] = m;
                 }
-                _checkModCtors2(m);
+                else
+                    _checkModCtors2(m);
             }
         }
     }
