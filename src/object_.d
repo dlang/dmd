@@ -1678,9 +1678,13 @@ struct ModuleInfo
 
         foreach (m; _moduleinfo_array)
         {
-            ret = dg(m);
-            if (ret)
-                break;
+            // TODO: Should null ModuleInfo be allowed?
+            if (m !is null)
+            {
+                ret = dg(m);
+                if (ret)
+                    break;
+            }
         }
         return ret;
     }
@@ -1815,8 +1819,10 @@ extern (C) void _moduleCtor()
 
          debug foreach (m; _moduleinfo_array)
          {
-             //printf("\t%p\n", m);
-             printf("\t%.*s\n", m.name);
+             // TODO: Should null ModuleInfo be allowed?
+             if (m !is null)
+                //printf("\t%p\n", m);
+                printf("\t%.*s\n", m.name);
          }
     }    
 
@@ -1851,6 +1857,7 @@ extern (C) void _moduleIndependentCtors()
     debug(PRINTF) printf("_moduleIndependentCtors()\n");
     foreach (m; _moduleinfo_array)
     {
+        // TODO: Should null ModuleInfo be allowed?
         if (m && m.ictor)
         {
             (*m.ictor)();
@@ -2031,6 +2038,8 @@ extern(C) void _checkModCtors()
     {
         foreach(m; _moduleinfo_array)
         {
+            // TODO: Should null ModuleInfo be allowed?
+            if (m is null) continue;
             auto flag = flags[m.index];
             if((flag & (MIctor | MIdtor)) && !(flag & MIctordone))
             {
@@ -2047,6 +2056,8 @@ extern(C) void _checkModCtors()
     // ok, now we need to assign indexes, and also initialize the flags
     foreach(i, m; _moduleinfo_array)
     {
+        // TODO: Should null ModuleInfo be allowed?
+        if (m is null) continue;
         m.index = i;
         ubyte flag = m.flags & MIstandalone;
         if(m.dtor)
@@ -2067,6 +2078,8 @@ extern(C) void _checkModCtors()
     dtoridx = 0;
     foreach(i, m; _moduleinfo_array)
     {
+        // TODO: Should null ModuleInfo be allowed?
+        if (m is null) continue;
         ubyte flag = m.flags & MIstandalone;
         if(m.tlsdtor)
             flag |= MIdtor;
