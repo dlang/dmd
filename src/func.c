@@ -329,6 +329,13 @@ void FuncDeclaration::semantic(Scope *sc)
     {
         storage_class |= STCabstract;
 
+#if DMD_OBJC
+        if (id->objc && isCtorDeclaration() || isDtorDeclaration())
+        {   // constructors and destructor allowed in Objective-C interfaces
+            // to map them to selectors.
+        }
+        else
+#endif
         if (isCtorDeclaration() ||
 #if DMDV2
             isPostBlitDeclaration() ||

@@ -1004,6 +1004,17 @@ Dsymbol *Parser::parseCtor()
     Parameters *parameters = parseParameters(&varargs);
     StorageClass stc = parsePostfix();
     CtorDeclaration *f = new CtorDeclaration(loc, 0, parameters, varargs, stc);
+#if DMD_OBJC
+    f->objcSelector = parseObjCSelector();
+    if (f->objcSelector)
+    {   if (linkage != LINKobjc)
+            error("constructor must have Objective-C linkage to attach a selector");
+        if (tpl)
+            error("constructor template cannot have an Objective-C selector attached");
+        if (f->objcSelector->paramCount != parameters->dim)
+            error("number of colons in Objective-C selector must match the number of parameters");
+    }
+#endif
     parseContracts(f);
     return f;
 }
@@ -1045,6 +1056,13 @@ DtorDeclaration *Parser::parseDtor()
     check(TOKrparen);
 
     f = new DtorDeclaration(loc, 0);
+#if DMD_OBJC
+    f->objcSelector = parseObjCSelector();
+    if (f->objcSelector)
+    {   if (linkage != LINKobjc)
+            error("destructor must have Objective-C linkage to attach a selector");
+    }
+#endif
     parseContracts(f);
     return f;
 }
@@ -2900,8 +2918,8 @@ L2:
             addComment(f, comment);
 #if DMD_OBJC
             f->objcSelector = parseObjCSelector();
-            if (f->objcSelector) {
-                if (linkage != LINKobjc)
+            if (f->objcSelector)
+            {   if (linkage != LINKobjc)
                     error("function must have Objective-C linkage to attach a selector");
                 if (tpl)
                     error("function template cannot have an Objective-C selector attached");
