@@ -240,17 +240,20 @@ elem *callfunc(Loc loc,
         }
         sfunc = fd->toSymbol();
 
-        if (!fd->isVirtual() ||
-            directcall ||               // BUG: fix
-            fd->isFinal()
-           /* Future optimization: || (whole program analysis && not overridden)
-            */
-           )
-        {
 #if DMD_OBJC
-            if (fd->objcSelector)
+        if (fd->objcSelector)
+        {
+            if (fd->fbody && (!fd->isVirtual() || directcall || fd->isFinal()))
             {
-                // call implementation for a given class directly
+                // make static call
+                // this is an optimization that the Objective-C compiler
+                // does not make, we do it only if the function to call is 
+                // defined in D code (has a body)
+                ec = el_var(sfunc);
+            }
+            else if (directcall)
+            {
+                // call through Objective-C runtime dispatch
                 ec = el_var(ObjcSymbols::getMsgSendSuper(ehidden != 0));
 
                 // need to change this pointer to a pointer to an two-word
@@ -266,19 +269,25 @@ elem *callfunc(Loc loc,
                 ethis = addressElem(esuper, t); // get a pointer to our objc_super struct
             }
             else
+            {
+                // make objc-style "virtual" call using dispatch function
+                assert(ethis);
+                Type *tret = tf->next;
+                ec = el_var(ObjcSymbols::getMsgSend(tret, ehidden != 0));
+            }
+        }
+        else
 #endif
+        if (!fd->isVirtual() ||
+            directcall ||               // BUG: fix
+            fd->isFinal()
+           /* Future optimization: || (whole program analysis && not overridden)
+            */
+           )
+        {
             // make static call
             ec = el_var(sfunc);
         }
-#if DMD_OBJC
-        else if (fd->objcSelector)
-        {
-            // make objc-style "virtual" call using dispatch function
-            assert(ethis);
-            Type *tret = tf->next;
-            ec = el_var(ObjcSymbols::getMsgSend(tret, ehidden != 0));
-        }
-#endif
         else
         {
             // make virtual call
