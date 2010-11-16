@@ -24,8 +24,11 @@ struct ObjcSymbols
 	static Symbol *msgSend;
 	static Symbol *msgSend_stret;
 	static Symbol *msgSend_fpret;
+	static Symbol *msgSendSuper;
+	static Symbol *msgSendSuper_stret;
 
-	static Symbol *getMsgSend(Type *ret, int hasHiddenArg);	
+	static Symbol *getMsgSend(Type *ret, int hasHiddenArg);
+	static Symbol *getMsgSendSuper(int hasHiddenArg);
 	static Symbol *getCString(const char *str, size_t len, const char *symbolName);
 	static Symbol *getImageInfo();
 	static Symbol *getModuleInfo(ClassDeclarations *cls, ClassDeclarations *cat);

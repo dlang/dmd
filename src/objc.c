@@ -105,6 +105,8 @@ static int objc_getsegment(enum ObjcSegment segid)
 Symbol *ObjcSymbols::msgSend = NULL;
 Symbol *ObjcSymbols::msgSend_stret = NULL;
 Symbol *ObjcSymbols::msgSend_fpret = NULL;
+Symbol *ObjcSymbols::msgSendSuper = NULL;
+Symbol *ObjcSymbols::msgSendSuper_stret = NULL;
 
 Symbol *ObjcSymbols::getMsgSend(Type *ret, int hasHiddenArg)
 {
@@ -122,6 +124,22 @@ Symbol *ObjcSymbols::getMsgSend(Type *ret, int hasHiddenArg)
     {	if (!msgSend)
             msgSend = symbol_name("_objc_msgSend", SCglobal, type_fake(TYnfunc));
         return msgSend;
+    }
+    assert(0);
+    return NULL;
+}
+
+Symbol *ObjcSymbols::getMsgSendSuper(int hasHiddenArg)
+{
+    if (hasHiddenArg)
+    {	if (!msgSendSuper_stret)
+            msgSendSuper_stret = symbol_name("_objc_msgSendSuper_stret", SCglobal, type_fake(TYhfunc));
+        return msgSendSuper_stret;
+    }	
+    else
+    {	if (!msgSendSuper)
+            msgSendSuper = symbol_name("_objc_msgSendSuper", SCglobal, type_fake(TYnfunc));
+        return msgSendSuper;
     }
     assert(0);
     return NULL;

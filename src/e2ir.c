@@ -247,6 +247,26 @@ elem *callfunc(Loc loc,
             */
            )
         {
+#if DMD_OBJC
+            if (fd->objcSelector)
+            {
+                // call implementation for a given class directly
+                ec = el_var(ObjcSymbols::getMsgSendSuper(ehidden != 0));
+
+                // need to change this pointer to a pointer to an two-word
+                // objc_super struct of the form { this ptr, class ptr }.
+                AggregateDeclaration *ad = fd->isThis();
+                ClassDeclaration *cd = ad->isClassDeclaration();
+                assert(cd /* call to objc_msgSendSuper with no class delcaration */);
+                
+                // FIXME: faking delegate type and objc_super types
+                elem *eclassref = el_var(ObjcSymbols::getClassReference(cd->ident));
+                elem *esuper = el_pair(TYdelegate, ethis, eclassref);
+                
+                ethis = addressElem(esuper, t); // get a pointer to our objc_super struct
+            }
+            else
+#endif
             // make static call
             ec = el_var(sfunc);
         }
