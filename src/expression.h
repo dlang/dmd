@@ -525,6 +525,9 @@ struct NewExp : Expression
 
     CtorDeclaration *member;    // constructor function
     NewDeclaration *allocator;  // allocator function
+#if DMD_OBJC
+    FuncDeclaration *objcalloc; // allocator function (for Objective-C classes)
+#endif
     int onstack;                // allocate on stack
 
     NewExp(Loc loc, Expression *thisexp, Expressions *newargs,

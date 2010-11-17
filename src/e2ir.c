@@ -1618,27 +1618,14 @@ elem *NewExp::toElem(IRState *irs)
         {   elem *ei;
             Symbol *si;
 
-            if (allocator)
-                error("Cannot use custom allocators with Objective-C class");
             if (onstack)
-                error("Cannot allocate Objective-C class on the stack");
-            if (cd->objcmeta)
-                error("Cannot create new Objective-C meta-class.");
+                error("cannot allocate Objective-C class on the stack");
 
-            // use Objective-C allocator: NSObject.class.alloc()
-            assert(cd->metaclass);
-            Dsymbol *objcallocs = cd->search(loc, Id::alloc, 0);
-            printf("objcallocs: %s\n", objcallocs? objcallocs->toChars() : "(null)");
-            FuncDeclaration *objcallocf = NULL;
-            if (objcallocs)
-                objcallocf = objcallocs->isFuncDeclaration();
-            if (objcallocf)
-                objcallocf = objcallocf->overloadResolve(loc, NULL, newargs);
-            if (objcallocf)
-            {
+            if (objcalloc)
+            {   // Call allocator func with class reference
                 ex = el_var(ObjcSymbols::getClassReference(cd->ident));
-                ex = callfunc(loc, irs, 0, type, ex, objcallocf->type,
-                        objcallocf, objcallocf->type, NULL, newargs);
+                ex = callfunc(loc, irs, 0, type, ex, objcalloc->type,
+                        objcalloc, objcalloc->type, NULL, newargs);
             }
             else
             {   error("Cannot allocate Objective-C class, missing 'alloc' function.");

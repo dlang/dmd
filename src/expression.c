@@ -3690,6 +3690,9 @@ NewExp::NewExp(Loc loc, Expression *thisexp, Expressions *newargs,
     this->arguments = arguments;
     member = NULL;
     allocator = NULL;
+#if DMD_OBJC
+    objcalloc = NULL;
+#endif
     onstack = 0;
 }
 
@@ -3893,6 +3896,44 @@ Lagain:
             }
         }
 
+#if DMD_OBJC
+        if (cd->objc)
+        {
+            if (cd->objcmeta)
+            {   error("cannot instanciate a meta class", cd->toChars());
+                goto Lerr;
+            }
+            
+            // use Objective-C 'alloc' function
+            Dsymbol *s = cd->search(loc, Id::alloc, 0);
+            if (s)
+            {   
+                FuncDeclaration *allocf = s->isFuncDeclaration();
+                if (allocf)
+                {
+                    allocf = allocf->overloadResolve(loc, NULL, newargs);
+                    printf("%s == %s\n", ((TypeFunction *)allocf->type)->next->toChars(), allocf->parent->isClassDeclaration()->type->toChars());
+                    if (!allocf->isStatic())
+                    {   error("function %s must be static to qualify as an allocator for Objective-C class %s", allocf->toChars(), cd->toChars());
+                        goto Lerr;
+                    }
+                    else if (((TypeFunction *)allocf->type)->next != allocf->parent->isClassDeclaration()->type)
+                    {   error("function %s should return %s instead of %s to qualify as an allocator for Objective-C class %s", 
+                            allocf->toChars(), allocf->parent->isClassDeclaration()->type->toChars(),
+                            ((TypeFunction *)allocf->type)->next->toChars(), cd->toChars());
+                        goto Lerr;
+                    }
+                    
+                    objcalloc = allocf;
+                }
+            }
+            if (objcalloc == NULL)
+            {   error("no matching 'alloc' function in Objective-C class %s", cd->toChars());
+                goto Lerr;
+            }
+        }
+        else
+#endif
         if (cd->aggNew)
         {
             // Prepend the size argument to newargs[]
