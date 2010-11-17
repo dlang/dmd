@@ -1613,6 +1613,60 @@ elem *NewExp::toElem(IRState *irs)
         elem *ey = NULL;
         elem *ez = NULL;
 
+#if DMD_OBJC
+        if (cd->objc)
+        {   elem *ei;
+            Symbol *si;
+
+            if (allocator)
+                error("Cannot use custom allocators with Objective-C class");
+            if (onstack)
+                error("Cannot allocate Objective-C class on the stack");
+            if (cd->objcmeta)
+                error("Cannot create new Objective-C meta-class.");
+
+            // use Objective-C allocator: NSObject.class.alloc()
+            assert(cd->metaclass);
+            Dsymbol *objcallocs = cd->search(loc, Id::alloc, 0);
+            printf("objcallocs: %s\n", objcallocs? objcallocs->toChars() : "(null)");
+            FuncDeclaration *objcallocf = NULL;
+            if (objcallocs)
+                objcallocf = objcallocs->isFuncDeclaration();
+            if (objcallocf)
+                objcallocf = objcallocf->overloadResolve(loc, NULL, newargs);
+            if (objcallocf)
+            {
+                ex = el_var(ObjcSymbols::getClassReference(cd->ident));
+                ex = callfunc(loc, irs, 0, type, ex, objcallocf->type,
+                        objcallocf, objcallocf->type, NULL, newargs);
+            }
+            else
+            {   error("Cannot allocate Objective-C class, missing 'alloc' function.");
+                exit(-1);
+            }
+            
+            // FIXME: skipping initialization (actually, all fields will be zeros)
+            // Need to assign each non-zero field separately.
+            
+            //si = tclass->sym->toInitializer();
+            //ei = el_var(si);
+            
+            if (cd->isNested())
+            {
+                ey = el_same(&ex);
+                ez = el_copytree(ey);
+            }
+            else if (member)
+                ez = el_same(&ex);
+
+            //ex = el_una(OPind, TYstruct, ex);
+            //ex = el_bin(OPstreq, TYnptr, ex, ei);
+            //ex->Enumbytes = cd->size(loc);
+            //ex = el_una(OPaddr, TYnptr, ex);
+            ectype = tclass;
+        }
+        else
+#endif
         if (allocator || onstack)
         {   elem *ei;
             Symbol *si;
@@ -1723,6 +1777,12 @@ elem *NewExp::toElem(IRState *irs)
             ey = setEthis(loc, irs, ey, cd);
         }
 
+#if DMD_OBJC
+        if (member && cd->objc)
+            // Call Objective-C constructor (not a direct call)
+            ez = callfunc(loc, irs, 0, type, ez, ectype, member, member->type, NULL, arguments);
+        else
+#endif
         if (member)
             // Call constructor
             ez = callfunc(loc, irs, 1, type, ez, ectype, member, member->type, NULL, arguments);

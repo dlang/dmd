@@ -295,6 +295,9 @@ Msgtable msgtable[] =
     { "_pow", "pow" },
     { "fabs" },
 
+    // Builtin Objective-C selectors
+    { "alloc" },
+
     // Traits
     { "isAbstractClass" },
     { "isArithmetic" },
