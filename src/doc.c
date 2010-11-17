@@ -857,16 +857,6 @@ void FuncDeclaration::toDocBuffer(OutBuffer *buf)
     }
 }
 
-void CtorDeclaration::toDocBuffer(OutBuffer *buf)
-{
-    HdrGenState hgs;
-
-    buf->writestring("this");
-    Parameter::argsToCBuffer(buf, &hgs, arguments, varargs);
-    buf->writestring(";\n");
-}
-
-
 void AggregateDeclaration::toDocBuffer(OutBuffer *buf)
 {
     if (ident)

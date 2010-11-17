@@ -687,7 +687,6 @@ struct CtorDeclaration : FuncDeclaration
     int isVirtual();
     int addPreInvariant();
     int addPostInvariant();
-    void toDocBuffer(OutBuffer *buf);
 
     CtorDeclaration *isCtorDeclaration() { return this; }
 };

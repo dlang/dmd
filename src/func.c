@@ -2894,7 +2894,11 @@ void CtorDeclaration::semantic(Scope *sc)
 
 #if STRUCTTHISREF
     if (ad && ad->isStructDeclaration())
-        ((TypeFunction *)type)->isref = 1;
+    {   ((TypeFunction *)type)->isref = 1;
+        if (!originalType)
+            // Leave off the "ref"
+            originalType = new TypeFunction(arguments, tret, varargs, LINKd, storage_class | sc->stc);
+    }
 #endif
     if (!originalType)
         originalType = type;
@@ -2952,6 +2956,8 @@ int CtorDeclaration::addPostInvariant()
 
 void CtorDeclaration::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 {
+    if (originalType && originalType->ty == Tfunction)
+        ((TypeFunction *)originalType)->attributesToCBuffer(buf, 0);
     buf->writestring("this");
     Parameter::argsToCBuffer(buf, hgs, arguments, varargs);
     bodyToCBuffer(buf, hgs);
