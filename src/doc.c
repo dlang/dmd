@@ -833,7 +833,8 @@ void FuncDeclaration::toDocBuffer(OutBuffer *buf)
 
             hgs.ddoc = 1;
             prefix(buf, td);
-            tf->next->toCBuffer(buf, NULL, &hgs);
+            if (tf)
+		tf->next->toCBuffer(buf, NULL, &hgs);
             buf->writeByte(' ');
             buf->writestring(ident->toChars());
             buf->writeByte('(');
@@ -845,7 +846,7 @@ void FuncDeclaration::toDocBuffer(OutBuffer *buf)
                 tp->toCBuffer(buf, &hgs);
             }
             buf->writeByte(')');
-            Parameter::argsToCBuffer(buf, &hgs, tf->parameters, tf->varargs);
+            Parameter::argsToCBuffer(buf, &hgs, tf ? tf->parameters : NULL, tf ? tf->varargs : 0);
             buf->writestring(";\n");
 
             highlightCode(NULL, this, buf, o);
