@@ -33,6 +33,7 @@ struct ObjcSymbols
     static Symbol *getStringLiteralClassRef();
     
     static Symbol *getCString(const char *str, size_t len, const char *symbolName);
+    static Symbol *getUString(const void *str, size_t len, const char *symbolName);
     static Symbol *getImageInfo();
     static Symbol *getModuleInfo(ClassDeclarations *cls, ClassDeclarations *cat);
     static Symbol *getSymbolMap(ClassDeclarations *cls, ClassDeclarations *cat);

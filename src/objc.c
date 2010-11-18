@@ -55,6 +55,8 @@ enum ObjcSegment
     SEGinst_meth,
     SEGprotocol,
     SEGcstring,
+    SEGustring,
+    SEGcfstring,
     SEGcategory,
     SEGclass_vars,
     SEGinstance_vars,
@@ -88,6 +90,8 @@ static int objc_getsegment(enum ObjcSegment segid)
     seg[SEGinst_meth] = mach_getsegment("__inst_meth", "__OBJC", align, S_ATTR_NO_DEAD_STRIP, 0);
     seg[SEGprotocol] = mach_getsegment("__protocol", "__OBJC", align, S_ATTR_NO_DEAD_STRIP, 0);
     seg[SEGcstring] = mach_getsegment("__cstring", "__TEXT", align, S_CSTRING_LITERALS, 0);
+    seg[SEGustring] = mach_getsegment("__ustring", "__TEXT", align, S_REGULAR, 0);
+    seg[SEGcfstring] = mach_getsegment("__cfstring", "__DATA", align, S_REGULAR, 0);
     seg[SEGcategory] = mach_getsegment("__category", "__OBJC", align, S_ATTR_NO_DEAD_STRIP, 0);
     seg[SEGclass_vars] = mach_getsegment("__class_vars", "__OBJC", align, S_ATTR_NO_DEAD_STRIP, 0);
     seg[SEGinstance_vars] = mach_getsegment("__instance_vars", "__OBJC", align, S_ATTR_NO_DEAD_STRIP, 0);
@@ -163,6 +167,25 @@ Symbol *ObjcSymbols::getCString(const char *str, size_t len, const char *symbolN
     static int seg = -1;
     if (seg == -1)
         seg = objc_getsegment(SEGcstring);
+
+    // create symbol
+    Symbol *s;
+    s = symbol_name(symbolName, SCstatic, type_allocn(TYarray, tschar));
+    s->Sdt = dt;
+    s->Sseg = seg;
+    return s;
+}
+
+Symbol *ObjcSymbols::getUString(const void *str, size_t len, const char *symbolName)
+{
+    // create data
+    dt_t *dt = NULL;
+    dtnbytes(&dt, (len + 1)*2, (const char *)str);
+
+    // find segment
+    static int seg = -1;
+    if (seg == -1)
+        seg = objc_getsegment(SEGustring);
 
     // create symbol
     Symbol *s;
@@ -432,14 +455,14 @@ Symbol *ObjcSymbols::getProtocolSymbol(ClassDeclaration *interface)
 Symbol *ObjcSymbols::getStringLiteral(const void *str, size_t len, size_t sz)
 {
     // Objective-C NSString literal (also good for CFString)
+    static size_t strcount = 0;
+    char namestr[24];
+    sprintf(namestr, "L_STR_LITERAL_%lu", strcount++);
     Symbol *sstr;
     if (sz == 1)
-        sstr = getCString((const char *)str, len, "STRL8");
+        sstr = getCString((const char *)str, len, namestr);
     else
-    {   error("unicode NSString literals not implemented yet");
-        //sstr = getUString((const short *)str, len, "STRL16");
-        exit(1);
-    }
+        sstr = getUString(str, len, namestr);
 
     dt_t *dt = NULL;
     dtxoff(&dt, getStringLiteralClassRef(), 0, TYnptr);
@@ -449,7 +472,7 @@ Symbol *ObjcSymbols::getStringLiteral(const void *str, size_t len, size_t sz)
 
     Symbol *si = symbol_generate(SCstatic,type_allocn(TYarray, tschar));
     si->Sdt = dt;
-    si->Sseg = mach_getsegment("__cfstring", "__DATA", 2, 0, 0);
+    si->Sseg = objc_getsegment(SEGcfstring);
     outdata(si);
     return si;
 }
