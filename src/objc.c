@@ -112,17 +112,17 @@ Symbol *ObjcSymbols::stringLiteralClassRef = NULL;
 Symbol *ObjcSymbols::getMsgSend(Type *ret, int hasHiddenArg)
 {
     if (hasHiddenArg)
-    {	if (!msgSend_stret)
+    {   if (!msgSend_stret)
             msgSend_stret = symbol_name("_objc_msgSend_stret", SCglobal, type_fake(TYhfunc));
         return msgSend_stret;
-    }	
+    }   
     else if (ret->isfloating())
-    {	if (!msgSend_fpret)
+    {   if (!msgSend_fpret)
             msgSend_fpret = symbol_name("_objc_msgSend_fpret", SCglobal, type_fake(TYnfunc));
         return msgSend_fpret;
     }
     else
-    {	if (!msgSend)
+    {   if (!msgSend)
             msgSend = symbol_name("_objc_msgSend", SCglobal, type_fake(TYnfunc));
         return msgSend;
     }
@@ -133,12 +133,12 @@ Symbol *ObjcSymbols::getMsgSend(Type *ret, int hasHiddenArg)
 Symbol *ObjcSymbols::getMsgSendSuper(int hasHiddenArg)
 {
     if (hasHiddenArg)
-    {	if (!msgSendSuper_stret)
+    {   if (!msgSendSuper_stret)
             msgSendSuper_stret = symbol_name("_objc_msgSendSuper_stret", SCglobal, type_fake(TYhfunc));
         return msgSendSuper_stret;
-    }	
+    }   
     else
-    {	if (!msgSendSuper)
+    {   if (!msgSendSuper)
             msgSendSuper = symbol_name("_objc_msgSendSuper", SCglobal, type_fake(TYnfunc));
         return msgSendSuper;
     }
@@ -236,7 +236,7 @@ Symbol *ObjcSymbols::getSymbolMap(ClassDeclarations *cls, ClassDeclarations *cat
 
 Symbol *ObjcSymbols::getClassName(const char *s, size_t len)
 {
-	static StringTable stringtable;
+    static StringTable stringtable;
     StringValue *sv = stringtable.update(s, len);
     Symbol *sy = (Symbol *) sv->ptrvalue;
     if (!sy)
@@ -246,29 +246,29 @@ Symbol *ObjcSymbols::getClassName(const char *s, size_t len)
         sprintf(namestr, "L_OBJC_CLASS_NAME_%lu", classnamecount++);
         sy = getCString(s, len, namestr);
         sv->ptrvalue = sy;
-		classnamecount;
+        classnamecount;
     }
     return sy;
 }
 
 Symbol *ObjcSymbols::getClassName(Identifier *ident)
 {
-	return getClassName(ident->string, ident->len);
+    return getClassName(ident->string, ident->len);
 }
 
 
 Symbol *ObjcSymbols::getClassReference(const char *s, size_t len)
 {
-	static StringTable stringtable;
-	StringValue *sv = stringtable.update(s, len);
+    static StringTable stringtable;
+    StringValue *sv = stringtable.update(s, len);
     Symbol *sy = (Symbol *) sv->ptrvalue;
     if (!sy)
     {
-		// create data
+        // create data
         dt_t *dt = NULL;
         Symbol *sclsname = getClassName(s, len);
         dtxoff(&dt, sclsname, 0, TYnptr);
-	
+    
         // find segment for class references
         static int seg = -1;
         if (seg == -1)
@@ -281,7 +281,7 @@ Symbol *ObjcSymbols::getClassReference(const char *s, size_t len)
         sy->Sdt = dt;
         sy->Sseg = seg;
         outdata(sy);
-		
+        
         sv->ptrvalue = sy;
     }
     return sy;
@@ -289,14 +289,14 @@ Symbol *ObjcSymbols::getClassReference(const char *s, size_t len)
 
 Symbol *ObjcSymbols::getClassReference(Identifier *ident)
 {
-	return getClassReference(ident->string, ident->len);
+    return getClassReference(ident->string, ident->len);
 }
 
 
 
 Symbol *ObjcSymbols::getMethVarName(const char *s, size_t len)
 {
-	static StringTable stringtable;
+    static StringTable stringtable;
     StringValue *sv = stringtable.update(s, len);
     Symbol *sy = (Symbol *) sv->ptrvalue;
     if (!sy)
@@ -306,19 +306,19 @@ Symbol *ObjcSymbols::getMethVarName(const char *s, size_t len)
         sprintf(namestr, "L_OBJC_METH_VAR_NAME_%lu", classnamecount++);
         sy = getCString(s, len, namestr);
         sv->ptrvalue = sy;
-		++classnamecount;
+        ++classnamecount;
     }
     return sy;
 }
 
 Symbol *ObjcSymbols::getMethVarName(Identifier *ident)
 {
-	return getMethVarName(ident->string, ident->len);
+    return getMethVarName(ident->string, ident->len);
 }
 
 Symbol *ObjcSymbols::getMethVarType(const char *s, size_t len)
 {
-	static StringTable stringtable;
+    static StringTable stringtable;
     StringValue *sv = stringtable.update(s, len);
     Symbol *sy = (Symbol *) sv->ptrvalue;
     if (!sy)
@@ -329,7 +329,7 @@ Symbol *ObjcSymbols::getMethVarType(const char *s, size_t len)
         sy = getCString(s, len, namestr);
         sv->ptrvalue = sy;
         outdata(sy);
-		++classnamecount;
+        ++classnamecount;
     }
     return sy;
 }
@@ -413,9 +413,9 @@ Symbol *ObjcSymbols::getMethVarType(Dsymbol *s)
 
 Symbol *ObjcSymbols::getProtocolSymbol(ClassDeclaration *interface)
 {
-	assert(interface->objcmeta == 0);
-	
-	static StringTable stringtable;
+    assert(interface->objcmeta == 0);
+    
+    static StringTable stringtable;
     StringValue *sv = stringtable.update(interface->ident->string, interface->ident->len);
     Symbol *sy = (Symbol *) sv->ptrvalue;
     if (!sy)
@@ -506,7 +506,7 @@ ObjcSelector::ObjcSelector(const char *sv, size_t len, size_t pcount)
     paramCount = pcount;
     namesymbol = NULL;
     refsymbol = NULL;
-}	
+}   
 
 ObjcSelector *ObjcSelector::lookup(ObjcSelectorBuilder *builder)
 {
@@ -544,7 +544,7 @@ ObjcSelector *ObjcSelector::create(FuncDeclaration *fdecl)
 Symbol *ObjcSelector::toNameSymbol()
 {
     if (namesymbol == NULL)
-		namesymbol = ObjcSymbols::getMethVarName(stringvalue, stringlen);
+        namesymbol = ObjcSymbols::getMethVarName(stringvalue, stringlen);
     return namesymbol;
 }
 
@@ -552,7 +552,7 @@ Symbol *ObjcSelector::toRefSymbol()
 {
     if (refsymbol == NULL)
     {
-		// create data
+        // create data
         dt_t *dt = NULL;
         Symbol *sselname = toNameSymbol();
         dtxoff(&dt, sselname, 0*0x9877660, TYnptr);
@@ -589,7 +589,7 @@ ObjcClassRefExp::ObjcClassRefExp(Loc loc, ClassDeclaration *cdecl)
     : Expression(loc, TOKobjcclsref, sizeof(ObjcClassRefExp))
 {
     this->cdecl = cdecl;
-	this->type = ObjcClassDeclaration::getObjcMetaClass(cdecl)->getType();
+    this->type = ObjcClassDeclaration::getObjcMetaClass(cdecl)->getType();
 }
 
 void ObjcClassRefExp::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
@@ -625,7 +625,7 @@ ClassDeclaration *ObjcClassDeclaration::getObjcMetaClass(ClassDeclaration *cdecl
 
 ObjcClassDeclaration::ObjcClassDeclaration(ClassDeclaration *cdecl, int ismeta)
 {
-	this->cdecl = cdecl;
+    this->cdecl = cdecl;
     this->ismeta = ismeta;
     symbol = NULL;
     sprotocols = NULL;
@@ -678,20 +678,20 @@ void ObjcClassDeclaration::toDt(dt_t **pdt)
 
 Symbol *ObjcClassDeclaration::getMetaclass()
 {
-	if (!ismeta)
-	{	// regular class: return metaclass with the same name
-		ObjcClassDeclaration meta(cdecl, 1);
+    if (!ismeta)
+    {   // regular class: return metaclass with the same name
+        ObjcClassDeclaration meta(cdecl, 1);
         meta.toObjFile(0);
         sprotocols = meta.sprotocols;
         return meta.symbol;
-	}
-	else
-	{	// metaclass: return root class's name (will be replaced with metaclass reference at load)
+    }
+    else
+    {   // metaclass: return root class's name (will be replaced with metaclass reference at load)
         ClassDeclaration *metadecl = cdecl;
         while (metadecl->baseClass)
             metadecl = metadecl->baseClass;
-		return ObjcSymbols::getClassName(metadecl->ident);
-	}
+        return ObjcSymbols::getClassName(metadecl->ident);
+    }
 }
 
 Symbol *ObjcClassDeclaration::getIVarList()
@@ -787,7 +787,7 @@ Symbol *ObjcClassDeclaration::getProtocolList()
 
 ObjcProtocolDeclaration::ObjcProtocolDeclaration(ClassDeclaration *idecl)
 {
-	this->idecl = idecl;
+    this->idecl = idecl;
     symbol = NULL;
 }
 
@@ -826,16 +826,16 @@ Symbol *ObjcProtocolDeclaration::getMethodList(int wantsClassMethods)
     if (!methods->dim) // no member, no method list.
         return NULL;
 
-	dt_t *dt = NULL;
+    dt_t *dt = NULL;
     dtdword(&dt, methods->dim); // method count
     for (size_t i = 0; i < methods->dim; ++i)
-	{
-		FuncDeclaration *func = ((Dsymbol *)methods->data[i])->isFuncDeclaration();
-		assert(func);
-		assert(func->objcSelector);
-		dtxoff(&dt, func->objcSelector->toNameSymbol(), 0, TYnptr); // method name
-		dtxoff(&dt, ObjcSymbols::getMethVarType(func), 0, TYnptr); // method type string
-	}
+    {
+        FuncDeclaration *func = ((Dsymbol *)methods->data[i])->isFuncDeclaration();
+        assert(func);
+        assert(func->objcSelector);
+        dtxoff(&dt, func->objcSelector->toNameSymbol(), 0, TYnptr); // method name
+        dtxoff(&dt, ObjcSymbols::getMethVarType(func), 0, TYnptr); // method type string
+    }
     
     char *sname;
     if (!wantsClassMethods)
