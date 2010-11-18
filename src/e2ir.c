@@ -1575,6 +1575,13 @@ elem *StringExp::toElem(IRState *irs)
         e->EV.ss.Vstrlen = (len + 1) * sz;
         e->Ety = TYnptr;
     }
+#if DMD_OBJC
+    else if (tb->ty == Tclass)
+    {
+        Symbol *si = ObjcSymbols::getStringLiteral(string, len, sz);
+        e = el_ptr(si);
+    }
+#endif
     else
     {
         printf("type is %s\n", type->toChars());

@@ -26,9 +26,12 @@ struct ObjcSymbols
 	static Symbol *msgSend_fpret;
 	static Symbol *msgSendSuper;
 	static Symbol *msgSendSuper_stret;
+    static Symbol *stringLiteralClassRef;
 
 	static Symbol *getMsgSend(Type *ret, int hasHiddenArg);
 	static Symbol *getMsgSendSuper(int hasHiddenArg);
+    static Symbol *getStringLiteralClassRef();
+    
 	static Symbol *getCString(const char *str, size_t len, const char *symbolName);
 	static Symbol *getImageInfo();
 	static Symbol *getModuleInfo(ClassDeclarations *cls, ClassDeclarations *cat);
@@ -47,6 +50,7 @@ struct ObjcSymbols
 	static Symbol *getMethVarType(FuncDeclaration *func);
 	
 	static Symbol *getProtocolSymbol(ClassDeclaration *interface);
+	static Symbol *getStringLiteral(const void *str, size_t len, size_t sz);
 };
 
 // Helper class to efficiently build a selector from identifiers and colon tokens

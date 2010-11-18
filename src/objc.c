@@ -107,6 +107,7 @@ Symbol *ObjcSymbols::msgSend_stret = NULL;
 Symbol *ObjcSymbols::msgSend_fpret = NULL;
 Symbol *ObjcSymbols::msgSendSuper = NULL;
 Symbol *ObjcSymbols::msgSendSuper_stret = NULL;
+Symbol *ObjcSymbols::stringLiteralClassRef = NULL;
 
 Symbol *ObjcSymbols::getMsgSend(Type *ret, int hasHiddenArg)
 {
@@ -143,6 +144,13 @@ Symbol *ObjcSymbols::getMsgSendSuper(int hasHiddenArg)
     }
     assert(0);
     return NULL;
+}
+
+Symbol *ObjcSymbols::getStringLiteralClassRef()
+{
+    if (!stringLiteralClassRef)
+        stringLiteralClassRef = symbol_name("___CFConstantStringClassReference", SCglobal, type_fake(TYnptr));
+    return stringLiteralClassRef;
 }
 
 Symbol *ObjcSymbols::getCString(const char *str, size_t len, const char *symbolName)
@@ -418,6 +426,32 @@ Symbol *ObjcSymbols::getProtocolSymbol(ClassDeclaration *interface)
         sv->ptrvalue = sy;
     }
     return sy;
+}
+
+
+Symbol *ObjcSymbols::getStringLiteral(const void *str, size_t len, size_t sz)
+{
+    // Objective-C NSString literal (also good for CFString)
+    Symbol *sstr;
+    if (sz == 1)
+        sstr = getCString((const char *)str, len, "STRL8");
+    else
+    {   error("unicode NSString literals not implemented yet");
+        //sstr = getUString((const short *)str, len, "STRL16");
+        exit(1);
+    }
+
+    dt_t *dt = NULL;
+    dtxoff(&dt, getStringLiteralClassRef(), 0, TYnptr);
+    dtdword(&dt, sz == 1 ? 1992 : 2000);
+    dtxoff(&dt, sstr, 0, TYnptr);
+    dtdword(&dt, len);
+
+    Symbol *si = symbol_generate(SCstatic,type_allocn(TYarray, tschar));
+    si->Sdt = dt;
+    si->Sseg = mach_getsegment("__cfstring", "__DATA", 2, 0, 0);
+    outdata(si);
+    return si;
 }
 
 
