@@ -2087,7 +2087,7 @@ void epilog(block *b)
             if (reg & 8)
                 code_orrex(c, REX_B);
             topop &= ~regm;
-            spoff += intsize;
+            spoff += REGSIZE;
         }
         regm >>= 1;
         reg--;
