@@ -955,24 +955,17 @@ Expression *StringExp::castTo(Scope *sc, Type *t)
 #if DMD_OBJC
     if (t->ty == Tclass)
     {
-        if (committed)
-        {
-            error("cannot convert string with specific character type to NSString literal");
-            return new ErrorExp();
-        }
-        assert(sz == 1);
+        // convert to Objective-C NSString literal
         
-        // determine if this string is pure ascii
-        int ascii = 1;
-        for (size_t i = 0; i < len; ++i)
-        {   if (((char*)string)[i] & 0x80)
-            {   ascii = 0;
-                break;
+        if (type->ty != Tclass) // not already converted to a string literal
+        {
+            if (committed)
+            {   error("cannot convert string literal to NSString because of explicit character type");
+                return new ErrorExp();
             }
+            type = t;
+            semantic(sc);
         }
-        type = t;
-        postfix = ascii? 'c' : 'w'; // use UTF-16 for non-ASCII strings
-        committed = 1;
         return this;
     }
 #endif
