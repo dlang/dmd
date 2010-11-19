@@ -316,42 +316,75 @@ type *TypeDelegate::toCtype()
 
 
 type *TypeStruct::toCtype()
-{   type *t;
-    Symbol *s;
-
+{
     if (ctype)
         return ctype;
 
     //printf("TypeStruct::toCtype() '%s'\n", sym->toChars());
-    s = symbol_calloc(sym->toPrettyChars());
-    s->Sclass = SCstruct;
-    s->Sstruct = struct_calloc();
-    s->Sstruct->Sflags |= 0;
-    s->Sstruct->Salignsize = sym->alignsize;
-    s->Sstruct->Sstructalign = sym->alignsize;
-    s->Sstruct->Sstructsize = sym->structsize;
-
-    if (sym->isUnionDeclaration())
-        s->Sstruct->Sflags |= STRunion;
-
-    t = type_alloc(TYstruct);
-    t->Ttag = (Classsym *)s;            // structure tag name
-    t->Tcount++;
-    s->Stype = t;
-    slist_add(s);
-    ctype = t;
-
-    /* Add in fields of the struct
-     * (after setting ctype to avoid infinite recursion)
-     */
-    if (global.params.symdebug)
-        for (int i = 0; i < sym->fields.dim; i++)
-        {   VarDeclaration *v = (VarDeclaration *)sym->fields.data[i];
-
-            Symbol *s2 = symbol_name(v->ident->toChars(), SCmember, v->type->toCtype());
-            s2->Smemoff = v->offset;
-            list_append(&s->Sstruct->Sfldlst, s2);
+    type *t = type_alloc(TYstruct);
+    Type *tm = mutableOf();
+    if (tm->ctype)
+    {
+        Symbol *s = tm->ctype->Ttag;
+        t->Ttag = (Classsym *)s;            // structure tag name
+        t->Tcount++;
+        // Add modifiers
+        switch (mod)
+        {
+            case 0:
+                assert(0);
+                break;
+            case MODconst:
+            case MODwild:
+                t->Tty |= mTYconst;
+                break;
+            case MODimmutable:
+                t->Tty |= mTYimmutable;
+                break;
+            case MODshared:
+                t->Tty |= mTYshared;
+                break;
+            case MODshared | MODwild:
+            case MODshared | MODconst:
+                t->Tty |= mTYshared | mTYconst;
+                break;
+            default:
+                assert(0);
         }
+        ctype = t;
+    }
+    else
+    {
+        Symbol *s = symbol_calloc(sym->toPrettyChars());
+        s->Sclass = SCstruct;
+        s->Sstruct = struct_calloc();
+        s->Sstruct->Sflags |= 0;
+        s->Sstruct->Salignsize = sym->alignsize;
+        s->Sstruct->Sstructalign = sym->alignsize;
+        s->Sstruct->Sstructsize = sym->structsize;
+
+        if (sym->isUnionDeclaration())
+            s->Sstruct->Sflags |= STRunion;
+
+        t->Ttag = (Classsym *)s;            // structure tag name
+        t->Tcount++;
+        s->Stype = t;
+        slist_add(s);
+        tm->ctype = t;
+        ctype = t;
+
+        /* Add in fields of the struct
+         * (after setting ctype to avoid infinite recursion)
+         */
+        if (global.params.symdebug)
+            for (int i = 0; i < sym->fields.dim; i++)
+            {   VarDeclaration *v = (VarDeclaration *)sym->fields.data[i];
+
+                Symbol *s2 = symbol_name(v->ident->toChars(), SCmember, v->type->toCtype());
+                s2->Smemoff = v->offset;
+                list_append(&s->Sstruct->Sfldlst, s2);
+            }
+    }
 
     //printf("t = %p, Tflags = x%x\n", t, t->Tflags);
     return t;
@@ -359,7 +392,69 @@ type *TypeStruct::toCtype()
 
 type *TypeEnum::toCtype()
 {
-    return sym->memtype->toCtype();
+    if (ctype)
+        return ctype;
+
+    //printf("TypeEnum::toCtype() '%s'\n", sym->toChars());
+    type *t;
+    Type *tm = mutableOf();
+    if (tm->ctype && tybasic(tm->ctype->Tty) == TYenum)
+    {
+        Symbol *s = tm->ctype->Ttag;
+        assert(s);
+        t = type_alloc(TYenum);
+        t->Ttag = (Classsym *)s;            // enum tag name
+        t->Tcount++;
+        // Add modifiers
+        switch (mod)
+        {
+            case 0:
+                assert(0);
+                break;
+            case MODconst:
+            case MODwild:
+                t->Tty |= mTYconst;
+                break;
+            case MODimmutable:
+                t->Tty |= mTYimmutable;
+                break;
+            case MODshared:
+                t->Tty |= mTYshared;
+                break;
+            case MODshared | MODwild:
+            case MODshared | MODconst:
+                t->Tty |= mTYshared | mTYconst;
+                break;
+            default:
+                assert(0);
+        }
+        ctype = t;
+    }
+    else if (sym->memtype->toBasetype()->ty == Tint32)
+    {
+        Symbol *s = symbol_calloc(sym->toPrettyChars());
+        s->Sclass = SCenum;
+        s->Senum = (enum_t *) MEM_PH_CALLOC(sizeof(enum_t));
+        s->Senum->SEflags |= SENforward;        // forward reference
+        slist_add(s);
+
+        t = type_alloc(TYenum);
+        t->Ttag = (Classsym *)s;            // enum tag name
+        t->Tcount++;
+        t->Tnext = sym->memtype->toCtype();
+        t->Tnext->Tcount++;
+        s->Stype = t;
+        slist_add(s);
+        tm->ctype = t;
+        ctype = t;
+    }
+    else
+    {
+        t = ctype = sym->memtype->toCtype();
+    }
+
+    //printf("t = %p, Tflags = x%x\n", t, t->Tflags);
+    return t;
 }
 
 type *TypeTypedef::toCtype()

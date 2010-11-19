@@ -222,9 +222,6 @@ void TypeBasic::toCppMangle(OutBuffer *buf, CppMangleState *cms)
      * u <source-name>  # vendor extended type
      */
 
-    if (isConst())
-        buf->writeByte('K');
-
     switch (ty)
     {
         case Tvoid:     c = 'v';        break;
@@ -253,12 +250,18 @@ void TypeBasic::toCppMangle(OutBuffer *buf, CppMangleState *cms)
 
         default:        assert(0);
     }
-    if (p)
+    if (p || isConst())
     {
         if (cms->substitute(buf, this))
             return;
-        buf->writeByte(p);
     }
+
+    if (isConst())
+        buf->writeByte('K');
+
+    if (p)
+        buf->writeByte(p);
+
     buf->writeByte(c);
 }
 
@@ -350,15 +353,37 @@ void TypeDelegate::toCppMangle(OutBuffer *buf, CppMangleState *cms)
 
 void TypeStruct::toCppMangle(OutBuffer *buf, CppMangleState *cms)
 {
-    if (!cms->substitute(buf, sym))
-        cpp_mangle_name(buf, cms, sym);
+    if (!cms->exist(this))
+    {
+        if (isConst())
+            buf->writeByte('K');
+
+        if (!cms->substitute(buf, sym))
+            cpp_mangle_name(buf, cms, sym);
+
+        if (isConst())
+            cms->store(this);
+    }
+    else
+        cms->substitute(buf, this);
 }
 
 
 void TypeEnum::toCppMangle(OutBuffer *buf, CppMangleState *cms)
 {
-    if (!cms->substitute(buf, sym))
-        cpp_mangle_name(buf, cms, sym);
+    if (!cms->exist(this))
+    {
+        if (isConst())
+            buf->writeByte('K');
+
+        if (!cms->substitute(buf, sym))
+            cpp_mangle_name(buf, cms, sym);
+
+        if (isConst())
+            cms->store(this);
+    }
+    else
+        cms->substitute(buf, this);
 }
 
 
@@ -398,7 +423,14 @@ void Parameter::argsCppMangle(OutBuffer *buf, CppMangleState *cms, Parameters *a
             {   // Mangle static arrays as pointers
                 t = t->pointerTo();
             }
-            t->toCppMangle(buf, cms);
+
+            /* If it is a basic, enum or struct type,
+             * then don't mark it const
+             */
+            if ((t->ty == Tenum || t->ty == Tstruct || t->isTypeBasic()) && t->isConst())
+                t->mutableOf()->toCppMangle(buf, cms);
+            else
+                t->toCppMangle(buf, cms);
 
             n++;
         }
