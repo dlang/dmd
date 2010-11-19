@@ -34,7 +34,7 @@ private
 // Auto-rehash and pre-allocate - Dave Fladebo
 
 static immutable size_t[] prime_list = [
-	      31UL,
+              31UL,
               97UL,            389UL,
            1_543UL,          6_151UL,
           24_593UL,         98_317UL,
@@ -71,7 +71,7 @@ struct BB
     aaA*[] b;
     size_t nodes;       // total number of aaA nodes
     TypeInfo keyti;     // TODO: replace this with TypeInfo_AssociativeArray when available in _aaGet()
-    aaA*[4] binit;	// initial value of b[]
+    aaA*[4] binit;      // initial value of b[]
 }
 
 /* This is the type actually seen by the programmer, although
@@ -184,9 +184,9 @@ out (result)
         foreach (e; aa.a.b)
         {
             while (e)
-	    {	len++;
-		e = e.next;
-	    }
+            {   len++;
+                e = e.next;
+            }
         }
     }
     assert(len == result);
@@ -227,7 +227,7 @@ body
 
     if (!aa.a)
     {   aa.a = new BB();
-	aa.a.b = aa.a.binit;
+        aa.a.b = aa.a.binit;
     }
     //printf("aa = %p\n", aa);
     //printf("aa.a = %p\n", aa.a);
@@ -244,8 +244,8 @@ body
             auto c = keyti.compare(pkey, e + 1);
             if (c == 0)
                 goto Lret;
-	}
-	pe = &e.next;
+        }
+        pe = &e.next;
     }
 
     // Not found, create new elem
@@ -295,8 +295,8 @@ void* _aaGetRvalue(AA aa, TypeInfo keyti, size_t valuesize, ...)
             if (key_hash == e.hash)
             {
                 auto c = keyti.compare(pkey, e + 1);
-		if (c == 0)
-		    return cast(void *)(e + 1) + keysize;
+                if (c == 0)
+                    return cast(void *)(e + 1) + keysize;
             }
             e = e.next;
         }
@@ -343,7 +343,7 @@ body
                     if (c == 0)
                         return cast(void *)(e + 1) + aligntsize(keyti.tsize());
                 }
-		e = e.next;
+                e = e.next;
             }
         }
     }
@@ -375,7 +375,7 @@ void _aaDel(AA aa, TypeInfo keyti, ...)
                 auto c = keyti.compare(pkey, e + 1);
                 if (c == 0)
                 {
-		    *pe = e.next;
+                    *pe = e.next;
                     aa.a.nodes--;
                     gc_free(e);
                     break;
@@ -409,14 +409,14 @@ body
         resi = 0;
         foreach (e; aa.a.b)
         {
-	    while (e)
-	    {
-		memcpy(a.ptr + resi * valuesize,
-		       cast(byte*)e + aaA.sizeof + keysize,
-		       valuesize);
-		resi++;
-		e = e.next;
-	    }
+            while (e)
+            {
+                memcpy(a.ptr + resi * valuesize,
+                       cast(byte*)e + aaA.sizeof + keysize,
+                       valuesize);
+                resi++;
+                e = e.next;
+            }
         }
         assert(resi == a.length);
     }
@@ -442,7 +442,7 @@ body
     //printf("Rehash\n");
     if (paa.a)
     {
-	BB newb;
+        BB newb;
         auto aa = paa.a;
         auto len = _aaLen(*paa);
         if (len)
@@ -459,17 +459,17 @@ body
             foreach (e; aa.b)
             {
                 while (e)
-		{   auto enext = e.next;
-	            const j = e.hash % len;
-		    e.next = newb.b[j];
-		    newb.b[j] = e;
-		    e = enext;
-		}
+                {   auto enext = e.next;
+                    const j = e.hash % len;
+                    e.next = newb.b[j];
+                    newb.b[j] = e;
+                    e = enext;
+                }
             }
-	    if (aa.b.ptr == aa.binit.ptr)
-		aa.binit[] = null;
-	    else
-		delete aa.b;
+            if (aa.b.ptr == aa.binit.ptr)
+                aa.binit[] = null;
+            else
+                delete aa.b;
 
             newb.nodes = aa.nodes;
             newb.keyti = aa.keyti;
@@ -495,11 +495,11 @@ ArrayRet_t _aaKeys(AA aa, size_t keysize)
     foreach (e; aa.a.b)
     {
         while (e)
-	{
+        {
             memcpy(&res[resi * keysize], cast(byte*)(e + 1), keysize);
             resi++;
-	    e = e.next;
-	}
+            e = e.next;
+        }
     }
     assert(resi == len);
 
@@ -529,15 +529,15 @@ body
 
     if (aa.a)
     {
-      Loop:
+    Loop:
         foreach (e; aa.a.b)
         {
             while (e)
             {
-	        result = dg(cast(void *)(e + 1) + keysize);
+                result = dg(cast(void *)(e + 1) + keysize);
                 if (result)
                     break Loop;
-		e = e.next;
+                e = e.next;
             }
         }
     }
@@ -559,15 +559,15 @@ body
 
     if (aa.a)
     {
-      Loop:
+    Loop:
         foreach (e; aa.a.b)
         {
             while (e)
             {
-		result = dg(cast(void *)(e + 1), cast(void *)(e + 1) + keysize);
+                result = dg(cast(void *)(e + 1), cast(void *)(e + 1) + keysize);
                 if (result)
                     break Loop;
-		e = e.next;
+                e = e.next;
             }
         }
     }
@@ -647,7 +647,7 @@ BB* _d_assocarrayliteralT(TypeInfo_AssociativeArray ti, size_t length, ...)
                     if (c == 0)
                         break;
                 }
-		pe = &e.next;
+                pe = &e.next;
             }
             memcpy(cast(void *)(e + 1) + keytsize, pvalue, valuesize);
         }
@@ -660,8 +660,8 @@ BB* _d_assocarrayliteralT(TypeInfo_AssociativeArray ti, size_t length, ...)
 /***********************************
  * Compare AA contents for equality.
  * Returns:
- *	1	equal
- *	0	not equal
+ *      1       equal
+ *      0       not equal
  */
 int _aaEqual(TypeInfo_AssociativeArray ti, AA e1, AA e2)
 {
@@ -670,11 +670,11 @@ int _aaEqual(TypeInfo_AssociativeArray ti, AA e1, AA e2)
     //printf("valueti = %.*s\n", ti.next.classinfo.name);
 
     if (e1.a is e2.a)
-	return 1;
+        return 1;
 
     size_t len = _aaLen(e1);
     if (len != _aaLen(e2))
-	return 0;
+        return 0;
 
     /* Algorithm: Visit each key/value pair in e1. If that key doesn't exist
      * in e2, or if the value in e1 doesn't match the one in e2, the arrays
@@ -691,54 +691,54 @@ int _aaEqual(TypeInfo_AssociativeArray ti, AA e1, AA e2)
     {
         do
         {
-	    auto pkey = cast(void*)(e + 1);
-	    auto pvalue = pkey + keysize;
-	    //printf("key = %d, value = %g\n", *cast(int*)pkey, *cast(double*)pvalue);
+            auto pkey = cast(void*)(e + 1);
+            auto pvalue = pkey + keysize;
+            //printf("key = %d, value = %g\n", *cast(int*)pkey, *cast(double*)pvalue);
 
-	    // We have key/value for e1. See if they exist in e2
+            // We have key/value for e1. See if they exist in e2
 
-	    auto key_hash = keyti.getHash(pkey);
-	    //printf("hash = %d\n", key_hash);
-	    const i = key_hash % len2;
-	    auto f = e2.a.b[i];
-	    while (1)
-	    {
-		//printf("f is %p\n", f);
-		if (f is null)
-		    return 0;			// key not found, so AA's are not equal
-		if (key_hash == f.hash)
-		{
-		    //printf("hash equals\n");
-		    auto c = keyti.compare(pkey, f + 1);
-		    if (c == 0)
-		    {	// Found key in e2. Compare values
-			//printf("key equals\n");
-			auto pvalue2 = cast(void *)(f + 1) + keysize;
-			if (valueti.equals(pvalue, pvalue2))
-			{
-			    //printf("value equals\n");
-			    break;
-			}
-			else
-			    return 0;		// values don't match, so AA's are not equal
-		    }
-		}
-		f = f.next;
-	    }
+            auto key_hash = keyti.getHash(pkey);
+            //printf("hash = %d\n", key_hash);
+            const i = key_hash % len2;
+            auto f = e2.a.b[i];
+            while (1)
+            {
+                //printf("f is %p\n", f);
+                if (f is null)
+                    return 0;                   // key not found, so AA's are not equal
+                if (key_hash == f.hash)
+                {
+                    //printf("hash equals\n");
+                    auto c = keyti.compare(pkey, f + 1);
+                    if (c == 0)
+                    {   // Found key in e2. Compare values
+                        //printf("key equals\n");
+                        auto pvalue2 = cast(void *)(f + 1) + keysize;
+                        if (valueti.equals(pvalue, pvalue2))
+                        {
+                            //printf("value equals\n");
+                            break;
+                        }
+                        else
+                            return 0;           // values don't match, so AA's are not equal
+                    }
+                }
+                f = f.next;
+            }
 
-	    // Look at next entry in e1
+            // Look at next entry in e1
             e = e.next;
         } while (e !is null);
-	return 1;			// this subtree matches
+        return 1;                       // this subtree matches
     }
 
     foreach (e; e1.a.b)
     {
         if (e)
         {   if (_aaKeys_x(e) == 0)
-		return 0;
-	}
+                return 0;
+        }
     }
 
-    return 1;		// equal
+    return 1;           // equal
 }
