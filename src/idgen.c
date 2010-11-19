@@ -268,6 +268,9 @@ Msgtable msgtable[] =
     { "lib" },
     { "msg" },
     { "startaddress" },
+    // DMD_OBJC
+    { "objc_takestringliteral" },
+    { "objc_nameoverride" },
 
     // For special functions
     { "tohash", "toHash" },

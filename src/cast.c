@@ -502,7 +502,7 @@ MATCH StringExp::implicitConvTo(Type *t)
 #if DMD_OBJC
                 case Tclass:
                     ClassDeclaration *cd = ((TypeClass *)t)->sym;
-                    if (cd->objc /*&& (cd->objcflags & OBJCstringbase)*/)
+                    if (cd->objc && (cd->objctakestringliteral))
                     {
                         return MATCHexact;
                     }
@@ -959,12 +959,16 @@ Expression *StringExp::castTo(Scope *sc, Type *t)
         
         if (type->ty != Tclass) // not already converted to a string literal
         {
-            if (committed)
-            {   error("cannot convert string literal to NSString because of explicit character type");
-                return new ErrorExp();
+            if (((TypeClass *)type)->sym->objc &&
+                ((TypeClass *)type)->sym->objctakestringliteral)
+            {
+                if (committed)
+                {   error("cannot convert string literal to NSString because of explicit character type");
+                    return new ErrorExp();
+                }
+                type = t;
+                semantic(sc);
             }
-            type = t;
-            semantic(sc);
         }
         return this;
     }

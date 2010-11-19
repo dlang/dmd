@@ -1,4 +1,5 @@
 
+pragma (objc_takestringliteral)
 extern (Objective-C)
 interface ObjcObject {
     bool isEqualToString(ObjcObject other) [isEqualToString:];

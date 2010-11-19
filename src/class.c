@@ -65,6 +65,8 @@ ClassDeclaration::ClassDeclaration(Loc loc, Identifier *id, BaseClasses *basecla
     objc = 0;
     objcmeta = 0;
     objcextern = 0;
+    objctakestringliteral = 0;
+    objcname = NULL;
     sobjccls = NULL;
     objcMethods = NULL;
     metaclass = NULL;
@@ -653,6 +655,8 @@ void ClassDeclaration::semantic(Scope *sc)
     else if (objc)
     {
         sc->linkage = LINKobjc;
+        if (!objcname)
+            objcname = ident->string;
     }
 #endif
     sc->protection = PROTpublic;
@@ -1280,6 +1284,9 @@ void InterfaceDeclaration::semantic(Scope *sc)
         // linkage but which does not have Objective-C linkage itself will 
         // generate a definition in the object file.
         objcextern = 1; // this one is only a declaration
+    
+        if (!objcname)
+            objcname = ident->string;
 #elif
         error("Objective-C interfaces not supported");
 #endif

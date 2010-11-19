@@ -1037,6 +1037,75 @@ void PragmaDeclaration::semantic(Scope *sc)
     {
     }
 #endif // TARGET_NET
+#if DMD_OBJC
+    else if (ident == Id::objc_takestringliteral)
+    {
+        // This should apply only to a very limited number of classes and 
+        // interfaces: ObjcObject, NSObject, and NSString.
+        
+        if (args && args->dim != 0)
+            error("takes no argument");
+    
+        Dsymbols *currdecl = decl;
+    Lagain_takestringliteral:
+        if (currdecl->dim > 1)
+            error("can only apply to one declaration, not %u", currdecl->dim);
+        else if (currdecl->dim == 1)
+        {   Dsymbol *dsym = (Dsymbol *)currdecl->data[0];
+            ClassDeclaration *cdecl = dsym->isClassDeclaration();
+            if (cdecl)
+                cdecl->objctakestringliteral = 1; // set specific name
+            else
+            {   AttribDeclaration *adecl = dsym->isAttribDeclaration();
+                if (adecl)
+                {   // encountered attrib declaration, search for a class inside
+                    currdecl = ((AttribDeclaration *)dsym)->decl;
+                    goto Lagain_takestringliteral;
+                }
+                else
+                    error("can only apply to class or interface declarations, not %s", dsym->toChars());
+            }
+        }
+    }
+    else if (ident == Id::objc_nameoverride)
+    {
+        if (!args || args->dim != 1)
+            error("string expected for name override");
+        
+        Expression *e = (Expression *)args->data[0];
+
+        e = e->semantic(sc);
+        e = e->optimize(WANTvalue | WANTinterpret);
+        if (e->op == TOKstring)
+        {
+            StringExp *se = (StringExp *)e;
+            const char *name = (const char *)se->string;
+            
+            Dsymbols *currdecl = decl;
+        Lagain_nameoverride:
+            if (currdecl->dim > 1)
+                error("can only apply to one declaration, not %u", currdecl->dim);
+            else if (currdecl->dim == 1)
+            {   Dsymbol *dsym = (Dsymbol *)currdecl->data[0];
+                ClassDeclaration *cdecl = dsym->isClassDeclaration();
+                if (cdecl)
+                    cdecl->objcname = name; // set specific name
+                else
+                {   AttribDeclaration *adecl = dsym->isAttribDeclaration();
+                    if (adecl)
+                    {   // encountered attrib declaration, search for a class inside
+                        currdecl = ((AttribDeclaration *)dsym)->decl;
+                        goto Lagain_nameoverride;
+                    }
+                    else
+                        error("can only apply to class or interface declarations, not %s", dsym->toChars());
+                }
+            }
+        }
+        else
+            error("string expected for name override, not '%s'", e->toChars());
+    }
+#endif
     else if (global.params.ignoreUnsupportedPragmas)
     {
         if (global.params.verbose)
