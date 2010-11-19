@@ -439,7 +439,7 @@ Symbol *ObjcSymbols::getProtocolSymbol(ClassDeclaration *interface)
     assert(interface->objcmeta == 0);
     
     static StringTable stringtable;
-    StringValue *sv = stringtable.update(interface->ident->string, interface->ident->len);
+    StringValue *sv = stringtable.update(interface->objcident->string, interface->objcident->len);
     Symbol *sy = (Symbol *) sv->ptrvalue;
     if (!sy)
     {
@@ -617,13 +617,104 @@ ObjcClassRefExp::ObjcClassRefExp(Loc loc, ClassDeclaration *cdecl)
 
 void ObjcClassRefExp::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 {
-    buf->writestring(cdecl->ident->string);
+    buf->writestring(cdecl->objcident->string);
     buf->writestring(".class");
 }
 
 elem *ObjcClassRefExp::toElem(IRState *irs)
 {
-    return el_var(ObjcSymbols::getClassReference(cdecl->ident));
+    return el_var(ObjcSymbols::getClassReference(cdecl->objcident));
+}
+
+
+// MARK: .class Expression
+
+ObjcDotClassExp::ObjcDotClassExp(Loc loc, Expression *e)
+    : UnaExp(loc, TOKobjc_dotclass, sizeof(ObjcDotClassExp), e)
+{
+    noop = 0;
+}
+
+Expression *ObjcDotClassExp::semantic(Scope *sc)
+{
+    UnaExp::semantic(sc);
+    if (e1->type && e1->type->ty == Tclass)
+    {  
+        ClassDeclaration *cd = ((TypeClass *)e1->type)->sym;
+        if (cd->objc)
+        {
+            if (e1->op = TOKtype)
+            {
+                if (cd->isInterfaceDeclaration())
+                {
+                    error("%s is an interface type and has no static 'class' property", e1->type->toChars());
+                    return new ErrorExp();
+                }
+                return new ObjcClassRefExp(loc, cd);
+            }
+            else if (cd->objcmeta)
+            {   // this is already a class object, nothing to do
+                noop = 1;
+                type = cd->type;
+                return this;
+            }
+            else
+            {   // this is a regular (non-class) object, invoke class method
+                type = cd->metaclass->type;
+                return this;
+            }
+        }
+    }
+    
+    error("%s of type %s has no 'class' property", e1->toChars(), e1->type->toChars());
+    return new ErrorExp();
+}
+
+void ObjcDotClassExp::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
+{
+    e1->toCBuffer(buf, hgs);
+    buf->writestring(".class");
+}
+
+elem *ObjcDotClassExp::toElem(IRState *irs)
+{
+    elem *e = e1->toElem(irs);
+    if (!noop)
+    {
+        TypeFunction *tf = new TypeFunction(NULL, type, 0, LINKobjc);
+        FuncDeclaration *fd = new FuncDeclaration(0, 0, NULL, STCstatic, tf);
+        fd->protection = PROTpublic;
+        fd->linkage = LINKobjc;
+        fd->objcSelector = ObjcSelector::lookup("class", 5, 0);
+        
+        Expression *ef = new VarExp(0, fd);
+        Expression *ec = new CallExp(loc, ef);
+        e = ec->toElem(irs);
+    }
+    return e;
+}
+
+
+// MARK: .interface Expression
+
+ObjcDotInterfaceExp::ObjcDotInterfaceExp(Loc loc, Expression *e)
+    : UnaExp(loc, TOKobjc_dotinterface, sizeof(ObjcDotInterfaceExp), e)
+{}
+
+Expression *ObjcDotInterfaceExp::semantic(Scope *sc)
+{
+    return UnaExp::semantic(sc);
+}
+
+void ObjcDotInterfaceExp::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
+{
+    e1->toCBuffer(buf, hgs);
+    buf->writestring(".interface");
+}
+
+elem *ObjcDotInterfaceExp::toElem(IRState *irs)
+{
+    assert(0);
 }
 
 
@@ -665,9 +756,9 @@ void ObjcClassDeclaration::toObjFile(int multiobj)
     
     char *sname;
     if (!ismeta)
-        sname = prefixSymbolName(cdecl->ident->string, cdecl->ident->len, "L_OBJC_CLASS_", 13);
+        sname = prefixSymbolName(cdecl->objcident->string, cdecl->objcident->len, "L_OBJC_CLASS_", 13);
     else
-        sname = prefixSymbolName(cdecl->ident->string, cdecl->ident->len, "L_OBJC_METACLASS_", 17);
+        sname = prefixSymbolName(cdecl->objcident->string, cdecl->objcident->len, "L_OBJC_METACLASS_", 17);
     symbol = symbol_name(sname, SCstatic, type_fake(TYnptr));
     symbol->Sdt = dt;
     symbol->Sseg = objc_getsegment((!ismeta ? SEGclass : SEGmeta_class));
@@ -677,8 +768,8 @@ void ObjcClassDeclaration::toObjFile(int multiobj)
 void ObjcClassDeclaration::toDt(dt_t **pdt)
 {
     dtxoff(pdt, getMetaclass(), 0, TYnptr); // pointer to metaclass
-    dtxoff(pdt, ObjcSymbols::getClassName(cdecl->baseClass->ident), 0, TYnptr); // name of superclass
-    dtxoff(pdt, ObjcSymbols::getClassName(cdecl->ident), 0, TYnptr); // name of class
+    dtxoff(pdt, ObjcSymbols::getClassName(cdecl->baseClass->objcident), 0, TYnptr); // name of superclass
+    dtxoff(pdt, ObjcSymbols::getClassName(cdecl->objcident), 0, TYnptr); // name of class
     dtdword(pdt, 0); // version (for serialization)
     dtdword(pdt, !ismeta ? 1 : 2); // info flags (0x1: regular class; 0x2: metaclass) 
     dtdword(pdt, !ismeta ? cdecl->size(cdecl->loc) : 48); // instance size in bytes
@@ -713,7 +804,7 @@ Symbol *ObjcClassDeclaration::getMetaclass()
         ClassDeclaration *metadecl = cdecl;
         while (metadecl->baseClass)
             metadecl = metadecl->baseClass;
-        return ObjcSymbols::getClassName(metadecl->ident);
+        return ObjcSymbols::getClassName(metadecl->objcident);
     }
 }
 
@@ -737,8 +828,8 @@ Symbol *ObjcClassDeclaration::getIVarList()
         dtxoff(&dt, ObjcSymbols::getMethVarType(ivar), 0, TYnptr); // ivar type string
         dtdword(&dt, ivar->offset); // ivar offset
     }
-   
-    char *sname = prefixSymbolName(cdecl->ident->string, cdecl->ident->len, "L_OBJC_INSTANCE_VARIABLES_", 26);
+    
+    char *sname = prefixSymbolName(cdecl->objcident->string, cdecl->objcident->len, "L_OBJC_INSTANCE_VARIABLES_", 26);
     Symbol *sym = symbol_name(sname, SCstatic, type_fake(TYnptr));
     sym->Sdt = dt;
     sym->Sseg = objc_getsegment(SEGinstance_vars);
@@ -768,9 +859,9 @@ Symbol *ObjcClassDeclaration::getMethodList()
     
     char *sname;
     if (!ismeta)
-        sname = prefixSymbolName(cdecl->ident->string, cdecl->ident->len, "L_OBJC_INSTANCE_METHODS_", 24);
+        sname = prefixSymbolName(cdecl->objcident->string, cdecl->objcident->len, "L_OBJC_INSTANCE_METHODS_", 24);
     else
-        sname = prefixSymbolName(cdecl->ident->string, cdecl->ident->len, "L_OBJC_CLASS_METHODS_", 21);
+        sname = prefixSymbolName(cdecl->objcident->string, cdecl->objcident->len, "L_OBJC_CLASS_METHODS_", 21);
     Symbol *sym = symbol_name(sname, SCstatic, type_fake(TYnptr));
     sym->Sdt = dt;
     sym->Sseg = objc_getsegment((!ismeta ? SEGinst_meth : SEGcls_meth));
@@ -797,7 +888,7 @@ Symbol *ObjcClassDeclaration::getProtocolList()
     }
     dtdword(&dt, 0); // null-terminate the list
     
-    char *sname = prefixSymbolName(cdecl->ident->string, cdecl->ident->len, "L_OBJC_CLASS_PROTOCOLS_", 23);
+    char *sname = prefixSymbolName(cdecl->objcident->string, cdecl->objcident->len, "L_OBJC_CLASS_PROTOCOLS_", 23);
     sprotocols = symbol_name(sname, SCstatic, type_fake(TYnptr));
     sprotocols->Sdt = dt;
     sprotocols->Sseg = objc_getsegment(SEGcat_cls_meth);
@@ -820,7 +911,7 @@ void ObjcProtocolDeclaration::toObjFile(int multiobj)
     dt_t *dt = NULL;
     toDt(&dt);
     
-    char *sname = prefixSymbolName(idecl->ident->string, idecl->ident->len, "L_OBJC_PROTOCOL_", 16);
+    char *sname = prefixSymbolName(idecl->objcident->string, idecl->objcident->len, "L_OBJC_PROTOCOL_", 16);
     symbol = symbol_name(sname, SCstatic, type_fake(TYnptr));
     symbol->Sdt = dt;
     symbol->Sseg = objc_getsegment(SEGprotocol);
@@ -830,7 +921,7 @@ void ObjcProtocolDeclaration::toObjFile(int multiobj)
 void ObjcProtocolDeclaration::toDt(dt_t **pdt)
 {
     dtdword(pdt, 0); // isa pointer, initialized by the runtime
-    dtxoff(pdt, ObjcSymbols::getClassName(idecl->ident), 0, TYnptr); // protocol name
+    dtxoff(pdt, ObjcSymbols::getClassName(idecl->objcident), 0, TYnptr); // protocol name
     
     Symbol *protocols = getProtocolList();
     if (protocols)  dtxoff(pdt, protocols, 0, TYnptr); // protocol list
@@ -862,9 +953,9 @@ Symbol *ObjcProtocolDeclaration::getMethodList(int wantsClassMethods)
     
     char *sname;
     if (!wantsClassMethods)
-        sname = prefixSymbolName(idecl->ident->string, idecl->ident->len, "L_OBJC_PROTOCOL_INSTANCE_METHODS_", 33);
+        sname = prefixSymbolName(idecl->objcident->string, idecl->objcident->len, "L_OBJC_PROTOCOL_INSTANCE_METHODS_", 33);
     else
-        sname = prefixSymbolName(idecl->ident->string, idecl->ident->len, "L_OBJC_PROTOCOL_CLASS_METHODS_", 30);
+        sname = prefixSymbolName(idecl->objcident->string, idecl->objcident->len, "L_OBJC_PROTOCOL_CLASS_METHODS_", 30);
     Symbol *sym = symbol_name(sname, SCstatic, type_fake(TYnptr));
     sym->Sdt = dt;
     sym->Sseg = objc_getsegment((!wantsClassMethods ? SEGcat_inst_meth : SEGcat_cls_meth));
@@ -889,7 +980,7 @@ Symbol *ObjcProtocolDeclaration::getProtocolList()
     }
     dtdword(&dt, 0); // null-terminate the list
     
-    char *sname = prefixSymbolName(idecl->ident->string, idecl->ident->len, "L_OBJC_PROTOCOL_REFS_", 21);
+    char *sname = prefixSymbolName(idecl->objcident->string, idecl->objcident->len, "L_OBJC_PROTOCOL_REFS_", 21);
     Symbol *sprotocols = symbol_name(sname, SCstatic, type_fake(TYnptr));
     sprotocols->Sdt = dt;
     sprotocols->Sseg = objc_getsegment(SEGcat_cls_meth);

@@ -93,8 +93,28 @@ struct ObjcSelector
 struct ObjcClassRefExp : Expression
 {
     ClassDeclaration *cdecl;
-    
+
     ObjcClassRefExp(Loc loc, ClassDeclaration *cdecl);
+    void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
+    elem *toElem(IRState *irs);
+};
+
+struct ObjcDotClassExp : UnaExp
+{
+    int noop; // !=0 if nothing needs to be done
+    
+    ObjcDotClassExp(Loc loc, Expression *e);
+    Expression *semantic(Scope *sc);
+    void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
+    elem *toElem(IRState *irs);
+    
+    static FuncDeclaration *classFunc();
+};
+
+struct ObjcDotInterfaceExp : UnaExp
+{
+    ObjcDotInterfaceExp(Loc loc, Expression *e);
+    Expression *semantic(Scope *sc);
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
     elem *toElem(IRState *irs);
 };

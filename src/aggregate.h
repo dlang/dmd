@@ -236,7 +236,7 @@ struct ClassDeclaration : AggregateDeclaration
     int objcmeta;                       // !=0 if this is an Objective-C metaclass
     int objcextern;                     // !=0 if this is a delcaration for a class defined externally
     int objctakestringliteral;          // !=0 if this class can represent NSString literals
-    const char *objcname;               // name of this class
+    Identifier *objcident;              // name of this class
     Symbol *sobjccls;                   // generated symbol for this class (if not objcextern)
     StringTable *objcMethods;           // table of selectors for methods
     Array objcMethodList;               // list of non-inherited methods

@@ -66,7 +66,7 @@ ClassDeclaration::ClassDeclaration(Loc loc, Identifier *id, BaseClasses *basecla
     objcmeta = 0;
     objcextern = 0;
     objctakestringliteral = 0;
-    objcname = NULL;
+    objcident = NULL;
     sobjccls = NULL;
     objcMethods = NULL;
     metaclass = NULL;
@@ -517,6 +517,9 @@ void ClassDeclaration::semantic(Scope *sc)
         metaclass->objc = 1;
         metaclass->objcmeta = 1;
         metaclass->objcextern = objcextern;
+        metaclass->objcident = objcident;
+        members->push(metaclass);
+        metaclass->addMember(sc, this, 1);
     }
 #endif
 
@@ -655,8 +658,8 @@ void ClassDeclaration::semantic(Scope *sc)
     else if (objc)
     {
         sc->linkage = LINKobjc;
-        if (!objcname)
-            objcname = ident->string;
+        if (!objcident)
+            objcident = ident;
     }
 #endif
     sc->protection = PROTpublic;
@@ -809,8 +812,8 @@ void ClassDeclaration::semantic(Scope *sc)
     dtor = buildDtor(sc);
 
 #if DMD_OBJC
-    if (metaclass)
-        metaclass->semantic(sc);
+//    if (metaclass)
+//        metaclass->semantic(sc);
 #endif
     
     sc->pop();
@@ -1285,8 +1288,8 @@ void InterfaceDeclaration::semantic(Scope *sc)
         // generate a definition in the object file.
         objcextern = 1; // this one is only a declaration
     
-        if (!objcname)
-            objcname = ident->string;
+        if (!objcident)
+            objcident = ident;
 #elif
         error("Objective-C interfaces not supported");
 #endif
@@ -1394,12 +1397,13 @@ void InterfaceDeclaration::semantic(Scope *sc)
             else
                 error("base interfaces for an Objective-C interface must be extern (Objective-C)");
         }
-        metaclass = new InterfaceDeclaration(loc, ident, metabases);
+        metaclass = new InterfaceDeclaration(loc, Id::Class, metabases);
         metaclass->storage_class |= STCstatic;
         metaclass->objc = 1;
         metaclass->objcmeta = 1;
         metaclass->objcextern = objcextern;
-        metaclass->aliasthis = this;
+        members->push(metaclass);
+        metaclass->addMember(sc, this, 1);
     }
 #endif
 
@@ -1476,8 +1480,8 @@ void InterfaceDeclaration::semantic(Scope *sc)
     inuse--;
     //members->print();
 #if DMD_OBJC
-    if (metaclass)
-        metaclass->semantic(sc);
+//    if (metaclass)
+//        metaclass->semantic(sc);
 #endif
     sc->pop();
     //printf("-InterfaceDeclaration::semantic(%s), type = %p\n", toChars(), type);

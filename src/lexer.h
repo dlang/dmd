@@ -172,6 +172,8 @@ enum TOK
 
 #if DMD_OBJC
         TOKobjcclsref, // Objective-C class reference
+        TOKobjc_dotclass,
+        TOKobjc_dotinterface,
 #endif
 
         TOKMAX

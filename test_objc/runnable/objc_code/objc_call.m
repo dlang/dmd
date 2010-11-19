@@ -1,11 +1,20 @@
 
+// Minimal runtime for unit tests
+
 #import <Foundation/Foundation.h>
 
-id testIMP(id self, SEL _cmd) {
-	return self;
+id _dobjc_class(id obj) {
+    return [objc class];
 }
 
-id callIMP(IMP imp) {
-	id (*impCall)(id, SEL) = (id (*)(id, SEL))imp;
-	return impCall([NSObject class], @selector(description));
+id _dobjc_casttoclass(id obj, Class cls) {
+    if ([obj isKindOfClass:cls])
+        return obj;
+    return nil;
+}
+
+id _dobjc_casttointerface(id obj, Protocol *p) {
+    if ([obj conformsToProtocol:p])
+        return obj;
+    return nil;
 }

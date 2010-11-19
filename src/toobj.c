@@ -448,10 +448,12 @@ void ClassDeclaration::toObjFile(int multiobj)
 #endif
 
 #if DMD_OBJC
-    if (objc && !objcmeta)
-    {   ObjcClassDeclaration objcdecl(this);
-        objcdecl.toObjFile(multiobj);
-        sobjccls = objcdecl.symbol;
+    if (objc)
+	{	if (!objcmeta)
+		{   ObjcClassDeclaration objcdecl(this);
+			objcdecl.toObjFile(multiobj);
+			sobjccls = objcdecl.symbol;
+		}
         return; // skip rest of output
     }
 #endif

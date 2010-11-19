@@ -1089,7 +1089,7 @@ void PragmaDeclaration::semantic(Scope *sc)
             {   Dsymbol *dsym = (Dsymbol *)currdecl->data[0];
                 ClassDeclaration *cdecl = dsym->isClassDeclaration();
                 if (cdecl)
-                    cdecl->objcname = name; // set specific name
+                    cdecl->objcident = Identifier::generateId(name, se->len); // set specific name
                 else
                 {   AttribDeclaration *adecl = dsym->isAttribDeclaration();
                     if (adecl)

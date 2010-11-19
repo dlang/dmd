@@ -100,6 +100,7 @@ Msgtable msgtable[] =
     { "_match" },
     { "destroy" },
     { "postblit" },
+    // DMD_OBJC
     { "_cmd" },
     { "Class" },
 
@@ -262,6 +263,8 @@ Msgtable msgtable[] =
     { "criticalenter", "_d_criticalenter" },
     { "criticalexit", "_d_criticalexit" },
     { "_ArrayEq" },
+    // DMD_OBJC
+    { "_dobjc_class" },
 
     // For pragma's
     { "GNU_asm" },

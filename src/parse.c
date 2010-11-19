@@ -2322,6 +2322,14 @@ Type *Parser::parseBasicType()
         Lident2:
             while (token.value == TOKdot)
             {   nextToken();
+#if DMD_OBJC && 0 
+                if (token.value == TOKclass || token.value == TOKinterface)
+                {   // allow this for Objective-C types
+                    assert(token.ident);
+                    break;
+                }
+                else
+#endif
                 if (token.value != TOKidentifier)
                 {   error("identifier expected following '.' instead of '%s'", token.toChars());
                     break;
@@ -5506,6 +5514,20 @@ Expression *Parser::parsePostExp(Expression *e)
                     e = parseNewExp(e);
                     continue;
                 }
+#if DMD_OBJC
+                else if (token.value == TOKclass)
+                {
+                    e = new ObjcDotClassExp(loc, e);
+                    nextToken();
+                    continue;
+                }
+                else if (token.value == TOKinterface)
+                {
+                    e = new ObjcDotInterfaceExp(loc, e);
+                    nextToken();
+                    continue;
+                }
+#endif
                 else
                     error("identifier expected following '.', not '%s'", token.toChars());
                 break;
