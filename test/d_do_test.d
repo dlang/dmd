@@ -248,7 +248,7 @@ int main(string[] args)
     string input_file     = input_dir ~ envData.sep ~ test_name ~ "." ~ test_extension;
     string output_dir     = envData.results_dir ~ envData.sep ~ input_dir;
     string output_file    = envData.results_dir ~ envData.sep ~ input_dir ~ envData.sep ~ test_name ~ "." ~ test_extension ~ ".out";
-    string test_app_dmd   = output_dir ~ envData.sep ~ test_name ~ envData.exe;
+    string test_app_dmd_base = output_dir ~ envData.sep ~ test_name ~ "_";
 
     TestArgs testArgs;
 
@@ -272,15 +272,17 @@ int main(string[] args)
 
     auto f = File(output_file, "a");
 
-    foreach(c; combinations(testArgs.permuteArgs))
+    foreach(i, c; combinations(testArgs.permuteArgs))
     {
         string[] toCleanup;
+
+        string test_app_dmd = test_app_dmd_base ~ to!string(i) ~ envData.exe;
 
         try
         {
             if (!testArgs.compileSeparately)
             {
-                string objfile = output_dir ~ envData.sep ~ test_name ~ envData.obj;
+                string objfile = output_dir ~ envData.sep ~ test_name ~ "_" ~ to!string(i) ~ envData.obj;
                 toCleanup ~= objfile;
 
                 if (testArgs.mode == TestMode.RUN)
