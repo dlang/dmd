@@ -24,7 +24,7 @@ version( Posix )
 
     void mktspec( ref timespec t, long delta = 0 )
     {
-        static if( is( typeof( clock_gettime ) ) )
+        static if( false && is( typeof( clock_gettime ) ) )
         {
             clock_gettime( CLOCK_REALTIME, &t );
         }
