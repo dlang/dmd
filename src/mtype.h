@@ -909,6 +909,7 @@ extern int Tsize_t;
 extern int Tptrdiff_t;
 
 int arrayTypeCompatible(Loc loc, Type *t1, Type *t2);
+int arrayTypeCompatibleWithoutCasting(Loc loc, Type *t1, Type *t2);
 void MODtoBuffer(OutBuffer *buf, unsigned char mod);
 int MODimplicitConv(unsigned char modfrom, unsigned char modto);
 int MODmerge(unsigned char mod1, unsigned char mod2);

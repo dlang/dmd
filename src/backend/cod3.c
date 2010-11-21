@@ -2299,21 +2299,27 @@ void cod3_thunk(symbol *sthunk,symbol *sfunc,unsigned p,tym_t thisty,
             MOV EAX, d2[EAX]                    EAX = this->vptr
             JMP i[EAX]                          jump to virtual function
          */
+        unsigned reg = 0;
+        if ((targ_ptrdiff_t)d < 0)
+        {
+            d = -d;
+            reg = 5;                            // switch from ADD to SUB
+        }
         if (thunkty == TYmfunc)
         {                                       // ADD ECX,d
             c = CNIL;
             if (d)
-                c = genc2(c,0x81,modregrm(3,0,CX),d);
+                c = genc2(c,0x81,modregrm(3,reg,CX),d);
         }
         else if (thunkty == TYjfunc)
         {                                       // ADD EAX,d
             c = CNIL;
             if (d)
-                c = genc2(c,0x81,modregrm(3,0,AX),d);
+                c = genc2(c,0x81,modregrm(3,reg,I64 ? DI : AX),d);
         }
         else
         {
-            c = genc(CNIL,0x81,modregrm(2,0,4),
+            c = genc(CNIL,0x81,modregrm(2,reg,4),
                 FLconst,p,                      // to this
                 FLconst,d);                     // ADD p[ESP],d
             c->Isib = modregrm(0,4,SP);
@@ -4560,7 +4566,7 @@ STATIC void do32bit(enum FL fl,union evc *uev,int flags, targ_size_t val)
         {
                 assert(!(TARGET_FLAT && tyfarfunc(s->ty())));
                 FLUSH();
-                reftoident(cseg,offset,s,0,flags);
+                reftoident(cseg,offset,s,val,flags);
         }
         break;
 

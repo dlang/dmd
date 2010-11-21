@@ -1,6 +1,6 @@
 
 // Compiler implementation of the D programming language
-// Copyright (c) 1999-2009 by Digital Mars
+// Copyright (c) 1999-2010 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // http://www.digitalmars.com
@@ -211,7 +211,7 @@ elem *getEthis(Loc loc, IRState *irs, Dsymbol *fd)
                         irs->getFunc()->error(loc, "cannot get frame pointer to %s", fd->toChars());
                         return el_long(TYnptr, 0);      // error recovery
                     }
-                    ethis = el_bin(OPadd, TYnptr, ethis, el_long(TYint, ad->vthis->offset));
+                    ethis = el_bin(OPadd, TYnptr, ethis, el_long(TYsize_t, ad->vthis->offset));
                     ethis = el_una(OPind, TYnptr, ethis);
                     if (fdparent == s->toParent2())
                         break;
@@ -323,7 +323,7 @@ elem *setEthis(Loc loc, IRState *irs, elem *ey, AggregateDeclaration *ad)
         ethis = el_una(OPaddr, TYnptr, ethis);
     }
 
-    ey = el_bin(OPadd, TYnptr, ey, el_long(TYint, ad->vthis->offset));
+    ey = el_bin(OPadd, TYnptr, ey, el_long(TYsize_t, ad->vthis->offset));
     ey = el_una(OPind, TYnptr, ey);
     ey = el_bin(OPeq, TYnptr, ey, ethis);
     return ey;
@@ -412,7 +412,7 @@ int intrinsic_op(char *name)
         "4math6rndtolFeZl",
         "4math6yl2xp1FeeZe",
 
-        "9intrinsic2btFPkkZi",
+        "9intrinsic2btFPmmZi",
         "9intrinsic3bsfFkZi",
         "9intrinsic3bsrFkZi",
         "9intrinsic3btcFPmmZi",
@@ -544,20 +544,20 @@ elem *resolveLengthVar(VarDeclaration *lengthVar, elem **pe, Type *t1)
         {   TypeSArray *tsa = (TypeSArray *)t1;
             dinteger_t length = tsa->dim->toInteger();
 
-            elength = el_long(TYuint, length);
+            elength = el_long(TYsize_t, length);
             goto L3;
         }
         else if (t1->ty == Tarray)
         {
             elength = *pe;
             *pe = el_same(&elength);
-            elength = el_una(OP64_32, TYuint, elength);
+            elength = el_una(I64 ? OP128_64 : OP64_32, TYsize_t, elength);
 
         L3:
             slength = lengthVar->toSymbol();
             //symbol_add(slength);
 
-            einit = el_bin(OPeq, TYuint, el_var(slength), elength);
+            einit = el_bin(OPeq, TYsize_t, el_var(slength), elength);
         }
     }
     return einit;
@@ -674,7 +674,7 @@ void FuncDeclaration::buildClosure(IRState *irs)
 
         // Allocate memory for the closure
         elem *e;
-        e = el_long(TYint, offset);
+        e = el_long(TYsize_t, offset);
         e = el_bin(OPcall, TYnptr, el_var(rtlsym[RTLSYM_ALLOCMEMORY]), e);
 
         // Assign block of memory to sclosure
@@ -709,7 +709,7 @@ void FuncDeclaration::buildClosure(IRState *irs)
             else if (v->storage_class & STClazy)
                 tym = TYdelegate;
 #endif
-            ex = el_bin(OPadd, TYnptr, el_var(sclosure), el_long(TYint, v->offset));
+            ex = el_bin(OPadd, TYnptr, el_var(sclosure), el_long(TYsize_t, v->offset));
             ex = el_una(OPind, tym, ex);
             if (tybasic(ex->Ety) == TYstruct || tybasic(ex->Ety) == TYarray)
             {

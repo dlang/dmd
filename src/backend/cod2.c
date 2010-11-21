@@ -653,6 +653,8 @@ code *cdorth(elem *e,regm_t *pretregs)
                     cs.Irex |= REX_B;
                 if (I64 && sz == 8)
                     cs.Irex |= REX_W;
+                if (I64 && byte && reg >= 4)
+                    cs.Irex |= REX;
                 cs.IFL2 = (e2->Eoper == OPconst) ? FLconst : el_fl(e2);
                 /* Modify instruction for special cases */
                 switch (e->Eoper)
@@ -3309,8 +3311,8 @@ fixres:
     retregs2 = mCX;
     if (!I16 && e2->E1->Eoper == OPconst && e2->E2->Eoper == OPconst)
     {
-        remainder = numbytes & (REGSIZE - 1);
-        numwords  = numbytes / REGSIZE;         // number of words
+        remainder = numbytes & (4 - 1);
+        numwords  = numbytes / 4;               // number of words
         op = 0xAB;                              // moving by words
         c1 = getregs(mCX);
         c1 = movregconst(c1,CX,numwords,I64?64:0);     // # of bytes/words

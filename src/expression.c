@@ -8577,6 +8577,9 @@ Expression *IndexExp::semantic(Scope *sc)
 
         case Taarray:
         {   TypeAArray *taa = (TypeAArray *)t1;
+            /* We can skip the implicit conversion if they differ only by
+             * constness (Bugzilla 2684, see also bug 2954b)
+             */
             if (!arrayTypeCompatible(e2->loc, e2->type, taa->index))
             {
                 e2 = e2->implicitCastTo(sc, taa->index);        // type checking

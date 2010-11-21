@@ -583,52 +583,72 @@ elem *setArray(elem *eptr, elem *edim, Type *tb, elem *evalue, IRState *irs, int
     elem *e;
     int sz = tb->size();
 
-    if (tb->ty == Tfloat80 || tb->ty == Timaginary80)
-        r = RTLSYM_MEMSET80;
-    else if (tb->ty == Tcomplex80)
-        r = RTLSYM_MEMSET160;
-    else if (tb->ty == Tcomplex64)
-        r = RTLSYM_MEMSET128;
-    else
+    switch (tb->ty)
     {
-        switch (sz)
-        {
-            case 1:      r = RTLSYM_MEMSET8;    break;
-            case 2:      r = RTLSYM_MEMSET16;   break;
-            case 4:      r = RTLSYM_MEMSET32;   break;
-            case 8:      r = RTLSYM_MEMSET64;   break;
-            case 16:     r = RTLSYM_MEMSET128;  break;
-            default:     r = RTLSYM_MEMSETN;    break;
-        }
+        case Tfloat80:
+        case Timaginary80:
+            r = RTLSYM_MEMSET80;
+            break;
+        case Tcomplex80:
+            r = RTLSYM_MEMSET160;
+            break;
+        case Tcomplex64:
+            r = RTLSYM_MEMSET128;
+            break;
+        case Tfloat32:
+        case Timaginary32:
+            if (I32)
+                goto Ldefault;          // legacy binary compatibility
+            r = RTLSYM_MEMSETFLOAT;
+            break;
+        case Tfloat64:
+        case Timaginary64:
+            if (I32)
+                goto Ldefault;          // legacy binary compatibility
+            r = RTLSYM_MEMSETDOUBLE;
+            break;
 
-        /* Determine if we need to do postblit
-         */
-        if (op != TOKblit)
-        {
-            StructDeclaration *sd = needsPostblit(tb);
-            if (sd)
-            {   /* Need to do postblit.
-                 *   void *_d_arraysetassign(void *p, void *value, int dim, TypeInfo ti);
-                 */
-                r = (op == TOKconstruct) ? RTLSYM_ARRAYSETCTOR : RTLSYM_ARRAYSETASSIGN;
+        default:
+        Ldefault:
+            switch (sz)
+            {
+                case 1:      r = RTLSYM_MEMSET8;    break;
+                case 2:      r = RTLSYM_MEMSET16;   break;
+                case 4:      r = RTLSYM_MEMSET32;   break;
+                case 8:      r = RTLSYM_MEMSET64;   break;
+                case 16:     r = RTLSYM_MEMSET128;  break;
+                default:     r = RTLSYM_MEMSETN;    break;
+            }
+
+            /* Determine if we need to do postblit
+             */
+            if (op != TOKblit)
+            {
+                StructDeclaration *sd = needsPostblit(tb);
+                if (sd)
+                {   /* Need to do postblit.
+                     *   void *_d_arraysetassign(void *p, void *value, int dim, TypeInfo ti);
+                     */
+                    r = (op == TOKconstruct) ? RTLSYM_ARRAYSETCTOR : RTLSYM_ARRAYSETASSIGN;
+                    evalue = el_una(OPaddr, TYnptr, evalue);
+                    Expression *ti = tb->getTypeInfo(NULL);
+                    elem *eti = ti->toElem(irs);
+                    e = el_params(eti, edim, evalue, eptr, NULL);
+                    e = el_bin(OPcall,TYnptr,el_var(rtlsym[r]),e);
+                    return e;
+                }
+            }
+
+            if (r == RTLSYM_MEMSETN)
+            {
+                // void *_memsetn(void *p, void *value, int dim, int sizelem)
                 evalue = el_una(OPaddr, TYnptr, evalue);
-                Expression *ti = tb->getTypeInfo(NULL);
-                elem *eti = ti->toElem(irs);
-                e = el_params(eti, edim, evalue, eptr, NULL);
+                elem *esz = el_long(TYsize_t, sz);
+                e = el_params(esz, edim, evalue, eptr, NULL);
                 e = el_bin(OPcall,TYnptr,el_var(rtlsym[r]),e);
                 return e;
             }
-        }
-
-        if (r == RTLSYM_MEMSETN)
-        {
-            // void *_memsetn(void *p, void *value, int dim, int sizelem)
-            evalue = el_una(OPaddr, TYnptr, evalue);
-            elem *esz = el_long(TYsize_t, sz);
-            e = el_params(esz, edim, evalue, eptr, NULL);
-            e = el_bin(OPcall,TYnptr,el_var(rtlsym[r]),e);
-            return e;
-        }
+            break;
     }
     if (sz > 1 && sz <= 8 &&
         evalue->Eoper == OPconst && el_allbits(evalue, 0))

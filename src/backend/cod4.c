@@ -1023,6 +1023,8 @@ code *cdaddass(elem *e,regm_t *pretregs)
         if (sz <= REGSIZE || tyfv(tyml))
         {   reg = findreg(retregs);
             code_newreg(&cs, reg);              // OP1 EA,reg
+            if (sz == 1 && reg >= 4 && I64)
+                cs.Irex |= REX;
         }
         else if (tyml == TYhptr)
         {   unsigned mreg,lreg;

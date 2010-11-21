@@ -64,6 +64,8 @@ SYMBOL_MARS(MEMSET64,        FLfunc,FREGSAVED,"_memset64", 0, t) \
 SYMBOL_MARS(MEMSET128,       FLfunc,FREGSAVED,"_memset128",0, t) \
 SYMBOL_MARS(MEMSET80,        FLfunc,FREGSAVED,"_memset80", 0, t) \
 SYMBOL_MARS(MEMSET160,       FLfunc,FREGSAVED,"_memset160",0, t) \
+SYMBOL_MARS(MEMSETFLOAT,     FLfunc,FREGSAVED,"_memsetFloat", 0, t) \
+SYMBOL_MARS(MEMSETDOUBLE,    FLfunc,FREGSAVED,"_memsetDouble", 0, t) \
 SYMBOL_MARS(MEMSETN,         FLfunc,FREGSAVED,"_memsetn",  0, t) \
 SYMBOL_MARS(MODULO,          FLfunc,FREGSAVED,"_modulo",   0, t) \
 SYMBOL_MARS(MONITORENTER,  FLfunc,FREGSAVED,"_d_monitorenter",0, t) \

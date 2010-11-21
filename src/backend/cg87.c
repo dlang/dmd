@@ -2925,15 +2925,15 @@ code *cnvt87(elem *e,regm_t *pretregs)
             else
                 c1 = genc2(c1,0x81,grex | modregrm(3,5,SP), szpush);   // SUB ESP,12
             c1 = genfwait(c1);
-            genc1(c1,0xD9,grex | modregrm(2,7,4) + 256*modregrm(0,4,SP),FLconst,szoff); // FSTCW szoff[ESP]
+            genc1(c1,0xD9,modregrm(2,7,4) + 256*modregrm(0,4,SP),FLconst,szoff); // FSTCW szoff[ESP]
 
             c1 = genfwait(c1);
 
             if (config.flags3 & CFG3pic)
             {
-                genc(c1,0xC7,grex | modregrm(2,0,4) + 256*modregrm(0,4,SP),FLconst,szoff+2,FLconst,CW_roundto0); // MOV szoff+2[ESP], CW_roundto0
+                genc(c1,0xC7,modregrm(2,0,4) + 256*modregrm(0,4,SP),FLconst,szoff+2,FLconst,CW_roundto0); // MOV szoff+2[ESP], CW_roundto0
                 code_orflag(c1, CFopsize);
-                genc1(c1,0xD9,grex | modregrm(2,5,4) + 256*modregrm(0,4,SP),FLconst,szoff+2); // FLDCW szoff+2[ESP]
+                genc1(c1,0xD9,modregrm(2,5,4) + 256*modregrm(0,4,SP),FLconst,szoff+2); // FLDCW szoff+2[ESP]
             }
             else
                 c1 = genrnd(c1, CW_roundto0);   // FLDCW roundto0

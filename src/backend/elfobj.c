@@ -2769,7 +2769,7 @@ int reftoident(int seg, targ_size_t offset, Symbol *s, targ_size_t val,
                     }
                     //printf("\t\t************* adding relocation\n");
                     targ_size_t v = 0;
-                    if (I64 && relinfo == R_X86_64_PC32)
+                    if (I64 && retsize == 4)
                     {
                         assert(retsize == 4);
                         if (val > 0xFFFFFFFF)
@@ -3007,7 +3007,10 @@ void obj_moduleinfo(Symbol *scc)
     const int seg = elf_getsegment(".ctors", NULL, SHT_PROGDEF, SHF_ALLOC|SHF_WRITE, NPTRSIZE);
 
     Outbuffer *buf = SegData[seg]->SDbuf;
-    buf->write32(codeOffset);
+    if (I64)
+        buf->write64(codeOffset);
+    else
+        buf->write32(codeOffset);
     elf_addrel(seg, SegData[seg]->SDoffset, I64 ? R_X86_64_64 : RI_TYPE_SYM32, STI_TEXT, 0);
     SegData[seg]->SDoffset += NPTRSIZE;
 }
