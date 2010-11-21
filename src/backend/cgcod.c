@@ -1105,15 +1105,17 @@ STATIC void blcodgen(block *bl)
 #if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_SOLARIS
             if (config.flags3 & CFG3pic)
             {
+                int nalign = 0;
                 if (STACKALIGN == 16)
-                {   c = genc2(c,0x81,modregrm(3,5,SP),12); // SUB ESP,12
+                {   nalign = STACKALIGN - REGSIZE;
+                    c = genc2(c,0x81,modregrm(3,5,SP),nalign); // SUB ESP,nalign
                     if (I64)
                         code_orrex(c, REX_W);
                 }
                 // CALL bl->Bsucc
                 c = genc(c,0xE8,0,0,0,FLblock,(long)list_block(bl->Bsucc));
-                if (STACKALIGN == 16)
-                {   c = genc2(c,0x81,modregrm(3,0,SP),12); // ADD ESP,12
+                if (nalign)
+                {   c = genc2(c,0x81,modregrm(3,0,SP),nalign); // ADD ESP,nalign
                     if (I64)
                         code_orrex(c, REX_W);
                 }

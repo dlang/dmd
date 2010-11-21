@@ -973,6 +973,8 @@ code *getlvalue(code *pcs,elem *e,regm_t keepmsk)
                             code_orrex(c, REX_X);
                         if (rbase & 8)
                             code_orrex(c, REX_B);
+                        if (I64)
+                            code_orrex(c, REX_W);
 
                         if (ssflags & SSFLnobase1)
                         {   code_last(c)->IFL1 = FLconst;
@@ -1083,6 +1085,8 @@ code *getlvalue(code *pcs,elem *e,regm_t keepmsk)
                 code_newreg(pcs, reg);
                 if (!I16)
                     pcs->Iflags &= ~CFopsize;
+                if (I64)
+                    pcs->Irex |= REX_W;
                 c = gen(c,pcs);                 /* LEA idxreg,EA        */
                 cssave(e1,idxregs,TRUE);
                 if (!I16)
@@ -2863,6 +2867,8 @@ STATIC code * funccall(elem *e,unsigned numpara,unsigned numalign,regm_t *pretre
              LF2:
                 reg = findreg(retregs);
                 ce = gen2(ce,0xFF,modregrmx(3,2,reg));   /* CALL reg     */
+                if (I64)
+                    code_orrex(ce, REX_W);
             }
         }
         else

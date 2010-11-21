@@ -512,7 +512,6 @@ elem *sarray_toDarray(Loc loc, Type *tfrom, Type *tto, elem *e)
     //printf("sarray_toDarray()\n");
     //elem_print(e);
 
-    elem *elen;
     unsigned dim = ((TypeSArray *)tfrom)->dim->toInteger();
 
     if (tto)
@@ -528,7 +527,7 @@ elem *sarray_toDarray(Loc loc, Type *tfrom, Type *tto, elem *e)
         dim = (dim * fsize) / tsize;
     }
   L1:
-    elen = el_long(TYsize_t, dim);
+    elem *elen = el_long(TYsize_t, dim);
     e = el_una(OPaddr, TYnptr, e);
     e = el_pair(TYdarray, elen, e);
     return e;
@@ -549,30 +548,50 @@ elem *setArray(elem *eptr, elem *edim, Type *tb, elem *evalue)
     elem *e;
     int sz = tb->size();
 
-    if (tb->ty == Tfloat80 || tb->ty == Timaginary80)
-        r = RTLSYM_MEMSET80;
-    else if (tb->ty == Tcomplex80)
-        r = RTLSYM_MEMSET160;
-    else if (tb->ty == Tcomplex64)
-        r = RTLSYM_MEMSET128;
-    else
+    switch (tb->ty)
     {
-        switch (sz)
-        {
-            case 1:      r = RTLSYM_MEMSET8;    break;
-            case 2:      r = RTLSYM_MEMSET16;   break;
-            case 4:      r = RTLSYM_MEMSET32;   break;
-            case 8:      r = RTLSYM_MEMSET64;   break;
-            case 16:     r = RTLSYM_MEMSET128;  break;
+        case Tfloat80:
+        case Timaginary80:
+            r = RTLSYM_MEMSET80;
+            break;
+        case Tcomplex80:
+            r = RTLSYM_MEMSET160;
+            break;
+        case Tcomplex64:
+            r = RTLSYM_MEMSET128;
+            break;
+        case Tfloat32:
+        case Timaginary32:
+            if (I32)
+                goto Ldefault;          // legacy binary compatibility
+            r = RTLSYM_MEMSETFLOAT;
+            break;
+        case Tfloat64:
+        case Timaginary64:
+            if (I32)
+                goto Ldefault;          // legacy binary compatibility
+            r = RTLSYM_MEMSETDOUBLE;
+            break;
 
-            default:
-                r = RTLSYM_MEMSETN;
-                evalue = el_una(OPaddr, TYnptr, evalue);
-                elem *esz = el_long(TYsize_t, sz);
-                e = el_params(esz, edim, evalue, eptr, NULL);
-                e = el_bin(OPcall,TYnptr,el_var(rtlsym[r]),e);
-                return e;
-        }
+        default:
+        Ldefault:
+            switch (sz)
+            {
+                case 1:      r = RTLSYM_MEMSET8;    break;
+                case 2:      r = RTLSYM_MEMSET16;   break;
+                case 4:      r = RTLSYM_MEMSET32;   break;
+                case 8:      r = RTLSYM_MEMSET64;   break;
+                case 16:     r = RTLSYM_MEMSET128;  break;
+
+                default:
+                    r = RTLSYM_MEMSETN;
+                    evalue = el_una(OPaddr, TYnptr, evalue);
+                    elem *esz = el_long(TYsize_t, sz);
+                    e = el_params(esz, edim, evalue, eptr, NULL);
+                    e = el_bin(OPcall,TYnptr,el_var(rtlsym[r]),e);
+                    return e;
+            }
+            break;
     }
     if (sz > 1 && sz <= 8 &&
         evalue->Eoper == OPconst && el_allbits(evalue, 0))

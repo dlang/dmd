@@ -15,6 +15,8 @@
 #include <assert.h>
 #include <string.h>
 
+#include "mars.h"
+
 /******************************************
  * Looks for undefined identifier s to see
  * if it might be undefined because an import
@@ -30,24 +32,28 @@ const char *importHint(const char *s)
     {   "std.c.stdio",
         "std.stdio",
         "std.math",
+        "std.c.stdarg",
     };
     static const char *names[] =
     {
         "printf", NULL,
         "writefln", NULL,
         "sin", "cos", "sqrt", "fabs", NULL,
+        "__va_argsave_t", NULL,
     };
 #else
     static const char *modules[] =
     {   "core.stdc.stdio",
         "std.stdio",
         "std.math",
+        "std.c.stdarg",
     };
     static const char *names[] =
     {
         "printf", NULL,
         "writeln", NULL,
         "sin", "cos", "sqrt", "fabs", NULL,
+        "__va_argsave_t", NULL,
     };
 #endif
     int m = 0;

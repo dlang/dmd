@@ -4133,8 +4133,6 @@ STATIC elem * elfield(elem *e)
 
 STATIC void elparamx(elem *e)
 {
-    elem *ex;
-
     //printf("elparam()\n");
     if (e->E1->Eoper == OPrpair)
     {
@@ -4143,7 +4141,7 @@ STATIC void elparamx(elem *e)
     else if (e->E1->Eoper == OPpair && !el_sideeffect(e->E1))
     {
         e->E1->Eoper = OPparam;
-        ex = e->E1->E2;
+        elem *ex = e->E1->E2;
         e->E1->E2 = e->E1->E1;
         e->E1->E1 = ex;
     }
@@ -4158,7 +4156,7 @@ STATIC void elparamx(elem *e)
     else if (e->E2->Eoper == OPpair)
     {
         e->E2->Eoper = OPparam;
-        ex = e->E2->E2;
+        elem *ex = e->E2->E2;
         e->E2->E2 = e->E2->E1;
         e->E2->E1 = ex;
     }
@@ -4685,7 +4683,8 @@ void postoptelem(elem *e)
 #endif
             if (e->Eoper == OPparam)
             {
-                elparamx(e);
+                if (!I64)
+                    elparamx(e);
             }
             postoptelem(e->E2);
             e = e->E1;

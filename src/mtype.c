@@ -3468,9 +3468,22 @@ L1:
         else
             *pt = t->merge();
     }
+
     if (!s)
     {
-        error(loc, "identifier '%s' is not defined", toChars());
+        const char *p = toChars();
+        const char *n = importHint(p);
+        if (n)
+            error(loc, "'%s' is not defined, perhaps you need to import %s; ?", p, n);
+        else
+        {
+            Identifier *id = new Identifier(p, TOKidentifier);
+            s = sc->search_correct(id);
+            if (s)
+                error(loc, "undefined identifier %s, did you mean %s %s?", p, s->kind(), s->toChars());
+            else
+                error(loc, "undefined identifier %s", p);
+        }
     }
 }
 
