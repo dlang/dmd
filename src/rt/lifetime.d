@@ -549,7 +549,7 @@ body
     {
         size_t reqsize = size * newcapacity;
 
-        if (reqsize / newcapacity != size)
+        if (newcapacity > 0 && reqsize / newcapacity != size)
             goto Loverflow;
     }
 
