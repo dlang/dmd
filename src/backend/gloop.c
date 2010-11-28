@@ -2140,6 +2140,8 @@ STATIC famlist * newfamlist(tym_t ty)
             case TYfptr:
             case TYvptr:
                 ty = TYint;
+                if (I64)
+                    ty = TYllong;
                 /* FALL-THROUGH */
             case TYint:
             case TYuint:

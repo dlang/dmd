@@ -2311,7 +2311,7 @@ void cod3_thunk(symbol *sthunk,symbol *sfunc,unsigned p,tym_t thisty,
             if (d)
                 c = genc2(c,0x81,modregrm(3,reg,CX),d);
         }
-        else if (thunkty == TYjfunc)
+        else if (thunkty == TYjfunc || (I64 && thunkty == TYnfunc))
         {                                       // ADD EAX,d
             c = CNIL;
             if (d)
@@ -3438,7 +3438,7 @@ void pinholeopt(code *c,block *b)
             {
                 a = c->IEVpointer1;
                 if (a == 0 && (rm & 7) != local_BPRM &&         // if 0[disp]
-                    !(local_BPRM == 5 && (rm & 7) == 4 && (c->Isib & 7) == BP && !(c->Irex & REX_B))
+                    !(local_BPRM == 5 && (rm & 7) == 4 && (c->Isib & 7) == BP)
                    )
                     c->Irm &= 0x3F;
                 else if (!I16)
@@ -5262,6 +5262,9 @@ void code::print()
                 case FLbprel:
                 case FLtlsdata:
                     printf(" sym='%s'",c->IEVsym1->Sident);
+                    break;
+                case FLextern:
+                    printf(" FLextern offset = %4d",(int)c->IEVoffset1);
                     break;
                 default:
                     WRFL((enum FL)c->IFL1);

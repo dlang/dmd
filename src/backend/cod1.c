@@ -188,7 +188,13 @@ void buildEA(code *c,int base,int index,int scale,targ_size_t disp)
             else
             {   rm = modregrm(2,0,base & 7);
                 if (base & 8)
-                    rex |= REX_B;
+                {   rex |= REX_B;
+                    if (base == R12)
+                    {
+                        rm = modregrm(2,0,4);
+                        sib = modregrm(0,4,4);
+                    }
+                }
             }
         }
         else
@@ -226,6 +232,29 @@ void buildEA(code *c,int base,int index,int scale,targ_size_t disp)
     c->Irex = rex;
     c->IFL1 = FLconst;
     c->IEV1.Vuns = disp;
+}
+
+/*********************************************
+ * Build REX, modregrm and sib bytes
+ */
+
+unsigned buildModregrm(int mod, int reg, int rm)
+{   unsigned m;
+    if (I16)
+        m = modregrm(mod, reg, rm);
+    else
+    {
+        unsigned rex = 0;
+        if ((rm & 7) == SP && mod != 3)
+            m = (modregrm(0,4,SP) << 8) | modregrm(mod,reg & 7,4);
+        else
+            m = modregrm(mod,reg & 7,rm & 7);
+        if (reg & 8)
+            m |= REX_R << 16;
+        if (rm & 8)
+            m |= REX_B << 16;
+    }
+    return m;
 }
 
 /**************************
@@ -877,6 +906,7 @@ code *getlvalue(code *pcs,elem *e,regm_t keepmsk)
 
         if (e1isadd &&
             e12->Eoper == OPrelconst &&
+            !(I64 && config.flags3 & CFG3pic) &&
             (f = el_fl(e12)) != FLfardata &&
             e1->Ecount == e1->Ecomsub &&
             (!e1->Ecount || (~keepmsk & ALLREGS & mMSW) || (e1ty != TYfptr && e1ty != TYhptr)) &&
@@ -959,11 +989,11 @@ code *getlvalue(code *pcs,elem *e,regm_t keepmsk)
                         else
                         {   t = 0;
                             rbase = reg;
-                            if (rbase == BP)
+                            if (rbase == BP || rbase == R13)
                             {   static unsigned imm32[4] = {1+1,2+1,4+1,8+1};
 
                                 // IMUL r,BP,imm32
-                                c = genc2(c,0x69,modregxrm(3,r,BP),imm32[ss1]);
+                                c = genc2(c,0x69,modregxrmx(3,r,rbase),imm32[ss1]);
                                 goto L7;
                             }
                         }
@@ -3236,11 +3266,11 @@ code *params(elem *e,unsigned stackalign)
                 {
                     assert(!doneoff);
                     for (c2 = CNIL; npushes > 1; npushes--)
-                    {   c2 = genc1(c2,0xFF,modregrmx(2,6,rm),FLconst,pushsize * (npushes - 1));  // PUSH [reg]
+                    {   c2 = genc1(c2,0xFF,buildModregrm(2,6,rm),FLconst,pushsize * (npushes - 1));  // PUSH [reg]
                         code_orflag(c2,seg);
                         genadjesp(c2,pushsize);
                     }
-                    c3 = gen2(CNIL,0xFF,modregrmx(0,6,rm));     // PUSH [reg]
+                    c3 = gen2(CNIL,0xFF,buildModregrm(0,6,rm));     // PUSH [reg]
                     c3->Iflags |= seg;
                     genadjesp(c3,pushsize);
                     ce = cat4(cc,c1,c2,c3);
@@ -3257,9 +3287,9 @@ code *params(elem *e,unsigned stackalign)
                                                         /* ADD reg,sz-2 */
                         c2 = genc2(c2,0x81,grex | modregrmx(3,0,reg),sz-pushsize);
                     }
-                    c3 = gen2(CNIL,0xFF,modregrmx(0,6,rm));      // PUSH [reg]
+                    c3 = gen2(CNIL,0xFF,buildModregrm(0,6,rm));      // PUSH [reg]
                     c3->Iflags |= seg | CFtarg2;
-                    genc2(c3,0x81,grex | modregrmx(3,5,reg),pushsize);  // SUB reg,2
+                    genc2(c3,0x81,grex | buildModregrm(3,5,reg),pushsize);  // SUB reg,2
                     size = ((seg & CFSEG) ? -8 : -7) - op16;
                     if (code_next(c3)->Iop != 0x81)
                         size++;
@@ -3693,7 +3723,7 @@ code *loaddata(elem *e,regm_t *pretregs)
             }
             else
             {   cs.IFL2 = FLconst;
-                cs.IEV2.Vint = 0;
+                cs.IEV2.Vsize_t = 0;
                 op = (sz == 1) ? 0x80 : 0x81;
                 c = loadea(e,&cs,op,7,0,0,0);           /* CMP EA,0     */
 
@@ -3705,7 +3735,8 @@ code *loaddata(elem *e,regm_t *pretregs)
                 {   c->Iop = (c->Iop & 1) | 0x84;
                     code_newreg(c, c->Irm & 7);
                     if (c->Irex & REX_B)
-                        c->Irex = (c->Irex & ~REX_B) | REX_R;
+                        //c->Irex = (c->Irex & ~REX_B) | REX_R;
+                        c->Irex |= REX_R;
                 }
             }
         }

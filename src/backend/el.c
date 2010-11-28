@@ -3220,7 +3220,8 @@ void elem_print(elem *e)
   {
         if ((e->Eoper == OPstrpar || e->Eoper == OPstrctor || e->Eoper == OPstreq) ||
             e->Ety == TYstruct)
-            dbg_printf("%d ", (int)type_size(e->ET));
+            if (e->ET)
+                dbg_printf("%d ", (int)type_size(e->ET));
         WRTYxx(e->Ety);
   }
   if (OTunary(e->Eoper))

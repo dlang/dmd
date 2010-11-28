@@ -2062,44 +2062,45 @@ code *complex_eq87(elem *e,regm_t *pretregs)
         gen(c2, &cs);
         if (fxch)
             genf2(c2,0xD9,0xC8 + 1);            // FXCH ST(1)
-#if LNGDBLSIZE == 12
-        if (op1 == 0xDB)
+        if (tysize[TYldouble] == 12)
         {
-            cs.Iop = 0xC7;                      // MOV EA+10,0
-            NEWREG(cs.Irm, 0);
-            cs.IEV1.sp.Voffset += 10;
-            cs.IFL2 = FLconst;
-            cs.IEV2.Vint = 0;
-            cs.Iflags |= CFopsize;
-            c2 = gen(c2, &cs);
-            cs.IEVoffset1 += 12;
-            c2 = gen(c2, &cs);                  // MOV EA+22,0
+            if (op1 == 0xDB)
+            {
+                cs.Iop = 0xC7;                      // MOV EA+10,0
+                NEWREG(cs.Irm, 0);
+                cs.IEV1.sp.Voffset += 10;
+                cs.IFL2 = FLconst;
+                cs.IEV2.Vint = 0;
+                cs.Iflags |= CFopsize;
+                c2 = gen(c2, &cs);
+                cs.IEVoffset1 += 12;
+                c2 = gen(c2, &cs);                  // MOV EA+22,0
+            }
         }
-#endif
         if (tysize[TYldouble] == 16)
         {
-        if (op1 == 0xDB)
-        {
-            cs.Iop = 0xC7;                      // MOV EA+10,0
-            NEWREG(cs.Irm, 0);
-            cs.IEV1.sp.Voffset += 10;
-            cs.IFL2 = FLconst;
-            cs.IEV2.Vint = 0;
-            cs.Iflags |= CFopsize;
-            c2 = gen(c2, &cs);
+            if (op1 == 0xDB)
+            {
+                cs.Iop = 0xC7;                      // MOV EA+10,0
+                NEWREG(cs.Irm, 0);
+                cs.IEV1.sp.Voffset += 10;
+                cs.IFL2 = FLconst;
+                cs.IEV2.Vint = 0;
+                cs.Iflags |= CFopsize;
+                c2 = gen(c2, &cs);
 
-            cs.IEV1.sp.Voffset += 2;
-            cs.Iflags &= ~CFopsize;
-            c2 = gen(c2, &cs);
+                cs.IEV1.sp.Voffset += 2;
+                cs.Iflags &= ~CFopsize;
+                c2 = gen(c2, &cs);
 
-            cs.IEVoffset1 += 14;
-            cs.Iflags |= CFopsize;
-            c2 = gen(c2, &cs);
+                cs.IEV1.sp.Voffset += 14;
+                cs.Iflags |= CFopsize;
+                c2 = gen(c2, &cs);
 
-            cs.IEV1.sp.Voffset += 2;
-            cs.Iflags &= ~CFopsize;
-            c2 = gen(c2, &cs);
-        }
+                cs.IEV1.sp.Voffset += 2;
+                cs.Iflags &= ~CFopsize;
+                c2 = gen(c2, &cs);
+            }
         }
         c2 = genfwait(c2);
         freenode(e->E1);

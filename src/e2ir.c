@@ -3326,7 +3326,7 @@ elem *DelegateExp::toElem(IRState *irs)
             vindex = func->vtblIndex;
 
             // Build *(ep + vindex * 4)
-            ep = el_bin(OPadd,TYnptr,ep,el_long(TYsize_t, vindex * 4));
+            ep = el_bin(OPadd,TYnptr,ep,el_long(TYsize_t, vindex * PTRSIZE));
             ep = el_una(OPind,TYnptr,ep);
         }
 
