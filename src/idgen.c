@@ -103,6 +103,7 @@ Msgtable msgtable[] =
     // DMD_OBJC
     { "_cmd" },
     { "Class" },
+    { "Protocol" },
 
     { "LINE", "__LINE__" },
     { "FILE", "__FILE__" },

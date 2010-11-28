@@ -8,13 +8,13 @@ id _dobjc_class(id obj) {
 }
 
 id _dobjc_casttoclass(id obj, Class cls) {
-    if ([obj isKindOfClass:cls])
-        return obj;
-    return nil;
+    return [obj isKindOfClass:cls] ? obj : nil;
 }
 
 id _dobjc_casttointerface(id obj, Protocol *p) {
-    if ([obj conformsToProtocol:p])
-        return obj;
-    return nil;
+    return [obj conformsToProtocol:p] ? obj : nil;
+}
+
+BOOL _test() {
+    return [NSArray class];
 }

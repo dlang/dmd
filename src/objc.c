@@ -697,13 +697,44 @@ elem *ObjcDotClassExp::toElem(IRState *irs)
 
 // MARK: .interface Expression
 
+ClassDeclaration *ObjcDotInterfaceExp::protocolClassDecl = NULL;
+
 ObjcDotInterfaceExp::ObjcDotInterfaceExp(Loc loc, Expression *e)
     : UnaExp(loc, TOKobjc_dotinterface, sizeof(ObjcDotInterfaceExp), e)
-{}
+{
+    idecl = NULL;
+}
 
 Expression *ObjcDotInterfaceExp::semantic(Scope *sc)
 {
-    return UnaExp::semantic(sc);
+    UnaExp::semantic(sc);
+    if (e1->type && e1->type->ty == Tclass)
+    {  
+        ClassDeclaration *cd = ((TypeClass *)e1->type)->sym;
+        if (cd->objc)
+        {
+            if (e1->op = TOKtype)
+            {
+                if (cd->isInterfaceDeclaration())
+                {
+                    if (protocolClassDecl)
+                    {
+                        idecl = (InterfaceDeclaration *)cd;
+                        type = protocolClassDecl->type;
+                        return this;
+                    }
+                    else
+                    {
+                        error("'interface' property not available because its type (the 'Protocol' Objective-C class) is not defined", e1->toChars(), e1->type->toChars());
+                        return new ErrorExp();
+                    }
+                }
+            }
+        }
+    }
+    
+    error("%s of type %s has no 'interface' property", e1->toChars(), e1->type->toChars());
+    return new ErrorExp();
 }
 
 void ObjcDotInterfaceExp::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
@@ -714,7 +745,7 @@ void ObjcDotInterfaceExp::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 
 elem *ObjcDotInterfaceExp::toElem(IRState *irs)
 {
-    assert(0);
+    return el_ptr(ObjcSymbols::getProtocolSymbol(idecl));
 }
 
 

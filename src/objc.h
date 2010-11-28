@@ -18,6 +18,7 @@ struct Identifier;
 struct Symbol;
 struct FuncDeclaration;
 struct ClassDeclaration;
+struct InterfaceDeclaration;
 
 struct ObjcSymbols
 {
@@ -113,6 +114,9 @@ struct ObjcDotClassExp : UnaExp
 
 struct ObjcDotInterfaceExp : UnaExp
 {
+	InterfaceDeclaration *idecl;
+	static ClassDeclaration *protocolClassDecl;
+
     ObjcDotInterfaceExp(Loc loc, Expression *e);
     Expression *semantic(Scope *sc);
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);

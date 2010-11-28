@@ -495,7 +495,19 @@ void ClassDeclaration::semantic(Scope *sc)
     
 #if DMD_OBJC
     if (objc && !objcmeta && !metaclass)
-	{   // Create meta class derived from all our base's metaclass
+	{
+        if (!objcident)
+            objcident = ident;
+
+        if (objcident == Id::Protocol)
+        {   if (ObjcDotInterfaceExp::protocolClassDecl == NULL)
+                ObjcDotInterfaceExp::protocolClassDecl = this;
+            else if (ObjcDotInterfaceExp::protocolClassDecl != this)
+            {   error("duplicate definition of Objective-C class '%s'", Id::Protocol);
+            }
+        }
+    
+        // Create meta class derived from all our base's metaclass
         BaseClasses *metabases = new BaseClasses();
         for (size_t i = 0; i < baseclasses->dim; ++i)
         {   ClassDeclaration *basecd = ((BaseClass *)baseclasses->data[i])->base;
@@ -658,8 +670,6 @@ void ClassDeclaration::semantic(Scope *sc)
     else if (objc)
     {
         sc->linkage = LINKobjc;
-        if (!objcident)
-            objcident = ident;
     }
 #endif
     sc->protection = PROTpublic;
@@ -1402,6 +1412,7 @@ void InterfaceDeclaration::semantic(Scope *sc)
         metaclass->objc = 1;
         metaclass->objcmeta = 1;
         metaclass->objcextern = objcextern;
+        metaclass->objcident = objcident;
         members->push(metaclass);
         metaclass->addMember(sc, this, 1);
     }
