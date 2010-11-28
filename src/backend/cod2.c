@@ -243,6 +243,8 @@ code *cdorth(elem *e,regm_t *pretregs)
             c = getlvalue(&cs,e1,0);
         L11:
             code_newreg(&cs, reg);
+            if (I64 && byte && reg >= 4)
+                cs.Irex |= REX;
         L10:
             cs.Iop = op1 ^ byte;
             cs.Iflags |= word | CFpsw;
@@ -588,6 +590,8 @@ code *cdorth(elem *e,regm_t *pretregs)
                 }
                 if (I64 && sz == 8)
                     code_orrex(c, REX_W);
+                if (I64 && byte && reg >= 4)
+                    code_orrex(c, REX);
         }
         else /* numwords == 2 */                /* ADD lsreg,lsrreg     */
         {
@@ -3218,6 +3222,7 @@ code *cdmemset(elem *e,regm_t *pretregs)
     targ_uns numbytes,numwords;
     int op;
     targ_size_t value;
+    unsigned m;
 
     //printf("cdmemset(*pretregs = x%x)\n", *pretregs);
     e1 = e->E1;
@@ -3250,17 +3255,18 @@ code *cdmemset(elem *e,regm_t *pretregs)
             reg = findreg(retregs1);
             if (e2->E2->Eoper == OPconst)
             {
+                unsigned m = buildModregrm(0,0,reg);
                 switch (numbytes)
                 {
                     case 4:                     // MOV [reg],imm32
-                        c3 = genc2(CNIL,0xC7,modregrmx(0,0,reg),value);
+                        c3 = genc2(CNIL,0xC7,m,value);
                         goto fixres;
                     case 2:                     // MOV [reg],imm16
-                        c3 = genc2(CNIL,0xC7,modregrmx(0,0,reg),value);
+                        c3 = genc2(CNIL,0xC7,m,value);
                         c3->Iflags = CFopsize;
                         goto fixres;
                     case 1:                     // MOV [reg],imm8
-                        c3 = genc2(CNIL,0xC6,modregrmx(0,0,reg),value);
+                        c3 = genc2(CNIL,0xC6,m,value);
                         goto fixres;
                 }
             }
@@ -3269,9 +3275,10 @@ code *cdmemset(elem *e,regm_t *pretregs)
             freenode(e2->E2);
             freenode(e2);
 
+            m = (rex << 16) | buildModregrm(2,vreg,reg);
             while (numbytes >= REGSIZE)
             {                           // MOV dword ptr offset[reg],vreg
-                c2 = gen2(CNIL,0x89,(rex << 16) | modregxrmx(2,vreg,reg));
+                c2 = gen2(CNIL,0x89,m);
                 c2->IEVoffset1 = offset;
                 c2->IFL1 = FLconst;
                 numbytes -= REGSIZE;
@@ -3280,7 +3287,7 @@ code *cdmemset(elem *e,regm_t *pretregs)
             }
             if (numbytes & 4)
             {                           // MOV dword ptr offset[reg],vreg
-                c2 = gen2(CNIL,0x89,modregxrmx(2,vreg,reg));
+                c2 = gen2(CNIL,0x89,m);
                 c2->IEVoffset1 = offset;
                 c2->IFL1 = FLconst;
                 offset += 4;
@@ -3288,7 +3295,7 @@ code *cdmemset(elem *e,regm_t *pretregs)
             }
             if (numbytes & 2)
             {                           // MOV word ptr offset[reg],vreg
-                c2 = gen2(CNIL,0x89,modregxrmx(2,vreg,reg));
+                c2 = gen2(CNIL,0x89,m);
                 c2->IEVoffset1 = offset;
                 c2->IFL1 = FLconst;
                 c2->Iflags = CFopsize;
@@ -3297,9 +3304,11 @@ code *cdmemset(elem *e,regm_t *pretregs)
             }
             if (numbytes & 1)
             {                           // MOV byte ptr offset[reg],vreg
-                c2 = gen2(CNIL,0x88,modregxrmx(2,vreg,reg));
+                c2 = gen2(CNIL,0x88,m);
                 c2->IEVoffset1 = offset;
                 c2->IFL1 = FLconst;
+                if (I64 && vreg >= 4)
+                    c2->Irex |= REX;
                 c3 = cat(c3,c2);
             }
 fixres:
@@ -3380,17 +3389,18 @@ fixres:
 
     c3 = gen1(c3,0xF3);                         // REP
     gen1(c3,op);                                // STOSD
+    m = buildModregrm(2,AX,reg);
     if (remainder & 4)
     {
         code *ctmp;
-        ctmp = gen2(CNIL,0x89,modregrmx(2,AX,reg));
+        ctmp = gen2(CNIL,0x89,m);
         ctmp->IFL1 = FLconst;
         c3 = cat(c3,ctmp);
     }
     if (remainder & 2)
     {
         code *ctmp;
-        ctmp = gen2(CNIL,0x89,modregrmx(2,AX,reg));
+        ctmp = gen2(CNIL,0x89,m);
         ctmp->Iflags = CFopsize;
         ctmp->IEVoffset1 = remainder & 4;
         ctmp->IFL1 = FLconst;
@@ -3399,7 +3409,7 @@ fixres:
     if (remainder & 1)
     {
         code *ctmp;
-        ctmp = gen2(CNIL,0x88,modregrmx(2,AX,reg));
+        ctmp = gen2(CNIL,0x88,m);
         ctmp->IEVoffset1 = remainder & ~1;
         ctmp->IFL1 = FLconst;
         c3 = cat(c3,ctmp);
@@ -4158,6 +4168,7 @@ code *cdpost(elem *e,regm_t *pretregs)
   int sz;
   int stackpushsave;
 
+  //printf("cdpost(pretregs = %s)\n", regm_str(*pretregs));
   retregs = *pretregs;
   op = e->Eoper;                                /* OPxxxx               */
   if (retregs == 0)                             /* if nothing to return */
@@ -4298,7 +4309,7 @@ code *cdpost(elem *e,regm_t *pretregs)
         rm = reg;
         if (I16)
             rm = regtorm[reg];
-        c4 = genc1(NULL,0x8D,(rex << 16) | modregxrmx(2,reg,rm),FLconst,n); // LEA reg,n[reg]
+        c4 = genc1(NULL,0x8D,(rex << 16) | buildModregrm(2,reg,rm),FLconst,n); // LEA reg,n[reg]
         return cat4(c1,c2,c3,c4);
   }
   else if (sz <= REGSIZE || tyfv(tyml))
@@ -4700,7 +4711,7 @@ code *cdnullcheck(elem *e,regm_t *pretregs)
     scratch = allregs & ~retregs;
     cs = allocreg(&scratch,&reg,TYint);
     unsigned rex = I64 ? REX_W : 0;
-    cs = genc1(cs,0x8B,(rex << 16) | modregxrmx(2,reg,findreg(retregs)),FLconst,0); // MOV reg,0[e]
+    cs = genc1(cs,0x8B,(rex << 16) | buildModregrm(2,reg,findreg(retregs)),FLconst,0); // MOV reg,0[e]
     return cat3(c,cs,fixresult(e,retregs,pretregs));
 }
 

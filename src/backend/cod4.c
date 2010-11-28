@@ -363,6 +363,7 @@ code *cdeq(elem *e,regm_t *pretregs)
 
         if ((e2oper == OPconst ||       /* if rvalue is a constant      */
              e2oper == OPrelconst &&
+             !(I64 && config.flags3 & CFG3pic) &&
              ((fl = el_fl(e2)) == FLdata ||
               fl==FLudata || fl == FLextern) &&
              !(e2->EV.sp.Vsym->ty() & mTYcs)
@@ -401,7 +402,7 @@ code *cdeq(elem *e,regm_t *pretregs)
                         // MOV EA,reg
                         regm_t rregm = allregs & ~idxregm(&cs);
                         unsigned reg;
-                        cl = regwithvalue(cl,rregm,e2->EV.Vpointer,&reg,CFoffset64);
+                        cl = regwithvalue(cl,rregm,e2->EV.Vpointer,&reg,64);
                         cs.Iop = 0x89;
                         cs.Irm |= modregrm(0,reg & 7,0);
                         if (reg & 8)
@@ -492,6 +493,21 @@ code *cdeq(elem *e,regm_t *pretregs)
                     {   getlvalue_msw(&cs);
                         cl = movregconst(cl,cs.Irm & 7,p[1],0);
                     }
+                }
+                else if (I64 && sz == 8 && *p != *(unsigned *)p)
+                {
+                    // MOV reg,imm64
+                    // MOV EA,reg
+                    regm_t rregm = allregs & ~idxregm(&cs);
+                    unsigned reg;
+                    cl = regwithvalue(cl,rregm,e2->EV.Vpointer,&reg,64);
+                    cs.Iop = 0x89;
+                    cs.Irm |= modregrm(0,reg & 7,0);
+                    if (reg & 8)
+                        cs.Irex |= REX_R;
+                    c = gen(cl,&cs);
+                    freenode(e2);
+                    goto Lp;
                 }
                 else
                 {   int regsize;
@@ -690,7 +706,7 @@ Lp:
             unsigned rm = cs.Irm & 7;
             if (cs.Irex & REX_B)
                 rm |= 8;
-            c = genc1(c,0x8D,modregxrmx(2,reg,rm),FLconst,postinc);
+            c = genc1(c,0x8D,buildModregrm(2,reg,rm),FLconst,postinc);
             if (sz == 8)
                 code_orrex(c, REX_W);
         }
@@ -1834,6 +1850,8 @@ code *cdcmp(elem *e,regm_t *pretregs)
         }
         break;
       case OPrelconst:
+        if (I64 && config.flags3 & CFG3pic)
+            goto L2;
         fl = el_fl(e2);
         switch (fl)
         {   case FLfunc:

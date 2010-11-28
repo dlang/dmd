@@ -326,12 +326,16 @@ elem *exp2_copytotemp(elem *e)
     elem_debug(e);
     Symbol *stmp = symbol_genauto(e);
     elem *eeq = el_bin(OPeq,e->Ety,el_var(stmp),e);
-    if (e->Ety == TYstruct)
+    elem *er = el_bin(OPcomma,e->Ety,eeq,el_var(stmp));
+    if (tybasic(e->Ety) == TYstruct || tybasic(e->Ety) == TYarray)
     {
         eeq->Eoper = OPstreq;
         eeq->ET = e->ET;
+        eeq->E1->ET = e->ET;
+        er->ET = e->ET;
+        er->E2->ET = e->ET;
     }
-    return el_bin(OPcomma,e->Ety,eeq,el_var(stmp));
+    return er;
 }
 
 /****************************

@@ -1547,7 +1547,7 @@ regm_t regmask(tym_t tym, tym_t tyf)
         case TYlong:
         case TYulong:
         case TYdchar:
-            if (I32)
+            if (!I16)
                 return mAX;
         case TYfptr:
         case TYhptr:

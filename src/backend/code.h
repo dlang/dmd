@@ -652,6 +652,7 @@ extern int clib_inited;
 int isscaledindex(elem *);
 int ssindex(int op,targ_uns product);
 void buildEA(code *c,int base,int index,int scale,targ_size_t disp);
+unsigned buildModregrm(int mod, int reg, int rm);
 void andregcon (con_t *pregconsave);
 code *docommas (elem **pe );
 code *gencodelem(code *c,elem *e,regm_t *pretregs,bool constflag);

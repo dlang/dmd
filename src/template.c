@@ -3639,7 +3639,7 @@ void TemplateInstance::semantic(Scope *sc)
     // Give additional context info if error occurred during instantiation
     if (global.errors != errorsave)
     {
-        error("error instantiating");
+        error(loc, "error instantiating");
         if (tinst)
         {   tinst->printInstantiationTrace();
             if (!global.gag)
