@@ -3004,6 +3004,7 @@ static Keyword keywords[] =
     //{ "manifest",     TOKmanifest     },
 
     // Added after 1.0
+    {   "__argTypes",   TOKargTypes     },
     {   "ref",          TOKref          },
     {   "macro",        TOKmacro        },
 #if DMDV2

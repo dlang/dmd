@@ -81,7 +81,7 @@ OBJ1= mars.obj enum.obj struct.obj dsymbol.obj import.obj id.obj \
 	builtin.obj clone.obj libomf.obj arrayop.obj irstate.obj \
 	glue.obj msc.obj ph.obj tk.obj s2ir.obj todt.obj e2ir.obj tocsym.obj \
 	util.obj bit.obj eh.obj toobj.obj toctype.obj tocvdebug.obj toir.obj \
-	json.obj unittests.obj imphint.obj
+	json.obj unittests.obj imphint.obj argtypes.obj
 
 # from C/C++ compiler optimizer and back end
 
@@ -109,13 +109,13 @@ SRCS= mars.c enum.c struct.c dsymbol.c import.c idgen.c impcnvgen.c utf.h \
 	eh.c toctype.c class.c mangle.c bit.c tocsym.c func.c inline.c \
 	access.c complex_t.h unialpha.c irstate.h irstate.c glue.c msc.c \
 	ph.c tk.c s2ir.c todt.c e2ir.c util.c toobj.c cppmangle.c \
-	identifier.h parse.h objfile.h scope.h enum.h import.h \
+	identifier.h parse.h scope.h enum.h import.h \
 	typinf.c tocvdebug.c toelfdebug.c mars.h module.h mtype.h dsymbol.h \
 	declaration.h lexer.h expression.h statement.h doc.h doc.c \
 	macro.h macro.c hdrgen.h hdrgen.c arraytypes.h \
 	delegatize.c toir.h toir.c interpret.c traits.c builtin.c \
 	clone.c lib.h libomf.c libelf.c libmach.c arrayop.c \
-	aliasthis.h aliasthis.c json.h json.c unittests.c imphint.c
+	aliasthis.h aliasthis.c json.h json.c unittests.c imphint.c argtypes.c
 
 # From C++ compiler
 
@@ -443,6 +443,7 @@ stringtable.obj : $(ROOT)\stringtable.c
 
 access.obj : $(TOTALH) enum.h aggregate.h init.h attrib.h access.c
 aliasthis.obj : $(TOTALH) aliasthis.h aliasthis.c
+argtypes.obj : $(TOTALH) mtype.h argtypes.c
 arrayop.obj : $(TOTALH) identifier.h declaration.h arrayop.c
 attrib.obj : $(TOTALH) identifier.h declaration.h attrib.h attrib.c
 builtin.obj : $(TOTALH) builtin.c

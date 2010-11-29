@@ -6123,7 +6123,7 @@ Type *TypeTypeof::semantic(Loc loc, Scope *sc)
     return t;
 
 Lerr:
-    return tvoid;
+    return terror;
 }
 
 d_uns64 TypeTypeof::size(Loc loc)
@@ -7672,6 +7672,30 @@ TypeTuple::TypeTuple(Expressions *exps)
     }
     this->arguments = arguments;
     //printf("TypeTuple() %p, %s\n", this, toChars());
+}
+
+/*******************************************
+ * Type tuple with 0, 1 or 2 types in it.
+ */
+TypeTuple::TypeTuple()
+    : Type(Ttuple)
+{
+    arguments = new Parameters();
+}
+
+TypeTuple::TypeTuple(Type *t1)
+    : Type(Ttuple)
+{
+    arguments = new Parameters();
+    arguments->push(new Parameter(0, t1, NULL, NULL));
+}
+
+TypeTuple::TypeTuple(Type *t1, Type *t2)
+    : Type(Ttuple)
+{
+    arguments = new Parameters();
+    arguments->push(new Parameter(0, t1, NULL, NULL));
+    arguments->push(new Parameter(0, t2, NULL, NULL));
 }
 
 Type *TypeTuple::syntaxCopy()

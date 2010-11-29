@@ -25,6 +25,14 @@
 static char __file__[] = __FILE__;      /* for tassert.h                */
 #include        "tassert.h"
 
+/*************************************
+ * Handy function to answer the question: who the heck is generating this piece of code?
+ */
+inline void ccheck(code *cs)
+{
+//    if (cs->Iop == LEA && (cs->Irm & 0x3F) == 0x34 && cs->Isib == 7) *(char*)0=0;
+}
+
 /*****************************
  * Find last code in list.
  */
@@ -161,7 +169,7 @@ code *gen(code *c,code *cs)
     ce = code_calloc();
     *ce = *cs;
     //printf("ce = %p %02x\n", ce, ce->Iop);
-    if (ce->Iop == LEA && ce->Irm == 4 && ce->Isib == 0x6D && ce->IFL1 == FLunde) *(char*)0=0;
+    ccheck(ce);
     if (config.flags4 & CFG4optimized &&
         ce->IFL2 == FLconst &&
         (ce->Iop == 0x81 || ce->Iop == 0x80) &&
@@ -208,6 +216,7 @@ code *gen2(code *c,unsigned op,unsigned rm)
   /*cxcalloc++;*/
   ce->Iop = op;
   ce->Iea = rm;
+  ccheck(ce);
   if (c)
   {     cstart = c;
         while (code_next(c)) c = code_next(c);  /* find end of list     */
@@ -221,13 +230,13 @@ code *gen2sib(code *c,unsigned op,unsigned rm,unsigned sib)
 
   cstart = ce = code_calloc();
   /*cxcalloc++;*/
-  if (op == LEA && (rm & 0xFF) == 4 && (sib & 0xFF) == 0x6D) *(char*)0=0;
   ce->Iop = op;
   ce->Irm = rm;
   ce->Isib = sib;
   ce->Irex = (rm | (sib & (REX_B << 16))) >> 16;
   if (sib & (REX_R << 16))
         ce->Irex |= REX_X;
+  ccheck(ce);
   if (c)
   {     cstart = c;
         while (code_next(c)) c = code_next(c);  /* find end of list     */
@@ -358,6 +367,7 @@ code *gencs(code *c,unsigned op,unsigned ea,unsigned FL2,symbol *s)
 
     cs.Iop = op;
     cs.Iea = ea;
+    ccheck(&cs);
     cs.Iflags = 0;
     cs.IFL2 = FL2;
     cs.IEVsym2 = s;
@@ -371,6 +381,7 @@ code *genc2(code *c,unsigned op,unsigned ea,targ_size_t EV2)
 
     cs.Iop = op;
     cs.Iea = ea;
+    ccheck(&cs);
     cs.Iflags = CFoff;
     cs.IFL2 = FLconst;
     cs.IEV2.Vsize_t = EV2;
@@ -388,9 +399,9 @@ code *genc1(code *c,unsigned op,unsigned ea,unsigned FL1,targ_size_t EV1)
     cs.Iop = op;
     cs.Iflags = CFoff;
     cs.Iea = ea;
+    ccheck(&cs);
     cs.IFL1 = FL1;
     cs.IEV1.Vsize_t = EV1;
-if (cs.Iop == LEA && cs.IFL1 == FLunde) *(char*)0=0;
     return gen(c,&cs);
 }
 
@@ -404,6 +415,7 @@ code *genc(code *c,unsigned op,unsigned ea,unsigned FL1,targ_size_t EV1,unsigned
     assert(FL1 < FLMAX);
     cs.Iop = op;
     cs.Iea = ea;
+    ccheck(&cs);
     cs.Iflags = CFoff;
     cs.IFL1 = FL1;
     cs.IEV1.Vsize_t = EV1;
@@ -555,6 +567,7 @@ code *movregconst(code *c,unsigned reg,targ_size_t value,regm_t flags)
     regm_t mreg;
     targ_size_t regv;
 
+    //printf("movregconst(%llx)\n", value);
 #define genclrreg(a,r) genregs(a,0x31,r,r)
 
     regm = regcon.immed.mval & mask[reg];

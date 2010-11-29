@@ -5090,6 +5090,17 @@ Expression *IsExp::semantic(Scope *sc)
                     goto Lno;
                 break;
 
+            case TOKargTypes:
+                /* Generate a type tuple of the equivalent types used to determine if a
+                 * function argument of this type can be passed in registers.
+                 * The results of this are highly platform dependent, and intended
+                 * primarly for use in implementing va_arg().
+                 */
+                tded = targ->toArgTypes();
+                if (!tded)
+                    goto Lno;           // not valid for a parameter
+                break;
+
             default:
                 assert(0);
         }

@@ -48,7 +48,7 @@ DMD_OBJS = \
 	hdrgen.o delegatize.o aa.o ti_achar.o toir.o interpret.o traits.o \
 	builtin.o clone.o aliasthis.o \
 	man.o arrayop.o port.o response.o async.o json.o speller.o aav.o unittests.o \
-	imphint.o \
+	imphint.o argtypes.o \
 	libmach.o machobj.o
 
 SRC = win32.mak linux.mak osx.mak freebsd.mak solaris.mak \
@@ -59,7 +59,7 @@ SRC = win32.mak linux.mak osx.mak freebsd.mak solaris.mak \
 	inifile.c iasm.c module.c scope.c dump.c init.h init.c attrib.h \
 	attrib.c opover.c class.c mangle.c bit.c tocsym.c func.c inline.c \
 	access.c complex_t.h irstate.h irstate.c glue.c msc.c ph.c tk.c \
-	s2ir.c todt.c e2ir.c util.c identifier.h parse.h objfile.h \
+	s2ir.c todt.c e2ir.c util.c identifier.h parse.h \
 	scope.h enum.h import.h mars.h module.h mtype.h dsymbol.h \
 	declaration.h lexer.h expression.h irstate.h statement.h eh.c \
 	utf.h utf.c staticassert.h staticassert.c unialpha.c \
@@ -68,6 +68,7 @@ SRC = win32.mak linux.mak osx.mak freebsd.mak solaris.mak \
 	delegatize.c toir.h toir.c interpret.c traits.c cppmangle.c \
 	builtin.c clone.c lib.h libomf.c libelf.c libmach.c arrayop.c \
 	aliasthis.h aliasthis.c json.h json.c unittests.c imphint.c \
+	argtypes.c \
 	$C/cdef.h $C/cc.h $C/oper.h $C/ty.h $C/optabgen.c \
 	$C/global.h $C/parser.h $C/code.h $C/type.h $C/dt.h $C/cgcv.h \
 	$C/el.h $C/iasm.h $C/rtlsym.h $C/html.h \
@@ -148,6 +149,9 @@ access.o: access.c
 	$(CC) -c $(CFLAGS) $<
 
 aliasthis.o: aliasthis.c
+	$(CC) -c $(CFLAGS) $<
+
+argtypes.o: argtypes.c
 	$(CC) -c $(CFLAGS) $<
 
 array.o: $(ROOT)/array.c
