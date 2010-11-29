@@ -2965,10 +2965,10 @@ STATIC code * funccall(elem *e,unsigned numpara,unsigned numalign,regm_t *pretre
     {
         if (tym1 == TYhfunc)
         {   // Hidden parameter is popped off by the callee
-            c = genadjesp(c, -4);
-            stackpush -= 4;
-            if (numpara + numalign > 4)
-                c = genstackclean(c, numpara + numalign - 4, retregs);
+            c = genadjesp(c, -REGSIZE);
+            stackpush -= REGSIZE;
+            if (numpara + numalign > REGSIZE)
+                c = genstackclean(c, numpara + numalign - REGSIZE, retregs);
         }
         else
             c = genstackclean(c,numpara + numalign,retregs);
