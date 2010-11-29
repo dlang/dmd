@@ -90,6 +90,10 @@ version( Windows )
     char* _strdate(char* s); // non-standard
     char* _strtime(char* s); // non-standard
 }
+else version( OSX )
+{
+    void tzset(); // non-standard
+}
 else version( linux )
 {
     void tzset(); // non-standard
