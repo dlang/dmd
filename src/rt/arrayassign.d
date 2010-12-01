@@ -64,7 +64,7 @@ extern (C) void[] _d_arrayassign(TypeInfo ti, void[] from, void[] to)
     }
     else
     {
-        for (int i = to.length; i--; )
+        for (auto i = to.length; i--; )
         {
             void* pto   = to.ptr   + i * element_size;
             void* pfrom = from.ptr + i * element_size;

@@ -211,10 +211,19 @@ extern (C)
 extern (C) void _d_hidden_func()
 {
     Object o;
-    asm
-    {
-        mov o, EAX;
-    }
+    version(X86)
+	asm
+	{
+	    mov o, EAX;
+	}
+    else version(X86_64)
+        asm
+        {
+            mov o, RAX;
+        }
+    else
+        static assert(0, "unknown os");
+
     onHiddenFuncError(o);
 }
 

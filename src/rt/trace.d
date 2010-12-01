@@ -686,7 +686,7 @@ static void trace_merge()
                     goto L1;
                 case ' ':
                 case '\t':              // fan in or fan out line
-                    count = strtoul(buf,&p,10);
+                    count = cast(int)strtoul(buf,&p,10);
                     if (p == buf)       // if invalid conversion
                         continue;
                     p = skipspace(p);
@@ -731,7 +731,7 @@ static void trace_merge()
                     {   timer_t t;
 
                         p++;
-                        count = strtoul(p,&p,10);
+                        count = cast(int)strtoul(p,&p,10);
                         t = cast(long)strtoull(p,&p,10);
                         s.totaltime += t;
                         t = cast(long)strtoull(p,&p,10);

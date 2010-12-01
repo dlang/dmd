@@ -54,9 +54,7 @@ class TypeInfo_AC : TypeInfo
     {
         Object[] s1 = *cast(Object[]*)p1;
         Object[] s2 = *cast(Object[]*)p2;
-        ptrdiff_t c;
-
-        c = cast(ptrdiff_t)s1.length - cast(ptrdiff_t)s2.length;
+        auto     c  = cast(sizediff_t)(s1.length - s2.length);
         if (c == 0)
         {
             for (size_t u = 0; u < s1.length; u++)
@@ -70,24 +68,19 @@ class TypeInfo_AC : TypeInfo
                 if (o1)
                 {
                     if (!o2)
-                    {   c = 1;
-                        break;
-                    }
+                        return 1;
                     c = o1.opCmp(o2);
-                    if (c)
-                        break;
+                    if (c == 0)
+                        continue;
+                    break;
                 }
                 else
-                {   c = -1;
-                    break;
+                {
+                    return -1;
                 }
             }
         }
-        if (c < 0)
-            c = -1;
-        else if (c > 0)
-            c = 1;
-        return c;
+        return c < 0 ? -1 : c > 0 ? 1 : 0;
     }
 
     override size_t tsize()

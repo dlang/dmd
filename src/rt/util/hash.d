@@ -47,8 +47,7 @@ hash_t hashOf( const (void)* buf, size_t len, hash_t seed = 0 )
     // NOTE: SuperFastHash normally starts with a zero hash value.  The seed
     //       value was incorporated to allow chaining.
     auto data = cast(const (ubyte)*) buf;
-    uint hash = seed;
-    uint tmp;
+    auto hash = seed;
     int  rem;
 
     if( len <= 0 || data is null )
@@ -60,7 +59,7 @@ hash_t hashOf( const (void)* buf, size_t len, hash_t seed = 0 )
     for( ; len > 0; len-- )
     {
         hash += get16bits( data );
-        tmp   = (get16bits( data + 2 ) << 11) ^ hash;
+        auto tmp = (get16bits( data + 2 ) << 11) ^ hash;
         hash  = (hash << 16) ^ tmp;
         data += 2 * ushort.sizeof;
         hash += hash >> 11;

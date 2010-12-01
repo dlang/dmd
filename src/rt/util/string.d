@@ -29,7 +29,7 @@ char[] intToString( char[] buf, uint val )
     return buf[p - buf.ptr .. $];
 }
 
-char[] ulongToString( char[] buf, ulong val )
+char[] intToString( char[] buf, ulong val )
 {
     assert( buf.length >= 20 );
     auto p = buf.ptr + buf.length;

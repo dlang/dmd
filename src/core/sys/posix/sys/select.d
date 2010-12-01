@@ -73,9 +73,9 @@ version( linux )
         fdset.fds_bits[__FDELT( fd )] &= ~__FDMASK( fd );
     }
 
-    extern (D) int FD_ISSET( int fd, fd_set* fdset )
+    extern (D) bool FD_ISSET( int fd, fd_set* fdset )
     {
-        return fdset.fds_bits[__FDELT( fd )] & __FDMASK( fd );
+        return (fdset.fds_bits[__FDELT( fd )] & __FDMASK( fd )) == 0;
     }
 
     extern (D) void FD_SET( int fd, fd_set* fdset )

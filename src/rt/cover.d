@@ -28,7 +28,7 @@ private
     struct BitArray
     {
         size_t  len;
-        uint*   ptr;
+        size_t* ptr;
 
         bool opIndex( size_t i )
         in
@@ -358,13 +358,12 @@ bool readFile( string name, ref char[] buf )
             return false;
         scope( exit ) close( file );
 
-        int     num = 0;
-        uint    pos = 0;
+        uint pos = 0;
 
         buf.length = 4096;
         while( true )
         {
-            num = read( file, &buf[pos], cast(uint)( buf.length - pos ) );
+            auto num = read( file, &buf[pos], cast(uint)( buf.length - pos ) );
             if( num == -1 )
                 return false;
             if( !num )
@@ -433,7 +432,7 @@ char[] expandTabs( char[] str, int tabsize = 8 )
                     result[i .. i + nspaces] = ' ';
                 }
                 else
-                {   int j = result.length;
+                {   auto j = result.length;
                     result.length = j + nspaces;
                     result[j .. j + nspaces] = ' ';
                 }

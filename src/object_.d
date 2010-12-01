@@ -487,7 +487,7 @@ class TypeInfo_StaticArray : TypeInfo
     override string toString()
     {
         char[20] tmp = void;
-        return cast(string)(value.toString() ~ "[" ~ tmp.ulongToString(len) ~ "]");
+        return cast(string)(value.toString() ~ "[" ~ tmp.intToString(len) ~ "]");
     }
 
     override equals_t opEquals(Object o)
@@ -1255,7 +1255,7 @@ class Throwable : Object
         {
             if (e.file)
             {
-               buf ~= e.classinfo.name ~ "@" ~ e.file ~ "(" ~ tmp.ulongToString(e.line) ~ "): " ~ e.msg;
+               buf ~= e.classinfo.name ~ "@" ~ e.file ~ "(" ~ tmp.intToString(e.line) ~ "): " ~ e.msg;
             }
             else
             {
@@ -1745,10 +1745,10 @@ version (OSX)
 }
 
 __gshared ModuleInfo*[] _moduleinfo_dtors;
-__gshared uint          _moduleinfo_dtors_i;
+__gshared size_t        _moduleinfo_dtors_i;
 
 __gshared ModuleInfo*[] _moduleinfo_tlsdtors;
-__gshared uint          _moduleinfo_tlsdtors_i;
+__gshared size_t        _moduleinfo_tlsdtors_i;
 
 // Register termination function pointers
 extern (C) int _fatexit(void*);
@@ -1958,7 +1958,7 @@ extern(C) void _checkModCtors()
         // check that.  First, determine what non-trivial elements are
         // reachable.
         reachable[] = 0;
-        uint nmodules = _findDependencies(current);
+        auto nmodules = _findDependencies(current);
 
         // allocate the dependencies on the stack
         ModuleInfo **p = cast(ModuleInfo **)alloca(nmodules * (ModuleInfo*).sizeof);
@@ -2055,7 +2055,7 @@ extern(C) void _checkModCtors()
     }
 
     // ok, now we need to assign indexes, and also initialize the flags
-    foreach(i, m; _moduleinfo_array)
+    foreach(uint i, m; _moduleinfo_array)
     {
         // TODO: Should null ModuleInfo be allowed?
         if (m is null) continue;
@@ -2126,7 +2126,7 @@ extern (C) void _moduleDtor()
 
     // NOTE: _moduleTlsDtor is now called manually by dmain2
     //_moduleTlsDtor();
-    for (uint i = _moduleinfo_dtors_i; i-- != 0;)
+    for (auto i = _moduleinfo_dtors_i; i-- != 0;)
     {
         ModuleInfo* m = _moduleinfo_dtors[i];
 
@@ -2149,7 +2149,7 @@ extern (C) void _moduleTlsDtor()
             printf("[%d] = %p\n", i, m);
     }
 
-    for (uint i = _moduleinfo_tlsdtors_i; i-- != 0;)
+    for (auto i = _moduleinfo_tlsdtors_i; i-- != 0;)
     {
         ModuleInfo* m = _moduleinfo_tlsdtors[i];
 

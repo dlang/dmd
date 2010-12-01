@@ -46,17 +46,14 @@ structures.  The default value is optimized for a high cost for compares. */
 
 extern (C) long _adSort(Array a, TypeInfo ti)
 {
-  byte* base;
   byte*[40] stack;              // stack
-  byte** sp;                    // stack pointer
-  byte* i, j, limit;            // scan and limit pointers
-  uint thresh;                  // size of _maxspan elements in bytes
-  uint width = ti.tsize();
+  byte* i, j;            // scan and limit pointers
+  auto width = ti.tsize();
 
-  base = cast(byte *)a.ptr;
-  thresh = _maxspan * width;             // init threshold
-  sp = stack.ptr;                        // init stack pointer
-  limit = base + a.length * width;       // pointer past end of array
+  auto base = cast(byte *)a.ptr;
+  auto thresh = _maxspan * width;        // size of _maxspan elements in bytes
+  auto sp = stack.ptr;                   // stack pointer
+  auto limit = base + a.length * width;  // pointer past end of array
   while (1)                              // repeat until done then return
   {
     while (limit - base > thresh)        // if more than _maxspan elements
