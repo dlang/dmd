@@ -241,6 +241,7 @@ void Type::init()
     mangleChar[Ttuple] = 'B';
     mangleChar[Tslice] = '@';
     mangleChar[Treturn] = '@';
+    mangleChar[Trefsuffix] = '@';
 
     for (i = 0; i < TMAX; i++)
     {   if (!mangleChar[i])
@@ -4428,6 +4429,62 @@ int TypeReference::isZeroInit(Loc loc)
 }
 
 
+
+/***************************** TypeRefSuffix *****************************/
+
+TypeRefSuffix::TypeRefSuffix(Type *t)
+    : TypeNext(Trefsuffix, t)
+{
+    // BUG: what about references to static arrays?
+}
+
+Type *TypeRefSuffix::syntaxCopy()
+{
+    Type *t = next->syntaxCopy();
+    if (t == next)
+        t = this;
+    else
+    {   t = new TypeRefSuffix(t);
+        t->mod = mod;
+    }
+    return t;
+}
+
+Type *TypeRefSuffix::semantic(Loc loc, Scope *sc)
+{
+    //printf("TypeReference::semantic()\n");
+    Type *n = next->semantic(loc, sc);
+    if (n->ty != Tclass)
+    {   error(loc, "ref suffix is only valid for class types");
+        return n;
+    }
+    next = n;
+    transitive();
+    ((TypeClass *)n)->ref = this;
+    return n;
+}
+
+void TypeRefSuffix::toCBuffer2(OutBuffer *buf, HdrGenState *hgs, int mod)
+{
+    if (mod != this->mod)
+    {   toCBuffer3(buf, hgs, mod);
+        return;
+    }
+    next->toCBuffer2(buf, hgs, this->mod);
+    buf->writestring("ref");
+}
+
+Expression *TypeRefSuffix::dotExp(Scope *sc, Expression *e, Identifier *ident)
+{
+#if LOGDOTEXP
+    printf("TypeRefSuffix::dotExp(e = '%s', ident = '%s')\n", e->toChars(), ident->toChars());
+#endif
+
+    // References just forward things along
+    return next->dotExp(sc, e, ident);
+}
+
+
 /***************************** TypeFunction *****************************/
 
 TypeFunction::TypeFunction(Parameters *parameters, Type *treturn, int varargs, enum LINK linkage, StorageClass stc)
@@ -7235,6 +7292,14 @@ TypeClass::TypeClass(ClassDeclaration *sym)
         : Type(Tclass)
 {
     this->sym = sym;
+    this->ref = NULL;
+}
+
+Type *TypeClass::addMod(unsigned mod)
+{
+    if (ref)
+        ref = (TypeRefSuffix *)ref->addMod(mod);
+    return Type::addMod(mod);
 }
 
 char *TypeClass::toChars()
@@ -7640,6 +7705,10 @@ MATCH TypeClass::constConv(Type *to)
 
 Type *TypeClass::toHeadMutable()
 {
+    if (!mod)
+        return this;
+    this->ref = new TypeRefSuffix(this);
+    // don't perform semantic on t->ref
     return this;
 }
 
@@ -7665,6 +7734,7 @@ int TypeClass::hasPointers()
 {
     return TRUE;
 }
+
 
 /***************************** TypeTuple *****************************/
 

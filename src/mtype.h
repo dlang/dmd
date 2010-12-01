@@ -58,6 +58,7 @@ enum ENUMTY
     Taarray,            // associative array, aka T[type]
     Tpointer,
     Treference,
+    Trefsuffix,         // explicit ref suffix, aka Object ref
     Tfunction,
     Tident,
     Tclass,
@@ -271,7 +272,7 @@ struct Type : Object
     void fixTo(Type *t);
     void check();
     Type *castMod(unsigned mod);
-    Type *addMod(unsigned mod);
+    virtual Type *addMod(unsigned mod);
     Type *addStorageClass(StorageClass stc);
     Type *pointerTo();
     Type *referenceTo();
@@ -536,6 +537,15 @@ struct TypeReference : TypeNext
 #if CPP_MANGLE
     void toCppMangle(OutBuffer *buf, CppMangleState *cms);
 #endif
+};
+
+struct TypeRefSuffix : TypeNext
+{
+    TypeRefSuffix(Type *t);
+    Type *syntaxCopy();
+    Type *semantic(Loc loc, Scope *sc);
+    void toCBuffer2(OutBuffer *buf, HdrGenState *hgs, int mod);
+    Expression *dotExp(Scope *sc, Expression *e, Identifier *ident);
 };
 
 enum RET
@@ -820,8 +830,10 @@ struct TypeTypedef : Type
 struct TypeClass : Type
 {
     ClassDeclaration *sym;
+    TypeRefSuffix *ref;
 
     TypeClass(ClassDeclaration *sym);
+    Type *addMod(unsigned mod);
     d_uns64 size(Loc loc);
     char *toChars();
     Type *syntaxCopy();
