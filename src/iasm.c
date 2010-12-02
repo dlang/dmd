@@ -910,7 +910,7 @@ STATIC opflag_t asm_determine_float_flags(OPND *popnd)
     {
         us = asm_float_type_size(popnd->ptype, &usFloat);
         //printf("us = x%x, usFloat = x%x\n", us, usFloat);
-        if (popnd->pregDisp1->ty & _r32)
+        if (popnd->pregDisp1->ty & (_r32 | _r64))
             return(CONSTRUCT_FLAGS(us, _m, _addr32, usFloat));
         else
         if (popnd->pregDisp1->ty & _r16)

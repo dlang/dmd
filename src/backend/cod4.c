@@ -1991,6 +1991,8 @@ code *cdcmp(elem *e,regm_t *pretregs)
                         c = gen(CNIL,&cs);              /* CMP EA+2,rreg */
                         if (I32 && sz == 6)
                             c->Iflags |= CFopsize;      /* seg is only 16 bits  */
+                        if (I64 && byte && rreg >= 4)
+                            c->Irex |= REX;
                         genjmp(c,JNE,FLcode,(block *) ce); /* JNE nop   */
                         rreg = findreglsw(rretregs);
                         NEWREG(cs.Irm,rreg);
@@ -2000,6 +2002,8 @@ code *cdcmp(elem *e,regm_t *pretregs)
                     {
                         rreg = findreg(rretregs);
                         code_newreg(&cs, rreg);
+                        if (I64 && byte && rreg >= 4)
+                            cs.Irex |= REX;
                     }
                 }
                 else

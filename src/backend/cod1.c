@@ -647,6 +647,8 @@ code *loadea(elem *e,code *cs,unsigned op,unsigned reg,targ_size_t offset,
                                         cs->Irex |= REX_B;
                                     if (sz == 1 && I64 && i >= 4)
                                         cs->Irex |= REX;
+                                    if (I64 && (sz == 8 || sz == 16))
+                                        cs->Irex |= REX_W;
                                 }
                                 c = CNIL;
                                 goto L2;
