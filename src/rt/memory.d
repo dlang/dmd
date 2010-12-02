@@ -136,11 +136,11 @@ extern (C) void* rt_stackTop()
     else version( D_InlineAsm_X86_64 )
     {
         asm
-	{
-	    naked;
-	    mov RAX, RSP;
-	    ret;
-	}
+        {
+            naked;
+            mov RAX, RSP;
+            ret;
+        }
     }
     else
     {
