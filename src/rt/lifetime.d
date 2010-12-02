@@ -714,7 +714,7 @@ extern (C) void[] _d_newarrayT(TypeInfo ti, size_t length)
         memset(arrstart, 0, size);
         auto isshared = ti.classinfo is TypeInfo_Shared.classinfo;
         __setArrayAllocLength(info, size, isshared);
-	result = arrstart[0..length];
+        result = arrstart[0..length];
     }
     return result;
 
@@ -786,7 +786,7 @@ extern (C) void[] _d_newarrayiT(TypeInfo ti, size_t length)
         }
         auto isshared = ti.classinfo is TypeInfo_Shared.classinfo;
         __setArrayAllocLength(info, size, isshared);
-	result = arrstart[0..length];
+        result = arrstart[0..length];
     }
     return result;
 
@@ -1608,7 +1608,7 @@ extern (C) void[] _d_arrayappendcT(TypeInfo ti, Array *x, ...)
         return _d_arrayappendT(ti, x, argp[0..1]);
     }
     else version(X86_64)
-    {  
+    {
         va_list ap;
         va_start(ap, __va_argsave);
         byte[] argp;
@@ -1657,7 +1657,7 @@ extern (C) void[] _d_arrayappendcd(ref char[] x, dchar c)
         appendthis = (cast(byte *)buf.ptr)[0..4];
     }
     else
-	assert(0);	// invalid utf character - should we throw an exception instead?
+        assert(0);      // invalid utf character - should we throw an exception instead?
 
     //
     // TODO: This always assumes the array type is shared, because we do not
@@ -1686,8 +1686,8 @@ extern (C) void[] _d_arrayappendwd(ref wchar[] x, dchar c)
     }
     else
     {
-	buf.ptr[0] = cast(wchar) ((((c - 0x10000) >> 10) & 0x3FF) + 0xD800);
-	buf.ptr[1] = cast(wchar) (((c - 0x10000) & 0x3FF) + 0xDC00);
+        buf.ptr[0] = cast(wchar) ((((c - 0x10000) >> 10) & 0x3FF) + 0xD800);
+        buf.ptr[1] = cast(wchar) (((c - 0x10000) & 0x3FF) + 0xDC00);
         // ditto from above.
         appendthis = (cast(byte *)buf.ptr)[0..2];
     }
@@ -1765,27 +1765,27 @@ extern (C) byte[] _d_arraycatnT(TypeInfo ti, uint n, ...)
 
     version(X86)
     {
-	byte[]* p = cast(byte[]*)(&n + 1);
+        byte[]* p = cast(byte[]*)(&n + 1);
 
-	for (auto i = 0; i < n; i++)
-	{
-	    byte[] b = *p++;
-	    length += b.length;
-	}
+        for (auto i = 0; i < n; i++)
+        {
+            byte[] b = *p++;
+            length += b.length;
+        }
     }
     else
     {
         __va_list argsave = __va_argsave.va;
-	va_list ap;
-	va_start(ap, __va_argsave);
-	for (auto i = 0; i < n; i++)
-	{
-	    byte[] b;
-	    pragma(msg, "broken");
-	    //va_arg(ap, b);
-	    length += b.length;
+        va_list ap;
+        va_start(ap, __va_argsave);
+        for (auto i = 0; i < n; i++)
+        {
+            byte[] b;
+            pragma(msg, "broken");
+            //va_arg(ap, b);
+            length += b.length;
         }
-	va_end(ap);
+        va_end(ap);
     }
     if (!length)
         return null;
@@ -1800,33 +1800,33 @@ extern (C) byte[] _d_arraycatnT(TypeInfo ti, uint n, ...)
     {
         p = cast(byte[]*)(&n + 1);
 
-	size_t j = 0;
-	for (auto i = 0; i < n; i++)
-	{
-	    byte[] b = *p++;
-	    if (b.length)
-	    {
-		memcpy(a + j, b.ptr, b.length * size);
-		j += b.length * size;
-	    }
-	}
+        size_t j = 0;
+        for (auto i = 0; i < n; i++)
+        {
+            byte[] b = *p++;
+            if (b.length)
+            {
+                memcpy(a + j, b.ptr, b.length * size);
+                j += b.length * size;
+            }
+        }
     }
     else
     {
         va_list ap2 = &argsave;
-	size_t j = 0;
-	for (auto i = 0; i < n; i++)
-	{
-	    byte[] b;
-	    pragma(msg, "broken");
-	    //va_arg(ap2, b);
-	    if (b.length)
-	    {
-		memcpy(a + j, b.ptr, b.length * size);
-		j += b.length * size;
-	    }
-	}
-	va_end(ap2);
+        size_t j = 0;
+        for (auto i = 0; i < n; i++)
+        {
+            byte[] b;
+            pragma(msg, "broken");
+            //va_arg(ap2, b);
+            if (b.length)
+            {
+                memcpy(a + j, b.ptr, b.length * size);
+                j += b.length * size;
+            }
+        }
+        va_end(ap2);
     }
 
     Array2 result;
@@ -1855,38 +1855,38 @@ extern (C) void* _d_arrayliteralT(TypeInfo ti, size_t length, ...)
         __setArrayAllocLength(info, allocsize, isshared);
         result = __arrayStart(info);
 
-	version(X86)
-	{
-	    va_list q;
-	    va_start(q, length);
+        version(X86)
+        {
+            va_list q;
+            va_start(q, length);
 
             size_t stacksize = (sizeelem + int.sizeof - 1) & ~(int.sizeof - 1);
 
-	    if (stacksize == sizeelem)
-	    {
-		memcpy(result, q, length * sizeelem);
-	    }
-	    else
-	    {
-		for (size_t i = 0; i < length; i++)
-		{
-		    memcpy(result + i * sizeelem, q, sizeelem);
-		    q += stacksize;
-		}
-	    }
-
-	    va_end(q);
-	}
-	else
-	{
-	    va_list q;
-	    va_start(q, __va_argsave);
-	    for (size_t i = 0; i < length; i++)
-	    {
-	        va_arg(q, ti.next, result + i * sizeelem);
+            if (stacksize == sizeelem)
+            {
+                memcpy(result, q, length * sizeelem);
             }
-	    va_end(q);
-	}
+            else
+            {
+                for (size_t i = 0; i < length; i++)
+                {
+                    memcpy(result + i * sizeelem, q, sizeelem);
+                    q += stacksize;
+                }
+            }
+
+            va_end(q);
+        }
+        else
+        {
+            va_list q;
+            va_start(q, __va_argsave);
+            for (size_t i = 0; i < length; i++)
+            {
+                va_arg(q, ti.next, result + i * sizeelem);
+            }
+            va_end(q);
+        }
     }
     return result;
 }
