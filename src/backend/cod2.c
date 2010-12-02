@@ -3777,6 +3777,7 @@ code *getoffset(elem *e,unsigned reg)
 { code cs;
   code *c;
 
+  //printf("getoffset(e = %p, reg = %d)\n", e, reg);
   cs.Iflags = 0;
   unsigned char rex = 0;
   cs.Irex = rex;
@@ -3915,6 +3916,8 @@ code *getoffset(elem *e,unsigned reg)
                 {   // LEA reg,immed32[RIP]
                     cs.Iop = 0x8D;
                     cs.Irm = modregrm(0,reg & 7,5);
+                    if (reg & 8)
+                        cs.Irex = (cs.Irex & ~REX_B) | REX_R;
                     cs.IFL1 = fl;
                     cs.IEVsym1 = cs.IEVsym2;
                     cs.IEVoffset1 = cs.IEVoffset2;

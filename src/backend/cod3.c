@@ -5214,7 +5214,17 @@ void code::print()
 
     printf("code %p: nxt=%p ",c,code_next(c));
     if (c->Irex)
-        printf("rex=%x ", c->Irex);
+    {   printf("rex=%x ", c->Irex);
+        if (c->Irex & REX_W)
+            printf("W");
+        if (c->Irex & REX_R)
+            printf("R");
+        if (c->Irex & REX_X)
+            printf("X");
+        if (c->Irex & REX_B)
+            printf("B");
+        printf(" ");
+    }
     printf("op=%02x",op);
 
   if ((op & 0xFF) == ESCAPE)

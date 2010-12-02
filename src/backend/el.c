@@ -2974,6 +2974,11 @@ L1:
             ty = tybasic(tym_conv(e->ET));
             goto L1;
 #endif
+
+        case TYcent:
+        case TYucent:
+            goto Ullong; // should do better than this when actually doing arithmetic on cents
+
         default:
 #if SCPP
             // Can happen as result of syntax errors
