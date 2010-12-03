@@ -1149,7 +1149,7 @@ unsigned TypeFunction::totym()
         case LINKc:
             tyf = TYnfunc;
 #if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_SOLARIS
-            if (retStyle() == RETstack)
+            if (I32 && retStyle() == RETstack)
                 tyf = TYhfunc;
 #endif
             break;

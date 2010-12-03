@@ -31,6 +31,7 @@ static char __file__[] = __FILE__;      /* for tassert.h                */
 inline void ccheck(code *cs)
 {
 //    if (cs->Iop == LEA && (cs->Irm & 0x3F) == 0x34 && cs->Isib == 7) *(char*)0=0;
+//    if (cs->Iop == 0x31) *(char*)0=0;
 }
 
 /*****************************
@@ -603,6 +604,8 @@ code *movregconst(code *c,unsigned reg,targ_size_t value,regm_t flags)
             {
                 if ((regcon.immed.value[r] & 0xFF) == value)
                 {   c = genregs(c,0x8A,reg,r);          // MOV regL,rL
+                    if (I64 && r >= 4)
+                        code_orrex(c, REX);
                     goto L2;
                 }
                 if (r < 4 && ((regcon.immed.value[r] >> 8) & 0xFF) == value)

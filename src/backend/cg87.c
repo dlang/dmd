@@ -70,7 +70,7 @@ static Dconst oldd;
 code *loadComplex(elem *e);
 code *opmod_complex87(elem *e,regm_t *pretregs);
 code *opass_complex87(elem *e,regm_t *pretregs);
-STATIC code * genf2(code *c,unsigned op,unsigned rm);
+code * genf2(code *c,unsigned op,unsigned rm);
 
 #define CW_roundto0             0xFBF
 #define CW_roundtonearest       0x3BF
@@ -525,7 +525,7 @@ code *genfwait(code *c)
  * Generate floating point instruction.
  */
 
-STATIC code * genf2(code *c,unsigned op,unsigned rm)
+code * genf2(code *c,unsigned op,unsigned rm)
 {
     return gen2(genfwait(c),op,rm);
 }
@@ -1688,6 +1688,16 @@ code *load87(elem *e,unsigned eoffset,regm_t *pretregs,elem *eleft,int op)
                     if (e->E1->Eoper == OPvar)
                         notreg(e->E1);
                     freenode(e->E1);
+                }
+                else if (I64)
+                {
+                    retregs = ALLREGS;
+                    c = codelem(e->E1,&retregs,FALSE);
+                    reg = findreg(retregs);
+                    c = genfltreg(c,0x89,reg,0);        // MOV floatreg,reg
+                    code_orrex(c, REX_W);
+                    c = cat(c,push87());
+                    c = genfltreg(c,0xDF,5,0);          // FILD long long ptr floatreg
                 }
                 else
                 {
