@@ -1588,7 +1588,7 @@ code *cdcond(elem *e,regm_t *pretregs)
 
   _chkstack();
 
-  //dbg_printf("cdcond(e = %p, *pretregs = x%x)\n",e,*pretregs);
+  //printf("cdcond(e = %p, *pretregs = %s)\n",e,regm_str(*pretregs));
   e1 = e->E1;
   e2 = e->E2;
   e21 = e2->E1;

@@ -1278,7 +1278,7 @@ Lagain:
     }
 
     //printf("Foff x%02x Aoff x%02x Toff x%02x NDPoff x%02x CSoff x%02x Poff x%02x localsize x%02x\n",
-        //Foff,Aoff,Toff,NDPoff,CSoff,Poff,localsize);
+        //(int)Foff,(int)Aoff,(int)Toff,(int)NDPoff,(int)CSoff,(int)Poff,(int)localsize);
 
     xlocalsize = localsize;
 
@@ -1850,7 +1850,7 @@ Lcont:
             }
         }
 
-        if (sv)
+        if (sv && !(sv->Sflags & SFLdead))
         {
         /* Generate code to move any arguments passed in registers into
          * the stack variable __va_argsave,

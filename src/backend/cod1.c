@@ -26,6 +26,17 @@
 static char __file__[] = __FILE__;      /* for tassert.h                */
 #include        "tassert.h"
 
+/* Generate the appropriate ESC instruction     */
+#define ESC(MF,b)       (0xD8 + ((MF) << 1) + (b))
+enum MF
+{       // Values for MF
+        MFfloat         = 0,
+        MFlong          = 1,
+        MFdouble        = 2,
+        MFword          = 3
+};
+code * genf2(code *c,unsigned op,unsigned rm);
+
 targ_size_t paramsize(elem *e,unsigned stackalign);
 STATIC code * funccall (elem *,unsigned,unsigned,regm_t *,regm_t);
 
@@ -3809,8 +3820,28 @@ code *loaddata(elem *e,regm_t *pretregs)
                 flags |= 2;
             if (sz == 8)
                 flags |= 64;
-            ce = movregconst(CNIL,reg,e->EV.Vint,flags);
-            flags = 0;                          // flags are already set
+            if (reg >= XMM0)
+            {   /* This comes about because 0, 1, pi, etc., constants don't get stored
+                 * in the data segment, because they are x87 opcodes.
+                 * Not so efficient. We should at least do a PXOR for 0.
+                 */
+                unsigned r;
+                targ_size_t value = e->EV.Vuns;
+                if (sz == 8)
+                    value = e->EV.Vullong;
+                ce = regwithvalue(CNIL,ALLREGS,value,&r,flags);
+                flags = 0;                              // flags are already set
+                ce = genfltreg(ce,0x89,r,0);            // MOV floatreg,r
+                if (sz == 8)
+                    code_orrex(ce, REX_W);
+                assert(sz == 4 || sz == 8);             // float or double
+                unsigned op = (sz == 4) ? 0xF30F10 : 0xF20F10;
+                ce = genfltreg(ce,op,reg - XMM0,0);     // MOVSS/MOVSD XMMreg,floatreg
+            }
+            else
+            {   ce = movregconst(CNIL,reg,e->EV.Vint,flags);
+                flags = 0;                          // flags are already set
+            }
         }
         else if (sz < 8)        // far pointers, longs for 16 bit targets
         {

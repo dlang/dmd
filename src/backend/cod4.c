@@ -2478,7 +2478,7 @@ code *cdcnvt(elem *e, regm_t *pretregs)
                     cat(c1, push87());
                     genfltreg(c1,0xDF,5,0);     // FILD m64int
 
-                    retregs = mST0 | (*pretregs & mPSW);
+                    retregs = mST0 /*| (*pretregs & mPSW)*/;
                     c2 = fixresult87(e, retregs, pretregs);
                     return cat(c1, c2);
                 }
