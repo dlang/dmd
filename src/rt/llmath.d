@@ -471,6 +471,8 @@ ulong __LDBLULLNG()
 {
     version (OSX)
     {
+      version (D_InlineAsm_X86)
+      {
         asm
         {   naked                               ;
             push        0xFBF                   ; // roundTo0
@@ -502,9 +504,14 @@ ulong __LDBLULLNG()
             add         ESP,24                  ;
             ret                                 ;
         }
+      }
+      else
+          static assert(false, "Unsupported platform");
     }
     else
     {
+      version (D_InlineAsm_X86)
+      {
         asm
         {   naked                               ;
             sub         ESP,16                  ;
@@ -532,6 +539,39 @@ ulong __LDBLULLNG()
             add         ESP,8                   ;
             ret                                 ;
         }
+      }
+      else version (D_InlineAsm_X86_64)
+      {
+        asm
+        {   naked                               ;
+            sub         RSP,16                  ;
+            fld         real ptr adjust         ;
+            fcomp                               ;
+            fstsw       AX                      ;
+            fstcw       8[RSP]                  ;
+            fldcw       roundTo0                ;
+            sahf                                ;
+            jae         L1                      ;
+            fld         real ptr adjust         ;
+            fsubp       ST(1), ST               ;
+            fistp       qword ptr [RSP]         ;
+            pop         RAX                     ;
+            fldcw       [RSP]                   ;
+            add         RSP,8                   ;
+            mov         RCX,0x8000_0000         ;
+            shl         RCX,32                  ;
+            add         RAX,RCX                 ;
+            ret                                 ;
+        L1:                                     ;
+            fistp       qword ptr [RSP]         ;
+            pop         RAX                     ;
+            fldcw       [RSP]                   ;
+            add         RSP,8                   ;
+            ret                                 ;
+        }
+      }
+      else
+        static assert(false, "Unsupported platform");
     }
 }
 

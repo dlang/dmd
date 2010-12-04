@@ -143,7 +143,7 @@ unittest
  * reversed.
  */
 
-extern (C) long _adReverseWchar(wchar[] a)
+extern (C) wchar[] _adReverseWchar(wchar[] a)
 {
     if (a.length > 1)
     {
@@ -201,7 +201,7 @@ extern (C) long _adReverseWchar(wchar[] a)
             hi = hi - 1 + (stridehi - stridelo);
         }
     }
-    return *cast(long*)(&a);
+    return *cast(wchar[]*)(&a);
 }
 
 unittest
@@ -225,10 +225,10 @@ unittest
  * Support for array.reverse property.
  */
 
-extern (C) long _adReverse(Array a, size_t szelem)
+extern (C) void[] _adReverse(Array a, size_t szelem)
 out (result)
 {
-    assert(result is *cast(long*)(&a));
+    assert(result is *cast(void[]*)(&a));
 }
 body
 {
@@ -267,7 +267,7 @@ body
                 //gc_free(tmp);
         }
     }
-    return *cast(long*)(&a);
+    return *cast(void[]*)(&a);
 }
 
 unittest
@@ -276,13 +276,12 @@ unittest
 
     int[] a = new int[5];
     int[] b;
-    size_t i;
 
-    for (i = 0; i < 5; i++)
+    for (auto i = 0; i < 5; i++)
         a[i] = i;
     b = a.reverse;
     assert(b is a);
-    for (i = 0; i < 5; i++)
+    for (auto i = 0; i < 5; i++)
         assert(a[i] == 4 - i);
 
     struct X20
@@ -294,13 +293,13 @@ unittest
     X20[] c = new X20[5];
     X20[] d;
 
-    for (i = 0; i < 5; i++)
+    for (auto i = 0; i < 5; i++)
     {   c[i].a = i;
         c[i].e = 10;
     }
     d = c.reverse;
     assert(d is c);
-    for (i = 0; i < 5; i++)
+    for (auto i = 0; i < 5; i++)
     {
         assert(c[i].a == 4 - i);
         assert(c[i].e == 10);
@@ -311,7 +310,7 @@ unittest
  * Sort array of chars.
  */
 
-extern (C) long _adSortChar(char[] a)
+extern (C) char[] _adSortChar(char[] a)
 {
     if (a.length > 1)
     {
@@ -326,14 +325,14 @@ extern (C) long _adSortChar(char[] a)
         }
         delete da;
     }
-    return *cast(long*)(&a);
+    return *cast(char[]*)(&a);
 }
 
 /**********************************************
  * Sort array of wchars.
  */
 
-extern (C) long _adSortWchar(wchar[] a)
+extern (C) wchar[] _adSortWchar(wchar[] a)
 {
     if (a.length > 1)
     {
@@ -348,7 +347,7 @@ extern (C) long _adSortWchar(wchar[] a)
         }
         delete da;
     }
-    return *cast(long*)(&a);
+    return *cast(wchar[]*)(&a);
 }
 
 /***************************************
