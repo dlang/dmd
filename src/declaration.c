@@ -890,21 +890,18 @@ Lagain:
     type = type->addStorageClass(storage_class);
 
     /* Adjust storage class to reflect type
-     * For classes, use the reference's storage class (if available)
      */
-    Type *sctype = type;
-    if (type->ty == Tclass && ((TypeClass *)type)->ref)
-        sctype = ((TypeClass *)type)->ref;
-    if (sctype->isConst())
+    Type *thead = type->head();
+    if (thead->isConst())
     {   storage_class |= STCconst;
-        if (type->isShared())
+        if (thead->isShared())
             storage_class |= STCshared;
     }
-    else if (sctype->isImmutable())
+    else if (thead->isImmutable())
         storage_class |= STCimmutable;
-    else if (sctype->isShared())
+    else if (thead->isShared())
         storage_class |= STCshared;
-    else if (sctype->isWild())
+    else if (thead->isWild())
         storage_class |= STCwild;
 
     if (isSynchronized())

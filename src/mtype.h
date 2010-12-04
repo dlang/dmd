@@ -122,6 +122,11 @@ struct Type : Object
         #define MODwild      8  // type is wild
         #define MODmutable   0x10       // type is mutable (only used in wildcard matching)
     char *deco;
+    
+    /* Head type which holds reference modifiers for class type.
+     * Points to 'this' for other types.
+     */
+    Type *thead;
 
     /* These are cached values that are lazily evaluated by constOf(), invariantOf(), etc.
      * They should not be referenced by anybody but mtype.c.
@@ -222,6 +227,7 @@ struct Type : Object
     virtual Type *syntaxCopy();
     int equals(Object *o);
     int dyncast() { return DYNCAST_TYPE; } // kludge for template.isType()
+    Type *head() { return thead ? thead : this; }
     int covariant(Type *t);
     char *toChars();
     static char needThisPrefix();
@@ -272,7 +278,7 @@ struct Type : Object
     void fixTo(Type *t);
     void check();
     Type *castMod(unsigned mod);
-    virtual Type *addMod(unsigned mod);
+    Type *addMod(unsigned mod);
     Type *addStorageClass(StorageClass stc);
     Type *pointerTo();
     Type *referenceTo();
@@ -281,6 +287,7 @@ struct Type : Object
     virtual Type *makeInvariant();
     virtual Type *makeShared();
     virtual Type *makeSharedConst();
+    virtual Type *makeUnShared();
     virtual Type *makeWild();
     virtual Type *makeSharedWild();
     virtual Type *makeMutable();
@@ -830,14 +837,21 @@ struct TypeTypedef : Type
 struct TypeClass : Type
 {
     ClassDeclaration *sym;
-    TypeRefSuffix *ref;
 
     TypeClass(ClassDeclaration *sym);
-    Type *addMod(unsigned mod);
+    TypeClass(TypeClass* tc, unsigned char headmod);
     d_uns64 size(Loc loc);
     char *toChars();
     Type *syntaxCopy();
     Type *semantic(Loc loc, Scope *sc);
+    Type *makeConst();
+    Type *makeInvariant();
+    Type *makeShared();
+    Type *makeSharedConst();
+    Type *makeUnShared();
+    Type *makeWild();
+    Type *makeSharedWild();
+    Type *makeMutable();
     Dsymbol *toDsymbol(Scope *sc);
     void toDecoBuffer(OutBuffer *buf, int flag);
     void toCBuffer2(OutBuffer *buf, HdrGenState *hgs, int mod);
