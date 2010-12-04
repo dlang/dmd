@@ -91,7 +91,7 @@ void Declaration::checkModify(Loc loc, Scope *sc, Type *t)
     if (sc->incontract && isResult())
         error(loc, "cannot modify result '%s' in contract", toChars());
 
-    if (isCtorinit() && !t->isMutable())
+    if (isCtorinit() && !t->head()->isMutable())
     {   // It's only modifiable if inside the right constructor
         Dsymbol *s = sc->func;
         while (1)

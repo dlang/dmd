@@ -1281,7 +1281,7 @@ void FuncDeclaration::semantic3(Scope *sc)
                     for (int i = 0; i < cd->fields.dim; i++)
                     {   VarDeclaration *v = (VarDeclaration *)cd->fields.data[i];
 
-                        if (v->ctorinit == 0 && v->isCtorinit() && !v->type->isMutable())
+                        if (v->ctorinit == 0 && v->isCtorinit() && !v->type->head()->isMutable())
                             error("missing initializer for final field %s", v->toChars());
                     }
                 }
