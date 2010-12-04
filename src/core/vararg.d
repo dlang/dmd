@@ -16,14 +16,12 @@
  */
 module core.vararg;
 
-
 version( X86 )
 {
     /**
      * The base vararg list type.
      */
     alias void* va_list;
-
 
     /**
      * This function initializes the supplied argument pointer for subsequent
@@ -68,9 +66,7 @@ version( X86 )
      */
     void va_end( va_list ap )
     {
-
     }
-
 
     /**
      * This function copied the argument pointer src to dst.
@@ -84,3 +80,8 @@ version( X86 )
         dst = src;
     }
 }
+else
+{
+    public import core.stdc.stdarg;
+}
+

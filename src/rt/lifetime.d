@@ -801,21 +801,15 @@ Loverflow:
  */
 void[] _d_newarrayOpT(alias op)(TypeInfo ti, size_t ndims, va_list q)
 {
-    void[] result;
-
     debug(PRINTF) printf("_d_newarrayOpT(ndims = %d)\n", ndims);
     if (ndims == 0)
-        result = null;
+        return null;
     else
     {
         void[] foo(TypeInfo ti, va_list ap, size_t ndims)
         {
-            version(X86)
-                auto dim = va_arg!(size_t)(ap);
-            else version(X86_64)
-                static assert(false, "not implemented");
-            else
-                static assert(false, "platform not supported");
+            size_t dim;
+            va_arg(ap, dim);
 
             debug(PRINTF) printf("foo(ti = %p, ti.next = %p, dim = %d, ndims = %d\n", ti, ti.next, dim, ndims);
             if (ndims == 1)
@@ -831,9 +825,19 @@ void[] _d_newarrayOpT(alias op)(TypeInfo ti, size_t ndims, va_list q)
                 __setArrayAllocLength(info, allocsize, isshared);
                 auto p = __arrayStart(info)[0 .. dim];
 
+                version(X86)
+                {
+                    va_list ap2;
+                    va_copy(ap2, ap);
+                }
                 for (size_t i = 0; i < dim; i++)
                 {
-                    (cast(void[]*)p.ptr)[i] = foo(ti.next, ap, ndims - 1);
+                    version(X86_64)
+                    {
+                        __va_list argsave = *cast(__va_list*)ap;
+                        va_list ap2 = &argsave;
+                    }
+                    (cast(void[]*)p.ptr)[i] = foo(ti.next, ap2, ndims - 1);
                 }
                 return p;
             }
@@ -847,13 +851,15 @@ void[] _d_newarrayOpT(alias op)(TypeInfo ti, size_t ndims, va_list q)
             {
                 printf("index %d: %ul\n", i, va_arg!(size_t)(q2));
             }
+            va_end(q2);
         }
 
-        result = foo(ti, q, ndims);
+        auto result = foo(ti, q, ndims);
         debug(PRINTF) printf("result = %llx\n", result);
         va_end(q);
+
+        return result;
     }
-    return result;    
 }
 
 
@@ -885,7 +891,7 @@ extern (C) void[] _d_newarraymT(TypeInfo ti, size_t ndims, ...)
  */
 extern (C) void[] _d_newarraymiT(TypeInfo ti, size_t ndims, ...)
 {
-    debug(PRINTF) printf("_d_newarraymT(ndims = %d)\n", ndims);
+    debug(PRINTF) printf("_d_newarraymiT(ndims = %d)\n", ndims);
     
     if (ndims == 0)
         return null;
@@ -1617,7 +1623,7 @@ extern (C) void[] _d_arrayappendcT(TypeInfo ti, Array *x, ...)
     }
     else
     {
-        static assert(false, "unknown version");
+        static assert(false, "platform not supported");
     }
 }
 
@@ -1781,8 +1787,7 @@ extern (C) byte[] _d_arraycatnT(TypeInfo ti, uint n, ...)
         for (auto i = 0; i < n; i++)
         {
             byte[] b;
-            pragma(msg, "broken");
-            //va_arg(ap, b);
+            va_arg(ap, b);
             length += b.length;
         }
         va_end(ap);
@@ -1818,8 +1823,7 @@ extern (C) byte[] _d_arraycatnT(TypeInfo ti, uint n, ...)
         for (auto i = 0; i < n; i++)
         {
             byte[] b;
-            pragma(msg, "broken");
-            //va_arg(ap2, b);
+            va_arg(ap2, b);
             if (b.length)
             {
                 memcpy(a + j, b.ptr, b.length * size);
