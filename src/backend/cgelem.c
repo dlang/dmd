@@ -2990,7 +2990,7 @@ STATIC elem * eleq(elem *e)
                         break;
                     }
 #endif
-                case LNGDBLSIZE:
+                default:
                     el_free(es);
                     goto L8;
             }

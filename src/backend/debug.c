@@ -209,6 +209,9 @@ void WReqn(elem *e)
                     case TYdouble:
                         dbg_printf("%g ",e->EV.Vdouble);
                         break;
+                    case TYldouble:
+                        dbg_printf("%Lg ",e->EV.Vldouble);
+                        break;
                     case TYcent:
                     case TYucent:
                         dbg_printf("%lld+%lld ", e->EV.Vcent.msw, e->EV.Vcent.lsw);

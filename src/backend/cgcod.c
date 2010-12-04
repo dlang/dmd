@@ -1651,6 +1651,7 @@ unsigned findreg(regm_t regm
   printf("findreg(x%x, line=%d, file='%s')\n",regmsave,line,file);
   fflush(stdout);
 #endif
+*(char*)0=0;
   assert(0);
   return 0;
 }
@@ -1811,7 +1812,7 @@ code *allocreg(regm_t *pretregs,unsigned *preg,tym_t tym
         unsigned size;
 
 #if 0
-//      if (pass == PASSfinal)
+      if (pass == PASSfinal)
         {   dbg_printf("allocreg %s,%d: regcon.mvar %s regcon.cse.mval %s msavereg %s *pretregs %s tym ",
                 file,line,regm_str(regcon.mvar),regm_str(regcon.cse.mval),
                 regm_str(msavereg),regm_str(*pretregs));
@@ -1920,6 +1921,11 @@ L3:
             }
             else
             {
+                if (I64 && !(r & mLSW))
+                {   retregs = *pretregs & (mMSW | mLSW);
+                    assert(retregs);
+                    goto L1;
+                }
                 lsreg = findreglsw(r);
                 if (msreg == -1)
                 {   retregs &= mMSW;

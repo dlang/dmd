@@ -3365,7 +3365,7 @@ void elem_print(elem *e)
                         dbg_printf("%ldL ",e->EV.Vlong);
                         break;
 #else
-                        dbg_printf("%gL ",(double)e->EV.Vldouble);
+                        dbg_printf("%Lg ", e->EV.Vldouble);
 #endif
                         break;
 
