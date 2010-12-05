@@ -749,6 +749,11 @@ void VarDeclaration::semantic(Scope *sc)
                 e = ai->toAssocArrayLiteral();
             else
                 e = init->toExpression();
+            if (!e)
+            {
+                error("cannot infer type from initializer");
+                e = new ErrorExp();
+            }
             init = new ExpInitializer(e->loc, e);
             type = init->inferType(sc);
             if (type->ty == Tsarray)
