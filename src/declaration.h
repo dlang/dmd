@@ -275,6 +275,7 @@ struct VarDeclaration : Declaration
     Type *htype;
     Initializer *hinit;
 #endif
+    AggregateDeclaration *isThis();
     int needThis();
     int isImportedSymbol();
     int isDataseg();

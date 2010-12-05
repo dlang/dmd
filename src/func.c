@@ -109,6 +109,7 @@ Dsymbol *FuncDeclaration::syntaxCopy(Dsymbol *s)
 
 void FuncDeclaration::semantic(Scope *sc)
 {   TypeFunction *f;
+    AggregateDeclaration *ad;
     StructDeclaration *sd;
     ClassDeclaration *cd;
     InterfaceDeclaration *id;
@@ -167,7 +168,11 @@ void FuncDeclaration::semantic(Scope *sc)
 
     linkage = sc->linkage;
     protection = sc->protection;
+
     storage_class |= sc->stc;
+    ad = isThis();
+    if (ad)
+        storage_class |= ad->storage_class & (STC_TYPECTOR | STCsynchronized);
     //printf("function storage_class = x%x\n", storage_class);
 
     if (ident == Id::ctor && !isCtorDeclaration())
@@ -198,11 +203,11 @@ void FuncDeclaration::semantic(Scope *sc)
 #endif
 
 #ifdef IN_GCC
-    AggregateDeclaration *ad;
-
-    ad = parent->isAggregateDeclaration();
-    if (ad)
-        ad->methods.push(this);
+    {
+        AggregateDeclaration *ad = parent->isAggregateDeclaration();
+        if (ad)
+            ad->methods.push(this);
+    }
 #endif
     sd = parent->isStructDeclaration();
     if (sd)
