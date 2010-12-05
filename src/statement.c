@@ -318,7 +318,8 @@ Statements *CompileStatement::flatten(Scope *sc)
     while (p.token.value != TOKeof)
     {
         Statement *s = p.parseStatement(PSsemi | PScurlyscope);
-        a->push(s);
+        if (s)                  // if no parsing errors
+            a->push(s);
     }
     return a;
 }
