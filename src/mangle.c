@@ -216,17 +216,18 @@ char *TemplateInstance::mangle()
     char *id;
 
 #if 0
-    printf("TemplateInstance::mangle() %s", toChars());
+    printf("TemplateInstance::mangle() %p %s", this, toChars());
     if (parent)
         printf("  parent = %s %s", parent->kind(), parent->toChars());
     printf("\n");
 #endif
     id = ident ? ident->toChars() : toChars();
+    Dsymbol *par = isnested || isTemplateMixin() ? parent : tempdecl->parent;
     if (!tempdecl)
         error("is not defined");
-    else if (tempdecl->parent)
+    else if (par)
     {
-        char *p = tempdecl->parent->mangle();
+        char *p = par->mangle();
         if (p[0] == '_' && p[1] == 'D')
             p += 2;
         buf.writestring(p);
