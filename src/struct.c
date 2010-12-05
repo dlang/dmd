@@ -372,7 +372,7 @@ void StructDeclaration::semantic(Scope *sc)
 
     sizeok = 0;
     sc2 = sc->push(this);
-    sc2->stc &= storage_class & STC_TYPECTOR;
+    sc2->stc &= STCsafe | STCtrusted | STCsystem;
     sc2->parent = this;
     if (isUnionDeclaration())
         sc2->inunion = 1;

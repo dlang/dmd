@@ -736,6 +736,10 @@ void VarDeclaration::semantic(Scope *sc)
     if (storage_class & STCextern && init)
         error("extern symbols cannot have initializers");
 
+    AggregateDeclaration *ad = isThis();
+    if (ad)
+        storage_class |= ad->storage_class & STC_TYPECTOR;
+
     /* If auto type inference, do the inference
      */
     int inferred = 0;
@@ -1393,6 +1397,27 @@ void VarDeclaration::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
     }
     buf->writeByte(';');
     buf->writenl();
+}
+
+AggregateDeclaration *VarDeclaration::isThis()
+{
+    AggregateDeclaration *ad = NULL;
+
+    if (!(storage_class & (STCstatic | STCextern | STCmanifest | STCtemplateparameter |
+                           STCtls | STCgshared | STCctfe)))
+    {
+        if ((storage_class & (STCconst | STCimmutable | STCwild)) && init)
+            return NULL;
+
+        for (Dsymbol *s = this; s; s = s->parent)
+        {
+            ad = s->isMember();
+            if (ad)
+                break;
+            if (!s->parent || !s->parent->isTemplateMixin()) break;
+        }
+    }
+    return ad;
 }
 
 int VarDeclaration::needThis()

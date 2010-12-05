@@ -109,6 +109,7 @@ Dsymbol *FuncDeclaration::syntaxCopy(Dsymbol *s)
 
 void FuncDeclaration::semantic(Scope *sc)
 {   TypeFunction *f;
+    AggregateDeclaration *ad;
     StructDeclaration *sd;
     ClassDeclaration *cd;
     InterfaceDeclaration *id;
@@ -154,6 +155,10 @@ void FuncDeclaration::semantic(Scope *sc)
     foverrides.setDim(0);       // reset in case semantic() is being retried for this function
 
     storage_class |= sc->stc & ~STCref;
+    ad = isThis();
+    if (ad)
+        storage_class |= ad->storage_class & (STC_TYPECTOR | STCsynchronized);
+
     //printf("function storage_class = x%llx, sc->stc = x%llx, %x\n", storage_class, sc->stc, Declaration::isFinal());
 
     if (!originalType)
@@ -271,11 +276,11 @@ void FuncDeclaration::semantic(Scope *sc)
 #endif
 
 #ifdef IN_GCC
-    AggregateDeclaration *ad;
-
-    ad = parent->isAggregateDeclaration();
-    if (ad)
-        ad->methods.push(this);
+    {
+        AggregateDeclaration *ad = parent->isAggregateDeclaration();
+        if (ad)
+            ad->methods.push(this);
+    }
 #endif
     sd = parent->isStructDeclaration();
     if (sd)

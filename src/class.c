@@ -578,9 +578,9 @@ void ClassDeclaration::semantic(Scope *sc)
         type = type->addMod(MODshared);
 
     sc = sc->push(this);
-    sc->stc &= ~(STCfinal | STCauto | STCscope | STCstatic |
-                 STCabstract | STCdeprecated | STC_TYPECTOR | STCtls | STCgshared);
-    sc->stc |= storage_class & STC_TYPECTOR;
+    //sc->stc &= ~(STCfinal | STCauto | STCscope | STCstatic | STCabstract | STCdeprecated | STC_TYPECTOR | STCtls | STCgshared);
+    //sc->stc |= storage_class & STC_TYPECTOR;
+    sc->stc &= STCsafe | STCtrusted | STCsystem;
     sc->parent = this;
     sc->inunion = 0;
 
