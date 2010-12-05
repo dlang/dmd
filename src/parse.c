@@ -3782,7 +3782,10 @@ Statement *Parser::parseStatement(int flags)
             }
             else
                 elsebody = NULL;
-            s = new IfStatement(loc, arg, condition, ifbody, elsebody);
+            if (condition && ifbody)
+                s = new IfStatement(loc, arg, condition, ifbody, elsebody);
+            else
+                s = NULL;               // don't propagate parsing errors
             break;
         }
 
