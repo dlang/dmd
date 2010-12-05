@@ -449,8 +449,6 @@ MATCH StringExp::implicitConvTo(Type *t)
     printf("StringExp::implicitConvTo(this=%s, committed=%d, type=%s, t=%s)\n",
         toChars(), committed, type->toChars(), t->toChars());
 #endif
-    if (!committed)
-    {
     if (!committed && t->ty == Tpointer && t->nextOf()->ty == Tvoid)
     {
         return MATCHnomatch;
@@ -471,7 +469,9 @@ MATCH StringExp::implicitConvTo(Type *t)
                             ((TypeSArray *)t)->dim->toInteger())
                             return MATCHnomatch;
                         TY tynto = t->nextOf()->ty;
-                        if (tynto == Tchar || tynto == Twchar || tynto == Tdchar)
+                        if (tynto == tyn)
+                            return MATCHexact;
+                        if (!committed && (tynto == Tchar || tynto == Twchar || tynto == Tdchar))
                             return MATCHexact;
                     }
                     else if (type->ty == Tarray)
@@ -480,7 +480,9 @@ MATCH StringExp::implicitConvTo(Type *t)
                             ((TypeSArray *)t)->dim->toInteger())
                             return MATCHnomatch;
                         TY tynto = t->nextOf()->ty;
-                        if (tynto == Tchar || tynto == Twchar || tynto == Tdchar)
+                        if (tynto == tyn)
+                            return MATCHexact;
+                        if (!committed && (tynto == Tchar || tynto == Twchar || tynto == Tdchar))
                             return MATCHexact;
                     }
                 case Tarray:
@@ -497,12 +499,13 @@ MATCH StringExp::implicitConvTo(Type *t)
                         case Tchar:
                         case Twchar:
                         case Tdchar:
-                            return m;
+                            if (!committed)
+                                return m;
+                            break;
                     }
                     break;
             }
         }
-    }
     }
     return Expression::implicitConvTo(t);
 #if 0
