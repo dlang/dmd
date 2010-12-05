@@ -2326,6 +2326,11 @@ Lagain:
 
         if (!f->originalType && f->scope)       // semantic not yet run
             f->semantic(f->scope);
+        if (f->isUnitTestDeclaration())
+        {
+            error("cannot call unittest function %s", toChars());
+            return new ErrorExp();
+        }
         if (!f->type->deco)
         {
             error("forward reference to %s", toChars());
