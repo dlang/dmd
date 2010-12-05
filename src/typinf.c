@@ -278,7 +278,7 @@ void TypeInfoSharedDeclaration::toDt(dt_t **pdt)
             tm = tm->addMod(tinfo->mod & ~MODshared);
     }
     else
-    {   tm = tinfo->mutableOf();
+    {   tm = tinfo->unSharedOf();
         tm = tm->merge();
     }
     tm->getTypeInfo(NULL);
