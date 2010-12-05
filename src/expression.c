@@ -9104,7 +9104,7 @@ Expression *AssignExp::semantic(Scope *sc)
     else if (e1->op == TOKslice)
     {
         Type *tn = e1->type->nextOf();
-        if (tn && !tn->isMutable() && op != TOKconstruct)
+        if (tn && !tn->head()->isMutable() && op != TOKconstruct)
         {   error("slice %s is not mutable", e1->toChars());
             return new ErrorExp();
         }

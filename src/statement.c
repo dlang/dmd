@@ -1536,7 +1536,7 @@ Lagain:
                     value = var;
                     /* Reference to immutable data should be marked as const
                      */
-                    if (var->storage_class & STCref && !tn->isMutable())
+                    if (var->storage_class & STCref && !tn->head()->isMutable())
                     {
                         var->storage_class |= STCconst;
                     }
@@ -3534,7 +3534,7 @@ Statement *ReturnStatement::semantic(Scope *sc)
 
         if (((TypeFunction *)fd->type)->isref && !fd->isCtorDeclaration())
         {   // Function returns a reference
-            if (tbret->isMutable())
+            if (tbret->head()->isMutable())
                 exp = exp->modifiableLvalue(sc, exp);
             else
                 exp = exp->toLvalue(sc, exp);
