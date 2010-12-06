@@ -3833,11 +3833,7 @@ TemplateDeclaration *TemplateInstance::findTemplateDeclaration(Scope *sc)
         if (s->parent &&
             (ti = s->parent->isTemplateInstance()) != NULL)
         {
-            if (
-                (ti->name == id ||
-                 ti->toAlias()->ident == id)
-                &&
-                ti->tempdecl)
+            if (ti->tempdecl && ti->tempdecl->ident == id)
             {
                 /* This is so that one can refer to the enclosing
                  * template, even if it has the same name as a member
