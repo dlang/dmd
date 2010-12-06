@@ -1692,7 +1692,10 @@ Statement *FuncDeclaration::mergeFrequire(Statement *sf)
         if (fdv->fdrequire && fdv->fdrequire->semanticRun != PASSsemantic3done)
         {
             assert(fdv->scope);
-            fdv->semantic3(fdv->scope);
+            Scope *sc = fdv->scope->push();
+            sc->stc &= ~STCoverride;
+            fdv->semantic3(sc);
+            sc->pop();
         }
 
         sf = fdv->mergeFrequire(sf);
