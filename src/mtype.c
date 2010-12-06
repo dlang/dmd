@@ -7107,6 +7107,30 @@ int TypeStruct::hasPointers()
     return FALSE;
 }
 
+static MATCH aliasthisConvTo(AggregateDeclaration *ad, Type *from, Type *to)
+{
+    assert(ad->aliasthis);
+    Declaration *d = ad->aliasthis->isDeclaration();
+    if (d)
+    {   assert(d->type);
+        Type *t = d->type;
+        if (d->isVarDeclaration() && d->needThis())
+        {
+            t = t->addMod(from->mod);
+        }
+        else if (d->isFuncDeclaration())
+        {
+            FuncDeclaration *fd = (FuncDeclaration *)d;
+            Expression *ethis = from->defaultInit(0);
+            fd = fd->overloadResolve(0, ethis, NULL);
+            if (fd)
+                t = ((TypeFunction *)fd->type)->next;
+        }
+        return t->implicitConvTo(to);
+    }
+    return MATCHnomatch;
+}
+
 MATCH TypeStruct::implicitConvTo(Type *to)
 {   MATCH m;
 
@@ -7156,15 +7180,7 @@ MATCH TypeStruct::implicitConvTo(Type *to)
         }
     }
     else if (sym->aliasthis)
-    {
-        m = MATCHnomatch;
-        Declaration *d = sym->aliasthis->isDeclaration();
-        if (d)
-        {   assert(d->type);
-            Type *t = d->type->addMod(mod);
-            m = t->implicitConvTo(to);
-        }
-    }
+        m = aliasthisConvTo(sym, this, to);
     else
         m = MATCHnomatch;       // no match
     return m;
@@ -7580,14 +7596,7 @@ MATCH TypeClass::implicitConvTo(Type *to)
 
     m = MATCHnomatch;
     if (sym->aliasthis)
-    {
-        Declaration *d = sym->aliasthis->isDeclaration();
-        if (d)
-        {   assert(d->type);
-            Type *t = d->type->addMod(mod);
-            m = t->implicitConvTo(to);
-        }
-    }
+        m = aliasthisConvTo(sym, this, to);
 
     return m;
 }
