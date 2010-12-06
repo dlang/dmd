@@ -1269,6 +1269,15 @@ Expression *Expression::checkToBoolean(Scope *sc)
             e = e->semantic(sc);
             return e;
         }
+
+        // Forward to aliasthis.
+        if (ad->aliasthis)
+        {
+            Expression *e = new DotIdExp(loc, this, ad->aliasthis->ident);
+            e = e->semantic(sc);
+            e = e->checkToBoolean(sc);
+            return e;
+        }
     }
 
     if (!type->checkBoolean())
