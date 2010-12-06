@@ -1599,6 +1599,19 @@ Statement *FuncDeclaration::mergeFensure(Statement *sf)
     for (int i = 0; i < foverrides.dim; i++)
     {
         FuncDeclaration *fdv = (FuncDeclaration *)foverrides.data[i];
+
+        /* The semantic pass on the contracts of the overridden functions must
+         * be completed before code generation occurs (bug 3602 and 5230).
+         */
+        if (fdv->fdensure && fdv->fdensure->semanticRun != PASSsemantic3done)
+        {
+            assert(fdv->scope);
+            Scope *sc = fdv->scope->push();
+            sc->stc &= ~STCoverride;
+            fdv->semantic3(sc);
+            sc->pop();
+        }
+
         sf = fdv->mergeFensure(sf);
         if (fdv->fdensure)
         {
