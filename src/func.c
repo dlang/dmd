@@ -1615,6 +1615,23 @@ void FuncDeclaration::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
     bodyToCBuffer(buf, hgs);
 }
 
+int FuncDeclaration::equals(Object *o)
+{
+    if (this == o)
+        return TRUE;
+
+    Dsymbol *s = isDsymbol(o);
+    if (s)
+    {
+        FuncDeclaration *fd = s->isFuncDeclaration();
+        if (fd)
+        {
+            return toParent()->equals(fd->toParent()) &&
+                ident->equals(fd->ident) && type->equals(fd->type);
+        }
+    }
+    return FALSE;
+}
 
 void FuncDeclaration::bodyToCBuffer(OutBuffer *buf, HdrGenState *hgs)
 {
