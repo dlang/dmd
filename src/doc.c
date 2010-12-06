@@ -131,6 +131,8 @@ SMALL = <small>$0</small>\n\
 BR =    <br>\n\
 LINK =  <a href=\"$0\">$0</a>\n\
 LINK2 = <a href=\"$1\">$+</a>\n\
+LPAREN= (\n\
+RPAREN= )\n\
 \n\
 RED =   <font color=red>$0</font>\n\
 BLUE =  <font color=blue>$0</font>\n\
