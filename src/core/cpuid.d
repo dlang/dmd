@@ -301,13 +301,8 @@ version(X86_64) {
         AMD_3DNOW_PREFETCH_BIT = 1<<8,
     }
 
-version(GNU){
-    // GDC is a filthy liar. It can't actually do inline asm.
-} else version(D_InlineAsm_X86) {
-    version = Really_D_InlineAsm_X86;
-}
 
-version(Really_D_InlineAsm_X86) {
+version(D_InlineAsm_X86) {
 // Note that this code will also work for Itanium in x86 mode.
 
 __gshared uint max_cpuid, max_extended_cpuid;
