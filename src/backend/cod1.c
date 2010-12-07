@@ -3803,7 +3803,11 @@ code *loaddata(elem *e,regm_t *pretregs)
   if (e->Eoper == OPconst)
   {     regm_t save;
 
-        if (sz == REGSIZE && reghasvalue(forregs,e->EV.Vint,&reg))
+        targ_size_t value = e->EV.Vint;
+        if (sz == 8)
+            value = e->EV.Vullong;
+
+        if (sz == REGSIZE && reghasvalue(forregs,value,&reg))
             forregs = mask[reg];
 
         save = regcon.immed.mval;
@@ -3839,7 +3843,7 @@ code *loaddata(elem *e,regm_t *pretregs)
                 ce = genfltreg(ce,op,reg - XMM0,0);     // MOVSS/MOVSD XMMreg,floatreg
             }
             else
-            {   ce = movregconst(CNIL,reg,e->EV.Vint,flags);
+            {   ce = movregconst(CNIL,reg,value,flags);
                 flags = 0;                          // flags are already set
             }
         }

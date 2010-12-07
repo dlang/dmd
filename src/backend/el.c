@@ -3038,15 +3038,19 @@ targ_ldouble el_toldouble(elem *e)
     elem_debug(e);
     assert(cnst(e));
 #if TX86
-    switch (tysize(typemask(e)))
+    switch (tybasic(typemask(e)))
     {
-        case FLOATSIZE:         // TYfloat
+        case TYfloat:
+        case TYifloat:
             result = e->EV.Vfloat;
             break;
-        case DOUBLESIZE:        // TYdouble
+        case TYdouble:
+        case TYidouble:
+        case TYdouble_alias:
             result = e->EV.Vdouble;
             break;
-        case LNGDBLSIZE:        // TYldouble
+        case TYldouble:
+        case TYildouble:
             result = e->EV.Vldouble;
             break;
     }
