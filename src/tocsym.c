@@ -235,6 +235,13 @@ Symbol *VarDeclaration::toSymbol()
                 tym |= mTYconst;
             type_setcv(&t, tym);
         }
+
+        if (ident == Id::va_argsave)
+            /* __va_argsave is set outside of the realm of the optimizer,
+             * so we tell the optimizer to leave it alone
+             */
+            type_setcv(&t, t->Tty | mTYvolatile);
+
         switch (linkage)
         {
             case LINKwindows:

@@ -568,7 +568,7 @@ code *movregconst(code *c,unsigned reg,targ_size_t value,regm_t flags)
     regm_t mreg;
     targ_size_t regv;
 
-    //printf("movregconst(%llx)\n", value);
+    //printf("movregconst(%lld (%llx))\n", value, value);
 #define genclrreg(a,r) genregs(a,0x31,r,r)
 
     regm = regcon.immed.mval & mask[reg];

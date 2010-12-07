@@ -1345,6 +1345,13 @@ Expression *DeclarationExp::interpret(InterState *istate)
             else if (!e->type)
                 e->type = v->type;
         }
+#if 0 // currently fails test interpret3.d
+        else
+        {
+            error("%s cannot be interpreted at compile time");
+            e = EXP_CANT_INTERPRET;
+        }
+#endif
     }
     else if (declaration->isAttribDeclaration() ||
              declaration->isTemplateMixin() ||

@@ -460,6 +460,7 @@ STATIC int cse_get(elem *e, unsigned offset)
 code *comsub87(elem *e,regm_t *pretregs)
 {   code *c;
 
+    //printf("comsub87(e = %p, *pretregs = %s)\n", e, regm_str(*pretregs));
     // Look on 8087 stack
     int i = cse_get(e, 0);
 
@@ -485,7 +486,10 @@ code *comsub87(elem *e,regm_t *pretregs)
         {
             c = push87();
             c = genf2(c,0xD9,0xC0 + i); // FLD ST(i)
-            c = cat(c,fixresult(e,mST0,pretregs));
+            if (*pretregs & XMMREGS)
+                c = cat(c,fixresult87(e,mST0,pretregs));
+            else
+                c = cat(c,fixresult(e,mST0,pretregs));
         }
         else
             // Reload
@@ -1552,7 +1556,7 @@ code *load87(elem *e,unsigned eoffset,regm_t *pretregs,elem *eleft,int op)
         int i;
 
 #if NDPP
-        printf("+load87(e=%p, eoffset=%d, *pretregs=x%x, eleft=%p, op=%d, stackused = %d)\n",e,eoffset,*pretregs,eleft,op,stackused);
+        printf("+load87(e=%p, eoffset=%d, *pretregs=%s, eleft=%p, op=%d, stackused = %d)\n",e,eoffset,regm_str(*pretregs),eleft,op,stackused);
 #endif
         elem_debug(e);
         ccomma = NULL;
@@ -1823,7 +1827,7 @@ code *load87(elem *e,unsigned eoffset,regm_t *pretregs,elem *eleft,int op)
         }
         c2 = fixresult87(e,((op == 3) ? mPSW : mST0),pretregs);
 #if NDPP
-        printf("-load87(e=%p, eoffset=%d, *pretregs=x%x, eleft=%p, op=%d, stackused = %d)\n",e,eoffset,*pretregs,eleft,op,stackused);
+        printf("-load87(e=%p, eoffset=%d, *pretregs=%s, eleft=%p, op=%d, stackused = %d)\n",e,eoffset,regm_str(*pretregs),eleft,op,stackused);
 #endif
         return cat4(ccomma,cpush,c,c2);
 }
@@ -1895,7 +1899,7 @@ code *eq87(elem *e,regm_t *pretregs)
         unsigned op2;
         tym_t ty1;
 
-        //printf("+eq87(e = %p, *pretregs = x%x)\n", e, *pretregs);
+        //printf("+eq87(e = %p, *pretregs = %s)\n", e, regm_str(*pretregs));
         assert(e->Eoper == OPeq);
         retregs = mST0 | (*pretregs & mPSW);
         c1 = codelem(e->E2,&retregs,FALSE);
@@ -1911,7 +1915,7 @@ code *eq87(elem *e,regm_t *pretregs)
             default:
                 assert(0);
         }
-        if (*pretregs & (mST0 | ALLREGS | mBP)) // if want result on stack too
+        if (*pretregs & (mST0 | ALLREGS | mBP | XMMREGS)) // if want result on stack too
         {
             if (ty1 == TYldouble || ty1 == TYildouble)
             {
