@@ -1,6 +1,6 @@
 
 // Compiler implementation of the D programming language
-// Copyright (c) 1999-2009 by Digital Mars
+// Copyright (c) 1999-2010 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // http://www.digitalmars.com
@@ -213,7 +213,6 @@ char *ClassDeclaration::mangle()
 char *TemplateInstance::mangle()
 {
     OutBuffer buf;
-    char *id;
 
 #if 0
     printf("TemplateInstance::mangle() %p %s", this, toChars());
@@ -221,16 +220,19 @@ char *TemplateInstance::mangle()
         printf("  parent = %s %s", parent->kind(), parent->toChars());
     printf("\n");
 #endif
-    id = ident ? ident->toChars() : toChars();
-    Dsymbol *par = isnested || isTemplateMixin() ? parent : tempdecl->parent;
+    char *id = ident ? ident->toChars() : toChars();
     if (!tempdecl)
         error("is not defined");
-    else if (par)
+    else
     {
-        char *p = par->mangle();
-        if (p[0] == '_' && p[1] == 'D')
-            p += 2;
-        buf.writestring(p);
+        Dsymbol *par = isnested || isTemplateMixin() ? parent : tempdecl->parent;
+        if (par)
+        {
+            char *p = par->mangle();
+            if (p[0] == '_' && p[1] == 'D')
+                p += 2;
+            buf.writestring(p);
+        }
     }
     buf.printf("%zu%s", strlen(id), id);
     id = buf.toChars();
