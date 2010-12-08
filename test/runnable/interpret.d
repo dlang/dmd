@@ -1,4 +1,3 @@
-// PERMUTE_ARGS: -inline -release -g -unittest
 
 import std.stdio;
 
@@ -2103,13 +2102,13 @@ int goodfoo2()
 }
 static assert(goodfoo2()==917);
 
-int goodfoo3()
-{
+static assert(is(typeof(Compileable!(
+(){
    S[4] w = void; // uninitialized array of structs
    w[$-2].x = 217; // initialize one member
    return w[2].x;
-}
-static assert(goodfoo3()==217);
+}()).OK
+)));
 
 int goodfoo4()
 {
