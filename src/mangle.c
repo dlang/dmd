@@ -213,7 +213,6 @@ char *ClassDeclaration::mangle()
 char *TemplateInstance::mangle()
 {
     OutBuffer buf;
-    char *id;
 
 #if 0
     printf("TemplateInstance::mangle() %s", toChars());
@@ -221,16 +220,19 @@ char *TemplateInstance::mangle()
         printf("  parent = %s %s", parent->kind(), parent->toChars());
     printf("\n");
 #endif
-    id = ident ? ident->toChars() : toChars();
-    Dsymbol *par = isnested || isTemplateMixin() ? parent : tempdecl->parent;
+    char *id = ident ? ident->toChars() : toChars();
     if (!tempdecl)
         error("is not defined");
-    else if (par)
+    else
     {
-        char *p = par->mangle();
-        if (p[0] == '_' && p[1] == 'D')
-            p += 2;
-        buf.writestring(p);
+        Dsymbol *par = isnested || isTemplateMixin() ? parent : tempdecl->parent;
+        if (par)
+        {
+            char *p = par->mangle();
+            if (p[0] == '_' && p[1] == 'D')
+                p += 2;
+            buf.writestring(p);
+        }
     }
     buf.printf("%zu%s", strlen(id), id);
     id = buf.toChars();
