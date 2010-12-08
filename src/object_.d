@@ -2130,7 +2130,7 @@ extern (C) void _moduleDtor()
     {
         ModuleInfo* m = _moduleinfo_dtors[i];
 
-        debug(PRINTF) printf("\tmodule[%d] = '%.*s', x%x\n", i, m.name, m);
+        debug(PRINTF) printf("\tmodule[%d] = '%.*s', x%x\n", i, m.name.length, m.name.ptr, m);
         if (m.dtor)
         {
             (*m.dtor)();
