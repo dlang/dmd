@@ -97,6 +97,7 @@ struct elem
                                         // propagate this assignment into a paramter list
                                         // (see glocal.c)
 #endif
+                #define NFLtouns 0x80   // relational operator was changed from signed to unsigned
 #if MARS
             unsigned char Ejty_;                // original Jupiter/Mars type
             #define Ejty _EU._EO.Ejty_

@@ -801,6 +801,7 @@ STATIC void intranges()
                     if (!tyuns(rel->pelem->E2->Ety))
                     {
                         rel->pelem->E2->Ety = touns(rel->pelem->E2->Ety);
+                        rel->pelem->Nflags |= NFLtouns;
 #ifdef DEBUG
                         if (debugc)
                         {   WReqn(rel->pelem);
