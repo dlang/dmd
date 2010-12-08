@@ -3165,6 +3165,17 @@ STATIC void elimbasivs(register loop *l)
 #endif
                 }
 
+                /* If loop started out with a signed conditional that was
+                 * replaced with an unsigned one, don't do it if c2
+                 * is less than 0.
+                 */
+                if (ref->Nflags & NFLtouns && fl->c2->Eoper == OPconst)
+                {
+                    targ_llong c2 = el_tolong(fl->c2);
+                    if (c2 < 0)
+                        continue;
+                }
+
                 elem *refE2 = el_copytree(ref->E2);
                 int refEoper = ref->Eoper;
 
