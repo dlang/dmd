@@ -7,16 +7,12 @@
  * Authors:   Walter Bright, Sean Kelly, Steven Schveighoffer
  */
 
-/*
- *          Copyright Digital Mars 2000 - 2010.
+/*          Copyright Digital Mars 2000 - 2010.
  * Distributed under the Boost Software License, Version 1.0.
  *    (See accompanying file LICENSE_1_0.txt or copy at
  *          http://www.boost.org/LICENSE_1_0.txt)
  */
 module rt.lifetime;
-
-//debug=PRINTF;
-import core.stdc.stdio;
 
 private
 {
@@ -26,7 +22,6 @@ private
     import core.bitop;
     debug(PRINTF) import core.stdc.stdio;
 }
-
 
 private
 {
@@ -73,16 +68,16 @@ private
     alias bool function(Object) CollectHandler;
     __gshared CollectHandler collectHandler = null;
 
-enum : size_t
-       {
-           BIGLENGTHMASK = ~(cast(size_t)PAGESIZE - 1),
-           SMALLPAD = 1,
-           MEDPAD = ushort.sizeof,
-           LARGEPREFIX = 16, // 16 bytes padding at the front of the array
-           LARGEPAD = LARGEPREFIX + 1,
-           MAXSMALLSIZE = 256-SMALLPAD,
-           MAXMEDSIZE = (PAGESIZE / 2) - MEDPAD
-       }
+		enum : size_t
+    {
+        BIGLENGTHMASK = ~(cast(size_t)PAGESIZE - 1),
+        SMALLPAD = 1,
+        MEDPAD = ushort.sizeof,
+        LARGEPREFIX = 16, // 16 bytes padding at the front of the array
+        LARGEPAD = LARGEPREFIX + 1,
+        MAXSMALLSIZE = 256-SMALLPAD,
+        MAXMEDSIZE = (PAGESIZE / 2) - MEDPAD
+    }
 }
 
 

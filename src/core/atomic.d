@@ -1,6 +1,6 @@
 /**
-* The atomic module provides basic support for lock-free
-* concurrent programming.
+ * The atomic module provides basic support for lock-free
+ * concurrent programming.
  *
  * Copyright: Copyright Sean Kelly 2005 - 2010.
  * License:   $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)

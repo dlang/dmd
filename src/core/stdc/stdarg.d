@@ -1,12 +1,10 @@
 /**
- * C's &lt;stdarg.h&gt;
- * This is for use with extern(C) variable argument lists.
- * Authors: Hauke Duden and Walter Bright, Digital Mars, http://www.digitalmars.com
+ * D header file for C99.
+ *
+ * Copyright: Copyright Digital Mars 2000 - 2009.
  * License:   <a href="http://www.boost.org/LICENSE_1_0.txt">Boost License 1.0</a>.
- * Source: $(PHOBOSSRC std/c/_stdarg.d)
+ * Authors:   Walter Bright, Hauke Duden
  * Standards: ISO/IEC 9899:1999 (E)
- * Macros:
- *      WIKI=Phobos/StdCStdarg
  */
 
 /*          Copyright Digital Mars 2000 - 2009.
