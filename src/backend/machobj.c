@@ -762,11 +762,13 @@ void obj_term()
         }
     }
 
-    /* Apparently having the filesize field greater than the vmsize field is an
-     * error, and is happening sometimes.
-     */
     segment_cmd.vmsize = vmaddr;
     segment_cmd.filesize = foffset - segment_cmd.fileoff;
+    /* Bugzilla 5331: Apparently having the filesize field greater than the vmsize field is an
+     * error, and is happening sometimes.
+     */
+    if (segment_cmd.filesize > vmaddr)
+        segment_cmd.vmsize = segment_cmd.filesize;
 
     // Put out relocation data
     mach_numbersyms();
