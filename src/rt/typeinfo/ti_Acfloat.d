@@ -85,8 +85,9 @@ class TypeInfo_Aq : TypeInfo
     }
 
     version (X86_64) override int argTypes(out TypeInfo arg1, out TypeInfo arg2)
-    {   arg1 = typeid(size_t);
-        arg2 = typeid(void*);
+    {
+        //arg1 = typeid(size_t);
+        //arg2 = typeid(void*);
         return 0;
     }
 }
