@@ -93,8 +93,11 @@ struct AA
 
 size_t aligntsize(size_t tsize)
 {
-    // Is pointer alignment on the x64 4 bytes or 8?
-    return (tsize + size_t.sizeof - 1) & ~(size_t.sizeof - 1);
+    version (X86_64)
+        // Size of key needed to align value on 16 bytes
+        return (tsize + 15) & ~(15);
+    else
+        return (tsize + size_t.sizeof - 1) & ~(size_t.sizeof - 1);
 }
 
 extern (C):
@@ -207,6 +210,11 @@ body
  */
 
 void* _aaGet(AA* aa, TypeInfo keyti, size_t valuesize, ...)
+{
+    return _aaGetX(aa, keyti, valuesize, cast(void*)(&valuesize + 1));
+}
+
+void* _aaGetX(AA* aa, TypeInfo keyti, size_t valuesize, void* pkey)
 in
 {
     assert(aa);
@@ -220,7 +228,6 @@ out (result)
 }
 body
 {
-    auto pkey = cast(void *)(&valuesize + 1);
     size_t i;
     aaA *e;
     //printf("keyti = %p\n", keyti);
@@ -278,11 +285,15 @@ Lret:
 
 void* _aaGetRvalue(AA aa, TypeInfo keyti, size_t valuesize, ...)
 {
+    return _aaGetRvalueX(aa, keyti, valuesize, cast(void*)(&valuesize + 1));
+}
+
+void* _aaGetRvalueX(AA aa, TypeInfo keyti, size_t valuesize, void* pkey)
+{
     //printf("_aaGetRvalue(valuesize = %u)\n", valuesize);
     if (!aa.a)
         return null;
 
-    auto pkey = cast(void *)(&valuesize + 1);
     auto keysize = aligntsize(keyti.tsize());
     auto len = aa.a.b.length;
 
@@ -315,6 +326,11 @@ void* _aaGetRvalue(AA aa, TypeInfo keyti, size_t valuesize, ...)
  */
 
 void* _aaIn(AA aa, TypeInfo keyti, ...)
+{
+    return _aaInX(aa, keyti, cast(void*)(&keyti + 1));
+}
+
+void* _aaInX(AA aa, TypeInfo keyti, void* pkey)
 in
 {
 }
@@ -326,8 +342,6 @@ body
 {
     if (aa.a)
     {
-        auto pkey = cast(void *)(&keyti + 1);
-
         //printf("_aaIn(), .length = %d, .ptr = %x\n", aa.a.length, cast(uint)aa.a.ptr);
         auto len = aa.a.b.length;
 
@@ -361,7 +375,11 @@ body
 
 void _aaDel(AA aa, TypeInfo keyti, ...)
 {
-    auto pkey = cast(void *)(&keyti + 1);
+    return _aaDelX(aa, keyti, cast(void*)(&keyti + 1));
+}
+
+void _aaDelX(AA aa, TypeInfo keyti, void* pkey)
+{
     aaA *e;
 
     if (aa.a && aa.a.b.length)
