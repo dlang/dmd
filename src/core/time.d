@@ -199,7 +199,10 @@ struct Duration
     }
 
     
-    Duration opBinary(string op)( ref const(Duration) other )
+    Duration opBinary(string op)( Duration other )
+    // TODO: It would be nice if ref const could be used here, but it doesn't
+    //       work for rvalues.  Give this another look once auto ref works.
+    //Duration opBinary(string op)( ref const(Duration) other )
         if( op == "+" || op == "-" || op == "*" || op == "/" )
     {
         auto   x = this;
@@ -207,7 +210,10 @@ struct Duration
     }
     
     
-    Duration opOpAssign(string op)( ref const(Duration) other )
+    Duration opOpAssign(string op)( Duration other )
+    // TODO: It would be nice if ref const could be used here, but it doesn't
+    //       work for rvalues.  Give this another look once auto ref works.
+    //Duration opOpAssign(string op)( ref const(Duration) other )
         if( op == "+" || op == "-" || op == "*" || op == "/" )
     {
         static if( op == "+" )

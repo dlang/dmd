@@ -16,6 +16,7 @@ module core.sync.semaphore;
 
 
 public import core.sync.exception;
+public import core.time;
 
 version( Win32 )
 {
@@ -154,6 +155,113 @@ class Semaphore
             }
         }
     }
+    
+   
+    /**
+     * Suspends the calling thread until the current count moves above zero or
+     * until the supplied time period has elapsed.  If the count moves above
+     * zero in this interval, then atomically decrement the count by one and
+     * return true.  Otherwise, return false.
+     *
+     *
+     * Params:
+     *  period = The time to wait.
+     *
+     * In:
+     *  val must be non-negative.
+     *
+     * Throws:
+     *  SyncException on error.
+     *
+     * Returns:
+     *  true if notified before the timeout and false if not.
+     */
+    bool wait( Duration val )
+    in
+    {
+        assert( !val.isNegative );
+    }
+    body
+    {
+        version( Win32 )
+        {
+            auto maxWaitMillis = milliseconds( uint.max - 1 );
+
+            while( val > maxWaitMillis )
+            {
+                auto rc = WaitForSingleObject( m_hndl, cast(uint)
+                                                       maxWaitMillis.totalMilliseconds );
+                switch( rc )
+                {
+                case WAIT_OBJECT_0:
+                    return true;
+                case WAIT_TIMEOUT:
+                    val -= maxWaitMillis;
+                    continue;
+                default:
+                    throw new SyncException( "Unable to wait for semaphore" );
+                }
+            }
+            switch( WaitForSingleObject( m_hndl, cast(uint) val.totalMilliseconds ) )
+            {
+            case WAIT_OBJECT_0:
+                return true;
+            case WAIT_TIMEOUT:
+                return false;
+            default:
+                throw new SyncException( "Unable to wait for semaphore" );
+            }
+        }
+        else version( OSX )
+        {            
+            mach_timespec_t t = void;
+            (cast(byte*) &t)[0 .. t.sizeof] = 0;
+
+            if( val.ticks != 0 )
+            {
+                enum : uint
+                {
+                    NANOS_PER_SECOND = 1000_000_000
+                }
+
+                if( val.totalSeconds > t.tv_sec.max )
+                {
+                    t.tv_sec  = t.tv_sec.max;
+                    t.tv_nsec = cast(typeof(t.tv_nsec)) (val.totalNanoseconds % NANOS_PER_SECOND);
+                }
+                else
+                {
+                    t.tv_sec  = cast(typeof(t.tv_sec)) val.totalSeconds;
+                    t.tv_nsec = cast(typeof(t.tv_nsec)) (val.totalNanoseconds % NANOS_PER_SECOND);
+                }
+            }
+            while( true )
+            {
+                auto rc = semaphore_timedwait( m_hndl, t );
+                if( !rc )
+                    return true;
+                if( rc == KERN_OPERATION_TIMED_OUT )
+                    return false;
+                if( rc != KERN_ABORTED || errno != EINTR )
+                    throw new SyncException( "Unable to wait for semaphore" );
+            }
+        }
+        else version( Posix )
+        {
+            timespec t = void;
+            mktspec( t, val );
+
+            while( true )
+            {
+                if( !sem_timedwait( &m_hndl, &t ) )
+                    return true;
+                if( errno == ETIMEDOUT )
+                    return false;
+                if( errno != EINTR )
+                    throw new SyncException( "Unable to wait for semaphore" );
+            }
+        }
+    }
 
 
     /**
@@ -184,85 +292,12 @@ class Semaphore
     }
     body
     {
-        version( Win32 )
+        enum : uint
         {
-            enum : uint
-            {
-                TICKS_PER_MILLI = 10_000,
-                MAX_WAIT_MILLIS = uint.max - 1
-            }
-
-            period /= TICKS_PER_MILLI;
-            if( period > MAX_WAIT_MILLIS )
-                period = MAX_WAIT_MILLIS;
-            switch( WaitForSingleObject( m_hndl, cast(uint) period ) )
-            {
-            case WAIT_OBJECT_0:
-                return true;
-            case WAIT_TIMEOUT:
-                return false;
-            default:
-                throw new SyncException( "Unable to wait for semaphore" );
-            }
+            NANOS_PER_TICK = 100,
         }
-        else version( OSX )
-        {            
-            mach_timespec_t t = void;
-            (cast(byte*) &t)[0 .. t.sizeof] = 0;
 
-            if( period != 0 )
-            {
-                enum : uint
-                {
-                    NANOS_PER_TICK   = 100,
-                    TICKS_PER_SECOND = 10_000_000,
-                    NANOS_PER_SECOND = NANOS_PER_TICK * TICKS_PER_SECOND,
-                }
-
-                if( t.tv_sec.max - t.tv_sec < period / TICKS_PER_SECOND )
-                {
-                    t.tv_sec  = t.tv_sec.max;
-                    t.tv_nsec = 0;
-                }
-                else
-                {
-                    t.tv_sec += cast(typeof(t.tv_sec)) (period / TICKS_PER_SECOND);
-                    long ns = (period % TICKS_PER_SECOND) * NANOS_PER_TICK;
-                    if( NANOS_PER_SECOND - t.tv_nsec > ns )
-                        t.tv_nsec = cast(typeof(t.tv_nsec)) ns;
-                    else
-                    {
-                        t.tv_sec  += 1;
-                        t.tv_nsec += ns - NANOS_PER_SECOND;
-                    }
-                }
-            }
-            while( true )
-            {
-                auto rc = semaphore_timedwait( m_hndl, t );
-                if( !rc )
-                    return true;
-                if( rc == KERN_OPERATION_TIMED_OUT )
-                    return false;
-                if( rc != KERN_ABORTED || errno != EINTR )
-                    throw new SyncException( "Unable to wait for semaphore" );
-            }
-        }
-        else version( Posix )
-        {
-            timespec t = void;
-            mktspec( t, period );
-
-            while( true )
-            {
-                if( !sem_timedwait( &m_hndl, &t ) )
-                    return true;
-                if( errno == ETIMEDOUT )
-                    return false;
-                if( errno != EINTR )
-                    throw new SyncException( "Unable to wait for semaphore" );
-            }
-        }
+        return wait( nanoseconds( period * NANOS_PER_TICK ) );
     }
 
 
