@@ -2152,7 +2152,7 @@ extern (C) void _moduleTlsDtor()
     {
         ModuleInfo* m = _moduleinfo_tlsdtors[i];
 
-        debug(PRINTF) printf("\tmodule[%d] = '%.*s', x%x\n", i, m.name, m);
+        debug(PRINTF) printf("\tmodule[%d] = '%.*s', x%x\n", i, m.name.length, m.name.ptr, m);
         if (m.tlsdtor)
         {
             (*m.tlsdtor)();
