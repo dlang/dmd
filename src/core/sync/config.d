@@ -56,9 +56,10 @@ version( Posix )
         }
 
         auto val  = delta;
-             val += seconds( cast(int)t.tv_sec );
-             val += nanoseconds( t.tv_nsec );
-        //auto val = delta + seconds( t.tv_sec ) + nanoseconds( t.tv_nsec );
+             val += seconds( cast(Duration.SecType) t.tv_sec );
+             val += nanoseconds( cast(Duration.FracType) t.tv_nsec );
+        //auto val = delta + seconds( cast(Duration.SecType) t.tv_sec ) +
+        //                 + nanoseconds( cast(Duration.FracType) t.tv_nsec );
         
         if( val.totalSeconds > t.tv_sec.max )
         {
