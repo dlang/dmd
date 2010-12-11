@@ -56,7 +56,7 @@ version( Posix )
         }
 
         auto val  = delta;
-             val += seconds( t.tv_sec );
+             val += seconds( cast(int)t.tv_sec );
              val += nanoseconds( t.tv_nsec );
         //auto val = delta + seconds( t.tv_sec ) + nanoseconds( t.tv_nsec );
         
