@@ -708,12 +708,15 @@ PTRNTAB2  aptb2TEST[] = /* TEST */ {
         { 0xa8, _ib|_modnot1,           _al,    _imm8 },
         { 0xa9, _iw|_16_bit|_modnot1,   _ax,    _imm16 },
         { 0xa9, _id|_32_bit|_modnot1,   _eax,   _imm32 },
+        { 0xa9, _id|_64_bit|_modnot1,   _rax,   _imm32 },
         { 0xf6, _0|_modnot1,            _rm8,   _imm8 },
         { 0xf7, _0|_16_bit|_modnot1,    _rm16,  _imm16 },
         { 0xf7, _0|_32_bit|_modnot1,    _rm32,  _imm32 },
+        { 0xf7, _0|_64_bit|_modnot1,    _rm64,  _imm32 },
         { 0x84, _r|_modnot1,            _rm8,   _r8 },
         { 0x85, _r|_16_bit|_modnot1,    _rm16,  _r16 },
         { 0x85, _r|_32_bit|_modnot1,    _rm32,  _r32 },
+        { 0x85, _r|_64_bit|_modnot1,    _rm64,  _r64 },
         { ASM_END, 0, 0, 0 }
 };
 PTRNTAB2  aptb2XADD[] = /* XADD */ {                    // 486 only instruction

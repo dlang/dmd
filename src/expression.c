@@ -2690,7 +2690,7 @@ int StringExp::compare(Object *obj)
         switch (sz)
         {
             case 1:
-                return strcmp((char *)string, (char *)se2->string);
+                return memcmp((char *)string, (char *)se2->string, len1);
 
             case 2:
             {   unsigned u;

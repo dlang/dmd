@@ -1900,8 +1900,7 @@ code *cdcmp(elem *e,regm_t *pretregs)
             !boolres(e2) && !(*pretregs & mPSW) &&
             (sz == REGSIZE || (I64 && sz == 4)) &&
             (!I16 || op == OPlt || op == OPge))
-        {   unsigned regi;
-
+        {
             assert(*pretregs & (allregs));
             cl = codelem(e1,pretregs,FALSE);
             reg = findreg(*pretregs);
@@ -1929,6 +1928,7 @@ code *cdcmp(elem *e,regm_t *pretregs)
                            faster sequence
                          */
                         c = genregs(c,0xD1,0,reg);              /* ROL reg,1    */
+                        unsigned regi;
                         if (reghasvalue(allregs,1,&regi))
                             c = genregs(c,0x23,reg,regi);       /* AND reg,regi */
                         else
@@ -1956,11 +1956,17 @@ code *cdcmp(elem *e,regm_t *pretregs)
             goto ret;
         }
 
-        if (sz > REGSIZE)
+        cs.IFL2 = FLconst;
+        if (sz == 16)
+            cs.IEV2.Vsize_t = e2->EV.Vcent.msw;
+        else if (sz > REGSIZE)
             cs.IEV2.Vint = MSREG(e2->EV.Vllong);
         else
-            cs.IEV2.Vint = e2->EV.Vint;
-        cs.IFL2 = FLconst;
+            cs.IEV2.Vsize_t = e2->EV.Vllong;
+
+        // The cmp immediate relies on sign extension of the 32 bit immediate value
+        if (I64 && sz >= REGSIZE && cs.IEV2.Vsize_t != (int)cs.IEV2.Vint)
+            goto L2;
       L4:
         cs.Iop = 0x81 ^ byte;
 

@@ -841,7 +841,7 @@ code *getlvalue(code *pcs,elem *e,regm_t keepmsk)
   unsigned sz = tysize(ty);
   if (tyfloating(ty))
         obj_fltused();
-  else if (I64 && (sz == 8 || sz == 16))
+  if (I64 && (sz == 8 || sz == 16))
         pcs->Irex |= REX_W;
   if (!I16 && sz == SHORTSIZE)
         pcs->Iflags |= CFopsize;
@@ -3486,6 +3486,10 @@ code *params(elem *e,unsigned stackalign)
         if (tycomplex(tym))
             break;
 
+        if (I64 && tyfloating(tym) && sz > 4 && boolres(e))
+            // Can't push 64 bit non-zero args directly
+            break;
+
         if (I32 && szb == 10)           // special case for long double constants
         {
             assert(sz == 12);
@@ -3535,6 +3539,10 @@ code *params(elem *e,unsigned stackalign)
                 value = pl[i];
             if (pushi)
             {
+                if (I64 && regsize == 8 && value != (int)value)
+                {   ce = regwithvalue(ce,allregs,value,&reg,64);
+                    goto Preg;          // cannot push imm64 unless it is sign extended 32 bit value
+                }
                 if (regsize == REGSIZE && reghasvalue(allregs,value,&reg))
                     goto Preg;
                 ce = genc2(ce,(szb == 1) ? 0x6A : 0x68,0,value); // PUSH value
