@@ -214,9 +214,19 @@ int match(Object *o1, Object *o2, TemplateDeclaration *tempdecl, Scope *sc)
     }
     else if (s1)
     {
-        //printf("%p %s, %p %s\n", s1, s1->toChars(), s2, s2->toChars());
         if (!s2 || !s1->equals(s2) || s1->parent != s2->parent)
         {
+            if (s2)
+            {
+                VarDeclaration *v1 = s1->isVarDeclaration();
+                VarDeclaration *v2 = s2->isVarDeclaration();
+                if (v1 && v2 && v1->storage_class & v2->storage_class & STCmanifest)
+                {   ExpInitializer *ei1 = v1->init->isExpInitializer();
+                    ExpInitializer *ei2 = v2->init->isExpInitializer();
+                    if (ei1 && ei2 && ei1->exp->equals(ei2->exp))
+                        goto Lmatch;
+                }
+            }
             goto Lnomatch;
         }
 #if DMDV2
@@ -244,6 +254,7 @@ int match(Object *o1, Object *o2, TemplateDeclaration *tempdecl, Scope *sc)
                 goto Lnomatch;
         }
     }
+Lmatch:
     //printf("match\n");
     return 1;   // match
 Lnomatch:
@@ -4703,9 +4714,9 @@ Identifier *TemplateInstance::genIdent()
     }
     buf.writeByte('Z');
     id = buf.toChars();
-    buf.data = NULL;
+    //buf.data = NULL;                          // we can free the string after call to idPool()
     //printf("\tgenIdent = %s\n", id);
-    return new Identifier(id, TOKidentifier);
+    return Lexer::idPool(id);
 }
 
 
