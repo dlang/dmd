@@ -6,14 +6,14 @@ output_file=${dir}/test39.sh.out
 
 rm -f ${output_file}
 
-$DMD -Irunnable -od${dmddir} -c runnable/extra-files/test39.d >> ${output_file}
+$DMD -m${MODEL} -Irunnable -od${dmddir} -c runnable/extra-files/test39.d >> ${output_file}
 if [ $? -ne 0 ]; then
     cat ${output_file}
     rm -f ${output_file}
     exit 1
 fi
 
-$DMD -Irunnable -od${dmddir} -c runnable/imports/test39a.d >> ${output_file}
+$DMD -m${MODEL} -Irunnable -od${dmddir} -c runnable/imports/test39a.d >> ${output_file}
 if [ $? -ne 0 ]; then
     cat ${output_file}
     rm -f ${output_file}
@@ -33,7 +33,7 @@ if [ $? -ne 0 ]; then
     exit 1
 fi
 
-$DMD -of${dmddir}${SEP}test39 ${dir}/test39${OBJ} ${dir}/test39a${LIBEXT} >> ${output_file}
+$DMD -m${MODEL} -of${dmddir}${SEP}test39 ${dir}/test39${OBJ} ${dir}/test39a${LIBEXT} >> ${output_file}
 if [ $? -ne 0 ]; then
     cat ${output_file}
     rm -f ${output_file}
