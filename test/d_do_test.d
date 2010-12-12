@@ -14,24 +14,24 @@ import core.sys.posix.sys.wait;
 
 void usage()
 {
-    writeln("d_do_test <input_dir> <test_name> <test_extension>"
-            ""
-            "   input_dir: one of: compilable, fail_compilation, runnable"
-            "   test_name: basename of test case to run"
-            "   test_extension: one of: d, html, or sh"
-            ""
-            "   example: d_do_test runnable pi d"
-            ""
-            "   relevant environment variables:"
-            "      ARGS:        set to execute all combinations of"
-            "      DMD:         compiler to use, ex: ../src/dmd"
-            "      OS:          win32, linux, freebsd, osx"
-            "      RESULTS_DIR: base directory for test results"
-            "   windows vs non-windows portability env vars:"
-            "      DSEP:        \\\\ or /"
-            "      SEP:         \\ or /"
-            "      OBJ:        .obj or .o"
-            "      EXE:        .exe or <null>");
+    write("d_do_test <input_dir> <test_name> <test_extension>\n"
+          "\n"
+          "   input_dir: one of: compilable, fail_compilation, runnable\n"
+          "   test_name: basename of test case to run\n"
+          "   test_extension: one of: d, html, or sh\n"
+          "\n"
+          "   example: d_do_test runnable pi d\n"
+          "\n"
+          "   relevant environment variables:\n"
+          "      ARGS:        set to execute all combinations of\n"
+          "      DMD:         compiler to use, ex: ../src/dmd\n"
+          "      OS:          win32, linux, freebsd, osx\n"
+          "      RESULTS_DIR: base directory for test results\n"
+          "   windows vs non-windows portability env vars:\n"
+          "      DSEP:        \\\\ or /\n"
+          "      SEP:         \\ or /\n"
+          "      OBJ:        .obj or .o\n"
+          "      EXE:        .exe or <null>\n");
 }
 
 enum TestMode
@@ -63,6 +63,7 @@ struct EnvData
     string obj;
     string exe;
     string os;
+    string model;
 }
 
 bool findTestParameter(string file, string token, ref string result)
@@ -244,6 +245,7 @@ int main(string[] args)
     envData.exe           = getenv("EXE");
     envData.os            = getenv("OS");
     envData.dmd           = replace(getenv("DMD"), "/", envData.sep);
+    envData.model         = getenv("MODEL");
 
     string input_file     = input_dir ~ envData.sep ~ test_name ~ "." ~ test_extension;
     string output_dir     = envData.results_dir ~ envData.sep ~ input_dir;
@@ -288,7 +290,7 @@ int main(string[] args)
                 if (testArgs.mode == TestMode.RUN)
                     toCleanup ~= test_app_dmd;
 
-                string command = format("%s -I%s %s %s -od%s -of%s %s%s", envData.dmd, input_dir,
+                string command = format("%s -m%s -I%s %s %s -od%s -of%s %s%s", envData.dmd, envData.model, input_dir,
                         testArgs.requiredArgs, c, output_dir,
                         (testArgs.mode == TestMode.RUN ? test_app_dmd : objfile),
                         (testArgs.mode == TestMode.RUN ? "" : "-c "),
@@ -304,7 +306,7 @@ int main(string[] args)
                         replace(replace(filename, ".d", envData.obj), envData.sep~"imports"~envData.sep, envData.sep);
                     toCleanup ~= newo;
 
-                    string command = format("%s -I%s %s %s -od%s -c %s", envData.dmd, input_dir,
+                    string command = format("%s -m%s -I%s %s %s -od%s -c %s", envData.dmd, envData.model, input_dir,
                         testArgs.requiredArgs, c, output_dir, filename);
                     execute(f, command, testArgs.mode != TestMode.FAIL_COMPILE);
                 }
@@ -312,7 +314,7 @@ int main(string[] args)
                 if (testArgs.mode == TestMode.RUN)
                 {
                     // link .o's into an executable
-                    string command = format("%s -od%s -of%s %s", envData.dmd, output_dir, test_app_dmd, join(toCleanup, " "));
+                    string command = format("%s -m%s -od%s -of%s %s", envData.dmd, envData.model, output_dir, test_app_dmd, join(toCleanup, " "));
                     version(Windows) command ~= " -map nul.map";
 
                     // add after building the command so that before now, it's purely the .o's involved
