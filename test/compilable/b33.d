@@ -5,7 +5,7 @@ module b33;
 
 private import imports.b33a;
 
-int fn()
+size_t fn()
 {
     return find( "123" );
 }

@@ -1,5 +1,7 @@
 // PERMUTE_ARGS:
 
+import core.stdc.stdarg;
+
 struct ABC
 {
 	int x[4];
