@@ -11,7 +11,8 @@ UDFLAGS=-O -release -nofloat -w -d -Isrc -Iimport
 
 CFLAGS=
 
-DRUNTIME=lib\druntime.lib
+DRUNTIME_BASE=druntime
+DRUNTIME=lib\$(DRUNTIME_BASE).lib
 GCSTUB=lib\gcstub.obj
 
 DOCFMT=
@@ -772,7 +773,7 @@ $(DRUNTIME): $(OBJS) $(SRCS) win32.mak
 	$(DMD) -lib -of$(DRUNTIME) -Xfdruntime.json $(DFLAGS) $(SRCS) $(OBJS)
 
 unittest : $(SRCS) $(DRUNTIME) src\unittest.d
-	$(DMD) $(UDFLAGS) -L/co -unittest src\unittest.d $(SRCS) $(DRUNTIME)
+	$(DMD) $(UDFLAGS) -L/co -unittest src\unittest.d $(SRCS) $(DRUNTIME) -debuglib=$(DRUNTIME_BASE) -defaultlib=$(DRUNTIME_BASE)
 
 zip: druntime.zip
 
