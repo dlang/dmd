@@ -405,6 +405,8 @@ type *TypeEnum::toCtype()
         t = type_alloc(TYenum);
         t->Ttag = (Classsym *)s;            // enum tag name
         t->Tcount++;
+        t->Tnext = tm->ctype->Tnext;
+        t->Tnext->Tcount++;
         // Add modifiers
         switch (mod)
         {

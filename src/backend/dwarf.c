@@ -117,7 +117,7 @@ struct CFA_state
     size_t location;
     int reg;                    // CFA register number
     int offset;                 // CFA register offset
-    CFA_reg regstates[9];       // register states
+    CFA_reg regstates[17];      // register states
 };
 
 static CFA_state CFA_state_init =       // initial CFA state as defined by CIE

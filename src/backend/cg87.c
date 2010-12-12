@@ -1981,6 +1981,7 @@ code *eq87(elem *e,regm_t *pretregs)
          */
         if (op1 == 0xDB)
         {
+            cs.Irex &= ~REX_W;
             cs.Iop = 0xC7;                      // MOV EA+10,0
             NEWREG(cs.Irm, 0);
             cs.IEV1.sp.Voffset += 10;

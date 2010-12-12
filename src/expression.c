@@ -2721,7 +2721,7 @@ Expression *StringExp::syntaxCopy()
 
 int StringExp::equals(Object *o)
 {
-    //printf("StringExp::equals('%s')\n", o->toChars());
+    //printf("StringExp::equals('%s') %s\n", o->toChars(), toChars());
     if (o && o->dyncast() == DYNCAST_EXPRESSION)
     {   Expression *e = (Expression *)o;
 
@@ -2890,6 +2890,7 @@ StringExp *StringExp::toUTF8(Scope *sc)
 
 int StringExp::compare(Object *obj)
 {
+    //printf("StringExp::compare()\n");
     // Used to sort case statement expressions so we can do an efficient lookup
     StringExp *se2 = (StringExp *)(obj);
 
@@ -2903,12 +2904,13 @@ int StringExp::compare(Object *obj)
     int len1 = len;
     int len2 = se2->len;
 
+    //printf("sz = %d, len1 = %d, len2 = %d\n", sz, len1, len2);
     if (len1 == len2)
     {
         switch (sz)
         {
             case 1:
-                return strcmp((char *)string, (char *)se2->string);
+                return memcmp((char *)string, (char *)se2->string, len1);
 
             case 2:
             {   unsigned u;
