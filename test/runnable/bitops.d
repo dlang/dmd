@@ -7,33 +7,39 @@ import std.intrinsic;
 
 void test1()
 {   
-    uint array[2];
+    size_t array[2];
     uint x;
+version (X86)
+    size_t bitToUse = 35;
+else version (X86_64)
+    size_t bitToUse = 67;
+else
+    static assert(0);
 
     array[0] = 2;
     array[1] = 0x100;
+    printf("array = [0]:x%x, [1]:x%x\n", array[0], array[1]);
 
-    x = btc(array.ptr, 35);
-    printf("btc(array, 35) = %d\n", x);
+    x = btc(array.ptr, bitToUse);
+    printf("btc(array, %d) = %d\n", bitToUse, x);
     printf("array = [0]:x%x, [1]:x%x\n", array[0], array[1]);
     assert(x == 0);
-    assert(array[0] == 2 && array[1] == 0x108);
+    assert(array[0] == 0x2 && array[1] == 0x108);
 
-
-    x = btc(array.ptr, 35);
-    printf("btc(array, 35) = %d\n", x);
+    x = btc(array.ptr, bitToUse);
+    printf("btc(array, %d) = %d\n", bitToUse, x);
     printf("array = [0]:x%x, [1]:x%x\n", array[0], array[1]);
     assert(x != 0);
     assert(array[0] == 2 && array[1] == 0x100);
 
-    x = bts(array.ptr, 35);
-    printf("bts(array, 35) = %d\n", x);
+    x = bts(array.ptr, bitToUse);
+    printf("bts(array, %d) = %d\n", bitToUse, x);
     printf("array = [0]:x%x, [1]:x%x\n", array[0], array[1]);
     assert(x == 0);
     assert(array[0] == 2 && array[1] == 0x108);
 
-    x = btr(array.ptr, 35);
-    printf("btr(array, 35) = %d\n", x);
+    x = btr(array.ptr, bitToUse);
+    printf("btr(array, %d) = %d\n", bitToUse, x);
     printf("array = [0]:x%x, [1]:x%x\n", array[0], array[1]);
     assert(x != 0);
     assert(array[0] == 2 && array[1] == 0x100);
@@ -90,7 +96,7 @@ void test4()
 	
 void test5()
 {   
-    uint array[2];
+    size_t array[2];
 
     array[0] = 2;
     array[1] = 0x100;
