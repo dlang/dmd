@@ -1,17 +1,18 @@
 // REQUIRED_ARGS: -d
 // EXECUTE_ARGS: 10000
 
-import std.c.stdio;
-import std.string;
+extern(C) int printf(const char *, ...);
+extern(C) int atoi(const char *);
 
     int main (string[] argv)
     {
         string s = "";
         int count, loop;
 
-        count = atoi (argv [1]);
+        count = atoi((argv[1] ~ '\0').ptr);
         if (count == 0)
             count = 1;
+        printf("count = %u\n", count);
 
         for (loop = 0; loop < count; loop ++)
             s ~= "hello\n";
