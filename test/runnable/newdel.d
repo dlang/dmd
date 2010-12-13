@@ -9,7 +9,7 @@ class Foo
 {
     static uint flags;
 
-    new(uint sz, int x)
+    new(size_t sz, int x)
     {	void* p;
 
 	printf("Foo.new(sz = %d, x = %d)\n", sz, x);
@@ -67,7 +67,7 @@ struct Foo2
 {
     static uint flags;
 
-    new(uint sz, int x)
+    new(size_t sz, int x)
     {	void* p;
 
 	printf("Foo2.new(sz = %d, x = %d)\n", sz, x);
