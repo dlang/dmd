@@ -2508,7 +2508,7 @@ code *cdcnvt(elem *e, regm_t *pretregs)
             case OPu64_d:
                 if (*pretregs & mST0)
                 {
-                    retregs = mAX|mDX;
+                    retregs = I64 ? mAX : mAX|mDX;
                     c1 = codelem(e->E1,&retregs,FALSE);
                     c2 = callclib(e,CLIBu64_ldbl,pretregs,0);
                     return cat(c1,c2);

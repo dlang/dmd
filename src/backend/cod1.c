@@ -1348,6 +1348,7 @@ code *getlvalue(code *pcs,elem *e,regm_t keepmsk)
                 pcs->IFL1 = FLconst;
                 pcs->IEV1.Vuns = 0;
                 pcs->Iflags = CFfs;
+                pcs->Irex |= REX_W;
             }
             else
             {
