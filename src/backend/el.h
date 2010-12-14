@@ -182,6 +182,7 @@ targ_long el_tolongt(elem_p);
 targ_long el_tolong(elem_p);
 #endif
 int el_allbits(elem_p,int);
+int el_signx32(elem_p);
 targ_ldouble el_toldouble(elem_p);
 void el_toconst(elem_p);
 elem_p el_same(elem_p *);
