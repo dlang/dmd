@@ -3027,6 +3027,22 @@ int el_allbits(elem *e,int bit)
     return value == 0;
 }
 
+/********************************************
+ * Determine if constant e is a 32 bit or less value, or is a 32 bit value sign extended to 64 bits.
+ */
+
+int el_signx32(elem *e)
+{
+    elem_debug(e);
+    assert(e->Eoper == OPconst);
+    if (tysize(e->Ety) == 8)
+    {
+        if (e->EV.Vullong != (int)e->EV.Vullong)
+            return FALSE;
+    }
+    return TRUE;
+}
+
 /******************************
  * Extract long double value from constant elem.
  * Silently ignore types which are not floating point values.

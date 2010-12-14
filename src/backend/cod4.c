@@ -741,7 +741,6 @@ code *cdaddass(elem *e,regm_t *pretregs)
 { regm_t retregs,forccs,forregs;
   tym_t tyml;
   unsigned reg,op,op1,op2,mode,wantres;
-  targ_long val;
   int byte;
   code *cl,*cr,*c,*ce,cs;
   elem *e1;
@@ -855,10 +854,11 @@ code *cdaddass(elem *e,regm_t *pretregs)
         *pretregs &= ~mPSW;
   }
   else if ((e2 = e->E2)->Eoper == OPconst &&    // if rvalue is a const
+      el_signx32(e2) &&
        // Don't evaluate e2 in register if we can use an INC or DEC
       (((sz <= REGSIZE || tyfv(tyml)) &&
         (op == OPaddass || op == OPminass) &&
-        ((val = el_tolong(e2)) == 1 || val == -1)
+        (el_allbits(e2, 1) || el_allbits(e2, -1))
        ) ||
        (!evalinregister(e2) && tyml != TYhptr)
       )
@@ -870,7 +870,7 @@ code *cdaddass(elem *e,regm_t *pretregs)
         cs.IEV2.Vint = e2->EV.Vint;
         if (sz <= REGSIZE || tyfv(tyml) || opsize)
         {
-            targ_size_t i = cs.IEV2.Vsize_t;
+            targ_int i = cs.IEV2.Vint;
 
             /* Handle shortcuts. Watch out for if result has    */
             /* to be in flags.                                  */
