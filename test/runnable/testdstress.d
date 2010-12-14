@@ -859,7 +859,7 @@ void test42()
 	t = S42.y.offsetof;
 	assert(t == 0);
 	t = S42.x.offsetof;
-	assert(t == int.sizeof);
+	assert((t % (void*).sizeof) == 0);
 }
 
 /* ================================ */
