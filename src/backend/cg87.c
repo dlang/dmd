@@ -2730,7 +2730,7 @@ code *cdnegass87(elem *e,regm_t *pretregs)
     if (tyml == TYldouble || tyml == TYildouble)
         cs.IEVoffset1 += 10 - 1;
     else if (tyml == TYcldouble)
-        cs.IEVoffset1 += LNGDBLSIZE + 10 - 1;
+        cs.IEVoffset1 += tysize[TYldouble] + 10 - 1;
     else
 #endif
         cs.IEVoffset1 += sz - 1;
