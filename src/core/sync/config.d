@@ -5,7 +5,7 @@
  * Copyright: Copyright Sean Kelly 2005 - 2009.
  * License:   <a href="http://www.boost.org/LICENSE_1_0.txt">Boost License 1.0</a>.
  * Authors:   Sean Kelly
- * Source:    $(DRUNTIMESRC core/sync/_semaphore.d)
+ * Source:    $(DRUNTIMESRC core/sync/_config.d)
  */
 
 /*          Copyright Sean Kelly 2005 - 2009.

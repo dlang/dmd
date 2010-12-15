@@ -53,7 +53,7 @@ version( AsmX86 )
 }
 
 
-version( ddoc )
+version( D_Ddoc )
 {
     /**
      * Performs the binary operation 'op' on val using 'mod' as the modifier.
@@ -169,7 +169,7 @@ else version( AsmX86_32 )
 
             asm
             {
-                mov DL, writeThis;
+            s    mov DL, writeThis;
                 mov AL, ifThis;
                 mov ECX, here;
                 lock; // lock always needed to make this op atomic
