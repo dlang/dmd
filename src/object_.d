@@ -2460,7 +2460,6 @@ struct AssociativeArray(Key, Value)
     }
 }
 
-
 void clear(T)(T obj) if (is(T == class))
 {
     auto ci = obj.classinfo;
@@ -2529,13 +2528,16 @@ version(unittest) unittest
 
 void clear(T)(ref T obj) if (is(T == struct))
 {
-   static if (is(typeof(obj.__dtor())))
-   {
-       obj.__dtor();
-   }
-   auto buf = (cast(void*) &obj)[0 .. T.sizeof];
-   auto init = (cast(void*) &T.init)[0 .. T.sizeof];
-   buf[] = init[];
+    static if (is(typeof(obj.__dtor())))
+    {
+        obj.__dtor();
+    }
+    auto buf = (cast(ubyte*) &obj)[0 .. T.sizeof];
+    auto init = cast(ubyte[])typeid(T).init();
+    if(init.ptr is null) // null ptr means initialize to 0s
+        buf[] = 0;
+    else
+        buf[] = init[];
 }
 
 version(unittest) unittest
