@@ -169,7 +169,7 @@ else version( AsmX86_32 )
 
             asm
             {
-            s    mov DL, writeThis;
+                mov DL, writeThis;
                 mov AL, ifThis;
                 mov ECX, here;
                 lock; // lock always needed to make this op atomic
