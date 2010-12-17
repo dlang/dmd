@@ -118,7 +118,7 @@ else version( AsmX86_32 )
                    op == "==" || op == "!=" || op == "<"  || op == "<="  ||
                    op == ">"  || op == ">=" )
         {
-            T get = val; // compiler can do atomic load
+            T get = atomicLoad!(msync.raw)( val );
             mixin( "return get " ~ op ~ " mod;" );
         }
         else
@@ -425,7 +425,7 @@ else version( AsmX86_64 )
                    op == "==" || op == "!=" || op == "<"  || op == "<="  ||
                    op == ">"  || op == ">=" )
         {
-            T get = val; // compiler can do atomic load
+            T get = atomicLoad!(msync.raw)( val );
             mixin( "return get " ~ op ~ " mod;" );
         }
         else
@@ -664,26 +664,30 @@ else version( AsmX86_64 )
                     }
                 }
             }
-            else static if( T.sizeof == long.sizeof && has64BitCAS )
+            else static if( T.sizeof == long.sizeof )
             {
                 //////////////////////////////////////////////////////////////////
-                // 8 Byte Load on a 32-Bit Processor
+                // 8 Byte Load
                 //////////////////////////////////////////////////////////////////
 
 
-                asm
+                static if( needsLoadBarrier!(ms) )
                 {
-                    push EDI;
-                    push EBX;
-                    mov EBX, 0;
-                    mov ECX, 0;
-                    mov EAX, 0;
-                    mov EDX, 0;
-                    mov RDI, val;
-                    lock; // lock always needed to make this op atomic
-                    cmpxch8b [RDI];
-                    pop EBX;
-                    pop EDI;
+                    asm
+                    {
+                        mov RDX, 0;
+                        mov RAX, 0;
+                        mov RCX, val;
+                        lock; // lock always needed to make this op atomic
+                        cmpxchg [RCX], RDX;
+                    }
+                }
+                else
+                {
+                    asm
+                    {
+                        mov RAX, [val];
+                    }
                 }
             }
             else
