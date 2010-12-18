@@ -4461,8 +4461,14 @@ Type *TypeRefSuffix::semantic(Loc loc, Scope *sc)
 {
     //printf("TypeReference::semantic()\n");
     Type *n = next->semantic(loc, sc);
-    if (n->ty != Tclass || next->ty != Tident /* block double ref */)
-    {   error(loc, "ref suffix is only valid for class types");
+    if (next->ty == Trefsuffix)
+    {   error(loc, "double ref suffix");
+        return n;
+    }
+    if (n->ty != Tclass)
+    {   if (sc->parameterSpecialization)
+            return this;
+        error(loc, "ref suffix is only valid for class types");
         return n;
     }
     next = n;
@@ -4482,6 +4488,9 @@ void TypeRefSuffix::toCBuffer2(OutBuffer *buf, HdrGenState *hgs, int mod)
         return;
     }
     next->toCBuffer2(buf, hgs, this->mod);
+    // skip the space if last character in buffer is a closing parenthesis
+    if (buf->offset && buf->data[buf->offset-1] != ')')
+        buf->writeByte(' ');
     buf->writestring("ref");
 }
 
