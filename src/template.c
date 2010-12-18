@@ -1755,7 +1755,7 @@ MATCH Type::deduceType(Scope *sc, Type *tparam, TemplateParameters *parameters,
 
     if (this == tparam)
         goto Lexact;
-
+    
     if (tparam->ty == Tident)
     {
         // Determine which parameter tparam is
@@ -2572,6 +2572,14 @@ MATCH TypeClass::deduceType(Scope *sc, Type *tparam, TemplateParameters *paramet
 {
     //printf("TypeClass::deduceType(this = %s)\n", toChars());
 
+    // Handle class ref suffix by ignoring it
+    TypeRefSuffix *refsuffix = NULL;
+    if (tparam->ty == Trefsuffix)
+    {
+        refsuffix = (TypeRefSuffix *)tparam;
+        tparam = refsuffix->next;
+    }
+
     /* If this class is a template class, and we're matching
      * it against a template instance, convert the class type
      * to a template instance, too, and try again.
@@ -2661,6 +2669,7 @@ MATCH TypeClass::deduceType(Scope *sc, Type *tparam, TemplateParameters *paramet
         //printf("\t%d\n", (MATCH) implicitConvTo(tp));
         return implicitConvTo(tp);
     }
+    
     return Type::deduceType(sc, tparam, parameters, dedtypes);
 }
 
