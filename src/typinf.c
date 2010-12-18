@@ -243,9 +243,8 @@ void TypeInfoConstDeclaration::toDt(dt_t **pdt)
     if (tinfo->ty == Tclass)
         tm = ((TypeClass *)tinfo)->sym->type;
     else
-    {   tm = tinfo->mutableOf();
-        tm = tm->merge();
-    }
+        tm = tinfo->mutableOf();
+    tm = tm->merge();
     tm->getTypeInfo(NULL);
     dtxoff(pdt, tm->vtinfo->toSymbol(), 0, TYnptr);
 }
@@ -259,9 +258,8 @@ void TypeInfoInvariantDeclaration::toDt(dt_t **pdt)
     if (tinfo->ty == Tclass)
         tm = ((TypeClass *)tinfo)->sym->type;
     else
-    {   tm = tinfo->mutableOf();
-        tm = tm->merge();
-    }
+        tm = tinfo->mutableOf();
+    tm = tm->merge();
     tm->getTypeInfo(NULL);
     dtxoff(pdt, tm->vtinfo->toSymbol(), 0, TYnptr);
 }
@@ -274,13 +272,11 @@ void TypeInfoSharedDeclaration::toDt(dt_t **pdt)
     Type *tm;
     if (tinfo->ty == Tclass)
     {   tm = ((TypeClass *)tinfo)->sym->type;
-        if (tinfo->mod != MODshared) // other modifiers
-            tm = tm->addMod(tinfo->mod & ~MODshared);
+        tm = tm->addMod(tinfo->mod & ~MODshared); // propagate other modifiers
     }
     else
-    {   tm = tinfo->unSharedOf();
-        tm = tm->merge();
-    }
+        tm = tinfo->unSharedOf();
+    tm = tm->merge();
     tm->getTypeInfo(NULL);
     dtxoff(pdt, tm->vtinfo->toSymbol(), 0, TYnptr);
 }
@@ -294,9 +290,8 @@ void TypeInfoWildDeclaration::toDt(dt_t **pdt)
     if (tinfo->ty == Tclass)
         tm = ((TypeClass *)tinfo)->sym->type;
     else
-    {   tm = tinfo->mutableOf();
-        tm = tm->merge();
-    }
+        tm = tinfo->mutableOf();
+    tm = tm->merge();
     tm->getTypeInfo(NULL);
     dtxoff(pdt, tm->vtinfo->toSymbol(), 0, TYnptr);
 }
