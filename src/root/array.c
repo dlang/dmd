@@ -177,7 +177,8 @@ void Array::append(Array *a)
 
 void Array::remove(unsigned i)
 {
-    memmove(data + i, data + i + 1, (dim - i) * sizeof(data[0]));
+    if (dim - i - 1)
+        memmove(data + i, data + i + 1, (dim - i - 1) * sizeof(data[0]));
     dim--;
 }
 
