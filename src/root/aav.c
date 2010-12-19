@@ -161,7 +161,7 @@ void _aaRehash(AA** paa)
                 }
             }
             if (aa->b != aa->binit)
-                delete aa->b;
+                delete[] aa->b;
 
             newb.nodes = aa->nodes;
         }
