@@ -720,8 +720,10 @@ MATCH TemplateDeclaration::matchWithInstance(TemplateInstance *ti,
          */
         makeParamNamesVisibleInConstraint(paramscope);
         Expression *e = constraint->syntaxCopy();
-        paramscope->flags |= SCOPEstaticif;
-        e = e->semantic(paramscope);
+        Scope *sc = paramscope->push();
+        sc->flags |= SCOPEstaticif;
+        e = e->semantic(sc);
+        sc->pop();
         e = e->optimize(WANTvalue | WANTinterpret);
         if (e->isBool(TRUE))
             ;
@@ -1308,17 +1310,31 @@ Lmatch:
         paramscope->flags |= SCOPEstaticif;
 
         /* Detect recursive attempts to instantiate this template declaration,
+         * Bugzilla 4072
          *  void foo(T)(T x) if (is(typeof(foo(x)))) { }
-         *  static assert(!is(typeof(bug4072(7))));
+         *  static assert(!is(typeof(foo(7))));
          * Recursive attempts are regarded as a constraint failure.
          */
+        int nmatches = 0;
         for (Previous *p = previous; p; p = p->prev)
         {
             if (arrayObjectMatch(p->dedargs, dedargs, this, sc))
-                goto Lnomatch;
+            {
+                //printf("recursive, no match %p %s\n", this, this->toChars());
+                nmatches++;
+            }
             /* BUG: should also check for ref param differences
              */
         }
+        /* Look for 2 matches at least, because sometimes semantic3() gets run causing what appears to
+         * be recursion but isn't.
+         * Template A's constraint instantiates B, B's semantic3() run includes something that has A in its constraint.
+         * Perhaps a better solution is to always defer semantic3() rather than doing it eagerly. The risk
+         * with that is what if semantic3() fails, but our constraint "succeeded"?
+         */
+        if (nmatches >= 2)
+            goto Lnomatch;
+
         Previous pr;
         pr.prev = previous;
         pr.dedargs = dedargs;
@@ -3849,7 +3865,8 @@ void TemplateInstance::semantic(Scope *sc, Expressions *fargs)
     /* So, we need to implement 'this' instance.
      */
 #if LOG
-    printf("\timplement template instance '%s'\n", toChars());
+    printf("\timplement template instance %s '%s'\n", tempdecl->parent->toChars(), toChars());
+    printf("\ttempdecl %s\n", tempdecl->toChars());
 #endif
     unsigned errorsave = global.errors;
     inst = this;
@@ -3858,7 +3875,7 @@ void TemplateInstance::semantic(Scope *sc, Expressions *fargs)
     parent = tempdecl->parent;
     //printf("parent = '%s'\n", parent->kind());
 
-    ident = genIdent();         // need an identifier for name mangling purposes.
+    ident = genIdent(tiargs);         // need an identifier for name mangling purposes.
 
 #if 1
     if (isnested)
@@ -3901,7 +3918,9 @@ void TemplateInstance::semantic(Scope *sc, Expressions *fargs)
             //printf("\t2: adding to module %s instead of module %s\n", m->toChars(), sc->module->toChars());
             a = m->members;
             if (m->semanticRun >= 3)
+            {
                 dosemantic3 = 1;
+            }
         }
         for (int i = 0; 1; i++)
         {
@@ -4103,6 +4122,7 @@ void TemplateInstance::semantic(Scope *sc, Expressions *fargs)
         errors = 1;
         if (global.gag)
         {   // Try to reset things so we can try again later to instantiate it
+            //printf("remove %s\n", toChars());
             tempdecl->instances.remove(tempdecl_instance_idx);
             if (!(sc->flags & SCOPEstaticif))
             {   // Bugzilla 4302 for discussion
@@ -4607,13 +4627,12 @@ int TemplateInstance::hasNestedArgs(Objects *args)
  * the type signature for it.
  */
 
-Identifier *TemplateInstance::genIdent()
+Identifier *TemplateInstance::genIdent(Objects *args)
 {   OutBuffer buf;
 
     //printf("TemplateInstance::genIdent('%s')\n", tempdecl->ident->toChars());
     char *id = tempdecl->ident->toChars();
     buf.printf("__T%zu%s", strlen(id), id);
-    Objects *args = tiargs;
     for (int i = 0; i < args->dim; i++)
     {   Object *o = (Object *)args->data[i];
         Type *ta = isType(o);
@@ -5198,7 +5217,7 @@ void TemplateMixin::semantic(Scope *sc)
     }
 
     if (!ident)
-        ident = genIdent();
+        ident = genIdent(tiargs);
 
     inst = this;
     parent = sc->parent;

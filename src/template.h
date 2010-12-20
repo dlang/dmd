@@ -326,7 +326,7 @@ struct TemplateInstance : ScopeDsymbol
     TemplateDeclaration *findBestMatch(Scope *sc);
     void declareParameters(Scope *sc);
     int hasNestedArgs(Objects *tiargs);
-    Identifier *genIdent();
+    Identifier *genIdent(Objects *args);
 
     TemplateInstance *isTemplateInstance() { return this; }
     AliasDeclaration *isAliasDeclaration();

@@ -1604,6 +1604,8 @@ void FuncDeclaration::semantic3(Scope *sc)
         semanticRun = PASSsemanticdone; // Ensure errors get reported again
     else
         semanticRun = PASSsemantic3done;
+    //printf("-FuncDeclaration::semantic3('%s.%s', sc = %p, loc = %s)\n", parent->toChars(), toChars(), sc, loc.toChars());
+    //fflush(stdout);
 }
 
 void FuncDeclaration::toCBuffer(OutBuffer *buf, HdrGenState *hgs)

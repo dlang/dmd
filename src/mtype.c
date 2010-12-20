@@ -6067,14 +6067,15 @@ Type *TypeTypeof::semantic(Loc loc, Scope *sc)
     else
 #endif
     {
-        sc->intypeof++;
-        exp = exp->semantic(sc);
+        Scope *sc2 = sc->push();
+        sc2->intypeof++;
+        exp = exp->semantic(sc2);
 #if DMDV2
         if (exp->type && exp->type->ty == Tfunction &&
             ((TypeFunction *)exp->type)->isproperty)
-            exp = resolveProperties(sc, exp);
+            exp = resolveProperties(sc2, exp);
 #endif
-        sc->intypeof--;
+        sc2->pop();
         if (exp->op == TOKtype)
         {
             error(loc, "argument %s to typeof is not an expression", exp->toChars());
@@ -7145,7 +7146,8 @@ MATCH TypeStruct::implicitConvTo(Type *to)
         to = ((TypeAArray*)to)->getImpl()->type;
         --global.gag;
         if (errs != global.errors)
-        {   global.errors = errs;
+        {
+            global.errors = errs;
             return MATCHnomatch;
         }
     }
