@@ -217,7 +217,7 @@ code *cdorth(elem *e,regm_t *pretregs)
       (e1->Eoper == OPvar || (e1->Eoper == OPind && !e1->Ecount)))
   {
         // Handle the case of (var & const)
-        if (e2->Eoper == OPconst)
+        if (e2->Eoper == OPconst && el_signx32(e2))
         {
             c = getlvalue(&cs,e1,0);
             targ_size_t value = e2->EV.Vpointer;
@@ -295,7 +295,8 @@ code *cdorth(elem *e,regm_t *pretregs)
         // Handle the case of ((e + c) + e2)
         if (!I16 &&
             e1oper == OPadd &&
-            (e1->E2->Eoper == OPconst || e2oper == OPconst) &&
+            (e1->E2->Eoper == OPconst && el_signx32(e1->E2) ||
+             e2oper == OPconst && el_signx32(e2)) &&
             !e1->Ecount
            )
         {   elem *e11;
@@ -306,7 +307,7 @@ code *cdorth(elem *e,regm_t *pretregs)
             unsigned reg1,reg2;
             code *c1,*c2,*c3;
 
-            if (e2oper == OPconst)
+            if (e2oper == OPconst && el_signx32(e2))
             {   edisp = e2;
                 ebase = e1->E2;
             }
@@ -628,6 +629,8 @@ code *cdorth(elem *e,regm_t *pretregs)
             goto L2;
         if (numwords == 1)
         {
+                if (!el_signx32(e2))
+                    goto L2;
                 i = e2->EV.Vpointer;
                 if (word)
                 {

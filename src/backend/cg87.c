@@ -2017,6 +2017,7 @@ code *complex_eq87(elem *e,regm_t *pretregs)
         tym_t ty1;
         int fxch = 0;
 
+        //printf("complex_eq87(e = %p, *pretregs = %s)\n", e, regm_str(*pretregs));
         assert(e->Eoper == OPeq);
         cs.Iflags = ADDFWAIT() ? CFwait : 0;
         cs.Irex = 0;
@@ -2031,7 +2032,7 @@ code *complex_eq87(elem *e,regm_t *pretregs)
             default:
                 assert(0);
         }
-        if (*pretregs & mST01)  // if want result on stack too
+        if (*pretregs & (mST01 | mXMM0 | mXMM1))  // if want result on stack too
         {
             if (ty1 == TYcldouble)
             {
@@ -2053,7 +2054,7 @@ code *complex_eq87(elem *e,regm_t *pretregs)
             pop87();
         }
         sz = tysize(ty1) / 2;
-        if (*pretregs & mST01)
+        if (*pretregs & (mST01 | mXMM0 | mXMM1))
         {
             cs.Iflags = 0;
             cs.Irex = 0;
