@@ -1315,6 +1315,9 @@ Lmatch:
          *  static assert(!is(typeof(foo(7))));
          * Recursive attempts are regarded as a constraint failure.
          */
+        /* Previous should also store the scope, as instantiations along a different scope branch
+         * should not conflict
+         */
         int nmatches = 0;
         for (Previous *p = previous; p; p = p->prev)
         {

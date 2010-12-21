@@ -1745,10 +1745,10 @@ code *tstresult(regm_t regm,tym_t tym,unsigned saveflag)
 
 #ifdef DEBUG
   if (!(regm & (mBP | ALLREGS)))
-        printf("tstresult(regm = x%x, tym = x%x, saveflag = %d)\n",
-            regm,tym,saveflag);
+        printf("tstresult(regm = %s, tym = x%x, saveflag = %d)\n",
+            regm_str(regm),tym,saveflag);
 #endif
-  assert(regm & (mBP | ALLREGS));
+  assert(regm & (XMMREGS | mBP | ALLREGS));
   tym = tybasic(tym);
   code *ce = CNIL;
   unsigned reg = findreg(regm);
@@ -1756,6 +1756,26 @@ code *tstresult(regm_t regm,tym_t tym,unsigned saveflag)
   if (sz == 1)
   {     assert(regm & BYTEREGS);
         return genregs(ce,0x84,reg,reg);        // TEST regL,regL
+  }
+  if (regm & XMMREGS)
+  {
+        unsigned xreg;
+        regm_t xregs = XMMREGS & ~regm;
+        ce = allocreg(&xregs, &xreg, TYdouble);
+        unsigned op = 0;
+        if (tym == TYdouble || tym == TYidouble || tym == TYcdouble)
+            op = 0x660000;
+        ce = gen2(ce,op | 0x0F57,modregrm(3,xreg-XMM0,xreg-XMM0));      // XORPS xreg,xreg
+        gen2(ce,op | 0x0F2E,modregrm(3,xreg-XMM0,reg-XMM0));    // UCOMISS xreg,reg
+        if (tym == TYcfloat || tym == TYcdouble)
+        {   code *cnop = gennop(CNIL);
+            genjmp(ce,JNE,FLcode,(block *) cnop); // JNE     L1
+            genjmp(ce,JP, FLcode,(block *) cnop); // JP      L1
+            reg = findreg(regm & ~mask[reg]);
+            gen2(ce,op | 0x0F2E,modregrm(3,xreg-XMM0,reg-XMM0));        // UCOMISS xreg,reg
+            ce = cat(ce, cnop);
+        }
+        return ce;
   }
   if (sz <= REGSIZE)
   {
