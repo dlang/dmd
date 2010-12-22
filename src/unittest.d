@@ -26,6 +26,8 @@ public import core.sync.mutex;
 public import core.sync.rwmutex;
 public import core.sync.semaphore;
 
+version(posix)
+    public import core.sys.posix.sys.select;
 
 void main()
 {

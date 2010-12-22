@@ -20,6 +20,9 @@ public import core.sys.posix.sys.time;  // for timeval
 public import core.sys.posix.sys.types; // for time_t
 public import core.sys.posix.signal;    // for sigset_t
 
+//debug=select;  // uncomment to turn on debugging printf's
+version(unittest) import core.stdc.stdio: printf;
+
 extern (C):
 
 //
@@ -214,3 +217,53 @@ else version( FreeBSD )
     int pselect(int, fd_set*, fd_set*, fd_set*, in timespec*, in sigset_t*);
     int select(int, fd_set*, fd_set*, fd_set*, timeval*);
 }
+
+unittest
+{
+    debug(select) printf("core.sys.posix.sys.select unittest\n");
+
+    fd_set fd;
+
+    for (auto i = 0; i < FD_SETSIZE; i++)
+    {
+        assert(!FD_ISSET(i, &fd));
+    }
+
+    for (auto i = 0; i < FD_SETSIZE; i++)
+    {
+        if ((i & -i) == i)
+            FD_SET(i, &fd);
+    }
+
+    for (auto i = 0; i < FD_SETSIZE; i++)
+    {
+        if ((i & -i) == i)
+            assert(FD_ISSET(i, &fd));
+        else
+            assert(!FD_ISSET(i, &fd));
+    }
+
+    for (auto i = 0; i < FD_SETSIZE; i++)
+    {
+        if ((i & -i) == i)
+            FD_CLR(i, &fd);
+        else
+            FD_SET(i, &fd);
+    }
+
+    for (auto i = 0; i < FD_SETSIZE; i++)
+    {
+        if ((i & -i) == i)
+            assert(!FD_ISSET(i, &fd));
+        else
+            assert(FD_ISSET(i, &fd));
+    }
+
+    FD_ZERO(&fd);
+
+    for (auto i = 0; i < FD_SETSIZE; i++)
+    {
+        assert(!FD_ISSET(i, &fd));
+    }
+}
+
