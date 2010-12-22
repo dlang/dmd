@@ -1315,31 +1315,28 @@ Lmatch:
          *  static assert(!is(typeof(foo(7))));
          * Recursive attempts are regarded as a constraint failure.
          */
-        /* Previous should also store the scope, as instantiations along a different scope branch
-         * should not conflict
-         */
         int nmatches = 0;
         for (Previous *p = previous; p; p = p->prev)
         {
             if (arrayObjectMatch(p->dedargs, dedargs, this, sc))
             {
-                //printf("recursive, no match %p %s\n", this, this->toChars());
-                nmatches++;
+                //printf("recursive, no match p->sc=%p %p %s\n", p->sc, this, this->toChars());
+                /* It must be a subscope of p->sc, other scope chains are not recursive
+                 * instantiations.
+                 */
+                for (Scope *scx = sc; scx; scx = scx->enclosing)
+                {
+                    if (scx == p->sc)
+                        goto Lnomatch;
+                }
             }
             /* BUG: should also check for ref param differences
              */
         }
-        /* Look for 2 matches at least, because sometimes semantic3() gets run causing what appears to
-         * be recursion but isn't.
-         * Template A's constraint instantiates B, B's semantic3() run includes something that has A in its constraint.
-         * Perhaps a better solution is to always defer semantic3() rather than doing it eagerly. The risk
-         * with that is what if semantic3() fails, but our constraint "succeeded"?
-         */
-        if (nmatches >= 2)
-            goto Lnomatch;
 
         Previous pr;
         pr.prev = previous;
+        pr.sc = paramscope;
         pr.dedargs = dedargs;
         previous = &pr;                 // add this to threaded list
 
@@ -3719,7 +3716,7 @@ void TemplateInstance::semantic(Scope *sc)
 
 void TemplateInstance::semantic(Scope *sc, Expressions *fargs)
 {
-    //printf("TemplateInstance::semantic('%s', this=%p, gag = %d)\n", toChars(), this, global.gag);
+    //printf("TemplateInstance::semantic('%s', this=%p, gag = %d, sc = %p)\n", toChars(), this, global.gag, sc);
     if (global.errors && name != Id::AssociativeArray)
     {
         //printf("not instantiating %s due to %d errors\n", toChars(), global.errors);
