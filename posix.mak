@@ -6,10 +6,17 @@ IMPDIR=import
 
 MODEL=32
 
+ifeq ($(MODEL),64)
+DFLAGS=-m$(MODEL) -release -inline -nofloat -w -d -Isrc -Iimport
+UDFLAGS=-m$(MODEL) -release -nofloat -w -d -Isrc -Iimport
+
+CFLAGS=-m$(MODEL)
+else
 DFLAGS=-m$(MODEL) -O -release -inline -nofloat -w -d -Isrc -Iimport
 UDFLAGS=-m$(MODEL) -O -release -nofloat -w -d -Isrc -Iimport
 
 CFLAGS=-m$(MODEL) -O
+endif
 
 OBJDIR=obj
 DRUNTIME_BASE=druntime
