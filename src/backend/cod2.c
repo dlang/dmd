@@ -1712,7 +1712,8 @@ code *cdcond(elem *e,regm_t *pretregs)
         retregs = *pretregs & (ALLREGS | mBP);
         if (retregs & ~regcon.mvar)
             retregs &= ~regcon.mvar;    // don't disturb register variables
-        c = regwithvalue(c,retregs,e21->EV.Vint,&reg,sz1 == 8 ? 64|8 : 8);
+        // NOTE: see my email (sign extension bug? possible fix, some questions
+        c = regwithvalue(c,retregs,e21->EV.Vint,&reg,tysize(e21->Ety) == 8 ? 64|8 : 8);
         retregs = mask[reg];
 
         c = cat(c,cse_flush(1));                // flush CSE's to memory
