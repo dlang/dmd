@@ -1,3 +1,4 @@
+import core.vararg;
 import std.stdio;
 
 /*********************************************************/
@@ -99,7 +100,7 @@ void dotimes3(int count, lazy void exp)
 void bar3(...)
 {
     assert(_arguments.length == 1);
-    assert(*cast(int *)_argptr == 14);
+    assert(va_arg!int(_argptr) == 14);
 }
 
 void abc3(int* p)
@@ -169,25 +170,12 @@ void test5()
 
 /*********************************************************/
 
-alias void* va_list;
-
-template va_arg(T)
+void foo6(lazy int expr, ...)
 {
-    T va_arg(ref va_list _argptr)
-    {
-    T arg = *cast(T*)_argptr; // original from Phobos
-    _argptr = _argptr + ((T.sizeof + int.sizeof - 1) & ~(int.sizeof - 1));
-    return arg;
-    }
-}
-
-
-void foo6(lazy int expr, ...){
     char[] tmp_msg = va_arg!(char[])(_argptr);
     if (cast(int)(tmp_msg.ptr)=="food_for_thought".length)
          assert(0, "length is in the pointer!");
     assert(tmp_msg=="food_for_thought");
-
 }
 
 int bar6() { return 3; }

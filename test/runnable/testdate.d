@@ -130,11 +130,11 @@ void test1()
     d = std.date.getUTCtime();
     printf("d = %lld\n", d);
     s = std.date.toString(d);
-    printf("s = %.*s\n", s);
+    printf("s = %.*s\n", s.length, s.ptr);
     s = std.date.toDateString(d);
-    printf("s = %.*s\n", s);
+    printf("s = %.*s\n", s.length, s.ptr);
     s = std.date.toTimeString(d);
-    printf("s = %.*s\n\n", s);
+    printf("s = %.*s\n\n", s.length, s.ptr);
 
   version (OSX)
   {
@@ -149,10 +149,10 @@ void test1()
     {
 	s = testvectors[i].str;
 	d = std.date.parse(s);
-	printf("%.*s = %lld, should be %lld\n", s, d, testvectors[i].value * ticksPerSecond);
+	printf("%.*s = %lld, should be %lld\n", s.length, s.ptr, d, testvectors[i].value * ticksPerSecond);
 
 	s = std.date.toString(d);
-	printf("s = %.*s\n\n", s);
+	printf("s = %.*s\n\n", s.length, s.ptr);
 
 	assert(d == testvectors[i].value * ticksPerSecond);
     }
@@ -163,7 +163,7 @@ void test1()
 void test2()
 {
     string fecha= toDateString(getUTCtime());
-    printf("%.*s\n",fecha);
+    printf("%.*s\n", fecha.length, fecha.ptr);
 }
 
 /**********************************************/

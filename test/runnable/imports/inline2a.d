@@ -154,7 +154,7 @@ class Primes
                 int l, u, m;
                 
                 l = -1;
-                u = array.length;
+                u = cast(int)array.length;
 
                 while (l+1 != u) 
                       {

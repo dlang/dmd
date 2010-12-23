@@ -1,6 +1,7 @@
 // REQUIRED_ARGS: -d
 
 import core.stdc.math;
+import core.vararg;
 import std.math: rndtol;
 import std.stream: File;
 import std.string;
@@ -103,7 +104,7 @@ void test6()
 void test7()
 {
     string s = `hello"there'you`;
-    printf("s = '%.*s'\n", s);
+    printf("s = '%.*s'\n", s.length, s.ptr);
     assert(s == "hello\"there'you");
     ubyte[] b = cast(ubyte[])x"8B 7D f4 0d";
     for (int i = 0; i < b.length; i++)
@@ -336,7 +337,7 @@ void test16()
     uint c = 200000;
     while (c--)
 	a ~= 'x';
-    //printf("a = '%.*s'\n", a);
+    //printf("a = '%.*s'\n", a.length, a.ptr);
 }
 
 
@@ -484,7 +485,7 @@ void test26()
 
     foreach(string instr; instructions)
     {
-	printf("%.*s\n", instr);
+	printf("%.*s\n", instr.length, instr.ptr);
     }
 }
 
@@ -515,7 +516,7 @@ void test27()
 
 void foo28(ClassInfo ci)
 {
-    printf("%.*s\n", ci.name );
+    printf("%.*s\n", ci.name.length, ci.name.ptr);
 
     static int i;
     switch (i++)
@@ -896,7 +897,7 @@ class C44
 void test44()
 {
   C44 c= new C44();
-  printf("%.*s\n", c.arrArr[0]);
+  printf("%.*s\n", c.arrArr[0].length, c.arrArr[0].ptr);
   assert(c.arrArr[0] == "foo");
 }
 
@@ -1158,7 +1159,7 @@ void det(float mat[][])
 {
     float newmat[][];
 
-    int i = newmat[0 .. (mat.length - 1)].length;
+    size_t i = newmat[0 .. (mat.length - 1)].length;
 }
 
 void test57()
@@ -1235,7 +1236,7 @@ void test61()
     int i = 123;
     StdString g = new StdString();
     string s = g.toString(i);
-    printf("%.*s\n", s);
+    printf("%.*s\n", s.length, s.ptr);
     assert(s == "123");
 }
 

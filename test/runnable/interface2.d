@@ -654,8 +654,8 @@ void test19()
     printf("icov = %p\n", icov);
     printf("ifoo = %p\n", ifoo);
 
-    assert(cast(void*)c + 8 == cast(void*)icov);
-    assert(cast(void*)c + 12 == cast(void*)ifoo);
+    assert(cast(void*)c + (2*(void*).sizeof) == cast(void*)icov);
+    assert(cast(void*)c + (3*(void*).sizeof) == cast(void*)ifoo);
 
     string s = ifoo.classinfo.name;
     printf("%.*s\n", s.length, s.ptr);

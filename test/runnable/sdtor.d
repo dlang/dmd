@@ -1,4 +1,5 @@
 
+import core.vararg;
 import std.c.stdio;
 
 int sdtor;

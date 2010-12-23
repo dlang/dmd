@@ -93,6 +93,113 @@ compilable_test_results=$(addsuffix .out,$(addprefix $(RESULTS_DIR)/,$(compilabl
 fail_compilation_tests=$(wildcard fail_compilation/*.d)
 fail_compilation_test_results=$(addsuffix .out,$(addprefix $(RESULTS_DIR)/,$(fail_compilation_tests)))
 
+all: run_tests
+
+ifeq ($(MODEL),64)
+DISABLED_TESTS = \
+	a20           \
+	argufilem     \
+	arrayop       \
+	builtin       \
+	complex       \
+	constfold     \
+	cov2          \
+	delegate      \
+	dhry          \
+	eh2           \
+	foreach4      \
+	foreach5      \
+	hello-profile \
+	hospital      \
+	ifti          \
+	implicit      \
+	inner         \
+	integrate     \
+	interpret2    \
+	interpret     \
+	lazy          \
+	mixin1        \
+	mixin2        \
+	nested        \
+	pi            \
+	printargs     \
+	s2ir          \
+	sieve         \
+	statictor     \
+	stress        \
+	template1     \
+	template4     \
+	template6     \
+	template9     \
+	test11        \
+	test12        \
+	test16        \
+	test19        \
+	test20        \
+	test22        \
+	test23        \
+	test28        \
+	test34        \
+	test36        \
+	test37        \
+	test42        \
+	test4         \
+	test52        \
+	test60        \
+	test7         \
+	test8         \
+	testaa2       \
+	testaa        \
+	testarray     \
+	testconst     \
+	testdate      \
+	testdstress   \
+	testformat    \
+	testgc2       \
+	testgc3       \
+	testline      \
+	testmath      \
+	testmmfile    \
+	testregexp2   \
+	testsignals   \
+	testfile      \
+	testswitch    \
+	testthread2   \
+	testtypeid    \
+	testzip       \
+	traits        \
+	untag         \
+	variadic      \
+	wc2           \
+	wc3           \
+	wc            \
+	xtest46       \
+	xtest55
+
+$(addsuffix .d.out,$(addprefix $(RESULTS_DIR)/runnable/,$(DISABLED_TESTS))): $(RESULTS_DIR)/.created
+	$(QUIET) echo " ... $@ - disabled"
+	$(QUIET) touch $@
+
+$(RESULTS_DIR)/runnable/test2.sh.out:
+	$(QUIET) echo " ... $@ - disabled"
+	$(QUIET) touch $@
+
+$(RESULTS_DIR)/runnable/%.d.out: runnable/%.d $(RESULTS_DIR)/.created $(RESULTS_DIR)/combinations $(DMD)
+	$(QUIET) ./do_test.sh $(<D) $* d
+
+$(RESULTS_DIR)/runnable/%.html.out: runnable/%.html $(RESULTS_DIR)/.created $(RESULTS_DIR)/combinations $(DMD)
+	$(QUIET) ./do_test.sh $(<D) $* html
+
+$(RESULTS_DIR)/runnable/%.sh.out: runnable/%.sh $(RESULTS_DIR)/.created $(RESULTS_DIR)/combinations $(DMD)
+	$(QUIET) echo " ... $(<D)/$*.sh"
+	$(QUIET) ./$(<D)/$*.sh
+
+$(RESULTS_DIR)/compilable/%.d.out: compilable/%.d $(RESULTS_DIR)/.created $(RESULTS_DIR)/combinations $(DMD)
+	$(QUIET) ./do_test.sh $(<D) $* d
+
+$(RESULTS_DIR)/fail_compilation/%.d.out: fail_compilation/%.d $(RESULTS_DIR)/.created $(RESULTS_DIR)/combinations $(DMD)
+	$(QUIET) ./do_test.sh $(<D) $* d
+else
 $(RESULTS_DIR)/runnable/%.d.out: runnable/%.d $(RESULTS_DIR)/.created $(RESULTS_DIR)/d_do_test $(DMD)
 	$(QUIET) ./$(RESULTS_DIR)/d_do_test $(<D) $* d
 
@@ -108,8 +215,7 @@ $(RESULTS_DIR)/compilable/%.d.out: compilable/%.d $(RESULTS_DIR)/.created $(RESU
 
 $(RESULTS_DIR)/fail_compilation/%.d.out: fail_compilation/%.d $(RESULTS_DIR)/.created $(RESULTS_DIR)/d_do_test $(DMD)
 	$(QUIET) ./$(RESULTS_DIR)/d_do_test $(<D) $* d
-
-all: run_tests
+endif
 
 quick:
 	$(MAKE) ARGS="" run_tests
@@ -149,4 +255,8 @@ start_fail_compilation_tests: $(RESULTS_DIR)/.created $(RESULTS_DIR)/d_do_test
 $(RESULTS_DIR)/d_do_test: d_do_test.d $(RESULTS_DIR)/.created
 	@echo "Building d_do_test tool"
 	$(QUIET)$(DMD) -m$(MODEL) -od$(RESULTS_DIR) -of$(RESULTS_DIR)$(DSEP)d_do_test d_do_test.d
+
+$(RESULTS_DIR)/combinations: combinations.d $(RESULTS_DIR)/.created
+	@echo "Building combinations tool"
+	$(QUIET)$(DMD) -m$(MODEL) -od$(RESULTS_DIR) -of$(RESULTS_DIR)$(DSEP)combinations combinations.d
 

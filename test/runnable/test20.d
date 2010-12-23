@@ -1,3 +1,4 @@
+import core.vararg;
 
 extern(C) int printf(const char*, ...);
 
@@ -385,7 +386,7 @@ struct Iterator18(T)
 
    const int opCmp(const ref Iterator18 iter)
    {
-     return (m_ptr - iter.m_ptr);
+     return cast(int)(m_ptr - iter.m_ptr);
    }
 }
 

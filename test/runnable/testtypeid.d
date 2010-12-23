@@ -1,4 +1,5 @@
 
+import core.vararg;
 import std.stdio;
 
 /******************************************************/
@@ -26,7 +27,7 @@ void test1()
     TypeInfo_Class tc = cast(TypeInfo_Class)ti;
     assert(tc);
 
-    printf("%.*s\n", tc.info.name);
+    printf("%.*s\n", tc.info.name.length, tc.info.name.ptr);
     assert(tc.info.name == "testtypeid.ABC");
 }
 
@@ -52,29 +53,25 @@ void foo3(int x, ...)
 
 	if (_arguments[i] is typeid(int))
 	{
-	    int j = *cast(int *)_argptr;
-	    _argptr += int.sizeof;
+	    int j = va_arg!int(_argptr);
 	    printf("\t%d\n", j);
 	    assert(j == 2);
 	}
 	else if (_arguments[i] == typeid(long))
 	{
-	    long j = *cast(long *)_argptr;
-	    _argptr += long.sizeof;
+	    long j = va_arg!long(_argptr);
 	    printf("\t%lld\n", j);
 	    assert(j == 3);
 	}
 	else if (_arguments[i] is typeid(double))
 	{
-	    double d = *cast(double *)_argptr;
-	    _argptr += double.sizeof;
+	    double d = va_arg!double(_argptr);
 	    printf("\t%g\n", d);
 	    assert(d == 4.5);
 	}
 	else if (_arguments[i] is typeid(FOO3))
 	{
-	    FOO3 f = *cast(FOO3*)_argptr;
-	    _argptr += FOO3.sizeof;
+	    FOO3 f = va_arg!FOO3(_argptr);
 	    printf("\t%p\n", f);
 	    assert(f is foox3);
 	}
@@ -422,34 +419,29 @@ void printargs(int x, ...)
 
 	if (_arguments[i] == typeid(int))
 	{
-	    int j = *cast(int *)_argptr;
-	    _argptr += int.sizeof;
+	    int j = va_arg!int(_argptr);
 	    printf("\t%d\n", j);
 	}
 	else if (_arguments[i] == typeid(long))
 	{
-	    long j = *cast(long *)_argptr;
-	    _argptr += long.sizeof;
+	    long j = va_arg!long(_argptr);
 	    printf("\t%lld\n", j);
 	}
 	else if (_arguments[i] == typeid(double))
 	{
-	    double d = *cast(double *)_argptr;
-	    _argptr += double.sizeof;
+	    double d = va_arg!double(_argptr);
 	    printf("\t%g\n", d);
 	}
 	else if (_arguments[i] == typeid(Foo32))
 	{
-	    Foo32 f = *cast(Foo32*)_argptr;
+	    Foo32 f = va_arg!Foo32(_argptr);
 	    assert(f.x == 3);
-	    _argptr += Foo32.sizeof;
 	    printf("\t%p\n", f);
 	}
 	else if (_arguments[i] == typeid(Bar32))
 	{
-	    Bar32 b = *cast(Bar32*)_argptr;
+	    Bar32 b = va_arg!Bar32(_argptr);
 	    assert(b.y == 4);
-	    _argptr += Bar32.sizeof;
 	    printf("\t%p\n", b);
 	}
 	else

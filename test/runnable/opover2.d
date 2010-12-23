@@ -9,7 +9,7 @@ class A
 {
     string opUnary(string s)()
     {
-	printf("A.opUnary!(%.*s)\n", s);
+	printf("A.opUnary!(%.*s)\n", s.length, s.ptr);
 	return s;
     }
 }
@@ -37,7 +37,8 @@ class A2
 {
     T opCast(T)()
     {
-	printf("A.opCast!(%.*s)\n", T.stringof);
+        auto s = T.stringof;
+	printf("A.opCast!(%.*s)\n", s.length, s.ptr);
 	return T.init;
     }
 }
@@ -61,19 +62,20 @@ struct A3
 {
     int opBinary(string s)(int i)
     {
-	printf("A.opBinary!(%.*s)\n", s);
+	printf("A.opBinary!(%.*s)\n", s.length, s.ptr);
 	return 0;
     }
 
     int opBinaryRight(string s)(int i) if (s == "/" || s == "*")
     {
-	printf("A.opBinaryRight!(%.*s)\n", s);
+	printf("A.opBinaryRight!(%.*s)\n", s.length, s.ptr);
 	return 0;
     }
 
     T opCast(T)()
     {
-	printf("A.opCast!(%.*s)\n", T.stringof);
+        auto s = T.stringof;
+	printf("A.opCast!(%.*s)\n", s.length, s.ptr);
 	return T.init;
     }
 }
@@ -95,13 +97,14 @@ struct A4
 {
     int opUnary(string s)()
     {
-	printf("A.opUnary!(%.*s)\n", s);
+	printf("A.opUnary!(%.*s)\n", s.length, s.ptr);
 	return 0;
     }
 
     T opCast(T)()
     {
-	printf("A.opCast!(%.*s)\n", T.stringof);
+        auto s = T.stringof;
+	printf("A.opCast!(%.*s)\n", s.length, s.ptr);
 	return T.init;
     }
 }
@@ -131,13 +134,14 @@ class A5
 
     int opUnary(string s)()
     {
-	printf("A.opUnary!(%.*s)\n", s);
+	printf("A.opUnary!(%.*s)\n", s.length, s.ptr);
 	return 0;
     }
 
     T opCast(T)()
     {
-	printf("A.opCast!(%.*s)\n", T.stringof);
+        auto s = T.stringof;
+	printf("A.opCast!(%.*s)\n", s.length, s.ptr);
 	return T.init;
     }
 }
@@ -281,31 +285,31 @@ struct A8
 {
     int opUnary(string s)()
     {
-	printf("A.opUnary!(%.*s)\n", s);
+	printf("A.opUnary!(%.*s)\n", s.length, s.ptr);
 	return 0;
     }
 
     int opIndexUnary(string s, T)(T i)
     {
-	printf("A.opIndexUnary!(%.*s)(%d)\n", s, i);
+	printf("A.opIndexUnary!(%.*s)(%d)\n", s.length, s.ptr, i);
 	return 0;
     }
 
     int opIndexUnary(string s, T)(T i, T j)
     {
-	printf("A.opIndexUnary!(%.*s)(%d, %d)\n", s, i, j);
+	printf("A.opIndexUnary!(%.*s)(%d, %d)\n", s.length, s.ptr, i, j);
 	return 0;
     }
 
     int opSliceUnary(string s)()
     {
-	printf("A.opSliceUnary!(%.*s)()\n", s);
+	printf("A.opSliceUnary!(%.*s)()\n", s.length, s.ptr);
 	return 0;
     }
 
     int opSliceUnary(string s, T)(T i, T j)
     {
-	printf("A.opSliceUnary!(%.*s)(%d, %d)\n", s, i, j);
+	printf("A.opSliceUnary!(%.*s)(%d, %d)\n", s.length, s.ptr, i, j);
 	return 0;
     }
 }
@@ -329,31 +333,31 @@ struct A9
 {
     int opOpAssign(string s)(int i)
     {
-	printf("A.opOpAssign!(%.*s)\n", s);
+	printf("A.opOpAssign!(%.*s)\n", s.length, s.ptr);
 	return 0;
     }
 
     int opIndexOpAssign(string s, T)(int v, T i)
     {
-	printf("A.opIndexOpAssign!(%.*s)(%d, %d)\n", s, v, i);
+	printf("A.opIndexOpAssign!(%.*s)(%d, %d)\n", s.length, s.ptr, v, i);
 	return 0;
     }
 
     int opIndexOpAssign(string s, T)(int v, T i, T j)
     {
-	printf("A.opIndexOpAssign!(%.*s)(%d, %d, %d)\n", s, v, i, j);
+	printf("A.opIndexOpAssign!(%.*s)(%d, %d, %d)\n", s.length, s.ptr, v, i, j);
 	return 0;
     }
 
     int opSliceOpAssign(string s)(int v)
     {
-	printf("A.opSliceOpAssign!(%.*s)(%d)\n", s, v);
+	printf("A.opSliceOpAssign!(%.*s)(%d)\n", s.length, s.ptr, v);
 	return 0;
     }
 
     int opSliceOpAssign(string s, T)(int v, T i, T j)
     {
-	printf("A.opSliceOpAssign!(%.*s)(%d, %d, %d)\n", s, v, i, j);
+	printf("A.opSliceOpAssign!(%.*s)(%d, %d, %d)\n", s.length, s.ptr, v, i, j);
 	return 0;
     }
 }

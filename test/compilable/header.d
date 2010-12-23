@@ -4,7 +4,8 @@
 
 module foo.bar;
 
-private import std.stdio;
+import core.vararg;
+import std.stdio;
 
 pragma(lib, "test");
 pragma(msg, "Hello World");

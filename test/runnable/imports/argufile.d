@@ -2,6 +2,7 @@
 
 public:
 
+import core.vararg;
 import std.stdio;
 import std.format;
 import std.utf;

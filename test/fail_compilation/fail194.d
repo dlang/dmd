@@ -1,3 +1,4 @@
+import core.vararg;
 
 void bar(int i, ...) { }
 

@@ -4,6 +4,7 @@ module dstress.run.module_01;
 
 import core.memory;
 import core.exception;
+import core.vararg;
 
 extern(C) void* malloc(size_t size);
 
