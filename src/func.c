@@ -927,9 +927,24 @@ void FuncDeclaration::semantic3(Scope *sc)
         if (f->varargs == 1)
         {
 #if TARGET_NET
-        varArgs(sc2, f, argptr, _arguments);
+            varArgs(sc2, f, argptr, _arguments);
 #else
-        Type *t;
+            Type *t;
+
+            if (global.params.isX86_64)
+            {   // Declare save area for varargs registers
+                Type *t = new TypeIdentifier(loc, Id::va_argsave_t);
+                t = t->semantic(loc, sc);
+                if (t == Type::terror)
+                    error("must import core.vararg to use variadic functions");
+                else
+                {
+                    v_argsave = new VarDeclaration(loc, t, Id::va_argsave, NULL);
+                    v_argsave->semantic(sc2);
+                    sc2->insert(v_argsave);
+                    v_argsave->parent = this;
+                }
+            }
 
             if (f->linkage == LINKd)
             {   // Declare _arguments[]
@@ -968,20 +983,6 @@ void FuncDeclaration::semantic3(Scope *sc)
                 argptr->parent = this;
             }
 #endif
-        }
-        if (global.params.isX86_64 && f->varargs && f->linkage == LINKc)
-        {   // Declare save area for varargs registers
-            Type *t = new TypeIdentifier(loc, Id::va_argsave_t);
-            t = t->semantic(loc, sc);
-            if (t == Type::terror)
-                error("must import std.c.stdarg to use variadic functions");
-            else
-            {
-                v_argsave = new VarDeclaration(loc, t, Id::va_argsave, NULL);
-                v_argsave->semantic(sc2);
-                sc2->insert(v_argsave);
-                v_argsave->parent = this;
-            }
         }
 
 #if 0
@@ -1384,53 +1385,65 @@ void FuncDeclaration::semantic3(Scope *sc)
             }
 
             if (argptr)
-            {   // Initialize _argptr to point past non-variadic arg
+            {   // Initialize _argptr
 #if IN_GCC
                 // Handled in FuncDeclaration::toObjFile
                 v_argptr = argptr;
                 v_argptr->init = new VoidInitializer(loc);
 #else
                 Type *t = argptr->type;
-                VarDeclaration *p;
-                unsigned offset = 0;
-
-                Expression *e1 = new VarExp(0, argptr);
-                // Find the last non-ref parameter
-                if (parameters && parameters->dim)
-                {
-                    int lastNonref = parameters->dim -1;
-                    p = (VarDeclaration *)parameters->data[lastNonref];
-                    /* The trouble with out and ref parameters is that taking
-                     * the address of it doesn't work, because later processing
-                     * adds in an extra level of indirection. So we skip over them.
-                     */
-                    while (p->storage_class & (STCout | STCref))
-                    {
-                        --lastNonref;
-                        offset += PTRSIZE;
-                        if (lastNonref < 0)
-                        {
-                            p = v_arguments;
-                            break;
-                        }
-                        p = (VarDeclaration *)parameters->data[lastNonref];
-                    }
+                if (global.params.isX86_64)
+                {   // Initialize _argptr to point to v_argsave
+                    Expression *e1 = new VarExp(0, argptr);
+                    Expression *e = new SymOffExp(0, v_argsave, 6*8 + 8*16);
+                    e->type = argptr->type;
+                    e = new AssignExp(0, e1, e);
+                    e = e->semantic(sc);
+                    a->push(new ExpStatement(0, e));
                 }
                 else
-                    p = v_arguments;            // last parameter is _arguments[]
-                if (p->storage_class & STClazy)
-                    // If the last parameter is lazy, it's the size of a delegate
-                    offset += PTRSIZE * 2;
-                else
-                    offset += p->type->size();
-                offset = (offset + PTRSIZE - 1) & ~(PTRSIZE - 1);  // assume stack aligns on pointer size
-                Expression *e = new SymOffExp(0, p, offset);
-                e->type = Type::tvoidptr;
-                //e = e->semantic(sc);
-                e = new AssignExp(0, e1, e);
-                e->type = t;
-                a->push(new ExpStatement(0, e));
-                p->isargptr = TRUE;
+                {   // Initialize _argptr to point past non-variadic arg
+                    VarDeclaration *p;
+                    unsigned offset = 0;
+
+                    Expression *e1 = new VarExp(0, argptr);
+                    // Find the last non-ref parameter
+                    if (parameters && parameters->dim)
+                    {
+                        int lastNonref = parameters->dim -1;
+                        p = (VarDeclaration *)parameters->data[lastNonref];
+                        /* The trouble with out and ref parameters is that taking
+                         * the address of it doesn't work, because later processing
+                         * adds in an extra level of indirection. So we skip over them.
+                         */
+                        while (p->storage_class & (STCout | STCref))
+                        {
+                            --lastNonref;
+                            offset += PTRSIZE;
+                            if (lastNonref < 0)
+                            {
+                                p = v_arguments;
+                                break;
+                            }
+                            p = (VarDeclaration *)parameters->data[lastNonref];
+                        }
+                    }
+                    else
+                        p = v_arguments;            // last parameter is _arguments[]
+                    if (p->storage_class & STClazy)
+                        // If the last parameter is lazy, it's the size of a delegate
+                        offset += PTRSIZE * 2;
+                    else
+                        offset += p->type->size();
+                    offset = (offset + PTRSIZE - 1) & ~(PTRSIZE - 1);  // assume stack aligns on pointer size
+                    Expression *e = new SymOffExp(0, p, offset);
+                    e->type = Type::tvoidptr;
+                    //e = e->semantic(sc);
+                    e = new AssignExp(0, e1, e);
+                    e->type = t;
+                    a->push(new ExpStatement(0, e));
+                    p->isargptr = TRUE;
+                }
 #endif
             }
 

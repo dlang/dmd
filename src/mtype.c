@@ -1720,10 +1720,13 @@ Expression *Type::getProperty(Loc loc, Identifier *ident)
             s = toDsymbol(NULL);
         if (s)
             s = s->search_correct(ident);
-        if (s)
-            error(loc, "no property '%s' for type '%s', did you mean '%s'?", ident->toChars(), toChars(), s->toChars());
-        else
-            error(loc, "no property '%s' for type '%s'", ident->toChars(), toChars());
+        if (this != Type::terror)
+        {
+            if (s)
+                error(loc, "no property '%s' for type '%s', did you mean '%s'?", ident->toChars(), toChars(), s->toChars());
+            else
+                error(loc, "no property '%s' for type '%s'", ident->toChars(), toChars());
+        }
         e = new ErrorExp();
     }
     return e;

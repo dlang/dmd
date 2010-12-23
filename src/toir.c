@@ -441,9 +441,9 @@ int intrinsic_op(char *name)
         "4math6rndtolFNaNbNfeZl",
         "4math6yl2xp1FNaNbNfeeZe",
 
-        "9intrinsic2btFNaNbxPkkZi",
-        "9intrinsic3bsfFNaNbkZi",
-        "9intrinsic3bsrFNaNbkZi",
+        "9intrinsic2btFNaNbxPmmZi",
+        "9intrinsic3bsfFNaNbmZi",
+        "9intrinsic3bsrFNaNbmZi",
         "9intrinsic3btcFNbPmmZi",
         "9intrinsic3btrFNbPmmZi",
         "9intrinsic3btsFNbPmmZi",
