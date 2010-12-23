@@ -46,7 +46,7 @@ const char *importHint(const char *s)
     {   "core.stdc.stdio",
         "std.stdio",
         "std.math",
-        "std.c.stdarg",
+        "core.vararg",
     };
     static const char *names[] =
     {

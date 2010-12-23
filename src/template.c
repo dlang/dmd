@@ -2273,7 +2273,7 @@ void deduceBaseClassParameters(BaseClass *b,
     Scope *sc, Type *tparam, TemplateParameters *parameters, Objects *dedtypes,
     Objects *best, int &numBaseClassMatches)
 {
-    TemplateInstance *parti = b->base->parent->isTemplateInstance();
+    TemplateInstance *parti = b->base ? b->base->parent->isTemplateInstance() : NULL;
     if (parti)
     {
         // Make a temporary copy of dedtypes so we don't destroy it

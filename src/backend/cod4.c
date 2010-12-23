@@ -3232,7 +3232,7 @@ code *cdbscan(elem *e, regm_t *pretregs)
         return codelem(e->E1,pretregs,FALSE);
     tyml = tybasic(e->E1->Ety);
     sz = tysize[tyml];
-    assert(sz == 2 || sz == 4);
+    assert(sz == 2 || sz == 4 || sz == 8);
 
     if ((e->E1->Eoper == OPind && !e->E1->Ecount) || e->E1->Eoper == OPvar)
     {
@@ -3260,6 +3260,8 @@ code *cdbscan(elem *e, regm_t *pretregs)
     if (!I16 && sz == SHORTSIZE)
         cs.Iflags |= CFopsize;
     cg = gen(cg,&cs);
+    if (sz == 8)
+        code_orrex(cg, REX_W);
 
     return cat3(cl,cg,fixresult(e,retregs,pretregs));
 }
