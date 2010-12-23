@@ -1375,7 +1375,7 @@ unittest
 /*
  *
  */
-string decodeDmdString( char[] ln, ref int p )
+string decodeDmdString( const(char)[] ln, ref int p )
 {
     string s;
     uint zlen, zpos;
