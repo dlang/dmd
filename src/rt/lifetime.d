@@ -14,6 +14,8 @@
  */
 module rt.lifetime;
 
+//debug=PRINTF;
+
 private
 {
     import core.stdc.stdlib;
@@ -391,33 +393,31 @@ BlkInfo *__getBlkInfo(void *interior)
             return ptr;
         return null; // not in cache.
     }
+    else version(simple_cache)
+    {
+        BlkInfo *ptr = __blkcache.ptr;
+        foreach(i; 0..N_CACHE_BLOCKS)
+        {
+            if(ptr.base <= interior && (interior - ptr.base) < ptr.size)
+                return ptr;
+            ptr++;
+        }
+        return null;
+    }
     else
     {
-        version(simple_cache)
+        // try to do a smart lookup, using __nextBlkIdx as the "head"
+        BlkInfo *ptr = __blkcache.ptr;
+        for(int i = __nextBlkIdx; i >= 0; --i)
         {
-            BlkInfo *ptr = __blkcache.ptr;
-            foreach(i; 0..N_CACHE_BLOCKS)
-            {
-                if(ptr.base <= interior && (interior - ptr.base) < ptr.size)
-                    return ptr;
-                ptr++;
-            }
+            if(ptr[i].base <= interior && (interior - ptr[i].base) < ptr[i].size)
+                return ptr + i;
         }
-        else
-        {
-            // try to do a smart lookup, using __nextBlkIdx as the "head"
-            BlkInfo *ptr = __blkcache.ptr;
-            for(int i = __nextBlkIdx; i >= 0; --i)
-            {
-                if(ptr[i].base <= interior && (interior - ptr[i].base) < ptr[i].size)
-                    return ptr + i;
-            }
 
-            for(int i = N_CACHE_BLOCKS - 1; i > __nextBlkIdx; --i)
-            {
-                if(ptr[i].base <= interior && (interior - ptr[i].base) < ptr[i].size)
-                    return ptr + i;
-            }
+        for(int i = N_CACHE_BLOCKS - 1; i > __nextBlkIdx; --i)
+        {
+            if(ptr[i].base <= interior && (interior - ptr[i].base) < ptr[i].size)
+                return ptr + i;
         }
         return null; // not in cache.
     }
@@ -1610,11 +1610,25 @@ extern (C) void[] _d_arrayappendcT(TypeInfo ti, Array *x, ...)
     }
     else version(X86_64)
     {
+        // This code copies the element twice, which is annoying
+        //   #1 is from va_arg copying from the varargs to b
+        //   #2 is in _d_arrayappendT is copyinb b into the end of x
+        // to fix this, we need a form of _d_arrayappendT that just grows
+        // the array and leaves the copy to be done here by va_arg.
+        byte[] b = (cast(byte*)alloca(ti.next.tsize))[0 .. ti.next.tsize];
+
         va_list ap;
         va_start(ap, __va_argsave);
-        byte[] argp;
-        va_arg(ap, ti.next, argp);
-        return _d_arrayappendT(ti, x, argp);
+        va_arg(ap, ti.next, cast(void*)b.ptr);
+        va_end(ap);
+
+        // The 0..1 here is strange.  Inside _d_arrayappendT, it ends up copying
+        // b.length * ti.next.tsize bytes, which is right amount, but awfully
+        // indirectly determined.  So, while it passes a darray of just one byte,
+        // the entire block is copied correctly.  If the full b darray is passed
+        // in, what's copied is ti.next.tsize * ti.next.tsize bytes, rather than
+        // 1 * ti.next.tsize bytes.
+        return _d_arrayappendT(ti, x, b[0..1]);
     }
     else
     {

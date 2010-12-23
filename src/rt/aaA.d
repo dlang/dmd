@@ -209,6 +209,7 @@ body
  * Add entry for key if it is not already there.
  */
 
+// retained for backwards compatibility
 void* _aaGet(AA* aa, TypeInfo keyti, size_t valuesize, ...)
 {
     return _aaGetX(aa, keyti, valuesize, cast(void*)(&valuesize + 1));
@@ -676,6 +677,76 @@ BB* _d_assocarrayliteralT(TypeInfo_AssociativeArray ti, size_t length, ...)
     }
     return result;
 }
+
+extern (C)
+BB* _d_assocarrayliteralTX(TypeInfo_AssociativeArray ti, void[] keys, void[] values)
+{
+    auto valuesize = ti.next.tsize();           // value size
+    auto keyti = ti.key;
+    auto keysize = keyti.tsize();               // key size
+    auto length = keys.length;
+    BB* result;
+
+    //printf("_d_assocarrayliteralT(keysize = %d, valuesize = %d, length = %d)\n", keysize, valuesize, length);
+    //printf("tivalue = %.*s\n", ti.next.classinfo.name);
+    assert(length == values.length);
+    if (length == 0 || valuesize == 0 || keysize == 0)
+    {
+        ;
+    }
+    else
+    {
+        result = new BB();
+        result.keyti = keyti;
+
+        size_t i;
+        for (i = 0; i < prime_list.length - 1; i++)
+        {
+            if (length <= prime_list[i])
+                break;
+        }
+        auto len = prime_list[i];
+        result.b = new aaA*[len];
+
+        size_t keytsize = aligntsize(keysize);
+
+        for (size_t j = 0; j < length; j++)
+        {   auto pkey = keys.ptr + j * keysize;
+            auto pvalue = values.ptr + j * valuesize;
+            aaA* e;
+
+            auto key_hash = keyti.getHash(pkey);
+            //printf("hash = %d\n", key_hash);
+            i = key_hash % len;
+            auto pe = &result.b[i];
+            while (1)
+            {
+                e = *pe;
+                if (!e)
+                {
+                    // Not found, create new elem
+                    //printf("create new one\n");
+                    e = cast(aaA *) cast(void*) new void[aaA.sizeof + keytsize + valuesize];
+                    memcpy(e + 1, pkey, keysize);
+                    e.hash = key_hash;
+                    *pe = e;
+                    result.nodes++;
+                    break;
+                }
+                if (key_hash == e.hash)
+                {
+                    auto c = keyti.compare(pkey, e + 1);
+                    if (c == 0)
+                        break;
+                }
+                pe = &e.next;
+            }
+            memcpy(cast(void *)(e + 1) + keytsize, pvalue, valuesize);
+        }
+    }
+    return result;
+}
+
 
 /***********************************
  * Compare AA contents for equality.

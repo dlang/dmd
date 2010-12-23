@@ -49,7 +49,7 @@ struct Array
  * reversed.
  */
 
-extern (C) long _adReverseChar(char[] a)
+extern (C) char[] _adReverseChar(char[] a)
 {
     if (a.length > 1)
     {
@@ -109,7 +109,7 @@ extern (C) long _adReverseChar(char[] a)
             hi = hi - 1 + (stridehi - stridelo);
         }
     }
-    return *cast(long*)(&a);
+    return a;
 }
 
 unittest
@@ -202,7 +202,7 @@ extern (C) wchar[] _adReverseWchar(wchar[] a)
             hi = hi - 1 + (stridehi - stridelo);
         }
     }
-    return *cast(wchar[]*)(&a);
+    return a;
 }
 
 unittest
@@ -326,7 +326,7 @@ extern (C) char[] _adSortChar(char[] a)
         }
         delete da;
     }
-    return *cast(char[]*)(&a);
+    return a;
 }
 
 /**********************************************
@@ -348,7 +348,7 @@ extern (C) wchar[] _adSortWchar(wchar[] a)
         }
         delete da;
     }
-    return *cast(wchar[]*)(&a);
+    return a;
 }
 
 /***************************************
