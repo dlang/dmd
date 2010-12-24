@@ -57,6 +57,11 @@ else
     fi
 fi
 
+if [ "${MODEL}" == "64" ]; then
+    p_args="${p_args/-O/}"
+    r_args="${r_args/-O/}"
+fi
+
 e_args=`grep EXECUTE_ARGS  ${input_file} | tr -d \\\\r\\\\n`
 if [ ! -z "$e_args" ]; then
     e_args="${e_args/*EXECUTE_ARGS:*( )/}"

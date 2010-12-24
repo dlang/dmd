@@ -566,7 +566,7 @@ void main ()
   printf ("        should be:   %d\n", 2);
   printf ("  Int_Comp:          %d\n", Ptr_Glob.variant.var_1.Int_Comp);
   printf ("        should be:   %d\n", 17);
-  printf ("  Str_Comp:          %.*s\n", Ptr_Glob.variant.var_1.Str_Comp);
+  printf ("  Str_Comp:          %.*s\n", Ptr_Glob.variant.var_1.Str_Comp.length, Ptr_Glob.variant.var_1.Str_Comp.ptr);
   printf ("        should be:   DHRYSTONE PROGRAM, SOME STRING\n");
   printf ("Next_Ptr_Glob.\n");
   printf ("  Ptr_Comp:          %d\n", cast(int) Next_Ptr_Glob.Ptr_Comp);
@@ -577,7 +577,7 @@ void main ()
   printf ("        should be:   %d\n", 1);
   printf ("  Int_Comp:          %d\n", Next_Ptr_Glob.variant.var_1.Int_Comp);
   printf ("        should be:   %d\n", 18);
-  printf ("  Str_Comp:          %.*s\n", Next_Ptr_Glob.variant.var_1.Str_Comp);
+  printf ("  Str_Comp:          %.*s\n", Next_Ptr_Glob.variant.var_1.Str_Comp.length, Next_Ptr_Glob.variant.var_1.Str_Comp.ptr);
   printf ("        should be:   DHRYSTONE PROGRAM, SOME STRING\n");
   printf ("Int_1_Loc:           %d\n", Int_1_Loc);
   printf ("        should be:   %d\n", 5);
@@ -587,9 +587,9 @@ void main ()
   printf ("        should be:   %d\n", 7);
   printf ("Enum_Loc:            %d\n", Enum_Loc);
   printf ("        should be:   %d\n", 1);
-  printf ("Str_1_Loc:           %.*s\n", Str_1_Loc);
+  printf ("Str_1_Loc:           %.*s\n", Str_1_Loc.length, Str_1_Loc.ptr);
   printf ("        should be:   DHRYSTONE PROGRAM, 1'ST STRING\n");
-  printf ("Str_2_Loc:           %.*s\n", Str_2_Loc);
+  printf ("Str_2_Loc:           %.*s\n", Str_2_Loc.length, Str_2_Loc.ptr);
   printf ("        should be:   DHRYSTONE PROGRAM, 2'ND STRING\n");
   printf ("\n");
 
@@ -620,7 +620,7 @@ void main ()
    /+ 
   fprintf(Ap,"\n");
   fprintf(Ap,"Dhrystone Benchmark, Version 2.1 (Language: D)\n");
-  fprintf(Ap,"%.*s\n",Reg_Define);
+  fprintf(Ap,"%.*s\n",Reg_Define.length, Reg_Define.ptr);
   fprintf(Ap,"Microseconds for one loop: %7.1lf\n",Microseconds);
   fprintf(Ap,"Dhrystones per second: %10.1lf\n",Dhrystones_Per_Second);
   fprintf(Ap,"VAX MIPS rating: %10.3lf\n",Vax_Mips);
