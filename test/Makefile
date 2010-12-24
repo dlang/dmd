@@ -96,89 +96,103 @@ fail_compilation_test_results=$(addsuffix .out,$(addprefix $(RESULTS_DIR)/,$(fai
 all: run_tests
 
 ifeq ($(MODEL),64)
-DISABLED_TESTS = \
-	a20           \
-	argufilem     \
-	arrayop       \
-	builtin       \
-	complex       \
-	constfold     \
-	cov2          \
-	delegate      \
-	dhry          \
-	eh2           \
-	foreach4      \
-	foreach5      \
-	hello-profile \
-	hospital      \
-	ifti          \
-	implicit      \
-	inner         \
-	integrate     \
-	interpret2    \
-	interpret     \
-	lazy          \
-	mixin1        \
-	mixin2        \
-	nested        \
-	pi            \
-	printargs     \
-	s2ir          \
-	sieve         \
-	statictor     \
-	stress        \
-	template1     \
-	template4     \
-	template6     \
-	template9     \
-	test11        \
-	test12        \
-	test16        \
-	test19        \
-	test20        \
-	test22        \
-	test23        \
-	test28        \
-	test34        \
-	test36        \
-	test37        \
-	test42        \
-	test4         \
-	test52        \
-	test60        \
-	test7         \
-	test8         \
-	testaa2       \
-	testaa        \
-	testarray     \
-	testconst     \
-	testdate      \
-	testdstress   \
-	testformat    \
-	testgc2       \
-	testgc3       \
-	testline      \
-	testmath      \
-	testmmfile    \
-	testregexp2   \
-	testsignals   \
-	testfile      \
-	testswitch    \
-	testthread2   \
-	testtypeid    \
-	testzip       \
-	traits        \
-	untag         \
-	variadic      \
-	wc2           \
-	wc3           \
-	wc            \
-	xtest46       \
-	xtest55
+DISABLED_TESTS = a20
+DISABLED_TESTS += cov2
+DISABLED_TESTS += hello-profile
+DISABLED_TESTS += sieve
+# coverage / tracing is broken
+
+DISABLED_TESTS += arrayop
+# value isn't making it into the runtime library call for some reason
+
+DISABLED_TESTS += builtin
+DISABLED_TESTS += integrate
+DISABLED_TESTS += testmath
+# needs std.math
+
+DISABLED_TESTS += delegate
+# array literal with delegate
+
+DISABLED_TESTS += eh2
+DISABLED_TESTS += test4
+DISABLED_TESTS += test12
+DISABLED_TESTS += test42
+DISABLED_TESTS += testsignals
+DISABLED_TESTS += xtest46
+# hangs at exit, somewhere in atomic code?
+
+DISABLED_TESTS += foreach4
+# iterate over dstring as char returning bad results
+
+DISABLED_TESTS += hospital
+# int vs long issues
+
+DISABLED_TESTS += interpret
+# array literal with struct
+
+DISABLED_TESTS += s2ir
+DISABLED_TESTS += test16
+DISABLED_TESTS += test20
+DISABLED_TESTS += test28
+# -fPIC: transition from R_X86_64_TLSGD to R_X86_64_GOTTPOFF against
+
+DISABLED_TESTS += stress
+# hangs off in the gc
+
+DISABLED_TESTS += template4
+# segv's off in an opCall, not clear why
+
+DISABLED_TESTS += test11
+# array append issues? test33
+
+DISABLED_TESTS += test22
+#  has x86 specific asm code that needs translation
+
+DISABLED_TESTS += test34
+DISABLED_TESTS += testformat
+# looks like lots of issues with std.format, at least array and aa formatting is borked..
+
+DISABLED_TESTS += test7
+# interesting array manipulation test fails
+
+DISABLED_TESTS += test8
+# segv in rt.deh2.__eh_find_caller
+
+DISABLED_TESTS += testaa2
+# aa.values returns wrong data
+
+DISABLED_TESTS += testaa
+# segv in memcmp related to aa.keys
+
+DISABLED_TESTS += testarray
+# sensitive code checking a specific runtime bug
+
+DISABLED_TESTS += testconst
+# segv in a misleading place.. printfs around the functions in the backtrace
+# not firing.  More research needed.
+
+DISABLED_TESTS += testgc2
+DISABLED_TESTS += testgc3
+DISABLED_TESTS += untag
+DISABLED_TESTS += wc2
+DISABLED_TESTS += wc3
+DISABLED_TESTS += wc
+# various gc related issues
+
+DISABLED_TESTS += testmmfile
+# mm issues, probably
+
+DISABLED_TESTS += testregexp2
+# needs std/regexp to be fixed first
+
+DISABLED_TESTS += testthread2
+# segv
+
+DISABLED_TESTS += testzip
+# zlib version error
 
 $(addsuffix .d.out,$(addprefix $(RESULTS_DIR)/runnable/,$(DISABLED_TESTS))): $(RESULTS_DIR)/.created
 	$(QUIET) echo " ... $@ - disabled"
-	$(QUIET) touch $@
 
 $(RESULTS_DIR)/runnable/test2.sh.out:
 	$(QUIET) echo " ... $@ - disabled"

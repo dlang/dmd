@@ -2,8 +2,9 @@
 
 module test;
 
+import core.vararg;
+import core.stdc.stdlib;
 import std.stdio;
-import std.c.stdlib;
 import std.string;
 
 
@@ -407,11 +408,11 @@ class Foo20
 {
         void bar (void * src)
         {
-                void baz (void function (void *, uint) xyz)
+                void baz (void function (void *, size_t) xyz)
                 {
-                        uint foo (void [] dst)
+                        size_t foo (void [] dst)
                         {
-                                uint len = dst.length;
+                                size_t len = dst.length;
                                 dst [0 .. len] = src [0 .. len];
                                 xyz (dst.ptr, len);
                                 return len;
@@ -768,7 +769,8 @@ void test34()
     int o3 = Foo34.bar.offsetof;
     assert(o3 == 8);
     int o4 = Foo34.baz.offsetof;
-    assert(o4 == 12);
+    assert((o4 % (void*).sizeof) == 0);
+    assert(o4 > o3);
 }
 
 /*******************************************/

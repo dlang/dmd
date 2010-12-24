@@ -2,7 +2,8 @@
 
 module template1;
 
-import std.c.stdio;
+import core.stdc.stdio : printf;
+import core.vararg;
 
 /******************************************/
 
@@ -792,7 +793,7 @@ void test30()
     assert(i == 3);
 
     copystr.copy(s, "Here it comes");
-    printf("%.*s\n", s);
+    printf("%.*s\n", s.length, s.ptr);
     assert(s == "Here it comes");
 }
 
@@ -1388,7 +1389,7 @@ void test56()
 {
   alias CT56!(int) Ct;
   Ct.C c= new Ct.C();
-  printf("%.*s\n", c.arrArr[0]);
+  printf("%.*s\n", c.arrArr[0].length, c.arrArr[0].ptr);
   assert(c.arrArr[0] == "foo");
 }
 
@@ -1473,16 +1474,16 @@ void test60()
 	printf("thing1.sizeof: %u\n", thing1.sizeof);
 	printf("thing2.sizeof: %u\n", thing2.sizeof);
 
-    version (Win32)
-	assert(thing1.sizeof == 16);
-    else
-	assert(thing1.sizeof == 12);
+        version (Win32)
+            assert(thing1.sizeof == 16);
+        else
+            assert(thing1.sizeof == 12);
 	assert(thing2.sizeof == 8);
 
 	C60!(int /*,A60*/ ).C60	container1;
 
 	printf("container1.sizeof: %u\n", container1.sizeof);
-	assert(container1.sizeof == 4);
+	assert(container1.sizeof == (void*).sizeof);
 }
 
 /******************************************/
@@ -1585,7 +1586,7 @@ struct Foo65
 {
     uint length() { return 47; }
 
-    int test()
+    size_t test()
     {
 	value_type[] e = new value_type[length];
 	return e.length;
@@ -1627,7 +1628,7 @@ template Foo67(alias T)
 {
     void Foo67()
     {
-	printf("T = '%.*s'\n", T);
+	printf("T = '%.*s'\n", T.length, T.ptr);
 	assert(T == "hello");
     }
 }
@@ -1658,13 +1659,13 @@ void test68()
 
 /******************************************/
 
-int printx(string s)
+size_t printx(string s)
 {
-    printf("s = '%.*s'\n", s);
+    printf("s = '%.*s'\n", s.length, s.ptr);
     return s.length;
 }
 
-int printx(int i)
+size_t printx(int i)
 {
     printf("i = %d\n", i);
     return 28;
@@ -1672,7 +1673,7 @@ int printx(int i)
 
 template Foo69(alias T)
 {
- int Foo69()
+ size_t Foo69()
  {
   return printx(T);
  }
@@ -1683,7 +1684,7 @@ void test69()
  static string x = "hello";
  static string z = "abc";
  static int y=100;
- int i;
+ size_t i;
 
  alias Foo69!(x) foox;
  alias Foo69!(y) fooy;
@@ -1757,8 +1758,9 @@ void test72()
 {
     static ulong[5] a = [0,1,2,3,4];
     static uint[5] b = [0,1,2,3,4];
-    printf("%.*s\n",foo72!(ulong[5])(a));
-    printf("%.*s\n",foo72!(uint[5])(b));
+    char[] r;
+    r = foo72!(ulong[5])(a); printf("%.*s\n", r.length, r.ptr);
+    r = foo72!(uint[5])(b);  printf("%.*s\n", r.length, r.ptr);
 }
 
 

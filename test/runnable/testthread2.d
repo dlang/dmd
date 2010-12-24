@@ -58,7 +58,7 @@ struct LinearAA(K, V) {
         values = values[0..$ - 1];
     }
 
-    uint length() {
+    size_t length() {
         return values.length;
     }
 }
@@ -66,8 +66,8 @@ struct LinearAA(K, V) {
 void main() {
     foreach(iter; 0..10) {  // Bug only happens after a few iterations.
         writeln(iter);
-        uint[uint] builtin;
-        LinearAA!(uint, uint) linAA;
+        uint[size_t] builtin;
+        LinearAA!(size_t, uint) linAA;
         uint[] nums = new uint[100_000];
         foreach(ref num; nums) {
             num = uniform(0U, uint.max);

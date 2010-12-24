@@ -11,9 +11,7 @@ alias strlen foo1;
 void test1()
 {
     const(char) *p = "bar";
-    int i;
-
-    i = foo1(p);
+    size_t i = foo1(p);
     assert(i == 3);
 }
 
@@ -83,8 +81,8 @@ void test3()
     }
     int ptr=3;
 
-    int dl=delimiter.length;
-    int pl=ptr+dl;
+    size_t dl=delimiter.length;
+    size_t pl=ptr+dl;
 
     assert(line[ptr..pl]==delimiter[]);
 }
@@ -96,7 +94,12 @@ void test4()
 {
     byte* p;
 
-    assert(p.sizeof == 4);
+    version(X86)
+        assert(p.sizeof == 4);
+    else version(X86_64)
+        assert(p.sizeof == 8);
+    else
+        assert(false, "unknown platform");
 }
 
 /**************************************/

@@ -1340,7 +1340,7 @@ void test70()
 
 /************************************************/
 
-int foo71(int[ string ] a)
+size_t foo71(int[ string ] a)
 {
     return a.length;
 }
@@ -1617,7 +1617,7 @@ struct S85 {
     int a;
 }
 
-int func85()
+size_t func85()
 {
     S85 [] s;
     s ~= S85(7);
@@ -1626,7 +1626,7 @@ int func85()
 
 void test85()
 {
-    const int x = func85();
+    const size_t x = func85();
     assert(x == 1);
 }
 
@@ -2668,7 +2668,7 @@ int bug4252()
 
 static assert(!is(typeof( Compileable!(bug4252()))));
 
-int setlen1()
+size_t setlen1()
 {
    int [] w = new int[4];
    w[] = 7;
@@ -2678,7 +2678,7 @@ int setlen1()
 
 static assert(setlen1()==27);
 
-int setlen2()
+size_t setlen2()
 {
    int [] w;
    w.length = 15;

@@ -10,9 +10,8 @@ int main()
 }
 
 void testaa()
-{   int i;
-
-    i = foo("abc");
+{
+    size_t i = foo("abc");
     printf("i = %d\n", i);
     assert(i == 0);
 
@@ -21,7 +20,7 @@ void testaa()
 
 int a[string];
 
-int foo(invariant char [3] s)
+size_t foo(invariant char [3] s)
 {
     printf("foo()\n");
     int b[string];

@@ -173,7 +173,7 @@ void test7()
 void foo8(int n1 = __LINE__ + 0, int n2 = __LINE__, string s = __FILE__)
 {
     assert(n1 < n2);
-    printf("n1 = %d, n2 = %d, s = %.*s\n", n1, n2, s);
+    printf("n1 = %d, n2 = %d, s = %.*s\n", n1, n2, s.length, s.ptr);
 }
 
 void test8()
@@ -186,7 +186,7 @@ void test8()
 void foo9(int n1 = __LINE__ + 0, int n2 = __LINE__, string s = __FILE__)()
 {
     assert(n1 < n2);
-    printf("n1 = %d, n2 = %d, s = %.*s\n", n1, n2, s);
+    printf("n1 = %d, n2 = %d, s = %.*s\n", n1, n2, s.length, s.ptr);
 }
 
 void test9()
@@ -910,7 +910,7 @@ struct S49
 
     this( string name )
     {
-	printf( "(ctor) &%.*s.x = %p\n", name, &x );
+	printf( "(ctor) &%.*s.x = %p\n", name.length, name.ptr, &x );
 	p = cast(void*)&x;
     }
 
@@ -1635,7 +1635,7 @@ struct S88
 {
     void opDispatch(string s, T)(T i)
     {
-	printf("S.opDispatch('%.*s', %d)\n", s, i);
+	printf("S.opDispatch('%.*s', %d)\n", s.length, s.ptr, i);
     }
 }
 
@@ -1643,7 +1643,7 @@ class C88
 {
     void opDispatch(string s)(int i)
     {
-	printf("C.opDispatch('%.*s', %d)\n", s, i);
+	printf("C.opDispatch('%.*s', %d)\n", s.length, s.ptr, i);
     }
 }
 

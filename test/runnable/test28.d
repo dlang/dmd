@@ -1,5 +1,6 @@
 module test;
 
+import core.vararg;
 import std.stdio;
 import std.string;
 
@@ -933,7 +934,7 @@ void test44()
 
 class C45
 {
-    void func(lazy uint x)
+    void func(lazy size_t x)
     {
 	(new C45).func(super.toHash());
     }
