@@ -144,6 +144,11 @@ dt_t *StructInitializer::toDt()
                 unsigned vsz = v->type->size();
                 unsigned voffset = v->offset;
 
+                if (sz > vsz)
+                {   assert(v->type->ty == Tsarray && vsz == 0);
+                    error(loc, "zero length array %s has non-zero length initializer", v->toChars());
+                }
+
                 unsigned dim = 1;
                 for (Type *vt = v->type->toBasetype();
                      vt->ty == Tsarray;
@@ -689,7 +694,11 @@ dt_t **StructLiteralExp::toDt(dt_t **pdt)
             {   unsigned sz = dt_size(d);
                 unsigned vsz = v->type->size();
                 unsigned voffset = v->offset;
-                assert(sz <= vsz);
+
+                if (sz > vsz)
+                {   assert(v->type->ty == Tsarray && vsz == 0);
+                    error("zero length array %s has non-zero length initializer", v->toChars());
+                }
 
                 unsigned dim = 1;
                 Type *vt;
@@ -699,6 +708,9 @@ dt_t **StructLiteralExp::toDt(dt_t **pdt)
                 {   TypeSArray *tsa = (TypeSArray *)vt;
                     dim *= tsa->dim->toInteger();
                 }
+
+                //printf("sz = %d, dim = %d, vsz = %d\n", sz, dim, vsz);
+                assert(sz == vsz || sz * dim <= vsz);
 
                 for (size_t i = 0; i < dim; i++)
                 {
