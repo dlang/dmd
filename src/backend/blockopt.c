@@ -592,6 +592,9 @@ void blockopt(int iter)
 
     if (OPTIMIZER)
     {
+        int iterationLimit = 200;
+        if (iterationLimit < numblks)
+            iterationLimit = numblks;
         count = 0;
         do
         {
@@ -616,7 +619,7 @@ void blockopt(int iter)
             {
                 compdfo();              /* compute depth first order (DFO) */
                 elimblks();             /* remove blocks not in DFO      */
-                assert(count < 200);
+                assert(count < iterationLimit);
                 count++;
             } while (mergeblks());      /* merge together blocks         */
         } while (changes);
