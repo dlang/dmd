@@ -7128,9 +7128,12 @@ static MATCH aliasthisConvTo(AggregateDeclaration *ad, Type *from, Type *to)
             Expression *ethis = from->defaultInit(0);
             fd = fd->overloadResolve(0, ethis, NULL);
             if (fd)
+            {
                 t = ((TypeFunction *)fd->type)->next;
+            }
         }
-        return t->implicitConvTo(to);
+        MATCH m = t->implicitConvTo(to);
+        return m;
     }
     return MATCHnomatch;
 }
