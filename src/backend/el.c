@@ -1886,6 +1886,28 @@ elem *el_scancommas(elem *e)
     return e;
 }
 
+/***************************
+ * Count number of commas in the expression.
+ */
+
+int el_countCommas(elem *e)
+{   int ncommas = 0;
+    while (1)
+    {
+        if (EBIN(e))
+        {
+            ncommas += (e->Eoper == OPcomma) + el_countCommas(e->E2);
+        }
+        else if (EUNA(e))
+        {
+        }
+        else
+            break;
+        e = e->E1;
+    }
+    return ncommas;
+}
+
 #if (TARGET_POWERPC)
 void el_convconst(elem *e)
 {

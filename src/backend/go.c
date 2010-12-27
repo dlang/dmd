@@ -233,6 +233,18 @@ void optfunc()
         startblock->Belem = el_combine(e, startblock->Belem);
     }
 
+    // Each pass through the loop can reduce only one level of comma expression.
+    // The infinite loop check needs to take this into account.
+    int iterationLimit = 200;
+    for (b = startblock; b; b = b->Bnext)
+    {
+        if (!b->Belem)
+            continue;
+        int d = el_countCommas(b->Belem);
+        if (d > iterationLimit)
+            iterationLimit = d;
+    }
+
     // Some functions can take enormous amounts of time to optimize.
     // We try to put a lid on it.
     starttime = clock();
@@ -240,8 +252,7 @@ void optfunc()
     {
         //printf("iter = %d\n", iter);
 #if TX86
-        //assert(++iter < 80);          /* infinite loop check           */
-        assert(++iter < 200);           /* infinite loop check           */
+        assert(++iter < iterationLimit);           // infinite loop check
 #else
      L1:
 #endif
