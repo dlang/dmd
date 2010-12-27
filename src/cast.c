@@ -426,12 +426,7 @@ MATCH StructLiteralExp::implicitConvTo(Type *t)
         for (int i = 0; i < elements->dim; i++)
         {   Expression *e = (Expression *)elements->data[i];
             Type *te = e->type;
-            if (t->mod == 0)
-                te = te->mutableOf();
-            else
-            {   assert(t->mod == MODimmutable);
-                te = te->invariantOf();
-            }
+            te = te->castMod(t->mod);
             MATCH m2 = e->implicitConvTo(te);
             //printf("\t%s => %s, match = %d\n", e->toChars(), te->toChars(), m2);
             if (m2 < m)
