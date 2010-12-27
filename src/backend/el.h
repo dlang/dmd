@@ -170,6 +170,7 @@ elem_p el_selecte2(elem_p);
 elem_p el_copytree(elem_p);
 void   el_replace_sym(elem *e,symbol *s1,symbol *s2);
 elem_p el_scancommas(elem_p);
+int el_countCommas(elem_p);
 int el_sideeffect(elem_p);
 #if TX86
 int el_depends(elem *ea,elem *eb);
