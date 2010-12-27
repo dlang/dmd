@@ -150,7 +150,7 @@ MANIFEST= \
 	src\rt\complex.c \
 	src\rt\cover.d \
 	src\rt\critical.c \
-	src\rt\deh.c \
+	src\rt\deh.d \
 	src\rt\deh2.d \
 	src\rt\dmain2.d \
 	src\rt\dylib_fixes.c \
@@ -275,6 +275,7 @@ SRCS= \
 	src\rt\arrayshort.d \
 	src\rt\cast_.d \
 	src\rt\cover.d \
+	src\rt\deh.d \
 	src\rt\dmain2.d \
 	src\rt\invariant.d \
 	src\rt\invariant_.d \
@@ -334,8 +335,8 @@ SRCS= \
 # NOTE: a pre-compiled minit.obj has been provided in dmd for Win32 and
 #       minit.asm is not used by dmd for Linux
 
-OBJS= errno_c.obj complex.obj critical.obj deh.obj monitor.obj src\rt\minit.obj
-OBJS_TO_DELETE= errno_c.obj complex.obj critical.obj deh.obj monitor.obj
+OBJS= errno_c.obj complex.obj critical.obj monitor.obj src\rt\minit.obj
+OBJS_TO_DELETE= errno_c.obj complex.obj critical.obj monitor.obj
 
 DOCS=\
 	$(DOCDIR)\object.html \
@@ -752,9 +753,6 @@ complex.obj : src\rt\complex.c
 
 critical.obj : src\rt\critical.c
 	$(CC) -c $(CFLAGS) src\rt\critical.c
-
-deh.obj : src\rt\deh.c
-	$(CC) -c $(CFLAGS) src\rt\deh.c
 
 src\rt\minit.obj : src\rt\minit.asm
 	$(CC) -c $(CFLAGS) src\rt\minit.asm

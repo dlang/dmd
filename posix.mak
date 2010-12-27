@@ -157,7 +157,7 @@ MANIFEST= \
 	src/rt/complex.c \
 	src/rt/cover.d \
 	src/rt/critical.c \
-	src/rt/deh.c \
+	src/rt/deh.d \
 	src/rt/deh2.d \
 	src/rt/dmain2.d \
 	src/rt/dylib_fixes.c \
