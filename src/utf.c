@@ -11,6 +11,7 @@
 // http://www.cl.cam.ac.uk/~mgk25/unicode.html#utf-8
 
 #include <stdio.h>
+#include <string.h>
 #include <assert.h>
 
 #include "utf.h"
@@ -225,5 +226,95 @@ const char *utf_decodeWchar(unsigned short *s, size_t len, size_t *pidx, dchar_t
     *presult = (dchar_t)s[i];
     *pidx = i + 1;
     return msg;
+}
+
+void utf_encodeChar(unsigned char *s, dchar_t c)
+{
+    if (c <= 0x7F)
+    {
+        s[0] = (char) c;
+    }
+    else if (c <= 0x7FF)
+    {
+        s[0] = (char)(0xC0 | (c >> 6));
+        s[1] = (char)(0x80 | (c & 0x3F));
+    }
+    else if (c <= 0xFFFF)
+    {
+        s[0] = (char)(0xE0 | (c >> 12));
+        s[1] = (char)(0x80 | ((c >> 6) & 0x3F));
+        s[2] = (char)(0x80 | (c & 0x3F));
+    }
+    else if (c <= 0x10FFFF)
+    {
+        s[0] = (char)(0xF0 | (c >> 18));
+        s[1] = (char)(0x80 | ((c >> 12) & 0x3F));
+        s[2] = (char)(0x80 | ((c >> 6) & 0x3F));
+        s[3] = (char)(0x80 | (c & 0x3F));
+    }
+    else
+        assert(0);
+}
+
+void utf_encodeWchar(unsigned short *s, dchar_t c)
+{
+    if (c <= 0xFFFF)
+    {
+        s[0] = (wchar_t) c;
+    }
+    else
+    {
+        s[0] = (wchar_t) ((((c - 0x10000) >> 10) & 0x3FF) + 0xD800);
+        s[1] = (wchar_t) (((c - 0x10000) & 0x3FF) + 0xDC00);
+    }
+}
+
+
+/**
+ * Returns the code length of c in the encoding.
+ * The code is returned in character count, not in bytes.
+ */
+
+int utf_codeLengthChar(dchar_t c)
+{
+    return
+        c <= 0x7F ? 1
+        : c <= 0x7FF ? 2
+        : c <= 0xFFFF ? 3
+        : c <= 0x10FFFF ? 4
+        : (assert(false), 6);
+}
+
+int utf_codeLengthWchar(dchar_t c)
+{
+    return c <= 0xFFFF ? 1 : 2;
+}
+
+/**
+ * Returns the code length of c in the encoding.
+ * sz is the encoding: 1 = utf8, 2 = utf16, 4 = utf32.
+ * The code is returned in character count, not in bytes.
+ */
+int utf_codeLength(int sz, dchar_t c)
+{
+    if (sz == 1)
+        return utf_codeLengthChar(c);
+    if (sz == 2)
+        return utf_codeLengthWchar(c);
+    assert(sz == 4);
+    return 1;
+}
+
+void utf_encode(int sz, void *s, dchar_t c)
+{
+    if (sz == 1)
+        utf_encodeChar((unsigned char *)s, c);
+    else if (sz == 2)
+        utf_encodeWchar((unsigned short *)s, c);
+    else
+    {
+        assert(sz == 4);
+        memcpy((unsigned char *)s, &c, sz);
+    }
 }
 
