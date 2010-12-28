@@ -159,18 +159,23 @@ struct EXCEPTION_POINTERS {
 }
 alias EXCEPTION_POINTERS* PEXCEPTION_POINTERS, LPEXCEPTION_POINTERS;
 
-
-extern(C)
-{
-/*** From Digital Mars C runtime library ***/
-EXCEPTION_DISPOSITION _local_except_handler (EXCEPTION_RECORD *ExceptionRecord,
-    void* EstablisherFrame,
-        void *ContextRecord,
-        void *DispatcherContext
-        );
-void _global_unwind(void *frame,EXCEPTION_RECORD *eRecord);
-}
 enum EXCEPTION_UNWIND = 6;  // Flag to indicate if the system is unwinding
+
+/* Windows Kernel function to initiate a system unwind.
+
+  Documentation for this function is severely lacking.
+  http://www.nynaeve.net/?p=99 states that the MSDN documentation is incorrect,
+    and gives a corrected form, but it's for x86_64 only.
+  http://www.microsoft.com/msj/0197/exception/exception.aspx says that it was
+    undocumented in 1997.
+  Presumably DMC reverse-engineered it, because it got the signature of this 
+    function wrong!!
+  The pExceptRec is what will be passed to the language specific handler.
+  According to MSJ, the targetIp value is unused on Win32.
+  The 'valueForEAX' parameter should always be 0.
+ */
+extern(Windows)
+void RtlUnwind(void *targetFrame, void *targetIp, EXCEPTION_RECORD *pExceptRec, void *valueForEAX);
 
 alias int function() fp_t; // function pointer in ambient memory model
 
@@ -310,7 +315,7 @@ EXCEPTION_DISPOSITION _d_framehandler(
                         _d_setUnhandled(pti);
 
                         // Have system call all finally blocks in intervening frames
-                        _global_unwind(frame, exception_record);
+                        _d_global_unwind(frame, exception_record);
 
                         // Call all the finally blocks skipped in this frame
                         _d_local_unwind(handler_table, frame, ndx);
@@ -473,6 +478,53 @@ Object _d_translate_se_to_d_exception(EXCEPTION_RECORD *exception_record)
     return pti;
 }
 
+/+
+  These next two functions are necessary for dealing with collided exceptions:
+  when an exception has been thrown during unwinding. This happens for example
+  when a throw statement was encountered inside a finally clause.
+
+  A description of the equivalent situation for x86_64 is given at 
+  http://www.nynaeve.net/?p=107, which states:
+      This, in effect, requires that the compiler stop the current unwind operation
+      and transfer control to the target location (which is usually within the
+      function that contained the __finally that the programmer jumped out of).
+      Nevertheless, the compiler still has to deal with the fact that it has been
+      called in the context of an unwind operation, and as such it needs a way
+      to 'break out' of the unwind call stack. This is done by executing a 
+      'local unwind', or an unwind to a location within the current function.
+       In order to do this, the compiler calls a small, runtime-supplied helper
+      function known as local_unwind. This function is described below, and is essentially
+      an extremely thin wrapper around RtlUnwindEx that, in practice, adds no value other
+      than providing some default argument values (and scratch space on the stack
+      for RtlUnwindEx to use to store a CONTEXT structure).
+   [snip brief asm code]
+      When the compiler calls local_unwind as a result of the programmer
+      breaking out of a __finally block in some fashion, then execution will
+      eventually end up in RtlUnwindEx. From there, RtlUnwindEx eventually
+      detects the operation as a collided unwind, once it unwinds past the
+      original call to the original unwind handler that started the new unwind
+      operation via local_unwind.
+
++/
+
+extern(C)
+EXCEPTION_DISPOSITION unwindCollisionExceptionHandler(
+            EXCEPTION_RECORD *ExceptionRecord,
+            DEstablisherFrame *frame,
+            CONTEXT *context,
+            void *dispatcherContext)
+{
+    if (!(ExceptionRecord.ExceptionFlags & EXCEPTION_UNWIND)) 
+        return EXCEPTION_DISPOSITION.ExceptionContinueSearch;
+    // An exception has been thrown during unwinding (eg, a throw statement
+    //   was encountered inside a finally clause).
+    //  The target for unwinding needs to change. 
+    // Based on the code for RtlUnwind in http://www.microsoft.com/msj/0197/exception/exception.aspx,
+    // the dispatcherContext is used to set the EXCEPTION_REGISTRATION to be used from now on.
+    *(cast(DEstablisherFrame **)dispatcherContext) = frame;
+    return EXCEPTION_DISPOSITION.ExceptionCollidedUnwind;
+}
+
 /**************************************
  * Call finally blocks in the current stack frame until stop_index.
  * This is roughly equivalent to _local_unwind() for C in \src\win32\ehsup.c
@@ -489,7 +541,7 @@ void _d_local_unwind(DHandlerTable *handler_table,
     {
         push    dword ptr -1;
         push    dword ptr 0;
-        push    offset _local_except_handler;    // defined in src\win32\ehsup.c
+        push    offset unwindCollisionExceptionHandler;
         push    dword ptr FS:_except_list;
         mov     FS:_except_list,ESP;
     }
@@ -521,6 +573,51 @@ void _d_local_unwind(DHandlerTable *handler_table,
     {
         pop     FS:_except_list;
         add     ESP,12;
+    }
+}
+
+/+ According to http://www.microsoft.com/msj/0197/exception/exception.aspx, 
+global unwind is just a thin wrapper around RtlUnwind.
+__global_unwind(void * pRegistFrame)
+ {
+     _RtlUnwind( pRegistFrame,
+                 &__ret_label,
+                 0, 0 );
+     __ret_label:
+
+This code seems to be calling RtlUnwind( pFrame, &__retlabel, eRecord, 0);
+Apparently Win32 doesn't use the return address anyway.
+}
+
++/
+extern(C)
+int _d_global_unwind(DEstablisherFrame *pFrame, EXCEPTION_RECORD *eRecord)
+{
+    asm {
+        naked;
+        push EBP;
+        mov EBP,ESP;
+        push ECX;
+        push EBX;
+        push ESI;
+        push EDI;
+        push EBP;
+        push 0;
+        push dword ptr 12[EBP]; //eRecord
+        call __system_unwind;
+        jmp __unwind_exit;
+ __system_unwind:
+        push dword ptr 8[EBP]; // pFrame
+        call RtlUnwind;
+ __unwind_exit:
+        pop EBP;
+        pop	EDI;
+        pop	ESI;
+        pop	EBX;
+        pop ECX;
+        mov	ESP,EBP;
+        pop EBP;
+        ret;
     }
 }
 
