@@ -2119,7 +2119,7 @@ void test110()
     struct C {
 	int[0] b;
     }
-    static C g_c2_ = { 3 };
+    static C g_c2_ = {  };
 }
 
 /***************************************************/
@@ -3826,6 +3826,295 @@ auto ivorBomb2 = typeid(typeof(bug4529b));
 
 /***************************************************/
 
+void bug5218c(char [3] s) {}
+void bug5218w(wchar [3] s) {}
+void bug5218d(dchar [3] s) {}
+
+void test217()
+{    
+    bug5218c("abc");
+    bug5218w("abc"w);
+    bug5218d("abc"d);
+}
+
+/***************************************************/
+// 2954
+
+void test218()
+{
+    char[char[3]] ac;
+    char[3] c = "abc";
+    ac["abc"]='a';
+    assert(ac[c]=='a');    
+
+    char[dchar[3]] ad;
+    dchar[3] d = "abc"d;
+    ad["abc"d]='a';
+    assert(ad[d]=='a');
+}
+
+/***************************************************/
+// 2206
+
+template T219(U) {
+  class C {}
+}
+
+void test219()
+{
+  mixin T219!(int); // using a named mixin here fixes it
+
+  pragma(msg, T219!(int).C.mangleof);
+  pragma(msg, C.mangleof); // incorrectly outputs the same as above
+
+  assert(T219!(int).C.classinfo !is C.classinfo); // fails
+  assert(T219!(int).C.mangleof != C.mangleof); // fails
+}
+
+
+/***************************************************/
+// 2206
+
+class D220 {}
+
+template T220(U) {
+  class C { this() { } }
+}
+
+void test220()
+{
+  mixin T220!(int);
+
+  // all print 8
+  writeln(T220!(int).C.classinfo.init.length);
+  writeln(C.classinfo.init.length);
+  writeln(D220.classinfo.init.length);
+
+  auto c = new C; // segfault in _d_newclass
+}
+
+/***************************************************/
+
+const struct S5110
+{
+    static int value;
+}
+
+static assert(is(typeof(S5110.value) == int));
+
+/***************************************************/
+
+class C5110
+{
+ override:
+    string toString() { return ""; }
+
+    class Nested
+    {
+        void gun() {}
+    }
+}
+
+/***************************************************/
+// 5145
+
+interface I221{
+    void bla();
+}
+
+interface J221
+{
+    I221 sync ();
+}
+
+class A221 : B221
+{
+    final override I221 sync()
+    in { assert( valid ); }
+    body
+    {
+        return null;
+    }
+}
+
+class B221 : J221
+{
+    override I221 sync()
+    in { assert( valid ); }
+    body
+    {
+        return null;
+    }
+
+    final bool valid()
+    {
+        return true;
+    }
+}
+
+/***************************************************/
+
+template Bug3276(bool B) {
+   static if (B)
+      alias Bug3276!(false) Bug3276;
+   else
+       alias double Bug3276;
+}
+
+template Bug3276_b(alias W) {
+    alias W!(true) Bug3276_b;
+}
+
+alias Bug3276_b!(Bug3276) Bug3276_c;
+
+/***************************************************/
+// 5294
+
+void foo222(int) {}
+
+void test222()
+{
+    int count;
+    for (int i = 0; i < 2; i++) {
+        count++;
+        foo222(i * 5 - 6); // comment this out and it makes 2 loops
+    }
+    printf("%d\n", count); // compile with -O and it prints 1
+    assert(count == 2);
+}
+
+/***************************************************/
+
+void foo223(long x,long a,long b,long c,long d,long e,long f)
+{
+    assert(x == 0x123456789ABCDEF0);
+}
+
+void test223()
+{
+    foo223(0x123456789ABCDEF0,2,3,4,5,6,7);
+}
+
+/***************************************************/
+// 4379
+
+template BigTuple(U...) {
+    alias U BigTuple;
+}
+
+alias
+BigTuple!(1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,
+1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,
+1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,
+1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,
+1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,
+1,1,1,1,1,1) Tuple4379;
+
+void test224()
+{
+    foreach(x; Tuple4379) {    }
+}
+
+/***************************************************/
+// 3681
+
+public final class A3681 {
+    private this() {
+	int i =0;
+	int j = i + 1;
+ i = j * 15; j = i * 59; i = j * 15; j = i * 59; i = j * 15; j = i * 59; i = j * 15; j = i * 59;
+ i = j * 15; j = i * 59; i = j * 15; j = i * 59; i = j * 15; j = i * 59; i = j * 15; j = i * 59;
+ i = j * 15; j = i * 59; i = j * 15; j = i * 59; i = j * 15; j = i * 59; i = j * 15; j = i * 59;
+ i = j * 15; j = i * 59; i = j * 15; j = i * 59; i = j * 15; j = i * 59; i = j * 15; j = i * 59;
+ i = j * 15; j = i * 59; i = j * 15; j = i * 59; i = j * 15; j = i * 59; i = j * 15; j = i * 59;
+ i = j * 15; j = i * 59; i = j * 15; j = i * 59; i = j * 15; j = i * 59; i = j * 15; j = i * 59;
+ i = j * 15; j = i * 59; i = j * 15; j = i * 59; i = j * 15; j = i * 59; i = j * 15; j = i * 59;
+ i = j * 15; j = i * 59; i = j * 15; i = j * 15; j = i * 59; i = j * 15; j = i * 59; i = j * 15;
+ j = i * 59; i = j * 15; j = i * 59; i = j * 15; j = i * 59; i = j * 15; j = i * 59; i = j * 15;
+ j = i * 59; i = j * 15; j = i * 59; i = j * 15; j = i * 59; i = j * 15; j = i * 59; i = j * 15;
+ j = i * 59; i = j * 15; j = i * 59; i = j * 15; j = i * 59; i = j * 15; j = i * 59; i = j * 15;
+ j = i * 59; i = j * 15; j = i * 59; i = j * 15; j = i * 59; i = j * 15; j = i * 59; i = j * 15;
+ j = i * 59; i = j * 15; j = i * 59; i = j * 15; j = i * 59; i = j * 15; j = i * 59; i = j * 15;
+ j = i * 59; i = j * 15; j = i * 59; i = j * 15; j = i * 59; i = j * 15; j = i * 59; i = j * 15;
+ j = i * 59; i = j * 15; j = i * 59; i = j * 15; j = i * 59; i = j * 15; j = i * 59; i = j * 15;
+ j = i * 59; i = j * 15; j = i * 59; i = j * 15; j = i * 59; i = j * 15; j = i * 59; i = j * 15;
+ j = i * 59; i = j * 15; j = i * 59; i = j * 15; j = i * 59; i = j * 15; j = i * 59; i = j * 15;
+ j = i * 59; i = j * 15; j = i * 59; i = j * 15; j = i * 59; i = j * 15; j = i * 59; i = j * 15;
+ j = i * 59; i = j * 15; j = i * 59; i = j * 15; j = i * 59; i = j * 15; j = i * 59; i = j * 15;
+ j = i * 59; i = j * 15; j = i * 59; i = j * 15; j = i * 59; i = j * 15; j = i * 59; i = j * 15;
+ j = i * 59; i = j * 15; j = i * 59; i = j * 15; j = i * 59; i = j * 15; j = i * 59; i = j * 15;
+ j = i * 59; i = j * 15; j = i * 59; i = j * 15; j = i * 59; i = j * 15; j = i * 59; i = j * 15;
+ j = i * 59; i = j * 15; j = i * 59; i = j * 15; j = i * 59; i = j * 15; j = i * 59; i = j * 15;
+ j = i * 59; i = j * 15; j = i * 59; i = j * 15; j = i * 59; i = j * 15; j = i * 59; i = j * 15;
+ j = i * 59; i = j * 15; j = i * 59; i = j * 15; j = i * 59; i = j * 15; j = i * 59; i = j * 15;
+ j = i * 59; i = j * 15; j = i * 59; i = j * 15; j = i * 59; i = j * 15; j = i * 59; i = j * 15;
+ j = i * 59; i = j * 15; j = i * 59; i = j * 15; j = i * 59; i = j * 15; j = i * 59; i = j * 15;
+ j = i * 59; i = j * 15; j = i * 59; i = j * 15; j = i * 59; i = j * 15; j = i * 59; i = j * 15;
+ j = i * 59; i = j * 15; j = i * 59; i = j * 15; j = i * 59; i = j * 15; j = i * 59; i = j * 15;
+ j = i * 59; i = j * 15; j = i * 59; i = j * 15; j = i * 59; i = j * 15; j = i * 59; i = j * 15;
+ j = i * 59; i = j * 15; j = i * 59; i = j * 15; j = i * 59; i = j * 15; j = i * 59; i = j * 15;
+ j = i * 59; i = j * 15; j = i * 59; i = j * 15; j = i * 59; i = j * 15; j = i * 59; i = j * 15;
+ j = i * 59; i = j * 15; j = i * 59; i = j * 15; j = i * 59; i = j * 15; j = i * 59; i = j * 15;
+ j = i * 59; i = j * 15; j = i * 59; i = j * 15; j = i * 59; j = i * 59; i = j * 15; j = i * 59;
+ i = j * 15; j = i * 59; i = j * 15; j = i * 59; i = j * 15; j = i * 59; i = j * 15; j = i * 59;
+ i = j * 15; j = i * 59; i = j * 15; j = i * 59; i = j * 15; j = i * 59; i = j * 15; j = i * 59;
+    }
+}
+
+/***************************************************/
+
+int bug4389()
+{    
+    string s;
+    dchar c = '\u2348';
+    s ~= c;
+    assert(s.length==3);
+    dchar d = 'D';
+    s ~= d;
+    assert(s.length==4);
+    s = "";
+    s ~= c;
+    assert(s.length==3);
+    s ~= d;
+    assert(s.length==4);
+    string z;
+    wchar w = '\u0300';
+    z ~= w;
+    assert(z.length==2);
+    z = "";
+    z ~= w;
+    assert(z.length==2);
+    return 1;
+}
+
+static assert(bug4389());
+
+// ICE(constfold.c)
+int ice4389()
+{
+    string s;
+    dchar c = '\u2348';
+    s ~= c;
+    s = s ~ "xxx";
+   return 1; 
+}
+
+static assert(ice4389());
+
+// ICE(expression.c)
+string ice4390()
+{
+    string s;
+    dchar c = '`';
+    s ~= c;
+    s ~= c;
+   return s; 
+}
+
+static assert(mixin(ice4390()) == ``);
+
+/***************************************************/
+
 int main()
 {
     test1();
@@ -4031,6 +4320,14 @@ int main()
     test214();
     test215();
     test216();
+    test217();
+    test218();
+    test219();
+    test220();
+
+    test222();
+    test223();
+    test224();
 
     writefln("Success");
     return 0;
