@@ -89,18 +89,18 @@ out (result)
 }
 body
 {
-    //printf("body _d_switch_string(%.*s)\n", ca);
+    //printf("body _d_switch_string(%.*s)\n", ca.length, ca.ptr);
     size_t low  = 0;
     size_t high = table.length;
 
     version (none)
     {
         // Print table
-        printf("ca[] = '%s'\n", cast(char *)ca);
+        printf("ca[] = '%s'\n", ca.length, ca.ptr);
         for (auto i = 0; i < high; i++)
         {
             auto pca = table[i];
-            printf("table[%d] = %d, '%.*s'\n", i, pca.length, pca);
+            printf("table[%d] = %d, '%.*s'\n", i, pca.length, pca.length, pca.ptr);
         }
     }
     if (high &&
@@ -154,6 +154,20 @@ unittest
          default:
              break;
     }
+
+    int bug5381(string s)
+    {
+        switch(s)
+        {
+            case "unittest":        return 1;
+            case "D_Version2":      return 2;
+            case "none":            return 3;
+            case "all":             return 4;
+            default:                return 5;
+        }
+    }
+    int rc = bug5381("none");
+    assert(rc == 3);
 }
 
 /**********************************
@@ -190,7 +204,7 @@ out (result)
     int i;
     int c;
 
-    //printf("out _d_switch_string()\n");
+    //printf("out _d_switch_ustring()\n");
     if (result == -1)
     {
         // Not found
@@ -226,22 +240,23 @@ body
     size_t low = 0;
     auto high = table.length;
 
-/*
-    // Print table
-    wprintf("ca[] = '%.*s'\n", ca);
-    for (auto i = 0; i < high; i++)
+    version(none)
     {
-        auto pca = table[i];
-        wprintf("table[%d] = %d, '%.*s'\n", i, pca.length, pca);
+        // Print table
+        wprintf("ca[] = '%.*s'\n", ca.length, ca.ptr);
+        for (auto i = 0; i < high; i++)
+        {
+            auto pca = table[i];
+            wprintf("table[%d] = %d, '%.*s'\n", i, pca.length, pca.length, pca.ptr);
+        }
     }
-*/
 
     // Do binary search
     while (low < high)
     {
         auto mid = (low + high) >> 1;
         auto pca = table[mid];
-        auto c = ca.length - pca.length;
+        auto c = cast(sizediff_t)(ca.length - pca.length);
         if (c == 0)
         {
             c = memcmp(ca.ptr, pca.ptr, ca.length * wchar.sizeof);
@@ -272,8 +287,21 @@ unittest
          default:
              break;
     }
-}
 
+    int bug5381(wstring ws)
+    {
+        switch(ws)
+        {
+            case "unittest":        return 1;
+            case "D_Version2":      return 2;
+            case "none":            return 3;
+            case "all":             return 4;
+            default:                return 5;
+        }
+    }
+    int rc = bug5381("none"w);
+    assert(rc == 3);
+}
 
 /**********************************
  * Same thing, but for wide chars.
@@ -302,7 +330,7 @@ in
 }
 out (result)
 {
-    //printf("out _d_switch_string()\n");
+    //printf("out _d_switch_dstring()\n");
     if (result == -1)
     {
         // Not found
@@ -334,26 +362,27 @@ out (result)
 }
 body
 {
-    //printf("body _d_switch_ustring()\n");
+    //printf("body _d_switch_dstring()\n");
     size_t low = 0;
     auto high = table.length;
 
-/*
-    // Print table
-    wprintf("ca[] = '%.*s'\n", ca);
-    for (auto i = 0; i < high; i++)
+    version(none)
     {
-        auto pca = table[i];
-        wprintf("table[%d] = %d, '%.*s'\n", i, pca.length, pca);
+        // Print table
+        wprintf("ca[] = '%.*s'\n", ca.length, ca.ptr);
+        for (auto i = 0; i < high; i++)
+        {
+            auto pca = table[i];
+            wprintf("table[%d] = %d, '%.*s'\n", i, pca.length, pca.length, pca.ptr);
+        }
     }
-*/
 
     // Do binary search
     while (low < high)
     {
         auto mid = (low + high) >> 1;
         auto pca = table[mid];
-        auto c = ca.length - pca.length;
+        auto c = cast(sizediff_t)(ca.length - pca.length);
         if (c == 0)
         {
             c = memcmp(ca.ptr, pca.ptr, ca.length * dchar.sizeof);
@@ -384,4 +413,18 @@ unittest
          default:
              break;
     }
+
+    int bug5381(dstring ds)
+    {
+        switch(ds)
+        {
+            case "unittest":        return 1;
+            case "D_Version2":      return 2;
+            case "none":            return 3;
+            case "all":             return 4;
+            default:                return 5;
+        }
+    }
+    int rc = bug5381("none"d);
+    assert(rc == 3);
 }
