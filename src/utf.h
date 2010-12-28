@@ -23,4 +23,13 @@ const char *utf_validateString(unsigned char *s, size_t len);
 
 extern int isUniAlpha(dchar_t);
 
+void utf_encodeChar(unsigned char *s, dchar_t c);
+void utf_encodeWchar(unsigned short *s, dchar_t c);
+
+int utf_codeLengthChar(dchar_t c);
+int utf_codeLengthWchar(dchar_t c);
+
+int utf_codeLength(int sz, dchar_t c);
+void utf_encode(int sz, void *s, dchar_t c);
+
 #endif

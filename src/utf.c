@@ -1,5 +1,5 @@
 // utf.c
-// Copyright (c) 2003-2010 by Digital Mars
+// Copyright (c) 2003-2009 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // http://www.digitalmars.com
@@ -11,6 +11,7 @@
 // http://www.cl.cam.ac.uk/~mgk25/unicode.html#utf-8
 
 #include <stdio.h>
+#include <string.h>
 #include <assert.h>
 
 #include "utf.h"
@@ -19,6 +20,40 @@ int utf_isValidDchar(dchar_t c)
 {
     return c < 0xD800 ||
         (c > 0xDFFF && c <= 0x10FFFF && c != 0xFFFE && c != 0xFFFF);
+}
+
+static const unsigned char UTF8stride[256] =
+{
+    1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,
+    1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,
+    1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,
+    1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,
+    1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,
+    1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,
+    1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,
+    1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,
+    0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,
+    0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,
+    0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,
+    0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,
+    2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,
+    2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,
+    3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,
+    4,4,4,4,4,4,4,4,5,5,5,5,6,6,0xFF,0xFF,
+};
+
+/**
+ * stride() returns the length of a UTF-8 sequence starting at index i
+ * in string s.
+ * Returns:
+ *  The number of bytes in the UTF-8 sequence or
+ *  0xFF meaning s[i] is not the start of of UTF-8 sequence.
+ */
+
+unsigned stride(unsigned char* s, size_t i)
+{
+    unsigned result = UTF8stride[s[i]];
+    return result;
 }
 
 /********************************************
@@ -191,5 +226,95 @@ const char *utf_decodeWchar(unsigned short *s, size_t len, size_t *pidx, dchar_t
     *presult = (dchar_t)s[i];
     *pidx = i + 1;
     return msg;
+}
+
+void utf_encodeChar(unsigned char *s, dchar_t c)
+{
+    if (c <= 0x7F)
+    {
+        s[0] = (char) c;
+    }
+    else if (c <= 0x7FF)
+    {
+        s[0] = (char)(0xC0 | (c >> 6));
+        s[1] = (char)(0x80 | (c & 0x3F));
+    }
+    else if (c <= 0xFFFF)
+    {
+        s[0] = (char)(0xE0 | (c >> 12));
+        s[1] = (char)(0x80 | ((c >> 6) & 0x3F));
+        s[2] = (char)(0x80 | (c & 0x3F));
+    }
+    else if (c <= 0x10FFFF)
+    {
+        s[0] = (char)(0xF0 | (c >> 18));
+        s[1] = (char)(0x80 | ((c >> 12) & 0x3F));
+        s[2] = (char)(0x80 | ((c >> 6) & 0x3F));
+        s[3] = (char)(0x80 | (c & 0x3F));
+    }
+    else
+        assert(0);
+}
+
+void utf_encodeWchar(unsigned short *s, dchar_t c)
+{
+    if (c <= 0xFFFF)
+    {
+        s[0] = (wchar_t) c;
+    }
+    else
+    {
+        s[0] = (wchar_t) ((((c - 0x10000) >> 10) & 0x3FF) + 0xD800);
+        s[1] = (wchar_t) (((c - 0x10000) & 0x3FF) + 0xDC00);
+    }
+}
+
+
+/**
+ * Returns the code length of c in the encoding.
+ * The code is returned in character count, not in bytes.
+ */
+
+int utf_codeLengthChar(dchar_t c)
+{
+    return
+        c <= 0x7F ? 1
+        : c <= 0x7FF ? 2
+        : c <= 0xFFFF ? 3
+        : c <= 0x10FFFF ? 4
+        : (assert(false), 6);
+}
+
+int utf_codeLengthWchar(dchar_t c)
+{
+    return c <= 0xFFFF ? 1 : 2;
+}
+
+/**
+ * Returns the code length of c in the encoding.
+ * sz is the encoding: 1 = utf8, 2 = utf16, 4 = utf32.
+ * The code is returned in character count, not in bytes.
+ */
+int utf_codeLength(int sz, dchar_t c)
+{
+    if (sz == 1)
+        return utf_codeLengthChar(c);
+    if (sz == 2)
+        return utf_codeLengthWchar(c);
+    assert(sz == 4);
+    return 1;
+}
+
+void utf_encode(int sz, void *s, dchar_t c)
+{
+    if (sz == 1)
+        utf_encodeChar((unsigned char *)s, c);
+    else if (sz == 2)
+        utf_encodeWchar((unsigned short *)s, c);
+    else
+    {
+        assert(sz == 4);
+        memcpy((unsigned char *)s, &c, sz);
+    }
 }
 
