@@ -812,7 +812,8 @@ L1:
                         return c;
                     }
                     if (regm & (mAX|mBX|mCX|mDX) &&
-                        (regv & ~(targ_size_t)0xFF00) == (value & ~(targ_size_t)0xFF00))
+                        (regv & ~(targ_size_t)0xFF00) == (value & ~(targ_size_t)0xFF00) &&
+                        !I64)
                     {   c = movregconst(c,4|reg,value >> 8,(flags & 8) |4|1|16); // load regH
                         return c;
                     }
