@@ -3601,7 +3601,10 @@ code *cdstreq(elem *e,regm_t *pretregs)
   }
   if (numbytes <= REGSIZE * (6 + (REGSIZE == 4)))
   {     while (numbytes >= REGSIZE)
-        {   c3 = gen1(c3,0xA5);         /* MOVSW                        */
+        {
+            if (REGSIZE == 8)
+                c3 = gen1(c3,REX | REX_W);
+            c3 = gen1(c3,0xA5);         /* MOVSW                        */
             code_orrex(c3, rex);
             numbytes -= REGSIZE;
         }
@@ -3620,6 +3623,8 @@ code *cdstreq(elem *e,regm_t *pretregs)
         c3 = cat(c3,getregs_imm(mCX));
         c3 = movregconst(c3,CX,numbytes,0);     // # of bytes/words
         gen1(c3,0xF3);                          // REP
+        if (REGSIZE == 8)
+            gen1(c3,REX | REX_W);
         gen1(c3,0xA5);                  // REP MOVSD
         regimmed_set(CX,0);             // note that CX == 0
         for (; remainder; remainder--)

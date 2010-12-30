@@ -3707,7 +3707,7 @@ Type *TypeInstance::semantic(Loc loc, Scope *sc)
 
     if (!t)
     {
-#ifdef DEBUG
+#if 0
         if (s) printf("s = %s\n", s->kind());
         printf("2: e:%p s:%p ", e, s);
 #endif
