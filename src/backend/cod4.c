@@ -3171,6 +3171,8 @@ code *cdbt(elem *e, regm_t *pretregs)
         {
             cs.IEVoffset1 += (e2->EV.Vuns & ~63) >> 3;
             cs.IEV2.Vint = e2->EV.Vint & 63;
+            if (I64)
+                cs.Irex |= REX_W;
         }
         c2 = gen(CNIL,&cs);
     }

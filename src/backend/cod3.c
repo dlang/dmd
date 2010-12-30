@@ -4211,7 +4211,7 @@ unsigned codout(code *c)
                             if ((rm & modregrm(3,0,7)) == modregrm(0,0,5))      // if disp32[RIP]
                             {   flags |= CFpc32;
                                 val = -4;
-                                if (ins & T)
+                                if (ins & T || op == 0xF6 || op == 0xF7)
                                 {   if (ins & E)
                                         val = -5;
                                     else if (c->Iflags & CFopsize)

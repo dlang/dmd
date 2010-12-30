@@ -1330,7 +1330,7 @@ L386_WARNING2:
 
                 // If the size of the operand is unknown, assume that it is
                 // the default size
-                if ((I32 && (ptb.pptb0->usFlags & _16_bit)) ||
+                if (((I64 || I32) && (ptb.pptb0->usFlags & _16_bit)) ||
                     (I16 && (ptb.pptb0->usFlags & _32_bit)))
                 {
                     //if (asmstate.ucItype != ITjump)
