@@ -3,6 +3,7 @@
 
 import core.exception;
 import core.stdc.math;
+import core.vararg;
 
 extern(C)
 {
@@ -1372,7 +1373,7 @@ void test54()
 	}
 	catch(Exception e)
 	{
-		printf("catch %.*s\n", e.msg);
+		printf("catch %.*s\n", e.msg.length, e.msg.ptr);
 		assert(e.msg == "second");
 		//assert(e.msg == "first");
 		//assert(e.next.msg == "second");
@@ -1394,7 +1395,7 @@ void foo55()
     catch (Exception e)
     {
 	printf("inner catch %p\n", e);
-	printf("e.msg == %.*s\n", e.msg);
+	printf("e.msg == %.*s\n", e.msg.length, e.msg.ptr);
 	assert(e.msg == "second");
 	//assert(e.msg == "first");
 	//assert(e.next.msg == "second");

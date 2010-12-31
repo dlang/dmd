@@ -105,13 +105,9 @@ DISABLED_TESTS += sieve
 DISABLED_TESTS += arrayop
 # value isn't making it into the runtime library call for some reason
 
-DISABLED_TESTS += builtin
 DISABLED_TESTS += integrate
 DISABLED_TESTS += testmath
 # needs std.math
-
-DISABLED_TESTS += delegate
-# array literal with delegate
 
 DISABLED_TESTS += eh2
 DISABLED_TESTS += test4
@@ -138,9 +134,6 @@ DISABLED_TESTS += test28
 
 DISABLED_TESTS += stress
 # hangs off in the gc
-
-DISABLED_TESTS += template4
-# segv's off in an opCall, not clear why
 
 DISABLED_TESTS += test11
 # array append issues? test33
