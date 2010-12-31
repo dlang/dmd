@@ -402,6 +402,7 @@ DISABLED_TESTS = \
 	core/sync/rwmutex \
 	core/sync/semaphore \
 	rt/aApplyR \
+	rt/adi \
 	rt/dmain2 \
 	rt/trace
 else
