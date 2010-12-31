@@ -1573,6 +1573,10 @@ elem * evalu8(elem *e)
             case 4:
                 e->EV.Vllong = (l2 << 32) | (l1 & 0xFFFFFFFF);
                 break;
+            case 8:
+                e->EV.Vcent.lsw = l1;
+                e->EV.Vcent.msw = l2;
+                break;
             default:
                 assert(0);
         }
