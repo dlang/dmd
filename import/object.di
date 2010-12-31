@@ -417,6 +417,7 @@ struct AssociativeArray(Key, Value)
 
 void clear(T)(T obj) if (is(T == class))
 {
+    if (!obj) return;
     auto ci = obj.classinfo;
     auto defaultCtor =
         cast(void function(Object)) ci.defaultConstructor;
