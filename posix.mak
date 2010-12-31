@@ -6,17 +6,10 @@ IMPDIR=import
 
 MODEL=32
 
-ifeq ($(MODEL),64)
 DFLAGS=-m$(MODEL) -release -inline -nofloat -w -d -Isrc -Iimport
 UDFLAGS=-m$(MODEL) -release -nofloat -w -d -Isrc -Iimport
 
-CFLAGS=-m$(MODEL)
-else
-DFLAGS=-m$(MODEL) -O -release -inline -nofloat -w -d -Isrc -Iimport
-UDFLAGS=-m$(MODEL) -O -release -nofloat -w -d -Isrc -Iimport
-
-CFLAGS=-m$(MODEL) -O
-endif
+CFLAGS=-m$(MODEL) -g
 
 OBJDIR=obj
 DRUNTIME_BASE=druntime
@@ -25,6 +18,13 @@ DRUNTIME=lib/lib$(DRUNTIME_BASE).a
 DOCFMT=
 
 target : import $(DRUNTIME) doc
+
+_MISSING_FROM_MANIFEST = \
+	src/core/sys/posix/sys/select \
+	src/core/sys/posix/sys/socket \
+	src/core/sys/posix/sys/stat \
+	src/core/sys/posix/sys/wait \
+	src/core/sys/posix/netinet/in_
 
 MANIFEST= \
 	LICENSE_1_0.txt \
@@ -35,52 +35,21 @@ MANIFEST= \
 	import/object.di \
 	import/std/intrinsic.di \
 	\
-	src/object_.d \
+	$(addprefix src,$(addsuffix .d,$(SRC_D_MODULES))) \
 	\
-	src/core/atomic.d \
-	src/core/bitop.d \
-	src/core/cpuid.d \
-	src/core/demangle.d \
 	src/core/dll_helper.d \
-	src/core/exception.d \
-	src/core/memory.d \
-	src/core/runtime.d \
-	src/core/thread.d \
 	src/core/thread_helper.d \
 	src/core/threadasm.S \
-	src/core/time.d \
-	src/core/vararg.d \
 	\
 	src/core/stdc/complex.d \
-	src/core/stdc/config.d \
-	src/core/stdc/ctype.d \
 	src/core/stdc/errno.c \
-	src/core/stdc/errno.d \
 	src/core/stdc/fenv.d \
 	src/core/stdc/float_.d \
 	src/core/stdc/inttypes.d \
 	src/core/stdc/limits.d \
 	src/core/stdc/locale.d \
-	src/core/stdc/math.d \
-	src/core/stdc/signal.d \
-	src/core/stdc/stdarg.d \
-	src/core/stdc/stddef.d \
-	src/core/stdc/stdint.d \
-	src/core/stdc/stdio.d \
-	src/core/stdc/stdlib.d \
-	src/core/stdc/string.d \
 	src/core/stdc/tgmath.d \
-	src/core/stdc/time.d \
-	src/core/stdc/wchar_.d \
 	src/core/stdc/wctype.d \
-	\
-	src/core/sync/barrier.d \
-	src/core/sync/condition.d \
-	src/core/sync/config.d \
-	src/core/sync/exception.d \
-	src/core/sync/mutex.d \
-	src/core/sync/rwmutex.d \
-	src/core/sync/semaphore.d \
 	\
 	src/core/sys/osx/mach/dyld.d \
 	src/core/sys/osx/mach/getsect.d \
@@ -129,217 +98,140 @@ MANIFEST= \
 	\
 	src/core/sys/windows/windows.d \
 	\
-	src/gc/gc.d \
-	src/gc/gcalloc.d \
-	src/gc/gcbits.d \
-	src/gc/gcstats.d \
-	src/gc/gcx.d \
-	\
 	src/gcstub/gc.d \
 	\
-	src/rt/aApply.d \
-	src/rt/aApplyR.d \
-	src/rt/aaA.d \
-	src/rt/adi.d \
-	src/rt/alloca.d \
-	src/rt/arrayassign.d \
-	src/rt/arraybyte.d \
-	src/rt/arraycast.d \
-	src/rt/arraycat.d \
-	src/rt/arraydouble.d \
-	src/rt/arrayfloat.d \
-	src/rt/arrayint.d \
-	src/rt/arrayreal.d \
-	src/rt/arrayshort.d \
-	src/rt/cast_.d \
-	src/rt/cmath2.d \
 	src/rt/compiler.d \
 	src/rt/complex.c \
-	src/rt/cover.d \
 	src/rt/critical.c \
-	src/rt/deh.d \
-	src/rt/deh2.d \
-	src/rt/dmain2.d \
+	src/rt/deh.c \
 	src/rt/dylib_fixes.c \
 	src/rt/image.d \
-	src/rt/invariant.d \
-	src/rt/invariant_.d \
-	src/rt/lifetime.d \
-	src/rt/llmath.d \
 	src/rt/mars.h \
-	src/rt/memory.d \
 	src/rt/memory_osx.c \
-	src/rt/memset.d \
 	src/rt/minit.asm \
 	src/rt/monitor.c \
-	src/rt/obj.d \
-	src/rt/qsort.d \
 	src/rt/qsort2.d \
-	src/rt/switch_.d \
-	src/rt/tls.S \
-	src/rt/trace.d \
-	\
-	src/rt/typeinfo/ti_AC.d \
-	src/rt/typeinfo/ti_Acdouble.d \
-	src/rt/typeinfo/ti_Acfloat.d \
-	src/rt/typeinfo/ti_Acreal.d \
-	src/rt/typeinfo/ti_Adouble.d \
-	src/rt/typeinfo/ti_Afloat.d \
-	src/rt/typeinfo/ti_Ag.d \
-	src/rt/typeinfo/ti_Aint.d \
-	src/rt/typeinfo/ti_Along.d \
-	src/rt/typeinfo/ti_Areal.d \
-	src/rt/typeinfo/ti_Ashort.d \
-	src/rt/typeinfo/ti_C.d \
-	src/rt/typeinfo/ti_byte.d \
-	src/rt/typeinfo/ti_cdouble.d \
-	src/rt/typeinfo/ti_cfloat.d \
-	src/rt/typeinfo/ti_char.d \
-	src/rt/typeinfo/ti_creal.d \
-	src/rt/typeinfo/ti_dchar.d \
-	src/rt/typeinfo/ti_delegate.d \
-	src/rt/typeinfo/ti_double.d \
-	src/rt/typeinfo/ti_float.d \
-	src/rt/typeinfo/ti_idouble.d \
-	src/rt/typeinfo/ti_ifloat.d \
-	src/rt/typeinfo/ti_int.d \
-	src/rt/typeinfo/ti_ireal.d \
-	src/rt/typeinfo/ti_long.d \
-	src/rt/typeinfo/ti_ptr.d \
-	src/rt/typeinfo/ti_real.d \
-	src/rt/typeinfo/ti_short.d \
-	src/rt/typeinfo/ti_ubyte.d \
-	src/rt/typeinfo/ti_uint.d \
-	src/rt/typeinfo/ti_ulong.d \
-	src/rt/typeinfo/ti_ushort.d \
-	src/rt/typeinfo/ti_void.d \
-	src/rt/typeinfo/ti_wchar.d \
-	\
-	src/rt/util/console.d \
-	src/rt/util/ctype.d \
-	src/rt/util/hash.d \
-	src/rt/util/string.d \
-	src/rt/util/utf.d
+	src/rt/tls.S
 
-SRCS= \
-	src/object_.d \
+SRC_D_MODULES = \
+	object_ \
 	\
-	src/core/atomic.d \
-	src/core/bitop.d \
-	src/core/cpuid.d \
-	src/core/demangle.d \
-	src/core/exception.d \
-	src/core/memory.d \
-	src/core/runtime.d \
-	src/core/thread.d \
-	src/core/time.d \
-	src/core/vararg.d \
+	core/atomic \
+	core/bitop \
+	core/cpuid \
+	core/demangle \
+	core/exception \
+	core/memory \
+	core/runtime \
+	core/thread \
+	core/time \
+	core/vararg \
 	\
-	src/core/stdc/config.d \
-	src/core/stdc/ctype.d \
-	src/core/stdc/errno.d \
-	src/core/stdc/math.d \
-	src/core/stdc/signal.d \
-	src/core/stdc/stdarg.d \
-	src/core/stdc/stdio.d \
-	src/core/stdc/stdlib.d \
-	src/core/stdc/stdint.d \
-	src/core/stdc/stddef.d \
-	src/core/stdc/string.d \
-	src/core/stdc/time.d \
-	src/core/stdc/wchar_.d \
+	core/stdc/config \
+	core/stdc/ctype \
+	core/stdc/errno \
+	core/stdc/math \
+	core/stdc/signal \
+	core/stdc/stdarg \
+	core/stdc/stdio \
+	core/stdc/stdlib \
+	core/stdc/stdint \
+	core/stdc/stddef \
+	core/stdc/string \
+	core/stdc/time \
+	core/stdc/wchar_ \
 	\
-	src/core/sys/posix/sys/select.d \
-	src/core/sys/posix/sys/socket.d \
-	src/core/sys/posix/sys/stat.d \
-	src/core/sys/posix/sys/wait.d \
-	src/core/sys/posix/netinet/in_.d \
+	core/sys/posix/sys/select \
+	core/sys/posix/sys/socket \
+	core/sys/posix/sys/stat \
+	core/sys/posix/sys/wait \
+	core/sys/posix/netinet/in_ \
 	\
-	src/core/sync/barrier.d \
-	src/core/sync/condition.d \
-	src/core/sync/config.d \
-	src/core/sync/exception.d \
-	src/core/sync/mutex.d \
-	src/core/sync/rwmutex.d \
-	src/core/sync/semaphore.d \
+	core/sync/barrier \
+	core/sync/condition \
+	core/sync/config \
+	core/sync/exception \
+	core/sync/mutex \
+	core/sync/rwmutex \
+	core/sync/semaphore \
 	\
-	src/gc/gc.d \
-	src/gc/gcalloc.d \
-	src/gc/gcbits.d \
-	src/gc/gcstats.d \
-	src/gc/gcx.d \
+	gc/gc \
+	gc/gcalloc \
+	gc/gcbits \
+	gc/gcstats \
+	gc/gcx \
 	\
-	src/rt/aaA.d \
-	src/rt/aApply.d \
-	src/rt/aApplyR.d \
-	src/rt/adi.d \
-	src/rt/alloca.d \
-	src/rt/arrayassign.d \
-	src/rt/arraybyte.d \
-	src/rt/arraycast.d \
-	src/rt/arraycat.d \
-	src/rt/arraydouble.d \
-	src/rt/arrayfloat.d \
-	src/rt/arrayint.d \
-	src/rt/arrayreal.d \
-	src/rt/arrayshort.d \
-	src/rt/cast_.d \
-	src/rt/cmath2.d \
-	src/rt/cover.d \
-	src/rt/deh2.d \
-	src/rt/dmain2.d \
-	src/rt/invariant.d \
-	src/rt/invariant_.d \
-	src/rt/lifetime.d \
-	src/rt/llmath.d \
-	src/rt/memory.d \
-	src/rt/memset.d \
-	src/rt/obj.d \
-	src/rt/qsort.d \
-	src/rt/switch_.d \
-	src/rt/trace.d \
+	rt/aaA \
+	rt/aApply \
+	rt/aApplyR \
+	rt/adi \
+	rt/alloca \
+	rt/arrayassign \
+	rt/arraybyte \
+	rt/arraycast \
+	rt/arraycat \
+	rt/arraydouble \
+	rt/arrayfloat \
+	rt/arrayint \
+	rt/arrayreal \
+	rt/arrayshort \
+	rt/cast_ \
+	rt/cmath2 \
+	rt/cover \
+	rt/deh2 \
+	rt/dmain2 \
+	rt/invariant \
+	rt/invariant_ \
+	rt/lifetime \
+	rt/llmath \
+	rt/memory \
+	rt/memset \
+	rt/obj \
+	rt/qsort \
+	rt/switch_ \
+	rt/trace \
 	\
-	src/rt/util/console.d \
-	src/rt/util/ctype.d \
-	src/rt/util/hash.d \
-	src/rt/util/string.d \
-	src/rt/util/utf.d \
+	rt/util/console \
+	rt/util/ctype \
+	rt/util/hash \
+	rt/util/string \
+	rt/util/utf \
 	\
-	src/rt/typeinfo/ti_AC.d \
-	src/rt/typeinfo/ti_Acdouble.d \
-	src/rt/typeinfo/ti_Acfloat.d \
-	src/rt/typeinfo/ti_Acreal.d \
-	src/rt/typeinfo/ti_Adouble.d \
-	src/rt/typeinfo/ti_Afloat.d \
-	src/rt/typeinfo/ti_Ag.d \
-	src/rt/typeinfo/ti_Aint.d \
-	src/rt/typeinfo/ti_Along.d \
-	src/rt/typeinfo/ti_Areal.d \
-	src/rt/typeinfo/ti_Ashort.d \
-	src/rt/typeinfo/ti_byte.d \
-	src/rt/typeinfo/ti_C.d \
-	src/rt/typeinfo/ti_cdouble.d \
-	src/rt/typeinfo/ti_cfloat.d \
-	src/rt/typeinfo/ti_char.d \
-	src/rt/typeinfo/ti_creal.d \
-	src/rt/typeinfo/ti_dchar.d \
-	src/rt/typeinfo/ti_delegate.d \
-	src/rt/typeinfo/ti_double.d \
-	src/rt/typeinfo/ti_float.d \
-	src/rt/typeinfo/ti_idouble.d \
-	src/rt/typeinfo/ti_ifloat.d \
-	src/rt/typeinfo/ti_int.d \
-	src/rt/typeinfo/ti_ireal.d \
-	src/rt/typeinfo/ti_long.d \
-	src/rt/typeinfo/ti_ptr.d \
-	src/rt/typeinfo/ti_real.d \
-	src/rt/typeinfo/ti_short.d \
-	src/rt/typeinfo/ti_ubyte.d \
-	src/rt/typeinfo/ti_uint.d \
-	src/rt/typeinfo/ti_ulong.d \
-	src/rt/typeinfo/ti_ushort.d \
-	src/rt/typeinfo/ti_void.d \
-	src/rt/typeinfo/ti_wchar.d
+	rt/typeinfo/ti_AC \
+	rt/typeinfo/ti_Acdouble \
+	rt/typeinfo/ti_Acfloat \
+	rt/typeinfo/ti_Acreal \
+	rt/typeinfo/ti_Adouble \
+	rt/typeinfo/ti_Afloat \
+	rt/typeinfo/ti_Ag \
+	rt/typeinfo/ti_Aint \
+	rt/typeinfo/ti_Along \
+	rt/typeinfo/ti_Areal \
+	rt/typeinfo/ti_Ashort \
+	rt/typeinfo/ti_byte \
+	rt/typeinfo/ti_C \
+	rt/typeinfo/ti_cdouble \
+	rt/typeinfo/ti_cfloat \
+	rt/typeinfo/ti_char \
+	rt/typeinfo/ti_creal \
+	rt/typeinfo/ti_dchar \
+	rt/typeinfo/ti_delegate \
+	rt/typeinfo/ti_double \
+	rt/typeinfo/ti_float \
+	rt/typeinfo/ti_idouble \
+	rt/typeinfo/ti_ifloat \
+	rt/typeinfo/ti_int \
+	rt/typeinfo/ti_ireal \
+	rt/typeinfo/ti_long \
+	rt/typeinfo/ti_ptr \
+	rt/typeinfo/ti_real \
+	rt/typeinfo/ti_short \
+	rt/typeinfo/ti_ubyte \
+	rt/typeinfo/ti_uint \
+	rt/typeinfo/ti_ulong \
+	rt/typeinfo/ti_ushort \
+	rt/typeinfo/ti_void \
+	rt/typeinfo/ti_wchar
 
 # NOTE: trace.d and cover.d are not necessary for a successful build
 #       as both are used for debugging features (profiling and coverage)
@@ -458,6 +350,8 @@ IMPORTS=\
 	\
 	$(IMPDIR)/core/sys/windows/windows.di
 
+SRCS=$(addprefix src/,$(addsuffix .d,$(SRC_D_MODULES)))
+
 ######################## Doc .html file generation ##############################
 
 doc: $(DOCS)
@@ -497,8 +391,40 @@ $(OBJDIR)/threadasm.o : src/core/threadasm.S
 $(DRUNTIME): $(OBJS) $(SRCS) win32.mak
 	$(DMD) -lib -of$(DRUNTIME) -Xfdruntime.json $(DFLAGS) $(SRCS) $(OBJS)
 
-unittest : $(SRCS) $(DRUNTIME) src/unittest.d
-	$(DMD) $(UDFLAGS) -unittest src/unittest.d $(SRCS) $(DRUNTIME) -debuglib=$(DRUNTIME_BASE) -defaultlib=$(DRUNTIME_BASE)
+unittest : $(addprefix $(OBJDIR)/,$(SRC_D_MODULES)) $(DRUNTIME) $(OBJDIR)/emptymain.d
+	@echo done
+
+ifeq ($(MODEL),64)
+DISABLED_TESTS = \
+	core/sync/barrier \
+	core/sync/condition \
+	core/sync/mutex \
+	core/sync/rwmutex \
+	core/sync/semaphore \
+	rt/aApplyR \
+	rt/dmain2 \
+	rt/trace
+else
+DISABLED_TESTS = \
+	rt/dmain2
+endif
+
+$(addprefix $(OBJDIR)/,$(DISABLED_TESTS)) :
+	@echo $@ - disabled
+
+$(OBJDIR)/% : src/%.d $(DRUNTIME) $(OBJDIR)/emptymain.d
+	@echo Testing $@
+	@$(DMD) $(UDFLAGS) -unittest -of$@ $(OBJDIR)/emptymain.d $< -L-Llib -debuglib=$(DRUNTIME_BASE) -defaultlib=$(DRUNTIME_BASE)
+# make the file very old so it builds and runs again if it fails
+	@touch -t 197001230123 $@
+# run unittest in its own directory
+	@$(RUN) $@
+# succeeded, render the file new again
+	@touch $@
+
+$(OBJDIR)/emptymain.d :
+	@mkdir -p $(OBJDIR)
+	@echo 'void main(){}' >$@
 
 zip: druntime.zip
 
@@ -510,4 +436,6 @@ install: druntime.zip
 	unzip -o druntime.zip -d /dmd2/src/druntime
 
 clean:
-	rm -f $(DOCS) $(IMPORTS) $(DRUNTIME) $(OBJS)
+	rm -f $(DOCS) $(DRUNTIME)
+	rm -rf $(OBJDIR) import/core
+

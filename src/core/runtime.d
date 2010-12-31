@@ -431,6 +431,8 @@ Throwable.TraceInfo defaultTraceHandler( void* ptr = null )
                 }
                 return ret;
             }
+
+            override string toString() { assert(false, "TraceInfo.toString not implemented"); }
         
         private:
             int     numframes; 
