@@ -660,7 +660,7 @@ code *cdorth(elem *e,regm_t *pretregs)
                     cs.Irex |= REX_B;
                 if (I64 && sz == 8)
                     cs.Irex |= REX_W;
-                if (I64 && byte && reg >= 4)
+                if (I64 && byte && (reg >= 4 || (rval && rreg >= 4)))
                     cs.Irex |= REX;
                 cs.IFL2 = (e2->Eoper == OPconst) ? FLconst : el_fl(e2);
                 /* Modify instruction for special cases */
