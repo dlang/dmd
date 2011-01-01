@@ -400,7 +400,7 @@ Throwable.TraceInfo defaultTraceHandler( void* ptr = null )
                 free( framelist );
             }
             
-            int opApply( scope int delegate(ref char[]) dg )
+            override int opApply( scope int delegate(ref char[]) dg )
             {
                 version( Posix )
                 {
@@ -432,7 +432,13 @@ Throwable.TraceInfo defaultTraceHandler( void* ptr = null )
                 return ret;
             }
 
-            override string toString() { assert(false, "TraceInfo.toString not implemented"); }
+            override string toString()
+            {
+                string buf;
+                foreach( line; this )
+                    buf ~= line;
+                return buf;
+            }
         
         private:
             int     numframes; 

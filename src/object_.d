@@ -1222,6 +1222,7 @@ class Throwable : Object
     interface TraceInfo
     {
         int opApply(scope int delegate(ref char[]));
+        string toString();
     }
 
     string      msg;
