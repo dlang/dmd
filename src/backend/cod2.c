@@ -591,7 +591,7 @@ code *cdorth(elem *e,regm_t *pretregs)
                 }
                 if (I64 && sz == 8)
                     code_orrex(c, REX_W);
-                if (I64 && byte && reg >= 4)
+                if (I64 && byte && (reg >= 4 || rreg >= 4))
                     code_orrex(c, REX);
         }
         else /* numwords == 2 */                /* ADD lsreg,lsrreg     */
