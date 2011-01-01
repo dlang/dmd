@@ -117,9 +117,6 @@ DISABLED_TESTS += testsignals
 DISABLED_TESTS += xtest46
 # hangs at exit, somewhere in atomic code?
 
-DISABLED_TESTS += foreach4
-# iterate over dstring as char returning bad results
-
 DISABLED_TESTS += hospital
 # int vs long issues
 
@@ -147,9 +144,6 @@ DISABLED_TESTS += testformat
 
 DISABLED_TESTS += test7
 # interesting array manipulation test fails
-
-DISABLED_TESTS += test8
-# segv in rt.deh2.__eh_find_caller
 
 DISABLED_TESTS += testaa2
 # aa.values returns wrong data
