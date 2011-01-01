@@ -174,8 +174,8 @@ static void trace_place(Symbol *s, uint count)
     {   size_t num;
         uint u;
 
-        //printf("\t%.*s\t%u\n", s.Sident, count);
-        fprintf(fpdef,"\t%.*s\n", s.Sident);
+        //printf("\t%.*s\t%u\n", s.Sident.length, s.Sident.ptr, count);
+        fprintf(fpdef,"\t%.*s\n", s.Sident.length, s.Sident.ptr);
         s.Sflags |= SFvisited;
 
         // Compute number of items in array
@@ -199,7 +199,7 @@ static void trace_place(Symbol *s, uint count)
         qsort(base, num, (SymPair *).sizeof, &sympair_cmp);
 
         //for (u = 0; u < num; u++)
-            //printf("\t\t%.*s\t%u\n", base[u].sym.Sident, base[u].count);
+            //printf("\t\t%.*s\t%u\n", base[u].sym.Sident.length, base[u].sym.Sident.ptr, base[u].count);
 
         // Place symbols
         for (u = 0; u < num; u++)
@@ -253,13 +253,13 @@ static void trace_report(Symbol* s)
         count = 0;
         for (sp = s.Sfanin; sp; sp = sp.next)
         {
-            fprintf(fplog,"\t%5d\t%.*s\n", sp.count, sp.sym.Sident);
+            fprintf(fplog,"\t%5d\t%.*s\n", sp.count, sp.sym.Sident.length, sp.sym.Sident.ptr);
             count += sp.count;
         }
-        fprintf(fplog,"%.*s\t%u\t%lld\t%lld\n",s.Sident,count,s.totaltime,s.functime);
+        fprintf(fplog,"%.*s\t%u\t%lld\t%lld\n", s.Sident.length, s.Sident.ptr, count, s.totaltime, s.functime);
         for (sp = s.Sfanout; sp; sp = sp.next)
         {
-            fprintf(fplog,"\t%5d\t%.*s\n",sp.count,sp.sym.Sident);
+            fprintf(fplog,"\t%5d\t%.*s\n", sp.count, sp.sym.Sident.length, sp.sym.Sident.ptr);
         }
         s = s.Sr;
     }
@@ -341,7 +341,7 @@ static void trace_times(Symbol* root)
         pl = (s.functime * 1000000) / calls / freq;
 
         fprintf(fplog,"%7d%12lld%12lld%12lld     %.*s\n",
-                      calls,tl,fl,pl,id);
+                      calls, tl, fl, pl, id.length, id.ptr);
     }
 }
 
@@ -763,61 +763,120 @@ void _trace_pro_n()
      *  ascii   string
      */
 
-  version (OSX)
-  { // 16 byte align stack
-    asm
-    {   naked                           ;
-        pushad                          ;
-        mov     ECX,8*4[ESP]            ;
-        xor     EAX,EAX                 ;
-        mov     AL,[ECX]                ;
-        cmp     AL,0xFF                 ;
-        jne     L1                      ;
-        cmp     byte ptr 1[ECX],0       ;
-        jne     L1                      ;
-        mov     AX,2[ECX]               ;
-        add     8*4[ESP],3              ;
-        add     ECX,3                   ;
-    L1: inc     EAX                     ;
-        inc     ECX                     ;
-        add     8*4[ESP],EAX            ;
-        dec     EAX                     ;
-        sub     ESP,4                   ;
-        push    ECX                     ;
-        push    EAX                     ;
-        call    trace_pro               ;
-        add     ESP,12                  ;
-        popad                           ;
-        ret                             ;
+    version (OSX)
+    {
+        // 16 byte align stack
+        version (D_InlineAsm_X86)
+        {
+            asm
+            {
+                naked                           ;
+                pushad                          ;
+                mov     ECX,8*4[ESP]            ;
+                xor     EAX,EAX                 ;
+                mov     AL,[ECX]                ;
+                cmp     AL,0xFF                 ;
+                jne     L1                      ;
+                cmp     byte ptr 1[ECX],0       ;
+                jne     L1                      ;
+                mov     AX,2[ECX]               ;
+                add     8*4[ESP],3              ;
+                add     ECX,3                   ;
+            L1: inc     EAX                     ;
+                inc     ECX                     ;
+                add     8*4[ESP],EAX            ;
+                dec     EAX                     ;
+                sub     ESP,4                   ;
+                push    ECX                     ;
+                push    EAX                     ;
+                call    trace_pro               ;
+                add     ESP,12                  ;
+                popad                           ;
+                ret                             ;
+            }
+        }
+        else version (D_InlineAsm_X86_64)
+            static assert(0);
+        else
+            static assert(0);
     }
-  }
-  else
-  {
-    asm
-    {   naked                           ;
-        pushad                          ;
-        mov     ECX,8*4[ESP]            ;
-        xor     EAX,EAX                 ;
-        mov     AL,[ECX]                ;
-        cmp     AL,0xFF                 ;
-        jne     L1                      ;
-        cmp     byte ptr 1[ECX],0       ;
-        jne     L1                      ;
-        mov     AX,2[ECX]               ;
-        add     8*4[ESP],3              ;
-        add     ECX,3                   ;
-    L1: inc     EAX                     ;
-        inc     ECX                     ;
-        add     8*4[ESP],EAX            ;
-        dec     EAX                     ;
-        push    ECX                     ;
-        push    EAX                     ;
-        call    trace_pro               ;
-        add     ESP,8                   ;
-        popad                           ;
-        ret                             ;
+    else
+    {
+        version (D_InlineAsm_X86)
+        {
+            asm
+            {
+                naked                           ;
+                pushad                          ;
+                mov     ECX,8*4[ESP]            ;
+                xor     EAX,EAX                 ;
+                mov     AL,[ECX]                ;
+                cmp     AL,0xFF                 ;
+                jne     L1                      ;
+                cmp     byte ptr 1[ECX],0       ;
+                jne     L1                      ;
+                mov     AX,2[ECX]               ;
+                add     8*4[ESP],3              ;
+                add     ECX,3                   ;
+            L1: inc     EAX                     ;
+                inc     ECX                     ;
+                add     8*4[ESP],EAX            ;
+                dec     EAX                     ;
+                push    ECX                     ;
+                push    EAX                     ;
+                call    trace_pro               ;
+                add     ESP,8                   ;
+                popad                           ;
+                ret                             ;
+            }
+        }
+        else version (D_InlineAsm_X86_64)
+        {
+            asm
+            {
+                naked                           ;
+                push    RAX                     ;
+                push    RCX                     ;
+                push    RDX                     ;
+                push    RSI                     ;
+                push    RDI                     ;
+                push    R8                      ;
+                push    R9                      ;
+                push    R10                     ;
+                push    R11                     ;
+                mov     RCX,9*8[RSP]            ;
+                xor     RAX,RAX                 ;
+                mov     AL,[RCX]                ;
+                cmp     AL,0xFF                 ;
+                jne     L1                      ;
+                cmp     byte ptr 1[RCX],0       ;
+                jne     L1                      ;
+                mov     AX,2[RCX]               ;
+                add     9*8[RSP],3              ;
+                add     RCX,3                   ;
+            L1: inc     RAX                     ;
+                inc     RCX                     ;
+                add     9*8[RSP],RAX            ;
+                dec     RAX                     ;
+                push    RCX                     ;
+                push    RAX                     ;
+                call    trace_pro               ;
+                add     RSP,16                  ;
+                pop     R11                     ;
+                pop     R10                     ;
+                pop     R8                      ;
+                pop     R9                      ;
+                pop     RDI                     ;
+                pop     RSI                     ;
+                pop     RDX                     ;
+                pop     RCX                     ;
+                pop     RAX                     ;
+                ret                             ;
+            }
+        }
+        else
+            static assert(0);
     }
-  }
 }
 
 /////////////////////////////////////////////
@@ -826,38 +885,68 @@ void _trace_pro_n()
 
 void _trace_epi_n()
 {
-  version (OSX)
-  { // 16 byte align stack
-    asm
-    {   naked   ;
-        pushad  ;
-        sub     ESP,12  ;
+    version (OSX)
+    { // 16 byte align stack
+        version (D_InlineAsm_X86)
+        {
+            asm
+            {
+                naked           ;
+                pushad          ;
+                sub     ESP,12  ;
+            }
+            trace_epi();
+            asm
+            {
+                add     ESP,12  ;
+                popad           ;
+                ret             ;
+            }
+        }
+        else version (D_InlineAsm_X86_64)
+            static assert(0);
+        else
+            static assert(0);
     }
-    trace_epi();
-    asm
+    else
     {
-        add     ESP,12  ;
-        popad   ;
-        ret     ;
+        version (D_InlineAsm_X86)
+        {
+            asm
+            {
+                naked           ;
+                pushad          ;
+            }
+            trace_epi();
+            asm
+            {
+                popad           ;
+                ret             ;
+            }
+        }
+        else version (D_InlineAsm_X86_64)
+        {
+            asm
+            {
+                naked           ;
+                push    RAX     ;
+                push    RDX     ;
+            }
+            trace_epi();
+            asm
+            {
+                pop     RDX     ;
+                pop     RAX     ;
+                ret             ;
+            }
+        }
+        else
+            static assert(0);
     }
-  }
-  else
-  {
-    asm
-    {   naked   ;
-        pushad  ;
-    }
-    trace_epi();
-    asm
-    {
-        popad   ;
-        ret     ;
-    }
-  }
 }
 
 
-version (Windows)
+version (Win32)
 {
     extern (Windows)
     {
@@ -865,14 +954,15 @@ version (Windows)
         export int QueryPerformanceFrequency(timer_t *);
     }
 }
-else version (X86)
+else version (D_InlineAsm_X86)
 {
     extern (D)
     {
         void QueryPerformanceCounter(timer_t* ctr)
         {
             asm
-            {   naked                   ;
+            {
+                naked                   ;
                 mov       ECX,EAX       ;
                 rdtsc                   ;
                 mov   [ECX],EAX         ;
@@ -887,14 +977,15 @@ else version (X86)
         }
     }
 }
-else version (X86_64)
+else version (D_InlineAsm_X86_64)
 {
     extern (D)
     {
         void QueryPerformanceCounter(timer_t* ctr)
         {
             asm
-            {   naked                   ;
+            {
+                naked                   ;
                 rdtsc                   ;
                 mov   [RDI],EAX         ;
                 mov   4[RDI],EDX        ;

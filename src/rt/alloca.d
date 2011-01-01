@@ -145,6 +145,7 @@ extern (C) void* __alloca(int nbytes)
         mov     RAX,RDI         ; // get nbytes
         add     RAX,15          ;
         and     AL,0xF0         ; // round up to 16 byte boundary
+        test    RAX,RAX         ;
         jnz     Abegin          ;
         mov     RAX,16          ; // allow zero bytes allocation
     Abegin:
