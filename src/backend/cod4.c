@@ -2678,7 +2678,7 @@ code *cdshtlng(elem *e,regm_t *pretregs)
             reg = findreg(retregs);
             if (config.flags4 & CFG4speed && op == OPu16_32)
             {   // AND reg,0xFFFF
-                c3 = genc2(NULL,0x81,modregrm(3,4,reg),0xFFFFu);
+                c3 = genc2(NULL,0x81,modregrmx(3,4,reg),0xFFFFu);
             }
             else
             {
