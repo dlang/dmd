@@ -399,8 +399,16 @@ Throwable.TraceInfo defaultTraceHandler( void* ptr = null )
             {
                 free( framelist );
             }
-            
+
             override int opApply( scope int delegate(ref char[]) dg )
+            {                
+                return opApply( (ref size_t, ref char[] buf)
+                                {
+                                    return dg( buf );
+                                } );
+            }
+            
+            override int opApply( scope int delegate(ref size_t, ref char[]) dg )
             {
                 version( Posix )
                 {
@@ -424,19 +432,20 @@ Throwable.TraceInfo defaultTraceHandler( void* ptr = null )
                 for( int i = FIRSTFRAME; i < numframes; ++i )
                 {
                     auto buf = framelist[i][0 .. strlen(framelist[i])];
+                    auto pos = cast(size_t)(i - FIRSTFRAME);
                     buf = fixline( buf );
-                    ret = dg( buf );
+                    ret = dg( pos, buf );
                     if( ret )
                         break;
                 }
-                return ret;
+                return ret;                
             }
 
             override string toString()
             {
                 string buf;
-                foreach( line; this )
-                    buf ~= line;
+                foreach( i, line; this )
+                    buf ~= i ? "\n" ~ line : line;
                 return buf;
             }
         
