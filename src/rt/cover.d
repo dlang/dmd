@@ -184,23 +184,23 @@ shared static ~this()
                     if( c.valid[i] )
                     {
                         nno++;
-                        fprintf( flst, "0000000|%.*s\n", line );
+                        fprintf( flst, "0000000|%.*s\n", line.length, line.ptr );
                     }
                     else
                     {
-                        fprintf( flst, "       |%.*s\n", line );
+                        fprintf( flst, "       |%.*s\n", line.length, line.ptr );
                     }
                 }
                 else
                 {
                     nyes++;
-                    fprintf( flst, "%7u|%.*s\n", n, line );
+                    fprintf( flst, "%7u|%.*s\n", n, line.length, line.ptr );
                 }
             }
         }
         if( nyes + nno ) // no divide by 0 bugs
         {
-            fprintf( flst, "%.*s is %d%% covered\n", c.filename, ( nyes * 100 ) / ( nyes + nno ) );
+            fprintf( flst, "%.*s is %d%% covered\n", c.filename.length, c.filename.ptr, ( nyes * 100 ) / ( nyes + nno ) );
         }
         fclose( flst );
     }
