@@ -317,8 +317,8 @@ void Module::genobjfile(int multiobj)
         localgot = ictorlocalgot;
         elem *e;
 
-        e = el_params(el_ptr(cov), el_long(TYuint, numlines),
-                      el_ptr(bcov), el_long(TYuint, numlines),
+        e = el_params(el_pair(TYdarray, el_long(TYsize_t, numlines), el_ptr(cov)),
+                      el_pair(TYdarray, el_long(TYsize_t, numlines), el_ptr(bcov)),
                       toEfilename(),
                       NULL);
         e = el_bin(OPcall, TYvoid, el_var(rtlsym[RTLSYM_DCOVER]), e);
