@@ -1194,6 +1194,7 @@ code *cdmulass(elem *e,regm_t *pretregs)
   unsigned op,resreg,reg,opr,lib,byte;
   unsigned sz;
 
+  //printf("cdmulass(e=%p, *pretregs = %s)\n",e,regm_str(*pretregs));
   e1 = e->E1;
   e2 = e->E2;
   op = e->Eoper;                        /* OPxxxx                       */
@@ -1268,7 +1269,7 @@ code *cdmulass(elem *e,regm_t *pretregs)
                 cg = getregs(byte ? mAX : mAX | mDX); // destroy these regs
                 cs.Iop = 0xF7 ^ byte;           // [I]MUL EA
             }
-            cs.Irm |= modregrm(0,opr,0);
+            code_newreg(&cs,opr);
             c = gen(CNIL,&cs);
         }
         else // /= or %=
@@ -1355,7 +1356,7 @@ code *cdmulass(elem *e,regm_t *pretregs)
             }
         }
         cs.Iop = 0x89 ^ byte;
-        NEWREG(cs.Irm,resreg);
+        code_newreg(&cs,resreg);
         c = gen(c,&cs);                         // MOV EA,resreg
         if (e1->Ecount)                         // if we gen a CSE
                 cssave(e1,mask[resreg],EOP(e1));
@@ -2840,6 +2841,8 @@ code *cdbyteint(elem *e,regm_t *pretregs)
                 {
                     unsigned iop = (op == OPu8int) ? 0x0FB6 : 0x0FBE; // MOVZX/MOVSX reg,reg
                     c3 = genregs(c3,iop,reg,reg);
+                    if (I64 && reg >= 4)
+                        code_orrex(c3, REX);
                 }
             }
         }

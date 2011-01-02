@@ -1529,6 +1529,8 @@ code *cdcom(elem *e,regm_t *pretregs)
         op = (sz == 1) ? 0xF6 : 0xF7;
         c = genregs(CNIL,op,2,reg);             // NOT reg
         code_orrex(c, rex);
+        if (I64 && sz == 1 && reg >= 4)
+            code_orrex(c, REX);
         if (sz == 2 * REGSIZE)
         {   reg = findreglsw(retregs);
             genregs(c,op,2,reg);                // NOT reg+1
@@ -4053,6 +4055,8 @@ code *cdneg(elem *e,regm_t *pretregs)
   {
         unsigned reg = findreg(retregs);
         unsigned rex = (I64 && sz == 8) ? REX_W : 0;
+        if (I64 && sz == 1 && reg >= 4)
+            rex |= REX;
         c = gen2(CNIL,0xF7 ^ byte,(rex << 16) | modregrmx(3,3,reg));   // NEG reg
         if (!I16 && tysize[tyml] == SHORTSIZE && *pretregs & mPSW)
             c->Iflags |= CFopsize | CFpsw;
