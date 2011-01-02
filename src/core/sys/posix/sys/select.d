@@ -37,7 +37,7 @@ NOTE: This module requires timeval from core.sys.posix.sys.time, but timeval
 fd_set
 
 void FD_CLR(int fd, fd_set* fdset);
-int FD_ISSET(int fd, fd_set* fdset);
+int FD_ISSET(int fd, const(fd_set)* fdset);
 void FD_SET(int fd, fd_set* fdset);
 void FD_ZERO(fd_set* fdset);
 
@@ -77,7 +77,7 @@ version( linux )
         fdset.fds_bits[__FDELT( fd )] &= ~__FDMASK( fd );
     }
 
-    extern (D) bool FD_ISSET( int fd, fd_set* fdset )
+    extern (D) bool FD_ISSET( int fd, const(fd_set)* fdset )
     {
         return (fdset.fds_bits[__FDELT( fd )] & __FDMASK( fd )) != 0;
     }
@@ -150,7 +150,7 @@ else version( OSX )
         fdset.fds_bits[fd / __DARWIN_NFDBITS] &= ~(1 << (fd % __DARWIN_NFDBITS));
     }
 
-    extern (D) bool FD_ISSET( int fd, fd_set* fdset )
+    extern (D) bool FD_ISSET( int fd, const(fd_set)* fdset )
     {
         return (fdset.fds_bits[fd / __DARWIN_NFDBITS] & (1 << (fd % __DARWIN_NFDBITS))) != 0;
     }
@@ -193,7 +193,7 @@ else version( FreeBSD )
         p.__fds_bits[n / _NFDBITS] &= ~__fdset_mask(n);
     }
 
-    extern (D) bool FD_ISSET( int n, fd_set* p )
+    extern (D) bool FD_ISSET( int n, const(fd_set)* p )
     {
         return (p.__fds_bits[n / _NFDBITS] & __fdset_mask(n)) != 0;
     }
