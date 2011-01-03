@@ -96,11 +96,7 @@ fail_compilation_test_results=$(addsuffix .out,$(addprefix $(RESULTS_DIR)/,$(fai
 all: run_tests
 
 ifeq ($(MODEL),64)
-DISABLED_TESTS = hello-profile
-# I don't know, yet, which module is at fault, but something between
-# exit of main and rt.trace.~this is segv'ing
-
-DISABLED_TESTS += arrayop
+DISABLED_TESTS = arrayop
 # value isn't making it into the runtime library call for some reason
 
 DISABLED_TESTS += integrate
