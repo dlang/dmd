@@ -557,6 +557,7 @@ struct TypeInstance : TypeQualified
 struct TypeTypeof : TypeQualified
 {
     Expression *exp;
+    int inuse;
 
     TypeTypeof(Loc loc, Expression *exp);
     Type *syntaxCopy();

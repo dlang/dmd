@@ -3752,6 +3752,7 @@ TypeTypeof::TypeTypeof(Loc loc, Expression *exp)
         : TypeQualified(Ttypeof, loc)
 {
     this->exp = exp;
+    inuse = 0;
 }
 
 Type *TypeTypeof::syntaxCopy()
@@ -3798,6 +3799,13 @@ Type *TypeTypeof::semantic(Loc loc, Scope *sc)
     //printf("TypeTypeof::semantic() %p\n", this);
 
     //static int nest; if (++nest == 50) *(char*)0=0;
+    if (inuse)
+    {
+        inuse = 2;
+        error(loc, "circular typeof definition");
+        return Type::terror;
+    }
+    inuse++;
 
 #if 0
     /* Special case for typeof(this) and typeof(super) since both
@@ -3894,9 +3902,11 @@ Type *TypeTypeof::semantic(Loc loc, Scope *sc)
             goto Lerr;
         }
     }
+    inuse--;
     return t;
 
 Lerr:
+    inuse--;
     return terror;
 }
 
