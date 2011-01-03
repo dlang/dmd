@@ -279,11 +279,17 @@ void cod3_set64()
     inssize[0xA2] = T|5;                // MOV mem,AL
     inssize[0xA3] = T|5;                // MOV mem,RAX
     BPRM = 5;                           // [RBP] addressing mode
+
     fregsaved = mBP | mBX | mR12 | mR13 | mR14 | mR15 | mES;      // saved across function calls
     FLOATREGS = FLOATREGS_64;
     FLOATREGS2 = FLOATREGS2_64;
     DOUBLEREGS = DOUBLEREGS_64;
     STACKALIGN = 16;
+
+#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_SOLARIS
+    ALLREGS = mAX|mBX|mCX|mDX|mSI|mDI|  mR8|mR9|mR10|mR11|mR12|mR13|mR14|mR15;
+    BYTEREGS = ALLREGS;
+#endif
 
     for (unsigned i = 0x80; i < 0x90; i++)
         inssize2[i] = W|T|6;
