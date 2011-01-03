@@ -94,7 +94,7 @@ SRC = win32.mak linux.mak osx.mak freebsd.mak solaris.mak \
 all: dmd
 
 dmd: $(DMD_OBJS)
-	$(CC) -lstdc++ -lpthread $(COV) $(DMD_OBJS) -o dmd
+	gcc $(MODEL) -lstdc++ -lpthread $(COV) $(DMD_OBJS) -o dmd
 
 clean:
 	rm -f $(DMD_OBJS) dmd optab.o id.o impcnvgen idgen id.c id.h \
@@ -467,7 +467,7 @@ stringtable.o: $(ROOT)/stringtable.c
 	$(CC) -c $(GFLAGS) -I$(ROOT) $<
 
 strtold.o: $C/strtold.c
-	$(CC) -c $C/strtold.c
+	gcc $(MODEL) -c $C/strtold.c
 
 struct.o: struct.c
 	$(CC) -c $(CFLAGS) $<
