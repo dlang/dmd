@@ -1,11 +1,11 @@
 module imports.test27a;
 
-import std.boxer;
+import std.variant;
 
 class myClass(T) {
 public:
     void func(T v) {
-        Box b = std.boxer.box(v);
+        Variant b = Variant(v);
     }
 }
 
