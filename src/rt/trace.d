@@ -930,12 +930,29 @@ void _trace_epi_n()
             {
                 naked           ;
                 push    RAX     ;
+                push    RCX     ;
                 push    RDX     ;
+                push    RSI     ;
+                push    RDI     ;
+                push    R8      ;
+                push    R9      ;
+                push    R10     ;
+                push    R11     ;
+                /* Don't worry about saving XMM0/1 or ST0/1 
+                 * Hope trace_epi() doesn't change them 
+                 */ 
             }
             trace_epi();
             asm
             {
+                pop     R11     ;
+                pop     R10     ;
+                pop     R9      ;
+                pop     R8      ;
+                pop     RDI     ;
+                pop     RSI     ;
                 pop     RDX     ;
+                pop     RCX     ;
                 pop     RAX     ;
                 ret             ;
             }
