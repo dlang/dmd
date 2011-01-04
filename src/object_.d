@@ -2400,8 +2400,11 @@ struct AssociativeArray(Key, Value)
 
     size_t aligntsize(size_t tsize)
     {
-	// Is pointer alignment on the x64 4 bytes or 8?
-	return (tsize + size_t.sizeof - 1) & ~(size_t.sizeof - 1);
+        version (X86_64)
+            // Size of key needed to align value on 16 bytes
+            return (tsize + 15) & ~(15);
+        else
+            return (tsize + size_t.sizeof - 1) & ~(size_t.sizeof - 1);
     }
 
     size_t length() @property { return _aaLen(p); }
