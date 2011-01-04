@@ -3230,7 +3230,7 @@ code *cdmemset(elem *e,regm_t *pretregs)
     targ_size_t value;
     unsigned m;
 
-    //printf("cdmemset(*pretregs = x%x)\n", *pretregs);
+    //printf("cdmemset(*pretregs = %s)\n", regm_str(*pretregs));
     e1 = e->E1;
     e2 = e->E2;
     assert(e2->Eoper == OPparam);
@@ -3291,6 +3291,7 @@ code *cdmemset(elem *e,regm_t *pretregs)
                 offset += REGSIZE;
                 c3 = cat(c3,c2);
             }
+            m &= ~(rex << 16);
             if (numbytes & 4)
             {                           // MOV dword ptr offset[reg],vreg
                 c2 = gen2(CNIL,0x89,m);

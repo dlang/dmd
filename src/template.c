@@ -2935,7 +2935,10 @@ void TemplateValueParameter::semantic(Scope *sc)
     valType = valType->semantic(loc, sc);
     if (!(valType->isintegral() || valType->isfloating() || valType->isString()) &&
         valType->ty != Tident)
-        error(loc, "arithmetic/string type expected for value-parameter, not %s", valType->toChars());
+    {
+        if (valType != Type::terror)
+            error(loc, "arithmetic/string type expected for value-parameter, not %s", valType->toChars());
+    }
 
     if (specValue)
     {   Expression *e = specValue;
