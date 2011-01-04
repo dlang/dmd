@@ -52,7 +52,7 @@ static immutable size_t[] prime_list = [
  * Although DMD will return types of Array in registers,
  * gcc will not, so we instead use a 'long'.
  */
-alias long ArrayRet_t;
+alias void[] ArrayRet_t;
 
 struct Array
 {
@@ -509,7 +509,7 @@ ArrayRet_t _aaKeys(AA aa, size_t keysize)
 {
     auto len = _aaLen(aa);
     if (!len)
-        return 0;
+        return null;
     auto res = (cast(byte*) gc_malloc(len * keysize,
                                  !(aa.a.keyti.flags() & 1) ? BlkAttr.NO_SCAN : 0))[0 .. len * keysize];
     size_t resi = 0;
@@ -528,6 +528,30 @@ ArrayRet_t _aaKeys(AA aa, size_t keysize)
     a.length = len;
     a.ptr = res.ptr;
     return *cast(ArrayRet_t*)(&a);
+}
+
+unittest
+{
+    int[string] aa;
+
+    aa["hello"] = 3;
+    assert(aa["hello"] == 3);
+    aa["hello"]++;
+    assert(aa["hello"] == 4);
+
+    assert(aa.length == 1);
+
+    string[] keys = aa.keys;
+    assert(keys.length == 1);
+    assert(memcmp(keys[0].ptr, cast(char*)"hello", 5) == 0);
+
+    int[] values = aa.values;
+    assert(values.length == 1);
+    assert(values[0] == 4);
+
+    aa.rehash;
+    assert(aa.length == 1);
+    assert(aa["hello"] == 4);
 }
 
 
