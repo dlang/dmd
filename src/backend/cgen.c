@@ -558,22 +558,20 @@ code *genshift(code *c)
  * If flags & 2 then short move (for I32 and I64)
  * If flags & 4 then don't disturb unused portion of register
  * If flags & 16 then reg is a byte register AL..BH
- * If flags & 64 then 64 bit move (I64 only)
+ * If flags & 64 (0x40) then 64 bit move (I64 only)
  * Returns:
  *      code (if any) generated
  */
 
 code *movregconst(code *c,unsigned reg,targ_size_t value,regm_t flags)
 {   unsigned r;
-    regm_t regm;
     regm_t mreg;
-    targ_size_t regv;
 
-    //printf("movregconst(%lld (%llx))\n", value, value);
+    //printf("movregconst(reg=%s, value= %lld (%llx), flags=%x)\n", regm_str(mask[reg]), value, value, flags);
 #define genclrreg(a,r) genregs(a,0x31,r,r)
 
-    regm = regcon.immed.mval & mask[reg];
-    regv = regcon.immed.value[reg];
+    regm_t regm = regcon.immed.mval & mask[reg];
+    targ_size_t regv = regcon.immed.value[reg];
 
     if (flags & 1)      // 8 bits
     {   unsigned msk;
@@ -808,7 +806,7 @@ L1:
                     !(config.flags4 & CFG4speed && config.target_cpu >= TARGET_PentiumPro)
                    )
                 {
-                    if ((regv & 0xFFFFFF00) == (value & 0xFFFFFF00))
+                    if ((regv & ~(targ_size_t)0xFF) == (value & ~(targ_size_t)0xFF))
                     {   c = movregconst(c,reg,value,(flags & 8) |4|1);  // load regL
                         return c;
                     }
@@ -837,12 +835,11 @@ L1:
  */
 
 bool reghasvalue(regm_t regm,targ_size_t value,unsigned *preg)
-{   unsigned r;
-    regm_t mreg;
-
+{
+    //printf("reghasvalue(%s, %llx)\n", regm_str(regm), (unsigned long long)value);
     /* See if another register has the right value      */
-    r = 0;
-    for (mreg = regcon.immed.mval; mreg; mreg >>= 1)
+    unsigned r = 0;
+    for (regm_t mreg = regcon.immed.mval; mreg; mreg >>= 1)
     {
         if (mreg & regm & 1 && regcon.immed.value[r] == value)
         {   *preg = r;

@@ -860,7 +860,7 @@ struct elem;
 
 typedef unsigned regm_t;        // Register mask type
 struct immed_t
-{   targ_int value[REGMAX];     // immediate values in registers
+{   targ_size_t value[REGMAX];  // immediate values in registers
     regm_t mval;                // Mask of which values in regimmed.value[] are valid
 };
 
