@@ -22,11 +22,13 @@ enum EXCEPTION_DISPOSITION {
     ExceptionCollidedUnwind
 }
 
+/+
 enum {
     EXCEPTION_EXECUTE_HANDLER    = 1,
     EXCEPTION_CONTINUE_SEARCH    = 0,
     EXCEPTION_CONTINUE_EXECUTION = -1
 }
++/
 
 extern(Windows)
 {
@@ -168,8 +170,6 @@ enum EXCEPTION_UNWIND = 6;  // Flag to indicate if the system is unwinding
     and gives a corrected form, but it's for x86_64 only.
   http://www.microsoft.com/msj/0197/exception/exception.aspx says that it was
     undocumented in 1997.
-  Presumably DMC reverse-engineered it, because it got the signature of this 
-    function wrong!!
   The pExceptRec is what will be passed to the language specific handler.
   According to MSJ, the targetIp value is unused on Win32.
   The 'valueForEAX' parameter should always be 0.
@@ -181,7 +181,7 @@ alias int function() fp_t; // function pointer in ambient memory model
 
 extern(C)
 { 
-extern __gshared DWORD _except_list;
+extern __gshared DWORD _except_list; // This is just FS:[0]
 }
 
 extern(C)
@@ -190,6 +190,45 @@ void _d_setUnhandled(Object);
 void _d_createTrace(Object);
 int _d_isbaseof(ClassInfo b, ClassInfo c);
 }
+
+/+
+
+Implementation of Structured Exception Handling in DMD-Windows
+
+Every function which uses exception handling (a 'frame') has a thunk created
+for it. This thunk is the 'language-specific handler'.
+The thunks are created in the DMD backend, in nteh_framehandler() in nteh.c.
+These thunks are of the form:
+      MOV     EAX,&scope_table
+      JMP     __d_framehandler
+FS:[0] contains a singly linked list of all active handlers (they'll all be
+thunks). The list is created on the stack. 
+At the end of this list is _except_handler3, a function in the DMC library.
+Its signature is:
+
+extern(C)
+EXCEPTION_DISPOSITION _except_handler3(EXCEPTION_RECORD *eRecord,
+    DEstablisherFrame * frame,CONTEXT *context,void *dispatchercontext);
+
+It may be unnecessary. I think it is included for compatibility with MSVC
+exceptions?
+
+Documentation of Windows SEH is hard to find. Here is a brief explanation:
+
+When an exception is raised, the OS calls each handler in the FS:[0] list in
+turn, looking for a catch block. It continues moving down the list, as long as
+each handler indicates that it has not caught the exception. When a handler is
+ready to catch the exception, it calls the OS function RtlUnwind.
+This calls each function in the FS:[0] list again, this time indicating that it
+is a 'unwind' call. All of the intervening finally blocks are run at this time.
+The complicated case is a CollidedException, which happens when a finally block
+throws an exception. The new exception needs to either replace the old one, or
+be chained to the old one.
+
+The other complexity comes from the fact that a single function may have
+multiple try/catch/finally blocks. Hence, there's a 'handler table' created for
+each function which uses exceptions.
++/
 
 // The layout of DEstablisherFrame is the same for C++
 
@@ -234,10 +273,12 @@ struct DCatchInfo
 };
 
 // Macro to make our own exception code
-template MAKE_EXCEPTION_CODE(int severity, int facility, int exception){
+template MAKE_EXCEPTION_CODE(int severity, int facility, int exception)
+{
         enum int MAKE_EXCEPTION_CODE = (((severity) << 30) | (1 << 29) | (0 << 28) | ((facility) << 16) | (exception));
 }
 enum int STATUS_DIGITAL_MARS_D_EXCEPTION = MAKE_EXCEPTION_CODE!(3,'D',1);
+
 
 
 /***********************************
@@ -248,19 +289,19 @@ enum int STATUS_DIGITAL_MARS_D_EXCEPTION = MAKE_EXCEPTION_CODE!(3,'D',1);
  */
 extern(C)
 EXCEPTION_DISPOSITION _d_framehandler(
-            EXCEPTION_RECORD *exception_record,
+            EXCEPTION_RECORD *exceptionRecord,
             DEstablisherFrame *frame,
             CONTEXT *context,
-            void *dispatcher_context)
+            void *dispatcherContext)
 {
-    DHandlerTable *handler_table;
+    DHandlerTable *handlerTable;
 
-    asm { mov handler_table,EAX; }
+    asm { mov handlerTable,EAX; }
 
-    if (exception_record.ExceptionFlags & EXCEPTION_UNWIND)
+    if (exceptionRecord.ExceptionFlags & EXCEPTION_UNWIND)
     {
          // Call all the finally blocks in this frame
-         _d_local_unwind(handler_table, frame, -1);
+         _d_local_unwind(handlerTable, frame, -1);
     }
     else
     {
@@ -279,12 +320,12 @@ EXCEPTION_DISPOSITION _d_framehandler(
         // with an index smaller than the current table_index
         for (ndx = frame.table_index; ndx != -1; ndx = prev_ndx)
         {
-            phi = &handler_table.handler_info[ndx];
+            phi = &handlerTable.handler_info[ndx];
             prev_ndx = phi.prev_index;
             if (phi.cioffset)
             {
                 // this is a catch handler (no finally)
-                pci = cast(DCatchInfo *)(cast(ubyte *)handler_table + phi.cioffset);
+                pci = cast(DCatchInfo *)(cast(ubyte *)handlerTable + phi.cioffset);
                 ncatches = pci.ncatches;
                 for (i = 0; i < ncatches; i++)
                 {
@@ -293,10 +334,10 @@ EXCEPTION_DISPOSITION _d_framehandler(
                     if (!ci)
                     {
                         // This code must match the translation code
-                        if (exception_record.ExceptionCode == STATUS_DIGITAL_MARS_D_EXCEPTION)
+                        if (exceptionRecord.ExceptionCode == STATUS_DIGITAL_MARS_D_EXCEPTION)
                         {
-                            // printf("ei[0] = %p\n", exception_record.ExceptionInformation[0]);
-                            ci = (**(cast(ClassInfo **)(exception_record.ExceptionInformation[0])));
+                            // printf("ei[0] = %p\n", exceptionRecord.ExceptionInformation[0]);
+                            ci = (**(cast(ClassInfo **)(exceptionRecord.ExceptionInformation[0])));
                         }
                         else
                             ci = Throwable.typeinfo;
@@ -306,7 +347,7 @@ EXCEPTION_DISPOSITION _d_framehandler(
                         // Matched the catch type, so we've found the handler.
                         int regebp;
 
-                        pti = _d_translate_se_to_d_exception(exception_record);
+                        pti = _d_translate_se_to_d_exception(exceptionRecord);
 
                         // Initialize catch variable
                         regebp = cast(int)&frame.ebp;              // EBP for this frame
@@ -315,10 +356,10 @@ EXCEPTION_DISPOSITION _d_framehandler(
                         _d_setUnhandled(pti);
 
                         // Have system call all finally blocks in intervening frames
-                        _d_global_unwind(frame, exception_record);
+                        _d_global_unwind(frame, exceptionRecord);
 
                         // Call all the finally blocks skipped in this frame
-                        _d_local_unwind(handler_table, frame, ndx);
+                        _d_local_unwind(handlerTable, frame, ndx);
 
                         _d_setUnhandled(null);
 
@@ -330,7 +371,7 @@ EXCEPTION_DISPOSITION _d_framehandler(
                             fp_t catch_addr;
 
                             catch_addr = cast(fp_t)(pcb.code);
-                            catch_esp = regebp - handler_table.espoffset - fp_t.sizeof;
+                            catch_esp = regebp - handlerTable.espoffset - fp_t.sizeof;
                             asm
                             {
                                 mov     EAX,catch_esp;
@@ -356,9 +397,9 @@ EXCEPTION_DISPOSITION _d_framehandler(
 
 int _d_exception_filter(EXCEPTION_POINTERS *eptrs,
                         int retval,
-                        Object *exception_object)
+                        Object *exceptionObject)
 {
-    *exception_object = _d_translate_se_to_d_exception(eptrs.ExceptionRecord);
+    *exceptionObject = _d_translate_se_to_d_exception(eptrs.ExceptionRecord);
     return retval;
 }
 
@@ -381,15 +422,15 @@ void _d_throwc(Object h)
  * Converts a Windows Structured Exception code to a D Exception Object.
  */
 
-Object _d_translate_se_to_d_exception(EXCEPTION_RECORD *exception_record)
+Object _d_translate_se_to_d_exception(EXCEPTION_RECORD *exceptionRecord)
 {
     Object pti;
    // BUG: what if _d_newclass() throws an out of memory exception?
 
-    switch (exception_record.ExceptionCode) {
+    switch (exceptionRecord.ExceptionCode) {
         case STATUS_DIGITAL_MARS_D_EXCEPTION:
             // Generated D exception
-            pti = cast(Object)cast(void *)(exception_record.ExceptionInformation[0]);
+            pti = cast(Object)cast(void *)(exceptionRecord.ExceptionInformation[0]);
             break;
 
         case STATUS_INTEGER_DIVIDE_BY_ZERO:
@@ -441,7 +482,7 @@ Object _d_translate_se_to_d_exception(EXCEPTION_RECORD *exception_record)
             break;
 
         case STATUS_PRIVILEGED_INSTRUCTION:
-            if (*(cast(ubyte *)(exception_record.ExceptionAddress))==0xF4) { // HLT
+            if (*(cast(ubyte *)(exceptionRecord.ExceptionAddress))==0xF4) { // HLT
                 pti = new Error("assert(0) or HLT instruction");
             } else {
                 pti = new Error("Privileged Instruction");
@@ -482,39 +523,16 @@ Object _d_translate_se_to_d_exception(EXCEPTION_RECORD *exception_record)
   These next two functions are necessary for dealing with collided exceptions:
   when an exception has been thrown during unwinding. This happens for example
   when a throw statement was encountered inside a finally clause.
-
-  A description of the equivalent situation for x86_64 is given at 
-  http://www.nynaeve.net/?p=107, which states:
-      This, in effect, requires that the compiler stop the current unwind operation
-      and transfer control to the target location (which is usually within the
-      function that contained the __finally that the programmer jumped out of).
-      Nevertheless, the compiler still has to deal with the fact that it has been
-      called in the context of an unwind operation, and as such it needs a way
-      to 'break out' of the unwind call stack. This is done by executing a 
-      'local unwind', or an unwind to a location within the current function.
-       In order to do this, the compiler calls a small, runtime-supplied helper
-      function known as local_unwind. This function is described below, and is essentially
-      an extremely thin wrapper around RtlUnwindEx that, in practice, adds no value other
-      than providing some default argument values (and scratch space on the stack
-      for RtlUnwindEx to use to store a CONTEXT structure).
-   [snip brief asm code]
-      When the compiler calls local_unwind as a result of the programmer
-      breaking out of a __finally block in some fashion, then execution will
-      eventually end up in RtlUnwindEx. From there, RtlUnwindEx eventually
-      detects the operation as a collided unwind, once it unwinds past the
-      original call to the original unwind handler that started the new unwind
-      operation via local_unwind.
-
 +/
 
 extern(C)
 EXCEPTION_DISPOSITION unwindCollisionExceptionHandler(
-            EXCEPTION_RECORD *ExceptionRecord,
+            EXCEPTION_RECORD *exceptionRecord,
             DEstablisherFrame *frame,
             CONTEXT *context,
             void *dispatcherContext)
 {
-    if (!(ExceptionRecord.ExceptionFlags & EXCEPTION_UNWIND)) 
+    if (!(exceptionRecord.ExceptionFlags & EXCEPTION_UNWIND)) 
         return EXCEPTION_DISPOSITION.ExceptionContinueSearch;
     // An exception has been thrown during unwinding (eg, a throw statement
     //   was encountered inside a finally clause).
@@ -584,11 +602,10 @@ __global_unwind(void * pRegistFrame)
                  &__ret_label,
                  0, 0 );
      __ret_label:
+  }
+Apparently Win32 doesn't use the return address anyway.
 
 This code seems to be calling RtlUnwind( pFrame, &__retlabel, eRecord, 0);
-Apparently Win32 doesn't use the return address anyway.
-}
-
 +/
 extern(C)
 int _d_global_unwind(DEstablisherFrame *pFrame, EXCEPTION_RECORD *eRecord)
@@ -643,12 +660,12 @@ void _d_local_unwind2()
 
 extern(C)
 EXCEPTION_DISPOSITION _d_monitor_handler(
-            EXCEPTION_RECORD *exception_record,
+            EXCEPTION_RECORD *exceptionRecord,
             DEstablisherFrame *frame,
             CONTEXT *context,
-            void *dispatcher_context)
+            void *dispatcherContext)
 {
-    if (exception_record.ExceptionFlags & EXCEPTION_UNWIND)
+    if (exceptionRecord.ExceptionFlags & EXCEPTION_UNWIND)
     {
         _d_monitorexit(cast(Object)cast(void *)frame.table_index);
     }
