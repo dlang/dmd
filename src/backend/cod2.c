@@ -1646,7 +1646,7 @@ code *cdcond(elem *e,regm_t *pretregs)
      )
   {     regm_t retregs;
         unsigned reg;
-        targ_long v1,v2;
+        targ_size_t v1,v2;
         int opcode;
 
         retregs = *pretregs & (ALLREGS | mBP);
@@ -1655,8 +1655,8 @@ code *cdcond(elem *e,regm_t *pretregs)
         cdcmp_flag = 1;
         c = codelem(e1,&retregs,FALSE);
         reg = findreg(retregs);
-        v1 = e21->EV.Vlong;
-        v2 = e22->EV.Vlong;
+        v1 = e21->EV.Vllong;
+        v2 = e22->EV.Vllong;
         if (jop == JNC)
         {   v1 = v2;
             v2 = e21->EV.Vlong;
@@ -1671,9 +1671,12 @@ code *cdcond(elem *e,regm_t *pretregs)
             case 2:     v1 = (short) v1;
                         v2 = (short) v2;
                         break;
+            case 4:     v1 = (int) v1;
+                        v2 = (int) v2;
+                        break;
         }
 
-        if (v1 == 0 && v2 == -1L)
+        if (v1 == 0 && v2 == ~(targ_size_t)0)
             c = gen2(c,0xF6 + (opcode & 1),grex | modregrmx(3,2,reg));  // NOT reg
         else
         {
@@ -1715,7 +1718,7 @@ code *cdcond(elem *e,regm_t *pretregs)
         if (retregs & ~regcon.mvar)
             retregs &= ~regcon.mvar;    // don't disturb register variables
         // NOTE: see my email (sign extension bug? possible fix, some questions
-        c = regwithvalue(c,retregs,e21->EV.Vint,&reg,tysize(e21->Ety) == 8 ? 64|8 : 8);
+        c = regwithvalue(c,retregs,e21->EV.Vllong,&reg,tysize(e21->Ety) == 8 ? 64|8 : 8);
         retregs = mask[reg];
 
         c = cat(c,cse_flush(1));                // flush CSE's to memory
