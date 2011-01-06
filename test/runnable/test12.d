@@ -926,7 +926,7 @@ struct Bar43
 void test43()
 {
     assert(Bar43.sizeof == long.sizeof);
-    assert(Foo43.sizeof == long.sizeof);
+    assert(Foo43.sizeof == (void*).sizeof);
 }
 
 
