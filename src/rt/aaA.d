@@ -550,6 +550,26 @@ unittest
     aa.rehash;
     assert(aa.length == 1);
     assert(aa["hello"] == 4);
+
+    aa["foo"] = 1;
+    aa["bar"] = 2;
+    aa["batz"] = 3;
+
+    assert(aa.keys.length == 4);
+    assert(aa.values.length == 4);
+
+    foreach(a; aa.keys)
+    {
+        assert(a.length != 0);
+        assert(a.ptr != null);
+        //printf("key: %.*s -> value: %d\n", a.length, a.ptr, aa[a]);
+    }
+
+    foreach(v; aa.values)
+    {
+        assert(v != 0);
+        //printf("value: %d\n", v);
+    }
 }
 
 
