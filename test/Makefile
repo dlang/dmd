@@ -99,17 +99,28 @@ ifeq ($(MODEL),64)
 DISABLED_TESTS = arrayop
 # value isn't making it into the runtime library call for some reason
 
-DISABLED_TESTS += integrate
 DISABLED_TESTS += testmath
 # needs std.math
 
 DISABLED_TESTS += eh2
-DISABLED_TESTS += test4
-DISABLED_TESTS += test12
+# ==15332== Invalid free() / delete / delete[]
+# ==15332==    at 0x4C27D71: free (vg_replace_malloc.c:366)
+# ==15332==    by 0x420140: _D4core7runtime19defaultTraceHandlerFPvZC6object9Throwable9TraceInfo16DefaultTraceInfo6__dtorMFZv (in /home/braddr/sandbox/d/source/trunk3/dmd/test/test_results/runnable/eh2)
+# ==15332==    by 0x41F5B0: rt_finalize (in /home/braddr/sandbox/d/source/trunk3/dmd/test/test_results/runnable/eh2)
+# ==15332==    by 0x41E140: _D2gc3gcx3Gcx11fullcollectMFPvZm (in /home/braddr/sandbox/d/source/trunk3/dmd/test/test_results/runnable/eh2)
+# ==15332==    by 0x41D79D: _D2gc3gcx3Gcx16fullcollectshellMFZm (in /home/braddr/sandbox/d/source/trunk3/dmd/test/test_results/runnable/eh2)
+# ==15332==    by 0x41C171: _D2gc3gcx2GC18fullCollectNoStackMFZv (in /home/braddr/sandbox/d/source/trunk3/dmd/test/test_results/runnable/eh2)
+# ==15332==    by 0x41A010: gc_term (in /home/braddr/sandbox/d/source/trunk3/dmd/test/test_results/runnable/eh2)
+# ==15332==    by 0x416DE8: _D2rt6dmain24mainUiPPaZi6runAllMFZv (in /home/braddr/sandbox/d/source/trunk3/dmd/test/test_results/runnable/eh2)
+# ==15332==    by 0x416C90: _D2rt6dmain24mainUiPPaZi7tryExecMFMDFZvZv (in /home/braddr/sandbox/d/source/trunk3/dmd/test/test_results/runnable/eh2)
+# ==15332==    by 0x416C21: main (in /home/braddr/sandbox/d/source/trunk3/dmd/test/test_results/runnable/eh2)
+# ==15332==  Address 0x4046028 is not stack'd, malloc'd or (recently) free'd
+
 DISABLED_TESTS += test42
-DISABLED_TESTS += testsignals
+# vararg test103, not likely any bug, just needs to be updated to the 64bit style va_start
+
 DISABLED_TESTS += xtest46
-# hangs at exit, somewhere in atomic code?
+# test58, struct literal's are broken
 
 DISABLED_TESTS += hospital
 # int vs long issues
@@ -136,14 +147,8 @@ DISABLED_TESTS += test34
 DISABLED_TESTS += testformat
 # looks like lots of issues with std.format, at least array and aa formatting is borked..
 
-DISABLED_TESTS += test7
-# interesting array manipulation test fails
-
-DISABLED_TESTS += testaa2
-# aa.values returns wrong data
-
 DISABLED_TESTS += testaa
-# segv in memcmp related to aa.keys
+# segv
 
 DISABLED_TESTS += testarray
 # sensitive code checking a specific runtime bug

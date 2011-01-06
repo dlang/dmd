@@ -193,7 +193,7 @@ struct Key
 
     static int hash, cmp, equals;
 
-    uint toHash() const
+    size_t toHash() const
     {	hash = 1;
 	return a + b + c + d;
     }

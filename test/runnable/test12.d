@@ -698,8 +698,19 @@ class Qwert32
 
     void foo()
     {
-	assert(Qwert32.yuiop.offsetof == 8);
-	assert(Qwert32.asdfg.offsetof == 12);
+        printf("yuiop = %d, asdfg = %d\n", Qwert32.yuiop.offsetof, Qwert32.asdfg.offsetof);
+        version(X86)
+        {
+            assert(Qwert32.yuiop.offsetof == 8);
+            assert(Qwert32.asdfg.offsetof == 12);
+        }
+        else version (X86_64)
+        {
+            assert(Qwert32.yuiop.offsetof == 16);
+            assert(Qwert32.asdfg.offsetof == 20);
+        }
+        else
+            assert(0);
     }
 }
 
@@ -785,7 +796,12 @@ void test36()
     printf("%d\n", a.c);
     printf("%d\n", a.d);
 
-    assert(a.classinfo.init.length == 28);
+    version(X86)
+        assert(a.classinfo.init.length == 28);
+    else version(X86_64)
+        assert(a.classinfo.init.length == 36);
+    else
+        assert(0);
     assert(a.s == 1);
     assert(a.a == 2);
     assert(a.b == 3);
@@ -910,7 +926,7 @@ struct Bar43
 void test43()
 {
     assert(Bar43.sizeof == long.sizeof);
-    assert(Foo43.sizeof == uint.sizeof);
+    assert(Foo43.sizeof == long.sizeof);
 }
 
 
