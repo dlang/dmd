@@ -15,7 +15,6 @@
  */
 module core.atomic;
 
-
 version( D_InlineAsm_X86 )
 {
     version = AsmX86;
@@ -608,7 +607,8 @@ else version( AsmX86_64 )
                 {
                     asm
                     {
-                        mov AL, [val];
+                        mov RAX, val;
+                        mov AL, [RAX];
                     }
                 }
             }
@@ -634,7 +634,8 @@ else version( AsmX86_64 )
                 {
                     asm
                     {
-                        mov AX, [val];
+                        mov RAX, val;
+                        mov AX, [RAX];
                     }
                 }
             }
@@ -660,7 +661,8 @@ else version( AsmX86_64 )
                 {
                     asm
                     {
-                        mov EAX, [val];
+                        mov RAX, val;
+                        mov EAX, [RAX];
                     }
                 }
             }
@@ -686,7 +688,8 @@ else version( AsmX86_64 )
                 {
                     asm
                     {
-                        mov RAX, [val];
+                        mov RAX, val;
+                        mov RAX, [RAX];
                     }
                 }
             }
@@ -749,5 +752,13 @@ version( unittest )
             testType!(long)();
             testType!(ulong)();
         }
+
+        size_t i;
+
+        atomicOp!"+="(i, cast(size_t)1);
+        assert(i == 1);
+
+        atomicOp!"-="(i, cast(size_t)1);
+        assert(i == 0);
     }
 }
