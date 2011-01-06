@@ -143,7 +143,7 @@ DISABLED_TESTS += test11
 DISABLED_TESTS += test22
 #  has x86 specific asm code that needs translation
 
-#DISABLED_TESTS += test34
+DISABLED_TESTS += test34
 DISABLED_TESTS += testformat
 # looks like lots of issues with std.format, at least array and aa formatting is borked..
 
