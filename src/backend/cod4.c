@@ -529,6 +529,8 @@ code *cdeq(elem *e,regm_t *pretregs)
                                 cs.Irm |= modregrm(0,reg & 7,0); // MOV EA,reg
                                 if (reg & 8)
                                     cs.Irex |= REX_R;
+                                if (I64 && sz == 1 && reg >= 4)
+                                    cs.Irex |= REX;
                             }
                             if (!I16 && i == 2)      // if 16 bit operand
                                 cs.Iflags |= CFopsize;
