@@ -2382,7 +2382,7 @@ extern (C)
     void* _aaIn(void* p, TypeInfo keyti);
     void _aaDel(void* p, TypeInfo keyti, ...);
     void[] _aaValues(void* p, size_t keysize, size_t valuesize);
-    void[] _aaKeys(void* p, size_t keysize, size_t valuesize);
+    void[] _aaKeys(void* p, size_t keysize);
     void* _aaRehash(void** pp, TypeInfo keyti);
 
     extern (D) typedef scope int delegate(void *) _dg_t;
@@ -2398,15 +2398,6 @@ struct AssociativeArray(Key, Value)
 {
     void* p;
 
-    size_t aligntsize(size_t tsize)
-    {
-        version (X86_64)
-            // Size of key needed to align value on 16 bytes
-            return (tsize + 15) & ~(15);
-        else
-            return (tsize + size_t.sizeof - 1) & ~(size_t.sizeof - 1);
-    }
-
     size_t length() @property { return _aaLen(p); }
 
     Value[Key] rehash() @property
@@ -2417,24 +2408,24 @@ struct AssociativeArray(Key, Value)
 
     Value[] values() @property
     {
-        auto a = _aaValues(p, aligntsize(Key.sizeof), Value.sizeof);
+        auto a = _aaValues(p, Key.sizeof, Value.sizeof);
         return *cast(Value[]*) &a;
     }
 
     Key[] keys() @property
     {
-        auto a = _aaKeys(p, aligntsize(Key.sizeof), Value.sizeof);
+        auto a = _aaKeys(p, Key.sizeof);
         return *cast(Key[]*) &a;
     }
 
     int opApply(scope int delegate(ref Key, ref Value) dg)
     {
-        return _aaApply2(p, aligntsize(Key.sizeof), cast(_dg2_t)dg);
+        return _aaApply2(p, Key.sizeof, cast(_dg2_t)dg);
     }
 
     int opApply(scope int delegate(ref Value) dg)
     {
-        return _aaApply(p, aligntsize(Key.sizeof), cast(_dg_t)dg);
+        return _aaApply(p, Key.sizeof, cast(_dg_t)dg);
     }
 
     int delegate(int delegate(ref Key) dg) byKey()
@@ -2447,7 +2438,7 @@ struct AssociativeArray(Key, Value)
 		return dg(key);
 	    }
 
-	    return _aaApply2(p, aligntsize(Key.sizeof), cast(_dg2_t)&byKeydg);
+	    return _aaApply2(p, Key.sizeof, cast(_dg2_t)&byKeydg);
 	}
 
 	return &foo;

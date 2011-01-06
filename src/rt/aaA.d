@@ -262,7 +262,8 @@ body
     //printf("create new one\n");
     size_t size = aaA.sizeof + keysize + valuesize;
     e = cast(aaA *) gc_calloc(size);
-    memcpy(e + 1, pkey, keysize);
+    memcpy(e + 1, pkey, keyti.tsize);
+    memset(cast(byte*)(e + 1) + keyti.tsize, 0, keysize - keyti.tsize);
     e.hash = key_hash;
     *pe = e;
 
@@ -413,14 +414,11 @@ void _aaDelX(AA aa, TypeInfo keyti, void* pkey)
  */
 
 ArrayRet_t _aaValues(AA aa, size_t keysize, size_t valuesize)
-in
-{
-    assert(keysize == aligntsize(keysize));
-}
-body
 {
     size_t resi;
     Array a;
+   
+    auto alignsize = aligntsize(keysize); 
 
     if (aa.a)
     {
@@ -433,7 +431,7 @@ body
             while (e)
             {
                 memcpy(a.ptr + resi * valuesize,
-                       cast(byte*)e + aaA.sizeof + keysize,
+                       cast(byte*)e + aaA.sizeof + alignsize,
                        valuesize);
                 resi++;
                 e = e.next;
@@ -563,14 +561,11 @@ unittest
 extern (D) typedef int delegate(void *) dg_t;
 
 int _aaApply(AA aa, size_t keysize, dg_t dg)
-in
-{
-    assert(aligntsize(keysize) == keysize);
-}
-body
 {   int result;
 
     //printf("_aaApply(aa = x%llx, keysize = %d, dg = x%llx)\n", aa.a, keysize, dg);
+
+    auto alignsize = aligntsize(keysize);
 
     if (aa.a)
     {
@@ -579,7 +574,7 @@ body
         {
             while (e)
             {
-                result = dg(cast(void *)(e + 1) + keysize);
+                result = dg(cast(void *)(e + 1) + alignsize);
                 if (result)
                     break Loop;
                 e = e.next;
@@ -593,14 +588,11 @@ body
 extern (D) typedef int delegate(void *, void *) dg2_t;
 
 int _aaApply2(AA aa, size_t keysize, dg2_t dg)
-in
-{
-    assert(aligntsize(keysize) == keysize);
-}
-body
 {   int result;
 
     //printf("_aaApply(aa = x%llx, keysize = %d, dg = x%llx)\n", aa.a, keysize, dg);
+
+    auto alignsize = aligntsize(keysize);
 
     if (aa.a)
     {
@@ -609,7 +601,7 @@ body
         {
             while (e)
             {
-                result = dg(cast(void *)(e + 1), cast(void *)(e + 1) + keysize);
+                result = dg(cast(void *)(e + 1), cast(void *)(e + 1) + alignsize);
                 if (result)
                     break Loop;
                 e = e.next;
