@@ -893,11 +893,11 @@ void test46()
 
 /************************************************/
 
-static uint myfind(string haystack, char needle) {
+static size_t myfind(string haystack, char needle) {
   foreach (i, c ; haystack) {
     if (c == needle) return i;
   }
-  return uint.max;
+  return size_t.max;
 }
 
 static size_t skip_digits(string s) {
@@ -939,7 +939,7 @@ static string GetFormat(string s) {
   result ~= cast(char) matoi(s);
   pos += skip_digits(s[pos .. $]);
   // modifier?
-  if (pos < s.length && myfind("hjlLqtz", s[pos]) != uint.max) {
+  if (pos < s.length && myfind("hjlLqtz", s[pos]) != size_t.max) {
     // @@@@@@@@@@@@@@@@@@@@@@@@@@@@
     static if (true) {
       result ~= s[pos++];
