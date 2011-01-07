@@ -3608,8 +3608,6 @@ code *cdstreq(elem *e,regm_t *pretregs)
   if (numbytes <= REGSIZE * (6 + (REGSIZE == 4)))
   {     while (numbytes >= REGSIZE)
         {
-            if (REGSIZE == 8)
-                c3 = gen1(c3,REX | REX_W);
             c3 = gen1(c3,0xA5);         /* MOVSW                        */
             code_orrex(c3, rex);
             numbytes -= REGSIZE;
@@ -4399,6 +4397,8 @@ code *cdpost(elem *e,regm_t *pretregs)
             {   cs.Irex &= ~REX_R;
                 cs.Irex |= REX_B;
             }
+            else
+                cs.Irex &= ~REX_B;
             gen(c3,&cs);                        // ADD/SUB reg,const
 
             // Reverse MOV direction
