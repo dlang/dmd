@@ -177,8 +177,6 @@ enum EXCEPTION_UNWIND = 6;  // Flag to indicate if the system is unwinding
 extern(Windows)
 void RtlUnwind(void *targetFrame, void *targetIp, EXCEPTION_RECORD *pExceptRec, void *valueForEAX);
 
-alias int function() fp_t; // function pointer in ambient memory model
-
 extern(C)
 { 
 extern __gshared DWORD _except_list; // This is just FS:[0]
@@ -230,14 +228,25 @@ multiple try/catch/finally blocks. Hence, there's a 'handler table' created for
 each function which uses exceptions.
 +/
 
+extern(C)
+{
+    alias 
+    EXCEPTION_DISPOSITION function (
+            EXCEPTION_RECORD *exceptionRecord,
+            DEstablisherFrame *frame,
+            CONTEXT *context,
+            void *dispatcherContext) LanguageSpecificHandler;
+}
+
+
 // The layout of DEstablisherFrame is the same for C++
 
 struct DEstablisherFrame
 {
-    void *prev;                 // pointer to previous exception list
-    void *handler;              // pointer to routine for exception handler
-    DWORD table_index;          // current index into handler_info[]
-    DWORD ebp;                  // this is EBP of routine
+    DEstablisherFrame *prev;         // pointer to previous exception list
+    LanguageSpecificHandler handler; // pointer to routine for exception handler
+    DWORD table_index;               // current index into handler_info[]
+    DWORD ebp;                       // this is EBP of routine
 };
 
 struct DHandlerInfo
@@ -279,8 +288,6 @@ template MAKE_EXCEPTION_CODE(int severity, int facility, int exception)
 }
 enum int STATUS_DIGITAL_MARS_D_EXCEPTION = MAKE_EXCEPTION_CODE!(3,'D',1);
 
-
-
 /***********************************
  * The frame handler, this is called for each frame that has been registered
  * in the OS except_list.
@@ -301,7 +308,7 @@ EXCEPTION_DISPOSITION _d_framehandler(
     if (exceptionRecord.ExceptionFlags & EXCEPTION_UNWIND)
     {
          // Call all the finally blocks in this frame
-         _d_local_unwind(handlerTable, frame, -1);
+         _d_local_unwind(handlerTable, frame, -1, &unwindCollisionExceptionHandler);
     }
     else
     {
@@ -354,12 +361,12 @@ EXCEPTION_DISPOSITION _d_framehandler(
                         *cast(Object *)(regebp + (pcb.bpoffset)) = pti;
 
                         _d_setUnhandled(pti);
-
+                        
                         // Have system call all finally blocks in intervening frames
                         _d_global_unwind(frame, exceptionRecord);
-
+                        
                         // Call all the finally blocks skipped in this frame
-                        _d_local_unwind(handlerTable, frame, ndx);
+                        _d_local_unwind(handlerTable, frame, ndx, &searchCollisionExceptionHandler);
 
                         _d_setUnhandled(null);
 
@@ -368,9 +375,8 @@ EXCEPTION_DISPOSITION _d_framehandler(
                         // Jump to catch block. Does not return.
                         {
                             uint catch_esp;
-                            fp_t catch_addr;
-
-                            catch_addr = cast(fp_t)(pcb.code);
+                            alias void function() fp_t; // generic function pointer
+                            fp_t catch_addr = cast(fp_t)(pcb.code);
                             catch_esp = regebp - handlerTable.espoffset - fp_t.sizeof;
                             asm
                             {
@@ -519,11 +525,43 @@ Object _d_translate_se_to_d_exception(EXCEPTION_RECORD *exceptionRecord)
     return pti;
 }
 
-/+
-  These next two functions are necessary for dealing with collided exceptions:
-  when an exception has been thrown during unwinding. This happens for example
-  when a throw statement was encountered inside a finally clause.
-+/
+/*
+These next two functions are necessary for dealing with collided exceptions:
+when an exception has been thrown during unwinding. This happens for example
+when a throw statement was encountered inside a finally clause.
+
+'frame' is the stack pointer giving the state we were in, when we made
+the call to RtlUnwind.
+When we return ExceptionCollidedUnwind, the OS initiates a new SEARCH
+phase, using the new exception, and it begins this search from the frame we
+provide in the 'dispatcherContext' output parameter.
+We change the target frame pointer, by changing dispatcherContext. After this, we'll be
+back at the start of a SEARCH phase, so we need cancel all existing operations.
+There are two types of possible collisions.
+(1) collision during a local unwind. That is, localunwind was called during the
+SEARCH phase (without going through an additional call to RtlUnwind).
+We need to cancel the original search pass, so we'll restart from 'frame'.
+(2) collision during a global unwind. That is, localunwind was called from the UNWIND phase.
+We need to cancel the unwind pass, AND we need to cancel the search pass that initiated it.
+So, we need to restart from 'frame.prev'.
+*/
+
+extern (C)
+EXCEPTION_DISPOSITION searchCollisionExceptionHandler(
+            EXCEPTION_RECORD *exceptionRecord,
+            DEstablisherFrame *frame,
+            CONTEXT *context,
+            void *dispatcherContext)
+{
+    if (!(exceptionRecord.ExceptionFlags & EXCEPTION_UNWIND)) 
+        return EXCEPTION_DISPOSITION.ExceptionContinueSearch;
+    
+    // An exception has been thrown during unwinding.
+    // It happened during the SEARCH phase.
+    // We need to cancel the original search pass, so we'll restart from 'frame'.
+    *(cast(void **)dispatcherContext) = frame;
+    return EXCEPTION_DISPOSITION.ExceptionCollidedUnwind;
+}
 
 extern(C)
 EXCEPTION_DISPOSITION unwindCollisionExceptionHandler(
@@ -534,12 +572,12 @@ EXCEPTION_DISPOSITION unwindCollisionExceptionHandler(
 {
     if (!(exceptionRecord.ExceptionFlags & EXCEPTION_UNWIND)) 
         return EXCEPTION_DISPOSITION.ExceptionContinueSearch;
-    // An exception has been thrown during unwinding (eg, a throw statement
-    //   was encountered inside a finally clause).
-    //  The target for unwinding needs to change. 
-    // Based on the code for RtlUnwind in http://www.microsoft.com/msj/0197/exception/exception.aspx,
-    // the dispatcherContext is used to set the EXCEPTION_REGISTRATION to be used from now on.
-    *(cast(DEstablisherFrame **)dispatcherContext) = frame;
+    
+    // An exception has been thrown during unwinding.
+    // It happened during the UNWIND phase.
+    // We need to cancel the unwind pass, AND we need to cancel the search
+    // pass that initiated the unwind. So, we need to restart from 'frame.prev'.
+    *(cast(void **)dispatcherContext) = frame.prev;
     return EXCEPTION_DISPOSITION.ExceptionCollidedUnwind;
 }
 
@@ -549,7 +587,7 @@ EXCEPTION_DISPOSITION unwindCollisionExceptionHandler(
  */
 extern(C)
 void _d_local_unwind(DHandlerTable *handler_table,
-        DEstablisherFrame *frame, int stop_index)
+        DEstablisherFrame *frame, int stop_index, LanguageSpecificHandler collisionHandler)
 {
     DHandlerInfo *phi;
     DCatchInfo *pci;
@@ -559,7 +597,7 @@ void _d_local_unwind(DHandlerTable *handler_table,
     {
         push    dword ptr -1;
         push    dword ptr 0;
-        push    offset unwindCollisionExceptionHandler;
+        push    collisionHandler;
         push    dword ptr FS:_except_list;
         mov     FS:_except_list,ESP;
     }
