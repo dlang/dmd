@@ -197,19 +197,49 @@ Every function which uses exception handling (a 'frame') has a thunk created
 for it. This thunk is the 'language-specific handler'.
 The thunks are created in the DMD backend, in nteh_framehandler() in nteh.c.
 These thunks are of the form:
-      MOV     EAX,&scope_table
+      MOV     EAX, &scope_table
       JMP     __d_framehandler
 FS:[0] contains a singly linked list of all active handlers (they'll all be
 thunks). The list is created on the stack. 
 At the end of this list is _except_handler3, a function in the DMC library.
-Its signature is:
+It may be unnecessary. I think it is included for compatibility with MSVC
+exceptions? The function below is useful for debugging.
 
 extern(C)
 EXCEPTION_DISPOSITION _except_handler3(EXCEPTION_RECORD *eRecord,
     DEstablisherFrame * frame,CONTEXT *context,void *dispatchercontext);
 
-It may be unnecessary. I think it is included for compatibility with MSVC
-exceptions?
+// Walk the exception handler chain
+void printHandlerChain()
+{
+    DEstablisherFrame *head;
+    asm
+    {
+        mov EAX, FS:[0];
+        mov head, EAX;
+    }
+    while (head && head != cast(DEstablisherFrame *)~0)
+    {
+        printf("%p %p ", head, head.handler);
+        if (head.handler == &unwindCollisionExceptionHandler)
+             printf("UnwindCollisionHandler\n");
+        else if (head.handler == &_except_handler3)
+            printf("excepthandler3\n");
+        else
+        {
+            ubyte *hnd = cast(ubyte *)head.handler;
+            if (hnd[0] == 0xB8 && hnd[5]==0xE9) // mov EAX, xxx; jmp yyy;
+            {
+                int adr = *cast(int *)(hnd+6);
+                printf("thunk: frametable=%x adr=%x ", *cast(int *)(hnd+1), hnd + adr+10);
+                if (cast(void *)(hnd + adr + 10) == &_d_framehandler)
+                    printf("dframehandler\n");
+                else printf("\n");
+            } else printf("(unknown)\n");
+        }
+        head = head.prev;
+    }
+}
 
 Documentation of Windows SEH is hard to find. Here is a brief explanation:
 
