@@ -240,32 +240,32 @@ struct ModuleInfo
 {
     struct New
     {
-	    uint flags;
-    	uint index;
+        uint flags;
+        uint index;
     }
 
     struct Old
     {
-	    string           name;
-	    ModuleInfo*[]    importedModules;
-	    TypeInfo_Class[] localClasses;
-	    uint             flags;
+        string           name;
+        ModuleInfo*[]    importedModules;
+        TypeInfo_Class[] localClasses;
+        uint             flags;
 
-	    void function() ctor;
-	    void function() dtor;
-	    void function() unitTest;
-	    void* xgetMembers;
-	    void function() ictor;
-	    void function() tlsctor;
-	    void function() tlsdtor;
-	    uint index;
-	    void*[1] reserved;
+        void function() ctor;
+        void function() dtor;
+        void function() unitTest;
+        void* xgetMembers;
+        void function() ictor;
+        void function() tlsctor;
+        void function() tlsdtor;
+        uint index;
+        void*[1] reserved;
     }
 
     union
     {
-	    New n;
-	    Old o;
+        New n;
+        Old o;
     }
 
     @property bool isNew();
@@ -360,7 +360,7 @@ struct AssociativeArray(Key, Value)
         auto p = _aaRehash(&p, typeid(Value[Key]));
         return *cast(Value[Key]*)(&p);
     }
-
+    
     Value[] values() @property
     {
         auto a = _aaValues(p, Key.sizeof, Value.sizeof);
@@ -385,29 +385,46 @@ struct AssociativeArray(Key, Value)
 
     int delegate(int delegate(ref Key) dg) byKey()
     {
-	int foo(int delegate(ref Key) dg)
-	{
-	    int byKeydg(ref Key key, ref Value value)
-	    {
-		return dg(key);
-	    }
+        int foo(int delegate(ref Key) dg)
+        {
+            int byKeydg(ref Key key, ref Value value)
+            {
+               return dg(key);
+            }
 
-	    return _aaApply2(p, Key.sizeof, cast(_dg2_t)&byKeydg);
-	}
+            return _aaApply2(p, Key.sizeof, cast(_dg2_t)&byKeydg);
+        }
 
 	return &foo;
     }
-
+    
     int delegate(int delegate(ref Value) dg) byValue()
     {
-	return &opApply;
+        return &opApply;
     }
 
     Value get(Key key, lazy Value defaultValue)
     {
-	auto p = key in *cast(Value[Key]*)(&p);
-	return p ? *p : defaultValue;
+        auto r = key in *cast(Value[Key]*)(&p);
+        return r ? *r : defaultValue;
     }
+
+    @property Value[Key] dup()
+    {
+        Value[Key] result;
+        foreach (k, v; this)
+        {
+            result[k] = v;
+        }
+        return result;
+    }
+}
+
+unittest
+{
+    auto a = [ 1:"one", 2:"two", 3:"three" ];
+    auto b = a.dup;
+    assert(b == [ 1:"one", 2:"two", 3:"three" ]);
 }
 
 void clear(T)(T obj) if (is(T == class))
@@ -429,7 +446,7 @@ void clear(T)(T obj) if (is(T == class))
         ci2 = ci2.base;
     } while (ci2)
 
-    auto buf = (cast(void*) obj)[0 .. size];
+        auto buf = (cast(void*) obj)[0 .. size];
     buf[] = ci.init;
     if (defaultCtor)
         defaultCtor(obj);
@@ -455,7 +472,7 @@ void clear(T : U[n], U, size_t n)(ref T obj)
 }
 
 void clear(T)(ref T obj)
-    if (!is(T == struct) && !is(T == class) && !_isStaticArray!T)
+if (!is(T == struct) && !is(T == class) && !_isStaticArray!T)
 {
     obj = T.init;
 }
@@ -494,10 +511,10 @@ void assumeSafeAppend(T)(T[] arr)
 bool _ArrayEq(T1, T2)(T1[] a1, T2[] a2)
 {
     if (a1.length != a2.length)
-	return false;
+        return false;
     foreach(i, a; a1)
     {	if (a != a2[i])
-	    return false;
+            return false;
     }
     return true;
 }
