@@ -157,7 +157,7 @@ version( Windows )
             obj.m_tls = pstart[0 .. pend - pstart];
 
             Thread.setThis( obj );
-            Thread.add( obj );
+            //Thread.add( obj );
             scope( exit )
             {
                 Thread.remove( obj );
@@ -360,7 +360,7 @@ else version( Posix )
             
             obj.m_isRunning = true;
             Thread.setThis( obj );
-            Thread.add( obj );
+            //Thread.add( obj );
             scope( exit )
             {
                 // NOTE: isRunning should be set to false after the thread is
@@ -792,28 +792,38 @@ class Thread
                 throw new ThreadException( "Error setting thread joinable" );
         }
 
-        version( Windows )
+        // NOTE: The starting thread must be added to the global thread list
+        //       here rather than within thread_entryPoint to prevent a race
+        //       with the main thread, which could finish and terminat the
+        //       app without ever knowing that it should have waited for this
+        //       starting thread.  In effect, not doing the add here risks
+        //       having thread being treated like a daemon thread.
+        synchronized( slock )
         {
-            m_hndl = cast(HANDLE) _beginthreadex( null, m_sz, &thread_entryPoint, cast(void*) this, 0, &m_addr );
-            if( cast(size_t) m_hndl == 0 )
-                throw new ThreadException( "Error creating thread" );
-        }
-        else version( Posix )
-        {
-            // NOTE: This is also set to true by thread_entryPoint, but set it
-            //       here as well so the calling thread will see the isRunning
-            //       state immediately.
-            m_isRunning = true;
-            scope( failure ) m_isRunning = false;
+            version( Windows )
+            {
+                m_hndl = cast(HANDLE) _beginthreadex( null, m_sz, &thread_entryPoint, cast(void*) this, 0, &m_addr );
+                if( cast(size_t) m_hndl == 0 )
+                    throw new ThreadException( "Error creating thread" );
+            }
+            else version( Posix )
+            {
+                // NOTE: This is also set to true by thread_entryPoint, but set it
+                //       here as well so the calling thread will see the isRunning
+                //       state immediately.
+                m_isRunning = true;
+                scope( failure ) m_isRunning = false;
 
-            if( pthread_create( &m_addr, &attr, &thread_entryPoint, cast(void*) this ) != 0 )
-                throw new ThreadException( "Error creating thread" );
-        }
-        version( OSX )
-        {
-            m_tmach = pthread_mach_thread_np( m_addr );
-            if( m_tmach == m_tmach.init )
-                throw new ThreadException( "Error creating thread" );
+                if( pthread_create( &m_addr, &attr, &thread_entryPoint, cast(void*) this ) != 0 )
+                    throw new ThreadException( "Error creating thread" );
+            }
+            version( OSX )
+            {
+                m_tmach = pthread_mach_thread_np( m_addr );
+                if( m_tmach == m_tmach.init )
+                    throw new ThreadException( "Error creating thread" );
+            }
+            add( this );
         }
     }
 
@@ -1617,15 +1627,30 @@ private:
     }
     body
     {
-        synchronized( slock )
+        // NOTE: This loop is necessary to avoid a race between newly created
+        //       threads and the GC.  If a collection starts between the time
+        //       Thread.start is called and the new thread calls Thread.add,
+        //       the thread will have its stack scanned without first having
+        //       been properly suspended.  Testing has shown this to sometimes
+        //       cause a deadlock.
+        
+        while( true )
         {
-            if( sm_cbeg )
+            synchronized( slock )
             {
-                c.next = sm_cbeg;
-                sm_cbeg.prev = c;
+                if( !suspendDepth )
+                {
+                    if( sm_cbeg )
+                    {
+                        c.next = sm_cbeg;
+                        sm_cbeg.prev = c;
+                    }
+                    sm_cbeg = c;
+                    ++sm_clen;
+                   return;
+                }
             }
-            sm_cbeg = c;
-            ++sm_clen;
+            yield();
         }
     }
 
@@ -1683,13 +1708,24 @@ private:
         //       the thread could manipulate global state while the collection
         //       is running, and by being added to the thread list it could be
         //       resumed by the GC when it was never suspended, which would
-        //       result in an exception thrown by the GC code.  An alternative
-        //       would be to have Thread.start call Thread.add for the new
-        //       thread, but this introduces its own problems, since the
-        //       thread object isn't entirely ready to be operated on by the
-        //       GC.  This could be fixed by tracking thread startup status,
-        //       but it's far easier to simply have Thread.add wait for any
-        //       running collection to stop before altering the thread list.
+        //       result in an exception thrown by the GC code.
+        //       
+        //       An alternative would be to have Thread.start call Thread.add
+        //       for the new thread, but this may introduce its own problems,
+        //       since the thread object isn't entirely ready to be operated
+        //       on by the GC.  This could be fixed by tracking thread startup
+        //       status, but it's far easier to simply have Thread.add wait
+        //       for any running collection to stop before altering the thread
+        //       list.
+        //
+        //       After further testing, having add wait for a collect to end
+        //       proved to have its own problems (explained in Thread.start),
+        //       so add(Thread) is now being done in Thread.start.  This
+        //       reintroduced the deadlock issue mentioned in bugzilla 4890,
+        //       which appears to have been solved by doing this same wait
+        //       procedure in add(Context).  These comments will remain in
+        //       case other issues surface that require the startup state
+        //       tracking described above.
         
         while( true )
         {
