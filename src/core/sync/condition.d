@@ -163,16 +163,16 @@ class Condition
     {
         version( Win32 )
         {
-            auto maxWaitMillis = milliseconds( uint.max - 1 );
+            auto maxWaitMillis = dur!("msecs")( uint.max - 1 );
 
             while( val > maxWaitMillis )
             {
                 if( timedWait( cast(uint)
-                               maxWaitMillis.totalMilliseconds ) )
+                               maxWaitMillis.total!("msecs")() ) )
                     return true;
                 val -= maxWaitMillis;
             }
-            return timedWait( cast(uint) val.totalMilliseconds );
+            return timedWait( cast(uint) val.total!("msecs")() );
         }
         else version( Posix )
         {

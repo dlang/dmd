@@ -163,7 +163,6 @@ class Semaphore
      * zero in this interval, then atomically decrement the count by one and
      * return true.  Otherwise, return false.
      *
-     *
      * Params:
      *  period = The time to wait.
      *
@@ -264,7 +263,6 @@ class Semaphore
      * until the supplied time period has elapsed.  If the count moves above
      * zero in this interval, then atomically decrement the count by one and
      * return true.  Otherwise, return false.
-     *
      *
      * Params:
      *  period = The time to wait, in 100 nanosecond intervals.  This value may
