@@ -214,12 +214,7 @@ class Condition
     }
     body
     {
-        enum : uint
-        {
-            NANOS_PER_TICK = 100,
-        }
-
-        return wait( nanoseconds( period * NANOS_PER_TICK ) );
+        return wait( dur!"hnsecs"( period ) );
     }
 
 

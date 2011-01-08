@@ -1102,21 +1102,16 @@ class Thread
         {
             timespec tin  = void;
             timespec tout = void;
-
-            enum : uint
-            {
-                NANOS_PER_SECOND = 1000_000_000
-            }
             
-            if( val.totalSeconds > tin.tv_sec.max )
+            if( val.total!("seconds")() > tin.tv_sec.max )
             {
                 tin.tv_sec  = tin.tv_sec.max;
-                tin.tv_nsec = cast(typeof(tin.tv_nsec)) (val.totalNanoseconds % NANOS_PER_SECOND);
+                tin.tv_nsec = cast(typeof(tin.tv_nsec)) val.fracSec.nsecs;
             }
             else
             {
-                tin.tv_sec  = cast(typeof(tin.tv_sec)) val.totalSeconds;
-                tin.tv_nsec = cast(typeof(tin.tv_nsec)) (val.totalNanoseconds % NANOS_PER_SECOND);
+                tin.tv_sec  = cast(typeof(tin.tv_sec)) val.total!("seconds")();
+                tin.tv_nsec = cast(typeof(tin.tv_nsec)) val.fracSec.nsecs;
             }
             while( true )
             {
@@ -1157,12 +1152,7 @@ class Thread
     }
     body
     {
-        enum : uint
-        {
-            NANOS_PER_TICK = 100,
-        }
-
-        sleep( nanoseconds( period * NANOS_PER_TICK ) );
+        sleep( dur!"hnsecs"( period ) );
     }
 
 
@@ -1687,15 +1677,23 @@ private:
     }
     body
     {
-        synchronized( slock )
+        while( true )
         {
-            if( sm_tbeg )
+            synchronized( slock )
             {
-                t.next = sm_tbeg;
-                sm_tbeg.prev = t;
+                if( !suspendDepth )
+                {
+                    if( sm_tbeg )
+                    {
+                        t.next = sm_tbeg;
+                        sm_tbeg.prev = t;
+                    }
+                    sm_tbeg = t;
+                    ++sm_tlen;
+                    return;
+                }
             }
-            sm_tbeg = t;
-            ++sm_tlen;
+            yield();
         }
     }
 

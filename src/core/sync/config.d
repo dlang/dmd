@@ -50,26 +50,22 @@ version( Posix )
 
     void mvtspec( ref timespec t, Duration delta )
     {
-        enum : uint
-        {
-            NANOS_PER_SECOND = 1000_000_000
-        }
-
         auto val  = delta;
-             val += seconds( cast(Duration.SecType) t.tv_sec );
-             val += nanoseconds( cast(Duration.FracType) t.tv_nsec );
-        //auto val = delta + seconds( cast(Duration.SecType) t.tv_sec ) +
-        //                 + nanoseconds( cast(Duration.FracType) t.tv_nsec );
+             val += dur!("seconds")( t.tv_sec );
+             val += dur!("nsecs")( t.tv_nsec );
         
-        if( val.totalSeconds > t.tv_sec.max )
+        //auto val = delta + dur!("seconds")( t.tv_sec ) +
+        //                 + dur!("nsecs")( t.tv_nsec );
+        
+        if( val.total!("seconds")() > t.tv_sec.max )
         {
             t.tv_sec  = t.tv_sec.max;
-            t.tv_nsec = cast(typeof(t.tv_nsec)) (val.totalNanoseconds % NANOS_PER_SECOND);
+            t.tv_nsec = cast(typeof(t.tv_nsec)) val.fracSec.nsecs;
         }
         else
         {
-            t.tv_sec  = cast(typeof(t.tv_sec)) val.totalSeconds;
-            t.tv_nsec = cast(typeof(t.tv_nsec)) (val.totalNanoseconds % NANOS_PER_SECOND);
+            t.tv_sec  = cast(typeof(t.tv_sec)) val.total!("seconds")();
+            t.tv_nsec = cast(typeof(t.tv_nsec)) val.fracSec.nsecs;
         }
     }
 }
