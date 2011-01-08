@@ -1677,6 +1677,20 @@ private:
     }
     body
     {
+        // NOTE: This loop is necessary to avoid a race between newly created
+        //       threads and the GC.  If a collection starts between the time
+        //       Thread.start is called and the new thread calls Thread.add,
+        //       the thread could manipulate global state while the collection
+        //       is running, and by being added to the thread list it could be
+        //       resumed by the GC when it was never suspended, which would
+        //       result in an exception thrown by the GC code.  An alternative
+        //       would be to have Thread.start call Thread.add for the new
+        //       thread, but this introduces its own problems, since the
+        //       thread object isn't entirely ready to be operated on by the
+        //       GC.  This could be fixed by tracking thread startup status,
+        //       but it's far easier to simply have Thread.add wait for any
+        //       running collection to stop before altering the thread list.
+        
         while( true )
         {
             synchronized( slock )
