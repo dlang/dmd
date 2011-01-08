@@ -708,6 +708,8 @@ int _d_global_unwind(DEstablisherFrame *pFrame, EXCEPTION_RECORD *eRecord)
 
 /***********************************
  * external version of the unwinder
+ * This is used for 'goto' or 'return', to run any finally blocks
+ * which were skipped.
  */
 extern(C)
 void _d_local_unwind2()
@@ -715,8 +717,15 @@ void _d_local_unwind2()
     asm
     {
         naked;
-        jmp     _d_local_unwind;
+        jmp     _d_localUnwindForGoto;
     }
+}
+
+extern(C)
+void _d_localUnwindForGoto(DHandlerTable *handler_table,
+        DEstablisherFrame *frame, int stop_index)
+{
+    _d_local_unwind(handler_table, frame, stop_index, &searchCollisionExceptionHandler);
 }
 
 /***********************************
