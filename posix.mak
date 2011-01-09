@@ -403,7 +403,11 @@ unittest : $(addprefix $(OBJDIR)/,$(SRC_D_MODULES)) $(DRUNTIME) $(OBJDIR)/emptym
 
 ifeq ($(MODEL),64)
 DISABLED_TESTS = \
-	rt/adi \
+	object_ \
+	core/time \
+	core/sync/condition \
+	core/sync/rwmutex \
+	core/sync/semaphore \
 	rt/dmain2
 else
 DISABLED_TESTS = \
