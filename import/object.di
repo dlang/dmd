@@ -409,15 +409,16 @@ struct AssociativeArray(Key, Value)
         return r ? *r : defaultValue;
     }
 
-    @property Value[Key] dup()
-    {
-        Value[Key] result;
-        foreach (k, v; this)
+    static if (is(typeof({ Value[Key] r; r[Key.init] = Value.init; }())))
+        @property Value[Key] dup()
         {
-            result[k] = v;
+            Value[Key] result;
+            foreach (k, v; this)
+            {
+                result[k] = v;
+            }
+            return result;
         }
-        return result;
-    }
 }
 
 unittest
