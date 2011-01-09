@@ -31,7 +31,6 @@ import core.stdc.stdio;
 version(Windows)
 {
 import core.sys.windows.windows;
-import std.windows.syserror;
 }
 else version(Posix)
 {
@@ -1833,7 +1832,8 @@ struct TickDuration
             ulong ticks;
 
             if(QueryPerformanceCounter(cast(long*)&ticks) == 0)
-                throw new TimeException(sysErrorString(GetLastError()));
+                // This probably cannot happen on Windows 95 or later
+                throw new TimeException("Failed in QueryPerformanceCounter().");
 
             return TickDuration(ticks);
         }
