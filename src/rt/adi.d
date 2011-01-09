@@ -101,12 +101,12 @@ extern (C) char[] _adReverseChar(char[] a)
              */
             memcpy(tmp.ptr, hi, stridehi);
             memcpy(tmplo.ptr, lo, stridelo);
-            memmove(lo + stridehi, lo + stridelo , (hi - lo) - stridelo);
+            memmove(lo + stridehi, lo + stridelo , cast(size_t)((hi - lo) - stridelo));
             memcpy(lo, tmp.ptr, stridehi);
             memcpy(hi + stridehi - stridelo, tmplo.ptr, stridelo);
 
             lo += stridehi;
-            hi = hi - 1 + (stridehi - stridelo);
+            hi = hi - 1 + cast(int)(stridehi - stridelo);
         }
     }
     return a;
