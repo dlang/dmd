@@ -1755,7 +1755,10 @@ code *tstresult(regm_t regm,tym_t tym,unsigned saveflag)
   unsigned sz = tysize[tym];
   if (sz == 1)
   {     assert(regm & BYTEREGS);
-        return genregs(ce,0x84,reg,reg);        // TEST regL,regL
+        ce = genregs(ce,0x84,reg,reg);        // TEST regL,regL
+        if (I64 && reg >= 4)
+            code_orrex(ce, REX);
+        return ce;
   }
   if (regm & XMMREGS)
   {

@@ -1008,7 +1008,7 @@ code *cdmul(elem *e,regm_t *pretregs)
             goto L3;
         }
 
-        if (sz > REGSIZE)
+        if (sz > REGSIZE || !el_signx32(e2))
             goto L2;
 
         if (oper == OPmul && config.target_cpu >= TARGET_80286)
