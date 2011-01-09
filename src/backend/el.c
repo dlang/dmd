@@ -393,6 +393,22 @@ elem *el_params(void **args, int length)
                     el_params(args + mid, length - mid));
 }
 
+/*****************************************
+ * Do an array of parameters as a balanced
+ * binary tree.
+ */
+
+elem *el_combines(void **args, int length)
+{
+    if (length == 0)
+        return NULL;
+    if (length == 1)
+        return (elem *)args[0];
+    int mid = length >> 1;
+    return el_combine(el_combines(args, mid),
+                    el_combines(args + mid, length - mid));
+}
+
 /***************************************
  * Return a list of the parameters.
  */

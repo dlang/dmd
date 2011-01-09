@@ -235,7 +235,7 @@ void optfunc()
 
     // Each pass through the loop can reduce only one level of comma expression.
     // The infinite loop check needs to take this into account.
-    int iterationLimit = 200;
+    int iterationLimit = 0;
     for (b = startblock; b; b = b->Bnext)
     {
         if (!b->Belem)
@@ -252,7 +252,10 @@ void optfunc()
     {
         //printf("iter = %d\n", iter);
 #if TX86
-        assert(++iter < iterationLimit);           // infinite loop check
+        if (++iter > 200)
+        {   assert(iter < iterationLimit);      // infinite loop check
+            break;
+        }
 #else
      L1:
 #endif
