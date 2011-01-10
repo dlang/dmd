@@ -2697,7 +2697,7 @@ cmes2("nfams = %d\n",nfams);
 cmes2("nrefs = %d\n",nrefs);
         assert(nrefs + 1 >= nfams);
         if (nrefs > nfams ||            // if we won't eliminate the biv
-            (I32 && nrefs == nfams))
+            (!I16 && nrefs == nfams))
         {   /* Eliminate any family ivs that only differ by a constant  */
             /* from biv                                                 */
             for (fl = biv->IVfamily; fl; fl = fl->FLnext)
@@ -2709,7 +2709,7 @@ cmes2("nrefs = %d\n",nrefs);
                         ||
                     // Eliminate fl's that can be represented by
                     // an addressing mode
-                    (I32 && ec1->Eoper == OPconst && tyintegral(ec1->Ety) &&
+                    (!I16 && ec1->Eoper == OPconst && tyintegral(ec1->Ety) &&
                      ((c = el_tolong(ec1)) == 2 || c == 4 || c == 8)
                     )
 #endif
