@@ -1496,97 +1496,15 @@ Loverflow:
 
 
 /**
- * Append y[] to array pointed to by px
- * size is size of each array element.
+ * Append y[] to array x[]
  */
-extern (C) void[] _d_arrayappendT(TypeInfo ti, Array *px, byte[] y)
+extern (C) void[] _d_arrayappendT(TypeInfo ti, ref byte[] x, byte[] y)
 {
-    // only optimize array append where ti is not a shared type
+    auto length = x.length;
     auto sizeelem = ti.next.tsize();            // array element size
-    auto isshared = ti.classinfo is TypeInfo_Shared.classinfo;
-    auto bic = !isshared ? __getBlkInfo(px.data) : null;
-    auto info = bic ? *bic : gc_query(px.data);
-    auto length = px.length;
-    auto newlength = length + y.length;
-    auto newsize = newlength * sizeelem;
-    auto size = length * sizeelem;
-
-    // calculate the extent of the array given the base.
-    size_t offset = px.data - __arrayStart(info);
-    if(info.attr & BlkAttr.APPENDABLE)
-    {
-        if(info.size >= PAGESIZE)
-        {
-            // size of array is at the front of the block
-            if(!__setArrayAllocLength(info, newsize + offset, isshared, size + offset))
-            {
-                // check to see if it failed because there is not
-                // enough space
-                auto newcap = newCapacity(newlength, sizeelem);
-                if(*(cast(size_t*)info.base) == size + offset)
-                {
-                    // not enough space, try extending
-                    auto extendoffset = offset + LARGEPAD - info.size;
-                    auto u = gc_extend(px.data, newsize + extendoffset, newcap + extendoffset);
-                    if(u)
-                    {
-                        // extend worked, now try setting the length
-                        // again.
-                        info.size = u;
-                        if(__setArrayAllocLength(info, newsize + offset, isshared, size + offset))
-                        {
-                            if(!isshared)
-                                __insertBlkInfoCache(info, bic);
-                            goto L1;
-                        }
-                    }
-                }
-
-                // couldn't do it, reallocate
-                info = gc_qalloc(newcap + LARGEPAD, info.attr);
-                __setArrayAllocLength(info, newsize, isshared);
-                if(!isshared)
-                    __insertBlkInfoCache(info, bic);
-                auto newdata = cast(byte *)info.base + LARGEPREFIX;
-                memcpy(newdata, px.data, length * sizeelem);
-                px.data = newdata;
-            }
-            else if(!isshared && !bic)
-            {
-                __insertBlkInfoCache(info, null);
-            }
-        }
-        else if(!__setArrayAllocLength(info, newsize + offset, isshared, size + offset))
-        {
-            // could not resize in place
-            auto allocsize = newCapacity(newlength, sizeelem);
-            info = gc_qalloc(allocsize + __arrayPad(allocsize), info.attr);
-            goto L2;
-        }
-        else if(!isshared && !bic)
-        {
-            __insertBlkInfoCache(info, null);
-        }
-    }
-    else
-    {
-        // not appendable or is null
-        auto allocsize = newCapacity(newlength, sizeelem);
-        info = gc_qalloc(allocsize + __arrayPad(allocsize), (info.base ? info.attr : !(ti.next.flags() & 1) ? BlkAttr.NO_SCAN : 0) | BlkAttr.APPENDABLE);
-    L2:
-        __setArrayAllocLength(info, newsize, isshared);
-        if(!isshared)
-            __insertBlkInfoCache(info, bic);
-        auto newdata = cast(byte *)__arrayStart(info);
-        memcpy(newdata, px.data, length * sizeelem);
-        px.data = newdata;
-    }
-
-
-  L1:
-    px.length = newlength;
-    memcpy(px.data + length * sizeelem, y.ptr, y.length * sizeelem);
-    return *cast(void[]*)px;
+    _d_arrayappendcTX(ti, x, y.length);
+    memcpy(x.ptr + length * sizeelem, y.ptr, y.length * sizeelem);
+    return x;
 }
 
 
@@ -1672,9 +1590,9 @@ size_t newCapacity(size_t newlength, size_t size)
 
 
 /**
- *
+ * Obsolete, replaced with _d_arrayappendcTX()
  */
-extern (C) void[] _d_arrayappendcT(TypeInfo ti, Array *x, ...)
+extern (C) void[] _d_arrayappendcT(TypeInfo ti, ref byte[] x, ...)
 {
     version(X86)
     {  
@@ -1710,10 +1628,106 @@ extern (C) void[] _d_arrayappendcT(TypeInfo ti, Array *x, ...)
 }
 
 
+/**************************************
+ * Extend an array by n elements.
+ * Caller must initialize those elements.
+ */
+extern (C)
+byte[] _d_arrayappendcTX(TypeInfo ti, ref byte[] px, size_t n)
+{
+    // This is a cut&paste job from _d_arrayappendT(). Should be refactored.
+
+    // only optimize array append where ti is not a shared type
+    auto sizeelem = ti.next.tsize();            // array element size
+    auto isshared = ti.classinfo is TypeInfo_Shared.classinfo;
+    auto bic = !isshared ? __getBlkInfo(px.ptr) : null;
+    auto info = bic ? *bic : gc_query(px.ptr);
+    auto length = px.length;
+    auto newlength = length + n;
+    auto newsize = newlength * sizeelem;
+    auto size = length * sizeelem;
+
+    // calculate the extent of the array given the base.
+    size_t offset = px.ptr - __arrayStart(info);
+    if(info.attr & BlkAttr.APPENDABLE)
+    {
+        if(info.size >= PAGESIZE)
+        {
+            // size of array is at the front of the block
+            if(!__setArrayAllocLength(info, newsize + offset, isshared, size + offset))
+            {
+                // check to see if it failed because there is not
+                // enough space
+                auto newcap = newCapacity(newlength, sizeelem);
+                if(*(cast(size_t*)info.base) == size + offset)
+                {
+                    // not enough space, try extending
+                    auto extendoffset = offset + LARGEPAD - info.size;
+                    auto u = gc_extend(px.ptr, newsize + extendoffset, newcap + extendoffset);
+                    if(u)
+                    {
+                        // extend worked, now try setting the length
+                        // again.
+                        info.size = u;
+                        if(__setArrayAllocLength(info, newsize + offset, isshared, size + offset))
+                        {
+                            if(!isshared)
+                                __insertBlkInfoCache(info, bic);
+                            goto L1;
+                        }
+                    }
+                }
+
+                // couldn't do it, reallocate
+                info = gc_qalloc(newcap + LARGEPAD, info.attr);
+                __setArrayAllocLength(info, newsize, isshared);
+                if(!isshared)
+                    __insertBlkInfoCache(info, bic);
+                auto newdata = cast(byte *)info.base + LARGEPREFIX;
+                memcpy(newdata, px.ptr, length * sizeelem);
+	        (cast(void **)(&px))[1] = newdata;
+            }
+            else if(!isshared && !bic)
+            {
+                __insertBlkInfoCache(info, null);
+            }
+        }
+        else if(!__setArrayAllocLength(info, newsize + offset, isshared, size + offset))
+        {
+            // could not resize in place
+            auto allocsize = newCapacity(newlength, sizeelem);
+            info = gc_qalloc(allocsize + __arrayPad(allocsize), info.attr);
+            goto L2;
+        }
+        else if(!isshared && !bic)
+        {
+            __insertBlkInfoCache(info, null);
+        }
+    }
+    else
+    {
+        // not appendable or is null
+        auto allocsize = newCapacity(newlength, sizeelem);
+        info = gc_qalloc(allocsize + __arrayPad(allocsize), (info.base ? info.attr : !(ti.next.flags() & 1) ? BlkAttr.NO_SCAN : 0) | BlkAttr.APPENDABLE);
+    L2:
+        __setArrayAllocLength(info, newsize, isshared);
+        if(!isshared)
+            __insertBlkInfoCache(info, bic);
+        auto newdata = cast(byte *)__arrayStart(info);
+        memcpy(newdata, px.ptr, length * sizeelem);
+        (cast(void **)(&px))[1] = newdata;
+    }
+
+  L1:
+    *cast(size_t *)&px = newlength;
+    return px;
+}
+
+
 /**
  * Append dchar to char[]
  */
-extern (C) void[] _d_arrayappendcd(ref char[] x, dchar c)
+extern (C) void[] _d_arrayappendcd(ref byte[] x, dchar c)
 {
     // c could encode into from 1 to 4 characters
     char[4] buf = void;
@@ -1752,14 +1766,14 @@ extern (C) void[] _d_arrayappendcd(ref char[] x, dchar c)
     // get a typeinfo from the compiler.  Assuming shared is the safest option.
     // Once the compiler is fixed, the proper typeinfo should be forwarded.
     //
-    return _d_arrayappendT(typeid(shared char[]), cast(Array *)&x, appendthis);
+    return _d_arrayappendT(typeid(shared char[]), x, appendthis);
 }
 
 
 /**
  * Append dchar to wchar[]
  */
-extern (C) void[] _d_arrayappendwd(ref wchar[] x, dchar c)
+extern (C) void[] _d_arrayappendwd(ref byte[] x, dchar c)
 {
     // c could encode into from 1 to 2 w characters
     wchar[2] buf = void;
@@ -1785,7 +1799,7 @@ extern (C) void[] _d_arrayappendwd(ref wchar[] x, dchar c)
     // get a typeinfo from the compiler.  Assuming shared is the safest option.
     // Once the compiler is fixed, the proper typeinfo should be forwarded.
     //
-    return _d_arrayappendT(typeid(shared wchar[]), cast(Array *)&x, appendthis);
+    return _d_arrayappendT(typeid(shared wchar[]), x, appendthis);
 }
 
 
@@ -1923,7 +1937,30 @@ extern (C) byte[] _d_arraycatnT(TypeInfo ti, uint n, ...)
 
 
 /**
- *
+ * Allocate the array, rely on the caller to do the initialization of the array.
+ */
+extern (C)
+void* _d_arrayliteralTX(TypeInfo ti, size_t length)
+{
+    auto sizeelem = ti.next.tsize();            // array element size
+    void* result;
+
+    //printf("_d_arrayliteralTX(sizeelem = %d, length = %d)\n", sizeelem, length);
+    if (length == 0 || sizeelem == 0)
+        result = null;
+    else
+    {
+        auto allocsize = length * sizeelem;
+        auto info = gc_qalloc(allocsize + __arrayPad(allocsize), !(ti.next.flags() & 1) ? BlkAttr.NO_SCAN | BlkAttr.APPENDABLE : BlkAttr.APPENDABLE);
+        auto isshared = ti.classinfo is TypeInfo_Shared.classinfo;
+        __setArrayAllocLength(info, allocsize, isshared);
+        result = __arrayStart(info);
+    }
+    return result;
+}
+
+/**
+ * The old way, obsolete.
  */
 extern (C) void* _d_arrayliteralT(TypeInfo ti, size_t length, ...)
 {
