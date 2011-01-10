@@ -73,6 +73,7 @@ private
     extern (C) void* rt_stackTop();
     extern (C) void  rt_moduleTlsCtor();
     extern (C) void  rt_moduleTlsDtor();
+    extern (C) void  rt_processGCMarks(void[]);
 
 
     void* getStackBottom()
@@ -2565,6 +2566,42 @@ body
     }
 }
 
+/**
+ * This routine allows the runtime to process any special per-thread handling
+ * for the GC.  This is needed for taking into account any memory that is 
+ * referenced by non-scanned pointers but is about to be freed.  That currently
+ * means the array append cache.
+ *
+ * In:
+ *  This routine must be called just prior to resuming all threads.
+ */
+extern(C) void thread_processGCMarks()
+{
+    for( Thread t = Thread.sm_tbeg; t; t = t.next )
+    {
+        rt_processGCMarks(t.m_tls);
+    }
+}
+
+
+void[] thread_getTLSBlock()
+{
+    version(OSX)
+    {
+        // TLS lives in the thread object.
+        auto t = Thread.getThis();
+        return t.m_tls;
+    }
+    else version(FreeBSD)
+    {
+        return _tlsstart[0..(_tlsend-_tlsstart)];
+    }
+    else
+    {
+        
+        return (cast(void*)&_tlsstart)[0..(&_tlsend)-(&_tlsstart)];
+    }
+}
 
 ///////////////////////////////////////////////////////////////////////////////
 // Thread Group

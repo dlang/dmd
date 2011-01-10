@@ -77,6 +77,7 @@ private
         extern (C) bool thread_needLock();
         extern (C) void thread_suspendAll();
         extern (C) void thread_resumeAll();
+        extern (C) void thread_processGCMarks();
 
         alias void delegate( void*, void* ) scanFn;
         extern (C) void thread_scanAll( scanFn fn, void* curStackTop = null );
@@ -1265,6 +1266,18 @@ class GC
 
         gcx.log_collect();
 	return result;
+    }
+
+    /**
+     * Returns true if the pointer is being collected.  Should only be called
+     * with the base pointer of the block.
+     *
+     * Warning! This should only be called while the world is stopped inside
+     * the fullcollect function.
+     */
+    bool isCollecting(void *p)
+    {
+        return gcx.isCollecting(p);
     }
 
 
@@ -2487,6 +2500,7 @@ struct Gcx
             }
         }
 
+        thread_processGCMarks();
         thread_resumeAll();
 
         // Free up everything not marked
@@ -2648,6 +2662,33 @@ struct Gcx
         debug(COLLECT_PRINTF) printf("\tfree'd %u bytes, %u pages from %u pools\n", freed, freedpages, npools);
 
         return freedpages + recoveredpages;
+    }
+
+    /**
+     * Returns true if the pointer is being collected.  Should only be called
+     * with the base pointer of the block.
+     *
+     * Warning! This should only be called while the world is stopped inside
+     * the fullcollect function.
+     */
+    bool isCollecting(void *p)
+    {
+        // first, we find the Pool this block is in, then check to see if the
+        // mark bit is clear.
+        auto pool = findPool(p);
+        if(pool)
+        {
+            auto offset = cast(size_t)(p - pool.baseAddr);
+            auto pn = offset / PAGESIZE;
+            auto bins = cast(Bins)pool.pagetable[pn];
+            if(bins <= B_PAGE)
+            {
+                assert(p == cast(void*)((cast(size_t)p) & notbinsize[bins]));
+                // return true if the block is not marked.
+                return !(pool.mark.test(offset / 16));
+            }
+        }
+        return false; // not collecting or pointer is a valid argument.
     }
 
 
