@@ -976,7 +976,7 @@ struct Shell
 
     const int opCmp(ref const Shell s)
     {
-	return cast(int)std.string.cmp(this.str, s.str);
+	return std.string.cmp(this.str, s.str);
     }
 }
 
