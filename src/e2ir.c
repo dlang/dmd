@@ -2824,9 +2824,10 @@ elem *CatAssignExp::toElem(IRState *irs)
         else if (I64)
         {   // Append element
 
-            // Extend array with _d_arrayappendcTX(TypeInfo ti, e1)
+            // Extend array with _d_arrayappendcTX(TypeInfo ti, e1, 1)
             e1 = el_una(OPaddr, TYnptr, e1);
             elem *ep = el_param(e1, this->e1->type->getTypeInfo(NULL)->toElem(irs));
+            ep = el_param(el_long(TYsize_t, 1), ep);
             e = el_bin(OPcall, TYdarray, el_var(rtlsym[RTLSYM_ARRAYAPPENDCTX]), ep);
             symbol *stmp = symbol_genauto(tb1->toCtype());
             e = el_bin(OPeq, TYdarray, el_var(stmp), e);

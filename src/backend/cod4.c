@@ -2646,7 +2646,9 @@ code *cdshtlng(elem *e,regm_t *pretregs)
         c1 = allocreg(&retregs,&reg,TYint);
         opcode = (op == OPu16_32) ? 0x0FB7 : 0x0FBF; /* MOVZX/MOVSX reg,EA */
         if (op == OPs32_64)
-            opcode = 0x63;
+        {   opcode = 0x63;                      // MOVSXD
+            assert(I64);
+        }
         c2 = loadea(e1,&cs,opcode,reg,0,0,retregs);
         c3 = CNIL;
         freenode(e1);
