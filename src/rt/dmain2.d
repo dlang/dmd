@@ -57,7 +57,9 @@ version (all)
         }
         _d_unhandled = t;
     }
-    
+
+    extern (C) Throwable.TraceInfo _d_traceContext(void* ptr = null);
+
     extern (C) void _d_createTrace(Object *o)
     {
         auto t = cast(Throwable) o;

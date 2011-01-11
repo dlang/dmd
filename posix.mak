@@ -6,17 +6,10 @@ IMPDIR=import
 
 MODEL=32
 
-ifeq ($(MODEL),64)
-DFLAGS=-m$(MODEL) -release -inline -nofloat -w -d -Isrc -Iimport
-UDFLAGS=-m$(MODEL) -release -nofloat -w -d -Isrc -Iimport
-
-CFLAGS=-m$(MODEL)
-else
 DFLAGS=-m$(MODEL) -O -release -inline -nofloat -w -d -Isrc -Iimport 
 UDFLAGS=-m$(MODEL) -O -release -nofloat -w -d -Isrc -Iimport 
 
 CFLAGS=-m$(MODEL) -O
-endif
 
 OBJDIR=obj
 DRUNTIME_BASE=druntime
@@ -402,11 +395,9 @@ unittest : $(addprefix $(OBJDIR)/,$(SRC_D_MODULES)) $(DRUNTIME) $(OBJDIR)/emptym
 	@echo done
 
 ifeq ($(MODEL),64)
-DISABLED_TESTS = \
-	rt/dmain2
+DISABLED_TESTS =
 else
-DISABLED_TESTS = \
-	rt/dmain2
+DISABLED_TESTS =
 endif
 
 $(addprefix $(OBJDIR)/,$(DISABLED_TESTS)) :
