@@ -1349,6 +1349,8 @@ void test53()
 }
 
 /* ================================ */
+version(Windows) // not yet implemented elsewhere
+    version = TdplExceptionChaining;
 
 void test54()
 {
@@ -1374,9 +1376,13 @@ void test54()
 	catch(Exception e)
 	{
 		printf("catch %.*s\n", e.msg.length, e.msg.ptr);
-		assert(e.msg == "second");
-		//assert(e.msg == "first");
-		//assert(e.next.msg == "second");
+        version(TdplExceptionChaining)
+        {
+            assert(e.msg == "first");
+            assert(e.next.msg == "second");
+        }
+        else
+            assert(e.msg == "second");
 		assert(status==3);
 	}
 	printf("success54\n");
