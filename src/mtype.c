@@ -2497,11 +2497,14 @@ unsigned TypeBasic::alignsize()
 #if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_SOLARIS
         case Tint64:
         case Tuns64:
+            sz = global.params.isX86_64 ? 8 : 4;
+            break;
+
         case Tfloat64:
         case Timaginary64:
         case Tcomplex32:
         case Tcomplex64:
-            sz = 4;
+            sz = global.params.isX86_64 ? 16 : 4;
             break;
 #endif
 
