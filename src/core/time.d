@@ -1188,7 +1188,7 @@ private:
             hnsecs = The total number of hecto-nanoseconds in this duration.
       +/
     @safe
-    this(long hnsecs) pure nothrow
+    pure nothrow this(long hnsecs)
     {
         _hnsecs = hnsecs;
     }
@@ -1810,7 +1810,7 @@ struct TickDuration
         Params:
             ticks = The number of ticks in the TickDuration.
       +/
-    this(long ticks) pure nothrow
+    pure nothrow this(long ticks)
     {
         this.length = ticks;
     }
@@ -2680,7 +2680,7 @@ private:
             TimeException if the given hnsecs less than 0 or would result in a
             FracSec greater than or equal to 1 second.
       +/
-    this(int hnsecs) pure
+    pure this(int hnsecs)
     {
         _enforceValid(hnsecs);
         _hnsecs = hnsecs;
@@ -2710,7 +2710,7 @@ class TimeException : Exception
             line = The line number where the exception occurred.
             next = The previous exception in the chain of exceptions, if any.
       +/
-    this(string msg, string file = __FILE__, size_t line = __LINE__, Throwable next = null) nothrow
+    nothrow this(string msg, string file = __FILE__, size_t line = __LINE__, Throwable next = null)
     {
         super(msg, file, line, next);
     }
