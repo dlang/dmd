@@ -887,6 +887,7 @@ assert(dur!"msecs"(1000).fracSec == FracSec.from!"msecs"(0));
 assert(dur!"msecs"(1217).fracSec == FracSec.from!"msecs"(217));
 assert(dur!"usecs"(43).fracSec == FracSec.from!"usecs"(43));
 assert(dur!"hnsecs"(50_007).fracSec == FracSec.from!"hnsecs"(50_007));
+assert(dur!"nsecs"(62_127).fracSec == FracSec.from!"nsecs"(62_100));
 --------------------
      +/
     @property FracSec fracSec() const pure nothrow
@@ -919,6 +920,7 @@ assert(dur!"hnsecs"(50_007).fracSec == FracSec.from!"hnsecs"(50_007));
         assert(dur!"msecs"(1217).fracSec == FracSec.from!"msecs"(217));
         assert(dur!"usecs"(43).fracSec == FracSec.from!"usecs"(43));
         assert(dur!"hnsecs"(50_007).fracSec == FracSec.from!"hnsecs"(50_007));
+        assert(dur!"nsecs"(62_127).fracSec == FracSec.from!"nsecs"(62_100));
 
         const dur = Duration(12);
         const cdur = Duration(12);
@@ -1202,7 +1204,7 @@ private:
 
     The possible values for units are "weeks", "days", "hours", "minutes",
     "seconds", "msecs" (milliseconds), "usecs", (microseconds),
-    and "hnsecs" (hecto-nanoseconds, i.e. 100 ns).
+    "hnsecs" (hecto-nanoseconds, i.e. 100 ns), and "nsecs".
 
     Params:
         units  = The time units of the duration (e.g. "days").
@@ -1500,46 +1502,60 @@ struct TickDuration
     //test from!"hnsecs"().
     unittest
     {
-        auto t = TickDuration.from!"hnsecs"(10_000_000);
-        assert(t.hnsecs == 10_000_000);
-        t = TickDuration.from!"hnsecs"(20_000_000);
-        assert(t.hnsecs == 20_000_000);
-
-        if(ticksPerSec == 1_000_000)
+        //Skipping tests on Windows until properly robust tests
+        //can be devised and tested on a Windows box.
+        //The differences in ticksPerSec on Windows makes testing
+        //exact values a bit precarious.
+        version(Posix)
         {
-            t.length -= 1;
-            assert(t.hnsecs == 19999990);
-            assert(TickDuration.from!"hnsecs"(70).hnsecs == 70);
-            assert(TickDuration.from!"hnsecs"(7).hnsecs == 0);
-        }
+            auto t = TickDuration.from!"hnsecs"(10_000_000);
+            assert(t.hnsecs == 10_000_000);
+            t = TickDuration.from!"hnsecs"(20_000_000);
+            assert(t.hnsecs == 20_000_000);
 
-        if(ticksPerSec >= 10_000_000)
-        {
-            t.length -= 1;
-            assert(t.hnsecs == 19999999);
-            assert(TickDuration.from!"hnsecs"(70).hnsecs == 70);
-            assert(TickDuration.from!"hnsecs"(7).hnsecs == 7);
+            if(ticksPerSec == 1_000_000)
+            {
+                t.length -= 1;
+                assert(t.hnsecs == 19999990);
+                assert(TickDuration.from!"hnsecs"(70).hnsecs == 70);
+                assert(TickDuration.from!"hnsecs"(7).hnsecs == 0);
+            }
+
+            if(ticksPerSec >= 10_000_000)
+            {
+                t.length -= 1;
+                assert(t.hnsecs == 19999999);
+                assert(TickDuration.from!"hnsecs"(70).hnsecs == 70);
+                assert(TickDuration.from!"hnsecs"(7).hnsecs == 7);
+            }
         }
     }
 
     //test from!"nsecs"().
     unittest
     {
-        auto t = TickDuration.from!"nsecs"(1_000_000_000);
-        assert(t.nsecs == 1_000_000_000);
-        t = TickDuration.from!"nsecs"(2_000_000_000);
-        assert(t.nsecs == 2_000_000_000);
-
-        if(ticksPerSec == 1_000_000)
+        //Skipping tests on Windows until properly robust tests
+        //can be devised and tested on a Windows box.
+        //The differences in ticksPerSec on Windows makes testing
+        //exact values a bit precarious.
+        version(Posix)
         {
-            t.length -= 1;
-            assert(t.nsecs == 1999999000);
-        }
+            auto t = TickDuration.from!"nsecs"(1_000_000_000);
+            assert(t.nsecs == 1_000_000_000);
+            t = TickDuration.from!"nsecs"(2_000_000_000);
+            assert(t.nsecs == 2_000_000_000);
 
-        if(ticksPerSec >= 1_000_000_000)
-        {
-            t.length -= 1;
-            assert(t.nsecs == 1999999999);
+            if(ticksPerSec == 1_000_000)
+            {
+                t.length -= 1;
+                assert(t.nsecs == 1999999000);
+            }
+
+            if(ticksPerSec >= 1_000_000_000)
+            {
+                t.length -= 1;
+                assert(t.nsecs == 1999999999);
+            }
         }
     }
 
@@ -2463,7 +2479,7 @@ public:
         Throws:
             TimeException if the given value is not less than one second.
       +/
-    @property void nsecs(int nsecs) pure
+    @property void nsecs(long nsecs) pure
     {
         //So that -99 through -1 throw instead of result in FracSec(0).
         if(nsecs < 0)
@@ -2477,7 +2493,7 @@ public:
 
     unittest
     {
-        static void testFS(int nsecs, in FracSec expected = FracSec.init, size_t line = __LINE__)
+        static void testFS(long nsecs, in FracSec expected = FracSec.init, size_t line = __LINE__)
         {
             FracSec fs;
 
