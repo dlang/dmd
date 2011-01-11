@@ -1304,7 +1304,7 @@ void test52()
     A52 b = a.copy();
     printf("a: %p, b: %p\n", &a, &b);
   }
-    printf("s = '%.*s'\n", s52);
+    printf("s = '%.*s'\n", s52.length, s52.ptr);
     assert(s52 == "caabbb");
 }
 
