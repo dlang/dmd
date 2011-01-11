@@ -2,6 +2,9 @@
 
 extern(C) int printf(const char*, ...);
 
+version(Windows) // not yet implemented elsewhere
+    version = TdplExceptionChaining;
+
 /****************************************************/
 
 class Abc { int i; }
@@ -340,6 +343,204 @@ void test7()
 	assert(a7 == "abcd");
 }
 
+
+/****************************************************
+ * Exception chaining tests
+ ****************************************************/
+version(TdplExceptionChaining){
+
+int result1513;
+
+void bug1513a()
+{
+     throw new Exception("d");        
+}
+
+void bug1513b()
+{
+    try
+    {
+        try
+        {
+            bug1513a();
+        }
+        finally
+        {
+            result1513 |=4;
+           throw new Exception("f");
+            
+        }
+    }
+    catch(Exception e)
+    { 
+        version(TdplExceptionChaining)
+        {
+            assert(e.msg == "d");
+            assert(e.next.msg == "f");
+            assert(!e.next.next);
+        }        
+    }
+}
+
+void bug1513c()
+{
+    try
+    {
+        try
+        {
+            throw new Exception("a");
+        }
+        finally
+        {
+            result1513 |= 1;
+            throw new Exception("b");
+        }
+    }    
+    finally
+    {
+        bug1513b();
+        result1513 |= 2;
+        throw new Exception("c");
+    }
+}
+
+void bug1513()
+{
+    result1513 = 0;
+    try
+    {        
+        bug1513c();        
+    }
+    catch(Exception e)
+    {
+        assert(result1513 == 7);
+        assert(e.msg == "a");
+        assert(e.next.msg == "b");
+        assert(e.next.next.msg == "c");
+    }
+}
+
+void collideone()
+{
+    try {
+        throw new Exception("x");
+    }
+    finally {
+        throw new Exception("y");
+    }
+}
+
+void doublecollide()
+{
+    try
+    {
+        try
+        {
+            try
+            {
+                throw new Exception("p");
+            }
+            finally
+            {
+                throw new Exception("q");
+            }
+        }
+        finally
+        {
+            collideone();
+        }
+    }
+    catch(Exception e)
+    {
+            assert(e.msg == "p");
+            assert(e.next.msg == "q");
+            assert(e.next.next.msg == "x");
+            assert(e.next.next.next.msg == "y");
+            assert(!e.next.next.next.next);
+    }        
+}
+
+void collidetwo()
+{
+       try
+        {
+            try
+            {
+                throw new Exception("p2");
+            }
+            finally
+            {
+                throw new Exception("q2");
+            }
+        }
+        finally
+        {
+            collideone();
+        }
+}
+
+void collideMixed()
+{
+    int works = 6;
+    try
+    {
+        try
+        {
+            try
+            {                
+                throw new Exception("e");
+            }
+            finally
+            {
+                throw new Throwable("t");
+            }
+        }
+        catch(Exception f) 
+        {    // Doesn't catch, because Throwable is chained to it.
+            works += 2;
+        }
+    }
+    catch(Throwable z)
+    {
+        works += 4;
+    }
+    assert(works == 10);
+}
+
+void multicollide()
+{
+    try
+    {
+       try
+        {
+            try
+            {
+                throw new Exception("m2");
+            }
+            finally
+            {
+                throw new Exception("n2");
+            }
+        }
+        finally
+        {
+            collidetwo();
+        }
+    }
+    catch(Exception f)
+    {
+        assert(f.msg == "m2");
+        assert(f.next.msg == "n2");
+        Throwable e = f.next.next;
+        assert(e.msg == "p2");
+        assert(e.next.msg == "q2");
+        assert(e.next.next.msg == "x");
+        assert(e.next.next.next.msg == "y");
+        assert(!e.next.next.next.next);
+    }        
+}
+}
+
 /****************************************************/
 
 int main()
@@ -352,6 +553,14 @@ int main()
     test5();
     test6();
     test7();
+    
+    version(TdplExceptionChaining)
+    {    
+        bug1513();
+        doublecollide();
+        collideMixed();
+    }
+
     printf("finish\n");
     return 0;
 }
