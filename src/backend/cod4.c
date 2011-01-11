@@ -715,7 +715,7 @@ Lp:
         else if (I64)
         {
             c = genc2(c,0x81,modregrmx(3,0,reg),postinc);
-            if (sz == 8)
+            if (tysize(e11->E1->Ety) == 8)
                 code_orrex(c, REX_W);
         }
         else
