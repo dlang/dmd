@@ -5,7 +5,7 @@
  * License:   <a href="http://www.boost.org/LICENSE_1_0.txt">Boost License 1.0</a>.
  * Authors:   Walter Bright
  */
- 
+
 /*          Copyright Digital Mars 1999 - 2010.
  * Distributed under the Boost Software License, Version 1.0.
  *    (See accompanying file LICENSE_1_0.txt or copy at
@@ -162,6 +162,22 @@ struct EXCEPTION_POINTERS {
 alias EXCEPTION_POINTERS* PEXCEPTION_POINTERS, LPEXCEPTION_POINTERS;
 
 enum EXCEPTION_UNWIND = 6;  // Flag to indicate if the system is unwinding
+/+ Values used by Microsoft for Itanium and Win64 are:
+#define EXCEPTION_NONCONTINUABLE   0x0001
+#define EXCEPTION_UNWINDING        0x0002
+#define EXCEPTION_EXIT_UNWIND      0x0004
+#define EXCEPTION_STACK_INVALID    0x0008
+#define EXCEPTION_NESTED_CALL      0x0010
+#define EXCEPTION_TARGET_UNWIND    0x0020
+#define EXCEPTION_COLLIDED_UNWIND  0x0040
+#define EXCEPTION_UNWIND           0x0066
+
+@@@ BUG @@@
+We don't have any guarantee that this bit will remain available. Unfortunately,
+it seems impossible to implement exception handling at all, without relying on
+undocumented behaviour in several places.
++/
+enum EXCEPTION_COLLATERAL = 0x100; // Flag used to implement TDPL exception chaining
 
 /* Windows Kernel function to initiate a system unwind.
 
@@ -178,7 +194,7 @@ extern(Windows)
 void RtlUnwind(void *targetFrame, void *targetIp, EXCEPTION_RECORD *pExceptRec, void *valueForEAX);
 
 extern(C)
-{ 
+{
 extern __gshared DWORD _except_list; // This is just FS:[0]
 }
 
@@ -200,7 +216,7 @@ These thunks are of the form:
       MOV     EAX, &scope_table
       JMP     __d_framehandler
 FS:[0] contains a singly linked list of all active handlers (they'll all be
-thunks). The list is created on the stack. 
+thunks). The list is created on the stack.
 At the end of this list is _except_handler3, a function in the DMC library.
 It may be unnecessary. I think it is included for compatibility with MSVC
 exceptions? The function below is useful for debugging.
@@ -260,7 +276,7 @@ each function which uses exceptions.
 
 extern(C)
 {
-    alias 
+    alias
     EXCEPTION_DISPOSITION function (
             EXCEPTION_RECORD *exceptionRecord,
             DEstablisherFrame *frame,
@@ -299,12 +315,12 @@ struct DHandlerTable
 
 struct DCatchBlock
 {
-    ClassInfo type;            // catch type
+    ClassInfo type;         // catch type
     uint bpoffset;          // EBP offset of catch var
-    void *code;                 // catch handler code
+    void *code;             // catch handler code
 };
 
-// Create one of these for each try-catch
+// One of these is created for each try-catch
 struct DCatchInfo
 {
     uint ncatches;                  // number of catch blocks
@@ -314,9 +330,68 @@ struct DCatchInfo
 // Macro to make our own exception code
 template MAKE_EXCEPTION_CODE(int severity, int facility, int exception)
 {
-        enum int MAKE_EXCEPTION_CODE = (((severity) << 30) | (1 << 29) | (0 << 28) | ((facility) << 16) | (exception));
+    enum int MAKE_EXCEPTION_CODE = (((severity) << 30) | (1 << 29) | (0 << 28) | ((facility) << 16) | (exception));
 }
 enum int STATUS_DIGITAL_MARS_D_EXCEPTION = MAKE_EXCEPTION_CODE!(3,'D',1);
+
+/* Head of a linked list of all exceptions which are in flight.
+ * This is used to implement exception chaining as described in TDPL.
+ * Central to making chaining work correctly is that chaining must only occur
+ * when a collision occurs (not merely when two exceptions are in flight,
+ * because one may be caught before it has any effect on the other).
+ *
+ * The 'ExceptionRecord' member of the EXCEPTION_RECORD struct is used to
+ * store a link to the earlier member on the list.
+ * All exceptions which have found their catch handler are linked into this
+ * list. The exceptions which collided are marked by setting a bit in the
+ * ExceptionFlags. I've called this bit EXCEPTION_COLLATERAL. It has never
+ * been used by Microsoft.
+ *
+ * Every member of the list will either eventually collide with the next earlier
+ * exception, having its EXCEPTION_COLLATERAL bit set, or else will be caught.
+ * If it is caught, a D exception object is created, containing all of the
+ * collateral exceptions,
+ *
+ * There are many subtleties in this design:
+ * (1) The exception records are all on the stack, so it's not possible to
+ * modify them very much. In particular, we have very little choice about how
+ * unwinding works, so we have to leave all the exception records essentially
+ * intact.
+ * (2) The length of an exception record is not constant. System exceptions
+ * are shorter than D exceptions, for example.
+ * (3) System exceptions don't have any space for a pointer to a D object.
+ * So we cannot store the collision information in the exception record.
+ * (4) it's important that this list is thread-local.
+ *
+ * Every member of this list will suffer one of two fates:
+ * (1) it will be caught successfully.
+ *    In this case it is popped from the list.
+ *    The previous head of the list, and the previous Throwable chain, are restored.
+ * (2) it will collide with the previous exception.
+ *    In this case, it gets added to the active Throwable chain, and then discarded.
+ * (in which case its Throwable chain will be added to the Throwable chain of
+ * the previous exception, and then this exception will be popped from the list).
+ *
+ * Note:
+ */
+
+EXCEPTION_RECORD * inflightExceptionList = null;
+
+/***********************************
+ * Find the first non-collateral exception in the list. If the last
+ * entry in the list has the EXCEPTION_COLLATERAL bit set, it means
+ * that this fragment will collide with the top exception in the
+ * inflightException list.
+ */
+EXCEPTION_RECORD *skipCollateralExceptions(EXCEPTION_RECORD *n)
+{
+    while ( n.ExceptionRecord && n.ExceptionFlags & EXCEPTION_COLLATERAL )
+    {
+        n = n.ExceptionRecord;
+    }
+    return n;
+}
+
 
 /***********************************
  * The frame handler, this is called for each frame that has been registered
@@ -367,40 +442,87 @@ EXCEPTION_DISPOSITION _d_framehandler(
                 for (i = 0; i < ncatches; i++)
                 {
                     pcb = &pci.catch_block[i];
-
-                    if (!ci)
+                    // If there are collided unwinds, they must ALL match the translation code
+                    int match = 0;
+                    EXCEPTION_RECORD * er = exceptionRecord;
+                    do
                     {
-                        // This code must match the translation code
-                        if (exceptionRecord.ExceptionCode == STATUS_DIGITAL_MARS_D_EXCEPTION)
+                        if (!ci)
                         {
-                            // printf("ei[0] = %p\n", exceptionRecord.ExceptionInformation[0]);
-                            ci = (**(cast(ClassInfo **)(exceptionRecord.ExceptionInformation[0])));
+                            // This code must match the translation code
+                            if (er.ExceptionCode == STATUS_DIGITAL_MARS_D_EXCEPTION)
+                            {
+                                 // printf("ei[0] = %p\n", exceptionRecord.ExceptionInformation[0]);
+                                ci = (**(cast(ClassInfo **)(er.ExceptionInformation[0])));
+                            }
+                            else
+                                ci = Throwable.typeinfo;
                         }
-                        else
-                            ci = Throwable.typeinfo;
-                    }
-                    if (_d_isbaseof(ci, pcb.type))
+                        match = _d_isbaseof(ci, pcb.type);
+                        // We need to check all the collateral exceptions
+                        if (er.ExceptionFlags & EXCEPTION_COLLATERAL) {
+                            // Walk to the next collateral exception.
+                            if (er.ExceptionRecord)
+                                er = er.ExceptionRecord;
+                            else // It is collateral for an existing exception chain
+                                 // for which we've already found the catch{}. It is
+                                 // possible that the new collateral makes the old catch
+                                 // invalid.
+                                er = inflightExceptionList;
+                            ci = null;
+                        }
+                        else break; // if no collateral exceptions, we're done.
+                    } while(match);
+
+                    if (match)
                     {
-                        // Matched the catch type, so we've found the handler.
-                        int regebp;
+                        // Matched the catch type, so we've found the catch handler
+                        // for this exception.
+                        // We need to add this exception to the list of in-flight
+                        // exceptions, in case something collides with it.
+                        EXCEPTION_RECORD * originalException = skipCollateralExceptions(exceptionRecord);
+                        if (originalException.ExceptionRecord is null
+                            && !(exceptionRecord is inflightExceptionList))
+                        {
+                            originalException.ExceptionRecord = inflightExceptionList;
+                        }
 
-                        pti = _d_translate_se_to_d_exception(exceptionRecord);
+                        inflightExceptionList = exceptionRecord;
 
-                        // Initialize catch variable
-                        regebp = cast(int)&frame.ebp;              // EBP for this frame
-                        *cast(Object *)(regebp + (pcb.bpoffset)) = pti;
-
-                        _d_setUnhandled(pti);
-                        
                         // Have system call all finally blocks in intervening frames
                         _d_global_unwind(frame, exceptionRecord);
-                        
+
                         // Call all the finally blocks skipped in this frame
                         _d_local_unwind(handlerTable, frame, ndx, &searchCollisionExceptionHandler);
 
-                        _d_setUnhandled(null);
-
                         frame.table_index = prev_ndx;  // we are out of this handler
+
+                        // Now create the D exception from the SEH exception record chain.
+                        // Note that since non-Throwables are throwable(!), the chain might be incomplete.
+                        EXCEPTION_RECORD * z = exceptionRecord;
+                        Throwable prev = null;
+                        while (z && (z.ExceptionFlags & EXCEPTION_COLLATERAL))
+                        {
+                            Throwable w = cast(Throwable)_d_translate_se_to_d_exception(z);
+                            if (w) // if throwable
+                            {
+                                w.next = prev;
+                                prev = w;
+                            }
+                            z = z.ExceptionRecord;
+                        }
+                        pti = _d_translate_se_to_d_exception(z);
+                        if (cast(Throwable)pti)
+                            (cast(Throwable)pti).next = prev;
+                        // else it wasn't throwable. (This happens in the test suite eh2.d, test1)
+
+                        // Pop the exception from the list of in-flight exceptions
+                        inflightExceptionList = z.ExceptionRecord;
+
+                        int regebp;
+                        // Initialize catch variable
+                        regebp = cast(int)&frame.ebp;              // EBP for this frame
+                        *cast(Object *)(regebp + (pcb.bpoffset)) = pti;
 
                         // Jump to catch block. Does not return.
                         {
@@ -583,9 +705,15 @@ EXCEPTION_DISPOSITION searchCollisionExceptionHandler(
             CONTEXT *context,
             void *dispatcherContext)
 {
-    if (!(exceptionRecord.ExceptionFlags & EXCEPTION_UNWIND)) 
+    if (!(exceptionRecord.ExceptionFlags & EXCEPTION_UNWIND))
+    {
+        // Mark this as a collateral exception
+        EXCEPTION_RECORD * n = skipCollateralExceptions(exceptionRecord);
+        n.ExceptionFlags |= EXCEPTION_COLLATERAL;
+
         return EXCEPTION_DISPOSITION.ExceptionContinueSearch;
-    
+    }
+
     // An exception has been thrown during unwinding.
     // It happened during the SEARCH phase.
     // We need to cancel the original search pass, so we'll restart from 'frame'.
@@ -600,9 +728,13 @@ EXCEPTION_DISPOSITION unwindCollisionExceptionHandler(
             CONTEXT *context,
             void *dispatcherContext)
 {
-    if (!(exceptionRecord.ExceptionFlags & EXCEPTION_UNWIND)) 
+    if (!(exceptionRecord.ExceptionFlags & EXCEPTION_UNWIND))
+    {
+        // Mark this as a collateral exception
+        EXCEPTION_RECORD * n = skipCollateralExceptions(exceptionRecord);
+        n.ExceptionFlags |= EXCEPTION_COLLATERAL;
         return EXCEPTION_DISPOSITION.ExceptionContinueSearch;
-    
+    }
     // An exception has been thrown during unwinding.
     // It happened during the UNWIND phase.
     // We need to cancel the unwind pass, AND we need to cancel the search
@@ -662,7 +794,7 @@ void _d_local_unwind(DHandlerTable *handler_table,
     }
 }
 
-/+ According to http://www.microsoft.com/msj/0197/exception/exception.aspx, 
+/+ According to http://www.microsoft.com/msj/0197/exception/exception.aspx,
 global unwind is just a thin wrapper around RtlUnwind.
 __global_unwind(void * pRegistFrame)
  {
