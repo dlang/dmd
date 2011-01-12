@@ -1476,6 +1476,8 @@ void test60()
 
         version (Win32)
             assert(thing1.sizeof == 16);
+        else version (X86_64)
+            assert(thing1.sizeof == 16);
         else
             assert(thing1.sizeof == 12);
 	assert(thing2.sizeof == 8);
