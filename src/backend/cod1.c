@@ -3978,6 +3978,9 @@ code *loaddata(elem *e,regm_t *pretregs)
     }
     else if (forregs & XMMREGS)
     {
+        // Can't load from registers directly to XMM regs
+        e->EV.sp.Vsym->Sflags &= ~GTregcand;
+
         assert(sz == 4 || sz == 8);             // float or double
         unsigned op = (sz == 4) ? 0xF30F10 : 0xF20F10;
         ce = loadea(e,&cs,op,reg,0,RMload,0); // MOVSS/MOVSD reg,data
