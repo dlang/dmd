@@ -331,7 +331,6 @@ code *cdeq(elem *e,regm_t *pretregs)
   targ_int postinc;
 
   //printf("cdeq(e = %p, *pretregs = %s)\n", e, regm_str(*pretregs));
-  //elem_print(e);
   elem *e1 = e->E1;
   elem *e2 = e->E2;
   int e2oper = e2->Eoper;
@@ -486,7 +485,7 @@ code *cdeq(elem *e,regm_t *pretregs)
                     if (cs.Irex & REX_B)
                         reg |= 8;
                     if (I64 && sz == 8)
-                        cl = movregconst(cl,reg,*p,CFoffset64);
+                        cl = movregconst(cl,reg,*p,64);
                     else
                         cl = movregconst(cl,reg,*p,1 ^ (cs.Iop & 1));
                     if (sz == 2 * REGSIZE)
