@@ -2189,7 +2189,7 @@ public:
             TimeException if the given value is less than 0 or would result in a
             FracSec greater than or equal to 1 second.
       +/
-    static FracSec from(string units)(int value) pure
+    static FracSec from(string units)(long value) pure
         if(units == "msecs" ||
            units == "usecs" ||
            units == "hnsecs" ||
