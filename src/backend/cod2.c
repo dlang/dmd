@@ -2081,6 +2081,8 @@ code *cdshift(elem *e,regm_t *pretregs)
                         c = genc2(CNIL,0xC1 ^ byte,grex | modregxrmx(3,s1,resreg),shiftcnt);
                         if (shiftcnt == 1)
                             c->Iop += 0x10;     /* short form of shift  */
+                        if (I64 && sz == 1 && resreg >= 4)
+                            c->Irex |= REX;
                         // See if we need operand size prefix
                         if (!I16 && oper != OPshl && sz == 2)
                             c->Iflags |= CFopsize;
