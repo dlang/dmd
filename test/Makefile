@@ -116,17 +116,8 @@ DISABLED_TESTS += eh2
 # ==15332==    by 0x416C21: main (in /home/braddr/sandbox/d/source/trunk3/dmd/test/test_results/runnable/eh2)
 # ==15332==  Address 0x4046028 is not stack'd, malloc'd or (recently) free'd
 
-DISABLED_TESTS += test42
-# vararg test103, not likely any bug, just needs to be updated to the 64bit style va_start
-
-DISABLED_TESTS += xtest46
-# test58, struct literal's are broken
-
 DISABLED_TESTS += hospital
 # int vs long issues
-
-DISABLED_TESTS += interpret
-# array literal with struct
 
 DISABLED_TESTS += s2ir
 DISABLED_TESTS += test16
@@ -137,14 +128,10 @@ DISABLED_TESTS += test28
 DISABLED_TESTS += stress
 # hangs off in the gc
 
-DISABLED_TESTS += test11
-# array append issues? test33
-
 DISABLED_TESTS += test22
 #  has x86 specific asm code that needs translation
 
 DISABLED_TESTS += test34
-DISABLED_TESTS += testformat
 # looks like lots of issues with std.format, at least array and aa formatting is borked..
 
 DISABLED_TESTS += testaa

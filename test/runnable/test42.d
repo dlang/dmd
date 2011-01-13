@@ -1711,6 +1711,8 @@ void test102()
 
 /***************************************************/
 
+version(X86)
+{
 int x103;
 
 void external(...)
@@ -1740,6 +1742,14 @@ void test103()
     assert(x103 == 42);
     (new C103).method ();
 }
+}
+else version(X86_64)
+{
+    pragma(msg, "Not ported to x86-64 compatible varargs, yet.");
+    void test103() {}
+}
+else
+    static assert(false, "Unknown platform");
 
 /***************************************************/
 
