@@ -399,7 +399,7 @@ code *cdorth(elem *e,regm_t *pretregs)
                 {   static unsigned imm32[4] = {1+1,2+1,4+1,8+1};
 
                     // IMUL reg,imm32
-                    c = genc2(CNIL,0x69,modregxrm(3,reg,BP),imm32[ss]);
+                    c = genc2(CNIL,0x69,modregxrmx(3,reg,reg1),imm32[ss]);
                 }
                 else
                 {   // LEA reg,[reg1*ss][reg1]
