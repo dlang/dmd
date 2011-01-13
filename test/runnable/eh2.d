@@ -2,8 +2,12 @@
 
 extern(C) int printf(const char*, ...);
 
-class Abc
+class Abc : Throwable
 {
+    this()
+    {
+        super("");
+    }
     static int x;
     int a,b,c;
 
