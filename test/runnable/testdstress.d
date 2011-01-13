@@ -402,8 +402,9 @@ void test18()
 
 /* ================================ */
 
-class Class19
+class Class19 : Throwable
 {
+    this() { super(""); }
 }
 
 typedef Class19 Alias19;

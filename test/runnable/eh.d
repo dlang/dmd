@@ -50,11 +50,12 @@ L6:
 /****************************************************/
 
 
-class IntException
+class IntException : Exception
 {
     this(int i)
     {
 	m_i = i;
+    super("");
     }
 
     int getValue()

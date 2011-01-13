@@ -623,10 +623,10 @@ void test28()
   }
 }
 
-class Foo28
+class Foo28 : Throwable
 {
   private:
-	this() { }
+	this() { super(""); }
 }
 
 /**************************************/
