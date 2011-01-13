@@ -87,8 +87,8 @@ TypeTuple *TypeBasic::toArgTypes()
             break;
 
         case Tcomplex64:
-            t1 = Type::tfloat64;
-            t2 = Type::tfloat64;
+            //t1 = Type::tfloat64;
+            //t2 = Type::tfloat64;
             break;
 
         case Tcomplex80:

@@ -1020,6 +1020,8 @@ code *cdaddass(elem *e,regm_t *pretregs)
         freenode(e2);
         cl = getregs(varregm);
         code_newreg(&cs, varreg);
+        if (I64 && sz == 1 && varreg >= 4)
+            cs.Irex |= REX;
         cs.Iop = op1 ^ 2;                       // toggle direction bit
         if (forccs)
             cs.Iflags |= CFpsw;
