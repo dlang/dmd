@@ -3381,7 +3381,7 @@ void TemplateInstance::semantic(Scope *sc)
              */
             fatal();
         }
-        return;
+        //return;
     }
 #if LOG
     printf("\n+TemplateInstance::semantic('%s', this=%p)\n", toChars(), this);
