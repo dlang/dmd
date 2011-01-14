@@ -335,7 +335,7 @@ unittest
 	    c = decode(s4[j], i);
 	    assert(0);
 	}
-	catch (Object o)
+	catch (Throwable o)
 	{
 	    i = 23;
 	}

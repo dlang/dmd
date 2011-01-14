@@ -442,12 +442,6 @@ extern (C) int main(int argc, char** argv)
                 console (e.toString)("\n");
                 result = EXIT_FAILURE;
             }
-            catch (Object o)
-            {
-                // fprintf(stderr, "%.*s\n", o.toString());
-                console (o.toString)("\n");
-                result = EXIT_FAILURE;
-            }
         }
         else
         {

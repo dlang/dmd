@@ -199,19 +199,11 @@ version( Windows )
                 {
                     append( t );
                 }
-                catch( Object o )
-                {
-                    // TODO: Remove this once the compiler prevents it.
-                }
                 rt_moduleTlsDtor();
             }
             catch( Throwable t )
             {
                 append( t );
-            }
-            catch( Object o )
-            {
-                // TODO: Remove this once the compiler prevents it.
             }
             return 0;
         }
@@ -2860,10 +2852,6 @@ private
         catch( Throwable t )
         {
             obj.m_unhandled = t;
-        }
-        catch( Object o )
-        {
-            // TODO: Remove this once the compiler prevents it.
         }
 
         static if( __traits( compiles, ucontext_t ) )
