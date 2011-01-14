@@ -600,6 +600,7 @@ void bar32() { }
 
 nothrow void foo32(int* p)
 {
+    //try { bar32(); } catch (Object o) { }
     try { bar32(); } catch (Throwable o) { }
     try { bar32(); } catch (Exception o) { }
 }
@@ -2309,6 +2310,236 @@ alias typeof(foo5195) good5195;
 static assert( is (food5195 == good5195));
 
 /***************************************************/
+// 5191
+
+struct Foo129
+{
+    void add(T)(T value) pure nothrow
+    {
+        this.value += value;
+    }
+
+    this(int value)
+    {
+        this.value = value;
+    }
+
+    int value;
+}
+
+void test129()
+{
+    auto foo = Foo129(5);
+    assert(foo.value == 5);
+
+    foo.add(2);
+    writeln(foo.value);
+    assert(foo.value == 7);
+
+    foo.add(3);
+    writeln(foo.value);
+    assert(foo.value == 10);
+
+    foo.add(3);
+    writeln(foo.value);
+    assert(foo.value == 13);
+
+    void delegate (int) pure nothrow dg = &foo.add!(int);    
+    dg(7);
+    assert(foo.value == 20);
+}
+
+/***************************************************/
+
+const shared class C5107
+{
+}
+
+static assert(is(C5107 ==  const)); // okay
+static assert(is(C5107 == shared)); // fails!
+
+/***************************************************/
+
+immutable struct S3598
+{
+    static void funkcja() { }
+}
+
+/***************************************************/
+// 4211
+
+@safe struct X130
+{
+    void func() {  }
+}
+
+@safe class Y130
+{
+    void func() {  }
+}
+
+@safe void test130()
+{
+    X130 x;
+    x.func();
+    auto y = new Y130;
+    y.func();
+}
+
+/***************************************************/
+
+template Return(alias fun)
+{
+    static if (is(typeof(fun) R == return)) alias R Return;
+}
+
+interface I4217
+{
+    int  square(int  n);
+    real square(real n);
+}
+alias Return!( __traits(getOverloads, I4217, "square")[0] ) R4217;
+alias Return!( __traits(getOverloads, I4217, "square")[1] ) S4217;
+
+static assert(! is(R4217 == S4217));
+
+/***************************************************/
+// 5094
+
+void test131()
+{
+    S131 s;
+    int[] conv = s;
+}
+
+struct S131
+{
+    @property int[] get() { return [1,2,3]; }
+    alias get this;
+}
+
+/***************************************************/
+// 5020
+
+void test132()
+{
+    S132 s;
+    if (!s) {}
+}
+
+struct S132
+{
+    bool cond;
+    alias cond this;
+}
+
+/***************************************************/
+// 5343
+
+struct Tuple5343(Specs...)
+{    
+    Specs[0] field;
+}    
+
+struct S5343(E)
+{
+    immutable E x;
+}
+enum A5343{a,b,c}
+alias Tuple5343!(A5343) TA5343;
+alias S5343!(A5343) SA5343;
+
+/***************************************************/
+// 5365
+
+interface IFactory
+{
+    void foo();
+}
+
+class A133
+{
+    protected static class Factory : IFactory
+    {
+        void foo()
+        {
+        }
+    }
+
+    this()
+    {
+        _factory = createFactory();
+    }
+
+    protected IFactory createFactory()
+    {
+        return new Factory;
+    }
+
+    private IFactory _factory;
+    @property final IFactory factory()
+    {
+        return _factory;
+    }
+
+    alias factory this;
+}
+
+void test133()
+{
+
+    IFactory f = new A133;
+    f.foo(); // segfault
+}
+
+/***************************************************/
+// 5365
+
+class B134
+{
+}
+
+class A134
+{
+
+    B134 _b;
+
+    this()
+    {
+        _b = new B134;
+    }
+
+    B134 b()
+    {
+        return _b;        
+    }   
+
+    alias b this;
+}
+
+void test134()
+{
+
+    auto a = new A134;
+    B134 b = a; // b is null
+    assert(a._b is b); // fails 
+}
+
+/***************************************************/
+// 5025
+
+struct S135 {
+  void delegate() d;
+}
+
+void test135()
+{
+  shared S135[] s;
+  if (0)
+	s[0] = S135();
+}
+
+/***************************************************/
 
 int main()
 {
@@ -2440,6 +2671,13 @@ int main()
 
     test127();
     test128();
+    test129();
+    test130();
+    test131();
+    test132();
+    test133();
+    test134();
+    test135();
 
     printf("Success\n");
     return 0;
