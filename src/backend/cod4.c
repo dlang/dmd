@@ -618,6 +618,8 @@ code *cdeq(elem *e,regm_t *pretregs)
             postinc = -postinc;
         cl = getlvalue(&cs,e11,RMstore | retregs);
         freenode(e11->E2);
+        if (I64 && sz < 8)
+            cs.Irex &= ~REX_W;                  // incorrectly set by getlvalue()
     }
     else
     {   postinc = 0;
