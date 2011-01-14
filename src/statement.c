@@ -4210,7 +4210,7 @@ void Catch::semantic(Scope *sc)
     sc = sc->push(sym);
 
     if (!type)
-        type = new TypeIdentifier(0, Id::Object);
+        type = new TypeIdentifier(0, Id::Throwable);
     type = type->semantic(loc, sc);
     if (!type->toBasetype()->isClassHandle())
     {
@@ -4435,8 +4435,10 @@ Statement *ThrowStatement::semantic(Scope *sc)
 #endif
     exp = exp->semantic(sc);
     exp = resolveProperties(sc, exp);
-    if (!exp->type->toBasetype()->isClassHandle())
-        error("can only throw class objects, not type %s", exp->type->toChars());
+    ClassDeclaration *cd = exp->type->toBasetype()->isClassHandle();
+    if (!cd || ((cd != ClassDeclaration::throwable) && !ClassDeclaration::throwable->isBaseOf(cd, NULL)))
+        error("can only throw class objects derived from Throwable, not type %s", exp->type->toChars());
+
     return this;
 }
 
