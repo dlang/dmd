@@ -279,10 +279,6 @@ extern (C) bool rt_init(ExceptionHandler dg = null)
         if (dg)
             dg(e);
     }
-    catch
-    {
-
-    }
     _d_criticalTerm();
     return false;
 }
@@ -311,10 +307,6 @@ extern (C) bool rt_term(ExceptionHandler dg = null)
     {
         if (dg)
             dg(e);
-    }
-    catch
-    {
-
     }
     finally
     {

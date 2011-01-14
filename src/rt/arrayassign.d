@@ -107,7 +107,7 @@ extern (C) void[] _d_arrayctor(TypeInfo ti, void[] from, void[] to)
             ti.postblit(to.ptr + i * element_size);
         }
     }
-    catch (Object o)
+    catch (Throwable o)
     {
         /* Destroy, in reverse order, what we've constructed so far
          */
@@ -172,7 +172,7 @@ extern (C) void* _d_arraysetctor(void* p, void* value, int count, TypeInfo ti)
             p += element_size;
         }
     }
-    catch (Object o)
+    catch (Throwable o)
     {
         // Destroy, in reverse order, what we've constructed so far
         while (p > pstart)
