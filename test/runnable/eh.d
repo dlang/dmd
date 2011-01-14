@@ -7,7 +7,14 @@ version(Windows) // not yet implemented elsewhere
 
 /****************************************************/
 
-class Abc { int i; }
+class Abc : Exception
+{
+    this()
+    {
+        super("");
+    }
+    int i;
+}
 
 int y;
 

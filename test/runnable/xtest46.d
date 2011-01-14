@@ -600,7 +600,6 @@ void bar32() { }
 
 nothrow void foo32(int* p)
 {
-    try { bar32(); } catch (Object o) { }
     try { bar32(); } catch (Throwable o) { }
     try { bar32(); } catch (Exception o) { }
 }

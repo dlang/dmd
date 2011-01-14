@@ -52,7 +52,7 @@ int main()
 	    {
 		goto default;
 	    }
-	    catch (Object o)
+	    catch (Throwable o)
 	    {
 	    }
 	    break;
@@ -68,7 +68,7 @@ int main()
 	    {
 		goto case 2;
 	    }
-	    catch (Object o)
+	    catch (Throwable o)
 	    {
 	    }
 	    break;
