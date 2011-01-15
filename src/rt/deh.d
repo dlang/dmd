@@ -350,7 +350,7 @@ enum int STATUS_DIGITAL_MARS_D_EXCEPTION = MAKE_EXCEPTION_CODE!(3,'D',1);
  * Every member of the list will either eventually collide with the next earlier
  * exception, having its EXCEPTION_COLLATERAL bit set, or else will be caught.
  * If it is caught, a D exception object is created, containing all of the
- * collateral exceptions,
+ * collateral exceptions.
  *
  * There are many subtleties in this design:
  * (1) The exception records are all on the stack, so it's not possible to
@@ -362,17 +362,6 @@ enum int STATUS_DIGITAL_MARS_D_EXCEPTION = MAKE_EXCEPTION_CODE!(3,'D',1);
  * (3) System exceptions don't have any space for a pointer to a D object.
  * So we cannot store the collision information in the exception record.
  * (4) it's important that this list is thread-local.
- *
- * Every member of this list will suffer one of two fates:
- * (1) it will be caught successfully.
- *    In this case it is popped from the list.
- *    The previous head of the list, and the previous Throwable chain, are restored.
- * (2) it will collide with the previous exception.
- *    In this case, it gets added to the active Throwable chain, and then discarded.
- * (in which case its Throwable chain will be added to the Throwable chain of
- * the previous exception, and then this exception will be popped from the list).
- *
- * Note:
  */
 
 EXCEPTION_RECORD * inflightExceptionList = null;
@@ -423,10 +412,18 @@ EXCEPTION_DISPOSITION _d_framehandler(
         DCatchInfo *pci;
         DCatchBlock *pcb;
         uint ncatches;              // number of catches in the current handler
-        Object pti;
-        ClassInfo ci;
-
-        ci = null;                      // only compute it if we need it
+        
+        /* The Master or Boss exception controls which catch() clause will 
+         * catch the exception. If all collateral exceptions are derived from
+         * Exception, the boss is the first exception thrown. Otherwise,
+         * the first Error is the boss.
+         * But, if an Error (or non-Exception Throwable) is thrown as a collateral
+         * exception, it will take priority over an Exception.
+         */
+        EXCEPTION_RECORD * master = null; // The Master exception.
+        ClassInfo masterClassInfo;       // Class info of the Master exception.
+        
+        masterClassInfo = null;           // only compute it if we need it
 
         // walk through handler table, checking each handler
         // with an index smaller than the current table_index
@@ -439,45 +436,61 @@ EXCEPTION_DISPOSITION _d_framehandler(
                 // this is a catch handler (no finally)
                 pci = cast(DCatchInfo *)(cast(ubyte *)handlerTable + phi.cioffset);
                 ncatches = pci.ncatches;
+                
                 for (i = 0; i < ncatches; i++)
                 {
                     pcb = &pci.catch_block[i];
-                    // If there are collided unwinds, they must ALL match the translation code
                     int match = 0;
                     EXCEPTION_RECORD * er = exceptionRecord;
-                    do
+                    // We need to check all the collateral exceptions.
+                    for(;;)
                     {
-                        if (!ci)
+                        if (er.ExceptionCode == STATUS_DIGITAL_MARS_D_EXCEPTION)
                         {
-                            // This code must match the translation code
-                            if (er.ExceptionCode == STATUS_DIGITAL_MARS_D_EXCEPTION)
-                            {
-                                 // printf("ei[0] = %p\n", exceptionRecord.ExceptionInformation[0]);
-                                ci = (**(cast(ClassInfo **)(er.ExceptionInformation[0])));
-                            }
-                            else
-                                ci = Throwable.typeinfo;
+                            // printf("ei[0] = %p\n", er.ExceptionInformation[0]);
+                            ClassInfo ci = (**(cast(ClassInfo **)(er.ExceptionInformation[0])));
+                            // If we've reached the oldest exception without
+                            // finding an Error, this one must be the master.
+                            if (!master && !(er.ExceptionFlags & EXCEPTION_COLLATERAL))
+                            {  
+                                master = er;
+                                masterClassInfo = ci;
+                                break;
+                            }                             
+                            if (_d_isbaseof(ci, Error.classinfo))
+                            {   // It's derived from Error. This _may_ be the master.
+                                master = er;
+                                masterClassInfo = ci;
+                            } // Else it's a collateral Exception
                         }
-                        match = _d_isbaseof(ci, pcb.type);
-                        // We need to check all the collateral exceptions
-                        if (er.ExceptionFlags & EXCEPTION_COLLATERAL) {
-                            // Walk to the next collateral exception.
-                            if (er.ExceptionRecord)
-                                er = er.ExceptionRecord;
-                            else // It is collateral for an existing exception chain
-                                 // for which we've already found the catch{}. It is
-                                 // possible that the new collateral makes the old catch
-                                 // invalid.
-                                er = inflightExceptionList;
-                            ci = null;
+                        else
+                        {   // Non-D exception. It will become an Error.
+                            masterClassInfo = Error.typeinfo;
+                            master = er;
                         }
-                        else break; // if no collateral exceptions, we're done.
-                    } while(match);
-
-                    if (match)
+                        // End the loop if this was the original exception
+                        if (! (er.ExceptionFlags & EXCEPTION_COLLATERAL))
+                            break;
+                        
+                        // Now get the next collateral exception.
+                        if (er.ExceptionRecord)
+                            er = er.ExceptionRecord;
+                        else // It is collateral for an existing exception chain
+                             // for which we've already found the catch{}. It is
+                             // possible that the new collateral makes the old catch
+                             // invalid.
+                            er = inflightExceptionList;
+                    }
+                    if (_d_isbaseof(masterClassInfo, pcb.type))
                     {
-                        // Matched the catch type, so we've found the catch handler
-                        // for this exception.
+                        // Matched the catch type, so we've found the catch
+                        // handler for this exception.
+                        // BEWARE: We don't yet know if the catch handler will
+                        // actually be executed. If there's an unwind collision,
+                        // this call may be abandoned: the calls to 
+                        // _global_unwind and _local_unwind may never return,
+                        // and the contents of the local variables will be lost.
+                                                
                         // We need to add this exception to the list of in-flight
                         // exceptions, in case something collides with it.
                         EXCEPTION_RECORD * originalException = skipCollateralExceptions(exceptionRecord);
@@ -486,7 +499,6 @@ EXCEPTION_DISPOSITION _d_framehandler(
                         {
                             originalException.ExceptionRecord = inflightExceptionList;
                         }
-
                         inflightExceptionList = exceptionRecord;
 
                         // Have system call all finally blocks in intervening frames
@@ -494,28 +506,42 @@ EXCEPTION_DISPOSITION _d_framehandler(
 
                         // Call all the finally blocks skipped in this frame
                         _d_local_unwind(handlerTable, frame, ndx, &searchCollisionExceptionHandler);
-
+                        
+                        
                         frame.table_index = prev_ndx;  // we are out of this handler
-
+                        
                         // Now create the D exception from the SEH exception record chain.
-                        // Note that since non-Throwables are throwable(!), the chain might be incomplete.
                         EXCEPTION_RECORD * z = exceptionRecord;
                         Throwable prev = null;
-                        while (z && (z.ExceptionFlags & EXCEPTION_COLLATERAL))
+                        Error masterError = null;
+                        Throwable pti;
+                        
+                        for(;;)
                         {
-                            Throwable w = cast(Throwable)_d_translate_se_to_d_exception(z);
-                            if (w) // if throwable
-                            {
-                                w.next = prev;
-                                prev = w;
+                            Throwable w = _d_translate_se_to_d_exception(z);
+                            if (z == master && (z.ExceptionFlags & EXCEPTION_COLLATERAL))
+                            {   // if it is a short-circuit master, save it
+                                masterError = cast(Error)w;
                             }
+                            Throwable a = w;
+                            while (a.next)
+                                a = a.next;
+                            a.next = prev;
+                            prev = w;
+                            if (!(z.ExceptionFlags & EXCEPTION_COLLATERAL))
+                                break;
                             z = z.ExceptionRecord;
                         }
-                        pti = _d_translate_se_to_d_exception(z);
-                        if (cast(Throwable)pti)
-                            (cast(Throwable)pti).next = prev;
-                        // else it wasn't throwable. (This happens in the test suite eh2.d, test1)
-
+                        // Reached the end. Now add the Master, if any.                                   
+                        if (masterError)
+                        {
+                            masterError.bypassedException = prev;
+                            pti = masterError;
+                        }
+                        else
+                        {
+                            pti = prev;
+                        }
                         // Pop the exception from the list of in-flight exceptions
                         inflightExceptionList = z.ExceptionRecord;
 
@@ -567,6 +593,8 @@ int _d_exception_filter(EXCEPTION_POINTERS *eptrs,
 extern(C)
 void _d_throwc(Object h)
 {
+    // @@@ TODO @@@ Signature should change: h will always be a Throwable.
+    
     //printf("_d_throw(h = %p, &h = %p)\n", h, &h);
     //printf("\tvptr = %p\n", *(void **)h);
     _d_createTrace(h);
@@ -577,18 +605,18 @@ void _d_throwc(Object h)
 }
 
 /***********************************
- * Converts a Windows Structured Exception code to a D Exception Object.
+ * Converts a Windows Structured Exception code to a D Throwable Object.
  */
 
-Object _d_translate_se_to_d_exception(EXCEPTION_RECORD *exceptionRecord)
+Throwable _d_translate_se_to_d_exception(EXCEPTION_RECORD *exceptionRecord)
 {
-    Object pti;
+    Throwable pti;
    // BUG: what if _d_newclass() throws an out of memory exception?
 
     switch (exceptionRecord.ExceptionCode) {
         case STATUS_DIGITAL_MARS_D_EXCEPTION:
             // Generated D exception
-            pti = cast(Object)cast(void *)(exceptionRecord.ExceptionInformation[0]);
+            pti = cast(Throwable)cast(void *)(exceptionRecord.ExceptionInformation[0]);
             break;
 
         case STATUS_INTEGER_DIVIDE_BY_ZERO:

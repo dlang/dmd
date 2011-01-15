@@ -1340,12 +1340,17 @@ class Error : Throwable
     this(string msg, Throwable next = null)
     {
         super(msg, next);
+        bypassedException = null;
     }
 
     this(string msg, string file, size_t line, Throwable next = null)
     {
         super(msg, file, line, next);
+        bypassedException = null;
     }
+    /// The first Exception which was bypassed when this Error was thrown,
+    /// or null if no Exceptions were pending.
+    Throwable   bypassedException;
 }
 
 

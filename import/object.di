@@ -325,6 +325,7 @@ class Error : Throwable
 {
     this(string msg, Throwable next = null);
     this(string msg, string file, size_t line, Throwable next = null);
+    Throwable   bypassedException;
 }
 
 extern (C)
