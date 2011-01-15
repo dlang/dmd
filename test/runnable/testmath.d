@@ -16,6 +16,9 @@ extern (C) int sprintf(char*, in char*, ...);
 
 private int equals(real x, real y, uint ndigits)
 {
+    printf("equals: x = %Lg\n", x);
+    printf("equals: y = %Lg\n", y);
+    printf("equals: ndigits = %d\n", ndigits);
     if (signbit(x) != signbit(y))
 	return 0;
 
@@ -40,8 +43,8 @@ private int equals(real x, real y, uint ndigits)
     iy = sprintf(bufy.ptr, "%.*Lg", ndigits, y);
     assert(ix < bufy.length);
 
-    printf("bufx = '%.*s'\n", bufx[0 .. ix]);
-    printf("bufy = '%.*s'\n", bufy[0 .. iy]);
+    printf("bufx = '%.*s'\n", ix, bufx[0 .. ix].ptr);
+    printf("bufy = '%.*s'\n", iy, bufy[0 .. iy].ptr);
 
     return bufx[0 .. ix] == bufy[0 .. iy];
 }

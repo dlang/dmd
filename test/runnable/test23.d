@@ -476,10 +476,7 @@ struct Foo22 {
 void test22()
 {
     printf("Bar22.sizeof = %zd, double.sizeof = %zd\n", Bar22.sizeof, double.sizeof);
-    version (X86_64)
-        assert(Bar22.sizeof == 16);
-    else
-        assert(Bar22.sizeof == double.sizeof);
+    assert(Bar22.sizeof == double.sizeof);
     Bar22 b;
     assert(b.A.d == 3);
 }

@@ -102,7 +102,7 @@ DISABLED_TESTS = arrayop
 DISABLED_TESTS += testmath
 # needs std.math
 
-DISABLED_TESTS += eh2
+#DISABLED_TESTS += eh2
 # ==15332== Invalid free() / delete / delete[]
 # ==15332==    at 0x4C27D71: free (vg_replace_malloc.c:366)
 # ==15332==    by 0x420140: _D4core7runtime19defaultTraceHandlerFPvZC6object9Throwable9TraceInfo16DefaultTraceInfo6__dtorMFZv (in /home/braddr/sandbox/d/source/trunk3/dmd/test/test_results/runnable/eh2)
