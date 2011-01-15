@@ -441,10 +441,6 @@ else version( Posix )
             {
                 append( t );
             }
-            catch( Object o )
-            {
-                // TODO: Remove this once the compiler prevents it.
-            }
 
             // NOTE: Normal cleanup is handled by scope(exit).
             
