@@ -431,10 +431,6 @@ else version( Posix )
                 {
                     append( t );
                 }
-                catch( Object o )
-                {
-                    // TODO: Remove this once the compiler prevents it.
-                }
                 rt_moduleTlsDtor();
             }
             catch( Throwable t )
