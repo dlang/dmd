@@ -1090,9 +1090,15 @@ unsigned TypeBasic::alignsize()
 
         case Tfloat64:
         case Timaginary64:
+            sz = global.params.isX86_64 ? 8 : 4;
+            break;
+
         case Tcomplex32:
+            sz = 4;
+            break;
+
         case Tcomplex64:
-            sz = global.params.isX86_64 ? 16 : 4;
+            sz = global.params.isX86_64 ? 8 : 4;
             break;
 #endif
 
