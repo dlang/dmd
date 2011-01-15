@@ -4212,10 +4212,11 @@ void Catch::semantic(Scope *sc)
     if (!type)
         type = new TypeIdentifier(0, Id::Throwable);
     type = type->semantic(loc, sc);
-    if (!type->toBasetype()->isClassHandle())
+    ClassDeclaration *cd = type->toBasetype()->isClassHandle();
+    if (!cd || ((cd != ClassDeclaration::throwable) && !ClassDeclaration::throwable->isBaseOf(cd, NULL)))
     {
         if (type != Type::terror)
-        {   error(loc, "can only catch class objects, not '%s'", type->toChars());
+        {   error(loc, "can only catch class objects derived from Throwable, not '%s'", type->toChars());
             type = Type::terror;
         }
     }
