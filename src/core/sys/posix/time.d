@@ -79,6 +79,14 @@ int clock_nanosleep(clockid_t, int, in timespec*, timespec*);
 CLOCK_MONOTONIC
 */
 
+version( linux )
+{
+    enum CLOCK_MONOTONIC        = 1;
+    enum CLOCK_MONOTONIC_RAW    = 4; // non-standard
+    enum CLOCK_MONOTONIC_COARSE = 6; // non-standard
+    
+}
+
 //
 // Timer (TMR)
 //
@@ -120,6 +128,9 @@ int timer_settime(timer_t, int, in itimerspec*, itimerspec*);
 
 version( linux )
 {
+    enum CLOCK_PROCESS_CPUTIME_ID = 2;
+    enum CLOCK_THREAD_CPUTIME_ID  = 3;
+
     // NOTE: See above for why this is commented out.
     //
     //struct timespec
@@ -134,15 +145,9 @@ version( linux )
         timespec it_value;
     }
 
-    enum CLOCK_REALTIME           = 0; // Identifier for system-wide realtime clock.
-    enum CLOCK_MONOTONIC          = 1; // Monotonic system-wide clock.
-    enum CLOCK_PROCESS_CPUTIME_ID = 2; // High-resolution timer from the CPU.
-    enum CLOCK_THREAD_CPUTIME_ID  = 3; // Thread-specific CPU-time clock.
-    enum CLOCK_MONOTONIC_RAW      = 4; // Monotonic system-wide clock, not adjusted for frequency scaling.
-    enum CLOCK_REALTIME_COARSE    = 5; // Identifier for system-wide realtime clock, updated only on ticks.
-    enum CLOCK_MONOTONIC_COARSE   = 6; // Monotonic system-wide clock, updated only on ticks.
-
-    enum TIMER_ABSTIME = 0x01;
+    enum CLOCK_REALTIME         = 0;
+    enum CLOCK_REALTIME_COARSE  = 5; // non-standard
+    enum TIMER_ABSTIME          = 0x01;
 
     alias int clockid_t;
     alias int timer_t;
@@ -163,7 +168,8 @@ else version( OSX )
 }
 else version( FreeBSD )
 {
-    enum CLOCK_THREAD_CPUTIME_ID    = 15;
+    //enum CLOCK_PROCESS_CPUTIME_ID = ??;
+    enum CLOCK_THREAD_CPUTIME_ID  = 15;
 
     // NOTE: See above for why this is commented out.
     //
