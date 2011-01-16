@@ -21,7 +21,7 @@ private
     import core.stdc.stddef;
     import core.stdc.stdlib;
     import core.stdc.string;
-    //import core.stdc.stdio;   // for printf()
+    import core.stdc.stdio;   // for printf()
 }
 
 version (Windows)
@@ -113,15 +113,19 @@ extern (C) void* rt_loadLibrary(in char[] name)
 {
     version (Windows)
     {
+	// Load a DLL at runtime
         char[260] temp = void;
         temp[0 .. name.length] = name[];
         temp[name.length] = cast(char) 0;
+	// BUG: LoadLibraryA() call calls rt_init(), which fails if proxy is not set!
         void* ptr = LoadLibraryA(temp.ptr);
         if (ptr is null)
             return ptr;
         gcSetFn gcSet = cast(gcSetFn) GetProcAddress(ptr, "gc_setProxy");
         if (gcSet !is null)
+	{   // BUG: Set proxy, but too late
             gcSet(gc_getProxy());
+	}
         return ptr;
 
     }
@@ -278,6 +282,8 @@ extern (C) bool rt_init(ExceptionHandler dg = null)
     {
         if (dg)
             dg(e);
+	else
+	    throw e;	// rethrow, don't silently ignore error
     }
     _d_criticalTerm();
     return false;
