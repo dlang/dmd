@@ -216,11 +216,11 @@ extern (C) BlkInfo gc_qalloc( size_t sz, uint ba = 0 )
 {
     if( proxy is null )
     {
-	BlkInfo retval;
-	retval.base = gc_malloc(sz, ba);
-	retval.size = sz;
-	retval.attr = ba;
-	return retval;
+        BlkInfo retval;
+        retval.base = gc_malloc(sz, ba);
+        retval.size = sz;
+        retval.attr = ba;
+        return retval;
     }
     return proxy.gc_qalloc( sz, ba );
 }
@@ -303,7 +303,7 @@ extern (C) void gc_addRoot( void* p )
             onOutOfMemoryError();
         r[nroots++] = p;
         roots = r;
-	assert(0);	// fix
+        assert(0);      // fix
     }
     return proxy.gc_addRoot( p );
 }
@@ -321,7 +321,7 @@ extern (C) void gc_addRange( void* p, size_t sz )
         r[nranges].len = sz;
         ranges = r;
         ++nranges;
-	assert(0);	// fix
+        assert(0);      // fix
     }
     return proxy.gc_addRange( p, sz );
 }
