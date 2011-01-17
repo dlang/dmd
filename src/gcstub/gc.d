@@ -303,7 +303,7 @@ extern (C) void gc_addRoot( void* p )
             onOutOfMemoryError();
         r[nroots++] = p;
         roots = r;
-        assert(0);      // fix
+        return;
     }
     return proxy.gc_addRoot( p );
 }
@@ -321,7 +321,7 @@ extern (C) void gc_addRange( void* p, size_t sz )
         r[nranges].len = sz;
         ranges = r;
         ++nranges;
-        assert(0);      // fix
+        return;
     }
     return proxy.gc_addRange( p, sz );
 }
