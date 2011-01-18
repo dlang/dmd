@@ -155,9 +155,6 @@ DISABLED_TESTS += wc
 DISABLED_TESTS += testmmfile
 # mm issues, probably
 
-DISABLED_TESTS += testregexp2
-# needs std/regexp to be fixed first
-
 DISABLED_TESTS += testthread2
 # segv
 

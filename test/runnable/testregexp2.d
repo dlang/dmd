@@ -14,11 +14,11 @@ void test1()
   string o;
 
   o=format("%d %s\n",octDigit.test(s[0..4]),s[0..4]);
-  printf(o.ptr);
+  printf("%.*s", o.length, o.ptr);
   o=format("%d %s\n",octDigit.test(s[1..4]),s[1..4]);
-  printf(o.ptr);
+  printf("%.*s", o.length, o.ptr);
   o=format("%d %s\n",octDigit.test(s[2..4]),s[2..4]);
-  printf(o.ptr);
+  printf("%.*s", o.length, o.ptr);
 }
 
 /***************************************************/
@@ -32,17 +32,17 @@ void test2()
 
   i=octDigit.test(s[0..4]);
   o=format("%d %s\n",i,s[0..4]);
-  printf(o.ptr);
+  printf("%.*s", o.length, o.ptr);
   assert(i == 1);
 
   i=octDigit.test(s[1..4]);
   o=format("%d %s\n",i,s[1..4]);
-  printf(o.ptr);
+  printf("%.*s", o.length, o.ptr);
   assert(i == 1);
 
   i=octDigit.test(s[2..4]);
   o=format("%d %s\n",i,s[2..4]);
-  printf(o.ptr);
+  printf("%.*s", o.length, o.ptr);
   assert(i == 1);
 }
 
@@ -114,20 +114,19 @@ void test5()
 
 /***************************************************/
 
-int foo6(string sample, string pat)
+size_t foo6(string sample, string pat)
 {
-    int pos;
     validate(sample);
     validate(pat);
     writefln("sample = %s", cast(ubyte[])sample);
-    pos = std.regexp.find(sample, pat);
+    size_t pos = std.regexp.find(sample, pat);
     writefln("Where = %s %s", cast(ubyte[])pat, pos);
     return pos;
 }
 
 void test6()
 {
-    int i;
+    size_t i;
 
     i = foo6("\u3026a\u2021\u5004b\u4011", "a\u2021\u5004b");
     assert(i == 3);
