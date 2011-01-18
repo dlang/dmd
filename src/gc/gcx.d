@@ -2211,7 +2211,7 @@ struct Gcx
             //if (log) debug(PRINTF) printf("\tmark %p\n", p);
             if (p >= minAddr && p < maxAddr)
             {
-                if ((cast(size_t)p & ~(PAGESIZE-1)) == pcache)
+                if ((cast(size_t)p & ~cast(size_t)(PAGESIZE-1)) == pcache)
                     continue;
 
 		auto pool = findPool(p);
@@ -2235,7 +2235,7 @@ struct Gcx
                         biti = (offset & notbinsize[bin]) >> 4;
                         //debug(PRINTF) printf("\t\tbiti = x%x\n", biti);
 
-                        pcache = cast(size_t)p & ~(PAGESIZE-1);
+                        pcache = cast(size_t)p & ~cast(size_t)(PAGESIZE-1);
                     }
                     else if (bin == B_PAGEPLUS)
                     {
@@ -2244,7 +2244,7 @@ struct Gcx
                         } while (cast(Bins)pool.pagetable[pn] == B_PAGEPLUS);
                         biti = pn * (PAGESIZE / 16);
 
-                        pcache = cast(size_t)p & ~(PAGESIZE-1);
+                        pcache = cast(size_t)p & ~cast(size_t)(PAGESIZE-1);
                     }
                     else
                     {
@@ -2452,6 +2452,7 @@ struct Gcx
 
                 auto bbase = pool.scan.base();
                 auto btop = bbase + pool.scan.nwords;
+                //printf("\t\tn = %d, bbase = %p, btop = %p\n", n, bbase, btop);
                 for (auto b = bbase; b < btop;)
                 {
                     auto bitm = *b;
@@ -2461,7 +2462,7 @@ struct Gcx
                     }
                     *b = 0;
 
-                    auto o = pool.baseAddr + (b - bbase) * 32 * 16;
+                    auto o = pool.baseAddr + (b - bbase) * (typeof(bitm).sizeof*8) * 16;
                     if (!(bitm & 0xFFFF))
                     {
                         bitm >>= 16;
@@ -2812,9 +2813,7 @@ struct Gcx
         void log_free(void *p)
         {
             //debug(PRINTF) printf("+log_free(%p)\n", p);
-            size_t i;
-
-            i = current.find(p);
+            auto i = current.find(p);
             if (i == OPFAIL)
             {
                 debug(PRINTF) printf("free'ing unallocated memory %p\n", p);
@@ -2834,9 +2833,7 @@ struct Gcx
             size_t used = 0;
             for (size_t i = 0; i < current.dim; i++)
             {
-                size_t j;
-
-                j = prev.find(current.data[i].p);
+                auto j = prev.find(current.data[i].p);
                 if (j == OPFAIL)
                     current.data[i].print();
                 else
@@ -2846,13 +2843,10 @@ struct Gcx
             debug(PRINTF) printf("All roots this cycle: --------------------------------\n");
             for (size_t i = 0; i < current.dim; i++)
             {
-                void *p;
-                size_t j;
-
-                p = current.data[i].p;
+                void* p = current.data[i].p;
                 if (!findPool(current.data[i].parent))
                 {
-                    j = prev.find(current.data[i].p);
+                    auto j = prev.find(current.data[i].p);
                     if (j == OPFAIL)
                         debug(PRINTF) printf("N");
                     else
@@ -2871,9 +2865,7 @@ struct Gcx
         void log_parent(void *p, void *parent)
         {
             //debug(PRINTF) printf("+log_parent()\n");
-            size_t i;
-
-            i = current.find(p);
+            auto i = current.find(p);
             if (i == OPFAIL)
             {
                 debug(PRINTF) printf("parent'ing unallocated memory %p, parent = %p\n", p, parent);
