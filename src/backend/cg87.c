@@ -3063,7 +3063,11 @@ code *cdrndtol(elem *e,regm_t *pretregs)
             genfltreg(c2,0x8B,findreglsw(retregs),0);
         }
         else
+        {
             c2 = genfltreg(c2,0x8B,reg,0);      // MOV reg,floatreg
+            if (tysize(tym) == 8 && I64)
+                code_orrex(c2, REX_W);
+        }
         c2 = cat(c2,fixresult(e,retregs,pretregs));
 
         return cat(c1,c2);
