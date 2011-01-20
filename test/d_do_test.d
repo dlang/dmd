@@ -129,14 +129,14 @@ void gatherTestParameters(ref TestArgs testArgs, string input_dir, string input_
     // swap / with $SEP
     if (envData.sep && envData.sep != "/")
         foreach (ref s; testArgs.sources)
-            s = std.string.replace(s, "/", envData.sep);
+            s = replace(s, "/", envData.sep);
     //writeln ("sources: ", testArgs.sources);
 
     string compileSeparatelyStr;
     testArgs.compileSeparately = findTestParameter(file, "COMPILE_SEPARATELY", compileSeparatelyStr);
 
     if (findTestParameter(file, "POST_SCRIPT", testArgs.postScript))
-        testArgs.postScript = std.string.replace(testArgs.postScript, "/", envData.sep);
+        testArgs.postScript = replace(testArgs.postScript, "/", envData.sep);
 }
 
 string[] combinations(string argstr)
