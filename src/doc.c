@@ -836,7 +836,11 @@ void FuncDeclaration::toDocBuffer(OutBuffer *buf)
             hgs.ddoc = 1;
             prefix(buf, td);
             if (tf)
-                tf->next->toCBuffer(buf, NULL, &hgs);
+            {   if (tf->nextOf())
+                    tf->nextOf()->toCBuffer(buf, NULL, &hgs);
+                else
+                    buf->writestring("auto");
+            }
             buf->writeByte(' ');
             buf->writestring(ident->toChars());
             buf->writeByte('(');
