@@ -5,7 +5,7 @@
 import std.c.stdio;
 import std.stdio;
 import std.file;
-import std.date;
+import std.datetime;
 import std.zip;
 import std.zlib;
 
@@ -35,7 +35,7 @@ int main(string[] args)
     foreach (ArchiveMember de; zr.directory)
     {
 	writeln(de.toString());
-	printf("date = '%.*s'\n", std.date.toString(std.date.toDtime(de.time)));
+	printf("date = '%.*s'\n", DosFileTimeToSysTime(de.time).toString());
 
 	arrayPrint(de.compressedData);
 
@@ -100,7 +100,7 @@ void testzlib2()
         am.name = "buf";
         am.expandedData = buf;
         am.compressionMethod = 8;
-        am.time = toDosFileTime (getUTCtime ());
+        am.time = SysTimeToDosFileTime(Clock.currTime());
         ar.addMember (am);            // 15
 
         auto zip1 = ar.build ();
