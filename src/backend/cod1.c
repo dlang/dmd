@@ -3324,7 +3324,8 @@ code *params(elem *e,unsigned stackalign)
                                                         /* ADD reg,sz-2 */
                         c2 = genc2(c2,0x81,grex | modregrmx(3,0,reg),sz-pushsize);
                     }
-                    c3 = gen2(CNIL,0xFF,buildModregrm(0,6,rm));      // PUSH [reg]
+                    c3 = getregs(mCX);                                  // the LOOP decrements it
+                    c3 = gen2(c3,0xFF,buildModregrm(0,6,rm));           // PUSH [reg]
                     c3->Iflags |= seg | CFtarg2;
                     genc2(c3,0x81,grex | buildModregrm(3,5,reg),pushsize);  // SUB reg,2
                     size = ((seg & CFSEG) ? -8 : -7) - op16;
