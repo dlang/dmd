@@ -230,7 +230,7 @@ Dsymbols *Parser::parseDeclDefs(int once)
             case TOKtypeof:
             case TOKdot:
             Ldeclaration:
-                a = parseDeclarations(STCundefined);
+                a = parseDeclarations(STCundefined, NULL);
                 decldefs->append(a);
                 continue;
 
@@ -431,7 +431,7 @@ Dsymbols *Parser::parseDeclDefs(int once)
                      peek(tk)->value == TOKlcurly)
                    )
                 {
-                    a = parseDeclarations(storageClass);
+                    a = parseDeclarations(storageClass, comment);
                     decldefs->append(a);
                     continue;
                 }
@@ -2648,7 +2648,7 @@ Type *Parser::parseDeclarator(Type *t, Identifier **pident, TemplateParameters *
  * Return array of Declaration *'s.
  */
 
-Dsymbols *Parser::parseDeclarations(StorageClass storage_class)
+Dsymbols *Parser::parseDeclarations(StorageClass storage_class, unsigned char *comment)
 {
     StorageClass stc;
     Type *ts;
@@ -2657,10 +2657,12 @@ Dsymbols *Parser::parseDeclarations(StorageClass storage_class)
     Identifier *ident;
     Dsymbols *a;
     enum TOK tok = TOKreserved;
-    unsigned char *comment = token.blockComment;
     enum LINK link = linkage;
 
     //printf("parseDeclarations() %s\n", token.toChars());
+    if (!comment)
+        comment = token.blockComment;
+
     if (storage_class)
     {   ts = NULL;              // infer type
         goto L2;
@@ -3480,7 +3482,7 @@ Statement *Parser::parseStatement(int flags)
         Ldeclaration:
         {   Array *a;
 
-            a = parseDeclarations(STCundefined);
+            a = parseDeclarations(STCundefined, NULL);
             if (a->dim > 1)
             {
                 Statements *as = new Statements();

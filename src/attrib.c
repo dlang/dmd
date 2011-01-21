@@ -191,6 +191,7 @@ void AttribDeclaration::inlineScan()
 
 void AttribDeclaration::addComment(unsigned char *comment)
 {
+    //printf("AttribDeclaration::addComment %s\n", comment);
     if (comment)
     {
         Dsymbols *d = include(NULL, NULL);
