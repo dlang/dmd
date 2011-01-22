@@ -134,9 +134,6 @@ DISABLED_TESTS += test22
 DISABLED_TESTS += test34
 # looks like lots of issues with std.format, at least array and aa formatting is borked..
 
-DISABLED_TESTS += testaa
-# segv
-
 DISABLED_TESTS += testarray
 # sensitive code checking a specific runtime bug
 
