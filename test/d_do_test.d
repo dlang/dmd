@@ -129,7 +129,7 @@ void gatherTestParameters(ref TestArgs testArgs, string input_dir, string input_
     // swap / with $SEP
     if (envData.sep && envData.sep != "/")
         foreach (ref s; testArgs.sources)
-            replace(s, "/", to!string(envData.sep));
+            s = replace(s, "/", to!string(envData.sep));
     //writeln ("sources: ", testArgs.sources);
 
     string compileSeparatelyStr;
