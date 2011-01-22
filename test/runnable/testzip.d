@@ -3,6 +3,7 @@
 // POST_SCRIPT: runnable/extra-files/testzip-postscript.sh
 
 import std.c.stdio;
+import std.conv;
 import std.stdio;
 import std.file;
 import std.datetime;
@@ -29,18 +30,19 @@ int main(string[] args)
         outzipname = "foo.zip";
     buffer = cast(byte[])std.file.read(zipname);
     zr = new std.zip.ZipArchive(cast(void[])buffer);
-    printf("comment = '%.*s'\n", zr.comment);
+    printf("comment = '%.*s'\n", zr.comment.length, zr.comment.ptr);
     writeln(zr.toString());
 
     foreach (ArchiveMember de; zr.directory)
     {
 	writeln(de.toString());
-	printf("date = '%.*s'\n", DosFileTimeToSysTime(de.time).toString());
+	auto s = DosFileTimeToSysTime(de.time).toString();
+	printf("date = '%.*s'\n", s.length, s.ptr);
 
 	arrayPrint(de.compressedData);
 
 	data = zr.expand(de);
-	printf("data = '%.*s'\n", data);
+	printf("data = '%.*s'\n", data.length, data.ptr);
     }
 
     printf("**Success**\n");
@@ -51,7 +53,7 @@ int main(string[] args)
     am.name = "foo.bar";
     //am.extra = cast(ubyte[])"ExTrA";
     am.expandedData = cast(ubyte[])"We all live in a yellow submarine, a yellow submarine";
-    am.expandedSize = am.expandedData.length;
+    am.expandedSize = to!uint(am.expandedData.length);
     zr.addMember(am);
     void[] data2 = zr.build();
     std.file.write(outzipname, cast(byte[])data2);
