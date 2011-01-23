@@ -102,20 +102,6 @@ DISABLED_TESTS = arrayop
 DISABLED_TESTS += testmath
 # needs std.math
 
-#DISABLED_TESTS += eh2
-# ==15332== Invalid free() / delete / delete[]
-# ==15332==    at 0x4C27D71: free (vg_replace_malloc.c:366)
-# ==15332==    by 0x420140: _D4core7runtime19defaultTraceHandlerFPvZC6object9Throwable9TraceInfo16DefaultTraceInfo6__dtorMFZv (in /home/braddr/sandbox/d/source/trunk3/dmd/test/test_results/runnable/eh2)
-# ==15332==    by 0x41F5B0: rt_finalize (in /home/braddr/sandbox/d/source/trunk3/dmd/test/test_results/runnable/eh2)
-# ==15332==    by 0x41E140: _D2gc3gcx3Gcx11fullcollectMFPvZm (in /home/braddr/sandbox/d/source/trunk3/dmd/test/test_results/runnable/eh2)
-# ==15332==    by 0x41D79D: _D2gc3gcx3Gcx16fullcollectshellMFZm (in /home/braddr/sandbox/d/source/trunk3/dmd/test/test_results/runnable/eh2)
-# ==15332==    by 0x41C171: _D2gc3gcx2GC18fullCollectNoStackMFZv (in /home/braddr/sandbox/d/source/trunk3/dmd/test/test_results/runnable/eh2)
-# ==15332==    by 0x41A010: gc_term (in /home/braddr/sandbox/d/source/trunk3/dmd/test/test_results/runnable/eh2)
-# ==15332==    by 0x416DE8: _D2rt6dmain24mainUiPPaZi6runAllMFZv (in /home/braddr/sandbox/d/source/trunk3/dmd/test/test_results/runnable/eh2)
-# ==15332==    by 0x416C90: _D2rt6dmain24mainUiPPaZi7tryExecMFMDFZvZv (in /home/braddr/sandbox/d/source/trunk3/dmd/test/test_results/runnable/eh2)
-# ==15332==    by 0x416C21: main (in /home/braddr/sandbox/d/source/trunk3/dmd/test/test_results/runnable/eh2)
-# ==15332==  Address 0x4046028 is not stack'd, malloc'd or (recently) free'd
-
 DISABLED_TESTS += hospital
 # int vs long issues
 
@@ -124,9 +110,6 @@ DISABLED_TESTS += test16
 DISABLED_TESTS += test20
 DISABLED_TESTS += test28
 # -fPIC: transition from R_X86_64_TLSGD to R_X86_64_GOTTPOFF against
-
-DISABLED_TESTS += stress
-# hangs off in the gc
 
 DISABLED_TESTS += test22
 #  has x86 specific asm code that needs translation
@@ -143,17 +126,7 @@ DISABLED_TESTS += testconst
 
 DISABLED_TESTS += testgc2
 DISABLED_TESTS += testgc3
-DISABLED_TESTS += untag
-DISABLED_TESTS += wc2
-DISABLED_TESTS += wc3
-DISABLED_TESTS += wc
 # various gc related issues
-
-DISABLED_TESTS += testmmfile
-# mm issues, probably
-
-DISABLED_TESTS += testthread2
-# segv
 
 DISABLED_TESTS += testzip
 # zlib version error

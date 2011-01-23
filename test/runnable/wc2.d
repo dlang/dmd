@@ -53,7 +53,7 @@ int main (string[] args)
 	{   string w = input[wstart .. input.length];
 	    dictionary[w]++;
 	}
-	printf("%8lu%8lu%8lu %.*s\n", l_cnt, w_cnt, c_cnt, arg);
+	printf("%8lu%8lu%8lu %.*s\n", l_cnt, w_cnt, c_cnt, arg.length, arg.ptr);
 	l_total += l_cnt;
 	w_total += w_cnt;
 	c_total += c_cnt;
@@ -69,7 +69,7 @@ int main (string[] args)
 
     foreach (string word1; dictionary.keys.sort)
     {
-	printf("%3d %.*s\n", dictionary[word1], word1);
+	printf("%3d %.*s\n", dictionary[word1], word1.length, word1.ptr);
     }
     return 0;
 }
