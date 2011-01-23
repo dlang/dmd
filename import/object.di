@@ -1,11 +1,11 @@
 /**
  * Contains all implicitly declared types and variables.
  *
- * Copyright: Copyright Digital Mars 2000 - 2010.
+ * Copyright: Copyright Digital Mars 2000 - 2011.
  * License:   <a href="http://www.boost.org/LICENSE_1_0.txt">Boost License 1.0</a>.
  * Authors:   Walter Bright, Sean Kelly
  *
- *          Copyright Digital Mars 2000 - 2009.
+ *          Copyright Digital Mars 2000 - 2011.
  * Distributed under the Boost Software License, Version 1.0.
  *    (See accompanying file LICENSE_1_0.txt or copy at
  *          http://www.boost.org/LICENSE_1_0.txt)
@@ -316,15 +316,15 @@ class Throwable : Object
 
 class Exception : Throwable
 {
-    this(string msg, Throwable next = null);
-    this(string msg, string file, size_t line, Throwable next = null);
+    this(string msg, string file = __FILE__, size_t line = __LINE__, Throwable next = null);
+    this(string msg, Throwable next, string file = __FILE__, size_t line = __LINE__);
 }
 
 
 class Error : Throwable
 {
-    this(string msg, Throwable next = null);
-    this(string msg, string file, size_t line, Throwable next = null);
+    this(string msg, Throwable next, string file = __FILE__, size_t line = __LINE__);
+    this(string msg, string file = __FILE__, size_t line = __LINE__, Throwable next = null);
     Throwable   bypassedException;
 }
 

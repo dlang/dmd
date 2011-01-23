@@ -2,13 +2,13 @@
  * The exception module defines all system-level exceptions and provides a
  * mechanism to alter system-level error handling.
  *
- * Copyright: Copyright Sean Kelly 2005 - 2009.
+ * Copyright: Copyright Sean Kelly 2005 - 2011.
  * License:   $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
- * Authors:   Sean Kelly
+ * Authors:   Sean Kelly and Jonathan M Davis
  * Source:    $(DRUNTIMESRC core/_exception.d)
  */
 
-/*          Copyright Sean Kelly 2005 - 2009.
+/*          Copyright Sean Kelly 2005 - 2011.
  * Distributed under the Boost Software License, Version 1.0.
  *    (See accompanying file LICENSE_1_0.txt or copy at
  *          http://www.boost.org/LICENSE_1_0.txt)
@@ -33,9 +33,28 @@ private
  */
 class RangeError : Error
 {
-    this( string file, size_t line )
+    this( string file = __FILE__, size_t line = __LINE__, Throwable next = null )
     {
-        super( "Range violation", file, line );
+        super( "Range violation", file, line, next );
+    }
+}
+
+unittest
+{
+    {
+        auto re = new RangeError();
+        assert(re.file == __FILE__);
+        assert(re.line == __LINE__ - 2);
+        assert(re.next is null);
+        assert(re.msg == "Range violation");
+    }
+
+    {
+        auto re = new RangeError("hello", 42, new Exception("It's an Exception!"));
+        assert(re.file == "hello");
+        assert(re.line == 42);
+        assert(re.next !is null);
+        assert(re.msg == "Range violation");
     }
 }
 
@@ -47,12 +66,68 @@ class AssertError : Error
 {
     this( string file, size_t line )
     {
-        super( "Assertion failure", file, line );
+        this(cast(Throwable)null, file, line);
     }
 
-    this( string msg, string file, size_t line )
+    this( Throwable next, string file = __FILE__, size_t line = __LINE__ )
     {
-        super( msg, file, line );
+        this( "Assertion failure", file, line, next);
+    }
+
+    this( string msg, string file = __FILE__, size_t line = __LINE__, Throwable next = null )
+    {
+        super( msg, file, line, next );
+    }
+}
+
+unittest
+{
+    {
+        auto ae = new AssertError("hello", 42);
+        assert(ae.file == "hello");
+        assert(ae.line == 42);
+        assert(ae.next is null);
+        assert(ae.msg == "Assertion failure");
+    }
+
+    {
+        auto ae = new AssertError(new Exception("It's an Exception!"));
+        assert(ae.file == __FILE__);
+        assert(ae.line == __LINE__ - 2);
+        assert(ae.next !is null);
+        assert(ae.msg == "Assertion failure");
+    }
+
+    {
+        auto ae = new AssertError(new Exception("It's an Exception!"), "hello", 42);
+        assert(ae.file == "hello");
+        assert(ae.line == 42);
+        assert(ae.next !is null);
+        assert(ae.msg == "Assertion failure");
+    }
+
+    {
+        auto ae = new AssertError("msg");
+        assert(ae.file == __FILE__);
+        assert(ae.line == __LINE__ - 2);
+        assert(ae.next is null);
+        assert(ae.msg == "msg");
+    }
+
+    {
+        auto ae = new AssertError("msg", "hello", 42);
+        assert(ae.file == "hello");
+        assert(ae.line == 42);
+        assert(ae.next is null);
+        assert(ae.msg == "msg");
+    }
+
+    {
+        auto ae = new AssertError("msg", "hello", 42, new Exception("It's an Exception!"));
+        assert(ae.file == "hello");
+        assert(ae.line == 42);
+        assert(ae.next !is null);
+        assert(ae.msg == "msg");
     }
 }
 
@@ -64,15 +139,62 @@ class FinalizeError : Error
 {
     ClassInfo   info;
 
-    this( ClassInfo c, Exception e = null )
+    this( ClassInfo ci, Throwable next, string file = __FILE__, size_t line = __LINE__ )
     {
-        super( "Finalization error", e );
-        info = c;
+        this(ci, file, line, next);
+    }
+
+    this( ClassInfo ci, string file = __FILE__, size_t line = __LINE__, Throwable next = null )
+    {
+        super( "Finalization error", file, line, next );
+        info = ci;
     }
 
     override string toString()
     {
         return "An exception was thrown while finalizing an instance of class " ~ info.name;
+    }
+}
+
+unittest
+{
+    ClassInfo info = new ClassInfo;
+    info.name = "testInfo";
+
+    {
+        auto fe = new FinalizeError(info);
+        assert(fe.file == __FILE__);
+        assert(fe.line == __LINE__ - 2);
+        assert(fe.next is null);
+        assert(fe.msg == "Finalization error");
+        assert(fe.info == info);
+    }
+
+    {
+        auto fe = new FinalizeError(info, new Exception("It's an Exception!"));
+        assert(fe.file == __FILE__);
+        assert(fe.line == __LINE__ - 2);
+        assert(fe.next !is null);
+        assert(fe.msg == "Finalization error");
+        assert(fe.info == info);
+    }
+
+    {
+        auto fe = new FinalizeError(info, "hello", 42);
+        assert(fe.file == "hello");
+        assert(fe.line == 42);
+        assert(fe.next is null);
+        assert(fe.msg == "Finalization error");
+        assert(fe.info == info);
+    }
+
+    {
+        auto fe = new FinalizeError(info, "hello", 42, new Exception("It's an Exception!"));
+        assert(fe.file == "hello");
+        assert(fe.line == 42);
+        assert(fe.next !is null);
+        assert(fe.msg == "Finalization error");
+        assert(fe.info == info);
     }
 }
 
@@ -82,9 +204,31 @@ class FinalizeError : Error
  */
 class HiddenFuncError : Error
 {
-    this( ClassInfo ci )
+    this( ClassInfo ci, string file = __FILE__, size_t line = __LINE__, Throwable next = null )
     {
-        super( "Hidden method called for " ~ ci.name );
+        super( "Hidden method called for " ~ ci.name, file, line, next );
+    }
+}
+
+unittest
+{
+    ClassInfo info = new ClassInfo;
+    info.name = "testInfo";
+
+    {
+        auto hfe = new HiddenFuncError(info);
+        assert(hfe.file == __FILE__);
+        assert(hfe.line == __LINE__ - 2);
+        assert(hfe.next is null);
+        assert(hfe.msg == "Hidden method called for testInfo");
+    }
+
+    {
+        auto hfe = new HiddenFuncError(info, "hello", 42, new Exception("It's an Exception!"));
+        assert(hfe.file == "hello");
+        assert(hfe.line == 42);
+        assert(hfe.next !is null);
+        assert(hfe.msg == "Hidden method called for testInfo");
     }
 }
 
@@ -94,14 +238,33 @@ class HiddenFuncError : Error
  */
 class OutOfMemoryError : Error
 {
-    this( string file, size_t line )
+    this(string file = __FILE__, size_t line = __LINE__, Throwable next = null )
     {
-        super( "Memory allocation failed", file, line );
+        super( "Memory allocation failed", file, line, next );
     }
 
     override string toString()
     {
         return msg ? super.toString() : "Memory allocation failed";
+    }
+}
+
+unittest
+{
+    {
+        auto oome = new OutOfMemoryError();
+        assert(oome.file == __FILE__);
+        assert(oome.line == __LINE__ - 2);
+        assert(oome.next is null);
+        assert(oome.msg == "Memory allocation failed");
+    }
+
+    {
+        auto oome = new OutOfMemoryError("hello", 42, new Exception("It's an Exception!"));
+        assert(oome.file == "hello");
+        assert(oome.line == 42);
+        assert(oome.next !is null);
+        assert(oome.msg == "Memory allocation failed");
     }
 }
 
@@ -111,9 +274,28 @@ class OutOfMemoryError : Error
  */
 class SwitchError : Error
 {
-    this( string file, size_t line )
+    this( string file = __FILE__, size_t line = __LINE__, Throwable next = null )
     {
-        super( "No appropriate switch clause found", file, line );
+        super( "No appropriate switch clause found", file, line, next );
+    }
+}
+
+unittest
+{
+    {
+        auto se = new SwitchError();
+        assert(se.file == __FILE__);
+        assert(se.line == __LINE__ - 2);
+        assert(se.next is null);
+        assert(se.msg == "No appropriate switch clause found");
+    }
+
+    {
+        auto se = new SwitchError("hello", 42, new Exception("It's an Exception!"));
+        assert(se.file == "hello");
+        assert(se.line == 42);
+        assert(se.next !is null);
+        assert(se.msg == "No appropriate switch clause found");
     }
 }
 
@@ -125,10 +307,31 @@ class UnicodeException : Exception
 {
     size_t idx;
 
-    this( string msg, size_t idx )
+    this( string msg, size_t idx, string file = __FILE__, size_t line = __LINE__, Throwable next = null )
     {
-        super( msg );
+        super( msg, file, line, next );
         this.idx = idx;
+    }
+}
+
+unittest
+{
+    {
+        auto ue = new UnicodeException("msg", 2);
+        assert(ue.file == __FILE__);
+        assert(ue.line == __LINE__ - 2);
+        assert(ue.next is null);
+        assert(ue.msg == "msg");
+        assert(ue.idx == 2);
+    }
+
+    {
+        auto ue = new UnicodeException("msg", 2, "hello", 42, new Exception("It's an Exception!"));
+        assert(ue.file == "hello");
+        assert(ue.line == 42);
+        assert(ue.next !is null);
+        assert(ue.msg == "msg");
+        assert(ue.idx == 2);
     }
 }
 
@@ -163,7 +366,7 @@ deprecated void setAssertHandler( errorHandlerType h )
  *  file = The name of the file that signaled this error.
  *  line = The line number on which this error occurred.
  */
-extern (C) void onAssertError( string file, size_t line )
+extern (C) void onAssertError( string file = __FILE__, size_t line = __LINE__ )
 {
     if( assertHandler is null )
         throw new AssertError( file, line );
@@ -219,9 +422,9 @@ extern (C) void onUnittestErrorMsg( string file, size_t line, string msg )
  * Throws:
  *  RangeError.
  */
-extern (C) void onRangeError( string file, size_t line )
+extern (C) void onRangeError( string file = __FILE__, size_t line = __LINE__, Throwable next = null )
 {
-    throw new RangeError( file, line );
+    throw new RangeError( file, line, next );
 }
 
 
@@ -234,9 +437,9 @@ extern (C) void onRangeError( string file, size_t line )
  * Throws:
  *  FinalizeError.
  */
-extern (C) void onFinalizeError( ClassInfo info, Exception ex )
+extern (C) void onFinalizeError( ClassInfo info, Exception e, string file = __FILE__, size_t line = __LINE__ )
 {
-    throw new FinalizeError( info, ex );
+    throw new FinalizeError( info, file, line, e );
 }
 
 
@@ -247,9 +450,9 @@ extern (C) void onFinalizeError( ClassInfo info, Exception ex )
  * Throws:
  *  HiddenFuncError.
  */
-extern (C) void onHiddenFuncError( Object o )
+extern (C) void onHiddenFuncError( Object o, string file = __FILE__, size_t line = __LINE__, Throwable next = null )
 {
-    throw new HiddenFuncError( o.classinfo );
+    throw new HiddenFuncError( o.classinfo, file, line, next );
 }
 
 
@@ -278,9 +481,9 @@ extern (C) void onOutOfMemoryError()
  * Throws:
  *  SwitchError.
  */
-extern (C) void onSwitchError( string file, size_t line )
+extern (C) void onSwitchError( string file = __FILE__, size_t line = __LINE__, Throwable next = null )
 {
-    throw new SwitchError( file, line );
+    throw new SwitchError( file, line, next );
 }
 
 
@@ -294,7 +497,7 @@ extern (C) void onSwitchError( string file, size_t line )
  * Throws:
  *  UnicodeException.
  */
-extern (C) void onUnicodeError( string msg, size_t idx )
+extern (C) void onUnicodeError( string msg, size_t idx, string file = __FILE__, size_t line = __LINE__ )
 {
-    throw new UnicodeException( msg, idx );
+    throw new UnicodeException( msg, idx, file, line );
 }

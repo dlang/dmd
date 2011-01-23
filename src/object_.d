@@ -5,12 +5,12 @@
  * Macros:
  *      WIKI = Object
  *
- * Copyright: Copyright Digital Mars 2000 - 2010.
+ * Copyright: Copyright Digital Mars 2000 - 2011.
  * License:   <a href="http://www.boost.org/LICENSE_1_0.txt">Boost License 1.0</a>.
  * Authors:   Walter Bright, Sean Kelly
  */
 
-/*          Copyright Digital Mars 2000 - 2009.
+/*          Copyright Digital Mars 2000 - 2011.
  * Distributed under the Boost Software License, Version 1.0.
  *    (See accompanying file LICENSE_1_0.txt or copy at
  *          http://www.boost.org/LICENSE_1_0.txt)
@@ -1323,34 +1323,92 @@ extern (C) Throwable.TraceInfo _d_traceContext(void* ptr = null)
 
 class Exception : Throwable
 {
-    this(string msg, Throwable next = null)
-    {
-        super(msg, next);
-    }
 
-    this(string msg, string file, size_t line, Throwable next = null)
+    this(string msg, string file = __FILE__, size_t line = __LINE__, Throwable next = null)
     {
         super(msg, file, line, next);
+    }
+    this(string msg, Throwable next, string file = __FILE__, size_t line = __LINE__)
+    {
+        super(msg, file, line, next);
+    }
+}
+
+unittest
+{
+    {
+        auto e = new Exception("msg");
+        assert(e.file == __FILE__);
+        assert(e.line == __LINE__ - 2);
+        assert(e.next is null);
+        assert(e.msg == "msg");
+    }
+
+    {
+        auto e = new Exception("msg", new Exception("It's an Excepton!"), "hello", 42);
+        assert(e.file == "hello");
+        assert(e.line == 42);
+        assert(e.next !is null);
+        assert(e.msg == "msg");
+    }
+
+    {
+        auto e = new Exception("msg", "hello", 42, new Exception("It's an Exception!"));
+        assert(e.file == "hello");
+        assert(e.line == 42);
+        assert(e.next !is null);
+        assert(e.msg == "msg");
     }
 }
 
 
 class Error : Throwable
 {
-    this(string msg, Throwable next = null)
-    {
-        super(msg, next);
-        bypassedException = null;
-    }
-
-    this(string msg, string file, size_t line, Throwable next = null)
+    this(string msg, Throwable next, string file = __FILE__, size_t line = __LINE__)
     {
         super(msg, file, line, next);
         bypassedException = null;
     }
+
+    this(string msg, string file = __FILE__, size_t line = __LINE__, Throwable next = null)
+    {
+        super(msg, file, line, next);
+        bypassedException = null;
+    }
+
     /// The first Exception which was bypassed when this Error was thrown,
     /// or null if no Exceptions were pending.
     Throwable   bypassedException;
+}
+
+unittest
+{
+    {
+        auto e = new Error("msg");
+        assert(e.file == __FILE__);
+        assert(e.line == __LINE__ - 2);
+        assert(e.next is null);
+        assert(e.msg == "msg");
+        assert(e.bypassedException is null);
+    }
+
+    {
+        auto e = new Error("msg", new Exception("It's an Excepton!"), "hello", 42);
+        assert(e.file == "hello");
+        assert(e.line == 42);
+        assert(e.next !is null);
+        assert(e.msg == "msg");
+        assert(e.bypassedException is null);
+    }
+
+    {
+        auto e = new Error("msg", "hello", 42, new Exception("It's an Exception!"));
+        assert(e.file == "hello");
+        assert(e.line == 42);
+        assert(e.next !is null);
+        assert(e.msg == "msg");
+        assert(e.bypassedException is null);
+    }
 }
 
 
