@@ -11,7 +11,7 @@ void main()
     aa.length = 10000;
     for(int i = 0; i < 10_000_000; i++)
     {
-	uint j = rand() % aa.length;
+	size_t j = rand() % aa.length;
 	uint k = rand();
 	uint l = rand();
 	aa[j][k] = l;
