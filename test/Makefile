@@ -125,7 +125,6 @@ DISABLED_TESTS += testconst
 # not firing.  More research needed.
 
 DISABLED_TESTS += testgc2
-DISABLED_TESTS += testgc3
 # various gc related issues
 
 DISABLED_TESTS += testzip
