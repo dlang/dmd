@@ -7320,12 +7320,65 @@ TypeClass::TypeClass(TypeClass* tc, unsigned char headmod)
     this->sym = tc->sym;
     this->mod = tc->mod;
     
-    // Fix class modifiers
-    if (headmod & MODimmutable)
-        this->mod = MODimmutable;
-    else if (!isImmutable())
-        this->mod |= headmod;
+    // Apply head modifiers to class (transitivity)
+    if (headmod != 0) {
+        if (this->mod == 0)
+            this->mod = headmod;
+        else if (headmod == MODimmutable || this->mod == MODimmutable)
+            this->mod = MODimmutable;
+        else
+        {
+            // remaining cases combining shared, const, and wild
+            #define X(m, n) (((m) << 4) | (n))
+            switch (X(headmod, this->mod))
+            {
+                case X(MODshared,             MODshared):
+                    this->mod = MODshared;
+                    break;
+                    
+                case X(MODconst,              MODwild):
+                case X(MODconst,              MODconst):
+                case X(MODwild,               MODconst):
+                    this->mod = MODconst;
+                    break;
+                
+                case X(MODconst,              MODshared):
+                case X(MODconst | MODshared,  MODshared):
+                case X(MODconst | MODshared,  MODwild):
+                case X(MODshared,             MODconst):
+                case X(MODconst | MODshared,  MODconst):
+                case X(MODwild | MODshared,   MODconst):
+                case X(MODconst,              MODwild | MODshared):
+                case X(MODconst | MODshared,  MODwild | MODshared):
+                case X(MODshared,             MODconst | MODshared):
+                case X(MODconst,              MODconst | MODshared):
+                case X(MODconst | MODshared,  MODconst | MODshared):
+                case X(MODwild,               MODconst | MODshared):
+                case X(MODwild | MODshared,   MODconst | MODshared):
+                    this->mod = MODconst | MODshared;
+                    break;
+                    
+                case X(MODwild,               MODwild):
+                    this->mod = MODwild;
+                    break;
+                    
+                case X(MODwild,               MODshared):
+                case X(MODwild | MODshared,   MODshared):
+                case X(MODshared,             MODwild):
+                case X(MODwild | MODshared,   MODwild):
+                case X(MODshared,             MODwild | MODshared):
+                case X(MODwild,               MODwild | MODshared):
+                case X(MODwild | MODshared,   MODwild | MODshared):
+                    this->mod = MODwild | MODshared;
+                    break;
+                    
+                default:
+                    assert(0);
+            }
+        }
+    }
     
+    // Create type to hold head-modifiers (if they are different)
     if (headmod != this->mod)
     {
         thead = new TypeRefSuffix(this);
