@@ -1488,7 +1488,7 @@ code *scodelem(elem *e,regm_t *pretregs,regm_t keepmsk,bool constflag)
   char calledafuncsave;
 
 #ifdef DEBUG
-  if (debugw)
+    if (debugw)
         printf("+scodelem(e=%p *pretregs=%s keepmsk=%s constflag=%d\n",
                 e,regm_str(*pretregs),regm_str(keepmsk),constflag);
 #endif
@@ -2821,9 +2821,9 @@ STATIC code * funccall(elem *e,unsigned numpara,unsigned numalign,regm_t *pretre
             c1 = NULL;
         else if (!tyfunc(s->ty()) || !(config.flags4 & CFG4optimized))
             // so we can replace func at runtime
-            c1 = getregs(~fregsaved & (mBP | ALLREGS | mES));
+            c1 = getregs(~fregsaved & (mBP | ALLREGS | mES | XMMREGS));
         else
-            c1 = getregs(~s->Sregsaved & (mBP | ALLREGS | mES));
+            c1 = getregs(~s->Sregsaved & (mBP | ALLREGS | mES | XMMREGS));
         if (strcmp(s->Sident,"alloca") == 0)
         {
 #if 1
