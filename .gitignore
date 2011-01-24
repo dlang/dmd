@@ -1,7 +1,6 @@
 *.[oa]
 .B*
 log
-=======
 src/cdxxx.c
 src/debtab.c
 src/dmd
