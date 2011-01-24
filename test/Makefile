@@ -96,9 +96,6 @@ fail_compilation_test_results=$(addsuffix .out,$(addprefix $(RESULTS_DIR)/,$(fai
 all: run_tests
 
 ifeq ($(MODEL),64)
-DISABLED_TESTS = arrayop
-# value isn't making it into the runtime library call for some reason
-
 DISABLED_TESTS += testmath
 # needs std.math
 
