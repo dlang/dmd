@@ -1,5 +1,5 @@
 // Copyright (C) 1984-1998 by Symantec
-// Copyright (C) 2000-2009 by Digital Mars
+// Copyright (C) 2000-2011 by Digital Mars
 // All Rights Reserved
 // http://www.digitalmars.com
 // Written by Walter Bright
@@ -1250,6 +1250,8 @@ code *cdmul(elem *e,regm_t *pretregs)
             }
             rreg = findreg(rretregs);
             cg = gen2(cg,0xF7 ^ byte,grex | modregrmx(3,op,rreg)); // OP AX,rreg
+            if (I64 && byte && rreg >= 4)
+                code_orrex(cg, REX);
         L3:
             c = fixresult(e,resreg,pretregs);
         }
