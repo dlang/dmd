@@ -169,22 +169,35 @@ pthread_t
 
 version( linux )
 {
-    private struct __sched_param
+    version(X86)
     {
-        int __sched_priority;
+        enum __SIZEOF_PTHREAD_ATTR_T = 36;
+        enum __SIZEOF_PTHREAD_MUTEX_T = 24;
+        enum __SIZEOF_PTHREAD_MUTEXATTR_T = 4;
+        enum __SIZEOF_PTHREAD_COND_T = 48;
+        enum __SIZEOF_PTHREAD_CONDATTR_T = 4;
+        enum __SIZEOF_PTHREAD_RWLOCK_T = 32;
+        enum __SIZEOF_PTHREAD_RWLOCKATTR_T = 8;
+        enum __SIZEOF_PTHREAD_BARRIER_T = 20;
+        enum __SIZEOF_PTHREAD_BARRIERATTR_T = 4;
+    }
+    else version(X86_64)
+    {
+        enum __SIZEOF_PTHREAD_ATTR_T = 56;
+        enum __SIZEOF_PTHREAD_MUTEX_T = 40;
+        enum __SIZEOF_PTHREAD_MUTEXATTR_T = 4;
+        enum __SIZEOF_PTHREAD_COND_T = 48;
+        enum __SIZEOF_PTHREAD_CONDATTR_T = 4;
+        enum __SIZEOF_PTHREAD_RWLOCK_T = 56;
+        enum __SIZEOF_PTHREAD_RWLOCKATTR_T = 8;
+        enum __SIZEOF_PTHREAD_BARRIER_T = 32;
+        enum __SIZEOF_PTHREAD_BARRIERATTR_T = 4;
     }
 
-    struct pthread_attr_t
+    union pthread_attr_t
     {
-        int             __detachstate;
-        int             __schedpolicy;
-        __sched_param   __schedparam;
-        int             __inheritsched;
-        int             __scope;
-        size_t          __guardsize;
-        int             __stackaddr_set;
-        void*           __stackaddr;
-        size_t          __stacksize;
+        byte __size[__SIZEOF_PTHREAD_ATTR_T];
+        c_long __align;
     }
 
     private alias int __atomic_lock_t;
@@ -197,58 +210,44 @@ version( linux )
 
     private alias void* _pthread_descr;
 
-    private alias long __pthread_cond_align_t;
-
-    struct pthread_cond_t
+    union pthread_cond_t
     {
-        _pthread_fastlock       __c_lock;
-        _pthread_descr          __c_waiting;
-        char[48 -
-             _pthread_fastlock.sizeof -
-             _pthread_descr.sizeof -
-             __pthread_cond_align_t.sizeof]
-                                __padding;
-        __pthread_cond_align_t  __align;
+        byte __size[__SIZEOF_PTHREAD_COND_T];
+        long  __align;
     }
 
-    struct pthread_condattr_t
+    union pthread_condattr_t
     {
-        int __dummy;
+        byte __size[__SIZEOF_PTHREAD_CONDATTR_T];
+        int __align;
     }
 
     alias uint pthread_key_t;
 
-    struct pthread_mutex_t
+    union pthread_mutex_t
     {
-        int                 __m_reserved;
-        int                 __m_count;
-        _pthread_descr      __m_owner;
-        int                 __m_kind;
-        _pthread_fastlock   __m_lock;
+        byte __size[__SIZEOF_PTHREAD_MUTEX_T];
+        c_long __align;
     }
 
-    struct pthread_mutexattr_t
+    union pthread_mutexattr_t
     {
-        int __mutexkind;
+        byte __size[__SIZEOF_PTHREAD_MUTEXATTR_T];
+        int __align;
     }
 
     alias int pthread_once_t;
 
     struct pthread_rwlock_t
     {
-        _pthread_fastlock   __rw_lock;
-        int                 __rw_readers;
-        _pthread_descr      __rw_writer;
-        _pthread_descr      __rw_read_waiting;
-        _pthread_descr      __rw_write_waiting;
-        int                 __rw_kind;
-        int                 __rw_pshared;
+        byte __size[__SIZEOF_PTHREAD_RWLOCK_T];
+        c_long __align;
     }
 
     struct pthread_rwlockattr_t
     {
-        int __lockkind;
-        int __pshared;
+        byte __size[__SIZEOF_PTHREAD_RWLOCKATTR_T];
+        c_long __align;
     }
 
     alias c_ulong pthread_t;
@@ -374,15 +373,14 @@ version( linux )
 {
     struct pthread_barrier_t
     {
-        _pthread_fastlock   __ba_lock;
-        int                 __ba_required;
-        int                 __ba_present;
-        _pthread_descr      __ba_waiting;
+        byte __size[__SIZEOF_PTHREAD_BARRIER_T];
+        c_long __align;
     }
 
     struct pthread_barrierattr_t
     {
-        int __pshared;
+        byte __size[__SIZEOF_PTHREAD_BARRIERATTR_T];
+        int __align;
     }
 }
 else version( FreeBSD )
