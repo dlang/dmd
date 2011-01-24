@@ -1,0 +1,4 @@
+*.[oa]
+.B*
+.gitignore
+log
