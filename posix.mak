@@ -420,7 +420,7 @@ $(OBJDIR)/emptymain.d :
 zip: druntime.zip
 
 druntime.zip:
-	rm $@
+	rm -f $@
 	zip -u $@ $(MANIFEST) $(DOCS) $(IMPORTS) minit.o
 
 install: druntime.zip
