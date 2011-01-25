@@ -19,13 +19,6 @@ DOCFMT=
 
 target : import $(DRUNTIME) doc
 
-_MISSING_FROM_MANIFEST = \
-	src/core/sys/posix/sys/select \
-	src/core/sys/posix/sys/socket \
-	src/core/sys/posix/sys/stat \
-	src/core/sys/posix/sys/wait \
-	src/core/sys/posix/netinet/in_
-
 MANIFEST= \
 	LICENSE_1_0.txt \
 	README.txt \
@@ -35,21 +28,52 @@ MANIFEST= \
 	import/object.di \
 	import/std/intrinsic.di \
 	\
-	$(addprefix src,$(addsuffix .d,$(SRC_D_MODULES))) \
+	src/object_.d \
 	\
+	src/core/atomic.d \
+	src/core/bitop.d \
+	src/core/cpuid.d \
+	src/core/demangle.d \
 	src/core/dll_helper.d \
+	src/core/exception.d \
+	src/core/memory.d \
+	src/core/runtime.d \
+	src/core/thread.d \
 	src/core/thread_helper.d \
 	src/core/threadasm.S \
+	src/core/time.d \
+	src/core/vararg.d \
 	\
 	src/core/stdc/complex.d \
+	src/core/stdc/config.d \
+	src/core/stdc/ctype.d \
 	src/core/stdc/errno.c \
+	src/core/stdc/errno.d \
 	src/core/stdc/fenv.d \
 	src/core/stdc/float_.d \
 	src/core/stdc/inttypes.d \
 	src/core/stdc/limits.d \
 	src/core/stdc/locale.d \
+	src/core/stdc/math.d \
+	src/core/stdc/signal.d \
+	src/core/stdc/stdarg.d \
+	src/core/stdc/stddef.d \
+	src/core/stdc/stdint.d \
+	src/core/stdc/stdio.d \
+	src/core/stdc/stdlib.d \
+	src/core/stdc/string.d \
 	src/core/stdc/tgmath.d \
+	src/core/stdc/time.d \
+	src/core/stdc/wchar_.d \
 	src/core/stdc/wctype.d \
+	\
+	src/core/sync/barrier.d \
+	src/core/sync/condition.d \
+	src/core/sync/config.d \
+	src/core/sync/exception.d \
+	src/core/sync/mutex.d \
+	src/core/sync/rwmutex.d \
+	src/core/sync/semaphore.d \
 	\
 	src/core/sys/osx/mach/dyld.d \
 	src/core/sys/osx/mach/getsect.d \
@@ -98,20 +122,97 @@ MANIFEST= \
 	\
 	src/core/sys/windows/windows.d \
 	\
+	src/gc/gc.d \
+	src/gc/gcalloc.d \
+	src/gc/gcbits.d \
+	src/gc/gcstats.d \
+	src/gc/gcx.d \
+	\
 	src/gcstub/gc.d \
 	\
+	src/rt/aApply.d \
+	src/rt/aApplyR.d \
+	src/rt/aaA.d \
+	src/rt/adi.d \
+	src/rt/alloca.d \
+	src/rt/arrayassign.d \
+	src/rt/arraybyte.d \
+	src/rt/arraycast.d \
+	src/rt/arraycat.d \
+	src/rt/arraydouble.d \
+	src/rt/arrayfloat.d \
+	src/rt/arrayint.d \
+	src/rt/arrayreal.d \
+	src/rt/arrayshort.d \
+	src/rt/cast_.d \
+	src/rt/cmath2.d \
 	src/rt/compiler.d \
 	src/rt/complex.c \
+	src/rt/cover.d \
 	src/rt/critical.c \
-	src/rt/deh.c \
+	src/rt/deh.d \
+	src/rt/deh2.d \
+	src/rt/dmain2.d \
 	src/rt/dylib_fixes.c \
 	src/rt/image.d \
+	src/rt/invariant.d \
+	src/rt/invariant_.d \
+	src/rt/lifetime.d \
+	src/rt/llmath.d \
 	src/rt/mars.h \
+	src/rt/memory.d \
 	src/rt/memory_osx.c \
+	src/rt/memset.d \
 	src/rt/minit.asm \
 	src/rt/monitor.c \
+	src/rt/obj.d \
+	src/rt/qsort.d \
 	src/rt/qsort2.d \
-	src/rt/tls.S
+	src/rt/switch_.d \
+	src/rt/tls.S \
+	src/rt/trace.d \
+	\
+	src/rt/typeinfo/ti_AC.d \
+	src/rt/typeinfo/ti_Acdouble.d \
+	src/rt/typeinfo/ti_Acfloat.d \
+	src/rt/typeinfo/ti_Acreal.d \
+	src/rt/typeinfo/ti_Adouble.d \
+	src/rt/typeinfo/ti_Afloat.d \
+	src/rt/typeinfo/ti_Ag.d \
+	src/rt/typeinfo/ti_Aint.d \
+	src/rt/typeinfo/ti_Along.d \
+	src/rt/typeinfo/ti_Areal.d \
+	src/rt/typeinfo/ti_Ashort.d \
+	src/rt/typeinfo/ti_C.d \
+	src/rt/typeinfo/ti_byte.d \
+	src/rt/typeinfo/ti_cdouble.d \
+	src/rt/typeinfo/ti_cfloat.d \
+	src/rt/typeinfo/ti_char.d \
+	src/rt/typeinfo/ti_creal.d \
+	src/rt/typeinfo/ti_dchar.d \
+	src/rt/typeinfo/ti_delegate.d \
+	src/rt/typeinfo/ti_double.d \
+	src/rt/typeinfo/ti_float.d \
+	src/rt/typeinfo/ti_idouble.d \
+	src/rt/typeinfo/ti_ifloat.d \
+	src/rt/typeinfo/ti_int.d \
+	src/rt/typeinfo/ti_ireal.d \
+	src/rt/typeinfo/ti_long.d \
+	src/rt/typeinfo/ti_ptr.d \
+	src/rt/typeinfo/ti_real.d \
+	src/rt/typeinfo/ti_short.d \
+	src/rt/typeinfo/ti_ubyte.d \
+	src/rt/typeinfo/ti_uint.d \
+	src/rt/typeinfo/ti_ulong.d \
+	src/rt/typeinfo/ti_ushort.d \
+	src/rt/typeinfo/ti_void.d \
+	src/rt/typeinfo/ti_wchar.d \
+	\
+	src/rt/util/console.d \
+	src/rt/util/ctype.d \
+	src/rt/util/hash.d \
+	src/rt/util/string.d \
+	src/rt/util/utf.d
 
 SRC_D_MODULES = \
 	object_ \
