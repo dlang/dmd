@@ -70,7 +70,7 @@ private
     alias bool function(Object) CollectHandler;
     __gshared CollectHandler collectHandler = null;
 
-		enum : size_t
+                enum : size_t
     {
         BIGLENGTHMASK = ~(cast(size_t)PAGESIZE - 1),
         SMALLPAD = 1,
@@ -415,7 +415,7 @@ extern(C) void rt_processGCMarks(void[] tls)
 {
     // called after the mark routine to eliminate block cache data when it
     // might be ready to sweep
-    
+
     debug(PRINTF) printf("processing GC Marks, %x\n", tls.ptr);
     auto cache = *cast(BlkInfo **)(tls.ptr + __blkcache_offset);
     if(cache)
@@ -918,7 +918,7 @@ void[] _d_newarrayOpT(alias op)(TypeInfo ti, size_t ndims, va_list q)
 extern (C) void[] _d_newarraymT(TypeInfo ti, size_t ndims, ...)
 {
     debug(PRINTF) printf("_d_newarraymT(ndims = %d)\n", ndims);
-    
+
     if (ndims == 0)
         return null;
     else
@@ -941,7 +941,7 @@ extern (C) void[] _d_newarraymT(TypeInfo ti, size_t ndims, ...)
 extern (C) void[] _d_newarraymiT(TypeInfo ti, size_t ndims, ...)
 {
     debug(PRINTF) printf("_d_newarraymiT(ndims = %d)\n", ndims);
-    
+
     if (ndims == 0)
         return null;
     else
@@ -1595,7 +1595,7 @@ size_t newCapacity(size_t newlength, size_t size)
 extern (C) void[] _d_arrayappendcT(TypeInfo ti, ref byte[] x, ...)
 {
     version(X86)
-    {  
+    {
         byte *argp = cast(byte*)(&ti + 2);
         return _d_arrayappendT(ti, x, argp[0..1]);
     }
@@ -1685,7 +1685,7 @@ byte[] _d_arrayappendcTX(TypeInfo ti, ref byte[] px, size_t n)
                     __insertBlkInfoCache(info, bic);
                 auto newdata = cast(byte *)info.base + LARGEPREFIX;
                 memcpy(newdata, px.ptr, length * sizeelem);
-	        (cast(void **)(&px))[1] = newdata;
+                (cast(void **)(&px))[1] = newdata;
             }
             else if(!isshared && !bic)
             {

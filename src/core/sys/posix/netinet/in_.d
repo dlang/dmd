@@ -88,7 +88,7 @@ version( linux )
 
     enum uint INADDR_ANY       = 0x00000000;
     enum uint INADDR_BROADCAST = 0xffffffff;
-    
+
     enum INET_ADDRSTRLEN       = 16;
 }
 else version( OSX )
@@ -114,7 +114,7 @@ else version( OSX )
 
     enum uint INADDR_ANY       = 0x00000000;
     enum uint INADDR_BROADCAST = 0xffffffff;
-    
+
     enum INET_ADDRSTRLEN       = 16;
 }
 else version( FreeBSD )

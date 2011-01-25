@@ -35,9 +35,9 @@ private
 
     extern (C) void* rt_loadLibrary( in char[] name );
     extern (C) bool  rt_unloadLibrary( void* ptr );
-    
+
     extern (C) string[] rt_args();
-    
+
     version( linux )
     {
         import core.demangle;
@@ -58,7 +58,7 @@ private
         extern (C) void   backtrace_symbols_fd(void**,int,int);
         import core.sys.posix.signal; // segv handler
     }
-    
+
     // For runModuleUnitTests error reporting.
     version( Windows )
     {
@@ -142,8 +142,8 @@ struct Runtime
     {
         return rt_isHalting();
     }
-    
-    
+
+
     /**
      * Returns the arguments supplied when the process was started.
      *
@@ -229,8 +229,8 @@ struct Runtime
     {
         rt_setCollectHandler( h );
     }
-    
-    
+
+
     /**
      * Gets the current collect handler.
      *
@@ -256,8 +256,8 @@ struct Runtime
     {
         sm_moduleUnitTester = h;
     }
-    
-    
+
+
     /**
      * Gets the current module unit tester.
      *
@@ -310,7 +310,7 @@ extern (C) bool runModuleUnitTests()
         sigaction_t action = void;
         sigaction_t oldseg = void;
         sigaction_t oldbus = void;
-        
+
         (cast(byte*) &action)[0 .. action.sizeof] = 0;
         sigfillset( &action.sa_mask ); // block other signals
         action.sa_flags = SA_SIGINFO | SA_RESETHAND;
@@ -351,7 +351,7 @@ extern (C) bool runModuleUnitTests()
             if( m )
             {
                 auto fp = m.unitTest;
-                
+
                 if( fp )
                 {
                     try
@@ -377,7 +377,7 @@ extern (C) bool runModuleUnitTests()
 ///////////////////////////////////////////////////////////////////////////////
 
 
-/** 
+/**
  *
  */
 Throwable.TraceInfo defaultTraceHandler( void* ptr = null )
@@ -394,20 +394,20 @@ Throwable.TraceInfo defaultTraceHandler( void* ptr = null )
                 numframes = backtrace( callstack, MAXFRAMES );
                 framelist = backtrace_symbols( callstack, numframes );
             }
-            
+
             ~this()
             {
                 free( framelist );
             }
 
             override int opApply( scope int delegate(ref char[]) dg )
-            {                
+            {
                 return opApply( (ref size_t, ref char[] buf)
                                 {
                                     return dg( buf );
                                 } );
             }
-            
+
             override int opApply( scope int delegate(ref size_t, ref char[]) dg )
             {
                 version( Posix )
@@ -438,7 +438,7 @@ Throwable.TraceInfo defaultTraceHandler( void* ptr = null )
                     if( ret )
                         break;
                 }
-                return ret;                
+                return ret;
             }
 
             override string toString()
@@ -448,11 +448,11 @@ Throwable.TraceInfo defaultTraceHandler( void* ptr = null )
                     buf ~= i ? "\n" ~ line : line;
                 return buf;
             }
-        
+
         private:
-            int     numframes; 
+            int     numframes;
             char**  framelist;
-            
+
         private:
             char[4096] fixbuf;
             char[] fixline( char[] buf )
@@ -489,7 +489,7 @@ Throwable.TraceInfo defaultTraceHandler( void* ptr = null )
                     // module(_D6module4funcAFZv) [0x00000000]
                     auto bptr = cast(char*) memchr( buf.ptr, '(', buf.length );
                     auto eptr = cast(char*) memchr( buf.ptr, ')', buf.length );
-                    
+
                     if( bptr++ && eptr )
                     {
                         size_t bsym = bptr - buf.ptr;
@@ -508,7 +508,7 @@ Throwable.TraceInfo defaultTraceHandler( void* ptr = null )
                 }
             }
         }
-        
+
         return new DefaultTraceInfo;
     }
     else

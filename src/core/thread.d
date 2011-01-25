@@ -98,8 +98,8 @@ private
             return rt_stackTop();
         }
     }
-    
-    
+
+
     alias scope void delegate() gc_atom;
     extern (C) void function(gc_atom) gc_atomic;
 }
@@ -285,7 +285,7 @@ else version( Posix )
             __gshared int   _tlsstart;
             alias _tlsstart _tlsend;
         }
-        
+
 
         //
         // Entry point for POSIX threads
@@ -350,7 +350,7 @@ else version( Posix )
                 auto pend   = cast(void*) &_tlsend;
                 obj.m_tls = pstart[0 .. pend - pstart];
             }
-            
+
             obj.m_isRunning = true;
             Thread.setThis( obj );
             //Thread.add( obj );
@@ -363,7 +363,7 @@ else version( Posix )
                 obj.m_isRunning = false;
             }
             Thread.add( &obj.m_main );
-            
+
             static extern (C) void thread_cleanupHandler( void* arg )
             {
                 Thread  obj = cast(Thread) arg;
@@ -439,7 +439,7 @@ else version( Posix )
             }
 
             // NOTE: Normal cleanup is handled by scope(exit).
-            
+
             static if( __traits( compiles, pthread_cleanup ) )
             {
                 cleanup.pop( 0 );
@@ -1046,8 +1046,8 @@ class Thread
     ///////////////////////////////////////////////////////////////////////////
     // Actions on Calling Thread
     ///////////////////////////////////////////////////////////////////////////
-    
-    
+
+
     /**
      * Suspends the calling thread for at least the supplied period.  This may
      * result in multiple OS calls if period is greater than the maximum sleep
@@ -1097,7 +1097,7 @@ class Thread
         {
             timespec tin  = void;
             timespec tout = void;
-            
+
             if( val.total!("seconds")() > tin.tv_sec.max )
             {
                 tin.tv_sec  = tin.tv_sec.max;
@@ -1118,8 +1118,8 @@ class Thread
             }
         }
     }
-    
-    
+
+
     /**
      * Suspends the calling thread for at least the supplied period.  This may
      * result in multiple OS calls if period is greater than the maximum sleep
@@ -1190,7 +1190,7 @@ class Thread
         version( Windows )
         {
             auto t = cast(Thread) TlsGetValue( sm_this );
-            
+
             // NOTE: If this thread was attached via thread_attachByAddr then
             //       this TLS lookup won't initially be set, so when the TLS
             //       lookup fails, try an exhaustive search.
@@ -1204,7 +1204,7 @@ class Thread
         else version( Posix )
         {
             auto t = cast(Thread) pthread_getspecific( sm_this );
-            
+
             // NOTE: See the comment near thread_findByAddr() for why the
             //       secondary thread_findByAddr lookup can't be done on
             //       Posix.  However, because thread_attachByAddr() is for
@@ -1297,13 +1297,13 @@ class Thread
             assert( PRIORITY_MAX != -1 );
         }
     }
-    
-    
+
+
     ///////////////////////////////////////////////////////////////////////////
     // Stuff That Should Go Away
     ///////////////////////////////////////////////////////////////////////////
-    
-    
+
+
     deprecated alias thread_findByAddr findThread;
 
 
@@ -1389,8 +1389,8 @@ private:
     // Local storage
     //
     __gshared TLSKey    sm_this;
-    
-    
+
+
     //
     // Main process thread
     //
@@ -1618,7 +1618,7 @@ private:
         //       the thread will have its stack scanned without first having
         //       been properly suspended.  Testing has shown this to sometimes
         //       cause a deadlock.
-        
+
         while( true )
         {
             synchronized( slock )
@@ -1694,7 +1694,7 @@ private:
         //       is running, and by being added to the thread list it could be
         //       resumed by the GC when it was never suspended, which would
         //       result in an exception thrown by the GC code.
-        //       
+        //
         //       An alternative would be to have Thread.start call Thread.add
         //       for the new thread, but this may introduce its own problems,
         //       since the thread object isn't entirely ready to be operated
@@ -1711,7 +1711,7 @@ private:
         //       procedure in add(Context).  These comments will remain in
         //       case other issues surface that require the startup state
         //       tracking described above.
-        
+
         while( true )
         {
             synchronized( slock )
@@ -1871,7 +1871,7 @@ extern (C) bool thread_isMainThread()
 extern (C) Thread thread_attachThis()
 {
     gc_disable(); scope(exit) gc_enable();
-    
+
     Thread          thisThread  = new Thread();
     Thread.Context* thisContext = &thisThread.m_main;
     assert( thisContext == thisThread.m_curr );
@@ -1888,7 +1888,7 @@ extern (C) Thread thread_attachThis()
         thisThread.m_addr  = pthread_self();
         thisContext.bstack = getStackBottom();
         thisContext.tstack = thisContext.bstack;
-        
+
         thisThread.m_isRunning = true;
     }
     thisThread.m_isDaemon = true;
@@ -1937,7 +1937,7 @@ version( Windows )
     //       Windows-specific.  If they are truly needed elsewhere, the
     //       suspendHandler will need a way to call a version of getThis()
     //       that only does the TLS lookup without the fancy fallback stuff.
-    
+
     /// ditto
     extern (C) Thread thread_attachByAddr( Thread.ThreadAddr addr )
     {
@@ -1959,7 +1959,7 @@ version( Windows )
             thisThread.m_addr  = addr;
             thisContext.bstack = bstack;
             thisContext.tstack = thisContext.bstack;
-            
+
             if( addr == GetCurrentThreadId() )
             {
                 thisThread.m_hndl = GetCurrentThreadHandle();
@@ -1984,7 +1984,7 @@ version( Windows )
             thisThread.m_tmach = pthread_mach_thread_np( thisThread.m_addr );
             assert( thisThread.m_tmach != thisThread.m_tmach.init );
         }
-        
+
         version( OSX )
         {
             // NOTE: OSX does not support TLS, so we do it ourselves.  The TLS
@@ -2032,19 +2032,19 @@ version( Windows )
             multiThreadedFlag = true;
         return thisThread;
     }
-    
-    
+
+
     /// This should be handled automatically by thread_attach.
     deprecated extern (C) void thread_setNeedLock( bool need ) nothrow
     {
         if( need )
             multiThreadedFlag = true;
     }
-    
-    
+
+
     /// Renamed to be more consistent with other extern (C) routines.
     deprecated alias thread_attachByAddr thread_attach;
-    
+
 
     /// ditto
     deprecated alias thread_detachByAddr thread_detach;
@@ -2552,7 +2552,7 @@ body
 
 /**
  * This routine allows the runtime to process any special per-thread handling
- * for the GC.  This is needed for taking into account any memory that is 
+ * for the GC.  This is needed for taking into account any memory that is
  * referenced by non-scanned pointers but is about to be freed.  That currently
  * means the array append cache.
  *
@@ -2582,7 +2582,7 @@ void[] thread_getTLSBlock()
     }
     else
     {
-        
+
         return (cast(void*)&_tlsstart)[0..(&_tlsend)-(&_tlsstart)];
     }
 }

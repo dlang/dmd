@@ -491,7 +491,7 @@ int fdatasync(int);
 
 version( linux )
 {
-    int fdatasync(int);    
+    int fdatasync(int);
 }
 
 //

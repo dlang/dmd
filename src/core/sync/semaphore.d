@@ -155,8 +155,8 @@ class Semaphore
             }
         }
     }
-    
-   
+
+
     /**
      * Suspends the calling thread until the current count moves above zero or
      * until the supplied time period has elapsed.  If the count moves above
@@ -212,7 +212,7 @@ class Semaphore
             }
         }
         else version( OSX )
-        {            
+        {
             mach_timespec_t t = void;
             (cast(byte*) &t)[0 .. t.sizeof] = 0;
 

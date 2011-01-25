@@ -196,7 +196,7 @@ else version( OSX )
       {
           timespec  st_atimespec;
           timespec  st_mtimespec;
-          timespec  st_ctimespec;          
+          timespec  st_ctimespec;
       }
       else
       {

@@ -30,7 +30,7 @@ version( D_InlineAsm_X86_64 )
 
 
 private
-{   
+{
     template NakedType(T: shared(T))  { alias T  NakedType; }
     template NakedType(T: shared(T*)) { alias T* NakedType; }
     template NakedType(T: const(T))   { alias T  NakedType; }
@@ -68,8 +68,8 @@ version( D_Ddoc )
     {
         return val;
     }
-    
-    
+
+
     /**
      * Stores 'writeThis' to the memory referenced by 'here' if the value
      * referenced by 'here' is equal to 'ifThis'.  This operation is both
@@ -130,7 +130,7 @@ else version( AsmX86_32 )
                    op == "^=" || op == "<<=" || op == ">>=" || op == ">>>=" ) // skip "~="
         {
             T get, set;
-            
+
             do
             {
                 get = set = atomicLoad!(msync.raw)( val );
@@ -143,8 +143,8 @@ else version( AsmX86_32 )
             static assert( false, "Operation not supported." );
         }
     }
-    
-    
+
+
     bool cas(T,V1,V2)( shared(T)* here, const V1 ifThis, const V2 writeThis )
         if( is( NakedType!(V1) == NakedType!(T) ) &&
             is( NakedType!(V2) == NakedType!(T) ) )
@@ -240,8 +240,8 @@ else version( AsmX86_32 )
             static assert( false, "Invalid template type specified." );
         }
     }
-    
-    
+
+
     private
     {
         template isHoistOp(msync ms)
@@ -256,8 +256,8 @@ else version( AsmX86_32 )
             enum bool isSinkOp = ms == msync.rel ||
                                  ms == msync.seq;
         }
-        
-        
+
+
         // NOTE: While x86 loads have acquire semantics for stores, it appears
         //       that independent loads may be reordered by some processors
         //       (notably the AMD64).  This implies that the hoist-load barrier
@@ -284,8 +284,8 @@ else version( AsmX86_32 )
             rel,    /// sink-load + sink-store barrier
             seq,    /// fully sequenced (acq + rel)
         }
-    
-    
+
+
         T atomicLoad(msync ms = msync.seq, T)( const ref shared T val )
         {
             static if( T.sizeof == byte.sizeof )
@@ -437,7 +437,7 @@ else version( AsmX86_64 )
                    op == "^=" || op == "<<=" || op == ">>=" || op == ">>>=" ) // skip "~="
         {
             T get, set;
-            
+
             do
             {
                 get = set = atomicLoad!(msync.raw)( val );
@@ -450,8 +450,8 @@ else version( AsmX86_64 )
             static assert( false, "Operation not supported." );
         }
     }
-    
-    
+
+
     bool cas(T,V1,V2)( shared(T)* here, const V1 ifThis, const V2 writeThis )
         if( is( NakedType!(V1) == NakedType!(T) ) &&
             is( NakedType!(V2) == NakedType!(T) ) )
@@ -538,8 +538,8 @@ else version( AsmX86_64 )
             static assert( false, "Invalid template type specified." );
         }
     }
-    
-    
+
+
     private
     {
         template isHoistOp(msync ms)
@@ -554,8 +554,8 @@ else version( AsmX86_64 )
             enum bool isSinkOp = ms == msync.rel ||
                                  ms == msync.seq;
         }
-        
-        
+
+
         // NOTE: While x86 loads have acquire semantics for stores, it appears
         //       that independent loads may be reordered by some processors
         //       (notably the AMD64).  This implies that the hoist-load barrier
@@ -582,8 +582,8 @@ else version( AsmX86_64 )
             rel,    /// sink-load + sink-store barrier
             seq,    /// fully sequenced (acq + rel)
         }
-    
-    
+
+
         T atomicLoad(msync ms = msync.seq, T)( const ref shared T val )
         {
             static if( T.sizeof == byte.sizeof )
@@ -724,14 +724,14 @@ version( unittest )
             assert( atom == val );
         }
     }
-    
-    
+
+
     void testType(T)( T val = T.init + 1 )
     {
         testCAS!(T)( val );
     }
-    
-    
+
+
     unittest
     {
         testType!(bool)();

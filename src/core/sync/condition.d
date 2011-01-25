@@ -136,8 +136,8 @@ class Condition
                 throw new SyncException( "Unable to wait for condition" );
         }
     }
-    
-    
+
+
     /**
      * Suspends the calling thread until a notification occurs or until the
      * supplied time period has elapsed.

@@ -508,7 +508,7 @@ else version( FreeBSD )
         }
         else
         {
-            if( cast(ubyte*) cmsg + _ALIGN( cmsg.cmsg_len ) + _ALIGN( cmsghdr.sizeof ) > 
+            if( cast(ubyte*) cmsg + _ALIGN( cmsg.cmsg_len ) + _ALIGN( cmsghdr.sizeof ) >
                     cast(ubyte*) mhdr.msg_control + mhdr.msg_controllen )
                 return null;
             else

@@ -88,7 +88,7 @@ version( Posix )
 {
     private alias void function(int) sigfn_t;
     private alias void function(int, siginfo_t*, void*) sigactfn_t;
-    
+
     enum
     {
       SIGEV_SIGNAL,

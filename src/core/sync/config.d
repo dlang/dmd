@@ -21,8 +21,8 @@ version( Posix )
     private import core.sys.posix.time;
     private import core.sys.posix.sys.time;
     private import core.time;
-    
-    
+
+
     void mktspec( ref timespec t )
     {
         static if( false && is( typeof( clock_gettime ) ) )
@@ -53,10 +53,10 @@ version( Posix )
         auto val  = delta;
              val += dur!("seconds")( t.tv_sec );
              val += dur!("nsecs")( t.tv_nsec );
-        
+
         //auto val = delta + dur!("seconds")( t.tv_sec ) +
         //                 + dur!("nsecs")( t.tv_nsec );
-        
+
         if( val.total!("seconds")() > t.tv_sec.max )
         {
             t.tv_sec  = t.tv_sec.max;

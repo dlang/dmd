@@ -86,11 +86,11 @@ struct GCBits
         {
             return std.intrinsic.bt(data + 1, i);   // this is actually slower! don't use
         }
-	else
-	{
-	    //return (cast(bit *)(data + 1))[i];
-	    return data[1 + (i >> BITS_SHIFT)] & (BITS_1 << (i & BITS_MASK));
-	}
+        else
+        {
+            //return (cast(bit *)(data + 1))[i];
+            return data[1 + (i >> BITS_SHIFT)] & (BITS_1 << (i & BITS_MASK));
+        }
     }
 
     void set(size_t i)
@@ -123,15 +123,15 @@ struct GCBits
         }
         else version (Asm86)
         {
-	    asm
-	    {
-		naked                   ;
-		mov     EAX,data[EAX]   ;
-		mov     ECX,i-4[ESP]    ;
-		btr     4[EAX],ECX      ;
-		sbb     EAX,EAX         ;
-		ret     4               ;
-	    }
+            asm
+            {
+                naked                   ;
+                mov     EAX,data[EAX]   ;
+                mov     ECX,i-4[ESP]    ;
+                btr     4[EAX],ECX      ;
+                sbb     EAX,EAX         ;
+                ret     4               ;
+            }
         }
         else
         {

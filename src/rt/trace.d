@@ -317,7 +317,7 @@ static void trace_times(Symbol* root)
     fprintf(fplog,"  Num          Tree        Func        Per\n");
     fprintf(fplog,"  Calls        Time        Time        Call\n\n");
     for (u = 0; u < nsymbols; u++)
-    {   
+    {
         Symbol* s = psymbols[u];
         timer_t tl,tr;
         timer_t fl,fr;
@@ -938,9 +938,9 @@ void _trace_epi_n()
                 push    R9      ;
                 push    R10     ;
                 push    R11     ;
-                /* Don't worry about saving XMM0/1 or ST0/1 
-                 * Hope trace_epi() doesn't change them 
-                 */ 
+                /* Don't worry about saving XMM0/1 or ST0/1
+                 * Hope trace_epi() doesn't change them
+                 */
             }
             trace_epi();
             asm

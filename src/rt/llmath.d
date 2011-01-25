@@ -5,7 +5,7 @@
  * License:   <a href="http://www.boost.org/LICENSE_1_0.txt">Boost License 1.0</a>.
  * Authors:   Walter Bright, Sean Kelly
  */
- 
+
 /*          Copyright Digital Mars 1993 - 2010.
  * Distributed under the Boost Software License, Version 1.0.
  *    (See accompanying file LICENSE_1_0.txt or copy at
@@ -368,19 +368,19 @@ L1:                                                 ;
         }
         else version(D_InlineAsm_X86_64)
         {
-            asm 
-            {   naked                               ; 
-                push        RAX                     ; 
-                and         dword ptr 4[RSP], 0x7FFFFFFF    ; 
-                fild        qword ptr [RSP]         ; 
-                test        RAX,RAX                 ; 
-                jns         L1                      ; 
-                fld         real ptr adjust         ; 
-                faddp       ST(1), ST               ; 
-            L1:                                     ; 
-                add         RSP, 8                  ; 
-                ret                                 ; 
-            } 
+            asm
+            {   naked                               ;
+                push        RAX                     ;
+                and         dword ptr 4[RSP], 0x7FFFFFFF    ;
+                fild        qword ptr [RSP]         ;
+                test        RAX,RAX                 ;
+                jns         L1                      ;
+                fld         real ptr adjust         ;
+                faddp       ST(1), ST               ;
+            L1:                                     ;
+                add         RSP, 8                  ;
+                ret                                 ;
+            }
         }
         else
             static assert(0);
@@ -404,14 +404,14 @@ ulong __ULLNGDBL()
     }
     else version (D_InlineAsm_X86_64)
     {
-        asm 
-        {   naked                                   ; 
-            call __U64_LDBL                         ; 
-            sub  RSP,8                              ; 
-            fstp double ptr [RSP]                   ; 
-            pop  RAX                                ; 
-            ret                                     ; 
-        } 
+        asm
+        {   naked                                   ;
+            call __U64_LDBL                         ;
+            sub  RSP,8                              ;
+            fstp double ptr [RSP]                   ;
+            pop  RAX                                ;
+            ret                                     ;
+        }
     }
     else
         static assert(0);
@@ -505,33 +505,33 @@ L1:                                                 ;
         }
         else version (D_InlineAsm_X86_64)
         {
-            asm 
-            {   naked                               ; 
-                push        RAX                     ; 
-                fld         double ptr [RSP]        ; 
-                sub         RSP,8                   ; 
-                fld         real ptr adjust         ; 
-                fcomp                               ; 
-                fstsw       AX                      ; 
-                fstcw       8[RSP]                  ; 
-                fldcw       roundTo0                ; 
-                sahf                                ; 
-                jae         L1                      ; 
-                fld         real ptr adjust         ; 
-                fsubp       ST(1), ST               ; 
-                fistp       qword ptr [RSP]         ; 
-                pop         RAX                     ; 
-                fldcw       [RSP]                   ; 
-                add         RSP,8                   ; 
-                mov         EDX,0x8000_0000         ; 
-                shl         RDX,32                  ; 
-                add         RAX,RDX                 ; 
-                ret                                 ; 
-            L1:                                     ; 
-                fistp       qword ptr [RSP]         ; 
-                pop         RAX                     ; 
-                fldcw       [RSP]                   ; 
-                add         RSP,8                   ; 
+            asm
+            {   naked                               ;
+                push        RAX                     ;
+                fld         double ptr [RSP]        ;
+                sub         RSP,8                   ;
+                fld         real ptr adjust         ;
+                fcomp                               ;
+                fstsw       AX                      ;
+                fstcw       8[RSP]                  ;
+                fldcw       roundTo0                ;
+                sahf                                ;
+                jae         L1                      ;
+                fld         real ptr adjust         ;
+                fsubp       ST(1), ST               ;
+                fistp       qword ptr [RSP]         ;
+                pop         RAX                     ;
+                fldcw       [RSP]                   ;
+                add         RSP,8                   ;
+                mov         EDX,0x8000_0000         ;
+                shl         RDX,32                  ;
+                add         RAX,RDX                 ;
+                ret                                 ;
+            L1:                                     ;
+                fistp       qword ptr [RSP]         ;
+                pop         RAX                     ;
+                fldcw       [RSP]                   ;
+                add         RSP,8                   ;
                 ret                                 ;
             }
         }
@@ -585,17 +585,17 @@ uint __DBLULNG()
         }
         else version (D_InlineAsm_X86_64)
         {
-            asm 
-            {   naked                               ; 
-                sub         RSP,16                  ; 
-                fstcw       8[RSP]                  ; 
-                fldcw       roundTo0                ; 
-                fistp       qword ptr [RSP]         ; 
-                fldcw       8[RSP]                  ; 
-                pop         RAX                     ; 
-                add         RSP,8                   ; 
-                ret                                 ; 
-            } 
+            asm
+            {   naked                               ;
+                sub         RSP,16                  ;
+                fstcw       8[RSP]                  ;
+                fldcw       roundTo0                ;
+                fistp       qword ptr [RSP]         ;
+                fldcw       8[RSP]                  ;
+                pop         RAX                     ;
+                add         RSP,8                   ;
+                ret                                 ;
+            }
         }
         else
             static assert(0);

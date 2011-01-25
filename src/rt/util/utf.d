@@ -9,11 +9,11 @@
  * UTF character support is restricted to (\u0000 &lt;= character &lt;= \U0010FFFF).
  *
  * See_Also:
- *	$(LINK2 http://en.wikipedia.org/wiki/Unicode, Wikipedia)<br>
- *	$(LINK http://www.cl.cam.ac.uk/~mgk25/unicode.html#utf-8)<br>
- *	$(LINK http://anubis.dkuug.dk/JTC1/SC2/WG2/docs/n1335)
+ *      $(LINK2 http://en.wikipedia.org/wiki/Unicode, Wikipedia)<br>
+ *      $(LINK http://www.cl.cam.ac.uk/~mgk25/unicode.html#utf-8)<br>
+ *      $(LINK http://anubis.dkuug.dk/JTC1/SC2/WG2/docs/n1335)
  * Macros:
- *	WIKI = Phobos/StdUtf
+ *      WIKI = Phobos/StdUtf
  *
  * Copyright: Copyright Digital Mars 2003 - 2009.
  * License:   <a href="http://www.boost.org/LICENSE_1_0.txt">Boost License 1.0</a>.
@@ -49,7 +49,7 @@ bool isValidDchar(dchar c)
      */
 
     return c < 0xD800 ||
-	(c > 0xDFFF && c <= 0x10FFFF /*&& c != 0xFFFE && c != 0xFFFF*/);
+        (c > 0xDFFF && c <= 0x10FFFF /*&& c != 0xFFFE && c != 0xFFFF*/);
 }
 
 unittest
@@ -86,8 +86,8 @@ static immutable UTF8stride =
  * stride() returns the length of a UTF-8 sequence starting at index i
  * in string s.
  * Returns:
- *	The number of bytes in the UTF-8 sequence or
- *	0xFF meaning s[i] is not the start of of UTF-8 sequence.
+ *      The number of bytes in the UTF-8 sequence or
+ *      0xFF meaning s[i] is not the start of of UTF-8 sequence.
  */
 uint stride(in char[] s, size_t i)
 {
@@ -126,8 +126,8 @@ size_t toUCSindex(in char[] s, size_t i)
 
     for (j = 0; j < i; )
     {
-	j += stride(s, j);
-	n++;
+        j += stride(s, j);
+        n++;
     }
     if (j > i)
     {
@@ -144,8 +144,8 @@ size_t toUCSindex(in wchar[] s, size_t i)
 
     for (j = 0; j < i; )
     {
-	j += stride(s, j);
-	n++;
+        j += stride(s, j);
+        n++;
     }
     if (j > i)
     {
@@ -170,10 +170,10 @@ size_t toUTFindex(in char[] s, size_t n)
 
     while (n--)
     {
-	uint j = UTF8stride[s[i]];
-	if (j == 0xFF)
-	    onUnicodeError("invalid UTF-8 sequence", i);
-	i += j;
+        uint j = UTF8stride[s[i]];
+        if (j == 0xFF)
+            onUnicodeError("invalid UTF-8 sequence", i);
+        i += j;
     }
     return i;
 }
@@ -184,9 +184,9 @@ size_t toUTFindex(in wchar[] s, size_t n)
     size_t i;
 
     while (n--)
-    {	wchar u = s[i];
+    {   wchar u = s[i];
 
-	i += 1 + (u >= 0xD800 && u <= 0xDBFF);
+        i += 1 + (u >= 0xD800 && u <= 0xDBFF);
     }
     return i;
 }
@@ -207,84 +207,84 @@ size_t toUTFindex(in dchar[] s, size_t n)
 dchar decode(in char[] s, ref size_t idx)
     in
     {
-	assert(idx >= 0 && idx < s.length);
+        assert(idx >= 0 && idx < s.length);
     }
     out (result)
     {
-	assert(isValidDchar(result));
+        assert(isValidDchar(result));
     }
     body
     {
-	size_t len = s.length;
-	dchar V;
-	size_t i = idx;
-	char u = s[i];
+        size_t len = s.length;
+        dchar V;
+        size_t i = idx;
+        char u = s[i];
 
-	if (u & 0x80)
-	{   uint n;
-	    char u2;
+        if (u & 0x80)
+        {   uint n;
+            char u2;
 
-	    /* The following encodings are valid, except for the 5 and 6 byte
-	     * combinations:
-	     *	0xxxxxxx
-	     *	110xxxxx 10xxxxxx
-	     *	1110xxxx 10xxxxxx 10xxxxxx
-	     *	11110xxx 10xxxxxx 10xxxxxx 10xxxxxx
-	     *	111110xx 10xxxxxx 10xxxxxx 10xxxxxx 10xxxxxx
-	     *	1111110x 10xxxxxx 10xxxxxx 10xxxxxx 10xxxxxx 10xxxxxx
-	     */
-	    for (n = 1; ; n++)
-	    {
-		if (n > 4)
-		    goto Lerr;		// only do the first 4 of 6 encodings
-		if (((u << n) & 0x80) == 0)
-		{
-		    if (n == 1)
-			goto Lerr;
-		    break;
-		}
-	    }
+            /* The following encodings are valid, except for the 5 and 6 byte
+             * combinations:
+             *  0xxxxxxx
+             *  110xxxxx 10xxxxxx
+             *  1110xxxx 10xxxxxx 10xxxxxx
+             *  11110xxx 10xxxxxx 10xxxxxx 10xxxxxx
+             *  111110xx 10xxxxxx 10xxxxxx 10xxxxxx 10xxxxxx
+             *  1111110x 10xxxxxx 10xxxxxx 10xxxxxx 10xxxxxx 10xxxxxx
+             */
+            for (n = 1; ; n++)
+            {
+                if (n > 4)
+                    goto Lerr;          // only do the first 4 of 6 encodings
+                if (((u << n) & 0x80) == 0)
+                {
+                    if (n == 1)
+                        goto Lerr;
+                    break;
+                }
+            }
 
-	    // Pick off (7 - n) significant bits of B from first byte of octet
-	    V = cast(dchar)(u & ((1 << (7 - n)) - 1));
+            // Pick off (7 - n) significant bits of B from first byte of octet
+            V = cast(dchar)(u & ((1 << (7 - n)) - 1));
 
-	    if (i + (n - 1) >= len)
-		goto Lerr;			// off end of string
+            if (i + (n - 1) >= len)
+                goto Lerr;                      // off end of string
 
-	    /* The following combinations are overlong, and illegal:
-	     *	1100000x (10xxxxxx)
-	     *	11100000 100xxxxx (10xxxxxx)
-	     *	11110000 1000xxxx (10xxxxxx 10xxxxxx)
-	     *	11111000 10000xxx (10xxxxxx 10xxxxxx 10xxxxxx)
-	     *	11111100 100000xx (10xxxxxx 10xxxxxx 10xxxxxx 10xxxxxx)
-	     */
-	    u2 = s[i + 1];
-	    if ((u & 0xFE) == 0xC0 ||
-		(u == 0xE0 && (u2 & 0xE0) == 0x80) ||
-		(u == 0xF0 && (u2 & 0xF0) == 0x80) ||
-		(u == 0xF8 && (u2 & 0xF8) == 0x80) ||
-		(u == 0xFC && (u2 & 0xFC) == 0x80))
-		goto Lerr;			// overlong combination
+            /* The following combinations are overlong, and illegal:
+             *  1100000x (10xxxxxx)
+             *  11100000 100xxxxx (10xxxxxx)
+             *  11110000 1000xxxx (10xxxxxx 10xxxxxx)
+             *  11111000 10000xxx (10xxxxxx 10xxxxxx 10xxxxxx)
+             *  11111100 100000xx (10xxxxxx 10xxxxxx 10xxxxxx 10xxxxxx)
+             */
+            u2 = s[i + 1];
+            if ((u & 0xFE) == 0xC0 ||
+                (u == 0xE0 && (u2 & 0xE0) == 0x80) ||
+                (u == 0xF0 && (u2 & 0xF0) == 0x80) ||
+                (u == 0xF8 && (u2 & 0xF8) == 0x80) ||
+                (u == 0xFC && (u2 & 0xFC) == 0x80))
+                goto Lerr;                      // overlong combination
 
-	    for (uint j = 1; j != n; j++)
-	    {
-		u = s[i + j];
-		if ((u & 0xC0) != 0x80)
-		    goto Lerr;			// trailing bytes are 10xxxxxx
-		V = (V << 6) | (u & 0x3F);
-	    }
-	    if (!isValidDchar(V))
-		goto Lerr;
-	    i += n;
-	}
-	else
-	{
-	    V = cast(dchar) u;
-	    i++;
-	}
+            for (uint j = 1; j != n; j++)
+            {
+                u = s[i + j];
+                if ((u & 0xC0) != 0x80)
+                    goto Lerr;                  // trailing bytes are 10xxxxxx
+                V = (V << 6) | (u & 0x3F);
+            }
+            if (!isValidDchar(V))
+                goto Lerr;
+            i += n;
+        }
+        else
+        {
+            V = cast(dchar) u;
+            i++;
+        }
 
-	idx = i;
-	return V;
+        idx = i;
+        return V;
 
       Lerr:
       onUnicodeError("invalid UTF-8 sequence", i);
@@ -319,27 +319,27 @@ unittest
     assert(i == 3);
 
     static s4 =
-    [	"\xE2\x89"c[],		// too short
-	"\xC0\x8A",
-	"\xE0\x80\x8A",
-	"\xF0\x80\x80\x8A",
-	"\xF8\x80\x80\x80\x8A",
-	"\xFC\x80\x80\x80\x80\x8A",
+    [   "\xE2\x89"c[],          // too short
+        "\xC0\x8A",
+        "\xE0\x80\x8A",
+        "\xF0\x80\x80\x8A",
+        "\xF8\x80\x80\x80\x8A",
+        "\xFC\x80\x80\x80\x80\x8A",
     ];
 
     for (int j = 0; j < s4.length; j++)
     {
-	try
-	{
-	    i = 0;
-	    c = decode(s4[j], i);
-	    assert(0);
-	}
-	catch (Throwable o)
-	{
-	    i = 23;
-	}
-	assert(i == 23);
+        try
+        {
+            i = 0;
+            c = decode(s4[j], i);
+            assert(0);
+        }
+        catch (Throwable o)
+        {
+            i = 23;
+        }
+        assert(i == 23);
     }
 }
 
@@ -348,57 +348,57 @@ unittest
 dchar decode(in wchar[] s, ref size_t idx)
     in
     {
-	assert(idx >= 0 && idx < s.length);
+        assert(idx >= 0 && idx < s.length);
     }
     out (result)
     {
-	assert(isValidDchar(result));
+        assert(isValidDchar(result));
     }
     body
     {
-	string msg;
-	dchar V;
-	size_t i = idx;
-	uint u = s[i];
+        string msg;
+        dchar V;
+        size_t i = idx;
+        uint u = s[i];
 
-	if (u & ~0x7F)
-	{   if (u >= 0xD800 && u <= 0xDBFF)
-	    {   uint u2;
+        if (u & ~0x7F)
+        {   if (u >= 0xD800 && u <= 0xDBFF)
+            {   uint u2;
 
-		if (i + 1 == s.length)
-		{   msg = "surrogate UTF-16 high value past end of string";
-		    goto Lerr;
-		}
-		u2 = s[i + 1];
-		if (u2 < 0xDC00 || u2 > 0xDFFF)
-		{   msg = "surrogate UTF-16 low value out of range";
-		    goto Lerr;
-		}
-		u = ((u - 0xD7C0) << 10) + (u2 - 0xDC00);
-		i += 2;
-	    }
-	    else if (u >= 0xDC00 && u <= 0xDFFF)
-	    {   msg = "unpaired surrogate UTF-16 value";
-		goto Lerr;
-	    }
-	    else if (u == 0xFFFE || u == 0xFFFF)
-	    {   msg = "illegal UTF-16 value";
-		goto Lerr;
-	    }
-	    else
-		i++;
-	}
-	else
-	{
-	    i++;
-	}
+                if (i + 1 == s.length)
+                {   msg = "surrogate UTF-16 high value past end of string";
+                    goto Lerr;
+                }
+                u2 = s[i + 1];
+                if (u2 < 0xDC00 || u2 > 0xDFFF)
+                {   msg = "surrogate UTF-16 low value out of range";
+                    goto Lerr;
+                }
+                u = ((u - 0xD7C0) << 10) + (u2 - 0xDC00);
+                i += 2;
+            }
+            else if (u >= 0xDC00 && u <= 0xDFFF)
+            {   msg = "unpaired surrogate UTF-16 value";
+                goto Lerr;
+            }
+            else if (u == 0xFFFE || u == 0xFFFF)
+            {   msg = "illegal UTF-16 value";
+                goto Lerr;
+            }
+            else
+                i++;
+        }
+        else
+        {
+            i++;
+        }
 
-	idx = i;
-	return cast(dchar)u;
+        idx = i;
+        return cast(dchar)u;
 
       Lerr:
-	  onUnicodeError(msg, i);
-	return cast(dchar)u; // dummy return
+          onUnicodeError(msg, i);
+        return cast(dchar)u; // dummy return
     }
 
 /** ditto */
@@ -406,21 +406,21 @@ dchar decode(in wchar[] s, ref size_t idx)
 dchar decode(in dchar[] s, ref size_t idx)
     in
     {
-	assert(idx >= 0 && idx < s.length);
+        assert(idx >= 0 && idx < s.length);
     }
     body
     {
-	size_t i = idx;
-	dchar c = s[i];
+        size_t i = idx;
+        dchar c = s[i];
 
-	if (!isValidDchar(c))
-	    goto Lerr;
-	idx = i + 1;
-	return c;
+        if (!isValidDchar(c))
+            goto Lerr;
+        idx = i + 1;
+        return c;
 
       Lerr:
-	  onUnicodeError("invalid UTF-32 value", i);
-	return c; // dummy return
+          onUnicodeError("invalid UTF-32 value", i);
+        return c; // dummy return
     }
 
 
@@ -432,49 +432,49 @@ dchar decode(in dchar[] s, ref size_t idx)
 void encode(ref char[] s, dchar c)
     in
     {
-	assert(isValidDchar(c));
+        assert(isValidDchar(c));
     }
     body
     {
-	char[] r = s;
+        char[] r = s;
 
-	if (c <= 0x7F)
-	{
-	    r ~= cast(char) c;
-	}
-	else
-	{
-	    char[4] buf;
-	    uint L;
+        if (c <= 0x7F)
+        {
+            r ~= cast(char) c;
+        }
+        else
+        {
+            char[4] buf;
+            uint L;
 
-	    if (c <= 0x7FF)
-	    {
-		buf[0] = cast(char)(0xC0 | (c >> 6));
-		buf[1] = cast(char)(0x80 | (c & 0x3F));
-		L = 2;
-	    }
-	    else if (c <= 0xFFFF)
-	    {
-		buf[0] = cast(char)(0xE0 | (c >> 12));
-		buf[1] = cast(char)(0x80 | ((c >> 6) & 0x3F));
-		buf[2] = cast(char)(0x80 | (c & 0x3F));
-		L = 3;
-	    }
-	    else if (c <= 0x10FFFF)
-	    {
-		buf[0] = cast(char)(0xF0 | (c >> 18));
-		buf[1] = cast(char)(0x80 | ((c >> 12) & 0x3F));
-		buf[2] = cast(char)(0x80 | ((c >> 6) & 0x3F));
-		buf[3] = cast(char)(0x80 | (c & 0x3F));
-		L = 4;
-	    }
-	    else
-	    {
-		assert(0);
-	    }
-	    r ~= buf[0 .. L];
-	}
-	s = r;
+            if (c <= 0x7FF)
+            {
+                buf[0] = cast(char)(0xC0 | (c >> 6));
+                buf[1] = cast(char)(0x80 | (c & 0x3F));
+                L = 2;
+            }
+            else if (c <= 0xFFFF)
+            {
+                buf[0] = cast(char)(0xE0 | (c >> 12));
+                buf[1] = cast(char)(0x80 | ((c >> 6) & 0x3F));
+                buf[2] = cast(char)(0x80 | (c & 0x3F));
+                L = 3;
+            }
+            else if (c <= 0x10FFFF)
+            {
+                buf[0] = cast(char)(0xF0 | (c >> 18));
+                buf[1] = cast(char)(0x80 | ((c >> 12) & 0x3F));
+                buf[2] = cast(char)(0x80 | ((c >> 6) & 0x3F));
+                buf[3] = cast(char)(0x80 | (c & 0x3F));
+                L = 4;
+            }
+            else
+            {
+                assert(0);
+            }
+            r ~= buf[0 .. L];
+        }
+        s = r;
     }
 
 unittest
@@ -489,7 +489,7 @@ unittest
     encode(s, cast(dchar)'\u00A9');
     assert(s.length == 7);
     assert(s == "abcda\xC2\xA9");
-    //assert(s == "abcda\u00A9");	// BUG: fix compiler
+    //assert(s == "abcda\u00A9");       // BUG: fix compiler
 
     encode(s, cast(dchar)'\u2260');
     assert(s.length == 10);
@@ -501,36 +501,36 @@ unittest
 void encode(ref wchar[] s, dchar c)
     in
     {
-	assert(isValidDchar(c));
+        assert(isValidDchar(c));
     }
     body
     {
-	wchar[] r = s;
+        wchar[] r = s;
 
-	if (c <= 0xFFFF)
-	{
-	    r ~= cast(wchar) c;
-	}
-	else
-	{
-	    wchar[2] buf;
+        if (c <= 0xFFFF)
+        {
+            r ~= cast(wchar) c;
+        }
+        else
+        {
+            wchar[2] buf;
 
-	    buf[0] = cast(wchar) ((((c - 0x10000) >> 10) & 0x3FF) + 0xD800);
-	    buf[1] = cast(wchar) (((c - 0x10000) & 0x3FF) + 0xDC00);
-	    r ~= buf;
-	}
-	s = r;
+            buf[0] = cast(wchar) ((((c - 0x10000) >> 10) & 0x3FF) + 0xD800);
+            buf[1] = cast(wchar) (((c - 0x10000) & 0x3FF) + 0xDC00);
+            r ~= buf;
+        }
+        s = r;
     }
 
 /** ditto */
 void encode(ref dchar[] s, dchar c)
     in
     {
-	assert(isValidDchar(c));
+        assert(isValidDchar(c));
     }
     body
     {
-	s ~= c;
+        s ~= c;
     }
 
 /**
@@ -553,7 +553,7 @@ ubyte codeLength(C)(dchar c)
 
     else static if (C.sizeof == 2)
 {
-	return c <= 0xFFFF ? 1 : 2;
+        return c <= 0xFFFF ? 1 : 2;
     }
     else
     {
@@ -574,7 +574,7 @@ void validate(S)(in S s)
     auto len = s.length;
     for (size_t i = 0; i < len; )
     {
-	decode(s, i);
+        decode(s, i);
     }
 }
 
@@ -583,37 +583,37 @@ void validate(S)(in S s)
 char[] toUTF8(out char[4] buf, dchar c)
     in
     {
-	assert(isValidDchar(c));
+        assert(isValidDchar(c));
     }
     body
     {
-	if (c <= 0x7F)
-	{
-	    buf[0] = cast(char) c;
-	    return buf[0 .. 1];
-	}
-	else if (c <= 0x7FF)
-	{
-	    buf[0] = cast(char)(0xC0 | (c >> 6));
-	    buf[1] = cast(char)(0x80 | (c & 0x3F));
-	    return buf[0 .. 2];
-	}
-	else if (c <= 0xFFFF)
-	{
-	    buf[0] = cast(char)(0xE0 | (c >> 12));
-	    buf[1] = cast(char)(0x80 | ((c >> 6) & 0x3F));
-	    buf[2] = cast(char)(0x80 | (c & 0x3F));
-	    return buf[0 .. 3];
-	}
-	else if (c <= 0x10FFFF)
-	{
-	    buf[0] = cast(char)(0xF0 | (c >> 18));
-	    buf[1] = cast(char)(0x80 | ((c >> 12) & 0x3F));
-	    buf[2] = cast(char)(0x80 | ((c >> 6) & 0x3F));
-	    buf[3] = cast(char)(0x80 | (c & 0x3F));
-	    return buf[0 .. 4];
-	}
-	assert(0);
+        if (c <= 0x7F)
+        {
+            buf[0] = cast(char) c;
+            return buf[0 .. 1];
+        }
+        else if (c <= 0x7FF)
+        {
+            buf[0] = cast(char)(0xC0 | (c >> 6));
+            buf[1] = cast(char)(0x80 | (c & 0x3F));
+            return buf[0 .. 2];
+        }
+        else if (c <= 0xFFFF)
+        {
+            buf[0] = cast(char)(0xE0 | (c >> 12));
+            buf[1] = cast(char)(0x80 | ((c >> 6) & 0x3F));
+            buf[2] = cast(char)(0x80 | (c & 0x3F));
+            return buf[0 .. 3];
+        }
+        else if (c <= 0x10FFFF)
+        {
+            buf[0] = cast(char)(0xF0 | (c >> 18));
+            buf[1] = cast(char)(0x80 | ((c >> 12) & 0x3F));
+            buf[2] = cast(char)(0x80 | ((c >> 6) & 0x3F));
+            buf[3] = cast(char)(0x80 | (c & 0x3F));
+            return buf[0 .. 4];
+        }
+        assert(0);
     }
 
 /*******************
@@ -622,11 +622,11 @@ char[] toUTF8(out char[4] buf, dchar c)
 string toUTF8(string s)
     in
     {
-	validate(s);
+        validate(s);
     }
     body
     {
-	return s;
+        return s;
     }
 
 /** ditto */
@@ -639,19 +639,19 @@ string toUTF8(in wchar[] s)
     r.length = slen;
 
     for (i = 0; i < slen; i++)
-    {	wchar c = s[i];
+    {   wchar c = s[i];
 
-	if (c <= 0x7F)
-	    r[i] = cast(char)c;		// fast path for ascii
-	else
-	{
-	    r.length = i;
-	    foreach (dchar c; s[i .. slen])
-	    {
-		encode(r, c);
-	    }
-	    break;
-	}
+        if (c <= 0x7F)
+            r[i] = cast(char)c;         // fast path for ascii
+        else
+        {
+            r.length = i;
+            foreach (dchar c; s[i .. slen])
+            {
+                encode(r, c);
+            }
+            break;
+        }
     }
     return cast(string)r;
 }
@@ -666,19 +666,19 @@ string toUTF8(in dchar[] s)
     r.length = slen;
 
     for (i = 0; i < slen; i++)
-    {	dchar c = s[i];
+    {   dchar c = s[i];
 
-	if (c <= 0x7F)
-	    r[i] = cast(char)c;		// fast path for ascii
-	else
-	{
-	    r.length = i;
-	    foreach (dchar d; s[i .. slen])
-	    {
-		encode(r, d);
-	    }
-	    break;
-	}
+        if (c <= 0x7F)
+            r[i] = cast(char)c;         // fast path for ascii
+        else
+        {
+            r.length = i;
+            foreach (dchar d; s[i .. slen])
+            {
+                encode(r, d);
+            }
+            break;
+        }
     }
     return cast(string)r;
 }
@@ -688,21 +688,21 @@ string toUTF8(in dchar[] s)
 wchar[] toUTF16(wchar[2] buf, dchar c)
     in
     {
-	assert(isValidDchar(c));
+        assert(isValidDchar(c));
     }
     body
     {
-	if (c <= 0xFFFF)
-	{
-	    buf[0] = cast(wchar) c;
-	    return buf[0 .. 1];
-	}
-	else
-	{
-	    buf[0] = cast(wchar) ((((c - 0x10000) >> 10) & 0x3FF) + 0xD800);
-	    buf[1] = cast(wchar) (((c - 0x10000) & 0x3FF) + 0xDC00);
-	    return buf[0 .. 2];
-	}
+        if (c <= 0xFFFF)
+        {
+            buf[0] = cast(wchar) c;
+            return buf[0 .. 1];
+        }
+        else
+        {
+            buf[0] = cast(wchar) ((((c - 0x10000) >> 10) & 0x3FF) + 0xD800);
+            buf[1] = cast(wchar) (((c - 0x10000) & 0x3FF) + 0xDC00);
+            return buf[0 .. 2];
+        }
     }
 
 /****************
@@ -719,17 +719,17 @@ wstring toUTF16(in char[] s)
     r.length = 0;
     for (size_t i = 0; i < slen; )
     {
-	dchar c = s[i];
-	if (c <= 0x7F)
-	{
-	    i++;
-	    r ~= cast(wchar)c;
-	}
-	else
-	{
-	    c = decode(s, i);
-	    encode(r, c);
-	}
+        dchar c = s[i];
+        if (c <= 0x7F)
+        {
+            i++;
+            r ~= cast(wchar)c;
+        }
+        else
+        {
+            c = decode(s, i);
+            encode(r, c);
+        }
     }
     return cast(wstring)r;
 }
@@ -745,17 +745,17 @@ wptr toUTF16z(in char[] s)
     r.length = 0;
     for (size_t i = 0; i < slen; )
     {
-	dchar c = s[i];
-	if (c <= 0x7F)
-	{
-	    i++;
-	    r ~= cast(wchar)c;
-	}
-	else
-	{
-	    c = decode(s, i);
-	    encode(r, c);
-	}
+        dchar c = s[i];
+        if (c <= 0x7F)
+        {
+            i++;
+            r ~= cast(wchar)c;
+        }
+        else
+        {
+            c = decode(s, i);
+            encode(r, c);
+        }
     }
     r ~= "\000";
     return r.ptr;
@@ -765,11 +765,11 @@ wptr toUTF16z(in char[] s)
 wstring toUTF16(wstring s)
     in
     {
-	validate(s);
+        validate(s);
     }
     body
     {
-	return s;
+        return s;
     }
 
 /** ditto */
@@ -782,7 +782,7 @@ wstring toUTF16(in dchar[] s)
     r.length = 0;
     for (size_t i = 0; i < slen; i++)
     {
-	encode(r, s[i]);
+        encode(r, s[i]);
     }
     return cast(wstring)r;
 }
@@ -798,15 +798,15 @@ dstring toUTF32(in char[] s)
     size_t slen = s.length;
     size_t j = 0;
 
-    r.length = slen;		// r[] will never be longer than s[]
+    r.length = slen;            // r[] will never be longer than s[]
     for (size_t i = 0; i < slen; )
     {
-	dchar c = s[i];
-	if (c >= 0x80)
-	    c = decode(s, i);
-	else
-	    i++;		// c is ascii, no need for decode
-	r[j++] = c;
+        dchar c = s[i];
+        if (c >= 0x80)
+            c = decode(s, i);
+        else
+            i++;                // c is ascii, no need for decode
+        r[j++] = c;
     }
     return cast(dstring)r[0 .. j];
 }
@@ -818,15 +818,15 @@ dstring toUTF32(in wchar[] s)
     size_t slen = s.length;
     size_t j = 0;
 
-    r.length = slen;		// r[] will never be longer than s[]
+    r.length = slen;            // r[] will never be longer than s[]
     for (size_t i = 0; i < slen; )
     {
-	dchar c = s[i];
-	if (c >= 0x80)
-	    c = decode(s, i);
-	else
-	    i++;		// c is ascii, no need for decode
-	r[j++] = c;
+        dchar c = s[i];
+        if (c >= 0x80)
+            c = decode(s, i);
+        else
+            i++;                // c is ascii, no need for decode
+        r[j++] = c;
     }
     return cast(dstring)r[0 .. j];
 }
@@ -835,11 +835,11 @@ dstring toUTF32(in wchar[] s)
 dstring toUTF32(dstring s)
     in
     {
-	validate(s);
+        validate(s);
     }
     body
     {
-	return s;
+        return s;
     }
 
 /* ================================ tests ================================== */

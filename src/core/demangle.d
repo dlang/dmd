@@ -40,17 +40,17 @@ private struct Demangle
     //       with a larger buffer.  Since this generally means only one
     //       allocation during the course of a parsing run, this is still
     //       faster than assembling the result piecemeal.
-    
-    
+
+
     enum AddType { yes, no }
-    
-    
+
+
     this( const(char)[] buf_, char[] dst_ = null )
     {
         this( buf_, AddType.no, dst_ );
     }
-    
-    
+
+
     this( const(char)[] buf_, AddType addType_, char[] dst_ = null )
     {
         buf     = buf_;
@@ -67,8 +67,8 @@ private struct Demangle
     size_t          pos     = 0;
     size_t          len     = 0;
     AddType         addType = AddType.no;
-    
-    
+
+
     static class ParseException : Exception
     {
         this( string msg )
@@ -76,8 +76,8 @@ private struct Demangle
             super( msg );
         }
     }
-    
-    
+
+
     static class OverflowException : Exception
     {
         this( string msg )
@@ -85,51 +85,51 @@ private struct Demangle
             super( msg );
         }
     }
-    
-    
+
+
     static void error( string msg = "Invalid symbol" )
     {
         //throw new ParseException( msg );
         debug(info) printf( "error: %.*s\n", cast(int) msg.length, msg.ptr );
         throw cast(ParseException) cast(void*) ParseException.classinfo.init;
-        
+
     }
-    
-    
+
+
     static void overflow( string msg = "Buffer overflow" )
     {
         //throw new OverflowException( msg );
         debug(info) printf( "overflow: %.*s\n", cast(int) msg.length, msg.ptr );
         throw cast(OverflowException) cast(void*) OverflowException.classinfo.init;
     }
-    
-    
+
+
     //////////////////////////////////////////////////////////////////////////
     // Type Testing and Conversion
     //////////////////////////////////////////////////////////////////////////
-    
-    
+
+
     static bool isAlpha( char val )
     {
         return ('a' <= val && 'z' >= val) ||
                ('A' <= val && 'Z' >= val);
     }
-    
-    
+
+
     static bool isDigit( char val )
     {
         return '0' <= val && '9' >= val;
     }
-    
-    
+
+
     static bool isHexDigit( char val )
     {
         return ('0' <= val && '9' >= val) ||
                ('a' <= val && 'f' >= val) ||
                ('A' <= val && 'F' >= val);
     }
-    
-    
+
+
     static ubyte ascii2hex( char val )
     {
         switch( val )
@@ -145,21 +145,21 @@ private struct Demangle
             return 0;
         }
     }
-    
-    
+
+
     //////////////////////////////////////////////////////////////////////////
     // Data Output
     //////////////////////////////////////////////////////////////////////////
-    
-    
+
+
     static bool contains( const(char)[] a, const(char)[] b )
     {
         return a.length &&
                b.ptr >= a.ptr &&
                b.ptr + b.length <= a.ptr + a.length;
     }
-    
-    
+
+
     char[] shift( const(char)[] val )
     {
         void exch( size_t a, size_t b )
@@ -173,7 +173,7 @@ private struct Demangle
         {
             assert( contains( dst[0 .. len], val ) );
             debug(info) printf( "shifting (%.*s)\n", cast(int) val.length, val.ptr );
-            
+
             for( size_t n = 0; n < val.length; n++ )
             {
                 for( auto v = val.ptr - dst.ptr; v + 1 < len; v++ )
@@ -185,8 +185,8 @@ private struct Demangle
         }
         return null;
     }
-    
-    
+
+
     char[] append( const(char)[] val )
     {
         if( val.length )
@@ -195,7 +195,7 @@ private struct Demangle
                 dst.length = minBufSize;
             assert( !contains( dst[0 .. len], val ) );
             debug(info) printf( "appending (%.*s)\n", cast(int) val.length, val.ptr );
-        
+
             if( dst.length - len >= val.length )
             {
                 dst[len .. len + val.length] = val[];
@@ -219,8 +219,8 @@ private struct Demangle
         }
         return null;
     }
-    
-    
+
+
     void pad( const(char)[] val )
     {
         if( val.length )
@@ -237,8 +237,8 @@ private struct Demangle
         debug(trace) scope(success) printf( "silent-\n" );
         auto n = len; dg(); len = n;
     }
-    
-    
+
+
     //////////////////////////////////////////////////////////////////////////
     // Parsing Utility
     //////////////////////////////////////////////////////////////////////////
@@ -250,29 +250,29 @@ private struct Demangle
             return buf[pos];
         return char.init;
     }
-    
-    
+
+
     void test( char val )
     {
         if( val != tok() )
             error();
     }
-    
-    
+
+
     void next()
     {
         if( pos++ >= buf.length )
             error();
     }
-    
-    
+
+
     void match( char val )
     {
         test( val );
         next();
     }
-    
-    
+
+
     void match( const(char)[] val )
     {
         foreach( e; val )
@@ -281,15 +281,15 @@ private struct Demangle
             next();
         }
     }
-    
-    
+
+
     void eat( char val )
     {
         if( val == tok() )
             next();
     }
-    
-    
+
+
     //////////////////////////////////////////////////////////////////////////
     // Parsing Implementation
     //////////////////////////////////////////////////////////////////////////
@@ -317,7 +317,7 @@ private struct Demangle
             default:
                 return buf[beg .. pos];
             }
-        }    
+        }
     }
 
 
@@ -328,7 +328,7 @@ private struct Demangle
 
         auto   num = sliceNumber();
         size_t val = 0;
-        
+
         foreach( i, e; num )
         {
             size_t n = e - '0';
@@ -348,7 +348,7 @@ private struct Demangle
         char[64] tbuf = void;
         size_t   tlen = 0;
         real     val  = void;
-        
+
         if( 'N' == tok() )
         {
             tbuf[tlen++] = '-';
@@ -361,7 +361,7 @@ private struct Demangle
         tbuf[tlen++] = tok();
         tbuf[tlen++] = '.';
         next();
-        
+
         while( isHexDigit( tok() ) )
         {
             tbuf[tlen++] = tok();
@@ -382,7 +382,7 @@ private struct Demangle
             tbuf[tlen++] = tok();
             next();
         }
-        
+
         tbuf[tlen] = 0;
         debug(info) printf( "got (%s)\n", tbuf.ptr );
         val = strtold( tbuf.ptr, null );
@@ -390,12 +390,12 @@ private struct Demangle
         debug(info) printf( "converted (%.*s)\n", cast(int) tlen, tbuf.ptr );
         put( tbuf[0 .. tlen] );
     }
-    
-    
+
+
     /*
     LName:
         Number Name
-        
+
     Name:
         Namestart
         Namestart Namechars
@@ -432,8 +432,8 @@ private struct Demangle
         put( buf[pos .. pos + n] );
         pos += n;
     }
-    
-    
+
+
     /*
     Type:
         Shared
@@ -601,11 +601,11 @@ private struct Demangle
     {
         debug(trace) printf( "parseType+\n" );
         debug(trace) scope(success) printf( "parseType-\n" );
-        
+
         enum IsDelegate { yes, no }
-        
+
         auto beg = len;
-        
+
         /*
         TypeFunction:
             CallConvention FuncAttrs Arguments ArgClose Type
@@ -671,7 +671,7 @@ private struct Demangle
         {
             debug(trace) printf( "parseTypeFunction+\n" );
             debug(trace) scope(success) printf( "parseTypeFunction-\n" );
-        
+
             // CallConvention
             switch( tok() )
             {
@@ -732,7 +732,7 @@ private struct Demangle
                     error();
                 }
             }
-            
+
             beg = len;
             put( "(" );
             scope(success)
@@ -799,7 +799,7 @@ private struct Demangle
                     put( "ref " );
                     parseType();
                     continue;
-                case 'L': // lazy (L Type) 
+                case 'L': // lazy (L Type)
                     next();
                     put( "lazy " );
                     parseType();
@@ -1017,8 +1017,8 @@ private struct Demangle
             error(); return null;
         }
     }
-    
-    
+
+
     /*
     Value:
         n
@@ -1098,7 +1098,7 @@ private struct Demangle
             {
                 auto a = ascii2hex( tok() ); next();
                 auto b = ascii2hex( tok() ); next();
-                auto v = cast(char)((a << 4) | b); 
+                auto v = cast(char)((a << 4) | b);
                 put( (cast(char*) &v)[0 .. 1] );
             }
             put( "\"" );
@@ -1113,8 +1113,8 @@ private struct Demangle
             error();
         }
     }
-    
-    
+
+
     /*
     TemplateArgs:
         TemplateArg
@@ -1155,8 +1155,8 @@ private struct Demangle
             }
         }
     }
-    
-    
+
+
     /*
     TemplateInstanceName:
         Number __T LName TemplateArgs Z
@@ -1179,8 +1179,8 @@ private struct Demangle
             error( "Template name length mismatch" );
         put( ")" );
     }
-    
-    
+
+
     bool mayBeTemplateInstanceName()
     {
         debug(trace) printf( "mayBeTemplateInstanceName+\n" );
@@ -1194,8 +1194,8 @@ private struct Demangle
                pos < buf.length && '_' == buf[pos++] &&
                pos < buf.length && 'T' == buf[pos++];
     }
-    
-    
+
+
     /*
     SymbolName:
         LName
@@ -1233,8 +1233,8 @@ private struct Demangle
             error();
         }
     }
-    
-    
+
+
     /*
     QualifiedName:
         SymbolName

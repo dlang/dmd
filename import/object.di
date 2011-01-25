@@ -361,7 +361,7 @@ struct AssociativeArray(Key, Value)
         auto p = _aaRehash(&p, typeid(Value[Key]));
         return *cast(Value[Key]*)(&p);
     }
-    
+
     Value[] values() @property
     {
         auto a = _aaValues(p, Key.sizeof, Value.sizeof);
@@ -396,9 +396,9 @@ struct AssociativeArray(Key, Value)
             return _aaApply2(p, Key.sizeof, cast(_dg2_t)&byKeydg);
         }
 
-	return &foo;
+        return &foo;
     }
-    
+
     int delegate(int delegate(ref Value) dg) byValue()
     {
         return &opApply;
@@ -515,7 +515,7 @@ bool _ArrayEq(T1, T2)(T1[] a1, T2[] a2)
     if (a1.length != a2.length)
         return false;
     foreach(i, a; a1)
-    {	if (a != a2[i])
+    {   if (a != a2[i])
             return false;
     }
     return true;

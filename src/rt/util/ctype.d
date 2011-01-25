@@ -50,36 +50,36 @@ private:
 
 enum
 {
-    _SPC =	8,
-    _CTL =	0x20,
-    _BLK =	0x40,
-    _HEX =	0x80,
-    _UC  =	1,
-    _LC  =	2,
-    _PNC =	0x10,
-    _DIG =	4,
-    _ALP =	_UC|_LC,
+    _SPC =      8,
+    _CTL =      0x20,
+    _BLK =      0x40,
+    _HEX =      0x80,
+    _UC  =      1,
+    _LC  =      2,
+    _PNC =      0x10,
+    _DIG =      4,
+    _ALP =      _UC|_LC,
 }
 
 immutable ubyte _ctype[128] =
 [
-	_CTL,_CTL,_CTL,_CTL,_CTL,_CTL,_CTL,_CTL,
-	_CTL,_CTL|_SPC,_CTL|_SPC,_CTL|_SPC,_CTL|_SPC,_CTL|_SPC,_CTL,_CTL,
-	_CTL,_CTL,_CTL,_CTL,_CTL,_CTL,_CTL,_CTL,
-	_CTL,_CTL,_CTL,_CTL,_CTL,_CTL,_CTL,_CTL,
-	_SPC|_BLK,_PNC,_PNC,_PNC,_PNC,_PNC,_PNC,_PNC,
-	_PNC,_PNC,_PNC,_PNC,_PNC,_PNC,_PNC,_PNC,
-	_DIG|_HEX,_DIG|_HEX,_DIG|_HEX,_DIG|_HEX,_DIG|_HEX,
-	_DIG|_HEX,_DIG|_HEX,_DIG|_HEX,_DIG|_HEX,_DIG|_HEX,
-	_PNC,_PNC,_PNC,_PNC,_PNC,_PNC,
-	_PNC,_UC|_HEX,_UC|_HEX,_UC|_HEX,_UC|_HEX,_UC|_HEX,_UC|_HEX,_UC,
-	_UC,_UC,_UC,_UC,_UC,_UC,_UC,_UC,
-	_UC,_UC,_UC,_UC,_UC,_UC,_UC,_UC,
-	_UC,_UC,_UC,_PNC,_PNC,_PNC,_PNC,_PNC,
-	_PNC,_LC|_HEX,_LC|_HEX,_LC|_HEX,_LC|_HEX,_LC|_HEX,_LC|_HEX,_LC,
-	_LC,_LC,_LC,_LC,_LC,_LC,_LC,_LC,
-	_LC,_LC,_LC,_LC,_LC,_LC,_LC,_LC,
-	_LC,_LC,_LC,_PNC,_PNC,_PNC,_PNC,_CTL
+        _CTL,_CTL,_CTL,_CTL,_CTL,_CTL,_CTL,_CTL,
+        _CTL,_CTL|_SPC,_CTL|_SPC,_CTL|_SPC,_CTL|_SPC,_CTL|_SPC,_CTL,_CTL,
+        _CTL,_CTL,_CTL,_CTL,_CTL,_CTL,_CTL,_CTL,
+        _CTL,_CTL,_CTL,_CTL,_CTL,_CTL,_CTL,_CTL,
+        _SPC|_BLK,_PNC,_PNC,_PNC,_PNC,_PNC,_PNC,_PNC,
+        _PNC,_PNC,_PNC,_PNC,_PNC,_PNC,_PNC,_PNC,
+        _DIG|_HEX,_DIG|_HEX,_DIG|_HEX,_DIG|_HEX,_DIG|_HEX,
+        _DIG|_HEX,_DIG|_HEX,_DIG|_HEX,_DIG|_HEX,_DIG|_HEX,
+        _PNC,_PNC,_PNC,_PNC,_PNC,_PNC,
+        _PNC,_UC|_HEX,_UC|_HEX,_UC|_HEX,_UC|_HEX,_UC|_HEX,_UC|_HEX,_UC,
+        _UC,_UC,_UC,_UC,_UC,_UC,_UC,_UC,
+        _UC,_UC,_UC,_UC,_UC,_UC,_UC,_UC,
+        _UC,_UC,_UC,_PNC,_PNC,_PNC,_PNC,_PNC,
+        _PNC,_LC|_HEX,_LC|_HEX,_LC|_HEX,_LC|_HEX,_LC|_HEX,_LC|_HEX,_LC,
+        _LC,_LC,_LC,_LC,_LC,_LC,_LC,_LC,
+        _LC,_LC,_LC,_LC,_LC,_LC,_LC,_LC,
+        _LC,_LC,_LC,_PNC,_PNC,_PNC,_PNC,_CTL
 ];
 
 

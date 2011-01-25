@@ -6,7 +6,7 @@
  * Authors:   Sean Kelly
  * Standards: The Open Group Base Specifications Issue 6, IEEE Std 1003.1, 2004 Edition
  */
- 
+
 /*          Copyright Sean Kelly 2005 - 2009.
  * Distributed under the Boost Software License, Version 1.0.
  *    (See accompanying file LICENSE_1_0.txt or copy at
@@ -152,7 +152,7 @@ version( linux )
         P_PGID
     }
 
-    int waitid(idtype_t, id_t, siginfo_t*, int);    
+    int waitid(idtype_t, id_t, siginfo_t*, int);
 }
 else version( OSX )
 {
@@ -168,7 +168,7 @@ else version( OSX )
         P_PGID
     }
 
-    int waitid(idtype_t, id_t, siginfo_t*, int);    
+    int waitid(idtype_t, id_t, siginfo_t*, int);
 }
 else version (FreeBSD)
 {

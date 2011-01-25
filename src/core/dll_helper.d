@@ -5,7 +5,7 @@
  * License:   <a href="http://www.boost.org/LICENSE_1_0.txt">Boost License 1.0</a>.
  * Authors:   Rainer Schuetze
  */
- 
+
 /*          Copyright Digital Mars 2010 - 2010.
  * Distributed under the Boost Software License, Version 1.0.
  *    (See accompanying file LICENSE_1_0.txt or copy at
@@ -164,7 +164,7 @@ private:
                 fnRtlAllocateHeap* fnAlloc = cast(fnRtlAllocateHeap*) GetProcAddress( hnd, "RtlAllocateHeap" );
                 if( !fnAlloc || !pNtdllBaseTag )
                     return false;
-        
+
                 void** peb = cast(void**) teb[12];
                 void* heap = peb[6];
 
@@ -174,7 +174,7 @@ private:
                     return false;
 
                 // no relocations! not even self-relocations. Windows does not do them.
-                core.stdc.string.memcpy( tlsdata, tlsstart, sz ); 
+                core.stdc.string.memcpy( tlsdata, tlsstart, sz );
 
                 // create copy of tls pointer array
                 void** array = cast(void**) (*fnAlloc)( heap, *pNtdllBaseTag | 0xc0000, (tlsindex + 1) * (void*).sizeof );
@@ -185,7 +185,7 @@ private:
                     core.stdc.string.memcpy( array, teb[11], tlsindex * (void*).sizeof);
                 array[tlsindex] = tlsdata;
                 teb[11] = cast(void*) array;
-            
+
                 // let the old array leak, in case a oncurrent thread is still relying on it
             }
             catch( Exception e )
@@ -212,7 +212,7 @@ private:
         }
 
         // the following structures can be found here: http://undocumented.ntinternals.net/
-        struct LDR_MODULE 
+        struct LDR_MODULE
         {
             LIST_ENTRY      InLoadOrderModuleList;
             LIST_ENTRY      InMemoryOrderModuleList;
@@ -229,7 +229,7 @@ private:
             ULONG           TimeDateStamp;
         }
 
-        struct PEB_LDR_DATA 
+        struct PEB_LDR_DATA
         {
             ULONG           Length;
             BOOLEAN         Initialized;
@@ -271,7 +271,7 @@ private:
             }
         }
     }
-    
+
 public:
     /* *****************************************************
      * Fix implicit thread local storage for the case when a DLL is loaded
@@ -300,22 +300,22 @@ public:
             return true;
 
         void** peb;
-        asm 
+        asm
         {
-            mov EAX,FS:[0x30]; 
-            mov peb, EAX; 
+            mov EAX,FS:[0x30];
+            mov peb, EAX;
         }
         dll_helper_aux.LDR_MODULE *ldrMod = dll_helper_aux.findLdrModule( hInstance, peb );
         if( !ldrMod )
             return false; // not in module list, bail out
         if( ldrMod.TlsIndex != 0 )
             return true;  // the OS has already setup TLS
-            
+
         dll_helper_aux.LdrpTlsListEntry* entry = dll_helper_aux.addTlsListEntry( peb, tlsstart, tlsend, tls_callbacks_a, tlsindex );
         if( !entry )
             return false;
 
-        if( !enumProcessThreads( 
+        if( !enumProcessThreads(
             function (uint id, void* context) {
                 dll_helper_aux.LdrpTlsListEntry* entry = cast(dll_helper_aux.LdrpTlsListEntry*) context;
                 return dll_helper_aux.addTlsData( getTEB( id ), entry.tlsstart, entry.tlsend, entry.tlsindex );
@@ -340,16 +340,16 @@ public:
 
         if( !attach_threads )
             return true;
-            
+
         // attach to all other threads
         return enumProcessThreads(
-            function (uint id, void* context) { 
+            function (uint id, void* context) {
                 if( !thread_findByAddr( id ) )
                 {
                     thread_attachByAddr( id );
                     thread_moduleTlsCtor( id );
                 }
-                return true; 
+                return true;
             }, null );
     }
 
@@ -359,20 +359,20 @@ public:
         return dll_process_attach( hInstance, attach_threads,
                                    &_tlsstart, &_tlsend, &_tls_callbacks_a, &_tls_index );
     }
-    
+
     // to be called from DllMain with reason DLL_PROCESS_DETACH
     void dll_process_detach( HINSTANCE hInstance, bool detach_threads = true )
     {
         // detach from all other threads
         if( detach_threads )
-            enumProcessThreads( 
-                function (uint id, void* context) { 
-                    if( id != GetCurrentThreadId() && thread_findByAddr( id ) ) 
+            enumProcessThreads(
+                function (uint id, void* context) {
+                    if( id != GetCurrentThreadId() && thread_findByAddr( id ) )
                     {
                         thread_moduleTlsDtor( id );
-                        thread_detachByAddr( id ); 
+                        thread_detachByAddr( id );
                     }
-                    return true; 
+                    return true;
                 }, null );
 
         Runtime.terminate();
@@ -382,7 +382,7 @@ public:
     void dll_thread_attach( bool attach_thread = true, bool initTls = true )
     {
         if( attach_thread && !thread_findByAddr( GetCurrentThreadId() ) )
-            thread_attachThis(); 
+            thread_attachThis();
         if( initTls && !_moduleinfo_tlsdtors_i ) // avoid duplicate calls
             _moduleTlsCtor();
     }
@@ -393,6 +393,6 @@ public:
         if( exitTls )
             _moduleTlsDtor();
         if( detach_thread )
-            thread_detachThis(); 
+            thread_detachThis();
     }
 }

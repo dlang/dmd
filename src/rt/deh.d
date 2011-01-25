@@ -37,66 +37,66 @@ void RaiseException(DWORD, DWORD, DWORD, void *);
 
 // used in EXCEPTION_RECORD
 enum : DWORD {
-	STATUS_WAIT_0                      = 0,
-	STATUS_ABANDONED_WAIT_0            = 0x00000080,
-	STATUS_USER_APC                    = 0x000000C0,
-	STATUS_TIMEOUT                     = 0x00000102,
-	STATUS_PENDING                     = 0x00000103,
+        STATUS_WAIT_0                      = 0,
+        STATUS_ABANDONED_WAIT_0            = 0x00000080,
+        STATUS_USER_APC                    = 0x000000C0,
+        STATUS_TIMEOUT                     = 0x00000102,
+        STATUS_PENDING                     = 0x00000103,
 
-	STATUS_SEGMENT_NOTIFICATION        = 0x40000005,
-	STATUS_GUARD_PAGE_VIOLATION        = 0x80000001,
-	STATUS_DATATYPE_MISALIGNMENT       = 0x80000002,
-	STATUS_BREAKPOINT                  = 0x80000003,
-	STATUS_SINGLE_STEP                 = 0x80000004,
+        STATUS_SEGMENT_NOTIFICATION        = 0x40000005,
+        STATUS_GUARD_PAGE_VIOLATION        = 0x80000001,
+        STATUS_DATATYPE_MISALIGNMENT       = 0x80000002,
+        STATUS_BREAKPOINT                  = 0x80000003,
+        STATUS_SINGLE_STEP                 = 0x80000004,
 
-	STATUS_ACCESS_VIOLATION            = 0xC0000005,
-	STATUS_IN_PAGE_ERROR               = 0xC0000006,
-	STATUS_INVALID_HANDLE              = 0xC0000008,
+        STATUS_ACCESS_VIOLATION            = 0xC0000005,
+        STATUS_IN_PAGE_ERROR               = 0xC0000006,
+        STATUS_INVALID_HANDLE              = 0xC0000008,
 
-	STATUS_NO_MEMORY                   = 0xC0000017,
-	STATUS_ILLEGAL_INSTRUCTION         = 0xC000001D,
-	STATUS_NONCONTINUABLE_EXCEPTION    = 0xC0000025,
-	STATUS_INVALID_DISPOSITION         = 0xC0000026,
-	STATUS_ARRAY_BOUNDS_EXCEEDED       = 0xC000008C,
-	STATUS_FLOAT_DENORMAL_OPERAND      = 0xC000008D,
-	STATUS_FLOAT_DIVIDE_BY_ZERO        = 0xC000008E,
-	STATUS_FLOAT_INEXACT_RESULT        = 0xC000008F,
-	STATUS_FLOAT_INVALID_OPERATION     = 0xC0000090,
-	STATUS_FLOAT_OVERFLOW              = 0xC0000091,
-	STATUS_FLOAT_STACK_CHECK           = 0xC0000092,
-	STATUS_FLOAT_UNDERFLOW             = 0xC0000093,
-	STATUS_INTEGER_DIVIDE_BY_ZERO      = 0xC0000094,
-	STATUS_INTEGER_OVERFLOW            = 0xC0000095,
-	STATUS_PRIVILEGED_INSTRUCTION      = 0xC0000096,
-	STATUS_STACK_OVERFLOW              = 0xC00000FD,
-	STATUS_CONTROL_C_EXIT              = 0xC000013A,
-	STATUS_DLL_INIT_FAILED             = 0xC0000142,
-	STATUS_DLL_INIT_FAILED_LOGOFF      = 0xC000026B,
+        STATUS_NO_MEMORY                   = 0xC0000017,
+        STATUS_ILLEGAL_INSTRUCTION         = 0xC000001D,
+        STATUS_NONCONTINUABLE_EXCEPTION    = 0xC0000025,
+        STATUS_INVALID_DISPOSITION         = 0xC0000026,
+        STATUS_ARRAY_BOUNDS_EXCEEDED       = 0xC000008C,
+        STATUS_FLOAT_DENORMAL_OPERAND      = 0xC000008D,
+        STATUS_FLOAT_DIVIDE_BY_ZERO        = 0xC000008E,
+        STATUS_FLOAT_INEXACT_RESULT        = 0xC000008F,
+        STATUS_FLOAT_INVALID_OPERATION     = 0xC0000090,
+        STATUS_FLOAT_OVERFLOW              = 0xC0000091,
+        STATUS_FLOAT_STACK_CHECK           = 0xC0000092,
+        STATUS_FLOAT_UNDERFLOW             = 0xC0000093,
+        STATUS_INTEGER_DIVIDE_BY_ZERO      = 0xC0000094,
+        STATUS_INTEGER_OVERFLOW            = 0xC0000095,
+        STATUS_PRIVILEGED_INSTRUCTION      = 0xC0000096,
+        STATUS_STACK_OVERFLOW              = 0xC00000FD,
+        STATUS_CONTROL_C_EXIT              = 0xC000013A,
+        STATUS_DLL_INIT_FAILED             = 0xC0000142,
+        STATUS_DLL_INIT_FAILED_LOGOFF      = 0xC000026B,
 
-	CONTROL_C_EXIT                     = STATUS_CONTROL_C_EXIT,
+        CONTROL_C_EXIT                     = STATUS_CONTROL_C_EXIT,
 
-	EXCEPTION_ACCESS_VIOLATION         = STATUS_ACCESS_VIOLATION,
-	EXCEPTION_DATATYPE_MISALIGNMENT    = STATUS_DATATYPE_MISALIGNMENT,
-	EXCEPTION_BREAKPOINT               = STATUS_BREAKPOINT,
-	EXCEPTION_SINGLE_STEP              = STATUS_SINGLE_STEP,
-	EXCEPTION_ARRAY_BOUNDS_EXCEEDED    = STATUS_ARRAY_BOUNDS_EXCEEDED,
-	EXCEPTION_FLT_DENORMAL_OPERAND     = STATUS_FLOAT_DENORMAL_OPERAND,
-	EXCEPTION_FLT_DIVIDE_BY_ZERO       = STATUS_FLOAT_DIVIDE_BY_ZERO,
-	EXCEPTION_FLT_INEXACT_RESULT       = STATUS_FLOAT_INEXACT_RESULT,
-	EXCEPTION_FLT_INVALID_OPERATION    = STATUS_FLOAT_INVALID_OPERATION,
-	EXCEPTION_FLT_OVERFLOW             = STATUS_FLOAT_OVERFLOW,
-	EXCEPTION_FLT_STACK_CHECK          = STATUS_FLOAT_STACK_CHECK,
-	EXCEPTION_FLT_UNDERFLOW            = STATUS_FLOAT_UNDERFLOW,
-	EXCEPTION_INT_DIVIDE_BY_ZERO       = STATUS_INTEGER_DIVIDE_BY_ZERO,
-	EXCEPTION_INT_OVERFLOW             = STATUS_INTEGER_OVERFLOW,
-	EXCEPTION_PRIV_INSTRUCTION         = STATUS_PRIVILEGED_INSTRUCTION,
-	EXCEPTION_IN_PAGE_ERROR            = STATUS_IN_PAGE_ERROR,
-	EXCEPTION_ILLEGAL_INSTRUCTION      = STATUS_ILLEGAL_INSTRUCTION,
-	EXCEPTION_NONCONTINUABLE_EXCEPTION = STATUS_NONCONTINUABLE_EXCEPTION,
-	EXCEPTION_STACK_OVERFLOW           = STATUS_STACK_OVERFLOW,
-	EXCEPTION_INVALID_DISPOSITION      = STATUS_INVALID_DISPOSITION,
-	EXCEPTION_GUARD_PAGE               = STATUS_GUARD_PAGE_VIOLATION,
-	EXCEPTION_INVALID_HANDLE           = STATUS_INVALID_HANDLE
+        EXCEPTION_ACCESS_VIOLATION         = STATUS_ACCESS_VIOLATION,
+        EXCEPTION_DATATYPE_MISALIGNMENT    = STATUS_DATATYPE_MISALIGNMENT,
+        EXCEPTION_BREAKPOINT               = STATUS_BREAKPOINT,
+        EXCEPTION_SINGLE_STEP              = STATUS_SINGLE_STEP,
+        EXCEPTION_ARRAY_BOUNDS_EXCEEDED    = STATUS_ARRAY_BOUNDS_EXCEEDED,
+        EXCEPTION_FLT_DENORMAL_OPERAND     = STATUS_FLOAT_DENORMAL_OPERAND,
+        EXCEPTION_FLT_DIVIDE_BY_ZERO       = STATUS_FLOAT_DIVIDE_BY_ZERO,
+        EXCEPTION_FLT_INEXACT_RESULT       = STATUS_FLOAT_INEXACT_RESULT,
+        EXCEPTION_FLT_INVALID_OPERATION    = STATUS_FLOAT_INVALID_OPERATION,
+        EXCEPTION_FLT_OVERFLOW             = STATUS_FLOAT_OVERFLOW,
+        EXCEPTION_FLT_STACK_CHECK          = STATUS_FLOAT_STACK_CHECK,
+        EXCEPTION_FLT_UNDERFLOW            = STATUS_FLOAT_UNDERFLOW,
+        EXCEPTION_INT_DIVIDE_BY_ZERO       = STATUS_INTEGER_DIVIDE_BY_ZERO,
+        EXCEPTION_INT_OVERFLOW             = STATUS_INTEGER_OVERFLOW,
+        EXCEPTION_PRIV_INSTRUCTION         = STATUS_PRIVILEGED_INSTRUCTION,
+        EXCEPTION_IN_PAGE_ERROR            = STATUS_IN_PAGE_ERROR,
+        EXCEPTION_ILLEGAL_INSTRUCTION      = STATUS_ILLEGAL_INSTRUCTION,
+        EXCEPTION_NONCONTINUABLE_EXCEPTION = STATUS_NONCONTINUABLE_EXCEPTION,
+        EXCEPTION_STACK_OVERFLOW           = STATUS_STACK_OVERFLOW,
+        EXCEPTION_INVALID_DISPOSITION      = STATUS_INVALID_DISPOSITION,
+        EXCEPTION_GUARD_PAGE               = STATUS_GUARD_PAGE_VIOLATION,
+        EXCEPTION_INVALID_HANDLE           = STATUS_INVALID_HANDLE
 }
 
 enum MAXIMUM_SUPPORTED_EXTENSION = 512;
@@ -146,18 +146,18 @@ struct CONTEXT {
 alias CONTEXT* PCONTEXT, LPCONTEXT;
 
 struct EXCEPTION_RECORD {
-	DWORD ExceptionCode;
-	DWORD ExceptionFlags;
-	EXCEPTION_RECORD* ExceptionRecord;
-	PVOID ExceptionAddress;
-	DWORD NumberParameters;
-	DWORD[EXCEPTION_MAXIMUM_PARAMETERS] ExceptionInformation;
+        DWORD ExceptionCode;
+        DWORD ExceptionFlags;
+        EXCEPTION_RECORD* ExceptionRecord;
+        PVOID ExceptionAddress;
+        DWORD NumberParameters;
+        DWORD[EXCEPTION_MAXIMUM_PARAMETERS] ExceptionInformation;
 }
 alias EXCEPTION_RECORD* PEXCEPTION_RECORD, LPEXCEPTION_RECORD;
 
 struct EXCEPTION_POINTERS {
-	PEXCEPTION_RECORD ExceptionRecord;
-	PCONTEXT          ContextRecord;
+        PEXCEPTION_RECORD ExceptionRecord;
+        PCONTEXT          ContextRecord;
 }
 alias EXCEPTION_POINTERS* PEXCEPTION_POINTERS, LPEXCEPTION_POINTERS;
 
@@ -412,8 +412,8 @@ EXCEPTION_DISPOSITION _d_framehandler(
         DCatchInfo *pci;
         DCatchBlock *pcb;
         uint ncatches;              // number of catches in the current handler
-        
-        /* The Master or Boss exception controls which catch() clause will 
+
+        /* The Master or Boss exception controls which catch() clause will
          * catch the exception. If all collateral exceptions are derived from
          * Exception, the boss is the first exception thrown. Otherwise,
          * the first Error is the boss.
@@ -422,7 +422,7 @@ EXCEPTION_DISPOSITION _d_framehandler(
          */
         EXCEPTION_RECORD * master = null; // The Master exception.
         ClassInfo masterClassInfo;       // Class info of the Master exception.
-        
+
         masterClassInfo = null;           // only compute it if we need it
 
         // walk through handler table, checking each handler
@@ -436,7 +436,7 @@ EXCEPTION_DISPOSITION _d_framehandler(
                 // this is a catch handler (no finally)
                 pci = cast(DCatchInfo *)(cast(ubyte *)handlerTable + phi.cioffset);
                 ncatches = pci.ncatches;
-                
+
                 for (i = 0; i < ncatches; i++)
                 {
                     pcb = &pci.catch_block[i];
@@ -452,11 +452,11 @@ EXCEPTION_DISPOSITION _d_framehandler(
                             // If we've reached the oldest exception without
                             // finding an Error, this one must be the master.
                             if (!master && !(er.ExceptionFlags & EXCEPTION_COLLATERAL))
-                            {  
+                            {
                                 master = er;
                                 masterClassInfo = ci;
                                 break;
-                            }                             
+                            }
                             if (_d_isbaseof(ci, Error.classinfo))
                             {   // It's derived from Error. This _may_ be the master.
                                 master = er;
@@ -471,7 +471,7 @@ EXCEPTION_DISPOSITION _d_framehandler(
                         // End the loop if this was the original exception
                         if (! (er.ExceptionFlags & EXCEPTION_COLLATERAL))
                             break;
-                        
+
                         // Now get the next collateral exception.
                         if (er.ExceptionRecord)
                             er = er.ExceptionRecord;
@@ -487,10 +487,10 @@ EXCEPTION_DISPOSITION _d_framehandler(
                         // handler for this exception.
                         // BEWARE: We don't yet know if the catch handler will
                         // actually be executed. If there's an unwind collision,
-                        // this call may be abandoned: the calls to 
+                        // this call may be abandoned: the calls to
                         // _global_unwind and _local_unwind may never return,
                         // and the contents of the local variables will be lost.
-                                                
+
                         // We need to add this exception to the list of in-flight
                         // exceptions, in case something collides with it.
                         EXCEPTION_RECORD * originalException = skipCollateralExceptions(exceptionRecord);
@@ -506,16 +506,16 @@ EXCEPTION_DISPOSITION _d_framehandler(
 
                         // Call all the finally blocks skipped in this frame
                         _d_local_unwind(handlerTable, frame, ndx, &searchCollisionExceptionHandler);
-                        
-                        
+
+
                         frame.table_index = prev_ndx;  // we are out of this handler
-                        
+
                         // Now create the D exception from the SEH exception record chain.
                         EXCEPTION_RECORD * z = exceptionRecord;
                         Throwable prev = null;
                         Error masterError = null;
                         Throwable pti;
-                        
+
                         for(;;)
                         {
                             Throwable w = _d_translate_se_to_d_exception(z);
@@ -532,7 +532,7 @@ EXCEPTION_DISPOSITION _d_framehandler(
                                 break;
                             z = z.ExceptionRecord;
                         }
-                        // Reached the end. Now add the Master, if any.                                   
+                        // Reached the end. Now add the Master, if any.
                         if (masterError)
                         {
                             masterError.bypassedException = prev;
@@ -594,7 +594,7 @@ extern(C)
 void _d_throwc(Object h)
 {
     // @@@ TODO @@@ Signature should change: h will always be a Throwable.
-    
+
     //printf("_d_throw(h = %p, &h = %p)\n", h, &h);
     //printf("\tvptr = %p\n", *(void **)h);
     _d_createTrace(h);
@@ -691,7 +691,7 @@ Throwable _d_translate_se_to_d_exception(EXCEPTION_RECORD *exceptionRecord)
         case STATUS_INVALID_DISPOSITION:
         case STATUS_NONCONTINUABLE_EXCEPTION:
         case STATUS_SINGLE_STEP:
-		case DBG_CONTROL_C: // only when a debugger is attached
+                case DBG_CONTROL_C: // only when a debugger is attached
         // In DMC, but not in Microsoft docs
         case STATUS_GUARD_PAGE_VIOLATION:
         case STATUS_INVALID_HANDLE:
@@ -856,11 +856,11 @@ int _d_global_unwind(DEstablisherFrame *pFrame, EXCEPTION_RECORD *eRecord)
         call RtlUnwind;
  __unwind_exit:
         pop EBP;
-        pop	EDI;
-        pop	ESI;
-        pop	EBX;
+        pop     EDI;
+        pop     ESI;
+        pop     EBX;
         pop ECX;
-        mov	ESP,EBP;
+        mov     ESP,EBP;
         pop EBP;
         ret;
     }

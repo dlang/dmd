@@ -44,7 +44,7 @@ hash_t hashOf( const (void)* buf, size_t len, hash_t seed = 0 )
             return ((cast(uint) x[1]) << 8) + (cast(uint) x[0]);
         }
     }
-    
+
     // NOTE: SuperFastHash normally starts with a zero hash value.  The seed
     //       value was incorporated to allow chaining.
     auto data = cast(const (ubyte)*) buf;

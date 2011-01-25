@@ -5,7 +5,7 @@
  * License:   <a href="http://www.boost.org/LICENSE_1_0.txt">Boost License 1.0</a>.
  * Authors:   Walter Bright
  */
- 
+
 /*          Copyright Digital Mars 2000 - 2010.
  * Distributed under the Boost Software License, Version 1.0.
  *    (See accompanying file LICENSE_1_0.txt or copy at
@@ -22,11 +22,11 @@ extern (C)
         void* _deh_beg;
         void* _deh_end;
     }
-    
+
     Throwable.TraceInfo _d_traceContext(void* ptr = null);
 
     int _d_isbaseof(ClassInfo oc, ClassInfo c);
-    
+
     void _d_setUnhandled(Object*);
     void _d_createTrace(Object*);
 }
@@ -256,7 +256,7 @@ extern (C) void _d_throwc(Object *h)
 
                     if (_d_isbaseof(ci, pcb.type))
                     {   // Matched the catch type, so we've found the handler.
-                    
+
                         _d_setUnhandled(null);
 
                         // Initialize catch variable

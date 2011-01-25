@@ -217,8 +217,8 @@ struct GC
     {
         return gc_malloc( sz, ba );
     }
-    
-    
+
+
     /**
      * Requests an aligned block of managed memory from the garbage collector.
      * This memory may be deleted at will with a call to free, or it may be

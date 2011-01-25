@@ -6,7 +6,7 @@
  * Authors:   Sean Kelly
  * Standards: ISO/IEC 9899:1999 (E)
  */
- 
+
 /*          Copyright Sean Kelly 2005 - 2009.
  * Distributed under the Boost Software License, Version 1.0.
  *    (See accompanying file LICENSE_1_0.txt or copy at
@@ -14,7 +14,7 @@
  */
 module core.stdc.wctype;
 
-public  import core.stdc.wchar_; // for wint_t, WEOF 
+public  import core.stdc.wchar_; // for wint_t, WEOF
 
 extern (C):
 nothrow:

@@ -29,10 +29,10 @@ typedef struct
 const static seg_ref data_segs[] = {{SEG_DATA, SECT_DATA},
                                     {SEG_DATA, SECT_BSS},
                                     {SEG_DATA, SECT_COMMON},
-				    // These two must match names used by compiler machobj.c
+                                    // These two must match names used by compiler machobj.c
                                     {SEG_DATA, "__tls_data"},
                                     {SEG_DATA, "__tlscoal_nt"},
-				   };
+                                   };
 const static int NUM_DATA_SEGS   = sizeof(data_segs) / sizeof(seg_ref);
 
 
@@ -42,7 +42,7 @@ static void on_add_image( const struct mach_header* h, intptr_t slide )
 
     for( i = 0; i < NUM_DATA_SEGS; ++i )
     {
-	const struct section* sect = getsectbynamefromheader( h,
+        const struct section* sect = getsectbynamefromheader( h,
                                         data_segs[i].seg,
                                         data_segs[i].sect );
         if( sect == NULL || sect->size == 0 )
@@ -58,7 +58,7 @@ static void on_remove_image( const struct mach_header* h, intptr_t slide )
 
     for( i = 0; i < NUM_DATA_SEGS; ++i )
     {
-	const struct section* sect = getsectbynamefromheader( h,
+        const struct section* sect = getsectbynamefromheader( h,
                                         data_segs[i].seg,
                                         data_segs[i].sect );
         if( sect == NULL || sect->size == 0 )

@@ -25,17 +25,17 @@ version( Windows )
     HANDLE OpenThread(DWORD dwDesiredAccess, BOOL bInheritHandle, DWORD dwThreadId);
 
     extern (C) extern __gshared int _tls_index;
-    
+
 private:
     ///////////////////////////////////////////////////////////////////
     struct thread_helper_aux
     {
         // don't let symbols leak into other modules
-        
+
         const SystemProcessInformation = 5;
         const STATUS_INFO_LENGTH_MISMATCH = 0xc0000004;
 
-        // abbreviated versions of these structs (full info can be found 
+        // abbreviated versions of these structs (full info can be found
         //  here: http://undocumented.ntinternals.net )
         struct _SYSTEM_PROCESS_INFORMATION
         {
@@ -44,7 +44,7 @@ private:
             int[15] fill1;
             int ProcessId;
             int[28] fill2;
-        
+
             // SYSTEM_THREAD_INFORMATION or SYSTEM_EXTENDED_THREAD_INFORMATION structures follow.
         }
 
@@ -61,7 +61,7 @@ private:
 
         const ThreadBasicInformation = 0;
 
-        struct THREAD_BASIC_INFORMATION 
+        struct THREAD_BASIC_INFORMATION
         {
             int    ExitStatus;
             void** TebBaseAddress;
@@ -92,7 +92,7 @@ private:
             THREAD_BASIC_INFORMATION tbi;
             int Status = (*fn)(hnd, ThreadBasicInformation, &tbi, tbi.sizeof, null);
             assert(Status == 0);
-        
+
             return tbi.TebBaseAddress;
         }
 
@@ -236,7 +236,7 @@ public:
                 return tlsarray[_tls_index];
         return null;
     }
-    
+
     ///////////////////////////////////////////////////////////////////
     // run _moduleTlsCtor in the context of the given thread
     void thread_moduleTlsCtor( uint id )

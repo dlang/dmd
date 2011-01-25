@@ -209,7 +209,7 @@ shared static ~this()
 string appendFN( string path, string name )
 {
     if (!path.length) return name;
-    
+
     version( Windows )
         const char sep = '\\';
     else

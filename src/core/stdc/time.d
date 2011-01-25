@@ -86,8 +86,8 @@ size_t  strftime(char* s, size_t maxsize, in char* format, in tm* timeptr);
 
 version( Windows )
 {
-    void  tzset();  		 // non-standard
-    void  _tzset(); 		 // non-standard
+    void  tzset();               // non-standard
+    void  _tzset();              // non-standard
     char* _strdate(char* s); // non-standard
     char* _strtime(char* s); // non-standard
 }

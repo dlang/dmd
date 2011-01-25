@@ -1,4 +1,4 @@
-/** 
+/**
  * Identify the characteristics of the host CPU, providing information
  * about cache sizes and assembly optimisation hints.
  *
@@ -33,7 +33,7 @@
  * $(LI $(LINK http://www.sandpile.org/ia32/cpuid.htm))
  * $(LI $(LINK http://grafi.ii.pw.edu.pl/gbm/x86/cpuid.html))
  * $(LI "What every programmer should know about memory",
- *    Ulrich Depper, Red Hat, Inc., (2007). 
+ *    Ulrich Depper, Red Hat, Inc., (2007).
  * )
  * $(LI "CPU Identification by the Windows Kernel", G. Chappell (2009).
  *   $(LINK http://www.geoffchappell.com/viewer.htm?doc=studies/windows/km/cpu/cx8.htm)
@@ -108,8 +108,8 @@ public:
     /// Note that some CPUs have programmable vendorIDs.
     string vendor()     {return cast(string)vendorID;}
     /// Returns processor string, for display purposes only
-    string processor()  {return processorName;}    
-    
+    string processor()  {return processorName;}
+
     /// The data caches. If there are fewer than 5 physical caches levels,
     /// the remaining levels are set to uint.max (== entire memory space)
     __gshared CacheInfo[5] datacache;
@@ -155,7 +155,7 @@ public:
             return false;
         return (features & SYSENTERSYSEXIT_BIT)!=0;
     }
-    
+
 
     /// Is 3DNow prefetch supported?
     bool has3dnowPrefetch()
@@ -163,12 +163,12 @@ public:
     /// Are LAHF and SAHF supported in 64-bit mode?
     bool hasLahfSahf()          {return (amdmiscfeatures&LAHFSAHF_BIT)!=0;}
     /// Is POPCNT supported?
-    bool hasPopcnt()        {return (miscfeatures&POPCNT_BIT)!=0;}    
+    bool hasPopcnt()        {return (miscfeatures&POPCNT_BIT)!=0;}
     /// Is LZCNT supported?
     bool hasLzcnt()         {return (amdmiscfeatures&LZCNT_BIT)!=0;}
     /// Is this an Intel64 or AMD 64?
     bool isX86_64()         {return (amdfeatures&AMD64_BIT)!=0;}
-            
+
     /// Is this an IA64 (Itanium) processor?
     bool isItanium()        { return (features&IA64_BIT)!=0; }
 
@@ -178,7 +178,7 @@ public:
     uint threadsPerCPU()    {return maxThreads;}
     /// Returns number of cores in CPU
     uint coresPerCPU()      {return maxCores;}
-    
+
     /// Optimisation hints for assembly code.
     /// For forward compatibility, the CPU is compared against different
     /// microarchitectures. For 32-bit X86, comparisons are made against
@@ -198,7 +198,7 @@ public:
     /// Within each dynasty, the optimisation techniques are largely
     /// identical (eg, use instruction pairing for group 4). Major
     /// instruction set improvements occur within each dynasty.
-    
+
     /// Does this CPU perform better on AMD K7 code than PentiumPro..Core2 code?
     bool preferAthlon() { return probablyAMD && family >=6; }
     /// Does this CPU perform better on Pentium4 code than PentiumPro..Core2 code?
@@ -225,9 +225,9 @@ private:
     uint amdmiscfeatures = 0; // sse4a, sse5, svm, etc
     uint maxCores = 1;
     uint maxThreads = 1;
-    // Note that this may indicate multi-core rather than hyperthreading.    
+    // Note that this may indicate multi-core rather than hyperthreading.
     bool hyperThreadingBit()    { return (features&HTT_BIT)!=0;}
-    
+
     // feature flags CPUID1_EDX
     enum : uint
     {
@@ -260,8 +260,8 @@ private:
             OSXSAVE_BIT = 1<<27, // Used for AVX
             AVX_BIT = 1<<28
     }
-/+    
-version(X86_64) {    
+/+
+version(X86_64) {
     bool hasAVXinHardware() {
         // This only indicates hardware support, not OS support.
         return (miscfeatures&AVX_BIT) && (miscfeatures&OSXSAVE_BIT);
@@ -276,15 +276,15 @@ version(X86_64) {
     }
     bool hasAvxFma() {
         if (!AVX()) return false;
-        return (features&FMA_BIT)!=0;        
+        return (features&FMA_BIT)!=0;
     }
 }
-+/    
++/
     // AMD feature flags CPUID80000001_EDX
     enum : uint
     {
         AMD_MMX_BIT = 1<<22,
-//      FXR_OR_CYRIXMMX_BIT = 1<<24, // Cyrix/NS: 6x86MMX instructions. 
+//      FXR_OR_CYRIXMMX_BIT = 1<<24, // Cyrix/NS: 6x86MMX instructions.
         FFXSR_BIT = 1<<25,
         PAGE1GB_BIT = 1<<26, // support for 1GB pages
         RDTSCP_BIT = 1<<27,
@@ -297,7 +297,7 @@ version(X86_64) {
     {
         LAHFSAHF_BIT = 1,
         LZCNT_BIT = 1<<5,
-        SSE4A_BIT = 1<<6,       
+        SSE4A_BIT = 1<<6,
         AMD_3DNOW_PREFETCH_BIT = 1<<8,
     }
 
@@ -324,7 +324,7 @@ void getcacheinfoCPUID2()
             0x39, 0x3A, 0x3B, 0x3C, 0x3D, 0x3E, 0x48, 0x80, 0x81,
             // level 3 cache
             0x22, 0x23, 0x25, 0x29, 0x46, 0x47, 0x4A, 0x4B, 0x4C, 0x4D,
-            
+
             0xD0, 0xD1, 0xD2, 0xD6, 0xD7, 0xD8, 0xDC, 0xDD, 0xDE,
             0xE2, 0xE3, 0xE4, 0xEA, 0xEB, 0xEC
         ];
@@ -332,9 +332,9 @@ void getcacheinfoCPUID2()
             8, 16, 16, 64, 16, 24, 8, 16, 32,
             128, 256, 512, 1024, 2048, 1024, 128, 256, 512, 1024, 2048, 512,
             256, 512, 1024, 2048, 512, 1024, 4096, 6*1024,
-            128, 192, 128, 256, 384, 512, 3072, 512, 128,           
+            128, 192, 128, 256, 384, 512, 3072, 512, 128,
             512, 1024, 2048, 4096, 4096, 8192, 6*1024, 8192, 12*1024, 16*1024,
-            
+
             512, 1024, 2048, 1024, 2048, 4096, 1024+512, 3*1024, 6*1024,
             2*1024, 4*1024, 8*1024, 12*1024, 28*1024, 24*1024
         ];
@@ -346,7 +346,7 @@ void getcacheinfoCPUID2()
             4, 6, 2, 4, 6, 4, 12, 8, 8,
             4, 8, 8, 8, 4, 8, 12, 16, 12, 16,
             4, 4, 4, 8, 8, 8, 12, 12, 12,
-            16, 16, 16, 24, 24, 24            
+            16, 16, 16, 24, 24, 24
         ];
         enum { FIRSTDATA2 = 8, FIRSTDATA3 = 28+9 }
         for (int i=0; i< ids.length; ++i) {
@@ -355,7 +355,7 @@ void getcacheinfoCPUID2()
                 if (x==0x49 && family==0xF && model==0x6) level=2;
                 datacache[level].size=sizes[i];
                 datacache[level].associativity=ways[i];
-                if (level == 3 || x==0x2C || x==0x0D || (x>=0x48 && x<=0x80) 
+                if (level == 3 || x==0x2C || x==0x0D || (x>=0x48 && x<=0x80)
                                    || x==0x86 || x==0x87
                                    || (x>=0x66 && x<=0x68) || (x>=0x39 && x<=0x3E)){
                     datacache[level].lineSize = 64;
@@ -364,7 +364,7 @@ void getcacheinfoCPUID2()
         }
     }
 
-    uint[4] a;  
+    uint[4] a;
     bool firstTime = true;
     // On a multi-core system, this could theoretically fail, but it's only used
     // for old single-core CPUs.
@@ -387,7 +387,7 @@ void getcacheinfoCPUID2()
                 datacache[0].size=8;
                 datacache[0].associativity=4;
                 datacache[0].lineSize=16;
-                return;             
+                return;
             }
             // lsb of a is how many times to loop.
             numinfos = a[0] & 0xFF;
@@ -411,7 +411,7 @@ void getcacheinfoCPUID4()
 {
     int cachenum = 0;
     for(;;) {
-        uint a, b, number_of_sets;  
+        uint a, b, number_of_sets;
         asm {
             mov EAX, 4;
             mov ECX, cachenum;
@@ -426,7 +426,7 @@ void getcacheinfoCPUID4()
         uint numcores = ((a>>26) & 0x3F) + 1;
         if (numcores > maxCores) maxCores = numcores;
         if ((a&0x1F)!=1 && ((a&0x1F)!=3)) continue; // we only want data & unified caches
-        
+
         ++number_of_sets;
         ubyte level = cast(ubyte)(((a>>5)&7)-1);
         if (level > datacache.length) continue; // ignore deep caches
@@ -436,7 +436,7 @@ void getcacheinfoCPUID4()
         // Size = number of sets * associativity * cachelinesize * linepartitions
         // and must convert to Kb, also dividing by the number of hyperthreads using this cache.
         ulong sz = (datacache[level].associativity< ubyte.max)? number_of_sets *
-            datacache[level].associativity : number_of_sets;        
+            datacache[level].associativity : number_of_sets;
         datacache[level].size = cast(uint)(
                 (sz * datacache[level].lineSize * line_partitions ) / (numthreads *1024));
         if (level == 0 && (a&0xF)==3) {
@@ -481,12 +481,12 @@ void getAMDcacheinfo()
             mov c6, ECX; // L2 cache info
             mov d6, EDX; // L3 cache info
         }
-    
+
         immutable ubyte [] assocmap = [ 0, 1, 2, 0, 4, 0, 8, 0, 16, 0, 32, 48, 64, 96, 128, 0xFF ];
         datacache[1].size = (c6>>16) & 0xFFFF;
         datacache[1].associativity = assocmap[(c6>>12)&0xF];
         datacache[1].lineSize = c6 & 0xFF;
-        
+
         // The L3 cache value is TOTAL, not per core.
         datacache[2].size = ((d6>>18)*512)/numcores; // could be up to 2 * this, -1.
         datacache[2].associativity = assocmap[(d6>>12)&0xF];
@@ -508,14 +508,14 @@ void getCpuInfo0B()
             mov a, EAX;
             mov b, EBX;
             mov c, ECX;
-            mov d, EDX;        
+            mov d, EDX;
         }
         if (b!=0) {
            // I'm not sure about this. The docs state that there
            // are 2 hyperthreads per core if HT is factory enabled.
             if (level==0) maxThreads = b & 0xFFFF;
             else if (level==1) maxCores = b & 0xFFFF;
-            
+
         }
         ++level;
     } while (a!=0 || b!=0);
@@ -540,8 +540,8 @@ void cpuidX86()
     }
     max_cpuid = a;
     max_extended_cpuid = a2;
-    
-    
+
+
     probablyIntel = vendorID == "GenuineIntel";
     probablyAMD = vendorID == "AuthenticAMD";
     uint apic = 0; // brand index, apic id
@@ -556,7 +556,7 @@ void cpuidX86()
     features = d;
     miscfeatures = c;
     amdfeatures = 0;
-    amdmiscfeatures = 0;    
+    amdmiscfeatures = 0;
     if (max_extended_cpuid >= 0x8000_0001) {
         asm {
             mov EAX, 0x8000_0001;
@@ -565,18 +565,18 @@ void cpuidX86()
             mov d, EDX;
         }
         amdmiscfeatures = c;
-        amdfeatures = d;            
+        amdfeatures = d;
     }
     // Try to detect fraudulent vendorIDs
     if (amd3dnow) probablyIntel = false;
-    
+
     stepping = a & 0xF;
     uint fbase = (a >> 8) & 0xF;
     uint mbase = (a >> 4) & 0xF;
     family = ((fbase == 0xF) || (fbase == 0)) ? fbase + (a >> 20) & 0xFF : fbase;
     model = ((fbase == 0xF) || (fbase == 6 && probablyIntel) ) ?
          mbase + ((a >> 12) & 0xF0) : mbase;
-         
+
     if (!probablyIntel && max_extended_cpuid >= 0x8000_0008) {
         // determine max number of cores for AMD
         asm {
@@ -595,7 +595,7 @@ void cpuidX86()
             while (apicsize) { maxCores<<=1; --apicsize; }
         }
     }
-    
+
     if (max_extended_cpuid >= 0x8000_0004) {
         char *procptr = processorNameBuffer.ptr;
         asm {
@@ -619,7 +619,7 @@ void cpuidX86()
             mov [ESI+36], EBX;
             mov [ESI+40], ECX;
             mov [ESI+44], EDX;
-            pop ESI;            
+            pop ESI;
         }
         // Intel P4 and PM pad at front with spaces.
         // Other CPUs pad at end with nulls.
@@ -631,16 +631,16 @@ void cpuidX86()
         processorName = "Unknown CPU";
     }
     // Determine cache sizes
-    
+
     // Intel docs specify that they return 0 for 0x8000_0005.
     // AMD docs do not specify the behaviour for 0004 and 0002.
     // Centaur/VIA and most other manufacturers use the AMD method,
     // except Cyrix MediaGX MMX Enhanced uses their OWN form of CPUID2!
     // NS Geode GX1 provides CyrixCPUID2 _and_ does the same wrong behaviour
     // for CPUID80000005. But Geode GX uses the AMD method
-    
+
     // Deal with Geode GX1 - make it same as MediaGX MMX.
-    if (max_extended_cpuid==0x8000_0005 && max_cpuid==2) {      
+    if (max_extended_cpuid==0x8000_0005 && max_cpuid==2) {
         max_extended_cpuid = 0x8000_0004;
     }
     // Therefore, we try the AMD method unless it's an Intel chip.
@@ -649,25 +649,25 @@ void cpuidX86()
     if (max_cpuid<2 || !probablyIntel) {
         if (max_extended_cpuid >= 0x8000_0005) {
             getAMDcacheinfo();
-        } else if (probablyAMD) {       
+        } else if (probablyAMD) {
             // According to AMDProcRecognitionAppNote, this means CPU
             // K5 model 0, or Am5x86 (model 4), or Am4x86DX4 (model 4)
             // Am5x86 has 16Kb 4-way unified data & code cache.
             datacache[0].size = 8;
             datacache[0].associativity = 4;
-            datacache[0].lineSize = 32;     
+            datacache[0].lineSize = 32;
         } else {
             // Some obscure CPU.
             // Values for Cyrix 6x86MX (family 6, model 0)
             datacache[0].size = 64;
             datacache[0].associativity = 4;
-            datacache[0].lineSize = 32;     
+            datacache[0].lineSize = 32;
         }
-    }   
+    }
     if ((datacache[0].size == 0) && max_cpuid>=4) {
         getcacheinfoCPUID4();
     }
-    if ((datacache[0].size == 0) && max_cpuid>=2) {     
+    if ((datacache[0].size == 0) && max_cpuid>=2) {
         getcacheinfoCPUID2();
     }
     if (datacache[0].size == 0) {
@@ -675,19 +675,19 @@ void cpuidX86()
         if (mmx) { // Pentium MMX. Also has 8kB code cache.
             datacache[0].size = 16;
             datacache[0].associativity = 4;
-            datacache[0].lineSize = 32;     
+            datacache[0].lineSize = 32;
         } else { // Pentium 1 (which also has 8kB code cache)
                  // or 486.
             // Cyrix 6x86: 16, 4way, 32 linesize
             datacache[0].size = 8;
             datacache[0].associativity = 2;
             datacache[0].lineSize = 32;
-        }       
+        }
     }
     if (max_cpuid >=0x0B) {
         // For Intel i7 and later, use function 0x0B to determine
         // cores and hyperthreads.
-        getCpuInfo0B();    
+        getCpuInfo0B();
     } else {
         if (hyperThreadingBit) maxThreads = (apic>>>16) & 0xFF;
         else maxThreads = maxCores;
@@ -721,8 +721,8 @@ bool hasCPUID()
     {
             datacache[0].size = 8;
             datacache[0].associativity = 2;
-            datacache[0].lineSize = 32;     
-    }   
+            datacache[0].lineSize = 32;
+    }
 }
 
 // TODO: Implement this function with OS support
@@ -735,16 +735,16 @@ void cpuidPPC()
     // asm { mfpvr; } returns the CPU version but unfortunately it can
     // only be used in kernel mode. So OS support is required.
     int cputype = PPC603;
-    
+
     // 601 has a 8KB combined data & code L1 cache.
     uint sizes[] = [4, 8, 16, 16, 32, 32, 32, 32, 64];
     ubyte ways[] = [8, 2,  4,  4,  4,  8,  8,  8,  8];
     uint L2size[]= [0, 0,  0,  0,  0,  0,  0,  256,  512];
     uint L3size[]= [0, 0,  0,  0,  0,  0,  0,  2048,  0];
-    
+
     datacache[0].size = sizes[cputype];
-    datacache[0].associativity = ways[cputype]; 
-    datacache[0].lineSize = (cputype==PPCG5)? 128 : 
+    datacache[0].associativity = ways[cputype];
+    datacache[0].lineSize = (cputype==PPCG5)? 128 :
         (cputype == PPC620 || cputype == PPCG3)? 64 : 32;
     datacache[1].size = L2size[cputype];
     datacache[2].size = L3size[cputype];
@@ -760,7 +760,7 @@ void cpuidSparc()
     // UltraSparcIIIi: L1 = 64,  4way. L2= 1024, 4 way
     // UltraSparcIV  : L1 = 64,  4way. L2 = 16*1024.
     // UltraSparcIV+ : L1 = 64,  4way. L2 = 2048, L3=32*1024.
-    // Sparc64V      : L1 = 128, 2way. L2 = 4096 4way.  
+    // Sparc64V      : L1 = 128, 2way. L2 = 4096 4way.
 }
 
 
@@ -776,7 +776,7 @@ shared static this()
             // Guess same as Pentium 1.
             datacache[0].size = 8;
             datacache[0].associativity = 2;
-            datacache[0].lineSize = 32;     
+            datacache[0].lineSize = 32;
     }
     numCacheLevels = 1;
     // And now fill up all the unused levels with full memory space.

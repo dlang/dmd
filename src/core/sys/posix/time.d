@@ -84,7 +84,7 @@ version( linux )
     enum CLOCK_MONOTONIC        = 1;
     enum CLOCK_MONOTONIC_RAW    = 4; // non-standard
     enum CLOCK_MONOTONIC_COARSE = 6; // non-standard
-    
+
 }
 
 //

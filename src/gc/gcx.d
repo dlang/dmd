@@ -460,16 +460,16 @@ class GC
                     auto freedpages = gcx.fullcollectshell();
                     collected = true;
                     if (freedpages < gcx.npools * ((POOLSIZE / PAGESIZE) / 8))
-		    {	/* Didn't free much, so try allocating more anyway.
-			 * Note: freedpages is not the amount of memory freed, it's the amount
-			 * of full pages freed. Perhaps this should instead be the amount of
-			 * memory freed.
-			 */
-			gcx.newPool(1);
-			state = 2;
-		    }
-		    else
-			state = 1;
+                    {   /* Didn't free much, so try allocating more anyway.
+                         * Note: freedpages is not the amount of memory freed, it's the amount
+                         * of full pages freed. Perhaps this should instead be the amount of
+                         * memory freed.
+                         */
+                        gcx.newPool(1);
+                        state = 2;
+                    }
+                    else
+                        state = 1;
                     continue;
                 case 1:
                     gcx.newPool(1);
@@ -1246,7 +1246,7 @@ class GC
     size_t fullCollect()
     {
         debug(PRINTF) printf("GC.fullCollect()\n");
-	size_t result;
+        size_t result;
 
         // Since a finalizer could launch a new thread, we always need to lock
         // when collecting.
@@ -1265,7 +1265,7 @@ class GC
         }
 
         gcx.log_collect();
-	return result;
+        return result;
     }
 
     /**
@@ -1446,10 +1446,10 @@ struct Gcx
     {
         void thread_Invariant() { }
     }
-    
+
     void *cached_size_key;
     size_t cached_size_val;
-    
+
     void *cached_info_key;
     BlkInfo cached_info_val;
 
@@ -1713,22 +1713,22 @@ struct Gcx
                 return npools == 0 ? null : pooltable[0];
             }
 
-	    /* The pooltable[] is sorted by address, so do a binary search
-	     */
-	    auto pt = pooltable;
-	    size_t low = 0;
-	    size_t high = npools - 1;
-	    while (low <= high)
-	    {
-		size_t mid = (low + high) >> 1;
-		auto pool = pt[mid];
-		if (p < pool.baseAddr)
-		    high = mid - 1;
-		else if (p >= pool.topAddr)
-		    low = mid + 1;
-		else
-		    return pool;
-	    }
+            /* The pooltable[] is sorted by address, so do a binary search
+             */
+            auto pt = pooltable;
+            size_t low = 0;
+            size_t high = npools - 1;
+            while (low <= high)
+            {
+                size_t mid = (low + high) >> 1;
+                auto pool = pt[mid];
+                if (p < pool.baseAddr)
+                    high = mid - 1;
+                else if (p >= pool.topAddr)
+                    low = mid + 1;
+                else
+                    return pool;
+            }
         }
         return null;
     }
@@ -1783,7 +1783,7 @@ struct Gcx
 
         if (USE_CACHE && p == cached_size_key)
             return cached_size_val;
-            
+
         pool = findPool(p);
         if (pool)
         {
@@ -1820,7 +1820,7 @@ struct Gcx
     {
         Pool*   pool;
         BlkInfo info;
-        
+
         if (USE_CACHE && p == cached_info_key)
             return cached_info_val;
 
@@ -1878,7 +1878,7 @@ struct Gcx
             // are the bits for the pointer, which may be garbage
             offset = cast(size_t)(info.base - pool.baseAddr);
             info.attr = getBits(pool, cast(size_t)(offset / 16));
-            
+
             cached_info_key = p;
             cached_info_val = info;
         }
@@ -2105,8 +2105,8 @@ struct Gcx
         {   size_t n;
 
             n = npools;
-	    if (n > 32)
-		n = 32;			// cap pool size at 32 megs
+            if (n > 32)
+                n = 32;                 // cap pool size at 32 megs
             else if (n > 8)
                 n = 16;
             n *= (POOLSIZE / PAGESIZE);
@@ -2114,7 +2114,7 @@ struct Gcx
                 npages = n;
         }
 
-	//printf("npages = %d\n", npages);
+        //printf("npages = %d\n", npages);
 
         pool = cast(Pool *)cstdlib.calloc(1, Pool.sizeof);
         if (pool)
@@ -2214,7 +2214,7 @@ struct Gcx
                 if ((cast(size_t)p & ~cast(size_t)(PAGESIZE-1)) == pcache)
                     continue;
 
-		auto pool = findPool(p);
+                auto pool = findPool(p);
                 if (pool)
                 {
                     size_t offset = cast(size_t)(p - pool.baseAddr);
@@ -2286,78 +2286,78 @@ struct Gcx
         }
         else version( D_InlineAsm_X86 )
         {
-	    asm
-	    {
-		pushad              ;
-		mov sp[EBP],ESP     ;
-	    }
+            asm
+            {
+                pushad              ;
+                mov sp[EBP],ESP     ;
+            }
         }
-	else version ( D_InlineAsm_X86_64 )
-	{
-	    asm
-	    {
-		push RAX ;
-		push RBX ;
-		push RCX ;
-		push RDX ;
-		push RSI ;
-		push RDI ;
-		push RBP ;
-		push R8  ;
-		push R9  ;
-		push R10  ;
-		push R11  ;
-		push R12  ;
-		push R13  ;
-		push R14  ;
-		push R15  ;
-		push EAX ;   // 16 byte align the stack
-	    }
-	}
-	else
-	{
-	    static assert( false, "Architecture not supported." );
-	}
+        else version ( D_InlineAsm_X86_64 )
+        {
+            asm
+            {
+                push RAX ;
+                push RBX ;
+                push RCX ;
+                push RDX ;
+                push RSI ;
+                push RDI ;
+                push RBP ;
+                push R8  ;
+                push R9  ;
+                push R10  ;
+                push R11  ;
+                push R12  ;
+                push R13  ;
+                push R14  ;
+                push R15  ;
+                push EAX ;   // 16 byte align the stack
+            }
+        }
+        else
+        {
+            static assert( false, "Architecture not supported." );
+        }
 
         result = fullcollect(sp);
 
-	version( GNU )
-	{
-	    // registers will be popped automatically
-	}
-	else version( D_InlineAsm_X86 )
-	{
-	    asm
-	    {
-		popad;
-	    }
-	}
-	else version ( D_InlineAsm_X86_64 )
-	{
-	    asm
-	    {
-		pop EAX ;   // 16 byte align the stack
-		pop R15  ;
-		pop R14  ;
-		pop R13  ;
-		pop R12  ;
-		pop R11  ;
-		pop R10  ;
-		pop R9  ;
-		pop R8  ;
-		pop RBP ;
-		pop RDI ;
-		pop RSI ;
-		pop RDX ;
-		pop RCX ;
-		pop RBX ;
-		pop RAX ;
-	    }
-	}
-	else
-	{
-	    static assert( false, "Architecture not supported." );
-	}
+        version( GNU )
+        {
+            // registers will be popped automatically
+        }
+        else version( D_InlineAsm_X86 )
+        {
+            asm
+            {
+                popad;
+            }
+        }
+        else version ( D_InlineAsm_X86_64 )
+        {
+            asm
+            {
+                pop EAX ;   // 16 byte align the stack
+                pop R15  ;
+                pop R14  ;
+                pop R13  ;
+                pop R12  ;
+                pop R11  ;
+                pop R10  ;
+                pop R9  ;
+                pop R8  ;
+                pop RBP ;
+                pop RDI ;
+                pop RSI ;
+                pop RDX ;
+                pop RCX ;
+                pop RBX ;
+                pop RAX ;
+            }
+        }
+        else
+        {
+            static assert( false, "Architecture not supported." );
+        }
         return result;
     }
 
@@ -2371,7 +2371,7 @@ struct Gcx
         Pool*  pool;
 
         debug(COLLECT_PRINTF) printf("Gcx.fullcollect()\n");
-	//printf("\tpool address range = %p .. %p\n", minAddr, maxAddr);
+        //printf("\tpool address range = %p .. %p\n", minAddr, maxAddr);
 
         thread_suspendAll();
 

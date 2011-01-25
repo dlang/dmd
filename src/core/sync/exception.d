@@ -6,7 +6,7 @@
  * Authors:   Sean Kelly
  * Source:    $(DRUNTIMESRC core/sync/_exception.d)
  */
- 
+
 /*          Copyright Sean Kelly 2005 - 2009.
  * Distributed under the Boost Software License, Version 1.0.
  *    (See accompanying file LICENSE_1_0.txt or copy at
