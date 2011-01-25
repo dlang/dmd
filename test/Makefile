@@ -102,7 +102,6 @@ DISABLED_TESTS += testmath
 DISABLED_TESTS += hospital
 # int vs long issues
 
-DISABLED_TESTS += s2ir
 DISABLED_TESTS += test16
 DISABLED_TESTS += test20
 DISABLED_TESTS += test28
