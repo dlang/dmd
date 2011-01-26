@@ -1364,13 +1364,13 @@ unittest
 
 class Error : Throwable
 {
-    this(string msg, Throwable next, string file = __FILE__, size_t line = __LINE__)
+    this(string msg, Throwable next = null)
     {
-        super(msg, file, line, next);
+        super(msg, next);
         bypassedException = null;
     }
 
-    this(string msg, string file = __FILE__, size_t line = __LINE__, Throwable next = null)
+    this(string msg, string file, size_t line, Throwable next = null)
     {
         super(msg, file, line, next);
         bypassedException = null;
@@ -1385,17 +1385,17 @@ unittest
 {
     {
         auto e = new Error("msg");
-        assert(e.file == __FILE__);
-        assert(e.line == __LINE__ - 2);
+        assert(e.file is null);
+        assert(e.line == 0);
         assert(e.next is null);
         assert(e.msg == "msg");
         assert(e.bypassedException is null);
     }
 
     {
-        auto e = new Error("msg", new Exception("It's an Excepton!"), "hello", 42);
-        assert(e.file == "hello");
-        assert(e.line == 42);
+        auto e = new Error("msg", new Exception("It's an Excepton!"));
+        assert(e.file is null);
+        assert(e.line == 0);
         assert(e.next !is null);
         assert(e.msg == "msg");
         assert(e.bypassedException is null);
