@@ -1250,8 +1250,8 @@ code *cdmul(elem *e,regm_t *pretregs)
             }
             rreg = findreg(rretregs);
             cg = gen2(cg,0xF7 ^ byte,grex | modregrmx(3,op,rreg)); // OP AX,rreg
-	    if (I64 && byte && rreg >= 4)
-		code_orrex(cg, REX);
+            if (I64 && byte && rreg >= 4)
+                code_orrex(cg, REX);
         L3:
             c = fixresult(e,resreg,pretregs);
         }
@@ -1417,6 +1417,8 @@ code *cdnot(elem *e,regm_t *pretregs)
                 iop = 0x0F94;   // SETZ rm8
             }
             c1 = gen2(c1,iop,grex | modregrmx(3,0,reg));
+            if (reg >= 4)
+                code_orrex(c1, REX);
             if (op == OPbool)
                 *pretregs &= ~mPSW;
             goto L4;
