@@ -976,55 +976,43 @@ dt_t **TypeSArray::toDtElem(dt_t **pdt, Expression *e)
             pdt = &((*pdt)->DTnext);
         Type *tnext = next;
         Type *tbn = tnext->toBasetype();
-        while (tbn->ty == Tsarray)
+        while (tbn->ty == Tsarray && (!e || tbn != e->type->nextOf()))
         {   TypeSArray *tsa = (TypeSArray *)tbn;
 
             len *= tsa->dim->toInteger();
-            tnext = tbn->next;
+            tnext = tbn->nextOf();
             tbn = tnext->toBasetype();
         }
         if (!e)                         // if not already supplied
             e = tnext->defaultInit();   // use default initializer
-        if (tbn->ty == Tbit)
+        e->toDt(pdt);
+        dt_optimize(*pdt);
+        if (e->op == TOKstring)
+            len /= ((StringExp *)e)->len;
+        if (e->op == TOKarrayliteral)
+            len /= ((ArrayLiteralExp *)e)->elements->dim;
+        if ((*pdt)->dt == DT_azeros && !(*pdt)->DTnext)
         {
-            Bits databits;
-
-            databits.resize(len);
-            if (e->toInteger())
-                databits.set();
-            pdt = dtnbytes(pdt, databits.allocdim * sizeof(databits.data[0]),
-                (char *)databits.data);
+            (*pdt)->DTazeros *= len;
+            pdt = &((*pdt)->DTnext);
+        }
+        else if ((*pdt)->dt == DT_1byte && (*pdt)->DTonebyte == 0 && !(*pdt)->DTnext)
+        {
+            (*pdt)->dt = DT_azeros;
+            (*pdt)->DTazeros = len;
+            pdt = &((*pdt)->DTnext);
         }
         else
         {
-            if (tbn->ty == Tstruct)
-                tnext->toDt(pdt);
-            else
-                e->toDt(pdt);
-            dt_optimize(*pdt);
-            if ((*pdt)->dt == DT_azeros && !(*pdt)->DTnext)
+            for (i = 1; i < len; i++)
             {
-                (*pdt)->DTazeros *= len;
-                pdt = &((*pdt)->DTnext);
-            }
-            else if ((*pdt)->dt == DT_1byte && (*pdt)->DTonebyte == 0 && !(*pdt)->DTnext)
-            {
-                (*pdt)->dt = DT_azeros;
-                (*pdt)->DTazeros = len;
-                pdt = &((*pdt)->DTnext);
-            }
-            else if (e->op != TOKstring)
-            {
-                for (i = 1; i < len; i++)
-                {
-                    if (tbn->ty == Tstruct)
-                    {   pdt = tnext->toDt(pdt);
-                        while (*pdt)
-                            pdt = &((*pdt)->DTnext);
-                    }
-                    else
-                        pdt = e->toDt(pdt);
+                if (tbn->ty == Tstruct)
+                {   pdt = tnext->toDt(pdt);
+                    while (*pdt)
+                        pdt = &((*pdt)->DTnext);
                 }
+                else
+                    pdt = e->toDt(pdt);
             }
         }
     }
