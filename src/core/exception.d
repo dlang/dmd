@@ -413,9 +413,9 @@ extern (C) void onUnittestErrorMsg( string file, size_t line, string msg )
  * Throws:
  *  RangeError.
  */
-extern (C) void onRangeError( string file = __FILE__, size_t line = __LINE__, Throwable next = null )
+extern (C) void onRangeError( string file = __FILE__, size_t line = __LINE__ )
 {
-    throw new RangeError( file, line, next );
+    throw new RangeError( file, line, null );
 }
 
 
