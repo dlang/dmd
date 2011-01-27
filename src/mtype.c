@@ -48,6 +48,7 @@
 #include "import.h"
 #include "aggregate.h"
 #include "hdrgen.h"
+#include "doc.h"
 
 FuncDeclaration *hasThis(Scope *sc);
 
@@ -5521,7 +5522,12 @@ void Parameter::argsToCBuffer(OutBuffer *buf, HdrGenState *hgs, Parameters *argu
             if (arg->defaultArg)
             {
                 argbuf.writestring(" = ");
+                unsigned o = argbuf.offset;
                 arg->defaultArg->toCBuffer(&argbuf, hgs);
+                if(hgs->ddoc)
+                {
+                    escapeDdocString(&argbuf, o);
+                }
             }
             buf->write(&argbuf);
         }

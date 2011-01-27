@@ -15,5 +15,6 @@
 #pragma once
 #endif /* __DMC__ */
 
+void escapeDdocString(OutBuffer *buf, unsigned start);
 
 #endif
