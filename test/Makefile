@@ -102,11 +102,6 @@ DISABLED_TESTS += testmath
 DISABLED_TESTS += hospital
 # int vs long issues
 
-DISABLED_TESTS += test16
-DISABLED_TESTS += test20
-DISABLED_TESTS += test28
-# -fPIC: transition from R_X86_64_TLSGD to R_X86_64_GOTTPOFF against
-
 DISABLED_TESTS += test22
 #  has x86 specific asm code that needs translation
 

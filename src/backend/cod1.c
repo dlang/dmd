@@ -2486,13 +2486,24 @@ code *cdfunc(elem *e,regm_t *pretregs)
             assert((numpara & (REGSIZE - 1)) == 0);
             assert((stackpush & (REGSIZE - 1)) == 0);
 
+            /* Special handling for call to __tls_get_addr, we must save registers
+             * before evaluating the parameter, so that the parameter load and call
+             * are adjacent.
+             */
+            if (e->E2->Eoper != OPparam && e->E1->Eoper == OPvar)
+            {   symbol *s = e->E1->EV.sp.Vsym;
+                if (s == tls_get_addr_sym)
+                    c = getregs(~s->Sregsaved & (mBP | ALLREGS | mES | XMMREGS));
+            }
+
+
             /* Adjust start of the stack so after all args are pushed,
              * the stack will be aligned.
              */
             if (STACKALIGN == 16 && (numpara + stackpush) & (STACKALIGN - 1))
             {
                 numalign = STACKALIGN - ((numpara + stackpush) & (STACKALIGN - 1));
-                c = genc2(NULL,0x81,modregrm(3,5,SP),numalign); // SUB ESP,numalign
+                c = genc2(c,0x81,modregrm(3,5,SP),numalign); // SUB ESP,numalign
                 if (I64)
                     code_orrex(c, REX_W);
                 c = genadjesp(c, numalign);
@@ -2569,6 +2580,16 @@ code *cdfunc(elem *e,regm_t *pretregs)
               assert(n == np);
             }
 
+            /* Special handling for call to __tls_get_addr, we must save registers
+             * before evaluating the parameter, so that the parameter load and call
+             * are adjacent.
+             */
+            if (np == 1 && e->E1->Eoper == OPvar)
+            {   symbol *s = e->E1->EV.sp.Vsym;
+                if (s == tls_get_addr_sym)
+                    c = getregs(~s->Sregsaved & (mBP | ALLREGS | mES | XMMREGS));
+            }
+
             unsigned stackalign = REGSIZE;
             tym_t tyf = tybasic(e->E1->Ety);
 
@@ -2631,7 +2652,7 @@ code *cdfunc(elem *e,regm_t *pretregs)
             if (STACKALIGN == 16 && (numpara + stackpush) & (STACKALIGN - 1))
             {
                 numalign = STACKALIGN - ((numpara + stackpush) & (STACKALIGN - 1));
-                c = genc2(NULL,0x81,(REX_W << 16) | modregrm(3,5,SP),numalign); // SUB RSP,numalign
+                c = genc2(c,0x81,(REX_W << 16) | modregrm(3,5,SP),numalign); // SUB RSP,numalign
                 c = genadjesp(c, numalign);
                 stackpush += numalign;
                 stackpushsave += numalign;
@@ -2813,7 +2834,7 @@ STATIC code * funccall(elem *e,unsigned numpara,unsigned numalign,regm_t *pretre
         s = e1->EV.sp.Vsym;
         if (s->Sflags & SFLexit)
             c = NULL;
-        else
+        else if (s != tls_get_addr_sym)
             c = save87();               // assume 8087 regs are all trashed
         if (s->Sflags & SFLexit)
             // Function doesn't return, so don't worry about registers
