@@ -8563,14 +8563,6 @@ Expression *CatAssignExp::semantic(Scope *sc)
         type = e1->type;
         e = this;
     }
-    else if ((tb1->ty == Tarray) &&
-        e2->implicitConvTo(tb1next)
-       )
-    {   // Append element
-        e2 = e2->castTo(sc, tb1next);
-        type = e1->type;
-        e = this;
-    }
     else if (tb1->ty == Tarray &&
         (tb1next->ty == Tchar || tb1next->ty == Twchar) &&
         e2->implicitConvTo(Type::tdchar)
@@ -8583,6 +8575,14 @@ Expression *CatAssignExp::semantic(Scope *sc)
         /* Do not allow appending wchar to char[] because if wchar happens
          * to be a surrogate pair, nothing good can result.
          */
+    }
+    else if ((tb1->ty == Tarray) &&
+        e2->implicitConvTo(tb1next)
+       )
+    {   // Append element
+        e2 = e2->castTo(sc, tb1next);
+        type = e1->type;
+        e = this;
     }
     else
     {
