@@ -204,9 +204,9 @@ unittest
  */
 class HiddenFuncError : Error
 {
-    this( ClassInfo ci, string file = __FILE__, size_t line = __LINE__, Throwable next = null )
+    this( ClassInfo ci )
     {
-        super( "Hidden method called for " ~ ci.name, file, line, next );
+        super( "Hidden method called for " ~ ci.name );
     }
 }
 
@@ -217,17 +217,7 @@ unittest
 
     {
         auto hfe = new HiddenFuncError(info);
-        assert(hfe.file == __FILE__);
-        assert(hfe.line == __LINE__ - 2);
         assert(hfe.next is null);
-        assert(hfe.msg == "Hidden method called for testInfo");
-    }
-
-    {
-        auto hfe = new HiddenFuncError(info, "hello", 42, new Exception("It's an Exception!"));
-        assert(hfe.file == "hello");
-        assert(hfe.line == 42);
-        assert(hfe.next !is null);
         assert(hfe.msg == "Hidden method called for testInfo");
     }
 }
@@ -450,9 +440,9 @@ extern (C) void onFinalizeError( ClassInfo info, Exception e, string file = __FI
  * Throws:
  *  HiddenFuncError.
  */
-extern (C) void onHiddenFuncError( Object o, string file = __FILE__, size_t line = __LINE__, Throwable next = null )
+extern (C) void onHiddenFuncError( Object o )
 {
-    throw new HiddenFuncError( o.classinfo, file, line, next );
+    throw new HiddenFuncError( o.classinfo );
 }
 
 
