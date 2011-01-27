@@ -2312,6 +2312,7 @@ struct Gcx
                 push R14  ;
                 push R15  ;
                 push EAX ;   // 16 byte align the stack
+                mov sp[RBP],RSP     ;
             }
         }
         else
