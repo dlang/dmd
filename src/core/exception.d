@@ -15,6 +15,7 @@
  */
 module core.exception;
 
+import core.stdc.stdio;
 
 private
 {
@@ -471,9 +472,9 @@ extern (C) void onOutOfMemoryError()
  * Throws:
  *  SwitchError.
  */
-extern (C) void onSwitchError( string file = __FILE__, size_t line = __LINE__, Throwable next = null )
+extern (C) void onSwitchError( string file = __FILE__, size_t line = __LINE__ )
 {
-    throw new SwitchError( file, line, next );
+    throw new SwitchError( file, line, null );
 }
 
 
