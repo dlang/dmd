@@ -217,17 +217,7 @@ unittest
 
     {
         auto hfe = new HiddenFuncError(info);
-        assert(hfe.file == __FILE__);
-        assert(hfe.line == __LINE__ - 2);
         assert(hfe.next is null);
-        assert(hfe.msg == "Hidden method called for testInfo");
-    }
-
-    {
-        auto hfe = new HiddenFuncError(info, "hello", 42, new Exception("It's an Exception!"));
-        assert(hfe.file == "hello");
-        assert(hfe.line == 42);
-        assert(hfe.next !is null);
         assert(hfe.msg == "Hidden method called for testInfo");
     }
 }
