@@ -363,6 +363,36 @@ void Module::gendocfile()
 /****************************************************
  * Having unmatched parentheses can hose the output of Ddoc,
  * as the macros depend on properly nested parentheses.
+ * This function replaces all ( with $(LPAREN) and ) with $(RPAREN)
+ * to preserve text literally. This also means macros in the
+ * text won't be expanded.
+ */
+void escapeDdocString(OutBuffer *buf, unsigned start)
+{
+    for (unsigned u = start; u < buf->offset; u++)
+    {
+        unsigned char c = buf->data[u];
+        switch(c)
+        {
+            case '(':
+                buf->remove(u, 1); //remove the (
+                buf->insert(u, "$(LPAREN)", 9); //insert this instead
+                u += 8; //skip over newly inserted macro
+                break;
+
+            case ')':
+                buf->remove(u, 1); //remove the )
+                buf->insert(u, "$(RPAREN)", 9); //insert this instead
+                u += 8; //skip over newly inserted macro
+                break;
+        }
+    }
+}
+
+/****************************************************
+ * Having unmatched parentheses can hose the output of Ddoc,
+ * as the macros depend on properly nested parentheses.
+
  * Fix by replacing unmatched ( with $(LPAREN) and unmatched ) with $(RPAREN).
  */
 void escapeStrayParenthesis(OutBuffer *buf, unsigned start, Loc loc)
