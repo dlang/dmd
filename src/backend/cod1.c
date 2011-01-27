@@ -2834,7 +2834,7 @@ STATIC code * funccall(elem *e,unsigned numpara,unsigned numalign,regm_t *pretre
         s = e1->EV.sp.Vsym;
         if (s->Sflags & SFLexit)
             c = NULL;
-        else
+        else if (s != tls_get_addr_sym)
             c = save87();               // assume 8087 regs are all trashed
         if (s->Sflags & SFLexit)
             // Function doesn't return, so don't worry about registers
