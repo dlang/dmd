@@ -127,4 +127,6 @@ struct Foo7(T) {
 /** show abstract */
 abstract class Foo8 { }
 
+/// a stray $(RPAREN) mustn't foul the macros
+void bug4878(string a = ")") {}
 
