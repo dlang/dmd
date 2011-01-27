@@ -171,3 +171,53 @@ static assert(retRefTest1()==2);
 static assert(retRefTest2()==2);
 static assert(retRefTest3()==26);
 static assert(retRefTest4()==218);
+
+int bug4389()
+{
+    string s;
+    dchar c = '\u2348';
+    s ~= c;
+    assert(s.length==3);
+    dchar d = 'D';
+    s ~= d;
+    assert(s.length==4);
+    s = "";
+    s ~= c;
+    assert(s.length==3);
+    s ~= d;
+    assert(s.length==4);
+    string z;
+    wchar w = '\u0300';
+    z ~= w;
+    assert(z.length==2);
+    z = "";
+    z ~= w;
+    assert(z.length==2);
+    return 1;
+}
+
+static assert(bug4389());
+
+// ICE(constfold.c)
+int ice4389()
+{
+    string s;
+    dchar c = '\u2348';
+    s ~= c;
+    s = s ~ "xxx";
+   return 1;
+}
+
+static assert(ice4389());
+
+// ICE(expression.c)
+string ice4390()
+{
+    string s;
+    dchar c = '`';
+    s ~= c;
+    s ~= c;
+   return s;
+}
+
+static assert(mixin(ice4390()) == ``);
