@@ -97,13 +97,8 @@ all: run_tests
 
 ifeq ($(MODEL),64)
 DISABLED_TESTS += testmath
+# reduction sent to walter
 # needs std.math
-
-DISABLED_TESTS += hospital
-# int vs long issues
-
-DISABLED_TESTS += test22
-#  has x86 specific asm code that needs translation
 
 DISABLED_TESTS += test34
 # looks like lots of issues with std.format, at least array and aa formatting is borked..
@@ -112,6 +107,7 @@ DISABLED_TESTS += testarray
 # sensitive code checking a specific runtime bug
 
 DISABLED_TESTS += testconst
+# reduction sent to walter
 # segv in a misleading place.. printfs around the functions in the backtrace
 # not firing.  More research needed.
 
@@ -119,6 +115,7 @@ DISABLED_TESTS += testgc2
 # various gc related issues
 
 DISABLED_TESTS += testzip
+# reduction sent to walter
 # zlib version error
 endif
 
