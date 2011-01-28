@@ -974,9 +974,12 @@ void test47()
 void test48()
 {
     Object o = new Object();
-    printf("%.*s\n", typeof(o).classinfo.name.length, typeof(o).classinfo.name.ptr);
-    printf("%.*s\n", (typeof(o)).classinfo.name.length, (typeof(o)).classinfo.name.ptr);
-    printf("%.*s\n", (Object).classinfo.name.length, (Object).classinfo.name.ptr);
+    auto s = typeof(o).classinfo.name;
+    printf("%.*s\n", s.length, s.ptr);
+    s = (typeof(o)).classinfo.name;
+    printf("%.*s\n", s.length, s.ptr);
+    s = (Object).classinfo.name;
+    printf("%.*s\n", s.length, s.ptr);
 }
 
 /*******************************************/
