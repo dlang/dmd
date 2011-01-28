@@ -3,6 +3,7 @@
 import core.stdc.math: isnan;
 import std.random: rand;
 import std.math: poly;
+import std.c.stdarg;
 
 extern(C)
 {
@@ -86,13 +87,13 @@ void test3()
 
 void test4()
 {    
-     printf("main() : (-128 >= 0)=%.*s, (-128 <= 0)=%.*s\n", 
-              (-128 >= 0 ? "true" : "false"),
-              (-128 <= 0 ?  "true" : "false"));     
+     printf("main() : (-128 >= 0)=%s, (-128 <= 0)=%s\n", 
+              cast(char*)(-128 >= 0 ? "true" : "false"),
+              cast(char*)(-128 <= 0 ?  "true" : "false"));     
 
-     printf("main() : (128 >= 0)=%.*s, (128 <= 0)=%.*s\n", 
-              (128 >= 0 ? "true" : "false"),
-              (128 <= 0 ?  "true" : "false"));
+     printf("main() : (128 >= 0)=%s, (128 <= 0)=%s\n", 
+              cast(char*)(128 >= 0 ? "true" : "false"),
+              cast(char*)(128 <= 0 ?  "true" : "false"));
               
      assert((-128 >= 0 ? "true" : "false") == "false"),
      assert((-128 <= 0 ? "true" : "false") == "true");     
@@ -976,6 +977,36 @@ body
                 ;
             }
         }
+	else version (FreeBSD)
+	{
+	asm     // assembler by W. Bright
+	{
+	    // EDX = (A.length - 1) * real.sizeof
+	    mov     ECX,A[EBP]          ; // ECX = A.length
+	    dec     ECX                 ;
+	    lea     EDX,[ECX][ECX*8]    ;
+	    add     EDX,ECX             ;
+	    add     EDX,ECX             ;
+	    add     EDX,ECX             ;
+	    add     EDX,A+4[EBP]        ;
+	    fld     real ptr [EDX]      ; // ST0 = coeff[ECX]
+	    jecxz   return_ST           ;
+	    fld     x[EBP]              ; // ST0 = x
+	    fxch    ST(1)               ; // ST1 = x, ST0 = r
+	    align   4                   ;
+    L2:     fmul    ST,ST(1)            ; // r *= x
+	    fld     real ptr -12[EDX]   ;
+	    sub     EDX,12              ; // deg--
+	    faddp   ST(1),ST            ;
+	    dec     ECX                 ;
+	    jne     L2                  ;
+	    fxch    ST(1)               ; // ST1 = r, ST0 = x
+	    fstp    ST(0)               ; // dump x
+	    align   4                   ;
+    return_ST:                          ;
+	    ;
+	}
+	}
 	else
 	{
 	asm     // assembler by W. Bright
@@ -1019,7 +1050,7 @@ in
 }
 body
 {
-    int i = A.length - 1;
+    ptrdiff_t i = A.length - 1;
     real r = A[i];
     while (--i >= 0)
     {
@@ -1042,7 +1073,8 @@ void test47()
 
     r = (56.1L + (32.7L + 6L * x) * x);
     assert(r == poly_c(x, pp));
-    assert(r == poly_asm(x, pp));
+    version (D_InlineAsm_X86)
+        assert(r == poly_asm(x, pp));
     assert(r == poly(x, pp));
 }
 

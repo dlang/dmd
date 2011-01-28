@@ -1561,6 +1561,35 @@ void test87()
 }
 
 /************************************/
+// 2751
+
+
+void test88(immutable(int[3]) a)
+{
+    const(char)[26] abc1 = "abcdefghijklmnopqrstuvwxyz";
+    const(char[26]) abc2 = "abcdefghijklmnopqrstuvwxyz";
+    immutable(const(char)[26]) abc3 = "abcdefghijklmnopqrstuvwxyz";
+    const(immutable(char)[26]) abc4 = "abcdefghijklmnopqrstuvwxyz";
+
+    auto abc5 = cast()"abcdefghijklmnopqrstuvwxyz";
+
+    pragma(msg, typeof(abc1).stringof);
+    pragma(msg, typeof(abc2).stringof);
+    pragma(msg, typeof(abc3).stringof);
+    pragma(msg, typeof(abc4).stringof);
+    pragma(msg, typeof(abc5).stringof);
+
+    static assert(is(typeof(abc1) == typeof(abc2)));
+    static assert(is(typeof(abc1) == const(char[26])));
+    static assert(is(typeof(abc3) == typeof(abc4)));
+    static assert(is(typeof(abc3) == immutable(char[26])));
+
+    auto b = cast()a;
+    pragma(msg, typeof(b).stringof);
+    static assert(is(typeof(b) == int[3]));
+}
+
+/************************************/
 
 int main()
 {
