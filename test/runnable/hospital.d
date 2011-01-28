@@ -54,8 +54,8 @@ public:
         if(level > 0)
         {
             r = new HealthcareRegion(level, seed1*seed2);
-            for(int i = r.districts.length-1; i >= 0; i--)
-                r.districts[i] = Create(level-1, (seed1*4)+i+1, seed2);
+            for(ptrdiff_t i = r.districts.length-1; i >= 0; i--)
+                r.districts[i] = Create(level-1, cast(int)((seed1*4)+i+1), seed2);
         }
         return r;
     }
@@ -74,7 +74,7 @@ private:
 package:
     Patient[] TransferPatients()
     {
-        for(int i = districts.length-1; i >= 0; i--)
+        for(ptrdiff_t i = districts.length-1; i >= 0; i--)
             if(districts[i])
                 foreach(Patient p; districts[i].TransferPatients().dup)
                     localHospital.NewArrival(p);
@@ -87,7 +87,7 @@ package:
     Totals AccumulateTotals()
     {
         Totals t = new Totals();
-        for(int i = districts.length-1; i >= 0; i--)
+        for(ptrdiff_t i = districts.length-1; i >= 0; i--)
             if(districts[i])
                 t += districts[i].AccumulateTotals();
 
@@ -155,7 +155,7 @@ private:
 
     void DischargePatients()
     {
-        for(int i = treatment.length-1; i >= 0; i--)
+        for(ptrdiff_t i = treatment.length-1; i >= 0; i--)
         {
             Patient p = treatment[i];
             p.remainingTime -= 1;
@@ -172,7 +172,7 @@ private:
     {
         delete transfers;
 
-        for(int i = examination.length-1; i >= 0; i--)
+        for(ptrdiff_t i = examination.length-1; i >= 0; i--)
         {
             Patient p = examination[i];
             p.remainingTime -= 1;
@@ -198,7 +198,7 @@ private:
 
     void TriagePatients()
     {	
-        for(int i = triage.length-1; i >= 0; i--)
+        for(ptrdiff_t i = triage.length-1; i >= 0; i--)
         {
             Patient p = triage[i];
             if(availableStaff > 0)
