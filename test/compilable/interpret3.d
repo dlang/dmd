@@ -221,3 +221,19 @@ string ice4390()
 }
 
 static assert(mixin(ice4390()) == ``);
+
+// bug 5248 (D1 + D2)
+struct Leaf5248 {
+    string Compile_not_ovloaded() {
+        return "expression";
+    }
+};
+struct Matrix5248 {
+    Leaf5248 Right;
+
+    string Compile() {
+        return Right.Compile_not_ovloaded();
+    }
+};
+
+static assert(Matrix5248().Compile());
