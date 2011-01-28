@@ -16,6 +16,8 @@
  * For reference:
  *      http://www.htmlhelp.com/reference/html40/entities/
  *      http://www.w3.org/TR/1999/REC-html401-19991224/sgml/entities.html
+ * TODO: This reference appears to be more complete and accurate
+ *      http://www.w3.org/2003/entities/2007/w3centities-f.ent
  */
 
 struct NameId
