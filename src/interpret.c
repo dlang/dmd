@@ -3100,7 +3100,7 @@ Expression *AssertExp::interpret(InterState *istate)
     {   // Special case: deal with compiler-inserted assert(&this, "null this")
         AddrExp *ade = (AddrExp *)this->e1;
         if (ade->e1->op == TOKthis && istate->localThis)
-            if (ade->e1->op == TOKdotvar
+            if (istate->localThis->op == TOKdotvar
                 && ((DotVarExp *)(istate->localThis))->e1->op == TOKthis)
                 return getVarExp(loc, istate, ((DotVarExp*)(istate->localThis))->var);
             else
@@ -3109,7 +3109,13 @@ Expression *AssertExp::interpret(InterState *istate)
     if (this->e1->op == TOKthis)
     {
         if (istate->localThis)
-            return istate->localThis->interpret(istate);
+        {
+            if (istate->localThis->op == TOKdotvar
+                && ((DotVarExp *)(istate->localThis))->e1->op == TOKthis)
+                return getVarExp(loc, istate, ((DotVarExp*)(istate->localThis))->var);
+            else
+                return istate->localThis->interpret(istate);
+        }
     }
     e1 = this->e1->interpret(istate);
     if (e1 == EXP_CANT_INTERPRET)
