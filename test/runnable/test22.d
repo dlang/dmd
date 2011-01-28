@@ -3,6 +3,7 @@
 import core.stdc.math: isnan;
 import std.random: rand;
 import std.math: poly;
+import std.c.stdarg;
 
 extern(C)
 {
@@ -86,13 +87,13 @@ void test3()
 
 void test4()
 {    
-     printf("main() : (-128 >= 0)=%.*s, (-128 <= 0)=%.*s\n", 
-              (-128 >= 0 ? "true" : "false"),
-              (-128 <= 0 ?  "true" : "false"));     
+     printf("main() : (-128 >= 0)=%s, (-128 <= 0)=%s\n", 
+              cast(char*)(-128 >= 0 ? "true" : "false"),
+              cast(char*)(-128 <= 0 ?  "true" : "false"));     
 
-     printf("main() : (128 >= 0)=%.*s, (128 <= 0)=%.*s\n", 
-              (128 >= 0 ? "true" : "false"),
-              (128 <= 0 ?  "true" : "false"));
+     printf("main() : (128 >= 0)=%s, (128 <= 0)=%s\n", 
+              cast(char*)(128 >= 0 ? "true" : "false"),
+              cast(char*)(128 <= 0 ?  "true" : "false"));
               
      assert((-128 >= 0 ? "true" : "false") == "false"),
      assert((-128 <= 0 ? "true" : "false") == "true");     
@@ -1049,7 +1050,7 @@ in
 }
 body
 {
-    int i = A.length - 1;
+    ptrdiff_t i = A.length - 1;
     real r = A[i];
     while (--i >= 0)
     {
@@ -1072,7 +1073,8 @@ void test47()
 
     r = (56.1L + (32.7L + 6L * x) * x);
     assert(r == poly_c(x, pp));
-    assert(r == poly_asm(x, pp));
+    version (D_InlineAsm_X86)
+        assert(r == poly_asm(x, pp));
     assert(r == poly(x, pp));
 }
 
