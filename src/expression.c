@@ -4704,9 +4704,14 @@ Expression *DeclarationExp::semantic(Scope *sc)
             error("declaration %s is already defined", s->toPrettyChars());
         else if (sc->func)
         {   VarDeclaration *v = s->isVarDeclaration();
-            if (s->isFuncDeclaration() &&
+            if ( (s->isFuncDeclaration() || s->isTypedefDeclaration() ||
+                s->isAggregateDeclaration() || s->isEnumDeclaration() ||
+                s->isInterfaceDeclaration()) &&
                 !sc->func->localsymtab->insert(s))
-                error("declaration %s is already defined in another scope in %s", s->toPrettyChars(), sc->func->toChars());
+            {
+                error("declaration %s is already defined in another scope in %s",
+                    s->toPrettyChars(), sc->func->toChars());
+            }
             else if (!global.params.useDeprecated)
             {   // Disallow shadowing
 
@@ -9086,7 +9091,7 @@ Expression *AssignExp::semantic(Scope *sc)
     }
 
     if (t1->ty == Tsarray && !refinit)
-    {   
+    {
         if (e1->op == TOKindex &&
             ((IndexExp *)e1)->e1->type->toBasetype()->ty == Taarray)
         {
