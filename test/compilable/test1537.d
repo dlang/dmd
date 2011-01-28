@@ -18,3 +18,7 @@ void foo(char[] s)
     }
 }
 
+/**************************************/
+
+enum bug4732 = 42;
+static assert( __traits(identifier, bug4732) == "bug4732");
