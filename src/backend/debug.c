@@ -250,6 +250,7 @@ void WReqn(elem *e)
             case OPmark:
             case OPgot:
             case OPframeptr:
+            case OPhalt:
                 WROP(e->Eoper);
                 break;
             case OPstrthis:
