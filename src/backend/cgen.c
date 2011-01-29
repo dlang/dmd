@@ -32,7 +32,7 @@ inline void ccheck(code *cs)
 {
 //    if (cs->Iop == LEA && (cs->Irm & 0x3F) == 0x34 && cs->Isib == 7) *(char*)0=0;
 //    if (cs->Iop == 0x31) *(char*)0=0;
-//    if (cs->Iop == 0xF6 && cs->Irm == 0xD6) *(char*)0=0;
+//    if (cs->Iop == 0x8A && cs->Irm == 0xF2) *(char*)0=0;
 }
 
 /*****************************
@@ -603,7 +603,7 @@ code *movregconst(code *c,unsigned reg,targ_size_t value,regm_t flags)
             {
                 if ((regcon.immed.value[r] & 0xFF) == value)
                 {   c = genregs(c,0x8A,reg,r);          // MOV regL,rL
-                    if (I64 && r >= 4)
+                    if (I64 && reg >= 4 || r >= 4)
                         code_orrex(c, REX);
                     goto L2;
                 }
