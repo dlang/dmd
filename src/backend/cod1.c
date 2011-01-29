@@ -2823,6 +2823,7 @@ STATIC code * funccall(elem *e,unsigned numpara,unsigned numalign,regm_t *pretre
     e1 = e->E1;
     tym1 = tybasic(e1->Ety);
     farfunc = tyfarfunc(tym1) || tym1 == TYifunc;
+    c = NULL;
     if (e1->Eoper == OPvar)
     {   /* Call function directly       */
         code *c1;
