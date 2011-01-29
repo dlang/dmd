@@ -111,9 +111,6 @@ DISABLED_TESTS += testconst
 # segv in a misleading place.. printfs around the functions in the backtrace
 # not firing.  More research needed.
 
-DISABLED_TESTS += testgc2
-# various gc related issues
-
 DISABLED_TESTS += testzip
 # reduction sent to walter
 # zlib version error

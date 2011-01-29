@@ -19,7 +19,7 @@ void test1()
     printf("This should not take a while\n");
     try
     {
-	long[] l = new long[size_t.max];
+	long[] l = new long[ptrdiff_t.max];
 	assert(0);
     }
     catch (OutOfMemoryError o)
