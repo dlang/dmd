@@ -226,7 +226,7 @@ extern (C) void _d_hidden_func()
     else version(X86_64)
         asm
         {
-            mov o, RAX;
+            mov o, RDI;
         }
     else
         static assert(0, "unknown os");
