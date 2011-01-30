@@ -69,11 +69,8 @@ SRC = win32.mak linux.mak osx.mak freebsd.mak solaris.mak \
 	delegatize.c toir.h toir.c interpret.c traits.c cppmangle.c \
 	builtin.c clone.c lib.h libomf.c libelf.c libmach.c arrayop.c \
 	aliasthis.h aliasthis.c json.h json.c unittests.c imphint.c \
-<<<<<<< HEAD
 	argtypes.c \
-=======
 	objc.c \
->>>>>>> extern (Obj-C) interfaces with explicit method names.
 	$C/cdef.h $C/cc.h $C/oper.h $C/ty.h $C/optabgen.c \
 	$C/global.h $C/parser.h $C/code.h $C/type.h $C/dt.h $C/cgcv.h \
 	$C/el.h $C/iasm.h $C/rtlsym.h $C/html.h \
