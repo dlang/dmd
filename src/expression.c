@@ -73,7 +73,7 @@ Expression *getRightThis(Loc loc, Scope *sc, AggregateDeclaration *ad,
     {
         // We already have an Objective-C class reference, just use that as 'this'.
     }
-	else if (//t->isClassHandle() && t->isClassHandle() == ad &&
+	else if (ad &&
 		ad->isClassDeclaration() && ((ClassDeclaration *)ad)->objc && 
 		var->isFuncDeclaration() && ((FuncDeclaration *)var)->isStatic() &&
 		((FuncDeclaration *)var)->objcSelector)
