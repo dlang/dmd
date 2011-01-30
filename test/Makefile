@@ -100,9 +100,6 @@ DISABLED_TESTS += testmath
 # reduction sent to walter
 # needs std.math
 
-DISABLED_TESTS += test34
-# looks like lots of issues with std.format, at least array and aa formatting is borked..
-
 DISABLED_TESTS += testarray
 # sensitive code checking a specific runtime bug
 
