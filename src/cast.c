@@ -1707,8 +1707,8 @@ Lagain:
     }
     else if (t1->ty == Tclass || t2->ty == Tclass)
     {
-        if (t1->mod != t2->mod)
-        {   unsigned char mod = MODmerge(t1->mod, t2->mod);
+        if (t1->head()->mod != t2->head()->mod)
+        {   unsigned char mod = MODmerge(t1->head()->mod, t2->head()->mod);
             t1 = t1->castMod(mod);
             t2 = t2->castMod(mod);
             t = t1;
