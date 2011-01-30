@@ -7,11 +7,14 @@ void test1()
 {   int i;
     static int j;
 
+    version (D_InlineAsm_X86)
+    {
     asm
     {
 	naked		;
 	mov EAX, i	;
 	mov EAX, j	;
+    }
     }
 }
 
