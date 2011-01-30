@@ -2999,6 +2999,8 @@ code *cdport(elem *e,regm_t *pretregs)
     {   retregs = mDX;                  /* port number is always DX     */
         c1 = codelem(e1,&retregs,FALSE);
         op |= 0x08;                     /* DX version of opcode         */
+        port = 0;                       // not logically needed, but
+                                        // quiets "uninitialized var" complaints
     }
 
     if (e->Eoper == OPoutp)

@@ -4235,7 +4235,8 @@ beg:
         }
     }
     else if (OTbinary(op))              // if binary operator
-    {   HINT leftgoal,rightgoal;
+    {   HINT leftgoal = 1;
+        HINT rightgoal;
 
         /* Determine goals for left and right subtrees  */
         rightgoal = (goal || OTsideff(op));
