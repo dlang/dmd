@@ -97,59 +97,25 @@ all: run_tests
 
 ifeq ($(MODEL),64)
 DISABLED_TESTS += testmath
+# reduction sent to walter
 # needs std.math
-
-DISABLED_TESTS += hospital
-# int vs long issues
-
-DISABLED_TESTS += s2ir
-DISABLED_TESTS += test16
-DISABLED_TESTS += test20
-DISABLED_TESTS += test28
-# -fPIC: transition from R_X86_64_TLSGD to R_X86_64_GOTTPOFF against
-
-DISABLED_TESTS += test22
-#  has x86 specific asm code that needs translation
-
-DISABLED_TESTS += test34
-# looks like lots of issues with std.format, at least array and aa formatting is borked..
 
 DISABLED_TESTS += testarray
 # sensitive code checking a specific runtime bug
 
 DISABLED_TESTS += testconst
+# reduction sent to walter
 # segv in a misleading place.. printfs around the functions in the backtrace
 # not firing.  More research needed.
 
-DISABLED_TESTS += testgc2
-# various gc related issues
-
 DISABLED_TESTS += testzip
+# reduction sent to walter
 # zlib version error
+endif
 
 $(addsuffix .d.out,$(addprefix $(RESULTS_DIR)/runnable/,$(DISABLED_TESTS))): $(RESULTS_DIR)/.created
 	$(QUIET) echo " ... $@ - disabled"
 
-$(RESULTS_DIR)/runnable/test2.sh.out:
-	$(QUIET) echo " ... $@ - disabled"
-	$(QUIET) touch $@
-
-$(RESULTS_DIR)/runnable/%.d.out: runnable/%.d $(RESULTS_DIR)/.created $(RESULTS_DIR)/combinations $(DMD)
-	$(QUIET) ./do_test.sh $(<D) $* d
-
-$(RESULTS_DIR)/runnable/%.html.out: runnable/%.html $(RESULTS_DIR)/.created $(RESULTS_DIR)/combinations $(DMD)
-	$(QUIET) ./do_test.sh $(<D) $* html
-
-$(RESULTS_DIR)/runnable/%.sh.out: runnable/%.sh $(RESULTS_DIR)/.created $(RESULTS_DIR)/combinations $(DMD)
-	$(QUIET) echo " ... $(<D)/$*.sh"
-	$(QUIET) ./$(<D)/$*.sh
-
-$(RESULTS_DIR)/compilable/%.d.out: compilable/%.d $(RESULTS_DIR)/.created $(RESULTS_DIR)/combinations $(DMD)
-	$(QUIET) ./do_test.sh $(<D) $* d
-
-$(RESULTS_DIR)/fail_compilation/%.d.out: fail_compilation/%.d $(RESULTS_DIR)/.created $(RESULTS_DIR)/combinations $(DMD)
-	$(QUIET) ./do_test.sh $(<D) $* d
-else
 $(RESULTS_DIR)/runnable/%.d.out: runnable/%.d $(RESULTS_DIR)/.created $(RESULTS_DIR)/d_do_test $(DMD)
 	$(QUIET) ./$(RESULTS_DIR)/d_do_test $(<D) $* d
 
@@ -165,7 +131,6 @@ $(RESULTS_DIR)/compilable/%.d.out: compilable/%.d $(RESULTS_DIR)/.created $(RESU
 
 $(RESULTS_DIR)/fail_compilation/%.d.out: fail_compilation/%.d $(RESULTS_DIR)/.created $(RESULTS_DIR)/d_do_test $(DMD)
 	$(QUIET) ./$(RESULTS_DIR)/d_do_test $(<D) $* d
-endif
 
 quick:
 	$(MAKE) ARGS="" run_tests
@@ -205,8 +170,4 @@ start_fail_compilation_tests: $(RESULTS_DIR)/.created $(RESULTS_DIR)/d_do_test
 $(RESULTS_DIR)/d_do_test: d_do_test.d $(RESULTS_DIR)/.created
 	@echo "Building d_do_test tool"
 	$(QUIET)$(DMD) -m$(MODEL) -od$(RESULTS_DIR) -of$(RESULTS_DIR)$(DSEP)d_do_test d_do_test.d
-
-$(RESULTS_DIR)/combinations: combinations.d $(RESULTS_DIR)/.created
-	@echo "Building combinations tool"
-	$(QUIET)$(DMD) -m$(MODEL) -od$(RESULTS_DIR) -of$(RESULTS_DIR)$(DSEP)combinations combinations.d
 

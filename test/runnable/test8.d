@@ -317,14 +317,12 @@ void test17()
 {
     string s;
 
-    printf("passString() = %.*s\n", passString());
-
     s = passString();
+    printf("passString() = %.*s\n", s.length, s.ptr);
     assert(s == "First stringConcatenated with second");
 
-    printf("butThisWorks() = %.*s\n", butThisWorks());
-
     s = butThisWorks();
+    printf("butThisWorks() = %.*s\n", s.length, s.ptr);
     assert(s == "Third stringConcatenated with fourth");
 }
 
@@ -356,8 +354,8 @@ void test18()
     // This will give sintax error
     //str[0].sort();
 
-    printf(str[0].ptr);
-    printf(str[1].ptr);
+    printf("%.*s", str[0].length, str[0].ptr);
+    printf("%.*s", str[1].length, str[1].ptr);
     printf("\n");
 
     string s = str[0] ~ str[1];
@@ -726,7 +724,7 @@ void test36()
 {
     string s = testa36(26, 47, "a", "b", "c");
 
-    printf("s = '%.*s'\n", s);
+    printf("s = '%.*s'\n", s.length, s.ptr);
     assert(s == "string 0;26string 1;47string 2;26string 3;");
 }
 
