@@ -1,3 +1,4 @@
+// REQUIRED_ARGS: -L-framework -LCocoa
 
 extern (Objective-C)
 pragma (objc_takestringliteral)

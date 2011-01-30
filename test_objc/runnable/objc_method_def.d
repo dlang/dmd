@@ -1,3 +1,4 @@
+// REQUIRED_ARGS: -L-framework -LCocoa
 
 import std.c.stdio;
 

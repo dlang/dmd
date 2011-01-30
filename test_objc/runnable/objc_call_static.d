@@ -1,3 +1,4 @@
+// REQUIRED_ARGS: -L-framework -LCocoa
 
 extern extern (Objective-C)
 class NSObject {
