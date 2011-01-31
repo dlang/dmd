@@ -2672,6 +2672,8 @@ code *cdshtlng(elem *e,regm_t *pretregs)
             {
                 // Convert AND of a word to AND of a dword, zeroing upper word
                 retregs = mask[cx->Irm & 7];
+                if (cx->Irex & REX_B)
+                    retregs = mask[8 | (cx->Irm & 7)];
                 cx->Iflags &= ~CFopsize;
                 cx->IEV2.Vint &= 0xFFFF;
                 goto L1;
