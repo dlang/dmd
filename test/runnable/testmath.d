@@ -265,7 +265,7 @@ void testasinh()
 void testatanh()
 {
     assert(atanh(0.0) == 0);
-    assert(equals(atanh(tanh(0.5)), 0.5, 16));
+    assert(equals(atanh(tanh(0.5L)), 0.5, 16));
 }
 
 /*************************************************/
