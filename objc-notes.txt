@@ -243,7 +243,7 @@ class if it overrides one in the current class. Here is an example:
 This is not possible with regular static functions in D.
 
 
-### Using the Class Object {unimplemented}
+### Using the Class Object
 
 In Objective-C, you can get the class object for a given instance by calling
 the `class` method:
@@ -262,8 +262,6 @@ returns a different type depending on the type of `x`.
 Inside an instance method, use `this.class` to get the current class object;
 omiting `this` like for other members is not possible as it would make the 
 amgiguous with.
-
-{Question: is `x.class` a good syntax?}
 
 There is no `classinfo` property for Objective-C objects.
 
@@ -304,7 +302,7 @@ Objective-C runtime use one of the two implementations in both cases.
 conflicts between different categories?}
 
 
-## `NSString` Literals {unimplemented}
+## `NSString` Literals
 
 D string literals are changed to NSString literals whenever the context 
 requires it. The following Objective-C code:
@@ -335,16 +333,16 @@ You can also get the selector of a function this way:
 	SEL sel = selector!(NSObject.isKindOfClass);
 
 
-## Protocol Literals {unimplemented}
+## Protocol Literals
 
 When you need to express a protocol, in Objective-C you use the `@protocol`
 keyword:
 
 	Protocol *p = @protocol(NSCoding);
 
-In D, you use the `interface` property of the interface:
+In D, you use the `protocolof` property of the interface:
 
-	Protocol p = NSCoding.interface;
+	Protocol p = NSCoding.protocolof;
 
 
 ## Interface Builder Attributes {unimplemented}
