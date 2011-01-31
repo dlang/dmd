@@ -124,8 +124,10 @@ int main(){
 	assert('\&rceil;'==8969);
 	assert('\&lfloor;'==8970);
 	assert('\&rfloor;'==8971);
-	assert('\&lang;'==9001);
-	assert('\&rang;'==9002);
+	assert('\&lang;'==9001); // U+2329 valid for HTML 4.01; changed in HTML5
+	assert('\&rang;'==9002); // U+232A valid for HTML 4.01; changed in HTML5
+//    assert('\&lang;'==0x27E8); // valid for HTML 5 and later. The character was introduced in HTML 3.2
+//    assert('\&rang;'==0x27E9); // valid for HTML 5 and later. The character was introduced in HTML 3.2
 	assert('\&loz;'==9674);
 	assert('\&spades;'==9824);
 	assert('\&clubs;'==9827);
@@ -133,3 +135,10 @@ int main(){
 	assert('\&diams;'==9830);
 	return 0;
 }
+
+// Bug 5221
+static assert('\&check;'==10003);
+static assert('\&lsim;'==8818);
+static assert('\&numero;'==8470);
+static assert('\&urcorn;'==8989);
+static assert('\&Zdot;'==379);
