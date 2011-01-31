@@ -112,12 +112,12 @@ struct ObjcDotClassExp : UnaExp
     static FuncDeclaration *classFunc();
 };
 
-struct ObjcDotInterfaceExp : UnaExp
+struct ObjcProtocolOfExp : UnaExp
 {
 	InterfaceDeclaration *idecl;
 	static ClassDeclaration *protocolClassDecl;
 
-    ObjcDotInterfaceExp(Loc loc, Expression *e);
+    ObjcProtocolOfExp(Loc loc, Expression *e);
     Expression *semantic(Scope *sc);
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
     elem *toElem(IRState *irs);

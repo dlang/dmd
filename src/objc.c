@@ -697,15 +697,15 @@ elem *ObjcDotClassExp::toElem(IRState *irs)
 
 // MARK: .interface Expression
 
-ClassDeclaration *ObjcDotInterfaceExp::protocolClassDecl = NULL;
+ClassDeclaration *ObjcProtocolOfExp::protocolClassDecl = NULL;
 
-ObjcDotInterfaceExp::ObjcDotInterfaceExp(Loc loc, Expression *e)
-    : UnaExp(loc, TOKobjc_dotinterface, sizeof(ObjcDotInterfaceExp), e)
+ObjcProtocolOfExp::ObjcProtocolOfExp(Loc loc, Expression *e)
+    : UnaExp(loc, TOKobjc_dotinterface, sizeof(ObjcProtocolOfExp), e)
 {
     idecl = NULL;
 }
 
-Expression *ObjcDotInterfaceExp::semantic(Scope *sc)
+Expression *ObjcProtocolOfExp::semantic(Scope *sc)
 {
     UnaExp::semantic(sc);
     if (e1->type && e1->type->ty == Tclass)
@@ -725,7 +725,7 @@ Expression *ObjcDotInterfaceExp::semantic(Scope *sc)
                     }
                     else
                     {
-                        error("'interface' property not available because its type (the 'Protocol' Objective-C class) is not defined", e1->toChars(), e1->type->toChars());
+                        error("'protocolof' property not available because its the 'Protocol' Objective-C class is not defined (did you forget to import objc.types?)");
                         return new ErrorExp();
                     }
                 }
@@ -733,17 +733,17 @@ Expression *ObjcDotInterfaceExp::semantic(Scope *sc)
         }
     }
     
-    error("%s of type %s has no 'interface' property", e1->toChars(), e1->type->toChars());
+    error("%s of type %s has no 'protocolof' property", e1->toChars(), e1->type->toChars());
     return new ErrorExp();
 }
 
-void ObjcDotInterfaceExp::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
+void ObjcProtocolOfExp::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 {
     e1->toCBuffer(buf, hgs);
-    buf->writestring(".interface");
+    buf->writestring(".protocolof");
 }
 
-elem *ObjcDotInterfaceExp::toElem(IRState *irs)
+elem *ObjcProtocolOfExp::toElem(IRState *irs)
 {
     return el_ptr(ObjcSymbols::getProtocolSymbol(idecl));
 }

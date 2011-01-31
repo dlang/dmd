@@ -500,9 +500,9 @@ void ClassDeclaration::semantic(Scope *sc)
             objcident = ident;
 
         if (objcident == Id::Protocol)
-        {   if (ObjcDotInterfaceExp::protocolClassDecl == NULL)
-                ObjcDotInterfaceExp::protocolClassDecl = this;
-            else if (ObjcDotInterfaceExp::protocolClassDecl != this)
+        {   if (ObjcProtocolOfExp::protocolClassDecl == NULL)
+                ObjcProtocolOfExp::protocolClassDecl = this;
+            else if (ObjcProtocolOfExp::protocolClassDecl != this)
             {   error("duplicate definition of Objective-C class '%s'", Id::Protocol);
             }
         }
