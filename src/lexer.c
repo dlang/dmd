@@ -3169,7 +3169,7 @@ void Lexer::initKeywords()
 #if DMD_OBJC
     Token::tochars[TOKobjcclsref] = "objcclsref";
     Token::tochars[TOKobjc_dotclass] = ".class";
-    Token::tochars[TOKobjc_dotinterface] = ".interface";
+    Token::tochars[TOKobjc_dotprotocolof] = ".protocolof";
 #endif
 
 #if UNITTEST

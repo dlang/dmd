@@ -700,7 +700,7 @@ elem *ObjcDotClassExp::toElem(IRState *irs)
 ClassDeclaration *ObjcProtocolOfExp::protocolClassDecl = NULL;
 
 ObjcProtocolOfExp::ObjcProtocolOfExp(Loc loc, Expression *e)
-    : UnaExp(loc, TOKobjc_dotinterface, sizeof(ObjcProtocolOfExp), e)
+    : UnaExp(loc, TOKobjc_dotprotocolof, sizeof(ObjcProtocolOfExp), e)
 {
     idecl = NULL;
 }
