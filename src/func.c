@@ -419,7 +419,7 @@ void FuncDeclaration::semantic(Scope *sc)
             goto Ldone;
         }
 
-#ifdef DMD_OBJC
+#if DMD_OBJC
         // Handle Objective-C static member functions, which are virtual
         // functions of the metaclass, by changing the parent class 
         // declaration to the metaclass.

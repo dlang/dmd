@@ -94,7 +94,7 @@ void unittests();
 #define CPP_MANGLE (DMDV2 && (TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_SOLARIS))
 
 // Objective-C Support
-#define DMD_OBJC (DMDV2 && TARGET_OSX)
+#define DMD_OBJC (DMDV2 && TARGET_OSX && D_OBJC)
 
 /* Other targets are TARGET_LINUX, TARGET_OSX, TARGET_FREEBSD and
  * TARGET_SOLARIS, which are

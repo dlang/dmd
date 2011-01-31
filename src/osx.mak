@@ -49,8 +49,7 @@ DMD_OBJS = \
 	builtin.o clone.o aliasthis.o \
 	man.o arrayop.o port.o response.o async.o json.o speller.o aav.o unittests.o \
 	imphint.o argtypes.o \
-	libmach.o machobj.o \
-	objc.o
+	libmach.o machobj.o
 
 SRC = win32.mak linux.mak osx.mak freebsd.mak solaris.mak \
 	mars.c enum.c struct.c dsymbol.c import.c idgen.c impcnvgen.c \
@@ -70,7 +69,6 @@ SRC = win32.mak linux.mak osx.mak freebsd.mak solaris.mak \
 	builtin.c clone.c lib.h libomf.c libelf.c libmach.c arrayop.c \
 	aliasthis.h aliasthis.c json.h json.c unittests.c imphint.c \
 	argtypes.c \
-	objc.c \
 	$C/cdef.h $C/cc.h $C/oper.h $C/ty.h $C/optabgen.c \
 	$C/global.h $C/parser.h $C/code.h $C/type.h $C/dt.h $C/cgcv.h \
 	$C/el.h $C/iasm.h $C/rtlsym.h $C/html.h \
@@ -97,6 +95,19 @@ SRC = win32.mak linux.mak osx.mak freebsd.mak solaris.mak \
 	$(ROOT)/response.c $(ROOT)/async.h $(ROOT)/async.c \
 	$(ROOT)/aav.h $(ROOT)/aav.c \
 	$(ROOT)/speller.h $(ROOT)/speller.c
+
+ifeq ($(D_OBJC),1)
+# Files to add for Objective-C support
+
+DMD_OBJS:=$(DMD_OBJS)\
+	objc.o
+	
+SRC:=$(SRC)\
+	objc.c
+
+GFLAGS:=$(GFLAGS) -DD_OBJC=1
+
+endif
 
 
 all: dmd

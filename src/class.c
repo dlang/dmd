@@ -61,7 +61,8 @@ ClassDeclaration::ClassDeclaration(Loc loc, Identifier *id, BaseClasses *basecla
 
     vtblsym = NULL;
     vclassinfo = NULL;
-    
+
+#if DMD_OBJC
     objc = 0;
     objcmeta = 0;
     objcextern = 0;
@@ -70,6 +71,7 @@ ClassDeclaration::ClassDeclaration(Loc loc, Identifier *id, BaseClasses *basecla
     sobjccls = NULL;
     objcMethods = NULL;
     metaclass = NULL;
+#endif
 
     if (id)
     {   // Look for special class names
@@ -301,7 +303,7 @@ void ClassDeclaration::semantic(Scope *sc)
 #if DMD_OBJC
         objc = 1;
         objcextern = 1;
-#elif
+#else
         error("Objective-C classes not supported");
 #endif
     }
@@ -1185,7 +1187,7 @@ const char *ClassDeclaration::kind()
 
 void ClassDeclaration::addLocalClass(ClassDeclarations *aclasses)
 {
-#ifdef DMD_OBJC
+#if DMD_OBJC
     if (objc)
         return;
 #endif
@@ -1300,7 +1302,7 @@ void InterfaceDeclaration::semantic(Scope *sc)
     
         if (!objcident)
             objcident = ident;
-#elif
+#else
         error("Objective-C interfaces not supported");
 #endif
     }
