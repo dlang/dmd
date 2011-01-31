@@ -322,15 +322,19 @@ a variable, you'll need to construct the `NSString` object yourself.
 When you need to express a selector, in Objective-C you use the `@selector`
 keyword:
 
-	SEL sel = @selector(setObject:forKey:);
+	SEL sel = @selector(hasSuffix:);
 
-In D, you use the `selector` template defined in the objc module:
+In D, selectors are type-safe. To create a selector type, you must know the 
+return type and the parameter type this selector should have. You can then
 
-	SEL sel = selector!"setObject:forKey:";
+    BOOL __selector(NSString) sel = &NSString.hasSuffix;
+    
+A selector type can be used just like a delegate, with one difference. When 
+calling a selector, you need to add the object this selector applies to as the
+first argument:
 
-You can also get the selector of a function this way:
-
-	SEL sel = selector!(NSObject.isKindOfClass);
+    NSString s = "hello world";
+    sel(s, "world"); // same as s.hasSuffix("world")
 
 
 ## Protocol Literals
