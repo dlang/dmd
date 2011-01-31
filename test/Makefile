@@ -96,13 +96,6 @@ fail_compilation_test_results=$(addsuffix .out,$(addprefix $(RESULTS_DIR)/,$(fai
 all: run_tests
 
 ifeq ($(MODEL),64)
-DISABLED_TESTS += testmath
-# reduction sent to walter
-# needs std.math
-
-DISABLED_TESTS += testarray
-# sensitive code checking a specific runtime bug
-
 DISABLED_TESTS += testconst
 # reduction sent to walter
 # segv in a misleading place.. printfs around the functions in the backtrace
