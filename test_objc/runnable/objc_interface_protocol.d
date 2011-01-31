@@ -27,8 +27,8 @@ abstract class Protocol : __Object {
 }
 
 void main() {
-    assert(NSObject.classConformsToProtocol(ObjcObject.interface));
+    assert(NSObject.classConformsToProtocol(ObjcObject.protocolof));
 
     NSObject o = new NSObject;
-    assert(o.conformsToProtocol(ObjcObject.interface));
+    assert(o.conformsToProtocol(ObjcObject.protocolof));
 }

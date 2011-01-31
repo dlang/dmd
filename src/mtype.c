@@ -7415,6 +7415,14 @@ L1:
             e = e->semantic(sc);
             return e;
         }
+#if DMD_OBJC
+        if (ident == Id::protocolof)
+        {
+            e = new ObjcDotInterfaceExp(e->loc, e);
+            e = e->semantic(sc);
+            return e;
+        }
+#endif
 
         if (ident == Id::typeinfo)
         {

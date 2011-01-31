@@ -104,6 +104,7 @@ Msgtable msgtable[] =
     { "_cmd" },
     { "Class" },
     { "Protocol" },
+    { "protocolof" },
 
     { "LINE", "__LINE__" },
     { "FILE", "__FILE__" },

@@ -2323,7 +2323,7 @@ Type *Parser::parseBasicType()
             while (token.value == TOKdot)
             {   nextToken();
 #if DMD_OBJC && 0 
-                if (token.value == TOKclass || token.value == TOKinterface)
+                if (token.value == TOKclass)
                 {   // allow this for Objective-C types
                     assert(token.ident);
                     break;
@@ -5518,12 +5518,6 @@ Expression *Parser::parsePostExp(Expression *e)
                 else if (token.value == TOKclass)
                 {
                     e = new ObjcDotClassExp(loc, e);
-                    nextToken();
-                    continue;
-                }
-                else if (token.value == TOKinterface)
-                {
-                    e = new ObjcDotInterfaceExp(loc, e);
                     nextToken();
                     continue;
                 }
