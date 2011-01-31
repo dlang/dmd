@@ -2672,6 +2672,8 @@ code *cdshtlng(elem *e,regm_t *pretregs)
             {
                 // Convert AND of a word to AND of a dword, zeroing upper word
                 retregs = mask[cx->Irm & 7];
+                if (cx->Irex & REX_B)
+                    retregs = mask[8 | (cx->Irm & 7)];
                 cx->Iflags &= ~CFopsize;
                 cx->IEV2.Vint &= 0xFFFF;
                 goto L1;
@@ -2999,6 +3001,8 @@ code *cdport(elem *e,regm_t *pretregs)
     {   retregs = mDX;                  /* port number is always DX     */
         c1 = codelem(e1,&retregs,FALSE);
         op |= 0x08;                     /* DX version of opcode         */
+        port = 0;                       // not logically needed, but
+                                        // quiets "uninitialized var" complaints
     }
 
     if (e->Eoper == OPoutp)

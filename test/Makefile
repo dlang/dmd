@@ -96,24 +96,10 @@ fail_compilation_test_results=$(addsuffix .out,$(addprefix $(RESULTS_DIR)/,$(fai
 all: run_tests
 
 ifeq ($(MODEL),64)
-DISABLED_TESTS += testmath
-# reduction sent to walter
-# needs std.math
-
-DISABLED_TESTS += test34
-# looks like lots of issues with std.format, at least array and aa formatting is borked..
-
-DISABLED_TESTS += testarray
-# sensitive code checking a specific runtime bug
-
 DISABLED_TESTS += testconst
 # reduction sent to walter
 # segv in a misleading place.. printfs around the functions in the backtrace
 # not firing.  More research needed.
-
-DISABLED_TESTS += testzip
-# reduction sent to walter
-# zlib version error
 endif
 
 $(addsuffix .d.out,$(addprefix $(RESULTS_DIR)/runnable/,$(DISABLED_TESTS))): $(RESULTS_DIR)/.created
