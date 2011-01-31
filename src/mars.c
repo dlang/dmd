@@ -875,6 +875,9 @@ int main(int argc, char *argv[])
     if (global.params.useUnitTests)
         VersionCondition::addPredefinedGlobalIdent("unittest");
 #endif
+#if DMD_OBJC
+	VersionCondition::addPredefinedGlobalIdent("D_ObjC");
+#endif
 
     // Initialization
     Type::init();
