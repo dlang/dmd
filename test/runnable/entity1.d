@@ -124,10 +124,10 @@ int main(){
 	assert('\&rceil;'==8969);
 	assert('\&lfloor;'==8970);
 	assert('\&rfloor;'==8971);
-	assert('\&lang;'==9001); // U+2329 valid for HTML 4.01; changed in HTML5
-	assert('\&rang;'==9002); // U+232A valid for HTML 4.01; changed in HTML5
-//    assert('\&lang;'==0x27E8); // valid for HTML 5 and later. The character was introduced in HTML 3.2
-//    assert('\&rang;'==0x27E9); // valid for HTML 5 and later. The character was introduced in HTML 3.2
+	//assert('\&lang;'==9001); // U+2329 valid for HTML 4.01; changed in HTML5
+	//assert('\&rang;'==9002); // U+232A valid for HTML 4.01; changed in HTML5
+    assert('\&lang;'==0x27E8); // valid for HTML 5 and later. The character was introduced in HTML 3.2
+    assert('\&rang;'==0x27E9); // valid for HTML 5 and later. The character was introduced in HTML 3.2
 	assert('\&loz;'==9674);
 	assert('\&spades;'==9824);
 	assert('\&clubs;'==9827);
