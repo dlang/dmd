@@ -32,6 +32,8 @@ import core.memory;
 //
 void main()
 {
+version(X86)
+{
     // fill up the cache to make it wrap, The block info cache has 8 elements,
     // and the first element is not the first one filled, so we want to wrap to
     // that first element we want to fill in
@@ -64,3 +66,5 @@ void main()
     x ~= "hello".dup; // this should leave the attributes alone
     assert((GC.getAttr(x.ptr) & GC.BlkAttr.NO_SCAN) == 0); // fails on 2.042
 }
+}
+
