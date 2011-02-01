@@ -95,13 +95,6 @@ fail_compilation_test_results=$(addsuffix .out,$(addprefix $(RESULTS_DIR)/,$(fai
 
 all: run_tests
 
-ifeq ($(MODEL),64)
-DISABLED_TESTS += testconst
-# reduction sent to walter
-# segv in a misleading place.. printfs around the functions in the backtrace
-# not firing.  More research needed.
-endif
-
 $(addsuffix .d.out,$(addprefix $(RESULTS_DIR)/runnable/,$(DISABLED_TESTS))): $(RESULTS_DIR)/.created
 	$(QUIET) echo " ... $@ - disabled"
 
