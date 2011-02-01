@@ -4762,7 +4762,7 @@ elem *AssocArrayLiteralExp::toElem(IRState *irs)
     if (I64)
     {   // call _d_assocarrayliteralTX(TypeInfo_AssociativeArray ti, void[] keys, void[] values)
         // Prefer this to avoid the varargs fiasco in 64 bit code
-        Type *t = type->toBasetype();
+        Type *t = type->toBasetype()->mutableOf();
         assert(t->ty == Taarray);
         TypeAArray *ta = (TypeAArray *)t;
 
