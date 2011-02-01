@@ -1,5 +1,5 @@
 // Copyright (C) 1984-1998 by Symantec
-// Copyright (C) 2000-2010 by Digital Mars
+// Copyright (C) 2000-2011 by Digital Mars
 // All Rights Reserved
 // http://www.digitalmars.com
 // Written by Walter Bright
@@ -1894,7 +1894,7 @@ code *fixresult(elem *e,regm_t retregs,regm_t *pretregs)
   if (*pretregs == 0) return CNIL;      /* if don't want result         */
   assert(e && retregs);                 /* need something to work with  */
   forccs = *pretregs & mPSW;
-  forregs = *pretregs & (mST01 | mST0 | mBP | ALLREGS | mES | mSTACK);
+  forregs = *pretregs & (mST01 | mST0 | mBP | ALLREGS | mES | mSTACK | XMMREGS);
   tym = tybasic(e->Ety);
 #if 0
   if (tym == TYstruct)
@@ -1975,12 +1975,18 @@ code *fixresult(elem *e,regm_t retregs,regm_t *pretregs)
             else if (retregs & XMMREGS)
             {
                 reg = findreg(retregs & XMMREGS);
-                // MOVD floatreg, XMM?
+                // MOVSD floatreg, XMM?
                 ce = genfltreg(ce,0xF20F11,reg - XMM0,0);
-                // MOV rreg,floatreg
-                ce = genfltreg(ce,0x8B,rreg,0);
-                if (sz == 8)
-                    code_orrex(ce,REX_W);
+                if (mask[rreg] & XMMREGS)
+                    // MOVSD XMM?, floatreg
+                    ce = genfltreg(ce,0xF20F10,rreg - XMM0,0);
+                else
+                {
+                    // MOV rreg,floatreg
+                    ce = genfltreg(ce,0x8B,rreg,0);
+                    if (sz == 8)
+                        code_orrex(ce,REX_W);
+                }
             }
             else
             {
@@ -3856,8 +3862,7 @@ code *loaddata(elem *e,regm_t *pretregs)
   if (*pretregs & mSTACK)
         forregs |= DOUBLEREGS;
   if (e->Eoper == OPconst)
-  {     regm_t save;
-
+  {
         targ_size_t value = e->EV.Vint;
         if (sz == 8)
             value = e->EV.Vullong;
@@ -3865,7 +3870,7 @@ code *loaddata(elem *e,regm_t *pretregs)
         if (sz == REGSIZE && reghasvalue(forregs,value,&reg))
             forregs = mask[reg];
 
-        save = regcon.immed.mval;
+        regm_t save = regcon.immed.mval;
         c = allocreg(&forregs,&reg,tym);        /* allocate registers   */
         regcon.immed.mval = save;               // KLUDGE!
         if (sz <= REGSIZE)
