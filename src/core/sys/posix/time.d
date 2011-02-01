@@ -85,9 +85,19 @@ version( linux )
     enum CLOCK_MONOTONIC_RAW    = 4; // non-standard
     enum CLOCK_MONOTONIC_COARSE = 6; // non-standard
 }
+else version (FreeBSD)
+{   // time.h
+    enum CLOCK_MONOTONIC         = 4;
+    enum CLOCK_MONOTONIC_PRECISE = 11;
+    enum CLOCK_MONOTONIC_FAST    = 12;
+}
+else version (OSX)
+{
+    // No CLOCK_MONOTONIC defined
+}
 else
 {
-    enum CLOCK_MONOTONIC        = 4;
+    static assert(0);
 }
 
 //
