@@ -14,3 +14,8 @@ src/optab.c
 src/optabgen
 src/tytab.c
 test/test_results
+*.obj
+src/idgen.exe
+src/dmd.exe
+src/impcnvgen.exe
+*.map
