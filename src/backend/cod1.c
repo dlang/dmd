@@ -1184,6 +1184,7 @@ code *getlvalue(code *pcs,elem *e,regm_t keepmsk)
          *      EA =    [ES:]c[idxreg]
          */
         if (e1isadd && e12->Eoper == OPconst &&
+            (!I64 || el_signx32(e12)) &&
             (tysize(e12->Ety) == REGSIZE || (I64 && tysize(e12->Ety) == 4)) &&
             (!e1->Ecount || !e1free)
            )
