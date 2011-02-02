@@ -2665,7 +2665,6 @@ code *cdfunc(elem *e,regm_t *pretregs)
                 stackpushsave += numalign;
             }
 
-            unsigned idxsave = regsave.idx;
             int regsaved[XMM7 + 1];
             memset(regsaved, -1, sizeof(regsaved));
             code *crest = NULL;
@@ -2743,7 +2742,6 @@ code *cdfunc(elem *e,regm_t *pretregs)
             // Restore any register parameters we saved
             c = cat4(c, getregs(saved), crest, NULL);
             keepmsk |= saved;
-            regsave.idx = idxsave;              // the regsave area forms a stack, reuse it
 
             // Variadic functions store the number of XMM registers used in AL
             if (e->Eflags & EFLAGS_variadic)
