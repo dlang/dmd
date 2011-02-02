@@ -60,3 +60,24 @@ static assert(!is(typeof(Compileable!(bug5245a!(int)()).OK)));
 static assert(!is(typeof(Compileable!(bug5245b!(int)()).OK)));
 static assert(!is(typeof(Compileable!(bug5245c!(int)()).OK)));
 static assert(!is(typeof(Compileable!(bug5245d!(int)()).OK)));
+
+/**************************************/
+
+class Bug5349(T) // segfault D2.051
+{
+    int x;
+    static int g()
+    {
+        class B
+        {
+            int inner()
+            {
+                return x; // should not compile
+            }
+        }
+        return (new B).inner();
+    }
+    int y =  g();
+}
+
+static assert(!is(typeof(Bug5349!(int))));
