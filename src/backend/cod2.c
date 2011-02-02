@@ -1452,7 +1452,7 @@ code *cdnot(elem *e,regm_t *pretregs)
         c1 = getregs(retregs);
         c1 = gen2(c1,0xF7 ^ (sz == 1),grex | modregrmx(3,3,reg));   // NEG reg
         code_orflag(c1,CFpsw);
-        if (I32 && sz == SHORTSIZE)
+        if (!I16 && sz == SHORTSIZE)
             code_orflag(c1,CFopsize);
     L2:
         c1 = genregs(c1,0x19,reg,reg);                  // SBB reg,reg
