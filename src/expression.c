@@ -114,6 +114,14 @@ Expression *getRightThis(Loc loc, Scope *sc, AggregateDeclaration *ad,
                         n++;
                         e1 = new VarExp(loc, f->vthis);
                     }
+                    else
+                    {
+                        e1->error("need 'this' of type %s to access member %s"
+                                  " from static function %s",
+                            ad->toChars(), var->toChars(), f->toChars());
+                        e1 = new ErrorExp();
+                        return e1;
+                    }
                 }
                 if (s && s->isClassDeclaration())
                 {   e1->type = s->isClassDeclaration()->type;
