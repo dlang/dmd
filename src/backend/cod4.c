@@ -1126,6 +1126,8 @@ code *cdaddass(elem *e,regm_t *pretregs)
                 ce = allocreg(&retregs,&reg,tyml);
                 cs.Iop = 0x8B ^ byte ^ reverse;
                 code_newreg(&cs, reg);
+                if (I64 && byte && reg >= 4)
+                    cs.Irex |= REX_W;
                 ce = gen(ce,&cs);               // MOV reg,EA
             }
         }
