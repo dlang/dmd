@@ -1328,6 +1328,7 @@ class Exception : Throwable
     {
         super(msg, file, line, next);
     }
+
     this(string msg, Throwable next, string file = __FILE__, size_t line = __LINE__)
     {
         super(msg, file, line, next);

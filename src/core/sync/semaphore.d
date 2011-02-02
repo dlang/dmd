@@ -493,8 +493,8 @@ version( unittest )
             {
                 waiting    = true;
             }
-            alertedOne = semReady.wait( 10_000_000 ); // 100ms
-            alertedTwo = semReady.wait( 10_000_000 ); // 100ms
+            alertedOne = semReady.wait( dur!"msecs"(200) );
+            alertedTwo = semReady.wait( dur!"msecs"(200) );
         }
 
         auto thread = new Thread( &waiter );

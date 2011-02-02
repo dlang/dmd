@@ -33,9 +33,14 @@ version = StackGrowsDown;
  */
 class ThreadException : Exception
 {
-    this( string msg )
+    this(string msg, string file = __FILE__, size_t line = __LINE__, Throwable next = null)
     {
-        super( msg );
+        super(msg, file, line, next);
+    }
+
+    this(string msg, Throwable next, string file = __FILE__, size_t line = __LINE__)
+    {
+        super(msg, file, line, next);
     }
 }
 
@@ -45,15 +50,22 @@ class ThreadException : Exception
  */
 class FiberException : Exception
 {
-    this( string msg )
+    this(string msg, string file = __FILE__, size_t line = __LINE__, Throwable next = null)
     {
-        super( msg );
+        super(msg, file, line, next);
+    }
+
+    this(string msg, Throwable next, string file = __FILE__, size_t line = __LINE__)
+    {
+        super(msg, file, line, next);
     }
 }
 
 
 private
 {
+    import core.sync.mutex;
+
     //
     // from core.memory
     //
@@ -1577,9 +1589,21 @@ private:
     //
     // All use of the global lists should synchronize on this lock.
     //
-    static Object slock()
+    static Mutex slock()
     {
-        return Thread.classinfo;
+        static Mutex m = null;
+
+        if( m !is null )
+            return m;
+        else
+        {
+            auto ci = Mutex.classinfo;
+            auto p  = malloc( ci.init.length );
+            (cast(byte*) p)[0 .. ci.init.length] = ci.init[];
+            m = cast(Mutex) p;
+            m.__ctor();
+            return m;
+        }
     }
 
 
@@ -2105,6 +2129,11 @@ extern (C) void thread_joinAll()
 
         foreach( t; Thread )
         {
+            if( !t.isRunning )
+            {
+                Thread.remove( t );
+                continue;
+            }
             if( !t.isDaemon )
             {
                 nonDaemon = t;
@@ -2338,7 +2367,8 @@ extern (C) void thread_suspendAll()
             suspend( Thread.getThis() );
         return;
     }
-    synchronized( Thread.slock )
+
+    Thread.slock.lock();
     {
         if( ++suspendDepth > 1 )
             return;
@@ -2462,7 +2492,8 @@ body
             resume( Thread.getThis() );
         return;
     }
-    synchronized( Thread.slock )
+    
+    scope(exit) Thread.slock.unlock();
     {
         if( --suspendDepth > 0 )
             return;

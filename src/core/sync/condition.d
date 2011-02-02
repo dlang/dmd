@@ -570,8 +570,8 @@ version( unittest )
             synchronized( mutex )
             {
                 waiting    = true;
-                alertedOne = condReady.wait( 10_000_000 ); // 1s
-                alertedTwo = condReady.wait( 10_000_000 ); // 1s
+                alertedOne = condReady.wait( dur!"seconds"(1) );
+                alertedTwo = condReady.wait( dur!"seconds"(1) );
             }
         }
 

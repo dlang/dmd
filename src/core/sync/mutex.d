@@ -62,8 +62,16 @@ class Mutex :
         }
         else version( Posix )
         {
-            int rc = pthread_mutex_init( &m_hndl, &sm_attr );
-            if( rc )
+            pthread_mutexattr_t attr = void;
+
+            if( pthread_mutexattr_init( &attr ) )
+                throw new SyncException( "Unable to initialize mutex" );
+            scope(exit) pthread_mutexattr_destroy( &attr );
+
+            if( pthread_mutexattr_settype( &attr, PTHREAD_MUTEX_RECURSIVE ) )
+                throw new SyncException( "Unable to initialize mutex" );
+
+            if( pthread_mutex_init( &m_hndl, &attr ) )
                 throw new SyncException( "Unable to initialize mutex" );
         }
         m_proxy.link = this;
@@ -177,26 +185,6 @@ class Mutex :
     }
 
 
-    version( Posix )
-    {
-        shared static this()
-        {
-            int rc = pthread_mutexattr_init( &sm_attr );
-            assert( !rc );
-
-            rc = pthread_mutexattr_settype( &sm_attr, PTHREAD_MUTEX_RECURSIVE );
-            assert( !rc );
-        }
-
-
-        shared static ~this()
-        {
-            int rc = pthread_mutexattr_destroy( &sm_attr );
-            assert( !rc );
-        }
-    }
-
-
 private:
     version( Win32 )
     {
@@ -204,8 +192,6 @@ private:
     }
     else version( Posix )
     {
-        __gshared pthread_mutexattr_t   sm_attr;
-
         pthread_mutex_t     m_hndl;
     }
 
