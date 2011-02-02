@@ -2484,8 +2484,14 @@ code *cdcnvt(elem *e, regm_t *pretregs)
                     c1 = codelem(e->E1, &retregs, FALSE);
                     unsigned reg = findreg(retregs);
                     c1 = genfltreg(c1, 0x89, reg, 0);
-                    regwithvalue(c1,ALLREGS,0,&reg,0);
-                    genfltreg(c1, 0x89, reg, REGSIZE);
+                    if (I64)
+                    {
+                        code_orrex(c1, REX_W);
+                    }
+                    else
+                    {   regwithvalue(c1,ALLREGS,0,&reg,0);
+                        genfltreg(c1, 0x89, reg, REGSIZE);
+                    }
 
                     cat(c1, push87());
                     genfltreg(c1,0xDF,5,0);     // FILD m64int
