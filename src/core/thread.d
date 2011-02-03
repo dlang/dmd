@@ -127,8 +127,9 @@ version( Windows )
     private
     {
         import core.stdc.stdint : uintptr_t; // for _beginthreadex decl below
+        import core.stdc.stdlib;             // for malloc
         import core.sys.windows.windows;
-        import core.thread_helper; // for OpenThreadHandle
+        import core.thread_helper;           // for OpenThreadHandle
 
         const DWORD TLS_OUT_OF_INDEXES  = 0xFFFFFFFF;
 
@@ -238,11 +239,12 @@ else version( Posix )
 {
     private
     {
+        import core.stdc.errno;
         import core.sys.posix.semaphore;
+        import core.sys.posix.stdlib; // for malloc, valloc, free
         import core.sys.posix.pthread;
         import core.sys.posix.signal;
         import core.sys.posix.time;
-        import core.stdc.errno;
 
         extern (C) int getErrno();
 
@@ -2805,7 +2807,6 @@ private
     {
         import core.sys.posix.unistd;   // for sysconf
         import core.sys.posix.sys.mman; // for mmap
-        import core.sys.posix.stdlib;   // for malloc, valloc, free
 
         version( AsmX86_Win32 ) {} else
         version( AsmX86_Posix ) {} else
