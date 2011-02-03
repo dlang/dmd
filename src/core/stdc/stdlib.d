@@ -40,8 +40,10 @@ struct lldiv_t
 
 enum EXIT_SUCCESS = 0;
 enum EXIT_FAILURE = 1;
-enum RAND_MAX     = 32767;
 enum MB_CUR_MAX   = 1;
+
+version(Windows)    enum RAND_MAX = 0x7fff;
+else version(Posix) enum RAND_MAX = 0x7fffffff;
 
 double  atof(in char* nptr);
 int     atoi(in char* nptr);
