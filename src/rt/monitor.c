@@ -16,7 +16,7 @@
 #include <assert.h>
 
 #if _WIN32
-#elif linux || __APPLE__ || __FreeBSD__
+#elif linux || __APPLE__ || __FreeBSD__ || __sun&&__SVR4
 #define USE_PTHREADS    1
 #else
 #endif
