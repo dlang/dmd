@@ -96,19 +96,7 @@ private
 
     void* getStackTop()
     {
-        version( D_InlineAsm_X86 )
-        {
-            asm
-            {
-                naked;
-                mov EAX, ESP;
-                ret;
-            }
-        }
-        else
-        {
-            return rt_stackTop();
-        }
+        return rt_stackTop();
     }
 
 
