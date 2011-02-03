@@ -594,6 +594,7 @@ Dsymbol *AliasDeclaration::toAlias()
     if (inSemantic)
     {   error("recursive alias declaration");
         aliassym = new TypedefDeclaration(loc, ident, Type::terror, NULL);
+        type = Type::terror;
     }
     else if (!aliassym && scope)
         semantic(scope);
