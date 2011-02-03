@@ -760,8 +760,21 @@ code *cdorth(elem *e,regm_t *pretregs)
         break;
   }
   if (sz <= REGSIZE && *pretregs & mPSW)
-  {     code_orflag(c,CFpsw);
+  {
+        /* If the expression is (_tls_array + ...), then the flags are not set
+         * since the linker may rewrite these instructions into something else.
+         */
+        if (I64 && e->Eoper == OPadd && e1->Eoper == OPvar)
+        {
+            symbol *s = e1->EV.sp.Vsym;
+            if (s->Sident[0] == '_' && memcmp(s->Sident + 1,"tls_array",10) == 0)
+            {
+                goto L7;                        // don't assume flags are set
+            }
+        }
+        code_orflag(c,CFpsw);
         *pretregs &= ~mPSW;                     /* flags already set    */
+    L7: ;
   }
   if (test)
         cg = NULL;                      /* didn't destroy any           */
