@@ -3627,6 +3627,34 @@ class C5110
 }
 
 /***************************************************/
+
+immutable class Bug5504
+{
+    void foo(T)(T a) {}
+    template xx(X) {
+        void hoo(T)(T a) {}
+    }
+}
+
+shared class Bug5504b
+{
+    void foo(T)(T a) {}
+    template xx(X) {
+        void hoo(T)(T a) {}
+    }
+}
+
+void test5504()
+{
+    Bug5504 c;
+    c.foo(10);
+    c.xx!(int).hoo(10);
+    Bug5504b d;
+    d.foo(10);
+    d.xx!(int).hoo(10);
+}
+
+/***************************************************/
 // 5145
 
 interface I221{
