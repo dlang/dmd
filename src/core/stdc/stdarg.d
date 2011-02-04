@@ -225,12 +225,12 @@ else version (X86_64)
             }
             else
             {
-                static assert(0);
+                static assert(false);
             }
         }
         else
         {
-            static assert(0, "not a valid argument type for va_arg");
+            static assert(false, "not a valid argument type for va_arg");
         }
     }
 
@@ -320,7 +320,7 @@ else version (X86_64)
         }
         else
         {
-            assert(0, "not a valid argument type for va_arg");
+            assert(false, "not a valid argument type for va_arg");
         }
     }
 
@@ -335,5 +335,5 @@ else version (X86_64)
 }
 else
 {
-    static assert(0, "Unsupported platform");
+    static assert(false, "Unsupported platform");
 }

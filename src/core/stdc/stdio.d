@@ -110,7 +110,7 @@ else version ( FreeBSD )
 }
 else
 {
-    static assert( false );
+    static assert( false, "Unsupported platform" );
 }
 
 enum
@@ -221,7 +221,7 @@ struct _iobuf
     }
     else
     {
-        static assert( false );
+        static assert( false, "Unsupported platform" );
     }
 }
 
@@ -319,7 +319,7 @@ else version( FreeBSD )
 }
 else
 {
-    static assert( false );
+    static assert( false, "Unsupported platform" );
 }
 
 alias int fpos_t;
@@ -428,7 +428,7 @@ else version( FreeBSD )
 }
 else
 {
-    static assert( false );
+    static assert( false, "Unsupported platform" );
 }
 
 void perror(in char* s);

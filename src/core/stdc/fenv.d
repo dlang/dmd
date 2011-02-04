@@ -84,7 +84,7 @@ else version ( FreeBSD )
 }
 else
 {
-    static assert( false );
+    static assert( false, "Unsupported platform" );
 }
 
 enum
@@ -123,7 +123,7 @@ else version( FreeBSD )
 }
 else
 {
-    static assert( false );
+    static assert( false, "Unsupported platform" );
 }
 
 void feraiseexcept(int excepts);
