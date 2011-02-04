@@ -155,7 +155,19 @@ TypeTuple *TypeDelegate::toArgTypes()
 
 TypeTuple *TypeStruct::toArgTypes()
 {
-    return new TypeTuple();     // pass on the stack for efficiency
+    int sz = size(0);
+    switch (sz)
+    {
+        case 1:
+            return new TypeTuple(Type::tint8);
+        case 2:
+            return new TypeTuple(Type::tint16);
+        case 4:
+            return new TypeTuple(Type::tint32);
+        case 8:
+            return new TypeTuple(Type::tint64);
+    }
+    return new TypeTuple();     // pass on the stack
 }
 
 TypeTuple *TypeEnum::toArgTypes()
