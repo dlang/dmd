@@ -1,12 +1,12 @@
 /**
  * Contains the implementation for object monitors.
  *
- * Copyright: Copyright Digital Mars 2000 - 2010.
+ * Copyright: Copyright Digital Mars 2000 - 2011.
  * License:   <a href="http://www.boost.org/LICENSE_1_0.txt">Boost License 1.0</a>.
  * Authors:   Walter Bright, Sean Kelly
  */
 
-/*          Copyright Digital Mars 2000 - 2010.
+/*          Copyright Digital Mars 2000 - 2011.
  * Distributed under the Boost Software License, Version 1.0.
  *    (See accompanying file LICENSE_1_0.txt or copy at
  *          http://www.boost.org/LICENSE_1_0.txt)
@@ -87,7 +87,8 @@ version( Windows )
     extern (C) void _STI_monitor_staticctor()
     {
         if (!inited)
-        {   InitializeCriticalSection(&_monitor_critsec);
+        {
+            InitializeCriticalSection(&_monitor_critsec);
             inited = 1;
         }
     }
@@ -95,7 +96,8 @@ version( Windows )
     extern (C) void _STD_monitor_staticdtor()
     {
         if (inited)
-        {   inited = 0;
+        {
+            inited = 0;
             DeleteCriticalSection(&_monitor_critsec);
         }
     }
@@ -115,7 +117,7 @@ version( Windows )
         EnterCriticalSection(&_monitor_critsec);
         if (!h.__monitor)
         {
-            cs = cast(Monitor *)calloc(sizeof(Monitor), 1);
+            cs = cast(Monitor *)calloc(Monitor.sizeof, 1);
             assert(cs);
             InitializeCriticalSection(&cs.mon);
             setMonitor(h, cs);
@@ -177,7 +179,8 @@ version( USE_PTHREADS )
     extern (C) void _STD_monitor_staticdtor()
     {
         if (inited)
-        {   inited = 0;
+        {
+            inited = 0;
             pthread_mutex_destroy(&_monitor_critsec);
             pthread_mutexattr_destroy(&_monitors_attr);
         }
@@ -200,7 +203,7 @@ version( USE_PTHREADS )
         {
             cs = cast(Monitor *)calloc(Monitor.sizeof, 1);
             assert(cs);
-            pthread_mutex_init(&cs.mon, & _monitors_attr);
+            pthread_mutex_init(&cs.mon, &_monitors_attr);
             setMonitor(h, cs);
             cs.refs = 1;
             cs = null;

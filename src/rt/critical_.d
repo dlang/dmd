@@ -1,12 +1,12 @@
 /**
  * Implementation of support routines for synchronized blocks.
  *
- * Copyright: Copyright Digital Mars 2000 - 2010.
+ * Copyright: Copyright Digital Mars 2000 - 2011.
  * License:   <a href="http://www.boost.org/LICENSE_1_0.txt">Boost License 1.0</a>.
  * Authors:   Walter Bright, Sean Kelly
  */
 
-/*          Copyright Digital Mars 2000 - 2010.
+/*          Copyright Digital Mars 2000 - 2011.
  * Distributed under the Boost Software License, Version 1.0.
  *    (See accompanying file LICENSE_1_0.txt or copy at
  *          http://www.boost.org/LICENSE_1_0.txt)
@@ -143,7 +143,8 @@ version( USE_PTHREADS )
     extern (C) void _d_criticalenter(D_CRITICAL_SECTION *dcs)
     {
         if (!dcs_list)
-        {   _STI_critical_init();
+        {
+            _STI_critical_init();
             atexit(&_STD_critical_term);
         }
         debug(PRINTF) printf("_d_criticalenter(dcs = x%x)\n", dcs);
@@ -170,7 +171,8 @@ version( USE_PTHREADS )
     extern (C) void _STI_critical_init()
     {
         if (!dcs_list)
-        {   debug(PRINTF) printf("_STI_critical_init()\n");
+        {
+            debug(PRINTF) printf("_STI_critical_init()\n");
             pthread_mutexattr_init(&_criticals_attr);
             pthread_mutexattr_settype(&_criticals_attr, PTHREAD_MUTEX_RECURSIVE);
 
