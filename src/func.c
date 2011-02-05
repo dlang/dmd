@@ -1418,7 +1418,9 @@ void FuncDeclaration::semantic3(Scope *sc)
             if (isSynchronized())
             {   /* Wrap the entire function body in a synchronized statement
                  */
-                ClassDeclaration *cd = parent->isClassDeclaration();
+                AggregateDeclaration *ad = isThis();
+                ClassDeclaration *cd = ad ? ad->isClassDeclaration() : NULL;
+
                 if (cd)
                 {
 #if TARGET_WINDOS
