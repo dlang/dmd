@@ -2496,7 +2496,7 @@ code *cdind(elem *e,regm_t *pretregs)
         {       retregs = ALLREGS & ~idxregs;
                 c = cat(c,allocreg(&retregs,&reg,TYint));
                 cs.Iop = 0x8B;
-                cs.Irm |= modregrm(0,reg,0);
+                code_newreg(&cs,reg);
                 getlvalue_msw(&cs);
                 ce = gen(CNIL,&cs);             /* MOV reg,msw          */
                 if (I32)

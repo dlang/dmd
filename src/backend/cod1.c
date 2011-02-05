@@ -16,6 +16,11 @@
 #include        <string.h>
 #include        <stdlib.h>
 #include        <time.h>
+
+#if __sun&&__SVR4
+#include        <alloca.h>
+#endif
+
 #include        "cc.h"
 #include        "el.h"
 #include        "oper.h"
