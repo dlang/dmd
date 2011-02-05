@@ -3655,6 +3655,19 @@ void test5504()
 }
 
 /***************************************************/
+
+void bug5105() // compilation test -- don't need to run
+{
+    auto c = new C5105;
+    c.foo(10);
+}
+
+synchronized shared class C5105
+{
+    void foo(T)(T a) {}
+}
+
+/***************************************************/
 // 5145
 
 interface I221{
