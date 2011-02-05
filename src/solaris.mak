@@ -14,7 +14,7 @@ CC=g++ $(MODEL)
 
 WARNINGS=-Wno-deprecated -Wstrict-aliasing
 
-#GFLAGS = $(WARNINGS) -D__near= -D__pascal= -fno-exceptions -g -DDEBUG=1 $(COV)
+#GFLAGS = $(WARNINGS) -D__near= -D__pascal= -fno-exceptions -g -DDEBUG=1 -DUNITTEST $(COV)
 GFLAGS = $(WARNINGS) -D__near= -D__pascal= -fno-exceptions -O2
 
 CFLAGS = $(GFLAGS) -I$(ROOT) -D__I86__=1 -DMARS=1 -DTARGET_SOLARIS=1 -D_DH
@@ -94,7 +94,7 @@ SRC = win32.mak linux.mak osx.mak freebsd.mak solaris.mak \
 all: dmd
 
 dmd: $(DMD_OBJS)
-	gcc $(MODEL) -lstdc++ -lpthread $(COV) $(DMD_OBJS) -o dmd
+	gcc $(MODEL) -lstdc++ -lm -lpthread $(COV) $(DMD_OBJS) -o dmd
 
 clean:
 	rm -f $(DMD_OBJS) dmd optab.o id.o impcnvgen idgen id.c id.h \
