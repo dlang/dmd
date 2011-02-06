@@ -1755,7 +1755,7 @@ MATCH Type::deduceType(Scope *sc, Type *tparam, TemplateParameters *parameters,
 
     if (this == tparam)
         goto Lexact;
-    
+
     if (tparam->ty == Tident)
     {
         // Determine which parameter tparam is

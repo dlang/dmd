@@ -7857,7 +7857,6 @@ Type *TypeClass::toHeadMutable()
     return mutableOf();
 }
 
-
 Expression *TypeClass::defaultInit(Loc loc)
 {
 #if LOGDEFAULTINIT
@@ -7880,7 +7879,6 @@ int TypeClass::hasPointers()
 {
     return TRUE;
 }
-
 
 /***************************** TypeTuple *****************************/
 
