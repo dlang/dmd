@@ -2320,12 +2320,6 @@ Statement *IfStatement::semantic(Scope *sc)
 {
     condition = condition->semantic(sc);
     condition = resolveProperties(sc, condition);
-    condition = condition->checkToBoolean(sc);
-
-    // If we can short-circuit evaluate the if statement, don't do the
-    // semantic analysis of the skipped code.
-    // This feature allows a limited form of conditional compilation.
-    condition = condition->optimize(WANTflags);
 
     // Evaluate at runtime
     unsigned cs0 = sc->callSuper;
@@ -2349,15 +2343,25 @@ Statement *IfStatement::semantic(Scope *sc)
         match->parent = sc->func;
 
         /* Generate:
-         *  (arg = condition)
+         *  ((arg = condition), arg)
          */
         VarExp *v = new VarExp(0, match);
         condition = new AssignExp(loc, v, condition);
+        condition = new CommaExp(loc, condition, v);
         condition = condition->semantic(scd);
     }
     else
         scd = sc->push();
 
+    // Convert to boolean after declaring arg so this works:
+    //  if (S arg = S()) {}
+    // where S is a struct that defines opCast!bool.
+    condition = condition->checkToBoolean(sc);
+
+    // If we can short-circuit evaluate the if statement, don't do the
+    // semantic analysis of the skipped code.
+    // This feature allows a limited form of conditional compilation.
+    condition = condition->optimize(WANTflags);
     ifbody = ifbody->semanticNoScope(scd);
     scd->pop();
 

@@ -3627,6 +3627,47 @@ class C5110
 }
 
 /***************************************************/
+
+immutable class Bug5504
+{
+    void foo(T)(T a) {}
+    template xx(X) {
+        void hoo(T)(T a) {}
+    }
+}
+
+shared class Bug5504b
+{
+    void foo(T)(T a) {}
+    template xx(X) {
+        void hoo(T)(T a) {}
+    }
+}
+
+void test5504()
+{
+    Bug5504 c;
+    c.foo(10);
+    c.xx!(int).hoo(10);
+    Bug5504b d;
+    d.foo(10);
+    d.xx!(int).hoo(10);
+}
+
+/***************************************************/
+
+void bug5105() // compilation test -- don't need to run
+{
+    auto c = new C5105;
+    c.foo(10);
+}
+
+synchronized shared class C5105
+{
+    void foo(T)(T a) {}
+}
+
+/***************************************************/
 // 5145
 
 interface I221{
@@ -3823,6 +3864,18 @@ string ice4390()
 }
 
 static assert(mixin(ice4390()) == ``);
+static assert(mixin(ice4390()) == ``);
+
+/***************************************************/
+// 190
+
+typedef int avocado;
+void eat(avocado x225 = .x225);
+avocado x225;
+
+void test225()
+{
+}
 
 /***************************************************/
 

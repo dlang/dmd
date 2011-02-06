@@ -918,7 +918,6 @@ unsigned ClassDeclaration::baseVtblOffset(BaseClass *bc)
 
 void InterfaceDeclaration::toObjFile(int multiobj)
 {   unsigned i;
-    unsigned offset;
     Symbol *sinit;
     enum_SC scclass;
 
@@ -1000,6 +999,7 @@ void InterfaceDeclaration::toObjFile(int multiobj)
     dtsize_t(&dt, 0);
 
     // vtblInterfaces->data[]
+    unsigned offset;
     dtsize_t(&dt, vtblInterfaces->dim);
     if (vtblInterfaces->dim)
     {
@@ -1015,7 +1015,9 @@ void InterfaceDeclaration::toObjFile(int multiobj)
         dtxoff(&dt, csym, offset, TYnptr);      // (*)
     }
     else
+    {   offset = 0;
         dtsize_t(&dt, 0);
+    }
 
     // base
     assert(!baseClass);

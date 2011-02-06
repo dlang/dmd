@@ -289,6 +289,64 @@ void test13()
 
 /********************************************/
 
+struct Bug1914a
+{
+    const char[10] i = [1,0,0,0,0,0,0,0,0,0];
+    char[10] x = i;
+    int y=5;
+}
+
+struct Bug1914b
+{
+    const char[10] i = [0,0,0,0,0,0,0,0,0,0];
+    char[10] x = i;
+    int y=5;
+}
+
+struct Bug1914c
+{
+    const char[2] i = ['a', 'b'];
+    const char[2][3] j = [['x', 'y'], ['p', 'q'], ['r', 's']];
+    const char[2][3] k = ["cd", "ef", "gh"];
+    const char[2][3] l = [['x', 'y'], ['p'], ['h', 'k']];
+    char[2][3] x = i;
+    int y = 5;
+    char[2][3] z = j;
+    char[2][3] w = k;
+    int v=27;
+    char[2][3] u = l;
+    int t = 718;
+}
+
+struct T3198 {
+   int g = 1;
+}
+
+class Foo3198 {
+   int[5] x = 6;
+   T3198[5] y = T3198(4);
+}
+
+void test3198and1914()
+{
+    Bug1914a a;
+    assert(a.y==5, "bug 1914, non-zero init");
+    Bug1914b b;
+    assert(b.y==5, "bug 1914, zero init");
+    Bug1914c c;
+    assert(c.y==5, "bug 1914, multilevel init");
+    assert(c.v==27, "bug 1914, multilevel init2");
+    assert(c.x[2][1]=='b');
+    assert(c.t==718, "bug 1914, multi3");
+    assert(c.u[1][0]=='p');
+    assert(c.u[1][1]==char.init);
+    auto f = new Foo3198();
+    assert(f.x[0]==6);
+    assert(f.y[0].g==4, "bug 3198");
+}
+
+/********************************************/
+
 int main()
 {
     test1();
@@ -304,6 +362,7 @@ int main()
     test11();
     test12();
     test13();
+    test3198and1914();
 
     printf("Success\n");
     return 0;

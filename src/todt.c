@@ -985,7 +985,7 @@ dt_t **TypeSArray::toDtElem(dt_t **pdt, Expression *e)
             pdt = &((*pdt)->DTnext);
         Type *tnext = next;
         Type *tbn = tnext->toBasetype();
-        while (tbn->ty == Tsarray)
+        while (tbn->ty == Tsarray && (!e || tbn != e->type->nextOf()))
         {   TypeSArray *tsa = (TypeSArray *)tbn;
 
             len *= tsa->dim->toInteger();
@@ -994,11 +994,12 @@ dt_t **TypeSArray::toDtElem(dt_t **pdt, Expression *e)
         }
         if (!e)                         // if not already supplied
             e = tnext->defaultInit();   // use default initializer
-        if (tbn->ty == Tstruct)
-            tnext->toDt(pdt);
-        else
-            e->toDt(pdt);
+        e->toDt(pdt);
         dt_optimize(*pdt);
+        if (e->op == TOKstring)
+            len /= ((StringExp *)e)->len;
+        if (e->op == TOKarrayliteral)
+            len /= ((ArrayLiteralExp *)e)->elements->dim;
         if ((*pdt)->dt == DT_azeros && !(*pdt)->DTnext)
         {
             (*pdt)->DTazeros *= len;
@@ -1010,7 +1011,7 @@ dt_t **TypeSArray::toDtElem(dt_t **pdt, Expression *e)
             (*pdt)->DTazeros = len;
             pdt = &((*pdt)->DTnext);
         }
-        else if (e->op != TOKstring && e->op != TOKarrayliteral)
+        else
         {
             for (i = 1; i < len; i++)
             {

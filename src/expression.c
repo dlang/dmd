@@ -114,6 +114,14 @@ Expression *getRightThis(Loc loc, Scope *sc, AggregateDeclaration *ad,
                         n++;
                         e1 = new VarExp(loc, f->vthis);
                     }
+                    else
+                    {
+                        e1->error("need 'this' of type %s to access member %s"
+                                  " from static function %s",
+                            ad->toChars(), var->toChars(), f->toChars());
+                        e1 = new ErrorExp();
+                        return e1;
+                    }
                 }
                 if (s && s->isClassDeclaration())
                 {   e1->type = s->isClassDeclaration()->type;
@@ -4704,9 +4712,14 @@ Expression *DeclarationExp::semantic(Scope *sc)
             error("declaration %s is already defined", s->toPrettyChars());
         else if (sc->func)
         {   VarDeclaration *v = s->isVarDeclaration();
-            if (s->isFuncDeclaration() &&
+            if ( (s->isFuncDeclaration() || s->isTypedefDeclaration() ||
+                s->isAggregateDeclaration() || s->isEnumDeclaration() ||
+                s->isInterfaceDeclaration()) &&
                 !sc->func->localsymtab->insert(s))
-                error("declaration %s is already defined in another scope in %s", s->toPrettyChars(), sc->func->toChars());
+            {
+                error("declaration %s is already defined in another scope in %s",
+                    s->toPrettyChars(), sc->func->toChars());
+            }
             else if (!global.params.useDeprecated)
             {   // Disallow shadowing
 
@@ -9086,10 +9099,23 @@ Expression *AssignExp::semantic(Scope *sc)
     }
 
     if (t1->ty == Tsarray && !refinit)
-    {   // Convert e1 to e1[]
-        Expression *e = new SliceExp(e1->loc, e1, NULL, NULL);
-        e1 = e->semantic(sc);
-        t1 = e1->type->toBasetype();
+    {
+        if (e1->op == TOKindex &&
+            ((IndexExp *)e1)->e1->type->toBasetype()->ty == Taarray)
+        {
+            // Assignment to an AA of fixed-length arrays.
+            // Convert T[n][U] = T[] into T[n][U] = T[n]
+            e2 = e2->implicitCastTo(sc, e1->type);
+            if (e2->type == Type::terror)
+                return e2;
+        }
+        else
+        {
+            // Convert e1 to e1[]
+            Expression *e = new SliceExp(e1->loc, e1, NULL, NULL);
+            e1 = e->semantic(sc);
+            t1 = e1->type->toBasetype();
+        }
     }
 
     e2->rvalue();
@@ -9131,8 +9157,13 @@ Expression *AssignExp::semantic(Scope *sc)
     else if (t1->ty == Tsarray)
     {
         /* Should have already converted e1 => e1[]
+         * unless it is an AA
          */
-        assert(op == TOKconstruct);
+        if (!(e1->op == TOKindex && t2->ty == Tsarray &&
+            ((IndexExp *)e1)->e1->type->toBasetype()->ty == Taarray))
+        {
+            assert(op == TOKconstruct);
+        }
         //error("cannot assign to static array %s", e1->toChars());
     }
     else if (e1->op == TOKslice)

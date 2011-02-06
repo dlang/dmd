@@ -443,6 +443,21 @@ void test10()
 
 /**************************************/
 
+struct S4913
+{
+    bool opCast(T : bool)() { return true; }
+}
+
+int bug4913()
+{
+    if (S4913 s = S4913()) { return 83; }
+    return 9;
+}
+
+static assert(bug4913() == 83);
+
+/**************************************/
+
 int main()
 {
     test1();
