@@ -3864,6 +3864,18 @@ string ice4390()
 }
 
 static assert(mixin(ice4390()) == ``);
+static assert(mixin(ice4390()) == ``);
+
+/***************************************************/
+// 190
+
+typedef int avocado;
+void eat(avocado x225 = .x225);
+avocado x225;
+
+void test225()
+{
+}
 
 /***************************************************/
 
