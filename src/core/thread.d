@@ -143,8 +143,8 @@ version( Windows )
             //       these are defined in dm\src\win32\tlsseg.asm by DMC.
             extern (C)
             {
-                extern __thread int _tlsstart;
-                extern __thread int _tlsend;
+                extern int _tlsstart;
+                extern int _tlsend;
             }
         }
         else
@@ -265,8 +265,8 @@ else version( Posix )
             {
                 extern (C)
                 {
-                    extern __thread int _tlsstart;
-                    extern __thread int _tlsend;
+                    extern int _tlsstart;
+                    extern int _tlsend;
                 }
             }
             else version( OSX )
