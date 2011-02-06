@@ -14,6 +14,6 @@ static assert((const(immutable(Object)ref)).mangleof == "xXyC6Object");
 static assert((shared(inout(Object)ref)).mangleof == "OXOxC6Object");
 
 // Reference suffix is not mangled when it has the same modifiers
-static assert((const(Object ref))).mangleof == "xC6Object");
-static assert((inout(Object ref))).mangleof == "NgC6Object");
+static assert((const(Object ref)).mangleof == "xC6Object");
+static assert((inout(Object ref)).mangleof == "NgC6Object");
 
