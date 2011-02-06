@@ -173,7 +173,7 @@ void test10()
 {
   auto key = new immutable(A10)[2];
 
-  cast()(key[0]) = new A10();
+  cast()(key[0]) = new immutable(A10)();
   foo10[key] = 0;
   assert(key in foo10);
   assert(!(key !in foo10));
