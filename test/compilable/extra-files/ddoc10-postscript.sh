@@ -5,5 +5,5 @@ if [ $? -ne 0 ]; then
     exit 1;
 fi
 
-rm ${RESULTS_DIR}/compilable/ddoc10.html{,.2}
+rm ${RESULTS_DIR}/compilable/ddoc10.html
 
