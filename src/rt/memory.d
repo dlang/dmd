@@ -16,6 +16,10 @@ module rt.memory;
 
 private
 {
+    version( GNU )
+    {
+        import gcc.builtins;
+    }
     version( linux )
     {
         version = SimpleLibcStackEnd;
@@ -142,6 +146,10 @@ extern (C) void* rt_stackTop()
             mov RAX, RSP;
             ret;
         }
+    }
+    else version( GNU )
+    {
+        return __builtin_frame_address(0);
     }
     else
     {

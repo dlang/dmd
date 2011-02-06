@@ -83,7 +83,7 @@ void _STD_critical_term()
 
 /* ================================= linux ============================ */
 
-#if linux || __APPLE__ || __FreeBSD__
+#if linux || __APPLE__ || __FreeBSD__ || __sun&&__SVR4
 
 #include <stdio.h>
 #include <stdlib.h>

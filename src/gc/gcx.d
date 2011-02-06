@@ -42,6 +42,8 @@ private import gc.gcalloc;
 private import cstdlib = core.stdc.stdlib : calloc, free, malloc, realloc;
 private import core.stdc.string;
 
+version (GNU) import gcc.builtins;
+
 debug (PRINTF) import core.stdc.stdio : printf;
 debug (COLLECT_PRINTF) import core.stdc.stdio : printf;
 debug private import core.stdc.stdio;

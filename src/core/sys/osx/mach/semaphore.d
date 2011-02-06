@@ -13,6 +13,8 @@
  */
 module core.sys.osx.mach.semaphore;
 
+version (OSX):
+
 public import core.sys.osx.mach.kern_return;
 public import core.sys.osx.mach.port;
 
