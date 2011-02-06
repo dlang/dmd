@@ -130,3 +130,32 @@ abstract class Foo8 { }
 /// a stray $(RPAREN) mustn't foul the macros
 void bug4878(string a = ")") {}
 
+/****
+ */
+struct S
+{
+    /****
+     */
+    this(long ticks) const pure nothrow { }
+
+    /****
+     */
+    const pure nothrow this(this) { }
+
+    /****
+     */
+    const pure nothrow ~this() { }
+
+    /****
+     */
+    void foo(long ticks) const pure nothrow { }
+}
+
+
+/** Produces something in (a;b] */
+float f10(float a, float b) { return (a+b)/2.0; }
+/** Produces something in [a;b) */
+float h10(float a, float b) { return (a+b)/2.0; }
+
+
+
