@@ -149,7 +149,7 @@ MANIFEST= \
 	src\rt\compiler.d \
 	src\rt\complex.c \
 	src\rt\cover.d \
-	src\rt\critical.c \
+	src\rt\critical_.d \
 	src\rt\deh.d \
 	src\rt\deh2.d \
 	src\rt\dmain2.d \
@@ -159,12 +159,11 @@ MANIFEST= \
 	src\rt\invariant_.d \
 	src\rt\lifetime.d \
 	src\rt\llmath.d \
-	src\rt\mars.h \
 	src\rt\memory.d \
 	src\rt\memory_osx.c \
 	src\rt\memset.d \
 	src\rt\minit.asm \
-	src\rt\monitor.c \
+	src\rt\monitor_.d \
 	src\rt\obj.d \
 	src\rt\qsort.d \
 	src\rt\qsort2.d \
@@ -275,6 +274,7 @@ SRCS= \
 	src\rt\arrayshort.d \
 	src\rt\cast_.d \
 	src\rt\cover.d \
+	src\rt\critical_.d \
 	src\rt\deh.d \
 	src\rt\dmain2.d \
 	src\rt\invariant.d \
@@ -283,6 +283,7 @@ SRCS= \
 	src\rt\llmath.d \
 	src\rt\memory.d \
 	src\rt\memset.d \
+	src\rt\monitor_.d \
 	src\rt\obj.d \
 	src\rt\qsort.d \
 	src\rt\switch_.d \
@@ -335,8 +336,8 @@ SRCS= \
 # NOTE: a pre-compiled minit.obj has been provided in dmd for Win32 and
 #       minit.asm is not used by dmd for Linux
 
-OBJS= errno_c.obj complex.obj critical.obj monitor.obj src\rt\minit.obj
-OBJS_TO_DELETE= errno_c.obj complex.obj critical.obj monitor.obj
+OBJS= errno_c.obj complex.obj src\rt\minit.obj
+OBJS_TO_DELETE= errno_c.obj complex.obj
 
 DOCS=\
 	$(DOCDIR)\object.html \
@@ -751,14 +752,8 @@ errno_c.obj : src\core\stdc\errno.c
 complex.obj : src\rt\complex.c
 	$(CC) -c $(CFLAGS) src\rt\complex.c
 
-critical.obj : src\rt\critical.c
-	$(CC) -c $(CFLAGS) src\rt\critical.c
-
 src\rt\minit.obj : src\rt\minit.asm
 	$(CC) -c $(CFLAGS) src\rt\minit.asm
-
-monitor.obj : src\rt\monitor.c
-	$(CC) -c $(CFLAGS) src\rt\monitor.c
 
 ################### gcstub generation #########################
 

@@ -153,7 +153,7 @@ MANIFEST= \
 	src/rt/compiler.d \
 	src/rt/complex.c \
 	src/rt/cover.d \
-	src/rt/critical.c \
+	src/rt/critical_.d \
 	src/rt/deh.d \
 	src/rt/deh2.d \
 	src/rt/dmain2.d \
@@ -163,12 +163,11 @@ MANIFEST= \
 	src/rt/invariant_.d \
 	src/rt/lifetime.d \
 	src/rt/llmath.d \
-	src/rt/mars.h \
 	src/rt/memory.d \
 	src/rt/memory_osx.c \
 	src/rt/memset.d \
 	src/rt/minit.asm \
-	src/rt/monitor.c \
+	src/rt/monitor_.d \
 	src/rt/obj.d \
 	src/rt/qsort.d \
 	src/rt/qsort2.d \
@@ -283,6 +282,7 @@ SRC_D_MODULES = \
 	rt/cast_ \
 	rt/cmath2 \
 	rt/cover \
+	rt/critical_ \
 	rt/deh2 \
 	rt/dmain2 \
 	rt/invariant \
@@ -291,6 +291,7 @@ SRC_D_MODULES = \
 	rt/llmath \
 	rt/memory \
 	rt/memset \
+	rt/monitor_ \
 	rt/obj \
 	rt/qsort \
 	rt/switch_ \
@@ -343,8 +344,7 @@ SRC_D_MODULES = \
 # NOTE: a pre-compiled minit.obj has been provided in dmd for Win32 and
 #       minit.asm is not used by dmd for Linux
 
-OBJS= $(OBJDIR)/errno_c.o $(OBJDIR)/threadasm.o $(OBJDIR)/complex.o	\
-$(OBJDIR)/critical.o $(OBJDIR)/memory_osx.o $(OBJDIR)/monitor.o
+OBJS= $(OBJDIR)/errno_c.o $(OBJDIR)/threadasm.o $(OBJDIR)/complex.o $(OBJDIR)/memory_osx.o
 
 DOCS=\
 	$(DOCDIR)/object.html \
