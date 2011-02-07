@@ -568,6 +568,8 @@ void cgreg_spillreg_prolog(block *b,Symbol *s,code **pcstore,code **pcload)
         cs.Iop ^= (sz == 1);
         c = getlvalue(&cs,e,keepmsk);
         cs.orReg(s->Sreglsw);
+        if (I64 && sz == 1 && s->Sreglsw >= 4)
+            cs.Irex |= REX;
         c = gen(c,&cs);
         if (sz > REGSIZE)
         {
@@ -666,6 +668,8 @@ void cgreg_spillreg_epilog(block *b,Symbol *s,code **pcstore,code **pcload)
         cs.Iop ^= (sz == 1);
         c = getlvalue(&cs,e,keepmsk);
         cs.orReg(s->Sreglsw);
+        if (I64 && sz == 1 && s->Sreglsw >= 4)
+            cs.Irex |= REX;
         c = gen(c,&cs);
         if (sz > REGSIZE)
         {
