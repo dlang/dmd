@@ -1266,7 +1266,7 @@ Expression *getVarExp(Loc loc, InterState *istate, Declaration *d)
         }
         else if ((v->isCTFE() || (!v->isDataseg() && istate)) && !v->value)
         {
-            if (v->init)
+            if (v->init && v->type->size() != 0)
             {
                 if (v->init->isVoidInitializer())
                 {
@@ -1338,6 +1338,10 @@ Expression *DeclarationExp::interpret(InterState *istate)
                 error("Declaration %s is not yet implemented in CTFE", toChars());
                 e = EXP_CANT_INTERPRET;
             }
+        }
+        else if (s == v && !v->init && v->type->size()==0)
+        {   // Zero-length arrays don't need an initializer
+            e = v->type->defaultInitLiteral(loc);
         }
 #if DMDV2
         else if (s == v && (v->isConst() || v->isImmutable()) && v->init)
