@@ -163,6 +163,7 @@ MANIFEST= \
 	src\rt\memory_osx.c \
 	src\rt\memset.d \
 	src\rt\minit.asm \
+	src\rt\monitor.c \
 	src\rt\monitor_.d \
 	src\rt\obj.d \
 	src\rt\qsort.d \
@@ -336,8 +337,8 @@ SRCS= \
 # NOTE: a pre-compiled minit.obj has been provided in dmd for Win32 and
 #       minit.asm is not used by dmd for Linux
 
-OBJS= errno_c.obj complex.obj src\rt\minit.obj
-OBJS_TO_DELETE= errno_c.obj complex.obj
+OBJS= errno_c.obj complex.obj src\rt\minit.obj monitor.obj
+OBJS_TO_DELETE= errno_c.obj complex.obj monitor.obj
 
 DOCS=\
 	$(DOCDIR)\object.html \
@@ -754,6 +755,9 @@ complex.obj : src\rt\complex.c
 
 src\rt\minit.obj : src\rt\minit.asm
 	$(CC) -c $(CFLAGS) src\rt\minit.asm
+
+monitor.obj : src\rt\monitor.c
+	$(CC) -c $(CFLAGS) src\rt\monitor.c
 
 ################### gcstub generation #########################
 

@@ -13,6 +13,8 @@
  */
 module rt.monitor_;
 
+//debug=PRINTF;
+
 private
 {
     debug(PRINTF) import core.stdc.stdio;
@@ -74,7 +76,7 @@ private
         h.__monitor = m;
     }
 
-    static __gshared int inited;
+    extern(C) __gshared int inited_monitor_stuff;
 }
 
 
@@ -82,24 +84,29 @@ private
 
 version( Windows )
 {
-    static __gshared CRITICAL_SECTION _monitor_critsec;
+    extern(C) __gshared CRITICAL_SECTION _monitor_critsec;
 
+    /+
     extern (C) void _STI_monitor_staticctor()
     {
-        if (!inited)
+        debug(PRINTF) printf("+_STI_monitor_staticctor()\n");
+        if (!inited_monitor_stuff)
         {
             InitializeCriticalSection(&_monitor_critsec);
-            inited = 1;
+            inited_monitor_stuff = 1;
         }
+        debug(PRINTF) printf("-_STI_monitor_staticctor()\n");
     }
 
     extern (C) void _STD_monitor_staticdtor()
     {
-        if (inited)
+        debug(PRINTF) printf("+_STI_monitor_staticdtor() - d\n");
+        if (inited_monitor_stuff)
         {
-            inited = 0;
+            inited_monitor_stuff = 0;
             DeleteCriticalSection(&_monitor_critsec);
         }
+        debug(PRINTF) printf("-_STI_monitor_staticdtor() - d\n");
     }
 
     extern (C) void _d_monitor_create(Object h)
@@ -155,6 +162,7 @@ version( Windows )
         LeaveCriticalSection(&getMonitor(h).mon);
         debug(PRINTF) printf("-_d_monitor_release(%p)\n", h);
     }
+    +/
 }
 
 /* =============================== linux ============================ */
@@ -167,20 +175,20 @@ version( USE_PTHREADS )
 
     extern (C) void _STI_monitor_staticctor()
     {
-        if (!inited)
+        if (!inited_monitor_stuff)
         {
             pthread_mutexattr_init(&_monitors_attr);
             pthread_mutexattr_settype(&_monitors_attr, PTHREAD_MUTEX_RECURSIVE);
             pthread_mutex_init(&_monitor_critsec, &_monitors_attr);
-            inited = 1;
+            inited_monitor_stuff = 1;
         }
     }
 
     extern (C) void _STD_monitor_staticdtor()
     {
-        if (inited)
+        if (inited_monitor_stuff)
         {
-            inited = 0;
+            inited_monitor_stuff = 0;
             pthread_mutex_destroy(&_monitor_critsec);
             pthread_mutexattr_destroy(&_monitors_attr);
         }
