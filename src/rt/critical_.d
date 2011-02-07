@@ -30,6 +30,10 @@ private
     {
         version = USE_PTHREADS;
     }
+    else version( Solaris )
+    {
+        version = USE_PTHREADS;
+    }
 
     version( Windows )
     {
