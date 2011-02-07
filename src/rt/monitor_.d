@@ -80,7 +80,7 @@ private
         h.__monitor = m;
     }
 
-    extern(C) __gshared int inited_monitor_stuff;
+    static __gshared int inited;
 }
 
 
@@ -88,16 +88,16 @@ private
 
 version( Windows )
 {
-    extern(C) __gshared CRITICAL_SECTION _monitor_critsec;
-
     /+
+    static __gshared CRITICAL_SECTION _monitor_critsec;
+
     extern (C) void _STI_monitor_staticctor()
     {
         debug(PRINTF) printf("+_STI_monitor_staticctor()\n");
-        if (!inited_monitor_stuff)
+        if (!inited)
         {
             InitializeCriticalSection(&_monitor_critsec);
-            inited_monitor_stuff = 1;
+            inited = 1;
         }
         debug(PRINTF) printf("-_STI_monitor_staticctor()\n");
     }
@@ -105,9 +105,9 @@ version( Windows )
     extern (C) void _STD_monitor_staticdtor()
     {
         debug(PRINTF) printf("+_STI_monitor_staticdtor() - d\n");
-        if (inited_monitor_stuff)
+        if (inited)
         {
-            inited_monitor_stuff = 0;
+            inited = 0;
             DeleteCriticalSection(&_monitor_critsec);
         }
         debug(PRINTF) printf("-_STI_monitor_staticdtor() - d\n");
@@ -179,20 +179,20 @@ version( USE_PTHREADS )
 
     extern (C) void _STI_monitor_staticctor()
     {
-        if (!inited_monitor_stuff)
+        if (!inited)
         {
             pthread_mutexattr_init(&_monitors_attr);
             pthread_mutexattr_settype(&_monitors_attr, PTHREAD_MUTEX_RECURSIVE);
             pthread_mutex_init(&_monitor_critsec, &_monitors_attr);
-            inited_monitor_stuff = 1;
+            inited = 1;
         }
     }
 
     extern (C) void _STD_monitor_staticdtor()
     {
-        if (inited_monitor_stuff)
+        if (inited)
         {
-            inited_monitor_stuff = 0;
+            inited = 0;
             pthread_mutex_destroy(&_monitor_critsec);
             pthread_mutexattr_destroy(&_monitors_attr);
         }

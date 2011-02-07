@@ -33,18 +33,18 @@ typedef struct Monitor
 
 #define MONPTR(h)       (&((Monitor *)(h)->monitor)->mon)
 
-extern volatile int inited_monitor_stuff;
+static volatile int inited;
 
 /* =============================== Win32 ============================ */
 
-extern CRITICAL_SECTION _monitor_critsec;
+static CRITICAL_SECTION _monitor_critsec;
 
 void _STI_monitor_staticctor()
 {
     //printf("+_STI_monitor_staticctor() - c\n");
-    if (!inited_monitor_stuff)
+    if (!inited)
     {   InitializeCriticalSection(&_monitor_critsec);
-        inited_monitor_stuff = 1;
+        inited = 1;
     }
     //printf("-_STI_monitor_staticctor() - c\n");
 }
@@ -52,8 +52,8 @@ void _STI_monitor_staticctor()
 void _STD_monitor_staticdtor()
 {
     //printf("+_STI_monitor_staticdtor() - c\n");
-    if (inited_monitor_stuff)
-    {   inited_monitor_stuff = 0;
+    if (inited)
+    {   inited = 0;
         DeleteCriticalSection(&_monitor_critsec);
     }
     //printf("-_STI_monitor_staticdtor() - c\n");
