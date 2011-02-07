@@ -339,3 +339,14 @@ static assert(is(typeof(compiles!(badassert1(5)))));
 static assert(!is(typeof(compiles!(badslice1([1,2])))));
 static assert(!is(typeof(compiles!(badslice2([1,2])))));
 static assert(!is(typeof(compiles!(badslice3([1,2,3])))));
+
+/*******************************************/
+
+int bug5524(int x, int[] more...)
+{
+    int[0] zz;
+    assert(zz.length==0);
+    return 7 + more.length + x;
+}
+
+static assert(bug5524(3) == 10);
