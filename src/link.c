@@ -116,7 +116,7 @@ int runLINK()
 
     cmdbuf.writeByte(',');
     if (global.params.mapfile)
-        cmdbuf.writestring(global.params.mapfile);
+        writeFilename(&cmdbuf, global.params.mapfile);
     else if (global.params.run)
         cmdbuf.writestring("nul");
     cmdbuf.writeByte(',');
