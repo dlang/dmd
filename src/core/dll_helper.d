@@ -378,12 +378,17 @@ public:
         Runtime.terminate();
     }
 
+    /* Make sure that tlsCtorRun is itself a tls variable
+     */
+    static bool tlsCtorRun;
+    static this() { tlsCtorRun = true; }
+
     // to be called from DllMain with reason DLL_THREAD_ATTACH
     void dll_thread_attach( bool attach_thread = true, bool initTls = true )
     {
         if( attach_thread && !thread_findByAddr( GetCurrentThreadId() ) )
             thread_attachThis();
-        if( initTls && !_moduleinfo_tlsdtors_i ) // avoid duplicate calls
+        if( initTls && !tlsCtorRun ) // avoid duplicate calls
             _moduleTlsCtor();
     }
 
