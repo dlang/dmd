@@ -459,7 +459,7 @@ void ClassDeclaration::toDebug()
 //    if (st->Sopeq && !(st->Sopeq->Sfunc->Fflags & Fnodebug))
 //      property |= 0x20;               // class has overloaded assignment
 
-    id = toPrettyChars();
+    id = isCPPinterface() ? ident->toChars() : toPrettyChars();
     numidx = isUnionDeclaration() ? 8 : 12;
     len = numidx + cv4_numericbytes(size);
     d = debtyp_alloc(len + cv_stringbytes(id));

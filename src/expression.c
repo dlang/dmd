@@ -2343,6 +2343,11 @@ Lagain:
 
         if (!f->originalType && f->scope)       // semantic not yet run
             f->semantic(f->scope);
+
+        // if inferring return type, sematic3 needs to be run
+        if (f->inferRetType && f->scope && f->type && !f->type->nextOf())
+            f->semantic3(f->scope);
+
         if (f->isUnitTestDeclaration())
         {
             error("cannot call unittest function %s", toChars());

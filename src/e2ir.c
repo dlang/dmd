@@ -3032,6 +3032,30 @@ elem *CatAssignExp::toElem(IRState *irs)
         else if (I64)
         {   // Append element
 
+            elem *e2x = NULL;
+
+            if (e2->Eoper != OPvar && e2->Eoper != OPconst)
+            {
+                // Evaluate e2 and assign result to temporary s2.
+                // Do this because of:
+                //    a ~= a[$-1]
+                // because $ changes its value
+                symbol *s2 = symbol_genauto(tb2->toCtype());
+                e2x = el_bin(OPeq, e2->Ety, el_var(s2), e2);
+                if (tybasic(e2->Ety) == TYstruct)
+                {
+                    e2x->Eoper = OPstreq;
+                    e2x->ET = tb1n->toCtype();
+                }
+                else if (tybasic(e2->Ety) == TYarray)
+                {
+                    e2x->Eoper = OPstreq;
+                    e2x->Ejty = e2x->Ety = TYstruct;
+                    e2x->ET = tb1n->toCtype();
+                }
+                e2 = el_var(s2);
+            }
+
             // Extend array with _d_arrayappendcTX(TypeInfo ti, e1, 1)
             e1 = el_una(OPaddr, TYnptr, e1);
             elem *ep = el_param(e1, this->e1->type->getTypeInfo(NULL)->toElem(irs));
@@ -3063,6 +3087,7 @@ elem *CatAssignExp::toElem(IRState *irs)
                 eeq->ET = tb1n->toCtype();
             }
 
+            e = el_combine(e2x, e);
             e = el_combine(e, eeq);
             e = el_combine(e, el_var(stmp));
         }
