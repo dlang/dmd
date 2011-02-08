@@ -4418,6 +4418,8 @@ code *cdpost(elem *e,regm_t *pretregs)
             }
             else
                 cs.Irex &= ~REX_B;
+            if (I64 && sz == 1 && reg >= 4)
+                cs.Irex |= REX;
             gen(c3,&cs);                        // ADD/SUB reg,const
 
             // Reverse MOV direction
