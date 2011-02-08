@@ -830,12 +830,14 @@ int main(int argc, char *argv[])
         global.params.objname = NULL;
 
         // Haven't investigated handling these options with multiobj
-        if (!global.params.cov && !global.params.trace &&
+        if (!global.params.cov && !global.params.trace
+#if TARGET_WINDOS
             /* multiobj causes class/struct debug info to be attached to init-data,
              * but this will not be linked into the executable, so this info is lost.
              * Bugzilla 4014
              */
-            !global.params.symdebug
+            && !global.params.symdebug
+#endif
            )
             global.params.multiobj = 1;
     }
