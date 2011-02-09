@@ -81,3 +81,16 @@ class Bug5349(T) // segfault D2.051
 }
 
 static assert(!is(typeof(Bug5349!(int))));
+
+/**************************************/
+
+class Bug4033 {}
+
+class Template4033(T) {
+    static assert(is(T : Bug4033));
+}
+
+
+alias Template4033!(Z4033) Bla;
+
+class Z4033 : Bug4033 { }
