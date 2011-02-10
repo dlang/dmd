@@ -1842,7 +1842,7 @@ code *allocreg(regm_t *pretregs,unsigned *preg,tym_t tym
         count = 0;
 L1:
         //printf("L1: allregs = x%x, *pretregs = x%x\n", allregs, *pretregs);
-        assert(++count < 10);           /* fail instead of hanging if blocked */
+        assert(++count < 20);           /* fail instead of hanging if blocked */
         s = retregs & mES;
         assert(retregs);
         msreg = lsreg = (unsigned)-1;           /* no value assigned yet        */
