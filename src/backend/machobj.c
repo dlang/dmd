@@ -1,5 +1,5 @@
 
-// Copyright (c) 2009-2010 by Digital Mars
+// Copyright (c) 2009-2011 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // http://www.digitalmars.com
@@ -471,7 +471,7 @@ void obj_init(Outbuffer *objbuf, const char *filename, const char *csegname)
     mach_getsegment("__text",  "__TEXT", 2, S_REGULAR | S_ATTR_PURE_INSTRUCTIONS | S_ATTR_SOME_INSTRUCTIONS);
     mach_getsegment("__data",  "__DATA", 2, S_REGULAR);         // DATA
     mach_getsegment("__const", "__TEXT", 2, S_REGULAR);         // CDATA
-    mach_getsegment("__bss",   "__DATA", 2, S_ZEROFILL);        // UDATA
+    mach_getsegment("__bss",   "__DATA", 4, S_ZEROFILL);        // UDATA
 
     if (config.fulltypes)
         dwarf_initfile(filename);
@@ -2078,7 +2078,7 @@ void reftodatseg(int seg,targ_size_t offset,targ_size_t val,
 
 void reftocodseg(int seg,targ_size_t offset,targ_size_t val)
 {
-    printf("reftocodseg(seg=%d, offset=x%lx, val=x%lx )\n",seg,offset,val);
+    printf("reftocodseg(seg=%d, offset=x%lx, val=x%lx )\n",seg,(unsigned long)offset,(unsigned long)val);
     assert(seg > 0);
     Outbuffer *buf = SegData[seg]->SDbuf;
     int save = buf->size();
@@ -2290,7 +2290,7 @@ long elf_align(targ_size_t size, long foffset)
             offset = (foffset + 31) & ~31;
             break;
         default:
-            dbg_printf("size was %lu\n",size);
+            dbg_printf("size was %lu\n",(unsigned long)size);
             assert(0);
             break;
     }
