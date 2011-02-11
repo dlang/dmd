@@ -372,8 +372,8 @@ void gensaverestore2(regm_t regm,code **csave,code **crestore)
     code *cs1 = *csave;
     code *cs2 = *crestore;
 
-    //printf("gensaverestore2(%x)\n", regm);
-    regm &= mBP | mES | ALLREGS;
+    //printf("gensaverestore2(%s)\n", regm_str(regm));
+    regm &= mBP | mES | ALLREGS | XMMREGS;
     for (int i = 0; regm; i++)
     {
         if (regm & 1)
@@ -382,6 +382,11 @@ void gensaverestore2(regm_t regm,code **csave,code **crestore)
             {
                 cs1 = gen1(cs1, 0x06);                  // PUSH ES
                 cs2 = cat(gen1(CNIL, 0x07),cs2);        // POP  ES
+            }
+            else if (i >= XMM0)
+            {   unsigned idx;
+                cs1 = regsave.save(cs1, i, &idx);
+                cs2 = regsave.restore(cs2, i, idx);
             }
             else
             {
