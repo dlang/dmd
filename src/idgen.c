@@ -91,6 +91,7 @@ Msgtable msgtable[] =
     { "_arguments" },
     { "_argptr" },
     { "_match" },
+    { "m_align" },
 
     { "LINE", "__LINE__" },
     { "FILE", "__FILE__" },

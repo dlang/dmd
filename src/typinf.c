@@ -458,6 +458,10 @@ void TypeInfoStructDeclaration::toDt(dt_t **pdt)
 
     unsigned offset = Type::typeinfostruct->structsize;
 
+    // If using obsolete 32 bit object.d
+    if (!global.params.isX86_64 && !Type::typeinfostruct->search(NULL, Id::m_align, 0))
+        offset += 4;                         // include space for m_align
+
     dtxoff(pdt, Type::typeinfostruct->toVtblSymbol(), 0, TYnptr); // vtbl for TypeInfo_Struct
     dtsize_t(pdt, 0);                        // monitor
 
