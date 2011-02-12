@@ -3409,7 +3409,7 @@ Statement *ReturnStatement::semantic(Scope *sc)
             Type *tfret = tf->nextOf();
             if (tfret)
             {
-                if (!exp->type->equals(tfret))
+                if (tfret != Type::terror && !exp->type->equals(tfret))
                     error("mismatched function return type inference of %s and %s",
                         exp->type->toChars(), tfret->toChars());
 
