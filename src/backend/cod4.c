@@ -1126,6 +1126,8 @@ code *cdaddass(elem *e,regm_t *pretregs)
                 ce = allocreg(&retregs,&reg,tyml);
                 cs.Iop = 0x8B ^ byte ^ reverse;
                 code_newreg(&cs, reg);
+                if (I64 && byte && reg >= 4)
+                    cs.Irex |= REX_W;
                 ce = gen(ce,&cs);               // MOV reg,EA
             }
         }
@@ -2484,8 +2486,14 @@ code *cdcnvt(elem *e, regm_t *pretregs)
                     c1 = codelem(e->E1, &retregs, FALSE);
                     unsigned reg = findreg(retregs);
                     c1 = genfltreg(c1, 0x89, reg, 0);
-                    regwithvalue(c1,ALLREGS,0,&reg,0);
-                    genfltreg(c1, 0x89, reg, REGSIZE);
+                    if (I64)
+                    {
+                        code_orrex(c1, REX_W);
+                    }
+                    else
+                    {   regwithvalue(c1,ALLREGS,0,&reg,0);
+                        genfltreg(c1, 0x89, reg, REGSIZE);
+                    }
 
                     cat(c1, push87());
                     genfltreg(c1,0xDF,5,0);     // FILD m64int
@@ -2649,10 +2657,14 @@ code *cdshtlng(elem *e,regm_t *pretregs)
         c1 = allocreg(&retregs,&reg,TYint);
         opcode = (op == OPu16_32) ? 0x0FB7 : 0x0FBF; /* MOVZX/MOVSX reg,EA */
         if (op == OPs32_64)
-        {   opcode = 0x63;                      // MOVSXD
+        {
             assert(I64);
+            // MOVSXD reg,e1
+            c2 = loadea(e1,&cs,0x63,reg,0,0,retregs);
+            code_orrex(c2, REX_W);
         }
-        c2 = loadea(e1,&cs,opcode,reg,0,0,retregs);
+        else
+            c2 = loadea(e1,&cs,opcode,reg,0,0,retregs);
         c3 = CNIL;
         freenode(e1);
     }
@@ -2672,6 +2684,8 @@ code *cdshtlng(elem *e,regm_t *pretregs)
             {
                 // Convert AND of a word to AND of a dword, zeroing upper word
                 retregs = mask[cx->Irm & 7];
+                if (cx->Irex & REX_B)
+                    retregs = mask[8 | (cx->Irm & 7)];
                 cx->Iflags &= ~CFopsize;
                 cx->IEV2.Vint &= 0xFFFF;
                 goto L1;
@@ -2999,6 +3013,8 @@ code *cdport(elem *e,regm_t *pretregs)
     {   retregs = mDX;                  /* port number is always DX     */
         c1 = codelem(e1,&retregs,FALSE);
         op |= 0x08;                     /* DX version of opcode         */
+        port = 0;                       // not logically needed, but
+                                        // quiets "uninitialized var" complaints
     }
 
     if (e->Eoper == OPoutp)

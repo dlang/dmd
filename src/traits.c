@@ -76,8 +76,11 @@ Expression *TraitsExp::semantic(Scope *sc)
 #if LOGSEMANTIC
     printf("TraitsExp::semantic() %s\n", toChars());
 #endif
-    if (ident != Id::compiles && ident != Id::isSame)
+    if (ident != Id::compiles && ident != Id::isSame &&
+        ident != Id::identifier)
+    {
         TemplateInstance::semanticTiargs(loc, sc, args, 1);
+    }
     size_t dim = args ? args->dim : 0;
     Object *o;
     Declaration *d;
@@ -176,6 +179,11 @@ Expression *TraitsExp::semantic(Scope *sc)
     }
     else if (ident == Id::identifier)
     {   // Get identifier for symbol as a string literal
+
+        // Specify 0 for the flags argument to semanticTiargs() so that
+        // a symbol should not be folded to a constant.
+        TemplateInstance::semanticTiargs(loc, sc, args, 0);
+
         if (dim != 1)
             goto Ldimerror;
         Object *o = (Object *)args->data[0];

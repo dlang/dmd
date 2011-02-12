@@ -760,8 +760,21 @@ code *cdorth(elem *e,regm_t *pretregs)
         break;
   }
   if (sz <= REGSIZE && *pretregs & mPSW)
-  {     code_orflag(c,CFpsw);
+  {
+        /* If the expression is (_tls_array + ...), then the flags are not set
+         * since the linker may rewrite these instructions into something else.
+         */
+        if (I64 && e->Eoper == OPadd && e1->Eoper == OPvar)
+        {
+            symbol *s = e1->EV.sp.Vsym;
+            if (s->Sident[0] == '_' && memcmp(s->Sident + 1,"tls_array",10) == 0)
+            {
+                goto L7;                        // don't assume flags are set
+            }
+        }
+        code_orflag(c,CFpsw);
         *pretregs &= ~mPSW;                     /* flags already set    */
+    L7: ;
   }
   if (test)
         cg = NULL;                      /* didn't destroy any           */
@@ -1452,7 +1465,7 @@ code *cdnot(elem *e,regm_t *pretregs)
         c1 = getregs(retregs);
         c1 = gen2(c1,0xF7 ^ (sz == 1),grex | modregrmx(3,3,reg));   // NEG reg
         code_orflag(c1,CFpsw);
-        if (I32 && sz == SHORTSIZE)
+        if (!I16 && sz == SHORTSIZE)
             code_orflag(c1,CFopsize);
     L2:
         c1 = genregs(c1,0x19,reg,reg);                  // SBB reg,reg
@@ -2483,7 +2496,7 @@ code *cdind(elem *e,regm_t *pretregs)
         {       retregs = ALLREGS & ~idxregs;
                 c = cat(c,allocreg(&retregs,&reg,TYint));
                 cs.Iop = 0x8B;
-                cs.Irm |= modregrm(0,reg,0);
+                code_newreg(&cs,reg);
                 getlvalue_msw(&cs);
                 ce = gen(CNIL,&cs);             /* MOV reg,msw          */
                 if (I32)

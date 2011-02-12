@@ -912,6 +912,7 @@ STATIC void blcodgen(block *bl)
     }
 
     e = bl->Belem;
+    regsave.idx = 0;
     retregs = 0;
     reflocal = 0;
     refparamsave = refparam;

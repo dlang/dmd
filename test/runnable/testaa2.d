@@ -5,6 +5,7 @@ extern(C) int printf(const char*, ...);
 int main()
 {
     testaa();
+    bug1899();
     printf("Success\n");
     return 0;
 }
@@ -78,4 +79,14 @@ void foo2()
     c.remove("bar");
     assert(!("bar" in c));
     assert(c.length == 0);
+}
+
+void bug1899() 
+{
+    int[3][string] AA;
+    int[3] x = [5,4,3];
+    AA["abc"] = x;
+    assert(AA["abc"] == x);
+    AA["def"] = [1,2,3];
+    assert(AA["def"]==[1,2,3]);
 }

@@ -1078,6 +1078,14 @@ L2:
             Type *tthis = ethis->type;
             unsigned mod = fd->type->mod;
             StorageClass stc = scope->stc;
+            // Propagate parent storage class (see bug 5504)
+            Dsymbol *p = parent;
+            while (p->isTemplateDeclaration() || p->isTemplateInstance())
+                p = p->parent;
+            AggregateDeclaration *ad = p->isAggregateDeclaration();
+            if (ad)
+                stc |= ad->storage_class;
+
             if (stc & (STCshared | STCsynchronized))
                 mod |= MODshared;
             if (stc & STCimmutable)

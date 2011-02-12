@@ -4,6 +4,10 @@
 #include <stdlib.h>
 #include <assert.h>
 
+#if __sun&&__SVR4
+#include <alloca.h>
+#endif
+
 #include "speller.h"
 
 const char idchars[] = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_";

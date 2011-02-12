@@ -4164,31 +4164,51 @@ unsigned codout(code *c)
             }
         }
 
-        if (c->Irex)
-            GEN(c->Irex | REX);
         if (op > 0xFF)
         {
             if ((op & 0xFF00) == 0x0F00)
                 ins = inssize2[op & 0xFF];
             if (op & 0xFF000000)
-            {   GEN(op >> 24);
+            {
+                if (c->Irex)
+                    GEN(c->Irex | REX);
+                GEN(op >> 24);
                 GEN((op >> 8) & 0xFF);
                 GEN(op & 0xFF);
                 GEN((op >> 16) & 0xFF);         // yes, this is out of order. For 0x660F3A41 & 40
             }
             else if (op & 0xFF0000)
             {
-                GEN((op >> 16) & 0xFF);
+                unsigned char op1 = op >> 16;
+                if (op1 == 0xF2 || op1 == 0xF3)
+                {
+                    GEN(op1);
+                    if (c->Irex)
+                        GEN(c->Irex | REX);
+                }
+                else
+                {
+                    if (c->Irex)
+                        GEN(c->Irex | REX);
+                    GEN(op1);
+                }
                 GEN((op >> 8) & 0xFF);
                 GEN(op & 0xFF);
             }
             else
-            {   GEN((op >> 8) & 0xFF);
+            {
+                if (c->Irex)
+                    GEN(c->Irex | REX);
+                GEN((op >> 8) & 0xFF);
                 GEN(op & 0xFF);
             }
         }
         else
+        {
+            if (c->Irex)
+                GEN(c->Irex | REX);
             GEN(op);
+        }
         if (ins & M)            /* if modregrm byte             */
         {
             rm = c->Irm;
