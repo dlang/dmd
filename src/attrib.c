@@ -949,6 +949,8 @@ void PragmaDeclaration::semantic(Scope *sc)
             e = e->semantic(sc);
             e = e->optimize(WANTvalue | WANTinterpret);
             args->data[0] = (void *)e;
+            if (e->op == TOKerror)
+                goto Lnodecl;
             if (e->op != TOKstring)
                 error("string expected for library name, not '%s'", e->toChars());
             else if (global.params.verbose)

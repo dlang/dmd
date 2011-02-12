@@ -3627,6 +3627,8 @@ Lagain:
             }
             //printf("sds = %s, '%s'\n", sds->kind(), sds->toChars());
         }
+        if (global.errors)
+            return new ErrorExp();
     }
     else
     {
@@ -5622,6 +5624,8 @@ Expression *CompileExp::semantic(Scope *sc)
 #endif
     UnaExp::semantic(sc);
     e1 = resolveProperties(sc, e1);
+    if (e1->op == TOKerror)
+        return e1;
     if (!e1->type->isString())
     {
         error("argument to mixin must be a string type, not %s\n", e1->type->toChars());
@@ -6364,6 +6368,8 @@ Expression *DotTemplateInstanceExp::semantic(Scope *sc)
     Expression *e = new DotIdExp(loc, e1, ti->name);
 L1:
     e = e->semantic(sc);
+    if (e->op == TOKerror)
+        return e;
     if (e->op == TOKdottd)
     {
         if (global.errors)
@@ -7685,6 +7691,8 @@ Expression *DeleteExp::semantic(Scope *sc)
     UnaExp::semantic(sc);
     e1 = resolveProperties(sc, e1);
     e1 = e1->toLvalue(sc, NULL);
+    if (e1->op == TOKerror)
+        return e1;
     type = Type::tvoid;
 
     tb = e1->type->toBasetype();
