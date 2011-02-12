@@ -553,9 +553,14 @@ code *cdeq(elem *e,regm_t *pretregs)
             goto Lp;
         }
         retregs = allregs;              /* pick a reg, any reg          */
+        if (sz == 2 * REGSIZE)
+            retregs &= ~mBP;            // BP cannot be used for register pair
   }
   if (retregs == mPSW)
-        retregs = allregs;
+  {     retregs = allregs;
+        if (sz == 2 * REGSIZE)
+            retregs &= ~mBP;            // BP cannot be used for register pair
+  }
   cs.Iop = 0x89;
   if (sz == 1)                  // must have byte regs
   {     cs.Iop = 0x88;
