@@ -553,9 +553,14 @@ code *cdeq(elem *e,regm_t *pretregs)
             goto Lp;
         }
         retregs = allregs;              /* pick a reg, any reg          */
+        if (sz == 2 * REGSIZE)
+            retregs &= ~mBP;            // BP cannot be used for register pair
   }
   if (retregs == mPSW)
-        retregs = allregs;
+  {     retregs = allregs;
+        if (sz == 2 * REGSIZE)
+            retregs &= ~mBP;            // BP cannot be used for register pair
+  }
   cs.Iop = 0x89;
   if (sz == 1)                  // must have byte regs
   {     cs.Iop = 0x88;
@@ -2402,8 +2407,8 @@ code *longcmp(elem *e,bool jcond,unsigned fltarg,code *targ)
 }
 
 /*****************************
- * Do conversions. DEPENDS on OPd_s32 and CLIBdbllng being
- * in SEQUENCE.
+ * Do conversions.
+ * Depends on OPd_s32 and CLIBdbllng being in sequence.
  */
 
 code *cdcnvt(elem *e, regm_t *pretregs)
@@ -2456,6 +2461,26 @@ code *cdcnvt(elem *e, regm_t *pretregs)
 
             case OPf_d:
             case OPd_f:
+                if (I64 && *pretregs & XMMREGS)
+                {
+                    c1 = codelem(e->E1,pretregs,FALSE);
+                    unsigned reg = findreg(*pretregs) - XMM0;
+                    if (e->Eoper == OPf_d)
+                    {   /*  0F 14 C0   UNPCKLPS     XMM0,XMM0
+                         *  0F 5A C0   CVTPS2PD     XMM0,XMM0
+                         */
+                        c1 = gen2(c1, 0x0F14, modregrm(3,reg,reg));
+                        c1 = gen2(c1, 0x0F5A, modregrm(3,reg,reg));
+                    }
+                    else // OPd_f
+                    {   /*  66 0F 14 C0   UPPCKLPD     XMM0,XMM0
+                         *  66 0F 5A C0   CVTPD2PS     XMM0,XMM0
+                         */
+                        c1 = gen2(c1, 0x660F14, modregrm(3,reg,reg));
+                        c1 = gen2(c1, 0x660F5A, modregrm(3,reg,reg));
+                    }
+                    return c1;
+                }
                 /* if won't do us much good to transfer back and        */
                 /* forth between 8088 registers and 8087 registers      */
                 if (OTcall(e->E1->Eoper) && !(*pretregs & allregs))
