@@ -1223,7 +1223,7 @@ Dsymbol *InterfaceDeclaration::syntaxCopy(Dsymbol *s)
     if (s)
         id = (InterfaceDeclaration *)s;
     else
-        id = new InterfaceDeclaration(loc, Id::Class, NULL);
+        id = new InterfaceDeclaration(loc, ident, NULL);
 
     ClassDeclaration::syntaxCopy(id);
     return id;
