@@ -131,6 +131,14 @@ void DelegateExp::dump(int i)
         e1->dump(i + 2);
 }
 
+#if DMD_OBJC
+void ObjcSelectorExp::dump(int i)
+{
+    indent(i);
+    printf("%p %s func=%s type=%s\n", this, Token::toChars(op), func->toChars(), type_print(type));
+}
+#endif
+
 void BinExp::dump(int i)
 {
     indent(i);

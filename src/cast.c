@@ -403,6 +403,9 @@ MATCH NullExp::implicitConvTo(Type *t)
             t = ((TypeTypedef *)t)->sym->basetype;
         if (t->ty == Tpointer || t->ty == Tarray ||
             t->ty == Taarray  || t->ty == Tclass ||
+#if DMD_OBJC
+            t->ty == Tobjcselector ||
+#endif
             t->ty == Tdelegate)
             return committed ? MATCHconvert : MATCHexact;
     }
@@ -600,7 +603,11 @@ MATCH AddrExp::implicitConvTo(Type *t)
         t = t->toBasetype();
 
         if (e1->op == TOKoverloadset &&
-            (t->ty == Tpointer || t->ty == Tdelegate) && t->nextOf()->ty == Tfunction)
+            (t->ty == Tpointer || t->ty == Tdelegate
+#if DMD_OBJC
+             || t->ty == Tobjcselector
+#endif
+             ) && t->nextOf()->ty == Tfunction)
         {   OverExp *eo = (OverExp *)e1;
             FuncDeclaration *f = NULL;
             for (int i = 0; i < eo->vars->a.dim; i++)
@@ -657,13 +664,20 @@ MATCH SymOffExp::implicitConvTo(Type *t)
 
         t = t->toBasetype();
         if (type->ty == Tpointer && type->nextOf()->ty == Tfunction &&
-            (t->ty == Tpointer || t->ty == Tdelegate) && t->nextOf()->ty == Tfunction)
+            (t->ty == Tpointer || t->ty == Tdelegate
+#if DMD_OBJC
+             || t->ty == Tobjcselector
+#endif
+             ) && t->nextOf()->ty == Tfunction)
         {
             f = var->isFuncDeclaration();
             if (f)
             {   f = f->overloadExactMatch(t->nextOf());
                 if (f)
                 {   if ((t->ty == Tdelegate && (f->needThis() || f->isNested())) ||
+#if DMD_OBJC
+                        (t->ty == Tobjcselector && (f->needThis() || f->isNested())) ||
+#endif
                         (t->ty == Tpointer && !(f->needThis() || f->isNested())))
                     {
                         result = MATCHexact;
@@ -698,9 +712,44 @@ MATCH DelegateExp::implicitConvTo(Type *t)
             if (func && func->overloadExactMatch(t->nextOf()))
                 result = MATCHexact;
         }
+#if DMD_OBJC
+        else if (t->ty == Tobjcselector && t->nextOf()->ty == Tfunction)
+        {
+            if (func && func->overloadExactMatch(t->nextOf()))
+                result = MATCHexact;
+        }
+#endif
     }
     return result;
 }
+
+#if DMD_OBJC
+MATCH ObjcSelectorExp::implicitConvTo(Type *t)
+{
+#if 0
+    printf("ObjcSelectorExp::implicitConvTo(this=%s, type=%s, t=%s)\n",
+        toChars(), type->toChars(), t->toChars());
+#endif
+    MATCH result;
+
+    result = type->implicitConvTo(t);
+
+    if (result == MATCHnomatch)
+    {
+        // Look for pointers to functions where the functions are overloaded.
+        FuncDeclaration *f;
+
+        t = t->toBasetype();
+        if (type->ty == Tobjcselector && type->nextOf()->ty == Tfunction &&
+            t->ty == Tobjcselector && t->nextOf()->ty == Tfunction)
+        {
+            if (func && func->overloadExactMatch(t->nextOf()))
+                result = MATCHexact;
+        }
+    }
+    return result;
+}
+#endif
 
 MATCH OrExp::implicitConvTo(Type *t)
 {
@@ -911,6 +960,9 @@ Expression *NullExp::castTo(Scope *sc, Type *t)
         // NULL implicitly converts to any pointer type or dynamic array
         if (e->type->ty == Tpointer && e->type->nextOf()->ty == Tvoid &&
             (tb->ty == Tpointer || tb->ty == Tarray || tb->ty == Taarray ||
+#if DMD_OBJC
+             tb->ty == Tobjcselector ||
+#endif
              tb->ty == Tdelegate))
         {
 #if 0
@@ -990,6 +1042,10 @@ Expression *StringExp::castTo(Scope *sc, Type *t)
     //printf("\ttype = %s\n", type->toChars());
     if (tb->ty == Tdelegate && type->toBasetype()->ty != Tdelegate)
         return Expression::castTo(sc, t);
+#if DMD_OBJC
+    if (tb->ty == Tobjcselector && type->toBasetype()->ty != Tobjcselector)
+        return Expression::castTo(sc, t);
+#endif
 
     Type *typeb = type->toBasetype();
     if (typeb == tb)
@@ -1201,8 +1257,14 @@ Expression *AddrExp::castTo(Scope *sc, Type *t)
     {
         // Look for pointers to functions where the functions are overloaded.
 
+#if DMD_OBJC
+        if (e1->op == TOKoverloadset &&
+            (t->ty == Tpointer || t->ty == Tdelegate || t->ty == Tobjcselector) &&
+             t->nextOf()->ty == Tfunction)
+#else
         if (e1->op == TOKoverloadset &&
             (t->ty == Tpointer || t->ty == Tdelegate) && t->nextOf()->ty == Tfunction)
+#endif
         {   OverExp *eo = (OverExp *)e1;
             FuncDeclaration *f = NULL;
             for (int i = 0; i < eo->vars->a.dim; i++)
@@ -1360,7 +1422,12 @@ Expression *SymOffExp::castTo(Scope *sc, Type *t)
 
         if (hasOverloads &&
             typeb->ty == Tpointer && typeb->nextOf()->ty == Tfunction &&
-            (tb->ty == Tpointer || tb->ty == Tdelegate) && tb->nextOf()->ty == Tfunction)
+            (tb->ty == Tpointer || tb->ty == Tdelegate 
+#if DMD_OBJC
+             || tb->ty == Tobjcselector
+#endif
+             ) &&
+             tb->nextOf()->ty == Tfunction)
         {
             f = var->isFuncDeclaration();
             if (f)
@@ -1389,13 +1456,30 @@ Expression *SymOffExp::castTo(Scope *sc, Type *t)
                             return new ErrorExp();
                         }
                     }
+#if DMD_OBJC
+                    else if (tb->ty == Tobjcselector)
+                    {
+                        if (f->objcSelector && f->linkage == LINKobjc && f->needThis())
+                        {   e = new ObjcSelectorExp(loc, f);
+                            e = e->semantic(sc);
+                            return e;
+                        }
+                        else
+                        {   error("function %s has no selector", f->toChars());
+                            return new ErrorExp();
+                        }
+                    }
+#endif
                     else
                     {
                         e = new SymOffExp(loc, f, 0);
                         e->type = t;
                     }
 #if DMDV2
-                    f->tookAddressOf++;
+#if DMD_OBJC
+                    if (tb->ty != Tobjcselector)
+#endif
+                        f->tookAddressOf++;
 #endif
                     return e;
                 }
@@ -1446,6 +1530,27 @@ Expression *DelegateExp::castTo(Scope *sc, Type *t)
                     error("%s", msg);
             }
         }
+#if DMD_OBJC
+        else if (tb->ty == Tobjcselector && tb->nextOf()->ty == Tfunction)
+        {
+            static char msg2[] = "cannot form selector due to covariant return type";
+            if (func)
+            {
+                f = func->overloadExactMatch(tb->nextOf());
+                if (f)
+                {   int offset;
+                    if (f->tintro && f->tintro->nextOf()->isBaseOf(f->type->nextOf(), &offset) && offset)
+                        error("%s", msg2);
+                    
+                    e = new ObjcSelectorExp(loc, f);
+                    e->type = t;
+                    return e;
+                }
+                if (func->tintro)
+                    error("%s", msg2);
+            }
+        }
+#endif
         e = Expression::castTo(sc, t);
     }
     else
@@ -1459,6 +1564,56 @@ Expression *DelegateExp::castTo(Scope *sc, Type *t)
     }
     return e;
 }
+
+#if DMD_OBJC
+Expression *ObjcSelectorExp::castTo(Scope *sc, Type *t)
+{
+#if 0
+    printf("ObjcSelectorExp::castTo(this=%s, type=%s, t=%s)\n",
+        toChars(), type->toChars(), t->toChars());
+#endif
+    static char msg[] = "cannot form selector due to covariant return type";
+
+    Expression *e = this;
+    Type *tb = t->toBasetype();
+    Type *typeb = type->toBasetype();
+    if (tb != typeb)
+    {
+        // Look for delegates to functions where the functions are overloaded.
+        FuncDeclaration *f;
+
+        if (typeb->ty == Tobjcselector && typeb->nextOf()->ty == Tfunction &&
+            tb->ty == Tobjcselector && tb->nextOf()->ty == Tfunction)
+        {
+            if (func)
+            {
+                f = func->overloadExactMatch(tb->nextOf());
+                if (f)
+                {   int offset;
+                    if (f->tintro && f->tintro->nextOf()->isBaseOf(f->type->nextOf(), &offset) && offset)
+                        error("%s", msg);
+
+                    e = new ObjcSelectorExp(loc, f);
+                    e->type = t;
+                    return e;
+                }
+                if (func->tintro)
+                    error("%s", msg);
+            }
+        }
+        e = Expression::castTo(sc, t);
+    }
+    else
+    {   int offset;
+
+        if (func->tintro && func->tintro->nextOf()->isBaseOf(func->type->nextOf(), &offset) && offset)
+            error("%s", msg);
+        e = copy();
+        e->type = t;
+    }
+    return e;
+}
+#endif
 
 Expression *CondExp::castTo(Scope *sc, Type *t)
 {

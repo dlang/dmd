@@ -5185,6 +5185,14 @@ Expression *IsExp::semantic(Scope *sc)
                 tded = ((TypeDelegate *)targ)->next;    // the underlying function type
                 break;
 
+#if DMD_OBJC
+            case TOKobjcselector:
+                if (targ->ty != Tobjcselector)
+                    goto Lno;
+                tded = ((TypeObjcSelector *)targ)->next; // the underlying function type
+                break;
+#endif
+
             case TOKfunction:
             {
                 if (targ->ty != Tfunction)
@@ -5216,6 +5224,12 @@ Expression *IsExp::semantic(Scope *sc)
                 {   tded = ((TypeDelegate *)targ)->next;
                     tded = ((TypeFunction *)tded)->next;
                 }
+#if DMD_OBJC
+                else if (targ->ty == Tobjcselector)
+                {   tded = ((TypeDelegate *)targ)->next;
+                    tded = ((TypeFunction *)tded)->next;
+                }
+#endif
                 else if (targ->ty == Tpointer &&
                          ((TypePointer *)targ)->next->ty == Tfunction)
                 {   tded = ((TypePointer *)targ)->next;
@@ -6586,6 +6600,46 @@ void DelegateExp::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
     buf->writestring(func->toChars());
 }
 
+
+/************************************************************/
+
+#if DMD_OBJC
+ObjcSelectorExp::ObjcSelectorExp(Loc loc, FuncDeclaration *f, int hasOverloads)
+        : Expression(loc, TOKobjcselector, sizeof(ObjcSelectorExp))
+{
+    this->func = f;
+    this->hasOverloads = hasOverloads;
+}
+
+Expression *ObjcSelectorExp::semantic(Scope *sc)
+{
+#if LOGSEMANTIC
+    printf("ObjcSelectorExp::semantic('%s')\n", toChars());
+#endif
+    if (!type)
+    {
+        type = new TypeObjcSelector(func->type);
+        type = type->semantic(loc, sc);
+        if (!func->needThis())
+        {   error("%s isn't a member function, has no selector", func->toChars());
+            return new ErrorExp();
+        }
+        ClassDeclaration *cd = func->toParent()->isClassDeclaration();
+        if (!cd->objc)
+        {   error("%s isn't an Objective-C class, function has no selector", cd->toChars());
+            return new ErrorExp();
+        }
+    }
+    return this;
+}
+
+void ObjcSelectorExp::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
+{
+    buf->writeByte('&');
+    buf->writestring(func->toChars());
+}
+#endif
+
 /************************************************************/
 
 DotTypeExp::DotTypeExp(Loc loc, Expression *e, Dsymbol *s)
@@ -7262,6 +7316,22 @@ Lagain:
             }
             goto Lcheckargs;
         }
+#if DMD_OBJC
+        else if (t1->ty == Tobjcselector)
+        {   TypeObjcSelector *td = (TypeObjcSelector *)t1;
+            assert(td->next->ty == Tfunction);
+            tf = (TypeFunction *)(td->next);
+            if (sc->func && sc->func->isPure() && !tf->purity)
+            {
+                error("pure function '%s' cannot call impure selector '%s'", sc->func->toChars(), e1->toChars());
+            }
+            if (sc->func && sc->func->isSafe() && tf->trust <= TRUSTsystem)
+            {
+                error("safe function '%s' cannot call system selector '%s'", sc->func->toChars(), e1->toChars());
+            }
+            goto Lcheckargs;
+        }
+#endif
         else if (t1->ty == Tpointer && ((TypePointer *)t1)->next->ty == Tfunction)
         {
             Expression *e = new PtrExp(loc, e1);
@@ -7393,6 +7463,10 @@ int CallExp::checkSideEffect(int flag)
         return 0;
     if (t->ty == Tdelegate && ((TypeFunction *)((TypeDelegate *)t)->next)->purity)
         return 0;
+#if DMD_OBJC
+    if (t->ty == Tobjcselector && ((TypeFunction *)((TypeDelegate *)t)->next)->purity)
+        return 0;
+#endif
 #endif
     return 1;
 }
@@ -7425,6 +7499,10 @@ int CallExp::canThrow(bool mustNotThrow)
         return 0;
     if (t->ty == Tdelegate && ((TypeFunction *)((TypeDelegate *)t)->next)->isnothrow)
         return 0;
+#if DMD_OBJC
+    if (t->ty == Tobjcselector && ((TypeFunction *)((TypeDelegate *)t)->next)->isnothrow)
+        return 0;
+#endif
     if (mustNotThrow)
         error("%s is not nothrow", e1->toChars());
     return 1;

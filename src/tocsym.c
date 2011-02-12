@@ -255,6 +255,9 @@ Symbol *VarDeclaration::toSymbol()
                 break;
 
             case LINKc:
+#if DMD_OBJC
+            case LINKobjc:
+#endif
                 m = mTYman_c;
                 break;
 

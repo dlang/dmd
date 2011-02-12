@@ -193,6 +193,9 @@ void Type::init()
     sizeTy[Ttuple] = sizeof(TypeTuple);
     sizeTy[Tslice] = sizeof(TypeSlice);
     sizeTy[Treturn] = sizeof(TypeReturn);
+#if DMD_OBJC
+    sizeTy[Tobjcselector] = sizeof(TypeObjcSelector);
+#endif
 
     mangleChar[Tarray] = 'A';
     mangleChar[Tsarray] = 'G';
@@ -207,6 +210,9 @@ void Type::init()
     mangleChar[Tenum] = 'E';
     mangleChar[Ttypedef] = 'T';
     mangleChar[Tdelegate] = 'D';
+#if DMD_OBJC
+    mangleChar[Tobjcselector] = '@';
+#endif
 
     mangleChar[Tnone] = 'n';
     mangleChar[Tvoid] = 'v';
@@ -866,7 +872,11 @@ void Type::check()
     }
 
     Type *tn = nextOf();
-    if (tn && ty != Tfunction && ty != Tdelegate)
+    if (tn && ty != Tfunction && ty != Tdelegate
+#if DMD_OBJC
+        && ty != Tobjcselector
+#endif
+        )
     {   // Verify transitivity
         switch (mod)
         {
@@ -2139,6 +2149,9 @@ Type *TypeNext::makeConst()
     }
     TypeNext *t = (TypeNext *)Type::makeConst();
     if (ty != Tfunction && ty != Tdelegate &&
+#if DMD_OBJC
+        ty != Tobjcselector &&
+#endif
         //(next->deco || next->ty == Tfunction) &&
         !next->isImmutable() && !next->isConst())
     {   if (next->isShared())
@@ -2163,6 +2176,9 @@ Type *TypeNext::makeInvariant()
     }
     TypeNext *t = (TypeNext *)Type::makeInvariant();
     if (ty != Tfunction && ty != Tdelegate &&
+#if DMD_OBJC
+        ty != Tobjcselector &&
+#endif
         //(next->deco || next->ty == Tfunction) &&
         !next->isImmutable())
     {   t->next = next->invariantOf();
@@ -2183,6 +2199,9 @@ Type *TypeNext::makeShared()
     }
     TypeNext *t = (TypeNext *)Type::makeShared();
     if (ty != Tfunction && ty != Tdelegate &&
+#if DMD_OBJC
+        ty != Tobjcselector &&
+#endif
         //(next->deco || next->ty == Tfunction) &&
         !next->isImmutable() && !next->isShared())
     {
@@ -2208,6 +2227,9 @@ Type *TypeNext::makeSharedConst()
     }
     TypeNext *t = (TypeNext *)Type::makeSharedConst();
     if (ty != Tfunction && ty != Tdelegate &&
+#if DMD_OBJC
+        ty != Tobjcselector &&
+#endif
         //(next->deco || next->ty == Tfunction) &&
         !next->isImmutable() && !next->isSharedConst())
     {
@@ -2230,6 +2252,9 @@ Type *TypeNext::makeWild()
     }
     TypeNext *t = (TypeNext *)Type::makeWild();
     if (ty != Tfunction && ty != Tdelegate &&
+#if DMD_OBJC
+        ty != Tobjcselector &&
+#endif
         //(next->deco || next->ty == Tfunction) &&
         !next->isImmutable() && !next->isConst() && !next->isWild())
     {
@@ -2255,6 +2280,9 @@ Type *TypeNext::makeSharedWild()
     }
     TypeNext *t = (TypeNext *)Type::makeSharedWild();
     if (ty != Tfunction && ty != Tdelegate &&
+#if DMD_OBJC
+        ty != Tobjcselector &&
+#endif
         //(next->deco || next->ty == Tfunction) &&
         !next->isImmutable() && !next->isSharedConst())
     {
@@ -2273,6 +2301,9 @@ Type *TypeNext::makeMutable()
     //printf("TypeNext::makeMutable() %p, %s\n", this, toChars());
     TypeNext *t = (TypeNext *)Type::makeMutable();
     if ((ty != Tfunction && ty != Tdelegate &&
+#if DMD_OBJC
+        ty != Tobjcselector &&
+#endif
         //(next->deco || next->ty == Tfunction) &&
         next->isWild()) || ty == Tsarray)
     {

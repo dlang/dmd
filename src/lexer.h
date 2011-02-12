@@ -174,6 +174,8 @@ enum TOK
         TOKobjcclsref, // Objective-C class reference
         TOKobjc_dotclass,
         TOKobjc_dotprotocolof,
+        
+        TOKobjcselector, // selector keyword
 #endif
 
         TOKMAX

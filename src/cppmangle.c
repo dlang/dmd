@@ -351,6 +351,14 @@ void TypeDelegate::toCppMangle(OutBuffer *buf, CppMangleState *cms)
 }
 
 
+#if DMD_OBJC
+void TypeObjcSelector::toCppMangle(OutBuffer *buf, CppMangleState *cms)
+{
+    buf->writestring("P13objc_selector");
+}
+#endif
+
+
 void TypeStruct::toCppMangle(OutBuffer *buf, CppMangleState *cms)
 {
     if (!cms->exist(this))

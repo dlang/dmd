@@ -2431,6 +2431,7 @@ Type *Parser::parseBasicType()
  *      t [expression .. expression]
  *      t function
  *      t delegate
+ *      t __selector  (Objective-C)
  */
 
 Type *Parser::parseBasicType2(Type *t)
@@ -2483,9 +2484,13 @@ Type *Parser::parseBasicType2(Type *t)
 
             case TOKdelegate:
             case TOKfunction:
+#if DMD_OBJC
+            case TOKobjcselector:
+#endif
             {   // Handle delegate declaration:
                 //      t delegate(parameter list) nothrow pure
                 //      t function(parameter list) nothrow pure
+                //      t __selector(parameter list) nothrow pure
                 Parameters *arguments;
                 int varargs;
                 enum TOK save = token.value;
@@ -2501,6 +2506,12 @@ Type *Parser::parseBasicType2(Type *t)
 
                 if (save == TOKdelegate)
                     t = new TypeDelegate(tf);
+#if DMD_OBJC
+                else if (save == TOKobjcselector)
+                {   tf->linkage = LINKobjc;     // force Objective-C linkage
+                    t = new TypeObjcSelector(tf);
+                }
+#endif
                 else
                     t = new TypePointer(tf);    // pointer to function
                 continue;
@@ -3523,6 +3534,9 @@ Statement *Parser::parseStatement(int flags)
         case TOKtraits:
         case TOKfile:
         case TOKline:
+#endif
+#if DMD_OBJC
+        case TOKobjcselector:
 #endif
         Lexp:
         {
@@ -4637,6 +4651,9 @@ int Parser::isDeclarator(Token **pt, int *haveId, enum TOK endtok)
 
             case TOKdelegate:
             case TOKfunction:
+#if DMD_OBJC
+            case TOKobjcselector:
+#endif
                 t = peek(t);
                 if (!isParameters(&t))
                     return FALSE;
@@ -5297,6 +5314,9 @@ Expression *Parser::parsePrimaryExp()
 #endif
                          token.value == TOKfunction ||
                          token.value == TOKdelegate ||
+#if DMD_OBJC
+                         token.value == TOKobjcselector ||
+#endif
                          token.value == TOKreturn))
                     {
                         tok2 = token.value;
@@ -5790,6 +5810,9 @@ Expression *Parser::parseUnaryExp()
 #if DMDV2
                     case TOKfile:
                     case TOKline:
+#endif
+#if DMD_OBJC
+                    case TOKobjcselector:
 #endif
                     case BASIC_TYPES:           // (type)int.size
                     {   // (type) una_exp
@@ -6463,6 +6486,9 @@ void initPrecedence()
     precedence[TOKnew] = PREC_unary;
     precedence[TOKnewanonclass] = PREC_unary;
     precedence[TOKcast] = PREC_unary;
+#if DMD_OBJC
+    precedence[TOKobjcselector] = PREC_unary; // same as delegate
+#endif
 
 #if DMDV2
     precedence[TOKpow] = PREC_pow;

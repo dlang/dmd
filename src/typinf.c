@@ -215,6 +215,13 @@ TypeInfoDeclaration *TypeDelegate::getTypeInfoDeclaration()
     return new TypeInfoDelegateDeclaration(this);
 }
 
+#if DMD_OBJC
+TypeInfoDeclaration *TypeObjcSelector::getTypeInfoDeclaration()
+{
+    return new TypeInfoObjcSelectorDeclaration(this);
+}
+#endif
+
 TypeInfoDeclaration *TypeTuple::getTypeInfoDeclaration()
 {
     return new TypeInfoTupleDeclaration(this);
@@ -457,6 +464,22 @@ void TypeInfoDelegateDeclaration::toDt(dt_t **pdt)
     tc->next->nextOf()->getTypeInfo(NULL);
     dtxoff(pdt, tc->next->nextOf()->vtinfo->toSymbol(), 0, TYnptr); // TypeInfo for delegate return value
 }
+
+#if DMD_OBJC
+void TypeInfoObjcSelectorDeclaration::toDt(dt_t **pdt)
+{
+    //printf("TypeInfoObjcSelectorDeclaration::toDt()\n");
+    dtxoff(pdt, Type::typeinfodelegate->toVtblSymbol(), 0, TYnptr); // vtbl for TypeInfo_ObjcSelector
+    dtsize_t(pdt, 0);                        // monitor
+
+    assert(tinfo->ty == Tobjcselector);
+
+    TypeObjcSelector *tc = (TypeObjcSelector *)tinfo;
+
+    tc->next->nextOf()->getTypeInfo(NULL);
+    dtxoff(pdt, tc->next->nextOf()->vtinfo->toSymbol(), 0, TYnptr); // TypeInfo for selector return value
+}
+#endif
 
 void TypeInfoStructDeclaration::toDt(dt_t **pdt)
 {

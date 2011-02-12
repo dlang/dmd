@@ -1018,3 +1018,123 @@ Symbol *ObjcProtocolDeclaration::getProtocolList()
     outdata(sprotocols);
     return sprotocols;
 }
+
+
+/***************************** TypeObjcSelector *****************************/
+
+TypeObjcSelector::TypeObjcSelector(Type *t)
+    : TypeNext(Tfunction, t)
+{
+    ty = Tobjcselector;
+}
+
+Type *TypeObjcSelector::syntaxCopy()
+{
+    Type *t = next->syntaxCopy();
+    if (t == next)
+        t = this;
+    else
+    {   t = new TypeObjcSelector(t);
+        t->mod = mod;
+    }
+    return t;
+}
+
+Type *TypeObjcSelector::semantic(Loc loc, Scope *sc)
+{
+    if (deco)                   // if semantic() already run
+    {
+        //printf("already done\n");
+        return this;
+    }
+    next = next->semantic(loc,sc);
+    return merge();
+}
+
+d_uns64 TypeObjcSelector::size(Loc loc)
+{
+    return PTRSIZE;
+}
+
+unsigned TypeObjcSelector::alignsize()
+{
+    return PTRSIZE;
+}
+
+MATCH TypeObjcSelector::implicitConvTo(Type *to)
+{
+    //printf("TypeDelegate::implicitConvTo(this=%p, to=%p)\n", this, to);
+    //printf("from: %s\n", toChars());
+    //printf("to  : %s\n", to->toChars());
+    if (this == to)
+        return MATCHexact;
+#if 0 // not allowing covariant conversions because it interferes with overriding
+    if (to->ty == Tdelegate && this->nextOf()->covariant(to->nextOf()) == 1)
+        return MATCHconvert;
+#endif
+    return MATCHnomatch;
+}
+
+void TypeObjcSelector::toCBuffer2(OutBuffer *buf, HdrGenState *hgs, int mod)
+{
+    if (mod != this->mod)
+    {   toCBuffer3(buf, hgs, mod);
+        return;
+    }
+    TypeFunction *tf = (TypeFunction *)next;
+
+    tf->next->toCBuffer2(buf, hgs, 0);
+    buf->writestring(" __selector");
+    Parameter::argsToCBuffer(buf, hgs, tf->parameters, tf->varargs);
+    tf->attributesToCBuffer(buf, mod);
+}
+
+Expression *TypeObjcSelector::defaultInit(Loc loc)
+{
+#if LOGDEFAULTINIT
+    printf("TypeObjcSelector::defaultInit() '%s'\n", toChars());
+#endif
+    return new NullExp(loc, this);
+}
+
+int TypeObjcSelector::isZeroInit(Loc loc)
+{
+    return 1;
+}
+
+int TypeObjcSelector::checkBoolean()
+{
+    return TRUE;
+}
+
+Expression *TypeObjcSelector::dotExp(Scope *sc, Expression *e, Identifier *ident)
+{
+#if LOGDOTEXP
+    printf("TypeDelegate::dotExp(e = '%s', ident = '%s')\n", e->toChars(), ident->toChars());
+#endif
+/*    if (ident == Id::ptr)
+    {
+        e->type = tvoidptr;
+        return e;
+    }
+    else if (ident == Id::funcptr)
+    {
+        e = e->addressOf(sc);
+        e->type = tvoidptr;
+        e = new AddExp(e->loc, e, new IntegerExp(PTRSIZE));
+        e->type = tvoidptr;
+        e = new PtrExp(e->loc, e);
+        e->type = next->pointerTo();
+        return e;
+    }
+    else*/
+    {
+        e = Type::dotExp(sc, e, ident);
+    }
+    return e;
+}
+
+int TypeObjcSelector::hasPointers()
+{
+    return FALSE; // not in GC memory
+}

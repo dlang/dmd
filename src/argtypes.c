@@ -153,6 +153,13 @@ TypeTuple *TypeDelegate::toArgTypes()
     return new TypeTuple();     // pass on the stack for efficiency
 }
 
+#if DMD_OBJC
+TypeTuple *TypeObjcSelector::toArgTypes()
+{
+    return new TypeTuple();     // pass on the stack for efficiency
+}
+#endif
+
 TypeTuple *TypeStruct::toArgTypes()
 {
     int sz = size(0);

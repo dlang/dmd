@@ -156,4 +156,29 @@ struct ObjcProtocolDeclaration
     Symbol *getProtocolList();
 };
 
+struct TypeObjcSelector : TypeNext
+{
+    // .next is a TypeFunction
+
+    TypeObjcSelector(Type *t);
+    Type *syntaxCopy();
+    Type *semantic(Loc loc, Scope *sc);
+    d_uns64 size(Loc loc);
+    unsigned alignsize();
+    MATCH implicitConvTo(Type *to);
+    void toCBuffer2(OutBuffer *buf, HdrGenState *hgs, int mod);
+    Expression *defaultInit(Loc loc);
+    int isZeroInit(Loc loc);
+    int checkBoolean();
+    TypeInfoDeclaration *getTypeInfoDeclaration();
+    Expression *dotExp(Scope *sc, Expression *e, Identifier *ident);
+    int hasPointers();
+    TypeTuple *toArgTypes();
+#if CPP_MANGLE
+    void toCppMangle(OutBuffer *buf, CppMangleState *cms);
+#endif
+
+    type *toCtype();
+};
+
 #endif

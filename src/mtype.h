@@ -99,6 +99,10 @@ enum ENUMTY
     Ttuple,
     Tslice,
     Treturn,
+    
+#if DMD_OBJC
+    Tobjcselector,
+#endif
     TMAX
 };
 typedef unsigned char TY;       // ENUMTY

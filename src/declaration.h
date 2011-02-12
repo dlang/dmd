@@ -438,6 +438,15 @@ struct TypeInfoDelegateDeclaration : TypeInfoDeclaration
     void toDt(dt_t **pdt);
 };
 
+#if DMD_OBJC
+struct TypeInfoObjcSelectorDeclaration : TypeInfoDeclaration
+{
+    TypeInfoObjcSelectorDeclaration(Type *tinfo);
+
+    void toDt(dt_t **pdt);
+};
+#endif
+
 struct TypeInfoTupleDeclaration : TypeInfoDeclaration
 {
     TypeInfoTupleDeclaration(Type *tinfo);

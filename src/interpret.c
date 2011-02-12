@@ -1192,6 +1192,16 @@ Expression *DelegateExp::interpret(InterState *istate)
     return this;
 }
 
+#if DMD_OBJC
+Expression *ObjcSelectorExp::interpret(InterState *istate)
+{
+#if LOG
+    printf("ObjcSelectorExp::interpret() %s\n", toChars());
+#endif
+    return this;
+}
+#endif
+
 
 // -------------------------------------------------------------
 //         Remove out, ref, and this

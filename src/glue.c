@@ -1102,6 +1102,9 @@ unsigned Type::totym()
         case Tsarray:   t = TYarray;    break;
 #endif
         case Tstruct:   t = TYstruct;   break;
+#if DMD_OBJC
+        case Tobjcselector: t = TYnptr; break;
+#endif
 
         case Tenum:
         case Ttypedef:

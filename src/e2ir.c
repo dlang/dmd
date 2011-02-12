@@ -3557,6 +3557,13 @@ elem *DelegateExp::toElem(IRState *irs)
     return e;
 }
 
+#if DMD_OBJC
+elem *ObjcSelectorExp::toElem(IRState *irs)
+{
+    return func->objcSelector->toElem();
+}
+#endif
+
 elem *DotTypeExp::toElem(IRState *irs)
 {
     // Just a pass-thru to e1

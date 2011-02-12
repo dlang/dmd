@@ -906,6 +906,25 @@ struct DelegateExp : UnaExp
     elem *toElem(IRState *irs);
 };
 
+#if DMD_OBJC
+struct ObjcSelectorExp : Expression
+{
+    FuncDeclaration *func;
+    int hasOverloads;
+
+    ObjcSelectorExp(Loc loc, FuncDeclaration *func, int hasOverloads = 0);
+    Expression *semantic(Scope *sc);
+    Expression *interpret(InterState *istate);
+    MATCH implicitConvTo(Type *t);
+    Expression *castTo(Scope *sc, Type *t);
+    void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
+    void dump(int indent);
+
+    int inlineCost(InlineCostState *ics);
+    elem *toElem(IRState *irs);
+};
+#endif
+
 struct DotTypeExp : UnaExp
 {
     Dsymbol *sym;               // symbol that represents a type

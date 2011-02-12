@@ -3019,6 +3019,9 @@ static Keyword keywords[] =
     {   "shared",       TOKshared       },
     {   "immutable",    TOKimmutable    },
 #endif
+#if DMD_OBJC
+    {   "__selector",   TOKobjcselector },
+#endif
 };
 
 int Token::isKeyword()
