@@ -1,5 +1,5 @@
 // Copyright (C) 1987-1995 by Symantec
-// Copyright (C) 2000-2010 by Digital Mars
+// Copyright (C) 2000-2011 by Digital Mars
 // All Rights Reserved
 // http://www.digitalmars.com
 // Written by Walter Bright
@@ -835,16 +835,21 @@ code *fixresult87(elem *e,regm_t retregs,regm_t *pretregs)
             }
         }
         else
-        {
-            if (!I16)
-            {   c2 = genfltreg(c2,0x8B,reg,REGSIZE);
-                genfltreg(c2,0x8B,findreglsw(*pretregs),0);
-            }
-            else
+        {   assert(sz == DOUBLESIZE);
+            if (I16)
             {   c2 = genfltreg(c2,0x8B,AX,6);
                 genfltreg(c2,0x8B,BX,4);
                 genfltreg(c2,0x8B,CX,2);
                 genfltreg(c2,0x8B,DX,0);
+            }
+            else if (I32)
+            {   c2 = genfltreg(c2,0x8B,reg,REGSIZE);
+                genfltreg(c2,0x8B,findreglsw(*pretregs),0);
+            }
+            else // I64
+            {
+                c2 = genfltreg(c2,0x8B,reg,0);
+                code_orrex(c2, REX_W);
             }
         }
     }
