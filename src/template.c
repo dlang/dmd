@@ -1,6 +1,6 @@
 
 // Compiler implementation of the D programming language
-// Copyright (c) 1999-2010 by Digital Mars
+// Copyright (c) 1999-2011 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // http://www.digitalmars.com
@@ -439,6 +439,15 @@ void TemplateDeclaration::semantic(Scope *sc)
         // when template is instantiated in other modules
         sc->module->toModuleAssert();
     }
+
+#if DMDV2
+    if (/*global.params.useUnitTests &&*/ sc->module)
+    {
+        // Generate this function as it may be used
+        // when template is instantiated in other modules
+        sc->module->toModuleUnittest();
+    }
+#endif
 
     /* Remember Scope for later instantiations, but make
      * a copy since attributes can change.

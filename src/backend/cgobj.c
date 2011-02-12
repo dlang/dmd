@@ -1,5 +1,5 @@
 // Copyright (C) 1984-1998 by Symantec
-// Copyright (C) 2000-2009 by Digital Mars
+// Copyright (C) 2000-2011 by Digital Mars
 // All Rights Reserved
 // http://www.digitalmars.com
 // Written by Walter Bright
@@ -17,6 +17,7 @@
 #include        <stdlib.h>
 #include        <malloc.h>
 #include        <ctype.h>
+#include        <direct.h>
 
 #include        "filespec.h"
 
@@ -1247,12 +1248,26 @@ void obj_alias(const char *n1,const char *n2)
  */
 
 void obj_theadr(const char *modname)
-{   char *theadr;
-    int i;
-
+{
     //printf("obj_theadr(%s)\n", modname);
-    theadr = (char *)alloca(ONS_OHD + strlen(modname));
-    i = obj_namestring(theadr,modname);
+
+    // Convert to absolute file name, so debugger can find it anywhere
+    char absname[260];
+    if (config.fulltypes &&
+        modname[0] != '\\' && modname[0] != '/' && !(modname[0] && modname[1] == ':'))
+    {
+        if (getcwd(absname, sizeof(absname)))
+        {
+            int len = strlen(absname);
+            if(absname[len - 1] != '\\' && absname[len - 1] != '/')
+                absname[len++] = '\\';
+            strcpy(absname + len, modname);
+            modname = absname;
+        }
+    }
+
+    char *theadr = (char *)alloca(ONS_OHD + strlen(modname));
+    int i = obj_namestring(theadr,modname);
     objrecord(THEADR,theadr,i);                 // module name record
 }
 
