@@ -1999,8 +1999,21 @@ code *fixresult(elem *e,regm_t retregs,regm_t *pretregs)
                         code_orrex(ce,REX_W);
                 }
             }
+            else if (forregs & XMMREGS)
+            {
+                reg = findreg(retregs & (mBP | ALLREGS));
+                // MOV floatreg,reg
+                ce = genfltreg(ce,0x89,reg,0);
+                if (sz == 8)
+                    code_orrex(ce,REX_W);
+                // MOVSS/MOVSD XMMreg,floatreg
+                unsigned op = (sz == 4) ? 0xF30F10 : 0xF20F10;
+                ce = genfltreg(ce,0xF20F10,rreg - XMM0,0);
+            }
             else
             {
+                assert(!(retregs & XMMREGS));
+                assert(!(forregs & XMMREGS));
                 reg = findreg(retregs & (mBP | ALLREGS));
                 ce = genmovreg(ce,rreg,reg);    /* MOV rreg,reg         */
             }
@@ -2332,6 +2345,12 @@ code *callclib(elem *e,unsigned clib,regm_t *pretregs,regm_t keepmask)
             lib[CLIBllngdbl].Sregsaved = Z(DOUBLEREGS_32);
             lib[CLIBdblullng].Sregsaved = Z(DOUBLEREGS_32);
             lib[CLIBullngdbl].Sregsaved = Z(DOUBLEREGS_32);
+
+            if (I64)
+            {
+                info[CLIBullngdbl].retregs32 = mAX;
+                info[CLIBdblullng].retregs32 = mAX;
+            }
         }
         clib_inited++;
   }
