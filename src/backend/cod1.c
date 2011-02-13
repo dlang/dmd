@@ -2345,6 +2345,12 @@ code *callclib(elem *e,unsigned clib,regm_t *pretregs,regm_t keepmask)
             lib[CLIBllngdbl].Sregsaved = Z(DOUBLEREGS_32);
             lib[CLIBdblullng].Sregsaved = Z(DOUBLEREGS_32);
             lib[CLIBullngdbl].Sregsaved = Z(DOUBLEREGS_32);
+
+            if (I64)
+            {
+                info[CLIBullngdbl].retregs32 = mAX;
+                info[CLIBdblullng].retregs32 = mAX;
+            }
         }
         clib_inited++;
   }
