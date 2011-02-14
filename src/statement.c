@@ -29,7 +29,8 @@
 #include "template.h"
 #include "attrib.h"
 
-extern int os_critsecsize();
+extern int os_critsecsize32();
+extern int os_critsecsize64();
 
 /******************************** Statement ***************************/
 
@@ -3676,7 +3677,7 @@ Statement *SynchronizedStatement::semantic(Scope *sc)
          *  try { body } finally { _d_criticalexit(critsec.ptr); }
          */
         Identifier *id = Lexer::uniqueId("__critsec");
-        Type *t = new TypeSArray(Type::tint8, new IntegerExp(PTRSIZE +  os_critsecsize()));
+        Type *t = new TypeSArray(Type::tint8, new IntegerExp(PTRSIZE + (global.params.isX86_64 ? os_critsecsize64() : os_critsecsize32())));
         VarDeclaration *tmp = new VarDeclaration(loc, t, id, NULL);
         tmp->storage_class |= STCgshared | STCstatic;
 

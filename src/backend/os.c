@@ -855,15 +855,41 @@ Lfail:
  */
 
 #if _WIN32
-int os_critsecsize()
+int os_critsecsize32()
 {
     return sizeof(CRITICAL_SECTION);
 }
+
+int os_critsecsize64()
+{
+    assert(0);
+    return 0;
+}
 #endif
 
-#if linux || __APPLE__ || __FreeBSD__ || __sun&&__SVR4
-int os_critsecsize()
+#if linux
+int os_critsecsize32()
+{
+    return 24;  // sizeof(pthread_mutex_t)
+}
+
+int os_critsecsize64()
+{
+    return 40;
+}
+#endif
+
+#if __APPLE__ || __FreeBSD__ || __sun&&__SVR4
+int os_critsecsize32()
 {
     return sizeof(pthread_mutex_t);
 }
+
+int os_critsecsize64()
+{
+    assert(0);
+    return 0;
+}
 #endif
+
+
