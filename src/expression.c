@@ -3364,17 +3364,21 @@ Expression *StructLiteralExp::semantic(Scope *sc)
         else
         {
             if (v->init)
-            {   e = v->init->toExpression();
-                if (!e)
-                {   error("cannot make expression out of initializer for %s", v->toChars());
-                    return new ErrorExp();
-                }
-                else if (v->scope)
-                {   // Do deferred semantic analysis
-                    Initializer *i2 = v->init->syntaxCopy();
-                    i2 = i2->semantic(v->scope, v->type);
-                    e = i2->toExpression();
-                    v->scope = NULL;
+            {   if (v->init->isVoidInitializer())
+                    e = NULL;
+                else
+                {   e = v->init->toExpression();
+                    if (!e)
+                    {   error("cannot make expression out of initializer for %s", v->toChars());
+                        return new ErrorExp();
+                    }
+                    else if (v->scope)
+                    {   // Do deferred semantic analysis
+                        Initializer *i2 = v->init->syntaxCopy();
+                        i2 = i2->semantic(v->scope, v->type);
+                        e = i2->toExpression();
+                        v->scope = NULL;
+                    }
                 }
             }
             else

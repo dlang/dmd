@@ -7083,7 +7083,11 @@ Expression *TypeStruct::defaultInitLiteral(Loc loc)
         VarDeclaration *vd = (VarDeclaration *)(sym->fields.data[j]);
         Expression *e;
         if (vd->init)
-            e = vd->init->toExpression();
+        {   if (vd->init->isVoidInitializer())
+                e = NULL;
+            else
+                e = vd->init->toExpression();
+        }
         else
             e = vd->type->defaultInitLiteral();
         structelems->data[j] = e;
