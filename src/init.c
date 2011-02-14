@@ -168,6 +168,7 @@ Initializer *StructInitializer::semantic(Scope *sc, Type *t)
             {
                 if (fieldi >= ad->fields.dim)
                 {   error(loc, "too many initializers for %s", ad->toChars());
+                    errors = 1;
                     field.remove(i);
                     i--;
                     continue;
@@ -184,6 +185,7 @@ Initializer *StructInitializer::semantic(Scope *sc, Type *t)
                 if (!s)
                 {
                     error(loc, "'%s' is not a member of '%s'", id->toChars(), t->toChars());
+                    errors = 1;
                     continue;
                 }
 
@@ -193,6 +195,7 @@ Initializer *StructInitializer::semantic(Scope *sc, Type *t)
                     if (fieldi >= ad->fields.dim)
                     {
                         s->error("is not a per-instance initializable field");
+                        errors = 1;
                         break;
                     }
                     if (s == (Dsymbol *)ad->fields.data[fieldi])
