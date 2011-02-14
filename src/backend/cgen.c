@@ -1,5 +1,5 @@
 // Copyright (C) 1985-1998 by Symantec
-// Copyright (C) 2000-2010 by Digital Mars
+// Copyright (C) 2000-2011 by Digital Mars
 // All Rights Reserved
 // http://www.digitalmars.com
 // Written by Walter Bright
@@ -32,7 +32,7 @@ inline void ccheck(code *cs)
 {
 //    if (cs->Iop == LEA && (cs->Irm & 0x3F) == 0x34 && cs->Isib == 7) *(char*)0=0;
 //    if (cs->Iop == 0x31) *(char*)0=0;
-//    if (cs->Iop == 0x8A && cs->Irm == 0xF2) *(char*)0=0;
+//    if (cs->Iop == 0x8A && cs->Irm == 0xF6) *(char*)0=0;
 }
 
 /*****************************
@@ -607,7 +607,8 @@ code *movregconst(code *c,unsigned reg,targ_size_t value,regm_t flags)
                         code_orrex(c, REX);
                     goto L2;
                 }
-                if (r < 4 && ((regcon.immed.value[r] >> 8) & 0xFF) == value)
+                if (!(I64 && reg >= 4) &&
+                    r < 4 && ((regcon.immed.value[r] >> 8) & 0xFF) == value)
                 {   c = genregs(c,0x8A,reg,r | 4);      // MOV regL,rH
                     goto L2;
                 }
