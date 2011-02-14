@@ -117,6 +117,19 @@ int runLINK()
     cmdbuf.writeByte(',');
     if (global.params.mapfile)
         writeFilename(&cmdbuf, global.params.mapfile);
+    else if (global.params.map)
+    {
+        FileName *fn = FileName::forceExt(global.params.exefile, "map");
+
+        char *path = FileName::path(global.params.exefile);
+        char *p;
+        if (path[0] == '\0')
+            p = FileName::combine(global.params.objdir, fn->toChars());
+        else
+            p = fn->toChars();
+
+        writeFilename(&cmdbuf, p);
+    }
     else if (global.params.run)
         cmdbuf.writestring("nul");
     cmdbuf.writeByte(',');
