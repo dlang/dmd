@@ -676,6 +676,7 @@ class Thread
     }
     body
     {
+        this();                 // set m_tls
         m_fn   = fn;
         m_sz   = sz;
         m_call = Call.FN;
@@ -701,6 +702,7 @@ class Thread
     }
     body
     {
+        this();                 // set m_tls
         m_dg   = dg;
         m_sz   = sz;
         m_call = Call.DG;
@@ -2482,7 +2484,7 @@ body
             resume( Thread.getThis() );
         return;
     }
-    
+
     scope(exit) Thread.slock.unlock();
     {
         if( --suspendDepth > 0 )
