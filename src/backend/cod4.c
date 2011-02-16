@@ -2697,9 +2697,9 @@ code *cdshtlng(elem *e,regm_t *pretregs)
     {
     L2:
         retregs = *pretregs;
-        *pretregs &= ~mPSW;             /* flags are already set        */
         if (op == OPs32_64)
-            retregs = mAX;
+            retregs = mAX | (*pretregs & mPSW);
+        *pretregs &= ~mPSW;             /* flags are already set        */
         c1 = codelem(e1,&retregs,FALSE);
         c2 = getregs(retregs);
         if (op == OPu16_32 && c1)
