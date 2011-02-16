@@ -595,6 +595,11 @@ void FuncDeclaration::toObjFile(int multiobj)
         }
     }
 
+    /* Vector operations should be comdat's
+     */
+    if (isArrayOp)
+        s->Sclass = SCcomdat;
+
     if (isNested())
     {
 //      if (!(config.flags3 & CFG3pic))

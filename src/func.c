@@ -66,6 +66,7 @@ FuncDeclaration::FuncDeclaration(Loc loc, Loc endloc, Identifier *id, StorageCla
     inlineNest = 0;
     inlineAsm = 0;
     cantInterpret = 0;
+    isArrayOp = 0;
     semanticRun = PASSinit;
 #if DMDV1
     nestedFrameRef = 0;

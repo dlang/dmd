@@ -545,6 +545,7 @@ struct FuncDeclaration : Declaration
     ILS inlineStatus;
     int inlineNest;                     // !=0 if nested inline
     int cantInterpret;                  // !=0 if cannot interpret function
+    int isArrayOp;                                              // !=0 if array operation
     int semanticRun;                    // 1 semantic() run
                                         // 2 semantic2() run
                                         // 3 semantic3() started
