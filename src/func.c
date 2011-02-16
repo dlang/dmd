@@ -1,5 +1,5 @@
 // Compiler implementation of the D programming language
-// Copyright (c) 1999-2010 by Digital Mars
+// Copyright (c) 1999-2011 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // http://www.digitalmars.com
@@ -66,6 +66,7 @@ FuncDeclaration::FuncDeclaration(Loc loc, Loc endloc, Identifier *id, StorageCla
     inlineNest = 0;
     inlineAsm = 0;
     cantInterpret = 0;
+    isArrayOp = 0;
     semanticRun = PASSinit;
 #if DMDV1
     nestedFrameRef = 0;
@@ -3277,7 +3278,8 @@ int StaticCtorDeclaration::addPostInvariant()
 void StaticCtorDeclaration::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 {
     if (hgs->hdrgen)
-    {   buf->writestring("static this();\n");
+    {   buf->writestring("static this();");
+        buf->writenl();
         return;
     }
     buf->writestring("static this()");

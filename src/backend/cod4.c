@@ -1802,7 +1802,7 @@ code *cdcmp(elem *e,regm_t *pretregs)
              genjmp(c,JA,FLcode,(block *)c3);   // JA C3
              gen1(c,0x48 + DX);                 // DEC EDX
              genjmp(c,JMPS,FLcode,(block *)c1); // JMP C1
-             c = cat4(c,c3,c1,CNIL);
+             c = cat4(c,c3,c1,getregs(mDX));
              retregs = mPSW;
         }
         goto L3;
@@ -1929,13 +1929,13 @@ code *cdcmp(elem *e,regm_t *pretregs)
                     // What does the Windows platform do?
                     //  lower INT_MIN by 1?   See test exe9.c
                     // BUG: fix later
-                    genc2(c,0x81,grex | modregrmx(3,3,reg & 7),0);  // SBB reg,0
+                    genc2(c,0x81,grex | modregrmx(3,3,reg),0);  // SBB reg,0
 #endif
                     goto oplt;
                 case OPlt:
                 oplt:
                     if (!I16)
-                        c = genc2(c,0xC1,grex | modregrmx(3,5,reg & 7),sz * 8 - 1); // SHR reg,31
+                        c = genc2(c,0xC1,grex | modregrmx(3,5,reg),sz * 8 - 1); // SHR reg,31
                     else
                     {   /* 8088-286 do not have a barrel shifter, so use this
                            faster sequence
@@ -2697,9 +2697,9 @@ code *cdshtlng(elem *e,regm_t *pretregs)
     {
     L2:
         retregs = *pretregs;
-        *pretregs &= ~mPSW;             /* flags are already set        */
         if (op == OPs32_64)
-            retregs = mAX;
+            retregs = mAX | (*pretregs & mPSW);
+        *pretregs &= ~mPSW;             /* flags are already set        */
         c1 = codelem(e1,&retregs,FALSE);
         c2 = getregs(retregs);
         if (op == OPu16_32 && c1)
