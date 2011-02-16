@@ -2093,6 +2093,11 @@ IntRange AndExp::getIntRange()
     return ir;
 }
 
+/*
+ * Adam D. Ruppe's algo for bitwise OR:
+ * http://www.digitalmars.com/d/archives/digitalmars/D/value_range_propagation_for_logical_OR_108765.html#N108793
+ */
+
 IntRange OrExp::getIntRange()
 {
     IntRange ir;
