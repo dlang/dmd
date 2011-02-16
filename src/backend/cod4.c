@@ -1802,7 +1802,7 @@ code *cdcmp(elem *e,regm_t *pretregs)
              genjmp(c,JA,FLcode,(block *)c3);   // JA C3
              gen1(c,0x48 + DX);                 // DEC EDX
              genjmp(c,JMPS,FLcode,(block *)c1); // JMP C1
-             c = cat4(c,c3,c1,CNIL);
+             c = cat4(c,c3,c1,getregs(mDX));
              retregs = mPSW;
         }
         goto L3;
