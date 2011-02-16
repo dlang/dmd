@@ -1929,13 +1929,13 @@ code *cdcmp(elem *e,regm_t *pretregs)
                     // What does the Windows platform do?
                     //  lower INT_MIN by 1?   See test exe9.c
                     // BUG: fix later
-                    genc2(c,0x81,grex | modregrmx(3,3,reg & 7),0);  // SBB reg,0
+                    genc2(c,0x81,grex | modregrmx(3,3,reg),0);  // SBB reg,0
 #endif
                     goto oplt;
                 case OPlt:
                 oplt:
                     if (!I16)
-                        c = genc2(c,0xC1,grex | modregrmx(3,5,reg & 7),sz * 8 - 1); // SHR reg,31
+                        c = genc2(c,0xC1,grex | modregrmx(3,5,reg),sz * 8 - 1); // SHR reg,31
                     else
                     {   /* 8088-286 do not have a barrel shifter, so use this
                            faster sequence
