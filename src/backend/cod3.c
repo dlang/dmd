@@ -856,7 +856,7 @@ int jmpopcode(elem *e)
 #else
             if (zero && !rel_exception(op) && config.target_cpu >= TARGET_80386)
                 op = swaprel(op);
-            else if (!(zero || I32) &&
+            else if (!zero &&
                 (cmporder87(e->E2) || !(rel_exception(op) || config.flags4 & CFG4fastfloat)))
                 /* compare is reversed */
                 op = swaprel(op);
