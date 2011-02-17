@@ -66,6 +66,7 @@ struct Dconst
 static Dconst oldd;
 
 #define NDPP    0       // print out debugging info
+#define NOSAHF  I64     // can't use SAHF instruction
 
 code *loadComplex(elem *e);
 code *opmod_complex87(elem *e,regm_t *pretregs);
@@ -540,6 +541,9 @@ code * genf2(code *c,unsigned op,unsigned rm)
 
 STATIC code * cg87_87topsw(code *c)
 {
+        /* Note that SAHF is not available on some early I64 processors
+         * and will cause a seg fault
+         */
         c = cat(c,getregs(mAX));
         if (config.target_cpu >= TARGET_80286)
             c = genf2(c,0xDF,0xE0);             // FSTSW AX
@@ -563,7 +567,18 @@ STATIC code * cg87_87topsw(code *c)
 
 STATIC code * genftst(code *c,elem *e,int pop)
 {
-    if (config.flags4 & CFG4fastfloat)  // if fast floating point
+    if (NOSAHF)
+    {
+        c = cat(c,push87());
+        c = gen2(c,0xD9,0xEE);          // FLDZ
+        gen2(c,0xDF,0xE9);              // FUCOMIP ST1
+        pop87();
+        if (pop)
+        {   c = genf2(c,0xDD,modregrm(3,3,0));  // FPOP
+            pop87();
+        }
+    }
+    else if (config.flags4 & CFG4fastfloat)  // if fast floating point
     {
         c = genf2(c,0xD9,0xE4);         // FTST
         c = cg87_87topsw(c);            // put 8087 flags in CPU flags
@@ -1041,9 +1056,30 @@ code *orth87(elem *e,regm_t *pretregs)
             {
                 if (cnst(e2) && !boolres(e2))
                 {
-                    c1 = genf2(c1,0xD9,0xE4);           // FTST
-                    c1 = cg87_87topsw(c1);
+                    if (NOSAHF)
+                    {
+                        c1 = cat(c1,push87());
+                        c1 = gen2(c1,0xD9,0xEE);            // FLDZ
+                        gen2(c1,0xDF,0xF1);                 // FCOMIP ST1
+                        pop87();
+                    }
+                    else
+                    {   c1 = genf2(c1,0xD9,0xE4);           // FTST
+                        c1 = cg87_87topsw(c1);
+                    }
                     c2 = genf2(NULL,0xDD,modregrm(3,3,0));      // FPOP
+                    pop87();
+                }
+                else if (NOSAHF)
+                {
+                    note87(e1,0,0);
+                    c2 = load87(e2,0,&retregs,e1,-1);
+                    c2 = cat(c2,makesure87(e1,0,1,0));
+                    resregm = 0;
+                    //c2 = genf2(c2,0xD9,0xC8 + 1);       // FXCH ST1
+                    c2 = gen2(c2,0xDF,0xF1);            // FCOMIP ST1
+                    pop87();
+                    genf2(c2,0xDD,modregrm(3,3,0));     // FPOP
                     pop87();
                 }
                 else
@@ -1067,8 +1103,16 @@ code *orth87(elem *e,regm_t *pretregs)
                     c2 = load87(e2,0,&retregs,e1,-1);
                     c2 = cat(c2,makesure87(e1,0,1,0));
                     resregm = 0;
-                    if (config.target_cpu >= TARGET_80386)
-                    {   c3 = gen2(CNIL,0xDA,0xE9);      // FUCOMPP
+                    if (NOSAHF)
+                    {
+                        c3 = gen2(CNIL,0xDF,0xE9);              // FUCOMIP ST1
+                        pop87();
+                        genf2(c3,0xDD,modregrm(3,3,0));         // FPOP
+                        pop87();
+                    }
+                    else if (config.target_cpu >= TARGET_80386)
+                    {
+                        c3 = gen2(CNIL,0xDA,0xE9);      // FUCOMPP
                         c3 = cg87_87topsw(c3);
                         pop87();
                         pop87();
