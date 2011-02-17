@@ -1,5 +1,5 @@
 // Copyright (C) 1984-1998 by Symantec
-// Copyright (C) 2000-2010 by Digital Mars
+// Copyright (C) 2000-2011 by Digital Mars
 // All Rights Reserved
 // http://www.digitalmars.com
 // Written by Walter Bright
@@ -829,12 +829,38 @@ int jmpopcode(elem *e)
   {     i = 0;
         if (config.inline8087)
         {   i = 1;
+
+#if 1
+#define NOSAHF I64
+            if (rel_exception(op) || config.flags4 & CFG4fastfloat)
+            {
+                if (zero)
+                {
+                    if (NOSAHF)
+                        op = swaprel(op);
+                }
+                else if (NOSAHF)
+                    op = swaprel(op);
+                else if (cmporder87(e->E2))
+                    op = swaprel(op);
+                else
+                    ;
+            }
+            else
+            {
+                if (zero && config.target_cpu < TARGET_80386)
+                    ;
+                else
+                    op = swaprel(op);
+            }
+#else
             if (zero && !rel_exception(op) && config.target_cpu >= TARGET_80386)
                 op = swaprel(op);
-            else if (!zero &&
+            else if (!(zero || I32) &&
                 (cmporder87(e->E2) || !(rel_exception(op) || config.flags4 & CFG4fastfloat)))
                 /* compare is reversed */
                 op = swaprel(op);
+#endif
         }
         jp = jfops[0][op - OPle];
         goto L1;
