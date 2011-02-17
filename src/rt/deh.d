@@ -623,6 +623,10 @@ Throwable _d_translate_se_to_d_exception(EXCEPTION_RECORD *exceptionRecord)
             pti = new Error("Integer Divide by Zero");
             break;
 
+        case STATUS_INTEGER_OVERFLOW: // eg, int.min % -1
+            pti = new Error("Integer Overflow");
+            break;
+
         case STATUS_FLOAT_DIVIDE_BY_ZERO:
             pti = new Error("Float Divide by Zero");
             break;
@@ -687,7 +691,6 @@ Throwable _d_translate_se_to_d_exception(EXCEPTION_RECORD *exceptionRecord)
             pti = new Error("Win32 In Page Exception");
             break;
 /*
-        case STATUS_INTEGER_OVERFLOW: // not supported on any x86 processor
         case STATUS_INVALID_DISPOSITION:
         case STATUS_NONCONTINUABLE_EXCEPTION:
         case STATUS_SINGLE_STEP:
