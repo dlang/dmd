@@ -86,20 +86,25 @@ size_t  strftime(char* s, size_t maxsize, in char* format, in tm* timeptr);
 
 version( Windows )
 {
-    void  tzset();               // non-standard
-    void  _tzset();              // non-standard
-    char* _strdate(char* s); // non-standard
-    char* _strtime(char* s); // non-standard
+    void  tzset();                           // non-standard
+    void  _tzset();                          // non-standard
+    char* _strdate(char* s);                 // non-standard
+    char* _strtime(char* s);                 // non-standard
+    
+    extern __gshared const(char)*[2] tzname; // non-standard
 }
 else version( OSX )
 {
-    void tzset(); // non-standard
+    void tzset();                            // non-standard
+    extern __gshared const(char)*[2] tzname; // non-standard
 }
 else version( linux )
 {
-    void tzset(); // non-standard
+    void tzset();                            // non-standard
+    extern __gshared const(char)*[2] tzname; // non-standard
 }
 else version( FreeBSD )
 {
-    void tzset(); // non-standard
+    void tzset();                            // non-standard
+    extern __gshared const(char)*[2] tzname; // non-standard
 }
