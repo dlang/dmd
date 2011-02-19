@@ -2202,7 +2202,8 @@ STATIC void loopiv(register loop *l)
   elimfrivivs(l);               /* eliminate less useful family IVs     */
   intronvars(l);                /* introduce new variables              */
   elimbasivs(l);                /* eliminate basic IVs                  */
-  elimopeqs(l);                 // eliminate op= variables
+  if (!addblk)                  // adding a block changes the Binlv
+      elimopeqs(l);             // eliminate op= variables
 
   freeivlist(l->Livlist);       // free up IV list
   l->Livlist = NULL;
