@@ -1,5 +1,5 @@
 
-// Copyright (c) 1999-2010 by Digital Mars
+// Copyright (c) 1999-2011 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // http://www.digitalmars.com
@@ -350,7 +350,7 @@ void dwarf_initfile(const char *filename)
     };
     if (I64)
     {   debugFrameHeader.length = 20;
-        debugFrameHeader.data_alignment_factor = -8;
+        debugFrameHeader.data_alignment_factor = 0x78;          // (-8)
         debugFrameHeader.return_address_register = 16;
         debugFrameHeader.opcodes[1] = 7;                        // RSP
         debugFrameHeader.opcodes[2] = 8;
