@@ -2601,7 +2601,7 @@ void[] thread_getTLSBlock()
     }
     else version(FreeBSD)
     {
-        return _tlsstart[0..(_tlsend-_tlsstart)];
+        return (cast(void*)&_tlsstart)[0..(&_tlsend)-(&_tlsstart)];
     }
     else
     {
