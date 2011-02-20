@@ -1,12 +1,12 @@
 /**
  * Runtime support for complex arithmetic code generation (for Posix).
  *
- * Copyright: Copyright Digital Mars 2001 - 2010.
+ * Copyright: Copyright Digital Mars 2001 - 2011.
  * License:   <a href="http://www.boost.org/LICENSE_1_0.txt">Boost License 1.0</a>.
  * Authors:   Walter Bright, Sean Kelly
  */
 
-/*          Copyright Digital Mars 2001 - 2010.
+/*          Copyright Digital Mars 2001 - 2011.
  * Distributed under the Boost Software License, Version 1.0.
  *    (See accompanying file LICENSE_1_0.txt or copy at
  *          http://www.boost.org/LICENSE_1_0.txt)
@@ -196,6 +196,7 @@ void _Cdiv()
 
 void _Ccmp()
 {
+  version (D_InlineAsm_X86)
     asm
     {   naked                   ;
         fucomp  ST(2)           ; // compare x.im and y.im
@@ -216,4 +217,23 @@ void _Ccmp()
         fstp    ST(0)           ; // pop
         ret                     ;
     }
+  else version (D_InlineAsm_X86_64)
+    asm
+    {   naked                   ;
+        fucomip  ST(2)          ; // compare x.im and y.im
+        jne     L1              ;
+        jp      L1              ; // jmp if NAN
+        fucomip  ST(2)          ; // compare x.re and y.re
+        fstp    ST(0)           ; // pop
+        fstp    ST(0)           ; // pop
+        ret                     ;
+
+      L1:
+        fstp    ST(0)           ; // pop
+        fstp    ST(0)           ; // pop
+        fstp    ST(0)           ; // pop
+        ret                     ;
+    }
+  else
+        static assert(0);
 }

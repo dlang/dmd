@@ -1,12 +1,12 @@
 /**
  * Support for 64-bit longs.
  *
- * Copyright: Copyright Digital Mars 1993 - 2010.
+ * Copyright: Copyright Digital Mars 1993 - 2011.
  * License:   <a href="http://www.boost.org/LICENSE_1_0.txt">Boost License 1.0</a>.
  * Authors:   Walter Bright, Sean Kelly
  */
 
-/*          Copyright Digital Mars 1993 - 2010.
+/*          Copyright Digital Mars 1993 - 2011.
  * Distributed under the Boost Software License, Version 1.0.
  *    (See accompanying file LICENSE_1_0.txt or copy at
  *          http://www.boost.org/LICENSE_1_0.txt)
@@ -515,8 +515,12 @@ L1:                                                 ;
                 fstsw       AX                      ;
                 fstcw       8[RSP]                  ;
                 fldcw       roundTo0                ;
-                sahf                                ;
-                jae         L1                      ;
+
+                test        AH,1                    ;
+                jz          L1                      ;
+                //sahf                              ;
+                //jae       L1                      ;
+
                 fld         real ptr adjust         ;
                 fsubp       ST(1), ST               ;
                 fistp       qword ptr [RSP]         ;
@@ -687,8 +691,12 @@ L1:                                                 ;
                 fstsw       AX                      ;
                 fstcw       8[RSP]                  ;
                 fldcw       roundTo0                ;
-                sahf                                ;
-                jae         L1                      ;
+
+                test        AH,1                    ;
+                jz          L1                      ;
+                //sahf                              ;
+                //jae       L1                      ;
+
                 fld         real ptr adjust         ;
                 fsubp       ST(1), ST               ;
                 fistp       qword ptr [RSP]         ;
