@@ -821,7 +821,7 @@ void FuncDeclaration::semantic3(Scope *sc)
                 v_arguments->parent = this;
 #endif
             }
-            if (f->linkage == LINKd || (parameters && parameters->dim))
+            if (f->linkage == LINKd || (f->parameters && Parameter::dim(f->parameters)))
             {   // Declare _argptr
 #if IN_GCC
                 t = d_gcc_builtin_va_list_d_type;
