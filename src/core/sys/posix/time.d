@@ -276,6 +276,7 @@ version( linux )
 else version( OSX )
 {
     extern __gshared c_long timezone;
+    extern __gshared int    daylight;
 
     tm*   getdate(in char*);
     char* strptime(in char*, in char*, tm*);
