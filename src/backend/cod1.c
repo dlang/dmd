@@ -1046,9 +1046,9 @@ code *getlvalue(code *pcs,elem *e,regm_t keepmsk)
                         pcs->Irm = modregrm(t,0,4);
                         pcs->Isib = modregrm(ssindex_array[ssi].ss2,r & 7,rbase & 7);
                         if (r & 8)
-                            code_orrex(pcs, REX_X);
+                            pcs->Irex |= REX_X;
                         if (rbase & 8)
-                            code_orrex(pcs, REX_B);
+                            pcs->Irex |= REX_B;
                     }
                     freenode(e11->E2);
                     freenode(e11);
