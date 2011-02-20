@@ -23,6 +23,8 @@
 #include        "global.h"
 #include        "type.h"
 #include        "parser.h"
+#include        "aa.h"
+#include        "tinfo.h"
 #if SCPP
 #include        "cpp.h"
 #include        "exh.h"
@@ -65,7 +67,7 @@ static int AAoff;               // offset of alloca temporary
  */
 
 struct fixlist
-{   symbol      *Lsymbol;       // symbol we don't know about
+{   //symbol      *Lsymbol;       // symbol we don't know about
     int         Lseg;           // where the fixup is going (CODE or DATA, never UDATA)
     int         Lflags;         // CFxxxx
     targ_size_t Loffset;        // addr of reference to symbol
@@ -75,10 +77,12 @@ struct fixlist
 #endif
     fixlist *Lnext;             // next in threaded list
 
-    static fixlist *start;
+    static AArray *start;
+    static int nodel;           // don't delete from within searchfixlist
 };
 
-fixlist *fixlist::start = NULL;
+AArray *fixlist::start = NULL;
+int fixlist::nodel = 0;
 
 /*************
  * Size in bytes of each instruction.
@@ -4186,6 +4190,7 @@ unsigned codout(code *c)
                     c->Iop = op ^= 1;           // toggle condition
                     c->IFL2 = FLconst;
                     c->IEVpointer2 = I16 ? 3 : 5; // skip over JMP block
+                    c->Iflags &= ~CFjmp16;
                 }
             }
         }
@@ -4745,7 +4750,8 @@ STATIC void do8bit(enum FL fl,union evc *uev)
   }
   GEN(c);
 }
-
+
+
 /****************************
  * Add to the fix list.
  */
@@ -4758,7 +4764,7 @@ void addtofixlist(symbol *s,targ_size_t soffset,int seg,targ_size_t val,int flag
         //printf("addtofixlist(%p '%s')\n",s,s->Sident);
         assert(flags);
         ln = (fixlist *) mem_calloc(sizeof(fixlist));
-        ln->Lsymbol = s;
+        //ln->Lsymbol = s;
         ln->Loffset = soffset;
         ln->Lseg = seg;
         ln->Lflags = flags;
@@ -4766,8 +4772,13 @@ void addtofixlist(symbol *s,targ_size_t soffset,int seg,targ_size_t val,int flag
 #if TARGET_OSX
         ln->Lfuncsym = funcsym_p;
 #endif
-        ln->Lnext = fixlist::start;
-        fixlist::start = ln;
+
+        if (!fixlist::start)
+            fixlist::start = new AArray(&ti_pvoid, sizeof(fixlist *));
+        fixlist **pv = (fixlist **)fixlist::start->get(&s);
+        ln->Lnext = *pv;
+        *pv = ln;
+
 #if TARGET_FLAT
         numbytes = tysize[TYnptr];
         if (I64 && !(flags & CFoffset64))
@@ -4796,13 +4807,16 @@ void addtofixlist(symbol *s,targ_size_t soffset,int seg,targ_size_t val,int flag
  */
 
 void searchfixlist(symbol *s)
-{ register fixlist **lp,*p;
-
-  //dbg_printf("searchfixlist(%s)\n",s->Sident);
-  for (lp = &fixlist::start; (p = *lp) != NULL;)
-  {
-        if (s == p->Lsymbol)
-        {       //dbg_printf("Found reference at x%lx\n",p->Loffset);
+{
+    //printf("searchfixlist(%s)\n",s->Sident);
+    if (fixlist::start)
+    {
+        fixlist **lp = (fixlist **)fixlist::start->in(&s);
+        if (lp)
+        {   fixlist *p;
+            while ((p = *lp) != NULL)
+            {
+                //dbg_printf("Found reference at x%lx\n",p->Loffset);
 
                 // Determine if it is a self-relative fixup we can
                 // resolve directly.
@@ -4833,10 +4847,11 @@ void searchfixlist(symbol *s)
                 }
                 *lp = p->Lnext;
                 mem_free(p);            /* remove from list             */
+            }
+            if (!fixlist::nodel)
+                fixlist::start->del(&s);
         }
-        else
-                lp = &(p->Lnext);
-  }
+    }
 }
 
 /****************************
@@ -4844,12 +4859,17 @@ void searchfixlist(symbol *s)
  * to external symbols.
  */
 
-void outfixlist()
+STATIC int outfixlist_dg(void *parameter, void *pkey, void *pvalue)
 {
-  //printf("outfixlist()\n");
-  for (fixlist *ln = fixlist::start; ln; ln = fixlist::start)
-  {
-        symbol *s = ln->Lsymbol;
+    //printf("outfixlist_dg(pkey = %p, pvalue = %p)\n", pkey, pvalue);
+    symbol *s = *(symbol **)pkey;
+
+    fixlist **plnext = (fixlist **)pvalue;
+
+    while (*plnext)
+    {
+        fixlist *ln = *plnext;
+
         symbol_debug(s);
         //printf("outfixlist '%s' offset %04x\n",s->Sident,ln->Loffset);
 
@@ -4902,14 +4922,29 @@ void outfixlist()
 #else
             reftoident(ln->Lseg,ln->Loffset,s,ln->Lval,ln->Lflags);
 #endif
-            fixlist::start = ln->Lnext;
+            *plnext = ln->Lnext;
 #if TERMCODE
             mem_free(ln);
 #endif
         }
-  }
+    }
+    return 0;
 }
 
+void outfixlist()
+{
+    //printf("outfixlist()\n");
+    if (fixlist::start)
+    {
+        fixlist::nodel++;
+        fixlist::start->apply(NULL, &outfixlist_dg);
+        fixlist::nodel--;
+#if TERMCODE
+        delete fixlist::start;
+        fixlist::start = NULL;
+#endif
+    }
+}
 
 /**********************************
  */

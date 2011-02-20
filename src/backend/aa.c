@@ -450,7 +450,7 @@ typedef int (*dg2_t)(void *, void *, void *);
 int AArray::apply(void *parameter, dg2_t dg)
 {   int result = 0;
 
-    //printf("_aaApply(aa = x%llx, keysize = %d, dg = x%llx)\n", aa.a, keysize, dg);
+    //printf("_aaApply(aa = %p, keysize = %d, dg = %p)\n", this, keyti->tsize(), dg);
 
     if (nodes)
     {
@@ -475,7 +475,7 @@ int AArray::apply_x(aaA* e, dg2_t dg, size_t keysize, void *parameter)
 
     do
     {
-        //printf("apply_x(e = %p, dg = x%llx)\n", e, dg);
+        //printf("apply_x(e = %p, dg = %p)\n", e, dg);
         result = (*dg)(parameter, e + 1, (char *)(e + 1) + keysize);
         if (result)
             break;
