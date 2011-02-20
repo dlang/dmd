@@ -3678,14 +3678,15 @@ STATIC void pinholeopt_unittest()
 void jmpaddr(code *c)
 { code *ci,*cn,*ctarg,*cstart;
   targ_size_t ad;
-  unsigned char op;
+  unsigned op;
 
   //printf("jmpaddr()\n");
   cstart = c;                           /* remember start of code       */
   while (c)
   {
         op = c->Iop;
-        if (inssize[op & 0xFF] & T &&   // if second operand
+        if (op <= 0xEB &&
+            inssize[op] & T &&   // if second operand
             c->IFL2 == FLcode &&
             ((op & ~0x0F) == 0x70 || op == JMP || op == JMPS || op == JCXZ))
         {       ci = code_next(c);
