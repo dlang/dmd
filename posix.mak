@@ -3,6 +3,23 @@
 #    pkg_add -r gmake
 # and then run as gmake rather than make.
 
+ifeq (,$(OS))
+    OS:=$(shell uname)
+    ifeq (Darwin,$(OS))
+        OS:=osx
+    else
+        ifeq (Linux,$(OS))
+            OS:=linux
+        else
+            ifeq (FreeBSD,$(OS))
+                OS:=freebsd
+            else
+                $(error Unrecognized or unsupported OS for uname: $(OS))
+            endif
+        endif
+    endif
+endif
+
 DMD=dmd
 
 DOCDIR=doc
@@ -499,8 +516,8 @@ $(DRUNTIME): $(OBJS) $(SRCS) win32.mak
 unittest : $(addprefix $(OBJDIR)/,$(SRC_D_MODULES)) $(DRUNTIME) $(OBJDIR)/emptymain.d
 	@echo done
 
-ifeq ($(MODEL),64)
-DISABLED_TESTS =
+ifeq ($(OS),freebsd)
+DISABLED_TESTS = core/time
 else
 DISABLED_TESTS =
 endif
