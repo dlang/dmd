@@ -37,4 +37,16 @@ struct TypeInfo_Achar : TypeInfo
 
 extern TypeInfo_Achar ti_achar;
 
+struct TypeInfo_Pvoid : TypeInfo
+{
+    const char* toString();
+    hash_t getHash(void *p);
+    int equals(void *p1, void *p2);
+    int compare(void *p1, void *p2);
+    size_t tsize();
+    void swap(void *p1, void *p2);
+};
+
+extern TypeInfo_Pvoid ti_pvoid;
+
 #endif
