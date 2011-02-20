@@ -3266,7 +3266,7 @@ void TypeSArray::resolve(Loc loc, Scope *sc, Expression **pe, Type **pt, Dsymbol
             sc = sc->pop();
 
             if (d >= td->objects->dim)
-            {   error(loc, "tuple index %ju exceeds %u", d, td->objects->dim);
+            {   error(loc, "tuple index %ju exceeds length %u", d, td->objects->dim);
                 goto Ldefault;
             }
             Object *o = (Object *)td->objects->data[(size_t)d];
