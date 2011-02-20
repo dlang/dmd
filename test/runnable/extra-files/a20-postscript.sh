@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 # trim off the last line which contains the path of the file which differs between windows and non-windows
 LINE_COUNT_MINUS_1=$(( `wc -l < ${RESULTS_DIR}/runnable/runnable-a20.lst` - 1 ))

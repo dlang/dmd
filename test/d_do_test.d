@@ -115,7 +115,13 @@ void gatherTestParameters(ref TestArgs testArgs, string input_dir, string input_
     {
         if (testArgs.mode != TestMode.FAIL_COMPILE)
             testArgs.permuteArgs = envData.all_args;
+
+        string unittestJunk;
+        if(!findTestParameter(file, "unittest", unittestJunk))
+            testArgs.permuteArgs = replace(testArgs.permuteArgs, "-unittest", "");
     }
+    // clean up extra spaces
+    testArgs.permuteArgs = replace(testArgs.permuteArgs, "  ", " ");
 
     findTestParameter(file, "EXECUTE_ARGS", testArgs.executeArgs);
 

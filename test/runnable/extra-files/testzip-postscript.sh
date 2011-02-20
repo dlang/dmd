@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 testzipfile=${RESULTS_DIR}/runnable/testzip-out.zip
 
