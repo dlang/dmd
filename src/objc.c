@@ -1023,9 +1023,9 @@ Symbol *ObjcProtocolDeclaration::getProtocolList()
 /***************************** TypeObjcSelector *****************************/
 
 TypeObjcSelector::TypeObjcSelector(Type *t)
-    : TypeNext(Tfunction, t)
+    : TypeNext(Tobjcselector, t)
 {
-    ty = Tobjcselector;
+    assert(((TypeFunction *)t)->linkage == LINKobjc);
 }
 
 Type *TypeObjcSelector::syntaxCopy()

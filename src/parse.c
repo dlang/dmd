@@ -2494,7 +2494,7 @@ Type *Parser::parseBasicType2(Type *t)
                 Parameters *arguments;
                 int varargs;
                 enum TOK save = token.value;
-
+                
                 nextToken();
                 arguments = parseParameters(&varargs);
 
@@ -2508,7 +2508,7 @@ Type *Parser::parseBasicType2(Type *t)
                     t = new TypeDelegate(tf);
 #if DMD_OBJC
                 else if (save == TOKobjcselector)
-                {   tf->linkage = LINKobjc;     // force Objective-C linkage
+                {   tf->linkage = LINKobjc; // force Objective-C linkage
                     t = new TypeObjcSelector(tf);
                 }
 #endif
@@ -2879,6 +2879,10 @@ L2:
         if (!ident)
             error("no identifier for declarator %s", t->toChars());
 
+#if DMD_OBJC
+        if (t->ty == Tobjcselector)
+            link = LINKobjc; // force Objective-C linkage
+#endif
         if (tok == TOKtypedef || tok == TOKalias)
         {   Declaration *v;
             Initializer *init = NULL;
