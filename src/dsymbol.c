@@ -66,7 +66,8 @@ int Dsymbol::equals(Object *o)
     if (this == o)
         return TRUE;
     s = (Dsymbol *)(o);
-    if (s && ident->equals(s->ident))
+    // Overload sets don't have an ident
+    if (s && ident && s->ident && ident->equals(s->ident))
         return TRUE;
     return FALSE;
 }

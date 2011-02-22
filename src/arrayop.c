@@ -349,6 +349,7 @@ Expression *BinExp::arrayOp(Scope *sc)
             fd->fbody = fbody;
             fd->protection = PROTpublic;
             fd->linkage = LINKc;
+            fd->isArrayOp = 1;
 
             sc->module->importedFrom->members->push(fd);
 

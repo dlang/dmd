@@ -595,6 +595,11 @@ void FuncDeclaration::toObjFile(int multiobj)
         }
     }
 
+    /* Vector operations should be comdat's
+     */
+    if (isArrayOp)
+        s->Sclass = SCcomdat;
+
     if (isNested())
     {
 //      if (!(config.flags3 & CFG3pic))
@@ -1227,7 +1232,7 @@ Symbol *Module::gencritsec()
     s->Sfl = FLdata;
     /* Must match D_CRITICAL_SECTION in phobos/internal/critical.c
      */
-    dtnzeros(&s->Sdt, PTRSIZE + os_critsecsize());
+    dtnzeros(&s->Sdt, PTRSIZE + (I64 ? os_critsecsize64() : os_critsecsize32()));
 #if ELFOBJ || MACHOBJ // Burton
     s->Sseg = DATA;
 #endif
