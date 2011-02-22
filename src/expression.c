@@ -6699,6 +6699,7 @@ CallExp::CallExp(Loc loc, Expression *e, Expression *earg1, Expression *earg2)
     arguments->data[1] = (void *)earg2;
 
     this->arguments = arguments;
+    this->argument0 = NULL;
 }
 
 Expression *CallExp::syntaxCopy()
@@ -7010,6 +7011,29 @@ Lagain:
             e = e->semantic(sc);
             return e;
         }
+#if DMD_OBJC
+        else if (t1->ty == Tobjcselector)
+        {   TypeObjcSelector *sel = (TypeObjcSelector *)t1;
+            
+            // harvest first argument
+            TypeClass *tc = NULL;
+            if (arguments->dim >= 1)
+                argument0 = ((Expression *)arguments->data[0])->semantic(sc);
+            if (argument0 && argument0->type->ty == Tclass)
+                tc = (TypeClass *)argument0->type;
+            if (tc && tc->sym && tc->sym->objc)
+            {   // take first argument and use it as 'this'
+                // create new array of expressions omiting first argument
+                Expressions *newargs = new Expressions();
+                for (int i = 1; i < arguments->dim; ++i)
+                    newargs->push(arguments->data[i]);
+                assert(newargs->dim == arguments->dim - 1);
+                arguments = newargs;
+            }
+            else
+                error("calling a selector needs an Objective-C object as the first argument");
+        }
+#endif
     }
 
     arguments = arrayExpressionSemantic(arguments, sc);

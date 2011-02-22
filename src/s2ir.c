@@ -48,7 +48,11 @@ elem *callfunc(Loc loc,
         FuncDeclaration *fd,    // if !=NULL, this is the function being called
         Type *t,                // TypeDelegate or TypeFunction for this function
         elem *ehidden,          // if !=NULL, this is the 'hidden' argument
-        Array *arguments);
+        Array *arguments,
+#if DMD_OBJC
+        elem *esel = NULL       // selector for Objective-C methods (when fd is NULL)
+#endif
+        );
 
 elem *exp2_copytotemp(elem *e);
 elem *incUsageElem(IRState *irs, Loc loc);

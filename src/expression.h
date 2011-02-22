@@ -938,6 +938,9 @@ struct DotTypeExp : UnaExp
 struct CallExp : UnaExp
 {
     Expressions *arguments;     // function arguments
+#if DMD_OBJC
+    Expression *argument0;      // this argument for Objective-C selector
+#endif
 
     CallExp(Loc loc, Expression *e, Expressions *exps);
     CallExp(Loc loc, Expression *e);

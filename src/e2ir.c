@@ -75,7 +75,11 @@ elem *callfunc(Loc loc,
         FuncDeclaration *fd,    // if !=NULL, this is the function being called
         Type *t,                // TypeDelegate or TypeFunction for this function
         elem *ehidden,          // if !=NULL, this is the 'hidden' argument
-        Array *arguments)
+        Array *arguments,
+#if DMD_OBJC
+        elem *esel = NULL       // selector for Objective-C methods (when not provided by fd)
+#endif
+        )
 {
     elem *ep;
     elem *e;
@@ -111,6 +115,16 @@ elem *callfunc(Loc loc,
         ec = array_toPtr(t, ec);                // get funcptr
         ec = el_una(OPind, tf->totym(), ec);
     }
+#if DMD_OBJC
+    else if (t->ty == Tobjcselector)
+    {
+        assert(!fd);
+        assert(esel);
+        assert(t->nextOf()->ty == Tfunction);
+        tf = (TypeFunction *)(t->nextOf());
+        ethis = ec;
+    }
+#endif
     else
     {   assert(t->ty == Tfunction);
         tf = (TypeFunction *)(t);
@@ -161,11 +175,11 @@ elem *callfunc(Loc loc,
     }
     
 #if DMD_OBJC
-    if (fd && fd->objcSelector)
-    {
-        // using objc-style "virtual" call
+    if (fd && fd->objcSelector && !esel)
+        esel = fd->objcSelector->toElem();
+    if (esel)
+    {   // using objc-style "virtual" call
         // add hidden argument (second to 'this') for selector used by dispatch function
-        elem *esel = fd->objcSelector->toElem();
         if (reverse)
             ep = el_param(esel,ep);
         else
@@ -231,7 +245,7 @@ elem *callfunc(Loc loc,
             eside = ec;
 
 #if DMD_OBJC
-            if (fd->objcSelector)
+            if (esel)
             {
                 // All functions with a selector need a this pointer.
                 assert(ethis);
@@ -241,7 +255,7 @@ elem *callfunc(Loc loc,
         sfunc = fd->toSymbol();
 
 #if DMD_OBJC
-        if (fd->objcSelector)
+        if (esel)
         {
             if (fd->fbody && (!fd->isVirtual() || directcall || fd->isFinal()))
             {
@@ -312,6 +326,15 @@ if (I32) assert(tysize[TYnptr] == 4);
         ethis = getEthis(0, irs, fd);
 
     }
+#if DMD_OBJC
+    else if (esel)
+    {
+        // make objc-style "virtual" call using dispatch function
+        assert(ethis);
+        Type *tret = tf->next;
+        ec = el_var(ObjcSymbols::getMsgSend(tret, ehidden != 0));
+    }
+#endif
 
     ep = el_param(ep, ethis);
     if (ehidden)
@@ -3591,6 +3614,15 @@ elem *CallExp::toElem(IRState *irs)
 
     directcall = 0;
     fd = NULL;
+#if DMD_OBJC
+    elem *esel = NULL;
+    if (t1->ty == Tobjcselector)
+    {   assert(argument0);
+        ec = argument0->toElem(irs);
+        esel = e1->toElem(irs);
+    }
+    else
+#endif
     if (e1->op == TOKdotvar && t1->ty != Tdelegate)
     {   DotVarExp *dve = (DotVarExp *)e1;
 
@@ -3680,7 +3712,11 @@ elem *CallExp::toElem(IRState *irs)
             }
         }
     }
+#if DMD_OBJC
+    ec = callfunc(loc, irs, directcall, type, ec, ectype, fd, t1, ehidden, arguments, esel);
+#else
     ec = callfunc(loc, irs, directcall, type, ec, ectype, fd, t1, ehidden, arguments);
+#endif
     el_setLoc(ec,loc);
     if (eeq)
         ec = el_combine(eeq, ec);
