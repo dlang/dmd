@@ -3114,7 +3114,15 @@ struct Pool
                 }
             }
             else
+            {
                 n2 = n;
+                if(pagetable[i] == B_PAGE)
+                {
+                    // Then we have the offset information.  We can skip a
+                    // whole bunch of stuff.
+                    i += bPageOffsets[i] - 1;
+                }
+            }
         }
         return extendPages(n);
     }
