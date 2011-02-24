@@ -15,6 +15,6 @@ void main() {
         t.insert(i);
     }
 
-    writeln("Tree2:  ", sw.peek.seconds);
+    writeln("Tree2:  ", sw.peek.seconds, " seconds");
 }
 

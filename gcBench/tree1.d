@@ -58,5 +58,5 @@ void main(string[] args) {
         }
     }
 
-    writeln("Tree1:  ", sw.peek.seconds);
+    writeln("Tree1:  ", sw.peek.seconds, " seconds");
 }
