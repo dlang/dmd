@@ -2547,6 +2547,7 @@ struct Gcx
                         debug(COLLECT_PRINTF) printf("\tcollecting big %p\n", p);
                         log_free(sentinel_add(p));
                         pool.pagetable[pn] = B_FREE;
+                        if(pn < pool.searchStart) pool.searchStart = pn;
                         freedpages++;
                         pool.freepages++;
 
@@ -2555,6 +2556,11 @@ struct Gcx
                         {
                             pn++;
                             pool.pagetable[pn] = B_FREE;
+
+                            // Don't need to update searchStart here because
+                            // pn is guaranteed to be greater than last time
+                            // we updated it.
+
                             pool.freepages++;
                             freedpages++;
 
@@ -2606,6 +2612,7 @@ struct Gcx
                                 debug (MEMSTOMP) memset(p, 0xF3, size);
                             }
                             pool.pagetable[pn] = B_FREE;
+                            if(pn < pool.searchStart) pool.searchStart = pn;
                             freed += PAGESIZE;
                             pool.freepages++;
                             //debug(PRINTF) printf("freeing entire page %d\n", pn);
@@ -2670,6 +2677,7 @@ struct Gcx
                             goto Lnotfree;
                     }
                     pool.pagetable[pn] = B_FREE;
+                    if(pn < pool.searchStart) pool.searchStart = pn;
                     pool.freepages++;
                     recoveredpages++;
                     continue;
@@ -2957,6 +2965,11 @@ struct Pool
     // pagesize.
     uint* bPageOffsets;
 
+    // This variable tracks a conservative estimate of where the first free
+    // page in this pool is, so that if a lot of pages towards the beginning
+    // are occupied, we can bypass them in O(1).
+    size_t searchStart;
+
     void initialize(size_t npages, bool isLargeObject)
     {
         this.isLargeObject = isLargeObject;
@@ -3104,10 +3117,15 @@ struct Pool
 
         //debug(PRINTF) printf("Pool::allocPages(n = %d)\n", n);
         n2 = n;
-        for (i = 0; i < ncommitted; i++)
+        for (i = searchStart; i < ncommitted; i++)
         {
             if (pagetable[i] == B_FREE)
             {
+                if(pagetable[searchStart] < B_FREE)
+                {
+                    searchStart = i + (!isLargeObject);
+                }
+
                 if (--n2 == 0)
                 {   //debug(PRINTF) printf("\texisting pn = %d\n", i - n + 1);
                     return i - n + 1;
@@ -3124,6 +3142,12 @@ struct Pool
                 }
             }
         }
+
+        if(pagetable[searchStart] < B_FREE)
+        {
+            searchStart = ncommitted;
+        }
+
         return extendPages(n);
     }
 
@@ -3197,6 +3221,8 @@ struct Pool
     void freePages(size_t pagenum, size_t npages)
     {
         //memset(&pagetable[pagenum], B_FREE, npages);
+        if(pagenum < searchStart) searchStart = pagenum;
+
         for(size_t i = pagenum; i < npages + pagenum; i++)
         {
             if(pagetable[i] < B_FREE)
