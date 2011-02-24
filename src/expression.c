@@ -3955,7 +3955,7 @@ Lagain:
         if (cd->objc)
         {
             if (cd->objcmeta)
-            {   error("cannot instanciate a meta class", cd->toChars());
+            {   error("cannot instanciate meta class '%s'", cd->toChars());
                 goto Lerr;
             }
             
