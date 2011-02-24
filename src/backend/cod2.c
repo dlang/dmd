@@ -429,7 +429,7 @@ code *cdorth(elem *e,regm_t *pretregs)
             if (reg2 & 8)
                 cs.Irex |= REX_B;
             cs.IFL1 = FLconst;
-            cs.IEV1.Vuns = edisp->EV.Vuns;
+            cs.IEV1.Vsize_t = edisp->EV.Vuns;
 
             freenode(edisp);
             freenode(e1);

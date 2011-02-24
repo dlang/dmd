@@ -42,7 +42,7 @@ DMD_OBJS = \
 	hdrgen.o delegatize.o aa.o ti_achar.o toir.o interpret.o traits.o \
 	builtin.o clone.o aliasthis.o \
 	man.o arrayop.o port.o response.o async.o json.o speller.o aav.o unittests.o \
-	imphint.o argtypes.o \
+	imphint.o argtypes.o ti_pvoid.o \
 	libelf.o elfobj.o
 
 SRC = win32.mak linux.mak osx.mak freebsd.mak solaris.mak \
@@ -78,6 +78,7 @@ SRC = win32.mak linux.mak osx.mak freebsd.mak solaris.mak \
 	$C/cdeflnx.h $C/outbuf.h $C/token.h $C/tassert.h \
 	$C/elfobj.c $C/cv4.h $C/dwarf2.h $C/cpp.h $C/exh.h $C/go.h \
 	$C/dwarf.c $C/dwarf.h $C/aa.h $C/aa.c $C/tinfo.h $C/ti_achar.c \
+	$C/ti_pvoid.c \
 	$C/machobj.c \
 	$(TK)/filespec.h $(TK)/mem.h $(TK)/list.h $(TK)/vec.h \
 	$(TK)/filespec.c $(TK)/mem.c $(TK)/vec.c $(TK)/list.c \
@@ -477,6 +478,9 @@ template.o: template.c
 
 ti_achar.o: $C/tinfo.h $C/ti_achar.c
 	$(CC) -c $(MFLAGS) -I. $C/ti_achar.c
+
+ti_pvoid.o: $C/tinfo.h $C/ti_pvoid.c
+	$(CC) -c $(MFLAGS) -I. $C/ti_pvoid.c
 
 tk.o: tk.c
 	$(CC) -c $(MFLAGS) tk.c

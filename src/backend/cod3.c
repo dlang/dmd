@@ -1,5 +1,5 @@
 // Copyright (C) 1984-1998 by Symantec
-// Copyright (C) 2000-2010 by Digital Mars
+// Copyright (C) 2000-2011 by Digital Mars
 // All Rights Reserved
 // http://www.digitalmars.com
 // Written by Walter Bright
@@ -23,6 +23,8 @@
 #include        "global.h"
 #include        "type.h"
 #include        "parser.h"
+#include        "aa.h"
+#include        "tinfo.h"
 #if SCPP
 #include        "cpp.h"
 #include        "exh.h"
@@ -65,7 +67,7 @@ static int AAoff;               // offset of alloca temporary
  */
 
 struct fixlist
-{   symbol      *Lsymbol;       // symbol we don't know about
+{   //symbol      *Lsymbol;       // symbol we don't know about
     int         Lseg;           // where the fixup is going (CODE or DATA, never UDATA)
     int         Lflags;         // CFxxxx
     targ_size_t Loffset;        // addr of reference to symbol
@@ -75,10 +77,12 @@ struct fixlist
 #endif
     fixlist *Lnext;             // next in threaded list
 
-    static fixlist *start;
+    static AArray *start;
+    static int nodel;           // don't delete from within searchfixlist
 };
 
-fixlist *fixlist::start = NULL;
+AArray *fixlist::start = NULL;
+int fixlist::nodel = 0;
 
 /*************
  * Size in bytes of each instruction.
@@ -829,12 +833,38 @@ int jmpopcode(elem *e)
   {     i = 0;
         if (config.inline8087)
         {   i = 1;
+
+#if 1
+#define NOSAHF I64
+            if (rel_exception(op) || config.flags4 & CFG4fastfloat)
+            {
+                if (zero)
+                {
+                    if (NOSAHF)
+                        op = swaprel(op);
+                }
+                else if (NOSAHF)
+                    op = swaprel(op);
+                else if (cmporder87(e->E2))
+                    op = swaprel(op);
+                else
+                    ;
+            }
+            else
+            {
+                if (zero && config.target_cpu < TARGET_80386)
+                    ;
+                else
+                    op = swaprel(op);
+            }
+#else
             if (zero && !rel_exception(op) && config.target_cpu >= TARGET_80386)
                 op = swaprel(op);
             else if (!zero &&
                 (cmporder87(e->E2) || !(rel_exception(op) || config.flags4 & CFG4fastfloat)))
                 /* compare is reversed */
                 op = swaprel(op);
+#endif
         }
         jp = jfops[0][op - OPle];
         goto L1;
@@ -3648,14 +3678,15 @@ STATIC void pinholeopt_unittest()
 void jmpaddr(code *c)
 { code *ci,*cn,*ctarg,*cstart;
   targ_size_t ad;
-  unsigned char op;
+  unsigned op;
 
   //printf("jmpaddr()\n");
   cstart = c;                           /* remember start of code       */
   while (c)
   {
         op = c->Iop;
-        if (inssize[op & 0xFF] & T &&   // if second operand
+        if (op <= 0xEB &&
+            inssize[op] & T &&   // if second operand
             c->IFL2 == FLcode &&
             ((op & ~0x0F) == 0x70 || op == JMP || op == JMPS || op == JCXZ))
         {       ci = code_next(c);
@@ -4160,6 +4191,7 @@ unsigned codout(code *c)
                     c->Iop = op ^= 1;           // toggle condition
                     c->IFL2 = FLconst;
                     c->IEVpointer2 = I16 ? 3 : 5; // skip over JMP block
+                    c->Iflags &= ~CFjmp16;
                 }
             }
         }
@@ -4719,7 +4751,8 @@ STATIC void do8bit(enum FL fl,union evc *uev)
   }
   GEN(c);
 }
-
+
+
 /****************************
  * Add to the fix list.
  */
@@ -4732,7 +4765,7 @@ void addtofixlist(symbol *s,targ_size_t soffset,int seg,targ_size_t val,int flag
         //printf("addtofixlist(%p '%s')\n",s,s->Sident);
         assert(flags);
         ln = (fixlist *) mem_calloc(sizeof(fixlist));
-        ln->Lsymbol = s;
+        //ln->Lsymbol = s;
         ln->Loffset = soffset;
         ln->Lseg = seg;
         ln->Lflags = flags;
@@ -4740,8 +4773,13 @@ void addtofixlist(symbol *s,targ_size_t soffset,int seg,targ_size_t val,int flag
 #if TARGET_OSX
         ln->Lfuncsym = funcsym_p;
 #endif
-        ln->Lnext = fixlist::start;
-        fixlist::start = ln;
+
+        if (!fixlist::start)
+            fixlist::start = new AArray(&ti_pvoid, sizeof(fixlist *));
+        fixlist **pv = (fixlist **)fixlist::start->get(&s);
+        ln->Lnext = *pv;
+        *pv = ln;
+
 #if TARGET_FLAT
         numbytes = tysize[TYnptr];
         if (I64 && !(flags & CFoffset64))
@@ -4770,13 +4808,16 @@ void addtofixlist(symbol *s,targ_size_t soffset,int seg,targ_size_t val,int flag
  */
 
 void searchfixlist(symbol *s)
-{ register fixlist **lp,*p;
-
-  //dbg_printf("searchfixlist(%s)\n",s->Sident);
-  for (lp = &fixlist::start; (p = *lp) != NULL;)
-  {
-        if (s == p->Lsymbol)
-        {       //dbg_printf("Found reference at x%lx\n",p->Loffset);
+{
+    //printf("searchfixlist(%s)\n",s->Sident);
+    if (fixlist::start)
+    {
+        fixlist **lp = (fixlist **)fixlist::start->in(&s);
+        if (lp)
+        {   fixlist *p;
+            while ((p = *lp) != NULL)
+            {
+                //dbg_printf("Found reference at x%lx\n",p->Loffset);
 
                 // Determine if it is a self-relative fixup we can
                 // resolve directly.
@@ -4807,10 +4848,11 @@ void searchfixlist(symbol *s)
                 }
                 *lp = p->Lnext;
                 mem_free(p);            /* remove from list             */
+            }
+            if (!fixlist::nodel)
+                fixlist::start->del(&s);
         }
-        else
-                lp = &(p->Lnext);
-  }
+    }
 }
 
 /****************************
@@ -4818,12 +4860,17 @@ void searchfixlist(symbol *s)
  * to external symbols.
  */
 
-void outfixlist()
+STATIC int outfixlist_dg(void *parameter, void *pkey, void *pvalue)
 {
-  //printf("outfixlist()\n");
-  for (fixlist *ln = fixlist::start; ln; ln = fixlist::start)
-  {
-        symbol *s = ln->Lsymbol;
+    //printf("outfixlist_dg(pkey = %p, pvalue = %p)\n", pkey, pvalue);
+    symbol *s = *(symbol **)pkey;
+
+    fixlist **plnext = (fixlist **)pvalue;
+
+    while (*plnext)
+    {
+        fixlist *ln = *plnext;
+
         symbol_debug(s);
         //printf("outfixlist '%s' offset %04x\n",s->Sident,ln->Loffset);
 
@@ -4876,14 +4923,29 @@ void outfixlist()
 #else
             reftoident(ln->Lseg,ln->Loffset,s,ln->Lval,ln->Lflags);
 #endif
-            fixlist::start = ln->Lnext;
+            *plnext = ln->Lnext;
 #if TERMCODE
             mem_free(ln);
 #endif
         }
-  }
+    }
+    return 0;
 }
 
+void outfixlist()
+{
+    //printf("outfixlist()\n");
+    if (fixlist::start)
+    {
+        fixlist::nodel++;
+        fixlist::start->apply(NULL, &outfixlist_dg);
+        fixlist::nodel--;
+#if TERMCODE
+        delete fixlist::start;
+        fixlist::start = NULL;
+#endif
+    }
+}
 
 /**********************************
  */

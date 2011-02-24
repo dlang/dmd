@@ -393,6 +393,19 @@ void objrecord(unsigned rectyp,const char *record,unsigned reclen)
  *      # of bytes stored
  */
 
+extern void error(const char *filename, unsigned linnum, const char *format, ...);
+extern void fatal();
+
+void too_many_symbols()
+{
+#if SCPP
+    err_fatal(EM_too_many_symbols, 0x7FFF);
+#else // MARS
+    error(NULL, 0, "more than %d symbols in object file", 0x7FFF);
+    fatal();
+#endif
+}
+
 #if !DEBUG && TX86 && __INTSIZE == 4 && !defined(_MSC_VER)
 __declspec(naked) int __pascal insidx(char *p,unsigned index)
 {
@@ -422,7 +435,7 @@ __declspec(naked) int __pascal insidx(char *p,unsigned index)
         ret     8
     }
     L2:
-        assert(0);
+        too_many_symbols();
 }
 #else
 __inline int insidx(char *p,unsigned index)
@@ -435,11 +448,15 @@ __inline int insidx(char *p,unsigned index)
     {   *p = index;
         return 1;
     }
-    else
-    {   assert(index <= 0x7FFF);
+    else if (index <= 0x7FFF)
+    {
         *(p + 1) = index;
         *p = (index >> 8) | 0x80;
         return 2;
+    }
+    else
+    {   too_many_symbols();
+        return 0;
     }
 }
 #endif
