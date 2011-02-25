@@ -12,7 +12,7 @@
  *          http://www.boost.org/LICENSE_1_0.txt)
  */
 
-module core.dll_helper;
+module core.sys.windows._dll;
 
 version( Windows )
 {
@@ -20,7 +20,7 @@ version( Windows )
     import core.stdc.string;
     import core.runtime;
 
-    public import core.thread_helper;
+    public import core.sys.windows._thread;
 
     ///////////////////////////////////////////////////////////////////
     // support fixing implicit TLS for dynamically loaded DLLs on Windows XP
@@ -34,7 +34,7 @@ version( Windows )
     }
 
 private:
-    struct dll_helper_aux
+    struct dll_aux
     {
         // don't let symbols leak into other modules
         struct LdrpTlsListEntry
@@ -305,20 +305,20 @@ public:
             mov EAX,FS:[0x30];
             mov peb, EAX;
         }
-        dll_helper_aux.LDR_MODULE *ldrMod = dll_helper_aux.findLdrModule( hInstance, peb );
+        dll_aux.LDR_MODULE *ldrMod = dll_aux.findLdrModule( hInstance, peb );
         if( !ldrMod )
             return false; // not in module list, bail out
         if( ldrMod.TlsIndex != 0 )
             return true;  // the OS has already setup TLS
 
-        dll_helper_aux.LdrpTlsListEntry* entry = dll_helper_aux.addTlsListEntry( peb, tlsstart, tlsend, tls_callbacks_a, tlsindex );
+        dll_aux.LdrpTlsListEntry* entry = dll_aux.addTlsListEntry( peb, tlsstart, tlsend, tls_callbacks_a, tlsindex );
         if( !entry )
             return false;
 
         if( !enumProcessThreads(
             function (uint id, void* context) {
-                dll_helper_aux.LdrpTlsListEntry* entry = cast(dll_helper_aux.LdrpTlsListEntry*) context;
-                return dll_helper_aux.addTlsData( getTEB( id ), entry.tlsstart, entry.tlsend, entry.tlsindex );
+                dll_aux.LdrpTlsListEntry* entry = cast(dll_aux.LdrpTlsListEntry*) context;
+                return dll_aux.addTlsData( getTEB( id ), entry.tlsstart, entry.tlsend, entry.tlsindex );
             }, entry ) )
             return false;
 

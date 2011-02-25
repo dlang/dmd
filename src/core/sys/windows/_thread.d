@@ -12,7 +12,7 @@
  *          http://www.boost.org/LICENSE_1_0.txt)
  */
 
-module core.thread_helper;
+module core.sys.windows._thread;
 
 version( Windows )
 {
@@ -28,7 +28,7 @@ version( Windows )
 
 private:
     ///////////////////////////////////////////////////////////////////
-    struct thread_helper_aux
+    struct thread_aux
     {
         // don't let symbols leak into other modules
 
@@ -224,10 +224,10 @@ private:
 
 public:
     // forward as few symbols as possible into the "global" name space
-    alias thread_helper_aux.getTEB getTEB;
-    alias thread_helper_aux.getThreadStackBottom getThreadStackBottom;
-    alias thread_helper_aux.OpenThreadHandle OpenThreadHandle;
-    alias thread_helper_aux.enumProcessThreads enumProcessThreads;
+    alias thread_aux.getTEB getTEB;
+    alias thread_aux.getThreadStackBottom getThreadStackBottom;
+    alias thread_aux.OpenThreadHandle OpenThreadHandle;
+    alias thread_aux.enumProcessThreads enumProcessThreads;
 
     void* GetTlsDataAddress( HANDLE hnd )
     {
@@ -241,14 +241,14 @@ public:
     // run _moduleTlsCtor in the context of the given thread
     void thread_moduleTlsCtor( uint id )
     {
-        thread_helper_aux.impersonate_thread(id, &_moduleTlsCtor);
+        thread_aux.impersonate_thread(id, &_moduleTlsCtor);
     }
 
     ///////////////////////////////////////////////////////////////////
     // run _moduleTlsDtor in the context of the given thread
     void thread_moduleTlsDtor( uint id )
     {
-        thread_helper_aux.impersonate_thread(id, &_moduleTlsDtor);
+        thread_aux.impersonate_thread(id, &_moduleTlsDtor);
     }
 }
 
