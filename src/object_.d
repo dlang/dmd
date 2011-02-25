@@ -33,6 +33,7 @@ private
     extern (C) Object _d_newclass(TypeInfo_Class ci);
     extern (C) void _d_arrayshrinkfit(TypeInfo ti, void[] arr);
     extern (C) size_t _d_arraysetcapacity(TypeInfo ti, size_t newcapacity, void *arrptr);
+    extern (C) void rt_finalize(void *data, bool det=true);
 }
 
 // NOTE: For some reason, this declaration method doesn't work
@@ -2540,27 +2541,7 @@ unittest
 
 void clear(T)(T obj) if (is(T == class))
 {
-    if (!obj) return;
-    auto ci = obj.classinfo;
-    auto defaultCtor =
-        cast(void function(Object)) ci.defaultConstructor;
-    version(none) // enforce isn't available in druntime
-        _enforce(defaultCtor || (ci.flags & 8) == 0);
-    immutable size = ci.init.length;
-
-    auto ci2 = ci;
-    do
-    {
-        auto dtor = cast(void function(Object))ci2.destructor;
-        if (dtor)
-            dtor(obj);
-        ci2 = ci2.base;
-    } while (ci2)
-
-    auto buf = (cast(void*) obj)[0 .. size];
-    buf[] = ci.init;
-    if (defaultCtor)
-        defaultCtor(obj);
+    rt_finalize(cast(void*)obj);
 }
 
 version(unittest) unittest
@@ -2589,6 +2570,8 @@ version(unittest) unittest
        assert(destroyed);
        assert(a.s == "B");
    }
+   // this test is invalid now that the default ctor is not run after clearing
+   version(none)
    {
        class C
        {
