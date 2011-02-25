@@ -445,6 +445,7 @@ class GC
 
         size += SENTINEL_EXTRA;
         bin = gcx.findBin(size);
+        Pool *pool;
 
         if (bin < B_PAGE)
         {
@@ -489,6 +490,7 @@ class GC
 
             // Return next item from free list
             gcx.bucket[bin] = (cast(List*)p).next;
+            pool = (cast(List*)p).pool;
             if( !(bits & BlkAttr.NO_SCAN) )
                 memset(p + size, 0, binsize[bin] - size);
             //debug(PRINTF) printf("\tmalloc => %p\n", p);
@@ -496,7 +498,7 @@ class GC
         }
         else
         {
-            p = gcx.bigAlloc(size, alloc_size);
+            p = gcx.bigAlloc(size, &pool, alloc_size);
             if (!p)
                 onOutOfMemoryError();
         }
@@ -507,9 +509,6 @@ class GC
 
         if (bits)
         {
-            Pool *pool = gcx.findPool(p);
-            assert(pool);
-
             gcx.setBits(pool, cast(size_t)(p - pool.baseAddr) / pool.divisor, bits);
         }
         return p;
@@ -906,6 +905,7 @@ class GC
             debug (MEMSTOMP) memset(p, 0xF2, binsize[bin]);
 
             list.next = gcx.bucket[bin];
+            list.pool = pool;
             gcx.bucket[bin] = list;
         }
         gcx.log_free(sentinel_add(p));
@@ -1422,6 +1422,7 @@ alias ubyte Bins;
 struct List
 {
     List *next;
+    Pool *pool;
 }
 
 
@@ -1998,7 +1999,7 @@ struct Gcx
      * Allocate a chunk of memory that is larger than a page.
      * Return null if out of memory.
      */
-    void *bigAlloc(size_t size, size_t *alloc_size = null)
+    void *bigAlloc(size_t size, Pool **poolPtr, size_t *alloc_size = null)
     {
         debug(PRINTF) printf("In bigAlloc.  Size:  %d\n", size);
 
@@ -2088,6 +2089,8 @@ struct Gcx
         if(alloc_size)
             *alloc_size = npages * PAGESIZE;
         //debug(PRINTF) printf("\tp = %p\n", p);
+
+        *poolPtr = pool;
         return p;
 
       Lnomemory:
@@ -2211,6 +2214,7 @@ struct Gcx
         for (; p < ptop; p += size)
         {
             (cast(List *)p).next = *b;
+            (cast(List *)p).pool = pool;
             *b = cast(List *)p;
         }
         return 1;
@@ -2419,7 +2423,7 @@ struct Gcx
         {
             for (List *list = bucket[n]; list; list = list.next)
             {
-                pool = findPool(list);
+                pool = list.pool;
                 assert(pool);
                 pool.freebits.set(cast(size_t)(cast(byte*)list - pool.baseAddr) / 16);
             }
@@ -2704,6 +2708,7 @@ struct Gcx
                             list = cast(List *)(p + u);
                             if (list.next != bucket[bin])       // avoid unnecessary writes
                                 list.next = bucket[bin];
+                            list.pool = pool;
                             bucket[bin] = list;
                         }
                     }
