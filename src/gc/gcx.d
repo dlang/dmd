@@ -2397,7 +2397,7 @@ struct Gcx
             pool = pooltable[n];
             pool.mark.zero();
             pool.scan.zero();
-            pool.freebits.zero();
+            if(!pool.isLargeObject) pool.freebits.zero();
         }
 
         debug(COLLECT_PRINTF) printf("Set bits\n");
@@ -2418,7 +2418,10 @@ struct Gcx
         for (n = 0; n < npools; n++)
         {
             pool = pooltable[n];
-            pool.mark.copy(&pool.freebits);
+            if(!pool.isLargeObject)
+            {
+                pool.mark.copy(&pool.freebits);
+            }
         }
 
         version (MULTI_THREADED)
@@ -2998,7 +3001,11 @@ struct Pool
 
         mark.alloc(nbits);
         scan.alloc(nbits);
-        freebits.alloc(nbits);
+
+        // pagetable already keeps track of what's free for the large object
+        // pool.
+        if(!isLargeObject) freebits.alloc(nbits);
+
         noscan.alloc(nbits);
         appendable.alloc(nbits);
 
@@ -3052,7 +3059,7 @@ struct Pool
 
         mark.Dtor();
         scan.Dtor();
-        freebits.Dtor();
+        if(!isLargeObject) freebits.Dtor();
         finals.Dtor();
         noscan.Dtor();
         appendable.Dtor();
