@@ -41,6 +41,7 @@ private import gc.gcalloc;
 
 private import cstdlib = core.stdc.stdlib : calloc, free, malloc, realloc;
 private import core.stdc.string;
+private import core.bitop;
 
 version (GNU) import gcc.builtins;
 
@@ -443,19 +444,7 @@ class GC
         //debug(PRINTF) printf("gcx.self = %x, pthread_self() = %x\n", gcx.self, pthread_self());
 
         size += SENTINEL_EXTRA;
-
-        // Compute size bin
-        // Cache previous binsize lookup - Dave Fladebo.
-        __gshared size_t lastsize = -1;
-        __gshared Bins lastbin;
-        if (size == lastsize)
-            bin = lastbin;
-        else
-        {
-            bin = gcx.findBin(size);
-            lastsize = size;
-            lastbin = bin;
-        }
+        bin = gcx.findBin(size);
 
         if (bin < B_PAGE)
         {
@@ -1891,6 +1880,15 @@ struct Gcx
      * Compute bin for size.
      */
     static Bins findBin(size_t size)
+    {
+        static const byte[2049] binTable = ctfeBins();
+
+        return (size <= 2048) ?
+            (cast(Bins) binTable[size]) :
+            B_PAGE;
+    }
+
+    static Bins findBinImpl(size_t size)
     {   Bins bin;
 
         if (size <= 256)
@@ -1930,6 +1928,20 @@ struct Gcx
             }
         }
         return bin;
+    }
+
+    /**
+     * Computes the bin table using CTFE.
+     */
+    static byte[2049] ctfeBins()
+    {
+        byte[2049] ret;
+        for(size_t i = 0; i < 2049; i++)
+        {
+            ret[i] = cast(byte) findBinImpl(i);
+        }
+
+        return ret;
     }
 
 
@@ -2482,21 +2494,13 @@ struct Gcx
                     *b = 0;
 
                     auto o = pool.baseAddr + (b - bbase) * (typeof(bitm).sizeof*8) * pool.divisor;
-                    if (!(bitm & 0xFFFF))
-                    {
-                        bitm >>= 16;
-                        o += 16 * pool.divisor;
-                    }
-                    if (!(bitm & 0xFF))
-                    {
-                        bitm >>= 8;
-                        o += 8 * pool.divisor;
-                    }
-                    for (; bitm; o += pool.divisor, bitm >>= 1)
-                    {
-                        if (!(bitm & 1))
-                            continue;
 
+                    auto firstset = bsf(bitm);
+                    bitm >>= firstset;
+                    o += firstset * pool.divisor;
+
+                    while(bitm)
+                    {
                         auto pn = cast(size_t)(o - pool.baseAddr) / PAGESIZE;
                         auto bin = cast(Bins)pool.pagetable[pn];
                         if (bin < B_PAGE)
@@ -2512,6 +2516,11 @@ struct Gcx
                             auto u = pool.bPageOffsets[pn];
                             mark(o, o + u * PAGESIZE);
                         }
+
+                        bitm >>= 1;
+                        auto nbits = bsf(bitm);
+                        bitm >>= nbits;
+                        o += (nbits + 1) * pool.divisor;
                     }
                 }
             }
