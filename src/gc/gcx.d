@@ -317,7 +317,7 @@ class GC
 
             if (pool)
             {
-                auto biti = cast(size_t)(p - pool.baseAddr) / pool.divisor;
+                auto biti = cast(size_t)(p - pool.baseAddr) >> pool.shiftBy;
 
                 oldb = gcx.getBits(pool, biti);
             }
@@ -352,7 +352,7 @@ class GC
 
             if (pool)
             {
-                auto biti = cast(size_t)(p - pool.baseAddr) / pool.divisor;
+                auto biti = cast(size_t)(p - pool.baseAddr) >> pool.shiftBy;
 
                 oldb = gcx.getBits(pool, biti);
                 gcx.setBits(pool, biti, mask);
@@ -388,7 +388,7 @@ class GC
 
             if (pool)
             {
-                auto biti = cast(size_t)(p - pool.baseAddr) / pool.divisor;
+                auto biti = cast(size_t)(p - pool.baseAddr) >> pool.shiftBy;
 
                 oldb = gcx.getBits(pool, biti);
                 gcx.clrBits(pool, biti, mask);
@@ -509,7 +509,7 @@ class GC
 
         if (bits)
         {
-            gcx.setBits(pool, cast(size_t)(p - pool.baseAddr) / pool.divisor, bits);
+            gcx.setBits(pool, cast(size_t)(p - pool.baseAddr) >> pool.shiftBy, bits);
         }
         return p;
     }
@@ -600,7 +600,7 @@ class GC
 
                         if (pool)
                         {
-                            auto biti = cast(size_t)(p - pool.baseAddr) / pool.divisor;
+                            auto biti = cast(size_t)(p - pool.baseAddr) >> pool.shiftBy;
 
                             if (bits)
                             {
@@ -689,7 +689,7 @@ class GC
 
                         if (pool)
                         {
-                            auto biti = cast(size_t)(p - pool.baseAddr) / pool.divisor;
+                            auto biti = cast(size_t)(p - pool.baseAddr) >> pool.shiftBy;
 
                             if (bits)
                             {
@@ -885,7 +885,7 @@ class GC
 
         debug(PRINTF) printf("pool base = %p, PAGENUM = %d of %d / %d, bin = %d\n", pool.baseAddr, pagenum, pool.ncommitted, pool.npages, pool.pagetable[pagenum]);
         debug(PRINTF) if(pool.isLargeObject) printf("Block size = %d\n", pool.bPageOffsets[pagenum]);
-        biti = cast(size_t)(p - pool.baseAddr) / pool.divisor;
+        biti = cast(size_t)(p - pool.baseAddr) >> pool.shiftBy;
 
         gcx.clrBits(pool, biti, BlkAttr.ALL_BITS);
 
@@ -1868,7 +1868,7 @@ struct Gcx
             // reset the offset to the base pointer, otherwise the bits
             // are the bits for the pointer, which may be garbage
             offset = cast(size_t)(info.base - pool.baseAddr);
-            info.attr = getBits(pool, cast(size_t)(offset / pool.divisor));
+            info.attr = getBits(pool, cast(size_t)(offset >> pool.shiftBy));
 
             cached_info_key = p;
             cached_info_val = info;
@@ -2255,12 +2255,12 @@ struct Gcx
                     // Adjust bit to be at start of allocated memory block
                     if (bin < B_PAGE)
                     {
-                        biti = (offset & notbinsize[bin]) / pool.divisor;
+                        biti = (offset & notbinsize[bin]) >> pool.shiftBy;
                         //debug(PRINTF) printf("\t\tbiti = x%x\n", biti);
                     }
                     else if (bin == B_PAGE)
                     {
-                        biti = (offset & notbinsize[bin]) / pool.divisor;
+                        biti = (offset & notbinsize[bin]) >> pool.shiftBy;
                         //debug(PRINTF) printf("\t\tbiti = x%x\n", biti);
 
                         pcache = cast(size_t)p & ~cast(size_t)(PAGESIZE-1);
@@ -2268,7 +2268,7 @@ struct Gcx
                     else if (bin == B_PAGEPLUS)
                     {
                         pn -= pool.bPageOffsets[pn];
-                        biti = pn * (PAGESIZE / pool.divisor);
+                        biti = pn * (PAGESIZE >> pool.shiftBy);
 
                         pcache = cast(size_t)p & ~cast(size_t)(PAGESIZE-1);
                     }
@@ -2288,7 +2288,7 @@ struct Gcx
                             changes = 1;
                             pool.newChanges = true;
                         }
-                        debug (LOGGING) log_parent(sentinel_add(pool.baseAddr + biti * pool.divisor), sentinel_add(pbot));
+                        debug (LOGGING) log_parent(sentinel_add(pool.baseAddr + (biti << pool.shiftBy)), sentinel_add(pbot));
                     }
                 }
             }
@@ -2507,11 +2507,11 @@ struct Gcx
                     }
                     *b = 0;
 
-                    auto o = pool.baseAddr + (b - bbase) * (typeof(bitm).sizeof*8) * pool.divisor;
+                    auto o = pool.baseAddr + (b - bbase) * ((typeof(bitm).sizeof*8) << pool.shiftBy);
 
                     auto firstset = bsf(bitm);
                     bitm >>= firstset;
-                    o += firstset * pool.divisor;
+                    o += firstset << pool.shiftBy;
 
                     while(bitm)
                     {
@@ -2530,7 +2530,7 @@ struct Gcx
                         bitm >>= 1;
                         auto nbits = bsf(bitm);
                         bitm >>= nbits;
-                        o += (nbits + 1) * pool.divisor;
+                        o += (nbits + 1) << pool.shiftBy;
                     }
                 }
             }
@@ -2749,7 +2749,7 @@ struct Gcx
             {
                 assert(p == cast(void*)((cast(size_t)p) & notbinsize[bins]));
                 // return true if the block is not marked.
-                return !(pool.mark.test(offset / pool.divisor));
+                return !(pool.mark.test(offset >> pool.shiftBy));
             }
         }
         return false; // not collecting or pointer is a valid argument.
@@ -3116,8 +3116,15 @@ struct Pool
     }
 
     // The divisor used for determining bit indices.
-    size_t divisor() {
+    size_t divisor()
+    {
         return isLargeObject ? PAGESIZE : 16;
+    }
+
+    // Bit shift for fast division by divisor.
+    uint shiftBy()
+    {
+        return isLargeObject ? 12 : 4;
     }
 
     void updateOffsets(size_t fromWhere)
