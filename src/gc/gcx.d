@@ -2286,6 +2286,7 @@ struct Gcx
                         {
                             pool.scan.set(biti);
                             changes = 1;
+                            pool.newChanges = true;
                         }
                         debug (LOGGING) log_parent(sentinel_add(pool.baseAddr + biti * pool.divisor), sentinel_add(pbot));
                     }
@@ -2434,6 +2435,7 @@ struct Gcx
         for (n = 0; n < npools; n++)
         {
             pool = pooltable[n];
+            pool.newChanges = false;  // Some of these get set to true on stack scan.
             if(!pool.isLargeObject)
             {
                 pool.mark.copy(&pool.freebits);
@@ -2479,11 +2481,19 @@ struct Gcx
         debug(COLLECT_PRINTF) printf("\tscan heap\n");
         while (anychanges)
         {
+            for (n = 0; n < npools; n++)
+            {
+                pool = pooltable[n];
+                pool.oldChanges = pool.newChanges;
+                pool.newChanges = false;
+            }
+
             debug(COLLECT_PRINTF) printf("\t\tpass\n");
             anychanges = 0;
             for (n = 0; n < npools; n++)
             {
                 pool = pooltable[n];
+                if(!pool.oldChanges) continue;
 
                 auto bbase = pool.scan.base();
                 auto btop = bbase + pool.scan.nwords;
@@ -2971,6 +2981,8 @@ struct Pool
     ubyte* pagetable;
 
     bool isLargeObject;
+    bool oldChanges;  // Whether there were changes on the last mark.
+    bool newChanges;  // Whether there were changes on the current mark.
 
     // This tracks how far back we have to go to find the nearest B_PAGE at
     // a smaller address than a B_PAGEPLUS.  To save space, we use a uint.
