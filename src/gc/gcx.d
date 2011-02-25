@@ -2511,12 +2511,8 @@ struct Gcx
                         {
                             mark(o, o + binsize[bin]);
                         }
-                        else if (bin == B_PAGE || bin == B_PAGEPLUS)
+                        else if (bin == B_PAGE)
                         {
-                            if (bin == B_PAGEPLUS)
-                            {
-                                pn -= pool.bPageOffsets[pn];
-                            }
                             auto u = pool.bPageOffsets[pn];
                             mark(o, o + u * PAGESIZE);
                         }
