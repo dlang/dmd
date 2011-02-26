@@ -59,6 +59,17 @@ debug(PRINTF) void printFreeInfo(Pool* pool)
     printf("Pool %p:  %d really free, %d supposedly be free\n", pool, nReallyFree, pool.freepages);
 }
 
+debug(PROFILING)
+{
+    // Track total time spent preparing for GC,
+    // marking, sweeping and recovering pages.
+    import core.stdc.stdio, core.stdc.time;
+    __gshared long prepTime;
+    __gshared long markTime;
+    __gshared long sweepTime;
+    __gshared long recoverTime;
+}
+
 private
 {
     enum USE_CACHE = true;
@@ -1439,7 +1450,6 @@ immutable size_t notbinsize[B_MAX] = [ ~(16-1),~(32-1),~(64-1),~(128-1),~(256-1)
 
 /* ============================ Gcx =============================== */
 
-
 struct Gcx
 {
     debug (THREADINVARIANT)
@@ -1502,6 +1512,21 @@ struct Gcx
 
     void Dtor()
     {
+        debug(PROFILING)
+        {
+            printf("\tTotal GC prep time:  %d milliseconds\n",
+                prepTime * 1000 / CLOCKS_PER_SEC);
+            printf("\tTotal mark time:  %d milliseconds\n",
+                markTime * 1000 / CLOCKS_PER_SEC);
+            printf("\tTotal sweep time:  %d milliseconds\n",
+                sweepTime * 1000 / CLOCKS_PER_SEC);
+            printf("\tTotal page recovery time:  %d milliseconds\n",
+                recoverTime * 1000 / CLOCKS_PER_SEC);
+            printf("\tGrand total GC time:  %d milliseconds\n",
+                1000 * (recoverTime + sweepTime + markTime + prepTime)
+                / CLOCKS_PER_SEC);
+        }
+
         inited = 0;
 
         for (size_t i = 0; i < npools; i++)
@@ -2398,6 +2423,12 @@ struct Gcx
         size_t n;
         Pool*  pool;
 
+        debug(PROFILING)
+        {
+            clock_t start, stop;
+            start = clock();
+        }
+
         debug(COLLECT_PRINTF) printf("Gcx.fullcollect()\n");
         //printf("\tpool address range = %p .. %p\n", minAddr, maxAddr);
 
@@ -2462,6 +2493,13 @@ struct Gcx
                 else
                     mark(stackBottom, stackTop);
             }
+        }
+
+        debug(PROFILING)
+        {
+            stop = clock();
+            prepTime += (stop - start);
+            start = stop;
         }
 
         // Scan roots[]
@@ -2539,6 +2577,13 @@ struct Gcx
         thread_processGCMarks();
         thread_resumeAll();
 
+        debug(PROFILING)
+        {
+            stop = clock();
+            markTime += (stop - start);
+            start = stop;
+        }
+
         // Free up everything not marked
         debug(COLLECT_PRINTF) printf("\tfree'ing\n");
         size_t freedpages = 0;
@@ -2547,7 +2592,6 @@ struct Gcx
         {   size_t pn;
 
             pool = pooltable[n];
-            auto bbase = pool.mark.base();
             auto ncommitted = pool.ncommitted;
 
             if(pool.isLargeObject)
@@ -2599,21 +2643,17 @@ struct Gcx
             else
             {
 
-                for (pn = 0; pn < ncommitted; pn++, bbase += PAGESIZE / (32 * 16))
+                for (pn = 0; pn < ncommitted; pn++)
                 {
                     Bins bin = cast(Bins)pool.pagetable[pn];
 
                     if (bin < B_PAGE)
-                    {   byte* p;
-                        byte* ptop;
-                        size_t biti;
-                        size_t bitstride;
+                    {
                         auto   size = binsize[bin];
-
-                        p = pool.baseAddr + pn * PAGESIZE;
-                        ptop = p + PAGESIZE;
-                        biti = pn * (PAGESIZE/16);
-                        bitstride = size / 16;
+                        byte *p = pool.baseAddr + pn * PAGESIZE;
+                        byte *ptop = p + PAGESIZE;
+                        size_t biti = pn * (PAGESIZE/16);
+                        size_t bitstride = size / 16;
 
         version(none) // BUG: doesn't work because freebits() must also be cleared
         {
@@ -2664,6 +2704,13 @@ struct Gcx
                     }
                 }
             }
+        }
+
+        debug(PROFILING)
+        {
+            stop = clock();
+            sweepTime += (stop - start);
+            start = stop;
         }
 
         // Zero buckets
@@ -2720,6 +2767,12 @@ struct Gcx
                     }
                 }
             }
+        }
+
+        debug(PROFILING)
+        {
+            stop = clock();
+            recoverTime += (stop - start);
         }
 
         debug(COLLECT_PRINTF) printf("\trecovered pages = %d\n", recoveredpages);
