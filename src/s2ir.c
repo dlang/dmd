@@ -1252,6 +1252,10 @@ void ReturnStatement::toIR(IRState *irs)
                 {   StructDeclaration *sd = ((TypeStruct *)tb)->sym;
                     if (sd->postblit)
                     {   FuncDeclaration *fd = sd->postblit;
+                        if (fd->storage_class & STCdisable)
+                        {
+                            fd->toParent()->error(loc, "is not copyable because it is annotated with @disable");
+                        }
                         elem *ec = el_var(irs->shidden);
                         ec = callfunc(loc, irs, 1, Type::tvoid, ec, tb->pointerTo(), fd, fd->type, NULL, NULL);
                         es = el_bin(OPcomma, ec->Ety, es, ec);
