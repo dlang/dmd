@@ -1247,7 +1247,7 @@ void ReturnStatement::toIR(IRState *irs)
                  */
                 Type *tb = exp->type->toBasetype();
                 //if (tb->ty == Tstruct) exp->dump(0);
-                if ((exp->op == TOKvar || exp->op == TOKdotvar || exp->op == TOKstar) &&
+                if ((exp->op == TOKvar || exp->op == TOKdotvar || exp->op == TOKstar || exp->op == TOKthis) &&
                     tb->ty == Tstruct)
                 {   StructDeclaration *sd = ((TypeStruct *)tb)->sym;
                     if (sd->postblit)
