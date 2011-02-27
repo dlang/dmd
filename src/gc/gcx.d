@@ -2533,6 +2533,7 @@ struct Gcx
                 pool = pooltable[n];
                 if(!pool.oldChanges) continue;
 
+                auto shiftBy = pool.shiftBy;
                 auto bbase = pool.scan.base();
                 auto btop = bbase + pool.scan.nwords;
                 //printf("\t\tn = %d, bbase = %p, btop = %p\n", n, bbase, btop);
@@ -2545,11 +2546,11 @@ struct Gcx
                     }
                     *b = 0;
 
-                    auto o = pool.baseAddr + (b - bbase) * ((typeof(bitm).sizeof*8) << pool.shiftBy);
+                    auto o = pool.baseAddr + (b - bbase) * ((typeof(bitm).sizeof*8) << shiftBy);
 
                     auto firstset = bsf(bitm);
                     bitm >>= firstset;
-                    o += firstset << pool.shiftBy;
+                    o += firstset << shiftBy;
 
                     while(bitm)
                     {
@@ -2568,7 +2569,7 @@ struct Gcx
                         bitm >>= 1;
                         auto nbits = bsf(bitm);
                         bitm >>= nbits;
-                        o += (nbits + 1) << pool.shiftBy;
+                        o += (nbits + 1) << shiftBy;
                     }
                 }
             }
