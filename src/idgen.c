@@ -266,7 +266,7 @@ Msgtable msgtable[] =
     { "criticalexit", "_d_criticalexit" },
     { "_ArrayEq" },
     // DMD_OBJC
-    { "_dobjc_class" },
+    { "_dobjc_preinit" },
 
     // For pragma's
     { "GNU_asm" },
