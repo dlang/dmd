@@ -7,6 +7,8 @@ class NSObject {
     NSObject init();
 }
 
+import objc.runtime;
+
 void main() {
     extern (Objective-C) NSObject __selector() allocSel = &NSObject.alloc;
     NSObject obj = allocSel(NSObject.class);
@@ -23,4 +25,10 @@ void main() {
     
     NSObject __selector() nullSel = null;
     assert(nullSel == null);
+    
+    NSObject __selector() stringSel = cast(NSObject __selector())"hello";
+    assert(cast(SEL)stringSel == sel_registerName("hello"));
+    
+    SEL untypedSel = cast(SEL)"hello";
+    assert(untypedSel == sel_registerName("hello"));
 }

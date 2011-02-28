@@ -1003,28 +1003,6 @@ Expression *StringExp::castTo(Scope *sc, Type *t)
         error("cannot convert string literal to void*");
         return new ErrorExp();
     }
-    
-#if DMD_OBJC
-    if (t->ty == Tclass)
-    {
-        // convert to Objective-C NSString literal
-        
-        if (type->ty != Tclass) // not already converted to a string literal
-        {
-            if (((TypeClass *)type)->sym->objc &&
-                ((TypeClass *)type)->sym->objctakestringliteral)
-            {
-                if (committed)
-                {   error("cannot convert string literal to NSString because of explicit character type");
-                    return new ErrorExp();
-                }
-                type = t;
-                semantic(sc);
-            }
-        }
-        return this;
-    }
-#endif
 
     StringExp *se = this;
     if (!committed)
@@ -1043,8 +1021,40 @@ Expression *StringExp::castTo(Scope *sc, Type *t)
     if (tb->ty == Tdelegate && type->toBasetype()->ty != Tdelegate)
         return Expression::castTo(sc, t);
 #if DMD_OBJC
-    if (tb->ty == Tobjcselector && type->toBasetype()->ty != Tobjcselector)
-        return Expression::castTo(sc, t);
+    if (tb->ty == Tclass)
+    {
+        // convert to Objective-C NSString literal
+        
+        if (type->ty != Tclass) // not already converted to a string literal
+        {
+            if (((TypeClass *)type)->sym->objc &&
+                ((TypeClass *)type)->sym->objctakestringliteral)
+            {
+                if (committed)
+                {   error("cannot convert string literal to NSString because of explicit character type");
+                    return new ErrorExp();
+                }
+                type = t;
+                semantic(sc);
+            }
+        }
+        return this;
+    }
+	
+	// Either a typed selector or a pointer to a struct designated as a 
+	// selector type
+	if (tb->ty == Tobjcselector ||
+		(tb->ty == Tpointer && tb->nextOf()->toBasetype()->ty == Tstruct && 
+		 ((TypeStruct *)tb->nextOf()->toBasetype())->sym->isselector))
+	{
+		if (committed)
+		{   error("cannot convert string literal to Objective-C selector because of explicit character type");
+			return new ErrorExp();
+		}
+        Expression *e = new ObjcSelectorExp(loc, (char *)string);
+		e->type = t;
+		return e;
+	}
 #endif
 
     Type *typeb = type->toBasetype();
@@ -1606,7 +1616,7 @@ Expression *ObjcSelectorExp::castTo(Scope *sc, Type *t)
     else
     {   int offset;
 
-        if (func->tintro && func->tintro->nextOf()->isBaseOf(func->type->nextOf(), &offset) && offset)
+        if (func && func->tintro && func->tintro->nextOf()->isBaseOf(func->type->nextOf(), &offset) && offset)
             error("%s", msg);
         e = copy();
         e->type = t;

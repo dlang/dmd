@@ -276,6 +276,8 @@ Msgtable msgtable[] =
     // DMD_OBJC
     { "objc_takestringliteral" },
     { "objc_nameoverride" },
+	{ "objc_selectortarget" },
+	{ "objc_isselector" },
 
     // For special functions
     { "tohash", "toHash" },

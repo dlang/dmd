@@ -87,6 +87,7 @@ struct ObjcSelector
     elem *toElem();
     
     static ObjcSelector *lookup(ObjcSelectorBuilder *builder);
+    static ObjcSelector *lookup(const char *s);
     static ObjcSelector *lookup(const char *s, size_t len, size_t pcount);
     static ObjcSelector *create(FuncDeclaration *fdecl);
 };

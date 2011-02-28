@@ -252,6 +252,10 @@ StructDeclaration::StructDeclaration(Loc loc, Identifier *id)
     postblit = NULL;
     eq = NULL;
 #endif
+#if DMD_OBJC
+    selectortarget = 0;
+    isselector = 0;
+#endif
 
     // For forward references
     type = new TypeStruct(this);

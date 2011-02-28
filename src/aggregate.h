@@ -128,6 +128,10 @@ struct StructDeclaration : AggregateDeclaration
     FuncDeclarations postblits; // Array of postblit functions
     FuncDeclaration *postblit;  // aggregate postblit
 #endif
+#if DMD_OBJC
+    int selectortarget;         // !=0 if valid target for a selector
+    int isselector;             // !=0 if represents a selector
+#endif
 
     StructDeclaration(Loc loc, Identifier *id);
     Dsymbol *syntaxCopy(Dsymbol *s);

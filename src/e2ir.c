@@ -3583,7 +3583,11 @@ elem *DelegateExp::toElem(IRState *irs)
 #if DMD_OBJC
 elem *ObjcSelectorExp::toElem(IRState *irs)
 {
-    return func->objcSelector->toElem();
+    if (func)
+        return func->objcSelector->toElem();
+    else if (selname)
+        return ObjcSelector::lookup(selname)->toElem();
+    assert(0);
 }
 #endif
 

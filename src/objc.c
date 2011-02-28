@@ -536,6 +536,19 @@ ObjcSelector *ObjcSelector::lookup(ObjcSelectorBuilder *builder)
     return lookup(builder->toString(), builder->slen, builder->colonCount);
 }
 
+ObjcSelector *ObjcSelector::lookup(const char *s)
+{
+	size_t len = 0;
+	size_t pcount = 0;
+	const char *i = s;
+	while (*i != 0)
+	{	++len;
+		if (*i == ':') ++pcount;
+		++i;
+	}
+	return lookup(s, len, pcount);
+}
+
 ObjcSelector *ObjcSelector::lookup(const char *s, size_t len, size_t pcount)
 {
     StringValue *sv = stringtable.update(s, len);

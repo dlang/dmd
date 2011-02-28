@@ -910,9 +910,11 @@ struct DelegateExp : UnaExp
 struct ObjcSelectorExp : Expression
 {
     FuncDeclaration *func;
+    char *selname;
     int hasOverloads;
 
     ObjcSelectorExp(Loc loc, FuncDeclaration *func, int hasOverloads = 0);
+    ObjcSelectorExp(Loc loc, char *selname, int hasOverloads = 0);
     Expression *semantic(Scope *sc);
     Expression *interpret(InterState *istate);
     MATCH implicitConvTo(Type *t);

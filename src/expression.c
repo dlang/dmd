@@ -73,15 +73,15 @@ Expression *getRightThis(Loc loc, Scope *sc, AggregateDeclaration *ad,
     {
         // We already have an Objective-C class reference, just use that as 'this'.
     }
-	else if (ad &&
-		ad->isClassDeclaration() && ((ClassDeclaration *)ad)->objc && 
-		var->isFuncDeclaration() && ((FuncDeclaration *)var)->isStatic() &&
-		((FuncDeclaration *)var)->objcSelector)
-	{
+    else if (ad &&
+        ad->isClassDeclaration() && ((ClassDeclaration *)ad)->objc && 
+        var->isFuncDeclaration() && ((FuncDeclaration *)var)->isStatic() &&
+        ((FuncDeclaration *)var)->objcSelector)
+    {
         // Create class reference from the class declaration
-		e1 = new ObjcClassRefExp(e1->loc, (ClassDeclaration *)ad);
-	}
-	else
+        e1 = new ObjcClassRefExp(e1->loc, (ClassDeclaration *)ad);
+    }
+    else
 #endif
     /* If e1 is not the 'this' pointer for ad
      */
@@ -6608,6 +6608,15 @@ ObjcSelectorExp::ObjcSelectorExp(Loc loc, FuncDeclaration *f, int hasOverloads)
         : Expression(loc, TOKobjcselector, sizeof(ObjcSelectorExp))
 {
     this->func = f;
+    this->selname = NULL;
+    this->hasOverloads = hasOverloads;
+}
+
+ObjcSelectorExp::ObjcSelectorExp(Loc loc, char *selname, int hasOverloads)
+        : Expression(loc, TOKobjcselector, sizeof(ObjcSelectorExp))
+{
+    this->func = NULL;
+    this->selname = selname;
     this->hasOverloads = hasOverloads;
 }
 
@@ -7013,15 +7022,28 @@ Lagain:
         }
 #if DMD_OBJC
         else if (t1->ty == Tobjcselector)
-        {   TypeObjcSelector *sel = (TypeObjcSelector *)t1;
+        {   assert(argument0 == NULL);
+            TypeObjcSelector *sel = (TypeObjcSelector *)t1;
             
-            // harvest first argument
-            TypeClass *tc = NULL;
+            // harvest first argument and check if valid target for a selector
+            int validtarget = 0;
             if (arguments->dim >= 1)
-                argument0 = ((Expression *)arguments->data[0])->semantic(sc);
-            if (argument0 && argument0->type->ty == Tclass)
-                tc = (TypeClass *)argument0->type;
-            if (tc && tc->sym && tc->sym->objc)
+            {   argument0 = ((Expression *)arguments->data[0])->semantic(sc);
+                if (argument0 && argument0->type->ty == Tclass)
+                {   TypeClass *tc = (TypeClass *)argument0->type;
+                    if (tc && tc->sym && tc->sym->objc)
+                        validtarget = 1; // Objective-C object
+                }
+                else if (argument0 && argument0->type->ty == Tpointer)
+                {   TypePointer *tp = (TypePointer *)argument0->type;
+                    if (tp->next->ty == Tstruct)
+                    {   TypeStruct *ts = (TypeStruct *)tp->next;
+                        if (ts && ts->sym && ts->sym->selectortarget)
+                            validtarget = 1; // struct with objc_selectortarget pragma applied
+                    }
+                }
+            }
+            if (validtarget)
             {   // take first argument and use it as 'this'
                 // create new array of expressions omiting first argument
                 Expressions *newargs = new Expressions();

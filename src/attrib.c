@@ -1067,6 +1067,64 @@ void PragmaDeclaration::semantic(Scope *sc)
             }
         }
     }
+    else if (ident == Id::objc_selectortarget)
+    {
+        // This should apply only to a very limited number of struct types in 
+        // the Objective-C runtime bindings: objc_object, objc_class.
+        
+        if (args && args->dim != 0)
+            error("takes no argument");
+    
+        Dsymbols *currdecl = decl;
+    Lagain_selectortarget:
+        if (currdecl->dim > 1)
+            error("can only apply to one declaration, not %u", currdecl->dim);
+        else if (currdecl->dim == 1)
+        {   Dsymbol *dsym = (Dsymbol *)currdecl->data[0];
+            StructDeclaration *sdecl = dsym->isStructDeclaration();
+            if (sdecl)
+                sdecl->selectortarget = 1; // set valid selector target
+            else
+            {   AttribDeclaration *adecl = dsym->isAttribDeclaration();
+                if (adecl)
+                {   // encountered attrib declaration, search for a class inside
+                    currdecl = ((AttribDeclaration *)dsym)->decl;
+                    goto Lagain_selectortarget;
+                }
+                else
+                    error("can only apply to struct declarations, not %s", dsym->toChars());
+            }
+        }
+    }
+    else if (ident == Id::objc_isselector)
+    {
+        // This should apply only to a very limited number of struct types in 
+        // the Objective-C runtime bindings: objc_object, objc_class.
+        
+        if (args && args->dim != 0)
+            error("takes no argument");
+    
+        Dsymbols *currdecl = decl;
+    Lagain_isselector:
+        if (currdecl->dim > 1)
+            error("can only apply to one declaration, not %u", currdecl->dim);
+        else if (currdecl->dim == 1)
+        {   Dsymbol *dsym = (Dsymbol *)currdecl->data[0];
+            StructDeclaration *sdecl = dsym->isStructDeclaration();
+            if (sdecl)
+                sdecl->isselector = 1; // represents a selector
+            else
+            {   AttribDeclaration *adecl = dsym->isAttribDeclaration();
+                if (adecl)
+                {   // encountered attrib declaration, search for a class inside
+                    currdecl = ((AttribDeclaration *)dsym)->decl;
+                    goto Lagain_isselector;
+                }
+                else
+                    error("can only apply to struct declarations, not %s", dsym->toChars());
+            }
+        }
+    }
     else if (ident == Id::objc_nameoverride)
     {
         if (!args || args->dim != 1)
