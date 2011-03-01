@@ -649,6 +649,9 @@ void FuncDeclaration::semantic(Scope *sc)
                     sv->ptrvalue = this;
             }
         }
+        
+        if (linkage != LINKobjc && objcSelector)
+            error("function must have Objective-C linkage to attach a selector");
 #endif
 
         /* Go through all the interface bases.
