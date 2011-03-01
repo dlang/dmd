@@ -1,6 +1,6 @@
 
 // Compiler implementation of the D programming language
-// Copyright (c) 1999-2010 by Digital Mars
+// Copyright (c) 1999-2011 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // http://www.digitalmars.com
@@ -391,10 +391,10 @@ Array *Parser::parseDeclDefs(int once)
                 if (token.value == TOKlparen)
                 {
                     nextToken();
-                    if (token.value == TOKint32v)
+                    if (token.value == TOKint32v && token.uns64value > 0)
                         n = (unsigned)token.uns64value;
                     else
-                    {   error("integer expected, not %s", token.toChars());
+                    {   error("positive integer expected, not %s", token.toChars());
                         n = 1;
                     }
                     nextToken();
