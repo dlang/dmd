@@ -883,12 +883,18 @@ Symbol *ObjcClassDeclaration::getIVarList()
 Symbol *ObjcClassDeclaration::getMethodList()
 {
     Array *methods = !ismeta ? &cdecl->objcMethodList : &cdecl->metaclass->objcMethodList;
-    if (!methods->dim) // no member, no method list.
+    int methods_count = methods->dim;
+
+    int overridealloc = ismeta && cdecl->objchaspreinit;
+    if (overridealloc)
+        methods_count += 2; // adding alloc & allocWithZone:
+
+    if (!methods_count) // no member, no method list.
         return NULL;
     
     dt_t *dt = NULL;
     dtdword(&dt, 0); // unused
-    dtdword(&dt, methods->dim); // method count
+    dtdword(&dt, methods_count); // method count
     for (size_t i = 0; i < methods->dim; ++i)
     {
         FuncDeclaration *func = ((Dsymbol *)methods->data[i])->isFuncDeclaration();
@@ -899,6 +905,18 @@ Symbol *ObjcClassDeclaration::getMethodList()
             dtxoff(&dt, ObjcSymbols::getMethVarType(func), 0, TYnptr); // method type string
             dtxoff(&dt, func->toSymbol(), 0, TYnptr); // function implementation
         }
+    }
+
+    if (overridealloc)
+    {   // add alloc
+        dtxoff(&dt, ObjcSelector::lookup("alloc")->toNameSymbol(), 0, TYnptr); // method name
+        dtxoff(&dt, ObjcSymbols::getMethVarType("?", 1), 0, TYnptr); // method type string
+        dtxoff(&dt, symbol_name("__dobjc_alloc", SCglobal, type_fake(TYhfunc)), 0, TYnptr); // function implementation
+        
+        // add allocWithZone:
+        dtxoff(&dt, ObjcSelector::lookup("allocWithZone:")->toNameSymbol(), 0, TYnptr); // method name
+        dtxoff(&dt, ObjcSymbols::getMethVarType("?", 1), 0, TYnptr); // method type string
+        dtxoff(&dt, symbol_name("__dobjc_allocWithZone", SCglobal, type_fake(TYhfunc)), 0, TYnptr); // function implementation
     }
     
     char *sname;

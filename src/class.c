@@ -71,6 +71,7 @@ ClassDeclaration::ClassDeclaration(Loc loc, Identifier *id, BaseClasses *basecla
     sobjccls = NULL;
     objcMethods = NULL;
     metaclass = NULL;
+    objchaspreinit = 0;
 #endif
 
     if (id)
@@ -793,6 +794,7 @@ void ClassDeclaration::semantic(Scope *sc)
 			else
 			{	// no _dobjc_preinit to call in superclass, just return this
 				retvale = new ThisExp(loc);
+				retvale->type = type;
 			}
 			newinitfd->fbody = new ReturnStatement(loc, new CommaExp(loc, inite, retvale));
 			members->push(newinitfd);
@@ -804,7 +806,9 @@ void ClassDeclaration::semantic(Scope *sc)
 		}
 		
 		if (initfd)
-		{	// TODO: replace alloc functions with stubs ending with a call to _dobjc_preinit
+		{	// replace alloc functions with stubs ending with a call to _dobjc_preinit
+            // this is done by the backend glue in objc.c, we just need to set a flag
+            objchaspreinit = 1;
 		}
 	}
 #endif

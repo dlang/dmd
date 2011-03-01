@@ -245,6 +245,7 @@ struct ClassDeclaration : AggregateDeclaration
     StringTable *objcMethods;           // table of selectors for methods
     Array objcMethodList;               // list of non-inherited methods
     ClassDeclaration *metaclass;        // class declaration for metaclass
+    int objchaspreinit;                 // !=0 if this class has _dobjc_preinit
 #endif
 
     ClassDeclaration(Loc loc, Identifier *id, BaseClasses *baseclasses);
