@@ -3967,7 +3967,6 @@ Lagain:
                 if (allocf)
                 {
                     allocf = allocf->overloadResolve(loc, NULL, newargs);
-                    printf("%s == %s\n", ((TypeFunction *)allocf->type)->next->toChars(), allocf->parent->isClassDeclaration()->type->toChars());
                     if (!allocf->isStatic())
                     {   error("function %s must be static to qualify as an allocator for Objective-C class %s", allocf->toChars(), cd->toChars());
                         goto Lerr;
