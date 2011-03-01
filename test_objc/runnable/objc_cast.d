@@ -23,26 +23,3 @@ void main() {
     TestObject b = cast(TestObject)a;
     TestInterface c = cast(TestInterface)a;
 }
-
-// Runtime Support (to be added to druntime):
-
-import objc.runtime;
-
-extern (C)
-id _dobjc_dynamic_cast(id obj, Class cls)
-{
-    id __selector(Class) isKindOfClass = cast(id __selector(Class))"isKindOfClass:";
-    if (isKindOfClass(obj, cls))
-        return obj;
-    return null;
-}
-
-extern (C)
-id _dobjc_interface_cast(id obj, Protocol p)
-{
-    id __selector(Protocol) conformsToProtocol = cast(id __selector(Protocol))"conformsToProtocol:";
-    if (conformsToProtocol(obj, p))
-        return obj;
-    return null;
-}
-

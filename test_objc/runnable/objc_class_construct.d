@@ -37,29 +37,3 @@ void main() {
     assert(obj3.val == 22);
     assert(obj3.num == 33);
 }
-
-// Runtime Support (to be added to druntime):
-
-import objc.runtime;
-
-extern (C)
-id _dobjc_alloc(Class cls, SEL _cmd)
-{
-    id object = class_createInstance(cls, 0);
-    id __selector() _dobjc_preinit = cast(id __selector())"_dobjc_preinit";
-    return _dobjc_preinit(object);
-}
-
-extern (C)
-id _dobjc_allocWithZone(Class cls, SEL _cmd, void* zone)
-{
-    static if (__traits(compiles, class_createInstanceFromZone(cls, 0, zone)))
-    {   
-        id object = class_createInstanceFromZone(cls, 0, zone);
-        id __selector() _dobjc_preinit = cast(id __selector())"_dobjc_preinit";
-        return _dobjc_preinit(object);
-    }
-    else
-        return _dobjc_alloc(cls, _cmd);
-}
-
