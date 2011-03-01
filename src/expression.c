@@ -1,6 +1,6 @@
 
 // Compiler implementation of the D programming language
-// Copyright (c) 1999-2010 by Digital Mars
+// Copyright (c) 1999-2011 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // http://www.digitalmars.com
@@ -3152,17 +3152,21 @@ Expression *StructLiteralExp::semantic(Scope *sc)
         else
         {
             if (v->init)
-            {   e = v->init->toExpression();
-                if (!e)
-                {   error("cannot make expression out of initializer for %s", v->toChars());
-                    e = new ErrorExp();
-                }
-                else if (v->scope)
-                {   // Do deferred semantic anaylsis
-                    Initializer *i2 = v->init->syntaxCopy();
-                    i2 = i2->semantic(v->scope, v->type);
-                    e = i2->toExpression();
-                    v->scope = NULL;
+            {   if (v->init->isVoidInitializer())
+                    e = NULL;
+                else
+                {   e = v->init->toExpression();
+                    if (!e)
+                    {   error("cannot make expression out of initializer for %s", v->toChars());
+                        e = new ErrorExp();
+                    }
+                    else if (v->scope)
+                    {   // Do deferred semantic anaylsis
+                        Initializer *i2 = v->init->syntaxCopy();
+                        i2 = i2->semantic(v->scope, v->type);
+                        e = i2->toExpression();
+                        v->scope = NULL;
+                    }
                 }
             }
             else
@@ -3410,6 +3414,8 @@ Lagain:
             }
             //printf("sds = %s, '%s'\n", sds->kind(), sds->toChars());
         }
+        if (global.errors)
+            return new ErrorExp();
     }
     else
     {
@@ -5176,6 +5182,8 @@ Expression *CompileExp::semantic(Scope *sc)
 #endif
     UnaExp::semantic(sc);
     e1 = resolveProperties(sc, e1);
+    if (e1->op == TOKerror)
+        return e1;
     if (!e1->type->isString())
     {
         error("argument to mixin must be a string type, not %s\n", e1->type->toChars());
@@ -5908,6 +5916,8 @@ Expression *DotTemplateInstanceExp::semantic(Scope *sc)
     Expression *e = new DotIdExp(loc, e1, ti->name);
 L1:
     e = e->semantic(sc);
+    if (e->op == TOKerror)
+        return e;
     if (e->op == TOKdottd)
     {
         if (global.errors)
@@ -7201,6 +7211,8 @@ Expression *DeleteExp::semantic(Scope *sc)
     UnaExp::semantic(sc);
     e1 = resolveProperties(sc, e1);
     e1 = e1->toLvalue(sc, NULL);
+    if (e1->op == TOKerror)
+        return e1;
     type = Type::tvoid;
 
     tb = e1->type->toBasetype();
