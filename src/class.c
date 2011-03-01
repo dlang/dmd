@@ -990,6 +990,21 @@ int ClassDeclaration::isBaseOf(ClassDeclaration *cd, int *poffset)
          */
         if (!cd->baseClass && cd->baseclasses->dim && !cd->isInterfaceDeclaration())
         {
+#if DMD_OBJC
+            // Fix for a genral problem that happens only with Objective-C classes
+            // because regular D classes all use Object as the root class and Object
+            // implements no interface. Objective-C root classes do implement interfaces.
+            int missing = 0;
+            for (int i = 0; i < cd->baseclasses->dim; ++i)
+            {
+                BaseClass *bc = (BaseClass *)cd->baseclasses->data[i];
+                if (!bc->base)
+                {   missing = 1;
+                    break;
+                }
+            }
+            if (missing)
+#endif
             cd->error("base class is forward referenced by %s", toChars());
         }
 
