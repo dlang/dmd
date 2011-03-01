@@ -3067,15 +3067,18 @@ Statement *CaseRangeStatement::semantic(Scope *sc)
     first = first->semantic(sc);
     first = first->implicitCastTo(sc, sw->condition->type);
     first = first->optimize(WANTvalue | WANTinterpret);
-    uinteger_t fval = first->toInteger();
+
 
     last = last->semantic(sc);
     last = last->implicitCastTo(sc, sw->condition->type);
     last = last->optimize(WANTvalue | WANTinterpret);
-    uinteger_t lval = last->toInteger();
 
     if (first->op == TOKerror || last->op == TOKerror)
         return statement ? statement->semantic(sc) : NULL;
+
+    uinteger_t fval = first->toInteger();
+    uinteger_t lval = last->toInteger();
+
 
     if ( (first->type->isunsigned()  &&  fval > lval) ||
         (!first->type->isunsigned()  &&  (sinteger_t)fval > (sinteger_t)lval))
