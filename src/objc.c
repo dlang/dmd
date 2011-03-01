@@ -600,12 +600,24 @@ const char *ObjcSelectorBuilder::toString()
 {
     char *s = (char*)malloc(slen + 1);
     size_t spos = 0;
-    for (size_t i = 0; i < partCount; ++i) {
+    for (size_t i = 0; i < partCount; ++i)
+    {
         memcpy(&s[spos], parts[i]->string, parts[i]->len);
         spos += parts[i]->len;
-        s[spos] = ':';
-        spos += 1;
+        if (colonCount)
+        {   s[spos] = ':';
+            spos += 1;
+        }
     }
+    assert(colonCount == 0 || partCount <= colonCount);
+    if (colonCount > partCount)
+    {
+        for (size_t i = 0; i < colonCount - partCount; ++i)
+        {   s[spos] = ':';
+            spos += 1;
+        }
+    }
+    assert(slen == spos);
     s[slen] = '\0';
     return s;
 }
