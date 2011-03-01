@@ -775,8 +775,6 @@ Expression *Expression::castTo(Scope *sc, Type *t)
 #endif
     if (type == t)
         return this;
-    if (op == TOKerror)
-        return this;
     Expression *e = this;
     Type *tb = t->toBasetype();
     Type *typeb = type->toBasetype();
@@ -850,6 +848,12 @@ Expression *Expression::castTo(Scope *sc, Type *t)
     e->type = t;
     //printf("Returning: %s\n", e->toChars());
     return e;
+}
+
+
+Expression *ErrorExp::castTo(Scope *sc, Type *t)
+{
+    return this;
 }
 
 
