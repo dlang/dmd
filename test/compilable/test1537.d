@@ -81,3 +81,26 @@ class Bug5349(T) // segfault D2.051
 }
 
 static assert(!is(typeof(Bug5349!(int))));
+
+/**************************************/
+
+class Bug4033 {}
+
+class Template4033(T) {
+    static assert(is(T : Bug4033));
+}
+
+alias Template4033!(Z4033) Bla;
+
+class Z4033 : Bug4033 { }
+
+/**************************************/
+
+struct Bug4322 {
+    int[1] a = void;
+}
+
+void bug4322() {
+    Bug4322 f = Bug4322();
+    Bug4322 g = Bug4322.init;
+}

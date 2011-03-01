@@ -775,6 +775,8 @@ Expression *Expression::castTo(Scope *sc, Type *t)
 #endif
     if (type == t)
         return this;
+    if (op == TOKerror)
+        return this;
     Expression *e = this;
     Type *tb = t->toBasetype();
     Type *typeb = type->toBasetype();

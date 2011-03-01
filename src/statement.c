@@ -322,6 +322,8 @@ Statements *CompileStatement::flatten(Scope *sc)
     exp = exp->semantic(sc);
     exp = resolveProperties(sc, exp);
     exp = exp->optimize(WANTvalue | WANTinterpret);
+    if (exp->op == TOKerror)
+        return NULL;
     if (exp->op != TOKstring)
     {   error("argument to mixin must be a string, not (%s)", exp->toChars());
         return NULL;
@@ -1967,6 +1969,9 @@ Lagain:
             }
             break;
         }
+        case Terror:
+            s = NULL;
+            break;
 
         default:
             error("foreach: %s is not an aggregate type", aggr->type->toChars());
@@ -2958,7 +2963,7 @@ Statement *CaseStatement::semantic(Scope *sc)
             }
         }
 
-        if (exp->op != TOKstring && exp->op != TOKint64)
+        if (exp->op != TOKstring && exp->op != TOKint64 && exp->op != TOKerror)
         {
             error("case must be a string or an integral constant, not %s", exp->toChars());
             exp = new IntegerExp(0);
@@ -3068,6 +3073,9 @@ Statement *CaseRangeStatement::semantic(Scope *sc)
     last = last->implicitCastTo(sc, sw->condition->type);
     last = last->optimize(WANTvalue | WANTinterpret);
     uinteger_t lval = last->toInteger();
+
+    if (first->op == TOKerror || last->op == TOKerror)
+        return statement ? statement->semantic(sc) : NULL;
 
     if ( (first->type->isunsigned()  &&  fval > lval) ||
         (!first->type->isunsigned()  &&  (sinteger_t)fval > (sinteger_t)lval))
@@ -3402,7 +3410,7 @@ Statement *ReturnStatement::semantic(Scope *sc)
             Type *tfret = tf->nextOf();
             if (tfret)
             {
-                if (!exp->type->equals(tfret))
+                if (tfret != Type::terror && !exp->type->equals(tfret))
                     error("mismatched function return type inference of %s and %s",
                         exp->type->toChars(), tfret->toChars());
 
@@ -3983,6 +3991,8 @@ Statement *WithStatement::semantic(Scope *sc)
     //printf("WithStatement::semantic()\n");
     exp = exp->semantic(sc);
     exp = resolveProperties(sc, exp);
+    if (exp->op == TOKerror)
+        return NULL;
     if (exp->op == TOKimport)
     {   ScopeExp *es = (ScopeExp *)exp;
 
@@ -4441,6 +4451,8 @@ Statement *ThrowStatement::semantic(Scope *sc)
 #endif
     exp = exp->semantic(sc);
     exp = resolveProperties(sc, exp);
+    if (exp->op == TOKerror)
+        return this;
     ClassDeclaration *cd = exp->type->toBasetype()->isClassHandle();
     if (!cd || ((cd != ClassDeclaration::throwable) && !ClassDeclaration::throwable->isBaseOf(cd, NULL)))
         error("can only throw class objects derived from Throwable, not type %s", exp->type->toChars());

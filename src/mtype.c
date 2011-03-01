@@ -5615,8 +5615,11 @@ void TypeQualified::resolveHelper(Loc loc, Scope *sc,
                     *pe = e;
                 }
                 else
+                {
                   Lerror:
                     error(loc, "identifier '%s' of '%s' is not defined", id->toChars(), toChars());
+                    *pe = new ErrorExp();
+                }
                 return;
             }
         L2:
@@ -5715,6 +5718,7 @@ L1:
             else
                 error(loc, "undefined identifier %s", p);
         }
+        *pt = Type::terror;
     }
 }
 
@@ -7079,7 +7083,11 @@ Expression *TypeStruct::defaultInitLiteral(Loc loc)
         VarDeclaration *vd = (VarDeclaration *)(sym->fields.data[j]);
         Expression *e;
         if (vd->init)
-            e = vd->init->toExpression();
+        {   if (vd->init->isVoidInitializer())
+                e = NULL;
+            else
+                e = vd->init->toExpression();
+        }
         else
             e = vd->type->defaultInitLiteral();
         structelems->data[j] = e;
